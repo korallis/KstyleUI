@@ -218,6 +218,10 @@ function IconButton:Restyle()
 			self.countdown:ClearAllPoints()
 			self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
 		end
+		self.hoverGlow:Restyle()
+		if self.procGlow then
+			self.procGlow:Restyle()
+		end
 	end
 	self:Paint()
 end

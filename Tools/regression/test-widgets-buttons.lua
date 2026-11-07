@@ -191,6 +191,17 @@ do
 	assert(W.SameColor(button.chrome.inner[5], r, g, b, 1), "a selected button keeps the full accent")
 end
 
+-- A button that changes size restyles its glows too, so the proc's inner glow keeps its 60% radius (a micro-menu size change).
+do
+	local _, K, button = iconButton({ size = 24 })
+	button:SetProc(true)
+	assert(W.Near(button.procGlow.core:GetWidth(), K.Scale.Snap(1.2 * 24)), "the inner glow is 1.2 times the button")
+	button.opts.size = 40
+	button:Restyle()
+	assert(W.Near(button:GetWidth(), K.Scale.Snap(40)))
+	assert(W.Near(button.procGlow.core:GetWidth(), K.Scale.Snap(1.2 * 40)) and W.Near(button.procGlow.core:GetHeight(), K.Scale.Snap(1.2 * 40)), "and follows a resize through the button's own Restyle")
+end
+
 -- The cooldown countdown sits low on the button, its centre a quarter of the height above the bottom, as the design's "3.2s".
 do
 	local _, K, button = iconButton({})
