@@ -171,6 +171,10 @@ The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's se
 
 `Core/Icons.lua` maps game icon file IDs to KstyleUI's custom icon sets. It registers the `Icons` module, its defaults and its settings page at load. `Modules.List()` starts with `Icons`, and `Options.List()` lists it after `Appearance`. Its functions, settings and the data format of the icon addons are in [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#coreiconslua).
 
+## Setup
+
+`Core/Setup/` holds the first-run setup: it opens once per account, picks a DPS, Tank or Healer layout and the modules, then applies both and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.
+
 ## DevTest
 
 - `DevTest.Log(module, message)` appends `{ time, module, message }` to `KstyleUIDB.devlog`. The devlog keeps the newest 500 entries. A message is cut to 1,000 characters, and a secret value is stored as `<secret>`. Entries logged before `ADDON_LOADED` are kept and written once the saved data loads.

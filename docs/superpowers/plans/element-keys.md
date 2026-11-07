@@ -15,7 +15,7 @@ The first-run setup writes the DPS, Tank or Healer position of each key into the
 - Pass `KstyleUI.Setup.Layouts.Default(key)` as the default position. It returns a fresh `{ anchor, x, y }`: the DPS layout's position, so a profile that never ran the setup still gets the v3 layout. It raises an error for a key this page does not list, so a typo fails the module's test.
 - Build the element at its footprint, or smaller, at the 1080 reference. The layouts are planned so that no two elements overlap at 1920x1080, 2560x1440, 3840x2160 and 3456x2234 when each element fits its footprint. An element that needs more room changes its footprint here and in `Core/Setup/Layouts.lua` in the same pull request, and `test-setup-layouts.lua` must still pass.
 - The position anchors the element's own point to the same point of `KstyleUI_Root`: `BOTTOM` with `x = -279, y = 113` puts the element's bottom centre 279 units left of the screen's bottom centre and 113 units up. Offsets are root units: the root is 1080 units tall, 1920 units wide at 16:9 and about 1671 units wide on a 3456x2234 Mac.
-- Nameplates sit on Blizzard's plates and have no key. A module element not listed here, such as a settings window, picks a key in the same form and adds a row in the same pull request.
+- Nameplates sit on Blizzard's plates and have no key. A module element not listed here, such as a settings window, picks a key in the same form and adds a row in the same pull request. Core windows are listed under [Core windows](#core-windows), outside the layouts.
 
 ## Keys
 
@@ -56,6 +56,12 @@ Footprints are width x height in units at the 1080 reference.
 | `meters.damage` | Meters | Damage meter | 260 x 174 | Right side, inside the right-hand bar columns |
 | `meters.threat` | Meters | Threat meter | 260 x 130 | Above the damage meter |
 | `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar above the cast bar |
+
+## Core windows
+
+These keys belong to core windows. The layouts do not place them.
+
+- `setup.window`: the first-run setup window. Scalable, 40 units above the centre.
 
 ## Layouts
 

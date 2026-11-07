@@ -22,6 +22,7 @@ local Features = {
 		IconsColour = false,
 	},
 	account = {
+		setupSeen = false,
 	},
 }
 
