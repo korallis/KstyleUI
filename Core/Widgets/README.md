@@ -373,3 +373,34 @@ Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top` and `
 `color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide.
 
 `AttachTooltip(frame, content)` shows the tooltip on `OnEnter` and hides it on `OnLeave`. `content` is a string, or `function(tooltip, frame)` that adds the lines. `Button` and `IconButton` call it for `opts.tooltip`.
+
+## Skin helpers
+
+`KstyleUI.Skin`, in `Core/Skin.lua`, restyles Blizzard frames in place for `KstyleUI_Skins` and any reskin module. The helpers follow the spec's reskin rules:
+
+- No `SetScript`, `Hide` or `SetParent` on a Blizzard frame or region. They hook with `HookScript` and `hooksecurefunc`.
+- No field written onto a Blizzard frame. Per-frame state lives in `KstyleUI.Safe.Side(frame).skin`. The only change to a Blizzard object's table is the wrapper `hooksecurefunc` installs on the method it hooks.
+- KstyleUI's art sits on KstyleUI's own child frames.
+- A `nil` frame is logged and skipped, so callers can pass `_G.SomeFrame` unchecked. A forbidden frame is skipped too.
+- On a protected frame in combat, the call waits for `Combat.Queue` and returns `nil`. Out of combat it runs at once.
+- Every helper is safe to call twice: the second call returns what the first made.
+
+`test-skin.lua` builds stand-in Blizzard frames and fails on any `SetScript`, `Hide` or `SetParent` call on them, or any new field other than a hooked method.
+
+| Function | Behaviour |
+| --- | --- |
+| `Strip(frame, opts) -> count` | Sets every texture region of `frame` to alpha 0 and hooks its `SetAlpha`, so Blizzard code cannot bring it back. Font strings stay. `opts.keep` is a set of regions to leave; `opts.children` lists child keys, dotted paths such as `"Inset.NineSlice"`, frames or textures to strip as well. A hooked `OnShow` strips textures the frame adds later, unless `opts.watch` is `false`. Returns the number of textures stripped. |
+| `Backdrop(frame, opts) -> Frame` | A KstyleUI [chrome](#chrome) on a child frame one level behind `frame`. `opts`: `shape`, `fill`, `shadow`, and `inset` (a number, or `{ left, right, top, bottom }`), snapped in the frame's own scale. |
+| `CloseButton(button) -> Texture` | Strips the button and draws the `glyphClose` cross on a child frame: `text` at rest, `textHover` under the mouse, `textDisabled` when disabled. |
+| `Tab(tab) -> parts` | Strips the tab and draws an `accent` underline on a child frame while the tab is selected. The selected text is `textEmphasis`, others `text`, a disabled tab `textDisabled`. Selection comes from a hook on the tab's `SetTabSelected` (the tab system), or from global hooks on `PanelTemplates_SelectTab`, `PanelTemplates_DeselectTab` and `PanelTemplates_SetDisabledTabState`. |
+| `Tabs(frame) -> count` | `Tab` for each of `frame.Tabs`, or `<name>Tab1` to `<name>Tab<numTabs>`. |
+| `ScrollBar(bar) -> parts` | For `MinimalScrollBar`, `WowTrimScrollBar` and the older `UIPanelScrollBarTemplate` slider: strips the track, thumb and steppers, then draws a 2-unit `track` line, a 4-unit thumb (`text` at 45%, `accent` under the mouse) that follows Blizzard's thumb, and chevrons on the back and forward steppers. |
+| `EditBox(box, opts) -> Frame` | Strips the box, keeping a search box's `searchIcon`, and puts a raised tile behind it whose hairline is `accent` while the box has focus. `opts.inset` as for `Backdrop`. |
+| `CheckBox(check) -> parts` | Strips the check button and draws a 16-unit raised tile with an 8-unit chamfered `accent` mark while checked. It follows `SetChecked`, clicks and `OnShow`. |
+| `Button(button, opts) -> Frame` | Strips the button and puts a raised tile behind it. The hairline and the text light under the mouse, and a disabled button's text is `textDisabled`. `opts.font` restyles the text in a font role. |
+| `Text(fontString, role, colorName)` | The role's font and shadow, and a token colour. |
+| `Window(frame, opts) -> Frame` | For `PortraitFrameTemplate` and `ButtonFrameTemplate` windows: strips `NineSlice`, `Bg`, `TopTileStreaks`, `PortraitContainer`, `TitleContainer`, `Inset` and the inset's art, puts a shadowed panel behind, skins `CloseButton`, sets the title in the `heading` font (unless `opts.title` is `false`) and skins the tabs (unless `opts.tabs` is `false`). |
+| `IsSkinned(frame, kind) -> boolean` | `kind` is `"Backdrop"`, `"CloseButton"`, `"Tab"`, `"Tabs"`, `"ScrollBar"`, `"EditBox"`, `"CheckBox"`, `"Button"` or `"Window"`. |
+| `Parts(frame) -> table` | The KstyleUI parts made for the frame: `backdrop`, `glyph`, `underline`, `track`, `thumb`, `back`, `forward`, `box`, `mark` and `text`, as the helper made them. |
+
+The parts restyle with the kit on `ThemeChanged` and `ScaleChanged`. Blizzard's button font objects can recolour a button's text on a state change the hooks do not see; `Button` repaints on enter, leave, enable, disable and show.
