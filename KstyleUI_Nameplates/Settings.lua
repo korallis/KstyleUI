@@ -32,6 +32,10 @@ Settings.defaults = {
 		colorSource = "class", color = Color("accentDefault"), shieldColor = Color("textDisabled"),
 		showIcon = true, showName = true, showTime = true, textSize = 9, outline = "OUTLINE",
 	},
+	debuffs = {
+		enabled = true, includePlateOnly = true, size = 18, spacing = 2, columns = 5, rows = 1,
+		growthX = "RIGHT", growthY = "UP", showTime = true, showCount = true, textSize = 8, outline = "OUTLINE",
+	},
 	threat = {
 		display = "glow", role = "auto", groupOnly = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
@@ -77,6 +81,14 @@ local THREAT_ROLES = {
 	{ value = "auto", label = L["From my group role"] },
 	{ value = "tank", label = L["Tank: I want aggro"] },
 	{ value = "other", label = L["Damage or healing: I avoid aggro"] },
+}
+local GROWTH_X = {
+	{ value = "RIGHT", label = L["Right"] },
+	{ value = "LEFT", label = L["Left"] },
+}
+local GROWTH_Y = {
+	{ value = "UP", label = L["Up, above the name"] },
+	{ value = "DOWN", label = L["Down, under the cast bar"] },
 }
 local STACKING = {
 	{ value = "none", label = L["Overlap"] },
@@ -258,6 +270,66 @@ local rest = {
 		type = "dropdown", key = "cast.outline", label = L["Outline"],
 		help = L["An outline keeps text readable over the game world."],
 		options = OUTLINES, disableWhen = Off("cast.enabled"),
+	},
+	{ type = "header", label = L["Debuffs"] },
+	{
+		type = "toggle", key = "debuffs.enabled", label = L["Show my debuffs"],
+		help = L["Shows the debuffs you put on each unit."],
+	},
+	{
+		type = "toggle", key = "debuffs.includePlateOnly", label = L["Nameplate-only debuffs"],
+		help = L["Also shows your debuffs that the game marks for nameplates only."],
+		disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "slider", key = "debuffs.size", label = L["Icon size"],
+		help = L["The size of each debuff icon, in interface units."],
+		min = 10, max = 40, step = 1, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "slider", key = "debuffs.spacing", label = L["Spacing"],
+		help = L["The gap between debuff icons."],
+		min = 0, max = 10, step = 1, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "slider", key = "debuffs.columns", label = L["Icons per row"],
+		help = L["Shows up to this many debuffs in a row."],
+		min = 1, max = 10, step = 1, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "slider", key = "debuffs.rows", label = L["Rows"],
+		help = L["Shows up to icons per row times rows debuffs."],
+		min = 1, max = 4, step = 1, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "dropdown", key = "debuffs.growthX", label = L["Grow across"],
+		help = L["Which way a row of debuffs grows."],
+		options = GROWTH_X, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "dropdown", key = "debuffs.growthY", label = L["Grow"],
+		help = L["Whether rows of debuffs stack upward above the name or downward under the cast bar."],
+		options = GROWTH_Y, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "toggle", key = "debuffs.showTime", label = L["Time left"],
+		help = L["Shows the time left under each debuff."],
+		disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "toggle", key = "debuffs.showCount", label = L["Stacks"],
+		help = L["Shows how many times a debuff has stacked."],
+		disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "slider", key = "debuffs.textSize", label = L["Text size"],
+		help = L["The size of the debuffs' text, in interface units."],
+		min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "dropdown", key = "debuffs.outline", label = L["Outline"],
+		help = L["An outline keeps text readable over the game world."],
+		options = OUTLINES, disableWhen = Off("debuffs.enabled"),
 	},
 	{ type = "header", label = L["Threat"] },
 	{

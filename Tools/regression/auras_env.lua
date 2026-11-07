@@ -18,6 +18,10 @@ local A = { W = W }
 
 local BATCH = 10
 local FILTER_WORDS = { HELPFUL = true, HARMFUL = true, PLAYER = true, RAID = true, CANCELABLE = true }
+-- The rest of AuraUtil.AuraFilters, which nameplate debuff groups use.
+for _, word in ipairs({ "INCLUDE_NAME_PLATE_ONLY", "MAW", "EXTERNAL_DEFENSIVE", "CROWD_CONTROL", "RAID_IN_COMBAT", "RAID_PLAYER_DISPELLABLE", "BIG_DEFENSIVE", "IMPORTANT", "DISPELLABLE" }) do
+	FILTER_WORDS[word] = true
+end
 
 function A.ModuleFiles()
 	local files = {}
@@ -125,6 +129,11 @@ local function newButton(env, container)
 		element(text, "FontString")
 		aura.timer, aura.timerOptions = text, options or {}
 	end
+	function button.SetDurationCooldown(_, cooldown)
+		guard("SetDurationCooldown")
+		element(cooldown, "Cooldown")
+		aura.cooldown = cooldown
+	end
 	function button.ClearDurationText()
 		guard("ClearDurationText")
 		aura.timer, aura.timerOptions = nil, nil
@@ -228,6 +237,13 @@ local function installContainer(env, container)
 	function container.SetAuraGroupEnabled(self, key, enabled)
 		assert(type(enabled) == "boolean", "enabled must be a boolean.")
 		required(self, key).enabled = enabled
+	end
+	function container.SetAuraGroupFilterString(self, key, filter)
+		assert(validFilter(filter), "invalid filter string " .. tostring(filter))
+		required(self, key).filter = filter
+	end
+	function container.SetEditModePreviewEnabled(self, enabled)
+		self._editModePreview = enabled
 	end
 	function container.SetAuraGroupMaxFrameCount(self, key, n)
 		checkCount(n)

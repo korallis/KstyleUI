@@ -15,6 +15,7 @@
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
+local Engine = dofile("Tools/regression/auras_env.lua").Engine
 
 local N = { CoreEnv = CoreEnv }
 
@@ -73,10 +74,12 @@ local function colorObject(c)
 	}
 end
 
--- Install(env, opts) adds the fake game APIs. opts.noBitfield leaves out nameplateStackingTypes, and
--- opts.motion adds the older nameplateMotion CVar.
+-- Install(env, opts) adds the fake game APIs, starting with the fake AuraContainer engine from
+-- auras_env.lua. opts.noBitfield leaves out nameplateStackingTypes, opts.motion adds the older
+-- nameplateMotion CVar, and opts.noAuraContainer makes the engine refuse to build a container.
 function N.Install(env, opts)
 	opts = opts or {}
+	Engine(env, { noContainer = opts.noAuraContainer })
 	env._units = {}
 	env._bases = {}
 	env._targetUnit, env._focusUnit = nil, nil

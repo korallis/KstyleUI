@@ -1,6 +1,6 @@
 # KstyleUI_Nameplates
 
-A KstyleUI plate on each nameplate: health, name, level, cast bar, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style.
+A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's debuffs, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style.
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@ A KstyleUI plate on each nameplate: health, name, level, cast bar, threat colour
 | Approach | Replace the visible plate |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Nameplates.toc` lists `Nameplates.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua` and `test-nameplates-cast.lua`, through `Tools/regression/nameplates_env.lua` |
+| Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua`, `test-nameplates-cast.lua` and `test-nameplates-auras.lua`, through `Tools/regression/nameplates_env.lua`, which uses the fake AuraContainer engine in `auras_env.lua` |
 
 ## Rules
 
@@ -33,6 +33,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Settings.lua` | `ns.Settings`: the defaults, the settings page, and `Get(key)`, a checked and cached read of one setting |
 | `Plate.lua` | `ns.NewPlate(parent, sample)`: one plate, and `ns.Components`, the parts later files add to every plate |
 | `Cast.lua` | `ns.Cast`: the cast bar component |
+| `Auras.lua` | `ns.Auras`: the debuff component |
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
@@ -76,6 +77,23 @@ The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Re
 | `UNIT_SPELLCAST_INTERRUPTED` | The bar fills, turns `hostile`, says **Interrupted** and fades out over 0.8 s. The `STOP` that follows is ignored. |
 
 Without the duration APIs or `SetTimerDuration`, the bar takes the cast's start and end times as its range (they may be secret; the engine compares them) and an `OnUpdate` sets the value to `GetTime() * 1000`. That path shows no time text, channels fill rather than drain, and the devlog says it ran.
+
+### Debuffs
+
+The debuffs are a component too. Each plate gets one `CustomAuraContainerTemplate` container, made the first time the plate shows a unit with debuffs on, and kept. It has one aura group, `debuffs`:
+
+| Part | How |
+| --- | --- |
+| Which auras | The filter string `HARMFUL\|PLAYER\|INCLUDE_NAME_PLATE_ONLY`: the player's harmful auras on the unit, including the ones the game marks for nameplates only. A setting drops `INCLUDE_NAME_PLATE_ONLY`. The engine finds, sorts and updates them; Lua never reads aura data, so `C_Secrets.ShouldAurasBeSecret()` never stops it. |
+| How many | `maxFrameCount` is icons per row times rows. |
+| Layout | The engine's flow layout: horizontal lines `columns` icons long (`SetFlowLayoutMaximumLineSize`), growing right or left and up or down from the matching corner. The container hangs from that corner above the name, or under the cast bar when rows grow down. |
+| Unit | `SetUnit(unit)` when the plate attaches, `SetUnit("none")` when it detaches or debuffs are off. |
+| Edit Mode | `SetEditModePreviewEnabled(false)`, so Blizzard's Edit Mode never fills plates with sample auras. |
+| Buttons | `initializeFrame` builds each aura button before the engine restricts it: a black edge, the icon, a cooldown swipe, the stack count at the top right and the time left at the bottom, each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
+
+Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false; otherwise the restyle waits for `Combat.Queue`. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
+
+The settings window's preview draws three sample debuff icons on the same grid, because a preview has no unit for the engine.
 
 ### Styles
 
@@ -121,6 +139,10 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `cast.texture`, `cast.orientation`, `cast.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
 | `cast.colorSource`, `cast.color`, `cast.shieldColor` | accent, `accentDefault`, `textDisabled` | dropdown, colour, colour |
 | `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 9, thin | toggle, toggle, toggle, slider, dropdown |
+| `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
+| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 18, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
+| `debuffs.growthX`, `debuffs.growthY` | right, up | dropdown, dropdown |
+| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 8, thin | toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |
 | `threat.safe`, `threat.warning`, `threat.danger` | `friendly`, `neutral`, `hostile` | colour |
 | `target.highlight`, `target.colorSource`, `target.color`, `target.dimOthers` | on, accent, `accentDefault`, 1 | toggle, dropdown, colour, slider 0.2 to 1 |
@@ -156,6 +178,7 @@ A CVar the client does not have is skipped and logged once. Turning management o
 - **Base frames compared by identity.** `UnitIsUnit` can return a secret while unit comparison is restricted. A frame reference is never secret, so the target and focus come from `GetNamePlateForUnit` and an identity test.
 - **One plate per base.** Base frames are pooled by the engine and reused for new units, so a plate is built once per base and refreshed on each attach. Nothing is built in a combat path after the first sighting of a base.
 - **A sample plate for Layout.** Plates have no screen position of their own, but the spec wants every element resized in Layout Mode. The sample gives the player handles to drag; its size is the plates' size.
+- **The engine shows the debuffs.** Aura data turns secret during a boss pull, before combat lockdown. The AuraContainer engine reads it in secure code and fills KstyleUI's own buttons, so the plates keep their debuffs through the pull without a Lua scan.
 - **The engine runs the cast bar.** Enemy casts can be secret, so Lua never reads a cast's times or flags. Duration objects and the `FromBoolean` setters let the engine fill, time and colour the bar.
 - **Threat only in a group.** Alone, every mob that attacks the player is on them, and a red glow on each says nothing new.
 - **CVars back to the defaults.** The module does not store the player's own CVar values. Returning to the game's defaults is predictable and needs no saved state.

@@ -101,3 +101,33 @@ function Logic.CVarPlan(cvars)
 	plan[#plan + 1] = { name = Logic.MOTION_CVAR, value = stacking.motion, fallback = Logic.STACKING_CVAR }
 	return plan
 end
+
+local AURA_FILTER = "HARMFUL|PLAYER"
+local AURA_FILTER_PLATES = "HARMFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY"
+
+function Logic.AuraFilter(includePlateOnly)
+	return includePlateOnly and AURA_FILTER_PLATES or AURA_FILTER
+end
+
+local GROWTH_X = { RIGHT = { "LEFT", "Right", 1 }, LEFT = { "RIGHT", "Left", -1 } }
+local GROWTH_Y = { UP = { "BOTTOM", "Up", 1 }, DOWN = { "TOP", "Down", -1 } }
+
+function Logic.AuraGrowth(growthX, growthY)
+	local x = GROWTH_X[growthX] or GROWTH_X.RIGHT
+	local y = GROWTH_Y[growthY] or GROWTH_Y.UP
+	return y[1] .. x[1], x[2], y[2]
+end
+
+function Logic.AuraLineSize(columns, size, spacing)
+	return columns * size + (columns - 1) * spacing
+end
+
+function Logic.AuraOffset(index, columns, size, spacing, growthX, growthY)
+	local x = GROWTH_X[growthX] or GROWTH_X.RIGHT
+	local y = GROWTH_Y[growthY] or GROWTH_Y.UP
+	local slot = index - 1
+	local column = slot % columns
+	local row = (slot - column) / columns
+	local step = size + spacing
+	return column * step * x[3], row * step * y[3]
+end

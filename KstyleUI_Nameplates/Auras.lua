@@ -1,0 +1,328 @@
+-- Auras.lua: the plate's debuffs: the player's harmful auras on the unit, found, sorted and shown by the AuraContainer engine.
+local _, ns = ...
+
+local K = KstyleUI
+local Widgets, Tokens = K.Widgets, K.Tokens
+local Settings, Logic = ns.Settings, ns.Logic
+local IsSecret = Logic.IsSecret
+local LogOnce = ns.LogOnce
+
+local Auras = {}
+ns.Auras = Auras
+
+local GROUP = "debuffs"
+local TEMPLATE = "CustomAuraContainerTemplate"
+local GAP = Tokens.Size("gapTiny")
+local ICON_CROP = 0.07
+local SWIPE_ALPHA = 0.65
+local LINE_SLACK = 0.5
+local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+local SAMPLE_ICONS = { 136118, 135817, 132155 }
+
+local available = true
+local parts = setmetatable({}, { __mode = "k" })
+
+local function AurasSecret()
+	local secrets = C_Secrets
+	if secrets and type(secrets.ShouldAurasBeSecret) == "function" then
+		local ok, secret = pcall(secrets.ShouldAurasBeSecret)
+		return not ok or IsSecret(secret) or secret == true
+	end
+	return InCombatLockdown()
+end
+
+local function Grid()
+	local columns, rows = Settings.Get("debuffs.columns"), Settings.Get("debuffs.rows")
+	return Settings.Get("debuffs.size"), Settings.Get("debuffs.spacing"), columns, rows
+end
+
+local function GroupLayout()
+	local size, spacing = Grid()
+	return { elementSpacing = spacing, lineSpacing = spacing, elementWidth = size, elementHeight = size }
+end
+
+local function Filter()
+	return Logic.AuraFilter(Settings.Get("debuffs.includePlateOnly"))
+end
+
+local function StyleText(text)
+	local flags = OUTLINE_FLAGS[Settings.Get("debuffs.outline")] or "OUTLINE"
+	local size = Settings.Get("debuffs.textSize")
+	if text:SetFont(Settings.Get("font"), size, flags) == false then
+		text:SetFont((Tokens.Font("world")), size, flags)
+	end
+	if flags == "" then
+		text:SetShadowColor(Tokens.Color("textShadow"))
+		local offset = Tokens.Size("textShadowOffset")
+		text:SetShadowOffset(offset, -offset)
+	else
+		text:SetShadowOffset(0, 0)
+	end
+end
+
+local function StyleButton(button)
+	local p = parts[button]
+	if not p then
+		return
+	end
+	local size = Settings.Get("debuffs.size")
+	button:SetSize(size, size)
+	local inset = Widgets.Border(button)
+	p.icon:ClearAllPoints()
+	p.icon:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset)
+	p.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+	StyleText(p.count)
+	StyleText(p.time)
+	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
+	p.timeHolder:SetShown(Settings.Get("debuffs.showTime"))
+end
+
+local function BuildButton(button)
+	local border = button:CreateTexture(nil, "BACKGROUND")
+	border:SetAllPoints(button)
+	border:SetColorTexture(Tokens.Color("black"))
+	local icon = button:CreateTexture(nil, "ARTWORK")
+	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	local cooldown = CreateFrame("Cooldown", nil, button)
+	cooldown:SetAllPoints(icon)
+	cooldown:SetDrawEdge(false)
+	cooldown:SetReverse(true)
+	cooldown:SetHideCountdownNumbers(true)
+	cooldown:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
+	local textFrame = CreateFrame("Frame", nil, button)
+	textFrame:SetAllPoints(button)
+	textFrame:SetFrameLevel(cooldown:GetFrameLevel() + 1)
+	local countHolder = CreateFrame("Frame", nil, textFrame)
+	countHolder:SetAllPoints(textFrame)
+	local count = countHolder:CreateFontString(nil, "OVERLAY")
+	count:SetPoint("TOPRIGHT", countHolder, "TOPRIGHT", 0, 0)
+	count:SetJustifyH("RIGHT")
+	local timeHolder = CreateFrame("Frame", nil, textFrame)
+	timeHolder:SetAllPoints(textFrame)
+	local time = timeHolder:CreateFontString(nil, "OVERLAY")
+	time:SetPoint("BOTTOM", timeHolder, "BOTTOM", 0, 0)
+	time:SetJustifyH("CENTER")
+	parts[button] = { icon = icon, count = count, time = time, countHolder = countHolder, timeHolder = timeHolder }
+	StyleButton(button)
+	button:SetIcon(icon)
+	button:SetDurationCooldown(cooldown)
+	button:SetApplicationCount(count)
+	button:SetDurationText(time)
+end
+
+local function InitButton(button)
+	local ok, err = pcall(BuildButton, button)
+	if not ok then
+		LogOnce("aura-button", "building an aura button failed: " .. tostring(err))
+	end
+end
+
+local function GroupOptions()
+	local _, _, columns, rows = Grid()
+	local options = {
+		maxFrameCount = columns * rows,
+		initializeFrame = InitButton,
+		layout = GroupLayout(),
+	}
+	if AuraContainerSortMethod and AuraContainerSortDirection then
+		options.sortMethod = AuraContainerSortMethod.Default
+		options.sortDirection = AuraContainerSortDirection.Normal
+	end
+	return options
+end
+
+local function Bind(plate, unit)
+	local container = plate.auras
+	if not container or plate.aurasUnit == unit then
+		return
+	end
+	local ok, err = pcall(container.SetUnit, container, unit)
+	if ok then
+		plate.aurasUnit = unit
+	else
+		LogOnce("aura-unit", "the debuff container refused a unit: " .. tostring(err))
+	end
+end
+
+local function NewContainer(plate)
+	local ok, container = pcall(CreateFrame, "AuraContainer", nil, plate, TEMPLATE)
+	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
+		if InCombatLockdown() then
+			LogOnce("aura-combat", "the debuff container could not be made in combat; it waits for combat to end")
+			K.Combat.Queue(function()
+				if plate.unit then
+					plate:Refresh()
+				end
+			end)
+		else
+			available = false
+			LogOnce("aura-missing", "the AuraContainer engine (" .. TEMPLATE .. ") is unavailable, so plates show no debuffs: " .. tostring(container))
+		end
+		return nil
+	end
+	if type(container.SetEditModePreviewEnabled) == "function" then
+		pcall(container.SetEditModePreviewEnabled, container, false)
+	end
+	local added, err = pcall(container.AddAuraGroup, container, GROUP, Filter(), GroupOptions())
+	if not added then
+		container:Hide()
+		available = false
+		LogOnce("aura-group", "the debuff group could not be added: " .. tostring(err))
+		return nil
+	end
+	K.DevTest.Log(Settings.MODULE, "nameplate debuffs run on the AuraContainer engine")
+	return container
+end
+
+local function RestyleButtons(plate)
+	local container = plate.auras
+	if AurasSecret() then
+		if not plate.aurasQueued then
+			plate.aurasQueued = true
+			K.Combat.Queue(function()
+				plate.aurasQueued = false
+				RestyleButtons(plate)
+			end)
+		end
+		return
+	end
+	for i = 1, container:GetAuraGroupFrameCount(GROUP) do
+		local ok, err = pcall(StyleButton, container:GetAuraGroupFrame(GROUP, i))
+		if not ok then
+			LogOnce("aura-style", "restyling an aura button failed: " .. tostring(err))
+			return
+		end
+	end
+end
+
+local function Anchor(plate, frame, anchor)
+	local up = anchor:find("^BOTTOM") ~= nil
+	local left = anchor:find("LEFT$") ~= nil
+	local health = plate.health
+	frame:ClearAllPoints()
+	if up then
+		local room = GAP
+		if Settings.Get("name.show") and not plate.nameOnly then
+			room = Settings.Get("name.size") + GAP * 2
+		end
+		frame:SetPoint(anchor, health, left and "TOPLEFT" or "TOPRIGHT", 0, Widgets.Snap(plate, room))
+	else
+		local room = GAP
+		for _, component in ipairs(ns.Components) do
+			if component.Room then
+				room = room + component.Room(plate)
+			end
+		end
+		frame:SetPoint(anchor, health, left and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, -Widgets.Snap(plate, room))
+	end
+end
+
+local function LayoutContainer(plate)
+	local container = plate.auras
+	local size, spacing, columns, rows = Grid()
+	local anchor, horizontal, vertical = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
+	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
+	local direction = AnchorUtil and AnchorUtil.FlowDirection
+	if not (axis and direction) then
+		LogOnce("aura-anchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
+	else
+		container:SetFlowLayoutAxis(axis.Horizontal)
+		container:SetFlowLayoutAnchorPoint(anchor)
+		container:SetFlowLayoutGrowthDirection(direction[horizontal], direction[vertical])
+		container:SetFlowLayoutMaximumLineSize(Logic.AuraLineSize(columns, size, spacing) + LINE_SLACK)
+	end
+	container:SetAuraGroupLayout(GROUP, GroupLayout())
+	container:SetAuraGroupMaxFrameCount(GROUP, columns * rows)
+	container:SetAuraGroupFilterString(GROUP, Filter())
+	Anchor(plate, container, anchor)
+	RestyleButtons(plate)
+end
+
+local function Shows(plate)
+	return Settings.Get("debuffs.enabled") and not plate.nameOnly
+end
+
+local function LayoutSamples(plate)
+	local icons = plate.sampleAuras
+	local size, spacing, columns, rows = Grid()
+	local anchor = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
+	local holder = plate.sampleAuraHolder
+	Widgets.Size(holder, size, size)
+	Anchor(plate, holder, anchor)
+	local shown = Shows(plate)
+	for i, icon in ipairs(icons) do
+		Widgets.Size(icon, size, size)
+		local x, y = Logic.AuraOffset(i, columns, size, spacing, Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
+		icon:ClearAllPoints()
+		icon:SetPoint(anchor, holder, anchor, x, y)
+		icon:SetShown(shown and i <= columns * rows)
+		local inset = Widgets.Border(icon)
+		icon.icon:ClearAllPoints()
+		icon.icon:SetPoint("TOPLEFT", icon, "TOPLEFT", inset, -inset)
+		icon.icon:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
+	end
+end
+
+local function BuildSamples(plate)
+	local holder = CreateFrame("Frame", nil, plate)
+	plate.sampleAuraHolder = holder
+	plate.sampleAuras = {}
+	for i, fileID in ipairs(SAMPLE_ICONS) do
+		local frame = CreateFrame("Frame", nil, holder)
+		local border = frame:CreateTexture(nil, "BACKGROUND")
+		border:SetAllPoints(frame)
+		border:SetColorTexture(Tokens.Color("black"))
+		local icon = frame:CreateTexture(nil, "ARTWORK")
+		icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+		icon:SetTexture(fileID)
+		frame.icon = icon
+		plate.sampleAuras[i] = frame
+	end
+end
+
+local Component = {}
+ns.Components[#ns.Components + 1] = Component
+
+function Component.Build(plate)
+	if plate.sample then
+		BuildSamples(plate)
+	end
+end
+
+function Component.Restyle(plate)
+	if plate.sample then
+		LayoutSamples(plate)
+	elseif plate.auras then
+		LayoutContainer(plate)
+	end
+end
+
+function Component.Refresh(plate)
+	if plate.sample then
+		LayoutSamples(plate)
+		return
+	end
+	if not (plate.unit and Shows(plate)) then
+		if plate.auras then
+			Bind(plate, "none")
+			plate.auras:Hide()
+		end
+		return
+	end
+	if not plate.auras and available then
+		plate.auras = NewContainer(plate)
+		if plate.auras then
+			LayoutContainer(plate)
+		end
+	end
+	if plate.auras then
+		plate.auras:Show()
+		Bind(plate, plate.unit)
+	end
+end
+
+function Component.Clear(plate)
+	Bind(plate, "none")
+end
+
+Auras.AurasSecret = AurasSecret
