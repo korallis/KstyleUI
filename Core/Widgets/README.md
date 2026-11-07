@@ -204,7 +204,7 @@ Options: `min` (default 0), `max` (default 1), `step`, `value`, `onChange(value,
 | Mouse wheel | One step up or down, or a hundredth of the range without a step |
 | `SetValue(value, silent)` | Quantizes; runs `onChange` when the result changes, unless `silent` |
 
-The readout and range labels use `format`, or the step's decimals: `68` for a step of 1, `1.00` for a step of 0.05.
+The readout and range labels use `format`, or the step's decimals: `68` for a step of 1, `1.00` for a step of 0.05, and hundredths of the range without a step.
 
 Methods: `GetValue()`, `SetValue(value, silent)`, `SetRange(min, max, step)` (keeps the value inside the new range), `SetEnabled(enabled)`, `IsEnabled()`, `Paint()`, `Restyle()`. Fields: `trackBox`, `track`, `fillBox`, `fill`, `knob`, `ring`, `readout`, `minText`, `maxText`.
 

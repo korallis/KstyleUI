@@ -104,6 +104,10 @@ do
 		return math.floor(v * 100 + 0.5) .. "%"
 	end })
 	assert(custom.readout:GetText() == "88%", "a format function writes the readout")
+	local free = K.Widgets.Slider(K.Scale.Root(), { value = 0.42 })
+	assert(free:GetValue() == 0.42 and free.readout:GetText() == "0.42", "without a step the readout shows hundredths of the range")
+	free:GetScript("OnMouseWheel")(free, 1)
+	assert(free.readout:GetText() == "0.43", "and moves with the wheel")
 	slider:SetRange(0, 100, 1)
 	env.GetCursorPosition = function()
 		return (100 + trackWidth * 0.5) * scale, 0

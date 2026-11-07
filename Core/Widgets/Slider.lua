@@ -47,7 +47,7 @@ end
 local Slider = {}
 
 local function DefaultFormat(self, value)
-	local decimals = Decimals(self.step)
+	local decimals = Decimals(self.step or (self.max - self.min) / 100)
 	if decimals == 0 then
 		return format("%d", floor(value + 0.5))
 	end
