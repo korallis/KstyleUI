@@ -110,4 +110,75 @@ do
 	assert(plain.background == nil and plain.chrome, "no background, and a chamfered border when asked")
 end
 
+-- Combat paths recolour and retexture bars on every cast and unit event, so the setters allocate nothing.
+-- The engine's setters are replaced on the bar: the stubs record each call in a table of their own.
+do
+	local _, K = W.New()
+	local bar = K.Widgets.StatusBar(K.Scale.Root(), { spark = true, sheen = true })
+	local function noop() end
+	for _, region in ipairs({ bar, bar.background, bar.spark, bar.sheen }) do
+		region.SetVertexColor, region.SetTexture = noop, noop
+	end
+	bar.SetStatusBarColor, bar.SetStatusBarTexture = noop, noop
+	local path = "Interface\\TargetingFrame\\UI-StatusBar"
+	local function work()
+		bar:SetBarColor(0.1, 0.2, 0.3)
+		bar:SetBarColor(0.4, 0.5, 0.6, 0.7)
+		bar:SetColorToken("hostile")
+		bar:SetBarTexture("Flat")
+		bar:SetBarTexture("Glass")
+		bar:SetBarTexture(path)
+		bar:SetBarTexture(nil)
+		bar:SetBarTexture(path)
+		bar:SetBarTexture(path)
+	end
+	work()
+	local jit = rawget(_G, "jit")
+	if jit then
+		jit.off()
+		jit.flush()
+	end
+	collectgarbage("collect")
+	collectgarbage("stop")
+	local before = collectgarbage("count")
+	for _ = 1, 1000 do
+		work()
+	end
+	local grown = collectgarbage("count") - before
+	collectgarbage("restart")
+	if jit then
+		jit.on()
+	end
+	assert(grown == 0, "SetBarColor, SetColorToken and SetBarTexture allocated " .. grown .. " KB over 1000 rounds")
+end
+
+-- A colour the caller set survives a token round trip in either order, and a texture set twice reaches the engine once.
+do
+	local _, K = W.New()
+	local bar = K.Widgets.StatusBar(K.Scale.Root(), {})
+	local function rgba()
+		return bar:GetStatusBarColor()
+	end
+	bar:SetBarColor(0.1, 0.2, 0.3, 0.4)
+	local r, g, b, a = rgba()
+	assert(W.Near(r, 0.1) and W.Near(g, 0.2) and W.Near(b, 0.3) and W.Near(a, 0.4), "four channels reach the engine")
+	bar:SetBarColor(0.5, 0.6, 0.7)
+	local call = W.LastCall(bar, "SetStatusBarColor")
+	assert(call.n == 3 and W.Near(call[1], 0.5) and W.Near(call[3], 0.7), "three channels reach the engine as three, got " .. call.n)
+	bar:SetColorToken("hostile")
+	assert(W.SameRGB({ GetVertexColor = rgba }, K.Tokens.Color("hostile")), "the token replaces the caller's colour")
+	bar:SetBarColor(0.2, 0.3, 0.4)
+	K.Callbacks.Fire("ThemeChanged")
+	assert(W.SameRGB({ GetVertexColor = rgba }, 0.2, 0.3, 0.4), "the caller's colour comes back after the token and survives a restyle")
+	bar:SetBarTexture("Soft")
+	local calls = #W.Calls(bar, "SetStatusBarTexture")
+	bar:SetBarTexture("Soft")
+	assert(#W.Calls(bar, "SetStatusBarTexture") == calls, "the same texture again changes nothing")
+	bar:SetBarTexture(K.Tokens.Texture("barSoft"))
+	assert(#W.Calls(bar, "SetStatusBarTexture") == calls, "the key's own path is the same texture")
+	bar:SetBarTexture(nil)
+	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == K.Tokens.Texture("barGlass"), "nil returns to the Glass default")
+	assert(W.LastCall(bar.background, "SetTexture")[1] == K.Tokens.Texture("barGlass"), "and the background follows")
+end
+
 print("widgets status bar ok")

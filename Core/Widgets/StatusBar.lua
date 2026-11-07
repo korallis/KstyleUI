@@ -3,6 +3,7 @@ local _, ns = ...
 
 local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
+local min = math.min
 
 local DEFAULT_TEXTURE = "Glass"
 local SPARK_WIDTH = 10
@@ -17,14 +18,16 @@ local SPARK_EDGE = {
 	VERTICAL = { normal = "TOP", reverse = "BOTTOM" },
 }
 
+local COLOR_CHANNELS = 4
+
+local TEXTURE_PATHS = {}
+for _, item in ipairs(Tokens.MediaList("statusbar")) do
+	TEXTURE_PATHS[item.key] = item.path
+end
+
 local function ResolveTexture(key)
 	key = key or DEFAULT_TEXTURE
-	for _, item in ipairs(Tokens.MediaList("statusbar")) do
-		if item.key == key then
-			return item.path
-		end
-	end
-	return key
+	return TEXTURE_PATHS[key] or key
 end
 
 local function Interpolation()
@@ -58,7 +61,7 @@ end
 
 function Bar:Paint()
 	local c = self.colorRGBA
-	if c then
+	if self.ownColor then
 		self:SetStatusBarColor(unpack(c, 1, c.n))
 	else
 		self:SetStatusBarColor(Tokens.Color(self.colorName))
@@ -75,20 +78,27 @@ function Bar:Paint()
 end
 
 function Bar:SetBarColor(...)
-	self.colorRGBA = { n = select("#", ...), ... }
+	local c = self.colorRGBA
+	c.n = min(select("#", ...), COLOR_CHANNELS)
+	c[1], c[2], c[3], c[4] = ...
+	self.ownColor = true
 	self:Paint()
 end
 
 function Bar:SetColorToken(name)
 	Tokens.Color(name)
 	self.colorName = name
-	self.colorRGBA = nil
+	self.ownColor = false
 	self:Paint()
 end
 
 function Bar:SetBarTexture(key)
 	local path = ResolveTexture(key)
 	self.textureKey = key
+	if path == self.texturePath then
+		return
+	end
+	self.texturePath = path
 	self:SetStatusBarTexture(path)
 	if self.background then
 		self.background:SetTexture(path)
@@ -174,6 +184,8 @@ function Widgets.StatusBar(parent, opts)
 	bar.opts = opts
 	bar.smooth = opts.smooth == true
 	bar.colorName = opts.color or "accent"
+	bar.colorRGBA = { 0, 0, 0, 0, n = 0 }
+	bar.ownColor = false
 	Tokens.Color(bar.colorName)
 	local orientation = opts.orientation or "HORIZONTAL"
 	bar.vertical = orientation == "VERTICAL"

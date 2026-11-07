@@ -243,6 +243,18 @@ local SHAPES = {
 	tile = { fill = "chamferTile", outer = "bevelTileOuter", inner = "bevelTileInner", chamfer = "chamferTile" },
 }
 
+local LINE_ART = {}
+for _, shape in pairs(SHAPES) do
+	LINE_ART[shape.fill], LINE_ART[shape.outer], LINE_ART[shape.inner] = true, true, true
+end
+
+local function CornerIn(name, units, f)
+	if LINE_ART[name] then
+		return Scale.Snap(Scale.Border() * units) / f
+	end
+	return SnapIn(units, f)
+end
+
 local function SliceCoords(texture, piece, f)
 	local col, row = (piece - 1) % 3, floor((piece - 1) / 3)
 	local x0 = (col == 0 and 0) or (col == 1 and f) or (1 - f)
@@ -265,7 +277,7 @@ end
 local function NewSlice(owner, name, layer, sublevel)
 	local path, texels = Tokens.Texture(name)
 	local f = texels / TEXELS[name]
-	local p = {}
+	local p = { texture = name }
 	for piece = 1, 9 do
 		p[piece] = NewTexture(owner, layer, sublevel, path)
 		SliceCoords(p[piece], piece, f)
@@ -303,7 +315,7 @@ end
 
 function Widgets.LayoutSlice(slice, owner, corner, outset)
 	local f = Widgets.ScaleFactor(owner)
-	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f))
+	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], CornerIn(slice.texture, corner, f), SnapIn(outset or 0, f))
 end
 
 function Widgets.ColorSlice(slice, r, g, b, a)
@@ -393,7 +405,8 @@ function Widgets.Chrome(owner, opts)
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shapeName == "panel"),
 		fillName = opts.fill or "surface",
 		edge = { Widgets.Rgba(opts.edge or "edgeInner") },
-		fillColor = nil,
+		fillColor = { 0, 0, 0, 0 },
+		ownFill = false,
 	}, Chrome)
 	c.shadow = NewSlice(owner, "shadow", "BACKGROUND", SUBLEVEL_SHADOW)
 	c.fill = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_FILL)
@@ -419,11 +432,11 @@ function Chrome:Layout()
 	Widgets.LayoutSlice(self.fill, owner, fillUnits, 0)
 	Widgets.LayoutSlice(self.shadow, owner, shadowUnits, shadowUnits / 2)
 	local border = Scale.Border() / f
-	local size = SnapIn(bevelUnits, f)
+	local size = CornerIn(shape.outer, bevelUnits, f)
 	PlaceBevel(owner, self.outer, size, 0, border)
 	PlaceBevel(owner, self.inner, size, border, border)
 	if self.noise then
-		local inset = SnapIn(fillUnits, f)
+		local inset = CornerIn(shape.fill, fillUnits, f)
 		self.noise:ClearAllPoints()
 		self.noise:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
 		self.noise:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
@@ -432,8 +445,9 @@ end
 
 function Chrome:Paint()
 	local r, g, b, a
-	if self.fillColor then
-		r, g, b, a = self.fillColor[1], self.fillColor[2], self.fillColor[3], self.fillColor[4]
+	if self.ownFill then
+		local c = self.fillColor
+		r, g, b, a = c[1], c[2], c[3], c[4]
 	else
 		r, g, b, a = Tokens.Color(self.fillName)
 		if self.fillName == "surface" then
@@ -465,18 +479,24 @@ function Chrome:Restyle()
 	self:Paint()
 end
 
+local function StoreFill(chrome, r, g, b, a)
+	local c = chrome.fillColor
+	c[1], c[2], c[3], c[4] = r, g, b, a
+	chrome.ownFill = true
+end
+
 function Chrome:SetFill(name, alphaScale)
 	self.fillName = name
 	if alphaScale then
-		self.fillColor = { Widgets.Rgba(name, alphaScale) }
+		StoreFill(self, Widgets.Rgba(name, alphaScale))
 	else
-		self.fillColor = nil
+		self.ownFill = false
 	end
 	self:Paint()
 end
 
 function Chrome:SetFillRGBA(r, g, b, a)
-	self.fillColor = { r, g, b, a }
+	StoreFill(self, r, g, b, a)
 	self:Paint()
 end
 

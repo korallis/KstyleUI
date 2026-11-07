@@ -72,22 +72,37 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 | Part | Layer | What it is |
 | --- | --- | --- |
 | `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces `Snap(24)` centred on the owner's corners, tinted `shadow` |
-| `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel` or `chamferTile` texture |
+| `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel` or `chamferTile` texture, corner pieces 6 or 3 borders square |
 | `chrome.noise` | `BACKGROUND` -5 | Panels only: the `noise` grain, tiled at 3.5% white, inset by the chamfer |
-| `chrome.outer`, `chrome.inner` | `BORDER` | Each line: four corner pieces of the bevel texture, then the top, bottom, left and right lines as solid textures one `Scale.Border()` thick. The inner line sits one border inside the outer. |
+| `chrome.outer`, `chrome.inner` | `BORDER` | Each line: four corner pieces of the bevel texture, 7 or 4 borders square, then the top, bottom, left and right lines as solid textures one `Scale.Border()` thick. The inner line sits one border inside the outer. |
 
-`opts`: `shape` (`"panel"`, 6-unit chamfers, or `"tile"`, 3-unit chamfers), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`), `shadow` (default on for panels and off for tiles), `grain` (`false` removes the grain).
+`opts`: `shape` (`"panel"`, chamfers of 6 borders, or `"tile"`, 3 borders; see [Corner sizes](#corner-sizes)), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`), `shadow` (default on for panels and off for tiles), `grain` (`false` removes the grain).
 
 A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow shows only while `shadows` is on.
 
 | Method | Behaviour |
 | --- | --- |
-| `SetFill(name, alphaScale)`, `SetFillRGBA(r, g, b, a)` | Recolours the fill. |
+| `SetFill(name, alphaScale)`, `SetFillRGBA(r, g, b, a)` | Recolours the fill. A caller's colour, or a token at a scaled alpha, stays through a restyle. Both reuse one table per chrome, so they allocate nothing on combat paths. |
 | `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the hairline that hover and selection light up. |
 | `SetShadow(on)`, `SetShown(shown)` | |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
 `Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
+
+### Corner sizes
+
+`Tools/media/make_media.py` draws the chamfer and bevel textures at 4 texels per art unit, and bakes each bevel line one art unit (4 texels) wide into the corner art. The kit draws one art unit as one `Widgets.Border(frame)`, so the line inside each bevel corner is exactly as wide as the straight line it meets, and the fill's diagonal meets the bevel's:
+
+| Piece | Texels | Drawn |
+| --- | --- | --- |
+| Panel fill corner (`chamferPanel`) | 24 | 6 borders |
+| Panel bevel corner (`bevelPanelOuter`, `bevelPanelInner`) | 28: the chamfer and the mitre | 7 borders |
+| Tile fill corner (`chamferTile`) | 12 | 3 borders |
+| Tile bevel corner (`bevelTileOuter`, `bevelTileInner`) | 16 | 4 borders |
+
+`LayoutSlice` follows the same rule for these six textures: its `cornerUnits` count borders, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3) lines up with a tile's chrome. Every other sliced texture, such as `shadow`, sizes its corners in units snapped to whole pixels.
+
+A border is one unit at 1080p and 4K, so a panel's chamfer is 6 units there. On the Mac it is 12 pixels, about 5.8 units. At 1440p a border is one pixel, 0.75 units, so a panel's chamfer is 6 pixels (4.5 units) and a tile's 3 pixels. The size setting moves the chamfer in steps of whole borders in the same way. `test-pixels.lua` checks every bevel corner on the four screens at sizes 0.75 to 1.5.
 
 ## Panel
 
@@ -324,8 +339,8 @@ Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default
 | `SetBarRange(min, max)` | `SetMinMaxValues(min, max)`. |
 | `SetBarDuration(durationObject) -> ok` | `SetTimerDuration`, for cast bars driven by a duration object. Returns `false` and logs once when the method is missing. |
 | `SetColorToken(name)` | Colours the fill with a token. An `accent` bar follows the class colour on `ThemeChanged`. |
-| `SetBarColor(r, g, b, a)` | Colours the fill with the caller's values, passed on as they are, so a colour from a curve works. A theme change keeps it. |
-| `SetBarTexture(keyOrPath)` | Changes the fill and the background texture. |
+| `SetBarColor(r, g, b, a)` | Colours the fill with the caller's values, passed on as they are, so a colour from a curve works. A theme change keeps it. It reuses one table per bar, so it allocates nothing on combat paths. |
+| `SetBarTexture(keyOrPath)` | Changes the fill and the background texture. A key is looked up in a table built at load, and a path the bar already has changes nothing, so it allocates nothing on combat paths. |
 | `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it, and switching it on stops a looping sheen. |
 | `SetSparkShown(shown)` | |
 

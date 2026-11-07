@@ -151,12 +151,72 @@ do
 	env.GetPhysicalScreenSize = function()
 		return env._physical[1], env._physical[2]
 	end
-	local _, c = chrome(env, K, "tile")
+	local frame, c = chrome(env, K, "tile")
+	local _, _, chamferUnits = K.Tokens.Texture("chamferTile")
+	local rim = K.Widgets.NineSlice(frame, "chamferTile", "BORDER", 0)
+	K.Widgets.LayoutSlice(rim, frame, chamferUnits, 0)
 	assert(W.Near(c.outer[5]:GetHeight(), 1), "one unit at 1080p before the move")
+	assert(W.Near(c.fill[1]:GetWidth(), 3) and W.Near(rim[1]:GetWidth(), 3), "a tile's chamfer is 3 units at 1080p")
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
-	assert(W.Near(K.Scale.Border(), 0.75), "the border is one 1440p pixel")
-	assert(W.Near(c.outer[5]:GetHeight(), 0.75), "the line is redrawn one pixel thick")
-	assert(W.Near(c.fill[1]:GetWidth(), K.Scale.Snap(3)), "a tile's corner is 3 units, snapped")
+	K.Widgets.LayoutSlice(rim, frame, chamferUnits, 0)
+	local border = K.Scale.Border()
+	assert(W.Near(border, 0.75), "the border is one 1440p pixel")
+	assert(W.Near(c.outer[5]:GetHeight(), border), "the line is redrawn one pixel thick")
+	assert(W.Near(c.outer[1]:GetWidth(), 4 * border), "the bevel corner is 4 borders, so its 4-texel line in 16 texels is one pixel")
+	assert(W.Near(c.fill[1]:GetWidth(), 3 * border), "a tile's chamfer is 3 borders, so the fill's diagonal meets the bevel's")
+	assert(W.Near(rim[1]:GetWidth(), c.fill[1]:GetWidth()), "a chamfer slice laid out by LayoutSlice lines up with the chrome")
+end
+
+-- Bag slots and unit frames recolour chrome on game events, in combat too, so the colour setters allocate nothing.
+-- The engine's setters are replaced on each piece: the stubs record each call in a table of their own.
+do
+	local env, K = W.New()
+	local _, c = chrome(env, K, "tile")
+	local function noop() end
+	for _, list in ipairs({ c.fill, c.shadow, c.outer, c.inner }) do
+		for _, piece in ipairs(list) do
+			piece.SetVertexColor, piece.SetShown = noop, noop
+		end
+	end
+	local function work()
+		c:SetFillRGBA(0.1, 0.2, 0.3, 0.4)
+		c:SetFill("raised", 0.5)
+		c:SetFill("raised")
+		c:SetEdgeRGBA(0.5, 0.6, 0.7, 0.8)
+	end
+	work()
+	local jit = rawget(_G, "jit")
+	if jit then
+		jit.off()
+		jit.flush()
+	end
+	collectgarbage("collect")
+	collectgarbage("stop")
+	local before = collectgarbage("count")
+	for _ = 1, 1000 do
+		work()
+	end
+	local grown = collectgarbage("count") - before
+	collectgarbage("restart")
+	if jit then
+		jit.on()
+	end
+	assert(grown == 0, "the chrome colour setters allocated " .. grown .. " KB over 1000 rounds")
+end
+
+-- A fill colour of the caller's, a token at a scaled alpha, and a plain token each paint the fill.
+do
+	local env, K = W.New()
+	local _, c = chrome(env, K, "panel")
+	c:SetFillRGBA(0.1, 0.2, 0.3, 0.4)
+	assert(W.SameColor(c.fill[5], 0.1, 0.2, 0.3, 0.4), "SetFillRGBA paints the caller's colour")
+	c:SetFill("raised", 0.5)
+	assert(W.SameColor(c.fill[5], K.Widgets.Rgba("raised", 0.5)), "SetFill with an alpha scale paints the token at that alpha")
+	c:SetFill("raised")
+	assert(W.SameColor(c.fill[5], K.Tokens.Color("raised")), "SetFill without one paints the token itself")
+	c:SetFillRGBA(0.6, 0.7, 0.8, 0.9)
+	K.Callbacks.Fire("ThemeChanged")
+	assert(W.SameColor(c.fill[5], 0.6, 0.7, 0.8, 0.9), "the caller's colour survives a restyle")
 end
 
 -- The kit settings restyle chrome: the panel opacity and the shadow switch.

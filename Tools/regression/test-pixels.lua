@@ -70,6 +70,48 @@ local SIZE_NAMES = {
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight",
 }
 local SLICED = { "chamferPanel", "chamferTile", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner", "shadow" }
+-- The bevel art holds a line one art unit (density texels) wide, so it is crisp only when a corner piece
+-- spans exactly one border per art unit. Frame scales: a frame on the root, and a tooltip-sized frame.
+local FRAME_SCALES = { 1, 1.25 }
+
+local function chromes(env, ns, frameScale)
+	local out = {}
+	for _, shape in ipairs({ "panel", "tile" }) do
+		local frame = env.CreateFrame("Frame", nil, ns.Scale.Root())
+		frame:SetScale(frameScale)
+		frame:SetSize(200, 100)
+		out[shape] = ns.Widgets.Chrome(frame, { shape = shape })
+	end
+	return out
+end
+
+local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
+	local Tokens = ns.Tokens
+	local px = ppu * frameScale
+	local border = ns.Scale.Border() * ppu
+	local _, bevelSlice, bevelUnits = Tokens.Texture(c.shape.outer)
+	local _, fillSlice = Tokens.Texture(c.shape.fill)
+	local density = bevelSlice / bevelUnits
+	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
+	for _, line in ipairs({ c.outer, c.inner }) do
+		for i = 1, 4 do
+			local w, h = line[i]:GetSize()
+			local cornerPx = w * px
+			assert(whole(cornerPx) and math.abs(h * px - cornerPx) < 1e-6, where .. ": a bevel corner piece is a whole-pixel square, got " .. cornerPx)
+			local linePx = cornerPx * density / bevelSlice
+			assert(math.abs(linePx - border) < 1e-6, where .. ": the bevel line in the corner is " .. linePx .. " px, the straight edge " .. border .. " px")
+		end
+		assert(math.abs(line[5]:GetHeight() * px - border) < 1e-6, where .. ": the straight line is one border")
+	end
+	local bevelChamferPx = c.outer[1]:GetWidth() * px * fillSlice / bevelSlice
+	for i = 1, 9, 2 do
+		if i ~= 5 then
+			local fillPx = c.fill[i]:GetWidth() * px
+			assert(whole(fillPx), where .. ": the fill corner is whole pixels, got " .. fillPx)
+			assert(math.abs(fillPx - bevelChamferPx) < 1e-6, where .. ": the fill's diagonal (" .. fillPx .. " px) meets the bevel's (" .. bevelChamferPx .. " px)")
+		end
+	end
+end
 
 -- Every screen, UI scale and size: the root is 1080 / size units tall, and every snapped value is
 -- a whole number of physical pixels.
@@ -80,6 +122,11 @@ for _, screen in ipairs(SCREENS) do
 		env.FireEvent("PLAYER_LOGIN")
 		local root = Scale.Root()
 		assert(root:GetName() == "KstyleUI_Root" and root:GetParent() == env.UIParent, "the root is KstyleUI_Root on UIParent")
+
+		local built = {}
+		for _, frameScale in ipairs(FRAME_SCALES) do
+			built[frameScale] = chromes(env, ns, frameScale)
+		end
 
 		local ppu = perUnit(env, ns)
 		local where = label(screen, uiScale)
@@ -109,6 +156,11 @@ for _, screen in ipairs(SCREENS) do
 			end
 			for _, v in ipairs({ 0.1, 0.5, 7.3, -4.6, 333.333 }) do
 				assert(whole(Scale.Snap(v) * ppu), where .. ": Snap(" .. v .. ") is whole pixels")
+			end
+			for _, frameScale in ipairs(FRAME_SCALES) do
+				for shapeName, c in pairs(built[frameScale]) do
+					checkChrome(ns, c, shapeName, ppu, frameScale, where)
+				end
 			end
 		end
 	end
