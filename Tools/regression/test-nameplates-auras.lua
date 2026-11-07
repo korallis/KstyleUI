@@ -128,6 +128,27 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A container the engine refuses in combat is retried once after combat, not once per event ---------------
+
+do
+	local env, K, ns = N.New()
+	local create = env.CreateFrame
+	env.CreateFrame = function(frameType, ...)
+		if frameType == "AuraContainer" and env._combat then
+			error("CreateFrame: AuraContainer refused in combat")
+		end
+		return create(frameType, ...)
+	end
+	env.SetCombat(true)
+	N.Add(env, "nameplate1")
+	for _ = 1, 5 do
+		env.FireEvent("UNIT_FLAGS", "nameplate1")
+	end
+	assert(K.Combat.Pending() == 1, "one retry waits, however many events arrive: " .. K.Combat.Pending())
+	env.SetCombat(false)
+	assert(ns.Plates.Get("nameplate1").auras, "the container is built when combat ends")
+end
+
 -- The preview draws sample debuffs on the same grid -----------------------------------------------------
 
 do

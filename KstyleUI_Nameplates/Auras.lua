@@ -152,11 +152,15 @@ local function NewContainer(plate)
 	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
 		if InCombatLockdown() then
 			LogOnce("aura-combat", "the debuff container could not be made in combat; it waits for combat to end")
-			K.Combat.Queue(function()
-				if plate.unit then
-					plate:Refresh()
-				end
-			end)
+			if not plate.aurasRetry then
+				plate.aurasRetry = true
+				K.Combat.Queue(function()
+					plate.aurasRetry = false
+					if plate.unit then
+						plate:Refresh()
+					end
+				end)
+			end
 		else
 			available = false
 			LogOnce("aura-missing", "the AuraContainer engine (" .. TEMPLATE .. ") is unavailable, so plates show no debuffs: " .. tostring(container))
@@ -312,7 +316,7 @@ function Component.Refresh(plate)
 		end
 		return
 	end
-	if not plate.auras and available then
+	if not plate.auras and available and not plate.aurasRetry then
 		plate.auras = NewContainer(plate)
 		if plate.auras then
 			LayoutContainer(plate)
