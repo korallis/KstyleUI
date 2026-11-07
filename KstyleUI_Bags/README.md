@@ -35,10 +35,11 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Window.lua` | `ns.Window`: a glass panel with search, sort, slot grids per section and a footer |
 | `Blizzard.lua` | `ns.Blizzard`: the secure hooks on Blizzard's bag functions and the hiding of Blizzard's bag frames |
 | `Inventory.lua` | `ns.Inventory`: the bag window |
+| `Bank.lua` | `ns.Bank`: the bank window |
 | `Preview.lua` | The settings window's live preview |
 | `Module.lua` | Registers the module, its settings page and preview, its events and callbacks, and its `/kstyle test` check |
 
-Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua` and `test-bags-hooks.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
+Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua` and `test-bags-bank.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
 
 ## The bag window
 
@@ -61,6 +62,29 @@ Each slot shows:
 - The item's cooldown, as a chamfered swipe.
 
 Search matches the item's name, type and subtype as plain text. Sort asks the game to sort the bags with `C_Container.SortBags`, after `C_Container.SetSortBagsRightToLeft` sets the chosen direction. In combat the sort waits for `Combat.Queue` and says so in chat.
+
+## The bank window
+
+A second glass window shows the bank while the player visits a banker. It is built from the same window and slots as the bag window.
+
+| Element key | Label | Default position | Layout |
+| --- | --- | --- | --- |
+| `bags.bank` | Bank window | `TOPLEFT`, x 60, y -110: where Blizzard's bank opens | Scalable. Its size follows the slot settings and Bank columns. |
+
+- **Bank types.** The grid holds every purchased tab of the chosen bank type, from `C_Bank.FetchPurchasedBankTabIDs`. When the player can view both the character bank and the Warband bank (`C_Bank.CanViewBank`), tabs above the search field switch between them.
+- **Bank bags.** On Forever the character bank's tabs after the first are bank bag slots that hold bags (`C_Bank.ShouldUsePlayerBagsInBank`). A row of small slots under the search field shows each bought bank bag slot with its bag. Clicking or dragging picks the bag up or puts one in, with `C_Container.PickupContainerItem` on `Enum.BagIndex.Characterbanktab`, out of combat only. The tooltip is `GameTooltip:SetBagItem`.
+- **Buy tab.** The Buy tab button is Blizzard's `BankPanelPurchaseButtonScriptTemplate`, the template Blizzard provides for addons, with the `overrideBankType` attribute set to the chosen bank type. Its click runs Blizzard's own confirmation. It shows while `C_Bank.CanPurchaseBankTab` is true, which includes a new character's free first tab.
+- **Deposit all.** Shown for a bank type that `C_Bank.DoesBankTypeSupportAutoDeposit` allows; it calls `C_Bank.AutoDepositItemsIntoBank` through `Combat.Queue`.
+- **Sort** calls `C_Container.SortBank(bankType)`, or `SortBankBags` and `SortAccountBankBags` on a client without it.
+- **Depositing by right-click** goes through Blizzard's item button, which deposits into the bank type Blizzard's own bank panel has selected: the character bank. Drag items to the Warband bank.
+
+The window opens on `BANKFRAME_OPENED`, and on `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` for a banker if that event comes first, and opens the bag window beside it while Bank opens bags is on. `BANKFRAME_CLOSED` closes it, and the bags too when the bank opened them. Closing the bank window by its close button or Escape ends the visit with `C_Bank.CloseBankFrame`.
+
+`BankFrame` goes under the hidden parent at `Enable`, before it ever shows, because Blizzard shows it with `ShowUIPanel` when a visit starts. Moving a shown `BankFrame` would run its `OnHide`, which ends the visit, so:
+
+- Turning the module on during a visit leaves Blizzard's bank for that visit and hides it when the visit ends.
+- Turning the module off during a visit ends the visit and gives Blizzard its bank back when `BANKFRAME_CLOSED` arrives.
+- With Replace bank off, Blizzard's bank stays. A change to Replace bank takes effect after `/reload`, and the module asks for one.
 
 ## Opening and closing
 
@@ -107,12 +131,15 @@ When `InputUtil.IsGamepadUIEnabled()` returns true at `Enable`, the module stand
 | `accentSource` | `class` | dropdown: class colour or custom colour |
 | `accentColor` | the kit's accent | colour, shown for a custom accent |
 | `sortDirection` | `LEFT` | dropdown: left to right or right to left |
+| `replaceBank` | `true` | toggle; a change takes effect after `/reload` |
+| `bankColumns` | 14 | slider, 4 to 24 |
+| `bankOpensBags` | `true` | toggle |
 
 Position, scale, opacity, strata and the shown rule come from Layout, on the Elements page and in Layout Mode. The preview shows eight sample slots drawn by `Slot.lua` with the current settings; it makes no Blizzard item buttons.
 
 ## /kstyle test
 
-The `bags` check passes while the module is off or standing down for the gamepad style. While it runs it fails if the window was not built or Blizzard's combined bags are not hidden, and otherwise reports the number of slots.
+The `bags` check passes while the module is off or standing down for the gamepad style. While it runs it fails if the window was not built, Blizzard's combined bags are not hidden, or Blizzard's bank is not hidden while the module replaces it outside a visit; otherwise it reports the number of slots and the bank's state.
 
 ## Why
 
@@ -123,4 +150,6 @@ The `bags` check passes while the module is off or standing down for the gamepad
 - **Toggles use the window's state, opens and closes use Blizzard's.** After the player closes the window by its own button, Blizzard's state would say open; a toggle that read Blizzard's state would need two key presses. Releasing Blizzard's frames on close keeps the two in step, and the toggle reads the window's own state anyway.
 - **Buttons made out of combat.** An item button made in combat lockdown is tainted for good and cannot use items, so every slot is made at `Enable` or when combat ends.
 - **The server sorts.** `C_Container.SortBags` sorts on the server in one call. Moving items one by one from Lua would need protected pickups in a loop and could be interrupted by combat.
+- **Blizzard's purchase template, not our own purchase call.** `C_Bank.PurchaseBankTab` is restricted, and Blizzard's confirmation popup reads the bank type it is given. Blizzard ships `BankPanelPurchaseButtonScriptTemplate` for addons, so the click starts in Blizzard's code and the purchase stays untainted.
+- **The bank waits for the visit to end.** `BankFrame:OnHide` calls `C_Bank.CloseBankFrame`, so reparenting a shown bank would end the player's visit and run Blizzard's bank code in KstyleUI's context. Every change to the bank's parent happens while it is closed.
 - **Scalable, not resizable.** The window's size follows its columns, slot size and spacing, so Layout owns only its scale. A resizable window would need a second source for the column count.

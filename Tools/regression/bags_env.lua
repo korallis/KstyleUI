@@ -133,6 +133,9 @@ function B.Game(env, opts)
 	env._container = container
 
 	local function item(bag, slot)
+		if bag == -2 then
+			return env._bankBags[slot]
+		end
 		local c = container(bag)
 		return c and c.items and c.items[slot]
 	end
@@ -276,6 +279,78 @@ function B.Game(env, opts)
 	env.GetKeyRingSize = function()
 		local c = env._bags[-1]
 		return c and c.size or 0
+	end
+
+	-- The bank: purchased tabs per bank type (opts.bankTabs), the bank bag slots that hold bags, and
+	-- BANKFRAME_OPENED and BANKFRAME_CLOSED through env.SetBank.
+	local tabs = opts.bankTabs
+	if not tabs then
+		tabs = { [B.BANK.Character] = {} }
+		for bag in pairs(env._bank) do
+			table.insert(tabs[B.BANK.Character], bag)
+		end
+		table.sort(tabs[B.BANK.Character])
+	end
+	env._bankTabs = tabs
+	env._bankMax = opts.bankMax or 7
+	env._bankBags = opts.bankBags or {}
+	env._atBank = false
+	env.C_Bank = {
+		CanViewBank = function(bankType)
+			return env._bankTabs[bankType] ~= nil
+		end,
+		AreAnyBankTypesViewable = function()
+			return next(env._bankTabs) ~= nil
+		end,
+		FetchPurchasedBankTabIDs = function(bankType)
+			local out = {}
+			for i, bag in ipairs(env._bankTabs[bankType] or {}) do
+				out[i] = bag
+			end
+			return out
+		end,
+		FetchNumPurchasedBankTabs = function(bankType)
+			return #(env._bankTabs[bankType] or {})
+		end,
+		FetchMaxNumBankTabs = function()
+			return env._bankMax
+		end,
+		CanPurchaseBankTab = function(bankType)
+			return env._bankTabs[bankType] ~= nil and #env._bankTabs[bankType] < env._bankMax
+		end,
+		ShouldUsePlayerBagsInBank = function()
+			return opts.playerBagsInBank ~= false
+		end,
+		DoesBankTypeSupportAutoDeposit = function(bankType)
+			return bankType == B.BANK.Account
+		end,
+		AutoDepositItemsIntoBank = function(bankType)
+			record(env, "AutoDepositItemsIntoBank", bankType)
+		end,
+		CloseBankFrame = function()
+			record(env, "CloseBankFrame")
+		end,
+	}
+	env.SetBank = function(atBank)
+		env._atBank = atBank and true or false
+		if atBank then
+			env.BankFrame:Show()
+			env.FireEvent("BANKFRAME_OPENED")
+		else
+			env.BankFrame:Hide()
+			env.FireEvent("BANKFRAME_CLOSED")
+		end
+	end
+	env.GameTooltip = env.CreateFrame("GameTooltip", "GameTooltip", env.UIParent)
+	rawset(env.GameTooltip, "SetOwner", function(_, owner)
+		record(env, "GameTooltip:SetOwner", owner)
+	end)
+	rawset(env.GameTooltip, "SetBagItem", function(_, bag, slot)
+		record(env, "GameTooltip:SetBagItem", bag, slot)
+		return item(bag, slot) ~= nil
+	end)
+	env.GameTooltip_Hide = function()
+		env.GameTooltip:Hide()
 	end
 
 	env.GetMoney = function()

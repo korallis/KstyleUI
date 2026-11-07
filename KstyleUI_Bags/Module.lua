@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Inventory, Blizzard = ns.Settings, ns.Inventory, ns.Blizzard
+local Settings, Inventory, Bank, Blizzard = ns.Settings, ns.Inventory, ns.Bank, ns.Blizzard
 local MODULE = Settings.MODULE
 
 local function Dispatch(event, ...)
@@ -16,10 +16,16 @@ local function Dispatch(event, ...)
 end
 
 local function Restyle()
-	local window = Inventory.window
-	if window then
-		window:Paint(true)
+	for _, window in ipairs({ Inventory.window or false, Bank.window or false }) do
+		if window then
+			window:Paint(true)
+		end
 	end
+end
+
+local function SettingsChanged(_, key)
+	Inventory.SettingsChanged(key)
+	Bank.SettingsChanged(key)
 end
 
 local function Enable()
@@ -29,23 +35,25 @@ local function Enable()
 	for event in pairs(ns.handlers) do
 		K.Events.Register(MODULE, event, Dispatch)
 	end
-	K.Callbacks.Register("SettingChanged", MODULE, function(_, module)
+	K.Callbacks.Register("SettingChanged", MODULE, function(_, module, key)
 		if module == MODULE then
-			Inventory.SettingsChanged()
+			SettingsChanged(nil, key)
 		end
 	end)
-	K.Callbacks.Register("ProfileChanged", MODULE, Inventory.SettingsChanged)
+	K.Callbacks.Register("ProfileChanged", MODULE, SettingsChanged)
 	K.Callbacks.Register("ThemeChanged", MODULE, Restyle)
 	K.Callbacks.Register("LayoutChanged", MODULE, function(_, key)
-		local window = Inventory.window
-		if window and key == Inventory.KEY then
+		local window = (key == Inventory.KEY and Inventory.window) or (key == Bank.KEY and Bank.window)
+		if window then
 			window:ScaleChanged()
 		end
 	end)
 	Inventory.Enable()
+	Bank.Enable()
 end
 
 local function Disable()
+	Bank.Disable()
 	Inventory.Disable()
 	Blizzard.Stop()
 end
@@ -64,11 +72,18 @@ local function Check()
 	if not K.Safe.IsHidden(ContainerFrameCombinedBags) then
 		return false, "Blizzard's combined bags are not hidden"
 	end
+	local bank = "Blizzard's bank kept"
+	if Bank.IsReplaced() then
+		if not K.Safe.IsHidden(BankFrame) and not Bank.WaitingForVisit() then
+			return false, "Blizzard's bank is not hidden"
+		end
+		bank = "Blizzard's bank hidden"
+	end
 	local slots = 0
 	for _, section in ipairs(window.sections) do
 		slots = slots + #section.order
 	end
-	return true, "bag window built with " .. slots .. " slots; Blizzard's bags hidden"
+	return true, "bag window built with " .. slots .. " slots; Blizzard's bags hidden; " .. bank
 end
 
 K.Modules.Register({ name = MODULE, defaults = Settings.defaults, Enable = Enable, Disable = Disable })

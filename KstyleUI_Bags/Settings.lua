@@ -22,6 +22,7 @@ local numberFont = Tokens.Font("number")
 
 Settings.LIMITS = {
 	columns = { COLUMNS_MIN, COLUMNS_MAX },
+	bankColumns = { COLUMNS_MIN, COLUMNS_MAX },
 	slotSize = { SLOT_MIN, SLOT_MAX },
 	spacing = { SPACING_MIN, SPACING_MAX },
 	rows = { 0, ROWS_MAX },
@@ -48,6 +49,9 @@ Settings.defaults = {
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	sortDirection = "LEFT",
+	bankColumns = 14,
+	bankOpensBags = true,
+	replaceBank = true,
 }
 
 local GROWTH_OPTIONS = {
@@ -160,6 +164,16 @@ Settings.schema = {
 		type = "color", key = "accentColor", label = L["Custom accent"], help = L["The accent colour when it does not follow your class."],
 		showWhen = customAccent, disableWhen = isOff,
 	},
+	{ type = "header", label = L["Bank"] },
+	{
+		type = "toggle", key = "replaceBank", label = L["KstyleUI bank"],
+		help = L["Replace Blizzard's bank window; a change takes effect after a reload."], disableWhen = isOff,
+	},
+	{
+		type = "slider", key = "bankColumns", label = L["Bank columns"], help = L["How many slots sit in each row of the bank window."],
+		min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
+	},
+	{ type = "toggle", key = "bankOpensBags", label = L["Bank opens bags"], help = L["Open your bags beside the bank when you visit a banker."], disableWhen = isOff },
 	{ type = "header", label = L["Sorting"] },
 	{
 		type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],
