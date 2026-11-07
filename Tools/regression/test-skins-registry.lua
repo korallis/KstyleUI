@@ -325,4 +325,36 @@ do
 	assert(#heard == 2 and heard[2].field == nil, "a profile change tells the skin every setting may have changed")
 end
 
+-- An applied skin hears its switch and the module turn off and on, so it can undo what it can undo ---------
+
+do
+	local heard = {}
+	local def = Fake("switched")
+	function def.OnSwitch(self, on)
+		assert(self == def)
+		heard[#heard + 1] = on
+	end
+	local env, K = S.New({ before = function(_, _, ns) ns.Skins.Add(def) end })
+	K.Options.Write("Skins", "switched.enabled", false)
+	K.Options.Write("Skins", "switched.enabled", true)
+	assert(#heard == 0, "a skin that has not applied hears nothing")
+	K.Modules.Enable("Skins")
+	assert(def.applied == 1 and #heard == 0, "Apply runs first; OnSwitch runs only on later changes")
+	K.Options.Write("Skins", "switched.enabled", false)
+	assert(heard[1] == false, "switching the window off")
+	assert(K.Widgets.DialogHost():IsShown(), "the skin's frames still keep their look, so a reload is still offered")
+	K.Options.Write("Skins", "switched.enabled", true)
+	assert(heard[2] == true and def.applied == 1, "switching it on again tells the skin; Apply never runs twice")
+	K.Modules.Disable("Skins")
+	assert(heard[3] == false, "turning the module off")
+	K.Modules.Enable("Skins")
+	assert(heard[4] == true, "turning the module on again")
+	K.Store.Module("Skins").switched.enabled = false
+	K.Store.CopyProfile(K.Store.ProfileName(), "Switched off")
+	K.Store.SetProfile("Switched off")
+	assert(heard[5] == false, "a profile with the window switched off")
+	assert(#heard == 5, "each change is heard once")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("skins registry ok")

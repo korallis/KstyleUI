@@ -11,7 +11,7 @@ local MODULE = "Skins"
 local MAX_HELP = 100
 
 local order, byKey = {}, {}
-local applied, waiting, hooked, failed = {}, {}, {}, {}
+local applied, waiting, hooked, failed, switched = {}, {}, {}, {}, {}
 local closed, running, reporting = false, false, false
 
 local function Log(message)
@@ -119,6 +119,7 @@ local function Run(def)
 		return
 	end
 	applied[def.key] = true
+	switched[def.key] = true
 	if K.Call(def.Apply, def) then
 		Log(def.key .. ": applied")
 	else
@@ -223,6 +224,13 @@ local function OnAddonLoaded(_, name)
 	end
 end
 
+local function Switch(def, on)
+	if applied[def.key] and switched[def.key] ~= on and type(def.OnSwitch) == "function" then
+		switched[def.key] = on
+		K.Call(def.OnSwitch, def, on)
+	end
+end
+
 local function OnSetting(_, module, key, value)
 	if module ~= MODULE or type(key) ~= "string" then
 		return
@@ -243,8 +251,10 @@ local function OnSetting(_, module, key, value)
 		return
 	end
 	if value == true then
+		Switch(def, true)
 		Arm(def)
 	elseif applied[def.key] then
+		Switch(def, false)
 		K.Widgets.ReloadPrompt(string.format(L["%s keeps its KstyleUI look until you reload."], def.label))
 	end
 end
@@ -281,6 +291,7 @@ function Skins.Start()
 		end
 		ns.Style.RestyleAll()
 		for _, def in ipairs(order) do
+			Switch(def, Skins.IsOn(def.key))
 			if applied[def.key] and type(def.OnSetting) == "function" then
 				K.Call(def.OnSetting, def, nil)
 			end
@@ -289,10 +300,16 @@ function Skins.Start()
 		PromptSwitchedOff()
 	end)
 	K.Callbacks.Register("ThemeChanged", MODULE, ns.Style.RestyleAll)
+	for _, def in ipairs(order) do
+		Switch(def, Skins.IsOn(def.key))
+	end
 	ArmAll()
 end
 
 function Skins.Stop()
 	running = false
 	waiting = {}
+	for _, def in ipairs(order) do
+		Switch(def, false)
+	end
 end

@@ -280,6 +280,30 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] Press Escape several times: the game menu buttons keep their hover glow every time.
 - [ ] `/kstyle test`: each window you opened logs `applied`. Note any `is missing on this client` lines.
 
+### Skins: RestedXP Guides
+
+Needs RestedXP Guides installed and on. Before you start, note your RestedXP theme: `/rxp`, then the **Look and Feel** tab, **Choose Theme**.
+
+- [ ] Log in with Skins on. The guide window has no blue banner or blue border: the header and the step list sit on KstyleUI's dark glass, the guide's title is in your class colour, and the text is in KstyleUI's font. The footer is a dark tile.
+- [ ] RestedXP's **Choose Theme** now reads **KstyleUI by KstyleUI**.
+- [ ] Hover a step in the list: it lights in your class colour. The step list's scroll bar is KstyleUI's thin bar.
+- [ ] The current step box above or below the header sits on glass, its number on a dark tile, and its check boxes are KstyleUI check boxes. Tick one.
+- [ ] Click the cog or right-click the guide's name: the guide menu sits on glass in KstyleUI's font, and so do its submenus. Close it, then open another addon's dropdown menu if you have one: that menu keeps its own look.
+- [ ] Map pins, route lines and the navigation arrow are in your class colour.
+- [ ] The **Active Items** and **Active Targets** frames sit on glass with a dark title tile in your class colour; their buttons sit on KstyleUI rims and light in your class colour under the mouse. In RestedXP's settings, turn on the option that hides the active targets background: the glass goes too. Turn it off again.
+- [ ] Open the character sheet, then the RestedXP menu's **Leveling report**: the report beside the character sheet sits on glass with a KstyleUI close button, scroll bar and level button.
+- [ ] Turn on level splits in RestedXP's settings: the splits window sits on glass with a dark title tile.
+- [ ] Run the guide configurator (RestedXP menu, **Run Guide Configurator**) and the guide importer (`/rxp import`): both sit on glass, their buttons are KstyleUI buttons, the importer's text box is a KstyleUI edit box, and its close button is KstyleUI's cross.
+- [ ] Open the feedback form (`/rxp bug`): it sits on glass with a title in your class colour. Close it.
+- [ ] Open the quest log: RestedXP's clean-up button under it is a KstyleUI button.
+- [ ] Change the accent (General > Appearance, or Skins > Accent colour): the RestedXP titles, highlights, pins and arrow change at once. Change the font: RestedXP's text changes.
+- [ ] Switch **RestedXP** off in the Skins settings: RestedXP's **Choose Theme** shows the theme you noted, and RestedXP redraws with it. A reload prompt says RestedXP keeps its KstyleUI look until you reload, for the glass and buttons.
+- [ ] Switch it on again, then pick another theme in RestedXP and switch **RestedXP** off: your pick stays. Switch it on again.
+- [ ] Turn the Skins module off: RestedXP's theme goes back to yours.
+- [ ] In combat, change a quest step so a new active item button appears: no "action blocked" message, and the button gets its rim when combat ends.
+- [ ] `/kstyle test`: `restedXP` is in the `applied` list. Note any devlog lines that start with `restedXP:`.
+- [ ] Disable RestedXP in the AddOns list and reload: no errors, and `restedXP` shows as waiting.
+
 ### Custom icons
 
 - [ ] General > Icons: turn on **Custom icons**. Action buttons, cooldown icons, cast bar icons and tooltip icons show the light art (set A), tinted in your class colour.

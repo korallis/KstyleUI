@@ -1,6 +1,6 @@
 # KstyleUI_Skins
 
-Character sheet, spellbook and talents, quest log and objective tracker, world map, game menu, group finder, mail, merchant, trainer, professions, social windows, Legacy, loot, popups and ready check.
+Character sheet, spellbook and talents, quest log and objective tracker, world map, game menu, group finder, mail, merchant, trainer, professions, social windows, Legacy, loot, popups and ready check, and the windows of RestedXP Guides.
 
 | Field | Value |
 | --- | --- |
@@ -33,6 +33,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Parts.lua` | `ns.Parts`: quality rims and accent lines drawn on KstyleUI's own child frames |
 | `Registry.lua` | `ns.Skins`: the skin registry |
 | Part A, B and C sections | One file per skin. Each part adds its `Script` lines between its own two comment lines, so parallel branches never edit the same lines. |
+| Other addons section | One folder per addon whose windows the module restyles, such as `Addons/RestedXP/`, between its own two comment lines. |
 | `Preview.lua` | `ns.Preview.Build`, the settings window's live preview |
 | `Module.lua` | Registers the module, its defaults and its settings. It must load last: it reads every skin the files above added. |
 
@@ -67,6 +68,7 @@ ns.Skins.Add({
 | `frame` | The window's global name. The skin applies on the window's first `OnShow`, or at once if it is open. Without `frame`, the skin applies as soon as the addon has loaded. |
 | `Apply(def)` | Required. Runs once per session through `KstyleUI.Call`, so an error is reported and logged and other skins still apply. |
 | `OnSetting(def, field, value)` | Optional. Runs after one of the skin's own settings changes, once the skin has applied: `field` is the key without the skin's prefix, such as `"borders"`. After a profile change it runs once with `field` `nil`, because any setting may have changed. |
+| `OnSwitch(def, on)` | Optional. Runs once the skin has applied, each time the window's switch or the module turns off (`false`) or on again (`true`), and after a profile change that turns the switch. `Apply` covers the first switch on. Use it for changes a skin can undo, such as another addon's setting; frames keep their skin until reload either way. |
 | `defaults`, `rows` | Optional. `rows` follow the `Options.Register` rules with keys relative to the skin; a bad row stops the module from loading with the row's key in the error. A row's `showWhen` and `disableWhen` get the skin's own settings table. Every row hides while the window's switch is off. Do not put `enabled` in `defaults`: the registry adds the switch. |
 
 The registry adds the window's switch, `<key>.enabled`, default on, to the module's settings page, under the Windows header in the order `Skins.xml` loads the files.
@@ -257,6 +259,52 @@ The loot window and the loot rolls add `qualityBorders` (on) and `qualityFrom` (
 
 Tests: `Tools/regression/test-skins-partc-loot.lua`, `test-skins-partc-dialogs.lua`, `test-skins-partc-social.lua` and `test-skins-partc-legacy.lua`.
 
+## Other addons
+
+### RestedXP Guides (`Addons/RestedXP/`, key `restedXP`)
+
+RestedXP Guides (folder `RXPGuides`) is a third-party addon. The skin reads RestedXP's public shape, its frame names, theme fields and functions, and copies none of its code or art. The switch, **RestedXP**, is on by default. The skin waits for `RXPGuides` to load, so nothing happens when RestedXP is not installed or is off. KstyleUI loads before RestedXP, so the skin reaches RestedXP's addon table through `LibStub("AceAddon-3.0"):GetAddon("RXPGuides", true)` once the module starts at `PLAYER_LOGIN`, after RestedXP's own start-up.
+
+| File | What it holds |
+| --- | --- |
+| `Theme.lua` | `ns.RestedXP.Addon()`, `LogOnce` and `Try`, and the theme: built, registered, made active and restored |
+| `Chrome.lua` | KstyleUI's chrome on each RestedXP window |
+| `Skin.lua` | The `ns.Skins.Add` definition |
+
+**The theme.** The skin registers a theme named `KstyleUI` through `RegisterTheme` (RestedXP's v1 window) and puts a version 2 theme of the same name in `addon.v2.themes`, so RestedXP's own conversion never replaces it (the v2 window). Surfaces are the `surface` token at the Widgets panel opacity, rows and buttons `raised`, text `text` (v2) and `textEmphasis` (v1), and titles, borders, highlights, the checked step box and map pins the module's accent (`Style.Accent`). The font is the module's body face (`Style.Font("body")`). RestedXP's own icons, banner art and border art are read from RestedXP's `RXP Blue V2` and `DarkMode` themes at run time. A change to the accent, the font, the panel opacity or the profile rebuilds the two theme tables in place and redraws RestedXP once on the next frame, out of combat.
+
+**Activation and restore.** While the switch and the module are on, the skin writes `KstyleUI` into RestedXP's `activeTheme` and remembers the theme it replaced, per RestedXP profile, in `KstyleUIDB.account.restedXPTheme`, as `KstyleUI_Chat/Stamps.lua` does for a CVar. Turning the switch or the module off, or a KstyleUI profile with the switch off, puts the remembered theme back, but only while RestedXP still shows `KstyleUI`; with nothing remembered it puts back RestedXP's default, `RXP Blue`. A RestedXP profile change (a hook on `settings.RefreshProfile`) makes the theme active in the new profile, or, while the switch is off, gives that profile its remembered theme back. RestedXP redraws through its `ReloadTheme`. When the player has turned RestedXP's live theme reload off, a change shows after `/reload`, as RestedXP's own theme changes do; RestedXP's start-up runs before KstyleUI can register the theme, so at login the skin does the draw RestedXP could not (`RenderFrame` and `SetupArrow`).
+
+**Chrome.** Windows RestedXP makes later are restyled through `hooksecurefunc` on the function that makes them, only while the switch and the module are on. Switching either on again (`OnSwitch`) restyles the windows RestedXP made in between. Secure buttons made in combat wait for `Combat.Queue`.
+
+| RestedXP window | Reached through | What changes |
+| --- | --- | --- |
+| Guide window (v1, the default on Forever) | `RXPFrame`: `GuideName`, `BottomFrame`, `Footer`, `ScrollFrame.ScrollBar` | The header and step list sit on glass, the banner and backdrops go, the logo and class icon stay, the title takes the accent, the footer is a tile, the scroll bar is KstyleUI's. Step rows keep RestedXP's fill in the theme's colours. |
+| Active step frames | `RXPFrame.CurrentStepFrame.framePool`, made by `SetStep` | Glass, a tile on the number badge, KstyleUI check boxes |
+| Guide menu and RestedXP's other menus | `ShowMenu`, drawn in `L_DropDownList1` to `8` (`DropDownList` where `EasyMenu` exists) | Glass and KstyleUI's font while RestedXP's menu shows. The lists belong to the menu library, which other addons share, so closing the menu gives back their own backdrops. |
+| Navigation arrow | `arrowFrame` | Greyed and tinted with the accent after each redraw: RestedXP bakes the arrow's colour into its art |
+| Active items, active targets | `activeItemFrame`, `targeting.activeTargetFrame`; buttons made by `UpdateItemFrame` and `targeting:UpdateTargetFrame` | Glass, a title tile in the accent, a rim behind each button and an accent highlight; item icons are cropped. RestedXP's hide-background settings hide the glass too. |
+| Leveling report | `tracker.ui.CharacterFrame` | Glass, an accent heading, KstyleUI close and level buttons and scroll bar |
+| Level splits | `tracker.levelSplits`, made by `tracker:CreateLevelSplits` | As the active items frame |
+| v2 guide window (when the player turns v2 on) | `v2.state.guideWindow` | Glass on the header and step list, no banner art, the close cross, the scroll bar, an accent title kept through `UpdateSubTheme` |
+| Guide configurator, guide importer and its two confirmations | `ui.v2.configurator`, made by `CreateGuideConfigurator`; `guideImporter.widgets`, made by `ui.v2:CreateGuideImporter` | Glass, accent titles (kept through the configurator's `UpdateTheme`), KstyleUI buttons, close cross, edit box and scroll bar |
+| Feedback form, export box | `comms.OpenBugReport`, `comms.OpenBrandedExport` | Glass and an accent title while RestedXP shows them. Both are AceGUI frames that AceGUI hands to other addons after RestedXP, so closing one gives back its own art and title colour. |
+| Clean-up button on the quest log | `RXPQuestLogCleanupButton`, made at `PLAYER_ENTERING_WORLD` | A KstyleUI button |
+
+Map pins, route lines, timer bars and the tips' highlights take the accent through the theme.
+
+These are not restyled:
+
+- Item upgrades, the auction house tab and talent guides: RestedXP does not make them on Forever.
+- RestedXP's settings: an AceConfig page in Blizzard's settings window, drawn by AceGUI widgets every AceConfig addon shares.
+- The v2 step rows, cards and party steps: they keep RestedXP's drawing in the theme's colours.
+- The guide importer's guide dropdown: a stock AceGUI dropdown shared with other addons.
+- The minimap button: LibDBIcon's.
+
+A missing or renamed part is logged once as `restedXP: <path> is missing in this RestedXP; skipped`, and the rest still applies. A call into RestedXP that fails is logged once and never raises an error.
+
+Tests: `Tools/regression/test-skins-restedxp-theme.lua` and `test-skins-restedxp-windows.lua`, through `Tools/regression/restedxp_fake.lua`, a stand-in RestedXP written from those names.
+
 ## Why
 
 - **One module, one switch per window.** Players turn the module on once and then pick windows. Each window's switch lives in the module's own settings section, so a profile string carries every choice, and the registry adds the switches so a skin file cannot forget its own.
@@ -281,4 +329,7 @@ Tests: `Tools/regression/test-skins-partc-loot.lua`, `test-skins-partc-dialogs.l
 - **Part C controls share part B's accent painters.** `KstyleUI.Skin` paints hover edges, check marks and scroll thumbs in the interface accent. Part B already swaps those painters for ones that use `Style.Accent`, and part B loads first, so part C calls `ns.PartBKit.Accent` instead of keeping a second copy, and falls back to the core look if part B is missing.
 - **The guild opens in the communities window.** On Forever `ToggleGuildFrame` opens `CommunitiesFrame` from `Blizzard_Communities`, and the TOC's `Camelot` override only hides personal achievements, so the guild skin targets that window and waits for its addon to load.
 - **Social rows keep what carries meaning.** Friend rows keep Blizzard's online, offline and Battle.net tints and their game icons, and member rows keep class icons and name colours, so the skin changes the chrome, fonts and highlights and leaves the status cues alone.
+- **RestedXP's theme comes through its own theme API.** RestedXP colours its windows from the active theme, so a theme reaches the parts the chrome leaves alone: step rows, map pins, route lines, timer bars and the v2 cards. The chrome adds what a theme cannot: the chamfered glass, KstyleUI's buttons, scroll bars and check boxes.
+- **The player's RestedXP theme is theirs.** The skin remembers it and puts it back only while RestedXP still shows `KstyleUI`, so a theme the player picked since is never undone.
+- **Shared frames are dressed only while RestedXP uses them.** The menu library's lists and AceGUI's pooled frames serve other addons too, so the skin hides their art with a remembered alpha and gives it back when RestedXP's menu or dialog closes, instead of restyling them for good.
 - **Legacy page art is a choice.** Each Legacy page has a large painted backdrop. The skin hides it by default so the pages read as glass like every other window, and the `pageArt` switch brings it back at once, because the art is Forever's own and some players will want it. The cards and tree nodes keep Blizzard's art: their states are drawn by the shared talent and renown code and change too often to restyle safely.

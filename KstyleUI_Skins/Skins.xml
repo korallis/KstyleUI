@@ -34,6 +34,12 @@
 	<Script file="PartC\Preview.lua"/>
 	<!-- End of part C. -->
 
+	<!-- Other addons: skins for windows that other addons make. Add their files below this line. -->
+	<Script file="Addons\RestedXP\Theme.lua"/>
+	<Script file="Addons\RestedXP\Chrome.lua"/>
+	<Script file="Addons\RestedXP\Skin.lua"/>
+	<!-- End of other addons. -->
+
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
 </Ui>
