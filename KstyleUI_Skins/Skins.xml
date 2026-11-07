@@ -12,6 +12,13 @@
 	<!-- End of part A. -->
 
 	<!-- Part B: add part B's skin files below this line, one Script line each, in the order their switches should list. -->
+	<Script file="PartB\Kit.lua"/>
+	<Script file="PartB\GameMenu.lua"/>
+	<Script file="PartB\GroupFinder.lua"/>
+	<Script file="PartB\Mail.lua"/>
+	<Script file="PartB\Merchant.lua"/>
+	<Script file="PartB\Trainer.lua"/>
+	<Script file="PartB\Professions.lua"/>
 	<!-- End of part B. -->
 
 	<!-- Part C: add part C's skin files below this line, one Script line each, in the order their switches should list. -->

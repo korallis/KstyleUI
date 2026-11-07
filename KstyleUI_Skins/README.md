@@ -183,6 +183,40 @@ On Forever the spellbook and the talents live in one window, `PlayerSpellsFrame`
 | `tracker.panel` | `true` | toggle: the glass panel behind the tracker |
 | `tracker.font` | `true` | toggle: the skin font for tracker text |
 
+## Part B windows
+
+`PartB/` holds the skins for the game menu, Forever's group finder, mail, the merchant, the trainer and the professions window. `PartB/Kit.lua` loads first and sets `ns.PartBKit`, the helpers the six skins share. Every helper takes a Blizzard frame, logs and skips a missing or forbidden one, waits for `Combat.Queue` when the frame is protected in combat, and returns what it made on a second call.
+
+| Skin | Key | Blizzard addon | Window | What changes |
+| --- | --- | --- | --- | --- |
+| `GameMenu.lua` | `gameMenu` | `Blizzard_GameMenu` | `GameMenuFrame` | The dialog border and header art go; a glass panel, the heading font and a raised tile for each pooled button come. A hook on `InitButtons` skins buttons the menu adds later. |
+| `GroupFinder.lua` | `groupFinder` | `Blizzard_GroupFinder_VanillaStyle` | `LFGParentFrame` | The listing, browse and who-list pages become glass windows. Side tabs, dropdowns, check boxes, scroll bars, the comment box and the result and who rows are restyled. |
+| `Mail.lua` | `mail` | `Blizzard_MailFrame` | `MailFrame` | The inbox, the send form and `OpenMailFrame`. Every inbox item and attachment gets a quality rim; the cash-on-delivery tint and the coin icons stay. |
+| `Merchant.lua` | `merchant` | `Blizzard_UIPanels_Game` | `MerchantFrame` | Item rows become raised tiles with quality-rimmed icons; repair and junk buttons keep their icons; the page buttons get chevrons. |
+| `Trainer.lua` | `trainer` | `Blizzard_TrainerUI` | `ClassTrainerFrame` | The skill bar takes the shared bar look; category and skill rows become tiles that light while selected. |
+| `Professions.lua` | `professions` | `Blizzard_Professions` | `ProfessionsFrame` | Side tabs, the recipe list, the schematic, tool slots and the craft-count spinner. The skill bars on the crafting and overview pages are drawn by KstyleUI status bars. |
+
+The mail, merchant and professions skins add a `qualityRims` switch, on by default, under their window's switch.
+
+| Helper | Behaviour |
+| --- | --- |
+| `Item(button, opts)` | Hides the slot art, keeps and crops the icon (`opts.icon`, `button.icon` or `button.Icon`; an atlas icon is not cropped), and puts `Parts.Rim` behind it. The rim follows the colour Blizzard gives `IconBorder` through hooks on its `SetVertexColor`, `Show`, `Hide` and `SetShown`; white and grey give no ring. `opts.window` names the skin whose `qualityRims` switch applies. `opts.normal` is for buttons whose icon is the normal texture. |
+| `Dropdown(dropdown)`, `SideTab(frame)` | `Parts.Dropdown` and `Parts.SideTab`, so part B's dropdowns and side tabs match part A's. |
+| `Arrow(button, direction)` | `Parts.Glyph` with a chevron turned `left` or `right`, for page and spinner buttons. |
+| `Hush(frame, ...)` | `Parts.Hush` on each named texture. |
+| `Select(frame, marker)` | A raised tile behind a list row whose edge takes the module's accent under the mouse and while `marker`, Blizzard's selection texture, shows. |
+| `Square(button)` | An icon button on a raised tile that keeps its `Icon`. |
+| `Inset(frame)`, `MoneyBox(box)`, `InputScroll(scroll)`, `NumberBox(box)` | Inset art, money and spinner boxes, and scrolling text boxes. |
+| `RankBar(frame)` | Hides a `ProfessionsRankBarTemplate`'s art and draws a `Widgets.StatusBar` over it that mirrors Blizzard's `Update(professionInfo)`. A secret value passes straight to the bar. |
+| `Bar(statusBar)` | Keeps a Blizzard status bar's fill and applies `Style.StatusBar`. |
+| `Rows(scrollBox, skinRow)` | `Parts.EachRow`, once per scroll box. Every part B row function is safe to run again on a recycled row. |
+| `Window(frame, opts)`, `Text(fontString, role, colorName)` | `Skin.Window` with the title in the module's heading font and its tabs in the module's accent, and `Style.Text`. |
+| `Button`, `Tab`, `CheckBox`, `ScrollBar`, `EditBox` | The `KstyleUI.Skin` helper of the same name, then the module's look: labels through `Style.Text`, and hover edges, check marks, tab underlines, scroll thumbs and focus edges in `Style.Accent` instead of the interface accent. |
+| `Accent(frame)` | Swaps the painter of a frame `KstyleUI.Skin` already restyled for one that uses `Style.Accent`, and registers it with `Style.Track` so an accent change repaints it. |
+| `Rehover(frame, widget)` | Hooks `OnEnter` and `OnLeave` again, for buttons whose scripts Blizzard replaces with `SetScript`. |
+
+Test: `Tools/regression/test-skins-partb-kit.lua` and `test-skins-partb-windows.lua`.
+
 ## Why
 
 - **One module, one switch per window.** Players turn the module on once and then pick windows. Each window's switch lives in the module's own settings section, so a profile string carries every choice, and the registry adds the switches so a skin file cannot forget its own.
@@ -193,3 +227,9 @@ On Forever the spellbook and the talents live in one window, `PlayerSpellsFrame`
 - **No Layout keys.** Every frame this module makes is chrome parented to a Blizzard window. Layout never moves Blizzard frames, and registering the chrome would pull it off its window, so the module registers no Layout elements. Blizzard's panel manager and Edit Mode keep placing the windows.
 - **One look for every window.** Text, bars and accents go through `ns.Style`, so the font, size, edge, bar and accent settings change every skinned window at once, and part B and C skins get them for free.
 - **Parallel parts never collide.** Each part adds its files between its own comment lines in `Skins.xml`, and `Module.lua` loads last to read every skin, so three branches can add skins at the same time and merge cleanly.
+- **Part B follows the module's look.** The six part B skins style their text with `Style.Text`, their bars with the shared bar settings and their selection edges with `Style.Accent`, so the Text, Bars and Accent settings reach them with no settings of their own beyond the quality rims.
+- **Quality comes from Blizzard's border.** Blizzard sets the item quality colour on each button's `IconBorder` through several paths (`SetItemButtonQuality`, the mixin method, direct calls). Following the border's colour catches all of them without hooking a global function every bag and bank button also calls.
+- **Blizzard replaces some scripts.** `MainMenuFrameMixin:AddButton` calls `SetScript` for `OnEnter` and `OnLeave` on every pooled game menu button each time the menu opens, `ClassTrainerFrame_InitCategoryButton` does the same to each trainer category row, and `ClassTrainerFrame_SetTrainButtonEnabled` to the train button. `SetScript` drops hooked scripts, so the skins hook those two scripts again after each of these calls.
+- **The core helpers paint the interface accent.** `KstyleUI.Skin` lights hover edges, check marks, tab underlines and scroll thumbs in the Appearance accent. Part B swaps their painters on its own frames for ones that use `Style.Accent`, so the module's Accent setting reaches every part B control.
+- **Atlas icons keep their coordinates.** Texture coordinates on an atlas texture index the whole atlas sheet, so the item helper crops only file icons.
+- **Profession skill bars are KstyleUI bars.** Blizzard draws them with a masked flipbook texture, not a status bar, so the shared bar texture, colour and fill direction can only reach a bar KstyleUI draws over them.
