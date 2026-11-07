@@ -81,27 +81,27 @@ function Panel:Restyle()
 	if opts.width and opts.height then
 		Widgets.Size(self, opts.width, opts.height)
 	end
-	local pad = Scale.Snap(Tokens.Size("panelPadding"))
+	local pad = Widgets.Snap(self, Tokens.Size("panelPadding"))
 	local top = pad
 	if self.titleText then
-		local bar = Scale.Snap(TitleBarHeight())
+		local bar = Widgets.Snap(self, TitleBarHeight())
 		self.titleBar:SetHeight(bar)
 		self.titleText:ClearAllPoints()
 		self.titleText:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
 		if self.closeButton then
-			self.titleText:SetPoint("RIGHT", self.closeButton, "LEFT", -Scale.Snap(Tokens.Size("gapSmall")), 0)
+			self.titleText:SetPoint("RIGHT", self.closeButton, "LEFT", -Widgets.Snap(self, Tokens.Size("gapSmall")), 0)
 		else
 			self.titleText:SetPoint("RIGHT", self, "RIGHT", -pad, 0)
 		end
 		self.divider:ClearAllPoints()
 		self.divider:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -bar)
 		self.divider:SetPoint("TOPRIGHT", self, "TOPRIGHT", -pad, -bar)
-		self.divider:SetHeight(Scale.Border())
+		self.divider:SetHeight(Widgets.Border(self))
 		Widgets.Tint(self.divider, "accent", DIVIDER_ALPHA)
-		top = bar + Scale.Snap(Tokens.Size("gapMedium"))
+		top = bar + Widgets.Snap(self, Tokens.Size("gapMedium"))
 	end
 	if self.closeButton then
-		local gap = Scale.Snap(Tokens.Size("gapMedium"))
+		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
 		self.closeButton:ClearAllPoints()
 		self.closeButton:SetPoint("TOPRIGHT", self, "TOPRIGHT", -gap, -gap)
 	end

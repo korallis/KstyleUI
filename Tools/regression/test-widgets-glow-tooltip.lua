@@ -33,6 +33,22 @@ do
 	end, "kind must be proc or selection")
 end
 
+-- Turning reduced motion on stops the pulse of a glow that is already running; turning it off starts it again.
+do
+	local env, K = W.New()
+	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
+	local glow = K.Widgets.Glow(frame)
+	glow:Start()
+	W.Settle(env)
+	local stops = #W.Calls(glow.pulse, "Stop")
+	K.Options.Write("Appearance", "reducedMotion", true)
+	assert(#W.Calls(glow.pulse, "Stop") > stops and #W.Calls(glow.sparkPulse, "Stop") >= 1, "the running pulse stops")
+	assert(glow.holder:IsShown() and glow:IsPlaying(), "the glow stays, steady")
+	local plays = #W.Calls(glow.pulse, "Play")
+	K.Options.Write("Appearance", "reducedMotion", false)
+	assert(#W.Calls(glow.pulse, "Play") == plays + 1, "the pulse starts again")
+end
+
 -- Under reduced motion a proc glow shows steadily without the pulse.
 do
 	local env, K = W.New()
@@ -110,6 +126,13 @@ do
 	assert(tip.used[1].left:GetText() == secret, "a secret line passes through")
 	assert(tip._points[1][1] == "BOTTOM" and tip._points[1][3] == "TOP", "ANCHOR_TOP puts it above")
 	tip:ClearLines()
+	tip:AddLine("A single line")
+	tip:Show()
+	tip:ClearLines()
+	tip:AddDoubleLine("Left", "Right")
+	tip:Show()
+	assert(W.LastCall(tip.used[1].left, "SetWidth")[1] == 0, "a reused row drops the single line's width for a double line")
+	tip:ClearLines()
 	tip:AddLine("No wrap", "textHover", false)
 	tip:AddLine("Wraps", "textHover")
 	tip:AddLine("Plain no wrap", 1, 1, 1, false)
@@ -142,6 +165,10 @@ do
 	assert(tip.used[1].left:GetText() == "Built" and tip.used[2].left:GetText() == "By a function")
 	K.Options.Write("Widgets", "tooltipScale", 1.25)
 	assert(W.LastCall(tip, "SetScale")[1] == 1.25, "the size setting scales the tooltip")
+	local line = tip.chrome.outer[5]:GetHeight() * 1.25
+	assert(W.Near(line, K.Scale.Border()), "a scaled tooltip's lines stay whole pixels, got " .. line)
+	local corner = tip.chrome.fill[1]:GetWidth() * 1.25 / K.Scale.Pixel(1)
+	assert(W.Near(corner, math.floor(corner + 0.5)), "and its corners, got " .. corner .. " px")
 	local button = Widgets.Button(K.Scale.Root(), { text = "Hi", tooltip = "A button" })
 	W.Enter(button)
 	assert(tip:IsOwned(button) and tip.used[1].left:GetText() == "A button", "Button opts.tooltip attaches one")

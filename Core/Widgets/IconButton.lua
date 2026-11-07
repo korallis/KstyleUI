@@ -27,7 +27,7 @@ local function PlaceIcon(self)
 		return
 	end
 	self.placedOffset = offset
-	local inset = Scale.Border() * ICON_INSET_LINES
+	local inset = Widgets.Border(self) * ICON_INSET_LINES
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
 end
@@ -120,7 +120,7 @@ function IconButton:Restyle()
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
 		self.placedOffset = nil
-		local inset = Scale.Snap(TEXT_INSET)
+		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()
 		self.hotkey:SetPoint("TOPRIGHT", self, "TOPRIGHT", -inset, -inset)
 		self.count:ClearAllPoints()

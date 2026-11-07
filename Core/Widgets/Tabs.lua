@@ -57,7 +57,7 @@ local function Slide(strip, t)
 	local x = strip.fromX + (strip.toX - strip.fromX) * t
 	local w = strip.fromW + (strip.toW - strip.fromW) * t
 	strip.underX, strip.underW = x, w
-	strip.underline:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", x, 2 * Scale.Border())
+	strip.underline:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", x, 2 * Widgets.Border(strip))
 	strip.underline:SetWidth(w)
 end
 
@@ -84,18 +84,18 @@ local function Target(strip)
 end
 
 function Tabs:Layout()
-	local height = Scale.Snap(self.opts.height or STRIP_HEIGHT)
-	local pad = Scale.Snap(Tokens.Size("gapSmall"))
+	local height = Widgets.Snap(self, self.opts.height or STRIP_HEIGHT)
+	local pad = Widgets.Snap(self, Tokens.Size("gapSmall"))
 	local count = #self.items
 	local equal
 	if self.opts.width and count > 0 then
-		equal = Scale.Snap((self.opts.width - 2 * Tokens.Size("gapSmall")) / count)
+		equal = Widgets.Snap(self, (self.opts.width - 2 * Tokens.Size("gapSmall")) / count)
 	end
 	local x = pad
 	for i = 1, count do
 		local tab = self.buttons[i]
-		local w = equal or Scale.Snap(max(TAB_MIN_WIDTH, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + 2 * Tokens.Size("gapLarge")))
-		tab.x, tab.w, tab.inset = x, w, Scale.Snap(Tokens.Size("gapMedium"))
+		local w = equal or Widgets.Snap(self, max(TAB_MIN_WIDTH, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + 2 * Tokens.Size("gapLarge")))
+		tab.x, tab.w, tab.inset = x, w, Widgets.Snap(self, Tokens.Size("gapMedium"))
 		tab:ClearAllPoints()
 		tab:SetPoint("TOPLEFT", self, "TOPLEFT", x, 0)
 		tab:SetSize(w, height)
@@ -103,9 +103,9 @@ function Tabs:Layout()
 		tab:Paint()
 		x = x + w
 	end
-	local width = self.opts.width and Scale.Snap(self.opts.width) or x + pad
+	local width = self.opts.width and Widgets.Snap(self, self.opts.width) or x + pad
 	self:SetSize(width, height)
-	self.underline:SetHeight(Scale.Snap(UNDERLINE_UNITS))
+	self.underline:SetHeight(Widgets.Snap(self, UNDERLINE_UNITS))
 	local tx, tw = Target(self)
 	self.underline:SetShown(tx ~= nil)
 	if tx then

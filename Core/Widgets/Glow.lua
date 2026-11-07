@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local Widgets = ns.Widgets
-local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
+local Tokens, Motion = ns.Tokens, ns.Motion
 local max = math.max
 
 local PULSE_LOW, PULSE_HIGH = 0.45, 1
@@ -20,6 +20,28 @@ local function StopAnimations(handle)
 		handle.pulse:Stop()
 		handle.sparkPulse:Stop()
 		handle.top:Hide()
+		handle.pulsing = false
+	end
+end
+
+local function StartAnimations(handle)
+	if handle.pulse and not handle.pulsing and not Motion.ReducedMotion() then
+		handle.pulsing = true
+		handle.top:Show()
+		handle.pulse:Play()
+		handle.sparkPulse:Play()
+	end
+end
+
+local function Reconcile(handle)
+	if not handle.pulse or not handle.playing then
+		return
+	end
+	if Motion.ReducedMotion() then
+		StopAnimations(handle)
+		handle.holder:SetAlpha(1)
+	else
+		StartAnimations(handle)
 	end
 end
 
@@ -36,9 +58,10 @@ function Glow:Restyle()
 	if self.spark then
 		Widgets.Size(self.spark, SPARK_SIZE, SPARK_SIZE)
 		self.spark:ClearAllPoints()
-		self.spark:SetPoint("CENTER", self.frame, "TOPRIGHT", -Scale.Snap(SPARK_INSET), -Scale.Snap(SPARK_INSET))
+		self.spark:SetPoint("CENTER", self.frame, "TOPRIGHT", -Widgets.Snap(self.frame, SPARK_INSET), -Widgets.Snap(self.frame, SPARK_INSET))
 		self.spark:SetVertexColor(Widgets.Rgba("textHover"))
 	end
+	Reconcile(self)
 end
 
 function Glow:SetColor(name)
@@ -58,11 +81,7 @@ function Glow:Start()
 	self.playing = true
 	local holder = self.holder
 	Motion.FadeIn(holder, Tokens.Duration("fade"), self.kind == "selection" and SELECTION_ALPHA or 1)
-	if self.pulse and not Motion.ReducedMotion() then
-		self.top:Show()
-		self.pulse:Play()
-		self.sparkPulse:Play()
-	end
+	StartAnimations(self)
 end
 
 function Glow:Stop()

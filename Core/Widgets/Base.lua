@@ -212,8 +212,30 @@ function Widgets.TextHeight(text, fallback)
 	return height
 end
 
+function Widgets.ScaleFactor(frame)
+	local own = frame:GetEffectiveScale()
+	local root = Scale.Root():GetEffectiveScale()
+	if IsSecret(own) or IsSecret(root) or type(own) ~= "number" or type(root) ~= "number" or own <= 0 or root <= 0 then
+		return 1
+	end
+	return own / root
+end
+
+local function SnapIn(units, f)
+	return Scale.Snap(units * f) / f
+end
+
+function Widgets.Snap(frame, units)
+	return SnapIn(units, Widgets.ScaleFactor(frame))
+end
+
+function Widgets.Border(frame)
+	return Scale.Border() / Widgets.ScaleFactor(frame)
+end
+
 function Widgets.Size(frame, width, height)
-	frame:SetSize(Scale.Snap(width), Scale.Snap(height))
+	local f = Widgets.ScaleFactor(frame)
+	frame:SetSize(SnapIn(width, f), SnapIn(height, f))
 end
 
 local SHAPES = {
@@ -280,7 +302,8 @@ function Widgets.NineSlice(owner, name, layer, sublevel)
 end
 
 function Widgets.LayoutSlice(slice, owner, corner, outset)
-	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], Scale.Snap(corner), Scale.Snap(outset or 0))
+	local f = Widgets.ScaleFactor(owner)
+	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f))
 end
 
 function Widgets.ColorSlice(slice, r, g, b, a)
@@ -367,14 +390,15 @@ function Chrome:Layout()
 	local _, _, fillUnits = Tokens.Texture(shape.fill)
 	local _, _, shadowUnits = Tokens.Texture("shadow")
 	local _, _, bevelUnits = Tokens.Texture(shape.outer)
+	local f = Widgets.ScaleFactor(owner)
 	Widgets.LayoutSlice(self.fill, owner, fillUnits, 0)
 	Widgets.LayoutSlice(self.shadow, owner, shadowUnits, shadowUnits / 2)
-	local border = Scale.Border()
-	local size = Scale.Snap(bevelUnits)
+	local border = Scale.Border() / f
+	local size = SnapIn(bevelUnits, f)
 	PlaceBevel(owner, self.outer, size, 0, border)
 	PlaceBevel(owner, self.inner, size, border, border)
 	if self.noise then
-		local inset = Scale.Snap(fillUnits)
+		local inset = SnapIn(fillUnits, f)
 		self.noise:ClearAllPoints()
 		self.noise:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
 		self.noise:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
@@ -475,7 +499,7 @@ function Widgets.Press(widget, down)
 end
 
 function Widgets.PressOffset(widget)
-	return Scale.Snap(Tokens.Size("pressOffset") * (widget.pressT or 0))
+	return Widgets.Snap(widget, Tokens.Size("pressOffset") * (widget.pressT or 0))
 end
 
 function Widgets.MayMove(frame)
@@ -582,8 +606,8 @@ ns.Callbacks.Register("ThemeChanged", SECTION, function()
 end)
 ns.Callbacks.Register("ScaleChanged", SECTION, Widgets.RestyleAll)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
-ns.Callbacks.Register("SettingChanged", SECTION, function(_, module)
-	if module == SECTION then
+ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
+	if module == SECTION or (module == "Appearance" and key == "reducedMotion") then
 		Widgets.RestyleAll()
 	end
 end)

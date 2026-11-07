@@ -71,3 +71,4 @@ Change these only when your task needs it, and say why in the pull request:
 Add one line for each mistake that happened twice: what went wrong and the rule that prevents it.
 
 - Doc comments inside four core files (Tokens, Theme, Scale, Motion) broke the one-comment rule across four PRs. A file has one comment, its first line; contracts go in `docs/` or the module's README. `test-comments.lua` fails on any other comment.
+- Editing an addon file with Python's `read_text` and `write_text` turned its CRLF endings into LF twice in one task, and a fix-up commit shipped the LF file. Run `python3 Tools/dev/crlf.py` and `pre-commit run --all-files` before every commit, fix-ups included.

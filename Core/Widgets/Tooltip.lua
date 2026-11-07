@@ -145,17 +145,18 @@ local function Measure(self, x0, pad)
 		end
 	end
 	local total = min(MAX_WIDTH, max(MIN_WIDTH, widest + x0 + pad))
-	return Scale.Snap(total), Scale.Snap(total - x0 - pad)
+	return Widgets.Snap(self, total), Widgets.Snap(self, total - x0 - pad)
 end
 
 function Tip:Layout()
-	local pad = Scale.Snap(Tokens.Size("gapLarge"))
-	local gapTiny = Scale.Snap(Tokens.Size("gapTiny"))
-	local gapSmall = Scale.Snap(Tokens.Size("gapSmall"))
-	local iconSize = Scale.Snap(Tokens.Size("actionButton"))
+	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
+	local gapTiny = Widgets.Snap(self, Tokens.Size("gapTiny"))
+	local gapSmall = Widgets.Snap(self, Tokens.Size("gapSmall"))
+	local iconSize = Widgets.Snap(self, Tokens.Size("actionButton"))
+	local border = Widgets.Border(self)
 	local x0 = pad
 	if self.iconShown then
-		x0 = pad + iconSize + Scale.Snap(Tokens.Size("gapMedium"))
+		x0 = pad + iconSize + Widgets.Snap(self, Tokens.Size("gapMedium"))
 		self.icon:ClearAllPoints()
 		self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
 		self.icon:SetSize(iconSize, iconSize)
@@ -167,15 +168,16 @@ function Tip:Layout()
 			y = y + gapSmall
 			line.divider:ClearAllPoints()
 			line.divider:SetPoint("TOPLEFT", self, "TOPLEFT", x0, -y)
-			line.divider:SetSize(inner, Scale.Border())
+			line.divider:SetSize(inner, border)
 			Widgets.Tint(line.divider, "edgeInner")
-			y = y + Scale.Border() + gapSmall
+			y = y + border + gapSmall
 		else
 			local left = line.left
 			left:ClearAllPoints()
 			left:SetPoint("TOPLEFT", self, "TOPLEFT", x0, -y)
 			left:SetWordWrap(line.wrap == true)
 			if line.kind == "double" then
+				left:SetWidth(0)
 				line.right:ClearAllPoints()
 				line.right:SetPoint("TOPRIGHT", self, "TOPRIGHT", -pad, -y)
 			else
@@ -189,7 +191,7 @@ function Tip:Layout()
 	if self.iconShown then
 		height = max(height, iconSize + 2 * pad)
 	end
-	self:SetSize(width, Scale.Snap(height))
+	self:SetSize(width, Widgets.Snap(self, height))
 end
 
 local function Position(self)
@@ -198,13 +200,14 @@ local function Position(self)
 		return
 	end
 	local a = ANCHORS[self.anchor]
-	local gap = Scale.Snap(ANCHOR_GAP)
+	local gap = Widgets.Snap(self, ANCHOR_GAP)
 	self:ClearAllPoints()
 	self:SetPoint(a[1], owner, a[2], a[3] * gap + self.offsetX, a[4] * gap + self.offsetY)
 end
 
 function Tip:Restyle()
 	self:SetScale(Widgets.Setting("tooltipScale"))
+	self.chrome:Restyle()
 	if self:IsShown() then
 		self:Layout()
 	end

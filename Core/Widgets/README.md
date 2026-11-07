@@ -7,8 +7,8 @@ The roadmap's [Core public API](../../docs/superpowers/plans/2026-11-07-kstyleui
 ## Rules every component follows
 
 - Colours, sizes, durations, easings, fonts and textures come from `KstyleUI.Tokens` only.
-- Sizes and offsets are snapped to whole physical pixels with `Scale.Snap`. Lines are `Scale.Border()` thick.
-- Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged` and a change to a setting on the `Widgets` page.
+- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleAll()` or its own `Restyle()` to redraw.
+- Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged`, a change to a setting on the `Widgets` page, and a change to the Appearance page's `reducedMotion` switch.
 - Hover and press run through `KstyleUI.Motion`: hover is `Tokens.Duration("hover")` with `outQuart`, and press moves the content down `Tokens.Size("pressOffset")`.
 - Components hook scripts with `HookScript`. A component built on a secure template keeps the template's own `OnClick`.
 - A protected frame is never moved in combat. Content offsets and chrome anchors wait, and chrome re-anchors through `Combat.Queue` once combat ends.
@@ -42,7 +42,9 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 | `Rgba(name, alphaScale) -> r, g, b, a` | A token colour with its alpha scaled. |
 | `Tint(region, name, alphaScale)` | `SetVertexColor` with a token colour. |
 | `Mix(r1, g1, b1, a1, r2, g2, b2, a2, t)`, `MixTokens(nameA, alphaA, nameB, alphaB, t)` | Linear mix of two colours. |
-| `Size(frame, width, height)` | `SetSize` snapped to whole pixels. |
+| `ScaleFactor(frame) -> number` | The frame's effective scale over `KstyleUI_Root`'s: 1 for a frame at the root's scale, 1.25 for a tooltip at a size of 1.25. A secret or missing scale gives 1. |
+| `Snap(frame, units) -> units`, `Border(frame) -> units` | `Scale.Snap` and `Scale.Border` in the frame's own units, so a frame with its own scale still draws whole pixels. Every component snaps through these. |
+| `Size(frame, width, height)` | `SetSize` snapped to whole pixels in the frame's units. |
 | `Clamp(v, low, high)` | |
 | `Hover(widget, on)`, `Press(widget, down)` | Tween `widget.hoverT` and `widget.pressT` between 0 and 1 and call `widget:Paint()` on each step. |
 | `PressOffset(widget) -> units` | How far the content sits below rest, snapped. |
@@ -178,7 +180,7 @@ Fields: `buttons` (each with `value`, `label`, `x`, `w` and `inset`), `underline
 
 Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`).
 
-- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a spark that pulses at the frame's top right corner. Reduced motion shows it steadily.
+- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a spark that pulses at the frame's top right corner. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
 - A selection glow is steady at 60%.
 
 | Method | Behaviour |
