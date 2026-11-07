@@ -113,7 +113,7 @@ function Pages.HasLayout()
 	return LayoutFn("Elements") ~= nil and LayoutFn("Get") ~= nil and LayoutFn("Set") ~= nil
 end
 
-function Pages.Elements()
+function Pages.Elements(all)
 	local elements = LayoutFn("Elements")
 	if not elements then
 		return {}
@@ -122,7 +122,7 @@ function Pages.Elements()
 	local out = {}
 	if ok and type(list) == "table" then
 		for _, element in ipairs(list) do
-			if type(element) == "table" and type(element.key) == "string" and element.live ~= false then
+			if type(element) == "table" and type(element.key) == "string" and (all or element.live ~= false) then
 				out[#out + 1] = element
 			end
 		end
@@ -321,9 +321,9 @@ function Pages.ElementItems(element, page, level)
 	return items
 end
 
-local function ElementsOf(module)
+local function ElementsOf(module, all)
 	local out = {}
-	for _, element in ipairs(Pages.Elements()) do
+	for _, element in ipairs(Pages.Elements(all)) do
 		if module == nil or element.module == module then
 			out[#out + 1] = element
 		end
@@ -413,7 +413,7 @@ local function ResetElements(module)
 		K.Call(all)
 		return
 	end
-	for _, element in ipairs(ElementsOf(module)) do
+	for _, element in ipairs(ElementsOf(module, true)) do
 		Pages.ResetElement(element.key)
 	end
 end

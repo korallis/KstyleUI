@@ -22,6 +22,11 @@ local env, K, ns = O.New({
 		switched:SetSize(100, 20)
 		K.Layout.Register(switched, "test.switched", { anchor = "TOP", y = -40 }, { label = "Switched off" })
 		K.Layout.SetLive("test.switched", false)
+		K.Modules.Register(O.W.CoreEnv.Module("Bags"))
+		K.Modules.Enable("Bags")
+		local bag = env.CreateFrame("Frame", nil, K.Scale.Root())
+		bag:SetSize(100, 100)
+		K.Layout.Register(bag, "bags.bag", { anchor = "BOTTOMRIGHT", x = -20, y = 20 }, { label = "Bag", module = "Bags" })
 		K.Widgets.DialogHost()
 	end,
 })
@@ -72,6 +77,15 @@ K.Options.Open("Profiles")
 K.Options.Open("Elements")
 W.Settle(env)
 assert(RowsOf("test.switched") ~= "", "switched back on, it has rows again")
+
+-- Resetting a module's page resets its elements, live or not, so they come back at their defaults.
+assert(K.Layout.Set("bags.bag", "x", -250))
+K.Layout.SetLive("bags.bag", false)
+local bagsPage = ns.Pages.Find(ns.Pages.List(), "Bags")
+assert(bagsPage and bagsPage.reset, "the Bags page can be reset")
+bagsPage.reset(bagsPage)
+assert(K.Layout.Get("bags.bag").x == -20, "the reset reaches an element its module switched off, got " .. tostring(K.Layout.Get("bags.bag").x))
+K.Layout.SetLive("bags.bag", true)
 
 -- Core windows keep a way back: no Shown row and an opacity floor, as the settings window has.
 local dialog, setup = RowsOf("Widgets.Dialog"), RowsOf("setup.window")
