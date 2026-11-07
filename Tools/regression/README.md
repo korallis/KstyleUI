@@ -21,6 +21,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `lua_source.lua` | Tokenizes Lua 5.1 source and walks it with block and local scopes. The source scanners use it. |
 | `taint_scan.lua` | Finds taint risks in addon source. |
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |
+| `secret_lint.lua` | Finds unsafe uses of secret values and any use of the combat log. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
 ## Taint scan
@@ -83,3 +84,42 @@ The file runs with no globals and holds data only. The test fails when:
 - An area file is not named after a folder, lists a path outside its folder, or has an entry without a `why`.
 
 Each failure message names the file and line, and the area file to change.
+
+## Secret lint
+
+`test-secrets.lua` runs `secret_lint.lua` over every TOC-loaded Lua file outside `Libs/` and fails on any finding. It has no allow-list. When a use is safe, guard it with `issecretvalue`.
+
+A secret source is `UnitHealth`, `UnitHealthMax`, `UnitHealthMissing`, `UnitHealthPercent`, `UnitInRange`, `UnitPower`, `UnitPowerMax`, `UnitCastingInfo`, `UnitChannelInfo`, `UnitGetIncomingHeals`, or any `C_UnitAuras` function. A secret value is a local given a secret source's result, directly, through `select` or `pcall`, or from another secret value. Each field of a secret value, such as `aura.duration`, is a secret value too.
+
+| Kind | What it finds |
+| --- | --- |
+| `compare` | A secret value or a secret call next to `<`, `>`, `<=`, `>=`, `==`, or `~=`. |
+| `arith` | A secret value or a secret call next to `+`, `-`, `*`, `/`, `%`, or `^`. |
+| `length` | `#` before a secret value. |
+| `key` | A secret value used as a table key or index: `t[hp]`, `{ [hp] = true }`. |
+| `bool` | A secret value after `if`, `elseif`, `while`, `until`, or `not`, or before `and`, `or`, `then`, or `do`. |
+| `combatlog` | Any name or string that holds `COMBAT_LOG_EVENT`, and `CombatLogGetCurrentEventInfo`. |
+
+Passing a secret on is allowed: to a widget setter, to `AbbreviateNumbers`, into a table, or with `..`.
+
+A use is guarded, and allowed, when a check `issecretvalue(x)` on the same path proves the value is not secret. `issecretvalue(aura)` does not guard `aura.duration`. The check guards a use in these cases:
+
+- It comes earlier in the same expression, joined the right way: `not issecretvalue(hp) and hp < 10`, or `issecretvalue(hp) or hp < 10`.
+- The use is in the branch of an `if` whose condition holds `not issecretvalue(hp)` and no `or`.
+- The use is in a later `elseif` or `else` branch, and an earlier condition holds `issecretvalue(hp)` and no `and`.
+- An earlier `if issecretvalue(hp) then ... end` in the same block has no `and` and no other branch, and its body returns or gives `hp` a value that is not secret.
+
+A guard ends when the local is given a secret value after the check.
+
+```lua
+local hp = UnitHealth(unit)
+if issecretvalue(hp) then
+	bar:SetValue(hp)
+	return
+end
+if hp < 10 then
+	-- hp is a plain number here
+end
+```
+
+The lint follows locals within a file. It does not follow values through function parameters or table fields such as `self.hp` and `t[1]`. A `while` condition does not guard the loop body, and a check on one local does not guard another local that holds the same value.

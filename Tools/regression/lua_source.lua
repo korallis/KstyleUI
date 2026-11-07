@@ -22,9 +22,16 @@
 --     local, local declarations, parameters and table-constructor keys are not paths.
 --   hooks.Token(w, i)
 --     Every token the walk visits. Names in local, for and function headers are not visited.
+--   hooks.BlockEnd(w, entry)
+--     A block was closed by end or until, after it left the stack.
+--
+-- w.stack holds the open blocks and brackets as { kind, at, vars }. An if block also has conds, a
+-- list of { from, to } token ranges for its if and elseif conditions, inCond while the walk is in
+-- a condition, and inElse after else.
 --
 -- During a hook, w:Resolve(name) returns isLocal, value; w:Path(i) parses a path at name token i;
--- w:ExprEnd(i) returns the last token of the expression that starts at i.
+-- w:ExprEnd(i) and w:PrimaryEnd(i) return the last token of the expression, or of the operand with
+-- its suffixes, that starts at i; w:Shadow(name, value) declares a local in the innermost block.
 
 local Source = {}
 
@@ -380,7 +387,14 @@ end
 function Walker:Pop()
 	local top = self.stack[#self.stack]
 	self.stack[#self.stack] = nil
+	if top and top.vars and self.hooks.BlockEnd then
+		self.hooks.BlockEnd(self, top)
+	end
 	return top
+end
+
+function Walker:Shadow(name, value)
+	self:Scope()[name] = { value = value }
 end
 
 -- local a, b = ... and local function f. Returns the next token to visit.
@@ -536,8 +550,18 @@ function Source.Walk(text, hooks)
 				w.loopVars = nil
 			elseif t.value == "if" then
 				w:Push("if", i, {})
-			elseif t.value == "else" or t.value == "elseif" then
-				w.stack[#w.stack].vars = {}
+				local top = w.stack[#w.stack]
+				top.conds, top.inCond = { { from = i + 1 } }, true
+			elseif t.value == "then" then
+				local top = w.stack[#w.stack]
+				top.conds[#top.conds].to, top.inCond = i - 1, false
+			elseif t.value == "elseif" then
+				local top = w.stack[#w.stack]
+				top.vars, top.inCond = {}, true
+				top.conds[#top.conds + 1] = { from = i + 1 }
+			elseif t.value == "else" then
+				local top = w.stack[#w.stack]
+				top.vars, top.inElse = {}, true
 			elseif t.value == "repeat" then
 				w:Push("repeat", i, {})
 			elseif t.value == "until" then

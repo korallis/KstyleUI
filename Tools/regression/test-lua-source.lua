@@ -160,6 +160,36 @@ expectEqual(
 	"scopes"
 )
 
+-- An if block records its conditions and which branch the walk is in, and BlockEnd reports each
+-- closed block. Shadow declares a local in the innermost block.
+local events = {}
+Source.Walk("if a then x() elseif b then y() else z() end\nwhile c do end\nrepeat until d\nif e then s() end\nt()", {
+	Path = function(w, p)
+		local top = w.stack[#w.stack]
+		local isLocal = w:Resolve(p.root)
+		local where = "top"
+		if top and top.kind == "if" then
+			where = top.inCond and "cond" .. #top.conds or top.inElse and "else" or "then" .. #top.conds
+		end
+		events[#events + 1] = p.root .. ":" .. where .. (isLocal and ":local" or "")
+	end,
+	BlockEnd = function(w, e)
+		local text = "end-" .. e.kind
+		for _, c in ipairs(e.conds or {}) do
+			text = text .. "(" .. w.tokens[c.from].value .. ".." .. w.tokens[c.to].value .. ")"
+		end
+		events[#events + 1] = text
+		if e.kind == "if" and w.tokens[e.conds[1].from].value == "e" then
+			w:Shadow("t", nil)
+		end
+	end,
+})
+expectEqual(
+	table.concat(events, " "),
+	"a:cond1 x:then1 b:cond2 y:then2 z:else end-if(a..a)(b..b) c:top end-do d:top end-repeat e:cond1 s:then1 end-if(e..e) t:top:local",
+	"if conditions and block ends"
+)
+
 -- Every Lua file in the repository walks without an error.
 local pipe = assert(io.popen("git ls-files '*.lua'"))
 local count = 0
