@@ -1,3 +1,10 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Init.lua"/>
+	<Script file="Logic.lua"/>
+	<Script file="Settings.lua"/>
+	<Script file="Plate.lua"/>
+	<Script file="Plates.lua"/>
+	<Script file="CVars.lua"/>
+	<Script file="Preview.lua"/>
+	<Script file="Module.lua"/>
 </Ui>

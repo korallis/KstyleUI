@@ -1,0 +1,398 @@
+-- nameplates_env.lua: load the core and KstyleUI_Nameplates into a stub environment with fake nameplates, units and CVars.
+--
+--   local N = dofile("Tools/regression/nameplates_env.lua")
+--   local env, K, ns = N.New()                         -- core booted, module loaded, logged in, switched on
+--   local base = N.Add(env, "nameplate1", { name = "Kobold", health = 40 })
+--   local plate = ns.Plates.Get("nameplate1")
+--   N.Remove(env, "nameplate1")
+--
+-- Units are tables in env._units, keyed by unit token. N.UNIT lists the fields and their defaults.
+-- The unit APIs read them: UnitHealth and UnitHealthPercent always return secrets, UnitName returns a
+-- secret when the unit has secretName, and GetRaidTargetIndex returns a secret index or nil, as on
+-- Forever. A nameplate's base frame is a stub frame with a UnitFrame child, as Blizzard's driver
+-- gives it. C_CVar keeps CVars in env._cvars and records each write in env._cvarWrites; a write in
+-- combat raises an error, as the game blocks nameplate CVars then.
+local CoreEnv = dofile("Tools/regression/core_env.lua")
+local TocFiles = dofile("Tools/regression/toc_files.lua")
+local Load = dofile("Tools/regression/load_files.lua")
+
+local N = { CoreEnv = CoreEnv }
+
+N.UNIT = {
+	name = "Kobold Miner",
+	health = 40,
+	maxHealth = 100,
+	level = 10,
+	classification = "normal",
+	reaction = 2,
+	canAttack = true,
+	isPlayer = false,
+	class = "WARRIOR",
+	threat = nil,
+	raid = nil,
+	tapped = false,
+	widgetsOnly = false,
+	secretName = false,
+}
+
+-- Blizzard's class colours for the classes the tests use.
+N.CLASS = {
+	HUNTER = { 0.67, 0.83, 0.45 },
+	WARRIOR = { 0.78, 0.61, 0.43 },
+	MAGE = { 0.25, 0.78, 0.92 },
+}
+
+N.CVAR_DEFAULTS = {
+	nameplateMaxDistance = "60",
+	nameplateMaxVerticalDistance = "0",
+	nameplateSelectedScale = "1.2",
+	nameplateMinScale = "0.8",
+	nameplateSize = "2",
+}
+
+local moduleFiles
+function N.Files()
+	if not moduleFiles then
+		moduleFiles = {}
+		for _, path in ipairs(TocFiles("%.lua$")) do
+			if path:match("^KstyleUI_Nameplates/") then
+				moduleFiles[#moduleFiles + 1] = path
+			end
+		end
+		assert(#moduleFiles > 0, "no KstyleUI_Nameplates files found")
+	end
+	return moduleFiles
+end
+
+local function colorObject(c)
+	return {
+		r = c[1], g = c[2], b = c[3],
+		GetRGB = function(self)
+			return self.r, self.g, self.b
+		end,
+	}
+end
+
+-- Install(env, opts) adds the fake game APIs. opts.noBitfield leaves out nameplateStackingTypes, and
+-- opts.motion adds the older nameplateMotion CVar.
+function N.Install(env, opts)
+	opts = opts or {}
+	env._units = {}
+	env._bases = {}
+	env._targetUnit, env._focusUnit = nil, nil
+	env._role = "DAMAGER"
+	env.WorldFrame = env.CreateFrame("Frame", nil, nil)
+
+	local function unit(token)
+		if token == "target" then
+			token = env._targetUnit
+		elseif token == "focus" then
+			token = env._focusUnit
+		end
+		return token and env._units[token], token
+	end
+	N.ResolveUnit = unit
+
+	function env.UnitClass(token)
+		if token == "player" then
+			return "Hunter", "HUNTER", 3
+		end
+		local u = unit(token)
+		if u then
+			return u.class, u.class, 1
+		end
+	end
+	env.C_ClassColor = {
+		GetClassColor = function(name)
+			local c = N.CLASS[name]
+			return c and colorObject(c) or nil
+		end,
+	}
+
+	function env.UnitExists(token)
+		if token == "player" then
+			return true
+		end
+		return unit(token) ~= nil
+	end
+	function env.UnitName(token)
+		if token == "player" then
+			return "Tester"
+		end
+		local u = unit(token)
+		if u then
+			return u.secretName and env.Secret(u.name) or u.name
+		end
+	end
+	function env.UnitHealth(token)
+		local u = unit(token)
+		return env.Secret(u and u.health or 0)
+	end
+	function env.UnitHealthMax(token)
+		local u = unit(token)
+		return u and u.maxHealth or 1
+	end
+	function env.UnitHealthPercent(token, usePredicted, curve)
+		local u = unit(token)
+		local pct = u and u.health / u.maxHealth or 0
+		if curve then
+			pct = pct * 100
+		end
+		return env.Secret(pct)
+	end
+	env.CurveConstants = { ScaleTo100 = { curve = "ScaleTo100" } }
+	function env.AbbreviateNumbers(value)
+		return env.Secret("abbr:" .. tostring(env.issecretvalue(value) and env.Reveal(value) or value))
+	end
+	function env.UnitLevel(token)
+		local u = unit(token)
+		return u and u.level or 0
+	end
+	env.UnitEffectiveLevel = env.UnitLevel
+	function env.UnitClassification(token)
+		local u = unit(token)
+		return u and u.classification or "normal"
+	end
+	function env.UnitReaction(a, b)
+		local u = unit(a) or unit(b)
+		return u and u.reaction
+	end
+	function env.UnitCanAttack(a, b)
+		local u = unit(b) or unit(a)
+		return u and u.canAttack or false
+	end
+	function env.UnitIsFriend(a, b)
+		local u = unit(b) or unit(a)
+		return u ~= nil and not u.canAttack
+	end
+	function env.UnitIsPlayer(token)
+		if token == "player" then
+			return true
+		end
+		local u = unit(token)
+		return u and u.isPlayer or false
+	end
+	function env.UnitIsTapDenied(token)
+		local u = unit(token)
+		return u and u.tapped or false
+	end
+	function env.UnitNameplateShowsWidgetsOnly(token)
+		local u = unit(token)
+		return u and u.widgetsOnly or false
+	end
+	function env.UnitThreatSituation(a, b)
+		local u = unit(b)
+		return u and u.threat
+	end
+	env._inGroup = false
+	function env.IsInGroup()
+		return env._inGroup
+	end
+	function env.UnitGroupRolesAssigned(token)
+		return token == "player" and env._role or "NONE"
+	end
+	function env.GetRaidTargetIndex(token)
+		local u = unit(token)
+		if u and u.raid then
+			return env.Secret(u.raid)
+		end
+		return nil
+	end
+	function env.SetRaidTargetIconTexture(texture, index)
+		texture:SetSpriteSheetCell(index, 4, 4)
+	end
+	function env.UnitIsUnit(a, b)
+		local _, ta = unit(a)
+		local _, tb = unit(b)
+		return ta ~= nil and ta == tb
+	end
+	function env.GetQuestDifficultyColor(level)
+		return { r = 1, g = 0.82, b = 0, font = "QuestDifficulty_Difficult" }
+	end
+
+	env.C_NamePlate = {
+		GetNamePlateForUnit = function(token)
+			if opts.strictTokens and not token:match("^nameplate%d+$") then
+				error("GetNamePlateForUnit: bad unit token " .. token)
+			end
+			local _, resolved = unit(token)
+			if token == "player" then
+				resolved = env._playerPlate
+			end
+			return resolved and env._bases[resolved] or nil
+		end,
+		GetNamePlates = function()
+			local out = {}
+			for _, base in pairs(env._bases) do
+				out[#out + 1] = base
+			end
+			return out
+		end,
+	}
+
+	env._cvars, env._cvarWrites, env._cvarDefaults = {}, {}, {}
+	for name, value in pairs(N.CVAR_DEFAULTS) do
+		env._cvars[name], env._cvarDefaults[name] = value, value
+	end
+	local bits = {}
+	if not opts.noBitfield then
+		env._cvars.nameplateStackingTypes = "bitfield"
+		env._cvarDefaults.nameplateStackingTypes = "bitfield"
+		env._stacking = bits
+	end
+	if opts.motion then
+		env._cvars.nameplateMotion, env._cvarDefaults.nameplateMotion = "0", "0"
+	end
+	local function write(name, value)
+		assert(not env._combat, "C_CVar write in combat: " .. tostring(name))
+		env._cvarWrites[#env._cvarWrites + 1] = { name = name, value = value }
+	end
+	env.C_CVar = {
+		GetCVar = function(name)
+			return env._cvars[name]
+		end,
+		GetCVarDefault = function(name)
+			return env._cvarDefaults[name]
+		end,
+		SetCVar = function(name, value)
+			if env._cvars[name] == nil then
+				return false
+			end
+			write(name, value)
+			env._cvars[name] = tostring(value)
+			if name == "nameplateStackingTypes" and value == env._cvarDefaults[name] then
+				for index in pairs(bits) do
+					bits[index] = false
+				end
+			end
+			return true
+		end,
+		GetCVarBitfield = function(name, index)
+			return env._cvars[name] ~= nil and bits[index] == true or nil
+		end,
+		SetCVarBitfield = function(name, index, value)
+			if env._cvars[name] == nil then
+				return false
+			end
+			write(name .. "[" .. index .. "]", value)
+			bits[index] = value and true or false
+			return true
+		end,
+	}
+end
+
+-- New(opts) -> env, KstyleUI, the module's addon table. opts: saved, setup(env), noBitfield, motion,
+-- login (false: stop before PLAYER_LOGIN), enable (false: leave the module off).
+function N.New(opts)
+	opts = opts or {}
+	local env, K = CoreEnv.New({
+		saved = opts.saved,
+		setup = function(env)
+			N.Install(env, opts)
+			if opts.setup then
+				opts.setup(env)
+			end
+		end,
+	})
+	CoreEnv.LoadSaved(env)
+	Load(N.Files(), env)
+	env.FireEvent("ADDON_LOADED", "KstyleUI_Nameplates", false)
+	if opts.login ~= false then
+		CoreEnv.Login(env)
+		env.RunTimers()
+		if opts.enable ~= false then
+			K.Modules.Enable("Nameplates")
+			env.RunTimers()
+		end
+	end
+	return env, K, env._addons.KstyleUI_Nameplates
+end
+
+-- Base(env) -> a nameplate base frame as the game creates it, with Blizzard's UnitFrame.
+function N.Base(env)
+	local base = env.CreateFrame("Frame", nil, env.WorldFrame)
+	base:SetSize(110, 45)
+	base.UnitFrame = env.CreateFrame("Button", nil, base)
+	base.UnitFrame.selectionHighlight = base.UnitFrame:CreateTexture(nil, "OVERLAY")
+	base.UnitFrame.selectionHighlight:SetAlpha(0.25)
+	base._calls = {}
+	return base
+end
+
+-- Add(env, token, data, opts) -> base. Registers the unit, gives it a base frame (opts.base reuses
+-- one) and fires NAME_PLATE_UNIT_ADDED. opts.lateUnitFrame attaches Blizzard's UnitFrame only after
+-- the event, as when KstyleUI's handler runs before Blizzard's driver.
+function N.Add(env, token, data, opts)
+	opts = opts or {}
+	local u = {}
+	for k, v in pairs(N.UNIT) do
+		u[k] = v
+	end
+	for k, v in pairs(data or {}) do
+		u[k] = v
+	end
+	env._units[token] = u
+	local base = opts.base or N.Base(env)
+	local unitFrame = base.UnitFrame or env.CreateFrame("Button", nil, base)
+	if opts.lateUnitFrame then
+		base.UnitFrame = nil
+	else
+		base.UnitFrame = unitFrame
+	end
+	env._bases[token] = base
+	env.FireEvent("NAME_PLATE_UNIT_ADDED", token)
+	if opts.lateUnitFrame then
+		base.UnitFrame = unitFrame
+	end
+	return base
+end
+
+function N.Remove(env, token)
+	env.FireEvent("NAME_PLATE_UNIT_REMOVED", token)
+	local base = env._bases[token]
+	env._bases[token] = nil
+	env._units[token] = nil
+	if base then
+		base._released = base.UnitFrame
+		base.UnitFrame = nil
+	end
+	return base
+end
+
+function N.Target(env, token)
+	env._targetUnit = token
+	env._target = token ~= nil
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+end
+
+function N.Focus(env, token)
+	env._focusUnit = token
+	env.FireEvent("PLAYER_FOCUS_CHANGED")
+end
+
+-- Calls(frame, method) -> the recorded calls of one method on a stub frame, oldest first.
+function N.Calls(frame, method)
+	local out = {}
+	for _, call in ipairs(frame._calls) do
+		if call.method == method then
+			out[#out + 1] = call.args
+		end
+	end
+	return out
+end
+
+function N.Last(frame, method)
+	local calls = N.Calls(frame, method)
+	return calls[#calls]
+end
+
+-- Color(name) -> r, g, b of a token, through the loaded core.
+function N.Same(a, b)
+	return math.abs(a - b) < 1e-6
+end
+
+function N.SameColor(r1, g1, b1, r2, g2, b2)
+	return N.Same(r1, r2) and N.Same(g1, g2) and N.Same(b1, b2)
+end
+
+return N
