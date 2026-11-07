@@ -85,6 +85,9 @@ assert(cell and env.issecretvalue(cell[1]) and cell[2] == 4 and cell[3] == 4 and
 env._units.target.marker = nil
 env.FireEvent("RAID_TARGET_UPDATE")
 assert(not visible(target.marker), "a cleared marker hides")
+local cells = #W.Calls(target.marker, "SetSpriteSheetCell")
+env.FireEvent("RAID_TARGET_UPDATE")
+assert(#W.Calls(target.marker, "SetSpriteSheetCell") == cells, "a secret nil index never reaches SetSpriteSheetCell")
 
 -- Threat: the player's status on a hostile target, coloured by GetThreatStatusColor.
 env._units.target.threatOn = 3
@@ -101,6 +104,17 @@ env._units.player.threat = 2
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
 assert(player.glowFrame:IsShown(), "the player frame glows with the player's own threat")
 noErrors("marker and threat")
+
+-- The resting text follows the module's accent at once.
+env._resting = true
+env.FireEvent("PLAYER_UPDATE_RESTING")
+K.Options.Write("UnitFrames", "accent", "custom")
+K.Options.Write("UnitFrames", "accentColor", { r = 0.2, g = 0.3, b = 0.9 })
+local tr, tg, tb = player.icons.resting:GetTextColor()
+assert(tr == 0.2 and tg == 0.3 and tb == 0.9, "the Zz takes a new accent without waiting for a status change")
+K.Options.Write("UnitFrames", "accent", "class")
+env._resting = false
+env.FireEvent("PLAYER_UPDATE_RESTING")
 
 -- Settings switch each indicator off.
 K.Options.Write("UnitFrames", "player.threat", false)

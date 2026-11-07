@@ -99,14 +99,17 @@ function Resource.Layout()
 	if not w then
 		return
 	end
+	local max, min = math.max, math.min
 	local manaH = 0
-	if state.showMana then
-		manaH = state.showCombo and math.max(MANA_MIN, math.min(MANA_MAX, h * MANA_SHARE)) or math.min(h, MANA_MAX)
+	if state.showMana and state.showCombo then
+		manaH = min(max(MANA_MIN, min(MANA_MAX, h * MANA_SHARE)), max(0, (h - GAP) / 2))
+	elseif state.showMana then
+		manaH = min(h, MANA_MAX)
 	end
-	local pipRow = state.showCombo and (state.showMana and h - manaH - GAP or h) or 0
+	local pipRow = state.showCombo and (state.showMana and max(0, h - manaH - GAP) or h) or 0
 	if state.showCombo then
-		local spacing = Settings.Resource("spacing")
-		local size = math.max(1, math.min(pipRow, (w - spacing * (PIPS - 1)) / PIPS))
+		local spacing = min(Settings.Resource("spacing"), max(0, (w - PIPS) / (PIPS - 1)))
+		local size = max(0, min(pipRow, (w - spacing * (PIPS - 1)) / PIPS))
 		local span = size * PIPS + spacing * (PIPS - 1)
 		local x = (w - span) / 2
 		for i, pip in ipairs(state.pips) do

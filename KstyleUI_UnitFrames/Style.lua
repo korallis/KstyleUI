@@ -220,6 +220,7 @@ end
 function Style.Accent(view)
 	local r, g, b = Settings.Accent()
 	view.ring:SetVertexColor(r, g, b, 1)
+	view.icons.resting:SetTextColor(r, g, b, 1)
 	view.badgeRing:SetVertexColor(r, g, b, BADGE_RING_ALPHA)
 	local br, bg, bb = Tokens.Color("raised")
 	view.portraitBack:SetVertexColor(br, bg, bb, PORTRAIT_BACK_ALPHA)

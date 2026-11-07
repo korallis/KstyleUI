@@ -80,9 +80,6 @@ local function PaintIndicators(view, s, sample)
 		icons[key]:SetAlpha(1)
 		icons[key]:SetShown(s[key] == true and sample[key] == true)
 	end
-	if s.resting and sample.resting then
-		icons.resting:SetTextColor(Settings.Accent())
-	end
 	if s.raidMarker and sample.marker then
 		view.marker:SetSpriteSheetCell(SKULL, 4, 4)
 		view.marker:Show()

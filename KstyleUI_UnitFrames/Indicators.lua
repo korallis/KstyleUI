@@ -115,10 +115,12 @@ function Indicators.Marker(view, unit)
 		return
 	end
 	local index = GetRaidTargetIndex(unit)
-	if issecretvalue(index) then
+	if type(index) ~= "number" then
+		marker:Hide()
+	elseif issecretvalue(index) then
 		marker:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
 		marker:Show()
-	elseif type(index) == "number" and index > 0 then
+	elseif index > 0 then
 		marker:SetSpriteSheetCell(index, RAID_ROWS, RAID_COLUMNS)
 		marker:Show()
 	else
@@ -189,8 +191,6 @@ function Indicators.Resting(view, unit)
 		icon:Hide()
 		return
 	end
-	local r, g, b = Settings.Accent()
-	icon:SetTextColor(r, g, b, 1)
 	Shown(icon, IsResting())
 end
 

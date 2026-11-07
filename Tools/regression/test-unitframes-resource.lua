@@ -51,6 +51,17 @@ local x1 = select(4, state.pips[1]:GetPoint(1))
 local x5 = select(4, state.pips[5]:GetPoint(1))
 assert(x1 >= 0 and x5 > x1, "the pips run left to right")
 
+-- At the smallest allowed size and the widest spacing, every pip stays inside the element.
+K.Options.Write("UnitFrames", "resource.spacing", 12)
+assert(K.Layout.Set("unitframes.resource", "width", 40) and K.Layout.Set("unitframes.resource", "height", 4))
+for i, pip in ipairs(state.pips) do
+	local x = select(4, pip:GetPoint(1))
+	local w, h = pip:GetSize()
+	assert(x >= -1e-6 and x + w <= 40 + 1e-6 and h <= 4 + 1e-6, "pip " .. i .. " stays inside a 40 by 4 element")
+end
+K.Layout.Reset("unitframes.resource")
+K.Options.Write("UnitFrames", "resource.spacing", 3)
+
 -- Combo point colour follows the class accent, or a custom colour.
 local ar = K.Theme.Accent()
 assert(W.LastCall(state.pips[1], "SetStatusBarColor")[1] == ar, "pips take the class accent")
@@ -89,6 +100,15 @@ assert(value == 1500 and low == 0 and high == 3000, "the mana bar reads mana, no
 denv._units.player.powerType, denv._units.player.powerToken = 3, "ENERGY"
 denv.FireEvent("UNIT_DISPLAYPOWER", "player")
 assert(d.showMana and d.showCombo, "cat form: combo points and mana")
+assert(DK.Layout.Set("unitframes.resource", "height", 4), "the smallest height")
+local my = select(5, d.mana:GetPoint(1))
+local _, mh = d.mana:GetSize()
+assert(-my + mh <= 4 + 1e-6 and -my >= -1e-6, "in cat form at 4 units tall the mana bar stays inside")
+for _, pip in ipairs(d.pips) do
+	local py = select(5, pip:GetPoint(1))
+	assert(py <= 1e-6, "pips stay inside too")
+end
+DK.Layout.Reset("unitframes.resource")
 denv._units.player.powers[0] = 900
 denv.FireEvent("UNIT_POWER_FREQUENT", "player", "MANA")
 assert(U.Bar(denv, d.mana) == 900, "mana updates in cat form")

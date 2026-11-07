@@ -300,11 +300,10 @@ function U.Install(env)
 		local c = env.THREAT_COLORS[status] or { 0.69, 0.69, 0.69 }
 		return c[1], c[2], c[3]
 	end
+	-- GetRaidTargetIndex is always secret, even its nil for an unmarked unit.
 	function env.GetRaidTargetIndex(token)
 		local u = unitOf(token)
-		if u and u.marker then
-			return env.Secret(u.marker)
-		end
+		return env.Secret(u and u.marker)
 	end
 	env._comboPoints = 0
 	function env.GetComboPoints(unit, target)
