@@ -84,6 +84,25 @@ local cp = Geometry.Frame(base({ portrait = true, power = true, powerHeight = 3,
 assert(near(cp.portrait.w, 24) and cp.badge == nil, "a compact frame can have a portrait, but no level badge")
 assert(cp.power and near(cp.power.h, 3) and cp.power.y > cp.health.y, "a compact frame can have a thin power bar")
 
+-- Big text never pushes a part out of the frame: the name row gives way first.
+local crowded = Geometry.Frame(base({ fonts = { name = { size = 32 }, health = { size = 11 }, power = { size = 9 }, level = { size = 9 } } }), 266, 46, 1)
+for key, part in pairs(crowded) do
+	if type(part) == "table" and key ~= "powerText" then
+		assert(part.y >= 0 and part.y + part.h <= 46 + 1e-6, key .. " stays inside the frame")
+	end
+end
+assert(crowded.health.h >= 2 and crowded.power and crowded.power.h == 5, "the bars keep their room")
+local tall = Geometry.Frame(base({ powerHeight = 24 }), 266, 46, 1)
+assert(tall.power.y + tall.power.h <= 46 + 1e-6 and tall.health.h >= 2, "a power bar taller than the room shrinks")
+
+-- At the smallest width Layout allows, text columns give way so the bars stay usable.
+for _, format in ipairs({ "percent", "currentMax", "both" }) do
+	local small = Geometry.Frame(base({ healthText = format }), 120, 46, 1)
+	assert(small.health.w > 0 and small.power.w > 0, format .. ": the bars keep some width at 120 units")
+	assert(small.healthText.x >= small.panel.x, format .. ": the health text stays inside the panel")
+	assert(small.health.w >= (small.panel.w - 12) / 2 - Geometry.TEXT_GAP - 1e-6, format .. ": a text column takes at most half the panel")
+end
+
 -- A frame never gets a negative size, even far below the minimum.
 local tiny = Geometry.Frame(base(), 10, 4, 1)
 for _, part in pairs(tiny) do

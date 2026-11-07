@@ -310,24 +310,24 @@ function Frames.Apply(uf)
 		return
 	end
 	uf.active = want and true or false
+	if want then
+		uf.holder:Show()
+		Frames.Restyle(uf)
+	end
 	for _, view in ipairs(uf.views) do
 		local button = view.button
 		if want then
-			RegisterUnitWatch(button)
 			RegisterUnitEvents(view)
+			RegisterUnitWatch(button)
 		else
 			UnregisterUnitWatch(button)
 			button:Hide()
 			K.Events.UnregisterAll(Owner(view.unit))
 		end
 	end
-	if want then
-		uf.holder:Show()
-		Frames.Restyle(uf)
-		if Visible(uf.views[1].button) then
-			StartPolling(uf)
-		end
-	else
+	if want and Visible(uf.views[1].button) then
+		StartPolling(uf)
+	elseif not want then
 		StopPolling(uf)
 	end
 end

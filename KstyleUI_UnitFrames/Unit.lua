@@ -248,7 +248,7 @@ function Unit.Portrait(view, unit)
 end
 
 function Unit.All(view, unit, instant)
-	if not UnitExists(unit) then
+	if not (view.s and UnitExists(unit)) then
 		return
 	end
 	Unit.HealthColor(view, unit)

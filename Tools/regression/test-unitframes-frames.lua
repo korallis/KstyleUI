@@ -240,4 +240,14 @@ env.RunTimers()
 assert(K.Safe.IsHidden(env.PlayerFrame), "hideBlizzard on hides it again")
 noErrors("re-enable")
 
+-- A frame that starts switched off is styled before its unit watch first shows it.
+do
+	local env2, K2, ns2 = U.New({ saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, player = { enabled = false } } } }, characters = {} } })
+	local view = ns2.Frames.Get("player").views[1]
+	assert(not env2._watched[view.button], "a switched-off frame has no unit watch")
+	K2.Options.Write("UnitFrames", "player.enabled", true)
+	assert(#env2._errors == 0, "enabling a frame later raises no error: " .. tostring(env2._errors[1]))
+	assert(env2._watched[view.button] and U.Shown(env2, view.healthText) == "78%", "and it shows its unit at once")
+end
+
 print("unitframes frames ok")

@@ -6,7 +6,7 @@ local Format = ns.Format
 local Geometry = {}
 ns.Geometry = Geometry
 
-local max, min, ceil = math.max, math.min, math.ceil
+local max, min, ceil, floor = math.max, math.min, math.ceil, math.floor
 
 local PORTRAIT_GAP = 2
 local PAD_X, PAD_Y = 6, 5
@@ -19,6 +19,7 @@ local BADGE_SHARE = 0.36
 local BADGE_MIN = 14
 local LEVEL_COLUMN = 2.6
 local MIN_HEALTH = 2
+local MAX_COLUMN_SHARE = 0.5
 
 Geometry.TEXT_GAP = TEXT_GAP
 Geometry.FULL_MIN_HEIGHT = FULL_MIN_HEIGHT
@@ -32,9 +33,13 @@ local function Size(s, element, scale)
 	return (fonts and fonts.size or 11) * scale
 end
 
-local function Columns(s, scale)
-	local healthCol = Format.ColumnWidth(s.healthText or "none", Size(s, "health", scale))
-	local powerCol = s.power and Format.ColumnWidth(s.powerText or "none", Size(s, "power", scale)) or 0
+local function Column(format, size, room)
+	return min(Format.ColumnWidth(format or "none", size), max(0, floor(room * MAX_COLUMN_SHARE)))
+end
+
+local function Columns(s, scale, room)
+	local healthCol = Column(s.healthText, Size(s, "health", scale), room)
+	local powerCol = s.power and Column(s.powerText, Size(s, "power", scale), room) or 0
 	return healthCol, powerCol
 end
 
@@ -64,22 +69,25 @@ local function Badge(out, s)
 	out.badge = Rect(x, portrait.y + portrait.h - size, size, size)
 end
 
-local function BarHeights(s, top, bottom)
-	local powerH = s.power and (s.powerHeight or 0) or 0
-	local healthH = bottom - top
-	if powerH > 0 then
-		healthH = healthH - powerH - GAP
+local function PowerHeight(s, room)
+	if not s.power then
+		return 0
 	end
-	healthH = max(min(MIN_HEALTH, bottom - top), healthH)
-	return powerH, healthH
+	return max(0, min(s.powerHeight or 0, room - MIN_HEALTH - GAP))
+end
+
+local function PowerRoom(powerH)
+	return powerH > 0 and powerH + GAP or 0
 end
 
 local function Full(out, s, scale, left, right, height)
 	local ix, iw = left + PAD_X, right - left - 2 * PAD_X
 	local top, bottom = PAD_Y, height - PAD_Y
-	local healthCol, powerCol = Columns(s, scale)
+	local room = max(0, bottom - top)
+	local powerH = PowerHeight(s, room)
+	local healthCol, powerCol = Columns(s, scale, iw)
 	if s.name then
-		local nameRow = Size(s, "name", scale) + NAME_EXTRA
+		local nameRow = min(Size(s, "name", scale) + NAME_EXTRA, max(0, room - MIN_HEALTH - PowerRoom(powerH) - GAP))
 		local nameW = iw
 		if s.level and not out.portrait then
 			local levelCol = ceil(LEVEL_COLUMN * Size(s, "level", scale))
@@ -89,7 +97,7 @@ local function Full(out, s, scale, left, right, height)
 		out.name = Rect(ix, top, nameW, nameRow)
 		top = top + nameRow + GAP
 	end
-	local powerH, healthH = BarHeights(s, top, bottom)
+	local healthH = max(0, bottom - top - PowerRoom(powerH))
 	local healthW = healthCol > 0 and iw - healthCol - TEXT_GAP or iw
 	out.health = Rect(ix, top, healthW, healthH)
 	if healthCol > 0 then
@@ -109,8 +117,9 @@ end
 local function Compact(out, s, scale, left, right, height)
 	local ix, iw = left + COMPACT_PAD, right - left - 2 * COMPACT_PAD
 	local top, bottom = COMPACT_PAD, height - COMPACT_PAD
-	local healthCol = Format.ColumnWidth(s.healthText or "none", Size(s, "health", scale))
-	local powerH, healthH = BarHeights(s, top, bottom)
+	local healthCol = Column(s.healthText, Size(s, "health", scale), iw)
+	local powerH = PowerHeight(s, max(0, bottom - top))
+	local healthH = max(0, bottom - top - PowerRoom(powerH))
 	out.health = Rect(ix, top, iw, healthH)
 	local textRight = ix + iw - COMPACT_PAD
 	if healthCol > 0 then
