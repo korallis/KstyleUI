@@ -1,4 +1,4 @@
--- Logic.lua: the module's pure rules: the fixed anchor's corner, font flags, quality edges, softened line colours and the tooltip scale.
+-- Logic.lua: the module's pure rules: the fixed anchor's corner, font flags, quality edges, softened line colours, an item's stat and footer lines and the tooltip scale.
 local _, ns = ...
 
 local Logic = {}
@@ -10,6 +10,9 @@ local format = string.format
 local UNCOMMON = 2
 local COLOR_TOLERANCE = 0.02
 local FLAGS = { OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+local STAT = "^%+%d"
+local FOOTER_GLOBALS = { "DURABILITY_TEMPLATE", "ITEM_MIN_LEVEL" }
+local FOOTER_DEFAULTS = { "Durability %d / %d", "Requires Level %d" }
 
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
@@ -51,6 +54,54 @@ function Logic.Soften(r, g, b, palette)
 		end
 	end
 	return nil
+end
+
+local function Pattern(template)
+	local escaped = template:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+	return "^" .. (escaped:gsub("%%%%d", "%%d+"))
+end
+
+local footerPatterns
+
+local function FooterPatterns()
+	if not footerPatterns then
+		footerPatterns = {}
+		for i, name in ipairs(FOOTER_GLOBALS) do
+			local template = rawget(_G, name)
+			footerPatterns[i] = Pattern(type(template) == "string" and template or FOOTER_DEFAULTS[i])
+		end
+	end
+	return footerPatterns
+end
+
+function Logic.IsStat(text)
+	return not IsSecret(text) and type(text) == "string" and text:find(STAT) ~= nil
+end
+
+function Logic.IsFooter(text)
+	if IsSecret(text) or type(text) ~= "string" then
+		return false
+	end
+	for _, pattern in ipairs(FooterPatterns()) do
+		if text:find(pattern) then
+			return true
+		end
+	end
+	return false
+end
+
+function Logic.Sections(lines, count)
+	local stats, footer
+	for i = 2, count or #lines do
+		local text = lines[i]
+		if not stats and Logic.IsStat(text) then
+			stats = i
+		end
+		if not footer and Logic.IsFooter(text) then
+			footer = i
+		end
+	end
+	return stats, footer
 end
 
 function Logic.TooltipScale(rootScale, parentScale, elementScale)

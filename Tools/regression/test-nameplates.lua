@@ -381,4 +381,25 @@ do
 	assert(env.issecretvalue(text) and env.Reveal(text) == "abbr:40", "the value format abbreviates UnitHealth")
 end
 
+-- Size: the mockup's plate, a 126 x 16 frame with a 23-unit level disc rimmed in the bar's colour -------
+
+do
+	local env, _, ns = N.New()
+	assert(ns.Plate.DEFAULT_WIDTH == 122 and ns.Plate.DEFAULT_HEIGHT == 12, "the health bar is 122 x 12 inside its two-border frame: 126 x 16 outside")
+	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
+	local plate = ns.Plates.Get("nameplate1")
+	assert(N.Same(plate.health:GetWidth(), 122) and N.Same(plate.health:GetHeight(), 12), "the bar takes the default size")
+	local disc = plate.level
+	assert(N.Same(disc:GetWidth(), 23) and N.Same(disc:GetHeight(), 23), "the level disc is 23 units across")
+	assert(disc.chrome.shape.fill == "chamferPanel" and disc.chrome.shadowOn == false and disc.chrome.noise == nil, "an octagon: the panel chamfer, no shadow, no grain")
+	local r, g, b = barColor(plate.health)
+	assert(SameColor(r, g, b, disc.chrome.inner[1]:GetVertexColor()), "its rim takes the bar's colour")
+	local point, relative, relativePoint, x = disc:GetPoint(1)
+	assert(point == "RIGHT" and relative == plate.health and relativePoint == "LEFT" and x == 0, "it sits on the bar's left end")
+	assert(select(2, plate.name:GetFont()) == 11, "the name reads at 11 units")
+	assert(select(2, plate.levelText:GetFont()) == 10, "the level at 10")
+	assert(plate.castBar.opts.height == 10, "the cast bar is 10 units tall")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("nameplates ok")

@@ -117,4 +117,20 @@ do
 	end
 end
 
+-- Sections: the stat run and the footer of an item's lines -------------------------------------------
+
+do
+	assert(Logic.IsStat("+24 Agility") and Logic.IsStat("+18 Critical Strike"), "a line that starts with a plus and a number is a stat")
+	assert(not Logic.IsStat("Equip: +5 ranged attack power") and not Logic.IsStat("Two-Handed Bow"), "bonus and base lines are not")
+	assert(not Logic.IsStat(env.Secret("+5 Agility")) and not Logic.IsStat(nil), "secrets and nothing are not")
+	local stats, footer = Logic.Sections({ "Ranger's Long Bow", "Level 38", "Two-Handed Bow", "+24 Agility", "+18 Critical Strike", "Durability 96 / 100", "Requires Level 38" })
+	assert(stats == 4, "the first stat line")
+	assert(footer == 6, "the first durability or requirement line")
+	assert(Logic.Sections({ "Linen Cloth", "Crafting Reagent" }) == nil, "no stats, no footer")
+	local none, requires = Logic.Sections({ "Hat", "Requires Level 10" })
+	assert(none == nil and requires == 2, "a requirement alone starts the footer")
+	assert(select(2, Logic.Sections({ "Bow", "+1 Agility", env.Secret("Durability 1 / 2") })) == nil, "a secret line is skipped")
+	assert(Logic.Sections({ "+5 Agility", "+5 Stamina" }) == 2, "the title is never a stat")
+end
+
 print("tooltips logic ok")

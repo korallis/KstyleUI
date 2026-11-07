@@ -81,6 +81,8 @@ function T.Tooltip(env, name, opts)
 	tip.NineSlice = nine
 	tip:SetPadding(0, 0, 0, 0)
 	tip.ClearPadding = function(self) self._state.Padding = { n = 4, 0, 0, 0, 0 } end
+	tip.SetCustomLineSpacing = function(self, spacing) self._lineSpacing = spacing end
+	tip.GetCustomLineSpacing = function(self) return self._lineSpacing end
 	tip.TextLeft1, tip.TextRight1 = line(tip, 1)
 	tip.TextLeft2, tip.TextRight2 = line(tip, 2)
 	tip.AddLine = function(self, text, r, g, b)

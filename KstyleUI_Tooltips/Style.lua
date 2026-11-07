@@ -1,4 +1,4 @@
--- Style.lua: the glass panel, edge and title divider on each restyled tooltip, the tooltip fonts and the tooltip scale.
+-- Style.lua: the glass panel, edge, accent rule and footer divider on each restyled tooltip, the tooltip fonts, line spacing and the tooltip scale.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,11 +21,14 @@ Style.NAMES = {
 
 local NO_ICON = { EmbeddedItemTooltip = true }
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
-local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
+local KIT_ROLES = { title = "body", body = "body", small = "caption" }
+Style.KIT_ROLES = KIT_ROLES
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
-local TEXT_INSET = 10
-local LINE_SPACING = 2
+local ICON_INSET = 9.5
+local LINE_SPACING = 2.5
+local RULE_LENGTH = 56
+local FOOTER_INSET = 12
 local ICON_LEVEL = 2
 local ICON_CROP = 0.07
 local BORDER_LINES = 2
@@ -93,6 +96,7 @@ local function Reset(tooltip)
 	if glass then
 		glass.chrome:SetEdge("edgeInner")
 		glass.divider:Hide()
+		glass.footer:Hide()
 		glass.caption:Hide()
 		HideIcon(tooltip, glass)
 	end
@@ -131,6 +135,10 @@ function Style.Skin(tooltip, name)
 	divider:SetTexture((Tokens.Texture("divider")))
 	divider:Hide()
 	glass.divider = divider
+	local footer = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
+	footer:SetColorTexture(Tokens.Color("white"))
+	footer:Hide()
+	glass.footer = footer
 	glass.caption = Widgets.FontString(glass, "OVERLAY")
 	glass.caption:Hide()
 	glass.iconOwner = not NO_ICON[name]
@@ -144,6 +152,11 @@ function Style.Skin(tooltip, name)
 	end
 	tooltip:HookScript("OnTooltipCleared", Reset)
 	tooltip:HookScript("OnHide", Reset)
+	if type(tooltip.SetCustomLineSpacing) == "function" then
+		tooltip:SetCustomLineSpacing(LINE_SPACING)
+	else
+		Settings.LogOnce("spacing", "GameTooltip:SetCustomLineSpacing is missing; lines keep Blizzard's spacing")
+	end
 	return glass
 end
 
@@ -183,7 +196,7 @@ local function Palette()
 		return palette
 	end
 	local colors = {}
-	for _, pair in ipairs({ { NORMAL_FONT_COLOR, "text" }, { HIGHLIGHT_FONT_COLOR, "textEmphasis" } }) do
+	for _, pair in ipairs({ { NORMAL_FONT_COLOR, "text" }, { HIGHLIGHT_FONT_COLOR, "text" } }) do
 		local color = pair[1]
 		if type(color) == "table" and type(color.GetRGB) == "function" then
 			local r, g, b = color:GetRGB()
@@ -217,19 +230,57 @@ function Style.Soften(tooltip, from, colors)
 	end
 end
 
+local function PlaceRule(glass, line, short)
+	local divider = glass.divider
+	local r, g, b = Settings.Accent()
+	glass.ruleLine, glass.ruleShort = line, short
+	divider:ClearAllPoints()
+	divider:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
+	if short then
+		divider:SetWidth(Widgets.Snap(glass, RULE_LENGTH))
+	else
+		divider:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, Tokens.Size("gapMedium")), 0)
+	end
+	divider:SetHeight(Widgets.Border(glass))
+	divider:SetVertexColor(r, g, b)
+	if short and type(divider.SetGradient) == "function" and type(CreateColor) == "function" then
+		divider:SetColorTexture(Tokens.Color("white"))
+		divider:SetGradient("HORIZONTAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+	else
+		divider:SetTexture((Tokens.Texture("divider")))
+	end
+	divider:Show()
+end
+
+local function PlaceFooter(glass, line)
+	local footer = glass.footer
+	glass.footerLine = line
+	footer:ClearAllPoints()
+	footer:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, Widgets.Snap(glass, DIVIDER_GAP))
+	footer:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, FOOTER_INSET), 0)
+	footer:SetHeight(Widgets.Border(glass))
+	footer:SetVertexColor(Widgets.Rgba("edgeFaint"))
+	footer:Show()
+end
+
 local function PlaceDivider(glass, tooltip)
 	local title = tooltip.TextLeft1 or Style.Line(tooltip, "left", 1)
-	local divider = glass.divider
 	if type(title) ~= "table" then
-		divider:Hide()
+		glass.divider:Hide()
 		return
 	end
-	divider:ClearAllPoints()
-	divider:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
-	divider:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, Tokens.Size("gapMedium")), 0)
-	divider:SetHeight(Widgets.Border(glass))
-	divider:SetVertexColor(Settings.Accent())
-	divider:Show()
+	PlaceRule(glass, title, false)
+end
+
+local function Sections(tooltip, count)
+	local texts = {}
+	for i = 1, count do
+		local line = Style.Line(tooltip, "left", i)
+		if type(line) == "table" then
+			texts[i] = line:GetText()
+		end
+	end
+	return Logic.Sections(texts, count)
 end
 
 function Style.IconTile(parent)
@@ -249,7 +300,7 @@ end
 function Style.PlaceIcon(icon, panel, size)
 	Widgets.Size(icon, size, size)
 	icon:ClearAllPoints()
-	local inset = Widgets.Snap(icon, TEXT_INSET)
+	local inset = Widgets.Snap(icon, ICON_INSET)
 	icon:SetPoint("TOPLEFT", panel, "TOPLEFT", inset, -inset)
 	local border = Widgets.Border(icon) * BORDER_LINES
 	icon.texture:ClearAllPoints()
@@ -404,15 +455,37 @@ function Style.ItemBorder(item)
 	return frame
 end
 
-function Style.Divider(tooltip)
+function Style.Lines(tooltip, item)
 	local glass = Style.Glass(tooltip)
 	if not glass then
 		return
 	end
-	if Settings.Get("divider") and Style.NumLines(tooltip) >= 2 then
-		PlaceDivider(glass, tooltip)
-	else
+	local count = Style.NumLines(tooltip)
+	local stats, footer
+	if item and count >= 2 then
+		stats, footer = Sections(tooltip, count)
+	end
+	if stats and Settings.Get("softColors") then
+		local r, g, b = Settings.Accent()
+		for i = stats, (footer or count + 1) - 1 do
+			local line = Style.Line(tooltip, "left", i)
+			if type(line) == "table" and Logic.IsStat(line:GetText()) then
+				line:SetTextColor(r, g, b)
+			end
+		end
+	end
+	glass.footer:Hide()
+	if not (Settings.Get("divider") and count >= 2) then
 		glass.divider:Hide()
+		return
+	end
+	if stats and stats > 1 then
+		PlaceRule(glass, Style.Line(tooltip, "left", stats - 1), true)
+	else
+		PlaceDivider(glass, tooltip)
+	end
+	if footer and footer > 1 then
+		PlaceFooter(glass, Style.Line(tooltip, "left", footer))
 	end
 end
 
@@ -491,8 +564,11 @@ function Style.ApplyScale(elementScale)
 		local glass = Style.Glass(tooltip)
 		if glass then
 			glass.chrome:Restyle()
-			if glass.divider:IsShown() then
-				PlaceDivider(glass, tooltip)
+			if glass.divider:IsShown() and glass.ruleLine then
+				PlaceRule(glass, glass.ruleLine, glass.ruleShort)
+			end
+			if glass.footer:IsShown() and glass.footerLine then
+				PlaceFooter(glass, glass.footerLine)
 			end
 		end
 	end

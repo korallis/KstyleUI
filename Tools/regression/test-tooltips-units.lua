@@ -167,7 +167,7 @@ do
 	K.Options.Write("Tooltips", "guildLine", false)
 	K.Options.Write("Tooltips", "targetLine", false)
 	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle", "Level 38" })
-	assert(Colored(tip:GetLeftLine(1), K.Tokens.Color("textEmphasis")), "names keep Blizzard's colour, softened, with the switch off")
+	assert(Colored(tip:GetLeftLine(1), K.Tokens.Color("text")), "names keep Blizzard's colour, softened to the body grey, with the switch off")
 	assert(tip:GetLeftLine(2):GetText() == "Kstyle" and tip:NumLines() == 3, "no guild brackets and no target line")
 	T.Check(env, snap)
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -318,7 +318,7 @@ do
 	local icon, title, caption = glass.icon, tip:GetLeftLine(1), glass.caption
 	local point, relative, relativePoint, x, y = icon:GetPoint(1)
 	assert(icon:IsShown() and point == "TOPLEFT" and relative == tip and relativePoint == "TOPLEFT", "the icon sits at the panel's top left")
-	assert(x > 0 and y < 0, "inside the panel, not beside it")
+	assert(Near(x, K.Widgets.Snap(icon, 9.5)) and Near(-y, K.Widgets.Snap(icon, 9.5)), "inset 9.5 units inside the panel")
 	assert(Near(icon:GetWidth(), ns.Settings.Get("iconSize")) and Near(icon:GetHeight(), icon:GetWidth()), "a square")
 	assert(icon.chrome.shape.fill == "chamferTile", "with the kit's chamfered tile")
 	local left = select(3, tip:GetPadding())
@@ -338,7 +338,7 @@ do
 	point, relative, relativePoint = caption:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and relative == title and relativePoint == "BOTTOMLEFT", "on the title's second line")
 	assert(select(2, caption:GetFont()) == select(2, ns.Style.FontSpec("small")), "in the small line size")
-	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == title, "the divider runs under the name and caption")
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(2), "the accent rule runs under the base lines, above the stats")
 	e = glass.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("edgeInner")), "the panel keeps its faint hairline")
 
@@ -357,7 +357,7 @@ do
 	assert(SameRGB(e[1], e[2], e[3], K.Theme.Accent()) and not glow.holder:IsShown(), "its border rests on the accent, unlit")
 	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = { n = 1, 14 }, { n = 1, 14 }
 	Show(env, tip, Spell, 133, { { "Auto Attack", 1, 1, 1 }, { "Toggles auto attack.", 1, 1, 1 } })
-	assert(Near(icon:GetHeight(), 30, 0.01), "a two-line tooltip's icon shrinks to its lines, so it never hangs below the panel")
+	assert(Near(icon:GetHeight(), K.Widgets.Snap(icon, 30.5), 0.01), "a two-line tooltip's icon shrinks to its lines (two 14-unit lines 2.5 apart), so it never hangs below the panel")
 	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = nil, nil
 
 	local secret = env.Secret("Ranger's Long Bow")

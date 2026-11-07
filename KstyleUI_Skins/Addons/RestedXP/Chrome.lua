@@ -102,7 +102,7 @@ local function Glass(frame, opts)
 	opts = opts or {}
 	Skin.Strip(frame, { keep = opts.keep, children = RXP_ART })
 	if opts.tile then
-		return Skin.Backdrop(frame, { shape = "tile", fill = "raised", shadow = false })
+		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false })
 	end
 	return Skin.Backdrop(frame, { shape = "panel", fill = "surface", shadow = true })
 end
@@ -119,6 +119,20 @@ local function Title(text)
 	if IsTable(text) and type(text.SetTextColor) == "function" then
 		titles[text] = true
 		PaintTitle(text)
+	end
+end
+
+local function Caption(text, colorName)
+	if IsTable(text) and type(text.SetFont) == "function" then
+		Style.Text(text, "caption")
+		Widgets.TextColor(text, colorName or "text")
+	end
+end
+
+local function Heading(text)
+	if IsTable(text) and type(text.SetFont) == "function" then
+		Style.Text(text, "heading")
+		Widgets.TextColor(text, "textEmphasis")
 	end
 end
 
@@ -178,8 +192,11 @@ local function StepFrames(f)
 			if not Skin.IsSkinned(step, "Backdrop") then
 				Glass(step)
 			end
-			if IsTable(step.number) and not Skin.IsSkinned(step.number, "Backdrop") then
-				Tile(step.number)
+			if IsTable(step.number) then
+				if not Skin.IsSkinned(step.number, "Backdrop") then
+					Tile(step.number)
+				end
+				Caption(step.number.text)
 			end
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
 				local check = IsTable(element) and element.button
@@ -205,10 +222,14 @@ local function GuideWindow(rxp)
 			end
 		end
 		Glass(name, { keep = keep })
-		Title(name.text)
+		Heading(name.text)
 	end
 	Glass(Find(f, "BottomFrame"))
-	Tile(Find(f, "Footer"))
+	local footer = Find(f, "Footer")
+	Tile(footer)
+	if footer then
+		Caption(footer.text)
+	end
 	ScrollBar(IsTable(f.ScrollFrame) and f.ScrollFrame.ScrollBar or Find(f, "ScrollFrame.ScrollBar"))
 	StepFrames(f)
 	Hook(rxp, "SetStep", "SetStep", function()

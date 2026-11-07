@@ -85,11 +85,11 @@ do
 	local face = K.Tokens.FontPath(K.Tokens.DEFAULT_FONT_FACE)
 	local scale = K.Theme.FontScale()
 	local path, size, flags = Font(env.GameTooltipHeaderText)
-	assert(path == face and Near(size, 16 * scale) and flags == "", "titles: KstyleUI's font at 16 units, no outline, got " .. tostring(path) .. " " .. tostring(size))
+	assert(path == face and Near(size, 11 * scale) and flags == "", "titles: KstyleUI's font at 11 units, no outline, got " .. tostring(path) .. " " .. tostring(size))
 	path, size = Font(env.GameTooltipText)
-	assert(path == face and Near(size, 13 * scale), "body lines at 13 units")
+	assert(path == face and Near(size, 11 * scale), "body lines at 11 units")
 	path, size = Font(env.GameTooltipTextSmall)
-	assert(path == face and Near(size, 11 * scale), "small lines at 11 units")
+	assert(path == face and Near(size, 9 * scale), "small lines at 9 units")
 	local ox, oy = env.GameTooltipText:GetShadowOffset()
 	local offset = K.Tokens.Size("textShadowOffset")
 	assert(Near(ox, offset) and Near(oy, -offset), "text without an outline gets KstyleUI's soft shadow")
@@ -152,7 +152,7 @@ do
 	assert(K.Store.CreateProfile("Other"))
 	K.Store.SetProfile("Other")
 	K.Modules.Enable("Tooltips")
-	assert(select(2, env.GameTooltipText:GetFont()) == 13 * K.Theme.FontScale(), "the other profile's default size")
+	assert(select(2, env.GameTooltipText:GetFont()) == 11 * K.Theme.FontScale(), "the other profile's default size")
 	K.Store.SetProfile("Default")
 	assert(K.Modules.IsRunning("Tooltips"), "the module stays on")
 	assert(select(2, env.GameTooltipText:GetFont()) == 20 * K.Theme.FontScale(), "switching back applies the first profile's size")
@@ -166,7 +166,7 @@ do
 	local saved = K.Store.Module("Tooltips")
 	saved.body.size = 400
 	saved.anchor = "nowhere"
-	assert(ns.Settings.Get("body.size") == 13, "an out-of-range size gives the default")
+	assert(ns.Settings.Get("body.size") == 11, "an out-of-range size gives the default")
 	assert(ns.Settings.Get("anchor") == "fixed", "an unknown anchor gives the default")
 	local logged = false
 	for _, entry in ipairs(env.KstyleUIDB.devlog) do
@@ -251,6 +251,18 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- The kit's type: the title is body-size upper case, the rarity a caption, lines pitched 2.5 units apart --
+
+do
+	local env, _, ns = Enabled()
+	assert(ns.Style.KIT_ROLES.title == "body" and ns.Style.KIT_ROLES.small == "caption", "the title takes the body role, the rarity the caption role")
+	for name in pairs(T.TOOLTIPS) do
+		assert(env[name]._lineSpacing == 2.5, name .. ": lines sit 2.5 units apart")
+	end
+	assert(ns.Settings.Get("iconSize") == 46, "the icon is 46 units inside its two-border tile: 50 outside")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Post-calls: item quality edges, the title divider and softened line colours ------------------------
 
 do
@@ -264,34 +276,68 @@ do
 	tip:AddLine("Thunderfury", 1, 1, 1)
 	tip:AddLine("Binds when picked up", 1, 1, 1)
 	tip:AddLine("Chance on hit", 1, 0.82, 0)
-	tip:AddLine("+5 Agility", 0.1, 1, 0.1)
+	tip:AddLine("Crafting Reagent", 0.4, 0.7, 1)
+	tip:AddLine("+5 Agility", 1, 1, 1)
+	tip:AddLine("Durability 100 / 100", 1, 1, 1)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "by default the panel keeps the kit's faint hairline")
 	K.Options.Write("Tooltips", "qualityEdge", true)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(SameEdge(glass, K.Theme.QualityColor(3)), "a rare item lights the edge in the rare colour")
-	assert(glass.divider:IsShown(), "a tooltip with a title and lines shows the accent divider under the title")
+	assert(glass.divider:IsShown(), "an item with stats shows the accent rule")
 	local _, relative = glass.divider:GetPoint(1)
-	assert(relative == tip.TextLeft1, "the divider sits under the title line")
+	assert(relative == tip:GetLeftLine(4), "the rule sits under the last base line, above the first stat")
+	assert(Near(glass.divider:GetWidth(), K.Widgets.Snap(glass, 56)), "and runs 56 units")
 	assert(W.SameColor(glass.divider, K.Theme.Accent()), "the divider follows the class colour")
+	assert(glass.footer:IsShown(), "a durability line gets the faint divider before it")
+	local fpoint, frelative, frelativePoint = glass.footer:GetPoint(1)
+	assert(fpoint == "BOTTOMLEFT" and frelative == tip:GetLeftLine(6) and frelativePoint == "TOPLEFT", "the footer divider sits above the durability line")
+	assert(W.SameColor(glass.footer, K.Tokens.Color("edgeFaint")), "in the faint edge colour")
+	assert(Near(glass.footer:GetHeight(), K.Widgets.Border(glass)), "one border thick")
 	local r, g, b = tip:GetLeftLine(3):GetTextColor()
 	local tr, tg, tb = K.Tokens.Color("text")
 	assert(Near(r, tr) and Near(g, tg) and Near(b, tb), "gold lines soften to KstyleUI's body grey")
 	r, g, b = tip:GetLeftLine(2):GetTextColor()
-	tr, tg, tb = K.Tokens.Color("textEmphasis")
-	assert(Near(r, tr) and Near(g, tg) and Near(b, tb), "white lines become emphasis white")
+	assert(Near(r, tr) and Near(g, tg) and Near(b, tb), "white lines soften to the same body grey")
+	r, g, b = tip:GetLeftLine(5):GetTextColor()
+	local ar, ag, ab = K.Theme.Accent()
+	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "stat lines take the accent")
 	r, g, b = tip:GetLeftLine(4):GetTextColor()
-	assert(Near(r, 0.1) and Near(g, 1) and Near(b, 0.1), "coloured lines keep their colour")
+	assert(Near(r, 0.4) and Near(g, 0.7) and Near(b, 1), "coloured lines keep their colour")
+
+	ns.Style.ApplyScale(1.2)
+	assert(select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(4) and Near(glass.divider:GetWidth(), K.Widgets.Snap(glass, 56)), "a rescale keeps the rule under the base lines at 56 units")
+	assert(glass.footer:IsShown() and select(2, glass.footer:GetPoint(1)) == tip:GetLeftLine(6) and Near(glass.footer:GetHeight(), K.Widgets.Border(glass)), "and redraws the footer divider one border thick")
+	ns.Style.ApplyScale(1)
+
+	tip:ClearLines()
+	tip:AddLine("Thunderfury", 1, 1, 1)
+	tip:AddLine(env.Secret("Binds when picked up"), 1, 1, 1)
+	tip:AddLine("+5 Agility", 1, 1, 1)
+	tip:AddLine(env.Secret("Durability 100 / 100"), 1, 1, 1)
+	T.PostCall(env, tip, { type = Item, id = 19019 })
+	assert(#env._errors == 0, "secret lines never reach a comparison: " .. tostring(env._errors[1]))
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(2), "a secret line is skipped; the rule still sits above the stats")
+	assert(not glass.footer:IsShown(), "a secret durability line gets no footer divider")
 
 	tip:ClearLines()
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "clearing the tooltip returns the edge to the glass hairline")
 	assert(not glass.divider:IsShown(), "and hides the divider")
+	assert(not glass.footer:IsShown(), "and the footer divider")
 
 	env._items[2589] = { quality = 1 }
 	tip:AddLine("Linen Cloth", 1, 1, 1)
 	tip:AddLine("Crafting Reagent", 0.4, 0.7, 1)
 	T.PostCall(env, tip, { type = Item, id = 2589 })
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "a common item keeps the glass edge")
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip.TextLeft1, "an item without stats keeps the rule under its title")
+	assert(not glass.footer:IsShown(), "and shows no footer divider")
+
+	tip:ClearLines()
+	tip:AddLine("Fireball", 1, 1, 1)
+	tip:AddLine("40 yd range", 1, 1, 1)
+	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Spell, id = 133 })
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip.TextLeft1, "a spell keeps the rule under its title")
 
 	tip:ClearLines()
 	tip:AddLine("Single line", 1, 1, 1)
@@ -357,7 +403,7 @@ do
 	assert(type(frame) == "table" and frame:GetParent() == parent and type(frame.Refresh) == "function", "the preview builds a frame with Refresh")
 	frame:Refresh()
 	local _, size = frame.title:GetFont()
-	assert(Near(size, 16 * K.Theme.FontScale()), "the sample title uses the title size")
+	assert(Near(size, 11 * K.Theme.FontScale()), "the sample title uses the title size")
 	K.Options.Write("Tooltips", "title.size", 20)
 	frame:Refresh()
 	_, size = frame.title:GetFont()
