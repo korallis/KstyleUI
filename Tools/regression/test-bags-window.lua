@@ -196,7 +196,11 @@ do
 	assert(Inventory.Slot(0, 7).button:IsShown() and not Inventory.Slot(0, 1).button:IsShown(), "the wheel scrolls one row")
 	Set(K, "accentSource", "custom")
 	Set(K, "accentColor", { r = 0.2, g = 0.4, b = 0.6 })
-	assert(W.SameRGB(Inventory.window.panel.divider, 0.2, 0.4, 0.6), "the title hairline follows a custom accent")
+	assert(Inventory.window.panel.divider == nil, "no line under the window title, as the kit's panel")
+	local hovered = Inventory.Slot(0, 1)
+	hovered.hoverT = 1
+	ns.Slot.Paint(hovered)
+	assert(W.SameRGB(hovered.chrome.inner[1], 0.2, 0.4, 0.6), "a hovered slot's edge follows a custom accent")
 end
 
 -- Search ------------------------------------------------------------------------------------------

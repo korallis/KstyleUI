@@ -23,7 +23,7 @@ do
 	assert(#env._errors == 0)
 end
 
--- The title bar: an upper-case heading, an accent divider, and a close button.
+-- The title bar: an upper-case heading and a close button, with no line under the title, as the kit's panel.
 do
 	local closed = 0
 	local env, K, panel = panelWith({
@@ -36,7 +36,10 @@ do
 	local Tokens = K.Tokens
 	assert(panel.titleText:GetText() == "PANEL TITLE", "the title is upper case")
 	assert(W.LastCall(panel.titleText, "SetFont")[2] == Tokens.Size("heading"), "the title is a heading")
-	assert(W.SameRGB(panel.divider, Tokens.Color("accent")), "the divider is the accent")
+	assert(panel.divider == nil, "no line under the title, as the kit's glass panel")
+	for _, region in ipairs(W.Regions(panel, "Texture")) do
+		assert(region:GetTexture() ~= Tokens.Texture("divider"), "no divider texture on the panel")
+	end
 	local top = panel.content._points[1]
 	assert(top[5] < -Tokens.Size("panelPadding") - Tokens.Size("heading"), "content starts below the title bar")
 	panel:SetTitle("Other")
@@ -121,11 +124,11 @@ do
 	assert(panel._points[1][1] == "LEFT" and panel._points[1][2] == K.Scale.Root())
 end
 
--- Review Focus 1: a class change recolours the divider of an open panel.
+-- Review Focus 1: a class change restyles an open panel, which still has no title line.
 do
 	local _, K, panel = panelWith({ width = 200, height = 120, title = "Accent" })
 	assert(K.Theme.SetCustomAccent(0.2, 0.4, 0.9) and K.Theme.SetAccentSource("custom"))
-	assert(W.SameColor(panel.divider, 0.2, 0.4, 0.9), "the divider follows the new accent")
+	assert(panel.divider == nil and panel.titleText:GetText() == "ACCENT", "the title stays, with no line under it")
 end
 
 print("widgets panel ok")

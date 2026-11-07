@@ -115,7 +115,7 @@ A border is one unit at 1080p and 4K, so a panel's chamfer is 6 units there. On 
 | Option | Effect |
 | --- | --- |
 | `width`, `height` | Snapped size |
-| `title` | Adds the title bar: an upper-case heading, an accent divider, and a drag area when `movable` is set |
+| `title` | Adds the title bar: an upper-case heading and a drag area when `movable` is set. As on the kit's glass panel, no line sits under the title. |
 | `close` | Adds a close button that calls `panel:Close()` |
 | `onClose(panel)` | Runs when the panel closes |
 | `escape` | Escape closes the panel |
@@ -124,7 +124,7 @@ A border is one unit at 1080p and 4K, so a panel's chamfer is 6 units there. On 
 | `strata`, `name`, `hidden` | |
 | `layout = { key, position, options }` | Calls `Widgets.Place` with them |
 
-Fields: `chrome`, `content` (a frame one `panelPadding` inside, below the title bar), `titleBar`, `titleText`, `divider`, `closeButton`, `rise` and `riseParts` (the open animation).
+Fields: `chrome`, `content` (a frame one `panelPadding` inside, below the title bar), `titleBar`, `titleText`, `closeButton`, `rise` and `riseParts` (the open animation).
 
 | Method | Behaviour |
 | --- | --- |
@@ -391,7 +391,7 @@ Field: `editBox`, when the popup has one.
 
 Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`).
 
-- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a four-point spark, two crossed streaks, that pulses at the frame's top right corner. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
+- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a four-point spark, two crossed streaks in the glow's colour (the accent, so it matches the rest of the theme), that pulses at the frame's top right corner. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
 - A selection glow is steady at 60%.
 
 | Method | Behaviour |

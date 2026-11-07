@@ -20,6 +20,7 @@ do
 	assert(down and across:GetWidth() >= 4 * across:GetHeight() and W.Near(down:GetHeight(), across:GetWidth()), "the kit's spark: a four-point star of two streaks")
 	local a, d = across._points[1], down._points[1]
 	assert(a[1] == "CENTER" and a[2] == frame and a[3] == "TOPRIGHT" and W.Near(a[4], d[4]) and W.Near(a[5], d[5]), "crossed at the top right corner")
+	assert(W.SameRGB(across, r, g, b) and W.SameRGB(down, r, g, b), "the spark is the accent, like the rest of the theme")
 	glow:Start()
 	assert(#W.Calls(glow.pulse, "Play") == 1, "Start twice plays once")
 	W.Settle(env)
@@ -30,6 +31,7 @@ do
 	K.Theme.SetCustomAccent(0.1, 0.8, 0.9)
 	K.Theme.SetAccentSource("custom")
 	assert(W.SameRGB(glow.slice[5], 0.1, 0.8, 0.9), "the glow follows the accent")
+	assert(W.SameRGB(glow.spark, 0.1, 0.8, 0.9) and W.SameRGB(glow.sparkCross, 0.1, 0.8, 0.9), "and so does its spark")
 	glow:SetColor("epic")
 	assert(W.SameRGB(glow.slice[5], K.Tokens.Color("epic")), "or a colour token")
 	W.Raises(function()

@@ -15,7 +15,6 @@ local MIN_SEARCH_WIDTH = 120
 local SORT_WIDTH = 64
 local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
-local DIVIDER_ALPHA = 0.55
 local STRATA = "MEDIUM"
 local ANCHOR_FRACTIONS = {
 	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 },
@@ -312,10 +311,6 @@ end
 
 function Window:Paint(force)
 	local r, g, b = Settings.Accent()
-	local panel = self.panel
-	if panel.divider then
-		panel.divider:SetVertexColor(r, g, b, DIVIDER_ALPHA)
-	end
 	self.footerLine:SetVertexColor(Widgets.Rgba("edgeFaint"))
 	local path, size, flags = Settings.Font()
 	local key = table.concat({ tostring(path), tostring(size), tostring(flags), tostring(r), tostring(g), tostring(b) }, ":")

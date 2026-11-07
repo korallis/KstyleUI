@@ -53,7 +53,6 @@ end
 local function PlaceStreak(streak, frame, inset)
 	streak:ClearAllPoints()
 	streak:SetPoint("CENTER", frame, "TOPRIGHT", -inset, -inset)
-	streak:SetVertexColor(Widgets.Rgba("textHover"))
 end
 
 function Glow:Restyle()
@@ -73,6 +72,8 @@ function Glow:Restyle()
 		local inset = Widgets.Snap(self.frame, SPARK_INSET)
 		PlaceStreak(self.spark, self.frame, inset)
 		PlaceStreak(self.sparkCross, self.frame, inset)
+		self.spark:SetVertexColor(r, g, b, 1)
+		self.sparkCross:SetVertexColor(r, g, b, 1)
 	end
 	Reconcile(self)
 end

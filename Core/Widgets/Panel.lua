@@ -5,7 +5,6 @@ local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
 
 local RISE_UP_SHARE = 0.75
-local DIVIDER_ALPHA = 0.55
 
 local Panel = {}
 
@@ -93,11 +92,6 @@ function Panel:Restyle()
 		else
 			self.titleText:SetPoint("RIGHT", self, "RIGHT", -pad, 0)
 		end
-		self.divider:ClearAllPoints()
-		self.divider:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -bar)
-		self.divider:SetPoint("TOPRIGHT", self, "TOPRIGHT", -pad, -bar)
-		self.divider:SetHeight(Widgets.Border(self))
-		Widgets.Tint(self.divider, "accent", DIVIDER_ALPHA)
 		top = bar + Widgets.Snap(self, Tokens.Size("gapMedium"))
 	end
 	if self.closeButton then
@@ -143,8 +137,6 @@ function Widgets.Panel(parent, opts)
 		panel.titleText = Widgets.Text(panel, "heading", "textEmphasis")
 		panel.titleText:SetJustifyH("LEFT")
 		panel.titleText:SetWordWrap(false)
-		panel.divider = panel:CreateTexture(nil, "ARTWORK")
-		panel.divider:SetTexture((Tokens.Texture("divider")))
 		panel:SetTitle(opts.title or "")
 	end
 	if opts.close then
