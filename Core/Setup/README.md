@@ -46,6 +46,7 @@ It returns `false` for an unknown layout, or before the saved data loads.
 | `Choice()`, `NewChoice()` | The window's current choice, and a fresh one: DPS and every available module on |
 | `Available(name) -> boolean` | The module's addon loaded and registered. For `Icons`, also that `KstyleUI_Icons` exists. |
 | `Go(step)`, `Step()` | Moves to a step, 1 to 4, and reports the current one |
+| `IsShown() -> boolean` | True from `Open` until the window starts to close, so a reopen during the closing fade shows it again and the first-login timer never resets a setup the player opened |
 | `MarkSeen()`, `Closed(applied)` | Turn the account switch on. `Closed` also prints the `/kstyle setup` hint. |
 | `PICKER` | `{ { name, label, note }, ... }` in the picker's order |
 | `window` | The panel, once it has been built. Fields: `steps`, `pages`, `cards`, `toggles`, `summary`, `back`, `skip`, `next`, `apply`, `reload` and `later`. |

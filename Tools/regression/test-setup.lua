@@ -67,6 +67,30 @@ do
 	assert(K.Setup.window == nil or not K.Setup.window:IsShown(), "a later login does not open it")
 end
 
+-- The delayed first-login open never resets a setup the player already opened; reopening beats a closing fade
+
+do
+	local env, K = Boot()
+	env.SlashCmdList.KSTYLE("setup")
+	W.Settle(env)
+	K.Setup.Go(2)
+	W.Click(K.Setup.window.cards.Tank)
+	env.RunTimers()
+	W.Settle(env)
+	assert(K.Setup.Step() == 2 and K.Setup.Choice().layout == "Tank", "the login timer leaves an open setup alone")
+	assert(K.Setup.IsShown())
+	K.Setup.window:Close()
+	assert(not K.Setup.IsShown(), "closing counts at once, before the fade ends")
+	K.Setup.Open()
+	W.Settle(env)
+	assert(K.Setup.window:IsShown() and K.Setup.IsShown(), "reopening during the closing fade keeps the window shown")
+	K.Setup.window:Hide()
+	K.Setup.Open()
+	W.Settle(env)
+	assert(K.Setup.window:IsShown(), "a window hidden some other way opens again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- The window: kit widgets, Layout registration and the four steps ------------------------------------
 
 do

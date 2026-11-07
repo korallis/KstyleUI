@@ -28,7 +28,7 @@ local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
 local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Summary"] }
 
 local panel
-local step, reached, applied = 0, 1, false
+local step, reached, applied, open = 0, 1, false, false
 
 local function gap(name)
 	return Widgets.Snap(panel, Tokens.Size(name))
@@ -289,6 +289,7 @@ local function SyncChoice()
 end
 
 local function OnClose()
+	open = false
 	Setup.Closed(applied)
 end
 
@@ -368,7 +369,12 @@ function Setup.ShowWindow()
 	step = 0
 	SyncChoice()
 	Setup.Go(1)
-	if not panel:IsShown() then
+	if not open or not panel:IsShown() then
+		open = true
 		panel:Open()
 	end
+end
+
+function Setup.IsShown()
+	return open
 end

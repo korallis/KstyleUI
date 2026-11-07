@@ -173,7 +173,7 @@ ns.Events.Register(OWNER, "PLAYER_LOGIN", function()
 	end
 	log("first login on this account: the setup opens")
 	C_Timer.After(OPEN_DELAY, function()
-		if not Store.Account().setupSeen then
+		if not Store.Account().setupSeen and not (Setup.IsShown and Setup.IsShown()) then
 			Setup.Open()
 		end
 	end)
