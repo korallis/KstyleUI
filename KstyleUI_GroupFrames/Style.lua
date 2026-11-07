@@ -27,24 +27,75 @@ local function LogOnce(key, message)
 end
 Style.LogOnce = LogOnce
 
+local CORNER_POINTS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
+
+local function Corner(owner, path, layer, sublevel, x0, x1, y0, y1)
+	local texture = owner:CreateTexture(nil, layer, nil, sublevel)
+	texture:SetTexture(path)
+	texture:SetTexCoord(x0, x1, y0, y1)
+	return texture
+end
+
 function Style.Ring(owner, layer, sublevel)
+	layer, sublevel = layer or "OVERLAY", sublevel or 0
 	local ring = {}
 	for i, name in ipairs(RING) do
-		ring[i] = Widgets.NineSlice(owner, name, layer, sublevel)
+		local path, texels = Tokens.Texture(name)
+		local f = texels / Widgets.TEXTURE_TEXELS[name]
+		local line = {
+			Corner(owner, path, layer, sublevel, 0, f, 0, f),
+			Corner(owner, path, layer, sublevel, 1 - f, 1, 0, f),
+			Corner(owner, path, layer, sublevel, 0, f, 1 - f, 1),
+			Corner(owner, path, layer, sublevel, 1 - f, 1, 1 - f, 1),
+		}
+		for side = 5, 8 do
+			local edge = owner:CreateTexture(nil, layer, nil, sublevel)
+			edge:SetColorTexture(Tokens.Color("white"))
+			line[side] = edge
+		end
+		ring[i] = line
 	end
 	return ring
 end
 
+local function PlaceLine(line, owner, size, inset, thick)
+	local tl, tr, bl, br = line[1], line[2], line[3], line[4]
+	local top, bottom, left, right = line[5], line[6], line[7], line[8]
+	for i = 1, 8 do
+		line[i]:ClearAllPoints()
+	end
+	for i = 1, 4 do
+		line[i]:SetSize(size, size)
+		line[i]:SetPoint(CORNER_POINTS[i], owner, CORNER_POINTS[i], 0, 0)
+	end
+	top:SetPoint("TOPLEFT", tl, "TOPRIGHT", 0, -inset)
+	top:SetPoint("TOPRIGHT", tr, "TOPLEFT", 0, -inset)
+	top:SetHeight(thick)
+	bottom:SetPoint("BOTTOMLEFT", bl, "BOTTOMRIGHT", 0, inset)
+	bottom:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT", 0, inset)
+	bottom:SetHeight(thick)
+	left:SetPoint("TOPLEFT", tl, "BOTTOMLEFT", inset, 0)
+	left:SetPoint("BOTTOMLEFT", bl, "TOPLEFT", inset, 0)
+	left:SetWidth(thick)
+	right:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT", -inset, 0)
+	right:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT", -inset, 0)
+	right:SetWidth(thick)
+end
+
 function Style.LayoutRing(ring, owner)
-	local _, _, corner = Tokens.Texture(RING[1])
-	for i = 1, #ring do
-		Widgets.LayoutSlice(ring[i], owner, corner, 0)
+	local _, _, units = Tokens.Texture(RING[1])
+	local size = Widgets.Snap(owner, units)
+	local border = Widgets.Border(owner)
+	for i, line in ipairs(ring) do
+		PlaceLine(line, owner, size, border * (i - 1), border)
 	end
 end
 
 function Style.ColorRing(ring, r, g, b, a)
-	for i = 1, #ring do
-		Widgets.ColorSlice(ring[i], r, g, b, a)
+	for _, line in ipairs(ring) do
+		for _, piece in ipairs(line) do
+			piece:SetVertexColor(r, g, b, a)
+		end
 	end
 end
 

@@ -56,22 +56,30 @@ local function kitPaths(K, names)
 	return out
 end
 
--- Every texture is one of the named kit textures, none is a flat colour box, and the set holds
--- whole nine-slices.
-local function kitOnly(K, list, names, what)
+-- Every textured piece is one of the named kit textures. A flat colour piece may only be a straight
+-- line one border thick running between two kit corner pieces, as the kit's chrome draws its bevel
+-- edges, so no square corner sticks out past the chamfer. Returns the count per texture and the
+-- number of straight lines.
+local function kitOnly(K, list, names, owner, what)
 	assert(#list > 0, what .. " draws something")
 	local allowed = kitPaths(K, names)
-	local counts = {}
+	local border = K.Widgets.Border(owner)
+	local counts, lines = {}, 0
 	for _, texture in ipairs(list) do
-		eq(texture._state.ColorTexture, nil, what .. ": no flat colour texture")
-		local name = allowed[asset(texture)]
-		assert(name, what .. ": " .. tostring(asset(texture)) .. " is not one of the kit's chamfer textures")
-		counts[name] = (counts[name] or 0) + 1
+		if texture._state.ColorTexture then
+			lines = lines + 1
+			eq(texture._height or texture._width, border, what .. ": a straight line is one border thick")
+			eq(#texture._points, 2, what .. ": a straight line has two ends")
+			for _, point in ipairs(texture._points) do
+				assert(allowed[asset(point[2])], what .. ": a straight line runs between two chamfered corner pieces")
+			end
+		else
+			local name = allowed[asset(texture)]
+			assert(name, what .. ": " .. tostring(asset(texture)) .. " is not one of the kit's chamfer textures")
+			counts[name] = (counts[name] or 0) + 1
+		end
 	end
-	for name, n in pairs(counts) do
-		eq(n % 9, 0, what .. ": " .. name .. " is drawn as whole nine-slices")
-	end
-	return counts
+	return counts, lines
 end
 
 local function color(texture)
@@ -96,9 +104,11 @@ end
 env.FireEvent("PLAYER_TARGET_CHANGED")
 local shown = healer.target._state.AlphaFromBoolean
 assert(shown and env.issecretvalue(shown[1]), "the target highlight follows the secret target flag")
-local counts = kitOnly(K, textures(healer.target), { "bevelTileOuter", "bevelTileInner" }, "the target highlight")
-eq(counts.bevelTileOuter, 9, "the target highlight has the outer bevel line")
-eq(counts.bevelTileInner, 9, "and the inner one, two lines thick like the old outline")
+local counts, lines = kitOnly(K, textures(healer.target), { "bevelTileOuter", "bevelTileInner" }, healer.target, "the target highlight")
+eq(counts.bevelTileOuter, 4, "the target highlight has the outer bevel line's corners")
+eq(counts.bevelTileInner, 4, "and the inner one's, two lines thick like the old outline")
+eq(lines, 8, "with four straight sides to each line")
+whole(K.Widgets.Border(healer.target), "a side's thickness")
 local ar, ag, ab = ns.Style.Accent()
 for _, texture in ipairs(textures(healer.target)) do
 	local r, g, b, a = color(texture)
@@ -113,7 +123,8 @@ eq(corner._points[1][4], 0, "inside the frame, flush with its edge")
 
 -- The threat border: the kit's selection glow, in the game's threat colour, behind the frame's tile.
 eq(tank.threat:IsShown(), true, "the tank with aggro shows the threat glow")
-kitOnly(K, textures(tank.threat), { "shadow" }, "the threat glow")
+local _, flat = kitOnly(K, textures(tank.threat), { "shadow" }, tank.threat, "the threat glow")
+eq(flat, 0, "the threat glow is all falloff texture")
 for _, texture in ipairs(textures(tank.threat)) do
 	local r, g, b = color(texture)
 	assert(near(r, 1) and near(g, 0) and near(b, 0), "status 3 glows in the game's red")
@@ -130,16 +141,17 @@ local registered = {}
 for _, entry in ipairs(slot._aura.dispel) do
 	registered[#registered + 1] = entry.texture
 end
-counts = kitOnly(K, registered, { "chamferTile", "bevelTileOuter", "bevelTileInner" }, "the dispel highlight")
+counts, lines = kitOnly(K, registered, { "chamferTile", "bevelTileOuter", "bevelTileInner" }, slot, "the dispel highlight")
 eq(counts.chamferTile, 9, "the wash is the chamfered tile")
-eq(counts.bevelTileOuter, 9, "the border has the outer bevel line")
-eq(counts.bevelTileInner, 9, "and the inner one")
+eq(counts.bevelTileOuter, 4, "the border has the outer bevel line's corners")
+eq(counts.bevelTileInner, 4, "and the inner one's")
+eq(lines, 8, "and their straight sides")
 for _, texture in ipairs(registered) do
 	if asset(texture) == (K.Tokens.Texture("chamferTile")) then
 		eq(texture:GetAlpha(), 0.16, "the wash is faint")
 	end
 end
-kitOnly(K, textures(slot), { "chamferTile", "bevelTileOuter", "bevelTileInner" }, "everything on the dispel slot")
+kitOnly(K, textures(slot), { "chamferTile", "bevelTileOuter", "bevelTileInner" }, slot, "everything on the dispel slot")
 
 -- Debuff icons: the kit's chamfered icon tile, the icon two borders in and masked, the swipe masked.
 local group = tank.auras._groups.debuffs
@@ -164,7 +176,7 @@ local dispel = {}
 for _, entry in ipairs(button._aura.dispel) do
 	dispel[#dispel + 1] = entry.texture
 end
-counts = kitOnly(K, dispel, { "chamferTile" }, "the icon's debuff type border")
+counts = kitOnly(K, dispel, { "chamferTile" }, button, "the icon's debuff type border")
 eq(counts.chamferTile, 9, "the debuff type colour fills a chamfered tile behind the icon")
 
 -- Sizes in whole pixels at 1440p, where a unit is 1.33 pixels.
@@ -215,9 +227,9 @@ local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 parent:SetSize(300, 420)
 local preview = K.Options.Preview("GroupFrames")(parent)
 local sample = preview.partyFrames[2]
-kitOnly(K, textures(sample.target), { "bevelTileOuter", "bevelTileInner" }, "a sample's target highlight")
-kitOnly(K, textures(sample.sampleDispel), { "chamferTile", "bevelTileOuter", "bevelTileInner" }, "a sample's dispel highlight")
-kitOnly(K, textures(preview.partyFrames[1].threat), { "shadow" }, "a sample's threat glow")
+kitOnly(K, textures(sample.target), { "bevelTileOuter", "bevelTileInner" }, sample.target, "a sample's target highlight")
+kitOnly(K, textures(sample.sampleDispel), { "chamferTile", "bevelTileOuter", "bevelTileInner" }, sample.sampleDispel, "a sample's dispel highlight")
+kitOnly(K, textures(preview.partyFrames[1].threat), { "shadow" }, preview.partyFrames[1].threat, "a sample's threat glow")
 local sampleIcon = preview.partyFrames[1].sampleAuras[1]
 eq(asset(sampleIcon.art:GetMaskTexture(1)), mask, "sample debuff icons are masked like the real ones")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))

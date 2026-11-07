@@ -139,15 +139,28 @@ local function Start()
 	ApplySecure()
 end
 
+local function FollowUnits(on)
+	Unit.running = on
+	Unit.ListenAll()
+	local changed = Unit.changed
+	Unit.ForEach(function(f)
+		for i = 1, #changed do
+			changed[i](f)
+		end
+	end)
+end
+
 local function Settle()
 	settling = false
 	if Frames.running then
 		Headers.Build()
 	end
 	if Frames.Active() then
+		FollowUnits(true)
 		Start()
 	else
 		Headers.Stop()
+		FollowUnits(false)
 	end
 end
 
@@ -161,8 +174,6 @@ local function Converge()
 end
 
 local function Follow()
-	Unit.running = Frames.Active()
-	Unit.ListenAll()
 	Blizzard.Apply(Frames.Active())
 	Converge()
 end

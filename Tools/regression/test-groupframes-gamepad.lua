@@ -80,11 +80,17 @@ do
 	blizzardHidden(env, K, true, "keyboard and mouse")
 	oursShown(env, ns, true, "keyboard and mouse")
 
+	local f = ns.Button.Content(ns.Headers.party._attributes.child2)
+	eq(f.unit, "party1", "the second party button shows party1")
+	eq(f.auras._unit, "party1", "its debuffs follow party1")
+
 	-- A switch to the controller gives Blizzard's targetable frames back and hides KstyleUI's.
 	switch(env, true)
 	blizzardHidden(env, K, false, "gamepad")
 	oursShown(env, ns, false, "gamepad")
 	assert(logged(env, "gamepad"), "the stand-down is logged")
+	eq(next(f._events), nil, "a hidden frame listens to no unit event")
+	eq(f.auras._unit, "none", "and its debuff container lets the unit go")
 
 	-- Settings changes while standing down neither show KstyleUI's headers nor hide Blizzard's frames.
 	K.Options.Write("GroupFrames", "party.width", 200)
@@ -100,20 +106,31 @@ do
 	blizzardHidden(env, K, true, "back to keyboard and mouse")
 	oursShown(env, ns, true, "back to keyboard and mouse")
 	eq(ns.Headers.party._attributes["kstyle-width"], 200, "the width set while standing down applies")
+	assert(next(f._events) ~= nil, "unit events come back")
+	eq(f.auras._unit, "party1", "and the debuffs follow party1 again")
 	eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 end
 
 -- In combat: nothing protected moves until combat ends, then the state settles on the last switch.
+-- Until then KstyleUI's frames are still the ones on screen, so they keep following their units.
 do
 	local env, K, ns = setup()
+	local f = ns.Button.Content(ns.Headers.party._attributes.child2)
 	env.SetCombat(true)
 	switch(env, true)
 	eq(#env._blocked, 0, "a switch in combat makes no protected call: " .. tostring(env._blocked[1]))
 	blizzardHidden(env, K, true, "gamepad in combat, before combat ends")
+	oursShown(env, ns, true, "gamepad in combat, before combat ends")
+	env._roster.units.party1.health = 10
+	env.FireEvent("UNIT_HEALTH", "party1")
+	local value = f.health._state.Value
+	eq(value and env.Reveal(value[1]), 10, "the frame still on screen follows its unit's health")
+	eq(f.auras._unit, "party1", "and its debuffs")
 	env.SetCombat(false)
 	env.RunTimers()
 	blizzardHidden(env, K, false, "gamepad after combat")
 	oursShown(env, ns, false, "gamepad after combat")
+	eq(next(f._events), nil, "the hidden frame stops listening once combat ends")
 
 	env.SetCombat(true)
 	switch(env, false)
