@@ -124,7 +124,8 @@ Every skin styles its text, bars and accent lines through `ns.Style`, so the set
 | `Parts.Rim(frame, opts) -> rim` | A raised chamfered tile behind `frame`, on a child frame one level below it, `opts.outset` units outside `opts.target` (default `frame`). `rim:SetRimColor(r, g, b, a)` draws a 2-unit chamfered ring and an inner hairline in that colour; `nil` removes both. A second call returns the same rim. `Parts.RimOf(frame)` returns it. |
 | `Parts.AccentLine(owner, opts) -> line` | A 2-unit accent divider along the owner's `BOTTOM` (default) or `TOP` edge, or across `opts.anchor`. It follows the accent setting. |
 | `Parts.Hush(texture)`, `Parts.Divider(owner, texture)` | Hide one Blizzard texture for good, and replace a Blizzard divider texture with an accent line at the same place. |
-| `Parts.SideTab(tab)` | Strips a side tab or a sidebar check button but its `Icon`, and rims the icon: accent while checked, `text` at 50% under the mouse. It follows `SetChecked`, clicks and hover. |
+| `Parts.SideTab(tab)` | Strips a side tab, a sidebar check button or an icon-only tab-system tab but its `Icon`, and rims the icon: accent while checked or selected, `text` at 50% under the mouse. It follows `SetChecked`, `SetTabSelected`, clicks and hover, and keeps a selection Blizzard made before the skin. |
+| `Parts.Glyph(button, textureName, opts) -> texture` | Strips a small Blizzard button, such as a page arrow or a red size button, and draws a 10-unit line glyph (`glyphChevron`, `glyphClose`) on it: `text` at rest, `textHover` under the mouse, `textDisabled` when disabled. `opts.flip` points a chevron up; `opts.rotation` turns it, in radians. |
 | `Parts.Dropdown(dropdown)` | Strips a `WowStyle1DropdownTemplate` button but its `Arrow` and puts a raised tile behind it. |
 | `Parts.StripLeaves(frame)` | Strips each child of `frame` that has no children of its own, such as the scroll lines on a list. |
 | `Parts.Wash(highlight)` | Replaces a row highlight frame's art with a flat accent wash at 12%, which Blizzard's own fade of the frame still shows and hides. |
@@ -150,6 +151,14 @@ Forever's character window (`CharacterFrame` in `Blizzard_UIPanels_Game/Camelot`
 | `character.qualityFrom` | 2 (uncommon) | dropdown: the lowest quality that colours a rim, from poor (0) to epic (4) |
 
 A missing part (a slot, the reputation or currency tab, the paper doll hook) is logged as `character: <name> is missing on this client` and skipped.
+
+### Spellbook and talents (`Spellbook.lua`, keys `spellbook` and `talents`)
+
+On Forever the spellbook and the talents live in one window, `PlayerSpellsFrame`, from the load-on-demand `Blizzard_PlayerSpells` (its `Camelot/` files). Forever hides the window's tab strip and opens each part from its own micro button. Both skins wait for the addon to load, so KstyleUI never loads it, and apply on the window's first show. Each has its own switch; both restyle the shared window once.
+
+- **Window.** The glass panel, close button and title. The red maximise and minimise buttons become chevrons.
+- **Spellbook.** The book's page art (top bar, page backgrounds, corner, bookmark) goes. Forever's category tabs are icon-only square tabs (`AddIconTab`): each keeps its icon on a `Parts.SideTab` rim, accent while selected, and a category added later (a pet's) is skinned through a hook on the tab system's `AddTab`. The search box gets the raised tile. Each spell item loses its backplate, border, shadow and sheen; its icon loses Blizzard's rounded mask, is cropped 7%, and sits on a `Parts.Rim`. Names are heading text, sub-names body text. Section headers become display text over an accent line. The paging arrows become chevrons and the page number a caption. A hook on `PagedSpellsFrame.DisplayViewsForCurrentPage` skins every page as it shows; in combat it waits for `Combat.Queue`, because spell buttons can be protected.
+- **Talents.** The frame's own background, border and dividers go; the class background art and the tree's animations stay. The tab strip, search box, Apply and inspect-copy buttons, and the unspent-points counter are restyled. The talent nodes keep Blizzard's art: their states (available, maxed, locked, choice) are drawn by the shared talent UI and change too often to restyle safely.
 
 ## Why
 

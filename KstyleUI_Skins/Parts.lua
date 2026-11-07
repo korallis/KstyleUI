@@ -12,6 +12,7 @@ local RIM_SUBLEVEL = -7
 local LEVEL_BELOW = 1
 local LINE_UNITS = 2
 local BAR_UNITS = 10
+local GLYPH_UNITS = 10
 local HOVER_ALPHA = 0.5
 local WASH_ALPHA = 0.12
 local MODULE = "Skins"
@@ -179,10 +180,10 @@ function Parts.SideTab(tab)
 		keep[icon] = true
 	end
 	local selected = tab.SelectedTexture
-	local wasChecked = false
+	local wasChecked = tab.isSelected == true
 	if IsTexture(selected) then
 		local shown = selected:IsShown()
-		wasChecked = not IsSecret(shown) and shown == true
+		wasChecked = wasChecked or (not IsSecret(shown) and shown == true)
 	end
 	Skin.Strip(tab, { keep = keep })
 	local native = type(tab.IsObjectType) == "function" and tab:IsObjectType("CheckButton") and type(tab.GetChecked) == "function"
@@ -190,11 +191,13 @@ function Parts.SideTab(tab)
 	state.rim = Parts.Rim(tab, { target = IsTexture(icon) and icon or tab, outset = Tokens.Size("gapTiny") })
 	state.Restyle = PaintTab
 	tabs[tab] = state
-	if type(tab.SetChecked) == "function" then
-		hooksecurefunc(tab, "SetChecked", function(_, checked)
-			state.checked = checked and true or false
-			PaintTab(state)
-		end)
+	for _, method in ipairs({ "SetChecked", "SetTabSelected" }) do
+		if type(tab[method]) == "function" then
+			hooksecurefunc(tab, method, function(_, checked)
+				state.checked = checked and true or false
+				PaintTab(state)
+			end)
+		end
 	end
 	tab:HookScript("OnEnter", function()
 		state.hover = true
@@ -212,6 +215,61 @@ function Parts.SideTab(tab)
 	PaintTab(state)
 	ns.Style.Track(state)
 	return state
+end
+
+local function PaintGlyph(state)
+	local button, glyph = state.button, state.glyph
+	local enabled = type(button.IsEnabled) ~= "function" or button:IsEnabled() ~= false
+	if not enabled then
+		Widgets.Tint(glyph, "textDisabled")
+	else
+		Widgets.Tint(glyph, state.hover and "textHover" or "text")
+	end
+end
+
+local function LayoutGlyph(state)
+	Widgets.Size(state.glyph, state.size, state.size)
+	PaintGlyph(state)
+end
+
+function Parts.Glyph(button, textureName, opts)
+	if type(button) ~= "table" or type(button.GetRegions) ~= "function" then
+		return nil
+	end
+	opts = opts or {}
+	Skin.Strip(button)
+	local overlay = CreateFrame("Frame", nil, button)
+	overlay:SetAllPoints(button)
+	overlay:SetFrameLevel(button:GetFrameLevel() + LEVEL_BELOW)
+	local glyph = overlay:CreateTexture(nil, "OVERLAY")
+	glyph:SetTexture((Tokens.Texture(textureName)))
+	glyph:SetPoint("CENTER", overlay, "CENTER")
+	if opts.flip then
+		glyph:SetTexCoord(0, 1, 1, 0)
+	end
+	if opts.rotation then
+		glyph:SetRotation(opts.rotation)
+	end
+	local state = { button = button, glyph = glyph, size = opts.size or GLYPH_UNITS, hover = false, Restyle = LayoutGlyph }
+	button:HookScript("OnEnter", function()
+		state.hover = true
+		PaintGlyph(state)
+	end)
+	button:HookScript("OnLeave", function()
+		state.hover = false
+		PaintGlyph(state)
+	end)
+	if type(button.IsEnabled) == "function" then
+		button:HookScript("OnEnable", function()
+			PaintGlyph(state)
+		end)
+		button:HookScript("OnDisable", function()
+			PaintGlyph(state)
+		end)
+	end
+	LayoutGlyph(state)
+	Widgets.Track(state)
+	return glyph
 end
 
 function Parts.Dropdown(drop)

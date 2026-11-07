@@ -2,12 +2,11 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, Theme, Tokens, Widgets, L = K.Skin, K.Theme, K.Tokens, K.Widgets, K.L
+local Skin, Theme, Tokens, L = K.Skin, K.Theme, K.Tokens, K.L
 local Style, Parts, Skins = ns.Style, ns.Parts, ns.Skins
 
 local KEY = "character"
 local ICON_CROP = 0.07
-local CHEVRON = 10
 local HALF_TURN = math.pi / 2
 local QUALITY_POOR, QUALITY_COMMON, QUALITY_UNCOMMON, QUALITY_RARE, QUALITY_EPIC = 0, 1, 2, 3, 4
 
@@ -105,35 +104,17 @@ local function PaintSlots()
 end
 
 local function SkinToggle(frame)
-	local button = frame.RightPaneToggleButton
-	if type(button) ~= "table" then
+	local chevron = Parts.Glyph(frame.RightPaneToggleButton, "glyphChevron")
+	if not chevron then
 		return
 	end
-	Skin.Strip(button)
-	local overlay = CreateFrame("Frame", nil, button)
-	overlay:SetAllPoints(button)
-	overlay:SetFrameLevel(button:GetFrameLevel() + 1)
-	local chevron = overlay:CreateTexture(nil, "OVERLAY")
-	chevron:SetTexture((Tokens.Texture("glyphChevron")))
-	chevron:SetPoint("CENTER", overlay, "CENTER")
-	Widgets.Size(chevron, CHEVRON, CHEVRON)
-	local hover = false
 	local function Point()
 		local collapsed = type(frame.IsRightPaneCollapsed) == "function" and frame:IsRightPaneCollapsed() == true
 		chevron:SetRotation(collapsed and HALF_TURN or -HALF_TURN)
-		Widgets.Tint(chevron, hover and "textHover" or "text")
 	end
 	if type(frame.UpdateRightPaneToggleButton) == "function" then
 		hooksecurefunc(frame, "UpdateRightPaneToggleButton", Point)
 	end
-	button:HookScript("OnEnter", function()
-		hover = true
-		Point()
-	end)
-	button:HookScript("OnLeave", function()
-		hover = false
-		Point()
-	end)
 	Point()
 end
 
