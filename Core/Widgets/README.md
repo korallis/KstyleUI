@@ -157,7 +157,7 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `silent` (no click sound, for buttons that keys press, such as action buttons).
 
-The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button. The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row:
+The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button. The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`; on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row:
 
 | State | Hairline | Icon |
 | --- | --- | --- |

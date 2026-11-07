@@ -303,6 +303,7 @@ local function SpellOnGlobalCooldown(spell, spellID)
 	local info = spell.GetSpellCooldown(spellID)
 	return type(info) == "table" and Flag(info.isOnGCD, false)
 end
+Button.SpellOnGlobalCooldown = SpellOnGlobalCooldown
 
 local function SpellCooldown(b, spellID, start, duration)
 	local spell = C_Spell

@@ -346,6 +346,28 @@ do
 	assert(W.LastCall(first.icon, "SetTexture")[1] == 1010059, "flyout icons come from the spells")
 	AB.Click(env, owner, "LeftButton", false)
 	assert(flyout.frame:IsShown(), "the release of the same click does not close it")
+	-- The flyout tells its buttons when a spell's cooldown is only the global cooldown, as the action buttons do.
+	local gcd, running = true, {}
+	env.C_Spell.GetSpellCooldown = function()
+		return { isOnGCD = gcd }
+	end
+	env.C_Spell.GetSpellCooldownDuration = function()
+		return running
+	end
+	AB.Click(env, first, "LeftButton", true)
+	AB.Click(env, first, "LeftButton", false)
+	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
+	assert(flyout.frame:IsShown() and first.realCooldown == false, "a flyout opened during the GCD leaves its buttons ready")
+	gcd = false
+	AB.Click(env, first, "LeftButton", true)
+	AB.Click(env, first, "LeftButton", false)
+	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
+	assert(flyout.frame:IsShown() and first.realCooldown == true, "a real cooldown reaches the flyout buttons as one")
+	assert(W.LastCall(first.cooldown, "SetCooldownFromDurationObject")[1] == running, "the swipe ran in both cases")
+	env.C_Spell.GetSpellCooldown = nil
+	env.C_Spell.GetSpellCooldownDuration = nil
 	AB.Click(env, first, "LeftButton", true)
 	assert(AB.Used(env) == "spell10059", "a flyout button casts its spell")
 	AB.Click(env, first, "LeftButton", false)

@@ -16,6 +16,7 @@ local RIM_HALO = 0.45
 local COUNTDOWN_RISE = 0.25
 local CHAMFER_SHARE = 0.105
 local ICON_INSET_LINES = 3
+local ICON_INSET_MAX_SHARE = 0.2
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
 local OVERLAY_LEVEL = 2
@@ -31,7 +32,8 @@ local function PlaceIcon(self)
 		return
 	end
 	self.placedOffset = offset
-	local inset = Widgets.Border(self) * ICON_INSET_LINES
+	local size = self.opts.size or Tokens.Size("actionButton")
+	local inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
 end

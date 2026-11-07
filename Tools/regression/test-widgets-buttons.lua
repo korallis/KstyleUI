@@ -236,6 +236,18 @@ do
 	assert(button.icon:GetVertexColor() == 1, "after ClearCooldown a directly driven frame is bright again")
 end
 
+-- A tiny button (a 12-unit micro button at Layout scale 0.5 is six pixels) keeps a visible icon: the icon inset
+-- never eats the whole button.
+do
+	local _, K, button = iconButton({ size = 6 })
+	local p = button.icon._points[1]
+	local inset = p[4]
+	assert(p[1] == "TOPLEFT" and inset <= K.Scale.Snap(6 * 0.2) + 1e-6 and inset >= K.Scale.Pixel(1) - 1e-6, "the inset shrinks to a fifth of the side on a tiny button, got " .. tostring(inset))
+	assert(button:GetWidth() - 2 * inset >= K.Scale.Pixel(4) - 1e-6, "at least four pixels of icon remain")
+	local big = select(3, iconButton({ size = 34 }))
+	assert(W.Near(big.icon._points[1][4], 3 * K.Scale.Border()), "a normal button keeps the three-border inset")
+end
+
 -- The button's chamfer is a share of its size, the design's 11% cut, so the ratio holds at 34 and at 38 units.
 do
 	local _, K, button = iconButton({ size = 34 })
