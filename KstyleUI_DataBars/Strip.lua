@@ -193,6 +193,9 @@ local function NewItem(view, id)
 		PaintItem(item)
 	end
 	Widgets.HookPointer(button)
+	button:HookScript("OnHide", function()
+		ns.Click.Release(item)
+	end)
 	return item
 end
 
@@ -201,6 +204,11 @@ function Strip.NewView(parent)
 	local view = { frame = frame, items = {}, order = {}, values = {} }
 	frame.kView = view
 	view.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface" })
+	frame:HookScript("OnHide", function()
+		for _, item in pairs(view.items) do
+			ns.Click.Release(item)
+		end
+	end)
 	for _, id in ipairs(Strip.ITEMS) do
 		view.items[id] = NewItem(view, id)
 		view.values[id] = { false, false }
@@ -235,6 +243,7 @@ local function PlaceItems(view, s, force)
 			total = total + item.width + (i > 1 and 2 * gap + border or 0)
 		end
 	end
+	view.contentWidth = total
 	if not changed then
 		return
 	end
@@ -303,6 +312,7 @@ function Strip.Paint(view, s, values)
 		local on = inOrder[id] == true
 		item.button:SetShown(on)
 		if not on then
+			ns.Click.Release(item)
 			item.separator:Hide()
 		else
 			Font.Apply(item.label, s.font, s.fontSize, s.outline)
@@ -541,17 +551,16 @@ local function Build()
 	return view
 end
 
-local function MatchOrientation(s)
+local function MatchOrientation(s, changed)
 	local layout = K.Layout.Get(KEY)
 	if not layout then
 		return
 	end
 	local vertical = s.orientation == "VERTICAL"
-	local rowShaped = layout.width >= ROW_ASPECT * layout.height
-	if vertical and rowShaped then
+	if vertical and (changed or layout.width >= ROW_ASPECT * layout.height) then
 		local rows = max(1, #Order(s))
 		K.Layout.Update(KEY, { width = VERTICAL_WIDTH, height = Widgets.Snap(Strip.view.frame, rows * s.fontSize * ROW_SHARE + 2 * PAD) })
-	elseif not vertical and not rowShaped then
+	elseif not vertical and (changed or layout.height > layout.width) then
 		local width, height = Footprint()
 		K.Layout.Update(KEY, { width = width, height = height })
 	end
@@ -564,6 +573,7 @@ function Strip.Enable()
 	end
 	local view = Strip.view or Build()
 	view.frame:Show()
+	MatchOrientation(ns.Settings().strip, false)
 	Strip.Refresh()
 	StartTicker()
 end
@@ -587,7 +597,7 @@ function Strip.Setting(key)
 	end
 	local s = ns.Settings().strip
 	if field == "orientation" then
-		MatchOrientation(s)
+		MatchOrientation(s, true)
 	end
 	Strip.Refresh()
 	if field and field:match("^slot%d$") then

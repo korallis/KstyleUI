@@ -166,6 +166,13 @@ do
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
 	eq(layout.width .. "x" .. layout.height, "430x36", "a row strip returns to its footprint")
+	for i = 2, 5 do
+		Options.Write("DataBars", "strip.slot" .. i, "none")
+	end
+	Options.Write("DataBars", "strip.orientation", "VERTICAL")
+	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
+	layout = K.Layout.Get("databars.strip")
+	eq(layout.width .. "x" .. layout.height, "430x36", "a one-item column also returns to the row footprint")
 	noErrors(env, K)
 end
 
@@ -217,6 +224,17 @@ do
 	eq(K.Options.Read("DataBars", "strip.clock24"), false, "a right click through the proxy still switches the clock")
 	proxy:GetScript("PostClick")(proxy, "LeftButton", false)
 	eq(K.Options.Read("DataBars", "strip.clock24"), false, "a left click is the secure click's alone")
+
+	W.Enter(gold)
+	eq(proxy:IsShown(), true, "the proxy covers gold again")
+	ns.Strip.view.frame:GetScript("OnHide")(ns.Strip.view.frame)
+	eq(proxy:IsShown(), false, "hiding the strip, as a shown rule does, puts the proxy away")
+	eq(K.Widgets.Tooltip():IsOwned(gold), false, "and its tooltip")
+	W.Enter(gold)
+	K.Options.Write("DataBars", "strip.slot3", "none")
+	eq(proxy:IsShown(), false, "taking gold out of its slot puts the proxy away")
+	K.Options.Write("DataBars", "strip.slot3", "gold")
+	K.Options.Write("DataBars", "strip.clock24", true)
 
 	local inCombat = {}
 	local set = proxy.SetAttribute
@@ -291,6 +309,11 @@ do
 	K.Options.Write("DataBars", "strip.labels", "short")
 	frame:Refresh()
 	eq(sample.items.durability.label:GetText(), "DUR:", "the preview strip follows the labels setting")
+	K.Options.Write("DataBars", "strip.labels", "full")
+	frame:Refresh()
+	local width = sample.frame:GetWidth() * sample.frame:GetScale()
+	assert(width <= 248 + 1e-6, "the sample strip fits the preview pane, got " .. width)
+	assert(sample.frame:GetWidth() >= sample.contentWidth, "and holds all its items")
 	noErrors(env, K)
 end
 

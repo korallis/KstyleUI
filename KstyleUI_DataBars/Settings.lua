@@ -4,6 +4,7 @@ local _, ns = ...
 local K, L = ns.K, ns.L
 local Tokens, Widgets = K.Tokens, K.Widgets
 local Format, Font, Bars, Strip = ns.Format, ns.Font, ns.Bars, ns.Strip
+local max = math.max
 
 local DEFAULT_TEXTURE = "Glass"
 local FONT_SIZE = 10
@@ -14,6 +15,7 @@ local PREVIEW_BAR = 8
 local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
 local PREVIEW_STRIP = 36
+local PREVIEW_STRIP_PAD = 12
 local STRIP_FONT_SIZE = 11
 local STRIP_SPACING = 8
 local MAX_SPACING = 32
@@ -234,6 +236,16 @@ end
 local SAMPLE_FPS, SAMPLE_MS, SAMPLE_MONEY, SAMPLE_DURABILITY = 144, 34, 1438217, 96
 local SAMPLE_HOUR, SAMPLE_MINUTE = 14, 32
 
+local PREVIEW_FALLBACK_WIDTH = 248
+
+local function Width(frame)
+	local w = frame:GetWidth()
+	if ns.IsNumber(w) and w > 0 then
+		return w
+	end
+	return nil
+end
+
 local function StripSamples(s)
 	return {
 		fps = { tostring(SAMPLE_FPS), "good" },
@@ -264,9 +276,7 @@ function ns.Preview(parent)
 	caption:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y + PREVIEW_TOP)
 	Widgets.SetText(caption, L["Data strip"])
 	local strip = Strip.NewView(frame)
-	strip.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y - Tokens.Size("gapLarge"))
-	strip.frame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -y - Tokens.Size("gapLarge"))
-	strip.frame:SetHeight(PREVIEW_STRIP)
+	strip.top = y + Tokens.Size("gapLarge")
 	frame.strip, frame.captions.strip = strip, caption
 	function frame.Refresh(self)
 		local settings = ns.Settings()
@@ -274,7 +284,18 @@ function ns.Preview(parent)
 			Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
 		end
 		local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
-		Strip.Paint(self.strip, s, StripSamples(s))
+		local sample, samples = self.strip, StripSamples(s)
+		local available = Width(self) or Width(parent) or PREVIEW_FALLBACK_WIDTH
+		sample.frame:SetScale(1)
+		sample.frame:SetSize(available, PREVIEW_STRIP)
+		Strip.Paint(sample, s, samples)
+		local needed = Widgets.Snap(sample.frame, (sample.contentWidth or 0) + 2 * PREVIEW_STRIP_PAD)
+		local scale = needed > available and available / needed or 1
+		sample.frame:SetScale(scale)
+		sample.frame:SetSize(max(needed, available / scale), PREVIEW_STRIP)
+		sample.frame:ClearAllPoints()
+		sample.frame:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -sample.top / scale)
+		Strip.Paint(sample, s, samples)
 	end
 	frame:Refresh()
 	return frame

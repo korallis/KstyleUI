@@ -42,6 +42,13 @@ function Click.Detach()
 	current = nil
 end
 
+function Click.Release(item)
+	if current == item then
+		ns.Strip.HideTooltip(item)
+		Click.Detach()
+	end
+end
+
 function Click.Covers(item)
 	local proxy = Click.proxy
 	if current ~= item or not proxy then
