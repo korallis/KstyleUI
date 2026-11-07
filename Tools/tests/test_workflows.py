@@ -43,7 +43,7 @@ def title_passes(title):
 
 class WorkflowsTest(unittest.TestCase):
     def test_has_the_planned_workflows(self):
-        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-title.yml"])
+        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-title.yml", "release.yml"])
 
     def test_every_action_is_pinned_by_full_sha_with_its_version(self):
         uses = [(path.name, m) for path in workflows() for m in USES.finditer(path.read_text(encoding="utf-8"))]
@@ -63,7 +63,36 @@ class WorkflowsTest(unittest.TestCase):
         for path in workflows():
             text = path.read_text(encoding="utf-8")
             self.assertRegex(text, r"(?m)^permissions:", path.name)
-            self.assertNotRegex(text, r"(?m)^\s+\w[\w-]*: write$", path.name)
+            self.assertNotRegex(text, r"(?m)^permissions:\s*\n\s+[\w-]+: write$", path.name)
+            writes = re.findall(r"(?m)^\s+([\w-]+): write$", text)
+            if path.name == "release.yml":
+                # Only the upload job may write, and only the repository contents, for the GitHub release.
+                self.assertEqual(writes, ["contents"], path.name)
+            else:
+                self.assertEqual(writes, [], path.name)
+
+    def test_release_runs_only_for_version_tags_on_main(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        on = text.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+        self.assertNotIn("pull_request", on)
+        self.assertRegex(on, r"tags:\s*\n\s+- \"v\*\"")
+        self.assertIn("merge-base --is-ancestor", text)
+        self.assertIn("bash Tools/hooks/check-package.sh", text)
+
+    def test_release_reads_secrets_only_in_the_upload_step(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        secret_lines = [line.strip() for line in text.splitlines() if "secrets." in line]
+        self.assertEqual(
+            sorted(secret_lines),
+            sorted([
+                "CF_API_KEY: ${{ secrets.CF_API_KEY }}",
+                "WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}",
+                "GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}",
+            ]),
+        )
+        jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
+        self.assertEqual(jobs, ["check", "release"])
+        self.assertIn("needs: check", text)
 
     def test_checks_has_the_four_jobs(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")

@@ -51,6 +51,17 @@ After the checks pass, run `cr review --agent` and fix the critical and major fi
 
 `bash Tools/dev/link-addons.sh` creates the worktree `~/KstyleUI.worktrees/staging-live` on `staging` if it is missing. It then links `KstyleUI` and every `KstyleUI_*` folder in that worktree into Forever's `Interface/AddOns`. `--spike` also links the spike addon, and `--dry-run` changes nothing. To bring merged changes into the game, run `git -C ~/KstyleUI.worktrees/staging-live pull`, then `/reload` in game.
 
+## Releases
+
+A release starts when the owner pushes a `vX.Y.Z` tag on `main`, after the in-game pass on `staging` and a fast-forward of `main`. `.github/workflows/release.yml` then runs two jobs:
+
+1. `check` fails unless the tag is on `main`, runs the Lua regression tests, packages with the BigWigs packager without uploading, and runs `Tools/hooks/check-package.sh` on the zip.
+2. `release` packages again and uploads. It runs in the `release` environment and is the only job in the repository with write permission (`contents: write`, for the GitHub release).
+
+The owner sets the `CF_API_KEY` and `WAGO_API_TOKEN` secrets in the repository or the `release` environment. The packager uploads to CurseForge only when `KstyleUI.toc` has `## X-Curse-Project-ID`, and to Wago only when it has `## X-Wago-ID`. Until the owner creates those projects and adds the IDs, a tag makes only the GitHub release. Never print or commit a token.
+
+`docs/RELEASE_NOTES.md` holds the notes for each release.
+
 ## Sensitive paths
 
 Change these only when your task needs it, and say why in the pull request:
