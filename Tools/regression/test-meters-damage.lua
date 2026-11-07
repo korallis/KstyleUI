@@ -114,9 +114,11 @@ M.Write(env, K, "damage.group", false)
 -- Switching the meter off gives Blizzard's meter back.
 M.Write(env, K, "damage.shown", false)
 assert(not Damage.holder:IsShown(), "the window hides")
+assert(not K.Layout.Live("meters.damage"), "and leaves Layout Mode and the Elements page")
 assert(blizzard:GetParent() == env.UIParent, "Blizzard's meter is restored")
 M.Write(env, K, "damage.shown", true)
 assert(K.Safe.IsHidden(blizzard), "showing the window hides Blizzard's meter again")
+assert(K.Layout.Live("meters.damage"), "and its element comes back")
 
 -- Data that stays hidden in combat makes the meter restyle Blizzard's window from the end of combat.
 env.SetCombat(true)

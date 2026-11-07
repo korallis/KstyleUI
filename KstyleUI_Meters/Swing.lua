@@ -437,6 +437,7 @@ function Swing:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
 	end
+	ns.SetLive(KEY, ns.Get("swing.shown"))
 	if not ns.Get("swing.shown") then
 		self:Stop()
 		return

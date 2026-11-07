@@ -299,7 +299,7 @@ local function Build()
 
 	state.scale = win:GetScale()
 	Widgets.Place(win, Pages.WINDOW_KEY, DEFAULT_POSITION, {
-		label = L["Settings window"], module = "Options",
+		label = L["Settings window"], module = "Options", window = true,
 		resizable = true, scalable = true,
 		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = MAX_WIDTH, maxHeight = MAX_HEIGHT,
 	})

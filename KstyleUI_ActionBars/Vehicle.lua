@@ -33,7 +33,8 @@ function Vehicle.Build()
 	if ns.leaveButton then
 		return ns.leaveButton
 	end
-	local button = Widgets.IconButton(K.Scale.Root(), {
+	local bar = ns.bars.bar1
+	local button = Widgets.IconButton(bar and bar.holder or K.Scale.Root(), {
 		name = "KstyleUI_LeaveVehicleButton",
 		icon = (Tokens.Texture("glyphClose")),
 		crop = false,

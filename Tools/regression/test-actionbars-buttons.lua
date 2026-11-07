@@ -356,6 +356,7 @@ do
 	})
 	local leave = ns.leaveButton
 	assert(leave and not leave:IsShown(), "hidden while there is no vehicle")
+	assert(leave:GetParent() == ns.bars.bar1.holder, "it sits in bar 1's element, so it follows bar 1's Layout scale, opacity and shown rule")
 	env._canExit = true
 	env.FireEvent("UNIT_ENTERED_VEHICLE", "player")
 	assert(leave:IsShown(), "shown in a vehicle")

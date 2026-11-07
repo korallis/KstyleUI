@@ -110,6 +110,7 @@ function Preview.Register()
 			maxWidth = SIZE_LIMITS.maxWidth,
 			minHeight = SIZE_LIMITS.minHeight,
 			maxHeight = SIZE_LIMITS.maxHeight,
+			fields = { "width", "height" },
 		})
 	end
 	HookLayout()

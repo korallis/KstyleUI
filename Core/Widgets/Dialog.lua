@@ -214,7 +214,7 @@ function Widgets.DialogHost()
 		end
 	end
 	Widgets.EscapeCloses(host, Cancel)
-	Widgets.Place(host, LAYOUT_KEY, DEFAULT_POSITION, { scalable = true, label = L["Dialogs"] })
+	Widgets.Place(host, LAYOUT_KEY, DEFAULT_POSITION, { scalable = true, window = true, label = L["Dialogs"] })
 	return host
 end
 

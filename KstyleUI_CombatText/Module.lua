@@ -156,6 +156,12 @@ local function OnModule(_, name)
 	end
 end
 
+local function OnLayout(_, key)
+	if type(key) == "string" and (key:find("^unitframes%.") or key:find("^groupframes%.")) then
+		Anchors.Schedule()
+	end
+end
+
 local function Check()
 	if not K.Modules.IsRunning(MODULE) then
 		return true, "switched off"
@@ -179,6 +185,7 @@ local function Enable()
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ModuleChanged", MODULE, OnModule)
+	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	if not Module.checked then
 		Module.checked = true
 		K.DevTest.AddCheck("combat text", Check)

@@ -187,8 +187,10 @@ do
 	local bar3 = ns.bars.bar3
 	assert(bar3 and near(bar3.holder:GetWidth(), 34) and near(bar3.holder:GetHeight(), 441), "bar 3 is a column of 12")
 	assert(bar3.header:GetAttribute("actionpage") == 5)
+	assert(K.Layout.Live("actionbars.bar3"), "a bar switched on has a mover in Layout Mode")
 	K.Options.Write("ActionBars", "bar3.enabled", false)
 	assert(env.Driver(bar3.header, "visibility") == "hide", "a bar switched off hides")
+	assert(not K.Layout.Live("actionbars.bar3"), "and leaves Layout Mode and the Elements page")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 

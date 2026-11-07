@@ -14,6 +14,13 @@ function ns.Footprint(key)
 	return nil
 end
 
+function ns.SetLive(key, live)
+	local Layout = K.Layout
+	if Layout and type(Layout.SetLive) == "function" then
+		Layout.SetLive(key, live and true or false)
+	end
+end
+
 function ns.Place(frame, key, limits)
 	local layouts = K.Setup and K.Setup.Layouts
 	if not (K.Layout and K.Layout.Register and layouts) then

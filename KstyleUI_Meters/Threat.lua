@@ -243,6 +243,7 @@ function Threat:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
 	end
+	ns.SetLive(KEY, ns.Get("threat.shown"))
 	if not ns.Get("threat.shown") then
 		self:Stop()
 		return

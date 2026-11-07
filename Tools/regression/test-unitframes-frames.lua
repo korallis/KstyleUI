@@ -254,6 +254,22 @@ env.RunTimers()
 assert(K.Safe.IsHidden(env.PlayerFrame), "hideBlizzard on hides it again")
 noErrors("re-enable")
 
+-- A frame, cast bar or class resource that is switched off has no mover in Layout Mode and no rows.
+assert(K.Layout.Live("unitframes.focus"), "the focus frame is live while it is on")
+K.Options.Write("UnitFrames", "focus.enabled", false)
+assert(not K.Layout.Live("unitframes.focus"), "switching a frame off takes its element out of Layout Mode")
+K.Options.Write("UnitFrames", "focus.enabled", true)
+assert(K.Layout.Live("unitframes.focus"), "switching it on brings it back")
+for kind, castKey in pairs(ns.Settings.CAST_ELEMENTS) do
+	assert(K.Layout.Live(castKey), castKey .. " is live while its cast bar is on")
+	K.Options.Write("UnitFrames", kind .. ".castbar", false)
+	assert(not K.Layout.Live(castKey), castKey .. " leaves Layout Mode when its cast bar is off")
+	K.Options.Write("UnitFrames", kind .. ".castbar", true)
+	assert(K.Layout.Live(castKey), castKey .. " comes back")
+end
+assert(not K.Layout.Live("unitframes.resource"), "a hunter has no class resource to place")
+noErrors("live elements")
+
 -- A frame that starts switched off is styled before its unit watch first shows it.
 do
 	local env2, K2, ns2 = U.New({ saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, player = { enabled = false } } } }, characters = {} } })

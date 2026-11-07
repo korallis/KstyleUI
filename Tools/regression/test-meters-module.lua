@@ -80,8 +80,14 @@ assert(ns.Threat.holder:IsShown(), "the threat meter holder shows")
 -- A meter switched off hides its element; switching it on shows it again.
 M.Write(env, K, "threat.shown", false)
 assert(not ns.Threat.holder:IsShown(), "the threat meter hides when switched off")
+assert(not K.Layout.Live("meters.threat"), "and has no mover in Layout Mode")
 M.Write(env, K, "threat.shown", true)
 assert(ns.Threat.holder:IsShown(), "the threat meter shows again")
+assert(K.Layout.Live("meters.threat"), "and its mover comes back")
+M.Write(env, K, "swing.shown", false)
+assert(not K.Layout.Live("meters.swing"), "a swing timer switched off has no mover")
+M.Write(env, K, "swing.shown", true)
+assert(K.Layout.Live("meters.swing"), "until it is switched on")
 
 -- A meter switched off stays hidden when Layout's shown rule brings its holder back.
 K.Layout.Set("meters.threat", "shown", "combat")

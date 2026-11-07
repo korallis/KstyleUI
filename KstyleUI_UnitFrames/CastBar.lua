@@ -620,6 +620,10 @@ function CastBars.Apply()
 		end
 		if holders[kind] then
 			CastBars.LayoutElement(kind)
+			local Layout = K.Layout
+			if Layout and Layout.SetLive then
+				Layout.SetLive(Settings.CAST_ELEMENTS[kind], Enabled(kind) and true or false)
+			end
 		end
 		CastBars.Refresh(kind)
 	end

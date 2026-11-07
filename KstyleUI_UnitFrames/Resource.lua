@@ -206,6 +206,12 @@ function Resource.Visibility()
 	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
 	state.content:SetShown(state.showCombo or state.showMana)
+	local Layout = K.Layout
+	if Layout and Layout.SetLive then
+		local comboOn, manaOn = Settings.Resource("comboPoints"), Settings.Resource("druidMana")
+		local placeable = on and (class == "ROGUE" and comboOn or class == "DRUID" and (comboOn or manaOn)) or false
+		Layout.SetLive(KEY, placeable and true or false)
+	end
 	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))
 	Resource.Layout()
 	Resource.Points()

@@ -28,6 +28,7 @@ assert(found.label == K.Setup.Layouts.Element("unitframes.resource").label, "wit
 
 -- A rogue gets five pips, each a status bar from i - 1 to i, so the engine compares the count.
 assert(state.showCombo and not state.showMana and state.content:IsShown(), "a rogue sees combo points")
+assert(K.Layout.Live("unitframes.resource"), "a rogue's class resource has a mover in Layout Mode")
 for i, pip in ipairs(state.pips) do
 	local range = W.LastCall(pip, "SetMinMaxValues")
 	assert(range[1] == i - 1 and range[2] == i, "pip " .. i .. " spans one point")

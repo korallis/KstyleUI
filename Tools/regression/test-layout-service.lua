@@ -610,6 +610,40 @@ do
 	assert(counts[panel] == 2 and counts[inside] == 2, "several scale changes in one frame restyle once")
 end
 
+-- A module can switch one of its elements off: no plate in Layout Mode and Live reads false ------------------------------
+
+do
+	local env, K = New()
+	local Layout = K.Layout
+	Element(K, "Test.Live")
+	local changed = {}
+	K.Callbacks.Register("LayoutChanged", "test", function(_, key)
+		changed[#changed + 1] = key
+	end)
+	assert(Layout.Live("Test.Live"), "an element is live by default")
+	assert(Layout.Enter())
+	assert(Layout.Mode.Plate("Test.Live"):IsShown(), "a live element has a plate")
+	assert(Layout.SetLive("Test.Live", false) == true)
+	assert(not Layout.Live("Test.Live"), "SetLive(false) takes it out")
+	assert(not Layout.Mode.Plate("Test.Live"):IsShown(), "and hides its plate at once")
+	assert(changed[#changed] == "Test.Live", "LayoutChanged tells the settings window")
+	local count = #changed
+	Layout.SetLive("Test.Live", false)
+	assert(#changed == count, "the same state again fires nothing")
+	local listed
+	for _, el in ipairs(Layout.Elements()) do
+		if el.key == "Test.Live" then
+			listed = el
+		end
+	end
+	assert(listed and listed.live == false, "Elements reports it")
+	Layout.SetLive("Test.Live", true)
+	assert(Layout.Live("Test.Live") and Layout.Mode.Plate("Test.Live"):IsShown(), "SetLive(true) brings the plate back")
+	Layout.Exit(true)
+	assert(Layout.SetLive("Test.Missing", false) == false, "an unknown key is refused")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- A profile switch while Layout Mode is open ends the session without restoring the old profile's snapshot ---------------
 
 do

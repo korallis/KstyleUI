@@ -90,9 +90,12 @@ do
 	local button = uf.buttons[1]
 	Hit(env, "player", "WOUND", "", env.Secret(5), 1)
 	assert(#On(ns, ns.Module.field) == 1 and #On(ns, button) == 0, "your numbers go to your field by default")
+	assert(K.Layout.Live("combattext.player"), "the field has a mover while it holds your numbers")
 	K.Options.Write("CombatText", "playerPlacement", "frame")
 	Hit(env, "player", "WOUND", "", env.Secret(5), 1)
 	assert(#On(ns, button) == 1 and #On(ns, ns.Module.field) == 1, "your numbers can ride your player frame")
+	env.RunTimers()
+	assert(not K.Layout.Live("combattext.player"), "an unused field has no mover in Layout Mode")
 	K.Options.Write("CombatText", "units.player", false)
 	Hit(env, "player", "WOUND", "", env.Secret(5), 1)
 	assert(#Shown(ns) == 2, "your numbers can be switched off")
@@ -104,6 +107,8 @@ do
 	K.Options.Write("CombatText", "playerPlacement", "frame")
 	Hit(env, "player", "WOUND", "", env.Secret(5), 1)
 	assert(#On(ns, ns.Module.field) == 1, "without a KstyleUI player frame your numbers use the field")
+	env.RunTimers()
+	assert(K.Layout.Live("combattext.player"), "so the field keeps its mover")
 end
 
 -- Group frames: found inside their header, smaller, and kept current as the roster changes -----------

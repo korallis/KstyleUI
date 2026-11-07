@@ -75,6 +75,7 @@ function ns.NewBar(def)
 			scalable = true,
 		})
 		bar.registered = true
+		bar:UpdateLive()
 	else
 		ns.LogOnce("noLayout", "KstyleUI.Layout is missing; the action bars stay at their default place")
 		Widgets.Place(holder, def.element, K.Setup.Layouts.Default(def.element))
@@ -84,6 +85,13 @@ end
 
 function Bar:Config()
 	return ns.Config(self.def.key)
+end
+
+function Bar:UpdateLive()
+	local Layout = K.Layout
+	if self.registered and Layout and type(Layout.SetLive) == "function" then
+		Layout.SetLive(self.def.element, ns.running and self:Config().enabled == true)
+	end
 end
 
 function Bar:Shown()
@@ -197,6 +205,7 @@ function Bar:Apply()
 		return
 	end
 	self:Layout()
+	self:UpdateLive()
 	local header, def = self.header, self.def
 	if type(RegisterStateDriver) == "function" then
 		RegisterStateDriver(header, "visibility", self:Visibility())

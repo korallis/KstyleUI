@@ -583,7 +583,7 @@ local function BuildToolbar()
 	end)
 	bar:SetScript("OnDragStop", DragStop)
 	toolbar = panel
-	Layout.Register(panel, TOOLBAR_KEY, TOOLBAR_POSITION, { label = L["Layout Mode toolbar"], scalable = true, plate = false })
+	Layout.Register(panel, TOOLBAR_KEY, TOOLBAR_POSITION, { label = L["Layout Mode toolbar"], scalable = true, plate = false, window = true })
 end
 
 local function Build()

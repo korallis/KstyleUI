@@ -42,7 +42,7 @@ function Anchor.Build()
 	local label, width, height, position = Element()
 	holder = CreateFrame("Frame", nil, K.Scale.Root())
 	holder:SetSize(width, height)
-	K.Widgets.Place(holder, KEY, position, { label = label, module = ns.MODULE, scalable = true })
+	K.Widgets.Place(holder, KEY, position, { label = label, module = ns.MODULE, scalable = true, fields = { "anchor", "x", "y", "scale" } })
 	return holder
 end
 

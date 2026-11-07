@@ -823,12 +823,30 @@ local function WriteEntries(entries)
 	end
 end
 
+local ELEMENT_FIELDS = {
+	shown = true, anchor = true, x = true, y = true, width = true, height = true, scale = true,
+	alphaCombat = true, alphaIdle = true, strata = true,
+}
+Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
+
 local OPTION_CHECK = {
 	label = function(v) return type(v) == "string" end,
 	module = function(v) return type(v) == "string" end,
 	resizable = function(v) return type(v) == "boolean" end,
 	scalable = function(v) return type(v) == "boolean" end,
 	plate = function(v) return type(v) == "boolean" end,
+	window = function(v) return type(v) == "boolean" end,
+	fields = function(v)
+		if type(v) ~= "table" or #v == 0 then
+			return false
+		end
+		for i = 1, #v do
+			if not ELEMENT_FIELDS[v[i]] then
+				return false
+			end
+		end
+		return true
+	end,
 	aspect = function(v) return v == true or v == false or (IsFinite(v) and v > 0) end,
 	minWidth = function(v) return IsFinite(v) and v > 0 end,
 	minHeight = function(v) return IsFinite(v) and v > 0 end,
@@ -984,7 +1002,7 @@ function Layout.Elements()
 	local out = {}
 	for i, key in ipairs(order) do
 		local el = elements[key]
-		out[i] = { key = key, label = el.label, module = el.module, opts = Copy(el.opts) }
+		out[i] = { key = key, label = el.label, module = el.module, opts = Copy(el.opts), live = el.live ~= false and ModuleRunning(el) }
 	end
 	return out
 end
@@ -1002,7 +1020,24 @@ end
 
 function Layout.Live(key)
 	local el = elements[key]
-	return el ~= nil and ModuleRunning(el)
+	return el ~= nil and el.live ~= false and ModuleRunning(el)
+end
+
+function Layout.SetLive(key, live)
+	local el = elements[key]
+	if not el then
+		return false
+	end
+	live = live ~= false
+	if (el.live ~= false) == live then
+		return true
+	end
+	el.live = live
+	if state.active then
+		Mode("Changed", key)
+	end
+	ns.Callbacks.Fire("LayoutChanged", key)
+	return true
 end
 
 local function OnRootSize(el)

@@ -122,7 +122,7 @@ function Pages.Elements()
 	local out = {}
 	if ok and type(list) == "table" then
 		for _, element in ipairs(list) do
-			if type(element) == "table" and type(element.key) == "string" then
+			if type(element) == "table" and type(element.key) == "string" and element.live ~= false then
 				out[#out + 1] = element
 			end
 		end
@@ -202,6 +202,17 @@ function Pages.ElementItems(element, page, level)
 	local key = element.key
 	local opts = type(element.opts) == "table" and element.opts or {}
 	local own = key == Pages.WINDOW_KEY
+	local window = own or opts.window == true
+	local allowed
+	if type(opts.fields) == "table" then
+		allowed = {}
+		for _, field in ipairs(opts.fields) do
+			allowed[field] = true
+		end
+	end
+	local function has(field)
+		return allowed == nil or allowed[field] == true
+	end
 	local items = {}
 	local function add(item)
 		item.page = page
@@ -229,61 +240,73 @@ function Pages.ElementItems(element, page, level)
 		end
 	end
 	local width, height = RootSize()
-	local minAlpha = own and OWN_MIN_ALPHA or 0
+	local minAlpha = window and OWN_MIN_ALPHA or 0
 	add({ kind = "header", level = level, label = element.label or opts.label or key })
-	if not own then
+	if not window and has("shown") then
 		add({
 			kind = "dropdown", label = L["Shown"], help = L["When the element shows."], options = Choices("SHOWN_OPTIONS", SHOWN),
 			get = get("shown", FALLBACK.shown), set = set("shown"),
 		})
 	end
-	add({
-		kind = "dropdown", label = L["Anchor"], help = L["The point of the screen the element is placed from."], options = Choices("ANCHOR_OPTIONS", ANCHORS),
-		get = get("anchor", FALLBACK.anchor), set = set("anchor"),
-	})
-	add({
-		kind = "slider", label = L["X offset"], help = L["Moves the element left or right from its anchor."],
-		min = -width, max = width, step = 1, format = Whole, get = get("x", FALLBACK.x), set = set("x"),
-	})
-	add({
-		kind = "slider", label = L["Y offset"], help = L["Moves the element down or up from its anchor."],
-		min = -height, max = height, step = 1, format = Whole, get = get("y", FALLBACK.y), set = set("y"),
-	})
+	if has("anchor") then
+		add({
+			kind = "dropdown", label = L["Anchor"], help = L["The point of the screen the element is placed from."], options = Choices("ANCHOR_OPTIONS", ANCHORS),
+			get = get("anchor", FALLBACK.anchor), set = set("anchor"),
+		})
+	end
+	if has("x") then
+		add({
+			kind = "slider", label = L["X offset"], help = L["Moves the element left or right from its anchor."],
+			min = -width, max = width, step = 1, format = Whole, get = get("x", FALLBACK.x), set = set("x"),
+		})
+	end
+	if has("y") then
+		add({
+			kind = "slider", label = L["Y offset"], help = L["Moves the element down or up from its anchor."],
+			min = -height, max = height, step = 1, format = Whole, get = get("y", FALLBACK.y), set = set("y"),
+		})
+	end
 	if opts.resizable then
 		local minW, maxW = opts.minWidth or SIZE_MIN, opts.maxWidth or width
 		local minH, maxH = opts.minHeight or SIZE_MIN, opts.maxHeight or height
-		if minW < maxW then
+		if minW < maxW and has("width") then
 			add({
 				kind = "slider", label = L["Width"], help = L["The element's width in interface units."],
 				min = minW, max = maxW, step = 1, format = Whole, get = get("width", minW), set = set("width"),
 			})
 		end
-		if minH < maxH then
+		if minH < maxH and has("height") then
 			add({
 				kind = "slider", label = L["Height"], help = L["The element's height in interface units."],
 				min = minH, max = maxH, step = 1, format = Whole, get = get("height", minH), set = set("height"),
 			})
 		end
 	end
-	if opts.scalable then
+	if opts.scalable and has("scale") then
 		add({
 			kind = "slider", label = L["Scale"], help = L["Makes the element larger or smaller."],
 			min = Limit("SCALE_MIN", SCALE_MIN), max = Limit("SCALE_MAX", SCALE_MAX), step = Limit("SCALE_STEP", SCALE_STEP),
 			format = Percent, get = get("scale", FALLBACK.scale), set = set("scale"),
 		})
 	end
-	add({
-		kind = "slider", label = L["Opacity in combat"], help = L["How solid the element is while you fight."],
-		min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaCombat", FALLBACK.alphaCombat), set = set("alphaCombat"),
-	})
-	add({
-		kind = "slider", label = L["Opacity out of combat"], help = L["How solid the element is the rest of the time."],
-		min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaIdle", FALLBACK.alphaIdle), set = set("alphaIdle"),
-	})
-	add({
-		kind = "dropdown", label = L["Strata"], help = L["Which layer the element draws in, from back to front."], options = Choices("STRATA_OPTIONS", STRATA),
-		get = get("strata", FALLBACK.strata), set = set("strata"),
-	})
+	if has("alphaCombat") then
+		add({
+			kind = "slider", label = L["Opacity in combat"], help = L["How solid the element is while you fight."],
+			min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaCombat", FALLBACK.alphaCombat), set = set("alphaCombat"),
+		})
+	end
+	if has("alphaIdle") then
+		add({
+			kind = "slider", label = L["Opacity out of combat"], help = L["How solid the element is the rest of the time."],
+			min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaIdle", FALLBACK.alphaIdle), set = set("alphaIdle"),
+		})
+	end
+	if has("strata") then
+		add({
+			kind = "dropdown", label = L["Strata"], help = L["Which layer the element draws in, from back to front."], options = Choices("STRATA_OPTIONS", STRATA),
+			get = get("strata", FALLBACK.strata), set = set("strata"),
+		})
+	end
 	add({
 		kind = "button", label = L["Reset this element"], help = L["Puts the element back where its module placed it."],
 		buttons = {

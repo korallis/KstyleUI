@@ -303,7 +303,7 @@ local function Build()
 		strata = "DIALOG",
 		hidden = true,
 		onClose = OnClose,
-		layout = { key = WINDOW_KEY, position = WINDOW_POSITION, options = { scalable = true, label = L["First-run setup"] } },
+		layout = { key = WINDOW_KEY, position = WINDOW_POSITION, options = { scalable = true, window = true, label = L["First-run setup"] } },
 	})
 	local content = panel.content
 	local width = WIDTH - 2 * Tokens.Size("panelPadding")

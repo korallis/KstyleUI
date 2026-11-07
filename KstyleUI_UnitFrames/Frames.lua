@@ -376,6 +376,10 @@ function Frames.Apply(uf)
 		return
 	end
 	uf.active = want and true or false
+	local Layout = K.Layout
+	if Layout and Layout.SetLive and Settings.ELEMENTS[uf.kind] then
+		Layout.SetLive(Settings.ELEMENTS[uf.kind], uf.active)
+	end
 	if want then
 		if uf.hiddenByModule then
 			uf.hiddenByModule = false

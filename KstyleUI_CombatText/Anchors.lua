@@ -2,6 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
+local FIELD_KEY = "combattext.player"
 local Display = ns.Display
 
 local Anchors = {}
@@ -177,8 +178,13 @@ function Anchors.Rebuild(cfg)
 			end
 		end
 	end
-	if units.player and state.field and not onPlayerFrame then
+	local fieldUsed = units.player and state.field and not onPlayerFrame
+	if fieldUsed then
 		Add("player", state.field)
+	end
+	local Layout = K.Layout
+	if Layout and type(Layout.SetLive) == "function" then
+		Layout.SetLive(FIELD_KEY, fieldUsed and true or false)
 	end
 	local summary = counts.unit .. " unit frames, " .. counts.group .. " group frames"
 	if summary ~= lastSummary then

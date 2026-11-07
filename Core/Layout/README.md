@@ -32,6 +32,8 @@ KstyleUI.Layout.Register(frame, key, defaultPosition, opts)
 | `aspect` | `true` keeps the default proportions; a number is width over height. Only with `resizable`. |
 | `scalable` | Layout owns the frame's scale, from 0.5 to 2. Default: the frame's scale when it registers. |
 | `plate` | `false` draws no mover plate, for a frame that moves itself in Layout Mode, such as the Layout toolbar. |
+| `window` | `true` for a core window the player needs to get back to: the settings window, the dialog host, the Layout Mode toolbar and the first-run setup. The settings window shows no Shown row for it, and its opacity sliders stop at 25%. |
+| `fields` | The settings that apply, as a list of `shown`, `anchor`, `x`, `y`, `width`, `height`, `scale`, `alphaCombat`, `alphaIdle` and `strata`. The settings window builds only those rows. For a proxy element, such as the nameplate size sample (`{ "width", "height" }`) or the tooltip anchor (`{ "anchor", "x", "y", "scale" }`). Default: every field. |
 
 `Register` raises an error for a bad argument. Registering a key again updates its frame, default and options. `Widgets.Place(frame, key, position, opts)` positions a frame and registers it in one call.
 
@@ -70,7 +72,7 @@ A saved value that is not allowed, such as from a damaged or hand-edited profile
 | Function | Behaviour |
 | --- | --- |
 | `Register(frame, key, defaultPosition, opts)` | See above. Applies the saved settings at once, or the defaults before the saved data loads. |
-| `Elements() -> { { key, label, module, opts }, ... }` | Every element in registration order. `opts` is a copy. |
+| `Elements() -> { { key, label, module, opts, live }, ... }` | Every element in registration order. `opts` is a copy. `live` is `Live(key)`; the settings window lists only live elements. |
 | `Get(key) -> settings` | A copy of the element's settings, or `nil` for an unknown key. |
 | `Set(key, field, value) -> true` or `false, reason` | Checks, stores and applies one field, then fires `LayoutChanged(key)`. `nil` resets the field. Sizes clamp to the limits and an aspect-locked element moves the other size with it. A scale outside 0.5 to 2 clamps. A new anchor keeps the element where it is by converting `x` and `y`. A bad field, a bad value, a secret, an unknown key, or a call before the saved data loads is refused with a reason. |
 | `Update(key, values, merge) -> true` or `false, reason` | Several fields as one change. Layout Mode uses it. Consecutive changes with the same `merge` key fold into one undo step. |
@@ -83,7 +85,8 @@ A saved value that is not allowed, such as from a damaged or hand-edited profile
 | `Preview(key, left, bottom, width, height, scale)` | Moves the frame without saving, for drags. |
 | `Restore(key)` | Applies the saved settings again, after a preview. |
 | `RootSize() -> width, height` | `KstyleUI_Root`'s size in root units. |
-| `Live(key) -> boolean` | True when the element exists and its module, if it names one, is running. |
+| `Live(key) -> boolean` | True when the element exists, its module, if it names one, is running, and the module has not switched it off with `SetLive`. Layout Mode draws plates only for live elements. |
+| `SetLive(key, live) -> boolean` | A module switches one of its elements off (`false`) or on (`true`, the default) when the element's own setting changes, such as a unit frame, a cast bar, an action bar or a meter switched off. A change refreshes the element's plate and fires `LayoutChanged(key)`. Returns `false` for an unknown key. |
 | `Setting(key)` | One of Layout Mode's own settings, checked. |
 
 `LayoutChanged(key)` fires through `KstyleUI.Callbacks` after `Set`, `Update`, `Reset`, `ResetAll`, undo, redo, a restore on `Exit(false)`, and for every element after `ProfileChanged`.

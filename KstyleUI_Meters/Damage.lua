@@ -263,6 +263,7 @@ function Damage:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
 	end
+	ns.SetLive(KEY, ns.Get("damage.shown") and Damage.Mode() == "window")
 	if not ns.Get("damage.shown") then
 		self:Stop()
 		return
