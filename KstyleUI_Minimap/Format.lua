@@ -88,8 +88,11 @@ function Format.NextZoom(current, levels, delta)
 	return target
 end
 
-function Format.MapRect(width, height, side)
-	local size = min(width, height)
+function Format.MapRect(width, height, side, reserve)
+	local size = min(width - (reserve or 0), height)
+	if size < 0 then
+		size = 0
+	end
 	if side == "right" then
 		return 0, size
 	end

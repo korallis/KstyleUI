@@ -122,3 +122,119 @@ function Data.Rotating()
 	end
 	return on
 end
+
+function Data.RuleActive(name)
+	local rules, enum = C_GameRules, Enum and Enum.GameRule
+	local rule = enum and enum[name]
+	if not (rules and type(rules.IsGameRuleActive) == "function" and rule ~= nil) then
+		return false
+	end
+	local active = rules.IsGameRuleActive(rule)
+	return not IsSecret(active) and active == true
+end
+
+function Data.HasMail()
+	local mail = Call(HasNewMail)
+	return not IsSecret(mail) and mail == true
+end
+
+function Data.MailSenders()
+	local out = {}
+	if type(GetLatestThreeSenders) ~= "function" then
+		return out
+	end
+	local senders = { GetLatestThreeSenders() }
+	for i = 1, 3 do
+		local sender = senders[i]
+		if Data.IsText(sender) then
+			out[#out + 1] = sender
+		end
+	end
+	return out
+end
+
+function Data.PendingInvites()
+	local calendar = C_Calendar
+	local count = calendar and Call(calendar.GetNumPendingInvites)
+	if IsSecret(count) or type(count) ~= "number" then
+		return 0
+	end
+	return count
+end
+
+function Data.Queued()
+	local button = QueueStatusButton
+	if not button then
+		return false
+	end
+	local shown = button:IsShown()
+	return not IsSecret(shown) and shown == true
+end
+
+local function Filters()
+	local constants = MinimapConstants
+	if type(constants) ~= "table" then
+		return {}, {}, {}
+	end
+	return constants.ALWAYS_ON_FILTERS or {}, constants.CONDITIONAL_FILTERS or {}, constants.OPTIONAL_FILTERS or {}
+end
+
+local function Tracking()
+	local minimap = C_Minimap
+	if not minimap or type(minimap.GetNumTrackingTypes) ~= "function" or type(minimap.GetTrackingInfo) ~= "function"
+		or type(minimap.GetTrackingFilter) ~= "function" or type(minimap.SetTracking) ~= "function" then
+		return nil
+	end
+	return minimap
+end
+
+function Data.HasTracking()
+	return Tracking() ~= nil
+end
+
+function Data.TrackingEntries()
+	local minimap = Tracking()
+	local out = {}
+	if not minimap then
+		return out
+	end
+	local _, _, optional = Filters()
+	local showAll = CVarOn("minimapTrackingShowAll") == true
+	for index = 1, minimap.GetNumTrackingTypes() do
+		local info, filter = minimap.GetTrackingInfo(index), minimap.GetTrackingFilter(index)
+		if type(info) == "table" and type(filter) == "table" and Data.IsText(info.name) then
+			if showAll or optional[filter.filterID] or filter.spellID then
+				out[#out + 1] = { index = index, name = info.name }
+			end
+		end
+	end
+	return out
+end
+
+function Data.TrackingActive(index)
+	local minimap = Tracking()
+	local info = minimap and minimap.GetTrackingInfo(index)
+	return type(info) == "table" and not IsSecret(info.active) and info.active == true
+end
+
+function Data.SetTracking(index, on)
+	local minimap = Tracking()
+	if minimap then
+		minimap.SetTracking(index, on == true)
+	end
+end
+
+function Data.ClearTracking()
+	local minimap = Tracking()
+	if not minimap or type(minimap.ClearAllTracking) ~= "function" then
+		return
+	end
+	minimap.ClearAllTracking()
+	local always, conditional = Filters()
+	for index = 1, minimap.GetNumTrackingTypes() do
+		local filter = minimap.GetTrackingFilter(index)
+		if type(filter) == "table" and (always[filter.filterID] or conditional[filter.filterID]) then
+			minimap.SetTracking(index, true)
+		end
+	end
+end

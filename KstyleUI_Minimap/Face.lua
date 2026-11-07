@@ -158,7 +158,8 @@ function Face:Layout()
 	if type(width) ~= "number" or type(height) ~= "number" or width <= 0 or height <= 0 then
 		return
 	end
-	local left, size = Format.MapRect(width, height, Settings.Get("column.side"))
+	local reserve = Settings.Get("column.size") + Settings.Get("column.spacing")
+	local left, size = Format.MapRect(width, height, Settings.Get("column.side"), reserve)
 	left, size = Snap(holder, left), Snap(holder, size)
 	local box = self.box
 	box:ClearAllPoints()

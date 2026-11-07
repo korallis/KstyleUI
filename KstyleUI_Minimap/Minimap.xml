@@ -5,6 +5,8 @@
 	<Script file="Style.lua"/>
 	<Script file="Data.lua"/>
 	<Script file="Face.lua"/>
+	<Script file="SecureClick.lua"/>
+	<Script file="Column.lua"/>
 	<Script file="Map.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

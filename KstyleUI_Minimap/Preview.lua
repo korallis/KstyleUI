@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
-local Settings, Face, Data, Format, Style = ns.Settings, ns.Face, ns.Data, ns.Format, ns.Style
+local Settings, Face, Data, Format, Style, Column = ns.Settings, ns.Face, ns.Data, ns.Format, ns.Style, ns.Column
 
 local Preview = {}
 ns.Preview = Preview
@@ -24,6 +24,7 @@ local function Refresh(frame)
 	face:SetClock(Data.Clock(Settings.Get("clock.mode")) or Format.Time(14, 32, true))
 	face:SetCoords(Format.Coords(SAMPLE_X, SAMPLE_Y, Settings.Get("coords.precision")))
 	face:SetRotating(false)
+	frame.column:Refresh()
 	frame.player:SetVertexColor(Style.Accent())
 end
 
@@ -51,6 +52,7 @@ function Preview.Build(parent)
 	player:SetSize(PLAYER_SIZE, PLAYER_SIZE)
 	player:SetPoint("CENTER", area, "CENTER")
 	frame.player = player
+	frame.column = Column.New(face, { preview = true })
 
 	frame.Refresh = Refresh
 	frame:Refresh()

@@ -144,6 +144,117 @@ function M.Blizzard(env, opts)
 		env._tickers[#env._tickers + 1] = ticker
 		return ticker
 	end
+
+	-- Tracking, from C_Minimap: an always-on quest filter, an optional townsfolk filter and a spell.
+	env.Enum = env.Enum or {}
+	env.Enum.MinimapTrackingFilter = { QuestPOIs = 1, Repair = 2, Mailbox = 3, Target = 4 }
+	env.Enum.GameRule = { IngameTrackingDisabled = 101, IngameCalendarDisabled = 102, IngameMailNotificationDisabled = 103 }
+	env._rules = {}
+	env.C_GameRules = {
+		IsGameRuleActive = function(rule)
+			return env._rules[rule] == true
+		end,
+	}
+	env.MinimapConstants = {
+		ALWAYS_ON_FILTERS = { [1] = true },
+		CONDITIONAL_FILTERS = { [4] = true },
+		OPTIONAL_FILTERS = { [2] = true, [3] = true },
+	}
+	env._tracking = opts.tracking or {
+		{ name = "Quest Points", filterID = 1, active = true },
+		{ name = "Repair", filterID = 2, active = false },
+		{ name = "Find Herbs", filterID = 0, spellID = 2383, active = true },
+		{ name = "Target", filterID = 4, active = true },
+	}
+	env.C_Minimap = {
+		GetNumTrackingTypes = function()
+			return #env._tracking
+		end,
+		GetTrackingInfo = function(index)
+			local t = env._tracking[index]
+			return t and { name = t.name, texture = 136025, active = t.active, type = t.spellID and "spell" or "other", subType = 0, spellID = t.spellID }
+		end,
+		GetTrackingFilter = function(index)
+			local t = env._tracking[index]
+			return t and { filterID = t.filterID, spellID = t.spellID }
+		end,
+		SetTracking = function(index, on)
+			env._tracking[index].active = on
+		end,
+		ClearAllTracking = function()
+			for _, t in ipairs(env._tracking) do
+				t.active = false
+			end
+		end,
+	}
+
+	-- Mail, the calendar and the menu system.
+	env._mail = { new = false, senders = {} }
+	env.HasNewMail = function()
+		return env._mail.new
+	end
+	env.GetLatestThreeSenders = function()
+		return unpack(env._mail.senders)
+	end
+	env._invites = 0
+	env.C_Calendar = {
+		GetNumPendingInvites = function()
+			return env._invites
+		end,
+	}
+	env._menus = {}
+	env.MenuUtil = {
+		CreateContextMenu = function(owner, generator)
+			env._menus[#env._menus + 1] = { owner = owner, generator = generator }
+		end,
+	}
+end
+
+-- Menu(env) -> the entries the last context menu's generator made: { kind, text, isSelected, setSelected, callback }.
+function M.Menu(env)
+	local menu = assert(env._menus[#env._menus], "no context menu was opened")
+	local entries = {}
+	local root = {}
+	function root.CreateTitle(_, text)
+		entries[#entries + 1] = { kind = "title", text = text }
+	end
+	function root.CreateDivider()
+		entries[#entries + 1] = { kind = "divider" }
+	end
+	function root.CreateCheckbox(_, text, isSelected, setSelected, data)
+		entries[#entries + 1] = { kind = "checkbox", text = text, isSelected = isSelected, setSelected = setSelected, data = data }
+	end
+	function root.CreateButton(_, text, callback, data)
+		local entry = { kind = "button", text = text, callback = callback, data = data }
+		entries[#entries + 1] = entry
+		return { AddInitializer = function() end, SetEnabled = function() end }
+	end
+	menu.generator(menu.owner, root)
+	return entries, menu.owner
+end
+
+-- FakeTooltip() -> a stand-in for Widgets.Tooltip() that records each line as text.
+function M.FakeTooltip()
+	local tip = { lines = {} }
+	local function add(_, text)
+		tip.lines[#tip.lines + 1] = tostring(text)
+	end
+	tip.AddTitle, tip.AddLine, tip.AddCaption = add, add, add
+	function tip.AddDoubleLine(_, left, right)
+		tip.lines[#tip.lines + 1] = tostring(left) .. " | " .. tostring(right)
+	end
+	function tip.SetOwner(_, owner)
+		tip.owner = owner
+	end
+	function tip.Has(_, text)
+		for _, line in ipairs(tip.lines) do
+			if line:find(text, 1, true) then
+				return true
+			end
+		end
+		return false
+	end
+	return tip
 end
 
 -- RunTickers(env) runs each live ticker once, as one tick of its interval.

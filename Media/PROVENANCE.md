@@ -52,3 +52,11 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 ## Ability icons
 
 The generated ability icons are not in `Media/`. Each icon set keeps its provenance next to its art: [`KstyleUI_Icons/PROVENANCE.md`](../KstyleUI_Icons/PROVENANCE.md) has a row for every set A icon.
+
+## Module media
+
+Media that a module ships in its own folder. Each row names the script that draws the file.
+
+| File | Size | What it is | Made with | Settings | Date |
+| --- | --- | --- | --- | --- | --- |
+| `KstyleUI_Minimap/Media/Glyphs.png` | 128x64 | Minimap button glyphs on 32-texel cells: tracking, mail, calendar, group finder and the addon drawer. White line art, tinted in game. | `Tools/media/make_minimap_glyphs.py`, procedural, no model | 2.6-texel strokes, 4x4 supersampled with `make_media.py`'s sampler | 2026-11-07 |

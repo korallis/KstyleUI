@@ -13,13 +13,15 @@ Settings.MODULE = MODULE
 local TEXT_MIN, TEXT_MAX, TEXT_STEP = 6, 24, 1
 local DELAY_MIN, DELAY_MAX, DELAY_STEP = 3, 30, 1
 local OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0, 1, 0.05
+local BUTTON_MIN, BUTTON_MAX, BUTTON_STEP = 14, 32, 1
+local SPACING_MIN, SPACING_MAX, SPACING_STEP = 0, 12, 1
 
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "left" },
+	column = { side = "left", size = 22, spacing = 6, growth = "down", tracking = true, mail = true, calendar = true, queue = true },
 	zoom = { wheel = true, reset = false, delay = 10 },
 	compass = true,
 	strip = { opacity = 0.8 },
@@ -35,6 +37,10 @@ local ACCENT_OPTIONS = {
 local SIDE_OPTIONS = {
 	{ value = "left", label = L["Left"] },
 	{ value = "right", label = L["Right"] },
+}
+local GROWTH_OPTIONS = {
+	{ value = "down", label = L["From the top, downward"] },
+	{ value = "up", label = L["From the bottom, upward"] },
 }
 local ZONE_COLOR_OPTIONS = {
 	{ value = "plain", label = L["Plain"] },
@@ -106,9 +112,40 @@ local schema = {
 		type = "color", key = "accent.color", label = L["Custom colour"], showWhen = Custom,
 		help = L["The hairline colour when it does not follow your class."],
 	},
+	{ type = "header", label = L["Button column"] },
 	{
 		type = "dropdown", key = "column.side", label = L["Button column side"], options = SIDE_OPTIONS,
 		help = L["Which side of the map the column of small buttons sits on."],
+	},
+	{
+		type = "dropdown", key = "column.growth", label = L["Button order"], options = GROWTH_OPTIONS,
+		help = L["Whether the buttons start at the top or the bottom of the column."],
+	},
+	{
+		type = "slider", key = "column.size", label = L["Button size"],
+		min = BUTTON_MIN, max = BUTTON_MAX, step = BUTTON_STEP,
+		help = L["The width and height of each button in the column."],
+	},
+	{
+		type = "slider", key = "column.spacing", label = L["Button spacing"],
+		min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
+		help = L["The gap between the buttons, and between the column and the map."],
+	},
+	{
+		type = "toggle", key = "column.tracking", label = L["Tracking button"],
+		help = L["Picks what the map tracks, such as herbs or the nearest innkeeper."],
+	},
+	{
+		type = "toggle", key = "column.mail", label = L["Mail indicator"],
+		help = L["Shows an envelope while you have unread mail."],
+	},
+	{
+		type = "toggle", key = "column.calendar", label = L["Calendar button"],
+		help = L["Opens the calendar; right-click for the clock options."],
+	},
+	{
+		type = "toggle", key = "column.queue", label = L["Group finder status"],
+		help = L["Shows an eye while you are queued, in place of Blizzard's queue eye."],
 	},
 	{ type = "header", label = L["Zoom"] },
 	{

@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
-local Settings, Face, Data = ns.Settings, ns.Face, ns.Data
+local Settings, Face, Data, Column, SecureClick = ns.Settings, ns.Face, ns.Data, ns.Column, ns.SecureClick
 
 local Map = {}
 ns.Map = Map
@@ -18,7 +18,9 @@ local COORDS_INTERVAL = 0.2
 local MIN_HEIGHT, MAX_HEIGHT = 120, 480
 local PIECE_COUNT = 5
 local BLOB_METHODS = { "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }
-local ZONE_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "PLAYER_ENTERING_WORLD" }
+local ZONE_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
+local COLUMN_EVENTS = { "UPDATE_PENDING_MAIL", "CALENDAR_UPDATE_PENDING_INVITES" }
+local QUEUE_CALLBACK = "QueueStatusUpdate.QueuesUpdated"
 local MOVE_START = { "PLAYER_STARTED_MOVING", "PLAYER_CONTROL_LOST" }
 local MOVE_STOP = { "PLAYER_STOPPED_MOVING", "PLAYER_CONTROL_GAINED" }
 
@@ -26,6 +28,7 @@ local running = false
 local original
 local configHooked = false
 local waitingForEditMode = false
+local queueFaded, queueHooked = false, false
 local checkAdded = false
 local ticker
 local clockElapsed, coordsElapsed = 0, 0
@@ -210,12 +213,45 @@ local function ClockTooltip(tip, frame)
 	tip:AddDoubleLine(L["Realm time"], Data.Clock("realm" .. hours) or "")
 end
 
+local function KeepQueueFaded(queue, alpha)
+	if queueFaded and alpha ~= 0 then
+		queue:SetAlpha(0)
+	end
+end
+
+local function SyncQueue()
+	local queue = QueueStatusButton
+	if not queue then
+		return
+	end
+	local fade = running and Settings.Get("column.queue")
+	if fade == queueFaded then
+		return
+	end
+	queueFaded = fade
+	if fade and not queueHooked then
+		queueHooked = true
+		hooksecurefunc(queue, "SetAlpha", KeepQueueFaded)
+	end
+	queue:SetAlpha(fade and 0 or 1)
+	queue:EnableMouse(not fade)
+	Log(fade and "faded Blizzard's queue eye; the column shows the queue" or "Blizzard's queue eye is back")
+end
+
+local function RefreshColumn()
+	if running and Map.column then
+		Map.column:Refresh()
+	end
+end
+
 function Map.Refresh()
 	local face = Map.face
 	if not (running and face) then
 		return
 	end
 	face:Refresh()
+	Map.column:Refresh()
+	SyncQueue()
 	UpdateZone()
 	UpdateClock()
 	UpdateCoords()
@@ -244,6 +280,14 @@ local function Build()
 	face.wheel:SetScript("OnMouseWheel", OnWheel)
 	Widgets.AttachTooltip(face.zoneHit, ZoneTooltip)
 	Widgets.AttachTooltip(face.clockHit, ClockTooltip)
+	SecureClick.Bind(face.zoneHit, function()
+		local cluster = MinimapCluster
+		return cluster and cluster.ZoneTextButton
+	end, ZoneTooltip)
+	SecureClick.Bind(face.clockHit, function()
+		return TimeManagerClockButton, GameTimeFrame
+	end, ClockTooltip)
+	Map.column = Column.New(face)
 	holder:HookScript("OnSizeChanged", Relayout)
 	local aspect = element.width / element.height
 	Widgets.Place(holder, KEY, K.Setup.Layouts.Default(KEY), {
@@ -412,6 +456,19 @@ local function RegisterEvents()
 	for _, event in ipairs(ZONE_EVENTS) do
 		Events.Register(MODULE, event, onZone)
 	end
+	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", function()
+		onZone()
+		UpdateCompass()
+		RefreshColumn()
+	end)
+	for _, event in ipairs(COLUMN_EVENTS) do
+		Events.Register(MODULE, event, RefreshColumn)
+	end
+	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", SecureClick.Detach)
+	local registry = EventRegistry
+	if registry and type(registry.RegisterCallback) == "function" then
+		registry:RegisterCallback(QUEUE_CALLBACK, RefreshColumn, Map)
+	end
 	for _, event in ipairs(MOVE_START) do
 		Events.Register(MODULE, event, StartCoords)
 	end
@@ -463,6 +520,7 @@ function Map.Enable()
 	GetMinimapShape = SquareShape
 	RegisterEvents()
 	RegisterCallbacks()
+	SecureClick.SetActive(true)
 	MaskHybrid()
 	if not checkAdded then
 		checkAdded = true
@@ -477,6 +535,12 @@ function Map.Disable()
 	zoomToken = zoomToken + 1
 	StopClock()
 	StopCoords()
+	SecureClick.SetActive(false)
+	local registry = EventRegistry
+	if registry and type(registry.UnregisterCallback) == "function" then
+		registry:UnregisterCallback(QUEUE_CALLBACK, Map)
+	end
+	SyncQueue()
 	if Map.holder then
 		Map.holder:Hide()
 	end

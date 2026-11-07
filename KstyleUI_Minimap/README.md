@@ -9,7 +9,8 @@ Square minimap, chamfered frame, zone and clock strip inside its bottom edge, si
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Minimap.toc` lists `Minimap.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
 | Layout element | `minimap.main`: resizable, keeps its proportions, 226 by 196 units at the 1080 reference |
-| Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`) and `test-minimap-format.lua` (the pure helpers) |
+| Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
+| Media | `Media/Glyphs.png`, drawn by `Tools/media/make_minimap_glyphs.py`; its row is in `Media/PROVENANCE.md` |
 
 ## Rules
 
@@ -32,8 +33,10 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the map square's place in the element |
 | `Settings.lua` | Defaults, the settings page rows and `Settings.Get(key)`, which gives the default for a saved value the row does not allow |
 | `Style.lua` | The accent (class or custom colour) and each text's font, size and outline |
-| `Data.lua` | Reads from the game: zone and PvP type, local and realm time, coordinates, map rotation. Each read checks the API exists and that the value is not secret. |
+| `Data.lua` | Reads from the game: zone and PvP type, local and realm time, coordinates, map rotation, game rules, mail, calendar invites, the queue and tracking. Each read checks the API exists and that the value is not secret. |
 | `Face.lua` | The visible frame, shared by the live map and the preview: the chamfered square, the strip, the north mark and the coordinates |
+| `SecureClick.lua` | One shared secure button that clicks Blizzard's own calendar, clock, world map and queue buttons for KstyleUI's buttons |
+| `Column.lua` | The button column: tracking, mail, calendar and group finder status, built from `Widgets.IconButton` with the glyph sheet |
 | `Map.lua` | The live minimap: hosting Blizzard's `Minimap`, hiding the cluster, wheel zoom, events and the clock ticker |
 | `Preview.lua` | The settings window's preview, with a drawn map instead of Blizzard's |
 | `Module.lua` | `Modules.Register` and `Options.Register` |
@@ -75,6 +78,28 @@ Coordinates come from `C_Map.GetBestMapForUnit("player")` and `C_Map.GetPlayerMa
 
 The north mark shows while `rotateMinimap` is off. A secret rotation hides it rather than guess.
 
+### The button column
+
+The column hangs beside the map square, from its top corner downward or from its bottom corner upward. Only the buttons that apply show, and the rest close up. The map square leaves room for one button and one gap beside it, so a larger button size shrinks the map rather than pushing the column outside the Layout element.
+
+| Button | Shows | Click |
+| --- | --- | --- |
+| Tracking | While `C_Minimap` tracking exists and the `IngameTrackingDisabled` game rule is off | A KstyleUI menu through `MenuUtil.CreateContextMenu`: a checkbox for each optional filter and tracking spell, as Blizzard's own menu lists them (`MinimapConstants.OPTIONAL_FILTERS`, or every type with the `minimapTrackingShowAll` CVar), and **Uncheck all**, which keeps the always-on and conditional filters on. Each checkbox calls `C_Minimap.SetTracking`. |
+| Mail | While `HasNewMail()` is true (`UPDATE_PENDING_MAIL`) | None. The tooltip lists `GetLatestThreeSenders()`. |
+| Calendar | Unless the `IngameCalendarDisabled` game rule is on. A badge and the accent tint mark pending invites (`CALENDAR_UPDATE_PENDING_INVITES`). | Left: `GameTimeFrame`, the calendar. Right: `TimeManagerClockButton`, the clock options. |
+| Group finder | While `QueueStatusButton` is shown, checked on Blizzard's `QueueStatusUpdate.QueuesUpdated` callback. While this button is on, Blizzard's eye stays shown but faded to alpha 0 with its mouse off; a `SetAlpha` hook keeps it faded. | Both buttons: `QueueStatusButton`, so its own menu and windows open. |
+
+The zone name and the clock on the strip work the same way: the zone clicks `MinimapCluster.ZoneTextButton` (the world map), and the clock clicks `TimeManagerClockButton`, or `GameTimeFrame` on a right click.
+
+### Secure clicks
+
+KstyleUI never opens a Blizzard window from its own code, so the click reaches Blizzard's own button through one `SecureActionButtonTemplate` button with `type = "click"` and `clickbutton1` and `clickbutton2`. Blizzard's handler then runs untainted. The button follows the reload button's pattern in the widget kit:
+
+- It is made on the first hover out of combat, parented to `UIParent`, so no KstyleUI frame becomes protected.
+- On hover it covers the hovered button, five levels above it, takes the button's hover, press and tooltip, and detaches when the pointer leaves or the button hides.
+- `PLAYER_REGEN_DISABLED` fires before lockdown and detaches it. In combat it never moves, and a click on a KstyleUI button prints that it works after combat.
+- `Button:Click()` runs on hidden buttons, so Blizzard's buttons work inside the hidden cluster.
+
 ## Settings
 
 Layout gives the element its position, size, shown rule, opacity and strata on the module's page. The module adds:
@@ -82,7 +107,9 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | Key | Default | Row |
 | --- | --- | --- |
 | `accent.source`, `accent.color` | `class`, the kit's accent | Hairline colour: class or custom colour |
-| `column.side` | `left` | Which side of the map the button column uses |
+| `column.side`, `column.growth` | `left`, `down` | Which side of the map the button column uses, and whether it starts at the top or the bottom |
+| `column.size`, `column.spacing` | 22, 6 | Button size and the gap between buttons and beside the map |
+| `column.tracking`, `column.mail`, `column.calendar`, `column.queue` | on | Each button |
 | `zoom.wheel`, `zoom.reset`, `zoom.delay` | on, off, 10 s | Wheel zoom and zooming back out |
 | `compass` | on | The north mark |
 | `strip.opacity` | 0.8 | The band behind the zone and clock |
@@ -98,4 +125,8 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 - **Hiding the whole cluster.** Forever's 1.60.1 reskinned the minimap header and moved its children, and Camelot and Edit Mode both re-anchor them (`SetHeaderUnderneath`). Hiding the cluster as one frame survives those changes; KstyleUI draws its own zone, clock and buttons instead of restyling Blizzard's.
 - **The panel's centre is clear.** The map covers the fill's centre, the shadow's centre and the grain, and `HybridMinimap` draws in the `BACKGROUND` strata, under KstyleUI's `LOW` frame, so any of them would darken it. The chrome's `Paint` is wrapped on this one panel so a restyle never brings them back.
 - **A wheel-only catcher.** Blizzard's `Minimap` takes the wheel only inside its round hit area. A frame with just `EnableMouseWheel` covers the whole square without stealing clicks, motion or pings.
+- **The queue eye is faded, not hidden.** Forever anchors `QueueStatusButton` to `Minimap` by default (`GROUP_FINDER_RELATIVE_TO` in `Blizzard_EditMode/Camelot`), so it would sit on KstyleUI's map. Hiding it through `Safe` would break its right-click menu: `Blizzard_Menu` closes a menu whose owner is not visible. So the eye stays shown at alpha 0 with its mouse off, and the column's button clicks it through the secure overlay.
+- **A KstyleUI tracking menu.** Blizzard's menu sets settings-backed filters through `MinimapUtil` and the Settings system. Calling that from addon code would taint the Settings system, so KstyleUI's menu calls `C_Minimap.SetTracking` directly. The Options panel's trivial-quest checkbox may lag until its next refresh.
+- **A secure overlay instead of calling Blizzard.** `ToggleCalendar`, `ToggleWorldMap` and the queue eye's handler load or show Blizzard windows. Called from addon code they run tainted; clicked through a secure button they run as Blizzard's own. The overlay is one module file, not a kit component, because it is input plumbing with no look of its own.
+- **The column is a column.** It holds at most four status buttons, so it has a side, an order, a size and a spacing but no rows or columns; the addon drawer is the icon grid.
 - **Coordinates update only while moving.** The spec allows `OnUpdate` only while something moves. Movement events start and stop it, so a player standing still costs nothing.
