@@ -91,7 +91,7 @@ The debuffs are a component too. Each plate gets one `CustomAuraContainerTemplat
 | Edit Mode | `SetEditModePreviewEnabled(false)`, so Blizzard's Edit Mode never fills plates with sample auras. |
 | Buttons | `initializeFrame` builds each aura button before the engine restricts it: a black edge, the icon, a cooldown swipe, the stack count at the top right and the time left at the bottom, each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
 
-Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false; otherwise the restyle waits for `Combat.Queue`. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
+Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false. Otherwise the plate waits in one shared list, checked again after combat (`Combat.Queue`) or, when auras turn secret before combat starts, once a second, so a restyle never retries itself in a loop. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
 
 The settings window's preview draws three sample debuff icons on the same grid, because a preview has no unit for the engine.
 

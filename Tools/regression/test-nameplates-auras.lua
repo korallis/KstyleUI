@@ -128,6 +128,22 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Auras turn secret before combat starts: the restyle waits for them without recursing --------------------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	env._aurasSecret = true
+	local ok, err = pcall(K.Options.Write, "Nameplates", "debuffs.size", 26)
+	assert(ok, "a restyle while auras are secret out of combat does not recurse: " .. tostring(err))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+	assert(plate.auras._groups.debuffs.frames[1]:GetSize() ~= 26, "the buttons wait")
+	env._aurasSecret = false
+	env.RunTimers()
+	assert(plate.auras._groups.debuffs.frames[1]:GetSize() == 26, "and resize once the auras are readable")
+end
+
 -- A container the engine refuses in combat is retried once after combat, not once per event ---------------
 
 do

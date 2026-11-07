@@ -16,6 +16,7 @@ local GAP = Tokens.Size("gapTiny")
 local ICON_CROP = 0.07
 local SWIPE_ALPHA = 0.65
 local LINE_SLACK = 0.5
+local RETRY_DELAY = 1
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local SAMPLE_ICONS = { 136118, 135817, 132155 }
 
@@ -181,18 +182,12 @@ local function NewContainer(plate)
 	return container
 end
 
-local function RestyleButtons(plate)
+local pending = setmetatable({}, { __mode = "k" })
+local flushScheduled = false
+local ScheduleFlush
+
+local function RestyleNow(plate)
 	local container = plate.auras
-	if AurasSecret() then
-		if not plate.aurasQueued then
-			plate.aurasQueued = true
-			K.Combat.Queue(function()
-				plate.aurasQueued = false
-				RestyleButtons(plate)
-			end)
-		end
-		return
-	end
 	for i = 1, container:GetAuraGroupFrameCount(GROUP) do
 		local ok, err = pcall(StyleButton, container:GetAuraGroupFrame(GROUP, i))
 		if not ok then
@@ -200,6 +195,44 @@ local function RestyleButtons(plate)
 			return
 		end
 	end
+end
+
+local function Flush()
+	flushScheduled = false
+	if AurasSecret() then
+		ScheduleFlush()
+		return
+	end
+	for plate in pairs(pending) do
+		pending[plate] = nil
+		if plate.auras then
+			RestyleNow(plate)
+		end
+	end
+end
+
+function ScheduleFlush()
+	if flushScheduled then
+		return
+	end
+	if InCombatLockdown() then
+		flushScheduled = true
+		K.Combat.Queue(Flush)
+	elseif C_Timer and C_Timer.After then
+		flushScheduled = true
+		C_Timer.After(RETRY_DELAY, Flush)
+	else
+		LogOnce("aura-timer", "C_Timer.After is missing; aura buttons restyle at the next settings change")
+	end
+end
+
+local function RestyleButtons(plate)
+	if AurasSecret() then
+		pending[plate] = true
+		ScheduleFlush()
+		return
+	end
+	RestyleNow(plate)
 end
 
 local function Anchor(plate, frame, anchor)
