@@ -52,6 +52,7 @@ Settings.defaults = {
 	bankColumns = 14,
 	bankOpensBags = true,
 	replaceBank = true,
+	autoSellJunk = false,
 }
 
 local GROWTH_OPTIONS = {
@@ -155,6 +156,11 @@ Settings.schema = {
 	{ type = "toggle", key = "showNewGlow", label = L["New item glow"], help = L["Make items you just got glow until you point at them."], disableWhen = isOff },
 	{ type = "toggle", key = "showJunk", label = L["Junk marker"], help = L["Mark grey items that sell for money."], disableWhen = isOff },
 	{ type = "toggle", key = "showKeyring", label = L["Keyring"], help = L["Show the keyring's slots under your bags."], disableWhen = isOff },
+	{ type = "header", label = L["Junk"] },
+	{
+		type = "toggle", key = "autoSellJunk", label = L["Sell junk by itself"],
+		help = L["Sell grey items as soon as you open a merchant, out of combat only."], disableWhen = isOff,
+	},
 	{ type = "header", label = L["Accent"] },
 	{
 		type = "dropdown", key = "accentSource", label = L["Accent colour"], help = L["The colour of the window's hairlines and the new item glow."],

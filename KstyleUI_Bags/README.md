@@ -34,12 +34,13 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Slot.lua` | `ns.Slot`: one item slot, Blizzard's `ContainerFrameItemButtonTemplate` dressed as a KstyleUI tile |
 | `Window.lua` | `ns.Window`: a glass panel with search, sort, slot grids per section and a footer |
 | `Blizzard.lua` | `ns.Blizzard`: the secure hooks on Blizzard's bag functions and the hiding of Blizzard's bag frames |
+| `Junk.lua` | `ns.Junk`: selling junk at a merchant |
 | `Inventory.lua` | `ns.Inventory`: the bag window |
 | `Bank.lua` | `ns.Bank`: the bank window |
 | `Preview.lua` | The settings window's live preview |
 | `Module.lua` | Registers the module, its settings page and preview, its events and callbacks, and its `/kstyle test` check |
 
-Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua` and `test-bags-bank.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
+Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua` and `test-bags-junk.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
 
 ## The bag window
 
@@ -62,6 +63,16 @@ Each slot shows:
 - The item's cooldown, as a chamfered swipe.
 
 Search matches the item's name, type and subtype as plain text. Sort asks the game to sort the bags with `C_Container.SortBags`, after `C_Container.SetSortBagsRightToLeft` sets the chosen direction. In combat the sort waits for `Combat.Queue` and says so in chat.
+
+## Selling junk
+
+At a merchant, a Sell junk button shows in the bag window's header while there is junk to sell. With Sell junk by itself on, junk sells as soon as a merchant opens.
+
+1. The sale goes through `KstyleUI.Combat.Queue`: out of combat it runs at once; in combat it waits for `PLAYER_REGEN_ENABLED` and chat says so. When the queue runs, a merchant that closed meanwhile gets nothing.
+2. The preferred path is `C_MerchantFrame.SellAllJunkItems`, the game's own one-call sale, when `C_MerchantFrame.IsSellAllJunkEnabled` allows it. The devlog records it.
+3. Without it, the module sells junk itself with `C_Container.UseContainerItem`, ten items at a time, 0.25 seconds apart, and logs that it took this path. Each batch checks combat and the merchant again. Junk is a poor item with a sell value. The keyring is never sold from, and bags marked to keep their junk (`C_Container.GetBackpackSellJunkDisabled`, `C_Container.GetBagSlotFlag` with `Enum.BagSlotFlags.ExcludeJunkSell`) are skipped.
+
+The button counts junk with `C_MerchantFrame.GetNumJunkItems`, or by reading the bags when the game has no count.
 
 ## The bank window
 
@@ -135,6 +146,7 @@ When `InputUtil.IsGamepadUIEnabled()` returns true at `Enable`, the module stand
 | `replaceBank` | `true` | toggle; a change takes effect after `/reload` |
 | `bankColumns` | 14 | slider, 4 to 24 |
 | `bankOpensBags` | `true` | toggle |
+| `autoSellJunk` | `false` | toggle: sell junk when a merchant opens |
 
 Position, scale, opacity, strata and the shown rule come from Layout, on the Elements page and in Layout Mode. The preview shows eight sample slots drawn by `Slot.lua` with the current settings; it makes no Blizzard item buttons.
 
@@ -150,6 +162,7 @@ The `bags` check passes while the module is off or standing down for the gamepad
 - **The next frame, not at once.** `ToggleAllBags` calls `CloseBackpack`, `CloseBag` and `OpenBackpack` itself, and each of those is hooked too. Deciding at the end of the frame, with the last call winning, acts on the outermost call only.
 - **Toggles use the window's state, opens and closes use Blizzard's.** After the player closes the window by its own button, Blizzard's state would say open; a toggle that read Blizzard's state would need two key presses. Releasing Blizzard's frames on close keeps the two in step, and the toggle reads the window's own state anyway.
 - **Buttons made out of combat.** An item button made in combat lockdown is tainted for good and cannot use items, so every slot is made at `Enable` or when combat ends.
+- **The game sells junk.** `C_MerchantFrame.SellAllJunkItems` sells every junk item in one server call, as Blizzard's own merchant button does. Selling item by item is kept only as a fallback, in small batches, because the server throttles rapid sales and the buyback list keeps the last twelve.
 - **The server sorts.** `C_Container.SortBags` sorts on the server in one call. Moving items one by one from Lua would need protected pickups in a loop and could be interrupted by combat.
 - **Blizzard's purchase template, not our own purchase call.** `C_Bank.PurchaseBankTab` is restricted, and Blizzard's confirmation popup reads the bank type it is given. Blizzard ships `BankPanelPurchaseButtonScriptTemplate` for addons, so the click starts in Blizzard's code and the purchase stays untainted.
 - **The bank waits for the visit to end.** `BankFrame:OnHide` calls `C_Bank.CloseBankFrame`, so reparenting a shown bank would end the player's visit and run Blizzard's bank code in KstyleUI's context. Every change to the bank's parent happens while it is closed.

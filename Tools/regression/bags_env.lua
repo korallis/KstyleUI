@@ -493,6 +493,35 @@ function B.Game(env, opts)
 	env._blizzClose = close
 	env._blizzOpen = blizzOpen
 
+	-- C_MerchantFrame's junk selling, unless opts.merchant is false. GetNumJunkItems counts junk in the
+	-- bags unless a test sets env._junkCount.
+	if opts.merchant ~= false then
+		env.C_MerchantFrame = {
+			IsSellAllJunkEnabled = function()
+				return true
+			end,
+			SellAllJunkItems = function()
+				assert(not env.InCombatLockdown(), "SellAllJunkItems ran in combat")
+				record(env, "SellAllJunkItems")
+			end,
+			GetNumJunkItems = function()
+				if env._junkCount then
+					return env._junkCount
+				end
+				local n = 0
+				for bag = 0, 5 do
+					local c = env._bags[bag]
+					for _, it in pairs(c and c.items or {}) do
+						if it.quality == 0 and not it.noValue then
+							n = n + 1
+						end
+					end
+				end
+				return n
+			end,
+		}
+	end
+
 	-- Merchant: MERCHANT_SHOW and MERCHANT_CLOSED, with MerchantFrame shown between them.
 	env.SetMerchant = function(shown)
 		env._merchant = shown and true or false

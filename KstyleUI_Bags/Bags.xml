@@ -6,6 +6,7 @@
 	<Script file="Slot.lua"/>
 	<Script file="Window.lua"/>
 	<Script file="Blizzard.lua"/>
+	<Script file="Junk.lua"/>
 	<Script file="Inventory.lua"/>
 	<Script file="Bank.lua"/>
 	<Script file="Preview.lua"/>

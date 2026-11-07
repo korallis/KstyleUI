@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Inventory, Bank, Blizzard = ns.Settings, ns.Inventory, ns.Bank, ns.Blizzard
+local Settings, Inventory, Bank, Blizzard, Junk = ns.Settings, ns.Inventory, ns.Bank, ns.Blizzard, ns.Junk
 local MODULE = Settings.MODULE
 
 local function Dispatch(event, ...)
@@ -50,9 +50,11 @@ local function Enable()
 	end)
 	Inventory.Enable()
 	Bank.Enable()
+	Junk.Enable()
 end
 
 local function Disable()
+	Junk.Disable()
 	Bank.Disable()
 	Inventory.Disable()
 	Blizzard.Stop()

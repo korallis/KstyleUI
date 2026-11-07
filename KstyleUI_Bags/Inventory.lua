@@ -2,7 +2,8 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Data, Settings, Blizzard, L = ns.Data, ns.Settings, ns.Blizzard, ns.L
+local Widgets = K.Widgets
+local Data, Settings, Blizzard, Junk, L = ns.Data, ns.Settings, ns.Blizzard, ns.Junk, ns.L
 
 local Inventory = {}
 ns.Inventory = Inventory
@@ -55,6 +56,10 @@ local function Closed()
 	Blizzard.Release()
 end
 
+local function Refreshed(win)
+	win.junkButton:SetShown(Junk.AtMerchant() and Junk.Count() > 0)
+end
+
 function Inventory.Build()
 	if Inventory.window then
 		return Inventory.window
@@ -70,8 +75,17 @@ function Inventory.Build()
 		},
 		sort = Inventory.Sort,
 		onClosed = Closed,
+		refresh = Refreshed,
 	})
-	return Inventory.window
+	local win = Inventory.window
+	win.junkButton = win:AddButton(Widgets.Button(win.panel, {
+		text = L["Sell junk"],
+		onClick = function()
+			Junk.Sell()
+		end,
+	}))
+	win.junkButton:Hide()
+	return win
 end
 
 function Inventory.Slot(bag, slot)
@@ -131,6 +145,18 @@ local function InfoArrived()
 	local window = Inventory.window
 	if window and open then
 		window:RefreshSoon()
+	end
+end
+
+Junk.onChange = function()
+	local window = Inventory.window
+	if not window then
+		return
+	end
+	if open then
+		window:Refresh()
+	else
+		Refreshed(window)
 	end
 end
 
