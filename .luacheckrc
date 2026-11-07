@@ -89,7 +89,7 @@ module_globals("KstyleUI_Auras", {})
 
 module_globals("KstyleUI_Nameplates", {})
 
-module_globals("KstyleUI_CombatText", {})
+module_globals("KstyleUI_CombatText", { "DAMAGE_TEXT_FONT" })
 
 module_globals("KstyleUI_Minimap", {})
 

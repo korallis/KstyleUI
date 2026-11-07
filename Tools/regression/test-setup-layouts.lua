@@ -15,6 +15,7 @@ local KEYS = {
 	"actionbars.stance", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",
 	"auras.buffs", "auras.debuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.strip",
 	"databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
+	"combattext.player",
 }
 local ANCHORS = {
 	TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true, RIGHT = true,
