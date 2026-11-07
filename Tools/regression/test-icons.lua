@@ -249,6 +249,26 @@ do
 	K.Theme.SetCustomAccent(0.2, 0.4, 0.6)
 	K.Theme.SetAccentSource("custom")
 	assert(Is(texture, 0.2, 0.4, 0.6), "a new accent retints set A icons")
+	K.Options.Write("Icons", "tint", "school")
+	local plain = Texture(K)
+	K.Icons.Apply(plain, PLAIN)
+	K.Theme.SetCustomAccent(0.6, 0.4, 0.2)
+	assert(Is(plain, 0.6, 0.4, 0.2), "in school mode, an icon with no school follows the accent too")
+end
+
+-- The highlight copy keeps the icon's crop when the same art is applied again ------------------------
+
+do
+	local env, K = New()
+	K.Options.Write("Icons", "enabled", true)
+	local texture = Texture(K)
+	texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	K.Icons.Apply(texture, FIREBALL)
+	local glow = Highlight(env, texture)
+	assert(select(1, glow:GetTexCoord()) == 0.07, "the copy takes the icon's crop")
+	texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+	K.Icons.Apply(texture, FIREBALL)
+	assert(select(1, glow:GetTexCoord()) == 0.1, "re-applying the same art copies the new crop")
 end
 
 -- Set B: full colour, no tint, no highlight; switching sets loads the other addon ---------------------

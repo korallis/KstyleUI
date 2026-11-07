@@ -169,7 +169,7 @@ The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's se
 
 ## Icons
 
-`Core/Icons.lua` maps game icon file IDs to KstyleUI's custom icon sets. It registers the `Icons` module, its defaults and its settings page at load, so `Modules.List()` and `Options.List()` start with it. Its functions, settings and the data format of the icon addons are in [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#coreiconslua).
+`Core/Icons.lua` maps game icon file IDs to KstyleUI's custom icon sets. It registers the `Icons` module, its defaults and its settings page at load. `Modules.List()` starts with `Icons`, and `Options.List()` lists it after `Appearance`. Its functions, settings and the data format of the icon addons are in [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#coreiconslua).
 
 ## DevTest
 

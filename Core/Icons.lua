@@ -201,8 +201,12 @@ local function draw(texture, st)
 	if glow > 0 then
 		if st.copyPath ~= st.path then
 			copy:SetTexture(st.path)
-			copy:SetTexCoord(texture:GetTexCoord())
 			st.copyPath = st.path
+			st.crop = true
+		end
+		if st.crop then
+			copy:SetTexCoord(texture:GetTexCoord())
+			st.crop = false
 		end
 		copy:SetDesaturated(st.desat == true)
 		copy:SetVertexColor(st.dimR, st.dimG, st.dimB, glow)
@@ -241,7 +245,7 @@ function Icons.Apply(texture, fileID, school)
 			local schools = active.schools
 			school = type(schools) == "table" and schools[fileID] or nil
 		end
-		st.custom, st.set, st.path, st.school = true, activeSet, path, school
+		st.custom, st.set, st.path, st.school, st.crop = true, activeSet, path, school, true
 	else
 		texture:SetTexture(fileID)
 		st.custom, st.set, st.path, st.school = false, nil, nil, nil
@@ -296,7 +300,7 @@ local function onSetting(_, module, key)
 end
 
 local function onTheme()
-	if setting("tint") == "class" then
+	if setting("tint") ~= "white" then
 		repaint()
 	end
 end

@@ -70,7 +70,7 @@ The `IconsColour` switch in `Features.modules` exists because every module folde
 - The service is the `Icons` module. Its `Enable` runs at `PLAYER_LOGIN`, before any module addon's, when the switch is on. It loads the active set's addon with `C_AddOns.LoadAddOn`, reads `KstyleUIIconData`, keeps the table, and fires `IconsChanged`. Switching sets loads the other addon once; a set's table is kept, so switching back loads nothing.
 - When `C_AddOns.LoadAddOn` is missing, the load fails, or the addon defines no table for the set, Blizzard's icons stay and the devlog says why. `/kstyle test` logs `icons` as `PASS` with the set and its size, or `FAIL` with the reason.
 - `IconsChanged` fires when the module starts or stops, and when the set, tint or highlight setting changes. A module re-applies its icons in its `IconsChanged` handler.
-- A tint or highlight change, and a `ThemeChanged` while the tint is the class colour, repaint every set A icon at once.
+- A tint or highlight change, and a `ThemeChanged` unless the tint is white, repaint every set A icon at once. A school tint falls back to the class colour for an icon with no school, so it follows the accent too. Each `Apply` copies the icon's texture coordinates to the highlight copy again.
 - A secret file ID is never compared or used as a key: it reaches `SetTexture` untouched and keeps the game's icon.
 
 | Function | Behaviour |
