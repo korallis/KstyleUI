@@ -197,6 +197,103 @@ do
 	assert(good.v == 1 and #errors == 1 and #updating(env) == 0, "the other tween finished")
 end
 
+-- Re-entry and failures inside the setter or the easing never corrupt the driver.
+do
+	local env, ns, errors = NewMotion()
+	local Motion = ns.Motion
+
+	-- A setter that stops its own tween and then fails: the record goes back to the pool once.
+	local selfStop = {}
+	local h
+	h = Motion.Tween(selfStop, function(_, v)
+		if v > 0 then
+			Motion.Stop(h)
+			error("stopped myself")
+		end
+	end, 0, 1, 1, "linear")
+	tick(env, 0.5)
+	assert(#errors == 1 and not Motion.IsPlaying(h), "the failing tween is gone")
+	local p, q = { v = 0 }, { v = 0 }
+	local hp = Motion.Tween(p, setV, 0, 1, 1, "linear")
+	local hq = Motion.Tween(q, setV, 0, 2, 1, "linear")
+	assert(hp ~= hq and Motion.IsPlaying(hp) and Motion.IsPlaying(hq))
+	tick(env, 0.5)
+	assert(near(p.v, 0.5) and near(q.v, 1), "two new tweens each have their own record")
+	tick(env, 1)
+
+	-- A start value that starts another tween: each call returns its own handle.
+	local inner = { v = 0 }
+	local hInner
+	local outer = { v = 0 }
+	local hOuter = Motion.Tween(outer, function(o, v)
+		o.v = v
+		if not hInner then
+			hInner = Motion.Tween(inner, setV, 0, 1, 1, "linear")
+		end
+	end, 0, 1, 1, "linear")
+	assert(hOuter ~= hInner, "the outer tween gets its own handle")
+	assert(Motion.Stop(hOuter) and Motion.IsPlaying(hInner), "stopping the outer tween leaves the inner one")
+	Motion.Stop(hInner)
+
+	-- A start value that fails: the error reaches the caller and nothing is left registered.
+	local before = #errors
+	local ok = pcall(Motion.Tween, {}, function()
+		error("no start")
+	end, 0, 1, 1, "linear")
+	assert(not ok, "Tween raises the setter's error")
+	assert(#updating(env) == 0, "a tween that failed to start leaves no driver running")
+	local later = { v = 0 }
+	Motion.Tween(later, setV, 0, 1, 1, "linear")
+	tick(env, 2)
+	assert(later.v == 1 and #updating(env) == 0 and #errors == before, "the driver still runs and idles")
+
+	-- An easing that fails is dropped, and the other tweens advance.
+	local steady = { v = 0 }
+	Motion.Tween(steady, setV, 0, 1, 1, "linear")
+	local hBad = Motion.Tween({ v = 0 }, setV, 0, 1, 1, function()
+		error("bad easing")
+	end)
+	tick(env, 0.5)
+	assert(not Motion.IsPlaying(hBad) and #errors == before + 1, "a failing easing is reported and dropped")
+	assert(near(steady.v, 0.5), "the other tween advanced")
+	tick(env, 1)
+	assert(#updating(env) == 0)
+end
+
+-- Forever can answer IsShown, GetAlpha and IsProtected with a secret. Fades never branch on one.
+do
+	local env, ns = NewMotion()
+	local Motion = ns.Motion
+	local frame = env.CreateFrame("Frame")
+	frame.IsShown = function()
+		return env.Secret(true)
+	end
+	frame._calls = {}
+	Motion.FadeIn(frame, 0.1)
+	tick(env, 1)
+	assert(frame:GetAlpha() == 1, "FadeIn still fades the alpha")
+	Motion.FadeOut(frame, 0.1)
+	tick(env, 1)
+	assert(frame:GetAlpha() == 0, "FadeOut still fades the alpha")
+	for _, call in ipairs(frame._calls) do
+		assert(call.method ~= "Show" and call.method ~= "Hide", "no " .. call.method .. " when visibility is secret")
+	end
+
+	local guarded = env.CreateFrame("Button")
+	guarded.IsProtected = function()
+		return env.Secret(true)
+	end
+	guarded:Hide()
+	env._combat = true
+	guarded._calls = {}
+	Motion.FadeIn(guarded, 0.1)
+	tick(env, 1)
+	for _, call in ipairs(guarded._calls) do
+		assert(call.method ~= "Show", "a secret protection answer counts as protected")
+	end
+	env._combat = false
+end
+
 -- No allocation per frame.
 do
 	local env, ns = NewMotion()

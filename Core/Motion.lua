@@ -150,6 +150,11 @@ local function Finish(obj, setter, to, onDone)
 	end
 end
 
+-- Eases and sets one step. It runs inside pcall, so a failing easing or setter drops only its tween.
+local function Advance(rec, t)
+	Call(rec.setter, rec.obj, rec.from + (rec.to - rec.from) * rec.ease(t))
+end
+
 local function Step(_, elapsed)
 	frameCount = frameCount + 1
 	local i = #active
@@ -164,10 +169,13 @@ local function Step(_, elapsed)
 				Release(rec)
 				Finish(obj, setter, to, onDone)
 			else
-				local value = rec.from + (rec.to - rec.from) * rec.ease(t)
-				local ok, err = pcall(Call, rec.setter, rec.obj, value)
+				local handle = rec.handle
+				local ok, err = pcall(Advance, rec, t)
 				if not ok then
-					Release(rec)
+					-- The setter may have stopped this tween itself before it failed.
+					if byHandle[handle] == rec then
+						Release(rec)
+					end
 					Report(err)
 				end
 			end
@@ -212,6 +220,17 @@ function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 	if type(from) ~= "number" or type(to) ~= "number" then
 		error("KstyleUI.Motion.Tween: from and to must be numbers", 2)
 	end
+	-- Set the start value before registering, so a setter that fails or starts tweens of its own
+	-- leaves nothing half-registered.
+	local ok, err = pcall(Call, setter, obj, from)
+	if not ok then
+		StopDriverIfIdle()
+		error(err, 0)
+	end
+	existing = Find(obj, setter)
+	if existing then
+		Release(existing)
+	end
 	local rec = pool[#pool]
 	if rec then
 		pool[#pool] = nil
@@ -219,18 +238,18 @@ function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 		rec = {}
 	end
 	lastHandle = lastHandle + 1
-	rec.handle, rec.obj, rec.setter, rec.from, rec.to = lastHandle, obj, setter, from, to
+	local handle = lastHandle
+	rec.handle, rec.obj, rec.setter, rec.from, rec.to = handle, obj, setter, from, to
 	rec.duration, rec.ease, rec.onDone, rec.elapsed, rec.stamp = duration, ease, onDone, 0, frameCount
-	byHandle[lastHandle] = rec
+	byHandle[handle] = rec
 	active[#active + 1] = rec
-	Call(setter, obj, from)
 	if not driver then
 		driver = CreateFrame("Frame")
 	end
 	if not driver:GetScript("OnUpdate") then
 		driver:SetScript("OnUpdate", Step)
 	end
-	return lastHandle
+	return handle
 end
 
 function Motion.IsPlaying(handle)
@@ -272,11 +291,19 @@ end
 
 -- Fades --------------------------------------------------------------------------------------------
 -- Show and Hide are protected on a protected frame in combat, so there a fade changes alpha only.
+-- IsShown, GetAlpha and IsProtected can answer with a secret: a fade never branches on one.
 
 local restAlpha = setmetatable({}, { __mode = "k" })
 
 local function MayToggle(frame)
-	return not (InCombatLockdown() and frame:IsProtected())
+	if not InCombatLockdown() then
+		return true
+	end
+	local protected = frame:IsProtected()
+	if IsSecret(protected) then
+		return false
+	end
+	return not protected
 end
 
 -- FadeIn(frame, duration, alpha) -> handle. Shows a hidden frame and fades it to alpha (1).
@@ -284,7 +311,10 @@ function Motion.FadeIn(frame, duration, alpha)
 	alpha = alpha or 1
 	restAlpha[frame] = alpha
 	local from = frame:GetAlpha()
-	if not frame:IsShown() then
+	local shown = frame:IsShown()
+	if IsSecret(shown) then
+		LogOnce("shown", "a fade met a frame whose visibility is secret and changed its alpha only")
+	elseif not shown then
 		from = 0
 		frame:SetAlpha(0)
 		if MayToggle(frame) then
@@ -304,8 +334,13 @@ end
 -- FadeOut(frame, duration) -> handle. Fades a shown frame to alpha 0, then hides it and restores the
 -- alpha the last FadeIn aimed at, so a plain Show later shows it.
 function Motion.FadeOut(frame, duration)
-	if not frame:IsShown() then
+	local shown = frame:IsShown()
+	local onDone = Hidden
+	if IsSecret(shown) then
+		LogOnce("shown", "a fade met a frame whose visibility is secret and changed its alpha only")
+		onDone = nil
+	elseif not shown then
 		return nil
 	end
-	return Motion.Tween(frame, "SetAlpha", frame:GetAlpha(), 0, duration or Tokens.Duration("panelClose"), Tokens.Easing("panelClose"), Hidden)
+	return Motion.Tween(frame, "SetAlpha", frame:GetAlpha(), 0, duration or Tokens.Duration("panelClose"), Tokens.Easing("panelClose"), onDone)
 end
