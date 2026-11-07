@@ -13,6 +13,7 @@ local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
 local DIVIDER_ALPHA = 0.25
+local COPY_WIDTH, COPY_HEIGHT = 44, 18
 local EDIT_MODE_EXIT = "EditMode.Exit"
 
 local TAB_TEXT_RISE = 14
@@ -58,6 +59,10 @@ local function LogOnce(key, message)
 	end
 end
 
+local function IsText(v)
+	return not IsSecret(v) and type(v) == "string"
+end
+
 local function Number(v, fallback)
 	if IsSecret(v) or type(v) ~= "number" or v ~= v or v <= 0 then
 		return fallback
@@ -83,7 +88,12 @@ local function ScrollWidth(frame)
 end
 
 function Panel.Column(frame, k)
-	return ScrollWidth(frame) * k + Tokens.Size("gapSmall")
+	local column = ScrollWidth(frame) * k + Tokens.Size("gapSmall")
+	local settings = state.settings
+	if settings and settings.copyButton == true then
+		column = max(column, COPY_WIDTH + Tokens.Size("gapSmall"))
+	end
+	return column
 end
 
 function Panel.Geometry(chat)
@@ -128,6 +138,10 @@ end
 
 function Panel.Glass()
 	return state.glass
+end
+
+function Panel.CopyButton()
+	return state.glass and state.glass.copy
 end
 
 function Panel.Status()
@@ -247,6 +261,9 @@ local function PlaceDivider(g)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Scale.Border())
 	Widgets.Tint(divider, "text", DIVIDER_ALPHA)
+	local copy = glass.copy
+	copy:ClearAllPoints()
+	copy:SetPoint("RIGHT", glass, "TOPRIGHT", -g.left, -TAB_TEXT_DROP)
 end
 
 function Panel.Place()
@@ -305,6 +322,14 @@ local function Paint(settings)
 	local r, g, b = Tokens.Color("surface")
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
+	glass.copy:SetShown(settings.copyButton == true)
+end
+
+local function FollowTab(_, alpha)
+	local glass = state.glass
+	if state.active and glass then
+		glass.copy:SetAlpha(Number(alpha, 1))
+	end
 end
 
 local function Build()
@@ -318,6 +343,15 @@ local function Build()
 	glass:SetFixedFrameStrata(true)
 	glass.divider = glass:CreateTexture(nil, "ARTWORK")
 	glass.divider:SetTexture((Tokens.Texture("divider")))
+	glass.copy = Widgets.Button(glass, {
+		text = K.L["Copy"],
+		width = COPY_WIDTH,
+		height = COPY_HEIGHT,
+		tooltip = K.L["Copy the selected chat window's text."],
+		onClick = function()
+			ns.Copy.Open()
+		end,
+	})
 	for _, method in ipairs({ "Show", "Hide", "SetShown", "SetAlpha" }) do
 		hooksecurefunc(holder, method, Mirror)
 	end
@@ -340,6 +374,12 @@ local function Watch(chat)
 	end
 	state.hooked = true
 	hooksecurefunc(chat, "SetPoint", Schedule)
+	local name = chat:GetName()
+	local tab = IsText(name) and _G[name .. "Tab"] or nil
+	if type(tab) == "table" and type(tab.SetAlpha) == "function" then
+		hooksecurefunc(tab, "SetAlpha", FollowTab)
+		FollowTab(tab, tab:GetAlpha())
+	end
 end
 
 function Panel.Start(settings)
@@ -372,7 +412,7 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" then
+	if key == nil or key == "scale" or key == "copyButton" then
 		Schedule()
 	end
 end

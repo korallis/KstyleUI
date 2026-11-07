@@ -33,9 +33,11 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Messages.lua` | The message pipeline and the dialog that copies a clicked link |
 | `Panel.lua` | The glass panel: the `chat.main` Layout element that holds Blizzard's main chat window |
 | `Frames.lua` | Restyles every chat window in place: art, tabs, edit box, scroll bar, fonts and buttons |
+| `Copy.lua` | The copy-chat window, its Copy button action and the tab menu's Copy chat entry |
+| `Preview.lua` | The live preview on the settings window's Chat page |
 | `Module.lua` | Registers the module and its settings page, and starts and stops the parts |
 
-Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline) and `test-chat-panel.lua` (the panel and the window skins), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
+Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
 
 ## Settings
 
@@ -43,6 +45,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | --- | --- | --- |
 | `panelOpacity` | the `surface` token's alpha, 0.88 | The glass behind the chat, 0 to 1. The text stays fully visible. |
 | `shadow` | `true` | The panel's soft shadow |
+| `copyButton` | `true` | The Copy button at the right end of the tab strip |
 | `buttons` | `false` | Shows Blizzard's chat menu and channel buttons beside the chat |
 | `font` | KstyleUI's body font | Messages, tabs and the edit box. A font the game cannot load falls back to the body font and logs once. |
 | `fontSize` | 12 | 8 to 24, messages and the edit box. A size picked from the game's tab menu becomes this setting. |
@@ -105,6 +108,21 @@ The panel's visibility and opacity carry over to Blizzard's chat: hooks on the h
 
 `/kstyle test` reports whether `ChatFrame1` sits in the panel.
 
+## Copy chat
+
+The copy window is a `Widgets.Panel` titled "Copy chat - <tab>" in the `DIALOG` strata, with a read-only `Widgets.TextArea`, a **Select all** button and a hint. It registers with Layout as `chat.copy` (module `Chat`), resizable from 320 by 200 to 1400 by 1000 units, 560 by 380 by default, 40 units above the centre. Dragging its title bar saves a `CENTER` position through `Layout.Update`. Escape closes it.
+
+| Way in | Window it copies |
+| --- | --- |
+| The **Copy** button at the right end of the panel's tab strip | The selected docked window. The button fades with `ChatFrame1Tab`, as Blizzard fades the tabs. |
+| **Copy chat** in a chat tab's right-click menu, added with `Menu.ModifyMenu("MENU_FCF_TAB", ...)` | That tab's window |
+
+It shows every line in the window's history, oldest first, as plain text: `Format.Strip` drops colours, textures and atlases and keeps link text. A secret line becomes "(a line the game keeps hidden)". The text scrolls to the end and is selected, ready for Ctrl+C.
+
+## Preview
+
+The schema's `preview` builds a small glass panel with three sample tabs and four sample lines (guild, a numbered channel with a zone, party with a web address, and a loot line). `Refresh` redraws it from the current settings: glass opacity and shadow, font, sizes and outline, tab style, case and accent, timestamps, channel names, class colours and links.
+
 ## Why
 
 - Secret values: under chat restriction the game hands addons secret message text and names. Every filter and hook checks `issecretvalue` first and passes a secret on untouched: the filter returns `false` with no replacement, the name filter returns `nil`, and the `AddMessage` hook does nothing. Blizzard's own filter registry also skips addon filters when an argument is secret; the module does not rely on that.
@@ -121,3 +139,6 @@ The panel's visibility and opacity carry over to Blizzard's chat: hooks on the h
 - Blizzard's chat functions that select tabs, resize the dock or change windows (`FCFDock_UpdateTabs`, `FCF_Tab_OnClick`, `PanelTemplates_TabResize`) are never called: running them from addon code would taint the dock and the edit box behind it, the failure other suites hit as chat tabs dying on a protected table. The module only hooks them after the fact.
 - Upper-case tab names are set with the tab's `SetText`. The game sizes each tab from its text the next time the dock lays out its tabs, which anchoring the window into the panel triggers at once.
 - The button column is reparented through `Safe.HideBlizzard`, not hidden, because Blizzard lays it out and fades it.
+- Copying: secret lines cannot be concatenated into the copy text without making the whole text secret, so each one is replaced by a placeholder line. Messages are read with the window's own `GetNumMessages` and `GetMessageInfo`.
+- The tab menu entry uses `Menu.ModifyMenu`, the hook Blizzard's menu system offers addons, so Blizzard's menu builder is never replaced. Its handle is unregistered when the module turns off. A client without it logs that the entry is missing; the Copy button still works.
+- The Copy button's column is taken from the messages' width so the dock's tabs never run under it.

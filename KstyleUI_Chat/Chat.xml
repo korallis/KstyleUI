@@ -6,5 +6,7 @@
 	<Script file="Messages.lua"/>
 	<Script file="Panel.lua"/>
 	<Script file="Frames.lua"/>
+	<Script file="Copy.lua"/>
+	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

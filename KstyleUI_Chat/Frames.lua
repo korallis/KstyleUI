@@ -67,8 +67,8 @@ local function Verify(path)
 	return ok and loaded ~= false
 end
 
-local function FontPath()
-	local path = state.settings.font
+local function FontPath(settings)
+	local path = settings.font
 	if path ~= state.checked then
 		state.checked = path
 		if Verify(path) then
@@ -81,16 +81,16 @@ local function FontPath()
 	return state.path
 end
 
-local function Fonts()
-	local s = state.settings
-	local path = FontPath()
+function Frames.Fonts(settings)
+	local s = settings or state.settings
+	local path = FontPath(s)
 	local flags = OUTLINES[s.fontOutline] or ""
 	local size = Whole(s.fontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.fontSize)
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
 	return path, size, flags, tabSize
 end
 
-local function ApplyFont(object, path, size, flags)
+function Frames.ApplyFont(object, path, size, flags)
 	if type(object) ~= "table" or type(object.SetFont) ~= "function" then
 		return
 	end
@@ -264,8 +264,8 @@ end
 
 local function ApplyFrame(frame)
 	local s = state.settings
-	local path, size, flags, tabSize = Fonts()
-	ApplyFont(frame, path, size, flags)
+	local path, size, flags, tabSize = Frames.Fonts()
+	Frames.ApplyFont(frame, path, size, flags)
 	if type(frame.SetFading) == "function" then
 		frame:SetFading(s.fade == true)
 	end
@@ -274,11 +274,11 @@ local function ApplyFrame(frame)
 	end
 	local box = frame.editBox
 	if type(box) == "table" then
-		ApplyFont(box, path, size, flags)
+		Frames.ApplyFont(box, path, size, flags)
 		for _, key in ipairs(EDIT_TEXTS) do
 			local text = box[key]
 			if type(text) == "table" and type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
-				ApplyFont(text, path, size, flags)
+				Frames.ApplyFont(text, path, size, flags)
 			end
 		end
 		local parts = Skin.Parts(box)
@@ -290,7 +290,7 @@ local function ApplyFrame(frame)
 	local tab = TabOf(frame)
 	if tab then
 		TabCase(tab)
-		ApplyFont(TabText(tab), path, tabSize, flags)
+		Frames.ApplyFont(TabText(tab), path, tabSize, flags)
 		local parts = Skin.Parts(tab)
 		if parts and parts.chatPaint then
 			parts:Paint()

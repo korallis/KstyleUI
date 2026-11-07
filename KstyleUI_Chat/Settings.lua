@@ -26,6 +26,7 @@ local defaults = {
 	panelOpacity = SURFACE_ALPHA,
 	shadow = true,
 	buttons = false,
+	copyButton = true,
 	font = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE),
 	fontSize = 12,
 	fontOutline = "none",
@@ -124,6 +125,10 @@ function ns.Schema()
 		{
 			type = "toggle", key = "shadow", label = L["Panel shadow"],
 			help = L["Draws a soft shadow around the chat panel."],
+		},
+		{
+			type = "toggle", key = "copyButton", label = L["Copy button"],
+			help = L["Shows a Copy button in the tab strip. The tab's right-click menu can copy too."],
 		},
 		{
 			type = "toggle", key = "buttons", label = L["Chat buttons"],
@@ -232,6 +237,9 @@ function ns.Schema()
 	}
 	for _, row in ipairs(tail) do
 		schema[#schema + 1] = row
+	end
+	schema.preview = function(parent)
+		return ns.Preview.Build(parent)
 	end
 	return schema
 end

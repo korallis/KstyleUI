@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local NAME = ns.NAME
 
-local parts = { ns.Messages, ns.Panel, ns.Frames }
+local parts = { ns.Messages, ns.Panel, ns.Frames, ns.Copy }
 
 local function Refresh(key)
 	local settings = ns.Settings()
