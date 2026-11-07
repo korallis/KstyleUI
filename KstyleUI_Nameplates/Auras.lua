@@ -78,6 +78,9 @@ local function StyleButton(button)
 end
 
 local function BuildButton(button)
+	if not pcall(button.EnableMouse, button, false) then
+		LogOnce("aura-mouse", "aura buttons refused EnableMouse(false); debuff icons may catch clicks")
+	end
 	local border = button:CreateTexture(nil, "BACKGROUND")
 	border:SetAllPoints(button)
 	border:SetColorTexture(Tokens.Color("black"))

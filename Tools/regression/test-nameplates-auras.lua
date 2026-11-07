@@ -57,6 +57,7 @@ do
 	assert(button._aura.timer, "and a time left")
 	local w, h = button:GetSize()
 	assert(w == size and h == size, "buttons start at the icon size")
+	assert(N.Last(button, "EnableMouse")[1] == false, "debuff buttons let clicks through to the world, as Blizzard's plate auras do")
 
 	-- The flow layout: icons grow right and up from above the name, wrapping after the columns.
 	local flow = container._flow
