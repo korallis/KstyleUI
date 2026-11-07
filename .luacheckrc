@@ -73,7 +73,7 @@ end
 -- parallel branches that edit neighbouring lines merge without a conflict.
 -- BEGIN MODULE GLOBALS
 
-module_globals("Core", { "KstyleUI", "KstyleUIDB", "SlashCmdList", "SLASH_KSTYLE1" })
+module_globals("Core", { "KstyleUI", "KstyleUIDB", "SlashCmdList", "SLASH_KSTYLE1", "KstyleUI_Root" })
 
 module_globals("KstyleUI_Options", {})
 
