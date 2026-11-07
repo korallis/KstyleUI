@@ -33,12 +33,11 @@ DRAWN = "2026-11-07"
 # shadow is soft, so 2 texels per unit is enough.
 TEXELS_PER_UNIT = 4
 SHADOW_TEXELS_PER_UNIT = 2
-PANEL_CHAMFER, TILE_CHAMFER, WINDOW_CHAMFER = 8, 3, 10  # root units, measured from the design file
-BEVEL_LINE = 1  # art units: the widget kit draws one art unit as one whole-pixel border
-HAIRLINE_AT = 3  # art units in from the edge: the faint hairline, one unit of glass inside the inner line
-# The window grade, from the design's GLASS PANEL detail: a line on the edge, three units of glass,
-# a bright line, a dark line and a faint hairline, seven units deep.
-WINDOW_LINES = {"Outer": 0, "Inner": 4, "Dark": 5, "Hairline": 6}
+PANEL_CHAMFER, TILE_CHAMFER, WINDOW_CHAMFER = 8, 3.5, 12  # root units, measured from the design file
+# The bevel lines are drawn in code: straight pieces are solid textures, and each corner maps the
+# opaque row of Line.png (row 1 of 4) onto the chamfer's diagonal, so a line is one border thick on
+# every screen whatever the chamfer measures in pixels.
+LINE_BAND = (0.25, 0.5)
 SHADOW_REACH = 6  # root units the shadow reaches past the panel edge
 GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bottom
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
@@ -46,32 +45,15 @@ PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel
 GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units at 8 units across
 
 
-def _mitre(depth):
-    """Texels a bevel band ending `depth` art units inside the edge reaches past the chamfer.
-
-    The bands are mitred: the inner edge of a band ending at depth d meets the straight edge
-    d * (sqrt(2) - 1) past the chamfer, so the margin reaches past the line's mitre, in whole units.
-    """
-    return TEXELS_PER_UNIT * math.ceil(depth * (math.sqrt(2) - 1))
-
-
 # Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner and
-# draws at margin / TEXELS_PER_UNIT root units, so pieces of different textures line up. Between the
-# margins every row and column is the same, so stretching the edges and centre distorts nothing.
+# draws at the chamfer's size in units, snapped to whole pixels. Between the margins every row and
+# column is the same, so stretching the edges and centre distorts nothing.
 SLICE = {
-    "ChamferPanel": PANEL_CHAMFER * TEXELS_PER_UNIT,
-    "ChamferTile": TILE_CHAMFER * TEXELS_PER_UNIT,
-    "ChamferWindow": WINDOW_CHAMFER * TEXELS_PER_UNIT,
-    "BevelPanelOuter": PANEL_CHAMFER * TEXELS_PER_UNIT + _mitre(2 * BEVEL_LINE),
-    "BevelPanelInner": PANEL_CHAMFER * TEXELS_PER_UNIT + _mitre(2 * BEVEL_LINE),
-    "BevelTileOuter": TILE_CHAMFER * TEXELS_PER_UNIT + _mitre(2 * BEVEL_LINE),
-    "BevelTileInner": TILE_CHAMFER * TEXELS_PER_UNIT + _mitre(2 * BEVEL_LINE),
-    "BevelPanelHairline": PANEL_CHAMFER * TEXELS_PER_UNIT + _mitre(HAIRLINE_AT + BEVEL_LINE),
-    "BevelTileHairline": TILE_CHAMFER * TEXELS_PER_UNIT + _mitre(HAIRLINE_AT + BEVEL_LINE),
+    "ChamferPanel": int(PANEL_CHAMFER * TEXELS_PER_UNIT),
+    "ChamferTile": int(TILE_CHAMFER * TEXELS_PER_UNIT),
+    "ChamferWindow": int(WINDOW_CHAMFER * TEXELS_PER_UNIT),
     "Shadow": 2 * SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
 }
-for _name, _at in WINDOW_LINES.items():
-    SLICE["BevelWindow" + _name] = WINDOW_CHAMFER * TEXELS_PER_UNIT + _mitre(_at + BEVEL_LINE)
 
 # The logo's colours, in sRGB. They match the design tokens surface, textEmphasis and the kit's
 # hunter accent in docs/design/mockups/05_kit_hunter.jpg. The logo is a fixed asset: the game
@@ -354,11 +336,10 @@ def draw_chamfer(size, legs):
     return white(sample_spans(size, size, shape_spans(chamfered_rect(size, size, legs))))
 
 
-def draw_bevel(size, legs, line, at):
-    """A one-line band starting `at` art units inside a chamfered edge. `legs` is the chamfer, not the slice margin."""
-    start = at * line
-    planes = chamfered_rect(size, size, legs)
-    return white(sample_spans(size, size, band_spans(planes, start, start + line)))
+def draw_line(size):
+    """One opaque row, LINE_BAND of the height, between clear rows, so CLAMP sampling outside the band is clear."""
+    lo, hi = LINE_BAND
+    return white([1.0 if lo <= (y + 0.5) / size < hi else 0.0 for y in range(size) for _ in range(size)])
 
 
 def draw_shadow(size):
@@ -552,33 +533,17 @@ def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
     return Asset(f"Media/Textures/{name}.png", width, height, draw, about, settings, SLICE.get(name))
 
 
-def _bevel(name, size, chamfer, at, about):
-    return _texture(name, size, size, lambda: draw_bevel(size, chamfer * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, at), about)
-
-
 ASSETS = [
     _texture("ChamferPanel", 128, 128, lambda: draw_chamfer(128, SLICE["ChamferPanel"]),
              "Panel shape with 8-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
     _texture("ChamferTile", 32, 32, lambda: draw_chamfer(32, SLICE["ChamferTile"]),
-             "Tile and button shape with 3-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
+             "Tile and button shape with 3.5-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
     _texture("ChamferWindow", 128, 128, lambda: draw_chamfer(128, SLICE["ChamferWindow"]),
-             "Window shape with 10-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
-    _bevel("BevelPanelOuter", 128, PANEL_CHAMFER, 0, "Outer bevel line of a panel: a 1-unit band on the chamfered edge, tinted edgeOuter."),
-    _bevel("BevelPanelInner", 128, PANEL_CHAMFER, 1, "Inner bevel hairline of a panel: the 1-unit band inside the outer line, tinted edgeInner."),
-    _bevel("BevelTileOuter", 64, TILE_CHAMFER, 0, "Outer bevel line of a tile, as BevelPanelOuter with 3-unit chamfers."),
-    _bevel("BevelTileInner", 64, TILE_CHAMFER, 1, "Inner bevel hairline of a tile, as BevelPanelInner with 3-unit chamfers."),
-    _bevel("BevelPanelHairline", 128, PANEL_CHAMFER, HAIRLINE_AT,
-           "Faint third line of a panel's bevel: a 1-unit band 3 units inside the edge, tinted edgeFaint."),
-    _bevel("BevelTileHairline", 64, TILE_CHAMFER, HAIRLINE_AT, "Faint third line of a tile's bevel, as BevelPanelHairline with 3-unit chamfers."),
-    _bevel("BevelWindowOuter", 128, WINDOW_CHAMFER, WINDOW_LINES["Outer"],
-           "Window edge line: a 1-unit band on the 10-unit chamfered edge, tinted edgeWindowOuter."),
-    _bevel("BevelWindowInner", 128, WINDOW_CHAMFER, WINDOW_LINES["Inner"],
-           "Window bright line: a 1-unit band 4 units inside the edge, after three units of glass, tinted edgeWindowInner."),
-    _bevel("BevelWindowDark", 128, WINDOW_CHAMFER, WINDOW_LINES["Dark"],
-           "Window dark line: a 1-unit band 5 units inside the edge, just inside the bright line, tinted edgeOuter."),
-    _bevel("BevelWindowHairline", 128, WINDOW_CHAMFER, WINDOW_LINES["Hairline"],
-           "Window hairline: a 1-unit band 6 units inside the edge, tinted edgeWindowFaint."),
-    _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * TILE_CHAMFER / ICON_SIZE),
+             "Window shape with 12-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
+    _texture("Line", 4, 4, lambda: draw_line(4),
+             "Line strip for the bevel corners: one opaque row (rows 1 of 4) between clear rows, mapped onto each chamfer's diagonal.",
+             "solid"),
+    _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * 3 / ICON_SIZE),
              "Square mask for icons and portraits: a 3-unit chamfer on a 34-unit square."),
     _texture("Shadow", 128, 128, lambda: draw_shadow(128),
              "Nine-slice shadow falloff. Corner pieces are 12 units, centred on the panel's corners; the shadow reaches 6 units out.",

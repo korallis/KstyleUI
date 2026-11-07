@@ -14,6 +14,7 @@ local SWIPE_ALPHA = 0.65
 local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA = 10, 0.12
 local RIM_HALO = 0.45
 local COUNTDOWN_RISE = 0.25
+local CHAMFER_SHARE = 0.105
 local ICON_INSET_LINES = 3
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
@@ -58,7 +59,7 @@ function IconButton:Paint()
 	elseif self.proc or self.selected then
 		r, g, b = Accent(self)
 		a = 1
-	elseif self.cooling then
+	elseif self.cooling and not self.gcdOnly then
 		r, g, b, a = Widgets.Rgba("text", COOLING_EDGE_ALPHA)
 	else
 		r, g, b = Accent(self)
@@ -71,7 +72,7 @@ function IconButton:Paint()
 	chrome:SetOuterRGBA(r, g, b, a * RIM_HALO)
 	local v = UNUSABLE_BRIGHTNESS
 	if usable then
-		v = self.cooling and COOLING_BRIGHTNESS or (1 - PRESS_DIM * press)
+		v = (self.cooling and not self.gcdOnly) and COOLING_BRIGHTNESS or (1 - PRESS_DIM * press)
 	end
 	local tint = self.tint
 	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], not usable)
@@ -119,26 +120,31 @@ function IconButton:SetIcon(texture)
 	self.icon:SetTexture(texture)
 end
 
-function IconButton:SetCooldown(start, duration)
+function IconButton:SetCooldown(start, duration, gcd)
 	if Widgets.IsSecret(start) or Widgets.IsSecret(duration) then
 		Widgets.LogOnce("cooldown-secret", "IconButton refused a secret cooldown; pass a duration object to SetCooldownFromDuration")
 		return false
 	end
+	self.gcdOnly = gcd == true
 	self.cooldown:SetCooldown(start, duration)
+	self:Paint()
 	return true
 end
 
-function IconButton:SetCooldownFromDuration(durationObject)
+function IconButton:SetCooldownFromDuration(durationObject, gcd)
 	local cooldown = self.cooldown
 	if type(cooldown.SetCooldownFromDurationObject) ~= "function" then
 		Widgets.LogOnce("cooldown-object", "Cooldown:SetCooldownFromDurationObject is missing; the cooldown is not shown")
 		return false
 	end
+	self.gcdOnly = gcd == true
 	cooldown:SetCooldownFromDurationObject(durationObject)
+	self:Paint()
 	return true
 end
 
 function IconButton:ClearCooldown()
+	self.gcdOnly = false
 	self.cooldown:Clear()
 end
 
@@ -208,6 +214,7 @@ function IconButton:Restyle()
 	if Widgets.MayMove(self) then
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
+		self.chrome:SetChamfer(size * CHAMFER_SHARE)
 		self.placedOffset = nil
 		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()
@@ -251,7 +258,8 @@ function Widgets.IconButton(parent, opts)
 	button.silent = opts.silent == true
 	button.usable = true
 	button.tint = { 1, 1, 1 }
-	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "buttonFill", shadow = false })
+	local size = opts.size or Tokens.Size("actionButton")
+	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "buttonFill", shadow = false, chamfer = size * CHAMFER_SHARE })
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	if opts.crop ~= false then

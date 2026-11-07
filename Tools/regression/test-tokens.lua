@@ -116,7 +116,7 @@ assert(not pcall(Tokens.Color, "surfaec"), "an unknown colour name is an error")
 
 -- The spec's shape and HUD sizes, type scale and motion.
 for name, want in pairs({
-	chamferPanel = 8, chamferTile = 3, chamferWindow = 10, shadow = 6, actionButton = 34, actionGap = 3, cooldownEssential = 40,
+	chamferPanel = 8, chamferTile = 3.5, chamferWindow = 12, shadow = 6, actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
 	buffBarHeight = 18, display = 24, heading = 16, body = 11, caption = 9, textShadowOffset = 0.6,
 	pressOffset = 1, panelRise = 16, panelOvershoot = 2,
@@ -169,20 +169,21 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 
 -- Textures: each names a file on disk, and sliced ones say how big a corner piece draws.
 for _, name in ipairs({
-	"chamferPanel", "chamferTile", "chamferWindow", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner",
-	"bevelPanelHairline", "bevelTileHairline", "bevelWindowOuter", "bevelWindowInner", "bevelWindowDark", "bevelWindowHairline",
-	"iconMask", "shadow", "glow", "divider", "noise", "ring", "barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge",
-	"dot", "pill", "glyphChevron", "glyphClose",
+	"chamferPanel", "chamferTile", "chamferWindow", "line", "iconMask", "shadow", "glow", "divider", "noise", "ring",
+	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
 	local path = Tokens.Texture(name)
 	assert(onDisk(path), "Tokens.Texture(" .. name .. ") names a missing file: " .. tostring(path))
 end
+for _, name in ipairs({ "bevelPanelOuter", "bevelTileInner", "bevelWindowOuter" }) do
+	assert(not pcall(Tokens.Texture, name), "the baked bevel corners are gone: lines are drawn in code")
+end
 local _, texels, units = Tokens.Texture("chamferPanel")
 assert(texels == 32 and units == Tokens.Size("chamferPanel"), "a panel chamfer corner is 32 texels drawn at 8 units")
 _, texels, units = Tokens.Texture("chamferTile")
-assert(texels == 12 and units == Tokens.Size("chamferTile"), "a tile chamfer corner is 12 texels drawn at 3 units")
+assert(texels == 14 and units == Tokens.Size("chamferTile"), "a tile chamfer corner is 14 texels drawn at 3.5 units")
 _, texels, units = Tokens.Texture("chamferWindow")
-assert(texels == 40 and units == Tokens.Size("chamferWindow"), "a window chamfer corner is 40 texels drawn at 10 units")
+assert(texels == 48 and units == Tokens.Size("chamferWindow"), "a window chamfer corner is 48 texels drawn at 12 units")
 _, texels, units = Tokens.Texture("shadow")
 assert(texels == 24 and units == 2 * Tokens.Size("shadow"), "shadow corners are centred on the panel's corners, reaching 6 units out")
 assert(select(2, Tokens.Texture("glow")) == nil, "an unsliced texture has no margin")

@@ -104,13 +104,23 @@ do
 		end
 		return u32(17), u32(21)
 	end
-	local count = 0
+	local names = {}
 	for name, texels in pairs(K.Widgets.TEXTURE_TEXELS) do
 		local width, height = pngSize((K.Tokens.Texture(name)))
 		assert(width == texels and height == texels, name .. " is " .. width .. "x" .. height .. ", the kit slices it as " .. texels)
-		count = count + 1
+		names[name] = true
 	end
-	assert(count >= 7, "every sliced texture has a size")
+	for _, name in ipairs({ "chamferPanel", "chamferTile", "chamferWindow", "shadow" }) do
+		assert(names[name], name .. " is a sliced texture")
+	end
+end
+
+-- The geometry of one bevel line on a chamfered rectangle: the straight pieces are one border thick, and each
+-- corner piece is the square that holds the diagonal band between the straight pieces.
+local SQRT2 = math.sqrt(2)
+local function cornerSquare(K, chamfer, at)
+	local border = K.Scale.Border()
+	return K.Scale.Snap(K.Scale.Snap(chamfer) - at * (2 - SQRT2) + border * (SQRT2 - 1))
 end
 
 local function chrome(env, K, shape)
@@ -142,8 +152,20 @@ do
 	end
 	local border = Scale.Border()
 	assert(W.Near(inset(c.outer), 0) and W.Near(inset(c.inner), border), "the dark line on the edge, the light line inside it")
-	assert(W.Near(inset(c.hairline), 3 * border), "and the hairline one border of glass further in, as the kit's double line")
-	assert(W.Near(c.hairline[5]:GetHeight(), border) and W.Near(c.hairline[1]:GetWidth(), 10 * border), "one border thick")
+	assert(W.Near(inset(c.hairline), border + Scale.Snap(2)), "and the hairline two units of glass further in, as the design's small panel")
+	assert(W.Near(c.hairline[5]:GetHeight(), border), "one border thick")
+	local chamfer = Tokens.Size("chamferPanel")
+	for _, pair in ipairs({ { c.outer, 0 }, { c.inner, border }, { c.hairline, border + Scale.Snap(2) } }) do
+		local line, at = pair[1], pair[2]
+		local square = cornerSquare(K, chamfer, at)
+		for i = 1, 4 do
+			assert(W.Near(line[i]:GetWidth(), square) and W.Near(line[i]:GetHeight(), square), "each corner piece is the diagonal's square: " .. square)
+			assert(W.LastCall(line[i], "SetTexture")[1] == Tokens.Texture("line"), "drawn from the line strip texture")
+			assert(#W.LastCall(line[i], "SetTexCoord") == 8, "mapped onto the diagonal with eight texture coordinates")
+		end
+		assert(W.Near(line[5]._points[1][4], at + square), "the straight top line starts where the corner square ends")
+		assert(W.Near(line[5]:GetHeight(), border), "and is one border thick")
+	end
 	c:SetShown(false)
 	assert(not c.hairline[1]:IsShown() and not c.hairline[5]:IsShown(), "SetShown hides the hairline with the rest")
 	c:SetShown(true)
@@ -173,11 +195,12 @@ do
 		return -line[5]._points[1][5]
 	end
 	assert(c.shapeName == "window", "the chrome knows its shape")
-	assert(W.Near(c.fill[1]:GetWidth(), 10 * border), "a window's chamfer is 10 borders")
+	assert(W.Near(c.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("chamferWindow"))), "a window's chamfer is 12 units, in units on every screen")
 	assert(W.SameColor(c.outer[5], Tokens.Color("edgeWindowOuter")) and W.Near(inset(c.outer), 0), "the 35% line on the edge")
-	assert(W.SameColor(c.inner[5], Tokens.Color("edgeWindowInner")) and W.Near(inset(c.inner), 4 * border), "the 50% line after three borders of glass")
-	assert(c.dark and #c.dark == 8 and W.SameColor(c.dark[5], Tokens.Color("edgeOuter")) and W.Near(inset(c.dark), 5 * border), "the dark line inside it")
-	assert(W.SameColor(c.hairline[5], Tokens.Color("edgeWindowFaint")) and W.Near(inset(c.hairline), 6 * border), "the 15% hairline last")
+	assert(W.SameColor(c.inner[5], Tokens.Color("edgeWindowInner")) and W.Near(inset(c.inner), Scale.Snap(3.75)), "the 50% line 3.75 units in")
+	assert(c.dark and #c.dark == 8 and W.SameColor(c.dark[5], Tokens.Color("edgeOuter")) and W.Near(inset(c.dark), Scale.Snap(3.75) + border), "the dark line right inside it")
+	assert(W.SameColor(c.hairline[5], Tokens.Color("edgeWindowFaint")) and W.Near(inset(c.hairline), Scale.Snap(6.25)), "the 15% hairline 6.25 units in")
+	assert(W.Near(c.outer[1]:GetWidth(), cornerSquare(K, Tokens.Size("chamferWindow"), 0)), "the edge line's corner square")
 	for _, line in ipairs({ c.outer, c.inner, c.dark, c.hairline }) do
 		assert(W.Near(line[5]:GetHeight(), border), "every line is one border thick")
 	end
@@ -203,15 +226,16 @@ do
 	local rim = K.Widgets.NineSlice(frame, "chamferTile", "BORDER", 0)
 	K.Widgets.LayoutSlice(rim, frame, chamferUnits, 0)
 	assert(W.Near(c.outer[5]:GetHeight(), 1), "one unit at 1080p before the move")
-	assert(W.Near(c.fill[1]:GetWidth(), 3) and W.Near(rim[1]:GetWidth(), 3), "a tile's chamfer is 3 units at 1080p")
+	assert(W.Near(chamferUnits, 3.5), "the tile texture's corner is the tile's 3.5-unit chamfer")
+	assert(W.Near(c.fill[1]:GetWidth(), 4) and W.Near(rim[1]:GetWidth(), 4), "a tile's 3.5-unit chamfer snaps to 4 pixels at 1080p")
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	K.Widgets.LayoutSlice(rim, frame, chamferUnits, 0)
 	local border = K.Scale.Border()
 	assert(W.Near(border, 0.75), "the border is one 1440p pixel")
 	assert(W.Near(c.outer[5]:GetHeight(), border), "the line is redrawn one pixel thick")
-	assert(W.Near(c.outer[1]:GetWidth(), 4 * border), "the bevel corner is 4 borders, so its 4-texel line in 16 texels is one pixel")
-	assert(W.Near(c.fill[1]:GetWidth(), 3 * border), "a tile's chamfer is 3 borders, so the fill's diagonal meets the bevel's")
-	assert(W.Near(c.hairline[1]:GetWidth(), 5 * border) and W.Near(c.hairline[5]:GetHeight(), border), "the tile's hairline is redrawn too")
+	assert(W.Near(c.fill[1]:GetWidth(), K.Scale.Snap(3.5)) and W.Near(c.fill[1]:GetWidth(), 5 * border), "a tile's chamfer is still 3.5 units: five 1440p pixels, not three borders")
+	assert(W.Near(c.outer[1]:GetWidth(), cornerSquare(K, 3.5, 0)), "the edge line's corner square follows the chamfer in units")
+	assert(W.Near(c.hairline[5]:GetHeight(), border), "the tile's hairline is redrawn too")
 	assert(W.Near(rim[1]:GetWidth(), c.fill[1]:GetWidth()), "a chamfer slice laid out by LayoutSlice lines up with the chrome")
 end
 

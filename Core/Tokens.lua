@@ -46,8 +46,8 @@ local COLORS = {
 
 local SIZES = {
 	chamferPanel = 8,
-	chamferTile = 3,
-	chamferWindow = 10,
+	chamferTile = 3.5,
+	chamferWindow = 12,
 	shadow = 6,
 	actionButton = 34,
 	actionGap = 3,
@@ -121,18 +121,9 @@ local STATUSBARS = {
 
 local TEXTURES = {
 	chamferPanel = { file = "Textures\\ChamferPanel.png", slice = 32, density = 4 },
-	chamferTile = { file = "Textures\\ChamferTile.png", slice = 12, density = 4 },
-	chamferWindow = { file = "Textures\\ChamferWindow.png", slice = 40, density = 4 },
-	bevelPanelOuter = { file = "Textures\\BevelPanelOuter.png", slice = 36, density = 4 },
-	bevelPanelInner = { file = "Textures\\BevelPanelInner.png", slice = 36, density = 4 },
-	bevelTileOuter = { file = "Textures\\BevelTileOuter.png", slice = 16, density = 4 },
-	bevelTileInner = { file = "Textures\\BevelTileInner.png", slice = 16, density = 4 },
-	bevelPanelHairline = { file = "Textures\\BevelPanelHairline.png", slice = 40, density = 4 },
-	bevelTileHairline = { file = "Textures\\BevelTileHairline.png", slice = 20, density = 4 },
-	bevelWindowOuter = { file = "Textures\\BevelWindowOuter.png", slice = 44, density = 4 },
-	bevelWindowInner = { file = "Textures\\BevelWindowInner.png", slice = 52, density = 4 },
-	bevelWindowDark = { file = "Textures\\BevelWindowDark.png", slice = 52, density = 4 },
-	bevelWindowHairline = { file = "Textures\\BevelWindowHairline.png", slice = 52, density = 4 },
+	chamferTile = { file = "Textures\\ChamferTile.png", slice = 14, density = 4 },
+	chamferWindow = { file = "Textures\\ChamferWindow.png", slice = 48, density = 4 },
+	line = { file = "Textures\\Line.png" },
 	iconMask = { file = "Textures\\ChamferIconMask.png" },
 	shadow = { file = "Textures\\Shadow.png", slice = 24, density = 2 },
 	glow = { file = "Textures\\Glow.png" },

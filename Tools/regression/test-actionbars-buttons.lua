@@ -31,6 +31,28 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- The global cooldown alone never dims an icon or greys its rim: the module reads isOnGCD and tells the button.
+do
+	local env, K, ns = new()
+	local cooldown = { name = "cd" }
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1, cooldown = cooldown })
+	local gcd = true
+	env.C_ActionBar.GetActionCooldown = function()
+		return { isOnGCD = gcd }
+	end
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	assert(W.LastCall(b.cooldown, "SetCooldownFromDurationObject")[1] == cooldown, "the swipe runs for the GCD")
+	b.cooldown:Show()
+	b.cooldown:GetScript("OnShow")(b.cooldown)
+	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
+	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "the icon stays bright and the rim on the accent during the GCD")
+	gcd = false
+	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.inner[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Cooldowns come from duration objects; charges add a recharge edge; counts and charges show as text.
 do
 	local env, _, ns = new()

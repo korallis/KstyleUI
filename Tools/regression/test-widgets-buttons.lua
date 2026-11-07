@@ -191,6 +191,44 @@ do
 	assert(W.SameColor(button.chrome.inner[5], r, g, b, 1), "a selected button keeps the full accent")
 end
 
+-- The global cooldown alone never dims an icon or greys its rim: the swipe runs, the button stays ready.
+do
+	local _, K, button = iconButton({})
+	local cd = button.cooldown
+	local gcd = {}
+	assert(button:SetCooldownFromDuration(gcd, true) == true)
+	assert(W.LastCall(cd, "SetCooldownFromDurationObject")[1] == gcd, "the swipe still runs for the GCD")
+	cd:Show()
+	cd:GetScript("OnShow")(cd)
+	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
+	assert(W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "the rim stays on the accent during the GCD")
+	assert(button.icon:GetVertexColor() == 1, "and the icon stays bright")
+	button:SetCooldownFromDuration({})
+	assert(W.SameRGB(button.chrome.inner[5], K.Tokens.Color("text")) and W.Near(button.icon:GetVertexColor(), 0.4), "a real cooldown set while the frame shows dims at once")
+	button:SetCooldownFromDuration(gcd, true)
+	assert(button.icon:GetVertexColor() == 1, "back to the GCD alone: bright again")
+	cd:GetScript("OnHide")(cd)
+	assert(button:SetCooldown(100, 1.5, true) == true)
+	cd:GetScript("OnShow")(cd)
+	assert(button.icon:GetVertexColor() == 1 and W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "SetCooldown takes the flag too")
+	button:ClearCooldown()
+	cd:GetScript("OnHide")(cd)
+	button:SetCooldown(100, 8)
+	cd:GetScript("OnShow")(cd)
+	assert(W.Near(button.icon:GetVertexColor(), 0.4), "ClearCooldown forgets the flag, so the next real cooldown dims")
+end
+
+-- The button's chamfer is a share of its size, the design's 11% cut, so the ratio holds at 34 and at 38 units.
+do
+	local _, K, button = iconButton({ size = 34 })
+	local Snap = K.Scale.Snap
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.105 * 34)), "a 34-unit button cuts 3.6 units")
+	button.opts.size = 38
+	button:Restyle()
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.105 * 38)), "a 38-unit button cuts 4 units")
+	assert(W.Near(button.chrome.outer[5]:GetHeight(), K.Scale.Border()), "the rim stays one border")
+end
+
 -- A button that changes size restyles its glows too, so the proc's inner glow keeps its 60% radius (a micro-menu size change).
 do
 	local _, K, button = iconButton({ size = 24 })

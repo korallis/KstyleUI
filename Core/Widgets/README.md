@@ -75,11 +75,11 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 | Part | Layer | What it is |
 | --- | --- | --- |
 | `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces `Snap(12)` centred on the owner's corners, tinted `shadow`: a 6-unit spread with no offset |
-| `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel`, `chamferTile` or `chamferWindow` texture, corner pieces 8, 3 or 10 borders square |
+| `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel`, `chamferTile` or `chamferWindow` texture, corner pieces the chamfer's size: `chamferPanel` 8, `chamferTile` 3.5 or `chamferWindow` 12 units, snapped to whole pixels |
 | `chrome.noise` | `BACKGROUND` -5 | Panels and windows: the `noise` grain, tiled at 3.5% white, inset by the chamfer |
-| `chrome.outer`, `chrome.inner`, `chrome.hairline`, and `chrome.dark` for windows | `BORDER` | Each line: four corner pieces of the bevel texture, then the top, bottom, left and right lines as solid textures one `Scale.Border()` thick. Panels and tiles draw the small-panel edge from the design file: the dark `edgeOuter` line on the edge, the light `edgeInner` line one border inside it, then one border of glass and the faint `edgeFaint` hairline. Windows draw the design's GLASS PANEL edge: `edgeWindowOuter` (white 35%) on the edge, three borders of glass, `edgeWindowInner` (50%) as the bright line hover and selection light up, the dark `edgeOuter` line right inside it, then the `edgeWindowFaint` hairline (15%) six borders in. |
+| `chrome.outer`, `chrome.inner`, `chrome.hairline`, and `chrome.dark` for windows | `BORDER` | Each line is a [`Line`](#lines): one `Scale.Border()` thick on every screen, whatever the chamfer measures in pixels. Panels and tiles draw the small-panel edge from the design file: the dark `edgeOuter` line on the edge, the light `edgeInner` line one border inside it, then two units of glass and the faint `edgeFaint` hairline. Windows draw the design's GLASS PANEL edge: `edgeWindowOuter` (white 35%) on the edge, `edgeWindowInner` (50%) 3.75 units in as the bright line hover and selection light up, the dark `edgeOuter` line right inside it, then the `edgeWindowFaint` hairline (15%) 6.25 units in. |
 
-`opts`: `shape` (`"panel"`, chamfers of 8 borders, `"tile"`, 3 borders, or `"window"`, 10 borders; see [Corner sizes](#corner-sizes)), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`, or `edgeWindowInner` for a window), `shadow` (default on for panels and windows, off for tiles), `grain` (`false` removes the grain). The field `shapeName` holds the shape.
+`opts`: `shape` (`"panel"`, 8-unit chamfers, `"tile"`, 3.5 units, or `"window"`, 12 units; see [Corner sizes](#corner-sizes)), `chamfer` (units, overriding the shape's size; icon buttons use 10.5% of their side), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`, or `edgeWindowInner` for a window), `shadow` (default on for panels and windows, off for tiles), `grain` (`false` removes the grain). The field `shapeName` holds the shape.
 
 A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow shows only while `shadows` is on.
 
@@ -88,28 +88,27 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | `SetFill(name, alphaScale)`, `SetFillRGBA(r, g, b, a)` | Recolours the fill. A caller's colour, or a token at a scaled alpha, stays through a restyle. Both reuse one table per chrome, so they allocate nothing on combat paths. |
 | `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the light line that hover and selection light up. |
 | `SetOuter(name, alphaScale)`, `SetOuterRGBA(r, g, b, a)` | Recolours the outer line, kept through a restyle. `SetOuter()` with no token returns it to the shape's line. Icon buttons draw it as the rim's halo. Both allocate nothing. |
+| `SetChamfer(units)` | Changes the chamfer and re-lays the chrome out when it differs. `Chamfer()` returns the units in use. |
 | `SetShadow(on)`, `SetShown(shown)` | |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
-`Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
+`Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture; `cornerUnits` and `outsetUnits` are units snapped to whole pixels, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3.5) lines up with a tile's chrome. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
+
+### Lines
+
+`Line(owner, layer, sublevel) -> list` makes one bevel line for a chamfered rectangle: four corner textures (top left, top right, bottom left, bottom right) and the top, bottom, left and right straight pieces. `LayoutLine(line, owner, chamferUnits, at)` places it `at` frame units inside the owner's edge, one `Widgets.Border(owner)` thick. The straight pieces are solid textures. Each corner piece is the square that holds the diagonal band between them, `Snap(chamfer - at * (2 - sqrt 2) + border * (sqrt 2 - 1))` a side, and maps the opaque row of the `line` strip onto that diagonal with eight texture coordinates (`SetTexCoord` with the corner mapping), so the diagonal is as thick as the straight pieces whatever the chamfer measures in pixels. `ColorSlice` and `ShowSlice` colour and show a line. Chrome draws its edge with these; GroupFrames draws its highlight rings with them.
 
 ### Corner sizes
 
-`Tools/media/make_media.py` draws the chamfer and bevel textures at 4 texels per art unit, and bakes each bevel line one art unit (4 texels) wide into the corner art. The kit draws one art unit as one `Widgets.Border(frame)`, so the line inside each bevel corner is exactly as wide as the straight line it meets, and the fill's diagonal meets the bevel's:
+Chamfers are sizes in units, snapped to whole pixels on every screen, so a window's 12-unit cut is 12 px at 1080p, 17 px on a 1.426 px per unit Mac and 24 px at 4K, while every line stays one border thick (1, 1 and 2 px). `Tools/media/make_media.py` draws the chamfer fill textures at 4 texels per unit:
 
 | Piece | Texels | Drawn |
 | --- | --- | --- |
-| Panel fill corner (`chamferPanel`) | 32 | 8 borders |
-| Panel bevel corner (`bevelPanelOuter`, `bevelPanelInner`) | 36: the chamfer and the mitre | 9 borders |
-| Tile fill corner (`chamferTile`) | 12 | 3 borders |
-| Tile bevel corner (`bevelTileOuter`, `bevelTileInner`) | 16 | 4 borders |
-| Panel and tile hairline corner (`bevelPanelHairline`, `bevelTileHairline`) | 40, 20 | 10, 5 borders |
-| Window fill corner (`chamferWindow`) | 40 | 10 borders |
-| Window bevel corners (`bevelWindowOuter`; `bevelWindowInner`, `bevelWindowDark`, `bevelWindowHairline`) | 44; 52 | 11; 13 borders |
+| Panel fill corner (`chamferPanel`) | 32 | `Snap(8)` units |
+| Tile fill corner (`chamferTile`) | 14 | `Snap(3.5)` units; icon buttons use 10.5% of their side |
+| Window fill corner (`chamferWindow`) | 48 | `Snap(12)` units |
 
-`LayoutSlice` follows the same rule for these eleven textures: its `cornerUnits` count borders, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3) lines up with a tile's chrome. Every other sliced texture, such as `shadow`, sizes its corners in units snapped to whole pixels.
-
-A border is one unit at 1080p and 4K, so a panel's chamfer is 8 units there and a window's 10. At 1440p a border is one pixel, 0.75 units, so a panel's chamfer is 8 pixels (6 units) and a tile's 3 pixels. The size setting moves the chamfer in steps of whole borders in the same way. `test-pixels.lua` checks every bevel corner on the four screens at sizes 0.75 to 1.5.
+`test-pixels.lua` checks every chamfer and line on the four screens at sizes 0.75 to 1.5: the chamfer is the nearest whole pixel to its size in units, each straight piece is one border thick and sits a whole number of pixels in, and each corner square is whole pixels.
 
 ## Panel
 
@@ -158,7 +157,7 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `silent` (no click sound, for buttons that keys press, such as action buttons).
 
-The body is the `buttonFill` near-black glass. The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row:
+The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button. The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row:
 
 | State | Hairline | Icon |
 | --- | --- | --- |
@@ -175,9 +174,11 @@ The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a c
 | Method | Behaviour |
 | --- | --- |
 | `SetIcon(texture)` | `KstyleUI.Icons.Reset`, then `SetTexture` on the icon. To use KstyleUI's custom icons, call `KstyleUI.Icons.Apply(button.icon, fileID)` instead. |
-| `SetCooldown(start, duration) -> ok` | Plain numbers only. `Cooldown:SetCooldown` refuses secret arguments from addon code, so a secret is refused, logged once, and returns `false`. |
-| `SetCooldownFromDuration(durationObject) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
-| `ClearCooldown()` | |
+| `SetCooldown(start, duration, gcd) -> ok` | Plain numbers only. `Cooldown:SetCooldown` refuses secret arguments from addon code, so a secret is refused, logged once, and returns `false`. |
+| `SetCooldownFromDuration(durationObject, gcd) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
+| `ClearCooldown()` | Clears the cooldown and forgets `gcd`. |
+
+`gcd = true` says the cooldown is only the global cooldown: the swipe runs, but the button stays ready, with the accent rim and a bright icon. The global cooldown alone never dims an icon or greys its rim. The ActionBars module reads `isOnGCD` from `C_ActionBar.GetActionCooldown` and passes it.
 | `SetProc(on)`, `SetUsable(on)`, `SetSelected(on)` | |
 | `SetHotkey(text)`, `SetCount(text)` | Caption text at the top right (upper case) and `number` text at the bottom right, above the swipe |
 | `SetTint(r, g, b)` | Multiplies the icon's shade in every state, such as red while out of range. No arguments return it to white. |
