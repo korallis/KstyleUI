@@ -1,3 +1,8 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Init.lua"/>
+	<Script file="Format.lua"/>
+	<Script file="Settings.lua"/>
+	<Script file="Windows.lua"/>
+	<Script file="Messages.lua"/>
+	<Script file="Module.lua"/>
 </Ui>
