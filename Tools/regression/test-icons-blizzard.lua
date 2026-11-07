@@ -1,4 +1,4 @@
--- test-icons-blizzard.lua: with custom icons on, Blizzard's spellbook icons show the custom set through hooks, keep Blizzard's own shading, and get Blizzard's art back when custom icons stop.
+-- test-icons-blizzard.lua: with custom icons on, Blizzard's spellbook and talent icons show the custom set through hooks, keep Blizzard's own shading, and get Blizzard's art back when custom icons stop.
 local W = dofile("Tools/regression/widget_env.lua")
 local S = dofile("Tools/regression/skins_env.lua")
 
@@ -10,12 +10,13 @@ local DATA = {
 	KstyleUI_IconsColour = { set = "B", icons = { [FIREBALL] = B_PATH .. FIREBALL .. ".png" } },
 }
 -- The methods the service may hook on a Blizzard texture, and the page method it hooks on the spellbook.
-local HOOKS = { SetTexture = true, SetVertexColor = true, SetAlpha = true, SetTexCoord = true, AddMaskTexture = true, RemoveMaskTexture = true, Show = true, Hide = true, SetShown = true, DisplayViewsForCurrentPage = true }
+local HOOKS = { SetTexture = true, SetVertexColor = true, SetAtlas = true, SetAlpha = true, SetTexCoord = true, AddMaskTexture = true, RemoveMaskTexture = true, Show = true, Hide = true, SetShown = true, DisplayViewsForCurrentPage = true }
 
 local function New()
 	return W.New({
 		setup = function(env)
 			env._loaded = {}
+			env.TalentFrameBaseMixin = { Event = { TalentButtonAcquired = "TalentButtonAcquired" } }
 			env.C_AddOns = {
 				LoadAddOn = function(name)
 					env.KstyleUIIconData, env._loaded[name] = W.CoreEnv.DeepCopy(DATA[name]), true
@@ -146,4 +147,54 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-print("icons on Blizzard's spellbook ok")
+-- Talents: buttons made before the hook and acquired after it, and an atlas icon ---------------------
+
+do
+	local env, K = New()
+	local B = S.Blizzard(env)
+	local frame = B.frame("Frame", nil, "PlayerSpellsFrame")
+	local talents = B.frame("Frame", frame)
+	frame.TalentsFrame = talents
+	local active, callbacks, buttons = {}, {}, {}
+	for i = 1, 3 do
+		buttons[i] = B.frame("Button", talents)
+		OneAlpha(buttons[i])
+		buttons[i].Icon = B.texture(buttons[i])
+	end
+	buttons[2].Icon2 = B.texture(buttons[2])
+	function talents.RegisterCallback(_, event, fn, owner)
+		callbacks[#callbacks + 1] = { event = event, fn = fn, owner = owner }
+	end
+	function talents.EnumerateAllTalentButtons()
+		local i = 0
+		return function()
+			i = i + 1
+			return active[i]
+		end
+	end
+	-- Acquire(button, fileID): Blizzard acquires a pooled button, fires TalentButtonAcquired, then draws the icon.
+	local function Acquire(button, fileID)
+		active[#active + 1] = button
+		for _, entry in ipairs(callbacks) do
+			entry.fn(entry.owner, button)
+		end
+		button.Icon:SetTexture(fileID)
+	end
+	local snap = B.snapshot()
+	Acquire(buttons[1], FIREBALL)
+	K.Options.Write("Icons", "enabled", true)
+	S.LoadAddOn(env, "Blizzard_PlayerSpells")
+	assert(Shown(buttons[1].Icon) == A_PATH .. FIREBALL .. ".png", "a talent button made before the hook is watched")
+	Acquire(buttons[2], REJUV)
+	buttons[2].Icon2:SetTexture(FIREBALL)
+	assert(Shown(buttons[2].Icon) == A_PATH .. REJUV .. ".png", "a talent button acquired later is watched")
+	assert(Shown(buttons[2].Icon2) == A_PATH .. FIREBALL .. ".png", "and so is a split-choice button's second icon")
+	Acquire(buttons[3], FIREBALL)
+	buttons[3].Icon:SetVertexColor(0.4, 0.4, 0.4, 1)
+	buttons[3].Icon:SetAtlas("talents-node-choiceflyout")
+	assert(W.SameRGB(buttons[3].Icon, 0.4, 0.4, 0.4) and not Highlight(buttons[3].Icon):IsShown(), "an atlas icon drops the tint and the highlight and keeps Blizzard's shading")
+	B.check(snap, HOOKS)
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+print("icons on Blizzard's spellbook and talents ok")

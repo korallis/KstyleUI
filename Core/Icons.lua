@@ -329,6 +329,13 @@ local function onVertexColor(texture, r, g, b)
 	end
 end
 
+local function onAtlas(texture)
+	if not own then
+		state[texture].file = nil
+		Icons.Reset(texture)
+	end
+end
+
 function Icons.Watch(texture)
 	if type(texture) ~= "table" or type(texture.GetTextureFileID) ~= "function" or type(hooksecurefunc) ~= "function" then
 		return false
@@ -339,6 +346,7 @@ function Icons.Watch(texture)
 		onVertexColor(texture, texture:GetVertexColor())
 		hooksecurefunc(texture, "SetTexture", onSetTexture)
 		hooksecurefunc(texture, "SetVertexColor", onVertexColor)
+		hooksecurefunc(texture, "SetAtlas", onAtlas)
 		follow(texture, texture:GetTextureFileID())
 	end
 	return true

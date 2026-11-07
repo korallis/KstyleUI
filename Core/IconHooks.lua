@@ -1,4 +1,4 @@
--- IconHooks.lua: shows the custom icon set on Blizzard's spellbook icons by watching their textures with Icons.Watch.
+-- IconHooks.lua: shows the custom icon set on Blizzard's spellbook and talent icons by watching their textures with Icons.Watch.
 local _, ns = ...
 
 local MODULE, ADDON = "Icons", "Blizzard_PlayerSpells"
@@ -19,9 +19,29 @@ local function watchPage(paged)
 	paged:ForEachFrame(watchItem)
 end
 
-local function hook()
-	hooked = true
-	local frame = _G.PlayerSpellsFrame
+local function watchTalent(_, button)
+	if type(button) == "table" then
+		ns.Icons.Watch(button.Icon)
+		ns.Icons.Watch(button.Icon2)
+	end
+end
+
+local function hookTalents(frame)
+	local talents = type(frame) == "table" and frame.TalentsFrame
+	local events = type(TalentFrameBaseMixin) == "table" and TalentFrameBaseMixin.Event
+	local acquired = type(events) == "table" and events.TalentButtonAcquired
+	if type(talents) ~= "table" or type(talents.RegisterCallback) ~= "function" or type(talents.EnumerateAllTalentButtons) ~= "function" or not acquired then
+		log("talents: the talent buttons are missing; Blizzard's icons stay")
+		return
+	end
+	for button in talents:EnumerateAllTalentButtons() do
+		watchTalent(nil, button)
+	end
+	talents:RegisterCallback(acquired, watchTalent, MODULE)
+	log("talents: watching its talent icons")
+end
+
+local function hookSpellbook(frame)
 	local book = type(frame) == "table" and frame.SpellBookFrame
 	local paged = type(book) == "table" and book.PagedSpellsFrame
 	if type(paged) ~= "table" or type(paged.ForEachFrame) ~= "function" or type(paged.DisplayViewsForCurrentPage) ~= "function" or type(hooksecurefunc) ~= "function" then
@@ -31,6 +51,13 @@ local function hook()
 	watchPage(paged)
 	hooksecurefunc(paged, "DisplayViewsForCurrentPage", watchPage)
 	log("spellbook: watching its spell icons")
+end
+
+local function hook()
+	hooked = true
+	local frame = _G.PlayerSpellsFrame
+	hookSpellbook(frame)
+	hookTalents(frame)
 end
 
 local function onAddonLoaded(_, name)
