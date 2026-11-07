@@ -99,6 +99,7 @@ local function Kind(full, overrides, castHeight, castFont, aura)
 		castbarTexture = BAR_TEXTURE,
 		castbarColor = "class",
 		castbarCustom = Color("rare"),
+		castbarOrientation = "RIGHT",
 		auras = aura ~= nil and aura.on or false,
 		auraFilter = "mine",
 		auraSize = aura and aura.size or 20,
@@ -144,6 +145,7 @@ Settings.defaults = {
 		manaColor = "power",
 		manaCustom = Color("rare"),
 		manaTexture = BAR_TEXTURE,
+		manaOrientation = "RIGHT",
 		spacing = 3,
 	},
 }
@@ -169,6 +171,7 @@ Settings.CHOICES = {
 	outline = Options({ { "NONE", L["None (soft shadow)"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } }),
 	accent = Options({ { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
 	manaColor = Options({ { "power", L["Power type"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
+	castbarColor = Options({ { "class", L["Class colour"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	auraFilter = Options({ { "mine", L["Your debuffs"] }, { "debuffs", L["All debuffs"] }, { "buffs", L["Buffs"] }, { "both", L["Debuffs and buffs"] } }),
 	auraGrowth = Options({ { "RIGHT_DOWN", L["Right, then down"] }, { "RIGHT_UP", L["Right, then up"] }, { "LEFT_DOWN", L["Left, then down"] }, { "LEFT_UP", L["Left, then up"] } }),
 	auraPosition = Options({ { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
@@ -184,7 +187,8 @@ local CHOICE_OF = {
 	powerOrientation = "orientation",
 	healthText = "text",
 	powerText = "text",
-	castbarColor = "accent",
+	castbarColor = "castbarColor",
+	castbarOrientation = "orientation",
 	auraFilter = "auraFilter",
 	auraGrowth = "auraGrowth",
 	auraPosition = "auraPosition",
@@ -280,6 +284,8 @@ function Settings.Value(kind, key)
 	return value
 end
 
+local RESOURCE_CHOICES = { comboColor = "accent", manaColor = "manaColor", manaOrientation = "orientation" }
+
 function Settings.Resource(key)
 	local d = Settings.defaults.resource
 	local default = d[key]
@@ -292,7 +298,8 @@ function Settings.Resource(key)
 	if type(value) ~= type(default) then
 		return default
 	end
-	if key == "comboColor" and not Allowed(CHOICES.accent, value) or key == "manaColor" and not Allowed(CHOICES.manaColor, value) then
+	local choice = RESOURCE_CHOICES[key]
+	if choice and not Allowed(CHOICES[choice], value) then
 		LogOnce("resource." .. key, "resource." .. key .. ": " .. tostring(value) .. " is not a choice; using " .. tostring(default))
 		return default
 	end
@@ -505,7 +512,7 @@ CastRows = function(schema, kind)
 	}, on)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "castbarColor", label = L["Cast bar colour"],
-		help = L["The cast bar follows the class colour or a custom colour."], options = CHOICES.accent,
+		help = L["The class colour, the caster's reaction to you, or a custom colour."], options = CHOICES.castbarColor,
 	}, on)
 	schema[#schema + 1] = Row(kind, {
 		type = "color", key = "castbarCustom", label = L["Custom cast bar colour"],
@@ -513,6 +520,11 @@ CastRows = function(schema, kind)
 	}, function(s)
 		return on(s) and s.castbarColor == "custom"
 	end)
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "castbarOrientation", label = L["Cast bar fill direction"],
+		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
+		options = CHOICES.orientation,
+	}, on)
 	TextRows(schema, kind, "cast")
 end
 
@@ -616,6 +628,10 @@ ResourceRows = function(schema)
 		showWhen = shows(function(r)
 			return on(r) and r.manaColor == "custom"
 		end),
+	}
+	schema[#schema + 1] = {
+		type = "dropdown", key = "resource.manaOrientation", label = L["Mana bar fill direction"], showWhen = shows(on),
+		help = L["Which way the druid mana bar fills."], options = CHOICES.orientation,
 	}
 	for i = first, #schema do
 		schema[i].scope = Scope("player")

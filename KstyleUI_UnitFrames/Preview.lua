@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens, Theme, L = K.Tokens, K.Theme, K.L
+local Widgets, Tokens, Theme, L = K.Widgets, K.Tokens, K.Theme, K.L
 local Settings, Style, Format = ns.Settings, ns.Style, ns.Format
 
 local Preview = {}
@@ -129,6 +129,7 @@ local function PaintCast(frame, view, kind, height)
 	cb.frame:ClearAllPoints()
 	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", g.panel.x, -(height + CAST_GAP))
 	cb.frame:SetSize(g.panel.w, castH)
+	cb.sampleReaction = SAMPLES[kind].reaction
 	ns.CastBars.Restyle(cb)
 	ns.CastBars.Layout(cb, g.panel.w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
@@ -146,10 +147,10 @@ local function PaintCast(frame, view, kind, height)
 end
 
 local function PaintAuras(frame, view, kind)
-	local icons = frame.auraIcons[kind]
+	local icons, tiles = frame.auraIcons[kind], frame.auraTiles[kind]
 	if not icons then
-		icons = {}
-		frame.auraIcons[kind] = icons
+		icons, tiles = {}, {}
+		frame.auraIcons[kind], frame.auraTiles[kind] = icons, tiles
 	end
 	local holder = frame.holders[kind]
 	local host = frame.auraHosts[kind]
@@ -160,31 +161,30 @@ local function PaintAuras(frame, view, kind)
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
 	local count = on and math.min(#AURA_ICONS, Settings.Value(kind, "auraColumns")) or 0
 	if count > 0 then
-		local width, height, corner, _, growth = ns.Auras.Footprint(kind)
+		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
 		host:SetSize(width, height)
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x)
 		host:Show()
-		local size, spacing = Settings.Value(kind, "auraSize"), Settings.Value(kind, "auraSpacing")
+		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
+		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
 		local sx = growth[2] == "Left" and -1 or 1
 		for i = 1, count do
-			local icon = icons[i]
-			if not icon then
-				icon = host:CreateTexture(nil, "ARTWORK")
-				local mask = host:CreateMaskTexture()
-				mask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-				mask:SetAllPoints(icon)
-				icon:AddMaskTexture(mask)
-				icons[i] = icon
+			local tile = tiles[i]
+			if not tile then
+				tile = ns.Auras.NewTile(host)
+				tiles[i], icons[i] = tile, tile.skin
 			end
 			if K.Icons and K.Icons.Apply then
-				K.Icons.Apply(icon, AURA_ICONS[i])
+				K.Icons.Apply(tile.icon, AURA_ICONS[i])
 			else
-				icon:SetTexture(AURA_ICONS[i])
+				tile.icon:SetTexture(AURA_ICONS[i])
 			end
-			icon:ClearAllPoints()
-			icon:SetPoint(corner, host, corner, sx * (i - 1) * (size + spacing), 0)
-			icon:SetSize(size, size)
-			icon:Show()
+			local skin = tile.skin
+			skin:ClearAllPoints()
+			skin:SetPoint(corner, host, corner, sx * (i - 1) * (size + spacing), 0)
+			skin:SetSize(size, size)
+			ns.Auras.LayoutTile(tile)
+			skin:Show()
 		end
 	else
 		host:Hide()
@@ -246,7 +246,7 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraHosts = {}, {}, {}, {}, {}
+	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts = {}, {}, {}, {}, {}, {}
 	frame.Refresh = Refresh
 	Refresh(frame)
 	return frame

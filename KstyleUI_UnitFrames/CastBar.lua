@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Motion, L = K.Widgets, K.Tokens, K.Motion, K.L
-local Settings = ns.Settings
+local Settings, Style = ns.Settings, ns.Style
 
 local CastBars = {}
 ns.CastBars = CastBars
@@ -15,7 +15,8 @@ local ICON_GAP = 2
 local TEXT_PAD = 4
 local TIMER_FORMAT = "%.1f"
 local MS = 1000
-local LIMITS = { minWidth = 40, minHeight = 6, maxWidth = 640, maxHeight = 60 }
+local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
+local ORIENTATION = Style.ORIENTATION
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -97,8 +98,31 @@ local function Tick(frame, elapsed)
 	end
 end
 
+local function StopTimer(cb)
+	cb.frame:SetScript("OnUpdate", nil)
+end
+
+local function Hide(cb, instant)
+	cb.active = false
+	cb.token = (cb.token or 0) + 1
+	StopTimer(cb)
+	cb.duration = nil
+	if instant or not cb.frame:IsShown() then
+		cb.frame:Hide()
+		return
+	end
+	Motion.FadeOut(cb.frame, Tokens.Duration("fade"))
+end
+
 local function New(parent, kind, unit)
-	local cb = { kind = kind, unit = unit, elapsed = 0 }
+	local cb = { kind = kind, unit = unit, elapsed = 0, colors = {}, holds = 0 }
+	cb.release = function()
+		cb.holds = cb.holds - 1
+		if cb.holds <= 0 and cb.token == cb.hold then
+			cb.holds = 0
+			Hide(cb)
+		end
+	end
 	local frame = CreateFrame("Frame", nil, parent)
 	frame.cb = cb
 	frame:Hide()
@@ -124,95 +148,180 @@ local function Snap(cb, units)
 	return Widgets.Snap(cb.frame, units)
 end
 
+local function PlaceTexts(cb, bar, tall)
+	local pad = Snap(cb, TEXT_PAD)
+	local text, timer = cb.text, cb.timer
+	text:ClearAllPoints()
+	timer:ClearAllPoints()
+	if tall then
+		text:SetJustifyH("CENTER")
+		timer:SetJustifyH("CENTER")
+		text:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, -pad)
+		text:SetPoint("TOPRIGHT", bar, "TOPRIGHT", 0, -pad)
+		timer:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 0, pad)
+		timer:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, pad)
+	else
+		text:SetJustifyH("LEFT")
+		timer:SetJustifyH("RIGHT")
+		timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
+		text:SetPoint("LEFT", bar, "LEFT", pad, 0)
+		text:SetPoint("RIGHT", timer, "LEFT", -pad, 0)
+	end
+end
+
 function CastBars.Layout(cb, width, height)
-	local showIcon = Settings.Value(cb.kind, "castbarIcon")
-	local x = 0
-	if showIcon then
+	local tall = height > width
+	local thick = tall and width or height
+	local offset = 0
+	if Settings.Value(cb.kind, "castbarIcon") then
 		local inset = Widgets.Border(cb.frame)
 		cb.iconFrame:ClearAllPoints()
 		cb.iconFrame:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", 0, 0)
-		Widgets.Size(cb.iconFrame, height, height)
+		Widgets.Size(cb.iconFrame, thick, thick)
 		cb.iconChrome:Restyle()
 		cb.icon:ClearAllPoints()
 		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
 		cb.icon:SetPoint("BOTTOMRIGHT", cb.iconFrame, "BOTTOMRIGHT", -inset, inset)
 		cb.iconFrame:Show()
-		x = height + ICON_GAP
+		offset = thick + ICON_GAP
 	else
 		cb.iconFrame:Hide()
 	end
 	local bar = cb.bar
-	bar.opts.width, bar.opts.height = math.max(0, width - x), height
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, x), 0)
+	if tall then
+		bar.opts.width, bar.opts.height = width, math.max(0, height - offset)
+		bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", 0, -Snap(cb, offset))
+	else
+		bar.opts.width, bar.opts.height = math.max(0, width - offset), height
+		bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, offset), 0)
+	end
 	bar:Restyle()
-	local pad = Snap(cb, TEXT_PAD)
-	cb.text:ClearAllPoints()
-	cb.text:SetPoint("LEFT", bar, "LEFT", pad, 0)
-	cb.text:SetPoint("RIGHT", cb.timer, "LEFT", -pad, 0)
-	cb.timer:ClearAllPoints()
-	cb.timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
+	PlaceTexts(cb, bar, tall)
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	cb.timer:SetShown(Settings.Value(cb.kind, "castbarTimer"))
 end
 
+local function Reaction(cb)
+	if cb.unit == nil then
+		return cb.sampleReaction
+	end
+	if not UnitReaction then
+		LogOnce("reaction-api", "cast bars: UnitReaction is missing; reaction cast bars use the class accent")
+		return nil
+	end
+	local reaction = UnitReaction(cb.unit, "player")
+	if issecretvalue(reaction) then
+		LogOnce("reaction-secret", "cast bars: the caster's reaction is secret; the bar uses the class accent")
+		return nil
+	end
+	return reaction
+end
+
 local function BarColor(cb)
-	if Settings.Value(cb.kind, "castbarColor") == "custom" then
+	local source = Settings.Value(cb.kind, "castbarColor")
+	if source == "custom" then
 		local c = Settings.Value(cb.kind, "castbarCustom")
 		return c.r, c.g, c.b
+	elseif source == "reaction" then
+		local reaction = Reaction(cb)
+		if type(reaction) == "number" then
+			return K.Theme.ReactionColor(reaction)
+		end
 	end
 	return K.Theme.Accent()
 end
 
+local function Paint(cb, r, g, b, a)
+	if cb.pr == r and cb.pg == g and cb.pb == b and cb.pa == a then
+		return
+	end
+	cb.pr, cb.pg, cb.pb, cb.pa = r, g, b, a
+	if a == nil then
+		cb.bar:SetBarColor(r, g, b)
+	else
+		cb.bar:SetBarColor(r, g, b, a)
+	end
+end
+
+local function StyleText(text, path, size, flags)
+	if text:SetFont(path, size, flags) == false then
+		text:SetFont((Tokens.Font("body")), size, flags)
+	end
+	if flags == "" then
+		text:SetShadowColor(Tokens.Color("textShadow"))
+		local offset = Tokens.Size("textShadowOffset")
+		text:SetShadowOffset(offset, -offset)
+	else
+		text:SetShadowOffset(0, 0)
+	end
+end
+
+local function Orient(cb)
+	local o = ORIENTATION[Settings.Value(cb.kind, "castbarOrientation")] or ORIENTATION.RIGHT
+	local bar = cb.bar
+	bar:SetOrientation(o[1])
+	bar:SetReverseFill(o[2])
+	local vertical = o[1] == "VERTICAL"
+	local turned = bar.vertical ~= vertical
+	bar.vertical = vertical
+	if bar.spark then
+		bar.spark:ClearAllPoints()
+		bar.spark:SetPoint("CENTER", bar:GetStatusBarTexture(), o[4])
+	end
+	if turned then
+		bar:Restyle()
+	end
+end
+
 function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
-	for _, text in ipairs({ cb.text, cb.timer }) do
-		if text:SetFont(path, size, flags) == false then
-			local fallback = Tokens.Font("body")
-			text:SetFont(fallback, size, flags)
-		end
-		if flags == "" then
-			text:SetShadowColor(Tokens.Color("textShadow"))
-			local offset = Tokens.Size("textShadowOffset")
-			text:SetShadowOffset(offset, -offset)
-		else
-			text:SetShadowOffset(0, 0)
-		end
-	end
+	StyleText(cb.text, path, size, flags)
+	StyleText(cb.timer, path, size, flags)
 	cb.text:SetTextColor(Tokens.Color("textEmphasis"))
 	cb.timer:SetTextColor(Tokens.Color("text"))
 	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
-	cb.bar:SetBarColor(BarColor(cb))
+	Orient(cb)
+	cb.styled = true
+	cb.pr = nil
+	Paint(cb, BarColor(cb))
 end
 
-local function StopTimer(cb)
-	cb.frame:SetScript("OnUpdate", nil)
-end
-
-local function Hide(cb, instant)
-	cb.active = false
-	cb.token = (cb.token or 0) + 1
-	StopTimer(cb)
-	cb.duration = nil
-	if instant or not cb.frame:IsShown() then
-		cb.frame:Hide()
-		return
+local function ColorObjects(cb, r, g, b)
+	local create = CreateColor
+	if not create then
+		return nil
 	end
-	Motion.FadeOut(cb.frame, Tokens.Duration("fade"))
+	local c = cb.colors
+	if c.r ~= r or c.g ~= g or c.b ~= b then
+		c.r, c.g, c.b = r, g, b
+		c.normal = create(r, g, b, 1)
+	end
+	local lr, lg, lb = Tokens.Color("textDisabled")
+	if c.lr ~= lr or c.lg ~= lg or c.lb ~= lb then
+		c.lr, c.lg, c.lb = lr, lg, lb
+		c.locked = create(lr, lg, lb, 1)
+	end
+	return c.locked, c.normal
 end
 
 local function Locked(cb, notInterruptible)
-	local texture = cb.bar:GetStatusBarTexture()
 	if issecretvalue(notInterruptible) then
-		if texture and texture.SetVertexColorFromBoolean and CreateColor then
-			local lr, lg, lb = Tokens.Color("textDisabled")
-			local r, g, b = BarColor(cb)
-			texture:SetVertexColorFromBoolean(notInterruptible, CreateColor(lr, lg, lb, 1), CreateColor(r, g, b, 1))
+		local texture = cb.bar:GetStatusBarTexture()
+		if texture and texture.SetVertexColorFromBoolean then
+			local locked, normal = ColorObjects(cb, BarColor(cb))
+			if locked then
+				texture:SetVertexColorFromBoolean(notInterruptible, locked, normal)
+				cb.pr = nil
+				return
+			end
 		end
+		LogOnce("locked", "cast bars: no SetVertexColorFromBoolean or CreateColor; a secret uninterruptible cast keeps the normal colour")
+		Paint(cb, BarColor(cb))
 	elseif notInterruptible then
-		cb.bar:SetBarColor(Tokens.Color("textDisabled"))
+		Paint(cb, Tokens.Color("textDisabled"))
 	else
-		cb.bar:SetBarColor(BarColor(cb))
+		Paint(cb, BarColor(cb))
 	end
 end
 
@@ -296,7 +405,9 @@ local function Start(cb, channel)
 	Motion.FadeIn(cb.frame, Tokens.Duration("fade"))
 	cb.text:SetText(text)
 	Icon(cb, texture)
-	CastBars.Restyle(cb)
+	if not cb.styled then
+		CastBars.Restyle(cb)
+	end
 	Locked(cb, notInterruptible)
 	cb.elapsed = TIMER_STEP
 	cb.total = nil
@@ -311,7 +422,9 @@ local function Start(cb, channel)
 	else
 		StopTimer(cb)
 	end
-	cb.bar:PlaySheen(false)
+	if not cb.bar.vertical then
+		cb.bar:PlaySheen(false)
+	end
 end
 
 local function Finish(cb, message)
@@ -324,14 +437,11 @@ local function Finish(cb, message)
 	cb.text:SetText(message)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(1)
-	cb.bar:SetBarColor(Tokens.Color("hostile"))
+	Paint(cb, Tokens.Color("hostile"))
 	local token = (cb.token or 0) + 1
-	cb.token = token
-	C_Timer.After(HOLD, function()
-		if cb.token == token then
-			Hide(cb)
-		end
-	end)
+	cb.token, cb.hold = token, token
+	cb.holds = cb.holds + 1
+	C_Timer.After(HOLD, cb.release)
 end
 
 local function Casting(unit)

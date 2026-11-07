@@ -76,6 +76,14 @@ K.Options.Write("UnitFrames", "target.healthCustom", { r = 0.3, g = 0.6, b = 0.9
 settle()
 local last = W.LastCall(target.health, "SetStatusBarColor")
 assert(last[1] == 0.3 and last[2] == 0.6 and last[3] == 0.9, "a custom colour shows in the preview")
+K.Options.Write("UnitFrames", "target.castbarColor", "reaction")
+settle()
+local castColor = W.LastCall(preview.casts.target.bar, "SetStatusBarColor")
+local hr, hg, hb = K.Theme.ReactionColor(2)
+assert(castColor[1] == hr and castColor[2] == hg and castColor[3] == hb, "a reaction cast bar shows the hostile sample's colour")
+K.Options.Write("UnitFrames", "target.castbarOrientation", "LEFT")
+settle()
+assert(W.LastCall(preview.casts.target.bar, "SetReverseFill")[1] == true, "the sample cast bar fills the chosen way")
 K.Options.Write("UnitFrames", "target.castbar", false)
 settle()
 assert(not preview.casts.target.frame:IsShown(), "switching the cast bar off hides it in the preview")
@@ -83,6 +91,14 @@ assert(preview.auraCount == 0, "the target sample shows no auras while they are 
 K.Options.Write("UnitFrames", "target.auras", true)
 settle()
 assert(preview.auraCount > 0 and preview.auraIcons.target[1]:IsShown(), "switching target auras on shows sample aura icons")
+local bevels = 0
+for _, region in ipairs(W.Regions(preview.auraIcons.target[1], "Texture")) do
+	local set = W.LastCall(region, "SetTexture")
+	if set and set[1] == (K.Tokens.Texture("bevelTileInner")) then
+		bevels = bevels + 1
+	end
+end
+assert(bevels == 4, "the sample aura icons wear the live aura tile")
 K.Options.Write("UnitFrames", "target.auraPosition", "RIGHT")
 K.Options.Write("UnitFrames", "target.auraGrowth", "LEFT_DOWN")
 settle()

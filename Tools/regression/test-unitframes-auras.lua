@@ -36,6 +36,46 @@ assert(aura.SetIcon[1]:GetParent() ~= button, "the art sits on a child frame of 
 local w, h = button:GetSize()
 assert(w == 20 and h == 20, "buttons take the aura size: " .. tostring(w))
 
+-- Each button wears the kit's icon tile: a raised chamfered fill whose corner stays 3 units at any icon size,
+-- the double bevel hairline, the icon two borders in, and a swipe in the icon's chamfered shape.
+local Tokens = K.Tokens
+local function tilePaths(skin)
+	local paths = {}
+	for _, region in ipairs(W.Regions(skin, "Texture")) do
+		local set = W.LastCall(region, "SetTexture")
+		if set then
+			paths[set[1]] = (paths[set[1]] or 0) + 1
+		end
+	end
+	return paths
+end
+local function cornerSizes(skin)
+	local sizes = {}
+	for _, region in ipairs(W.Regions(skin, "Texture")) do
+		local set = W.LastCall(region, "SetTexture")
+		local size = W.LastCall(region, "SetSize")
+		if set and set[1] == (Tokens.Texture("chamferTile")) and size then
+			sizes[#sizes + 1] = size
+		end
+	end
+	return sizes
+end
+local skin = aura.SetIcon[1]:GetParent()
+local paths = tilePaths(skin)
+assert((paths[(Tokens.Texture("chamferTile"))] or 0) >= 9, "the tile has a chamfered fill")
+assert(paths[(Tokens.Texture("bevelTileOuter"))] == 4 and paths[(Tokens.Texture("bevelTileInner"))] == 4, "the tile has the double bevel")
+assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
+local corners = cornerSizes(skin)
+assert(#corners >= 4, "the chamfer corners are sized")
+for _, size in ipairs(corners) do
+	assert(size[1] == 3 and size[2] == 3, "each chamfer corner is 3 units at a 20-unit icon: " .. tostring(size[1]))
+end
+local _, iconRel, _, ix, iy = aura.SetIcon[1]:GetPoint(1)
+assert(iconRel == skin and ix == 2 * K.Scale.Border() and iy == -2 * K.Scale.Border(), "the icon sits two borders in")
+local cooldown = aura.SetDurationCooldown[1]
+assert(W.LastCall(cooldown, "SetSwipeTexture")[1] == (Tokens.Texture("iconMask")), "the swipe has the icon's chamfered shape")
+assert(aura.dispelOptions and aura.dispelOptions.style == env.Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset, "the engine tints the tile's own dispel border")
+
 -- Layout: element size, capacity, line length and growth.
 local layout = c._groups.debuffs.layout
 assert(layout.elementWidth == 20 and layout.elementHeight == 20 and layout.elementSpacing == 2, "the group lays out 20-unit icons, 2 apart")
@@ -82,7 +122,27 @@ env.SetCombat(true)
 env.SetCombat(false)
 local nw = button:GetSize()
 assert(nw == 26, "the buttons take the new size once auras are readable again")
+for _, size in ipairs(cornerSizes(skin)) do
+	assert(size[1] == 3 and size[2] == 3, "the chamfer corner stays 3 units at a 26-unit icon: " .. tostring(size[1]))
+end
 noErrors("after the gate")
+
+-- A theme change while auras are secret leaves the tiles alone until aura data is readable.
+env._restricted = true
+local regionCalls = {}
+for _, region in ipairs(W.Regions(skin, "Texture")) do
+	regionCalls[region] = #W.Calls(region, "SetPoint")
+end
+local skinCalls = #skin._calls
+K.Widgets.RestyleAll()
+for region, n in pairs(regionCalls) do
+	assert(#W.Calls(region, "SetPoint") == n, "no tile texture moves while auras are secret")
+end
+assert(#skin._calls == skinCalls, "the tile frame is left alone while auras are secret")
+env._restricted = false
+env.SetCombat(true)
+env.SetCombat(false)
+noErrors("theme gate")
 
 -- A container built later takes the frame's current strata.
 assert(K.Layout.Set("unitframes.target", "strata", "HIGH"))
@@ -105,6 +165,30 @@ assert(not focus.auras.host:IsShown() and c._enabled == false, "the module stopp
 K.Modules.Enable("UnitFrames")
 assert(c._enabled == true, "and enabling it again turns them back on")
 noErrors("visibility")
+
+-- At 1440p a unit is three quarters of a pixel, so sizes, gaps and offsets snap to whole pixels.
+do
+	local qenv, QK, qns = U.New({ width = 2560, height = 1440 })
+	local px = QK.Scale.Pixel()
+	assert(math.abs(px - 0.75) < 1e-6, "one pixel is 0.75 units at 1440p")
+	local function whole(units)
+		local n = units / px
+		return math.abs(n - math.floor(n + 0.5)) < 1e-6
+	end
+	local qfocus = qns.Frames.Get("focus").views[1]
+	local qc = qfocus.auras.container
+	local qw, qh = qc._groups.debuffs.buttons[1]:GetSize()
+	assert(whole(qw) and whole(qh), "an aura button covers whole pixels: " .. tostring(qw))
+	local ql = qc._groups.debuffs.layout
+	assert(ql.elementWidth == qw and ql.elementHeight == qh, "the engine lays out the snapped size")
+	assert(whole(ql.elementSpacing) and whole(ql.lineSpacing), "the spacing is whole pixels: " .. tostring(ql.elementSpacing))
+	assert(whole(qc._line), "the row length is whole pixels: " .. tostring(qc._line))
+	local hw, hh = qfocus.auras.host:GetSize()
+	assert(whole(hw) and whole(hh), "the aura row covers whole pixels")
+	local _, _, _, ox, oy = qfocus.auras.host:GetPoint(1)
+	assert(whole(ox) and whole(oy) and ox > 0, "the gap to the frame is whole pixels: " .. tostring(ox))
+	assert(#qenv._errors == 0, "1440p: " .. tostring(qenv._errors[1]))
+end
 
 -- Without the engine, the frames still work and the devlog says why.
 local nenv, NK = U.New({ setup = function(e)

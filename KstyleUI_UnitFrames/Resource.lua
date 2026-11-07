@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Theme = K.Widgets, K.Tokens, K.Theme
-local Settings = ns.Settings
+local Settings, Style = ns.Settings, ns.Style
 
 local Resource = {}
 ns.Resource = Resource
@@ -164,6 +164,9 @@ function Resource.Restyle()
 	end
 	state.mana:SetBarTexture(Settings.Resource("manaTexture"))
 	state.mana:SetBarColor(ManaColor())
+	local o = Style.ORIENTATION[Settings.Resource("manaOrientation")] or Style.ORIENTATION.RIGHT
+	state.mana:SetOrientation(o[1])
+	state.mana:SetReverseFill(o[2])
 	Resource.Visibility()
 end
 

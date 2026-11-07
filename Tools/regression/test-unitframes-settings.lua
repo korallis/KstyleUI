@@ -102,6 +102,19 @@ for _, kind in ipairs(KINDS) do
 		assert(outlines.NONE and outlines.OUTLINE and outlines.THICKOUTLINE, kind .. " " .. element .. ": outline choices")
 	end
 end
+-- Cast bars and the druid's mana bar choose their colour source and fill direction like every other bar.
+for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
+	row(kind .. ".castbarTexture", "texture")
+	local sources = values(row(kind .. ".castbarColor", "dropdown"))
+	assert(sources.class and sources.reaction and sources.custom, kind .. " cast bar: class, reaction or custom colour")
+	local orientations = values(row(kind .. ".castbarOrientation", "dropdown"))
+	assert(orientations.RIGHT and orientations.LEFT and orientations.UP and orientations.DOWN, kind .. " cast bar: four fill directions")
+	assert(defaults[kind].castbarOrientation == "RIGHT", kind .. " cast bar fills left to right by default")
+end
+local manaDirections = values(row("resource.manaOrientation", "dropdown"))
+assert(manaDirections.RIGHT and manaDirections.LEFT and manaDirections.UP and manaDirections.DOWN, "the druid mana bar: four fill directions")
+assert(defaults.resource.manaOrientation == "RIGHT", "the druid mana bar fills left to right by default")
+
 local accent = values(row("accent", "dropdown"))
 assert(accent.class and accent.custom, "the accent follows the class colour or a custom colour")
 row("accentColor", "color")
@@ -133,6 +146,12 @@ K.Store.Module("UnitFrames").player.powerHeight = 999
 assert(Settings.Value("player", "powerHeight") == defaults.player.powerHeight, "a size out of range falls back to the default")
 K.Store.Module("UnitFrames").player.healthText = "percent"
 K.Store.Module("UnitFrames").player.powerHeight = defaults.player.powerHeight
+K.Store.Module("UnitFrames").player.castbarOrientation = "SIDEWAYS"
+assert(Settings.Value("player", "castbarOrientation") == "RIGHT", "an unknown fill direction falls back to the default")
+K.Store.Module("UnitFrames").player.castbarOrientation = "RIGHT"
+K.Store.Module("UnitFrames").resource.manaOrientation = "SIDEWAYS"
+assert(Settings.Resource("manaOrientation") == "RIGHT", "an unknown mana fill direction falls back to the default")
+K.Store.Module("UnitFrames").resource.manaOrientation = "RIGHT"
 
 -- Font(kind, element) -> path, size, flags. "theme" follows the KstyleUI font; the size follows the text size.
 local path, size, flags = Settings.Font("player", "health")

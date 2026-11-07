@@ -63,7 +63,7 @@ A frame 36 units tall or more is a full frame: the name row on top, the health b
 | `Preview.lua` | `ns.Preview.Build(parent)`: the settings window's live preview |
 | `Module.lua` | Registers the module, the settings page and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
+Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-castbar-style.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
 
 ## Settings
 
@@ -92,7 +92,8 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `<frame>.auraFilter` | `mine` (your debuffs), `debuffs`, `buffs`, `both` | `mine` |
 | `<frame>.auraPosition`, `auraGrowth` | `BELOW`, `ABOVE`, `RIGHT`, `LEFT` of the frame; `RIGHT_DOWN`, `RIGHT_UP`, `LEFT_DOWN`, `LEFT_UP` | `RIGHT` for focus and boss, `BELOW` for the player, `ABOVE` for the target; `RIGHT_DOWN` |
 | `<frame>.auraSize`, `auraSpacing`, `auraRows`, `auraColumns`, `auraTimer` | Icon size 12 to 48, spacing 0 to 12, 1 to 6 rows of each kind, 1 to 16 columns, the time left on each icon | 20 (boss 18), 2, 1, 8 (boss 6), on |
-| `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent) or `custom` colour | Glass, `class` |
+| `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent), `reaction` (the caster's reaction to you; the class accent while it is secret) or `custom` colour | Glass, `class` |
+| `<frame>.castbarOrientation` | Cast bar fill direction: `RIGHT`, `LEFT`, `UP`, `DOWN`. A cast bar taller than it is wide stacks its icon above the bar and puts the spell name at the top and the timer at the bottom. | `RIGHT` |
 | `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar and auras, `cast` and `aura` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
 
 The class resource has its own settings, under the player frame's rows:
@@ -102,6 +103,7 @@ The class resource has its own settings, under the player frame's rows:
 | `resource.enabled` | Show the class resource element | on |
 | `resource.comboPoints`, `comboColor`, `comboCustom`, `spacing` | Combo point pips: on or off, `class` (the class accent) or `custom` colour, 0 to 12 units apart | on, `class`, 3 |
 | `resource.druidMana`, `manaTexture`, `manaColor`, `manaCustom` | The druid's mana bar in bear and cat form: on or off, texture, `power`, `class` or `custom` colour | on, Glass, `power` |
+| `resource.manaOrientation` | The druid mana bar's fill direction: `RIGHT`, `LEFT`, `UP`, `DOWN` | `RIGHT` |
 
 Size, position, opacity, strata and the shown rule come from Layout's element rows under **Positions and sizes**.
 
@@ -133,7 +135,8 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 - A secret `notInterruptible` colours the bar with `SetVertexColorFromBoolean`.
 - The timer counts down on an `OnUpdate` that runs only while a cast shows its timer, every 0.05 seconds, through `SetFormattedText` with the duration's remaining time, which may be secret.
 - Fallbacks, each logged once to the devlog: when there is no duration object or `SetTimerDuration` refuses one, the bar runs on the cast's start and end times while they are plain; when those are secret too, the bar shows full with the spell name and no timer. A secret duration object cannot be read, so it drives the bar with no timer text.
-- A light sheen crosses the bar at the start of each cast, as the spec's motion table asks.
+- A light sheen crosses a horizontal bar at the start of each cast, as the spec's motion table asks. A vertical bar has no sheen, because the sheen moves sideways.
+- A cast start sets no fonts, textures or fill direction: settings, theme and profile changes restyle the bars. The bar colour is set only when it changes, the two colour objects for a secret `notInterruptible` are rebuilt only when a colour changes, and the hold after a failed or interrupted cast reuses one release function per bar.
 
 ## Frame auras
 
@@ -143,8 +146,8 @@ Each player, target, focus and boss view gets a `CustomAuraContainerTemplate` co
 | --- | --- |
 | Groups | Two groups, `debuffs` and `buffs`. The filter setting enables them and sets their filter strings: `HARMFUL|PLAYER`, `HARMFUL`, `HELPFUL`, or both, with buffs starting a new line. Each group holds `auraRows` times `auraColumns` icons. |
 | Layout | The group layout sets `elementWidth`, `elementHeight` and the spacing; the flow layout grows from the corner the growth setting names, with lines `auraColumns` icons long. These container-level changes apply at once, in or out of combat. |
-| Buttons | `initializeFrame` dresses each engine button: a child frame with a chamfered tile, the icon (`SetIcon`), a reverse cooldown swipe (`SetDurationCooldown`), the stack count (`SetApplicationCount`), the time left (`SetDurationText`) and, for debuffs, a border the engine colours by dispel type (`AddDispelTypeTexture`). |
-| The gate | The engine denies tainted code access to its buttons while `C_Secrets.ShouldAurasBeSecret()` is true. A later restyle of the buttons (size, fonts, timer) runs only out of combat while auras are readable, and otherwise waits for `PLAYER_REGEN_ENABLED` or `ADDON_RESTRICTION_STATE_CHANGED`. |
+| Buttons | `initializeFrame` dresses each engine button in the kit's icon tile (`Auras.NewTile`, shared with the preview): a child frame with a `Widgets.Chrome` tile (raised fill, 3-unit chamfer and double bevel at any icon size), the icon two borders in and masked by `iconMask` (`SetIcon`), a reverse cooldown swipe in the `iconMask` shape (`SetDurationCooldown`), the stack count (`SetApplicationCount`), the time left (`SetDurationText`) and, for debuffs, a `chamferTile` border the engine tints by dispel type with the `PreserveAsset` style (`AddDispelTypeTexture`). The icon size, spacing and gap to the frame snap to whole pixels. |
+| The gate | The engine denies tainted code access to its buttons while `C_Secrets.ShouldAurasBeSecret()` is true. A later restyle of the buttons (size, tile, fonts, timer), including a theme change, runs only out of combat while auras are readable, and otherwise waits for `PLAYER_REGEN_ENABLED` or `ADDON_RESTRICTION_STATE_CHANGED`. |
 | Placement | The container sits on a host frame on the root, anchored beside the unit's button. The host shows while the button shows and the auras are on, and mirrors the frame holder's alpha and strata, so Layout's opacity follows. |
 | Fallback | Without the engine, or if it refuses a group, the frames show no auras and the devlog says why. |
 

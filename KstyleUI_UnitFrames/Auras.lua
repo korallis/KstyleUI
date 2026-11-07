@@ -34,8 +34,12 @@ local POSITION = {
 }
 local GAP = 2
 local ICON_CROP = 0.07
+local ICON_INSET_LINES = 2
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_INSET = 1
+local SWIPE_ALPHA = 0.65
+local DISPEL_SUBLEVEL = 7
+local TILE = { shape = "tile", fill = "raised", shadow = false }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -94,58 +98,42 @@ local function StyleText(text, view)
 	pcall(text.SetTextColor, text, Tokens.Color("textEmphasis"))
 end
 
-local function StyleButton(view, entry)
-	local size = Value(view, "auraSize")
-	entry.button:SetSize(size, size)
-	local inset = Widgets.Border(entry.skin) * 2
-	entry.icon:ClearAllPoints()
-	entry.icon:SetPoint("TOPLEFT", entry.skin, "TOPLEFT", inset, -inset)
-	entry.icon:SetPoint("BOTTOMRIGHT", entry.skin, "BOTTOMRIGHT", -inset, inset)
-	StyleText(entry.count, view)
-	StyleText(entry.timer, view)
-	entry.timer:SetShown(Value(view, "auraTimer"))
+local function Snap(view, units)
+	return Widgets.Snap(view.auras.host, units)
 end
 
-local function Dress(view, key, button)
-	local skin = CreateFrame("Frame", nil, button)
-	skin:SetAllPoints(button)
-	local back = skin:CreateTexture(nil, "BACKGROUND")
-	back:SetTexture((Tokens.Texture("iconMask")))
-	back:SetAllPoints(skin)
-	back:SetVertexColor(Tokens.Color("raised"))
-	local border = skin:CreateTexture(nil, "BORDER")
-	border:SetTexture((Tokens.Texture("iconMask")))
-	border:SetAllPoints(skin)
-	border:SetVertexColor(Tokens.Color("edgeOuter"))
+function Auras.NewTile(parent)
+	local skin = CreateFrame("Frame", nil, parent)
+	local chrome = Widgets.Chrome(skin, TILE)
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = skin:CreateMaskTexture()
 	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
-	local cooldown = CreateFrame("Cooldown", nil, skin, "CooldownFrameTemplate")
-	cooldown:SetAllPoints(icon)
-	cooldown:SetReverse(true)
-	cooldown:SetDrawEdge(false)
-	cooldown:SetHideCountdownNumbers(true)
-	local over = CreateFrame("Frame", nil, skin)
-	over:SetAllPoints(skin)
-	over:SetFrameLevel(cooldown:GetFrameLevel() + 1)
-	local count = over:CreateFontString(nil, "OVERLAY")
-	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
-	local timer = over:CreateFontString(nil, "OVERLAY")
-	timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, COUNT_INSET)
-	local entry = { button = button, skin = skin, icon = icon, count = count, timer = timer, border = border }
-	StyleButton(view, entry)
-	button:SetIcon(icon)
-	button:SetDurationCooldown(cooldown)
-	button:SetApplicationCount(count)
-	button:SetDurationText(timer)
-	if key == "debuffs" then
-		button:AddDispelTypeTexture(border)
+	return { skin = skin, chrome = chrome, restyleChrome = chrome.Restyle, icon = icon, mask = mask }
+end
+
+function Auras.LayoutTile(tile)
+	local skin = tile.skin
+	tile.restyleChrome(tile.chrome)
+	local inset = Widgets.Border(skin) * ICON_INSET_LINES
+	tile.icon:ClearAllPoints()
+	tile.icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
+	tile.icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+	if tile.dispel then
+		local _, _, corner = Tokens.Texture("chamferTile")
+		Widgets.LayoutSlice(tile.dispel, skin, corner, 0)
 	end
-	local a = view.auras
-	a.buttons[#a.buttons + 1] = entry
+end
+
+local function StyleButton(view, entry)
+	local size = Snap(view, Value(view, "auraSize"))
+	entry.button:SetSize(size, size)
+	Auras.LayoutTile(entry)
+	StyleText(entry.count, view)
+	StyleText(entry.timer, view)
+	entry.timer:SetShown(Value(view, "auraTimer"))
 end
 
 local function Flush()
@@ -184,6 +172,70 @@ local function Wait(view)
 	Log("frame auras: aura buttons are restricted now; their restyle waits until aura data is readable")
 end
 
+local dispelOptions
+local function DispelOptions()
+	if dispelOptions == nil then
+		local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+		if styles and styles.PreserveAsset then
+			dispelOptions = { style = styles.PreserveAsset, showWhenHarmful = true, showWithoutDispelType = true }
+		else
+			dispelOptions = false
+			LogOnce("dispel", "frame auras: Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour")
+		end
+	end
+	return dispelOptions or nil
+end
+
+local function Dispel(entry, button)
+	local options = DispelOptions()
+	if not options then
+		return
+	end
+	local slice = Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
+	Widgets.ShowSlice(slice, false)
+	entry.dispel = slice
+	for i = 1, #slice do
+		button:AddDispelTypeTexture(slice[i], options)
+	end
+end
+
+local function Dress(view, key, button)
+	local entry = Auras.NewTile(button)
+	local skin = entry.skin
+	skin:SetAllPoints(button)
+	entry.chrome.Restyle = function(chrome)
+		if Auras.Open() then
+			return entry.restyleChrome(chrome)
+		end
+		Wait(view)
+	end
+	local cooldown = CreateFrame("Cooldown", nil, skin, "CooldownFrameTemplate")
+	cooldown:SetAllPoints(entry.icon)
+	cooldown:SetSwipeTexture((Tokens.Texture("iconMask")))
+	cooldown:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
+	cooldown:SetReverse(true)
+	cooldown:SetDrawEdge(false)
+	cooldown:SetHideCountdownNumbers(true)
+	local over = CreateFrame("Frame", nil, skin)
+	over:SetAllPoints(skin)
+	over:SetFrameLevel(cooldown:GetFrameLevel() + 1)
+	local count = over:CreateFontString(nil, "OVERLAY")
+	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
+	local timer = over:CreateFontString(nil, "OVERLAY")
+	timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, COUNT_INSET)
+	entry.button, entry.count, entry.timer = button, count, timer
+	if key == "debuffs" then
+		Dispel(entry, button)
+	end
+	StyleButton(view, entry)
+	button:SetIcon(entry.icon)
+	button:SetDurationCooldown(cooldown)
+	button:SetApplicationCount(count)
+	button:SetDurationText(timer)
+	local a = view.auras
+	a.buttons[#a.buttons + 1] = entry
+end
+
 local function Restyle(view)
 	if view.auras and #view.auras.buttons > 0 then
 		pending[view] = true
@@ -201,7 +253,7 @@ local function EngineReady()
 end
 
 local function GroupLayout(view, key)
-	local size, spacing = Value(view, "auraSize"), Value(view, "auraSpacing")
+	local size, spacing = Snap(view, Value(view, "auraSize")), Snap(view, Value(view, "auraSpacing"))
 	return {
 		elementWidth = size,
 		elementHeight = size,
@@ -296,7 +348,7 @@ local function ApplyContainer(view)
 		container:SetAuraGroupLayout(key, GroupLayout(view, key))
 		container:SetAuraGroupMaxFrameCount(key, Capacity(view))
 	end
-	local width, height, corner, line = Auras.Footprint(view.kind)
+	local width, height, corner, line = Auras.Footprint(view.kind, a.host)
 	local growth = GROWTH[Value(view, "auraGrowth")] or GROWTH.RIGHT_DOWN
 	local directions = AnchorUtil and AnchorUtil.FlowDirection
 	container:SetFlowLayoutAnchorPoint(corner)
@@ -310,8 +362,11 @@ local function ApplyContainer(view)
 	Auras.Place(view)
 end
 
-function Auras.Footprint(kind)
+function Auras.Footprint(kind, frame)
 	local size, spacing = Settings.Value(kind, "auraSize"), Settings.Value(kind, "auraSpacing")
+	if frame then
+		size, spacing = Widgets.Snap(frame, size), Widgets.Snap(frame, spacing)
+	end
 	local columns = Settings.Value(kind, "auraColumns")
 	local filter = FILTERS[Settings.Value(kind, "auraFilter")] or FILTERS.mine
 	local groups = filter.debuffs and filter.buffs and 2 or 1
@@ -323,9 +378,10 @@ end
 
 function Auras.Anchor(host, frame, kind, panelX)
 	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
-	local x = position[5] and panelX or 0
+	local x = position[5] and Widgets.Snap(host, panelX) or 0
+	local gap = Widgets.Snap(host, GAP)
 	host:ClearAllPoints()
-	host:SetPoint(position[1], frame, position[2], x + position[3] * GAP, position[4] * GAP)
+	host:SetPoint(position[1], frame, position[2], x + position[3] * gap, position[4] * gap)
 end
 
 function Auras.Place(view)

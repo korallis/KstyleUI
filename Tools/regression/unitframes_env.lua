@@ -8,7 +8,8 @@
 -- Units live in env._units[unit]. UnitHealth and UnitHealthPercent always return secrets, as on Forever;
 -- UnitPower and UnitHealthMax return secrets while env._restricted is true. Fields a unit takes:
 --   name, class (file name such as "MAGE"), level, health, healthMax, power, powerMax, powerType,
---   powerToken, isPlayer, reaction, dead, ghost, offline, tapDenied, classification, incoming, absorb
+--   powerToken, isPlayer, reaction, dead, ghost, offline, tapDenied, classification, incoming, absorb,
+--   secretReaction (UnitReaction returns the reaction as a secret)
 -- U.Shown(fontString) gives the text a font string shows, with secrets revealed, so a test can check
 -- what SetText or SetFormattedText drew without the module ever reading a secret.
 local W = dofile("Tools/regression/widget_env.lua")
@@ -117,7 +118,7 @@ function U.Install(env)
 	end
 	function env.UnitReaction(token)
 		local u = unitOf(token)
-		return u and u.reaction
+		return secretWhen(u and u.secretReaction, u and u.reaction)
 	end
 	function env.UnitIsDeadOrGhost(token)
 		local u = unitOf(token)
@@ -371,6 +372,7 @@ function U.Install(env)
 		end
 	end
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
+	env.Enum.CustomAuraButtonDispelTypeTextureStyle = { Border = 0, BorderWithIcon = 1, Icon = 2, PreserveAsset = 3, CustomAsset = 4 }
 	function env.CreateColor(r, g, b, a)
 		return { r = r, g = g, b = b, a = a or 1 }
 	end
@@ -398,9 +400,10 @@ function U.Install(env)
 				self._aura[method] = { ... }
 			end
 		end
-		button.AddDispelTypeTexture = function(self, texture)
+		button.AddDispelTypeTexture = function(self, texture, options)
 			self._aura.dispel = self._aura.dispel or {}
 			table.insert(self._aura.dispel, texture)
+			self._aura.dispelOptions = options
 		end
 		local setSize = button.SetSize
 		button.SetSize = function(self, ...)
