@@ -48,3 +48,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Logo/Logo64.tga` | 64x64 | Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.png` | 256x256 | KstyleUI logo, the chamfered diamond, at 256 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 <!-- END make_media -->
+
+## Ability icons
+
+The generated ability icons are not in `Media/`. Each icon set keeps its provenance next to its art: [`KstyleUI_Icons/PROVENANCE.md`](../KstyleUI_Icons/PROVENANCE.md) has a row for every set A icon.

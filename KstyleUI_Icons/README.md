@@ -15,8 +15,22 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 - The addon holds data only: a table from icon file ID to texture path that `KstyleUI.Icons` reads. It creates no frames and registers no events.
 - Icons are 128x128 PNG and keep luminance only.
-- Every icon has a row in `Media/PROVENANCE.md`: model, prompt, seed if available, date and the file ID it replaces.
+- Every icon has a row in [`PROVENANCE.md`](PROVENANCE.md): the file ID it replaces, the spells that use it, model, prompt, Higgsfield job and date. The model exposes no seed.
 - Strings go through `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `Icons.xml`.
+
+## Art
+
+`Tools/icons/iconset.py` makes the set. Run it with `~/.local/share/wow-dev/venv/bin/python`, which has Pillow.
+
+| Step | Command | What it does |
+| --- | --- | --- |
+| Generate | `iconset.py generate` | One Higgsfield `gpt_image_2_5` image per icon group in `Tools/data/abilities.json`, at `1:1 --resolution 1k --quality high` with `docs/design/mockups/icons_A_luminous.jpg` as the style reference. Raw images and one record per icon stay in `~/.local/share/wow-dev/icons/A/raw`, so a rerun skips finished icons. The run stops before the credit balance would fall below `--floor` (1300 by default). |
+| Check | runs inside `generate`; `Tools/icons/check_icons.py <png>...` alone | Rejects blank, small, clipped, off-black, coloured and text-bearing images. A rejected icon is rerolled at most twice. |
+| Review | `iconset.py sheets` | Contact sheets of 64 icons in `~/.local/share/wow-dev/icons/A/sheets`. `iconset.py generate --reroll <fileID>...` makes a fresh image for the icons marked on a sheet. |
+| Package | `iconset.py package` | Writes `Icons/<fileID>.png` (128x128, greyscale), `PROVENANCE.md` and `Data.lua`, and adds `Data.lua` to `Icons.xml`. |
+| Verify | `iconset.py verify` | Checks the PNGs, the provenance rows and `Data.lua` against each other. `Tools/tests/test_iconset.py` runs it. |
+
+An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it.
 
 ## Why
 
@@ -50,7 +64,7 @@ _G.KstyleUIIconData = {
 | `icons` | `{ [fileID] = path }` | Required. The key is the game's icon file ID, a number. The value is the path to the 128x128 PNG, `Interface\AddOns\<addon>\Icons\<fileID>.png`. An entry that is not a string is ignored. |
 | `schools` | `{ [fileID] = schoolMask }` | Optional. The spell school bit mask of the abilities that use the icon: 1 physical, 2 holy, 4 fire, 8 nature, 16 frost, 32 shadow, 64 arcane. `Apply` uses it when the caller passes no school. |
 
-`Tools/icons/` writes the file from `Tools/data/abilities.json`. The file holds data only: no frames, no events and no other globals.
+`Tools/icons/iconset.py package` writes `Data.lua` from the accepted icons and `Tools/data/abilities.json`, and adds it to `Icons.xml`. The file holds data only: no frames, no events and no other globals. Tests: `Tools/regression/test-icons-set-a.lua` loads it and checks that every path has its PNG.
 
 ### Settings
 
