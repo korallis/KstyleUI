@@ -61,4 +61,28 @@ rejects("profiles", "UnitFrames", "unknown store profiles")
 rejects("Get", "UnitFrames", "unknown store Get")
 rejects(nil, "UnitFrames", "unknown store nil")
 
+-- A module's declared defaults must agree with its switch here, and the switch is the module's default.
+local function freshCore()
+	local env = Load(core, Stubs.NewEnv())
+	return env, env.KstyleUI
+end
+local function noop() end
+for _, enabled in ipairs({ true, "no", 0 }) do
+	local _, K = freshCore()
+	local ok, err = pcall(K.Modules.Register, { name = "UnitFrames", defaults = { enabled = enabled }, Enable = noop, Disable = noop })
+	assert(not ok and tostring(err):find("defaults.enabled", 1, true), "a module default switch of " .. tostring(enabled) .. " must be refused, got " .. tostring(err))
+	ok, err = pcall(K.Store.RegisterDefaults, "UnitFrames", { enabled = enabled })
+	assert(not ok and tostring(err):find("defaults.enabled", 1, true), "RegisterDefaults must refuse it too, got " .. tostring(err))
+end
+do
+	local env, K = freshCore()
+	K.Modules.Register({ name = "UnitFrames", defaults = { enabled = false, width = 220 }, Enable = noop, Disable = noop })
+	K.Modules.Register({ name = "ActionBars", Enable = noop, Disable = noop })
+	env.FireEvent("ADDON_LOADED", "KstyleUI", false)
+	assert(K.Store.Module("UnitFrames").enabled == false and K.Store.Module("ActionBars").enabled == false, "a module's switch defaults to Features.modules")
+	for module in pairs(Features.modules) do
+		assert(K.Store.Module(module).enabled == Features.Get("modules", module), "Store.Module(" .. module .. ").enabled must match Features")
+	end
+end
+
 print("features ok: " .. stores .. " stores")

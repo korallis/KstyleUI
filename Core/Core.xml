@@ -8,6 +8,7 @@
 	<Script file="Scale.lua"/>
 	<Script file="Motion.lua"/>
 	<Script file="Features.lua"/>
+	<Script file="Codec.lua"/>
 	<Script file="Store.lua"/>
 	<Script file="Modules.lua"/>
 	<Script file="Combat.lua"/>
@@ -15,6 +16,7 @@
 	<Script file="DevTest.lua"/>
 	<Script file="Icons.lua"/>
 	<Script file="Options.lua"/>
+	<Script file="Slash.lua"/>
 	<Script file="Skin.lua"/>
 	<Include file="Widgets\Widgets.xml"/>
 	<Include file="Layout\Layout.xml"/>

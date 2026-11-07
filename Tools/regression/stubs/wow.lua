@@ -318,6 +318,32 @@ function Stubs.NewEnv(opts)
 		return assert(secretValues[secret], "Reveal: not a secret value")[1]
 	end
 
+	-- The player and realm (opts.player, opts.realm), the clock (env._now, read by time()), the error
+	-- handler (the default one records each error in env._errors) and the slash command table.
+	function env.UnitName(unit)
+		if unit == "player" then
+			return opts.player or "Tester"
+		end
+	end
+	function env.GetRealmName()
+		return opts.realm or "Realm"
+	end
+	env._now = opts.now or 1700000000
+	function env.time()
+		return env._now
+	end
+	env._errors = {}
+	local errorHandler = function(message)
+		env._errors[#env._errors + 1] = message
+	end
+	function env.geterrorhandler()
+		return errorHandler
+	end
+	function env.seterrorhandler(handler)
+		errorHandler = handler
+	end
+	env.SlashCmdList = {}
+
 	return env
 end
 
