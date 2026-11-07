@@ -242,6 +242,32 @@ Rows sit at whole-pixel offsets in a view that clips them. A 3-unit scroll bar s
 
 Fields: `view`, `rows` (each with `index` and `list`), `bar`, `track`, `thumb`, `items`.
 
+## TextArea
+
+`TextArea(parent, opts) -> Frame`: a multi-line text field for text the player reads, edits or copies, such as a chat log or a long string. A raised tile holds a clipped `ScrollFrame` whose scroll child is a multi-line `EditBox` in the `body` font with `textEmphasis` text. It never takes focus by itself.
+
+Options: `width` and `height` (default 300 by 160; without both, a size set by anchors is kept), `text`, `readOnly`, `maxLetters`, `onChange(text, area, userInput)`, `name`.
+
+| Input | Effect |
+| --- | --- |
+| Mouse wheel | Three lines up or down, eased over `fade`, clamped to the text |
+| Moving the caret | Scrolls only as far as needed to keep the caret's line in view |
+| Press on the tile | Focuses the box |
+| Escape | Clears focus |
+| Typing in a read-only area | Puts the text back and selects it, so Ctrl+C still copies |
+
+A 3-unit scroll bar shows while the text overflows, as in `ScrollList`: its thumb is `text` at 35% and turns `accent` under the pointer, and it can be dragged. The tile's hairline is `accent` while the box has focus. A secret text reaches the box untouched.
+
+| Method | Behaviour |
+| --- | --- |
+| `SetText(text)`, `GetText()` | |
+| `SetReadOnly(on)` | |
+| `Scroll(delta)`, `ScrollTo(offset, instant)`, `ScrollToBottom(instant)` | Offsets clamp to `0` to `GetMaxOffset()`, which is the scroll frame's `GetVerticalScrollRange()` |
+| `GetOffset()`, `GetMaxOffset()`, `Refresh()` | `Refresh` clamps the offset after the text changes and repaints the bar |
+| `SelectAll()` | Focuses the box and highlights all of its text |
+
+Fields: `chrome`, `scroll`, `box`, `bar`, `track`, `thumb`.
+
 ## Dropdown
 
 `Dropdown(parent, opts) -> Button`: a raised box with the chosen label, or a placeholder, and a chevron.

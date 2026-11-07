@@ -11,6 +11,7 @@
 	<Script file="EditBox.lua"/>
 	<Script file="ColorSwatch.lua"/>
 	<Script file="ScrollList.lua"/>
+	<Script file="TextArea.lua"/>
 	<Script file="Dropdown.lua"/>
 	<Script file="MediaPicker.lua"/>
 	<Script file="StatusBar.lua"/>
