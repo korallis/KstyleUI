@@ -1,5 +1,6 @@
 -- test-groupframes-frames.lua: party and raid frames on secure group headers: units, names, health, colours, range fade, sorting, layout registration, Blizzard frames, combat safety and Disable.
 local G = dofile("Tools/regression/group_env.lua")
+local W = dofile("Tools/regression/widget_env.lua")
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": expected " .. tostring(want) .. ", got " .. tostring(got))
@@ -203,6 +204,26 @@ env.RunTimers()
 eq(#env._frames, before, "enabling again builds nothing new")
 same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, "units come back")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
+
+-- Hover eases the hairline toward the accent over the kit's hover time instead of switching at once.
+do
+	local hovered = Button.Content(children(Headers.raid[1])[1])
+	local button = children(Headers.raid[1])[1]
+	local ir, _, _, ia = K.Tokens.Color("edgeInner")
+	local start = { unpack(hovered.chrome.edge, 1, 4) }
+	assert(near(start[1], ir) and near(start[4], ia), "the hairline starts at the inner edge colour")
+	button:GetScript("OnEnter")(button)
+	local now = hovered.chrome.edge
+	assert(near(now[1], ir) and near(now[4], ia), "entering does not jump to the hover colour")
+	W.Tick(env, 0.05)
+	local mid = hovered.chrome.edge[4]
+	assert(not near(mid, ia) and mid ~= 0.6, "partway through, the hairline is between the two colours")
+	W.Settle(env)
+	assert(near(hovered.chrome.edge[4], 0.6), "it ends at the hover colour")
+	button:GetScript("OnLeave")(button)
+	W.Settle(env)
+	assert(near(hovered.chrome.edge[1], ir) and near(hovered.chrome.edge[4], ia), "leaving eases back")
+end
 
 -- GROUP_ROSTER_UPDATE comes in bursts in a raid. A burst refreshes each frame once, on the next frame.
 local function paints(frame)

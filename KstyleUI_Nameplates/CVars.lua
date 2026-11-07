@@ -33,6 +33,8 @@ local function Exists(name)
 	return ok and value ~= nil
 end
 
+CVars.Exists = Exists
+
 local function Set(name, value)
 	local set = Api("SetCVar")
 	if not set then

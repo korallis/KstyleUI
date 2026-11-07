@@ -63,7 +63,7 @@ end
 -- The settings page: every row validates at load, and the rules from the spec are there -------------
 
 do
-	local _, K, ns = N.New({ enable = false })
+	local env, K, ns = N.New({ enable = false })
 	local schema = K.Options.Get("Nameplates")
 	assert(type(schema) == "table" and #schema > 0, "the module registers its settings page")
 	assert(type(schema.preview) == "function", "the page has a live preview")
@@ -107,6 +107,16 @@ do
 	need("cvars.maxDistance", "slider")
 	need("cvars.stacking", "dropdown")
 	assert(rows["target.color"].showWhen(K.Store.Module("Nameplates")) == false, "the custom colour shows only for a custom source")
+
+	-- A game setting the client does not have hides its row instead of showing a slider that does nothing.
+	local settings = K.Store.Module("Nameplates")
+	assert(rows["cvars.maxDistance"].showWhen and rows["cvars.maxDistance"].showWhen(settings), "the distance row shows while the client has the CVar")
+	assert(rows["cvars.verticalDistance"].showWhen(settings), "and so does the height row")
+	local distance, height = env._cvars.nameplateMaxDistance, env._cvars.nameplateMaxVerticalDistance
+	env._cvars.nameplateMaxDistance, env._cvars.nameplateMaxVerticalDistance = nil, nil
+	assert(not rows["cvars.maxDistance"].showWhen(settings), "a client without nameplateMaxDistance hides the distance row")
+	assert(not rows["cvars.verticalDistance"].showWhen(settings), "and one without nameplateMaxVerticalDistance hides the height row")
+	env._cvars.nameplateMaxDistance, env._cvars.nameplateMaxVerticalDistance = distance, height
 
 	-- A value the setting does not allow reads as the default, with one devlog line.
 	K.Store.Module("Nameplates").threat.display = "sparkles"

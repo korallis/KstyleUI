@@ -102,7 +102,7 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `text.nameColorSource`, `text.nameColor` | `text` | Text colour, class or a custom colour |
 | `text.healthFont`, `text.healthOutline` | Source Sans 3 Semibold, soft shadow | Health text font and outline |
 | `range.fade`, `range.alpha` | on, 0.4 | Fade members out of range |
-| `accent.source`, `accent.color` | `class` | The target ring and hover hairline: the KstyleUI accent or a custom colour |
+| `accent.source`, `accent.color` | `class` | The target ring and hover hairline: the KstyleUI accent or a custom colour. The hairline eases toward it over the kit's hover time (0.15 s `outQuart`), as every kit control does. |
 
 ## Extension points
 

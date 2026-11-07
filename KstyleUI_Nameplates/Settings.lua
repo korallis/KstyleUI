@@ -115,6 +115,13 @@ local function Off(key)
 	end
 end
 
+local function HasCVar(name)
+	return function()
+		local cvars = ns.CVars
+		return not (cvars and type(cvars.Exists) == "function") or cvars.Exists(name)
+	end
+end
+
 local function TextRows(schema, key, label)
 	schema[#schema + 1] = { type = "header", label = label }
 	schema[#schema + 1] = {
@@ -413,12 +420,12 @@ local rest = {
 	{
 		type = "slider", key = "cvars.maxDistance", label = L["Distance"],
 		help = L["How far away, in yards, plates show."],
-		min = 10, max = 60, step = 1, disableWhen = Off("cvars.enabled"),
+		min = 10, max = 60, step = 1, disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateMaxDistance"),
 	},
 	{
 		type = "slider", key = "cvars.verticalDistance", label = L["Height difference"],
 		help = L["Hides plates this far above or below you. 0 shows them at any height."],
-		min = 0, max = 100, step = 5, disableWhen = Off("cvars.enabled"),
+		min = 0, max = 100, step = 5, disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateMaxVerticalDistance"),
 	},
 	{
 		type = "dropdown", key = "cvars.stacking", label = L["Stacking"],

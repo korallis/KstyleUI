@@ -168,7 +168,7 @@ Off by default. With **Manage these settings** on, the module writes these CVars
 | `cvars.minScale` | 0.8 | `nameplateMinScale` |
 | `cvars.clickSize` | 2 | `nameplateSize` |
 
-A CVar the client does not have is skipped and logged once. Turning management off, or turning the module off, sets every CVar the module changed this session back to `C_CVar.GetCVarDefault`.
+A CVar the client does not have is skipped and logged once. `nameplateMaxDistance` and `nameplateMaxVerticalDistance` appear nowhere in the Forever UI source (build 70840), so their rows show only when `C_CVar.GetCVar` returns a value for them on this client; otherwise the settings page hides them rather than show a slider that does nothing. The owner's first in-game test confirms whether they exist (`/dump C_CVar.GetCVarInfo("nameplateMaxDistance")`). Turning management off, or turning the module off, sets every CVar the module changed this session back to `C_CVar.GetCVarDefault`.
 
 ## Smoke check
 

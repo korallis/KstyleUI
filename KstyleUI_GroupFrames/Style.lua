@@ -289,14 +289,23 @@ end
 Style.appliers = {}
 Style.painters = {}
 
+local function PaintEdge(f, r, g, b)
+	if not r then
+		r, g, b = Style.Accent()
+	end
+	local er, eg, eb, ea = Tokens.Color("edgeInner")
+	f.chrome:SetEdgeRGBA(Widgets.Mix(er, eg, eb, ea or 1, r, g, b, HOVER_ALPHA, f.hoverT or 0))
+end
+
+local function SetHoverT(f, t)
+	f.hoverT = t
+	PaintEdge(f)
+end
+
 function Style.Paint(f)
 	local r, g, b = Style.Accent()
 	Style.ColorRing(f.targetRing, r, g, b, 1)
-	if f.hovered then
-		f.chrome:SetEdgeRGBA(r, g, b, HOVER_ALPHA)
-	else
-		f.chrome:SetEdgeRGBA(Tokens.Color("edgeInner"))
-	end
+	PaintEdge(f, r, g, b)
 	f.healthText:SetTextColor(Tokens.Color("textEmphasis"))
 	local text = Settings.current.text
 	if text.nameColorSource == "custom" then
@@ -309,5 +318,5 @@ end
 
 function Style.SetHovered(f, hovered)
 	f.hovered = hovered and true or false
-	Style.Paint(f)
+	K.Motion.Tween(f, SetHoverT, f.hoverT or 0, f.hovered and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
 end
