@@ -90,8 +90,7 @@ do
 	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2), "bar 1 and the battle stance bar get rank 2")
 	assert(Holds(g, 5, REND1) and g.slots[7].type == "macro" and g.slots[8].type == "flyout" and Holds(g, 9, CHARGE), "other slots, macros and flyouts are untouched")
 	table.sort(g.placed)
-	assert(#g.placed == 2 and g.placed[1] == 3 and g.placed[2] == 75, "only those two slots are placed on")
-	assert(g.cursor == nil, "the old rank is not left on the cursor")
+	assert(#g.placed == 2 and g.placed[1] == 3 and g.placed[2] == 75 and g.cursor == nil, "only those two slots change, and the old rank is not left on the cursor")
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
 
@@ -166,9 +165,10 @@ do
 	env.SetCombat(true)
 	Learn(env, HS2)
 	K.Options.Write("ActionBars", "ranks", "off")
-	env.SetCombat(false)
 	Learn(env, HS2)
-	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Off cancels the waiting swap, then shows and changes nothing")
+	K.Options.Write("ActionBars", "ranks", "ask")
+	env.SetCombat(false)
+	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Off cancels the waiting swap for good, and shows and changes nothing")
 end
 
 -- The settings row: Ask by default, Update automatically and Off, with short help.

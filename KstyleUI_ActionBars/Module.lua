@@ -251,6 +251,9 @@ local function OnSetting(_, module, key)
 	if module ~= MODULE or type(key) ~= "string" or key == "editBar" or key == "tooltips" then
 		return
 	end
+	if key == "ranks" and ns.Config("ranks") == "off" then
+		ns.Ranks.Stop()
+	end
 	local barKey, field = key:match("^(%w+)%.(.+)$")
 	if barKey and ns.BAR[barKey] then
 		if field ~= "showEmpty" and field ~= "fade" and field ~= "fadeAlpha" and field ~= "hotkey" and field ~= "count" and field ~= "macro" and field ~= "cooldown" then

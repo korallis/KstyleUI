@@ -4,11 +4,9 @@ local _, ns = ...
 local K = KstyleUI
 local L = K.L
 
-local Ranks = {}
-ns.Ranks = Ranks
+ns.Ranks = {}
 
-local BATCH_DELAY = 0.5
-local CURSOR_WAIT = 1
+local BATCH_DELAY, CURSOR_WAIT = 0.5, 1
 
 local pending, offer, approved = {}, {}, {}
 local scheduled, handle = false, nil
@@ -138,7 +136,7 @@ local function Flush()
 	end
 end
 
-function Ranks.Learned(spellID)
+function ns.Ranks.Learned(spellID)
 	if Plain(spellID) and type(spellID) == "number" then
 		pending[spellID] = true
 		if not scheduled then
@@ -148,7 +146,7 @@ function Ranks.Learned(spellID)
 	end
 end
 
-function Ranks.Stop()
+function ns.Ranks.Stop()
 	if handle then
 		handle:Close()
 	end
