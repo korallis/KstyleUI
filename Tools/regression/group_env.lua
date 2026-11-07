@@ -11,6 +11,7 @@
 -- it builds.
 
 local CoreEnv = dofile("Tools/regression/core_env.lua")
+local AurasEnv = dofile("Tools/regression/auras_env.lua")
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 
@@ -301,6 +302,44 @@ local function installPrediction(env)
 	end
 end
 
+-- The AuraContainer engine: auras_env.lua's fake, plus the aura slots and the aura processing policy
+-- the group frames use. A slot's frame is made as the engine makes it: initializeFrame runs before
+-- the access restrictions apply.
+local function installAuras(env, opts)
+	AurasEnv.Engine(env, opts)
+	env.CustomAuraContainerAuraProcessingPolicy = { None = 0, ProcessAura = 1 }
+	local create = env.CreateFrame
+	env.CreateFrame = function(frameType, name, parent, template)
+		local frame = create(frameType, name, parent, template)
+		if frameType == "AuraContainer" and template == "CustomAuraContainerTemplate" then
+			frame._slots = {}
+			function frame.AddAuraSlot(self, key, filter, options)
+				assert(type(key) == "string" and key ~= "", "slotKey must be a non-empty string.")
+				assert(not self._slots[key], "aura slot '" .. key .. "' already exists with this key.")
+				assert(type(filter) == "string" and filter:find("HARMFUL", 1, true), "invalid filter string " .. tostring(filter))
+				options = options or {}
+				local button = AurasEnv.MakeButton(env, self, options.initializeFrame)
+				self._slots[key] = { key = key, filter = filter, frame = button, enabled = true, options = options }
+				return button
+			end
+			function frame.SetAuraSlotFilterString(self, key, filter)
+				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
+				self._slots[key].filter = filter
+			end
+			function frame.SetAuraSlotEnabled(self, key, enabled)
+				assert(type(enabled) == "boolean", "enabled must be a boolean.")
+				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
+				self._slots[key].enabled = enabled
+			end
+			function frame.GetAuraSlotFrame(self, key)
+				local slot = self._slots[key]
+				return slot and slot.frame
+			end
+		end
+		return frame
+	end
+end
+
 -- C_CurveUtil curves that evaluate in Lua, so a test can read what a secret holds with Reveal.
 local function installCurves(env)
 	local function newCurve()
@@ -325,7 +364,7 @@ local function installCurves(env)
 			for i = 2, #pts do
 				local a, b = pts[i - 1], pts[i]
 				if x < b[1] then
-					if self.kind == "Step" then
+					if self.kind == env.Enum.LuaCurveType.Step then
 						return a[2]
 					end
 					return a[2] + (b[2] - a[2]) * (x - a[1]) / (b[1] - a[1])
@@ -335,9 +374,10 @@ local function installCurves(env)
 		end
 		return curve
 	end
-	env.C_CurveUtil = { CreateCurve = newCurve }
+	env.C_CurveUtil = env.C_CurveUtil or {}
+	env.C_CurveUtil.CreateCurve = newCurve
 	env.Enum = env.Enum or {}
-	env.Enum.LuaCurveType = { Linear = "Linear", Step = "Step" }
+	env.Enum.LuaCurveType = env.Enum.LuaCurveType or { Linear = "Linear", Step = "Step" }
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
 end
 
@@ -691,6 +731,7 @@ function G.New(opts)
 	local setup = opts.setup
 	opts.setup = function(env)
 		installRoster(env)
+		installAuras(env, opts.engine)
 		installCurves(env)
 		installPrediction(env)
 		installHeaders(env)

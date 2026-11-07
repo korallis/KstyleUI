@@ -182,4 +182,30 @@ do
 	assert(b.health.width >= 1 and b.health.height >= 1, "a tiny frame still has a bar of at least one unit")
 end
 
+-- Debuff icons: where the container sits and which way it fills.
+do
+	local point, rel, x, y = Geo.AuraAnchor("BOTTOMLEFT", "RIGHT", "UP", 2, 3)
+	eq(point, "BOTTOMLEFT", "inside bottom left, growing right and up, anchors bottom left")
+	eq(rel, "BOTTOMLEFT", "to the frame's bottom left")
+	eq(x, 2, "inset right")
+	eq(y, 2, "inset up")
+	point, rel, x, y = Geo.AuraAnchor("TOPRIGHT", "LEFT", "DOWN", 2, 3)
+	eq(point, "TOPRIGHT", "inside top right, growing left and down")
+	eq(rel, "TOPRIGHT", "to the frame's top right")
+	eq(x, -2, "inset left")
+	eq(y, -2, "inset down")
+	point, rel, x, y = Geo.AuraAnchor("OUTSIDE_RIGHT", "RIGHT", "DOWN", 2, 3)
+	eq(point, "TOPLEFT", "outside right, growing right and down, anchors top left")
+	eq(rel, "TOPRIGHT", "to the frame's top right")
+	eq(x, 3, "one gap out")
+	eq(y, 0, "level with the top")
+	point, rel, x = Geo.AuraAnchor("OUTSIDE_LEFT", "LEFT", "UP", 2, 3)
+	eq(point, "BOTTOMRIGHT", "outside left, growing left and up, anchors bottom right")
+	eq(rel, "BOTTOMLEFT", "to the frame's bottom left")
+	eq(x, -3, "one gap out to the left")
+	point = Geo.AuraAnchor("NOWHERE", "UP", "SIDEWAYS", 2, 3)
+	eq(point, "BOTTOMLEFT", "unknown values fall back to bottom left, right, up")
+	eq(Geo.AuraLine(3, 20, 2), 64, "a line of three 20-unit icons with 2-unit gaps")
+end
+
 print("groupframes geometry ok")

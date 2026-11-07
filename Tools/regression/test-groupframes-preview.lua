@@ -54,6 +54,10 @@ for _, f in ipairs(preview.partyFrames) do
 	healed = healed or (v and type(v[1]) == "number" and v[1] > 0)
 end
 assert(healed, "a sample shows incoming heals")
+eq(tank.sampleAuras[1]:IsShown(), true, "the sample tank shows debuff icons")
+eq(tank.sampleAuras[3]:IsShown(), false, "only as many as it has")
+eq(preview.partyFrames[2].sampleDispel:IsShown(), true, "a sample shows the dispel highlight")
+eq(tank.auras, nil, "samples never make an AuraContainer")
 
 -- A setting change shows on the next Refresh.
 K.Options.Write("GroupFrames", "raid.width", 90)

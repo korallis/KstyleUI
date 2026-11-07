@@ -182,3 +182,29 @@ function Geometry.Button(w, h, o)
 	end
 	return out
 end
+
+local AURA_INSIDE = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }
+local AURA_OUTSIDE = { OUTSIDE_RIGHT = "RIGHT", OUTSIDE_LEFT = "LEFT" }
+Geometry.AURA_POSITIONS = { "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT", "TOPRIGHT", "OUTSIDE_RIGHT", "OUTSIDE_LEFT" }
+
+function Geometry.AuraAnchor(position, growth, wrap, inset, gap)
+	growth = growth == "LEFT" and "LEFT" or "RIGHT"
+	wrap = wrap == "DOWN" and "DOWN" or "UP"
+	local vertical = wrap == "UP" and "BOTTOM" or "TOP"
+	local point = vertical .. (growth == "LEFT" and "RIGHT" or "LEFT")
+	local side = AURA_OUTSIDE[position]
+	if side then
+		local x = side == "RIGHT" and gap or -gap
+		return point, vertical .. side, x, 0
+	end
+	if not AURA_INSIDE[position] then
+		position = "BOTTOMLEFT"
+	end
+	local x = position:find("LEFT$") and inset or -inset
+	local y = position:find("^TOP") and -inset or inset
+	return point, position, x, y
+end
+
+function Geometry.AuraLine(columns, size, spacing)
+	return Line(columns, size, spacing)
+end

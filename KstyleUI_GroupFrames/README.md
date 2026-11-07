@@ -38,10 +38,11 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Frames.lua` | `ns.Frames`: `Enable` and `Disable`, settings applied out of combat, Layout registration, group events and the `/kstyle test` check |
 | `Indicators.lua` | `ns.Indicators`: role, leader and assistant, raid marker and ready-check icons, and the threat border |
 | `Prediction.lua` | `ns.Prediction`: incoming heals and absorbs after the health fill |
+| `Auras.lua` | `ns.Auras`: debuff icons and the dispellable debuff highlight on the AuraContainer engine |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview with sample party and raid frames |
 | `Module.lua` | `KstyleUI.Modules.Register` and `KstyleUI.Options.Register` |
 
-Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
+Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-auras.lua` (debuffs and the dispel highlight, secrecy, combat and a client without the engine), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
 
 ## Elements
 
@@ -84,6 +85,12 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `<kind>.iconSize` | 14, 12 | Role, leader, marker and ready-check icon size |
 | `icons.role`, `icons.leader`, `icons.marker`, `icons.readyCheck` | on | Each status icon |
 | `threat.enabled` | on | The threat border |
+| `<kind>.auraSize`, `<kind>.auraCount` | party 20, 3; raid 14, 3 | Debuff icon size and the most icons shown |
+| `<kind>.auraColumns`, `<kind>.auraRows`, `<kind>.auraSpacing` | 3, 1; party 2, raid 1 | Icons per row, rows and the gap; the count stops at columns times rows |
+| `<kind>.auraPosition`, `<kind>.auraGrowth`, `<kind>.auraWrap` | party outside right, right, down; raid inside bottom left, right, up | Where the icons sit and which way they fill |
+| `auras.enabled`, `auras.filter` | on, `ALL` | All debuffs (`HARMFUL`), the ones Blizzard's raid frames show (`HARMFUL\|RAID_IN_COMBAT`) or the ones you can dispel (`HARMFUL\|RAID`) |
+| `auras.swipe` | on | The duration swipe on each icon |
+| `auras.dispelHighlight`, `auras.dispelFilter` | on, `PLAYER` | The dispel highlight for debuffs you can dispel (`HARMFUL\|RAID`) or anyone in the group can (`HARMFUL\|RAID_PLAYER_DISPELLABLE`) |
 | `prediction.heals`, `prediction.healColor` | on, friendly at 50% | Incoming heals |
 | `prediction.absorbs`, `prediction.absorbColor` | on, white at 45% | Absorb shields |
 | `health.texture` | Glass | Bar texture for health and power |
@@ -114,3 +121,8 @@ Feature files add to the frame without editing it: `Button.built` (build parts o
 - **Leader and markers without a test on a secret.** The leader flag goes to `SetAlphaFromBoolean`. `GetRaidTargetIndex` is always secret, so the marker hides only when `type(index)` is not `"number"`; `type` sees through a secret, and a secret index goes straight to `SetSpriteSheetCell`.
 - **Heals and absorbs anchored to the fill.** Each prediction bar spans the health maximum and is anchored to the end of the fill before it, so the engine places it; Lua never adds health and heals. The calculator clamps heals and absorbs to missing health, and a clip frame over the health bar cuts anything that would still spill out. One calculator is made per frame and reused.
 - **Threat is readable on Forever**, but a secret status hides the border rather than guessing.
+- **Debuffs on the AuraContainer engine.** Aura data is secret during a boss pull, and index scans error under restriction. Each frame gets one `CustomAuraContainerTemplate` container bound to its unit with `SetUnit`: a `debuffs` aura group sorted by `AuraContainerSortMethod.UnitFrameDebuff` (boss and priority debuffs first) and a `dispel` aura slot. The engine finds, sorts and draws the auras; Lua only sets filters, counts and layout.
+- **The dispel highlight is the slot's own frame.** The slot's frame covers the group frame, with a faint wash and four border lines registered through `AddDispelTypeTexture` in the `PreserveAsset` style, so the engine shows them and tints them in the debuff type's colour only while a matching debuff is on the unit. Lua never learns the debuff type.
+- **Containers are made out of combat, when a frame first gets a unit.** Raid buttons are many and most stay empty, so a container per button would cost ten aura buttons each for nothing. A frame that first gets a unit in combat makes its container when combat ends.
+- **Aura buttons are touched only while auras are readable.** The engine denies tainted access to its aura buttons while auras are secret, so icon size and font changes wait until `C_Secrets.ShouldAurasBeSecret()` is false. Container settings (filter, count, layout) go through the container's own methods and apply at once.
+- **Clicks pass through debuff icons.** `SetMouseClickEnabled(false)` keeps the debuff tooltip on hover while a click on an icon still targets the member.

@@ -10,6 +10,7 @@
 	<Script file="Frames.lua"/>
 	<Script file="Indicators.lua"/>
 	<Script file="Prediction.lua"/>
+	<Script file="Auras.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

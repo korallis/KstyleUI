@@ -38,6 +38,8 @@ Settings.defaults = {
 		portrait = true, power = true, powerHeight = 4,
 		textLayout = "ABOVE", nameSize = 11, healthText = "PERCENT", healthTextSize = 11,
 		iconSize = 14,
+		auraSize = 20, auraCount = 3, auraColumns = 3, auraRows = 1, auraSpacing = 2,
+		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 	},
 	raid = {
 		width = 72, height = 40, spacing = 3, growth = "DOWN",
@@ -46,6 +48,8 @@ Settings.defaults = {
 		power = false, powerHeight = 3,
 		textLayout = "INSIDE", nameSize = 10, healthText = "NONE", healthTextSize = 9,
 		iconSize = 12,
+		auraSize = 14, auraCount = 3, auraColumns = 3, auraRows = 1, auraSpacing = 1,
+		auraPosition = "BOTTOMLEFT", auraGrowth = "RIGHT", auraWrap = "UP",
 	},
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
@@ -56,6 +60,7 @@ Settings.defaults = {
 	range = { fade = true, alpha = 0.4 },
 	icons = { role = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true },
+	auras = { enabled = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER" },
 	prediction = { heals = true, absorbs = true, healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA) },
 	accent = { source = "class", color = Rgb("accentDefault") },
 }
@@ -82,6 +87,17 @@ local POWER_COLOR = Options({ { "power", L["Power type colour"] }, { "class", L[
 local NAME_COLOR = Options({ { "text", L["Text colour"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } })
 local ORIENTATION = Options({ { "HORIZONTAL", L["Horizontal"] }, { "VERTICAL", L["Vertical"] } })
 local ACCENT = Options({ { "class", L["Class colour"] }, { "custom", L["Custom colour"] } })
+local AURA_POSITION = Options({
+	{ "BOTTOMLEFT", L["Inside, bottom left"] }, { "BOTTOMRIGHT", L["Inside, bottom right"] },
+	{ "TOPLEFT", L["Inside, top left"] }, { "TOPRIGHT", L["Inside, top right"] },
+	{ "OUTSIDE_RIGHT", L["Outside, right"] }, { "OUTSIDE_LEFT", L["Outside, left"] },
+})
+local AURA_GROWTH = Options({ { "RIGHT", L["Right"] }, { "LEFT", L["Left"] } })
+local AURA_WRAP = Options({ { "DOWN", L["Down"] }, { "UP", L["Up"] } })
+local AURA_FILTER = Options({
+	{ "ALL", L["All debuffs"] }, { "RAID", L["Debuffs Blizzard's raid frames show"] }, { "DISPELLABLE", L["Debuffs you can dispel"] },
+})
+local DISPEL_FILTER = Options({ { "PLAYER", L["Debuffs you can dispel"] }, { "GROUP", L["Debuffs anyone in the group can dispel"] } })
 
 Settings.OPTIONS = {
 	growth = GROWTH, partySort = PARTY_SORT, raidSort = RAID_SORT, textLayout = TEXT_LAYOUT, healthText = HEALTH_TEXT,
@@ -159,6 +175,14 @@ local function KindRows(schema, kind, label)
 	add(Slider(p .. "healthTextSize", L["Health text size"], L["The size of the health text."], 6, 24, 1))
 	schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
 	add(Slider(p .. "iconSize", L["Status icon size"], L["The size of the role, leader, marker and ready-check icons."], 6, 32, 1))
+	add(Slider(p .. "auraSize", L["Debuff icon size"], L["The size of each debuff icon."], 8, 40, 1))
+	add(Slider(p .. "auraCount", L["Debuff count"], L["The most debuffs each frame shows."], 1, 10, 1))
+	add(Slider(p .. "auraColumns", L["Debuffs per row"], L["How many debuff icons sit in a row."], 1, 10, 1))
+	add(Slider(p .. "auraRows", L["Debuff rows"], L["How many rows of debuff icons a frame may show."], 1, 4, 1))
+	add(Slider(p .. "auraSpacing", L["Debuff spacing"], L["The gap between debuff icons."], 0, 10, 1))
+	add(Dropdown(p .. "auraPosition", L["Debuff position"], L["Where the debuff icons sit on or beside the frame."], AURA_POSITION))
+	add(Dropdown(p .. "auraGrowth", L["Debuff growth"], L["Which way the next debuff icon goes."], AURA_GROWTH))
+	add(Dropdown(p .. "auraWrap", L["Debuff row growth"], L["Which way a new row of debuff icons goes."], AURA_WRAP))
 end
 
 local function BuildSchema()
@@ -193,6 +217,13 @@ local function BuildSchema()
 	add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))
 	add(Toggle("icons.readyCheck", L["Ready checks"], L["Shows each member's answer during a ready check."]))
 	add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
+	add({ type = "header", label = L["Debuffs"] })
+	add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
+	add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
+	add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
+	add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
+	add(Dropdown("auras.dispelFilter", L["Highlight debuffs"], L["Highlights debuffs you can dispel, or ones anyone in the group can."], DISPEL_FILTER))
+	schema[#schema].showWhen = Is("auras.dispelHighlight", true)
 	add({ type = "header", label = L["Incoming heals and absorbs"] })
 	add(Toggle("prediction.heals", L["Incoming heals"], L["Extends the health bar with heals on the way."]))
 	add({ type = "color", key = "prediction.healColor", label = L["Incoming heal colour"], help = L["The colour of incoming heals on the health bar."], hasAlpha = true, showWhen = Is("prediction.heals", true) })

@@ -17,12 +17,12 @@ local SAMPLE_MAX = 4200
 local PERCENT = 100
 
 local SAMPLES = {
-	{ name = "Thaldren", class = "WARRIOR", health = 0.92, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05 },
-	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER" },
+	{ name = "Thaldren", class = "WARRIOR", health = 0.92, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, debuffs = 2 },
+	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1 },
 	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 8, incoming = 0.12 },
 	{ name = "Lunara", class = "MAGE", health = 0, power = 0, dead = true },
 	{ name = "Vexen", class = "PRIEST", health = 0.94, power = 0.9 },
-	{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5 },
+	{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 1, dispel = "Curse" },
 	{ name = "Kesh", class = "ROGUE", health = 1, power = 1 },
 	{ name = "Maela", class = "HUNTER", health = 0.68, power = 0.7 },
 	{ name = "Durn", class = "WARLOCK", health = 0.81, power = 0.4, offline = true },
