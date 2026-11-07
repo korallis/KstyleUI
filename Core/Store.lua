@@ -731,7 +731,7 @@ local function decodeBase64(body)
 		if ok and type(raw) == "string" then
 			return raw
 		end
-		return nil
+		logOnce("decode:Lua", "C_EncodingUtil.DecodeBase64 failed; decoding with Lua instead")
 	end
 	return Codec.DecodeBase64(body)
 end
@@ -791,13 +791,23 @@ local function checkRow(row, value, path)
 		if value < row.min or value > row.max then
 			return format(L["%s is out of range (%s to %s)."], path, tostring(row.min), tostring(row.max))
 		end
-	elseif row.type == "dropdown" and type(row.options) == "table" then
-		for _, option in ipairs(row.options) do
-			if option.value == value then
-				return nil
+	elseif row.type == "dropdown" then
+		local options = row.options
+		if type(options) == "function" then
+			local ok, list = pcall(options)
+			if not ok or type(list) ~= "table" then
+				return format(L["%s could not be checked against its choices."], path)
 			end
+			options = list
 		end
-		return format(L["%s is not one of its choices."], path)
+		if type(options) == "table" then
+			for _, option in ipairs(options) do
+				if type(option) == "table" and option.value == value then
+					return nil
+				end
+			end
+			return format(L["%s is not one of its choices."], path)
+		end
 	end
 end
 

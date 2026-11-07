@@ -21,7 +21,14 @@ local function report(err)
 	return err
 end
 
+local XPCALL_PASSES_ARGS = select(2, xpcall(function(value)
+	return value
+end, report, true)) == true
+
 function ns.Call(fn, ...)
+	if XPCALL_PASSES_ARGS then
+		return xpcall(fn, report, ...)
+	end
 	local n, args = select("#", ...), { ... }
 	return xpcall(function()
 		return fn(unpack(args, 1, n))

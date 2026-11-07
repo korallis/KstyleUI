@@ -125,6 +125,21 @@ do
 	env.FireEvent("UNIT_HEALTH", "target")
 	assert(got[#got] == "target" and #got == 3, "RegisterUnit passes its units to the frame")
 
+	-- A handler that errors is reported and counted, so /kstyle test sees it, and other frames still get the event.
+	local errorsBefore = K.ErrorCount()
+	local seen = 0
+	E.Register("FailingService", "PLAYER_FLAGS_CHANGED", function()
+		error("handler broke")
+	end)
+	E.Register("TestService", "PLAYER_FLAGS_CHANGED", function(_, unit)
+		seen = seen + 1
+		assert(unit == "player", "arguments still reach the handler")
+	end)
+	env.FireEvent("PLAYER_FLAGS_CHANGED", "player")
+	assert(seen == 1, "the next frame still gets the event")
+	assert(K.ErrorCount() == errorsBefore + 1, "an event handler error is counted")
+	assert(tostring(env._errors[#env._errors]):find("handler broke", 1, true), "an event handler error goes to the error handler")
+
 	-- A module may register only while it is on.
 	Raises(function()
 		E.Register("UnitFrames", "PLAYER_TARGET_CHANGED", function() end)

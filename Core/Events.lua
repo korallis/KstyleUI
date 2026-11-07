@@ -24,7 +24,7 @@ local function slot(owner)
 		frame:SetScript("OnEvent", function(_, event, ...)
 			local fn = handlers[event]
 			if fn then
-				fn(event, ...)
+				ns.Call(fn, event, ...)
 			end
 		end)
 		entry = { frame = frame, handlers = handlers }

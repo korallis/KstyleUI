@@ -285,6 +285,22 @@ do
 	check(ok == false and err:find("C_EncodingUtil", 1, true), "got " .. tostring(err))
 	check(env2.KstyleUIDB ~= nil)
 
+	-- When the game's base64 decoder fails, import falls back to the Lua decoder.
+	for _, failure in ipairs({ "error", "nothing" }) do
+		local flaky = setmetatable({
+			DecodeBase64 = function()
+				if failure == "error" then
+					error("DecodeBase64 failed")
+				end
+			end,
+		}, { __index = api })
+		local _, K4 = boot({ encoding = flaky })
+		ok, err = K4.Store.Import(luaText)
+		check(ok == true, "a failing DecodeBase64 (" .. failure .. ") falls back to the Lua decoder: " .. tostring(err))
+		ok, err = K4.Store.Import(text)
+		check(ok == true, "the Lua decoder also reads C_EncodingUtil strings when DecodeBase64 fails: " .. tostring(err))
+	end
+
 	-- When C_EncodingUtil is present but fails, export falls back to Lua and logs the path.
 	local broken = CoreEnv.FakeEncoding()
 	broken.SerializeCBOR = function()
@@ -441,6 +457,27 @@ do
 		wide["k" .. i] = i
 	end
 	rejects(K, env, CoreEnv.CraftCBOR(api, variants(function(p) p.layout.wide = wide end)), "too many", "too many values")
+
+	-- A dropdown that lists its options at run time is checked against that list too.
+	K.Store.RegisterDefaults("Fonts", { face = "Body", broken = "Body" })
+	K.Options.Register("Fonts", {
+		{ type = "dropdown", key = "face", label = "Face", help = "The font face.", options = function()
+			return { { value = "Body", label = "Body" }, { value = "Display", label = "Display" } }
+		end },
+		{ type = "dropdown", key = "broken", label = "Broken", help = "A list that fails.", options = function()
+			error("no font list")
+		end },
+	})
+	local function fonts(settings)
+		return variants(function(p)
+			p.settings.Fonts = settings
+		end)
+	end
+	rejects(K, env, CoreEnv.CraftCBOR(api, fonts({ face = "Comic" })), "Fonts.face", "a run-time dropdown value that is not an option")
+	rejects(K, env, CoreEnv.CraftCBOR(api, fonts({ broken = "Body" })), "Fonts.broken", "a run-time dropdown whose list fails")
+	ok, name = K.Store.Import(CoreEnv.CraftCBOR(api, fonts({ face = "Display" })))
+	check(ok and K.Store.Module("Fonts").face == "Display", "a run-time dropdown value that is an option imports: " .. tostring(name))
+	K.Store.SetProfile("Default")
 
 	-- Decode reads a good string without applying it.
 	local before = DeepCopy(env.KstyleUIDB)

@@ -14,7 +14,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 
 | Name | Behaviour |
 | --- | --- |
-| `KstyleUI.Call(fn, ...) -> ok, ...` | Runs `fn`. An error goes to `geterrorhandler()`, is counted and is logged to the devlog. Use it where one failure must not stop the next caller. |
+| `KstyleUI.Call(fn, ...) -> ok, ...` | Runs `fn`. An error goes to `geterrorhandler()`, is counted and is logged to the devlog. Use it where one failure must not stop the next caller. In the game `xpcall` passes the arguments, so `Call` allocates nothing. Plain Lua 5.1 in CI falls back to a closure. |
 | `KstyleUI.ErrorCount() -> number` | Errors that `Call` caught since login. `/kstyle test` fails when it is above 0. |
 | `KstyleUI.Print(message)` | Prints `KstyleUI: <message>` to chat. |
 
@@ -37,7 +37,7 @@ Each owner gets one event frame, created on its first `Register`.
 
 | Function | Behaviour |
 | --- | --- |
-| `Register(owner, event, fn)` | `fn(event, ...)` runs on the event. |
+| `Register(owner, event, fn)` | `fn(event, ...)` runs on the event through `KstyleUI.Call`, so an error is reported and counted, and other frames still get the event. |
 | `RegisterUnit(owner, event, fn, unit1, unit2)` | The same, filtered to one or two units with `RegisterUnitEvent`. |
 | `Unregister(owner, event)` | Stops one event. |
 | `UnregisterAll(owner)` | Stops every event of the owner. |
@@ -125,7 +125,9 @@ The payload is `{ kind = "KstyleUI profile", version, name, settings, layout }`.
 - inflates past 2 MB, nests deeper than 12 levels, or holds more than 20,000 values.
 - holds a string over 1,024 bytes, a control character, a key over 64 characters, a key that is not text or a whole number, or a number that is not finite.
 - has another `kind`, an extra top-level field, a version newer than `DB_VERSION`, or a bad name.
-- has an unknown section, an unknown setting, a value of the wrong type, a slider value out of range, or a dropdown value that is not an option.
+- has an unknown section, an unknown setting, a value of the wrong type, a slider value out of range, or a dropdown value that is not an option. A dropdown whose `options` is a function is checked against the list the function returns. If the function fails, the value is rejected.
+
+When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Codec.DecodeBase64` instead.
 
 ## Options
 
