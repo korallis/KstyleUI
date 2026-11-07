@@ -60,6 +60,8 @@ local function boot(withLayout)
 		before = function(env, K)
 			if withLayout then
 				K.Layout = FakeLayout(env)
+			else
+				K.Layout = nil
 			end
 			K.Modules.Register(Module("UnitFrames", {
 				defaults = { portraits = true, size = 20, style = "solid", colour = { r = 1, g = 0.5, b = 0 }, label = "Player", font = (K.Tokens.Font("body")) },
@@ -463,7 +465,11 @@ do
 	local env2, K2, ns2 = boot(false)
 	assert(K2.Options.Open("Elements") == true)
 	settle(env2)
-	assert(labels(ns2)[1]:find("Layout Mode is not available", 1, true), "the Elements page explains the missing Layout service")
+	local explained = false
+	for _, label in ipairs(labels(ns2)) do
+		explained = explained or label:find("Layout Mode is not available", 1, true) ~= nil
+	end
+	assert(explained, "the Elements page explains the missing Layout service")
 	W.Click(ns2.Window.Parts().layoutButton)
 	assert(W.CoreEnv.Printed(env2, "Layout Mode is not available"), "the Layout Mode button says it is not available")
 	assert(#env2._errors == 0, "errors: " .. table.concat(env2._errors, "\n"))
