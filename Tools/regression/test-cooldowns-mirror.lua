@@ -194,7 +194,9 @@ local piece = essential.icons[2].readyGlow.slice[1]
 local r, g, b = piece:GetVertexColor()
 assert(r == 1 and g == 0 and b == 0, "the ready glow takes the custom accent")
 local er, eg, eb = essential.icons[2].chrome.edge[1], essential.icons[2].chrome.edge[2], essential.icons[2].chrome.edge[3]
-assert(er == 1 and eg == 0 and eb == 0, "the icon hairline takes the custom accent")
+local wr, wg, wb = K.Tokens.Color("textHover")
+local lr, lg, lb = K.Widgets.Mix(1, 0, 0, 1, wr, wg, wb, 1, 0.15)
+assert(W.Near(er, lr) and W.Near(eg, lg) and W.Near(eb, lb), "the icon hairline takes the custom accent, lifted 15% toward white at rest")
 K.Options.Write("Cooldowns", "accent", "class")
 assert(essential.icons[2].accent == nil, "the class accent follows the theme again")
 

@@ -620,7 +620,7 @@ local function Window(frame, opts)
 		return parts.backdrop
 	end
 	StripFrame(frame, { children = WINDOW_ART })
-	local panel = Backdrop(frame, { shape = "panel", fill = "surface", shadow = true, inset = opts.inset })
+	local panel = Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = opts.inset })
 	if type(frame.CloseButton) == "table" then
 		CloseButton(frame.CloseButton)
 	end

@@ -185,6 +185,7 @@ do
 		picked[#picked + 1] = value
 	end })
 	assert(dd.text:GetText() == "Select Option", "the placeholder before a choice")
+	assert(W.Near(dd:GetHeight(), K.Scale.Snap(26)), "the design's 26-unit box")
 	assert(W.LastCall(dd.chevron, "SetTexture")[1] == Tokens.Texture("glyphChevron"), "a chevron")
 	W.Click(dd)
 	assert(dd:IsOpen(), "a click opens the menu")
@@ -199,6 +200,7 @@ do
 	W.Click(dd)
 	local row = menu.list.rows[2]
 	assert(row.mark:IsShown() and W.SameRGB(row.mark, Tokens.Color("accent")), "the chosen row has an accent bar")
+	assert(W.Near(row.mark:GetWidth(), K.Scale.Border()), "one border wide")
 	assert(menu.list.rows[1].mark:IsShown() == false)
 	W.Click(menu.catcher)
 	W.Settle(env)

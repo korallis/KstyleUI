@@ -17,8 +17,11 @@ The core's visual service files carry one comment each, their first line, so the
 | `edgeOuter` | `#000000` at 60% | Outer bevel line |
 | `edgeInner` | `#ffffff` at 28% | Inner bevel line, the light line of the kit's double-line edge |
 | `edgeFaint` | `#ffffff` at 8% | The bevel's faint third line and neutral dividers |
+| `edgeWindowOuter`, `edgeWindowInner`, `edgeWindowFaint` | `#ffffff` at 35%, 50% and 15% | The window-grade edge measured from the design file's GLASS PANEL: the edge line, the bright inner line and the hairline |
+| `buttonFill` | `#090c0c` | The body of action buttons, bag slots and cooldown icons |
+| `powerTrack` | `#ffffff` at 15% | The empty part of a power bar, a visible light track |
 | `text` | `#ababab` | Body text at rest |
-| `textEmphasis` | `#ebebeb` | Titles and values |
+| `textEmphasis` | `#ffffff` | Titles and values, the design's TEXT-HI |
 | `textHover` | `#ffffff` | Text under the mouse |
 | `textDisabled` | `#666666` | Disabled text |
 | `rare`, `epic` | `#4fc3ff`, `#b67cff` | Item quality |
@@ -34,7 +37,7 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Sizes, durations and easings
 
-`Size(name)` returns root units at the 1080 reference: `chamferPanel` 6, `chamferTile` 3, `shadow` 12, `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18, the type sizes `display` 24, `heading` 16, `body` 11, `caption` 9, `number` 11 and `world` 12, `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2, the gaps `gapTiny` 2, `gapSmall` 4, `gapMedium` 8, `gapLarge` 12 and `gapHuge` 16, `panelPadding` 16 and `rowHeight` 24.
+`Size(name)` returns root units at the 1080 reference: `chamferPanel` 8, `chamferTile` 3, `chamferWindow` 10, `shadow` 6, `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18, the type sizes `display` 24, `heading` 16, `body` 11, `caption` 9, `number` 11 and `world` 12, `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2, the gaps `gapTiny` 2, `gapSmall` 4, `gapMedium` 8, `gapLarge` 12 and `gapHuge` 16, `panelPadding` 16 and `rowHeight` 24.
 
 `Duration(name)` returns seconds and `Easing(name)` the name of a `Motion.Ease` function:
 
@@ -78,12 +81,15 @@ The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default: a key of `
 
 | Name | File | Slice margin | Corner piece |
 | --- | --- | --- | --- |
-| `chamferPanel` | `ChamferPanel.png`, 64x64 | 24 texels | 6 units |
+| `chamferPanel` | `ChamferPanel.png`, 128x128 | 32 texels | 8 units |
 | `chamferTile` | `ChamferTile.png`, 32x32 | 12 texels | 3 units |
-| `bevelPanelOuter`, `bevelPanelInner` | 64x64 | 28 texels | 7 units |
+| `chamferWindow` | `ChamferWindow.png`, 128x128 | 40 texels | 10 units |
+| `bevelPanelOuter`, `bevelPanelInner` | 128x128 | 36 texels | 9 units |
 | `bevelTileOuter`, `bevelTileInner` | 64x64 | 16 texels | 4 units |
-| `bevelPanelHairline`, `bevelTileHairline` | 128x128, 64x64 | 32, 20 texels | 8, 5 units |
-| `shadow` | `Shadow.png`, 128x128 | 48 texels | 24 units, centred on the panel's corner |
+| `bevelPanelHairline`, `bevelTileHairline` | 128x128, 64x64 | 40, 20 texels | 10, 5 units |
+| `bevelWindowOuter` | 128x128 | 44 texels | 11 units: the line on the edge |
+| `bevelWindowInner`, `bevelWindowDark`, `bevelWindowHairline` | 128x128 | 52 texels | 13 units: lines 4, 5 and 6 units inside the edge |
+| `shadow` | `Shadow.png`, 128x128 | 24 texels | 12 units, centred on the panel's corner; the shadow reaches 6 units out |
 | `iconMask` | `ChamferIconMask.png`, a 3-unit chamfer on a 34-unit square | | |
 | `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `minimapMask`, `logo`, `logoLarge` | | | |
 | `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |

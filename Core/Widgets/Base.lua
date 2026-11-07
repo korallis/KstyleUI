@@ -13,18 +13,23 @@ local NOISE_ALPHA = 0.035
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
 local SUBLEVEL_SHADOW, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -6, -5
-local SUBLEVEL_HAIRLINE, SUBLEVEL_OUTER, SUBLEVEL_INNER = -3, -2, -1
+local SUBLEVEL_DARK, SUBLEVEL_HAIRLINE, SUBLEVEL_OUTER, SUBLEVEL_INNER = -4, -3, -2, -1
 local HAIRLINE_INSET = 3
 
 Widgets.TEXTURE_TEXELS = {
-	chamferPanel = 64,
+	chamferPanel = 128,
 	chamferTile = 32,
-	bevelPanelOuter = 64,
-	bevelPanelInner = 64,
+	chamferWindow = 128,
+	bevelPanelOuter = 128,
+	bevelPanelInner = 128,
 	bevelTileOuter = 64,
 	bevelTileInner = 64,
 	bevelPanelHairline = 128,
 	bevelTileHairline = 64,
+	bevelWindowOuter = 128,
+	bevelWindowInner = 128,
+	bevelWindowDark = 128,
+	bevelWindowHairline = 128,
 	shadow = 128,
 }
 local TEXELS = Widgets.TEXTURE_TEXELS
@@ -361,13 +366,28 @@ function Widgets.Size(frame, width, height)
 end
 
 local SHAPES = {
-	panel = { fill = "chamferPanel", outer = "bevelPanelOuter", inner = "bevelPanelInner", hairline = "bevelPanelHairline", chamfer = "chamferPanel" },
-	tile = { fill = "chamferTile", outer = "bevelTileOuter", inner = "bevelTileInner", hairline = "bevelTileHairline", chamfer = "chamferTile" },
+	panel = {
+		fill = "chamferPanel", outer = "bevelPanelOuter", inner = "bevelPanelInner", hairline = "bevelPanelHairline",
+		outerColor = "edgeOuter", edgeColor = "edgeInner", hairlineColor = "edgeFaint", innerAt = 1, hairlineAt = HAIRLINE_INSET,
+		shadow = true, grain = true,
+	},
+	tile = {
+		fill = "chamferTile", outer = "bevelTileOuter", inner = "bevelTileInner", hairline = "bevelTileHairline",
+		outerColor = "edgeOuter", edgeColor = "edgeInner", hairlineColor = "edgeFaint", innerAt = 1, hairlineAt = HAIRLINE_INSET,
+	},
+	window = {
+		fill = "chamferWindow", outer = "bevelWindowOuter", inner = "bevelWindowInner", dark = "bevelWindowDark", hairline = "bevelWindowHairline",
+		outerColor = "edgeWindowOuter", edgeColor = "edgeWindowInner", darkColor = "edgeOuter", hairlineColor = "edgeWindowFaint",
+		innerAt = 4, darkAt = 5, hairlineAt = 6, shadow = true, grain = true,
+	},
 }
 
 local LINE_ART = {}
 for _, shape in pairs(SHAPES) do
 	LINE_ART[shape.fill], LINE_ART[shape.outer], LINE_ART[shape.inner], LINE_ART[shape.hairline] = true, true, true, true
+	if shape.dark then
+		LINE_ART[shape.dark] = true
+	end
 end
 
 local function CornerIn(name, units, f)
@@ -519,20 +539,23 @@ function Widgets.Chrome(owner, opts)
 	local shapeName = opts.shape or "panel"
 	local shape = SHAPES[shapeName]
 	if not shape then
-		error("KstyleUI.Widgets.Chrome: shape must be panel or tile, got " .. tostring(shapeName), 2)
+		error("KstyleUI.Widgets.Chrome: shape must be panel, tile or window, got " .. tostring(shapeName), 2)
 	end
 	local c = setmetatable({
 		owner = owner,
 		shape = shape,
-		shadowOn = opts.shadow == true or (opts.shadow == nil and shapeName == "panel"),
+		shapeName = shapeName,
+		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or "surface",
-		edge = { Widgets.Rgba(opts.edge or "edgeInner") },
+		edge = { Widgets.Rgba(opts.edge or shape.edgeColor) },
 		fillColor = { 0, 0, 0, 0 },
 		ownFill = false,
+		outerColor = { 0, 0, 0, 0 },
+		ownOuter = false,
 	}, Chrome)
 	c.shadow = NewSlice(owner, "shadow", "BACKGROUND", SUBLEVEL_SHADOW)
 	c.fill = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_FILL)
-	if opts.grain ~= false and shapeName == "panel" then
+	if opts.grain ~= false and shape.grain then
 		local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
 		noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
 		noise:SetHorizTile(true)
@@ -542,24 +565,32 @@ function Widgets.Chrome(owner, opts)
 	c.outer = NewBevel(owner, shape.outer, SUBLEVEL_OUTER)
 	c.inner = NewBevel(owner, shape.inner, SUBLEVEL_INNER)
 	c.hairline = NewBevel(owner, shape.hairline, SUBLEVEL_HAIRLINE)
+	if shape.dark then
+		c.dark = NewBevel(owner, shape.dark, SUBLEVEL_DARK)
+	end
 	c:Restyle()
 	return Widgets.Track(c)
+end
+
+local function LayoutLine(owner, parts, name, at, f)
+	local _, _, units = Tokens.Texture(name)
+	local border = Scale.Border() / f
+	PlaceBevel(owner, parts, CornerIn(name, units, f), at * border, border)
 end
 
 function Chrome:Layout()
 	local owner, shape = self.owner, self.shape
 	local _, _, fillUnits = Tokens.Texture(shape.fill)
 	local _, _, shadowUnits = Tokens.Texture("shadow")
-	local _, _, bevelUnits = Tokens.Texture(shape.outer)
 	local f = Widgets.ScaleFactor(owner)
 	Widgets.LayoutSlice(self.fill, owner, fillUnits, 0)
 	Widgets.LayoutSlice(self.shadow, owner, shadowUnits, shadowUnits / 2)
-	local border = Scale.Border() / f
-	local size = CornerIn(shape.outer, bevelUnits, f)
-	PlaceBevel(owner, self.outer, size, 0, border)
-	PlaceBevel(owner, self.inner, size, border, border)
-	local _, _, hairlineUnits = Tokens.Texture(shape.hairline)
-	PlaceBevel(owner, self.hairline, CornerIn(shape.hairline, hairlineUnits, f), HAIRLINE_INSET * border, border)
+	LayoutLine(owner, self.outer, shape.outer, 0, f)
+	LayoutLine(owner, self.inner, shape.inner, shape.innerAt, f)
+	LayoutLine(owner, self.hairline, shape.hairline, shape.hairlineAt, f)
+	if self.dark then
+		LayoutLine(owner, self.dark, shape.dark, shape.darkAt, f)
+	end
 	if self.noise then
 		local inset = CornerIn(shape.fill, fillUnits, f)
 		self.noise:ClearAllPoints()
@@ -586,8 +617,16 @@ function Chrome:Paint()
 	if self.noise then
 		self.noise:SetVertexColor(Widgets.Rgba("white", NOISE_ALPHA))
 	end
-	Widgets.ColorSlice(self.outer, Tokens.Color("edgeOuter"))
-	Widgets.ColorSlice(self.hairline, Tokens.Color("edgeFaint"))
+	local o = self.outerColor
+	if self.ownOuter then
+		Widgets.ColorSlice(self.outer, o[1], o[2], o[3], o[4])
+	else
+		Widgets.ColorSlice(self.outer, Tokens.Color(self.shape.outerColor))
+	end
+	Widgets.ColorSlice(self.hairline, Tokens.Color(self.shape.hairlineColor))
+	if self.dark then
+		Widgets.ColorSlice(self.dark, Tokens.Color(self.shape.darkColor))
+	end
 	local e = self.edge
 	Widgets.ColorSlice(self.inner, e[1], e[2], e[3], e[4])
 end
@@ -636,13 +675,29 @@ function Chrome:SetEdgeRGBA(r, g, b, a)
 	Widgets.ColorSlice(self.inner, r, g, b, a)
 end
 
+function Chrome:SetOuterRGBA(r, g, b, a)
+	local o = self.outerColor
+	o[1], o[2], o[3], o[4] = r, g, b, a
+	self.ownOuter = true
+	Widgets.ColorSlice(self.outer, r, g, b, a)
+end
+
+function Chrome:SetOuter(name, alphaScale)
+	if name then
+		self:SetOuterRGBA(Widgets.Rgba(name, alphaScale))
+	else
+		self.ownOuter = false
+		Widgets.ColorSlice(self.outer, Tokens.Color(self.shape.outerColor))
+	end
+end
+
 function Chrome:SetShadow(on)
 	self.shadowOn = on and true or false
 	self:Paint()
 end
 
 function Chrome:SetShown(shown)
-	for _, list in ipairs({ self.fill, self.outer, self.inner, self.hairline }) do
+	for _, list in ipairs({ self.fill, self.outer, self.inner, self.hairline, self.dark }) do
 		Widgets.ShowSlice(list, shown)
 	end
 	if self.noise then

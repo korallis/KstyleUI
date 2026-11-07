@@ -67,16 +67,19 @@ end
 local SIZE_NAMES = {
 	"chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
-	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight",
+	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight", "chamferWindow",
 }
-local SLICED = { "chamferPanel", "chamferTile", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner", "bevelPanelHairline", "bevelTileHairline", "shadow" }
+local SLICED = {
+	"chamferPanel", "chamferTile", "chamferWindow", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner",
+	"bevelPanelHairline", "bevelTileHairline", "bevelWindowOuter", "bevelWindowInner", "bevelWindowDark", "bevelWindowHairline", "shadow",
+}
 -- The bevel art holds a line one art unit (density texels) wide, so it is crisp only when a corner piece
 -- spans exactly one border per art unit. Frame scales: a frame on the root, and a tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
 
 local function chromes(env, ns, frameScale)
 	local out = {}
-	for _, shape in ipairs({ "panel", "tile" }) do
+	for _, shape in ipairs({ "panel", "tile", "window" }) do
 		local frame = env.CreateFrame("Frame", nil, ns.Scale.Root())
 		frame:SetScale(frameScale)
 		frame:SetSize(200, 100)
@@ -93,8 +96,14 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local _, fillSlice = Tokens.Texture(c.shape.fill)
 	local density = bevelSlice / bevelUnits
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	for _, line in ipairs({ c.outer, c.inner, c.hairline }) do
-		local _, slice = Tokens.Texture(line == c.hairline and c.shape.hairline or c.shape.outer)
+	local lines = { { c.outer, c.shape.outer }, { c.inner, c.shape.inner }, { c.hairline, c.shape.hairline } }
+	if c.dark then
+		lines[#lines + 1] = { c.dark, c.shape.dark }
+	end
+	assert(#lines == (shapeName == "window" and 4 or 3), where .. ": a window has four lines, the others three")
+	for _, entry in ipairs(lines) do
+		local line = entry[1]
+		local _, slice = Tokens.Texture(entry[2])
 		for i = 1, 4 do
 			local w, h = line[i]:GetSize()
 			local cornerPx = w * px

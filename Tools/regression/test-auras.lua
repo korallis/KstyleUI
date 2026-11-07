@@ -413,9 +413,11 @@ do
 	preview:Refresh()
 	K.Widgets.RestyleAll()
 	local edge = preview.buffs[1].button.chrome.edge
-	check(near(edge[1], 0.25) and near(edge[2], 0.5) and near(edge[3], 0.75), "sample buffs keep their hairline in the custom accent through a restyle")
+	local wr, wg, wb = K.Tokens.Color("textHover")
+	local lr, lg, lb = K.Widgets.Mix(0.25, 0.5, 0.75, 1, wr, wg, wb, 1, 0.15)
+	check(near(edge[1], lr) and near(edge[2], lg) and near(edge[3], lb), "sample buffs keep their hairline in the custom accent, lifted 15% toward white, through a restyle")
 	edge = preview.debuffs[1].button.chrome.edge
-	local hr, hg, hb = K.Tokens.Color("hostile")
+	local hr, hg, hb = K.Widgets.MixTokens("hostile", 1, "textHover", 1, 0.15)
 	check(near(edge[1], hr) and near(edge[2], hg) and near(edge[3], hb), "sample debuffs draw theirs in the hostile colour")
 	K.Options.Write("Auras", "timer.format", "long")
 	preview:Refresh()

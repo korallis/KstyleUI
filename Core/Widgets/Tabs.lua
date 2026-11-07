@@ -8,7 +8,9 @@ local max = math.max
 local TAB_MIN_WIDTH = 64
 local TEXT_FALLBACK_WIDTH = 56
 local STRIP_HEIGHT = 32
-local UNDERLINE_UNITS = 2
+local UNDERLINE_LIFT = 0.6
+local GLOW_UNITS, GLOW_ALPHA = 5, 0.5
+local GLOW_COLUMN, GLOW_REACH = 0.5, 0.005
 
 local Tab = {}
 
@@ -57,8 +59,9 @@ local function Slide(strip, t)
 	local x = strip.fromX + (strip.toX - strip.fromX) * t
 	local w = strip.fromW + (strip.toW - strip.fromW) * t
 	strip.underX, strip.underW = x, w
-	strip.underline:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", x, 2 * Widgets.Border(strip))
+	strip.underline:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", x, Widgets.Border(strip))
 	strip.underline:SetWidth(w)
+	strip.underGlow:SetWidth(w)
 end
 
 local Tabs = {}
@@ -80,7 +83,7 @@ local function Target(strip)
 	if not tab then
 		return nil
 	end
-	return tab.x + tab.inset, tab.w - 2 * tab.inset
+	return tab.x, tab.w
 end
 
 function Tabs:Layout()
@@ -105,9 +108,11 @@ function Tabs:Layout()
 	end
 	local width = self.opts.width and Widgets.Snap(self, self.opts.width) or x + pad
 	self:SetSize(width, height)
-	self.underline:SetHeight(Widgets.Snap(self, UNDERLINE_UNITS))
+	self.underline:SetHeight(Widgets.Border(self))
+	self.underGlow:SetHeight(Widgets.Snap(self, GLOW_UNITS))
 	local tx, tw = Target(self)
 	self.underline:SetShown(tx ~= nil)
+	self.underGlow:SetShown(tx ~= nil)
 	if tx then
 		self.fromX, self.fromW, self.toX, self.toW = tx, tw, tx, tw
 		Slide(self, 1)
@@ -118,7 +123,8 @@ function Tabs:Paint()
 	for i = 1, #self.items do
 		self.buttons[i]:Paint()
 	end
-	Widgets.Tint(self.underline, "accent")
+	self.underline:SetVertexColor(Widgets.MixTokens("accent", 1, "textHover", 1, UNDERLINE_LIFT))
+	Widgets.Tint(self.underGlow, "accent", GLOW_ALPHA)
 end
 
 function Tabs:Select(value, silent)
@@ -135,6 +141,7 @@ function Tabs:Select(value, silent)
 	self.fromX, self.fromW = self.underX or tx, self.underW or tw
 	self.toX, self.toW = tx, tw
 	self.underline:Show()
+	self.underGlow:Show()
 	Motion.Tween(self, Slide, 0, 1, Tokens.Duration("fade"), Tokens.Easing("fade"))
 	local onSelect = self.opts.onSelect
 	if not silent and onSelect then
@@ -191,7 +198,14 @@ function Widgets.Tabs(parent, opts)
 	strip.items = {}
 	strip.chrome = Widgets.Chrome(strip, { shape = "tile", fill = "raised", shadow = false })
 	strip.underline = strip:CreateTexture(nil, "ARTWORK")
-	strip.underline:SetTexture((Tokens.Texture("divider")))
+	strip.underline:SetColorTexture(Tokens.Color("white"))
+	local glow = strip:CreateTexture(nil, "ARTWORK", nil, -1)
+	local shadowPath, shadowTexels = Tokens.Texture("shadow")
+	glow:SetTexture(shadowPath)
+	glow:SetBlendMode("ADD")
+	glow:SetTexCoord(GLOW_COLUMN - GLOW_REACH, GLOW_COLUMN + GLOW_REACH, 0, shadowTexels / 2 / Widgets.TEXTURE_TEXELS.shadow)
+	glow:SetPoint("BOTTOMLEFT", strip.underline, "TOPLEFT")
+	strip.underGlow = glow
 	strip:SetTabs(opts.tabs, opts.value)
 	return Widgets.Track(strip)
 end

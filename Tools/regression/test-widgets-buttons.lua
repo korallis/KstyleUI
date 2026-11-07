@@ -105,12 +105,18 @@ do
 	assert(W.LastCall(button.icon, "SetTexture")[1] == 135489, "the icon")
 	assert(#W.Calls(button.icon, "AddMaskTexture") == 1, "the icon is masked to the chamfer")
 	local r, g, b = Tokens.Color("accent")
-	assert(W.SameColor(button.chrome.inner[5], r, g, b, 1), "at rest: the full accent hairline, as the kit's normal button")
+	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("buttonFill")), "the body is the design's near-black button fill, not a raised tile")
+	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
+	assert(W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "at rest: the accent lifted 15% toward white, as the design's normal button")
+	assert(W.SameColor(button.chrome.outer[5], rr, rg, rb, 0.45) and W.SameColor(button.chrome.outer[1], rr, rg, rb, 0.45), "the outer line is the rim's soft halo at 45%, so the rim reads as the design's soft 1.5-unit line")
 	W.Enter(button)
 	W.Settle(env)
 	local hr, hg, hb, ha = button.chrome.inner[5]:GetVertexColor()
-	assert(ha == 1 and hr >= r and hg >= g and hb >= b and hr + hg + hb > r + g + b + 0.2, "hover: a brighter accent hairline")
+	local wr, wg, wb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.25)
+	assert(ha == 1 and W.Near(hr, wr) and W.Near(hg, wg) and W.Near(hb, wb), "hover: the accent lifted 25% toward white")
+	assert(hr >= r and hg >= g and hb >= b, "hover: a brighter accent hairline")
 	assert(button.hoverGlow.holder:IsShown(), "hover: a soft glow")
+	assert(button.hoverGlow.spread == 10 and W.Near(button.hoverGlow.holder:GetAlpha(), 0.12), "the hover glow reaches 10 units at 12% alpha")
 	W.Down(button)
 	W.Settle(env)
 	local ir = button.icon:GetVertexColor()
@@ -147,10 +153,14 @@ do
 	cd:Show()
 	cd:GetScript("OnShow")(cd)
 	local _, _, _, ca = button.chrome.inner[5]:GetVertexColor()
-	assert(W.SameRGB(button.chrome.inner[5], K.Tokens.Color("text")) and ca >= 0.5, "a running cooldown greys the hairline")
+	assert(W.SameRGB(button.chrome.inner[5], K.Tokens.Color("text")) and W.Near(ca, 0.62), "a running cooldown greys the hairline to text at 62%")
+	local tr, tg, tb = K.Tokens.Color("text")
+	assert(W.SameColor(button.chrome.outer[5], tr, tg, tb, 0.62 * 0.45), "and its halo with it")
+	assert(W.Near(button.icon:GetVertexColor(), 0.4), "and dims the icon to 40%")
 	cd:GetScript("OnHide")(cd)
-	local r, g, b = K.Tokens.Color("accent")
+	local r, g, b = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
 	assert(W.SameColor(button.chrome.inner[5], r, g, b), "the accent returns when it ends")
+	assert(button.icon:GetVertexColor() == 1, "and the icon is bright again")
 	local object = {}
 	button:SetCooldownFromDuration(object)
 	assert(W.LastCall(cd, "SetCooldownFromDurationObject")[1] == object, "a duration object goes to the engine")
@@ -170,6 +180,7 @@ do
 	assert(not button.procGlow:IsPlaying(), "and stops")
 	button:SetUsable(false)
 	assert(W.LastCall(button.icon, "SetDesaturated")[1] == true, "an unusable icon is desaturated")
+	assert(W.Near(button.icon:GetVertexColor(), 0.45), "at 45% brightness")
 	assert(W.SameColor(button.chrome.inner[5], K.Tokens.Color("textDisabled")), "with a solid grey hairline")
 	button:SetUsable(true)
 	assert(W.LastCall(button.icon, "SetDesaturated")[1] == false)
@@ -178,6 +189,17 @@ do
 	button:Enable()
 	button:SetSelected(true)
 	assert(W.SameColor(button.chrome.inner[5], r, g, b, 1), "a selected button keeps the full accent")
+end
+
+-- The cooldown countdown sits low on the button, its centre a quarter of the height above the bottom, as the design's "3.2s".
+do
+	local _, K, button = iconButton({})
+	assert(button.countdown == nil, "the stub cooldown reports no countdown font string")
+	button.countdown = K.Widgets.FontString(button)
+	button:Restyle()
+	local p = button.countdown._points[1]
+	assert(p and p[1] == "CENTER" and p[2] == button.cooldown and p[3] == "BOTTOM" and W.Near(p[4], 0), "centred over the cooldown's bottom edge")
+	assert(W.Near(p[5], K.Scale.Snap(button:GetHeight() * 0.25)), "a quarter of the height up")
 end
 
 -- Hotkey and count text sit on the button.
@@ -232,13 +254,21 @@ do
 		end }
 	end
 	assert(W.SameColor(textColor(1), Tokens.Color("textEmphasis")) and W.SameColor(textColor(2), Tokens.Color("text")))
-	assert(W.SameColor(tabs.underline, Tokens.Color("accent")), "an accent underline")
+	local ur, ug, ub = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.6)
+	assert(W.SameColor(tabs.underline, ur, ug, ub, 1), "the underline is the accent lifted 60% toward white, the design's hot line")
+	local border = K.Scale.Border()
+	assert(W.Near(tabs.underline:GetHeight(), border) and W.Near(tabs.underline._points[1][5], border), "one border thick, on the strip's bottom edge")
+	local glow = tabs.underGlow
+	assert(glow and W.LastCall(glow, "SetBlendMode")[1] == "ADD" and W.SameRGB(glow, Tokens.Color("accent")), "an additive accent glow above the underline")
+	assert(W.Near(glow:GetHeight(), K.Scale.Snap(5)) and W.Near(glow:GetWidth(), tabs.underline:GetWidth()), "five units tall, as wide as the line")
+	local gp = glow._points[1]
+	assert(gp[1] == "BOTTOMLEFT" and gp[2] == tabs.underline and gp[3] == "TOPLEFT", "sitting on the underline")
 	local function underlineAt(i)
 		local p = tabs.underline._points[1]
 		local tab = tabs.buttons[i]
-		return W.Near(p[4], tab.x + tab.inset) and W.Near(tabs.underline:GetWidth(), tab.w - 2 * tab.inset)
+		return W.Near(p[4], tab.x) and W.Near(tabs.underline:GetWidth(), tab.w)
 	end
-	assert(underlineAt(1), "under the first tab")
+	assert(underlineAt(1), "under the first tab, spanning its full width")
 	W.Click(tabs.buttons[2])
 	assert(picked[1] == "skills" and tabs:GetValue() == "skills", "a click selects and reports the tab")
 	W.Settle(env)
