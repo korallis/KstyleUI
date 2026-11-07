@@ -60,6 +60,18 @@ local function Blizzard(env)
 		local button = env._G[def[1]] or env.CreateFrame("Button", def[1], menu)
 		button:SetParent(menu)
 		button.layoutIndex = i
+		button.callbacks = {}
+		-- CallbackRegistryMixin, as MainMenuBarMicroButton_OnLoad generates it.
+		function button.RegisterCallback(self, event, fn, owner)
+			self.callbacks[#self.callbacks + 1] = { event, fn, owner }
+		end
+		function button.TriggerEvent(self, event, ...)
+			for _, callback in ipairs(self.callbacks) do
+				if callback[1] == event then
+					callback[2](callback[3], ...)
+				end
+			end
+		end
 		if def[2] then
 			local normal = button:CreateTexture(nil, "ARTWORK")
 			normal:SetAtlas("UI-HUD-MicroMenu-" .. def[2] .. "-Up")
@@ -126,6 +138,9 @@ local function Blizzard(env)
 	end
 	function env.PutItemInBackpack()
 		game.calls[#game.calls + 1] = "PutItemInBackpack()"
+	end
+	function env.PutKeyInKeyRing()
+		game.calls[#game.calls + 1] = "PutKeyInKeyRing()"
 	end
 	function env.PickupBagFromSlot(slot)
 		game.calls[#game.calls + 1] = "PickupBagFromSlot(" .. slot .. ")"
@@ -365,6 +380,23 @@ do
 	env.MicroButtonPulseStop(env.TalentMicroButton)
 	eq(Button(ns, "micro", "TalentMicroButton").proc, false, "and stops")
 
+	local guild = env.GuildMicroButton
+	guild.HasNotification = function()
+		return true
+	end
+	guild:TriggerEvent("OnNewNotification", guild)
+	eq(Button(ns, "micro", "GuildMicroButton").proc, true, "a notification glows as soon as Blizzard raises it")
+	guild.HasNotification = function()
+		return false
+	end
+	guild:TriggerEvent("OnDismissedNotification", guild)
+	eq(Button(ns, "micro", "GuildMicroButton").proc, false, "and stops when it is dismissed")
+	guild:Disable()
+	guild:TriggerEvent("OnDisable", guild)
+	eq(Button(ns, "micro", "GuildMicroButton").usable, false, "a button Blizzard disables between updates shows disabled")
+	guild:Enable()
+	guild:TriggerEvent("OnEnable", guild)
+
 	env.LoadMicroButtonTextures(env.GuildMicroButton, "GuildCommunities-GuildColor")
 	eq(Button(ns, "micro", "GuildMicroButton").icon:GetAtlas(), "UI-HUD-MicroMenu-GuildCommunities-GuildColor-Up", "a new glyph follows Blizzard's")
 	noErrors(env, K)
@@ -397,14 +429,16 @@ do
 	eq(bag.icon:GetTexture(), 2222, "a new bag shows its icon")
 	eq(backpack.count:GetText(), "27", "the count follows")
 
+	local keyring = Button(ns, "bags", "KeyRingButton")
 	game.cursor = true
 	bag._scripts.OnReceiveDrag(bag)
 	backpack._scripts.OnReceiveDrag(backpack)
+	keyring._scripts.OnReceiveDrag(keyring)
 	game.cursor = false
 	bag._scripts.OnReceiveDrag(bag)
 	bag._scripts.OnDragStart(bag, "LeftButton")
 	backpack._scripts.OnDragStart(backpack, "LeftButton")
-	eq(table.concat(game.calls, " "), "PutItemInBag(32) PutItemInBackpack() PickupBagFromSlot(32)", "drops go into the bag, and a bag lifts off its slot")
+	eq(table.concat(game.calls, " "), "PutItemInBag(32) PutItemInBackpack() PutKeyInKeyRing() PickupBagFromSlot(32)", "drops go into the bag or the key ring, and a bag lifts off its slot")
 
 	K.Options.Write("DataBars", "bags.freeSlots", false)
 	eq(backpack.count:GetText(), "", "the free-slot count can be turned off")
@@ -494,6 +528,21 @@ do
 	env.MainActionBar_InitializeMKB()
 	eq(ns.Menus.Content("micro"):IsShown(), true, "both return with mouse and keyboard")
 	eq(ns.Menus.Content("bags"):IsShown(), true, "both")
+	noErrors(env, K)
+end
+
+-- Vehicles and pet battles: Blizzard shows its own micro menu on its override bar, so KstyleUI's steps aside
+
+do
+	local env, K, ns = New()
+	local vehicle = env.CreateFrame("Frame", "OverrideActionBar", env.UIParent)
+	env.MicroMenu:SetParent(vehicle)
+	env.UpdateMicroButtons()
+	eq(ns.Menus.Content("micro"):IsShown(), false, "the micro menu hides while Blizzard shows its own on the vehicle bar")
+	eq(ns.Menus.Content("bags"):IsShown(), true, "the bag bar stays")
+	env.MicroMenu:SetParent(env.MicroMenuContainer)
+	env.UpdateMicroButtons()
+	eq(ns.Menus.Content("micro"):IsShown(), true, "and returns when Blizzard puts its menu back")
 	noErrors(env, K)
 end
 

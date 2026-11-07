@@ -61,7 +61,7 @@ Menus.GROUPS = GROUPS
 
 local bars = {}
 local entryOf = setmetatable({}, { __mode = "k" })
-local queued, soon = {}, {}
+local queued, soon, hidden = {}, {}, {}
 local running, enabling, hooked = false, false, false
 
 local function Frame(name)
@@ -138,8 +138,15 @@ local function Wanted(bar, entry)
 end
 
 local function OwnerShown(bar)
-	local owner = Frame(bar.group.owner)
-	return owner ~= nil and Flag(owner:IsShown(), true)
+	local group = bar.group
+	local owner = Frame(group.owner)
+	if owner == nil or not Flag(owner:IsShown(), true) then
+		return false
+	end
+	if group.inMenu and owner:GetParent() ~= Frame(group.hide) then
+		return false
+	end
+	return true
 end
 
 local function Rank(entry)
@@ -362,14 +369,20 @@ local function Soon(id)
 end
 
 local function SyncBlizzard(id)
-	local frame = Frame(GROUPS[id].hide)
+	local name = GROUPS[id].hide
+	local frame = Frame(name)
 	if not frame then
 		return
 	end
-	if Active(id) then
+	local hide = Active(id)
+	if hide then
 		K.Safe.HideBlizzard(frame)
 	else
 		K.Safe.RestoreBlizzard(frame)
+	end
+	if hidden[id] ~= hide and (hide or hidden[id]) then
+		hidden[id] = hide
+		ns.Log(name .. (hide and " is hidden through Safe; KstyleUI's " .. id .. " bar takes its place" or " is restored through Safe"))
 	end
 end
 
@@ -476,6 +489,10 @@ local function OnReceiveDrag(button)
 	end
 	if entry.def.kind == "backpack" then
 		Call(PutItemInBackpack)
+	elseif entry.def.kind == "keyring" then
+		if not InCombatLockdown() then
+			Call(PutKeyInKeyRing)
+		end
 	elseif entry.def.kind == "bag" then
 		local slot = InvSlot(entry.def.bag)
 		if slot then
@@ -540,6 +557,28 @@ local function Footprint(key)
 	return key, { anchor = "BOTTOMRIGHT", x = -16, y = 60 }
 end
 
+local function RepaintMicro()
+	if running then
+		Paint(bars.micro)
+	end
+end
+
+local MICRO_EVENTS = { "OnBeginPulse", "OnEndPulse", "OnEnable", "OnDisable", "OnNewNotification", "OnDismissedNotification" }
+
+local function Observe(entry)
+	local target = entry.target
+	if type(target.RegisterCallback) ~= "function" then
+		ns.LogOnce("menus-callbacks", "micro buttons have no callback registry; their alerts update with UpdateMicroButtons only")
+		return
+	end
+	for _, event in ipairs(MICRO_EVENTS) do
+		local ok = pcall(target.RegisterCallback, target, event, RepaintMicro, entry)
+		if not ok then
+			ns.LogOnce("menus-callback:" .. event, entry.def.name .. " has no " .. event .. " callback")
+		end
+	end
+end
+
 local function Build(id)
 	local group = GROUPS[id]
 	if not Frame(group.owner) then
@@ -563,6 +602,9 @@ local function Build(id)
 			bar.entries[#bar.entries + 1] = entry
 			if def.portrait then
 				bar.portrait = entry
+			end
+			if group.inMenu then
+				Observe(entry)
 			end
 		end
 	end
@@ -596,12 +638,6 @@ local function Hook(name, fn)
 		return
 	end
 	ns.LogOnce("menus-hook:" .. name, name .. " is missing; KstyleUI's bars do not follow it")
-end
-
-local function RepaintMicro()
-	if running then
-		Paint(bars.micro)
-	end
 end
 
 local function InstallHooks()
