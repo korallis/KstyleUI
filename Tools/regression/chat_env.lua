@@ -55,6 +55,11 @@ local function newChatFrame(env, id, parent)
 	local frame = blizzard(env, env.CreateFrame("ScrollingMessageFrame", name, parent or env.UIParent))
 	frame:SetID(id)
 	frame:SetSize(430, 120)
+	frame.Background = blizzard(env, frame:CreateTexture(name .. "Background", "BACKGROUND"))
+	env[name .. "Background"] = frame.Background
+	for _, piece in ipairs({ "TopLeftTexture", "BottomLeftTexture", "TopRightTexture", "BottomRightTexture", "LeftTexture", "RightTexture", "BottomTexture", "TopTexture" }) do
+		env[name .. piece] = blizzard(env, frame:CreateTexture(name .. piece, "BORDER"))
+	end
 	frame._max = env._maxLines or 8
 	frame._elements = {}
 	frame._head = 0
@@ -97,7 +102,7 @@ local function newChatFrame(env, id, parent)
 	edit:SetSize(5, 32)
 	edit.header = blizzard(env, edit:CreateFontString(name .. "EditBoxHeader", "ARTWORK"))
 	for _, piece in ipairs({ "Left", "Right", "Mid", "FocusLeft", "FocusRight", "FocusMid" }) do
-		blizzard(env, edit:CreateTexture(name .. "EditBox" .. piece, "BACKGROUND"))
+		env[name .. "EditBox" .. piece] = blizzard(env, edit:CreateTexture(name .. "EditBox" .. piece, "BACKGROUND"))
 	end
 	frame.editBox = edit
 	frame.ScrollBar = blizzard(env, env.CreateFrame("Frame", nil, frame))
