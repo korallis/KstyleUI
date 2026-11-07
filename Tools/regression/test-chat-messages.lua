@@ -1,7 +1,7 @@
 -- test-chat-messages.lua: KstyleUI_Chat's message pipeline: URL links, class-coloured names, timestamps and short channel names, with secret lines passed through untouched.
 local C = dofile("Tools/regression/chat_env.lua")
 
-local HOOKED = { AddMessage = true }
+local HOOKED = { AddMessage = true, SetPoint = true, SetAlpha = true }
 
 local function has(text, part)
 	return type(text) == "string" and text:find(part, 1, true) ~= nil

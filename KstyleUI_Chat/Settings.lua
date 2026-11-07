@@ -9,13 +9,31 @@ local NAME = "Chat"
 ns.NAME = NAME
 
 local MAX_ABBREVIATION = 6
+local OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0, 1, 0.05
+local FONT_MIN, FONT_MAX = 8, 24
+local TAB_FONT_MIN, TAB_FONT_MAX = 8, 16
+local FADE_MIN, FADE_MAX, FADE_STEP = 10, 600, 10
+ns.FONT_MIN, ns.FONT_MAX = FONT_MIN, FONT_MAX
 
 local function Rgb(name)
 	local r, g, b = Tokens.Color(name)
 	return { r = r, g = g, b = b }
 end
 
+local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
+
 local defaults = {
+	panelOpacity = SURFACE_ALPHA,
+	shadow = true,
+	buttons = false,
+	font = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE),
+	fontSize = 12,
+	fontOutline = "none",
+	fade = true,
+	fadeTime = 120,
+	tabStyle = "underline",
+	tabCase = "upper",
+	tabFontSize = 10,
 	accentSource = "class",
 	accentColor = Rgb("accentDefault"),
 	timestamp = "%H:%M",
@@ -75,6 +93,10 @@ local ABBREVIATION_LABELS = {
 	instanceLeader = L["Instance leader"],
 }
 
+local function Fades(s)
+	return s.fade == true
+end
+
 local function IsShort(s)
 	return s.channels == "short"
 end
@@ -93,6 +115,68 @@ function ns.Schema()
 		timestamps[i] = { value = choice.value, label = TIMESTAMP_LABELS[choice.value] or choice.value }
 	end
 	local schema = {
+		{ type = "header", label = L["Panel"] },
+		{
+			type = "slider", key = "panelOpacity", label = L["Glass opacity"],
+			help = L["How solid the glass behind the chat looks. The text stays fully visible."],
+			min = OPACITY_MIN, max = OPACITY_MAX, step = OPACITY_STEP,
+		},
+		{
+			type = "toggle", key = "shadow", label = L["Panel shadow"],
+			help = L["Draws a soft shadow around the chat panel."],
+		},
+		{
+			type = "toggle", key = "buttons", label = L["Chat buttons"],
+			help = L["Shows the game's chat menu and channel buttons beside the chat."],
+		},
+		{ type = "header", label = L["Text"] },
+		{
+			type = "font", key = "font", label = L["Font"],
+			help = L["The font of chat messages, tabs and the edit box."],
+		},
+		{
+			type = "slider", key = "fontSize", label = L["Text size"],
+			help = L["The size of chat messages and the edit box."],
+			min = FONT_MIN, max = FONT_MAX, step = 1,
+		},
+		{
+			type = "dropdown", key = "fontOutline", label = L["Outline"],
+			help = L["An outline instead of the soft shadow, for busy backgrounds."],
+			options = {
+				{ value = "none", label = L["None, soft shadow"] },
+				{ value = "OUTLINE", label = L["Thin"] },
+				{ value = "THICKOUTLINE", label = L["Thick"] },
+			},
+		},
+		{
+			type = "toggle", key = "fade", label = L["Fade old messages"],
+			help = L["Old lines fade out when nothing new arrives. Scroll or hover to see them."],
+		},
+		{
+			type = "slider", key = "fadeTime", label = L["Fade after"],
+			help = L["Seconds a line stays before it fades."],
+			min = FADE_MIN, max = FADE_MAX, step = FADE_STEP, showWhen = Fades,
+		},
+		{ type = "header", label = L["Tabs"] },
+		{
+			type = "dropdown", key = "tabStyle", label = L["Tab style"],
+			help = L["How the selected tab stands out."],
+			options = {
+				{ value = "underline", label = L["Accent underline"] },
+				{ value = "filled", label = L["Filled tile"] },
+				{ value = "minimal", label = L["Bright text only"] },
+			},
+		},
+		{
+			type = "dropdown", key = "tabCase", label = L["Tab names"],
+			help = L["Shows tab names in capitals or as you typed them."],
+			options = { { value = "upper", label = L["Capitals"] }, { value = "normal", label = L["As typed"] } },
+		},
+		{
+			type = "slider", key = "tabFontSize", label = L["Tab text size"],
+			help = L["The size of the tab names."],
+			min = TAB_FONT_MIN, max = TAB_FONT_MAX, step = 1,
+		},
 		{ type = "header", label = L["Accent"] },
 		{
 			type = "dropdown", key = "accentSource", label = L["Accent colour"],

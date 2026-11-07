@@ -356,6 +356,33 @@ function C.Install(env, opts)
 			frame.TransformMessages = nil
 		end
 	end
+	-- Edit Mode's system mixin replaces ChatFrame1's SetPoint and ClearAllPoints with overrides that
+	-- tell the Edit Mode manager, and keeps the widget methods as SetPointBase and ClearAllPointsBase.
+	local primary = env.ChatFrame1
+	if primary and not opts.noEditMode then
+		env._editModeAnchors = 0
+		primary.SetPointBase = primary.SetPoint
+		primary.ClearAllPointsBase = primary.ClearAllPoints
+		primary.SetPoint = function(self, ...)
+			env._editModeAnchors = env._editModeAnchors + 1
+			return self:SetPointBase(...)
+		end
+		primary.ClearAllPoints = function(self)
+			env._editModeAnchors = env._editModeAnchors + 1
+			return self:ClearAllPointsBase()
+		end
+		local manager = blizzard(env, env.CreateFrame("Frame", "EditModeManagerFrame", env.UIParent))
+		manager:Hide()
+		manager._calls = {}
+		manager.IsEditModeActive = function()
+			return env._editMode == true
+		end
+	end
+	-- EditModeAnchor(env) re-anchors ChatFrame1 the way ApplySystemAnchor does, through the overrides.
+	function env.EditModeAnchor()
+		primary:ClearAllPoints()
+		primary:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 32, 95)
+	end
 	function env.IsCombatLog(frame)
 		return frame == env.ChatFrame2 and env._combatLog == true
 	end
