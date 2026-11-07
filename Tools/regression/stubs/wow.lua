@@ -70,9 +70,28 @@ if newproxy then
 	end
 end
 
-function newSecret(value)
+-- While an environment is quiet (env.SetQuiet), one value gives one shared secret, so a fake that
+-- returns a secret allocates nothing on a combat path. NIL stands for a nil value as a key.
+local quietEnvs = 0
+local sharedSecrets = {}
+local NIL = {}
+
+local function makeSecret(value)
 	local secret = secretTemplate and newproxy(secretTemplate) or setmetatable({}, secretMeta)
 	secretValues[secret] = { value }
+	return secret
+end
+
+function newSecret(value)
+	if quietEnvs == 0 or value ~= value then
+		return makeSecret(value)
+	end
+	local key = value == nil and NIL or value
+	local secret = sharedSecrets[key]
+	if not secret then
+		secret = makeSecret(value)
+		sharedSecrets[key] = secret
+	end
 	return secret
 end
 
@@ -287,24 +306,66 @@ local function genericMethod(key)
 end
 
 -- Quiet mode (env.SetQuiet) is for the performance check: a lookup returns one shared function per
--- method that records nothing, and a repeated Set<X> refills its stored table instead of making one.
+-- method that records nothing, a repeated Set<X> refills its stored table, and anchors reuse their
+-- point tables, so the stubs allocate nothing once a path has run.
 local quietMethods = {}
+
+local function refill(stored, ...)
+	local n = select("#", ...)
+	for i = 1, n do
+		stored[i] = (select(i, ...))
+	end
+	for i = n + 1, stored.n do
+		stored[i] = nil
+	end
+	stored.n = n
+end
 
 local function quietSetter(field)
 	return function(self, ...)
 		local stored = self._state[field]
-		if not stored then
+		if stored then
+			refill(stored, ...)
+		else
 			self._state[field] = pack(...)
+		end
+	end
+end
+
+local Quiet = {}
+
+function Quiet:SetPoint(point, ...)
+	local points = self._points
+	for i = 1, #points do
+		if points[i][1] == point then
+			refill(points[i], point, ...)
 			return
 		end
-		local n = select("#", ...)
-		for i = 1, n do
-			stored[i] = (select(i, ...))
-		end
-		for i = n + 1, stored.n do
-			stored[i] = nil
-		end
-		stored.n = n
+	end
+	local spare = self._sparePoints
+	local slot = spare and spare[#spare]
+	if slot then
+		spare[#spare] = nil
+		refill(slot, point, ...)
+	else
+		slot = pack(point, ...)
+	end
+	points[#points + 1] = slot
+end
+
+function Quiet:ClearAllPoints()
+	local points = self._points
+	if #points == 0 then
+		return
+	end
+	local spare = self._sparePoints
+	if not spare then
+		spare = {}
+		self._sparePoints = spare
+	end
+	for i = #points, 1, -1 do
+		spare[#spare + 1] = points[i]
+		points[i] = nil
 	end
 end
 
@@ -312,7 +373,7 @@ local function quietMethod(key)
 	local fn = quietMethods[key]
 	if not fn then
 		local setField = not Object[key] and key:match("^Set(%u%w*)$")
-		fn = Object[key] or (setField and quietSetter(setField)) or genericMethod(key)
+		fn = Quiet[key] or Object[key] or (setField and quietSetter(setField)) or genericMethod(key)
 		quietMethods[key] = fn
 	end
 	return fn
@@ -401,9 +462,14 @@ function Stubs.NewEnv(opts)
 		return env._combat == true
 	end
 
-	-- SetQuiet(true) stops every frame recording its calls in _calls, for the performance check.
+	-- SetQuiet(true) makes the stubs quiet for the performance check: frames stop recording their calls
+	-- in _calls, and the stubs stop allocating once a path has run.
 	function env.SetQuiet(quiet)
-		env._quiet = quiet and true or false
+		quiet = quiet and true or false
+		if quiet ~= (env._quiet == true) then
+			quietEnvs = quietEnvs + (quiet and 1 or -1)
+		end
+		env._quiet = quiet
 	end
 
 	-- Forever's xpcall passes extra arguments to the function. Lua 5.1's does not, so on Lua 5.1 the
@@ -462,16 +528,23 @@ function Stubs.NewEnv(opts)
 		return n
 	end
 
+	-- A batch runs from its own list while new timers go to the other one, which the last batch freed.
+	local spareTimers = {}
 	function env.RunTimers()
 		local rounds = 0
 		while #timers > 0 do
 			rounds = rounds + 1
 			assert(rounds <= 1000, "RunTimers: timers keep scheduling timers")
 			local batch = timers
-			timers = {}
-			for _, fn in ipairs(batch) do
-				fn()
+			timers = spareTimers or {}
+			spareTimers = nil
+			for i = 1, #batch do
+				batch[i]()
 			end
+			for i = #batch, 1, -1 do
+				batch[i] = nil
+			end
+			spareTimers = batch
 		end
 	end
 

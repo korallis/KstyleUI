@@ -137,9 +137,15 @@ The lint follows locals within a file. It does not follow values through functio
 - It allocates memory on an addon line. The spec allows no allocation in a combat path.
 - It reports an error while it runs.
 
-`measure.lua` calls the path 10 times to fill caches, then runs 3 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round. When the calls allocate, it runs 20 more calls under a debug hook that charges each allocation to the line that ran it. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that the stubs allocate, such as a new secret from `UnitHealth`, never fails it. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
+`measure.lua` calls the path 10 times to fill caches, then runs 3 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round. When the rounds allocate, it runs 1,000 more calls under a debug hook that charges each allocation to the line that ran it, so a line that allocates only on some calls is found too. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that a stub or a fake allocates, such as a duration object from `UnitCastingDuration`, never fails it. A line that allocates less often than once in 1,000 calls can escape the trace. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
 
-Before it measures, the test enters combat with `env.SetCombat(true)` and switches the stubs to quiet mode with `env.SetQuiet(true)`. In quiet mode a frame records no calls in `_calls`, a method lookup returns one shared function, and a repeated `Set<X>` refills its stored table. The stubs then add little time and almost no memory.
+Before it measures, the test enters combat with `env.SetCombat(true)` and switches the stubs to quiet mode with `env.SetQuiet(true)`. In quiet mode:
+
+- A frame records no calls in `_calls`, and a method lookup returns one shared function.
+- A repeated `Set<X>` refills its stored table, and `SetPoint` and `ClearAllPoints` reuse the frame's point tables.
+- `env.Secret(value)` returns one shared secret per value.
+
+`RunTimers` reuses its timer lists in every mode. The stubs then add little time, and a path whose fakes allocate nothing skips the trace.
 
 ### Register a combat path
 

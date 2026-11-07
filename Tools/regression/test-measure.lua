@@ -39,6 +39,11 @@ function M.Once()
 	cache = cache or {}
 	return cache
 end
+local n = 0
+function M.Sometimes()
+	n = n + 1
+	if n % 100 == 0 then return {} end
+end
 return M
 ]], "@KstyleUI_Fake/Hot.lua"))(stub)
 
@@ -93,6 +98,13 @@ end
 do
 	local r = Measure.Run(addon.Once)
 	assert(near(r.kb, 0) and #r.sites == 0, "a one-time cache is not a per-call allocation")
+end
+
+-- An allocation every 100th call is still the addon's: the trace covers as many calls as a round.
+do
+	local r = Measure.Run(addon.Sometimes)
+	assert(r.addonKb > 0 and r.sites[1] and r.sites[1].where == "KstyleUI_Fake/Hot.lua:29", "a table every 100th call belongs to line 29, got " .. tostring(r.sites[1] and r.sites[1].where))
+	assert(#Measure.Check({ name = "Fake Sometimes", budget = 1000, run = addon.Sometimes }) == 1, "and Check fails it")
 end
 
 -- opts.calls sets the number of calls, and the time is CPU seconds per call.

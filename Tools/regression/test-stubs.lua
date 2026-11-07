@@ -267,9 +267,46 @@ do
 		q:GetAlpha()
 	end)
 	assert(result.kb == 0, "quiet stubs allocate nothing, got " .. result.kb .. " KB per call")
+
+	-- Anchors: a quiet frame reuses its point tables, and the points read back as set.
+	result = Measure.Run(function()
+		q:ClearAllPoints()
+		q:SetPoint("TOPLEFT", e.UIParent, "TOPLEFT", 1, 2)
+		q:SetPoint("BOTTOMRIGHT", e.UIParent, "BOTTOMRIGHT", -3, 4)
+		q:SetPoint("TOPLEFT", e.UIParent, "TOPLEFT", 5, 6)
+	end)
+	assert(result.kb == 0, "quiet anchors allocate nothing, got " .. result.kb .. " KB per call")
+	local point, relative, relativePoint, x, y = q:GetPoint(1)
+	assert(q:GetNumPoints() == 2 and point == "TOPLEFT" and relative == e.UIParent and relativePoint == "TOPLEFT" and x == 5 and y == 6, "a repeated anchor replaces the first")
+	assert(select(5, q:GetPoint(2)) == 4, "the second anchor keeps its own values")
+	q:ClearAllPoints()
+	q:SetPoint("CENTER")
+	assert(q:GetNumPoints() == 1 and select(2, q:GetPoint(1)) == nil, "a reused point table holds no stale values")
+
+	-- Secrets: in quiet mode one value gives one secret, so a fake that returns a secret allocates nothing.
+	assert(rawequal(e.Secret(7), e.Secret(7)) and e.Reveal(e.Secret(7)) == 7, "a quiet secret is shared per value")
+	assert(e.issecretvalue(e.Secret(nil)) and e.Reveal(e.Secret(nil)) == nil, "a secret nil still works")
+	result = Measure.Run(function()
+		e.Secret(7)
+		e.Secret(nil)
+	end)
+	assert(result.kb == 0, "quiet secrets allocate nothing, got " .. result.kb .. " KB per call")
+
+	-- Timers: scheduling and running a timer reuses the timer lists.
+	local runs = 0
+	local tick = function()
+		runs = runs + 1
+	end
+	result = Measure.Run(function()
+		e.C_Timer.After(0, tick)
+		e.RunTimers()
+	end)
+	assert(result.kb == 0 and runs > 0, "timers allocate nothing, got " .. result.kb .. " KB per call")
+
 	e.SetQuiet(false)
 	q:SetAlpha(0.6)
 	assert(#q._calls == recorded + 1 and q:GetAlpha() == 0.6, "leaving quiet mode records calls again")
+	assert(not rawequal(e.Secret(7), e.Secret(7)), "outside quiet mode each secret is new")
 end
 
 print("stubs ok")

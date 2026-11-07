@@ -11,9 +11,12 @@
 --   kb       KB allocated per call by all code, stubs included
 --   addonKb  KB allocated per call on addon lines
 --   sites    the addon lines that allocate, most bytes first: { { where = "Core/X.lua:12", bytes = n } }
--- When kb is above 0, Run traces 20 more calls with a debug hook that charges each allocation to the
--- line that ran it. Memory a C function allocates is charged to the Lua line that called it. An addon
--- line is one in a file outside Tools/, so the stubs' own allocations are counted in kb only.
+--   traced   the calls run under the debug hook: 0, or opts.calls when kb is above 0
+-- When kb is above 0, Run runs opts.calls more calls under a debug hook that charges each allocation to
+-- the line that ran it, so a line that allocates only now and then is found too. Memory a C function
+-- allocates is charged to the Lua line that called it. An addon line is one in a file outside Tools/,
+-- so the stubs' own allocations are counted in kb only. In quiet mode the stubs allocate almost
+-- nothing, so most paths that allocate nothing skip the trace.
 --
 -- Check(entry) runs entry.run and returns a list of problems and the result. entry.budget is the time
 -- per call in microseconds. A path fails when it is over budget or allocates on an addon line.
@@ -32,7 +35,6 @@ local DEFAULT_CALLS = 1000
 local WARMUP_CALLS = 10
 local ROUNDS = 3
 local TRACE_WARMUP_CALLS = 2
-local TRACE_CALLS = 20
 local SHOWN_SITES = 5
 
 local clock, count, getinfo = os.clock, collectgarbage, debug.getinfo
@@ -52,34 +54,39 @@ local function LuaFrame(level)
 	while true do
 		local info = getinfo(level + 1, "Sl")
 		if not info then
-			return "?"
+			return "?", 0
 		end
 		if info.what == "Lua" or info.what == "main" then
-			return info.source .. ":" .. tostring(info.currentline)
+			return info.source, info.currentline
 		end
 		level = level + 1
 	end
 end
 
--- Trace(fn, calls) -> { [source:line] = KB } charged over the calls.
+-- Trace(fn, calls) -> { [source] = { [line] = KB } } charged over the calls. Only a call or a return
+-- changes the running function, so a line event keeps the source and takes the new line alone.
 local function Trace(fn, calls)
 	local sites = {}
-	local where = "?"
-	local last = count("count")
+	local source, at, last = "?", 0, nil
 	local function hook(event, line)
 		local now = count("count")
-		if now > last then
-			sites[where] = (sites[where] or 0) + (now - last)
+		if last and now > last then
+			local lines = sites[source]
+			if not lines then
+				lines = {}
+				sites[source] = lines
+			end
+			lines[at] = (lines[at] or 0) + (now - last)
 		end
 		if event == "line" then
-			where = getinfo(2, "S").source .. ":" .. tostring(line)
+			at = line
 		elseif event == "call" then
 			local info = getinfo(2, "S")
 			if info.what ~= "C" then
-				where = info.source .. ":" .. tostring(info.linedefined)
+				source, at = info.source, info.linedefined
 			end
 		else
-			where = LuaFrame(3)
+			source, at = LuaFrame(3)
 		end
 		last = count("count")
 	end
@@ -94,11 +101,12 @@ end
 
 local function Sites(charged, calls)
 	local list, totalKb = {}, 0
-	for site, kb in pairs(charged) do
-		local source = site:match("^(.*):%-?%d+$") or site
+	for source, lines in pairs(charged) do
 		if IsAddon(source) then
-			totalKb = totalKb + kb
-			list[#list + 1] = { where = site:sub(2), bytes = kb * 1024 / calls }
+			for line, kb in pairs(lines) do
+				totalKb = totalKb + kb
+				list[#list + 1] = { where = source:sub(2) .. ":" .. line, bytes = kb * 1024 / calls }
+			end
 		end
 	end
 	table.sort(list, function(a, b)
@@ -125,6 +133,11 @@ local function Rounds(fn, calls)
 	return best / calls, allocated / (ROUNDS * calls)
 end
 
+local function Charge(fn, calls)
+	Trace(fn, TRACE_WARMUP_CALLS)
+	return Trace(fn, calls)
+end
+
 function Measure.Run(fn, opts)
 	opts = opts or {}
 	local calls = opts.calls or DEFAULT_CALLS
@@ -134,10 +147,7 @@ function Measure.Run(fn, opts)
 	local ok, time, kb = pcall(Rounds, fn, calls)
 	local charged
 	if ok and kb > 0 then
-		ok, charged = pcall(function()
-			Trace(fn, TRACE_WARMUP_CALLS)
-			return Trace(fn, TRACE_CALLS)
-		end)
+		ok, charged = pcall(Charge, fn, calls)
 		if not ok then
 			time = charged
 		end
@@ -149,9 +159,9 @@ function Measure.Run(fn, opts)
 	end
 	local sites, addonKb = {}, 0
 	if charged then
-		sites, addonKb = Sites(charged, TRACE_CALLS)
+		sites, addonKb = Sites(charged, calls)
 	end
-	return { calls = calls, time = time, kb = kb, addonKb = addonKb, sites = sites }
+	return { calls = calls, time = time, kb = kb, addonKb = addonKb, sites = sites, traced = charged and calls or 0 }
 end
 
 function Measure.Check(entry)
