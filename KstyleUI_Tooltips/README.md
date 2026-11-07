@@ -49,7 +49,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Edge | The chrome's inner hairline. An item of uncommon quality or better lights it in `Theme.QualityColor`. `OnTooltipCleared` and `OnHide` return it to `edgeInner`. |
 | Divider | A `divider` gradient one border thick, 1 unit under the title line, in the accent, on any tooltip with two lines or more. |
 | Line colours | Lines in Blizzard's `NORMAL_FONT_COLOR` gold become `text`, lines in `HIGHLIGHT_FONT_COLOR` white become `textEmphasis`. Green, red, grey and quality colours stay. |
-| Icon | A 34-unit raised tile left of the tooltip's top left corner with the item's or spell's icon, cropped and masked by `iconMask`, set through `KstyleUI.Icons.Apply` so a custom icon set applies. It hides when the tooltip clears. |
+| Icon | On `GameTooltip` and `ItemRefTooltip`: a 34-unit raised tile left of the tooltip's top left corner with the item's or spell's icon, cropped and masked by `iconMask`, set through `KstyleUI.Icons.Apply` so a custom icon set applies. It hides when the tooltip clears and while a comparison tooltip shows beside it, so the two never overlap. |
 | Embedded items | `GameTooltip.ItemTooltip` and `EmbeddedItemTooltip.ItemTooltip` (quest rewards) lose Blizzard's `IconBorder` by alpha. A raised tile two borders outside the icon takes the colour Blizzard gives `IconBorder` through a hook on its `SetVertexColor`, or `edgeInner` while it is hidden. |
 | Compare label | The shopping tooltips' `CompareHeader` loses its art and sits on a raised tile with the label in the caption font. |
 | Close button | `ItemRefTooltip.CloseButton` gets `Skin.CloseButton`. |
@@ -64,7 +64,7 @@ One post-call for every tooltip type runs in this order, so the tooltip sizes it
 2. The type's part:
    - **Item**: the quality edge, the item and icon ID lines, the icon.
    - **Spell** and **UnitAura**: the spell and icon ID lines, the icon.
-   - **Unit**: the name in its class colour (players) or reaction colour (everyone else), `<Guild>` or `<Guild> Rank` on Blizzard's guild line in `friendly` green for your own guild and `textEmphasis` otherwise, a `Target` line with the target's name in its colour or `You` in the accent, the unit edge, and the health bar's colour.
+   - **Unit**: the name in its class colour (players) or reaction colour (everyone else), `<Guild>` or `<Guild> Rank` on Blizzard's guild line (the line whose text is the guild name, bare or in brackets) in `friendly` green for your own guild and `textEmphasis` otherwise, a `Target` line with the target's name in its colour or `You` in the accent, the unit edge, and the health bar's colour.
    - **Object**: the health bar's colour.
 3. The title divider, once the lines are final.
 

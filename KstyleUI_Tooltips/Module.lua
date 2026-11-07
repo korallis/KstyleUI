@@ -69,6 +69,7 @@ local def = {
 function def.Enable()
 	ns.active = true
 	local count = SkinAll()
+	Style.WatchComparison()
 	if type(GameTooltip) == "table" then
 		Health.Build(GameTooltip)
 	end

@@ -96,10 +96,11 @@ local function Guild(tooltip, unit)
 	if not Text(guild) then
 		return
 	end
+	local bracketed = Logic.GuildText(guild)
 	for i = 2, math.min(GUILD_SEARCH, Style.NumLines(tooltip)) do
 		local line = Style.Line(tooltip, "left", i)
 		local text = line and line:GetText()
-		if Plain(text) and text == guild then
+		if Plain(text) and (text == guild or text == bracketed) then
 			local shown = Settings.Get("guildRank") and Text(rank) and rank or nil
 			line:SetText(Logic.GuildText(guild, shown))
 			Widgets.TextColor(line, Yes(UnitIsInMyGuild, unit) and "friendly" or "textEmphasis")

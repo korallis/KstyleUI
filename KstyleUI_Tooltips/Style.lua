@@ -19,6 +19,10 @@ Style.NAMES = {
 	"EmbeddedItemTooltip",
 }
 
+local ICON_OWNERS = {
+	GameTooltip = { "ShoppingTooltip1", "ShoppingTooltip2" },
+	ItemRefTooltip = { "ItemRefShoppingTooltip1", "ItemRefShoppingTooltip2" },
+}
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 local DIVIDER_GAP = 1
@@ -95,6 +99,7 @@ function Style.Skin(tooltip, name)
 	divider:SetTexture((Tokens.Texture("divider")))
 	divider:Hide()
 	glass.divider = divider
+	glass.comparers = ICON_OWNERS[name] and {} or nil
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
@@ -218,12 +223,41 @@ local function PlaceIcon(icon, glass, tooltip)
 	icon.chrome:Restyle()
 end
 
+local function Comparing(glass)
+	for _, other in ipairs(glass.comparers) do
+		if other:IsShown() then
+			return true
+		end
+	end
+	return false
+end
+
+function Style.WatchComparison()
+	for _, tooltip in ipairs(skinned) do
+		local glass = Style.Glass(tooltip)
+		local names = ICON_OWNERS[tooltip:GetName()]
+		if glass and glass.comparers and names and #glass.comparers == 0 then
+			for _, name in ipairs(names) do
+				local other = _G[name]
+				if type(other) == "table" and type(other.HookScript) == "function" then
+					glass.comparers[#glass.comparers + 1] = other
+					other:HookScript("OnShow", function()
+						if glass.icon then
+							glass.icon:Hide()
+						end
+					end)
+				end
+			end
+		end
+	end
+end
+
 function Style.Icon(tooltip, fileID)
 	local glass = Style.Glass(tooltip)
-	if not glass then
+	if not (glass and glass.comparers) then
 		return
 	end
-	if not Settings.Get("icon") or fileID == nil or Logic.IsSecret(fileID) then
+	if not Settings.Get("icon") or fileID == nil or Logic.IsSecret(fileID) or Comparing(glass) then
 		if glass.icon then
 			glass.icon:Hide()
 		end

@@ -68,6 +68,7 @@ function T.Tooltip(env, name, opts)
 	opts = opts or {}
 	local tip = env.CreateFrame("GameTooltip", name, env.UIParent)
 	tip._made = { tip }
+	tip._shown = false
 	tip._left, tip._right, tip._count = {}, {}, 0
 	tip:SetFrameStrata("TOOLTIP")
 	local nine = env.CreateFrame("Frame", nil, tip)

@@ -137,7 +137,7 @@ do
 
 	K.Options.Write("Tooltips", "guildRank", true)
 	env._units.mouseover.myGuild = true
-	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle", "Level 38" })
+	ShowUnit(env, tip, "mouseover", { "Valerin", "<Kstyle>", "Level 38" })
 	assert(tip:GetLeftLine(2):GetText() == "<Kstyle> Officer", "the rank follows the guild with the switch on")
 	assert(Colored(tip:GetLeftLine(2), K.Tokens.Color("friendly")), "your own guild is friendly green")
 
@@ -271,6 +271,23 @@ do
 	tip:AddLine("Arcane Intellect", 1, 1, 1)
 	T.PostCall(env, tip, { type = Aura, id = env.Secret(1459) })
 	assert(tip:NumLines() == 1, "a secret aura ID adds nothing")
+
+	tip:ClearLines()
+	tip:AddLine("Thunderfury", 1, 1, 1)
+	T.PostCall(env, tip, { type = Item, id = 19019 })
+	assert(glass.icon:IsShown(), "the icon is back for the next item")
+	T.BlizzardShow(env.ShoppingTooltip1, true)
+	assert(not glass.icon:IsShown(), "a comparison tooltip beside it hides the icon, so they never overlap")
+	tip:ClearLines()
+	tip:AddLine("Thunderfury", 1, 1, 1)
+	T.PostCall(env, tip, { type = Item, id = 19019 })
+	assert(not glass.icon:IsShown(), "and keeps it hidden while the comparison shows")
+	T.BlizzardShow(env.ShoppingTooltip1, false)
+
+	local shopping = env.ShoppingTooltip1
+	shopping:AddLine("Thunderfury", 1, 1, 1)
+	T.PostCall(env, shopping, { type = Item, id = 19019 })
+	assert(ns.Style.Glass(shopping).icon == nil, "comparison tooltips show no icon")
 
 	K.Options.Write("Tooltips", "icon", false)
 	tip:ClearLines()
