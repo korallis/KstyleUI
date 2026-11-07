@@ -15,13 +15,16 @@ local DELAY_MIN, DELAY_MAX, DELAY_STEP = 3, 30, 1
 local OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0, 1, 0.05
 local BUTTON_MIN, BUTTON_MAX, BUTTON_STEP = 14, 32, 1
 local SPACING_MIN, SPACING_MAX, SPACING_STEP = 0, 12, 1
+local ICON_MIN, ICON_MAX, ICON_STEP = 16, 40, 1
+local COLUMNS_MIN, COLUMNS_MAX, COLUMNS_STEP = 1, 12, 1
 
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "left", size = 22, spacing = 6, growth = "down", tracking = true, mail = true, calendar = true, queue = true },
+	column = { side = "left", size = 22, spacing = 6, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
 	zoom = { wheel = true, reset = false, delay = 10 },
 	compass = true,
 	strip = { opacity = 0.8 },
@@ -37,6 +40,18 @@ local ACCENT_OPTIONS = {
 local SIDE_OPTIONS = {
 	{ value = "left", label = L["Left"] },
 	{ value = "right", label = L["Right"] },
+}
+local BEHAVIOUR_OPTIONS = {
+	{ value = "click", label = L["Open on click"] },
+	{ value = "hover", label = L["Open on mouseover"] },
+	{ value = "open", label = L["Always open"] },
+}
+local DIRECTION_OPTIONS = {
+	{ value = "auto", label = L["Away from the map"] },
+	{ value = "left", label = L["Left"] },
+	{ value = "right", label = L["Right"] },
+	{ value = "up", label = L["Up"] },
+	{ value = "down", label = L["Down"] },
 }
 local GROWTH_OPTIONS = {
 	{ value = "down", label = L["From the top, downward"] },
@@ -146,6 +161,46 @@ local schema = {
 	{
 		type = "toggle", key = "column.queue", label = L["Group finder status"],
 		help = L["Shows an eye while you are queued, in place of Blizzard's queue eye."],
+	},
+	{
+		type = "toggle", key = "column.drawer", label = L["Addon drawer button"],
+		help = L["Gathers minimap buttons from other addons into a drawer."],
+	},
+	{ type = "header", label = L["Addon drawer"] },
+	{
+		type = "dropdown", key = "drawer.behaviour", label = L["Drawer opens"], options = BEHAVIOUR_OPTIONS,
+		help = L["Open the drawer with a click, on mouseover, or keep it open."],
+	},
+	{
+		type = "dropdown", key = "drawer.direction", label = L["Drawer direction"], options = DIRECTION_OPTIONS,
+		help = L["Which way the drawer opens from its button."],
+	},
+	{
+		type = "slider", key = "drawer.size", label = L["Drawer icon size"],
+		min = ICON_MIN, max = ICON_MAX, step = ICON_STEP,
+		help = L["The size of each addon button in the drawer."],
+	},
+	{
+		type = "slider", key = "drawer.spacing", label = L["Drawer spacing"],
+		min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
+		help = L["The gap between addon buttons in the drawer."],
+	},
+	{
+		type = "slider", key = "drawer.columns", label = L["Drawer columns"],
+		min = COLUMNS_MIN, max = COLUMNS_MAX, step = COLUMNS_STEP,
+		help = L["How many addon buttons sit in each row before a new row starts."],
+	},
+	{
+		type = "toggle", key = "drawer.autoClose", label = L["Close after a click"],
+		help = L["Closes the drawer when you click one of its buttons."],
+	},
+	{
+		type = "toggle", key = "drawer.compartment", label = L["Addon compartment"],
+		help = L["Right-click the drawer button for Blizzard's addon compartment list."],
+	},
+	{
+		type = "toggle", key = "drawer.hideEmpty", label = L["Hide when empty"],
+		help = L["Hides the drawer button while no addon has a button to show."],
 	},
 	{ type = "header", label = L["Zoom"] },
 	{

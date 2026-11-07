@@ -225,12 +225,99 @@ function M.Menu(env)
 		entries[#entries + 1] = { kind = "checkbox", text = text, isSelected = isSelected, setSelected = setSelected, data = data }
 	end
 	function root.CreateButton(_, text, callback, data)
-		local entry = { kind = "button", text = text, callback = callback, data = data }
+		local entry = { kind = "button", text = text, callback = callback, data = data, initializers = {} }
 		entries[#entries + 1] = entry
-		return { AddInitializer = function() end, SetEnabled = function() end }
+		return {
+			AddInitializer = function(_, fn)
+				entry.initializers[#entry.initializers + 1] = fn
+			end,
+			SetEnabled = function() end,
+			SetOnEnter = function(_, fn)
+				entry.onEnter = fn
+			end,
+			SetOnLeave = function(_, fn)
+				entry.onLeave = fn
+			end,
+		}
 	end
 	menu.generator(menu.owner, root)
 	return entries, menu.owner
+end
+
+-- FakeLibDBIcon(env) -> a stand-in for LibDBIcon-1.0 behind env.LibStub. lib:Add(name, hidden) makes a
+-- button on Minimap as the library does and fires LibDBIcon_IconCreated; lib:Move(name) re-anchors it
+-- to Minimap as the library's position update does. lib:Refresh(name) sets lib.refreshed[name] and adds a
+-- CENTER anchor on Minimap without clearing the others. Each button's fadeOut:Play() fades it out.
+function M.FakeLibDBIcon(env)
+	local lib = { objects = {}, refreshed = {}, callbacks = {} }
+	function lib.RegisterCallback(owner, event, method)
+		lib.callbacks[event] = { owner = owner, method = method }
+	end
+	function lib.UnregisterCallback(owner, event)
+		local entry = lib.callbacks[event]
+		if entry and entry.owner == owner then
+			lib.callbacks[event] = nil
+		end
+	end
+	function lib.GetButtonList()
+		local names = {}
+		for name in pairs(lib.objects) do
+			names[#names + 1] = name
+		end
+		return names
+	end
+	function lib.GetMinimapButton(_, name)
+		return lib.objects[name]
+	end
+	function lib.Refresh(_, name)
+		lib.refreshed[name] = true
+		lib.objects[name]:SetPoint("CENTER", env.Minimap, "CENTER", 80, 0)
+	end
+	function lib.Move(_, name)
+		local button = lib.objects[name]
+		button:ClearAllPoints()
+		button:SetPoint("CENTER", env.Minimap, "CENTER", 80, 0)
+	end
+	function lib.Add(_, name, hidden)
+		local button = env.CreateFrame("Button", "LibDBIcon10_" .. name, env.Minimap)
+		button:SetSize(31, 31)
+		button:RegisterForDrag("LeftButton")
+		button:SetFrameStrata("MEDIUM")
+		button:SetFixedFrameStrata(true)
+		button.border = button:CreateTexture(nil, "OVERLAY")
+		button.background = button:CreateTexture(nil, "BACKGROUND")
+		button.icon = button:CreateTexture(nil, "ARTWORK")
+		button:SetScript("OnClick", function(self)
+			self.clicked = (self.clicked or 0) + 1
+		end)
+		button.fadeOut = {
+			Play = function(self)
+				self.playing = true
+				button:SetAlpha(0)
+			end,
+			Stop = function(self)
+				self.playing = false
+			end,
+		}
+		lib.objects[name] = button
+		lib:Move(name)
+		if hidden then
+			button:Hide()
+		end
+		local entry = lib.callbacks.LibDBIcon_IconCreated
+		if entry then
+			entry.method("LibDBIcon_IconCreated", button, name)
+		end
+		return button
+	end
+	env.LibStub = setmetatable({}, {
+		__call = function(_, major)
+			if major == "LibDBIcon-1.0" then
+				return lib
+			end
+		end,
+	})
+	return lib
 end
 
 -- FakeTooltip() -> a stand-in for Widgets.Tooltip() that records each line as text.

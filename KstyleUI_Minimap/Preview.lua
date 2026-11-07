@@ -53,6 +53,7 @@ function Preview.Build(parent)
 	player:SetPoint("CENTER", area, "CENTER")
 	frame.player = player
 	frame.column = Column.New(face, { preview = true })
+	frame.column.drawer = ns.Drawer.New(frame.column, { preview = true })
 
 	frame.Refresh = Refresh
 	frame:Refresh()

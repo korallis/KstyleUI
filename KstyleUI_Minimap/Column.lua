@@ -15,7 +15,7 @@ local CELLS = { tracking = 0, mail = 1, calendar = 2, queue = 3, drawer = 4 }
 local BADGE_SIZE = 6
 local BADGE_INSET = 1
 
-Column.ORDER = { "tracking", "mail", "calendar", "queue" }
+Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
 Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
 
 local TITLES = {
@@ -23,6 +23,7 @@ local TITLES = {
 	mail = L["New mail"],
 	calendar = L["Calendar"],
 	queue = L["Group finder"],
+	drawer = L["Addon buttons"],
 }
 
 function Column.Cell(name)
@@ -67,6 +68,15 @@ end
 function TOOLTIPS.queue(tip)
 	tip:AddLine(L["You are in a queue or have a listing."], "text")
 	tip:AddCaption(L["Click: your queues. Right-click: queue options."])
+end
+
+function TOOLTIPS.drawer(tip)
+	local drawer = ns.Map and ns.Map.drawer
+	local count = drawer and drawer:Count() or 0
+	if count > 0 then
+		tip:AddLine(L["%d addon buttons"]:format(count), "text")
+	end
+	tip:AddCaption(L["Click: open the drawer. Right-click: addon compartment."])
 end
 
 function Column.Tooltip(name, tip, button)
@@ -137,7 +147,18 @@ local function NewButton(column, name)
 	badge:Hide()
 	button.badge = badge
 	if not column.preview then
-		if name == "tracking" then
+		if name == "drawer" then
+			button.onClick = function(_, mouseButton)
+				if column.drawer then
+					column.drawer:OnToggleClick(mouseButton)
+				end
+			end
+			button:HookScript("OnEnter", function()
+				if column.drawer then
+					column.drawer:OnToggleEnter()
+				end
+			end)
+		elseif name == "tracking" then
 			button.onClick = Column.OpenTracking
 		elseif RESOLVE[name] then
 			button.onClick = AfterCombat
@@ -173,6 +194,8 @@ function Column:Wanted(name)
 		return not Data.RuleActive("IngameCalendarDisabled")
 	elseif name == "queue" then
 		return Data.Queued()
+	elseif name == "drawer" then
+		return not Settings.Get("drawer.hideEmpty") or (self.drawer ~= nil and self.drawer:HasContent())
 	end
 	return true
 end
@@ -180,6 +203,9 @@ end
 function Column:Active(name)
 	if name == "mail" or name == "queue" then
 		return true
+	end
+	if name == "drawer" then
+		return self.drawer ~= nil and self.drawer.open == true
 	end
 	if name == "calendar" then
 		return not self.preview and Data.PendingInvites() > 0

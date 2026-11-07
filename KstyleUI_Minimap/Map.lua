@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
-local Settings, Face, Data, Column, SecureClick = ns.Settings, ns.Face, ns.Data, ns.Column, ns.SecureClick
+local Settings, Face, Data, Column, SecureClick, Drawer = ns.Settings, ns.Face, ns.Data, ns.Column, ns.SecureClick, ns.Drawer
 
 local Map = {}
 ns.Map = Map
@@ -244,12 +244,20 @@ local function RefreshColumn()
 	end
 end
 
+local function CollectButtons()
+	if running and Map.drawer then
+		Map.drawer:Collect()
+		Map.column:Refresh()
+	end
+end
+
 function Map.Refresh()
 	local face = Map.face
 	if not (running and face) then
 		return
 	end
 	face:Refresh()
+	Map.drawer:Sync(running)
 	Map.column:Refresh()
 	SyncQueue()
 	UpdateZone()
@@ -288,6 +296,8 @@ local function Build()
 		return TimeManagerClockButton, GameTimeFrame
 	end, ClockTooltip)
 	Map.column = Column.New(face)
+	Map.drawer = Drawer.New(Map.column)
+	Map.column.drawer = Map.drawer
 	holder:HookScript("OnSizeChanged", Relayout)
 	local aspect = element.width / element.height
 	Widgets.Place(holder, KEY, K.Setup.Layouts.Default(KEY), {
@@ -459,7 +469,7 @@ local function RegisterEvents()
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", function()
 		onZone()
 		UpdateCompass()
-		RefreshColumn()
+		CollectButtons()
 	end)
 	for _, event in ipairs(COLUMN_EVENTS) do
 		Events.Register(MODULE, event, RefreshColumn)
@@ -484,6 +494,7 @@ local function RegisterEvents()
 		if name == HYBRID_ADDON then
 			MaskHybrid()
 		end
+		C_Timer.After(0, CollectButtons)
 	end)
 end
 
@@ -536,6 +547,9 @@ function Map.Disable()
 	StopClock()
 	StopCoords()
 	SecureClick.SetActive(false)
+	if Map.drawer then
+		Map.drawer:Sync(false)
+	end
 	local registry = EventRegistry
 	if registry and type(registry.UnregisterCallback) == "function" then
 		registry:UnregisterCallback(QUEUE_CALLBACK, Map)

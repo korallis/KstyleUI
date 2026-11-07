@@ -9,7 +9,7 @@ Square minimap, chamfered frame, zone and clock strip inside its bottom edge, si
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Minimap.toc` lists `Minimap.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
 | Layout element | `minimap.main`: resizable, keeps its proportions, 226 by 196 units at the 1080 reference |
-| Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
+| Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-drawer.lua` (the addon drawer against a LibDBIcon stand-in), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
 | Media | `Media/Glyphs.png`, drawn by `Tools/media/make_minimap_glyphs.py`; its row is in `Media/PROVENANCE.md` |
 
 ## Rules
@@ -30,13 +30,14 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the map square's place in the element |
+| `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the map square's place in the element, and the drawer's direction, grid and size |
 | `Settings.lua` | Defaults, the settings page rows and `Settings.Get(key)`, which gives the default for a saved value the row does not allow |
 | `Style.lua` | The accent (class or custom colour) and each text's font, size and outline |
 | `Data.lua` | Reads from the game: zone and PvP type, local and realm time, coordinates, map rotation, game rules, mail, calendar invites, the queue and tracking. Each read checks the API exists and that the value is not secret. |
 | `Face.lua` | The visible frame, shared by the live map and the preview: the chamfered square, the strip, the north mark and the coordinates |
 | `SecureClick.lua` | One shared secure button that clicks Blizzard's own calendar, clock, world map and queue buttons for KstyleUI's buttons |
-| `Column.lua` | The button column: tracking, mail, calendar and group finder status, built from `Widgets.IconButton` with the glyph sheet |
+| `Column.lua` | The button column: tracking, mail, calendar, group finder status and the drawer button, built from `Widgets.IconButton` with the glyph sheet |
+| `Drawer.lua` | The addon drawer: LibDBIcon buttons in a glass flyout, and the addon compartment's list |
 | `Map.lua` | The live minimap: hosting Blizzard's `Minimap`, hiding the cluster, wheel zoom, events and the clock ticker |
 | `Preview.lua` | The settings window's preview, with a drawn map instead of Blizzard's |
 | `Module.lua` | `Modules.Register` and `Options.Register` |
@@ -91,6 +92,16 @@ The column hangs beside the map square, from its top corner downward or from its
 
 The zone name and the clock on the strip work the same way: the zone clicks `MinimapCluster.ZoneTextButton` (the world map), and the clock clicks `TimeManagerClockButton`, or `GameTimeFrame` on a right click.
 
+### The addon drawer
+
+The last button in the column opens a glass flyout of other addons' minimap buttons.
+
+- **Collecting.** It reads `LibDBIcon-1.0` through `LibStub` when the module starts, on `PLAYER_ENTERING_WORLD`, the frame after each `ADDON_LOADED`, and on the library's `LibDBIcon_IconCreated` callback, which it subscribes to the first time it finds the library. KstyleUI never loads or embeds the library. Each button moves into the drawer: its drag is turned off (`RegisterForDrag()`), its fixed strata released so the drawer cannot cover it, its ring and background stripped through `KstyleUI.Skin.Strip`, and a chamfered tile put behind it with `Skin.Backdrop`. Buttons sort by name.
+- **Staying put.** A `hooksecurefunc` on each button's `SetPoint` puts it back in its slot when the library re-anchors it to `Minimap`. Hooks on its `SetAlpha` and its `fadeOut:Play` keep a show-on-mouseover button opaque while it is in the drawer. Hooks on `Show` and `Hide` re-lay the grid when an addon hides or shows its button, and a button the addon hid takes no place.
+- **Opening.** A click toggles it, mouseover opens it and closes it half a second after the pointer leaves both the drawer and its button, or it stays open. It opens away from the map unless a direction is chosen, and fills a grid of icons, a set number per row. Clicking an addon button closes the drawer unless **Close after a click** is off.
+- **The addon compartment.** Blizzard's compartment is part of the hidden cluster, so a right click on the drawer button, or a left click while the drawer is empty, lists `AddonCompartmentFrame.registeredAddons` in a KstyleUI menu, sorted by name. Each entry takes any mouse button, as Blizzard's does, and runs the addon's own function. KstyleUI reads Blizzard's list and never sorts or changes it.
+- **Handing back.** Turning the drawer button or the module off clears each button's anchors, puts it back on its first parent, lets it drag again and calls the library's `Refresh(name)`, which places it on the square edge (`GetMinimapShape` returns `"SQUARE"`).
+
 ### Secure clicks
 
 KstyleUI never opens a Blizzard window from its own code, so the click reaches Blizzard's own button through one `SecureActionButtonTemplate` button with `type = "click"` and `clickbutton1` and `clickbutton2`. Blizzard's handler then runs untainted. The button follows the reload button's pattern in the widget kit:
@@ -109,7 +120,10 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | `accent.source`, `accent.color` | `class`, the kit's accent | Hairline colour: class or custom colour |
 | `column.side`, `column.growth` | `left`, `down` | Which side of the map the button column uses, and whether it starts at the top or the bottom |
 | `column.size`, `column.spacing` | 22, 6 | Button size and the gap between buttons and beside the map |
-| `column.tracking`, `column.mail`, `column.calendar`, `column.queue` | on | Each button |
+| `column.tracking`, `column.mail`, `column.calendar`, `column.queue`, `column.drawer` | on | Each button |
+| `drawer.behaviour`, `drawer.direction` | `click`, `auto` | Open on click, on mouseover or always; which way it opens |
+| `drawer.size`, `drawer.spacing`, `drawer.columns` | 24, 4, 6 | The drawer's icon size, gap and icons per row |
+| `drawer.autoClose`, `drawer.compartment`, `drawer.hideEmpty` | on | Close after a click, the compartment list, and hiding the button while there is nothing to show |
 | `zoom.wheel`, `zoom.reset`, `zoom.delay` | on, off, 10 s | Wheel zoom and zooming back out |
 | `compass` | on | The north mark |
 | `strip.opacity` | 0.8 | The band behind the zone and clock |
@@ -126,6 +140,8 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 - **The panel's centre is clear.** The map covers the fill's centre, the shadow's centre and the grain, and `HybridMinimap` draws in the `BACKGROUND` strata, under KstyleUI's `LOW` frame, so any of them would darken it. The chrome's `Paint` is wrapped on this one panel so a restyle never brings them back.
 - **A wheel-only catcher.** Blizzard's `Minimap` takes the wheel only inside its round hit area. A frame with just `EnableMouseWheel` covers the whole square without stealing clicks, motion or pings.
 - **The queue eye is faded, not hidden.** Forever anchors `QueueStatusButton` to `Minimap` by default (`GROUP_FINDER_RELATIVE_TO` in `Blizzard_EditMode/Camelot`), so it would sit on KstyleUI's map. Hiding it through `Safe` would break its right-click menu: `Blizzard_Menu` closes a menu whose owner is not visible. So the eye stays shown at alpha 0 with its mouse off, and the column's button clicks it through the secure overlay.
+- **The drawer is part of the minimap element.** It is a flyout hung on its own button, like a menu, so it moves with the minimap and has no Layout key of its own; its icon size, spacing, columns and direction are its settings.
+- **Third-party buttons are moved, Blizzard's are not.** The drawer reparents LibDBIcon buttons, which other addons own, and lists in the allow-list that `button:SetParent` touches only them.
 - **A KstyleUI tracking menu.** Blizzard's menu sets settings-backed filters through `MinimapUtil` and the Settings system. Calling that from addon code would taint the Settings system, so KstyleUI's menu calls `C_Minimap.SetTracking` directly. The Options panel's trivial-quest checkbox may lag until its next refresh.
 - **A secure overlay instead of calling Blizzard.** `ToggleCalendar`, `ToggleWorldMap` and the queue eye's handler load or show Blizzard windows. Called from addon code they run tainted; clicked through a secure button they run as Blizzard's own. The overlay is one module file, not a kit component, because it is input plumbing with no look of its own.
 - **The column is a column.** It holds at most four status buttons, so it has a side, an order, a size and a spacing but no rows or columns; the addon drawer is the icon grid.

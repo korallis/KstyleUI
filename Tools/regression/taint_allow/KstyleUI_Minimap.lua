@@ -18,4 +18,12 @@ return {
 			["Minimap:SetSize"] = 1,
 		},
 	},
+	["KstyleUI_Minimap/Drawer.lua"] = {
+		why = "button is a LibDBIcon button that another addon made on Minimap, never a Blizzard frame. "
+			.. "Adopt moves it into the drawer, skipping a protected button in combat; Stop hands it back to its first "
+			.. "parent and asks LibDBIcon to place it again when the module turns off.",
+		calls = {
+			["button:SetParent"] = 2,
+		},
+	},
 }

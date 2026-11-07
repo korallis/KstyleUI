@@ -4,7 +4,7 @@ local _, ns = ...
 local Format = {}
 ns.Format = Format
 
-local floor, format, min = math.floor, string.format, math.min
+local ceil, floor, format, max, min = math.ceil, math.floor, string.format, math.max, math.min
 
 local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
@@ -97,4 +97,48 @@ function Format.MapRect(width, height, side, reserve)
 		return 0, size
 	end
 	return width - size, size
+end
+
+local GRID_CORNER = { left = "TOPRIGHT", right = "TOPLEFT", down = "TOPLEFT", up = "BOTTOMLEFT" }
+local DRAWER_ANCHORS = {
+	left = { "TOPRIGHT", "TOPLEFT", -1, 0 },
+	right = { "TOPLEFT", "TOPRIGHT", 1, 0 },
+	down = { "TOPLEFT", "BOTTOMLEFT", 0, -1 },
+	up = { "BOTTOMLEFT", "TOPLEFT", 0, 1 },
+}
+
+function Format.Direction(direction, side)
+	if DRAWER_ANCHORS[direction] then
+		return direction
+	end
+	return side == "right" and "right" or "left"
+end
+
+function Format.Grid(index, columns, size, spacing, direction, pad)
+	columns = max(1, floor(columns))
+	local step = size + spacing
+	local col, row = (index - 1) % columns, floor((index - 1) / columns)
+	local x, y = pad + col * step, pad + row * step
+	if direction == "left" then
+		x = -x
+	end
+	if direction ~= "up" then
+		y = -y
+	end
+	return GRID_CORNER[direction] or GRID_CORNER.right, x, y
+end
+
+function Format.GridSize(count, columns, size, spacing, pad)
+	if count < 1 then
+		return 0, 0
+	end
+	columns = max(1, floor(columns))
+	local cols = min(count, columns)
+	local rows = ceil(count / columns)
+	return 2 * pad + cols * size + (cols - 1) * spacing, 2 * pad + rows * size + (rows - 1) * spacing
+end
+
+function Format.DrawerAnchor(direction)
+	local anchor = DRAWER_ANCHORS[direction] or DRAWER_ANCHORS.left
+	return anchor[1], anchor[2], anchor[3], anchor[4]
 end
