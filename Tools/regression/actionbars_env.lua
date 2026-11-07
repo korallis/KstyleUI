@@ -350,7 +350,6 @@ local function InstallGame(env, opts)
 		Block(env, "PickupAction")
 		g.picked[#g.picked + 1] = n
 	end
-	-- A table on the cursor ({ type, id, texture }) swaps with the slot it is placed on, as in the game.
 	env.PlaceAction = function(n)
 		Block(env, "PlaceAction")
 		g.placed[#g.placed + 1] = n
@@ -363,10 +362,7 @@ local function InstallGame(env, opts)
 		g.picked[#g.picked + 1] = "pet" .. n
 	end
 	env.GetCursorInfo = function()
-		if type(g.cursor) == "table" then
-			return g.cursor.type, g.cursor.id
-		end
-		return g.cursor
+		return type(g.cursor) == "table" and g.cursor.type or g.cursor
 	end
 	env.ClearCursor = function()
 		g.cursor = nil
@@ -469,12 +465,8 @@ local function InstallGame(env, opts)
 	env.C_Spell.GetSpellTexture = function(id)
 		return 1000000 + id
 	end
-	-- g.spells[id] = { name, subtext } holds each spell's name and rank text, such as "Rank 2".
-	env.C_Spell.GetSpellName = function(id)
-		return g.spells[id] and g.spells[id].name
-	end
-	env.C_Spell.GetSpellSubtext = function(id)
-		return g.spells[id] and g.spells[id].subtext
+	for api, field in pairs({ GetSpellName = "name", GetSpellSubtext = "subtext" }) do
+		env.C_Spell[api] = function(id) return g.spells[id] and g.spells[id][field] end
 	end
 	env.C_Spell.PickupSpell = function(id)
 		g.cursor = { type = "spell", id = id, texture = 1000000 + id }

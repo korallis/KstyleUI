@@ -128,7 +128,7 @@ do
 	assert(found == 1, "the failed slot is logged once")
 end
 
--- A busy cursor is never touched: the update waits until the player puts the item down, and for combat to end.
+-- A busy cursor is never touched: the update waits for the item to go down and for combat to end, and swaps only what was approved.
 do
 	local env, K, g = Setup()
 	Learn(env, HS2)
@@ -138,10 +138,11 @@ do
 	assert(g.cursor == item and #g.placed == 0, "the held item stays on the cursor")
 	g.cursor = nil
 	env.SetCombat(true)
-	env.RunTimers()
+	Learn(env, REND2)
 	assert(#g.placed == 0 and #env._blocked == 0, "a wait that ends in combat waits for combat to end too")
 	env.SetCombat(false)
 	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil, "then the update runs")
+	assert(Holds(g, 5, REND1) and Has(Shown(env, K), "REND (RANK 2)"), "a rank learned meanwhile still waits for its own answer")
 end
 
 -- In combat Update bars waits for combat to end, says so, and makes no protected call.
@@ -156,14 +157,18 @@ do
 	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil and #env._blocked == 0, "it runs when combat ends")
 end
 
--- Update automatically swaps with no popup; Off does nothing.
+-- Update automatically swaps with no popup; Off does nothing, and cancels a swap still waiting for combat to end.
 do
 	local env, K, g = Setup("auto")
 	Learn(env, HS2)
 	assert(Shown(env, K) == nil and Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil, "placed with no popup")
-	env, K, g = Setup("off")
+	env, K, g = Setup("auto")
+	env.SetCombat(true)
 	Learn(env, HS2)
-	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Off shows and changes nothing")
+	K.Options.Write("ActionBars", "ranks", "off")
+	env.SetCombat(false)
+	Learn(env, HS2)
+	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Off cancels the waiting swap, then shows and changes nothing")
 end
 
 -- The settings row: Ask by default, Update automatically and Off, with short help.
@@ -182,14 +187,12 @@ end
 do
 	local env, K, g = Setup()
 	g.slots[100] = { type = env.Secret("spell"), id = env.Secret(HS1) }
-	g.spells[REND1].subtext = env.Secret("Rank 1")
-	g.spells[SHOUT2].name = env.Secret("Battle Shout")
+	g.spells[REND1].subtext, g.spells[SHOUT2].name = env.Secret("Rank 1"), env.Secret("Battle Shout")
 	Learn(env, HS2, REND2, SHOUT2)
 	local text = Shown(env, K)
 	assert(Has(text, "HEROIC STRIKE (RANK 2)") and not Has(text, "REND") and #env._errors == 0, tostring(text) .. AB.Errors(env))
 	Press(env, K, "Update bars")
-	assert(Holds(g, 3, HS2) and Holds(g, 5, REND1) and env.issecretvalue(g.slots[100].id), "only the plain slots change")
-	assert(#env._errors == 0, AB.Errors(env))
+	assert(Holds(g, 3, HS2) and Holds(g, 5, REND1) and env.issecretvalue(g.slots[100].id) and #env._errors == 0, "only the plain slots change" .. AB.Errors(env))
 end
 
 print("test-actionbars-ranks: ok")

@@ -10,7 +10,7 @@ ns.Ranks = Ranks
 local BATCH_DELAY = 0.5
 local CURSOR_WAIT = 1
 
-local pending, offer = {}, {}
+local pending, offer, approved = {}, {}, {}
 local scheduled, handle = false, nil
 
 local function Plain(v)
@@ -43,7 +43,8 @@ local function Drop()
 end
 
 local function Apply()
-	if next(offer) == nil then
+	if next(approved) == nil or ns.Config("ranks") == "off" then
+		approved = {}
 		return
 	end
 	if InCombatLockdown() then
@@ -59,7 +60,7 @@ local function Apply()
 		C_Timer.After(CURSOR_WAIT, Apply)
 		return
 	end
-	for slot, o in pairs(offer) do
+	for slot, o in pairs(approved) do
 		if SpellIn(slot) == o.from then
 			C_Spell.PickupSpell(o.to.spell)
 			PlaceAction(slot)
@@ -69,14 +70,18 @@ local function Apply()
 			end
 		end
 	end
-	offer = {}
+	approved = {}
 	ns.Log("new ranks placed on the bars")
 end
 
-local function Update()
-	if InCombatLockdown() then
+local function Update(fromDialog)
+	if fromDialog and InCombatLockdown() then
 		K.Widgets.Popup({ title = L["New spell rank"], text = L["You are in combat. Your bars update when combat ends."] })
 	end
+	for slot, o in pairs(offer) do
+		approved[slot] = o
+	end
+	offer = {}
 	K.Combat.Queue(Apply)
 end
 
@@ -127,7 +132,7 @@ local function Flush()
 		end
 	end
 	if found and mode == "auto" then
-		K.Combat.Queue(Apply)
+		Update()
 	elseif found then
 		Ask()
 	end
@@ -147,5 +152,5 @@ function Ranks.Stop()
 	if handle then
 		handle:Close()
 	end
-	pending, offer, handle = {}, {}, nil
+	pending, offer, approved, handle = {}, {}, {}, nil
 end
