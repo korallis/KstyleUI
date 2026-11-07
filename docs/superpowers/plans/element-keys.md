@@ -70,6 +70,7 @@ These keys belong to core windows. The layouts do not place them.
 These module elements register with Layout, but the layouts do not place them.
 
 - `nameplates.plate`: a sample nameplate that shows only in Layout Mode. Resizable from 40 x 4 to 320 x 40; its size is the size of every KstyleUI nameplate. 160 units above the centre.
+- `bags.inventory`: the bag window, which opens on demand over the HUD. Scalable; its size follows the slot settings. Bottom right, 134 units up, above the bag bar.
 
 ## Layouts
 
