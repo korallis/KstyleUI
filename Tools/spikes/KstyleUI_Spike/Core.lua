@@ -61,6 +61,56 @@ function ns.DeepEqual(a, b, path)
 	return true
 end
 
+function ns.InCombat()
+	return InCombatLockdown ~= nil and InCombatLockdown() == true
+end
+
+local afterCombat = {}
+local afterCombatListener
+
+function ns.OutOfCombat(fn)
+	if not ns.InCombat() then
+		fn()
+		return
+	end
+	afterCombat[#afterCombat + 1] = fn
+	if not afterCombatListener then
+		afterCombatListener = ns.Listen({ "PLAYER_REGEN_ENABLED" }, function()
+			local queued = afterCombat
+			afterCombat = {}
+			for _, queuedFn in ipairs(queued) do
+				local ok, err = pcall(queuedFn)
+				if not ok then
+					ns.Print("cleanup after combat failed: " .. tostring(err))
+				end
+			end
+		end)
+	end
+end
+
+function ns.EnumName(enum, value)
+	if type(enum) ~= "table" or ns.IsSecret(value) or value == nil then
+		return nil
+	end
+	for name, candidate in pairs(enum) do
+		if candidate == value then
+			return name
+		end
+	end
+	return nil
+end
+
+function ns.Try(fn, ...)
+	if type(fn) ~= "function" then
+		return nil
+	end
+	local ok, result = pcall(fn, ...)
+	if not ok then
+		return "error: " .. tostring(result)
+	end
+	return ns.Describe(result)
+end
+
 function ns.Now()
 	return GetTime and GetTime() or 0
 end
@@ -115,6 +165,7 @@ function ns.DB()
 		KstyleUISpikeDB = {}
 	end
 	KstyleUISpikeDB.runs = KstyleUISpikeDB.runs or {}
+	KstyleUISpikeDB.autostart = KstyleUISpikeDB.autostart or {}
 	return KstyleUISpikeDB
 end
 
@@ -299,6 +350,9 @@ function ns.Start(name, args, origin)
 		ns.Print(name .. " failed: " .. tostring(result))
 	elseif type(result) == "function" then
 		ns.active[name] = { run = run, stop = result }
+		if def.autostart then
+			ns.DB().autostart[name] = true
+		end
 		ns.Print(name .. " started.")
 	else
 		run:Set("finished", true)
@@ -330,6 +384,10 @@ function ns.Command(msg)
 		ns.generation = ns.generation + 1
 		for name in pairs(ns.active) do
 			ns.Stop(name, "command")
+		end
+		local autostart = ns.DB().autostart
+		for name in pairs(autostart) do
+			autostart[name] = nil
 		end
 	elseif cmd == "shot" then
 		ns.Screenshot()
@@ -370,5 +428,10 @@ ns.Listen({ "ADDON_LOADED", "PLAYER_LOGIN" }, function(event, addon)
 		ns.DB()
 	elseif event == "PLAYER_LOGIN" then
 		ns.Print("loaded on build " .. ns.Build() .. ". Type /kspike for help.")
+		for _, name in ipairs(ns.order) do
+			if ns.DB().autostart[name] then
+				ns.Start(name, "", "PLAYER_LOGIN")
+			end
+		end
 	end
 end)

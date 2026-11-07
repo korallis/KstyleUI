@@ -9,7 +9,9 @@
 --   globals  table of globals to set before the addon loads (they replace the fakes below)
 --   remove   list of global names to leave unset, to test the path for a missing API
 --   noLogin  load the files without firing ADDON_LOADED and PLAYER_LOGIN
--- Every print goes to env.chat instead of the terminal. env.RunTickers(n) calls each live ticker n times.
+-- Every print goes to env.chat instead of the terminal. C_Timer.After runs on a virtual clock:
+-- env.Advance(seconds) runs the timers due in that time, in order, and env.RunTimers() runs them all.
+-- env.RunTickers(n) calls each live ticker n times.
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
@@ -67,6 +69,44 @@ return function(opts)
 	env.GetServerTime = function() return 1762480000 end
 	env.GetBuildInfo = function() return "1.60.1", "70840", "Nov 1 2026", 16001, "", "" end
 	env.SlashCmdList = {}
+	local timers, queued = {}, 0
+	env.C_Timer.After = function(seconds, fn)
+		queued = queued + 1
+		timers[#timers + 1] = { due = env._now + seconds, order = queued, fn = fn }
+	end
+
+	-- Runs the earliest timer due by limit, and returns false when none is due.
+	local function runNext(limit)
+		local best
+		for i, timer in ipairs(timers) do
+			if timer.due <= limit and (not best or timer.due < timers[best].due or (timer.due == timers[best].due and timer.order < timers[best].order)) then
+				best = i
+			end
+		end
+		if not best then
+			return false
+		end
+		local timer = table.remove(timers, best)
+		env._now = math.max(env._now, timer.due)
+		timer.fn()
+		return true
+	end
+
+	function env.Advance(seconds)
+		local limit = env._now + seconds
+		while runNext(limit) do
+		end
+		env._now = limit
+	end
+
+	function env.RunTimers()
+		local rounds = 0
+		while runNext(math.huge) do
+			rounds = rounds + 1
+			assert(rounds <= 10000, "RunTimers: timers keep scheduling timers")
+		end
+	end
+
 	env.C_Timer.NewTicker = function(_, fn, iterations)
 		local ticker = { fn = fn, left = iterations }
 		function ticker.Cancel() ticker.cancelled = true end

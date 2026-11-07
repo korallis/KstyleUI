@@ -16,4 +16,11 @@
 	<Script file="Scale.lua"/>
 	<Script file="Encoding.lua"/>
 	<Script file="Textures.lua"/>
+	<Script file="Presets.lua"/>
+	<Script file="Paging.lua"/>
+	<Script file="Header.lua"/>
+	<Script file="CombatText.lua"/>
+	<Script file="Auras.lua"/>
+	<Script file="Meters.lua"/>
+	<Script file="Cooldowns.lua"/>
 </Ui>
