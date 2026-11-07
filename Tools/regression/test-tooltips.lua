@@ -256,7 +256,7 @@ end
 do
 	local env, K, ns, snap = Enabled()
 	local Item = env.Enum.TooltipDataType.Item
-	assert(#(env._postCalls[Item] or {}) == 1 and #(env._postCalls.ALL or {}) == 1, "one item post-call and one for every tooltip")
+	assert(env._postCalls[Item] == nil and #(env._postCalls.ALL or {}) == 1, "one post-call serves every tooltip type")
 	local tip = env.GameTooltip
 	local glass = ns.Style.Glass(tip)
 	env._items[19019] = { quality = 3, icon = 135349 }
@@ -325,7 +325,7 @@ do
 	K.Options.Write("Tooltips", "qualityEdge", true)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "off, the post-calls do nothing")
-	assert(K.Modules.Enable("Tooltips") and #env._postCalls[Item] == 1, "turning it on again adds no second post-call")
+	assert(K.Modules.Enable("Tooltips") and #env._postCalls.ALL == 1, "turning it on again adds no second post-call")
 	T.Check(env, snap)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

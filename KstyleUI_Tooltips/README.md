@@ -23,16 +23,18 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
-`Tooltips.xml` loads them in this order. Tests: `Tools/regression/test-tooltips-logic.lua` (the pure rules) and `test-tooltips.lua` (the module against stand-in Blizzard tooltips from `tooltips_env.lua`).
+`Tooltips.xml` loads them in this order. Tests: `Tools/regression/test-tooltips-logic.lua` (the pure rules), `test-tooltips.lua` (glass, fonts, scale, anchor and settings) and `test-tooltips-units.lua` (unit lines, the health bar, IDs, the icon and embedded items), all against stand-in Blizzard tooltips from `tooltips_env.lua`.
 
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Logic.lua` | Pure rules: the fixed anchor's corner, font flags, which item qualities light the edge, the line colours that soften, and the tooltip scale |
+| `Logic.lua` | Pure rules: the fixed anchor's corner, font flags, which item qualities light the edge, the line colours that soften, the tooltip scale, the guild text and ID text |
 | `Settings.lua` | The defaults, the settings page and `Settings.Get(key)`, which returns the default for a saved value that is not allowed and logs it once |
-| `Style.lua` | The glass on each tooltip, its edge and title divider, the tooltip fonts and the tooltip scale |
+| `Style.lua` | The glass on each tooltip, its edge, title divider and icon, the embedded item border, the tooltip fonts and the tooltip scale |
 | `Anchor.lua` | The `tooltips.anchor` Layout element and the hook on `GameTooltip_SetDefaultAnchor` |
-| `Content.lua` | The `TooltipDataProcessor` post-calls |
+| `Health.lua` | GameTooltip's health on a KstyleUI status bar |
+| `Units.lua` | Unit name colours, the guild and target lines, the unit edge and the bar colour |
+| `Content.lua` | The `TooltipDataProcessor` post-call that runs the rest for each tooltip type |
 | `Preview.lua` | The settings window's live sample |
 | `Module.lua` | `Modules.Register`, `Enable`, `Disable` and `Options.Register` |
 
@@ -47,10 +49,32 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Edge | The chrome's inner hairline. An item of uncommon quality or better lights it in `Theme.QualityColor`. `OnTooltipCleared` and `OnHide` return it to `edgeInner`. |
 | Divider | A `divider` gradient one border thick, 1 unit under the title line, in the accent, on any tooltip with two lines or more. |
 | Line colours | Lines in Blizzard's `NORMAL_FONT_COLOR` gold become `text`, lines in `HIGHLIGHT_FONT_COLOR` white become `textEmphasis`. Green, red, grey and quality colours stay. |
+| Icon | A 34-unit raised tile left of the tooltip's top left corner with the item's or spell's icon, cropped and masked by `iconMask`, set through `KstyleUI.Icons.Apply` so a custom icon set applies. It hides when the tooltip clears. |
+| Embedded items | `GameTooltip.ItemTooltip` and `EmbeddedItemTooltip.ItemTooltip` (quest rewards) lose Blizzard's `IconBorder` by alpha. A raised tile two borders outside the icon takes the colour Blizzard gives `IconBorder` through a hook on its `SetVertexColor`, or `edgeInner` while it is hidden. |
 | Compare label | The shopping tooltips' `CompareHeader` loses its art and sits on a raised tile with the label in the caption font. |
 | Close button | `ItemRefTooltip.CloseButton` gets `Skin.CloseButton`. |
 | Fonts | `GameTooltipHeaderText`, `GameTooltipText` and `GameTooltipTextSmall` take the title, line and small line fonts. `Disable` restores Blizzard's fonts and shadows. |
 | Scale | Each tooltip's scale makes one tooltip unit one root unit, times the anchor element's scale. `Disable` restores each tooltip's own scale. |
+
+## Content
+
+One post-call for every tooltip type runs in this order, so the tooltip sizes itself once with all of it:
+
+1. Soften Blizzard's gold and white lines.
+2. The type's part:
+   - **Item**: the quality edge, the item and icon ID lines, the icon.
+   - **Spell** and **UnitAura**: the spell and icon ID lines, the icon.
+   - **Unit**: the name in its class colour (players) or reaction colour (everyone else), `<Guild>` or `<Guild> Rank` on Blizzard's guild line in `friendly` green for your own guild and `textEmphasis` otherwise, a `Target` line with the target's name in its colour or `You` in the accent, the unit edge, and the health bar's colour.
+   - **Object**: the health bar's colour.
+3. The title divider, once the lines are final.
+
+Every value from the game is checked with `issecretvalue` before it is compared. A secret GUID skips the unit's lines; a secret class falls back to the reaction colour; a secret target name adds no line; a secret item or spell ID adds no ID line and no icon. Each skip is logged once.
+
+## Health bar
+
+Blizzard's `GameTooltip.StatusBar` keeps working: its own post-call starts and stops its watch on the unit, and its `OnUpdate` sets its value. The module hides its art by alpha, hooks its `SetValue` with `hooksecurefunc`, and passes each value straight to a KstyleUI `StatusBar` on the glass, so a secret health percentage reaches the engine untouched and Lua never reads it. The KstyleUI bar shows and hides with Blizzard's through `HookScript`.
+
+The bar is horizontal under the tooltip or vertical beside its right edge, with the texture, colour source, fill direction and thickness from the settings, a `track` background and a raised tile border.
 
 ## Anchor
 
@@ -74,6 +98,15 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `accentSource` | `"class"` | dropdown: `class` follows KstyleUI's accent, `custom` uses `accentColor` |
 | `accentColor` | the `accentDefault` token | colour, shown for `custom` |
 
+| `classNames` | `true` | toggle |
+| `guildLine`, `guildRank` | `true`, `false` | toggles; the rank row shows while the guild line is on |
+| `targetLine` | `true` | toggle |
+| `unitEdge` | `false` | toggle |
+| `healthBar` | `true` | toggle |
+| `bar` | `{ texture, color, custom, orientation, reverse, size }`: the `Glass` texture, `class`, the `friendly` token, `HORIZONTAL`, `false`, 6 | a texture row, a colour source dropdown (`class`, `reaction`, `custom`), a colour (shown for `custom`), an orientation dropdown, a reverse toggle and a thickness slider from 2 to 16 |
+| `itemID`, `spellID`, `iconID` | `false` | toggles |
+| `icon`, `iconSize` | `true`, 34 | a toggle and a slider from 20 to 64 |
+
 Sizes are in tooltip units, which are root units at an anchor scale of 1, times Appearance's text size.
 
 ## Why
@@ -84,4 +117,6 @@ Sizes are in tooltip units, which are root units at an anchor scale of 1, times 
 - The module changes Blizzard's tooltip font objects instead of each line, because the game creates tooltip lines on demand and every line follows its font object. Other Blizzard text that uses `GameTooltipText` changes size with it.
 - `GameTooltip:SetScale`, `SetPoint`, `ClearAllPoints` and `SetOwner` are the calls Blizzard's own code makes on the tooltip. GameTooltip is not a protected frame, so they are allowed in combat and never block an action. The taint scan does not see them because they run on a parameter or a list entry; this paragraph is their review.
 - Tooltip sizes are in root units so a tooltip keeps its proportions on every screen and follows Appearance's interface size like every other KstyleUI element. Folding the scale into the anchor element gives the player one size control, in Layout Mode and on the settings page, instead of two that multiply.
-- Disable puts back the fonts and the scale but keeps the glass, because the border art is held at alpha 0 by a hook that cannot be removed. The module is a reskin, so the core asks for a reload.
+- The health bar mirrors Blizzard's bar instead of reading health itself, because tooltip health is secret in combat. Blizzard's secure code reads it and calls `SetValue`; a `hooksecurefunc` post-hook hands the same value to KstyleUI's bar, a widget setter that accepts secrets. Blizzard's bar keeps its own guid in attributes for the same reason, and the module never touches them.
+- The target and guild lines read names only after `issecretvalue` says they are plain, and never pass a secret to `AddLine`, because Blizzard's own comments note that secret line data on a tainted path can leave a tooltip with no lines.
+- Disable puts back the fonts and the scale and hides the KstyleUI health bar, but keeps the glass, because Blizzard's border and bar art are held at alpha 0 by hooks that cannot be removed. The module is a reskin, so the core asks for a reload.

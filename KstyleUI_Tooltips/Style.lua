@@ -23,6 +23,9 @@ local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
+local ICON_GAP = 4
+local ICON_CROP = 0.07
+local BORDER_LINES = 2
 
 local skinned = {}
 local savedFonts = {}
@@ -53,6 +56,9 @@ local function Reset(tooltip)
 	if glass then
 		glass.chrome:SetEdge("edgeInner")
 		glass.divider:Hide()
+		if glass.icon then
+			glass.icon:Hide()
+		end
 	end
 end
 Style.Reset = Reset
@@ -104,7 +110,7 @@ function Style.SetEdge(tooltip, r, g, b)
 	end
 end
 
-local function Line(tooltip, side, index)
+function Style.Line(tooltip, side, index)
 	local getter = side == "left" and tooltip.GetLeftLine or tooltip.GetRightLine
 	if type(getter) == "function" then
 		return getter(tooltip, index)
@@ -162,13 +168,13 @@ end
 function Style.Soften(tooltip, from, colors)
 	colors = colors or Palette()
 	for i = from or 1, Style.NumLines(tooltip) do
-		SoftenRegion(Line(tooltip, "left", i), colors)
-		SoftenRegion(Line(tooltip, "right", i), colors)
+		SoftenRegion(Style.Line(tooltip, "left", i), colors)
+		SoftenRegion(Style.Line(tooltip, "right", i), colors)
 	end
 end
 
 local function PlaceDivider(glass, tooltip)
-	local title = tooltip.TextLeft1 or Line(tooltip, "left", 1)
+	local title = tooltip.TextLeft1 or Style.Line(tooltip, "left", 1)
 	local divider = glass.divider
 	if type(title) ~= "table" then
 		divider:Hide()
@@ -182,13 +188,113 @@ local function PlaceDivider(glass, tooltip)
 	divider:Show()
 end
 
-function Style.Decorate(tooltip)
+local function IconFrame(glass, tooltip)
+	if glass.icon then
+		return glass.icon
+	end
+	local icon = CreateFrame("Frame", nil, glass)
+	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "raised", shadow = false })
+	local texture = icon:CreateTexture(nil, "ARTWORK")
+	texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	local mask = icon:CreateMaskTexture()
+	mask:SetTexture(Tokens.Texture("iconMask"), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(texture)
+	texture:AddMaskTexture(mask)
+	icon.texture, icon.mask = texture, mask
+	icon:Hide()
+	glass.icon = icon
+	return icon
+end
+
+local function PlaceIcon(icon, glass, tooltip)
+	local size = Settings.Get("iconSize")
+	Widgets.Size(icon, size, size)
+	icon:ClearAllPoints()
+	icon:SetPoint("TOPRIGHT", tooltip, "TOPLEFT", -Widgets.Snap(glass, ICON_GAP), 0)
+	local inset = Widgets.Border(icon) * BORDER_LINES
+	icon.texture:ClearAllPoints()
+	icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", inset, -inset)
+	icon.texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
+	icon.chrome:Restyle()
+end
+
+function Style.Icon(tooltip, fileID)
 	local glass = Style.Glass(tooltip)
 	if not glass then
 		return
 	end
-	if Settings.Get("softColors") then
-		Style.Soften(tooltip)
+	if not Settings.Get("icon") or fileID == nil or Logic.IsSecret(fileID) then
+		if glass.icon then
+			glass.icon:Hide()
+		end
+		return
+	end
+	local icon = IconFrame(glass, tooltip)
+	PlaceIcon(icon, glass, tooltip)
+	local Icons = K.Icons
+	if Icons and type(Icons.Apply) == "function" then
+		Icons.Apply(icon.texture, fileID)
+	else
+		icon.texture:SetTexture(fileID)
+	end
+	icon:Show()
+end
+
+local function PaintItemBorder(item)
+	local frame = Safe.Side(item).tooltipsBorder
+	local border = item.IconBorder
+	if not frame or type(border) ~= "table" then
+		return
+	end
+	if border:IsShown() then
+		local r, g, b = border:GetVertexColor()
+		if Logic.IsNumber(r) and Logic.IsNumber(g) and Logic.IsNumber(b) then
+			frame.chrome:SetEdgeRGBA(r, g, b, 1)
+			return
+		end
+	end
+	frame.chrome:SetEdge("edgeInner")
+end
+
+function Style.ItemBorder(item)
+	if type(item) ~= "table" then
+		return nil
+	end
+	local side = Safe.Side(item)
+	if side.tooltipsBorder then
+		return side.tooltipsBorder
+	end
+	local icon, border = item.Icon, item.IconBorder
+	if type(icon) ~= "table" or type(border) ~= "table" then
+		Settings.LogOnce("itemborder", "an embedded item frame has no Icon or IconBorder; it keeps Blizzard's border")
+		return nil
+	end
+	local keep = {}
+	for _, key in ipairs({ "Icon", "IconOverlay", "IconOverlay2" }) do
+		if type(item[key]) == "table" then
+			keep[item[key]] = true
+		end
+	end
+	Skin.Strip(item, { keep = keep })
+	local frame = CreateFrame("Frame", nil, item)
+	local outset = Widgets.Border(frame) * BORDER_LINES
+	frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -outset, outset)
+	frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outset, -outset)
+	UseParentLevel(frame, item)
+	frame.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "raised", shadow = false })
+	side.tooltipsBorder = frame
+	hooksecurefunc(border, "SetVertexColor", function()
+		PaintItemBorder(item)
+	end)
+	item:HookScript("OnShow", PaintItemBorder)
+	PaintItemBorder(item)
+	return frame
+end
+
+function Style.Divider(tooltip)
+	local glass = Style.Glass(tooltip)
+	if not glass then
+		return
 	end
 	if Settings.Get("divider") and Style.NumLines(tooltip) >= 2 then
 		PlaceDivider(glass, tooltip)

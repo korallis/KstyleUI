@@ -4,7 +4,8 @@ local _, ns = ...
 local Logic = {}
 ns.Logic = Logic
 
-local abs = math.abs
+local abs, floor = math.abs, math.floor
+local format = string.format
 
 local UNCOMMON = 2
 local COLOR_TOLERANCE = 0.02
@@ -58,4 +59,18 @@ function Logic.TooltipScale(rootScale, parentScale, elementScale)
 		return element
 	end
 	return rootScale / parentScale * element
+end
+
+function Logic.GuildText(guild, rank)
+	if type(rank) == "string" and rank ~= "" then
+		return format("<%s> %s", guild, rank)
+	end
+	return format("<%s>", guild)
+end
+
+function Logic.IDText(id)
+	if not IsNumber(id) or id ~= floor(id) then
+		return nil
+	end
+	return format("%d", id)
 end

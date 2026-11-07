@@ -4,6 +4,8 @@
 	<Script file="Settings.lua"/>
 	<Script file="Style.lua"/>
 	<Script file="Anchor.lua"/>
+	<Script file="Health.lua"/>
+	<Script file="Units.lua"/>
 	<Script file="Content.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

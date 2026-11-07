@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Style, Anchor, Content, Preview = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Preview
+local Settings, Style, Anchor, Content, Preview, Health = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Preview, ns.Health
 
 local MODULE = ns.MODULE
 
@@ -21,6 +21,9 @@ end
 local function ApplyAll()
 	ApplyFonts()
 	ApplyScale()
+	if ns.active then
+		Health.Restyle()
+	end
 end
 
 local function SkinAll()
@@ -29,6 +32,9 @@ local function SkinAll()
 		local tooltip = _G[name]
 		if type(tooltip) == "table" then
 			Style.Skin(tooltip, name)
+			if type(tooltip.ItemTooltip) == "table" then
+				Style.ItemBorder(tooltip.ItemTooltip)
+			end
 			count = count + 1
 		else
 			Settings.LogOnce("missing:" .. name, name .. " is missing on this client; it keeps Blizzard's look")
@@ -63,6 +69,9 @@ local def = {
 function def.Enable()
 	ns.active = true
 	local count = SkinAll()
+	if type(GameTooltip) == "table" then
+		Health.Build(GameTooltip)
+	end
 	Anchor.Build()
 	Anchor.Hook()
 	Content.Register()
@@ -73,6 +82,7 @@ end
 
 function def.Disable()
 	ns.active = false
+	Health.Hide()
 	Style.RestoreFonts()
 	Style.RestoreScale()
 end

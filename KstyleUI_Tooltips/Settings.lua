@@ -11,11 +11,15 @@ local MODULE = "Tooltips"
 ns.MODULE = MODULE
 
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 32, 1
+local BAR_MIN, BAR_MAX, BAR_STEP, BAR_SIZE = 2, 16, 1, 6
+local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 34
 local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
 local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 16, 13, 11
 
 local FACE = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
+local barR, barG, barB = Tokens.Color("friendly")
+local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 
 local function Text(size)
 	return { font = FACE, size = size, outline = "NONE" }
@@ -34,6 +38,25 @@ Settings.defaults = {
 	softColors = true,
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
+	classNames = true,
+	guildLine = true,
+	guildRank = false,
+	targetLine = true,
+	unitEdge = false,
+	healthBar = true,
+	bar = {
+		texture = BAR_TEXTURE,
+		color = "class",
+		custom = { r = barR, g = barG, b = barB },
+		orientation = "HORIZONTAL",
+		reverse = false,
+		size = BAR_SIZE,
+	},
+	itemID = false,
+	spellID = false,
+	iconID = false,
+	icon = true,
+	iconSize = ICON_SIZE,
 }
 
 local OUTLINES = {
@@ -113,7 +136,7 @@ local LOOK = {
 	},
 	{
 		type = "dropdown", key = "accentSource", label = L["Accent colour"],
-		help = L["The colour of the title divider: your class colour or one you pick."],
+		help = L["The colour of the title divider and the You target: your class colour or one you pick."],
 		options = {
 			{ value = "class", label = L["Class colour"] },
 			{ value = "custom", label = L["Custom colour"] },
@@ -127,8 +150,114 @@ local LOOK = {
 		end,
 	},
 }
-for _, row in ipairs(LOOK) do
-	schema[#schema + 1] = row
+local function GuildShown(settings)
+	return settings.guildLine ~= false
+end
+
+local function BarShown(settings)
+	return settings.healthBar ~= false
+end
+
+local function CustomBar(settings)
+	return settings.healthBar ~= false and type(settings.bar) == "table" and settings.bar.color == "custom"
+end
+
+local function IconShown(settings)
+	return settings.icon ~= false
+end
+
+local MORE = {
+	{ type = "header", label = L["Units"] },
+	{
+		type = "toggle", key = "classNames", label = L["Class colours"],
+		help = L["Colours player names by class and other names by reaction."],
+	},
+	{
+		type = "toggle", key = "guildLine", label = L["Guild line"],
+		help = L["Shows a player's guild in angle brackets, green for your own guild."],
+	},
+	{
+		type = "toggle", key = "guildRank", label = L["Guild rank"],
+		help = L["Adds the player's guild rank after the guild name."],
+		showWhen = GuildShown,
+	},
+	{
+		type = "toggle", key = "targetLine", label = L["Target line"],
+		help = L["Adds a line naming the unit's target, or You in the accent colour."],
+	},
+	{
+		type = "toggle", key = "unitEdge", label = L["Unit edge"],
+		help = L["Lights the tooltip's edge in the unit's class or reaction colour."],
+	},
+	{ type = "header", label = L["Health bar"] },
+	{
+		type = "toggle", key = "healthBar", label = L["Health bar"],
+		help = L["Shows the unit's health on a KstyleUI bar under the tooltip."],
+	},
+	{
+		type = "texture", key = "bar.texture", label = L["Bar texture"],
+		help = L["The fill texture of the health bar."], showWhen = BarShown,
+	},
+	{
+		type = "dropdown", key = "bar.color", label = L["Bar colour"],
+		help = L["Class colour for players, reaction colour for everyone, or a colour you pick."],
+		options = {
+			{ value = "class", label = L["Class colour"] },
+			{ value = "reaction", label = L["Reaction colour"] },
+			{ value = "custom", label = L["Custom colour"] },
+		},
+		showWhen = BarShown,
+	},
+	{
+		type = "color", key = "bar.custom", label = L["Custom bar colour"],
+		help = L["The health bar colour when Bar colour is set to custom."], showWhen = CustomBar,
+	},
+	{
+		type = "dropdown", key = "bar.orientation", label = L["Bar orientation"],
+		help = L["A horizontal bar under the tooltip, or a vertical bar beside it."],
+		options = {
+			{ value = "HORIZONTAL", label = L["Horizontal"] },
+			{ value = "VERTICAL", label = L["Vertical"] },
+		},
+		showWhen = BarShown,
+	},
+	{
+		type = "toggle", key = "bar.reverse", label = L["Reverse fill"],
+		help = L["Fills the bar from the right, or from the top when it is vertical."], showWhen = BarShown,
+	},
+	{
+		type = "slider", key = "bar.size", label = L["Bar thickness"],
+		help = L["How thick the health bar is, in KstyleUI units."],
+		min = BAR_MIN, max = BAR_MAX, step = BAR_STEP, showWhen = BarShown,
+	},
+	{ type = "header", label = L["Extra lines"] },
+	{
+		type = "toggle", key = "itemID", label = L["Item ID"],
+		help = L["Adds the item's ID to item tooltips."],
+	},
+	{
+		type = "toggle", key = "spellID", label = L["Spell ID"],
+		help = L["Adds the spell's ID to spell and aura tooltips."],
+	},
+	{
+		type = "toggle", key = "iconID", label = L["Icon ID"],
+		help = L["Adds the icon's file ID to item, spell and aura tooltips."],
+	},
+	{
+		type = "toggle", key = "icon", label = L["Icon"],
+		help = L["Shows the item or spell icon beside the tooltip's top left corner."],
+	},
+	{
+		type = "slider", key = "iconSize", label = L["Icon size"],
+		help = L["The size of that icon, in KstyleUI units."],
+		min = ICON_MIN, max = ICON_MAX, step = ICON_STEP, showWhen = IconShown,
+	},
+}
+
+for _, list in ipairs({ LOOK, MORE }) do
+	for _, row in ipairs(list) do
+		schema[#schema + 1] = row
+	end
 end
 Settings.schema = schema
 

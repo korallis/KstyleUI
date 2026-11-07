@@ -61,6 +61,22 @@ do
 	assert(Logic.TooltipScale(0.7, 1, nil) == 0.7, "a missing element scale counts as 1")
 end
 
+-- GuildText: the guild in angle brackets, with the rank after it when given ----------------------
+
+do
+	assert(Logic.GuildText("Kstyle") == "<Kstyle>", "the guild in brackets")
+	assert(Logic.GuildText("Kstyle", "Officer") == "<Kstyle> Officer", "the rank after it")
+	assert(Logic.GuildText("Kstyle", "") == "<Kstyle>", "an empty rank adds nothing")
+end
+
+-- ID lines read as text -----------------------------------------------------------------------------
+
+do
+	assert(Logic.IDText(19019) == "19019" and Logic.IDText(135349) == "135349", "IDs print as whole numbers")
+	assert(Logic.IDText("Interface\\Icons\\Spell_Fire") == nil, "a texture path is not an ID")
+	assert(Logic.IDText(env.Secret(5)) == nil and Logic.IDText(nil) == nil and Logic.IDText(1.5) == nil, "secrets, nothing and fractions give no line")
+end
+
 -- A secrecy check comes before any nil test of the same value ------------------------------------
 -- The game raises an error when a secret is compared, even with nil, and the stub secrets cannot catch
 -- a comparison with a plain value, so the module's source is checked instead.
