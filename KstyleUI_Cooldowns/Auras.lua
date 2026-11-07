@@ -7,8 +7,6 @@ ns.Auras = Auras
 local HARMFUL = "HARMFUL|PLAYER"
 local MIN_STACKS = 2
 
-local foundUnit, foundID
-
 local function Secret()
 	local api = C_Secrets
 	if not (api and api.ShouldAurasBeSecret) then
@@ -76,35 +74,43 @@ local function TargetAura(spell)
 	return nil
 end
 
-local function FindOn(spell)
-	local id = PlayerAura(spell)
+local function Search(entry, find)
+	local spell = entry.spell
+	local id = find(spell)
 	if id then
-		foundUnit, foundID = "player", id
-		return true
+		return id
 	end
-	id = TargetAura(spell)
-	if id then
-		foundUnit, foundID = "target", id
-		return true
-	end
-	return false
-end
-
-function Auras.Find(entry)
-	foundUnit, foundID = nil, nil
-	if not entry then
-		return nil
-	end
-	if FindOn(entry.spell) or (entry.spellID ~= entry.spell and FindOn(entry.spellID)) then
-		return foundUnit, foundID
+	if entry.spellID ~= spell then
+		id = find(entry.spellID)
+		if id then
+			return id
+		end
 	end
 	local linked = entry.linked
 	if linked then
-		for _, spell in ipairs(linked) do
-			if ns.Plain(spell) and FindOn(spell) then
-				return foundUnit, foundID
+		for _, linkedSpell in ipairs(linked) do
+			if ns.Plain(linkedSpell) then
+				id = find(linkedSpell)
+				if id then
+					return id
+				end
 			end
 		end
+	end
+	return nil
+end
+
+function Auras.Find(entry)
+	if not entry then
+		return nil
+	end
+	local id = Search(entry, PlayerAura)
+	if id then
+		return "player", id
+	end
+	id = Search(entry, TargetAura)
+	if id then
+		return "target", id
 	end
 	return nil
 end

@@ -22,6 +22,9 @@ local lists, scratch, shown, sources = {}, {}, {}, {}
 local running = false
 local pending = false
 local retries = 0
+local auraQueued, auraOwed = false, false
+local auraUnits
+local trackedSpells, foundAuras = {}, { player = {}, target = {} }
 
 local pcall = pcall
 
@@ -356,23 +359,193 @@ local function FindAuras(list)
 	end
 end
 
+local OnUnitAura
+
+local function ListenAuras(target)
+	local units = target and "both" or "player"
+	if auraUnits == nil or auraUnits == units then
+		return
+	end
+	auraUnits = units
+	K.Events.Unregister(MODULE, "UNIT_AURA")
+	if target then
+		K.Events.RegisterUnit(MODULE, "UNIT_AURA", OnUnitAura, "player", "target")
+	else
+		K.Events.RegisterUnit(MODULE, "UNIT_AURA", OnUnitAura, "player")
+	end
+end
+
+local function Owe()
+	auraOwed = true
+	ListenAuras(true)
+end
+
+local function Empty(set)
+	for key in pairs(set) do
+		set[key] = nil
+	end
+end
+
+local function Track(spell)
+	if type(spell) == "number" and not ns.IsSecret(spell) then
+		trackedSpells[spell] = true
+	end
+end
+
+local function Index()
+	Empty(trackedSpells)
+	Empty(foundAuras.player)
+	Empty(foundAuras.target)
+	local target = auraOwed
+	for group in pairs(Settings.AURA_GROUPS) do
+		if Live(group) then
+			for _, entry in ipairs(lists[group]) do
+				Track(entry.spell)
+				Track(entry.spellID)
+				if entry.linked then
+					for _, spell in ipairs(entry.linked) do
+						Track(spell)
+					end
+				end
+				local unit, id = entry.auraUnit, entry.auraID
+				if foundAuras[unit] and id then
+					foundAuras[unit][id] = true
+				end
+				target = target or unit ~= "player"
+			end
+		end
+	end
+	ListenAuras(target)
+end
+
 local function RefreshAuras()
 	if Auras.Secret() then
 		ns.LogOnce("auras-secret", "aura data is secret; the tracked buff mirror keeps its last state until it is readable")
+		Owe()
 		return
 	end
+	auraOwed = false
 	for group in pairs(Settings.AURA_GROUPS) do
 		if Live(group) then
 			FindAuras(lists[group])
 			AssignAuras(rows[group], lists[group])
 		end
 	end
+	Index()
+end
+
+local function RunAuras()
+	auraQueued = false
+	if running then
+		RefreshAuras()
+	end
+end
+
+local function RequestAuras()
+	auraOwed = true
+	if auraQueued or not running or auraUnits == nil then
+		return
+	end
+	auraQueued = true
+	C_Timer.After(0, RunAuras)
+end
+
+local function Unreadable()
+	ns.LogOnce("aura-update-unreadable", "a UNIT_AURA update could not be read; the tracked buffs refresh in full")
+	return true
+end
+
+local function AddsTracked(added)
+	if ns.IsSecret(added) then
+		return Unreadable()
+	end
+	if added == nil then
+		return false
+	end
+	if type(added) ~= "table" then
+		return Unreadable()
+	end
+	for _, aura in ipairs(added) do
+		if ns.IsSecret(aura) or type(aura) ~= "table" then
+			return Unreadable()
+		end
+		local spell = aura.spellId
+		if ns.IsSecret(spell) then
+			return Unreadable()
+		end
+		if spell ~= nil and trackedSpells[spell] then
+			return true
+		end
+	end
+	return false
+end
+
+local function TouchesFound(found, ids)
+	if ns.IsSecret(ids) then
+		return Unreadable()
+	end
+	if ids == nil then
+		return false
+	end
+	if type(ids) ~= "table" then
+		return Unreadable()
+	end
+	for _, id in ipairs(ids) do
+		if ns.IsSecret(id) then
+			return Unreadable()
+		end
+		if found[id] then
+			return true
+		end
+	end
+	return false
+end
+
+local function Touches(unit, info)
+	if ns.IsSecret(unit) or ns.IsSecret(info) then
+		return Unreadable()
+	end
+	if info == nil then
+		return true
+	end
+	if type(info) ~= "table" then
+		return Unreadable()
+	end
+	local full = info.isFullUpdate
+	if ns.IsSecret(full) then
+		return Unreadable()
+	end
+	if full == true then
+		return true
+	end
+	local found = foundAuras[unit]
+	if not found then
+		return false
+	end
+	return AddsTracked(info.addedAuras) or TouchesFound(found, info.removedAuraInstanceIDs) or TouchesFound(found, info.updatedAuraInstanceIDs)
+end
+
+function OnUnitAura(_, unit, info)
+	if auraQueued then
+		return
+	end
+	if auraOwed or Auras.Secret() or Touches(unit, info) then
+		RequestAuras()
+	end
+end
+
+local function OnTargetChanged()
+	if auraOwed or auraUnits ~= "player" then
+		RequestAuras()
+	end
 end
 
 local function Assign(group)
 	if COOLDOWN_GROUPS[group] then
 		AssignCooldowns(rows[group], lists[group])
-	elseif not Auras.Secret() then
+	elseif Auras.Secret() then
+		Owe()
+	else
 		FindAuras(lists[group])
 		AssignAuras(rows[group], lists[group])
 	end
@@ -410,6 +583,7 @@ local function RebuildAll()
 	elseif not dirty then
 		retries = 0
 	end
+	Index()
 end
 
 local function RunPending()
@@ -446,6 +620,7 @@ local function ApplySettings()
 			end
 		end
 	end
+	Index()
 	Reskin.Refresh()
 end
 Mirror.ApplySettings = ApplySettings
@@ -517,7 +692,7 @@ end
 
 local function RetextureAll()
 	EachCooldownIcon(TextureIcon)
-	RefreshAuras()
+	RequestAuras()
 end
 
 local EVENTS = {
@@ -545,7 +720,7 @@ local EVENTS = {
 		eventEntry = Data.SetOverride(base, override)
 		if eventEntry then
 			EachCooldownIcon(OverrideIcon)
-			RefreshAuras()
+			RequestAuras()
 		end
 		eventEntry = nil
 	end,
@@ -597,6 +772,7 @@ function Mirror.Start()
 	Settings.Read()
 	running = true
 	retries = 0
+	auraOwed = false
 	local mirrored, aurasMirrored = false, false
 	for _, group in ipairs(GROUPS) do
 		local path = Path.Choose(group, Settings.current.path)
@@ -621,8 +797,9 @@ function Mirror.Start()
 		end
 	end
 	if aurasMirrored then
-		K.Events.RegisterUnit(MODULE, "UNIT_AURA", RefreshAuras, "player", "target")
-		K.Events.Register(MODULE, "PLAYER_TARGET_CHANGED", RefreshAuras)
+		auraUnits = "both"
+		K.Events.RegisterUnit(MODULE, "UNIT_AURA", OnUnitAura, "player", "target")
+		K.Events.Register(MODULE, "PLAYER_TARGET_CHANGED", OnTargetChanged)
 	end
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
@@ -637,6 +814,7 @@ end
 function Mirror.Stop()
 	running = false
 	pending = false
+	auraUnits = nil
 	K.Events.UnregisterAll(MODULE)
 	if EventRegistry and EventRegistry.UnregisterCallback then
 		EventRegistry:UnregisterCallback(DATA_EVENT, Mirror)

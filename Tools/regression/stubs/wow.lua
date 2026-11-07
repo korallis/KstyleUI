@@ -144,7 +144,13 @@ function Object:RegisterEvent(event) self._events[event] = true end
 function Object:RegisterUnitEvent(event, ...) self._events[event] = select("#", ...) > 0 and { ... } or true end
 function Object:UnregisterEvent(event) self._events[event] = nil end
 function Object:UnregisterAllEvents() self._events = {} end
-function Object:IsEventRegistered(event) return self._events[event] ~= nil end
+function Object:IsEventRegistered(event)
+	local registered = self._events[event]
+	if type(registered) == "table" then
+		return true, unpack(registered)
+	end
+	return registered ~= nil
+end
 
 function Object:SetAttribute(key, value) self._attributes[key] = value end
 function Object:GetAttribute(key) return self._attributes[key] end

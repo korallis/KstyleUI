@@ -17,6 +17,12 @@ end
 
 local env, K, ns = C.New({ setup = C.Game })
 local cdm = env._cdm
+
+-- Aura(unit, info) fires UNIT_AURA and ends the frame, when the mirror's queued refresh runs.
+local function Aura(unit, info)
+	env.FireEvent("UNIT_AURA", unit, info)
+	env.RunTimers()
+end
 cdm.auras[3001] = { auraInstanceID = 71 }
 cdm.stacks[71] = "3"
 cdm.auras[4001] = { auraInstanceID = 81 }
@@ -54,19 +60,20 @@ assert(bar.name:GetText() == "Spell 4001", "the bar shows the spell's name")
 
 -- A buff with no expiry fills its bar and shows no countdown.
 cdm.permanent[81] = true
-env.FireEvent("UNIT_AURA", "player", {})
+Aura("player", { updatedAuraInstanceIDs = { 81 } })
 assert(LastArg(bar.status, "SetValue") == 1, "a buff with no expiry fills its bar")
 cdm.permanent[81] = nil
-env.FireEvent("UNIT_AURA", "player", {})
+Aura("player", { updatedAuraInstanceIDs = { 81 } })
 
 -- UNIT_AURA on the player brings in a new buff.
 cdm.auras[3002] = { auraInstanceID = 72 }
-env.FireEvent("UNIT_AURA", "player", {})
+Aura("player", { addedAuras = { { spellId = 3002, auraInstanceID = 72 } } })
 assert(buffs.count == 2, "a new aura adds its icon")
 
 -- A debuff the player put on the target shows after a target change.
 cdm.targetAuras["Spell 4002"] = { auraInstanceID = 82 }
 env.SetTarget(true)
+env.RunTimers()
 assert(bars.count == 2, "the target's debuff adds a bar")
 local targetCalls = C.Calls(env, "GetAuraDuration")
 local found = false
@@ -77,7 +84,7 @@ assert(found, "the target's aura duration is read from the target")
 
 -- A buff that ends drops its icon.
 cdm.auras[3001] = nil
-env.FireEvent("UNIT_AURA", "player", {})
+Aura("player", { removedAuraInstanceIDs = { 71 } })
 assert(buffs.count == 1 and buffs.icons[1].entry.spellID == 3002, "the ended buff drops out")
 
 -- Show inactive keeps every tracked buff, the inactive ones dimmed.
@@ -90,7 +97,7 @@ K.Options.Write("Cooldowns", "buffs.inactive", false)
 cdm.secretAuras = true
 local reads = #C.Calls(env, "GetPlayerAuraBySpellID")
 cdm.auras[3001] = { auraInstanceID = 73 }
-env.FireEvent("UNIT_AURA", "player", {})
+Aura("player", env.Secret({ addedAuras = { { spellId = 3001, auraInstanceID = 73 } } }))
 assert(#C.Calls(env, "GetPlayerAuraBySpellID") == reads, "no aura is read while auras are secret")
 assert(buffs.count == 1, "the last state stays")
 cdm.secretAuras = false
@@ -98,7 +105,7 @@ cdm.secretAuras = false
 -- A secret aura record or instance ID is never indexed or compared: it counts as not found.
 cdm.auras[3001] = env.Secret({ auraInstanceID = 74 })
 cdm.auras[3002] = { auraInstanceID = env.Secret(75) }
-env.FireEvent("UNIT_AURA", "player", {})
+Aura("player", { isFullUpdate = true })
 assert(buffs.count == 0, "secret aura data shows nothing rather than failing")
 assert(ns.Path.Get("buffs") == "mirror", "secret aura data is not a failure")
 
@@ -138,7 +145,8 @@ do
 	C.Enable(env2, K2)
 	assert(ns2.Mirror.Row("buffs").count == 1, "the buff shows first")
 	env2._cdm.auraDurationError = "secret arguments are not allowed"
-	env2.FireEvent("UNIT_AURA", "player", {})
+	env2.FireEvent("UNIT_AURA", "player", { updatedAuraInstanceIDs = { 91 } })
+	env2.RunTimers()
 	assert(ns2.Path.Get("buffs") == "reskin", "a failing duration call switches the buff icons to the reskin")
 	assert(env2._viewers.BuffIconCooldownViewer:GetAlpha() == 1, "Blizzard's buff viewer shows again")
 end
