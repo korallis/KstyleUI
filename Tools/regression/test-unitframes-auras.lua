@@ -1,0 +1,116 @@
+-- test-unitframes-auras.lua: frame auras run on the AuraContainer engine, touch aura buttons only while auras are not secret, and follow their settings.
+local U = dofile("Tools/regression/unitframes_env.lua")
+local W = U.W
+
+local env, K, ns = U.New()
+local Frames = ns.Frames
+
+local function noErrors(where)
+	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
+	assert(K.ErrorCount() == 0, where .. ": KstyleUI caught an error")
+end
+noErrors("enable")
+
+-- Focus and boss frames show auras by default; the player and target leave them to the Auras module and the HUD.
+local focus = Frames.Get("focus").views[1]
+local boss = Frames.Get("boss").views[2]
+assert(focus.auras and focus.auras.container, "the focus frame has an aura container")
+assert(boss.auras and boss.auras.container, "each boss frame has an aura container")
+assert(Frames.Get("target").views[1].auras == nil, "the target frame builds no container until its auras are switched on")
+assert(Frames.Get("player").views[1].auras == nil, "the player frame shows no auras by default")
+local c = focus.auras.container
+assert(c._unit == "focus" and boss.auras.container._unit == "boss2", "each container follows its unit")
+
+-- The default filter shows the player's own debuffs.
+assert(c._groups.debuffs.enabled and c._groups.debuffs.filter == "HARMFUL|PLAYER", "focus shows your debuffs")
+assert(c._groups.buffs.enabled == false, "and no buffs")
+
+-- initializeFrame dresses each engine button: icon, cooldown swipe, stack count and dispel border on a child frame.
+local button = c._groups.debuffs.buttons[1]
+local aura = button._aura
+assert(aura.SetIcon and aura.SetIcon[1]:GetObjectType() == "Texture", "the engine gets an icon texture")
+assert(aura.SetDurationCooldown and aura.SetDurationCooldown[1]:GetObjectType() == "Cooldown", "the engine gets a cooldown for the swipe")
+assert(aura.SetApplicationCount and aura.SetApplicationCount[1]:GetObjectType() == "FontString", "the engine gets a stack count")
+assert(aura.dispel and #aura.dispel > 0, "debuff borders follow the dispel type")
+assert(aura.SetIcon[1]:GetParent() ~= button, "the art sits on a child frame of the button")
+local w, h = button:GetSize()
+assert(w == 20 and h == 20, "buttons take the aura size: " .. tostring(w))
+
+-- Layout: element size, capacity, line length and growth.
+local layout = c._groups.debuffs.layout
+assert(layout.elementWidth == 20 and layout.elementHeight == 20 and layout.elementSpacing == 2, "the group lays out 20-unit icons, 2 apart")
+assert(c._groups.debuffs.max == 8, "one row of eight")
+assert(c._line == 8 * 20 + 7 * 2, "the line holds eight icons")
+assert(c._anchor == "TOPLEFT" and c._growth[1] == env.AnchorUtil.FlowDirection.Right and c._growth[2] == env.AnchorUtil.FlowDirection.Down, "growing right, then down")
+
+-- The aura row sits right of the focus frame.
+local point, rel, relPoint = focus.auras.host:GetPoint(1)
+assert(point == "TOPLEFT" and rel == focus.button and relPoint == "TOPRIGHT", "focus auras sit right of the frame")
+
+-- Settings: filter, rows, columns, spacing and growth reach the container at once.
+K.Options.Write("UnitFrames", "focus.auraFilter", "both")
+assert(c._groups.debuffs.enabled and c._groups.debuffs.filter == "HARMFUL" and c._groups.buffs.enabled and c._groups.buffs.filter == "HELPFUL", "both shows debuffs and buffs")
+assert(c._groups.buffs.layout.forceNewLine == true, "buffs start on their own line")
+K.Options.Write("UnitFrames", "focus.auraFilter", "buffs")
+assert(not c._groups.debuffs.enabled and c._groups.buffs.enabled, "buffs only")
+K.Options.Write("UnitFrames", "focus.auraRows", 2)
+K.Options.Write("UnitFrames", "focus.auraColumns", 5)
+K.Options.Write("UnitFrames", "focus.auraSpacing", 4)
+assert(c._groups.buffs.max == 10 and c._line == 5 * 20 + 4 * 4, "two rows of five, four apart")
+K.Options.Write("UnitFrames", "focus.auraGrowth", "LEFT_UP")
+assert(c._anchor == "BOTTOMRIGHT" and c._growth[1] == env.AnchorUtil.FlowDirection.Left and c._growth[2] == env.AnchorUtil.FlowDirection.Up, "growing left, then up")
+K.Options.Write("UnitFrames", "focus.auraPosition", "BELOW")
+point, rel, relPoint = focus.auras.host:GetPoint(1)
+assert(point == "TOPLEFT" and rel == focus.button and relPoint == "BOTTOMLEFT", "auras can sit under the frame")
+noErrors("settings")
+
+-- A size change waits while auras are secret: the group layout changes at once, the buttons after.
+env._restricted = true
+local sizes = #W.Calls(button, "SetSize")
+K.Options.Write("UnitFrames", "focus.auraSize", 26)
+assert(c._groups.buffs.layout.elementWidth == 26, "the group layout takes the new size at once")
+assert(#W.Calls(button, "SetSize") == sizes, "no aura button is touched while auras are secret")
+noErrors("secret gate")
+env._restricted = false
+env.SetCombat(true)
+env.SetCombat(false)
+local nw = button:GetSize()
+assert(nw == 26, "the buttons take the new size once auras are readable again")
+noErrors("after the gate")
+
+-- Switching target auras on builds their container on demand.
+K.Options.Write("UnitFrames", "target.auras", true)
+local target = Frames.Get("target").views[1]
+assert(target.auras and target.auras.container and target.auras.container._unit == "target", "target auras build on demand")
+K.Options.Write("UnitFrames", "target.auras", false)
+assert(target.auras.container._enabled == false and not target.auras.host:IsShown(), "switching them off disables the container")
+
+-- The aura row hides with its frame and with the module.
+U.SetUnit(env, "focus", nil)
+assert(not focus.auras.host:IsShown(), "no focus, no focus auras")
+U.SetUnit(env, "focus", { name = "Elunara", level = 60, health = 1, healthMax = 2, reaction = 2 })
+assert(focus.auras.host:IsShown(), "the aura row shows with its frame")
+K.Modules.Disable("UnitFrames")
+assert(not focus.auras.host:IsShown() and c._enabled == false, "the module stopping disables the containers")
+K.Modules.Enable("UnitFrames")
+assert(c._enabled == true, "and enabling it again turns them back on")
+noErrors("visibility")
+
+-- Without the engine, the frames still work and the devlog says why.
+local nenv, NK = U.New({ setup = function(e)
+	local create = e.CreateFrame
+	e.CreateFrame = function(frameType, ...)
+		if frameType == "AuraContainer" then
+			error("Unknown frame type AuraContainer")
+		end
+		return create(frameType, ...)
+	end
+end })
+local logged = false
+for _, entry in ipairs(NK.Store.Data().devlog) do
+	logged = logged or (entry.module == "UnitFrames" and entry.message:find("AuraContainer", 1, true) ~= nil)
+end
+assert(logged, "a missing engine is logged")
+assert(#nenv._errors == 0, "no engine, no error: " .. tostring(nenv._errors[1]))
+
+print("unitframes auras ok")

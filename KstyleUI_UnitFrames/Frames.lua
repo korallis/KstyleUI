@@ -177,10 +177,12 @@ local function OnButtonShow(button)
 		StartPolling(view.uf)
 		Unit.All(view, view.unit, true)
 	end
+	ns.Auras.Sync(view)
 end
 
 local function OnButtonHide(button)
 	StopPolling(button.view.uf)
+	ns.Auras.Sync(button.view)
 end
 
 local function NewView(uf, unit)
@@ -325,6 +327,7 @@ function Frames.Restyle(uf)
 	Frames.Relayout(uf)
 	for _, view in ipairs(uf.views) do
 		Refresh(view, true)
+		ns.Auras.Apply(view)
 	end
 end
 
@@ -377,6 +380,9 @@ function Frames.Apply(uf)
 		StartPolling(uf)
 	elseif not want then
 		StopPolling(uf)
+		for _, view in ipairs(uf.views) do
+			ns.Auras.Apply(view)
+		end
 	end
 end
 
@@ -517,6 +523,7 @@ function Frames.Enable()
 		Log("built " .. #order .. " unit frames")
 	end
 	RegisterEvents()
+	ns.Auras.Enable()
 	ForEach(Frames.Apply)
 	ns.Resource.Enable()
 	ns.CastBars.Enable()
@@ -534,6 +541,7 @@ function Frames.Disable()
 	end)
 	ns.Resource.Disable()
 	ns.CastBars.Disable()
+	ns.Auras.Disable()
 	ns.Blizzard.Apply(false)
 end
 

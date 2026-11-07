@@ -57,12 +57,13 @@ A frame 36 units tall or more is a full frame: the name row on top, the health b
 | `Unit.lua` | `ns.Unit`: fills a view from the unit API. `All(view, unit, instant)`, `Health`, `Power`, `HealthColor`, `PowerColor`, `Prediction`, `Name`, `Level`, `Portrait`. |
 | `Blizzard.lua` | `ns.Blizzard.Apply(active)`: hides or restores Blizzard's frames |
 | `CastBar.lua` | `ns.CastBars`: the cast bars. `Get(kind)`, `Attach(view)` for focus and boss views, `Layout(cb, width, height)`, `Restyle(cb)`, `Refresh(kind)`, `Enable`, `Disable`, and `NewBar` for the preview. |
+| `Auras.lua` | `ns.Auras`: frame auras. `Apply(view)` builds a view's container on first use and applies its settings, `Sync(view)` follows the button's visibility, `Open()` is the aura gate, `Enable`, `Disable`. |
 | `Resource.lua` | `ns.Resource`: the class resource element. `Enable`, `Disable`, `Restyle`, `Layout`, `Visibility`, `Points`, `Mana`. |
 | `Frames.lua` | `ns.Frames`: the holders and secure buttons, unit watches, events, `Enable`, `Disable`, `Get(kind)` |
 | `Preview.lua` | `ns.Preview.Build(parent)`: the settings window's live preview |
 | `Module.lua` | Registers the module, the settings page and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
+Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
 
 ## Settings
 
@@ -87,8 +88,12 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `<frame>.iconSize` | Status icon size, 8 to 32 units | 14 |
 | `<frame>.castbar`, `castbarIcon`, `castbarText`, `castbarTimer` | The cast bar and its spell icon, spell name and timer (player, target, focus and boss) | on |
 | `<frame>.castbarHeight` | The focus and boss cast bar height, 6 to 40 units. The player and target cast bars are their own elements, sized in Layout. | 20 focus, 10 boss |
+| `<frame>.auras` | Frame auras (player, target, focus and boss) | on for focus and boss |
+| `<frame>.auraFilter` | `mine` (your debuffs), `debuffs`, `buffs`, `both` | `mine` |
+| `<frame>.auraPosition`, `auraGrowth` | `BELOW`, `ABOVE`, `RIGHT`, `LEFT` of the frame; `RIGHT_DOWN`, `RIGHT_UP`, `LEFT_DOWN`, `LEFT_UP` | `RIGHT` for focus and boss, `BELOW` for the player, `ABOVE` for the target; `RIGHT_DOWN` |
+| `<frame>.auraSize`, `auraSpacing`, `auraRows`, `auraColumns`, `auraTimer` | Icon size 12 to 48, spacing 0 to 12, 1 to 6 rows of each kind, 1 to 16 columns, the time left on each icon | 20 (boss 18), 2, 1, 8 (boss 6), on |
 | `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent) or `custom` colour | Glass, `class` |
-| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar, `cast` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
+| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar and auras, `cast` and `aura` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
 
 The class resource has its own settings, under the player frame's rows:
 
@@ -129,6 +134,19 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 - The timer counts down on an `OnUpdate` that runs only while a cast shows its timer, every 0.05 seconds, through `SetFormattedText` with the duration's remaining time, which may be secret.
 - Fallbacks, each logged once to the devlog: when there is no duration object or `SetTimerDuration` refuses one, the bar runs on the cast's start and end times while they are plain; when those are secret too, the bar shows full with the spell name and no timer. A secret duration object cannot be read, so it drives the bar with no timer text.
 - A light sheen crosses the bar at the start of each cast, as the spec's motion table asks.
+
+## Frame auras
+
+Each player, target, focus and boss view gets a `CustomAuraContainerTemplate` container the first time its auras are switched on. The container reads the unit's auras in Blizzard's secure environment, so the module never calls `C_UnitAuras` and never touches aura data.
+
+| Part | How |
+| --- | --- |
+| Groups | Two groups, `debuffs` and `buffs`. The filter setting enables them and sets their filter strings: `HARMFUL|PLAYER`, `HARMFUL`, `HELPFUL`, or both, with buffs starting a new line. Each group holds `auraRows` times `auraColumns` icons. |
+| Layout | The group layout sets `elementWidth`, `elementHeight` and the spacing; the flow layout grows from the corner the growth setting names, with lines `auraColumns` icons long. These container-level changes apply at once, in or out of combat. |
+| Buttons | `initializeFrame` dresses each engine button: a child frame with a chamfered tile, the icon (`SetIcon`), a reverse cooldown swipe (`SetDurationCooldown`), the stack count (`SetApplicationCount`), the time left (`SetDurationText`) and, for debuffs, a border the engine colours by dispel type (`AddDispelTypeTexture`). |
+| The gate | The engine denies tainted code access to its buttons while `C_Secrets.ShouldAurasBeSecret()` is true. A later restyle of the buttons (size, fonts, timer) runs only out of combat while auras are readable, and otherwise waits for `PLAYER_REGEN_ENABLED` or `ADDON_RESTRICTION_STATE_CHANGED`. |
+| Placement | The container sits on a host frame on the root, anchored beside the unit's button. The host shows while the button shows and the auras are on, and mirrors the frame holder's alpha and strata, so Layout's opacity follows. |
+| Fallback | Without the engine, or if it refuses a group, the frames show no auras and the devlog says why. |
 
 ## Class resource
 
@@ -172,6 +190,8 @@ These names come from `Blizzard_UnitFrame/Mainline/TargetFrame.xml`, `PlayerFram
 - **Blizzard's player cast bar may come back after Edit Mode.** `PlayerCastingBarFrame` is a managed frame: Edit Mode can reparent it to its container while it is casting. The next login hides it again.
 - **Layout owns visibility.** Layout's shown rules hide a holder with a state driver or `Hide`. The module shows a holder only when it hid it itself, in `Disable`, so a setting change never brings back an element the player set to never show.
 - **Cast events match the shown cast.** A spell can fail or stop while another cast runs. Terminal events carry `castBarID`, which Forever never makes secret; the bar ends only when that ID matches the cast it shows, or, without IDs, when the unit has no cast left.
+- **Aura containers are not children of the frame.** Layout's mouseover rule hooks `OnEnter` on an element's children four levels deep, and engine aura buttons refuse untrusted scripts. The host is a sibling on the root that follows the button and mirrors the holder's alpha and strata instead.
+- **Auras are off on the player and target by default.** The Auras module shows the player's own buffs and debuffs under the minimap, and the space around the target frame belongs to the target cast bar, the target of target and the tracked buff icons. Focus and boss frames have room to their right. Any frame's auras can be switched on and placed on any side.
 - **Status icons keep fixed slots.** A leader or PvP flag can be secret, so the module cannot tell which icons show to pack them together. Each icon keeps its own slot in the row, so nothing moves when a secret flag changes.
 - **Resting is text.** Blizzard's resting art is a 42-frame flipbook atlas. A "Zz" in the accent colour needs no animation and follows the accent.
 - **The class resource is its own element.** The pips sit under the frame in the v3 mockups. As their own Layout element they move and resize on their own, and the setup places them so they overlap nothing.

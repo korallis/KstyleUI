@@ -381,6 +381,67 @@ function U.Install(env)
 		env._tooltip = nil
 	end
 
+	-- A fake AuraContainer engine: CreateFrame("AuraContainer", ..., "CustomAuraContainerTemplate") returns a
+	-- frame with the container's methods. AddAuraGroup makes a batch of aura buttons and runs initializeFrame
+	-- on each, as the engine does. env._auraButtonsSecret makes the buttons refuse SetSize, as
+	-- DenyTaintedAccessWhenAurasAreSecret does while auras are secret.
+	env.AnchorUtil = { FlowDirection = { Left = -1, Right = 1, Up = 1, Down = -1 } }
+	env.AuraContainerSortMethod = { Default = 0, UnitFrameDebuff = 2, Expiration = 4 }
+	env.AuraContainerSortDirection = { Normal = 0, Reverse = 1 }
+	env._containers = {}
+	local createFrame = env.CreateFrame
+	local function auraButton(parent)
+		local button = createFrame("Button", nil, parent)
+		button._aura = {}
+		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures" }) do
+			button[method] = function(self, ...)
+				self._aura[method] = { ... }
+			end
+		end
+		button.AddDispelTypeTexture = function(self, texture)
+			self._aura.dispel = self._aura.dispel or {}
+			table.insert(self._aura.dispel, texture)
+		end
+		local setSize = button.SetSize
+		button.SetSize = function(self, ...)
+			if env.C_Secrets.ShouldAurasBeSecret() then
+				error("attempt to access a restricted aura button")
+			end
+			return setSize(self, ...)
+		end
+		return button
+	end
+	function env.CreateFrame(frameType, name, parent, template)
+		if frameType ~= "AuraContainer" then
+			return createFrame(frameType, name, parent, template)
+		end
+		assert(template == "CustomAuraContainerTemplate", "aura containers use CustomAuraContainerTemplate")
+		local c = createFrame("Frame", name, parent, template)
+		c._groups, c._order = {}, {}
+		env._containers[#env._containers + 1] = c
+		function c:SetUnit(unit) self._unit = unit end
+		function c:SetEnabled(on) self._enabled = on end
+		function c:AddAuraGroup(key, filter, options)
+			assert(not self._groups[key], "aura group " .. key .. " already exists")
+			local group = { filter = filter, options = options, enabled = true, layout = options.layout, max = options.maxFrameCount, buttons = {} }
+			self._groups[key] = group
+			self._order[#self._order + 1] = key
+			for i = 1, 3 do
+				group.buttons[i] = auraButton(self)
+				options.initializeFrame(group.buttons[i])
+			end
+		end
+		function c:SetAuraGroupEnabled(key, on) self._groups[key].enabled = on end
+		function c:SetAuraGroupFilterString(key, filter) self._groups[key].filter = filter end
+		function c:SetAuraGroupLayout(key, layout) self._groups[key].layout = layout end
+		function c:SetAuraGroupMaxFrameCount(key, n) self._groups[key].max = n end
+		function c:SetAuraGroupSortMethod(key, method, direction) self._groups[key].sort = { method, direction } end
+		function c:SetFlowLayoutAnchorPoint(point) self._anchor = point end
+		function c:SetFlowLayoutGrowthDirection(h, v) self._growth = { h, v } end
+		function c:SetFlowLayoutMaximumLineSize(n) self._line = n end
+		return c
+	end
+
 	-- Blizzard's frames that the module hides. Each is a stub frame on UIParent.
 	for _, name in ipairs({ "PlayerFrame", "TargetFrame", "FocusFrame", "PetFrame", "BossTargetFrameContainer", "PlayerCastingBarFrame" }) do
 		env.CreateFrame("Button", name, env.UIParent)

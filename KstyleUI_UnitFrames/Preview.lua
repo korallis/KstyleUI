@@ -16,6 +16,8 @@ local CAST_GAP = 4
 local CAST_SHARE = 0.6
 local CAST_LEFT = 1.2
 local CAST_ICON = 135846
+local AURA_ICONS = { 135846, 136096, 135813, 136075 }
+local AURA_GAP = 2
 local THREAT_TANKING = 3
 
 local SAMPLES = {
@@ -144,6 +146,54 @@ local function PaintCast(frame, view, kind, height)
 	return castH + CAST_GAP
 end
 
+local AURA_POINTS = {
+	BELOW = { "TOPLEFT", "BOTTOMLEFT", 0, -1 },
+	ABOVE = { "BOTTOMLEFT", "TOPLEFT", 0, 1 },
+	RIGHT = { "TOPLEFT", "TOPRIGHT", 1, 0 },
+	LEFT = { "TOPRIGHT", "TOPLEFT", -1, 0 },
+}
+
+local function PaintAuras(frame, view, kind)
+	local icons = frame.auraIcons[kind]
+	if not icons then
+		icons = {}
+		frame.auraIcons[kind] = icons
+	end
+	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
+	local count = on and math.min(#AURA_ICONS, Settings.Value(kind, "auraColumns")) or 0
+	local size = Settings.Value(kind, "auraSize")
+	local spacing = Settings.Value(kind, "auraSpacing")
+	local point = AURA_POINTS[Settings.Value(kind, "auraPosition")] or AURA_POINTS.BELOW
+	local leftward = Settings.Value(kind, "auraGrowth"):find("^LEFT") ~= nil
+	local holder = frame.holders[kind]
+	for i = 1, #AURA_ICONS do
+		local icon = icons[i]
+		if i <= count then
+			if not icon then
+				icon = holder:CreateTexture(nil, "ARTWORK")
+				local mask = holder:CreateMaskTexture()
+				mask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+				mask:SetAllPoints(icon)
+				icon:AddMaskTexture(mask)
+				icons[i] = icon
+			end
+			if K.Icons and K.Icons.Apply then
+				K.Icons.Apply(icon, AURA_ICONS[i])
+			else
+				icon:SetTexture(AURA_ICONS[i])
+			end
+			local step = (i - 1) * (size + spacing) * (leftward and -1 or 1)
+			icon:ClearAllPoints()
+			icon:SetPoint(point[1], holder, point[2], point[3] * AURA_GAP + step, point[4] * AURA_GAP)
+			icon:SetSize(size, size)
+			icon:Show()
+		elseif icon then
+			icon:Hide()
+		end
+	end
+	return count
+end
+
 local function Size(frame, kind)
 	local key = Settings.ELEMENTS[kind]
 	local element = K.Setup.Layouts.Element(key)
@@ -186,6 +236,7 @@ local function Refresh(frame)
 	Paint(view, kind)
 	PaintIndicators(view, view.s, SAMPLES[kind])
 	local extra = PaintCast(frame, view, kind, height)
+	frame.auraCount = PaintAuras(frame, view, kind)
 	holder:ClearAllPoints()
 	holder:SetPoint("CENTER", frame, "CENTER", 0, extra / 2)
 	frame.kind = kind
@@ -194,7 +245,7 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	frame.holders, frame.views, frame.casts = {}, {}, {}
+	frame.holders, frame.views, frame.casts, frame.auraIcons = {}, {}, {}, {}
 	frame.Refresh = Refresh
 	Refresh(frame)
 	return frame

@@ -9,6 +9,7 @@
 	<Script file="Blizzard.lua"/>
 	<Script file="Resource.lua"/>
 	<Script file="CastBar.lua"/>
+	<Script file="Auras.lua"/>
 	<Script file="Frames.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

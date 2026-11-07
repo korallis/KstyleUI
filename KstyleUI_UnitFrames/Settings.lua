@@ -13,6 +13,9 @@ local FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_STEP = 6, 32, 1
 local POWER_HEIGHT_MIN, POWER_HEIGHT_MAX = 2, 24
 local ICON_SIZE_MIN, ICON_SIZE_MAX = 8, 32
 local CAST_HEIGHT_MIN, CAST_HEIGHT_MAX = 6, 40
+local AURA_SIZE_MIN, AURA_SIZE_MAX = 12, 48
+local AURA_SPACING_MAX = 12
+local AURA_ROWS_MAX, AURA_COLUMNS_MAX = 6, 16
 local SPACING_MIN, SPACING_MAX = 0, 12
 
 Settings.MODULE = MODULE
@@ -45,6 +48,7 @@ Settings.TEXTS = { "name", "health", "power", "level" }
 
 Settings.CASTBAR = { player = true, target = true, focus = true, boss = true }
 Settings.CAST_ELEMENTS = { player = "unitframes.castbar.player", target = "unitframes.castbar.target" }
+Settings.AURAS = { player = true, target = true, focus = true, boss = true }
 
 local function Color(token)
 	local r, g, b = Tokens.Color(token)
@@ -57,7 +61,7 @@ local function TextStyle(size)
 	return { font = THEME_FONT, size = size, outline = "NONE" }
 end
 
-local function Kind(full, overrides, castHeight, castFont)
+local function Kind(full, overrides, castHeight, castFont, aura)
 	local d = {
 		enabled = true,
 		portrait = full,
@@ -95,12 +99,22 @@ local function Kind(full, overrides, castHeight, castFont)
 		castbarTexture = BAR_TEXTURE,
 		castbarColor = "class",
 		castbarCustom = Color("rare"),
+		auras = aura ~= nil and aura.on or false,
+		auraFilter = "mine",
+		auraSize = aura and aura.size or 20,
+		auraSpacing = 2,
+		auraRows = 1,
+		auraColumns = aura and aura.columns or 8,
+		auraGrowth = "RIGHT_DOWN",
+		auraPosition = aura and aura.position or "BELOW",
+		auraTimer = true,
 		fonts = {
 			name = TextStyle(full and 11 or 9),
 			health = TextStyle(full and 11 or 9),
 			power = TextStyle(9),
 			level = TextStyle(9),
 			cast = TextStyle(castFont or 10),
+			aura = TextStyle(8),
 		},
 	}
 	for key, value in pairs(overrides or {}) do
@@ -114,13 +128,13 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true, { combat = true, resting = true }, 20, 11),
-	target = Kind(true, { portraitSide = "RIGHT" }, 14, 10),
+	player = Kind(true, { combat = true, resting = true }, 20, 11, { on = false, size = 22, position = "BELOW" }),
+	target = Kind(true, { portraitSide = "RIGHT" }, 14, 10, { on = false, size = 20, position = "ABOVE" }),
 	targettarget = Kind(false),
-	focus = Kind(true, { powerText = "none" }, 20, 10),
+	focus = Kind(true, { powerText = "none" }, 20, 10, { on = true, size = 20, position = "RIGHT" }),
 	focustarget = Kind(false),
 	pet = Kind(false),
-	boss = Kind(true, { powerText = "none" }, 10, 9),
+	boss = Kind(true, { powerText = "none" }, 10, 9, { on = true, size = 18, columns = 6, position = "RIGHT" }),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -155,6 +169,9 @@ Settings.CHOICES = {
 	outline = Options({ { "NONE", L["None (soft shadow)"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } }),
 	accent = Options({ { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
 	manaColor = Options({ { "power", L["Power type"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
+	auraFilter = Options({ { "mine", L["Your debuffs"] }, { "debuffs", L["All debuffs"] }, { "buffs", L["Buffs"] }, { "both", L["Debuffs and buffs"] } }),
+	auraGrowth = Options({ { "RIGHT_DOWN", L["Right, then down"] }, { "RIGHT_UP", L["Right, then up"] }, { "LEFT_DOWN", L["Left, then down"] }, { "LEFT_UP", L["Left, then up"] } }),
+	auraPosition = Options({ { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
 }
 local CHOICES = Settings.CHOICES
 
@@ -168,6 +185,9 @@ local CHOICE_OF = {
 	healthText = "text",
 	powerText = "text",
 	castbarColor = "accent",
+	auraFilter = "auraFilter",
+	auraGrowth = "auraGrowth",
+	auraPosition = "auraPosition",
 }
 
 local function Allowed(list, value)
@@ -227,6 +247,10 @@ local RANGES = {
 	powerHeight = { POWER_HEIGHT_MIN, POWER_HEIGHT_MAX },
 	iconSize = { ICON_SIZE_MIN, ICON_SIZE_MAX },
 	castbarHeight = { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX },
+	auraSize = { AURA_SIZE_MIN, AURA_SIZE_MAX },
+	auraSpacing = { 0, AURA_SPACING_MAX },
+	auraRows = { 1, AURA_ROWS_MAX },
+	auraColumns = { 1, AURA_COLUMNS_MAX },
 }
 
 local function IsNumber(v)
@@ -348,7 +372,7 @@ local function Shows(kind, extra)
 	end
 end
 
-local IconRows, ResourceRows, CastRows
+local IconRows, ResourceRows, CastRows, AuraRows
 
 local function Header(kind, label)
 	return { type = "header", label = Settings.LABELS[kind] .. ": " .. label, showWhen = Shows(kind) }
@@ -397,6 +421,7 @@ local TEXT_LABELS = {
 	power = L["Power text"],
 	level = L["Level text"],
 	cast = L["Cast bar text"],
+	aura = L["Aura text"],
 }
 
 local function TextRows(schema, kind, element)
@@ -484,6 +509,50 @@ CastRows = function(schema, kind)
 		return on(s) and s.castbarColor == "custom"
 	end)
 	TextRows(schema, kind, "cast")
+end
+
+AuraRows = function(schema, kind)
+	local function on(s)
+		return s.auras == true
+	end
+	schema[#schema + 1] = Header(kind, L["auras"])
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "auras", label = L["Auras"],
+		help = L["Shows the unit's buffs and debuffs beside the frame."],
+	})
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "auraFilter", label = L["Which auras"],
+		help = L["Your debuffs, all debuffs, buffs, or debuffs and buffs."], options = CHOICES.auraFilter,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "auraPosition", label = L["Aura position"],
+		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
+		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "slider", key = "auraSize", label = L["Aura icon size"],
+		help = L["The size of each aura icon in units."], min = AURA_SIZE_MIN, max = AURA_SIZE_MAX, step = 1,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "slider", key = "auraSpacing", label = L["Aura spacing"],
+		help = L["The gap between aura icons in units."], min = 0, max = AURA_SPACING_MAX, step = 1,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "slider", key = "auraRows", label = L["Aura rows"],
+		help = L["How many rows of each kind of aura show."], min = 1, max = AURA_ROWS_MAX, step = 1,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "slider", key = "auraColumns", label = L["Aura columns"],
+		help = L["How many aura icons fit in a row."], min = 1, max = AURA_COLUMNS_MAX, step = 1,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "auraTimer", label = L["Aura timers"],
+		help = L["Shows the time left on each aura."],
+	}, on)
+	TextRows(schema, kind, "aura")
 end
 
 ResourceRows = function(schema)
@@ -605,6 +674,9 @@ local function KindRows(schema, kind)
 	IconRows(schema, kind)
 	if Settings.CASTBAR[kind] then
 		CastRows(schema, kind)
+	end
+	if Settings.AURAS[kind] then
+		AuraRows(schema, kind)
 	end
 	if kind == "player" then
 		ResourceRows(schema)
