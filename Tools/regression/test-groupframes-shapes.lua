@@ -114,10 +114,9 @@ for _, texture in ipairs(textures(healer.target)) do
 	local r, g, b, a = color(texture)
 	assert(near(r, ar) and near(g, ag) and near(b, ab) and near(a, 1), "the target highlight is the accent")
 end
-local _, _, bevelUnits = K.Tokens.Texture("bevelTileOuter")
 local corner = textures(healer.target)[1]
 local cw = corner:GetSize()
-eq(cw, K.Widgets.Snap(healer, bevelUnits), "the bevel corners are the chrome's corner size")
+eq(cw, (healer.chrome.outer[1]:GetSize()), "the ring's corners are the size of the tile's own bevel corners")
 eq(corner._points[1][1], "TOPLEFT", "the first corner sits at the top left")
 eq(corner._points[1][4], 0, "inside the frame, flush with its edge")
 

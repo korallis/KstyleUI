@@ -84,7 +84,7 @@ end
 
 function Style.LayoutRing(ring, owner)
 	local _, _, units = Tokens.Texture(RING[1])
-	local size = Widgets.Snap(owner, units)
+	local size = K.Scale.Snap(K.Scale.Border() * units) / Widgets.ScaleFactor(owner)
 	local border = Widgets.Border(owner)
 	for i, line in ipairs(ring) do
 		PlaceLine(line, owner, size, border * (i - 1), border)
