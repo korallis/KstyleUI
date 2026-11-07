@@ -29,6 +29,8 @@ LUA=luajit bash Tools/regression/run-all.sh
 python3 -m unittest discover -s Tools/tests
 ```
 
+`pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install` in a worktree: every worktree shares `.git/hooks` with `~/KstyleUI`, so it would install hooks into the owner's checkout and into branches that have no `.pre-commit-config.yaml`. To check a commit message, run `pre-commit run --hook-stage commit-msg --commit-msg-filename <file>`.
+
 Phase 0 adds these tools one task at a time. Until a task adds a command's file, skip that command.
 
 `python3 Tools/hooks/check_toc.py` reports each file a TOC or an XML include lists that is missing, or whose letter case differs from the file on disk. Linux CI cannot find a file whose case differs, even when macOS can.

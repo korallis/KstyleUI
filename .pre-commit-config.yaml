@@ -1,0 +1,80 @@
+# .pre-commit-config.yaml: checks that run before each commit and in CI.
+# Install both stages with: pre-commit install
+# Every remote hook is pinned by full commit SHA, with its version in the trailing comment.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+exclude: ^Libs/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-xml
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: [--maxkb=5120]
+      - id: mixed-line-ending
+        args: [--fix=no]
+        # DB2 CSV exports keep CRLF inside quoted text and end rows with LF; the fixtures copy that.
+        exclude: ^Tools/tests/fixtures/db2/
+
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: 805f85e558841bf4d852335e036b33d2b26be1cc  # frozen: v1.7.12.25
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f  # frozen: v1.31.1
+    hooks:
+      - id: zizmor
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: 91ab4bf57e58b32adf1a122681f6ebe164d081c8  # frozen: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, perf, refactor, docs, test, ci, build, chore, revert]
+
+  - repo: local
+    hooks:
+      # luacheck checks the whole tree, so a change to .luacheckrc or the generated globals
+      # re-checks every file. .luacheckrc holds the exclusions.
+      - id: luacheck
+        name: luacheck
+        entry: luacheck --no-color .
+        language: system
+        files: (\.lua|^\.luacheckrc)$
+        pass_filenames: false
+
+      - id: addon-crlf
+        name: addon files use CRLF (fix with python3 Tools/dev/crlf.py)
+        language: pygrep
+        entry: '(?<!\r)\n'
+        args: [--multiline]
+        files: \.(lua|toc|xml)$
+        exclude: ^(Tools|docs)/
+
+      - id: addon-ascii
+        name: addon files are ASCII only
+        language: pygrep
+        entry: '[^\x00-\x7F]'
+        files: \.(lua|toc|xml)$
+        exclude: ^(Tools|docs)/
+
+      - id: no-goto
+        name: no goto or labels (the game runs Lua 5.1)
+        language: pygrep
+        entry: '\bgoto\b|::[A-Za-z_][A-Za-z0-9_]*::'
+        files: \.lua$
+        exclude: ^Tools/
+
+      - id: toc-files
+        name: TOC and XML entries exist with matching case
+        language: system
+        entry: python3 Tools/hooks/check_toc.py
+        files: \.(toc|lua|xml)$
+        pass_filenames: false
