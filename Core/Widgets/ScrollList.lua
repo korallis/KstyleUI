@@ -139,8 +139,10 @@ function List:PaintBar()
 	local travel = view - thumb
 	local maxOffset = self:GetMaxOffset()
 	local share = maxOffset > 0 and min(1, max(0, self.offset / maxOffset)) or 0
+	self.thumbHeight = thumb
+	self.thumbTop = Widgets.Snap(self, travel * share)
 	self.thumb:SetHeight(thumb)
-	self.thumb:SetPoint("TOP", self.bar, "TOP", 0, -Widgets.Snap(self, travel * share))
+	self.thumb:SetPoint("TOP", self.bar, "TOP", 0, -self.thumbTop)
 	self.thumb:SetVertexColor(Widgets.MixTokens("text", THUMB_ALPHA, "accent", THUMB_HOVER_ALPHA, self.hoverT or 0))
 end
 
@@ -241,15 +243,41 @@ function List:Restyle()
 	self:Refresh(true)
 end
 
+local function CursorInBar(bar)
+	local top, scale = bar:GetTop(), bar:GetEffectiveScale()
+	local _, y = GetCursorPosition()
+	if type(top) ~= "number" or type(scale) ~= "number" or scale <= 0 or type(y) ~= "number" then
+		return nil
+	end
+	return top - y / scale
+end
+
 local function ThumbDrag(bar)
 	local self = bar.list
-	local top, height, scale = bar:GetTop(), bar:GetHeight(), bar:GetEffectiveScale()
-	local _, y = GetCursorPosition()
-	if type(top) ~= "number" or type(height) ~= "number" or height <= 0 or type(scale) ~= "number" or type(y) ~= "number" then
+	local depth, height = CursorInBar(bar), bar:GetHeight()
+	local travel = type(height) == "number" and height - (self.thumbHeight or 0) or 0
+	if not depth or travel <= 0 then
 		return
 	end
-	local share = (top - y / scale) / height
+	local share = min(1, max(0, (depth - self.grab) / travel))
 	self:ScrollTo(share * self:GetMaxOffset(), true)
+end
+
+local function ThumbGrab(bar)
+	local self = bar.list
+	local depth = CursorInBar(bar)
+	if not depth then
+		return
+	end
+	local thumbTop = self.thumbTop or 0
+	local thumbHeight = self.thumbHeight or 0
+	if depth >= thumbTop and depth <= thumbTop + thumbHeight then
+		self.grab = depth - thumbTop
+	else
+		self.grab = thumbHeight / 2
+	end
+	bar:SetScript("OnUpdate", ThumbDrag)
+	ThumbDrag(bar)
 end
 
 function Widgets.ScrollList(parent, opts)
@@ -271,9 +299,7 @@ function Widgets.ScrollList(parent, opts)
 	list.track:SetAllPoints(list.bar)
 	list.thumb = list.bar:CreateTexture(nil, "ARTWORK")
 	list.thumb:SetColorTexture(Tokens.Color("white"))
-	list.bar:SetScript("OnMouseDown", function(bar)
-		bar:SetScript("OnUpdate", ThumbDrag)
-	end)
+	list.bar:SetScript("OnMouseDown", ThumbGrab)
 	list.bar:SetScript("OnMouseUp", function(bar)
 		bar:SetScript("OnUpdate", nil)
 	end)
@@ -288,6 +314,11 @@ function Widgets.ScrollList(parent, opts)
 	end)
 	list:SetScript("OnSizeChanged", function(self)
 		EnsureRows(self)
+		local maxOffset = self:GetMaxOffset()
+		if self.offset > maxOffset or (self.target and self.target > maxOffset) then
+			self.target = nil
+			Motion.Tween(self, "SetOffset", maxOffset, maxOffset, 0)
+		end
 		self:Refresh(true)
 	end)
 	list:EnableMouseWheel(true)

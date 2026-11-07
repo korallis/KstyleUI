@@ -226,8 +226,9 @@ function LayoutMenu(m, owner)
 	if type(width) ~= "number" or Widgets.IsSecret(width) then
 		width = owner.opts.width or DEFAULT_WIDTH
 	end
+	width = width * Widgets.ScaleFactor(owner) / Widgets.ScaleFactor(m)
 	m:ClearAllPoints()
-	m:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -Widgets.Snap(owner, Tokens.Size("gapTiny")))
+	m:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -Widgets.Snap(m, Tokens.Size("gapTiny")))
 	Widgets.Size(m, width, rows * rowHeight + 2 * pad)
 	m.list:ClearAllPoints()
 	m.list:SetPoint("TOPLEFT", m, "TOPLEFT", 0, -Widgets.Snap(m, pad))

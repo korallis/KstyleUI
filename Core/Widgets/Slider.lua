@@ -10,15 +10,21 @@ local DEFAULT_WIDTH = 200
 local TRACK_HEIGHT = 4
 local KNOB_SIZE = 14
 local RING_ALPHA, RING_HOVER_ALPHA = 0.7, 1
-local MAX_DECIMALS = 6
+local MAX_DECIMALS = 10
+local PRECISION = 1e-7
 
-local function Decimals(step)
-	if type(step) ~= "number" or step <= 0 then
+local function Decimals(x)
+	if type(x) ~= "number" or x ~= x then
 		return 0
 	end
-	local text = format("%.10g", step)
-	local fraction = text:match("%.(%d+)$")
-	return fraction and min(#fraction, MAX_DECIMALS) or 0
+	local scaled = math.abs(x)
+	for d = 0, MAX_DECIMALS do
+		if math.abs(scaled - floor(scaled + 0.5)) < PRECISION then
+			return d
+		end
+		scaled = scaled * 10
+	end
+	return MAX_DECIMALS
 end
 
 function Widgets.Quantize(value, low, high, step)
@@ -28,7 +34,7 @@ function Widgets.Quantize(value, low, high, step)
 	value = min(high, max(low, value))
 	if type(step) == "number" and step > 0 then
 		local snapped = low + floor((value - low) / step + 0.5) * step
-		local scale = 10 ^ Decimals(step)
+		local scale = 10 ^ max(Decimals(step), Decimals(low))
 		snapped = floor(snapped * scale + 0.5) / scale
 		if snapped > high or high - value < value - snapped then
 			snapped = high
@@ -69,6 +75,9 @@ end
 
 function Slider:SetEnabled(enabled)
 	self.enabled = enabled and true or false
+	if not self.enabled then
+		self:SetScript("OnUpdate", nil)
+	end
 	self:EnableMouse(self.enabled)
 	self:EnableMouseWheel(self.enabled)
 	self:Paint()
@@ -167,6 +176,10 @@ local function ValueAtCursor(self)
 end
 
 local function Drag(self)
+	if not self.enabled then
+		self:SetScript("OnUpdate", nil)
+		return
+	end
 	local value = ValueAtCursor(self)
 	if value then
 		self:SetValue(value)

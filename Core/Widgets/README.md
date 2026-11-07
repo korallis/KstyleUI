@@ -196,11 +196,11 @@ Methods: `GetValue()`, `SetValue(value, silent)` (runs `onChange` when the value
 
 Options: `min` (default 0), `max` (default 1), `step`, `value`, `onChange(value, slider)`, `format(value) -> text` for the readout, `width` (default 200), `name`, `tooltip`. `min` must be below `max`.
 
-`Quantize(value, min, max, step) -> number | nil` gives every value the slider takes: it clamps to the range, then snaps to the nearest step counted from `min`, rounded to the step's decimals so 0.75 plus three steps of 0.05 is exactly 0.9. When the range is not a whole number of steps, a value nearer `max` than the last step becomes `max`. It returns `nil` for NaN, a secret or anything that is not a number.
+`Quantize(value, min, max, step) -> number | nil` gives every value the slider takes: it clamps to the range, then snaps to the nearest step counted from `min`, rounded to the decimals of the step or of `min`, whichever is finer, so 0.75 plus three steps of 0.05 is exactly 0.9 and a minimum of 0.05 with a step of 0.1 keeps 0.05. When the range is not a whole number of steps, a value nearer `max` than the last step becomes `max`. It returns `nil` for NaN, a secret or anything that is not a number.
 
 | Input | Effect |
 | --- | --- |
-| Press on the slider | Jumps to the cursor and drags until release, through `GetCursorPosition` |
+| Press on the slider | Jumps to the cursor and drags until release, through `GetCursorPosition`. Disabling the slider ends a drag. |
 | Mouse wheel | One step up or down, or a hundredth of the range without a step |
 | `SetValue(value, silent)` | Quantizes; runs `onChange` when the result changes, unless `silent` |
 
@@ -233,7 +233,7 @@ The default row is a button with a `body` label that shows `item.label`, or the 
 | `ScrollTo(offset, instant)`, `ScrollToIndex(index, instant)` | `ScrollToIndex` scrolls only as far as needed to show the row. |
 | `GetOffset()`, `GetMaxOffset()`, `GetData()`, `Refresh(force)`, `SetOffset(offset)` | `SetOffset` is the tween setter: it moves the rows at once. |
 
-Rows sit at whole-pixel offsets in a view that clips them. A 3-unit scroll bar shows while the content overflows: its thumb is `text` at 35% and turns `accent` under the mouse, and dragging it scrolls. The wheel works anywhere over the list.
+Rows sit at whole-pixel offsets in a view that clips them. A 3-unit scroll bar shows while the content overflows: its thumb is `text` at 35% and turns `accent` under the mouse. Dragging the thumb keeps the grabbed point under the pointer; pressing the bar elsewhere centres the thumb there. When the list grows taller, the offset clamps to the new range. The wheel works anywhere over the list.
 
 Fields: `view`, `rows` (each with `index` and `list`), `bar`, `track`, `thumb`, `items`.
 
@@ -243,7 +243,7 @@ Fields: `view`, `rows` (each with `index` and `list`), `bar`, `track`, `thumb`, 
 
 Options: `options` (a list of `{ value, label }`, or a function that returns one), `value`, `onChange(value, dropdown)`, `placeholder` (default `Select Option`), `width` (default 200), `height`, `maxRows` (default 8), `renderRow(row, option, dropdown)` to customise a menu row, `unknownLabel(value) -> label` for a value no option holds, `name`, `tooltip`.
 
-A click opens the one shared menu, `DropdownMenu()`, below the box at the box's width, in the `FULLSCREEN_DIALOG` strata:
+A click opens the one shared menu, `DropdownMenu()`, below the box at the box's width on screen, also when the box has its own scale, in the `FULLSCREEN_DIALOG` strata:
 
 - A `ScrollList` of 24-unit rows, up to `maxRows`, scrolled to show the chosen option.
 - The chosen row has a 2-unit `accent` bar on its left and an `accent` wash at 12%. Other rows wash white at 5% under the mouse.

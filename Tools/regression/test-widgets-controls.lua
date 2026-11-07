@@ -52,6 +52,9 @@ do
 	assert(Q(1.2999999, 0.75, 1.5, 0.05) == 1.3)
 	assert(Q(10, 0, 10, 3) == 10 and Q(8, 0, 10, 3) == 9, "a range that is not a whole number of steps still reaches its maximum")
 	assert(Q(0.333, 0, 1, nil) == 0.333, "no step keeps the value")
+	assert(Q(0.05, 0.05, 1.05, 0.1) == 0.05 and Q(Q(0.05, 0.05, 1.05, 0.1), 0.05, 1.05, 0.1) == 0.05, "a minimum finer than the step keeps its precision")
+	assert(Q(0.17, 0.05, 1.05, 0.1) == 0.15, "steps count from that minimum")
+	assert(Q(0.00003, 0, 1, 0.00001) == 0.00003, "a step written in exponent form still snaps")
 	assert(Q(0 / 0, 0, 1, 0.1) == nil and Q("5", 0, 10, 1) == nil and Q(env.Secret(5), 0, 10, 1) == nil, "NaN, text and secrets are refused")
 end
 
@@ -101,9 +104,21 @@ do
 		return math.floor(v * 100 + 0.5) .. "%"
 	end })
 	assert(custom.readout:GetText() == "88%", "a format function writes the readout")
+	slider:SetRange(0, 100, 1)
+	env.GetCursorPosition = function()
+		return (100 + trackWidth * 0.5) * scale, 0
+	end
+	W.Down(slider)
+	assert(slider:GetValue() == 50)
 	slider:SetEnabled(false)
+	assert(slider:GetScript("OnUpdate") == nil, "disabling ends a drag")
+	env.GetCursorPosition = function()
+		return (100 + trackWidth * 0.9) * scale, 0
+	end
+	W.Down(slider)
+	assert(slider:GetValue() == 50, "a disabled slider ignores presses")
 	slider:GetScript("OnMouseWheel")(slider, 1)
-	assert(slider:GetValue() == 1 and not slider:IsEnabled(), "a disabled slider ignores the wheel")
+	assert(slider:GetValue() == 50 and not slider:IsEnabled(), "a disabled slider ignores the wheel")
 	assert(#env._errors == 0)
 end
 

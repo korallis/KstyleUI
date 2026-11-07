@@ -57,6 +57,52 @@ do
 	assert(#env._errors == 0)
 end
 
+-- A list that grows taller keeps its offset inside the new range.
+do
+	local env, K = W.New()
+	local list = newList(K)
+	list:SetData(items(10))
+	list:ScrollTo(120, true)
+	list:Scroll(-1)
+	W.Tick(env, 0.016)
+	list:SetSize(200, 240)
+	list:GetScript("OnSizeChanged")(list, 200, 240)
+	W.Settle(env)
+	assert(list:GetOffset() == 0 and list:GetMaxOffset() == 0, "the offset clamps to the new range, got " .. list:GetOffset())
+	local s = shown(list)
+	assert(s[1] == 1 and #s == 10, "every row shows")
+end
+
+-- Dragging the scroll thumb keeps the point the pointer grabbed under the pointer.
+do
+	local env, K = W.New()
+	local list = newList(K)
+	list:SetData(items(20))
+	list:ScrollTo(list:GetMaxOffset(), true)
+	local bar = list.bar
+	bar.GetTop = function()
+		return 500
+	end
+	bar.GetHeight = function()
+		return 120
+	end
+	local scale = bar:GetEffectiveScale()
+	local thumb = list.thumb:GetHeight()
+	local travel = 120 - thumb
+	local y = 500 - travel - thumb / 2
+	env.GetCursorPosition = function()
+		return 0, y * scale
+	end
+	bar:GetScript("OnMouseDown")(bar, "LeftButton")
+	bar:GetScript("OnUpdate")(bar, 0.016)
+	assert(list:GetOffset() == list:GetMaxOffset(), "grabbing the thumb does not move the list, got " .. list:GetOffset())
+	y = y + travel / 2
+	bar:GetScript("OnUpdate")(bar, 0.016)
+	assert(W.Near(list:GetOffset(), list:GetMaxOffset() / 2), "half the travel scrolls half the range")
+	bar:GetScript("OnMouseUp")(bar, "LeftButton")
+	assert(bar:GetScript("OnUpdate") == nil)
+end
+
 -- End bounce: scrolling past either end overshoots briefly and settles back on the end.
 do
 	local env, K = W.New()
@@ -194,6 +240,14 @@ do
 	assert(W.Near(menu.list:GetHeight(), K.Scale.Snap(8 * K.Tokens.Size("rowHeight"))), "eight rows show")
 	assert(menu.list:GetOffset() > 0, "the menu scrolls to the chosen option")
 	dd:Close()
+	W.Settle(env)
+	local scaled = K.Widgets.Dropdown(K.Scale.Root(), { options = OPTIONS, width = 200 })
+	scaled:SetScale(1.5)
+	W.Click(scaled)
+	local shownWidth = menu:GetWidth() * menu:GetEffectiveScale()
+	local ownerWidth = scaled:GetWidth() * scaled:GetEffectiveScale()
+	assert(math.abs(shownWidth - ownerWidth) <= K.Scale.Pixel(1) * menu:GetEffectiveScale() + 1e-6, "the menu matches a scaled dropdown's width on screen")
+	scaled:Close()
 	local errors = K.ErrorCount()
 	local broken = K.Widgets.Dropdown(K.Scale.Root(), { options = function()
 		error("no list")
