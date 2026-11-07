@@ -476,7 +476,7 @@ git commit -m "test: add spike addon for fonts, scale, encoding and textures"
 ### Task 11: Spike addon, part 2
 
 **Files:**
-- Create: `Tools/spikes/KstyleUI_Spike/Paging.lua`, `Tools/spikes/KstyleUI_Spike/CombatText.lua`, `Tools/spikes/KstyleUI_Spike/Auras.lua`, `Tools/spikes/KstyleUI_Spike/Meters.lua`, `Tools/spikes/KstyleUI_Spike/Presets.lua`
+- Create: `Tools/spikes/KstyleUI_Spike/Paging.lua`, `Tools/spikes/KstyleUI_Spike/CombatText.lua`, `Tools/spikes/KstyleUI_Spike/Auras.lua`, `Tools/spikes/KstyleUI_Spike/Meters.lua`, `Tools/spikes/KstyleUI_Spike/Presets.lua`, `Tools/spikes/KstyleUI_Spike/Cooldowns.lua`
 - Modify: `Tools/spikes/KstyleUI_Spike/Spike.xml`, `Tools/spikes/KstyleUI_Spike/README.md`
 
 **Interfaces:**
@@ -486,6 +486,7 @@ git commit -m "test: add spike addon for fonts, scale, encoding and textures"
   - `combat`: for 5 minutes, registers `UNIT_COMBAT` with no unit filter and records per unit token: the event count and, for each argument, whether `issecretvalue` was true, inside and outside `InCombatLockdown()`. It notes whether any `nameplateN` token fired.
   - `auras`: records timestamps of `ENCOUNTER_START`, `PLAYER_REGEN_DISABLED` and every flip of `C_Secrets.ShouldAurasBeSecret()`, sampled each 0.1 s while in combat. It records `issecretvalue(UnitPower("player", Enum.PowerType.ComboPoints))` in and out of combat.
   - `meters`: for each `Enum.PowerType` value, records the result of the power-type secrecy function if it exists (find its namespace with `grep -r GetPowerTypeSecrecy` in the Gethe `forever` branch). In combat it records whether the `C_DamageMeter` session values are secret.
+  - `cdm`: lists the Cooldown Manager's categories and cooldown IDs through `C_CooldownViewer`, then in combat builds one KstyleUI-style icon per essential cooldown from that data, driving its `Cooldown` widget from the API's duration object. It records whether each call returned secret values and whether the mirrored icons matched Blizzard's viewer frames.
   - `presets`: records the Forever experience preset from the `GameRules` API (look up the exact getter in the Gethe `forever` branch's `GameRulesDocumentation.lua`), the active Edit Mode layout's preset type, and which of `PlayerFrame`, `TargetFrame`, `FocusFrame` and `MainActionBar` are shown.
 
 - [ ] **Step 1: Write the files** and verify them with `luajit -bl` as in Task 10.
@@ -552,7 +553,7 @@ git commit -m "build: extract Forever ability icons from game data"
   - `/kspike fonts`, `scale`, `encoding`, `textures` and `presets` anywhere, on each available screen.
   - `paging` while changing stance or form, and while stealthing.
   - `combat` and `auras` during a dungeon boss pull.
-  - `meters` in combat.
+  - `meters` and `cdm` in combat.
   - Then `/reload`.
 
 - [ ] **Step 3: Read the results.** Parse `/Applications/World of Warcraft/_forever_/WTF/Account/*/SavedVariables/KstyleUI_Spike.lua` and write each answer into the results doc. Show the font panel screenshots to the owner and record the font they pick.

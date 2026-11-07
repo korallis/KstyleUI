@@ -121,12 +121,13 @@ Repository rules, the TOC walker, a loadable addon skeleton, the regression runn
 
 ## Phase 2: Combat HUD and chrome
 
-Seven module plans, run in parallel, plus icon set A.
+Eight module plans, run in parallel, plus icon set A.
 
 | Module | First tasks |
 | --- | --- |
 | `KstyleUI_UnitFrames` | Secure unit button, health and power bars, portraits, cast bar, frame auras, class resources, boss frames |
-| `KstyleUI_ActionBars` | Secure button, bar layout, paging drivers, keybinds, cooldowns, glows, range and usability, pet and stance bars, hide Blizzard bars |
+| `KstyleUI_ActionBars` | Secure button, compact bar layout (34-unit buttons, two rows), paging drivers, keybinds, cooldowns, glows, range and usability, pet and stance bars, hide Blizzard bars |
+| `KstyleUI_Cooldowns` | Essential and utility cooldown rows, tracked buff icons and bars, placed in the HUD band between the player and target frames |
 | `KstyleUI_Auras` | Player buff and debuff panel on the AuraContainer engine |
 | `KstyleUI_Minimap` | Square mask, frame, zone and clock strip, button column, addon drawer |
 | `KstyleUI_Chat` | Panel and tabs, edit box, copy, links, names |
@@ -144,7 +145,7 @@ Seven module plans, run in parallel, plus icon set A.
 | `KstyleUI_GroupFrames` | Party header, raid header, range fade, heal prediction, dispel highlight |
 | `KstyleUI_Nameplates` | Plate attach and fade, health, cast bar, threat, debuffs |
 | `KstyleUI_CombatText` | World font, frame numbers from `UNIT_COMBAT`, plate numbers if the spike allows |
-| `KstyleUI_Meters` | Damage Meter skin, threat meter, swing timer, Cooldown Manager skin |
+| `KstyleUI_Meters` | Damage Meter skin, threat meter, swing timer |
 | `KstyleUI_Bags` | Combined bags, bank, keyring, search, sort, junk |
 
 **Exit:** the owner runs a dungeon and a battleground with every module on and forced restrictions enabled.

@@ -6,7 +6,7 @@
 | Target | World of Warcraft: Forever only: product `wowf`, client 1.60.1, TOC `16001`, game type `camelot` |
 | Repository | `korallis/KstyleUI`, public, all rights reserved |
 | Research | [`reports/KstyleUI research for WoW Forever.md`](../../../reports/KstyleUI%20research%20for%20WoW%20Forever.md) and the notes in `research_notes/` |
-| Visual reference | [`docs/design/mockups/`](../../design/mockups/README.md). `05_kit_hunter.jpg` is canonical for components. `02_dungeon_mage.jpg` is canonical for the combat HUD. |
+| Visual reference | [`docs/design/mockups/`](../../design/mockups/README.md). `05_kit_hunter.jpg` is canonical for components. The `v3/` set is canonical for the combat HUD: one image per scene and class. |
 
 ## Goal
 
@@ -29,9 +29,11 @@ The owner made these decisions on 2026-11-07. Each one is binding on the plan.
 | Scope | The full suite in the first release, built in phases |
 | Approach | Fully our own code: no oUF and no Ace3 runtime. LibSharedMedia is optional interop only. |
 | Look | "Obsidian and class colour": neutral glass, accent is the current character's class colour |
-| Reference | `05_kit_hunter.jpg` for components. `02_dungeon_mage.jpg` for the combat HUD. |
+| Reference | `05_kit_hunter.jpg` for components. `v3/` for the combat HUD. |
 | Scaling | Same proportions on every screen, borders snapped to whole physical pixels |
-| Unit frames | Portraits on by default, with a switch to turn them off. Player and target sit centred above the action bars. |
+| Unit frames | Portraits on by default, with a switch to turn them off. Player and target sit centred above the action bars, on either side of the Cooldown Manager. |
+| Action bars | Compact: two rows of 12 buttons of 34 units at the 1080 reference, 3-unit gaps, no name labels. Keybind, stack and cooldown text sit on the button. |
+| Cooldown Manager | Always part of the combat HUD, in its own module: essential cooldowns centred above the action bars, utility cooldowns beneath them, tracked buff bars beside them. |
 | Minimap | Square, with the zone and clock on a strip inside its bottom edge and buttons down one side |
 | Icons | Two custom icon sets for every ability: set A (white light art, tinted in game) and set B (full colour). Generated at high quality. An option switches between custom and Blizzard icons. |
 | Combat text | Wanted, built after an in-game spike proves what Forever allows |
@@ -78,6 +80,7 @@ KstyleUI_Options/          settings window, load-on-demand
 KstyleUI_UnitFrames/
 KstyleUI_GroupFrames/
 KstyleUI_ActionBars/
+KstyleUI_Cooldowns/
 KstyleUI_Auras/
 KstyleUI_Nameplates/
 KstyleUI_CombatText/
@@ -179,6 +182,7 @@ Quality and reaction values outside the table come from Blizzard's colour tables
 ### Shape
 
 - Panels have 45-degree chamfered corners of 6 units. Tiles and buttons have 3 units.
+- HUD sizes at the 1080 reference: action buttons 34 units with 3-unit gaps, essential cooldown icons 40 units, utility cooldown icons 30 units, player and target frames 220 by 46 units, portraits 46 units. Players can resize each in Layout Mode.
 - Every panel edge is a double-line bevel: `edgeOuter` outside and `edgeInner` inside, each one physical pixel at 1080p and 1440p, and two at 4K and on the Mac.
 - Panels cast a soft outward shadow of about 12 units, made from one nine-sliced falloff texture whose corner pieces are centred on the panel's corners.
 - Dividers are gradients that fade out at both ends.
@@ -259,6 +263,7 @@ Each module either replaces Blizzard's frames with its own, mirrors a Blizzard d
 | `KstyleUI_UnitFrames` | Player, target, target of target, focus, focus target, pet and boss 1 to 5. Portraits (switchable), cast bars, frame auras, class resources, threat glow, raid markers, leader and role icons. | Replace |
 | `KstyleUI_GroupFrames` | Party and raid frames up to 40: class colours, role icons, range fade, incoming heals, dispellable debuff highlight | Replace |
 | `KstyleUI_ActionBars` | Main bar with stance, stealth, form and possess paging, extra bars, pet bar, stance bar, keybind text, cooldown sweeps, proc glows, usable and range shading, mouseover fade | Replace |
+| `KstyleUI_Cooldowns` | Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (40 units), utility cooldowns (30 units), tracked buff icons and tracked buff bars (180 by 18 units), placed in the HUD band | Mirror, or reskin in place if the spike shows mirroring cannot work in combat |
 | `KstyleUI_Auras` | The player's buff and debuff panel under the minimap | Replace |
 | `KstyleUI_Nameplates` | A KstyleUI plate on each nameplate: health, cast bar, threat colour, debuffs | Replace the visible plate |
 | `KstyleUI_CombatText` | Animated damage and heal numbers on KstyleUI frames and plates, and the KstyleUI font for the game's own world numbers | Mirror, after the spike |
@@ -267,7 +272,7 @@ Each module either replaces Blizzard's frames with its own, mirrors a Blizzard d
 | `KstyleUI_Bags` | Combined bags and bank, keyring, search, sort, quality borders, selling junk | Replace |
 | `KstyleUI_Tooltips` | Glass tooltips, quality and class colours, optional spell and item IDs, cursor anchoring | Reskin |
 | `KstyleUI_DataBars` | XP, reputation and honour bars, micro menu, bag bar, a data strip with FPS, latency, gold, durability and time | Reskin, plus our own strip |
-| `KstyleUI_Meters` | Damage Meter skin, our own threat meter, swing timer, Cooldown Manager skin | Mirror |
+| `KstyleUI_Meters` | Damage Meter skin, our own threat meter, swing timer | Mirror |
 | `KstyleUI_Skins` | Character sheet, spellbook and talents, quest log and objective tracker, world map, game menu, group finder, mail, merchant, trainer, professions, social windows, Legacy, loot, popups, ready check | Reskin, one window per task |
 | `KstyleUI_Icons`, `KstyleUI_IconsColour` | Icon sets A and B | Data addons |
 
@@ -413,7 +418,7 @@ The build runs as an in-session multi-agent workflow. Each task runs in its own 
 | --- | --- | --- |
 | 0 | Repository tooling: `.gitattributes`, `.pre-commit-config.yaml`, `.luacheckrc` with the generated globals, `Tools/regression/` with the walker and the cross-cutting tests, CI workflows, `.pkgmeta`, `AGENTS.md`. In-game spikes listed in [Spikes](#spikes). Icon data extraction. | Nothing |
 | 1 | Core services, the `Widgets` kit, Layout Mode, `KstyleUI_Options`, first-run setup. Icon pilot. | Phase 0 |
-| 2 | `KstyleUI_UnitFrames`, `KstyleUI_ActionBars`, `KstyleUI_Auras`, `KstyleUI_Minimap`, `KstyleUI_Chat`, `KstyleUI_Tooltips`, `KstyleUI_DataBars`. Icon set A. | Phase 1 |
+| 2 | `KstyleUI_UnitFrames`, `KstyleUI_ActionBars`, `KstyleUI_Cooldowns`, `KstyleUI_Auras`, `KstyleUI_Minimap`, `KstyleUI_Chat`, `KstyleUI_Tooltips`, `KstyleUI_DataBars`. Icon set A. | Phase 1 |
 | 3 | `KstyleUI_GroupFrames`, `KstyleUI_Nameplates`, `KstyleUI_CombatText`, `KstyleUI_Meters`, `KstyleUI_Bags` | Phase 1. Combat text also depends on its spike. |
 | 4 | `KstyleUI_Skins`, one Blizzard window per task. Icon set B. | Phase 1 |
 
@@ -430,6 +435,7 @@ Each spike is a small throwaway test in the live client. It answers one question
 | Do `C_EncodingUtil.SerializeCBOR`, `CompressString` and `EncodeBase64` exist on Forever? | Profile export |
 | When does `C_Secrets.ShouldAurasBeSecret()` turn true relative to `ENCOUNTER_START` and `InCombatLockdown()`? Are combo points secret outside restriction? | Unit frames, auras |
 | Do `C_DamageMeter` values go secret in combat? Which power types are never secret? | Meters, unit frames |
+| Can `C_CooldownViewer` data and duration objects drive KstyleUI's own cooldown icons in combat, or must Blizzard's viewers be restyled in place? | Cooldowns |
 | Do masks read a PNG's alpha channel, and does a 2048x2048 texture load? | Art pipeline |
 | How do the Classic and Enhanced experience presets change the default frames KstyleUI hides? | Every replace module |
 
