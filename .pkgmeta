@@ -1,0 +1,17 @@
+# .pkgmeta: how the BigWigs packager builds the release zip.
+# Each module task adds "KstyleUI/KstyleUI_<Module>: KstyleUI_<Module>" under move-folders.
+package-as: KstyleUI
+enable-nolib-creation: no
+
+ignore:
+  - Tools
+  - docs
+  - research_notes
+  - reports
+  - .github
+  - .luacheckrc
+  - .pre-commit-config.yaml
+  - AGENTS.md
+  - README.md
+
+move-folders:

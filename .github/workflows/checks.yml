@@ -1,0 +1,89 @@
+# checks.yml: the pull request checks. Each job name is a check the PR must pass.
+name: checks
+
+on:
+  pull_request:
+    # edited and the label events re-run pr-rules when the body or the labels change.
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Lua 5.1 and luacheck 1.2.0
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.1 liblua5.1-0-dev luarocks
+          sudo luarocks --lua-version=5.1 install luacheck 1.2.0-1
+      - name: Install pre-commit
+        run: pipx install pre-commit==4.7.0
+      - name: Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  tests:
+    name: tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.1
+      - name: Lua regression tests
+        run: bash Tools/regression/run-all.sh
+      - name: Python tool tests
+        run: python3 -m unittest discover -s Tools/tests
+
+  package:
+    name: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The packager reads the history for the version and the changelog.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.1
+      - name: Package without uploading or localisation
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
+        with:
+          args: -d -l
+          pandoc: false
+      - name: Check the zip
+        run: bash Tools/hooks/check-package.sh
+
+  pr-rules:
+    name: pr-rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # check-pr.sh diffs against the merge base with the base branch.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check the changelog line and the release markers
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: bash Tools/hooks/check-pr.sh "origin/$BASE_REF"
