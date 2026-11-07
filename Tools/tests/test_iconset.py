@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "icons"))
 import iconset  # noqa: E402
 
 SET_A = iconset.SETS["A"]
+SET_B = iconset.SETS["B"]
 
 
 def spell(name, owner, line, school=1, description="", category="class", subtext=""):
@@ -199,6 +200,46 @@ class PromptTest(unittest.TestCase):
     def test_set_a_style_asks_for_a_monochrome_single_icon_with_no_text(self):
         for phrase in ("pure black", "monochrome", "32 pixels", "No text", "no border", "no frame", "not a grid"):
             self.assertIn(phrase, SET_A.style)
+
+
+class SetBPromptTest(unittest.TestCase):
+    def test_set_b_is_the_full_colour_addon(self):
+        self.assertEqual(SET_B.addon, "KstyleUI_IconsColour")
+        self.assertEqual(SET_B.xml, "IconsColour.xml")
+        self.assertEqual(SET_B.reference, "docs/design/mockups/icons_B_fullcolour.jpg")
+        self.assertEqual(SET_B.model, "gpt_image_2_5")
+        self.assertFalse(SET_B.greyscale)
+        self.assertTrue((iconset.REPO / SET_B.reference).exists())
+
+    def test_set_b_style_asks_for_one_full_bleed_colour_painting_with_no_text(self):
+        for phrase in ("edge to edge", "full-colour", "32 pixels", "No text", "no border", "no frame",
+                       "no black margin", "not a grid"):
+            self.assertIn(phrase, SET_B.style)
+
+    def test_set_b_lead_names_the_palette_of_the_school(self):
+        lead, prompt = iconset.prompt_for(SET_B, group(1, "Fireball", school=4))
+        self.assertTrue(lead.startswith(iconset.lead_for(group(1, "Fireball", school=4))))
+        self.assertIn(iconset.PALETTES[4], lead)
+        self.assertEqual(prompt, f"{lead} {SET_B.style}")
+
+    def test_a_mixed_school_takes_its_first_magic_school_and_physical_counts_only_alone(self):
+        self.assertIn(iconset.PALETTES[16], iconset.prompt_for(SET_B, group(1, "Frostfire", school=1 | 16 | 32))[0])
+        self.assertIn(iconset.PALETTES[2], iconset.prompt_for(SET_B, group(1, "Holy Fire", school=2 | 4))[0])
+        self.assertIn(iconset.PALETTES[1], iconset.prompt_for(SET_B, group(1, "Strike", school=1))[0])
+
+    def test_set_a_prompts_name_no_palette(self):
+        lead, _ = iconset.prompt_for(SET_A, group(1, "Fireball", school=4))
+        self.assertEqual(lead, iconset.lead_for(group(1, "Fireball", school=4)))
+
+    def test_set_b_rerolls_add_the_set_b_fixes(self):
+        lead, _ = iconset.prompt_for(SET_B, group(1, "Frostbolt", school=16), ["frame", "grid:rows", "clipped:left", "flat"])
+        for code in ("frame", "grid", "clipped", "flat"):
+            self.assertIn(iconset.HINTS_B[code], lead)
+        self.assertNotIn(iconset.HINTS["clipped"], lead)
+
+    def test_every_set_b_reason_has_a_fix(self):
+        for code in ("blank", "flat", "frame", "grid", "clipped", "text"):
+            self.assertIn(code, iconset.HINTS_B)
 
 
 class GenerateTest(unittest.TestCase):
@@ -387,6 +428,28 @@ def png(width=128, height=128, colour_type=0):
 XML_WITHOUT_DATA = '<Ui xmlns="http://www.blizzard.com/wow/ui/">\r\n\t<Script file="Init.lua"/>\r\n</Ui>\r\n'
 
 
+class SetBPackageTextTest(unittest.TestCase):
+    def entries(self):
+        fire = group(135812, "Fireball", school=4)
+        return [{"group": fire, "attempt": {"lead": 'Icon for "Fireball"', "job": "job-2", "model": "gpt_image_2_5",
+                                            "date": "2026-11-07"}}]
+
+    def test_data_lua_names_set_b_and_its_addon(self):
+        lines = iconset.render_data_lua(SET_B, self.entries()).split("\r\n")
+        self.assertIn('\tset = "B",', lines)
+        self.assertIn('\t\t[135812] = "Interface\\\\AddOns\\\\KstyleUI_IconsColour\\\\Icons\\\\135812.png",', lines)
+
+    def test_provenance_describes_set_b_reference_colour_and_checks(self):
+        text = iconset.render_provenance(SET_B, self.entries())
+        self.assertIn("# KstyleUI_IconsColour provenance", text)
+        self.assertIn(SET_B.reference, text)
+        self.assertIn(SET_B.style, text)
+        self.assertIn("full colour (RGB PNG)", text)
+        self.assertIn(SET_B.checks, text)
+        self.assertNotIn("off-black", text)
+        self.assertEqual(len([line for line in text.splitlines() if line.startswith("| `")]), 1)
+
+
 class IncludeDataTest(unittest.TestCase):
     def test_adds_data_lua_after_the_other_scripts(self):
         self.assertEqual(
@@ -459,6 +522,47 @@ class VerifyPackageTest(unittest.TestCase):
         self.assertIn("Data.lua does not match the icons in Icons/", problems)
 
 
+class SetBVerifyTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tmp.name)
+        self.icons = self.repo / SET_B.addon / "Icons"
+        self.icons.mkdir(parents=True)
+        self.groups = [group(135812, "Fireball", school=4)]
+        entries = [{"group": g, "attempt": {"lead": "x", "job": "j", "model": "m", "date": "d"}} for g in self.groups]
+        (self.repo / SET_B.addon / "PROVENANCE.md").write_text(iconset.render_provenance(SET_B, entries))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_accepts_an_rgb_png(self):
+        (self.icons / "135812.png").write_bytes(png(colour_type=2))
+        self.assertEqual(iconset.verify_package(SET_B, self.groups, self.repo), [])
+
+    def test_rejects_a_greyscale_or_alpha_png(self):
+        for colour_type in (0, 6):
+            (self.icons / "135812.png").write_bytes(png(colour_type=colour_type))
+            self.assertIn("Icons/135812.png is not an 8-bit RGB PNG", iconset.verify_package(SET_B, self.groups, self.repo))
+
+
+class FloorTest(unittest.TestCase):
+    def test_each_set_has_its_own_credit_floor(self):
+        self.assertEqual(SET_A.floor, 1300)
+        self.assertEqual(SET_B.floor, 60)
+
+    def test_a_dry_run_names_the_set_floor_unless_overridden(self):
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for argv, floor in ((["--set", "B"], "60"), (["--set", "B", "--floor", "500"], "500")):
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    iconset.main(["generate", *argv, "--dry-run", "--limit", "1", "--work-dir", tmp])
+                self.assertIn(f"stops before the balance falls below {floor}", out.getvalue())
+                self.assertIn(SET_B.style, out.getvalue())
+
+
 class JudgeWrapperTest(unittest.TestCase):
     class Check:
         """Stands in for check_icons: load_raster raises what a broken download raises."""
@@ -484,6 +588,17 @@ class JudgeWrapperTest(unittest.TestCase):
                 judge = iconset.make_judge(text=text, check=self.Check(error))
                 with self.assertRaisesRegex(iconset.GenerationError, "image check failed"):
                     judge(Path("1-1.png"))
+
+    def test_uses_the_check_of_the_icon_set(self):
+        class Check(self.Check):
+            def judge_for(self, name):
+                return {"A": lambda raster, texts=(): ["colour"], "B": lambda raster, texts=(): ["frame"]}[name]
+
+            def load_raster(self, path):
+                return None
+
+        self.assertEqual(iconset.make_judge(text=False, check=Check(None), icon_set=SET_B)(Path("1-1.png")), ["frame"])
+        self.assertEqual(iconset.make_judge(text=False, check=Check(None))(Path("1-1.png")), ["colour"])
 
     def test_a_judge_error_records_a_failed_attempt_and_keeps_the_run_going(self):
         with tempfile.TemporaryDirectory() as tmp:

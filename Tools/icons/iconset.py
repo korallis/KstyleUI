@@ -1,20 +1,23 @@
 """Generate, check and package a custom icon set from Tools/data/abilities.json.
 
 Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python):
-    iconset.py generate [--set A] [--jobs 8] [--floor 1300] [--limit N] [--categories class,pet]
+    iconset.py generate [--set A|B] [--jobs 8] [--floor N] [--limit N] [--categories class,pet]
                         [--reroll FILEID ...] [--dry-run]
-    iconset.py status   [--set A]
-    iconset.py package  [--set A] [--categories ...] [--no-data]
-    iconset.py sheets   [--set A]
-    iconset.py verify   [--set A]
+    iconset.py status   [--set A|B]
+    iconset.py package  [--set A|B] [--categories ...] [--no-data]
+    iconset.py sheets   [--set A|B]
+    iconset.py verify   [--set A|B]
+
+Set A is white light art on black, tinted in game (KstyleUI_Icons). Set B is full-colour painted art
+that fills the square (KstyleUI_IconsColour); its prompts also name a palette for the spell school.
 
 generate makes one 1:1 image per icon group with Higgsfield, in category order (class, pet, racial,
 profession, general), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
-its rate limit). Each image goes through check_icons.judge; a rejected icon is rerolled at most
-twice, with a fix for the reasons added to its prompt. Raw images and one
+its rate limit). Each image goes through the set's check in check_icons (judge for A, judge_colour
+for B); a rejected icon is rerolled at most twice, with a fix for the reasons added to its prompt. Raw images and one
 JSON record per icon live outside the repository in ~/.local/share/wow-dev/icons/<set>/raw, so a
 rerun skips finished icons. The run reads the credit balance at the start and every 100 images, and
-stops before a job would take the balance below --floor. --reroll makes a fresh attempt for icons the
+stops before a job would take the balance below --floor (set A 1300, set B 60 by default). --reroll makes a fresh attempt for icons the
 owner marked on a contact sheet, even when they were accepted.
 
 package writes each accepted icon as a 128x128 PNG to <addon>/Icons/<fileID>.png (luminance only for
@@ -78,23 +81,72 @@ HINTS = {
     "text": "Draw no text, letters, numbers or writing of any kind.",
 }
 
+STYLE_B = (
+    "Paint one bold, iconic subject that captures this ability: the ability's own object, weapon, creature or "
+    "magical effect, large and centred, filling most of the square, with a strong clear silhouette and one "
+    "bright focal point, so it still reads when the icon is shrunk to 32 pixels. Show the effect itself rather "
+    "than a casting hand or a whole character; draw a hand or a figure only when the ability is about one. The "
+    "painting fills the whole square edge to edge, with a dark, softly blurred background in matching colours "
+    "and no empty margin; no scene and no landscape. Style: match the reference image: a rich, full-colour "
+    "fantasy painting like a high-quality MMORPG spell icon, saturated colours, dramatic glowing light, "
+    "painterly brushwork and fine detail. Keep the subject whole inside the square. One icon only: a single "
+    "square painting, not a grid, a sheet or a set. No text, no letters, no numbers, no runes, no writing, no "
+    "border, no frame, no black margin, no rounded corners."
+)
+
+# Set B names one palette per spell school. A mixed mask takes its first magic school in the order holy,
+# fire, nature, frost, shadow, arcane, as Core/Icons.lua's SchoolColor does; physical counts only alone.
+PALETTES = {
+    1: "Colours: the subject's own natural colours, such as steel, leather, wood, stone, fur or bone, lit by a "
+       "cool white rim light with one accent colour that suits the ability, against a dark smoky background; "
+       "no golden glow.",
+    2: "Colours: radiant gold, warm white and pale amber holy light.",
+    4: "Colours: blazing orange, red and yellow fire against deep ember darkness.",
+    8: "Colours: vivid emerald green, teal and bright yellow-green light, or crackling storm blue and white for "
+       "lightning and storms.",
+    16: "Colours: icy blue, pale cyan and white against deep midnight blue.",
+    32: "Colours: deep violet, purple and black, with pale sickly highlights.",
+    64: "Colours: brilliant magenta, violet and pale blue arcane light.",
+}
+PALETTE_ORDER = (2, 4, 8, 16, 32, 64)
+
+HINTS_B = {
+    "blank": "Make the subject large, bright and clearly lit against a darker background.",
+    "flat": "Use strong contrast: one bright, simple subject against a darker, calmer background.",
+    "frame": "Paint all the way to every edge of the square: no border, frame or black margin.",
+    "grid": "Paint one single icon that fills the whole square, not a grid or a sheet of several icons.",
+    "clipped": "Centre the subject and light it brightly; keep the edges of the square darker than the centre.",
+    "text": HINTS["text"],
+}
+
+CHECKS_A = "no blank, small, clipped, off-black, coloured or text-bearing image is accepted"
+CHECKS_B = ("no blank, flat (unreadable at 32 pixels), framed, grid, off-centre or text-bearing image is "
+            "accepted")
+
 CLASS_NAMES = {"DEATHKNIGHT": "Death Knight", "DEMONHUNTER": "Demon Hunter"}
 RACE_NAMES = {"Scourge": "Undead"}
 
 
 @dataclass(frozen=True)
 class IconSet:
-    name: str
+    name: str  # also the name of the set's check in check_icons.judge_for
     addon: str
     xml: str  # the addon's XML load file, which must load Data.lua
     model: str
     reference: str  # repository path of the style reference passed as image_references
     style: str
     greyscale: bool
+    hints: dict  # reason code -> the fix a reroll adds to the prompt
+    floor: float  # credits the generate command leaves unspent by default
+    checks: str  # what check_icons rejects, for PROVENANCE.md
+    palette: bool = False  # add the spell school's palette to each prompt
 
 
 SETS = {
-    "A": IconSet("A", "KstyleUI_Icons", "Icons.xml", "gpt_image_2_5", "docs/design/mockups/icons_A_luminous.jpg", STYLE_A, True),
+    "A": IconSet("A", "KstyleUI_Icons", "Icons.xml", "gpt_image_2_5", "docs/design/mockups/icons_A_luminous.jpg", STYLE_A, True,
+                 hints=HINTS, floor=1300.0, checks=CHECKS_A),
+    "B": IconSet("B", "KstyleUI_IconsColour", "IconsColour.xml", "gpt_image_2_5", "docs/design/mockups/icons_B_fullcolour.jpg",
+                 STYLE_B, False, hints=HINTS_B, floor=60.0, checks=CHECKS_B, palette=True),
 }
 
 GENERATION_ARGS = ["--aspect_ratio", "1:1", "--resolution", "1k", "--quality", "high"]
@@ -195,12 +247,21 @@ def lead_for(group):
     return f"{lead} What it does: {description}" if description else lead
 
 
+def palette_for(mask):
+    for bit in PALETTE_ORDER:
+        if mask & bit:
+            return PALETTES[bit]
+    return PALETTES[1]
+
+
 def prompt_for(icon_set, group, reasons=()):
-    """Return (lead, prompt): the icon's own part, with any reroll fixes, and the full prompt."""
+    """Return (lead, prompt): the icon's own part, with its palette and any reroll fixes, and the full prompt."""
     lead = lead_for(group)
+    if icon_set.palette:
+        lead = f"{lead} {palette_for(group['school'])}"
     fixes = []
     for reason in reasons:
-        hint = HINTS.get(reason.split(":")[0])
+        hint = icon_set.hints.get(reason.split(":")[0])
         if hint and hint not in fixes:
             fixes.append(hint)
     if fixes:
@@ -448,15 +509,17 @@ def higgsfield_runner(icon_set, reference):
     return run
 
 
-def make_judge(text=True, check=None):
-    """Wrap check_icons so a broken download or helper error becomes a recorded GenerationError."""
+def make_judge(text=True, check=None, icon_set=None):
+    """Wrap the set's check_icons check so a broken download or helper error becomes a recorded GenerationError."""
     if check is None:
         import check_icons as check
+    name = (icon_set or SETS["A"]).name
 
     def judge(path):
         try:
             texts = check.read_text([path]).get(str(path), ()) if text else ()
-            return check.judge(check.load_raster(path), texts)
+            raster = check.load_raster(path)
+            return check.judge_for(name)(raster, texts)
         except (check.OcrError, OSError, ValueError) as error:
             raise GenerationError(f"image check failed: {error}") from error
 
@@ -536,7 +599,7 @@ def _cell(text):
 
 def render_provenance(icon_set, entries):
     entries = sorted(entries, key=lambda e: e["group"]["icon"])
-    tone = "luminance only (greyscale PNG)" if icon_set.greyscale else "full colour"
+    tone = "luminance only (greyscale PNG)" if icon_set.greyscale else "full colour (RGB PNG)"
     lines = [
         f"# {icon_set.addon} provenance",
         "",
@@ -550,7 +613,7 @@ def render_provenance(icon_set, entries):
         f"| Style reference | `{icon_set.reference}`, passed as `image_references` |",
         "| Seed | The model exposes none; the Higgsfield job ID identifies each image |",
         f"| Post-processing | Pillow: Lanczos downscale from 1024 to {ICON_SIZE} pixels, {tone} |",
-        "| Checks | `Tools/icons/check_icons.py`: no blank, small, clipped, off-black, coloured or text-bearing image is accepted |",
+        f"| Checks | `Tools/icons/check_icons.py --set {icon_set.name}`: {icon_set.checks} |",
         "",
         "Each prompt is the row's prompt text followed by this style block:",
         "",
@@ -639,6 +702,8 @@ def verify_package(icon_set, groups, repo=REPO):
             problems.append(f"Icons/{path.name} is {width}x{height}, not {ICON_SIZE}x{ICON_SIZE}")
         if icon_set.greyscale and (depth, colour) != (8, 0):
             problems.append(f"Icons/{path.name} is not an 8-bit greyscale PNG")
+        if not icon_set.greyscale and (depth, colour) != (8, 2):
+            problems.append(f"Icons/{path.name} is not an 8-bit RGB PNG")
         if icon not in known:
             problems.append(f"Icons/{path.name} is not an icon file ID in Tools/data/abilities.json")
 
@@ -724,7 +789,7 @@ def main(argv=None):
         command.add_argument("--work-dir", type=Path, default=None, help="default ~/.local/share/wow-dev/icons/<set>")
         if name == "generate":
             command.add_argument("--jobs", type=int, default=DEFAULT_JOBS, choices=range(1, MAX_JOBS + 1), metavar="1-12")
-            command.add_argument("--floor", type=float, default=1300.0, help="credits to leave unspent")
+            command.add_argument("--floor", type=float, default=None, help="credits to leave unspent (default: the set's floor)")
             command.add_argument("--cost", type=float, default=1.5, help="credits per image")
             command.add_argument("--limit", type=int, help="generate at most this many icons")
             command.add_argument("--reroll", type=int, nargs="*", default=[], help="file IDs to generate afresh")
@@ -735,6 +800,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     icon_set = SETS[args.set]
+    if getattr(args, "floor", None) is None:
+        args.floor = icon_set.floor
     work = args.work_dir or WORK / icon_set.name
     raw = work / "raw"
     groups = _load_groups(args)
@@ -756,7 +823,8 @@ def main(argv=None):
         if args.dry_run:
             todo = [g for g in groups if g["icon"] in args.reroll or next_step(load_record(raw, g)) == "generate"]
             todo = todo[:args.limit] if args.limit is not None else todo
-            print(f"{len(todo)} icons to generate, about {len(todo) * args.cost:.1f} credits before rerolls")
+            print(f"{len(todo)} icons to generate, about {len(todo) * args.cost:.1f} credits before rerolls; "
+                  f"the run stops before the balance falls below {args.floor:g}")
             for group in todo[:5]:
                 print(prompt_for(icon_set, group)[1])
             return 0
@@ -767,7 +835,7 @@ def main(argv=None):
         summary = generate(
             groups, icon_set, raw,
             runner=higgsfield_runner(icon_set, reference_id(icon_set, work)),
-            fetch=download, judge=make_judge(text=not args.no_text), balance=account_balance,
+            fetch=download, judge=make_judge(text=not args.no_text, icon_set=icon_set), balance=account_balance,
             today=datetime.date.today().isoformat(), jobs=args.jobs, floor=args.floor, cost=args.cost,
             limit=args.limit, reroll=set(args.reroll),
         )

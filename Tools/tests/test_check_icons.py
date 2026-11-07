@@ -75,6 +75,80 @@ class JudgeTest(unittest.TestCase):
         self.assertIn("clipped:bottom", check_icons.judge(raster(disc(64, 125, 40), size=128)))
 
 
+def painting(x, y):
+    """A full-bleed painting: a textured mid-dark background and a bright subject in the centre."""
+    background = 40 + ((x * 7 + y * 13) % 50)
+    return 235 if (x - 128) ** 2 + (y - 128) ** 2 <= 70 * 70 else background
+
+
+def framed(paint, margin=12):
+    """The painting shrunk inside a black margin, as the model draws it when it copies the reference sheet."""
+    return lambda x, y: paint(x, y) if margin <= x < SIZE - margin and margin <= y < SIZE - margin else 0
+
+
+class JudgeColourTest(unittest.TestCase):
+    """Set B: full-colour paintings that fill the square edge to edge."""
+
+    def judge(self, paint, **kwargs):
+        return check_icons.judge_colour(raster(paint, chroma=90), **kwargs)
+
+    def test_accepts_a_full_bleed_painting_with_a_bright_centre(self):
+        self.assertEqual(self.judge(painting), [])
+
+    def test_accepts_colour(self):
+        self.assertNotIn("colour", codes(self.judge(painting)))
+
+    def test_accepts_a_dark_painting_with_one_bright_subject(self):
+        dark = lambda x, y: 230 if (x - 128) ** 2 + (y - 128) ** 2 <= 50 * 50 else 18 + (x + y) % 12  # noqa: E731
+        self.assertEqual(self.judge(dark), [])
+
+    def test_rejects_a_flat_or_unlit_image_as_blank(self):
+        self.assertIn("blank", codes(self.judge(lambda x, y: 90)))
+        self.assertIn("blank", codes(self.judge(lambda x, y: 20 + (x * 3 + y) % 60)))
+
+    def test_rejects_detail_that_vanishes_at_32_pixels(self):
+        checker = lambda x, y: 220 if (x // 2 + y // 2) % 2 else 30  # noqa: E731
+        self.assertEqual(codes(self.judge(checker)), {"flat"})
+
+    def test_rejects_a_black_margin_around_the_painting(self):
+        self.assertIn("frame", codes(self.judge(framed(painting))))
+
+    def test_accepts_dark_paint_at_some_edges(self):
+        vignette = lambda x, y: 0 if x < 10 or y < 10 else painting(x, y)  # noqa: E731
+        self.assertNotIn("frame", codes(self.judge(vignette)))
+
+    def test_rejects_a_sheet_of_several_icons(self):
+        rows = lambda x, y: 0 if 120 <= y < 132 else painting(x, y)  # noqa: E731
+        columns = lambda x, y: 0 if 80 <= x < 90 or 160 <= x < 170 else painting(x, y)  # noqa: E731
+        self.assertIn("grid:rows", self.judge(rows))
+        self.assertIn("grid:columns", self.judge(columns))
+
+    def test_a_dark_lower_half_is_not_a_grid(self):
+        lower = lambda x, y: 0 if y >= 150 else painting(x, y)  # noqa: E731
+        self.assertNotIn("grid", codes(self.judge(lower)))
+
+    def test_rejects_a_subject_at_an_edge_with_a_dark_centre(self):
+        corner = lambda x, y: 230 if x > 200 else 25 + (x + y) % 20  # noqa: E731
+        self.assertEqual(self.judge(corner), ["clipped:right"])
+
+    def test_accepts_a_subject_that_runs_off_one_edge_from_a_lit_centre(self):
+        blade = lambda x, y: 230 if abs(x - y) < 30 else 40 + (x * 7 + y * 13) % 50  # noqa: E731
+        self.assertEqual(self.judge(blade), [])
+
+    def test_rejects_readable_text(self):
+        self.assertEqual(self.judge(painting, texts=[("FROSTBOLT", 0.9)]), ["text:FROSTBOLT"])
+
+
+class JudgeForTest(unittest.TestCase):
+    def test_picks_the_check_for_each_set(self):
+        self.assertIs(check_icons.judge_for("A"), check_icons.judge)
+        self.assertIs(check_icons.judge_for("B"), check_icons.judge_colour)
+
+    def test_rejects_an_unknown_set(self):
+        with self.assertRaises(KeyError):
+            check_icons.judge_for("C")
+
+
 class TextTest(unittest.TestCase):
     def test_rejects_readable_text(self):
         reasons = check_icons.judge(raster(disc(128, 128, 80)), texts=[("SHIELD WALL", 1.0)])
