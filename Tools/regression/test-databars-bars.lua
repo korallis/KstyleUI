@@ -89,10 +89,14 @@ do
 	end
 	eq(shownTicks, 9, "ten segments draw nine ticks")
 
-	eq(xp.text:IsShown(), false, "the text waits for the pointer")
+	eq(xp.text:IsShown(), false, "the text waits for the pointer: a label that stays would meet the reputation bar's")
 	W.Enter(xp.holder)
 	eq(xp.text:IsShown(), true, "hovering shows the text")
 	eq(xp.text:GetText(), "12,345 / 50,000 (24%)", "the default text is value and percent")
+	local _, labelSize = xp.text:GetFont()
+	eq(labelSize, 9 * K.Theme.FontScale(), "the label reads at the caption size")
+	local point = xp.text:GetPoint(1)
+	eq(point, "CENTER", "the label is centred on the bar")
 	local tip = K.Widgets.Tooltip()
 	eq(tip:IsShown(), true, "hovering shows the KstyleUI tooltip")
 	eq(tip:IsOwned(xp.holder), true, "the tooltip belongs to the bar")
@@ -243,10 +247,10 @@ do
 	Options.Write("DataBars", "xp.orientation", "VERTICAL")
 	eq(xp.fill:GetOrientation(), "VERTICAL", "the bar can stand upright")
 	local size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "5x441", "an upright bar swaps its width and height")
+	eq(size.width .. "x" .. size.height, "4x441", "an upright bar swaps its width and height")
 	Options.Write("DataBars", "xp.orientation", "HORIZONTAL")
 	size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "441x5", "and swaps back")
+	eq(size.width .. "x" .. size.height, "441x4", "and swaps back")
 
 	Options.Write("DataBars", "xp.text", "percent")
 	Options.Write("DataBars", "xp.textHover", false)

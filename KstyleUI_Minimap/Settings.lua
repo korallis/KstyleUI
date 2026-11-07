@@ -23,14 +23,14 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "inside", size = 22, spacing = 6, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	column = { side = "inside", size = 16, spacing = 9, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
 	zoom = { wheel = true, reset = false, delay = 10 },
 	compass = true,
 	strip = { opacity = 0.8 },
 	zone = { shown = true, color = "plain", font = "", size = 9, outline = "" },
-	clock = { shown = true, mode = "game", font = "", size = 11, outline = "" },
-	coords = { shown = true, precision = 1, position = "top", font = "", size = 10, outline = "" },
+	clock = { shown = true, mode = "game", font = "", size = 9, outline = "" },
+	coords = { shown = false, precision = 1, position = "top", font = "", size = 10, outline = "" },
 }
 
 local ACCENT_OPTIONS = {

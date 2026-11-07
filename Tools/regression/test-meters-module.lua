@@ -54,6 +54,12 @@ local fonts = keys["damage.font"].options()
 assert(fonts[1].value == "", "the first font is the interface font")
 assert(#fonts >= 2, "the font list holds KstyleUI's fonts")
 
+-- The defaults follow the design file: 14-unit rows five units apart, five rows in the damage meter's footprint.
+assert(ns.defaults.damage.rowHeight == 14 and ns.defaults.threat.rowHeight == 14, "rows are 14 units")
+assert(ns.defaults.damage.spacing == 5 and ns.defaults.threat.spacing == 5, "rows sit 5 units apart")
+assert(ns.Logic.FitRows(130 - 8 - 9 - 8 - 8, 14, 5) == 5, "the damage footprint fits five rows under its title")
+assert(ns.Logic.FitRows(104 - 8 - 9 - 8 - 8, 14, 5) == 4, "the threat footprint fits four rows under its title")
+
 -- Enable builds and places the three elements.
 M.Enable(env, K)
 assert(K.Modules.IsRunning("Meters"), "the module runs")

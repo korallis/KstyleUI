@@ -7,7 +7,7 @@ local Format, Font, Bars, Strip = ns.Format, ns.Font, ns.Bars, ns.Strip
 local max = math.max
 
 local DEFAULT_TEXTURE = "Glass"
-local FONT_SIZE = 10
+local FONT_SIZE = Tokens.Size("caption")
 local SEGMENTS = 10
 local MAX_SEGMENTS = 20
 local RESTED_ALPHA = 0.5
@@ -16,7 +16,7 @@ local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
 local PREVIEW_STRIP = 36
 local PREVIEW_STRIP_PAD = 12
-local STRIP_FONT_SIZE = 11
+local STRIP_FONT_SIZE = 10
 local STRIP_SPACING = 8
 local MAX_SPACING = 32
 local MICRO_SIZE = 24

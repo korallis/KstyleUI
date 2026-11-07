@@ -190,8 +190,27 @@ for _, key in ipairs({ "unitframes.player", "unitframes.target" }) do
 	assert(e.height >= 88 and e.height <= 100, key .. " is close to the kit sheet's 100 units at the 1080 reference, as large as the Mac's screen allows beside the chat, got " .. e.height)
 	assert(math.abs(e.width / e.height - 469 / 141) < 0.02, key .. " has the kit sheet's 469 by 141 proportions, got " .. e.width .. " x " .. e.height)
 end
+
 for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
 	assert(Layouts.Element(key).height < 36, key .. " stays a compact frame")
+end
+
+-- Footprints follow the owner's design file (kit-spec/SPEC.md) ------------------------------------------
+
+do
+	local function footprint(key)
+		local element = Layouts.Element(key)
+		return element.width .. "x" .. element.height
+	end
+	assert(footprint("minimap.main") == "168x166", "the minimap is 168 by 166: a 142 map, a 24 strip and a 22 footer, got " .. footprint("minimap.main"))
+	assert(footprint("chat.main") == "320x130", "the chat panel is 320 by 130, got " .. footprint("chat.main"))
+	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
+	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
+	assert(footprint("databars.strip") == "360x36", "the data strip is 360 wide, got " .. footprint("databars.strip"))
+	assert(footprint("databars.xp") == "441x4", "the experience bar is 4 tall, got " .. footprint("databars.xp"))
+	local layout = Layouts.Get("DPS")
+	local minimap = layout["minimap.main"]
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -16 and minimap.y == -16, "the minimap stays 16 in from the top right corner")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

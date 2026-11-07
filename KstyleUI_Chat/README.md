@@ -92,7 +92,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 
 ## The panel
 
-`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 390 by 190 units at the bottom left in every layout. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
+`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 320 by 130 units at the bottom left in every layout. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
 
 The glass is a `Widgets.Panel` child of the holder that fills it, in the `BACKGROUND` strata with `SetFixedFrameStrata(true)`, so a strata the player picks for the element never lifts the glass over Blizzard's chat, whose windows and dock stay in their own strata.
 
@@ -100,7 +100,7 @@ Blizzard's `ChatFrame1` is anchored inside the holder by two points, so it follo
 
 | Part | Where, in root units at the 1080 reference |
 | --- | --- |
-| Tabs | The tab text sits 12 units below the panel's top. A faint divider runs where Blizzard's dock meets the window, under the tabs, and the selected tab's underline lies on it. |
+| Tabs | The tab text sits 12 units below the panel's top. A faint divider runs where Blizzard's dock meets the window, under the tabs, and the selected tab's underline lies on it: one unit, the accent lifted 60% toward white, across the tab's full width, with a 5-unit accent glow fading upward from it. |
 | Messages | `gapMedium` in from the left, below the tabs, and in from the right by `gapMedium` plus the scroll bar's column |
 | Edit box | Blizzard keeps it under the window. The panel leaves room for it: its raised tile is 22 units tall and 6 units above the panel's bottom. |
 
