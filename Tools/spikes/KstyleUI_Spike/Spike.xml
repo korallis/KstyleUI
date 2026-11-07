@@ -1,0 +1,19 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Font name="KstyleUISpike_SS3Semibold_9" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Semibold.ttf" height="9" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Semibold_11" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Semibold.ttf" height="11" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Semibold_16" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Semibold.ttf" height="16" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Semibold_24" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Semibold.ttf" height="24" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Regular_9" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Regular.ttf" height="9" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Regular_11" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Regular.ttf" height="11" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Regular_16" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Regular.ttf" height="16" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_SS3Regular_24" font="Interface\AddOns\KstyleUI_Spike\Media\SourceSans3-Regular.ttf" height="24" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_InterSemiBold_9" font="Interface\AddOns\KstyleUI_Spike\Media\Inter-SemiBold.ttf" height="9" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_InterSemiBold_11" font="Interface\AddOns\KstyleUI_Spike\Media\Inter-SemiBold.ttf" height="11" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_InterSemiBold_16" font="Interface\AddOns\KstyleUI_Spike\Media\Inter-SemiBold.ttf" height="16" slug="true" virtual="true"/>
+	<Font name="KstyleUISpike_InterSemiBold_24" font="Interface\AddOns\KstyleUI_Spike\Media\Inter-SemiBold.ttf" height="24" slug="true" virtual="true"/>
+	<Script file="Core.lua"/>
+	<Script file="Fonts.lua"/>
+	<Script file="Scale.lua"/>
+	<Script file="Encoding.lua"/>
+	<Script file="Textures.lua"/>
+</Ui>

@@ -1,0 +1,9 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Spike
+## Notes: Throwaway in-game tests for KstyleUI. Type /kspike to start.
+## Author: korallis
+## Version: spike
+## SavedVariables: KstyleUISpikeDB
+
+Spike.xml
