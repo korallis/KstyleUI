@@ -69,14 +69,14 @@ Each element is a holder frame registered with Layout as resizable, at its footp
 | `<bar>.textHover` | `true` | Show the text only under the pointer |
 | `<bar>.textPosition` | `CENTER` | On, above, below, left or right of the bar |
 | `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font |
-| `<bar>.fontSize` | 10 | 6 to 24, times the Appearance page's text size |
+| `<bar>.fontSize` | 9, the `caption` size | 6 to 24, times the Appearance page's text size |
 | `<bar>.outline` | `OUTLINE` | `NONE` (a soft shadow), `OUTLINE` or `THICKOUTLINE` |
 
 Layout gives each bar its shown rule, position, size, opacity and strata.
 
 ## Data strip
 
-`databars.strip` is one resizable glass panel registered with Layout at its footprint, 430 x 36, bottom right. It holds up to five items, each a label and a value on a button that lights under the pointer and shows a KstyleUI tooltip.
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 360 x 36, bottom right. It holds up to five items, each a label and a value on a button that lights under the pointer and shows a KstyleUI tooltip.
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 | `strip.backdrop`, `strip.separators` | `true`, `true` | The glass panel and the lines between items |
 | `strip.spacing` | 8 | 0 to 32 units each side of a separator |
 | `strip.orientation` | `HORIZONTAL` | A row, or a column. A change resizes the element through `Layout.Update`. |
-| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 11, `NONE` | As for the bars' text |
+| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 10, `NONE` | As for the bars' text |
 | `strip.money` | `full` | `full`, `gold` or `icons` |
 | `strip.latency` | `home` | `home` or `world` |
 | `strip.timeSource`, `strip.clock24` | `local`, `true` | Local or realm time, and the clock format |

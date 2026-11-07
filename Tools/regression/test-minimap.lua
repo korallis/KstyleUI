@@ -51,7 +51,7 @@ local element = K.Layout.Element("minimap.main")
 assert(element.label == K.Setup.Layouts.Element("minimap.main").label, "the mover plate uses the setup's label")
 assert(element.module == "Minimap", "Layout knows the element belongs to the Minimap module")
 assert(element.opts.resizable and element.opts.aspect, "the minimap resizes in Layout Mode and keeps its proportions")
-assert(holder:GetWidth() == 226 and holder:GetHeight() == 196, "the element fills its footprint at the 1080 reference")
+assert(holder:GetWidth() == 168 and holder:GetHeight() == 166, "the element fills its footprint at the 1080 reference")
 
 local minimap = env.Minimap
 local face = Map(ns)
@@ -59,8 +59,18 @@ assert(minimap:GetParent() == holder, "Blizzard's minimap moves into KstyleUI's 
 assert(LastArg(minimap, "SetAllPoints") == face.mapArea, "the minimap fills the frame's map square")
 local mw, mh = face.mapArea:GetSize()
 assert(mw == mh, "the minimap stays square")
-assert(mw > 180 and mw < 196, "the minimap sits just inside the frame: " .. tostring(mw))
-assert(W.Near(select(4, face.box:GetPoint(1)), 30), "with the column on the left, the map square sits at the right")
+assert(W.Near(mw, 158), "the map square fills the frame's height inside one gap: " .. tostring(mw))
+assert(W.Near(face.box:GetWidth(), 168) and W.Near(face.box:GetHeight(), 166), "with the column inside, the chamfered frame is the whole element")
+assert(W.Near(select(4, face.box:GetPoint(1)), 0) and W.Near(select(4, face.mapArea:GetPoint(1)), 4), "the map square sits at the frame's left, one gap in")
+assert(W.Near(face.strip:GetHeight(), 18), "the footer is 18 tall inside the gap, 22 from the frame's edge: " .. tostring(face.strip:GetHeight()))
+local _, stripRel, stripRelPoint, stripX = face.strip:GetPoint(2)
+assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -4), "the footer reaches the frame's right edge under the button strip")
+assert(W.Near(select(4, face.zone:GetPoint(1)), 7), "the zone name starts 11 from the frame's edge")
+assert(W.Near(select(4, face.clock:GetPoint(1)), -8), "the clock ends 12 from the frame's edge")
+assert(W.Near(select(4, face.strip.divider:GetPoint(1)), -9), "the divider stands 9 left of the clock")
+assert(W.Near(face.compassPlate:GetWidth(), 25) and W.Near(face.compassPlate:GetHeight(), 16), "the north plate is 25 by 16 under the top edge")
+local _, compassSize = face.compass:GetFont()
+assert(W.Near(compassSize, 11 * K.Theme.FontScale()), "the N reads at the body size: " .. tostring(compassSize))
 assert(LastArg(minimap, "SetMaskTexture") == (K.Tokens.Texture("minimapMask")), "the minimap uses KstyleUI's square mask")
 for _, method in ipairs({ "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }) do
 	assert(LastArg(minimap, method) == 0, method .. "(0) removes the round blob ring on a square map")
@@ -75,8 +85,8 @@ assert(LastArg(minimap, "SetMaskTexture") == (K.Tokens.Texture("minimapMask")), 
 
 M.Resize(holder, 346, 300)
 mw, mh = face.mapArea:GetSize()
-assert(mw == mh and mw > 280 and mw < 300, "a resized element resizes the square map: " .. tostring(mw))
-M.Resize(holder, 226, 196)
+assert(mw == mh and W.Near(mw, 292), "a resized element resizes the square map: " .. tostring(mw))
+M.Resize(holder, 168, 166)
 
 -- Wheel zoom ----------------------------------------------------------------------------------------
 
@@ -122,6 +132,8 @@ assert(W.Near(zr, hr) and W.Near(zg, hg) and W.Near(zb, hb), "PvP colouring show
 K.Options.Write("Minimap", "zone.color", "plain")
 
 assert(face.clock:GetText() == "14:32", "the clock follows the game's clock by default: " .. tostring(face.clock:GetText()))
+local _, clockSize = face.clock:GetFont()
+assert(W.Near(clockSize, 9 * K.Theme.FontScale()), "the clock reads at the caption size by default: " .. tostring(clockSize))
 env._clock.minute = 33
 local tables = env._dateCalls["*t"] or 0
 M.RunTickers(env)
@@ -160,7 +172,9 @@ assert(flags == "OUTLINE", "the clock takes its own outline")
 
 env._position = { 0.4532, 0.6218 }
 env.FireEvent("PLAYER_ENTERING_WORLD", false, false)
-assert(face.coords:GetText() == "45.3, 62.2", "coordinates show in tenths by default: " .. tostring(face.coords:GetText()))
+assert(not face.coords:IsShown(), "coordinates are off by default, as the design file has none")
+K.Options.Write("Minimap", "coords.shown", true)
+assert(face.coords:GetText() == "45.3, 62.2", "coordinates show in tenths once turned on: " .. tostring(face.coords:GetText()))
 K.Options.Write("Minimap", "coords.precision", 0)
 assert(face.coords:GetText() == "45, 62", "the coordinate format follows the setting")
 env.FireEvent("PLAYER_STARTED_MOVING")

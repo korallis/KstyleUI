@@ -159,6 +159,8 @@ do
 
 	local face = K.Tokens.MediaList("font")[2].path
 	Options.Write("DataBars", "strip.font", face)
+	local _, defaultSize = item(ns, "gold").value:GetFont()
+	eq(defaultSize, 10 * K.Theme.FontScale(), "the strip reads at 10 by default")
 	Options.Write("DataBars", "strip.fontSize", 13)
 	Options.Write("DataBars", "strip.outline", "OUTLINE")
 	local path, size, flags = item(ns, "gold").value:GetFont()
@@ -168,21 +170,21 @@ do
 
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	local layout = K.Layout.Get("databars.strip")
-	assert(layout.width < 430 and layout.height > 36, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
+	assert(layout.width < 360 and layout.height > 36, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
 	local first, second = item(ns, "fps").button, item(ns, "latency").button
 	local _, _, _, _, y1 = first:GetPoint(1)
 	local _, _, _, _, y2 = second:GetPoint(1)
 	assert(y2 < y1, "upright items stack downward")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "430x36", "a row strip returns to its footprint")
+	eq(layout.width .. "x" .. layout.height, "360x36", "a row strip returns to its footprint")
 	for i = 2, 5 do
 		Options.Write("DataBars", "strip.slot" .. i, "none")
 	end
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "430x36", "a one-item column also returns to the row footprint")
+	eq(layout.width .. "x" .. layout.height, "360x36", "a one-item column also returns to the row footprint")
 	noErrors(env, K)
 end
 

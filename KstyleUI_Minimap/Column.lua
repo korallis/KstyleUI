@@ -1,4 +1,4 @@
--- Column.lua: the column of small monochrome buttons beside the map: tracking, mail, calendar and the group finder status.
+-- Column.lua: the raised strip inside the map's right edge, or a column beside the map, of small monochrome buttons: tracking, mail, calendar and the group finder status.
 local _, ns = ...
 
 local K = KstyleUI
@@ -14,6 +14,7 @@ local GLYPH_COLUMNS, GLYPH_ROWS = 4, 2
 local CELLS = { tracking = 0, mail = 1, calendar = 2, queue = 3, drawer = 4 }
 local BADGE_SIZE = 6
 local BADGE_INSET = 1
+local STRIP_GAP = Tokens.Size("gapSmall")
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
 Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
@@ -181,7 +182,11 @@ function Column.New(face, opts)
 	local host = CreateFrame("Frame", nil, face.holder)
 	host:SetAllPoints(face.holder)
 	host:SetFrameLevel(face.overlay:GetFrameLevel() + 1)
-	local column = setmetatable({ face = face, holder = face.holder, host = host, preview = opts.preview == true, buttons = {} }, Column)
+	local strip = CreateFrame("Frame", nil, host)
+	strip.fill = strip:CreateTexture(nil, "BACKGROUND")
+	strip.fill:SetColorTexture(Tokens.Color("white"))
+	strip.fill:SetAllPoints(strip)
+	local column = setmetatable({ face = face, holder = face.holder, host = host, strip = strip, preview = opts.preview == true, buttons = {} }, Column)
 	for _, name in ipairs(Column.ORDER) do
 		column.buttons[name] = NewButton(column, name)
 	end
@@ -222,11 +227,27 @@ function Column:Active(name)
 	return false
 end
 
+local function PlaceStrip(self, size)
+	local face, strip = self.face, self.strip
+	local inset = face.inset or Widgets.Snap(face.box, Tokens.Size("gapSmall"))
+	local gap = Widgets.Snap(face.box, STRIP_GAP)
+	strip:ClearAllPoints()
+	strip:SetPoint("TOPRIGHT", face.box, "TOPRIGHT", -inset, -inset)
+	if face.strip:IsShown() then
+		strip:SetPoint("BOTTOMRIGHT", face.strip, "TOPRIGHT", 0, 0)
+	else
+		strip:SetPoint("BOTTOMRIGHT", face.box, "BOTTOMRIGHT", -inset, inset)
+	end
+	strip:SetWidth(size + 2 * gap)
+	return gap
+end
+
 function Column:Layout()
 	local holder, face = self.holder, self.face
 	local size = Widgets.Snap(holder, Settings.Get("column.size"))
 	local spacing = Widgets.Snap(holder, Settings.Get("column.spacing"))
 	local side = Settings.Get("column.side")
+	local inside = side == "inside"
 	local right = side == "right"
 	local up = Settings.Get("column.growth") == "up"
 	local vertical = up and "BOTTOM" or "TOP"
@@ -234,10 +255,10 @@ function Column:Layout()
 	local relative = vertical .. (right and "RIGHT" or "LEFT")
 	local x = right and spacing or -spacing
 	local box, start = face.box, 0
-	if side == "inside" then
-		local strip = face.strip
-		box = up and strip:IsShown() and strip or face.mapArea
-		relative, start = (box == strip and "TOP" or vertical) .. "RIGHT", spacing
+	self.strip:SetShown(inside)
+	if inside then
+		box, point, relative, x = self.strip, vertical, vertical, 0
+		start = PlaceStrip(self, size)
 	end
 	local slot = 0
 	for _, name in ipairs(Column.ORDER) do
@@ -250,6 +271,7 @@ function Column:Layout()
 				button.opts.size = size
 				button:Restyle()
 			end
+			button.disc:SetShown(not inside)
 			button:ClearAllPoints()
 			button:SetPoint(point, box, relative, x, up and offset or -offset)
 			slot = slot + 1
@@ -260,6 +282,8 @@ end
 function Column:Paint()
 	local ar, ag, ab = Style.Accent()
 	local tr, tg, tb = Tokens.Color("textEmphasis")
+	local sr, sg, sb = Tokens.Color("surface")
+	self.strip.fill:SetVertexColor(sr, sg, sb, Settings.Get("strip.opacity"))
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
 		local active = self:Active(name)

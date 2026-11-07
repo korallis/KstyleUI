@@ -12,6 +12,10 @@ ns.Frames = Frames
 local OUTLINES = { none = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local EDIT_TEXTS = { "header", "headerSuffix", "languageHeader", "prompt", "NewcomerHint" }
 local TAB_FILL_INSET = { left = 4, right = 4, top = 9, bottom = 1 }
+local UNDERLINE_UNITS = 1
+local UNDERLINE_LIFT = 0.6
+local UNDERLINE_GLOW_UNITS = 5
+local UNDERLINE_GLOW_ALPHA = 0.25
 local CHEVRON = 8
 local PROBE_SIZE = 12
 local FADE_DEFAULT = 120
@@ -142,6 +146,19 @@ local function Accent()
 	return r, g, b, 1
 end
 
+local function Lift(v)
+	return v + (1 - v) * UNDERLINE_LIFT
+end
+
+local function PaintGlow(glow, r, g, b)
+	if type(glow.SetGradient) == "function" and type(CreateColor) == "function" then
+		glow:SetColorTexture(Tokens.Color("white"))
+		glow:SetGradient("VERTICAL", CreateColor(r, g, b, UNDERLINE_GLOW_ALPHA), CreateColor(r, g, b, 0))
+	else
+		glow:SetColorTexture(r, g, b, UNDERLINE_GLOW_ALPHA / 2)
+	end
+end
+
 local function PaintTab(parts)
 	local settings = state.settings
 	if not settings or not parts.underline then
@@ -149,8 +166,14 @@ local function PaintTab(parts)
 	end
 	local style = settings.tabStyle
 	local selected = parts.selected == true
-	parts.underline:SetVertexColor(Accent())
-	parts.underline:SetShown(selected and style == "underline")
+	local r, g, b = Accent()
+	local underlined = selected and style == "underline"
+	parts.underline:SetVertexColor(Lift(r), Lift(g), Lift(b), 1)
+	parts.underline:SetShown(underlined)
+	if parts.chatGlow then
+		PaintGlow(parts.chatGlow, r, g, b)
+		parts.chatGlow:SetShown(underlined)
+	end
 	local fill = parts.backdrop
 	if not fill and style == "filled" then
 		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "raised", shadow = false, inset = TAB_FILL_INSET })
@@ -181,6 +204,18 @@ local function TabCase(tab)
 	end
 end
 
+local function LayoutTab(parts)
+	local line, tab, glow = parts.underline, parts.frame, parts.chatGlow
+	line:ClearAllPoints()
+	line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
+	line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+	line:SetHeight(Widgets.Snap(line, UNDERLINE_UNITS))
+	glow:ClearAllPoints()
+	glow:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, 0)
+	glow:SetPoint("BOTTOMRIGHT", line, "TOPRIGHT", 0, 0)
+	glow:SetHeight(Widgets.Snap(glow, UNDERLINE_GLOW_UNITS))
+end
+
 local function StyleTab(frame, tab)
 	local keep = {}
 	if type(tab.glow) == "table" then
@@ -192,12 +227,18 @@ local function StyleTab(frame, tab)
 		return
 	end
 	if not parts.chatPaint then
-		local paint = parts.Paint
+		local paint, layout = parts.Paint, parts.Layout
 		parts.chatPaint = true
+		parts.chatGlow = parts.underline:GetParent():CreateTexture(nil, "OVERLAY", nil, -1)
 		parts.Paint = function(self)
 			paint(self)
 			PaintTab(self)
 		end
+		parts.Layout = function(self)
+			layout(self)
+			LayoutTab(self)
+		end
+		LayoutTab(parts)
 	end
 	parts.selected = IsSelected(frame)
 end

@@ -49,16 +49,16 @@ Footprints are width x height in units at the 1080 reference.
 | `cooldowns.bars` | Cooldowns | Tracked buff bars | 180 x 60 | Three 180 by 18 bars, above the player frame |
 | `auras.buffs` | Auras | Buffs | 420 x 76 | Two rows of icons under the minimap, growing left |
 | `auras.debuffs` | Auras | Debuffs | 420 x 38 | One row under the buffs |
-| `minimap.main` | Minimap | Minimap | 226 x 196 | A 196-unit square with the button column on its left |
-| `chat.main` | Chat | Chat | 390 x 190 | The panel with its tabs and edit box |
-| `databars.xp` | DataBars | Experience bar | 441 x 5 | Under the action bars, as wide as them |
+| `minimap.main` | Minimap | Minimap | 168 x 166 | A 142 map square, the 24-unit button strip inside its right edge and the 22-unit footer |
+| `chat.main` | Chat | Chat | 320 x 130 | The panel with its tabs and edit box |
+| `databars.xp` | DataBars | Experience bar | 441 x 4 | Under the action bars, as wide as them |
 | `databars.rep` | DataBars | Reputation bar | 441 x 5 | Under the experience bar |
 | `databars.honor` | DataBars | Honour bar | 441 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
-| `databars.strip` | DataBars | Data strip | 430 x 36 | FPS, latency, gold, durability and time |
+| `databars.strip` | DataBars | Data strip | 360 x 36 | FPS, latency, gold, durability and time |
 | `databars.micro` | DataBars | Micro menu | 270 x 28 | One row above the data strip |
 | `databars.bags` | DataBars | Bag bar | 180 x 30 | One row above the micro menu |
-| `meters.damage` | Meters | Damage meter | 260 x 174 | Right side, inside the right-hand bar columns |
-| `meters.threat` | Meters | Threat meter | 260 x 130 | Above the damage meter |
+| `meters.damage` | Meters | Damage meter | 208 x 130 | Right side, inside the right-hand bar columns |
+| `meters.threat` | Meters | Threat meter | 208 x 104 | Above the damage meter |
 | `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar above the cast bar |
 | `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, above your character |
 | `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, above the threat meter |

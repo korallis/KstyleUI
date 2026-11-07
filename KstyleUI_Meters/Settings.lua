@@ -51,7 +51,7 @@ local function Merge(...)
 end
 
 local BODY, CAPTION = Tokens.Size("body"), Tokens.Size("caption")
-local ROW, SPACING = Tokens.Size("buffBarHeight"), Tokens.Size("gapTiny")
+local ROW, SPACING = 14, 5
 
 ns.defaults = {
 	accent = "class",

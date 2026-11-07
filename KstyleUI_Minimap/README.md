@@ -8,7 +8,7 @@ Square minimap, chamfered frame, zone and clock strip inside its bottom edge, si
 | Approach | Reskin |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Minimap.toc` lists `Minimap.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Layout element | `minimap.main`: resizable, keeps its proportions, 226 by 196 units at the 1080 reference |
+| Layout element | `minimap.main`: resizable, keeps its proportions, 168 by 166 units at the 1080 reference: a 158 map square one gap inside the frame, the 24-unit button strip over its right edge and the 22-unit footer over its bottom edge |
 | Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-drawer.lua` (the addon drawer against a LibDBIcon stand-in), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
 | Media | `Media/Glyphs.png`, drawn by `Tools/media/make_minimap_glyphs.py`; its row is in `Media/PROVENANCE.md` |
 
@@ -81,7 +81,7 @@ The north mark sits on a small dark glass tab at the top of the map and shows wh
 
 ### The button column
 
-By default the column runs down the inside of the map's right edge, one gap in, as round glass buttons above the map, as the kit draws it. Growing up, it starts above the strip. It can also hang beside the map square instead, from its top corner downward or from its bottom corner upward; the map square then leaves room for one button and one gap beside it, so a larger button size shrinks the map rather than pushing the column outside the Layout element. Only the buttons that apply show, and the rest close up.
+By default the column is the design's raised strip inside the map's right edge: a band of the footer's glass, one button and two gaps wide, from the frame's top to the footer, with bare 16-unit glyphs down it at a 25-unit pitch. Growing up, it starts at the strip's bottom, above the footer. It can also hang beside the map square instead, from its top corner downward or from its bottom corner upward; the map square then leaves room for one button and one gap beside it, so a larger button size shrinks the map rather than pushing the column outside the Layout element. Only the buttons that apply show, and the rest close up.
 
 | Button | Shows | Click |
 | --- | --- | --- |
@@ -119,7 +119,7 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | --- | --- | --- |
 | `accent.source`, `accent.color` | `class`, the kit's accent | Hairline colour: class or custom colour |
 | `column.side`, `column.growth` | `inside`, `down` | Inside the map's right edge, as the kit draws it, or beside the map on the left or right; and whether the column starts at the top or the bottom |
-| `column.size`, `column.spacing` | 22, 6 | Button size and the gap between buttons and beside the map |
+| `column.size`, `column.spacing` | 16, 9 | Button size and the gap between buttons and beside the map |
 | `column.tracking`, `column.mail`, `column.calendar`, `column.queue`, `column.drawer` | on | Each button |
 | `drawer.behaviour`, `drawer.direction` | `click`, `auto` | Open on click, on mouseover or always; which way it opens |
 | `drawer.size`, `drawer.spacing`, `drawer.columns` | 24, 4, 6 | The drawer's icon size, gap and icons per row |
@@ -129,8 +129,8 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | `strip.opacity` | 0.8 | The band behind the zone and clock |
 | `zone.shown`, `zone.color` | on, `plain` | Zone name, coloured plainly, by PvP status or with the accent |
 | `clock.shown`, `clock.mode` | on, `game` | The clock and its format |
-| `coords.shown`, `coords.precision`, `coords.position` | on, 1, `top` | Coordinates, 0 to 2 decimals, at the top or above the strip |
-| `zone.*`, `clock.*`, `coords.*` `font`, `size`, `outline` | interface font; 9, 11, 10; none | Each text's typeface, size (times the Appearance text size) and outline |
+| `coords.shown`, `coords.precision`, `coords.position` | off, 1, `top` | Coordinates, 0 to 2 decimals, at the top or above the strip |
+| `zone.*`, `clock.*`, `coords.*` `font`, `size`, `outline` | interface font; 9, 9, 10; none | Each text's typeface, size (times the Appearance text size) and outline |
 
 ## Why
 

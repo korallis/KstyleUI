@@ -11,11 +11,15 @@ ns.Face = Face
 
 local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_WHEEL = 1, 2, 6, 8
 local MAP_INSET = Tokens.Size("gapSmall")
-local TEXT_PAD = Tokens.Size("gapMedium")
 local GAP = Tokens.Size("gapSmall")
-local TINY = Tokens.Size("gapTiny")
-local COMPASS_ROLE = "caption"
+local COMPASS_ROLE = "body"
 local PLATE_RISE = Tokens.Size("chamferTile")
+local FOOTER = 22 - MAP_INSET
+local ZONE_PAD = 11 - MAP_INSET
+local CLOCK_PAD = 12 - MAP_INSET
+local DIVIDER_GAP = 9
+local PLATE_WIDTH, PLATE_HEIGHT = 25, 16
+local min = math.min
 
 Face.LEVEL_MAP = LEVEL_MAP
 
@@ -140,7 +144,7 @@ function Face:Paint()
 	Widgets.ColorSlice(self.compassPlate.slice, sr, sg, sb, Settings.Get("strip.opacity"))
 
 	self.zoneSize = Style.Text(self.zone, "caption", "zone")
-	self.clockSize = Style.Text(self.clock, "number", "clock")
+	self.clockSize = Style.Text(self.clock, "caption", "clock")
 	self.coordsSize = Style.Text(self.coords, "number", "coords")
 	self.compassSize = Style.Text(self.compass, COMPASS_ROLE, "zone", Tokens.Size(COMPASS_ROLE))
 	self.clock:SetTextColor(Style.Color("textEmphasis"))
@@ -169,20 +173,25 @@ function Face:Layout()
 		return
 	end
 	local side = Settings.Get("column.side")
-	local reserve = side ~= "inside" and Settings.Get("column.size") + Settings.Get("column.spacing") or 0
-	local left, size = Format.MapRect(width, height, side, reserve)
-	left, size = Snap(holder, left), Snap(holder, size)
+	local left, boxWidth, boxHeight = 0, width, height
+	if side ~= "inside" then
+		local reserve = Settings.Get("column.size") + Settings.Get("column.spacing")
+		left, boxWidth = Format.MapRect(width, height, side, reserve)
+		boxHeight = boxWidth
+	end
+	left, boxWidth, boxHeight = Snap(holder, left), Snap(holder, boxWidth), Snap(holder, boxHeight)
 	local box = self.box
 	box:ClearAllPoints()
 	box:SetPoint("TOPLEFT", holder, "TOPLEFT", left, 0)
-	box:SetSize(size, size)
-	self.mapLeft, self.mapSize = left, size
+	box:SetSize(boxWidth, boxHeight)
 
 	local inset = Snap(box, MAP_INSET)
+	local size = min(boxWidth, boxHeight) - 2 * inset
+	self.mapLeft, self.mapSize, self.inset = left, size, inset
 	local area = self.mapArea
 	area:ClearAllPoints()
 	area:SetPoint("TOPLEFT", box, "TOPLEFT", inset, -inset)
-	area:SetSize(size - 2 * inset, size - 2 * inset)
+	area:SetSize(size, size)
 
 	local zoneShown, clockShown = Settings.Get("zone.shown"), Settings.Get("clock.shown")
 	local tallest = 0
@@ -193,10 +202,10 @@ function Face:Layout()
 		tallest = self.clockSize
 	end
 	local strip = self.strip
-	local stripHeight = Snap(strip, tallest + 2 * GAP)
+	local stripHeight = Snap(strip, math.max(FOOTER, tallest + 2 * GAP))
 	strip:ClearAllPoints()
 	strip:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT")
-	strip:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT")
+	strip:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -inset, inset)
 	strip:SetHeight(stripHeight)
 	local border = Widgets.Border(strip)
 	strip.line:ClearAllPoints()
@@ -204,31 +213,31 @@ function Face:Layout()
 	strip.line:SetPoint("TOPRIGHT", strip, "TOPRIGHT")
 	strip.line:SetHeight(border)
 
-	local pad = Snap(strip, TEXT_PAD)
+	local clockPad = Snap(strip, CLOCK_PAD)
 	local clock, zone = self.clock, self.zone
 	clock:ClearAllPoints()
-	clock:SetPoint("RIGHT", strip, "RIGHT", -pad, 0)
+	clock:SetPoint("RIGHT", strip, "RIGHT", -clockPad, 0)
 	zone:ClearAllPoints()
-	zone:SetPoint("LEFT", strip, "LEFT", pad, 0)
+	zone:SetPoint("LEFT", strip, "LEFT", Snap(strip, ZONE_PAD), 0)
 	local divider = strip.divider
 	divider:ClearAllPoints()
-	divider:SetPoint("RIGHT", clock, "LEFT", -Snap(strip, GAP / 2), 0)
+	divider:SetPoint("RIGHT", clock, "LEFT", -Snap(strip, DIVIDER_GAP), 0)
 	divider:SetSize(border, stripHeight - 2 * Snap(strip, GAP))
 	divider:SetShown(zoneShown and clockShown)
 	if clockShown then
-		zone:SetPoint("RIGHT", clock, "LEFT", -Snap(strip, GAP), 0)
+		zone:SetPoint("RIGHT", divider, "LEFT", -Snap(strip, GAP), 0)
 	else
-		zone:SetPoint("RIGHT", strip, "RIGHT", -pad, 0)
+		zone:SetPoint("RIGHT", strip, "RIGHT", -clockPad, 0)
 	end
 
 	local top = Snap(area, GAP)
-	self.compass:ClearAllPoints()
-	self.compass:SetPoint("TOP", area, "TOP", 0, -top)
-	local plate, tab = self.compassPlate, self.compassSize or 0
+	local plate = self.compassPlate
 	plate:ClearAllPoints()
 	plate:SetPoint("TOP", area, "TOP", 0, Snap(area, PLATE_RISE))
-	Widgets.Size(plate, 2 * (tab + GAP), PLATE_RISE + GAP + tab + TINY)
+	Widgets.Size(plate, PLATE_WIDTH, PLATE_HEIGHT)
 	Widgets.LayoutSlice(plate.slice, plate, PLATE_RISE, 0)
+	self.compass:ClearAllPoints()
+	self.compass:SetPoint("CENTER", plate, "CENTER", 0, 0)
 
 	local coordsFrame = self.coordsFrame
 	coordsFrame:ClearAllPoints()
@@ -240,7 +249,7 @@ function Face:Layout()
 	else
 		local offset = top
 		if Settings.Get("compass") then
-			offset = offset + Snap(area, (self.compassSize or 0) + TINY)
+			offset = offset + Snap(area, PLATE_HEIGHT - PLATE_RISE)
 		end
 		coordsFrame:SetPoint("TOPLEFT", area, "TOPLEFT", 0, -offset)
 		coordsFrame:SetPoint("TOPRIGHT", area, "TOPRIGHT", 0, -offset)
