@@ -68,6 +68,18 @@ function Logic.GuildText(guild, rank)
 	return format("<%s>", guild)
 end
 
+function Logic.Upper(text)
+	return text:find("[\128-\255]") and text or text:upper()
+end
+
+function Logic.TitleText(text, reserve)
+	if IsSecret(text) or type(text) ~= "string" or text == "" or text:find("|", 1, true) then
+		return nil
+	end
+	local upper = Logic.Upper((text:gsub("\n $", "")))
+	return reserve and upper .. "\n " or upper
+end
+
 function Logic.IDText(id)
 	if not IsNumber(id) or id ~= floor(id) then
 		return nil

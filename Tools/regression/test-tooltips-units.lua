@@ -200,6 +200,8 @@ do
 	local blizzard = tip.StatusBar
 	local bar = ns.Health.Bar()
 	assert(bar and bar:GetParent() == ns.Style.Glass(tip), "KstyleUI's bar lives on the glass")
+	assert(bar.borderFrame and bar.chrome.owner == bar.borderFrame and bar.chrome.shape.fill == "chamferTile", "framed by the kit's chamfered tile")
+	assert(bar.backgroundName == "track" and W.SameColor(bar.background, K.Tokens.Color("track")), "over the kit's track")
 	assert(not bar:IsShown(), "hidden until Blizzard shows a unit's health")
 	assert(blizzard:GetStatusBarTexture():GetAlpha() == 0, "Blizzard's bar art is hidden by alpha")
 	ShowUnit(env, tip, "mouseover", { "Valerin" })
@@ -277,23 +279,100 @@ do
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(glass.icon:IsShown(), "the icon is back for the next item")
 	T.BlizzardShow(env.ShoppingTooltip1, true)
-	assert(not glass.icon:IsShown(), "a comparison tooltip beside it hides the icon, so they never overlap")
-	tip:ClearLines()
-	tip:AddLine("Thunderfury", 1, 1, 1)
-	T.PostCall(env, tip, { type = Item, id = 19019 })
-	assert(not glass.icon:IsShown(), "and keeps it hidden while the comparison shows")
-	T.BlizzardShow(env.ShoppingTooltip1, false)
-
 	local shopping = env.ShoppingTooltip1
 	shopping:AddLine("Thunderfury", 1, 1, 1)
 	T.PostCall(env, shopping, { type = Item, id = 19019 })
-	assert(ns.Style.Glass(shopping).icon == nil, "comparison tooltips show no icon")
+	local other = ns.Style.Glass(shopping).icon
+	assert(glass.icon:IsShown() and other and other:IsShown(), "a comparison tooltip shows its own icon and keeps GameTooltip's")
+	assert(select(2, glass.icon:GetPoint(1)) == tip and select(2, other:GetPoint(1)) == shopping, "each inside its own panel, so they never overlap")
+	T.BlizzardShow(env.ShoppingTooltip1, false)
 
 	K.Options.Write("Tooltips", "icon", false)
 	tip:ClearLines()
 	tip:AddLine("Fireball", 1, 1, 1)
 	T.PostCall(env, tip, { type = Spell, id = 133 })
 	assert(not glass.icon:IsShown(), "the switch turns the icon off")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The kit's item tooltip: a rarity-lit icon square inside the top left corner, every line in a column
+-- right of it, the name in capitals in its rarity colour and a rarity caption under it ---------------
+
+local TEXT_INSET = 10
+
+local function Show(env, tip, kind, id, lines)
+	tip:SetOwner(env.UIParent, "ANCHOR_NONE")
+	for _, line in ipairs(lines) do
+		tip:AddLine(line[1], line[2], line[3], line[4])
+	end
+	T.PostCall(env, tip, { type = kind, id = id })
+end
+
+do
+	local env, K, ns, snap = Enabled({ setup = Units })
+	local tip = env.GameTooltip
+	local glass = ns.Style.Glass(tip)
+	env._items[19019] = { quality = 3, icon = 135349 }
+	env._items[2589] = { quality = 1, icon = 132889 }
+	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 0, 0.44, 0.87 }, { "Two-Hand", 1, 1, 1 }, { "+24 Agility", 0.1, 1, 0.1 } })
+	local icon, title, caption = glass.icon, tip:GetLeftLine(1), glass.caption
+	local point, relative, relativePoint, x, y = icon:GetPoint(1)
+	assert(icon:IsShown() and point == "TOPLEFT" and relative == tip and relativePoint == "TOPLEFT", "the icon sits at the panel's top left")
+	assert(x > 0 and y < 0, "inside the panel, not beside it")
+	assert(Near(icon:GetWidth(), ns.Settings.Get("iconSize")) and Near(icon:GetHeight(), icon:GetWidth()), "a square")
+	assert(icon.chrome.shape.fill == "chamferTile", "with the kit's chamfered tile")
+	local left = select(3, tip:GetPadding())
+	assert(x + icon:GetWidth() < TEXT_INSET + left, "Blizzard's lines start right of the icon")
+	tip:ClearPadding()
+	assert(select(3, tip:GetPadding()) == left, "GameTooltip_OnShow clears the padding; the icon's column comes back")
+	tip:SetPadding(16, 0)
+	local right, _, kept = tip:GetPadding()
+	assert(right == 16 and kept == left, "a close button's right padding keeps the icon's column")
+	local e = icon.chrome.edge
+	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("rare")) and e[4] == 1, "its border is the rarity colour")
+	local glow = icon.glow
+	assert(glow.holder:IsShown() and SameRGB(glow.colorRGB[1], glow.colorRGB[2], glow.colorRGB[3], K.Tokens.Color("rare")), "and it glows in it")
+	assert(title:GetText() == "RANGER'S LONG BOW\n ", "the name in capitals, with a line kept for the caption")
+	assert(Colored(title, K.Tokens.Color("rare")), "in the kit's rare colour")
+	assert(caption:IsShown() and caption:GetText() == "RARE" and Colored(caption, K.Tokens.Color("rare")), "the rarity word as a caption")
+	point, relative, relativePoint = caption:GetPoint(1)
+	assert(point == "BOTTOMLEFT" and relative == title and relativePoint == "BOTTOMLEFT", "on the title's second line")
+	assert(select(2, caption:GetFont()) == select(2, ns.Style.FontSpec("small")), "in the small line size")
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == title, "the divider runs under the name and caption")
+	e = glass.chrome.edge
+	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("edgeInner")), "the panel keeps its faint hairline")
+
+	Show(env, tip, Item, 2589, { { "Linen Cloth", 1, 1, 1 }, { "Crafting Reagent", 0.4, 0.7, 1 } })
+	assert(caption:GetText() == "COMMON" and Colored(caption, K.Tokens.Color("text")), "a common item's caption is body grey")
+	assert(not glow.holder:IsShown(), "and its icon does not glow")
+
+	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle" })
+	assert(not icon:IsShown() and not caption:IsShown(), "a unit after the item shows no icon and no caption")
+	assert(select(3, tip:GetPadding()) == 0, "and gives Blizzard's lines their place back")
+	assert(tip:GetLeftLine(1):GetText() == "VALERIN", "unit names read in capitals")
+
+	Show(env, tip, Spell, 133, { { "Fireball", 1, 1, 1 }, { "Hurls a fiery ball.", 1, 0.82, 0 } })
+	assert(icon:IsShown() and not caption:IsShown() and tip:GetLeftLine(1):GetText() == "FIREBALL", "a spell: its icon and capitals, no caption")
+	e = icon.chrome.edge
+	assert(SameRGB(e[1], e[2], e[3], K.Theme.Accent()) and not glow.holder:IsShown(), "its border rests on the accent, unlit")
+	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = { n = 1, 14 }, { n = 1, 14 }
+	Show(env, tip, Spell, 133, { { "Auto Attack", 1, 1, 1 }, { "Toggles auto attack.", 1, 1, 1 } })
+	assert(Near(icon:GetHeight(), 30, 0.01), "a two-line tooltip's icon shrinks to its lines, so it never hangs below the panel")
+	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = nil, nil
+
+	local secret = env.Secret("Ranger's Long Bow")
+	Show(env, tip, Item, 19019, { { secret, 1, 1, 1 }, { "Two-Hand", 1, 1, 1 } })
+	assert(tip:GetLeftLine(1):GetText() == secret and not caption:IsShown(), "a secret name reaches the game untouched")
+
+	K.Options.Write("Tooltips", "title.size", 10)
+	K.Options.Write("Tooltips", "small.size", 20)
+	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 1, 1, 1 } })
+	assert(select(2, caption:GetFont()) <= select(2, ns.Style.FontSpec("title")), "the caption never outgrows the line the title keeps for it")
+
+	K.Options.Write("Tooltips", "icon", false)
+	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 1, 1, 1 } })
+	assert(not icon:IsShown() and select(3, tip:GetPadding()) == 0, "with the icon off, lines keep Blizzard's place")
+	T.Check(env, snap)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

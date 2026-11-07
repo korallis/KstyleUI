@@ -52,12 +52,11 @@ local function AddID(tooltip, label, id)
 end
 
 local function Item(tooltip, data)
-	if Settings.Get("qualityEdge") then
-		local quality = ItemQuality(data)
-		if Logic.EdgeQuality(quality) then
-			Style.SetEdge(tooltip, K.Theme.QualityColor(quality))
-		end
+	local quality = ItemQuality(data)
+	if Settings.Get("qualityEdge") and Logic.EdgeQuality(quality) then
+		Style.SetEdge(tooltip, K.Theme.QualityColor(quality))
 	end
+	Style.Title(tooltip, quality)
 	local id = data.id
 	if not Logic.IsNumber(id) then
 		return
@@ -69,10 +68,11 @@ local function Item(tooltip, data)
 	if Settings.Get("iconID") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end
-	Style.Icon(tooltip, icon)
+	Style.Icon(tooltip, icon, quality)
 end
 
 local function Spell(tooltip, data)
+	Style.Title(tooltip)
 	local id = data.id
 	if not Logic.IsNumber(id) then
 		return
@@ -84,7 +84,7 @@ local function Spell(tooltip, data)
 	if Settings.Get("iconID") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end
-	Style.Icon(tooltip, icon)
+	Style.Icon(tooltip, icon, nil, true)
 end
 
 local function Object(tooltip)

@@ -31,7 +31,7 @@ function T.Files()
 end
 
 -- Methods a hook may add: hooksecurefunc replaces the hooked method on the object it hooks.
-T.HOOKED = { SetAlpha = true, SetValue = true, SetVertexColor = true }
+T.HOOKED = { SetAlpha = true, SetValue = true, SetVertexColor = true, SetPadding = true, ClearPadding = true }
 
 local function fields(object)
 	local out = {}
@@ -79,6 +79,8 @@ function T.Tooltip(env, name, opts)
 		tip._made[#tip._made + 1] = piece
 	end
 	tip.NineSlice = nine
+	tip:SetPadding(0, 0, 0, 0)
+	tip.ClearPadding = function(self) self._state.Padding = { n = 4, 0, 0, 0, 0 } end
 	tip.TextLeft1, tip.TextRight1 = line(tip, 1)
 	tip.TextLeft2, tip.TextRight2 = line(tip, 2)
 	tip.AddLine = function(self, text, r, g, b)
@@ -198,6 +200,8 @@ function T.Blizzard(env)
 	env.NORMAL_FONT_COLOR = color(1, 0.82, 0)
 	env.HIGHLIGHT_FONT_COLOR = color(1, 1, 1)
 	env.GREEN_FONT_COLOR = color(0.1, 1, 0.1)
+	env.ITEM_QUALITY1_DESC, env.ITEM_QUALITY2_DESC = "Common", "Uncommon"
+	env.ITEM_QUALITY3_DESC, env.ITEM_QUALITY4_DESC = "Rare", "Epic"
 	env._postCalls = {}
 	env.TooltipDataProcessor = {
 		AllTypes = "ALL",

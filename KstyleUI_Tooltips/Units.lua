@@ -150,6 +150,7 @@ function Units.Decorate(tooltip, data)
 			name:SetTextColor(r, g, b)
 		end
 	end
+	Style.Title(tooltip)
 	if Settings.Get("guildLine") then
 		Guild(tooltip, unit)
 	end

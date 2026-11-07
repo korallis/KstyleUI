@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Tokens, Widgets, Theme, Skin, Safe = K.Tokens, K.Widgets, K.Theme, K.Skin, K.Safe
 local Logic, Settings = ns.Logic, ns.Settings
-local max = math.max
+local max, min = math.max, math.min
 
 local Style = {}
 ns.Style = Style
@@ -19,17 +19,18 @@ Style.NAMES = {
 	"EmbeddedItemTooltip",
 }
 
-local ICON_OWNERS = {
-	GameTooltip = { "ShoppingTooltip1", "ShoppingTooltip2" },
-	ItemRefTooltip = { "ItemRefShoppingTooltip1", "ItemRefShoppingTooltip2" },
-}
+local NO_ICON = { EmbeddedItemTooltip = true }
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
-local ICON_GAP = 4
+local TEXT_INSET = 10
+local LINE_SPACING = 2
+local ICON_LEVEL = 2
 local ICON_CROP = 0.07
 local BORDER_LINES = 2
+local SPELL_EDGE_ALPHA = 0.5
+local PLAIN_EDGE_ALPHA = 0.35
 
 local skinned = {}
 local savedFonts = {}
@@ -55,14 +56,45 @@ local function UseParentLevel(glass, tooltip)
 	Settings.LogOnce("level", "Frame:SetUsingParentLevel is missing; the glass sits one level below each tooltip")
 end
 
+local function Pad(tooltip, glass, left)
+	local right, bottom, _, top
+	if type(tooltip.GetPadding) == "function" and type(tooltip.SetPadding) == "function" then
+		right, bottom, _, top = tooltip:GetPadding()
+	end
+	if not (Logic.IsNumber(right) and Logic.IsNumber(bottom)) then
+		Settings.LogOnce("padding", "a tooltip's padding was missing or secret; it shows no icon")
+		return false
+	end
+	glass.padding = true
+	tooltip:SetPadding(right, bottom, left, Logic.IsNumber(top) and top or 0)
+	glass.padding = false
+	glass.padded = left > 0 and left or nil
+	return true
+end
+
+local function HideIcon(tooltip, glass)
+	if glass.icon then
+		glass.icon:Hide()
+	end
+	if glass.padded and not Pad(tooltip, glass, 0) then
+		glass.padded = nil
+	end
+end
+
+local function Repad(tooltip)
+	local glass = Style.Glass(tooltip)
+	if glass and glass.padded and not glass.padding and not Pad(tooltip, glass, glass.padded) then
+		HideIcon(tooltip, glass)
+	end
+end
+
 local function Reset(tooltip)
 	local glass = Style.Glass(tooltip)
 	if glass then
 		glass.chrome:SetEdge("edgeInner")
 		glass.divider:Hide()
-		if glass.icon then
-			glass.icon:Hide()
-		end
+		glass.caption:Hide()
+		HideIcon(tooltip, glass)
 	end
 end
 Style.Reset = Reset
@@ -99,10 +131,17 @@ function Style.Skin(tooltip, name)
 	divider:SetTexture((Tokens.Texture("divider")))
 	divider:Hide()
 	glass.divider = divider
-	glass.comparers = ICON_OWNERS[name] and {} or nil
+	glass.caption = Widgets.FontString(glass, "OVERLAY")
+	glass.caption:Hide()
+	glass.iconOwner = not NO_ICON[name]
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
+	for _, method in ipairs({ "SetPadding", "ClearPadding" }) do
+		if glass.iconOwner and type(tooltip[method]) == "function" then
+			hooksecurefunc(tooltip, method, Repad)
+		end
+	end
 	tooltip:HookScript("OnTooltipCleared", Reset)
 	tooltip:HookScript("OnHide", Reset)
 	return glass
@@ -193,11 +232,8 @@ local function PlaceDivider(glass, tooltip)
 	divider:Show()
 end
 
-local function IconFrame(glass, tooltip)
-	if glass.icon then
-		return glass.icon
-	end
-	local icon = CreateFrame("Frame", nil, glass)
+function Style.IconTile(parent)
+	local icon = CreateFrame("Frame", nil, parent)
 	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "raised", shadow = false })
 	local texture = icon:CreateTexture(nil, "ARTWORK")
 	texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
@@ -206,65 +242,72 @@ local function IconFrame(glass, tooltip)
 	mask:SetAllPoints(texture)
 	texture:AddMaskTexture(mask)
 	icon.texture, icon.mask = texture, mask
-	icon:Hide()
-	glass.icon = icon
+	icon.glow = Widgets.Glow(icon, { kind = "selection", spread = Tokens.Size("gapSmall") })
 	return icon
 end
 
-local function PlaceIcon(icon, glass, tooltip)
-	local size = Settings.Get("iconSize")
+function Style.PlaceIcon(icon, panel, size)
 	Widgets.Size(icon, size, size)
 	icon:ClearAllPoints()
-	icon:SetPoint("TOPRIGHT", tooltip, "TOPLEFT", -Widgets.Snap(glass, ICON_GAP), 0)
-	local inset = Widgets.Border(icon) * BORDER_LINES
+	local inset = Widgets.Snap(icon, TEXT_INSET)
+	icon:SetPoint("TOPLEFT", panel, "TOPLEFT", inset, -inset)
+	local border = Widgets.Border(icon) * BORDER_LINES
 	icon.texture:ClearAllPoints()
-	icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", inset, -inset)
-	icon.texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
+	icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", border, -border)
+	icon.texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -border, border)
+	local level = panel:GetFrameLevel()
+	if Logic.IsNumber(level) then
+		icon:SetFrameLevel(level + ICON_LEVEL)
+		icon.glow.holder:SetFrameLevel(level + ICON_LEVEL - 1)
+	end
 	icon.chrome:Restyle()
+	icon.glow:Restyle()
 end
 
-local function Comparing(glass)
-	for _, other in ipairs(glass.comparers) do
-		if other:IsShown() then
-			return true
-		end
+function Style.PaintIcon(icon, quality, spell)
+	local lit = Logic.EdgeQuality(quality)
+	local r, g, b, a
+	if lit then
+		r, g, b = Theme.QualityColor(quality)
+		a = 1
+		icon.glow:SetColorRGB(r, g, b)
+	elseif spell then
+		r, g, b = Settings.Accent()
+		a = SPELL_EDGE_ALPHA
+	else
+		r, g, b, a = Widgets.Rgba("text", PLAIN_EDGE_ALPHA)
 	end
-	return false
+	icon.chrome:SetEdgeRGBA(r, g, b, a)
+	icon.glow:SetIntensity(lit and 1 or 0)
 end
 
-function Style.WatchComparison()
-	for _, tooltip in ipairs(skinned) do
-		local glass = Style.Glass(tooltip)
-		local names = ICON_OWNERS[tooltip:GetName()]
-		if glass and glass.comparers and names and #glass.comparers == 0 then
-			for _, name in ipairs(names) do
-				local other = _G[name]
-				if type(other) == "table" and type(other.HookScript) == "function" then
-					glass.comparers[#glass.comparers + 1] = other
-					other:HookScript("OnShow", function()
-						if glass.icon then
-							glass.icon:Hide()
-						end
-					end)
-				end
-			end
+local function TextHeight(tooltip)
+	local height = -LINE_SPACING
+	for i = 1, Style.NumLines(tooltip) do
+		local line = Style.Line(tooltip, "left", i)
+		local h = type(line) == "table" and line:GetStringHeight()
+		if not Logic.IsNumber(h) then
+			return nil
 		end
+		height = height + h + LINE_SPACING
 	end
+	return height > 0 and height or nil
 end
 
-function Style.Icon(tooltip, fileID)
+function Style.Icon(tooltip, fileID, quality, spell)
 	local glass = Style.Glass(tooltip)
-	if not (glass and glass.comparers) then
+	if not (glass and glass.iconOwner) then
 		return
 	end
-	if not Settings.Get("icon") or Logic.IsSecret(fileID) or fileID == nil or Comparing(glass) then
-		if glass.icon then
-			glass.icon:Hide()
-		end
+	local size = min(Settings.Get("iconSize"), TextHeight(tooltip) or math.huge)
+	if not Settings.Get("icon") or Logic.IsSecret(fileID) or fileID == nil or not Pad(tooltip, glass, size + Tokens.Size("gapLarge")) then
+		HideIcon(tooltip, glass)
 		return
 	end
-	local icon = IconFrame(glass, tooltip)
-	PlaceIcon(icon, glass, tooltip)
+	local icon = glass.icon or Style.IconTile(glass)
+	glass.icon = icon
+	Style.PlaceIcon(icon, tooltip, size)
+	Style.PaintIcon(icon, quality, spell)
 	local Icons = K.Icons
 	if Icons and type(Icons.Apply) == "function" then
 		Icons.Apply(icon.texture, fileID)
@@ -272,6 +315,42 @@ function Style.Icon(tooltip, fileID)
 		icon.texture:SetTexture(fileID)
 	end
 	icon:Show()
+end
+
+function Style.Title(tooltip, quality)
+	local glass = Style.Glass(tooltip)
+	local title = glass and Style.Line(tooltip, "left", 1)
+	if type(title) ~= "table" then
+		return
+	end
+	local caption = Logic.IsNumber(quality) and _G["ITEM_QUALITY" .. quality .. "_DESC"] or nil
+	caption = type(caption) == "string" and caption or nil
+	local text = Logic.TitleText(title:GetText(), caption ~= nil)
+	if not text then
+		Settings.LogOnce("title", "a tooltip title was secret or held escape codes; it keeps Blizzard's text")
+		return
+	end
+	title:SetText(text)
+	if not caption then
+		return
+	end
+	local r, g, b = Tokens.Color("text")
+	if Logic.EdgeQuality(quality) then
+		r, g, b = Theme.QualityColor(quality)
+		title:SetTextColor(r, g, b)
+	end
+	local label = glass.caption
+	Style.StyleFont(label, "small")
+	local path, size, flags = label:GetFont()
+	local _, titleSize = Style.FontSpec("title")
+	if Logic.IsNumber(size) and size > titleSize then
+		label:SetFont(path, titleSize, flags)
+	end
+	label:SetText(Logic.Upper(caption))
+	label:SetTextColor(r, g, b)
+	label:ClearAllPoints()
+	label:SetPoint("BOTTOMLEFT", title, "BOTTOMLEFT", 0, 0)
+	label:Show()
 end
 
 local function PaintItemBorder(item)

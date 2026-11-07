@@ -77,6 +77,18 @@ do
 	assert(Logic.IDText(env.Secret(5)) == nil and Logic.IDText(nil) == nil and Logic.IDText(1.5) == nil, "secrets, nothing and fractions give no line")
 end
 
+-- TitleText: the kit's titles are capitals; an item's title keeps a blank second line for its caption
+
+do
+	assert(Logic.TitleText("Ranger's Long Bow") == "RANGER'S LONG BOW", "titles read in capitals")
+	assert(Logic.TitleText("Ranger's Long Bow", true) == "RANGER'S LONG BOW\n ", "an item title reserves the caption's line")
+	assert(Logic.TitleText("RANGER'S LONG BOW\n ", true) == "RANGER'S LONG BOW\n ", "a second pass adds no second line")
+	assert(Logic.TitleText("Bow |cff00ff00x|r") == nil and Logic.TitleText("|A:Tier3:16:16|a Ore") == nil, "escape codes stay as Blizzard set them")
+	assert(Logic.TitleText(env.Secret("Bow")) == nil and Logic.TitleText(nil) == nil and Logic.TitleText("") == nil, "secrets and empty titles are left alone")
+	assert(Logic.TitleText("Gro\195\159er B\195\164r", true) == "Gro\195\159er B\195\164r\n ", "string.upper misses accents, so a name with them keeps its case")
+	assert(Logic.Upper("Rare") == "RARE" and Logic.Upper("Ungew\195\182hnlich") == "Ungew\195\182hnlich", "captions follow the same rule")
+end
+
 -- A secrecy check comes before any nil test of the same value ------------------------------------
 -- The game raises an error when a secret is compared, even with nil, and the stub secrets cannot catch
 -- a comparison with a plain value, so the module's source is checked instead.

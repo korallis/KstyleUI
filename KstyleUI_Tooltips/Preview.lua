@@ -16,13 +16,13 @@ local SAMPLE_GAP = 24
 local LINE_GAP = 2
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
-local ICON_GAP = 4
 local BAR_GAP = 4
-local BORDER_LINES = 2
 local FRIENDLY = 5
 
 local ITEM = {
-	{ left = L["Ranger's Long Bow"], role = "title", color = "quality" },
+	header = 2,
+	{ left = L["Ranger's Long Bow"], role = "title", color = "quality", upper = true },
+	{ left = L["Rare"], role = "small", color = "quality", upper = true },
 	{ left = L["Binds when equipped"], color = "highlight" },
 	{ left = L["Two-Hand"], right = L["Bow"], color = "highlight" },
 	{ left = L["142 - 198 Damage"], right = L["Speed 1.80"], color = "highlight" },
@@ -33,7 +33,7 @@ local ITEM = {
 }
 
 local UNIT = {
-	{ left = L["Valerin"], role = "title", color = "class" },
+	{ left = L["Valerin"], role = "title", color = "class", upper = true },
 	{ left = "", color = "guild", key = "guildLine" },
 	{ left = L["Level 60 Hunter (Player)"], color = "highlight" },
 	{ left = L["Target"], right = L["You"], color = "text", rightColor = "accent", key = "targetLine" },
@@ -88,7 +88,7 @@ local function Sample(frame, spec)
 	for i, line in ipairs(spec) do
 		local row = { left = Widgets.FontString(glass, "OVERLAY") }
 		row.left:SetJustifyH("LEFT")
-		row.left:SetText(line.left)
+		row.left:SetText(line.upper and Logic.Upper(line.left) or line.left)
 		if line.right then
 			row.right = Widgets.FontString(glass, "OVERLAY")
 			row.right:SetJustifyH("RIGHT")
@@ -106,6 +106,7 @@ end
 local function LayoutSample(glass)
 	local pad = Widgets.Snap(glass, Tokens.Size("gapMedium"))
 	local gap = Widgets.Snap(glass, LINE_GAP)
+	local x = pad + (glass.indent or 0)
 	local y = pad
 	local shown = 0
 	for i, row in ipairs(glass.rows) do
@@ -121,7 +122,7 @@ local function LayoutSample(glass)
 			Style.StyleFont(row.left, role)
 			row.left:SetTextColor(LineColor(line.color))
 			row.left:ClearAllPoints()
-			row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", pad, -y)
+			row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y)
 			row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
 			if row.right then
 				Style.StyleFont(row.right, role)
@@ -138,10 +139,10 @@ local function LayoutSample(glass)
 	elseif glass.spec[2] and glass.spec[2].key == "guildLine" then
 		glass.rows[2].left:SetText(Logic.GuildText(L["Kstyle"]))
 	end
-	Widgets.Size(glass, SAMPLE_WIDTH, y - gap + pad)
+	Widgets.Size(glass, SAMPLE_WIDTH + (glass.indent or 0), y - gap + pad)
 	local divider = glass.divider
 	divider:ClearAllPoints()
-	divider:SetPoint("TOPLEFT", glass.rows[1].left, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
+	divider:SetPoint("TOPLEFT", glass.rows[glass.spec.header or 1].left, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
 	divider:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
 	divider:SetHeight(Widgets.Border(glass))
 	divider:SetVertexColor(Settings.Accent())
@@ -194,18 +195,13 @@ end
 local function LayoutIcon(frame)
 	local icon = frame.icon
 	local size = Settings.Get("iconSize")
-	Widgets.Size(icon, size, size)
-	icon:ClearAllPoints()
-	icon:SetPoint("TOPRIGHT", frame.item, "TOPLEFT", -Widgets.Snap(icon, ICON_GAP), 0)
-	local inset = Widgets.Border(icon) * BORDER_LINES
-	icon.texture:ClearAllPoints()
-	icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", inset, -inset)
-	icon.texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
-	icon.chrome:Restyle()
+	Style.PlaceIcon(icon, frame.item, size)
+	Style.PaintIcon(icon, SAMPLE_QUALITY)
 	icon:SetShown(Settings.Get("icon"))
 end
 
 local function Refresh(frame)
+	frame.item.indent = Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0
 	LayoutSample(frame.item)
 	LayoutSample(frame.unit)
 	local qr, qg, qb = Theme.QualityColor(SAMPLE_QUALITY)
@@ -222,15 +218,12 @@ function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
 	frame.item = Sample(frame, ITEM)
-	local iconSpace = Settings.defaults.iconSize + ICON_GAP
-	frame.item:SetPoint("TOP", frame, "TOP", iconSpace / 2, -Tokens.Size("gapLarge"))
+	frame.item:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit = Sample(frame, UNIT)
-	frame.icon = CreateFrame("Frame", nil, frame.item)
-	frame.icon.chrome = Widgets.Chrome(frame.icon, { shape = "tile", fill = "raised", shadow = false })
-	frame.icon.texture = frame.icon:CreateTexture(nil, "ARTWORK")
+	frame.icon = Style.IconTile(frame.item)
 	frame.icon.texture:SetTexture(SAMPLE_ICON)
 	frame.bar = Widgets.StatusBar(frame.unit, { background = "track", border = true, min = 0, max = 1, value = SAMPLE_HEALTH })
-	frame.glass, frame.title = frame.item, frame.item.rows[1].left
+	frame.glass, frame.title, frame.caption = frame.item, frame.item.rows[1].left, frame.item.rows[2].left
 	frame.Refresh = Refresh
 	Refresh(frame)
 	return frame

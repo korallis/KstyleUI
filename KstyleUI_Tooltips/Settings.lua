@@ -12,7 +12,7 @@ ns.MODULE = MODULE
 
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 32, 1
 local BAR_MIN, BAR_MAX, BAR_STEP, BAR_SIZE = 2, 16, 1, 6
-local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 34
+local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 44
 local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
 local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 16, 13, 11
 
@@ -33,7 +33,7 @@ Settings.defaults = {
 	title = Text(TITLE_SIZE),
 	body = Text(BODY_SIZE),
 	small = Text(SMALL_SIZE),
-	qualityEdge = true,
+	qualityEdge = false,
 	divider = true,
 	softColors = true,
 	accentSource = "class",
@@ -245,7 +245,7 @@ local MORE = {
 	},
 	{
 		type = "toggle", key = "icon", label = L["Icon"],
-		help = L["Shows the item or spell icon beside the tooltip's top left corner."],
+		help = L["Shows the item or spell icon in the tooltip's top left corner."],
 	},
 	{
 		type = "slider", key = "iconSize", label = L["Icon size"],
