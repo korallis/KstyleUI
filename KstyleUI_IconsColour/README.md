@@ -19,3 +19,6 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 - Strings go through `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `IconsColour.xml`.
 
 ## Why
+
+- The data format and the core service that reads it are documented in [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#coreiconslua). This addon sets `set = "B"`.
+- The `IconsColour` switch is not used: the `Icons` module's `set` setting picks set B, and the `Icons` switch turns custom icons on.

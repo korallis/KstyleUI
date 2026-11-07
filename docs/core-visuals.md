@@ -27,6 +27,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `textShadow` | `#000000` at 80% | Text shadow |
 | `track` | `#000000` at 45% | The empty part of bars and sliders |
 | `white`, `black` | | Plain tints, such as resetting a vertex colour |
+| `schoolPhysical`, `schoolHoly`, `schoolFire`, `schoolNature`, `schoolFrost`, `schoolShadow`, `schoolArcane` | `#d8c3a0`, `#ffe27a`, `#ff8a3d`, `#6fdc5a`, `#6fd6ff`, `#9d7bff`, `#e07bff` | Spell school tints for icon set A, read through `KstyleUI.Icons.SchoolColor` |
 | `accent` | live | `Theme.Accent()` at full alpha |
 
 ### Sizes, durations and easings

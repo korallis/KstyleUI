@@ -199,6 +199,22 @@ function Object:SetStatusBarTexture(asset)
 end
 function Object:GetStatusBarTexture() return self._barTexture end
 
+-- A texture's masks, in the order AddMaskTexture added them.
+function Object:AddMaskTexture(mask)
+	self._masks = self._masks or {}
+	self._masks[#self._masks + 1] = mask
+end
+function Object:RemoveMaskTexture(mask)
+	for i, existing in ipairs(self._masks or {}) do
+		if existing == mask then
+			table.remove(self._masks, i)
+			return
+		end
+	end
+end
+function Object:GetNumMaskTextures() return self._masks and #self._masks or 0 end
+function Object:GetMaskTexture(i) return self._masks and self._masks[i] end
+
 for name in pairs(Object) do
 	assert(METHODS[name], "stub method " .. name .. " is not a Forever widget method")
 end
@@ -211,13 +227,16 @@ local REGIONS = { Texture = true, FontString = true, MaskTexture = true, Line = 
 local function genericMethod(key)
 	local childType = key:match("^Create(%u%w*)$")
 	if childType then
-		return function(self, a, b)
+		return function(self, a, b, _, d)
 			if childType == "Animation" then
 				return newObject(self._env, a or "Animation", b, self)
 			end
 			local child = newObject(self._env, childType, type(a) == "string" and a or nil, self)
 			if REGIONS[childType] then
 				self._regions[#self._regions + 1] = child
+				if type(b) == "string" then
+					child._state.DrawLayer = pack(b, d or 0)
+				end
 			end
 			return child
 		end

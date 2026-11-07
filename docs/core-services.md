@@ -167,6 +167,10 @@ The default's type must match the row: `toggle` takes a boolean, `slider` a numb
 
 The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's settings. The settings window opens in the `HIGH` strata as a top-level frame, so it shows over the Settings panel.
 
+## Icons
+
+`Core/Icons.lua` maps game icon file IDs to KstyleUI's custom icon sets. It registers the `Icons` module, its defaults and its settings page at load, so `Modules.List()` and `Options.List()` start with it. Its functions, settings and the data format of the icon addons are in [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#coreiconslua).
+
 ## DevTest
 
 - `DevTest.Log(module, message)` appends `{ time, module, message }` to `KstyleUIDB.devlog`. The devlog keeps the newest 500 entries. A message is cut to 1,000 characters, and a secret value is stored as `<secret>`. Entries logged before `ADDON_LOADED` are kept and written once the saved data loads.

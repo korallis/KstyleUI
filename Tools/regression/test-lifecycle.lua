@@ -314,7 +314,8 @@ do
 	K.Modules.Register(late)
 	assert(late.calls[1] == "Enable", "a module that registers after login starts at once when its switch is on")
 	local names = K.Modules.List()
-	assert(names[1] == "ActionBars" and names[2] == "Chat" and #names == 2, "List gives the registered modules in order")
+	-- The core's Icons service registers the Icons module at load, before any module addon.
+	assert(names[1] == "Icons" and names[2] == "ActionBars" and names[3] == "Chat" and #names == 3, "List gives the registered modules in order")
 end
 
 print("lifecycle ok")

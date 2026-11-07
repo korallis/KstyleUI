@@ -28,6 +28,13 @@ local COLORS = {
 	track = { "000000", 0.45 },
 	white = { "ffffff", 1 },
 	black = { "000000", 1 },
+	schoolPhysical = { "d8c3a0", 1 },
+	schoolHoly = { "ffe27a", 1 },
+	schoolFire = { "ff8a3d", 1 },
+	schoolNature = { "6fdc5a", 1 },
+	schoolFrost = { "6fd6ff", 1 },
+	schoolShadow = { "9d7bff", 1 },
+	schoolArcane = { "e07bff", 1 },
 }
 
 local SIZES = {

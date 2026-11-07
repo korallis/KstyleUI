@@ -148,9 +148,11 @@ The icon sits two borders inside the edge, masked to the chamfer by `iconMask`. 
 | Selected (`SetSelected(true)`) | `accent` | |
 | Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` at 50% | Desaturated at 55% brightness |
 
+The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a custom icon keeps its tint in every state.
+
 | Method | Behaviour |
 | --- | --- |
-| `SetIcon(texture)` | `SetTexture` on the icon. To use KstyleUI's custom icons, call `KstyleUI.Icons.Apply(button.icon, fileID)` instead. |
+| `SetIcon(texture)` | `KstyleUI.Icons.Reset`, then `SetTexture` on the icon. To use KstyleUI's custom icons, call `KstyleUI.Icons.Apply(button.icon, fileID)` instead. |
 | `SetCooldown(start, duration) -> ok` | Plain numbers only. `Cooldown:SetCooldown` refuses secret arguments from addon code, so a secret is refused, logged once, and returns `false`. |
 | `SetCooldownFromDuration(durationObject) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
 | `ClearCooldown()` | |

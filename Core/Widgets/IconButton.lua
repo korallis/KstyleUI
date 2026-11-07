@@ -47,15 +47,14 @@ function IconButton:Paint()
 		local pr, pg, pb, pa = Widgets.Rgba("text", PRESSED_EDGE_ALPHA)
 		chrome:SetEdgeRGBA(Widgets.Mix(r, g, b, a, pr, pg, pb, pa, press))
 	end
-	local icon = self.icon
-	icon:SetDesaturated(not usable)
 	local v = usable and (1 - PRESS_DIM * press) or UNUSABLE_BRIGHTNESS
-	icon:SetVertexColor(v, v, v)
+	ns.Icons.Shade(self.icon, v, v, v, not usable)
 	self.hoverGlow:SetIntensity(usable and hover or 0)
 	PlaceIcon(self)
 end
 
 function IconButton:SetIcon(texture)
+	ns.Icons.Reset(self.icon)
 	self.icon:SetTexture(texture)
 end
 

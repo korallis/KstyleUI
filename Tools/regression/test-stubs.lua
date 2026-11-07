@@ -133,6 +133,22 @@ assert(type(fillTexture) == "table" and fillTexture:GetObjectType() == "Texture"
 sb:SetStatusBarTexture("Interface\\Other")
 assert(sb:GetStatusBarTexture() == fillTexture, "the same region keeps the new texture")
 
+-- A region remembers the draw layer it was made in, and a texture lists its masks in order.
+local layered = parent:CreateTexture(nil, "ARTWORK", nil, 3)
+local l, sub = layered:GetDrawLayer()
+assert(l == "ARTWORK" and sub == 3, "CreateTexture keeps its layer and sublevel")
+local flat = parent:CreateTexture()
+assert(flat:GetDrawLayer() == nil, "no layer given reads as nil")
+layered:SetDrawLayer("OVERLAY", 1)
+assert(select(1, layered:GetDrawLayer()) == "OVERLAY", "SetDrawLayer replaces it")
+local mask1, mask2 = parent:CreateMaskTexture(), parent:CreateMaskTexture()
+assert(layered:GetNumMaskTextures() == 0 and layered:GetMaskTexture(1) == nil)
+layered:AddMaskTexture(mask1)
+layered:AddMaskTexture(mask2)
+assert(layered:GetNumMaskTextures() == 2 and layered:GetMaskTexture(1) == mask1 and layered:GetMaskTexture(2) == mask2)
+layered:RemoveMaskTexture(mask1)
+assert(layered:GetNumMaskTextures() == 1 and layered:GetMaskTexture(1) == mask2)
+
 -- Environments do not share state, and builtins come from _G.
 local other = Stubs.NewEnv()
 assert(other.TestFrame == nil and select(2, other.GetPhysicalScreenSize()) == 1080)
