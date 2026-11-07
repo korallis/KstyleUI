@@ -1,0 +1,11 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI
+## Notes: A complete UI for WoW Forever.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## SavedVariables: KstyleUIDB
+## IconTexture: Interface\AddOns\KstyleUI\Media\Logo\Logo64
+
+Core\Core.xml

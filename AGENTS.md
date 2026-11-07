@@ -43,6 +43,10 @@ After the checks pass, run `cr review --agent` and fix the critical and major fi
 - `python3 Tools/dev/crlf.py --check` changes nothing. It lists each addon file with LF endings and exits 1 if it finds any.
 - Files in `Tools/` and `docs/` use LF and may contain non-ASCII text.
 
+## In-game testing
+
+`bash Tools/dev/link-addons.sh` creates the worktree `~/KstyleUI.worktrees/staging-live` on `staging` if it is missing. It then links `KstyleUI` and every `KstyleUI_*` folder in that worktree into Forever's `Interface/AddOns`. `--spike` also links the spike addon, and `--dry-run` changes nothing. To bring merged changes into the game, run `git -C ~/KstyleUI.worktrees/staging-live pull`, then `/reload` in game.
+
 ## Sensitive paths
 
 Change these only when your task needs it, and say why in the pull request:
