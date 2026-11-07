@@ -39,7 +39,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
 | `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin` |
 | `Mirror.lua` | Runs each group on its path: events, refreshes, Layout registration and the switch to the reskin |
-| `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns |
+| `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |
 
 Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.

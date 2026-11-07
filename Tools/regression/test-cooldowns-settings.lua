@@ -122,6 +122,11 @@ do
 	assert(essential.icons[1].icon:GetTexture() == 132176, "sample icons are real ability icons")
 	assert(#W.Calls(essential.icons[1].cooldown, "SetCooldown") == 1, "a sample icon shows a cooldown sweep")
 	assert(essential.icons[4].proc == true, "a sample proc glows")
+	local buff = frame.rows.buffs.icons[1]
+	assert(#W.Calls(buff.cooldown, "SetCooldown") == 1, "a sample buff shows its timer sweep")
+	local br = buff.icon:GetVertexColor()
+	assert(buff.realCooldown ~= true and (br == nil or br > 0.99), "a sample buff stays bright, as live buffs do: its timer is not a cooldown")
+	assert(essential.icons[1].realCooldown == true, "a sample essential cooldown dims as a real cooldown")
 	K.Options.Write("Cooldowns", "essential.size", 32)
 	frame:Refresh()
 	assert(essential.icons[1].opts.size == 32, "the preview follows the icon size")

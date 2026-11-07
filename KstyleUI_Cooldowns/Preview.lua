@@ -34,12 +34,15 @@ local function Fill(row, group)
 		local icon = row.icons[i]
 		K.Icons.Apply(icon.icon, SAMPLE_ICONS[group][i])
 		local sample = SAMPLE_COOLDOWNS[group][i]
-		if sample then
+		local cooldownGroup = Settings.COOLDOWN_GROUPS[group]
+		if sample and cooldownGroup then
 			icon:SetCooldown(now - (sample[1] - sample[2]), sample[1])
+		elseif sample then
+			icon:ClearCooldown()
+			icon.cooldown:SetCooldown(now - (sample[1] - sample[2]), sample[1])
 		else
 			icon:ClearCooldown()
 		end
-		local cooldownGroup = Settings.COOLDOWN_GROUPS[group]
 		icon.onCooldown = cooldownGroup and sample and true or false
 		icon:SetCount(SAMPLE_CHARGES[group] and SAMPLE_CHARGES[group][i])
 		Style.SetProc(icon, cfg.procGlow and SAMPLE_PROC[group] and SAMPLE_PROC[group][i])
