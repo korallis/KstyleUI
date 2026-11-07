@@ -628,8 +628,13 @@ function HookTree(el, frame, depth)
 	if IsSecret(frame) or type(frame) ~= "table" or not Accessible(frame) then
 		return
 	end
-	if hoverOwner[frame] == nil and not HookFrame(frame) then
-		return
+	if hoverOwner[frame] == nil then
+		if not HookFrame(frame) then
+			return
+		end
+		if IsOver(frame) then
+			el.over[frame] = true
+		end
 	end
 	hoverOwner[frame] = el
 	if depth < HOOK_DEPTH then

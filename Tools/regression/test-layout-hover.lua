@@ -56,6 +56,22 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A late child hooked while the pointer is already on it missed its OnEnter, so the hook pass counts it as hovered ---------
+
+do
+	local env, K = W.New()
+	local frame = Element(env, K, "Test.Reach")
+	local flyout = env.CreateFrame("Button", nil, frame)
+	frame._mouseOver, flyout._mouseOver = true, true
+	Poll(env)
+	assert(near(frame:GetAlpha(), 1))
+	frame._mouseOver = false
+	Poll(env)
+	assert(near(frame:GetAlpha(), 1), "the pointer on the part of the child outside the element keeps it shown")
+	Leave(env, flyout)
+	assert(frame:GetAlpha() == 0, "and leaving the child hides it")
+end
+
 -- A frame mirrored over the element from outside its tree, as the Auras host is, shows it and is never touched -----------
 
 do
