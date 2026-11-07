@@ -211,5 +211,50 @@ Case("numbers over targets that an earlier default hid come back under the new o
 	Off(again, K2)
 end)
 
+local function Variables(env)
+	env.FireEvent("VARIABLES_LOADED")
+	env.RunTimers()
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+Case("an alt whose profile has the module off gets the numbers over targets back at login; the main hides them again at its own", function()
+	local env = On()
+	env.KstyleUIDB.profiles.Off = {}
+	env.KstyleUIDB.characters["Realm-Alt"] = "Off"
+	local K
+	env, K = Relog(env, "Alt", function(e) e._cvars[SELF] = "1" end)
+	assert(not K.Modules.IsRunning("CombatText"), "the module is off on the alt")
+	Variables(env)
+	assert(Targets(env, "1"), "the numbers over targets come back on the alt")
+	assert(env._cvars[SELF] == "1", "the alt's own text over it is left alone")
+	env, K = Relog(env, "Tester", function(e)
+		for _, name in ipairs(TARGETS) do
+			e._cvars[name] = "1"
+		end
+	end)
+	Variables(env)
+	assert(K.Modules.IsRunning("CombatText") and Targets(env, "0") and env._cvars[SELF] == "0", "the main hides them again")
+	Off(env, K)
+	assert(Targets(env, "1") and env._cvars[SELF] == "1", "and still puts the player's values back")
+end)
+
+Case("a character whose module was turned off on another character gets its own text over it back at login", function()
+	local env = On()
+	local K
+	env, K = Relog(env, "Alt", function(e) e._cvars[SELF] = "1" end)
+	assert(K.Modules.IsRunning("CombatText"), "the alt shares the profile, so the module runs")
+	Off(env, K)
+	assert(env._cvars[SELF] == "1" and Targets(env, "1"), "off on the alt: the alt's values are back")
+	env, K = Relog(env, "Tester", function(e)
+		for _, name in ipairs(TARGETS) do
+			e._cvars[name] = "1"
+		end
+	end)
+	assert(not K.Modules.IsRunning("CombatText") and env._cvars[SELF] == "0", "the main logs in with its text still hidden")
+	Variables(env)
+	assert(env._cvars[SELF] == "1", "the main's own text over it comes back")
+	assert(Targets(env, "1"), "the numbers over targets stay as the player had them")
+end)
+
 assert(#failures == 0, #failures .. " failed:\n" .. table.concat(failures, "\n"))
 print("test-combattext-blizzard: ok")

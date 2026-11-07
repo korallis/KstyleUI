@@ -38,7 +38,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Preview.lua` | The live preview on the settings window's Chat page |
 | `Module.lua` | Registers the module and its settings page, and starts and stops the parts |
 
-Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline), `test-chat-stamps.lua` (timestamps through the game's setting) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
+Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline), `test-chat-stamps.lua` (timestamps through the game's setting), `test-cvars.lua` (the core's restore at login) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
 
 ## Settings
 
@@ -81,6 +81,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | The module turns on | It writes its value into `showTimestamps`, out of combat (`Combat.Queue`). An unchanged value is not written again. |
 | A setting changes | The value is written again. `none` or a format not on the list writes `none`. |
 | Turned off | The player's own value comes back. The module keeps it in `KstyleUIDB.account.chatTimestamps[<character key>]` as `{ original, written }`, because the CVar is saved per character. A value that differs from `written` when the module starts is the player's own. |
+| Off at login on this character | The module was turned off in a shared profile while you played another character, so this character's `showTimestamps` still holds KstyleUI's value. The core's [`CVars` service](../docs/core-services.md#cvars) puts the player's value back at login, out of combat, and clears the memory. A refused value keeps the memory for the next login. |
 | `VARIABLES_LOADED` after the module started | The client loaded the character's saved CVars late. The module takes that value as the player's and writes its own again. |
 | A change in Blizzard's options (`SettingsPanel` shown) | One of the game's six formats, or `none`, becomes the `timestamp` setting, and the module writes it back in its own style. Any other value is not taken. |
 | Any other change (`/console`, another addon) | The module writes its own value back on the next frame. |

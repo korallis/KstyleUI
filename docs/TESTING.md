@@ -222,6 +222,10 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] Set **Blizzard's text over you** to **Keep**: Blizzard's text over you comes back. Do the same with **Blizzard's numbers over targets**. Set both back to **Hide**: both go again.
 - [ ] In Esc > Options > Combat, turn **Scrolling Combat Text for Self** on: **Blizzard's text over you** changes to **Keep**. Type `/console floatingCombatTextCombatDamage_v2 1`: Blizzard's numbers stay hidden.
 - [ ] `/reload`: everything stays hidden. Log in on an alt that uses the same profile, then turn the module off there: Blizzard's text and numbers come back as you had them.
+- [ ] Two characters, numbers over targets. You need two characters, A and B. On B, type `/kstyle profile new Plain`, then `/kstyle profile use Plain`: B now uses a profile with Combat Text off. On A, keep a profile with Combat Text on and **Blizzard's numbers over targets** on **Hide**. Log in on A and hit a target dummy: no Blizzard numbers over the target. Log out to the character screen, log in on B and hit a target dummy: Blizzard's damage numbers show over the target, without opening any options.
+- [ ] Log out, then log in on A again: Blizzard's numbers over targets are hidden again. Set **Blizzard's numbers over targets** to **Keep**: they come back, so A still knows your value.
+- [ ] Two characters, text over you. On B, type `/kstyle profile use` and A's profile name, so both use one profile with Combat Text on. Log out, log in on A and take damage: no Blizzard text over you. Log out, log in on B and turn Combat Text off. Log out, log in on A and take damage: Blizzard's scrolling text shows over your character, without opening any options.
+- [ ] Type `/reload` and send the devlog: it has a `CVars` line for each value that came back at login.
 
 ### Minimap
 
@@ -240,6 +244,7 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] On the Chat settings page, change **Timestamp format** and **Timestamp colour**: the next chat line uses them. Pick **None**: new lines have no timestamp.
 - [ ] Open Esc > Options > Social and change **Chat Timestamps**: KstyleUI's **Timestamp format** follows, and new lines keep KstyleUI's brackets and colour.
 - [ ] Note your timestamp choice in Options > Social before the first login with KstyleUI. Turn the Chat module off: that choice comes back.
+- [ ] Two characters on one profile with Chat on: log in on B and turn Chat off. Log out, log in on A: chat lines show A's own timestamp choice from Options > Social again, without opening any options.
 - [ ] If chat lines show `|cff` text or no timestamp at all, send the devlog. It says whether the game refused KstyleUI's format.
 - [ ] **Copy** at the end of the tab strip opens the copy window with the chat as plain text.
 - [ ] Open and close Blizzard's Edit Mode: the chat returns to its panel.

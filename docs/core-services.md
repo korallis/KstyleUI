@@ -1,6 +1,6 @@
 # Core services reference
 
-The core addon's service files in `Core/` carry no comments beyond their first line, so their contracts live here. The roadmap's [Core public API](superpowers/plans/2026-11-07-kstyleui-roadmap.md#core-public-api) names stay binding. This page adds the details and the extra functions the services expose. Tests: `Tools/regression/test-lifecycle.lua`, `test-combat.lua`, `test-store.lua`, `test-features.lua`, `test-options-registry.lua` and `test-devtest.lua`.
+The core addon's service files in `Core/` carry no comments beyond their first line, so their contracts live here. The roadmap's [Core public API](superpowers/plans/2026-11-07-kstyleui-roadmap.md#core-public-api) names stay binding. This page adds the details and the extra functions the services expose. Tests: `Tools/regression/test-lifecycle.lua`, `test-combat.lua`, `test-store.lua`, `test-features.lua`, `test-options-registry.lua`, `test-devtest.lua` and `test-cvars.lua`.
 
 ## Load and login order
 
@@ -8,7 +8,8 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 2. `ADDON_LOADED` for `KstyleUI`: `Store` loads `KstyleUIDB`, repairs it, runs migrations and picks the character's profile.
 3. Module addons load next. Each calls `KstyleUI.Modules.Register(def)` and, after it, `KstyleUI.Options.Register(name, schema)`. Neither call starts anything.
 4. `PLAYER_LOGIN`: `Modules` runs `Enable` for each registered module whose switch is on, even in combat.
-5. `PLAYER_LOGOUT`: `Store` saves each profile with only the values that differ from the defaults. The live tables keep their defaults, so other logout handlers still read them.
+5. Once `PLAYER_LOGIN` and `VARIABLES_LOADED` have both fired, [`CVars`](#cvars) puts back the CVars that modules which are off on this character had hidden.
+6. `PLAYER_LOGOUT`: `Store` saves each profile with only the values that differ from the defaults. The live tables keep their defaults, so other logout handlers still read them.
 
 ## Shared helpers (`Init.lua`)
 
@@ -70,6 +71,28 @@ After `Enable` succeeds, `Modules` fires `ModuleChanged(name, true)`. After `Dis
 ## Combat
 
 `Combat.Queue(fn)` runs `fn` at once out of combat. In combat it holds `fn` and runs the queue in order on `PLAYER_REGEN_ENABLED`. A failing entry is reported and the rest still run. The core listens for `PLAYER_REGEN_ENABLED` only while the queue holds work. `Combat.Pending()` returns the number of held entries.
+
+## CVars
+
+A module that writes a game CVar puts the player's own value back when it stops. A module that is off at login runs no code, so without this service a character that logs in with the module off keeps what KstyleUI wrote on an earlier login, or on another character. `Core/CVars.lua` closes that gap once per login. It has no functions to call.
+
+It reads the memories the modules keep in `KstyleUIDB.account`. Each record is `{ original, written }`: the player's value and the value the module wrote.
+
+| Memory | Module | Records this character owns |
+| --- | --- | --- |
+| `combatTextCVars[<owner>][<cvar>]` | `CombatText` | `*`, for CVars the game saves for every character, and the character key, for CVars it saves per character |
+| `chatTimestamps[<character key>]` | `Chat` | The character key's record, for `showTimestamps` |
+
+The service starts when both `PLAYER_LOGIN` and `VARIABLES_LOADED` have fired, in either order. `PLAYER_LOGIN` is when `Modules` starts the modules. `VARIABLES_LOADED` is when the character's saved CVars have loaded, which can be after `PLAYER_LOGIN`; before it, a CVar can read the game's default, which would look like the player's change. Blizzard's own settings wait for the same event before they read CVars. The service then waits one frame and runs through `Combat.Queue`, so in combat it waits for combat to end. For each record this character owns whose module is not running (`Modules.IsRunning`) at that moment:
+
+| Case | What happens |
+| --- | --- |
+| The CVar still holds `written`, and `original` differs from it | `original` is written and read back, the record is cleared, and the devlog names the CVar. |
+| The CVar holds any other value, or the record is damaged | The player changed it since, so the value stays and the record is cleared. |
+| The game refuses the value | KstyleUI's value stays, the record stays for the next login, and the devlog says so once. |
+| The client has no `C_CVar.GetCVar` or `C_CVar.SetCVar` | Nothing changes, every record stays, and the devlog says so once. |
+
+Records of other characters wait for those characters' logins. A shared (`*`) record comes back on any character whose module is off; the next character that runs the module hides the CVar again at its own login and takes the restored value as the player's. A running module keeps its records, because it restores them itself when it stops. To cover another module's CVar memory, add it to `MEMORIES` in `Core/CVars.lua`.
 
 ## Safe
 
