@@ -50,6 +50,10 @@ do
 	gcd = false
 	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
 	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.inner[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
+	-- Forever trusts isOnGCD only in response to SPELL_UPDATE_COOLDOWN, so that event refreshes the classification too.
+	gcd = true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "the spell cooldown event re-reads isOnGCD and brightens a GCD-only button")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
