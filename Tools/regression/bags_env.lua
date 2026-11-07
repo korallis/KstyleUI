@@ -291,6 +291,24 @@ function B.Game(env, opts)
 		end,
 	}
 
+	-- ContainerFrameItemButtonTemplate's own art, as Forever's ContainerFrame.xml and the ItemButton
+	-- intrinsic make it: the button-state textures and the store highlight are visible by default.
+	local createFrame = env.CreateFrame
+	env.CreateFrame = function(frameType, name, parent, template)
+		local frame = createFrame(frameType, name, parent, template)
+		if template == "ContainerFrameItemButtonTemplate" then
+			frame:Hide()
+			frame:SetNormalTexture(frame:CreateTexture())
+			frame:SetPushedTexture(frame:CreateTexture())
+			frame:SetHighlightTexture(frame:CreateTexture())
+			frame.BattlepayItemTexture = frame:CreateTexture(nil, "OVERLAY")
+			frame.NewItemTexture = frame:CreateTexture(nil, "OVERLAY")
+			frame.NewItemTexture:SetAlpha(0)
+			frame.icon = frame:CreateTexture(nil, "BORDER")
+		end
+		return frame
+	end
+
 	-- Blizzard's bag frames and open state.
 	local holder = env.CreateFrame("Frame", "ContainerFrameContainer", env.UIParent)
 	local combined = env.CreateFrame("Frame", "ContainerFrameCombinedBags", env.UIParent)

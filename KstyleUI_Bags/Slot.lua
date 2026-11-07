@@ -264,6 +264,10 @@ function Slot.New(parent, id, opts)
 	Quiet(button:GetNormalTexture())
 	Quiet(button:GetPushedTexture())
 	Quiet(button:GetHighlightTexture())
+	local store = button.BattlepayItemTexture
+	if store then
+		store:Hide()
+	end
 	local slot = { button = button, id = id, bag = opts.bag, state = { empty = true, match = true }, record = {} }
 	slot.chrome = Widgets.Chrome(button, { shape = "tile", fill = "raised", shadow = false })
 	local maskPath = Tokens.Texture("iconMask")

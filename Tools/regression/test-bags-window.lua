@@ -70,6 +70,10 @@ do
 	assert(Inventory.Slot(1, 8).button:GetParent():GetID() == 1, "bag 1 slots sit in bag 1's frame")
 	assert(Inventory.Slot(0, 17) == nil, "no slot past the bag's size")
 	assert(rawget(button, "bagID") == nil, "the module never writes bagID onto Blizzard's button")
+	assert(not button.BattlepayItemTexture:IsShown(), "the template's store highlight, shown by default, is hidden")
+	for _, getter in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetHighlightTexture" }) do
+		assert(button[getter](button):GetAlpha() == 0, "the template's " .. getter:sub(4) .. " is silenced")
+	end
 	local entry = K.Layout.Get("bags.inventory")
 	assert(entry and entry.anchor == "BOTTOMRIGHT", "the window registers with Layout as bags.inventory, bottom right")
 	local found
