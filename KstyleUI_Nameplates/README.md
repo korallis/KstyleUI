@@ -44,8 +44,8 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 1. `Enable` registers the events and attaches a plate to every nameplate already shown (`nameplate1` to `nameplate40`).
 2. `NAME_PLATE_UNIT_ADDED` gets the base frame with `C_NamePlate.GetNamePlateForUnit(unit)`. The player's own plate (the base `GetNamePlateForUnit("player")` returns) and plates that show only widgets (`UnitNameplateShowsWidgetsOnly`) stay Blizzard's. Forbidden plates, such as friendly plates in instances, never fire this event and stay Blizzard's too.
 3. Each base frame gets one KstyleUI plate, made the first time and kept: a child of the base, anchored to its bottom. Base frames are reused, so the number of plates stays small.
-4. Blizzard's `UnitFrame` on the base gets alpha 0, and so does its `selectionHighlight`, which ignores its parent's alpha. A `hooksecurefunc` on the UnitFrame's `SetAlpha` puts 0 back when Blizzard's code sets the alpha. If the UnitFrame is not there yet, because KstyleUI's handler ran before Blizzard's driver, the fade waits one frame.
-5. `NAME_PLATE_UNIT_REMOVED` hides the plate and gives the UnitFrame its alpha back, because Blizzard's pool may hand it to a plate KstyleUI leaves alone.
+4. Blizzard's `UnitFrame` on the base gets alpha 0, and so does its `selectionHighlight`, which ignores its parent's alpha. Its `SoftTargetFrame` gets `SetIgnoreParentAlpha(true)` instead, so the soft-target icon Blizzard draws there stays visible: the gamepad interact prompt (`SoftTargetIconInteract`, which gamepad mode turns on) and the enemy and friend icons the accessibility settings turn on. Blizzard still decides when the icon shows. A `hooksecurefunc` on the UnitFrame's `SetAlpha` puts 0 back when Blizzard's code sets the alpha. If the UnitFrame is not there yet, because KstyleUI's handler ran before Blizzard's driver, the fade waits one frame.
+5. `NAME_PLATE_UNIT_REMOVED` hides the plate, gives the UnitFrame its alpha back and the `SoftTargetFrame` its own parent-alpha setting, because Blizzard's pool may hand it to a plate KstyleUI leaves alone.
 6. `Disable` detaches every plate and restores every alpha it changed. The `SetAlpha` hook stays, as hooks do, and does nothing while the module is off.
 
 Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
@@ -89,11 +89,13 @@ The debuffs are a component too. Each plate gets one `CustomAuraContainerTemplat
 | Layout | The engine's flow layout: horizontal lines `columns` icons long (`SetFlowLayoutMaximumLineSize`), growing right or left and up or down from the matching corner. The container hangs from that corner above the name, or under the cast bar when rows grow down. |
 | Unit | `SetUnit(unit)` when the plate attaches, `SetUnit("none")` when it detaches or debuffs are off. |
 | Edit Mode | `SetEditModePreviewEnabled(false)`, so Blizzard's Edit Mode never fills plates with sample auras. |
-| Buttons | `initializeFrame` builds each aura button before the engine restricts it: a black edge, the icon, a cooldown swipe, the stack count at the top right and the time left at the bottom, each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
+| Buttons | `initializeFrame` builds each aura button before the engine restricts it: the kit's chamfered tile (`Widgets.Chrome` with the `tile` shape, on a skin frame inside the button), the icon two border lines in and cut to `iconMask`, a cooldown swipe with the same mask, the stack count at the top right and the time left at the bottom, each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
 
-Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false. Otherwise the plate waits in one shared list, checked again after combat (`Combat.Queue`) or, when auras turn secret before combat starts, once a second, so a restyle never retries itself in a loop. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
+Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false, and so does a theme change that restyles a button's tile. Otherwise the plate or the tile waits in one shared list, checked again after combat (`Combat.Queue`) or, when auras turn secret before combat starts, once a second, so a restyle never retries itself in a loop. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
 
-The settings window's preview draws three sample debuff icons on the same grid, because a preview has no unit for the engine.
+Icon size and spacing snap to whole physical pixels (`Widgets.Snap` on the plate) before they go to the group layout, the flow line size and the buttons.
+
+The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine.
 
 ### Styles
 

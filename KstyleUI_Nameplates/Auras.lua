@@ -14,6 +14,8 @@ local GROUP = "debuffs"
 local TEMPLATE = "CustomAuraContainerTemplate"
 local GAP = Tokens.Size("gapTiny")
 local ICON_CROP = 0.07
+local ICON_INSET_LINES = 2
+local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local SWIPE_ALPHA = 0.65
 local LINE_SLACK = 0.5
 local RETRY_DELAY = 1
@@ -22,6 +24,10 @@ local SAMPLE_ICONS = { 136118, 135817, 132155 }
 
 local available = true
 local parts = setmetatable({}, { __mode = "k" })
+local pending = setmetatable({}, { __mode = "k" })
+local waitingChromes = setmetatable({}, { __mode = "k" })
+local flushScheduled = false
+local ScheduleFlush
 
 local function AurasSecret()
 	local secrets = C_Secrets
@@ -32,13 +38,14 @@ local function AurasSecret()
 	return InCombatLockdown()
 end
 
-local function Grid()
-	local columns, rows = Settings.Get("debuffs.columns"), Settings.Get("debuffs.rows")
-	return Settings.Get("debuffs.size"), Settings.Get("debuffs.spacing"), columns, rows
+local function Grid(frame)
+	local size = Widgets.Snap(frame, Settings.Get("debuffs.size"))
+	local spacing = Widgets.Snap(frame, Settings.Get("debuffs.spacing"))
+	return size, spacing, Settings.Get("debuffs.columns"), Settings.Get("debuffs.rows")
 end
 
-local function GroupLayout()
-	local size, spacing = Grid()
+local function GroupLayout(plate)
+	local size, spacing = Grid(plate)
 	return { elementSpacing = spacing, lineSpacing = spacing, elementWidth = size, elementHeight = size }
 end
 
@@ -61,17 +68,48 @@ local function StyleText(text)
 	end
 end
 
+local function NewTile(owner)
+	local skin = CreateFrame("Frame", nil, owner)
+	skin:SetAllPoints(owner)
+	local chrome = Widgets.Chrome(skin, { shape = "tile", fill = "raised", shadow = false })
+	local icon = skin:CreateTexture(nil, "ARTWORK")
+	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	local mask = skin:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
+	mask:SetAllPoints(icon)
+	icon:AddMaskTexture(mask)
+	return { skin = skin, chrome = chrome, restyleChrome = chrome.Restyle, icon = icon }
+end
+
+local function LayoutTile(tile)
+	local skin, icon = tile.skin, tile.icon
+	tile.restyleChrome(tile.chrome)
+	local inset = Widgets.Border(skin) * ICON_INSET_LINES
+	icon:ClearAllPoints()
+	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
+	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+end
+
+local function GateChrome(tile)
+	local restyle = tile.restyleChrome
+	tile.chrome.Restyle = function(chrome)
+		if AurasSecret() then
+			waitingChromes[chrome] = restyle
+			ScheduleFlush()
+			return
+		end
+		restyle(chrome)
+	end
+end
+
 local function StyleButton(button)
 	local p = parts[button]
 	if not p then
 		return
 	end
-	local size = Settings.Get("debuffs.size")
+	local size = Grid(p.skin)
 	button:SetSize(size, size)
-	local inset = Widgets.Border(button)
-	p.icon:ClearAllPoints()
-	p.icon:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset)
-	p.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+	LayoutTile(p)
 	StyleText(p.count)
 	StyleText(p.time)
 	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
@@ -82,13 +120,12 @@ local function BuildButton(button)
 	if not pcall(button.EnableMouse, button, false) then
 		LogOnce("aura-mouse", "aura buttons refused EnableMouse(false); debuff icons may catch clicks")
 	end
-	local border = button:CreateTexture(nil, "BACKGROUND")
-	border:SetAllPoints(button)
-	border:SetColorTexture(Tokens.Color("black"))
-	local icon = button:CreateTexture(nil, "ARTWORK")
-	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	local cooldown = CreateFrame("Cooldown", nil, button)
+	local tile = NewTile(button)
+	GateChrome(tile)
+	local icon = tile.icon
+	local cooldown = CreateFrame("Cooldown", nil, tile.skin)
 	cooldown:SetAllPoints(icon)
+	cooldown:SetSwipeTexture((Tokens.Texture("iconMask")))
 	cooldown:SetDrawEdge(false)
 	cooldown:SetReverse(true)
 	cooldown:SetHideCountdownNumbers(true)
@@ -106,7 +143,8 @@ local function BuildButton(button)
 	local time = timeHolder:CreateFontString(nil, "OVERLAY")
 	time:SetPoint("BOTTOM", timeHolder, "BOTTOM", 0, 0)
 	time:SetJustifyH("CENTER")
-	parts[button] = { icon = icon, count = count, time = time, countHolder = countHolder, timeHolder = timeHolder }
+	tile.count, tile.time, tile.countHolder, tile.timeHolder = count, time, countHolder, timeHolder
+	parts[button] = tile
 	StyleButton(button)
 	button:SetIcon(icon)
 	button:SetDurationCooldown(cooldown)
@@ -121,12 +159,12 @@ local function InitButton(button)
 	end
 end
 
-local function GroupOptions()
-	local _, _, columns, rows = Grid()
+local function GroupOptions(plate)
+	local _, _, columns, rows = Grid(plate)
 	local options = {
 		maxFrameCount = columns * rows,
 		initializeFrame = InitButton,
-		layout = GroupLayout(),
+		layout = GroupLayout(plate),
 	}
 	if AuraContainerSortMethod and AuraContainerSortDirection then
 		options.sortMethod = AuraContainerSortMethod.Default
@@ -171,7 +209,7 @@ local function NewContainer(plate)
 	if type(container.SetEditModePreviewEnabled) == "function" then
 		pcall(container.SetEditModePreviewEnabled, container, false)
 	end
-	local added, err = pcall(container.AddAuraGroup, container, GROUP, Filter(), GroupOptions())
+	local added, err = pcall(container.AddAuraGroup, container, GROUP, Filter(), GroupOptions(plate))
 	if not added then
 		container:Hide()
 		available = false
@@ -181,10 +219,6 @@ local function NewContainer(plate)
 	K.DevTest.Log(Settings.MODULE, "nameplate debuffs run on the AuraContainer engine")
 	return container
 end
-
-local pending = setmetatable({}, { __mode = "k" })
-local flushScheduled = false
-local ScheduleFlush
 
 local function RestyleNow(plate)
 	local container = plate.auras
@@ -207,6 +241,13 @@ local function Flush()
 		pending[plate] = nil
 		if plate.auras then
 			RestyleNow(plate)
+		end
+	end
+	for chrome, restyle in pairs(waitingChromes) do
+		waitingChromes[chrome] = nil
+		local ok, err = pcall(restyle, chrome)
+		if not ok then
+			LogOnce("aura-chrome", "restyling a debuff tile failed: " .. tostring(err))
 		end
 	end
 end
@@ -259,7 +300,7 @@ end
 
 local function LayoutContainer(plate)
 	local container = plate.auras
-	local size, spacing, columns, rows = Grid()
+	local size, spacing, columns, rows = Grid(plate)
 	local anchor, horizontal, vertical = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
@@ -271,7 +312,7 @@ local function LayoutContainer(plate)
 		container:SetFlowLayoutGrowthDirection(direction[horizontal], direction[vertical])
 		container:SetFlowLayoutMaximumLineSize(Logic.AuraLineSize(columns, size, spacing) + LINE_SLACK)
 	end
-	container:SetAuraGroupLayout(GROUP, GroupLayout())
+	container:SetAuraGroupLayout(GROUP, GroupLayout(plate))
 	container:SetAuraGroupMaxFrameCount(GROUP, columns * rows)
 	container:SetAuraGroupFilterString(GROUP, Filter())
 	Anchor(plate, container, anchor)
@@ -284,7 +325,7 @@ end
 
 local function LayoutSamples(plate)
 	local icons = plate.sampleAuras
-	local size, spacing, columns, rows = Grid()
+	local size, spacing, columns, rows = Grid(plate)
 	local anchor = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
 	local holder = plate.sampleAuraHolder
 	Widgets.Size(holder, size, size)
@@ -296,10 +337,7 @@ local function LayoutSamples(plate)
 		icon:ClearAllPoints()
 		icon:SetPoint(anchor, holder, anchor, x, y)
 		icon:SetShown(shown and i <= columns * rows)
-		local inset = Widgets.Border(icon)
-		icon.icon:ClearAllPoints()
-		icon.icon:SetPoint("TOPLEFT", icon, "TOPLEFT", inset, -inset)
-		icon.icon:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
+		LayoutTile(icon.tile)
 	end
 end
 
@@ -309,13 +347,9 @@ local function BuildSamples(plate)
 	plate.sampleAuras = {}
 	for i, fileID in ipairs(SAMPLE_ICONS) do
 		local frame = CreateFrame("Frame", nil, holder)
-		local border = frame:CreateTexture(nil, "BACKGROUND")
-		border:SetAllPoints(frame)
-		border:SetColorTexture(Tokens.Color("black"))
-		local icon = frame:CreateTexture(nil, "ARTWORK")
-		icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-		icon:SetTexture(fileID)
-		frame.icon = icon
+		local tile = NewTile(frame)
+		tile.icon:SetTexture(fileID)
+		frame.tile, frame.icon = tile, tile.icon
 		plate.sampleAuras[i] = frame
 	end
 end

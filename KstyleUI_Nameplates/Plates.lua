@@ -53,7 +53,9 @@ function Plates.Each(fn, ...)
 end
 
 local IGNORES_PARENT_ALPHA = { "selectionHighlight" }
+local KEEPS_ALPHA = { "SoftTargetFrame" }
 local childAlpha = setmetatable({}, { __mode = "k" })
+local childIgnored = setmetatable({}, { __mode = "k" })
 
 local function OnBlizzardAlpha(frame)
 	if refading or not Plates.running or not faded[frame] then
@@ -98,6 +100,19 @@ local function Fade(frame)
 			child:SetAlpha(0)
 		end
 	end
+	for _, key in ipairs(KEEPS_ALPHA) do
+		local child = frame[key]
+		if type(child) == "table" and type(child.SetIgnoreParentAlpha) == "function" then
+			if childIgnored[child] == nil then
+				local ignored = type(child.IsIgnoringParentAlpha) == "function" and child:IsIgnoringParentAlpha()
+				childIgnored[child] = not IsSecret(ignored) and ignored == true
+			end
+			child:SetIgnoreParentAlpha(true)
+			LogOnce("keep-" .. key, "Blizzard's " .. key .. " ignores the faded UnitFrame's alpha, so its icon stays visible")
+		else
+			LogOnce("keep-missing-" .. key, "Blizzard's UnitFrame has no " .. key .. "; nothing to keep visible")
+		end
+	end
 end
 
 local function Unfade(frame)
@@ -112,6 +127,13 @@ local function Unfade(frame)
 		if alpha then
 			child:SetAlpha(alpha)
 			childAlpha[child] = nil
+		end
+	end
+	for _, key in ipairs(KEEPS_ALPHA) do
+		local child = frame[key]
+		if type(child) == "table" and childIgnored[child] ~= nil then
+			child:SetIgnoreParentAlpha(childIgnored[child])
+			childIgnored[child] = nil
 		end
 	end
 end

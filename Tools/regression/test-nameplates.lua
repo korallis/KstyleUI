@@ -100,6 +100,45 @@ do
 	assert(env._bases.nameplate2.UnitFrame:GetAlpha() == 0, "and fades them")
 end
 
+-- The soft-target icon (gamepad interact prompt, accessibility target icons) stays visible on a faded plate --
+
+do
+	local env, K = N.New()
+	local base = N.Add(env, "nameplate1")
+	local unitFrame = base.UnitFrame
+	local soft = unitFrame.SoftTargetFrame
+	assert(unitFrame:GetEffectiveAlpha() == 0, "Blizzard's plate is faded")
+	assert(soft.Icon:GetEffectiveAlpha() == 1, "the soft-target icon Blizzard draws on its plate stays visible")
+	unitFrame:SetAlpha(1)
+	assert(unitFrame:GetAlpha() == 0 and soft.Icon:GetEffectiveAlpha() == 1, "and stays visible when the fade is put back")
+
+	N.Remove(env, "nameplate1")
+	assert(not soft:IsIgnoringParentAlpha(), "a detached plate's soft-target frame follows its parent's alpha again")
+	N.Add(env, "nameplate2", nil, { base = base })
+	assert(soft.Icon:GetEffectiveAlpha() == 1, "a reattached plate keeps the icon visible")
+	K.Modules.Disable("Nameplates")
+	env.RunTimers()
+	assert(not soft:IsIgnoringParentAlpha(), "Disable gives the soft-target frame its own setting back")
+
+	local env2 = N.New()
+	local base2 = N.Base(env2)
+	local soft2 = base2.UnitFrame.SoftTargetFrame
+	soft2:SetIgnoreParentAlpha(true)
+	N.Add(env2, "nameplate1", nil, { base = base2 })
+	N.Remove(env2, "nameplate1")
+	assert(soft2:IsIgnoringParentAlpha(), "a frame that already ignored its parent's alpha keeps doing so")
+
+	local env3, _, ns3 = N.New()
+	local bare = N.Base(env3)
+	bare.UnitFrame.SoftTargetFrame = nil
+	N.Add(env3, "nameplate1", nil, { base = bare })
+	assert(ns3.Plates.Get("nameplate1") and bare.UnitFrame:GetAlpha() == 0, "a UnitFrame without a soft-target frame still fades")
+	N.Remove(env3, "nameplate1")
+	for _, e in ipairs({ env, env2, env3 }) do
+		assert(#e._errors == 0, tostring(e._errors[1]))
+	end
+end
+
 -- KstyleUI's handler can run before Blizzard's driver acquires the UnitFrame ------------------------
 
 do

@@ -352,11 +352,14 @@ function N.Install(env, opts)
 end
 
 -- New(opts) -> env, KstyleUI, the module's addon table. opts: saved, setup(env), noBitfield, motion,
--- login (false: stop before PLAYER_LOGIN), enable (false: leave the module off).
+-- login (false: stop before PLAYER_LOGIN), enable (false: leave the module off), width and height
+-- (the physical screen, default 1920x1080).
 function N.New(opts)
 	opts = opts or {}
 	local env, K = CoreEnv.New({
 		saved = opts.saved,
+		width = opts.width,
+		height = opts.height,
 		setup = function(env)
 			N.Install(env, opts)
 			if opts.setup then
@@ -378,13 +381,17 @@ function N.New(opts)
 	return env, K, env._addons.KstyleUI_Nameplates
 end
 
--- Base(env) -> a nameplate base frame as the game creates it, with Blizzard's UnitFrame.
+-- Base(env) -> a nameplate base frame as the game creates it, with Blizzard's UnitFrame, its
+-- selectionHighlight and its SoftTargetFrame, which holds the soft-target icon.
 function N.Base(env)
 	local base = env.CreateFrame("Frame", nil, env.WorldFrame)
 	base:SetSize(110, 45)
 	base.UnitFrame = env.CreateFrame("Button", nil, base)
 	base.UnitFrame.selectionHighlight = base.UnitFrame:CreateTexture(nil, "OVERLAY")
 	base.UnitFrame.selectionHighlight:SetAlpha(0.25)
+	local soft = env.CreateFrame("Frame", nil, base.UnitFrame)
+	soft.Icon = soft:CreateTexture(nil, "ARTWORK")
+	base.UnitFrame.SoftTargetFrame = soft
 	base._calls = {}
 	return base
 end

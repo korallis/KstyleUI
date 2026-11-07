@@ -1,10 +1,31 @@
 -- test-nameplates-auras.lua: nameplates show the player's debuffs on the unit through the AuraContainer engine, laid out and styled from the settings.
 local N = dofile("Tools/regression/nameplates_env.lua")
+local A = dofile("Tools/regression/auras_env.lua")
 
 local GROUP = "debuffs"
 
 local function group(plate)
 	return plate.auras._groups[GROUP]
+end
+
+-- Tiled(K, frame, icon) -> true when the frame draws the kit's chamfered tile and the icon is cut to the
+-- kit's chamfered icon mask, as the cast icon and the level badge on the same plate are.
+local function Tiled(K, frame, icon)
+	local tilePath = K.Tokens.Texture("chamferTile")
+	local maskPath = K.Tokens.Texture("iconMask")
+	local tile = false
+	for _, object in ipairs(A.Descendants(frame)) do
+		if object:GetObjectType() == "Texture" and object ~= icon and object:GetTexture() == tilePath then
+			tile = true
+		end
+	end
+	local mask = icon:GetNumMaskTextures() == 1 and icon:GetMaskTexture(1)
+	return tile and mask and mask:GetTexture() == maskPath
+end
+
+local function Whole(K, units)
+	local n = units / K.Scale.Pixel()
+	return math.abs(n - math.floor(n + 0.5)) < 1e-6
 end
 
 -- The pure rules ------------------------------------------------------------------------------------
@@ -71,6 +92,66 @@ do
 	assert(container._unit == "none", "a detached plate's container lets go of the unit")
 	N.Add(env, "nameplate2", nil, { base = plate:GetParent() })
 	assert(container._unit == "nameplate2" and plate.auras == container, "the plate reuses its container for the next unit")
+end
+
+-- Each debuff button is the kit's chamfered aura tile -----------------------------------------------------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	local button = group(plate).frames[1]
+	local aura = button._aura
+	assert(Tiled(K, button, aura.icon), "a debuff is a chamfered kit tile with a masked icon, not a square on black")
+	assert(N.Last(aura.cooldown, "SetSwipeTexture")[1] == K.Tokens.Texture("iconMask"), "the cooldown swipe has the icon's chamfered shape")
+	local inset = K.Widgets.Border(button) * 2
+	local point, _, _, x, y = aura.icon:GetPoint(1)
+	assert(point == "TOPLEFT" and x == inset and y == -inset, "the icon sits two border lines inside the tile")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Debuff size and spacing land on whole physical pixels ----------------------------------------------------
+
+do
+	local env, K, ns = N.New({ width = 2560, height = 1600 })
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	assert(not Whole(K, ns.Settings.Get("debuffs.size")) and not Whole(K, ns.Settings.Get("debuffs.spacing")), "this screen puts the raw size and spacing between pixels")
+	local g = group(plate)
+	local layout = g.layout
+	assert(Whole(K, layout.elementWidth) and Whole(K, layout.elementHeight), "the engine lays the icons out on whole pixels")
+	assert(Whole(K, layout.elementSpacing) and Whole(K, layout.lineSpacing), "with whole-pixel gaps")
+	local w, h = g.frames[1]:GetSize()
+	assert(w == layout.elementWidth and h == layout.elementHeight, "each button is the size the layout gives it")
+	local columns = ns.Settings.Get("debuffs.columns")
+	local line = columns * layout.elementWidth + (columns - 1) * layout.elementSpacing
+	assert(math.abs(plate.auras._flow.lineSize - line) < 1, "a line holds exactly the columns at the snapped size")
+
+	local preview = K.Options.Preview("Nameplates")(env.CreateFrame("Frame", nil, K.Scale.Root()))
+	local sample = preview.plates[1]
+	local icon = sample.sampleAuras[2]
+	local sw = icon:GetSize()
+	local _, _, _, x = icon:GetPoint(1)
+	assert(Whole(K, sw) and Whole(K, x), "the preview's sample debuffs sit on the same whole-pixel grid")
+	assert(Tiled(K, icon, icon.icon), "and are the same chamfered tiles")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- A theme change while auras are secret leaves the restricted buttons alone, then restyles their tiles -------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1")
+	local button = group(ns.Plates.Get("nameplate1")).frames[1]
+	env._aurasSecret = true
+	local before = A.CallCount(button)
+	K.Widgets.RestyleAll()
+	assert(#env._errors == 0, tostring(env._errors[1]))
+	assert(A.CallCount(button) == before, "nothing on an aura button is touched while auras are secret")
+	env._aurasSecret = false
+	env.RunTimers()
+	assert(A.CallCount(button) > before, "the tile restyles once the auras are readable")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- Settings apply to live plates; buttons wait while auras are secret -------------------------------------
