@@ -40,11 +40,22 @@ local function Settings(item)
 	return nil
 end
 
-function Model.IsShown(item)
+local function Scoped(settings, scope)
+	if type(settings) ~= "table" or type(scope) ~= "table" or scope.key == nil then
+		return settings
+	end
+	return setmetatable({ [scope.key] = scope.value }, { __index = settings })
+end
+
+function Model.IsShown(item, searching)
 	if not item.showWhen then
 		return true
 	end
-	return Model.Check(item.showWhen, Settings(item), "showWhen of " .. tostring(item.label)) ~= false
+	local settings = Settings(item)
+	if searching and item.scope then
+		settings = Scoped(settings, item.scope)
+	end
+	return Model.Check(item.showWhen, settings, "showWhen of " .. tostring(item.label)) ~= false
 end
 
 function Model.IsDisabled(item)
@@ -61,7 +72,7 @@ local function Level(item)
 	return item.kind == "header" and (item.level or 1) or nil
 end
 
-function Model.Visible(items)
+function Model.Visible(items, searching)
 	local shown = {}
 	local hideBelow
 	for i, item in ipairs(items) do
@@ -71,7 +82,7 @@ function Model.Visible(items)
 		end
 		if hideBelow then
 			shown[i] = false
-		elseif Model.IsShown(item) then
+		elseif Model.IsShown(item, searching) then
 			shown[i] = true
 		else
 			shown[i] = false
@@ -156,7 +167,7 @@ function Model.Search(pages, query)
 	for _, page in ipairs(pages) do
 		local sections = {}
 		local pageShown, lastSection
-		for _, item in ipairs(Model.Visible(Model.PageItems(page))) do
+		for _, item in ipairs(Model.Visible(Model.PageItems(page), true)) do
 			local level = Level(item)
 			if level then
 				sections[level] = item.label
@@ -207,7 +218,7 @@ local function Copy(value)
 end
 Model.Copy = Copy
 
-local FIELDS = { "min", "max", "step", "options", "hasAlpha", "maxLetters" }
+local FIELDS = { "min", "max", "step", "options", "hasAlpha", "maxLetters", "scope" }
 
 function Model.SchemaItems(module, schema, page)
 	local items = {}

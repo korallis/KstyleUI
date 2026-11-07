@@ -67,7 +67,7 @@ Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometr
 
 ## Settings
 
-The settings page starts with the module-wide settings, then a **Frame to customise** picker. Only the picked frame's rows show, so the page stays short. Every frame has the same settings, under its own key such as `player.healthText`:
+The settings page starts with the module-wide settings, then a **Frame to customise** picker. Only the picked frame's rows show, so the page stays short. Each frame's rows carry `scope = { key = "edit", value = <frame> }`, so the settings search finds every frame's rows, whichever frame is picked. Every frame has the same settings, under its own key such as `player.healthText`:
 
 | Key | Values | Default |
 | --- | --- | --- |

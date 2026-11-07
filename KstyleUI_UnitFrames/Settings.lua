@@ -374,13 +374,18 @@ end
 
 local IconRows, ResourceRows, CastRows, AuraRows
 
+local function Scope(kind)
+	return { key = "edit", value = kind }
+end
+
 local function Header(kind, label)
-	return { type = "header", label = Settings.LABELS[kind] .. ": " .. label, showWhen = Shows(kind) }
+	return { type = "header", label = Settings.LABELS[kind] .. ": " .. label, showWhen = Shows(kind), scope = Scope(kind) }
 end
 
 local function Row(kind, row, extra)
 	row.key = kind .. "." .. row.key
 	row.showWhen = Shows(kind, extra)
+	row.scope = Scope(kind)
 	return row
 end
 
@@ -568,6 +573,7 @@ ResourceRows = function(schema)
 	local function on(r)
 		return r.enabled ~= false
 	end
+	local first = #schema + 1
 	schema[#schema + 1] = { type = "header", label = Settings.LABELS.player .. ": " .. L["class resource"], showWhen = shows() }
 	schema[#schema + 1] = {
 		type = "toggle", key = "resource.enabled", label = L["Class resource"], showWhen = shows(),
@@ -611,6 +617,9 @@ ResourceRows = function(schema)
 			return on(r) and r.manaColor == "custom"
 		end),
 	}
+	for i = first, #schema do
+		schema[i].scope = Scope("player")
+	end
 end
 
 local function KindRows(schema, kind)

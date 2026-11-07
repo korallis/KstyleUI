@@ -146,6 +146,49 @@ do
 	same(Labels(Model.Search(pages(), "zzz")), {}, "no match is an empty list")
 end
 
+-- Search finds a scoped row whichever value its selector holds -------------------------------------
+
+do
+	local settings = { edit = "player", target = { custom = false } }
+	local function scoped(kind, kindOf, label, extra)
+		return {
+			kind = kindOf, label = label, help = "",
+			settings = function()
+				return settings
+			end,
+			showWhen = function(s)
+				return s.edit == kind and (extra == nil or extra(s[kind]))
+			end,
+			scope = { key = "edit", value = kind },
+		}
+	end
+	local list = {
+		{
+			id = "UnitFrames", label = "Unit Frames",
+			items = {
+				{ kind = "dropdown", label = "Frame to customise", help = "Pick a frame." },
+				scoped("player", "header", "Player: health bar"),
+				scoped("player", "texture", "Bar texture"),
+				scoped("target", "header", "Target: health bar"),
+				scoped("target", "texture", "Bar texture"),
+				scoped("target", "color", "Custom bar colour", function(t)
+					return t.custom
+				end),
+			},
+		},
+	}
+	local items = list[1].items
+	same(Labels(Model.Visible(items)), { "Frame to customise", "Player: health bar", "Bar texture" }, "the page shows only the picked frame")
+	local found = Model.Search(list, "bar texture")
+	same(Labels(found), { "Unit Frames", "Player: health bar", "Bar texture", "Target: health bar", "Bar texture" }, "search finds every frame's rows")
+	assert(found[3] == items[3] and found[5] == items[5], "each result is the row bound to its own frame")
+	same(Labels(Model.Search(list, "custom bar")), {}, "search still hides a row that its own condition hides")
+	settings.target.custom = true
+	same(Labels(Model.Search(list, "custom bar")), { "Unit Frames", "Target: health bar", "Custom bar colour" }, "the row's own condition decides")
+	assert(settings.edit == "player", "search leaves the selector setting alone")
+	same(Labels(Model.Visible(items)), { "Frame to customise", "Player: health bar", "Bar texture" }, "the page still follows the selector")
+end
+
 -- Schema rows bind to the module's settings ----------------------------------------------------------
 
 do
@@ -179,6 +222,43 @@ do
 	same(Labels(ns2.Model.Visible(items)), { "Frames", "Portraits", "Size" }, "showWhen follows the new value")
 	assert(ns2.Model.IsDisabled(slider) == true, "disableWhen follows the new value")
 	assert(#env2._errors == 0)
+end
+
+-- A schema row's scope reaches the item, so search finds it ------------------------------------------
+
+do
+	local _, K3, ns3 = O.New({
+		before = function(_, Kb)
+			Kb.Modules.Register(Module("ActionBars", { defaults = { editBar = "a", a = { size = 30 }, b = { size = 30 } } }))
+			local function editing(key)
+				return function(s)
+					return s.editBar == key
+				end
+			end
+			local schema = {
+				{ type = "dropdown", key = "editBar", label = "Bar to edit", help = "Pick a bar.", options = {
+					{ value = "a", label = "Bar A" }, { value = "b", label = "Bar B" },
+				} },
+			}
+			for _, key in ipairs({ "a", "b" }) do
+				local scope = { key = "editBar", value = key }
+				schema[#schema + 1] = { type = "header", label = "Bar " .. key, showWhen = editing(key), scope = scope }
+				schema[#schema + 1] = {
+					type = "slider", key = key .. ".size", label = "Button size", help = "The size of each button.",
+					min = 16, max = 64, step = 1, showWhen = editing(key), scope = scope,
+				}
+			end
+			Kb.Options.Register("ActionBars", schema)
+		end,
+	})
+	local items = ns3.Model.SchemaItems("ActionBars", K3.Options.Get("ActionBars"), "ActionBars")
+	assert(items[5].scope and items[5].scope.value == "b", "a schema row's scope reaches its item")
+	local list = { { id = "ActionBars", label = "Action Bars", items = items } }
+	same(Labels(ns3.Model.Visible(items)), { "Bar to edit", "Bar a", "Button size" }, "the page shows the picked bar")
+	local found = ns3.Model.Search(list, "button size")
+	same(Labels(found), { "Action Bars", "Bar a", "Button size", "Bar b", "Button size" }, "search finds every bar's rows")
+	assert(found[5].key == "b.size", "the second result edits bar b")
+	assert(K3.Store.Module("ActionBars").editBar == "a", "search does not change the picked bar")
 end
 
 print("options model ok")

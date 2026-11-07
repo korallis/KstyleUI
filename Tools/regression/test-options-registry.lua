@@ -94,6 +94,26 @@ rejects(function(s) s[10].maxLetters = 0 end, "maxLetters", "a text row with a b
 rejects(function(s) s[11] = s[3] end, "twice", "the same key twice")
 rejects(function(s) s[2].type = "slider"; s[2].min = 0; s[2].max = 1; s[2].step = 1 end, "number", "a slider on the module switch")
 
+-- A row may name the selector setting and value that pick it (scope) -------------------------------
+
+do
+	local _, K = fresh()
+	local schema = rows()
+	schema[1].scope = { key = "mode", value = "custom" }
+	schema[7].scope = { key = "mode", value = "custom" }
+	K.Options.Register("UnitFrames", schema)
+	local scope = K.Options.Row("UnitFrames", "colour").scope
+	assert(scope and scope.key == "mode" and scope.value == "custom", "a row keeps its scope")
+end
+
+rejects(function(s) s[7].scope = "mode" end, "scope must be", "a scope that is not a table")
+rejects(function(s) s[7].scope = { key = "mode" } end, "scope must be", "a scope with no value")
+rejects(function(s) s[1].scope = { key = "mode", value = "custom", when = true } end, "scope must be", "a scope with an unknown field")
+rejects(function(s) s[7].scope = { key = "nope", value = "custom" } end, "scope.key", "a scope whose setting has no default")
+rejects(function(s) s[7].scope = { key = "player.healthText.size", value = 11 } end, "scope.key", "a scope on a nested setting")
+rejects(function(s) s[7].scope = { key = "mode", value = 3 } end, "scope.value", "a scope value of another type than the setting")
+rejects(function(s) s[7].scope = { key = "colour", value = { r = 1, g = 1, b = 1 } } end, "scope.value", "a scope on a table setting")
+
 do
 	local _, K = fresh()
 	Raises(function() K.Options.Register("ActionBars", { { type = "header", label = "Bars" } }) end, "defaults", "a module whose defaults are not registered")

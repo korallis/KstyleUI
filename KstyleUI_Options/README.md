@@ -79,6 +79,8 @@ Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so 
 
 The search field matches every visible row on every page. The query splits on spaces; each word must appear, as plain text and ignoring case, in the row's page name, section names, label or help text. Results show under the page and section they come from, and their controls work as they do on the page. Clicking a rail entry or the clear button ends the search.
 
+A row with a `scope` belongs to one choice of a picker, such as the unit frames' **Frame to customise** or the action bars' **Bar to edit**. Search runs its `showWhen` as if the picker held that choice, and leaves the picker as it is, so it finds the rows of every frame and bar. Each result stays bound to its own key, such as `target.castbarTexture`, and shows under its own section, such as "Target: cast bar". The row's other conditions still apply: a custom colour row stays hidden while its colour source is not custom. `test-options-search.lua` checks that search finds every row the unit frames and action bars pages can show.
+
 ### Live preview
 
 A schema may carry `preview = function(parent) -> frame` (see `Options.Preview` in `docs/core-services.md`). The window calls it once, the first time the module's page opens, with the preview tile's content frame, and anchors the frame to fill it unless the builder placed it. After any of that module's settings changes it calls `frame:Refresh()` when the frame has one. A builder that fails or returns no frame is logged, and the page shows the placeholder.

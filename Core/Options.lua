@@ -18,8 +18,9 @@ local VALUE_TYPES = {
 	texture = "string",
 	text = "string",
 }
-local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen = true }
-local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true }
+local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen = true, scope = true }
+local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true }
+local SCOPE_FIELDS = { key = true, value = true }
 local EXTRA_FIELDS = {
 	slider = { min = true, max = true, step = true },
 	dropdown = { options = true },
@@ -93,6 +94,28 @@ local function checkValueType(row, default)
 	end
 end
 
+local function checkScope(module, scope, defaults)
+	if type(scope) ~= "table" or scope.key == nil or scope.value == nil then
+		return "scope must be { key = a top-level setting, value = the value that picks this row }"
+	end
+	for field in pairs(scope) do
+		if not SCOPE_FIELDS[field] then
+			return "scope must be { key = a top-level setting, value = the value that picks this row }, not " .. tostring(field)
+		end
+	end
+	local parts = splitKey(scope.key)
+	local default
+	if parts and #parts == 1 then
+		default = defaults[parts[1]]
+	end
+	if default == nil then
+		return "scope.key must be a top-level setting with a default in " .. module .. "'s defaults, got " .. tostring(scope.key)
+	end
+	if type(default) == "table" or type(scope.value) ~= type(default) then
+		return "scope.value must be a " .. type(default) .. " like the default of " .. scope.key .. ", got a " .. type(scope.value)
+	end
+end
+
 local function checkRow(module, row, defaults)
 	if type(row) ~= "table" then
 		return "is not a table"
@@ -118,6 +141,12 @@ local function checkRow(module, row, defaults)
 	for _, field in ipairs({ "showWhen", "disableWhen" }) do
 		if row[field] ~= nil and type(row[field]) ~= "function" then
 			return field .. " must be a function(settings) that returns true or false"
+		end
+	end
+	if row.scope ~= nil then
+		local problem = checkScope(module, row.scope, defaults)
+		if problem then
+			return problem
 		end
 	end
 	if rowType == "header" then

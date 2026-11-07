@@ -146,6 +146,7 @@ When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Code
 | `key` | all but `header` | A setting name, with dots for nested settings such as `player.healthText.size`. It must have a default, and it appears once per schema. |
 | `help` | all but `header` | One sentence under 100 characters |
 | `showWhen`, `disableWhen` | all | Optional `function(settings) -> boolean`. `settings` is `Store.Module(module)`. |
+| `scope` | all | Optional `{ key = setting, value = value }` for a row that a picker dropdown shows, such as `{ key = "edit", value = "target" }`. `key` is a top-level setting with a default, and `value` has the default's type and is not a table. Search runs the row's `showWhen` as if `key` held `value`, so it finds the row whatever the picker holds. The page ignores `scope`. |
 | `min`, `max`, `step` | `slider` | Numbers with `min < max`, `step > 0`, and the default in range |
 | `options` | `dropdown` | `{ { value, label }, ... }` holding the default, or a function that returns such a list |
 | `hasAlpha` | `color` | Optional boolean |

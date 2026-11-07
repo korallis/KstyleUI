@@ -120,7 +120,7 @@ A flyout action shows a small chevron on the edge it opens from.
 
 ## Settings
 
-The page starts with **Bar to edit**, a picker that shows one bar's rows at a time.
+The page starts with **Bar to edit**, a picker that shows one bar's rows at a time. Each bar's rows carry `scope = { key = "editBar", value = <bar> }`, so the settings search finds every bar's rows, whichever bar is picked.
 
 | Per bar | Values |
 | --- | --- |

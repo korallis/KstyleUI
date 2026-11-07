@@ -120,8 +120,10 @@ local function BarRows(schema, def)
 	local function Off(settings)
 		return not settings[key].enabled
 	end
+	local scope = { key = "editBar", value = key }
 	local function add(row)
 		row.showWhen = row.showWhen or editing
+		row.scope = scope
 		if row.type ~= "header" and row.key ~= key .. ".enabled" then
 			row.disableWhen = Off
 		end
