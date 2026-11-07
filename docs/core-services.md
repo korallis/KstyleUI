@@ -111,6 +111,7 @@ A profile change starts and stops modules to match the new profile's switches.
 | `Decode(text) -> payload` or `nil, reason` | Validates a string and applies nothing. |
 | `Import(text, name) -> true, profileName` or `false, reason` | Validates the string, saves it as a new profile under a free name, and switches to it. |
 | `DB_VERSION`, `migrations[v]` | `migrations[v](db)` upgrades saved data from version `v - 1` to `v`. Load runs each missing step in order, and `Import` runs the same steps on older profiles. |
+| Version 2 | `migrations[2]` replaces each profile's `Appearance.reducedMotion` switch with `Appearance.motion`: `true` becomes `"off"`, and `false` drops the key, leaving the default `"full"`. |
 
 Profile names are 1 to 48 characters, trimmed, with no control characters and no `|`.
 

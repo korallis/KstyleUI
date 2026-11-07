@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 1, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 2, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -87,7 +87,7 @@ do
 	check(uf2.width == 260 and uf2.portraits == true and uf2.player.healthText.outline == "OUTLINE" and uf2.player.healthText.size == 11)
 	check(#uf2.order == 1 and uf2.order[1] == "target", "a saved list replaces the default list")
 	check(uf2.hidden.focus == true)
-	check(env2.KstyleUIDB.version == 1)
+	check(env2.KstyleUIDB.version == K2.Store.DB_VERSION, "the next session keeps the code's version")
 end
 
 -- Damaged saved data is repaired, not trusted -----------------------------------------------------
@@ -419,7 +419,7 @@ do
 	rejects(K, env, CoreEnv.CraftCBOR(api, "just a string"), "not a KstyleUI profile", "a payload that is not a table")
 	payloadCase(function(p) p.kind = "WeakAuras" end, "not a KstyleUI profile", "a foreign kind")
 	payloadCase(function(p) p.kind = nil end, "not a KstyleUI profile", "no kind")
-	payloadCase(function(p) p.version = 2 end, "newer", "a newer profile version")
+	payloadCase(function(p) p.version = K.Store.DB_VERSION + 1 end, "newer", "a newer profile version")
 	payloadCase(function(p) p.version = 0 end, "version", "version 0")
 	payloadCase(function(p) p.version = 1.5 end, "version", "a fractional version")
 	payloadCase(function(p) p.version = "1" end, "version", "a string version")

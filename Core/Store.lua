@@ -8,8 +8,20 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 1
+Store.DB_VERSION = 2
 Store.migrations = {}
+
+Store.migrations[2] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local appearance = type(profile) == "table" and profile.Appearance
+		if type(appearance) == "table" and appearance.reducedMotion ~= nil then
+			if appearance.motion == nil and appearance.reducedMotion == true then
+				appearance.motion = "off"
+			end
+			appearance.reducedMotion = nil
+		end
+	end
+end
 
 local PREFIX = "KSUI1:"
 local LUA_MAGIC = "KSL1:"

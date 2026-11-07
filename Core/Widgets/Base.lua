@@ -632,7 +632,7 @@ end)
 ns.Callbacks.Register("ScaleChanged", SECTION, Widgets.RestyleAll)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
-	if module == SECTION or (module == "Appearance" and key == "reducedMotion") then
+	if module == SECTION or (module == "Appearance" and key == "motion") then
 		Widgets.RestyleAll()
 	end
 end)

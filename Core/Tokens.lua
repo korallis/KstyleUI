@@ -205,12 +205,20 @@ function Tokens.Font(role)
 	if not spec then
 		unknown("Font", role)
 	end
+	local theme = ns.Theme
 	local key = NUMBER_FACE
 	if spec.face == "ui" then
-		local theme = ns.Theme
 		key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
 	end
-	return FACE_PATH[key] or FACE_PATH[DEFAULT_FACE], SIZES[role], spec.flags
+	local path = FACE_PATH[key]
+	if not path and theme and theme.IsFontPath and theme.IsFontPath(key) then
+		path = key
+	end
+	local size = SIZES[role]
+	if role ~= "world" and theme and theme.FontScale then
+		size = size * theme.FontScale()
+	end
+	return path or FACE_PATH[DEFAULT_FACE], size, spec.flags
 end
 
 function Tokens.TextStyle(role)

@@ -41,7 +41,7 @@ do
 	assert(K.ErrorCount() == errorsBefore + 4, "each failing restyle is reported")
 	K.Options.Write("Appearance", "accentColor", { r = 0.5, g = 0.5, b = 0.5 })
 	assert(#runs == 4, "another page's setting does not restyle the kit")
-	K.Options.Write("Appearance", "reducedMotion", true)
+	K.Options.Write("Appearance", "motion", "off")
 	assert(#runs == 5, "the reduced motion switch restyles the kit, so running animations follow it")
 	assert(#env._errors >= 4)
 end

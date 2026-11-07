@@ -8,6 +8,8 @@ local Tokens, Theme, Scale, Motion, Store, L = ns.Tokens, ns.Theme, ns.Scale, ns
 
 local SECTION = "Appearance"
 local SIZE_STEP = 0.05
+local FONT_SCALE_STEP = 0.05
+local MOTION_LEVELS = { full = true, reduced = true, off = true }
 local LSM_MAJOR = "LibSharedMedia-3.0"
 local LSM_PREFIX = "KstyleUI "
 
@@ -17,8 +19,9 @@ Appearance.defaults = {
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	font = Tokens.DEFAULT_FONT_FACE,
+	fontScale = 1,
 	uiScale = 1,
-	reducedMotion = false,
+	motion = "full",
 }
 
 local function Log(message)
@@ -41,8 +44,13 @@ local CLEAN = {
 		end
 	end,
 	font = function(v)
-		if type(v) == "string" and Tokens.FontPath(v) then
+		if type(v) == "string" and (Tokens.FontPath(v) or Theme.IsFontPath(v)) then
 			return v
+		end
+	end,
+	fontScale = function(v)
+		if not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v then
+			return math.min(Theme.MAX_FONT_SCALE, math.max(Theme.MIN_FONT_SCALE, v))
 		end
 	end,
 	uiScale = function(v)
@@ -50,8 +58,8 @@ local CLEAN = {
 			return math.min(Scale.MAX_USER_SCALE, math.max(Scale.MIN_USER_SCALE, v))
 		end
 	end,
-	reducedMotion = function(v)
-		if type(v) == "boolean" then
+	motion = function(v)
+		if MOTION_LEVELS[v] then
 			return v
 		end
 	end,
@@ -63,10 +71,11 @@ local APPLY = {
 	end,
 	accentSource = Theme.SetAccentSource,
 	font = Theme.SetFontFace,
+	fontScale = Theme.SetFontScale,
 	uiScale = Scale.SetUserScale,
-	reducedMotion = Motion.SetReducedMotion,
+	motion = Motion.SetLevel,
 }
-local ORDER = { "accentColor", "accentSource", "font", "uiScale", "reducedMotion" }
+local ORDER = { "accentColor", "accentSource", "font", "fontScale", "uiScale", "motion" }
 
 function Appearance.Get(key)
 	local clean = CLEAN[key]
@@ -94,10 +103,28 @@ function Appearance.Apply()
 	end
 end
 
+local function PathKey(path)
+	return (path:lower():gsub("/", "\\"))
+end
+
 local function FaceOptions()
-	local out = {}
+	local out, seen = {}, {}
 	for i, face in ipairs(Tokens.MediaList("font")) do
 		out[i] = { value = face.key, label = face.label }
+		seen[PathKey(face.path)] = true
+	end
+	local media = ns.Widgets and ns.Widgets.MediaOptions
+	if media then
+		local ok, list = pcall(media, "font")
+		if ok and type(list) == "table" then
+			for _, option in ipairs(list) do
+				local path = option.value
+				if Theme.IsFontPath(path) and not seen[PathKey(path)] then
+					seen[PathKey(path)] = true
+					out[#out + 1] = { value = path, label = tostring(option.label) }
+				end
+			end
+		end
 	end
 	return out
 end
@@ -119,8 +146,13 @@ Appearance.schema = {
 	{ type = "header", label = L["Text"] },
 	{
 		type = "dropdown", key = "font", label = L["Font"],
-		help = L["The typeface for KstyleUI text; numbers keep Source Sans 3 so digits line up."],
-		options = FaceOptions(),
+		help = L["KstyleUI's typeface, or a LibSharedMedia font; numbers keep Source Sans 3."],
+		options = FaceOptions,
+	},
+	{
+		type = "slider", key = "fontScale", label = L["Text size"],
+		help = L["Makes KstyleUI's text larger or smaller without changing anything else."],
+		min = Theme.MIN_FONT_SCALE, max = Theme.MAX_FONT_SCALE, step = FONT_SCALE_STEP,
 	},
 	{ type = "header", label = L["Size"] },
 	{
@@ -130,8 +162,13 @@ Appearance.schema = {
 	},
 	{ type = "header", label = L["Motion"] },
 	{
-		type = "toggle", key = "reducedMotion", label = L["Reduce motion"],
-		help = L["Skips fades and slides, so elements appear and hide at once."],
+		type = "dropdown", key = "motion", label = L["Motion"],
+		help = L["Full animation, reduced to fades without slides, or off so everything appears at once."],
+		options = {
+			{ value = "full", label = L["Full"] },
+			{ value = "reduced", label = L["Reduced"] },
+			{ value = "off", label = L["Off"] },
+		},
 	},
 }
 

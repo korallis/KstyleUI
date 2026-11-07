@@ -60,7 +60,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `number` | Source Sans 3 Semibold | 11 | `""` | 0 | |
 | `world` | the UI face | 12 | `"OUTLINE"` | 0 | |
 
-The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default. `number` always uses Source Sans 3 Semibold because its digits are tabular, so health and timers keep their width. UI text takes a soft shadow (`textShadow`, offset `textShadowOffset`) instead of an outline; text over the 3D world takes the thin outline. `SLUG` is not set: the spec allows it only after the font spike confirms it renders cleanly.
+The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default: a key of `MediaList("font")`, or a font file path such as a LibSharedMedia font. Every role but `world` is multiplied by `Theme.FontScale()`, the Appearance page's text size, so `Font("body")` at a text size of 1.2 is 13.2 units; text over the 3D world keeps its size. `number` always uses Source Sans 3 Semibold because its digits are tabular, so health and timers keep their width. UI text takes a soft shadow (`textShadow`, offset `textShadowOffset`) instead of an outline; text over the 3D world takes the thin outline. `SLUG` is not set: the spec allows it only after the font spike confirms it renders cleanly.
 
 `TextStyle(role) -> tracking, uppercase` gives the kit's letter spacing in units. The game has no letter-spacing setter, so widgets treat it as a hint.
 
@@ -100,7 +100,9 @@ Shapes are white with their coverage in alpha: tint them with `SetVertexColor`. 
 | `Class() -> classFile` | The player's class, such as `"MAGE"`, or `nil` while it is unknown. |
 | `AccentSource()`, `SetAccentSource(source) -> ok` | `"class"` or `"custom"`. |
 | `CustomAccent()`, `SetCustomAccent(r, g, b) -> ok` | Each channel a plain number from 0 to 1; a secret, NaN or a string is refused. |
-| `FontFace()`, `SetFontFace(key) -> ok` | A key of `Tokens.MediaList("font")`. |
+| `FontFace()`, `SetFontFace(face) -> ok` | A key of `Tokens.MediaList("font")`, or a font file path that `IsFontPath` accepts. Anything else is refused. |
+| `IsFontPath(path) -> boolean` | True for a string of up to 260 characters with a `\` or `/`, ending in `.ttf` or `.otf` in any case, with no control character and no `\|`. |
+| `FontScale()`, `SetFontScale(scale) -> ok` | The text size, a plain number from `MIN_FONT_SCALE` 0.8 to `MAX_FONT_SCALE` 1.3, default 1. A secret, NaN or a value out of range is refused. A change fires `ThemeChanged`, which restyles every kit text. |
 | `ClassColor(classFile) -> r, g, b` | Any unit's class colour. An unknown class gives the `text` colour. A secret class name goes to `C_ClassColor.GetClassColor` and is never used as a key. |
 | `QualityColor(quality) -> r, g, b` | Rare and epic from the tokens. Other qualities from `C_Item.GetItemQualityColor`, else `ITEM_QUALITY_COLORS`, lifted by `Brighten`. |
 | `ReactionColor(reaction) -> r, g, b` | 1 to 3 `hostile`, 4 `neutral`, 5 to 8 `friendly`. A secret or missing reaction gives `neutral`. |
@@ -141,9 +143,13 @@ Secure frames on the root make `SetScale` protected in combat. A rescale in comb
 | `IsPlaying(handle) -> boolean` | |
 | `FadeIn(frame, duration, alpha) -> handle` | Shows a hidden frame at alpha 0 and fades it to `alpha` (1) over `duration` (`panelOpen`). |
 | `FadeOut(frame, duration) -> handle` | Fades a shown frame to 0 over `duration` (`panelClose`), hides it and restores the alpha the last FadeIn aimed at, so a plain `Show` later shows it. A FadeIn during a FadeOut cancels the hide. A hidden frame returns `nil`. |
-| `ReducedMotion()`, `SetReducedMotion(on) -> ok` | Switching it on finishes every running tween. |
+| `Level()`, `SetLevel(level) -> ok` | `"full"`, `"reduced"` or `"off"`; anything else is refused. `"off"` finishes every running tween. |
+| `ReducedMotion() -> boolean` | True at `"reduced"` and `"off"`. Widgets check it to skip movement: the panel rise and overshoot, the scroll bounce, the cast sheen and the proc pulse. |
+| `SetReducedMotion(on) -> ok` | `SetLevel("off")` or `SetLevel("full")`, for callers that only switch motion on and off. |
 
-`Tween` returns `nil` and sets the end value at once, running `onDone` before it returns, under reduced motion, for a duration that is not a positive number, or when `from` or `to` is a secret. Secrets reach the setter untouched; the engine animates them. Otherwise `from` and `to` must be numbers, or `Tween` raises an error. A setter that fails on the start value raises its error to the caller and leaves nothing registered.
+At `"reduced"` tweens still play, so fades, hover transitions and eased scrolling stay; only movement stops.
+
+`Tween` returns `nil` and sets the end value at once, running `onDone` before it returns, when the level is `"off"`, for a duration that is not a positive number, or when `from` or `to` is a secret. Secrets reach the setter untouched; the engine animates them. Otherwise `from` and `to` must be numbers, or `Tween` raises an error. A setter that fails on the start value raises its error to the caller and leaves nothing registered.
 
 One driver frame runs one `OnUpdate`, only while a tween plays. Records come from a pool and handles are numbers, so a stale handle never reaches a reused record. Each frame stamps the records it steps, so a tween that a callback starts or moves is stepped at most once per frame. The step allocates nothing: `test-motion.lua` runs 1000 frames of 20 tweens with the garbage collector stopped. A failing easing, setter or `onDone` goes to `geterrorhandler()` and drops only its tween.
 
@@ -159,15 +165,16 @@ The spec's AnimationGroup presets (proc pulse, cast sheen, panel rise) belong to
 | --- | --- | --- | --- |
 | `accentSource` | `"class"` | dropdown: class colour or custom colour | `Theme.SetAccentSource` |
 | `accentColor` | the kit's accent, from `Tokens.Color("accentDefault")` | colour, shown only for a custom accent | `Theme.SetCustomAccent` |
-| `font` | `"SourceSans3Semibold"` | dropdown of the three bundled faces | `Theme.SetFontFace` |
+| `font` | `"SourceSans3Semibold"` | dropdown: the three bundled faces, then LibSharedMedia's fonts | `Theme.SetFontFace` |
+| `fontScale` | `1` | slider from 0.8 to 1.3 in steps of 0.05 | `Theme.SetFontScale` |
 | `uiScale` | `1` | slider from 0.75 to 1.5 in steps of 0.05 | `Scale.SetUserScale` |
-| `reducedMotion` | `false` | toggle | `Motion.SetReducedMotion` |
+| `motion` | `"full"` | dropdown: full, reduced or off | `Motion.SetLevel` |
 
-The font is a dropdown, not a `font` row, because the value is a key of `Tokens.MediaList("font")`, not a file path.
+The font is a dropdown, not a `font` row, because a bundled face is stored by its key of `Tokens.MediaList("font")`. Its options are a function, built when the list opens: the bundled faces, then each LibSharedMedia font (from `Widgets.MediaOptions("font")`) stored by its path, skipping paths the bundled faces already cover. A profile that names a LibSharedMedia font the importing player does not have fails `Store.Import`'s choice check, as any unknown dropdown value does.
 
 | Function | Behaviour |
 | --- | --- |
-| `Get(key) -> value` | The active profile's value. A value the setting does not allow (an unknown accent source or face, a colour channel outside 0 to 1) gives the default and a devlog line. A size outside 0.75 to 1.5 is clamped. Before the saved data loads, the default. An unknown key raises an error. |
+| `Get(key) -> value` | The active profile's value. A value the setting does not allow (an unknown accent source or face, a colour channel outside 0 to 1) gives the default and a devlog line. A size outside 0.75 to 1.5, or a text size outside 0.8 to 1.3, is clamped. Before the saved data loads, the default. An unknown key raises an error. |
 | `Apply()` | Hands every setting to its service. The custom colour goes before the accent source, so switching to a custom accent fires `ThemeChanged` once. |
 | `defaults`, `schema` | The tables registered with `Store` and `Options`. |
 

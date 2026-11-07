@@ -25,19 +25,19 @@ do
 	local _, K = CoreEnv.New({ setup = setup() })
 	local defaults = K.Store.Defaults("Appearance")
 	assert(defaults, "Appearance registers its defaults with Store")
-	assert(defaults.accentSource == "class" and defaults.font == "SourceSans3Semibold" and defaults.uiScale == 1 and defaults.reducedMotion == false, "the defaults are class colour, Source Sans 3, size 1 and motion on")
+	assert(defaults.accentSource == "class" and defaults.font == "SourceSans3Semibold" and defaults.uiScale == 1 and defaults.motion == "full", "the defaults are class colour, Source Sans 3, size 1 and full motion")
 	local r, g, b = K.Tokens.Color("accentDefault")
 	assert(near(defaults.accentColor.r, r) and near(defaults.accentColor.g, g) and near(defaults.accentColor.b, b), "the custom colour defaults to the kit's accent")
 	local schema = K.Options.Get("Appearance")
 	assert(schema == K.Appearance.schema, "Options holds the Appearance page")
-	for _, key in ipairs({ "accentSource", "accentColor", "font", "uiScale", "reducedMotion" }) do
+	for _, key in ipairs({ "accentSource", "accentColor", "font", "fontScale", "uiScale", "motion" }) do
 		assert(K.Options.Row("Appearance", key), "the page has a row for " .. key)
 	end
 	local size = K.Options.Row("Appearance", "uiScale")
 	assert(size.type == "slider" and size.min == 0.75 and size.max == 1.5, "the size slider runs from 0.75 to 1.5")
 	local colour = K.Options.Row("Appearance", "accentColor")
 	assert(colour.showWhen({ accentSource = "custom" }) and not colour.showWhen({ accentSource = "class" }), "the colour row shows only for a custom accent")
-	local faces = K.Options.Row("Appearance", "font").options
+	local faces = K.Options.Row("Appearance", "font").options()
 	assert(#faces == 3 and faces[1].value == "SourceSans3Semibold", "the font row offers the three bundled faces")
 	assert(K.Appearance.Get("uiScale") == 1, "Get answers with the default before the saved settings load")
 end
@@ -46,7 +46,7 @@ end
 do
 	local env, K = CoreEnv.New({
 		setup = setup(),
-		saved = saved({ uiScale = 0.75, accentSource = "custom", accentColor = { r = 0.5, g = 0.6, b = 0.7 }, font = "InterSemiBold", reducedMotion = true }),
+		saved = saved({ uiScale = 0.75, accentSource = "custom", accentColor = { r = 0.5, g = 0.6, b = 0.7 }, font = "InterSemiBold", motion = "off" }),
 	})
 	CoreEnv.LoadSaved(env)
 	assert(K.Scale.UserScale() == 0.75, "the saved size applies")
@@ -76,15 +76,15 @@ do
 	assert(K.Theme.AccentSource() == "class" and not near(r, 0.1), "switching back to the class colour drops the custom one")
 	K.Options.Write("Appearance", "font", "InterSemiBold")
 	assert(K.Theme.FontFace() == "InterSemiBold" and K.Tokens.Font("body"):match("Inter%-SemiBold"), "the face applies at once")
-	K.Options.Write("Appearance", "reducedMotion", true)
-	assert(K.Motion.ReducedMotion() == true, "the motion switch applies at once")
+	K.Options.Write("Appearance", "motion", "off")
+	assert(K.Motion.ReducedMotion() == true, "the motion setting applies at once")
 end
 
 -- A saved value that is the right type but not allowed falls back to its default.
 do
 	local env, K = CoreEnv.New({
 		setup = setup(),
-		saved = saved({ uiScale = "huge", accentSource = "rainbow", font = "Comic", accentColor = { r = 2, g = 0, b = 0 }, reducedMotion = "yes" }),
+		saved = saved({ uiScale = "huge", accentSource = "rainbow", font = "Comic", accentColor = { r = 2, g = 0, b = 0 }, motion = "yes" }),
 	})
 	CoreEnv.Boot(env)
 	assert(K.Scale.UserScale() == 1 and K.Appearance.Get("uiScale") == 1, "a broken size falls back to 1")
@@ -92,12 +92,12 @@ do
 	assert(K.Theme.FontFace() == "SourceSans3Semibold", "an unknown face falls back to Source Sans 3")
 	local r = K.Theme.CustomAccent()
 	assert(r <= 1, "an out-of-range colour falls back to the default")
-	assert(K.Motion.ReducedMotion() == false, "a broken switch falls back to off")
+	assert(K.Motion.ReducedMotion() == false, "a broken motion setting falls back to full motion")
 end
 
 -- A profile switch applies the new profile's settings.
 do
-	local env, K = CoreEnv.New({ setup = setup(), saved = saved({ uiScale = 1.25, reducedMotion = true }) })
+	local env, K = CoreEnv.New({ setup = setup(), saved = saved({ uiScale = 1.25, motion = "off" }) })
 	CoreEnv.Boot(env)
 	assert(K.Scale.UserScale() == 1.25)
 	assert(K.Store.SetProfile("Plain"), "a new profile")

@@ -41,11 +41,11 @@ do
 	glow:Start()
 	W.Settle(env)
 	local stops = #W.Calls(glow.pulse, "Stop")
-	K.Options.Write("Appearance", "reducedMotion", true)
+	K.Options.Write("Appearance", "motion", "off")
 	assert(#W.Calls(glow.pulse, "Stop") > stops and #W.Calls(glow.sparkPulse, "Stop") >= 1, "the running pulse stops")
 	assert(glow.holder:IsShown() and glow:IsPlaying(), "the glow stays, steady")
 	local plays = #W.Calls(glow.pulse, "Play")
-	K.Options.Write("Appearance", "reducedMotion", false)
+	K.Options.Write("Appearance", "motion", "full")
 	assert(#W.Calls(glow.pulse, "Play") == plays + 1, "the pulse starts again")
 end
 

@@ -87,7 +87,7 @@ do
 	assert(#W.Calls(bar.sheenAnim, "Stop") >= 1 and bar.sheen:IsShown() == false)
 	bar:PlaySheen(true)
 	local stops = #W.Calls(bar.sheenAnim, "Stop")
-	K.Options.Write("Appearance", "reducedMotion", true)
+	K.Options.Write("Appearance", "motion", "off")
 	assert(#W.Calls(bar.sheenAnim, "Stop") > stops and bar.sheen:IsShown() == false, "turning reduced motion on stops a looping sheen")
 	bar:PlaySheen()
 	assert(#W.Calls(bar.sheenAnim, "Play") == 3, "reduced motion plays no sheen")

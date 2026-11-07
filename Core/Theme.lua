@@ -14,10 +14,14 @@ local REACTION_NEUTRAL = 4
 local QUALITY_RARE, QUALITY_EPIC = 3, 4
 
 local SOURCES = { class = true, custom = true }
+local MIN_FONT_SCALE, MAX_FONT_SCALE = 0.8, 1.3
+local MAX_PATH = 260
+Theme.MIN_FONT_SCALE, Theme.MAX_FONT_SCALE = MIN_FONT_SCALE, MAX_FONT_SCALE
 
 local state = {
 	source = "class",
 	face = Tokens.DEFAULT_FONT_FACE,
+	fontScale = 1,
 	class = nil,
 	announced = nil,
 	resolved = false,
@@ -173,12 +177,35 @@ function Theme.FontFace()
 	return state.face
 end
 
+function Theme.IsFontPath(path)
+	if type(path) ~= "string" or #path > MAX_PATH or path:find("[%c|]") or not path:find("[\\/]") then
+		return false
+	end
+	local ext = path:lower():match("%.(%a+)$")
+	return ext == "ttf" or ext == "otf"
+end
+
 function Theme.SetFontFace(key)
-	if type(key) ~= "string" or not Tokens.FontPath(key) then
+	if type(key) ~= "string" or not (Tokens.FontPath(key) or Theme.IsFontPath(key)) then
 		return false
 	end
 	if state.face ~= key then
 		state.face = key
+		Fire("ThemeChanged")
+	end
+	return true
+end
+
+function Theme.FontScale()
+	return state.fontScale
+end
+
+function Theme.SetFontScale(scale)
+	if IsSecret(scale) or type(scale) ~= "number" or scale ~= scale or scale < MIN_FONT_SCALE or scale > MAX_FONT_SCALE then
+		return false
+	end
+	if state.fontScale ~= scale then
+		state.fontScale = scale
 		Fire("ThemeChanged")
 	end
 	return true

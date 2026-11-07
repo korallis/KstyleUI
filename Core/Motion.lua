@@ -98,7 +98,8 @@ end
 
 local active, byHandle, pool = {}, {}, {}
 local lastHandle, frameCount = 0, 0
-local reduced = false
+local LEVELS = { full = true, reduced = true, off = true }
+local level = "full"
 local driver
 
 local function IndexOf(rec)
@@ -195,7 +196,7 @@ function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 	if secret then
 		LogOnce("secret", "a tween got a secret value and set it without easing")
 	end
-	if reduced or secret or IsSecret(duration) or type(duration) ~= "number" or duration ~= duration or duration <= 0 then
+	if level == "off" or secret or IsSecret(duration) or type(duration) ~= "number" or duration ~= duration or duration <= 0 then
 		Finish(obj, setter, to, onDone)
 		StopDriverIfIdle()
 		return nil
@@ -251,21 +252,32 @@ function Motion.Stop(handle, finish)
 	return true
 end
 
+function Motion.Level()
+	return level
+end
+
+function Motion.SetLevel(name)
+	if not LEVELS[name] then
+		return false
+	end
+	level = name
+	if name == "off" then
+		while #active > 0 do
+			Motion.Stop(active[#active].handle, true)
+		end
+	end
+	return true
+end
+
 function Motion.ReducedMotion()
-	return reduced
+	return level ~= "full"
 end
 
 function Motion.SetReducedMotion(on)
 	if type(on) ~= "boolean" then
 		return false
 	end
-	reduced = on
-	if on then
-		while #active > 0 do
-			Motion.Stop(active[#active].handle, true)
-		end
-	end
-	return true
+	return Motion.SetLevel(on and "off" or "full")
 end
 
 local restAlpha = setmetatable({}, { __mode = "k" })

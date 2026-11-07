@@ -8,7 +8,7 @@ The roadmap's [Core public API](../../docs/superpowers/plans/2026-11-07-kstyleui
 
 - Colours, sizes, durations, easings, fonts and textures come from `KstyleUI.Tokens` only.
 - Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleAll()` or its own `Restyle()` to redraw.
-- Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged`, a change to a setting on the `Widgets` page, and a change to the Appearance page's `reducedMotion` switch.
+- Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged`, a change to a setting on the `Widgets` page, and a change to the Appearance page's `motion` setting.
 - Hover and press run through `KstyleUI.Motion`: hover is `Tokens.Duration("hover")` with `outQuart`, and press moves the content down `Tokens.Size("pressOffset")`.
 - Components hook scripts with `HookScript`. A component built on a secure template keeps the template's own `OnClick`.
 - A protected frame is never moved in combat. Content offsets and chrome anchors wait, and chrome re-anchors through `Combat.Queue` once combat ends.
