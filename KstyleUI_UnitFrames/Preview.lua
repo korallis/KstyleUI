@@ -12,6 +12,10 @@ local BOSS_SLOT_HEIGHT = 58
 local MARGIN = 16
 local INCOMING_SHARE = 0.08
 local SKULL = 8
+local CAST_GAP = 4
+local CAST_SHARE = 0.6
+local CAST_LEFT = 1.2
+local CAST_ICON = 135846
 local THREAT_TANKING = 3
 
 local SAMPLES = {
@@ -95,6 +99,51 @@ local function PaintIndicators(view, s, sample)
 	end
 end
 
+local function CastHeight(kind)
+	local key = Settings.CAST_ELEMENTS[kind]
+	if not key then
+		return Settings.Value(kind, "castbarHeight")
+	end
+	local saved = K.Layout and K.Layout.Get and K.Layout.Get(key)
+	if saved and type(saved.height) == "number" then
+		return saved.height
+	end
+	return K.Setup.Layouts.Element(key).height
+end
+
+local function PaintCast(frame, view, kind, height)
+	local cb = frame.casts[kind]
+	if not (Settings.CASTBAR[kind] and Settings.Value(kind, "castbar")) then
+		if cb then
+			cb.frame:Hide()
+		end
+		return 0
+	end
+	if not cb then
+		cb = ns.CastBars.NewBar(frame.holders[kind], kind)
+		frame.casts[kind] = cb
+	end
+	local g = view.geometry
+	local castH = CastHeight(kind)
+	cb.frame:ClearAllPoints()
+	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", g.panel.x, -(height + CAST_GAP))
+	cb.frame:SetSize(g.panel.w, castH)
+	ns.CastBars.Restyle(cb)
+	ns.CastBars.Layout(cb, g.panel.w, castH)
+	cb.bar:SetMinMaxValues(0, 1)
+	cb.bar:SetValue(CAST_SHARE)
+	cb.text:SetText(L["Frostbolt"])
+	cb.timer:SetFormattedText("%.1f", CAST_LEFT)
+	if K.Icons and K.Icons.Apply then
+		K.Icons.Apply(cb.icon, CAST_ICON)
+	else
+		cb.icon:SetTexture(CAST_ICON)
+	end
+	cb.frame:SetAlpha(1)
+	cb.frame:Show()
+	return castH + CAST_GAP
+end
+
 local function Size(frame, kind)
 	local key = Settings.ELEMENTS[kind]
 	local element = K.Setup.Layouts.Element(key)
@@ -126,22 +175,26 @@ local function Refresh(frame)
 	end
 	local view = frame.views[kind]
 	local width, height = Size(frame, kind)
-	holder:ClearAllPoints()
-	holder:SetPoint("CENTER", frame, "CENTER")
+	view.s = Settings.Snapshot(kind)
+	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and view.s.castbar then
+		height = math.max(0, height - view.s.castbarHeight - CAST_GAP)
+	end
 	holder:SetSize(width, height)
 	holder:Show()
-	view.s = Settings.Snapshot(kind)
 	Style.Restyle(view, kind)
 	Style.Layout(view, view.s, width, height)
 	Paint(view, kind)
 	PaintIndicators(view, view.s, SAMPLES[kind])
+	local extra = PaintCast(frame, view, kind, height)
+	holder:ClearAllPoints()
+	holder:SetPoint("CENTER", frame, "CENTER", 0, extra / 2)
 	frame.kind = kind
 end
 
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	frame.holders, frame.views = {}, {}
+	frame.holders, frame.views, frame.casts = {}, {}, {}
 	frame.Refresh = Refresh
 	Refresh(frame)
 	return frame

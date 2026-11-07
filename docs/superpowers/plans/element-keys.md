@@ -31,6 +31,7 @@ Footprints are width x height in units at the 1080 reference.
 | `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned |
 | `unitframes.boss` | UnitFrames | Boss frames | 266 x 330 | Boss 1 to 5 stacked downward, 58 units each with 10-unit gaps |
 | `unitframes.castbar.player` | UnitFrames | Player cast bar | 260 x 20 | Above the essential cooldowns |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 14 | Under the target frame's bars, left of the target of target |
 | `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, under the player frame, right-aligned |
 | `groupframes.party` | GroupFrames | Party frames | 230 x 270 | Five 46-unit frames stacked downward with 10-unit gaps |
 | `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |

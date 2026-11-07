@@ -45,6 +45,8 @@ local view = preview.views.player
 assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
 assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
 assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
+local cast = preview.casts.player
+assert(cast and cast.frame:IsShown() and U.Shown(env, cast.text) == "Frostbolt", "the player sample shows a cast bar under the frame")
 for _, frame in ipairs(env._frames) do
 	if frame:GetParent() == preview or (frame:GetParent() and frame:GetParent():GetParent() == preview) then
 		assert(frame._template == nil, "the preview makes no secure frames")
@@ -74,6 +76,9 @@ K.Options.Write("UnitFrames", "target.healthCustom", { r = 0.3, g = 0.6, b = 0.9
 settle()
 local last = W.LastCall(target.health, "SetStatusBarColor")
 assert(last[1] == 0.3 and last[2] == 0.6 and last[3] == 0.9, "a custom colour shows in the preview")
+K.Options.Write("UnitFrames", "target.castbar", false)
+settle()
+assert(not preview.casts.target.frame:IsShown(), "switching the cast bar off hides it in the preview")
 K.Options.Write("UnitFrames", "edit", "boss")
 settle()
 assert(preview.kind == "boss" and U.Shown(env, preview.views.boss.levelText) == "??", "the boss sample shows a skull level")

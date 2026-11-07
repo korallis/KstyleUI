@@ -31,10 +31,12 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Player | `unitframes.player` | `player` | 266 x 46: a 46-unit portrait and a 220 by 46 panel |
 | Target | `unitframes.target` | `target` | 266 x 46, the portrait on the right |
 | Target of target | `unitframes.targettarget` | `targettarget` | 120 x 24, compact |
-| Focus | `unitframes.focus` | `focus` | 266 x 70 |
+| Focus | `unitframes.focus` | `focus` | 266 x 70: a 46-unit frame, then its 20-unit cast bar |
 | Focus target | `unitframes.focustarget` | `focustarget` | 120 x 24, compact |
 | Pet | `unitframes.pet` | `pet` | 120 x 24, compact |
-| Boss | `unitframes.boss` | `boss1` to `boss5` | 266 x 330: five slots of 58 units, 10 apart |
+| Boss | `unitframes.boss` | `boss1` to `boss5` | 266 x 330: five slots of 58 units, 10 apart, each a 46-unit frame and a 10-unit cast bar |
+| Player cast bar | `unitframes.castbar.player` | `player` | 260 x 20 |
+| Target cast bar | `unitframes.castbar.target` | `target` | 220 x 14, under the target frame's bars |
 
 Each frame is a plain holder frame registered with `KstyleUI.Layout.Register` under its key, with the setup's label, `module = "UnitFrames"` and `resizable = true`. The holder carries one `SecureUnitButtonTemplate` button per unit (five for the boss frame). The button has the attributes `unit`, `type1 = "target"` and `type2 = "togglemenu"`, registers for `AnyUp` clicks and is shown and hidden by `RegisterUnitWatch`. Layout moves and sizes the holder; the module anchors the buttons inside it and lays out their parts again whenever the holder's size changes. Hovering a button shows the unit tooltip through Blizzard's `UnitFrame_OnEnter` and `UnitFrame_OnLeave`.
 
@@ -54,12 +56,13 @@ A frame 36 units tall or more is a full frame: the name row on top, the health b
 | `Indicators.lua` | `ns.Indicators`: the raid marker, the status icons (`SLOTS`: leader, role, PvP, combat, resting) and the threat glow. `New(view)`, `Layout(view, g, s)`, `Update(view, unit)`, and one function per indicator. |
 | `Unit.lua` | `ns.Unit`: fills a view from the unit API. `All(view, unit, instant)`, `Health`, `Power`, `HealthColor`, `PowerColor`, `Prediction`, `Name`, `Level`, `Portrait`. |
 | `Blizzard.lua` | `ns.Blizzard.Apply(active)`: hides or restores Blizzard's frames |
+| `CastBar.lua` | `ns.CastBars`: the cast bars. `Get(kind)`, `Attach(view)` for focus and boss views, `Layout(cb, width, height)`, `Restyle(cb)`, `Refresh(kind)`, `Enable`, `Disable`, and `NewBar` for the preview. |
 | `Resource.lua` | `ns.Resource`: the class resource element. `Enable`, `Disable`, `Restyle`, `Layout`, `Visibility`, `Points`, `Mana`. |
 | `Frames.lua` | `ns.Frames`: the holders and secure buttons, unit watches, events, `Enable`, `Disable`, `Get(kind)` |
 | `Preview.lua` | `ns.Preview.Build(parent)`: the settings window's live preview |
 | `Module.lua` | Registers the module, the settings page and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
+Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
 
 ## Settings
 
@@ -82,7 +85,10 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `<frame>.power`, `powerHeight` | Power bar, 2 to 24 units | on for full frames, 5 units |
 | `<frame>.raidMarker`, `leader`, `role`, `pvp`, `combat`, `resting`, `threat` | The raid marker, the status icons and the threat glow. `resting` is the player's only. | on for full frames; combat and resting on the player only; the raid marker on every frame |
 | `<frame>.iconSize` | Status icon size, 8 to 32 units | 14 |
-| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power` and `level` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
+| `<frame>.castbar`, `castbarIcon`, `castbarText`, `castbarTimer` | The cast bar and its spell icon, spell name and timer (player, target, focus and boss) | on |
+| `<frame>.castbarHeight` | The focus and boss cast bar height, 6 to 40 units. The player and target cast bars are their own elements, sized in Layout. | 20 focus, 10 boss |
+| `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent) or `custom` colour | Glass, `class` |
+| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar, `cast` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
 
 The class resource has its own settings, under the player frame's rows:
 
@@ -105,6 +111,24 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 | Combat | `UnitAffectingCombat`, the `UI-HUD-UnitFrame-Player-CombatIcon` atlas | The same row |
 | Resting | `IsResting`, a "Zz" in the accent colour | The same row, player only |
 | Threat glow | `UnitThreatSituation`: the player's own status on the player frame and friendly units, the player's status on a hostile unit elsewhere. A status above 0 lights the glow in `GetThreatStatusColor`. | A soft additive glow around the panel |
+
+## Cast bars
+
+| Event | What the bar does |
+| --- | --- |
+| `UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_DELAYED` | Reads `UnitCastingInfo`, then runs the bar on `UnitCastingDuration` through `StatusBar:SetTimerDuration` with `ElapsedTime`, so it fills |
+| `UNIT_SPELLCAST_CHANNEL_START`, `UNIT_SPELLCAST_CHANNEL_UPDATE` | The same with `UnitChannelInfo`, `UnitChannelDuration` and `RemainingTime`, so it drains |
+| `UNIT_SPELLCAST_STOP`, `UNIT_SPELLCAST_CHANNEL_STOP` | Fades out over `fade` |
+| `UNIT_SPELLCAST_FAILED`, `UNIT_SPELLCAST_INTERRUPTED` | Shows "Failed" or "Interrupted" on a full bar in the `hostile` colour, then fades after 0.6 seconds |
+| `UNIT_SPELLCAST_INTERRUPTIBLE`, `UNIT_SPELLCAST_NOT_INTERRUPTIBLE` | Greys a bar that cannot be interrupted |
+| `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED`, `INSTANCE_ENCOUNTER_ENGAGE_UNIT` | Shows the new unit's cast in progress, or hides the bar |
+
+- Whether a unit casts comes from `isTradeSkill`, which Forever never makes secret: it is a boolean while a cast runs and `nil` otherwise. No other cast value is ever tested.
+- The spell name goes to `SetText` and, for every unit but the player, the icon to `SetTexture`, both untouched. The player's icon goes through `KstyleUI.Icons.Apply`, so the custom icon sets show on the player cast bar only.
+- A secret `notInterruptible` colours the bar with `SetVertexColorFromBoolean`.
+- The timer counts down on an `OnUpdate` that runs only while a cast shows its timer, every 0.05 seconds, through `SetFormattedText` with the duration's remaining time, which may be secret.
+- Fallbacks, each logged once to the devlog: when there is no duration object or `SetTimerDuration` refuses one, the bar runs on the cast's start and end times while they are plain; when those are secret too, the bar shows full with the spell name and no timer. A secret duration object cannot be read, so it drives the bar with no timer text.
+- A light sheen crosses the bar at the start of each cast, as the spec's motion table asks.
 
 ## Class resource
 
@@ -129,7 +153,8 @@ With `hideBlizzard` on, each Blizzard frame whose KstyleUI frame is on is hidden
 | Target | `TargetFrame` (its target of target, `TargetFrameToT`, is a child) |
 | Focus | `FocusFrame` (and its child `FocusFrameToT`) |
 | Pet | `PetFrame` |
-| Boss | `Boss1TargetFrame` to `Boss5TargetFrame` |
+| Boss | `Boss1TargetFrame` to `Boss5TargetFrame` (their cast bars are children) |
+| Player cast bar | `PlayerCastingBarFrame`, while `player.castbar` is on |
 
 These names come from `Blizzard_UnitFrame/Mainline/TargetFrame.xml`, `PlayerFrame.xml` and `PetFrame.xml` on the `forever` branch, with the `Camelot/` overrides only changing their contents.
 
@@ -142,6 +167,9 @@ These names come from `Blizzard_UnitFrame/Mainline/TargetFrame.xml`, `PlayerFram
 - **Fonts belong to the module.** The kit's `Widgets.Text` restyles its texts to their role on every theme change, which would undo a player's font choice. The unit frame texts are the module's own font strings, styled from their settings and restyled on `ThemeChanged`.
 - **Target of target and focus target poll.** Unit events never fire for `targettarget` and `focustarget`. Those two frames refresh on `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED` and `UNIT_TARGET`, and poll health and power every 0.2 seconds only while their button is shown, as Blizzard's own frames do.
 - **One picker, one frame's rows.** Seven frames with the same thirty settings would make a page of over two hundred rows. The page shows the picked frame's rows, and the preview draws that frame.
+- **The target cast bar is its own element.** The target frame's footprint has no room for it, and the kit sheet shows it under the frame. It sits under the target frame's bars, and the target of target moved down 24 units to make room; `test-setup-layouts.lua` checks that nothing overlaps.
+- **Focus and boss cast bars live inside their frames.** Their footprints already hold a cast bar under each frame, so the bar is a child of the unit's button and moves and hides with it. Their height is a setting that takes room from the frame above.
+- **Blizzard's player cast bar may come back after Edit Mode.** `PlayerCastingBarFrame` is a managed frame: Edit Mode can reparent it to its container while it is casting. The next login hides it again.
 - **Status icons keep fixed slots.** A leader or PvP flag can be secret, so the module cannot tell which icons show to pack them together. Each icon keeps its own slot in the row, so nothing moves when a secret flag changes.
 - **Resting is text.** Blizzard's resting art is a 42-frame flipbook atlas. A "Zz" in the accent colour needs no animation and follows the accent.
 - **The class resource is its own element.** The pips sit under the frame in the v3 mockups. As their own Layout element they move and resize on their own, and the setup places them so they overlap nothing.

@@ -13,6 +13,7 @@ local FRAMES = {
 	{ kind = "focus", names = { "FocusFrame" } },
 	{ kind = "pet", names = { "PetFrame" } },
 	{ kind = "boss", names = { "Boss1TargetFrame", "Boss2TargetFrame", "Boss3TargetFrame", "Boss4TargetFrame", "Boss5TargetFrame" } },
+	{ kind = "player", setting = "castbar", names = { "PlayerCastingBarFrame" } },
 }
 Blizzard.FRAMES = FRAMES
 
@@ -22,7 +23,7 @@ function Blizzard.Apply(active)
 	local Safe = K.Safe
 	local hideAll = active and Settings.Module().hideBlizzard == true
 	for _, entry in ipairs(FRAMES) do
-		local hide = hideAll and Settings.Value(entry.kind, "enabled")
+		local hide = hideAll and Settings.Value(entry.kind, entry.setting or "enabled")
 		for _, name in ipairs(entry.names) do
 			local frame = _G[name]
 			if hide then

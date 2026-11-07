@@ -12,6 +12,7 @@ local THEME_FONT = "theme"
 local FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_STEP = 6, 32, 1
 local POWER_HEIGHT_MIN, POWER_HEIGHT_MAX = 2, 24
 local ICON_SIZE_MIN, ICON_SIZE_MAX = 8, 32
+local CAST_HEIGHT_MIN, CAST_HEIGHT_MAX = 6, 40
 local SPACING_MIN, SPACING_MAX = 0, 12
 
 Settings.MODULE = MODULE
@@ -42,6 +43,9 @@ Settings.ELEMENTS = {
 
 Settings.TEXTS = { "name", "health", "power", "level" }
 
+Settings.CASTBAR = { player = true, target = true, focus = true, boss = true }
+Settings.CAST_ELEMENTS = { player = "unitframes.castbar.player", target = "unitframes.castbar.target" }
+
 local function Color(token)
 	local r, g, b = Tokens.Color(token)
 	return { r = r, g = g, b = b }
@@ -53,7 +57,7 @@ local function TextStyle(size)
 	return { font = THEME_FONT, size = size, outline = "NONE" }
 end
 
-local function Kind(full, overrides)
+local function Kind(full, overrides, castHeight, castFont)
 	local d = {
 		enabled = true,
 		portrait = full,
@@ -83,11 +87,20 @@ local function Kind(full, overrides)
 		resting = false,
 		threat = full,
 		iconSize = 14,
+		castbar = castHeight ~= nil,
+		castbarHeight = castHeight or 20,
+		castbarIcon = true,
+		castbarText = true,
+		castbarTimer = true,
+		castbarTexture = BAR_TEXTURE,
+		castbarColor = "class",
+		castbarCustom = Color("rare"),
 		fonts = {
 			name = TextStyle(full and 11 or 9),
 			health = TextStyle(full and 11 or 9),
 			power = TextStyle(9),
 			level = TextStyle(9),
+			cast = TextStyle(castFont or 10),
 		},
 	}
 	for key, value in pairs(overrides or {}) do
@@ -101,13 +114,13 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true, { combat = true, resting = true }),
-	target = Kind(true, { portraitSide = "RIGHT" }),
+	player = Kind(true, { combat = true, resting = true }, 20, 11),
+	target = Kind(true, { portraitSide = "RIGHT" }, 14, 10),
 	targettarget = Kind(false),
-	focus = Kind(true, { powerText = "none" }),
+	focus = Kind(true, { powerText = "none" }, 20, 10),
 	focustarget = Kind(false),
 	pet = Kind(false),
-	boss = Kind(true, { powerText = "none" }),
+	boss = Kind(true, { powerText = "none" }, 10, 9),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -154,6 +167,7 @@ local CHOICE_OF = {
 	powerOrientation = "orientation",
 	healthText = "text",
 	powerText = "text",
+	castbarColor = "accent",
 }
 
 local function Allowed(list, value)
@@ -212,6 +226,7 @@ end
 local RANGES = {
 	powerHeight = { POWER_HEIGHT_MIN, POWER_HEIGHT_MAX },
 	iconSize = { ICON_SIZE_MIN, ICON_SIZE_MAX },
+	castbarHeight = { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX },
 }
 
 local function IsNumber(v)
@@ -333,7 +348,7 @@ local function Shows(kind, extra)
 	end
 end
 
-local IconRows, ResourceRows
+local IconRows, ResourceRows, CastRows
 
 local function Header(kind, label)
 	return { type = "header", label = Settings.LABELS[kind] .. ": " .. label, showWhen = Shows(kind) }
@@ -381,6 +396,7 @@ local TEXT_LABELS = {
 	health = L["Health text"],
 	power = L["Power text"],
 	level = L["Level text"],
+	cast = L["Cast bar text"],
 }
 
 local function TextRows(schema, kind, element)
@@ -423,6 +439,51 @@ IconRows = function(schema, kind)
 		help = L["The size of the status icons on the frame's top edge."],
 		min = ICON_SIZE_MIN, max = ICON_SIZE_MAX, step = 1,
 	})
+end
+
+CastRows = function(schema, kind)
+	local function on(s)
+		return s.castbar ~= false
+	end
+	schema[#schema + 1] = Header(kind, L["cast bar"])
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "castbar", label = L["Cast bar"],
+		help = L["Shows the unit's casts and channels."],
+	})
+	if not Settings.CAST_ELEMENTS[kind] then
+		schema[#schema + 1] = Row(kind, {
+			type = "slider", key = "castbarHeight", label = L["Cast bar height"],
+			help = L["The height of the cast bar under the frame, in units."],
+			min = CAST_HEIGHT_MIN, max = CAST_HEIGHT_MAX, step = 1,
+		}, on)
+	end
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "castbarIcon", label = L["Spell icon"],
+		help = L["Shows the spell's icon beside the cast bar."],
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "castbarText", label = L["Spell name"],
+		help = L["Shows the spell's name on the cast bar."],
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "castbarTimer", label = L["Timer"],
+		help = L["Shows the seconds left on the cast bar."],
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "texture", key = "castbarTexture", label = L["Cast bar texture"],
+		help = L["The texture the cast bar is filled with."],
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "castbarColor", label = L["Cast bar colour"],
+		help = L["The cast bar follows the class colour or a custom colour."], options = CHOICES.accent,
+	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "color", key = "castbarCustom", label = L["Custom cast bar colour"],
+		help = L["The cast bar's colour when it is custom."],
+	}, function(s)
+		return on(s) and s.castbarColor == "custom"
+	end)
+	TextRows(schema, kind, "cast")
 end
 
 ResourceRows = function(schema)
@@ -542,6 +603,9 @@ local function KindRows(schema, kind)
 		TextRows(schema, kind, element)
 	end
 	IconRows(schema, kind)
+	if Settings.CASTBAR[kind] then
+		CastRows(schema, kind)
+	end
 	if kind == "player" then
 		ResourceRows(schema)
 	end
