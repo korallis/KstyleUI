@@ -65,8 +65,10 @@ party[1].marker = 1
 env.FireEvent("RAID_TARGET_UPDATE")
 eq(tank.marker:IsShown(), true, "RAID_TARGET_UPDATE shows a new marker")
 
--- Ready check: waiting, then confirmed, then hidden a moment after it ends.
+-- Ready check: waiting, then confirmed, then hidden a moment after it ends. A member still waiting
+-- when it ends shows as not ready.
 eq(healer.ready:IsShown(), false, "no ready-check icon before a check")
+party[3].ready = "waiting"
 env.FireEvent("READY_CHECK", "Thaldren", 30)
 eq(healer.ready:IsShown(), true, "a ready check shows the icon")
 eq(last(healer.ready, "SetAtlas")[1], env.READY_CHECK_WAITING_TEXTURE, "waiting")
@@ -75,6 +77,8 @@ env.FireEvent("READY_CHECK_CONFIRM", "party2", true)
 eq(last(healer.ready, "SetAtlas")[1], env.READY_CHECK_READY_TEXTURE, "ready")
 env.FireEvent("READY_CHECK_FINISHED")
 eq(healer.ready:IsShown(), true, "the result stays for a moment")
+eq(last(dps.ready, "SetAtlas")[1], env.READY_CHECK_NOT_READY_TEXTURE, "a member still waiting at the end shows as not ready")
+eq(last(healer.ready, "SetAtlas")[1], env.READY_CHECK_READY_TEXTURE, "a ready member stays ready")
 env.RunTimers()
 eq(healer.ready:IsShown(), false, "then hides")
 
@@ -100,6 +104,9 @@ party[1].absorb = 20
 env.FireEvent("UNIT_ABSORB_AMOUNT_CHANGED", "party1")
 eq(env.Reveal(last(tank.absorbs, "SetValue")[1]), 20, "UNIT_ABSORB_AMOUNT_CHANGED updates the absorbs")
 eq(tank.heals:GetParent():GetParent(), tank, "the prediction bars sit in a clip frame on the content")
+party[1].absorb = 25
+env.FireEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", "party1")
+eq(env.Reveal(last(tank.absorbs, "SetValue")[1]), 25, "UNIT_HEAL_ABSORB_AMOUNT_CHANGED refreshes the prediction")
 local calculators = env._calculators
 env.FireEvent("UNIT_HEAL_PREDICTION", "party1")
 eq(env._calculators, calculators, "the calculator is made once per frame, not per update")
@@ -115,6 +122,8 @@ party[1].threat = 3
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "party1")
 eq(tank.threat:IsShown(), false, "the threat border switches off")
 eq(tank.heals:IsShown(), false, "incoming heals switch off")
+eq(last(tank.heals, "SetValue")[1], 0, "hidden heals drop to zero, so absorbs start at the health fill")
+eq(tank.calc.modes.absorb, env.Enum.UnitDamageAbsorbClampMode.MissingHealthWithoutIncomingHeals, "absorbs clamp without heals while heals are off")
 eq(tank.absorbs:IsShown(), true, "absorbs stay on")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 

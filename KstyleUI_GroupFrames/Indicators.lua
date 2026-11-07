@@ -22,6 +22,7 @@ local issecretvalue = issecretvalue or function()
 end
 
 local readyActive = false
+local readyFinished = false
 local readyToken = 0
 
 local function Build(f)
@@ -158,6 +159,9 @@ local function Ready(f)
 		return
 	end
 	local status = GetReadyCheckStatus(f.unit)
+	if readyFinished and status == "waiting" then
+		status = "notready"
+	end
 	local atlas = not issecretvalue(status) and type(status) == "string" and READY_ATLAS[status] and READY_ATLAS[status]()
 	if type(atlas) ~= "string" then
 		f.ready:Hide()
@@ -208,17 +212,20 @@ end
 
 local function ReadyStart()
 	readyActive = true
+	readyFinished = false
 	readyToken = readyToken + 1
 	Each(Ready)()
 end
 
 local function ReadyFinished()
+	readyFinished = true
 	Each(Ready)()
 	readyToken = readyToken + 1
 	local token = readyToken
 	C_Timer.After(READY_HOLD, function()
 		if token == readyToken then
 			readyActive = false
+			readyFinished = false
 			Each(Ready)()
 		end
 	end)

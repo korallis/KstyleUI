@@ -25,6 +25,29 @@ local function Paint(bar, color)
 	bar:SetBarColor(color.r, color.g, color.b, color.a or 1)
 end
 
+local function Configure(calc)
+	local enum = Enum
+	if enum and enum.UnitIncomingHealClampMode and calc.SetIncomingHealClampMode then
+		calc:SetIncomingHealClampMode(enum.UnitIncomingHealClampMode.MissingHealth)
+	end
+	local modes = enum and enum.UnitDamageAbsorbClampMode
+	if modes and calc.SetDamageAbsorbClampMode then
+		local withHeals = Settings.current.prediction.heals
+		calc:SetDamageAbsorbClampMode(withHeals and modes.MissingHealth or modes.MissingHealthWithoutIncomingHeals or modes.MissingHealth)
+	end
+end
+
+local function Calculator(f)
+	local calc = f.calc
+	if calc then
+		return calc
+	end
+	calc = CreateUnitHealPredictionCalculator()
+	Configure(calc)
+	f.calc = calc
+	return calc
+end
+
 local function Layout(f, parts)
 	local cfg = Settings.current
 	local rect = parts.health
@@ -49,25 +72,14 @@ local function Layout(f, parts)
 	Paint(f.absorbs, cfg.prediction.absorbColor)
 	f.heals:SetShown(cfg.prediction.heals)
 	f.absorbs:SetShown(cfg.prediction.absorbs)
+	if not cfg.prediction.heals then
+		f.heals:SetValue(0)
+	end
+	if f.calc then
+		Configure(f.calc)
+	end
 end
 Style.appliers[#Style.appliers + 1] = Layout
-
-local function Calculator(f)
-	local calc = f.calc
-	if calc then
-		return calc
-	end
-	calc = CreateUnitHealPredictionCalculator()
-	local enum = Enum
-	if enum and enum.UnitIncomingHealClampMode and calc.SetIncomingHealClampMode then
-		calc:SetIncomingHealClampMode(enum.UnitIncomingHealClampMode.MissingHealth)
-	end
-	if enum and enum.UnitDamageAbsorbClampMode and calc.SetDamageAbsorbClampMode then
-		calc:SetDamageAbsorbClampMode(enum.UnitDamageAbsorbClampMode.MissingHealth)
-	end
-	f.calc = calc
-	return calc
-end
 
 local function Values(f)
 	local unit = f.unit
@@ -125,5 +137,6 @@ Style.painters[#Style.painters + 1] = PaintSample
 Unit.extra[#Unit.extra + 1] = Update
 Unit.Chain("UNIT_HEAL_PREDICTION", Update)
 Unit.Chain("UNIT_ABSORB_AMOUNT_CHANGED", Update)
+Unit.Chain("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", Update)
 Unit.Chain("UNIT_HEALTH", Update)
 Unit.Chain("UNIT_MAXHEALTH", Update)
