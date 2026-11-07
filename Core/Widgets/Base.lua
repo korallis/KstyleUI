@@ -131,6 +131,44 @@ function Widgets.RestyleAll()
 	end
 end
 
+local REGION_FIELDS = { "owner", "holder", "frame", "bar", "button" }
+
+local function Region(widget)
+	if type(widget.GetParent) == "function" then
+		return widget
+	end
+	for i = 1, #REGION_FIELDS do
+		local region = widget[REGION_FIELDS[i]]
+		if type(region) == "table" and type(region.GetParent) == "function" then
+			return region
+		end
+	end
+	return nil
+end
+
+local function Under(node, roots)
+	while node do
+		if roots[node] then
+			return true
+		end
+		node = node:GetParent()
+	end
+	return false
+end
+
+function Widgets.RestyleUnder(roots)
+	if next(roots) == nil then
+		return
+	end
+	for i = 1, #tracked do
+		local widget = tracked[i]
+		local region = Region(widget)
+		if region == nil or Under(region, roots) then
+			ns.Call(widget.Restyle, widget)
+		end
+	end
+end
+
 function Widgets.Rgba(name, alphaScale)
 	local r, g, b, a = Tokens.Color(name)
 	return r, g, b, (a or 1) * (alphaScale or 1)

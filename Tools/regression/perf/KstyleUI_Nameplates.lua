@@ -26,4 +26,14 @@ return {
 			return env, Perf.Event(env, "UNIT_SPELLCAST_START", "nameplate1")
 		end,
 	},
+	{
+		name = "Nameplates UNIT_FLAGS while casting",
+		budget = 30,
+		setup = function()
+			local env = Plate()
+			env._units.nameplate1.cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
+			env.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
+			return env, Perf.Event(env, "UNIT_FLAGS", "nameplate1")
+		end,
+	},
 }

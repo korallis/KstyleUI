@@ -107,6 +107,26 @@ assert(not target.glowFrame:IsShown(), "a secret status is never compared; the g
 env._units.player.threat = 2
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
 assert(player.glowFrame:IsShown(), "the player frame glows with the player's own threat")
+
+-- UNIT_THREAT_LIST_UPDATE fires for every mob in combat. One for a unit no frame shows repaints
+-- nothing, and an unchanged status is not repainted.
+env._units.target.threatOn = 3
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+assert(target.glowFrame:IsShown(), "the target glows again")
+local painted = #W.Calls(target.glow[1], "SetVertexColor")
+local playerPainted = #W.Calls(player.glow[1], "SetVertexColor")
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "nameplate7")
+assert(#W.Calls(target.glow[1], "SetVertexColor") == painted, "a threat list update for a unit no frame shows repaints nothing")
+assert(#W.Calls(player.glow[1], "SetVertexColor") == playerPainted, "not even the player frame")
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+assert(#W.Calls(target.glow[1], "SetVertexColor") == painted, "an unchanged threat status is not repainted")
+env._units.target.threatOn = 1
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+assert(#W.Calls(target.glow[1], "SetVertexColor") > painted, "a new status repaints")
+assert(W.SameRGB(target.glow[1], nr, ng, nb), "in the new colour")
+env._units.target.threatOn = 3
+env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
+assert(W.SameRGB(target.glow[1], K.Theme.ThreatColor(3)), "the player's own threat update reaches the target frame")
 noErrors("marker and threat")
 
 -- The resting text follows the module's accent at once.

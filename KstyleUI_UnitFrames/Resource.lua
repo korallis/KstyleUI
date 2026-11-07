@@ -206,6 +206,7 @@ function Resource.Visibility()
 	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
 	state.content:SetShown(state.showCombo or state.showMana)
+	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))
 	Resource.Layout()
 	Resource.Points()
 	Resource.Mana()
@@ -219,6 +220,22 @@ local function OnPower(_, _, token)
 	end
 end
 
+function Resource.ListenToPower(on)
+	on = on and true or false
+	if on == state.listening then
+		return
+	end
+	state.listening = on
+	local Events = K.Events
+	if on then
+		Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
+		Events.RegisterUnit(OWNER, "UNIT_MAXPOWER", OnPower, "player")
+	else
+		Events.Unregister(OWNER, "UNIT_POWER_FREQUENT")
+		Events.Unregister(OWNER, "UNIT_MAXPOWER")
+	end
+end
+
 function Resource.Enable()
 	if not state.built then
 		Build()
@@ -229,8 +246,6 @@ function Resource.Enable()
 		state.holder:Show()
 	end
 	local Events = K.Events
-	Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
-	Events.RegisterUnit(OWNER, "UNIT_MAXPOWER", OnPower, "player")
 	Events.RegisterUnit(OWNER, "UNIT_DISPLAYPOWER", Resource.Visibility, "player")
 	Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Resource.Visibility)
 	Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Resource.Points)
@@ -240,6 +255,7 @@ end
 
 function Resource.Disable()
 	state.running = false
+	state.listening = false
 	K.Events.UnregisterAll(OWNER)
 	if state.built then
 		state.content:Hide()

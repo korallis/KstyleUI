@@ -207,19 +207,26 @@ end
 function Indicators.Threat(view, unit)
 	local glow = view.glowFrame
 	if not view.s.threat then
+		view.threatStatus = nil
 		glow:Hide()
 		return
 	end
 	local status = ThreatStatus(unit)
 	if issecretvalue(status) or type(status) ~= "number" or status <= 0 then
+		view.threatStatus = nil
 		glow:Hide()
+		return
+	end
+	if status == view.threatStatus and glow:IsShown() then
 		return
 	end
 	local r, g, b = K.Theme.ThreatColor(status)
 	if not r then
+		view.threatStatus = nil
 		glow:Hide()
 		return
 	end
+	view.threatStatus = status
 	Widgets.ColorSlice(view.glow, r, g, b, GLOW_ALPHA)
 	glow:Show()
 end

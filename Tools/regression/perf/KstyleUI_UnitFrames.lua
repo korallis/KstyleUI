@@ -40,6 +40,24 @@ return {
 		end,
 	},
 	{
+		name = "UnitFrames UNIT_THREAT_LIST_UPDATE",
+		budget = 10,
+		setup = function()
+			local env = Target()
+			env._units.target.threatOn = 3
+			env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+			return env, Perf.Event(env, "UNIT_THREAT_LIST_UPDATE", "target")
+		end,
+	},
+	{
+		name = "UnitFrames UNIT_THREAT_LIST_UPDATE for another unit",
+		budget = 5,
+		setup = function()
+			local env = Target()
+			return env, Perf.Event(env, "UNIT_THREAT_LIST_UPDATE", "nameplate7")
+		end,
+	},
+	{
 		name = "UnitFrames UNIT_SPELLCAST_START",
 		budget = 80,
 		setup = function()

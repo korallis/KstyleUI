@@ -53,6 +53,29 @@ do
 	assert(not bar:GetScript("OnUpdate"), "and stops counting")
 end
 
+-- UNIT_FLAGS and UNIT_FACTION fire often in combat; they never restart a cast that is running -------------
+
+do
+	local env, _, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	N.Cast(env, "nameplate1", CAST)
+	local bar = plate.castBar
+	local timers, blanks = #Calls(bar, "SetTimerDuration"), #Calls(plate.castTime, "SetText")
+	env.FireEvent("UNIT_FLAGS", "nameplate1")
+	env.FireEvent("UNIT_FACTION", "nameplate1")
+	assert(#Calls(bar, "SetTimerDuration") == timers, "a flags change does not restart the running cast")
+	assert(#Calls(plate.castTime, "SetText") == blanks, "nor blank its time text")
+	assert(plate.cast:IsShown() and plate.casting, "the cast keeps running")
+
+	-- A unit that turns friendly gets the friendly style at once.
+	env._units.nameplate1.canAttack = false
+	env._units.nameplate1.reaction = 5
+	env.FireEvent("UNIT_FACTION", "nameplate1")
+	assert(plate.kind == "friendly", "UNIT_FACTION still switches the style")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Secret casts: the name, the icon and the interruptible flag pass through whole -----------------------
 
 do

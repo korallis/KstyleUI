@@ -75,6 +75,7 @@ The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Re
 | Interruptible or not | A plain flag picks the cast colour (the accent or a custom colour) or the uninterruptible colour, and dims the icon. A secret flag goes to `SetVertexColorFromBoolean` on the bar's texture and `SetAlphaFromBoolean` on the icon's shade, so the engine decides. `UNIT_SPELLCAST_INTERRUPTIBLE` and `UNIT_SPELLCAST_NOT_INTERRUPTIBLE` give a plain flag. |
 | `UNIT_SPELLCAST_STOP`, `_FAILED`, `_CHANNEL_STOP` | The bar fades out over `fade`. |
 | `UNIT_SPELLCAST_INTERRUPTED` | The bar fills, turns `hostile`, says **Interrupted** and fades out over 0.8 s. The `STOP` that follows is ignored. |
+| `UNIT_FLAGS`, `UNIT_FACTION` | These fire often in combat (combat state, stuns, roots, fear), so they rerun only the style, the bar colour and threat. A plate whose kind or name-only state changed refreshes in full, and even then a cast that is already running keeps going: the bar restarts only for a new cast ID, a settings change or a new unit. |
 
 Without the duration APIs or `SetTimerDuration`, the bar takes the cast's start and end times as its range (they may be secret; the engine compares them) and an `OnUpdate` sets the value to `GetTime() * 1000`. That path shows no time text, channels fill rather than drain, and the devlog says it ran.
 

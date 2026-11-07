@@ -108,12 +108,7 @@ function Glow:Stop()
 	end
 	self.playing = false
 	local holder = self.holder
-	Motion.Tween(holder, "SetAlpha", holder:GetAlpha(), 0, Tokens.Duration("fade"), Tokens.Easing("fade"), function()
-		if not self.playing then
-			Hidden(holder)
-			StopAnimations(self)
-		end
-	end)
+	Motion.Tween(holder, "SetAlpha", holder:GetAlpha(), 0, Tokens.Duration("fade"), Tokens.Easing("fade"), self.onFaded)
 end
 
 function Glow:SetIntensity(t)
@@ -158,6 +153,12 @@ function Widgets.Glow(frame, opts)
 		spread = opts.spread or Tokens.Size("gapMedium"),
 		playing = false,
 	}, Glow)
+	handle.onFaded = function()
+		if not handle.playing then
+			Hidden(holder)
+			StopAnimations(handle)
+		end
+	end
 	local body = holder
 	if kind == "proc" then
 		body = CreateFrame("Frame", nil, holder)

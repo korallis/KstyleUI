@@ -113,6 +113,23 @@ local function EachShown(fn)
 	end
 end
 
+local function OnThreat(_, unit)
+	if unit == "player" then
+		EachShown(Indicators.Threat)
+		return
+	end
+	for _, kind in ipairs(order) do
+		local uf = frames[kind]
+		if running and uf.active then
+			for _, view in ipairs(uf.views) do
+				if view.unit == unit and Visible(view.button) then
+					Indicators.Threat(view, unit)
+				end
+			end
+		end
+	end
+end
+
 local function OnPlayer(fn)
 	local uf = frames.player
 	if running and uf and uf.active then
@@ -489,11 +506,8 @@ local function RegisterEvents()
 			EachShown(Indicators.Status)
 		end)
 	end
-	for _, event in ipairs({ "UNIT_THREAT_SITUATION_UPDATE", "UNIT_THREAT_LIST_UPDATE" }) do
-		Events.Register(MODULE, event, function()
-			EachShown(Indicators.Threat)
-		end)
-	end
+	Events.Register(MODULE, "UNIT_THREAT_SITUATION_UPDATE", OnThreat)
+	Events.Register(MODULE, "UNIT_THREAT_LIST_UPDATE", OnThreat)
 	for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
 		Events.Register(MODULE, event, function()
 			OnPlayer(Indicators.Combat)

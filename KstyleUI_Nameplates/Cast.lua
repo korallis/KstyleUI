@@ -241,19 +241,39 @@ function Cast.SetInterruptible(plate, interruptible)
 	end
 end
 
-function Cast.Refresh(plate)
+local function Running(plate, channel, castID)
+	if not plate.casting or plate.castChannel ~= channel then
+		return false
+	end
+	if channel then
+		return true
+	end
+	local last = plate.castID
+	if IsSecret(castID) or IsSecret(last) then
+		return true
+	end
+	return castID ~= nil and castID == last
+end
+
+function Cast.Refresh(plate, immediate)
 	if not Shows(plate) then
 		Cast.Hide(plate)
 		return
 	end
 	local unit = plate.unit
-	local name = UnitCastingInfo(unit)
+	local name, _, _, _, _, _, castID = UnitCastingInfo(unit)
 	if type(name) ~= "nil" then
+		if not immediate and Running(plate, false, castID) then
+			return
+		end
 		Cast.Start(plate, false)
 		return
 	end
 	name = UnitChannelInfo(unit)
 	if type(name) ~= "nil" then
+		if not immediate and Running(plate, true) then
+			return
+		end
 		Cast.Start(plate, true)
 	elseif plate.casting then
 		Cast.Hide(plate)
@@ -339,12 +359,12 @@ function Component.Restyle(plate)
 	plate.castTime:SetPoint("RIGHT", bar, "RIGHT", -Widgets.Snap(plate, TEXT_INSET), 0)
 end
 
-function Component.Refresh(plate)
+function Component.Refresh(plate, immediate)
 	if plate.sample then
 		Cast.Sample(plate)
 		return
 	end
-	Cast.Refresh(plate)
+	Cast.Refresh(plate, immediate)
 end
 
 function Component.Clear(plate)

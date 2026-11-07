@@ -312,8 +312,8 @@ local UNIT_EVENTS = {
 	UNIT_NAME_UPDATE = Method("UpdateName"),
 	UNIT_LEVEL = Method("UpdateLevel"),
 	UNIT_CLASSIFICATION_CHANGED = Method("UpdateMarker"),
-	UNIT_FACTION = Method("Refresh"),
-	UNIT_FLAGS = Method("Refresh"),
+	UNIT_FACTION = Method("RefreshFlags"),
+	UNIT_FLAGS = Method("RefreshFlags"),
 	UNIT_THREAT_SITUATION_UPDATE = Method("UpdateThreat"),
 	UNIT_THREAT_LIST_UPDATE = Method("UpdateThreat"),
 }

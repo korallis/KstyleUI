@@ -394,19 +394,26 @@ local function Place(el, anchor, x, y, w, h, f, pixel)
 end
 
 local restylePending = false
+local scaledRoots = {}
 
 local function RestyleWidgets()
 	restylePending = false
-	ns.Widgets.RestyleAll()
+	ns.Widgets.RestyleUnder(scaledRoots)
+	for frame in pairs(scaledRoots) do
+		scaledRoots[frame] = nil
+	end
 end
 
 local function ApplyGeometry(el)
 	local frame, s = el.frame, el.settings
 	if el.opts.scalable then
 		frame:SetScale(s.scale)
-		if el.appliedScale ~= s.scale and not restylePending then
-			restylePending = true
-			C_Timer.After(0, RestyleWidgets)
+		if el.appliedScale ~= s.scale then
+			scaledRoots[frame] = true
+			if not restylePending then
+				restylePending = true
+				C_Timer.After(0, RestyleWidgets)
+			end
 		end
 		el.appliedScale = s.scale
 	end

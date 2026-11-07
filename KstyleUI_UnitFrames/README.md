@@ -162,7 +162,7 @@ Each player, target, focus and boss view gets a `CustomAuraContainerTemplate` co
 | Druid in bear form, or any form with a power other than mana | The mana bar |
 | Anyone else | Nothing |
 
-Each pip is a status bar from `i - 1` to `i` filled with the `dot` texture, and every pip gets the same count, so the engine decides which pips are full and a secret count never reaches a comparison. Combo points are bound to the target on Forever: the count comes from `GetComboPoints("player", "target")` and refreshes on `UNIT_POWER_FREQUENT`, `PLAYER_TARGET_CHANGED` and `COMBO_TARGET_CHANGED`. The mana bar reads `UnitPower("player", Enum.PowerType.Mana)` and refreshes on mana power events, `UNIT_DISPLAYPOWER` and `UPDATE_SHAPESHIFT_FORM`.
+Each pip is a status bar from `i - 1` to `i` filled with the `dot` texture, and every pip gets the same count, so the engine decides which pips are full and a secret count never reaches a comparison. Combo points are bound to the target on Forever: the count comes from `GetComboPoints("player", "target")` and refreshes on `UNIT_POWER_FREQUENT`, `PLAYER_TARGET_CHANGED` and `COMBO_TARGET_CHANGED`. `UNIT_POWER_FREQUENT` and `UNIT_MAXPOWER` are registered only while the element shows pips or the mana bar, because `UNIT_POWER_FREQUENT` fires on every mana, energy and rage tick. The mana bar reads `UnitPower("player", Enum.PowerType.Mana)` and refreshes on mana power events, `UNIT_DISPLAYPOWER` and `UPDATE_SHAPESHIFT_FORM`.
 
 ## Blizzard frames
 

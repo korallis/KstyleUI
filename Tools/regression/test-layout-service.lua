@@ -580,6 +580,36 @@ do
 	assert(panel:GetScale() == 1.25 and panel:GetWidth() == 400, "and a later restyle keeps both")
 end
 
+-- A new scale restyles only the widgets inside the scaled element, not every widget in the UI -----------------------------
+
+do
+	local env, K = New()
+	local Layout, Widgets, Scale = K.Layout, K.Widgets, K.Scale
+	local panel = Widgets.Panel(Scale.Root(), {
+		width = 220, height = 100,
+		layout = { key = "Test.Scaled", position = { anchor = "CENTER" }, options = { label = "Scaled", scalable = true } },
+	})
+	local inside = Widgets.Button(panel, { text = "Inside" })
+	local outside = Widgets.Button(Scale.Root(), { text = "Outside" })
+	local counts = {}
+	for _, widget in ipairs({ panel, inside, outside }) do
+		local restyle = widget.Restyle
+		counts[widget] = 0
+		widget.Restyle = function(self, ...)
+			counts[self] = counts[self] + 1
+			return restyle(self, ...)
+		end
+	end
+	assert(Layout.Set("Test.Scaled", "scale", 1.5))
+	env.RunTimers()
+	assert(counts[panel] == 1 and counts[inside] == 1, "the scaled element and the widgets inside it restyle once")
+	assert(counts[outside] == 0, "a widget outside the scaled element does not restyle")
+	assert(Layout.Set("Test.Scaled", "scale", 1.25))
+	assert(Layout.Set("Test.Scaled", "scale", 1.5))
+	env.RunTimers()
+	assert(counts[panel] == 2 and counts[inside] == 2, "several scale changes in one frame restyle once")
+end
+
 -- A profile switch while Layout Mode is open ends the session without restoring the old profile's snapshot ---------------
 
 do

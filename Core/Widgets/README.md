@@ -7,7 +7,7 @@ The roadmap's [Core public API](../../docs/superpowers/plans/2026-11-07-kstyleui
 ## Rules every component follows
 
 - Colours, sizes, durations, easings, fonts and textures come from `KstyleUI.Tokens` only.
-- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleAll()` or its own `Restyle()` to redraw.
+- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleUnder({ [frame] = true })` or its own `Restyle()` to redraw. Layout does this for each scalable element, once per frame however many wheel ticks arrive.
 - Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged`, a change to a setting on the `Widgets` page, and a change to the Appearance page's `motion` setting.
 - Hover and press run through `KstyleUI.Motion`: hover is `Tokens.Duration("hover")` with `outQuart`, and press moves the content down `Tokens.Size("pressOffset")`.
 - Components hook scripts with `HookScript`. A component built on a secure template keeps the template's own `OnClick`.
@@ -34,6 +34,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 | --- | --- |
 | `Track(widget) -> widget` | Adds `widget` to the restyle registry. `widget:Restyle()` runs on every restyle event. A failing `Restyle` is reported through `KstyleUI.Call` and the rest still run. |
 | `RestyleAll()` | Runs every tracked `Restyle`. |
+| `RestyleUnder(roots)` | Runs the `Restyle` of each tracked widget inside one of the frames in the set `roots` (`{ [frame] = true }`), found through `GetParent`. A widget is its own frame, or the `owner`, `holder`, `frame`, `bar` or `button` of a handle. A handle with none of these restyles too, to be safe. |
 | `Text(parent, role, colorName, layer) -> FontString` | A font string in the role's font (`Tokens.Font`), with the soft `textShadow` shadow offset by `textShadowOffset`, coloured `colorName` (default `text`), in `layer` (default `OVERLAY`). A face change restyles every text made here. |
 | `StyleText(text, role)` | Applies a role's font and shadow to any font string and adds it to the face-change list. A font the game cannot load falls back to `GameFontHighlight` and logs once. A role with font flags, such as `world`, gets no shadow. |
 | `SetText(text, value)` | Sets the text. A role whose `Tokens.TextStyle` is upper case, such as `caption`, upper-cases it. `nil` clears it. A secret passes through untouched. |

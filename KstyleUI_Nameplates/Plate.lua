@@ -286,6 +286,19 @@ function Plate:Refresh(immediate)
 	Each("Refresh", self, immediate)
 end
 
+function Plate:RefreshFlags()
+	if not self.unit and not self.sample then
+		return
+	end
+	local kind, nameOnly = self.kind, self.nameOnly
+	self:UpdateStyle()
+	if self.kind ~= kind or self.nameOnly ~= nameOnly then
+		self:Refresh()
+		return
+	end
+	self:UpdateThreat()
+end
+
 function Plate:Is(field, fn, ...)
 	local sample = self.sample
 	if sample then

@@ -122,6 +122,28 @@ DK.Options.Write("UnitFrames", "resource.druidMana", false)
 assert(not d.showMana and d.showCombo, "druid mana can be switched off")
 assert(#denv._errors == 0, "druid: " .. tostring(denv._errors[1]))
 
+-- UNIT_POWER_FREQUENT, the busiest unit event, is registered only while the element shows something.
+local function powerListeners(e)
+	local n = 0
+	for _, frame in ipairs(e._frames) do
+		if frame._events.UNIT_POWER_FREQUENT then
+			n = n + 1
+		end
+	end
+	return n
+end
+assert(powerListeners(env) == 1, "a rogue listens to power events")
+K.Options.Write("UnitFrames", "resource.enabled", false)
+assert(powerListeners(env) == 0, "with the class resource off, nothing listens to power events")
+K.Options.Write("UnitFrames", "resource.enabled", true)
+assert(powerListeners(env) == 1 and state.showCombo, "turning it back on listens again")
+do
+	local henv = U.New()
+	assert(powerListeners(henv) == 0, "a hunter shows no class resource, so nothing listens to power events")
+end
+assert(powerListeners(denv) == 1, "a druid in cat form listens for combo points")
+noErrors("power events")
+
 -- Stopping the module hides the element and stops its events.
 K.Modules.Disable("UnitFrames")
 assert(not state.holder:IsShown(), "the element hides with the module")

@@ -9,6 +9,18 @@ end
 
 return {
 	{
+		name = "Glow Start and Stop",
+		budget = 20,
+		setup = function()
+			local env, K = W.New()
+			local glow = K.Widgets.Glow(K.Widgets.Panel(K.Scale.Root(), {}), { kind = "proc" })
+			return env, function()
+				glow:Start()
+				glow:Stop()
+			end
+		end,
+	},
+	{
 		name = "StatusBar SetBarColor",
 		budget = 10,
 		setup = function()
