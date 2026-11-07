@@ -604,6 +604,38 @@ function Store.ResetProfile(name)
 	return true
 end
 
+function Store.CharacterKey()
+	return charKey
+end
+
+function Store.Characters()
+	local out = {}
+	if db then
+		for key, name in pairs(db.characters) do
+			out[key] = name
+		end
+	end
+	return out
+end
+
+function Store.AssignCharacter(key, name)
+	if not db then
+		return false, NOT_LOADED
+	end
+	if type(key) ~= "string" or (key ~= charKey and db.characters[key] == nil) then
+		return false, format(L["KstyleUI does not know a character named %s."], tostring(key))
+	end
+	local clean, err = existing(name)
+	if not clean then
+		return false, err
+	end
+	if key == charKey then
+		return Store.SetProfile(clean)
+	end
+	db.characters[key] = clean
+	return true
+end
+
 local function encoding()
 	local api = C_EncodingUtil
 	if type(api) ~= "table" then

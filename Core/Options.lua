@@ -182,9 +182,15 @@ function Options.Register(module, schema)
 	if type(schema) ~= "table" then
 		error("KstyleUI.Options.Register(" .. module .. "): the schema must be a list of rows", 2)
 	end
+	local preview = schema.preview
+	if preview ~= nil and type(preview) ~= "function" then
+		error("KstyleUI.Options.Register(" .. module .. "): preview must be a function(parent) that builds the module's live preview", 2)
+	end
 	local count = 0
-	for _ in pairs(schema) do
-		count = count + 1
+	for key in pairs(schema) do
+		if key ~= "preview" then
+			count = count + 1
+		end
 	end
 	if count ~= #schema then
 		error("KstyleUI.Options.Register(" .. module .. "): the schema must be a list of rows with no gaps", 2)
@@ -211,6 +217,11 @@ end
 
 function Options.Get(module)
 	return schemas[module]
+end
+
+function Options.Preview(module)
+	local schema = schemas[module]
+	return schema and schema.preview
 end
 
 function Options.Row(module, key)

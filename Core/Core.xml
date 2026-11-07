@@ -18,6 +18,7 @@
 	<Script file="Options.lua"/>
 	<Script file="Appearance.lua"/>
 	<Script file="Slash.lua"/>
+	<Script file="OptionsEntry.lua"/>
 	<Script file="Skin.lua"/>
 	<Include file="Widgets\Widgets.xml"/>
 	<Include file="Layout\Layout.xml"/>

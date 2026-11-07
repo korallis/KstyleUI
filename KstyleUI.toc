@@ -7,5 +7,6 @@
 ## Group: KstyleUI
 ## SavedVariables: KstyleUIDB
 ## IconTexture: Interface\AddOns\KstyleUI\Media\Logo\Logo64
+## AddonCompartmentFunc: KstyleUI_OnAddonCompartmentClick
 
 Core\Core.xml

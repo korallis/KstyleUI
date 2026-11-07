@@ -104,6 +104,9 @@ A profile change starts and stops modules to match the new profile's switches.
 | `ProfileName()`, `ListProfiles()` | The active profile's name, and every profile name in sorted order. |
 | `SetProfile(name)` | Assigns the character to the profile, creating it if needed, and fires `ProfileChanged`. |
 | `CreateProfile(name)`, `CopyProfile(source, target)`, `RenameProfile(old, new)`, `DeleteProfile(name)`, `ResetProfile(name)` | Return `true`, or `false` and a reason. The active profile cannot be deleted. Characters on a deleted profile fall back to `Default`. A change to the active profile fires `ProfileChanged`. |
+| `CharacterKey() -> key` | The logged-in character's `"<realm>-<name>"`, or `nil` before the game knows it. |
+| `Characters() -> { [key] = profileName }` | A copy of every character's profile assignment. Empty before the saved data loads. |
+| `AssignCharacter(key, name) -> ok, reason` | Moves a known character to an existing profile. For the logged-in character it is `SetProfile` and fires `ProfileChanged`; for any other character it only saves the assignment, which applies at that character's next login. An unknown character, a missing profile or a bad name returns `false` and a reason. |
 | `Export(name) -> string, path` | A `KSUI1:` string for the profile, or the active one. `path` is `"C_EncodingUtil"` or `"Lua"`. |
 | `Decode(text) -> payload` or `nil, reason` | Validates a string and applies nothing. |
 | `Import(text, name) -> true, profileName` or `false, reason` | Validates the string, saves it as a new profile under a free name, and switches to it. |
@@ -131,7 +134,7 @@ When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Code
 
 ## Options
 
-`Options.Register(module, schema)` needs the module's defaults first. `schema` is a list of rows.
+`Options.Register(module, schema)` needs the module's defaults first. `schema` is a list of rows. Besides the rows, the schema may hold one named field, `preview`: a `function(parent) -> frame` that builds the module's live preview inside `parent`, the settings window's preview pane. The window calls it once, the first time the module's page opens, shows the frame while the page is open, and calls `frame:Refresh()`, when the frame has one, after any of the module's settings changes.
 
 | Field | Rows | Rule |
 | --- | --- | --- |
@@ -150,9 +153,19 @@ The default's type must match the row: `toggle` takes a boolean, `slider` a numb
 | Function | Behaviour |
 | --- | --- |
 | `Get(module)`, `Row(module, key)`, `List()` | Read the schemas. |
+| `Preview(module) -> function` | The schema's `preview` builder, or `nil`. |
 | `Read(module, key)`, `Write(module, key, value)` | Read and write a setting by dotted key. `Write` checks the type and fires `SettingChanged`. Writing a module's `enabled` key calls `Modules.Enable` or `Modules.Disable`. |
 | `SetWindow(show)` | `KstyleUI_Options` calls it when it loads. `show(page)` opens the settings window. |
 | `Open(page)` | Loads `KstyleUI_Options` on demand, then calls `show(page)`. Returns `false` and prints the reason when it cannot. |
+
+### Other ways in
+
+`Core/OptionsEntry.lua` gives the settings window two more doors besides `/kstyle`. Test: `test-options-entry.lua`.
+
+- At `PLAYER_LOGIN` it registers a canvas category named `KstyleUI` in Blizzard's Settings panel with `Settings.RegisterCanvasLayoutCategory` and `Settings.RegisterAddOnCategory`. The canvas is one empty frame until the player first selects the category; then it builds the logo, a line of text and an **Open KstyleUI settings** button from the widget kit. The button calls `Options.Open()`. A client without the Settings API, or one that refuses the category, gets a devlog line and no category.
+- The core TOC names `KstyleUI_OnAddonCompartmentClick` as its `AddonCompartmentFunc`, so the minimap's addon compartment lists KstyleUI. A click calls `Options.Open()`.
+
+The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's settings. The settings window opens in the `HIGH` strata as a top-level frame, so it shows over the Settings panel.
 
 ## DevTest
 
