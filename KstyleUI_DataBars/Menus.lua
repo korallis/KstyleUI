@@ -10,7 +10,7 @@ ns.Menus = Menus
 local MENU_PAD = 4
 local MICRO_TILE_INSET = 2
 local BAG_TILE_INSET = -2
-local TINTS = { normal = "GetNormalTexture", pushed = "GetPushedTexture", highlight = "GetHighlightTexture", disabled = "GetDisabledTexture" }
+local TINTS = { "GetNormalTexture", "GetPushedTexture", "GetHighlightTexture" }
 
 local GROUPS = {
 	micro = {
@@ -147,20 +147,24 @@ local function SetShown(frame, shown)
 end
 
 local function Tint(button, tint)
-	for _, getter in pairs(TINTS) do
+	for _, getter in ipairs(TINTS) do
 		local texture = type(button[getter]) == "function" and button[getter](button) or nil
 		if IsTexture(texture) then
 			if tint == "none" then
 				local original = originalTint[texture]
 				if original then
-					texture:SetDesaturation(0)
+					texture:SetDesaturation(original[5])
 					texture:SetVertexColor(original[1], original[2], original[3], original[4])
 					originalTint[texture] = nil
 				end
 			else
 				if not originalTint[texture] then
 					local r, g, b, a = texture:GetVertexColor()
-					originalTint[texture] = { ns.IsNumber(r) and r or 1, ns.IsNumber(g) and g or 1, ns.IsNumber(b) and b or 1, ns.IsNumber(a) and a or 1 }
+					local desaturation = texture:GetDesaturation()
+					originalTint[texture] = {
+						ns.IsNumber(r) and r or 1, ns.IsNumber(g) and g or 1, ns.IsNumber(b) and b or 1, ns.IsNumber(a) and a or 1,
+						ns.IsNumber(desaturation) and desaturation or 0,
+					}
 				end
 				texture:SetDesaturation(1)
 				if tint == "accent" then

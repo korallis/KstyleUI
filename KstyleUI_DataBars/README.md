@@ -116,7 +116,7 @@ Blizzard's `MicroMenu` and `BagsBar` stay Blizzard's frames, where Edit Mode put
 | Glass (`Skin.Backdrop`) | Behind the menu, 4 units out | Behind the bar, 4 units out |
 | Tiles (`Skin.Backdrop`, raised) | Off by default: the menu flattens its render layers, so a tile can sort under the glass | On: each slot sits on a tile 2 units out |
 
-A hovered button's tile edge eases to the accent colour. `micro.tint` keeps Blizzard's icon colours or desaturates the icons and tints them in the accent colour or white; switching back restores each icon's own vertex colour.
+A hovered button's tile edge eases to the accent colour. `micro.tint` keeps Blizzard's icon colours or desaturates the normal, pushed and highlight icons and tints them in the accent colour or white; switching back restores each icon's own colour and desaturation. Disabled icons keep Blizzard's own desaturated look.
 
 | Key | Default | Row |
 | --- | --- | --- |

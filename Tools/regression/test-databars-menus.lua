@@ -25,7 +25,7 @@ local function Button(env, name, parent, regions)
 	for _, key in ipairs(regions) do
 		button[key] = button:CreateTexture(nil, "BACKGROUND")
 	end
-	for _, kind in ipairs({ "Normal", "Pushed", "Highlight" }) do
+	for _, kind in ipairs({ "Normal", "Pushed", "Highlight", "Disabled" }) do
 		local texture = button:CreateTexture(nil, "ARTWORK")
 		button["Set" .. kind .. "Texture"](button, texture)
 	end
@@ -159,7 +159,11 @@ do
 	K.Options.Write("DataBars", "micro.tiles", false)
 	eq(Skin.Parts(env.CharacterMicroButton).backdrop:IsShown(), false, "tiles can be turned off again")
 
+	local quest = env.QuestLogMicroButton
+	quest:GetDisabledTexture():SetDesaturation(1)
+	quest:GetNormalTexture():SetDesaturation(0.3)
 	K.Options.Write("DataBars", "micro.tint", "accent")
+	eq(quest:GetDisabledTexture():GetVertexColor(), nil, "disabled icons keep Blizzard's own look")
 	local icon = env.CharacterMicroButton:GetNormalTexture()
 	local r, g, b = K.Theme.Accent()
 	local ir, ig, ib = icon:GetVertexColor()
@@ -169,6 +173,8 @@ do
 	ir, ig, ib = icon:GetVertexColor()
 	assert(near(ir, 1) and near(ig, 1) and near(ib, 1), "no tint restores the icons")
 	eq(icon:GetDesaturation(), 0, "and their colour")
+	eq(quest:GetNormalTexture():GetDesaturation(), 0.3, "each icon gets back its own desaturation")
+	eq(quest:GetDisabledTexture():GetDesaturation(), 1, "and Blizzard's desaturated disabled icon stays so")
 
 	K.Options.Write("DataBars", "bags.backdrop", false)
 	eq(Skin.Parts(env.BagsBar).backdrop:IsShown(), false, "the bag bar's glass can be turned off")
