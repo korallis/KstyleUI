@@ -120,6 +120,10 @@ do
 		linked = linked or has(line:GetText(), "|Haddon:KstyleUI:url:")
 	end
 	assert(linked, "a sample link")
+	K.Options.Write("Chat", "tabStyle", "filled")
+	preview:Refresh()
+	assert(preview.fill:IsShown(), "the filled style shows its tile")
+	assert(preview.tabs[1]:GetParent():GetFrameLevel() > preview.fill:GetFrameLevel(), "the tab label draws above the tile")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

@@ -84,15 +84,18 @@ function Preview.Build(parent)
 	frame.glass = glass
 	frame.fill = CreateFrame("Frame", nil, glass)
 	frame.fill.chrome = Widgets.Chrome(frame.fill, { shape = "tile", fill = "raised", shadow = false })
+	local top = CreateFrame("Frame", nil, glass)
+	top:SetAllPoints(glass)
+	top:SetFrameLevel(frame.fill:GetFrameLevel() + 1)
 	frame.tabs = {}
 	for i = 1, #TABS do
-		local tab = glass:CreateFontString(nil, "OVERLAY")
+		local tab = top:CreateFontString(nil, "OVERLAY")
 		tab:SetPoint("CENTER", glass, "TOPLEFT", pad + (i - 0.5) * TAB_WIDTH, -TAB_TOP)
 		frame.tabs[i] = tab
 	end
 	frame.fill:SetPoint("CENTER", frame.tabs[1], "CENTER")
 	Widgets.Size(frame.fill, TAB_WIDTH - pad, TAB_TOP * 2 - UNDERLINE)
-	frame.underline = glass:CreateTexture(nil, "OVERLAY")
+	frame.underline = top:CreateTexture(nil, "OVERLAY")
 	frame.underline:SetTexture((Tokens.Texture("divider")))
 	frame.underline:SetPoint("TOPLEFT", glass, "TOPLEFT", pad + pad, -(TAB_TOP * 2))
 	Widgets.Size(frame.underline, TAB_WIDTH - 2 * pad, UNDERLINE)
