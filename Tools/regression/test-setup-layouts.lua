@@ -9,7 +9,7 @@ assert(type(Layouts) == "table", "KstyleUI.Setup.Layouts is missing")
 
 -- The element keys modules register with Layout, as docs/superpowers/plans/element-keys.md lists them.
 local KEYS = {
-	"unitframes.player", "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.pet",
+	"unitframes.player", "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget", "unitframes.pet",
 	"unitframes.boss", "unitframes.castbar.player", "groupframes.party", "groupframes.raid", "actionbars.bar1",
 	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet",
 	"actionbars.stance", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",

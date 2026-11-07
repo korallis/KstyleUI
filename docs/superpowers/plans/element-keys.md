@@ -27,6 +27,7 @@ Footprints are width x height in units at the 1080 reference.
 | `unitframes.target` | UnitFrames | Target frame | 266 x 46 | Mirror of the player frame |
 | `unitframes.targettarget` | UnitFrames | Target of target | 120 x 24 | Under the target frame, right-aligned |
 | `unitframes.focus` | UnitFrames | Focus frame | 266 x 70 | A unit frame with its cast bar under it |
+| `unitframes.focustarget` | UnitFrames | Focus target | 120 x 24 | Under the focus frame, right-aligned |
 | `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned |
 | `unitframes.boss` | UnitFrames | Boss frames | 266 x 330 | Boss 1 to 5 stacked downward, 58 units each with 10-unit gaps |
 | `unitframes.castbar.player` | UnitFrames | Player cast bar | 260 x 20 | Above the essential cooldowns |

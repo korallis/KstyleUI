@@ -1,0 +1,82 @@
+-- test-unitframes-preview.lua: the settings window shows the unit frames page, one frame's rows at a time, and a live preview of the frame being customised.
+local U = dofile("Tools/regression/unitframes_env.lua")
+local O = dofile("Tools/regression/options_env.lua")
+local Load = dofile("Tools/regression/load_files.lua")
+local W = U.W
+
+local env, K, ns = O.New({
+	setup = U.Install,
+	saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} },
+	before = function(e)
+		Load(U.Files(), e)
+	end,
+})
+local uf = env._addons.KstyleUI_UnitFrames
+assert(K.Modules.IsRunning("UnitFrames"), "the module runs")
+
+local function settle()
+	env.RunTimers()
+	W.Settle(env)
+	env.RunTimers()
+end
+
+local function has(list, label)
+	for _, value in ipairs(list) do
+		if value == label then
+			return true
+		end
+	end
+	return false
+end
+
+K.Options.Open("UnitFrames")
+settle()
+assert(ns.Window.State().page == "UnitFrames", "the unit frames page opens")
+local labels = O.Labels(ns.Window.State().items)
+assert(has(labels, "Frame to customise"), "the page has the frame picker")
+assert(has(labels, "Player: frame") and not has(labels, "Target: frame"), "only the player frame's rows show at first")
+
+-- The preview is the module's own builder, drawing the player frame with sample values.
+local pane = ns.Window.Parts().preview
+local preview = pane.current
+assert(preview and preview ~= pane.placeholder and preview.Refresh, "the preview is the module's frame")
+assert(preview.kind == "player", "the preview starts on the player frame")
+local view = preview.views.player
+assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
+assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
+for _, frame in ipairs(env._frames) do
+	if frame:GetParent() == preview or (frame:GetParent() and frame:GetParent():GetParent() == preview) then
+		assert(frame._template == nil, "the preview makes no secure frames")
+	end
+end
+
+-- Picking another frame shows its rows and its preview.
+K.Options.Write("UnitFrames", "edit", "target")
+settle()
+labels = O.Labels(ns.Window.State().items)
+assert(has(labels, "Target: frame") and not has(labels, "Player: frame"), "picking the target shows the target's rows")
+assert(preview.kind == "target", "the preview follows the picked frame")
+local target = preview.views.target
+assert(U.Shown(env, target.name) == "FROST HOWLER", "the target sample")
+assert(target.geometry.portrait.x > target.geometry.panel.x, "the target sample mirrors the player frame")
+
+-- Settings redraw the preview at once.
+K.Options.Write("UnitFrames", "target.healthText", "currentMax")
+settle()
+assert(U.Shown(env, target.healthText) == "2240 / 4020", "a new text format shows in the preview")
+K.Options.Write("UnitFrames", "target.portrait", false)
+settle()
+assert(target.portraitFrame:IsShown() == false, "switching the portrait off hides it in the preview")
+K.Options.Write("UnitFrames", "target.healthColor", "custom")
+K.Options.Write("UnitFrames", "target.healthCustom", { r = 0.3, g = 0.6, b = 0.9 })
+settle()
+local last = W.LastCall(target.health, "SetStatusBarColor")
+assert(last[1] == 0.3 and last[2] == 0.6 and last[3] == 0.9, "a custom colour shows in the preview")
+K.Options.Write("UnitFrames", "edit", "boss")
+settle()
+assert(preview.kind == "boss" and U.Shown(env, preview.views.boss.levelText) == "??", "the boss sample shows a skull level")
+
+assert(uf.Frames.Get("player"), "the live frames exist alongside the preview")
+assert(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))
+assert(K.ErrorCount() == 0, "KstyleUI caught no errors")
+print("unitframes preview ok")
