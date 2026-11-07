@@ -85,3 +85,4 @@ Add one line for each mistake that happened twice: what went wrong and the rule 
 
 - Doc comments inside four core files (Tokens, Theme, Scale, Motion) broke the one-comment rule across four PRs. A file has one comment, its first line; contracts go in `docs/` or the module's README. `test-comments.lua` fails on any other comment.
 - Editing an addon file with Python's `read_text` and `write_text` turned its CRLF endings into LF twice in one task, and a fix-up commit shipped the LF file. Run `python3 Tools/dev/crlf.py` and `pre-commit run --all-files` before every commit, fix-ups included.
+- Three modules (Minimap, UnitFrames, Skins) set text on a raw `CreateFontString` before styling it. The game raised "Font not set" and stopped two modules from loading. Make font strings with `K.Widgets.FontString(parent, layer)`. `test-fontstrings.lua` fails on a raw call, and the stub raises the game's error.

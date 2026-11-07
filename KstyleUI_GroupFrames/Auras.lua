@@ -241,7 +241,7 @@ local function BuildIcon(button)
 	local textFrame = CreateFrame("Frame", nil, p.skin)
 	textFrame:SetAllPoints(p.skin)
 	textFrame:SetFrameLevel(cooldown:GetFrameLevel() + 1)
-	local count = textFrame:CreateFontString(nil, "OVERLAY")
+	local count = Widgets.FontString(textFrame, "OVERLAY")
 	count:SetJustifyH("RIGHT")
 	p.cooldown, p.count = cooldown, count
 	parts[button] = p

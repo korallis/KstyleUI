@@ -86,11 +86,11 @@ local function Sample(frame, spec)
 	glass.divider:SetTexture((Tokens.Texture("divider")))
 	glass.spec, glass.rows = spec, {}
 	for i, line in ipairs(spec) do
-		local row = { left = glass:CreateFontString(nil, "OVERLAY") }
+		local row = { left = Widgets.FontString(glass, "OVERLAY") }
 		row.left:SetJustifyH("LEFT")
 		row.left:SetText(line.left)
 		if line.right then
-			row.right = glass:CreateFontString(nil, "OVERLAY")
+			row.right = Widgets.FontString(glass, "OVERLAY")
 			row.right:SetJustifyH("RIGHT")
 			row.right:SetText(line.right)
 		end

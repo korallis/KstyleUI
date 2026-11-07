@@ -117,7 +117,7 @@ assert(#slots == 5, "five slots")
 assert(near(slots[1].y, 0) and near(slots[1].h, 58) and near(slots[2].y, 68) and near(slots[5].y + slots[5].h, 330), "58 units each, 10 apart")
 
 -- Health text, for each format. Health is always secret; the stub raises on any comparison or arithmetic.
-local text = env.CreateFrame("Frame"):CreateFontString()
+local text = env.CreateFrame("Frame"):CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 local function show(format, unit)
 	Format.Health(text, unit or "player", format)
 	return U.Shown(env, text)

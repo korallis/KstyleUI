@@ -244,6 +244,35 @@ function Object:SetStatusBarTexture(asset)
 end
 function Object:GetStatusBarTexture() return self._barTexture end
 
+-- A FontString has a font once it inherits a template or SetFont or SetFontObject gives it one.
+-- Until then SetText and SetFormattedText raise the game's "Font not set" error.
+local function needFont(self, method)
+	if self._type == "FontString" and not self._font then
+		error("FontString:" .. method .. "(): Font not set", 3)
+	end
+end
+local function fontGiven(self, method, font)
+	if method == "SetFont" then
+		self._font = type(font) == "string" and font ~= ""
+	else
+		self._font = font ~= nil
+	end
+end
+for _, method in ipairs({ "SetText", "SetFormattedText" }) do
+	local field = method:sub(4)
+	Object[method] = function(self, ...)
+		needFont(self, method)
+		self._state[field] = pack(...)
+	end
+end
+for _, method in ipairs({ "SetFont", "SetFontObject" }) do
+	local field = method:sub(4)
+	Object[method] = function(self, ...)
+		fontGiven(self, method, ...)
+		self._state[field] = pack(...)
+	end
+end
+
 -- A texture's masks, in the order AddMaskTexture added them.
 function Object:AddMaskTexture(mask)
 	self._masks = self._masks or {}
@@ -272,11 +301,14 @@ local REGIONS = { Texture = true, FontString = true, MaskTexture = true, Line = 
 local function genericMethod(key)
 	local childType = key:match("^Create(%u%w*)$")
 	if childType then
-		return function(self, a, b, _, d)
+		return function(self, a, b, c, d)
 			if childType == "Animation" then
 				return newObject(self._env, a or "Animation", b, self)
 			end
 			local child = newObject(self._env, childType, type(a) == "string" and a or nil, self)
+			if childType == "FontString" then
+				child._font = type(c) == "string" and c ~= ""
+			end
 			if REGIONS[childType] then
 				self._regions[#self._regions + 1] = child
 				if type(b) == "string" then
@@ -369,6 +401,21 @@ function Quiet:ClearAllPoints()
 	end
 end
 
+for _, method in ipairs({ "SetText", "SetFormattedText" }) do
+	local set = quietSetter(method:sub(4))
+	Quiet[method] = function(self, ...)
+		needFont(self, method)
+		set(self, ...)
+	end
+end
+for _, method in ipairs({ "SetFont", "SetFontObject" }) do
+	local set = quietSetter(method:sub(4))
+	Quiet[method] = function(self, ...)
+		fontGiven(self, method, ...)
+		set(self, ...)
+	end
+end
+
 local function quietMethod(key)
 	local fn = quietMethods[key]
 	if not fn then
@@ -426,6 +473,15 @@ function Stubs.NewEnv(opts)
 			env[name] = frame
 		end
 		return frame
+	end
+
+	-- CreateFont(name) makes a Font object, which SetFontObject and templates use.
+	function env.CreateFont(name)
+		local font = newObject(env, "Font", name, nil)
+		if name then
+			env[name] = font
+		end
+		return font
 	end
 
 	function env.FireEvent(event, ...)

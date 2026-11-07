@@ -30,7 +30,7 @@ local function Blizzard(env)
 		return t
 	end
 	function b.text(frame)
-		local fs = frame:CreateFontString(nil, "OVERLAY")
+		local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 		made[#made + 1] = fs
 		return fs
 	end

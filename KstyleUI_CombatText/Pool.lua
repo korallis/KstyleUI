@@ -1,6 +1,8 @@
 -- Pool.lua: reusable numbers, each a small frame with one font string and one AnimationGroup, so the combat path makes no frames.
 local _, ns = ...
 
+local Widgets = KstyleUI.Widgets
+
 local Pool = {}
 Pool.__index = Pool
 ns.Pool = Pool
@@ -20,7 +22,7 @@ local function Make(pool)
 	local frame = CreateFrame("Frame", nil, pool.parent)
 	frame:SetSize(NUMBER_SIZE, NUMBER_SIZE)
 	frame:Hide()
-	local text = frame:CreateFontString(nil, "OVERLAY")
+	local text = Widgets.FontString(frame, "OVERLAY")
 	text:SetPoint("CENTER", frame, "CENTER", 0, 0)
 	local group = frame:CreateAnimationGroup()
 	local number = { frame = frame, text = text, group = group, live = false }

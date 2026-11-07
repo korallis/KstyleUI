@@ -207,8 +207,21 @@ function Widgets.StyleText(text, role)
 	end
 end
 
-function Widgets.Text(parent, role, colorName, layer)
+local baseFont
+
+function Widgets.FontString(parent, layer)
+	if not baseFont and type(CreateFont) == "function" and _G[FALLBACK_FONT] then
+		baseFont = CreateFont("KstyleUIBaseFont")
+		baseFont:CopyFontObject(_G[FALLBACK_FONT])
+		baseFont:SetShadowOffset(0, 0)
+	end
 	local text = parent:CreateFontString(nil, layer or "OVERLAY")
+	text:SetFontObject(baseFont or FALLBACK_FONT)
+	return text
+end
+
+function Widgets.Text(parent, role, colorName, layer)
+	local text = Widgets.FontString(parent, layer)
 	Widgets.StyleText(text, role or "body")
 	text:SetTextColor(Tokens.Color(colorName or "text"))
 	return text

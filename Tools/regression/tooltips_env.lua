@@ -46,8 +46,8 @@ end
 local function line(tip, index)
 	local left = tip._left[index]
 	if not left then
-		left = tip:CreateFontString(nil, "ARTWORK")
-		local right = tip:CreateFontString(nil, "ARTWORK")
+		left = tip:CreateFontString(nil, "ARTWORK", "GameTooltipText")
+		local right = tip:CreateFontString(nil, "ARTWORK", "GameTooltipText")
 		left._standIn, right._standIn = true, true
 		tip._left[index], tip._right[index] = left, right
 		tip._made[#tip._made + 1] = left
@@ -136,7 +136,7 @@ function T.Tooltip(env, name, opts)
 		local header = env.CreateFrame("Frame", nil, tip)
 		local art = header:CreateTexture(nil, "BACKGROUND")
 		art:SetAtlas("tooltip-compare-label")
-		header.Label = header:CreateFontString(nil, "ARTWORK")
+		header.Label = header:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 		tip.CompareHeader = header
 		tip._made[#tip._made + 1] = header
 		tip._made[#tip._made + 1] = art

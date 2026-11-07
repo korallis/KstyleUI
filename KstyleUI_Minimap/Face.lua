@@ -31,7 +31,7 @@ local function ClearCentre(chrome)
 end
 
 local function NewText(parent)
-	local text = parent:CreateFontString(nil, "OVERLAY")
+	local text = Widgets.FontString(parent, "OVERLAY")
 	text:SetWordWrap(false)
 	return text
 end

@@ -66,7 +66,7 @@ local function Interpolation()
 end
 
 local function NewText(owner, justify)
-	local text = owner:CreateFontString(nil, "OVERLAY")
+	local text = Widgets.FontString(owner, "OVERLAY")
 	text:SetWordWrap(false)
 	text:SetJustifyV("MIDDLE")
 	text:SetJustifyH(justify)

@@ -22,7 +22,7 @@ local function Size(frame, fallbackWidth, fallbackHeight)
 end
 
 local function Text(parent, justify)
-	local text = parent:CreateFontString(nil, "OVERLAY")
+	local text = Widgets.FontString(parent, "OVERLAY")
 	text:SetJustifyH(justify)
 	text:SetWordWrap(false)
 	return text

@@ -309,4 +309,42 @@ do
 	assert(not rawequal(e.Secret(7), e.Secret(7)), "outside quiet mode each secret is new")
 end
 
+-- Fonts: as in the game, text on a FontString with no font raises "Font not set". A template,
+-- SetFont or SetFontObject gives it a font. Other widgets' SetText is unaffected.
+do
+	local e = Stubs.NewEnv()
+	local holder = e.CreateFrame("Frame", nil, e.UIParent)
+	local bare = holder:CreateFontString(nil, "OVERLAY")
+	raises(function() bare:SetText("N") end, "FontString:SetText(): Font not set")
+	raises(function() bare:SetFormattedText("%d", 1) end, "FontString:SetFormattedText(): Font not set")
+	bare:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+	bare:SetText("N")
+	assert(bare:GetText() == "N", "SetFont gives the text a font")
+
+	local inherited = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	inherited:SetText("a")
+	local font = e.CreateFont("TestFont")
+	assert(e.TestFont == font and font:GetObjectType() == "Font", "CreateFont makes a named Font object")
+	local adopted = holder:CreateFontString(nil, "OVERLAY")
+	adopted:SetFontObject(font)
+	adopted:SetFormattedText("%d", 2)
+
+	local button = e.CreateFrame("Button", nil, holder)
+	button:SetText("b")
+	local edit = e.CreateFrame("EditBox", nil, holder)
+	edit:SetText("c")
+
+	local Measure = dofile("Tools/regression/measure.lua")
+	local late = holder:CreateFontString(nil, "OVERLAY")
+	e.SetQuiet(true)
+	raises(function() late:SetText("x") end, "FontString:SetText(): Font not set")
+	adopted:SetText("warm")
+	local result = Measure.Run(function()
+		adopted:SetText("y")
+	end)
+	assert(result.kb == 0, "quiet SetText allocates nothing, got " .. result.kb .. " KB per call")
+	assert(adopted:GetText() == "y", "quiet SetText keeps the text")
+	e.SetQuiet(false)
+end
+
 print("stubs ok")

@@ -185,8 +185,8 @@ local function NewItem(view, id)
 	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	local item = { id = id, button = button, view = view }
 	button.kItem = item
-	item.label = button:CreateFontString(nil, "OVERLAY")
-	item.value = button:CreateFontString(nil, "OVERLAY")
+	item.label = Widgets.FontString(button, "OVERLAY")
+	item.value = Widgets.FontString(button, "OVERLAY")
 	item.separator = view.frame:CreateTexture(nil, "ARTWORK")
 	item.separator:SetColorTexture(Tokens.Color("white"))
 	button.Paint = function()

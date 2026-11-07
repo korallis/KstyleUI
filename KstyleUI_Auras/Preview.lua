@@ -56,8 +56,8 @@ local function Sample(canvas, spec, hasDispel)
 	local button = Widgets.IconButton(canvas, { icon = spec.icon, size = Model.defaults.buffs.iconSize })
 	button:EnableMouse(false)
 	local entry = { button = button, spec = spec }
-	entry.timer = button.overlay:CreateFontString(nil, "OVERLAY")
-	entry.count = button.overlay:CreateFontString(nil, "OVERLAY")
+	entry.timer = Widgets.FontString(button.overlay, "OVERLAY")
+	entry.count = Widgets.FontString(button.overlay, "OVERLAY")
 	if hasDispel then
 		entry.dispel = Widgets.NineSlice(button, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
 	end

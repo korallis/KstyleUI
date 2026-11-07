@@ -60,7 +60,7 @@ local function Verify(path)
 	if not probe then
 		local holder = CreateFrame("Frame")
 		holder:Hide()
-		probe = holder:CreateFontString(nil, "ARTWORK")
+		probe = Widgets.FontString(holder, "ARTWORK")
 		state.probe = probe
 	end
 	local ok, loaded = pcall(probe.SetFont, probe, path, PROBE_SIZE, "")

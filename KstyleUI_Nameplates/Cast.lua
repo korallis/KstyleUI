@@ -304,11 +304,11 @@ function Component.Build(plate)
 	shield:AddMaskTexture(mask)
 	shield:SetAlpha(0)
 	plate.castShield = shield
-	local name = bar:CreateFontString(nil, "OVERLAY")
+	local name = Widgets.FontString(bar, "OVERLAY")
 	name:SetJustifyH("LEFT")
 	name:SetWordWrap(false)
 	plate.castName = name
-	local time = bar:CreateFontString(nil, "OVERLAY")
+	local time = Widgets.FontString(bar, "OVERLAY")
 	time:SetJustifyH("RIGHT")
 	time:SetWordWrap(false)
 	plate.castTime = time

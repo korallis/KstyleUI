@@ -219,9 +219,9 @@ local function Dress(view, key, button)
 	local over = CreateFrame("Frame", nil, skin)
 	over:SetAllPoints(skin)
 	over:SetFrameLevel(cooldown:GetFrameLevel() + 1)
-	local count = over:CreateFontString(nil, "OVERLAY")
+	local count = Widgets.FontString(over, "OVERLAY")
 	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
-	local timer = over:CreateFontString(nil, "OVERLAY")
+	local timer = Widgets.FontString(over, "OVERLAY")
 	timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, COUNT_INSET)
 	entry.button, entry.count, entry.timer = button, count, timer
 	if key == "debuffs" then

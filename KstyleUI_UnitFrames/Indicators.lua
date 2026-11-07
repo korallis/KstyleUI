@@ -49,7 +49,7 @@ function Indicators.New(view)
 	local icons = {}
 	for _, key in ipairs(SLOTS) do
 		if key == "resting" then
-			local text = top:CreateFontString(nil, "OVERLAY")
+			local text = Widgets.FontString(top, "OVERLAY")
 			text:SetJustifyH("CENTER")
 			text:SetJustifyV("MIDDLE")
 			text:SetText(L["Zz"])

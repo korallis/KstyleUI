@@ -115,7 +115,7 @@ function S.Blizzard(env)
 		return b.add(t)
 	end
 	function b.text(frame)
-		return b.add(frame:CreateFontString(nil, "OVERLAY"))
+		return b.add(frame:CreateFontString(nil, "OVERLAY", "GameFontNormal"))
 	end
 	function b.snapshot()
 		local snap = { calls = {} }

@@ -67,8 +67,8 @@ function Button.Create(button, hasDispel)
 		restyleChrome = restyleChrome,
 		icon = icon,
 		mask = mask,
-		timer = skin:CreateFontString(nil, "OVERLAY"),
-		count = skin:CreateFontString(nil, "OVERLAY"),
+		timer = Widgets.FontString(skin, "OVERLAY"),
+		count = Widgets.FontString(skin, "OVERLAY"),
 	}
 	if hasDispel then
 		entry.dispel = Widgets.NineSlice(skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)

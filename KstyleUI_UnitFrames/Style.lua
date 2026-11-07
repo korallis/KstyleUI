@@ -31,7 +31,7 @@ local TEXTS = {
 }
 
 local function NewText(owner, key)
-	local text = owner:CreateFontString(nil, "OVERLAY")
+	local text = Widgets.FontString(owner, "OVERLAY")
 	text:SetWordWrap(false)
 	text:SetJustifyV("MIDDLE")
 	text:SetJustifyH(TEXTS[key].justify)

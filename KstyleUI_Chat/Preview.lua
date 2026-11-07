@@ -89,7 +89,7 @@ function Preview.Build(parent)
 	top:SetFrameLevel(frame.fill:GetFrameLevel() + 1)
 	frame.tabs = {}
 	for i = 1, #TABS do
-		local tab = top:CreateFontString(nil, "OVERLAY")
+		local tab = Widgets.FontString(top, "OVERLAY")
 		tab:SetPoint("CENTER", glass, "TOPLEFT", pad + (i - 0.5) * TAB_WIDTH, -TAB_TOP)
 		frame.tabs[i] = tab
 	end
@@ -108,7 +108,7 @@ function Preview.Build(parent)
 	frame.lines = {}
 	local previous
 	for i = 1, #SAMPLES do
-		local line = glass:CreateFontString(nil, "OVERLAY")
+		local line = Widgets.FontString(glass, "OVERLAY")
 		line:SetJustifyH("LEFT")
 		line:SetWordWrap(true)
 		if previous then

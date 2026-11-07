@@ -365,7 +365,7 @@ local function Texture(env, frame, layer)
 end
 
 local function FontString(env, frame)
-	return Own(env, frame:CreateFontString(nil, "OVERLAY"))
+	return Own(env, frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightHugeOutline"))
 end
 
 local function Frame(env, frameType, parent)

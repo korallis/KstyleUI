@@ -86,7 +86,7 @@ local function StyleFont(text, size, outline)
 end
 
 local function NewText(parent, justify)
-	local text = parent:CreateFontString(nil, "OVERLAY")
+	local text = Widgets.FontString(parent, "OVERLAY")
 	text:SetJustifyH(justify)
 	text:SetWordWrap(false)
 	return text

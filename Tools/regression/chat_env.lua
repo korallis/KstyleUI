@@ -100,7 +100,7 @@ local function newChatFrame(env, id, parent)
 	}
 	local edit = blizzard(env, env.CreateFrame("EditBox", name .. "EditBox", frame))
 	edit:SetSize(5, 32)
-	edit.header = blizzard(env, edit:CreateFontString(name .. "EditBoxHeader", "ARTWORK"))
+	edit.header = blizzard(env, edit:CreateFontString(name .. "EditBoxHeader", "ARTWORK", "ChatFontNormal"))
 	for _, piece in ipairs({ "Left", "Right", "Mid", "FocusLeft", "FocusRight", "FocusMid" }) do
 		env[name .. "EditBox" .. piece] = blizzard(env, edit:CreateTexture(name .. "EditBox" .. piece, "BACKGROUND"))
 	end
@@ -112,7 +112,7 @@ local function newChatFrame(env, id, parent)
 	frame.buttonFrame = blizzard(env, env.CreateFrame("Frame", name .. "ButtonFrame", frame))
 	local tab = blizzard(env, env.CreateFrame("Button", name .. "Tab", env.UIParent))
 	tab:SetID(id)
-	tab.Text = blizzard(env, tab:CreateFontString(name .. "TabText", "OVERLAY"))
+	tab.Text = blizzard(env, tab:CreateFontString(name .. "TabText", "OVERLAY", "GameFontNormalSmall"))
 	for _, piece in ipairs({ "Left", "Middle", "Right", "ActiveLeft", "ActiveMiddle", "ActiveRight", "HighlightLeft", "HighlightMiddle", "HighlightRight" }) do
 		tab[piece] = blizzard(env, tab:CreateTexture(nil, "BACKGROUND"))
 	end

@@ -408,7 +408,7 @@ local function Build()
 			texture = ns.Get("swing.texture"), background = "track", min = 0, max = 1, value = 0,
 			width = width or 260, height = height or 8,
 		})
-		bar.time = bar:CreateFontString(nil, "OVERLAY")
+		bar.time = Widgets.FontString(bar, "OVERLAY")
 		bar.time:SetJustifyH("RIGHT")
 		bar:Hide()
 		Swing.bars[slot.type] = bar

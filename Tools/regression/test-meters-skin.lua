@@ -17,8 +17,8 @@ local function Entry(env, parent, class, display)
 	Track(bar:GetStatusBarTexture())
 	bar.Background = Track(bar:CreateTexture(nil, "BACKGROUND"))
 	bar.BackgroundEdge = Track(bar:CreateTexture(nil, "OVERLAY"))
-	bar.Name = Track(bar:CreateFontString(nil, "OVERLAY"))
-	bar.Value = Track(bar:CreateFontString(nil, "OVERLAY"))
+	bar.Name = Track(bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"))
+	bar.Value = Track(bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"))
 	entry.StatusBar = bar
 	entry.classFilename = class
 	entry.sourceDisplayType = display
@@ -31,7 +31,7 @@ end
 local function Window(env, owner, index)
 	local window = Track(env.CreateFrame("Frame", "DamageMeterSessionWindow" .. index, owner))
 	window.Header = Track(window:CreateTexture(nil, "BACKGROUND"))
-	window.SessionTimer = Track(window:CreateFontString(nil, "OVERLAY"))
+	window.SessionTimer = Track(window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"))
 	local container = Track(env.CreateFrame("Frame", nil, window))
 	container.Background = Track(container:CreateTexture(nil, "BACKGROUND"))
 	window.MinimizeContainer = container

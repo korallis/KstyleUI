@@ -273,7 +273,7 @@ function Bars.NewView(parent, def)
 		tick:Hide()
 		view.ticks[i] = tick
 	end
-	view.text = overlay:CreateFontString(nil, "OVERLAY")
+	view.text = Widgets.FontString(overlay, "OVERLAY")
 	Widgets.TextColor(view.text, "textEmphasis")
 	view.text:Hide()
 	return view
