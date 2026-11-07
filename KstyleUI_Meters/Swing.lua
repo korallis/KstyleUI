@@ -89,17 +89,29 @@ local function Enabled(slot)
 	return ns.Get("swing." .. slot.key) == true
 end
 
+local function Speed(slotType)
+	if type(UnitAttackSpeed) ~= "function" then
+		return nil
+	end
+	local main, off, ranged = UnitAttackSpeed("player")
+	local speed = main
+	if slotType == OFF then
+		speed = off
+	elseif slotType == RANGED then
+		speed = ranged
+	end
+	speed = Logic.Plain(speed)
+	if speed and speed > 0 then
+		return speed
+	end
+	return nil
+end
+
 local function UpdateWeapons()
 	local weapons = Swing.weapons
 	weapons[MAIN] = true
-	weapons[OFF], weapons[RANGED] = false, false
-	if type(UnitAttackSpeed) ~= "function" then
-		return
-	end
-	local _, off, ranged = UnitAttackSpeed("player")
-	off, ranged = Logic.Plain(off), Logic.Plain(ranged)
-	weapons[OFF] = off ~= nil and off > 0
-	weapons[RANGED] = ranged ~= nil and ranged > 0
+	weapons[OFF] = Speed(OFF) ~= nil
+	weapons[RANGED] = Speed(RANGED) ~= nil
 end
 
 local function Visible(slot)
@@ -271,6 +283,21 @@ local function OnSwing(duration, swingType)
 	Refresh()
 end
 
+local function RestartForWeapons()
+	local now = GetTime()
+	for _, slot in ipairs(SLOTS) do
+		local st = Swing.state[slot.type]
+		if st.running then
+			local speed = Speed(slot.type)
+			if speed then
+				st.start, st.duration = now, speed
+			else
+				Clear(slot)
+			end
+		end
+	end
+end
+
 local function CheckRange()
 	local timer = C_SwingTimer
 	local query = timer and timer.IsTargetWithinSwingRange
@@ -323,6 +350,10 @@ function Swing:OnEvent(event, ...)
 				Clear(slot)
 			end
 		end
+		Refresh()
+	elseif event == "WEAPON_SLOT_CHANGED" then
+		UpdateWeapons()
+		RestartForWeapons()
 		Refresh()
 	elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_INVENTORY_CHANGED" then
 		if ... == "player" then

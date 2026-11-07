@@ -263,5 +263,6 @@ function Threat:Stop()
 	end
 	ns.UnwatchAll(self)
 	self.list:SetWarning(Logic.NO_WARNING)
+	self.list.panel:Hide()
 	self.holder:Hide()
 end

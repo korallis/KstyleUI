@@ -53,6 +53,9 @@ local function Window(env, owner, index)
 	function window.GetLocalPlayerEntry(self)
 		return self.own
 	end
+	function window.InitEntry(_, frame)
+		frame:UpdateStatusBarColor()
+	end
 	function window.Refresh(self)
 		for _, entry in ipairs(self.entries) do
 			entry:UpdateStatusBarColor()
@@ -73,7 +76,7 @@ local function Snapshot()
 	return keys
 end
 
-local HOOKED = { SetAlpha = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true }
+local HOOKED = { SetAlpha = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true }
 
 local env, K, ns = M.New({
 	game = function(env)
@@ -128,6 +131,12 @@ local hr, hg, hb = K.Tokens.Color("hostile")
 colour = M.Last(creature, "SetVertexColor")
 assert(colour[1] == hr and colour[2] == hg and colour[3] == hb, "an enemy without a class takes the hostile colour")
 assert(M.Last(window.own.StatusBar:GetStatusBarTexture(), "SetVertexColor"), "the player's pinned entry is restyled")
+
+-- Rows the scroll box acquires later are restyled when Blizzard initialises them.
+local late = Entry(env, window, "MAGE", 1)
+window:InitEntry(late, {})
+assert(late.StatusBar.Background:GetAlpha() == 0, "a row acquired later loses Blizzard's shadow art")
+assert(M.Last(late.StatusBar:GetStatusBarTexture(), "SetTexture")[1] == ns.Get("damage.texture"), "a row acquired later takes KstyleUI's texture")
 
 -- A setting change restyles every entry.
 M.Write(env, K, "damage.colorSource", "custom")

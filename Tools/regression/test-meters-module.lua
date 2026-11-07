@@ -83,6 +83,25 @@ assert(not ns.Threat.holder:IsShown(), "the threat meter hides when switched off
 M.Write(env, K, "threat.shown", true)
 assert(ns.Threat.holder:IsShown(), "the threat meter shows again")
 
+-- A meter switched off stays hidden when Layout's shown rule brings its holder back.
+K.Layout.Set("meters.threat", "shown", "combat")
+K.Layout.Set("meters.damage", "shown", "combat")
+env.RunTimers()
+M.Write(env, K, "threat.shown", false)
+M.Write(env, K, "damage.mode", "skin")
+env.SetCombat(true)
+env.RunTimers()
+assert(not ns.Threat.list.panel:IsShown(), "a switched-off threat meter stays hidden in combat")
+assert(not ns.Damage.list.panel:IsShown(), "the damage window stays hidden in combat while Blizzard's is restyled")
+env.SetCombat(false)
+env.RunTimers()
+M.Write(env, K, "threat.shown", true)
+M.Write(env, K, "damage.mode", "window")
+K.Layout.Set("meters.threat", "shown", nil)
+K.Layout.Set("meters.damage", "shown", nil)
+env.RunTimers()
+assert(ns.Damage.list.panel:IsShown(), "the damage window shows again")
+
 -- Disable hides every element and leaves no OnUpdate running.
 M.Disable(env, K)
 assert(not K.Modules.IsRunning("Meters"), "the module stopped")

@@ -14,6 +14,7 @@ ns.DamageSkin = DamageSkin
 local WEAK = { __mode = "k" }
 local windows = setmetatable({}, WEAK)
 local entries = setmetatable({}, WEAK)
+local generation = 1
 local ownerHooked = false
 local reloadAsked = false
 
@@ -51,8 +52,8 @@ local function StyleEntry(entry)
 	if type(bar) ~= "table" or type(bar.GetStatusBarTexture) ~= "function" then
 		return
 	end
-	if not entries[entry] then
-		entries[entry] = true
+	local styled = entries[entry]
+	if styled == nil then
 		local fill = bar:GetStatusBarTexture()
 		K.Skin.Strip(bar, { keep = fill and { [fill] = true } or nil })
 		K.Skin.Backdrop(bar, { shape = "tile", fill = "track", shadow = false })
@@ -60,12 +61,15 @@ local function StyleEntry(entry)
 			hooksecurefunc(entry, "UpdateStatusBarColor", Recolor)
 		end
 	end
-	bar:SetStatusBarTexture(ns.Get("damage.texture"))
-	if bar.Name then
-		ns.ApplyFont(bar.Name, "damage")
-	end
-	if bar.Value then
-		ns.ApplyFont(bar.Value, "damage")
+	if styled ~= generation then
+		entries[entry] = generation
+		bar:SetStatusBarTexture(ns.Get("damage.texture"))
+		if bar.Name then
+			ns.ApplyFont(bar.Name, "damage")
+		end
+		if bar.Value then
+			ns.ApplyFont(bar.Value, "damage")
+		end
 	end
 	Recolor(entry)
 end
@@ -93,6 +97,10 @@ local function RestyleWindow(window)
 	end
 end
 
+local function OnInitEntry(_, entry)
+	StyleEntry(entry)
+end
+
 local function StyleWindow(window)
 	if type(window) ~= "table" then
 		return
@@ -107,6 +115,9 @@ local function StyleWindow(window)
 		end
 		if type(window.Refresh) == "function" then
 			hooksecurefunc(window, "Refresh", RestyleWindow)
+		end
+		if type(window.InitEntry) == "function" then
+			hooksecurefunc(window, "InitEntry", OnInitEntry)
 		end
 	end
 	RestyleWindow(window)
@@ -132,6 +143,7 @@ function DamageSkin.Restyle()
 	if not DamageSkin.active then
 		return
 	end
+	generation = generation + 1
 	for window in pairs(windows) do
 		RestyleWindow(window)
 	end

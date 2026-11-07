@@ -276,6 +276,7 @@ function Damage:Apply()
 			or "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
 	end
 	ns.UnwatchAll(self)
+	self.list.panel:Hide()
 	self.holder:Hide()
 	RestoreBlizzard()
 	ns.DamageSkin.Activate()
@@ -286,6 +287,7 @@ function Damage:Stop()
 		return
 	end
 	ns.UnwatchAll(self)
+	self.list.panel:Hide()
 	self.holder:Hide()
 	RestoreBlizzard()
 	ns.DamageSkin.Deactivate()

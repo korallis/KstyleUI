@@ -55,6 +55,19 @@ assert(M.Last(main.time, "SetText")[1] == "1.4", "the time counts the seconds le
 M.Write(env, K, "swing.time", false)
 assert(not main.time:IsShown(), "the time hides when switched off")
 
+-- A weapon swap during a swing restarts it with the new weapon's speed, as Blizzard's timer does.
+env.SetTime(250)
+env.FireEvent("PLAYER_SWING", 2.6, MAIN)
+env._speeds[1] = 4
+env.SetTime(251)
+env.FireEvent("WEAPON_SLOT_CHANGED")
+env.SetTime(253)
+M.Tick(env)
+assert(M.Last(main, "SetValue")[1] == 0.5, "the swing restarted with the 4-second weapon")
+env.SetTime(260)
+M.Tick(env)
+env._speeds[1] = 2.6
+
 -- An off-hand weapon adds a bar, and the bars share the element's height.
 env._speeds[2] = 2.4
 env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
