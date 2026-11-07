@@ -69,3 +69,5 @@ Change these only when your task needs it, and say why in the pull request:
 ## Learned mistakes
 
 Add one line for each mistake that happened twice: what went wrong and the rule that prevents it.
+
+- Doc comments inside four core files (Tokens, Theme, Scale, Motion) broke the one-comment rule across four PRs. A file has one comment, its first line; contracts go in `docs/` or the module's README. `test-comments.lua` fails on any other comment.

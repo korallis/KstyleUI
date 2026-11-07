@@ -8,7 +8,6 @@ local MEDIA = "Interface\\AddOns\\KstyleUI\\Media\\"
 local FONTS_DIR = MEDIA .. "Fonts\\"
 local TEXTURES_DIR = MEDIA .. "Textures\\"
 
--- Colours: hex RGB and alpha.
 local COLORS = {
 	surface = { "101010", 0.88 },
 	raised = { "1c1c1c", 1 },
@@ -31,7 +30,6 @@ local COLORS = {
 	black = { "000000", 1 },
 }
 
--- Sizes in root units, at the 1080 reference.
 local SIZES = {
 	chamferPanel = 6,
 	chamferTile = 3,
@@ -64,7 +62,6 @@ local SIZES = {
 	rowHeight = 24,
 }
 
--- Durations in seconds.
 local DURATIONS = {
 	hover = 0.15,
 	panelOpen = 0.25,
@@ -76,7 +73,6 @@ local DURATIONS = {
 	fade = 0.2,
 }
 
--- The easing each motion uses, by the names in KstyleUI.Motion.Ease.
 local EASINGS = {
 	hover = "outQuart",
 	panelOpen = "outSine",
@@ -93,8 +89,6 @@ local FONT_FACES = {
 local DEFAULT_FACE = "SourceSans3Semibold"
 local NUMBER_FACE = "SourceSans3Semibold"
 
--- Font roles. face "ui" follows the face the player picks; numbers keep Source Sans 3's tabular digits.
--- tracking is the kit's letter spacing in units; the game cannot apply it, so widgets read it as a hint.
 local FONT_ROLES = {
 	display = { face = "ui", flags = "", tracking = -0.5 },
 	heading = { face = "ui", flags = "", tracking = -0.3 },
@@ -110,8 +104,6 @@ local STATUSBARS = {
 	{ key = "Flat", label = "Flat", path = TEXTURES_DIR .. "BarFlat.png" },
 }
 
--- Textures drawn by Tools/media/make_media.py. slice is the nine-slice margin in texels, and density
--- the texels per root unit, so a corner piece draws at slice / density units.
 local TEXTURES = {
 	chamferPanel = { file = "Textures\\ChamferPanel.png", slice = 24, density = 4 },
 	chamferTile = { file = "Textures\\ChamferTile.png", slice = 12, density = 4 },
@@ -133,7 +125,6 @@ local TEXTURES = {
 	logoLarge = { file = "Logo\\Logo256.png" },
 }
 
--- Parse each hex colour once.
 local RGBA = {}
 for name, spec in pairs(COLORS) do
 	local hex = spec[1]
@@ -149,7 +140,6 @@ local function unknown(kind, name)
 	error("KstyleUI.Tokens." .. kind .. ": unknown name " .. tostring(name), 3)
 end
 
--- Color(name) -> r, g, b, a. "accent" is the live accent from Theme, at full alpha.
 function Tokens.Color(name)
 	if name == "accent" then
 		local theme = ns.Theme
@@ -195,12 +185,10 @@ for _, face in ipairs(FONT_FACES) do
 	FACE_PATH[face.key] = face.path
 end
 
--- FontPath(key) -> the file of a font face, or nil for an unknown key.
 function Tokens.FontPath(key)
 	return FACE_PATH[key]
 end
 
--- Font(role) -> path, size, flags. Roles: display, heading, body, caption, number, world.
 function Tokens.Font(role)
 	local spec = FONT_ROLES[role]
 	if not spec then
@@ -214,7 +202,6 @@ function Tokens.Font(role)
 	return FACE_PATH[key] or FACE_PATH[DEFAULT_FACE], SIZES[role], spec.flags
 end
 
--- TextStyle(role) -> tracking, uppercase.
 function Tokens.TextStyle(role)
 	local spec = FONT_ROLES[role]
 	if not spec then
@@ -223,7 +210,6 @@ function Tokens.TextStyle(role)
 	return spec.tracking, spec.upper == true
 end
 
--- MediaList(kind) -> { { key, label, path }, ... } for kind "font" or "statusbar". The list is a copy.
 function Tokens.MediaList(kind)
 	local source = (kind == "font" and FONT_FACES) or (kind == "statusbar" and STATUSBARS)
 	if not source then
@@ -236,7 +222,6 @@ function Tokens.MediaList(kind)
 	return out
 end
 
--- Texture(name) -> path, slice margin in texels or nil, corner piece size in root units or nil.
 function Tokens.Texture(name)
 	local spec = TEXTURES[name]
 	if not spec then

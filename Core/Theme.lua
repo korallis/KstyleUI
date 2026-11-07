@@ -6,11 +6,9 @@ ns.Theme = Theme
 
 local Tokens = ns.Tokens
 
--- Colours darker than this relative luminance are lifted toward white so they read on dark glass.
 local MIN_LUMINANCE = 0.3
 Theme.MIN_LUMINANCE = MIN_LUMINANCE
 
--- UnitReaction runs from 1 (hated) to 8 (exalted).
 local REACTION_HOSTILE_MAX = 3
 local REACTION_NEUTRAL = 4
 local QUALITY_RARE, QUALITY_EPIC = 3, 4
@@ -18,10 +16,10 @@ local QUALITY_RARE, QUALITY_EPIC = 3, 4
 local SOURCES = { class = true, custom = true }
 
 local state = {
-	source = "class", -- "class" or "custom"
+	source = "class",
 	face = Tokens.DEFAULT_FONT_FACE,
-	class = nil, -- the player's class file name, once known
-	announced = nil, -- the class the last ClassChanged named
+	class = nil,
+	announced = nil,
 	resolved = false,
 }
 local custom = { Tokens.Color("accentDefault") }
@@ -45,7 +43,6 @@ local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
 end
 
--- A number Lua may compare: not secret and not NaN.
 local function IsPlainNumber(v)
 	if IsSecret(v) or type(v) ~= "number" then
 		return false
@@ -62,7 +59,6 @@ local function Rgb(name)
 	return r, g, b
 end
 
--- r, g, b of a ColorMixin or { r, g, b } table, when all three are plain numbers.
 local function Unpack(color)
 	if type(color) ~= "table" then
 		return nil
@@ -116,7 +112,6 @@ local function ResolveAccent()
 	return Rgb("accentDefault")
 end
 
--- Re-resolves the accent and reports whether it changed.
 local function Update()
 	if not state.resolved then
 		state.class = PlayerClass()
@@ -128,7 +123,6 @@ local function Update()
 	return changed
 end
 
--- Accent() -> r, g, b: the class colour of the player, or the custom colour.
 function Theme.Accent()
 	if not state.resolved then
 		Update()
@@ -136,7 +130,6 @@ function Theme.Accent()
 	return accent[1], accent[2], accent[3]
 end
 
--- Class() -> the player's class file name, such as "MAGE", or nil while it is unknown.
 function Theme.Class()
 	if not state.resolved then
 		Update()
@@ -148,7 +141,6 @@ function Theme.AccentSource()
 	return state.source
 end
 
--- SetAccentSource("class" | "custom") -> ok. Fires ThemeChanged when the accent changes.
 function Theme.SetAccentSource(source)
 	if type(source) ~= "string" or not SOURCES[source] then
 		return false
@@ -166,7 +158,6 @@ function Theme.CustomAccent()
 	return custom[1], custom[2], custom[3]
 end
 
--- SetCustomAccent(r, g, b) -> ok. Each channel is a number from 0 to 1.
 function Theme.SetCustomAccent(r, g, b)
 	if not (IsUnit(r) and IsUnit(g) and IsUnit(b)) then
 		return false
@@ -178,7 +169,6 @@ function Theme.SetCustomAccent(r, g, b)
 	return true
 end
 
--- FontFace() -> the key of the UI font face, from Tokens.MediaList("font").
 function Theme.FontFace()
 	return state.face
 end
@@ -194,7 +184,6 @@ function Theme.SetFontFace(key)
 	return true
 end
 
--- Brighten(r, g, b) -> r, g, b, mixed toward white until the luminance reaches MIN_LUMINANCE.
 function Theme.Brighten(r, g, b)
 	local lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
 	if lum >= MIN_LUMINANCE then
@@ -204,11 +193,9 @@ function Theme.Brighten(r, g, b)
 	return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
 end
 
--- ClassColor(classFile) -> r, g, b for any unit's class, or the text colour when it is unknown.
 function Theme.ClassColor(file)
 	local r, g, b
 	if IsSecret(file) then
-		-- The game accepts a secret class name; Lua must not use it as a key.
 		if C_ClassColor and C_ClassColor.GetClassColor then
 			r, g, b = Unpack(C_ClassColor.GetClassColor(file))
 		end
@@ -221,7 +208,6 @@ function Theme.ClassColor(file)
 	return Rgb("text")
 end
 
--- QualityColor(quality) -> r, g, b. Rare and epic come from Tokens; the rest from the game, brightened.
 function Theme.QualityColor(quality)
 	if not IsPlainNumber(quality) then
 		return Rgb("text")
@@ -248,7 +234,6 @@ function Theme.QualityColor(quality)
 	return Rgb("text")
 end
 
--- ReactionColor(reaction) -> r, g, b from the hostile, neutral and friendly tokens.
 function Theme.ReactionColor(reaction)
 	if not IsPlainNumber(reaction) then
 		return Rgb("neutral")
@@ -261,7 +246,6 @@ function Theme.ReactionColor(reaction)
 	return Rgb("friendly")
 end
 
--- At login the player's class is known. A login on another class gives a new accent at once.
 local function OnLogin()
 	state.class = PlayerClass()
 	state.resolved = true

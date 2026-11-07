@@ -22,6 +22,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `taint_scan.lua` | Finds taint risks in addon source. |
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |
 | `secret_lint.lua` | Finds unsafe uses of secret values and any use of the combat log. |
+| `color_lint.lua` | Finds colour literals, which belong only in `Core/Tokens.lua`. `test-tokens.lua` runs it. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
 ## Taint scan

@@ -29,6 +29,19 @@ expectEqual(
 expectEqual(render(Source.Lex('s = "a\\\nb" t')), "name:s@1 op:=@1 string:a\\\nb@1 name:t@2 eof:@2", "escaped newline")
 expectEqual(render(Source.Lex('s = "a\\\r\nb"\r\nt')), "name:s@1 op:=@1 string:a\\\r\nb@1 name:t@3 eof:@3", "escaped CRLF")
 
+-- With a list as the second argument, Lex also records each comment's line and text.
+do
+	local comments = {}
+	local source = '-- first\nx = "-- in a string" -- trailing\n--[[ long\ncomment ]] y = [[-- in a long string]]\n--[==[ a ]==]'
+	render(Source.Lex(source, comments))
+	local got = {}
+	for _, c in ipairs(comments) do
+		got[#got + 1] = c.line .. ":" .. c.text
+	end
+	expectEqual(table.concat(got, "|"), "1:-- first|2:-- trailing|3:--[[ long\ncomment ]]|5:--[==[ a ]==]", "comments are recorded with their lines")
+	expectEqual(render(Source.Lex(source)), render(Source.Lex(source, {})), "recording comments does not change the tokens")
+end
+
 local ok, err = pcall(Source.Lex, 'x = 1\ny = "open')
 assert(not ok and err:find("line 2", 1, true) and err:find("unfinished string", 1, true), tostring(err))
 ok, err = pcall(Source.Lex, "x = [[open")

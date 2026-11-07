@@ -6,10 +6,7 @@ ns.Motion = Motion
 
 local Tokens = ns.Tokens
 local sin, cos, pi = math.sin, math.cos, math.pi
-local BACK = 1.70158 -- Penner's overshoot constant: outBack peaks about 10% past the end
-
--- Easings ------------------------------------------------------------------------------------------
--- Penner's formulas. Each maps t in 0..1 to progress, and clamps t outside that range.
+local BACK = 1.70158
 
 local Ease = {}
 Motion.Ease = Ease
@@ -55,8 +52,6 @@ function Ease.outBack(t)
 	return 1 + (BACK + 1) * u * u * u + BACK * u * u
 end
 
--- Helpers ------------------------------------------------------------------------------------------
-
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
 end
@@ -100,11 +95,6 @@ local function ResolveEase(easing)
 	end
 	return fn
 end
-
--- The driver ---------------------------------------------------------------------------------------
--- Records live in a pool and are reused. A handle is a number, so a stale handle can never reach a
--- record that a newer tween reuses. Each frame stamps the records it steps, so a tween that starts or
--- moves during a callback is stepped at most once per frame.
 
 local active, byHandle, pool = {}, {}, {}
 local lastHandle, frameCount = 0, 0
@@ -150,7 +140,6 @@ local function Finish(obj, setter, to, onDone)
 	end
 end
 
--- Eases and sets one step. It runs inside pcall, so a failing easing or setter drops only its tween.
 local function Advance(rec, t)
 	Call(rec.setter, rec.obj, rec.from + (rec.to - rec.from) * rec.ease(t))
 end
@@ -172,7 +161,6 @@ local function Step(_, elapsed)
 				local handle = rec.handle
 				local ok, err = pcall(Advance, rec, t)
 				if not ok then
-					-- The setter may have stopped this tween itself before it failed.
 					if byHandle[handle] == rec then
 						Release(rec)
 					end
@@ -197,11 +185,6 @@ local function Find(obj, setter)
 	end
 end
 
--- Tween(obj, setter, from, to, duration, easing, onDone) -> handle, or nil when it finished at once.
--- setter is a function(obj, value) or a method name such as "SetAlpha". easing is a name in
--- Motion.Ease or a function, outQuad by default. A new tween on the same object and setter replaces
--- the old one, whose onDone never runs. Under reduced motion, or when from or to is a secret value,
--- the end value is set at once and onDone runs before Tween returns.
 function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 	local ease = ResolveEase(easing)
 	local existing = Find(obj, setter)
@@ -220,8 +203,6 @@ function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 	if type(from) ~= "number" or type(to) ~= "number" then
 		error("KstyleUI.Motion.Tween: from and to must be numbers", 2)
 	end
-	-- Set the start value before registering, so a setter that fails or starts tweens of its own
-	-- leaves nothing half-registered.
 	local ok, err = pcall(Call, setter, obj, from)
 	if not ok then
 		StopDriverIfIdle()
@@ -256,7 +237,6 @@ function Motion.IsPlaying(handle)
 	return byHandle[handle] ~= nil
 end
 
--- Stop(handle, finish) -> stopped. With finish, sets the end value and runs onDone.
 function Motion.Stop(handle, finish)
 	local rec = byHandle[handle]
 	if not rec then
@@ -275,7 +255,6 @@ function Motion.ReducedMotion()
 	return reduced
 end
 
--- SetReducedMotion(on) -> ok. Switching it on finishes every running tween at once.
 function Motion.SetReducedMotion(on)
 	if type(on) ~= "boolean" then
 		return false
@@ -288,10 +267,6 @@ function Motion.SetReducedMotion(on)
 	end
 	return true
 end
-
--- Fades --------------------------------------------------------------------------------------------
--- Show and Hide are protected on a protected frame in combat, so there a fade changes alpha only.
--- IsShown, GetAlpha and IsProtected can answer with a secret: a fade never branches on one.
 
 local restAlpha = setmetatable({}, { __mode = "k" })
 
@@ -306,7 +281,6 @@ local function MayToggle(frame)
 	return not protected
 end
 
--- FadeIn(frame, duration, alpha) -> handle. Shows a hidden frame and fades it to alpha (1).
 function Motion.FadeIn(frame, duration, alpha)
 	alpha = alpha or 1
 	restAlpha[frame] = alpha
@@ -331,8 +305,6 @@ local function Hidden(frame)
 	end
 end
 
--- FadeOut(frame, duration) -> handle. Fades a shown frame to alpha 0, then hides it and restores the
--- alpha the last FadeIn aimed at, so a plain Show later shows it.
 function Motion.FadeOut(frame, duration)
 	local shown = frame:IsShown()
 	local onDone = Hidden

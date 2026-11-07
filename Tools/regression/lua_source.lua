@@ -2,10 +2,11 @@
 --
 --   local Source = dofile("Tools/regression/lua_source.lua")
 --   local tokens = Source.Lex(text)        -- { { type, value, line }, ..., { type = "eof" } }
+--   Source.Lex(text, comments)             -- also appends { line, text } for each comment to comments
 --   Source.Walk(text, hooks)               -- errors on unbalanced brackets or blocks
 --
 -- Token types: name, keyword, number, string (value is the text between the quotes), op, eof.
--- Comments are dropped.
+-- Comments are not tokens.
 --
 -- Walk visits the tokens in order. It keeps a stack of open blocks and brackets and the locals each
 -- block declares, and calls these optional hooks:
@@ -64,7 +65,7 @@ local function longBracket(text, pos, line)
 	return stop + #close, body, line + newlines
 end
 
-function Source.Lex(text)
+function Source.Lex(text, comments)
 	local tokens = {}
 	local pos, line, len = 1, 1, #text
 	local function push(kind, value, at)
@@ -78,6 +79,7 @@ function Source.Lex(text)
 		elseif c:match("%s") then
 			pos = pos + 1
 		elseif text:sub(pos, pos + 1) == "--" then
+			local start, startLine = pos, line
 			local after, _, endLine = longBracket(text, pos + 2, line)
 			if after then
 				pos, line = after, endLine
@@ -85,6 +87,9 @@ function Source.Lex(text)
 				fail(line, "unfinished long comment")
 			else
 				pos = (text:find("\n", pos, true) or len + 1)
+			end
+			if comments then
+				comments[#comments + 1] = { line = startLine, text = (text:sub(start, pos - 1):gsub("\r$", "")) }
 			end
 		elseif c:match("[%a_]") then
 			local word = text:match("^[%w_]+", pos)
