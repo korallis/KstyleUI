@@ -36,6 +36,7 @@ end
 
 local bars = {}
 local holders = {}
+local hiddenByModule = {}
 local running = false
 
 local function Log(message)
@@ -167,7 +168,8 @@ function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
 	for _, text in ipairs({ cb.text, cb.timer }) do
 		if text:SetFont(path, size, flags) == false then
-			text:SetFont((Tokens.Font("body")))
+			local fallback = Tokens.Font("body")
+			text:SetFont(fallback, size, flags)
 		end
 		if flags == "" then
 			text:SetShadowColor(Tokens.Color("textShadow"))
@@ -274,17 +276,21 @@ local function RunTimes(cb, channel, startMs, endMs)
 end
 
 local function Start(cb, channel)
-	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible
+	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, castBarID
 	if channel then
-		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible = UnitChannelInfo(cb.unit)
+		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible, _, _, _, castBarID = UnitChannelInfo(cb.unit)
 	else
-		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible = UnitCastingInfo(cb.unit)
+		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible, _, castBarID = UnitCastingInfo(cb.unit)
 	end
-	if type(isTradeSkill) ~= "boolean" then
+	if type(isTradeSkill) ~= "boolean" or cb.noRoom then
 		Hide(cb, true)
 		return
 	end
 	cb.active, cb.channel = true, channel
+	cb.castBarID = nil
+	if not issecretvalue(castBarID) and type(castBarID) == "number" then
+		cb.castBarID = castBarID
+	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
 	Motion.FadeIn(cb.frame, Tokens.Duration("fade"))
@@ -328,6 +334,25 @@ local function Finish(cb, message)
 	end)
 end
 
+local function Casting(unit)
+	local _, _, _, _, _, castTrade = UnitCastingInfo(unit)
+	if type(castTrade) == "boolean" then
+		return true
+	end
+	local _, _, _, _, _, channelTrade = UnitChannelInfo(unit)
+	return type(channelTrade) == "boolean"
+end
+
+local BAR_ID_ARG = { UNIT_SPELLCAST_INTERRUPTED = 5, UNIT_SPELLCAST_CHANNEL_STOP = 5 }
+
+local function Matches(cb, event, ...)
+	local barID = select(BAR_ID_ARG[event] or 4, ...)
+	if type(barID) == "number" and cb.castBarID then
+		return barID == cb.castBarID
+	end
+	return not Casting(cb.unit)
+end
+
 local HANDLERS = {
 	Cast = function(cb)
 		Start(cb, false)
@@ -335,16 +360,20 @@ local HANDLERS = {
 	Channel = function(cb)
 		Start(cb, true)
 	end,
-	Stop = function(cb)
-		if cb.active then
+	Stop = function(cb, event, ...)
+		if cb.active and Matches(cb, event, ...) then
 			Hide(cb)
 		end
 	end,
-	Failed = function(cb)
-		Finish(cb, L["Failed"])
+	Failed = function(cb, event, ...)
+		if Matches(cb, event, ...) then
+			Finish(cb, L["Failed"])
+		end
 	end,
-	Interrupted = function(cb)
-		Finish(cb, L["Interrupted"])
+	Interrupted = function(cb, event, ...)
+		if Matches(cb, event, ...) then
+			Finish(cb, L["Interrupted"])
+		end
 	end,
 	Interruptible = function(cb, event)
 		if cb.active then
@@ -391,10 +420,10 @@ local function Listen(cb)
 		return
 	end
 	if not cb.handler then
-		cb.handler = function(event)
+		cb.handler = function(event, ...)
 			local name = EVENTS[event]
 			if name and Enabled(cb.kind) then
-				HANDLERS[name](cb, event)
+				HANDLERS[name](cb, event, ...)
 			end
 		end
 	end
@@ -413,10 +442,11 @@ local function Element(kind)
 	local cb = New(holder, kind, kind)
 	cb.frame:SetAllPoints(holder)
 	cb.holder = holder
+	bars[kind] = { cb }
+	holders[kind] = holder
 	holder:HookScript("OnSizeChanged", function()
 		CastBars.LayoutElement(kind)
 	end)
-	holders[kind] = holder
 	if K.Layout and K.Layout.Register then
 		K.Layout.Register(holder, key, position, {
 			label = element.label,
@@ -455,7 +485,7 @@ end
 function CastBars.Build()
 	for kind in pairs(Settings.CAST_ELEMENTS) do
 		if not bars[kind] then
-			bars[kind] = { Element(kind) }
+			Element(kind)
 		end
 	end
 end
@@ -479,7 +509,6 @@ function CastBars.Apply()
 			CastBars.Restyle(cb)
 		end
 		if holders[kind] then
-			holders[kind]:SetShown(running)
 			CastBars.LayoutElement(kind)
 		end
 		CastBars.Refresh(kind)
@@ -489,6 +518,12 @@ end
 function CastBars.Enable()
 	running = true
 	CastBars.Build()
+	for kind, holder in pairs(holders) do
+		if hiddenByModule[kind] then
+			hiddenByModule[kind] = nil
+			holder:Show()
+		end
+	end
 	CastBars.Apply()
 end
 
@@ -500,7 +535,8 @@ function CastBars.Disable()
 			Hide(cb, true)
 		end
 	end
-	for _, holder in pairs(holders) do
+	for kind, holder in pairs(holders) do
 		holder:Hide()
+		hiddenByModule[kind] = true
 	end
 end

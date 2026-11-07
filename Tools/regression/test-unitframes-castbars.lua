@@ -56,6 +56,18 @@ assert(not player.frame:IsShown(), "a finished cast fades out")
 assert(player.frame:GetScript("OnUpdate") == nil, "the timer stops with the cast")
 noErrors("player cast")
 
+-- A failed or stopped event for another spell leaves the running cast alone.
+env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1500, finish = 4000, spellID = 116, barID = 7 }
+env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-7", 116, 7)
+env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-8", 2139, 8)
+assert(U.Shown(env, player.text) == "Frostbolt" and player.frame:GetScript("OnUpdate"), "a failed cast with another cast bar ID is ignored")
+env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-8", 2139)
+assert(U.Shown(env, player.text) == "Frostbolt", "without an ID, a failure while the cast still runs is ignored")
+env._units.player.cast = nil
+env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-7", 116, 7)
+assert(U.Shown(env, player.text) == K.L["Failed"], "the running cast's own failure shows Failed")
+settle()
+
 -- An interrupted cast says so in the hostile colour, then fades.
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 2000, finish = 4500, spellID = 116 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-2", 116)
@@ -127,6 +139,43 @@ assert(frameH == 70, "the focus button spans its element")
 local bossView = ns.Frames.Get("boss").views[1]
 assert(math.abs(bossView.geometry.panel.h - (58 - 10 - 2)) < 1, "each boss frame leaves room for its cast bar")
 
+-- A font that does not load falls back to KstyleUI's font at the chosen size.
+do
+	local calls = {}
+	local real = player.text.SetFont
+	player.text.SetFont = function(self, path, size, flags)
+		calls[#calls + 1] = { path, size, flags }
+		if path == "Interface\\Nope.ttf" then
+			return false
+		end
+		return real(self, path, size, flags)
+	end
+	K.Options.Write("UnitFrames", "player.fonts.cast.font", "Interface\\Nope.ttf")
+	local last = calls[#calls]
+	assert(last[1] ~= "Interface\\Nope.ttf" and type(last[2]) == "number" and last[2] > 0, "the fallback font keeps a size")
+	player.text.SetFont = nil
+	K.Options.Write("UnitFrames", "player.fonts.cast.font", "theme")
+end
+
+-- Layout's shown rule keeps the player cast bar hidden through setting changes.
+assert(K.Layout.Set("unitframes.castbar.player", "shown", "never"))
+assert(not CastBars.Holder("player"):IsShown(), "the never rule hides the player cast bar")
+K.Options.Write("UnitFrames", "player.castbarTimer", false)
+K.Options.Write("UnitFrames", "player.castbarTimer", true)
+assert(not CastBars.Holder("player"):IsShown(), "a cast bar setting change leaves Layout's rule alone")
+K.Layout.Reset("unitframes.castbar.player")
+assert(CastBars.Holder("player"):IsShown(), "and the rule's reset shows it again")
+
+-- At the smallest focus height the frame keeps its room and the cast bar gives way.
+assert(K.Layout.Set("unitframes.focus", "height", 24))
+assert(focusView.geometry.panel.h >= 20, "a 24-unit focus element keeps the frame: " .. focusView.geometry.panel.h)
+U.SetUnit(env, "focus", { name = "Elunara", level = 60, health = 1, healthMax = 2, reaction = 2,
+	cast = { name = "Greater Heal", texture = 135913, start = 1000, finish = 3500, spellID = 2060 } })
+env.FireEvent("UNIT_SPELLCAST_START", "focus", "Cast-1", 2060)
+assert(not focusBar.frame:IsShown(), "a cast bar with no room stays hidden")
+U.SetUnit(env, "focus", nil)
+K.Layout.Reset("unitframes.focus")
+
 -- Settings.
 K.Options.Write("UnitFrames", "player.castbarIcon", false)
 assert(not player.iconFrame:IsShown(), "the icon can be switched off")
@@ -195,6 +244,27 @@ do
 	ienv.SetTarget(true)
 	assert(W.LastCall(tcb.icon, "SetTexture")[1] == 135846, "another unit's cast keeps Blizzard's icon")
 	assert(#ienv._errors == 0, "icons: " .. tostring(ienv._errors[1]))
+end
+
+-- A focus frame switched on after login listens for its casts.
+do
+	local lenv, LK, lns = U.New({ saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, focus = { enabled = false } } } }, characters = {} } })
+	U.SetUnit(lenv, "focus", { name = "Elunara", level = 60, health = 1, healthMax = 2, reaction = 2 })
+	LK.Options.Write("UnitFrames", "focus.enabled", true)
+	lenv._units.focus.cast = { name = "Greater Heal", texture = 135913, start = 1000, finish = 3500, spellID = 2060 }
+	lenv.FireEvent("UNIT_SPELLCAST_START", "focus", "Cast-1", 2060)
+	assert(lns.CastBars.Get("focus")[1].frame:IsShown(), "the focus cast bar shows a cast after the frame is switched on")
+	assert(#lenv._errors == 0, "late focus: " .. tostring(lenv._errors[1]))
+end
+
+-- Saved cast bar sizes apply at login, while Layout resizes the holder during registration.
+do
+	local senv = U.New({
+		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {},
+			layouts = { Default = { ["unitframes.castbar.player"] = { width = 300, height = 24 } } } },
+		setup = U.SizeEvents,
+	})
+	assert(#senv._errors == 0, "a saved cast bar size raises no error at login: " .. tostring(senv._errors[1]))
 end
 
 -- Without duration objects the bar falls back to the cast times when they are plain, and logs the path.

@@ -221,7 +221,10 @@ function Resource.Enable()
 		Build()
 	end
 	state.running = true
-	state.holder:Show()
+	if state.hiddenByModule then
+		state.hiddenByModule = false
+		state.holder:Show()
+	end
 	local Events = K.Events
 	Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
 	Events.RegisterUnit(OWNER, "UNIT_MAXPOWER", OnPower, "player")
@@ -238,5 +241,6 @@ function Resource.Disable()
 	if state.built then
 		state.content:Hide()
 		state.holder:Hide()
+		state.hiddenByModule = true
 	end
 end

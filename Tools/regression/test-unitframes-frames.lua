@@ -188,6 +188,20 @@ K.Options.Write("UnitFrames", "accent", "class")
 local ar, ag, ab = K.Theme.Accent()
 assert(W.SameRGB(player.ring, ar, ag, ab), "the ring follows the class accent again")
 
+-- Layout's shown rule wins over the module's own updates.
+assert(K.Layout.Set("unitframes.player", "shown", "never"))
+local playerHolder = Frames.Get("player").holder
+assert(not playerHolder:IsShown(), "the never rule hides the player frame")
+K.Options.Write("UnitFrames", "player.enabled", true)
+K.Options.Write("UnitFrames", "player.healthText", "percent")
+assert(not playerHolder:IsShown(), "a setting change leaves Layout's rule alone")
+assert(K.Layout.Set("unitframes.resource", "shown", "never"))
+K.Options.Write("UnitFrames", "resource.comboPoints", true)
+assert(not ns.Resource.state.holder:IsShown(), "the class resource keeps Layout's rule too")
+K.Layout.Reset("unitframes.player")
+K.Layout.Reset("unitframes.resource")
+assert(playerHolder:IsShown(), "resetting the rule shows the frame again")
+
 -- Turning one frame off in combat waits for the end of combat, then stops its unit watch.
 local focus = Frames.Get("focus").views[1]
 env.SetCombat(true)

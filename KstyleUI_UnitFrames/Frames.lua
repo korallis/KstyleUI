@@ -11,6 +11,7 @@ local MODULE = Settings.MODULE
 local BOSS_COUNT = 5
 local BOSS_GAP = 10
 local CAST_GAP = { focus = 4, boss = 2 }
+local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
 
 local FULL_LIMITS = { minWidth = 120, minHeight = 24, maxWidth = 640, maxHeight = 160 }
@@ -300,14 +301,17 @@ function Frames.Relayout(uf)
 		button:ClearAllPoints()
 		button:SetPoint("TOPLEFT", uf.holder, "TOPLEFT", slot.x, -slot.y)
 		button:SetSize(slot.w, slot.h)
-		local frameH = castH > 0 and math.max(0, slot.h - castH - gap) or slot.h
+		local room = castH > 0 and math.min(castH, math.max(0, slot.h - gap - MIN_FRAME_HEIGHT)) or 0
+		local frameH = room > 0 and slot.h - room - gap or slot.h
 		local g = Style.Layout(view, uf.s, slot.w, frameH)
 		local cb = view.castbar
 		if cb then
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
-			cb.frame:SetSize(g.panel.w, math.max(0, castH))
-			ns.CastBars.Layout(cb, g.panel.w, castH)
+			cb.frame:SetSize(g.panel.w, room)
+			cb.noRoom = room <= 0
+			cb.frame:SetShown(room > 0 and cb.active == true)
+			ns.CastBars.Layout(cb, g.panel.w, room)
 		end
 	end
 end
@@ -352,7 +356,10 @@ function Frames.Apply(uf)
 	end
 	uf.active = want and true or false
 	if want then
-		uf.holder:Show()
+		if uf.hiddenByModule then
+			uf.hiddenByModule = false
+			uf.holder:Show()
+		end
 		Frames.Restyle(uf)
 	end
 	for _, view in ipairs(uf.views) do
@@ -388,6 +395,7 @@ local function OnSettingChanged(_, module, key)
 	if uf then
 		if rest == "enabled" then
 			Frames.Apply(uf)
+			ns.CastBars.Apply()
 			ns.Blizzard.Apply(running)
 		elseif uf.active then
 			Frames.Restyle(uf)
@@ -521,6 +529,7 @@ function Frames.Disable()
 		Frames.Apply(uf)
 		if not Protected() then
 			uf.holder:Hide()
+			uf.hiddenByModule = true
 		end
 	end)
 	ns.Resource.Disable()

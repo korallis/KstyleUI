@@ -331,7 +331,7 @@ function U.Install(env)
 			return
 		end
 		local name, text, texture, start, finish, locked, spell = castValues(u, u.cast)
-		return name, text, texture, start, finish, false, "Cast-1", locked, spell, 1, 0
+		return name, text, texture, start, finish, false, "Cast-1", locked, spell, u.cast.barID or 1, 0
 	end
 	function env.UnitChannelInfo(token)
 		local u = unitOf(token)
@@ -339,7 +339,7 @@ function U.Install(env)
 			return
 		end
 		local name, text, texture, start, finish, locked, spell = castValues(u, u.channel)
-		return name, text, texture, start, finish, false, locked, spell, false, 0, 1
+		return name, text, texture, start, finish, false, locked, spell, false, 0, u.channel.barID or 1
 	end
 	local function duration(u, info)
 		local d = { start = info.start / 1000, finish = info.finish / 1000 }
@@ -403,6 +403,24 @@ function U.Hook(env)
 	env.RunStateDrivers = function()
 		run()
 		env.RunUnitWatches()
+	end
+end
+
+-- SizeEvents(env) makes SetSize run a frame's OnSizeChanged script, as the engine does when the size changes.
+function U.SizeEvents(env)
+	local create = env.CreateFrame
+	env.CreateFrame = function(...)
+		local frame = create(...)
+		local setSize = frame.SetSize
+		frame.SetSize = function(self, w, h)
+			local ow, oh = self:GetSize()
+			setSize(self, w, h)
+			local script = self:GetScript("OnSizeChanged")
+			if script and (ow ~= w or oh ~= h) then
+				script(self, w, h)
+			end
+		end
+		return frame
 	end
 end
 
