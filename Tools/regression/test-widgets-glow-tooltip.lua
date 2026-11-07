@@ -1,0 +1,143 @@
+-- test-widgets-glow-tooltip.lua: proc and selection glows, and the glass tooltip for KstyleUI's own controls.
+local W = dofile("Tools/regression/widget_env.lua")
+
+-- A proc glow sits behind its frame, pulses on an AnimationGroup and fades away when stopped.
+do
+	local env, K = W.New()
+	local frame = env.CreateFrame("Button", nil, K.Scale.Root())
+	frame:SetFrameLevel(5)
+	local glow = K.Widgets.Glow(frame, { kind = "proc" })
+	assert(glow.holder:GetFrameLevel() == 4, "the glow sits behind its frame")
+	assert(glow.holder:IsShown() == false and not glow:IsPlaying(), "a glow starts stopped")
+	assert(#glow.slice == 9 and W.LastCall(glow.slice[1], "SetBlendMode")[1] == "ADD", "an additive nine-sliced falloff")
+	local r, g, b = K.Tokens.Color("accent")
+	assert(W.SameRGB(glow.slice[5], r, g, b), "in the accent")
+	glow:Start()
+	assert(glow:IsPlaying() and glow.holder:IsShown(), "Start shows the glow")
+	assert(#W.Calls(glow.pulse, "Play") == 1 and W.LastCall(glow.pulse, "SetLooping")[1] == "BOUNCE", "the pulse plays and bounces")
+	assert(glow.top:IsShown() and #W.Calls(glow.sparkPulse, "Play") == 1, "the corner spark pulses above the frame")
+	glow:Start()
+	assert(#W.Calls(glow.pulse, "Play") == 1, "Start twice plays once")
+	W.Settle(env)
+	glow:Stop()
+	assert(not glow:IsPlaying())
+	W.Settle(env)
+	assert(glow.holder:IsShown() == false and #W.Calls(glow.pulse, "Stop") >= 1, "Stop fades the glow out and stops the pulse")
+	K.Theme.SetCustomAccent(0.1, 0.8, 0.9)
+	K.Theme.SetAccentSource("custom")
+	assert(W.SameRGB(glow.slice[5], 0.1, 0.8, 0.9), "the glow follows the accent")
+	glow:SetColor("epic")
+	assert(W.SameRGB(glow.slice[5], K.Tokens.Color("epic")), "or a colour token")
+	W.Raises(function()
+		K.Widgets.Glow(frame, { kind = "sparkles" })
+	end, "kind must be proc or selection")
+end
+
+-- Under reduced motion a proc glow shows steadily without the pulse.
+do
+	local env, K = W.New()
+	K.Motion.SetReducedMotion(true)
+	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
+	local glow = K.Widgets.Glow(frame)
+	glow:Start()
+	assert(glow.holder:IsShown() and glow.holder:GetAlpha() == 1, "a steady glow")
+	assert(#W.Calls(glow.pulse, "Play") == 0, "no pulse")
+	glow:Stop()
+	assert(glow.holder:IsShown() == false, "and it hides at once")
+end
+
+-- A selection glow is steady and follows an intensity from 0 to 1.
+do
+	local env, K = W.New()
+	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
+	local glow = K.Widgets.Glow(frame, { kind = "selection" })
+	assert(glow.pulse == nil, "no pulse")
+	glow:SetIntensity(0.5)
+	assert(glow.holder:IsShown() and glow.holder:GetAlpha() > 0 and glow.holder:GetAlpha() < 1)
+	glow:SetIntensity(0)
+	assert(glow.holder:IsShown() == false)
+end
+
+-- The tooltip: one shared glass panel with an icon, a quality-coloured title, a caption, lines and a divider.
+do
+	local env, K = W.New()
+	local Widgets, Tokens = K.Widgets, K.Tokens
+	local tip = Widgets.Tooltip()
+	assert(tip == Widgets.Tooltip(), "one shared tooltip")
+	assert(tip:GetFrameStrata() == "TOOLTIP" and tip.chrome and tip.chrome.shadow[1]:IsShown(), "a glass panel in the tooltip strata")
+	local owner = env.CreateFrame("Button", nil, K.Scale.Root())
+	tip:SetOwner(owner, "ANCHOR_RIGHT")
+	assert(tip:IsOwned(owner))
+	tip:SetIcon(135489)
+	tip:AddTitle("Ranger's Long Bow", "friendly")
+	tip:AddCaption("Uncommon")
+	tip:AddLine("Level 38")
+	tip:AddDoubleLine("Physical Damage", "142 - 198")
+	tip:AddDivider()
+	tip:AddLine("+24 Agility", 0.2, 0.9, 0.3)
+	tip:Show()
+	assert(tip:IsShown(), "Show shows it")
+	local texts = {}
+	for _, line in ipairs(tip.used) do
+		texts[#texts + 1] = line.left:GetText()
+	end
+	assert(texts[1] == "Ranger's Long Bow" and texts[2] == "UNCOMMON" and texts[3] == "Level 38", "lines in order, the caption upper case")
+	assert(tip.used[4].right:GetText() == "142 - 198" and tip.used[4].right:IsShown(), "a double line")
+	assert(W.SameRGB({ GetVertexColor = function()
+		return tip.used[1].left:GetTextColor()
+	end }, Tokens.Color("friendly")), "the title takes a colour token")
+	assert(W.SameRGB({ GetVertexColor = function()
+		return tip.used[6].left:GetTextColor()
+	end }, 0.2, 0.9, 0.3), "a line takes r, g and b")
+	assert(tip.used[5].divider and tip.used[5].divider:IsShown(), "a divider line")
+	assert(W.LastCall(tip.icon, "SetTexture")[1] == 135489 and tip.icon:IsShown(), "the icon")
+	assert(tip:GetHeight() > 0 and tip:GetWidth() >= Widgets.TOOLTIP_MIN_WIDTH, "the tooltip has a size")
+	local p = tip._points[1]
+	assert(p[1] == "LEFT" and p[2] == owner and p[3] == "RIGHT", "ANCHOR_RIGHT puts it right of the owner")
+	local made = #W.Regions(tip, "FontString")
+	tip:ClearLines()
+	assert(#tip.used == 0 and tip.icon:IsShown() == false, "ClearLines empties it")
+	tip:AddLine("One")
+	tip:Show()
+	assert(#W.Regions(tip, "FontString") == made, "lines are pooled, not made again")
+	tip:Hide()
+	W.Settle(env)
+	assert(tip:IsShown() == false and not tip:IsOwned(owner), "Hide hides it and drops the owner")
+	local secret = env.Secret("Hogger")
+	tip:SetOwner(owner, "ANCHOR_TOP")
+	tip:AddLine(secret)
+	tip:Show()
+	assert(tip.used[1].left:GetText() == secret, "a secret line passes through")
+	assert(tip._points[1][1] == "BOTTOM" and tip._points[1][3] == "TOP", "ANCHOR_TOP puts it above")
+	assert(#env._errors == 0)
+end
+
+-- AttachTooltip shows a text or a builder on hover and hides on leave; the size setting scales it.
+do
+	local env, K = W.New()
+	local Widgets = K.Widgets
+	local frame = env.CreateFrame("Button", nil, K.Scale.Root())
+	Widgets.AttachTooltip(frame, "Reload the interface")
+	W.Enter(frame)
+	local tip = Widgets.Tooltip()
+	assert(tip:IsShown() and tip:IsOwned(frame) and tip.used[1].left:GetText() == "Reload the interface")
+	W.Leave(frame)
+	W.Settle(env)
+	assert(tip:IsShown() == false)
+	local other = env.CreateFrame("Button", nil, K.Scale.Root())
+	Widgets.AttachTooltip(other, function(t, owner)
+		assert(owner == other)
+		t:AddTitle("Built")
+		t:AddLine("By a function")
+	end)
+	W.Enter(other)
+	assert(tip.used[1].left:GetText() == "Built" and tip.used[2].left:GetText() == "By a function")
+	K.Options.Write("Widgets", "tooltipScale", 1.25)
+	assert(W.LastCall(tip, "SetScale")[1] == 1.25, "the size setting scales the tooltip")
+	local button = Widgets.Button(K.Scale.Root(), { text = "Hi", tooltip = "A button" })
+	W.Enter(button)
+	assert(tip:IsOwned(button) and tip.used[1].left:GetText() == "A button", "Button opts.tooltip attaches one")
+	assert(#env._errors == 0)
+end
+
+print("widgets glow and tooltip ok")

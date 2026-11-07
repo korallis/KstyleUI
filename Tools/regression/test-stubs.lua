@@ -102,6 +102,29 @@ assert(env.type(5) == "number" and env.type(f) == "table" and env.type(nil) == "
 local label = "HP " .. s .. "%"
 assert(env.issecretvalue(label) and env.Reveal(label) == "HP 5%")
 
+-- Frame levels start one above the parent, and a frame lists the frames and regions made on it.
+local parent = env.CreateFrame("Frame", nil, env.UIParent)
+assert(env.UIParent:GetFrameLevel() == 0 and parent:GetFrameLevel() == 1, "a frame starts one level above its parent")
+parent:SetFrameLevel(7)
+local kid = env.CreateFrame("Button", nil, parent)
+assert(kid:GetFrameLevel() == 8, "a child starts one level above its parent")
+local made = parent:CreateTexture(nil, "ARTWORK")
+local text = parent:CreateFontString(nil, "OVERLAY")
+local regions = { parent:GetRegions() }
+assert(#regions == 2 and regions[1] == made and regions[2] == text, "GetRegions lists the textures and font strings made on the frame")
+local kids = { parent:GetChildren() }
+assert(#kids == 1 and kids[1] == kid, "GetChildren lists the frames made with the frame as parent")
+assert(made:GetObjectType() == "Texture" and made:GetParent() == parent)
+
+-- Buttons are enabled until Disable, and Enable and Disable run the frame's scripts.
+local seen = {}
+kid:SetScript("OnDisable", function() seen[#seen + 1] = "off" end)
+kid:SetScript("OnEnable", function() seen[#seen + 1] = "on" end)
+assert(kid:IsEnabled() == true)
+kid:Disable(); assert(kid:IsEnabled() == false and seen[1] == "off")
+kid:SetEnabled(true); assert(kid:IsEnabled() == true and seen[2] == "on")
+kid:Enable(); assert(#seen == 2, "enabling an enabled button runs no script")
+
 -- Environments do not share state, and builtins come from _G.
 local other = Stubs.NewEnv()
 assert(other.TestFrame == nil and select(2, other.GetPhysicalScreenSize()) == 1080)

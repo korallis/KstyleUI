@@ -17,6 +17,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `toc_files.lua` | Lists the files the game loads, in load order, from the TOCs and their XML includes. |
 | `load_files.lua` | Runs addon files in a stub environment with the addon's `...` arguments. |
 | `stubs/wow.lua` | A stub WoW API for offline tests. Extend it additively. |
+| `widget_env.lua` | Loads the core with the widget kit, boots it, and drives frames like a player: hover, press, click, keys and tween frames. |
 | `spike_env.lua` | Loads the spike addon into a stub environment that fakes the game APIs its spikes call. |
 | `lua_source.lua` | Tokenizes Lua 5.1 source and walks it with block and local scopes. The source scanners use it. |
 | `taint_scan.lua` | Finds taint risks in addon source. |

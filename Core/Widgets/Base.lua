@@ -1,0 +1,593 @@
+-- Base.lua: the widget kit's shared parts: settings, the restyle registry, text, chrome, motion, Escape, placement and sound.
+local _, ns = ...
+
+local Widgets = {}
+ns.Widgets = Widgets
+
+local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
+local floor, max, min = math.floor, math.max, math.min
+
+local SECTION = "Widgets"
+local FALLBACK_FONT = "GameFontHighlight"
+local NOISE_ALPHA = 0.035
+local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
+local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
+local SUBLEVEL_SHADOW, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -6, -5
+local SUBLEVEL_OUTER, SUBLEVEL_INNER = -2, -1
+
+Widgets.TEXTURE_TEXELS = {
+	chamferPanel = 64,
+	chamferTile = 32,
+	bevelPanelOuter = 64,
+	bevelPanelInner = 64,
+	bevelTileOuter = 64,
+	bevelTileInner = 64,
+	shadow = 128,
+}
+local TEXELS = Widgets.TEXTURE_TEXELS
+
+local function IsSecret(v)
+	return issecretvalue ~= nil and issecretvalue(v) == true
+end
+Widgets.IsSecret = IsSecret
+
+local function Log(message)
+	local devtest = ns.DevTest
+	if devtest and devtest.Log then
+		pcall(devtest.Log, SECTION, message)
+	end
+end
+Widgets.Log = Log
+
+local logged = {}
+function Widgets.LogOnce(key, message)
+	if not logged[key] then
+		logged[key] = true
+		Log(message)
+	end
+end
+
+local function IsNumberIn(v, low, high)
+	return not IsSecret(v) and type(v) == "number" and v == v and v >= low and v <= high
+end
+
+local function IsBoolean(v)
+	return type(v) == "boolean"
+end
+
+local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
+
+Widgets.defaults = {
+	panelOpacity = SURFACE_ALPHA,
+	shadows = true,
+	sounds = true,
+	tooltipScale = 1,
+}
+
+local VALID = {
+	panelOpacity = function(v)
+		return IsNumberIn(v, PANEL_OPACITY_MIN, PANEL_OPACITY_MAX)
+	end,
+	shadows = IsBoolean,
+	sounds = IsBoolean,
+	tooltipScale = function(v)
+		return IsNumberIn(v, TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX)
+	end,
+}
+
+function Widgets.Setting(key)
+	local valid = VALID[key]
+	if not valid then
+		error("KstyleUI.Widgets.Setting: unknown setting " .. tostring(key), 2)
+	end
+	local Store = ns.Store
+	if Store.IsLoaded() then
+		local value = Store.Module(SECTION)[key]
+		if valid(value) then
+			return value
+		end
+	end
+	return Widgets.defaults[key]
+end
+
+Widgets.schema = {
+	{ type = "header", label = L["Glass"] },
+	{
+		type = "slider", key = "panelOpacity", label = L["Panel opacity"],
+		help = L["How solid the smoked glass behind KstyleUI's panels and windows looks."],
+		min = PANEL_OPACITY_MIN, max = PANEL_OPACITY_MAX, step = PANEL_OPACITY_STEP,
+	},
+	{
+		type = "toggle", key = "shadows", label = L["Panel shadows"],
+		help = L["Draws a soft shadow around KstyleUI's panels, windows and tooltips."],
+	},
+	{ type = "header", label = L["Feedback"] },
+	{
+		type = "toggle", key = "sounds", label = L["Interface sounds"],
+		help = L["Plays a soft click when you press KstyleUI's buttons, tabs and switches."],
+	},
+	{ type = "header", label = L["Tooltips"] },
+	{
+		type = "slider", key = "tooltipScale", label = L["Tooltip size"],
+		help = L["Makes the tooltips on KstyleUI's own controls larger or smaller."],
+		min = TOOLTIP_SCALE_MIN, max = TOOLTIP_SCALE_MAX, step = TOOLTIP_SCALE_STEP,
+	},
+}
+
+ns.Store.RegisterDefaults(SECTION, Widgets.defaults)
+ns.Options.Register(SECTION, Widgets.schema)
+
+local tracked = {}
+
+function Widgets.Track(widget)
+	tracked[#tracked + 1] = widget
+	return widget
+end
+
+function Widgets.RestyleAll()
+	for i = 1, #tracked do
+		local widget = tracked[i]
+		ns.Call(widget.Restyle, widget)
+	end
+end
+
+function Widgets.Rgba(name, alphaScale)
+	local r, g, b, a = Tokens.Color(name)
+	return r, g, b, (a or 1) * (alphaScale or 1)
+end
+
+function Widgets.Tint(region, name, alphaScale)
+	region:SetVertexColor(Widgets.Rgba(name, alphaScale))
+end
+
+function Widgets.Mix(r1, g1, b1, a1, r2, g2, b2, a2, t)
+	return r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t, a1 + (a2 - a1) * t
+end
+
+function Widgets.MixTokens(nameA, alphaA, nameB, alphaB, t)
+	local r1, g1, b1, a1 = Widgets.Rgba(nameA, alphaA)
+	local r2, g2, b2, a2 = Widgets.Rgba(nameB, alphaB)
+	return Widgets.Mix(r1, g1, b1, a1, r2, g2, b2, a2, t)
+end
+
+local textRole = setmetatable({}, { __mode = "k" })
+
+function Widgets.StyleText(text, role)
+	role = role or textRole[text] or "body"
+	textRole[text] = role
+	local path, size, flags = Tokens.Font(role)
+	if text:SetFont(path, size, flags) == false then
+		text:SetFontObject(FALLBACK_FONT)
+		Widgets.LogOnce("font:" .. path, "the font " .. path .. " did not load; text uses " .. FALLBACK_FONT)
+	end
+	if flags ~= "" then
+		text:SetShadowOffset(0, 0)
+	else
+		text:SetShadowColor(Tokens.Color("textShadow"))
+		local offset = Tokens.Size("textShadowOffset")
+		text:SetShadowOffset(offset, -offset)
+	end
+end
+
+function Widgets.Text(parent, role, colorName, layer)
+	local text = parent:CreateFontString(nil, layer or "OVERLAY")
+	Widgets.StyleText(text, role or "body")
+	text:SetTextColor(Tokens.Color(colorName or "text"))
+	return text
+end
+
+function Widgets.SetText(text, value)
+	if IsSecret(value) then
+		text:SetText(value)
+		return
+	end
+	if value == nil then
+		text:SetText("")
+		return
+	end
+	local _, upper = Tokens.TextStyle(textRole[text] or "body")
+	if upper and type(value) == "string" then
+		value = value:upper()
+	end
+	text:SetText(value)
+end
+
+function Widgets.TextColor(text, name, alphaScale)
+	text:SetTextColor(Widgets.Rgba(name, alphaScale))
+end
+
+function Widgets.TextWidth(text, fallback)
+	local width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
+	if IsSecret(width) or type(width) ~= "number" then
+		return fallback
+	end
+	return width
+end
+
+function Widgets.TextHeight(text, fallback)
+	local height = text:GetStringHeight()
+	if IsSecret(height) or type(height) ~= "number" or height <= 0 then
+		return fallback
+	end
+	return height
+end
+
+function Widgets.Size(frame, width, height)
+	frame:SetSize(Scale.Snap(width), Scale.Snap(height))
+end
+
+local SHAPES = {
+	panel = { fill = "chamferPanel", outer = "bevelPanelOuter", inner = "bevelPanelInner", chamfer = "chamferPanel" },
+	tile = { fill = "chamferTile", outer = "bevelTileOuter", inner = "bevelTileInner", chamfer = "chamferTile" },
+}
+
+local function SliceCoords(texture, piece, f)
+	local col, row = (piece - 1) % 3, floor((piece - 1) / 3)
+	local x0 = (col == 0 and 0) or (col == 1 and f) or (1 - f)
+	local x1 = (col == 0 and f) or (col == 1 and 1 - f) or 1
+	local y0 = (row == 0 and 0) or (row == 1 and f) or (1 - f)
+	local y1 = (row == 0 and f) or (row == 1 and 1 - f) or 1
+	texture:SetTexCoord(x0, x1, y0, y1)
+end
+
+local function NewTexture(owner, layer, sublevel, path)
+	local texture = owner:CreateTexture(nil, layer, nil, sublevel)
+	if path then
+		texture:SetTexture(path)
+	else
+		texture:SetColorTexture(Tokens.Color("white"))
+	end
+	return texture
+end
+
+local function NewSlice(owner, name, layer, sublevel)
+	local path, texels = Tokens.Texture(name)
+	local f = texels / TEXELS[name]
+	local p = {}
+	for piece = 1, 9 do
+		p[piece] = NewTexture(owner, layer, sublevel, path)
+		SliceCoords(p[piece], piece, f)
+	end
+	p[2]:SetPoint("TOPLEFT", p[1], "TOPRIGHT")
+	p[2]:SetPoint("BOTTOMRIGHT", p[3], "BOTTOMLEFT")
+	p[4]:SetPoint("TOPLEFT", p[1], "BOTTOMLEFT")
+	p[4]:SetPoint("BOTTOMRIGHT", p[7], "TOPRIGHT")
+	p[5]:SetPoint("TOPLEFT", p[1], "BOTTOMRIGHT")
+	p[5]:SetPoint("BOTTOMRIGHT", p[9], "TOPLEFT")
+	p[6]:SetPoint("TOPLEFT", p[3], "BOTTOMLEFT")
+	p[6]:SetPoint("BOTTOMRIGHT", p[9], "TOPRIGHT")
+	p[8]:SetPoint("TOPLEFT", p[7], "TOPRIGHT")
+	p[8]:SetPoint("BOTTOMRIGHT", p[9], "BOTTOMLEFT")
+	return p
+end
+
+local function PlaceCorners(owner, tl, tr, bl, br, size, outset)
+	for _, corner in ipairs({ tl, tr, bl, br }) do
+		corner:ClearAllPoints()
+		corner:SetSize(size, size)
+	end
+	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outset, outset)
+	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outset, outset)
+	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outset, -outset)
+	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outset, -outset)
+end
+
+function Widgets.NineSlice(owner, name, layer, sublevel)
+	if not TEXELS[name] then
+		error("KstyleUI.Widgets.NineSlice: " .. tostring(name) .. " is not a sliced texture", 2)
+	end
+	return NewSlice(owner, name, layer or "BACKGROUND", sublevel or 0)
+end
+
+function Widgets.LayoutSlice(slice, owner, corner, outset)
+	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], Scale.Snap(corner), Scale.Snap(outset or 0))
+end
+
+function Widgets.ColorSlice(slice, r, g, b, a)
+	for i = 1, #slice do
+		slice[i]:SetVertexColor(r, g, b, a)
+	end
+end
+
+function Widgets.ShowSlice(slice, shown)
+	for i = 1, #slice do
+		slice[i]:SetShown(shown)
+	end
+end
+
+local function NewBevel(owner, name, sublevel)
+	local path, texels = Tokens.Texture(name)
+	local f = texels / TEXELS[name]
+	local parts = {}
+	for i, piece in ipairs({ 1, 3, 7, 9 }) do
+		parts[i] = NewTexture(owner, "BORDER", sublevel, path)
+		SliceCoords(parts[i], piece, f)
+	end
+	for i = 5, 8 do
+		parts[i] = NewTexture(owner, "BORDER", sublevel)
+	end
+	return parts
+end
+
+local function PlaceBevel(owner, parts, size, inset, thick)
+	local tl, tr, bl, br, top, bottom, left, right = parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7], parts[8]
+	PlaceCorners(owner, tl, tr, bl, br, size, 0)
+	for i = 5, 8 do
+		parts[i]:ClearAllPoints()
+	end
+	top:SetPoint("TOPLEFT", tl, "TOPRIGHT", 0, -inset)
+	top:SetPoint("TOPRIGHT", tr, "TOPLEFT", 0, -inset)
+	top:SetHeight(thick)
+	bottom:SetPoint("BOTTOMLEFT", bl, "BOTTOMRIGHT", 0, inset)
+	bottom:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT", 0, inset)
+	bottom:SetHeight(thick)
+	left:SetPoint("TOPLEFT", tl, "BOTTOMLEFT", inset, 0)
+	left:SetPoint("BOTTOMLEFT", bl, "TOPLEFT", inset, 0)
+	left:SetWidth(thick)
+	right:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT", -inset, 0)
+	right:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT", -inset, 0)
+	right:SetWidth(thick)
+end
+
+local Chrome = {}
+Chrome.__index = Chrome
+
+function Widgets.Chrome(owner, opts)
+	opts = opts or {}
+	local shapeName = opts.shape or "panel"
+	local shape = SHAPES[shapeName]
+	if not shape then
+		error("KstyleUI.Widgets.Chrome: shape must be panel or tile, got " .. tostring(shapeName), 2)
+	end
+	local c = setmetatable({
+		owner = owner,
+		shape = shape,
+		shadowOn = opts.shadow == true or (opts.shadow == nil and shapeName == "panel"),
+		fillName = opts.fill or "surface",
+		edge = { Widgets.Rgba(opts.edge or "edgeInner") },
+		fillColor = nil,
+	}, Chrome)
+	c.shadow = NewSlice(owner, "shadow", "BACKGROUND", SUBLEVEL_SHADOW)
+	c.fill = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_FILL)
+	if opts.grain ~= false and shapeName == "panel" then
+		local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
+		noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
+		noise:SetHorizTile(true)
+		noise:SetVertTile(true)
+		c.noise = noise
+	end
+	c.outer = NewBevel(owner, shape.outer, SUBLEVEL_OUTER)
+	c.inner = NewBevel(owner, shape.inner, SUBLEVEL_INNER)
+	c:Restyle()
+	return Widgets.Track(c)
+end
+
+function Chrome:Layout()
+	local owner, shape = self.owner, self.shape
+	local _, _, fillUnits = Tokens.Texture(shape.fill)
+	local _, _, shadowUnits = Tokens.Texture("shadow")
+	local _, _, bevelUnits = Tokens.Texture(shape.outer)
+	Widgets.LayoutSlice(self.fill, owner, fillUnits, 0)
+	Widgets.LayoutSlice(self.shadow, owner, shadowUnits, shadowUnits / 2)
+	local border = Scale.Border()
+	local size = Scale.Snap(bevelUnits)
+	PlaceBevel(owner, self.outer, size, 0, border)
+	PlaceBevel(owner, self.inner, size, border, border)
+	if self.noise then
+		local inset = Scale.Snap(fillUnits)
+		self.noise:ClearAllPoints()
+		self.noise:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
+		self.noise:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
+	end
+end
+
+function Chrome:Paint()
+	local r, g, b, a
+	if self.fillColor then
+		r, g, b, a = self.fillColor[1], self.fillColor[2], self.fillColor[3], self.fillColor[4]
+	else
+		r, g, b, a = Tokens.Color(self.fillName)
+		if self.fillName == "surface" then
+			a = Widgets.Setting("panelOpacity")
+		end
+	end
+	Widgets.ColorSlice(self.fill, r, g, b, a)
+	local shadowShown = self.shadowOn and Widgets.Setting("shadows")
+	Widgets.ShowSlice(self.shadow, shadowShown)
+	Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
+	if self.noise then
+		self.noise:SetVertexColor(Widgets.Rgba("white", NOISE_ALPHA))
+	end
+	Widgets.ColorSlice(self.outer, Tokens.Color("edgeOuter"))
+	local e = self.edge
+	Widgets.ColorSlice(self.inner, e[1], e[2], e[3], e[4])
+end
+
+function Chrome:Restyle()
+	if Widgets.MayMove(self.owner) then
+		self:Layout()
+	elseif not self.layoutQueued then
+		self.layoutQueued = true
+		ns.Combat.Queue(function()
+			self.layoutQueued = false
+			self:Layout()
+		end)
+	end
+	self:Paint()
+end
+
+function Chrome:SetFill(name, alphaScale)
+	self.fillName = name
+	if alphaScale then
+		self.fillColor = { Widgets.Rgba(name, alphaScale) }
+	else
+		self.fillColor = nil
+	end
+	self:Paint()
+end
+
+function Chrome:SetFillRGBA(r, g, b, a)
+	self.fillColor = { r, g, b, a }
+	self:Paint()
+end
+
+function Chrome:SetEdge(name, alphaScale)
+	self:SetEdgeRGBA(Widgets.Rgba(name, alphaScale))
+end
+
+function Chrome:SetEdgeRGBA(r, g, b, a)
+	local e = self.edge
+	e[1], e[2], e[3], e[4] = r, g, b, a
+	Widgets.ColorSlice(self.inner, r, g, b, a)
+end
+
+function Chrome:SetShadow(on)
+	self.shadowOn = on and true or false
+	self:Paint()
+end
+
+function Chrome:SetShown(shown)
+	for _, list in ipairs({ self.fill, self.outer, self.inner }) do
+		Widgets.ShowSlice(list, shown)
+	end
+	if self.noise then
+		self.noise:SetShown(shown)
+	end
+	Widgets.ShowSlice(self.shadow, shown and self.shadowOn and Widgets.Setting("shadows"))
+end
+
+local function SetHover(widget, t)
+	widget.hoverT = t
+	widget:Paint()
+end
+
+local function SetPress(widget, t)
+	widget.pressT = t
+	widget:Paint()
+end
+
+function Widgets.Hover(widget, on)
+	return Motion.Tween(widget, SetHover, widget.hoverT or 0, on and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
+end
+
+function Widgets.Press(widget, down)
+	return Motion.Tween(widget, SetPress, widget.pressT or 0, down and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
+end
+
+function Widgets.PressOffset(widget)
+	return Scale.Snap(Tokens.Size("pressOffset") * (widget.pressT or 0))
+end
+
+function Widgets.MayMove(frame)
+	if not InCombatLockdown() then
+		return true
+	end
+	local protected = frame:IsProtected()
+	if IsSecret(protected) then
+		return false
+	end
+	return not protected
+end
+
+local escapes = setmetatable({}, { __mode = "k" })
+local watchingCombat = false
+
+local function PassKeys(frame)
+	if not InCombatLockdown() then
+		frame:SetPropagateKeyboardInput(true)
+	end
+end
+
+local function OnKeyDown(frame, key)
+	if key == "ESCAPE" then
+		if not InCombatLockdown() then
+			frame:SetPropagateKeyboardInput(false)
+		end
+		local fn = escapes[frame]
+		if fn then
+			ns.Call(fn, frame)
+		end
+	else
+		PassKeys(frame)
+	end
+end
+
+local function WatchCombat()
+	if watchingCombat then
+		return
+	end
+	watchingCombat = true
+	ns.Events.Register("Widgets.Escape", "PLAYER_REGEN_DISABLED", function()
+		for frame in pairs(escapes) do
+			PassKeys(frame)
+		end
+	end)
+end
+
+function Widgets.EscapeCloses(frame, fn)
+	local first = escapes[frame] == nil
+	escapes[frame] = fn
+	if not first then
+		return
+	end
+	frame:HookScript("OnKeyDown", OnKeyDown)
+	frame:HookScript("OnHide", PassKeys)
+	local function take()
+		frame:SetPropagateKeyboardInput(true)
+		frame:EnableKeyboard(true)
+	end
+	if InCombatLockdown() then
+		ns.Combat.Queue(take)
+	else
+		take()
+	end
+	WatchCombat()
+end
+
+function Widgets.Place(frame, key, position, opts)
+	local root = Scale.Root()
+	frame:ClearAllPoints()
+	frame:SetPoint(position.anchor, root, position.anchor, position.x or 0, position.y or 0)
+	local Layout = ns.Layout
+	if Layout and type(Layout.Register) == "function" then
+		ns.Call(Layout.Register, frame, key, position, opts)
+	else
+		Log("Layout.Register is missing; " .. tostring(key) .. " keeps its default position")
+	end
+end
+
+function Widgets.Sound(kit)
+	if not Widgets.Setting("sounds") then
+		return
+	end
+	local play, kits = PlaySound, SOUNDKIT
+	if type(play) ~= "function" or type(kits) ~= "table" then
+		return
+	end
+	local id = kits[kit]
+	if id then
+		pcall(play, id)
+	end
+end
+
+local function RestyleTexts()
+	for text in pairs(textRole) do
+		Widgets.StyleText(text)
+	end
+end
+
+ns.Callbacks.Register("ThemeChanged", SECTION, function()
+	RestyleTexts()
+	Widgets.RestyleAll()
+end)
+ns.Callbacks.Register("ScaleChanged", SECTION, Widgets.RestyleAll)
+ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
+ns.Callbacks.Register("SettingChanged", SECTION, function(_, module)
+	if module == SECTION then
+		Widgets.RestyleAll()
+	end
+end)
+
+function Widgets.Clamp(v, low, high)
+	return min(high, max(low, v))
+end

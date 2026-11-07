@@ -149,18 +149,52 @@ function Object:IsEventRegistered(event) return self._events[event] ~= nil end
 function Object:SetAttribute(key, value) self._attributes[key] = value end
 function Object:GetAttribute(key) return self._attributes[key] end
 
+-- A frame starts one level above its parent, as in the game.
+function Object:SetFrameLevel(level) self._level = level end
+function Object:GetFrameLevel()
+	if self._level then
+		return self._level
+	end
+	return self._parent and self._parent:GetFrameLevel() + 1 or 0
+end
+
+-- The frames and regions made on a frame, in creation order.
+function Object:GetChildren() return unpack(self._kids) end
+function Object:GetRegions() return unpack(self._regions) end
+
+-- Buttons and other controls are enabled until Disable. A change runs OnEnable or OnDisable.
+local function setEnabled(self, enabled)
+	enabled = not not enabled
+	if self._enabled == enabled then
+		return
+	end
+	self._enabled = enabled
+	local script = self._scripts[enabled and "OnEnable" or "OnDisable"]
+	if script then
+		script(self)
+	end
+end
+function Object:Enable() setEnabled(self, true) end
+function Object:Disable() setEnabled(self, false) end
+function Object:SetEnabled(enabled) setEnabled(self, enabled) end
+function Object:IsEnabled() return self._enabled end
+
 local ObjectMeta = {}
 
 local function newObject(env, objectType, name, parent)
 	return setmetatable({
 		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {},
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
+		_kids = {}, _regions = {}, _enabled = true,
 	}, ObjectMeta)
 end
 
 for name in pairs(Object) do
 	assert(METHODS[name], "stub method " .. name .. " is not a Forever widget method")
 end
+
+-- Create<Type> methods that make a region, which GetRegions lists.
+local REGIONS = { Texture = true, FontString = true, MaskTexture = true, Line = true }
 
 -- A documented method with no hand-written behaviour: Create<Type> makes a child, Set<X> stores its
 -- arguments for Get<X>, and any other method does nothing.
@@ -171,7 +205,11 @@ local function genericMethod(key)
 			if childType == "Animation" then
 				return newObject(self._env, a or "Animation", b, self)
 			end
-			return newObject(self._env, childType, type(a) == "string" and a or nil, self)
+			local child = newObject(self._env, childType, type(a) == "string" and a or nil, self)
+			if REGIONS[childType] then
+				self._regions[#self._regions + 1] = child
+			end
+			return child
 		end
 	end
 	local setField = key:match("^Set(%u%w*)$")
@@ -226,6 +264,9 @@ function Stubs.NewEnv(opts)
 	function env.CreateFrame(frameType, name, parent, template)
 		local frame = newObject(env, frameType, name, parent)
 		frame._template = template
+		if parent then
+			parent._kids[#parent._kids + 1] = frame
+		end
 		env._frames[#env._frames + 1] = frame
 		if name then
 			env[name] = frame
