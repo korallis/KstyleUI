@@ -25,7 +25,7 @@ local busy = false
 local panelHooks = false
 
 local WINDOW_ART = { "NineSlice", "Bg", "TopTileStreaks", "PortraitContainer", "TitleContainer", "Inset", "Inset.NineSlice", "Inset.Bg" }
-local SCROLL_ART = { "Track", "Track.Thumb", "Thumb", "Back", "Forward", "ScrollUpButton", "ScrollDownButton" }
+local SCROLL_ART = { "Background", "Track", "Track.Thumb", "Thumb", "Back", "Forward", "ScrollUpButton", "ScrollDownButton" }
 
 local function Log(message)
 	ns.DevTest.Log("Skin", message)
@@ -243,6 +243,14 @@ local function Insets(frame, inset)
 	return v, v, v, v
 end
 
+local function PlaceBackdrop(panel)
+	local frame = panel:GetParent()
+	local left, right, top, bottom = Insets(panel, panel.inset)
+	panel:ClearAllPoints()
+	panel:SetPoint("TOPLEFT", frame, "TOPLEFT", left, -top)
+	panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -right, bottom)
+end
+
 local function Backdrop(frame, opts)
 	opts = opts or {}
 	local parts = Parts(frame)
@@ -251,10 +259,11 @@ local function Backdrop(frame, opts)
 	end
 	local panel = CreateFrame("Frame", nil, frame)
 	panel:SetFrameLevel(max(0, frame:GetFrameLevel() - 1))
-	local left, right, top, bottom = Insets(panel, opts.inset)
-	panel:SetPoint("TOPLEFT", frame, "TOPLEFT", left, -top)
-	panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -right, bottom)
+	panel.inset = opts.inset
+	panel.Restyle = PlaceBackdrop
+	PlaceBackdrop(panel)
 	panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow })
+	W().Track(panel)
 	parts.backdrop = panel
 	Mark(frame, "Backdrop")
 	return panel
@@ -300,7 +309,7 @@ local function PaintTab(parts)
 	if not text then
 		return
 	end
-	if tab.isDisabled == true then
+	if tab.isDisabled then
 		Widgets.TextColor(text, "textDisabled")
 	elseif parts.selected then
 		text:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, parts.hoverT or 0))
@@ -360,7 +369,7 @@ local function Tab(tab)
 		end)
 	else
 		HookPanelTemplates()
-		parts.selected = not Enabled(tab) and tab.isDisabled ~= true
+		parts.selected = not Enabled(tab) and not tab.isDisabled
 	end
 	HookPointer(tab, parts)
 	Restyle(parts)
@@ -441,13 +450,18 @@ local function ScrollBar(bar)
 		Hush(thumb)
 	end
 	local overlay = Overlay(bar)
-	local rail = type(bar.Track) == "table" and bar.Track or bar
-	parts.track = overlay:CreateTexture(nil, "ARTWORK")
+	local rail = type(bar.Track) == "table" and type(bar.Track.GetRegions) == "function" and bar.Track or bar
+	local railLayer = rail == bar and overlay or Overlay(rail)
+	parts.track = railLayer:CreateTexture(nil, "ARTWORK")
 	parts.track:SetColorTexture(Tokens.Color("white"))
 	parts.track:SetPoint("TOP", rail, "TOP")
 	parts.track:SetPoint("BOTTOM", rail, "BOTTOM")
 	if thumb then
-		parts.thumb = overlay:CreateTexture(nil, "OVERLAY")
+		local thumbLayer = overlay
+		if type(thumb.GetRegions) == "function" then
+			thumbLayer = Overlay(thumb)
+		end
+		parts.thumb = thumbLayer:CreateTexture(nil, "OVERLAY")
 		parts.thumb:SetColorTexture(Tokens.Color("white"))
 		parts.thumb:SetPoint("TOP", thumb, "TOP")
 		parts.thumb:SetPoint("BOTTOM", thumb, "BOTTOM")

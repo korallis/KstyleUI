@@ -113,6 +113,13 @@ do
 	local inset = K.Widgets.Snap(panel, 4)
 	assert(p[1] == "TOPLEFT" and p[2] == frame and W.Near(p[4], inset) and W.Near(p[5], -inset), "inset from the frame, in whole pixels of its scale")
 	assert(K.Skin.Backdrop(frame) == panel, "a second call returns the same panel")
+	env._physical = { 3456, 2234 }
+	env.GetPhysicalScreenSize = function()
+		return env._physical[1], env._physical[2]
+	end
+	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	local moved = panel._points[1]
+	assert(W.Near(moved[4], K.Widgets.Snap(panel, 4)) and not W.Near(moved[4], inset), "a display change re-snaps the inset, got " .. moved[4])
 	assert(K.Skin.IsSkinned(frame, "Backdrop"))
 	local tile = K.Skin.Backdrop(B.frame(), { shape = "tile", fill = "raised", shadow = false })
 	assert(tile.chrome.shadow[1]:IsShown() == false)
@@ -163,9 +170,19 @@ do
 		owner.Tabs[i] = tab
 	end
 	owner.numTabs = 3
+	local disabled = B.frame("Button", owner)
+	disabled.Text = B.text(disabled)
+	disabled.isDisabled = 1
+	disabled:Disable()
+	owner.Tabs[4] = disabled
+	owner.numTabs = 4
 	env.PanelTemplates_SelectTab(owner.Tabs[1])
 	local snap = B.snapshot()
 	K.Skin.Tabs(owner)
+	assert(not K.Skin.Parts(disabled).underline:IsShown(), "a tab Blizzard disabled with isDisabled = 1 is not selected")
+	assert(W.SameRGB({ GetVertexColor = function()
+		return disabled.Text:GetTextColor()
+	end }, K.Tokens.Color("textDisabled")), "and its text is grey")
 	local function underline(tab)
 		return K.Skin.Parts(tab).underline
 	end
@@ -212,13 +229,15 @@ do
 	bar.Track.Thumb = B.frame("Button", bar.Track)
 	bar.Thumb = bar.Track.Thumb
 	local thumbArt = B.texture(bar.Thumb)
+	bar.Background = B.frame("Frame", bar)
+	local trim = B.texture(bar.Background)
 	bar.Back = B.frame("Button", bar)
 	bar.Forward = B.frame("Button", bar)
 	B.texture(bar.Back)
 	B.texture(bar.Forward)
 	local snap = B.snapshot()
 	K.Skin.ScrollBar(bar)
-	assert(thumbArt:GetAlpha() == 0, "the thumb art is stripped")
+	assert(thumbArt:GetAlpha() == 0 and trim:GetAlpha() == 0, "the thumb and the trim bar's background art are stripped")
 	local parts = K.Skin.Parts(bar)
 	assert(parts.thumb and parts.thumb._points[1][2] == bar.Thumb, "KstyleUI's thumb follows Blizzard's")
 	assert(parts.track and W.SameColor(parts.track, K.Tokens.Color("track")))
@@ -227,6 +246,14 @@ do
 	W.Enter(bar.Thumb)
 	W.Settle(env)
 	assert(W.SameRGB(parts.thumb, K.Tokens.Color("accent")), "the thumb lights under the mouse")
+	bar.Thumb._kstyleAllowHide, bar.Track._kstyleAllowHide = true, true
+	bar.Thumb:Hide()
+	assert(not parts.thumb:IsVisible(), "KstyleUI's thumb hides with Blizzard's")
+	bar.Thumb:Show()
+	assert(parts.thumb:IsVisible())
+	bar.Track:Hide()
+	assert(not parts.track:IsVisible(), "and the rail with the track")
+	bar.Track:Show()
 	B.check(snap)
 	local slider = B.frame("Slider")
 	local thumbTexture = B.texture(slider)
