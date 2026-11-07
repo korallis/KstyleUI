@@ -1,0 +1,5 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- <Script file="Commented.lua"/> -->
+	<Script file="A.lua"/>
+	<Include file="Sub\Sub.xml"/>
+</Ui>

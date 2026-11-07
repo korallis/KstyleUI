@@ -31,6 +31,8 @@ python3 -m unittest discover -s Tools/tests
 
 Phase 0 adds these tools one task at a time. Until a task adds a command's file, skip that command.
 
+`python3 Tools/hooks/check_toc.py` reports each file a TOC or an XML include lists that is missing, or whose letter case differs from the file on disk. Linux CI cannot find a file whose case differs, even when macOS can.
+
 After the checks pass, run `cr review --agent` and fix the critical and major findings, at most two rounds. Then get one cross-family review with `codex review`.
 
 ## Line endings and encoding
