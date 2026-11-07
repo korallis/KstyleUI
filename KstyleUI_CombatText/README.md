@@ -1,6 +1,6 @@
 # KstyleUI_CombatText
 
-Animated damage and heal numbers on KstyleUI frames and plates, and the KstyleUI font for the game's own world numbers.
+Animated damage and heal numbers on KstyleUI frames and plates, the KstyleUI font for the game's own world numbers, and Blizzard's own combat text hidden while the module runs.
 
 | Field | Value |
 | --- | --- |
@@ -14,6 +14,7 @@ Animated damage and heal numbers on KstyleUI frames and plates, and the KstyleUI
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
 - World numbers: set `DAMAGE_TEXT_FONT` to the KstyleUI font while the module is on. The change takes effect at the next login, not after a reload, and the options say so.
+- Blizzard's combat text: while the module runs, turn the game's own combat text off through its CVars, out of combat, and put the player's values back when it stops. See [Blizzard's combat text](#blizzards-combat-text).
 - Frame numbers come from `UNIT_COMBAT`. Amounts pass straight to `FontString:SetText` through `AbbreviateNumbers`, so Lua never compares or adds them. A unit type whose events do not fire gets no frame numbers.
 - No `COMBAT_LOG_EVENT_UNFILTERED` and no `CombatLogGetCurrentEventInfo`: the combat log is closed to addons.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.
@@ -34,10 +35,11 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Display.lua` | Emitters, one per place that shows numbers, each with its pool, and `Spawn`, which styles, places and animates one number |
 | `Anchors.lua` | Which places show numbers for a unit token: KstyleUI unit and group frames found by their `unit` attribute, your field, and nameplates |
 | `World.lua` | `DAMAGE_TEXT_FONT` for the game's own damage numbers |
+| `Blizzard.lua` | The CVars that hide Blizzard's own combat text while the module runs |
 | `Preview.lua` | The settings window's live preview |
 | `Module.lua` | Registration, `Enable` and `Disable`, the event handlers and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secrets, throttling, pooling, styles, motion levels), `test-combattext-anchors.lua` (unit, group, boss and nameplate frames, rescans, scale and opacity, against stand-ins), `test-combattext-integration.lua` (the same against the real UnitFrames, GroupFrames and Nameplates modules, loaded in the game's order), `test-combattext-world.lua` (the world font) and `test-combattext-options.lua` (the settings page, saved-value checks, the preview and the smoke check). `Tools/regression/combattext_env.lua` loads the core and the module as the game does.
+Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secrets, throttling, pooling, styles, motion levels), `test-combattext-anchors.lua` (unit, group, boss and nameplate frames, rescans, scale and opacity, against stand-ins), `test-combattext-integration.lua` (the same against the real UnitFrames, GroupFrames and Nameplates modules, loaded in the game's order), `test-combattext-world.lua` (the world font), `test-combattext-blizzard.lua` (Blizzard's combat text) and `test-combattext-options.lua` (the settings page, saved-value checks, the preview and the smoke check). `Tools/regression/combattext_env.lua` loads the core and the module as the game does.
 
 ## Where numbers show
 
@@ -50,10 +52,36 @@ Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secret
 
 Numbers on frames start at the frame's centre or just above it (`framePoint`) and travel `distance` units. They live in the module's own layer on `KstyleUI_Root` and are only anchored to the frame, so KstyleUI never parents anything to a secure or Blizzard frame.
 
+## Blizzard's combat text
+
+The game draws its own combat text, so without this the player sees two sets of numbers. `Blizzard.lua` writes `0` into these CVars while the module runs:
+
+| Setting | CVars | What the game draws | Saved by the game |
+| --- | --- | --- | --- |
+| `blizzardSelf` | `enableFloatingCombatText` | The scrolling text over your character (`Blizzard_CombatText`): damage and heals you take, misses, and also reputation, honour and combat state | Per character |
+| `blizzardTargets` | `floatingCombatTextCombatDamage_v2`, `floatingCombatTextCombatHealing_v2`, `floatingCombatTextPetMeleeDamage_v2`, `floatingCombatTextPetSpellDamage_v2` | Your damage and healing numbers over targets, and your pet's damage | For every character |
+
+Periodic damage (`floatingCombatTextCombatLogPeriodicSpells_v2`) is a filter under Damage in Blizzard's menu, so it is not touched. Pet damage has its own two CVars, which Forever's Settings panel does not show, and KstyleUI's numbers on frames and plates include the pet's hits.
+
+| Case | What happens |
+| --- | --- |
+| The module turns on, or a setting changes to Hide | Each CVar is written `0` out of combat (`Combat.Queue`) and read back. A CVar already at `0` is not written. |
+| Turned off, or a setting changes to Keep | The player's value comes back, but only to a CVar that still holds `0`. If the game refuses it, the module keeps the value and tries again at the next restore. |
+| The player's value | `KstyleUIDB.account.combatTextCVars[<owner>][<cvar>]` keeps `{ original, written }`. The owner is the character key for a CVar the game saves per character, and `*` for one it saves for every character, so an alt never takes KstyleUI's `0` as its own. `C_CVar.GetCVarInfo` says which; the table above is the fallback. A value that differs from `written` when the module starts is the player's own. |
+| A change in Blizzard's options (`SettingsPanel` shown) | A CVar turned back on sets its setting to Keep, which puts back every CVar under that setting. |
+| Any other change (`/console`, another addon), or `VARIABLES_LOADED` after the module started | The new value becomes the player's, and the module writes `0` again on the next frame. |
+| The client refuses a CVar (a secure CVar returns nothing) or has no `C_CVar.SetCVar` | The player's value stays, and the devlog says so once. |
+
+The module's own writes set a flag around `SetCVar`, because `CVAR_UPDATE` fires inside the call. `SettingsPanel` passes every `CVAR_UPDATE` to its settings, so `Blizzard_CombatText` stops at once. Before removing KstyleUI, set both settings to Keep or turn the module off, or the text stays hidden.
+
+Limit: values come back only when the module stops or a setting changes to Keep, because a module that is off at login runs no code. A character that logs in with the module off keeps what another character left: the target CVars while another profile hides them, and its own `enableFloatingCombatText` if the module was turned off on a different character. Esc > Options > Combat turns them back on, except the two pet CVars, which need `/console`.
+
 ## Settings
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
+| `blizzardSelf` | `hide` | dropdown: hide, keep | Hide turns `enableFloatingCombatText` off. Keep leaves it as the player set it. |
+| `blizzardTargets` | `hide` | dropdown: hide, keep | Hide turns off the four CVars for numbers over targets. Keep leaves them as the player set them. |
 | `worldFont` | `true` | toggle | Sets `DAMAGE_TEXT_FONT` to `worldFace`. The game reads it at the next login. |
 | `worldFace` | Source Sans 3 Semibold | font | The font for the game's own damage numbers |
 | `style` | `rise` | dropdown: rise, arc, pop | How each number moves |

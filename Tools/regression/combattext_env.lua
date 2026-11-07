@@ -9,6 +9,7 @@
 -- tests never see them: GetTime (env._now), AbbreviateNumbers and BreakUpLargeNumbers (each returns
 -- "short(<n>)" or "full(<n>)", and a secret for a secret, so a test sees which formatter ran and that
 -- the amount reached it untouched), and C_NamePlate.GetNamePlateForUnit (env._plates[unit]).
+-- CT.New also adds C_CVar with Blizzard's combat text CVars on (CT.CVars).
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local TocFiles = dofile("Tools/regression/toc_files.lua")
@@ -68,9 +69,45 @@ function CT.Fakes(env)
 	fill("DAMAGE_TEXT_FONT", "Fonts\\FRIZQT__.TTF")
 end
 
+CT.SELF = "enableFloatingCombatText"
+CT.TARGETS = { "floatingCombatTextCombatDamage_v2", "floatingCombatTextCombatHealing_v2", "floatingCombatTextPetMeleeDamage_v2", "floatingCombatTextPetSpellDamage_v2" }
+
+-- CVars(env, opts) adds C_CVar with Blizzard's combat text CVars at "1". SetCVar records each write in
+-- env._cvarWrites, stores it and fires CVAR_UPDATE inside the call, as the client does; it refuses a name in
+-- env._secureCVars as the client refuses a secure CVar, storing and returning nothing. GetCVarInfo says only
+-- enableFloatingCombatText is saved per character. opts.noSetCVar leaves SetCVar out.
+function CT.CVars(env, opts)
+	env._cvars, env._cvarWrites, env._secureCVars = { [CT.SELF] = "1" }, {}, {}
+	for _, name in ipairs(CT.TARGETS) do
+		env._cvars[name] = "1"
+	end
+	env.C_CVar = {
+		GetCVar = function(name)
+			return env._cvars[name]
+		end,
+		GetCVarInfo = function(name)
+			if env._cvars[name] then
+				return env._cvars[name], "1", false, name == CT.SELF, false, false, false
+			end
+		end,
+	}
+	if not (opts and opts.noSetCVar) then
+		env.C_CVar.SetCVar = function(name, value)
+			env._cvarWrites[#env._cvarWrites + 1] = { name = name, value = value }
+			if env._secureCVars[name] then
+				return
+			end
+			env._cvars[name] = value
+			env.FireEvent("CVAR_UPDATE", name, value)
+			return true
+		end
+	end
+end
+
 -- New(opts) -> env, KstyleUI, ns (the module's addon table). opts: the widget_env options, plus
 --   login   false to stop before PLAYER_LOGIN
 --   before  function(env, K) that runs after the saved data loads and before the module's files run
+--   cvar    the CT.CVars options
 function CT.New(opts)
 	opts = opts or {}
 	local setup = opts.setup
@@ -78,9 +115,11 @@ function CT.New(opts)
 		saved = opts.saved,
 		width = opts.width,
 		height = opts.height,
+		player = opts.player,
 		boot = false,
 		setup = function(e)
 			CT.Fakes(e)
+			CT.CVars(e, opts.cvar)
 			if setup then
 				setup(e)
 			end

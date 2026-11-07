@@ -23,7 +23,7 @@ do
 		distance = "slider", groupSize = "slider", ["units.player"] = "toggle", ["units.target"] = "toggle",
 		["units.targettarget"] = "toggle", ["units.focus"] = "toggle", ["units.focustarget"] = "toggle", ["units.pet"] = "toggle",
 		["units.boss"] = "toggle", ["units.party"] = "toggle", ["units.raid"] = "toggle",
-		["units.nameplate"] = "toggle",
+		["units.nameplate"] = "toggle", blizzardSelf = "dropdown", blizzardTargets = "dropdown",
 	}
 	for key, rowType in pairs(expected) do
 		assert(keys[key] == rowType, "the page has a " .. rowType .. " row for " .. key .. ", got " .. tostring(keys[key]))

@@ -216,6 +216,11 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] Take damage: numbers rise through the field above your character, coloured by school; critical hits are larger and gold. Heals show as green `+` numbers; dodges and parries in grey.
 - [ ] With Unit Frames on, numbers rise from the target frame. Set **Your numbers** to the player frame: they move there, and the field's mover disappears from Layout Mode.
 - [ ] In a party with Group Frames, numbers rise from members' frames. With Nameplates, numbers rise from plates if the game sends them. The `combat text` devlog line says how many came from nameplate units.
+- [ ] Before you turn the module on, turn on Esc > Options > Combat > **Scrolling Combat Text for Self**, and **Damage** and **Healing** under its target text menu. With the module on, fight with your pet out: no Blizzard text over you and no Blizzard numbers over the target, also for pet hits and damage over time.
+- [ ] Run `/dump C_CVar.GetCVarInfo("enableFloatingCombatText")`, and the same for `floatingCombatTextCombatDamage_v2`, `floatingCombatTextCombatHealing_v2`, `floatingCombatTextPetMeleeDamage_v2` and `floatingCombatTextPetSpellDamage_v2`. Send the output: each value should be 0.
+- [ ] Set **Blizzard's text over you** to **Keep**: Blizzard's text over you comes back. Do the same with **Blizzard's numbers over targets**. Set both back to **Hide**: both go again.
+- [ ] In Esc > Options > Combat, turn **Scrolling Combat Text for Self** on: **Blizzard's text over you** changes to **Keep**. Type `/console floatingCombatTextCombatDamage_v2 1`: Blizzard's numbers stay hidden.
+- [ ] `/reload`: everything stays hidden. Log in on an alt that uses the same profile, then turn the module off there: Blizzard's text and numbers come back as you had them.
 
 ### Minimap
 

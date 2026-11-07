@@ -6,6 +6,7 @@
 	<Script file="Display.lua"/>
 	<Script file="Anchors.lua"/>
 	<Script file="World.lua"/>
+	<Script file="Blizzard.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

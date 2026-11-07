@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local L = K.L
-local Settings, Format, Pool, Display, Anchors, World, Preview = ns.Settings, ns.Format, ns.Pool, ns.Display, ns.Anchors, ns.World, ns.Preview
+local Settings, Format, Pool, Display, Anchors, World, Blizzard, Preview = ns.Settings, ns.Format, ns.Pool, ns.Display, ns.Anchors, ns.World, ns.Blizzard, ns.Preview
 
 local MODULE = "CombatText"
 local FIELD_KEY = "combattext.player"
@@ -11,6 +11,7 @@ local FIELD_MIN, FIELD_MAX = 60, 600
 local FIELD_CAPACITY = 16
 local FRAME_CAPACITY = 64
 local WORLD_KEYS = { worldFont = true, worldFace = true }
+local BLIZZARD_KEYS = { blizzardSelf = true, blizzardTargets = true }
 local WATCHED_MODULES = { UnitFrames = true, GroupFrames = true, Nameplates = true }
 
 local Module = {}
@@ -142,12 +143,15 @@ local function OnSetting(_, module, key)
 	if WORLD_KEYS[key] then
 		World.Apply(Module.cfg)
 		K.Print(L["The game's own damage numbers change font at your next login."])
+	elseif BLIZZARD_KEYS[key] then
+		Blizzard.Schedule()
 	end
 end
 
 local function OnProfile()
 	Refresh()
 	World.Apply(Module.cfg)
+	Blizzard.Schedule()
 end
 
 local function OnModule(_, name)
@@ -177,6 +181,7 @@ local function Enable()
 	Build()
 	Refresh()
 	World.Apply(Module.cfg)
+	Blizzard.Start(Module.cfg)
 	Module.layer:Show()
 	Module.field:Show()
 	K.Events.Register(MODULE, "UNIT_COMBAT", OnUnitCombat)
@@ -204,6 +209,7 @@ local function Disable()
 		Module.field:Hide()
 	end
 	World.Restore()
+	Blizzard.Stop()
 end
 
 Settings.schema.preview = Preview.Build

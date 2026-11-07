@@ -22,6 +22,8 @@ local function TokenColor(name)
 end
 
 local defaults = {
+	blizzardSelf = "hide",
+	blizzardTargets = "hide",
 	worldFont = true,
 	worldFace = NUMBER_FONT,
 	style = "rise",
@@ -61,6 +63,10 @@ local defaults = {
 Settings.defaults = defaults
 Settings.UNIT_KEYS = UNIT_KEYS
 
+local BLIZZARD_OPTIONS = {
+	{ value = "hide", label = L["Hide"] },
+	{ value = "keep", label = L["Keep"] },
+}
 local STYLE_OPTIONS = {
 	{ value = "rise", label = L["Rise"] },
 	{ value = "arc", label = L["Arc"] },
@@ -96,7 +102,7 @@ local function Set(options)
 	end
 	return out
 end
-local STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(STYLE_OPTIONS), Set(OUTLINE_OPTIONS), Set(FORMAT_OPTIONS), Set(COLOR_MODE_OPTIONS)
+local BLIZZARD, STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(BLIZZARD_OPTIONS), Set(STYLE_OPTIONS), Set(OUTLINE_OPTIONS), Set(FORMAT_OPTIONS), Set(COLOR_MODE_OPTIONS)
 local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
@@ -109,6 +115,17 @@ local function CritColorOn(settings)
 end
 
 Settings.schema = {
+	{ type = "header", label = L["Blizzard's combat text"] },
+	{
+		type = "dropdown", key = "blizzardSelf", label = L["Blizzard's text over you"],
+		help = L["Hide turns off the game's scrolling combat text over your character while this module is on."],
+		options = BLIZZARD_OPTIONS,
+	},
+	{
+		type = "dropdown", key = "blizzardTargets", label = L["Blizzard's numbers over targets"],
+		help = L["Hide turns off the game's damage and healing numbers over targets while this module is on."],
+		options = BLIZZARD_OPTIONS,
+	},
 	{ type = "header", label = L["World numbers"] },
 	{
 		type = "toggle", key = "worldFont", label = L["KstyleUI font for world numbers"],
@@ -298,6 +315,8 @@ function Settings.Snapshot(values, cfg)
 	cfg = cfg or {}
 	values = type(values) == "table" and values or defaults
 	local d = defaults
+	cfg.blizzardSelf = Choice(values.blizzardSelf, BLIZZARD, d.blizzardSelf)
+	cfg.blizzardTargets = Choice(values.blizzardTargets, BLIZZARD, d.blizzardTargets)
 	cfg.worldFont = Bool(values.worldFont, d.worldFont)
 	cfg.worldFace = FontPath(values.worldFace, d.worldFace)
 	cfg.style = Choice(values.style, STYLES, d.style)
