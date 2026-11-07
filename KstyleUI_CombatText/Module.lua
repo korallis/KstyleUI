@@ -3,19 +3,21 @@ local _, ns = ...
 
 local K = KstyleUI
 local L = K.L
-local Settings, Format, Pool, Display, World, Preview = ns.Settings, ns.Format, ns.Pool, ns.Display, ns.World, ns.Preview
+local Settings, Format, Pool, Display, Anchors, World, Preview = ns.Settings, ns.Format, ns.Pool, ns.Display, ns.Anchors, ns.World, ns.Preview
 
 local MODULE = "CombatText"
 local FIELD_KEY = "combattext.player"
 local FIELD_MIN, FIELD_MAX = 60, 600
 local FIELD_CAPACITY = 16
-local MAX_NAMEPLATES = 40
+local FRAME_CAPACITY = 64
 local WORLD_KEYS = { worldFont = true, worldFace = true }
+local WATCHED_MODULES = { UnitFrames = true, GroupFrames = true, Nameplates = true }
 
 local Module = {}
 ns.Module = Module
 
 local IsSecret = Format.IsSecret
+local NAMEPLATES = Anchors.NAMEPLATES
 
 local stats = {
 	events = 0, shown = 0, secretAmount = 0, secretEvent = 0, secretFlag = 0, secretSchool = 0,
@@ -23,17 +25,13 @@ local stats = {
 }
 Module.stats = stats
 
-local NAMEPLATES = {}
-for i = 1, MAX_NAMEPLATES do
-	NAMEPLATES["nameplate" .. i] = true
-end
-
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
 end
 
 local function Refresh()
 	Settings.Snapshot(Settings.Values(), Module.cfg)
+	Anchors.Rebuild(Module.cfg)
 end
 
 local function Build()
@@ -41,6 +39,9 @@ local function Build()
 		return
 	end
 	local root = K.Scale.Root()
+	local layer = CreateFrame("Frame", nil, root)
+	layer:SetAllPoints(root)
+	Module.layer = layer
 	local footprint = K.Setup.Layouts.Element(FIELD_KEY)
 	local field = CreateFrame("Frame", nil, root)
 	field:SetSize(footprint.width, footprint.height)
@@ -51,9 +52,11 @@ local function Build()
 		minWidth = FIELD_MIN, maxWidth = FIELD_MAX, minHeight = FIELD_MIN, maxHeight = FIELD_MAX,
 	})
 	Module.field = field
-	Module.fieldEmitter = Display.NewEmitter(field, "field", "BOTTOM")
 	Module.cfg = {}
 	Module.pool = Pool.New(field, FIELD_CAPACITY)
+	Module.framePool = Pool.New(layer, FRAME_CAPACITY)
+	Module.fieldEmitter = Display.NewEmitter(field, "field", Module.pool)
+	Anchors.Setup(Module.fieldEmitter, Module.framePool)
 end
 
 local function Shows(cfg, kind)
@@ -88,9 +91,14 @@ local function Count(unit, event, flag, amount, school)
 	end
 end
 
+local function Show(emitter, cfg, kind, emphasis, amount, word, school)
+	Display.Spawn(emitter, cfg, kind, emphasis, amount, word, school)
+	stats.shown = stats.shown + 1
+end
+
 local function OnUnitCombat(_, unit, event, flag, amount, school)
 	Count(unit, event, flag, amount, school)
-	if IsSecret(unit) or unit ~= "player" then
+	if IsSecret(unit) or type(unit) ~= "string" then
 		return
 	end
 	local kind, emphasis, word = Format.Classify(event, flag, amount)
@@ -98,8 +106,32 @@ local function OnUnitCombat(_, unit, event, flag, amount, school)
 	if not kind or not Shows(cfg, kind) then
 		return
 	end
-	Display.Spawn(Module.pool, Module.fieldEmitter, cfg, kind, emphasis, amount, word, school)
-	stats.shown = stats.shown + 1
+	local list = Anchors.Lookup(unit)
+	if list then
+		for i = 1, #list do
+			local emitter = list[i]
+			if emitter and Anchors.Ready(emitter, unit) then
+				Show(emitter, cfg, kind, emphasis, amount, word, school)
+			end
+		end
+	elseif NAMEPLATES[unit] then
+		local emitter = Anchors.Plate(unit, cfg)
+		if emitter then
+			Show(emitter, cfg, kind, emphasis, amount, word, school)
+		end
+	else
+		Anchors.Missed(unit)
+	end
+end
+
+local function OnRoster()
+	Anchors.Schedule()
+end
+
+local function OnPlateRemoved(_, unit)
+	if not IsSecret(unit) and type(unit) == "string" then
+		Anchors.PlateRemoved(unit)
+	end
 end
 
 local function OnSetting(_, module, key)
@@ -118,24 +150,35 @@ local function OnProfile()
 	World.Apply(Module.cfg)
 end
 
+local function OnModule(_, name)
+	if WATCHED_MODULES[name] then
+		Anchors.Schedule()
+	end
+end
+
 local function Check()
 	if not K.Modules.IsRunning(MODULE) then
 		return true, "switched off"
 	end
+	local unitFrames, groupFrames = Anchors.Counts()
 	return true, string.format(
-		"%d UNIT_COMBAT events (%d secret amount, %d secret event, %d secret flag, %d secret school, %d secret unit); %d from nameplate units; %d numbers shown; DAMAGE_TEXT_FONT %s",
+		"%d UNIT_COMBAT events (%d secret amount, %d secret event, %d secret flag, %d secret school, %d secret unit); %d from nameplate units; %d numbers shown; numbers attach to %d unit frames, %d group frames; DAMAGE_TEXT_FONT %s",
 		stats.events, stats.secretAmount, stats.secretEvent, stats.secretFlag, stats.secretSchool, stats.secretUnit,
-		stats.nameplate, stats.shown, tostring(World.Current()))
+		stats.nameplate, stats.shown, unitFrames, groupFrames, tostring(World.Current()))
 end
 
 local function Enable()
 	Build()
 	Refresh()
 	World.Apply(Module.cfg)
+	Module.layer:Show()
 	Module.field:Show()
 	K.Events.Register(MODULE, "UNIT_COMBAT", OnUnitCombat)
+	K.Events.Register(MODULE, "GROUP_ROSTER_UPDATE", OnRoster)
+	K.Events.Register(MODULE, "NAME_PLATE_UNIT_REMOVED", OnPlateRemoved)
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
+	K.Callbacks.Register("ModuleChanged", MODULE, OnModule)
 	if not Module.checked then
 		Module.checked = true
 		K.DevTest.AddCheck("combat text", Check)
@@ -149,6 +192,8 @@ end
 local function Disable()
 	if Module.pool then
 		Module.pool:ReleaseAll()
+		Module.framePool:ReleaseAll()
+		Module.layer:Hide()
 		Module.field:Hide()
 	end
 	World.Restore()

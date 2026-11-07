@@ -39,23 +39,33 @@ local function formatter(env, label)
 	end
 end
 
+-- Fakes(env) adds each fake the environment lacks, so another module's test environment keeps its own.
 function CT.Fakes(env)
-	env._formatted = {}
-	env.GetTime = function()
-		return env._now
+	local function fill(name, value)
+		if rawget(env, name) == nil then
+			env[name] = value
+		end
 	end
-	env.AbbreviateNumbers = formatter(env, "short")
-	env.BreakUpLargeNumbers = formatter(env, "full")
+	env._formatted = {}
 	env._plates = {}
-	env.C_NamePlate = {
+	fill("GetTime", function()
+		return env._now
+	end)
+	fill("AbbreviateNumbers", formatter(env, "short"))
+	fill("BreakUpLargeNumbers", formatter(env, "full"))
+	fill("C_NamePlate", {
 		GetNamePlateForUnit = function(unit)
 			return env._plates[unit]
 		end,
+	})
+	local words = {
+		MISS = "Miss", DODGE = "Dodge", PARRY = "Parry", BLOCK = "Block", ABSORB = "Absorb", RESIST = "Resist",
+		IMMUNE = "Immune", EVADE = "Evade", DEFLECT = "Deflect", REFLECT = "Reflect", INTERRUPT = "Interrupt",
 	}
-	env.MISS, env.DODGE, env.PARRY, env.BLOCK, env.ABSORB = "Miss", "Dodge", "Parry", "Block", "Absorb"
-	env.RESIST, env.IMMUNE, env.EVADE, env.DEFLECT, env.REFLECT = "Resist", "Immune", "Evade", "Deflect", "Reflect"
-	env.INTERRUPT = "Interrupt"
-	env.DAMAGE_TEXT_FONT = "Fonts\\FRIZQT__.TTF"
+	for name, word in pairs(words) do
+		fill(name, word)
+	end
+	fill("DAMAGE_TEXT_FONT", "Fonts\\FRIZQT__.TTF")
 end
 
 -- New(opts) -> env, KstyleUI, ns (the module's addon table). opts: the widget_env options, plus
@@ -103,13 +113,72 @@ function CT.Hit(env, unit, event, flag, amount, school)
 	env.FireEvent("UNIT_COMBAT", unit, event, flag or "", amount, school or 1)
 end
 
--- Shown(ns) -> the numbers on screen, oldest first.
+-- Shown(ns) -> the numbers on screen: the player's field first, then the frames', each oldest first.
 function CT.Shown(ns)
 	local out = {}
-	for _, number in ipairs(ns.Module.pool.active) do
-		out[#out + 1] = number
+	for _, pool in ipairs({ ns.Module.pool, ns.Module.framePool }) do
+		for _, number in ipairs(pool and pool.active or {}) do
+			out[#out + 1] = number
+		end
 	end
 	return out
+end
+
+-- On(ns, frame) -> the numbers anchored to frame, oldest first.
+function CT.On(ns, frame)
+	local out = {}
+	for _, number in ipairs(CT.Shown(ns)) do
+		local _, relative = number.frame:GetPoint(1)
+		if relative == frame then
+			out[#out + 1] = number
+		end
+	end
+	return out
+end
+
+-- Running(env, K, name) registers a stand-in for another module, such as UnitFrames, and starts it.
+function CT.Running(env, K, name)
+	local registered = false
+	for _, listed in ipairs(K.Modules.List()) do
+		registered = registered or listed == name
+	end
+	if not registered then
+		K.Modules.Register(CoreEnv.Module(name))
+	end
+	K.Modules.Enable(name)
+	env.RunTimers()
+	assert(K.Modules.IsRunning(name), name .. " did not start")
+end
+
+-- UnitHolder(env, K, key, module, units) -> holder, buttons: a Layout element like the ones KstyleUI_UnitFrames
+-- and KstyleUI_GroupFrames build. units lists the unit attribute of each secure button. With group = true the
+-- buttons sit in a header inside the holder, as SecureGroupHeaderTemplate makes them.
+function CT.UnitHolder(env, K, key, module, units, group)
+	local root = K.Scale.Root()
+	local holder = env.CreateFrame("Frame", nil, root)
+	local element = K.Setup.Layouts.Element(key)
+	holder:SetSize(element.width, element.height)
+	local parent = holder
+	if group then
+		parent = env.CreateFrame("Frame", nil, holder, "SecureGroupHeaderTemplate")
+	end
+	local buttons = {}
+	for i, unit in ipairs(units) do
+		local button = env.CreateFrame("Button", nil, parent, "SecureUnitButtonTemplate")
+		button:SetSize(72, 40)
+		button:SetAttribute("unit", unit)
+		buttons[i] = button
+	end
+	K.Layout.Register(holder, key, K.Setup.Layouts.Default(key), { label = element.label, module = module })
+	return holder, buttons
+end
+
+-- Plate(env, unit) -> a stand-in for Blizzard's nameplate base frame of a nameplate unit.
+function CT.Plate(env, unit)
+	local plate = env.CreateFrame("Frame", nil, env.UIParent)
+	plate:SetSize(110, 45)
+	env._plates[unit] = plate
+	return plate
 end
 
 -- Text(number) -> what the number's font string shows: the text, or the format and its argument.

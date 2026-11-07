@@ -31,18 +31,24 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Settings.lua` | The defaults, the settings page rows and `Settings.Snapshot(values, cfg)`, which checks every saved value and writes the plain copy the combat path reads |
 | `Format.lua` | `Classify(event, flag, amount)`, which sorts an event into damage, a heal, a word or nothing, plus each number's text, colour and size |
 | `Pool.lua` | `Pool.New(parent, capacity)`: numbers to reuse, each a 1-unit frame with a font string and one AnimationGroup |
-| `Display.lua` | Emitters, one per place that shows numbers, and `Spawn`, which styles, places and animates one number |
+| `Display.lua` | Emitters, one per place that shows numbers, each with its pool, and `Spawn`, which styles, places and animates one number |
+| `Anchors.lua` | Which places show numbers for a unit token: KstyleUI unit and group frames found by their `unit` attribute, your field, and nameplates |
 | `World.lua` | `DAMAGE_TEXT_FONT` for the game's own damage numbers |
 | `Preview.lua` | The settings window's live preview |
-| `Module.lua` | Registration, `Enable` and `Disable`, the `UNIT_COMBAT` handler and the `/kstyle test` check |
+| `Module.lua` | Registration, `Enable` and `Disable`, the event handlers and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secrets, throttling, pooling, styles, motion levels), `test-combattext-world.lua` (the world font) and `test-combattext-options.lua` (the settings page, saved-value checks, the preview and the smoke check). `Tools/regression/combattext_env.lua` loads the core and the module as the game does.
+Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secrets, throttling, pooling, styles, motion levels), `test-combattext-anchors.lua` (unit, group, boss and nameplate frames, rescans, scale and opacity, against stand-ins), `test-combattext-integration.lua` (the same against the real UnitFrames, GroupFrames and Nameplates modules, loaded in the game's order), `test-combattext-world.lua` (the world font) and `test-combattext-options.lua` (the settings page, saved-value checks, the preview and the smoke check). `Tools/regression/combattext_env.lua` loads the core and the module as the game does.
 
 ## Where numbers show
 
 | Place | Element | What shows there |
 | --- | --- | --- |
-| Your field | `combattext.player`, a Layout element (160 by 180 units, above your character, resizable) | The damage and healing you take. Numbers start at the field's bottom edge and travel up through it, so the field's height sets how far they travel and its width how far apart they spread. |
+| Your field | `combattext.player`, a Layout element (160 by 180 units, above your character, resizable) | The damage and healing you take, while `playerPlacement` is `field`, or while it is `frame` and no KstyleUI player frame is running. Numbers start at the field's bottom edge and travel up through it, so the field's height sets how far they travel and its width how far apart they spread. |
+| Unit frames | The secure buttons inside the `unitframes.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet` and `.boss` elements | Each unit's numbers on its own frame. Boss frames match `boss1` to `boss5` by their `unit` attribute. |
+| Group frames | The secure buttons inside the `groupframes.party` and `groupframes.raid` elements | Each member's numbers on their frame, at `groupSize` and 60% of the travel distance |
+| Nameplates | Blizzard's base plate from `C_NamePlate.GetNamePlateForUnit`, under KstyleUI's plate | Numbers for `nameplate1` to `nameplate40`, while KstyleUI's Nameplates module runs |
+
+Numbers on frames start at the frame's centre or just above it (`framePoint`) and travel `distance` units. They live in the module's own layer on `KstyleUI_Root` and are only anchored to the frame, so KstyleUI never parents anything to a secure or Blizzard frame.
 
 ## Settings
 
@@ -60,6 +66,11 @@ Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secret
 | `damageColor`, `healColor`, `missColor` | `hostile`, `friendly`, `text` | colours | |
 | `critScale` | 1.4 | slider, 1 to 2 | How much larger critical hits and heals are. Above 1 they also pop in. |
 | `critColor`, `critTint` | `true`, `neutral` | toggle, colour | Critical damage takes its own colour. Critical heals keep the heal colour. |
+| `units.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet`, `.boss`, `.party`, `.raid`, `.nameplate` | on, except `targettarget`, `focustarget` and `raid` | toggles | Which places show numbers |
+| `playerPlacement` | `field` | dropdown: field, frame | Where your own numbers show |
+| `framePoint` | `CENTER` | dropdown: centre, above | Where numbers on frames start |
+| `distance` | 40 | slider, 8 to 120 | How far numbers on frames travel |
+| `groupSize` | 14 | slider, 8 to 40 | The text size on party and raid frames |
 
 ## Why
 
@@ -69,7 +80,13 @@ Tests: `Tools/regression/test-combattext-numbers.lua` (events to numbers, secret
 - **The world font is set at load.** The game reads `DAMAGE_TEXT_FONT` once, when the world loads at login, and caches it, so a reload does not change it. The module sets the global while its files load, before `PLAYER_LOGIN`, but only when its switch is on in the saved profile, and `Enable` sets it again. This is the one thing the module does before `Enable`: it creates no frames and registers no events. `Disable` and switching the option off put back the font the game had, also from the next login. No Blizzard code reads the global from Lua, so setting it taints nothing. It is listed on the module's line in `.luacheckrc`.
 - **Engine animation.** Each number moves with an AnimationGroup on its own frame: a translation, a second translation for the arc's fall, a scale for the pop and an alpha fade. The engine runs them, so a number costs no `OnUpdate` and no Lua per frame. All four animations sit in one order and run together; the fall and the fade wait with a start delay. Translation offsets are divided by the number's scale, because they apply in the frame's own units.
 - **Motion levels.** At `reduced` numbers fade without moving or popping. At `off` a number shows for its duration, then goes.
-- **Pooling and throttling.** The field's numbers come from a pool of 16 whose frames are the field's children, so Layout's shown rules and opacity for the field apply to its numbers too. The settings preview has its own pool of 8. Each place shows at most `maxPerFrame` numbers, and the oldest makes way for the newest; when a whole pool is on screen, its oldest number makes way. Lanes (centre, left, right) keep three numbers in quick succession apart. The combat path allocates no tables and makes no frames after the pool warms up; `test-combattext-numbers.lua` checks the frame count over 200 events.
+- **Pooling and throttling.** The field's numbers come from a pool of 16 and frame numbers from a pool of 64 (see Two pools). The settings preview has its own pool of 12. Each place shows at most `maxPerFrame` numbers, and the oldest makes way for the newest; when a whole pool is on screen, its oldest number makes way. Lanes (centre, left, right) keep three numbers in quick succession apart. The per-event path allocates no tables and makes no frames once the pools warm up; a rescan allocates a list only the first time it meets a unit token; `test-combattext-numbers.lua` and `test-combattext-anchors.lua` check the frame count over 200 events.
 - **Fonts on the number's own font string.** Numbers use their own font, size and outline, so they set them with `SetFont` instead of a `Widgets.Text` role, which would put the role's font back on every theme change. A font the game cannot load falls back to the `number` font and logs once.
+- **Frames are found, not shared.** Modules never read each other, so CombatText finds the other modules' frames through Layout: for each element key it asks `Layout.Live` whether the owning module runs, then walks the element's frame up to four levels deep, at most 400 frames, for secure buttons with a `unit` attribute. Reading an attribute is allowed in combat. A unit frame with no attribute gets numbers on the element itself. The map from unit token to frames is rebuilt on `Enable`, after a setting or profile change, on `ModuleChanged` for UnitFrames, GroupFrames and Nameplates, and a frame after `GROUP_ROSTER_UPDATE`, when the group headers have moved their buttons. The combat path only looks the token up.
+- **Rosters that move.** A group button whose `unit` attribute no longer matches the token gets no number and asks for a rescan on the next frame, even when the button is hidden. A hit on a party, raid or boss token with no frame, while that kind is switched on and its element is live, asks for a rescan at most every 2 seconds, which finds buttons a header made late. A hidden frame gets no number; a secret `IsVisible` counts as shown.
+- **Scale follows the frame.** Numbers on unit and group frames take the frame's effective scale against the layer's, so a frame enlarged in Layout Mode gets larger numbers that travel further. Plate numbers keep their own size, because a plate's scale changes with distance.
+- **Opacity follows the frame.** A number on a frame takes the frame's `GetEffectiveAlpha` on its font string, so Layout's opacity and mouseover rules and a group frame's range fade apply to it. The value can be secret after `SetAlphaFromBoolean`; it goes straight to `SetAlpha`, which accepts secrets. The font string's alpha multiplies with the frame's fade animation, so the fade still runs.
+- **Plates.** Nameplate numbers need KstyleUI's Nameplates module: the spec puts numbers on KstyleUI's plates, and the game already draws its own numbers over units. `NAME_PLATE_UNIT_REMOVED` clears a plate's numbers, so they never follow the plate to its next unit. `/kstyle test` counts `UNIT_COMBAT` events from nameplate units, which answers whether Forever fires them.
+- **Two pools.** Your field's numbers are the field's children, so its Layout shown rule and opacity apply. Numbers on frames come from a second pool of 64 in the module's layer.
 - **Words come from the game.** `MISS`, `DODGE`, `PARRY` and the rest are the game's localised strings, with English fallbacks through `KstyleUI.L`.
 - **No combat log.** The combat log is closed to addons on Forever, so incoming numbers come only from `UNIT_COMBAT`.

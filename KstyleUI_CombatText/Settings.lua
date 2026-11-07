@@ -13,6 +13,8 @@ local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 40, 1
 local DURATION_MIN, DURATION_MAX, DURATION_STEP = 0.6, 3, 0.1
 local PER_FRAME_MIN, PER_FRAME_MAX = 1, 8
 local CRIT_MIN, CRIT_MAX, CRIT_STEP = 1, 2, 0.05
+local DISTANCE_MIN, DISTANCE_MAX, DISTANCE_STEP = 8, 120, 4
+local UNIT_KEYS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss", "party", "raid", "nameplate" }
 
 local function TokenColor(name)
 	local r, g, b = Tokens.Color(name)
@@ -39,8 +41,25 @@ local defaults = {
 	critScale = 1.4,
 	critColor = true,
 	critTint = TokenColor("neutral"),
+	playerPlacement = "field",
+	framePoint = "CENTER",
+	distance = 40,
+	groupSize = 14,
+	units = {
+		player = true,
+		target = true,
+		targettarget = false,
+		focus = true,
+		focustarget = false,
+		pet = true,
+		boss = true,
+		party = true,
+		raid = false,
+		nameplate = true,
+	},
 }
 Settings.defaults = defaults
+Settings.UNIT_KEYS = UNIT_KEYS
 
 local STYLE_OPTIONS = {
 	{ value = "rise", label = L["Rise"] },
@@ -61,6 +80,15 @@ local COLOR_MODE_OPTIONS = {
 	{ value = "single", label = L["One colour"] },
 }
 
+local PLACEMENT_OPTIONS = {
+	{ value = "field", label = L["Above your character"] },
+	{ value = "frame", label = L["On your player frame"] },
+}
+local POINT_OPTIONS = {
+	{ value = "CENTER", label = L["Centre of the frame"] },
+	{ value = "TOP", label = L["Above the frame"] },
+}
+
 local function Set(options)
 	local out = {}
 	for _, option in ipairs(options) do
@@ -69,6 +97,7 @@ local function Set(options)
 	return out
 end
 local STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(STYLE_OPTIONS), Set(OUTLINE_OPTIONS), Set(FORMAT_OPTIONS), Set(COLOR_MODE_OPTIONS)
+local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
 local function WorldFontOn(settings)
@@ -155,6 +184,49 @@ Settings.schema = {
 		type = "color", key = "critTint", label = L["Critical colour"],
 		help = L["The colour of critical damage."],
 		showWhen = CritColorOn,
+	},
+	{ type = "header", label = L["Where numbers show"] },
+	{
+		type = "toggle", key = "units.player", label = L["You"],
+		help = L["Shows the damage and healing you take."],
+	},
+	{
+		type = "dropdown", key = "playerPlacement", label = L["Your numbers"],
+		help = L["In their own field above your character, or on your KstyleUI player frame."],
+		options = PLACEMENT_OPTIONS,
+	},
+	{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
+	{
+		type = "toggle", key = "units.targettarget", label = L["Target of target"],
+		help = L["Shows numbers on your KstyleUI target-of-target frame."],
+	},
+	{ type = "toggle", key = "units.focus", label = L["Focus frame"], help = L["Shows numbers on your KstyleUI focus frame."] },
+	{
+		type = "toggle", key = "units.focustarget", label = L["Focus target"],
+		help = L["Shows numbers on your KstyleUI focus-target frame."],
+	},
+	{ type = "toggle", key = "units.pet", label = L["Pet frame"], help = L["Shows numbers on your KstyleUI pet frame."] },
+	{ type = "toggle", key = "units.boss", label = L["Boss frames"], help = L["Shows numbers on KstyleUI boss frames."] },
+	{ type = "toggle", key = "units.party", label = L["Party frames"], help = L["Shows numbers on KstyleUI party frames."] },
+	{ type = "toggle", key = "units.raid", label = L["Raid frames"], help = L["Shows numbers on KstyleUI raid frames."] },
+	{
+		type = "toggle", key = "units.nameplate", label = L["Nameplates"],
+		help = L["Shows numbers on nameplates while KstyleUI's Nameplates module is on."],
+	},
+	{
+		type = "dropdown", key = "framePoint", label = L["Start point"],
+		help = L["Numbers on frames start at the frame's centre, or just above it."],
+		options = POINT_OPTIONS,
+	},
+	{
+		type = "slider", key = "distance", label = L["Travel on frames"],
+		help = L["How far numbers move on unit, group and nameplate frames."],
+		min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP,
+	},
+	{
+		type = "slider", key = "groupSize", label = L["Size on group frames"],
+		help = L["The text size of numbers on party and raid frames."],
+		min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP,
 	},
 }
 
@@ -250,5 +322,15 @@ function Settings.Snapshot(values, cfg)
 	cfg.critScale = Number(values.critScale, CRIT_MIN, CRIT_MAX, d.critScale)
 	cfg.critColor = Bool(values.critColor, d.critColor)
 	cfg.critR, cfg.critG, cfg.critB = Color(values.critTint, d.critTint)
+	cfg.playerPlacement = Choice(values.playerPlacement, PLACEMENTS, d.playerPlacement)
+	cfg.framePoint = Choice(values.framePoint, POINTS, d.framePoint)
+	cfg.distance = Number(values.distance, DISTANCE_MIN, DISTANCE_MAX, d.distance)
+	cfg.groupSize = Number(values.groupSize, SIZE_MIN, SIZE_MAX, d.groupSize)
+	local units = cfg.units or {}
+	cfg.units = units
+	local saved = type(values.units) == "table" and values.units or d.units
+	for _, key in ipairs(UNIT_KEYS) do
+		units[key] = Bool(saved[key], d.units[key])
+	end
 	return cfg
 end

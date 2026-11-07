@@ -4,6 +4,7 @@
 	<Script file="Format.lua"/>
 	<Script file="Pool.lua"/>
 	<Script file="Display.lua"/>
+	<Script file="Anchors.lua"/>
 	<Script file="World.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

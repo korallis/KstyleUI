@@ -19,7 +19,11 @@ do
 		outline = "dropdown", format = "dropdown", duration = "slider", maxPerFrame = "slider",
 		damage = "toggle", heals = "toggle", misses = "toggle", colorMode = "dropdown",
 		damageColor = "color", healColor = "color", missColor = "color", critScale = "slider",
-		critColor = "toggle", critTint = "color",
+		critColor = "toggle", critTint = "color", playerPlacement = "dropdown", framePoint = "dropdown",
+		distance = "slider", groupSize = "slider", ["units.player"] = "toggle", ["units.target"] = "toggle",
+		["units.targettarget"] = "toggle", ["units.focus"] = "toggle", ["units.focustarget"] = "toggle", ["units.pet"] = "toggle",
+		["units.boss"] = "toggle", ["units.party"] = "toggle", ["units.raid"] = "toggle",
+		["units.nameplate"] = "toggle",
 	}
 	for key, rowType in pairs(expected) do
 		assert(keys[key] == rowType, "the page has a " .. rowType .. " row for " .. key .. ", got " .. tostring(keys[key]))
@@ -77,7 +81,17 @@ do
 		end
 	end
 	assert(words > 0 and heals > 0 and damage > 0, "the preview cycles through damage, heals and words")
-	assert(most > 1 and most <= 4, "the preview keeps to the per-frame limit, got " .. most)
+	local onField, onFrame = 0, 0
+	for _, number in ipairs(pool.active) do
+		local _, relative = number.frame:GetPoint(1)
+		if relative == preview.field then
+			onField = onField + 1
+		elseif relative == preview.unitFrame then
+			onFrame = onFrame + 1
+		end
+	end
+	assert(onField > 0 and onFrame > 0, "the preview shows numbers in your field and on a sample unit frame")
+	assert(onField <= 4 and onFrame <= 4 and most > 2, "each place keeps to the per-frame limit, got " .. onField .. " and " .. onFrame)
 
 	K.Options.Write("CombatText", "size", 26)
 	preview:Refresh()
