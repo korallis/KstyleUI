@@ -138,8 +138,10 @@ assert(face.clock:GetText() == "9:05 AM", "realm time in 12 hours")
 K.Options.Write("Minimap", "clock.mode", "local24")
 assert(face.clock:GetText() == "14:33", "local time in 24 hours")
 
+assert(face.strip.divider:IsShown(), "a hairline parts the zone from the clock, as in the kit")
 K.Options.Write("Minimap", "clock.shown", false)
 assert(not face.clock:IsShown(), "the clock hides from the strip")
+assert(not face.strip.divider:IsShown(), "and the hairline goes with it")
 assert(face.strip:IsShown(), "the strip stays while the zone shows")
 K.Options.Write("Minimap", "zone.shown", false)
 assert(not face.strip:IsShown(), "the strip hides when it has nothing to show")
@@ -186,9 +188,10 @@ K.Options.Write("Minimap", "coords.shown", true)
 -- The compass mark --------------------------------------------------------------------------------
 
 assert(face.compass:IsShown(), "the north mark shows on a fixed map")
+assert(face.compassPlate:IsShown() and #face.compassPlate.slice == 9, "on the kit's dark glass tab at the top of the map")
 env._cvars.rotateMinimap = true
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "1")
-assert(not face.compass:IsShown(), "a rotating map hides the north mark")
+assert(not face.compass:IsShown() and not face.compassPlate:IsShown(), "a rotating map hides the north mark and its tab")
 env._cvars.rotateMinimap = env.Secret(false)
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "0")
 assert(not face.compass:IsShown(), "a secret rotation hides the north mark rather than guess")
@@ -251,7 +254,7 @@ do
 	M.Settle(benv)
 	local bface = Map(bns)
 	assert(bface.clock:GetText() == "14:32", "an unknown clock mode uses the game's clock")
-	assert(W.Near(select(4, bface.box:GetPoint(1)), 30), "an unknown column side uses the left")
+	assert(bns.Settings.Get("column.side") == "inside", "an unknown column side uses the default, inside the frame")
 	NoErrors(benv, "bad values")
 end
 

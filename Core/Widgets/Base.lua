@@ -13,7 +13,8 @@ local NOISE_ALPHA = 0.035
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
 local SUBLEVEL_SHADOW, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -6, -5
-local SUBLEVEL_OUTER, SUBLEVEL_INNER = -2, -1
+local SUBLEVEL_HAIRLINE, SUBLEVEL_OUTER, SUBLEVEL_INNER = -3, -2, -1
+local HAIRLINE_INSET = 3
 
 Widgets.TEXTURE_TEXELS = {
 	chamferPanel = 64,
@@ -22,6 +23,8 @@ Widgets.TEXTURE_TEXELS = {
 	bevelPanelInner = 64,
 	bevelTileOuter = 64,
 	bevelTileInner = 64,
+	bevelPanelHairline = 128,
+	bevelTileHairline = 64,
 	shadow = 128,
 }
 local TEXELS = Widgets.TEXTURE_TEXELS
@@ -358,13 +361,13 @@ function Widgets.Size(frame, width, height)
 end
 
 local SHAPES = {
-	panel = { fill = "chamferPanel", outer = "bevelPanelOuter", inner = "bevelPanelInner", chamfer = "chamferPanel" },
-	tile = { fill = "chamferTile", outer = "bevelTileOuter", inner = "bevelTileInner", chamfer = "chamferTile" },
+	panel = { fill = "chamferPanel", outer = "bevelPanelOuter", inner = "bevelPanelInner", hairline = "bevelPanelHairline", chamfer = "chamferPanel" },
+	tile = { fill = "chamferTile", outer = "bevelTileOuter", inner = "bevelTileInner", hairline = "bevelTileHairline", chamfer = "chamferTile" },
 }
 
 local LINE_ART = {}
 for _, shape in pairs(SHAPES) do
-	LINE_ART[shape.fill], LINE_ART[shape.outer], LINE_ART[shape.inner] = true, true, true
+	LINE_ART[shape.fill], LINE_ART[shape.outer], LINE_ART[shape.inner], LINE_ART[shape.hairline] = true, true, true, true
 end
 
 local function CornerIn(name, units, f)
@@ -538,6 +541,7 @@ function Widgets.Chrome(owner, opts)
 	end
 	c.outer = NewBevel(owner, shape.outer, SUBLEVEL_OUTER)
 	c.inner = NewBevel(owner, shape.inner, SUBLEVEL_INNER)
+	c.hairline = NewBevel(owner, shape.hairline, SUBLEVEL_HAIRLINE)
 	c:Restyle()
 	return Widgets.Track(c)
 end
@@ -554,6 +558,8 @@ function Chrome:Layout()
 	local size = CornerIn(shape.outer, bevelUnits, f)
 	PlaceBevel(owner, self.outer, size, 0, border)
 	PlaceBevel(owner, self.inner, size, border, border)
+	local _, _, hairlineUnits = Tokens.Texture(shape.hairline)
+	PlaceBevel(owner, self.hairline, CornerIn(shape.hairline, hairlineUnits, f), HAIRLINE_INSET * border, border)
 	if self.noise then
 		local inset = CornerIn(shape.fill, fillUnits, f)
 		self.noise:ClearAllPoints()
@@ -581,6 +587,7 @@ function Chrome:Paint()
 		self.noise:SetVertexColor(Widgets.Rgba("white", NOISE_ALPHA))
 	end
 	Widgets.ColorSlice(self.outer, Tokens.Color("edgeOuter"))
+	Widgets.ColorSlice(self.hairline, Tokens.Color("edgeFaint"))
 	local e = self.edge
 	Widgets.ColorSlice(self.inner, e[1], e[2], e[3], e[4])
 end
@@ -635,7 +642,7 @@ function Chrome:SetShadow(on)
 end
 
 function Chrome:SetShown(shown)
-	for _, list in ipairs({ self.fill, self.outer, self.inner }) do
+	for _, list in ipairs({ self.fill, self.outer, self.inner, self.hairline }) do
 		Widgets.ShowSlice(list, shown)
 	end
 	if self.noise then

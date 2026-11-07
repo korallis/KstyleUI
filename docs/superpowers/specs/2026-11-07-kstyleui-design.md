@@ -167,7 +167,8 @@ Profiles store only values that differ from the defaults. Defaults come from `Fe
 | `surface` | `#101010` at 88% | Panels |
 | `raised` | `#1c1c1c` | Cards, tiles, inputs |
 | `edgeOuter` | `#000000` at 60% | Outer bevel line |
-| `edgeInner` | `#ffffff` at 8% | Inner bevel hairline |
+| `edgeInner` | `#ffffff` at 28% | Inner bevel line |
+| `edgeFaint` | `#ffffff` at 8% | Faint inner hairline, neutral dividers |
 | `text` | `#ababab` | Body text at rest |
 | `textEmphasis` | `#ebebeb` | Titles and values |
 | `textHover` | `#ffffff` | Text under the mouse only |
@@ -183,7 +184,7 @@ Quality and reaction values outside the table come from Blizzard's colour tables
 
 - Panels have 45-degree chamfered corners of 6 units. Tiles and buttons have 3 units.
 - HUD sizes at the 1080 reference: action buttons 34 units with 3-unit gaps, essential cooldown icons 40 units, utility cooldown icons 30 units, player and target frames 220 by 46 units, portraits 46 units. Players can resize each in Layout Mode.
-- Every panel edge is a double-line bevel: `edgeOuter` outside and `edgeInner` inside, each one physical pixel at 1080p and 1440p, and two at 4K and on the Mac.
+- Every panel edge is a double-line bevel, as `05_kit_hunter.jpg` draws it: `edgeOuter` on the edge, the light `edgeInner` line inside it, then one line of glass and the faint `edgeFaint` hairline. Each line is one physical pixel at 1080p and 1440p, and two at 4K and on the Mac.
 - Panels cast a soft outward shadow of about 12 units, made from one nine-sliced falloff texture whose corner pieces are centred on the panel's corners.
 - Dividers are gradients that fade out at both ends.
 - The KstyleUI signature motif is the chamfered diamond from the logo in `05_kit_hunter.jpg`.

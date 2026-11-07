@@ -402,7 +402,7 @@ function Rows.Update(row, item)
 end
 
 function Rows.Restyle(row)
-	Widgets.Tint(row.rule, "edgeInner", RULE_ALPHA)
+	Widgets.Tint(row.rule, "edgeFaint", RULE_ALPHA)
 	Widgets.Tint(row.mark, "accent")
 	if row.item then
 		Rows.Update(row, row.item)

@@ -16,6 +16,10 @@ do
 	assert(glow:IsPlaying() and glow.holder:IsShown(), "Start shows the glow")
 	assert(#W.Calls(glow.pulse, "Play") == 1 and W.LastCall(glow.pulse, "SetLooping")[1] == "BOUNCE", "the pulse plays and bounces")
 	assert(glow.top:IsShown() and #W.Calls(glow.sparkPulse, "Play") == 1, "the corner spark pulses above the frame")
+	local across, down = glow.spark, glow.sparkCross
+	assert(down and across:GetWidth() >= 4 * across:GetHeight() and W.Near(down:GetHeight(), across:GetWidth()), "the kit's spark: a four-point star of two streaks")
+	local a, d = across._points[1], down._points[1]
+	assert(a[1] == "CENTER" and a[2] == frame and a[3] == "TOPRIGHT" and W.Near(a[4], d[4]) and W.Near(a[5], d[5]), "crossed at the top right corner")
 	glow:Start()
 	assert(#W.Calls(glow.pulse, "Play") == 1, "Start twice plays once")
 	W.Settle(env)
@@ -106,6 +110,7 @@ do
 		return tip.used[6].left:GetTextColor()
 	end }, 0.2, 0.9, 0.3), "a line takes r, g and b")
 	assert(tip.used[5].divider and tip.used[5].divider:IsShown(), "a divider line")
+	assert(W.SameColor(tip.used[5].divider, K.Tokens.Color("edgeFaint")), "as faint as the kit's divider, below the bevel line")
 	assert(W.LastCall(tip.icon, "SetTexture")[1] == 135489 and tip.icon:IsShown(), "the icon")
 	assert(tip:GetHeight() > 0 and tip:GetWidth() >= Widgets.TOOLTIP_MIN_WIDTH, "the tooltip has a size")
 	local p = tip._points[1]

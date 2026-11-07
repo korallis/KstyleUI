@@ -84,6 +84,15 @@ local function Header(header)
 		Style.Text(header.Text, "caption", "textEmphasis")
 	end
 	Parts.AccentLine(header, { alpha = LINE_ALPHA })
+	local chevron = Parts.Glyph(header.MinimizeButton, "glyphChevron", { flip = true })
+	if chevron and type(header.SetCollapsed) == "function" then
+		local function Point(_, collapsed)
+			chevron:SetTexCoord(0, 1, collapsed and 0 or 1, collapsed and 1 or 0)
+		end
+		hooksecurefunc(header, "SetCollapsed", Point)
+		local owner = header:GetParent()
+		Point(nil, owner and type(owner.IsCollapsed) == "function" and owner:IsCollapsed() == true)
+	end
 end
 
 local function Bar(holder)

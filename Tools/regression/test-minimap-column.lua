@@ -45,6 +45,20 @@ end
 assert(Faded(env.QueueStatusButton), "Blizzard's queue eye is faded out and lets clicks through; the column shows the status")
 assert(not K.Safe.IsHidden(env.QueueStatusButton), "the eye stays shown, because its own menu closes when its owner hides")
 
+-- Layout: the kit's column of round buttons, inside the frame down the map's right edge -----------------
+
+assert(buttons.tracking:GetParent():GetFrameLevel() > face.overlay:GetFrameLevel(), "the buttons sit above the map and its strip")
+local ip, irel, irelp = Anchor(buttons.tracking)
+assert(ip == "TOPRIGHT" and irel == face.mapArea and irelp == "TOPRIGHT", "by default the column sits inside the frame, at the map's top right")
+assert(W.Near(X(buttons.tracking), -6) and W.Near(Y(buttons.tracking), -6), "one gap in from the corner")
+assert(W.Near(Y(buttons.calendar), -34), "the next shown button sits one button and one gap lower")
+assert(buttons.tracking.disc:IsShown() and not buttons.tracking.chrome.fill[5]:IsShown(), "each button is a round glass disc, not a square tile")
+K.Options.Write("Minimap", "column.growth", "up")
+ip, irel, irelp = Anchor(buttons.tracking)
+assert(ip == "BOTTOMRIGHT" and irel == face.strip and irelp == "TOPRIGHT" and W.Near(Y(buttons.tracking), 6), "growing up starts above the zone strip")
+K.Options.Write("Minimap", "column.growth", "down")
+K.Options.Write("Minimap", "column.side", "left")
+
 -- Layout: a column beside the map, from the top down -------------------------------------------------
 
 local point, relativeTo, relativePoint = Anchor(buttons.tracking)

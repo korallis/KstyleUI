@@ -4,10 +4,9 @@ local _, ns = ...
 local Widgets = ns.Widgets
 local Tokens, Scale = ns.Tokens, ns.Scale
 
-local REST_EDGE_ALPHA = 0.5
-local COOLING_EDGE_ALPHA = 0.35
-local PRESSED_EDGE_ALPHA = 0.6
-local DISABLED_EDGE_ALPHA = 0.5
+local HOVER_LIFT = 0.35
+local COOLING_EDGE_ALPHA = 0.55
+local PRESSED_EDGE_ALPHA = 0.8
 local PRESS_DIM = 0.25
 local UNUSABLE_BRIGHTNESS = 0.55
 local SWIPE_ALPHA = 0.65
@@ -50,7 +49,7 @@ function IconButton:Paint()
 	local usable = self.usable and self:IsEnabled() ~= false
 	local chrome = self.chrome
 	if not usable then
-		chrome:SetEdge("textDisabled", DISABLED_EDGE_ALPHA)
+		chrome:SetEdge("textDisabled")
 	elseif self.proc or self.selected then
 		local r, g, b = Accent(self)
 		chrome:SetEdgeRGBA(r, g, b, 1)
@@ -58,9 +57,10 @@ function IconButton:Paint()
 		chrome:SetEdge("text", COOLING_EDGE_ALPHA)
 	else
 		local r, g, b = Accent(self)
-		local a = REST_EDGE_ALPHA + (1 - REST_EDGE_ALPHA) * hover
+		local wr, wg, wb = Tokens.Color("textHover")
+		r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, HOVER_LIFT * hover)
 		local pr, pg, pb, pa = Widgets.Rgba("text", PRESSED_EDGE_ALPHA)
-		chrome:SetEdgeRGBA(Widgets.Mix(r, g, b, a, pr, pg, pb, pa, press))
+		chrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, pr, pg, pb, pa, press))
 	end
 	local v = usable and (1 - PRESS_DIM * press) or UNUSABLE_BRIGHTNESS
 	local tint = self.tint

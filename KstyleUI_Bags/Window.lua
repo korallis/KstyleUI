@@ -316,7 +316,7 @@ function Window:Paint(force)
 	if panel.divider then
 		panel.divider:SetVertexColor(r, g, b, DIVIDER_ALPHA)
 	end
-	self.footerLine:SetVertexColor(Widgets.Rgba("edgeInner"))
+	self.footerLine:SetVertexColor(Widgets.Rgba("edgeFaint"))
 	local path, size, flags = Settings.Font()
 	local key = table.concat({ tostring(path), tostring(size), tostring(flags), tostring(r), tostring(g), tostring(b) }, ":")
 	if not force and key == self.styleKey then

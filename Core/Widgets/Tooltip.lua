@@ -169,7 +169,7 @@ function Tip:Layout()
 			line.divider:ClearAllPoints()
 			line.divider:SetPoint("TOPLEFT", self, "TOPLEFT", x0, -y)
 			line.divider:SetSize(inner, border)
-			Widgets.Tint(line.divider, "edgeInner")
+			Widgets.Tint(line.divider, "edgeFaint")
 			y = y + border + gapSmall
 		else
 			local left = line.left

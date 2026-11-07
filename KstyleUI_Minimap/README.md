@@ -63,7 +63,7 @@ A frame with only the mouse wheel enabled covers the map square, so clicks and p
 
 ### The strip
 
-The strip sits inside the map's bottom edge: the zone name on the left in capitals, the clock on the right. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
+The strip sits inside the map's bottom edge: the zone name on the left in capitals, the clock on the right, with a hairline between them. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
 
 | Clock format | Text |
 | --- | --- |
@@ -77,11 +77,11 @@ The clock ticks once a second through `C_Timer.NewTicker`, only while the module
 
 Coordinates come from `C_Map.GetBestMapForUnit("player")` and `C_Map.GetPlayerMapPosition`. They update on zone changes, and every 0.2 s only while the player moves (`PLAYER_STARTED_MOVING` to `PLAYER_STOPPED_MOVING`, and `PLAYER_CONTROL_LOST` to `PLAYER_CONTROL_GAINED` for flight paths). No position, as in instances, or a secret one hides them.
 
-The north mark shows while `rotateMinimap` is off. A secret rotation hides it rather than guess.
+The north mark sits on a small dark glass tab at the top of the map and shows while `rotateMinimap` is off. A secret rotation hides it rather than guess.
 
 ### The button column
 
-The column hangs beside the map square, from its top corner downward or from its bottom corner upward. Only the buttons that apply show, and the rest close up. The map square leaves room for one button and one gap beside it, so a larger button size shrinks the map rather than pushing the column outside the Layout element.
+By default the column runs down the inside of the map's right edge, one gap in, as round glass buttons above the map, as the kit draws it. Growing up, it starts above the strip. It can also hang beside the map square instead, from its top corner downward or from its bottom corner upward; the map square then leaves room for one button and one gap beside it, so a larger button size shrinks the map rather than pushing the column outside the Layout element. Only the buttons that apply show, and the rest close up.
 
 | Button | Shows | Click |
 | --- | --- | --- |
@@ -118,7 +118,7 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | Key | Default | Row |
 | --- | --- | --- |
 | `accent.source`, `accent.color` | `class`, the kit's accent | Hairline colour: class or custom colour |
-| `column.side`, `column.growth` | `left`, `down` | Which side of the map the button column uses, and whether it starts at the top or the bottom |
+| `column.side`, `column.growth` | `inside`, `down` | Inside the map's right edge, as the kit draws it, or beside the map on the left or right; and whether the column starts at the top or the bottom |
 | `column.size`, `column.spacing` | 22, 6 | Button size and the gap between buttons and beside the map |
 | `column.tracking`, `column.mail`, `column.calendar`, `column.queue`, `column.drawer` | on | Each button |
 | `drawer.behaviour`, `drawer.direction` | `click`, `auto` | Open on click, on mouseover or always; which way it opens |

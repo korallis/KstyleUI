@@ -69,7 +69,7 @@ local SIZE_NAMES = {
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight",
 }
-local SLICED = { "chamferPanel", "chamferTile", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner", "shadow" }
+local SLICED = { "chamferPanel", "chamferTile", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner", "bevelPanelHairline", "bevelTileHairline", "shadow" }
 -- The bevel art holds a line one art unit (density texels) wide, so it is crisp only when a corner piece
 -- spans exactly one border per art unit. Frame scales: a frame on the root, and a tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
@@ -93,15 +93,17 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local _, fillSlice = Tokens.Texture(c.shape.fill)
 	local density = bevelSlice / bevelUnits
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	for _, line in ipairs({ c.outer, c.inner }) do
+	for _, line in ipairs({ c.outer, c.inner, c.hairline }) do
+		local _, slice = Tokens.Texture(line == c.hairline and c.shape.hairline or c.shape.outer)
 		for i = 1, 4 do
 			local w, h = line[i]:GetSize()
 			local cornerPx = w * px
 			assert(whole(cornerPx) and math.abs(h * px - cornerPx) < 1e-6, where .. ": a bevel corner piece is a whole-pixel square, got " .. cornerPx)
-			local linePx = cornerPx * density / bevelSlice
+			local linePx = cornerPx * density / slice
 			assert(math.abs(linePx - border) < 1e-6, where .. ": the bevel line in the corner is " .. linePx .. " px, the straight edge " .. border .. " px")
 		end
 		assert(math.abs(line[5]:GetHeight() * px - border) < 1e-6, where .. ": the straight line is one border")
+		assert(whole(line[5]._points[1][5] * px), where .. ": the straight line sits a whole number of pixels in")
 	end
 	local bevelChamferPx = c.outer[1]:GetWidth() * px * fillSlice / bevelSlice
 	for i = 1, 9, 2 do

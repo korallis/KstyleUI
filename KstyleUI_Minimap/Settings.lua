@@ -23,7 +23,7 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "left", size = 22, spacing = 6, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	column = { side = "inside", size = 22, spacing = 6, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
 	zoom = { wheel = true, reset = false, delay = 10 },
 	compass = true,
@@ -38,6 +38,7 @@ local ACCENT_OPTIONS = {
 	{ value = "custom", label = L["Custom colour"] },
 }
 local SIDE_OPTIONS = {
+	{ value = "inside", label = L["Inside, on the right edge"] },
 	{ value = "left", label = L["Left"] },
 	{ value = "right", label = L["Right"] },
 }
@@ -130,7 +131,7 @@ local schema = {
 	{ type = "header", label = L["Button column"] },
 	{
 		type = "dropdown", key = "column.side", label = L["Button column side"], options = SIDE_OPTIONS,
-		help = L["Which side of the map the column of small buttons sits on."],
+		help = L["Where the small buttons sit: inside the map's right edge, or beside the map."],
 	},
 	{
 		type = "dropdown", key = "column.growth", label = L["Button order"], options = GROWTH_OPTIONS,

@@ -15,7 +15,8 @@ The core's visual service files carry one comment each, their first line, so the
 | `surface` | `#101010` at 88% | Panels |
 | `raised` | `#1c1c1c` | Cards, tiles, inputs |
 | `edgeOuter` | `#000000` at 60% | Outer bevel line |
-| `edgeInner` | `#ffffff` at 8% | Inner bevel hairline |
+| `edgeInner` | `#ffffff` at 28% | Inner bevel line, the light line of the kit's double-line edge |
+| `edgeFaint` | `#ffffff` at 8% | The bevel's faint third line and neutral dividers |
 | `text` | `#ababab` | Body text at rest |
 | `textEmphasis` | `#ebebeb` | Titles and values |
 | `textHover` | `#ffffff` | Text under the mouse |
@@ -80,6 +81,7 @@ The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default: a key of `
 | `chamferTile` | `ChamferTile.png`, 32x32 | 12 texels | 3 units |
 | `bevelPanelOuter`, `bevelPanelInner` | 64x64 | 28 texels | 7 units |
 | `bevelTileOuter`, `bevelTileInner` | 64x64 | 16 texels | 4 units |
+| `bevelPanelHairline`, `bevelTileHairline` | 128x128, 64x64 | 32, 20 texels | 8, 5 units |
 | `shadow` | `Shadow.png`, 128x128 | 48 texels | 24 units, centred on the panel's corner |
 | `iconMask` | `ChamferIconMask.png`, a 3-unit chamfer on a 34-unit square | | |
 | `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `minimapMask`, `logo`, `logoLarge` | | | |

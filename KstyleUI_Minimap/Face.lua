@@ -15,6 +15,7 @@ local TEXT_PAD = Tokens.Size("gapMedium")
 local GAP = Tokens.Size("gapSmall")
 local TINY = Tokens.Size("gapTiny")
 local COMPASS_ROLE = "caption"
+local PLATE_RISE = Tokens.Size("chamferTile")
 
 Face.LEVEL_MAP = LEVEL_MAP
 
@@ -66,6 +67,8 @@ function Face.New(holder, opts)
 	strip.fill:SetAllPoints(strip)
 	strip.line = strip:CreateTexture(nil, "BORDER")
 	strip.line:SetColorTexture(Tokens.Color("white"))
+	strip.divider = strip:CreateTexture(nil, "BORDER")
+	strip.divider:SetColorTexture(Tokens.Color("white"))
 	face.strip = strip
 	face.zone = NewText(strip)
 	face.zone:SetJustifyH("LEFT")
@@ -77,7 +80,10 @@ function Face.New(holder, opts)
 	face.clockHit = CreateFrame("Button", nil, strip)
 	face.clockHit:SetAllPoints(face.clock)
 
-	face.compass = NewText(overlay)
+	local plate = CreateFrame("Frame", nil, overlay)
+	plate.slice = Widgets.NineSlice(plate, "chamferTile", "BACKGROUND", 0)
+	face.compassPlate = plate
+	face.compass = NewText(plate)
 	face.compass:SetText(L["N"])
 
 	local coordsFrame = CreateFrame("Frame", nil, overlay)
@@ -119,7 +125,9 @@ end
 
 function Face:SetRotating(rotating)
 	self.rotating = rotating == true
-	self.compass:SetShown(Settings.Get("compass") and not self.rotating)
+	local north = Settings.Get("compass") and not self.rotating
+	self.compass:SetShown(north)
+	self.compassPlate:SetShown(north)
 end
 
 function Face:Paint()
@@ -128,6 +136,8 @@ function Face:Paint()
 	local sr, sg, sb = Tokens.Color("surface")
 	self.strip.fill:SetVertexColor(sr, sg, sb, Settings.Get("strip.opacity"))
 	Widgets.Tint(self.strip.line, "edgeInner")
+	Widgets.Tint(self.strip.divider, "edgeInner")
+	Widgets.ColorSlice(self.compassPlate.slice, sr, sg, sb, Settings.Get("strip.opacity"))
 
 	self.zoneSize = Style.Text(self.zone, "caption", "zone")
 	self.clockSize = Style.Text(self.clock, "number", "clock")
@@ -158,8 +168,9 @@ function Face:Layout()
 	if type(width) ~= "number" or type(height) ~= "number" or width <= 0 or height <= 0 then
 		return
 	end
-	local reserve = Settings.Get("column.size") + Settings.Get("column.spacing")
-	local left, size = Format.MapRect(width, height, Settings.Get("column.side"), reserve)
+	local side = Settings.Get("column.side")
+	local reserve = side ~= "inside" and Settings.Get("column.size") + Settings.Get("column.spacing") or 0
+	local left, size = Format.MapRect(width, height, side, reserve)
 	left, size = Snap(holder, left), Snap(holder, size)
 	local box = self.box
 	box:ClearAllPoints()
@@ -199,6 +210,11 @@ function Face:Layout()
 	clock:SetPoint("RIGHT", strip, "RIGHT", -pad, 0)
 	zone:ClearAllPoints()
 	zone:SetPoint("LEFT", strip, "LEFT", pad, 0)
+	local divider = strip.divider
+	divider:ClearAllPoints()
+	divider:SetPoint("RIGHT", clock, "LEFT", -Snap(strip, GAP / 2), 0)
+	divider:SetSize(border, stripHeight - 2 * Snap(strip, GAP))
+	divider:SetShown(zoneShown and clockShown)
 	if clockShown then
 		zone:SetPoint("RIGHT", clock, "LEFT", -Snap(strip, GAP), 0)
 	else
@@ -208,6 +224,11 @@ function Face:Layout()
 	local top = Snap(area, GAP)
 	self.compass:ClearAllPoints()
 	self.compass:SetPoint("TOP", area, "TOP", 0, -top)
+	local plate, tab = self.compassPlate, self.compassSize or 0
+	plate:ClearAllPoints()
+	plate:SetPoint("TOP", area, "TOP", 0, Snap(area, PLATE_RISE))
+	Widgets.Size(plate, 2 * (tab + GAP), PLATE_RISE + GAP + tab + TINY)
+	Widgets.LayoutSlice(plate.slice, plate, PLATE_RISE, 0)
 
 	local coordsFrame = self.coordsFrame
 	coordsFrame:ClearAllPoints()

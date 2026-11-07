@@ -40,7 +40,7 @@ class ManifestTest(unittest.TestCase):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
             "ChamferPanel", "ChamferTile", "BevelPanelOuter", "BevelPanelInner", "BevelTileOuter",
-            "BevelTileInner", "ChamferIconMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
+            "BevelTileInner", "BevelPanelHairline", "BevelTileHairline", "ChamferIconMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
@@ -55,7 +55,7 @@ class ManifestTest(unittest.TestCase):
         density = self.mm.TEXELS_PER_UNIT
         self.assertEqual(self.mm.SLICE["ChamferPanel"], 6 * density)
         self.assertEqual(self.mm.SLICE["ChamferTile"], 3 * density)
-        for name in ("BevelPanelOuter", "BevelPanelInner", "BevelTileOuter", "BevelTileInner"):
+        for name in ("BevelPanelOuter", "BevelPanelInner", "BevelTileOuter", "BevelTileInner", "BevelPanelHairline", "BevelTileHairline"):
             self.assertEqual(self.mm.SLICE[name] % density, 0, f"{name} corner pieces are whole units")
 
 
@@ -145,6 +145,17 @@ class DrawingTest(unittest.TestCase):
             self.assertEqual(self.alpha(inner, mid, d), 255, inner)
             self.assertEqual(self.alpha(inner, mid, 2 * d), 0, inner)
             self.assertEqual(self.alpha(outer, mid, mid), 0, "bevel centre is empty")
+
+    def test_hairline_is_a_one_unit_band_one_unit_inside_the_inner_line(self):
+        # The kit's double-line edge: the light inner line, one unit of glass, then a faint hairline.
+        d = self.mm.TEXELS_PER_UNIT
+        for name, size in (("BevelPanelHairline.png", 128), ("BevelTileHairline.png", 64)):
+            mid = size // 2
+            self.assertEqual(self.alpha(name, mid, 3 * d - 1), 0, f"{name} leaves a one-unit gap")
+            self.assertEqual(self.alpha(name, mid, 3 * d), 255, name)
+            self.assertEqual(self.alpha(name, mid, 4 * d - 1), 255, name)
+            self.assertEqual(self.alpha(name, mid, 4 * d), 0, name)
+            self.assertEqual(self.alpha(name, 0, mid), 0, f"{name} edge is clear")
 
     def test_sliced_textures_stretch_without_distortion(self):
         # A nine-slice stretches the strips between the margins. Every column and every row there

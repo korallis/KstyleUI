@@ -77,7 +77,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 | `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces `Snap(24)` centred on the owner's corners, tinted `shadow` |
 | `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel` or `chamferTile` texture, corner pieces 6 or 3 borders square |
 | `chrome.noise` | `BACKGROUND` -5 | Panels only: the `noise` grain, tiled at 3.5% white, inset by the chamfer |
-| `chrome.outer`, `chrome.inner` | `BORDER` | Each line: four corner pieces of the bevel texture, 7 or 4 borders square, then the top, bottom, left and right lines as solid textures one `Scale.Border()` thick. The inner line sits one border inside the outer. |
+| `chrome.outer`, `chrome.inner`, `chrome.hairline` | `BORDER` | Each line: four corner pieces of the bevel texture, then the top, bottom, left and right lines as solid textures one `Scale.Border()` thick. The kit's double-line edge: the dark `edgeOuter` line on the edge, the light `edgeInner` line one border inside it, then one border of glass and the faint `edgeFaint` hairline. |
 
 `opts`: `shape` (`"panel"`, chamfers of 6 borders, or `"tile"`, 3 borders; see [Corner sizes](#corner-sizes)), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`), `shadow` (default on for panels and off for tiles), `grain` (`false` removes the grain).
 
@@ -86,7 +86,7 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | Method | Behaviour |
 | --- | --- |
 | `SetFill(name, alphaScale)`, `SetFillRGBA(r, g, b, a)` | Recolours the fill. A caller's colour, or a token at a scaled alpha, stays through a restyle. Both reuse one table per chrome, so they allocate nothing on combat paths. |
-| `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the hairline that hover and selection light up. |
+| `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the light line that hover and selection light up. |
 | `SetShadow(on)`, `SetShown(shown)` | |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
@@ -102,6 +102,7 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | Panel bevel corner (`bevelPanelOuter`, `bevelPanelInner`) | 28: the chamfer and the mitre | 7 borders |
 | Tile fill corner (`chamferTile`) | 12 | 3 borders |
 | Tile bevel corner (`bevelTileOuter`, `bevelTileInner`) | 16 | 4 borders |
+| Panel and tile hairline corner (`bevelPanelHairline`, `bevelTileHairline`) | 32, 20 | 8, 5 borders |
 
 `LayoutSlice` follows the same rule for these six textures: its `cornerUnits` count borders, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3) lines up with a tile's chrome. Every other sliced texture, such as `shadow`, sizes its corners in units snapped to whole pixels.
 
@@ -158,13 +159,13 @@ The icon sits two borders inside the edge, masked to the chamfer by `iconMask`. 
 
 | State | Hairline | Icon |
 | --- | --- | --- |
-| Rest | `accent` at 50% | Full colour |
-| Hover | `accent`, and a soft selection glow | |
-| Pressed | Mixes toward `text` at 60% | Dims by 25% and moves down `pressOffset` |
-| Cooldown running | `text` at 35% | Swipe in `black` at 65%, countdown in the `number` font |
+| Rest | `accent` | Full colour |
+| Hover | `accent` mixed 35% toward `textHover`, and a soft selection glow | |
+| Pressed | Mixes toward `text` at 80% | Dims by 25% and moves down `pressOffset` |
+| Cooldown running | `text` at 55% | Swipe in `black` at 65%, countdown in the `number` font |
 | Proc (`SetProc(true)`) | `accent` | Proc glow pulses |
 | Selected (`SetSelected(true)`) | `accent` | |
-| Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` at 50% | Desaturated at 55% brightness |
+| Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Desaturated at 55% brightness |
 
 The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a custom icon keeps its tint in every state.
 
@@ -390,7 +391,7 @@ Field: `editBox`, when the popup has one.
 
 Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`).
 
-- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a spark that pulses at the frame's top right corner. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
+- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a four-point spark, two crossed streaks, that pulses at the frame's top right corner. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
 - A selection glow is steady at 60%.
 
 | Method | Behaviour |
@@ -401,7 +402,7 @@ Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, def
 | `SetColor(name)`, `Restyle()` | |
 | `SetColorRGB(r, g, b)` | Colours the glow with plain numbers instead of a token, kept through restyles. No arguments return to the token. |
 
-Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top` and `spark`.
+Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spark` and `sparkCross`.
 
 ## Tooltip
 

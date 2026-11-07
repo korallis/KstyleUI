@@ -35,6 +35,7 @@ TEXELS_PER_UNIT = 4
 SHADOW_TEXELS_PER_UNIT = 2
 PANEL_CHAMFER, TILE_CHAMFER = 6, 3  # root units, from the spec's Shape section
 BEVEL_LINE = 1  # art units: the widget kit draws one art unit as one whole-pixel border
+HAIRLINE_AT = 3  # art units in from the edge: the faint hairline, one unit of glass inside the inner line
 SHADOW_REACH = 12  # root units the shadow reaches past the panel edge
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
@@ -46,6 +47,7 @@ GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units 
 # The bevel bands are mitred: the inner edge of a band of width w meets the straight edge
 # w * (sqrt(2) - 1) past the chamfer, so the bevel margins reach past both lines' mitres.
 _MITRE = math.ceil(2 * BEVEL_LINE * TEXELS_PER_UNIT * (math.sqrt(2) - 1))
+_HAIRLINE_MITRE = TEXELS_PER_UNIT * math.ceil((HAIRLINE_AT + BEVEL_LINE) * (math.sqrt(2) - 1))
 SLICE = {
     "ChamferPanel": PANEL_CHAMFER * TEXELS_PER_UNIT,
     "ChamferTile": TILE_CHAMFER * TEXELS_PER_UNIT,
@@ -53,6 +55,8 @@ SLICE = {
     "BevelPanelInner": PANEL_CHAMFER * TEXELS_PER_UNIT + _MITRE,
     "BevelTileOuter": TILE_CHAMFER * TEXELS_PER_UNIT + _MITRE,
     "BevelTileInner": TILE_CHAMFER * TEXELS_PER_UNIT + _MITRE,
+    "BevelPanelHairline": PANEL_CHAMFER * TEXELS_PER_UNIT + _HAIRLINE_MITRE,
+    "BevelTileHairline": TILE_CHAMFER * TEXELS_PER_UNIT + _HAIRLINE_MITRE,
     "Shadow": 2 * SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
 }
 
@@ -338,7 +342,7 @@ def draw_chamfer(size, legs):
 
 
 def draw_bevel(size, legs, line, which):
-    start = 0 if which == "outer" else line
+    start = {"outer": 0, "inner": line, "hairline": HAIRLINE_AT * line}[which]
     planes = chamfered_rect(size, size, legs)  # legs is the chamfer, not the slice margin
     return white(sample_spans(size, size, band_spans(planes, start, start + line)))
 
@@ -548,6 +552,10 @@ ASSETS = [
              "Outer bevel line of a tile, as BevelPanelOuter with 3-unit chamfers."),
     _texture("BevelTileInner", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
              "Inner bevel hairline of a tile, as BevelPanelInner with 3-unit chamfers."),
+    _texture("BevelPanelHairline", 128, 128, lambda: draw_bevel(128, PANEL_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "hairline"),
+             "Faint third line of a panel's bevel: a 1-unit band 3 units inside the edge, tinted edgeFaint."),
+    _texture("BevelTileHairline", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "hairline"),
+             "Faint third line of a tile's bevel, as BevelPanelHairline with 3-unit chamfers."),
     _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * TILE_CHAMFER / ICON_SIZE),
              "Square mask for icons and portraits: a 3-unit chamfer on a 34-unit square."),
     _texture("Shadow", 128, 128, lambda: draw_shadow(128),

@@ -2,7 +2,7 @@
 local S = dofile("Tools/regression/skins_env.lua")
 local Near = S.W.Near
 
-local HOOKED = { GetProgressBar = true, GetTimerBar = true, AddModule = true, SetFontObject = true, UpdateHeaderPosition = true }
+local HOOKED = { GetProgressBar = true, GetTimerBar = true, AddModule = true, SetFontObject = true, UpdateHeaderPosition = true, SetCollapsed = true }
 local BLIZZARD_FACE, FALLBACK_FACE = "Fonts\\FRIZQT__.TTF", "Fonts\\ARIALN.TTF"
 
 local function FontPath(text)
@@ -33,6 +33,26 @@ local function Holder(B, parent, labelOnBar)
 	return holder
 end
 
+-- Collapsible(B, header) gives a header Blizzard's minimise button, whose art SetCollapsed swaps.
+local function Collapsible(B, header)
+	header.MinimizeButton = B.frame("Button", header)
+	header.MinimizeButton.Art = B.texture(header.MinimizeButton)
+	function header.SetCollapsed() end
+end
+
+-- Chevron(env, K, button) -> the KstyleUI chevron drawn on a child frame of button.
+local function Chevron(env, K, button)
+	for _, frame in ipairs(env._frames) do
+		if frame:GetParent() == button then
+			for _, region in ipairs({ frame:GetRegions() }) do
+				if region:GetTexture() == (K.Tokens.Texture("glyphChevron")) then
+					return region
+				end
+			end
+		end
+	end
+end
+
 -- Tracker(env, B, unloadable) -> a stand-in ObjectiveTrackerFrame that lays out as Blizzard's container does:
 -- each layout re-anchors NineSlice's bottom to the last module with content, hides the frame when nothing is
 -- tracked, and ends with self:UpdateHeaderPosition(). p.layout is the Update captured before any hook, which a
@@ -44,11 +64,13 @@ local function Tracker(env, B, unloadable)
 	tracker.NineSlice = B.frame("Frame", tracker)
 	tracker.Header = B.frame("Frame", tracker)
 	tracker.Header.Background, tracker.Header.Text = B.texture(tracker.Header, "BACKGROUND"), B.text(tracker.Header)
+	Collapsible(B, tracker.Header)
 	for i, height in ipairs({ 120, 60 }) do
 		local module = B.frame("Frame", tracker)
 		module.contentsHeight = height
 		module.Header = B.frame("Frame", module)
 		module.Header.Background, module.Header.Text = B.texture(module.Header, "BACKGROUND"), B.text(module.Header)
+		Collapsible(B, module.Header)
 		module.usedProgressBars, module.usedTimerBars = {}, {}
 		local progress, timer = Holder(B, module, true), Holder(B, module, false)
 		function module.GetContentsHeight(self)
@@ -145,6 +167,14 @@ do
 	local bottom, bottomPoint = Bottom()
 	assert(bottom == tracker.NineSlice and bottomPoint == "BOTTOM", "with quests tracked, the panel ends where Blizzard's content ends, not at the tracker's Edit Mode height: " .. tostring(bottomPoint))
 
+	for _, header in ipairs({ tracker.Header, p.modules[1].Header }) do
+		local chevron = Chevron(env, K, header.MinimizeButton)
+		assert(header.MinimizeButton.Art:GetAlpha() == 0 and chevron, "Blizzard's red and yellow collapse buttons become KstyleUI chevrons")
+		header:SetCollapsed(true)
+		assert(S.W.LastCall(chevron, "SetTexCoord")[3] == 0, "collapsed, the chevron points down to open")
+		header:SetCollapsed(false)
+		assert(S.W.LastCall(chevron, "SetTexCoord")[3] == 1, "open, it points up to collapse")
+	end
 	tracker:SetCollapsed(true)
 	assert(Bottom() == tracker.Header, "collapsed, the panel wraps the header only")
 	tracker:SetCollapsed(false)

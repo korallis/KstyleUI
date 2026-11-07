@@ -128,7 +128,7 @@ local RESOLVE = {
 }
 
 local function NewButton(column, name)
-	local button = Widgets.IconButton(column.holder, {
+	local button = Widgets.IconButton(column.host, {
 		size = Settings.Get("column.size"),
 		crop = false,
 		hideNumbers = true,
@@ -140,6 +140,12 @@ local function NewButton(column, name)
 	button:SetIcon(GLYPHS)
 	button.icon:SetTexCoord(Column.Cell(name))
 	button:RegisterForClicks("AnyUp")
+	button.chrome:SetShown(false)
+	local disc = button:CreateTexture(nil, "BACKGROUND")
+	disc:SetTexture((Tokens.Texture("dot")))
+	disc:SetAllPoints(button)
+	disc:SetVertexColor(Tokens.Color("surface"))
+	button.disc = disc
 	local badge = button.overlay:CreateTexture(nil, "OVERLAY")
 	badge:SetTexture((Tokens.Texture("dot")))
 	badge:SetSize(BADGE_SIZE, BADGE_SIZE)
@@ -172,7 +178,10 @@ end
 
 function Column.New(face, opts)
 	opts = opts or {}
-	local column = setmetatable({ face = face, holder = face.holder, preview = opts.preview == true, buttons = {} }, Column)
+	local host = CreateFrame("Frame", nil, face.holder)
+	host:SetAllPoints(face.holder)
+	host:SetFrameLevel(face.overlay:GetFrameLevel() + 1)
+	local column = setmetatable({ face = face, holder = face.holder, host = host, preview = opts.preview == true, buttons = {} }, Column)
 	for _, name in ipairs(Column.ORDER) do
 		column.buttons[name] = NewButton(column, name)
 	end
@@ -214,22 +223,29 @@ function Column:Active(name)
 end
 
 function Column:Layout()
-	local holder, box = self.holder, self.face.box
+	local holder, face = self.holder, self.face
 	local size = Widgets.Snap(holder, Settings.Get("column.size"))
 	local spacing = Widgets.Snap(holder, Settings.Get("column.spacing"))
-	local right = Settings.Get("column.side") == "right"
+	local side = Settings.Get("column.side")
+	local right = side == "right"
 	local up = Settings.Get("column.growth") == "up"
 	local vertical = up and "BOTTOM" or "TOP"
 	local point = vertical .. (right and "LEFT" or "RIGHT")
 	local relative = vertical .. (right and "RIGHT" or "LEFT")
 	local x = right and spacing or -spacing
+	local box, start = face.box, 0
+	if side == "inside" then
+		local strip = face.strip
+		box = up and strip:IsShown() and strip or face.mapArea
+		relative, start = (box == strip and "TOP" or vertical) .. "RIGHT", spacing
+	end
 	local slot = 0
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
 		local shown = self:Wanted(name)
 		button:SetShown(shown)
 		if shown then
-			local offset = slot * (size + spacing)
+			local offset = start + slot * (size + spacing)
 			if button.opts.size ~= size then
 				button.opts.size = size
 				button:Restyle()

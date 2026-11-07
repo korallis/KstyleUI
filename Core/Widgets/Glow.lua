@@ -7,7 +7,7 @@ local max = math.max
 
 local PULSE_LOW, PULSE_HIGH = 0.45, 1
 local SPARK_SCALE = 1.35
-local SPARK_SIZE = 12
+local SPARK_LONG, SPARK_THIN = 10, 2
 local SPARK_INSET = 2
 local SELECTION_ALPHA = 0.6
 local SPARK_LEVEL = 3
@@ -50,6 +50,12 @@ local function Hidden(holder)
 	holder:SetAlpha(1)
 end
 
+local function PlaceStreak(streak, frame, inset)
+	streak:ClearAllPoints()
+	streak:SetPoint("CENTER", frame, "TOPRIGHT", -inset, -inset)
+	streak:SetVertexColor(Widgets.Rgba("textHover"))
+end
+
 function Glow:Restyle()
 	local spread = self.spread
 	Widgets.LayoutSlice(self.slice, self.holder, spread * 2, spread)
@@ -62,10 +68,11 @@ function Glow:Restyle()
 	end
 	Widgets.ColorSlice(self.slice, r, g, b, 1)
 	if self.spark then
-		Widgets.Size(self.spark, SPARK_SIZE, SPARK_SIZE)
-		self.spark:ClearAllPoints()
-		self.spark:SetPoint("CENTER", self.frame, "TOPRIGHT", -Widgets.Snap(self.frame, SPARK_INSET), -Widgets.Snap(self.frame, SPARK_INSET))
-		self.spark:SetVertexColor(Widgets.Rgba("textHover"))
+		Widgets.Size(self.spark, SPARK_LONG, SPARK_THIN)
+		Widgets.Size(self.sparkCross, SPARK_THIN, SPARK_LONG)
+		local inset = Widgets.Snap(self.frame, SPARK_INSET)
+		PlaceStreak(self.spark, self.frame, inset)
+		PlaceStreak(self.sparkCross, self.frame, inset)
 	end
 	Reconcile(self)
 end
@@ -169,10 +176,12 @@ function Widgets.Glow(frame, opts)
 		top:SetFrameLevel(frame:GetFrameLevel() + SPARK_LEVEL)
 		top:Hide()
 		handle.top = top
-		local spark = top:CreateTexture(nil, "OVERLAY")
-		spark:SetTexture((Tokens.Texture("glow")))
-		spark:SetBlendMode("ADD")
-		handle.spark = spark
+		for _, key in ipairs({ "spark", "sparkCross" }) do
+			local streak = top:CreateTexture(nil, "OVERLAY")
+			streak:SetTexture((Tokens.Texture("glow")))
+			streak:SetBlendMode("ADD")
+			handle[key] = streak
+		end
 		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
 		local grow = sparkPulse:CreateAnimation("Scale")
 		grow:SetScaleFrom(1, 1)

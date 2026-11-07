@@ -90,6 +90,8 @@ local function PlayerSpells(env, B)
 	book.CategoryTabSystem = Tabs(B, book, true)
 	book.SearchBox = B.frame("EditBox", book)
 	B.texture(book.SearchBox)
+	book.SettingsDropdown = B.frame("Button", book)
+	book.SettingsDropdown.Icon = B.texture(book.SettingsDropdown)
 	local paged = B.frame("Frame", book)
 	book.PagedSpellsFrame = paged
 	p.items = { SpellItem(B, paged), Header(B, paged) }
@@ -158,6 +160,7 @@ do
 	assert(Alpha(categories.spare.Icon) == 1 and ns.Parts.RimOf(categories.spare), "a category added later is skinned too")
 	assert(K.Skin.IsSkinned(p.talents.TabSystem.tabs[1], "Tab"), "text tabs get the accent underline")
 	assert(K.Skin.IsSkinned(book.SearchBox, "EditBox"), "the search box is restyled")
+	assert(Alpha(book.SettingsDropdown.Icon) == 0, "the yellow filter arrow gives way to a KstyleUI chevron")
 	local item = p.items[1]
 	assert(Alpha(item.Backplate) == 0 and Alpha(item.Button.Border) == 0 and Alpha(item.Button.BorderShadow) == 0, "the spell item's frame art goes")
 	assert(Alpha(item.Button.Icon) == 1 and Alpha(item.Button.Arrow) == 1, "the icon and the flyout arrow stay")

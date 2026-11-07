@@ -135,6 +135,17 @@ do
 	assert(W.SameColor(c.fill[5], r, g, b, a), "the fill is the surface colour at the panel opacity")
 	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")), "the outer line is edgeOuter")
 	assert(W.SameColor(c.inner[5], Tokens.Color("edgeInner")), "the inner line is edgeInner")
+	assert(#c.hairline == 8 and W.SameColor(c.hairline[5], Tokens.Color("edgeFaint")), "the kit's third line: a faint hairline")
+	local function inset(line)
+		return -line[5]._points[1][5]
+	end
+	local border = Scale.Border()
+	assert(W.Near(inset(c.outer), 0) and W.Near(inset(c.inner), border), "the dark line on the edge, the light line inside it")
+	assert(W.Near(inset(c.hairline), 3 * border), "and the hairline one border of glass further in, as the kit's double line")
+	assert(W.Near(c.hairline[5]:GetHeight(), border) and W.Near(c.hairline[1]:GetWidth(), 8 * border), "one border thick")
+	c:SetShown(false)
+	assert(not c.hairline[1]:IsShown() and not c.hairline[5]:IsShown(), "SetShown hides the hairline with the rest")
+	c:SetShown(true)
 	assert(W.Near(c.outer[5]:GetHeight(), Scale.Border()), "the top line is one border thick")
 	local shadowCorner = c.shadow[1]
 	assert(W.Near(shadowCorner:GetWidth(), Scale.Snap(24)), "the shadow's corner piece is 24 units")
@@ -164,6 +175,7 @@ do
 	assert(W.Near(c.outer[5]:GetHeight(), border), "the line is redrawn one pixel thick")
 	assert(W.Near(c.outer[1]:GetWidth(), 4 * border), "the bevel corner is 4 borders, so its 4-texel line in 16 texels is one pixel")
 	assert(W.Near(c.fill[1]:GetWidth(), 3 * border), "a tile's chamfer is 3 borders, so the fill's diagonal meets the bevel's")
+	assert(W.Near(c.hairline[1]:GetWidth(), 5 * border) and W.Near(c.hairline[5]:GetHeight(), border), "the tile's hairline is redrawn too")
 	assert(W.Near(rim[1]:GetWidth(), c.fill[1]:GetWidth()), "a chamfer slice laid out by LayoutSlice lines up with the chrome")
 end
 
@@ -173,7 +185,7 @@ do
 	local env, K = W.New()
 	local _, c = chrome(env, K, "tile")
 	local function noop() end
-	for _, list in ipairs({ c.fill, c.shadow, c.outer, c.inner }) do
+	for _, list in ipairs({ c.fill, c.shadow, c.outer, c.inner, c.hairline }) do
 		for _, piece in ipairs(list) do
 			piece.SetVertexColor, piece.SetShown = noop, noop
 		end

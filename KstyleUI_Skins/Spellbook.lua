@@ -161,6 +161,7 @@ local function ApplySpellbook()
 	end
 	TabSystem(book.CategoryTabSystem)
 	Skin.EditBox(book.SearchBox)
+	Parts.Glyph(book.SettingsDropdown, "glyphChevron")
 	SkinPages(book.PagedSpellsFrame)
 end
 
