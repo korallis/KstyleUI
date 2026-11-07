@@ -174,6 +174,10 @@ do
 	eq(b.nameInside, true, "a frame too short for a name row puts the name on the bar")
 	rect(b.health, 4, 4, 92, 6, "the bar takes what the power bar leaves")
 
+	b = Geo.Button(40, 120, { portrait = true, power = false, nameAbove = false, nameHeight = 12 })
+	eq(b.portrait, nil, "a frame narrower than a portrait and a bar drops the portrait")
+	rect(b.health, 4, 4, 32, 112, "the bar keeps the whole frame")
+
 	b = Geo.Button(10, 6, { portrait = true, power = true, powerHeight = 4, nameAbove = false, nameHeight = 12 })
 	assert(b.health.width >= 1 and b.health.height >= 1, "a tiny frame still has a bar of at least one unit")
 end

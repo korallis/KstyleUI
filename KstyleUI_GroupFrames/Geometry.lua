@@ -157,7 +157,7 @@ function Geometry.Button(w, h, o)
 	local pad, gap = Tokens.Size("gapSmall"), Tokens.Size("gapTiny")
 	local out = { nameInside = true }
 	local left = pad
-	if o.portrait then
+	if o.portrait and w - h - 2 * pad >= h then
 		out.portrait = Rect(0, 0, h, h)
 		left = h + pad
 	end

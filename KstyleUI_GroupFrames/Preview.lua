@@ -115,16 +115,14 @@ local function Sample(parent, kind, index)
 end
 
 local function PlaceRun(frames, holder, s, growth, count, x0, y0, corner)
-	local _, dx, dy = Geometry.Grow(growth, s.spacing)
+	local dx, dy = Geometry.Offset(growth, 1)
 	local stepX = Geometry.IsVertical(growth) and 0 or (s.width + s.spacing)
 	local stepY = Geometry.IsVertical(growth) and (s.height + s.spacing) or 0
 	for i = 1, count do
 		local f = frames[i]
 		f:ClearAllPoints()
 		f:SetSize(s.width, s.height)
-		local sx = dx == 0 and 0 or (dx > 0 and 1 or -1)
-		local sy = dy == 0 and 0 or (dy > 0 and 1 or -1)
-		f:SetPoint(corner, holder, corner, x0 + sx * stepX * (i - 1), y0 + sy * stepY * (i - 1))
+		f:SetPoint(corner, holder, corner, x0 + dx * stepX * (i - 1), y0 + dy * stepY * (i - 1))
 	end
 end
 

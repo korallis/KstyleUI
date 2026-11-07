@@ -50,6 +50,12 @@ K.Options.Write("GroupFrames", "party.portrait", false)
 preview:Refresh()
 eq(preview.partyFrames[1].portrait:IsShown(), false, "portraits follow the setting")
 
+-- With no spacing, sample frames still sit edge to edge.
+K.Options.Write("GroupFrames", "party.spacing", 0)
+preview:Refresh()
+local first, second = preview.partyFrames[1]._points[1], preview.partyFrames[2]._points[1]
+eq(second[5] - first[5], -preview.partyFrames[1]:GetHeight(), "the second sample sits one frame lower with no gap")
+
 -- The canvas scales down to fit a small pane.
 parent:SetSize(100, 100)
 preview:SetSize(100, 100)

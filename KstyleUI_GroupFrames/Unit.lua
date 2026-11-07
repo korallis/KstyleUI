@@ -57,7 +57,10 @@ local function Curves()
 		curve:AddPoint(1, 0)
 		fullCurve = curve
 	end
-	if not percentCurve then
+	if not UnitHealthPercent then
+		percentCurve, fullCurve = false, false
+		Style.LogOnce("noPercent", "UnitHealthPercent is missing; percent health shows the current value instead")
+	elseif not percentCurve then
 		Style.LogOnce("noCurve", "C_CurveUtil and CurveConstants are missing; percent health shows the current value instead")
 	else
 		Style.LogOnce("curve", "health text uses UnitHealthPercent with a curve")
