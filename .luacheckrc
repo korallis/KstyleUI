@@ -91,7 +91,7 @@ module_globals("KstyleUI_Nameplates", {})
 
 module_globals("KstyleUI_CombatText", { "DAMAGE_TEXT_FONT" })
 
-module_globals("KstyleUI_Minimap", {})
+module_globals("KstyleUI_Minimap", { "KstyleUI_Minimap", "GetMinimapShape" })
 
 module_globals("KstyleUI_Chat", {})
 
