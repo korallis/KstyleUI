@@ -69,8 +69,15 @@ local function Refade(frame, alpha)
 end
 
 local function OnAcquire(frame, item)
-	if State(frame).faded and IsItem(item) then
+	if not IsItem(item) then
+		return
+	end
+	local state = State(frame)
+	if state.faded then
 		item:SetMouseMotionEnabled(false)
+	end
+	if state.onItem then
+		state.onItem(state.group, item)
 	end
 end
 
@@ -91,6 +98,30 @@ local function Hook(frame, state)
 	end
 	if type(frame.SetTooltipsShown) == "function" then
 		hooksecurefunc(frame, "SetTooltipsShown", OnTooltips)
+	end
+end
+
+function Viewers.Watch(group, onItem)
+	local frame = Viewers.Frame(group)
+	if not frame then
+		ns.LogOnce("viewer-missing-" .. group, NAMES[group] .. " is missing; nothing to restyle")
+		return false
+	end
+	local state = State(frame)
+	Hook(frame, state)
+	state.group, state.onItem = group, onItem
+	return true
+end
+
+function Viewers.EachItem(group, fn)
+	local frame = Viewers.Frame(group)
+	if not frame then
+		return
+	end
+	for _, child in ipairs({ frame:GetChildren() }) do
+		if IsItem(child) then
+			fn(group, child)
+		end
 	end
 end
 

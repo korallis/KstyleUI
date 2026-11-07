@@ -7,14 +7,14 @@ local Tokens, Widgets = K.Tokens, K.Widgets
 local Style = {}
 ns.Style = Style
 
-function Style.FontPath(choice)
+function Style.FontPath(choice, role)
 	if choice == "kit" or type(choice) ~= "string" then
-		return (Tokens.Font("number"))
+		return (Tokens.Font(role or "number"))
 	end
 	return choice
 end
 
-function Style.Font(text, choice, size, outline)
+function Style.Font(text, choice, size, outline, role)
 	if not text then
 		return
 	end
@@ -26,10 +26,10 @@ function Style.Font(text, choice, size, outline)
 	if flags == nil or flags == "none" then
 		flags = ""
 	end
-	local ok = text:SetFont(Style.FontPath(choice), size * scale, flags)
+	local ok = text:SetFont(Style.FontPath(choice, role), size * scale, flags)
 	if ok == false then
-		ns.LogOnce("font-" .. tostring(choice), "the font " .. tostring(choice) .. " did not load; using the kit's number font")
-		text:SetFont(Style.FontPath("kit"), size * scale, flags)
+		ns.LogOnce("font-" .. tostring(choice), "the font " .. tostring(choice) .. " did not load; using the kit's font")
+		text:SetFont(Style.FontPath("kit", role), size * scale, flags)
 	end
 end
 
@@ -86,9 +86,13 @@ function Style.Decorate(icon)
 		AfterPaint(self)
 	end
 	icon.readyGlow = Widgets.Glow(icon, { kind = "selection" })
-	icon:HookScript("OnEnter", ShowTooltip)
-	icon:HookScript("OnLeave", HideTooltip)
+	Style.Tooltips(icon)
 	return icon
+end
+
+function Style.Tooltips(frame)
+	frame:HookScript("OnEnter", ShowTooltip)
+	frame:HookScript("OnLeave", HideTooltip)
 end
 
 function Style.SetProc(icon, on)

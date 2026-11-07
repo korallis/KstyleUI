@@ -36,7 +36,24 @@ for _, group in ipairs({ "essential", "utility" }) do
 		assert(keys[group .. "." .. key], group .. " needs a " .. key .. " setting")
 	end
 end
-for _, key in ipairs({ "timerFont", "timerOutline", "countFont", "countOutline", "accent", "accentColor" }) do
+assert(keys["buffs.size"] and keys["buffs.columns"] and keys["buffs.growth"] and keys["buffs.inactive"], "tracked buff icons are an icon group too")
+assert(keys["buffs.readyGlow"] == nil, "buff icons have no cooldown-only settings")
+for _, key in ipairs({ "width", "height", "spacing", "count", "growth", "texture", "colorSource", "color", "orientation", "reverse", "icon", "name", "timer", "nameSize", "timerSize" }) do
+	assert(keys["bars." .. key], "bars need a " .. key .. " setting")
+end
+assert(keys["bars.texture"].type == "texture", "the bar texture is a texture row")
+assert(keys["bars.color"].showWhen({ bars = { colorSource = "custom" } }) and not keys["bars.color"].showWhen({ bars = { colorSource = "class" } }), "the bar colour shows only for a custom source")
+local sources = {}
+for _, option in ipairs(keys["bars.colorSource"].options) do
+	sources[option.value] = true
+end
+assert(sources.class and sources.reaction and sources.custom, "bars choose class, reaction or custom colour")
+local paths = {}
+for _, option in ipairs(keys.path.options) do
+	paths[option.value] = true
+end
+assert(paths.auto and paths.mirror and paths.reskin, "the display path is automatic, the mirror or the reskin")
+for _, key in ipairs({ "timerFont", "timerOutline", "countFont", "countOutline", "nameFont", "nameOutline", "accent", "accentColor", "path" }) do
 	assert(keys[key], "the page needs a " .. key .. " setting")
 end
 assert(keys.accentColor.showWhen({ accent = "custom" }) and not keys.accentColor.showWhen({ accent = "class" }), "the custom colour shows only for a custom accent")
@@ -46,6 +63,8 @@ local defaults = ns.Settings.defaults
 assert(defaults.essential.size == K.Tokens.Size("cooldownEssential") and defaults.essential.size == 40, "essential icons are 40 units")
 assert(defaults.utility.size == K.Tokens.Size("cooldownUtility") and defaults.utility.size == 30, "utility icons are 30 units")
 assert(defaults.essential.spacing == 3 and defaults.essential.columns == 6, "six icons per row with 3-unit gaps")
+assert(defaults.bars.width == 180 and defaults.bars.height == 18 and defaults.bars.count == 3, "three bars of 180 by 18 units")
+assert(defaults.path == "auto", "the path is automatic by default")
 
 -- The font dropdown lists the kit font first, then the media fonts as paths.
 local fonts = ns.Settings.FontOptions()
@@ -61,6 +80,8 @@ do
 				Cooldowns = {
 					essential = { size = 500, spacing = -4, columns = 2.6, growth = "diagonal", timer = "yes" },
 					timerFont = "C:\\evil|.ttf",
+					bars = { texture = "bad|path", count = 99, colorSource = "plaid" },
+					path = "sideways",
 					accent = "rainbow",
 					accentColor = { r = 2, g = 0, b = 0 },
 				},
@@ -77,6 +98,9 @@ do
 	assert(e.timer == true, "a timer switch that is not a boolean falls back to on")
 	assert(current.timerFont == "kit", "a bad font path falls back to the kit font")
 	assert(current.accent == "class", "an unknown accent source falls back to class")
+	assert(current.bars.texture == defaults.bars.texture, "a texture path with a pipe falls back to the default")
+	assert(current.bars.count == 12 and current.bars.colorSource == "class", "bar values clamp and fall back")
+	assert(current.path == "auto", "an unknown path falls back to automatic")
 	local r = current.accentR
 	assert(r == defaults.accentColor.r, "a colour channel past 1 gives the default colour")
 end
@@ -91,6 +115,8 @@ do
 	assert(frame and frame.Refresh, "the preview returns a frame with Refresh")
 	local essential = frame.rows.essential
 	assert(essential.count == 6 and frame.rows.utility.count == 4, "the preview shows six essential and four utility samples")
+	assert(frame.rows.buffs.count == 3 and frame.rows.bars.count == 2, "the preview shows sample buffs and bars")
+	assert(frame.rows.bars.bars[1].name:GetText() == "Rapid Fire", "a sample bar carries a name")
 	assert(essential.icons[1].icon:GetTexture() == 132176, "sample icons are real ability icons")
 	assert(#W.Calls(essential.icons[1].cooldown, "SetCooldown") == 1, "a sample icon shows a cooldown sweep")
 	assert(essential.icons[4].proc == true, "a sample proc glows")

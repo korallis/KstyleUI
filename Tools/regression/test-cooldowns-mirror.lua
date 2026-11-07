@@ -2,57 +2,11 @@
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local W = C.W
 
--- Blizzard's viewers as the module sees them: named frames with item children, Edit Mode's opacity
--- through SetAlpha, and the mixin methods the module hooks.
-local function Viewers(env)
-	env._viewers = {}
-	for _, name in ipairs({ "EssentialCooldownViewer", "UtilityCooldownViewer", "BuffIconCooldownViewer", "BuffBarCooldownViewer" }) do
-		local viewer = env.CreateFrame("Frame", name, env.UIParent)
-		viewer.tooltipsShown = true
-		viewer.OnAcquireItemFrame = function(self, item)
-			item:SetMouseMotionEnabled(self.tooltipsShown)
-		end
-		viewer.SetTooltipsShown = function(self, shown)
-			self.tooltipsShown = shown
-		end
-		for i = 1, 2 do
-			local item = env.CreateFrame("Frame", nil, viewer)
-			item.GetCooldownID = function()
-				return i
-			end
-			item:SetMouseMotionEnabled(true)
-		end
-		env._viewers[name] = viewer
-	end
-end
-
-local function Tooltip(env)
-	local tip = { shown = false }
-	function tip.SetOwner(self, owner, anchor)
-		self.owner, self.anchor = owner, anchor
-	end
-	function tip.SetSpellByID(self, spell)
-		self.spell = spell
-	end
-	function tip.Show(self)
-		self.shown = true
-	end
-	function tip.Hide(self)
-		self.shown = false
-		self.owner = nil
-	end
-	function tip.IsOwned(self, frame)
-		return self.owner == frame
-	end
-	env.GameTooltip = tip
-end
-
 local function New(opts)
 	opts = opts or {}
 	local setup = opts.setup
 	opts.setup = function(env)
-		Viewers(env)
-		Tooltip(env)
+		C.Game(env)
 		if setup then
 			setup(env)
 		end
@@ -190,10 +144,7 @@ assert(blizzard:GetAlpha() == 0, "Blizzard's own SetAlpha cannot bring it back")
 for _, child in ipairs({ blizzard:GetChildren() }) do
 	assert(LastArg(child, "SetMouseMotionEnabled") == false, "a faded viewer's item takes no mouse")
 end
-local item = env.CreateFrame("Frame", nil, blizzard)
-item.GetCooldownID = function()
-	return 9
-end
+local item = C.Item(env, blizzard, 9)
 blizzard:OnAcquireItemFrame(item)
 assert(LastArg(item, "SetMouseMotionEnabled") == false, "a newly acquired item takes no mouse while faded")
 assert(env._viewers.BuffIconCooldownViewer:GetAlpha() == 1, "the buff viewers are not part of this mirror")
@@ -275,7 +226,7 @@ assert(blizzard:GetAlpha() == 0, "Enable again fades the viewer")
 -- A mirror that fails falls back: the row hides and Blizzard's viewer comes back.
 env._cdm.durationError = "secret arguments are not allowed"
 env.FireEvent("SPELL_UPDATE_COOLDOWN")
-assert(ns.Path.Get("essential") == "failed", "a failing duration call fails the mirror")
+assert(ns.Path.Get("essential") == "reskin", "a failing duration call switches the row to the reskin")
 assert(not essential.content:IsShown(), "the failed row hides its icons")
 assert(blizzard:GetAlpha() == 0.8, "Blizzard's viewer shows again")
 env._cdm.durationError = nil
@@ -285,7 +236,7 @@ K.Modules.Disable("Cooldowns")
 do
 	local env2, K2, ns2 = New({ noDuration = true })
 	C.Enable(env2, K2)
-	assert(ns2.Path.Get("essential") == "off", "without duration objects the mirror is off")
+	assert(ns2.Path.Get("essential") == "reskin", "without duration objects the row restyles Blizzard's viewer")
 	assert(env2._viewers.EssentialCooldownViewer:GetAlpha() == 1, "Blizzard's viewer is left alone")
 	assert(ns2.Mirror.Row("essential") == nil, "no row is built")
 end
@@ -325,7 +276,7 @@ do
 	local env6, K6, ns6 = New()
 	env6._cdm.secretSet = true
 	C.Enable(env6, K6)
-	assert(ns6.Path.Get("essential") == "failed", "an unreadable category set fails the mirror")
+	assert(ns6.Path.Get("essential") == "reskin", "an unreadable category set switches the row to the reskin")
 	assert(env6._viewers.EssentialCooldownViewer:GetAlpha() == 1, "Blizzard's viewer stays visible")
 end
 

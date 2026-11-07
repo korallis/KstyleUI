@@ -3,6 +3,7 @@ local addonName, ns = ...
 
 ns.addonName = addonName
 ns.MODULE = "Cooldowns"
+ns.INACTIVE_ALPHA = 0.45
 
 local logged = {}
 

@@ -105,6 +105,11 @@ function C.Install(env, opts)
 		overlay = {},
 		textures = {},
 		categorySource = {},
+		auras = {},
+		targetAuras = {},
+		auraDurations = {},
+		stacks = {},
+		permanent = {},
 		durations = {},
 		chargeDurations = {},
 		available = true,
@@ -197,6 +202,41 @@ function C.Install(env, opts)
 			return d
 		end
 	end
+	-- Auras: cdm.auras[spell] and cdm.targetAuras[name] hold { auraInstanceID } (or a secret); the
+	-- duration and stack text of an instance come from cdm.auraDurations[id] and cdm.stacks[id].
+	env.C_Spell.GetSpellName = function(spell)
+		return "Spell " .. tostring(spell)
+	end
+	env.C_UnitAuras = {
+		GetPlayerAuraBySpellID = function(spell)
+			record("GetPlayerAuraBySpellID", spell)
+			return cdm.auras[spell]
+		end,
+		GetAuraDataBySpellName = function(unit, name, filter)
+			record("GetAuraDataBySpellName", unit, name, filter)
+			if unit == "target" then
+				return cdm.targetAuras[name]
+			end
+		end,
+		GetAuraDuration = function(unit, id)
+			record("GetAuraDuration", unit, id)
+			if cdm.auraDurationError then
+				error(cdm.auraDurationError)
+			end
+			local d = cdm.auraDurations[id]
+			if d == nil then
+				d = C.Duration(id, "aura")
+				cdm.auraDurations[id] = d
+			end
+			return d
+		end,
+		DoesAuraHaveExpirationTime = function(_, id)
+			return not cdm.permanent[id]
+		end,
+		GetAuraApplicationDisplayCount = function(_, id)
+			return cdm.stacks[id] or ""
+		end,
+	}
 	env.C_SpellActivationOverlay = {
 		IsSpellOverlayed = function(spell)
 			return cdm.overlay[spell] == true
@@ -307,6 +347,125 @@ function C.Calls(env, name)
 		end
 	end
 	return out
+end
+
+-- Blizzard's four viewers as the module sees them: named frames whose item children carry the regions
+-- the XML templates give them (Icon, the unnamed overlay as item.Overlay, OutOfRange, Cooldown,
+-- ChargeCount.Current, Applications.Applications), Edit Mode's opacity through SetAlpha, and the mixin
+-- methods the module hooks. Bar items carry Icon (a frame with Icon, Overlay and Applications) and Bar
+-- (a status bar with BarBG, Pip, Name and Duration). viewer._items lists each viewer's items, and
+-- env._blizzard every object the fake game made, for checks that Blizzard objects get no forbidden call.
+local function Own(env, object)
+	env._blizzard[#env._blizzard + 1] = object
+	return object
+end
+
+local function Texture(env, frame, layer)
+	return Own(env, frame:CreateTexture(nil, layer or "ARTWORK"))
+end
+
+local function FontString(env, frame)
+	return Own(env, frame:CreateFontString(nil, "OVERLAY"))
+end
+
+local function Frame(env, frameType, parent)
+	return Own(env, env.CreateFrame(frameType, nil, parent))
+end
+
+function C.Item(env, viewer, id)
+	local item = Frame(env, "Frame", viewer)
+	item.GetCooldownID = function()
+		return id
+	end
+	if viewer._bars then
+		local icon = Frame(env, "Frame", item)
+		icon.Icon = Texture(env, icon)
+		icon.Overlay = Texture(env, icon, "OVERLAY")
+		icon.Applications = FontString(env, icon)
+		item.Icon = icon
+		local bar = Frame(env, "StatusBar", item)
+		bar:SetStatusBarTexture("bar-atlas")
+		Own(env, bar:GetStatusBarTexture())
+		bar.BarBG = Texture(env, bar, "BACKGROUND")
+		bar.Pip = Texture(env, bar, "OVERLAY")
+		bar.Name = FontString(env, bar)
+		bar.Duration = FontString(env, bar)
+		item.Bar = bar
+	else
+		item.Icon = Texture(env, item)
+		item.Overlay = Texture(env, item, "OVERLAY")
+		item.OutOfRange = Texture(env, item, "OVERLAY")
+		item.Cooldown = Frame(env, "Cooldown", item)
+		local countdown = FontString(env, item.Cooldown)
+		item.Cooldown.GetCountdownFontString = function()
+			return countdown
+		end
+		item.ChargeCount = Frame(env, "Frame", item)
+		item.ChargeCount.Current = FontString(env, item.ChargeCount)
+		item.Applications = Frame(env, "Frame", item)
+		item.Applications.Applications = FontString(env, item.Applications)
+	end
+	item:SetMouseMotionEnabled(true)
+	viewer._items[#viewer._items + 1] = item
+	return item
+end
+
+function C.Viewers(env)
+	env._viewers = {}
+	env._blizzard = env._blizzard or {}
+	for _, name in ipairs({ "EssentialCooldownViewer", "UtilityCooldownViewer", "BuffIconCooldownViewer", "BuffBarCooldownViewer" }) do
+		local viewer = Own(env, env.CreateFrame("Frame", name, env.UIParent))
+		viewer._items = {}
+		viewer._bars = name == "BuffBarCooldownViewer"
+		viewer.tooltipsShown = true
+		viewer.OnAcquireItemFrame = function(self, item)
+			item:SetMouseMotionEnabled(self.tooltipsShown)
+		end
+		viewer.SetTooltipsShown = function(self, shown)
+			self.tooltipsShown = shown
+		end
+		for i = 1, 2 do
+			C.Item(env, viewer, i)
+		end
+		env._viewers[name] = viewer
+	end
+end
+
+-- Clean(env, forbidden) fails when a Blizzard object got a call named in the forbidden set.
+function C.Clean(env, forbidden)
+	for _, object in ipairs(env._blizzard or {}) do
+		for _, call in ipairs(object._calls) do
+			assert(not forbidden[call.method], "a Blizzard object got " .. call.method)
+		end
+	end
+end
+
+-- A GameTooltip stand-in that records its owner, spell and visibility.
+function C.Tooltip(env)
+	local tip = { shown = false }
+	function tip.SetOwner(self, owner, anchor)
+		self.owner, self.anchor = owner, anchor
+	end
+	function tip.SetSpellByID(self, spell)
+		self.spell = spell
+	end
+	function tip.Show(self)
+		self.shown = true
+	end
+	function tip.Hide(self)
+		self.shown = false
+		self.owner = nil
+	end
+	function tip.IsOwned(self, frame)
+		return self.owner == frame
+	end
+	env.GameTooltip = tip
+end
+
+-- Game(env) installs the viewers and the tooltip, for opts.setup.
+function C.Game(env)
+	C.Viewers(env)
+	C.Tooltip(env)
 end
 
 return C

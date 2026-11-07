@@ -30,6 +30,7 @@ function Row:StyleIcon(icon)
 		icon:Restyle()
 	end
 	icon.cooldown:SetHideCountdownNumbers(not cfg.timer)
+	icon.cooldown:SetReverse(self.group == "buffs")
 	icon.greyWhileCooling = cfg.desaturate
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
@@ -75,6 +76,13 @@ function Row:SetCount(count)
 	self.count = count
 	self:Place()
 	return count
+end
+
+function Row:Restyle()
+	for _, icon in ipairs(self.icons) do
+		icon:Restyle()
+	end
+	self:Place()
 end
 
 function Row:Apply(cfg)

@@ -1,9 +1,9 @@
--- Preview.lua: the settings window's live preview: sample essential and utility rows drawn with the current settings.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings.
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens = K.Widgets, K.Tokens
-local Settings, Row, Style = ns.Settings, ns.Row, ns.Style
+local Widgets, Tokens, L = K.Widgets, K.Tokens, K.L
+local Settings, Row, BarRow, Style = ns.Settings, ns.Row, ns.BarRow, ns.Style
 
 local Preview = {}
 ns.Preview = Preview
@@ -11,13 +11,20 @@ ns.Preview = Preview
 local SAMPLE_ICONS = {
 	essential = { 132176, 132153, 132111, 132157, 132169, 132172 },
 	utility = { 132164, 132179, 132188, 132159 },
+	buffs = { 132159, 132160, 132188 },
 }
 local SAMPLE_COOLDOWNS = {
 	essential = { { 12, 6 }, false, { 30, 26 }, false, { 20, 18 }, { 8, 6 } },
 	utility = { false, { 60, 48 }, false, false },
+	buffs = { { 30, 12 }, { 600, 420 }, false },
 }
-local SAMPLE_CHARGES = { essential = { [2] = 2 } }
+local SAMPLE_CHARGES = { essential = { [2] = 2 }, buffs = { [1] = 3 } }
 local SAMPLE_PROC = { essential = { [4] = true } }
+local SAMPLE_BARS = {
+	{ icon = 132208, name = L["Rapid Fire"], duration = 15, left = 9 },
+	{ icon = 136076, name = L["Aspect of the Hawk"], duration = 1800, left = 1260 },
+}
+local SAMPLE_BAR_FILL = 0.6
 
 local function Fill(row, group)
 	local cfg = row.cfg
@@ -32,12 +39,30 @@ local function Fill(row, group)
 		else
 			icon:ClearCooldown()
 		end
-		icon.onCooldown = sample and true or false
-		local charges = SAMPLE_CHARGES[group] and SAMPLE_CHARGES[group][i]
-		icon:SetCount(charges)
+		local cooldownGroup = Settings.COOLDOWN_GROUPS[group]
+		icon.onCooldown = cooldownGroup and sample and true or false
+		icon:SetCount(SAMPLE_CHARGES[group] and SAMPLE_CHARGES[group][i])
 		Style.SetProc(icon, cfg.procGlow and SAMPLE_PROC[group] and SAMPLE_PROC[group][i])
-		Style.SetReady(icon, cfg.readyGlow and not sample)
+		Style.SetReady(icon, cooldownGroup and cfg.readyGlow and not sample)
+		if not cooldownGroup then
+			icon:SetUsable(sample and true or false)
+		end
 		icon:Paint()
+	end
+end
+
+local function FillBars(row)
+	local count = row:SetCount(#SAMPLE_BARS)
+	local now = GetTime and GetTime() or 0
+	for i = 1, count do
+		local bar, sample = row.bars[i], SAMPLE_BARS[i]
+		K.Icons.Apply(bar.icon, sample.icon)
+		Widgets.SetText(bar.name, sample.name)
+		bar.status:SetMinMaxValues(0, 1)
+		bar.status:SetValue(SAMPLE_BAR_FILL)
+		bar.timer:SetCooldown(now - (sample.duration - sample.left), sample.duration)
+		Widgets.SetText(bar.count, nil)
+		bar:SetAlpha(1)
 	end
 end
 
@@ -45,7 +70,7 @@ local function Refresh(frame)
 	Settings.Read()
 	local gap = Tokens.Size("gapMedium")
 	local previous
-	for _, group in ipairs(Settings.ICON_GROUPS) do
+	for _, group in ipairs(Settings.GROUPS) do
 		local row = frame.rows[group]
 		row:Apply(Settings.current[group])
 		row.holder:ClearAllPoints()
@@ -54,7 +79,11 @@ local function Refresh(frame)
 		else
 			row.holder:SetPoint("TOP", frame, "TOP", 0, -Widgets.Snap(row.holder, Tokens.Size("gapHuge")))
 		end
-		Fill(row, group)
+		if group == "bars" then
+			FillBars(row)
+		else
+			Fill(row, group)
+		end
 		previous = row
 	end
 end
@@ -64,8 +93,12 @@ function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
 	frame.rows = {}
-	for _, group in ipairs(Settings.ICON_GROUPS) do
-		frame.rows[group] = Row.New(frame, group, Settings.current[group])
+	for _, group in ipairs(Settings.GROUPS) do
+		if group == "bars" then
+			frame.rows[group] = BarRow.New(frame, Settings.current.bars)
+		else
+			frame.rows[group] = Row.New(frame, group, Settings.current[group])
+		end
 	end
 	frame.Refresh = Refresh
 	Refresh(frame)

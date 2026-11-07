@@ -1,21 +1,24 @@
--- Mirror.lua: the essential and utility cooldowns as KstyleUI icons, each Cooldown widget driven by the API's duration objects.
+-- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects, or Blizzard's viewer restyled in place when the mirror cannot work.
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Data, Path, Row, Style, Viewers = ns.Settings, ns.Data, ns.Path, ns.Row, ns.Style, ns.Viewers
+local Settings, Data, Path, Row, BarRow, Style, Viewers, Auras, Reskin = ns.Settings, ns.Data, ns.Path, ns.Row, ns.BarRow, ns.Style, ns.Viewers, ns.Auras, ns.Reskin
 
 local Mirror = {}
 ns.Mirror = Mirror
 
 local MODULE = ns.MODULE
-local GROUPS = Settings.ICON_GROUPS
+local GROUPS = Settings.GROUPS
+local COOLDOWN_GROUPS = Settings.COOLDOWN_GROUPS
 local DATA_EVENT = "CooldownViewerSettings.OnDataChanged"
 local RETRY_SECONDS = 1
 local MAX_RETRIES = 10
-local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility" }
+local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility", buffs = "cooldowns.buffs", bars = "cooldowns.bars" }
+local INTERPOLATION = "Immediate"
+local DIRECTION = "RemainingTime"
 
 local rows = {}
-local lists, scratch, sources = {}, {}, {}
+local lists, scratch, shown, sources = {}, {}, {}, {}
 local running = false
 local pending = false
 local retries = 0
@@ -37,12 +40,54 @@ local function Fail(group, why)
 			row.content:Hide()
 		end
 		Viewers.Unfade(group)
+		if Path.Get(group) == "reskin" then
+			Reskin.Start(group)
+		end
 	end
+end
+
+local function Present(value)
+	return ns.IsSecret(value) or value ~= nil
+end
+
+local function SetDuration(group, cooldown, duration)
+	local set = cooldown.SetCooldownFromDurationObject
+	if type(set) ~= "function" then
+		Fail(group, "Cooldown:SetCooldownFromDurationObject is missing")
+		return false
+	end
+	local ok, err = pcall(set, cooldown, duration)
+	if not ok then
+		Fail(group, "SetCooldownFromDurationObject failed: " .. tostring(err))
+		return false
+	end
+	return true
+end
+
+local function Texture(texture, entry)
+	if not entry then
+		return
+	end
+	local fileID
+	if entry.categoryID and not entry.spellID then
+		fileID = Data.CATEGORY_ICONS[entry.categoryID] or Data.UNKNOWN_ICON
+	elseif entry.equipSlot and GetInventoryItemTexture then
+		local ok, file = pcall(GetInventoryItemTexture, "player", entry.equipSlot)
+		if ok then
+			fileID = file
+		end
+	elseif entry.iconSpell and C_Spell and C_Spell.GetSpellTexture then
+		local ok, file = pcall(C_Spell.GetSpellTexture, entry.iconSpell)
+		if ok then
+			fileID = file
+		end
+	end
+	K.Icons.Apply(texture, fileID)
 end
 
 local function SpellCooling(spell)
 	local api = C_Spell
-	if not (api and api.GetSpellCooldown) then
+	if not (Present(spell) and api and api.GetSpellCooldown) then
 		return nil
 	end
 	local ok, info = pcall(api.GetSpellCooldown, spell)
@@ -92,13 +137,8 @@ local function CooldownSpell(entry)
 	return entry.spell or CategorySpell(entry)
 end
 
-local function Present(value)
-	return ns.IsSecret(value) or value ~= nil
-end
-
 local function Cooldown(row, icon)
-	local entry = icon.entry
-	local spell = CooldownSpell(entry)
+	local spell = CooldownSpell(icon.entry)
 	local cooldown = icon.cooldown
 	local getter = C_Spell and C_Spell.GetSpellCooldownDuration
 	if not Present(spell) or not getter then
@@ -110,19 +150,10 @@ local function Cooldown(row, icon)
 		Fail(row.group, "GetSpellCooldownDuration failed: " .. tostring(duration))
 		return
 	end
-	if not ns.IsSecret(duration) and duration == nil then
+	if not Present(duration) then
 		cooldown:Clear()
-	else
-		local set = cooldown.SetCooldownFromDurationObject
-		if type(set) ~= "function" then
-			Fail(row.group, "Cooldown:SetCooldownFromDurationObject is missing")
-			return
-		end
-		local okSet, err = pcall(set, cooldown, duration)
-		if not okSet then
-			Fail(row.group, "SetCooldownFromDurationObject failed: " .. tostring(err))
-			return
-		end
+	elseif not SetDuration(row.group, cooldown, duration) then
+		return
 	end
 	SetCooldownState(row, icon, spell)
 end
@@ -148,7 +179,7 @@ local function Charges(icon)
 		return
 	end
 	local okDuration, duration = pcall(getter, entry.spell)
-	if okDuration and (ns.IsSecret(duration) or duration ~= nil) then
+	if okDuration and Present(duration) then
 		pcall(icon.SetChargeCooldownFromDuration, icon, duration)
 	else
 		icon:ClearChargeCooldown()
@@ -188,52 +219,23 @@ local function Proc(row, icon)
 	Style.SetProc(icon, on)
 end
 
-local function Texture(icon)
-	local entry = icon.entry
-	if not entry then
-		return
-	end
-	local fileID
-	if entry.categoryID and not entry.spellID then
-		fileID = Data.CATEGORY_ICONS[entry.categoryID] or Data.UNKNOWN_ICON
-	elseif entry.equipSlot and GetInventoryItemTexture then
-		local ok, texture = pcall(GetInventoryItemTexture, "player", entry.equipSlot)
-		fileID = ok and texture or nil
-	elseif entry.iconSpell and C_Spell and C_Spell.GetSpellTexture then
-		local ok, texture = pcall(C_Spell.GetSpellTexture, entry.iconSpell)
-		fileID = ok and texture or nil
-	end
-	K.Icons.Apply(icon.icon, fileID)
-end
-
-local function Refresh(row, icon)
-	Texture(icon)
+local function RefreshCooldownIcon(row, icon)
+	Texture(icon.icon, icon.entry)
 	Usable(row, icon)
 	Charges(icon)
 	Proc(row, icon)
 	Cooldown(row, icon)
 end
 
-local function EachIcon(fn)
-	for _, group in ipairs(GROUPS) do
-		if Live(group) then
-			local row = rows[group]
-			for i = 1, row.count do
-				fn(row, row.icons[i])
-			end
-		end
-	end
-end
-
 local function OnCooldownDone(cooldown)
 	local icon = cooldown:GetParent()
 	local row = icon and icon.cooldownsRow
-	if row and icon.entry and Live(row.group) then
+	if row and icon.entry and COOLDOWN_GROUPS[row.group] and Live(row.group) then
 		SetCooldownState(row, icon, CooldownSpell(icon.entry))
 	end
 end
 
-local function Assign(row, list)
+local function AssignCooldowns(row, list)
 	local count = row:SetCount(#list)
 	for i = 1, count do
 		local icon = row.icons[i]
@@ -242,14 +244,143 @@ local function Assign(row, list)
 			icon.cooldown:HookScript("OnCooldownDone", OnCooldownDone)
 		end
 		icon.entry = list[i]
-		Refresh(row, icon)
+		RefreshCooldownIcon(row, icon)
+	end
+end
+
+local function ShowAuraIcon(row, icon, entry)
+	icon.entry = entry
+	Texture(icon.icon, entry)
+	local id = entry.auraID
+	if id then
+		local duration, err = Auras.Duration(entry.auraUnit, id)
+		if err then
+			Fail(row.group, "GetAuraDuration failed: " .. err)
+			return
+		end
+		if Present(duration) then
+			SetDuration(row.group, icon.cooldown, duration)
+		else
+			icon.cooldown:Clear()
+		end
+		icon:SetCount(Auras.Stacks(entry.auraUnit, id))
+	else
+		icon.cooldown:Clear()
+		icon:SetCount(nil)
+	end
+	local active = id ~= nil
+	if icon.usable ~= active then
+		icon:SetUsable(active)
+	end
+end
+
+local function SpellName(entry)
+	local api = C_Spell
+	if not (entry.spell and api and api.GetSpellName) then
+		return nil
+	end
+	local ok, name = pcall(api.GetSpellName, entry.spell)
+	if ok then
+		return name
+	end
+	return nil
+end
+
+local function ShowBar(row, bar, entry)
+	bar.entry = entry
+	Texture(bar.icon, entry)
+	K.Widgets.SetText(bar.name, SpellName(entry))
+	local status, timer = bar.status, bar.timer
+	local id = entry.auraID
+	local duration, err
+	if id then
+		duration, err = Auras.Duration(entry.auraUnit, id)
+	end
+	if err then
+		Fail(row.group, "GetAuraDuration failed: " .. err)
+		return
+	end
+	if id and Auras.Permanent(entry.auraUnit, id) then
+		status:SetMinMaxValues(0, 1)
+		status:SetValue(1)
+		timer:Clear()
+	elseif Present(duration) and type(status.SetTimerDuration) == "function" then
+		local interpolation = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation[INTERPOLATION]
+		local direction = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection[DIRECTION]
+		local ok, timerErr = pcall(status.SetTimerDuration, status, duration, interpolation or 0, direction or 1)
+		if not ok then
+			Fail(row.group, "SetTimerDuration failed: " .. tostring(timerErr))
+			return
+		end
+		SetDuration(row.group, timer, duration)
+	else
+		status:SetMinMaxValues(0, 1)
+		status:SetValue(0)
+		timer:Clear()
+	end
+	local stacks
+	if id then
+		stacks = Auras.Stacks(entry.auraUnit, id)
+	end
+	K.Widgets.SetText(bar.count, stacks)
+	bar:SetAlpha(id and 1 or ns.INACTIVE_ALPHA)
+end
+
+local function AssignAuras(row, list)
+	local out = shown[row.group]
+	for i = #out, 1, -1 do
+		out[i] = nil
+	end
+	local keepInactive = row.cfg.inactive
+	for _, entry in ipairs(list) do
+		if entry.auraID or keepInactive then
+			out[#out + 1] = entry
+		end
+	end
+	local count = row:SetCount(#out)
+	for i = 1, count do
+		if not Live(row.group) then
+			return
+		end
+		if row.group == "bars" then
+			ShowBar(row, row.bars[i], out[i])
+		else
+			ShowAuraIcon(row, row.icons[i], out[i])
+		end
+	end
+end
+
+local function FindAuras(list)
+	for _, entry in ipairs(list) do
+		entry.auraUnit, entry.auraID = Auras.Find(entry)
+	end
+end
+
+local function RefreshAuras()
+	if Auras.Secret() then
+		ns.LogOnce("auras-secret", "aura data is secret; the tracked buff mirror keeps its last state until it is readable")
+		return
+	end
+	for group in pairs(Settings.AURA_GROUPS) do
+		if Live(group) then
+			FindAuras(lists[group])
+			AssignAuras(rows[group], lists[group])
+		end
+	end
+end
+
+local function Assign(group)
+	if COOLDOWN_GROUPS[group] then
+		AssignCooldowns(rows[group], lists[group])
+	elseif not Auras.Secret() then
+		FindAuras(lists[group])
+		AssignAuras(rows[group], lists[group])
 	end
 end
 
 local function Rebuild(group)
-	local row = rows[group]
-	if not row or not Live(group) then
-		return
+	if not Live(group) then
+		return false
 	end
 	local list, source = Data.Collect(group, scratch[group])
 	if source == "none" or source == "secret" then
@@ -262,9 +393,9 @@ local function Rebuild(group)
 	scratch[group], lists[group] = lists[group], list
 	if sources[group] ~= source then
 		sources[group] = source
-		ns.Log(group .. ": " .. #list .. " cooldowns from the " .. source)
+		ns.Log(group .. ": " .. #list .. " entries from the " .. source)
 	end
-	Assign(row, list)
+	Assign(group)
 	return source == "dirty"
 end
 
@@ -311,10 +442,11 @@ local function ApplySettings()
 				K.Layout.Restore(KEYS[group])
 			end
 			if Live(group) then
-				Assign(row, lists[group])
+				Assign(group)
 			end
 		end
 	end
+	Reskin.Refresh()
 end
 Mirror.ApplySettings = ApplySettings
 
@@ -323,9 +455,13 @@ local function Build(group)
 	if row then
 		return row
 	end
-	row = Row.New(K.Scale.Root(), group, Settings.current[group])
+	if group == "bars" then
+		row = BarRow.New(K.Scale.Root(), Settings.current.bars)
+	else
+		row = Row.New(K.Scale.Root(), group, Settings.current[group])
+	end
 	rows[group] = row
-	lists[group], scratch[group] = {}, {}
+	lists[group], scratch[group], shown[group] = {}, {}, {}
 	local key = KEYS[group]
 	local element = K.Setup.Layouts.Element(key)
 	K.Layout.Register(row.holder, key, K.Setup.Layouts.Default(key), {
@@ -337,6 +473,17 @@ local function Build(group)
 end
 
 local eventSpell, eventShow, eventEntry
+
+local function EachCooldownIcon(fn)
+	for group in pairs(COOLDOWN_GROUPS) do
+		if Live(group) then
+			local row = rows[group]
+			for i = 1, row.count do
+				fn(row, row.icons[i])
+			end
+		end
+	end
+end
 
 local function CooldownIcon(row, icon)
 	Cooldown(row, icon)
@@ -350,7 +497,7 @@ local function ChargeIcon(_, icon)
 end
 
 local function TextureIcon(_, icon)
-	Texture(icon)
+	Texture(icon.icon, icon.entry)
 end
 
 local function ProcIcon(row, icon)
@@ -364,37 +511,41 @@ end
 
 local function OverrideIcon(row, icon)
 	if icon.entry == eventEntry then
-		Refresh(row, icon)
+		RefreshCooldownIcon(row, icon)
 	end
+end
+
+local function RetextureAll()
+	EachCooldownIcon(TextureIcon)
+	RefreshAuras()
 end
 
 local EVENTS = {
 	SPELL_UPDATE_COOLDOWN = function()
-		EachIcon(CooldownIcon)
+		EachCooldownIcon(CooldownIcon)
 	end,
 	SPELL_UPDATE_CHARGES = function()
-		EachIcon(ChargeIcon)
+		EachCooldownIcon(ChargeIcon)
 	end,
 	SPELL_UPDATE_USABLE = function()
-		EachIcon(Usable)
+		EachCooldownIcon(Usable)
 	end,
-	SPELL_UPDATE_ICON = function()
-		EachIcon(TextureIcon)
-	end,
+	SPELL_UPDATE_ICON = RetextureAll,
 	SPELL_ACTIVATION_OVERLAY_GLOW_SHOW = function(_, spell)
 		eventSpell, eventShow = spell, true
-		EachIcon(ProcIcon)
+		EachCooldownIcon(ProcIcon)
 		eventSpell = nil
 	end,
 	SPELL_ACTIVATION_OVERLAY_GLOW_HIDE = function(_, spell)
 		eventSpell, eventShow = spell, false
-		EachIcon(ProcIcon)
+		EachCooldownIcon(ProcIcon)
 		eventSpell = nil
 	end,
 	COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED = function(_, base, override)
 		eventEntry = Data.SetOverride(base, override)
 		if eventEntry then
-			EachIcon(OverrideIcon)
+			EachCooldownIcon(OverrideIcon)
+			RefreshAuras()
 		end
 		eventEntry = nil
 	end,
@@ -404,8 +555,14 @@ local EVENTS = {
 	COOLDOWN_VIEWER_TABLE_HOTFIXED = Mirror.Schedule,
 }
 
-local function OnSetting(_, module)
-	if module == MODULE and running then
+local function OnSetting(_, module, key)
+	if module ~= MODULE or not running then
+		return
+	end
+	if key == "path" then
+		Mirror.Stop()
+		Mirror.Start()
+	else
 		ApplySettings()
 	end
 end
@@ -416,52 +573,63 @@ local function OnTheme()
 	end
 end
 
+local function OnProfile()
+	if running then
+		Mirror.Stop()
+		Mirror.Start()
+	end
+end
+
 local function OnLayout(_, key)
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
 		if row and KEYS[group] == key then
-			for _, icon in ipairs(row.icons) do
-				icon:Restyle()
-			end
-			row:Place()
+			row:Restyle()
 		end
 	end
 end
 
 local function OnIcons()
-	EachIcon(TextureIcon)
+	RetextureAll()
 end
 
 function Mirror.Start()
 	Settings.Read()
 	running = true
 	retries = 0
-	local any = false
+	local mirrored, aurasMirrored = false, false
 	for _, group in ipairs(GROUPS) do
-		if Path.Choose(group) == "mirror" then
-			any = true
+		local path = Path.Choose(group, Settings.current.path)
+		if path == "mirror" then
+			mirrored = true
+			aurasMirrored = aurasMirrored or Settings.AURA_GROUPS[group] == true
 			local row = Build(group)
 			row:Apply(Settings.current[group])
 			row.holder:Show()
 			row.content:Show()
 			Viewers.Fade(group)
+		elseif path == "reskin" then
+			Reskin.Start(group)
 		end
 	end
-	if not any then
-		return false
+	if mirrored then
+		for event, fn in pairs(EVENTS) do
+			K.Events.Register(MODULE, event, fn)
+		end
+		if EventRegistry and EventRegistry.RegisterCallback then
+			EventRegistry:RegisterCallback(DATA_EVENT, OnDataChanged, Mirror)
+		end
 	end
-	for event, fn in pairs(EVENTS) do
-		K.Events.Register(MODULE, event, fn)
+	if aurasMirrored then
+		K.Events.RegisterUnit(MODULE, "UNIT_AURA", RefreshAuras, "player", "target")
+		K.Events.Register(MODULE, "PLAYER_TARGET_CHANGED", RefreshAuras)
 	end
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
-	K.Callbacks.Register("ProfileChanged", MODULE, OnTheme)
+	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)
 	K.Callbacks.Register("ScaleChanged", MODULE, OnTheme)
 	K.Callbacks.Register("IconsChanged", MODULE, OnIcons)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
-	if EventRegistry and EventRegistry.RegisterCallback then
-		EventRegistry:RegisterCallback(DATA_EVENT, OnDataChanged, Mirror)
-	end
 	RebuildAll()
 	return true
 end
@@ -469,6 +637,7 @@ end
 function Mirror.Stop()
 	running = false
 	pending = false
+	K.Events.UnregisterAll(MODULE)
 	if EventRegistry and EventRegistry.UnregisterCallback then
 		EventRegistry:UnregisterCallback(DATA_EVENT, Mirror)
 	end
@@ -481,6 +650,7 @@ function Mirror.Stop()
 		Viewers.Unfade(group)
 		sources[group] = nil
 	end
+	Reskin.Stop()
 	Path.Reset()
 end
 
@@ -488,7 +658,8 @@ function Mirror.Report()
 	local parts = {}
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
-		parts[#parts + 1] = group .. "=" .. tostring(Path.Get(group) or "off") .. "(" .. (row and row.count or 0) .. ")"
+		local count = Path.Get(group) == "mirror" and row and row.count or 0
+		parts[#parts + 1] = group .. "=" .. tostring(Path.Get(group) or "off") .. "(" .. count .. ")"
 	end
 	return table.concat(parts, " ")
 end
