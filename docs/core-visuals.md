@@ -192,3 +192,22 @@ The accent itself is never saved. A profile shared by characters of different cl
 ### LibSharedMedia
 
 At `PLAYER_LOGIN`, if `LibStub` is loaded and `LibStub("LibSharedMedia-3.0", true)` returns the library, `Appearance` registers the three fonts and the three status bar textures under `KstyleUI <label>`, for example `KstyleUI Source Sans 3 Semibold` and `KstyleUI Glass`. It does this once. KstyleUI never loads or embeds the library. A library that raises an error while registering is counted in a devlog line and never stops login.
+
+## Fonts
+
+This client loads a font file only when something first asks for it during a loading screen. A file first asked for later makes `SetFont` return `false` for the rest of the session, so the text falls back to `GameFontHighlight`. The first in-game test showed this: Source Sans 3 Semibold failed in the setup window, which opens after loading, and loaded after the reload. Fonts declared in XML, as Narcissus does, are asked for while loading.
+
+`Core/Fonts.lua` loads after `Appearance.lua`. It keeps one hidden `Font` object per font path and asks for:
+
+- the three bundled faces, when the file loads;
+- every font path in the active profile, at any depth, at KstyleUI's `ADDON_LOADED` and again at `PLAYER_LOGIN`;
+- a font path in a changed setting (`SettingChanged`), and every font path in a new profile (`ProfileChanged`).
+
+A font that fails while the game loads, such as one from a removed addon, gets one devlog line. A font chosen later that the game refuses prints `KstyleUI: the font <file> shows after you type /reload.` once per font. After the reload, `Fonts.lua` asks for it while loading.
+
+| Function | Behaviour |
+| --- | --- |
+| `Fonts.Request(path) -> loaded` | Asks the game for the font at `path` and returns whether it loaded. A loaded font is not asked for again. A value that is not a `.ttf` or `.otf` path, or a client without `CreateFont`, returns `false` and raises nothing. |
+| `Fonts.IsLoaded(path) -> boolean` | Whether `path` has loaded this session. |
+
+Tests: `Tools/regression/test-fonts.lua`.

@@ -106,6 +106,7 @@ Type `/kstyle`. The window opens with a short fade and rise. You can also open i
 - [ ] Each module page shows a live preview on the right, and changing a setting changes the preview and the real frames at once.
 - [ ] Type `opacity` in the search field: rows from several pages are listed, and changing one there works. The clear button returns to the page.
 - [ ] General > Appearance: change the accent to a custom colour, the font, the interface size (it applies when you let go of the slider), the text size and Motion. The window follows each change.
+- [ ] Fonts load at login: after a `/reload`, run `/run for _,f in ipairs(KstyleUI.Tokens.MediaList("font")) do print(KstyleUI.Fonts.IsLoaded(f.path),f.label) end`. All three print `true`. Pick a LibSharedMedia font in Appearance: if the game refuses it, chat says it shows after a `/reload`, and it does.
 - [ ] Profiles: create a profile, switch to it, copy, rename and delete one. Export a profile (the string is selected, so Ctrl+C copies it) and import it back. Importing `hello` shows a clear reason.
 - [ ] Escape and `/kstyle` both close the window. In combat it stays usable and your movement keys still work.
 
