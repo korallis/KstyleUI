@@ -29,34 +29,29 @@ ROOT = Path(__file__).resolve().parents[2]
 SUPERSAMPLE = 4
 DRAWN = "2026-11-07"
 
-# Chamfers and bevels are drawn at 4 texels per root unit, so a 6-unit chamfer is 24 texels. The
+# Chamfers and bevels are drawn at 4 texels per root unit, so an 8-unit chamfer is 32 texels. The
 # shadow is soft, so 2 texels per unit is enough.
 TEXELS_PER_UNIT = 4
 SHADOW_TEXELS_PER_UNIT = 2
-PANEL_CHAMFER, TILE_CHAMFER = 6, 3  # root units, from the spec's Shape section
-BEVEL_LINE = 1  # art units: the widget kit draws one art unit as one whole-pixel border
-HAIRLINE_AT = 3  # art units in from the edge: the faint hairline, one unit of glass inside the inner line
-SHADOW_REACH = 12  # root units the shadow reaches past the panel edge
+PANEL_CHAMFER, TILE_CHAMFER, WINDOW_CHAMFER = 8, 3.5, 12  # root units, measured from the design file
+# The bevel lines are drawn in code: straight pieces are solid textures, and each corner maps the
+# opaque row of Line.png (row 1 of 4) onto the chamfer's diagonal, so a line is one border thick on
+# every screen whatever the chamfer measures in pixels.
+LINE_BAND = (0.25, 0.5)
+SHADOW_REACH = 6  # root units the shadow reaches past the panel edge
+GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bottom
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
 GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units at 8 units across
 
+
 # Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner and
-# draws at margin / TEXELS_PER_UNIT root units, so pieces of different textures line up. Between the
-# margins every row and column is the same, so stretching the edges and centre distorts nothing.
-# The bevel bands are mitred: the inner edge of a band of width w meets the straight edge
-# w * (sqrt(2) - 1) past the chamfer, so the bevel margins reach past both lines' mitres.
-_MITRE = math.ceil(2 * BEVEL_LINE * TEXELS_PER_UNIT * (math.sqrt(2) - 1))
-_HAIRLINE_MITRE = TEXELS_PER_UNIT * math.ceil((HAIRLINE_AT + BEVEL_LINE) * (math.sqrt(2) - 1))
+# draws at the chamfer's size in units, snapped to whole pixels. Between the margins every row and
+# column is the same, so stretching the edges and centre distorts nothing.
 SLICE = {
-    "ChamferPanel": PANEL_CHAMFER * TEXELS_PER_UNIT,
-    "ChamferTile": TILE_CHAMFER * TEXELS_PER_UNIT,
-    "BevelPanelOuter": PANEL_CHAMFER * TEXELS_PER_UNIT + _MITRE,
-    "BevelPanelInner": PANEL_CHAMFER * TEXELS_PER_UNIT + _MITRE,
-    "BevelTileOuter": TILE_CHAMFER * TEXELS_PER_UNIT + _MITRE,
-    "BevelTileInner": TILE_CHAMFER * TEXELS_PER_UNIT + _MITRE,
-    "BevelPanelHairline": PANEL_CHAMFER * TEXELS_PER_UNIT + _HAIRLINE_MITRE,
-    "BevelTileHairline": TILE_CHAMFER * TEXELS_PER_UNIT + _HAIRLINE_MITRE,
+    "ChamferPanel": int(PANEL_CHAMFER * TEXELS_PER_UNIT),
+    "ChamferTile": int(TILE_CHAMFER * TEXELS_PER_UNIT),
+    "ChamferWindow": int(WINDOW_CHAMFER * TEXELS_PER_UNIT),
     "Shadow": 2 * SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
 }
 
@@ -341,10 +336,10 @@ def draw_chamfer(size, legs):
     return white(sample_spans(size, size, shape_spans(chamfered_rect(size, size, legs))))
 
 
-def draw_bevel(size, legs, line, which):
-    start = {"outer": 0, "inner": line, "hairline": HAIRLINE_AT * line}[which]
-    planes = chamfered_rect(size, size, legs)  # legs is the chamfer, not the slice margin
-    return white(sample_spans(size, size, band_spans(planes, start, start + line)))
+def draw_line(size):
+    """One opaque row, LINE_BAND of the height, between clear rows, so CLAMP sampling outside the band is clear."""
+    lo, hi = LINE_BAND
+    return white([1.0 if lo <= (y + 0.5) / size < hi else 0.0 for y in range(size) for _ in range(size)])
 
 
 def draw_shadow(size):
@@ -473,8 +468,7 @@ def draw_bar(width, height, kind):
         return 1.0 - 0.3 * v
 
     def glass(v):
-        sheen = 0.22 * math.exp(-(((v - 0.12) / 0.09) ** 2))
-        return max(0.0, min(1.0, 0.68 + 0.22 * (1 - v) + sheen - 0.12 * smoothstep(0.82, 1.0, v)))
+        return 1.0 - GLASS_DROP * v
 
     level = {"flat": flat, "soft": soft, "glass": glass}[kind]
     return grey(sample_rows(width, height, lambda y: level(y / height)))
@@ -540,26 +534,19 @@ def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
 
 
 ASSETS = [
-    _texture("ChamferPanel", 64, 64, lambda: draw_chamfer(64, SLICE["ChamferPanel"]),
-             "Panel shape with 6-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
+    _texture("ChamferPanel", 128, 128, lambda: draw_chamfer(128, SLICE["ChamferPanel"]),
+             "Panel shape with 8-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
     _texture("ChamferTile", 32, 32, lambda: draw_chamfer(32, SLICE["ChamferTile"]),
-             "Tile and button shape with 3-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
-    _texture("BevelPanelOuter", 64, 64, lambda: draw_bevel(64, PANEL_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "outer"),
-             "Outer bevel line of a panel: a 1-unit band on the chamfered edge, tinted edgeOuter."),
-    _texture("BevelPanelInner", 64, 64, lambda: draw_bevel(64, PANEL_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
-             "Inner bevel hairline of a panel: the 1-unit band inside the outer line, tinted edgeInner."),
-    _texture("BevelTileOuter", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "outer"),
-             "Outer bevel line of a tile, as BevelPanelOuter with 3-unit chamfers."),
-    _texture("BevelTileInner", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
-             "Inner bevel hairline of a tile, as BevelPanelInner with 3-unit chamfers."),
-    _texture("BevelPanelHairline", 128, 128, lambda: draw_bevel(128, PANEL_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "hairline"),
-             "Faint third line of a panel's bevel: a 1-unit band 3 units inside the edge, tinted edgeFaint."),
-    _texture("BevelTileHairline", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "hairline"),
-             "Faint third line of a tile's bevel, as BevelPanelHairline with 3-unit chamfers."),
-    _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * TILE_CHAMFER / ICON_SIZE),
+             "Tile and button shape with 3.5-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
+    _texture("ChamferWindow", 128, 128, lambda: draw_chamfer(128, SLICE["ChamferWindow"]),
+             "Window shape with 12-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
+    _texture("Line", 4, 4, lambda: draw_line(4),
+             "Line strip for the bevel corners: one opaque row (rows 1 of 4) between clear rows, mapped onto each chamfer's diagonal.",
+             "solid"),
+    _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * 3 / ICON_SIZE),
              "Square mask for icons and portraits: a 3-unit chamfer on a 34-unit square."),
     _texture("Shadow", 128, 128, lambda: draw_shadow(128),
-             "Nine-slice shadow falloff. Corner pieces are 24 units, centred on the panel's corners; the shadow reaches 12 units out.",
+             "Nine-slice shadow falloff. Corner pieces are 12 units, centred on the panel's corners; the shadow reaches 6 units out.",
              "analytic Gaussian blur of a box, 4x supersampled"),
     _texture("Glow", 128, 128, lambda: draw_glow(128), "Soft radial glow for procs, hover and selection.",
              "Gaussian falloff to zero at the edge, 4x4 supersampled"),
@@ -571,7 +558,8 @@ ASSETS = [
     _texture("BarFlat", 256, 32, lambda: draw_bar(256, 32, "flat"), "Flat status bar fill.", "solid"),
     _texture("BarSoft", 256, 32, lambda: draw_bar(256, 32, "soft"), "Status bar fill with a soft top-to-bottom gradient.",
              "4x supersampled gradient"),
-    _texture("BarGlass", 256, 32, lambda: draw_bar(256, 32, "glass"), "Status bar fill with a glass sheen near the top.",
+    _texture("BarGlass", 256, 32, lambda: draw_bar(256, 32, "glass"),
+             "Status bar fill whose top is 12% brighter than its bottom, the design's near-flat health fill.",
              "4x supersampled gradient"),
     _texture("MinimapMask", 128, 128, lambda: draw_full(128, 128), "Square minimap mask for Minimap:SetMaskTexture.", "solid"),
     _texture("Dot", 64, 64, lambda: draw_dot(64), "Filled disc for toggle and slider knobs."),

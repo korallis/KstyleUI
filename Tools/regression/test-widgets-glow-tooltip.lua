@@ -6,6 +6,7 @@ do
 	local env, K = W.New()
 	local frame = env.CreateFrame("Button", nil, K.Scale.Root())
 	frame:SetFrameLevel(5)
+	frame:SetSize(34, 34)
 	local glow = K.Widgets.Glow(frame, { kind = "proc" })
 	assert(glow.holder:GetFrameLevel() == 4, "the glow sits behind its frame")
 	assert(glow.holder:IsShown() == false and not glow:IsPlaying(), "a glow starts stopped")
@@ -18,8 +19,15 @@ do
 	assert(glow.top:IsShown() and #W.Calls(glow.sparkPulse, "Play") == 1, "the corner spark pulses above the frame")
 	local across, down = glow.spark, glow.sparkCross
 	assert(down and across:GetWidth() >= 4 * across:GetHeight() and W.Near(down:GetHeight(), across:GetWidth()), "the kit's spark: a four-point star of two streaks")
+	local Snap = K.Scale.Snap
+	assert(W.Near(across:GetWidth(), Snap(6)) and W.Near(across:GetHeight(), Snap(1)), "the design's 6-unit star")
 	local a, d = across._points[1], down._points[1]
 	assert(a[1] == "CENTER" and a[2] == frame and a[3] == "TOPRIGHT" and W.Near(a[4], d[4]) and W.Near(a[5], d[5]), "crossed at the top right corner")
+	assert(W.Near(a[4], -Snap(3)) and W.Near(a[5], -Snap(2.5)), "3 units in from the right edge and 2.5 below the top, over the hairline")
+	local core = glow.core
+	assert(core and core:GetParent() == glow.top and W.LastCall(core, "SetBlendMode")[1] == "ADD", "an additive glow over the icon")
+	assert(W.Near(core:GetWidth(), Snap(1.2 * 34)) and W.Near(core:GetHeight(), core:GetWidth()), "its radius is 60% of the frame")
+	assert(W.SameColor(core, r, g, b, 0.35) and core._points[1][1] == "CENTER", "the accent at 35%, centred")
 	assert(W.SameRGB(across, r, g, b) and W.SameRGB(down, r, g, b), "the spark is the accent, like the rest of the theme")
 	glow:Start()
 	assert(#W.Calls(glow.pulse, "Play") == 1, "Start twice plays once")
@@ -32,6 +40,7 @@ do
 	K.Theme.SetAccentSource("custom")
 	assert(W.SameRGB(glow.slice[5], 0.1, 0.8, 0.9), "the glow follows the accent")
 	assert(W.SameRGB(glow.spark, 0.1, 0.8, 0.9) and W.SameRGB(glow.sparkCross, 0.1, 0.8, 0.9), "and so does its spark")
+	assert(W.SameRGB(glow.core, 0.1, 0.8, 0.9), "and its inner glow")
 	glow:SetColor("epic")
 	assert(W.SameRGB(glow.slice[5], K.Tokens.Color("epic")), "or a colour token")
 	W.Raises(function()

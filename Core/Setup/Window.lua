@@ -19,7 +19,6 @@ local REFERENCE_WIDTH, REFERENCE_HEIGHT = 1920, 1080
 local ROW_HEIGHT = 44
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
-local NOTE_INDENT = 44
 local ELEMENT_ALPHA, ELEMENT_SELECTED_ALPHA = 0.3, 0.75
 local CARD_HOVER_EDGE = 0.6
 local WINDOW_KEY = "setup.window"
@@ -253,8 +252,9 @@ local function BuildModules(page, width)
 		local note = Widgets.Text(page, "body", "text")
 		note:SetJustifyH("LEFT")
 		note:SetWordWrap(false)
-		note:SetPoint("TOPLEFT", toggle, "TOPLEFT", Widgets.Snap(page, NOTE_INDENT), -(Widgets.Snap(page, Tokens.Size("rowHeight")) - gap("gapSmall")))
-		note:SetWidth(column - Widgets.Snap(page, NOTE_INDENT) - gap("gapLarge"))
+		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
+		note:SetPoint("TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
+		note:SetWidth(column - indent - gap("gapLarge"))
 		toggle.note = note
 		panel.toggles[name] = toggle
 	end

@@ -372,6 +372,7 @@ do
 	local panel = K.Skin.Window(window)
 	assert(nine:GetAlpha() == 0 and window.Bg:GetAlpha() == 0 and portrait:GetAlpha() == 0 and insetNine:GetAlpha() == 0, "the window's art is stripped")
 	assert(panel and panel:GetParent() == window and panel.chrome, "a KstyleUI panel behind it")
+	assert(panel.chrome.shapeName == "window" and panel.chrome.shadow[1]:IsShown(), "the window grade: four lines, 10-unit chamfers and a shadow")
 	assert(W.LastCall(window.TitleContainer.TitleText, "SetFont")[1] == (K.Tokens.Font("heading")), "the title in the heading font")
 	assert(K.Skin.IsSkinned(window.CloseButton, "CloseButton"), "the close button")
 	assert(K.Skin.Window(window) == panel, "a second call does nothing new")

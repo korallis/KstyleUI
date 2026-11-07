@@ -4,13 +4,19 @@ local _, ns = ...
 local Widgets = ns.Widgets
 local Tokens, Scale = ns.Tokens, ns.Scale
 
-local HOVER_LIFT = 0.35
-local COOLING_EDGE_ALPHA = 0.55
-local PRESSED_EDGE_ALPHA = 0.8
+local REST_LIFT, HOVER_LIFT = 0.15, 0.25
+local COOLING_EDGE_ALPHA = 0.62
+local PRESSED_EDGE_ALPHA = 0.77
 local PRESS_DIM = 0.25
-local UNUSABLE_BRIGHTNESS = 0.55
+local UNUSABLE_BRIGHTNESS = 0.45
+local COOLING_BRIGHTNESS = 0.4
 local SWIPE_ALPHA = 0.65
-local ICON_INSET_LINES = 2
+local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA = 10, 0.12
+local RIM_HALO = 0.45
+local COUNTDOWN_RISE = 0.25
+local CHAMFER_SHARE = 0.105
+local ICON_INSET_LINES = 3
+local ICON_INSET_MAX_SHARE = 0.2
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
 local OVERLAY_LEVEL = 2
@@ -26,7 +32,8 @@ local function PlaceIcon(self)
 		return
 	end
 	self.placedOffset = offset
-	local inset = Widgets.Border(self) * ICON_INSET_LINES
+	local size = self.opts.size or Tokens.Size("actionButton")
+	local inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
 end
@@ -48,21 +55,27 @@ function IconButton:Paint()
 	local hover, press = self.hoverT or 0, self.pressT or 0
 	local usable = self.usable and self:IsEnabled() ~= false
 	local chrome = self.chrome
+	local r, g, b, a
 	if not usable then
-		chrome:SetEdge("textDisabled")
+		r, g, b, a = Tokens.Color("textDisabled")
 	elseif self.proc or self.selected then
-		local r, g, b = Accent(self)
-		chrome:SetEdgeRGBA(r, g, b, 1)
-	elseif self.cooling then
-		chrome:SetEdge("text", COOLING_EDGE_ALPHA)
+		r, g, b = Accent(self)
+		a = 1
+	elseif self.cooling and self.realCooldown then
+		r, g, b, a = Widgets.Rgba("text", COOLING_EDGE_ALPHA)
 	else
-		local r, g, b = Accent(self)
+		r, g, b = Accent(self)
 		local wr, wg, wb = Tokens.Color("textHover")
-		r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, HOVER_LIFT * hover)
+		r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, REST_LIFT + (HOVER_LIFT - REST_LIFT) * hover)
 		local pr, pg, pb, pa = Widgets.Rgba("text", PRESSED_EDGE_ALPHA)
-		chrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, pr, pg, pb, pa, press))
+		r, g, b, a = Widgets.Mix(r, g, b, 1, pr, pg, pb, pa, press)
 	end
-	local v = usable and (1 - PRESS_DIM * press) or UNUSABLE_BRIGHTNESS
+	chrome:SetEdgeRGBA(r, g, b, a)
+	chrome:SetOuterRGBA(r, g, b, a * RIM_HALO)
+	local v = UNUSABLE_BRIGHTNESS
+	if usable then
+		v = (self.cooling and self.realCooldown) and COOLING_BRIGHTNESS or (1 - PRESS_DIM * press)
+	end
 	local tint = self.tint
 	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], not usable)
 	self.hoverGlow:SetIntensity(usable and hover or 0)
@@ -109,27 +122,37 @@ function IconButton:SetIcon(texture)
 	self.icon:SetTexture(texture)
 end
 
-function IconButton:SetCooldown(start, duration)
+local function SetRealCooldown(self, real)
+	if self.realCooldown ~= real then
+		self.realCooldown = real
+		self:Paint()
+	end
+end
+
+function IconButton:SetCooldown(start, duration, gcd)
 	if Widgets.IsSecret(start) or Widgets.IsSecret(duration) then
 		Widgets.LogOnce("cooldown-secret", "IconButton refused a secret cooldown; pass a duration object to SetCooldownFromDuration")
 		return false
 	end
 	self.cooldown:SetCooldown(start, duration)
+	SetRealCooldown(self, gcd ~= true)
 	return true
 end
 
-function IconButton:SetCooldownFromDuration(durationObject)
+function IconButton:SetCooldownFromDuration(durationObject, gcd)
 	local cooldown = self.cooldown
 	if type(cooldown.SetCooldownFromDurationObject) ~= "function" then
 		Widgets.LogOnce("cooldown-object", "Cooldown:SetCooldownFromDurationObject is missing; the cooldown is not shown")
 		return false
 	end
 	cooldown:SetCooldownFromDurationObject(durationObject)
+	SetRealCooldown(self, gcd ~= true)
 	return true
 end
 
 function IconButton:ClearCooldown()
 	self.cooldown:Clear()
+	SetRealCooldown(self, false)
 end
 
 function IconButton:SetChargeCooldownFromDuration(durationObject)
@@ -198,12 +221,21 @@ function IconButton:Restyle()
 	if Widgets.MayMove(self) then
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
+		self.chrome:SetChamfer(size * CHAMFER_SHARE)
 		self.placedOffset = nil
 		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()
 		self.hotkey:SetPoint("TOPRIGHT", self, "TOPRIGHT", -inset, -inset)
 		self.count:ClearAllPoints()
 		self.count:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset)
+		if self.countdown then
+			self.countdown:ClearAllPoints()
+			self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
+		end
+		self.hoverGlow:Restyle()
+		if self.procGlow then
+			self.procGlow:Restyle()
+		end
 	end
 	self:Paint()
 end
@@ -233,7 +265,8 @@ function Widgets.IconButton(parent, opts)
 	button.silent = opts.silent == true
 	button.usable = true
 	button.tint = { 1, 1, 1 }
-	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "raised", shadow = false })
+	local size = opts.size or Tokens.Size("actionButton")
+	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "buttonFill", shadow = false, chamfer = size * CHAMFER_SHARE })
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	if opts.crop ~= false then
@@ -244,7 +277,7 @@ function Widgets.IconButton(parent, opts)
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
 	button.icon, button.mask = icon, mask
-	button.hoverGlow = Widgets.Glow(button, { kind = "selection" })
+	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA })
 	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
 	cooldown:SetAllPoints(icon)
 	cooldown:SetSwipeTexture(maskPath)
@@ -258,7 +291,7 @@ function Widgets.IconButton(parent, opts)
 		Widgets.TextColor(countdown, "textEmphasis")
 	end
 	WatchCooldown(button, cooldown)
-	button.cooldown = cooldown
+	button.cooldown, button.countdown = cooldown, countdown
 	local overlay = CreateFrame("Frame", nil, button)
 	overlay:SetAllPoints(button)
 	overlay:SetFrameLevel(cooldown:GetFrameLevel() + OVERLAY_LEVEL)

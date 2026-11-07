@@ -155,6 +155,9 @@ do
 	for _, name in ipairs(MODULES) do
 		assert(toggles[name] and toggles[name]:GetValue() == true and toggles[name]:IsEnabled(), name .. " is listed and on")
 		assert(toggles[name].note and toggles[name].note:GetText() ~= "", name .. " has a one-line note")
+		local p = toggles[name].note._points[1]
+		assert(p[1] == "TOPLEFT" and p[2] == toggles[name] and p[3] == "BOTTOMLEFT" and p[5] <= 0, name .. "'s note hangs below the toggle, whatever its height")
+		assert(p[4] >= toggles[name].trackBox:GetWidth(), name .. "'s note starts right of the 58-unit track, under the label")
 	end
 	assert(toggles.Bags and toggles.Bags:GetValue() == false and not toggles.Bags:IsEnabled(), "a module whose addon did not load is off and disabled")
 	assert(toggles.Icons and toggles.Icons:GetValue() == false and not toggles.Icons:IsEnabled(), "custom icons need their data addon")

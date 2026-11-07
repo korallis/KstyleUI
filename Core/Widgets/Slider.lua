@@ -8,7 +8,7 @@ local format = string.format
 
 local DEFAULT_WIDTH = 200
 local TRACK_HEIGHT = 4
-local KNOB_SIZE = 14
+local KNOB_SIZE = 12
 local RING_ALPHA, RING_HOVER_ALPHA = 0.7, 1
 local MAX_DECIMALS = 10
 local PRECISION = 1e-7

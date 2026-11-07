@@ -67,16 +67,18 @@ end
 local SIZE_NAMES = {
 	"chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
-	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight",
+	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight", "chamferWindow",
 }
-local SLICED = { "chamferPanel", "chamferTile", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner", "bevelPanelHairline", "bevelTileHairline", "shadow" }
--- The bevel art holds a line one art unit (density texels) wide, so it is crisp only when a corner piece
--- spans exactly one border per art unit. Frame scales: a frame on the root, and a tooltip-sized frame.
+local SLICED = { "chamferPanel", "chamferTile", "chamferWindow", "shadow" }
+-- Chamfers are sizes in units snapped to whole pixels; every bevel line is one border thick, its straight pieces
+-- solid and its corner pieces a diagonal band mapped from the line strip. Frame scales: a frame on the root, and a
+-- tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
+local SQRT2 = math.sqrt(2)
 
 local function chromes(env, ns, frameScale)
 	local out = {}
-	for _, shape in ipairs({ "panel", "tile" }) do
+	for _, shape in ipairs({ "panel", "tile", "window" }) do
 		local frame = env.CreateFrame("Frame", nil, ns.Scale.Root())
 		frame:SetScale(frameScale)
 		frame:SetSize(200, 100)
@@ -89,29 +91,39 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local Tokens = ns.Tokens
 	local px = ppu * frameScale
 	local border = ns.Scale.Border() * ppu
-	local _, bevelSlice, bevelUnits = Tokens.Texture(c.shape.outer)
-	local _, fillSlice = Tokens.Texture(c.shape.fill)
-	local density = bevelSlice / bevelUnits
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	for _, line in ipairs({ c.outer, c.inner, c.hairline }) do
-		local _, slice = Tokens.Texture(line == c.hairline and c.shape.hairline or c.shape.outer)
+	local lines = { c.outer, c.inner, c.hairline }
+	if c.dark then
+		lines[#lines + 1] = c.dark
+	end
+	assert(#lines == (shapeName == "window" and 4 or 3), where .. ": a window has four lines, the others three")
+	local chamferPx = c.fill[1]:GetWidth() * px
+	local wantPx = Tokens.Size(c.shape.chamfer) * px
+	assert(whole(chamferPx) and math.abs(chamferPx - wantPx) <= 0.5 + 1e-6, where .. ": the chamfer is " .. chamferPx .. " px, the nearest whole pixel to " .. wantPx)
+	for i = 1, 9, 2 do
+		if i ~= 5 then
+			assert(math.abs(c.fill[i]:GetWidth() * px - chamferPx) < 1e-6, where .. ": every fill corner is the chamfer")
+		end
+	end
+	for _, line in ipairs(lines) do
+		local atPx = -line[5]._points[1][5] * px
+		assert(whole(atPx), where .. ": the straight line sits a whole number of pixels in")
+		assert(math.abs(line[5]:GetHeight() * px - border) < 1e-6, where .. ": the straight line is one border")
+		local square = chamferPx - atPx * (2 - SQRT2) + border * (SQRT2 - 1)
 		for i = 1, 4 do
 			local w, h = line[i]:GetSize()
 			local cornerPx = w * px
-			assert(whole(cornerPx) and math.abs(h * px - cornerPx) < 1e-6, where .. ": a bevel corner piece is a whole-pixel square, got " .. cornerPx)
-			local linePx = cornerPx * density / slice
-			assert(math.abs(linePx - border) < 1e-6, where .. ": the bevel line in the corner is " .. linePx .. " px, the straight edge " .. border .. " px")
+			assert(whole(cornerPx) and math.abs(h * px - cornerPx) < 1e-6, where .. ": a corner piece is a whole-pixel square, got " .. cornerPx)
+			assert(math.abs(cornerPx - square) <= 0.5 + 1e-6, where .. ": the corner square holds the diagonal band: " .. cornerPx .. " px for " .. square)
+			local coords
+			for _, call in ipairs(line[i]._calls) do
+				if call.method == "SetTexCoord" then
+					coords = call.args
+				end
+			end
+			assert(coords and #coords == 8, where .. ": the diagonal is mapped with eight coordinates")
 		end
-		assert(math.abs(line[5]:GetHeight() * px - border) < 1e-6, where .. ": the straight line is one border")
-		assert(whole(line[5]._points[1][5] * px), where .. ": the straight line sits a whole number of pixels in")
-	end
-	local bevelChamferPx = c.outer[1]:GetWidth() * px * fillSlice / bevelSlice
-	for i = 1, 9, 2 do
-		if i ~= 5 then
-			local fillPx = c.fill[i]:GetWidth() * px
-			assert(whole(fillPx), where .. ": the fill corner is whole pixels, got " .. fillPx)
-			assert(math.abs(fillPx - bevelChamferPx) < 1e-6, where .. ": the fill's diagonal (" .. fillPx .. " px) meets the bevel's (" .. bevelChamferPx .. " px)")
-		end
+		assert(math.abs(line[5]._points[1][4] * px - (atPx + line[1]:GetWidth() * px)) < 1e-6, where .. ": the straight line starts at the corner square's end")
 	end
 end
 

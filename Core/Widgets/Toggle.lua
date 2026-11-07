@@ -4,11 +4,12 @@ local _, ns = ...
 local Widgets = ns.Widgets
 local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
 
-local TRACK_WIDTH = 36
-local TRACK_HEIGHT = 18
-local KNOB_GAP = 3
+local TRACK_WIDTH = 58
+local TRACK_HEIGHT = 28
+local KNOB_GAP = 5
 local ON_FILL_MIX = 0.3
-local OFF_EDGE_ALPHA, OFF_EDGE_HOVER_ALPHA = 0.35, 0.7
+local OFF_KNOB_LIFT = 0.63
+local OFF_EDGE_ALPHA, OFF_EDGE_HOVER_ALPHA = 0.4, 0.7
 
 local Toggle = {}
 
@@ -40,11 +41,11 @@ end
 function Toggle:Paint()
 	local on, hover = self.onT or 0, self.hoverT or 0
 	local enabled = self:IsEnabled() ~= false
-	local er, eg, eb, ea = Widgets.MixTokens("text", OFF_EDGE_ALPHA, "text", OFF_EDGE_HOVER_ALPHA, enabled and hover or 0)
+	local er, eg, eb, ea = Widgets.MixTokens("white", OFF_EDGE_ALPHA, "white", OFF_EDGE_HOVER_ALPHA, enabled and hover or 0)
 	local ar, ag, ab, aa = Widgets.Rgba("accent")
 	Widgets.ColorSlice(self.track, Widgets.Mix(er, eg, eb, ea, ar, ag, ab, aa, on))
-	Widgets.ColorSlice(self.fill, Widgets.MixTokens("raised", 1, "accent", 1, ON_FILL_MIX * on))
-	self.knob:SetVertexColor(Widgets.MixTokens("text", 1, "textHover", 1, on))
+	Widgets.ColorSlice(self.fill, Widgets.MixTokens("surface", 1, "accent", 1, ON_FILL_MIX * on))
+	self.knob:SetVertexColor(Widgets.MixTokens("text", 1, "textHover", 1, OFF_KNOB_LIFT + (1 - OFF_KNOB_LIFT) * on))
 	local width = Widgets.Snap(self, TRACK_WIDTH)
 	local gap = Widgets.Snap(self, KNOB_GAP)
 	local knob = Widgets.Snap(self, TRACK_HEIGHT - 2 * KNOB_GAP)

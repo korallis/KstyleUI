@@ -115,6 +115,14 @@ function Button.UpdateAlpha(b)
 	b:SetAlpha(shown and 1 or 0)
 end
 
+local function CooldownInfo(bar, slot)
+	if type(bar.GetActionCooldown) ~= "function" then
+		return nil
+	end
+	local info = bar.GetActionCooldown(slot)
+	return type(info) == "table" and info or nil
+end
+
 function Button.UpdateCooldown(b)
 	if not b.hasAction then
 		b:ClearCooldown()
@@ -122,19 +130,20 @@ function Button.UpdateCooldown(b)
 		return
 	end
 	local slot, bar = b.slot, C_ActionBar
+	local info = CooldownInfo(bar, slot)
+	local gcd = info ~= nil and Flag(info.isOnGCD, false)
 	if type(bar.GetActionCooldownDuration) == "function" then
 		local duration = bar.GetActionCooldownDuration(slot)
 		if duration then
-			b:SetCooldownFromDuration(duration)
+			b:SetCooldownFromDuration(duration, gcd)
 		else
 			b:ClearCooldown()
 		end
-	elseif type(bar.GetActionCooldown) == "function" then
+	elseif info then
 		LogOnce("cooldownPath", "C_ActionBar.GetActionCooldownDuration is missing; cooldowns use GetActionCooldown when it is not secret")
-		local info = bar.GetActionCooldown(slot)
-		local start, duration = info and Plain(info.startTime), info and Plain(info.duration)
+		local start, duration = Plain(info.startTime), Plain(info.duration)
 		if type(start) == "number" and type(duration) == "number" and duration > 0 then
-			b:SetCooldown(start, duration)
+			b:SetCooldown(start, duration, gcd)
 		else
 			b:ClearCooldown()
 		end
@@ -287,12 +296,21 @@ local function UpdateAction(b)
 	Button.UpdateAlpha(b)
 end
 
+local function SpellOnGlobalCooldown(spell, spellID)
+	if type(spell.GetSpellCooldown) ~= "function" then
+		return false
+	end
+	local info = spell.GetSpellCooldown(spellID)
+	return type(info) == "table" and Flag(info.isOnGCD, false)
+end
+Button.SpellOnGlobalCooldown = SpellOnGlobalCooldown
+
 local function SpellCooldown(b, spellID, start, duration)
 	local spell = C_Spell
 	if spellID and not IsSecret(spellID) and spell and type(spell.GetSpellCooldownDuration) == "function" then
 		local object = spell.GetSpellCooldownDuration(spellID)
 		if object then
-			b:SetCooldownFromDuration(object)
+			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(spell, spellID))
 		else
 			b:ClearCooldown()
 		end

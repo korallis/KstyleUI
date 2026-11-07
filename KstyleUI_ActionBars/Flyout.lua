@@ -110,7 +110,7 @@ local function UpdateButtons(frame)
 		local api = C_Spell
 		local duration = spell and api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spell)
 		if duration then
-			b:SetCooldownFromDuration(duration)
+			b:SetCooldownFromDuration(duration, ns.Button.SpellOnGlobalCooldown(api, spell))
 		else
 			b:ClearCooldown()
 		end

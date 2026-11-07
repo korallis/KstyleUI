@@ -44,8 +44,8 @@ local player = Frames.Get("player").views[1]
 local g = player.geometry
 
 -- The glass: one chamfered panel with the double bevel, laid where Geometry puts it, under the portrait.
-local _, panelBevels = pieces(player.panel, "bevelPanelInner")
-assert(panelBevels == 4, "the player's glass wears the panel chamfer's four bevel corners, got " .. panelBevels)
+local _, panelBevels = pieces(player.panel, "chamferPanel")
+assert(panelBevels == 9, "the player's glass wears the panel chamfer's nine fill pieces, got " .. panelBevels)
 local point, rel, relPoint, x, y = player.panel:GetPoint(1)
 assert(point == "TOPLEFT" and rel == player.button and relPoint == "TOPLEFT", "the glass is placed from the frame's top left")
 assert(near(x, g.glass.x, 1) and near(-y, g.glass.y, 1), "the glass sits where Geometry puts it: " .. tostring(x) .. ", " .. tostring(y))
@@ -58,8 +58,8 @@ assert(near(-iconY, g.glass.y, 1), "the status icons sit on the glass's top edge
 
 -- The portrait: chamfered by default, framed in the panel chamfer with its double bevel, the inner line in the accent.
 assert(K.Store.Module("UnitFrames").player.portraitShape == "chamfered", "the portrait shape is chamfered by default")
-local total, shown = pieces(player.portraitFrame, "bevelPanelInner")
-assert(total == 4 and shown == 4, "the chamfered portrait shows the panel chamfer's bevel corners, got " .. shown .. " of " .. total)
+local total, shown = pieces(player.portraitFrame, "chamferPanel")
+assert(total == 9 and shown == 9, "the chamfered portrait shows the panel chamfer's fill pieces, got " .. shown .. " of " .. total)
 assert(not player.ring:IsShown() and not player.portraitBack:IsShown(), "the chamfered portrait hides the round ring and disc")
 assert(maskPath(player) == (Tokens.Texture("iconMask")), "the portrait image is masked to the chamfered shape")
 assert(env._unmasked[player.portrait] == true, "the chamfered portrait asks for the square, unmasked 2D portrait")
@@ -77,8 +77,8 @@ assert(W.SameRGB(player.portraitChrome.inner[1], ar, ag, ab), "and follows the c
 noErrors("chamfered portrait")
 
 -- The level badge: a small chamfered square, the tile chamfer, its line the kit's neutral grey.
-local badgeTotal, badgeShown = pieces(player.badge, "bevelTileInner")
-assert(badgeTotal == 4 and badgeShown == 4, "the badge is a chamfered tile, got " .. badgeShown .. " of " .. badgeTotal)
+local badgeTotal, badgeShown = pieces(player.badge, "chamferTile")
+assert(badgeTotal == 9 and badgeShown == 9, "the badge is a chamfered tile, got " .. badgeShown .. " of " .. badgeTotal)
 assert(not player.badgeRing:IsShown() and not player.badgeBack:IsShown(), "the chamfered badge hides the round ring")
 local nr, ng, nb = Tokens.Color("text")
 assert(W.SameRGB(player.badgeChrome.inner[1], nr, ng, nb), "the badge's line is neutral, as on the kit sheet")
@@ -113,11 +113,11 @@ noErrors("texts")
 -- The round portrait is a setting: today's ring, disc and round badge, with the chamfered chrome hidden.
 K.Options.Write("UnitFrames", "player.portraitShape", "round")
 assert(player.ring:IsShown() and player.portraitBack:IsShown(), "round: the ring and disc show")
-local _, roundBevels = pieces(player.portraitFrame, "bevelPanelInner")
+local _, roundBevels = pieces(player.portraitFrame, "chamferPanel")
 assert(roundBevels == 0, "round: the chamfered frame hides")
 assert(maskPath(player) == (Tokens.Texture("dot")), "round: the image is masked to a circle")
 assert(env._unmasked[player.portrait] == false, "round: the 2D portrait keeps the game's own round mask")
-assert(player.badgeRing:IsShown() and select(2, pieces(player.badge, "bevelTileInner")) == 0, "round: the badge is round too")
+assert(player.badgeRing:IsShown() and select(2, pieces(player.badge, "chamferTile")) == 0, "round: the badge is round too")
 local shadowShown = 0
 for _, piece in ipairs(player.portraitChrome.shadow) do
 	if piece:IsShown() then
@@ -128,15 +128,15 @@ K.Widgets.RestyleAll()
 for _, piece in ipairs(player.portraitChrome.shadow) do
 	assert(not piece:IsShown(), "round: a restyle never brings back the chamfered frame's shadow")
 end
-assert(shadowShown == 0 and select(2, pieces(player.portraitFrame, "bevelPanelInner")) == 0, "round: the chamfered frame stays hidden")
+assert(shadowShown == 0 and select(2, pieces(player.portraitFrame, "chamferPanel")) == 0, "round: the chamfered frame stays hidden")
 K.Options.Write("UnitFrames", "player.portraitShape", "chamfered")
-assert(select(2, pieces(player.portraitFrame, "bevelPanelInner")) == 4 and not player.ring:IsShown(), "chamfered again")
+assert(select(2, pieces(player.portraitFrame, "chamferPanel")) == 9 and not player.ring:IsShown(), "chamfered again")
 noErrors("round portrait")
 
 -- Compact frames wear the tile chamfer, the kit's shape for small parts.
 local pet = Frames.Get("pet").views[1]
-assert(select(2, pieces(pet.panel, "bevelTileInner")) == 4 and select(1, pieces(pet.panel, "bevelPanelInner")) == 0, "the pet frame's glass is a chamfered tile")
-assert(select(2, pieces(Frames.Get("target").views[1].panel, "bevelPanelInner")) == 4, "the target's glass is a chamfered panel")
+assert(select(2, pieces(pet.panel, "chamferTile")) == 9 and select(1, pieces(pet.panel, "chamferPanel")) == 0, "the pet frame's glass is a chamfered tile")
+assert(select(2, pieces(Frames.Get("target").views[1].panel, "chamferPanel")) == 9, "the target's glass is a chamfered panel")
 
 -- Cast bars: the spell icon in its own chamfered square, a gap, then a chamfered glass bar.
 local cast = CastBars.Get("player")[1]
@@ -145,9 +145,9 @@ assert(cg and cg.icon and cg.panel and cg.bar, "the cast bar lays out an icon, a
 assert(near(cg.icon.x, 0) and near(cg.icon.w, cg.icon.h) and near(cg.icon.h, 36), "the icon is a square as tall as the cast bar")
 local iw, ih = cast.iconFrame:GetSize()
 assert(near(iw, 36, 1) and near(ih, 36, 1), "the icon frame takes that square")
-assert(select(2, pieces(cast.iconFrame, "bevelTileInner")) == 4, "the icon square is a chamfered tile")
+assert(select(2, pieces(cast.iconFrame, "chamferTile")) == 9, "the icon square is a chamfered tile")
 assert(cg.panel.x > cg.icon.x + cg.icon.w and near(cg.panel.x + cg.panel.w, 340) and near(cg.panel.h, 36), "the glass starts after a gap and runs to the end")
-assert(select(2, pieces(cast.panel, "bevelTileInner")) == 4, "the cast bar's glass is a chamfered tile with the double bevel")
+assert(select(2, pieces(cast.panel, "chamferTile")) == 9, "the cast bar's glass is a chamfered tile with the double bevel")
 assert(cast.bar.chrome == nil, "the bar inside the glass has no border of its own")
 
 -- At 36 units the kit's two rows fit: the spell name and the time on top, a thin bar under them.
@@ -164,7 +164,7 @@ assert(near(bx, cg.bar.x, 1) and near(-by, cg.bar.y, 1), "the bar is placed from
 local target = CastBars.Get("target")[1]
 local tg = target.geometry
 assert(near(tg.icon.w, 18) and near(tg.icon.h, 18) and tg.panel.x > tg.icon.w, "the target's icon is its own 18-unit square, then a gap")
-assert(select(2, pieces(target.panel, "bevelTileInner")) == 4, "the target cast bar's glass is a chamfered tile")
+assert(select(2, pieces(target.panel, "chamferTile")) == 9, "the target cast bar's glass is a chamfered tile")
 assert(tg.stacked and mid(tg.text) < tg.bar.y and near(mid(tg.text), mid(tg.timer)), "18 units: the name and time stack over a thin bar")
 assert(K.Layout.Set("unitframes.castbar.target", "height", 14), "the target cast bar can be 14 units tall")
 tg = target.geometry

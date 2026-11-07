@@ -31,6 +31,32 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- The global cooldown alone never dims an icon or greys its rim: the module reads isOnGCD and tells the button.
+do
+	local env, K, ns = new()
+	local cooldown = { name = "cd" }
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1, cooldown = cooldown })
+	local gcd = true
+	env.C_ActionBar.GetActionCooldown = function()
+		return { isOnGCD = gcd }
+	end
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	assert(W.LastCall(b.cooldown, "SetCooldownFromDurationObject")[1] == cooldown, "the swipe runs for the GCD")
+	b.cooldown:Show()
+	b.cooldown:GetScript("OnShow")(b.cooldown)
+	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
+	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "the icon stays bright and the rim on the accent during the GCD")
+	gcd = false
+	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.inner[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
+	-- Forever trusts isOnGCD only in response to SPELL_UPDATE_COOLDOWN, so that event refreshes the classification too.
+	gcd = true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "the spell cooldown event re-reads isOnGCD and brightens a GCD-only button")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Cooldowns come from duration objects; charges add a recharge edge; counts and charges show as text.
 do
 	local env, _, ns = new()
@@ -324,6 +350,28 @@ do
 	assert(W.LastCall(first.icon, "SetTexture")[1] == 1010059, "flyout icons come from the spells")
 	AB.Click(env, owner, "LeftButton", false)
 	assert(flyout.frame:IsShown(), "the release of the same click does not close it")
+	-- The flyout tells its buttons when a spell's cooldown is only the global cooldown, as the action buttons do.
+	local gcd, running = true, {}
+	env.C_Spell.GetSpellCooldown = function()
+		return { isOnGCD = gcd }
+	end
+	env.C_Spell.GetSpellCooldownDuration = function()
+		return running
+	end
+	AB.Click(env, first, "LeftButton", true)
+	AB.Click(env, first, "LeftButton", false)
+	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
+	assert(flyout.frame:IsShown() and first.realCooldown == false, "a flyout opened during the GCD leaves its buttons ready")
+	gcd = false
+	AB.Click(env, first, "LeftButton", true)
+	AB.Click(env, first, "LeftButton", false)
+	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
+	assert(flyout.frame:IsShown() and first.realCooldown == true, "a real cooldown reaches the flyout buttons as one")
+	assert(W.LastCall(first.cooldown, "SetCooldownFromDurationObject")[1] == running, "the swipe ran in both cases")
+	env.C_Spell.GetSpellCooldown = nil
+	env.C_Spell.GetSpellCooldownDuration = nil
 	AB.Click(env, first, "LeftButton", true)
 	assert(AB.Used(env) == "spell10059", "a flyout button casts its spell")
 	AB.Click(env, first, "LeftButton", false)

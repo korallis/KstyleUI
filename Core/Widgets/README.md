@@ -74,12 +74,12 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Part | Layer | What it is |
 | --- | --- | --- |
-| `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces `Snap(24)` centred on the owner's corners, tinted `shadow` |
-| `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel` or `chamferTile` texture, corner pieces 6 or 3 borders square |
-| `chrome.noise` | `BACKGROUND` -5 | Panels only: the `noise` grain, tiled at 3.5% white, inset by the chamfer |
-| `chrome.outer`, `chrome.inner`, `chrome.hairline` | `BORDER` | Each line: four corner pieces of the bevel texture, then the top, bottom, left and right lines as solid textures one `Scale.Border()` thick. The kit's double-line edge: the dark `edgeOuter` line on the edge, the light `edgeInner` line one border inside it, then one border of glass and the faint `edgeFaint` hairline. |
+| `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces `Snap(12)` centred on the owner's corners, tinted `shadow`: a 6-unit spread with no offset |
+| `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel`, `chamferTile` or `chamferWindow` texture, corner pieces the chamfer's size: `chamferPanel` 8, `chamferTile` 3.5 or `chamferWindow` 12 units, snapped to whole pixels |
+| `chrome.noise` | `BACKGROUND` -5 | Panels and windows: the `noise` grain, tiled at 3.5% white, inset by the chamfer |
+| `chrome.outer`, `chrome.inner`, `chrome.hairline`, and `chrome.dark` for windows | `BORDER` | Each line is a [`Line`](#lines): one `Scale.Border()` thick on every screen, whatever the chamfer measures in pixels. Panels and tiles draw the small-panel edge from the design file: the dark `edgeOuter` line on the edge, the light `edgeInner` line one border inside it, then two units of glass and the faint `edgeFaint` hairline. Windows draw the design's GLASS PANEL edge: `edgeWindowOuter` (white 35%) on the edge, `edgeWindowInner` (50%) 3.75 units in as the bright line hover and selection light up, the dark `edgeOuter` line right inside it, then the `edgeWindowFaint` hairline (15%) 6.25 units in. |
 
-`opts`: `shape` (`"panel"`, chamfers of 6 borders, or `"tile"`, 3 borders; see [Corner sizes](#corner-sizes)), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`), `shadow` (default on for panels and off for tiles), `grain` (`false` removes the grain).
+`opts`: `shape` (`"panel"`, 8-unit chamfers, `"tile"`, 3.5 units, or `"window"`, 12 units; see [Corner sizes](#corner-sizes)), `chamfer` (units, overriding the shape's size; icon buttons use 10.5% of their side), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`, or `edgeWindowInner` for a window), `shadow` (default on for panels and windows, off for tiles), `grain` (`false` removes the grain). The field `shapeName` holds the shape.
 
 A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow shows only while `shadows` is on.
 
@@ -87,26 +87,28 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | --- | --- |
 | `SetFill(name, alphaScale)`, `SetFillRGBA(r, g, b, a)` | Recolours the fill. A caller's colour, or a token at a scaled alpha, stays through a restyle. Both reuse one table per chrome, so they allocate nothing on combat paths. |
 | `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the light line that hover and selection light up. |
+| `SetOuter(name, alphaScale)`, `SetOuterRGBA(r, g, b, a)` | Recolours the outer line, kept through a restyle. `SetOuter()` with no token returns it to the shape's line. Icon buttons draw it as the rim's halo. Both allocate nothing. |
+| `SetChamfer(units)` | Changes the chamfer and re-lays the chrome out when it differs. `Chamfer()` returns the units in use. |
 | `SetShadow(on)`, `SetShown(shown)` | |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
-`Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
+`Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture; `cornerUnits` and `outsetUnits` are units snapped to whole pixels, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3.5) lines up with a tile's chrome. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
+
+### Lines
+
+`Line(owner, layer, sublevel) -> list` makes one bevel line for a chamfered rectangle: four corner textures (top left, top right, bottom left, bottom right) and the top, bottom, left and right straight pieces. `LayoutLine(line, owner, chamferUnits, at)` places it `at` frame units inside the owner's edge, one `Widgets.Border(owner)` thick. The straight pieces are solid textures. Each corner piece is the square that holds the diagonal band between them, `Snap(chamfer - at * (2 - sqrt 2) + border * (sqrt 2 - 1))` a side, and maps the opaque row of the `line` strip onto that diagonal with eight texture coordinates (`SetTexCoord` with the corner mapping), so the diagonal is as thick as the straight pieces whatever the chamfer measures in pixels. `ColorSlice` and `ShowSlice` colour and show a line. Chrome draws its edge with these; GroupFrames draws its highlight rings with them.
 
 ### Corner sizes
 
-`Tools/media/make_media.py` draws the chamfer and bevel textures at 4 texels per art unit, and bakes each bevel line one art unit (4 texels) wide into the corner art. The kit draws one art unit as one `Widgets.Border(frame)`, so the line inside each bevel corner is exactly as wide as the straight line it meets, and the fill's diagonal meets the bevel's:
+Chamfers are sizes in units, snapped to whole pixels on every screen, so a window's 12-unit cut is 12 px at 1080p, 17 px on a 1.426 px per unit Mac and 24 px at 4K, while every line stays one border thick (1, 1 and 2 px). `Tools/media/make_media.py` draws the chamfer fill textures at 4 texels per unit:
 
 | Piece | Texels | Drawn |
 | --- | --- | --- |
-| Panel fill corner (`chamferPanel`) | 24 | 6 borders |
-| Panel bevel corner (`bevelPanelOuter`, `bevelPanelInner`) | 28: the chamfer and the mitre | 7 borders |
-| Tile fill corner (`chamferTile`) | 12 | 3 borders |
-| Tile bevel corner (`bevelTileOuter`, `bevelTileInner`) | 16 | 4 borders |
-| Panel and tile hairline corner (`bevelPanelHairline`, `bevelTileHairline`) | 32, 20 | 8, 5 borders |
+| Panel fill corner (`chamferPanel`) | 32 | `Snap(8)` units |
+| Tile fill corner (`chamferTile`) | 14 | `Snap(3.5)` units; icon buttons use 10.5% of their side |
+| Window fill corner (`chamferWindow`) | 48 | `Snap(12)` units |
 
-`LayoutSlice` follows the same rule for these six textures: its `cornerUnits` count borders, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3) lines up with a tile's chrome. Every other sliced texture, such as `shadow`, sizes its corners in units snapped to whole pixels.
-
-A border is one unit at 1080p and 4K, so a panel's chamfer is 6 units there. On the Mac it is 12 pixels, about 5.8 units. At 1440p a border is one pixel, 0.75 units, so a panel's chamfer is 6 pixels (4.5 units) and a tile's 3 pixels. The size setting moves the chamfer in steps of whole borders in the same way. `test-pixels.lua` checks every bevel corner on the four screens at sizes 0.75 to 1.5.
+`test-pixels.lua` checks every chamfer and line on the four screens at sizes 0.75 to 1.5: the chamfer is the nearest whole pixel to its size in units, each straight piece is one border thick and sits a whole number of pixels in, and each corner square is whole pixels.
 
 ## Panel
 
@@ -115,12 +117,12 @@ A border is one unit at 1080p and 4K, so a panel's chamfer is 6 units there. On 
 | Option | Effect |
 | --- | --- |
 | `width`, `height` | Snapped size |
-| `title` | Adds the title bar: an upper-case heading and a drag area when `movable` is set. As on the kit's glass panel, no line sits under the title. |
+| `title` | Adds the title bar: an upper-case `body` title, as the design's PANEL TITLE, and a drag area when `movable` is set. As on the kit's glass panel, no line sits under the title. |
 | `close` | Adds a close button that calls `panel:Close()` |
 | `onClose(panel)` | Runs when the panel closes |
 | `escape` | Escape closes the panel |
 | `movable`, `onMoved(panel)` | Drag by the title bar, clamped to the screen |
-| `shape`, `fill`, `shadow` | Passed to `Chrome` |
+| `shape`, `fill`, `shadow` | Passed to `Chrome`. The default shape is `window` for a panel with a title bar (`title`, `close` or `movable`) and `panel` otherwise. |
 | `strata`, `name`, `hidden` | |
 | `layout = { key, position, options }` | Calls `Widgets.Place` with them |
 
@@ -155,37 +157,39 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `silent` (no click sound, for buttons that keys press, such as action buttons).
 
-The icon sits two borders inside the edge, masked to the chamfer by `iconMask`. The cooldown swipe uses the same mask.
+The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button. The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`; on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row:
 
 | State | Hairline | Icon |
 | --- | --- | --- |
-| Rest | `accent` | Full colour |
-| Hover | `accent` mixed 35% toward `textHover`, and a soft selection glow | |
-| Pressed | Mixes toward `text` at 80% | Dims by 25% and moves down `pressOffset` |
-| Cooldown running | `text` at 55% | Swipe in `black` at 65%, countdown in the `number` font |
-| Proc (`SetProc(true)`) | `accent` | Proc glow pulses |
+| Rest | `accent` mixed 15% toward `textHover` | Full colour |
+| Hover | `accent` mixed 25% toward `textHover`, and a selection glow 10 units out at 12% | |
+| Pressed | Mixes toward `text` at 77% | Dims by 25% and moves down `pressOffset` |
+| Cooldown running | `text` at 62% | Dims to 40%; swipe in `black` at 65%; the countdown, in the `number` font, is centred a quarter of the height above the bottom |
+| Proc (`SetProc(true)`) | `accent` | Proc glow pulses, with its star and inner glow |
 | Selected (`SetSelected(true)`) | `accent` | |
-| Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Desaturated at 55% brightness |
+| Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Desaturated at 45% brightness |
 
 The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a custom icon keeps its tint in every state.
 
 | Method | Behaviour |
 | --- | --- |
 | `SetIcon(texture)` | `KstyleUI.Icons.Reset`, then `SetTexture` on the icon. To use KstyleUI's custom icons, call `KstyleUI.Icons.Apply(button.icon, fileID)` instead. |
-| `SetCooldown(start, duration) -> ok` | Plain numbers only. `Cooldown:SetCooldown` refuses secret arguments from addon code, so a secret is refused, logged once, and returns `false`. |
-| `SetCooldownFromDuration(durationObject) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
-| `ClearCooldown()` | |
+| `SetCooldown(start, duration, gcd) -> ok` | Plain numbers only. `Cooldown:SetCooldown` refuses secret arguments from addon code, so a secret is refused, logged once, and returns `false`. |
+| `SetCooldownFromDuration(durationObject, gcd) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
+| `ClearCooldown()` | Clears the cooldown and forgets `gcd`. |
+
+`gcd = true` says the cooldown is only the global cooldown: the swipe runs, but the button stays ready, with the accent rim and a bright icon. The global cooldown alone never dims an icon or greys its rim. The ActionBars module reads `isOnGCD` from `C_ActionBar.GetActionCooldown` and `C_Spell.GetSpellCooldown` and passes it. The cooldown state (grey rim, dim icon) applies only to a real cooldown set through these setters: a module that drives `button.cooldown` directly, as the Cooldowns mirror does for its buff timers, keeps a bright button and draws its own state. `button.cooling` still says whether the cooldown frame shows.
 | `SetProc(on)`, `SetUsable(on)`, `SetSelected(on)` | |
 | `SetHotkey(text)`, `SetCount(text)` | Caption text at the top right (upper case) and `number` text at the bottom right, above the swipe |
 | `SetTint(r, g, b)` | Multiplies the icon's shade in every state, such as red while out of range. No arguments return it to white. |
 | `SetAccent(r, g, b)` | Gives this button its own accent for the hairline, the hover glow and the proc glow, kept through theme changes. No arguments follow the theme accent again. |
 | `SetChargeCooldownFromDuration(durationObject) -> ok`, `ClearChargeCooldown()` | A second Cooldown, `chargeCooldown`, made on first use, that draws only its edge and no numbers: the recharge of a spell with charges left. Returns `false` and logs once when the method is missing. |
 
-Fields: `icon`, `mask`, `cooldown`, `chargeCooldown` (made on first use), `overlay`, `hotkey`, `count`, `chrome`, `hoverGlow`, `procGlow` (made on the first `SetProc(true)`).
+Fields: `icon`, `mask`, `cooldown`, `countdown` (the cooldown's countdown font string, when the client gives one), `chargeCooldown` (made on first use), `overlay`, `hotkey`, `count`, `chrome`, `hoverGlow`, `procGlow` (made on the first `SetProc(true)`). `Restyle()` restyles both glows, so a button that changes size (a `size` option a module rewrites) keeps its glow geometry.
 
 ## Tabs
 
-`Tabs(parent, opts) -> Frame`: a raised strip of upper-case tabs. The selected tab's text is `textEmphasis`, and an accent underline, the `divider` texture, slides to it over `fade` (0.2 s).
+`Tabs(parent, opts) -> Frame`: a raised strip of upper-case tabs. The selected tab's text is `textEmphasis`, and an underline slides to it over `fade` (0.2 s): a line one border thick on the strip's bottom edge, `accent` mixed 60% toward `textHover`, spanning the tab's full width, with a 5-unit accent glow (`underGlow`, the `shadow` falloff, additive, peaking at 25%) fading upward from it.
 
 Options: `tabs = { { value, label, disabled }, ... }`, `value` (the selected tab, default the first), `onSelect(value, tabs)`, `width` (equal tab widths that fill it; without it each tab fits its label, at least 64 units), `height` (default 32), `name`.
 
@@ -196,18 +200,18 @@ Options: `tabs = { { value, label, disabled }, ... }`, `value` (the selected tab
 | `SetTabs(tabs, value)` | Replaces the tabs, reusing buttons and hiding the extras. |
 | `SetTabEnabled(value, enabled)` | A disabled tab shows `textDisabled` and cannot be clicked. |
 
-Fields: `buttons` (each with `value`, `label`, `x`, `w` and `inset`), `underline`, `chrome`.
+Fields: `buttons` (each with `value`, `label`, `x`, `w` and `inset`), `underline`, `underGlow`, `chrome`.
 
 ## Toggle
 
-`Toggle(parent, opts) -> Button`: an on and off switch, a 36 by 18 pill with a round knob and an optional label to its right.
+`Toggle(parent, opts) -> Button`: an on and off switch, the design's 58 by 28 pill with an 18-unit round knob 5 units in from either end, and an optional label to its right.
 
 Options: `value` (default `false`), `onChange(value, toggle)`, `label`, `name`, `tooltip`.
 
 | State | Border | Fill | Knob |
 | --- | --- | --- | --- |
-| Off | `text` at 35%, 70% under the mouse | `raised` | Left, `text` |
-| On | `accent` | `raised` mixed 30% toward `accent` | Right, `textHover` |
+| Off | `white` at 40%, 70% under the mouse | `surface` | Left, light grey: `text` mixed 63% toward `textHover` |
+| On | `accent` | `surface` mixed 30% toward `accent` | Right, `textHover` |
 | Disabled (`SetEnabled(false)`) | | | The label is `textDisabled` and clicks do nothing |
 
 The knob slides over `hover` (0.15 s, `outQuart`). Clicks play `IG_MAINMENU_OPTION_CHECKBOX_ON` or `_OFF`.
@@ -216,7 +220,7 @@ Methods: `GetValue()`, `SetValue(value, silent)` (runs `onChange` when the value
 
 ## Slider
 
-`Slider(parent, opts) -> Frame`: a 4-unit pill track with an accent fill up to a ringed 14-unit knob, the value above the knob, and the minimum and maximum below the track ends.
+`Slider(parent, opts) -> Frame`: a 4-unit pill track with an accent fill up to a ringed 12-unit knob, the value above the knob, and the minimum and maximum below the track ends.
 
 Options: `min` (default 0), `max` (default 1), `step`, `value`, `onChange(value, slider)`, `format(value) -> text` for the readout, `width` (default 200), `name`, `tooltip`. `min` must be below `max`.
 
@@ -291,12 +295,12 @@ Fields: `chrome`, `scroll`, `box`, `bar`, `track`, `thumb`.
 
 `Dropdown(parent, opts) -> Button`: a raised box with the chosen label, or a placeholder, and a chevron.
 
-Options: `options` (a list of `{ value, label }`, or a function that returns one), `value`, `onChange(value, dropdown)`, `placeholder` (default `Select Option`), `width` (default 200), `height`, `maxRows` (default 8), `renderRow(row, option, dropdown)` to customise a menu row, `unknownLabel(value) -> label` for a value no option holds, `name`, `tooltip`.
+Options: `options` (a list of `{ value, label }`, or a function that returns one), `value`, `onChange(value, dropdown)`, `placeholder` (default `Select Option`), `width` (default 200), `height` (default `rowHeight` + `gapTiny`, the design's 26), `maxRows` (default 8), `renderRow(row, option, dropdown)` to customise a menu row, `unknownLabel(value) -> label` for a value no option holds, `name`, `tooltip`.
 
 A click opens the one shared menu, `DropdownMenu()`, below the box at the box's width on screen, also when the box has its own scale, in the `FULLSCREEN_DIALOG` strata:
 
 - A `ScrollList` of 24-unit rows, up to `maxRows`, scrolled to show the chosen option.
-- The chosen row has a 2-unit `accent` bar on its left and an `accent` wash at 12%. Other rows wash white at 5% under the mouse.
+- The chosen row has a one-border `accent` bar on its left and an `accent` wash at 12%. Other rows wash white at 5% under the mouse.
 - A row click chooses that option and closes the menu. A click anywhere else (on `menu.catcher`, a full-screen button under the menu) and Escape close it too, as does hiding the dropdown.
 - While open, the box's hairline is `accent` and its chevron points up.
 
@@ -389,10 +393,10 @@ Field: `editBox`, when the popup has one.
 
 `Glow(frame, opts) -> handle`: a glow drawn from the `shadow` falloff with additive blending, on a frame one level behind `frame`, so the frame's own fill hides the inside.
 
-Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`).
+Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`), `alpha` (the glow's full strength, default 1 for a proc and 60% for a selection).
 
-- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with a four-point spark, two crossed streaks in the glow's colour (the accent, so it matches the rest of the theme), that pulses at the frame's top right corner. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
-- A selection glow is steady at 60%.
+- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with the design's four-point star, two crossed 6-unit streaks one unit thick in the glow's colour (the accent, so it matches the rest of the theme), centred 3 units in from the frame's right edge and 2.5 below its top, and an additive inner glow (`core`) over the frame at 35%, 1.2 times the frame's size. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
+- A selection glow is steady at `alpha`.
 
 | Method | Behaviour |
 | --- | --- |
@@ -402,7 +406,7 @@ Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, def
 | `SetColor(name)`, `Restyle()` | |
 | `SetColorRGB(r, g, b)` | Colours the glow with plain numbers instead of a token, kept through restyles. No arguments return to the token. |
 
-Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spark` and `sparkCross`.
+Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spark`, `sparkCross` and `core`.
 
 ## Tooltip
 
@@ -450,7 +454,7 @@ Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spa
 | `CheckBox(check) -> parts` | Strips the check button and draws a 16-unit raised tile with an 8-unit chamfered `accent` mark while checked. It follows `SetChecked`, clicks and `OnShow`. |
 | `Button(button, opts) -> Frame` | Strips the button and puts a raised tile behind it. The hairline and the text light under the mouse, and a disabled button's text is `textDisabled`. `opts.font` restyles the text in a font role. |
 | `Text(fontString, role, colorName)` | The role's font and shadow, and a token colour. |
-| `Window(frame, opts) -> Frame` | For `PortraitFrameTemplate` and `ButtonFrameTemplate` windows: strips `NineSlice`, `Bg`, `TopTileStreaks`, `PortraitContainer`, `TitleContainer`, `Inset` and the inset's art, puts a shadowed panel behind, skins `CloseButton`, sets the title in the `heading` font (unless `opts.title` is `false`) and skins the tabs (unless `opts.tabs` is `false`). |
+| `Window(frame, opts) -> Frame` | For `PortraitFrameTemplate` and `ButtonFrameTemplate` windows: strips `NineSlice`, `Bg`, `TopTileStreaks`, `PortraitContainer`, `TitleContainer`, `Inset` and the inset's art, puts a shadowed window-grade panel (`shape = "window"`) behind, skins `CloseButton`, sets the title in the `heading` font (unless `opts.title` is `false`) and skins the tabs (unless `opts.tabs` is `false`). |
 | `IsSkinned(frame, kind) -> boolean` | `kind` is `"Backdrop"`, `"CloseButton"`, `"Tab"`, `"Tabs"`, `"ScrollBar"`, `"EditBox"`, `"CheckBox"`, `"Button"` or `"Window"`. |
 | `Parts(frame) -> table` | The KstyleUI parts made for the frame: `backdrop`, `glyph`, `underline`, `track`, `thumb`, `back`, `forward`, `box`, `mark` and `text`, as the helper made them. |
 

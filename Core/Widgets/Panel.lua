@@ -127,14 +127,16 @@ function Widgets.Panel(parent, opts)
 	if opts.strata then
 		panel:SetFrameStrata(opts.strata)
 	end
-	panel.chrome = Widgets.Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow })
+	local titled = opts.title or opts.close or opts.movable
+	local shape = opts.shape or (titled and "window" or "panel")
+	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow })
 	panel.content = CreateFrame("Frame", nil, panel)
-	if opts.title or opts.close or opts.movable then
+	if titled then
 		local bar = CreateFrame("Frame", nil, panel)
 		bar:SetPoint("TOPLEFT", panel, "TOPLEFT")
 		bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT")
 		panel.titleBar = bar
-		panel.titleText = Widgets.Text(panel, "heading", "textEmphasis")
+		panel.titleText = Widgets.Text(panel, "body", "textEmphasis")
 		panel.titleText:SetJustifyH("LEFT")
 		panel.titleText:SetWordWrap(false)
 		panel:SetTitle(opts.title or "")

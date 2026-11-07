@@ -8,7 +8,7 @@ local min = math.min
 local DEFAULT_WIDTH = 200
 local DEFAULT_ROWS = 8
 local CHEVRON_SIZE = 8
-local MARK_WIDTH = 2
+local MARK_LINES = 1
 local CHOSEN_WASH = 0.12
 local HOVER_WASH = 0.05
 local MENU_LEVEL = 10
@@ -123,7 +123,7 @@ end
 
 function Dropdown:Restyle()
 	local opts = self.opts
-	Widgets.Size(self, opts.width or DEFAULT_WIDTH, opts.height or (Tokens.Size("rowHeight") + Tokens.Size("gapSmall")))
+	Widgets.Size(self, opts.width or DEFAULT_WIDTH, opts.height or (Tokens.Size("rowHeight") + Tokens.Size("gapTiny")))
 	local pad = Widgets.Snap(self, Tokens.Size("gapMedium"))
 	Widgets.Size(self.chevron, CHEVRON_SIZE, CHEVRON_SIZE)
 	self.chevron:ClearAllPoints()
@@ -207,7 +207,7 @@ local function MenuRowUpdate(row, option)
 	row.sample:Hide()
 	Widgets.SetText(row.label, option.label)
 	row.isChosen = owner ~= nil and owner.value ~= nil and owner.value == option.value
-	row.mark:SetWidth(Widgets.Snap(row, MARK_WIDTH))
+	row.mark:SetWidth(Widgets.Border(row) * MARK_LINES)
 	row.mark:SetShown(row.isChosen)
 	Widgets.Tint(row.mark, "accent")
 	local render = owner and owner.opts.renderRow

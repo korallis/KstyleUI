@@ -7,8 +7,9 @@ local max = math.max
 
 local PULSE_LOW, PULSE_HIGH = 0.45, 1
 local SPARK_SCALE = 1.35
-local SPARK_LONG, SPARK_THIN = 10, 2
-local SPARK_INSET = 2
+local SPARK_LONG, SPARK_THIN = 6, 1
+local SPARK_INSET_X, SPARK_INSET_Y = 3, 2.5
+local CORE_SHARE, CORE_ALPHA = 1.2, 0.35
 local SELECTION_ALPHA = 0.6
 local SPARK_LEVEL = 3
 
@@ -50,9 +51,18 @@ local function Hidden(holder)
 	holder:SetAlpha(1)
 end
 
-local function PlaceStreak(streak, frame, inset)
+local function PlaceStreak(streak, frame, insetX, insetY)
 	streak:ClearAllPoints()
-	streak:SetPoint("CENTER", frame, "TOPRIGHT", -inset, -inset)
+	streak:SetPoint("CENTER", frame, "TOPRIGHT", -insetX, -insetY)
+end
+
+local function FrameSize(frame)
+	local width, height = frame:GetSize()
+	if Widgets.IsSecret(width) or Widgets.IsSecret(height) or type(width) ~= "number" or type(height) ~= "number" then
+		local size = Tokens.Size("actionButton")
+		return size, size
+	end
+	return width, height
 end
 
 function Glow:Restyle()
@@ -69,11 +79,14 @@ function Glow:Restyle()
 	if self.spark then
 		Widgets.Size(self.spark, SPARK_LONG, SPARK_THIN)
 		Widgets.Size(self.sparkCross, SPARK_THIN, SPARK_LONG)
-		local inset = Widgets.Snap(self.frame, SPARK_INSET)
-		PlaceStreak(self.spark, self.frame, inset)
-		PlaceStreak(self.sparkCross, self.frame, inset)
+		local insetX, insetY = Widgets.Snap(self.frame, SPARK_INSET_X), Widgets.Snap(self.frame, SPARK_INSET_Y)
+		PlaceStreak(self.spark, self.frame, insetX, insetY)
+		PlaceStreak(self.sparkCross, self.frame, insetX, insetY)
 		self.spark:SetVertexColor(r, g, b, 1)
 		self.sparkCross:SetVertexColor(r, g, b, 1)
+		local width, height = FrameSize(self.frame)
+		Widgets.Size(self.core, CORE_SHARE * width, CORE_SHARE * height)
+		self.core:SetVertexColor(r, g, b, CORE_ALPHA)
 	end
 	Reconcile(self)
 end
@@ -106,7 +119,7 @@ function Glow:Start()
 	end
 	self.playing = true
 	local holder = self.holder
-	Motion.FadeIn(holder, Tokens.Duration("fade"), self.kind == "selection" and SELECTION_ALPHA or 1)
+	Motion.FadeIn(holder, Tokens.Duration("fade"), self.alpha)
 	StartAnimations(self)
 end
 
@@ -125,7 +138,7 @@ function Glow:SetIntensity(t)
 	end
 	local holder = self.holder
 	if t > 0 then
-		holder:SetAlpha(t * SELECTION_ALPHA)
+		holder:SetAlpha(t * self.alpha)
 		holder:Show()
 	else
 		Hidden(holder)
@@ -159,6 +172,7 @@ function Widgets.Glow(frame, opts)
 		kind = kind,
 		colorName = opts.color or "accent",
 		spread = opts.spread or Tokens.Size("gapMedium"),
+		alpha = opts.alpha or (kind == "selection" and SELECTION_ALPHA or 1),
 		playing = false,
 	}, Glow)
 	handle.onFaded = function()
@@ -183,6 +197,11 @@ function Widgets.Glow(frame, opts)
 			streak:SetBlendMode("ADD")
 			handle[key] = streak
 		end
+		local core = top:CreateTexture(nil, "ARTWORK")
+		core:SetTexture((Tokens.Texture("glow")))
+		core:SetBlendMode("ADD")
+		core:SetPoint("CENTER", frame, "CENTER")
+		handle.core = core
 		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
 		local grow = sparkPulse:CreateAnimation("Scale")
 		grow:SetScaleFrom(1, 1)

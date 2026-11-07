@@ -39,8 +39,7 @@ class ManifestTest(unittest.TestCase):
     def test_textures_cover_the_spec_list(self):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
-            "ChamferPanel", "ChamferTile", "BevelPanelOuter", "BevelPanelInner", "BevelTileOuter",
-            "BevelTileInner", "BevelPanelHairline", "BevelTileHairline", "ChamferIconMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
+            "ChamferPanel", "ChamferTile", "ChamferWindow", "Line", "ChamferIconMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
@@ -51,12 +50,13 @@ class ManifestTest(unittest.TestCase):
         self.assertIn("Media/Logo/Logo64.tga", paths)
 
     def test_chamfer_geometry_matches_the_shape_tokens(self):
-        # Panels have 6-unit chamfers and tiles 3-unit chamfers, drawn at TEXELS_PER_UNIT.
+        # Panels have 8-unit chamfers, tiles 3.5 and windows 12, drawn at TEXELS_PER_UNIT.
         density = self.mm.TEXELS_PER_UNIT
-        self.assertEqual(self.mm.SLICE["ChamferPanel"], 6 * density)
-        self.assertEqual(self.mm.SLICE["ChamferTile"], 3 * density)
-        for name in ("BevelPanelOuter", "BevelPanelInner", "BevelTileOuter", "BevelTileInner", "BevelPanelHairline", "BevelTileHairline"):
-            self.assertEqual(self.mm.SLICE[name] % density, 0, f"{name} corner pieces are whole units")
+        self.assertEqual(self.mm.SLICE["ChamferPanel"], 8 * density)
+        self.assertEqual(self.mm.SLICE["ChamferTile"], 3.5 * density)
+        self.assertEqual(self.mm.SLICE["ChamferWindow"], 12 * density)
+        self.assertEqual(self.mm.SLICE["Shadow"], 2 * 6 * self.mm.SHADOW_TEXELS_PER_UNIT, "the shadow reaches 6 units")
+        self.assertFalse(any(name.startswith("Bevel") for name in self.mm.SLICE), "bevel lines are drawn in code, not baked")
 
 
 class TokensTest(unittest.TestCase):
@@ -123,7 +123,7 @@ class DrawingTest(unittest.TestCase):
         return self.px(name, x, y)[3]
 
     def test_chamfer_cuts_each_corner_at_45_degrees(self):
-        for name, size, legs in (("ChamferPanel.png", 64, 24), ("ChamferTile.png", 32, 12)):
+        for name, size, legs in (("ChamferPanel.png", 128, 32), ("ChamferTile.png", 32, 14), ("ChamferWindow.png", 128, 48)):
             last = size - 1
             for x, y in ((0, 0), (last, 0), (0, last), (last, last)):
                 self.assertEqual(self.alpha(name, x, y), 0, f"{name} corner {x},{y}")
@@ -133,29 +133,17 @@ class DrawingTest(unittest.TestCase):
             # On the diagonal the coverage is about half.
             self.assertTrue(96 <= self.alpha(name, legs // 2, legs // 2 - 1) <= 160, name)
 
-    def test_bevels_are_adjacent_one_unit_bands(self):
-        d = self.mm.TEXELS_PER_UNIT
-        for prefix, size in (("BevelPanel", 64), ("BevelTile", 64)):
-            outer, inner = prefix + "Outer.png", prefix + "Inner.png"
-            mid = size // 2
-            self.assertEqual(self.alpha(outer, mid, 0), 255, outer)
-            self.assertEqual(self.alpha(outer, mid, d - 1), 255, outer)
-            self.assertEqual(self.alpha(outer, mid, d), 0, outer)
-            self.assertEqual(self.alpha(inner, mid, d - 1), 0, inner)
-            self.assertEqual(self.alpha(inner, mid, d), 255, inner)
-            self.assertEqual(self.alpha(inner, mid, 2 * d), 0, inner)
-            self.assertEqual(self.alpha(outer, mid, mid), 0, "bevel centre is empty")
-
-    def test_hairline_is_a_one_unit_band_one_unit_inside_the_inner_line(self):
-        # The kit's double-line edge: the light inner line, one unit of glass, then a faint hairline.
-        d = self.mm.TEXELS_PER_UNIT
-        for name, size in (("BevelPanelHairline.png", 128), ("BevelTileHairline.png", 64)):
-            mid = size // 2
-            self.assertEqual(self.alpha(name, mid, 3 * d - 1), 0, f"{name} leaves a one-unit gap")
-            self.assertEqual(self.alpha(name, mid, 3 * d), 255, name)
-            self.assertEqual(self.alpha(name, mid, 4 * d - 1), 255, name)
-            self.assertEqual(self.alpha(name, mid, 4 * d), 0, name)
-            self.assertEqual(self.alpha(name, 0, mid), 0, f"{name} edge is clear")
+    def test_line_strip_is_one_opaque_row_between_clear_rows(self):
+        # The widget kit maps this strip onto each chamfer's diagonal with eight texture coordinates: the band is
+        # row 1 of 4 (t from 0.25 to 0.5), and the rows either side are clear so CLAMP sampling outside is clear.
+        width, height, _ = self.rendered["Line.png"]
+        self.assertEqual((width, height), (4, 4))
+        self.assertEqual(self.mm.LINE_BAND, (0.25, 0.5))
+        for x in range(4):
+            for y in range(4):
+                r, g, b, a = self.px("Line.png", x, y)
+                self.assertEqual((r, g, b), (255, 255, 255), "white, so SetVertexColor tints it")
+                self.assertEqual(a, 255 if y == 1 else 0, f"row {y}")
 
     def test_sliced_textures_stretch_without_distortion(self):
         # A nine-slice stretches the strips between the margins. Every column and every row there
@@ -257,6 +245,12 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual(self.px("BarFlat.png", 0, 0), (255, 255, 255, 255))
         self.assertGreater(self.px("BarSoft.png", 0, 0)[0], self.px("BarSoft.png", 0, 31)[0])
         self.assertGreater(self.px("BarGlass.png", 0, 2)[0], self.px("BarGlass.png", 0, 20)[0])
+        # The design's health fill: the top is 12% brighter than the bottom, a near-flat gradient with no sheen band.
+        top, bottom = self.px("BarGlass.png", 0, 0)[0], self.px("BarGlass.png", 0, 31)[0]
+        self.assertEqual(top, 255, "the top is full brightness, so SetStatusBarColor gives the exact colour")
+        self.assertAlmostEqual(top / bottom, 1.12, delta=0.015)
+        levels = [self.px("BarGlass.png", 0, y)[0] for y in range(32)]
+        self.assertEqual(levels, sorted(levels, reverse=True), "the gradient falls steadily, with no sheen")
 
     def test_minimap_mask_is_a_full_square(self):
         _, _, data = self.rendered["MinimapMask.png"]

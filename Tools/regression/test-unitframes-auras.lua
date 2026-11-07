@@ -63,12 +63,13 @@ end
 local skin = aura.SetIcon[1]:GetParent()
 local paths = tilePaths(skin)
 assert((paths[(Tokens.Texture("chamferTile"))] or 0) >= 9, "the tile has a chamfered fill")
-assert(paths[(Tokens.Texture("bevelTileOuter"))] == 4 and paths[(Tokens.Texture("bevelTileInner"))] == 4, "the tile has the double bevel")
+assert(paths[(Tokens.Texture("line"))] == 12, "the tile has the kit's three bevel lines, four diagonal corners each")
 assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
 local corners = cornerSizes(skin)
 assert(#corners >= 4, "the chamfer corners are sized")
+local want = K.Scale.Snap(Tokens.Size("chamferTile"))
 for _, size in ipairs(corners) do
-	assert(size[1] == 3 and size[2] == 3, "each chamfer corner is 3 units at a 20-unit icon: " .. tostring(size[1]))
+	assert(size[1] == want and size[2] == want, "each chamfer corner is the tile's 3.5 units at a 20-unit icon: " .. tostring(size[1]))
 end
 local _, iconRel, _, ix, iy = aura.SetIcon[1]:GetPoint(1)
 assert(iconRel == skin and ix == 2 * K.Scale.Border() and iy == -2 * K.Scale.Border(), "the icon sits two borders in")
@@ -123,7 +124,7 @@ env.SetCombat(false)
 local nw = button:GetSize()
 assert(nw == 26, "the buttons take the new size once auras are readable again")
 for _, size in ipairs(cornerSizes(skin)) do
-	assert(size[1] == 3 and size[2] == 3, "the chamfer corner stays 3 units at a 26-unit icon: " .. tostring(size[1]))
+	assert(size[1] == want and size[2] == want, "the chamfer corner stays 3.5 units at a 26-unit icon: " .. tostring(size[1]))
 end
 noErrors("after the gate")
 
