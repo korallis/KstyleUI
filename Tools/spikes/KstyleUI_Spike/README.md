@@ -6,7 +6,7 @@ Each spike writes what it found to the SavedVariables table `KstyleUISpikeDB`. P
 
 ## Install the spike
 
-Do this once on the Mac. Run each command in **Terminal**.
+Do this once on the Mac. The game runs the spike from your clone at `~/KstyleUI`, on the `staging` branch. Run each command in **Terminal**.
 
 1. Fetch the latest code:
 
@@ -14,28 +14,22 @@ Do this once on the Mac. Run each command in **Terminal**.
 	git -C ~/KstyleUI fetch origin
 	```
 
-2. If the folder `~/KstyleUI.worktrees/staging-live` does not exist yet, create it:
+2. Switch your clone to `staging`. If it is already on `staging`, git prints `Already on 'staging'` and changes nothing.
 
 	```bash
-	git -C ~/KstyleUI worktree add ~/KstyleUI.worktrees/staging-live staging
+	git -C ~/KstyleUI switch staging
 	```
 
-	If git answers `invalid reference: staging`, run this instead:
+3. Bring the clone up to date:
 
 	```bash
-	git -C ~/KstyleUI worktree add --track -b staging ~/KstyleUI.worktrees/staging-live origin/staging
-	```
-
-3. Bring that folder up to date:
-
-	```bash
-	git -C ~/KstyleUI.worktrees/staging-live merge --ff-only origin/staging
+	git -C ~/KstyleUI pull --ff-only
 	```
 
 4. Link the addons into the game:
 
 	```bash
-	bash ~/KstyleUI.worktrees/staging-live/Tools/dev/link-addons.sh --spike
+	bash ~/KstyleUI/Tools/dev/link-addons.sh --spike
 	```
 
 	You see one `link` line (or `ok` line) per addon, including `.../Interface/AddOns/KstyleUI_Spike`.

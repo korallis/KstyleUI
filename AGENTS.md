@@ -5,12 +5,14 @@ Rules for any agent working in this repository. Read the [design spec](docs/supe
 ## Branch flow
 
 - Every change merges into `staging`. `main` moves only after the owner confirms the in-game tests on `staging`.
-- Never edit the owner's checkout at `~/KstyleUI`. Create a worktree per pull request:
+- `~/KstyleUI` is the owner's live copy. It is the checkout of `staging` that the game runs the addons from. Never edit files, commit, or switch branches in it. Always work in your own worktree, one per pull request:
 
 ```bash
 git -C ~/KstyleUI fetch origin
 git -C ~/KstyleUI worktree add -b <type>/<scope>-<slug> ~/KstyleUI.worktrees/<type>-<scope>-<slug> origin/staging
 ```
+
+- `~/KstyleUI` has `staging` checked out, so no worktree can check out the local `staging` branch. Branch from `origin/staging` as the command above does.
 
 - Open the pull request with `gh pr create --base staging`. Squash-merge it.
 - A pull request has no line limit. The owner waived the global 400-line rule for KstyleUI on 2026-11-07. Keep each PR to one coherent piece of work so it can be reviewed.
@@ -49,7 +51,7 @@ After the checks pass, run `cr review --agent` and fix the critical and major fi
 
 ## In-game testing
 
-`bash Tools/dev/link-addons.sh` creates the worktree `~/KstyleUI.worktrees/staging-live` on `staging` if it is missing. It then links `KstyleUI` and every `KstyleUI_*` folder in that worktree into Forever's `Interface/AddOns`. `--spike` also links the spike addon, and `--dry-run` changes nothing. To bring merged changes into the game, run `git -C ~/KstyleUI.worktrees/staging-live pull`, then `/reload` in game.
+The game runs the addons from `~/KstyleUI`, the owner's live copy on `staging`. `bash Tools/dev/link-addons.sh` links `KstyleUI` and every `KstyleUI_*` folder in `~/KstyleUI` into Forever's `Interface/AddOns`. `--spike` also links the spike addon, and `--dry-run` changes nothing. `KSTYLEUI_LIVE` overrides the checkout folder, and `WOW_ADDONS` overrides the AddOns folder. The script never clones, pulls, or switches branches. If the checkout folder has no `KstyleUI.toc`, the script names the folder and exits 1. To bring merged changes into the game, the owner runs `git -C ~/KstyleUI pull --ff-only`, then `/reload` in game.
 
 ## Releases
 

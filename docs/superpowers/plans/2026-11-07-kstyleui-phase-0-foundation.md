@@ -148,7 +148,7 @@ git commit -m "test: add TOC and XML walker with case-sensitive check"
 **Interfaces:**
 - Consumes: `TocFiles` from Task 2.
 - Produces: the global `KstyleUI` table with `KstyleUI.VERSION` (`"@project-version@"`, replaced by the packager) and `KstyleUI.CODE_BUILD = 1`.
-- Produces: `bash Tools/dev/link-addons.sh [--spike] [--dry-run]`. It creates the worktree `~/KstyleUI.worktrees/staging-live` on `staging` if missing, then links `Interface/AddOns/KstyleUI` and every `KstyleUI_*` folder in that worktree into `/Applications/World of Warcraft/_forever_/Interface/AddOns/`. `--spike` also links `Tools/spikes/KstyleUI_Spike`. Running it twice changes nothing. It never deletes a real folder: if a target exists and is not a symlink, it prints the path and exits 1.
+- Produces: `bash Tools/dev/link-addons.sh [--spike] [--dry-run]`. It links `Interface/AddOns/KstyleUI` and every `KstyleUI_*` folder in the owner's checkout `~/KstyleUI`, on `staging`, into `/Applications/World of Warcraft/_forever_/Interface/AddOns/`. If that folder has no `KstyleUI.toc`, it names the folder and exits 1. `--spike` also links `Tools/spikes/KstyleUI_Spike`. Running it twice changes nothing. It never deletes a real folder: if a target exists and is not a symlink, it prints the path and exits 1.
 
 - [ ] **Step 1: Write the failing test** `test-syntax.lua`: for every path from `TocFiles("%.lua$")`, `assert(loadfile(path))`. Count the files, assert at least one, and print `N TOC files compile`.
 

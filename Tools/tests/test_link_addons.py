@@ -10,10 +10,6 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[1] / "dev" / "link-addons.sh"
 
 
-def git(cwd, *args):
-    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=cwd, check=True, capture_output=True)
-
-
 class LinkAddonsTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -23,13 +19,24 @@ class LinkAddonsTest(unittest.TestCase):
         self.addons.mkdir()
         for folder in ("Core", "KstyleUI_Foo", "Tools/spikes/KstyleUI_Spike"):
             (self.live / folder).mkdir(parents=True)
+        (self.live / "KstyleUI.toc").write_text("## Title: KstyleUI\n")
 
     def tearDown(self):
         self._tmp.cleanup()
 
-    def run_script(self, *args, script=SCRIPT):
+    def run_script(self, *args, **changes):
         env = dict(os.environ, KSTYLEUI_LIVE=str(self.live), WOW_ADDONS=str(self.addons))
-        return subprocess.run([os.environ.get("TEST_BASH", "bash"), str(script), *args], env=env, capture_output=True, text=True)
+        for key, value in changes.items():
+            if value is None:
+                env.pop(key, None)
+            else:
+                env[key] = value
+        return subprocess.run([os.environ.get("TEST_BASH", "bash"), str(SCRIPT), *args], env=env, capture_output=True, text=True)
+
+    def make_checkout(self, path):
+        (path / "KstyleUI_Bar").mkdir(parents=True)
+        (path / "KstyleUI.toc").write_text("## Title: KstyleUI\n")
+        return path
 
     def link(self, name):
         path = self.addons / name
@@ -83,31 +90,38 @@ class LinkAddonsTest(unittest.TestCase):
         self.assertIn(f"link {self.addons}/KstyleUI_Foo -> {self.live}/KstyleUI_Foo", result.stdout)
         self.assertEqual(list(self.addons.iterdir()), [])
 
-    def test_creates_the_live_worktree_on_staging(self):
-        src = self.tmp / "src"
-        src.mkdir()
-        git(src, "init", "-q", "-b", "main")
-        (src / "README.md").write_text("x\n")
-        git(src, "add", ".")
-        git(src, "commit", "-q", "-m", "main")
-        git(src, "checkout", "-q", "-b", "staging")
-        (src / "KstyleUI_Bar").mkdir()
-        (src / "KstyleUI_Bar" / "KstyleUI_Bar.toc").write_text("x\n")
-        git(src, "add", ".")
-        git(src, "commit", "-q", "-m", "staging")
-        git(src, "checkout", "-q", "main")
-        repo = self.tmp / "repo"
-        git(self.tmp, "clone", "-q", str(src), str(repo))
-        (repo / "Tools" / "dev").mkdir(parents=True)
-        shutil.copy(SCRIPT, repo / "Tools" / "dev" / "link-addons.sh")
-        shutil.rmtree(self.live)
-
-        result = self.run_script(script=repo / "Tools" / "dev" / "link-addons.sh")
+    def test_defaults_to_kstyleui_in_home(self):
+        checkout = self.make_checkout(self.tmp / "home" / "KstyleUI")
+        result = self.run_script(HOME=str(self.tmp / "home"), KSTYLEUI_LIVE=None)
         self.assertEqual(result.returncode, 0, result.stderr)
-        branch = subprocess.run(["git", "-C", str(self.live), "branch", "--show-current"], capture_output=True, text=True)
-        self.assertEqual(branch.stdout.strip(), "staging")
-        self.assertEqual(self.link("KstyleUI_Bar"), str(self.live / "KstyleUI_Bar"))
+        self.assertEqual(self.link("KstyleUI"), str(checkout))
+        self.assertEqual(self.link("KstyleUI_Bar"), str(checkout / "KstyleUI_Bar"))
 
+    def test_kstyleui_live_overrides_the_default(self):
+        self.make_checkout(self.tmp / "home" / "KstyleUI")
+        result = self.run_script(HOME=str(self.tmp / "home"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.link("KstyleUI"), str(self.live))
+        self.assertFalse((self.addons / "KstyleUI_Bar").exists())
+
+    def test_missing_checkout_fails_and_creates_nothing(self):
+        shutil.rmtree(self.live)
+        for args in ((), ("--dry-run",)):
+            with self.subTest(args=args):
+                result = self.run_script(*args)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(str(self.live), result.stderr)
+                self.assertFalse(self.live.exists())
+                self.assertEqual(list(self.addons.iterdir()), [])
+
+    def test_folder_without_the_toc_fails(self):
+        (self.live / "KstyleUI.toc").unlink()
+        for args in ((), ("--dry-run",)):
+            with self.subTest(args=args):
+                result = self.run_script(*args)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(str(self.live), result.stderr)
+                self.assertEqual(list(self.addons.iterdir()), [])
 
 if __name__ == "__main__":
     unittest.main()

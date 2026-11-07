@@ -12,7 +12,7 @@ You need about two hours for the core and modules, plus a dungeon run and, if yo
 
 ## Install the addons
 
-The addons run from a separate checkout of `staging` at `~/KstyleUI.worktrees/staging-live`, linked into the game's AddOns folder. Your own checkout at `~/KstyleUI` stays on `main` and is never touched. Run each command in **Terminal**.
+The game runs the addons from your clone at `~/KstyleUI`, on the `staging` branch. A script links each addon folder in the clone into the game's AddOns folder, so the game loads whatever the clone holds. Agents work in their own folders and never change your clone. Run each command in **Terminal**.
 
 1. Fetch the latest code:
 
@@ -20,29 +20,29 @@ The addons run from a separate checkout of `staging` at `~/KstyleUI.worktrees/st
 	git -C ~/KstyleUI fetch origin
 	```
 
-2. If the folder `~/KstyleUI.worktrees/staging-live` does not exist yet, create it:
+2. Switch your clone to `staging`. If it is already on `staging`, git prints `Already on 'staging'` and changes nothing.
 
 	```bash
-	git -C ~/KstyleUI worktree add ~/KstyleUI.worktrees/staging-live staging
+	git -C ~/KstyleUI switch staging
 	```
 
-3. Bring that folder up to date:
+3. Bring the clone up to date:
 
 	```bash
-	git -C ~/KstyleUI.worktrees/staging-live merge --ff-only origin/staging
+	git -C ~/KstyleUI pull --ff-only
 	```
 
 4. Link the addons into the game:
 
 	```bash
-	bash ~/KstyleUI.worktrees/staging-live/Tools/dev/link-addons.sh --spike
+	bash ~/KstyleUI/Tools/dev/link-addons.sh --spike
 	```
 
-	You see one `link` or `ok` line per addon, each ending in `/_forever_/Interface/AddOns/<addon>`. `--spike` also links the spike addon from `Tools/spikes/KstyleUI_Spike`. Leave it out if you only want KstyleUI. To see what the script would do without changing anything, add `--dry-run`.
+	You see one `link` or `ok` line per addon, each naming `/_forever_/Interface/AddOns/<addon>`. `--spike` also links the spike addon from `Tools/spikes/KstyleUI_Spike`. Leave it out if you only want KstyleUI. To see what the script would do without changing anything, add `--dry-run`.
 
 5. Start World of Warcraft: Forever.
 
-Later, to get new fixes into the game, run steps 1 and 3 again and type `/reload`.
+Later, to get new fixes into the game, run `git -C ~/KstyleUI pull --ff-only` and type `/reload`.
 
 ## Enable the addons
 

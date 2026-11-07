@@ -411,7 +411,7 @@ The checks are KstyleUI's own implementations of NaowhForever's checks. NaowhFor
 
 ## In-game testing
 
-The owner's Forever `Interface/AddOns` folder links each addon folder to a dedicated checkout of `staging` at `~/KstyleUI.worktrees/staging-live`. Merged changes reach the game after `git pull` in that checkout and a `/reload`.
+The owner's Forever `Interface/AddOns` folder links each addon folder to the owner's checkout at `~/KstyleUI`, which stays on `staging`. Merged changes reach the game after `git -C ~/KstyleUI pull --ff-only` and a `/reload`. Agents never edit that checkout. Each agent works in its own worktree.
 
 `/kstyle test` runs smoke checks in the live client:
 

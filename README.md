@@ -49,7 +49,7 @@ and the action bars, group frames, bags and auras hand back to Blizzard's in the
 3. Restart the game, then enable the KstyleUI addons in the AddOns list.
 4. Log in. The first-run setup opens: pick a layout (DPS, Tank or Healer) and the modules you want, then click **Apply** and **Reload**.
 
-To run the current `staging` build instead, follow [Install the addons](docs/TESTING.md#install-the-addons) in the test guide.
+To run the current `staging` build from a clone at `~/KstyleUI` instead, follow [Install the addons](docs/TESTING.md#install-the-addons) in the test guide.
 
 ## Commands
 
