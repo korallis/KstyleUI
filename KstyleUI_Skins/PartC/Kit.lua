@@ -231,6 +231,24 @@ function Kit.QualityRows(help)
 	}
 end
 
+function Kit.TabSystem(system)
+	if type(system) ~= "table" or type(system.tabs) ~= "table" then
+		return false
+	end
+	local function Each(owner)
+		for _, tab in ipairs(owner.tabs) do
+			if type(tab) == "table" then
+				Kit.Tab(tab)
+			end
+		end
+	end
+	Each(system)
+	if type(system.AddTab) == "function" then
+		hooksecurefunc(system, "AddTab", Each)
+	end
+	return true
+end
+
 local function TintWash(wash)
 	Style.TintAccent(wash, wash.alpha)
 end
