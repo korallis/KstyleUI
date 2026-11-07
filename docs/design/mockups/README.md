@@ -15,6 +15,11 @@ These images are AI concept art for KstyleUI's look. They are design references,
 | `icons_A_tint_mage.jpg` | Set A tinted with one class colour, made locally from `icons_A_luminous.jpg` | Mage `#3FC7EB` |
 | `icons_A_tint_school.jpg` | Set A tinted per spell school, made locally from `icons_A_luminous.jpg` | Per school |
 | `icons_B_fullcolour.jpg` | Icon pilot, set B: full-colour painted art | None |
+| `v2_leveling.jpg` | Leveling in Riverglades, built from the approved spec and a real Forever screenshot | Shaman `#0070DD` |
+| `v2_dungeon.jpg` | Hall of Thanes boss fight. The party names are placeholders. | Paladin `#F48CBA` |
+| `v2_pvp.jpg` | Darkspear Islands battleground | Warlock `#8788EE` |
+
+The `v2_` mockups have their own provenance, with full prompts and the reference screenshots used, in [`v2_provenance.md`](v2_provenance.md). The reference screenshots themselves are not in this repository.
 
 ## Provenance
 
