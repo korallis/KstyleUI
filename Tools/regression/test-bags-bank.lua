@@ -175,6 +175,60 @@ do
 	env.SetCombat(false)
 end
 
+-- Warband bank bags ------------------------------------------------------------------------------------
+
+do
+	local env, _, ns = New({
+		bankTabs = { [BANK.Character] = { 6, 7 }, [BANK.Account] = { 15, 16 } },
+		accountBags = { [2] = Item("cloth", { itemID = 4501, name = "Warband Satchel", icon = 133639, count = 1 }) },
+	})
+	env.SetBank(true)
+	Run(env)
+	ns.Bank.window.tabs:Select(BANK.Account)
+	Run(env)
+	local strip = ns.Bank.window.bankBags
+	assert(strip.frame:IsShown(), "the Warband bank shows its bank bag slots too")
+	local first = strip.slots[1]
+	assert(W.LastCall(first.icon, "SetTexture")[1] == 133639, "with the Warband bank's bag")
+	first.button:GetScript("OnClick")(first.button, "LeftButton")
+	local picks = B.Calls(env, "PickupContainerItem")
+	assert(picks[#picks][1] == -3 and picks[#picks][2] == 2, "a click picks up the bag from the Warband bank's bag slots")
+end
+
+-- Narrow windows keep a usable search field -------------------------------------------------------------
+
+do
+	local env, K, ns = New({ bankTabs = { [BANK.Character] = { 6 }, [BANK.Account] = { 15 } } })
+	env.SetBank(true)
+	Run(env)
+	Set(K, "bankColumns", 4)
+	ns.Bank.window.tabs:Select(BANK.Account)
+	Run(env)
+	local win = ns.Bank.window
+	assert(win.buyButton:IsShown() and win.depositButton:IsShown(), "both actions show")
+	assert(win.search:GetWidth() >= 100, "the search field keeps room to type: " .. tostring(win.search:GetWidth()))
+end
+
+-- Late item info and cooldowns ------------------------------------------------------------------------
+
+do
+	local env, _, ns = New()
+	local helm = env._bank[6].items[2]
+	helm.ilvl = nil
+	env.SetBank(true)
+	Run(env)
+	local slot = ns.Bank.Slot(6, 2)
+	assert(not slot.level:IsShown(), "an uncached item shows no level yet")
+	helm.ilvl = 66
+	env.FireEvent("GET_ITEM_INFO_RECEIVED", helm.itemID, true)
+	Run(env)
+	assert(slot.level:IsShown() and slot.level:GetText() == "66", "the bank refreshes when item info arrives")
+	env._bank[7].items[3].cooldown = { 100, 30 }
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	local call = W.LastCall(ns.Bank.Slot(7, 3).cooldown, "SetCooldown")
+	assert(call and call[1] == 100 and call[2] == 30, "bank cooldowns follow BAG_UPDATE_COOLDOWN")
+end
+
 -- Columns, combat, Disable -------------------------------------------------------------------------
 
 do

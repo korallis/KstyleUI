@@ -11,10 +11,8 @@ Inventory.KEY = "bags.inventory"
 Inventory.POSITION = { anchor = "BOTTOMRIGHT", x = -16, y = 134 }
 
 local NONE = {}
-local INFO_DELAY = 0.2
 
 local open = false
-local infoQueued = false
 local heldBags
 local keyringBags = {}
 
@@ -130,14 +128,10 @@ local function Prepare()
 end
 
 local function InfoArrived()
-	if infoQueued or not open then
-		return
+	local window = Inventory.window
+	if window and open then
+		window:RefreshSoon()
 	end
-	infoQueued = true
-	C_Timer.After(INFO_DELAY, function()
-		infoQueued = false
-		Refresh()
-	end)
 end
 
 Blizzard.OnAction("toggle", function()

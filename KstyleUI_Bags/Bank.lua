@@ -14,7 +14,7 @@ Bank.POSITION = { anchor = "TOPLEFT", x = 60, y = -110 }
 Bank.PURCHASE_TEMPLATE = "BankPanelPurchaseButtonScriptTemplate"
 
 local CHARACTER_FALLBACK, ACCOUNT_FALLBACK = 0, 2
-local BAG_SLOTS_FALLBACK = -2
+local BAG_SLOTS_FALLBACK = { character = -2, account = -3 }
 local FIRST_TAB_FALLBACK = 6
 local TABS_FALLBACK = 9
 local RESTORE_OWNER = "Bags.Bank"
@@ -37,7 +37,11 @@ end
 
 local function BagSlotsContainer()
 	local index = Enum and Enum.BagIndex
-	return Data.Plain(index and index.Characterbanktab, "number") or BAG_SLOTS_FALLBACK
+	local _, account = Types()
+	if bankType == account then
+		return Data.Plain(index and index.Accountbanktab, "number") or BAG_SLOTS_FALLBACK.account
+	end
+	return Data.Plain(index and index.Characterbanktab, "number") or BAG_SLOTS_FALLBACK.character
 end
 
 local function Call(name, ...)
@@ -202,11 +206,11 @@ end
 
 local function UpdateBankBags(win)
 	local strip = win.bankBags
-	local character = Types()
-	local maxTabs = min(Count("FetchMaxNumBankTabs", character), TABS_FALLBACK)
-	local purchased = Count("FetchNumPurchasedBankTabs", character)
+	local kind = bankType or FirstType()
+	local maxTabs = min(Count("FetchMaxNumBankTabs", kind), TABS_FALLBACK)
+	local purchased = Count("FetchNumPurchasedBankTabs", kind)
 	strip.count = 0
-	local shown = bankType == character and Flag("ShouldUsePlayerBagsInBank") and maxTabs > 1
+	local shown = Flag("ShouldUsePlayerBagsInBank") and maxTabs > 1
 	if shown then
 		for id = 2, maxTabs do
 			local index = id - 1
@@ -390,6 +394,13 @@ local function Refresh()
 	end
 end
 
+local function InfoArrived()
+	local window = Bank.window
+	if window and open then
+		window:RefreshSoon()
+	end
+end
+
 local BANKERS = { "Banker", "CharacterBanker", "AccountBanker" }
 
 local function IsBanker(kind)
@@ -424,6 +435,13 @@ ns.On("BAG_CONTAINER_UPDATE", Refresh)
 ns.On("BANK_TABS_CHANGED", Refresh)
 ns.On("PLAYERBANKSLOTS_CHANGED", Refresh)
 ns.On("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", Refresh)
+ns.On("GET_ITEM_INFO_RECEIVED", InfoArrived)
+ns.On("BAG_UPDATE_COOLDOWN", function()
+	local window = Bank.window
+	if window and open then
+		window:UpdateCooldowns()
+	end
+end)
 ns.On("PLAYER_MONEY", function()
 	local window = Bank.window
 	if window then

@@ -11,7 +11,9 @@ Window.__index = Window
 ns.Window = Window
 
 local MIN_CONTENT_WIDTH = 240
+local MIN_SEARCH_WIDTH = 120
 local SORT_WIDTH = 64
+local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
 local DIVIDER_ALPHA = 0.55
 local STRATA = "MEDIUM"
@@ -225,7 +227,14 @@ function Window:Layout(force)
 	local pad = Snap(self, Tokens.Size("panelPadding"))
 	local gap = Snap(self, Tokens.Size("gapMedium"))
 	local rowHeight = Snap(self, Tokens.Size("rowHeight") + Tokens.Size("gapSmall"))
-	local contentWidth = Snap(self, MIN_CONTENT_WIDTH)
+	local sortWidth = Snap(self, SORT_WIDTH)
+	local buttonsWidth = 0
+	for _, button in ipairs(self.buttons) do
+		if button:IsShown() then
+			buttonsWidth = buttonsWidth + (Plain(button:GetWidth()) or SORT_WIDTH) + gap
+		end
+	end
+	local contentWidth = max(Snap(self, MIN_CONTENT_WIDTH), Snap(self, MIN_SEARCH_WIDTH) + gap + sortWidth + buttonsWidth)
 	for _, section in ipairs(self.sections) do
 		local count = #section.order
 		section.cols, section.rows = Data.Grid(count, columns)
@@ -241,13 +250,6 @@ function Window:Layout(force)
 	local top = 0
 	if self.spec.above then
 		top = self.spec.above(self, content, top, contentWidth)
-	end
-	local sortWidth = Snap(self, SORT_WIDTH)
-	local buttonsWidth = 0
-	for _, button in ipairs(self.buttons) do
-		if button:IsShown() then
-			buttonsWidth = buttonsWidth + (Plain(button:GetWidth()) or SORT_WIDTH) + gap
-		end
 	end
 	local searchWidth = max(1, contentWidth - sortWidth - gap - buttonsWidth)
 	if force or self.search.opts.width ~= searchWidth or self.search.opts.height ~= rowHeight then
@@ -406,6 +408,19 @@ function Window:Refresh(force)
 		end
 	end
 	self:UpdateFooter()
+end
+
+function Window:RefreshSoon()
+	if self.refreshQueued then
+		return
+	end
+	self.refreshQueued = true
+	C_Timer.After(REFRESH_DELAY, function()
+		self.refreshQueued = false
+		if self.open then
+			self:Refresh()
+		end
+	end)
 end
 
 function Window:AddButton(button)

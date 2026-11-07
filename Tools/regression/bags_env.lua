@@ -135,6 +135,8 @@ function B.Game(env, opts)
 	local function item(bag, slot)
 		if bag == -2 then
 			return env._bankBags[slot]
+		elseif bag == -3 then
+			return env._accountBags[slot]
 		end
 		local c = container(bag)
 		return c and c.items and c.items[slot]
@@ -294,6 +296,7 @@ function B.Game(env, opts)
 	env._bankTabs = tabs
 	env._bankMax = opts.bankMax or 7
 	env._bankBags = opts.bankBags or {}
+	env._accountBags = opts.accountBags or {}
 	env._atBank = false
 	env.C_Bank = {
 		CanViewBank = function(bankType)
