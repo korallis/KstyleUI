@@ -64,7 +64,7 @@ _G.KstyleUIIconData = {
 | `icons` | `{ [fileID] = path }` | Required. The key is the game's icon file ID, a number. The value is the path to the 128x128 PNG, `Interface\AddOns\<addon>\Icons\<fileID>.png`. An entry that is not a string is ignored. |
 | `schools` | `{ [fileID] = schoolMask }` | Optional. The spell school bit mask of the abilities that use the icon: 1 physical, 2 holy, 4 fire, 8 nature, 16 frost, 32 shadow, 64 arcane. `Apply` uses it when the caller passes no school. |
 
-`Tools/icons/iconset.py package` writes `Data.lua` from the accepted icons and `Tools/data/abilities.json`, and adds it to `Icons.xml`. The file holds data only: no frames, no events and no other globals. Tests: `Tools/regression/test-icons-set-a.lua` loads it and checks that every path has its PNG.
+`Tools/icons/iconset.py package` writes `Data.lua` from the accepted icons and `Tools/data/abilities.json`, and adds it to the addon's XML load file (`Icons.xml`, or `IconsColour.xml` for set B). The file holds data only: no frames, no events and no other globals. Tests: `Tools/regression/test-icons-set-a.lua` and `test-icons-set-b.lua` load each set and check that every path has its PNG.
 
 ### Settings
 

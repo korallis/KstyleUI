@@ -15,7 +15,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 - The addon holds data only: a table from icon file ID to texture path that `KstyleUI.Icons` reads. It creates no frames and registers no events.
 - Icons are 128x128 RGB PNG in full colour. The game shows them as they are: set B is never tinted.
-- Every icon has a row in `PROVENANCE.md` in this folder: the file ID it replaces, the spells that use it, model, prompt, Higgsfield job and date. The model exposes no seed.
+- Every icon has a row in [`PROVENANCE.md`](PROVENANCE.md): the file ID it replaces, the spells that use it, model, prompt, Higgsfield job and date. The model exposes no seed.
 - Strings go through `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `IconsColour.xml`.
 
 ## Art
@@ -29,7 +29,9 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Package | `iconset.py package --set B` writes `Icons/<fileID>.png` as 128x128 RGB, `PROVENANCE.md` and `Data.lua`, and adds `Data.lua` to `IconsColour.xml`. `--no-data` writes the icons and `PROVENANCE.md` only. |
 | Review and verify | `iconset.py sheets --set B` and `iconset.py verify --set B`, as for set A. |
 
-An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it.
+An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it. Today all 654 icon groups have art.
+
+`Data.lua` defines `KstyleUIIconData` with `set = "B"`, and `IconsColour.xml` loads it after `Init.lua`. Tests: `Tools/regression/test-icons-set-b.lua` loads the real addon through the `Icons` service at login, checks that every path has its PNG, and checks that set B is shown untinted and that a file ID with no art keeps the game's icon.
 
 ### Palettes
 
