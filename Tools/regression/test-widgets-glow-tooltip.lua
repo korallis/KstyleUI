@@ -109,6 +109,14 @@ do
 	tip:Show()
 	assert(tip.used[1].left:GetText() == secret, "a secret line passes through")
 	assert(tip._points[1][1] == "BOTTOM" and tip._points[1][3] == "TOP", "ANCHOR_TOP puts it above")
+	tip:ClearLines()
+	tip:AddLine("No wrap", "textHover", false)
+	tip:AddLine("Wraps", "textHover")
+	tip:AddLine("Plain no wrap", 1, 1, 1, false)
+	tip:Show()
+	assert(W.LastCall(tip.used[1].left, "SetWordWrap")[1] == false, "a token colour then false turns wrapping off")
+	assert(W.LastCall(tip.used[2].left, "SetWordWrap")[1] == true, "lines wrap by default")
+	assert(W.LastCall(tip.used[3].left, "SetWordWrap")[1] == false, "r, g, b then false turns wrapping off")
 	assert(#env._errors == 0)
 end
 

@@ -109,6 +109,9 @@ end
 
 function Tip:AddLine(text, a, b, c, wrap)
 	local line = Acquire(self, "line")
+	if type(a) == "string" and type(b) == "boolean" then
+		wrap = b
+	end
 	line.wrap = wrap ~= false
 	Widgets.SetText(line.left, text)
 	Color(line.left, a, b, c, "text")
