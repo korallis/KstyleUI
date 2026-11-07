@@ -1,8 +1,8 @@
--- Tracker.lua: the objective tracker skin: a glass panel, caption headers over accent lines, the skin font and KstyleUI progress bars.
+-- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content, caption headers over accent lines, the skin font and KstyleUI progress and timer bars.
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, Tokens, L = K.Skin, K.Tokens, K.L
+local Skin, L = K.Skin, K.L
 local Style, Parts, Skins = ns.Style, ns.Parts, ns.Skins
 
 local KEY = "tracker"
@@ -13,7 +13,8 @@ local LINE_ALPHA = 0.6
 local WEAK = { __mode = "k" }
 local done = setmetatable({}, WEAK)
 local fonts = {}
-local panel
+local panel, fit, fitBottom
+local hasContents = false
 
 local function Log(message)
 	K.DevTest.Log("Skins", KEY .. ": " .. message)
@@ -31,16 +32,7 @@ local function PlainSize(value)
 end
 
 local function PaintFont(entry)
-	local object = entry.object
-	local path, _, flags = Style.Font(entry.role)
-	object:SetFont(path, entry.size * Style.Setting("text", "size"), flags)
-	if flags == "" then
-		object:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		object:SetShadowOffset(offset, -offset)
-	else
-		object:SetShadowOffset(0, 0)
-	end
+	Style.ApplyFont(entry.object, entry.role, entry.size * Style.Setting("text", "size"))
 end
 
 local function PaintFonts()
@@ -94,7 +86,7 @@ local function Header(header)
 	Parts.AccentLine(header, { alpha = LINE_ALPHA })
 end
 
-local function ProgressBar(holder)
+local function Bar(holder)
 	local bar = type(holder) == "table" and holder.Bar
 	if type(bar) ~= "table" or done[bar] then
 		return
@@ -111,14 +103,25 @@ local function ProgressBar(holder)
 	if bar.Label then
 		Style.Text(bar.Label, "caption", "textEmphasis")
 	end
+	if holder.Label then
+		Style.Text(holder.Label, "caption")
+	end
+end
+
+local function Bars(list)
+	if type(list) == "table" then
+		for _, holder in pairs(list) do
+			Bar(holder)
+		end
+	end
 end
 
 local function ProgressBars(module)
-	if type(module.usedProgressBars) == "table" then
-		for _, holder in pairs(module.usedProgressBars) do
-			ProgressBar(holder)
-		end
-	end
+	Bars(module.usedProgressBars)
+end
+
+local function TimerBars(module)
+	Bars(module.usedTimerBars)
 end
 
 local function Module(module)
@@ -130,7 +133,47 @@ local function Module(module)
 	if type(module.GetProgressBar) == "function" then
 		hooksecurefunc(module, "GetProgressBar", ProgressBars)
 	end
+	if type(module.GetTimerBar) == "function" then
+		hooksecurefunc(module, "GetTimerBar", TimerBars)
+	end
 	ProgressBars(module)
+	TimerBars(module)
+end
+
+local function CountModule(module)
+	if not hasContents and type(module.GetContentsHeight) == "function" and PlainSize(module:GetContentsHeight()) then
+		hasContents = true
+	end
+end
+
+local function ShowsContent(tracker)
+	if type(tracker.IsCollapsed) == "function" and tracker:IsCollapsed() == true then
+		return false
+	end
+	if type(tracker.ForEachModule) ~= "function" then
+		return true
+	end
+	hasContents = false
+	tracker:ForEachModule(CountModule)
+	return hasContents
+end
+
+local function Fit(tracker)
+	local bottom = tracker.NineSlice
+	if type(tracker.Header) == "table" and not ShowsContent(tracker) then
+		bottom = tracker.Header
+	end
+	if type(bottom) ~= "table" then
+		bottom = tracker
+	end
+	if bottom == fitBottom then
+		return
+	end
+	fitBottom = bottom
+	fit:ClearAllPoints()
+	fit:SetPoint("TOPLEFT", tracker, "TOPLEFT")
+	fit:SetPoint("TOPRIGHT", tracker, "TOPRIGHT")
+	fit:SetPoint("BOTTOM", bottom, "BOTTOM")
 end
 
 local function PaintPanel()
@@ -142,7 +185,17 @@ end
 local function Apply()
 	local tracker = _G.ObjectiveTrackerFrame
 	Skin.Strip(tracker, { children = { "NineSlice" } })
-	panel = Skin.Backdrop(tracker, { shape = "panel", fill = "surface", inset = PANEL_OUTSET })
+	fit = CreateFrame("Frame", nil, tracker)
+	Fit(tracker)
+	if type(tracker.NineSlice) ~= "table" then
+		Log("NineSlice is missing; the panel covers the whole tracker")
+	end
+	if type(tracker.UpdateHeaderPosition) == "function" then
+		hooksecurefunc(tracker, "UpdateHeaderPosition", Fit)
+	else
+		Log("UpdateHeaderPosition is missing; the panel keeps its first fit through collapses and empty layouts")
+	end
+	panel = Skin.Backdrop(tracker, { shape = "panel", fill = "surface", inset = PANEL_OUTSET, target = fit })
 	PaintPanel()
 	Header(tracker.Header)
 	if type(tracker.ForEachModule) == "function" then

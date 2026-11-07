@@ -15,6 +15,7 @@ local BAR_SOURCES = { reaction = true, class = true, custom = true }
 local FILLS = { left = true, right = true }
 local ACCENTS = { appearance = true, class = true, custom = true }
 local GROUPS = { text = true, bars = true, accent = true }
+local FALLBACK_FONT = "GameFontHighlight"
 
 local WEAK = { __mode = "k" }
 local roles = setmetatable({}, WEAK)
@@ -102,6 +103,14 @@ end
 
 local loggedFonts = {}
 
+local function LogFont(path, outcome)
+	local message = "the font " .. tostring(path) .. " did not load; " .. outcome
+	if not loggedFonts[message] then
+		loggedFonts[message] = true
+		Log(message)
+	end
+end
+
 function Style.Font(role)
 	local path, size = Tokens.Font(role)
 	local face = Style.Setting("text", "font")
@@ -111,24 +120,43 @@ function Style.Font(role)
 	return path, size * Style.Setting("text", "size"), OUTLINES[Style.Setting("text", "outline")]
 end
 
+local function SetFace(object, path, role, size, flags)
+	if object:SetFont(path, size, flags) ~= false then
+		return true
+	end
+	local kitPath = Tokens.Font(role)
+	if kitPath ~= path and object:SetFont(kitPath, size, flags) ~= false then
+		LogFont(path, "skinned text uses the KstyleUI face")
+		return true
+	end
+	local fallback = _G[FALLBACK_FONT]
+	local face = type(fallback) == "table" and type(fallback.GetFont) == "function" and fallback:GetFont()
+	if not IsSecret(face) and type(face) == "string" and object:SetFont(face, size, flags) ~= false then
+		LogFont(path, "skinned text uses the face of " .. FALLBACK_FONT)
+		return true
+	end
+	LogFont(path, "no fallback face loaded either")
+	return false
+end
+
+function Style.ApplyFont(object, role, size)
+	local path, roleSize, flags = Style.Font(role)
+	local ok = SetFace(object, path, role, size or roleSize, flags)
+	if flags == "" then
+		object:SetShadowColor(Tokens.Color("textShadow"))
+		local offset = Tokens.Size("textShadowOffset")
+		object:SetShadowOffset(offset, -offset)
+	else
+		object:SetShadowOffset(0, 0)
+	end
+	return ok
+end
+
 function Style.Text(text, role, colorName)
 	role = role or roles[text] or "body"
 	roles[text] = role
-	local path, size, flags = Style.Font(role)
-	if text:SetFont(path, size, flags) == false then
-		local kitPath = Tokens.Font(role)
-		text:SetFont(kitPath, size, flags)
-		if not loggedFonts[path] then
-			loggedFonts[path] = true
-			Log("the font " .. tostring(path) .. " did not load; skinned text uses the KstyleUI face")
-		end
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
+	if not Style.ApplyFont(text, role) then
+		text:SetFontObject(FALLBACK_FONT)
 	end
 	if colorName then
 		Widgets.TextColor(text, colorName)

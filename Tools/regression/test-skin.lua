@@ -126,6 +126,27 @@ do
 	B.check(snap)
 end
 
+-- Backdrop with a target: the panel stays the frame's backdrop, one level behind it, but surrounds the target.
+do
+	local env, K = W.New()
+	local B = Blizzard(env)
+	local frame = B.frame()
+	frame:SetFrameLevel(10)
+	local target = env.CreateFrame("Frame", nil, frame)
+	local snap = B.snapshot()
+	local panel = K.Skin.Backdrop(frame, { inset = -8, target = target })
+	assert(panel:GetParent() == frame and panel:GetFrameLevel() == 9 and K.Skin.IsSkinned(frame, "Backdrop"), "the frame's backdrop")
+	local function Anchors()
+		local a, b = panel._points[1], panel._points[2]
+		return a[1] == "TOPLEFT" and a[2] == target and b[1] == "BOTTOMRIGHT" and b[2] == target
+	end
+	assert(Anchors(), "placed around the target")
+	assert(W.Near(panel._points[1][4], K.Widgets.Snap(panel, -8)), "with the inset, in whole pixels")
+	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	assert(Anchors(), "a restyle keeps the target")
+	B.check(snap)
+end
+
 -- CloseButton: Blizzard's art goes, KstyleUI's cross glyph lights under the mouse.
 do
 	local env, K = W.New()

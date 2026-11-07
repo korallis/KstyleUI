@@ -244,7 +244,7 @@ local function Insets(frame, inset)
 end
 
 local function PlaceBackdrop(panel)
-	local frame = panel:GetParent()
+	local frame = panel.target or panel:GetParent()
 	local left, right, top, bottom = Insets(panel, panel.inset)
 	panel:ClearAllPoints()
 	panel:SetPoint("TOPLEFT", frame, "TOPLEFT", left, -top)
@@ -259,7 +259,7 @@ local function Backdrop(frame, opts)
 	end
 	local panel = CreateFrame("Frame", nil, frame)
 	panel:SetFrameLevel(max(0, frame:GetFrameLevel() - 1))
-	panel.inset = opts.inset
+	panel.inset, panel.target = opts.inset, opts.target
 	panel.Restyle = PlaceBackdrop
 	PlaceBackdrop(panel)
 	panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow })

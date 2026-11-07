@@ -110,7 +110,8 @@ Every skin styles its text, bars and accent lines through `ns.Style`, so the set
 
 | Function | Behaviour |
 | --- | --- |
-| `Style.Text(fontString, role, colorName)` | The role's font (`Tokens.Font`) with the chosen face, size and edge, and a token colour. A face the game cannot load falls back to the KstyleUI face and logs once. |
+| `Style.Text(fontString, role, colorName)` | `Style.ApplyFont` at the role's size, and a token colour. If no face loads, the text takes the `GameFontHighlight` font object, as the core widget kit's text does. |
+| `Style.ApplyFont(object, role, size) -> ok` | The role's face (`Tokens.Font`, or the chosen face) and edge on a font string or a font object, at `size` (default: the role's size times the text size). A face the game cannot load falls back to the KstyleUI face, then to the face of `GameFontHighlight`, the font the core widget kit falls back to, at the same size; each fallback logs once. Returns `false` when no face loaded, and then leaves the object's font alone. |
 | `Style.StatusBar(bar)` | The bar texture, fill direction and colour on a status bar. It hooks the bar's `SetStatusBarColor`, so a colour Blizzard sets later is restyled too. A secret colour passes through untouched. |
 | `Style.BarColor(r, g, b)`, `Style.BarTexture()`, `Style.ReverseFill()` | The pieces, for bars that are not status bars. |
 | `Style.Accent() -> r, g, b`, `Style.TintAccent(region, alpha)` | The module's accent. |
@@ -173,10 +174,13 @@ On Forever the spellbook and the talents live in one window, `PlayerSpellsFrame`
 
 `ObjectiveTrackerFrame` comes from `Blizzard_ObjectiveTracker`. Edit Mode keeps placing and sizing it, as `v3/` shows it under the minimap's auras.
 
-- Blizzard's nine-slice backdrop goes, and a glass panel sits 8 units outside the tracker (setting `tracker.panel`). Edit Mode's opacity slider drives Blizzard's backdrop, which the skin hides, so the panel has its own switch.
+- Blizzard's nine-slice backdrop goes, and a glass panel sits 8 units outside what the tracker shows (setting `tracker.panel`). Edit Mode's opacity slider drives Blizzard's backdrop, which the skin hides, so the panel has its own switch.
+- The panel follows the content, not the tracker frame: Edit Mode sizes `ObjectiveTrackerFrame` to its height setting, or down to the bottom of the screen in the default position, whatever is tracked. The panel surrounds a KstyleUI frame (`Skin.Backdrop`'s `target`) whose top is the tracker's top. Its bottom is Blizzard's `NineSlice` bottom, which Blizzard anchors 10 units below the last module with content on every layout, so the panel grows and shrinks with each quest and each collapsed module. When the tracker is collapsed, or nothing is tracked (Blizzard then hides the tracker, except in Edit Mode), the bottom is the tracker's header instead.
+- A hook on the tracker's `UpdateHeaderPosition` re-checks collapse and content after every layout. Blizzard's last step of `ObjectiveTrackerFrameMixin.Update` calls it through `self`, so the hook runs on dirty updates too. A hook on `Update` itself would miss those: `DirtiableMixin` runs the `Update` the container captured at load.
 - The tracker's header and every module header lose their art and read as captions over an accent line. Modules the tracker adds later are skinned through a hook on its `AddModule`.
-- Quest progress bars lose their border art, sit on a dark tile, and take the shared bar texture, colour and fill (`Style.StatusBar`), through a hook on each module's `GetProgressBar`.
-- With `tracker.font` on, the two font objects every tracker line and block header use, `ObjectiveTrackerLineFont` and `ObjectiveTrackerHeaderFont`, take the skin face and edge at Blizzard's size times the shared text size. A hook on their `SetFontObject` keeps the skin font when Edit Mode changes the tracker's text size, and reads the new size from the font family's name (`ObjectiveTrackerFont16`). Turning the font off needs a reload.
+- Quest progress bars and timer bars lose their border art, sit on a dark tile, and take the shared bar texture, colour and fill (`Style.StatusBar`), through hooks on each module's `GetProgressBar` and `GetTimerBar`. Their labels take the caption font; a timer keeps Blizzard's colour, which turns red as time runs out.
+- With `tracker.font` on, Blizzard's two tracker font objects take the skin face and edge through `Style.ApplyFont`, at Blizzard's size times the shared text size. Quest titles (each block's `HeaderText`) and objective lines (each line's `Dash` and `Text`) inherit `ObjectiveTrackerLineFont` in XML and never set a font of their own, so every pooled line, new or reused, shows the skin face. `ObjectiveTrackerHeaderFont` is painted too, though the module and tracker headers it feeds are captions through `Style.Text`. A face the game cannot load falls back as `Style.ApplyFont` describes, so the tracker matches the rest of the interface. A hook on their `SetFontObject` keeps the skin font when Edit Mode changes the tracker's text size, and reads the new size from the font family's name (`ObjectiveTrackerFont16`). Turning the font off needs a reload.
+- Not restyled: the auto-accept quest pop-ups, the scenario stage block, the reward toast and the quest item buttons' hotkey and count. They keep Blizzard's fonts.
 
 | Setting | Default | Row |
 | --- | --- | --- |
