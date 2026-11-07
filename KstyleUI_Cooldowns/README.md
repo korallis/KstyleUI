@@ -31,7 +31,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Grid.lua` | Pure maths: where each icon or bar sits by cell size, spacing, columns, rows, growth and wrap |
 | `Data.lua` | The cooldowns each group shows, read from `C_CooldownViewer` and the player's Blizzard layout |
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
-| `Style.lua` | Fonts, accent tints, glows and tooltips shared by every icon |
+| `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows and tooltips shared by every icon |
 | `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, given back on Disable |
 | `Path.lua` | Which path each group takes, and the switch away from a mirror that fails |
@@ -76,7 +76,7 @@ Each row is a holder sized to its grid (icons per row by rows), so its footprint
 
 1. `Enable` reads the settings and asks `Path` which path each row takes. The mirror needs `C_CooldownViewer` with its category functions, `Enum.CooldownViewerCategory` and `C_Spell.GetSpellCooldownDuration`. Without them the row is `off`, Blizzard's viewer is left alone, and the devlog says why.
 2. `Data.Collect` lists the row's cooldowns. When Blizzard's settings provider has clean display data, it follows the player's own Cooldown Manager layout: its order and the categories the player moved cooldowns into. Otherwise it uses `GetCooldownViewerCategorySet(category, false)` minus the cooldowns Blizzard hides by default. A provider that is dirty is never read: a row that already follows the player's layout keeps it, a row that has nothing yet shows the defaults, and either retries once a second, up to ten times, until the data is clean. A category set that cannot be read (an error or a secret table) fails the row's mirror instead of showing an empty row.
-3. Each icon shows the spell's file ID through `KstyleUI.Icons.Apply`, so custom icon sets apply. Its cooldown is `C_Spell.GetSpellCooldownDuration(spell, ignoreGCD)` passed to `Cooldown:SetCooldownFromDurationObject`. A charge spell shows its charge count (secret or not, through `SetText`) and its recharge as an edge-only sweep from `GetSpellChargeDuration`.
+3. Each icon shows the spell's file ID through `KstyleUI.Icons.Apply`, so custom icon sets apply. Its cooldown is `C_Spell.GetSpellCooldownDuration(spell, ignoreGCD)` passed to `Cooldown:SetCooldownFromDurationObject`. A charge spell shows its charge count (secret or not, through `SetText`) and its recharge through `IconButton:SetChargeCooldownFromDuration` with `GetSpellChargeDuration`.
 4. `SPELL_UPDATE_COOLDOWN`, `SPELL_UPDATE_CHARGES`, `SPELL_UPDATE_USABLE`, `SPELL_UPDATE_ICON`, the spell-activation glow events and `COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED` refresh the icons. `SPELLS_CHANGED`, `PLAYER_ENTERING_WORLD`, the Cooldown Manager's data events and EventRegistry's `CooldownViewerSettings.OnDataChanged` rebuild the lists on the next frame.
 5. A spell is on a real cooldown when `C_Spell.GetSpellCooldown` says `isActive` and not `isOnGCD`, both fields Blizzard marks as never secret. The ready glow and the grey icon follow that, checked again when the Cooldown widget finishes.
 6. Blizzard's viewers are faded to alpha 0, never hidden or moved, and their items stop taking the mouse, so their tooltips do not open over an invisible spot.

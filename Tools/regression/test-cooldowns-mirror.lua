@@ -130,7 +130,7 @@ env.FireEvent("SPELL_UPDATE_CHARGES")
 local charged = essential.icons[2]
 local count = charged.count:GetText()
 assert(env.issecretvalue(count) and env.Reveal(count) == 1, "the charge count reaches SetText as the secret it is")
-assert(LastArg(charged.charge, "SetCooldownFromDurationObject") == env._cdm.chargeDurations[1002], "the recharge sweeps from its duration object")
+assert(LastArg(charged.chargeCooldown, "SetCooldownFromDurationObject") == env._cdm.chargeDurations[1002], "the recharge sweeps from its duration object")
 
 -- SPELL_UPDATE_COOLDOWN refreshes every icon with the new duration objects.
 env._cdm.durations[1001] = C.Duration(1001, "fresh")
@@ -242,6 +242,10 @@ K.Options.Write("Cooldowns", "accentColor", { r = 1, g = 0, b = 0 })
 local piece = essential.icons[2].readyGlow.slice[1]
 local r, g, b = piece:GetVertexColor()
 assert(r == 1 and g == 0 and b == 0, "the ready glow takes the custom accent")
+local er, eg, eb = essential.icons[2].chrome.edge[1], essential.icons[2].chrome.edge[2], essential.icons[2].chrome.edge[3]
+assert(er == 1 and eg == 0 and eb == 0, "the icon hairline takes the custom accent")
+K.Options.Write("Cooldowns", "accent", "class")
+assert(essential.icons[2].accent == nil, "the class accent follows the theme again")
 
 -- The devlog and /kstyle test report the path.
 local passed = false

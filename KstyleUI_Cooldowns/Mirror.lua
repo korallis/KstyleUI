@@ -129,30 +129,29 @@ end
 
 local function Charges(icon)
 	local entry = icon.entry
-	local charge = icon.charge
 	local api = C_Spell
 	if not (entry and entry.charges and entry.spell and api and api.GetSpellCharges) then
 		icon:SetCount(nil)
-		charge:Clear()
+		icon:ClearChargeCooldown()
 		return
 	end
 	local ok, info = pcall(api.GetSpellCharges, entry.spell)
 	local maxCharges = ok and type(info) == "table" and not ns.IsSecret(info) and info.maxCharges
 	if type(maxCharges) ~= "number" or ns.IsSecret(maxCharges) or maxCharges <= 1 then
 		icon:SetCount(nil)
-		charge:Clear()
+		icon:ClearChargeCooldown()
 		return
 	end
 	icon:SetCount(info.currentCharges)
 	local getter = api.GetSpellChargeDuration
-	if not getter or type(charge.SetCooldownFromDurationObject) ~= "function" then
+	if not getter then
 		return
 	end
 	local okDuration, duration = pcall(getter, entry.spell)
 	if okDuration and (ns.IsSecret(duration) or duration ~= nil) then
-		pcall(charge.SetCooldownFromDurationObject, charge, duration)
+		pcall(icon.SetChargeCooldownFromDuration, icon, duration)
 	else
-		charge:Clear()
+		icon:ClearChargeCooldown()
 	end
 end
 

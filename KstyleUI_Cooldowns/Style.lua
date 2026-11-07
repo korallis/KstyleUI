@@ -7,9 +7,6 @@ local Tokens, Widgets = K.Tokens, K.Widgets
 local Style = {}
 ns.Style = Style
 
-local REST_EDGE_ALPHA = 0.5
-local HOVER_EDGE_ALPHA = 0.5
-
 function Style.FontPath(choice)
 	if choice == "kit" or type(choice) ~= "string" then
 		return (Tokens.Font("number"))
@@ -41,42 +38,22 @@ local function Custom()
 	return current.accent == "custom" and current.accentR ~= nil
 end
 
-local function TintGlow(glow)
+function Style.Accent(icon)
 	if Custom() then
 		local r, g, b = ns.Settings.Accent()
-		Widgets.ColorSlice(glow.slice, r, g, b, 1)
+		icon:SetAccent(r, g, b)
+		icon.readyGlow:SetColorRGB(r, g, b)
+	else
+		icon:SetAccent()
+		icon.readyGlow:SetColorRGB()
 	end
-end
-
-function Style.WrapGlow(glow)
-	if not glow or glow.cooldownsWrapped then
-		return glow
-	end
-	glow.cooldownsWrapped = true
-	local restyle = glow.Restyle
-	glow.Restyle = function(self)
-		restyle(self)
-		TintGlow(self)
-	end
-	TintGlow(glow)
-	return glow
 end
 
 local function AfterPaint(icon)
 	local usable = icon.usable and icon:IsEnabled() ~= false
-	if not usable then
-		return
-	end
-	if icon.greyWhileCooling and icon.onCooldown then
-		K.Icons.Shade(icon.icon, 1, 1, 1, true)
-	end
-	if Custom() and not icon.cooling then
-		local r, g, b = ns.Settings.Accent()
-		if icon.proc or icon.selected then
-			icon.chrome:SetEdgeRGBA(r, g, b, 1)
-		else
-			icon.chrome:SetEdgeRGBA(r, g, b, REST_EDGE_ALPHA + HOVER_EDGE_ALPHA * (icon.hoverT or 0))
-		end
+	if usable and icon.greyWhileCooling and icon.onCooldown then
+		local tint = icon.tint
+		K.Icons.Shade(icon.icon, tint[1], tint[2], tint[3], true)
 	end
 end
 
@@ -108,15 +85,7 @@ function Style.Decorate(icon)
 		paint(self)
 		AfterPaint(self)
 	end
-	local charge = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate")
-	charge:SetAllPoints(icon.icon)
-	charge:SetDrawSwipe(false)
-	charge:SetDrawEdge(true)
-	charge:SetDrawBling(false)
-	charge:SetHideCountdownNumbers(true)
-	icon.charge = charge
-	icon.overlay:SetFrameLevel(charge:GetFrameLevel() + 1)
-	icon.readyGlow = Style.WrapGlow(Widgets.Glow(icon, { kind = "selection" }))
+	icon.readyGlow = Widgets.Glow(icon, { kind = "selection" })
 	icon:HookScript("OnEnter", ShowTooltip)
 	icon:HookScript("OnLeave", HideTooltip)
 	return icon
@@ -128,7 +97,6 @@ function Style.SetProc(icon, on)
 		return
 	end
 	icon:SetProc(on)
-	Style.WrapGlow(icon.procGlow)
 end
 
 function Style.SetReady(icon, on)

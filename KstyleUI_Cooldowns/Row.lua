@@ -34,11 +34,7 @@ function Row:StyleIcon(icon)
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
 	Style.Mouse(icon, current.tooltips)
-	icon.readyGlow:Restyle()
-	if icon.procGlow then
-		icon.procGlow:Restyle()
-	end
-	icon:Paint()
+	Style.Accent(icon)
 end
 
 function Row:Icon(index)
