@@ -294,14 +294,12 @@ end
 
 local GLOBAL_EVENTS = {
 	NAME_PLATE_UNIT_ADDED = function(_, unit)
+		UpdateTokens()
 		Attach(unit)
-		local plate = byUnit[unit]
-		if plate then
-			plate:UpdateHighlight()
-		end
 	end,
 	NAME_PLATE_UNIT_REMOVED = function(_, unit)
 		Detach(unit)
+		UpdateTokens()
 	end,
 	RAID_TARGET_UPDATE = ForAll("UpdateRaid"),
 	PLAYER_TARGET_CHANGED = OnHighlight,

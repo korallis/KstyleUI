@@ -277,6 +277,19 @@ do
 	assert(not SameColor(fr, fg, fb, edgeColor(one.health)), "clearing the focus clears the edge")
 end
 
+-- The target's plate leaves range and its base comes back for another unit: no stale highlight ---------
+
+do
+	local env, _, ns = N.New()
+	local base = N.Add(env, "nameplate1")
+	N.Target(env, "nameplate1")
+	N.Remove(env, "nameplate1")
+	env._targetUnit = "target"
+	env._units.target = { name = "Far Away" }
+	N.Add(env, "nameplate2", nil, { base = base })
+	assert(not ns.Plates.Get("nameplate2").targetGlow[1]:IsShown(), "a reused base is not the target any more")
+end
+
 -- A client whose GetNamePlateForUnit takes only nameplate tokens: highlights fall back to UnitIsUnit ---
 
 do
