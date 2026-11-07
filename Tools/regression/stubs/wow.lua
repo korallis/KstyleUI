@@ -189,6 +189,16 @@ local function newObject(env, objectType, name, parent)
 	}, ObjectMeta)
 end
 
+-- A status bar draws its fill with a texture region that GetStatusBarTexture returns.
+function Object:SetStatusBarTexture(asset)
+	if not self._barTexture then
+		self._barTexture = newObject(self._env, "Texture", nil, self)
+		self._regions[#self._regions + 1] = self._barTexture
+	end
+	self._barTexture:SetTexture(asset)
+end
+function Object:GetStatusBarTexture() return self._barTexture end
+
 for name in pairs(Object) do
 	assert(METHODS[name], "stub method " .. name .. " is not a Forever widget method")
 end

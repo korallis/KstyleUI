@@ -281,6 +281,60 @@ A click calls `ColorPickerFrame:SetupColorPickerAndShow`, Blizzard's public setu
 | `SetColor(r, g, b, a, silent) -> ok` | Refuses a channel outside 0 to 1. A missing alpha is 1. |
 | `Open() -> ok` | Returns `false` and logs once when `ColorPickerFrame` or its setup function is missing. |
 
+## StatusBar
+
+`StatusBar(parent, opts) -> StatusBar`: a bar for health, power, casts, experience and timers. Lua never reads its value: values go only to the engine's setters, so secret health and power work as they are.
+
+Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default, or a path), `color` (a token, default `accent`), `background` (a token, default `track`, or `false` for none), `smooth` (the engine eases each change with `Enum.StatusBarInterpolation.ExponentialEaseOut`), `spark`, `sheen`, `border` (a chamfered tile two borders outside the bar), `orientation` (`HORIZONTAL` or `VERTICAL`), `reverse`, `min`, `max`, `value`, `width` and `height` (default `buffBarWidth` by `buffBarHeight`, 180 by 18), `name`.
+
+| Method | Behaviour |
+| --- | --- |
+| `SetBarValue(value)` | `SetValue(value)`, with the ease-out when `smooth` is set and the client has the enum. A secret reaches the engine untouched. |
+| `SetBarRange(min, max)` | `SetMinMaxValues(min, max)`. |
+| `SetBarDuration(durationObject) -> ok` | `SetTimerDuration`, for cast bars driven by a duration object. Returns `false` and logs once when the method is missing. |
+| `SetColorToken(name)` | Colours the fill with a token. An `accent` bar follows the class colour on `ThemeChanged`. |
+| `SetBarColor(r, g, b, a)` | Colours the fill with the caller's values, passed on as they are, so a colour from a curve works. A theme change keeps it. |
+| `SetBarTexture(keyOrPath)` | Changes the fill and the background texture. |
+| `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it. |
+| `SetSparkShown(shown)` | |
+
+The spark is the `glow` texture, additive, centred on the edge of the fill texture (`GetStatusBarTexture()`): right, left for a reversed bar, top or bottom for a vertical one. The engine moves it with the fill.
+
+Fields: `background`, `spark`, `sheen`, `sheenClip`, `sheenAnim`, `sheenMove`, `borderFrame`, `chrome`.
+
+## Popup and Confirm
+
+KstyleUI's own dialogs. They never use `StaticPopupDialogs`. One dialog shows at a time in a shared glass panel, `DialogHost()`, in the `DIALOG` strata, 360 units wide. It registers with Layout as `Widgets.Dialog` (scalable, 120 units above the centre by default), so the player can move and resize it.
+
+`Popup(opts) -> handle`. Options: `title` (default `KstyleUI`), `text`, `buttons = { { label, onClick(handle), primary, reload }, ... }` (default one OK button), `editBox = { text, placeholder, maxLetters }`, `onCancel(handle)`, `key`.
+
+- A button click runs its `onClick`, then closes the dialog. A `reload` button is a [reload button](#reload-button).
+- Escape runs `onCancel`, then closes the dialog. Enter in the edit box presses the primary button.
+- A second popup waits until the first closes. A popup whose `key` is shown or waiting returns that handle instead of queueing again.
+
+| Handle method | Behaviour |
+| --- | --- |
+| `Close()` | Closes a shown dialog and shows the next, or drops a waiting one. |
+| `IsShown() -> boolean` | |
+| `GetText() -> text` | The edit box's text. |
+
+Field: `editBox`, when the popup has one.
+
+`Confirm(opts) -> handle` is a popup with a Cancel button and a primary Accept button. Options: `title`, `text`, `acceptLabel`, `cancelLabel`, `onAccept(handle)`, `onCancel(handle)`, `reload` (Accept becomes a reload button), `key`.
+
+`ReloadPrompt(text) -> handle` is a confirm titled "Reload needed" with **Later** and a **Reload now** reload button. Its key keeps it from stacking.
+
+## Reload button
+
+`ReloadButton(parent, opts) -> Button`: a primary [button](#button) labelled Reload. Options: `text`, `width`, `height`, `name`, `tooltip`.
+
+`ReloadUI()` is blocked for addon code, so the click goes to one shared `SecureActionButtonTemplate` button with the attributes `type = "macro"`, `macrotext = "/reload"` and `useOnKeyDown = false`, registered for `AnyUp`:
+
+- It is made on the first hover out of combat, parented to `UIParent` so no KstyleUI frame becomes protected.
+- On hover it is anchored over the reload button, in its strata, five levels above. It forwards hover and press to the visible button, and hides when the pointer leaves or the button hides.
+- `PLAYER_REGEN_DISABLED` fires before lockdown: the secure button hides and unanchors, and every reload button disables until `PLAYER_REGEN_ENABLED`. No attribute, anchor or visibility of the secure button changes in combat.
+- A reload button made in combat starts disabled. A click that reaches the visible button anyway prints "Type /reload to reload the interface."
+
 ## Glow
 
 `Glow(frame, opts) -> handle`: a glow drawn from the `shadow` falloff with additive blending, on a frame one level behind `frame`, so the frame's own fill hides the inside.

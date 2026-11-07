@@ -125,6 +125,14 @@ kid:Disable(); assert(kid:IsEnabled() == false and seen[1] == "off")
 kid:SetEnabled(true); assert(kid:IsEnabled() == true and seen[2] == "on")
 kid:Enable(); assert(#seen == 2, "enabling an enabled button runs no script")
 
+-- A status bar's fill is a texture region, as in the game.
+local sb = env.CreateFrame("StatusBar")
+sb:SetStatusBarTexture("Interface\\Bar")
+local fillTexture = sb:GetStatusBarTexture()
+assert(type(fillTexture) == "table" and fillTexture:GetObjectType() == "Texture" and fillTexture:GetTexture() == "Interface\\Bar")
+sb:SetStatusBarTexture("Interface\\Other")
+assert(sb:GetStatusBarTexture() == fillTexture, "the same region keeps the new texture")
+
 -- Environments do not share state, and builtins come from _G.
 local other = Stubs.NewEnv()
 assert(other.TestFrame == nil and select(2, other.GetPhysicalScreenSize()) == 1080)
