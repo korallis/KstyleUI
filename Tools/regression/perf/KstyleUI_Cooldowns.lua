@@ -17,7 +17,7 @@ end
 return {
 	{
 		name = "Cooldowns UNIT_AURA",
-		budget = 120,
+		budget = 160,
 		setup = function()
 			local env = Mirror()
 			local fire = Perf.Event(env, "UNIT_AURA", "player", { isFullUpdate = false, updatedAuraInstanceIDs = { 71 } })

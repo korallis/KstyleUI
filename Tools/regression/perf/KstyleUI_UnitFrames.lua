@@ -41,7 +41,7 @@ return {
 	},
 	{
 		name = "UnitFrames UNIT_SPELLCAST_START",
-		budget = 120,
+		budget = 80,
 		setup = function()
 			local env = Target()
 			env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 }
