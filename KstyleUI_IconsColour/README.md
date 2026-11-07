@@ -31,6 +31,20 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it. Today all 654 icon groups have art.
 
+### Repainted from Blizzard's icon
+
+The free paintings above were not recognisable as the abilities they stand for. The 79 icon groups a warrior uses (every spec, stances, shared talents and the general Throw) were repainted from Blizzard's own icon with `--mode subject_reference`, the method the owner approved in a pilot. The other icon groups still have the free paintings until their class is repainted the same way.
+
+| Step | Command | What it does |
+| --- | --- | --- |
+| Extract | `iconset.py extract --owner WARRIOR` | Reads each icon's BLP2 texture from the installed WoW Forever client by file ID with TACTTool (`~/.local/share/wow-dev/casc/TACTTool`, read-only, product `wowf`), decodes it with Pillow, composites it over black and upscales it to 512 pixels in `~/.local/share/wow-dev/icons/blizzard/<fileID>.png`. Nothing from the client enters the repository; `PROVENANCE.md` records the BLP's sha256. |
+| Generate | `iconset.py generate --set B --mode subject_reference --owner WARRIOR` | Extracts any icon the cache lacks, then one `gpt_image_2_5` image per group at `1:1 --resolution 1k --quality high` with two image references: the Blizzard icon first (image 1, the subject) and `docs/design/mockups/icons_B_buttons.png` second (image 2, the action-button strip from the design sheet, finish only). The prompt asks for image 1 repainted with the same subject, silhouette, composition, viewing angle, scale and colours, the bevelled frame removed and the art extended to every edge, and nothing added. A group accepted in `style` mode is repainted; its style image stays in the package until a repaint is accepted. |
+| Subjects | `Tools/data/icon_subjects.json` | A hand-checked sentence per file ID, added to the prompt only where the reference alone was not enough. |
+| Check | `check_icons.py --set faithful` inside `generate` | `judge_faithful`: blank, flat, frame, grid and text as for set B, no off-centre check (Blizzard's composition decides where the subject sits), plus `drift` when the 8x8 light-and-dark layout of the repaint correlates below 0.6 with the Blizzard icon. The pilot's eight repaints scored 0.79 to 0.95; the free paintings scored -0.24 to 0.48. Every result was also compared by eye against its original at 128 and 32 pixels. |
+| Package | `iconset.py package --set B` | As above. The provenance row carries the method (`style` or `subject_reference`) and the Blizzard BLP sha256. |
+
+`--owner WARRIOR` keeps the groups with a spell whose owner list has that class; `--dry-run` prints the count and the first prompts. The run stops before the balance would fall below `--floor`.
+
 `Data.lua` defines `KstyleUIIconData` with `set = "B"`, and `IconsColour.xml` loads it after `Init.lua`. Tests: `Tools/regression/test-icons-set-b.lua` loads the real addon through the `Icons` service at login, checks that every path has its PNG, and checks that set B is shown untinted and that a file ID with no art keeps the game's icon.
 
 ### Palettes

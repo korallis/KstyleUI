@@ -19,6 +19,7 @@ import iconset  # noqa: E402
 
 SET_A = iconset.SETS["A"]
 SET_B = iconset.SETS["B"]
+FAITHFUL = iconset.faithful(SET_B)
 
 
 def spell(name, owner, line, school=1, description="", category="class", subtext=""):
@@ -57,16 +58,18 @@ class FakeService:
         self.cost = cost
         self.fail = set(fail)
         self.prompts = []
+        self.references = []
         self.balance_calls = 0
 
     def icon_of(self, prompt):
         return self.names[re.search(r'"([^"]+)"', prompt).group(1)]
 
-    def run(self, prompt):
+    def run(self, prompt, references=()):
         if self.busy:
             self.busy -= 1
             raise iconset.RateLimited("rate_limit_reached")
         self.prompts.append(prompt)
+        self.references.append(list(references))
         n = len(self.prompts)
         icon = self.icon_of(prompt)
         if (icon, sum(1 for p in self.prompts if self.icon_of(p) == icon)) in self.fail:
@@ -87,13 +90,13 @@ class FakeService:
         return self.balance_start - self.cost * len(self.prompts)
 
 
-def run(groups, service, raw, **kwargs):
+def run(groups, service, raw, icon_set=SET_A, **kwargs):
     options = {"jobs": 1, "floor": 1300, "cost": 1.5, "refresh_every": 100}
     options.update(kwargs)
     service.names.update({g["name"]: g["icon"] for g in groups})
     return iconset.generate(
         groups,
-        SET_A,
+        icon_set,
         raw,
         runner=service.run,
         fetch=service.fetch,
@@ -117,6 +120,13 @@ class OrderTest(unittest.TestCase):
     def test_filters_by_category(self):
         data = {"icons": [group(5, "Fishing", "profession"), group(2, "Frostbolt")]}
         self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, ["profession"])], [5])
+
+    def test_filters_by_the_class_that_uses_a_spell(self):
+        throw = group(1, "Throw", "general", spells=[spell("Throw", "HUNTER,ROGUE,WARRIOR", "General", category="general")])
+        shared = group(2, "Backstab", spells=[spell("Backstab", "ROGUE", "Combat"), spell("Deep Wounds", "WARRIOR", "Arms")])
+        data = {"icons": [group(3, "Fireball"), throw, shared]}
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, owner="WARRIOR")], [2, 1])
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, ["class"], owner="WARRIOR")], [2])
 
 
 class DescriptionTest(unittest.TestCase):
@@ -242,6 +252,210 @@ class SetBPromptTest(unittest.TestCase):
             self.assertIn(code, iconset.HINTS_B)
 
 
+class FaithfulSetTest(unittest.TestCase):
+    """Set B repainted from Blizzard's own icon (image 1) in the look of the action-button strip (image 2)."""
+
+    def test_packages_into_the_same_addon_with_its_own_check_and_references(self):
+        self.assertEqual((FAITHFUL.name, FAITHFUL.addon, FAITHFUL.xml), (SET_B.name, SET_B.addon, SET_B.xml))
+        self.assertEqual(FAITHFUL.mode, "subject_reference")
+        self.assertEqual(FAITHFUL.judge, "faithful")
+        self.assertEqual(FAITHFUL.reference, "docs/design/mockups/icons_B_buttons.png")
+        self.assertEqual(SET_B.mode, "style")
+        self.assertEqual(SET_B.judge, "B")
+
+    def test_the_prompt_repaints_image_1_in_the_finish_of_image_2(self):
+        lead, prompt = iconset.prompt_for(FAITHFUL, group(132337, "Charge", owner="WARRIOR", line="Arms"))
+        self.assertTrue(lead.startswith('Image 1 is a World of Warcraft ability icon, "Charge". Image 2 shows the target UI style'))
+        self.assertIn("do not copy any subject from image 2", lead)
+        self.assertIn("same subject, silhouette, composition, viewing angle, scale and dominant colours", lead)
+        self.assertIn("Remove image 1's dark bevelled frame and extend the art to every edge", lead)
+        self.assertIn("add nothing that is not in image 1", lead)
+        self.assertNotIn("Colours:", lead)
+        self.assertNotIn("What it does", lead)
+        self.assertEqual(prompt, f"{lead} {FAITHFUL.style}")
+        self.assertIn("edge to edge", FAITHFUL.style)
+        self.assertIn("No text", FAITHFUL.style)
+
+    def test_adds_a_hand_checked_subject_sentence_when_one_exists(self):
+        subjects = {132337: "a steel sword over a bold red arrow"}
+        lead, _ = iconset.prompt_for(FAITHFUL, group(132337, "Charge"), subjects=subjects)
+        self.assertIn("instantly: a steel sword over a bold red arrow. Keep the subject", lead)
+        without, _ = iconset.prompt_for(FAITHFUL, group(132337, "Charge"), subjects={})
+        self.assertIn("recognises it instantly. Keep the subject", without)
+
+    def test_a_drift_reroll_asks_to_stay_closer_to_image_1(self):
+        lead, _ = iconset.prompt_for(FAITHFUL, group(132337, "Charge"), reasons=["drift"])
+        self.assertIn(iconset.HINTS_FAITHFUL["drift"], lead)
+        self.assertIn("image 1", iconset.HINTS_FAITHFUL["drift"])
+
+    def test_every_faithful_reason_has_a_fix(self):
+        for reason in ("blank", "flat", "frame", "grid", "drift", "text"):
+            self.assertIn(reason, iconset.HINTS_FAITHFUL)
+
+    def test_subjects_file_maps_file_ids_to_sentences(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "icon_subjects.json"
+            self.assertEqual(iconset.load_subjects(path), {})
+            path.write_text(json.dumps({"132337": "a sword over an arrow"}))
+            self.assertEqual(iconset.load_subjects(path), {132337: "a sword over an arrow"})
+
+
+class ExtractTest(unittest.TestCase):
+    """extract reads Blizzard's icon from the installed client by file ID, once, into a cache outside the repo."""
+
+    def test_runs_the_tool_once_per_file_id_and_caches_the_decoded_icon(self):
+        import hashlib
+
+        calls = []
+
+        def tool(icon, blp):
+            calls.append(icon)
+            Path(blp).write_bytes(b"BLP2" + str(icon).encode())
+
+        def decode(blp, png):
+            Path(png).write_bytes(b"PNG" + Path(blp).read_bytes())
+
+        with tempfile.TemporaryDirectory() as tmp:
+            first = iconset.extract_icon(132337, tmp, tool=tool, decode=decode)
+            again = iconset.extract_icon(132337, tmp, tool=tool, decode=decode)
+            self.assertEqual(calls, [132337])
+            self.assertEqual(first, again)
+            self.assertEqual(first["png"], str(Path(tmp) / "132337.png"))
+            self.assertEqual(first["blp_sha256"], hashlib.sha256(b"BLP2132337").hexdigest())
+            self.assertEqual(Path(first["png"]).read_bytes(), b"PNGBLP2132337")
+
+    def test_a_tool_that_writes_nothing_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(iconset.ExtractError, "132337"):
+                iconset.extract_icon(132337, tmp, tool=lambda icon, blp: None, decode=lambda blp, png: None)
+
+    def test_the_tool_reads_the_game_folder_by_file_id(self):
+        command = iconset.tacttool_command(132337, Path("/cache/132337.blp"))
+        self.assertEqual(command[1:], ["-p", "wowf", "-r", "eu", "-d", "/Applications/World of Warcraft",
+                                       "-m", "id", "-i", "132337", "-o", "/cache/132337.blp"])
+
+
+class FaithfulGenerateTest(unittest.TestCase):
+    def test_passes_the_blizzard_icon_as_the_first_reference_and_records_the_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = FakeService()
+            sources = {10: {"png": "/cache/10.png", "blp_sha256": "abc123"}}
+            summary = run([group(10, "Charge")], service, Path(tmp), icon_set=FAITHFUL, sources=sources)
+            self.assertEqual(summary["accepted"], 1)
+            self.assertEqual(service.references, [["/cache/10.png"]])
+            attempt = json.loads((Path(tmp) / "10.json").read_text())["attempts"][0]
+            self.assertEqual(attempt["mode"], "subject_reference")
+            self.assertEqual(attempt["source"], {"fileID": 10, "blp_sha256": "abc123"})
+            self.assertTrue(attempt["prompt"].startswith("Image 1 is"))
+
+    def test_style_mode_passes_no_subject_reference_and_records_its_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = FakeService()
+            run([group(10, "Charge")], service, Path(tmp), icon_set=SET_B)
+            self.assertEqual(service.references, [[]])
+            attempt = json.loads((Path(tmp) / "10.json").read_text())["attempts"][0]
+            self.assertEqual(attempt["mode"], "style")
+            self.assertNotIn("source", attempt)
+
+    def test_repaints_an_icon_accepted_in_style_mode_once_and_keeps_a_faithful_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp)
+            service = FakeService()
+            groups = [group(10, "Charge"), group(11, "Rend")]
+            sources = {10: {"png": "/cache/10.png", "blp_sha256": "a"}, 11: {"png": "/cache/11.png", "blp_sha256": "b"}}
+            run(groups, service, raw, icon_set=SET_B)
+            self.assertEqual(len(service.prompts), 2)
+            summary = run(groups, service, raw, icon_set=FAITHFUL, sources=sources)
+            self.assertEqual(len(service.prompts), 4)
+            self.assertEqual(summary["accepted"], 2)
+            run(groups, service, raw, icon_set=FAITHFUL, sources=sources)
+            self.assertEqual(len(service.prompts), 4)
+            record = json.loads((raw / "10.json").read_text())
+            self.assertEqual(record["rerollFrom"], 0, "the style image stays as a fallback; no owner reroll")
+            self.assertEqual(iconset.accepted_attempt(record)["mode"], "subject_reference")
+            run(groups, service, raw, icon_set=SET_B)
+            self.assertEqual(len(service.prompts), 4, "a faithful icon counts as done for a plain set B run")
+
+    def test_a_missing_source_leaves_the_icon_pending_for_a_run_after_extract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = FakeService()
+            groups = [group(10, "Charge")]
+            summary = run(groups, service, Path(tmp), icon_set=FAITHFUL, sources={})
+            self.assertEqual(service.prompts, [])
+            self.assertEqual(summary["pending"], [10])
+            self.assertEqual(iconset.load_record(Path(tmp), groups[0])["attempts"], [])
+            summary = run(groups, service, Path(tmp), icon_set=FAITHFUL, sources={10: {"png": "/c/10.png", "blp_sha256": "a"}})
+            self.assertEqual(summary["accepted"], 1)
+
+    def test_a_plain_style_run_keeps_an_accepted_repaint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp)
+            service = FakeService()
+            groups = [group(10, "Charge"), group(11, "Rend")]
+            sources = {i: {"png": f"/c/{i}.png", "blp_sha256": "a"} for i in (10, 11)}
+            run([groups[0]], service, raw, icon_set=FAITHFUL, sources=sources)  # first made in faithful mode
+            run([groups[1]], service, raw, icon_set=SET_B)
+            run([groups[1]], service, raw, icon_set=FAITHFUL, sources=sources, reroll={11})  # owner reroll hides the style attempt
+            self.assertEqual(len(service.prompts), 3)
+            summary = run(groups, service, raw, icon_set=SET_B)
+            self.assertEqual(len(service.prompts), 3)
+            self.assertEqual(summary["accepted"], 2)
+            for g in groups:
+                self.assertEqual(iconset.accepted_attempt(iconset.load_record(raw, g))["mode"], "subject_reference")
+            run([groups[1]], service, raw, icon_set=SET_B, reroll={11})
+            self.assertEqual(len(service.prompts), 4, "an explicit reroll still makes a style image")
+
+
+class RejudgeTest(unittest.TestCase):
+    """rejudge re-runs the set's check on the images a mode already has, after the check changes."""
+
+    def test_flips_the_verdict_of_an_image_the_check_now_accepts_and_leaves_failed_jobs_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp)
+            service = FakeService(verdicts={10: [["frame"], ["frame"], ["frame"]], 11: [[]]}, fail={(12, 1), (12, 2)})
+            groups = [group(10, "Charge"), group(11, "Rend"), group(12, "Slam")]
+            sources = {i: {"png": f"/cache/{i}.png", "blp_sha256": "a"} for i in (10, 11, 12)}
+            run(groups, service, raw, icon_set=FAITHFUL, sources=sources)
+            self.assertEqual(iconset.next_step(iconset.load_record(raw, groups[0]), "subject_reference"), "exhausted")
+
+            changed = iconset.rejudge(groups, FAITHFUL, raw, judge=lambda path: [], today="2026-11-08", log=lambda m: None)
+            self.assertEqual([(icon, image) for icon, image, _, _ in changed], [(10, "10-1.png"), (10, "10-2.png"), (10, "10-3.png")])
+            record = iconset.load_record(raw, groups[0])
+            self.assertEqual([a["verdict"] for a in record["attempts"]], ["accepted"] * 3)
+            self.assertEqual(record["attempts"][2]["rejudged"], "2026-11-08")
+            self.assertEqual(iconset.accepted_attempt(record)["image"], "10-3.png")
+            self.assertNotIn("rejudged", iconset.load_record(raw, groups[1])["attempts"][0])
+            self.assertEqual([a["verdict"] for a in iconset.load_record(raw, groups[2])["attempts"]], ["failed", "failed"])
+
+    def test_names_only_the_groups_with_an_image_of_the_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp)
+            groups = [group(10, "Charge"), group(11, "Rend"), group(12, "Slam")]
+            run([groups[0]], FakeService(), raw, icon_set=FAITHFUL, sources={10: {"png": "/c/10.png", "blp_sha256": "a"}})
+            run([groups[1]], FakeService(), raw, icon_set=SET_B)
+            self.assertEqual([g["icon"] for g in iconset.rejudge_groups(groups, FAITHFUL, raw)], [10])
+            self.assertEqual([g["icon"] for g in iconset.rejudge_groups(groups, SET_B, raw)], [11])
+
+    def test_only_the_mode_s_attempts_are_rejudged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp)
+            service = FakeService(verdicts={10: [["frame"], []]})
+            groups = [group(10, "Charge")]
+            run(groups, service, raw, icon_set=SET_B)
+            changed = iconset.rejudge(groups, FAITHFUL, raw, judge=lambda path: [], today="d", log=lambda m: None)
+            self.assertEqual(changed, [])
+            self.assertEqual([a["verdict"] for a in iconset.load_record(raw, groups[0])["attempts"]], ["rejected", "accepted"])
+
+    def test_a_stricter_check_can_reject_an_accepted_image(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp)
+            groups = [group(10, "Charge")]
+            run(groups, FakeService(), raw, icon_set=FAITHFUL, sources={10: {"png": "/c/10.png", "blp_sha256": "a"}})
+            changed = iconset.rejudge(groups, FAITHFUL, raw, judge=lambda path: ["drift"], today="d", log=lambda m: None)
+            self.assertEqual(changed, [(10, "10-1.png", [], ["drift"])])
+            self.assertIsNone(iconset.accepted_attempt(iconset.load_record(raw, groups[0])))
+
+
 class GenerateTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -355,7 +569,7 @@ class GenerateTest(unittest.TestCase):
         service = FakeService()
         real_run = service.run
 
-        def interrupted(prompt):
+        def interrupted(prompt, references=()):
             if not service.prompts:
                 time.sleep(0.2)  # let the main thread finish queueing and wait on the first icon
                 os.kill(os.getpid(), signal.SIGINT)  # Ctrl+C reaches the main thread, not this worker
@@ -408,7 +622,8 @@ class PackageTextTest(unittest.TestCase):
         text = iconset.render_provenance(SET_A, self.entries())
         rows = [line for line in text.splitlines() if line.startswith("| `")]
         self.assertEqual(len(rows), 2)
-        self.assertTrue(rows[0].startswith("| `132089` | Prowl, Shadowmeld | gpt_image_2_5 | "))
+        self.assertIn("| File ID | Spells | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |", text)
+        self.assertTrue(rows[0].startswith("| `132089` | Prowl, Shadowmeld | gpt_image_2_5 | style | Icon for \"Prowl\" |  | job-1 |"))
         self.assertIn('Icon for "Fireball" \\| hot', rows[1])
         self.assertIn("job-2", rows[1])
         self.assertIn("2026-11-07", rows[1])
@@ -452,6 +667,22 @@ class SetBPackageTextTest(unittest.TestCase):
         self.assertIn(SET_B.checks, text)
         self.assertNotIn("off-black", text)
         self.assertEqual(len([line for line in text.splitlines() if line.startswith("| `")]), 1)
+        self.assertNotIn("TACTTool", text, "a set with no faithful icon does not describe the Blizzard source")
+
+    def test_a_faithful_row_names_the_method_and_the_blizzard_blp_hash(self):
+        digest = "69f12f1fe357130b" * 4
+        entries = self.entries() + [{"group": group(132337, "Charge"), "attempt": {
+            "lead": 'Image 1 is "Charge"', "job": "job-3", "model": "gpt_image_2_5", "date": "2026-11-07",
+            "mode": "subject_reference", "source": {"fileID": 132337, "blp_sha256": digest}}}]
+        text = iconset.render_provenance(SET_B, entries)
+        rows = [line for line in text.splitlines() if line.startswith("| `")]
+        self.assertEqual(rows[0], f"| `132337` | Charge | gpt_image_2_5 | subject_reference | Image 1 is \"Charge\" | {digest} | job-3 | 2026-11-07 |")
+        self.assertIn("TACTTool", text)
+        self.assertIn("/Applications/World of Warcraft", text)
+        self.assertIn(FAITHFUL.reference, text)
+        self.assertIn(FAITHFUL.style, text)
+        self.assertIn(SET_B.style, text)
+        self.assertIn(FAITHFUL.checks, text)
 
 
 class IncludeDataTest(unittest.TestCase):
@@ -554,6 +785,19 @@ class SetBVerifyTest(unittest.TestCase):
             self.assertIn("Icons/135812.png is not an 8-bit RGB PNG", iconset.verify_package(SET_B, self.groups, self.repo))
 
 
+class PackageFiltersTest(unittest.TestCase):
+    def test_package_and_verify_take_no_filter_that_would_drop_the_other_icons(self):
+        import contextlib
+        import io
+
+        for argv in (["package", "--owner", "WARRIOR"], ["package", "--categories", "class"], ["verify", "--owner", "WARRIOR"]):
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
+                iconset.main(argv)
+            self.assertEqual(stop.exception.code, 2, argv)
+            self.assertIn("unrecognized arguments", err.getvalue())
+
+
 class FloorTest(unittest.TestCase):
     def test_each_set_has_its_own_credit_floor(self):
         self.assertEqual(SET_A.floor, 1300)
@@ -608,6 +852,24 @@ class JudgeWrapperTest(unittest.TestCase):
 
         self.assertEqual(iconset.make_judge(text=False, check=Check(None), icon_set=SET_B)(Path("1-1.png")), ["frame"])
         self.assertEqual(iconset.make_judge(text=False, check=Check(None))(Path("1-1.png")), ["colour"])
+
+    def test_the_faithful_check_gets_the_blizzard_raster_of_the_icon(self):
+        seen = {}
+
+        class Check(self.Check):
+            def judge_for(self, name):
+                def faithful(raster, texts=(), reference=None):
+                    seen["raster"], seen["reference"] = raster, reference
+                    return []
+                return {"faithful": faithful}[name]
+
+            def load_raster(self, path):
+                return f"raster:{path}"
+
+        judge = iconset.make_judge(text=False, check=Check(None), icon_set=FAITHFUL,
+                                   sources={10: {"png": "/cache/10.png", "blp_sha256": "a"}})
+        self.assertEqual(judge(Path("/raw/10-2.png")), [])
+        self.assertEqual(seen, {"raster": "raster:/raw/10-2.png", "reference": "raster:/cache/10.png"})
 
     def test_a_judge_error_records_a_failed_attempt_and_keeps_the_run_going(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -32,6 +32,8 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it.
 
+Set B's 79 warrior icon groups were repainted from Blizzard's own icons so a player recognises them (see [`KstyleUI_IconsColour/README.md`](../KstyleUI_IconsColour/README.md#repainted-from-blizzards-icon)). Set A still has the old free art for those icons. A later task can derive set A from the faithful set B art instead of generating it again: take set B's accepted 1024-pixel repaint, convert it to luminance, raise the contrast so the subject is white light on black, and run it through `judge` for set A, so both sets share one recognisable silhouette per icon and set A costs no credits. The pipeline would gain a `derive` command that reads set B's records and writes set A's.
+
 ## Why
 
 - The `Icons` switch belongs to the core's `Icons` service, which registers the `Icons` module at load, because this addon holds data only and may not be loaded. Loading the data on demand keeps about 900 texture paths out of memory for players who keep Blizzard's icons.

@@ -25,7 +25,14 @@ judge_colour() checks set B, full-colour paintings that fill the square edge to 
     clipped:<edge>    the centre is much darker than the edges: the lit subject sits at that edge
     text:<string>     as for set A
 
-judge_for("A") and judge_for("B") return the check for a set.
+judge_faithful() checks set B icons repainted from Blizzard's own icon. Blizzard's composition decides
+where the subject sits, so there is no clipped check, and the style asks for a vignette, so a frame is
+only a black outer band with a sharp step to the paint inside it, not a gradual fade to black. With the
+Blizzard raster as reference it adds:
+
+    drift             the repaint no longer follows the original: the 8x8 luma layouts correlate below 0.6
+
+judge_for("A"), judge_for("B") and judge_for("faithful") return the check for a set.
 
 The text check compiles Tools/icons/ocr_text.swift with swiftc into the cache folder on first use.
 --no-text skips it, for machines without swiftc.
@@ -65,6 +72,10 @@ MIN_GUTTER_DARK = 0.95  # set B: share of black pixels in a row or column of a g
 GUTTER_ZONE = (0.15, 0.85)  # set B: a gutter lies inside this share of the side
 CENTRE = 0.25  # set B: the centre square starts this share of the side in from each edge
 MIN_CENTRE_RATIO = 0.7  # set B: centre mean luma over the outer ring's
+MARGIN_STEP = 4  # faithful: a ring at least this many times brighter than the ring outside it, plus MARGIN_JUMP,
+MARGIN_JUMP = 16  # is the hard edge of a margin; a vignette rises more gently (no repaint stepped so within 128 px)
+LIKENESS_CELLS = 8  # faithful: the raster is reduced to this many cells per side before comparing
+MIN_LIKENESS = 0.6  # faithful: the pilot's repaints scored 0.79 to 0.95, the old free paintings -0.24 to 0.48
 TEXT_CONFIDENCE = 0.5
 TEXT_MIN_CHARS = 2
 
@@ -255,11 +266,64 @@ def judge_colour(raster, texts=()):
     return reasons
 
 
-JUDGES = {"A": judge, "B": judge_colour}
+def _ring_means(raster, width, count):
+    """Mean luma of count concentric rings of width pixels, the outermost first."""
+    size, luma = raster.size, raster.luma
+    totals, counts = [0] * count, [0] * count
+    for y in range(size):
+        for x in range(size):
+            ring = min(x, y, size - 1 - x, size - 1 - y) // width
+            if ring < count:
+                totals[ring] += luma[y * size + x]
+                counts[ring] += 1
+    return [total / n for total, n in zip(totals, counts)]
+
+
+def _hard_margin(raster):
+    """A black outer band with a sharp step to the paint inside it: the model shrank the art inside a margin.
+    A vignette that fades gradually into black is no margin."""
+    if not _framed(raster):
+        return False
+    band = max(1, round(raster.size * FRAME_BAND))
+    means = _ring_means(raster, band, raster.size // (2 * band))  # rings of band width up to the centre
+    return any(means[i] >= MARGIN_STEP * means[i - 1] + MARGIN_JUMP for i in range(1, len(means)))
+
+
+def likeness(raster, reference):
+    """Pearson correlation of the two rasters' LIKENESS_CELLS x LIKENESS_CELLS block-mean luma: 1 is the same
+    layout of light and dark, 0 is unrelated. Brightness and contrast cancel out."""
+    a = _block_means(raster, LIKENESS_CELLS)
+    b = _block_means(reference, LIKENESS_CELLS)
+    mean_a, mean_b = sum(a) / len(a), sum(b) / len(b)
+    cov = sum((x - mean_a) * (y - mean_b) for x, y in zip(a, b))
+    var_a = sum((x - mean_a) ** 2 for x in a) ** 0.5
+    var_b = sum((y - mean_b) ** 2 for y in b) ** 0.5
+    return cov / (var_a * var_b) if var_a and var_b else 0.0
+
+
+def judge_faithful(raster, texts=(), reference=None):
+    """Set B repainted from Blizzard's icon: reject a blank, flat, framed, grid or text-bearing image, and one
+    that drifts from the reference raster when it is given. The subject may sit anywhere, as in the original."""
+    luma = raster.luma
+    reasons = []
+    if max(luma) < MIN_PEAK or _spread(luma) < BLANK_SD:
+        reasons.append("blank")
+    elif _spread(_block_means(raster, FLAT_SIZE)) < MIN_FLAT_SD:
+        reasons.append("flat")
+    if _hard_margin(raster):
+        reasons.append("frame")
+    reasons.extend(_gutters(raster))
+    if reference is not None and likeness(raster, reference) < MIN_LIKENESS:
+        reasons.append("drift")
+    reasons.extend(_readable(texts))
+    return reasons
+
+
+JUDGES = {"A": judge, "B": judge_colour, "faithful": judge_faithful}
 
 
 def judge_for(set_name):
-    """The check for an icon set: judge for A, judge_colour for B."""
+    """The check for an icon set: judge for A, judge_colour for B, judge_faithful for B repainted from Blizzard."""
     return JUDGES[set_name]
 
 

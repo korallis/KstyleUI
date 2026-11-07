@@ -1,22 +1,36 @@
 """Generate, check and package a custom icon set from Tools/data/abilities.json.
 
 Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python):
-    iconset.py generate [--set A|B] [--jobs 8] [--floor N] [--limit N] [--categories class,pet]
-                        [--reroll FILEID ...] [--dry-run]
-    iconset.py status   [--set A|B]
-    iconset.py package  [--set A|B] [--categories ...] [--no-data]
+    iconset.py extract  [--owner WARRIOR] [--categories class,pet]
+    iconset.py generate [--set A|B] [--mode style|subject_reference] [--owner WARRIOR] [--jobs 8] [--floor N]
+                        [--limit N] [--categories class,pet] [--reroll FILEID ...] [--dry-run]
+    iconset.py rejudge  [--set A|B] [--mode ...] [--owner ...]
+    iconset.py status   [--set A|B] [--mode ...]
+    iconset.py package  [--set A|B] [--no-data]
     iconset.py sheets   [--set A|B]
     iconset.py verify   [--set A|B]
 
 Set A is white light art on black, tinted in game (KstyleUI_Icons). Set B is full-colour painted art
 that fills the square (KstyleUI_IconsColour); its prompts also name a palette for the spell school.
 
+--mode subject_reference repaints Blizzard's own icon instead of painting from a text description, so
+a player recognises the ability. extract reads each icon from the installed WoW Forever client by file
+ID with TACTTool (read-only) into ~/.local/share/wow-dev/icons/blizzard/<fileID>.png, 512 px. The
+prompt then gets two image references: the Blizzard icon (image 1, the subject) and the action-button
+strip docs/design/mockups/icons_B_buttons.png (image 2, finish only). Tools/data/icon_subjects.json
+may add a hand-checked subject sentence for an icon the reference alone does not carry.
+--owner WARRIOR keeps the icon groups with a spell that class uses. rejudge re-runs the mode's check on
+the images it already has, after the check changes, and stamps each changed verdict.
+
 generate makes one 1:1 image per icon group with Higgsfield, in category order (class, pet, racial,
 profession, general), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
 its rate limit). Each image goes through the set's check in check_icons (judge for A, judge_colour
-for B); a rejected icon is rerolled at most twice, with a fix for the reasons added to its prompt. Raw images and one
-JSON record per icon live outside the repository in ~/.local/share/wow-dev/icons/<set>/raw, so a
-rerun skips finished icons. The run reads the credit balance at the start and every 100 images, and
+for B, judge_faithful for subject_reference, which also rejects a repaint that drifts from Blizzard's
+icon); a rejected icon is rerolled at most twice, with a fix for the reasons added to its prompt. Raw
+images and one JSON record per icon live outside the repository in ~/.local/share/wow-dev/icons/<set>/raw,
+so a rerun skips finished icons. Each attempt records its mode; a subject_reference run repaints an
+icon whose accepted image came from a style run, and the style image stays in the package until a
+repaint is accepted. The run reads the credit balance at the start and every 100 images, and
 stops before a job would take the balance below --floor (set A 1300, set B 60 by default). --reroll makes a fresh attempt for icons the
 owner marked on a contact sheet, even when they were accepted.
 
@@ -29,6 +43,7 @@ verify checks the packaged files: Tools/tests/test_iconset.py runs it on every s
 
 import argparse
 import concurrent.futures
+import dataclasses
 import datetime
 import hashlib
 import json
@@ -47,7 +62,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 ABILITIES = REPO / "Tools" / "data" / "abilities.json"
+SUBJECTS = REPO / "Tools" / "data" / "icon_subjects.json"
 WORK = Path.home() / ".local" / "share" / "wow-dev" / "icons"
+BLIZZARD = WORK / "blizzard"  # Blizzard's icons, read from the installed client; never in the repository
+TACTTOOL = Path.home() / ".local" / "share" / "wow-dev" / "casc" / "TACTTool" / "TACTTool"
+WOW_DIR = Path("/Applications/World of Warcraft")
+TACT_PRODUCT, TACT_REGION = "wowf", "eu"
+REFERENCE_SIZE = 512  # the 64 px Blizzard icon is upscaled to this for the model
+MODES = ("style", "subject_reference")
 CATEGORIES = ("class", "pet", "racial", "profession", "general")
 SCHOOLS = {1: "Physical", 2: "Holy", 4: "Fire", 8: "Nature", 16: "Frost", 32: "Shadow", 64: "Arcane"}
 MAX_IMAGES = 3  # the first image and at most two rerolls
@@ -124,31 +146,73 @@ CHECKS_A = "no blank, small, clipped, off-black, coloured or text-bearing image 
 CHECKS_B = ("no blank, flat (unreadable at 32 pixels), framed, grid, off-centre or text-bearing image is "
             "accepted")
 
+# subject_reference: Blizzard's icon is image 1, the action-button strip is image 2. The pilot's v2 prompt.
+FAITHFUL_LEAD = (
+    'Image 1 is a World of Warcraft ability icon, "{name}". Image 2 shows the target UI style, dark glass action '
+    "buttons holding crisp glowing art, and is for finish and mood only: do not copy any subject from image 2. "
+    "Repaint image 1 at high resolution keeping the same subject, silhouette, composition, viewing angle, scale and "
+    "dominant colours so a player recognises it instantly{subject}. Keep the subject in the same place in the "
+    "square. Remove image 1's dark bevelled frame and extend the art to every edge; draw no button, frame or glass "
+    "around it. Turn the blurry pixel art into a crisp modern painting; add nothing that is not in image 1."
+)
+STYLE_FAITHFUL = (
+    "Style: a crisp, clean, high-resolution fantasy ability icon for a modern, minimal, dark game UI. Painterly but "
+    "clean: smooth confident brushwork, sharp readable edges, strong value contrast, one bright focal point, a dark "
+    "near-black backdrop with a soft vignette so the subject pops at small sizes. The art fills the whole square edge "
+    "to edge: no frame, no border, no bevel, no rounded corners, no margin. No text, letters, numbers or runes. One "
+    "icon only."
+)
+HINTS_FAITHFUL = {
+    "blank": "Keep image 1's subject large and clearly lit against the darker backdrop.",
+    "flat": "Keep strong contrast between image 1's subject and the backdrop so it reads at 32 pixels.",
+    "frame": "Image 1's bevelled frame must go completely: paint the art to every edge of the square, with no border.",
+    "grid": "Paint one single icon that fills the whole square, not a grid or a sheet of several icons.",
+    "drift": ("Stay much closer to image 1: copy its silhouette, composition, placement and colours exactly, and "
+              "change only the rendering quality."),
+    "text": HINTS["text"],
+}
+CHECKS_FAITHFUL = ("no blank, flat (unreadable at 32 pixels), grid or text-bearing image is accepted, no black "
+                   "margin with a hard edge round the painting (a vignette is not a frame), and no repaint whose 8x8 "
+                   "light-and-dark layout correlates below 0.6 with Blizzard's icon (drift)")
+BUTTONS_REFERENCE = "docs/design/mockups/icons_B_buttons.png"
+
 CLASS_NAMES = {"DEATHKNIGHT": "Death Knight", "DEMONHUNTER": "Demon Hunter"}
 RACE_NAMES = {"Scourge": "Undead"}
 
 
 @dataclass(frozen=True)
 class IconSet:
-    name: str  # also the name of the set's check in check_icons.judge_for
+    name: str  # the set: A or B
     addon: str
     xml: str  # the addon's XML load file, which must load Data.lua
     model: str
-    reference: str  # repository path of the style reference passed as image_references
+    reference: str  # repository path of the style reference passed as the last image reference
     style: str
     greyscale: bool
     hints: dict  # reason code -> the fix a reroll adds to the prompt
     floor: float  # credits the generate command leaves unspent by default
     checks: str  # what check_icons rejects, for PROVENANCE.md
+    judge: str  # the name of the set's check in check_icons.judge_for
     palette: bool = False  # add the spell school's palette to each prompt
+    mode: str = "style"  # style: paint from a text description; subject_reference: repaint Blizzard's icon
 
 
 SETS = {
     "A": IconSet("A", "KstyleUI_Icons", "Icons.xml", "gpt_image_2_5", "docs/design/mockups/icons_A_luminous.jpg", STYLE_A, True,
-                 hints=HINTS, floor=1300.0, checks=CHECKS_A),
+                 hints=HINTS, floor=1300.0, checks=CHECKS_A, judge="A"),
     "B": IconSet("B", "KstyleUI_IconsColour", "IconsColour.xml", "gpt_image_2_5", "docs/design/mockups/icons_B_fullcolour.jpg",
-                 STYLE_B, False, hints=HINTS_B, floor=60.0, checks=CHECKS_B, palette=True),
+                 STYLE_B, False, hints=HINTS_B, floor=60.0, checks=CHECKS_B, judge="B", palette=True),
 }
+
+
+def faithful(icon_set):
+    """The set in subject_reference mode: the same addon, repainted from Blizzard's icon in the button strip's finish."""
+    return dataclasses.replace(icon_set, mode="subject_reference", judge="faithful", reference=BUTTONS_REFERENCE,
+                               style=STYLE_FAITHFUL, hints=HINTS_FAITHFUL, checks=CHECKS_FAITHFUL, palette=False)
+
+
+def with_mode(icon_set, mode):
+    return faithful(icon_set) if mode == "subject_reference" else icon_set
 
 GENERATION_ARGS = ["--aspect_ratio", "1:1", "--resolution", "1k", "--quality", "high"]
 
@@ -163,9 +227,14 @@ class RateLimited(GenerationError):
 
 # Prompts ---------------------------------------------------------------------------------------
 
-def ordered_groups(data, categories=None):
+def uses(group, owner):
+    """True when a spell of the group belongs to owner, alone or in a comma-separated list of classes."""
+    return any(owner in spell["owner"].split(",") for spell in group["spells"])
+
+
+def ordered_groups(data, categories=None, owner=None):
     wanted = set(categories or CATEGORIES)
-    groups = [g for g in data["icons"] if g["category"] in wanted]
+    groups = [g for g in data["icons"] if g["category"] in wanted and (owner is None or uses(g, owner))]
     return sorted(groups, key=lambda g: (CATEGORIES.index(g["category"]), g["icon"]))
 
 
@@ -255,9 +324,25 @@ def palette_for(mask):
     return PALETTES[1]
 
 
-def prompt_for(icon_set, group, reasons=()):
+def load_subjects(path=SUBJECTS):
+    """Hand-checked subject sentences by file ID, for icons the Blizzard reference alone does not carry."""
+    path = Path(path)
+    if not path.exists():
+        return {}
+    return {int(icon): sentence for icon, sentence in json.loads(path.read_text()).items()}
+
+
+def faithful_lead(group, subjects=None):
+    sentence = (subjects or {}).get(group["icon"], "")
+    return FAITHFUL_LEAD.format(name=group["name"], subject=f": {sentence}" if sentence else "")
+
+
+def prompt_for(icon_set, group, reasons=(), subjects=None):
     """Return (lead, prompt): the icon's own part, with its palette and any reroll fixes, and the full prompt."""
-    lead = lead_for(group)
+    if icon_set.mode == "subject_reference":
+        lead = faithful_lead(group, subjects)
+    else:
+        lead = lead_for(group)
     if icon_set.palette:
         lead = f"{lead} {palette_for(group['school'])}"
     fixes = []
@@ -287,19 +372,30 @@ def save_record(raw_dir, record):
     os.replace(tmp, path)
 
 
-def _window(record):
-    return record["attempts"][record.get("rerollFrom", 0):]
+def mode_of(attempt):
+    return attempt.get("mode", "style")
+
+
+def _window(record, mode=None):
+    """The attempts that count: those after an owner's reroll, and with mode only that mode's attempts. A
+    style run also counts an accepted repaint, so it never paints over one; a subject_reference run does
+    not count a style image, so it repaints it."""
+    attempts = record["attempts"][record.get("rerollFrom", 0):]
+    if mode is None:
+        return attempts
+    return [a for a in attempts if mode_of(a) == mode or (mode == "style" and a["verdict"] == "accepted")]
 
 
 def accepted_attempt(record):
+    """The latest accepted attempt of any mode: a repaint replaces the style image once it is accepted."""
     for attempt in reversed(_window(record)):
         if attempt["verdict"] == "accepted":
             return attempt
     return None
 
 
-def next_step(record):
-    window = _window(record)
+def next_step(record, mode=None):
+    window = _window(record, mode)
     if any(a["verdict"] == "accepted" for a in window):
         return "done"
     images = sum(1 for a in window if a["verdict"] != "failed")
@@ -309,8 +405,8 @@ def next_step(record):
     return "generate"
 
 
-def _last_reasons(record):
-    for attempt in reversed(_window(record)):
+def _last_reasons(record, mode=None):
+    for attempt in reversed(_window(record, mode)):
         if attempt["verdict"] == "rejected":
             return attempt["reasons"]
     return ()
@@ -373,13 +469,13 @@ class Budget:
 
 # Generation ------------------------------------------------------------------------------------
 
-def _start_job(runner, prompt, budget, sleep):
+def _start_job(runner, prompt, references, budget, sleep):
     """Run one job, waiting out the account's concurrency limit; None when the floor stops it."""
     for tries in range(RATE_LIMIT_TRIES):
         if not budget.reserve():
             return None
         try:
-            return runner(prompt)
+            return runner(prompt, references)
         except RateLimited:
             budget.release()
             sleep(RATE_LIMIT_WAIT * (1 + tries % 4))
@@ -389,17 +485,27 @@ def _start_job(runner, prompt, budget, sleep):
     raise GenerationError(f"still rate limited after {RATE_LIMIT_TRIES} tries")
 
 
-def _attempt_icon(group, icon_set, raw_dir, runner, fetch, judge, budget, today, reroll, log, sleep):
+def _attempt_icon(group, icon_set, raw_dir, runner, fetch, judge, budget, today, reroll, log, sleep, sources=None,
+                  subjects=None):
     record = load_record(raw_dir, group)
     if reroll:
         record["rerollFrom"] = len(record["attempts"])
         save_record(raw_dir, record)
-    while next_step(record) == "generate":
+    mode = icon_set.mode
+    while next_step(record, mode) == "generate":
         n = len(record["attempts"]) + 1
-        lead, prompt = prompt_for(icon_set, group, _last_reasons(record))
-        attempt = {"n": n, "model": icon_set.model, "lead": lead, "prompt": prompt, "date": today}
+        lead, prompt = prompt_for(icon_set, group, _last_reasons(record, mode), subjects)
+        attempt = {"n": n, "model": icon_set.model, "mode": mode, "lead": lead, "prompt": prompt, "date": today}
+        references = []
+        if mode == "subject_reference":
+            source = (sources or {}).get(group["icon"])
+            if source is None:
+                log(f"{group['icon']} {group['name']}: skipped, no Blizzard icon in the cache (run iconset.py extract)")
+                return record
+            attempt["source"] = {"fileID": group["icon"], "blp_sha256": source["blp_sha256"]}
+            references = [source["png"]]
         try:
-            job = _start_job(runner, prompt, budget, sleep)
+            job = _start_job(runner, prompt, references, budget, sleep)
         except GenerationError as error:
             job = None
             attempt.update(verdict="failed", error=str(error))
@@ -423,17 +529,45 @@ def _attempt_icon(group, icon_set, raw_dir, runner, fetch, judge, budget, today,
     return record
 
 
-def summarise(groups, raw_dir, stopped_at_floor=False):
+def rejudge_groups(groups, icon_set, raw_dir):
+    """The groups that have an image of the set's mode to re-check."""
+    return [g for g in groups if any(mode_of(a) == icon_set.mode and a["verdict"] != "failed" and "image" in a
+                                     for a in load_record(raw_dir, g)["attempts"])]
+
+
+def rejudge(groups, icon_set, raw_dir, *, judge, today, log=print):
+    """Re-run the set's check on every image of the set's mode, after the check changed. Returns the
+    (icon, image, old reasons, new reasons) of each attempt whose verdict changed; each is stamped rejudged."""
+    changed = []
+    for group in groups:
+        record = load_record(raw_dir, group)
+        for attempt in record["attempts"]:
+            if mode_of(attempt) != icon_set.mode or attempt["verdict"] == "failed" or "image" not in attempt:
+                continue
+            reasons = list(judge(Path(raw_dir) / attempt["image"]))
+            verdict = "rejected" if reasons else "accepted"
+            if verdict == attempt["verdict"] and reasons == attempt.get("reasons", []):
+                continue
+            changed.append((group["icon"], attempt["image"], attempt.get("reasons", []), reasons))
+            attempt.update(reasons=reasons, verdict=verdict, rejudged=today)
+            log(f"{group['icon']} {group['name']}: {attempt['image']} {attempt['verdict']} ({', '.join(reasons) or 'ok'})")
+        if any(a.get("rejudged") == today for a in record["attempts"]):
+            save_record(raw_dir, record)
+    return changed
+
+
+def summarise(groups, raw_dir, stopped_at_floor=False, mode=None):
     summary = {"accepted": 0, "generated": 0, "rejected": 0, "rerolled": 0, "failed": 0,
                "missing": [], "pending": [], "stopped_at_floor": stopped_at_floor}
     for group in groups:
         record = load_record(raw_dir, group)
-        images = [a for a in record["attempts"] if a["verdict"] != "failed"]
+        attempts = record["attempts"] if mode is None else [a for a in record["attempts"] if mode_of(a) == mode]
+        images = [a for a in attempts if a["verdict"] != "failed"]
         summary["generated"] += len(images)
         summary["rejected"] += sum(1 for a in images if a["verdict"] == "rejected")
-        summary["failed"] += sum(1 for a in record["attempts"] if a["verdict"] == "failed")
+        summary["failed"] += sum(1 for a in attempts if a["verdict"] == "failed")
         summary["rerolled"] += sum(1 for i, a in enumerate(images) if i > 0 and images[i - 1]["verdict"] == "rejected")
-        step = next_step(record)
+        step = next_step(record, mode)
         if step == "done":
             summary["accepted"] += 1
         elif step == "exhausted":
@@ -444,12 +578,15 @@ def summarise(groups, raw_dir, stopped_at_floor=False):
 
 
 def generate(groups, icon_set, raw_dir, *, runner, fetch, judge, balance, today, jobs=DEFAULT_JOBS, floor=1300.0,
-             cost=1.5, refresh_every=100, limit=None, reroll=frozenset(), log=print, sleep=time.sleep):
-    """Generate every group that is not finished; return summarise() for the groups."""
+             cost=1.5, refresh_every=100, limit=None, reroll=frozenset(), log=print, sleep=time.sleep, sources=None,
+             subjects=None):
+    """Generate every group that is not finished in the set's mode; return summarise() for the groups.
+
+    sources maps a file ID to its extracted Blizzard icon ({"png", "blp_sha256"}) for subject_reference mode."""
     raw_dir = Path(raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
     jobs = max(1, min(MAX_JOBS, jobs))
-    todo = [g for g in groups if g["icon"] in reroll or next_step(load_record(raw_dir, g)) == "generate"]
+    todo = [g for g in groups if g["icon"] in reroll or next_step(load_record(raw_dir, g), icon_set.mode) == "generate"]
     if limit is not None:
         todo = todo[:limit]
     budget = Budget(balance, floor, cost, refresh_every, log)
@@ -458,7 +595,7 @@ def generate(groups, icon_set, raw_dir, *, runner, fetch, judge, balance, today,
         try:
             for g in todo:
                 futures.append(pool.submit(_attempt_icon, g, icon_set, raw_dir, runner, fetch, judge, budget, today,
-                                           g["icon"] in reroll, log, sleep))
+                                           g["icon"] in reroll, log, sleep, sources, subjects))
             for future in futures:
                 future.result()
         except BaseException:
@@ -466,7 +603,7 @@ def generate(groups, icon_set, raw_dir, *, runner, fetch, judge, balance, today,
             for future in futures:
                 future.cancel()
             raise
-    return summarise(groups, raw_dir, budget.stopped)
+    return summarise(groups, raw_dir, budget.stopped, icon_set.mode)
 
 
 # Higgsfield ------------------------------------------------------------------------------------
@@ -497,10 +634,14 @@ def reference_id(icon_set, work_dir):
 
 
 def higgsfield_runner(icon_set, reference):
-    def run(prompt):
+    """Run one job. The style reference is always the last image reference; subject_reference mode passes
+    the Blizzard icon before it, so the prompt's image 1 is the subject and image 2 the finish."""
+    def run(prompt, references=()):
+        command = ["generate", "create", icon_set.model, "--prompt", prompt, *GENERATION_ARGS]
+        for image in [*references, reference]:
+            command += ["--image-references", str(image)]
         try:
-            jobs = _higgsfield("generate", "create", icon_set.model, "--prompt", prompt, *GENERATION_ARGS,
-                               "--image-references", reference, "--wait", "--json")
+            jobs = _higgsfield(*command, "--wait", "--json")
         except subprocess.TimeoutExpired as error:
             raise GenerationError("timed out waiting for the job") from error
         job = jobs[0] if isinstance(jobs, list) and jobs else {}
@@ -510,16 +651,22 @@ def higgsfield_runner(icon_set, reference):
     return run
 
 
-def make_judge(text=True, check=None, icon_set=None):
-    """Wrap the set's check_icons check so a broken download or helper error becomes a recorded GenerationError."""
+def make_judge(text=True, check=None, icon_set=None, sources=None):
+    """Wrap the set's check_icons check so a broken download or helper error becomes a recorded GenerationError.
+    The faithful check also gets the raster of the icon's Blizzard original from sources."""
     if check is None:
         import check_icons as check
-    name = (icon_set or SETS["A"]).name
+    icon_set = icon_set or SETS["A"]
+    name = icon_set.judge
 
     def judge(path):
         try:
             texts = check.read_text([path]).get(str(path), ()) if text else ()
             raster = check.load_raster(path)
+            if name == "faithful":
+                icon = int(Path(path).stem.split("-")[0])
+                reference = check.load_raster((sources or {})[icon]["png"])
+                return check.judge_for(name)(raster, texts, reference=reference)
             return check.judge_for(name)(raster, texts)
         except (check.OcrError, OSError, ValueError) as error:
             raise GenerationError(f"image check failed: {error}") from error
@@ -538,6 +685,64 @@ def download(url, path):
     except OSError as error:
         raise GenerationError(f"download failed: {error}") from error
     os.replace(tmp, path)
+
+
+# Blizzard's icons ------------------------------------------------------------------------------
+
+class ExtractError(RuntimeError):
+    pass
+
+
+def tacttool_command(icon, blp, tacttool=TACTTOOL, wow_dir=WOW_DIR):
+    return [str(tacttool), "-p", TACT_PRODUCT, "-r", TACT_REGION, "-d", str(wow_dir), "-m", "id", "-i", str(icon),
+            "-o", str(blp)]
+
+
+def run_tacttool(icon, blp):
+    """Extract one file by ID. TACTTool only reads the game folder; its own cache goes beside the BLP."""
+    blp = Path(blp)
+    cache = blp.parent / "tact"
+    cache.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(tacttool_command(icon, blp.resolve()), cwd=cache, capture_output=True, text=True, timeout=300)
+    if result.returncode != 0:
+        raise ExtractError(f"TACTTool failed for {icon}: {(result.stderr or result.stdout).strip()[-300:]}")
+
+
+def decode_blp(blp, png, size=REFERENCE_SIZE):
+    """Decode a BLP with Pillow, composite it over black and upscale it to size for the model."""
+    Image, _ = _pillow()
+    with Image.open(blp) as image:
+        rgba = image.convert("RGBA")
+        black = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
+        flat = Image.alpha_composite(black, rgba).convert("RGB")
+        flat.resize((size, size), Image.LANCZOS).save(png, optimize=True)
+
+
+def extract_icon(icon, cache_dir, tool=run_tacttool, decode=decode_blp):
+    """Return {"png", "blp_sha256"} for a file ID, extracting and decoding it once into cache_dir."""
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    blp, png = cache_dir / f"{icon}.blp", cache_dir / f"{icon}.png"
+    if not blp.exists():
+        tool(icon, blp)
+        if not blp.exists():
+            raise ExtractError(f"TACTTool wrote no file for {icon}")
+    if not png.exists():
+        decode(blp, png)
+    return {"png": str(png), "blp_sha256": hashlib.sha256(blp.read_bytes()).hexdigest()}
+
+
+def extract_all(groups, cache_dir=BLIZZARD, log=print):
+    """Extract the Blizzard icon of every group; return the sources map for generate. A missing icon is logged."""
+    sources, missing = {}, []
+    for group in groups:
+        try:
+            sources[group["icon"]] = extract_icon(group["icon"], cache_dir)
+        except (ExtractError, OSError, subprocess.TimeoutExpired) as error:
+            missing.append(group["icon"])
+            log(f"{group['icon']} {group['name']}: {error}")
+    log(f"blizzard icons: {len(sources)} in {cache_dir}" + (f", {len(missing)} missing" if missing else ""))
+    return sources
 
 
 # Packaging -------------------------------------------------------------------------------------
@@ -601,6 +806,8 @@ def _cell(text):
 def render_provenance(icon_set, entries):
     entries = sorted(entries, key=lambda e: e["group"]["icon"])
     tone = "luminance only (RGB PNG with R = G = B)" if icon_set.greyscale else "full colour (RGB PNG)"
+    repaint = faithful(icon_set)
+    repainted = any(mode_of(e["attempt"]) == "subject_reference" for e in entries)
     lines = [
         f"# {icon_set.addon} provenance",
         "",
@@ -616,20 +823,44 @@ def render_provenance(icon_set, entries):
         f"| Post-processing | Pillow: Lanczos downscale from 1024 to {ICON_SIZE} pixels, {tone} |",
         f"| Checks | `Tools/icons/check_icons.py --set {icon_set.name}`: {icon_set.checks} |",
         "",
-        "Each prompt is the row's prompt text followed by this style block:",
+        "Each `style` prompt is the row's prompt text followed by this style block:",
         "",
         "```text",
         icon_set.style,
         "```",
+    ]
+    if repainted:
+        lines += [
+            "",
+            "## Repainted from Blizzard's icon (`subject_reference`)",
+            "",
+            "| Field | Value |",
+            "| --- | --- |",
+            f"| Blizzard source | The icon's BLP2 texture, read by file ID from the installed WoW Forever client "
+            f"(`{WOW_DIR}`, product `{TACT_PRODUCT}`) with TACTTool (`iconset.py extract`, read-only), decoded with "
+            f"Pillow, composited over black and upscaled to {REFERENCE_SIZE} pixels. The row's sha256 is the BLP's. "
+            "No Blizzard file is in this repository. |",
+            f"| Image references | 1: the Blizzard icon (the subject); 2: `{repaint.reference}`, the action-button strip "
+            "(finish only) |",
+            f"| Checks | `Tools/icons/check_icons.py --set faithful`: {repaint.checks} |",
+            "",
+            "Each `subject_reference` prompt is the row's prompt text followed by this style block:",
+            "",
+            "```text",
+            repaint.style,
+            "```",
+        ]
+    lines += [
         "",
-        "| File ID | Spells | Model | Prompt | Job | Date |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| File ID | Spells | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in entries:
         group, attempt = entry["group"], entry["attempt"]
+        digest = attempt.get("source", {}).get("blp_sha256", "")
         lines.append(
-            f"| `{group['icon']}` | {_cell(spell_names(group))} | {attempt['model']} | {_cell(attempt['lead'])} "
-            f"| {attempt['job']} | {attempt['date']} |"
+            f"| `{group['icon']}` | {_cell(spell_names(group))} | {attempt['model']} | {mode_of(attempt)} "
+            f"| {_cell(attempt['lead'])} | {digest} | {attempt['job']} | {attempt['date']} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -786,7 +1017,7 @@ def _load_groups(args):
     unknown = set(categories or ()) - set(CATEGORIES)
     if unknown:
         raise SystemExit(f"iconset: unknown categories: {', '.join(sorted(unknown))}")
-    return ordered_groups(data, categories)
+    return ordered_groups(data, categories, getattr(args, "owner", None))
 
 
 def _print_summary(summary):
@@ -804,62 +1035,86 @@ def _print_summary(summary):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("generate", "status", "package", "sheets", "verify"):
+    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify"):
         command = sub.add_parser(name)
         command.add_argument("--set", default="A", choices=sorted(SETS))
-        command.add_argument("--categories", help="comma-separated subset of " + ",".join(CATEGORIES))
+        if name not in ("package", "verify"):  # package writes the whole set: a filtered package would drop the rest
+            command.add_argument("--categories", help="comma-separated subset of " + ",".join(CATEGORIES))
+            command.add_argument("--owner", help="keep the icon groups with a spell this class uses, such as WARRIOR")
         command.add_argument("--work-dir", type=Path, default=None, help="default ~/.local/share/wow-dev/icons/<set>")
+        if name in ("extract", "generate", "rejudge"):
+            command.add_argument("--blizzard-dir", type=Path, default=BLIZZARD, help="cache of extracted Blizzard icons")
+        if name in ("generate", "rejudge", "status"):
+            command.add_argument("--mode", default="style", choices=MODES,
+                                 help="style paints from the tooltip; subject_reference repaints Blizzard's icon")
+        if name in ("generate", "rejudge"):
+            command.add_argument("--no-text", action="store_true", help="skip the macOS Vision text check")
         if name == "generate":
             command.add_argument("--jobs", type=int, default=DEFAULT_JOBS, choices=range(1, MAX_JOBS + 1), metavar="1-12")
             command.add_argument("--floor", type=float, default=None, help="credits to leave unspent (default: the set's floor)")
             command.add_argument("--cost", type=float, default=1.5, help="credits per image")
             command.add_argument("--limit", type=int, help="generate at most this many icons")
             command.add_argument("--reroll", type=int, nargs="*", default=[], help="file IDs to generate afresh")
-            command.add_argument("--no-text", action="store_true", help="skip the macOS Vision text check")
             command.add_argument("--dry-run", action="store_true", help="print the work and its cost, spend nothing")
         if name == "package":
             command.add_argument("--no-data", action="store_true", help="write the icons and PROVENANCE.md only")
     args = parser.parse_args(argv)
 
-    icon_set = SETS[args.set]
+    icon_set = with_mode(SETS[args.set], getattr(args, "mode", "style"))
     if getattr(args, "floor", None) is None:
         args.floor = icon_set.floor
     work = args.work_dir or WORK / icon_set.name
     raw = work / "raw"
     groups = _load_groups(args)
 
+    if args.command == "extract":
+        sources = extract_all(groups, args.blizzard_dir)
+        return 0 if len(sources) == len(groups) else 1
     if args.command == "status":
-        _print_summary(summarise(groups, raw))
+        _print_summary(summarise(groups, raw, mode=icon_set.mode))
+    elif args.command == "rejudge":
+        import check_icons
+
+        if not args.no_text:
+            check_icons.ocr_binary()
+        groups = rejudge_groups(groups, icon_set, raw)
+        sources = extract_all(groups, args.blizzard_dir) if icon_set.mode == "subject_reference" else None
+        changed = rejudge(groups, icon_set, raw, judge=make_judge(text=not args.no_text, icon_set=icon_set, sources=sources),
+                          today=datetime.date.today().isoformat())
+        print(f"rejudged: {len(changed)} verdicts changed")
+        _print_summary(summarise(groups, raw, mode=icon_set.mode))
     elif args.command == "package":
         package(icon_set, groups, raw, data=not args.no_data)
     elif args.command == "sheets":
         contact_sheets(icon_set, groups, raw, work / "sheets")
     elif args.command == "verify":
-        problems = verify_package(icon_set, ordered_groups(json.loads(ABILITIES.read_text())))
+        problems = verify_package(icon_set, groups)
         for problem in problems:
             print(f"{icon_set.addon}: {problem}")
         return 1 if problems else 0
     else:
         import check_icons
 
+        subjects = load_subjects()
+        todo = [g for g in groups if g["icon"] in args.reroll or next_step(load_record(raw, g), icon_set.mode) == "generate"]
+        todo = todo[:args.limit] if args.limit is not None else todo
         if args.dry_run:
-            todo = [g for g in groups if g["icon"] in args.reroll or next_step(load_record(raw, g)) == "generate"]
-            todo = todo[:args.limit] if args.limit is not None else todo
             print(f"{len(todo)} icons to generate, about {len(todo) * args.cost:.1f} credits before rerolls; "
                   f"the run stops before the balance falls below {args.floor:g}")
             for group in todo[:5]:
-                print(prompt_for(icon_set, group)[1])
+                print(prompt_for(icon_set, group, subjects=subjects)[1])
             return 0
         raw.mkdir(parents=True, exist_ok=True)
         if not args.no_text:
             check_icons.ocr_binary()
+        sources = extract_all(todo, args.blizzard_dir) if icon_set.mode == "subject_reference" else None
 
         summary = generate(
             groups, icon_set, raw,
             runner=higgsfield_runner(icon_set, reference_id(icon_set, work)),
-            fetch=download, judge=make_judge(text=not args.no_text, icon_set=icon_set), balance=account_balance,
-            today=datetime.date.today().isoformat(), jobs=args.jobs, floor=args.floor, cost=args.cost,
-            limit=args.limit, reroll=set(args.reroll),
+            fetch=download, judge=make_judge(text=not args.no_text, icon_set=icon_set, sources=sources),
+            balance=account_balance, today=datetime.date.today().isoformat(), jobs=args.jobs, floor=args.floor,
+            cost=args.cost, limit=args.limit, reroll=set(args.reroll), sources=sources, subjects=subjects,
         )
         _print_summary(summary)
         print(f"credits now: {account_balance():.2f}")
