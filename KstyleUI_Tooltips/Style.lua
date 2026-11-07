@@ -257,7 +257,7 @@ function Style.Icon(tooltip, fileID)
 	if not (glass and glass.comparers) then
 		return
 	end
-	if not Settings.Get("icon") or fileID == nil or Logic.IsSecret(fileID) or Comparing(glass) then
+	if not Settings.Get("icon") or Logic.IsSecret(fileID) or fileID == nil or Comparing(glass) then
 		if glass.icon then
 			glass.icon:Hide()
 		end

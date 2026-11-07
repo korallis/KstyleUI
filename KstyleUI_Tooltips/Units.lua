@@ -11,7 +11,7 @@ ns.Units = Units
 local GUILD_SEARCH = 4
 
 local function Plain(v)
-	return v ~= nil and not Logic.IsSecret(v)
+	return not Logic.IsSecret(v) and v ~= nil
 end
 
 local function Text(v)
