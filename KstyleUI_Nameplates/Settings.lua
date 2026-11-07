@@ -27,6 +27,11 @@ Settings.defaults = {
 	name = { show = true, size = 10, outline = "OUTLINE", upper = true, classColor = true },
 	level = { show = true, size = 9, outline = "OUTLINE" },
 	healthText = { show = true, size = 9, outline = "OUTLINE", format = "percent" },
+	cast = {
+		enabled = true, height = 12, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		colorSource = "class", color = Color("accentDefault"), shieldColor = Color("textDisabled"),
+		showIcon = true, showName = true, showTime = true, textSize = 9, outline = "OUTLINE",
+	},
 	threat = {
 		display = "glow", role = "auto", groupOnly = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
@@ -189,6 +194,71 @@ schema[#schema + 1] = {
 }
 
 local rest = {
+	{ type = "header", label = L["Cast bar"] },
+	{
+		type = "toggle", key = "cast.enabled", label = L["Show cast bars"],
+		help = L["Shows the spell a unit is casting under its health bar."],
+	},
+	{
+		type = "slider", key = "cast.height", label = L["Height"],
+		help = L["The height of the cast bar, in interface units."],
+		min = 6, max = 24, step = 1, disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "texture", key = "cast.texture", label = L["Texture"],
+		help = L["The texture that fills the cast bar."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "dropdown", key = "cast.orientation", label = L["Orientation"],
+		help = L["Fills the cast bar across or upward."],
+		options = ORIENTATIONS, disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "toggle", key = "cast.reverse", label = L["Reverse fill"],
+		help = L["Fills the cast bar from the other end."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "dropdown", key = "cast.colorSource", label = L["Bar colour"],
+		help = L["Interruptible casts follow the accent or use your own colour."],
+		options = ACCENT_SOURCES, disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "color", key = "cast.color", label = L["Custom colour"],
+		help = L["The colour of casts you can interrupt."],
+		showWhen = Is("cast.colorSource", "custom"), disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "color", key = "cast.shieldColor", label = L["Uninterruptible colour"],
+		help = L["The colour of casts nothing can interrupt."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "toggle", key = "cast.showIcon", label = L["Spell icon"],
+		help = L["Shows the spell's icon at the left of the cast bar."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "toggle", key = "cast.showName", label = L["Spell name"],
+		help = L["Shows the spell's name on the cast bar."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "toggle", key = "cast.showTime", label = L["Time left"],
+		help = L["Shows the seconds left on the cast bar."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "slider", key = "cast.textSize", label = L["Text size"],
+		help = L["The size of the cast bar's text, in interface units."],
+		min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "dropdown", key = "cast.outline", label = L["Outline"],
+		help = L["An outline keeps text readable over the game world."],
+		options = OUTLINES, disableWhen = Off("cast.enabled"),
+	},
 	{ type = "header", label = L["Threat"] },
 	{
 		type = "dropdown", key = "threat.display", label = L["Threat display"],

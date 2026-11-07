@@ -16,10 +16,12 @@ Preview.SAMPLES = {
 	{
 		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64,
 		enemy = true, reaction = 2, isPlayer = false, target = true, raid = 8,
+		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false },
 	},
 	{
 		name = L["Elunara"], level = 60, classification = "normal", health = 0.81,
 		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning",
+		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true },
 	},
 	{
 		name = L["Thaldrin"], level = 60, classification = "normal", health = 0.92,

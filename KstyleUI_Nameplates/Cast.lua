@@ -1,0 +1,395 @@
+-- Cast.lua: the plate's cast bar, run by the engine from the cast APIs' duration objects, with the spell's name, icon and interruptible state passed through.
+local _, ns = ...
+
+local K = KstyleUI
+local Widgets, Tokens, Theme, Motion, L = K.Widgets, K.Tokens, K.Theme, K.Motion, K.L
+local Settings, Logic = ns.Settings, ns.Logic
+local IsSecret = Logic.IsSecret
+local LogOnce = ns.LogOnce
+
+local Cast = {}
+ns.Cast = Cast
+
+local GAP = Tokens.Size("gapTiny")
+local TEXT_INSET = Tokens.Size("gapSmall")
+local TIME_STEP = 0.1
+local INTERRUPT_FADE = 0.8
+local SHIELD_ALPHA = 0.6
+local ICON_CROP = 0.07
+local MS = 1000
+local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+
+local function Direction(name)
+	local enum = Enum and Enum.StatusBarTimerDirection
+	return enum and enum[name]
+end
+
+local function Immediate()
+	local enum = Enum and Enum.StatusBarInterpolation
+	return enum and enum.Immediate
+end
+
+local function CastColor()
+	if Settings.Get("cast.colorSource") == "custom" then
+		local c = Settings.Get("cast.color")
+		return c.r, c.g, c.b
+	end
+	return Theme.Accent()
+end
+
+local function ShieldColor()
+	local c = Settings.Get("cast.shieldColor")
+	return c.r, c.g, c.b
+end
+
+local colors = {}
+local function ColorObjects()
+	if not CreateColor then
+		return nil
+	end
+	local r, g, b = CastColor()
+	local sr, sg, sb = ShieldColor()
+	if colors.r ~= r or colors.g ~= g or colors.b ~= b or colors.sr ~= sr or colors.sg ~= sg or colors.sb ~= sb then
+		colors.r, colors.g, colors.b, colors.sr, colors.sg, colors.sb = r, g, b, sr, sg, sb
+		colors.normal = CreateColor(r, g, b, 1)
+		colors.shield = CreateColor(sr, sg, sb, 1)
+	end
+	return colors.normal, colors.shield
+end
+
+local function StyleFont(text)
+	local flags = OUTLINE_FLAGS[Settings.Get("cast.outline")] or "OUTLINE"
+	local size = Settings.Get("cast.textSize")
+	if text:SetFont(Settings.Get("font"), size, flags) == false then
+		text:SetFont((Tokens.Font("world")), size, flags)
+	end
+	if flags == "" then
+		text:SetShadowColor(Tokens.Color("textShadow"))
+		local offset = Tokens.Size("textShadowOffset")
+		text:SetShadowOffset(offset, -offset)
+	else
+		text:SetShadowOffset(0, 0)
+	end
+end
+
+local function OnUpdate(bar, elapsed)
+	local plate = bar.plate
+	if plate.castFallback then
+		bar:SetValue(GetTime() * MS)
+	end
+	local duration = plate.castDuration
+	if not duration or not plate.castTime:IsShown() then
+		return
+	end
+	plate.castClock = plate.castClock - elapsed
+	if plate.castClock > 0 then
+		return
+	end
+	plate.castClock = TIME_STEP
+	local ok, remaining = pcall(duration.GetRemainingDuration, duration)
+	if ok then
+		plate.castTime:SetFormattedText("%.1f", remaining)
+	end
+end
+
+local function StopFade(plate)
+	if plate.castFade then
+		Motion.Stop(plate.castFade)
+		plate.castFade = nil
+	end
+end
+
+local function Paint(plate)
+	local bar = plate.castBar
+	local flag = plate.castFlag
+	if plate.castInterrupted then
+		bar:SetBarColor(Tokens.Color("hostile"))
+		plate.castShield:SetAlpha(0)
+		return
+	end
+	if IsSecret(flag) then
+		local normal, shield = ColorObjects()
+		local texture = bar:GetStatusBarTexture()
+		if normal and texture and texture.SetVertexColorFromBoolean then
+			texture:SetVertexColorFromBoolean(flag, shield, normal)
+		else
+			bar:SetBarColor(CastColor())
+			LogOnce("cast-flag", "SetVertexColorFromBoolean is missing; secret uninterruptible casts use the normal colour")
+		end
+		if plate.castShield.SetAlphaFromBoolean then
+			plate.castShield:SetAlphaFromBoolean(flag, SHIELD_ALPHA, 0)
+		end
+	elseif flag == true then
+		bar:SetBarColor(ShieldColor())
+		plate.castShield:SetAlpha(SHIELD_ALPHA)
+	else
+		bar:SetBarColor(CastColor())
+		plate.castShield:SetAlpha(0)
+	end
+end
+
+local function Info(unit, channel)
+	if channel then
+		local name, text, texture, startMs, endMs, _, notInterruptible = UnitChannelInfo(unit)
+		return name, text, texture, startMs, endMs, notInterruptible
+	end
+	local name, text, texture, startMs, endMs, _, _, notInterruptible = UnitCastingInfo(unit)
+	return name, text, texture, startMs, endMs, notInterruptible
+end
+
+local function DurationFor(unit, channel)
+	local fn = channel and UnitChannelDuration or UnitCastingDuration
+	if type(fn) ~= "function" then
+		return nil
+	end
+	local ok, duration = pcall(fn, unit)
+	if ok and type(duration) ~= "nil" then
+		return duration
+	end
+	return nil
+end
+
+local function Run(plate, channel, startMs, endMs)
+	local bar = plate.castBar
+	local duration = DurationFor(plate.unit, channel)
+	plate.castDuration, plate.castFallback = nil, false
+	if duration and type(bar.SetTimerDuration) == "function" then
+		local direction = Direction(channel and "RemainingTime" or "ElapsedTime")
+		local ok = pcall(bar.SetTimerDuration, bar, duration, Immediate(), direction)
+		if ok then
+			plate.castDuration = duration
+			return
+		end
+	end
+	LogOnce("cast-fallback", "UnitCastingDuration or SetTimerDuration is unavailable; cast bars run from the cast's start and end times")
+	bar:SetMinMaxValues(startMs, endMs)
+	bar:SetValue(GetTime() * MS)
+	plate.castFallback = true
+end
+
+local function Shows(plate)
+	return Settings.Get("cast.enabled") and not plate.nameOnly and plate.unit ~= nil
+end
+
+function Cast.Start(plate, channel)
+	if not Shows(plate) then
+		return
+	end
+	local name, text, texture, startMs, endMs, flag = Info(plate.unit, channel)
+	if type(name) == "nil" then
+		return
+	end
+	StopFade(plate)
+	plate.casting, plate.castChannel, plate.castInterrupted = true, channel, false
+	plate.castFlag = flag
+	local cast = plate.cast
+	cast:SetAlpha(1)
+	cast:Show()
+	plate.castIcon:SetTexture(texture)
+	plate.castName:SetText(text)
+	Run(plate, channel, startMs, endMs)
+	plate.castClock = 0
+	local showTime = Settings.Get("cast.showTime") and plate.castDuration ~= nil
+	plate.castTime:SetShown(showTime)
+	if showTime then
+		plate.castTime:SetText("")
+	end
+	plate.castBar:SetScript("OnUpdate", (showTime or plate.castFallback) and OnUpdate or nil)
+	Paint(plate)
+	plate.castBar:PlaySheen(false)
+end
+
+function Cast.Stop(plate, interrupted)
+	if not plate.casting then
+		return
+	end
+	local bar, cast = plate.castBar, plate.cast
+	bar:SetScript("OnUpdate", nil)
+	plate.casting, plate.castDuration, plate.castFallback = false, nil, false
+	if interrupted then
+		plate.castInterrupted = true
+		bar:SetMinMaxValues(0, 1)
+		bar:SetValue(1)
+		plate.castName:SetText(L["Interrupted"])
+		plate.castTime:SetText("")
+		Paint(plate)
+		plate.castFade = Motion.FadeOut(cast, INTERRUPT_FADE)
+	else
+		plate.castFade = Motion.FadeOut(cast, Tokens.Duration("fade"))
+	end
+end
+
+function Cast.Hide(plate)
+	StopFade(plate)
+	plate.casting, plate.castDuration, plate.castFallback, plate.castInterrupted = false, nil, false, false
+	plate.castBar:SetScript("OnUpdate", nil)
+	plate.cast:Hide()
+end
+
+function Cast.SetInterruptible(plate, interruptible)
+	if plate.casting then
+		plate.castFlag = not interruptible
+		Paint(plate)
+	end
+end
+
+function Cast.Refresh(plate)
+	if not Shows(plate) then
+		Cast.Hide(plate)
+		return
+	end
+	local unit = plate.unit
+	local name = UnitCastingInfo(unit)
+	if type(name) ~= "nil" then
+		Cast.Start(plate, false)
+		return
+	end
+	name = UnitChannelInfo(unit)
+	if type(name) ~= "nil" then
+		Cast.Start(plate, true)
+	elseif plate.casting then
+		Cast.Hide(plate)
+	end
+end
+
+local Component = { events = {} }
+ns.Components[#ns.Components + 1] = Component
+
+function Component.Build(plate)
+	local cast = CreateFrame("Frame", nil, plate)
+	cast:Hide()
+	plate.cast = cast
+	plate.castBarOpts = { width = 100, height = 12, border = true, spark = true, sheen = true }
+	local bar = Widgets.StatusBar(cast, plate.castBarOpts)
+	bar.plate = plate
+	plate.castBar = bar
+	local icon = cast:CreateTexture(nil, "ARTWORK")
+	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	local mask = cast:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(icon)
+	icon:AddMaskTexture(mask)
+	plate.castIcon = icon
+	local shield = cast:CreateTexture(nil, "OVERLAY")
+	shield:SetColorTexture(Tokens.Color("black"))
+	shield:SetAllPoints(icon)
+	shield:AddMaskTexture(mask)
+	shield:SetAlpha(0)
+	plate.castShield = shield
+	local name = bar:CreateFontString(nil, "OVERLAY")
+	name:SetJustifyH("LEFT")
+	name:SetWordWrap(false)
+	plate.castName = name
+	local time = bar:CreateFontString(nil, "OVERLAY")
+	time:SetJustifyH("RIGHT")
+	time:SetWordWrap(false)
+	plate.castTime = time
+end
+
+function Component.Room(plate)
+	if not Settings.Get("cast.enabled") then
+		return 0
+	end
+	return Settings.Get("cast.height") + GAP
+end
+
+function Component.Restyle(plate)
+	local state = ns.state
+	local h = Settings.Get("cast.height")
+	local showIcon = Settings.Get("cast.showIcon")
+	local iconRoom = showIcon and h + GAP or 0
+	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
+	Widgets.Size(cast, state.width, h)
+	cast:ClearAllPoints()
+	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, GAP))
+	Widgets.Size(icon, h, h)
+	icon:ClearAllPoints()
+	icon:SetPoint("LEFT", cast, "LEFT")
+	icon:SetShown(showIcon)
+	plate.castShield:SetShown(showIcon)
+	local opts = plate.castBarOpts
+	opts.width, opts.height = math.max(1, state.width - iconRoom), h
+	bar:ClearAllPoints()
+	bar:SetPoint("RIGHT", cast, "RIGHT")
+	local orientation = Settings.Get("cast.orientation")
+	bar:SetOrientation(orientation)
+	bar.vertical = orientation == "VERTICAL"
+	bar:SetReverseFill(Settings.Get("cast.reverse"))
+	bar:SetBarTexture(Settings.Get("cast.texture"))
+	bar:Restyle()
+	StyleFont(plate.castName)
+	StyleFont(plate.castTime)
+	plate.castName:ClearAllPoints()
+	plate.castName:SetPoint("LEFT", bar, "LEFT", Widgets.Snap(plate, TEXT_INSET), 0)
+	plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
+	plate.castName:SetShown(Settings.Get("cast.showName"))
+	plate.castTime:ClearAllPoints()
+	plate.castTime:SetPoint("RIGHT", bar, "RIGHT", -Widgets.Snap(plate, TEXT_INSET), 0)
+end
+
+function Component.Refresh(plate)
+	if plate.sample then
+		Cast.Sample(plate)
+		return
+	end
+	Cast.Refresh(plate)
+end
+
+function Component.Clear(plate)
+	Cast.Hide(plate)
+end
+
+function Cast.Sample(plate)
+	local sample = plate.sample.cast
+	if not sample or not Settings.Get("cast.enabled") or plate.nameOnly then
+		plate.cast:Hide()
+		return
+	end
+	plate.cast:SetAlpha(1)
+	plate.cast:Show()
+	plate.castIcon:SetTexture(sample.texture)
+	plate.castName:SetText(sample.text)
+	plate.castTime:SetText(sample.time)
+	plate.castTime:SetShown(Settings.Get("cast.showTime"))
+	plate.castBar:SetBarRange(0, 1)
+	plate.castBar:SetValue(sample.progress)
+	plate.castFlag = sample.notInterruptible
+	Paint(plate)
+end
+
+Component.events.UNIT_SPELLCAST_START = function(plate)
+	Cast.Start(plate, false)
+end
+Component.events.UNIT_SPELLCAST_CHANNEL_START = function(plate)
+	Cast.Start(plate, true)
+end
+Component.events.UNIT_SPELLCAST_DELAYED = function(plate)
+	if plate.casting and not plate.castChannel then
+		Cast.Start(plate, false)
+	end
+end
+Component.events.UNIT_SPELLCAST_CHANNEL_UPDATE = function(plate)
+	if plate.casting and plate.castChannel then
+		Cast.Start(plate, true)
+	end
+end
+Component.events.UNIT_SPELLCAST_STOP = function(plate)
+	if not plate.castChannel then
+		Cast.Stop(plate, false)
+	end
+end
+Component.events.UNIT_SPELLCAST_FAILED = Component.events.UNIT_SPELLCAST_STOP
+Component.events.UNIT_SPELLCAST_CHANNEL_STOP = function(plate)
+	if plate.castChannel then
+		Cast.Stop(plate, false)
+	end
+end
+Component.events.UNIT_SPELLCAST_INTERRUPTED = function(plate)
+	Cast.Stop(plate, true)
+end
+Component.events.UNIT_SPELLCAST_INTERRUPTIBLE = function(plate)
+	Cast.SetInterruptible(plate, true)
+end
+Component.events.UNIT_SPELLCAST_NOT_INTERRUPTIBLE = function(plate)
+	Cast.SetInterruptible(plate, false)
+end

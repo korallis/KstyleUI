@@ -1,6 +1,6 @@
 # KstyleUI_Nameplates
 
-A KstyleUI plate on each nameplate: health, name, level, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style.
+A KstyleUI plate on each nameplate: health, name, level, cast bar, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style.
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@ A KstyleUI plate on each nameplate: health, name, level, threat colour, target a
 | Approach | Replace the visible plate |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Nameplates.toc` lists `Nameplates.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Tests | `Tools/regression/test-nameplates.lua` and `test-nameplates-settings.lua`, through `Tools/regression/nameplates_env.lua` |
+| Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua` and `test-nameplates-cast.lua`, through `Tools/regression/nameplates_env.lua` |
 
 ## Rules
 
@@ -32,6 +32,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Logic.lua` | `ns.Logic`: pure rules. Threat states, the colour a bar uses, classification markers, level text, the plate's scale and the CVar plan. |
 | `Settings.lua` | `ns.Settings`: the defaults, the settings page, and `Get(key)`, a checked and cached read of one setting |
 | `Plate.lua` | `ns.NewPlate(parent, sample)`: one plate, and `ns.Components`, the parts later files add to every plate |
+| `Cast.lua` | `ns.Cast`: the cast bar component |
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
@@ -60,6 +61,21 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 | Raid marker | `GetRaidTargetIndex` | Always secret on Forever. `type(index)` tells nil from a number without reading it, and the index goes to `SetSpriteSheetCell` on Blizzard's raid icon sheet. |
 | Threat | `UnitThreatSituation("player", unit)` | Readable on Forever. A secret status counts as none. See below. |
 | Target and focus | `C_NamePlate.GetNamePlateForUnit("target")` and `("focus")` | Compared with the plate's base frame, which is never secret. When that call is refused or returns nothing while the unit exists, `UnitIsUnit` decides, and a secret answer counts as no. |
+
+### Cast bar
+
+The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar: the spell icon (masked to the chamfer), then the bar with the spell's name and the time left.
+
+| Moment | What happens |
+| --- | --- |
+| `UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_CHANNEL_START`, or a plate attaching to a unit that is casting | `UnitCastingInfo` or `UnitChannelInfo` gives the name, icon and `notInterruptible`; `type(name)` tells whether there is a cast without reading a secret. The bar runs from `UnitCastingDuration` or `UnitChannelDuration` through `SetTimerDuration`: casts fill (`ElapsedTime`), channels drain (`RemainingTime`). The name and icon reach `SetText` and `SetTexture` whole. A sheen crosses the bar once. |
+| Time left | An `OnUpdate` on the bar, only while it casts, writes `duration:GetRemainingDuration()` through `SetFormattedText` every 0.1 s. |
+| `UNIT_SPELLCAST_DELAYED`, `UNIT_SPELLCAST_CHANNEL_UPDATE` | The bar runs again from a fresh duration. |
+| Interruptible or not | A plain flag picks the cast colour (the accent or a custom colour) or the uninterruptible colour, and dims the icon. A secret flag goes to `SetVertexColorFromBoolean` on the bar's texture and `SetAlphaFromBoolean` on the icon's shade, so the engine decides. `UNIT_SPELLCAST_INTERRUPTIBLE` and `UNIT_SPELLCAST_NOT_INTERRUPTIBLE` give a plain flag. |
+| `UNIT_SPELLCAST_STOP`, `_FAILED`, `_CHANNEL_STOP` | The bar fades out over `fade`. |
+| `UNIT_SPELLCAST_INTERRUPTED` | The bar fills, turns `hostile`, says **Interrupted** and fades out over 0.8 s. The `STOP` that follows is ignored. |
+
+Without the duration APIs or `SetTimerDuration`, the bar takes the cast's start and end times as its range (they may be secret; the engine compares them) and an `OnUpdate` sets the value to `GetTime() * 1000`. That path shows no time text, channels fill rather than drain, and the devlog says it ran.
 
 ### Styles
 
@@ -101,6 +117,10 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 10, thin, on, on | toggle, slider, dropdown, toggle, toggle |
 | `level.show`, `level.size`, `level.outline` | on, 9, thin | toggle, slider, dropdown |
 | `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | on, 9, thin, percent | toggle, slider, dropdown, dropdown |
+| `cast.enabled`, `cast.height` | on, 12 | toggle, slider 6 to 24 |
+| `cast.texture`, `cast.orientation`, `cast.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
+| `cast.colorSource`, `cast.color`, `cast.shieldColor` | accent, `accentDefault`, `textDisabled` | dropdown, colour, colour |
+| `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 9, thin | toggle, toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |
 | `threat.safe`, `threat.warning`, `threat.danger` | `friendly`, `neutral`, `hostile` | colour |
 | `target.highlight`, `target.colorSource`, `target.color`, `target.dimOthers` | on, accent, `accentDefault`, 1 | toggle, dropdown, colour, slider 0.2 to 1 |
@@ -136,5 +156,6 @@ A CVar the client does not have is skipped and logged once. Turning management o
 - **Base frames compared by identity.** `UnitIsUnit` can return a secret while unit comparison is restricted. A frame reference is never secret, so the target and focus come from `GetNamePlateForUnit` and an identity test.
 - **One plate per base.** Base frames are pooled by the engine and reused for new units, so a plate is built once per base and refreshed on each attach. Nothing is built in a combat path after the first sighting of a base.
 - **A sample plate for Layout.** Plates have no screen position of their own, but the spec wants every element resized in Layout Mode. The sample gives the player handles to drag; its size is the plates' size.
+- **The engine runs the cast bar.** Enemy casts can be secret, so Lua never reads a cast's times or flags. Duration objects and the `FromBoolean` setters let the engine fill, time and colour the bar.
 - **Threat only in a group.** Alone, every mob that attacks the player is on them, and a red glow on each says nothing new.
 - **CVars back to the defaults.** The module does not store the player's own CVar values. Returning to the game's defaults is predictable and needs no saved state.

@@ -210,6 +210,70 @@ function N.Install(env, opts)
 		return { r = 1, g = 0.82, b = 0, font = "QuestDifficulty_Difficult" }
 	end
 
+	env.Enum = env.Enum or {}
+	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
+	env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
+	function env.CreateColor(r, g, b, a)
+		return {
+			r = r, g = g, b = b, a = a,
+			GetRGBA = function(self)
+				return self.r, self.g, self.b, self.a
+			end,
+		}
+	end
+	env._time = 1.5
+	function env.GetTime()
+		return env._time
+	end
+
+	-- A cast is unit.cast = { name, text, texture, notInterruptible, channel, secret }. It runs from
+	-- 1000 to 3000 ms; its duration object reports 1.5 s remaining as a secret.
+	local function castInfo(token, channel)
+		local u = unit(token)
+		local c = u and u.cast
+		if not c or (c.channel and true or false) ~= channel then
+			return nil
+		end
+		local function wrap(v)
+			return c.secret and env.Secret(v) or v
+		end
+		return wrap(c.name), wrap(c.text), wrap(c.texture), wrap(1000), wrap(3000), c.notInterruptible ~= nil and wrap(c.notInterruptible) or nil
+	end
+	function env.UnitCastingInfo(token)
+		local name, text, texture, startMs, endMs, flag = castInfo(token, false)
+		if name == nil then
+			return nil
+		end
+		return name, text, texture, startMs, endMs, false, "cast-guid", flag, 133
+	end
+	function env.UnitChannelInfo(token)
+		local name, text, texture, startMs, endMs, flag = castInfo(token, true)
+		if name == nil then
+			return nil
+		end
+		return name, text, texture, startMs, endMs, false, flag, 689
+	end
+	local function duration(token, channel)
+		local u = unit(token)
+		if not (u and u.cast and (u.cast.channel and true or false) == channel) then
+			return nil
+		end
+		if not u.castDuration then
+			u.castDuration = {
+				GetRemainingDuration = function()
+					return env.Secret(1.5)
+				end,
+			}
+		end
+		return u.castDuration
+	end
+	function env.UnitCastingDuration(token)
+		return duration(token, false)
+	end
+	function env.UnitChannelDuration(token)
+		return duration(token, true)
+	end
+
 	env.C_NamePlate = {
 		GetNamePlateForUnit = function(token)
 			if opts.strictTokens and not token:match("^nameplate%d+$") then
@@ -357,6 +421,44 @@ function N.Remove(env, token)
 		base.UnitFrame = nil
 	end
 	return base
+end
+
+-- Cast(env, token, cast) starts a cast or channel on a unit and fires its start event.
+function N.Cast(env, token, cast)
+	local copy = {}
+	for k, v in pairs(cast) do
+		copy[k] = v
+	end
+	env._units[token].cast = copy
+	env._units[token].castDuration = nil
+	env.FireEvent(copy.channel and "UNIT_SPELLCAST_CHANNEL_START" or "UNIT_SPELLCAST_START", token)
+end
+
+local function updating(env)
+	local out = {}
+	for _, frame in ipairs(env._frames) do
+		if frame:GetScript("OnUpdate") then
+			out[#out + 1] = frame
+		end
+	end
+	return out
+end
+
+-- Tick(env, dt) runs every OnUpdate once; Settle(env) runs them in 16 ms steps until none is left.
+function N.Tick(env, dt)
+	for _, frame in ipairs(updating(env)) do
+		frame:GetScript("OnUpdate")(frame, dt or 0.016)
+	end
+end
+
+function N.Settle(env)
+	for _ = 1, 1000 do
+		if #updating(env) == 0 then
+			return
+		end
+		N.Tick(env, 0.016)
+	end
+	error("Settle: an OnUpdate kept running for 1000 frames")
 end
 
 function N.Target(env, token)

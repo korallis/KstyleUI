@@ -249,12 +249,30 @@ local function Attach(unit)
 	end
 end
 
-local function ForUnit(method)
-	return function(_, unit)
-		local plate = byUnit[unit]
-		if plate then
-			plate[method](plate)
+local unitHandlers = {}
+
+local function AddUnitHandler(event, fn)
+	local list = unitHandlers[event]
+	if not list then
+		list = {}
+		unitHandlers[event] = list
+	end
+	list[#list + 1] = fn
+end
+
+local function Dispatch(event, unit)
+	local plate = byUnit[unit]
+	if plate then
+		local list = unitHandlers[event]
+		for i = 1, #list do
+			list[i](plate, event)
 		end
+	end
+end
+
+local function Method(name)
+	return function(plate)
+		plate[name](plate)
 	end
 end
 
@@ -267,16 +285,31 @@ local function ForAll(method)
 end
 
 local UNIT_EVENTS = {
-	UNIT_HEALTH = ForUnit("UpdateHealth"),
-	UNIT_MAXHEALTH = ForUnit("UpdateHealth"),
-	UNIT_NAME_UPDATE = ForUnit("UpdateName"),
-	UNIT_LEVEL = ForUnit("UpdateLevel"),
-	UNIT_CLASSIFICATION_CHANGED = ForUnit("UpdateMarker"),
-	UNIT_FACTION = ForUnit("Refresh"),
-	UNIT_FLAGS = ForUnit("Refresh"),
-	UNIT_THREAT_SITUATION_UPDATE = ForUnit("UpdateThreat"),
-	UNIT_THREAT_LIST_UPDATE = ForUnit("UpdateThreat"),
+	UNIT_HEALTH = Method("UpdateHealth"),
+	UNIT_MAXHEALTH = Method("UpdateHealth"),
+	UNIT_NAME_UPDATE = Method("UpdateName"),
+	UNIT_LEVEL = Method("UpdateLevel"),
+	UNIT_CLASSIFICATION_CHANGED = Method("UpdateMarker"),
+	UNIT_FACTION = Method("Refresh"),
+	UNIT_FLAGS = Method("Refresh"),
+	UNIT_THREAT_SITUATION_UPDATE = Method("UpdateThreat"),
+	UNIT_THREAT_LIST_UPDATE = Method("UpdateThreat"),
 }
+for event, fn in pairs(UNIT_EVENTS) do
+	AddUnitHandler(event, fn)
+end
+
+local componentsAdded = 0
+
+local function AddComponentEvents()
+	local components = ns.Components
+	for i = componentsAdded + 1, #components do
+		for event, fn in pairs(components[i].events or {}) do
+			AddUnitHandler(event, fn)
+		end
+	end
+	componentsAdded = #components
+end
 
 local function OnHighlight()
 	UpdateTokens()
@@ -339,8 +372,9 @@ function Plates.Start()
 	UpdateRole()
 	UpdateTokens()
 	Plates.ReadSize()
-	for event, fn in pairs(UNIT_EVENTS) do
-		K.Events.Register(MODULE, event, fn)
+	AddComponentEvents()
+	for event in pairs(unitHandlers) do
+		K.Events.Register(MODULE, event, Dispatch)
 	end
 	for event, fn in pairs(GLOBAL_EVENTS) do
 		K.Events.Register(MODULE, event, fn)
