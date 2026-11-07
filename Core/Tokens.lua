@@ -121,6 +121,10 @@ local TEXTURES = {
 	barSoft = { file = "Textures\\BarSoft.png" },
 	barGlass = { file = "Textures\\BarGlass.png" },
 	minimapMask = { file = "Textures\\MinimapMask.png" },
+	dot = { file = "Textures\\Dot.png" },
+	pill = { file = "Textures\\Pill.png" },
+	glyphChevron = { file = "Textures\\GlyphChevron.png" },
+	glyphClose = { file = "Textures\\GlyphClose.png" },
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.png" },
 }

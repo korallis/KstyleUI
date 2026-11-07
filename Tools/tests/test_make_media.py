@@ -42,6 +42,7 @@ class ManifestTest(unittest.TestCase):
             "ChamferPanel", "ChamferTile", "BevelPanelOuter", "BevelPanelInner", "BevelTileOuter",
             "BevelTileInner", "ChamferIconMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
+            "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
             self.assertIn(name, names)
         paths = {a.path for a in self.mm.ASSETS}
@@ -178,6 +179,40 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual(self.alpha("Glow.png", 64, 64), 255)
         self.assertEqual(self.alpha("Glow.png", 0, 64), 0)
         self.assertEqual(self.alpha("Glow.png", 64, 20), self.alpha("Glow.png", 20, 64))
+
+    def test_dot_is_a_filled_disc(self):
+        self.assertEqual(self.alpha("Dot.png", 32, 32), 255)
+        self.assertEqual(self.alpha("Dot.png", 32, 3), 255, "the disc reaches near the edge")
+        self.assertEqual(self.alpha("Dot.png", 0, 0), 0, "the corners are empty")
+        self.assertEqual(self.alpha("Dot.png", 0, 32), 0, "a texel of padding for filtering")
+        self.assertEqual(self.alpha("Dot.png", 32, 10), self.alpha("Dot.png", 10, 32), "the disc is round")
+
+    def test_pill_has_round_caps_and_a_flat_middle(self):
+        cap = self.mm.PILL_CAP
+        self.assertEqual(cap * 4, 64, "each cap is a quarter of the width, so a widget can three-slice it")
+        self.assertEqual(self.alpha("Pill.png", 32, 16), 255)
+        self.assertEqual(self.alpha("Pill.png", 0, 0), 0, "the caps are round")
+        self.assertEqual(self.alpha("Pill.png", 63, 31), 0, "the caps are round")
+        self.assertEqual(self.alpha("Pill.png", 0, 16), 0, "a texel of padding for filtering")
+        self.assertEqual(self.alpha("Pill.png", 2, 16), 255, "the cap reaches the side")
+        for x in range(cap, 64 - cap):
+            for y in range(32):
+                self.assertEqual(self.alpha("Pill.png", x, y), self.alpha("Pill.png", cap, y), f"column {x} row {y}")
+        for y in range(32):
+            self.assertEqual(self.alpha("Pill.png", 5, y), self.alpha("Pill.png", 58, y), "the caps mirror each other")
+
+    def test_glyphs_are_thin_strokes_on_clear_ground(self):
+        self.assertEqual(self.alpha("GlyphChevron.png", 16, 20), 255, "the chevron's point")
+        self.assertEqual(self.alpha("GlyphChevron.png", 16, 12), 0, "the chevron is open above its point")
+        self.assertEqual(self.alpha("GlyphChevron.png", 8, 12), 255, "the left arm")
+        self.assertEqual(self.alpha("GlyphChevron.png", 24, 12), 255, "the right arm")
+        self.assertEqual(self.alpha("GlyphClose.png", 16, 16), 255, "the cross's centre")
+        self.assertEqual(self.alpha("GlyphClose.png", 16, 8), 0, "the cross is open between its arms")
+        for x, y in ((10, 10), (22, 10), (10, 22), (22, 22)):
+            self.assertEqual(self.alpha("GlyphClose.png", x, y), 255, f"arm at {x},{y}")
+        for name in ("GlyphChevron.png", "GlyphClose.png"):
+            for x, y in ((0, 0), (31, 0), (0, 31), (31, 31)):
+                self.assertEqual(self.alpha(name, x, y), 0, f"{name} corner {x},{y}")
 
     def test_divider_fades_out_at_both_ends(self):
         self.assertEqual(self.alpha("Divider.png", 0, 1), 0)

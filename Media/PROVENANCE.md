@@ -40,6 +40,10 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Textures/BarSoft.png` | 256x32 | Status bar fill with a soft top-to-bottom gradient. | `Tools/media/make_media.py`, procedural, no model | 4x supersampled gradient | 2026-11-07 |
 | `Media/Textures/BarGlass.png` | 256x32 | Status bar fill with a glass sheen near the top. | `Tools/media/make_media.py`, procedural, no model | 4x supersampled gradient | 2026-11-07 |
 | `Media/Textures/MinimapMask.png` | 128x128 | Square minimap mask for Minimap:SetMaskTexture. | `Tools/media/make_media.py`, procedural, no model | solid | 2026-11-07 |
+| `Media/Textures/Dot.png` | 64x64 | Filled disc for toggle and slider knobs. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
+| `Media/Textures/Pill.png` | 64x32 | Capsule for toggle and slider tracks. Each round cap is 16 texels wide, so a widget three-slices it. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
+| `Media/Textures/GlyphChevron.png` | 32x32 | Downward chevron for dropdowns and scroll steppers. Flip the texture coordinates to point it up. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
+| `Media/Textures/GlyphClose.png` | 32x32 | Cross for close buttons. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo64.png` | 64x64 | KstyleUI logo, the chamfered diamond, at 64 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo64.tga` | 64x64 | Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.png` | 256x256 | KstyleUI logo, the chamfered diamond, at 256 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |

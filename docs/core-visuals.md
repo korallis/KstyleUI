@@ -82,6 +82,10 @@ The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default. `number` a
 | `shadow` | `Shadow.png`, 128x128 | 48 texels | 24 units, centred on the panel's corner |
 | `iconMask` | `ChamferIconMask.png`, a 3-unit chamfer on a 34-unit square | | |
 | `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `minimapMask`, `logo`, `logoLarge` | | | |
+| `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |
+| `glyphChevron`, `glyphClose` | `GlyphChevron.png`, `GlyphClose.png`, 32x32 | | |
+
+`dot` and `pill` are the knobs and tracks of toggles and sliders. Each round cap of the pill is a quarter of its width, so a widget three-slices it at any length. `glyphChevron` and `glyphClose` are line glyphs for dropdowns, scroll steppers and close buttons; flip the chevron's texture coordinates to point it up.
 
 Shapes are white with their coverage in alpha: tint them with `SetVertexColor`. A sliced texture has the same row and column everywhere between its margins, so it stretches cleanly as a native slice (`SetTextureSliceMargins`), as nine `SetTexCoord` pieces, or as a mask on a square region. Draw a corner piece at `Scale.Snap(sliceUnits)` so it covers whole pixels. The bevel margins reach past the chamfer to hold each line's mitre. Draw the straight bevel edges as solid textures `Scale.Border()` thick, and use the bevel textures for the corners. Blizzard's Forever code never slices a mask, so use `iconMask` on square icons and portraits rather than a sliced mask.
 

@@ -37,6 +37,8 @@ PANEL_CHAMFER, TILE_CHAMFER = 6, 3  # root units, from the spec's Shape section
 BEVEL_LINE = 1  # root units: one physical pixel at 1080p, two at 4K
 SHADOW_REACH = 12  # root units the shadow reaches past the panel edge
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
+PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
+GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units at 8 units across
 
 # Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner and
 # draws at margin / TEXELS_PER_UNIT root units, so pieces of different textures line up. Between the
@@ -417,6 +419,48 @@ def draw_ring(size, thickness):
     return white(sample(size, size, fn))
 
 
+def draw_dot(size):
+    centre = size / 2
+    radius = centre - 1
+
+    def fn(x, y):
+        return 1.0 if math.hypot(x - centre, y - centre) <= radius else 0.0
+
+    return white(sample(size, size, fn))
+
+
+def draw_pill(width, height):
+    """A capsule: two half discs joined by a band. Every column between the caps is the same."""
+    radius = height / 2 - 1
+    cy = height / 2
+    left, right = PILL_CAP, width - PILL_CAP
+
+    def fn(x, y):
+        cx = min(max(x, left), right)
+        return 1.0 if math.hypot(x - cx, y - cy) <= radius else 0.0
+
+    return white(sample(width, height, fn))
+
+
+def _segment_distance(x, y, x0, y0, x1, y1):
+    dx, dy = x1 - x0, y1 - y0
+    t = max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(x - (x0 + t * dx), y - (y0 + t * dy))
+
+
+def draw_strokes(size, segments, stroke):
+    """Round-ended strokes along each segment ((x0, y0), (x1, y1)), in texels."""
+    half = stroke / 2
+
+    def fn(x, y):
+        for (x0, y0), (x1, y1) in segments:
+            if _segment_distance(x, y, x0, y0, x1, y1) <= half:
+                return 1.0
+        return 0.0
+
+    return white(sample(size, size, fn))
+
+
 def draw_bar(width, height, kind):
     def flat(v):
         return 1.0
@@ -522,6 +566,13 @@ ASSETS = [
     _texture("BarGlass", 256, 32, lambda: draw_bar(256, 32, "glass"), "Status bar fill with a glass sheen near the top.",
              "4x supersampled gradient"),
     _texture("MinimapMask", 128, 128, lambda: draw_full(128, 128), "Square minimap mask for Minimap:SetMaskTexture.", "solid"),
+    _texture("Dot", 64, 64, lambda: draw_dot(64), "Filled disc for toggle and slider knobs."),
+    _texture("Pill", 64, 32, lambda: draw_pill(64, 32),
+             f"Capsule for toggle and slider tracks. Each round cap is {PILL_CAP} texels wide, so a widget three-slices it."),
+    _texture("GlyphChevron", 32, 32, lambda: draw_strokes(32, (((8, 12), (16, 20)), ((16, 20), (24, 12))), GLYPH_STROKE),
+             "Downward chevron for dropdowns and scroll steppers. Flip the texture coordinates to point it up."),
+    _texture("GlyphClose", 32, 32, lambda: draw_strokes(32, (((9, 9), (23, 23)), ((23, 9), (9, 23))), GLYPH_STROKE),
+             "Cross for close buttons."),
     Asset("Media/Logo/Logo64.png", 64, 64, lambda: draw_logo(64), "KstyleUI logo, the chamfered diamond, at 64 px."),
     Asset("Media/Logo/Logo64.tga", 64, 64, lambda: draw_logo(64),
           "Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension."),

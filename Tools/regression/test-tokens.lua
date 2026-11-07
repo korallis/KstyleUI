@@ -165,6 +165,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 for _, name in ipairs({
 	"chamferPanel", "chamferTile", "bevelPanelOuter", "bevelPanelInner", "bevelTileOuter", "bevelTileInner", "iconMask",
 	"shadow", "glow", "divider", "noise", "ring", "barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge",
+	"dot", "pill", "glyphChevron", "glyphClose",
 }) do
 	local path = Tokens.Texture(name)
 	assert(onDisk(path), "Tokens.Texture(" .. name .. ") names a missing file: " .. tostring(path))
