@@ -36,7 +36,7 @@ local DEFS = {
 	},
 	{
 		id = "honor", key = "databars.honor", title = L["Honour"], read = Sources.Honor,
-		events = { "UPDATE_FACTION", "MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "HONOR_XP_UPDATE", "ZONE_CHANGED_NEW_AREA" },
+		events = { "UPDATE_FACTION", "MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "HONOR_XP_UPDATE", "ZONE_CHANGED", "ZONE_CHANGED_NEW_AREA" },
 	},
 }
 Bars.DEFS = DEFS
@@ -210,6 +210,8 @@ local function AddTooltip(view, tip)
 	tip:AddDoubleLine(L["Remaining"], Format.Number(info.max - info.current))
 	if id == "xp" and info.rested > 0 then
 		tip:AddDoubleLine(info.restName or L["Rested"], Format.Number(info.rested) .. " (" .. Format.Percent(info.rested, info.max) .. "%)")
+	elseif id == "rep" and info.rewardPending then
+		tip:AddLine(L["A paragon reward is waiting for you."], "friendly")
 	elseif id == "honor" and info.kind == "rank" then
 		tip:AddLine(L["Rank points earned toward your next PvP rank."], "text")
 	end
@@ -334,12 +336,19 @@ local function MatchOrientation(def)
 	end
 end
 
+local function MatchAll()
+	for _, def in ipairs(DEFS) do
+		MatchOrientation(def)
+	end
+end
+
 function Bars.Enable()
 	running = true
 	for _, def in ipairs(DEFS) do
 		local view = Bars.views[def.id] or Build(def)
 		view.holder:Show()
 	end
+	MatchAll()
 	Bars.UpdateAll(true)
 end
 
@@ -390,5 +399,6 @@ ns.Subscribe("LayoutChanged", function(key)
 end)
 
 ns.AddPart({ Enable = Bars.Enable, Disable = Bars.Disable, Setting = Bars.Setting, Refresh = function()
+	MatchAll()
 	Bars.UpdateAll(true)
 end })

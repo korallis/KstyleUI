@@ -135,15 +135,19 @@ local function Paragon(api, id, info)
 	if Call(api.IsFactionParagonForCurrentPlayer, id) ~= true then
 		return nil
 	end
-	local value, threshold = Call(api.GetFactionParagonInfo, id)
-	if AnySecret(value, threshold) then
+	local value, threshold, _, pending = Call(api.GetFactionParagonInfo, id)
+	if AnySecret(value, threshold, pending) then
 		return Secret("paragon reputation")
 	end
 	if not IsNumber(value) or not IsNumber(threshold) or threshold <= 0 then
 		return nil
 	end
 	info.kind, info.standing = "paragon", L["Paragon"]
+	info.rewardPending = pending == true
 	info.current, info.max = value % threshold, threshold
+	if info.rewardPending then
+		info.current = threshold
+	end
 	return info
 end
 

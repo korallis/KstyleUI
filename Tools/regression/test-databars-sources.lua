@@ -141,6 +141,11 @@ do
 	eq(rep.kind, "paragon", "a paragon faction")
 	eq(rep.current, 2500, "paragon progress wraps at the threshold")
 	eq(rep.max, 10000, "paragon threshold")
+	eq(rep.rewardPending, false, "no reward waiting")
+	game.paragon[72] = { value = 10000, threshold = 10000, rewardPending = true }
+	rep = Sources.Reputation()
+	eq(rep.current, 10000, "a waiting paragon reward fills the bar instead of wrapping to empty")
+	eq(rep.rewardPending, true, "and says a reward waits")
 end
 
 do

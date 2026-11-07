@@ -173,8 +173,25 @@ do
 	game.battlefield = false
 	env.FireEvent("ZONE_CHANGED_NEW_AREA")
 	eq(honor.content:IsShown(), false, "leaving PvP hides honour")
+	game.worldPvP = true
+	env.FireEvent("ZONE_CHANGED")
+	eq(honor.content:IsShown(), true, "entering a world PvP subzone shows honour")
+	game.worldPvP = false
+	env.FireEvent("ZONE_CHANGED")
+	eq(honor.content:IsShown(), false, "leaving it hides honour")
 	K.Options.Write("DataBars", "honor.show", "always")
 	eq(honor.content:IsShown(), true, "the always setting shows honour outside PvP")
+	noErrors(env, K)
+end
+
+-- An upright bar chosen while the module is off gets its upright size when it starts --------------
+
+do
+	local env, K = D.New({ enable = false })
+	K.Options.Write("DataBars", "rep.orientation", "VERTICAL")
+	K.Modules.Enable("DataBars")
+	local size = K.Layout.Get("databars.rep")
+	eq(size.width .. "x" .. size.height, "5x441", "the orientation is reconciled on enable")
 	noErrors(env, K)
 end
 
