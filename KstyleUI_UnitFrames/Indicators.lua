@@ -91,7 +91,7 @@ function Indicators.Layout(view, g, s)
 		local offset = (i - 1) * step
 		local left = fromRight and (x - offset) or (x + offset)
 		icon:ClearAllPoints()
-		icon:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, left + size / 2), 0)
+		icon:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, left + size / 2), -Snap(view, g.glass.y))
 		icon:SetSize(size, size)
 		if key == "resting" then
 			local path = Settings.Font(view.kind, "level")

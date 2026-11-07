@@ -1,4 +1,4 @@
--- Style.lua: a unit frame's visual parts (glass panel, round portrait, level badge, bars, texts), laid out from Geometry and styled from Settings.
+-- Style.lua: a unit frame's visual parts (glass panel, chamfered or round portrait, level badge, bars, texts), laid out from Geometry and styled from Settings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,9 +12,14 @@ local LEVEL_PORTRAIT = 3
 local LEVEL_BADGE = 5
 local LEVEL_TEXT = 8
 local BADGE_RING_ALPHA = 0.8
+local BADGE_EDGE = "text"
+local BADGE_EDGE_ALPHA = 0.6
 local PORTRAIT_BACK_ALPHA = 1
 local INCOMING_ALPHA = 0.45
 local ABSORB_ALPHA = 0.35
+local IMAGE_SUBLEVEL = -4
+local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
+local TRACK = "raised"
 
 local ORIENTATION = {
 	RIGHT = { "HORIZONTAL", false, "LEFT", "RIGHT" },
@@ -26,7 +31,8 @@ local ORIENTATION = {
 local TEXTS = {
 	name = { justify = "LEFT", color = "textEmphasis" },
 	healthText = { element = "health", justify = "RIGHT", color = "textEmphasis" },
-	powerText = { element = "power", justify = "RIGHT", color = "text" },
+	healthSub = { element = "health", justify = "RIGHT", color = "text", share = Geometry.DETAIL_SHARE },
+	powerText = { element = "power", justify = "LEFT", color = "text" },
 	levelText = { element = "level", justify = "CENTER", color = "textEmphasis" },
 }
 
@@ -36,6 +42,14 @@ local function NewText(owner, key)
 	text:SetJustifyV("MIDDLE")
 	text:SetJustifyH(TEXTS[key].justify)
 	return text
+end
+
+local function GlassShape(kind)
+	local element = K.Setup.Layouts.Element(Settings.ELEMENTS[kind])
+	if element and element.height < Geometry.FULL_MIN_HEIGHT then
+		return "tile"
+	end
+	return "panel"
 end
 
 local function Prediction(health, colorName)
@@ -51,24 +65,24 @@ function Style.New(parent, kind)
 	local panel = CreateFrame("Frame", nil, parent)
 	panel:SetFrameLevel(base + 1)
 	view.panel = panel
-	view.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface" })
+	view.chrome = Widgets.Chrome(panel, { shape = GlassShape(kind), fill = "surface", shadow = true })
 
-	view.health = Widgets.StatusBar(panel, { smooth = true })
+	view.health = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
 	view.health:SetClipsChildren(true)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
-	view.power = Widgets.StatusBar(panel, { smooth = true })
+	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
 
 	local portraitFrame = CreateFrame("Frame", nil, parent)
 	portraitFrame:SetFrameLevel(base + LEVEL_PORTRAIT)
 	view.portraitFrame = portraitFrame
+	view.portraitChrome = Widgets.Chrome(portraitFrame, { shape = "panel", fill = "raised", grain = false })
 	local dot, ring = Tokens.Texture("dot"), Tokens.Texture("ring")
 	view.portraitBack = portraitFrame:CreateTexture(nil, "BACKGROUND")
 	view.portraitBack:SetTexture(dot)
 	view.portraitBack:SetAllPoints(portraitFrame)
-	view.portrait = portraitFrame:CreateTexture(nil, "ARTWORK")
+	view.portrait = portraitFrame:CreateTexture(nil, "BORDER", nil, IMAGE_SUBLEVEL)
 	view.mask = portraitFrame:CreateMaskTexture()
-	view.mask:SetTexture(dot, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	view.mask:SetAllPoints(view.portrait)
 	view.portrait:AddMaskTexture(view.mask)
 	view.ring = portraitFrame:CreateTexture(nil, "OVERLAY")
@@ -78,6 +92,7 @@ function Style.New(parent, kind)
 	local badge = CreateFrame("Frame", nil, parent)
 	badge:SetFrameLevel(base + LEVEL_BADGE)
 	view.badge = badge
+	view.badgeChrome = Widgets.Chrome(badge, { shape = "tile", fill = "raised", shadow = false })
 	view.badgeBack = badge:CreateTexture(nil, "BACKGROUND")
 	view.badgeBack:SetTexture(dot)
 	view.badgeBack:SetAllPoints(badge)
@@ -93,7 +108,20 @@ function Style.New(parent, kind)
 		view[key] = NewText(top, key)
 	end
 	Indicators.New(view)
+	Style.Shape(view, false)
 	return view
+end
+
+function Style.Shape(view, round)
+	view.round = round
+	view.portraitBack:SetShown(round)
+	view.ring:SetShown(round)
+	view.badgeBack:SetShown(round)
+	view.badgeRing:SetShown(round)
+	view.portraitChrome:SetShadow(not round)
+	view.portraitChrome:SetShown(not round)
+	view.badgeChrome:SetShown(not round)
+	view.mask:SetTexture((Tokens.Texture(round and "dot" or "iconMask")), MASK_WRAP, MASK_WRAP)
 end
 
 local function Snap(view, units)
@@ -142,7 +170,7 @@ end
 function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 	view.geometry = g
-	Place(view, view.panel, g.panel)
+	Place(view, view.panel, g.glass)
 	view.chrome:Restyle()
 	PlaceBar(view, view.health, g.health)
 	PlaceBar(view, view.power, g.power)
@@ -150,7 +178,8 @@ function Style.Layout(view, s, width, height)
 	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
 	if g.portrait then
 		Place(view, view.portraitFrame, g.portrait)
-		local inset = Widgets.Border(view.parent)
+		view.portraitChrome:Restyle()
+		local inset = Widgets.Border(view.parent) * (view.round and 1 or 2)
 		view.portrait:ClearAllPoints()
 		view.portrait:SetPoint("TOPLEFT", view.portraitFrame, "TOPLEFT", inset, -inset)
 		view.portrait:SetPoint("BOTTOMRIGHT", view.portraitFrame, "BOTTOMRIGHT", -inset, inset)
@@ -160,6 +189,7 @@ function Style.Layout(view, s, width, height)
 	end
 	if g.badge then
 		Place(view, view.badge, g.badge)
+		view.badgeChrome:Restyle()
 		view.badge:Show()
 		view.levelText:ClearAllPoints()
 		view.levelText:SetPoint("CENTER", view.badge, "CENTER")
@@ -173,6 +203,7 @@ function Style.Layout(view, s, width, height)
 	end
 	PlaceText(view, view.name, g.name)
 	PlaceText(view, view.healthText, g.healthText)
+	PlaceText(view, view.healthSub, g.healthSub)
 	PlaceText(view, view.powerText, g.powerText)
 	Indicators.Layout(view, g, s)
 	return g
@@ -202,9 +233,10 @@ end
 function Style.Restyle(view, kind)
 	for key, spec in pairs(TEXTS) do
 		local path, size, flags = Settings.Font(kind, spec.element or key)
-		ApplyFont(view[key], path, size, flags)
+		ApplyFont(view[key], path, size * (spec.share or 1), flags)
 		view[key]:SetTextColor(Tokens.Color(spec.color))
 	end
+	Style.Shape(view, Settings.Value(kind, "portraitShape") == "round")
 	view.health:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
 	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))
@@ -220,8 +252,10 @@ end
 function Style.Accent(view)
 	local r, g, b = Settings.Accent()
 	view.ring:SetVertexColor(r, g, b, 1)
+	view.portraitChrome:SetEdgeRGBA(r, g, b, 1)
 	view.icons.resting:SetTextColor(r, g, b, 1)
 	view.badgeRing:SetVertexColor(r, g, b, BADGE_RING_ALPHA)
+	view.badgeChrome:SetEdge(BADGE_EDGE, BADGE_EDGE_ALPHA)
 	local br, bg, bb = Tokens.Color("raised")
 	view.portraitBack:SetVertexColor(br, bg, bb, PORTRAIT_BACK_ALPHA)
 	view.badgeBack:SetVertexColor(br, bg, bb, PORTRAIT_BACK_ALPHA)

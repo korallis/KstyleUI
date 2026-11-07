@@ -55,7 +55,9 @@ local function Paint(view, kind)
 	view.health:SetBarRange(0, sample.healthMax)
 	view.health:SetValue(sample.health)
 	view.health:SetBarColor(SampleColor(s, sample, s.healthColor, s.healthCustom))
-	Format.Sample(view.healthText, s.healthText, sample.health, sample.healthMax)
+	local split = view.geometry and view.geometry.healthSub
+	Format.Sample(view.healthText, split and Format.Main(s.healthText) or s.healthText, sample.health, sample.healthMax)
+	Format.SampleDetail(view.healthSub, split and s.healthText or "none", sample.health, sample.healthMax)
 	view.power:SetBarRange(0, sample.powerMax)
 	view.power:SetValue(sample.power)
 	view.power:SetBarColor(SampleColor(s, sample, s.powerColor, s.powerCustom))
@@ -75,7 +77,7 @@ local function Paint(view, kind)
 		view.portrait:SetAtlas(GetClassAtlas(Theme.Class()))
 	elseif SetPortraitTexture then
 		view.portrait:SetTexCoord(0, 1, 0, 1)
-		SetPortraitTexture(view.portrait, "player")
+		SetPortraitTexture(view.portrait, "player", s.portraitShape ~= "round")
 	end
 end
 
@@ -137,7 +139,7 @@ local function PaintCast(frame, view, kind, height)
 	ns.CastBars.Layout(cb, g.panel.w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(CAST_SHARE)
-	cb.text:SetText(L["Frostbolt"])
+	cb.text:SetText(L["Frostbolt"]:upper())
 	cb.timer:SetFormattedText("%.1f", CAST_LEFT)
 	if K.Icons and K.Icons.Apply then
 		K.Icons.Apply(cb.icon, CAST_ICON)

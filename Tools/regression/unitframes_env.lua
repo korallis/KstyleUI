@@ -10,6 +10,8 @@
 --   name, class (file name such as "MAGE"), level, health, healthMax, power, powerMax, powerType,
 --   powerToken, isPlayer, reaction, dead, ghost, offline, tapDenied, classification, incoming, absorb,
 --   secretReaction (UnitReaction returns the reaction as a secret)
+-- env._portraits[texture] is the unit SetPortraitTexture last drew there, and env._unmasked[texture] whether
+-- it asked for the square, unmasked image.
 -- U.Shown(fontString) gives the text a font string shows, with secrets revealed, so a test can check
 -- what SetText or SetFormattedText drew without the module ever reading a secret.
 local W = dofile("Tools/regression/widget_env.lua")
@@ -73,6 +75,7 @@ function U.Install(env)
 	env._restricted = false
 	env._watched = {}
 	env._portraits = {}
+	env._unmasked = {}
 
 	local function unitOf(token)
 		return env._units[token]
@@ -214,8 +217,9 @@ function U.Install(env)
 	function env.UnregisterUnitWatch(frame)
 		env._watched[frame] = nil
 	end
-	function env.SetPortraitTexture(texture, token)
+	function env.SetPortraitTexture(texture, token, disableMasking)
 		env._portraits[texture] = token
+		env._unmasked[texture] = disableMasking == true
 	end
 	function env.GetClassAtlas(class)
 		return "classicon-" .. tostring(class)

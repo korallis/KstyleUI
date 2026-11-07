@@ -93,7 +93,8 @@ env.FireEvent("UNIT_MAXPOWER", "player", "MANA")
 env._restricted = false
 noErrors("restricted values")
 
--- The target: an NPC takes its reaction colour, a player its class colour.
+-- The target: an NPC takes its reaction colour; a player takes their reaction colour by default, or their
+-- class colour with the class source.
 local target = Frames.Get("target").views[1]
 U.SetUnit(env, "target", { name = "Wolf", level = 12, health = 50, healthMax = 200, power = 10, powerMax = 100, powerType = 1, powerToken = "RAGE", reaction = 2 })
 env.SetTarget(true)
@@ -104,9 +105,14 @@ local last = W.LastCall(target.health, "SetStatusBarColor")
 assert(last[1] == hr and last[2] == hg and last[3] == hb, "a hostile NPC's health bar takes the hostile colour")
 U.SetUnit(env, "target", { name = "Jaina", class = "MAGE", isPlayer = true, level = 60, health = 100, healthMax = 100, reaction = 5 })
 env.SetTarget(true)
+local fr, fg, fb = K.Theme.ReactionColor(5)
+last = W.LastCall(target.health, "SetStatusBarColor")
+assert(last[1] == fr and last[2] == fg and last[3] == fb, "by default a friendly player target's health bar takes the friendly colour")
+K.Options.Write("UnitFrames", "target.healthColor", "class")
 local cr, cg, cb = K.Theme.ClassColor("MAGE")
 last = W.LastCall(target.health, "SetStatusBarColor")
-assert(last[1] == cr and last[2] == cg and last[3] == cb, "a player target's health bar takes their class colour")
+assert(last[1] == cr and last[2] == cg and last[3] == cb, "with the class source a player target's health bar takes their class colour")
+K.Options.Write("UnitFrames", "target.healthColor", "reaction")
 noErrors("target")
 
 -- The target of target follows the target's target.
@@ -301,6 +307,7 @@ do
 		end,
 	})
 	local view = ns2.Frames.Get("target").views[1]
+	K2.Options.Write("UnitFrames", "target.healthColor", "class")
 	U.SetUnit(env2, "target", { name = "Jaina", class = "MAGE", secretClass = true, isPlayer = true, level = 60, health = 100, healthMax = 100, reaction = 5 })
 	env2.SetTarget(true)
 	local color = W.LastCall(view.health, "SetStatusBarColor")

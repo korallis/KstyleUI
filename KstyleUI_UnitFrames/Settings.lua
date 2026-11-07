@@ -66,6 +66,7 @@ local function Kind(full, overrides, castHeight, castFont, aura)
 		enabled = true,
 		portrait = full,
 		portraitStyle = "portrait",
+		portraitShape = "chamfered",
 		portraitSide = "LEFT",
 		level = full,
 		name = true,
@@ -74,10 +75,10 @@ local function Kind(full, overrides, castHeight, castFont, aura)
 		healthColor = "class",
 		healthCustom = Color("friendly"),
 		healthOrientation = "RIGHT",
-		healthText = "percent",
+		healthText = full and "both" or "percent",
 		healPrediction = true,
 		power = full,
-		powerHeight = full and 5 or 3,
+		powerHeight = 3,
 		powerTexture = BAR_TEXTURE,
 		powerColor = "power",
 		powerCustom = Color("rare"),
@@ -111,7 +112,7 @@ local function Kind(full, overrides, castHeight, castFont, aura)
 		auraTimer = true,
 		fonts = {
 			name = TextStyle(full and 11 or 9),
-			health = TextStyle(full and 11 or 9),
+			health = TextStyle(full and 12 or 9),
 			power = TextStyle(9),
 			level = TextStyle(9),
 			cast = TextStyle(castFont or 10),
@@ -130,7 +131,7 @@ Settings.defaults = {
 	accentColor = Color("accentDefault"),
 	edit = "player",
 	player = Kind(true, { combat = true, resting = true }, 20, 11, { on = false, size = 22, position = "BELOW" }),
-	target = Kind(true, { portraitSide = "RIGHT" }, 14, 10, { on = false, size = 20, position = "ABOVE" }),
+	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction" }, 14, 10, { on = false, size = 20, position = "ABOVE" }),
 	targettarget = Kind(false),
 	focus = Kind(true, { powerText = "none" }, 20, 10, { on = true, size = 20, position = "RIGHT" }),
 	focustarget = Kind(false),
@@ -160,6 +161,7 @@ end
 
 Settings.CHOICES = {
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
+	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
 	healthColor = Options({ { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	powerColor = Options({ { "power", L["Power type"] }, { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
@@ -180,6 +182,7 @@ local CHOICES = Settings.CHOICES
 
 local CHOICE_OF = {
 	portraitStyle = "portraitStyle",
+	portraitShape = "portraitShape",
 	portraitSide = "portraitSide",
 	healthColor = "healthColor",
 	powerColor = "powerColor",
@@ -649,11 +652,16 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "portrait", label = L["Portrait"],
-		help = L["Shows a round portrait beside the bars."],
+		help = L["Shows a portrait beside the bars."],
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "portraitStyle", label = L["Portrait style"],
 		help = L["A 2D character portrait or the unit's class icon."], options = CHOICES.portraitStyle,
+	}, portraitOn)
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "portraitShape", label = L["Portrait shape"],
+		help = L["A chamfered frame, as on the KstyleUI kit, or a round ring. The level badge follows it."],
+		options = CHOICES.portraitShape,
 	}, portraitOn)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "portraitSide", label = L["Portrait side"],
@@ -717,7 +725,7 @@ function Settings.Schema()
 		},
 		{
 			type = "dropdown", key = "accent", label = L["Accent"],
-			help = L["The colour of the portrait rings and level badges."], options = CHOICES.accent,
+			help = L["The colour of the portrait frames, and of the badges on round portraits."], options = CHOICES.accent,
 		},
 		{
 			type = "color", key = "accentColor", label = L["Custom accent"],

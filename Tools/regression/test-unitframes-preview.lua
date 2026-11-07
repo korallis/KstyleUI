@@ -44,9 +44,21 @@ assert(preview.kind == "player", "the preview starts on the player frame")
 local view = preview.views.player
 assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
 assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
+assert(U.Shown(env, view.healthSub) == "3120 / 3980", "the sample shows current and max under the track")
 assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
+assert(view.geometry.glass.x < view.geometry.portrait.x + view.geometry.portrait.w, "the sample's glass runs under its portrait")
+assert(view.portraitChrome.inner[1]:IsShown() and not view.ring:IsShown(), "the sample portrait is the kit's chamfered octagon")
+assert(env._unmasked[view.portrait] == true, "the sample asks for the square portrait the chamfer masks")
+assert(view.badgeChrome.inner[1]:IsShown() and not view.badgeRing:IsShown(), "the sample's level badge is a chamfered square")
 local cast = preview.casts.player
-assert(cast and cast.frame:IsShown() and U.Shown(env, cast.text) == "Frostbolt", "the player sample shows a cast bar under the frame")
+assert(cast and cast.frame:IsShown() and U.Shown(env, cast.text) == "FROSTBOLT", "the player sample shows a cast bar under the frame, its spell in capitals")
+assert(cast.geometry and cast.geometry.icon and cast.geometry.panel.x > cast.geometry.icon.x + cast.geometry.icon.w, "the sample cast bar has its icon in its own square")
+K.Options.Write("UnitFrames", "player.portraitShape", "round")
+settle()
+assert(view.ring:IsShown() and not view.portraitChrome.inner[1]:IsShown(), "a round portrait shows in the preview")
+assert(view.badgeRing:IsShown() and not view.badgeChrome.inner[1]:IsShown(), "with its round badge")
+K.Options.Write("UnitFrames", "player.portraitShape", "chamfered")
+settle()
 for _, frame in ipairs(env._frames) do
 	if frame:GetParent() == preview or (frame:GetParent() and frame:GetParent():GetParent() == preview) then
 		assert(frame._template == nil, "the preview makes no secure frames")

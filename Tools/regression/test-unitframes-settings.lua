@@ -44,8 +44,17 @@ for _, kind in ipairs(KINDS) do
 end
 assert(defaults.player.portrait == true and defaults.target.portrait == true, "player and target show portraits by default")
 assert(defaults.player.portraitSide == "LEFT" and defaults.target.portraitSide == "RIGHT", "the target frame mirrors the player frame")
-assert(defaults.player.healthText == "percent", "player health shows a percentage, as in the mockups")
+assert(defaults.player.healthText == "both" and defaults.target.healthText == "both", "player and target health show the percentage and current and max, as the kit sheet does")
+assert(defaults.focus.healthText == "both" and defaults.boss.healthText == "both", "so do the other full frames")
+assert(defaults.targettarget.healthText == "percent" and defaults.pet.healthText == "percent", "the small frames show a percentage inside the bar")
 assert(defaults.player.powerText == "currentMax", "player power shows current and max, as in the mockups")
+assert(defaults.player.healthColor == "class", "the player's health fill is the class colour")
+assert(defaults.target.healthColor == "reaction", "the target's fill follows its reaction: red when hostile, as on the kit sheet")
+assert(defaults.player.powerHeight == 3 and defaults.target.powerHeight == 3, "the full frames' power bar is the kit's thin line")
+assert(defaults.player.fonts.health.size > defaults.player.fonts.name.size, "the percentage is in larger numerals than the name, as the kit sheet sets it")
+for _, kind in ipairs(KINDS) do
+	assert(defaults[kind].portraitShape == "chamfered", kind .. ": the portrait is the kit's chamfered octagon by default")
+end
 assert(defaults.targettarget.portrait == false and defaults.pet.portrait == false, "the small frames have no portrait by default")
 assert(defaults.hideBlizzard == true, "Blizzard's frames are hidden by default")
 
@@ -83,6 +92,8 @@ for _, kind in ipairs(KINDS) do
 	row(kind .. ".portrait", "toggle")
 	local style = values(row(kind .. ".portraitStyle", "dropdown"))
 	assert(style.portrait and style.class, kind .. ": the portrait is a 2D portrait or the class icon")
+	local shapes = values(row(kind .. ".portraitShape", "dropdown"))
+	assert(shapes.chamfered and shapes.round, kind .. ": the portrait is chamfered or round")
 	for _, bar in ipairs({ "health", "power" }) do
 		row(kind .. "." .. bar .. "Texture", "texture")
 		local sources = values(row(kind .. "." .. bar .. "Color", "dropdown"))
@@ -133,6 +144,11 @@ assert(custom.showWhen(settings) == false, "the custom colour shows only for the
 settings.player.healthColor = "custom"
 assert(custom.showWhen(settings) == true, "the custom colour shows for the custom source")
 settings.player.healthColor = "class"
+local shapeRow = row("player.portraitShape")
+settings.player.portrait = false
+assert(shapeRow.showWhen(settings) == false, "the portrait shape shows only while the portrait does")
+settings.player.portrait = true
+assert(shapeRow.showWhen(settings) == true, "the portrait shape shows with the portrait")
 
 -- Help text stays under 100 characters (Options.Register checks it) and every row has a label.
 for _, r in ipairs(schema) do
@@ -141,7 +157,12 @@ end
 
 -- Value(kind, key) gives the default for a value the setting does not allow, with one devlog line.
 K.Store.Module("UnitFrames").player.healthText = "sideways"
-assert(Settings.Value("player", "healthText") == "percent", "an unknown choice falls back to the default")
+assert(Settings.Value("player", "healthText") == defaults.player.healthText, "an unknown choice falls back to the default")
+K.Store.Module("UnitFrames").player.portraitShape = "hexagon"
+assert(Settings.Value("player", "portraitShape") == "chamfered", "an unknown portrait shape falls back to chamfered")
+K.Store.Module("UnitFrames").player.portraitShape = "round"
+assert(Settings.Value("player", "portraitShape") == "round", "round is kept")
+K.Store.Module("UnitFrames").player.portraitShape = "chamfered"
 K.Store.Module("UnitFrames").player.powerHeight = 999
 assert(Settings.Value("player", "powerHeight") == defaults.player.powerHeight, "a size out of range falls back to the default")
 K.Store.Module("UnitFrames").player.healthText = "percent"

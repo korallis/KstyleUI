@@ -148,7 +148,13 @@ function Unit.Health(view, unit, instant)
 	local bar = view.health
 	bar:SetBarRange(0, UnitHealthMax(unit))
 	SetValue(bar, UnitHealth(unit), instant)
-	Format.Health(view.healthText, unit, view.s.healthText)
+	local format = view.s.healthText
+	if view.geometry and view.geometry.healthSub then
+		Format.Health(view.healthText, unit, Format.Main(format))
+		Format.HealthDetail(view.healthSub, unit, format)
+	else
+		Format.Health(view.healthText, unit, format)
+	end
 	Unit.Prediction(view, unit)
 end
 
@@ -240,7 +246,7 @@ function Unit.Portrait(view, unit)
 	end
 	texture:SetTexCoord(0, 1, 0, 1)
 	if SetPortraitTexture then
-		SetPortraitTexture(texture, unit)
+		SetPortraitTexture(texture, unit, view.s.portraitShape ~= "round")
 	else
 		LogOnce("portrait", "SetPortraitTexture is missing; portraits show the class icon")
 		ClassIcon(texture, unit)

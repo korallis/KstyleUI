@@ -1,4 +1,4 @@
--- CastBar.lua: cast bars for the player, target, focus and boss frames, run by duration objects through StatusBar:SetTimerDuration.
+-- CastBar.lua: cast bars for the player, target, focus and boss frames: a chamfered icon square and a glass bar, run by duration objects through StatusBar:SetTimerDuration.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,8 +11,16 @@ ns.CastBars = CastBars
 local MODULE = Settings.MODULE
 local HOLD = 0.6
 local TIMER_STEP = 0.05
-local ICON_GAP = 2
+local ICON_GAP = 4
 local TEXT_PAD = 4
+local PAD_X = 5
+local LINES = 2
+local ROW_GAP = 1
+local BAR_MIN = 3
+local BAR_SHARE = 0.22
+local TEXT_EXTRA = 3
+local TIMER_COLUMN = 2.4
+local TRACK = "raised"
 local TIMER_FORMAT = "%.1f"
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
@@ -71,6 +79,14 @@ local function NewText(owner, justify)
 	text:SetJustifyV("MIDDLE")
 	text:SetJustifyH(justify)
 	return text
+end
+
+local function SetName(cb, text)
+	if issecretvalue(text) or type(text) ~= "string" then
+		cb.text:SetText(text)
+	else
+		cb.text:SetText(text:upper())
+	end
 end
 
 local function Tick(frame, elapsed)
@@ -135,7 +151,9 @@ local function New(parent, kind, unit)
 	cb.iconMask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	cb.iconMask:SetAllPoints(cb.icon)
 	cb.icon:AddMaskTexture(cb.iconMask)
-	cb.bar = Widgets.StatusBar(frame, { sheen = true, spark = true, border = true })
+	cb.panel = CreateFrame("Frame", nil, frame)
+	cb.chrome = Widgets.Chrome(cb.panel, { shape = "tile", fill = "surface", shadow = true })
+	cb.bar = Widgets.StatusBar(cb.panel, { sheen = true, spark = true, background = TRACK })
 	local over = CreateFrame("Frame", nil, cb.bar)
 	over:SetAllPoints(cb.bar)
 	over:SetFrameLevel(cb.bar:GetFrameLevel() + 3)
@@ -148,56 +166,94 @@ local function Snap(cb, units)
 	return Widgets.Snap(cb.frame, units)
 end
 
-local function PlaceTexts(cb, bar, tall)
-	local pad = Snap(cb, TEXT_PAD)
-	local text, timer = cb.text, cb.timer
-	text:ClearAllPoints()
-	timer:ClearAllPoints()
+local function Rect(x, y, w, h)
+	return { x = x, y = y, w = math.max(0, w), h = math.max(0, h) }
+end
+
+local function TextRect(x, w, slotY, slotH, size)
+	local h = size + TEXT_EXTRA
+	return Rect(x, slotY + slotH / 2 - h / 2, w, h)
+end
+
+local function Inline(out, bar, tall, timer, size)
+	local h = size + TEXT_EXTRA
 	if tall then
-		text:SetJustifyH("CENTER")
-		timer:SetJustifyH("CENTER")
-		text:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, -pad)
-		text:SetPoint("TOPRIGHT", bar, "TOPRIGHT", 0, -pad)
-		timer:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 0, pad)
-		timer:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, pad)
-	else
-		text:SetJustifyH("LEFT")
-		timer:SetJustifyH("RIGHT")
-		timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
-		text:SetPoint("LEFT", bar, "LEFT", pad, 0)
-		text:SetPoint("RIGHT", timer, "LEFT", -pad, 0)
+		out.text = Rect(bar.x, bar.y + TEXT_PAD, bar.w, h)
+		out.timer = Rect(bar.x, bar.y + bar.h - TEXT_PAD - h, bar.w, h)
+		return
 	end
+	local timerW = timer and math.ceil(TIMER_COLUMN * size) or 0
+	local x, w = bar.x + TEXT_PAD, bar.w - 2 * TEXT_PAD
+	out.timer = TextRect(x + w - timerW, timerW, bar.y, bar.h, size)
+	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), bar.y, bar.h, size)
+end
+
+function CastBars.Geometry(width, height, icon, timer, size)
+	local out = { tall = height > width }
+	local thick = out.tall and width or height
+	local offset = 0
+	if icon then
+		out.icon = Rect(0, 0, thick, thick)
+		offset = thick + ICON_GAP
+	end
+	local panel
+	if out.tall then
+		panel = Rect(0, offset, width, height - offset)
+	else
+		panel = Rect(offset, 0, width - offset, height)
+	end
+	out.panel = panel
+	local room = panel.h - 2 * LINES
+	if out.tall or room < size + ROW_GAP + BAR_MIN then
+		out.stacked = false
+		out.bar = Rect(panel.x + LINES, panel.y + LINES, panel.w - 2 * LINES, room)
+		Inline(out, out.bar, out.tall, timer, size)
+		return out
+	end
+	out.stacked = true
+	local barH = math.min(room - size - ROW_GAP, math.max(BAR_MIN, math.floor(panel.h * BAR_SHARE)))
+	local x, w = panel.x + PAD_X, panel.w - 2 * PAD_X
+	local barY = panel.y + panel.h - LINES - barH
+	out.bar = Rect(x, barY, w, barH)
+	local rowY = panel.y + LINES
+	local rowH = barY - ROW_GAP - rowY
+	local timerW = timer and math.ceil(TIMER_COLUMN * size) or 0
+	out.timer = TextRect(x + w - timerW, timerW, rowY, rowH, size)
+	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), rowY, rowH, size)
+	return out
+end
+
+local function Place(cb, region, rect)
+	region:ClearAllPoints()
+	region:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, rect.x), -Snap(cb, rect.y))
+	region:SetSize(Snap(cb, rect.w), Snap(cb, rect.h))
 end
 
 function CastBars.Layout(cb, width, height)
-	local tall = height > width
-	local thick = tall and width or height
-	local offset = 0
-	if Settings.Value(cb.kind, "castbarIcon") then
+	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"))
+	cb.geometry = g
+	if g.icon then
 		local inset = Widgets.Border(cb.frame)
-		cb.iconFrame:ClearAllPoints()
-		cb.iconFrame:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", 0, 0)
-		Widgets.Size(cb.iconFrame, thick, thick)
+		Place(cb, cb.iconFrame, g.icon)
 		cb.iconChrome:Restyle()
 		cb.icon:ClearAllPoints()
 		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
 		cb.icon:SetPoint("BOTTOMRIGHT", cb.iconFrame, "BOTTOMRIGHT", -inset, inset)
 		cb.iconFrame:Show()
-		offset = thick + ICON_GAP
 	else
 		cb.iconFrame:Hide()
 	end
+	Place(cb, cb.panel, g.panel)
+	cb.chrome:Restyle()
 	local bar = cb.bar
+	bar.opts.width, bar.opts.height = g.bar.w, g.bar.h
 	bar:ClearAllPoints()
-	if tall then
-		bar.opts.width, bar.opts.height = width, math.max(0, height - offset)
-		bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", 0, -Snap(cb, offset))
-	else
-		bar.opts.width, bar.opts.height = math.max(0, width - offset), height
-		bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, offset), 0)
-	end
+	bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, g.bar.x), -Snap(cb, g.bar.y))
 	bar:Restyle()
-	PlaceTexts(cb, bar, tall)
+	Place(cb, cb.text, g.text)
+	Place(cb, cb.timer, g.timer)
+	cb.text:SetJustifyH(g.tall and "CENTER" or "LEFT")
+	cb.timer:SetJustifyH(g.tall and "CENTER" or "RIGHT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	cb.timer:SetShown(Settings.Value(cb.kind, "castbarTimer"))
 end
@@ -403,7 +459,7 @@ local function Start(cb, channel)
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
 	Motion.FadeIn(cb.frame, Tokens.Duration("fade"))
-	cb.text:SetText(text)
+	SetName(cb, text)
 	Icon(cb, texture)
 	if not cb.styled then
 		CastBars.Restyle(cb)
@@ -434,7 +490,7 @@ local function Finish(cb, message)
 	cb.active = false
 	StopTimer(cb)
 	cb.duration = nil
-	cb.text:SetText(message)
+	SetName(cb, message)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(1)
 	Paint(cb, Tokens.Color("hostile"))

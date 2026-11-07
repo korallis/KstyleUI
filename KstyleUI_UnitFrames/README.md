@@ -40,7 +40,20 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 Each frame is a plain holder frame registered with `KstyleUI.Layout.Register` under its key, with the setup's label, `module = "UnitFrames"` and `resizable = true`. The holder carries one `SecureUnitButtonTemplate` button per unit (five for the boss frame). The button has the attributes `unit`, `type1 = "target"` and `type2 = "togglemenu"`, registers for `AnyUp` clicks and is shown and hidden by `RegisterUnitWatch`. Layout moves and sizes the holder; the module anchors the buttons inside it and lays out their parts again whenever the holder's size changes. Hovering a button shows the unit tooltip through Blizzard's `UnitFrame_OnEnter` and `UnitFrame_OnLeave`.
 
-A frame 36 units tall or more is a full frame: the name row on top, the health bar, then the power bar, with the health and power texts in columns to the right of their bars, and a level badge in the portrait's bottom outer corner. A shorter frame is compact: the name and the health text sit inside the health bar, and there is no badge.
+Every frame follows the kit sheet, [`docs/design/mockups/05_kit_hunter.jpg`](../docs/design/mockups/05_kit_hunter.jpg). The accent there is the hunter's green; in game it is the player's class colour.
+
+- **Glass.** One `Widgets.Chrome` panel: chamfered corners, the double-line bevel and a soft shadow. With a portrait, the glass starts under the portrait's centre and sits 2 units inside the frame's top and bottom, so the portrait overlaps its outer end and stands proud of it. Full frames use the panel chamfer; the compact kinds (target of target, focus target, pet) use the tile chamfer.
+- **Portrait.** `chamfered` (the default): a panel-chamfer `Widgets.Chrome` frame filled `raised`, its inner bevel line in the accent, with the 2D portrait drawn square (`SetPortraitTexture` with `disableMasking`) and masked by `iconMask`. The image draws in the `BORDER` layer under the bevel lines, so its corners never cover them. `round`: the round mask, the disc and the accent ring.
+- **Level badge.** A square in the portrait's bottom outer corner, 36% of the portrait. It follows the portrait shape: a tile-chamfer chrome with a neutral `text` line, or the round ring in the accent.
+
+A frame 36 units tall or more is a full frame. Inside the glass, from the top:
+
+1. The name, left-aligned, in capitals when `nameCaps` is on. The level sits at the right of this row when there is no portrait.
+2. The health track across the column's inner width. Its fill takes the bar colour, its track is `raised`, and the health text sits right-aligned over its right end.
+3. A row under the track: with the `both` format, current and max right-aligned at the health text's right edge, in the health font at 75% of its size; the power text left-aligned. Without either text, or when the row does not fit whole, it is not drawn and the track grows taller; `both` then shows current, max and the percentage together at the track's end.
+4. The power bar across the same width, on the glass's bottom edge.
+
+Text never pushes a bar out of the frame, and no two texts overlap. The track always keeps room for its own text. The row under the track gives way first, then the name, which shrinks to the height of its capitals and is left out below that. Every text rect is clamped inside the frame. A shorter frame is compact: the name and the health text sit inside the health bar, and there is no badge.
 
 ## Files
 
@@ -50,20 +63,20 @@ A frame 36 units tall or more is a full frame: the name row on top, the health b
 | --- | --- |
 | `Init.lua` | The addon table the files share |
 | `Settings.lua` | `ns.Settings`: the defaults, the choices each setting allows, `Value(kind, key)` (the stored value, or the default with one devlog line when it is not allowed), `Font(kind, element) -> path, size, flags` (the size times Appearance's text size), `Accent() -> r, g, b`, `Snapshot(kind)` (plain values for the geometry) and `Schema()` |
-| `Format.lua` | `ns.Format`: `Health(text, unit, format)` and `Power(text, unit, format, powerType)` write the text with `SetFormattedText`, `AbbreviateNumbers` and `UnitHealthPercent` or `UnitPowerPercent` with a 0 to 100 curve, so no secret is ever read. `ColumnWidth(format, size)` is the room a format needs. `Sample` writes plain numbers for the preview. |
-| `Geometry.lua` | `ns.Geometry`: `Frame(s, width, height, fontScale) -> parts`, each part `{ x, y, w, h }` from the frame's top left with y growing downward, and `Slots(count, gap, width, height)` for the boss frames. Pure maths, tested without frames. |
-| `Style.lua` | `ns.Style`: `New(parent, kind) -> view` builds the parts on a button or the preview, `Layout(view, s, width, height)` places them in whole pixels, `Restyle(view, kind)` applies fonts, textures, fill directions and the accent |
+| `Format.lua` | `ns.Format`: `Health(text, unit, format)` and `Power(text, unit, format, powerType)` write the text with `SetFormattedText`, `AbbreviateNumbers` and `UnitHealthPercent` or `UnitPowerPercent` with a 0 to 100 curve, so no secret is ever read. On a full frame `Main(format)` is the format at the track's end (`both` becomes `percent`) and `HealthDetail(text, unit, format)` writes current and max under the track for `both`, or clears it for a dead, ghost or offline unit, or when there is no curve and the main text already shows current and max. `ColumnWidth(format, size)` is the room a format needs on a compact frame. `Sample` and `SampleDetail` write plain numbers for the preview. |
+| `Geometry.lua` | `ns.Geometry`: `Frame(s, width, height, fontScale) -> parts`, each part `{ x, y, w, h }` from the frame's top left with y growing downward, and `Slots(count, gap, width, height)` for the boss frames. `panel` is the column beside the portrait that holds the bars and texts; `glass` is the chamfered glass, which runs under the portrait; `healthSub` is current and max under the track. Pure maths, tested without frames. |
+| `Style.lua` | `ns.Style`: `New(parent, kind) -> view` builds the parts on a button or the preview, `Layout(view, s, width, height)` places them in whole pixels, `Restyle(view, kind)` applies fonts, textures, fill directions, the portrait shape and the accent, `Shape(view, round)` shows the chamfered or the round portrait and badge |
 | `Indicators.lua` | `ns.Indicators`: the raid marker, the status icons (`SLOTS`: leader, role, PvP, combat, resting) and the threat glow. `New(view)`, `Layout(view, g, s)`, `Update(view, unit)`, and one function per indicator. |
 | `Unit.lua` | `ns.Unit`: fills a view from the unit API. `All(view, unit, instant)`, `Health`, `Power`, `HealthColor`, `PowerColor`, `Prediction`, `Name`, `Level`, `Portrait`. |
 | `Blizzard.lua` | `ns.Blizzard.Apply(active)`: hides or restores Blizzard's frames |
-| `CastBar.lua` | `ns.CastBars`: the cast bars. `Get(kind)`, `Attach(view)` for focus and boss views, `Layout(cb, width, height)`, `Restyle(cb)`, `Refresh(kind)`, `Enable`, `Disable`, and `NewBar` for the preview. |
+| `CastBar.lua` | `ns.CastBars`: the cast bars. `Geometry(width, height, icon, timer, textSize) -> parts` (pure maths: `icon`, `panel`, `bar`, `text`, `timer`, `stacked`, `tall`), `Get(kind)`, `Attach(view)` for focus and boss views, `Layout(cb, width, height)`, `Restyle(cb)`, `Refresh(kind)`, `Enable`, `Disable`, and `NewBar` for the preview. |
 | `Auras.lua` | `ns.Auras`: frame auras. `Apply(view)` builds a view's container on first use and applies its settings, `Sync(view)` follows the button's visibility, `Open()` is the aura gate, `Enable`, `Disable`. |
 | `Resource.lua` | `ns.Resource`: the class resource element. `Enable`, `Disable`, `Restyle`, `Layout`, `Visibility`, `Points`, `Mana`. |
 | `Frames.lua` | `ns.Frames`: the holders and secure buttons, unit watches, events, `Enable`, `Disable`, `Get(kind)` |
 | `Preview.lua` | `ns.Preview.Build(parent)`: the settings window's live preview |
 | `Module.lua` | Registers the module, the settings page and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-castbar-style.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
+Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-castbar-style.lua`, `test-unitframes-kit.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
 
 ## Settings
 
@@ -72,18 +85,19 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | Key | Values | Default |
 | --- | --- | --- |
 | `hideBlizzard` | Hide Blizzard's frames that KstyleUI replaces | on |
-| `accent`, `accentColor` | Portrait ring and badge colour: `class` (the KstyleUI accent) or `custom` | `class` |
+| `accent`, `accentColor` | The portrait frame's colour, and the badge's on a round portrait: `class` (the KstyleUI accent) or `custom` | `class` |
 | `edit` | The frame the page shows | `player` |
 | `<frame>.enabled` | Show the frame | on |
-| `<frame>.portrait`, `portraitStyle`, `portraitSide` | Round portrait: on or off; `portrait` (2D) or `class` (class icon); `LEFT` or `RIGHT` | on for player, target, focus and boss; target on the right |
+| `<frame>.portrait`, `portraitStyle`, `portraitSide` | Portrait: on or off; `portrait` (2D) or `class` (class icon); `LEFT` or `RIGHT` | on for player, target, focus and boss; target on the right |
+| `<frame>.portraitShape` | `chamfered` (the kit's octagon) or `round` (the ring); the level badge follows it | `chamfered` |
 | `<frame>.name`, `nameCaps`, `level` | Name, in capitals; level badge | on |
 | `<frame>.healthTexture`, `powerTexture` | Bar texture: KstyleUI's and LibSharedMedia's | Glass |
-| `<frame>.healthColor`, `powerColor` | Colour source: `class` (class colour for players, reaction for NPCs), `reaction`, `custom`, and for power `power` (the power type's colour) | `class`, `power` |
+| `<frame>.healthColor`, `powerColor` | Colour source: `class` (class colour for players, reaction for NPCs), `reaction`, `custom`, and for power `power` (the power type's colour) | `class`, `power`; the target's health `reaction` |
 | `<frame>.healthCustom`, `powerCustom` | The custom colours | from the tokens |
 | `<frame>.healthOrientation`, `powerOrientation` | Fill direction: `RIGHT`, `LEFT`, `UP`, `DOWN` | `RIGHT` |
-| `<frame>.healthText`, `powerText` | `percent`, `current`, `currentMax`, `both`, `none` | `percent`; power `currentMax` on the player and target |
+| `<frame>.healthText`, `powerText` | `percent`, `current`, `currentMax`, `both`, `none`. On a full frame `both` puts the percentage at the track's end and current and max under it. | health `both` on full frames, `percent` on compact ones; power `currentMax` on the player and target |
 | `<frame>.healPrediction` | Incoming heals and absorbs on the health bar | on |
-| `<frame>.power`, `powerHeight` | Power bar, 2 to 24 units | on for full frames, 5 units |
+| `<frame>.power`, `powerHeight` | Power bar, 2 to 24 units | on for full frames, 3 units |
 | `<frame>.raidMarker`, `leader`, `role`, `pvp`, `combat`, `resting`, `threat` | The raid marker, the status icons and the threat glow. `resting` is the player's only. | on for full frames; combat and resting on the player only; the raid marker on every frame |
 | `<frame>.iconSize` | Status icon size, 8 to 32 units | 14 |
 | `<frame>.castbar`, `castbarIcon`, `castbarText`, `castbarTimer` | The cast bar and its spell icon, spell name and timer (player, target, focus and boss) | on |
@@ -94,7 +108,7 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `<frame>.auraSize`, `auraSpacing`, `auraRows`, `auraColumns`, `auraTimer` | Icon size 12 to 48, spacing 0 to 12, 1 to 6 rows of each kind, 1 to 16 columns, the time left on each icon | 20 (boss 18), 2, 1, 8 (boss 6), on |
 | `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent), `reaction` (the caster's reaction to you; the class accent while it is secret) or `custom` colour | Glass, `class` |
 | `<frame>.castbarOrientation` | Cast bar fill direction: `RIGHT`, `LEFT`, `UP`, `DOWN`. A cast bar taller than it is wide stacks its icon above the bar and puts the spell name at the top and the timer at the bottom. | `RIGHT` |
-| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar and auras, `cast` and `aura` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
+| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar and auras, `cast` and `aura` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`; name 11, health 12 on full frames and 9 on compact ones, power and level 9; `NONE` |
 
 The class resource has its own settings, under the player frame's rows:
 
@@ -111,8 +125,8 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 
 | Indicator | Source | Where |
 | --- | --- | --- |
-| Raid marker | `GetRaidTargetIndex`, always secret, straight to `SetSpriteSheetCell` on `UI-RaidTargetingIcons` | Centred on the portrait's top edge, or the panel's |
-| Leader | `UnitIsGroupLeader`; a secret answer goes to `SetAlphaFromBoolean` | The status icon row on the panel's top edge, running from the end away from the portrait |
+| Raid marker | `GetRaidTargetIndex`, always secret, straight to `SetSpriteSheetCell` on `UI-RaidTargetingIcons` | Centred on the portrait's top edge, or the glass's |
+| Leader | `UnitIsGroupLeader`; a secret answer goes to `SetAlphaFromBoolean` | The status icon row on the glass's top edge, running from the end away from the portrait |
 | Role | `UnitGroupRolesAssigned`, the `roleicon-tiny-*` atlases | The same row |
 | PvP | `UnitIsPVPFreeForAll`, `UnitIsPVP` and `UnitFactionGroup`, Camelot's `UI-HUD-UnitFrame-SmallCircle-*` atlases | The same row |
 | Combat | `UnitAffectingCombat`, the `UI-HUD-UnitFrame-Player-CombatIcon` atlas | The same row |
@@ -120,6 +134,17 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 | Threat glow | `UnitThreatSituation`: the player's own status on the player frame and friendly units, the player's status on a hostile unit elsewhere. A status above 0 lights the glow in `Theme.ThreatColor`, the `neutral` and `hostile` tokens that group frames and nameplates also use. | A soft additive glow around the panel |
 
 ## Cast bars
+
+Each cast bar follows the kit sheet: the spell icon in its own tile-chamfer square, as tall as the bar, then a 4-unit gap and a tile-chamfer glass panel with a soft shadow. The status bar sits inside the glass with a `raised` track and no border of its own. `CastBars.Geometry` picks one of three layouts:
+
+| Layout | When | What |
+| --- | --- | --- |
+| Stacked | Wider than tall, and the glass is at least the cast text size plus 8 units tall | The spell name left and the timer right on a row at the top, and a thin bar (22% of the height, at least 3 units) on the glass's bottom edge, 5 units in from each end |
+| Inline | Wider than tall and shorter than that | The bar fills the glass inside its bevel lines, with the spell name and the timer on it |
+| Tall | Taller than wide | The icon on top, the glass under it, the spell name at the bar's top and the timer at its bottom |
+
+The player and focus cast bars (20 units) are stacked. The target cast bar (14 units) is inline until Layout makes it 18 units or taller, and the boss cast bars (10 units) are inline until their height setting does.
+
 
 | Event | What the bar does |
 | --- | --- |
@@ -131,7 +156,7 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 | `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED`, `INSTANCE_ENCOUNTER_ENGAGE_UNIT` | Shows the new unit's cast in progress, or hides the bar |
 
 - Whether a unit casts comes from `isTradeSkill`, which Forever never makes secret: it is a boolean while a cast runs and `nil` otherwise. No other cast value is ever tested.
-- The spell name goes to `SetText` and, for every unit but the player, the icon to `SetTexture`, both untouched. The player's icon goes through `KstyleUI.Icons.Apply`, so the custom icon sets show on the player cast bar only.
+- The spell name goes to `SetText` in capitals while it is a plain string. A secret name goes to `SetText` untouched. For every unit but the player, the icon goes to `SetTexture`, untouched. The player's icon goes through `KstyleUI.Icons.Apply`, so the custom icon sets show on the player cast bar only.
 - A secret `notInterruptible` colours the bar with `SetVertexColorFromBoolean`.
 - The timer counts down on an `OnUpdate` that runs only while a cast shows its timer, every 0.05 seconds, through `SetFormattedText` with the duration's remaining time, which may be secret.
 - Fallbacks, each logged once to the devlog: when there is no duration object or `SetTimerDuration` refuses one, the bar runs on the cast's start and end times while they are plain; when those are secret too, the bar shows full with the spell name and no timer. A secret duration object cannot be read, so it drives the bar with no timer text.
@@ -184,7 +209,12 @@ These names come from `Blizzard_UnitFrame/Mainline/TargetFrame.xml`, `PlayerFram
 - **One holder per element, buttons inside.** `RegisterUnitWatch` shows and hides the secure button, and Layout's shown rules show and hide the holder, so the two never fight over one frame. The holder becomes protected through its secure children, so Layout queues its changes in combat; the module also re-anchors its buttons only out of combat.
 - **The boss frames hide one by one.** `BossTargetFrameContainer` is a managed frame: Edit Mode and the right-side frame manager reparent it back to their container. Its five boss frames are not managed, so hiding each of them stays hidden.
 - **Health never reaches Lua.** `UnitHealth` is always secret on Forever. The bar gets `SetMinMaxValues(0, UnitHealthMax(unit))` and `SetValue(UnitHealth(unit))`, the engine eases it, and the text comes from `SetFormattedText` with `AbbreviateNumbers` and `UnitHealthPercent` evaluated through a 0 to 100 curve. Without a curve API the percentage would be a 0 to 1 share, so the text falls back to current and max and the devlog says so.
-- **Text columns come from the format, not the string.** A text's width would be secret when its text is, so the room each bar leaves for its text comes from the chosen format and font size. That is why the power bar is shorter than the health bar when it shows current and max, as in the v3 mockups.
+- **The texts on a full frame need no columns.** A text's width would be secret when its text is, so the module never measures one. On a full frame the health text overlays the track's right end and the row under the track is split in halves, so no bar's width depends on its text. A compact frame still sets its health text's room from the chosen format and font size.
+- **The glass runs under the portrait.** The kit sheet draws one panel with the portrait over its outer end, not a portrait beside a separate box. Starting the glass at the portrait's centre hides its end behind the portrait at any frame size, and the 2-unit inset lets the panel's top and bottom lines run out from behind the portrait's chamfered corners.
+- **The chamfered portrait asks for a square image.** `SetPortraitTexture` masks the portrait round unless `disableMasking` is true, and a round image would leave the octagon's corners empty. The image is then masked by `iconMask` and drawn under the bevel lines, which cover any difference between the mask's chamfer and the frame's.
+- **The name has no letter spacing.** The kit sheet tracks its captions wide, but Forever's `FontString` has no letter-spacing call. Spacing a name with extra characters would need string work on a name that can be secret, so the name keeps the font's own spacing.
+- **The target cast bar keeps its 14-unit footprint.** The DPS layout has 18 units between action bar 1 and the target frame. A taller default would touch both, and would overlap the target frame for players whose Setup saved the old position. At 14 units the bar is inline; at 18 units or taller in Layout it stacks as the kit sheet shows.
+- **The target's health follows its reaction.** The kit sheet fills a hostile target red. With `reaction`, any hostile unit, player or NPC, is red; with `class`, a hostile player would show their class colour.
 - **Fonts belong to the module.** The kit's `Widgets.Text` restyles its texts to their role on every theme change, which would undo a player's font choice. The unit frame texts are the module's own font strings, styled from their settings and restyled on `ThemeChanged`.
 - **Target of target and focus target poll.** Unit events never fire for `targettarget` and `focustarget`. Those two frames refresh on `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED` and `UNIT_TARGET`, and poll health and power every 0.2 seconds only while their button is shown, as Blizzard's own frames do.
 - **One picker, one frame's rows.** Seven frames with the same thirty settings would make a page of over two hundred rows. The page shows the picked frame's rows, and the preview draws that frame.

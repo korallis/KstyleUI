@@ -75,17 +75,23 @@ local function Abbreviate(value)
 	return tostring(value)
 end
 
-local function Status(text, unit)
+local function Gone(unit)
 	if UnitIsConnected and not UnitIsConnected(unit) then
-		text:SetText(L["Offline"])
-		return true
+		return L["Offline"]
 	end
 	if UnitIsGhost and UnitIsGhost(unit) then
-		text:SetText(L["Ghost"])
-		return true
+		return L["Ghost"]
 	end
 	if UnitIsDeadOrGhost and UnitIsDeadOrGhost(unit) then
-		text:SetText(L["Dead"])
+		return L["Dead"]
+	end
+	return nil
+end
+
+local function Status(text, unit)
+	local label = Gone(unit)
+	if label then
+		text:SetText(label)
 		return true
 	end
 	return false
@@ -122,6 +128,18 @@ function Format.Health(text, unit, format)
 	Write(text, format, UnitHealth(unit), UnitHealthMax(unit), percent, hasPercent)
 end
 
+function Format.Main(format)
+	return format == "both" and "percent" or format
+end
+
+function Format.HealthDetail(text, unit, format)
+	if format ~= "both" or Gone(unit) or not (Curve() and UnitHealthPercent) then
+		text:SetText("")
+		return
+	end
+	Write(text, "currentMax", UnitHealth(unit), UnitHealthMax(unit))
+end
+
 function Format.Power(text, unit, format, powerType)
 	if format == "none" then
 		text:SetText("")
@@ -140,6 +158,14 @@ function Format.Power(text, unit, format, powerType)
 		end
 	end
 	Write(text, format, UnitPower(unit, powerType), UnitPowerMax(unit, powerType), percent, hasPercent)
+end
+
+function Format.SampleDetail(text, format, current, max)
+	if format ~= "both" then
+		text:SetText("")
+		return
+	end
+	Write(text, "currentMax", current, max)
 end
 
 function Format.Sample(text, format, current, max)
