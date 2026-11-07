@@ -25,6 +25,8 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |
 | `secret_lint.lua` | Finds unsafe uses of secret values and any use of the combat log. |
 | `color_lint.lua` | Finds colour literals, which belong only in `Core/Tokens.lua`. `test-tokens.lua` runs it. |
+| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `test-perf.lua` runs it. |
+| `perf/` | The combat paths `test-perf.lua` measures, one file per addon folder. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
 ## Taint scan
@@ -126,3 +128,55 @@ end
 ```
 
 The lint follows locals within a file. It does not follow values through function parameters or table fields such as `self.hp` and `t[1]`. A `while` condition does not guard the loop body, and a check on one local does not guard another local that holds the same value.
+
+## Performance budget
+
+`test-perf.lua` measures every combat path registered in `perf/`. A path fails when:
+
+- Its average time per call is over its budget.
+- It allocates memory on an addon line. The spec allows no allocation in a combat path.
+- It reports an error while it runs.
+
+`measure.lua` calls the path 10 times to fill caches, then runs 3 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round. When the calls allocate, it runs 20 more calls under a debug hook that charges each allocation to the line that ran it. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that the stubs allocate, such as a new secret from `UnitHealth`, never fails it. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
+
+Before it measures, the test enters combat with `env.SetCombat(true)` and switches the stubs to quiet mode with `env.SetQuiet(true)`. In quiet mode a frame records no calls in `_calls`, a method lookup returns one shared function, and a repeated `Set<X>` refills its stored table. The stubs then add little time and almost no memory.
+
+### Register a combat path
+
+Each file in `perf/` is named after the addon folder it covers, as in `taint_allow/`, so agents that build different modules never edit the same file:
+
+- `Core.lua` covers `Core/`.
+- `KstyleUI_UnitFrames.lua` covers `KstyleUI_UnitFrames/`.
+
+The file runs with the test's `Perf` helper as its argument and returns a list of paths:
+
+```lua
+local Perf = ...
+local U = dofile("Tools/regression/unitframes_env.lua")
+
+return {
+	{
+		name = "UnitFrames UNIT_HEALTH",
+		budget = 30,
+		setup = function()
+			local env = U.New()
+			return env, Perf.Event(env, "UNIT_HEALTH", "player")
+		end,
+	},
+}
+```
+
+- `name` is unique across `perf/`. Start it with the module.
+- `budget` is the time per call in microseconds. `luajit Tools/regression/test-perf.lua` prints each path's time. Set the budget near 15 times the time LuaJIT prints, which is about 10 times the time Lua 5.1 prints, so that a slower CI runner passes and a path that loops over every frame fails. Use at least 10.
+- `setup` builds a stub environment and returns it with the function to measure. It runs once.
+- `calls`, optional, sets the calls per round. The default is 1,000.
+
+`Perf.Event(env, event, ...)` returns a function that runs the `OnEvent` script of each frame registered for the event, with the arguments given, as the game dispatches it. It finds the frames on its first call and raises if no frame is registered. A path that runs on a timer, such as the threat meter's update, fires its event and then calls `env.RunTimers()`.
+
+When a path fails for allocation, the message names the lines and the bytes per call:
+
+```text
+StatusBar SetBarColor: allocates 152 bytes per call: Core/Widgets/StatusBar.lua:78 (152 bytes)
+```
+
+Fix the line: reuse a table that the object owns, or pass values as arguments. A table built once at load time is not a per-call allocation.

@@ -4,7 +4,8 @@
 --   local env = Stubs.NewEnv({ width = 2560, height = 1440 })
 --
 -- Frames answer only the widget methods Forever documents (widget_methods.lua) and record every call
--- in frame._calls. Any other key reads as nil, so a call to a method Forever lacks fails the test.
+-- in frame._calls, unless env.SetQuiet(true) has made them quiet for the performance check. Any other
+-- key reads as nil, so a call to a method Forever lacks fails the test.
 -- Give a method real behaviour by adding it to Object below. Lua mixins from templates, such as
 -- BackdropTemplate's SetBackdrop, are not stubbed.
 
@@ -285,10 +286,45 @@ local function genericMethod(key)
 	return function() end
 end
 
+-- Quiet mode (env.SetQuiet) is for the performance check: a lookup returns one shared function per
+-- method that records nothing, and a repeated Set<X> refills its stored table instead of making one.
+local quietMethods = {}
+
+local function quietSetter(field)
+	return function(self, ...)
+		local stored = self._state[field]
+		if not stored then
+			self._state[field] = pack(...)
+			return
+		end
+		local n = select("#", ...)
+		for i = 1, n do
+			stored[i] = (select(i, ...))
+		end
+		for i = n + 1, stored.n do
+			stored[i] = nil
+		end
+		stored.n = n
+	end
+end
+
+local function quietMethod(key)
+	local fn = quietMethods[key]
+	if not fn then
+		local setField = not Object[key] and key:match("^Set(%u%w*)$")
+		fn = Object[key] or (setField and quietSetter(setField)) or genericMethod(key)
+		quietMethods[key] = fn
+	end
+	return fn
+end
+
 -- Any other key reads as nil, as on a real frame.
-ObjectMeta.__index = function(_, key)
+ObjectMeta.__index = function(object, key)
 	if not METHODS[key] then
 		return nil
+	end
+	if object._env and object._env._quiet then
+		return quietMethod(key)
 	end
 	local impl = Object[key] or genericMethod(key)
 	return function(self, ...)
@@ -363,6 +399,27 @@ function Stubs.NewEnv(opts)
 
 	function env.InCombatLockdown()
 		return env._combat == true
+	end
+
+	-- SetQuiet(true) stops every frame recording its calls in _calls, for the performance check.
+	function env.SetQuiet(quiet)
+		env._quiet = quiet and true or false
+	end
+
+	-- Forever's xpcall passes extra arguments to the function. Lua 5.1's does not, so on Lua 5.1 the
+	-- stub's runs the function with pcall and hands an error to the handler after the stack unwinds.
+	if select(2, xpcall(function(value)
+		return value
+	end, function() end, true)) ~= true then
+		local function settle(handler, ok, ...)
+			if ok then
+				return true, ...
+			end
+			return false, handler((...))
+		end
+		function env.xpcall(fn, handler, ...)
+			return settle(handler, pcall(fn, ...))
+		end
 	end
 
 	function env.GetPhysicalScreenSize()

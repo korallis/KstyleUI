@@ -1,0 +1,174 @@
+-- measure.lua: time a call and count the memory it allocates with the garbage collector stopped, and name the addon lines that allocate.
+--
+--   local Measure = dofile("Tools/regression/measure.lua")
+--   local r = Measure.Run(fn, { calls = 1000 })
+--   local problems, r = Measure.Check({ name = "UnitFrames UNIT_HEALTH", budget = 60, run = fn })
+--
+-- Run calls fn 10 times to warm caches, then 3 rounds of opts.calls calls (1,000 by default) with the
+-- collector stopped. It returns:
+--   calls    the calls per round
+--   time     CPU seconds per call in the fastest round
+--   kb       KB allocated per call by all code, stubs included
+--   addonKb  KB allocated per call on addon lines
+--   sites    the addon lines that allocate, most bytes first: { { where = "Core/X.lua:12", bytes = n } }
+-- When kb is above 0, Run traces 20 more calls with a debug hook that charges each allocation to the
+-- line that ran it. Memory a C function allocates is charged to the Lua line that called it. An addon
+-- line is one in a file outside Tools/, so the stubs' own allocations are counted in kb only.
+--
+-- Check(entry) runs entry.run and returns a list of problems and the result. entry.budget is the time
+-- per call in microseconds. A path fails when it is over budget or allocates on an addon line.
+--
+-- LuaJIT's compiler is switched off while this file is loaded: the game runs an interpreter, and a
+-- compiled trace is itself an allocation.
+
+local jit = rawget(_G, "jit")
+if jit and jit.off then
+	jit.off()
+end
+
+local Measure = {}
+
+local DEFAULT_CALLS = 1000
+local WARMUP_CALLS = 10
+local ROUNDS = 3
+local TRACE_WARMUP_CALLS = 2
+local TRACE_CALLS = 20
+local SHOWN_SITES = 5
+
+local clock, count, getinfo = os.clock, collectgarbage, debug.getinfo
+
+local function IsAddon(source)
+	return type(source) == "string" and source:sub(1, 1) == "@" and not source:find("^@%.?/?Tools/")
+end
+
+local function Loop(fn, calls)
+	for _ = 1, calls do
+		fn()
+	end
+end
+
+-- The source and line of the nearest Lua function at the hook's level or above, skipping C and tail frames.
+local function LuaFrame(level)
+	while true do
+		local info = getinfo(level + 1, "Sl")
+		if not info then
+			return "?"
+		end
+		if info.what == "Lua" or info.what == "main" then
+			return info.source .. ":" .. tostring(info.currentline)
+		end
+		level = level + 1
+	end
+end
+
+-- Trace(fn, calls) -> { [source:line] = KB } charged over the calls.
+local function Trace(fn, calls)
+	local sites = {}
+	local where = "?"
+	local last = count("count")
+	local function hook(event, line)
+		local now = count("count")
+		if now > last then
+			sites[where] = (sites[where] or 0) + (now - last)
+		end
+		if event == "line" then
+			where = getinfo(2, "S").source .. ":" .. tostring(line)
+		elseif event == "call" then
+			local info = getinfo(2, "S")
+			if info.what ~= "C" then
+				where = info.source .. ":" .. tostring(info.linedefined)
+			end
+		else
+			where = LuaFrame(3)
+		end
+		last = count("count")
+	end
+	debug.sethook(hook, "crl")
+	local ok, err = pcall(Loop, fn, calls)
+	debug.sethook()
+	if not ok then
+		error(err, 0)
+	end
+	return sites
+end
+
+local function Sites(charged, calls)
+	local list, totalKb = {}, 0
+	for site, kb in pairs(charged) do
+		local source = site:match("^(.*):%-?%d+$") or site
+		if IsAddon(source) then
+			totalKb = totalKb + kb
+			list[#list + 1] = { where = site:sub(2), bytes = kb * 1024 / calls }
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.bytes ~= b.bytes then
+			return a.bytes > b.bytes
+		end
+		return a.where < b.where
+	end)
+	return list, totalKb / calls
+end
+
+local function Rounds(fn, calls)
+	local best, allocated = math.huge, 0
+	for _ = 1, ROUNDS do
+		local before = count("count")
+		local start = clock()
+		Loop(fn, calls)
+		local elapsed = clock() - start
+		allocated = allocated + (count("count") - before)
+		if elapsed < best then
+			best = elapsed
+		end
+	end
+	return best / calls, allocated / (ROUNDS * calls)
+end
+
+function Measure.Run(fn, opts)
+	opts = opts or {}
+	local calls = opts.calls or DEFAULT_CALLS
+	Loop(fn, WARMUP_CALLS)
+	count("collect")
+	count("stop")
+	local ok, time, kb = pcall(Rounds, fn, calls)
+	local charged
+	if ok and kb > 0 then
+		ok, charged = pcall(function()
+			Trace(fn, TRACE_WARMUP_CALLS)
+			return Trace(fn, TRACE_CALLS)
+		end)
+		if not ok then
+			time = charged
+		end
+	end
+	count("restart")
+	count("collect")
+	if not ok then
+		error(time, 0)
+	end
+	local sites, addonKb = {}, 0
+	if charged then
+		sites, addonKb = Sites(charged, TRACE_CALLS)
+	end
+	return { calls = calls, time = time, kb = kb, addonKb = addonKb, sites = sites }
+end
+
+function Measure.Check(entry)
+	local problems = {}
+	local r = Measure.Run(entry.run, { calls = entry.calls })
+	local us = r.time * 1e6
+	if us > entry.budget then
+		problems[#problems + 1] = string.format("%s: %.1f us per call, over its budget %g us", entry.name, us, entry.budget)
+	end
+	if r.addonKb > 0 then
+		local shown = {}
+		for i = 1, math.min(#r.sites, SHOWN_SITES) do
+			shown[i] = string.format("%s (%.0f bytes)", r.sites[i].where, r.sites[i].bytes)
+		end
+		problems[#problems + 1] = string.format("%s: allocates %.0f bytes per call: %s", entry.name, r.addonKb * 1024, table.concat(shown, ", "))
+	end
+	return problems, r
+end
+
+return Measure

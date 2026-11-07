@@ -225,4 +225,51 @@ local other = Stubs.NewEnv()
 assert(other.TestFrame == nil and select(2, other.GetPhysicalScreenSize()) == 1080)
 assert(other.InCombatLockdown() == false and other.print == print)
 
+-- xpcall passes extra arguments to the function, as Forever's does, on Lua 5.1 too.
+do
+	local e = Stubs.NewEnv()
+	local ok, sum = e.xpcall(function(a, b)
+		return a + b
+	end, error, 2, 3)
+	assert(ok == true and sum == 5, "xpcall passes its extra arguments")
+	local handled
+	local failed, result = e.xpcall(function(value)
+		error("bad " .. value, 0)
+	end, function(message)
+		handled = message
+		return "handled"
+	end, "input")
+	assert(failed == false and result == "handled" and handled == "bad input", "an error goes to the handler")
+end
+
+-- Quiet mode, for the performance check: frames stop recording calls, a method lookup returns the same
+-- function each time, and a repeated Set<X> reuses its stored table, so the stubs allocate nothing.
+do
+	local Measure = dofile("Tools/regression/measure.lua")
+	local e = Stubs.NewEnv()
+	local q = e.CreateFrame("Frame", nil, e.UIParent)
+	q:SetAlpha(0.2)
+	local recorded = #q._calls
+	e.SetQuiet(true)
+	assert(q.SetAlpha == q.SetAlpha and q.Show == q.Show, "a quiet lookup returns the same function")
+	q:SetAlpha(0.4)
+	q:SetSize(3, 4)
+	assert(#q._calls == recorded, "a quiet frame records no calls")
+	assert(q:GetAlpha() == 0.4 and q:GetWidth() == 3, "quiet methods still keep state")
+	q:SetVertexColor(1, 0.5, 0, 0.25)
+	q:SetVertexColor(0.1, 0.2, 0.3)
+	local r, g, b, a = q:GetVertexColor()
+	assert(r == 0.1 and g == 0.2 and b == 0.3 and a == nil, "a shorter Set<X> clears the values it no longer sets")
+	local result = Measure.Run(function()
+		q:SetAlpha(0.5)
+		q:Show()
+		q:SetVertexColor(0.3, 0.2, 0.1)
+		q:GetAlpha()
+	end)
+	assert(result.kb == 0, "quiet stubs allocate nothing, got " .. result.kb .. " KB per call")
+	e.SetQuiet(false)
+	q:SetAlpha(0.6)
+	assert(#q._calls == recorded + 1 and q:GetAlpha() == 0.6, "leaving quiet mode records calls again")
+end
+
 print("stubs ok")
