@@ -144,6 +144,21 @@ do
 	assert(line == "PASS tooltips: off: Blizzard tooltips", "off, the check says so: " .. tostring(line))
 end
 
+-- A profile switch applies the new profile's fonts while the module keeps running ------------------
+
+do
+	local env, K = Enabled()
+	K.Options.Write("Tooltips", "body.size", 20)
+	assert(K.Store.CreateProfile("Other"))
+	K.Store.SetProfile("Other")
+	K.Modules.Enable("Tooltips")
+	assert(select(2, env.GameTooltipText:GetFont()) == 13 * K.Theme.FontScale(), "the other profile's default size")
+	K.Store.SetProfile("Default")
+	assert(K.Modules.IsRunning("Tooltips"), "the module stays on")
+	assert(select(2, env.GameTooltipText:GetFont()) == 20 * K.Theme.FontScale(), "switching back applies the first profile's size")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- A saved value that is not allowed gives the default ----------------------------------------------
 
 do
@@ -221,9 +236,16 @@ do
 	for name in pairs(T.TOOLTIPS) do
 		assert(Near(env[name]:GetScale(), expected()), name .. " is scaled to root units")
 	end
+	local tip = env.GameTooltip
+	tip:AddLine("Title", 1, 1, 1)
+	tip:AddLine("Line", 1, 1, 1)
+	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Spell, id = 133 })
+	local divider = ns.Style.Glass(tip).divider
+	assert(divider:IsShown() and Near(divider:GetHeight(), K.Widgets.Border(ns.Style.Glass(tip))), "the divider is one border thick")
 	assert(K.Layout.Set(KEY, "scale", 1.5))
 	assert(Near(ns.Anchor.Frame():GetScale(), 1.5), "Layout scales the anchor")
 	assert(Near(env.GameTooltip:GetScale(), expected()), "and every tooltip follows")
+	assert(Near(divider:GetHeight(), K.Widgets.Border(ns.Style.Glass(tip))), "a shown divider stays one whole border thick at the new scale")
 	K.Modules.Disable("Tooltips")
 	assert(env.GameTooltip:GetScale() == 1, "Disable gives Blizzard its scale back")
 	assert(#env._errors == 0, tostring(env._errors[1]))

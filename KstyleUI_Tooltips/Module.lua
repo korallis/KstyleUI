@@ -7,11 +7,19 @@ local Settings, Style, Anchor, Content, Preview = ns.Settings, ns.Style, ns.Anch
 local MODULE = ns.MODULE
 
 local function ApplyScale()
-	Style.ApplyScale(Anchor.Scale())
+	if ns.active then
+		Style.ApplyScale(Anchor.Scale())
+	end
+end
+
+local function ApplyFonts()
+	if ns.active then
+		Style.ApplyFonts()
+	end
 end
 
 local function ApplyAll()
-	Style.ApplyFonts()
+	ApplyFonts()
 	ApplyScale()
 end
 
@@ -32,7 +40,8 @@ end
 local function Watch()
 	local Callbacks = K.Callbacks
 	Callbacks.Register("ScaleChanged", MODULE, ApplyScale)
-	Callbacks.Register("ThemeChanged", MODULE, Style.ApplyFonts)
+	Callbacks.Register("ThemeChanged", MODULE, ApplyFonts)
+	Callbacks.Register("ProfileChanged", MODULE, ApplyAll)
 	Callbacks.Register("LayoutChanged", MODULE, function(_, key)
 		if key == Anchor.KEY then
 			ApplyScale()

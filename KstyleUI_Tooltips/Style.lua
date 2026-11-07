@@ -272,6 +272,9 @@ function Style.ApplyScale(elementScale)
 		local glass = Style.Glass(tooltip)
 		if glass then
 			glass.chrome:Restyle()
+			if glass.divider:IsShown() then
+				PlaceDivider(glass, tooltip)
+			end
 		end
 	end
 	return scale
