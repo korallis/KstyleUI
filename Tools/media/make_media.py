@@ -38,14 +38,19 @@ BEVEL_LINE = 1  # root units: one physical pixel at 1080p, two at 4K
 SHADOW_REACH = 12  # root units the shadow reaches past the panel edge
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
 
-# Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner.
+# Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner and
+# draws at margin / TEXELS_PER_UNIT root units, so pieces of different textures line up. Between the
+# margins every row and column is the same, so stretching the edges and centre distorts nothing.
+# The bevel bands are mitred: the inner edge of a band of width w meets the straight edge
+# w * (sqrt(2) - 1) past the chamfer, so the bevel margins reach past both lines' mitres.
+_MITRE = math.ceil(2 * BEVEL_LINE * TEXELS_PER_UNIT * (math.sqrt(2) - 1))
 SLICE = {
     "ChamferPanel": PANEL_CHAMFER * TEXELS_PER_UNIT,
     "ChamferTile": TILE_CHAMFER * TEXELS_PER_UNIT,
-    "BevelPanelOuter": PANEL_CHAMFER * TEXELS_PER_UNIT,
-    "BevelPanelInner": PANEL_CHAMFER * TEXELS_PER_UNIT,
-    "BevelTileOuter": TILE_CHAMFER * TEXELS_PER_UNIT,
-    "BevelTileInner": TILE_CHAMFER * TEXELS_PER_UNIT,
+    "BevelPanelOuter": PANEL_CHAMFER * TEXELS_PER_UNIT + _MITRE,
+    "BevelPanelInner": PANEL_CHAMFER * TEXELS_PER_UNIT + _MITRE,
+    "BevelTileOuter": TILE_CHAMFER * TEXELS_PER_UNIT + _MITRE,
+    "BevelTileInner": TILE_CHAMFER * TEXELS_PER_UNIT + _MITRE,
     "Shadow": 2 * SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
 }
 
@@ -332,7 +337,7 @@ def draw_chamfer(size, legs):
 
 def draw_bevel(size, legs, line, which):
     start = 0 if which == "outer" else line
-    planes = chamfered_rect(size, size, legs)
+    planes = chamfered_rect(size, size, legs)  # legs is the chamfer, not the slice margin
     return white(sample_spans(size, size, band_spans(planes, start, start + line)))
 
 
@@ -491,13 +496,13 @@ ASSETS = [
              "Panel shape with 6-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
     _texture("ChamferTile", 32, 32, lambda: draw_chamfer(32, SLICE["ChamferTile"]),
              "Tile and button shape with 3-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
-    _texture("BevelPanelOuter", 64, 64, lambda: draw_bevel(64, SLICE["BevelPanelOuter"], BEVEL_LINE * TEXELS_PER_UNIT, "outer"),
+    _texture("BevelPanelOuter", 64, 64, lambda: draw_bevel(64, PANEL_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "outer"),
              "Outer bevel line of a panel: a 1-unit band on the chamfered edge, tinted edgeOuter."),
-    _texture("BevelPanelInner", 64, 64, lambda: draw_bevel(64, SLICE["BevelPanelInner"], BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
+    _texture("BevelPanelInner", 64, 64, lambda: draw_bevel(64, PANEL_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
              "Inner bevel hairline of a panel: the 1-unit band inside the outer line, tinted edgeInner."),
-    _texture("BevelTileOuter", 32, 32, lambda: draw_bevel(32, SLICE["BevelTileOuter"], BEVEL_LINE * TEXELS_PER_UNIT, "outer"),
+    _texture("BevelTileOuter", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "outer"),
              "Outer bevel line of a tile, as BevelPanelOuter with 3-unit chamfers."),
-    _texture("BevelTileInner", 32, 32, lambda: draw_bevel(32, SLICE["BevelTileInner"], BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
+    _texture("BevelTileInner", 64, 64, lambda: draw_bevel(64, TILE_CHAMFER * TEXELS_PER_UNIT, BEVEL_LINE * TEXELS_PER_UNIT, "inner"),
              "Inner bevel hairline of a tile, as BevelPanelInner with 3-unit chamfers."),
     _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * TILE_CHAMFER / ICON_SIZE),
              "Square mask for icons and portraits: a 3-unit chamfer on a 34-unit square."),

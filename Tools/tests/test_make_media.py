@@ -54,8 +54,8 @@ class ManifestTest(unittest.TestCase):
         density = self.mm.TEXELS_PER_UNIT
         self.assertEqual(self.mm.SLICE["ChamferPanel"], 6 * density)
         self.assertEqual(self.mm.SLICE["ChamferTile"], 3 * density)
-        self.assertEqual(self.mm.SLICE["BevelPanelOuter"], 6 * density)
-        self.assertEqual(self.mm.SLICE["BevelTileInner"], 3 * density)
+        for name in ("BevelPanelOuter", "BevelPanelInner", "BevelTileOuter", "BevelTileInner"):
+            self.assertEqual(self.mm.SLICE[name] % density, 0, f"{name} corner pieces are whole units")
 
 
 class PngTest(unittest.TestCase):
@@ -115,7 +115,7 @@ class DrawingTest(unittest.TestCase):
 
     def test_bevels_are_adjacent_one_unit_bands(self):
         d = self.mm.TEXELS_PER_UNIT
-        for prefix, size in (("BevelPanel", 64), ("BevelTile", 32)):
+        for prefix, size in (("BevelPanel", 64), ("BevelTile", 64)):
             outer, inner = prefix + "Outer.png", prefix + "Inner.png"
             mid = size // 2
             self.assertEqual(self.alpha(outer, mid, 0), 255, outer)
@@ -123,9 +123,23 @@ class DrawingTest(unittest.TestCase):
             self.assertEqual(self.alpha(outer, mid, d), 0, outer)
             self.assertEqual(self.alpha(inner, mid, d - 1), 0, inner)
             self.assertEqual(self.alpha(inner, mid, d), 255, inner)
-            # One row lower, clear of the inset diagonal, which reaches the middle of a 32-px tile.
-            self.assertEqual(self.alpha(inner, mid, 2 * d + 1), 0, inner)
+            self.assertEqual(self.alpha(inner, mid, 2 * d), 0, inner)
             self.assertEqual(self.alpha(outer, mid, mid), 0, "bevel centre is empty")
+
+    def test_sliced_textures_stretch_without_distortion(self):
+        # A nine-slice stretches the strips between the margins. Every column and every row there
+        # must be the same, or the stretch smears a corner's diagonal along the edge.
+        for asset in self.mm.ASSETS:
+            if not asset.slice:
+                continue
+            name, m = Path(asset.path).name, asset.slice
+            self.assertLess(2 * m, asset.width, f"{name} keeps a stretchable centre")
+            for x in range(m + 1, asset.width - m):
+                for y in range(asset.height):
+                    self.assertLessEqual(abs(self.alpha(name, x, y) - self.alpha(name, m, y)), 2, f"{name} column {x} row {y}")
+            for y in range(m + 1, asset.height - m):
+                for x in range(asset.width):
+                    self.assertLessEqual(abs(self.alpha(name, x, y) - self.alpha(name, x, m)), 2, f"{name} row {y} column {x}")
 
     def test_icon_mask_chamfer_is_3_units_of_34(self):
         legs = 128 * 3 / 34
