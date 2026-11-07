@@ -25,6 +25,7 @@ local items = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
 local highlights = setmetatable({}, WEAK)
 local mirrors = setmetatable({}, WEAK)
+local bars = setmetatable({}, WEAK)
 local triStates = setmetatable({}, WEAK)
 local logged = {}
 
@@ -305,6 +306,44 @@ function Kit.Highlight(button)
 	Style.Track(state)
 	highlights[texture] = state
 	return texture
+end
+
+local function RegionSet(frame)
+	local set = {}
+	for _, region in ipairs({ frame:GetRegions() }) do
+		set[region] = true
+	end
+	return set
+end
+
+function Kit.Bar(bar)
+	if type(bar) ~= "table" or type(bar.GetStatusBarTexture) ~= "function" then
+		return nil
+	end
+	if bars[bar] then
+		return bars[bar]
+	end
+	local keep = {}
+	local fill = bar:GetStatusBarTexture()
+	if Parts.IsTexture(fill) then
+		keep[fill] = true
+	end
+	Skin.Strip(bar, { keep = keep })
+	Style.StatusBar(bar)
+	local before = RegionSet(bar)
+	local track = Widgets.Chrome(bar, { shape = "tile", fill = "track", shadow = false })
+	local added = {}
+	for region in pairs(RegionSet(bar)) do
+		if not before[region] then
+			added[region] = true
+		end
+	end
+	Skin.Strip(bar, { keep = added })
+	if bar.Text then
+		Style.Text(bar.Text, "number", "textEmphasis")
+	end
+	bars[bar] = track
+	return track
 end
 
 local function PaintMirror(state)

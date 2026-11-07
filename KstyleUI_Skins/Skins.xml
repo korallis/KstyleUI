@@ -25,6 +25,7 @@
 	<Script file="PartC\Kit.lua"/>
 	<Script file="PartC\Friends.lua"/>
 	<Script file="PartC\Communities.lua"/>
+	<Script file="PartC\Legacy.lua"/>
 	<Script file="PartC\Loot.lua"/>
 	<Script file="PartC\LootRolls.lua"/>
 	<Script file="PartC\Popups.lua"/>
