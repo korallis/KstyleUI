@@ -269,4 +269,29 @@ do
 	assert(ns.Skins.Setting("extra", "nope") == nil)
 end
 
+-- An applied skin hears its own settings change, and a profile change -----------------------------------
+
+do
+	local heard = {}
+	local def = Fake("hears", {
+		defaults = { borders = true },
+		rows = { { type = "toggle", key = "borders", label = "Borders", help = "Draws borders." } },
+	})
+	function def.OnSetting(self, field, value)
+		assert(self == def)
+		heard[#heard + 1] = { field = field, value = value }
+	end
+	local _, K = S.New({ before = function(_, _, ns) ns.Skins.Add(def) end })
+	K.Options.Write("Skins", "hears.borders", false)
+	assert(#heard == 0, "a skin that has not applied hears nothing")
+	K.Modules.Enable("Skins")
+	K.Options.Write("Skins", "hears.borders", true)
+	assert(#heard == 1 and heard[1].field == "borders" and heard[1].value == true, "the field without the skin's key, and the value")
+	K.Options.Write("Skins", "text.size", 1.1)
+	assert(#heard == 1, "shared look settings are not the skin's own")
+	K.Store.CopyProfile(K.Store.ProfileName(), "Another")
+	K.Store.SetProfile("Another")
+	assert(#heard == 2 and heard[2].field == nil, "a profile change tells the skin every setting may have changed")
+end
+
 print("skins registry ok")

@@ -209,7 +209,13 @@ local function OnSetting(_, module, key, value)
 		return
 	end
 	local def = group and byKey[group]
-	if not def or key ~= group .. ".enabled" then
+	if not def then
+		return
+	end
+	if key ~= group .. ".enabled" then
+		if applied[def.key] and type(def.OnSetting) == "function" then
+			K.Call(def.OnSetting, def, key:sub(#group + 2), value)
+		end
 		return
 	end
 	if value == true then
@@ -246,6 +252,11 @@ function Skins.Start()
 			return
 		end
 		ns.Style.RestyleAll()
+		for _, def in ipairs(order) do
+			if applied[def.key] and type(def.OnSetting) == "function" then
+				K.Call(def.OnSetting, def, nil)
+			end
+		end
 		ArmAll()
 		PromptSwitchedOff()
 	end)

@@ -81,7 +81,8 @@ function S.Show(frame)
 end
 
 -- Blizzard(env) -> a builder of stand-in Blizzard frames that remembers every object it made, and
--- check(snapshot) fails on a field written onto one, or a SetScript, Hide or SetParent call on one.
+-- check(snapshot, hooked) fails on a field written onto one since the snapshot, other than a method a
+-- hook replaced, or a SetScript, Hide or SetParent call on one since the snapshot.
 local HOOKED = { SetAlpha = true, SetTabSelected = true, SetChecked = true, SetStatusBarColor = true, SetVertexColor = true }
 
 local function fields(object)
@@ -117,19 +118,22 @@ function S.Blizzard(env)
 		return b.add(frame:CreateFontString(nil, "OVERLAY"))
 	end
 	function b.snapshot()
-		local snap = {}
+		local snap = { calls = {} }
 		for _, object in ipairs(made) do
 			snap[object] = fields(object)
+			snap.calls[object] = #object._calls
 		end
 		return snap
 	end
-	function b.check(snap)
+	function b.check(snap, hooked)
+		hooked = hooked or {}
 		for _, object in ipairs(made) do
 			local before = snap[object] or {}
 			for k in pairs(fields(object)) do
-				assert(before[k] or HOOKED[k], "a field was written onto a Blizzard object: " .. tostring(k))
+				assert(before[k] or HOOKED[k] or hooked[k], "a field was written onto a Blizzard object: " .. tostring(k))
 			end
-			for _, call in ipairs(object._calls) do
+			for i = (snap.calls[object] or 0) + 1, #object._calls do
+				local call = object._calls[i]
 				assert(call.method ~= "SetScript", "SetScript on a Blizzard object")
 				assert(call.method ~= "Hide", "Hide on a Blizzard object")
 				assert(call.method ~= "SetParent", "SetParent on a Blizzard object")
@@ -137,6 +141,44 @@ function S.Blizzard(env)
 		end
 	end
 	return b
+end
+
+-- ScrollBox(b, parent) -> a stand-in WowScrollBoxList. Rows are children of box.ScrollTarget, as in the
+-- game; rows added with box.AddRow(row) show through
+-- ForEachFrame, and box.Init(row, data) runs the callbacks ScrollUtil.AddInitializedFrameCallback added,
+-- as the list does when it shows a row. S.UseScrollUtil(env) installs that ScrollUtil.
+function S.ScrollBox(b, parent)
+	local box = b.frame("Frame", parent)
+	box.ScrollTarget = b.frame("Frame", box)
+	local rows, callbacks = {}, {}
+	box._rows, box._callbacks = rows, callbacks
+	function box.ForEachFrame(self, fn)
+		for _, row in ipairs(rows) do
+			fn(row, row._data)
+		end
+	end
+	function box.AddRow(row, data)
+		rows[#rows + 1] = row
+		row._data = data
+		return row
+	end
+	function box.Init(row, data)
+		row._data = data
+		for _, entry in ipairs(callbacks) do
+			entry.fn(entry.owner, row, data)
+		end
+	end
+	return box
+end
+
+function S.UseScrollUtil(env)
+	env.ScrollUtil = {
+		AddInitializedFrameCallback = function(box, fn, owner, iterate)
+			assert(owner ~= nil, "a ScrollBox callback needs an owner")
+			assert(not iterate, "iterating existing frames passes no owner; call ForEachFrame instead")
+			box._callbacks[#box._callbacks + 1] = { fn = fn, owner = owner }
+		end,
+	}
 end
 
 -- Logged(env, text) -> the first devlog message of the Skins module that contains text, or nil.
