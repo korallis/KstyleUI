@@ -1,0 +1,17 @@
+DisplayName_lang,AlternateVerb_lang,Description_lang,HordeDisplayName_lang,NeutralDisplayName,ID,CategoryID,SpellIconFileID,CanLink,ParentSkillLineID,ParentTierIndex,Flags,SpellBookSpellID,ExpansionNameSharedStringID,HordeExpansionNameSharedStringID
+Fire,,,,,8,7,135810,0,0,0,1040,0,0,0
+Poisons,,"Higher poison skill allows more powerful poisons to be crafted. Reagents can be purchased from poison vendors and shady dealers, then combined into deadly concoctions that rot, weaken, and wither foes.",,,40,9,136242,0,0,0,128,0,0,0
+Dwarven Racial,,,,,101,9,136235,0,0,0,146,0,0,0
+First Aid,,Higher first aid skill allows you to learn higher level first aid abilities.  First aid abilities can be found on trainers around the world as well as from quests and as drops from monsters.,,,129,9,135966,1,0,0,128,0,0,0
+GENERIC (DND),,,,,183,12,136235,0,0,0,146,0,0,0
+Mining,,"Higher mining skill allows you to harvest more difficult minerals nodes around the world.  If you cannot harvest a specific mineral, then increase your skill by mining easier to mine minerals in lower level areas.",,,186,11,136248,0,0,0,128,0,0,0
+Pet - Imp,,,,,188,7,136235,0,0,0,0,0,0,0
+Engineering,,Higher engineering skill allows you to learn higher level engineering schematics.  Schematics can be found on trainers around the world as well as from quests and monsters.,,,202,11,136243,1,0,0,128,0,0,0
+Wands,,Higher weapon skill increases your chance to hit.,,,228,6,136235,0,0,0,128,0,0,0
+Beast Training,,,,,261,7,136235,0,0,0,146,0,0,0
+Mounts,,Your mounts.,,,777,7,132167,0,0,0,2,0,0,0
+Engraving,,Higher engraving skill allows you to learn higher level runes and apply them to your armor and weapons.  Runes can be found hidden throughout the world.,,,2851,7,136235,0,0,0,146,0,0,0
+Test Profession [DNT],,Higher skill allows you to learn higher level recipes.  Recipes can be found on trainers around the world as well as from quests and as drops from monsters.,,,2933,11,134400,1,0,0,4224,0,0,0
+First Aid,,Higher first aid skill allows you to learn higher level first aid abilities. First aid abilities can be found on trainers around the world as well as from quests and as drops from monsters.,,,2942,9,135966,0,129,4,0,0,1165,0
+Skyborne Racial,,,,,2980,9,136235,0,0,0,146,0,0,0
+Dual Wield,,,,,118,6,136235,0,0,0,146,0,0,0

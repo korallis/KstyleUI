@@ -1,0 +1,2 @@
+ID,Description_lang,TierID,Flags,ColumnIndex,TabID,ClassID,SpecID,SpellID,OverridesSpellID,RequiredSpellID,CategoryMask[0],CategoryMask[1],SpellRank[0],SpellRank[1],SpellRank[2],SpellRank[3],SpellRank[4],SpellRank[5],SpellRank[6],SpellRank[7],SpellRank[8],PrereqTalent[0],PrereqTalent[1],PrereqTalent[2],PrereqRank[0],PrereqRank[1],PrereqRank[2]
+26,,0,0,1,41,0,0,0,0,0,0,0,11069,12338,12339,12340,12341,0,0,0,0,0,0,0,0,0,0

@@ -1,0 +1,30 @@
+ID,NameSubtext_lang,Description_lang,AuraDescription_lang
+133,Rank 1,Hurls a fiery ball that causes $s1 Fire damage and an additional $o2 Fire damage over $d.,$s2 Fire damage every $t2 seconds.
+143,Rank 2,Hurls a fiery ball that causes $s1 Fire damage and an additional $o2 Fire damage over $d.,$s2 Fire damage every $t2 seconds.
+459,,Summons and dismisses a rideable gray wolf.,$?j1g[Increases ground speed by $j1g%. ][]
+1853,Rank 1,"Taunt the target, increasing the likelihood the creature will focus attacks on you.",
+2575,Apprentice,How to pull ore and stone from mineral veins for use in Engineering and Blacksmithing.  Gives a potential mining skill of 75.  Requires a Mining Pick.,
+2580,,Nearby mineral veins appear on the minimap.   Only one type of thing can be tracked at a time.,Finding Minerals.
+2657,,Allows the miner to smelt a chunk of copper ore into a copper bar.  Smelting copper requires a forge.,
+2842,,"You can create and mix poisons, with both found and storebought ingredients.",
+3110,Rank 1,Deals $?s18769[${$m1*($18769m1/100+1)} to ${$M1*($18769m1/100+1)}][$s1] Fire damage to a target.,
+3273,Apprentice,Allows the creation and use bandages up to a potential skill of 75.   The cloth used to make those bandages are found on humanoids in the world.,
+5019,,Attack with an equipped wand.,
+6603,,,
+8681,Rank 1,"Coats a weapon with poison that lasts for ${$m2/60} minutes.
+Each strike has a $8679h% chance of poisoning the enemy which instantly inflicts $8680s1 Nature damage.  $m3 charges.",
+11069,,"Reduces the casting time of your Fireball, Frostfire Bolt, and Arcane Wrath spells by $/1000;S1 sec.",
+13240,,Reloads an empty Goblin mortar.,
+20594,Racial,"Instantly removes and grants immunity to all Bleed, Poison, and Disease effects, and reduces all Physical damage taken by $s1% for $d.","Immune to Bleed, Poison, and Disease effects. Reduces Physical damage taken by $s1%."
+400080,,"Engrave your chest or robe with the Deadly Brew rune:
+
+$@spellicon399965
+$@spelldesc399965",
+428878,,"Unleash a reality-distorting burst of raw magic at your enemy, dealing ${$<power>*$m1/100} to ${$<power>*$M1/100} Chimeric damage.
+
+Increasing your Balefire Bolt and Pyroblast damage by $s3%, decreasing your Spirit by $s2%, and stacking up to $u times for $d. If your Spirit reaches 0, you die.
+
+This spell will be checked against the lower of the target's Arcane, Fire, and Frost resists.",Increases damage dealt by Balefire Bolt and Pyroblast by $s3% but decreases Spirit by $s2%. Reaching 0 Spirit is fatal.
+1240365,Apprentice,"Allows a test professional to make basic contraptions up to a maximum potential skill of 75. Requires ingredients, materials, and sometimes even reagents! [DNT]",
+1259705,Racial,"Attempt to tap into the power of a nearby leyline, increasing your Health and Mana regeneration by $1270842s1% for $1270842d. If a leyline is nearby, you will become Attuned for the next $1259691d and the effect of this ability will be increased by $1259691s1%.",
+674,Passive,Allows one-hand and off-hand weapons to be equipped in the off-hand.,
