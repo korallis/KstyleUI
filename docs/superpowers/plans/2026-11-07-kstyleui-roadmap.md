@@ -25,7 +25,7 @@ These apply to every task in every phase:
 - No `SetScript` on a Blizzard frame, no field writes onto a Blizzard frame, no `Hide()` on a Blizzard layout frame. Hide Blizzard frames only through `KstyleUI.Safe.HideBlizzard`.
 - Protected work in combat goes through `KstyleUI.Combat.Queue`.
 - Nothing copied from another addon. Every generated asset gets a row in `Media/PROVENANCE.md`.
-- Branch `<type>/<scope>-<slug>` from `origin/staging`, in its own worktree under `~/KstyleUI.worktrees/`. PR into `staging`, at most 400 changed lines excluding generated data and icon files, title `type(scope): summary`, body with a `## Changelog` line (`Added:`, `Changed:` or `Fixed:`) or the `no changelog` label.
+- Branch `<type>/<scope>-<slug>` from `origin/staging`, in its own worktree under `~/KstyleUI.worktrees/`. PR into `staging`, one coherent piece of work with no line limit (waived by the owner on 2026-11-07), title `type(scope): summary`, body with a `## Changelog` line (`Added:`, `Changed:` or `Fixed:`) or the `no changelog` label.
 - Before opening a PR: `pre-commit run --all-files`, `LUA=luajit bash Tools/regression/run-all.sh`, `python3 -m unittest discover -s Tools/tests`, then `cr review --agent` (fix critical and major findings, at most two rounds), then `/codex:review`.
 
 ## Review Focus

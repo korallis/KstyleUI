@@ -504,7 +504,7 @@ git commit -m "test: add spikes for paging, combat text, auras, meters and prese
 
 **Files:**
 - Create: `Tools/icons/abilities.py`, `Tools/tests/test_abilities.py`, fixtures `Tools/tests/fixtures/db2/SkillLineAbility.csv`, `SkillLine.csv`, `SpellName.csv`, `SpellMisc.csv`, `ChrClasses.csv`, `ChrRaces.csv`
-- Generate: `Tools/data/abilities.json` (excluded from the 400-line limit)
+- Generate: `Tools/data/abilities.json`
 
 **Interfaces:**
 - Produces: `python3 Tools/icons/abilities.py --build <version> [--from-dir DIR] --out Tools/data/abilities.json`.

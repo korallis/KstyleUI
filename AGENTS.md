@@ -13,7 +13,7 @@ git -C ~/KstyleUI worktree add -b <type>/<scope>-<slug> ~/KstyleUI.worktrees/<ty
 ```
 
 - Open the pull request with `gh pr create --base staging`. Squash-merge it.
-- A pull request changes at most 400 lines, not counting generated data, images, fonts, and lockfiles. Split bigger work.
+- A pull request has no line limit. The owner waived the global 400-line rule for KstyleUI on 2026-11-07. Keep each PR to one coherent piece of work so it can be reviewed.
 - The title is `type(scope): summary` (Conventional Commits).
 - The body has a `## Changelog` section whose line starts with `Added:`, `Changed:`, or `Fixed:`. A pull request that changes only tooling or docs gets the `no changelog` label instead.
 - The body has an `## In-game checks` list.

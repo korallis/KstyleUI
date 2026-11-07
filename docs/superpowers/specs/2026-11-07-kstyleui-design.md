@@ -427,7 +427,7 @@ Every PR description lists its in-game checks. A release candidate also runs wit
 
 - Each task gets a branch named `<type>/<scope>-<slug>`, such as `feat/unitframes-player-frame`, in its own worktree under `~/KstyleUI.worktrees/`.
 - Before a PR opens, the task's checks and tests pass locally, `cr review --agent` runs on the changes (critical and major findings fixed, at most two rounds), and one cross-family review runs (`/codex:review`).
-- A PR targets `staging`, changes at most 400 lines (generated data and icon files excluded), and is squash-merged.
+- A PR targets `staging`, covers one coherent piece of work, and is squash-merged. KstyleUI has no PR line limit: the owner waived the global 400-line rule on 2026-11-07.
 - When the owner confirms in-game tests pass on `staging`, `staging` fast-forwards to `main` and `main` is tagged `vX.Y.Z`. The tag starts the release workflow, which packages with the BigWigs packager and uploads to CurseForge, Wago and GitHub. The CurseForge and Wago API tokens live in GitHub Actions secrets, set by the owner. They are never printed or committed.
 
 ## Build mode
