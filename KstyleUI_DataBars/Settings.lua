@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K, L = ns.K, ns.L
 local Tokens, Widgets = K.Tokens, K.Widgets
-local Format, Font, Bars = ns.Format, ns.Font, ns.Bars
+local Format, Font, Bars, Strip = ns.Format, ns.Font, ns.Bars, ns.Strip
 
 local DEFAULT_TEXTURE = "Glass"
 local FONT_SIZE = 10
@@ -13,6 +13,10 @@ local RESTED_ALPHA = 0.5
 local PREVIEW_BAR = 8
 local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
+local PREVIEW_STRIP = 36
+local STRIP_FONT_SIZE = 11
+local STRIP_SPACING = 8
+local MAX_SPACING = 32
 
 local function Texture(key)
 	for _, item in ipairs(Tokens.MediaList("statusbar")) do
@@ -48,12 +52,23 @@ end
 
 local defaults = ns.defaults
 defaults.fadeBlizzard = true
+defaults.accentSource = "class"
+defaults.accentColor = Rgb("accentDefault")
 defaults.xp = BarDefaults("class", "accentDefault", "valuePercent")
 defaults.xp.rested = true
 defaults.xp.restedColor = Rgb("rare", RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
+defaults.strip = {
+	labels = "full", valueColor = "threshold", accentEdge = false, backdrop = true, separators = true,
+	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
+	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
+	money = "full", latency = "home", timeSource = "local", clock24 = true,
+}
+for i, id in ipairs(Strip.ITEMS) do
+	defaults.strip["slot" .. i] = id
+end
 
 local SOURCES_PLAIN = {
 	{ value = "class", label = L["Class colour"] },
@@ -128,13 +143,83 @@ local function BarRows(id, title, sources)
 	return rows
 end
 
+local ACCENT_SOURCES = {
+	{ value = "class", label = L["Class colour"] },
+	{ value = "custom", label = L["Custom colour"] },
+}
+
 ns.AddRows({
-	{ type = "header", label = L["Blizzard's bars"] },
+	{ type = "header", label = L["General"] },
 	{ type = "toggle", key = "fadeBlizzard", label = L["Fade Blizzard's bars"], help = L["Fades Blizzard's experience and reputation bars while KstyleUI shows its own."] },
+	{ type = "dropdown", key = "accentSource", label = L["Accent"], help = L["The colour of the strip's accent touches: your class colour or your own."], options = ACCENT_SOURCES },
+	{ type = "color", key = "accentColor", label = L["Accent colour"], help = L["The accent colour when the accent is set to custom."], showWhen = function(settings)
+		return settings.accentSource == "custom"
+	end },
 })
 ns.AddRows(BarRows("xp", L["Experience bar"], SOURCES_PLAIN))
 ns.AddRows(BarRows("rep", L["Reputation bar"], SOURCES_REACTION))
 ns.AddRows(BarRows("honor", L["Honour bar"], SOURCES_PLAIN))
+
+local STRIP_ITEMS = {
+	{ value = "none", label = L["Empty"] },
+	{ value = "fps", label = L["Frame rate"] },
+	{ value = "latency", label = L["Latency"] },
+	{ value = "gold", label = L["Gold"] },
+	{ value = "durability", label = L["Durability"] },
+	{ value = "time", label = L["Time"] },
+}
+local STRIP_LABELS = {
+	{ value = "full", label = L["Full: FPS, Durability"] },
+	{ value = "short", label = L["Short: FPS, MS, DUR"] },
+	{ value = "none", label = L["None"] },
+}
+local VALUE_COLORS = {
+	{ value = "threshold", label = L["Good, fair or poor"] },
+	{ value = "accent", label = L["Accent colour"] },
+	{ value = "plain", label = L["Plain"] },
+}
+local MONEY_STYLES = {
+	{ value = "full", label = L["Gold, silver and copper"] },
+	{ value = "gold", label = L["Gold only"] },
+	{ value = "icons", label = L["Coin icons"] },
+}
+local LATENCIES = {
+	{ value = "home", label = L["Home"] },
+	{ value = "world", label = L["World"] },
+}
+local TIME_SOURCES = {
+	{ value = "local", label = L["Local time"] },
+	{ value = "realm", label = L["Realm time"] },
+}
+
+local stripRows = { { type = "header", label = L["Data strip"] } }
+for i = 1, Strip.SLOTS do
+	stripRows[#stripRows + 1] = {
+		type = "dropdown", key = "strip.slot" .. i, label = string.format(L["Place %d"], i),
+		help = L["What this place on the strip shows, counted from the left or the top."], options = STRIP_ITEMS,
+	}
+end
+for _, row in ipairs({
+	{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
+	{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Colours values by how good they are, in the accent colour, or plainly."], options = VALUE_COLORS },
+	{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
+	{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
+	{ type = "toggle", key = "strip.separators", label = L["Separators"], help = L["Draws a thin line between the items."] },
+	{ type = "slider", key = "strip.spacing", label = L["Spacing"], help = L["The space on each side of a separator."], min = 0, max = MAX_SPACING, step = 1 },
+	{ type = "dropdown", key = "strip.orientation", label = L["Direction"], help = L["Items in a row, or stacked in a column."], options = {
+		{ value = "HORIZONTAL", label = L["In a row"] }, { value = "VERTICAL", label = L["In a column"] },
+	} },
+	{ type = "dropdown", key = "strip.font", label = L["Font"], help = L["The font of the strip's text."], options = Font.Faces },
+	{ type = "slider", key = "strip.fontSize", label = L["Font size"], help = L["The size of the strip's text."], min = Font.MIN_SIZE, max = Font.MAX_SIZE, step = Font.STEP },
+	{ type = "dropdown", key = "strip.outline", label = L["Outline"], help = L["A thin or thick outline, or a soft shadow, around the text."], options = Font.OUTLINES },
+	{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
+	{ type = "dropdown", key = "strip.latency", label = L["Latency shown"], help = L["Home latency for chat and logins, or world latency for combat."], options = LATENCIES },
+	{ type = "dropdown", key = "strip.timeSource", label = L["Clock"], help = L["Your computer's time or the realm's time."], options = TIME_SOURCES },
+	{ type = "toggle", key = "strip.clock24", label = L["24-hour clock"], help = L["Shows 14:32 instead of 2:32 PM."] },
+}) do
+	stripRows[#stripRows + 1] = row
+end
+ns.AddRows(stripRows)
 
 local SAMPLES = {
 	xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp" },
@@ -144,6 +229,19 @@ local SAMPLES = {
 
 local function PreviewSettings(s)
 	return setmetatable({ orientation = "HORIZONTAL", textHover = false, textPosition = "TOP" }, { __index = s })
+end
+
+local SAMPLE_FPS, SAMPLE_MS, SAMPLE_MONEY, SAMPLE_DURABILITY = 144, 34, 1438217, 96
+local SAMPLE_HOUR, SAMPLE_MINUTE = 14, 32
+
+local function StripSamples(s)
+	return {
+		fps = { tostring(SAMPLE_FPS), "good" },
+		latency = { s.labels == "short" and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
+		gold = { Format.Money(SAMPLE_MONEY, s.money) },
+		durability = { SAMPLE_DURABILITY .. "%", "good" },
+		time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },
+	}
 end
 
 function ns.Preview(parent)
@@ -162,11 +260,21 @@ function ns.Preview(parent)
 		frame.bars[def.id], frame.captions[def.id] = view, caption
 		y = y + PREVIEW_BAR + PREVIEW_GAP + Tokens.Size("gapLarge")
 	end
+	local caption = Widgets.Text(frame, "caption", "text")
+	caption:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y + PREVIEW_TOP)
+	Widgets.SetText(caption, L["Data strip"])
+	local strip = Strip.NewView(frame)
+	strip.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y - Tokens.Size("gapLarge"))
+	strip.frame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -y - Tokens.Size("gapLarge"))
+	strip.frame:SetHeight(PREVIEW_STRIP)
+	frame.strip, frame.captions.strip = strip, caption
 	function frame.Refresh(self)
 		local settings = ns.Settings()
 		for id, view in pairs(self.bars) do
 			Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
 		end
+		local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
+		Strip.Paint(self.strip, s, StripSamples(s))
 	end
 	frame:Refresh()
 	return frame

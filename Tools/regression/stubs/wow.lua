@@ -344,11 +344,41 @@ function Stubs.NewEnv(opts)
 		return width, height
 	end
 
+	-- C_Timer.NewTicker returns a ticker with Cancel and IsCancelled; RunTickers runs each live one once.
+	local tickers = {}
 	env.C_Timer = {
 		After = function(_, fn)
 			timers[#timers + 1] = fn
 		end,
+		NewTicker = function(interval, fn)
+			local ticker = { interval = interval, fn = fn, cancelled = false }
+			function ticker.Cancel(self)
+				self.cancelled = true
+			end
+			function ticker.IsCancelled(self)
+				return self.cancelled
+			end
+			tickers[#tickers + 1] = ticker
+			return ticker
+		end,
 	}
+
+	function env.RunTickers()
+		for _, ticker in ipairs({ unpack(tickers) }) do
+			if not ticker.cancelled then
+				ticker.fn(ticker)
+			end
+		end
+	end
+	function env.LiveTickers()
+		local n = 0
+		for _, ticker in ipairs(tickers) do
+			if not ticker.cancelled then
+				n = n + 1
+			end
+		end
+		return n
+	end
 
 	function env.RunTimers()
 		local rounds = 0

@@ -33,10 +33,12 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Font.lua` | `ns.Font`: the font, size and outline of a bar's text |
 | `Bars.lua` | `ns.Bars`: the three bars, their values, ticks, text and tooltip |
 | `Blizzard.lua` | `ns.Blizzard`: fades Blizzard's status tracking bars |
+| `Strip.lua` | `ns.Strip`: the data strip, its items, ticker, clicks and tooltips |
+| `Click.lua` | `ns.Click`: the secure proxy that carries a strip click to Blizzard's own button |
 | `Settings.lua` | The defaults, the settings rows and the live preview |
 | `Module.lua` | Registers the module and its settings, and runs each part's `Enable`, `Disable`, `Setting` and `Refresh` |
 
-Each part file adds a part with `ns.AddPart({ Enable, Disable, Setting, Refresh })`. `Module.lua` runs `Enable` in load order and `Disable` in reverse. `Setting(key)` runs when the player changes a DataBars setting, and `Refresh()` runs on `ProfileChanged`, `ThemeChanged` and `ScaleChanged`. Tests: `Tools/regression/test-databars-format.lua`, `test-databars-sources.lua` and `test-databars-bars.lua`, which load the module through `Tools/regression/databars_env.lua`.
+Each part file adds a part with `ns.AddPart({ Enable, Disable, Setting, Refresh })`. `Module.lua` runs `Enable` in load order and `Disable` in reverse. `Setting(key)` runs when the player changes a DataBars setting, and `Refresh()` runs on `ProfileChanged`, `ThemeChanged` and `ScaleChanged`. Tests: `Tools/regression/test-databars-format.lua`, `test-databars-sources.lua`, `test-databars-bars.lua` and `test-databars-strip.lua`, which load the module through `Tools/regression/databars_env.lua`.
 
 ## Bars
 
@@ -71,6 +73,37 @@ Each element is a holder frame registered with Layout as resizable, at its footp
 
 Layout gives each bar its shown rule, position, size, opacity and strata.
 
+## Data strip
+
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 430 x 36, bottom right. It holds up to five items, each a label and a value on a button that lights under the pointer and shows a KstyleUI tooltip.
+
+| Item | Value | Colour when graded | Updates | Left click | Right click |
+| --- | --- | --- | --- | --- | --- |
+| `fps` | `GetFramerate`, rounded | 60 and up good, 30 and up fair | Every second | Opens the DataBars settings page | |
+| `latency` | `GetNetStats` home or world latency | Under 150 ms good, under 300 ms fair | Every second | Switches between home and world | |
+| `gold` | `GetMoney`, as gold, silver and copper, gold only or coin icons | | `PLAYER_MONEY` | Blizzard's backpack button, through the secure proxy | |
+| `durability` | The most worn equipped item, from `GetInventoryItemDurability` | 50% and up good, 25% and up fair | `UPDATE_INVENTORY_DURABILITY`, `PLAYER_EQUIPMENT_CHANGED` | Blizzard's character button, through the secure proxy | |
+| `time` | `date("*t")` or `GetGameTime` | | Every second | Blizzard's calendar button (`GameTimeFrame`, else `TimeManagerClockButton`), through the secure proxy | Switches between a 12 and a 24-hour clock |
+
+The tooltips add detail: home and world latency and bandwidth, money earned or spent this session, each equipped slot's durability, and local and realm time. One `C_Timer.NewTicker` of 1 second runs while a timed item shows and stops with the module; a client without it counts seconds with an `OnUpdate` on the strip. A tick reads values into preallocated tables and moves items only when a text's width changed.
+
+### Settings
+
+| Key | Default | Row |
+| --- | --- | --- |
+| `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. |
+| `strip.labels` | `full` | `full` (FPS:, Durability:), `short` (FPS:, MS:, DUR:, as in the dungeon mockup) or `none` |
+| `strip.valueColor` | `threshold` | `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
+| `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |
+| `strip.backdrop`, `strip.separators` | `true`, `true` | The glass panel and the lines between items |
+| `strip.spacing` | 8 | 0 to 32 units each side of a separator |
+| `strip.orientation` | `HORIZONTAL` | A row, or a column. A change resizes the element through `Layout.Update`. |
+| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 11, `NONE` | As for the bars' text |
+| `strip.money` | `full` | `full`, `gold` or `icons` |
+| `strip.latency` | `home` | `home` or `world` |
+| `strip.timeSource`, `strip.clock24` | `local`, `true` | Local or realm time, and the clock format |
+| `accentSource`, `accentColor` | `class`, `accentDefault` | The module's accent: the class colour or a custom colour |
+
 ## Why
 
 - **Our own bars, Blizzard's faded.** Blizzard's experience and reputation containers sit in Edit Mode's bottom bar stack, which Blizzard lays out together with the protected action bars. NaowhForever hid those containers and tainted the action bars. DataBars therefore never hides, reparents, moves or hooks them: it sets `StatusTrackingBarManager`'s alpha to 0 and turns off the mouse on each bar, so the invisible bars cannot show a tooltip or catch a click over KstyleUI's HUD. `Disable` restores both.
@@ -78,4 +111,5 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 - **Honour is Forever's PvP rank.** Forever loads Blizzard's honour bar, but its PvP progression is the rank points of major faction 2800, which Blizzard's own PvP rank panel reads. The honour bar shows those points and the rank, and falls back to `UnitHonor` when the faction returns nothing. The bar has its own element key, `databars.honor`, under the reputation bar; the experience and reputation bars moved up 3 and 4 units to make room.
 - **A holder and its content.** Layout owns the holder's visibility for the player's shown rule. The module shows and hides only the content, so the two never fight over one frame.
 - **One event and one callback hub.** `KstyleUI.Events` and `KstyleUI.Callbacks` keep one handler per owner and event. Several bars listen for `UPDATE_FACTION` and `PLAYER_ENTERING_WORLD`, so `Init.lua` collects every handler and registers one dispatcher per event when the module starts. `Modules` removes them all when it stops.
+- **Clicks reach Blizzard's buttons through a secure proxy.** Opening bags, the character sheet or the calendar from addon code calls Blizzard functions that open Blizzard windows, which the reskin rules forbid and which can taint the bag and panel code. Instead one `SecureActionButtonTemplate` button, parented to `UIParent` so no KstyleUI frame turns protected, covers the hovered strip item out of combat with `type1 = "click"` and `clickbutton1` set to Blizzard's own button. The click then runs Blizzard's handler untainted. `PLAYER_REGEN_DISABLED`, which fires before lockdown, puts the proxy away; in combat the items keep their tooltips and say the action waits for combat to end. A right click passes through the proxy's `PostClick` hook to the item's own action.
 - **Fonts outside the kit's restyle list.** The kit restyles every text made with `Widgets.Text` to its role's font on `ThemeChanged`, which would undo a player's chosen font. Bar texts are plain font strings that `Font.Apply` styles, and the module applies them again on `ThemeChanged`, `ScaleChanged` and `ProfileChanged`.

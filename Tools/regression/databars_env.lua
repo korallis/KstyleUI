@@ -52,6 +52,11 @@ function D.Game(env, overrides)
 		honor = 0, honorMax = 0, honorLevel = 0,
 		battlefield = false, worldPvP = false,
 		sex = 2,
+		fps = 144.2, latencyHome = 34, latencyWorld = 41, bandwidthIn = 1.5, bandwidthOut = 0.25,
+		money = 1438217,
+		durability = { [1] = { 96, 100 }, [5] = { 100, 100 }, [16] = { 80, 80 } },
+		localTime = { hour = 14, min = 32, year = 2026, month = 11, day = 7, wday = 7 },
+		realmHour = 9, realmMinute = 5,
 	}
 	for k, v in pairs(overrides or {}) do
 		game[k] = copy(v)
@@ -132,7 +137,39 @@ function D.Game(env, overrides)
 	function env.IsInActiveWorldPVP()
 		return game.worldPvP
 	end
+
+	function env.GetFramerate()
+		return game.fps
+	end
+	function env.GetNetStats()
+		return game.bandwidthIn, game.bandwidthOut, game.latencyHome, game.latencyWorld
+	end
+	function env.GetMoney()
+		return game.money
+	end
+	function env.GetInventoryItemDurability(slot)
+		local d = game.durability[slot]
+		if d then
+			return d[1], d[2]
+		end
+	end
+	function env.GetGameTime()
+		return game.realmHour, game.realmMinute
+	end
+	function env.date(fmt)
+		if fmt == "*t" then
+			return copy(game.localTime)
+		end
+		return "Saturday 7 November"
+	end
 	return game
+end
+
+-- Targets(env) builds stand-ins for the Blizzard buttons the strip's secure clicks reach.
+function D.Targets(env)
+	for _, name in ipairs({ "MainMenuBarBackpackButton", "CharacterMicroButton", "GameTimeFrame" }) do
+		env.CreateFrame("Button", name, env.UIParent)
+	end
 end
 
 -- Blizzard(env) builds stand-ins for Blizzard's status tracking bars: the manager, its two containers,
@@ -174,6 +211,7 @@ function D.New(opts)
 			game = D.Game(env, opts.game)
 			if opts.blizzard ~= false then
 				D.Blizzard(env)
+				D.Targets(env)
 			end
 			if opts.setup then
 				opts.setup(env, game)

@@ -16,6 +16,11 @@ assert(select(2, env.GetPhysicalScreenSize()) == 2160)
 local ran = false
 env.C_Timer.After(0, function() ran = true end)
 assert(not ran); env.RunTimers(); assert(ran)
+local ticks = 0
+local ticker = env.C_Timer.NewTicker(1, function() ticks = ticks + 1 end)
+assert(ticks == 0); env.RunTickers(); env.RunTickers(); assert(ticks == 2, "RunTickers runs each live ticker once")
+assert(not ticker:IsCancelled()); ticker:Cancel(); assert(ticker:IsCancelled())
+env.RunTickers(); assert(ticks == 2, "a cancelled ticker never runs again")
 assert(env.issecretvalue(env.Secret(5)) and not env.issecretvalue(5))
 f:RegisterEvent("PLAYER_LOGIN")
 local got

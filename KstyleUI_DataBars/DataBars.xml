@@ -5,6 +5,8 @@
 	<Script file="Font.lua"/>
 	<Script file="Bars.lua"/>
 	<Script file="Blizzard.lua"/>
+	<Script file="Strip.lua"/>
+	<Script file="Click.lua"/>
 	<Script file="Settings.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

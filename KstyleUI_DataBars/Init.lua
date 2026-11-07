@@ -39,6 +39,15 @@ function ns.Settings()
 	return K.Store.Module(MODULE)
 end
 
+function ns.Accent()
+	local s = ns.Settings()
+	local c = s.accentColor
+	if s.accentSource == "custom" and type(c) == "table" and ns.IsNumber(c.r) and ns.IsNumber(c.g) and ns.IsNumber(c.b) then
+		return c.r, c.g, c.b
+	end
+	return K.Theme.Accent()
+end
+
 function ns.AddPart(part)
 	ns.parts[#ns.parts + 1] = part
 end
