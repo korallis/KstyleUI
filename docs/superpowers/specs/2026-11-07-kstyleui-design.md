@@ -325,6 +325,26 @@ The phase 0 spike decides the second layer. It records which units fire `UNIT_CO
 
 Layout Mode never moves Blizzard frames. A Blizzard frame that needs a new place is hidden through `Safe` and replaced by a KstyleUI frame.
 
+### Customisation and resizing
+
+The owner requires that every visible KstyleUI element can be resized and customised from the settings window, and resized directly in Layout Mode.
+
+Every element a module shows registers with `KstyleUI.Layout.Register(frame, key, defaultPosition, opts)`. `opts` declares what the element supports: `resizable` (width and height, with `minWidth`, `minHeight`, `maxWidth` and `maxHeight`), `scalable` (a scale from 0.5 to 2.0), and `aspect` when the element keeps its proportions. Layout Mode draws resize handles on the corners and edges of a resizable element and snaps sizes to whole physical pixels.
+
+Every registered element gets these settings in the settings window without any module code, on a shared Elements page and on its module's page:
+
+| Setting | Values |
+| --- | --- |
+| Shown | Always, in combat only, out of combat only, with a target, on mouseover, never |
+| Position | Anchor (one of nine), X and Y offsets |
+| Size | Width and height, or scale, as the element declares |
+| Opacity | In combat and out of combat, 0 to 100% |
+| Strata | Background, low, medium, high |
+
+Modules add their own settings through `KstyleUI.Options.Register(module, schema)`. The schema is a list of declarative rows: `toggle`, `slider`, `dropdown`, `color`, `font`, `texture`, `text` and `header`, each with a key into the module's settings, a label, a one-sentence help line, and optional `showWhen` and `disableWhen` conditions. The settings window builds every page from these schemas, so search covers every setting.
+
+Every module offers at least these customisations where they apply: text elements choose font, size and outline; bars choose texture, colour source (class, reaction, custom) and orientation; icon groups choose icon size, spacing, rows, columns and growth direction; and every accent use can follow the class colour or a custom colour. The per-module lists in the roadmap's Phase 2 to 4 rows are the minimum.
+
 ### Settings and first-run setup
 
 The settings window follows `04_settings_druid.jpg`, built entirely from the `Widgets` kit. Its parts:
@@ -409,6 +429,12 @@ Every PR description lists its in-game checks. A release candidate also runs wit
 - Before a PR opens, the task's checks and tests pass locally, `cr review --agent` runs on the changes (critical and major findings fixed, at most two rounds), and one cross-family review runs (`/codex:review`).
 - A PR targets `staging`, changes at most 400 lines (generated data and icon files excluded), and is squash-merged.
 - When the owner confirms in-game tests pass on `staging`, `staging` fast-forwards to `main` and `main` is tagged `vX.Y.Z`. The tag starts the release workflow, which packages with the BigWigs packager and uploads to CurseForge, Wago and GitHub. The CurseForge and Wago API tokens live in GitHub Actions secrets, set by the owner. They are never printed or committed.
+
+## Build mode
+
+On 2026-11-07 the owner asked for the whole suite to be built before the first in-game test. Code therefore cannot wait for the spikes. Each module builds the approach the spec names and guards every assumption the spikes would have checked: it tests that an API exists before calling it, checks `issecretvalue` before any comparison, and falls back to a safer path (for example, restyling a Blizzard frame in place) when the preferred path is unavailable. The spike addon still ships in `Tools/spikes/` so the owner's first test session can confirm each assumption, and each fallback logs which path it took to `KstyleUIDB.devlog`.
+
+Build agents work in an in-session workflow with no merge queue. An agent merges its own pull request into `staging` with a squash merge once the checks pass, so later agents start from the merged code.
 
 ## Build phases
 

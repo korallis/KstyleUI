@@ -74,7 +74,8 @@ KstyleUI.Widgets.Tooltip() -> GameTooltip-like Frame
 KstyleUI.Widgets.Glow(frame, opts) -> handle      -- proc and selection glow
 KstyleUI.Icons.Resolve(fileID) -> texturePath | nil
 KstyleUI.Icons.Apply(texture, fileID, school)     -- sets texture and tint for the active set
-KstyleUI.Layout.Register(frame, key, defaultPosition)  -- position = { anchor, x, y }
+KstyleUI.Layout.Register(frame, key, defaultPosition, opts)  -- position = { anchor, x, y }; opts = { resizable, scalable, aspect, minWidth, minHeight, maxWidth, maxHeight, label }
+KstyleUI.Options.Register(module, schema)        -- declarative rows: toggle, slider, dropdown, color, font, texture, text, header
 KstyleUI.Store.Profile() -> table                 -- the active profile, with defaults
 KstyleUI.Store.Module(name) -> table              -- one module's settings
 KstyleUI.Store.Export() -> string / Import(string) -> ok, err
