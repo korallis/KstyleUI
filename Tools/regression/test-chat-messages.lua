@@ -41,7 +41,7 @@ do
 	assert(has(line, "|H" .. F.LINK .. "https://a.com|h"), "the URL is a link")
 	local r, g, b = K.Theme.Brighten(K.Theme.ClassColor("WARRIOR"))
 	assert(has(line, "[|c" .. F.Hex(r, g, b) .. "Thargor|r]"), "the warrior's name is in the class colour")
-	local entry = env.ChatFrame1._history[#env.ChatFrame1._history]
+	local entry = C.Newest(env.ChatFrame1)
 	assert(entry.n == 10 and entry[8] == "CHAT_MSG_GUILD" and type(entry[10]) == "function", "the line keeps every value Blizzard stored with it")
 	C.Check(env, snap, HOOKED)
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -57,7 +57,7 @@ do
 	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0, 1, 0)
 	local F = env._addons.KstyleUI_Chat.Format
 	assert(F.Strip(C.Last(env.ChatFrame1)) == "[09:05] You receive loot: [Hide].", "a system line: " .. tostring(F.Strip(C.Last(env.ChatFrame1))))
-	assert(env.ChatFrame1._history[#env.ChatFrame1._history][2] == 0, "the line keeps its colour")
+	assert(C.Newest(env.ChatFrame1)[2] == 0, "the line keeps its colour")
 end
 
 -- Secret lines pass through untouched, in the filters and in the frame.
@@ -66,20 +66,19 @@ do
 	C.Enable(env, K)
 	local secret = env.Secret("https://hidden.com")
 	assert(C.Say(env, env.ChatFrame1, "CHAT_MSG_GUILD", secret), "a secret line is never discarded")
-	local entry = env.ChatFrame1._history[#env.ChatFrame1._history]
+	local entry = C.Newest(env.ChatFrame1)
 	assert(env.issecretvalue(entry[1]), "the secret line is still the game's secret")
 	local filter = env._messageFilters.CHAT_MSG_GUILD[1]
 	assert(filter(env.ChatFrame1, "CHAT_MSG_GUILD", secret, "Thargor") == false, "the URL filter passes a secret on")
 	local nameFilter = env._nameFilters[1]
 	assert(nameFilter("CHAT_MSG_GUILD", env.Secret("Thargor"), "x", "Thargor") == nil, "a secret name is left alone")
 	assert(nameFilter("CHAT_MSG_GUILD", "Thargor", "x", "Thargor", "", "", "", "", 0, 1, "", 0, 42, env.Secret("Player-1-0001")) == nil, "a secret GUID is left alone")
-	local before = #env.ChatFrame1._history
 	env.ChatFrame1:AddMessage(env.Secret("whatever"), 1, 1, 1)
-	assert(#env.ChatFrame1._history == before + 1 and env.issecretvalue(C.Last(env.ChatFrame1)), "a secret system line is untouched")
+	assert(env.issecretvalue(C.Last(env.ChatFrame1)), "a secret system line is untouched")
 	C.Say(env, env.ChatFrame1, "CHAT_MSG_GUILD", "after https://b.com")
 	assert(has(C.Last(env.ChatFrame1), "|Hplayer:"), "a plain line after a secret one still works")
 	local others = 0
-	for _, e in ipairs(env.ChatFrame1._history) do
+	for _, e in ipairs(C.Entries(env.ChatFrame1)) do
 		if env.issecretvalue(e[1]) then
 			others = others + 1
 		end
@@ -148,6 +147,57 @@ do
 	assert(highlighted, "the URL is selected, ready for Ctrl+C")
 	env.EventRegistry:TriggerEvent("SetItemRef", "item:19019", "[Sword]", "LeftButton", env.ChatFrame1)
 	assert(host.editBox:GetText() == "https://a.com/x", "other links are not ours")
+end
+
+-- A line identical to an older one decorates the new line, not the old one, also after the history wraps.
+do
+	local env, K = C.New()
+	env.ChatFrame1:AddMessage("You are now away.", 1, 1, 0)
+	C.Enable(env, K)
+	env.ChatFrame1:AddMessage("You are now away.", 1, 1, 0)
+	local lines = C.Lines(env.ChatFrame1)
+	assert(lines[1] == "You are now away.", "the old line keeps its text: " .. lines[1])
+	assert(lines[2] ~= "You are now away." and has(lines[2], "You are now away."), "the new line is decorated")
+	for i = 1, 11 do
+		env.ChatFrame1:AddMessage("line " .. i, 1, 1, 1)
+	end
+	K.Modules.Disable("Chat")
+	env.RunTimers()
+	env.ChatFrame1:AddMessage("Same.", 1, 1, 1)
+	C.Enable(env, K)
+	env.ChatFrame1:AddMessage("Same.", 1, 1, 1)
+	lines = C.Lines(env.ChatFrame1)
+	assert(lines[#lines - 1] == "Same.", "after the wrap, the older copy is untouched: " .. lines[#lines - 1])
+	assert(lines[#lines] ~= "Same." and has(lines[#lines], "Same."), "after the wrap, the newest copy is decorated")
+end
+
+-- A link clicked while another dialog is open waits, replaces an older link dialog, and is selected when it shows.
+do
+	local env, K = C.New()
+	C.Enable(env, K)
+	local F = env._addons.KstyleUI_Chat.Format
+	local blocker = K.Widgets.Popup({ title = "Busy", text = "Another dialog" })
+	env.EventRegistry:TriggerEvent("SetItemRef", F.LINK .. "https://old.com", "", "LeftButton", env.ChatFrame1)
+	env.EventRegistry:TriggerEvent("SetItemRef", F.LINK .. "https://new.com", "", "LeftButton", env.ChatFrame1)
+	env.RunTimers()
+	blocker:Close()
+	env.RunTimers()
+	local host = K.Widgets.DialogHost()
+	assert(host.editBox:GetText() == "https://new.com", "the newest link shows, not a stale one: " .. tostring(host.editBox:GetText()))
+	host.editBox._calls = {}
+	host.editBox:GetScript("OnEditFocusGained")(host.editBox)
+	local highlighted = false
+	for _, call in ipairs(host.editBox._calls) do
+		highlighted = highlighted or call.method == "HighlightText"
+	end
+	assert(highlighted, "the URL is selected when its dialog takes focus")
+	local busy = K.Widgets.Popup({ title = "Busy", text = "Another dialog" })
+	env.EventRegistry:TriggerEvent("SetItemRef", F.LINK .. "https://queued.com", "", "LeftButton", env.ChatFrame1)
+	K.Modules.Disable("Chat")
+	env.RunTimers()
+	busy:Close()
+	env.RunTimers()
+	assert(host.editBox:GetText() ~= "https://queued.com", "turning the module off drops a queued link dialog")
 end
 
 -- A whisper window opened later is decorated too.

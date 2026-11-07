@@ -31,6 +31,8 @@ local state = {
 	pending = nil,
 	out = nil,
 	done = false,
+	seen = 0,
+	slot = nil,
 	popup = nil,
 }
 local hooked = setmetatable({}, { __mode = "k" })
@@ -52,7 +54,9 @@ local function IsText(v)
 end
 
 local function Match(message)
-	if state.done or not IsText(message) then
+	local seen = state.seen + 1
+	state.seen = seen
+	if state.done or (state.slot and seen ~= state.slot) or not IsText(message) then
 		return false
 	end
 	return message == state.pending
@@ -70,6 +74,19 @@ local function GameTimestamps()
 	end
 	local ok, value = pcall(get, "showTimestamps")
 	return ok and IsText(value) and value ~= "" and value ~= "none"
+end
+
+local function NewestSlot(frame)
+	local buffer = frame.historyBuffer
+	if type(buffer) ~= "table" or type(buffer.CalculateElementIndex) ~= "function" then
+		LogOnce("slot", "the chat history's layout is unknown; a line is matched by its text alone")
+		return nil
+	end
+	local ok, slot = pcall(buffer.CalculateElementIndex, buffer, 1)
+	if ok and not IsSecret(slot) and type(slot) == "number" then
+		return slot
+	end
+	return nil
 end
 
 local function OnAddMessage(frame, message, _, _, _, _, _, _, event)
@@ -90,8 +107,9 @@ local function OnAddMessage(frame, message, _, _, _, _, _, _, event)
 		return
 	end
 	state.pending, state.out, state.done = message, out, false
+	state.seen, state.slot = 0, NewestSlot(frame)
 	frame:TransformMessages(Match, Replace)
-	state.pending, state.out = nil, nil
+	state.pending, state.out, state.slot = nil, nil, nil
 end
 
 local function HookFrame(frame)
@@ -182,23 +200,34 @@ local function OnLink(_, link)
 	end
 end
 
-function Messages.ShowURL(url)
+local function Select(box)
 	local popup = state.popup
-	if popup and popup:IsShown() then
-		popup:Close()
+	if popup and popup:IsShown() and popup.editBox == box then
+		box:HighlightText()
 	end
-	popup = K.Widgets.Popup({
+end
+
+function Messages.ShowURL(url)
+	if state.popup then
+		state.popup:Close()
+	end
+	local popup = K.Widgets.Popup({
 		title = L["Copy link"],
 		text = L["Press Ctrl+C to copy the link."],
 		editBox = { text = url },
 		buttons = { { label = L["Close"], primary = true } },
 	})
 	state.popup = popup
+	local host = K.Widgets.DialogHost()
+	if not state.selecting and host.editBox then
+		state.selecting = true
+		host.editBox:HookScript("OnEditFocusGained", Select)
+	end
 	C_Timer.After(0, function()
 		local box = popup.editBox
 		if box and popup:IsShown() then
 			box:SetFocus()
-			box:HighlightText()
+			Select(box)
 		end
 	end)
 	return popup
@@ -253,9 +282,8 @@ function Messages.Stop()
 	if state.linkable and type(registry) == "table" and type(registry.UnregisterCallback) == "function" then
 		registry:UnregisterCallback(LINK_EVENT, Messages)
 	end
-	local popup = state.popup
-	if popup and popup:IsShown() then
-		popup:Close()
+	if state.popup then
+		state.popup:Close()
 	end
 	state.popup = nil
 end

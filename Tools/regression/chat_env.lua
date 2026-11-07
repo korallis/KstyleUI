@@ -55,31 +55,44 @@ local function newChatFrame(env, id, parent)
 	local frame = blizzard(env, env.CreateFrame("ScrollingMessageFrame", name, parent or env.UIParent))
 	frame:SetID(id)
 	frame:SetSize(430, 120)
-	frame._history = {}
-	frame.Background = blizzard(env, frame:CreateTexture(name .. "Background", "BACKGROUND"))
-	for _, piece in ipairs({ "TopLeftTexture", "BottomLeftTexture", "TopRightTexture", "BottomRightTexture", "LeftTexture", "RightTexture", "BottomTexture", "TopTexture" }) do
-		blizzard(env, frame:CreateTexture(name .. piece, "BORDER"))
+	frame._max = env._maxLines or 8
+	frame._elements = {}
+	frame._head = 0
+	-- ScrollingMessageFrame keeps lines in a CircularBuffer: PushFront writes the slot after the head
+	-- and wraps at the maximum, and TransformMessages walks the slots in array order, not by age.
+	local function slot(self, index)
+		local global = self._head - index + 1
+		if global == 0 then
+			return self._max
+		end
+		return (global - 1) % self._max + 1
 	end
 	function frame:AddMessage(message, r, g, b, ...)
-		local history = self._history
-		history[#history + 1] = pack(message, r, g, b, ...)
+		local insert = self._head + 1
+		self._elements[insert] = pack(message, r, g, b, ...)
+		self._head = insert % self._max
 	end
 	function frame:TransformMessages(predicate, transform)
-		for i, entry in ipairs(self._history) do
+		for i, entry in ipairs(self._elements) do
 			if predicate(unpack(entry, 1, entry.n)) then
-				self._history[i] = pack(transform(unpack(entry, 1, entry.n)))
+				self._elements[i] = pack(transform(unpack(entry, 1, entry.n)))
 			end
 		end
 	end
 	function frame:GetNumMessages()
-		return #self._history
+		return #self._elements
 	end
 	function frame:GetMessageInfo(index)
-		local entry = self._history[index]
+		local entry = self._elements[slot(self, #self._elements - index + 1)]
 		if entry then
 			return unpack(entry, 1, entry.n)
 		end
 	end
+	frame.historyBuffer = {
+		CalculateElementIndex = function(_, index)
+			return slot(frame, index)
+		end,
+	}
 	local edit = blizzard(env, env.CreateFrame("EditBox", name .. "EditBox", frame))
 	edit:SetSize(5, 32)
 	edit.header = blizzard(env, edit:CreateFontString(name .. "EditBoxHeader", "ARTWORK"))
@@ -158,17 +171,31 @@ function C.Say(env, frame, event, text, opts)
 	return true
 end
 
+-- Entries(frame) -> the frame's history as packed { message, r, g, b, ... } entries, oldest first.
+function C.Entries(frame)
+	local out = {}
+	for i = 1, frame:GetNumMessages() do
+		out[i] = pack(frame:GetMessageInfo(i))
+	end
+	return out
+end
+
 -- Lines(frame) -> the messages in the frame's history, oldest first.
 function C.Lines(frame)
 	local out = {}
-	for i, entry in ipairs(frame._history) do
+	for i, entry in ipairs(C.Entries(frame)) do
 		out[i] = entry[1]
 	end
 	return out
 end
 
+function C.Newest(frame)
+	local entries = C.Entries(frame)
+	return entries[#entries]
+end
+
 function C.Last(frame)
-	local entry = frame._history[#frame._history]
+	local entry = C.Newest(frame)
 	return entry and entry[1]
 end
 
