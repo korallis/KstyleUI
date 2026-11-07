@@ -7,6 +7,8 @@
 	<!-- Part A: the character sheet, spellbook and talents, quest log and objective tracker, and world map. Add part A's skin files below this line. -->
 	<Script file="Character.lua"/>
 	<Script file="Spellbook.lua"/>
+	<Script file="WorldMap.lua"/>
+	<Script file="Tracker.lua"/>
 	<!-- End of part A. -->
 
 	<!-- Part B: add part B's skin files below this line, one Script line each, in the order their switches should list. -->

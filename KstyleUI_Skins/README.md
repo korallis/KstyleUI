@@ -79,6 +79,8 @@ The registry adds the window's switch, `<key>.enabled`, default on, to the modul
 4. In combat the skin waits for `KstyleUI.Combat.Queue`.
 5. Each step logs to the devlog: `<key>: waits for <addon> to load`, `<key>: applied`, `<key>: Apply failed`, or `<key>: <frame> is missing on this client`.
 
+`/kstyle test` adds one line, `skin windows`, listing the windows that are applied, waiting (for their addon or their first show), switched off, or failed. It fails when any skin's `Apply` raised an error.
+
 Switching a window on while the module runs arms it at once. Switching off a window that is already skinned asks for a reload, because Blizzard's frames keep the skin. `Disable` stops arming; the hooks it left behind do nothing until `Enable` runs again.
 
 ### Functions
@@ -159,6 +161,27 @@ On Forever the spellbook and the talents live in one window, `PlayerSpellsFrame`
 - **Window.** The glass panel, close button and title. The red maximise and minimise buttons become chevrons.
 - **Spellbook.** The book's page art (top bar, page backgrounds, corner, bookmark) goes. Forever's category tabs are icon-only square tabs (`AddIconTab`): each keeps its icon on a `Parts.SideTab` rim, accent while selected, and a category added later (a pet's) is skinned through a hook on the tab system's `AddTab`. The search box gets the raised tile. Each spell item loses its backplate, border, shadow and sheen; its icon loses Blizzard's rounded mask, is cropped 7%, and sits on a `Parts.Rim`. Names are heading text, sub-names body text. Section headers become display text over an accent line. The paging arrows become chevrons and the page number a caption. A hook on `PagedSpellsFrame.DisplayViewsForCurrentPage` skins every page as it shows; in combat it waits for `Combat.Queue`, because spell buttons can be protected.
 - **Talents.** The frame's own background, border and dividers go; the class background art and the tree's animations stay. The tab strip, search box, Apply and inspect-copy buttons, and the unspent-points counter are restyled. The talent nodes keep Blizzard's art: their states (available, maxed, locked, choice) are drawn by the shared talent UI and change too often to restyle safely.
+
+### World map and quest log (`WorldMap.lua`, keys `worldMap` and `questLog`)
+
+`WorldMapFrame` comes from `Blizzard_WorldMap`. Its window chrome is a separate `BorderFrame` in the `HIGH` strata, drawn over the map canvas, so a fill there would cover the map.
+
+- **World map.** The glass panel goes on `WorldMapFrame` itself, one level below the map canvas. `BorderFrame` only loses its art (nine-slice, background, portrait, title bar, inset line): its close button is restyled, its title takes the heading font, and the red maximise and minimise buttons become chevrons. The navigation bar loses its tiled background and sits on a raised tile; its breadcrumb buttons and the tracking-options button keep Blizzard's art, because their art is their only label.
+- **Quest log.** `QuestMapFrame` (from `Blizzard_UIPanels_Game`, attached to the map when it loads) sits on a raised tile. The quest list's background, edge and frame go, its scroll bar and search box are restyled, and a hook on `QuestLogQuests_Update` sets the skin font on every header and quest title the list shows. The details view keeps its parchment, because Blizzard colours quest descriptions and objectives dark for it; its frame goes, and its back, abandon, share and track buttons and scroll bar are restyled. Quest and objective colours stay Blizzard's.
+
+### Objective tracker (`Tracker.lua`, key `tracker`)
+
+`ObjectiveTrackerFrame` comes from `Blizzard_ObjectiveTracker`. Edit Mode keeps placing and sizing it, as `v3/` shows it under the minimap's auras.
+
+- Blizzard's nine-slice backdrop goes, and a glass panel sits 8 units outside the tracker (setting `tracker.panel`). Edit Mode's opacity slider drives Blizzard's backdrop, which the skin hides, so the panel has its own switch.
+- The tracker's header and every module header lose their art and read as captions over an accent line. Modules the tracker adds later are skinned through a hook on its `AddModule`.
+- Quest progress bars lose their border art, sit on a dark tile, and take the shared bar texture, colour and fill (`Style.StatusBar`), through a hook on each module's `GetProgressBar`.
+- With `tracker.font` on, the two font objects every tracker line and block header use, `ObjectiveTrackerLineFont` and `ObjectiveTrackerHeaderFont`, take the skin face and edge at Blizzard's size times the shared text size. A hook on their `SetFontObject` keeps the skin font when Edit Mode changes the tracker's text size, and reads the new size from the font family's name (`ObjectiveTrackerFont16`). Turning the font off needs a reload.
+
+| Setting | Default | Row |
+| --- | --- | --- |
+| `tracker.panel` | `true` | toggle: the glass panel behind the tracker |
+| `tracker.font` | `true` | toggle: the skin font for tracker text |
 
 ## Why
 

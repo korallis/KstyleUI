@@ -182,6 +182,37 @@ do
 	assert(K.Modules.IsRunning("Skins"), "one failing skin does not stop the module")
 end
 
+-- /kstyle test reports each window: applied, waiting for its addon or window, switched off, or failed -------------
+
+do
+	local bad = Fake("broken", { onApply = function() error("broken skin") end })
+	local shown = Fake("shown")
+	local closed = Fake("closed", { frame = "ClosedFrame" })
+	local lazy = Fake("ondemand", { addon = "Blizzard_OnDemand" })
+	local off = Fake("off")
+	local env, K = S.New({ before = function(env, _, ns)
+		S.Blizzard(env).frame("Frame", nil, "ClosedFrame"):Hide()
+		for _, def in ipairs({ bad, shown, closed, lazy, off }) do
+			ns.Skins.Add(def)
+		end
+	end })
+	K.Options.Write("Skins", "off.enabled", false)
+	K.Modules.Enable("Skins")
+	K.Modules.Enable("Skins")
+	K.DevTest.Run()
+	local lines = {}
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		if entry.module == "DevTest" and tostring(entry.message):find("skin windows", 1, true) then
+			lines[#lines + 1] = entry.message
+		end
+	end
+	assert(#lines == 1, "one line for the skins, however often the module started, got " .. #lines)
+	local line = lines[1]
+	assert(line:find("^FAIL"), "a failed skin fails the check: " .. line)
+	assert(line:find("failed: broken", 1, true) and line:find("shown", 1, true), line)
+	assert(line:find("waiting: ", 1, true) and line:find("closed, ondemand", 1, true) and line:find("off: off", 1, true), line)
+end
+
 -- Combat holds a skin until it ends ---------------------------------------------------------------------
 
 do

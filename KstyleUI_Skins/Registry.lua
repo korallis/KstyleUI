@@ -11,8 +11,8 @@ local MODULE = "Skins"
 local MAX_HELP = 100
 
 local order, byKey = {}, {}
-local applied, waiting, hooked = {}, {}, {}
-local closed, running = false, false
+local applied, waiting, hooked, failed = {}, {}, {}, {}
+local closed, running, reporting = false, false, false
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
@@ -122,8 +122,32 @@ local function Run(def)
 	if K.Call(def.Apply, def) then
 		Log(def.key .. ": applied")
 	else
+		failed[def.key] = true
 		Log(def.key .. ": Apply failed; the window keeps the parts that were skinned")
 	end
+end
+
+local function Report()
+	local groups = { applied = {}, failed = {}, waiting = {}, off = {} }
+	for _, def in ipairs(order) do
+		local key = def.key
+		if failed[key] then
+			groups.failed[#groups.failed + 1] = key
+		elseif applied[key] then
+			groups.applied[#groups.applied + 1] = key
+		elseif Skins.IsOn(key) then
+			groups.waiting[#groups.waiting + 1] = key
+		else
+			groups.off[#groups.off + 1] = key
+		end
+	end
+	local parts = {}
+	for _, name in ipairs({ "applied", "waiting", "off", "failed" }) do
+		if #groups[name] > 0 then
+			parts[#parts + 1] = name .. ": " .. table.concat(groups[name], ", ")
+		end
+	end
+	return #groups.failed == 0, table.concat(parts, "; ")
 end
 
 local function Apply(def)
@@ -170,8 +194,8 @@ local function IsLoaded(def)
 	local AddOns = C_AddOns
 	if AddOns and type(AddOns.IsAddOnLoaded) == "function" then
 		local ok, loaded = pcall(AddOns.IsAddOnLoaded, def.addon)
-		if ok and not IsSecret(loaded) and loaded then
-			return true
+		if ok and not IsSecret(loaded) then
+			return loaded == true
 		end
 	end
 	return def.frame ~= nil and type(_G[def.frame]) == "table"
@@ -245,6 +269,10 @@ end
 
 function Skins.Start()
 	running = true
+	if not reporting then
+		reporting = true
+		K.DevTest.AddCheck("skin windows", Report)
+	end
 	K.Events.Register(MODULE, "ADDON_LOADED", OnAddonLoaded)
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, function()
