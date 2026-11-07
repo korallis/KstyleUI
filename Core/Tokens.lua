@@ -105,9 +105,9 @@ local FONT_ROLES = {
 }
 
 local STATUSBARS = {
-	{ key = "Glass", label = "KstyleUI Glass", path = TEXTURES_DIR .. "BarGlass.png" },
-	{ key = "Soft", label = "KstyleUI Soft", path = TEXTURES_DIR .. "BarSoft.png" },
-	{ key = "Flat", label = "KstyleUI Flat", path = TEXTURES_DIR .. "BarFlat.png" },
+	{ key = "Glass", label = "Glass", path = TEXTURES_DIR .. "BarGlass.png" },
+	{ key = "Soft", label = "Soft", path = TEXTURES_DIR .. "BarSoft.png" },
+	{ key = "Flat", label = "Flat", path = TEXTURES_DIR .. "BarFlat.png" },
 }
 
 -- Textures drawn by Tools/media/make_media.py. slice is the nine-slice margin in texels, and density

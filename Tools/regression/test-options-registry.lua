@@ -54,7 +54,8 @@ do
 	assert(K.Options.Row("UnitFrames", "player.healthText.size").max == 24, "Row finds a row by key")
 	assert(K.Options.Row("UnitFrames", "nope") == nil)
 	local list = K.Options.List()
-	assert(#list == 1 and list[1] == "UnitFrames", "List names every module with a schema")
+	-- The core registers its own Appearance page at load, before any module.
+	assert(#list == 2 and list[1] == "Appearance" and list[2] == "UnitFrames", "List names every schema in registration order")
 	Raises(function() K.Options.Register("UnitFrames", rows()) end, "already registered", "a second schema for one module")
 end
 

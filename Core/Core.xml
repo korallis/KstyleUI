@@ -16,6 +16,7 @@
 	<Script file="DevTest.lua"/>
 	<Script file="Icons.lua"/>
 	<Script file="Options.lua"/>
+	<Script file="Appearance.lua"/>
 	<Script file="Slash.lua"/>
 	<Script file="Skin.lua"/>
 	<Include file="Widgets\Widgets.xml"/>
