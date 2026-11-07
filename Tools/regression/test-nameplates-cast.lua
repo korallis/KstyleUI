@@ -51,6 +51,7 @@ do
 	N.Settle(env)
 	assert(not plate.cast:IsShown(), "UNIT_SPELLCAST_STOP hides the bar")
 	assert(not bar:GetScript("OnUpdate"), "and stops counting")
+	assert(#env._errors == 0, "a STOP after the cast ended raises nothing, though UnitCastingInfo then returns no values: " .. tostring(env._errors[1]))
 end
 
 -- UNIT_FLAGS and UNIT_FACTION fire often in combat; they never restart a cast that is running -------------

@@ -410,7 +410,7 @@ local function OtherCast(plate, castGUID)
 	if type(castGUID) == "string" and type(shown) == "string" and not IsSecret(castGUID) and not IsSecret(shown) then
 		return castGUID ~= shown
 	end
-	return type(UnitCastingInfo(plate.unit)) ~= "nil"
+	return type((UnitCastingInfo(plate.unit))) ~= "nil"
 end
 
 Component.events.UNIT_SPELLCAST_STOP = function(plate, _, castGUID)

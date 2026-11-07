@@ -372,7 +372,7 @@ local function Allowed(row, value)
 		end
 		return true
 	end
-	return type(value) == type(Lookup(ns.defaults, row.key))
+	return type(value) == type((Lookup(ns.defaults, row.key)))
 end
 
 local warned = {}

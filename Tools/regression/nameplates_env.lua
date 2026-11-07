@@ -253,14 +253,14 @@ function N.Install(env, opts)
 	function env.UnitCastingInfo(token)
 		local name, text, texture, startMs, endMs, flag = castInfo(token, false)
 		if name == nil then
-			return nil
+			return
 		end
 		return name, text, texture, startMs, endMs, false, "cast-guid", flag, 133
 	end
 	function env.UnitChannelInfo(token)
 		local name, text, texture, startMs, endMs, flag = castInfo(token, true)
 		if name == nil then
-			return nil
+			return
 		end
 		return name, text, texture, startMs, endMs, false, flag, 689
 	end
