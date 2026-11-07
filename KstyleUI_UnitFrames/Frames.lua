@@ -306,6 +306,7 @@ function Frames.Relayout(uf)
 		local room = castH > 0 and math.min(castH, math.max(0, slot.h - gap - MIN_FRAME_HEIGHT)) or 0
 		local frameH = room > 0 and slot.h - room - gap or slot.h
 		local g = Style.Layout(view, uf.s, slot.w, frameH)
+		ns.Auras.Place(view)
 		local cb = view.castbar
 		if cb then
 			cb.frame:ClearAllPoints()

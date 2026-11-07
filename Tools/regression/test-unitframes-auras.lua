@@ -64,6 +64,12 @@ point, rel, relPoint = focus.auras.host:GetPoint(1)
 assert(point == "TOPLEFT" and rel == focus.button and relPoint == "BOTTOMLEFT", "auras can sit under the frame")
 noErrors("settings")
 
+-- A Layout resize moves the aura row with the frame's panel.
+assert(K.Layout.Set("unitframes.focus", "height", 120))
+local _, _, _, ax = focus.auras.host:GetPoint(1)
+assert(math.abs(ax - focus.geometry.panel.x) < 1e-6, "below the frame, the auras stay aligned with the resized panel")
+K.Layout.Reset("unitframes.focus")
+
 -- A size change waits while auras are secret: the group layout changes at once, the buttons after.
 env._restricted = true
 local sizes = #W.Calls(button, "SetSize")
@@ -78,10 +84,14 @@ local nw = button:GetSize()
 assert(nw == 26, "the buttons take the new size once auras are readable again")
 noErrors("after the gate")
 
+-- A container built later takes the frame's current strata.
+assert(K.Layout.Set("unitframes.target", "strata", "HIGH"))
 -- Switching target auras on builds their container on demand.
 K.Options.Write("UnitFrames", "target.auras", true)
 local target = Frames.Get("target").views[1]
 assert(target.auras and target.auras.container and target.auras.container._unit == "target", "target auras build on demand")
+assert(target.auras.host:GetFrameStrata() == "HIGH", "the new aura row takes the frame's strata")
+K.Layout.Reset("unitframes.target")
 K.Options.Write("UnitFrames", "target.auras", false)
 assert(target.auras.container._enabled == false and not target.auras.host:IsShown(), "switching them off disables the container")
 

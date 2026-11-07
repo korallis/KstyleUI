@@ -224,6 +224,10 @@ local function MirrorHolder(view, host)
 		host:SetFrameStrata(strata)
 	end)
 	host:SetAlpha(holder:GetAlpha())
+	local strata = holder:GetFrameStrata()
+	if not issecretvalue(strata) and type(strata) == "string" and strata ~= "" then
+		host:SetFrameStrata(strata)
+	end
 end
 
 local function Build(view)
@@ -292,25 +296,43 @@ local function ApplyContainer(view)
 		container:SetAuraGroupLayout(key, GroupLayout(view, key))
 		container:SetAuraGroupMaxFrameCount(key, Capacity(view))
 	end
-	local size, spacing, columns = Value(view, "auraSize"), Value(view, "auraSpacing"), Value(view, "auraColumns")
-	local line = columns * size + (columns - 1) * spacing
-	local groups = filter.debuffs and filter.buffs and 2 or 1
-	local rows = Value(view, "auraRows") * groups
+	local width, height, corner, line = Auras.Footprint(view.kind)
 	local growth = GROWTH[Value(view, "auraGrowth")] or GROWTH.RIGHT_DOWN
 	local directions = AnchorUtil and AnchorUtil.FlowDirection
-	container:SetFlowLayoutAnchorPoint(growth[1])
+	container:SetFlowLayoutAnchorPoint(corner)
 	if directions then
 		container:SetFlowLayoutGrowthDirection(directions[growth[2]], directions[growth[3]])
 	end
 	container:SetFlowLayoutMaximumLineSize(line)
-	local host = a.host
-	host:SetSize(math.max(1, line), math.max(1, rows * size + (rows - 1) * spacing))
+	a.host:SetSize(width, height)
 	container:ClearAllPoints()
-	container:SetPoint(growth[1], host, growth[1], 0, 0)
-	local position = POSITION[Value(view, "auraPosition")] or POSITION.BELOW
-	local panelX = position[5] and view.geometry and view.geometry.panel.x or 0
+	container:SetPoint(corner, a.host, corner, 0, 0)
+	Auras.Place(view)
+end
+
+function Auras.Footprint(kind)
+	local size, spacing = Settings.Value(kind, "auraSize"), Settings.Value(kind, "auraSpacing")
+	local columns = Settings.Value(kind, "auraColumns")
+	local filter = FILTERS[Settings.Value(kind, "auraFilter")] or FILTERS.mine
+	local groups = filter.debuffs and filter.buffs and 2 or 1
+	local rows = Settings.Value(kind, "auraRows") * groups
+	local line = columns * size + (columns - 1) * spacing
+	local growth = GROWTH[Settings.Value(kind, "auraGrowth")] or GROWTH.RIGHT_DOWN
+	return math.max(1, line), math.max(1, rows * size + (rows - 1) * spacing), growth[1], line, growth
+end
+
+function Auras.Anchor(host, frame, kind, panelX)
+	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
+	local x = position[5] and panelX or 0
 	host:ClearAllPoints()
-	host:SetPoint(position[1], view.button, position[2], panelX + position[3] * GAP, position[4] * GAP)
+	host:SetPoint(position[1], frame, position[2], x + position[3] * GAP, position[4] * GAP)
+end
+
+function Auras.Place(view)
+	local a = view.auras
+	if a and a.container then
+		Auras.Anchor(a.host, view.button, view.kind, view.geometry and view.geometry.panel.x or 0)
+	end
 end
 
 function Auras.Apply(view)
