@@ -89,10 +89,10 @@ do
 	end
 	eq(shownTicks, 9, "ten segments draw nine ticks")
 
-	eq(xp.text:IsShown(), false, "the text waits for the pointer: a label that stays would meet the reputation bar's")
+	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the mockup's XP 32% does")
+	eq(xp.text:GetText(), "XP 24%", "the default caption is the short name and the percent")
 	W.Enter(xp.holder)
-	eq(xp.text:IsShown(), true, "hovering shows the text")
-	eq(xp.text:GetText(), "12,345 / 50,000 (24%)", "the default text is value and percent")
+	eq(xp.text:IsShown(), true, "hovering keeps the caption")
 	local _, labelSize = xp.text:GetFont()
 	eq(labelSize, 9 * K.Theme.FontScale(), "the label reads at the caption size")
 	local point = xp.text:GetPoint(1)
@@ -109,7 +109,7 @@ do
 	assert(all:find("Level 38", 1, true), "the tooltip gives the level: " .. all)
 	assert(all:find("Rested", 1, true), "the tooltip gives rested XP: " .. all)
 	W.Leave(xp.holder)
-	eq(xp.text:IsShown(), false, "leaving hides the text")
+	eq(xp.text:IsShown(), true, "leaving keeps the caption")
 
 	game.xp = 20000
 	local styled = #W.Calls(xp.fill, "SetOrientation") + #W.Calls(xp.fill, "SetStatusBarTexture") + #W.Calls(xp.text, "SetFont")
@@ -198,7 +198,7 @@ do
 	K.Options.Write("DataBars", "rep.orientation", "VERTICAL")
 	K.Modules.Enable("DataBars")
 	local size = K.Layout.Get("databars.rep")
-	eq(size.width .. "x" .. size.height, "5x441", "the orientation is reconciled on enable")
+	eq(size.width .. "x" .. size.height, "5x440", "the orientation is reconciled on enable")
 	noErrors(env, K)
 end
 
@@ -247,11 +247,13 @@ do
 	Options.Write("DataBars", "xp.orientation", "VERTICAL")
 	eq(xp.fill:GetOrientation(), "VERTICAL", "the bar can stand upright")
 	local size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "4x441", "an upright bar swaps its width and height")
+	eq(size.width .. "x" .. size.height, "4x440", "an upright bar swaps its width and height")
 	Options.Write("DataBars", "xp.orientation", "HORIZONTAL")
 	size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "441x4", "and swaps back")
+	eq(size.width .. "x" .. size.height, "440x4", "and swaps back")
 
+	Options.Write("DataBars", "xp.textHover", true)
+	eq(xp.text:IsShown(), false, "with the hover setting the text waits for the pointer")
 	Options.Write("DataBars", "xp.text", "percent")
 	Options.Write("DataBars", "xp.textHover", false)
 	eq(xp.text:IsShown(), true, "the text can always show")

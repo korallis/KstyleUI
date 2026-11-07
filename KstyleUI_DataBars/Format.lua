@@ -23,6 +23,7 @@ Format.BAR_TEXTS = {
 	{ value = "label", label = L["Name"] },
 	{ value = "labelPercent", label = L["Name and percent"] },
 	{ value = "labelValue", label = L["Name and value"] },
+	{ value = "shortPercent", label = L["Short name and percent"] },
 }
 
 local function Whole(n)
@@ -116,14 +117,17 @@ local BAR_TEXT = {
 	labelValue = function(current, max, label)
 		return Joined(label, Value(current, max))
 	end,
+	shortPercent = function(current, max, label, short)
+		return Joined(short or label, Format.Percent(current, max) .. "%")
+	end,
 }
 
-function Format.BarText(style, current, max, label)
+function Format.BarText(style, current, max, label, short)
 	local fn = BAR_TEXT[style]
 	if not fn then
 		return nil
 	end
-	return fn(current, max, label)
+	return fn(current, max, label, short)
 end
 
 local function Coins(copper)

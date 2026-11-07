@@ -126,7 +126,7 @@ local function TextFor(s, info)
 	if info.capped then
 		return info.label
 	end
-	return Format.BarText(s.text, info.current, info.max, info.label)
+	return Format.BarText(s.text, info.current, info.max, info.label, info.short)
 end
 
 local function UpdateText(view, s, info)

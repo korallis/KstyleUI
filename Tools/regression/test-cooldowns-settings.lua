@@ -60,10 +60,10 @@ assert(keys.accentColor.showWhen({ accent = "custom" }) and not keys.accentColor
 
 -- Defaults match the spec's HUD sizes.
 local defaults = ns.Settings.defaults
-assert(defaults.essential.size == K.Tokens.Size("cooldownEssential") and defaults.essential.size == 40, "essential icons are 40 units")
-assert(defaults.utility.size == K.Tokens.Size("cooldownUtility") and defaults.utility.size == 30, "utility icons are 30 units")
-assert(defaults.essential.spacing == 3 and defaults.essential.columns == 6, "six icons per row with 3-unit gaps")
-assert(defaults.bars.width == 180 and defaults.bars.height == 18 and defaults.bars.count == 3, "three bars of 180 by 18 units")
+assert(defaults.essential.size == 56, "essential icons are 56 units, as the composition mockup measures")
+assert(defaults.utility.size == 52 and defaults.utility.spacing == 10 and defaults.utility.columns == 4, "a row of four 52-unit utility icons with 10-unit gaps")
+assert(defaults.essential.spacing == 8 and defaults.essential.columns == 6, "six essential icons per row with 8-unit gaps")
+assert(defaults.bars.width == 172 and defaults.bars.height == 24 and defaults.bars.count == 3, "three bars of 172 by 24 units")
 assert(defaults.path == "auto", "the path is automatic by default")
 
 -- The font dropdown lists the kit font first, then the media fonts as paths.
@@ -114,8 +114,10 @@ do
 	assert(#K.Layout.Elements() == elements, "the preview's sample rows are not Layout elements")
 	assert(frame and frame.Refresh, "the preview returns a frame with Refresh")
 	local essential = frame.rows.essential
-	assert(essential.count == 6 and frame.rows.utility.count == 4, "the preview shows six essential and four utility samples")
+	assert(essential.count == 4 and math.abs(essential.holder:GetWidth() - (4 * 56 + 3 * 8)) < 1, "a 280-unit pane fits four 56-unit essential samples, so the row is not clipped, got " .. tostring(essential.count))
+	assert(frame.rows.utility.count == 4 and math.abs(frame.rows.utility.holder:GetWidth() - (4 * 52 + 3 * 10)) < 1, "the four utility samples fit as they are")
 	assert(frame.rows.buffs.count == 3 and frame.rows.bars.count == 2, "the preview shows sample buffs and bars")
+	assert(ns.Settings.current.essential.columns == 6, "fitting the preview leaves the setting itself at six columns")
 	assert(frame.rows.bars.bars[1].name:GetText() == "Rapid Fire", "a sample bar carries a name")
 	assert(essential.icons[1].icon:GetTexture() == 132176, "sample icons are real ability icons")
 	assert(#W.Calls(essential.icons[1].cooldown, "SetCooldown") == 1, "a sample icon shows a cooldown sweep")
@@ -123,6 +125,7 @@ do
 	K.Options.Write("Cooldowns", "essential.size", 32)
 	frame:Refresh()
 	assert(essential.icons[1].opts.size == 32, "the preview follows the icon size")
+	assert(essential.count == 6 and math.abs(essential.holder:GetWidth() - (6 * 32 + 5 * 8)) < 1, "at 32 units all six samples fit the pane again")
 	assert(essential.holder:GetWidth() <= 280, "the preview row fits the pane")
 end
 

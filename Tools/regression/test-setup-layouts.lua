@@ -158,16 +158,28 @@ for _, name in ipairs(names) do
 	assert(player.right < essential.left and target.left > essential.right, name .. ": player and target sit either side of the Cooldown Manager")
 	assert(player.bottom == target.bottom and player.top < cast.bottom, name .. ": player and target on one line, below the cast bar")
 	assert(math.abs((mid - player.x) - (target.x - mid)) < 1, name .. ": player and target mirror each other")
-	assert(player.bottom <= utility.bottom and player.top >= essential.top, name .. ": the frames flank both cooldown rows, as in the v3 warrior mockup")
+	assert(player.bottom <= essential.bottom and player.top >= essential.top, name .. ": the frames flank the essential row, as in the composition mockup")
+	assert(utility.bottom < player.bottom and utility.top > player.bottom - 60, name .. ": the utility row hangs just below the frames")
+	assert(essential.left - player.right >= 24 and essential.left - player.right <= 40, name .. ": the mockup's 32-unit gap between a frame and the essential row")
+	assert(cast.bottom - player.top >= 4 and cast.bottom - player.top <= 12, name .. ": the cast bar sits a few units above the frames")
+	local xp, swing = rect("databars.xp"), rect("meters.swing")
+	assert(centred(xp) and xp.bottom > bar1.top + 10 and xp.top < utility.bottom - 10, name .. ": the experience bar runs between action bar 1 and the utility row, with room for its caption")
+	assert(xp.left > player.right - 1 and xp.right < target.left + 1, name .. ": the experience bar stays between the frames' inner edges")
+	assert(swing.bottom >= cast.top, name .. ": the swing timer sits above the cast bar")
 	local resource, pet, targetCast, tot = rect("unitframes.resource"), rect("unitframes.pet"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
-	for _, under in ipairs({ { resource, player, "the class resource" }, { pet, player, "the pet frame" }, { targetCast, target, "the target cast bar" }, { tot, target, "the target of target" } }) do
+	for _, under in ipairs({ { pet, player, "the pet frame" }, { targetCast, target, "the target cast bar" }, { tot, target, "the target of target" } }) do
 		local small, frame = under[1], under[2]
 		assert(small.top <= frame.bottom and small.left >= frame.left and small.right <= frame.right, name .. ": " .. under[3] .. " sits under its frame")
 	end
+	assert(resource.bottom >= player.top and resource.left >= player.left and resource.right <= player.right, name .. ": the class resource sits on top of the player frame")
 	assert(math.abs((mid - pet.x) - (tot.x - mid)) < 1 and pet.bottom == tot.bottom, name .. ": the pet frame and the target of target mirror each other")
-	local minimap, buffs = rect("minimap.main"), rect("auras.buffs")
+	local bars, buffs = rect("cooldowns.bars"), rect("cooldowns.buffs")
+	assert(bars.top <= player.bottom and bars.top >= player.bottom - 4 and math.abs(bars.right - player.right) <= 4, name .. ": the tracked buff bars hang under the player frame, right-aligned, as in the mockup")
+	assert(buffs.top <= target.bottom and buffs.left >= target.left and buffs.right <= target.right, name .. ": the tracked buff icons hang under the target frame")
+	assert(bar1.bottom - bar2.top >= 6 and bar1.bottom - bar2.top <= 12, name .. ": the two bar rows keep the mockup's 10-unit gap")
+	local minimap, auraBuffs = rect("minimap.main"), rect("auras.buffs")
 	assert(minimap.top > HEIGHT - 40 and minimap.right > width - 40, name .. ": the minimap sits top right")
-	assert(buffs.top <= minimap.bottom and buffs.right > width - 40, name .. ": the buffs sit under the minimap")
+	assert(auraBuffs.top <= minimap.bottom and auraBuffs.right > width - 40, name .. ": the buffs sit under the minimap")
 	local chat, strip = rect("chat.main"), rect("databars.strip")
 	assert(chat.left < 40 and chat.bottom < 40, name .. ": chat sits bottom left")
 	assert(strip.right > width - 40 and strip.bottom < 40, name .. ": the data strip sits bottom right")
@@ -207,10 +219,31 @@ do
 	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
 	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
 	assert(footprint("databars.strip") == "360x36", "the data strip is 360 wide, got " .. footprint("databars.strip"))
-	assert(footprint("databars.xp") == "441x4", "the experience bar is 4 tall, got " .. footprint("databars.xp"))
+	assert(footprint("databars.xp") == "440x4", "the experience bar is 440 by 4, got " .. footprint("databars.xp"))
 	local layout = Layouts.Get("DPS")
 	local minimap = layout["minimap.main"]
 	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -16 and minimap.y == -16, "the minimap stays 16 in from the top right corner")
+end
+
+-- The HUD band takes the composition mockup's sizes (docs/design/mockups/v3/leveling_warrior.jpg, measured at the 1080
+-- reference from the owner's 2574 by 1456 render, 1.348 px per unit): 38-unit buttons at a 41 pitch, 56-unit essential
+-- icons at a 64 pitch, 52-unit utility icons, a 340 by 36 cast bar, a 440-wide experience line and 24-unit buff bars.
+local FOOTPRINTS = {
+	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
+	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
+	["actionbars.bar3"] = { 38, 12 * 38 + 11 * 3 },
+	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
+	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },
+	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
+	["cooldowns.essential"] = { 6 * 56 + 5 * 8, 56 },
+	["cooldowns.utility"] = { 4 * 52 + 3 * 10, 52 },
+	["cooldowns.bars"] = { 172, 3 * 24 + 2 * 3 },
+	["unitframes.castbar.player"] = { 340, 36 },
+	["databars.xp"] = { 440, 4 },
+}
+for key, size in pairs(FOOTPRINTS) do
+	local e = Layouts.Element(key)
+	assert(e.width == size[1] and e.height == size[2], key .. " is " .. size[1] .. " x " .. size[2] .. " as the mockup measures, got " .. e.width .. " x " .. e.height)
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------
