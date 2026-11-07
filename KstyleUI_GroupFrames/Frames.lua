@@ -110,7 +110,7 @@ end
 
 local function Listen()
 	local Events, Callbacks = K.Events, K.Callbacks
-	Events.Register(MODULE, "GROUP_ROSTER_UPDATE", Unit.RefreshAll)
+	Events.Register(MODULE, "GROUP_ROSTER_UPDATE", Unit.RosterChanged)
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", Unit.RefreshAll)
 	Events.Register(MODULE, "PLAYER_TARGET_CHANGED", Unit.TargetAll)
 	Events.Register(MODULE, "ADDON_LOADED", function(_, addon)

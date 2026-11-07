@@ -202,32 +202,35 @@ Unit.extra[#Unit.extra + 1] = Refresh
 Unit.Chain("UNIT_THREAT_SITUATION_UPDATE", Threat)
 
 local function Each(fn)
+	local function Visit(f)
+		if f.unit then
+			fn(f)
+		end
+	end
 	return function()
-		Unit.ForEach(function(f)
-			if f.unit then
-				fn(f)
-			end
-		end)
+		Unit.ForEach(Visit)
 	end
 end
+
+local EachReady = Each(Ready)
 
 local function ReadyStart()
 	readyActive = true
 	readyFinished = false
 	readyToken = readyToken + 1
-	Each(Ready)()
+	EachReady()
 end
 
 local function ReadyFinished()
 	readyFinished = true
-	Each(Ready)()
+	EachReady()
 	readyToken = readyToken + 1
 	local token = readyToken
 	C_Timer.After(READY_HOLD, function()
 		if token == readyToken then
 			readyActive = false
 			readyFinished = false
-			Each(Ready)()
+			EachReady()
 		end
 	end)
 end
@@ -270,5 +273,5 @@ events[#events + 1] = { event = "RAID_TARGET_UPDATE", fn = Each(Marker) }
 events[#events + 1] = { event = "PARTY_LEADER_CHANGED", fn = Each(Leader) }
 events[#events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Each(Role) }
 events[#events + 1] = { event = "READY_CHECK", fn = ReadyStart }
-events[#events + 1] = { event = "READY_CHECK_CONFIRM", fn = Each(Ready) }
+events[#events + 1] = { event = "READY_CHECK_CONFIRM", fn = EachReady }
 events[#events + 1] = { event = "READY_CHECK_FINISHED", fn = ReadyFinished }

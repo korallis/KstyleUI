@@ -401,6 +401,27 @@ function Unit.RefreshAll()
 	end
 end
 
+local rosterPending = false
+
+local function FlushRoster()
+	rosterPending = false
+	if Unit.running then
+		Unit.RefreshAll()
+	end
+end
+
+function Unit.RosterChanged()
+	if rosterPending then
+		return
+	end
+	if not (C_Timer and C_Timer.After) then
+		Unit.RefreshAll()
+		return
+	end
+	rosterPending = true
+	C_Timer.After(0, FlushRoster)
+end
+
 function Unit.TargetAll()
 	for i = 1, #frames do
 		local f = frames[i]

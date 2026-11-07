@@ -147,7 +147,9 @@ function D.Game(env, overrides)
 	function env.GetMoney()
 		return game.money
 	end
+	game.durabilityCalls = 0
 	function env.GetInventoryItemDurability(slot)
+		game.durabilityCalls = game.durabilityCalls + 1
 		local d = game.durability[slot]
 		if d then
 			return d[1], d[2]
@@ -156,9 +158,15 @@ function D.Game(env, overrides)
 	function env.GetGameTime()
 		return game.realmHour, game.realmMinute
 	end
+	game.dateCalls = {}
 	function env.date(fmt)
+		game.dateCalls[fmt] = (game.dateCalls[fmt] or 0) + 1
 		if fmt == "*t" then
 			return copy(game.localTime)
+		elseif fmt == "%H" then
+			return string.format("%02d", game.localTime.hour)
+		elseif fmt == "%M" then
+			return string.format("%02d", game.localTime.min)
 		end
 		return "Saturday 7 November"
 	end

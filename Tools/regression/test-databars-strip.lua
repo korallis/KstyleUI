@@ -94,6 +94,16 @@ do
 	eq(item(ns, "durability").value:GetText(), "10%", "the most worn item")
 	assert(sameText(item(ns, "durability").value, K.Tokens.Color("hostile")), "low durability reads hostile")
 
+	-- A tick reads only the timed items, and the clock without a date table.
+	local durability, tables = game.durabilityCalls, game.dateCalls["*t"] or 0
+	env.RunTickers()
+	eq(game.durabilityCalls, durability, "a tick leaves durability to its events")
+	eq(game.dateCalls["*t"] or 0, tables, "a tick reads the clock without building a date table")
+	game.localTime.hour, game.localTime.min = 9, 7
+	env.RunTickers()
+	eq(item(ns, "time").value:GetText(), "09:07", "the ticker still reads the clock")
+	eq(item(ns, "durability").value:GetText(), "10%", "and durability keeps its last value")
+
 	K.Modules.Disable("DataBars")
 	eq(env.LiveTickers(), 0, "the ticker stops with the module")
 	K.Modules.Enable("DataBars")

@@ -102,8 +102,25 @@ do
 	local env, K = C.New()
 	C.Enable(env, K)
 	env._cvars.showTimestamps = "%H:%M "
+	env.FireEvent("CVAR_UPDATE", "showTimestamps", "%H:%M ")
 	env.ChatFrame1:AddMessage("09:05 You receive loot.", 1, 1, 1)
 	assert(C.Last(env.ChatFrame1) == "09:05 You receive loot.", "no second timestamp")
+
+	-- The setting is read once and again only when a CVar changes, not on every line.
+	local reads = 0
+	local get = env.C_CVar.GetCVar
+	env.C_CVar.GetCVar = function(name)
+		reads = reads + 1
+		return get(name)
+	end
+	env.ChatFrame1:AddMessage("09:06 You receive loot.", 1, 1, 1)
+	env.ChatFrame1:AddMessage("09:07 You receive loot.", 1, 1, 1)
+	assert(reads == 0, "new lines do not read the CVar again")
+	env._cvars.showTimestamps = "none"
+	env.FireEvent("CVAR_UPDATE", "showTimestamps", "none")
+	env.ChatFrame1:AddMessage("You receive loot.", 1, 1, 1)
+	assert(C.Last(env.ChatFrame1) ~= "You receive loot.", "turning the game's timestamps off brings KstyleUI's back")
+	assert(reads == 1, "and the CVar is read once after it changes")
 end
 
 -- Settings: each feature switches off.

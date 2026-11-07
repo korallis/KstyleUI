@@ -70,7 +70,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | Web addresses | A filter on each player chat event through `ChatFrameUtil.AddMessageEventFilter` rewrites the message text. `Format.Linkify` wraps `http`, `https`, `ftp` and `www.` addresses, bare domains with a known top-level domain, and IPv4 addresses in an `addon:KstyleUI:url:<address>` link in the accent colour. Text inside item links, textures and other escape sequences is never touched. |
 | Clicking a link | Blizzard routes `addon:` links to `EventRegistry`'s `SetItemRef` event. The module opens the kit's `Popup` with the address selected, ready for Ctrl+C. |
 | Class-coloured names | A sender-name filter through `ChatFrameUtil.AddSenderNameFilter` colours the name from `GetPlayerInfoByGUID` with `Theme.ClassColor`, brightened by `Theme.Brighten`. A name the game already coloured is left alone. |
-| Timestamps and short channel names | A `hooksecurefunc` post-hook on each chat window's `AddMessage` computes the decorated line and swaps it in through the window's own `TransformMessages`. The combat log is skipped. When the game's own timestamp setting (`showTimestamps`) is on, the module adds none. |
+| Timestamps and short channel names | A `hooksecurefunc` post-hook on each chat window's `AddMessage` computes the decorated line and swaps it in through the window's own `TransformMessages`. The combat log is skipped. When the game's own timestamp setting (`showTimestamps`) is on, the module adds none. The module reads that setting once and again only after `CVAR_UPDATE` names it, not on every line. |
 
 ## The panel
 

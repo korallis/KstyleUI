@@ -108,7 +108,10 @@ do
 	eq(xp.text:IsShown(), false, "leaving hides the text")
 
 	game.xp = 20000
+	local styled = #W.Calls(xp.fill, "SetOrientation") + #W.Calls(xp.fill, "SetStatusBarTexture") + #W.Calls(xp.text, "SetFont")
 	env.FireEvent("PLAYER_XP_UPDATE", "player")
+	eq(#W.Calls(xp.fill, "SetOrientation") + #W.Calls(xp.fill, "SetStatusBarTexture") + #W.Calls(xp.text, "SetFont"), styled,
+		"an XP gain updates the values without restyling the bar")
 	W.Tick(env, 0.05)
 	local mid = xp.fill:GetValue()
 	assert(mid > 12345 and mid < 20000, "a gain eases toward the new value, got " .. tostring(mid))

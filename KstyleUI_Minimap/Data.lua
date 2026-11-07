@@ -60,11 +60,11 @@ function Data.LocalTime()
 	if type(date) ~= "function" then
 		return nil
 	end
-	local now = date("*t")
-	if type(now) ~= "table" then
+	local hour, minute = tonumber((date("%H"))), tonumber((date("%M")))
+	if not hour or not minute then
 		return nil
 	end
-	return now.hour, now.min
+	return hour, minute
 end
 
 function Data.RealmTime()

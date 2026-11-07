@@ -104,9 +104,15 @@ function M.Blizzard(env, opts)
 	end
 
 	env._clock = { hour = 14, minute = 32, realmHour = 9, realmMinute = 5 }
+	env._dateCalls = {}
 	env.date = function(fmt)
+		env._dateCalls[fmt] = (env._dateCalls[fmt] or 0) + 1
 		if fmt == "*t" then
 			return { hour = env._clock.hour, min = env._clock.minute, sec = 0 }
+		elseif fmt == "%H" then
+			return string.format("%02d", env._clock.hour)
+		elseif fmt == "%M" then
+			return string.format("%02d", env._clock.minute)
 		end
 		return string.format("%02d:%02d", env._clock.hour, env._clock.minute)
 	end

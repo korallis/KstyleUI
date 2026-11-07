@@ -90,11 +90,11 @@ local function Clock(s)
 			return hour, minute
 		end
 	end
-	local now = Call(date, "*t")
-	if type(now) == "table" and IsNumber(now.hour) and IsNumber(now.min) then
-		return now.hour, now.min
+	local hour, minute = tonumber((Call(date, "%H"))), tonumber((Call(date, "%M")))
+	if IsNumber(hour) and IsNumber(minute) then
+		return hour, minute
 	end
-	local hour, minute = Call(GetGameTime)
+	hour, minute = Call(GetGameTime)
 	if IsNumber(hour) and IsNumber(minute) then
 		return hour, minute
 	end
@@ -286,12 +286,14 @@ local function PlaceItems(view, s, force)
 	end
 end
 
-local function SetValues(view, s, values)
+local function SetValues(view, s, values, timedOnly)
 	for _, id in ipairs(view.order) do
-		local item, value = view.items[id], values[id]
-		local text, grade = value and value[1], value and value[2]
-		item.value:SetText(text or L["--"])
-		ValueColor(item, s, grade or nil)
+		if not timedOnly or TIMED[id] then
+			local item, value = view.items[id], values[id]
+			local text, grade = value and value[1], value and value[2]
+			item.value:SetText(text or L["--"])
+			ValueColor(item, s, grade or nil)
+		end
 	end
 end
 
@@ -327,12 +329,14 @@ function Strip.Paint(view, s, values)
 	PlaceItems(view, s, true)
 end
 
-local function Read(view, s)
+local function Read(view, s, timedOnly)
 	local values = view.values
 	for _, id in ipairs(view.order) do
-		local slot = values[id]
-		local text, grade = VALUES[id](s)
-		slot[1], slot[2] = text or false, grade or false
+		if not timedOnly or TIMED[id] then
+			local slot = values[id]
+			local text, grade = VALUES[id](s)
+			slot[1], slot[2] = text or false, grade or false
+		end
 	end
 	return values
 end
@@ -461,14 +465,19 @@ local function OnClick(button, mouse)
 	end
 end
 
-function Strip.Update()
+function Strip.Update(timedOnly)
 	local view = Strip.view
 	if not view or not running then
 		return
 	end
 	local s = ns.Settings().strip
-	SetValues(view, s, Read(view, s))
+	timedOnly = timedOnly == true
+	SetValues(view, s, Read(view, s, timedOnly), timedOnly)
 	PlaceItems(view, s, false)
+end
+
+function Strip.Tick()
+	Strip.Update(true)
 end
 
 function Strip.Refresh()
@@ -508,7 +517,7 @@ local function StartTicker()
 		return
 	end
 	if type(C_Timer) == "table" and type(C_Timer.NewTicker) == "function" then
-		ticker = C_Timer.NewTicker(TICK_SECONDS, Strip.Update)
+		ticker = C_Timer.NewTicker(TICK_SECONDS, Strip.Tick)
 		return
 	end
 	ns.LogOnce("strip-ticker", "C_Timer.NewTicker is missing; the strip counts seconds with OnUpdate")
@@ -518,7 +527,7 @@ local function StartTicker()
 		elapsed = elapsed + dt
 		if elapsed >= TICK_SECONDS then
 			elapsed = 0
-			Strip.Update()
+			Strip.Tick()
 		end
 	end)
 end

@@ -204,4 +204,24 @@ eq(#env._frames, before, "enabling again builds nothing new")
 same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, "units come back")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
+-- GROUP_ROSTER_UPDATE comes in bursts in a raid. A burst refreshes each frame once, on the next frame.
+local function paints(frame)
+	local n = 0
+	for _, call in ipairs(frame.health._calls) do
+		if call.method == "SetStatusBarColor" then
+			n = n + 1
+		end
+	end
+	return n
+end
+local first = Button.Content(children(Headers.raid[1])[1])
+local painted = paints(first)
+env.FireEvent("GROUP_ROSTER_UPDATE")
+env.FireEvent("GROUP_ROSTER_UPDATE")
+env.FireEvent("GROUP_ROSTER_UPDATE")
+eq(paints(first), painted, "roster updates wait for the next frame")
+env.RunTimers()
+eq(paints(first), painted + 1, "a burst of roster updates refreshes each frame once")
+eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
+
 print("groupframes frames ok")

@@ -123,8 +123,10 @@ K.Options.Write("Minimap", "zone.color", "plain")
 
 assert(face.clock:GetText() == "14:32", "the clock follows the game's clock by default: " .. tostring(face.clock:GetText()))
 env._clock.minute = 33
+local tables = env._dateCalls["*t"] or 0
 M.RunTickers(env)
 assert(face.clock:GetText() == "14:33", "the clock ticks")
+assert((env._dateCalls["*t"] or 0) == tables, "a tick reads the clock without building a date table")
 env._cvars.timeMgrUseLocalTime, env._cvars.timeMgrUseMilitaryTime = false, false
 M.RunTickers(env)
 assert(face.clock:GetText() == "9:05 AM", "the game's clock settings pick realm time in 12 hours")

@@ -160,7 +160,7 @@ local function Values(view, s, info, instant)
 	track:SetValue(rested)
 end
 
-function Bars.Paint(view, s, info, instant)
+local function Style(view, s)
 	local fill, track = view.fill, view.track
 	fill:SetBarTexture(s.texture)
 	track:SetBarTexture(s.texture)
@@ -177,14 +177,23 @@ function Bars.Paint(view, s, info, instant)
 	else
 		view.holder:SetHitRectInsets(0, 0, -HIT_PAD, -HIT_PAD)
 	end
-	Color(view, s, info)
 	LayoutTicks(view, s)
 	Font.Apply(view.text, s.font, s.fontSize, s.outline)
 	PlaceText(view, s.textPosition)
+end
+
+function Bars.PaintValues(view, s, info, instant)
+	Color(view, s, info)
 	if info then
 		Values(view, s, info, instant)
 	end
 	UpdateText(view, s, info)
+end
+
+function Bars.Paint(view, s, info, instant)
+	Style(view, s)
+	view.styled = true
+	Bars.PaintValues(view, s, info, instant)
 end
 
 local function AddTooltip(view, tip)
@@ -311,7 +320,11 @@ function Bars.Update(id, instant)
 	end
 	view.info, view.why = info, why
 	view.content:SetShown(info ~= nil)
-	Bars.Paint(view, s, info, instant)
+	if instant or not view.styled then
+		Bars.Paint(view, s, info, instant)
+	else
+		Bars.PaintValues(view, s, info, instant)
+	end
 end
 
 function Bars.UpdateAll(instant)

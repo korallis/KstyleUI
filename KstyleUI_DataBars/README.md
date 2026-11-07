@@ -86,7 +86,9 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 | `durability` | The most worn equipped item, from `GetInventoryItemDurability` | 50% and up good, 25% and up fair | `UPDATE_INVENTORY_DURABILITY`, `PLAYER_EQUIPMENT_CHANGED` | Blizzard's character button, through the secure proxy | |
 | `time` | `date("*t")` or `GetGameTime` | | Every second | Blizzard's calendar button (`GameTimeFrame`, else `TimeManagerClockButton`), through the secure proxy | Switches between a 12 and a 24-hour clock |
 
-The tooltips add detail: home and world latency and bandwidth, money earned or spent this session, each equipped slot's durability, and local and realm time. One `C_Timer.NewTicker` of 1 second runs while a timed item shows and stops with the module; a client without it counts seconds with an `OnUpdate` on the strip. A tick reads values into preallocated tables and moves items only when a text's width changed.
+The tooltips add detail: home and world latency and bandwidth, money earned or spent this session, each equipped slot's durability, and local and realm time. One `C_Timer.NewTicker` of 1 second runs while a timed item shows and stops with the module; a client without it counts seconds with an `OnUpdate` on the strip. A tick reads only the timed items (frame rate, latency and the clock) into preallocated tables and moves items only when a text's width changed. Gold and durability update on their own events. The clock reads `date("%H")` and `date("%M")`, so a tick builds no date table.
+
+An XP, reputation or honour event repaints only a bar's values, colour and text. Textures, orientation, ticks and the font are restyled only when a setting, the layout, the profile, the theme or the scale changes.
 
 ### Settings
 
