@@ -20,10 +20,10 @@ local function ItemQuality(data)
 		return nil
 	end
 	local info = data.hyperlink
-	if info == nil or Logic.IsSecret(info) then
+	if Logic.IsSecret(info) or info == nil then
 		info = data.id
 	end
-	if info == nil or Logic.IsSecret(info) then
+	if Logic.IsSecret(info) or info == nil then
 		return nil
 	end
 	local ok, quality = pcall(Item.GetItemQualityByID, info)

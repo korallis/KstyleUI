@@ -61,4 +61,32 @@ do
 	assert(Logic.TooltipScale(0.7, 1, nil) == 0.7, "a missing element scale counts as 1")
 end
 
+-- A secrecy check comes before any nil test of the same value ------------------------------------
+-- The game raises an error when a secret is compared, even with nil, and the stub secrets cannot catch
+-- a comparison with a plain value, so the module's source is checked instead.
+
+local function NilBeforeSecret(line)
+	for var, at in line:gmatch("([%w_%.]+)%s*[=~]=%s*nil()") do
+		local escaped = var:gsub("%p", "%%%0")
+		if line:find("IsSecret%(%s*" .. escaped .. "%s*%)", at) or line:find("issecretvalue%(%s*" .. escaped .. "%s*%)", at) then
+			return var
+		end
+	end
+end
+
+do
+	assert(NilBeforeSecret("if info == nil or Logic.IsSecret(info) then") == "info", "the check finds a nil test first")
+	assert(NilBeforeSecret("return v ~= nil and not Logic.IsSecret(v)") == "v")
+	assert(NilBeforeSecret("if Logic.IsSecret(info) or info == nil then") == nil, "secrecy first passes")
+	assert(NilBeforeSecret("if a == nil or Logic.IsSecret(b) then") == nil, "other values pass")
+	for _, path in ipairs(T.Files()) do
+		local n = 0
+		for line in io.lines(path) do
+			n = n + 1
+			local var = NilBeforeSecret(line)
+			assert(not var, path .. ":" .. n .. ": test issecretvalue(" .. tostring(var) .. ") before comparing it with nil")
+		end
+	end
+end
+
 print("tooltips logic ok")
