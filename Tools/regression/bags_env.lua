@@ -101,7 +101,7 @@ end
 --   bankTabs { [bankType] = { bagID, ... } } purchased tabs; default: every bank bag in opts.bank as Character
 --   keyring  false when C_ActionBar.ShouldShowKeyring returns false
 --   money    copper, default 1234567
---   gamepad  true when the gamepad interface style is on
+--   gamepad  true when the gamepad interface style is on at load; env.SetGamepad(on) switches it later
 function B.Game(env, opts)
 	opts = opts or {}
 	env._calls = {}
@@ -368,6 +368,15 @@ function B.Game(env, opts)
 			return env._gamepad
 		end,
 	}
+	env.Enum.InputDeviceInterfaceType = { Mkb = 0, Gamepad = 1 }
+	-- SetGamepad(on) switches the interface style and fires INPUT_DEVICE_INTERFACE_TRANSITION (newMode,
+	-- oldMode), as the game does when the player turns the gamepad interface on or off.
+	env.SetGamepad = function(on)
+		local types = env.Enum.InputDeviceInterfaceType
+		local old = env._gamepad and types.Gamepad or types.Mkb
+		env._gamepad = on == true
+		env.FireEvent("INPUT_DEVICE_INTERFACE_TRANSITION", env._gamepad and types.Gamepad or types.Mkb, old)
+	end
 
 	-- ContainerFrameItemButtonTemplate's own art, as Forever's ContainerFrame.xml and the ItemButton
 	-- intrinsic make it: the button-state textures and the store highlight are visible by default.

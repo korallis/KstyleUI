@@ -28,13 +28,55 @@ local function SettingsChanged(_, key)
 	Bank.SettingsChanged(key)
 end
 
-local function Enable()
-	if not Blizzard.Start() then
+local engaged = false
+
+local function Engage()
+	if engaged or not Blizzard.Start() then
 		return
 	end
+	engaged = true
 	for event in pairs(ns.handlers) do
 		K.Events.Register(MODULE, event, Dispatch)
 	end
+	Inventory.Enable()
+	Bank.Enable()
+	Junk.Enable()
+end
+
+local function Disengage()
+	if engaged then
+		engaged = false
+		Junk.Disable()
+		Bank.Disable()
+		Inventory.Disable()
+		for event in pairs(ns.handlers) do
+			K.Events.Unregister(MODULE, event)
+		end
+	end
+	Blizzard.Stop()
+end
+
+local function FollowStyle()
+	if not K.Modules.IsRunning(MODULE) then
+		return
+	end
+	if Blizzard.GamepadStyle() then
+		if engaged then
+			ns.Log("the gamepad interface style came on; Blizzard's bags and bank return, because its D-pad navigates them")
+			Disengage()
+		end
+	elseif not engaged then
+		ns.Log("the keyboard and mouse interface style came on; KstyleUI's bags and bank take over again")
+		Engage()
+	end
+end
+
+local function StyleChanged()
+	K.Combat.Queue(FollowStyle)
+end
+
+local function Enable()
+	K.Events.Register(MODULE, "INPUT_DEVICE_INTERFACE_TRANSITION", StyleChanged)
 	K.Callbacks.Register("SettingChanged", MODULE, function(_, module, key)
 		if module == MODULE then
 			SettingsChanged(nil, key)
@@ -48,16 +90,11 @@ local function Enable()
 			window:ScaleChanged()
 		end
 	end)
-	Inventory.Enable()
-	Bank.Enable()
-	Junk.Enable()
+	Engage()
 end
 
 local function Disable()
-	Junk.Disable()
-	Bank.Disable()
-	Inventory.Disable()
-	Blizzard.Stop()
+	Disengage()
 end
 
 local function Check()

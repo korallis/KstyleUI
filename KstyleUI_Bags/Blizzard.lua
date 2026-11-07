@@ -21,7 +21,6 @@ local FALLBACK_CONTAINER_FRAMES = 13
 
 local installed = false
 local active = false
-local standingDown = false
 local pending
 local scheduled = false
 local handlers = {}
@@ -138,8 +137,10 @@ function Blizzard.OnAction(action, fn)
 end
 
 function Blizzard.Start()
-	standingDown = Blizzard.GamepadStyle()
-	if standingDown then
+	if active then
+		return true
+	end
+	if Blizzard.GamepadStyle() then
 		ns.Log("the gamepad interface style is on; Blizzard's bags stay, because its D-pad navigates them")
 		return false
 	end
@@ -151,12 +152,11 @@ function Blizzard.Start()
 end
 
 function Blizzard.Stop()
-	active = false
 	pending = nil
-	if standingDown then
-		standingDown = false
+	if not active then
 		return
 	end
+	active = false
 	Blizzard.Release()
 	K.Safe.RestoreBlizzard(ContainerFrameCombinedBags)
 	K.Safe.RestoreBlizzard(ContainerFrameContainer)

@@ -38,9 +38,9 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Inventory.lua` | `ns.Inventory`: the bag window |
 | `Bank.lua` | `ns.Bank`: the bank window |
 | `Preview.lua` | The settings window's live preview |
-| `Module.lua` | Registers the module, its settings page and preview, its events and callbacks, and its `/kstyle test` check |
+| `Module.lua` | Registers the module, its settings page and preview, its events and callbacks, and its `/kstyle test` check; follows the interface style |
 
-Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua` and `test-bags-junk.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
+Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua`, `test-bags-junk.lua` and `test-bags-gamepad.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
 
 ## The bag window
 
@@ -102,7 +102,7 @@ The window opens on `BANKFRAME_OPENED`, and on `PLAYER_INTERACTION_MANAGER_FRAME
 
 The window follows Blizzard's own bag functions, so every key binding, the bag bar, merchants, mail and other windows that open the bags open it too.
 
-1. At the first `Enable` the module calls `hooksecurefunc` on `ToggleAllBags`, `ToggleBackpack`, `ToggleBag`, `OpenAllBags`, `OpenBackpack`, `OpenBag`, `CloseAllBags`, `CloseBackpack` and `CloseBag`. The hooks stay for the session and do nothing while the module is off.
+1. The first time the module runs in the keyboard and mouse style, it calls `hooksecurefunc` on `ToggleAllBags`, `ToggleBackpack`, `ToggleBag`, `OpenAllBags`, `OpenBackpack`, `OpenBag`, `CloseAllBags`, `CloseBackpack` and `CloseBag`. The hooks stay for the session and do nothing while the module is off.
 2. A hook records what the call meant (toggle, open or close) and waits for the next frame, so the calls Blizzard's functions make to each other settle first. The last call of the frame wins: that is the outermost call.
 3. A toggle opens the window when it is closed and Blizzard allows bags (`ContainerFrame_AllowedToOpenBags`), and closes it when it is open.
 4. An open opens the window when Blizzard's own state says the bags are open, so a refused open stays closed.
@@ -118,7 +118,12 @@ The window opens, closes, searches and refreshes in combat: the item buttons are
 
 ## Gamepad
 
-When `InputUtil.IsGamepadUIEnabled()` returns true at `Enable`, the module stands down: it hides nothing, its hooks stay inert, and it logs that it stood down. Forever's gamepad style navigates Blizzard's bags with the D-pad, which KstyleUI's window does not support. A style change takes effect after `/reload`.
+Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and its bag buttons call `ToggleAllBags` and `ToggleBackpack_Combined`. KstyleUI's window does not support the D-pad, so the module stands down while the gamepad style is on: it hides nothing, its hooks and its events stay inert, and it logs that it stood down.
+
+- **At `Enable`.** When `InputUtil.IsGamepadUIEnabled()` returns true, the module stands down at once.
+- **A switch to the gamepad style.** `Enable` registers `INPUT_DEVICE_INTERFACE_TRANSITION` before anything else, so the module hears the switch even when it started standing down. The switch closes KstyleUI's bag and bank windows, closes Blizzard's hidden bag frames with `Blizzard.Release`, gives Blizzard back `ContainerFrameCombinedBags`, `ContainerFrameContainer` and `BankFrame`, and unregisters the module's events. During a bank visit KstyleUI's bank was serving, the switch ends the visit and `BankFrame` returns when `BANKFRAME_CLOSED` arrives, as when the module turns off.
+- **A switch back to the keyboard and mouse style.** The module takes Blizzard's bags and bank again and registers its events, as `Enable` does, without a reload.
+- **Combat.** Each switch waits for `Combat.Queue`. Until combat ends, the style the module had keeps serving the bags. The queued work reads the style when it runs, so several switches in one fight end in the style the player chose last.
 
 ## Settings
 
@@ -152,7 +157,7 @@ Position, scale, opacity, strata and the shown rule come from Layout, on the Ele
 
 ## /kstyle test
 
-The `bags` check passes while the module is off or standing down for the gamepad style. While it runs it fails if the window was not built, Blizzard's combined bags are not hidden, or Blizzard's bank is not hidden while the module replaces it outside a visit; otherwise it reports the number of slots and the bank's state.
+The `bags` check passes while the module is off or standing down for the gamepad style, and says which. While it runs it fails if the window was not built, Blizzard's combined bags are not hidden, or Blizzard's bank is not hidden while the module replaces it outside a visit; otherwise it reports the number of slots and the bank's state.
 
 ## Why
 
