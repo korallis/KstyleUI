@@ -85,9 +85,12 @@ do
 	assert(W.LastCall(bar.sheenAnim, "SetLooping")[1] == "REPEAT", "or on a loop")
 	bar:StopSheen()
 	assert(#W.Calls(bar.sheenAnim, "Stop") >= 1 and bar.sheen:IsShown() == false)
-	K.Motion.SetReducedMotion(true)
+	bar:PlaySheen(true)
+	local stops = #W.Calls(bar.sheenAnim, "Stop")
+	K.Options.Write("Appearance", "reducedMotion", true)
+	assert(#W.Calls(bar.sheenAnim, "Stop") > stops and bar.sheen:IsShown() == false, "turning reduced motion on stops a looping sheen")
 	bar:PlaySheen()
-	assert(#W.Calls(bar.sheenAnim, "Play") == 2, "reduced motion plays no sheen")
+	assert(#W.Calls(bar.sheenAnim, "Play") == 3, "reduced motion plays no sheen")
 	assert(#env._errors == 0)
 end
 
@@ -98,6 +101,7 @@ do
 	assert(W.LastCall(bar, "SetOrientation")[1] == "VERTICAL")
 	local p = bar.spark._points[1]
 	assert(p[2] == bar:GetStatusBarTexture() and p[3] == "TOP", "a vertical spark rides the top edge")
+	assert(bar.spark:GetWidth() <= 18 * 2 and bar.spark:GetHeight() < 20, "a vertical spark spans the bar's width, got " .. bar.spark:GetWidth())
 	local object = {}
 	assert(bar:SetBarDuration(object) == true and W.LastCall(bar, "SetTimerDuration")[1] == object, "a duration object reaches the engine")
 	local reversed = K.Widgets.StatusBar(K.Scale.Root(), { reverse = true, spark = true })

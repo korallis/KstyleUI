@@ -193,4 +193,53 @@ do
 	assert(#env._errors == 0)
 end
 
+-- A reload confirm runs onAccept from the secure button's PreClick, before the /reload macro.
+do
+	local env, K = W.New()
+	local order = {}
+	K.Widgets.Confirm({ text = "Apply and reload?", reload = true, onAccept = function()
+		order[#order + 1] = "accept"
+	end })
+	local host = K.Widgets.DialogHost()
+	local accept = host.visibleButtons[2]
+	W.Enter(accept)
+	local overlay = overlays(env)[1]
+	local pre = overlay:GetScript("PreClick")
+	assert(pre, "the secure button has a PreClick")
+	pre(overlay, "LeftButton", false)
+	assert(order[1] == "accept", "onAccept runs before the macro")
+	assert(#env._errors == 0)
+end
+
+-- The dialog's edit box keeps the dialog's width through a restyle.
+do
+	local _, K = W.New()
+	K.Widgets.Popup({ editBox = {}, buttons = { { label = "OK", primary = true } } })
+	local host = K.Widgets.DialogHost()
+	local width = host.editBox:GetWidth()
+	assert(width > 300, "the edit box spans the dialog, got " .. tostring(width))
+	K.Theme.SetCustomAccent(0.3, 0.6, 0.9)
+	K.Theme.SetAccentSource("custom")
+	assert(host.editBox:GetWidth() == width, "a restyle keeps that width, got " .. tostring(host.editBox:GetWidth()))
+end
+
+-- Enter on one edit-box popup gives focus to the next one, after the first lets go of it.
+do
+	local env, K = W.New()
+	local spec = { { label = "OK", primary = true } }
+	K.Widgets.Popup({ editBox = {}, buttons = spec })
+	local second = K.Widgets.Popup({ editBox = { text = "two" }, buttons = spec })
+	local box = K.Widgets.DialogHost().editBox
+	box:GetScript("OnEnterPressed")(box)
+	env.RunTimers()
+	assert(second:IsShown())
+	local last
+	for _, call in ipairs(box._calls) do
+		if call.method == "SetFocus" or call.method == "ClearFocus" then
+			last = call.method
+		end
+	end
+	assert(last == "SetFocus", "the next dialog's box ends with focus, got " .. tostring(last))
+end
+
 print("widgets dialogs ok")

@@ -295,10 +295,10 @@ Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default
 | `SetColorToken(name)` | Colours the fill with a token. An `accent` bar follows the class colour on `ThemeChanged`. |
 | `SetBarColor(r, g, b, a)` | Colours the fill with the caller's values, passed on as they are, so a colour from a curve works. A theme change keeps it. |
 | `SetBarTexture(keyOrPath)` | Changes the fill and the background texture. |
-| `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it. |
+| `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it, and switching it on stops a looping sheen. |
 | `SetSparkShown(shown)` | |
 
-The spark is the `glow` texture, additive, centred on the edge of the fill texture (`GetStatusBarTexture()`): right, left for a reversed bar, top or bottom for a vertical one. The engine moves it with the fill.
+The spark is the `glow` texture, additive, 10 units along the bar and 1.8 times the bar's thickness across, centred on the edge of the fill texture (`GetStatusBarTexture()`): right, left for a reversed bar, top or bottom for a vertical one. The engine moves it with the fill.
 
 Fields: `background`, `spark`, `sheen`, `sheenClip`, `sheenAnim`, `sheenMove`, `borderFrame`, `chrome`.
 
@@ -308,8 +308,8 @@ KstyleUI's own dialogs. They never use `StaticPopupDialogs`. One dialog shows at
 
 `Popup(opts) -> handle`. Options: `title` (default `KstyleUI`), `text`, `buttons = { { label, onClick(handle), primary, reload }, ... }` (default one OK button), `editBox = { text, placeholder, maxLetters }`, `onCancel(handle)`, `key`.
 
-- A button click runs its `onClick`, then closes the dialog. A `reload` button is a [reload button](#reload-button).
-- Escape runs `onCancel`, then closes the dialog. Enter in the edit box presses the primary button.
+- A button click runs its `onClick`, then closes the dialog. A `reload` button is a [reload button](#reload-button) whose `onClick` runs before `/reload`.
+- Escape runs `onCancel`, then closes the dialog. Enter in the edit box presses the primary button. The edit box spans the dialog and takes focus on the next frame, so a queued edit-box dialog keeps it.
 - A second popup waits until the first closes. A popup whose `key` is shown or waiting returns that handle instead of queueing again.
 
 | Handle method | Behaviour |
@@ -326,7 +326,7 @@ Field: `editBox`, when the popup has one.
 
 ## Reload button
 
-`ReloadButton(parent, opts) -> Button`: a primary [button](#button) labelled Reload. Options: `text`, `width`, `height`, `name`, `tooltip`.
+`ReloadButton(parent, opts) -> Button`: a primary [button](#button) labelled Reload. Options: `text`, `width`, `height`, `name`, `tooltip`, `beforeReload(button)`, which runs from the secure button's `PreClick`, before the macro. The field `button.beforeReload` can be changed later.
 
 `ReloadUI()` is blocked for addon code, so the click goes to one shared `SecureActionButtonTemplate` button with the attributes `type = "macro"`, `macrotext = "/reload"` and `useOnKeyDown = false`, registered for `AnyUp`:
 

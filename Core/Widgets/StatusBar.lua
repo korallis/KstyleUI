@@ -118,12 +118,14 @@ function Bar:PlaySheen(loop)
 	self.sheenAnim:Stop()
 	self.sheen:Show()
 	self.sheenAnim:Play()
+	self.sheenLooping = loop and true or false
 end
 
 function Bar:StopSheen()
 	if self.sheenAnim then
 		self.sheenAnim:Stop()
 		self.sheen:Hide()
+		self.sheenLooping = false
 	end
 end
 
@@ -136,7 +138,11 @@ function Bar:Restyle()
 	end
 	if self.spark then
 		if self.vertical then
-			Widgets.Size(self.spark, height * SPARK_HEIGHT_SHARE, SPARK_WIDTH)
+			local width = self:GetWidth()
+			if type(width) ~= "number" or Widgets.IsSecret(width) then
+				width = opts.width or Tokens.Size("buffBarHeight")
+			end
+			Widgets.Size(self.spark, width * SPARK_HEIGHT_SHARE, SPARK_WIDTH)
 		else
 			Widgets.Size(self.spark, SPARK_WIDTH, height * SPARK_HEIGHT_SHARE)
 		end
@@ -146,6 +152,9 @@ function Bar:Restyle()
 		self.sheen:SetPoint("TOPRIGHT", self.sheenClip, "TOPLEFT")
 		self.sheen:SetPoint("BOTTOMRIGHT", self.sheenClip, "BOTTOMLEFT")
 		self.sheen:SetWidth(Widgets.Snap(self, SHEEN_WIDTH))
+	end
+	if self.sheenLooping and Motion.ReducedMotion() then
+		self:StopSheen()
 	end
 	if self.borderFrame then
 		local outset = Widgets.Border(self) * BORDER_LINES

@@ -47,6 +47,13 @@ local function OverlayUp()
 	end
 end
 
+local function OverlayPreClick()
+	local visual = current
+	if visual and visual.beforeReload then
+		ns.Call(visual.beforeReload, visual)
+	end
+end
+
 local function EnsureOverlay()
 	if overlay then
 		return overlay
@@ -63,6 +70,7 @@ local function EnsureOverlay()
 	button:HookScript("OnLeave", OverlayLeave)
 	button:HookScript("OnMouseDown", OverlayDown)
 	button:HookScript("OnMouseUp", OverlayUp)
+	button:HookScript("PreClick", OverlayPreClick)
 	button:Hide()
 	overlay = button
 	Widgets.Log("the secure reload button is ready")
@@ -129,6 +137,7 @@ function Widgets.ReloadButton(parent, opts)
 		onClick = Fallback,
 	})
 	visual.isReload = true
+	visual.beforeReload = opts.beforeReload
 	visuals[visual] = true
 	visual:HookScript("OnEnter", Attach)
 	visual:HookScript("OnHide", OnHide)

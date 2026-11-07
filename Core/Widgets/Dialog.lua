@@ -83,6 +83,7 @@ local function PressPrimary()
 	if not handle then
 		return
 	end
+	host.editBox:ClearFocus()
 	for _, button in ipairs(host.visibleButtons) do
 		if button.spec and button.spec.primary then
 			ButtonClick(button)
@@ -98,6 +99,9 @@ local function TakeButton(i, spec)
 		end
 		local button = host.reloadButton
 		button:SetText(spec.label or L["Reload"])
+		button.beforeReload = spec.onClick and function()
+			Run(current, spec.onClick)
+		end
 		return button
 	end
 	local button = host.pool[i]
@@ -126,7 +130,8 @@ local function Layout()
 	if host.editBox:IsShown() then
 		host.editBox:ClearAllPoints()
 		host.editBox:SetPoint("TOPLEFT", host, "TOPLEFT", pad, -y)
-		host.editBox:SetWidth(inner)
+		host.editBox.opts.width = inner
+		host.editBox:Restyle()
 		y = y + (host.editBox:GetHeight() or 0) + gap
 	end
 	local x = pad
@@ -181,7 +186,11 @@ function ShowNext()
 	Render(handle)
 	host:Open()
 	if handle.editBox then
-		handle.editBox:SetFocus()
+		C_Timer.After(0, function()
+			if current == handle then
+				handle.editBox:SetFocus()
+			end
+		end)
 	end
 end
 
