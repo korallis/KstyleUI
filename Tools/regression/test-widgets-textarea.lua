@@ -101,6 +101,38 @@ do
 	assert(area:GetText() == "typed" and changes[#changes].user == true, "an editable area reports typing")
 end
 
+-- Sizes: the defaults when the frame has none, even a zero size from the game; a range that shrinks mid-scroll clamps.
+do
+	local env, K = W.New()
+	local area = K.Widgets.TextArea(K.Scale.Root(), {})
+	area:SetSize(0, 0)
+	area:Restyle()
+	assert(area:GetWidth() == 300 and area:GetHeight() == 160, "300 by 160 by default, got " .. tostring(area:GetWidth()))
+	local range = 300
+	rawset(area.scroll, "GetVerticalScrollRange", function()
+		return range
+	end)
+	area.scroll:SetHeight(100)
+	area:ScrollTo(300)
+	W.Tick(env, 0.016)
+	range = 0
+	area:Refresh()
+	W.Settle(env)
+	assert(area:GetOffset() == 0, "the running scroll stops at the new end, got " .. area:GetOffset())
+end
+
+-- Edits the player made stay when the area turns read only.
+do
+	local _, K = W.New()
+	local area = newArea(K, { text = "start" })
+	area.box:SetText("typed")
+	area.box:GetScript("OnTextChanged")(area.box, true)
+	area:SetReadOnly(true)
+	area.box:SetText("typed!")
+	area.box:GetScript("OnTextChanged")(area.box, true)
+	assert(area:GetText() == "typed", "the accepted edit stays, got " .. tostring(area:GetText()))
+end
+
 -- A secret text reaches the box untouched.
 do
 	local env, K = W.New()

@@ -89,9 +89,8 @@ end
 
 function Area:Refresh()
 	local maxOffset = self:GetMaxOffset()
-	if self.offset > maxOffset then
-		self.target = nil
-		self:SetOffset(maxOffset)
+	if self.offset > maxOffset or (self.target or 0) > maxOffset then
+		self:ScrollTo(maxOffset, true)
 	end
 	self:PaintBar()
 end
@@ -118,6 +117,7 @@ end
 
 function Area:SetReadOnly(on)
 	self.readOnly = on and true or false
+	self.text = self.box:GetText()
 end
 
 function Area:SelectAll()
@@ -137,7 +137,7 @@ end
 
 function Area:Restyle()
 	local opts = self.opts
-	if not self:GetWidth() or not self:GetHeight() or (opts.width and opts.height) then
+	if (opts.width and opts.height) or Plain(self:GetWidth(), 0) <= 0 or Plain(self:GetHeight(), 0) <= 0 then
 		Widgets.Size(self, opts.width or DEFAULT_WIDTH, opts.height or DEFAULT_HEIGHT)
 	end
 	local pad = Widgets.Snap(self, Tokens.Size("gapMedium"))
@@ -162,9 +162,7 @@ local function OnTextChanged(box, userInput)
 		box:HighlightText()
 		return
 	end
-	if not userInput then
-		self.text = box:GetText()
-	end
+	self.text = box:GetText()
 	self:Refresh()
 	local onChange = self.opts.onChange
 	if onChange then
