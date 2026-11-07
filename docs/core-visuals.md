@@ -23,6 +23,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `textDisabled` | `#666666` | Disabled text |
 | `rare`, `epic` | `#4fc3ff`, `#b67cff` | Item quality |
 | `hostile`, `neutral`, `friendly` | `#e5534b`, `#e8c14f`, `#5fcf72` | Reactions, tuned for the glass |
+| `healthHostile` | `#e03b3f` | A hostile unit frame's health fill, the kit sheet's red under the Glass texture |
 | `accentDefault` | `#aad372` | The kit's accent: the fallback and the default custom accent |
 | `shadow` | `#000000` at 55% | Panel shadow tint |
 | `textShadow` | `#000000` at 80% | Text shadow |

@@ -95,8 +95,16 @@ env.FireEvent("UNIT_HEALTH", "player")
 assert(U.Shown(env, player.healthText) == "50%" and U.Shown(env, player.healthSub) == "1990 / 3980", "health events update both texts")
 env._units.player.health = 3120
 env.FireEvent("UNIT_HEALTH", "player")
+local line = player.trackLine
+assert(line and line:IsShown(), "a hairline runs under the health track, as on the kit sheet")
+local _, lineRel, _, lineX, lineY = line:GetPoint(1)
+assert(lineRel == player.button and near(lineX, g.trackLine.x, 1) and near(-lineY, g.trackLine.y, 1), "the hairline sits where Geometry puts it")
+assert(near(line:GetWidth(), g.health.w, 1) and near(line:GetHeight(), K.Widgets.Border(player.button)), "it spans the track, one border thick")
+local lr, lg, lb, la = line:GetVertexColor()
+assert(W.Near(lr, 1) and W.Near(lg, 1) and W.Near(lb, 1) and la > 0.05 and la < 0.2, "a faint light line")
 assert(K.Layout.Set("unitframes.player", "height", 30), "Layout can make the player frame compact")
 assert(player.geometry.compact and not player.healthSub:IsShown(), "a compact frame has no row under its bar")
+assert(not line:IsShown(), "a compact frame's bar fills its glass, with no hairline")
 assert(U.Shown(env, player.healthText) == "3120 / 3980  78%", "resizing rewrites the health text at once: " .. U.Shown(env, player.healthText))
 K.Layout.Reset("unitframes.player")
 assert(U.Shown(env, player.healthText) == "78%" and player.healthSub:IsShown() and U.Shown(env, player.healthSub) == "3120 / 3980", "and back again")
@@ -151,19 +159,20 @@ assert(near(cg.text.x, cg.bar.x) and near(cg.timer.x + cg.timer.w, cg.bar.x + cg
 local _, _, _, bx, by = cast.bar:GetPoint(1)
 assert(near(bx, cg.bar.x, 1) and near(-by, cg.bar.y, 1), "the bar is placed from the geometry")
 
--- The target cast bar at its 14-unit footprint: the icon square, then the glass bar with the spell name left
--- and the time right, on the bar. Made 18 units tall in Layout, it stacks them over a thin bar as the kit sheet does.
+-- The target cast bar at its 18-unit footprint: the icon square, then the glass with the spell name and the time
+-- stacked over a thin bar, as the kit sheet draws it. Made 14 units tall in Layout, the name and time sit on the bar.
 local target = CastBars.Get("target")[1]
 local tg = target.geometry
-assert(near(tg.icon.w, 14) and near(tg.icon.h, 14) and tg.panel.x > tg.icon.w, "the target's icon is its own 14-unit square, then a gap")
+assert(near(tg.icon.w, 18) and near(tg.icon.h, 18) and tg.panel.x > tg.icon.w, "the target's icon is its own 18-unit square, then a gap")
 assert(select(2, pieces(target.panel, "bevelTileInner")) == 4, "the target cast bar's glass is a chamfered tile")
+assert(tg.stacked and mid(tg.text) < tg.bar.y and near(mid(tg.text), mid(tg.timer)), "18 units: the name and time stack over a thin bar")
+assert(K.Layout.Set("unitframes.castbar.target", "height", 14), "the target cast bar can be 14 units tall")
+tg = target.geometry
 assert(not tg.stacked and near(mid(tg.text), mid(tg.bar)) and near(mid(tg.timer), mid(tg.bar)), "14 units: the name and time sit on the bar")
 assert(tg.text.x < tg.timer.x and tg.text.x + tg.text.w <= tg.timer.x + 1e-6, "the name at the left stops before the time at the right")
 assert(tg.bar.x >= tg.panel.x and tg.bar.x + tg.bar.w <= tg.panel.x + tg.panel.w and tg.bar.y >= tg.panel.y and tg.bar.y + tg.bar.h <= tg.panel.h, "the bar sits inside the glass")
-assert(K.Layout.Set("unitframes.castbar.target", "height", 18), "the target cast bar can be 18 units tall")
-assert(target.geometry.stacked and mid(target.geometry.text) < target.geometry.bar.y, "18 units: the name and time stack over a thin bar")
 K.Layout.Reset("unitframes.castbar.target")
-assert(not target.geometry.stacked, "and the reset puts it back on the bar")
+assert(target.geometry.stacked, "and the reset stacks them again")
 
 -- A short cast bar keeps its text on the bar, inside the same glass.
 local boss = CastBars.Get("boss")[1]

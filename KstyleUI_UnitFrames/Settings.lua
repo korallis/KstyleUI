@@ -61,7 +61,10 @@ local function TextStyle(size)
 	return { font = THEME_FONT, size = size, outline = "NONE" }
 end
 
-local function Kind(full, overrides, castHeight, castFont, aura)
+local COMPACT_TEXT = { 9, 9, 9, 9 }
+
+local function Kind(full, overrides, castHeight, castFont, aura, text)
+	text = text or COMPACT_TEXT
 	local d = {
 		enabled = true,
 		portrait = full,
@@ -83,7 +86,7 @@ local function Kind(full, overrides, castHeight, castFont, aura)
 		powerColor = "power",
 		powerCustom = Color("rare"),
 		powerOrientation = "RIGHT",
-		powerText = full and "currentMax" or "none",
+		powerText = "none",
 		raidMarker = true,
 		leader = full,
 		role = full,
@@ -111,10 +114,10 @@ local function Kind(full, overrides, castHeight, castFont, aura)
 		auraPosition = aura and aura.position or "BELOW",
 		auraTimer = true,
 		fonts = {
-			name = TextStyle(full and 11 or 9),
-			health = TextStyle(full and 12 or 9),
-			power = TextStyle(9),
-			level = TextStyle(9),
+			name = TextStyle(text[1]),
+			health = TextStyle(text[2]),
+			power = TextStyle(text[3]),
+			level = TextStyle(text[4]),
 			cast = TextStyle(castFont or 10),
 			aura = TextStyle(8),
 		},
@@ -130,13 +133,13 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true, { combat = true, resting = true }, 20, 11, { on = false, size = 22, position = "BELOW" }),
-	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction" }, 14, 10, { on = false, size = 20, position = "ABOVE" }),
+	player = Kind(true, { combat = true, resting = true }, 20, 11, { on = false, size = 22, position = "BELOW" }, { 15, 15, 13, 15 }),
+	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction" }, 14, 10, { on = false, size = 20, position = "ABOVE" }, { 15, 15, 13, 15 }),
 	targettarget = Kind(false),
-	focus = Kind(true, { powerText = "none" }, 20, 10, { on = true, size = 20, position = "RIGHT" }),
+	focus = Kind(true, nil, 20, 10, { on = true, size = 20, position = "RIGHT" }, { 12, 12, 10, 12 }),
 	focustarget = Kind(false),
 	pet = Kind(false),
-	boss = Kind(true, { powerText = "none" }, 10, 9, { on = true, size = 18, columns = 6, position = "RIGHT" }),
+	boss = Kind(true, nil, 10, 9, { on = true, size = 18, columns = 6, position = "RIGHT" }, { 10, 10, 9, 10 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,

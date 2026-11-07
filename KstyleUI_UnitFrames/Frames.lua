@@ -8,8 +8,7 @@ local Frames = {}
 ns.Frames = Frames
 
 local MODULE = Settings.MODULE
-local BOSS_COUNT = 5
-local BOSS_GAP = 10
+local BOSS_COUNT, BOSS_GAP = Geometry.BOSS_COUNT, Geometry.BOSS_GAP
 local CAST_GAP = { focus = 4, boss = 2 }
 local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
@@ -322,9 +321,10 @@ function Frames.Relayout(uf)
 		button:SetSize(slot.w, slot.h)
 		local room = castH > 0 and math.min(castH, math.max(0, slot.h - gap - MIN_FRAME_HEIGHT)) or 0
 		local frameH = room > 0 and slot.h - room - gap or slot.h
-		local split = view.geometry and view.geometry.healthSub ~= nil
+		local before = view.geometry or {}
 		local g = Style.Layout(view, uf.s, slot.w, frameH)
-		if split ~= (g.healthSub ~= nil) and Active(view) and UnitExists(view.unit) then
+		if ((before.healthSub == nil) ~= (g.healthSub == nil) or before.compact ~= g.compact) and Active(view) and UnitExists(view.unit) then
+			Unit.HealthColor(view, view.unit)
 			Unit.Health(view, view.unit, true)
 		end
 		ns.Auras.Place(view)

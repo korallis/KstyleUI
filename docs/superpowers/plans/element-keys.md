@@ -23,16 +23,16 @@ Footprints are width x height in units at the 1080 reference.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
-| `unitframes.player` | UnitFrames | Player frame | 266 x 46 | A 220 by 46 frame with its 46-unit portrait |
-| `unitframes.target` | UnitFrames | Target frame | 266 x 46 | Mirror of the player frame |
+| `unitframes.player` | UnitFrames | Player frame | 296 x 89 | The kit sheet's 469 by 141 proportions: an 89-unit portrait over one glass panel |
+| `unitframes.target` | UnitFrames | Target frame | 296 x 89 | Mirror of the player frame |
 | `unitframes.targettarget` | UnitFrames | Target of target | 120 x 24 | Under the target frame, right-aligned |
-| `unitframes.focus` | UnitFrames | Focus frame | 266 x 70 | A unit frame with its cast bar under it |
+| `unitframes.focus` | UnitFrames | Focus frame | 240 x 96 | A 240 by 72 frame with its 20-unit cast bar under it |
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 24 | Under the focus frame, right-aligned |
-| `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned |
-| `unitframes.boss` | UnitFrames | Boss frames | 266 x 330 | Boss 1 to 5 stacked downward, 58 units each with 10-unit gaps |
+| `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned, mirroring the target of target |
+| `unitframes.boss` | UnitFrames | Boss frames | 200 x 400 | Boss 1 to 5 stacked downward, 72 units each with 10-unit gaps: a 200 by 60 frame and a 10-unit cast bar |
 | `unitframes.castbar.player` | UnitFrames | Player cast bar | 260 x 20 | Above the essential cooldowns |
-| `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 14 | Under the target frame's bars, left of the target of target |
-| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, under the player frame, right-aligned |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 194 x 18 | Under the target frame, right-aligned, beside action bar 1 |
+| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, under the player frame, beside action bar 1 |
 | `groupframes.party` | GroupFrames | Party frames | 230 x 270 | Five 46-unit frames stacked downward with 10-unit gaps |
 | `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 441 x 34 | 12 buttons of 34 units with 3-unit gaps in one row |

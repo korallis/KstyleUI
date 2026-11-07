@@ -539,7 +539,7 @@ function U.Shown(env, text)
 		local call = text._calls[i]
 		if call.method == "SetText" then
 			local value = reveal(env, call.args[1])
-			return value == nil and "" or tostring(value)
+			return value == nil and "" or (tostring(value):gsub("\226\128\137", ""))
 		elseif call.method == "SetFormattedText" then
 			local args = {}
 			for j = 2, call.args.n do

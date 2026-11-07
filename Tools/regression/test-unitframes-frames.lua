@@ -38,6 +38,13 @@ for kind, key in pairs(ELEMENTS) do
 		key .. " starts at its footprint, got " .. width .. " x " .. height)
 end
 
+-- Every full frame takes the kit sheet's proportions: about 3.3 times as wide as tall, its portrait as tall as the frame.
+for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
+	local view = Frames.Get(kind).views[1]
+	local width, frameH = view.button:GetWidth(), view.geometry.portrait.h
+	assert(math.abs(width / frameH - 3.33) < 0.1, kind .. " is about 3.3 times as wide as tall, got " .. width .. " x " .. frameH)
+end
+
 -- Secure buttons: one per unit, a child of the holder, targeting on left click and the unit menu on right click.
 local function checkButton(view, unit)
 	local button = view.button
@@ -66,8 +73,13 @@ local value, low, high = U.Bar(env, player.health)
 assert(value == 3120 and low == 0 and high == 3980, "health reaches the bar: " .. tostring(value) .. " of " .. tostring(high))
 assert(env.issecretvalue(W.LastCall(player.health, "SetValue")[1]), "the bar gets the secret itself")
 assert(U.Shown(env, player.healthText) == "78%", "health text: " .. U.Shown(env, player.healthText))
-assert(U.Shown(env, player.powerText) == "2000 / 4000", "power text: " .. U.Shown(env, player.powerText))
+assert(U.Shown(env, player.powerText) == "" and not player.powerText:IsShown(), "no power numbers by default, as on the kit sheet")
+K.Options.Write("UnitFrames", "player.powerText", "currentMax")
+assert(player.powerText:IsShown() and U.Shown(env, player.powerText) == "2000 / 4000", "power text as an option: " .. U.Shown(env, player.powerText))
+K.Options.Write("UnitFrames", "player.powerText", "none")
 assert(U.Shown(env, player.name) == "TESTER", "the name in capitals: " .. U.Shown(env, player.name))
+local THIN = "\226\128\137"
+assert(W.LastCall(player.name, "SetText")[1] == "T" .. THIN .. "E" .. THIN .. "S" .. THIN .. "T" .. THIN .. "E" .. THIN .. "R", "the capitals are spaced wide with thin spaces, as the kit sheet tracks them")
 assert(U.Shown(env, player.levelText) == "60", "level: " .. U.Shown(env, player.levelText))
 assert(env._portraits[player.portrait] == "player", "the 2D portrait shows the player")
 assert(U.Bar(env, player.power) == 2000, "power reaches the bar")
@@ -100,9 +112,14 @@ U.SetUnit(env, "target", { name = "Wolf", level = 12, health = 50, healthMax = 2
 env.SetTarget(true)
 assert(U.Shown(env, target.name) == "WOLF", "the target frame shows the new target: " .. U.Shown(env, target.name))
 assert(U.Shown(env, target.healthText) == "25%", "target health text")
-local hr, hg, hb = K.Theme.ReactionColor(2)
+local hr, hg, hb = K.Tokens.Color("healthHostile")
 local last = W.LastCall(target.health, "SetStatusBarColor")
-assert(last[1] == hr and last[2] == hg and last[3] == hb, "a hostile NPC's health bar takes the hostile colour")
+assert(last[1] == hr and last[2] == hg and last[3] == hb, "a hostile NPC's health bar takes the kit sheet's red")
+local tint = W.LastCall(target.healthText, "SetTextColor")
+for i, bar in ipairs({ hr, hg, hb }) do
+	assert(tint[i] > bar and tint[i] < 1, "the percentage is a light version of the bar's colour, channel " .. i .. ": " .. tostring(tint[i]))
+end
+assert(tint[1] > tint[2] and tint[1] > tint[3], "a hostile percentage keeps the bar's red tint, as on the kit sheet")
 U.SetUnit(env, "target", { name = "Jaina", class = "MAGE", isPlayer = true, level = 60, health = 100, healthMax = 100, reaction = 5 })
 env.SetTarget(true)
 local fr, fg, fb = K.Theme.ReactionColor(5)
@@ -313,6 +330,9 @@ do
 	local color = W.LastCall(view.health, "SetStatusBarColor")
 	assert(color and env2.issecretvalue(color[1]), "a secret class colour reaches the health bar as a secret")
 	assert(env2.Reveal(color[1]) == MAGE[1] and env2.Reveal(color[2]) == MAGE[2] and env2.Reveal(color[3]) == MAGE[3], "and it is the class colour")
+	local text = W.LastCall(view.healthText, "SetTextColor")
+	local er, eg, eb = K2.Tokens.Color("textEmphasis")
+	assert(text[1] == er and text[2] == eg and text[3] == eb, "a secret colour is never mixed: the percentage stays the light text colour")
 	assert(#env2._errors == 0 and K2.ErrorCount() == 0, "a secret class raises no error: " .. tostring(env2._errors[1]))
 end
 

@@ -47,11 +47,18 @@ assert(defaults.player.portraitSide == "LEFT" and defaults.target.portraitSide =
 assert(defaults.player.healthText == "both" and defaults.target.healthText == "both", "player and target health show the percentage and current and max, as the kit sheet does")
 assert(defaults.focus.healthText == "both" and defaults.boss.healthText == "both", "so do the other full frames")
 assert(defaults.targettarget.healthText == "percent" and defaults.pet.healthText == "percent", "the small frames show a percentage inside the bar")
-assert(defaults.player.powerText == "currentMax", "player power shows current and max, as in the mockups")
+for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
+	assert(defaults[kind].powerText == "none", kind .. ": no power numbers, as on the kit sheet; power shows as the thin bar alone")
+end
+for kind, sizes in pairs({ player = { 15, 15, 15 }, target = { 15, 15, 15 }, focus = { 12, 12, 12 }, boss = { 10, 10, 10 } }) do
+	local fonts = defaults[kind].fonts
+	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.level.size == sizes[3],
+		kind .. ": the name, percentage and level sizes follow the frame's height at the kit sheet's proportions")
+end
 assert(defaults.player.healthColor == "class", "the player's health fill is the class colour")
 assert(defaults.target.healthColor == "reaction", "the target's fill follows its reaction: red when hostile, as on the kit sheet")
 assert(defaults.player.powerHeight == 3 and defaults.target.powerHeight == 3, "the full frames' power bar is the kit's thin line")
-assert(defaults.player.fonts.health.size > defaults.player.fonts.name.size, "the percentage is in larger numerals than the name, as the kit sheet sets it")
+assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size, "the percentage's numerals are as tall as the name's capitals, as measured on the kit sheet")
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "chamfered", kind .. ": the portrait is the kit's chamfered octagon by default")
 end

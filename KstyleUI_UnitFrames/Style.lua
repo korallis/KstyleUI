@@ -20,6 +20,12 @@ local ABSORB_ALPHA = 0.35
 local IMAGE_SUBLEVEL = -4
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local TRACK = "raised"
+local TRACK_LINE, TRACK_LINE_ALPHA = "edgeFaint", 1.6
+local TINT = 0.85
+
+local issecretvalue = issecretvalue or function()
+	return false
+end
 
 local ORIENTATION = {
 	RIGHT = { "HORIZONTAL", false, "LEFT", "RIGHT" },
@@ -31,7 +37,7 @@ local ORIENTATION = {
 local TEXTS = {
 	name = { justify = "LEFT", color = "textEmphasis" },
 	healthText = { element = "health", justify = "RIGHT", color = "textEmphasis" },
-	healthSub = { element = "health", justify = "RIGHT", color = "text", share = Geometry.DETAIL_SHARE },
+	healthSub = { element = "health", justify = "RIGHT", color = "textEmphasis", share = Geometry.DETAIL_SHARE },
 	powerText = { element = "power", justify = "LEFT", color = "text" },
 	levelText = { element = "level", justify = "CENTER", color = "textEmphasis" },
 }
@@ -72,6 +78,8 @@ function Style.New(parent, kind)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
 	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
+	view.trackLine = panel:CreateTexture(nil, "ARTWORK")
+	view.trackLine:SetColorTexture(Tokens.Color("white"))
 
 	local portraitFrame = CreateFrame("Frame", nil, parent)
 	portraitFrame:SetFrameLevel(base + LEVEL_PORTRAIT)
@@ -174,6 +182,10 @@ function Style.Layout(view, s, width, height)
 	view.chrome:Restyle()
 	PlaceBar(view, view.health, g.health)
 	PlaceBar(view, view.power, g.power)
+	PlaceText(view, view.trackLine, g.trackLine)
+	if g.trackLine then
+		view.trackLine:SetHeight(Widgets.Border(view.parent))
+	end
 	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
 	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
 	if g.portrait then
@@ -246,7 +258,26 @@ function Style.Restyle(view, kind)
 	Orient(view.power, Settings.Value(kind, "powerOrientation"))
 	view.incoming:SetBarColor(Widgets.Rgba("friendly", INCOMING_ALPHA))
 	view.absorb:SetBarColor(Widgets.Rgba("white", ABSORB_ALPHA))
+	Widgets.Tint(view.trackLine, TRACK_LINE, TRACK_LINE_ALPHA)
 	Style.Accent(view)
+end
+
+local function Plain(...)
+	for i = 1, select("#", ...) do
+		local v = select(i, ...)
+		if issecretvalue(v) or type(v) ~= "number" then
+			return false
+		end
+	end
+	return true
+end
+
+function Style.HealthTint(view, r, g, b)
+	if view.geometry and not view.geometry.compact and Plain(r, g, b) then
+		view.healthText:SetTextColor(r + (1 - r) * TINT, g + (1 - g) * TINT, b + (1 - b) * TINT)
+	else
+		view.healthText:SetTextColor(Tokens.Color("textEmphasis"))
+	end
 end
 
 function Style.Accent(view)

@@ -128,6 +128,10 @@ for _, name in ipairs(names) do
 				if EXCLUSIVE[a] ~= c and overlap(rects[a], rects[c]) then
 					error(label .. ": " .. a .. " overlaps " .. c)
 				end
+				local ra, rc = rects[a], rects[c]
+				if (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
+					error(label .. ": " .. a .. " comes within 2 units of " .. c)
+				end
 			end
 		end
 	end
@@ -154,6 +158,13 @@ for _, name in ipairs(names) do
 	assert(player.right < essential.left and target.left > essential.right, name .. ": player and target sit either side of the Cooldown Manager")
 	assert(player.bottom == target.bottom and player.top < cast.bottom, name .. ": player and target on one line, below the cast bar")
 	assert(math.abs((mid - player.x) - (target.x - mid)) < 1, name .. ": player and target mirror each other")
+	assert(player.bottom <= utility.bottom and player.top >= essential.top, name .. ": the frames flank both cooldown rows, as in the v3 warrior mockup")
+	local resource, pet, targetCast, tot = rect("unitframes.resource"), rect("unitframes.pet"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
+	for _, under in ipairs({ { resource, player, "the class resource" }, { pet, player, "the pet frame" }, { targetCast, target, "the target cast bar" }, { tot, target, "the target of target" } }) do
+		local small, frame = under[1], under[2]
+		assert(small.top <= frame.bottom and small.left >= frame.left and small.right <= frame.right, name .. ": " .. under[3] .. " sits under its frame")
+	end
+	assert(math.abs((mid - pet.x) - (tot.x - mid)) < 1 and pet.bottom == tot.bottom, name .. ": the pet frame and the target of target mirror each other")
 	local minimap, buffs = rect("minimap.main"), rect("auras.buffs")
 	assert(minimap.top > HEIGHT - 40 and minimap.right > width - 40, name .. ": the minimap sits top right")
 	assert(buffs.top <= minimap.bottom and buffs.right > width - 40, name .. ": the buffs sit under the minimap")
@@ -170,6 +181,17 @@ do
 	assert(x("DPS", "groupframes.party") < 300 and x("Tank", "groupframes.party") < 300, "DPS and Tank keep party frames at the left edge")
 	assert(x("Healer", "groupframes.party") > 300 and math.abs(x("Healer", "groupframes.raid") - 960) < 1, "Healer brings group frames to the centre")
 	assert(x("Tank", "meters.threat") < x("DPS", "meters.threat"), "Tank brings the threat meter in beside the target frame")
+end
+
+-- Player and target take the kit sheet's proportions (docs/design/mockups/05_kit_hunter.jpg), about 3.3 times as wide as
+-- tall, at the 80 to 95 units the v3 HUD mockups show. The compact frames stay compact.
+for _, key in ipairs({ "unitframes.player", "unitframes.target" }) do
+	local e = Layouts.Element(key)
+	assert(e.height >= 88 and e.height <= 100, key .. " is close to the kit sheet's 100 units at the 1080 reference, as large as the Mac's screen allows beside the chat, got " .. e.height)
+	assert(math.abs(e.width / e.height - 469 / 141) < 0.02, key .. " has the kit sheet's 469 by 141 proportions, got " .. e.width .. " x " .. e.height)
+end
+for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
+	assert(Layouts.Element(key).height < 36, key .. " stays a compact frame")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

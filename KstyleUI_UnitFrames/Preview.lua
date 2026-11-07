@@ -3,12 +3,11 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Theme, L = K.Widgets, K.Tokens, K.Theme, K.L
-local Settings, Style, Format = ns.Settings, ns.Style, ns.Format
+local Settings, Style, Format, Geometry = ns.Settings, ns.Style, ns.Format, ns.Geometry
 
 local Preview = {}
 ns.Preview = Preview
 
-local BOSS_SLOT_HEIGHT = 58
 local MARGIN = 16
 local INCOMING_SHARE = 0.08
 local SKULL = 8
@@ -47,7 +46,7 @@ local function SampleColor(s, sample, source, custom)
 	if source == "class" and sample.own then
 		return Theme.ClassColor(Theme.Class())
 	end
-	return Theme.ReactionColor(sample.reaction)
+	return ns.Unit.ReactionColor(sample.reaction)
 end
 
 local function Paint(view, kind)
@@ -55,6 +54,7 @@ local function Paint(view, kind)
 	view.health:SetBarRange(0, sample.healthMax)
 	view.health:SetValue(sample.health)
 	view.health:SetBarColor(SampleColor(s, sample, s.healthColor, s.healthCustom))
+	Style.HealthTint(view, SampleColor(s, sample, s.healthColor, s.healthCustom))
 	local split = view.geometry and view.geometry.healthSub
 	Format.Sample(view.healthText, split and Format.Main(s.healthText) or s.healthText, sample.health, sample.healthMax)
 	Format.SampleDetail(view.healthSub, split and s.healthText or "none", sample.health, sample.healthMax)
@@ -70,7 +70,7 @@ local function Paint(view, kind)
 		view.incoming:Hide()
 	end
 	view.absorb:Hide()
-	view.name:SetText(s.nameCaps and sample.name:upper() or sample.name)
+	ns.Unit.SetName(view, sample.name)
 	view.levelText:SetText(sample.level > 0 and sample.level or "??")
 	view.levelText:SetTextColor(Tokens.Color("textEmphasis"))
 	if s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
@@ -209,7 +209,7 @@ local function Size(frame, kind)
 		width, height = saved.width, saved.height
 	end
 	if kind == "boss" then
-		height = BOSS_SLOT_HEIGHT
+		height = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, width, height)[1].h
 	end
 	local room = frame:GetWidth()
 	if type(room) == "number" and not (issecretvalue and issecretvalue(room)) and room > 2 * MARGIN then

@@ -10,6 +10,10 @@ local max, min, ceil, floor = math.max, math.min, math.ceil, math.floor
 
 local PORTRAIT_GAP = 2
 local PAD_X, PAD_TOP, PAD_BOTTOM = 6, 4, 2
+local INNER_SHARE, OUTER_SHARE = 0.12, 0.18
+local TOP_SHARE, GAP_SHARE, BOTTOM_SHARE = 0.15, 0.09, 0.035
+local LINE_GAP = 2
+local PAD_LIMIT = 0.4
 local COMPACT_PAD = 3
 local GAP = 2
 local ROW_GAP = 1
@@ -18,10 +22,10 @@ local TEXT_INSET = 2
 local NAME_EXTRA = 3
 local ROW_SHARE = 0.85
 local GLYPH_SHARE = 0.7
-local DETAIL_SHARE = 0.75
+local DETAIL_SHARE = 0.85
 local FULL_MIN_HEIGHT = 36
 local GLASS_INSET = 2
-local BADGE_SHARE = 0.36
+local BADGE_SHARE = 0.34
 local BADGE_MIN = 14
 local LEVEL_COLUMN = 2.6
 local MIN_HEALTH = 2
@@ -30,6 +34,7 @@ local MAX_COLUMN_SHARE = 0.5
 Geometry.TEXT_GAP = TEXT_GAP
 Geometry.FULL_MIN_HEIGHT = FULL_MIN_HEIGHT
 Geometry.DETAIL_SHARE = DETAIL_SHARE
+Geometry.BOSS_COUNT, Geometry.BOSS_GAP = 5, 10
 
 local function Rect(x, y, w, h)
 	return { x = x, y = y, w = max(0, w), h = max(0, h) }
@@ -100,43 +105,75 @@ local function TextRow(x, w, slotY, slotH, size, height)
 	return Rect(x, y, w, h)
 end
 
+local function ColumnX(out, s, height)
+	local inner, outer = max(PAD_X, INNER_SHARE * height), max(PAD_X, OUTER_SHARE * height)
+	local left, right = outer, outer
+	if out.portrait and s.portraitSide == "RIGHT" then
+		right = inner
+	elseif out.portrait then
+		left = inner
+	end
+	local limit = PAD_LIMIT * out.panel.w
+	if left + right > limit then
+		left, right = left * limit / (left + right), right * limit / (left + right)
+	end
+	return out.panel.x + left, max(0, out.panel.w - left - right)
+end
+
 local function Full(out, s, scale, height)
-	local panel, glass = out.panel, out.glass
-	local ix, iw = panel.x + PAD_X, max(0, panel.w - 2 * PAD_X)
-	local top, bottom = glass.y + PAD_TOP, glass.y + glass.h - PAD_BOTTOM
-	local powerH = PowerHeight(s, max(0, bottom - top))
+	local glass = out.glass
+	local ix, iw = ColumnX(out, s, height)
+	local top = glass.y
+	local bottom = glass.y + glass.h - max(PAD_BOTTOM, floor(BOTTOM_SHARE * height + 0.5))
+	local room = max(0, bottom - top)
+	local powerH = PowerHeight(s, max(0, room - PAD_TOP))
 	local healthSize, powerSize = Size(s, "health", scale), Size(s, "power", scale)
 	local healthText = (s.healthText or "none") ~= "none"
 	local trackMin = healthText and max(MIN_HEALTH, ceil(healthSize * ROW_SHARE)) or MIN_HEALTH
+	local detail = s.healthText == "both"
+	local powerText = powerH > 0 and (s.powerText or "none") ~= "none"
+	local rowH = ceil(max(detail and healthSize * DETAIL_SHARE or 0, powerText and powerSize or 0) * ROW_SHARE)
+	local nameSize = s.name and Size(s, "name", scale) or 0
+	local nameH = ceil(nameSize * ROW_SHARE)
+	local function Need(pad, gap, name, row)
+		local n = pad + trackMin
+		if powerH > 0 then
+			n = n + gap + powerH
+		end
+		if name > 0 then
+			n = n + name + gap
+		end
+		if row > 0 then
+			n = n + row + gap
+		end
+		return n
+	end
+	if rowH > 0 and Need(PAD_TOP, ROW_GAP, nameH, rowH) > room then
+		rowH = 0
+	end
+	if nameH > 0 and Need(PAD_TOP, ROW_GAP, nameH, rowH) > room then
+		nameH = room - Need(PAD_TOP, ROW_GAP, 0, rowH) - ROW_GAP
+		if nameH < ceil(nameSize * GLYPH_SHARE) then
+			nameH = 0
+		end
+	end
+	local pad, gap = max(PAD_TOP, TOP_SHARE * height), max(ROW_GAP, GAP_SHARE * height)
+	local over = Need(pad, gap, nameH, rowH) - room
+	if over > 0 then
+		local gaps = (powerH > 0 and 1 or 0) + (nameH > 0 and 1 or 0) + (rowH > 0 and 1 or 0)
+		local slack = pad - PAD_TOP + gaps * (gap - ROW_GAP)
+		local t = slack > 0 and max(0, 1 - over / slack) or 0
+		pad, gap = PAD_TOP + (pad - PAD_TOP) * t, ROW_GAP + (gap - ROW_GAP) * t
+	end
 	local y = bottom
 	if powerH > 0 then
 		y = y - powerH
 		out.power = Rect(ix, y, iw, powerH)
-		y = y - ROW_GAP
+		y = y - gap
 	end
-	if s.name then
-		local nameSize = Size(s, "name", scale)
-		local nameH = min(ceil(nameSize * ROW_SHARE), y - top - trackMin - ROW_GAP)
-		if nameH >= ceil(nameSize * GLYPH_SHARE) then
-			local nameW = iw
-			if s.level and not out.portrait then
-				local levelSize = Size(s, "level", scale)
-				local levelCol = ceil(LEVEL_COLUMN * levelSize)
-				nameW = iw - levelCol - TEXT_GAP
-				out.levelText = TextRow(ix + iw - levelCol, levelCol, top, nameH, levelSize, height)
-			end
-			out.name = TextRow(ix, nameW, top, nameH, nameSize, height)
-			top = top + nameH + ROW_GAP
-		end
-	end
-	local detail = s.healthText == "both"
-	local powerText = powerH > 0 and (s.powerText or "none") ~= "none"
-	local rowH = ceil(max(detail and healthSize * DETAIL_SHARE or 0, powerText and powerSize or 0) * ROW_SHARE)
-	local trackEnd = y
 	local tx, tw = ix + TEXT_INSET, max(0, iw - 2 * TEXT_INSET)
-	if rowH > 0 and y - rowH - ROW_GAP - top >= trackMin then
+	if rowH > 0 then
 		local rowY = y - rowH
-		trackEnd = rowY - ROW_GAP
 		local half = max(0, (tw - TEXT_GAP) / 2)
 		if detail then
 			local w = powerText and half or tw
@@ -145,10 +182,26 @@ local function Full(out, s, scale, height)
 		if powerText then
 			out.powerText = TextRow(tx, detail and half or tw, rowY, rowH, powerSize, height)
 		end
+		y = rowY - gap
 	end
-	out.health = Rect(ix, top, iw, trackEnd - top)
+	local trackTop = top + pad
+	if nameH > 0 then
+		local nameW = iw
+		if s.level and not out.portrait then
+			local levelSize = Size(s, "level", scale)
+			local levelCol = ceil(LEVEL_COLUMN * levelSize)
+			nameW = iw - levelCol - TEXT_GAP
+			out.levelText = TextRow(ix + iw - levelCol, levelCol, trackTop, nameH, levelSize, height)
+		end
+		out.name = TextRow(ix, nameW, trackTop, nameH, nameSize, height)
+		trackTop = trackTop + nameH + gap
+	end
+	out.health = Rect(ix, trackTop, iw, y - trackTop)
 	if healthText then
 		out.healthText = TextRow(tx, tw, out.health.y, out.health.h, healthSize, height)
+	end
+	if (rowH > 0 or powerH > 0) and gap >= LINE_GAP + 1 then
+		out.trackLine = Rect(ix, y + LINE_GAP, iw, 1)
 	end
 end
 

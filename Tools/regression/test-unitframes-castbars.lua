@@ -132,12 +132,14 @@ noErrors("secret nil duration")
 local focusView = ns.Frames.Get("focus").views[1]
 local focusBar = CastBars.Get("focus")[1]
 local _, frameH = focusView.button:GetSize()
-assert(math.abs(focusView.geometry.panel.h - (70 - 20 - 4)) < 1, "the focus frame leaves room for its cast bar: " .. focusView.geometry.panel.h)
+local focusH = K.Setup.Layouts.Element("unitframes.focus").height
+local bossSlot = ns.Geometry.Slots(5, 10, 1, K.Setup.Layouts.Element("unitframes.boss").height)[1].h
+assert(math.abs(focusView.geometry.panel.h - (focusH - 20 - 4)) < 1, "the focus frame leaves room for its cast bar: " .. focusView.geometry.panel.h)
 local _, _, _, _, y = focusBar.frame:GetPoint(1)
 assert(y < -40, "the focus cast bar sits under the frame")
-assert(frameH == 70, "the focus button spans its element")
+assert(frameH == focusH, "the focus button spans its element")
 local bossView = ns.Frames.Get("boss").views[1]
-assert(math.abs(bossView.geometry.panel.h - (58 - 10 - 2)) < 1, "each boss frame leaves room for its cast bar")
+assert(math.abs(bossView.geometry.panel.h - (bossSlot - 10 - 2)) < 1, "each boss frame leaves room for its cast bar")
 
 -- A font that does not load falls back to KstyleUI's font at the chosen size.
 do
@@ -196,9 +198,9 @@ env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-4", 116)
 settle()
 K.Options.Write("UnitFrames", "focus.castbarHeight", 30)
-assert(math.abs(focusView.geometry.panel.h - (70 - 30 - 4)) < 1, "a taller focus cast bar takes room from the frame")
+assert(math.abs(focusView.geometry.panel.h - (focusH - 30 - 4)) < 1, "a taller focus cast bar takes room from the frame")
 K.Options.Write("UnitFrames", "focus.castbar", false)
-assert(math.abs(focusView.geometry.panel.h - 70) < 1, "without a cast bar the frame fills its element")
+assert(math.abs(focusView.geometry.panel.h - focusH) < 1, "without a cast bar the frame fills its element")
 K.Options.Write("UnitFrames", "player.castbar", false)
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 9000, finish = 11500, spellID = 116 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-5", 116)

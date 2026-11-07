@@ -10,6 +10,9 @@ ns.Unit = Unit
 
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 local UNKNOWN_LEVEL = "??"
+local HOSTILE_MAX = 3
+local THIN_SPACE = "\226\128\137"
+local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
 local ELITE_SUFFIX = "+"
 local ELITE = { elite = true, rareelite = true }
 
@@ -46,8 +49,15 @@ local function ClassFile(unit)
 	return file
 end
 
+function Unit.ReactionColor(reaction)
+	if not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX then
+		return Tokens.Color("healthHostile")
+	end
+	return Theme.ReactionColor(reaction)
+end
+
 local function ReactionColor(unit)
-	return Theme.ReactionColor(UnitReaction(unit, "player"))
+	return Unit.ReactionColor(UnitReaction(unit, "player"))
 end
 
 local function UnitColor(unit, source)
@@ -62,17 +72,17 @@ end
 
 function Unit.HealthColor(view, unit)
 	local s = view.s
-	local bar = view.health
+	local r, g, b
 	if UnitIsConnected and not UnitIsConnected(unit) or UnitIsTapDenied and UnitIsTapDenied(unit) then
-		SetColor(bar, Tokens.Color("textDisabled"))
-		return
-	end
-	if s.healthColor == "custom" then
+		r, g, b = Tokens.Color("textDisabled")
+	elseif s.healthColor == "custom" then
 		local c = s.healthCustom
-		SetColor(bar, c.r, c.g, c.b)
-		return
+		r, g, b = c.r, c.g, c.b
+	else
+		r, g, b = UnitColor(unit, s.healthColor)
 	end
-	SetColor(bar, UnitColor(unit, s.healthColor))
+	SetColor(view.health, r, g, b)
+	ns.Style.HealthTint(view, r, g, b)
 end
 
 local function PowerTypeColor(unit)
@@ -177,8 +187,26 @@ function Unit.Name(view, unit)
 	if type(name) ~= "string" then
 		name = ""
 	end
+	Unit.SetName(view, name)
+end
+
+local ownFonts
+local function OwnFont(path)
+	if not ownFonts then
+		ownFonts = {}
+		for _, face in ipairs(Tokens.MediaList("font")) do
+			ownFonts[face.path] = true
+		end
+	end
+	return ownFonts[path] == true
+end
+
+function Unit.SetName(view, name)
 	if view.s.nameCaps then
 		name = name:upper()
+		if OwnFont((ns.Settings.Font(view.kind, "name"))) then
+			name = name:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1)
+		end
 	end
 	view.name:SetText(name)
 end

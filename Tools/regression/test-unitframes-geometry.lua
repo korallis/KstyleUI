@@ -47,7 +47,7 @@ assert(glass.y > 0 and near(glass.y + glass.h, 46 - glass.y), "the glass sits in
 
 -- One long health track and a thin power bar under it, both across the column's inner width.
 local pad = g.health.x - g.panel.x
-assert(pad > 0 and near(g.health.x + g.health.w, g.panel.x + g.panel.w - pad), "the health track spans the column, with the same padding at both ends")
+assert(pad > 0 and g.panel.x + g.panel.w - (g.health.x + g.health.w) > pad, "the health track spans the column, with more room at the glass's chamfered far end than beside the portrait")
 assert(near(g.power.x, g.health.x) and near(g.power.w, g.health.w), "the power bar runs under the whole health track")
 assert(near(g.power.h, 5), "the power bar is the chosen height")
 assert(near(g.power.y + g.power.h, glass.y + glass.h - 2), "the power bar sits on the glass's bottom edge, inside its two bevel lines")
@@ -76,6 +76,32 @@ assert(near(m.glass.x, 0) and near(m.glass.x + m.glass.w, 220 + 23), "the target
 assert(near(m.badge.x + m.badge.w, 266), "the badge sits in the portrait's bottom right corner")
 assert(near(m.health.x + m.health.w - (m.healthText.x + m.healthText.w), trackEnd - (g.healthText.x + g.healthText.w)), "the target's percentage still ends at the track's right end, as the player's does")
 
+-- The kit sheet's proportions at the default size, with the default settings. Measured on the sheet as shares of
+-- the frame's height: the name's capitals centred 0.22 below the glass's top, a track 0.18 tall, gaps of about 0.1
+-- between the name, the track, current and max, and the power bar, the column 0.14 from the portrait and 0.18 from the
+-- glass's far end, and a faint hairline under the track.
+do
+	local element = K.Setup.Layouts.Element("unitframes.player")
+	local W, H = element.width, element.height
+	local d = Geometry.Frame(ns.Settings.Snapshot("player"), W, H, 1)
+	local where = "the default " .. W .. " x " .. H .. " frame: "
+	assert(not d.compact and d.name and d.healthSub and d.power, where .. "a full frame with the name, current and max and the power bar")
+	assert(d.powerText == nil, where .. "no power numbers, as on the kit sheet")
+	assert(mid(d.name) - d.glass.y > 0.18 * H, where .. "generous room above the name")
+	assert(d.health.h > 0.14 * H and d.health.h < 0.24 * H, where .. "a track about a fifth of the frame's height, got " .. d.health.h)
+	local rows = { { d.name.y + d.name.h / 2 + 0.35 * ns.Settings.Snapshot("player").fonts.name.size, d.health.y }, { d.health.y + d.health.h, d.healthSub.y }, { d.healthSub.y + d.healthSub.h, d.power.y } }
+	for i, gap in ipairs(rows) do
+		assert(gap[2] - gap[1] > 0.06 * H, where .. "clear gap " .. i .. " between the rows, got " .. (gap[2] - gap[1]))
+	end
+	assert(d.health.x - (d.portrait.x + d.portrait.w) > 0.1 * H, where .. "room between the portrait and the column")
+	assert(d.glass.x + d.glass.w - (d.health.x + d.health.w) > 0.15 * H, where .. "room between the column and the glass's far end")
+	local line = d.trackLine
+	assert(line and near(line.x, d.health.x) and near(line.w, d.health.w), where .. "a hairline under the whole track")
+	assert(line.y > d.health.y + d.health.h and line.y + line.h < d.healthSub.y + d.healthSub.h / 2, where .. "the hairline sits between the track and current and max")
+end
+local noLine = Geometry.Frame(base({ healthText = "percent", powerText = "none", power = false }), 266, 46, 1)
+assert(noLine.trackLine == nil, "with nothing under the track there is no hairline, so it never sits on the glass's bevel")
+
 -- No portrait: the glass is the whole frame and the level moves into the name row.
 local n = Geometry.Frame(base({ portrait = false }), 266, 46, 1)
 assert(n.portrait == nil and n.badge == nil, "no portrait, no badge")
@@ -86,18 +112,25 @@ assert(n.levelText and n.levelText.x >= n.name.x + n.name.w, "the level sits at 
 -- A narrow frame keeps half its width for the bars.
 local narrow = Geometry.Frame(base(), 60, 46, 1)
 assert(near(narrow.portrait.w, 30), "the portrait never takes more than half the frame's width")
+local slim = Geometry.Frame(base(), 60, 120, 1)
+assert(slim.health.w > 0.5 * slim.panel.w and slim.healthText.w > 0, "a narrow, tall frame keeps a visible track: its padding never eats the column, got " .. slim.health.w)
 
--- Switching parts off gives their room to the health track.
-local noPower = Geometry.Frame(base({ healthText = "both", power = false }), 266, 46, 1)
-assert(noPower.power == nil and noPower.powerText == nil and noPower.health.h > g.health.h, "no power bar: the track grows")
-local noName = Geometry.Frame(base({ healthText = "both", name = false }), 266, 46, 1)
-assert(noName.name == nil and noName.health.h > g.health.h, "no name row: the track grows")
-local percentOnly = Geometry.Frame(base({ healthText = "percent", powerText = "none" }), 266, 46, 1)
+-- At the default size, switching parts off gives their room to the health track. A squeezed frame gives it back
+-- to the gaps between the rows first.
+local DW, DH = K.Setup.Layouts.Element("unitframes.player").width, K.Setup.Layouts.Element("unitframes.player").height
+local full = Geometry.Frame(base({ healthText = "both" }), DW, DH, 1)
+local noPower = Geometry.Frame(base({ healthText = "both", power = false }), DW, DH, 1)
+assert(noPower.power == nil and noPower.powerText == nil and noPower.health.h > full.health.h, "no power bar: the track grows")
+local noName = Geometry.Frame(base({ healthText = "both", name = false }), DW, DH, 1)
+assert(noName.name == nil and noName.health.h > full.health.h, "no name row: the track grows")
+local percentOnly = Geometry.Frame(base({ healthText = "percent", powerText = "none" }), DW, DH, 1)
 assert(percentOnly.healthSub == nil and percentOnly.powerText == nil, "a percentage alone needs no row under the track")
-assert(percentOnly.health.h > g.health.h and near(percentOnly.health.w, g.health.w), "without that row the track grows taller, never wider")
-local noText = Geometry.Frame(base({ healthText = "none", powerText = "none" }), 266, 46, 1)
+assert(percentOnly.health.h > full.health.h and near(percentOnly.health.w, full.health.w), "without that row the track grows taller, never wider")
+local noText = Geometry.Frame(base({ healthText = "none", powerText = "none" }), DW, DH, 1)
 assert(noText.healthText == nil and noText.healthSub == nil and noText.powerText == nil, "no text")
-assert(near(noText.health.w, g.health.w) and near(noText.power.w, noText.health.w), "the track's width never depends on its text")
+assert(near(noText.health.w, full.health.w) and near(noText.power.w, noText.health.w), "the track's width never depends on its text")
+local squeezed = Geometry.Frame(base({ healthText = "both", power = false }), 266, 46, 1)
+assert(squeezed.health.h >= g.health.h and squeezed.health.y - (squeezed.name.y + squeezed.name.h) > g.health.y - (g.name.y + g.name.h), "a squeezed frame without its power bar opens the gaps and keeps its track")
 
 -- Taller and wider frames scale the parts.
 local big = Geometry.Frame(base({ healthText = "both" }), 400, 80, 1)

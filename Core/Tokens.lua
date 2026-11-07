@@ -21,6 +21,7 @@ local COLORS = {
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
 	hostile = { "e5534b", 1 },
+	healthHostile = { "e03b3f", 1 },
 	neutral = { "e8c14f", 1 },
 	friendly = { "5fcf72", 1 },
 	accentDefault = { "aad372", 1 },

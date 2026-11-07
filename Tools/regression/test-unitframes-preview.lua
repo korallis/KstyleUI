@@ -128,6 +128,9 @@ end
 K.Options.Write("UnitFrames", "edit", "boss")
 settle()
 assert(preview.kind == "boss" and U.Shown(env, preview.views.boss.levelText) == "??", "the boss sample shows a skull level")
+local liveBoss = uf.Frames.Get("boss").views[1].geometry.portrait.h
+local _, sampleBoss = preview.holders.boss:GetSize()
+assert(math.abs(sampleBoss - liveBoss) <= 2, "the boss sample is one live boss frame tall: " .. sampleBoss .. ", live " .. liveBoss)
 
 assert(uf.Frames.Get("player"), "the live frames exist alongside the preview")
 assert(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))
