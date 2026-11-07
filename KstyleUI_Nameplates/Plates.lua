@@ -260,12 +260,12 @@ local function AddUnitHandler(event, fn)
 	list[#list + 1] = fn
 end
 
-local function Dispatch(event, unit)
+local function Dispatch(event, unit, ...)
 	local plate = byUnit[unit]
 	if plate then
 		local list = unitHandlers[event]
 		for i = 1, #list do
-			list[i](plate, event)
+			list[i](plate, event, ...)
 		end
 	end
 end

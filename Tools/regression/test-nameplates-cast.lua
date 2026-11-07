@@ -98,6 +98,67 @@ do
 	assert(not preview.plates[1].cast:IsShown(), "and follows the cast switch")
 end
 
+-- A secret duration object is never indexed or tested: the bar falls back to the start and end times -----
+
+do
+	local env, _, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	N.Cast(env, "nameplate1", { name = "Fear", text = "Fear", texture = 136183, secret = true, secretDuration = true })
+	assert(plate.cast:IsShown(), "the cast shows")
+	assert(#Calls(plate.castBar, "SetTimerDuration") == 0, "a secret duration never reaches SetTimerDuration")
+	local range = Last(plate.castBar, "SetMinMaxValues")
+	assert(env.issecretvalue(range[1]) and env.Reveal(range[2]) == 3000, "the bar spans the secret start and end")
+	N.Tick(env, 0.2)
+	assert(#env._errors == 0, "no error: " .. tostring(env._errors[1]))
+end
+
+-- A failed attempt at another spell, or a STOP for another cast, leaves the shown cast alone ---------------
+
+do
+	local env, _, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	N.Cast(env, "nameplate1", CAST)
+	env.FireEvent("UNIT_SPELLCAST_FAILED", "nameplate1", "other-cast", 116)
+	assert(plate.cast:IsShown() and plate.casting, "a failure of another cast keeps the bar")
+	env.FireEvent("UNIT_SPELLCAST_STOP", "nameplate1", "other-cast", 116)
+	assert(plate.casting, "so does a STOP for another cast")
+end
+
+-- An interrupted channel shows as interrupted ---------------------------------------------------------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	N.Cast(env, "nameplate1", { name = "Drain Life", text = "Drain Life", texture = 136169, channel = true })
+	env._units.nameplate1.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "nameplate1", "cast-guid", 689, "Player-1-0001")
+	assert(Last(plate.castName, "SetText")[1] == K.L["Interrupted"], "a channel stopped by someone says Interrupted")
+	N.Settle(env)
+	N.Cast(env, "nameplate1", { name = "Drain Life", text = "Drain Life", texture = 136169, channel = true })
+	env._units.nameplate1.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "nameplate1", "cast-guid", 689, nil)
+	assert(Last(plate.castName, "SetText")[1] == "Drain Life", "a channel that ran out just fades")
+end
+
+-- The spark follows the fill direction ------------------------------------------------------------------
+
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate1")
+	local spark = plate.castBar.spark
+	assert(select(3, spark:GetPoint(1)) == "RIGHT", "a normal bar's spark rides the right edge of the fill")
+	K.Options.Write("Nameplates", "cast.reverse", true)
+	assert(select(3, spark:GetPoint(1)) == "LEFT", "a reversed bar's spark rides the left edge")
+	K.Options.Write("Nameplates", "cast.orientation", "VERTICAL")
+	assert(select(3, spark:GetPoint(1)) == "BOTTOM", "a reversed vertical bar's spark rides the bottom edge")
+	K.Options.Write("Nameplates", "cast.reverse", false)
+	assert(select(3, spark:GetPoint(1)) == "TOP", "a vertical bar's spark rides the top edge")
+end
+
 -- Channels drain; a unit already casting when its plate appears shows its cast ----------------------------
 
 do

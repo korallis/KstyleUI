@@ -18,6 +18,10 @@ local SHIELD_ALPHA = 0.6
 local ICON_CROP = 0.07
 local MS = 1000
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+local SPARK_EDGE = {
+	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
+	VERTICAL = { normal = "TOP", reverse = "BOTTOM" },
+}
 
 local function Direction(name)
 	local enum = Enum and Enum.StatusBarTimerDirection
@@ -131,10 +135,10 @@ end
 local function Info(unit, channel)
 	if channel then
 		local name, text, texture, startMs, endMs, _, notInterruptible = UnitChannelInfo(unit)
-		return name, text, texture, startMs, endMs, notInterruptible
+		return name, text, texture, startMs, endMs, notInterruptible, nil
 	end
-	local name, text, texture, startMs, endMs, _, _, notInterruptible = UnitCastingInfo(unit)
-	return name, text, texture, startMs, endMs, notInterruptible
+	local name, text, texture, startMs, endMs, _, castID, notInterruptible = UnitCastingInfo(unit)
+	return name, text, texture, startMs, endMs, notInterruptible, castID
 end
 
 local function DurationFor(unit, channel)
@@ -143,10 +147,14 @@ local function DurationFor(unit, channel)
 		return nil
 	end
 	local ok, duration = pcall(fn, unit)
-	if ok and type(duration) ~= "nil" then
-		return duration
+	if not ok or type(duration) == "nil" then
+		return nil
 	end
-	return nil
+	if IsSecret(duration) then
+		LogOnce("cast-secret-duration", "a cast's duration object came back secret; that bar runs from the start and end times")
+		return nil
+	end
+	return duration
 end
 
 local function Run(plate, channel, startMs, endMs)
@@ -175,13 +183,13 @@ function Cast.Start(plate, channel)
 	if not Shows(plate) then
 		return
 	end
-	local name, text, texture, startMs, endMs, flag = Info(plate.unit, channel)
+	local name, text, texture, startMs, endMs, flag, castID = Info(plate.unit, channel)
 	if type(name) == "nil" then
 		return
 	end
 	StopFade(plate)
 	plate.casting, plate.castChannel, plate.castInterrupted = true, channel, false
-	plate.castFlag = flag
+	plate.castFlag, plate.castID = flag, castID
 	local cast = plate.cast
 	cast:SetAlpha(1)
 	cast:Show()
@@ -314,8 +322,12 @@ function Component.Restyle(plate)
 	local orientation = Settings.Get("cast.orientation")
 	bar:SetOrientation(orientation)
 	bar.vertical = orientation == "VERTICAL"
-	bar:SetReverseFill(Settings.Get("cast.reverse"))
+	local reverse = Settings.Get("cast.reverse")
+	bar:SetReverseFill(reverse)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
+	local edges = SPARK_EDGE[orientation] or SPARK_EDGE.HORIZONTAL
+	bar.spark:ClearAllPoints()
+	bar.spark:SetPoint("CENTER", bar:GetStatusBarTexture(), reverse and edges.reverse or edges.normal)
 	bar:Restyle()
 	StyleFont(plate.castName)
 	StyleFont(plate.castTime)
@@ -373,15 +385,23 @@ Component.events.UNIT_SPELLCAST_CHANNEL_UPDATE = function(plate)
 		Cast.Start(plate, true)
 	end
 end
-Component.events.UNIT_SPELLCAST_STOP = function(plate)
-	if not plate.castChannel then
+local function OtherCast(plate, castGUID)
+	local shown = plate.castID
+	if type(castGUID) == "string" and type(shown) == "string" and not IsSecret(castGUID) and not IsSecret(shown) then
+		return castGUID ~= shown
+	end
+	return type(UnitCastingInfo(plate.unit)) ~= "nil"
+end
+
+Component.events.UNIT_SPELLCAST_STOP = function(plate, _, castGUID)
+	if not plate.castChannel and not OtherCast(plate, castGUID) then
 		Cast.Stop(plate, false)
 	end
 end
 Component.events.UNIT_SPELLCAST_FAILED = Component.events.UNIT_SPELLCAST_STOP
-Component.events.UNIT_SPELLCAST_CHANNEL_STOP = function(plate)
+Component.events.UNIT_SPELLCAST_CHANNEL_STOP = function(plate, _, _, _, interruptedBy)
 	if plate.castChannel then
-		Cast.Stop(plate, false)
+		Cast.Stop(plate, type(interruptedBy) ~= "nil")
 	end
 end
 Component.events.UNIT_SPELLCAST_INTERRUPTED = function(plate)

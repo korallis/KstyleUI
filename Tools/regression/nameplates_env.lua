@@ -226,7 +226,7 @@ function N.Install(env, opts)
 		return env._time
 	end
 
-	-- A cast is unit.cast = { name, text, texture, notInterruptible, channel, secret }. It runs from
+	-- A cast is unit.cast = { name, text, texture, notInterruptible, channel, secret, secretDuration }. It runs from
 	-- 1000 to 3000 ms; its duration object reports 1.5 s remaining as a secret.
 	local function castInfo(token, channel)
 		local u = unit(token)
@@ -264,6 +264,9 @@ function N.Install(env, opts)
 					return env.Secret(1.5)
 				end,
 			}
+			if u.cast.secretDuration then
+				u.castDuration = env.Secret(u.castDuration)
+			end
 		end
 		return u.castDuration
 	end
