@@ -308,6 +308,8 @@ end
 local function installAuras(env, opts)
 	AurasEnv.Engine(env, opts)
 	env.CustomAuraContainerAuraProcessingPolicy = { None = 0, ProcessAura = 1 }
+	env.AuraUtil = env.AuraUtil or {}
+	env.AuraUtil.AuraUpdateChangedType = { None = 1, Debuff = 2, Buff = 3, Dispel = 4 }
 	local create = env.CreateFrame
 	env.CreateFrame = function(frameType, name, parent, template)
 		local frame = create(frameType, name, parent, template)
@@ -330,6 +332,23 @@ local function installAuras(env, opts)
 				assert(type(enabled) == "boolean", "enabled must be a boolean.")
 				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
 				self._slots[key].enabled = enabled
+			end
+			local addGroup = frame.AddAuraGroup
+			function frame.AddAuraGroup(self, key, filter, options)
+				addGroup(self, key, filter, options)
+				local group = self._groups[key]
+				options = options or {}
+				group.candidateFilters = options.candidateFilters
+				group.layoutIndex = options.layout and options.layout.layoutIndex
+			end
+			function frame.SetAuraGroupCandidateFilters(self, key, filters)
+				assert(self._groups[key], "aura group '" .. tostring(key) .. "' was not found with this key.")
+				self._groups[key].candidateFilters = filters
+			end
+			function frame.SetAuraProcessingPolicy(self, policy, options)
+				assert(policy == 0 or policy == 1, "policy must be a valid CustomAuraContainerAuraProcessingPolicy.")
+				assert(policy == 1 or options == nil, "options must be nil for this aura processing policy.")
+				self._policy, self._policyOptions = policy, options
 			end
 			function frame.GetAuraSlotFrame(self, key)
 				local slot = self._slots[key]

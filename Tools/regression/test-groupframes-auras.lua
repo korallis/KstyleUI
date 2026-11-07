@@ -35,12 +35,24 @@ eq(container:GetObjectType(), "AuraContainer", "the container is an AuraContaine
 eq(container._unit, "party1", "the container follows the frame's unit")
 eq(container._editModePreview, false, "Edit Mode preview auras are off")
 
--- The debuff group: harmful auras, Blizzard's unit frame order, the party's size and count.
+-- Blizzard's unit frame processing classifies each debuff, as its own raid frames do: dispellable
+-- debuffs first, then boss, priority and other debuffs, each sorted in Blizzard's unit frame order.
+eq(container._policy, env.CustomAuraContainerAuraProcessingPolicy.ProcessAura, "auras are processed as Blizzard's raid frames do")
+eq(container._policyOptions.ignoreBuffs, true, "buffs are ignored")
+eq(container._policyOptions.displayOnlyDispellableDebuffs, false, "all debuffs by default")
+local types = env.AuraUtil.AuraUpdateChangedType
+local dispels = container._groups.dispels
+assert(dispels, "the container has a dispellable debuff group")
+eq(dispels.candidateFilters.processedAuraType, types.Dispel, "dispellable debuffs")
+eq(dispels.sortMethod, env.AuraContainerSortMethod.UnitFrameDebuff, "in unit frame order")
+eq(dispels.maxFrameCount, 1, "one dispellable debuff by default")
 local group = container._groups.debuffs
 assert(group, "the container has a debuff group")
+eq(group.candidateFilters.processedAuraType, types.Debuff, "boss, priority and other debuffs")
 eq(group.filter, "HARMFUL", "all debuffs by default")
 eq(group.sortMethod, env.AuraContainerSortMethod.UnitFrameDebuff, "boss and priority debuffs first")
 eq(group.maxFrameCount, 3, "three party debuffs")
+assert(dispels.layoutIndex < group.layoutIndex, "dispellable debuffs come first")
 eq(group.layout.elementWidth, 20, "20-unit party icons")
 eq(group.layout.elementSpacing, 2, "2-unit gaps")
 eq(container._flow.anchor, "TOPLEFT", "party icons grow right and down from the top left")
@@ -82,9 +94,16 @@ ns.Unit.Set(f, "party1")
 
 -- Settings: filter, count, grid, dispel filter and the switch.
 K.Options.Write("GroupFrames", "auras.filter", "DISPELLABLE")
-eq(group.filter, "HARMFUL|RAID", "debuffs you can dispel")
+eq(container._policyOptions.displayOnlyDispellableDebuffs, true, "only debuffs you can dispel")
 K.Options.Write("GroupFrames", "auras.filter", "RAID")
 eq(group.filter, "HARMFUL|RAID_IN_COMBAT", "debuffs Blizzard shows on raid frames")
+eq(dispels.filter, "HARMFUL|RAID_IN_COMBAT", "for both groups")
+eq(container._policyOptions.displayOnlyDispellableDebuffs, false, "back to all kinds")
+K.Options.Write("GroupFrames", "party.auraDispelCount", 0)
+eq(dispels.enabled, false, "no dispellable debuff icons at a count of 0")
+K.Options.Write("GroupFrames", "party.auraDispelCount", 2)
+eq(dispels.enabled, true, "dispellable debuff icons come back")
+eq(dispels.maxFrameCount, 2, "two dispellable debuffs")
 K.Options.Write("GroupFrames", "party.auraColumns", 2)
 K.Options.Write("GroupFrames", "party.auraRows", 1)
 eq(group.maxFrameCount, 2, "the count stops at columns times rows")
@@ -95,11 +114,31 @@ local w = button:GetSize()
 eq(w, 24, "the icons resize")
 eq(group.layout.elementWidth, 24, "and the layout follows")
 K.Options.Write("GroupFrames", "auras.enabled", false)
-eq(container:IsShown(), false, "debuffs switch off")
-eq(container._unit, "none", "and stop following the unit")
+eq(group.enabled, false, "debuff icons switch off")
+eq(dispels.enabled, false, "dispellable icons too")
+eq(container:IsShown(), true, "the dispel highlight stays while it is on")
+eq(container._unit, "party1", "and keeps following the unit")
+K.Options.Write("GroupFrames", "auras.dispelHighlight", false)
+eq(container:IsShown(), false, "with both off the container hides")
+eq(container._unit, "none", "and stops following the unit")
 K.Options.Write("GroupFrames", "auras.enabled", true)
+K.Options.Write("GroupFrames", "auras.dispelHighlight", true)
 eq(container:IsShown(), true, "debuffs switch back on")
+eq(group.enabled, true, "the debuff group comes back")
 eq(container._unit, "party1", "and follow the unit again")
+
+-- A scale change redraws the dispel border in whole pixels.
+local line = f.dispelLines[1]
+local heights = 0
+for _, call in ipairs(line._calls) do
+	heights = heights + (call.method == "SetHeight" and 1 or 0)
+end
+K.Callbacks.Fire("ScaleChanged")
+local after = 0
+for _, call in ipairs(line._calls) do
+	after = after + (call.method == "SetHeight" and 1 or 0)
+end
+assert(after > heights, "ScaleChanged lays the dispel border out again")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- While auras are secret, aura buttons are not touched; the change lands when they are readable.

@@ -38,7 +38,7 @@ Settings.defaults = {
 		portrait = true, power = true, powerHeight = 4,
 		textLayout = "ABOVE", nameSize = 11, healthText = "PERCENT", healthTextSize = 11,
 		iconSize = 14,
-		auraSize = 20, auraCount = 3, auraColumns = 3, auraRows = 1, auraSpacing = 2,
+		auraSize = 20, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 	},
 	raid = {
@@ -48,7 +48,7 @@ Settings.defaults = {
 		power = false, powerHeight = 3,
 		textLayout = "INSIDE", nameSize = 10, healthText = "NONE", healthTextSize = 9,
 		iconSize = 12,
-		auraSize = 14, auraCount = 3, auraColumns = 3, auraRows = 1, auraSpacing = 1,
+		auraSize = 14, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMLEFT", auraGrowth = "RIGHT", auraWrap = "UP",
 	},
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
@@ -177,6 +177,7 @@ local function KindRows(schema, kind, label)
 	add(Slider(p .. "iconSize", L["Status icon size"], L["The size of the role, leader, marker and ready-check icons."], 6, 32, 1))
 	add(Slider(p .. "auraSize", L["Debuff icon size"], L["The size of each debuff icon."], 8, 40, 1))
 	add(Slider(p .. "auraCount", L["Debuff count"], L["The most debuffs each frame shows."], 1, 10, 1))
+	add(Slider(p .. "auraDispelCount", L["Dispellable debuff count"], L["How many dispellable debuffs show first, before the others."], 0, 4, 1))
 	add(Slider(p .. "auraColumns", L["Debuffs per row"], L["How many debuff icons sit in a row."], 1, 10, 1))
 	add(Slider(p .. "auraRows", L["Debuff rows"], L["How many rows of debuff icons a frame may show."], 1, 4, 1))
 	add(Slider(p .. "auraSpacing", L["Debuff spacing"], L["The gap between debuff icons."], 0, 10, 1))

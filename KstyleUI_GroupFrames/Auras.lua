@@ -9,6 +9,8 @@ local Auras = {}
 ns.Auras = Auras
 
 local GROUP = "debuffs"
+local DISPELS = "dispels"
+local GROUPS = { DISPELS, GROUP }
 local SLOT = "dispel"
 local TEMPLATE = "CustomAuraContainerTemplate"
 local NONE = "none"
@@ -47,8 +49,29 @@ local function Count(k)
 	return math.max(1, math.min(k.auraCount, k.auraColumns * k.auraRows))
 end
 
-local function GroupLayout(k)
-	return { elementSpacing = k.auraSpacing, lineSpacing = k.auraSpacing, elementWidth = k.auraSize, elementHeight = k.auraSize }
+local function DispelCount(k)
+	return math.min(k.auraDispelCount, k.auraColumns * k.auraRows)
+end
+
+local LAYOUT_INDEX = { [DISPELS] = 1, [GROUP] = 2 }
+
+local function GroupLayout(k, key)
+	return {
+		elementSpacing = k.auraSpacing, lineSpacing = k.auraSpacing, elementWidth = k.auraSize, elementHeight = k.auraSize,
+		layoutIndex = LAYOUT_INDEX[key or GROUP],
+	}
+end
+
+local function Processing()
+	local policy = CustomAuraContainerAuraProcessingPolicy
+	local types = AuraUtil and AuraUtil.AuraUpdateChangedType
+	if policy and policy.ProcessAura and types and types.Debuff and types.Dispel then
+		return policy.ProcessAura, types
+	end
+end
+
+local function PolicyOptions()
+	return { ignoreBuffs = true, displayOnlyDispellableDebuffs = Settings.current.auras.filter == "DISPELLABLE" }
 end
 
 local function StyleIcon(button)
@@ -127,6 +150,7 @@ local function BuildDispel(slot, f)
 	wash:SetAlpha(WASH_ALPHA)
 	local lines = Style.Outline(slot, "OVERLAY")
 	Style.LayoutOutline(lines, slot, Widgets.Border(f) * DISPEL_LINES)
+	f.dispelLines, f.dispelFrame = lines, slot
 	local style = DispelStyle()
 	if style then
 		local options = { style = style, showWhenHarmful = true }
@@ -139,14 +163,31 @@ local function BuildDispel(slot, f)
 	end
 end
 
-local function GroupOptions(k)
-	local options = { maxFrameCount = Count(k), initializeFrame = InitIcon, layout = GroupLayout(k) }
+local function GroupOptions(k, key, processedType)
+	local count = key == DISPELS and math.max(1, DispelCount(k)) or Count(k)
+	local options = { maxFrameCount = count, initializeFrame = InitIcon, layout = GroupLayout(k, key) }
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if methods and directions then
-		options.sortMethod = methods.UnitFrameDebuff or methods.Default
+		options.sortMethod = processedType and methods.UnitFrameDebuff or methods.Default
 		options.sortDirection = directions.Normal
 	end
+	if processedType then
+		options.candidateFilters = { processedAuraType = processedType }
+	end
 	return options
+end
+
+local function AddGroups(container, k, filter)
+	local policy, types = Processing()
+	if policy and type(container.SetAuraProcessingPolicy) == "function" then
+		container:SetAuraProcessingPolicy(policy, PolicyOptions())
+		container:AddAuraGroup(DISPELS, filter, GroupOptions(k, DISPELS, types.Dispel))
+		container:AddAuraGroup(GROUP, filter, GroupOptions(k, GROUP, types.Debuff))
+		return true
+	end
+	Style.LogOnce("auraPolicy", "the aura processing policy is missing; group frames show debuffs in the default order")
+	container:AddAuraGroup(GROUP, filter, GroupOptions(k, GROUP, nil))
+	return false
 end
 
 local function SetUnit(f, unit)
@@ -175,7 +216,9 @@ local function NewContainer(f)
 		pcall(container.SetEditModePreviewEnabled, container, false)
 	end
 	local k, a = Settings.current[f.kind], Settings.current.auras
-	local added, err = pcall(container.AddAuraGroup, container, GROUP, FILTERS[a.filter] or FILTERS.ALL, GroupOptions(k))
+	local added, processed = pcall(AddGroups, container, k, FILTERS[a.filter] or FILTERS.ALL)
+	local err = processed
+	f.processed = added and processed
 	if not added then
 		container:Hide()
 		available = false
@@ -208,11 +251,19 @@ local ScheduleFlush
 
 local function RestyleNow(f)
 	local container = f.auras
-	for i = 1, container:GetAuraGroupFrameCount(GROUP) do
-		local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(GROUP, i))
+	for _, key in ipairs(GROUPS) do
+		for i = 1, container:GetAuraGroupFrameCount(key) do
+			local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(key, i))
+			if not ok then
+				Style.LogOnce("auraStyle", "restyling a debuff icon failed: " .. tostring(err))
+				return
+			end
+		end
+	end
+	if f.dispelLines then
+		local ok, err = pcall(Style.LayoutOutline, f.dispelLines, f.dispelFrame, Widgets.Border(f) * DISPEL_LINES)
 		if not ok then
-			Style.LogOnce("auraStyle", "restyling a debuff icon failed: " .. tostring(err))
-			return
+			Style.LogOnce("dispelStyle", "laying out the dispel highlight failed: " .. tostring(err))
 		end
 	end
 end
@@ -271,9 +322,21 @@ local function Configure(f)
 	else
 		Style.LogOnce("auraAnchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
 	end
-	container:SetAuraGroupLayout(GROUP, GroupLayout(k))
+	local filter = FILTERS[a.filter] or FILTERS.ALL
+	if f.processed then
+		container:SetAuraProcessingPolicy(Processing(), PolicyOptions())
+		local dispels = DispelCount(k)
+		container:SetAuraGroupLayout(DISPELS, GroupLayout(k, DISPELS))
+		container:SetAuraGroupFilterString(DISPELS, filter)
+		if dispels > 0 then
+			container:SetAuraGroupMaxFrameCount(DISPELS, dispels)
+		end
+		container:SetAuraGroupEnabled(DISPELS, a.enabled and dispels > 0)
+	end
+	container:SetAuraGroupLayout(GROUP, GroupLayout(k, GROUP))
 	container:SetAuraGroupMaxFrameCount(GROUP, Count(k))
-	container:SetAuraGroupFilterString(GROUP, FILTERS[a.filter] or FILTERS.ALL)
+	container:SetAuraGroupFilterString(GROUP, filter)
+	container:SetAuraGroupEnabled(GROUP, a.enabled)
 	if f.dispelSlot then
 		container:SetAuraSlotFilterString(SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
 		container:SetAuraSlotEnabled(SLOT, a.dispelHighlight)
@@ -297,7 +360,8 @@ local function Bind(f)
 	if f.sample then
 		return
 	end
-	local on = Settings.current.auras.enabled and available and Unit.running
+	local a = Settings.current.auras
+	local on = (a.enabled or a.dispelHighlight) and available and Unit.running
 	if not on then
 		if f.auras then
 			SetUnit(f, NONE)
