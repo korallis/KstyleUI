@@ -2,3 +2,5 @@
 .release/
 *.zip
 .scratch/
+Tools/data/db2cache/
+__pycache__/
