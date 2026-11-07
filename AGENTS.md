@@ -39,7 +39,7 @@ Phase 0 adds these tools one task at a time. Until a task adds a command's file,
 
 `luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives addons, which `python3 Tools/build/gen_globals.py --source ~/.local/share/wow-dev/wow-ui-source` writes to `Tools/data/forever_globals.lua`. Regenerate that file when the Forever build changes. A global your module creates, such as a named frame, a `BINDING_HEADER_*` or `BINDING_NAME_*` string, or a `SLASH_*` command, goes on your module's line in the module section of `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means Forever does not have it or `.luacheckrc` denies it: use the replacement the deny list names, and never add a Blizzard name to your line.
 
-After the checks pass, run `cr review --agent` and fix the critical and major findings, at most two rounds. Then get one cross-family review with `codex review`.
+After the checks pass, get one cross-family review with `codex review --base origin/staging` and fix what it finds. KstyleUI does not use CodeRabbit: the owner removed it from the repository and the PR flow on 2026-11-07, overriding the global rule for this repository.
 
 ## Line endings and encoding
 

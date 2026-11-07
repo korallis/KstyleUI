@@ -127,9 +127,10 @@ class WorkflowsTest(unittest.TestCase):
             "## Summary", "## Changelog", "## In-game checks", "addonCombatRestrictionsForced",
             "addonEncounterRestrictionsForced", "addonMapRestrictionsForced", "addonChatRestrictionsForced",
             "taintLog", "python3 Tools/dev/crlf.py", "pre-commit run --all-files", "bash Tools/regression/run-all.sh",
-            "python3 -m unittest discover -s Tools/tests", "cr review --agent", "/codex:review", "no changelog",
+            "python3 -m unittest discover -s Tools/tests", "/codex:review", "no changelog",
         ):
             self.assertIn(needle, text)
+        self.assertNotIn("cr review", text, "KstyleUI does not use CodeRabbit")
 
 
 if __name__ == "__main__":

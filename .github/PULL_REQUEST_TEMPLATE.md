@@ -25,5 +25,4 @@ A change to a TOC "## Version" line or to CODE_BUILD also needs the "release" la
 - [ ] `pre-commit run --all-files`
 - [ ] `LUA=luajit bash Tools/regression/run-all.sh`
 - [ ] `python3 -m unittest discover -s Tools/tests`
-- [ ] `cr review --agent`: critical and major findings fixed, at most two rounds
 - [ ] `/codex:review`: one cross-family review
