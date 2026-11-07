@@ -36,10 +36,12 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Headers.lua` | `ns.Headers`: the party header and eight raid headers, their attributes, buttons made out of combat, and visibility drivers |
 | `Blizzard.lua` | `ns.Blizzard`: hides and restores Blizzard's party frames, compact raid frames and raid manager through `KstyleUI.Safe` |
 | `Frames.lua` | `ns.Frames`: `Enable` and `Disable`, settings applied out of combat, Layout registration, group events and the `/kstyle test` check |
+| `Indicators.lua` | `ns.Indicators`: role, leader and assistant, raid marker and ready-check icons, and the threat border |
+| `Prediction.lua` | `ns.Prediction`: incoming heals and absorbs after the health fill |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview with sample party and raid frames |
 | `Module.lua` | `KstyleUI.Modules.Register` and `KstyleUI.Options.Register` |
 
-Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) and `test-groupframes-preview.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
+Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
 
 ## Elements
 
@@ -79,6 +81,11 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `<kind>.textLayout` | party `ABOVE`, raid `INSIDE` | Name above the bar or on it |
 | `<kind>.nameSize` | 11, 10 | Name size |
 | `<kind>.healthText`, `<kind>.healthTextSize` | party `PERCENT` 11, raid `NONE` 9 | None, percent, current, missing, current and maximum, current and percent |
+| `<kind>.iconSize` | 14, 12 | Role, leader, marker and ready-check icon size |
+| `icons.role`, `icons.leader`, `icons.marker`, `icons.readyCheck` | on | Each status icon |
+| `threat.enabled` | on | The threat border |
+| `prediction.heals`, `prediction.healColor` | on, friendly at 50% | Incoming heals |
+| `prediction.absorbs`, `prediction.absorbColor` | on, white at 45% | Absorb shields |
 | `health.texture` | Glass | Bar texture for health and power |
 | `health.colorSource`, `health.color` | `class`, friendly | Class, reaction or a custom colour |
 | `health.orientation` | `HORIZONTAL` | Fill left to right, or bottom up |
@@ -88,6 +95,10 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `text.healthFont`, `text.healthOutline` | Source Sans 3 Semibold, soft shadow | Health text font and outline |
 | `range.fade`, `range.alpha` | on, 0.4 | Fade members out of range |
 | `accent.source`, `accent.color` | `class` | The target outline and hover hairline: the KstyleUI accent or a custom colour |
+
+## Extension points
+
+Feature files add to the frame without editing it: `Button.built` (build parts on a new frame), `Style.appliers` (lay them out after `Style.Apply`), `Style.painters` (paint them on preview samples), `Unit.extra` (refresh them with the unit), `Unit.Chain(event, fn)` (handle another unit event, registering it when new) and `Frames.events` (global events while the module runs).
 
 ## Why
 
@@ -99,3 +110,7 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 - **Class colour with secret pass-through.** When a unit's class is secret, `C_ClassColor.GetClassColor` still returns its colour as secrets, and those go straight to `SetStatusBarColor`. A plain class goes through `Theme.ClassColor`.
 - **The player never fades.** `UnitInRange` reports the player as not checked, so the player's own frame keeps full opacity. Offline members keep full opacity too; their grey bar already says why they cannot be healed.
 - **Blizzard frames through Safe.** `PartyFrame` holds Blizzard's party frames and `CompactPartyFrame`; `CompactRaidFrameContainer` and `CompactRaidFrameManager` hold the raid frames and the manager tab. Each is reparented through `Safe.HideBlizzard`, which waits for combat and Edit Mode to end, and comes back through `Safe.RestoreBlizzard` when the module or the setting is switched off. `Blizzard_CompactRaidFrames` can load after login, so `ADDON_LOADED` applies the setting again.
+- **Role icons through Blizzard's secure delegate.** `UnitFrameUtil.UpdateUnitFrameRoleIcon` reads the role and wraps it in a secret when the unit's identity is restricted, then sets the texture and visibility itself. Without it, the role from `UnitGroupRolesAssigned` is used when it is plain.
+- **Leader and markers without a test on a secret.** The leader flag goes to `SetAlphaFromBoolean`. `GetRaidTargetIndex` is always secret, so the marker hides only when `type(index)` is not `"number"`; `type` sees through a secret, and a secret index goes straight to `SetSpriteSheetCell`.
+- **Heals and absorbs anchored to the fill.** Each prediction bar spans the health maximum and is anchored to the end of the fill before it, so the engine places it; Lua never adds health and heals. The calculator clamps heals and absorbs to missing health, and a clip frame over the health bar cuts anything that would still spill out. One calculator is made per frame and reused.
+- **Threat is readable on Forever**, but a secret status hides the border rather than guessing.

@@ -226,8 +226,14 @@ function Style.Apply(f, width, height)
 	LayoutTexts(f, k, parts)
 	Style.LayoutOutline(f.targetLines, f, Widgets.Border(f) * HIGHLIGHT_LINES)
 	f.chrome:Restyle()
+	for i = 1, #Style.appliers do
+		Style.appliers[i](f, parts, k)
+	end
 	Style.Paint(f)
 end
+
+Style.appliers = {}
+Style.painters = {}
 
 function Style.Paint(f)
 	local r, g, b = Style.Accent()

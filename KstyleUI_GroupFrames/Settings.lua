@@ -10,10 +10,13 @@ ns.Settings = Settings
 local MODULE = "GroupFrames"
 Settings.MODULE = MODULE
 
-local function Rgb(token)
+local function Rgb(token, alpha)
 	local r, g, b = Tokens.Color(token)
-	return { r = r, g = g, b = b }
+	return { r = r, g = g, b = b, a = alpha }
 end
+
+local HEAL_ALPHA = 0.5
+local ABSORB_ALPHA = 0.45
 
 local function DefaultTexture()
 	for _, item in ipairs(Tokens.MediaList("statusbar")) do
@@ -34,6 +37,7 @@ Settings.defaults = {
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
 		portrait = true, power = true, powerHeight = 4,
 		textLayout = "ABOVE", nameSize = 11, healthText = "PERCENT", healthTextSize = 11,
+		iconSize = 14,
 	},
 	raid = {
 		width = 72, height = 40, spacing = 3, growth = "DOWN",
@@ -41,6 +45,7 @@ Settings.defaults = {
 		sortBy = "GROUP", unitsPerColumn = 5,
 		power = false, powerHeight = 3,
 		textLayout = "INSIDE", nameSize = 10, healthText = "NONE", healthTextSize = 9,
+		iconSize = 12,
 	},
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
@@ -49,6 +54,9 @@ Settings.defaults = {
 		healthFont = NUMBER_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
+	icons = { role = true, leader = true, marker = true, readyCheck = true },
+	threat = { enabled = true },
+	prediction = { heals = true, absorbs = true, healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA) },
 	accent = { source = "class", color = Rgb("accentDefault") },
 }
 
@@ -150,6 +158,7 @@ local function KindRows(schema, kind, label)
 	add(Dropdown(p .. "healthText", L["Health text"], L["What the health text shows."], HEALTH_TEXT))
 	add(Slider(p .. "healthTextSize", L["Health text size"], L["The size of the health text."], 6, 24, 1))
 	schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
+	add(Slider(p .. "iconSize", L["Status icon size"], L["The size of the role, leader, marker and ready-check icons."], 6, 32, 1))
 end
 
 local function BuildSchema()
@@ -178,6 +187,17 @@ local function BuildSchema()
 	add({ type = "color", key = "text.nameColor", label = L["Custom name colour"], help = L["The names' colour when they use a custom colour."], showWhen = Is("text.nameColorSource", "custom") })
 	add({ type = "font", key = "text.healthFont", label = L["Health text font"], help = L["The font of the health text."] })
 	add(Dropdown("text.healthOutline", L["Health text outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
+	add({ type = "header", label = L["Status icons"] })
+	add(Toggle("icons.role", L["Role icons"], L["Shows whether each member is a tank, healer or damage dealer."]))
+	add(Toggle("icons.leader", L["Leader icons"], L["Marks the group leader and raid assistants."]))
+	add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))
+	add(Toggle("icons.readyCheck", L["Ready checks"], L["Shows each member's answer during a ready check."]))
+	add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
+	add({ type = "header", label = L["Incoming heals and absorbs"] })
+	add(Toggle("prediction.heals", L["Incoming heals"], L["Extends the health bar with heals on the way."]))
+	add({ type = "color", key = "prediction.healColor", label = L["Incoming heal colour"], help = L["The colour of incoming heals on the health bar."], hasAlpha = true, showWhen = Is("prediction.heals", true) })
+	add(Toggle("prediction.absorbs", L["Absorbs"], L["Shows shields, such as Power Word: Shield, after the health."]))
+	add({ type = "color", key = "prediction.absorbColor", label = L["Absorb colour"], help = L["The colour of shields on the health bar."], hasAlpha = true, showWhen = Is("prediction.absorbs", true) })
 	add({ type = "header", label = L["Range and highlight"] })
 	add(Toggle("range.fade", L["Fade out of range"], L["Fades members who are too far away to heal."]))
 	add(Slider("range.alpha", L["Out of range opacity"], L["How faint a member out of range looks."], 0.1, 1, 0.05))
@@ -251,7 +271,7 @@ local CHECK = {
 		end
 	end,
 	color = function(_, v)
-		if type(v) == "table" and Channel(v.r) and Channel(v.g) and Channel(v.b) then
+		if type(v) == "table" and Channel(v.r) and Channel(v.g) and Channel(v.b) and (v.a == nil or Channel(v.a)) then
 			return v
 		end
 	end,

@@ -351,6 +351,27 @@ end
 
 Unit.events = {}
 
+local known = {}
+for i = 1, #UNIT_EVENTS do
+	known[UNIT_EVENTS[i]] = true
+end
+
+function Unit.Chain(event, fn)
+	local previous = HANDLERS[event]
+	if previous then
+		HANDLERS[event] = function(f)
+			previous(f)
+			fn(f)
+		end
+	else
+		HANDLERS[event] = fn
+	end
+	if not known[event] then
+		known[event] = true
+		Unit.events[#Unit.events + 1] = event
+	end
+end
+
 function Unit.Set(f, unit)
 	if IsSecret(unit) then
 		unit = nil

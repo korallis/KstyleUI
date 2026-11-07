@@ -17,9 +17,9 @@ local SAMPLE_MAX = 4200
 local PERCENT = 100
 
 local SAMPLES = {
-	{ name = "Thaldren", class = "WARRIOR", health = 0.92, power = 0.35 },
-	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true },
-	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true },
+	{ name = "Thaldren", class = "WARRIOR", health = 0.92, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05 },
+	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER" },
+	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 8, incoming = 0.12 },
 	{ name = "Lunara", class = "MAGE", health = 0, power = 0, dead = true },
 	{ name = "Vexen", class = "PRIEST", health = 0.94, power = 0.9 },
 	{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5 },
@@ -97,12 +97,10 @@ local function Paint(f, sample)
 	local fade = cfg.range.fade and sample.far
 	f:SetAlpha(fade and cfg.range.alpha or 1)
 	f.target:SetAlpha(sample.target and 1 or 0)
-	for _, hook in ipairs(Preview.painters) do
+	for _, hook in ipairs(Style.painters) do
 		hook(f, sample)
 	end
 end
-
-Preview.painters = {}
 
 local function Sample(parent, kind, index)
 	local f = CreateFrame("Frame", nil, parent)

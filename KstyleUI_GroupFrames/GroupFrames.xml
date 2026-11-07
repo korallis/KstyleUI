@@ -8,6 +8,8 @@
 	<Script file="Headers.lua"/>
 	<Script file="Blizzard.lua"/>
 	<Script file="Frames.lua"/>
+	<Script file="Indicators.lua"/>
+	<Script file="Prediction.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

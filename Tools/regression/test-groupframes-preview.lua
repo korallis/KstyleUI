@@ -39,6 +39,22 @@ eq(formatted and formatted[2], 92, "the sample's percent")
 eq(preview.partyFrames[1]:GetWidth(), 230, "party samples use the party width")
 eq(preview.raidFrames[1]:GetWidth(), 72, "raid samples use the raid width")
 
+-- Samples show the status icons, the threat border and incoming heals.
+local tank = preview.partyFrames[1]
+eq(tank.role:IsShown(), true, "the sample tank shows a role icon")
+eq(tank.threat:IsShown(), true, "the sample tank has aggro")
+local found = false
+for _, f in ipairs(preview.partyFrames) do
+	found = found or (f.marker:IsShown() and f.marker._state.SpriteSheetCell ~= nil)
+end
+assert(found, "a sample shows a raid marker")
+local healed = false
+for _, f in ipairs(preview.partyFrames) do
+	local v = f.heals._state.Value
+	healed = healed or (v and type(v[1]) == "number" and v[1] > 0)
+end
+assert(healed, "a sample shows incoming heals")
+
 -- A setting change shows on the next Refresh.
 K.Options.Write("GroupFrames", "raid.width", 90)
 K.Options.Write("GroupFrames", "party.healthText", "CURRENT_MAX")

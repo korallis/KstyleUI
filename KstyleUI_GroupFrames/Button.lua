@@ -67,6 +67,9 @@ function Button.Adopt(button, kind)
 	f = CreateFrame("Frame", nil, button)
 	f:SetAllPoints(button)
 	Style.Build(f, kind)
+	for _, hook in ipairs(Button.built) do
+		hook(f)
+	end
 	f:SetScript("OnEvent", Unit.OnEvent)
 	contents[button] = f
 	f.owner = button
@@ -83,9 +86,6 @@ function Button.Adopt(button, kind)
 		Clicks(button)
 	end
 	Style.Apply(f)
-	for _, hook in ipairs(Button.built) do
-		hook(f)
-	end
 	local unit = button:GetAttribute("unit")
 	if unit then
 		Unit.Set(f, unit)

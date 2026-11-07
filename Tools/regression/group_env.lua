@@ -196,6 +196,53 @@ local function installRoster(env)
 		return tostring(value)
 	end
 
+	function env.UnitIsGroupLeader(unit)
+		local m = member(unit)
+		return env.Secret(m ~= nil and m.leader == true)
+	end
+	function env.UnitIsGroupAssistant(unit)
+		local m = member(unit)
+		return env.Secret(m ~= nil and m.assistant == true)
+	end
+	function env.GetRaidTargetIndex(unit)
+		local m = member(unit)
+		if m and m.marker then
+			return env.Secret(m.marker)
+		end
+		return nil
+	end
+	function env.GetReadyCheckStatus(unit)
+		local m = member(unit)
+		return m and m.ready or nil
+	end
+	function env.UnitThreatSituation(unit)
+		local m = member(unit)
+		local threat = m and m.threat
+		if m and m.secretThreat then
+			return env.Secret(threat or 0)
+		end
+		return threat
+	end
+	env.THREAT_COLORS = { [0] = { 0.69, 0.69, 0.69 }, { 1, 1, 0.47 }, { 1, 0.6, 0 }, { 1, 0, 0 } }
+	function env.GetThreatStatusColor(status)
+		local c = env.THREAT_COLORS[status]
+		return c[1], c[2], c[3]
+	end
+	function env.GetMicroIconForRole(role)
+		return "micro-" .. tostring(role)
+	end
+	function env.UnitGetIncomingHeals(unit)
+		local m = member(unit)
+		return env.Secret(m and m.incoming or 0)
+	end
+	function env.UnitGetTotalAbsorbs(unit)
+		local m = member(unit)
+		return env.Secret(m and m.absorb or 0)
+	end
+	env.READY_CHECK_READY_TEXTURE = "UI-LFG-ReadyMark"
+	env.READY_CHECK_NOT_READY_TEXTURE = "UI-LFG-DeclineMark"
+	env.READY_CHECK_WAITING_TEXTURE = "UI-LFG-PendingMark"
+
 	env.CLASS_SORT_ORDER = CLASS_ORDER
 	env.RAID_CLASS_COLORS = {}
 	for class, c in pairs(CLASS_COLORS) do
@@ -220,6 +267,38 @@ local function installRoster(env)
 	env.DEAD = "Dead"
 	env.MAX_RAID_MEMBERS = 40
 	env.MEMBERS_PER_RAID_GROUP = 5
+end
+
+-- The heal prediction calculator: UnitGetDetailedHealPrediction fills it from the member's incoming
+-- heals and absorbs, and its getters return them as secrets. env._calculators counts the calculators.
+local function installPrediction(env)
+	env._calculators = 0
+	env.Enum = env.Enum or {}
+	env.Enum.UnitIncomingHealClampMode = { MissingHealth = 0, MaximumHealth = 1 }
+	env.Enum.UnitDamageAbsorbClampMode = { MissingHealth = 0, MissingHealthWithoutIncomingHeals = 1, MaximumHealth = 2 }
+	function env.CreateUnitHealPredictionCalculator()
+		env._calculators = env._calculators + 1
+		local calc = { heals = 0, absorbs = 0, modes = {} }
+		function calc.SetIncomingHealClampMode(self, mode)
+			self.modes.heal = mode
+		end
+		function calc.SetDamageAbsorbClampMode(self, mode)
+			self.modes.absorb = mode
+		end
+		function calc.GetIncomingHeals(self)
+			return env.Secret(self.heals), env.Secret(0), env.Secret(self.heals), env.Secret(false)
+		end
+		function calc.GetDamageAbsorbs(self)
+			return env.Secret(self.absorbs), env.Secret(false)
+		end
+		return calc
+	end
+	function env.UnitGetDetailedHealPrediction(unit, _, calc)
+		local m = env._member(unit)
+		calc.unit = unit
+		calc.heals = m and m.incoming or 0
+		calc.absorbs = m and m.absorb or 0
+	end
 end
 
 -- C_CurveUtil curves that evaluate in Lua, so a test can read what a secret holds with Reveal.
@@ -613,6 +692,7 @@ function G.New(opts)
 	opts.setup = function(env)
 		installRoster(env)
 		installCurves(env)
+		installPrediction(env)
 		installHeaders(env)
 		installDrivers(env)
 		installBlizzard(env)
