@@ -53,7 +53,13 @@ end
 function Glow:Restyle()
 	local spread = self.spread
 	Widgets.LayoutSlice(self.slice, self.holder, spread * 2, spread)
-	local r, g, b = Tokens.Color(self.colorName)
+	local own = self.colorRGB
+	local r, g, b
+	if own then
+		r, g, b = own[1], own[2], own[3]
+	else
+		r, g, b = Tokens.Color(self.colorName)
+	end
 	Widgets.ColorSlice(self.slice, r, g, b, 1)
 	if self.spark then
 		Widgets.Size(self.spark, SPARK_SIZE, SPARK_SIZE)
@@ -67,6 +73,18 @@ end
 function Glow:SetColor(name)
 	Tokens.Color(name)
 	self.colorName = name
+	self.colorRGB = nil
+	self:Restyle()
+end
+
+function Glow:SetColorRGB(r, g, b)
+	if type(r) == "number" and type(g) == "number" and type(b) == "number" and not Widgets.IsSecret(r) and not Widgets.IsSecret(g) and not Widgets.IsSecret(b) then
+		local own = self.colorRGB or {}
+		own[1], own[2], own[3] = r, g, b
+		self.colorRGB = own
+	else
+		self.colorRGB = nil
+	end
 	self:Restyle()
 end
 

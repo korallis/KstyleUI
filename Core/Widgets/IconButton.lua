@@ -32,6 +32,19 @@ local function PlaceIcon(self)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
 end
 
+local function Plain(v)
+	return type(v) == "number" and not Widgets.IsSecret(v)
+end
+
+local function Accent(self)
+	local own = self.accent
+	if own then
+		return own[1], own[2], own[3]
+	end
+	local r, g, b = Tokens.Color("accent")
+	return r, g, b
+end
+
 function IconButton:Paint()
 	local hover, press = self.hoverT or 0, self.pressT or 0
 	local usable = self.usable and self:IsEnabled() ~= false
@@ -39,18 +52,56 @@ function IconButton:Paint()
 	if not usable then
 		chrome:SetEdge("textDisabled", DISABLED_EDGE_ALPHA)
 	elseif self.proc or self.selected then
-		chrome:SetEdge("accent", 1)
+		local r, g, b = Accent(self)
+		chrome:SetEdgeRGBA(r, g, b, 1)
 	elseif self.cooling then
 		chrome:SetEdge("text", COOLING_EDGE_ALPHA)
 	else
-		local r, g, b, a = Widgets.MixTokens("accent", REST_EDGE_ALPHA, "accent", 1, hover)
+		local r, g, b = Accent(self)
+		local a = REST_EDGE_ALPHA + (1 - REST_EDGE_ALPHA) * hover
 		local pr, pg, pb, pa = Widgets.Rgba("text", PRESSED_EDGE_ALPHA)
 		chrome:SetEdgeRGBA(Widgets.Mix(r, g, b, a, pr, pg, pb, pa, press))
 	end
 	local v = usable and (1 - PRESS_DIM * press) or UNUSABLE_BRIGHTNESS
-	ns.Icons.Shade(self.icon, v, v, v, not usable)
+	local tint = self.tint
+	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], not usable)
 	self.hoverGlow:SetIntensity(usable and hover or 0)
 	PlaceIcon(self)
+end
+
+local function ColorGlow(self, glow)
+	local own = self.accent
+	if own then
+		glow:SetColorRGB(own[1], own[2], own[3])
+	else
+		glow:SetColorRGB()
+	end
+end
+
+function IconButton:SetAccent(r, g, b)
+	if Plain(r) and Plain(g) and Plain(b) then
+		local own = self.accent or {}
+		own[1], own[2], own[3] = r, g, b
+		self.accent = own
+	else
+		self.accent = nil
+	end
+	ColorGlow(self, self.hoverGlow)
+	if self.procGlow then
+		ColorGlow(self, self.procGlow)
+	end
+	self:Paint()
+end
+
+function IconButton:SetTint(r, g, b)
+	local tint = self.tint
+	g, b = g or r, b or r
+	if Plain(r) and Plain(g) and Plain(b) then
+		tint[1], tint[2], tint[3] = r, g, b
+	else
+		tint[1], tint[2], tint[3] = 1, 1, 1
+	end
+	self:Paint()
 end
 
 function IconButton:SetIcon(texture)
@@ -81,10 +132,39 @@ function IconButton:ClearCooldown()
 	self.cooldown:Clear()
 end
 
+function IconButton:SetChargeCooldownFromDuration(durationObject)
+	local charge = self.chargeCooldown
+	if not charge then
+		charge = CreateFrame("Cooldown", nil, self, "CooldownFrameTemplate")
+		charge:SetAllPoints(self.icon)
+		charge:SetDrawSwipe(false)
+		charge:SetDrawEdge(true)
+		charge:SetDrawBling(false)
+		charge:SetHideCountdownNumbers(true)
+		charge:SetFrameLevel(self.cooldown:GetFrameLevel() + 1)
+		self.chargeCooldown = charge
+	end
+	if type(charge.SetCooldownFromDurationObject) ~= "function" then
+		Widgets.LogOnce("charge-object", "Cooldown:SetCooldownFromDurationObject is missing; charge recharges are not shown")
+		return false
+	end
+	charge:SetCooldownFromDurationObject(durationObject)
+	return true
+end
+
+function IconButton:ClearChargeCooldown()
+	if self.chargeCooldown then
+		self.chargeCooldown:Clear()
+	end
+end
+
 function IconButton:SetProc(on)
 	self.proc = on and true or false
 	if self.proc and not self.procGlow then
 		self.procGlow = Widgets.Glow(self, { kind = "proc" })
+		if self.accent then
+			ColorGlow(self, self.procGlow)
+		end
 	end
 	if self.procGlow then
 		if self.proc then
@@ -150,7 +230,9 @@ function Widgets.IconButton(parent, opts)
 	end
 	button.opts = opts
 	button.onClick = opts.onClick
+	button.silent = opts.silent == true
 	button.usable = true
+	button.tint = { 1, 1, 1 }
 	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "raised", shadow = false })
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")

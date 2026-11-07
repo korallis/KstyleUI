@@ -134,7 +134,7 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 `IconButton(parent, opts) -> Button`: a chamfered square for action, cooldown and aura icons.
 
-Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown).
+Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `silent` (no click sound, for buttons that keys press, such as action buttons).
 
 The icon sits two borders inside the edge, masked to the chamfer by `iconMask`. The cooldown swipe uses the same mask.
 
@@ -158,8 +158,11 @@ The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a c
 | `ClearCooldown()` | |
 | `SetProc(on)`, `SetUsable(on)`, `SetSelected(on)` | |
 | `SetHotkey(text)`, `SetCount(text)` | Caption text at the top right (upper case) and `number` text at the bottom right, above the swipe |
+| `SetTint(r, g, b)` | Multiplies the icon's shade in every state, such as red while out of range. No arguments return it to white. |
+| `SetAccent(r, g, b)` | Gives this button its own accent for the hairline, the hover glow and the proc glow, kept through theme changes. No arguments follow the theme accent again. |
+| `SetChargeCooldownFromDuration(durationObject) -> ok`, `ClearChargeCooldown()` | A second Cooldown, `chargeCooldown`, made on first use, that draws only its edge and no numbers: the recharge of a spell with charges left. Returns `false` and logs once when the method is missing. |
 
-Fields: `icon`, `mask`, `cooldown`, `overlay`, `hotkey`, `count`, `chrome`, `hoverGlow`, `procGlow` (made on the first `SetProc(true)`).
+Fields: `icon`, `mask`, `cooldown`, `chargeCooldown` (made on first use), `overlay`, `hotkey`, `count`, `chrome`, `hoverGlow`, `procGlow` (made on the first `SetProc(true)`).
 
 ## Tabs
 
@@ -352,6 +355,7 @@ Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, def
 | `IsPlaying() -> boolean` | |
 | `SetIntensity(t)` | For a stopped glow: show it at `t` of full strength, or hide it at 0. Icon buttons drive their hover glow with it. |
 | `SetColor(name)`, `Restyle()` | |
+| `SetColorRGB(r, g, b)` | Colours the glow with plain numbers instead of a token, kept through restyles. No arguments return to the token. |
 
 Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top` and `spark`.
 

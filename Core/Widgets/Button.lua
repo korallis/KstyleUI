@@ -51,7 +51,9 @@ local function OnStateChanged(self)
 end
 
 local function OnClick(self, mouse)
-	Widgets.Sound(CLICK_SOUND)
+	if not self.silent then
+		Widgets.Sound(CLICK_SOUND)
+	end
 	local onClick = self.onClick
 	if onClick then
 		ns.Call(onClick, self, mouse)
