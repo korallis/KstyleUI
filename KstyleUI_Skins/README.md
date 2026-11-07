@@ -217,6 +217,37 @@ The mail, merchant and professions skins add a `qualityRims` switch, on by defau
 
 Test: `Tools/regression/test-skins-partb-kit.lua` and `test-skins-partb-windows.lua`.
 
+## Part C windows
+
+`PartC/` holds the skins for the social windows, Forever's Legacy window, loot and group loot rolls, popups, the ready check and the addon list. `PartC/Kit.lua` loads first and sets `ns.PartC`, the helpers these skins share. `PartC/Preview.lua` loads last and adds part C's sample to the settings preview.
+
+| Skin | Key | Blizzard addon | Window | What changes |
+| --- | --- | --- | --- | --- |
+| `Loot.lua` | `loot` | `Blizzard_UIPanels_Game` | `LootFrame` | The flat panel, item card art, quality stripe and list shadows go; a glass panel, the close glyph and a slim scroll bar come. Each row becomes a raised tile; its icon is cropped and rimmed by quality, its quality label takes the quality colour, and Blizzard's highlight becomes an accent wash. |
+| `LootRolls.lua` | `lootRolls` | `Blizzard_UIPanels_Game` | `GroupLootFrame1` to `4` | Each roll frame loses its toast art and sits on a glass panel. The item icon is rimmed by the roll's quality (`GetLootRollItemInfo`, repainted through a hook on `GroupLootFrame_SetupItemDisplay`), and a KstyleUI timer bar in the shared bar look mirrors Blizzard's hidden timer. The need, greed, transmog and pass buttons keep their icons. |
+| `Popups.lua` | `popups` | `Blizzard_StaticPopup_Game` | `StaticPopup1` to `4` | The dialog art goes and a glass panel comes. Buttons, the close button, the edit box, the money boxes (their coin icons stay) and the dropdown are restyled. An item popup's icon is rimmed in the colour Blizzard gives the item's name, through a hook on its `SetTextColor`; white and grey give no ring. The alert icon, separator and progress bar stay. |
+| `ReadyCheck.lua` | `readyCheck` | `Blizzard_FrameXML` | `ReadyCheckListenerFrame`, on `ReadyCheckFrame`'s first show | A glass panel, a heading, body text and restyled ready and not ready buttons. The portrait goes with the rest of the window art. |
+| `AddonList.lua` | `addonList` | `Blizzard_AddOnList` | `AddonList` | The window, its dropdown, search box, check box, buttons and scroll bar. Each addon row gets a KstyleUI check box, a restyled load button and an accent highlight; category rows read as captions over an accent line. |
+
+The loot window and the loot rolls add `qualityBorders` (on) and `qualityFrom` (uncommon) under their switch, as the character sheet does.
+
+| Helper | Behaviour |
+| --- | --- |
+| `Kit.Window(frame, opts)`, `Kit.Button`, `Kit.CheckBox`, `Kit.ScrollBar`, `Kit.Tab` | The `KstyleUI.Skin` helper of the same name, then part B's `Accent`, so hover edges, check marks, scroll thumbs and tab underlines take the module's accent. `Kit.Button` puts the label in the module's body font and `Kit.Window` the title in its heading font. `Kit.Accent(frame)` is the second step alone. |
+| `Kit.Frame(key, name)`, `Kit.Child(key, frame, path)`, `Kit.Each(key, frame, paths, fn)` | A global frame, or a dotted path under a frame, or `fn` on each path found. A missing one is logged once as `<key>: <name> is missing on this client; skipped`. |
+| `Kit.Item(button) -> rim` | Hides an item button's slot art and quality border, keeps and crops its icon and overlays, styles its count, and puts `Parts.Rim` behind it. |
+| `Kit.Quality(key, rim, quality)`, `Kit.ColorRim(rim, r, g, b)` | Paints a rim by item quality under the skin's `qualityBorders` and `qualityFrom` settings, or by a colour Blizzard gave, brightened; a secret value, white or grey clears it. |
+| `Kit.QualityDefaults()`, `Kit.QualityRows(help)` | The quality border settings and their rows. |
+| `Kit.Wash(texture, alpha) -> texture` | Hides a Blizzard selection or highlight texture and shows a flat accent wash in its place while Blizzard shows it, through hooks on its `Show`, `Hide` and `SetShown`. |
+| `Kit.Highlight(button)` | Turns a button's highlight texture into a flat accent wash in place. |
+| `Kit.MirrorBar(statusBar, parent, width, height) -> bar` | Hides a Blizzard status bar and draws a `Widgets.StatusBar` one level above `parent` that follows its range, value and colour through hooks on `SetMinMaxValues`, `SetValue` and `SetStatusBarColor`, in the shared bar texture, colour and fill direction. |
+| `Kit.EditBox(box, keepKeys)` | Strips an edit box's art and `NineSlice` but the named textures, such as a coin icon, then part B's `EditBox`, whose focus edge takes the module's accent. |
+| `Kit.TriState(check)` | After `Skin.CheckBox`, draws the check mark grey while Blizzard desaturates the box's `CheckedTexture`, as the addon list does for an addon on for some characters. |
+| `Kit.Texts(frame, role, colorName)`, `Kit.Crop(icon)`, `Kit.Below(panel, frame, levels)` | Styles every font string on a frame; crops an icon; puts a panel a number of levels below a frame. |
+| `Kit.Preview(builder)` | Adds a sample to the settings preview. `Preview.lua` calls `builder(frame, anchor)` under the samples before it and keeps the frame it returns; the preview's `Refresh` calls the sample's `Refresh`. |
+
+Tests: `Tools/regression/test-skins-partc-loot.lua` and `test-skins-partc-dialogs.lua`.
+
 ## Why
 
 - **One module, one switch per window.** Players turn the module on once and then pick windows. Each window's switch lives in the module's own settings section, so a profile string carries every choice, and the registry adds the switches so a skin file cannot forget its own.
@@ -233,3 +264,9 @@ Test: `Tools/regression/test-skins-partb-kit.lua` and `test-skins-partb-windows.
 - **The core helpers paint the interface accent.** `KstyleUI.Skin` lights hover edges, check marks, tab underlines and scroll thumbs in the Appearance accent. Part B swaps their painters on its own frames for ones that use `Style.Accent`, so the module's Accent setting reaches every part B control.
 - **Atlas icons keep their coordinates.** Texture coordinates on an atlas texture index the whole atlas sheet, so the item helper crops only file icons.
 - **Profession skill bars are KstyleUI bars.** Blizzard draws them with a masked flipbook texture, not a status bar, so the shared bar texture, colour and fill direction can only reach a bar KstyleUI draws over them.
+- **Part C windows keep Blizzard's placement.** Edit Mode places the loot window, `GroupLootContainer` stacks the loot rolls, and the popup code stacks `StaticPopup1` to `4`. Layout never moves Blizzard frames, so these skins add no Layout keys and only restyle what Blizzard places.
+- **Popup text keeps the game's scaled fonts.** Popups size themselves from their text through the text size setting in the game's accessibility options. Changing the popup fonts would break that sizing, so the popup skin restyles the panel and controls and leaves the text to the game.
+- **Some meaning stays Blizzard's.** Item names keep their quality colour, addon titles their load-state colour, and roll buttons their icons. The addon list's grey check for an addon on for some characters becomes a grey KstyleUI mark, so the state still reads.
+- **Roll timers are KstyleUI bars.** Blizzard puts each roll's timer one level below the roll frame every time a roll shows, so any glass panel behind the roll would cover it, and a roll at frame level 1 leaves no level free below the timer. The skin hides Blizzard's timer and draws its own bar above the panel, fed by hooks on the timer's setters.
+- **Parts add preview samples before the preview loads.** `Skins.xml` loads every part's files before `Preview.lua`, so a part adds its sample builder to `ns.previewParts` and `Preview.lua` builds them under part A's sample.
+- **Part C controls share part B's accent painters.** `KstyleUI.Skin` paints hover edges, check marks and scroll thumbs in the interface accent. Part B already swaps those painters for ones that use `Style.Accent`, and part B loads first, so part C calls `ns.PartBKit.Accent` instead of keeping a second copy, and falls back to the core look if part B is missing.

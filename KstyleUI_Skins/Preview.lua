@@ -29,6 +29,22 @@ local function Refresh(frame)
 	bar:SetBarTexture(Style.BarTexture())
 	bar:SetReverseFill(Style.ReverseFill())
 	bar:SetBarColor(Style.BarColor(Theme.ReactionColor(STANDING_FRIENDLY)))
+	for _, extra in ipairs(frame.extras) do
+		if type(extra.Refresh) == "function" then
+			K.Call(extra.Refresh, extra)
+		end
+	end
+end
+
+local function Extras(frame, anchor)
+	local below = anchor
+	for _, builder in ipairs(ns.previewParts or {}) do
+		local ok, extra = K.Call(builder, frame, below)
+		if ok and type(extra) == "table" then
+			frame.extras[#frame.extras + 1] = extra
+			below = extra
+		end
+	end
 end
 
 function Preview.Build(parent)
@@ -77,6 +93,8 @@ function Preview.Build(parent)
 	standing:SetText(L["Friendly"]:upper())
 	frame.bar = bar
 	frame.texts = { title, tabText, name, standing }
+	frame.extras = {}
+	Extras(frame, panel)
 	frame.Refresh = Refresh
 	Refresh(frame)
 	return frame
