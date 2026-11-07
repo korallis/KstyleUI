@@ -5,7 +5,7 @@ XP, reputation and honour bars, micro menu, bag bar, and a data strip with FPS, 
 | Field | Value |
 | --- | --- |
 | Module name | `DataBars`: its switch in `Core/Features.lua` and the `name` it registers with `KstyleUI.Modules.Register` |
-| Approach | Reskin, plus our own strip |
+| Approach | KstyleUI's own bars, micro menu, bag bar and strip; Blizzard's status bars faded, and its micro menu and bag bar hidden through `Safe` |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_DataBars.toc` lists `DataBars.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
 
@@ -15,7 +15,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 - Reskins hook with `hooksecurefunc` or `HookScript`, never `SetScript` on a Blizzard frame. They never write fields onto Blizzard frames, and never call Blizzard functions that open or refresh Blizzard windows. Per-frame state goes in `KstyleUI.Safe.Side(frame)`.
 - Values Lua may read, such as XP, animate with `KstyleUI.Motion.Tween`.
-- Blizzard frames keep a reskin after `Disable`, so turning the module off asks the player to reload.
+- Nothing the module does to Blizzard's frames outlasts `Disable`: the status bars get their alpha and mouse back, and `Safe.RestoreBlizzard` returns the micro menu and the bag bar. Turning the module off needs no reload.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.
 - Every element it shows registers with `KstyleUI.Layout.Register`, and every setting is declared through `KstyleUI.Options.Register`, so the player can resize and customise everything from the settings window.
 - UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `DataBars.xml`.
@@ -35,7 +35,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Blizzard.lua` | `ns.Blizzard`: fades Blizzard's status tracking bars |
 | `Strip.lua` | `ns.Strip`: the data strip, its items, ticker, clicks and tooltips |
 | `Click.lua` | `ns.Click`: the secure proxy that carries a strip click to Blizzard's own button |
-| `Menus.lua` | `ns.Menus`: the micro menu and the bag bar, restyled in place |
+| `Menus.lua` | `ns.Menus`: KstyleUI's micro menu and bag bar, secure buttons that click Blizzard's hidden ones |
 | `Settings.lua` | The defaults, the settings rows and the live preview |
 | `Module.lua` | Registers the module and its settings, and runs each part's `Enable`, `Disable`, `Setting` and `Refresh` |
 
@@ -107,25 +107,31 @@ The tooltips add detail: home and world latency and bandwidth, money earned or s
 
 ## Micro menu and bag bar
 
-Blizzard's `MicroMenu` and `BagsBar` stay Blizzard's frames, where Edit Mode puts them. DataBars restyles them in place with `KstyleUI.Skin` when the module starts:
+`databars.micro` and `databars.bags` are KstyleUI's own bars, registered with Layout as scalable holders at their footprints from `Setup.Layouts`: the micro menu above the data strip and the bag bar above it, bottom right. While a bar is on, `Safe.HideBlizzard` hides Blizzard's: `MicroMenuContainer`, the Edit Mode frame that holds `MicroMenu`, and `BagsBar`.
 
-| Part | Micro menu | Bag bar |
+Each KstyleUI button is a `Widgets.IconButton` made from `SecureActionButtonTemplate`, with `type = "click"` and `clickbutton` set once, when the bar is built, to Blizzard's own button. A click runs Blizzard's handler from secure code, as a click on Blizzard's button would, so the buttons work in combat.
+
+| | Micro menu | Bag bar |
 | --- | --- | --- |
-| Faded with alpha (`Skin.Strip`, `watch = false`) | Forever's `BorderArt` and `BackgroundArt`, and each button's bronze `Background` and `PushedBackground` | Forever's `BorderArt`, and each slot's `NormalTexture` and `PushedTexture` frame art |
-| Kept | The icons, the portrait, the highlight, alerts and the performance bar | The bag icons, quality borders, counts and the highlight |
-| Glass (`Skin.Backdrop`) | Behind the menu, 4 units out | Behind the bar, 4 units out |
-| Tiles (`Skin.Backdrop`, raised) | Off by default: the menu flattens its render layers, so a tile can sort under the glass | On: each slot sits on a tile 2 units out |
+| Buttons | One per Blizzard micro button that `MicroMenu` holds and shows, in Blizzard's `layoutIndex` order | Key ring, reagent bag, bags 4 to 1 and the backpack, left to right, each while Blizzard shows it |
+| Icon | Blizzard's glyph atlas from the button's normal texture, on an upright tile 3 wide by 4 tall; the character button shows your portrait | The equipped bag's icon from `GetInventoryItemTexture`, else Blizzard's own icon: the backpack, the key ring or the empty slot |
+| States | Disabled, selected while its window is open (`GetButtonState` is `PUSHED`), and the proc glow while Blizzard's button pulses or has a notification | The backpack counts the free slots in all bags |
+| Tooltip | Blizzard's `tooltipText`, with the level a disabled button opens at | The bag's name and free slots, or how to equip one |
+| Extras | | Dropping an item puts it in the bag (`PutItemInBag`, `PutItemInBackpack`); dragging a bag lifts it off its slot out of combat (`PickupBagFromSlot`) |
 
-A hovered button's tile edge eases to the accent colour. `micro.tint` keeps Blizzard's icon colours or desaturates the normal, pushed and highlight icons and tints them in the accent colour or white; switching back restores each icon's own colour and desaturation. Disabled icons keep Blizzard's own desaturated look.
+The bars follow Blizzard's state through `hooksecurefunc` on `UpdateMicroButtons`, `MicroButtonPulse`, `MicroButtonPulseStop`, `LoadMicroButtonTextures` and `PaperDollItemSlotButton_Update`, and on `BAG_UPDATE_DELAYED`, `PLAYER_EQUIPMENT_CHANGED`, `PLAYER_ENTERING_WORLD` and the portrait events. A bar shows only while Blizzard's own `MicroMenu` or `BagsBar` is shown, so both hide with Blizzard's in the gamepad interface (hooks on `MainActionBar_InitializeGamepad`, `MainActionBar_InitializeMKB` and `MainActionBar_UnInitializeMKB`). Showing, hiding, placing and sizing the secure buttons waits for `Combat.Queue` in combat; icons, colours and states change at once. A Blizzard update that changes nothing moves nothing.
 
 | Key | Default | Row |
 | --- | --- | --- |
-| `micro.skin`, `bags.skin` | `true` | Restyle. Turning one off hides KstyleUI's parts at once and offers a reload, because Blizzard's faded art comes back only after one. |
-| `micro.backdrop`, `bags.backdrop` | `true` | The glass |
-| `micro.tiles`, `bags.tiles` | `false`, `true` | The tiles |
-| `micro.tint` | `none` | `none`, `accent` or `white` |
+| `micro.enabled`, `bags.enabled` | `true` | Show KstyleUI's bar in place of Blizzard's. Off, `Safe.RestoreBlizzard` gives Blizzard's back where Edit Mode puts it. |
+| `micro.size`, `bags.size` | 24, 22 | Button height, 12 to 48. A micro button is three quarters as wide. |
+| `micro.spacing`, `bags.spacing` | 2 | The gap between buttons, 0 to 12 |
+| `micro.rows`, `bags.rows` | 1 | How many rows the buttons fill |
+| `micro.backdrop`, `bags.backdrop` | `true` | The glass behind the buttons |
+| `micro.tint` | `none` | `none` keeps Blizzard's glyph colours; `accent` and `white` desaturate the glyphs and tint them |
+| `bags.freeSlots` | `true` | The free-slot count on the backpack |
 
-The module registers with `reskin = true`, so turning DataBars off asks for a reload. The micro menu and bag bar have no Layout element: their place, size, orientation and rows stay in Edit Mode.
+Layout gives each bar its shown rule, position, scale, opacity and strata.
 
 ## Why
 
@@ -134,6 +140,7 @@ The module registers with `reskin = true`, so turning DataBars off asks for a re
 - **Honour is Forever's PvP rank.** Forever loads Blizzard's honour bar, but its PvP progression is the rank points of major faction 2800, which Blizzard's own PvP rank panel reads. The honour bar shows those points and the rank, and falls back to `UnitHonor` when the faction returns nothing. The bar has its own element key, `databars.honor`, under the reputation bar; the experience and reputation bars moved up 3 and 4 units to make room.
 - **A holder and its content.** Layout owns the holder's visibility for the player's shown rule. The module shows and hides only the content, so the two never fight over one frame.
 - **One event and one callback hub.** `KstyleUI.Events` and `KstyleUI.Callbacks` keep one handler per owner and event. Several bars listen for `UPDATE_FACTION` and `PLAYER_ENTERING_WORLD`, so `Init.lua` collects every handler and registers one dispatcher per event when the module starts. `Modules` removes them all when it stops.
-- **The micro menu and bag bar are restyled in place, not moved.** On Forever, `MainActionBar` anchors to `MicroMenuContainer`, and `BagsBar` anchors to it too, so moving either from addon code would move protected frames and taint Edit Mode's bottom bar layout. Blizzard also shows and hides the `BagsBar` tree on the way to protected calls. DataBars therefore never hides, reparents, moves or hooks `OnShow` inside these trees: it fades Blizzard's art with alpha and draws its glass and tiles on its own child frames. The element keys `databars.micro` and `databars.bags` stay unregistered, because Layout never moves a Blizzard frame; Edit Mode places these two.
-- **Clicks reach Blizzard's buttons through a secure proxy.** Opening bags, the character sheet or the calendar from addon code calls Blizzard functions that open Blizzard windows, which the reskin rules forbid and which can taint the bag and panel code. Instead one `SecureActionButtonTemplate` button, parented to `UIParent` so no KstyleUI frame turns protected, covers the hovered strip item out of combat with `type1 = "click"` and `clickbutton1` set to Blizzard's own button. The click then runs Blizzard's handler untainted. `PLAYER_REGEN_DISABLED`, which fires before lockdown, puts the proxy away; in combat the items keep their tooltips and say the action waits for combat to end. A right click passes through the proxy's `PostClick` hook to the item's own action.
+- **The micro menu and bag bar are replaced, not moved.** Forever's Edit Mode puts Blizzard's micro menu at the bottom centre (`MICRO_MENU_ANCHOR_OFFSET_X = 116.5` in `Camelot/EditModePresetLayoutConstants.lua`) with `BagsBar` beside it, on top of KstyleUI's action bars and data bars, and the spec places frames with KstyleUI's Layout Mode. Layout never moves a Blizzard frame, so, as the spec says for a Blizzard frame that needs a new place, `Safe` hides Blizzard's and KstyleUI's own bars take their place. `MainActionBar` and `BagsBar` anchor to `MicroMenuContainer`; reparenting keeps every anchor, so nothing protected moves, and `Safe` waits for the end of combat and of Edit Mode. DataBars hides the container, not `MicroMenu`, because Blizzard puts `MicroMenu` back into its container after vehicles and pet battles (`ResetMicroMenuPosition`). It never moves, hides or hooks `OnShow` inside either tree, and it writes no field onto a Blizzard frame.
+- **Each button clicks Blizzard's own.** Opening a window from addon code would call Blizzard functions that open Blizzard windows, which the reskin rules forbid and which can taint the panel code. A `SecureActionButtonTemplate` with `type = "click"` instead runs Blizzard's button's handler from secure code. Unlike the strip's single proxy, which moves to the hovered item and so cannot follow the pointer in combat, every micro and bag button is its own secure button, so bags open in combat.
+- **Strip clicks reach Blizzard's buttons through a secure proxy.** Opening bags, the character sheet or the calendar from addon code calls Blizzard functions that open Blizzard windows, which the reskin rules forbid and which can taint the bag and panel code. Instead one `SecureActionButtonTemplate` button, parented to `UIParent` so no KstyleUI frame turns protected, covers the hovered strip item out of combat with `type1 = "click"` and `clickbutton1` set to Blizzard's own button. The click then runs Blizzard's handler untainted. `PLAYER_REGEN_DISABLED`, which fires before lockdown, puts the proxy away; in combat the items keep their tooltips and say the action waits for combat to end. A right click passes through the proxy's `PostClick` hook to the item's own action.
 - **Fonts outside the kit's restyle list.** The kit restyles every text made with `Widgets.Text` to its role's font on `ThemeChanged`, which would undo a player's chosen font. Bar texts are plain font strings that `Font.Apply` styles, and the module applies them again on `ThemeChanged`, `ScaleChanged` and `ProfileChanged`.

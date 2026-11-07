@@ -49,7 +49,7 @@ end
 
 ns.schema.preview = ns.Preview
 
-K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable, reskin = true })
+K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable })
 K.Options.Register(MODULE, ns.schema)
 
 K.DevTest.AddCheck("DataBars", function()
@@ -61,5 +61,10 @@ K.DevTest.AddCheck("DataBars", function()
 		local view = ns.Bars.views[def.id]
 		shown[#shown + 1] = def.id .. "=" .. (view and view.content:IsShown() and "shown" or tostring(view and view.why or "unbuilt"))
 	end
-	return true, table.concat(shown, ", ") .. (ns.Blizzard.IsFaded() and "; Blizzard bars faded" or "; Blizzard bars shown")
+	local menus = {}
+	for _, id in ipairs({ "micro", "bags" }) do
+		local blizzard = _G[ns.Menus.GROUPS[id].hide]
+		menus[#menus + 1] = id .. " " .. #ns.Menus.Shown(id) .. " buttons, Blizzard's " .. (blizzard and K.Safe.IsHidden(blizzard) and "hidden" or "shown")
+	end
+	return true, table.concat(shown, ", ") .. (ns.Blizzard.IsFaded() and "; Blizzard bars faded" or "; Blizzard bars shown") .. "; " .. table.concat(menus, "; ")
 end)

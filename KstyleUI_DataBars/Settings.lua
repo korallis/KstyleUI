@@ -19,6 +19,11 @@ local PREVIEW_STRIP_PAD = 12
 local STRIP_FONT_SIZE = 11
 local STRIP_SPACING = 8
 local MAX_SPACING = 32
+local MICRO_SIZE = 24
+local BAG_SIZE = 22
+local MENU_SPACING = 2
+local MENU_SIZE_MIN, MENU_SIZE_MAX = 12, 48
+local MENU_SPACING_MAX = 12
 
 local function Texture(key)
 	for _, item in ipairs(Tokens.MediaList("statusbar")) do
@@ -71,8 +76,8 @@ defaults.strip = {
 for i, id in ipairs(Strip.ITEMS) do
 	defaults.strip["slot" .. i] = id
 end
-defaults.micro = { skin = true, backdrop = true, tiles = false, tint = "none" }
-defaults.bags = { skin = true, backdrop = true, tiles = true }
+defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none" }
+defaults.bags = { enabled = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true }
 
 local SOURCES_PLAIN = {
 	{ value = "class", label = L["Class colour"] },
@@ -231,25 +236,29 @@ local TINTS = {
 	{ value = "white", label = L["White"] },
 }
 
-local function MenuRows(id, title, skinHelp)
+local function MenuRows(id, title, enabledHelp)
 	local function off(settings)
-		return not (settings[id] and settings[id].skin)
+		return not (settings[id] and settings[id].enabled)
 	end
-	return {
+	local count = #ns.Menus.GROUPS[id].buttons
+	local rows = {
 		{ type = "header", label = title },
-		{ type = "toggle", key = id .. ".skin", label = L["Restyle"], help = skinHelp },
+		{ type = "toggle", key = id .. ".enabled", label = L["Replace Blizzard's"], help = enabledHelp },
+		{ type = "slider", key = id .. ".size", label = L["Button size"], help = L["The height of each button. Layout Mode moves and scales the bar."], min = MENU_SIZE_MIN, max = MENU_SIZE_MAX, step = 1, disableWhen = off },
+		{ type = "slider", key = id .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = MENU_SPACING_MAX, step = 1, disableWhen = off },
+		{ type = "slider", key = id .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = count, step = 1, disableWhen = off },
 		{ type = "toggle", key = id .. ".backdrop", label = L["Glass"], help = L["Draws smoked glass behind the buttons."], disableWhen = off },
-		{ type = "toggle", key = id .. ".tiles", label = L["Tiles"], help = L["Puts each button on a raised tile whose edge lights in the accent colour."], disableWhen = off },
 	}
+	if id == "micro" then
+		rows[#rows + 1] = { type = "dropdown", key = "micro.tint", label = L["Icon colour"], help = L["Keeps Blizzard's icon colours, or tints the icons in the accent colour or white."], options = TINTS, disableWhen = off }
+	else
+		rows[#rows + 1] = { type = "toggle", key = "bags.freeSlots", label = L["Free slots"], help = L["Shows on the backpack how many slots are free in all your bags."], disableWhen = off }
+	end
+	return rows
 end
 
-ns.AddRows(MenuRows("micro", L["Micro menu"], L["Restyles Blizzard's micro menu in place. Move and size it in Edit Mode."]))
-ns.AddRows({
-	{ type = "dropdown", key = "micro.tint", label = L["Icon colour"], help = L["Keeps Blizzard's icon colours, or tints the icons in the accent colour or white."], options = TINTS, disableWhen = function(settings)
-		return not (settings.micro and settings.micro.skin)
-	end },
-})
-ns.AddRows(MenuRows("bags", L["Bag bar"], L["Restyles Blizzard's bag bar in place. Move and size it in Edit Mode."]))
+ns.AddRows(MenuRows("micro", L["Micro menu"], L["Shows KstyleUI's micro menu in place of Blizzard's. Off, Blizzard's returns."]))
+ns.AddRows(MenuRows("bags", L["Bag bar"], L["Shows KstyleUI's bag bar in place of Blizzard's. Off, Blizzard's returns."]))
 
 local SAMPLES = {
 	xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp" },
