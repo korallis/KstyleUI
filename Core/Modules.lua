@@ -32,12 +32,14 @@ local function start(entry)
 	entry.failed = false
 	if ns.Call(entry.def.Enable, entry.def) then
 		log(entry.name, "enabled")
+		ns.Callbacks.Fire("ModuleChanged", entry.name, true)
 		return
 	end
 	entry.failed = true
 	ns.Call(entry.def.Disable, entry.def)
 	release(entry)
 	log(entry.name, "Enable failed; Disable ran to clean up")
+	ns.Callbacks.Fire("ModuleChanged", entry.name, false)
 end
 
 local function stop(entry)
@@ -47,6 +49,7 @@ local function stop(entry)
 	ns.Call(entry.def.Disable, entry.def)
 	release(entry)
 	log(entry.name, "disabled")
+	ns.Callbacks.Fire("ModuleChanged", entry.name, false)
 	if entry.def.reskin then
 		reloadNeeded = true
 		ns.Print(string.format(L["%s keeps its changes to Blizzard's frames until you reload. Type /reload to finish turning it off."], entry.name))

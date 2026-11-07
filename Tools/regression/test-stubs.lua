@@ -149,6 +149,72 @@ assert(layered:GetNumMaskTextures() == 2 and layered:GetMaskTexture(1) == mask1 
 layered:RemoveMaskTexture(mask1)
 assert(layered:GetNumMaskTextures() == 1 and layered:GetMaskTexture(1) == mask2)
 
+-- Macro options, as SecureCmdOptionParse reads them.
+do
+	local e = Stubs.NewEnv()
+	assert(e.SecureCmdOptionParse("[combat] show; hide") == "hide")
+	e._combat = true
+	assert(e.SecureCmdOptionParse("[combat] show; hide") == "show")
+	assert(e.SecureCmdOptionParse("[nocombat] a; b") == "b")
+	assert(e.SecureCmdOptionParse("[@target,exists] show; hide") == "hide")
+	e._target = true
+	assert(e.SecureCmdOptionParse("[target=target,exists] show; hide") == "show")
+	assert(e.SecureCmdOptionParse("[noexists] a; [combat] b; c") == "b", "the first clause that holds wins")
+	assert(e.SecureCmdOptionParse("[nocombat] a") == nil, "no clause holds and no default: nil")
+	assert(e.SecureCmdOptionParse("[nocombat][exists] a; b") == "a", "any of several groups may hold")
+end
+
+-- State drivers resolve when registered and after combat or target changes, from secure code.
+do
+	local e = Stubs.NewEnv()
+	local frame = e.CreateFrame("Frame")
+	local secureShows = {}
+	local show = frame.Show
+	frame.Show = function(self)
+		secureShows[#secureShows + 1] = e._secure == true
+		return show(self)
+	end
+	e.RegisterStateDriver(frame, "visibility", "[combat] show; hide")
+	assert(frame:IsShown() == false and frame:GetAttribute("statehidden") == true, "a visibility driver hides at once")
+	assert(e.Driver(frame, "visibility") == "[combat] show; hide")
+	e.SetCombat(true)
+	assert(frame:IsShown() == true and frame:GetAttribute("statehidden") == nil, "and shows in combat")
+	assert(secureShows[1] == true, "from secure code")
+	e.SetCombat(false)
+	assert(frame:IsShown() == false)
+	e.RegisterStateDriver(frame, "page", "[@target,exists] 2; 1")
+	assert(frame:GetAttribute("state-page") == 1, "other states set an attribute")
+	e.SetTarget(true)
+	assert(frame:GetAttribute("state-page") == 2, "SetTarget rescans")
+	e.UnregisterStateDriver(frame, "visibility")
+	assert(e.Driver(frame, "visibility") == nil)
+	e.SetCombat(true)
+	assert(frame:IsShown() == false, "an unregistered driver no longer runs")
+	e.RegisterStateDriver(frame, "page", "")
+	assert(e.Driver(frame, "page") == nil, "empty options unregister, as in the game")
+end
+
+-- The cursor, the modifier keys, the target and IsMouseOver.
+do
+	local e = Stubs.NewEnv()
+	e._cursor = { 12, 34 }
+	local x, y = e.GetCursorPosition()
+	assert(x == 12 and y == 34)
+	assert(e.IsShiftKeyDown() == false and e.IsControlKeyDown() == false)
+	e._modifiers.shift = true
+	assert(e.IsShiftKeyDown() == true)
+	assert(e.UnitExists("player") == true and e.UnitExists("target") == false)
+	local heard
+	local frame = e.CreateFrame("Frame")
+	frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+	frame:SetScript("OnEvent", function(_, event) heard = event end)
+	e.SetTarget(true)
+	assert(e.UnitExists("target") == true and heard == "PLAYER_TARGET_CHANGED")
+	assert(frame:IsMouseOver() == false)
+	frame._mouseOver = true
+	assert(frame:IsMouseOver() == true)
+end
+
 -- Environments do not share state, and builtins come from _G.
 local other = Stubs.NewEnv()
 assert(other.TestFrame == nil and select(2, other.GetPhysicalScreenSize()) == 1080)

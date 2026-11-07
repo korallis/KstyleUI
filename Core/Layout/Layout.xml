@@ -1,2 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="Geometry.lua"/>
+	<Script file="History.lua"/>
+	<Script file="Rules.lua"/>
+	<Script file="Layout.lua"/>
+	<Script file="Mode.lua"/>
 </Ui>

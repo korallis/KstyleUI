@@ -122,7 +122,14 @@ do
 	assert(calls[1] == "options:nil" and calls[2] == "options:nil", "no argument opens the settings")
 
 	slash("layout")
+	assert(K.Layout.IsActive(), "layout enters Layout Mode")
+	slash("layout")
+	assert(not K.Layout.IsActive(), "and leaves it again")
+	local layout = K.Layout
+	K.Layout = nil
+	slash("layout")
 	assert(Printed(env, "Layout Mode"), "layout without Layout Mode says it is unavailable")
+	K.Layout = layout
 	K.Layout = { Toggle = function() calls[#calls + 1] = "layout" end }
 	K.Setup = { Open = function() calls[#calls + 1] = "setup" end }
 	slash("LAYOUT")

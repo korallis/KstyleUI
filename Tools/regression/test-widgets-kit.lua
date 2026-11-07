@@ -219,8 +219,14 @@ do
 	local reg = env._layout[1]
 	assert(reg and reg.frame == frame and reg.key == "Test.Frame" and reg.position.anchor == "TOP" and reg.opts.scalable, "registered with Layout")
 	local env2, K2 = W.New()
+	local placed = env2.CreateFrame("Frame", nil, K2.Scale.Root())
+	K2.Widgets.Place(placed, "Test.Placed", { anchor = "TOP", x = 0, y = -40 }, { label = "Placed" })
+	assert(K2.Layout.Get("Test.Placed") and K2.Layout.Get("Test.Placed").anchor == "TOP", "the real Layout service registers the frame")
+	local layout = K2.Layout
+	K2.Layout = nil
 	local other = env2.CreateFrame("Frame", nil, K2.Scale.Root())
 	K2.Widgets.Place(other, "Test.Other", { anchor = "CENTER", x = 5, y = 6 })
+	K2.Layout = layout
 	assert(other._points[1][1] == "CENTER", "positioned without Layout")
 	local logged = false
 	for _, entry in ipairs(env2.KstyleUIDB.devlog) do

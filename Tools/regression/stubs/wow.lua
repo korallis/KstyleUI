@@ -179,6 +179,9 @@ function Object:Disable() setEnabled(self, false) end
 function Object:SetEnabled(enabled) setEnabled(self, enabled) end
 function Object:IsEnabled() return self._enabled end
 
+-- The pointer is over a frame while a test sets frame._mouseOver.
+function Object:IsMouseOver() return self._mouseOver == true end
+
 local ObjectMeta = {}
 
 local function newObject(env, objectType, name, parent)
@@ -320,7 +323,8 @@ function Stubs.NewEnv(opts)
 		end
 	end
 
-	-- PLAYER_REGEN_DISABLED fires before lockdown starts, and PLAYER_REGEN_ENABLED after it ends.
+	-- PLAYER_REGEN_DISABLED fires before lockdown starts, and PLAYER_REGEN_ENABLED after it ends. The
+	-- secure state drivers rescan after each, as SecureStateDriverManager does on those events.
 	function env.SetCombat(inCombat)
 		if inCombat then
 			env.FireEvent("PLAYER_REGEN_DISABLED")
@@ -329,6 +333,7 @@ function Stubs.NewEnv(opts)
 			env._combat = false
 			env.FireEvent("PLAYER_REGEN_ENABLED")
 		end
+		env.RunStateDrivers()
 	end
 
 	function env.InCombatLockdown()
@@ -413,6 +418,132 @@ function Stubs.NewEnv(opts)
 		errorHandler = handler
 	end
 	env.SlashCmdList = {}
+
+	-- Input: the cursor (env._cursor, in the units GetCursorPosition returns: UIParent units times
+	-- UIParent's effective scale) and the modifier keys (env._modifiers.shift and .ctrl).
+	env._cursor = { 0, 0 }
+	function env.GetCursorPosition()
+		return env._cursor[1], env._cursor[2]
+	end
+	env._modifiers = {}
+	function env.IsShiftKeyDown()
+		return env._modifiers.shift == true
+	end
+	function env.IsControlKeyDown()
+		return env._modifiers.ctrl == true
+	end
+
+	-- The player always exists; the target exists while env._target is true. SetTarget fires
+	-- PLAYER_TARGET_CHANGED, then the state drivers rescan.
+	env._target = false
+	function env.UnitExists(unit)
+		if unit == "player" then
+			return true
+		end
+		return unit == "target" and env._target == true
+	end
+	function env.SetTarget(exists)
+		env._target = exists and true or false
+		env.FireEvent("PLAYER_TARGET_CHANGED")
+		env.RunStateDrivers()
+	end
+
+	-- Macro options: "[cond,cond] value; [cond] value; default". The conditions known here are combat,
+	-- nocombat, exists, noexists and a unit as @unit or target=unit (the default unit is the target).
+	local function holds(group)
+		local unit, ok = "target", true
+		for part in group:gmatch("[^,]+") do
+			part = part:match("^%s*(.-)%s*$")
+			local named = part:match("^@(.+)$") or part:match("^target=(.+)$")
+			if named then
+				unit = named
+			elseif part == "combat" then
+				ok = ok and env._combat == true
+			elseif part == "nocombat" then
+				ok = ok and env._combat ~= true
+			elseif part == "exists" then
+				ok = ok and env.UnitExists(unit) == true
+			elseif part == "noexists" then
+				ok = ok and env.UnitExists(unit) ~= true
+			else
+				error("SecureCmdOptionParse stub: unknown condition " .. part)
+			end
+		end
+		return ok
+	end
+	function env.SecureCmdOptionParse(options)
+		for clause in (options .. ";"):gmatch("([^;]*);") do
+			local rest = clause:match("^%s*(.-)%s*$")
+			local groups = {}
+			while rest:sub(1, 1) == "[" do
+				local group, after = rest:match("^%[([^%]]*)%]%s*(.*)$")
+				assert(group, "SecureCmdOptionParse stub: unclosed [ in " .. options)
+				groups[#groups + 1] = group
+				rest = after
+			end
+			if #groups == 0 then
+				return rest
+			end
+			for _, group in ipairs(groups) do
+				if holds(group) then
+					return rest
+				end
+			end
+		end
+		return nil
+	end
+
+	-- State drivers, as SecureStateDriver.lua runs them: a "visibility" driver shows or hides the
+	-- frame from secure code (env._secure is true meanwhile) and sets "statehidden"; any other state
+	-- sets the attribute "state-<state>". A driver resolves when registered and on RunStateDrivers.
+	env._drivers = {}
+	local function resolveDriver(entry)
+		local value = env.SecureCmdOptionParse(entry.values)
+		local frame = entry.frame
+		env._secure = true
+		if entry.state == "visibility" then
+			if value == "show" then
+				frame:Show()
+				frame:SetAttribute("statehidden", nil)
+			elseif value == "hide" then
+				frame:Hide()
+				frame:SetAttribute("statehidden", true)
+			end
+		elseif value ~= nil then
+			frame:SetAttribute("state-" .. entry.state, tonumber(value) or value)
+		end
+		env._secure = false
+	end
+	function env.UnregisterStateDriver(frame, state)
+		for i = #env._drivers, 1, -1 do
+			local entry = env._drivers[i]
+			if entry.frame == frame and entry.state == state then
+				table.remove(env._drivers, i)
+			end
+		end
+	end
+	function env.RegisterStateDriver(frame, state, values)
+		env.UnregisterStateDriver(frame, state)
+		if values == nil or values == "" then
+			return
+		end
+		local entry = { frame = frame, state = state, values = values }
+		env._drivers[#env._drivers + 1] = entry
+		resolveDriver(entry)
+	end
+	function env.RunStateDrivers()
+		for _, entry in ipairs({ unpack(env._drivers) }) do
+			resolveDriver(entry)
+		end
+	end
+	-- Driver(frame, state) -> the macro options registered for the frame's state, or nil.
+	function env.Driver(frame, state)
+		for _, entry in ipairs(env._drivers) do
+			if entry.frame == frame and entry.state == state then
+				return entry.values
+			end
+		end
+	end
 
 	return env
 end

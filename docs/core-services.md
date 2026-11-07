@@ -27,7 +27,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 | `UnregisterAll(owner)` | Removes the owner from every event. |
 | `Fire(event, ...)` | Runs subscribers in registration order. A failing subscriber is reported through `Call`, and the rest still run. A subscriber added during a `Fire` first runs on the next `Fire`. |
 
-The events are `ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged(new, old)`, `IconsChanged`, `SettingChanged(module, key, value)` and `ReloadNeeded(module)`. Any other name raises an error. To add an event, add its name to the `EVENTS` table in `Core/Callbacks.lua`.
+The events are `ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged(new, old)`, `IconsChanged`, `SettingChanged(module, key, value)`, `ReloadNeeded(module)`, `LayoutChanged(key)`, which [Layout](../Core/Layout/README.md) fires when an element's settings change, and `ModuleChanged(name, running)`, which `Modules` fires after a module starts or stops. Any other name raises an error. To add an event, add its name to the `EVENTS` table in `Core/Callbacks.lua`.
 
 When a module is disabled, `Modules` removes every callback whose owner is the module's name.
 
@@ -64,6 +64,8 @@ When `owner` is a module name from `Features.modules`, `Register` raises an erro
 | `NeedsReload() -> boolean` | True after a `reskin` module was turned off. |
 
 A profile change starts and stops modules to match the new profile's switches.
+
+After `Enable` succeeds, `Modules` fires `ModuleChanged(name, true)`. After `Disable`, or after a failed `Enable` and its cleanup, it fires `ModuleChanged(name, false)`. `IsRunning` already gives the new state when the callback runs.
 
 ## Combat
 
@@ -194,4 +196,4 @@ The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's se
 | `/kstyle profile use, new, copy, rename or delete <name>` | `SetProfile`, `CreateProfile`, `CopyProfile(<name>, active)`, `RenameProfile(active, <name>)` or `DeleteProfile` |
 | `/kstyle profile reset` | `ResetProfile()` |
 
-Layout Mode and the first-run setup provide `KstyleUI.Layout.Toggle` and `KstyleUI.Setup.Open`. Until they exist, the command prints that the feature is not available yet.
+Layout Mode and the first-run setup provide `KstyleUI.Layout.Toggle` and `KstyleUI.Setup.Open`. Until they exist, the command prints that the feature is not available yet. [`Core/Layout/README.md`](../Core/Layout/README.md) documents Layout.
