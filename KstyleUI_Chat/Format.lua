@@ -22,10 +22,16 @@ Format.TIMESTAMPS = {
 	{ value = "%H:%M:%S" },
 	{ value = "%I:%M %p" },
 	{ value = "%I:%M:%S %p" },
+	{ value = "%I:%M" },
+	{ value = "%I:%M:%S" },
 }
 local TIMESTAMP = {}
 for _, choice in ipairs(Format.TIMESTAMPS) do
 	TIMESTAMP[choice.value] = true
+end
+
+function Format.IsTimestamp(fmt)
+	return not Format.IsSecret(fmt) and type(fmt) == "string" and TIMESTAMP[fmt] == true
 end
 
 Format.CHANNEL_KEYS = { "guild", "officer", "party", "partyLeader", "raid", "raidLeader", "raidWarning", "instance", "instanceLeader" }

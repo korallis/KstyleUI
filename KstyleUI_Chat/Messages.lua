@@ -1,9 +1,9 @@
--- Messages.lua: the chat's message pipeline: links and class-coloured names through Blizzard's chat filters, timestamps and short channel names on each new line, and the dialog that copies a clicked link.
+-- Messages.lua: the chat's message pipeline: links and class-coloured names through Blizzard's chat filters, short channel names on each new line (and KstyleUI's own timestamps when the game cannot draw them, see Stamps.lua), and the dialog that copies a clicked link.
 local _, ns = ...
 
 local K = KstyleUI
 local L = K.L
-local Format, Windows = ns.Format, ns.Windows
+local Format, Windows, Stamps = ns.Format, ns.Windows, ns.Stamps
 
 local Messages = {}
 ns.Messages = Messages
@@ -67,30 +67,6 @@ local function Replace(_, r, g, b, ...)
 	return state.out, r, g, b, ...
 end
 
-local function ReadGameTimestamps()
-	local get = C_CVar and C_CVar.GetCVar
-	if type(get) ~= "function" then
-		return false
-	end
-	local ok, value = pcall(get, "showTimestamps")
-	return ok and IsText(value) and value ~= "" and value ~= "none"
-end
-
-local function GameTimestamps()
-	local cached = state.gameStamps
-	if cached == nil then
-		cached = ReadGameTimestamps() and true or false
-		state.gameStamps = cached
-	end
-	return cached
-end
-
-local function OnCVar(_, name)
-	if not IsText(name) or name:lower() == "showtimestamps" then
-		state.gameStamps = nil
-	end
-end
-
 local function NewestSlot(frame)
 	local buffer = frame.historyBuffer
 	if type(buffer) ~= "table" or type(buffer.CalculateElementIndex) ~= "function" then
@@ -110,7 +86,7 @@ local function OnAddMessage(frame, message, _, _, _, _, _, _, event)
 	end
 	local opts = state.opts
 	opts.timestamp = opts.stamp
-	if opts.stamp ~= "none" and GameTimestamps() then
+	if opts.stamp ~= "none" and Stamps.GameDraws() then
 		opts.timestamp = "none"
 	end
 	local out = Format.Decorate(message, IsText(event) and event or nil, opts)
@@ -273,8 +249,6 @@ end
 
 function Messages.Start(settings)
 	state.active = true
-	state.gameStamps = nil
-	K.Events.Register(ns.NAME, "CVAR_UPDATE", OnCVar)
 	Probe()
 	local registry = EventRegistry
 	if type(registry) == "table" and type(registry.RegisterCallback) == "function" then

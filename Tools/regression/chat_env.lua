@@ -172,6 +172,11 @@ function C.Say(env, frame, event, text, opts)
 		prefix = "|Hchannel:channel:1|h[" .. channel .. "]|h "
 	end
 	local line = prefix .. "|Hplayer:" .. sender .. ":42|h[" .. name .. "]|h: " .. args[1]
+	-- MessageFormatter puts the game's timestamp in front: TimeUtil.BetterDate(showTimestamps, time()).
+	local stamp = env._cvars.showTimestamps
+	if type(stamp) == "string" and stamp ~= "none" then
+		line = os.date(stamp, env.time()) .. line
+	end
 	frame:AddMessage(line, 1, 1, 1, 7, 1, 1, event, args, function() end)
 	return true
 end
@@ -245,8 +250,8 @@ function C.Check(env, snap, hooked)
 end
 
 -- Install(env) adds the Blizzard chat stand-ins before the core loads. opts.frames: how many chat
--- frames (default 3), opts.noFilters / opts.noTransform / opts.noEventRegistry / opts.noMenu remove
--- that API, as an older or changed client would.
+-- frames (default 3), opts.noFilters / opts.noTransform / opts.noEventRegistry / opts.noMenu /
+-- opts.noSetCVar remove that API, as an older or changed client would.
 function C.Install(env, opts)
 	opts = opts or {}
 	env._blizzard = {}
@@ -255,11 +260,25 @@ function C.Install(env, opts)
 	env.date = os.date
 	env.CHAT_FRAMES = {}
 	env._cvars = { showTimestamps = "none" }
+	env._cvarWrites = {}
 	env.C_CVar = {
 		GetCVar = function(name)
 			return env._cvars[name]
 		end,
 	}
+	-- SetCVar stores the value and fires CVAR_UPDATE inside the call, as the client does.
+	-- env._cvarFilter(name, value) -> stored value lets a test model a client that changes or refuses a value.
+	if not opts.noSetCVar then
+		env.C_CVar.SetCVar = function(name, value)
+			env._cvarWrites[#env._cvarWrites + 1] = { name = name, value = value }
+			if env._cvarFilter then
+				value = env._cvarFilter(name, value)
+			end
+			env._cvars[name] = value
+			env.FireEvent("CVAR_UPDATE", name, value)
+			return true
+		end
+	end
 	env.RAID_CLASS_COLORS = {
 		WARRIOR = { r = 0.78, g = 0.61, b = 0.43 },
 		MAGE = { r = 0.25, g = 0.78, b = 0.92 },

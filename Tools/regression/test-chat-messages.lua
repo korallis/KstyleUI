@@ -47,16 +47,17 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- A numbered channel keeps its number and name; a system line gets only the timestamp.
+-- A numbered channel keeps its number and name; a system line is left as the game wrote it, since the game gives it no timestamp.
 do
 	local env, K = C.New()
 	C.Enable(env, K)
 	env._now = os.time({ year = 2026, month = 11, day = 7, hour = 9, min = 5 })
 	C.Say(env, env.ChatFrame1, "CHAT_MSG_CHANNEL", "LFM", { channel = "1. General - Riverglades" })
 	assert(has(C.Last(env.ChatFrame1), "|Hchannel:channel:1|h[1. General]|h"), "the zone goes: " .. C.Last(env.ChatFrame1))
-	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0, 1, 0)
 	local F = env._addons.KstyleUI_Chat.Format
-	assert(F.Strip(C.Last(env.ChatFrame1)) == "[09:05] You receive loot: [Hide].", "a system line: " .. tostring(F.Strip(C.Last(env.ChatFrame1))))
+	assert(F.Strip(C.Last(env.ChatFrame1)):sub(1, 8) == "[09:05] ", "the channel line has the game's timestamp: " .. F.Strip(C.Last(env.ChatFrame1)))
+	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0, 1, 0)
+	assert(C.Last(env.ChatFrame1) == "You receive loot: [Hide].", "a system line: " .. tostring(C.Last(env.ChatFrame1)))
 	assert(C.Newest(env.ChatFrame1)[2] == 0, "the line keeps its colour")
 end
 
@@ -97,9 +98,9 @@ do
 	assert(C.Last(env.ChatFrame2) == "Your Fireball hits.", "no timestamp in the combat log")
 end
 
--- Blizzard's own timestamps win, so a line never gets two.
+-- On a client where KstyleUI cannot write the game's setting, Blizzard's own timestamps win, so a line never gets two.
 do
-	local env, K = C.New()
+	local env, K = C.New({ install = { noSetCVar = true } })
 	C.Enable(env, K)
 	env._cvars.showTimestamps = "%H:%M "
 	env.FireEvent("CVAR_UPDATE", "showTimestamps", "%H:%M ")
@@ -167,8 +168,9 @@ do
 end
 
 -- A line identical to an older one decorates the new line, not the old one, also after the history wraps.
+-- KstyleUI stamps system lines itself on a client where it cannot write the game's setting.
 do
-	local env, K = C.New()
+	local env, K = C.New({ install = { noSetCVar = true } })
 	env.ChatFrame1:AddMessage("You are now away.", 1, 1, 0)
 	C.Enable(env, K)
 	env.ChatFrame1:AddMessage("You are now away.", 1, 1, 0)
@@ -250,6 +252,8 @@ do
 	assert(K.Modules.IsRunning("Chat"), "the module still runs")
 	env.ChatFrame1:AddMessage("plain", 1, 1, 1)
 	assert(C.Last(env.ChatFrame1) == "plain", "lines are untouched")
+	C.Say(env, env.ChatFrame1, "CHAT_MSG_GUILD", "hi")
+	assert(has(C.Last(env.ChatFrame1), "[Guild]"), "a channel line keeps its full name")
 	local logged = {}
 	for _, entry in ipairs(env.KstyleUIDB.devlog) do
 		if entry.module == "Chat" then

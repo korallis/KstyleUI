@@ -3,6 +3,7 @@
 	<Script file="Format.lua"/>
 	<Script file="Settings.lua"/>
 	<Script file="Windows.lua"/>
+	<Script file="Stamps.lua"/>
 	<Script file="Messages.lua"/>
 	<Script file="Panel.lua"/>
 	<Script file="Frames.lua"/>

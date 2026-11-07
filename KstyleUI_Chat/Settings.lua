@@ -80,6 +80,8 @@ local TIMESTAMP_LABELS = {
 	["%H:%M:%S"] = L["24-hour with seconds, 14:31:05"],
 	["%I:%M %p"] = L["12-hour, 02:31 PM"],
 	["%I:%M:%S %p"] = L["12-hour with seconds, 02:31:05 PM"],
+	["%I:%M"] = L["12-hour, 02:31"],
+	["%I:%M:%S"] = L["12-hour with seconds, 02:31:05"],
 }
 
 local ABBREVIATION_LABELS = {
@@ -196,7 +198,7 @@ function ns.Schema()
 		{ type = "header", label = L["Timestamps"] },
 		{
 			type = "dropdown", key = "timestamp", label = L["Timestamp format"],
-			help = L["Shows the time in front of each new line."],
+			help = L["Same as Blizzard's chat timestamps. System and loot lines have none."],
 			options = timestamps,
 		},
 		{

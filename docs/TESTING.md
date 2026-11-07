@@ -229,7 +229,11 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] The chat sits bottom left in a glass panel: tabs in capitals with an accent underline, messages, and the edit box at the bottom.
 - [ ] Guild, party and `/1` lines show `[14:31] [G] Name: text`, with names in class colours.
 - [ ] Post `https://www.wowhead.com` in `/s`: it becomes a link; clicking it opens a dialog with the address selected.
-- [ ] Turn on the game's timestamps in Options > Social: lines get only the game's timestamp. Turn them off: KstyleUI's come back.
+- [ ] Chat lines show one timestamp, in brackets and in the timestamp colour. Loot, XP and system lines have none: the game adds the timestamp, and it stamps only chat messages.
+- [ ] On the Chat settings page, change **Timestamp format** and **Timestamp colour**: the next chat line uses them. Pick **None**: new lines have no timestamp.
+- [ ] Open Esc > Options > Social and change **Chat Timestamps**: KstyleUI's **Timestamp format** follows, and new lines keep KstyleUI's brackets and colour.
+- [ ] Note your timestamp choice in Options > Social before the first login with KstyleUI. Turn the Chat module off: that choice comes back.
+- [ ] If chat lines show `|cff` text or no timestamp at all, send the devlog. It says whether the game refused KstyleUI's format.
 - [ ] **Copy** at the end of the tab strip opens the copy window with the chat as plain text.
 - [ ] Open and close Blizzard's Edit Mode: the chat returns to its panel.
 - [ ] `/cast` and `/use` typed in chat still work in combat.

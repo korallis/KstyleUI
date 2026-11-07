@@ -30,6 +30,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Format.lua` | Pure text helpers: timestamps, short channel names, URL links, plain text and class-coloured names. No frames, no game state. |
 | `Settings.lua` | The defaults, the module accent and the settings page's rows |
 | `Windows.lua` | Finds Blizzard's chat windows, including whisper windows the game opens later, and hands each to the parts once |
+| `Stamps.lua` | Chat timestamps through the game's `showTimestamps` setting, and the player's own value back when the module turns off |
 | `Messages.lua` | The message pipeline and the dialog that copies a clicked link |
 | `Panel.lua` | The glass panel: the `chat.main` Layout element that holds Blizzard's main chat window |
 | `Frames.lua` | Restyles every chat window in place: art, tabs, edit box, scroll bar, fonts and buttons |
@@ -37,7 +38,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Preview.lua` | The live preview on the settings window's Chat page |
 | `Module.lua` | Registers the module and its settings page, and starts and stops the parts |
 
-Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
+Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline), `test-chat-stamps.lua` (timestamps through the game's setting) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
 
 ## Settings
 
@@ -55,7 +56,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | `tabCase` | `upper` | Tab names in capitals or as typed |
 | `tabFontSize` | 10 | 8 to 16 |
 | `accentSource`, `accentColor` | `class`, the default accent | Links and the chat's highlights follow the class colour or a custom colour |
-| `timestamp` | `%H:%M` | `none`, `%H:%M`, `%H:%M:%S`, `%I:%M %p` or `%I:%M:%S %p` |
+| `timestamp` | `%H:%M` | `none`, `%H:%M`, `%H:%M:%S`, `%I:%M %p`, `%I:%M:%S %p`, `%I:%M` or `%I:%M:%S`: the game's six formats. The game draws it, so system and loot lines have none. |
 | `timestampColor` | the `text` token | The colour of the time |
 | `channels` | `short` | `short` or `full` (as the game shows them) |
 | `numbers` | `name` | Numbered channels as `[1. General]` (`name`) or `[1]` (`number`) |
@@ -70,7 +71,23 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | Web addresses | A filter on each player chat event through `ChatFrameUtil.AddMessageEventFilter` rewrites the message text. `Format.Linkify` wraps `http`, `https`, `ftp` and `www.` addresses, bare domains with a known top-level domain, and IPv4 addresses in an `addon:KstyleUI:url:<address>` link in the accent colour. Text inside item links, textures and other escape sequences is never touched. |
 | Clicking a link | Blizzard routes `addon:` links to `EventRegistry`'s `SetItemRef` event. The module opens the kit's `Popup` with the address selected, ready for Ctrl+C. |
 | Class-coloured names | A sender-name filter through `ChatFrameUtil.AddSenderNameFilter` colours the name from `GetPlayerInfoByGUID` with `Theme.ClassColor`, brightened by `Theme.Brighten`. A name the game already coloured is left alone. |
-| Timestamps and short channel names | A `hooksecurefunc` post-hook on each chat window's `AddMessage` computes the decorated line and swaps it in through the window's own `TransformMessages`. The combat log is skipped. When the game's own timestamp setting (`showTimestamps`) is on, the module adds none. The module reads that setting once and again only after `CVAR_UPDATE` names it, not on every line. |
+| Timestamps | `Stamps.lua` writes the `timestamp` and `timestampColor` settings into the game's `showTimestamps` CVar as `\|cffRRGGBB[%H:%M]\|r `. Blizzard's chat puts that in front of each chat message as it builds the line (`TimeUtil.BetterDate`), so the module rewrites no line for its timestamp. See [Timestamps](#timestamps). |
+| Short channel names | A `hooksecurefunc` post-hook on each chat window's `AddMessage` computes the decorated line and swaps it in through the window's own `TransformMessages`, only when the line changes. The combat log is skipped. |
+
+## Timestamps
+
+| Case | What happens |
+| --- | --- |
+| The module turns on | It writes its value into `showTimestamps`, out of combat (`Combat.Queue`). An unchanged value is not written again. |
+| A setting changes | The value is written again. `none` or a format not on the list writes `none`. |
+| Turned off | The player's own value comes back. The module keeps it in `KstyleUIDB.account.chatTimestamps[<character key>]` as `{ original, written }`, because the CVar is saved per character. A value that differs from `written` when the module starts is the player's own. |
+| `VARIABLES_LOADED` after the module started | The client loaded the character's saved CVars late. The module takes that value as the player's and writes its own again. |
+| A change in Blizzard's options (`SettingsPanel` shown) | One of the game's six formats, or `none`, becomes the `timestamp` setting, and the module writes it back in its own style. Any other value is not taken. |
+| Any other change (`/console`, another addon) | The module writes its own value back on the next frame. |
+| The client drops the colour codes | The module writes the plain `[%H:%M] ` and logs it once. |
+| The client refuses the value, or has no `C_CVar.SetCVar` | The player's value stays. The module puts its own timestamp on each line through `TransformMessages`, only while the game's setting is `none`, so a line never gets two. |
+
+`Stamps.GameDraws()` tells `Messages.lua` whether the game is drawing timestamps. It reads the CVar once after each `CVAR_UPDATE` that names it, not on every line. The module's own writes set a flag around `SetCVar`, because `CVAR_UPDATE` fires inside the call.
 
 ## The panel
 
