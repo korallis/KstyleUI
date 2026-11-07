@@ -40,6 +40,8 @@ do
 	local opacity = K.Widgets.Setting("panelOpacity")
 	assert(Near(v1.background, sr, sg, sb, opacity), "the background is the glass surface at the panel opacity")
 	assert(Near(v2.backgroundColors.guideWindow, sr, sg, sb, opacity), "the v2 guide window is the glass surface")
+	assert(Near(v1.bottomFrameBG, sr, sg, sb, opacity), "the v1 step list body is the same glass surface, not the raised tone")
+	assert(Near(v2.backgroundColors.common, sr, sg, sb, opacity), "the v2 common background is the glass surface too")
 	local ar, ag, ab = ns.Style.Accent()
 	assert(Near(v1.mapPins, ar, ag, ab), "map pins take the accent")
 	assert(Near(v2.mapPins, ar, ag, ab), "v2 map pins take the accent")

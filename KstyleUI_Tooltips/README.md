@@ -30,7 +30,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Init.lua` | The addon table the files share |
 | `Logic.lua` | Pure rules: the fixed anchor's corner, font flags, which item qualities light the edge, the line colours that soften, the title capitals, the tooltip scale, the guild text and ID text |
 | `Settings.lua` | The defaults, the settings page and `Settings.Get(key)`, which returns the default for a saved value that is not allowed and logs it once |
-| `Style.lua` | The glass on each tooltip, its edge, title divider and icon, the embedded item border, the tooltip fonts and the tooltip scale |
+| `Style.lua` | The glass on each tooltip, its edge, accent rule, footer divider and icon, the embedded item border, the tooltip fonts, line spacing and the tooltip scale |
 | `Anchor.lua` | The `tooltips.anchor` Layout element and the hook on `GameTooltip_SetDefaultAnchor` |
 | `Health.lua` | GameTooltip's health on a KstyleUI status bar |
 | `Units.lua` | Unit name colours, the guild and target lines, the unit edge and the bar colour |
@@ -47,10 +47,11 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Border | `Skin.Strip` sets the alpha of every texture of the tooltip's `NineSlice` to 0 and hooks its `SetAlpha`. Only the `NineSlice` is stripped: the tooltip's own `Texture1` to `Texture30` hold inline icons. |
 | Glass | A child frame of KstyleUI's own with a panel `Chrome` (6-unit chamfers, double bevel, shadow, grain) on all points of the tooltip. `SetUsingParentLevel(true)` draws it at the tooltip's level, behind the text, as Blizzard's `NineSlice` does. |
 | Edge | The chrome's inner hairline, `edgeInner`, as in the kit. With `qualityEdge` on, an item of uncommon quality or better lights it in `Theme.QualityColor`. `OnTooltipCleared` and `OnHide` return it to `edgeInner`. |
-| Divider | A `divider` gradient one border thick, 1 unit under the title line (under the rarity caption on items), in the accent, on any tooltip with two lines or more. |
+| Rules | On an item with stat lines (`+24 Agility`: a line that starts with a plus and a digit), a 56-unit accent rule one border thick fades from the accent to transparent under the last base line, above the first stat, and the stat lines read in the accent. A faint `edgeFaint` divider spans the text column above the first durability or requirement line (`DURABILITY_TEMPLATE`, `ITEM_MIN_LEVEL`), ending 12 units before the right edge. Every other tooltip with two lines or more keeps the full-width accent `divider` 1 unit under its title. Both follow the `divider` switch; the stat colour follows `softColors`. |
+| Type | The title is `body` 11 in capitals, the rarity caption `caption` 9, body lines `body` 11, pitched 2.5 units apart through `SetCustomLineSpacing`. White and gold lines soften to `text`. |
 | Title | On item, spell, aura and unit tooltips, Blizzard's title line reads in capitals, as the kit's headings do. An item's name takes `Theme.QualityColor` from uncommon up (the kit's `rare` and `epic` tokens, the game's colours otherwise), and its title gets a blank second line that holds the rarity caption: `ITEM_QUALITY<n>_DESC` in capitals, in the small line font (never larger than the title's, so it fits the line kept for it), in the rarity colour (`text` for poor and common). A title that is secret or holds escape codes keeps Blizzard's text, and one with non-ASCII letters keeps its case, because `string.upper` changes only ASCII letters. The font has no letter tracking, so the caption is not tracked. |
 | Line colours | Lines in Blizzard's `NORMAL_FONT_COLOR` gold become `text`, lines in `HIGHLIGHT_FONT_COLOR` white become `textEmphasis`. Green, red, grey and quality colours stay. |
-| Icon | On every restyled tooltip but `EmbeddedItemTooltip`: a chamfered raised tile inside the top left corner, 10 units in (Blizzard's text inset), with the item's or spell's icon, cropped and masked by `iconMask`, set through `KstyleUI.Icons.Apply` so a custom icon set applies. Its size is `iconSize`, or the height of the tooltip's lines when they are shorter, so it never hangs below the panel. The tooltip's left padding (`SetPadding(right, bottom, left, top)`) moves every line into a column right of it. Its hairline is the rarity colour with a `selection` glow from uncommon up, `text` at 35% for poor and common items, and the accent at 50% for spells, as an action button at rest. It hides, and the padding returns to 0, when the tooltip clears. |
+| Icon | On every restyled tooltip but `EmbeddedItemTooltip`: a chamfered raised tile inside the top left corner, 9.5 units in, with the item's or spell's icon, cropped and masked by `iconMask`, set through `KstyleUI.Icons.Apply` so a custom icon set applies. Its size is `iconSize`, or the height of the tooltip's lines when they are shorter, so it never hangs below the panel. The tooltip's left padding (`SetPadding(right, bottom, left, top)`) moves every line into a column right of it. Its hairline is the rarity colour with a `selection` glow from uncommon up, `text` at 35% for poor and common items, and the accent at 50% for spells, as an action button at rest. It hides, and the padding returns to 0, when the tooltip clears. |
 | Embedded items | `GameTooltip.ItemTooltip` and `EmbeddedItemTooltip.ItemTooltip` (quest rewards) lose Blizzard's `IconBorder` by alpha. A raised tile two borders outside the icon takes the colour Blizzard gives `IconBorder` through a hook on its `SetVertexColor`, or `edgeInner` while it is hidden. |
 | Compare label | The shopping tooltips' `CompareHeader` loses its art and sits on a raised tile with the label in the caption font. |
 | Close button | `ItemRefTooltip.CloseButton` gets `Skin.CloseButton`. |
@@ -92,7 +93,7 @@ The bar is horizontal under the tooltip or vertical beside its right edge, with 
 | `anchor` | `"fixed"` | dropdown: `fixed` (the tooltip anchor) or `cursor` |
 | `cursorX`, `cursorY` | 0 | sliders, -64 to 64, shown for the cursor |
 | `followFont` | `true` | toggle: use Appearance's font for every line |
-| `title`, `body`, `small` | `{ font, size, outline }`: KstyleUI's font at 16, 13 and 11 units, outline `NONE` | per text kind: a font row (shown while `followFont` is off), a size slider from 8 to 32 and an outline dropdown (`NONE`, `OUTLINE`, `THICKOUTLINE`) |
+| `title`, `body`, `small` | `{ font, size, outline }`: KstyleUI's font at 11, 11 and 9 units, outline `NONE` | per text kind: a font row (shown while `followFont` is off), a size slider from 8 to 32 and an outline dropdown (`NONE`, `OUTLINE`, `THICKOUTLINE`) |
 | `qualityEdge` | `false` | toggle |
 | `divider` | `true` | toggle |
 | `softColors` | `true` | toggle |
@@ -106,7 +107,7 @@ The bar is horizontal under the tooltip or vertical beside its right edge, with 
 | `healthBar` | `true` | toggle |
 | `bar` | `{ texture, color, custom, orientation, reverse, size }`: the `Glass` texture, `class`, the `friendly` token, `HORIZONTAL`, `false`, 6 | a texture row, a colour source dropdown (`class`, `reaction`, `custom`), a colour (shown for `custom`), an orientation dropdown, a reverse toggle and a thickness slider from 2 to 16 |
 | `itemID`, `spellID`, `iconID` | `false` | toggles |
-| `icon`, `iconSize` | `true`, 44 | a toggle and a slider from 20 to 64 |
+| `icon`, `iconSize` | `true`, 46 | a toggle and a slider from 20 to 64 |
 
 Sizes are in tooltip units, which are root units at an anchor scale of 1, times Appearance's text size.
 

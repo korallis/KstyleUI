@@ -1,4 +1,4 @@
--- Plate.lua: one KstyleUI plate built from the widget kit: health bar, texts, level badge, markers, threat glow and highlights.
+-- Plate.lua: one KstyleUI plate built from the widget kit: health bar, texts, level disc, markers, threat glow and highlights.
 local _, ns = ...
 
 local K = KstyleUI
@@ -32,12 +32,13 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 120, 10
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 122, 12
 
 local GAP = Tokens.Size("gapTiny")
 local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")
 local BADGE_PAD = Tokens.Size("gapSmall")
+local DISC_SIZE = 23
 local MARKER_SIZE = 8
 local MARKER_ROTATION = math.pi / 4
 local GLOW_CORNER, GLOW_OUTSET = 8, 6
@@ -153,7 +154,7 @@ function ns.NewPlate(parent, sample)
 	plate.name = NewText(plate, "LEFT")
 
 	local badge = CreateFrame("Frame", nil, plate)
-	badge.chrome = Widgets.Chrome(badge, { shape = "tile", fill = "raised", shadow = false })
+	badge.chrome = Widgets.Chrome(badge, { shape = "panel", fill = "surface", shadow = false, grain = false })
 	plate.level = badge
 	plate.levelText = NewText(badge, "CENTER")
 
@@ -182,7 +183,12 @@ function Plate:ApplyScale()
 	end
 	local parent = self:GetParent()
 	local reference = parent:GetParent() or parent
-	self:SetScale(Logic.PlateScale(Scale.Root():GetEffectiveScale(), reference:GetEffectiveScale()))
+	local root, outer, base = Scale.Root():GetEffectiveScale(), reference:GetEffectiveScale(), parent:GetEffectiveScale()
+	local scale = Logic.PlateScale(root, outer)
+	self:SetScale(scale)
+	if type((Plain(base))) == "number" and type((Plain(outer))) == "number" and outer > 0 then
+		LogOnce("scale", string.format("plates draw at %.3f of their base; the first base drew at %.3f of its parent", scale, base / outer))
+	end
 end
 
 function Plate:Restyle()
@@ -217,10 +223,10 @@ function Plate:Restyle()
 	self.healthText:SetPoint("RIGHT", health, "RIGHT", -Widgets.Snap(self, TEXT_INSET), 0)
 
 	local badge = self.level
-	local side = math.max(h, Settings.Get("level.size") + BADGE_PAD)
+	local side = math.max(DISC_SIZE, h, Settings.Get("level.size") + BADGE_PAD)
 	Widgets.Size(badge, side, side)
 	badge:ClearAllPoints()
-	badge:SetPoint("RIGHT", health, "LEFT", -Widgets.Snap(self, BADGE_GAP), 0)
+	badge:SetPoint("RIGHT", health, "LEFT", 0, 0)
 	badge.chrome:Restyle()
 	self.levelText:ClearAllPoints()
 	self.levelText:SetPoint("CENTER", badge, "CENTER")
@@ -345,9 +351,11 @@ function Plate:UpdateColor()
 	if IsSecret(r) or IsSecret(g) or IsSecret(b) then
 		last.r, last.g, last.b = nil, nil, nil
 		self.health:SetBarColor(r, g, b)
+		self.level.chrome:SetEdgeRGBA(r, g, b, 1)
 	elseif last.r ~= r or last.g ~= g or last.b ~= b then
 		last.r, last.g, last.b = r, g, b
 		self.health:SetBarColor(r, g, b)
+		self.level.chrome:SetEdgeRGBA(r, g, b, 1)
 	end
 end
 

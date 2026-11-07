@@ -100,13 +100,14 @@ local function Decorate(tooltip, data)
 	if Settings.Get("softColors") then
 		Style.Soften(tooltip)
 	end
+	local kind
 	if Readable(data) and Logic.IsNumber(data.type) then
-		local kind = kinds[data.type]
+		kind = kinds[data.type]
 		if kind then
 			kind(tooltip, data)
 		end
 	end
-	Style.Divider(tooltip)
+	Style.Lines(tooltip, kind == Item)
 end
 
 local function OnTooltip(tooltip, data)

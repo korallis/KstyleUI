@@ -135,10 +135,10 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `health.texture`, `health.orientation`, `health.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
 | `enemy.colorSource`, `enemy.color` | class, `hostile` | dropdown, colour |
 | `friendly.colorSource`, `friendly.color`, `friendly.nameOnly` | class, `friendly`, off | dropdown, colour, toggle |
-| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 10, thin, on, on | toggle, slider, dropdown, toggle, toggle |
-| `level.show`, `level.size`, `level.outline` | on, 9, thin | toggle, slider, dropdown |
+| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 11, thin, on, on | toggle, slider, dropdown, toggle, toggle |
+| `level.show`, `level.size`, `level.outline` | on, 10, thin | toggle, slider, dropdown |
 | `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | on, 9, thin, percent | toggle, slider, dropdown, dropdown |
-| `cast.enabled`, `cast.height` | on, 12 | toggle, slider 6 to 24 |
+| `cast.enabled`, `cast.height` | on, 10 | toggle, slider 6 to 24 |
 | `cast.texture`, `cast.orientation`, `cast.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
 | `cast.colorSource`, `cast.color`, `cast.shieldColor` | accent, `accentDefault`, `textDisabled` | dropdown, colour, colour |
 | `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 9, thin | toggle, toggle, toggle, slider, dropdown |

@@ -12,9 +12,9 @@ ns.MODULE = MODULE
 
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 32, 1
 local BAR_MIN, BAR_MAX, BAR_STEP, BAR_SIZE = 2, 16, 1, 6
-local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 44
+local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 46
 local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
-local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 16, 13, 11
+local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 11, 11, 9
 
 local FACE = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
 local accentR, accentG, accentB = Tokens.Color("accentDefault")

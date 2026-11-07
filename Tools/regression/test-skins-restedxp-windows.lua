@@ -46,6 +46,11 @@ local function Accented(ns, text)
 	return W.Near(r, ar) and W.Near(g, ag) and W.Near(b, ab)
 end
 
+local function Colored(text, r, g, b)
+	local cr, cg, cb = text:GetTextColor()
+	return W.Near(cr, r) and W.Near(cg, g) and W.Near(cb, b)
+end
+
 local function Clean(env, rxp)
 	rxp.fake.check(HOOKED)
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -63,8 +68,11 @@ do
 	assert(Hushed(f.BottomFrame), "RestedXP's backdrop under the list goes")
 	assert(Alpha(f.GuideName.bg) == 0 and Alpha(f.GuideName._pieces[1]) == 0, "the header's banner and backdrop go")
 	assert(Alpha(f.GuideName.icon) == 1 and Alpha(f.GuideName.classIcon) == 1, "the logo and class icon stay")
-	assert(Accented(ns, f.GuideName.text), "the guide's title takes the accent")
+	assert(select(2, f.GuideName.text:GetFont()) == select(2, K.Tokens.Font("heading")), "the guide's title is a kit heading")
+	assert(Colored(f.GuideName.text, K.Tokens.Color("textEmphasis")), "in the emphasised text colour, as every window title")
 	assert(K.Skin.IsSkinned(f.Footer, "Backdrop") and Alpha(f.Footer.bg) == 0, "the footer is a KstyleUI tile")
+	assert(K.Skin.Parts(f.Footer).backdrop.chrome.fillName == "surface", "on the same glass surface as the windows")
+	assert(select(2, f.Footer.text:GetFont()) == select(2, K.Tokens.Font("caption")) and Colored(f.Footer.text, K.Tokens.Color("text")), "the footer line is a caption in the body grey")
 	assert(K.Skin.IsSkinned(f.ScrollFrame.ScrollBar, "ScrollBar"), "the step list's scroll bar is KstyleUI's")
 	f:UpdateVisuals()
 	assert(Hushed(f.BottomFrame) and Alpha(f.GuideName._pieces[1]) == 0, "RestedXP's redraw keeps the glass")
@@ -76,6 +84,8 @@ do
 	for _, step in ipairs(f.CurrentStepFrame.framePool) do
 		assert(Glass(K, step) and Hushed(step), "each active step frame is skinned as RestedXP makes it")
 		assert(K.Skin.IsSkinned(step.number, "Backdrop") and Hushed(step.number), "its number badge is a tile")
+		assert(K.Skin.Parts(step.number).backdrop.chrome.fillName == "surface", "on the glass surface")
+		assert(select(2, step.number.text:GetFont()) == select(2, K.Tokens.Font("caption")), "its number is a caption")
 		assert(K.Skin.IsSkinned(step.elements[1].button, "CheckBox"), "its check buttons are KstyleUI check boxes")
 	end
 
