@@ -87,7 +87,7 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | `SetShadow(on)`, `SetShown(shown)` | |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
-`NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
+`Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
 
 ## Panel
 
@@ -173,6 +173,113 @@ Options: `tabs = { { value, label, disabled }, ... }`, `value` (the selected tab
 | `SetTabEnabled(value, enabled)` | A disabled tab shows `textDisabled` and cannot be clicked. |
 
 Fields: `buttons` (each with `value`, `label`, `x`, `w` and `inset`), `underline`, `chrome`.
+
+## Toggle
+
+`Toggle(parent, opts) -> Button`: an on and off switch, a 36 by 18 pill with a round knob and an optional label to its right.
+
+Options: `value` (default `false`), `onChange(value, toggle)`, `label`, `name`, `tooltip`.
+
+| State | Border | Fill | Knob |
+| --- | --- | --- | --- |
+| Off | `text` at 35%, 70% under the mouse | `raised` | Left, `text` |
+| On | `accent` | `raised` mixed 30% toward `accent` | Right, `textHover` |
+| Disabled (`SetEnabled(false)`) | | | The label is `textDisabled` and clicks do nothing |
+
+The knob slides over `hover` (0.15 s, `outQuart`). Clicks play `IG_MAINMENU_OPTION_CHECKBOX_ON` or `_OFF`.
+
+Methods: `GetValue()`, `SetValue(value, silent)` (runs `onChange` when the value changes, unless `silent`), `Paint()`, `Restyle()`. Fields: `trackBox`, `track` and `fill` (pills), `knob`, `label`.
+
+## Slider
+
+`Slider(parent, opts) -> Frame`: a 4-unit pill track with an accent fill up to a ringed 14-unit knob, the value above the knob, and the minimum and maximum below the track ends.
+
+Options: `min` (default 0), `max` (default 1), `step`, `value`, `onChange(value, slider)`, `format(value) -> text` for the readout, `width` (default 200), `name`, `tooltip`. `min` must be below `max`.
+
+`Quantize(value, min, max, step) -> number | nil` gives every value the slider takes: it clamps to the range, then snaps to the nearest step counted from `min`, rounded to the step's decimals so 0.75 plus three steps of 0.05 is exactly 0.9. When the range is not a whole number of steps, a value nearer `max` than the last step becomes `max`. It returns `nil` for NaN, a secret or anything that is not a number.
+
+| Input | Effect |
+| --- | --- |
+| Press on the slider | Jumps to the cursor and drags until release, through `GetCursorPosition` |
+| Mouse wheel | One step up or down, or a hundredth of the range without a step |
+| `SetValue(value, silent)` | Quantizes; runs `onChange` when the result changes, unless `silent` |
+
+The readout and range labels use `format`, or the step's decimals: `68` for a step of 1, `1.00` for a step of 0.05.
+
+Methods: `GetValue()`, `SetValue(value, silent)`, `SetRange(min, max, step)` (keeps the value inside the new range), `SetEnabled(enabled)`, `IsEnabled()`, `Paint()`, `Restyle()`. Fields: `trackBox`, `track`, `fillBox`, `fill`, `knob`, `ring`, `readout`, `minText`, `maxText`.
+
+## EditBox
+
+`EditBox(parent, opts) -> EditBox`: a raised tile in the `body` font with `textEmphasis` text and a `textDisabled` placeholder. It never takes focus by itself.
+
+Options: `text`, `placeholder`, `width` (default 200), `height` (default `rowHeight` + `gapSmall`), `maxLetters`, `numeric`, `name`, `tooltip`, and the callbacks `onEnter(text, box)`, `onEscape(box)`, `onChange(text, box, userInput)`, `onFocus(box)`, `onBlur(box)`.
+
+- The hairline is `accent` while the box has focus, and mixes toward `accent` at 60% under the mouse.
+- The placeholder shows while the box is empty and has no focus.
+- Enter runs `onEnter`, then clears focus. Escape clears focus, then runs `onEscape`.
+
+## ScrollList
+
+`ScrollList(parent, opts) -> Frame`: a virtualised list. It makes only the rows that fit the view plus one, and recycles them as the list scrolls.
+
+Options: `width`, `height`, `rowHeight` (default `rowHeight`, 24), `createRow(list) -> row`, `updateRow(row, item, index, list)`, `onClick(item, index, list)` for the default rows, `stagger` (`false` turns off the row fade), `name`.
+
+The default row is a button with a `body` label that shows `item.label`, or the item itself when it is a string, and lights under the mouse. A custom row is any frame. `updateRow` runs only when a row moves to another item, or on `Refresh(true)`.
+
+| Method | Behaviour |
+| --- | --- |
+| `SetData(items, keepOffset)` | Shows a new list from the top, or at the same offset with `keepOffset`. Rows fade in one after another, `listStagger` (0.05 s) apart, each over `fade`. |
+| `Scroll(delta)` | One wheel step: three rows, eased over `fade`. A step past either end overshoots by `gapMedium` and settles back on the end over `hover`. Content that fits does not move. Reduced motion scrolls at once and skips the bounce. |
+| `ScrollTo(offset, instant)`, `ScrollToIndex(index, instant)` | `ScrollToIndex` scrolls only as far as needed to show the row. |
+| `GetOffset()`, `GetMaxOffset()`, `GetData()`, `Refresh(force)`, `SetOffset(offset)` | `SetOffset` is the tween setter: it moves the rows at once. |
+
+Rows sit at whole-pixel offsets in a view that clips them. A 3-unit scroll bar shows while the content overflows: its thumb is `text` at 35% and turns `accent` under the mouse, and dragging it scrolls. The wheel works anywhere over the list.
+
+Fields: `view`, `rows` (each with `index` and `list`), `bar`, `track`, `thumb`, `items`.
+
+## Dropdown
+
+`Dropdown(parent, opts) -> Button`: a raised box with the chosen label, or a placeholder, and a chevron.
+
+Options: `options` (a list of `{ value, label }`, or a function that returns one), `value`, `onChange(value, dropdown)`, `placeholder` (default `Select Option`), `width` (default 200), `height`, `maxRows` (default 8), `renderRow(row, option, dropdown)` to customise a menu row, `unknownLabel(value) -> label` for a value no option holds, `name`, `tooltip`.
+
+A click opens the one shared menu, `DropdownMenu()`, below the box at the box's width, in the `FULLSCREEN_DIALOG` strata:
+
+- A `ScrollList` of 24-unit rows, up to `maxRows`, scrolled to show the chosen option.
+- The chosen row has a 2-unit `accent` bar on its left and an `accent` wash at 12%. Other rows wash white at 5% under the mouse.
+- A row click chooses that option and closes the menu. A click anywhere else (on `menu.catcher`, a full-screen button under the menu) and Escape close it too, as does hiding the dropdown.
+- While open, the box's hairline is `accent` and its chevron points up.
+
+A function in `options` runs through `KstyleUI.Call`, so an error is reported once and the menu shows empty.
+
+| Method | Behaviour |
+| --- | --- |
+| `SetValue(value, silent) -> ok` | Returns `false` for a value no option holds. Runs `onChange` when the value changes, unless `silent`. |
+| `GetValue()`, `GetOptions()` | |
+| `SetOptions(options)` | Replaces the options and refills an open menu. The value stays; a value the new options lack shows the placeholder. |
+| `Open()`, `Close()`, `Toggle()`, `IsOpen()` | A disabled dropdown (`Disable()`) does not open. |
+
+Menu rows have `label`, `mark`, `wash` and `sample` (a hidden texture). Each row is reset to the `body` font, a hidden sample and the default label anchors before `renderRow` runs.
+
+## FontPicker and TexturePicker
+
+`MediaOptions(kind) -> { { value = path, label }, ... }` lists KstyleUI's own media from `Tokens.MediaList(kind)` first, then LibSharedMedia's, in its order, when `LibStub("LibSharedMedia-3.0", true)` returns the library. A path already listed is skipped, so KstyleUI's own media, which `Appearance` registers with LibSharedMedia, appear once. A font must be a path; other kinds may also be file IDs. A kind KstyleUI has no media for lists LibSharedMedia's only.
+
+`FontPicker(parent, opts) -> Button` and `TexturePicker(parent, opts) -> Button` are `Dropdown`s over `MediaOptions("font")` and `MediaOptions(opts.kind or "statusbar")`. Their values are paths, as the settings schema's `font` and `texture` rows store. Each font row draws its label in that font; each texture row shows a 64-unit `accent`-tinted sample. A path no list knows shows its file name.
+
+## ColorSwatch
+
+`ColorSwatch(parent, opts) -> Button`: a chamfered tile filled with the colour.
+
+Options: `color = { r, g, b, a }`, `hasAlpha`, `onChange(r, g, b, a, swatch)`, `size` (default 20), `name`, `tooltip`.
+
+A click calls `ColorPickerFrame:SetupColorPickerAndShow`, Blizzard's public setup function, with the colour, `opacity` and `hasOpacity`. Picking reads `ColorPickerFrame:GetColorRGB()` and, for an alpha swatch, `GetColorAlpha()`, then sets the colour and runs `onChange`. Cancel restores the colour the picker opened on and runs `onChange` with it. A value that is secret or outside 0 to 1 is ignored.
+
+| Method | Behaviour |
+| --- | --- |
+| `GetColor() -> r, g, b, a` | |
+| `SetColor(r, g, b, a, silent) -> ok` | Refuses a channel outside 0 to 1. A missing alpha is 1. |
+| `Open() -> ok` | Returns `false` and logs once when `ColorPickerFrame` or its setup function is missing. |
 
 ## Glow
 

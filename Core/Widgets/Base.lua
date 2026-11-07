@@ -318,6 +318,31 @@ function Widgets.ShowSlice(slice, shown)
 	end
 end
 
+local PILL_CAP = 0.25
+
+function Widgets.Pill(box, layer, sublevel)
+	local path = Tokens.Texture("pill")
+	local left = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
+	local middle = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
+	local right = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
+	left:SetTexCoord(0, PILL_CAP, 0, 1)
+	middle:SetTexCoord(PILL_CAP, 1 - PILL_CAP, 0, 1)
+	right:SetTexCoord(1 - PILL_CAP, 1, 0, 1)
+	left:SetPoint("TOPLEFT", box, "TOPLEFT")
+	left:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT")
+	right:SetPoint("TOPRIGHT", box, "TOPRIGHT")
+	right:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT")
+	middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+	middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+	return { left, middle, right }
+end
+
+function Widgets.LayoutPill(pill, height)
+	local cap = height / 2
+	pill[1]:SetWidth(cap)
+	pill[3]:SetWidth(cap)
+end
+
 local function NewBevel(owner, name, sublevel)
 	local path, texels = Tokens.Texture(name)
 	local f = texels / TEXELS[name]
