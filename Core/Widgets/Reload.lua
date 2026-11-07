@@ -85,9 +85,10 @@ local function Attach(visual)
 	if not button then
 		return
 	end
+	if not Widgets.Cover(button, visual) then
+		return
+	end
 	current = visual
-	button:ClearAllPoints()
-	button:SetAllPoints(visual)
 	local strata = visual:GetFrameStrata()
 	if type(strata) == "string" then
 		button:SetFrameStrata(strata)

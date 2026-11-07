@@ -217,7 +217,7 @@ do
 	eq(proxy:GetAttribute("type1"), "click", "a left click is a secure click")
 	eq(proxy:GetAttribute("clickbutton1"), env.MainMenuBarBackpackButton, "on Blizzard's backpack button")
 	eq(proxy:IsShown(), true, "the proxy covers the item")
-	eq(select(2, proxy:GetPoint(1)), gold, "anchored to the gold item")
+	eq(W.Covers(env, proxy, gold), true, "over the gold item, anchored only to UIParent")
 	W.Leave(gold)
 	eq(K.Widgets.Tooltip():IsOwned(gold), true, "the pointer passing to the proxy keeps the tooltip")
 	W.Enter(proxy)

@@ -347,4 +347,32 @@ do
 	e.SetQuiet(false)
 end
 
+-- Anchoring: a protected frame (made from a Secure template) may not anchor to a region, or to a frame
+-- whose anchors lead to one. SetAllPoints anchors both corners, and GetRect reads _rect or the size.
+do
+	local e = Stubs.NewEnv()
+	local holder = e.CreateFrame("Frame", nil, e.UIParent)
+	local zone = holder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	local hit = e.CreateFrame("Button", nil, holder)
+	hit:SetAllPoints(zone)
+	assert(hit:GetNumPoints() == 2 and select(2, hit:GetPoint(1)) == zone, "SetAllPoints anchors to the target")
+	local secure = e.CreateFrame("Button", nil, e.UIParent, "SecureActionButtonTemplate")
+	raises(function() secure:SetAllPoints(zone) end, "Cannot anchor protected frames to regions")
+	raises(function() secure:SetAllPoints(hit) end, "Cannot anchor protected frames to regions")
+	raises(function() secure:SetPoint("TOPLEFT", hit, "TOPLEFT") end, "Cannot anchor protected frames to regions")
+	local plain = e.CreateFrame("Button", nil, holder)
+	plain:SetPoint("CENTER", holder, "CENTER")
+	secure:SetAllPoints(plain)
+	secure:SetPoint("BOTTOMLEFT", e.UIParent, "BOTTOMLEFT", 10, 20)
+	local open = e.CreateFrame("Button", nil, holder)
+	open:SetAllPoints(hit)
+	assert(open:GetNumPoints() == 2, "an unprotected frame may anchor anywhere")
+	plain:SetSize(30, 40)
+	local rl, rb, rw, rh = plain:GetRect()
+	assert(rl == 0 and rb == 0 and rw == 30 and rh == 40, "GetRect falls back to the size")
+	plain._rect = { 5, 6, 7, 8 }
+	assert(select(4, plain:GetRect()) == 8, "GetRect reads _rect")
+	assert(e.CreateFrame("Frame"):GetRect() == nil, "no size, no rect")
+end
+
 print("stubs ok")

@@ -105,11 +105,12 @@ local function Attach(visual)
 	if not overlay then
 		return
 	end
+	if not Widgets.Cover(overlay, visual) then
+		return
+	end
 	current = visual
 	overlay:SetAttribute("clickbutton1", left)
 	overlay:SetAttribute("clickbutton2", right or left)
-	overlay:ClearAllPoints()
-	overlay:SetAllPoints(visual)
 	local strata = visual:GetFrameStrata()
 	if type(strata) == "string" then
 		overlay:SetFrameStrata(strata)

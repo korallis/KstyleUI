@@ -26,7 +26,7 @@ do
 	assert(overlay:GetAttribute("type") == "macro" and overlay:GetAttribute("macrotext") == "/reload", "it runs /reload as a macro")
 	assert(overlay:GetAttribute("useOnKeyDown") == false, "on the release of a click")
 	assert(W.LastCall(overlay, "RegisterForClicks")[1] == "AnyUp")
-	assert(overlay:IsShown() and W.LastCall(overlay, "SetAllPoints")[1] == visual, "it sits over the button the pointer is on")
+	assert(overlay:IsShown() and W.Covers(env, overlay, visual), "it sits over the button the pointer is on")
 	W.Enter(overlay)
 	W.Settle(env)
 	assert(visual.hoverT == 1, "the visual button shows the hover")
@@ -39,7 +39,7 @@ do
 	assert(overlay:IsShown() == false and visual.hoverT == 0, "leaving hides the secure button")
 	local other = K.Widgets.ReloadButton(K.Scale.Root(), { text = "Reload now" })
 	W.Enter(other)
-	assert(#overlays(env) == 1 and W.LastCall(overlay, "SetAllPoints")[1] == other, "the one secure button serves every reload button")
+	assert(#overlays(env) == 1 and W.Covers(env, overlay, other), "the one secure button serves every reload button")
 	other:GetScript("OnHide")(other)
 	assert(overlay:IsShown() == false, "it leaves with a hidden button")
 	assert(#env._errors == 0)
@@ -186,7 +186,7 @@ do
 	assert(accept.isReload and accept.label:GetText() == "Reload now", "the accept button is a reload button")
 	W.Enter(accept)
 	local secure = overlays(env)
-	assert(#secure == 1 and secure[1]:IsShown() and W.LastCall(secure[1], "SetAllPoints")[1] == accept, "the secure button covers it")
+	assert(#secure == 1 and secure[1]:IsShown() and W.Covers(env, secure[1], accept), "the secure button covers it")
 	W.Click(buttons[1])
 	W.Settle(env)
 	assert(host:IsShown() == false, "Later closes it")
@@ -240,6 +240,54 @@ do
 		end
 	end
 	assert(last == "SetFocus", "the next dialog's box ends with focus, got " .. tostring(last))
+end
+
+-- Widgets.Cover places an overlay over a frame's screen rect at the overlay's scale, anchored only to
+-- UIParent, and does nothing for a frame the game has not laid out.
+do
+	local env, K = W.New()
+	local holder = env.CreateFrame("Frame", nil, env.UIParent)
+	holder:SetScale(2)
+	local visual = env.CreateFrame("Button", nil, holder)
+	visual._rect = { 10, 20, 30, 40 }
+	local overlay = env.CreateFrame("Button", nil, env.UIParent, "SecureActionButtonTemplate")
+	assert(K.Widgets.Cover(overlay, visual) == true)
+	local _, relative, _, x, y = overlay:GetPoint(1)
+	local w, h = overlay:GetSize()
+	assert(relative == env.UIParent and W.Near(x, 20) and W.Near(y, 40) and W.Near(w, 60) and W.Near(h, 80), "the rect is scaled into UIParent's units")
+	local unplaced = env.CreateFrame("Button", nil, holder)
+	overlay:ClearAllPoints()
+	assert(K.Widgets.Cover(overlay, unplaced) == false and overlay:GetNumPoints() == 0, "a frame with no rect is not covered")
+
+	-- While the overlay shows, it follows the visual when the visual's rect changes, out of combat only.
+	assert(K.Widgets.Cover(overlay, visual) == true)
+	overlay:Show()
+	visual._rect = { 10, 20, 42, 40 }
+	env.RunTickers()
+	assert(W.Covers(env, overlay, visual), "a resized visual is covered again")
+	local moves = 0
+	for _, call in ipairs(overlay._calls) do
+		if call.method == "SetPoint" then
+			moves = moves + 1
+		end
+	end
+	env.RunTickers()
+	local after = 0
+	for _, call in ipairs(overlay._calls) do
+		if call.method == "SetPoint" then
+			after = after + 1
+		end
+	end
+	assert(after == moves, "an unchanged rect moves nothing")
+	env._combat = true
+	visual._rect = { 50, 20, 42, 40 }
+	env.RunTickers()
+	assert(not W.Covers(env, overlay, visual), "in combat the protected overlay stays put")
+	env._combat = false
+	overlay:Hide()
+	env.RunTickers()
+	assert(not W.Covers(env, overlay, visual), "a hidden overlay stops following")
+	assert(#env._errors == 0)
 end
 
 print("widgets dialogs ok")

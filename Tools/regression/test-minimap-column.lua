@@ -166,16 +166,21 @@ assert(overlay:IsShown(), "hovering a button puts the overlay over it")
 assert(overlay:GetAttribute("type") == "click", "the overlay clicks another button")
 assert(overlay:GetAttribute("clickbutton1") == env.GameTimeFrame, "a left click opens Blizzard's calendar")
 assert(overlay:GetAttribute("clickbutton2") == env.TimeManagerClockButton, "a right click opens the clock options")
-assert(W.LastCall(overlay, "SetAllPoints")[1] == buttons.calendar, "the overlay covers the hovered button")
+assert(W.Covers(env, overlay, buttons.calendar), "the overlay covers the hovered button, anchored only to UIParent")
 W.Leave(overlay)
 assert(not overlay:IsShown(), "leaving the overlay detaches it")
 
 W.Enter(buttons.queue)
 assert(overlay:GetAttribute("clickbutton1") == env.QueueStatusButton and overlay:GetAttribute("clickbutton2") == env.QueueStatusButton, "both clicks reach Blizzard's queue button")
 W.Leave(overlay)
+face.zoneHit._rect = { 100, 700, 80, 14 }
+face.zoneHit:GetParent():SetScale(1.25)
 W.Enter(face.zoneHit)
 assert(overlay:GetAttribute("clickbutton1") == env.MinimapCluster.ZoneTextButton, "the zone name opens the world map")
+assert(overlay:IsShown() and W.Covers(env, overlay, face.zoneHit), "the overlay covers the zone name at its scale, though the name's hit frame sits on a font string")
+assert(#env._errors == 0, tostring(env._errors[1]))
 W.Leave(overlay)
+face.clockHit._rect = { 200, 700, 40, 14 }
 W.Enter(face.clockHit)
 assert(overlay:GetAttribute("clickbutton1") == env.TimeManagerClockButton and overlay:GetAttribute("clickbutton2") == env.GameTimeFrame, "the clock opens the clock options, or the calendar on a right click")
 

@@ -220,6 +220,74 @@ function Widgets.FontString(parent, layer)
 	return text
 end
 
+local COVER_FOLLOW_INTERVAL = 0.1
+local covers = setmetatable({}, { __mode = "k" })
+
+local function Place(overlay, entry)
+	local visual = entry.visual
+	local left, bottom, width, height = visual:GetRect()
+	if IsSecret(left) or IsSecret(bottom) or IsSecret(width) or IsSecret(height) then
+		return false
+	end
+	if type(left) ~= "number" or type(bottom) ~= "number" or type(width) ~= "number" or type(height) ~= "number" then
+		return false
+	end
+	local own, theirs = overlay:GetEffectiveScale(), visual:GetEffectiveScale()
+	if IsSecret(own) or IsSecret(theirs) or type(own) ~= "number" or type(theirs) ~= "number" or own <= 0 then
+		return false
+	end
+	local ratio = theirs / own
+	local x, y, w, h = left * ratio, bottom * ratio, width * ratio, height * ratio
+	if entry.x == x and entry.y == y and entry.w == w and entry.h == h then
+		return true
+	end
+	entry.x, entry.y, entry.w, entry.h = x, y, w, h
+	overlay:ClearAllPoints()
+	overlay:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+	overlay:SetSize(w, h)
+	return true
+end
+
+local function StopFollowing(overlay)
+	local entry = covers[overlay]
+	if entry and entry.ticker then
+		entry.ticker:Cancel()
+		entry.ticker = nil
+	end
+end
+
+local function Follow(overlay)
+	local entry = covers[overlay]
+	if not entry or not entry.visual or not overlay:IsShown() then
+		StopFollowing(overlay)
+		return
+	end
+	if not InCombatLockdown() then
+		Place(overlay, entry)
+	end
+end
+
+function Widgets.Cover(overlay, visual)
+	local entry = covers[overlay]
+	if not entry then
+		entry = {}
+		covers[overlay] = entry
+		overlay:HookScript("OnHide", StopFollowing)
+	end
+	entry.visual = visual
+	entry.x, entry.y, entry.w, entry.h = nil, nil, nil, nil
+	if not Place(overlay, entry) then
+		entry.visual = nil
+		return false
+	end
+	if not entry.ticker and C_Timer and type(C_Timer.NewTicker) == "function" then
+		entry.ticker = C_Timer.NewTicker(COVER_FOLLOW_INTERVAL, function()
+			Follow(overlay)
+		end)
+	end
+	return true
+end
+
 function Widgets.Text(parent, role, colorName, layer)
 	local text = Widgets.FontString(parent, layer)
 	Widgets.StyleText(text, role or "body")

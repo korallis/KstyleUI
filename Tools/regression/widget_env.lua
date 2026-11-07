@@ -163,4 +163,18 @@ end
 
 W.Raises = CoreEnv.Raises
 
+-- W.Covers(env, overlay, visual) -> true when overlay sits on UIParent exactly over visual's screen rect,
+-- with no anchor to visual, so a protected overlay never depends on visual's anchors.
+function W.Covers(env, overlay, visual)
+	local left, bottom, width, height = visual:GetRect()
+	if not left or overlay:GetNumPoints() ~= 1 then
+		return false
+	end
+	local ratio = visual:GetEffectiveScale() / overlay:GetEffectiveScale()
+	local point, relative, relativePoint, x, y = overlay:GetPoint(1)
+	local w, h = overlay:GetSize()
+	return point == "BOTTOMLEFT" and relative == env.UIParent and relativePoint == "BOTTOMLEFT"
+		and W.Near(x, left * ratio) and W.Near(y, bottom * ratio) and W.Near(w, width * ratio) and W.Near(h, height * ratio)
+end
+
 return W

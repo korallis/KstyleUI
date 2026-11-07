@@ -132,7 +132,49 @@ function Object:GetEffectiveScale()
 	return self._scale * (self._parent and self._parent:GetEffectiveScale() or 1)
 end
 
+-- A frame made from a Secure template is protected. The game refuses to anchor a protected frame to a
+-- region, or to a frame whose own anchors lead to one, with the error below.
+local ANCHOR_REGIONS = { Texture = true, FontString = true, MaskTexture = true, Line = true }
+local REGION_ANCHOR = "Action[SetPoint] failed because[Cannot anchor protected frames to regions]"
+
+local function isProtected(object)
+	return type(object._template) == "string" and object._template:find("Secure", 1, true) ~= nil
+end
+
+local function anchorTarget(object, relative)
+	if type(relative) == "string" then
+		relative = object._env and object._env[relative]
+	end
+	if type(relative) ~= "table" then
+		return object._parent
+	end
+	return relative
+end
+
+local function reachesRegion(object, seen)
+	if type(object) ~= "table" or seen[object] then
+		return false
+	end
+	if ANCHOR_REGIONS[object._type] then
+		return true
+	end
+	seen[object] = true
+	for _, p in ipairs(object._points or {}) do
+		if reachesRegion(anchorTarget(object, p[2]), seen) then
+			return true
+		end
+	end
+	return false
+end
+
+local function checkAnchor(self, relative)
+	if isProtected(self) and reachesRegion(anchorTarget(self, relative), {}) then
+		error(REGION_ANCHOR, 3)
+	end
+end
+
 function Object:SetPoint(point, ...)
+	checkAnchor(self, (...))
 	for i, existing in ipairs(self._points) do
 		if existing[1] == point then
 			self._points[i] = pack(point, ...)
@@ -142,6 +184,23 @@ function Object:SetPoint(point, ...)
 	self._points[#self._points + 1] = pack(point, ...)
 end
 function Object:ClearAllPoints() self._points = {} end
+-- SetAllPoints anchors both corners to the target, the parent by default, as in the game.
+function Object:SetAllPoints(relative)
+	checkAnchor(self, relative)
+	local target = anchorTarget(self, relative)
+	self._points = { pack("TOPLEFT", target, "TOPLEFT", 0, 0), pack("BOTTOMRIGHT", target, "BOTTOMRIGHT", 0, 0) }
+	self._state.AllPoints = pack(relative)
+end
+-- GetRect reads frame._rect { left, bottom, width, height } when a test sets it, otherwise a rect of the
+-- frame's size at the origin, or nothing for a frame with no size.
+function Object:GetRect()
+	if self._rect then
+		return unpack(self._rect, 1, 4)
+	end
+	if type(self._width) == "number" and type(self._height) == "number" then
+		return 0, 0, self._width, self._height
+	end
+end
 function Object:GetNumPoints() return #self._points end
 function Object:GetPoint(i)
 	local p = self._points[i or 1]

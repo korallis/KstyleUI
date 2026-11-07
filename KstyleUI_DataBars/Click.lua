@@ -128,12 +128,12 @@ function Click.Attach(item)
 	if not button then
 		return false
 	end
+	if not K.Widgets.Cover(button, item.button) then
+		return false
+	end
 	current = item
 	button:SetAttribute("type1", "click")
 	button:SetAttribute("clickbutton1", target)
-	button:ClearAllPoints()
-	button:SetPoint("TOPLEFT", item.button, "TOPLEFT")
-	button:SetPoint("BOTTOMRIGHT", item.button, "BOTTOMRIGHT")
 	local strata = item.button:GetFrameStrata()
 	if type(strata) == "string" and not ns.IsSecret(strata) then
 		button:SetFrameStrata(strata)
