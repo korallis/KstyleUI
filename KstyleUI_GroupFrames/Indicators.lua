@@ -1,4 +1,4 @@
--- Indicators.lua: role, leader, raid marker and ready-check icons and the threat border on each group frame, secret-safe.
+-- Indicators.lua: role, leader, raid marker and ready-check icons and the threat glow on each group frame, secret-safe.
 local _, ns = ...
 
 local K = KstyleUI
@@ -13,12 +13,16 @@ local ASSIST_TEXTURE = "Interface\\GroupFrame\\UI-Group-AssistantIcon"
 local MARKER_TEXTURE = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
 local MARKER_ROWS, MARKER_COLUMNS = 4, 4
 local READY_HOLD = 6
-local THREAT_LINES = 2
 local READY_SHARE = 1.6
+local THREAT_SPREAD = { party = "gapMedium", raid = "gapSmall" }
 local ROLE_OPTIONS = { displayRoleIcon = true, displayRaidRoleIcon = true }
 
 local issecretvalue = issecretvalue or function()
 	return false
+end
+
+local function Plain(v)
+	return not issecretvalue(v) and type(v) == "number"
 end
 
 local readyActive = false
@@ -41,8 +45,10 @@ local function Build(f)
 	f.ready = layer:CreateTexture(nil, "OVERLAY")
 	f.ready:Hide()
 	f.threat = CreateFrame("Frame", nil, f)
+	f.threat:SetAllPoints(f)
 	f.threat:SetFrameLevel(f:GetFrameLevel())
-	f.threatLines = Style.Outline(f.threat, "BACKGROUND")
+	f.threatGlow = Widgets.Glow(f.threat, { kind = "selection", spread = Tokens.Size(THREAT_SPREAD[f.kind] or "gapSmall") })
+	f.threatGlow:SetIntensity(1)
 	f.threat:Hide()
 	f.roleElements = { roleIcon = f.role, unit = nil, optionTable = ROLE_OPTIONS }
 end
@@ -66,11 +72,6 @@ local function Layout(f, parts, k)
 	f.ready:ClearAllPoints()
 	f.ready:SetSize(ready, ready)
 	f.ready:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, health.left + health.width / 2), -Widgets.Snap(f, health.top + health.height / 2))
-	local thickness = Widgets.Border(f) * THREAT_LINES
-	f.threat:ClearAllPoints()
-	f.threat:SetPoint("TOPLEFT", f, "TOPLEFT", -thickness, thickness)
-	f.threat:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", thickness, -thickness)
-	Style.LayoutOutline(f.threatLines, f.threat, thickness)
 end
 Style.appliers[#Style.appliers + 1] = Layout
 
@@ -182,11 +183,11 @@ local function Threat(f)
 		return
 	end
 	local r, g, b = GetThreatStatusColor(status)
-	if issecretvalue(r) or type(r) ~= "number" then
+	if not Plain(r) or not Plain(g) or not Plain(b) then
 		f.threat:Hide()
 		return
 	end
-	Style.ColorOutline(f.threatLines, r, g, b, 1)
+	f.threatGlow:SetColorRGB(r, g, b)
 	f.threat:Show()
 end
 
@@ -253,7 +254,7 @@ local function PaintSample(f, sample)
 	local threat = Settings.current.threat.enabled and sample.threat
 	if threat and GetThreatStatusColor then
 		local r, g, b = GetThreatStatusColor(threat)
-		Style.ColorOutline(f.threatLines, r, g, b, 1)
+		f.threatGlow:SetColorRGB(r, g, b)
 		f.threat:Show()
 	else
 		f.threat:Hide()

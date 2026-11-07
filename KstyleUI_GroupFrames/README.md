@@ -30,19 +30,19 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Init.lua` | The addon table the files share |
 | `Settings.lua` | `ns.Settings`: the defaults, the settings schema, `Get(key)` and `Refresh()`, which read each saved value through its schema row so a damaged value gives its default |
 | `Geometry.lua` | `ns.Geometry`: pure layout maths: header attributes per growth, holder sizes, raid group slots, flow columns and the parts inside one frame |
-| `Style.lua` | `ns.Style`: builds a frame's look on any frame (glass tile, portrait, health and power bars, texts, target outline) and lays it out from the settings |
+| `Style.lua` | `ns.Style`: builds a frame's look on any frame (glass tile, portrait, health and power bars, texts, target ring) and lays it out from the settings; `Ring` and `Wash` draw the kit's chamfered bevel lines and chamfered fill for the highlights |
 | `Unit.lua` | `ns.Unit`: reads a unit into a frame on unit events: name, health, health text, power, colours, dead and offline states, portrait, level, range and target |
 | `Button.lua` | `ns.Button`: dresses each secure button a header makes with a plain content frame, hooks that follow its `unit` attribute, hover and the unit tooltip |
 | `Headers.lua` | `ns.Headers`: the party header and eight raid headers, their attributes, buttons made out of combat, and visibility drivers |
-| `Blizzard.lua` | `ns.Blizzard`: hides and restores Blizzard's party frames, compact raid frames and raid manager through `KstyleUI.Safe` |
-| `Frames.lua` | `ns.Frames`: `Enable` and `Disable`, settings applied out of combat, Layout registration, group events and the `/kstyle test` check |
-| `Indicators.lua` | `ns.Indicators`: role, leader and assistant, raid marker and ready-check icons, and the threat border |
+| `Blizzard.lua` | `ns.Blizzard`: hides and restores Blizzard's party frames, compact raid frames and raid manager through `KstyleUI.Safe`, and tells when the gamepad interface is on |
+| `Frames.lua` | `ns.Frames`: `Enable` and `Disable`, settings applied out of combat, Layout registration, group events, the gamepad stand-down and the `/kstyle test` check |
+| `Indicators.lua` | `ns.Indicators`: role, leader and assistant, raid marker and ready-check icons, and the threat glow |
 | `Prediction.lua` | `ns.Prediction`: incoming heals and absorbs after the health fill |
-| `Auras.lua` | `ns.Auras`: debuff icons and the dispellable debuff highlight on the AuraContainer engine |
+| `Auras.lua` | `ns.Auras`: debuff icons, dressed as the kit's chamfered icon tiles, and the dispellable debuff highlight on the AuraContainer engine |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview with sample party and raid frames |
 | `Module.lua` | `KstyleUI.Modules.Register` and `KstyleUI.Options.Register` |
 
-Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-auras.lua` (debuffs and the dispel highlight, secrecy, combat and a client without the engine), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
+Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-auras.lua` (debuffs and the dispel highlight, secrecy, combat and a client without the engine), `test-groupframes-shapes.lua` (the chamfered highlights and debuff icons, whole-pixel icon sizes, and the icon chrome waiting while auras are secret), `test-groupframes-gamepad.lua` (the stand-down for the gamepad interface, in and out of combat), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
 
 ## Elements
 
@@ -67,7 +67,7 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 
 | Key | Default | What it does |
 | --- | --- | --- |
-| `blizzard.party`, `blizzard.raid`, `blizzard.manager` | on | Hide Blizzard's party frames, compact raid frames and raid manager |
+| `blizzard.party`, `blizzard.raid`, `blizzard.manager` | on | Hide Blizzard's party frames, compact raid frames and raid manager. In the gamepad interface all three stay Blizzard's |
 | `party.width`, `party.height`, `party.spacing` | 230, 46, 10 | Frame size and gap |
 | `party.growth` | `DOWN` | Which way the next frame goes |
 | `party.sortBy` | `INDEX` | Group order, name or role |
@@ -84,7 +84,7 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `<kind>.healthText`, `<kind>.healthTextSize` | party `PERCENT` 11, raid `NONE` 9 | None, percent, current, missing, current and maximum, current and percent |
 | `<kind>.iconSize` | 14, 12 | Role, leader, marker and ready-check icon size |
 | `icons.role`, `icons.leader`, `icons.marker`, `icons.readyCheck` | on | Each status icon |
-| `threat.enabled` | on | The threat border |
+| `threat.enabled` | on | The threat glow |
 | `<kind>.auraSize`, `<kind>.auraCount` | party 20, 3; raid 14, 3 | Debuff icon size and the most icons shown |
 | `<kind>.auraDispelCount` | 1 | Dispellable debuffs shown first, before the others; 0 shows none |
 | `<kind>.auraColumns`, `<kind>.auraRows`, `<kind>.auraSpacing` | 3, 1; party 2, raid 1 | Icons per row, rows and the gap; the count stops at columns times rows |
@@ -102,7 +102,7 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `text.nameColorSource`, `text.nameColor` | `text` | Text colour, class or a custom colour |
 | `text.healthFont`, `text.healthOutline` | Source Sans 3 Semibold, soft shadow | Health text font and outline |
 | `range.fade`, `range.alpha` | on, 0.4 | Fade members out of range |
-| `accent.source`, `accent.color` | `class` | The target outline and hover hairline: the KstyleUI accent or a custom colour |
+| `accent.source`, `accent.color` | `class` | The target ring and hover hairline: the KstyleUI accent or a custom colour |
 
 ## Extension points
 
@@ -117,13 +117,16 @@ Feature files add to the frame without editing it: `Button.built` (build parts o
 - **Secrets go straight to the engine.** Health, maximum health, power and range are secret on Forever. They reach `SetValue`, `SetMinMaxValues`, `SetFormattedText` and `SetAlphaFromBoolean` untouched. Percent text uses `UnitHealthPercent` with a 0 to 100 curve (`CurveConstants.ScaleTo100`, or our own curve), and the missing-health text hides at full health through a step curve on its alpha. Nothing compares or adds a health value.
 - **Class colour with secret pass-through.** When a unit's class is secret, `C_ClassColor.GetClassColor` still returns its colour as secrets, and those go straight to `SetStatusBarColor`. A plain class goes through `Theme.ClassColor`.
 - **The player never fades.** `UnitInRange` reports the player as not checked, so the player's own frame keeps full opacity. Offline members keep full opacity too; their grey bar already says why they cannot be healed.
+- **The gamepad interface gets Blizzard's group frames back.** Forever's gamepad group targeting (`Blizzard_GamepadTargeting`, `RaidTargetDPAD.lua`) runs `SmartNavigation` over `CompactRaidFrameContainer` in a raid and `CompactPartyFrame`, a child of `PartyFrame`, in a party. While `InputUtil.IsGamepadUIEnabled()` is true (or, without `InputUtil`, `C_InputInterfaceStyle.GetCurrentStyle()` is the gamepad style), the module gives all three Blizzard frames back through `Safe.RestoreBlizzard`, hides its headers and holders, and stops its unit events. `INPUT_DEVICE_INTERFACE_TRANSITION` switches between the two states; the header changes wait for `KstyleUI.Combat.Queue` in combat, and only the last switch applies. Settings changes made while standing down apply when keyboard and mouse return. A secret or missing answer counts as keyboard and mouse.
 - **Blizzard frames through Safe.** `PartyFrame` holds Blizzard's party frames and `CompactPartyFrame`; `CompactRaidFrameContainer` and `CompactRaidFrameManager` hold the raid frames and the manager tab. Each is reparented through `Safe.HideBlizzard`, which waits for combat and Edit Mode to end, and comes back through `Safe.RestoreBlizzard` when the module or the setting is switched off. `Blizzard_CompactRaidFrames` can load after login, so `ADDON_LOADED` applies the setting again.
 - **Role icons through Blizzard's secure delegate.** `UnitFrameUtil.UpdateUnitFrameRoleIcon` reads the role and wraps it in a secret when the unit's identity is restricted, then sets the texture and visibility itself. Without it, the role from `UnitGroupRolesAssigned` is used when it is plain.
 - **Leader and markers without a test on a secret.** The leader flag goes to `SetAlphaFromBoolean`. `GetRaidTargetIndex` is always secret, so the marker hides only when `type(index)` is not `"number"`; `type` sees through a secret, and a secret index goes straight to `SetSpriteSheetCell`.
 - **Heals and absorbs anchored to the fill.** Each prediction bar spans the health maximum and is anchored to the end of the fill before it, so the engine places it; Lua never adds health and heals. The calculator clamps heals and absorbs to missing health, and a clip frame over the health bar cuts anything that would still spill out. One calculator is made per frame and reused.
-- **Threat is readable on Forever**, but a secret status hides the border rather than guessing.
+- **Threat is readable on Forever**, but a secret status or colour hides the glow rather than guessing. The glow is the kit's selection glow (`Widgets.Glow`, the shadow falloff) one level behind the frame's tile, so it rings the chamfered silhouette instead of a square box; party frames get an 8-unit glow and raid frames, 3 units apart, a 4-unit one.
 - **Debuffs on the AuraContainer engine.** Aura data is secret during a boss pull, and index scans error under restriction. Each frame gets one `CustomAuraContainerTemplate` container bound to its unit with `SetUnit`. The container runs Blizzard's raid frame classification (`SetAuraProcessingPolicy(ProcessAura)`, buffs ignored), and two aura groups take its results through `candidateFilters.processedAuraType`: `dispels` (debuffs your raid can dispel) first, then `debuffs` (boss, priority and other debuffs). Both sort by `AuraContainerSortMethod.UnitFrameDebuff`, which reads the `debuffType` that only the classification fills, so each group holds only classified auras. A `dispel` aura slot draws the highlight. The engine finds, sorts and draws the auras; Lua only sets filters, counts and layout. A client without the processing policy gets one group in the default order.
-- **The dispel highlight is the slot's own frame.** The slot's frame covers the group frame, with a faint wash and four border lines registered through `AddDispelTypeTexture` in the `PreserveAsset` style, so the engine shows them and tints them in the debuff type's colour only while a matching debuff is on the unit. Lua never learns the debuff type.
+- **The dispel highlight is the slot's own frame.** The slot's frame covers the group frame, with a faint wash (a `chamferTile` nine-slice at 16%) and the two tile bevel lines (`bevelTileOuter` and `bevelTileInner` nine-slices), each piece registered through `AddDispelTypeTexture` in the `PreserveAsset` style, so the engine shows them and tints them in the debuff type's colour only while a matching debuff is on the unit. Lua never learns the debuff type. Every piece follows the 3-unit chamfer, so nothing paints the corners the tile cuts away.
+- **The target ring follows the chamfer.** The target highlight is the same two bevel lines in the accent, on a frame whose alpha follows the secret `UnitIsUnit(unit, "target")` through `SetAlphaFromBoolean`. It traces the tile's own double bevel edge, two lines thick like the old outline.
+- **Debuff icons are the kit's icon tiles.** Each engine button gets a `Widgets.Chrome` tile, the icon two borders in and masked by `iconMask`, and a cooldown swipe drawn with `iconMask`, as `KstyleUI_Auras` dresses its buttons. The debuff type colour fills a `chamferTile` nine-slice behind the icon, so it shows as a chamfered border. Icon size and spacing are snapped to whole pixels with `Widgets.Snap` before they reach the engine's layout, and buttons are sized with `Widgets.Size`. The chrome's `Restyle` is wrapped by the same secrecy gate as the rest of the icon, so `Widgets.RestyleAll` never reaches a restricted aura button.
 - **Containers are made out of combat, when a frame first gets a unit.** Raid buttons are many and most stay empty, so a container per button would cost ten aura buttons each for nothing. A frame that first gets a unit in combat makes its container when combat ends.
 - **Aura buttons are touched only while auras are readable.** The engine denies tainted access to its aura buttons while auras are secret, so icon size and font changes wait until `C_Secrets.ShouldAurasBeSecret()` is false. Container settings (filter, count, layout) go through the container's own methods and apply at once.
 - **Clicks pass through debuff icons.** `SetMouseClickEnabled(false)` keeps the debuff tooltip on hover while a click on an icon still targets the member.

@@ -76,7 +76,7 @@ for _, call in ipairs(button._calls) do
 	end
 end
 assert(passes, "debuff icons let clicks through to the unit button")
-eq(#button._aura.dispel, 1, "the icon border takes the debuff type colour")
+eq(#button._aura.dispel, 9, "the chamfered tile behind the icon, nine slices, takes the debuff type colour")
 
 -- The dispel highlight: a slot for debuffs the player can dispel, drawn as a coloured border over the frame.
 local slot = container._slots.dispel
@@ -128,17 +128,17 @@ eq(group.enabled, true, "the debuff group comes back")
 eq(container._unit, "party1", "and follow the unit again")
 
 -- A scale change redraws the dispel border in whole pixels.
-local line = f.dispelLines[1]
-local heights = 0
-for _, call in ipairs(line._calls) do
-	heights = heights + (call.method == "SetHeight" and 1 or 0)
+local corner = f.dispelRing[1][1]
+local sizes = 0
+for _, call in ipairs(corner._calls) do
+	sizes = sizes + (call.method == "SetSize" and 1 or 0)
 end
 K.Callbacks.Fire("ScaleChanged")
 local after = 0
-for _, call in ipairs(line._calls) do
-	after = after + (call.method == "SetHeight" and 1 or 0)
+for _, call in ipairs(corner._calls) do
+	after = after + (call.method == "SetSize" and 1 or 0)
 end
-assert(after > heights, "ScaleChanged lays the dispel border out again")
+assert(after > sizes, "ScaleChanged lays the dispel border out again")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- While auras are secret, aura buttons are not touched; the change lands when they are readable.

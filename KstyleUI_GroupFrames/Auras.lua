@@ -22,7 +22,9 @@ local LINE_SLACK = 0.5
 local RETRY_DELAY = 1
 local CONTAINER_LEVEL = 6
 local WASH_ALPHA = 0.16
-local DISPEL_LINES = 2
+local ICON_INSET_LINES = 2
+local DISPEL_SUBLEVEL = 7
+local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
 local SAMPLE_ICONS = { 136207, 135848, 136139 }
 local SAMPLE_COUNT = 2
@@ -55,9 +57,14 @@ end
 
 local LAYOUT_INDEX = { [DISPELS] = 1, [GROUP] = 2 }
 
-local function GroupLayout(k, key)
+local function Sizes(f, k)
+	return Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
+end
+
+local function GroupLayout(f, k, key)
+	local size, spacing = Sizes(f, k)
 	return {
-		elementSpacing = k.auraSpacing, lineSpacing = k.auraSpacing, elementWidth = k.auraSize, elementHeight = k.auraSize,
+		elementSpacing = spacing, lineSpacing = spacing, elementWidth = size, elementHeight = size,
 		layoutIndex = LAYOUT_INDEX[key or GROUP],
 	}
 end
@@ -74,26 +81,140 @@ local function PolicyOptions()
 	return { ignoreBuffs = true, displayOnlyDispellableDebuffs = Settings.current.auras.filter == "DISPELLABLE" }
 end
 
+local function NewTile(holder)
+	local skin = CreateFrame("Frame", nil, holder)
+	skin:SetAllPoints(holder)
+	local chrome = Widgets.Chrome(skin, { shape = "tile", fill = "raised", shadow = false })
+	local icon = skin:CreateTexture(nil, "ARTWORK")
+	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	local mask = skin:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
+	mask:SetAllPoints(icon)
+	icon:AddMaskTexture(mask)
+	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
+end
+
+local function PlaceIcon(tile)
+	local skin, icon = tile.skin, tile.icon
+	local inset = Widgets.Border(skin) * ICON_INSET_LINES
+	icon:ClearAllPoints()
+	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
+	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+	return inset
+end
+
+local function NewDispel(owner)
+	local wash = Style.Wash(owner, "ARTWORK")
+	for _, piece in ipairs(wash) do
+		piece:SetAlpha(WASH_ALPHA)
+	end
+	return wash, Style.Ring(owner, "OVERLAY")
+end
+
+local function LayoutDispel(wash, ring, owner)
+	Style.LayoutWash(wash, owner)
+	Style.LayoutRing(ring, owner)
+end
+
+local pending = setmetatable({}, { __mode = "k" })
+local flushScheduled = false
+local ScheduleFlush, RestyleNow
+
+local function Flush()
+	flushScheduled = false
+	if AurasSecret() then
+		ScheduleFlush()
+		return
+	end
+	for f in pairs(pending) do
+		pending[f] = nil
+		if f.auras then
+			RestyleNow(f)
+		end
+	end
+end
+
+function ScheduleFlush()
+	if flushScheduled then
+		return
+	end
+	if InCombatLockdown() then
+		flushScheduled = true
+		K.Combat.Queue(Flush)
+	elseif C_Timer and C_Timer.After then
+		flushScheduled = true
+		C_Timer.After(RETRY_DELAY, Flush)
+	end
+end
+
+local function Defer(f)
+	pending[f] = true
+	ScheduleFlush()
+end
+
 local function StyleIcon(button)
 	local p = parts[button]
-	local f = owners[button:GetParent()]
-	if not p or not f then
+	local f = p and p.owner
+	if not f then
 		return
 	end
 	local k = Settings.current[f.kind]
-	button:SetSize(k.auraSize, k.auraSize)
-	local inset = Widgets.Border(button)
-	p.icon:ClearAllPoints()
-	p.icon:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset)
-	p.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+	Widgets.Size(button, k.auraSize, k.auraSize)
+	p.restyleChrome(p.chrome)
+	local inset = PlaceIcon(p)
+	local _, _, corner = Tokens.Texture("chamferTile")
+	Widgets.LayoutSlice(p.dispel, p.skin, corner, 0)
+	p.count:ClearAllPoints()
+	p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 	local text = Settings.current.text
 	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(k.auraSize * COUNT_SHARE + 0.5)), "OUTLINE")
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 end
 
+function RestyleNow(f)
+	local container = f.auras
+	for _, key in ipairs(GROUPS) do
+		for i = 1, container:GetAuraGroupFrameCount(key) do
+			local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(key, i))
+			if not ok then
+				Style.LogOnce("auraStyle", "restyling a debuff icon failed: " .. tostring(err))
+				return
+			end
+		end
+	end
+	if f.dispelWash then
+		local ok, err = pcall(LayoutDispel, f.dispelWash, f.dispelRing, f.dispelFrame)
+		if not ok then
+			Style.LogOnce("dispelStyle", "laying out the dispel highlight failed: " .. tostring(err))
+		end
+	end
+end
+
+local function Restyle(f)
+	if AurasSecret() then
+		Defer(f)
+		return
+	end
+	RestyleNow(f)
+end
+
 local function DispelStyle()
 	local enum = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
 	return enum and enum.PreserveAsset
+end
+
+local function GateChrome(chrome, f)
+	local restyle = chrome.Restyle
+	chrome.Restyle = function(self)
+		if AurasSecret() then
+			if f then
+				Defer(f)
+			end
+			return
+		end
+		return restyle(self)
+	end
+	return restyle
 end
 
 local function BuildIcon(button)
@@ -104,32 +225,36 @@ local function BuildIcon(button)
 	elseif not pcall(button.EnableMouse, button, false) then
 		Style.LogOnce("auraMouse", "aura buttons refused EnableMouse(false); debuff icons may catch clicks")
 	end
-	local border = button:CreateTexture(nil, "BACKGROUND")
-	border:SetAllPoints(button)
-	border:SetColorTexture(Tokens.Color("white"))
-	border:SetVertexColor(Tokens.Color("black"))
-	local icon = button:CreateTexture(nil, "ARTWORK")
-	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	local cooldown = CreateFrame("Cooldown", nil, button)
-	cooldown:SetAllPoints(icon)
+	local f = owners[button:GetParent()]
+	local p = NewTile(button)
+	p.owner = f
+	p.restyleChrome = GateChrome(p.chrome, f)
+	p.dispel = Widgets.NineSlice(p.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
+	Widgets.ShowSlice(p.dispel, false)
+	local cooldown = CreateFrame("Cooldown", nil, p.skin)
+	cooldown:SetAllPoints(p.icon)
+	cooldown:SetSwipeTexture((Tokens.Texture("iconMask")))
 	cooldown:SetDrawEdge(false)
 	cooldown:SetReverse(true)
 	cooldown:SetHideCountdownNumbers(true)
 	cooldown:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
-	local textFrame = CreateFrame("Frame", nil, button)
-	textFrame:SetAllPoints(button)
+	local textFrame = CreateFrame("Frame", nil, p.skin)
+	textFrame:SetAllPoints(p.skin)
 	textFrame:SetFrameLevel(cooldown:GetFrameLevel() + 1)
 	local count = textFrame:CreateFontString(nil, "OVERLAY")
-	count:SetPoint("BOTTOMRIGHT", textFrame, "BOTTOMRIGHT", 0, 0)
 	count:SetJustifyH("RIGHT")
-	parts[button] = { icon = icon, count = count, cooldown = cooldown, border = border }
+	p.cooldown, p.count = cooldown, count
+	parts[button] = p
 	StyleIcon(button)
-	button:SetIcon(icon)
+	button:SetIcon(p.icon)
 	button:SetDurationCooldown(cooldown)
 	button:SetApplicationCount(count)
 	local style = DispelStyle()
 	if style then
-		button:AddDispelTypeTexture(border, { style = style, showWhenHarmful = true, showWithoutDispelType = true })
+		local options = { style = style, showWhenHarmful = true, showWithoutDispelType = true }
+		for _, piece in ipairs(p.dispel) do
+			button:AddDispelTypeTexture(piece, options)
+		end
 	end
 end
 
@@ -144,28 +269,26 @@ local function BuildDispel(slot, f)
 	pcall(slot.EnableMouse, slot, false)
 	slot:ClearAllPoints()
 	slot:SetAllPoints(f)
-	local wash = slot:CreateTexture(nil, "ARTWORK")
-	wash:SetAllPoints(slot)
-	wash:SetColorTexture(Tokens.Color("white"))
-	wash:SetAlpha(WASH_ALPHA)
-	local lines = Style.Outline(slot, "OVERLAY")
-	Style.LayoutOutline(lines, slot, Widgets.Border(f) * DISPEL_LINES)
-	f.dispelLines, f.dispelFrame = lines, slot
+	local wash, ring = NewDispel(slot)
+	LayoutDispel(wash, ring, slot)
+	f.dispelWash, f.dispelRing, f.dispelFrame = wash, ring, slot
 	local style = DispelStyle()
 	if style then
 		local options = { style = style, showWhenHarmful = true }
-		slot:AddDispelTypeTexture(wash, options)
-		for i = 1, #lines do
-			slot:AddDispelTypeTexture(lines[i], options)
+		for _, piece in ipairs(wash) do
+			slot:AddDispelTypeTexture(piece, options)
 		end
+		Style.Pieces(ring, function(piece)
+			slot:AddDispelTypeTexture(piece, options)
+		end)
 	else
 		Style.LogOnce("dispelStyle", "the dispel texture styles are missing; the dispel highlight stays off")
 	end
 end
 
-local function GroupOptions(k, key, processedType)
+local function GroupOptions(f, k, key, processedType)
 	local count = key == DISPELS and math.max(1, DispelCount(k)) or Count(k)
-	local options = { maxFrameCount = count, initializeFrame = InitIcon, layout = GroupLayout(k, key) }
+	local options = { maxFrameCount = count, initializeFrame = InitIcon, layout = GroupLayout(f, k, key) }
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if methods and directions then
 		options.sortMethod = processedType and methods.UnitFrameDebuff or methods.Default
@@ -177,16 +300,16 @@ local function GroupOptions(k, key, processedType)
 	return options
 end
 
-local function AddGroups(container, k, filter)
+local function AddGroups(container, f, k, filter)
 	local policy, types = Processing()
 	if policy and type(container.SetAuraProcessingPolicy) == "function" then
 		container:SetAuraProcessingPolicy(policy, PolicyOptions())
-		container:AddAuraGroup(DISPELS, filter, GroupOptions(k, DISPELS, types.Dispel))
-		container:AddAuraGroup(GROUP, filter, GroupOptions(k, GROUP, types.Debuff))
+		container:AddAuraGroup(DISPELS, filter, GroupOptions(f, k, DISPELS, types.Dispel))
+		container:AddAuraGroup(GROUP, filter, GroupOptions(f, k, GROUP, types.Debuff))
 		return true
 	end
 	Style.LogOnce("auraPolicy", "the aura processing policy is missing; group frames show debuffs in the default order")
-	container:AddAuraGroup(GROUP, filter, GroupOptions(k, GROUP, nil))
+	container:AddAuraGroup(GROUP, filter, GroupOptions(f, k, GROUP, nil))
 	return false
 end
 
@@ -216,7 +339,7 @@ local function NewContainer(f)
 		pcall(container.SetEditModePreviewEnabled, container, false)
 	end
 	local k, a = Settings.current[f.kind], Settings.current.auras
-	local added, processed = pcall(AddGroups, container, k, FILTERS[a.filter] or FILTERS.ALL)
+	local added, processed = pcall(AddGroups, container, f, k, FILTERS[a.filter] or FILTERS.ALL)
 	local err = processed
 	f.processed = added and processed
 	if not added then
@@ -245,68 +368,10 @@ local function NewContainer(f)
 	return container
 end
 
-local pending = setmetatable({}, { __mode = "k" })
-local flushScheduled = false
-local ScheduleFlush
-
-local function RestyleNow(f)
-	local container = f.auras
-	for _, key in ipairs(GROUPS) do
-		for i = 1, container:GetAuraGroupFrameCount(key) do
-			local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(key, i))
-			if not ok then
-				Style.LogOnce("auraStyle", "restyling a debuff icon failed: " .. tostring(err))
-				return
-			end
-		end
-	end
-	if f.dispelLines then
-		local ok, err = pcall(Style.LayoutOutline, f.dispelLines, f.dispelFrame, Widgets.Border(f) * DISPEL_LINES)
-		if not ok then
-			Style.LogOnce("dispelStyle", "laying out the dispel highlight failed: " .. tostring(err))
-		end
-	end
-end
-
-local function Flush()
-	flushScheduled = false
-	if AurasSecret() then
-		ScheduleFlush()
-		return
-	end
-	for f in pairs(pending) do
-		pending[f] = nil
-		if f.auras then
-			RestyleNow(f)
-		end
-	end
-end
-
-function ScheduleFlush()
-	if flushScheduled then
-		return
-	end
-	if InCombatLockdown() then
-		flushScheduled = true
-		K.Combat.Queue(Flush)
-	elseif C_Timer and C_Timer.After then
-		flushScheduled = true
-		C_Timer.After(RETRY_DELAY, Flush)
-	end
-end
-
-local function Restyle(f)
-	if AurasSecret() then
-		pending[f] = true
-		ScheduleFlush()
-		return
-	end
-	RestyleNow(f)
-end
-
 local function Configure(f)
 	local container = f.auras
 	local k, a = Settings.current[f.kind], Settings.current.auras
+	local size, spacing = Sizes(f, k)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local point, rel, x, y = Geometry.AuraAnchor(k.auraPosition, k.auraGrowth, k.auraWrap, inset, gap)
@@ -318,7 +383,7 @@ local function Configure(f)
 		container:SetFlowLayoutAxis(axis.Horizontal)
 		container:SetFlowLayoutAnchorPoint(point)
 		container:SetFlowLayoutGrowthDirection(k.auraGrowth == "LEFT" and direction.Left or direction.Right, k.auraWrap == "DOWN" and direction.Down or direction.Up)
-		container:SetFlowLayoutMaximumLineSize(Geometry.AuraLine(k.auraColumns, k.auraSize, k.auraSpacing) + LINE_SLACK)
+		container:SetFlowLayoutMaximumLineSize(Geometry.AuraLine(k.auraColumns, size, spacing) + LINE_SLACK)
 	else
 		Style.LogOnce("auraAnchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
 	end
@@ -326,14 +391,14 @@ local function Configure(f)
 	if f.processed then
 		container:SetAuraProcessingPolicy(Processing(), PolicyOptions())
 		local dispels = DispelCount(k)
-		container:SetAuraGroupLayout(DISPELS, GroupLayout(k, DISPELS))
+		container:SetAuraGroupLayout(DISPELS, GroupLayout(f, k, DISPELS))
 		container:SetAuraGroupFilterString(DISPELS, filter)
 		if dispels > 0 then
 			container:SetAuraGroupMaxFrameCount(DISPELS, dispels)
 		end
 		container:SetAuraGroupEnabled(DISPELS, a.enabled and dispels > 0)
 	end
-	container:SetAuraGroupLayout(GROUP, GroupLayout(k, GROUP))
+	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))
 	container:SetAuraGroupMaxFrameCount(GROUP, Count(k))
 	container:SetAuraGroupFilterString(GROUP, filter)
 	container:SetAuraGroupEnabled(GROUP, a.enabled)
@@ -404,43 +469,38 @@ local function BuildSamples(f)
 	f.sampleAuras = {}
 	for i, fileID in ipairs(SAMPLE_ICONS) do
 		local icon = CreateFrame("Frame", nil, holder)
-		local border = icon:CreateTexture(nil, "BACKGROUND")
-		border:SetAllPoints(icon)
-		border:SetColorTexture(Tokens.Color("black"))
-		local art = icon:CreateTexture(nil, "ARTWORK")
-		art:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-		art:SetTexture(fileID)
-		icon.art = art
+		local tile = NewTile(icon)
+		tile.icon:SetTexture(fileID)
+		icon.tile, icon.art = tile, tile.icon
 		f.sampleAuras[i] = icon
 	end
 	f.sampleDispel = CreateFrame("Frame", nil, holder)
 	f.sampleDispel:SetAllPoints(f)
-	f.sampleDispelLines = Style.Outline(f.sampleDispel, "OVERLAY")
+	f.sampleDispelWash, f.sampleDispelRing = NewDispel(f.sampleDispel)
 end
 Button.built[#Button.built + 1] = BuildSamples
 
 local function LayoutSamples(f, k)
 	local holder = f.sampleAuraHolder
+	local size, spacing = Sizes(f, k)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local point, rel, x, y = Geometry.AuraAnchor(k.auraPosition, k.auraGrowth, k.auraWrap, inset, gap)
 	holder:ClearAllPoints()
 	holder:SetPoint(point, f, rel, x, y)
-	holder:SetSize(k.auraSize, k.auraSize)
+	holder:SetSize(size, size)
 	local dx = k.auraGrowth == "LEFT" and -1 or 1
 	local dy = k.auraWrap == "DOWN" and -1 or 1
 	for i, icon in ipairs(f.sampleAuras) do
 		local index = i - 1
 		local col, row = index % k.auraColumns, math.floor(index / k.auraColumns)
 		icon:ClearAllPoints()
-		icon:SetSize(k.auraSize, k.auraSize)
-		icon:SetPoint(point, holder, point, dx * col * (k.auraSize + k.auraSpacing), dy * row * (k.auraSize + k.auraSpacing))
-		local border = Widgets.Border(icon)
-		icon.art:ClearAllPoints()
-		icon.art:SetPoint("TOPLEFT", icon, "TOPLEFT", border, -border)
-		icon.art:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -border, border)
+		icon:SetSize(size, size)
+		icon:SetPoint(point, holder, point, dx * col * (size + spacing), dy * row * (size + spacing))
+		icon.tile.chrome:Restyle()
+		PlaceIcon(icon.tile)
 	end
-	Style.LayoutOutline(f.sampleDispelLines, f.sampleDispel, Widgets.Border(f) * DISPEL_LINES)
+	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel)
 end
 
 local function Applied(f, _, k)
@@ -460,7 +520,9 @@ local function PaintSample(f, sample)
 	end
 	local dispel = a.dispelHighlight and sample.dispel
 	if dispel then
-		Style.ColorOutline(f.sampleDispelLines, Tokens.Color("rare"))
+		local r, g, b = Tokens.Color("rare")
+		Widgets.ColorSlice(f.sampleDispelWash, r, g, b, 1)
+		Style.ColorRing(f.sampleDispelRing, r, g, b, 1)
 	end
 	f.sampleDispel:SetShown(dispel and true or false)
 end

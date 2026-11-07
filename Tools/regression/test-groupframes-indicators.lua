@@ -82,9 +82,10 @@ eq(last(healer.ready, "SetAtlas")[1], env.READY_CHECK_READY_TEXTURE, "a ready me
 env.RunTimers()
 eq(healer.ready:IsShown(), false, "then hides")
 
--- Threat: a plain threat status draws the border in the game's threat colour; a secret one hides it.
-eq(tank.threat:IsShown(), true, "the tank with aggro shows the threat border")
-local r, g, b = last(tank.threatLines[1], "SetVertexColor")[1], last(tank.threatLines[1], "SetVertexColor")[2], last(tank.threatLines[1], "SetVertexColor")[3]
+-- Threat: a plain threat status draws the glow in the game's threat colour; a secret one hides it.
+eq(tank.threat:IsShown(), true, "the tank with aggro shows the threat glow")
+local glow = last(tank.threatGlow.slice[1], "SetVertexColor")
+local r, g, b = glow[1], glow[2], glow[3]
 assert(near(r, 1) and near(g, 0) and near(b, 0), "status 3 is the game's red")
 eq(dps.threat:IsShown(), false, "a secret threat status hides the border")
 party[1].threat = 0

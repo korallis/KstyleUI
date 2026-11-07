@@ -1,10 +1,10 @@
--- Frames.lua: the module's Enable and Disable: builds the headers once, applies the settings out of combat, places the holders with Layout and listens for group events.
+-- Frames.lua: the module's Enable and Disable: builds the headers once, applies the settings out of combat, places the holders with Layout, listens for group events and stands down for the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
 local Settings, Headers, Unit, Style, Blizzard = ns.Settings, ns.Headers, ns.Unit, ns.Style, ns.Blizzard
 
-local Frames = { running = false }
+local Frames = { running = false, gamepad = false }
 ns.Frames = Frames
 
 local MODULE = Settings.MODULE
@@ -13,9 +13,14 @@ local BLIZZARD_ADDON = "Blizzard_CompactRaidFrames"
 
 local registered = false
 local queued = false
+local settling = false
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
+end
+
+function Frames.Active()
+	return Frames.running and not Frames.gamepad
 end
 
 local function Register()
@@ -55,7 +60,7 @@ local function ApplySecure()
 end
 
 function Frames.Apply()
-	if not Frames.running then
+	if not Frames.Active() then
 		return
 	end
 	if InCombatLockdown() then
@@ -63,7 +68,7 @@ function Frames.Apply()
 			queued = true
 			K.Combat.Queue(function()
 				queued = false
-				if Frames.running then
+				if Frames.Active() then
 					ApplySecure()
 				end
 			end)
@@ -85,7 +90,7 @@ local function OnSetting(_, module, key)
 	end
 	Settings.Refresh()
 	if type(key) == "string" and key:match("^blizzard%.") then
-		Blizzard.Apply(Frames.running)
+		Blizzard.Apply(Frames.Active())
 		return
 	end
 	Frames.Apply()
@@ -93,7 +98,7 @@ end
 
 local function OnProfile()
 	Settings.Refresh()
-	Blizzard.Apply(Frames.running)
+	Blizzard.Apply(Frames.Active())
 	Frames.Apply()
 end
 
@@ -110,9 +115,10 @@ local function Listen()
 	Events.Register(MODULE, "PLAYER_TARGET_CHANGED", Unit.TargetAll)
 	Events.Register(MODULE, "ADDON_LOADED", function(_, addon)
 		if addon == BLIZZARD_ADDON then
-			Blizzard.Apply(Frames.running)
+			Blizzard.Apply(Frames.Active())
 		end
 	end)
+	Events.Register(MODULE, "INPUT_DEVICE_INTERFACE_TRANSITION", Frames.OnTransition)
 	for _, extra in ipairs(Frames.events) do
 		Events.Register(MODULE, extra.event, extra.fn)
 	end
@@ -129,52 +135,78 @@ end
 Frames.events = {}
 
 local function Start()
-	Headers.Build()
 	Headers.Show()
 	ApplySecure()
 end
 
-function Frames.Enable()
-	Frames.running = true
-	Unit.running = true
-	Settings.Refresh()
-	if InCombatLockdown() then
-		Log("enabled in combat; the frames are built when combat ends")
-		K.Combat.Queue(function()
-			if Frames.running then
-				Start()
-			end
-		end)
-	else
-		Start()
+local function Settle()
+	settling = false
+	if Frames.running then
+		Headers.Build()
 	end
-	Unit.ListenAll()
-	Listen()
-	Blizzard.Apply(true)
-	Log("party and raid headers are on SecureGroupHeaderTemplate")
-end
-
-local function Stop()
-	if not Frames.running then
+	if Frames.Active() then
+		Start()
+	else
 		Headers.Stop()
 	end
 end
 
+local function Converge()
+	if not InCombatLockdown() then
+		Settle()
+	elseif not settling then
+		settling = true
+		K.Combat.Queue(Settle)
+	end
+end
+
+local function Follow()
+	Unit.running = Frames.Active()
+	Unit.ListenAll()
+	Blizzard.Apply(Frames.Active())
+	Converge()
+end
+
+function Frames.OnTransition()
+	local gamepad = Blizzard.GamepadStyle()
+	if gamepad == Frames.gamepad then
+		return
+	end
+	Frames.gamepad = gamepad
+	if gamepad then
+		Log("the gamepad interface is on: Blizzard's party and raid frames return for gamepad group targeting and KstyleUI's group frames hide")
+	else
+		Log("keyboard and mouse again: KstyleUI's group frames return and Blizzard's hide")
+	end
+	Follow()
+end
+
+function Frames.Enable()
+	Frames.running = true
+	Frames.gamepad = Blizzard.GamepadStyle()
+	Settings.Refresh()
+	if InCombatLockdown() then
+		Log("enabled in combat; the frames are built when combat ends")
+	end
+	Follow()
+	Listen()
+	if Frames.gamepad then
+		Log("the gamepad interface is on: KstyleUI's group frames wait and Blizzard's stay for gamepad group targeting")
+	end
+	Log("party and raid headers are on SecureGroupHeaderTemplate")
+end
+
 function Frames.Disable()
 	Frames.running = false
-	Unit.running = false
-	Unit.ListenAll()
-	if InCombatLockdown() then
-		K.Combat.Queue(Stop)
-	else
-		Stop()
-	end
-	Blizzard.Apply(false)
+	Follow()
 end
 
 K.DevTest.AddCheck("GroupFrames", function()
 	if not Frames.running then
 		return true, "off"
+	end
+	if Frames.gamepad then
+		return true, "standing down for the gamepad interface"
 	end
 	if not Headers.built then
 		return false, "the headers were not built"

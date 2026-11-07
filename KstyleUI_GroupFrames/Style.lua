@@ -1,4 +1,4 @@
--- Style.lua: builds a group frame's look on any frame and lays it out from the settings: glass tile, portrait, bars, texts and highlights.
+-- Style.lua: builds a group frame's look on any frame and lays it out from the settings: glass tile, portrait, bars, texts and the chamfered highlight rings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,13 +9,14 @@ local Style = {}
 ns.Style = Style
 
 local TEXT_LEVEL = 4
-local HIGHLIGHT_LINES = 2
 local NAME_LINE_EXTRA = 2
 local NAME_RESERVE_EMS = 3.4
 local LEVEL_SHARE = 0.36
 local RING_OUTSET = 1
 local PORTRAIT_INSET = 2
 local HOVER_ALPHA = 0.6
+local RING = { "bevelTileOuter", "bevelTileInner" }
+local WASH = "chamferTile"
 
 local logged = {}
 local function LogOnce(key, message)
@@ -26,40 +27,42 @@ local function LogOnce(key, message)
 end
 Style.LogOnce = LogOnce
 
-local function Outline(parent, layer)
-	local lines = {}
-	for i = 1, 4 do
-		local line = parent:CreateTexture(nil, layer or "OVERLAY")
-		line:SetColorTexture(Tokens.Color("white"))
-		lines[i] = line
+function Style.Ring(owner, layer, sublevel)
+	local ring = {}
+	for i, name in ipairs(RING) do
+		ring[i] = Widgets.NineSlice(owner, name, layer, sublevel)
 	end
-	return lines
-end
-Style.Outline = Outline
-
-function Style.LayoutOutline(lines, owner, thickness)
-	local top, bottom, left, right = lines[1], lines[2], lines[3], lines[4]
-	for i = 1, 4 do
-		lines[i]:ClearAllPoints()
-	end
-	top:SetPoint("TOPLEFT", owner, "TOPLEFT")
-	top:SetPoint("TOPRIGHT", owner, "TOPRIGHT")
-	top:SetHeight(thickness)
-	bottom:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT")
-	bottom:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT")
-	bottom:SetHeight(thickness)
-	left:SetPoint("TOPLEFT", top, "BOTTOMLEFT")
-	left:SetPoint("BOTTOMLEFT", bottom, "TOPLEFT")
-	left:SetWidth(thickness)
-	right:SetPoint("TOPRIGHT", top, "BOTTOMRIGHT")
-	right:SetPoint("BOTTOMRIGHT", bottom, "TOPRIGHT")
-	right:SetWidth(thickness)
+	return ring
 end
 
-function Style.ColorOutline(lines, r, g, b, a)
-	for i = 1, 4 do
-		lines[i]:SetVertexColor(r, g, b, a)
+function Style.LayoutRing(ring, owner)
+	local _, _, corner = Tokens.Texture(RING[1])
+	for i = 1, #ring do
+		Widgets.LayoutSlice(ring[i], owner, corner, 0)
 	end
+end
+
+function Style.ColorRing(ring, r, g, b, a)
+	for i = 1, #ring do
+		Widgets.ColorSlice(ring[i], r, g, b, a)
+	end
+end
+
+function Style.Pieces(ring, fn)
+	for i = 1, #ring do
+		for _, piece in ipairs(ring[i]) do
+			fn(piece)
+		end
+	end
+end
+
+function Style.Wash(owner, layer, sublevel)
+	return Widgets.NineSlice(owner, WASH, layer, sublevel)
+end
+
+function Style.LayoutWash(wash, owner)
+	local _, _, corner = Tokens.Texture(WASH)
+	Widgets.LayoutSlice(wash, owner, corner, 0)
 end
 
 function Style.Build(f, kind)
@@ -86,7 +89,7 @@ function Style.Build(f, kind)
 	f.healthText:SetWordWrap(false)
 	f.target = CreateFrame("Frame", nil, f.text)
 	f.target:SetAllPoints(f)
-	f.targetLines = Outline(f.target)
+	f.targetRing = Style.Ring(f.target, "OVERLAY")
 	f.target:SetAlpha(0)
 	return f
 end
@@ -224,7 +227,7 @@ function Style.Apply(f, width, height)
 	end
 	LayoutPortrait(f, parts)
 	LayoutTexts(f, k, parts)
-	Style.LayoutOutline(f.targetLines, f, Widgets.Border(f) * HIGHLIGHT_LINES)
+	Style.LayoutRing(f.targetRing, f.target)
 	f.chrome:Restyle()
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)
@@ -237,7 +240,7 @@ Style.painters = {}
 
 function Style.Paint(f)
 	local r, g, b = Style.Accent()
-	Style.ColorOutline(f.targetLines, r, g, b, 1)
+	Style.ColorRing(f.targetRing, r, g, b, 1)
 	if f.hovered then
 		f.chrome:SetEdgeRGBA(r, g, b, HOVER_ALPHA)
 	else
