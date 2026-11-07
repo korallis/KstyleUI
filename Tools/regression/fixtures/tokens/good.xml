@@ -1,0 +1,9 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- <Color r="1" g="1" b="1"/> in a comment is fine. -->
+	<Frame name="FixtureGood">
+		<Size x="10" y="20"/>
+		<Anchors>
+			<Anchor point="CENTER"/>
+		</Anchors>
+	</Frame>
+</Ui>

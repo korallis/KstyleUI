@@ -1,0 +1,11 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Frame name="FixtureBad">
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture>
+					<Color r="0.06" g="0.06" b="0.06" a="0.88"/>
+				</Texture>
+			</Layer>
+		</Layers>
+	</Frame>
+</Ui>

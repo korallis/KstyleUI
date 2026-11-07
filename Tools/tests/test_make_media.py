@@ -58,6 +58,25 @@ class ManifestTest(unittest.TestCase):
             self.assertEqual(self.mm.SLICE[name] % density, 0, f"{name} corner pieces are whole units")
 
 
+class TokensTest(unittest.TestCase):
+    """Core/Tokens.lua names the textures and their slice margins. They must match the script."""
+
+    def test_tokens_texture_table_matches_the_assets(self):
+        mm = load_module()
+        text = (ROOT / "Core" / "Tokens.lua").read_text(encoding="ascii")
+        entries = re.findall(r'file = "(Textures|Logo)\\\\(\w+)\.png"(?:, slice = (\d+), density = (\d+))?', text)
+        self.assertGreater(len(entries), 0, "no texture entries found in Core/Tokens.lua")
+        assets = {a.path: a for a in mm.ASSETS}
+        for folder, stem, slice_, density in entries:
+            path = f"Media/{folder}/{stem}.png"
+            self.assertIn(path, assets, f"Tokens names {path}, which make_media.py does not draw")
+            want = assets[path].slice
+            self.assertEqual(int(slice_) if slice_ else None, want, f"{stem} slice margin")
+            if want:
+                per_unit = mm.SHADOW_TEXELS_PER_UNIT if stem == "Shadow" else mm.TEXELS_PER_UNIT
+                self.assertEqual(int(density), per_unit, f"{stem} texels per unit")
+
+
 class PngTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
