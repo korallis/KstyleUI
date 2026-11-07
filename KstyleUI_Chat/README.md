@@ -71,9 +71,11 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 
 ## The panel
 
-`Panel.lua` builds one `Widgets.Panel` in the `BACKGROUND` strata and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 390 by 190 units at the bottom left in every layout. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
+`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 390 by 190 units at the bottom left in every layout. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
 
-Blizzard's `ChatFrame1` is anchored inside it by two points, so it follows every move and resize:
+The glass is a `Widgets.Panel` child of the holder that fills it, in the `BACKGROUND` strata with `SetFixedFrameStrata(true)`, so a strata the player picks for the element never lifts the glass over Blizzard's chat, whose windows and dock stay in their own strata.
+
+Blizzard's `ChatFrame1` is anchored inside the holder by two points, so it follows every move and resize:
 
 | Part | Where, in root units at the 1080 reference |
 | --- | --- |
@@ -83,7 +85,7 @@ Blizzard's `ChatFrame1` is anchored inside it by two points, so it follows every
 
 The offsets come from Blizzard's own geometry in the chat window's units (`FloatingChatFrame.xml` and `ChatFrameEditBox.xml`: the tab text 14 units above the window, the dock 3 units above it, the edit box 2 units below it and 32 tall, starting 5 units left of the window and ending 8 past the scroll bar), converted through the ratio of the chat window's effective scale to the panel's and snapped to whole physical pixels. They are worked out again on `ScaleChanged`.
 
-The panel's visibility and opacity carry over to Blizzard's chat: hooks on the panel's `Show`, `Hide`, `SetShown` and `SetAlpha` set the same alpha on `GENERAL_CHAT_DOCK` (the tabs) and every docked window. Turning the module off puts them back to full alpha.
+The panel's visibility and opacity carry over to Blizzard's chat: hooks on the holder's `Show`, `Hide`, `SetShown` and `SetAlpha` set the same alpha on `GENERAL_CHAT_DOCK` (the tabs) and every docked window. A docked window's edit box, which Blizzard parents to `UIParent` and fades itself, keeps Blizzard's alpha times the panel's, except while the player types in it. A window that leaves the dock gets full alpha back, a window opened into the dock takes the panel's at once, and turning the module off puts everything back.
 
 ## The windows
 

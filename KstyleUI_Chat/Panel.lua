@@ -32,6 +32,7 @@ local IsSecret = Format.IsSecret
 local state = {
 	active = false,
 	holder = nil,
+	glass = nil,
 	chat = nil,
 	settings = nil,
 	placing = false,
@@ -42,6 +43,9 @@ local state = {
 	hooked = false,
 }
 local logged = {}
+local mirrored = setmetatable({}, { __mode = "k" })
+local edits = setmetatable({}, { __mode = "k" })
+local busy = false
 
 local function Log(message)
 	K.DevTest.Log(ns.NAME, message)
@@ -122,6 +126,10 @@ function Panel.Holder()
 	return state.holder
 end
 
+function Panel.Glass()
+	return state.glass
+end
+
 function Panel.Status()
 	local chat, holder = state.chat, state.holder
 	if not chat then
@@ -151,6 +159,48 @@ local function Protected(frame)
 	return IsSecret(protected) or protected == true
 end
 
+local function Focused(box)
+	if type(box.HasFocus) ~= "function" then
+		return false
+	end
+	local focus = box:HasFocus()
+	return IsSecret(focus) or focus == true
+end
+
+local function ApplyEdit(box, info)
+	local factor = 1
+	if state.active and info.frame.isDocked and not Focused(box) then
+		factor = state.alpha or 1
+	end
+	busy = true
+	box:SetAlpha(info.wanted * factor)
+	busy = false
+end
+
+local function EditAlpha(frame)
+	local box = frame.editBox
+	if type(box) ~= "table" or type(box.SetAlpha) ~= "function" then
+		return
+	end
+	local info = edits[box]
+	if not info then
+		info = { frame = frame, wanted = Number(box:GetAlpha(), 1) }
+		edits[box] = info
+		hooksecurefunc(box, "SetAlpha", function(self, alpha)
+			if not busy then
+				info.wanted = Number(alpha, 1)
+				ApplyEdit(self, info)
+			end
+		end)
+		local function refocus(self)
+			ApplyEdit(self, info)
+		end
+		box:HookScript("OnEditFocusGained", refocus)
+		box:HookScript("OnEditFocusLost", refocus)
+	end
+	ApplyEdit(box, info)
+end
+
 local function SetChatAlpha(alpha)
 	if state.alpha == alpha then
 		return
@@ -161,9 +211,14 @@ local function SetChatAlpha(alpha)
 		dock:SetAlpha(alpha)
 	end
 	for _, frame in ipairs(Windows.List()) do
-		if frame.isDocked then
+		if state.active and frame.isDocked then
 			frame:SetAlpha(alpha)
+			mirrored[frame] = true
+		elseif mirrored[frame] then
+			frame:SetAlpha(1)
+			mirrored[frame] = nil
 		end
+		EditAlpha(frame)
 	end
 end
 
@@ -185,11 +240,11 @@ function Panel.Sync()
 end
 
 local function PlaceDivider(g)
-	local holder = state.holder
-	local divider = holder.divider
+	local glass = state.glass
+	local divider = glass.divider
 	divider:ClearAllPoints()
-	divider:SetPoint("TOPLEFT", holder, "TOPLEFT", g.left, -g.divider)
-	divider:SetPoint("TOPRIGHT", holder, "TOPRIGHT", -g.left, -g.divider)
+	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left, -g.divider)
+	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Scale.Border())
 	Widgets.Tint(divider, "text", DIVIDER_ALPHA)
 end
@@ -246,23 +301,27 @@ local function OnEditModeExit()
 end
 
 local function Paint(settings)
-	local holder = state.holder
+	local glass = state.glass
 	local r, g, b = Tokens.Color("surface")
-	holder.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
-	holder.chrome:SetShadow(settings.shadow == true)
+	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
+	glass.chrome:SetShadow(settings.shadow == true)
 end
 
 local function Build()
 	local layouts = K.Setup.Layouts
 	local spec = layouts.Element(KEY)
-	local holder = Widgets.Panel(Scale.Root(), { strata = STRATA })
+	local holder = CreateFrame("Frame", nil, Scale.Root())
+	holder:SetFrameStrata(STRATA)
 	Widgets.Size(holder, spec.width, spec.height)
-	holder.divider = holder:CreateTexture(nil, "ARTWORK")
-	holder.divider:SetTexture((Tokens.Texture("divider")))
+	local glass = Widgets.Panel(holder, { strata = STRATA })
+	glass:SetAllPoints(holder)
+	glass:SetFixedFrameStrata(true)
+	glass.divider = glass:CreateTexture(nil, "ARTWORK")
+	glass.divider:SetTexture((Tokens.Texture("divider")))
 	for _, method in ipairs({ "Show", "Hide", "SetShown", "SetAlpha" }) do
 		hooksecurefunc(holder, method, Mirror)
 	end
-	state.holder = holder
+	state.holder, state.glass = holder, glass
 	Widgets.Place(holder, KEY, layouts.Default(KEY), {
 		label = spec.label,
 		module = ns.NAME,

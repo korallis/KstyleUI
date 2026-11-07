@@ -319,6 +319,7 @@ local function Style(frame)
 	end
 	if state.active then
 		ApplyFrame(frame)
+		Panel.Sync()
 	end
 end
 

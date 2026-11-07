@@ -1,5 +1,6 @@
 -- test-chat-panel.lua: KstyleUI_Chat's glass panel holds Blizzard's main chat window, and the chat windows, tabs and edit boxes wear KstyleUI's look.
 local C = dofile("Tools/regression/chat_env.lua")
+local W = C.W
 
 local HOOKED = { AddMessage = true, SetPoint = true, SetAlpha = true }
 
@@ -45,8 +46,9 @@ do
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
 	assert(near(settings.width, 390) and near(settings.height, 190), "the 390 by 190 footprint")
-	local holder = ns.Panel.Holder()
-	assert(holder and holder:IsShown() and holder:GetFrameStrata() == "BACKGROUND", "the panel sits behind the chat")
+	local holder, glass = ns.Panel.Holder(), ns.Panel.Glass()
+	assert(holder and holder:IsShown(), "the panel shows")
+	assert(glass:GetParent() == holder and glass:GetFrameStrata() == "BACKGROUND", "the glass sits behind the chat")
 	local chat = env.ChatFrame1
 	assert(chat:GetNumPoints() == 2, "two anchors")
 	local p1, p2 = { chat:GetPoint(1) }, { chat:GetPoint(2) }
@@ -119,11 +121,42 @@ do
 	C.Enable(env, K)
 	local holder = ns.Panel.Holder()
 	K.Options.Write("Chat", "panelOpacity", 0.4)
-	local fill = holder.chrome.fill[5]
+	local glass = ns.Panel.Glass()
+	local fill = glass.chrome.fill[5]
 	local args = lastCall(fill, "SetVertexColor")
 	assert(args and near(args[4], 0.4), "the glass is 40% opaque")
 	K.Options.Write("Chat", "shadow", false)
-	assert(holder.chrome.shadow[1]:IsShown() == false, "no shadow")
+	assert(glass.chrome.shadow[1]:IsShown() == false, "no shadow")
+	K.Layout.Set("chat.main", "strata", "HIGH")
+	assert(holder:GetFrameStrata() == "HIGH", "Layout sets the element's strata")
+	assert(glass:GetFrameStrata() == "BACKGROUND" and W.LastCall(glass, "SetFixedFrameStrata")[1] == true, "the glass stays behind Blizzard's chat")
+end
+
+-- Edit boxes, windows that leave the dock and windows opened later follow the panel's opacity too.
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	local holder = ns.Panel.Holder()
+	local box = env.ChatFrame1.editBox
+	holder:SetAlpha(0.5)
+	assert(math.abs(box:GetAlpha() - 0.5) < 1e-6, "the edit box fades with the panel")
+	box:SetAlpha(0.35)
+	assert(math.abs(box:GetAlpha() - 0.175) < 1e-6, "Blizzard's own resting alpha is scaled, not replaced")
+	rawset(box, "HasFocus", function()
+		return true
+	end)
+	box:GetScript("OnEditFocusGained")(box)
+	assert(math.abs(box:GetAlpha() - 0.35) < 1e-6, "a box being typed in shows at Blizzard's alpha")
+	rawset(box, "HasFocus", nil)
+	env.FCF_UnDockFrame(env.ChatFrame2)
+	assert(env.ChatFrame2:GetAlpha() == 1, "a window that leaves the dock gets its own alpha back")
+	local whisper = env.FCF_OpenTemporaryWindow("WHISPER", "Kragar")
+	env.RunTimers()
+	assert(math.abs(whisper:GetAlpha() - 0.5) < 1e-6, "a window opened into the dock fades with the panel")
+	holder:SetAlpha(1)
+	K.Modules.Disable("Chat")
+	env.RunTimers()
+	assert(math.abs(box:GetAlpha() - 0.35) < 1e-6, "off: the edit box is back at Blizzard's alpha")
 end
 
 -- Window art, tabs and edit boxes.
