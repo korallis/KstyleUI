@@ -19,6 +19,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `stubs/wow.lua` | A stub WoW API for offline tests. Extend it additively. |
 | `widget_env.lua` | Loads the core with the widget kit, boots it, and drives frames like a player: hover, press, click, keys and tween frames. |
 | `spike_env.lua` | Loads the spike addon into a stub environment that fakes the game APIs its spikes call. |
+| `actionbars_env.lua` | Loads the core and `KstyleUI_ActionBars` into a fake game with action slots, bindings, a pet and forms. Secure frames record protected calls made in combat, and a fake restricted environment runs the bars' page snippet. |
 | `lua_source.lua` | Tokenizes Lua 5.1 source and walks it with block and local scopes. The source scanners use it. |
 | `taint_scan.lua` | Finds taint risks in addon source. |
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |

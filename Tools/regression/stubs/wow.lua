@@ -480,6 +480,7 @@ function Stubs.NewEnv(opts)
 
 	-- Macro options: "[cond,cond] value; [cond] value; default". The conditions known here are combat,
 	-- nocombat, exists, noexists and a unit as @unit or target=unit (the default unit is the target).
+	-- A test adds more by setting env.Condition(part, unit) -> true, false, or nil for an unknown part.
 	local function holds(group)
 		local unit, ok = "target", true
 		for part in group:gmatch("[^,]+") do
@@ -495,6 +496,8 @@ function Stubs.NewEnv(opts)
 				ok = ok and env.UnitExists(unit) == true
 			elseif part == "noexists" then
 				ok = ok and env.UnitExists(unit) ~= true
+			elseif env.Condition and env.Condition(part, unit) ~= nil then
+				ok = ok and env.Condition(part, unit) == true
 			else
 				error("SecureCmdOptionParse stub: unknown condition " .. part)
 			end
