@@ -43,6 +43,11 @@ local function NewTheme(opts)
 	if opts.classColorApi ~= false then
 		env.C_ClassColor = {
 			GetClassColor = function(name)
+				-- As in the game: a secret class name gives a colour whose channels are secret.
+				if env.issecretvalue(name) then
+					local c = CLASS[env.Reveal(name)]
+					return c and colorObject({ env.Secret(c[1]), env.Secret(c[2]), env.Secret(c[3]) }) or nil
+				end
 				local c = CLASS[name]
 				return c and colorObject(c) or nil
 			end,
@@ -236,6 +241,39 @@ do
 	assertColor("exalted", token("friendly"), ns.Theme.ReactionColor(8))
 	assertColor("no reaction", token("neutral"), ns.Theme.ReactionColor(nil))
 	assertColor("a secret reaction is never compared", token("neutral"), ns.Theme.ReactionColor(env.Secret(2)))
+end
+
+-- Class colours for widget setters: a secret class name gives the secret class colour, passed on whole.
+do
+	local env, ns = NewTheme({ class = "WARRIOR" })
+	local r, g, b = ns.Theme.ClassColorForWidget(env.Secret("MAGE"))
+	assert(env.issecretvalue(r) and env.issecretvalue(g) and env.issecretvalue(b), "a secret class gives the secret colour for a widget setter")
+	assertColor("the secret colour is the class colour", CLASS.MAGE, env.Reveal(r), env.Reveal(g), env.Reveal(b))
+	assertColor("a plain class gives the plain class colour", CLASS.MAGE, ns.Theme.ClassColorForWidget("MAGE"))
+	local tr, tg, tb = ns.Tokens.Color("text")
+	assertColor("an unknown secret class falls back to text", { tr, tg, tb }, ns.Theme.ClassColorForWidget(env.Secret("NOTACLASS")))
+	assertColor("ClassColor still gives plain numbers for a secret class", { tr, tg, tb }, ns.Theme.ClassColor(env.Secret("MAGE")))
+end
+do
+	local env, ns = NewTheme({ classColorApi = false })
+	local tr, tg, tb = ns.Tokens.Color("text")
+	assertColor("no C_ClassColor: a secret class falls back to text", { tr, tg, tb }, ns.Theme.ClassColorForWidget(env.Secret("MAGE")))
+end
+
+-- Threat colours come from the reaction tokens, not Blizzard's raw palette.
+do
+	local env, ns = NewTheme()
+	local function token(name)
+		local a, b2, c = ns.Tokens.Color(name)
+		return { a, b2, c }
+	end
+	local n, h = token("neutral"), token("hostile")
+	assertColor("threat 1, higher threat than the tank, is neutral", n, ns.Theme.ThreatColor(1))
+	assertColor("threat 2, insecurely tanking, is between neutral and hostile", { (n[1] + h[1]) / 2, (n[2] + h[2]) / 2, (n[3] + h[3]) / 2 }, ns.Theme.ThreatColor(2))
+	assertColor("threat 3, securely tanking, is hostile", h, ns.Theme.ThreatColor(3))
+	assert(ns.Theme.ThreatColor(0) == nil, "no threat gives no colour")
+	assert(ns.Theme.ThreatColor(nil) == nil, "a missing status gives no colour")
+	assert(ns.Theme.ThreatColor(env.Secret(3)) == nil, "a secret status is never compared")
 end
 
 -- The UI font face.

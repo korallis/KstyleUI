@@ -82,11 +82,13 @@ eq(last(healer.ready, "SetAtlas")[1], env.READY_CHECK_READY_TEXTURE, "a ready me
 env.RunTimers()
 eq(healer.ready:IsShown(), false, "then hides")
 
--- Threat: a plain threat status draws the glow in the game's threat colour; a secret one hides it.
+-- Threat: a plain threat status draws the glow in the threat colour unit frames and nameplates use; a
+-- secret one hides it.
 eq(tank.threat:IsShown(), true, "the tank with aggro shows the threat glow")
 local glow = last(tank.threatGlow.slice[1], "SetVertexColor")
 local r, g, b = glow[1], glow[2], glow[3]
-assert(near(r, 1) and near(g, 0) and near(b, 0), "status 3 is the game's red")
+local hr, hg, hb = K.Theme.ThreatColor(3)
+assert(near(r, hr) and near(g, hg) and near(b, hb), "status 3 is the hostile token, not Blizzard's raw red")
 eq(dps.threat:IsShown(), false, "a secret threat status hides the border")
 party[1].threat = 0
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "party1")

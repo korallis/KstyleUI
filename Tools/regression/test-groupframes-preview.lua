@@ -43,6 +43,9 @@ eq(preview.raidFrames[1]:GetWidth(), 72, "raid samples use the raid width")
 local tank = preview.partyFrames[1]
 eq(tank.role:IsShown(), true, "the sample tank shows a role icon")
 eq(tank.threat:IsShown(), true, "the sample tank has aggro")
+local glow = tank.threatGlow.slice[1]._state.VertexColor
+local hr, hg, hb = K.Theme.ThreatColor(3)
+assert(glow and glow[1] == hr and glow[2] == hg and glow[3] == hb, "in the tanking colour")
 local found = false
 for _, f in ipairs(preview.partyFrames) do
 	found = found or (f.marker:IsShown() and f.marker._state.SpriteSheetCell ~= nil)

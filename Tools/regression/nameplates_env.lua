@@ -34,6 +34,7 @@ N.UNIT = {
 	tapped = false,
 	widgetsOnly = false,
 	secretName = false,
+	secretClass = false,
 }
 
 -- Blizzard's class colours for the classes the tests use.
@@ -102,11 +103,18 @@ function N.Install(env, opts)
 		end
 		local u = unit(token)
 		if u then
+			if u.secretClass then
+				return env.Secret(u.class), env.Secret(u.class), 1
+			end
 			return u.class, u.class, 1
 		end
 	end
 	env.C_ClassColor = {
 		GetClassColor = function(name)
+			if env.issecretvalue(name) then
+				local c = N.CLASS[env.Reveal(name)]
+				return c and colorObject({ env.Secret(c[1]), env.Secret(c[2]), env.Secret(c[3]) }) or nil
+			end
 			local c = N.CLASS[name]
 			return c and colorObject(c) or nil
 		end,

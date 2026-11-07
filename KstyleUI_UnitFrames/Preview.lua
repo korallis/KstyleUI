@@ -91,8 +91,11 @@ local function PaintIndicators(view, s, sample)
 	else
 		view.marker:Hide()
 	end
-	if s.threat and sample.threat and GetThreatStatusColor then
-		local r, g, b = GetThreatStatusColor(THREAT_TANKING)
+	local r, g, b
+	if s.threat and sample.threat then
+		r, g, b = K.Theme.ThreatColor(THREAT_TANKING)
+	end
+	if r then
 		K.Widgets.ColorSlice(view.glow, r, g, b, 0.9)
 		view.glowFrame:Show()
 	else

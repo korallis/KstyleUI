@@ -122,19 +122,8 @@ local function HealthText(f)
 	end
 end
 
-local function SecretClassColor(class)
-	local color = C_ClassColor.GetClassColor(class)
-	return color:GetRGB()
-end
-
 function Unit.ClassColor(class)
-	if IsSecret(class) and C_ClassColor and C_ClassColor.GetClassColor then
-		local ok, r, g, b = pcall(SecretClassColor, class)
-		if ok then
-			return r, g, b
-		end
-	end
-	return Theme.ClassColor(class)
+	return Theme.ClassColorForWidget(class)
 end
 
 local function Colors(f)

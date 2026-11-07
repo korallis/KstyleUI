@@ -322,14 +322,17 @@ function Plate:UpdateColor()
 			r, g, b = Rgb(Settings.Get(COLOR_KEYS[kind]))
 		elseif source == "class" then
 			local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
-			r, g, b = Theme.ClassColor(class)
+			r, g, b = Theme.ClassColorForWidget(class)
 		else
 			local reaction = self.sample and self.sample.reaction or UnitValue(UnitReaction, self.unit, "player")
 			r, g, b = Theme.ReactionColor(reaction)
 		end
 	end
 	local last = self.colorKey
-	if last.r ~= r or last.g ~= g or last.b ~= b then
+	if IsSecret(r) or IsSecret(g) or IsSecret(b) then
+		last.r, last.g, last.b = nil, nil, nil
+		self.health:SetBarColor(r, g, b)
+	elseif last.r ~= r or last.g ~= g or last.b ~= b then
 		last.r, last.g, last.b = r, g, b
 		self.health:SetBarColor(r, g, b)
 	end
@@ -395,7 +398,7 @@ function Plate:UpdateName()
 	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
 	if isPlayer and Settings.Get("name.classColor") then
 		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
-		name:SetTextColor(Theme.ClassColor(class))
+		name:SetTextColor(Theme.ClassColorForWidget(class))
 	else
 		name:SetTextColor(Tokens.Color("textEmphasis"))
 	end

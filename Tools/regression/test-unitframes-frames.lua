@@ -264,4 +264,33 @@ do
 	assert(env2._watched[view.button] and U.Shown(env2, view.healthText) == "78%", "and it shows its unit at once")
 end
 
+-- A player whose class is secret, as under SecretWhenUnitIdentityRestricted: the game's class colour for
+-- the secret class reaches the health bar whole, instead of the text grey.
+do
+	local MAGE = { 0.25, 0.78, 0.92 }
+	local env2, K2, ns2 = U.New({
+		setup = function(e)
+			e.C_ClassColor = {
+				GetClassColor = function(class)
+					local c = e.issecretvalue(class) and e.Reveal(class) == "MAGE" and { e.Secret(MAGE[1]), e.Secret(MAGE[2]), e.Secret(MAGE[3]) }
+						or class == "MAGE" and MAGE
+					if not c then
+						return nil
+					end
+					return { r = c[1], g = c[2], b = c[3], GetRGB = function(self)
+						return self.r, self.g, self.b
+					end }
+				end,
+			}
+		end,
+	})
+	local view = ns2.Frames.Get("target").views[1]
+	U.SetUnit(env2, "target", { name = "Jaina", class = "MAGE", secretClass = true, isPlayer = true, level = 60, health = 100, healthMax = 100, reaction = 5 })
+	env2.SetTarget(true)
+	local color = W.LastCall(view.health, "SetStatusBarColor")
+	assert(color and env2.issecretvalue(color[1]), "a secret class colour reaches the health bar as a secret")
+	assert(env2.Reveal(color[1]) == MAGE[1] and env2.Reveal(color[2]) == MAGE[2] and env2.Reveal(color[3]) == MAGE[3], "and it is the class colour")
+	assert(#env2._errors == 0 and K2.ErrorCount() == 0, "a secret class raises no error: " .. tostring(env2._errors[1]))
+end
+
 print("unitframes frames ok")

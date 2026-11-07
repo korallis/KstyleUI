@@ -54,7 +54,7 @@ local function UnitColor(unit, source)
 	if source == "class" and UnitIsPlayer(unit) then
 		local file = ClassFile(unit)
 		if HasClass(file) then
-			return Theme.ClassColor(file)
+			return Theme.ClassColorForWidget(file)
 		end
 	end
 	return ReactionColor(unit)

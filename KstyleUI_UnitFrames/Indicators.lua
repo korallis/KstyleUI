@@ -211,11 +211,15 @@ function Indicators.Threat(view, unit)
 		return
 	end
 	local status = ThreatStatus(unit)
-	if issecretvalue(status) or type(status) ~= "number" or status <= 0 or not GetThreatStatusColor then
+	if issecretvalue(status) or type(status) ~= "number" or status <= 0 then
 		glow:Hide()
 		return
 	end
-	local r, g, b = GetThreatStatusColor(status)
+	local r, g, b = K.Theme.ThreatColor(status)
+	if not r then
+		glow:Hide()
+		return
+	end
 	Widgets.ColorSlice(view.glow, r, g, b, GLOW_ALPHA)
 	glow:Show()
 end

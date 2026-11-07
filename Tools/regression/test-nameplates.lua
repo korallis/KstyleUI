@@ -175,6 +175,19 @@ do
 	local mage = N.CLASS.MAGE
 	assert(SameColor(mage[1], mage[2], mage[3], barColor(ns.Plates.Get("nameplate2").health)), "an enemy player uses the class colour")
 
+	N.Add(env, "nameplate5", { isPlayer = true, class = "MAGE", secretClass = true })
+	local hidden = ns.Plates.Get("nameplate5")
+	local sr, sg, sb = barColor(hidden.health)
+	assert(env.issecretvalue(sr), "a secret class colour reaches the health bar as a secret")
+	assert(SameColor(mage[1], mage[2], mage[3], env.Reveal(sr), env.Reveal(sg), env.Reveal(sb)), "and it is the class colour")
+	local nr, ng, nb = hidden.name:GetTextColor()
+	assert(env.issecretvalue(nr), "the name takes the secret class colour too")
+	assert(SameColor(mage[1], mage[2], mage[3], env.Reveal(nr), env.Reveal(ng), env.Reveal(nb)), "the class colour")
+	env.FireEvent("UNIT_HEALTH", "nameplate5")
+	env.FireEvent("UNIT_FLAGS", "nameplate5")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "a secret class colour is never compared: " .. tostring(env._errors[1]))
+	N.Remove(env, "nameplate5")
+
 	N.Add(env, "nameplate3", { tapped = true })
 	local tr, tg, tb = token(K, "textDisabled")
 	assert(SameColor(tr, tg, tb, barColor(ns.Plates.Get("nameplate3").health)), "a tapped unit is grey")

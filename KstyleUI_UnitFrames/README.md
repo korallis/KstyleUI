@@ -117,7 +117,7 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 | PvP | `UnitIsPVPFreeForAll`, `UnitIsPVP` and `UnitFactionGroup`, Camelot's `UI-HUD-UnitFrame-SmallCircle-*` atlases | The same row |
 | Combat | `UnitAffectingCombat`, the `UI-HUD-UnitFrame-Player-CombatIcon` atlas | The same row |
 | Resting | `IsResting`, a "Zz" in the accent colour | The same row, player only |
-| Threat glow | `UnitThreatSituation`: the player's own status on the player frame and friendly units, the player's status on a hostile unit elsewhere. A status above 0 lights the glow in `GetThreatStatusColor`. | A soft additive glow around the panel |
+| Threat glow | `UnitThreatSituation`: the player's own status on the player frame and friendly units, the player's status on a hostile unit elsewhere. A status above 0 lights the glow in `Theme.ThreatColor`, the `neutral` and `hostile` tokens that group frames and nameplates also use. | A soft additive glow around the panel |
 
 ## Cast bars
 

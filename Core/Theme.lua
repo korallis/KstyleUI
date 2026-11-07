@@ -11,6 +11,8 @@ Theme.MIN_LUMINANCE = MIN_LUMINANCE
 
 local REACTION_HOSTILE_MAX = 3
 local REACTION_NEUTRAL = 4
+local THREAT_LOW, THREAT_INSECURE, THREAT_SECURE = 1, 2, 3
+local THREAT_MIX = 0.5
 local QUALITY_RARE, QUALITY_EPIC = 3, 4
 
 local SOURCES = { class = true, custom = true }
@@ -233,6 +235,37 @@ function Theme.ClassColor(file)
 		return r, g, b
 	end
 	return Rgb("text")
+end
+
+local function SecretClassRgb(file)
+	return C_ClassColor.GetClassColor(file):GetRGB()
+end
+
+function Theme.ClassColorForWidget(file)
+	if IsSecret(file) and C_ClassColor and C_ClassColor.GetClassColor then
+		local ok, r, g, b = pcall(SecretClassRgb, file)
+		if ok and type(r) == "number" then
+			return r, g, b
+		end
+		return Rgb("text")
+	end
+	return Theme.ClassColor(file)
+end
+
+function Theme.ThreatColor(status)
+	if not IsPlainNumber(status) then
+		return nil
+	end
+	if status == THREAT_SECURE then
+		return Rgb("hostile")
+	elseif status == THREAT_INSECURE then
+		local nr, ng, nb = Rgb("neutral")
+		local hr, hg, hb = Rgb("hostile")
+		return nr + (hr - nr) * THREAT_MIX, ng + (hg - ng) * THREAT_MIX, nb + (hb - nb) * THREAT_MIX
+	elseif status == THREAT_LOW then
+		return Rgb("neutral")
+	end
+	return nil
 end
 
 function Theme.QualityColor(quality)

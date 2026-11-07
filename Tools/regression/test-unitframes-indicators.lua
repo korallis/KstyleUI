@@ -89,11 +89,15 @@ local cells = #W.Calls(target.marker, "SetSpriteSheetCell")
 env.FireEvent("RAID_TARGET_UPDATE")
 assert(#W.Calls(target.marker, "SetSpriteSheetCell") == cells, "a secret nil index never reaches SetSpriteSheetCell")
 
--- Threat: the player's status on a hostile target, coloured by GetThreatStatusColor.
+-- Threat: the player's status on a hostile target, in the glass-tuned threat colour that nameplates use.
 env._units.target.threatOn = 3
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 assert(target.glowFrame:IsShown(), "tanking the target lights its glow")
-assert(W.SameRGB(target.glow[1], 1, 0, 0), "in the threat colour")
+assert(W.SameRGB(target.glow[1], K.Theme.ThreatColor(3)), "in the hostile token, not Blizzard's raw red")
+env._units.target.threatOn = 1
+env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+local nr, ng, nb = K.Tokens.Color("neutral")
+assert(W.SameRGB(target.glow[1], nr, ng, nb), "higher threat than the tank is the neutral token")
 env._units.target.threatOn = 0
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
 assert(not target.glowFrame:IsShown(), "no threat: no glow")

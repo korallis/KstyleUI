@@ -120,19 +120,22 @@ eq(cw, (healer.chrome.outer[1]:GetSize()), "the ring's corners are the size of t
 eq(corner._points[1][1], "TOPLEFT", "the first corner sits at the top left")
 eq(corner._points[1][4], 0, "inside the frame, flush with its edge")
 
--- The threat border: the kit's selection glow, in the game's threat colour, behind the frame's tile.
+-- The threat border: the kit's selection glow, in the threat colour unit frames and nameplates use,
+-- behind the frame's tile.
 eq(tank.threat:IsShown(), true, "the tank with aggro shows the threat glow")
 local _, flat = kitOnly(K, textures(tank.threat), { "shadow" }, tank.threat, "the threat glow")
 eq(flat, 0, "the threat glow is all falloff texture")
+local hr, hg, hb = K.Theme.ThreatColor(3)
 for _, texture in ipairs(textures(tank.threat)) do
 	local r, g, b = color(texture)
-	assert(near(r, 1) and near(g, 0) and near(b, 0), "status 3 glows in the game's red")
+	assert(near(r, hr) and near(g, hg) and near(b, hb), "status 3 glows in the hostile token")
 end
 assert(tank.threatGlow and tank.threatGlow.holder:GetFrameLevel() < tank:GetFrameLevel(), "the glow sits behind the frame's tile")
 party[1].threat = 1
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "party1")
 local r, g, b = color(textures(tank.threat)[1])
-assert(near(r, 1) and near(g, 1) and near(b, 0.47), "status 1 recolours the glow")
+local nr, ng, nb = K.Tokens.Color("neutral")
+assert(near(r, nr) and near(g, ng) and near(b, nb), "status 1 recolours the glow in the neutral token")
 
 -- The dispel highlight: a chamfered wash and the tile bevel lines, all coloured by the engine.
 local slot = tank.auras._slots.dispel.frame

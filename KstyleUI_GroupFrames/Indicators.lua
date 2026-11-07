@@ -173,7 +173,7 @@ local function Ready(f)
 end
 
 local function Threat(f)
-	if not Settings.current.threat.enabled or not UnitThreatSituation or not GetThreatStatusColor then
+	if not Settings.current.threat.enabled or not UnitThreatSituation then
 		f.threat:Hide()
 		return
 	end
@@ -182,7 +182,7 @@ local function Threat(f)
 		f.threat:Hide()
 		return
 	end
-	local r, g, b = GetThreatStatusColor(status)
+	local r, g, b = K.Theme.ThreatColor(status)
 	if not Plain(r) or not Plain(g) or not Plain(b) then
 		f.threat:Hide()
 		return
@@ -252,8 +252,11 @@ local function PaintSample(f, sample)
 	end
 	f.ready:Hide()
 	local threat = Settings.current.threat.enabled and sample.threat
-	if threat and GetThreatStatusColor then
-		local r, g, b = GetThreatStatusColor(threat)
+	local r, g, b
+	if threat then
+		r, g, b = K.Theme.ThreatColor(threat)
+	end
+	if r then
 		f.threatGlow:SetColorRGB(r, g, b)
 		f.threat:Show()
 	else

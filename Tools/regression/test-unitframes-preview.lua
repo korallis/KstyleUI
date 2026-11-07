@@ -62,6 +62,8 @@ assert(preview.kind == "target", "the preview follows the picked frame")
 local target = preview.views.target
 assert(U.Shown(env, target.name) == "FROST HOWLER", "the target sample")
 assert(target.marker:IsShown() and target.glowFrame:IsShown(), "the target sample shows a raid marker and the threat glow")
+local tr, tg, tb = K.Theme.ThreatColor(3)
+assert(W.SameRGB(target.glow[1], tr, tg, tb), "the sample's threat glow is the tanking colour")
 assert(target.geometry.portrait.x > target.geometry.panel.x, "the target sample mirrors the player frame")
 
 -- Settings redraw the preview at once.

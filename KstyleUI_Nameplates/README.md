@@ -99,7 +99,7 @@ The settings window's preview draws three sample debuff tiles on the same snappe
 
 ### Styles
 
-A unit the player can attack (`UnitCanAttack`) uses the enemy style, any other the friendly style. Each style has its own bar colour source: the class colour for players and the reaction colour for NPCs, the reaction colour for everyone, or a custom colour. A tapped enemy is grey (`textDisabled`). Friendly plates can show just the name.
+A unit the player can attack (`UnitCanAttack`) uses the enemy style, any other the friendly style. Each style has its own bar colour source: the class colour for players and the reaction colour for NPCs, the reaction colour for everyone, or a custom colour. A player whose class is secret gets the secret class colour from `Theme.ClassColorForWidget`, passed straight to the bar and the name, and the plate's colour cache is skipped for it so the secret is never compared. A tapped enemy is grey (`textDisabled`). Friendly plates can show just the name.
 
 ### Threat
 
