@@ -154,6 +154,31 @@ do
 	assert(B.Count(env2, "SellAllJunkItems") == 0, "a merchant that closed during combat gets nothing")
 end
 
+-- A sale belongs to one merchant visit --------------------------------------------------------------
+
+do
+	local env, _, ns = New({ merchant = true })
+	env.SetMerchant(true)
+	Run(env)
+	env.SetCombat(true)
+	ns.Junk.Sell()
+	env.SetMerchant(false)
+	env.SetMerchant(true)
+	env.SetCombat(false)
+	Run(env)
+	assert(B.Count(env, "SellAllJunkItems") == 0, "a sale queued in combat does not run in a later merchant visit")
+
+	local env2, _, ns2 = New({ merchant = false, junk = 12 })
+	env2.SetMerchant(true)
+	Run(env2)
+	ns2.Junk.Sell()
+	assert(#Sold(env2) == 10, "the first batch sells")
+	env2.SetMerchant(false)
+	env2.SetMerchant(true)
+	Run(env2)
+	assert(#Sold(env2) == 10, "the rest of a sale does not resume in a later visit")
+end
+
 -- Selling by itself -------------------------------------------------------------------------------
 
 do

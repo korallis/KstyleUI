@@ -14,6 +14,7 @@ local EXCLUDE_FLAG_FALLBACK = 64
 
 local atMerchant = false
 local selling = false
+local visit = 0
 local probe = {}
 
 local function Flag(value)
@@ -88,17 +89,22 @@ end
 
 local SellBatch
 
-local function NextBatch()
-	K.Combat.Queue(SellBatch)
+local function Current(id)
+	return atMerchant and id == visit
 end
 
-function SellBatch()
-	if not atMerchant then
-		selling = false
+local function NextBatch(id)
+	K.Combat.Queue(function()
+		SellBatch(id)
+	end)
+end
+
+function SellBatch(id)
+	if not Current(id) then
 		return
 	end
 	if InCombatLockdown() then
-		NextBatch()
+		NextBatch(id)
 		return
 	end
 	local container = C_Container
@@ -116,7 +122,9 @@ function SellBatch()
 		sold = sold + 1
 	end)
 	if more then
-		C_Timer.After(Junk.BATCH_DELAY, NextBatch)
+		C_Timer.After(Junk.BATCH_DELAY, function()
+			NextBatch(id)
+		end)
 	else
 		selling = false
 	end
@@ -129,8 +137,9 @@ function Junk.Sell()
 	if InCombatLockdown() then
 		K.Print(L["Junk sells when combat ends."])
 	end
+	local id = visit
 	K.Combat.Queue(function()
-		if not atMerchant or selling then
+		if not Current(id) or selling then
 			return
 		end
 		if ServerSell() then
@@ -138,13 +147,19 @@ function Junk.Sell()
 		end
 		ns.Log("C_MerchantFrame.SellAllJunkItems is missing or off; selling junk item by item")
 		selling = true
-		SellBatch()
+		SellBatch(id)
 	end)
 	return true
 end
 
+local function NewVisit(shown)
+	visit = visit + 1
+	atMerchant = shown
+	selling = false
+end
+
 ns.On("MERCHANT_SHOW", function()
-	atMerchant = true
+	NewVisit(true)
 	if Settings.Get("autoSellJunk") then
 		Junk.Sell()
 	end
@@ -154,8 +169,7 @@ ns.On("MERCHANT_SHOW", function()
 end)
 
 ns.On("MERCHANT_CLOSED", function()
-	atMerchant = false
-	selling = false
+	NewVisit(false)
 	if Junk.onChange then
 		Junk.onChange()
 	end
@@ -164,10 +178,9 @@ end)
 function Junk.Enable()
 	local frame = MerchantFrame
 	local shown = frame and frame:IsShown()
-	atMerchant = not Data.IsSecret(shown) and shown == true
+	NewVisit(not Data.IsSecret(shown) and shown == true)
 end
 
 function Junk.Disable()
-	atMerchant = false
-	selling = false
+	NewVisit(false)
 end

@@ -68,7 +68,7 @@ Search matches the item's name, type and subtype as plain text. Sort asks the ga
 
 At a merchant, a Sell junk button shows in the bag window's header while there is junk to sell. With Sell junk by itself on, junk sells as soon as a merchant opens.
 
-1. The sale goes through `KstyleUI.Combat.Queue`: out of combat it runs at once; in combat it waits for `PLAYER_REGEN_ENABLED` and chat says so. When the queue runs, a merchant that closed meanwhile gets nothing.
+1. The sale goes through `KstyleUI.Combat.Queue`: out of combat it runs at once; in combat it waits for `PLAYER_REGEN_ENABLED` and chat says so. Each sale belongs to one merchant visit: when the queue or a later batch runs, it sells nothing if that visit ended, even if another merchant is open by then.
 2. The preferred path is `C_MerchantFrame.SellAllJunkItems`, the game's own one-call sale, when `C_MerchantFrame.IsSellAllJunkEnabled` allows it. The devlog records it.
 3. Without it, the module sells junk itself with `C_Container.UseContainerItem`, ten items at a time, 0.25 seconds apart, and logs that it took this path. Each batch checks combat and the merchant again. Junk is a poor item with a sell value. The keyring is never sold from, and bags marked to keep their junk (`C_Container.GetBackpackSellJunkDisabled`, `C_Container.GetBagSlotFlag` with `Enum.BagSlotFlags.ExcludeJunkSell`) are skipped.
 
