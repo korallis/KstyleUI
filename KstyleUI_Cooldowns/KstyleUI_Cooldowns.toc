@@ -1,0 +1,10 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Cooldowns
+## Notes: The Cooldown Manager in the KstyleUI style.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+
+Cooldowns.xml

@@ -1,0 +1,10 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Combat Text
+## Notes: Damage and healing numbers.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+
+CombatText.xml

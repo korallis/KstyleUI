@@ -1,0 +1,10 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Chat
+## Notes: Chat panels, tabs and edit box.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+
+Chat.xml

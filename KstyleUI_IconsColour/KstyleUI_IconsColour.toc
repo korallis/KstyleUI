@@ -1,0 +1,11 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Colour Icons
+## Notes: Custom ability icons, set B: full colour.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+## LoadOnDemand: 1
+
+IconsColour.xml

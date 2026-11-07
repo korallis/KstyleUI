@@ -1,5 +1,5 @@
 # .pkgmeta: how the BigWigs packager builds the release zip.
-# Each module task adds "KstyleUI/KstyleUI_<Module>: KstyleUI_<Module>" under move-folders.
+# move-folders has one line per module folder. A new module adds "KstyleUI/KstyleUI_<Module>: KstyleUI_<Module>".
 package-as: KstyleUI
 enable-nolib-creation: no
 
@@ -13,5 +13,23 @@ ignore:
   - .pre-commit-config.yaml
   - AGENTS.md
   - README.md
+  - KstyleUI_*/README.md
 
 move-folders:
+  KstyleUI/KstyleUI_Options: KstyleUI_Options
+  KstyleUI/KstyleUI_UnitFrames: KstyleUI_UnitFrames
+  KstyleUI/KstyleUI_GroupFrames: KstyleUI_GroupFrames
+  KstyleUI/KstyleUI_ActionBars: KstyleUI_ActionBars
+  KstyleUI/KstyleUI_Cooldowns: KstyleUI_Cooldowns
+  KstyleUI/KstyleUI_Auras: KstyleUI_Auras
+  KstyleUI/KstyleUI_Nameplates: KstyleUI_Nameplates
+  KstyleUI/KstyleUI_CombatText: KstyleUI_CombatText
+  KstyleUI/KstyleUI_Minimap: KstyleUI_Minimap
+  KstyleUI/KstyleUI_Chat: KstyleUI_Chat
+  KstyleUI/KstyleUI_Bags: KstyleUI_Bags
+  KstyleUI/KstyleUI_Tooltips: KstyleUI_Tooltips
+  KstyleUI/KstyleUI_DataBars: KstyleUI_DataBars
+  KstyleUI/KstyleUI_Meters: KstyleUI_Meters
+  KstyleUI/KstyleUI_Skins: KstyleUI_Skins
+  KstyleUI/KstyleUI_Icons: KstyleUI_Icons
+  KstyleUI/KstyleUI_IconsColour: KstyleUI_IconsColour

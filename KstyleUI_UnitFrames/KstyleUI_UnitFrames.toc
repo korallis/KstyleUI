@@ -1,0 +1,10 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Unit Frames
+## Notes: Player, target, focus, pet and boss frames.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+
+UnitFrames.xml

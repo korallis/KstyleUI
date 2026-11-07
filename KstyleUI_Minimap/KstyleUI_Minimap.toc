@@ -1,0 +1,10 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Minimap
+## Notes: Square minimap with zone, clock and button drawer.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+
+Minimap.xml

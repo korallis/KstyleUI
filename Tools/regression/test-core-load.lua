@@ -18,4 +18,12 @@ assert(env.KstyleUI.CODE_BUILD == 1, "CODE_BUILD must be 1")
 assert(type(env.KstyleUI.VERSION) == "string", "VERSION must be a string")
 assert(rawget(_G, "KstyleUI") == nil, "addon code leaked into the real globals")
 
+-- Each core service publishes its namespace table, as the roadmap's Core public API names it.
+for _, name in ipairs({
+	"L", "Callbacks", "Events", "Tokens", "Theme", "Scale", "Motion", "Features", "Store", "Modules",
+	"Combat", "Safe", "DevTest", "Icons", "Options", "Skin",
+}) do
+	assert(type(env.KstyleUI[name]) == "table", "KstyleUI." .. name .. " must be a table, got " .. type(env.KstyleUI[name]))
+end
+
 print("core load ok (" .. #core .. " files)")
