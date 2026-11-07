@@ -1,3 +1,18 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Init.lua"/>
+	<Script file="Style.lua"/>
+	<Script file="Parts.lua"/>
+	<Script file="Registry.lua"/>
+
+	<!-- Part A: the character sheet, spellbook and talents, quest log and objective tracker, and world map. Add part A's skin files below this line. -->
+	<!-- End of part A. -->
+
+	<!-- Part B: add part B's skin files below this line, one Script line each, in the order their switches should list. -->
+	<!-- End of part B. -->
+
+	<!-- Part C: add part C's skin files below this line, one Script line each, in the order their switches should list. -->
+	<!-- End of part C. -->
+
+	<Script file="Preview.lua"/>
+	<Script file="Module.lua"/>
 </Ui>
