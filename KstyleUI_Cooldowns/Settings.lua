@@ -10,6 +10,9 @@ ns.Settings = Settings
 local floor, max, min = math.floor, math.max, math.min
 
 local GAP = Tokens.Size("actionGap")
+local ESSENTIAL_SIZE, ESSENTIAL_GAP = 56, 8
+local UTILITY_SIZE, UTILITY_GAP, UTILITY_COLUMNS = 52, 10, 4
+local BAR_WIDTH, BAR_HEIGHT = 172, 24
 local GROUPS = { "essential", "utility", "buffs", "bars" }
 local ICON_GROUPS = { "essential", "utility", "buffs" }
 local COOLDOWN_GROUPS = { essential = true, utility = true }
@@ -51,11 +54,11 @@ local MAX_PATH = 260
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 local DEFAULT_BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 
-local function IconDefaults(size, timerSize, countSize, cooldown)
+local function IconDefaults(size, timerSize, countSize, cooldown, spacing, columns)
 	local out = {
 		size = size,
-		spacing = GAP,
-		columns = 6,
+		spacing = spacing or GAP,
+		columns = columns or 6,
 		rows = 1,
 		growth = "center",
 		wrap = cooldown and "down" or "up",
@@ -71,7 +74,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown)
 	return out
 end
 
-local essential = IconDefaults(Tokens.Size("cooldownEssential"), 16, 12, true)
+local essential = IconDefaults(ESSENTIAL_SIZE, 16, 12, true, ESSENTIAL_GAP)
 essential.readyGlow = true
 
 Settings.defaults = {
@@ -86,11 +89,11 @@ Settings.defaults = {
 	nameFont = "kit",
 	nameOutline = "none",
 	essential = essential,
-	utility = IconDefaults(Tokens.Size("cooldownUtility"), 12, 10, true),
+	utility = IconDefaults(UTILITY_SIZE, 12, 10, true, UTILITY_GAP, UTILITY_COLUMNS),
 	buffs = IconDefaults(Tokens.Size("cooldownUtility"), 12, 10, false),
 	bars = {
-		width = Tokens.Size("buffBarWidth"),
-		height = Tokens.Size("buffBarHeight"),
+		width = BAR_WIDTH,
+		height = BAR_HEIGHT,
 		spacing = GAP,
 		count = 3,
 		growth = "up",

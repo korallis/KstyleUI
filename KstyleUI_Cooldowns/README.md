@@ -1,6 +1,6 @@
 # KstyleUI_Cooldowns
 
-Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (40 units), utility cooldowns (30 units), tracked buff icons and tracked buff bars (180 by 18 units), placed in the HUD band.
+Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (56 units), utility cooldowns (52 units), tracked buff icons (30 units) and tracked buff bars (172 by 24 units), placed in the HUD band as the composition mockup lays them out.
 
 | Field | Value |
 | --- | --- |
@@ -39,7 +39,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
 | `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin` |
 | `Mirror.lua` | Runs each group on its path: events, refreshes, Layout registration and the switch to the reskin |
-| `Preview.lua` | The settings window's live preview |
+| `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |
 
 Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.
@@ -48,10 +48,10 @@ Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `t
 
 | Key | Element | Default | Layout |
 | --- | --- | --- | --- |
-| `cooldowns.essential` | Essential cooldowns | 6 icons of 40 units with 3-unit gaps, 255 by 40, above the action bars | Scalable |
-| `cooldowns.utility` | Utility cooldowns | 6 icons of 30 units, 195 by 30, under the essential row | Scalable |
-| `cooldowns.buffs` | Tracked buff icons | 6 icons of 30 units, 195 by 30, above the target frame | Scalable |
-| `cooldowns.bars` | Tracked buff bars | 3 bars of 180 by 18 with 3-unit gaps, 180 by 60, above the player frame | Scalable |
+| `cooldowns.essential` | Essential cooldowns | 6 icons of 56 units with 8-unit gaps, 376 by 56, between the player and target frames | Scalable |
+| `cooldowns.utility` | Utility cooldowns | 4 icons of 52 units with 10-unit gaps, 238 by 52, under the essential row | Scalable |
+| `cooldowns.buffs` | Tracked buff icons | 6 icons of 30 units, 195 by 30, under the target frame | Scalable |
+| `cooldowns.bars` | Tracked buff bars | 3 bars of 172 by 24 with 3-unit gaps, 172 by 78, under the player frame | Scalable |
 
 A group registers with Layout the first time it takes the mirror path, so a group that only ever restyles Blizzard's viewer adds no mover plate. Each holder is sized to its grid (icons per row by rows, or the bar count), so its footprint does not change with the number of entries. Layout owns the holder; the module shows and hides a child, so the two never fight over one frame. Icon size, bar size, spacing and the grid are module settings rather than Layout sizes, because they decide how many entries fit.
 
@@ -65,9 +65,9 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `timerFont`, `timerOutline` | `"kit"`, `"none"` | The countdown numbers' font, and a soft shadow or an outline |
 | `countFont`, `countOutline` | `"kit"`, `"none"` | The charge and stack counts' font and outline |
 | `nameFont`, `nameOutline` | `"kit"`, `"none"` | The buff bars' name font and outline |
-| `<icons>.size` | 40 for essential, 30 otherwise | Icon size, 16 to 64 |
-| `<icons>.spacing` | 3 | Gap between icons, 0 to 12 |
-| `<icons>.columns`, `<icons>.rows` | 6, 1 | Icons per row and rows; icons past the grid are not shown |
+| `<icons>.size` | 56 for essential, 52 for utility, 30 for tracked buffs | Icon size, 16 to 64 |
+| `<icons>.spacing` | 8 for essential, 10 for utility, 3 for tracked buffs | Gap between icons, 0 to 12 |
+| `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
 | `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on, 16 or 12, 12 or 10 | The countdown numbers and the count |
@@ -77,7 +77,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 180, 18, 3, 3 | Bar size, gap and how many fit |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 172, 24, 3, 3 | Bar size, gap and how many fit |
 | `bars.growth` | `"up"` | New bars stack upward or downward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |

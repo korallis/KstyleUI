@@ -30,38 +30,38 @@ Footprints are width x height in units at the 1080 reference.
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 24 | Under the focus frame, right-aligned |
 | `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned, mirroring the target of target |
 | `unitframes.boss` | UnitFrames | Boss frames | 200 x 400 | Boss 1 to 5 stacked downward, 72 units each with 10-unit gaps: a 200 by 60 frame and a 10-unit cast bar |
-| `unitframes.castbar.player` | UnitFrames | Player cast bar | 260 x 20 | Above the essential cooldowns |
-| `unitframes.castbar.target` | UnitFrames | Target cast bar | 194 x 18 | Under the target frame, right-aligned, beside action bar 1 |
-| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, under the player frame, beside action bar 1 |
+| `unitframes.castbar.player` | UnitFrames | Player cast bar | 340 x 36 | Above the essential cooldowns and the frames, with the spell name and time over a thin bar |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 194 x 18 | Under the target frame and the tracked buff icons |
+| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, on top of the player frame, right-aligned |
 | `groupframes.party` | GroupFrames | Party frames | 230 x 270 | Five 46-unit frames stacked downward with 10-unit gaps |
 | `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |
-| `actionbars.bar1` | ActionBars | Action bar 1 | 441 x 34 | 12 buttons of 34 units with 3-unit gaps in one row |
-| `actionbars.bar2` | ActionBars | Action bar 2 | 441 x 34 | The second row, under bar 1 |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 34 x 441 | A column of 12 at the right edge |
-| `actionbars.bar4` | ActionBars | Action bar 4 | 34 x 441 | A column of 12, left of bar 3 |
-| `actionbars.bar5` | ActionBars | Action bar 5 | 34 x 441 | A column of 12 at the left edge |
-| `actionbars.bar6` | ActionBars | Action bar 6 | 34 x 441 | A column of 12, right of bar 5 |
-| `actionbars.pet` | ActionBars | Pet bar | 327 x 30 | 10 buttons of 30 units in one row, above the chat |
+| `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row |
+| `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | The second row, 10 units under bar 1 |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | A column of 12 at the right edge |
+| `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | A column of 12, left of bar 3 |
+| `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | A column of 12 at the left edge |
+| `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | A column of 12, right of bar 5 |
+| `actionbars.pet` | ActionBars | Pet bar | 327 x 30 | 10 buttons of 30 units in one row, above the player frame |
 | `actionbars.stance` | ActionBars | Stance bar | 327 x 30 | Up to 10 buttons of 30 units, above the pet bar |
-| `cooldowns.essential` | Cooldowns | Essential cooldowns | 255 x 40 | 6 icons of 40 units per row |
-| `cooldowns.utility` | Cooldowns | Utility cooldowns | 195 x 30 | 6 icons of 30 units per row, under the essential row |
-| `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, above the target frame |
-| `cooldowns.bars` | Cooldowns | Tracked buff bars | 180 x 60 | Three 180 by 18 bars, above the player frame |
+| `cooldowns.essential` | Cooldowns | Essential cooldowns | 376 x 56 | 6 icons of 56 units with 8-unit gaps, between the player and target frames |
+| `cooldowns.utility` | Cooldowns | Utility cooldowns | 238 x 52 | 4 icons of 52 units with 10-unit gaps, under the essential row and the frames |
+| `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, under the target frame |
+| `cooldowns.bars` | Cooldowns | Tracked buff bars | 172 x 78 | Three 172 by 24 bars, under the player frame, right-aligned |
 | `auras.buffs` | Auras | Buffs | 420 x 76 | Two rows of icons under the minimap, growing left |
 | `auras.debuffs` | Auras | Debuffs | 420 x 38 | One row under the buffs |
 | `minimap.main` | Minimap | Minimap | 226 x 196 | A 196-unit square with the button column on its left |
 | `chat.main` | Chat | Chat | 390 x 190 | The panel with its tabs and edit box |
-| `databars.xp` | DataBars | Experience bar | 441 x 5 | Under the action bars, as wide as them |
-| `databars.rep` | DataBars | Reputation bar | 441 x 5 | Under the experience bar |
-| `databars.honor` | DataBars | Honour bar | 441 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
+| `databars.xp` | DataBars | Experience bar | 440 x 5 | Between the utility row and action bar 1, with its XP caption on the line |
+| `databars.rep` | DataBars | Reputation bar | 440 x 5 | Under action bar 2 |
+| `databars.honor` | DataBars | Honour bar | 440 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
 | `databars.strip` | DataBars | Data strip | 430 x 36 | FPS, latency, gold, durability and time |
 | `databars.micro` | DataBars | Micro menu | 270 x 28 | One row above the data strip |
 | `databars.bags` | DataBars | Bag bar | 180 x 30 | One row above the micro menu |
-| `meters.damage` | Meters | Damage meter | 260 x 174 | Right side, inside the right-hand bar columns |
+| `meters.damage` | Meters | Damage meter | 260 x 174 | Right side, inside the right-hand bar columns, above the tooltip anchor |
 | `meters.threat` | Meters | Threat meter | 260 x 130 | Above the damage meter |
-| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar above the cast bar |
+| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar above the player cast bar |
 | `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, above your character |
-| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, above the threat meter |
+| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, just above the frames' line and under the damage meter |
 
 ## Core windows
 

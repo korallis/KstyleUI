@@ -14,7 +14,7 @@ Main bar with stance, stealth, form and possess paging, extra bars, pet bar, sta
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
 - Action bars are KstyleUI's own secure buttons. Keybinds use `SetOverrideBindingClick`. Paging uses `RegisterStateDriver`. Cooldowns use `C_ActionBar.GetActionCooldownDuration` with `Cooldown:SetCooldownFromDurationObject`.
-- Compact layout: two rows of 12 buttons of 34 units at the 1080 reference, 3-unit gaps, no name labels. Keybind, stack and cooldown text sit on the button.
+- Compact layout: two rows of 12 buttons of 38 units at the 1080 reference, 3-unit gaps and a 10-unit row gap, as the composition mockup measures; no name labels. Keybind, stack and cooldown text sit on the button.
 - Blizzard's bars are reparented to a hidden frame through `KstyleUI.Safe.HideBlizzard`. The module never touches `Blizzard_GamepadActionBars`, and switching to gamepad mode must not error or taint.
 - Protected work in combat goes through `KstyleUI.Combat.Queue`.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.
@@ -134,7 +134,7 @@ The page starts with **Bar to edit**, a picker that shows one bar's rows at a ti
 | Show this bar | On for bars 1 and 2, the pet bar and the stance bar |
 | Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. |
 | Fill order, Growth | Along rows or down columns first; right or left, then down or up |
-| Button size, Spacing | 16 to 64 and 0 to 16 units. 34 and 3 for the action bars, 30 and 3 for the pet and stance bars. |
+| Button size, Spacing | 16 to 64 and 0 to 16 units. 38 and 3 for the action bars, 30 and 3 for the pet and stance bars. |
 | Show empty buttons, Fade until hovered, Faded opacity | On, off, 0 |
 | Keybind text, Count text, Macro names, Cooldown numbers | On, on, off, on |
 | Paging (bar 1) | Stances and forms, Stealth, Possess and vehicles, Page keys: all on |

@@ -4,6 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local L, Tokens = K.L, K.Tokens
 
+local ACTION_BUTTON = 38
 local SMALL_BUTTON = 30
 local SIZE_MIN, SIZE_MAX = 16, 64
 local SPACING_MAX = 16
@@ -34,7 +35,7 @@ local function BarDefaults(def)
 		rows = COLUMN_BARS[def.key] and def.max or 1,
 		orientation = "HORIZONTAL",
 		growth = "RIGHTDOWN",
-		size = action and Tokens.Size("actionButton") or SMALL_BUTTON,
+		size = action and ACTION_BUTTON or SMALL_BUTTON,
 		spacing = Tokens.Size("actionGap"),
 		fade = false,
 		fadeAlpha = 0,

@@ -142,18 +142,18 @@ assert(select(2, pieces(Frames.Get("target").views[1].panel, "bevelPanelInner"))
 local cast = CastBars.Get("player")[1]
 local cg = cast.geometry
 assert(cg and cg.icon and cg.panel and cg.bar, "the cast bar lays out an icon, a glass panel and a bar")
-assert(near(cg.icon.x, 0) and near(cg.icon.w, cg.icon.h) and near(cg.icon.h, 20), "the icon is a square as tall as the cast bar")
+assert(near(cg.icon.x, 0) and near(cg.icon.w, cg.icon.h) and near(cg.icon.h, 36), "the icon is a square as tall as the cast bar")
 local iw, ih = cast.iconFrame:GetSize()
-assert(near(iw, 20, 1) and near(ih, 20, 1), "the icon frame takes that square")
+assert(near(iw, 36, 1) and near(ih, 36, 1), "the icon frame takes that square")
 assert(select(2, pieces(cast.iconFrame, "bevelTileInner")) == 4, "the icon square is a chamfered tile")
-assert(cg.panel.x > cg.icon.x + cg.icon.w and near(cg.panel.x + cg.panel.w, 260) and near(cg.panel.h, 20), "the glass starts after a gap and runs to the end")
+assert(cg.panel.x > cg.icon.x + cg.icon.w and near(cg.panel.x + cg.panel.w, 340) and near(cg.panel.h, 36), "the glass starts after a gap and runs to the end")
 assert(select(2, pieces(cast.panel, "bevelTileInner")) == 4, "the cast bar's glass is a chamfered tile with the double bevel")
 assert(cast.bar.chrome == nil, "the bar inside the glass has no border of its own")
 
--- At 20 units the kit's two rows fit: the spell name and the time on top, a thin bar under them.
-assert(cg.stacked, "a 20-unit cast bar stacks its text over a thin bar")
+-- At 36 units the kit's two rows fit: the spell name and the time on top, a thin bar under them.
+assert(cg.stacked, "a 36-unit cast bar stacks its text over a thin bar")
 assert(cg.bar.x > cg.panel.x and cg.bar.x + cg.bar.w < cg.panel.x + cg.panel.w, "the bar sits inside the glass")
-assert(cg.bar.y + cg.bar.h <= cg.panel.y + cg.panel.h and cg.bar.h <= 6, "the bar is a thin line inside the glass's bottom edge")
+assert(cg.bar.y + cg.bar.h <= cg.panel.y + cg.panel.h and cg.bar.h == 7, "the bar is a thin line inside the glass's bottom edge: 22% of 36 units, the mockup's 7")
 assert(mid(cg.text) < cg.bar.y and near(mid(cg.text), mid(cg.timer)), "the spell name and the time share the row above the bar")
 assert(near(cg.text.x, cg.bar.x) and near(cg.timer.x + cg.timer.w, cg.bar.x + cg.bar.w), "the name starts and the time ends with the bar")
 local _, _, _, bx, by = cast.bar:GetPoint(1)

@@ -117,6 +117,7 @@ function Sources.XP()
 		current = current, max = max, rested = rested,
 		level = IsNumber(level) and level or nil,
 		label = IsNumber(level) and format(L["Level %d"], level) or L["Experience"],
+		short = L["XP"],
 		restName = type(restName) == "string" and restName ~= "" and restName or nil,
 	}
 end
