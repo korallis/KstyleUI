@@ -13,8 +13,8 @@ local KEYS = {
 	"unitframes.boss", "unitframes.castbar.player", "groupframes.party", "groupframes.raid", "actionbars.bar1",
 	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet",
 	"actionbars.stance", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",
-	"auras.buffs", "auras.debuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.strip",
-	"databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
+	"auras.buffs", "auras.debuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.honor",
+	"databars.strip", "databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
 	"combattext.player",
 }
 local ANCHORS = {

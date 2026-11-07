@@ -50,6 +50,7 @@ Footprints are width x height in units at the 1080 reference.
 | `chat.main` | Chat | Chat | 390 x 190 | The panel with its tabs and edit box |
 | `databars.xp` | DataBars | Experience bar | 441 x 5 | Under the action bars, as wide as them |
 | `databars.rep` | DataBars | Reputation bar | 441 x 5 | Under the experience bar |
+| `databars.honor` | DataBars | Honour bar | 441 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
 | `databars.strip` | DataBars | Data strip | 430 x 36 | FPS, latency, gold, durability and time |
 | `databars.micro` | DataBars | Micro menu | 270 x 28 | One row above the data strip |
 | `databars.bags` | DataBars | Bag bar | 180 x 30 | One row above the micro menu |
