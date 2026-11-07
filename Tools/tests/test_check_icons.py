@@ -139,8 +139,68 @@ class JudgeColourTest(unittest.TestCase):
         self.assertEqual(self.judge(painting, texts=[("FROSTBOLT", 0.9)]), ["text:FROSTBOLT"])
 
 
+def corner(x, y):
+    """A bright subject against the right edge with a dark centre, as Blizzard composes some icons."""
+    return 230 if x > 200 else 25 + (x + y) % 20
+
+
+class JudgeFaithfulTest(unittest.TestCase):
+    """Set B repainted from Blizzard's icon: the original decides the composition, so a subject may sit at an edge."""
+
+    def judge(self, paint, reference=None, **kwargs):
+        if reference is not None:
+            kwargs["reference"] = raster(reference, chroma=90)
+        return check_icons.judge_faithful(raster(paint, chroma=90), **kwargs)
+
+    def test_accepts_a_subject_at_an_edge_with_a_dark_centre(self):
+        self.assertEqual(self.judge(corner), [])
+
+    def test_keeps_the_blank_flat_frame_grid_and_text_checks(self):
+        rows = lambda x, y: 0 if 120 <= y < 132 else painting(x, y)  # noqa: E731
+        self.assertIn("blank", self.judge(lambda x, y: 0))
+        self.assertIn("flat", self.judge(lambda x, y: 150 + (x + y) % 40))
+        self.assertIn("frame", self.judge(framed(painting)))
+        self.assertIn("grid:rows", self.judge(rows))
+        self.assertEqual(self.judge(painting, texts=[("REND", 0.9)]), ["text:REND"])
+
+    def test_a_soft_vignette_to_near_black_is_no_frame(self):
+        def vignette(x, y):
+            distance = min(x, y, SIZE - 1 - x, SIZE - 1 - y)
+            return round(painting(x, y) * min(1.0, distance / 40))
+
+        self.assertIn("frame", check_icons.judge_colour(raster(vignette, chroma=90)), "set B's own check still objects")
+        self.assertEqual(self.judge(vignette), [])
+
+    def test_rejects_a_hard_black_margin_round_the_painting(self):
+        for margin in (12, 20, 32, 48):
+            self.assertIn("frame", self.judge(framed(painting, margin=margin)), f"margin {margin}")
+            self.assertIn("frame", self.judge(framed(painting, margin=margin), reference=painting), f"margin {margin}")
+
+    def test_accepts_a_repaint_that_keeps_the_original_composition(self):
+        shifted = lambda x, y: painting(min(SIZE - 1, x + 10), y)  # noqa: E731
+        self.assertEqual(self.judge(painting, reference=painting), [])
+        self.assertEqual(self.judge(shifted, reference=painting), [])
+        self.assertEqual(self.judge(corner, reference=corner), [])
+
+    def test_rejects_a_repaint_that_drifts_from_the_original(self):
+        self.assertEqual(self.judge(corner, reference=painting), ["drift"])
+        self.assertEqual(self.judge(painting, reference=corner), ["drift"])
+
+
+class LikenessTest(unittest.TestCase):
+    def test_is_one_for_the_same_image_and_below_the_threshold_for_a_different_one(self):
+        same = raster(painting)
+        self.assertAlmostEqual(check_icons.likeness(same, same), 1.0)
+        self.assertLess(check_icons.likeness(same, raster(corner)), check_icons.MIN_LIKENESS)
+
+    def test_ignores_brightness_and_contrast(self):
+        brighter = raster(lambda x, y: min(255, painting(x, y) // 2 + 100))
+        self.assertGreater(check_icons.likeness(raster(painting), brighter), 0.99)
+
+
 class JudgeForTest(unittest.TestCase):
     def test_picks_the_check_for_each_set(self):
+        self.assertIs(check_icons.judge_for("faithful"), check_icons.judge_faithful)
         self.assertIs(check_icons.judge_for("A"), check_icons.judge)
         self.assertIs(check_icons.judge_for("B"), check_icons.judge_colour)
 
