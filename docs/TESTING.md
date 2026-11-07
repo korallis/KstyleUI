@@ -7,7 +7,7 @@ You need about two hours for the core and modules, plus a dungeon run and, if yo
 ## Before you start
 
 - Quit World of Warcraft. A newly linked addon loads only after a full restart, not after `/reload`.
-- Have a level 60 character of a class that pages its action bar (warrior, rogue or druid), and a hunter or warlock for the pet bar checks if you have one.
+- Have a level 60 character of a class that pages its action bar (warrior, rogue or druid), a character below level 60 for the XP bar, and a hunter or warlock for the pet bar checks if you have one.
 - Install an error catcher such as BugSack and BugGrabber if you do not have one. KstyleUI also logs every error it catches to its devlog.
 
 ## Install the addons
@@ -252,7 +252,7 @@ Work through the modules in any order. Every module has the same three checks at
 
 ### Data Bars
 
-- [ ] The XP bar sits under the action bars with ten ticks and a rested overlay. Kill a mob: the fill eases to the new value.
+- [ ] On a character below level 60, the XP bar sits under the action bars with ten ticks and a rested overlay. Kill a mob: the fill eases to the new value. At level 60 the XP bar is hidden, as it should be.
 - [ ] A watched faction shows in its standing's colour. In a battleground, the honour bar shows rank progress.
 - [ ] The data strip shows frame rate, latency, gold, durability and time. Frame rate, latency and the clock update every second; gold and durability change when you loot, spend, take damage or repair.
 - [ ] Click gold (bags), durability (character pane) and the clock (calendar) out of combat. In combat, nothing opens and nothing is blocked.
@@ -301,8 +301,9 @@ The spike addon answers the questions the code had to guess about in build mode.
 2. Type `/kspike presets`, switch the experience preset in Options, and type `/kspike presets` again.
 3. On a warrior, druid or rogue, type `/kspike paging`, change stance or form, and click the test button. Then `/kspike stop`.
 4. Type `/kspike header`, target something and clear it, and join a party. Then `/kspike stop`.
-5. Next to a dungeon boss, out of combat, type `/kspike pull`, then pull the boss. Type `/kspike shot` once in combat while the spike's cooldown row and Blizzard's are both on screen.
-6. Type `/reload`.
+5. Before the boss, switch the Cooldowns module off in `/kstyle`, so Blizzard's essential cooldowns show again. KstyleUI's mirror hides them.
+6. Next to the dungeon boss, out of combat, type `/kspike pull`, then pull the boss. Type `/kspike shot` once in combat while the spike's cooldown row and Blizzard's are both on screen.
+7. Type `/reload`, then switch the Cooldowns module on again.
 
 `/kspike status` shows what is still running, and `/kspike list` names every spike.
 
