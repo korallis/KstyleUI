@@ -47,6 +47,7 @@ local ELEMENTS = {
 	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], width = 260, height = 130 },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
 	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], width = 160, height = 180 },
+	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
 }
 
 local DPS = {
@@ -87,6 +88,7 @@ local DPS = {
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -95, y = 134 },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -95, y = 316 },
 	["combattext.player"] = { anchor = "BOTTOM", x = 0, y = 470 },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -95, y = 454 },
 }
 
 local CHANGES = {

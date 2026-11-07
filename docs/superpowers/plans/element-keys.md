@@ -60,6 +60,7 @@ Footprints are width x height in units at the 1080 reference.
 | `meters.threat` | Meters | Threat meter | 260 x 130 | Above the damage meter |
 | `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar above the cast bar |
 | `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, above your character |
+| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, above the threat meter |
 
 ## Core windows
 
