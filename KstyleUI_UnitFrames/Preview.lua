@@ -11,15 +11,17 @@ ns.Preview = Preview
 local BOSS_SLOT_HEIGHT = 58
 local MARGIN = 16
 local INCOMING_SHARE = 0.08
+local SKULL = 8
+local THREAT_TANKING = 3
 
 local SAMPLES = {
-	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true },
-	target = { name = L["Frost Howler"], level = 61, health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2 },
+	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true },
+	target = { name = L["Frost Howler"], level = 61, health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true },
 	targettarget = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true },
 	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2 },
 	focustarget = { name = L["Krazhk"], level = 60, health = 3300, healthMax = 4000, power = 1800, powerMax = 3600, reaction = 2 },
 	pet = { name = L["Wolf"], level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 },
-	boss = { name = L["Magmatus"], level = -1, health = 72000, healthMax = 100000, power = 0, powerMax = 100, reaction = 2 },
+	boss = { name = L["Magmatus"], level = -1, health = 72000, healthMax = 100000, power = 0, powerMax = 100, reaction = 2, marker = true, threat = true },
 }
 
 local function EditKind()
@@ -72,6 +74,30 @@ local function Paint(view, kind)
 	end
 end
 
+local function PaintIndicators(view, s, sample)
+	local icons = view.icons
+	for _, key in ipairs(ns.Indicators.SLOTS) do
+		icons[key]:SetAlpha(1)
+		icons[key]:SetShown(s[key] == true and sample[key] == true)
+	end
+	if s.resting and sample.resting then
+		icons.resting:SetTextColor(Settings.Accent())
+	end
+	if s.raidMarker and sample.marker then
+		view.marker:SetSpriteSheetCell(SKULL, 4, 4)
+		view.marker:Show()
+	else
+		view.marker:Hide()
+	end
+	if s.threat and sample.threat and GetThreatStatusColor then
+		local r, g, b = GetThreatStatusColor(THREAT_TANKING)
+		K.Widgets.ColorSlice(view.glow, r, g, b, 0.9)
+		view.glowFrame:Show()
+	else
+		view.glowFrame:Hide()
+	end
+end
+
 local function Size(frame, kind)
 	local key = Settings.ELEMENTS[kind]
 	local element = K.Setup.Layouts.Element(key)
@@ -111,6 +137,7 @@ local function Refresh(frame)
 	Style.Restyle(view, kind)
 	Style.Layout(view, view.s, width, height)
 	Paint(view, kind)
+	PaintIndicators(view, view.s, SAMPLES[kind])
 	frame.kind = kind
 end
 

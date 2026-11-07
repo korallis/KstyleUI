@@ -3,9 +3,11 @@
 	<Script file="Settings.lua"/>
 	<Script file="Format.lua"/>
 	<Script file="Geometry.lua"/>
+	<Script file="Indicators.lua"/>
 	<Script file="Style.lua"/>
 	<Script file="Unit.lua"/>
 	<Script file="Blizzard.lua"/>
+	<Script file="Resource.lua"/>
 	<Script file="Frames.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

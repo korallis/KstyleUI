@@ -254,6 +254,63 @@ function U.Install(env)
 		calc.incoming = u and u.incoming or 0
 		calc.absorb = u and u.absorb or 0
 	end
+	function env.UnitIsGroupLeader(token)
+		local u = unitOf(token)
+		return u ~= nil and u.leader or false
+	end
+	function env.UnitGroupRolesAssigned(token)
+		local u = unitOf(token)
+		return u and u.role or "NONE"
+	end
+	function env.UnitIsPVP(token)
+		local u = unitOf(token)
+		return u ~= nil and u.pvp or false
+	end
+	function env.UnitIsPVPFreeForAll(token)
+		local u = unitOf(token)
+		return u ~= nil and u.ffa == true
+	end
+	function env.UnitFactionGroup(token)
+		local u = unitOf(token)
+		return u and u.faction, u and u.faction
+	end
+	function env.UnitAffectingCombat(token)
+		local u = unitOf(token)
+		return u ~= nil and u.combat or false
+	end
+	function env.UnitCanAttack(_, token)
+		local u = unitOf(token)
+		return u ~= nil and u.canAttack == true
+	end
+	env._resting = false
+	function env.IsResting()
+		return env._resting
+	end
+	-- Threat: a unit's own status in u.threat, and the player's status on a unit in u.threatOn.
+	function env.UnitThreatSituation(token, mob)
+		if mob then
+			local u = unitOf(mob)
+			return u and u.threatOn
+		end
+		local u = unitOf(token)
+		return u and u.threat
+	end
+	env.THREAT_COLORS = { [1] = { 1, 1, 0.47 }, [2] = { 1, 0.6, 0 }, [3] = { 1, 0, 0 } }
+	function env.GetThreatStatusColor(status)
+		local c = env.THREAT_COLORS[status] or { 0.69, 0.69, 0.69 }
+		return c[1], c[2], c[3]
+	end
+	function env.GetRaidTargetIndex(token)
+		local u = unitOf(token)
+		if u and u.marker then
+			return env.Secret(u.marker)
+		end
+	end
+	env._comboPoints = 0
+	function env.GetComboPoints(unit, target)
+		assert(unit == "player" and target == "target", "GetComboPoints reads the player's points on the target")
+		return secretWhen(env._restricted, env._comboPoints)
+	end
 	function env.UnitFrame_OnEnter(frame)
 		env._tooltip = frame.unit
 	end

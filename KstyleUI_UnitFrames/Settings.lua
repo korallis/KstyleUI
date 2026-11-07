@@ -11,6 +11,8 @@ local MODULE = "UnitFrames"
 local THEME_FONT = "theme"
 local FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_STEP = 6, 32, 1
 local POWER_HEIGHT_MIN, POWER_HEIGHT_MAX = 2, 24
+local ICON_SIZE_MIN, ICON_SIZE_MAX = 8, 32
+local SPACING_MIN, SPACING_MAX = 0, 12
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -73,6 +75,14 @@ local function Kind(full, overrides)
 		powerCustom = Color("rare"),
 		powerOrientation = "RIGHT",
 		powerText = full and "currentMax" or "none",
+		raidMarker = true,
+		leader = full,
+		role = full,
+		pvp = full,
+		combat = false,
+		resting = false,
+		threat = full,
+		iconSize = 14,
 		fonts = {
 			name = TextStyle(full and 11 or 9),
 			health = TextStyle(full and 11 or 9),
@@ -91,13 +101,24 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true),
+	player = Kind(true, { combat = true, resting = true }),
 	target = Kind(true, { portraitSide = "RIGHT" }),
 	targettarget = Kind(false),
 	focus = Kind(true, { powerText = "none" }),
 	focustarget = Kind(false),
 	pet = Kind(false),
 	boss = Kind(true, { powerText = "none" }),
+	resource = {
+		enabled = true,
+		comboPoints = true,
+		druidMana = true,
+		comboColor = "class",
+		comboCustom = Color("neutral"),
+		manaColor = "power",
+		manaCustom = Color("rare"),
+		manaTexture = BAR_TEXTURE,
+		spacing = 3,
+	},
 }
 
 local function Options(list)
@@ -120,6 +141,7 @@ Settings.CHOICES = {
 	}),
 	outline = Options({ { "NONE", L["None (soft shadow)"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } }),
 	accent = Options({ { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
+	manaColor = Options({ { "power", L["Power type"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
 }
 local CHOICES = Settings.CHOICES
 
@@ -187,6 +209,11 @@ local function Kinds(kind)
 	return own, d
 end
 
+local RANGES = {
+	powerHeight = { POWER_HEIGHT_MIN, POWER_HEIGHT_MAX },
+	iconSize = { ICON_SIZE_MIN, ICON_SIZE_MAX },
+}
+
 local function IsNumber(v)
 	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v
 end
@@ -206,8 +233,31 @@ function Settings.Value(kind, key)
 		LogOnce(kind .. "." .. key .. "=" .. tostring(value), kind .. "." .. key .. ": " .. tostring(value) .. " is not a choice; using " .. tostring(default))
 		return default
 	end
-	if key == "powerHeight" and not (IsNumber(value) and value >= POWER_HEIGHT_MIN and value <= POWER_HEIGHT_MAX) then
-		LogOnce(kind .. ".powerHeight", kind .. ".powerHeight is out of range; using " .. default)
+	local range = RANGES[key]
+	if range and not (IsNumber(value) and value >= range[1] and value <= range[2]) then
+		LogOnce(kind .. "." .. key, kind .. "." .. key .. " is out of range; using " .. default)
+		return default
+	end
+	return value
+end
+
+function Settings.Resource(key)
+	local d = Settings.defaults.resource
+	local default = d[key]
+	if default == nil then
+		error("UnitFrames.Settings.Resource: unknown setting " .. tostring(key), 2)
+	end
+	local s = Saved()
+	local own = s and type(s.resource) == "table" and s.resource or d
+	local value = own[key]
+	if type(value) ~= type(default) then
+		return default
+	end
+	if key == "comboColor" and not Allowed(CHOICES.accent, value) or key == "manaColor" and not Allowed(CHOICES.manaColor, value) then
+		LogOnce("resource." .. key, "resource." .. key .. ": " .. tostring(value) .. " is not a choice; using " .. tostring(default))
+		return default
+	end
+	if key == "spacing" and not (IsNumber(value) and value >= SPACING_MIN and value <= SPACING_MAX) then
 		return default
 	end
 	return value
@@ -283,6 +333,8 @@ local function Shows(kind, extra)
 	end
 end
 
+local IconRows, ResourceRows
+
 local function Header(kind, label)
 	return { type = "header", label = Settings.LABELS[kind] .. ": " .. label, showWhen = Shows(kind) }
 end
@@ -349,6 +401,88 @@ local function TextRows(schema, kind, element)
 	})
 end
 
+local ICON_ROWS = {
+	{ "raidMarker", L["Raid marker"], L["Shows the raid marker set on the unit."] },
+	{ "leader", L["Leader icon"], L["Shows a crown when the unit leads the group."] },
+	{ "role", L["Role icon"], L["Shows the unit's group role."] },
+	{ "pvp", L["PvP icon"], L["Shows the faction badge while the unit is flagged for PvP."] },
+	{ "combat", L["Combat icon"], L["Shows crossed swords while the unit is in combat."] },
+	{ "resting", L["Resting"], L["Shows Zz while you rest in an inn or a city."], "player" },
+	{ "threat", L["Threat glow"], L["Glows in the threat colour when the unit has or causes threat."] },
+}
+
+IconRows = function(schema, kind)
+	schema[#schema + 1] = Header(kind, L["icons"])
+	for _, spec in ipairs(ICON_ROWS) do
+		if spec[4] == nil or spec[4] == kind then
+			schema[#schema + 1] = Row(kind, { type = "toggle", key = spec[1], label = spec[2], help = spec[3] })
+		end
+	end
+	schema[#schema + 1] = Row(kind, {
+		type = "slider", key = "iconSize", label = L["Icon size"],
+		help = L["The size of the status icons on the frame's top edge."],
+		min = ICON_SIZE_MIN, max = ICON_SIZE_MAX, step = 1,
+	})
+end
+
+ResourceRows = function(schema)
+	local function shows(extra)
+		return function(settings)
+			if settings.edit ~= "player" then
+				return false
+			end
+			local r = type(settings.resource) == "table" and settings.resource or Settings.defaults.resource
+			return extra == nil or extra(r) ~= false
+		end
+	end
+	local function on(r)
+		return r.enabled ~= false
+	end
+	schema[#schema + 1] = { type = "header", label = Settings.LABELS.player .. ": " .. L["class resource"], showWhen = shows() }
+	schema[#schema + 1] = {
+		type = "toggle", key = "resource.enabled", label = L["Class resource"], showWhen = shows(),
+		help = L["Shows combo points and the druid's mana under the player frame."],
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "resource.comboPoints", label = L["Combo points"], showWhen = shows(on),
+		help = L["Shows rogue and cat form combo points as pips."],
+	}
+	schema[#schema + 1] = {
+		type = "dropdown", key = "resource.comboColor", label = L["Combo point colour"], showWhen = shows(on),
+		help = L["The pips follow the class colour or a custom colour."], options = CHOICES.accent,
+	}
+	schema[#schema + 1] = {
+		type = "color", key = "resource.comboCustom", label = L["Custom combo point colour"],
+		help = L["The pips' colour when it is custom."],
+		showWhen = shows(function(r)
+			return on(r) and r.comboColor == "custom"
+		end),
+	}
+	schema[#schema + 1] = {
+		type = "slider", key = "resource.spacing", label = L["Pip spacing"], showWhen = shows(on),
+		help = L["The gap between combo point pips in units."], min = SPACING_MIN, max = SPACING_MAX, step = 1,
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "resource.druidMana", label = L["Druid mana"], showWhen = shows(on),
+		help = L["Shows your mana in bear and cat form."],
+	}
+	schema[#schema + 1] = {
+		type = "texture", key = "resource.manaTexture", label = L["Mana bar texture"], showWhen = shows(on),
+		help = L["The texture the druid mana bar is filled with."],
+	}
+	schema[#schema + 1] = {
+		type = "dropdown", key = "resource.manaColor", label = L["Mana bar colour"], showWhen = shows(on),
+		help = L["Where the druid mana bar's colour comes from."], options = CHOICES.manaColor,
+	}
+	schema[#schema + 1] = {
+		type = "color", key = "resource.manaCustom", label = L["Custom mana colour"],
+		help = L["The mana bar's colour when it is custom."],
+		showWhen = shows(function(r)
+			return on(r) and r.manaColor == "custom"
+		end),
+	}
+end
+
 local function KindRows(schema, kind)
 	local function portraitOn(s)
 		return s.portrait ~= false
@@ -406,6 +540,10 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Header(kind, L["text"])
 	for _, element in ipairs(Settings.TEXTS) do
 		TextRows(schema, kind, element)
+	end
+	IconRows(schema, kind)
+	if kind == "player" then
+		ResourceRows(schema)
 	end
 end
 

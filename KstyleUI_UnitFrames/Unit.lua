@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Tokens, Theme = K.Tokens, K.Theme
-local Format = ns.Format
+local Format, Indicators = ns.Format, ns.Indicators
 
 local Unit = {}
 ns.Unit = Unit
@@ -258,4 +258,5 @@ function Unit.All(view, unit, instant)
 	Unit.Name(view, unit)
 	Unit.Level(view, unit)
 	Unit.Portrait(view, unit)
+	Indicators.Update(view, unit)
 end

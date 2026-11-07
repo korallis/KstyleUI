@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Geometry, Style, Unit = ns.Settings, ns.Geometry, ns.Style, ns.Unit
+local Settings, Geometry, Style, Unit, Indicators = ns.Settings, ns.Geometry, ns.Style, ns.Unit, ns.Indicators
 
 local Frames = {}
 ns.Frames = Frames
@@ -35,6 +35,7 @@ local UNIT_EVENTS = {
 	UNIT_FACTION = "Colors",
 	UNIT_FLAGS = "Colors",
 	UNIT_CONNECTION = "Colors",
+	PLAYER_FLAGS_CHANGED = "Flags",
 }
 
 local frames, order = {}, {}
@@ -74,6 +75,11 @@ local HANDLERS = {
 	Colors = function(view, unit)
 		Unit.HealthColor(view, unit)
 		Unit.Health(view, unit)
+		Indicators.Combat(view, unit)
+		Indicators.PvP(view, unit)
+	end,
+	Flags = function(view, unit)
+		Indicators.PvP(view, unit)
 	end,
 }
 
@@ -84,6 +90,31 @@ end
 local function Refresh(view, instant)
 	if Active(view) then
 		Unit.All(view, view.unit, instant)
+	end
+end
+
+local function Visible(frame)
+	local shown = frame:IsVisible()
+	return (issecretvalue and issecretvalue(shown)) or shown == true
+end
+
+local function EachShown(fn)
+	for _, kind in ipairs(order) do
+		local uf = frames[kind]
+		if running and uf.active then
+			for _, view in ipairs(uf.views) do
+				if Visible(view.button) then
+					fn(view, view.unit)
+				end
+			end
+		end
+	end
+end
+
+local function OnPlayer(fn)
+	local uf = frames.player
+	if running and uf and uf.active then
+		fn(uf.views[1], "player")
 	end
 end
 
@@ -135,11 +166,6 @@ local function StopPolling(uf)
 		uf.polling = false
 		uf.holder:SetScript("OnUpdate", nil)
 	end
-end
-
-local function Visible(frame)
-	local shown = frame:IsVisible()
-	return (issecretvalue and issecretvalue(shown)) or shown == true
 end
 
 local function OnButtonShow(button)
@@ -353,7 +379,9 @@ local function OnSettingChanged(_, module, key)
 		end
 		return
 	end
-	if key == "hideBlizzard" then
+	if kind == "resource" then
+		ns.Resource.Restyle()
+	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
 	elseif key == "accent" or key == "accentColor" then
 		ForEach(function(each)
@@ -370,14 +398,19 @@ local function RestyleAll()
 			Frames.Restyle(uf)
 		end
 	end)
+	ns.Resource.Restyle()
 end
 
 local function OnProfileChanged()
 	ForEach(Frames.Apply)
+	ns.Resource.Restyle()
 	ns.Blizzard.Apply(running)
 end
 
 local function OnLayoutChanged(_, key)
+	if key == ns.Resource.KEY then
+		ns.Resource.Layout()
+	end
 	ForEach(function(uf)
 		if Settings.ELEMENTS[uf.kind] == key and uf.active then
 			Frames.Relayout(uf)
@@ -407,6 +440,27 @@ local function RegisterEvents()
 	Events.Register(MODULE, "UNIT_TARGETABLE_CHANGED", function()
 		RefreshKind("boss", true)
 	end)
+	Events.Register(MODULE, "RAID_TARGET_UPDATE", function()
+		EachShown(Indicators.Marker)
+	end)
+	for _, event in ipairs({ "PARTY_LEADER_CHANGED", "GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED" }) do
+		Events.Register(MODULE, event, function()
+			EachShown(Indicators.Status)
+		end)
+	end
+	for _, event in ipairs({ "UNIT_THREAT_SITUATION_UPDATE", "UNIT_THREAT_LIST_UPDATE" }) do
+		Events.Register(MODULE, event, function()
+			EachShown(Indicators.Threat)
+		end)
+	end
+	for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
+		Events.Register(MODULE, event, function()
+			OnPlayer(Indicators.Combat)
+		end)
+	end
+	Events.Register(MODULE, "PLAYER_UPDATE_RESTING", function()
+		OnPlayer(Indicators.Resting)
+	end)
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", function()
 		ForEach(function(uf)
 			RefreshKind(uf.kind, true)
@@ -430,6 +484,7 @@ function Frames.Enable()
 	end
 	RegisterEvents()
 	ForEach(Frames.Apply)
+	ns.Resource.Enable()
 	ns.Blizzard.Apply(true)
 end
 
@@ -441,6 +496,7 @@ function Frames.Disable()
 			uf.holder:Hide()
 		end
 	end)
+	ns.Resource.Disable()
 	ns.Blizzard.Apply(false)
 end
 

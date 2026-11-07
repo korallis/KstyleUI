@@ -44,6 +44,7 @@ assert(preview.kind == "player", "the preview starts on the player frame")
 local view = preview.views.player
 assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
 assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
+assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
 for _, frame in ipairs(env._frames) do
 	if frame:GetParent() == preview or (frame:GetParent() and frame:GetParent():GetParent() == preview) then
 		assert(frame._template == nil, "the preview makes no secure frames")
@@ -58,6 +59,7 @@ assert(has(labels, "Target: frame") and not has(labels, "Player: frame"), "picki
 assert(preview.kind == "target", "the preview follows the picked frame")
 local target = preview.views.target
 assert(U.Shown(env, target.name) == "FROST HOWLER", "the target sample")
+assert(target.marker:IsShown() and target.glowFrame:IsShown(), "the target sample shows a raid marker and the threat glow")
 assert(target.geometry.portrait.x > target.geometry.panel.x, "the target sample mirrors the player frame")
 
 -- Settings redraw the preview at once.

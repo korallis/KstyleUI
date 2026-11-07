@@ -51,13 +51,15 @@ A frame 36 units tall or more is a full frame: the name row on top, the health b
 | `Format.lua` | `ns.Format`: `Health(text, unit, format)` and `Power(text, unit, format, powerType)` write the text with `SetFormattedText`, `AbbreviateNumbers` and `UnitHealthPercent` or `UnitPowerPercent` with a 0 to 100 curve, so no secret is ever read. `ColumnWidth(format, size)` is the room a format needs. `Sample` writes plain numbers for the preview. |
 | `Geometry.lua` | `ns.Geometry`: `Frame(s, width, height, fontScale) -> parts`, each part `{ x, y, w, h }` from the frame's top left with y growing downward, and `Slots(count, gap, width, height)` for the boss frames. Pure maths, tested without frames. |
 | `Style.lua` | `ns.Style`: `New(parent, kind) -> view` builds the parts on a button or the preview, `Layout(view, s, width, height)` places them in whole pixels, `Restyle(view, kind)` applies fonts, textures, fill directions and the accent |
+| `Indicators.lua` | `ns.Indicators`: the raid marker, the status icons (`SLOTS`: leader, role, PvP, combat, resting) and the threat glow. `New(view)`, `Layout(view, g, s)`, `Update(view, unit)`, and one function per indicator. |
 | `Unit.lua` | `ns.Unit`: fills a view from the unit API. `All(view, unit, instant)`, `Health`, `Power`, `HealthColor`, `PowerColor`, `Prediction`, `Name`, `Level`, `Portrait`. |
 | `Blizzard.lua` | `ns.Blizzard.Apply(active)`: hides or restores Blizzard's frames |
+| `Resource.lua` | `ns.Resource`: the class resource element. `Enable`, `Disable`, `Restyle`, `Layout`, `Visibility`, `Points`, `Mana`. |
 | `Frames.lua` | `ns.Frames`: the holders and secure buttons, unit watches, events, `Enable`, `Disable`, `Get(kind)` |
 | `Preview.lua` | `ns.Preview.Build(parent)`: the settings window's live preview |
 | `Module.lua` | Registers the module, the settings page and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
+Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
 
 ## Settings
 
@@ -78,9 +80,44 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `<frame>.healthText`, `powerText` | `percent`, `current`, `currentMax`, `both`, `none` | `percent`; power `currentMax` on the player and target |
 | `<frame>.healPrediction` | Incoming heals and absorbs on the health bar | on |
 | `<frame>.power`, `powerHeight` | Power bar, 2 to 24 units | on for full frames, 5 units |
+| `<frame>.raidMarker`, `leader`, `role`, `pvp`, `combat`, `resting`, `threat` | The raid marker, the status icons and the threat glow. `resting` is the player's only. | on for full frames; combat and resting on the player only; the raid marker on every frame |
+| `<frame>.iconSize` | Status icon size, 8 to 32 units | 14 |
 | `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power` and `level` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`, 11 or 9, `NONE` |
 
+The class resource has its own settings, under the player frame's rows:
+
+| Key | Values | Default |
+| --- | --- | --- |
+| `resource.enabled` | Show the class resource element | on |
+| `resource.comboPoints`, `comboColor`, `comboCustom`, `spacing` | Combo point pips: on or off, `class` (the class accent) or `custom` colour, 0 to 12 units apart | on, `class`, 3 |
+| `resource.druidMana`, `manaTexture`, `manaColor`, `manaCustom` | The druid's mana bar in bear and cat form: on or off, texture, `power`, `class` or `custom` colour | on, Glass, `power` |
+
 Size, position, opacity, strata and the shown rule come from Layout's element rows under **Positions and sizes**.
+
+## Indicators
+
+| Indicator | Source | Where |
+| --- | --- | --- |
+| Raid marker | `GetRaidTargetIndex`, always secret, straight to `SetSpriteSheetCell` on `UI-RaidTargetingIcons` | Centred on the portrait's top edge, or the panel's |
+| Leader | `UnitIsGroupLeader`; a secret answer goes to `SetAlphaFromBoolean` | The status icon row on the panel's top edge, running from the end away from the portrait |
+| Role | `UnitGroupRolesAssigned`, the `roleicon-tiny-*` atlases | The same row |
+| PvP | `UnitIsPVPFreeForAll`, `UnitIsPVP` and `UnitFactionGroup`, Camelot's `UI-HUD-UnitFrame-SmallCircle-*` atlases | The same row |
+| Combat | `UnitAffectingCombat`, the `UI-HUD-UnitFrame-Player-CombatIcon` atlas | The same row |
+| Resting | `IsResting`, a "Zz" in the accent colour | The same row, player only |
+| Threat glow | `UnitThreatSituation`: the player's own status on the player frame and friendly units, the player's status on a hostile unit elsewhere. A status above 0 lights the glow in `GetThreatStatusColor`. | A soft additive glow around the panel |
+
+## Class resource
+
+`unitframes.resource` sits under the player frame, right-aligned. It shows only what the player's class and form need:
+
+| Class and form | Shows |
+| --- | --- |
+| Rogue | Five combo point pips |
+| Druid in cat form | Pips and the mana bar |
+| Druid in bear form, or any form with a power other than mana | The mana bar |
+| Anyone else | Nothing |
+
+Each pip is a status bar from `i - 1` to `i` filled with the `dot` texture, and every pip gets the same count, so the engine decides which pips are full and a secret count never reaches a comparison. Combo points are bound to the target on Forever: the count comes from `GetComboPoints("player", "target")` and refreshes on `UNIT_POWER_FREQUENT`, `PLAYER_TARGET_CHANGED` and `COMBO_TARGET_CHANGED`. The mana bar reads `UnitPower("player", Enum.PowerType.Mana)` and refreshes on mana power events, `UNIT_DISPLAYPOWER` and `UPDATE_SHAPESHIFT_FORM`.
 
 ## Blizzard frames
 
@@ -105,4 +142,7 @@ These names come from `Blizzard_UnitFrame/Mainline/TargetFrame.xml`, `PlayerFram
 - **Fonts belong to the module.** The kit's `Widgets.Text` restyles its texts to their role on every theme change, which would undo a player's font choice. The unit frame texts are the module's own font strings, styled from their settings and restyled on `ThemeChanged`.
 - **Target of target and focus target poll.** Unit events never fire for `targettarget` and `focustarget`. Those two frames refresh on `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED` and `UNIT_TARGET`, and poll health and power every 0.2 seconds only while their button is shown, as Blizzard's own frames do.
 - **One picker, one frame's rows.** Seven frames with the same thirty settings would make a page of over two hundred rows. The page shows the picked frame's rows, and the preview draws that frame.
+- **Status icons keep fixed slots.** A leader or PvP flag can be secret, so the module cannot tell which icons show to pack them together. Each icon keeps its own slot in the row, so nothing moves when a secret flag changes.
+- **Resting is text.** Blizzard's resting art is a 42-frame flipbook atlas. A "Zz" in the accent colour needs no animation and follows the accent.
+- **The class resource is its own element.** The pips sit under the frame in the v3 mockups. As their own Layout element they move and resize on their own, and the setup places them so they overlap nothing.
 - **Focus target has its own key.** The element keys had no focus target. It sits under the focus frame, right-aligned, and `test-setup-layouts.lua` checks that it overlaps nothing in any layout.
