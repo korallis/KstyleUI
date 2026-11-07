@@ -178,7 +178,7 @@ The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a c
 | `SetCooldownFromDuration(durationObject, gcd) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
 | `ClearCooldown()` | Clears the cooldown and forgets `gcd`. |
 
-`gcd = true` says the cooldown is only the global cooldown: the swipe runs, but the button stays ready, with the accent rim and a bright icon. The global cooldown alone never dims an icon or greys its rim. The ActionBars module reads `isOnGCD` from `C_ActionBar.GetActionCooldown` and passes it.
+`gcd = true` says the cooldown is only the global cooldown: the swipe runs, but the button stays ready, with the accent rim and a bright icon. The global cooldown alone never dims an icon or greys its rim. The ActionBars module reads `isOnGCD` from `C_ActionBar.GetActionCooldown` and `C_Spell.GetSpellCooldown` and passes it. The cooldown state (grey rim, dim icon) applies only to a real cooldown set through these setters: a module that drives `button.cooldown` directly, as the Cooldowns mirror does for its buff timers, keeps a bright button and draws its own state. `button.cooling` still says whether the cooldown frame shows.
 | `SetProc(on)`, `SetUsable(on)`, `SetSelected(on)` | |
 | `SetHotkey(text)`, `SetCount(text)` | Caption text at the top right (upper case) and `number` text at the bottom right, above the swipe |
 | `SetTint(r, g, b)` | Multiplies the icon's shade in every state, such as red while out of range. No arguments return it to white. |

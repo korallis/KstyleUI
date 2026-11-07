@@ -218,6 +218,24 @@ do
 	assert(W.Near(button.icon:GetVertexColor(), 0.4), "ClearCooldown forgets the flag, so the next real cooldown dims")
 end
 
+-- A cooldown frame a module drives directly (the Cooldowns mirror's buff timers) never dims or greys the button:
+-- only a real cooldown set through the button's own setters does.
+do
+	local _, K, button = iconButton({})
+	local cd = button.cooldown
+	cd:Show()
+	cd:GetScript("OnShow")(cd)
+	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
+	assert(button.cooling == true, "the kit still notes that the frame shows")
+	assert(button.icon:GetVertexColor() == 1 and W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "but a frame driven directly leaves the button bright on the accent")
+	button:SetCooldownFromDuration({})
+	assert(W.Near(button.icon:GetVertexColor(), 0.4), "a real cooldown through the setter dims")
+	button:ClearCooldown()
+	cd:GetScript("OnHide")(cd)
+	cd:GetScript("OnShow")(cd)
+	assert(button.icon:GetVertexColor() == 1, "after ClearCooldown a directly driven frame is bright again")
+end
+
 -- The button's chamfer is a share of its size, the design's 11% cut, so the ratio holds at 34 and at 38 units.
 do
 	local _, K, button = iconButton({ size = 34 })

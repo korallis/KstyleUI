@@ -296,12 +296,20 @@ local function UpdateAction(b)
 	Button.UpdateAlpha(b)
 end
 
+local function SpellOnGlobalCooldown(spell, spellID)
+	if type(spell.GetSpellCooldown) ~= "function" then
+		return false
+	end
+	local info = spell.GetSpellCooldown(spellID)
+	return type(info) == "table" and Flag(info.isOnGCD, false)
+end
+
 local function SpellCooldown(b, spellID, start, duration)
 	local spell = C_Spell
 	if spellID and not IsSecret(spellID) and spell and type(spell.GetSpellCooldownDuration) == "function" then
 		local object = spell.GetSpellCooldownDuration(spellID)
 		if object then
-			b:SetCooldownFromDuration(object)
+			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(spell, spellID))
 		else
 			b:ClearCooldown()
 		end

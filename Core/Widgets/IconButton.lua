@@ -59,7 +59,7 @@ function IconButton:Paint()
 	elseif self.proc or self.selected then
 		r, g, b = Accent(self)
 		a = 1
-	elseif self.cooling and not self.gcdOnly then
+	elseif self.cooling and self.realCooldown then
 		r, g, b, a = Widgets.Rgba("text", COOLING_EDGE_ALPHA)
 	else
 		r, g, b = Accent(self)
@@ -72,7 +72,7 @@ function IconButton:Paint()
 	chrome:SetOuterRGBA(r, g, b, a * RIM_HALO)
 	local v = UNUSABLE_BRIGHTNESS
 	if usable then
-		v = (self.cooling and not self.gcdOnly) and COOLING_BRIGHTNESS or (1 - PRESS_DIM * press)
+		v = (self.cooling and self.realCooldown) and COOLING_BRIGHTNESS or (1 - PRESS_DIM * press)
 	end
 	local tint = self.tint
 	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], not usable)
@@ -120,14 +120,20 @@ function IconButton:SetIcon(texture)
 	self.icon:SetTexture(texture)
 end
 
+local function SetRealCooldown(self, real)
+	if self.realCooldown ~= real then
+		self.realCooldown = real
+		self:Paint()
+	end
+end
+
 function IconButton:SetCooldown(start, duration, gcd)
 	if Widgets.IsSecret(start) or Widgets.IsSecret(duration) then
 		Widgets.LogOnce("cooldown-secret", "IconButton refused a secret cooldown; pass a duration object to SetCooldownFromDuration")
 		return false
 	end
-	self.gcdOnly = gcd == true
 	self.cooldown:SetCooldown(start, duration)
-	self:Paint()
+	SetRealCooldown(self, gcd ~= true)
 	return true
 end
 
@@ -137,15 +143,14 @@ function IconButton:SetCooldownFromDuration(durationObject, gcd)
 		Widgets.LogOnce("cooldown-object", "Cooldown:SetCooldownFromDurationObject is missing; the cooldown is not shown")
 		return false
 	end
-	self.gcdOnly = gcd == true
 	cooldown:SetCooldownFromDurationObject(durationObject)
-	self:Paint()
+	SetRealCooldown(self, gcd ~= true)
 	return true
 end
 
 function IconButton:ClearCooldown()
-	self.gcdOnly = false
 	self.cooldown:Clear()
+	SetRealCooldown(self, false)
 end
 
 function IconButton:SetChargeCooldownFromDuration(durationObject)
