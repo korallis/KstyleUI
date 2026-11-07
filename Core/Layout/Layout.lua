@@ -17,6 +17,7 @@ local DEFAULT_SIZE = 100
 local SCALE_MIN, SCALE_MAX, SCALE_STEP = 0.5, 2, 0.05
 local HISTORY_LIMIT = 100
 local HOOK_DEPTH = 4
+local HOVER_POLL = 0.1
 local GRID_MIN, GRID_MAX, GRID_STEP = 4, 64, 4
 local SNAP_MIN, SNAP_MAX, SNAP_STEP = 2, 24, 1
 local DEFAULT_STRATA = "MEDIUM"
@@ -513,12 +514,41 @@ local function ApplyAlpha(el, instant)
 	Motion.Tween(frame, "SetAlpha", from, alpha, instant and 0 or Tokens.Duration("fade"), Tokens.Easing("fade"))
 end
 
+local function Accessible(frame)
+	local check = frame.CanBeAccessedInContext
+	if type(check) ~= "function" then
+		return true
+	end
+	local ok, allowed = pcall(check, frame)
+	return ok and not IsSecret(allowed) and allowed ~= false
+end
+
 local function IsOver(frame)
-	local over = frame:IsMouseOver()
+	if not Accessible(frame) then
+		return false
+	end
+	local ok, over = pcall(frame.IsMouseOver, frame)
+	if not ok then
+		return false
+	end
 	if IsSecret(over) then
+		LogOnce("secretOver", "IsMouseOver read a secret, so an element on the mouseover rule stays shown while that lasts")
 		return true
 	end
 	return over == true
+end
+
+local HookTree
+
+local function SetHovered(el, hovered)
+	if el.hovered == hovered then
+		return
+	end
+	el.hovered = hovered
+	ApplyAlpha(el)
+	if hovered then
+		HookTree(el, el.frame, 0)
+	end
 end
 
 local function HoverEnter(frame)
@@ -527,10 +557,7 @@ local function HoverEnter(frame)
 		return
 	end
 	el.over[frame] = true
-	if not el.hovered then
-		el.hovered = true
-		ApplyAlpha(el)
-	end
+	SetHovered(el, true)
 end
 
 local function HoverLeave(frame)
@@ -551,15 +578,66 @@ local function StillOver(el)
 	return IsOver(el.frame)
 end
 
-local function HookTree(el, frame, depth)
-	if hoverOwner[frame] == nil then
-		frame:HookScript("OnEnter", HoverEnter)
-		frame:HookScript("OnLeave", HoverLeave)
+local function PollElement(el)
+	if ModuleRunning(el) then
+		SetHovered(el, StillOver(el))
+	end
+end
+
+local function PollHover()
+	for i = 1, #order do
+		local el = elements[order[i]]
+		if el.settings.shown == "mouseover" then
+			ns.Call(PollElement, el)
+		end
+	end
+end
+
+local function UpdatePoll(needed)
+	if needed and not state.poll then
+		if type(C_Timer) ~= "table" or type(C_Timer.NewTicker) ~= "function" then
+			LogOnce("noTicker", "C_Timer.NewTicker is missing, so the mouseover rule follows only the frames Layout can hook")
+			return
+		end
+		state.poll = C_Timer.NewTicker(HOVER_POLL, PollHover)
+		LogOnce("poll", format("polls the pointer every %.1f s while an element uses the mouseover rule, for content that keeps the mouse from Layout's hooks", HOVER_POLL))
+	elseif not needed and state.poll then
+		state.poll:Cancel()
+		state.poll = nil
+	end
+end
+
+local function HookFrame(frame)
+	local ok, done = pcall(frame.HookScript, frame, "OnEnter", HoverEnter)
+	if not ok or done == false then
+		LogOnce("hookEnter", "a frame refused the mouseover hook (" .. tostring(done) .. "); the poll still finds the pointer over its element's rect")
+		return false
+	end
+	ok, done = pcall(frame.HookScript, frame, "OnLeave", HoverLeave)
+	if not ok or done == false then
+		LogOnce("hookLeave", "a frame refused the mouseover leave hook (" .. tostring(done) .. "); the poll hides its element once the pointer leaves")
+	end
+	return true
+end
+
+local function Children(frame)
+	return { frame:GetChildren() }
+end
+
+function HookTree(el, frame, depth)
+	if IsSecret(frame) or type(frame) ~= "table" or not Accessible(frame) then
+		return
+	end
+	if hoverOwner[frame] == nil and not HookFrame(frame) then
+		return
 	end
 	hoverOwner[frame] = el
 	if depth < HOOK_DEPTH then
-		for _, child in ipairs({ frame:GetChildren() }) do
-			HookTree(el, child, depth + 1)
+		local ok, children = pcall(Children, frame)
+		if ok then
+			for _, child in ipairs(children) do
+				HookTree(el, child, depth + 1)
+			end
 		end
 	end
 end
@@ -653,12 +731,14 @@ local function OnCombatEnd()
 end
 
 local function UpdateEvents()
-	local combat, target = state.active, false
+	local combat, target, hover = state.active, false, false
 	for i = 1, #order do
 		local s = elements[order[i]].settings
 		combat = combat or Rules.NeedsCombat(s.shown, s.alphaCombat, s.alphaIdle)
 		target = target or Rules.NeedsTarget(s.shown)
+		hover = hover or s.shown == "mouseover"
 	end
+	UpdatePoll(hover)
 	if combat ~= state.combatEvents then
 		state.combatEvents = combat
 		if combat then
@@ -775,7 +855,13 @@ end
 
 local function OnShow(frame)
 	local el = byFrame[frame]
-	if not el or IsProtectedFrame(frame) then
+	if not el then
+		return
+	end
+	if el.settings.shown == "mouseover" then
+		HookTree(el, frame, 0)
+	end
+	if IsProtectedFrame(frame) then
 		return
 	end
 	if not Rules.Visible(el.settings.shown, state.combat, state.target) then
@@ -836,8 +922,7 @@ function Layout.Register(frame, key, defaultPosition, opts)
 		el.over = setmetatable({}, { __mode = "k" })
 		el.checkHover = function()
 			if el.hovered and not StillOver(el) then
-				el.hovered = false
-				ApplyAlpha(el)
+				SetHovered(el, false)
 			end
 		end
 		elements[key] = el

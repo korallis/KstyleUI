@@ -10,7 +10,7 @@
 | `Layout.lua` | The registry, per-profile settings, applying, sessions, undo, and Layout Mode's own settings page |
 | `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the keyboard and the toolbar |
 
-Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs) and `test-layout-mode.lua` (the screen, driven like a player).
+Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook) and `test-layout-mode.lua` (the screen, driven like a player).
 
 ## Registering an element
 
@@ -106,13 +106,17 @@ A resizable element's width and height snap so that size times scale is a whole 
 | `combat` | Shown from `PLAYER_REGEN_DISABLED`, hidden from `PLAYER_REGEN_ENABLED` | `RegisterStateDriver(frame, "visibility", "[combat] show; hide")` |
 | `noCombat` | The reverse | `"[combat] hide; show"` |
 | `target` | Follows `PLAYER_TARGET_CHANGED` and `UnitExists("target")` | `"[@target,exists] show; hide"` |
-| `mouseover` | Shown at alpha 0 until the pointer is over the frame or a child | No state driver; alpha only |
+| `mouseover` | Shown at alpha 0 until the pointer is over the frame's rect or a hooked child | No state driver; alpha only |
 | `never` | Hidden | `"hide"` |
 
 - A frame counts as protected when `IsProtected()` is true or secret. Its state driver changes only out of combat; in combat the change waits for `Combat.Queue`. The secure state driver manager shows and hides the frame in combat, so no KstyleUI code makes a protected call there. Each driver is logged to the devlog with what `SecureCmdOptionParse` reads for it.
 - Without `RegisterStateDriver`, a protected element keeps its own visibility and the devlog says so.
 - On a Lua frame Layout hides a frame the rule hides, and shows it again only if Layout hid it and its module is running. A hooked `OnShow` hides the frame again while the rule says hidden.
-- The alpha is `alphaCombat` in combat and `alphaIdle` out of it, faded over `fade`. Alpha changes are allowed on protected frames in combat. The mouseover rule uses alpha 0 until the pointer enters the frame or one of its children (four levels deep), and turns on mouse motion for a frame that has no mouse, so the pointer finds it without blocking clicks.
+- The alpha is `alphaCombat` in combat and `alphaIdle` out of it, faded over `fade`. Alpha changes are allowed on protected frames in combat. The mouseover rule uses alpha 0 until the pointer is over the element, and turns on mouse motion for a frame that has no mouse, so the pointer finds it without blocking clicks.
+- The mouseover rule finds the pointer in two ways:
+  - Hooks: `OnEnter` and `OnLeave` on the frame and its children, four levels deep, show and hide it at once. Layout hooks the tree again when the rule applies, when the frame shows, and when a hover starts, so a child made since, such as a lazily made icon, joins.
+  - A poll: while any element uses the rule, one `C_Timer.NewTicker` reads `IsMouseOver` on each such frame, and on each hooked child under the pointer, every 0.1 s. It finds content that keeps the mouse focus from Layout's hooks: a child made since the last hook pass, or a frame mirrored over the element from outside its tree, such as the Auras host, whose aura buttons Layout never touches. It skips an element whose module is off, and it stops when no element uses the rule.
+- A frame that denies access, as an aura button does while auras are secret (`CanBeAccessedInContext` is false), is never hooked or read; it counts as not under the pointer. A secret `IsMouseOver` counts as under it, so the element stays visible rather than invisible and clickable. Each fallback is logged once.
 - Layout listens for `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED` only while Layout Mode is open or an element needs them, and for `PLAYER_TARGET_CHANGED` only while an element uses the target rule.
 
 ## Protected frames and combat

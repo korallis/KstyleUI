@@ -200,6 +200,10 @@ function Object:GetEffectiveAlpha()
 	return alpha * self._parent:GetEffectiveAlpha()
 end
 
+-- A test sets frame._denied to model an object enforcing access restrictions, such as an aura button
+-- while auras are secret: CanBeAccessedInContext reads false and every other method raises an error.
+function Object:CanBeAccessedInContext() return self._denied ~= true end
+
 local ObjectMeta = {}
 
 local function newObject(env, objectType, name, parent)
@@ -288,6 +292,9 @@ ObjectMeta.__index = function(_, key)
 	end
 	local impl = Object[key] or genericMethod(key)
 	return function(self, ...)
+		if self._denied == true and key ~= "CanBeAccessedInContext" then
+			error("Attempt to access a restricted object with " .. key, 2)
+		end
 		self._calls[#self._calls + 1] = { method = key, args = pack(...) }
 		return impl(self, ...)
 	end
