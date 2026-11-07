@@ -2,12 +2,13 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, L = K.Skin, K.L
+local Skin, L, Tokens, Widgets = K.Skin, K.L, K.Tokens, K.Widgets
 local Style, Parts, Skins = ns.Style, ns.Parts, ns.Skins
 
 local KEY = "tracker"
 local LINE_DEFAULT, HEADER_EXTRA = 12, 2
 local PANEL_OUTSET = -8
+local POI_ART_REACH = 13
 local LINE_ALPHA = 0.6
 
 local WEAK = { __mode = "k" }
@@ -180,9 +181,14 @@ local function Fit(tracker)
 	end
 	fitBottom = bottom
 	fit:ClearAllPoints()
-	fit:SetPoint("TOPLEFT", tracker, "TOPLEFT")
+	fit:SetPoint("TOPLEFT", tracker, "TOPLEFT", -Widgets.Snap(fit, POI_ART_REACH), 0)
 	fit:SetPoint("TOPRIGHT", tracker, "TOPRIGHT")
 	fit:SetPoint("BOTTOM", bottom, "BOTTOM")
+end
+
+local function PanelInset()
+	local pad = -Tokens.Size("panelPadding")
+	return { left = pad, right = pad, top = PANEL_OUTSET, bottom = PANEL_OUTSET }
 end
 
 local function PaintPanel()
@@ -204,7 +210,7 @@ local function Apply()
 	else
 		Log("UpdateHeaderPosition is missing; the panel keeps its first fit through collapses and empty layouts")
 	end
-	panel = Skin.Backdrop(tracker, { shape = "panel", fill = "surface", inset = PANEL_OUTSET, target = fit })
+	panel = Skin.Backdrop(tracker, { shape = "panel", fill = "surface", inset = PanelInset(), target = fit })
 	PaintPanel()
 	Header(tracker.Header)
 	if type(tracker.ForEachModule) == "function" then

@@ -127,19 +127,31 @@ local function Tracker(env, B, unloadable)
 	return p
 end
 
--- Edge(frame, side, blizzard) -> the Blizzard object and point that frame's TOP or BOTTOM edge hangs from,
--- following anchors through KstyleUI's own frames. blizzard is keyed by Blizzard objects, as B.snapshot() is.
+-- Edge(frame, side, blizzard) -> the Blizzard object and point that frame's TOP, BOTTOM, LEFT or RIGHT edge
+-- hangs from, following anchors through KstyleUI's own frames, and the x and y offsets summed along the way.
+-- blizzard is keyed by Blizzard objects, as B.snapshot() is.
 local function Edge(frame, side, blizzard)
 	for i = 1, frame:GetNumPoints() do
-		local point, relative, relativePoint = frame:GetPoint(i)
+		local point, relative, relativePoint, x, y = frame:GetPoint(i)
 		if point:find(side, 1, true) then
+			x, y = x or 0, y or 0
 			if blizzard[relative] then
-				return relative, relativePoint
+				return relative, relativePoint, x, y
 			end
-			return Edge(relative, side, blizzard)
+			local object, objectPoint, dx, dy = Edge(relative, side, blizzard)
+			return object, objectPoint, x + (dx or 0), y + (dy or 0)
 		end
 	end
 end
+
+-- Blizzard draws parts of a quest block outside ObjectiveTrackerFrame. The POI button hangs off the title's
+-- left: blocks start blockOffsetX = 20 in (Blizzard_ObjectiveTrackerModule.lua), the 20-unit button's right
+-- sits 7 left of the title (Blizzard_ObjectiveTrackerQuestPOIBlock.lua) and its 32-unit art is centred on it
+-- (Blizzard_POIButton/POIButton.xml), so the art reaches 13 units left of the tracker. The find-group button
+-- (questFindGroupButtonSettings.offsetX = 5) reaches 5 right of it.
+local POI_ART_REACH = -(20 - 7 - 20) + (32 - 20) / 2
+local FIND_GROUP_REACH = 5
+local OUTSET = 8
 
 -- The glass panel hugs the tracker's content through every Blizzard layout -------------------------------
 
@@ -162,10 +174,27 @@ do
 	local function Bottom()
 		return Edge(panel, "BOTTOM", snap)
 	end
-	local top, topPoint = Edge(panel, "TOP", snap)
+	local function Snap(units)
+		return K.Widgets.Snap(panel, units)
+	end
+	local top, topPoint, _, topY = Edge(panel, "TOP", snap)
 	assert(top == tracker and topPoint:find("TOP", 1, true), "the panel starts at the tracker's top")
-	local bottom, bottomPoint = Bottom()
+	assert(Near(topY, Snap(OUTSET)), "the panel rises " .. OUTSET .. " above the tracker's top, got " .. tostring(topY))
+	local bottom, bottomPoint, _, bottomY = Bottom()
 	assert(bottom == tracker.NineSlice and bottomPoint == "BOTTOM", "with quests tracked, the panel ends where Blizzard's content ends, not at the tracker's Edit Mode height: " .. tostring(bottomPoint))
+	assert(Near(bottomY, -Snap(OUTSET)), "the panel ends " .. OUTSET .. " below Blizzard's content, got " .. tostring(bottomY))
+	local pad, pixel = Snap(K.Tokens.Size("panelPadding")), K.Scale.Pixel()
+	local function Sides()
+		local left, leftPoint, leftX = Edge(panel, "LEFT", snap)
+		local right, rightPoint, rightX = Edge(panel, "RIGHT", snap)
+		assert(left == tracker and leftPoint:find("LEFT", 1, true), "the panel's left edge hangs from the tracker's left")
+		assert(right == tracker and rightPoint:find("RIGHT", 1, true), "the panel's right edge hangs from the tracker's right")
+		return leftX, rightX
+	end
+	local leftX, rightX = Sides()
+	assert(Near(leftX, -(Snap(POI_ART_REACH) + pad), pixel), "the panel wraps the quest POI column with the design's padding beyond the icon art, got " .. tostring(leftX))
+	assert(Near(rightX, pad, pixel), "the panel gives the quest text the design's padding on the right, got " .. tostring(rightX))
+	assert(rightX >= FIND_GROUP_REACH, "the find-group button sits inside the panel")
 
 	for _, header in ipairs({ tracker.Header, p.modules[1].Header }) do
 		local chevron = Chevron(env, K, header.MinimizeButton)
@@ -179,6 +208,8 @@ do
 	assert(Bottom() == tracker.Header, "collapsed, the panel wraps the header only")
 	tracker:SetCollapsed(false)
 	assert(Bottom() == tracker.NineSlice, "expanded again, the panel follows the content")
+	local leftAgain, rightAgain = Sides()
+	assert(Near(leftAgain, leftX) and Near(rightAgain, rightX), "a relayout keeps the panel's width")
 	for _, module in ipairs(p.modules) do
 		module.contentsHeight = 0
 	end
