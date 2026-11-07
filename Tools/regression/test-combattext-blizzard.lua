@@ -29,7 +29,19 @@ local function Logged(env, text)
 	return n
 end
 
+-- Hiding(values) is saved data that hides Blizzard's numbers over targets too. The default keeps them, since
+-- they are the only numbers that show just the player's own hits; the cases below test the hide path.
+local function Hiding(values)
+	values = values or {}
+	if values.blizzardTargets == nil then
+		values.blizzardTargets = "hide"
+	end
+	return CT.Saved(values)
+end
+
 local function On(opts)
+	opts = opts or {}
+	opts.saved = opts.saved or Hiding()
 	local env, K = CT.New(opts)
 	CT.Enable(env, K)
 	return env, K
@@ -63,7 +75,7 @@ Case("on hides the text over you and the numbers over targets; off brings the pl
 end)
 
 Case("Keep leaves a CVar alone, and a changed setting hides or restores", function()
-	local env, K = On({ saved = CT.Saved({ blizzardSelf = "keep" }) })
+	local env, K = On({ saved = Hiding({ blizzardSelf = "keep" }) })
 	assert(env._cvars[SELF] == "1" and Targets(env, "0"), "Keep leaves the text over you on")
 	for _, write in ipairs(env._cvarWrites) do
 		assert(write.name ~= SELF, "Keep never writes the CVar")
@@ -169,6 +181,34 @@ Case("a client without C_CVar.SetCVar keeps the player's values and logs once", 
 	assert(env._cvars[SELF] == "1" and Targets(env, "1"), "Blizzard's text stays as the player has it")
 	assert(Logged(env, "SetCVar") == 1, "the missing API is logged once, got " .. Logged(env, "SetCVar"))
 	Off(env, K)
+end)
+
+Case("by default the text over you hides, Blizzard's own-hit numbers over targets stay, and so do restored ones", function()
+	local env, K = CT.New({ saved = CT.Saved({}) })
+	CT.Enable(env, K)
+	assert(K.Options.Read("CombatText", "blizzardTargets") == "keep", "Blizzard's numbers over targets are kept by default")
+	assert(K.Options.Read("CombatText", "units.nameplate") == false, "KstyleUI's nameplate numbers, every player's hits, are off by default")
+	assert(env._cvars[SELF] == "0" and Targets(env, "1"), "only the text over you is hidden")
+	for _, write in ipairs(env._cvarWrites) do
+		assert(write.name ~= DAMAGE and write.name ~= HEALING, "the target CVars are never written")
+	end
+	Off(env, K)
+end)
+
+Case("numbers over targets that an earlier default hid come back under the new one", function()
+	local env = On()
+	assert(Targets(env, "0"), "hidden under the old default")
+	CT.CoreEnv.Logout(env)
+	local profile = env.KstyleUIDB.profiles.Default.CombatText
+	profile.blizzardTargets = nil
+	local again, K2 = CT.New({ saved = env.KstyleUIDB, setup = function(e)
+		for name, value in pairs(env._cvars) do
+			e._cvars[name] = value
+		end
+	end })
+	CT.Enable(again, K2)
+	assert(Targets(again, "1") and again._cvars[HEALING] == "1", "the player's numbers are back")
+	Off(again, K2)
 end)
 
 assert(#failures == 0, #failures .. " failed:\n" .. table.concat(failures, "\n"))

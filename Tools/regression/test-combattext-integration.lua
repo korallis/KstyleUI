@@ -103,6 +103,7 @@ do
 	env.RunTimers()
 	local ns = env._addons.KstyleUI_CombatText
 	assert(K.Modules.IsRunning("Nameplates") and K.Modules.IsRunning("CombatText"), "both modules start at login")
+	K.Options.Write("CombatText", "units.nameplate", true)
 	local base = N.Add(env, "nameplate4", { name = "Kobold" })
 	Hit(env, "nameplate4", "WOUND", "", env.Secret(33), 1)
 	assert(#On(ns, base) == 1, "numbers show on the real nameplate")

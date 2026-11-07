@@ -23,7 +23,7 @@ end
 
 local defaults = {
 	blizzardSelf = "hide",
-	blizzardTargets = "hide",
+	blizzardTargets = "keep",
 	worldFont = true,
 	worldFace = NUMBER_FONT,
 	style = "rise",
@@ -57,7 +57,7 @@ local defaults = {
 		boss = true,
 		party = true,
 		raid = false,
-		nameplate = true,
+		nameplate = false,
 	},
 }
 Settings.defaults = defaults
@@ -123,7 +123,7 @@ Settings.schema = {
 	},
 	{
 		type = "dropdown", key = "blizzardTargets", label = L["Blizzard's numbers over targets"],
-		help = L["Hide turns off the game's damage and healing numbers over targets while this module is on."],
+		help = L["The game's numbers over targets show only your own hits. Hide turns them off."],
 		options = BLIZZARD_OPTIONS,
 	},
 	{ type = "header", label = L["World numbers"] },
@@ -228,7 +228,7 @@ Settings.schema = {
 	{ type = "toggle", key = "units.raid", label = L["Raid frames"], help = L["Shows numbers on KstyleUI raid frames."] },
 	{
 		type = "toggle", key = "units.nameplate", label = L["Nameplates"],
-		help = L["Shows numbers on nameplates while KstyleUI's Nameplates module is on."],
+		help = L["Every hit a nameplate's unit takes, from any player. Needs KstyleUI's Nameplates."],
 	},
 	{
 		type = "dropdown", key = "framePoint", label = L["Start point"],

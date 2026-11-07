@@ -81,7 +81,7 @@ Limit: values come back only when the module stops or a setting changes to Keep,
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
 | `blizzardSelf` | `hide` | dropdown: hide, keep | Hide turns `enableFloatingCombatText` off. Keep leaves it as the player set it. |
-| `blizzardTargets` | `hide` | dropdown: hide, keep | Hide turns off the four CVars for numbers over targets. Keep leaves them as the player set them. |
+| `blizzardTargets` | `keep` | dropdown: hide, keep | Keep leaves the four CVars for numbers over targets as the player set them: these are the only numbers that show just the player's own hits, drawn in KstyleUI's font while `worldFont` is on. Hide turns them off. |
 | `worldFont` | `true` | toggle | Sets `DAMAGE_TEXT_FONT` to `worldFace`. The game reads it at the next login. |
 | `worldFace` | Source Sans 3 Semibold | font | The font for the game's own damage numbers |
 | `style` | `rise` | dropdown: rise, arc, pop | How each number moves |
@@ -94,7 +94,7 @@ Limit: values come back only when the module stops or a setting changes to Keep,
 | `damageColor`, `healColor`, `missColor` | `hostile`, `friendly`, `text` | colours | |
 | `critScale` | 1.4 | slider, 1 to 2 | How much larger critical hits and heals are. Above 1 they also pop in. |
 | `critColor`, `critTint` | `true`, `neutral` | toggle, colour | Critical damage takes its own colour. Critical heals keep the heal colour. |
-| `units.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet`, `.boss`, `.party`, `.raid`, `.nameplate` | on, except `targettarget`, `focustarget` and `raid` | toggles | Which places show numbers |
+| `units.player`, `.target`, `.targettarget`, `.focus`, `.focustarget`, `.pet`, `.boss`, `.party`, `.raid`, `.nameplate` | on, except `targettarget`, `focustarget`, `raid` and `nameplate` | toggles | Which places show numbers |
 | `playerPlacement` | `field` | dropdown: field, frame | Where your own numbers show |
 | `framePoint` | `CENTER` | dropdown: centre, above | Where numbers on frames start |
 | `distance` | 40 | slider, 8 to 120 | How far numbers on frames travel |
@@ -114,6 +114,7 @@ Limit: values come back only when the module stops or a setting changes to Keep,
 - **Rosters that move.** A group button whose `unit` attribute no longer matches the token gets no number and asks for a rescan on the next frame, even when the button is hidden. A hit on a party, raid or boss token with no frame, while that kind is switched on and its element is live, asks for a rescan at most every 2 seconds, which finds buttons a header made late. A hidden frame gets no number; a secret `IsVisible` counts as shown.
 - **Scale follows the frame.** Numbers on unit and group frames take the frame's effective scale against the layer's, so a frame enlarged in Layout Mode gets larger numbers that travel further. Plate numbers keep their own size, because a plate's scale changes with distance.
 - **Opacity follows the frame.** A number on a frame takes the frame's `GetEffectiveAlpha` on its font string, so Layout's opacity and mouseover rules and a group frame's range fade apply to it. The value can be secret after `SetAlphaFromBoolean`; it goes straight to `SetAlpha`, which accepts secrets. The font string's alpha multiplies with the frame's fade animation, so the fade still runs.
+- **Whose hits.** `UNIT_COMBAT` reports every hit a unit takes, from any player, and the combat log is closed to addons, so KstyleUI cannot tell your hits from other players'. On an enemy that means everyone's damage. That is why `units.nameplate` is off and `blizzardTargets` is `keep` by default: the game's own numbers over targets show only your hits. Players who change either default keep their choice.
 - **Plates.** Nameplate numbers need KstyleUI's Nameplates module: the spec puts numbers on KstyleUI's plates, and the game already draws its own numbers over units. `NAME_PLATE_UNIT_REMOVED` clears a plate's numbers, so they never follow the plate to its next unit. `/kstyle test` counts `UNIT_COMBAT` events from nameplate units, which answers whether Forever fires them.
 - **Two pools.** Your field's numbers are the field's children, so its Layout shown rule and opacity apply. Numbers on frames come from a second pool of 64 in the module's layer.
 - **Words come from the game.** `MISS`, `DODGE`, `PARRY` and the rest are the game's localised strings, with English fallbacks through `KstyleUI.L`.

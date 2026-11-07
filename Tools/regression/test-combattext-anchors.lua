@@ -248,12 +248,24 @@ do
 	assert(near(Anim(number, "move").offsetY * 1.5, 60), "and travel the distance in the frame's units")
 end
 
+-- Nameplates are off by default: UNIT_COMBAT reports every player's hits on the unit, not only yours ------
+
+do
+	local env, K, ns = CT.New()
+	CT.Enable(env, K)
+	local plate = CT.Plate(env, "nameplate3")
+	Running(env, K, "Nameplates")
+	Hit(env, "nameplate3", "WOUND", "", env.Secret(12), 4)
+	assert(#On(ns, plate) == 0, "plate numbers are off by default")
+end
+
 -- Nameplates: Blizzard's base plate, while KstyleUI's Nameplates module runs ------------------------
 
 do
 	local env, K, ns = CT.New()
 	CT.Enable(env, K)
 	local plate = CT.Plate(env, "nameplate3")
+	K.Options.Write("CombatText", "units.nameplate", true)
 	Hit(env, "nameplate3", "WOUND", "", env.Secret(12), 4)
 	assert(#On(ns, plate) == 0, "plates show no numbers while KstyleUI's nameplates are off")
 	Running(env, K, "Nameplates")
