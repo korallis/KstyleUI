@@ -49,7 +49,7 @@ end
 
 ns.schema.preview = ns.Preview
 
-K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable })
+K.Modules.Register({ name = MODULE, defaults = ns.defaults, Enable = Enable, Disable = Disable, reskin = true })
 K.Options.Register(MODULE, ns.schema)
 
 K.DevTest.AddCheck("DataBars", function()

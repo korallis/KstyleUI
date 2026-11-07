@@ -71,6 +71,8 @@ defaults.strip = {
 for i, id in ipairs(Strip.ITEMS) do
 	defaults.strip["slot" .. i] = id
 end
+defaults.micro = { skin = true, backdrop = true, tiles = false, tint = "none" }
+defaults.bags = { skin = true, backdrop = true, tiles = true }
 
 local SOURCES_PLAIN = {
 	{ value = "class", label = L["Class colour"] },
@@ -222,6 +224,32 @@ for _, row in ipairs({
 	stripRows[#stripRows + 1] = row
 end
 ns.AddRows(stripRows)
+
+local TINTS = {
+	{ value = "none", label = L["Blizzard's colours"] },
+	{ value = "accent", label = L["Accent colour"] },
+	{ value = "white", label = L["White"] },
+}
+
+local function MenuRows(id, title, skinHelp)
+	local function off(settings)
+		return not (settings[id] and settings[id].skin)
+	end
+	return {
+		{ type = "header", label = title },
+		{ type = "toggle", key = id .. ".skin", label = L["Restyle"], help = skinHelp },
+		{ type = "toggle", key = id .. ".backdrop", label = L["Glass"], help = L["Draws smoked glass behind the buttons."], disableWhen = off },
+		{ type = "toggle", key = id .. ".tiles", label = L["Tiles"], help = L["Puts each button on a raised tile whose edge lights in the accent colour."], disableWhen = off },
+	}
+end
+
+ns.AddRows(MenuRows("micro", L["Micro menu"], L["Restyles Blizzard's micro menu in place. Move and size it in Edit Mode."]))
+ns.AddRows({
+	{ type = "dropdown", key = "micro.tint", label = L["Icon colour"], help = L["Keeps Blizzard's icon colours, or tints the icons in the accent colour or white."], options = TINTS, disableWhen = function(settings)
+		return not (settings.micro and settings.micro.skin)
+	end },
+})
+ns.AddRows(MenuRows("bags", L["Bag bar"], L["Restyles Blizzard's bag bar in place. Move and size it in Edit Mode."]))
 
 local SAMPLES = {
 	xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp" },
