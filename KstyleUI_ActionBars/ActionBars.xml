@@ -9,5 +9,6 @@
 	<Script file="Blizzard.lua"/>
 	<Script file="Vehicle.lua"/>
 	<Script file="Preview.lua"/>
+	<Script file="Ranks.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

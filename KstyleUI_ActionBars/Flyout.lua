@@ -9,7 +9,7 @@ ns.Flyout = Flyout
 
 local MAX_SPELLS = 12
 local AUTO_HIDE = 1
-local MAX_SLOT = 180
+local MAX_SLOT = ns.MAX_SLOT
 
 local OWNER_SNIPPET = ([[
 	local page = self:GetParent():GetAttribute("actionpage") or 1

@@ -1,0 +1,195 @@
+-- test-actionbars-ranks.lua: learning a higher rank of a spell on the bars offers to swap it in, and Update bars puts it in every slot that held a lower rank.
+local AB = dofile("Tools/regression/actionbars_env.lua")
+local W = AB.W
+
+local HS1, HS2, HS3, REND1, REND2, SHOUT2, CHARGE = 78, 284, 285, 772, 6546, 6192, 100
+local SPELLS = {
+	[HS1] = { "Heroic Strike", "Rank 1" }, [HS2] = { "Heroic Strike", "Rank 2" }, [HS3] = { "Heroic Strike", "Rank 3" },
+	[REND1] = { "Rend", "Rank 1" }, [REND2] = { "Rend", "Rank 2" }, [SHOUT2] = { "Battle Shout", "Rank 2" }, [CHARGE] = { "Charge", "" },
+}
+-- Heroic Strike rank 1 on bar 1 and the battle stance bar (73 to 84), Rend, and a macro and a flyout whose IDs equal rank 1's to leave alone.
+local SLOTS = { [3] = { "spell", HS1 }, [75] = { "spell", HS1 }, [5] = { "spell", REND1 }, [7] = { "macro", HS1 }, [8] = { "flyout", HS1 }, [9] = { "spell", CHARGE } }
+
+local function Setup(mode)
+	local env, K = AB.New()
+	local g = env._game
+	for id, s in pairs(SPELLS) do
+		g.spells[id] = { name = s[1], subtext = s[2] }
+	end
+	AB.Enable(env, K)
+	K.Options.Write("ActionBars", "ranks", mode or "ask")
+	for slot, s in pairs(SLOTS) do
+		g.slots[slot] = { type = s[1], id = s[2], texture = slot }
+	end
+	return env, K, g
+end
+
+local function Learn(env, ...)
+	for i = 1, select("#", ...) do
+		env.FireEvent("LEARNED_SPELL_IN_SKILL_LINE", (select(i, ...)), 1, false)
+	end
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTimers()
+end
+
+local function Shown(env, K)
+	W.Settle(env)
+	local host = K.Widgets.DialogHost()
+	return host:IsShown() and host.body:GetText() or nil
+end
+
+local function Press(env, K, label)
+	for _, button in ipairs(K.Widgets.DialogHost().visibleButtons) do
+		if button.label:GetText() == label then
+			W.Click(button)
+			return W.Settle(env)
+		end
+	end
+	error("the dialog has no " .. label .. " button")
+end
+
+local function Has(text, part)
+	return text ~= nil and text:find(part, 1, true) ~= nil
+end
+
+local function Holds(g, slot, id)
+	return g.slots[slot] and g.slots[slot].type == "spell" and g.slots[slot].id == id
+end
+
+-- Ask (the default): a higher rank of a spell on the bars shows one popup, with its icon, and changes nothing yet.
+do
+	local env, K, g = Setup()
+	Learn(env, HS2)
+	local text, host = Shown(env, K), K.Widgets.DialogHost()
+	assert(Has(text, "You learned a new rank: |T1000284:0|t HEROIC STRIKE (RANK 2). Update your action bars?"), tostring(text))
+	local buttons = host.visibleButtons
+	assert(host.titleText:GetText() == "NEW SPELL RANK" and #buttons == 2 and buttons[1].label:GetText() == "Not now" and buttons[2].label:GetText() == "Update bars" and buttons[2].primary)
+	assert(Holds(g, 3, HS1) and Holds(g, 75, HS1) and #g.placed == 0, "nothing changes before the player answers")
+	Press(env, K, "Not now")
+	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Not now closes it and changes nothing")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+-- No popup for a spell with no rank, a rank whose spell is not on the bars, or a rank below the one on the bars.
+do
+	local env, K, g = Setup()
+	g.slots[3], g.slots[75] = { type = "spell", id = HS3 }, { type = "spell", id = HS3 }
+	Learn(env, CHARGE, SHOUT2, HS2)
+	assert(Shown(env, K) == nil and #g.placed == 0, "an unranked spell, a rank not on the bars and a lower rank show nothing")
+	Learn(env, REND2)
+	local text = Shown(env, K)
+	assert(Has(text, "REND (RANK 2)") and not Has(text, "HEROIC") and not Has(text, "SHOUT") and not Has(text, "CHARGE"), "a real rank lists only itself: " .. tostring(text))
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+-- Update bars replaces exactly the slots with a lower rank, the stance bar's too, and leaves the cursor empty.
+do
+	local env, K, g = Setup()
+	Learn(env, HS2)
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2), "bar 1 and the battle stance bar get rank 2")
+	assert(Holds(g, 5, REND1) and g.slots[7].type == "macro" and g.slots[8].type == "flyout" and Holds(g, 9, CHARGE), "other slots, macros and flyouts are untouched")
+	table.sort(g.placed)
+	assert(#g.placed == 2 and g.placed[1] == 3 and g.placed[2] == 75, "only those two slots are placed on")
+	assert(g.cursor == nil, "the old rank is not left on the cursor")
+	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
+end
+
+-- Several ranks at once, or a second while the popup is open, give one popup listing them all, and one update.
+do
+	local env, K, g = Setup()
+	Learn(env, HS2, HS3, REND2)
+	local text = Shown(env, K)
+	assert(Has(text, "HEROIC STRIKE (RANK 3)") and Has(text, "REND (RANK 2)") and not Has(text, "HEROIC STRIKE (RANK 2)"), tostring(text))
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS3) and Holds(g, 75, HS3) and Holds(g, 5, REND2), "the highest learned rank wins")
+	assert(Shown(env, K) == nil and g.cursor == nil, "one popup, closed, and an empty cursor")
+	env, K, g = Setup()
+	Learn(env, HS3)
+	Learn(env, HS2, REND2)
+	text = Shown(env, K)
+	assert(Has(text, "HEROIC STRIKE (RANK 3)") and Has(text, "REND (RANK 2)") and not Has(text, "HEROIC STRIKE (RANK 2)"), "the open popup grows: " .. tostring(text))
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS3) and Holds(g, 5, REND2) and Shown(env, K) == nil, "one click updates both, and a lower rank learned later never wins")
+end
+
+-- A slot that does not take the new rank is logged once, a slot changed since the popup is left alone, and the cursor ends empty.
+do
+	local env, K, g = Setup()
+	g.refuse, g.slots[4] = { [75] = true }, { type = "spell", id = HS1 }
+	Learn(env, HS2)
+	g.slots[4] = { type = "spell", id = REND1 }
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS2) and Holds(g, 4, REND1) and g.cursor == nil, "slot 3 updates, the changed slot 4 stays, and the cursor is empty")
+	local found = 0
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		found = found + (tostring(entry.message):find("slot 75 did not take", 1, true) and 1 or 0)
+	end
+	assert(found == 1, "the failed slot is logged once")
+end
+
+-- A busy cursor is never touched: the update waits until the player puts the item down, and for combat to end.
+do
+	local env, K, g = Setup()
+	Learn(env, HS2)
+	local item = { type = "item", id = 6948 }
+	g.cursor = item
+	Press(env, K, "Update bars")
+	assert(g.cursor == item and #g.placed == 0, "the held item stays on the cursor")
+	g.cursor = nil
+	env.SetCombat(true)
+	env.RunTimers()
+	assert(#g.placed == 0 and #env._blocked == 0, "a wait that ends in combat waits for combat to end too")
+	env.SetCombat(false)
+	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil, "then the update runs")
+end
+
+-- In combat Update bars waits for combat to end, says so, and makes no protected call.
+do
+	local env, K, g = Setup()
+	Learn(env, HS2)
+	env.SetCombat(true)
+	Press(env, K, "Update bars")
+	assert(#g.placed == 0 and #env._blocked == 0, "nothing is placed in combat")
+	assert(Has(Shown(env, K), "when combat ends"), "the player is told it waits")
+	env.SetCombat(false)
+	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil and #env._blocked == 0, "it runs when combat ends")
+end
+
+-- Update automatically swaps with no popup; Off does nothing.
+do
+	local env, K, g = Setup("auto")
+	Learn(env, HS2)
+	assert(Shown(env, K) == nil and Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil, "placed with no popup")
+	env, K, g = Setup("off")
+	Learn(env, HS2)
+	assert(Shown(env, K) == nil and Holds(g, 3, HS1) and #g.placed == 0, "Off shows and changes nothing")
+end
+
+-- The settings row: Ask by default, Update automatically and Off, with short help.
+do
+	local env, K = AB.New()
+	local row
+	for _, r in ipairs(K.Options.Get("ActionBars")) do
+		row = r.key == "ranks" and r or row
+	end
+	local o = row.options
+	assert(row.type == "dropdown" and row.label == "New spell ranks" and #row.help < 100 and K.Store.Module("ActionBars").ranks == "ask", "Ask is the default")
+	assert(#o == 3 and o[1].value == "ask" and o[2].value == "auto" and o[2].label == "Update automatically" and o[3].value == "off" and #env._errors == 0)
+end
+
+-- Secret names, ranks and slots are skipped without errors; plain ones still work.
+do
+	local env, K, g = Setup()
+	g.slots[100] = { type = env.Secret("spell"), id = env.Secret(HS1) }
+	g.spells[REND1].subtext = env.Secret("Rank 1")
+	g.spells[SHOUT2].name = env.Secret("Battle Shout")
+	Learn(env, HS2, REND2, SHOUT2)
+	local text = Shown(env, K)
+	assert(Has(text, "HEROIC STRIKE (RANK 2)") and not Has(text, "REND") and #env._errors == 0, tostring(text) .. AB.Errors(env))
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS2) and Holds(g, 5, REND1) and env.issecretvalue(g.slots[100].id), "only the plain slots change")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+print("test-actionbars-ranks: ok")

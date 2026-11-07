@@ -65,6 +65,7 @@ local defaults = {
 	rangeColor = Color("hostile"),
 	powerColor = Color("rare"),
 	tooltips = "always",
+	ranks = "ask",
 	text = {
 		hotkey = { font = "", size = Tokens.Size("caption"), outline = "NONE" },
 		count = { font = "", size = Tokens.Size("number"), outline = "NONE" },
@@ -218,6 +219,15 @@ function ns.Schema()
 				{ value = "always", label = L["Always"] },
 				{ value = "noCombat", label = L["Out of combat only"] },
 				{ value = "never", label = L["Never"] },
+			},
+		},
+		{ type = "header", label = L["Spell ranks"] },
+		{
+			type = "dropdown", key = "ranks", label = L["New spell ranks"], help = L["What happens when you learn a higher rank of a spell on your bars."],
+			options = {
+				{ value = "ask", label = L["Ask"] },
+				{ value = "auto", label = L["Update automatically"] },
+				{ value = "off", label = L["Off"] },
 			},
 		},
 	}

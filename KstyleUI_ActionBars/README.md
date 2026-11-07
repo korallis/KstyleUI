@@ -38,6 +38,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Blizzard.lua` | Hiding and restoring Blizzard's bars, and the gamepad check |
 | `Vehicle.lua` | The leave-vehicle button beside bar 1 |
 | `Preview.lua` | The settings window's live preview |
+| `Ranks.lua` | New spell ranks: the dialog, and the swap that puts a learned rank on the bars |
 | `Module.lua` | `Modules.Register`, `Enable`, `Disable`, events and settings changes |
 
 Tests: `Tools/regression/test-actionbars-data.lua` (the pure parts and the page snippet), `test-actionbars.lua` (bars, paging, bindings, Blizzard's bars, gamepad mode, combat, the settings page) and `test-actionbars-buttons.lua` (button states, flyouts, the leave-vehicle button, the pet and stance bars, the preview). `Tools/regression/actionbars_env.lua` is their fake game: action slots, bindings, a pet, forms, flyouts, secure frames that record protected calls in combat, and a restricted environment that runs the page snippet and wrapped clicks.
@@ -113,6 +114,14 @@ A flyout action shows a small chevron on the edge it opens from.
 ## Keybinds
 
 `Bindings.lua` reads `GetBindingKey` for each shown button's Blizzard binding name and points every key at the KstyleUI button with `SetOverrideBindingClick(owner, false, key, buttonName, "LeftButton")`. It clears and rebuilds them out of combat on `UPDATE_BINDINGS`, a settings change or a gamepad transition; in combat the old bindings keep working until the queued rebuild runs. The player's own bindings are never changed: the override bindings sit on top of them and vanish when the module or the bar turns off. The hotkey text is `ShortKey` of the first key, such as `S1` for Shift-1 and `M4` for mouse button 4, with `GetBindingText(key, true)` for a key it does not know.
+
+## New spell ranks
+
+`Ranks.lua` puts a newly learned rank on the bars. `LEARNED_SPELL_IN_SKILL_LINE` queues the spell, and half a second later the module checks the batch against action slots 1 to 180 with `GetActionInfo`. Those slots cover every page, so bar 1's stance, form and stealth pages count too: a warrior's stance bars are slots 73 to 108. A slot holds a lower rank when its spell has the same `C_Spell.GetSpellName` and a lower number in `C_Spell.GetSpellSubtext`, such as "Rank 2". The module skips a secret name, rank text or slot. When the player learns two ranks of one spell together, the higher rank wins. `SPELLS_CHANGED` is not used, because it does not say which spell is new, and scanning the bars on it would offer ranks a player keeps low on purpose.
+
+The **New spell ranks** setting picks what happens. **Ask**, the default, shows a KstyleUI dialog that lists each new rank with its icon and has **Update bars** and **Not now** buttons. A rank learned while the dialog is open joins it. **Update automatically** swaps with no dialog, and **Off** does nothing. Tests: `Tools/regression/test-actionbars-ranks.lua`.
+
+The swap runs out of combat only. For each slot that still holds the old rank, it calls `C_Spell.PickupSpell` with the new rank, then `PlaceAction(slot)`, then `ClearCursor()`. `PlaceAction` swaps the old rank onto the cursor and `ClearCursor` drops it, so the old rank never lands anywhere. The module then reads each slot again and logs once for a slot that did not take the new rank. **Update bars** in combat queues the swap through `Combat.Queue` and says so in a second dialog. While the cursor holds something, such as an item the player is moving, the swap waits and checks again every second. Macros, flyouts, the pet bar and the stance bar's form buttons never change, because only slots whose action type is `spell` qualify.
 
 ## Gamepad mode
 

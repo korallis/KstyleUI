@@ -5,6 +5,7 @@ local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
 
 ns.BUTTONS_PER_PAGE = 12
 ns.FIRST_BONUS_PAGE = 6
+ns.MAX_SLOT = 180
 
 ns.BARS = {
 	{ key = "bar1", kind = "action", name = "ActionBar1", binding = "ACTIONBUTTON", page = 1, paged = true, max = 12 },
