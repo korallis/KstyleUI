@@ -14,6 +14,7 @@ local function setup(opts)
 	local env, K, ns = G.New({
 		setup = function(e)
 			e._gamepad = opts.gamepad == true
+			e.InputUtil, e.C_InputInterfaceStyle = nil, nil
 			if opts.inputUtil ~= false then
 				e.InputUtil = {
 					IsGamepadUIEnabled = function()
