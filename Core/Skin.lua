@@ -405,8 +405,11 @@ local function PaintScroll(parts)
 	if parts.thumb then
 		parts.thumb:SetVertexColor(Widgets.MixTokens("text", THUMB_ALPHA, "accent", 1, parts.hoverT or 0))
 	end
-	for _, chevron in ipairs({ parts.back, parts.forward }) do
-		Widgets.Tint(chevron, "text")
+	if parts.back then
+		Widgets.Tint(parts.back, "text")
+	end
+	if parts.forward then
+		Widgets.Tint(parts.forward, "text")
 	end
 end
 
@@ -418,8 +421,11 @@ local function LayoutScroll(parts)
 	if parts.thumb then
 		parts.thumb:SetWidth(Widgets.Snap(parts.thumb, THUMB_UNITS))
 	end
-	for _, chevron in ipairs({ parts.back, parts.forward }) do
-		Widgets.Size(chevron, CHEVRON_SIZE, CHEVRON_SIZE)
+	if parts.back then
+		Widgets.Size(parts.back, CHEVRON_SIZE, CHEVRON_SIZE)
+	end
+	if parts.forward then
+		Widgets.Size(parts.forward, CHEVRON_SIZE, CHEVRON_SIZE)
 	end
 end
 
