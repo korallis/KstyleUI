@@ -340,6 +340,20 @@ function A.Engine(env, opts)
 		FlowDirection = { Left = -1, Right = 1, Up = 1, Down = -1 },
 	}
 	env.INVSLOT_MAINHAND, env.INVSLOT_OFFHAND, env.INVSLOT_RANGED = 16, 17, 18
+	-- Blizzard_SharedXML/Mainline/InputUtil.lua and C_InputInterfaceStyle. env._interfaceStyle is the
+	-- current style; fire INPUT_DEVICE_INTERFACE_TRANSITION after changing it, as the client does.
+	env.Enum.InputDeviceInterfaceType = { Mkb = 0, Gamepad = 1 }
+	env._interfaceStyle = env.Enum.InputDeviceInterfaceType.Mkb
+	env.C_InputInterfaceStyle = {
+		GetCurrentStyle = function()
+			return env._interfaceStyle
+		end,
+	}
+	env.InputUtil = {
+		IsGamepadUIEnabled = function()
+			return env.C_InputInterfaceStyle.GetCurrentStyle() == env.Enum.InputDeviceInterfaceType.Gamepad
+		end,
+	}
 	env.C_Secrets = {
 		ShouldAurasBeSecret = function()
 			return env._aurasSecret == true

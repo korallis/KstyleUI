@@ -22,14 +22,14 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
-`Auras.xml` loads the files in this order. Tests: `Tools/regression/test-auras-model.lua` (the pure model) and `test-auras.lua` (the module against a fake AuraContainer engine in `Tools/regression/auras_env.lua`).
+`Auras.xml` loads the files in this order. Tests: `Tools/regression/test-auras-model.lua` (the pure model), `test-auras.lua` (the module against a fake AuraContainer engine in `Tools/regression/auras_env.lua`) and `test-auras-gamepad.lua` (the gamepad interface).
 
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
 | `Model.lua` | Defaults, limits and dropdown choices; the pure maths that turn settings into engine options, element sizes, footprints and capacity; the preview's timer text |
 | `Button.lua` | Dresses one engine aura button: a kit chamfered tile, the masked icon, the timer and stack texts, the nine-piece dispel border, and the engine bindings |
-| `Panel.lua` | The two containers, their Layout elements, weapon enchantments, the restyle gate and Blizzard's frames |
+| `Panel.lua` | The two containers, their Layout elements, weapon enchantments, the restyle gate, Blizzard's frames and the gamepad interface switch |
 | `Preview.lua` | The settings window's live preview, drawn with `Widgets.IconButton` |
 | `Module.lua` | `Modules.Register`, the settings schema, the preview builder and the `/kstyle test` check |
 
@@ -49,7 +49,8 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 - **Right-click cancel** is `SetCancelAuraButtons("RightButtonUp")` on buffs and weapon enchantments. The engine's secure `OnClick` cancels the aura, so it works in combat.
 - **Sorting** maps to `AuraContainerSortMethod`: time left (`ExpirationOnly`), name (`NameOnly`), order applied (`AuraInstanceIDOnly`) or Blizzard's (`Default`), each normal or reversed.
 - **Weapon enchantments** share the buff rows. An active enchantment takes one buff's place (`WEAPON_ENCHANT_CHANGED`, `WEAPON_SLOT_CHANGED`), so the panel never grows past its rows.
-- **Blizzard's `BuffFrame` and `DebuffFrame`** are hidden through `Safe.HideBlizzard` while the panel that replaces each one is built, and come back through `Safe.RestoreBlizzard` when the module turns off or the player turns **Hide Blizzard's buff frames** off.
+- **Blizzard's `BuffFrame` and `DebuffFrame`** are hidden through `Safe.HideBlizzard` while the panel that replaces each one is built, and come back through `Safe.RestoreBlizzard` when the module turns off, the player turns **Hide Blizzard's buff frames** off, or the gamepad interface is on.
+- **Gamepad interface.** While `InputUtil.IsGamepadUIEnabled()` is true, Blizzard's `BuffFrame` and `DebuffFrame` stay on screen and KstyleUI's two panels hide, so the player sees one set of buffs. `INPUT_DEVICE_INTERFACE_TRANSITION` swaps them back and forth through `KstyleUI.Combat.Queue`, so a switch in combat lands when combat ends.
 
 ## Settings
 
@@ -83,4 +84,5 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 - **The art lives on a child frame.** Display elements must be descendants of the aura button, and the button forbids untrusted scripts and reparenting. Every KstyleUI region sits on one plain child frame (`skin`), and none of them needs a script.
 - **Layout places a holder, not the container.** The container resizes itself, and Layout's mouseover rule hooks `OnEnter` on an element's children four levels deep, which would reach aura buttons. So Layout places an empty `holder` sized to the full footprint, and the container lives on a sibling `host` that mirrors the holder's scale, alpha, strata and visibility through `hooksecurefunc`. The host sits two levels above the holder, so the aura buttons keep the mouse for tooltips and cancelling. With the mouseover rule the panel appears when the pointer reaches the panel's area between icons.
 - **Sizes are elements, not frames.** The flow layout reads `elementWidth` and `elementHeight` from the group layout, so the container lays out correctly even while a button restyle waits behind the gate. Columns become the maximum line size, rows become `maxFrameCount`, and both are snapped to whole pixels in the host's scale.
+- **The gamepad needs Blizzard's frames.** Forever's gamepad **View buffs** shortcut (`Blizzard_GamepadActionBars`, `ShortcutsActionBar.lua`) and radial segment (`Blizzard_Gamepad`, `GamepadRadial.lua`) call `BuffFrame:SetGamepadFocus()` and then `DebuffFrame:SetGamepadFocus()`. That check passes on a frame under `Safe`'s hidden parent, because `IsShown()` stays true, so the controller would walk invisible aura buttons. A gamepad layout of KstyleUI's own comes after the first release (design spec, Decisions). The module reads the style from `InputUtil.IsGamepadUIEnabled`, then `C_InputInterfaceStyle.GetCurrentStyle`; if neither answers, or the answer is secret, it takes the keyboard and mouse path and logs it once.
 - **Fallbacks.** Without the AuraContainer engine, or if it refuses a group, that panel is not built, Blizzard's frame stays, and the devlog and `/kstyle test` say so. Missing formatters, colour curves or the dispel style enum fall back to the engine's defaults with one devlog line each.

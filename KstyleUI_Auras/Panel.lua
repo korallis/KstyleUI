@@ -1,4 +1,4 @@
--- Panel.lua: the buff and debuff containers on the AuraContainer engine, their Layout elements, weapon enchantments, the aura-secrecy gate and Blizzard's frames.
+-- Panel.lua: the buff and debuff containers on the AuraContainer engine, their Layout elements, weapon enchantments, the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
@@ -16,6 +16,7 @@ local HOST_LEVEL = 2
 local REST_EDGE_ALPHA = 0.5
 local GATE_EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_ENABLED" }
 local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYER_ENTERING_WORLD" }
+local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
 local EDGE_TOKENS = { buffs = "accent", debuffs = "hostile" }
 local FALLBACK = {
@@ -24,7 +25,7 @@ local FALLBACK = {
 }
 
 local groups = {}
-local running, pending, waiting = false, false, false
+local running, pending, waiting, gamepad = false, false, false, false
 local logged = {}
 local formatters = {}
 
@@ -41,6 +42,45 @@ end
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
+end
+
+local function Answer(fn)
+	local ok, value = pcall(fn)
+	if ok and not IsSecret(value) then
+		return true, value
+	end
+	return false
+end
+
+function Panel.Gamepad()
+	local input = InputUtil
+	if type(input) == "table" and type(input.IsGamepadUIEnabled) == "function" then
+		local ok, enabled = Answer(input.IsGamepadUIEnabled)
+		if ok then
+			return enabled == true
+		end
+	end
+	local style, types = C_InputInterfaceStyle, Enum and Enum.InputDeviceInterfaceType
+	if type(style) == "table" and type(style.GetCurrentStyle) == "function" and types and types.Gamepad ~= nil then
+		local ok, current = Answer(style.GetCurrentStyle)
+		if ok then
+			return current == types.Gamepad
+		end
+	end
+	LogOnce("input", "the interface style cannot be read; the auras take the keyboard and mouse path")
+	return false
+end
+
+local function SetGamepad(now)
+	if now == gamepad then
+		return
+	end
+	gamepad = now
+	if now then
+		Log("gamepad interface on: Blizzard's buff frames return for the gamepad's View buffs, and KstyleUI's aura panels hide")
+	else
+		Log("gamepad interface off: KstyleUI's aura panels return, and Blizzard's buff frames follow the hide setting")
+	end
 end
 
 function Panel.Open()
@@ -296,7 +336,12 @@ local function Init(desc, button)
 	Button.Style(entry, desc.ctx)
 end
 
-local function Mirror(holder, host)
+local function ShowHost(desc)
+	desc.host:SetShown(desc.holder:IsShown() and not gamepad)
+end
+
+local function Mirror(desc)
+	local holder, host = desc.holder, desc.host
 	host:ClearAllPoints()
 	host:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
 	host:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
@@ -304,7 +349,7 @@ local function Mirror(holder, host)
 	host:SetAlpha(holder:GetAlpha())
 	host:SetFrameStrata(holder:GetFrameStrata())
 	host:SetFrameLevel(holder:GetFrameLevel() + HOST_LEVEL)
-	host:SetShown(holder:IsShown())
+	ShowHost(desc)
 	hooksecurefunc(holder, "SetScale", function(_, scale)
 		host:SetScale(scale)
 	end)
@@ -316,7 +361,7 @@ local function Mirror(holder, host)
 		host:SetFrameLevel(holder:GetFrameLevel() + HOST_LEVEL)
 	end)
 	local function follow()
-		host:SetShown(holder:IsShown())
+		ShowHost(desc)
 	end
 	hooksecurefunc(holder, "Show", follow)
 	hooksecurefunc(holder, "Hide", follow)
@@ -404,7 +449,7 @@ local function Build(name)
 		AddEnchants(desc)
 	end
 	desc.holder = CreateFrame("Frame", nil, root)
-	Mirror(desc.holder, host)
+	Mirror(desc)
 	Register(desc)
 	Log(format("%s: %d aura buttons on the AuraContainer engine", name, #desc.buttons))
 	return desc
@@ -466,7 +511,7 @@ local function BlizzardFrame(name)
 end
 
 local function Blizzard()
-	local hide = running and K.Store.Module(MODULE).hideBlizzard ~= false
+	local hide = running and not gamepad and K.Store.Module(MODULE).hideBlizzard ~= false
 	for _, name in ipairs(Model.GROUPS) do
 		local desc = groups[name]
 		local frame = BlizzardFrame(name)
@@ -520,9 +565,28 @@ local function OnEnchant()
 	end
 end
 
+local function Refresh()
+	if not running then
+		return
+	end
+	SetGamepad(Panel.Gamepad())
+	for _, name in ipairs(Model.GROUPS) do
+		local desc = groups[name]
+		if desc and not desc.failed then
+			ShowHost(desc)
+		end
+	end
+	Blizzard()
+end
+
+local function OnTransition()
+	K.Combat.Queue(Refresh)
+end
+
 function Panel.Enable()
 	running = true
 	pending = false
+	SetGamepad(Panel.Gamepad())
 	for _, name in ipairs(Model.GROUPS) do
 		local desc = groups[name]
 		if not desc then
@@ -538,6 +602,7 @@ function Panel.Enable()
 	for _, event in ipairs(ENCHANT_EVENTS) do
 		Listen(event, OnEnchant)
 	end
+	Listen(INPUT_EVENT, OnTransition)
 	for _, name in ipairs(CALLBACKS) do
 		K.Callbacks.Register(name, MODULE, HANDLERS[name])
 	end
@@ -568,5 +633,6 @@ function Panel.Status()
 	if #failed > 0 then
 		return false, "no AuraContainer for " .. concat(failed, ", ") .. "; Blizzard's frames kept"
 	end
-	return true, "aura buttons: " .. concat(built, ", ")
+	local path = gamepad and "; gamepad interface, so Blizzard's frames show" or ""
+	return true, "aura buttons: " .. concat(built, ", ") .. path
 end
