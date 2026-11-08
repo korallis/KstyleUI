@@ -121,5 +121,18 @@ for _, want in ipairs({ "NORMAL", "HOVER", "PRESSED", "COOLDOWN", "PROC", "DISAB
 	assert(fullTexts[want], "the button scene shows " .. want)
 end
 assert(buttonSwipes >= 2, "both cooldown buttons draw their swipe")
+-- The cooldowns scene: the mirror's buff bars draw their countdowns right-aligned through the Cooldown's
+-- own font string, and Blizzard's restyled viewer items draw with the dark button body.
+local cooldowns = check("cooldowns", dofile("Tools/render/scenes/cooldowns.lua")())
+local rightAligned, fills = {}, 0
+for _, item in ipairs(cooldowns.items) do
+	if item.kind == "text" and item.justifyH == "RIGHT" then
+		rightAligned[item.text] = true
+	elseif item.kind == "texture" and item.bar then
+		fills = fills + 1
+	end
+end
+assert(rightAligned["24"] and rightAligned["12"], "the buff bars' countdowns draw right-aligned")
+assert(fills >= 2, "the buff bars draw their fills")
 
 print("ok")
