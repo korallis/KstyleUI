@@ -65,8 +65,8 @@ Each element is a holder frame registered with Layout as resizable, at its footp
 | `<bar>.border` | `true` | The chamfered frame around the bar |
 | `xp.rested`, `xp.restedColor` | `true`, `rare` at 50% | The rested overlay and its colour |
 | `honor.show` | `pvp` | `pvp` or `always` |
-| `<bar>.text` | `valuePercent` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue` |
-| `<bar>.textHover` | `true` | Show the text only under the pointer |
+| `<bar>.text` | `shortPercent` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent` |
+| `<bar>.textHover` | `false` for XP, `true` for the others | Show the text only under the pointer |
 | `<bar>.textPosition` | `CENTER` | On, above, below, left or right of the bar |
 | `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font |
 | `<bar>.fontSize` | 12 for experience (the mockup's "XP 32%"), 9 (the `caption` size) for the others | 6 to 24, times the Appearance page's text size |

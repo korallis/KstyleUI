@@ -11,7 +11,7 @@ These images are AI concept art for KstyleUI's look. They are design references,
 | `03_windows_rogue.jpg` | Character sheet, bags and tooltip | Rogue `#FFF468` |
 | `04_settings_druid.jpg` | Settings window. The UI behind the window is Blizzard's default, so ignore it. | Druid `#FF7C0A` |
 | `05_kit_hunter.jpg` | Design-system sheet | Hunter `#AAD372` |
-| `icons_A_luminous.jpg` | Icon pilot, set A: white light art, tinted in game | None |
+| `icons_A_luminous.jpg` | Icon pilot, set A: white light art, tinted in game. Set A was retired on 2026-11-08; only set B ships, as the icon pack in [`docs/icons.md`](../../icons.md) | None |
 | `icons_A_tint_mage.jpg` | Set A tinted with one class colour, made locally from `icons_A_luminous.jpg` | Mage `#3FC7EB` |
 | `icons_A_tint_school.jpg` | Set A tinted per spell school, made locally from `icons_A_luminous.jpg` | Per school |
 | `icons_B_fullcolour.jpg` | Icon pilot, set B: full-colour painted art | None |

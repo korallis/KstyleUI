@@ -72,8 +72,6 @@ KstyleUI.Widgets.ScrollList(parent, opts) -> Frame
 KstyleUI.Widgets.StatusBar(parent, opts) -> StatusBar
 KstyleUI.Widgets.Tooltip() -> GameTooltip-like Frame
 KstyleUI.Widgets.Glow(frame, opts) -> handle      -- proc and selection glow
-KstyleUI.Icons.Resolve(fileID) -> texturePath | nil
-KstyleUI.Icons.Apply(texture, fileID, school)     -- sets texture and tint for the active set
 KstyleUI.Layout.Register(frame, key, defaultPosition, opts)  -- position = { anchor, x, y }; opts = { resizable, scalable, aspect, minWidth, minHeight, maxWidth, maxHeight, label }
 KstyleUI.Options.Register(module, schema)        -- declarative rows: toggle, slider, dropdown, color, font, texture, text, header
 KstyleUI.Store.Profile() -> table                 -- the active profile, with defaults
@@ -112,7 +110,7 @@ Repository rules, the TOC walker, a loadable addon skeleton, the regression runn
 | Widgets: toggle, slider, dropdown, edit box | `Core/Widgets/*.lua` with tests |
 | Widgets: scroll list, status bar, tooltip, glow | `Core/Widgets/*.lua` with tests |
 | Layout Mode | `Core/Layout/*.lua`, `test-layout.lua` |
-| Icons service | `Core/Icons.lua`, `test-icons.lua`. Lookup and tinting, no art yet. |
+| Icons service | `Core/Icons.lua`, `test-icons.lua`. Lookup and tinting, no art yet. Removed on 2026-11-08: the icons ship as a loose-file pack ([`docs/icons.md`](../../icons.md)) |
 | Options window | `KstyleUI_Options/`, the rail, search, cards and preview pane |
 | First-run setup | `Core/Setup/*.lua` |
 | DevTest | `/kstyle test` and the `devlog` |
@@ -134,7 +132,7 @@ Eight module plans, run in parallel, plus icon set A.
 | `KstyleUI_Chat` | Panel and tabs, edit box, copy, links, names |
 | `KstyleUI_Tooltips` | Glass tooltip, colours, IDs, anchoring |
 | `KstyleUI_DataBars` | XP and reputation bars, micro menu, bag bar, data strip |
-| Icon set A | Full generation, review and the `KstyleUI_Icons` data addon |
+| Icon set A | Full generation, review and the `KstyleUI_Icons` data addon. Superseded on 2026-11-08: set A and the `Icons` service were removed, and the set B repaints ship as a loose-file pack ([`docs/icons.md`](../../icons.md)) |
 | Release workflow | `.github/workflows/release.yml`: on a `v*` tag on `main`, package with the BigWigs packager and upload to CurseForge, Wago and GitHub, using secrets the owner sets |
 
 **Exit:** the owner levels a character with the full HUD and confirms it in game. `staging` may be promoted to `main` as the first public beta.
@@ -153,6 +151,6 @@ Eight module plans, run in parallel, plus icon set A.
 
 ## Phase 4: Window skins and icon set B
 
-One task per Blizzard window in `KstyleUI_Skins`: character sheet, spellbook and talents, quest log and objective tracker, world map, game menu, group finder, mail, merchant, trainer, professions, social, Legacy, loot, popups, ready check. Icon set B and `KstyleUI_IconsColour` run alongside after the owner tops up Higgsfield credits.
+One task per Blizzard window in `KstyleUI_Skins`: character sheet, spellbook and talents, quest log and objective tracker, world map, game menu, group finder, mail, merchant, trainer, professions, social, Legacy, loot, popups, ready check. Icon set B runs alongside after the owner tops up Higgsfield credits; it ships as a loose-file pack, not the `KstyleUI_IconsColour` addon first planned ([`docs/icons.md`](../../icons.md)).
 
 **Exit:** every window in the list wears KstyleUI, and the owner confirms version 1.0 in game.

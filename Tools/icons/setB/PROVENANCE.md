@@ -1,4 +1,4 @@
-# KstyleUI_IconsColour provenance
+# Icon set B provenance
 
 Icon set B. Every icon in `Icons/` has a row below. `Tools/icons/iconset.py package` writes this file and the icons from the generation records; do not edit it by hand.
 

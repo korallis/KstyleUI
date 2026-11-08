@@ -442,7 +442,7 @@ Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`,
 | --- | --- |
 | `SetOwner(owner, anchor, x, y)` | Clears the lines and anchors to `owner`: `"ANCHOR_RIGHT"` (default), `"ANCHOR_LEFT"`, `"ANCHOR_TOP"` or `"ANCHOR_BOTTOM"`, 6 units away, plus `x` and `y`. |
 | `IsOwned(frame) -> boolean` | |
-| `SetIcon(texture, color)` | The design's item icon: a 50-unit chamfered `buttonFill` tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask` through `Icons.Apply`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
+| `SetIcon(texture, color)` | The design's item icon: a 50-unit chamfered `buttonFill` tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
 | `AddTitle(text, color)` | The design's title: `body` text in capitals, tracked with a thin space between the letters, `textEmphasis` by default. |
 | `AddCaption(text, color)` | Upper-case tracked caption text, `text` by default |
 | `AddLine(text, color, wrap)` | Body text that wraps unless `wrap` is `false` |

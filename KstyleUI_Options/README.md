@@ -26,7 +26,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the first time, and `Window.lua` hands it `Window.Show` through `Options.SetWindow`. `/kstyle`, the KstyleUI category in Blizzard's Settings panel and the addon compartment all call `Options.Open` (see `Core/OptionsEntry.lua` and `docs/core-services.md`).
 
-- `Show(page)` builds the window on first use, opens it on `page`, or on the last page this session, and raises it. `page` is a page id: `General`, `Elements`, `Profiles`, `About` or a module name, in any letter case. `Appearance`, `Icons` and `Widgets` open General.
+- `Show(page)` builds the window on first use, opens it on `page`, or on the last page this session, and raises it. `page` is a page id: `General`, `Elements`, `Profiles`, `About` or a module name, in any letter case. `Appearance` and `Widgets`, the two sections of the General page, open General.
 - `Show()` with no page closes an open window, so `/kstyle` toggles it.
 - The window plays the kit panel's open motion: alpha 0 to 1 over `panelOpen` while it rises `panelRise` with a `panelOvershoot` overshoot. It closes with a `panelClose` fade.
 - Escape closes it through `Widgets.EscapeCloses`, its own key handler. It never touches `UISpecialFrames`. Escape in the search field only clears the field's focus.

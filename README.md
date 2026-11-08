@@ -20,26 +20,27 @@ and a module that is off costs nothing: no frames, no events and no hooks.
 
 | Module | What it does |
 | --- | --- |
-| Core | The design system, the settings window, Layout Mode, profiles, the first-run setup and `/kstyle` |
+| Core | The design system, the settings window (with its General page's panel opacity, panel shadows, interface sounds and tooltip size), Layout Mode, profiles, the first-run setup and `/kstyle` |
 | Unit Frames | Player, target, target of target, focus, focus target, pet and boss 1 to 5, with portraits, cast bars, frame auras, the class resource, threat glow and status icons |
 | Group Frames | Party and raid frames up to 40, with class colours, roles, range fade, incoming heals, absorbs, debuffs and the dispel highlight |
-| Action Bars | Secure action bars with stance, stealth, form and possess paging, pet and stance bars, keybind text, cooldowns, proc glows, range and usability shading, and fade on mouseover |
+| Action Bars | Secure action bars with stance, stealth, form and possess paging, pet and stance bars, keybind text, cooldowns, proc glows, range and usability shading, fade on mouseover, and a dialog that puts a newly learned spell rank on the bars |
 | Cooldowns | Blizzard's Cooldown Manager in KstyleUI's style: essential and utility rows in the HUD band, tracked buff icons and bars |
 | Auras | Your buffs and debuffs under the minimap |
 | Nameplates | A KstyleUI plate on each nameplate, with health, cast bar, threat colour and your debuffs |
 | Combat Text | Damage and heal numbers on KstyleUI's frames and plates, and KstyleUI's font for the game's own numbers |
 | Minimap | A square minimap with the zone and clock inside its bottom edge, a button column and an addon-button drawer |
-| Chat | Glass chat panels, tabs with an accent underline, timestamps, short channel names, clickable links, class-coloured names and a copy window |
+| Chat | Glass chat panels, tabs with an accent underline, timestamps, short channel names, clickable links, class-coloured names, a copy window, and a plus glyph in the tab row that opens the chat settings |
 | Bags | Combined bags and bank with the keyring, search, sorting, quality borders and junk selling |
 | Tooltips | Glass tooltips with quality and class colours, a health bar, optional IDs and cursor anchoring |
 | Data Bars | XP, reputation and honour bars, the micro menu, the bag bar and a data strip with frame rate, latency, gold, durability and time |
 | Meters | A damage meter, a threat meter and a swing timer |
-| Skins | Blizzard's windows in KstyleUI's style: the character sheet, spellbook, talents, world map, quest log, objective tracker, game menu, group finder, mail, merchant, trainers, professions, social windows, Legacy, loot, popups, ready check and the AddOns list |
+| Skins | Blizzard's windows in KstyleUI's style: the character sheet, spellbook, talents, world map, quest log, objective tracker, game menu, group finder, mail, merchant, trainers, professions, social windows, Legacy, loot, popups, ready check and the AddOns list, and the RestedXP Guides addon's windows |
 
 Every element KstyleUI shows can be moved, resized or scaled in Layout Mode and from the settings
 window, and every module has its own fonts, textures, colours and sizes. No module compares or does
 arithmetic on Forever's secret values, every protected change made in combat waits for combat to end,
-and the action bars, group frames, bags and auras hand back to Blizzard's in the gamepad interface.
+and the action bars, group frames, bags, auras, and the data bars' micro menu and bag bar hand back to
+Blizzard's in the gamepad interface.
 
 ## Icon pack
 

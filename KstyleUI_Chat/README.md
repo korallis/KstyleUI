@@ -44,7 +44,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 
 | Key | Default | Row |
 | --- | --- | --- |
-| `panelOpacity` | the `surface` token's alpha, 0.88 | The glass behind the chat, 0 to 1. The text stays fully visible. |
+| `panelOpacity` | the `surface` token's alpha, 0.97 | The glass behind the chat, 0 to 1. The text stays fully visible. |
 | `shadow` | `true` | The panel's soft shadow |
 | `copyButton` | `true` | The copy glyph beside the plus at the right end of the tab row |
 | `editBox` | `typing` | `typing` shows the edit box only while the player types; `always` keeps the game's resting box under the messages at Blizzard's alpha and leaves it room. In the game's Classic chat style Blizzard hides the resting box itself, so `always` only keeps the room. |
