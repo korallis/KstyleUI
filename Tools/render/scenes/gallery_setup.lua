@@ -62,7 +62,7 @@ return Common.Run(function()
 
 	local function add(env, K, panel, hover, spec)
 		frames:Add(env, panel, spec)
-		scenes[#scenes + 1] = Scene.Build(env, { hover = hover })
+		scenes[#scenes + 1] = Gallery.Build(env, { hover = hover })
 		lastEnv, lastK = env, K
 		local err = Common.Errors(env, K)
 		assert(not err, spec.name .. ": " .. tostring(err))

@@ -111,7 +111,7 @@ local function resource(frames, x, y)
 		caption = "The class resource under a rogue's player frame: five combo point pips, three lit in the rogue's class colour; each pip is a one-point status bar on a dot, its empty disc the button body.",
 		match = "Draws no chrome of its own: the empty pips are buttonFill discs, the bar grade's dark track, as the mockup's experience bar track; the mockup shows a warrior, so it has no combo points to compare.",
 	})
-	local scene = Scene.Build(env, { time = env._time })
+	local scene = Gallery.Build(env, { time = env._time })
 	errors(scene, env, K)
 	return scene
 end
@@ -177,7 +177,7 @@ return Common.Run(function()
 		button:ClearAllPoints()
 		button:SetPoint("TOPLEFT", a.container, "TOPLEFT", (i - 1) * (size + spacing), 0)
 		button:SetSize(size, size)
-		entry.icon:SetTexture(DEBUFF_ICONS[i])
+		entry.icon:SetTexture(env.Secret(DEBUFF_ICONS[i]))
 		Widgets.SetText(entry.count, i == 1 and "3" or "")
 		Widgets.SetText(entry.timer, ({ "12s", "8s", "2s" })[i])
 		if i == 2 and entry.dispel then
@@ -257,7 +257,7 @@ return Common.Run(function()
 	Gallery.Ticks(U.W, env, 40)
 	env.RunTimers()
 	local note = portraits(env)
-	local main = Scene.Build(env, { time = env._time })
+	local main = Gallery.Build(env, { time = env._time })
 	main.log[#main.log + 1] = note
 	local scene = Scene.Merge({ main, resource(frames, 60, 430) })
 	return frames:Finish(scene, env, K, "gallery unitframes")

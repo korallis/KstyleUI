@@ -99,7 +99,7 @@ function Skins.Scene(key)
 	end
 	env.RunTimers()
 	S.W.Settle(env)
-	local scene = Common.Scene.Build(env)
+	local scene = Gallery.Build(env)
 	for _, skin in ipairs(spec.skins) do
 		if not ns.Skins.IsApplied(skin) then
 			scene.log[#scene.log + 1] = "error: the " .. skin .. " skin did not apply to " .. key

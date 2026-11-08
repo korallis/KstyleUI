@@ -5,7 +5,6 @@
 -- bank bag strip and the Buy tab button; and the options page's live preview on a plain holder.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
-local Scene = Common.Scene
 
 local function at(frame, root, x, y)
 	frame:ClearAllPoints()
@@ -119,7 +118,7 @@ return Common.Run(function()
 		match = "Each sample slot is the button grade's body, chamfer and rim, as the mockup's buff icons; the plate behind them is the render's backdrop, not a panel, because the preview pane belongs to the Options module.",
 	})
 
-	local scene = Scene.Build(env, { time = env._time, hover = hover })
+	local scene = Gallery.Build(env, { time = env._time, hover = hover })
 	scene.log[#scene.log + 1] = "icons: " .. (set and ("custom set " .. set) or "Blizzard's, with the sets standing in for icons the folder lacks")
 	return frames:Finish(scene, env, K, "gallery bags")
 end)

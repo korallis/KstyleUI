@@ -104,7 +104,7 @@ local function raid(frames, x, y)
 		match = "Glass fill, two-line edge and 3.5-unit chamfer as the mockup's nameplate frame; raid tiles draw no drop shadow (Style.lua keeps the shadow for party frames), so the 3-unit gaps between them stay clean.",
 		rect = Gallery.Union(env, shown),
 	})
-	local scene = Scene.Build(env)
+	local scene = Gallery.Build(env)
 	errors(scene, env, K)
 	return scene
 end
@@ -142,7 +142,7 @@ return Common.Run(function()
 		button:ClearAllPoints()
 		button:SetPoint("TOPLEFT", container, "TOPLEFT", (i - 1) * (size + spacing), 0)
 		button:SetSize(size, size)
-		button._aura.icon:SetTexture(icon)
+		button._aura.icon:SetTexture(env.Secret(icon))
 		Widgets.SetText(button._aura.count, i == 1 and "2" or "")
 		if i == 2 then
 			local r, g, b = Tokens.Color(MAGIC)
@@ -190,7 +190,7 @@ return Common.Run(function()
 			f.portrait:SetColorTexture(0.33, 0.28, 0.22, 1)
 		end
 	end
-	local main = Scene.Build(env)
+	local main = Gallery.Build(env)
 	main.log[#main.log + 1] = face and "party portraits are one crop of the mockup; the game draws each unit's model" or "party portraits are flat stand-ins; run Tools/render/standins.py for the mockup's face"
 	local scene = Scene.Merge({ main, raid(frames, 60, 420) })
 	return frames:Finish(scene, env, K, "gallery groupframes")

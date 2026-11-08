@@ -203,7 +203,7 @@ return Common.Run(function()
 		match = "Glass as the mockup's chat panel (window grade); the tab tile is the button body with the accent edge.",
 	})
 
-	local scene = Scene.Build(env)
+	local scene = Gallery.Build(env)
 	scene.log[#scene.log + 1] = "chat lines are laid out by the scene; the game's ScrollingMessageFrame wraps and spaces them itself"
 	scene.log[#scene.log + 1] = "the edit box is anchored by the scene under its window, as FloatingChatFrame anchors it"
 	return frames:Finish(scene, env, K, "gallery chat")

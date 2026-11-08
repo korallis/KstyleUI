@@ -1011,6 +1011,8 @@ function Scene.Build(env, opts)
 	local function textureItem(region, frame, alpha)
 		local item = { kind = "texture", alpha = round4(alpha) }
 		local path, wrapH, wrapV = state(region, "Texture")
+		-- A secret file ID (the aura engine's secretwrap) is revealed here, as the engine draws it.
+		path = reveal(env, path)
 		if path ~= nil and colourWins(region) then
 			path = nil
 		end

@@ -5,7 +5,6 @@
 -- at its default position.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
-local Scene = Common.Scene
 local SCREEN_H = 1080
 local PREVIEW_W, PREVIEW_H = 256, 240
 local BAG_ICONS = { [31] = 133634, [32] = 133635, [33] = 133636 }
@@ -114,7 +113,7 @@ return Common.Run(function()
 
 	D.W.Settle(env)
 	env.RunTimers()
-	local scene = Scene.Build(env)
+	local scene = Gallery.Build(env)
 	scene.log[#scene.log + 1] = portraitNote or "the character button got no portrait"
 	scene.log[#scene.log + 1] = "micro glyphs are Blizzard's atlases from the atlas cache; bag icons are bag file IDs from the icon set"
 	return frames:Finish(scene, env, K, "gallery databars")

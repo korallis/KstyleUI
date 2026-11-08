@@ -81,9 +81,20 @@ for _, item in ipairs(hud.items) do
 end
 assert(hudPlus == 1, "the HUD's chat draws the plus glyph once, got " .. hudPlus)
 
--- The buff row under the minimap: five icons with their time left, from the Auras module.
+-- The buff row under the minimap: five icons with their time left, from the Auras module. The aura engine
+-- paints each tile's icon itself as a secret, so the row shows the game's own art: the Blizzard folder's file
+-- when the machine has it, else the texture keeps its file ID (CI has no Blizzard icon folder).
 assert(texts["24s"] and texts["8m"], "the buff row shows its timers")
-assert(files["KstyleUI_IconsColour/Icons/" .. Hud.Classes.WARRIOR.buffRow[1][2] .. ".png"], "the buff row shows Battle Shout")
+local gameArt, fromSet = {}, false
+for _, item in ipairs(scenes[4].items) do
+	if item.kind == "texture" and item.fileID then
+		gameArt[tostring(item.fileID)] = true
+		fromSet = fromSet or (item.file ~= nil and item.file:find("KstyleUI_Icons", 1, true) ~= nil)
+	end
+end
+assert(Hud.Order()[4] == "auras", "the fourth HUD module is the buff row")
+assert(gameArt[tostring(Hud.Classes.WARRIOR.buffRow[1][2])], "the buff row shows Battle Shout as the game draws it")
+assert(not fromSet, "the buff row draws nothing from a set: the engine's file ID is a secret")
 
 -- Combat text: the crit on the crocolisk and the heal on the player.
 assert(texts["142"] and texts["+168"], "the combat numbers 142 and +168 are drawn")

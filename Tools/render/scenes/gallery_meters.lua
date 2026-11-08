@@ -295,7 +295,7 @@ return Common.Run(function()
 	local frames = Gallery.Frames()
 	local env1, K1 = live(frames)
 	local env2, K2 = skin(frames)
-	local scene = Scene.Merge({ Scene.Build(env1), Scene.Build(env2) })
+	local scene = Scene.Merge({ Gallery.Build(env1), Gallery.Build(env2) })
 	scene.log[#scene.log + 1] = "the restyled Blizzard window is a fake laid out by the scene; the game lays out its own Damage Meter"
 	local err = Common.Errors(env2, K2)
 	if err then

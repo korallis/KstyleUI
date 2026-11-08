@@ -5,7 +5,7 @@
 --   local frames = Gallery.Frames()
 --   frames:Add(env, panel, { name = "options_window", title = "Options window", grade = "window", reference = "chat",
 --                            caption = "...", match = "..." })
---   return frames:Finish(Common.Scene.Build(env), env, K, "gallery options")
+--   return frames:Finish(Gallery.Build(env), env, K, "gallery options")
 --
 -- Each entry becomes final/frames/kstyle_<name>.png, compared in the manifest against the mockup crop the
 -- grade names (Gallery.REFERENCES): window and panel frames against the mockup's glass panels, button frames
@@ -27,6 +27,12 @@ Gallery.REFERENCES = {
 
 local DEFAULT_PAD = 14
 
+-- Every gallery scene renders as the owner's default does: the Icons module on with set B, and a numeric file
+-- ID drawn from the Blizzard icon folder only, so only a texture the addon itself points at a set path shows
+-- set B. Saved turns the module on unless the scene names its own Icons section, Setup installs the data
+-- addons, and Build passes the icon folders to Scene.Build.
+Gallery.ICON_SET = "B"
+
 -- Saved(modules, extra) -> saved data that turns each named module on and marks the first-run setup seen.
 -- modules is a list of names, or a table of name -> section fields merged over { enabled = true }.
 function Gallery.Saved(modules, extra)
@@ -42,6 +48,9 @@ function Gallery.Saved(modules, extra)
 		end
 		profile[name] = section
 	end
+	if profile.Icons == nil then
+		profile.Icons = Common.IconsSection(Gallery.ICON_SET)
+	end
 	local saved = { version = 2, profiles = { Default = profile }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	for k, v in pairs(extra or {}) do
 		saved[k] = v
@@ -53,6 +62,7 @@ end
 -- hook, or call it from one.
 function Gallery.Setup(env)
 	Common.ForceScreen(env)
+	Common.InstallAddOns(env)
 	env.RAID_CLASS_COLORS = env.RAID_CLASS_COLORS or {}
 	env.RAID_CLASS_COLORS.WARRIOR = { r = Common.WARRIOR[1], g = Common.WARRIOR[2], b = Common.WARRIOR[3] }
 	env.UnitClass = function(unit)
@@ -61,6 +71,15 @@ function Gallery.Setup(env)
 		end
 		return "Warrior", "WARRIOR", 1
 	end
+end
+
+-- Build(env, opts) -> Scene.Build with the gallery's icon folders, unless opts names its own.
+function Gallery.Build(env, opts)
+	opts = opts or {}
+	if opts.iconDirs == nil then
+		opts.iconDirs = Common.IconDirs(Gallery.ICON_SET)
+	end
+	return Scene.Build(env, opts)
 end
 
 local Frames = {}

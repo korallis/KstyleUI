@@ -5,7 +5,6 @@
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
-local Scene = Common.Scene
 
 local function at(frame, x, y, w, h)
 	frame:ClearAllPoints()
@@ -224,5 +223,5 @@ return Common.Run(function()
 	env.RunTimers()
 	Gallery.Ticks(W, env, 40)
 	env.RunTimers()
-	return frames:Finish(Scene.Build(env, { hover = hover }), env, K, "gallery widgets")
+	return frames:Finish(Gallery.Build(env, { hover = hover }), env, K, "gallery widgets")
 end)

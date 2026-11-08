@@ -4,7 +4,6 @@
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
-local Scene = Common.Scene
 local I = Hud.ICONS
 
 -- The addon buttons the drawer collects, by name, with an icon each as LibDBIcon paints the addon's icon.
@@ -79,7 +78,7 @@ return Common.Run(function()
 		match = "Frame line, chamfer and footer as the mockup's minimap; the terrain is the button body's tone with the grain where the game draws the world.",
 	})
 
-	local scene = Scene.Build(env)
+	local scene = Gallery.Build(env)
 	scene.log[#scene.log + 1] = note
 	return frames:Finish(scene, env, K, "gallery minimap")
 end)

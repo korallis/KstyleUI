@@ -5,7 +5,6 @@
 -- game shows them; a number whose animation has ended is transparent and not drawn.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
-local Scene = Common.Scene
 
 -- Both frames sit over the plate's sky, where the numbers read; the field is widened so its three lanes clear
 -- each other at the start of the rise. The preview ticks for PREVIEW_TICKS frames of TICK seconds (five of its
@@ -74,7 +73,7 @@ return Common.Run(function()
 		match = "The sample target frame is the button grade: body #101214 with the one-border light line and no shadow, as the mockup's data strip pill; the live target frame is the glass panel grade, which the preview stands in for.",
 	})
 
-	local scene = Scene.Build(env, { time = env._now })
+	local scene = Gallery.Build(env, { time = env._now })
 	scene.log[#scene.log + 1] = "the numbers are sampled mid-flight at the stub clock; the game animates them"
 	return frames:Finish(scene, env, K, "gallery combattext")
 end)

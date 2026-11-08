@@ -6,7 +6,6 @@
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
-local Scene = Common.Scene
 local I = Hud.ICONS
 
 local BUFFS_X, BUFFS_Y = 60, 80
@@ -48,11 +47,12 @@ local function move(K, key, x, y)
 	assert(ok, key .. ": " .. tostring(why))
 end
 
--- fill(button, icon, timer, count) binds what the engine would: the icon's texture and the timer and count texts.
-local function fill(button, icon, timer, count)
+-- fill(env, button, icon, timer, count) binds what the engine would: the icon's texture, as a secret the way
+-- Forever's engine writes it (so the watched tile keeps the game's art), and the timer and count texts.
+local function fill(env, button, icon, timer, count)
 	local aura = button._aura
 	if aura.icon then
-		aura.icon:SetTexture(I[icon])
+		aura.icon:SetTexture(env.Secret(I[icon]))
 	end
 	if aura.timer then
 		aura.timer:SetText(timer)
@@ -112,12 +112,12 @@ return Common.Run(function()
 	local tiles = {}
 	local enchant = buffs._enchants[env.AuraContainerItemEnchantmentSlot.MainHand]
 	if enchant then
-		fill(enchant.frame, ENCHANT[1], ENCHANT[2])
+		fill(env, enchant.frame, ENCHANT[1], ENCHANT[2])
 		tiles[#tiles + 1] = enchant.frame
 	end
 	for i, buff in ipairs(BUFFS) do
 		local button = buffGroup.frames[i]
-		fill(button, buff[1], buff[2], buff[3])
+		fill(env, button, buff[1], buff[2], buff[3])
 		tiles[#tiles + 1] = button
 	end
 	place(buffs, buffGroup, tiles, 5)
@@ -134,7 +134,7 @@ return Common.Run(function()
 	local harmful = {}
 	for i, debuff in ipairs(DEBUFFS) do
 		local button = debuffGroup.frames[i]
-		fill(button, debuff[1], debuff[2], debuff[4])
+		fill(env, button, debuff[1], debuff[2], debuff[4])
 		dispel(env, Widgets, button, debuff[3])
 		harmful[#harmful + 1] = button
 	end
@@ -166,7 +166,7 @@ return Common.Run(function()
 		match = "Body #101214 and a neutral rim as the mockup's buff icons (rim lum 50 to 80); KstyleUI's rim is edgeInner at 50%, the inner band two borders instead of the mockup's 2 to 4 px.",
 	})
 
-	local scene = Scene.Build(env)
-	scene.log[#scene.log + 1] = "the aura buttons are laid out and filled by the scene as the AuraContainer engine would; the game binds each icon, timer and dispel colour itself"
+	local scene = Gallery.Build(env)
+	scene.log[#scene.log + 1] = "the aura buttons are laid out and filled by the scene as the AuraContainer engine would; the game binds each icon (as a secret, so the tiles show Blizzard's art), timer and dispel colour itself"
 	return frames:Finish(scene, env, K, "gallery auras")
 end)

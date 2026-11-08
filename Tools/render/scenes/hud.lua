@@ -562,7 +562,7 @@ function modules.auras(opts)
 				button:SetSize(width, height)
 				button:SetPoint("TOPLEFT", buffs, "TOPLEFT", (i - 1) * (width + spacing), 0)
 				if aura.icon then
-					aura.icon:SetTexture(buff[2])
+					aura.icon:SetTexture(env.Secret(buff[2]))
 				end
 				if aura.timer then
 					aura.timer:SetText(buff[3])
@@ -573,7 +573,7 @@ function modules.auras(opts)
 	end
 	A.W.Settle(env)
 	local scene = build(env, opts)
-	scene.log[#scene.log + 1] = "the buffs are laid out by the scene as the AuraContainer engine would; the game binds each icon and timer itself"
+	scene.log[#scene.log + 1] = "the buffs are laid out by the scene as the AuraContainer engine would; the game binds each icon (as a secret, so the tiles show Blizzard's art) and timer itself"
 	return finish(env, K, scene, "auras"), ns
 end
 

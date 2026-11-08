@@ -183,7 +183,7 @@ return Common.Run(function()
 		caption = "The canvas the core registers in Blizzard's Settings panel: the logo, the KSTYLEUI display title, one line of body text, the primary Open KstyleUI settings button and the /kstyle hint. The canvas itself has no backdrop; in the game Blizzard's Settings panel is behind it, here the plate.",
 		match = "Only the button has chrome: body #101214, the accent hairline of a primary button, the tile chamfer, as the mockup's data strip pill. Nothing else on the canvas is a backdrop.",
 	})
-	scenes[#scenes + 1] = Scene.Build(env, { hover = hover })
+	scenes[#scenes + 1] = Gallery.Build(env, { hover = hover })
 	errorsOf(scenes[#scenes], env, K, "main")
 
 	-- Search: the rows of every page that match "size", under their page and section headers.
@@ -202,7 +202,7 @@ return Common.Run(function()
 			caption = "The window with \"size\" typed in the search field: the rail shows no selection, the clear glyph shows in the field, and the rows list every match across the pages under their page and section headers." .. SCALE_NOTE,
 			match = "Window grade as the chat panel: surface fill, two-line edge, drop shadow; the search field wears the button body with the hairline.",
 		})
-		scenes[#scenes + 1] = Scene.Build(env2)
+		scenes[#scenes + 1] = Gallery.Build(env2)
 		errorsOf(scenes[#scenes], env2, K2, "search")
 	end
 
@@ -216,7 +216,7 @@ return Common.Run(function()
 			caption = "The Profiles page: the active profile dropdown, New, Copy from, Rename, Delete and Reset profile, the Share section with the Export and Import buttons, and the Characters section; the preview pane shows the placeholder logo and This page has no preview." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the text buttons and dropdowns wear the button body with the one-border hairline, as the mockup's data strip pill.",
 		})
-		scenes[#scenes + 1] = Scene.Build(env3)
+		scenes[#scenes + 1] = Gallery.Build(env3)
 		errorsOf(scenes[#scenes], env3, K3, "profiles")
 	end
 
@@ -232,7 +232,7 @@ return Common.Run(function()
 			caption = "The General page at its top: the core's Appearance schema (Accent colour dropdown, Font, Text size, Interface size and Motion) with the kit sample in the preview pane following them." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the dropdowns and sliders on the rows wear the button and bar grades.",
 		})
-		scenes[#scenes + 1] = Scene.Build(env4)
+		scenes[#scenes + 1] = Gallery.Build(env4)
 		errorsOf(scenes[#scenes], env4, K4, "appearance")
 	end
 
@@ -254,7 +254,7 @@ return Common.Run(function()
 			caption = "The General page scrolled to the core's Widgets schema: the Glass section (Panel opacity slider, Panel shadows toggle), Feedback (Interface sounds) and Tooltips (Tooltip size), with the scroll bar's thumb low in its track." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the slider and toggle tracks wear the bar grade's surface fill with a faint line.",
 		})
-		scenes[#scenes + 1] = Scene.Build(env5)
+		scenes[#scenes + 1] = Gallery.Build(env5)
 		errorsOf(scenes[#scenes], env5, K5, "widgets")
 	end
 

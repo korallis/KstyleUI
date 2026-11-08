@@ -102,7 +102,7 @@ return Common.Run(function()
 		caption = "The selected Player plate close up: eight 8-unit resize handles on its corners and edges, each a white square with a one-border dark rim, in the accent, on the plate's translucent button body with the accent edge.",
 		match = "The plate's body and line as the mockup's data strip pill at a translucent alpha; the handles are affordances drawn as flat tinted textures by design, not backdrops.",
 	})
-	scenes[#scenes + 1] = Scene.Build(env)
+	scenes[#scenes + 1] = Gallery.Build(env)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 
 	-- Environment 2: a drag in progress with the grid on, snapped to the screen centre.
@@ -135,7 +135,7 @@ return Common.Run(function()
 		caption = "A drag in progress with the grid on: the Minimap plate snapped onto the screen centre, the two accent snap guides crossing it, its scale handle at the bottom right corner, and the 16-unit grid with its accent centre lines behind.",
 		match = "The plate is the button body at a translucent alpha with the accent edge; the grid lines (white 7%, centre lines accent 45%) and the guides (accent 90%) are one-border flat lines, not backdrops, by design.",
 	})
-	scenes[#scenes + 1] = Scene.Build(env2)
+	scenes[#scenes + 1] = Gallery.Build(env2)
 	assert(not Common.Errors(env2, K2), tostring(Common.Errors(env2, K2)))
 
 	-- The grid and guides are drawn first so the first environment's frames sit over them, as plates do in the game.

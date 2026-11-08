@@ -234,8 +234,8 @@ end
 return Common.Run(function()
 	local frames, env, K = Mirror()
 	local env2, K2 = Reskin(frames)
-	local mirror = Scene.Build(env, { time = NOW })
-	local reskin = Scene.Build(env2, { time = NOW })
+	local mirror = Gallery.Build(env, { time = NOW })
+	local reskin = Gallery.Build(env2, { time = NOW })
 	for i, line in ipairs(reskin.log) do
 		reskin.log[i] = "reskin: " .. line
 	end
