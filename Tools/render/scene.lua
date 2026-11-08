@@ -53,9 +53,30 @@ local BLIZZARD_FONTS = {
 }
 local DEFAULT_FONT = { "Fonts\\FRIZQT__.TTF", 12, "", { 1, 1, 1 } }
 
--- Average glyph widths in em for the kit's semibold face, for a text whose width nothing else gives.
+-- Average glyph widths in em for the kit's semibold face, for a text whose width nothing else gives and
+-- whose font Tools/render/glyphs.lua does not list.
 local GLYPH_EM = { upper = 0.60, lower = 0.48, digit = 0.52, space = 0.22, other = 0.30, thin = 0.10 }
 local LINE_HEIGHT_EM = 1.2
+
+-- The kit fonts' real advances per ASCII glyph, by font file name, from gen_glyphs.py. Blizzard's faces
+-- the repository lacks draw as Source Sans on the page, so they measure as Source Sans too.
+local GLYPHS = {}
+do
+	local ok, table_ = pcall(dofile, "Tools/render/glyphs.lua")
+	if ok and type(table_) == "table" then
+		GLYPHS = table_
+	end
+end
+local FONT_STAND_INS = { FRIZQT__ = "SourceSans3-Semibold", ARIALN = "SourceSans3-Regular" }
+
+local function glyphTable(fontPath)
+	if type(fontPath) ~= "string" then
+		return nil
+	end
+	local name = fontPath:gsub("\\", "/"):match("([^/]+)$") or fontPath
+	name = name:gsub("%.[^.]+$", "")
+	return GLYPHS[name] or GLYPHS[FONT_STAND_INS[name] or ""]
+end
 
 -- Paths -------------------------------------------------------------------------------------------
 
@@ -80,10 +101,11 @@ local pathCache = {}
 -- ResolvePath(path) -> a repository-relative or absolute file, or nil when the game path has no local file.
 function Scene.ResolvePath(path, iconDirs)
 	if type(path) == "number" then
-		local key = "id:" .. path
+		local dirs = iconDirs or Scene.ICON_DIRS
+		local key = "id:" .. path .. ":" .. table.concat(dirs, ";")
 		if pathCache[key] == nil then
 			pathCache[key] = false
-			for _, dir in ipairs(iconDirs or Scene.ICON_DIRS) do
+			for _, dir in ipairs(dirs) do
 				local candidate = dir .. "/" .. path .. ".png"
 				if fileExists(candidate) then
 					pathCache[key] = candidate
@@ -196,7 +218,8 @@ end
 
 -- Text measurement ------------------------------------------------------------------------------
 
-local function textWidthEm(text)
+local function textWidthEm(text, fontPath)
+	local glyphs = glyphTable(fontPath)
 	local em = 0
 	local i, n = 1, #text
 	while i <= n do
@@ -212,6 +235,8 @@ local function textWidthEm(text)
 		local ch = text:sub(i, i + size - 1)
 		if ch == "\226\128\137" then
 			em = em + GLYPH_EM.thin
+		elseif glyphs and size == 1 and glyphs[c] then
+			em = em + glyphs[c]
 		elseif ch == " " then
 			em = em + GLYPH_EM.space
 		elseif size > 1 then
@@ -230,9 +255,10 @@ local function textWidthEm(text)
 	return em
 end
 
--- TextWidth(text, size) -> the approximate width of a text in a font of the given size, in the same units.
-function Scene.TextWidth(text, size)
-	return textWidthEm(text) * size
+-- TextWidth(text, size, fontPath) -> the width of a text in a font of the given size, in the same units:
+-- exact for a kit font (or a Blizzard face the page draws as one), approximate for any other.
+function Scene.TextWidth(text, size, fontPath)
+	return textWidthEm(text, fontPath) * size
 end
 
 local function formatText(env, stored)
@@ -911,7 +937,7 @@ function Scene.Build(env, opts)
 				region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
 				local text = textOf(env, region)
 				if text ~= "" then
-					local _, size = fontOf(env, region, logLine)
+					local fontPath, size = fontOf(env, region, logLine)
 					local xs, ys = {}, {}
 					for _, pack in ipairs(region._points or {}) do
 						local point = POINTS[(pack[1])]
@@ -923,7 +949,7 @@ function Scene.Build(env, opts)
 					local hasW = type(region._width) == "number" and region._width > 0
 					local hasH = type(region._height) == "number" and region._height > 0
 					if not hasW and not (xs[0] and xs[1]) then
-						region._naturalW = textWidthEm(text) * size
+						region._naturalW = textWidthEm(text, fontPath) * size
 						region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
 					end
 					if not hasH and not (ys[0] and ys[1]) then

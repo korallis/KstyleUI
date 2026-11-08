@@ -17,6 +17,20 @@ Tools/render/shoot.sh smoke --json-only                                         
 
 `shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas drawn as a grey box. Read the log before you trust a render. `Tools/render/out/` is ignored by git.
 
+### Icon sets, stand-ins and the backdrop
+
+```bash
+Tools/render/shoot.sh hud_dps_mac --icons B --out Tools/render/out/hud_B_flat.png                  # set B (the default), flat background, for measuring
+Tools/render/shoot.sh hud_dps_mac --icons B --backdrop --out Tools/render/out/hud_B_scenery.png     # the same over the mockup's scenery
+Tools/render/shoot.sh hud_dps_mac --icons A --out Tools/render/out/hud_A_flat.png                   # set A: light art tinted by the class colour
+Tools/render/shoot.sh hud_dps_mac --icons off                                                       # Blizzard's icons
+```
+
+- `--icons A|B|off` turns the `Icons` module on with that set in every HUD environment (`RENDER_ICONS` does the same for a scene run by hand), so the render shows what the service draws: set B's paintings as they are; set A's light art with its vertex colour set to the accent and a white additive copy at the highlight strength on top. B is the default, as the owner chose on 2026-11-08. With a set on, a file ID the set lacks resolves only to `~/.local/share/wow-dev/icons/blizzard`, as the game would show Blizzard's own icon; with the sets off, set B then set A stand in for Blizzard icons that folder lacks.
+- `standins.py` runs before every render (`--no-standins` skips it) and cuts the renderer's stand-ins out of the handoff mockup (`~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png`) into `Tools/render/out/standins/`: the orc and crocolisk faces that `SetPortraitTexture` would paint, the minimap's terrain, and the scenery. The scenes use a crop when its file exists and a flat colour when it does not, and say which in the log. Nothing from the mockup is committed.
+- `--backdrop [PNG]` draws the HUD over an image scaled to the canvas, by default `standins/backdrop.png`: the mockup scaled to the render's height, cropped to its width from the centre (the mockup is 1909 units wide, the owner's screen 1671), with the mockup's own UI areas blurred away. `--backdrop-alpha` fades it. Measure on the flat render; the backdrop is for reading the HUD the way the game shows it.
+- `glyphs.lua` holds the kit fonts' glyph advances, written by `gen_glyphs.py` from `Media/Fonts`; `scene.lua` measures a text in a kit font (or a Blizzard face the page draws as one) with them, so a chat row wraps where the page wraps it. Run `python3 Tools/render/gen_glyphs.py` when a font changes; `Tools/tests/test_render_standins.py` fails when the table is stale.
+
 To look at a scene in a browser instead, open `Tools/render/out/<scene>.html` with Chrome started as `--allow-file-access-from-files`, or `render.html?scene=out/<scene>.json&ppu=1.426`.
 
 ## Compare
@@ -49,7 +63,8 @@ end)
 - `Scene.Build(env, opts)` walks UIParent and every parentless frame. `opts.time` is the clock for timer bars and cooldown swipes; `opts.hover` is a set of frames whose HIGHLIGHT regions draw.
 - `Scene.Merge({ sceneA, sceneB })` composites modules drawn in separate environments; every environment must use the same screen options.
 - `Scene.Rect(env, frame)` gives one frame's resolved rect in screen units, for stand-ins the scene has to size itself.
-- `Hud.Module(name)` in `hud.lua` builds one HUD module; `Hud.Build()` merges them all. `components.lua` holds the sheet's section origins.
+- `Hud.Module(name, opts)` in `hud.lua` builds one HUD module; `Hud.Build(opts)` merges them all. `opts.icons` picks the icon set. `components.lua` holds the sheet's section origins.
+- `Common.StandIn(name)` gives a stand-in's path when `standins.py` has made it; `Common.IconSet(opts)`, `Common.IconDirs(set)`, `Common.IconsSection(set)` and `Common.InstallAddOns(env)` turn the icon service on in an environment.
 - `Tools/regression/test-render-scenes.lua` builds every scene; add yours there so it fails when the code it draws breaks.
 
 Saved data for a scene turns a module on and marks the first-run setup seen: `{ version = 2, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }`.
@@ -66,9 +81,10 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 
 ## Known limitations
 
-- The stub draws no world: portraits, the minimap and spell icons the icon sets lack are flat stand-ins or grey boxes. Blizzard atlases draw as grey boxes.
-- Text widths that other frames depend on are estimated from average glyph widths, so a frame anchored to a text's edge can sit a few units off. The page measures the real glyphs for the text itself.
-- Blizzard-owned layout is not modelled: the chat window's lines, the quest tracker's blocks and the tooltip's lines are laid out by the scene the way the game would, and say so in the log. Blizzard's POI buttons are not drawn.
+- The stub draws no world: the portraits, the minimap and the scenery are crops of the mockup when `standins.py` has run, flat colours otherwise; icons no folder holds draw as flat boxes. Blizzard atlases draw as grey boxes.
+- Text widths that other frames depend on come from the kit fonts' glyph advances, or from average glyph widths for a face `glyphs.lua` does not list, so a frame anchored to a text in another face can sit a few units off. The page measures the real glyphs for the text itself.
+- Blizzard-owned layout is not modelled: the chat window's lines and tabs, the quest tracker's blocks, the tooltip's lines and the world combat numbers over the target are laid out by the scene the way the game would, and say so in the log. Blizzard's POI buttons are not drawn, and the game fades chat tabs when the pointer is away.
+- The HUD scene renders the unit frames with round portraits through a saved setting, the default the owner chose on 2026-11-08; `KstyleUI_UnitFrames` still defaults to chamfered until that change lands.
 - Fonts the repository lacks (`Fonts\FRIZQT__.TTF`, `ARIALN.TTF`) fall back to Source Sans on the page; the log names them.
 - Tiled textures repeat at one texel per unit of the region's own scale, which is the game's behaviour as far as the owner's screenshots show; check the grain against a screenshot before trusting it.
 - Motion is sampled: scenes tick tweens with `W.Tick` and hold the clock, so a fade or a cast reads mid-way, not at a precise frame.

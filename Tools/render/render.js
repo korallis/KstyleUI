@@ -5,6 +5,8 @@
 //   options.canvas  the canvas to draw on (default: a new one appended to document.body)
 //   options.base    URL prefix for relative file paths (default: the page's directory)
 //   options.background  CSS colour behind the UI (default: a dark slate, so glass panels read)
+//   options.backdrop    URL of an image drawn over the background, scaled to the canvas (the scenery)
+//   options.backdropAlpha  the backdrop's opacity (default 1)
 //
 // A texture is drawn from its texcoords (4 or 8 values), tinted by multiplying with its vertex colour, then
 // masked, then composited with its alpha; ADD becomes "lighter". Rect edges snap to whole device pixels,
@@ -635,7 +637,10 @@
 		if (options.backdrop) {
 			const img = await loadImage(options.backdrop);
 			if (img) {
+				ctx.save();
+				ctx.globalAlpha = options.backdropAlpha === undefined ? 1 : Math.max(0, Math.min(1, options.backdropAlpha));
 				ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+				ctx.restore();
 			}
 		}
 		for (const item of scene.items) {
