@@ -151,6 +151,8 @@ PALETTES = {
     64: "Colours: brilliant magenta, violet and pale blue arcane light.",
 }
 PALETTE_ORDER = (2, 4, 8, 16, 32, 64)
+ITEM_PALETTE = ("Colours: the item's own natural colours, lit by a cool white rim light with one accent colour that suits "
+                "it, against a dark smoky background.")
 
 HINTS_B = {
     "blank": "Make the subject large, bright and clearly lit against a darker background.",
@@ -403,7 +405,7 @@ def prompt_for(icon_set, group, reasons=(), subjects=None):
     else:
         lead = lead_for(group)
     if icon_set.palette:
-        lead = f"{lead} {palette_for(group['school'])}"
+        lead = f"{lead} {palette_for(group['school']) if 'school' in group else ITEM_PALETTE}"
     fixes = []
     for reason in reasons:
         hint = icon_set.hints.get(reason.split(":")[0])

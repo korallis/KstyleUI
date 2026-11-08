@@ -10,7 +10,7 @@ local DATA = {
 	KstyleUI_IconsColour = { set = "B", icons = { [FIREBALL] = B_PATH .. FIREBALL .. ".png" } },
 }
 -- The methods the service may hook on a Blizzard texture, and the page method it hooks on the spellbook.
-local HOOKS = { SetTexture = true, SetVertexColor = true, SetAtlas = true, SetAlpha = true, SetTexCoord = true, AddMaskTexture = true, RemoveMaskTexture = true, Show = true, Hide = true, SetShown = true, DisplayViewsForCurrentPage = true }
+local HOOKS = { UpdateItems = true, SetTexture = true, SetVertexColor = true, SetAtlas = true, SetAlpha = true, SetTexCoord = true, AddMaskTexture = true, RemoveMaskTexture = true, Show = true, Hide = true, SetShown = true, DisplayViewsForCurrentPage = true }
 
 local function New()
 	return W.New({
@@ -269,4 +269,60 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-print("icons on Blizzard's spellbook, talents, item buttons and loot ok")
+-- Blizzard's bags: ContainerFrame's UpdateItems calls each button's own SetItemButtonTexture method, which skips the global ------
+
+do
+	local env, K = New()
+	local B = S.Blizzard(env)
+	env.NUM_CONTAINER_FRAMES = 2
+	function env.GetItemButtonIconTexture(button)
+		return button.icon
+	end
+	function env.SetItemButtonTexture() -- the global is never called on this path
+		error("the bag path does not use the global")
+	end
+	-- Bag(name, ...) -> a stand-in ContainerFrame with one pooled item button per file ID, drawn as Blizzard draws it.
+	local function Bag(name, ...)
+		local frame = B.frame("Frame", nil, name)
+		local buttons, files = {}, { ... }
+		for i = 1, #files do
+			local button = B.frame("Button", frame)
+			OneAlpha(button)
+			button.icon = B.texture(button)
+			function button.SetItemButtonTexture(self, texture) -- ItemButtonMixin's method: the private base implementation
+				self.icon:SetShown(texture ~= nil)
+				self.icon:SetTexture(texture)
+			end
+			buttons[i] = button
+		end
+		function frame.EnumerateValidItems()
+			return ipairs(buttons)
+		end
+		function frame.UpdateItems(self)
+			for i, button in self:EnumerateValidItems() do
+				button:SetItemButtonTexture(files[i])
+			end
+		end
+		frame.buttons, frame.files = buttons, files
+		return frame
+	end
+	local backpack, bag2, combined = Bag("ContainerFrame1", FIREBALL, UNKNOWN), Bag("ContainerFrame2", REJUV), Bag("ContainerFrameCombinedBags", REJUV)
+	backpack:UpdateItems()
+	local snap = B.snapshot()
+	K.Options.Write("Icons", "enabled", true)
+	backpack:UpdateItems()
+	assert(Shown(backpack.buttons[1].icon) == A_PATH .. FIREBALL .. ".png", "a bag redrawn after custom icons start shows set A's art")
+	assert(Shown(backpack.buttons[2].icon) == UNKNOWN, "a file ID the set lacks keeps Blizzard's art")
+	bag2:UpdateItems()
+	combined:UpdateItems()
+	assert(Shown(bag2.buttons[1].icon) == A_PATH .. REJUV .. ".png" and Shown(combined.buttons[1].icon) == A_PATH .. REJUV .. ".png", "every container frame and the combined bag are hooked")
+	backpack.files[1] = REJUV
+	backpack:UpdateItems()
+	assert(Shown(backpack.buttons[1].icon) == A_PATH .. REJUV .. ".png", "a slot that changes item follows")
+	K.Options.Write("Icons", "enabled", false)
+	assert(Shown(backpack.buttons[1].icon) == REJUV, "off: Blizzard's icon returns")
+	B.check(snap, HOOKS)
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+print("icons on Blizzard's spellbook, talents, item buttons, bags and loot ok")

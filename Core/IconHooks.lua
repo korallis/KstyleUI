@@ -1,4 +1,4 @@
--- IconHooks.lua: shows the custom icon set on Blizzard's spellbook, talent, item-button and loot icons by watching their textures with Icons.Watch.
+-- IconHooks.lua: shows the custom icon set on Blizzard's spellbook, talent, item-button, bag and loot icons by watching their textures with Icons.Watch.
 local _, ns = ...
 
 local MODULE, ADDON = "Icons", "Blizzard_PlayerSpells"
@@ -83,6 +83,32 @@ local function hookItemButtons()
 	log("item buttons: watching every item button Blizzard draws")
 end
 
+local function watchBagItems(frame)
+	for _, button in frame:EnumerateValidItems() do
+		watchItemButton(button)
+	end
+end
+
+local function hookBags()
+	local frames = { _G.ContainerFrameCombinedBags }
+	local count = NUM_CONTAINER_FRAMES
+	for i = 1, (type(count) == "number" and count or 0) do
+		frames[#frames + 1] = _G["ContainerFrame" .. i]
+	end
+	local hookedBags = 0
+	for _, frame in ipairs(frames) do
+		if type(frame) == "table" and type(frame.UpdateItems) == "function" and type(frame.EnumerateValidItems) == "function" and type(hooksecurefunc) == "function" then
+			hooksecurefunc(frame, "UpdateItems", watchBagItems)
+			hookedBags = hookedBags + 1
+		end
+	end
+	if hookedBags == 0 then
+		log("bags: Blizzard's container frames are missing; their item icons stay")
+	else
+		log("bags: watching the item buttons of " .. hookedBags .. " container frames")
+	end
+end
+
 local function watchLootRow(row)
 	local item = type(row) == "table" and row.Item
 	if type(item) == "table" and type(item.icon) == "table" then
@@ -108,6 +134,7 @@ end
 local function hookItems()
 	itemsHooked = true
 	hookItemButtons()
+	hookBags()
 	hookLoot()
 end
 

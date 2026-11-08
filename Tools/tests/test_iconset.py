@@ -1344,3 +1344,23 @@ class ContactSheetTest(unittest.TestCase):
             with Image.open(out / "sheet-01.png") as sheet:
                 self.assertEqual(sheet.getpixel((64, 64)), (24, 24, 24))
                 self.assertEqual(sheet.getpixel((iconset.ICON_SIZE + 4 + 64, 64)), (200, 40, 40))
+
+
+class ItemStylePromptTest(unittest.TestCase):
+    def test_set_b_style_mode_gives_an_item_no_spell_school_palette(self):
+        lead, prompt = iconset.prompt_for(SET_B, item_group())
+        self.assertEqual(lead, 'Fantasy game item icon for "Minor Healing Potion", a Consumable (Potions). ' + iconset.ITEM_PALETTE)
+        self.assertEqual(prompt, f"{lead} {SET_B.style}")
+        for palette in iconset.PALETTES.values():
+            self.assertNotIn(palette, lead)
+
+    def test_a_dry_run_in_style_mode_lists_item_groups(self):
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = iconset.main(["generate", "--set", "B", "--categories", "item", "--dry-run", "--limit", "2", "--work-dir", tmp])
+            self.assertEqual(code, 0)
+            self.assertIn("2 icons to generate", out.getvalue())
