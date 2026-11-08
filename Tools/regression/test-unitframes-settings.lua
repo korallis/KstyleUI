@@ -50,18 +50,23 @@ assert(defaults.targettarget.healthText == "percent" and defaults.pet.healthText
 for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
 	assert(defaults[kind].powerText == "none", kind .. ": no power numbers, as on the kit sheet; power shows as the thin bar alone")
 end
-for kind, sizes in pairs({ player = { 15, 15, 15 }, target = { 15, 15, 15 }, focus = { 12, 12, 12 }, boss = { 10, 10, 10 } }) do
+for kind, sizes in pairs({ player = { 15, 15, 16 }, target = { 15, 15, 16 }, focus = { 12, 12, 12 }, boss = { 10, 10, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.level.size == sizes[3],
-		kind .. ": the name, percentage and level sizes follow the frame's height at the kit sheet's proportions")
+		kind .. ": the name, percentage and level sizes follow the frame's height at the mockup's proportions (the name's capitals 9.6 units, the level's 10.4)")
 end
+assert(defaults.player.castbarIcon == false and defaults.player.castbarCaps == false, "the player cast bar has no icon and writes the spell as the game does, as the owner's mockup draws Slam")
+assert(defaults.target.castbarIcon == true and defaults.target.castbarCaps == true, "the target cast bar keeps the design file's icon and capitals")
+assert(defaults.player.powerColor == "class" and defaults.player.powerHeight == 7, "the full frames' power bar is a short class-coloured bar on the values row, as on the mockup")
+assert(defaults.pet.powerColor == "power" and defaults.pet.powerHeight == 3, "the compact frames keep the power type's colour and a thin bar")
 assert(defaults.player.healthColor == "class", "the player's health fill is the class colour")
 assert(defaults.target.healthColor == "reaction", "the target's fill follows its reaction: red when hostile, as on the kit sheet")
-assert(defaults.player.powerHeight == 3 and defaults.target.powerHeight == 3, "the full frames' power bar is the kit's thin line")
+assert(defaults.player.powerHeight == 7 and defaults.target.powerHeight == 7, "the full frames' power bar is the mockup's short 7-unit bar")
 assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size, "the percentage's numerals are as tall as the name's capitals, as measured on the kit sheet")
 for _, kind in ipairs(KINDS) do
-	assert(defaults[kind].portraitShape == "chamfered", kind .. ": the portrait is the kit's chamfered octagon by default")
+	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")
 end
+assert(defaults.player.fonts.cast.size == 15 and defaults.target.fonts.cast.size == 12, "the cast text is the mockup's size on the 36-unit player bar (Slam's capitals are 9.6 units) and the same share of the 28-unit target bar")
 assert(defaults.targettarget.portrait == false and defaults.pet.portrait == false, "the small frames have no portrait by default")
 assert(defaults.hideBlizzard == true, "Blizzard's frames are hidden by default")
 
@@ -123,6 +128,7 @@ end
 -- Cast bars and the druid's mana bar choose their colour source and fill direction like every other bar.
 for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
 	row(kind .. ".castbarTexture", "texture")
+	row(kind .. ".castbarCaps", "toggle")
 	local sources = values(row(kind .. ".castbarColor", "dropdown"))
 	assert(sources.class and sources.reaction and sources.custom, kind .. " cast bar: class, reaction or custom colour")
 	local orientations = values(row(kind .. ".castbarOrientation", "dropdown"))
@@ -166,7 +172,7 @@ end
 K.Store.Module("UnitFrames").player.healthText = "sideways"
 assert(Settings.Value("player", "healthText") == defaults.player.healthText, "an unknown choice falls back to the default")
 K.Store.Module("UnitFrames").player.portraitShape = "hexagon"
-assert(Settings.Value("player", "portraitShape") == "chamfered", "an unknown portrait shape falls back to chamfered")
+assert(Settings.Value("player", "portraitShape") == "round", "an unknown portrait shape falls back to round")
 K.Store.Module("UnitFrames").player.portraitShape = "round"
 assert(Settings.Value("player", "portraitShape") == "round", "round is kept")
 K.Store.Module("UnitFrames").player.portraitShape = "chamfered"

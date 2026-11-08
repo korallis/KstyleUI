@@ -200,7 +200,7 @@ end
 for _, key in ipairs({ "unitframes.player", "unitframes.target" }) do
 	local e = Layouts.Element(key)
 	assert(e.height >= 88 and e.height <= 100, key .. " is close to the kit sheet's 100 units at the 1080 reference, as large as the Mac's screen allows beside the chat, got " .. e.height)
-	assert(math.abs(e.width / e.height - 469 / 141) < 0.02, key .. " has the kit sheet's 469 by 141 proportions, got " .. e.width .. " x " .. e.height)
+	assert(math.abs(e.width / e.height - 279 / 90) < 0.05, key .. " has the owner's mockup's 279 by 90 proportions, got " .. e.width .. " x " .. e.height)
 end
 
 for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do

@@ -40,7 +40,7 @@ for _, item in ipairs(hud.items) do
 		files[item.file] = true
 	end
 end
-for _, want in ipairs({ "VALERIN", "SLAM", "RIVERGLADE CROCOLISK", "82%", "Battle Shout", "Enrage" }) do
+for _, want in ipairs({ "VALERIN", "Slam", "RIVERGLADE CROCOLISK", "82%", "Battle Shout", "Enrage" }) do
 	assert(texts[want], "the HUD shows " .. want)
 end
 assert(files["KstyleUI_IconsColour/Icons/" .. Hud.ICONS.slam .. ".png"], "Slam's icon comes from set B")
@@ -97,10 +97,22 @@ assert(math.abs(Scene.TextWidth(sample, 100, "Fonts\\FRIZQT__.TTF") - semibold) 
 assert(math.abs(Scene.TextWidth(sample, 100) - semibold) > 20, "an unknown face falls back to the class averages")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke", "unitframes_design" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 check("components", Components.Build())
+
+-- The unit frames with the design file's octagon portraits, at the design's sections.
+local design = check("unitframes_design", dofile("Tools/render/scenes/unitframes_design.lua")())
+local designTexts = {}
+for _, item in ipairs(design.items) do
+	if item.kind == "text" then
+		designTexts[(item.text:gsub("\226\128\137", ""))] = true
+	end
+end
+for _, want in ipairs({ "VALERIN", "FROST HOWLER", "78%", "56%", "FROST BITE", "42", "40" }) do
+	assert(designTexts[want], "the design scene shows " .. want)
+end
 
 print("ok")
