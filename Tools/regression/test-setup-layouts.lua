@@ -183,6 +183,8 @@ for _, name in ipairs(names) do
 	local chat, strip = rect("chat.main"), rect("databars.strip")
 	assert(chat.left < 40 and chat.bottom < 40, name .. ": chat sits bottom left")
 	assert(strip.right > width - 40 and strip.bottom < 40, name .. ": the data strip sits bottom right")
+	local micro, bags = rect("databars.micro"), rect("databars.bags")
+	assert(micro.bottom >= strip.top + 4 and bags.bottom >= micro.top + 4, name .. ": the micro menu sits clear above the strip and the bag bar clear above the micro menu")
 	assert(rect("meters.damage").x > mid and rect("meters.threat").x > mid, name .. ": the meters sit right")
 end
 do
@@ -218,7 +220,7 @@ do
 	assert(footprint("chat.main") == "320x130", "the chat panel is 320 by 130, got " .. footprint("chat.main"))
 	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
 	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
-	assert(footprint("databars.strip") == "360x36", "the data strip is 360 wide, got " .. footprint("databars.strip"))
+	assert(footprint("databars.strip") == "492x43", "the data strip is 492 by 43, as the composition mockup measures, got " .. footprint("databars.strip"))
 	assert(footprint("databars.xp") == "440x4", "the experience bar is 440 by 4, got " .. footprint("databars.xp"))
 	local layout = Layouts.Get("DPS")
 	local minimap = layout["minimap.main"]

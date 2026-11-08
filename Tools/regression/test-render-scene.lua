@@ -49,6 +49,21 @@ local childTexture = child:CreateTexture(nil, "OVERLAY")
 childTexture:SetAllPoints(child)
 childTexture:SetColorTexture(0, 1, 0, 1)
 
+-- A child that ignores its parent's scale draws at its own scale alone, as a plate on a nameplate base the game
+-- scaled to 0.58 does.
+local base = env.CreateFrame("Frame", nil, f)
+base:SetScale(0.58)
+base:SetSize(10, 10)
+base:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+local held = env.CreateFrame("Frame", nil, base)
+held:SetIgnoreParentScale(true)
+held:SetScale(1)
+held:SetSize(10, 10)
+held:SetPoint("TOPLEFT", base, "TOPLEFT", 5, -5)
+local heldTexture = held:CreateTexture(nil, "OVERLAY")
+heldTexture:SetAllPoints(held)
+heldTexture:SetColorTexture(1, 1, 0, 1)
+
 -- Relative to a frame by name, at another point of it.
 local g = env.CreateFrame("Frame", nil, UIParent)
 g:SetSize(10, 10)
@@ -87,6 +102,7 @@ near(scene.screen.height, 1080, "screen height in units")
 rect(find(scene, full), 10 * K, 20 * K, 100 * K, 50 * K, "the frame's full texture")
 rect(find(scene, stretch), 20 * K, 30 * K, 80 * K, 30 * K, "the stretched texture")
 rect(find(scene, childTexture), 20 * K, 30 * K, 20 * K, 20 * K, "the scaled child")
+rect(find(scene, heldTexture), 15 * K, 25 * K, 10 * K, 10 * K, "a child ignoring its parent's 0.58 scale")
 rect(find(scene, gTexture), (10 + 50 - 5) * K, (20 + 50 - 5) * K, 10 * K, 10 * K, "relative by name")
 
 local fill = find(scene, bar:GetStatusBarTexture())

@@ -53,10 +53,32 @@ end
 assert(swipes >= 1, "a cooldown swipe is drawn")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke", "nameplate", "databars" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 check("components", Components.Build())
+
+-- The focused scenes. The nameplate scene puts the plate on a base the game scaled to 0.58, as the owner's Mac
+-- does, and the plate still draws its 175 by 18 bar in root units.
+local plate = check("nameplate", dofile("Tools/render/scenes/nameplate.lua")())
+local fill
+for _, item in ipairs(plate.items) do
+	if item.kind == "texture" and item.fraction and math.abs(item.fraction - 864 / 1540) < 0.001 then
+		fill = item
+	end
+end
+assert(fill, "the plate's health fill is drawn")
+assert(math.abs(fill.rect[3] - 175 * 864 / 1540) < 1 and math.abs(fill.rect[4] - 18) < 1, "the bar is 175 by 18 screen units on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
+local databars = check("databars", dofile("Tools/render/scenes/databars.lua")())
+local seen = {}
+for _, item in ipairs(databars.items) do
+	if item.kind == "text" then
+		seen[item.text] = true
+	end
+end
+for _, want in ipairs({ "XP 32%", "FPS:", "144", "34 ms", "143g 82s 17c", "Durability:", "96%", "14:32" }) do
+	assert(seen[want], "the data bars scene shows " .. want)
+end
 
 print("ok")

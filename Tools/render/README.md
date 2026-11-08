@@ -13,6 +13,8 @@ Tools/render/shoot.sh hud_dps_mac                                               
 Tools/render/shoot.sh components_mac                                            # the component sheet at the owner's density
 Tools/render/shoot.sh components_mac --ppu 2.0 --out Tools/render/out/components_design.png   # the sheet at the design file's density
 Tools/render/shoot.sh smoke --json-only                                         # the scene JSON only, no Chrome
+Tools/render/shoot.sh nameplate                                                 # the target's plate on a base the game scaled to 0.58
+Tools/render/shoot.sh databars                                                  # the experience bar and the data strip in the mockup's state
 ```
 
 `shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas drawn as a grey box. Read the log before you trust a render. `Tools/render/out/` is ignored by git.
