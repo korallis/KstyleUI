@@ -173,7 +173,17 @@ function Unit.Power(view, unit, instant)
 		return
 	end
 	local bar = view.power
-	bar:SetBarRange(0, UnitPowerMax(unit))
+	local max = UnitPowerMax(unit)
+	local empty = false
+	if issecretvalue ~= nil and not issecretvalue(max) then
+		empty = type(max) == "number" and max <= 0
+	end
+	bar:SetShown(not empty)
+	if empty then
+		view.powerText:SetText("")
+		return
+	end
+	bar:SetBarRange(0, max)
 	SetValue(bar, UnitPower(unit), instant)
 	Format.Power(view.powerText, unit, view.s.powerText)
 end

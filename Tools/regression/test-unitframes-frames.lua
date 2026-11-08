@@ -120,6 +120,20 @@ for i, bar in ipairs({ hr, hg, hb }) do
 	assert(tint[i] > bar and tint[i] < 1, "the percentage is a light version of the bar's colour, channel " .. i .. ": " .. tostring(tint[i]))
 end
 assert(tint[1] > tint[2] and tint[1] > tint[3], "a hostile percentage keeps the bar's red tint, as on the kit sheet")
+-- A unit with no power at all (max power 0, as a crocolisk) shows no power bar, so no empty track draws; a secret
+-- max power keeps the bar, since nothing may compare it.
+U.SetUnit(env, "target", { name = "Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2 })
+env.SetTarget(true)
+assert(not target.power:IsShown(), "a unit with no power hides its power bar")
+env._restricted = true
+env.FireEvent("UNIT_MAXPOWER", "target", "MANA")
+assert(target.power:IsShown(), "a secret max power keeps the bar")
+env._restricted = false
+env.FireEvent("UNIT_MAXPOWER", "target", "MANA")
+assert(not target.power:IsShown(), "and a plain zero hides it again")
+U.SetUnit(env, "target", { name = "Wolf", level = 12, health = 50, healthMax = 200, power = 10, powerMax = 100, powerType = 1, powerToken = "RAGE", reaction = 2 })
+env.SetTarget(true)
+assert(target.power:IsShown(), "a unit with power shows the bar again")
 U.SetUnit(env, "target", { name = "Jaina", class = "MAGE", isPlayer = true, level = 60, health = 100, healthMax = 100, reaction = 5 })
 env.SetTarget(true)
 local fr, fg, fb = K.Theme.ReactionColor(5)
