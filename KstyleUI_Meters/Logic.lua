@@ -89,6 +89,14 @@ function Logic.FitRows(available, rowHeight, spacing)
 	return floor((available + spacing) / step)
 end
 
+function Logic.FillRows(available, rowHeight, spacing)
+	local count = Logic.FitRows(available, rowHeight, spacing)
+	if count < 1 then
+		return rowHeight
+	end
+	return max(rowHeight, (available + spacing) / count - spacing)
+end
+
 function Logic.Split(total, count, gap)
 	if count <= 0 then
 		return 0

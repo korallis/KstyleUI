@@ -41,7 +41,8 @@ local function Recolor(entry)
 	if Logic.IsSecret(class) or type(class) ~= "string" or class == "" then
 		class = entry.unitClassFilename
 	end
-	texture:SetVertexColor(ns.BarColor("damage", class, reaction))
+	local r, g, b = ns.BarColor("damage", class, reaction)
+	texture:SetVertexColor(r, g, b, ns.FILL_ALPHA)
 end
 
 local function StyleEntry(entry)

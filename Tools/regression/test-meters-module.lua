@@ -54,11 +54,17 @@ local fonts = keys["damage.font"].options()
 assert(fonts[1].value == "", "the first font is the interface font")
 assert(#fonts >= 2, "the font list holds KstyleUI's fonts")
 
--- The defaults follow the design file: 14-unit rows five units apart, five rows in the damage meter's footprint.
-assert(ns.defaults.damage.rowHeight == 14 and ns.defaults.threat.rowHeight == 14, "rows are 14 units")
-assert(ns.defaults.damage.spacing == 5 and ns.defaults.threat.spacing == 5, "rows sit 5 units apart")
-assert(ns.Logic.FitRows(130 - 12 - 9 - 8 - 12, 14, 5) == 4, "the damage footprint fits four rows under its title inside the content inset")
-assert(ns.Logic.FitRows(104 - 12 - 9 - 8 - 12, 14, 5) == 3, "the threat footprint fits three rows under its title inside the content inset")
+-- The defaults read in a pull: 18-unit rows 2 units apart that carry their own text (a 14-unit row with a 5-unit
+-- gap read as a spreadsheet in ingame-18), text at the unit frames' bar size of 12, four rows in the damage
+-- footprint and three in the threat footprint under the title inside the content inset.
+assert(ns.defaults.damage.rowHeight == 18 and ns.defaults.threat.rowHeight == 18, "rows are 18 units")
+assert(ns.defaults.damage.spacing == 2 and ns.defaults.threat.spacing == 2, "rows sit 2 units apart")
+assert(ns.defaults.damage.fontSize == 12 and ns.defaults.threat.fontSize == 12, "row text is the unit frames' 12")
+assert(ns.Logic.FitRows(130 - 12 - 9 - 8 - 12, 18, 2) == 4, "the damage footprint fits four rows under its title inside the content inset")
+assert(ns.Logic.FitRows(104 - 12 - 9 - 8 - 12, 18, 2) == 3, "the threat footprint fits three rows under its title inside the content inset")
+-- Rows share out the room the last whole row leaves, so no dead band sits under them.
+assert(ns.Logic.FillRows(89, 18, 2) == 20.75 and ns.Logic.FillRows(89, 18, 2) * 4 + 3 * 2 == 89, "four rows grow to fill 89 units")
+assert(ns.Logic.FillRows(10, 18, 2) == 18, "no whole row keeps the set height")
 
 -- Enable builds and places the three elements.
 M.Enable(env, K)

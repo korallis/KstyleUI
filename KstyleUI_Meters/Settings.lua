@@ -50,13 +50,13 @@ local function Merge(...)
 	return out
 end
 
-local BODY, CAPTION = Tokens.Size("body"), Tokens.Size("caption")
-local ROW, SPACING = 14, 5
+local CAPTION = Tokens.Size("caption")
+local ROW, SPACING, ROW_TEXT = 18, 2, 12
 
 ns.defaults = {
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
-	damage = Merge(Bars("left"), Text(BODY), {
+	damage = Merge(Bars("left"), Text(ROW_TEXT), {
 		shown = true,
 		group = false,
 		mode = "window",
@@ -68,7 +68,7 @@ ns.defaults = {
 		titleSize = CAPTION,
 		percent = true,
 	}),
-	threat = Merge(Bars("left"), Text(BODY), {
+	threat = Merge(Bars("left"), Text(ROW_TEXT), {
 		shown = true,
 		group = true,
 		pets = true,
