@@ -50,8 +50,10 @@ do
 	assert(range and range[1] == 0 and range[2] == 100, "the health range is 0 to UnitHealthMax")
 	local value = Last(health, "SetValue")
 	assert(value and env.issecretvalue(value[1]) and env.Reveal(value[1]) == 64, "the health bar gets UnitHealth's secret")
+	assert(not plate.healthText:IsShown() and Last(plate.healthText, "SetFormattedText") == nil, "the health text is off by default and reads nothing")
+	K.Options.Write("Nameplates", "healthText.show", true)
 	local pct = Last(plate.healthText, "SetFormattedText")
-	assert(pct and env.issecretvalue(pct[2]) and env.Reveal(pct[2]) == 64, "the health text formats UnitHealthPercent's secret")
+	assert(pct and env.issecretvalue(pct[2]) and env.Reveal(pct[2]) == 64, "switched on, the health text formats UnitHealthPercent's secret")
 
 	env._units.nameplate1.health = 20
 	env.FireEvent("UNIT_HEALTH", "nameplate1")
@@ -59,8 +61,12 @@ do
 	env.FireEvent("UNIT_HEALTH", "party1")
 	assert(env.Reveal(Last(health, "SetValue")[1]) == 20, "health events for other units are ignored")
 
-	-- Name: upper case when it can be read, passed through whole when it is secret.
-	assert(plate.name:GetText() == "DARK IRON SUMMONER", "a readable name is upper case")
+	-- Name: its own case when it can be read, as the mockup's "Riverglade Crocolisk"; upper case on request; a
+	-- secret name passes through whole.
+	assert(plate.name:GetText() == "Dark Iron Summoner", "a readable name keeps its case by default")
+	K.Options.Write("Nameplates", "name.upper", true)
+	assert(plate.name:GetText() == "DARK IRON SUMMONER", "the upper-case setting capitalises it")
+	K.Options.Write("Nameplates", "name.upper", false)
 	assert(plate.levelText:GetText() == "51", "the level shows")
 
 	-- Removal hides the plate and leaves the base to Blizzard; the same base gets the plate back.
@@ -376,29 +382,39 @@ do
 	assert(Last(plate.health, "SetOrientation")[1] == "VERTICAL", "the bar orientation follows the setting")
 	K.Options.Write("Nameplates", "health.reverse", true)
 	assert(Last(plate.health, "SetReverseFill")[1] == true, "the fill direction follows the setting")
+	K.Options.Write("Nameplates", "healthText.show", true)
 	K.Options.Write("Nameplates", "healthText.format", "value")
 	local text = Last(plate.healthText, "SetText")[1]
 	assert(env.issecretvalue(text) and env.Reveal(text) == "abbr:40", "the value format abbreviates UnitHealth")
 end
 
--- Size: the mockup's plate, a 126 x 16 frame with a 23-unit level disc rimmed in the bar's colour -------
+-- Size: the mockup's plate (mockup-leveling-warrior-2574.png, 1.348 px per unit): a 175 x 18 bar in its two-border
+-- frame (179 x 22 outside), a 34-unit octagonal level disc with a 10.5-unit chamfer, rimmed in the bar's colour and
+-- overlapping the bar's left end, the name in its own case at 14 above, the level in white at 16, no health text ----
 
 do
-	local env, _, ns = N.New()
-	assert(ns.Plate.DEFAULT_WIDTH == 122 and ns.Plate.DEFAULT_HEIGHT == 12, "the health bar is 122 x 12 inside its two-border frame: 126 x 16 outside")
+	local env, K, ns = N.New()
+	assert(ns.Plate.DEFAULT_WIDTH == 175 and ns.Plate.DEFAULT_HEIGHT == 18, "the health bar is 175 x 18 inside its two-border frame: 179 x 22 outside")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(N.Same(plate.health:GetWidth(), 122) and N.Same(plate.health:GetHeight(), 12), "the bar takes the default size")
+	assert(N.Same(plate.health:GetWidth(), 175) and N.Same(plate.health:GetHeight(), 18), "the bar takes the default size")
 	local disc = plate.level
-	assert(N.Same(disc:GetWidth(), 23) and N.Same(disc:GetHeight(), 23), "the level disc is 23 units across")
-	assert(disc.chrome.shape.fill == "chamferPanel" and disc.chrome.shadowOn == false and disc.chrome.noise == nil, "an octagon: the panel chamfer, no shadow, no grain")
+	assert(N.Same(disc:GetWidth(), 34) and N.Same(disc:GetHeight(), 34), "the level disc is 34 units across")
+	assert(disc.chrome.shape.fill == "chamferPanel" and N.Same(disc.chrome:Chamfer(), 10.5), "an octagon: the panel fill with a 10.5-unit chamfer")
+	assert(disc.chrome.shadowOn == false and disc.chrome.noise == nil, "no shadow, no grain")
 	local r, g, b = barColor(plate.health)
 	assert(SameColor(r, g, b, disc.chrome.inner[1]:GetVertexColor()), "its rim takes the bar's colour")
 	local point, relative, relativePoint, x = disc:GetPoint(1)
-	assert(point == "RIGHT" and relative == plate.health and relativePoint == "LEFT" and x == 0, "it sits on the bar's left end")
-	assert(select(2, plate.name:GetFont()) == 11, "the name reads at 11 units")
-	assert(select(2, plate.levelText:GetFont()) == 10, "the level at 10")
-	assert(plate.castBar.opts.height == 10, "the cast bar is 10 units tall")
+	assert(point == "RIGHT" and relative == plate.health and relativePoint == "LEFT", "it sits on the bar's left end")
+	assert(x >= 0.5 and x <= 1.5, "overlapping the bar's frame by one unit, got " .. tostring(x))
+	assert(disc:GetFrameLevel() > plate.health:GetFrameLevel(), "the disc draws over the bar's end, not under it")
+	assert(plate.name:GetText() == "Riverglade Crocolisk", "the name keeps its case")
+	assert(select(2, plate.name:GetFont()) == 14, "the name reads at 14 units")
+	assert(select(2, plate.levelText:GetFont()) == 16, "the level at 16")
+	local lr, lg, lb = plate.levelText:GetTextColor()
+	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("textEmphasis")), "the level reads white, as the mockup's 38, not in the quest difficulty colour")
+	assert(not plate.healthText:IsShown(), "no health text by default: the mockup's plate shows none")
+	assert(plate.castBar.opts.height == 12, "the cast bar is 12 units tall")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

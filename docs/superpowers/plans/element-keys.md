@@ -54,7 +54,7 @@ Footprints are width x height in units at the 1080 reference.
 | `databars.xp` | DataBars | Experience bar | 440 x 4 | Between the utility row and action bar 1, with its XP caption on the line |
 | `databars.rep` | DataBars | Reputation bar | 440 x 5 | Under action bar 2 |
 | `databars.honor` | DataBars | Honour bar | 440 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
-| `databars.strip` | DataBars | Data strip | 360 x 36 | FPS, latency, gold, durability and time |
+| `databars.strip` | DataBars | Data strip | 492 x 43 | FPS, latency, gold, durability and time |
 | `databars.micro` | DataBars | Micro menu | 270 x 28 | One row above the data strip |
 | `databars.bags` | DataBars | Bag bar | 180 x 30 | One row above the micro menu |
 | `meters.damage` | Meters | Damage meter | 208 x 130 | Right side, inside the right-hand bar columns, above the tooltip anchor |

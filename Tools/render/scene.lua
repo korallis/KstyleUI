@@ -167,12 +167,14 @@ local function state(object, field)
 	end
 end
 
+-- An object's scale times its ancestors', stopping at an object that ignores its parent's scale, as the game does
+-- for a nameplate's plate on a base the engine scales.
 local function effectiveScale(object)
 	local scale = type(object._scale) == "number" and object._scale or 1
-	local parent = object._parent
-	while parent do
-		scale = scale * (type(parent._scale) == "number" and parent._scale or 1)
-		parent = parent._parent
+	local node = object
+	while not node._ignoreParentScale and node._parent do
+		node = node._parent
+		scale = scale * (type(node._scale) == "number" and node._scale or 1)
 	end
 	return scale
 end

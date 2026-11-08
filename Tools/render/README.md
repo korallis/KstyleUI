@@ -16,6 +16,8 @@ Tools/render/shoot.sh buttons_mac --ppu 2.0                                     
 Tools/render/shoot.sh buttons_toned                                             # the same with Widgets.SECONDARY_RIM at 0.5
 Tools/render/shoot.sh tooltip_design --ppu 2.0 --out Tools/render/out/tooltip_design.png     # the design's item tooltip on GameTooltip, at the sheet's position
 Tools/render/shoot.sh smoke --json-only                                         # the scene JSON only, no Chrome
+Tools/render/shoot.sh nameplate                                                 # the target's plate on a base the game scaled to 0.58
+Tools/render/shoot.sh databars                                                  # the experience bar and the data strip in the mockup's state
 ```
 
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.

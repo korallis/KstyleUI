@@ -56,8 +56,8 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 | --- | --- | --- |
 | Health bar | `UnitHealthMax`, `UnitHealth` | Both go straight to `SetMinMaxValues` and `SetValue`; the engine eases the bar. A new unit on a reused plate snaps to its value. |
 | Health text | `UnitHealthPercent(unit, true, CurveConstants.ScaleTo100)`, `AbbreviateNumbers(UnitHealth(unit))` | `SetFormattedText` takes the secrets. Without the curve the module builds its own, and without the curve API it shows the value. |
-| Name | `UnitName` | Upper case when readable. A secret name reaches `SetText` whole. Players' names can take their class colour. |
-| Level badge | `UnitEffectiveLevel`, else `UnitLevel` | A chamfered tile left of the bar. `-1` reads `??` in the hostile colour; enemies' levels take `GetQuestDifficultyColor`. |
+| Name | `UnitName` | In its own case when readable, as the mockup's "Riverglade Crocolisk"; the upper-case setting capitalises it. A secret name reaches `SetText` whole. Players' names can take their class colour. |
+| Level badge | `UnitEffectiveLevel`, else `UnitLevel` | A 34-unit octagon (a 10.5-unit chamfer) rimmed in the bar's colour, overlapping the bar's left end by one unit and drawn over it. The level reads white; `-1` reads `??` in the hostile colour. |
 | Elite and rare marker | `UnitClassification` | A diamond (the chamfered icon mask turned 45 degrees) above the bar's right end: gold (`neutral`) for elites, red (`hostile`) for world bosses, blue (`rare`) for rares and rare elites. |
 | Raid marker | `GetRaidTargetIndex` | Always secret on Forever. `type(index)` tells nil from a number without reading it, and the index goes to `SetSpriteSheetCell` on Blizzard's raid icon sheet. |
 | Threat | `UnitThreatSituation("player", unit)` | Readable on Forever. A secret status counts as none. See below. |
@@ -136,13 +136,13 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `health.texture`, `health.orientation`, `health.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
 | `enemy.colorSource`, `enemy.color` | class, `hostile` | dropdown, colour |
 | `friendly.colorSource`, `friendly.color`, `friendly.nameOnly` | class, `friendly`, off | dropdown, colour, toggle |
-| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 11, thin, on, on | toggle, slider, dropdown, toggle, toggle |
-| `level.show`, `level.size`, `level.outline` | on, 10, thin | toggle, slider, dropdown |
-| `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | on, 9, thin, percent | toggle, slider, dropdown, dropdown |
-| `cast.enabled`, `cast.height` | on, 10 | toggle, slider 6 to 24 |
+| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 14, thin, off, on | toggle, slider, dropdown, toggle, toggle |
+| `level.show`, `level.size`, `level.outline` | on, 16, thin | toggle, slider, dropdown |
+| `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | off, 9, thin, percent | toggle, slider, dropdown, dropdown |
+| `cast.enabled`, `cast.height` | on, 12 | toggle, slider 6 to 24 |
 | `cast.texture`, `cast.orientation`, `cast.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
 | `cast.colorSource`, `cast.color`, `cast.shieldColor` | accent, `accentDefault`, `textDisabled` | dropdown, colour, colour |
-| `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 9, thin | toggle, toggle, toggle, slider, dropdown |
+| `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 10, thin | toggle, toggle, toggle, slider, dropdown |
 | `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
 | `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 18, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
 | `debuffs.growthX`, `debuffs.growthY` | right, up | dropdown, dropdown |

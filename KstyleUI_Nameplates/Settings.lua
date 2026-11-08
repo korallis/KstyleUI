@@ -25,13 +25,13 @@ Settings.defaults = {
 	health = { texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
 	enemy = { colorSource = "class", color = Color("hostile") },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
-	name = { show = true, size = 11, outline = "OUTLINE", upper = true, classColor = true },
-	level = { show = true, size = 10, outline = "OUTLINE" },
-	healthText = { show = true, size = 9, outline = "OUTLINE", format = "percent" },
+	name = { show = true, size = 14, outline = "OUTLINE", upper = false, classColor = true },
+	level = { show = true, size = 16, outline = "OUTLINE" },
+	healthText = { show = false, size = 9, outline = "OUTLINE", format = "percent" },
 	cast = {
-		enabled = true, height = 10, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		enabled = true, height = 12, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "class", color = Color("accentDefault"), shieldColor = Color("textDisabled"),
-		showIcon = true, showName = true, showTime = true, textSize = 9, outline = "OUTLINE",
+		showIcon = true, showName = true, showTime = true, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
 		enabled = true, includePlateOnly = true, size = 18, spacing = 2, columns = 5, rows = 1,

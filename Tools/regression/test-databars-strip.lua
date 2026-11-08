@@ -67,8 +67,19 @@ do
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
 	assert(sameText(item(ns, "fps").value, K.Tokens.Color("friendly")), "a high frame rate reads friendly")
-	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text colour")
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("textEmphasis")), "labels read white, as the mockup's FPS: and Durability: do")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
+	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, text at 13 (the five items then span the mockup's 444
+	-- units), 21 units each side of a separator as tall as the text's cap height, a quarter of the strip.
+	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
+	eq(ns.Strip.view.chrome:Chamfer(), 10.5, "the strip's chamfer")
+	local s = ns.Settings().strip
+	eq(s.fontSize, 13, "the strip reads at 13 by default")
+	eq(s.spacing, 21, "21 units each side of a separator")
+	local separator = item(ns, "latency").separator
+	assert(separator:GetHeight() >= 10 and separator:GetHeight() <= 11.5, "a separator is a quarter of the strip tall, got " .. tostring(separator:GetHeight()))
+	local sr, sg, sb, sa = separator:GetVertexColor()
+	assert(near(sr, K.Tokens.Color("text")) and near(sg, sr) and near(sb, sr) and near(sa, 1), "a separator reads in the full text grey")
 	noErrors(env, K)
 end
 
@@ -160,7 +171,7 @@ do
 	local face = K.Tokens.MediaList("font")[2].path
 	Options.Write("DataBars", "strip.font", face)
 	local _, defaultSize = item(ns, "gold").value:GetFont()
-	eq(defaultSize, 10 * K.Theme.FontScale(), "the strip reads at 10 by default")
+	eq(defaultSize, 13 * K.Theme.FontScale(), "the strip reads at 13 by default")
 	Options.Write("DataBars", "strip.fontSize", 13)
 	Options.Write("DataBars", "strip.outline", "OUTLINE")
 	local path, size, flags = item(ns, "gold").value:GetFont()
@@ -170,21 +181,21 @@ do
 
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	local layout = K.Layout.Get("databars.strip")
-	assert(layout.width < 360 and layout.height > 36, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
+	assert(layout.width < 492 and layout.height > 43, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
 	local first, second = item(ns, "fps").button, item(ns, "latency").button
 	local _, _, _, _, y1 = first:GetPoint(1)
 	local _, _, _, _, y2 = second:GetPoint(1)
 	assert(y2 < y1, "upright items stack downward")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "360x36", "a row strip returns to its footprint")
+	eq(layout.width .. "x" .. layout.height, "492x43", "a row strip returns to its footprint")
 	for i = 2, 5 do
 		Options.Write("DataBars", "strip.slot" .. i, "none")
 	end
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "360x36", "a one-item column also returns to the row footprint")
+	eq(layout.width .. "x" .. layout.height, "492x43", "a one-item column also returns to the row footprint")
 	noErrors(env, K)
 end
 
