@@ -44,11 +44,16 @@ local function Text(text, font, size, outline, role)
 	end
 end
 
+local function KeepHighlight(icon, copy)
+	Skin.Strip(icon:GetParent(), { keep = Keep(copy), watch = false })
+end
+
 local function SkinIcon(group, item)
 	local cfg, current = Settings.current[group], Settings.current
 	local icon = item.Icon
 	if IsTexture(icon) then
-		Skin.Strip(item, { keep = Keep(icon, item.OutOfRange) })
+		Skin.Strip(item, { keep = Keep(icon, item.OutOfRange, K.Icons.Highlight(icon)) })
+		K.Icons.Watch(icon, KeepHighlight)
 		Crop(icon)
 	end
 	local backdrop = Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET })
@@ -82,7 +87,8 @@ local function SkinBar(item)
 	end
 	local frame = item.Icon
 	if type(frame) == "table" and IsTexture(frame.Icon) then
-		Skin.Strip(frame, { keep = Keep(frame.Icon) })
+		Skin.Strip(frame, { keep = Keep(frame.Icon, K.Icons.Highlight(frame.Icon)) })
+		K.Icons.Watch(frame.Icon, KeepHighlight)
 		Crop(frame.Icon)
 		Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_OUTSET })
 		Text(frame.Applications, current.countFont, cfg.countSize, current.countOutline)

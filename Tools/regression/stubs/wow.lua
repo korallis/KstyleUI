@@ -414,10 +414,16 @@ end
 function Object:GetNumMaskTextures() return self._masks and #self._masks or 0 end
 function Object:GetMaskTexture(i) return self._masks and self._masks[i] end
 
--- The file ID a texture shows: the number SetTexture last got, as the game reports it.
+-- The file ID a texture shows: the number SetTexture last got, as the game reports it. A secret
+-- file ID comes back secret: an API that takes a secret with no secret aspect marks the whole object
+-- as holding secrets, so its getters return secrets too.
 function Object:GetTextureFileID()
 	local stored = self._state.Texture
-	return stored and type(stored[1]) == "number" and stored[1] or nil
+	local value = stored and stored[1]
+	if secretValues[value] ~= nil then
+		return type(plain(value)) == "number" and value or nil
+	end
+	return type(value) == "number" and value or nil
 end
 
 for name in pairs(Object) do

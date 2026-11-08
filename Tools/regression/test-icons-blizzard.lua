@@ -332,4 +332,46 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A secret file ID: the aura engine redraws an icon with secretwrap(icon), which also marks the texture's
+-- getters secret. The service keeps the game's icon, drops any custom state, and sets nothing again -------
+
+do
+	local env, K = New()
+	K.Options.Write("Icons", "enabled", true)
+	local texture = K.Scale.Root():CreateTexture(nil, "ARTWORK")
+	assert(K.Icons.Watch(texture), "the texture is watched")
+	texture:SetTexture(FIREBALL)
+	assert(W.LastCall(texture, "SetTexture")[1] == B_PATH .. FIREBALL .. ".png", "a plain file ID shows the set")
+	local secret = env.Secret(REJUV)
+	local before = #W.Calls(texture, "SetTexture")
+	texture:SetTexture(secret)
+	assert(#W.Calls(texture, "SetTexture") == before + 1, "the service makes no second SetTexture for a secret file ID")
+	assert(W.LastCall(texture, "SetTexture")[1] == secret, "the game's icon stays")
+	assert(env.issecretvalue(texture:GetTextureFileID()), "sanity: the stub's getter is secret too, as the game's")
+	K.Options.Write("Icons", "set", "A")
+	assert(W.LastCall(texture, "SetTexture")[1] == secret, "a set change leaves a secret icon alone")
+	K.Options.Write("Icons", "enabled", false)
+	assert(W.LastCall(texture, "SetTexture")[1] == secret, "and so does turning icons off")
+	K.Options.Write("Icons", "enabled", true)
+	texture:SetTexture(FIREBALL)
+	assert(W.LastCall(texture, "SetTexture")[1] == A_PATH .. FIREBALL .. ".png", "a plain file ID after a secret one shows the set again")
+	K.DevTest.Run()
+	local found
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		if entry.message:find("PASS icons", 1, true) then
+			found = entry.message
+		end
+	end
+	assert(found and found:find("1 watched textures, 1 custom, 0 keep the game's icon", 1, true), "DevTest counts the watched textures: " .. tostring(found))
+	texture:SetTexture(secret)
+	K.DevTest.Run()
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		if entry.message:find("PASS icons", 1, true) then
+			found = entry.message
+		end
+	end
+	assert(found:find("1 watched textures, 0 custom, 1 keep the game's icon", 1, true), "and the ones kept for a secret file ID: " .. tostring(found))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("icons on Blizzard's spellbook, talents, item buttons, bags and loot ok")

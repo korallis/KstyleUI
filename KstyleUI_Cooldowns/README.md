@@ -37,7 +37,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
-| `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin`. An icon item's backdrop is the shared icon chrome (`Skin.Backdrop` with `icon = true`, a `Widgets.IconChrome`) resting on `SetRimAccent` with the module's accent, the same rim every KstyleUI icon button wears |
+| `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin`. An icon item's backdrop is the shared icon chrome (`Skin.Backdrop` with `icon = true`, a `Widgets.IconChrome`) resting on `SetRimAccent` with the module's accent, the same rim every KstyleUI icon button wears. Each item's icon texture is watched by `KstyleUI.Icons.Watch`, so it shows the custom icon set while its file ID is readable and the game's icon while it is secret |
 | `Mirror.lua` | Runs each group on its path: events, refreshes, Layout registration and the switch to the reskin |
 | `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |

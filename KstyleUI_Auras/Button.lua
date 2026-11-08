@@ -60,6 +60,7 @@ function Button.Create(button, hasDispel)
 	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
+	K.Icons.Watch(icon)
 	local entry = {
 		button = button,
 		skin = skin,

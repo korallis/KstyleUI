@@ -199,13 +199,16 @@ local function makeCopy(texture, st)
 		hooksecurefunc(texture, "AddMaskTexture", addMask)
 		hooksecurefunc(texture, "RemoveMaskTexture", removeMask)
 	end
+	if st.onCopy then
+		st.onCopy(texture, copy)
+	end
 	return copy
 end
 
 local function entry(texture)
 	local st = state[texture]
 	if not st then
-		st = { dimR = 1, dimG = 1, dimB = 1, glow = 0 }
+		st = { dimR = 1, dimG = 1, dimB = 1, glow = 0, secret = false }
 		state[texture] = st
 	end
 	return st
@@ -307,6 +310,12 @@ end
 local function follow(texture, fileID)
 	local st = state[texture]
 	st.file = fileID
+	if isSecret(fileID) then
+		st.secret = true
+		Icons.Reset(texture)
+		return
+	end
+	st.secret = false
 	if st.custom or Icons.Resolve(fileID) then
 		Icons.Apply(texture, fileID)
 	end
@@ -336,11 +345,12 @@ local function onAtlas(texture)
 	end
 end
 
-function Icons.Watch(texture)
+function Icons.Watch(texture, onCopy)
 	if type(texture) ~= "table" or type(texture.GetTextureFileID) ~= "function" or type(hooksecurefunc) ~= "function" then
 		return false
 	end
 	local st = entry(texture)
+	st.onCopy = onCopy
 	if not st.watched then
 		st.watched = true
 		onVertexColor(texture, texture:GetVertexColor())
@@ -367,6 +377,11 @@ function Icons.SchoolColor(mask)
 		local r, g, b = ns.Tokens.Color(token)
 		return r, g, b
 	end
+end
+
+function Icons.Highlight(texture)
+	local st = state[texture]
+	return st and st.copy or nil
 end
 
 function Icons.ActiveSet()
@@ -448,5 +463,16 @@ ns.DevTest.AddCheck("icons", function()
 	if not active then
 		return false, "set " .. setting("set") .. " did not load: " .. tostring(lastProblem)
 	end
-	return true, "set " .. activeSet .. ": " .. count(active.icons) .. " icons, tint " .. setting("tint")
+	local watched, custom, secret = 0, 0, 0
+	for _, st in pairs(state) do
+		if st.watched then
+			watched = watched + 1
+			if st.custom then
+				custom = custom + 1
+			elseif st.secret then
+				secret = secret + 1
+			end
+		end
+	end
+	return true, "set " .. activeSet .. ": " .. count(active.icons) .. " icons, tint " .. setting("tint") .. "; " .. watched .. " watched textures, " .. custom .. " custom, " .. secret .. " keep the game's icon for a secret file ID"
 end)
