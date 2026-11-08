@@ -234,7 +234,7 @@ assert(not player.frame:IsShown(), "a start event without a cast keeps the bar h
 do
 	local CUSTOM = "Interface\\AddOns\\KstyleUI_Icons\\Icons\\135846.png"
 	local ienv, IK, ins = U.New({
-		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true }, Icons = { enabled = true } } }, characters = {} },
+		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true }, Icons = { enabled = true, set = "A" } } }, characters = {} },
 		setup = function(e)
 			e.C_AddOns = {
 				LoadAddOn = function()

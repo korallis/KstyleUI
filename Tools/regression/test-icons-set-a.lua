@@ -45,8 +45,9 @@ end
 
 local env, K = New()
 assert(env.KstyleUIIconData == nil, "nothing loads while custom icons are off")
+K.Options.Write("Icons", "set", "A")
 K.Options.Write("Icons", "enabled", true)
-assert(env._loads[1] == "KstyleUI_Icons", "turning icons on loads set A")
+assert(env._loads[1] == "KstyleUI_Icons", "turning icons on with set A picked loads set A")
 assert(K.Icons.ActiveSet() == "A", "set A loaded: " .. tostring(env.KstyleUIIconData))
 
 local data = env.KstyleUIIconData

@@ -23,7 +23,7 @@ local SCHOOL_ORDER = {
 	{ mask = 1, token = "schoolPhysical" },
 }
 
-local defaults = { enabled = false, set = "A", tint = "class", highlight = 0.25 }
+local defaults = { enabled = false, set = "B", tint = "class", highlight = 0.25 }
 
 local cache = {}
 local active, activeSet, lastProblem
