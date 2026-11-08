@@ -47,6 +47,13 @@ assert(env.Reveal(W.LastCall(state.pips[5], "SetValue")[1]) == 5, "power events 
 env._restricted = false
 noErrors("rogue")
 
+-- Each pip's empty disc and the mana bar's track are the button body, the bar grade's #101214 track, not the
+-- kit's translucent black.
+for i, pip in ipairs(state.pips) do
+	assert(pip.backgroundName == "buttonFill", "pip " .. i .. "'s empty disc is the button body, got " .. tostring(pip.backgroundName))
+end
+assert(state.mana.backgroundName == "buttonFill", "the mana bar's track is the button body, got " .. tostring(state.mana.backgroundName))
+
 -- Pips sit in one row, left to right, inside the element.
 local x1 = select(4, state.pips[1]:GetPoint(1))
 local x5 = select(4, state.pips[5]:GetPoint(1))

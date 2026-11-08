@@ -407,4 +407,33 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A plate's body is the button grade's tone at rest, under the mouse and selected: translucent so the element shows through ---------
+
+do
+	local env, K = New()
+	local Layout = K.Layout
+	Element(env, K, "Test.A", { anchor = "CENTER", x = 300, y = -100 }, 100, 40, { label = "Alpha" })
+	assert(Layout.Enter())
+	local Mode = Layout.Mode
+	local plate = Mode.Plate("Test.A")
+	local br, bg, bb = K.Tokens.Color("buttonFill")
+	local function body(state)
+		local r, g, b, a = plate.chrome.fill[5]:GetVertexColor()
+		assert(near(r, br) and near(g, bg) and near(b, bb), "the plate body " .. state .. " is the button grade's tone, got " .. r .. " " .. g .. " " .. b)
+		assert(a > 0.5 and a < 1, "and translucent so the element shows through, got " .. a)
+		return a
+	end
+	local rest = body("at rest")
+	W.Enter(plate)
+	local hover = body("under the mouse")
+	W.Down(plate)
+	local active = body("selected")
+	assert(rest < hover and hover < active, "the body deepens from rest to hover to selected")
+	local er, eg, eb = K.Tokens.Color("accent")
+	local r, g, b = plate.chrome.inner[5]:GetVertexColor()
+	assert(near(r, er) and near(g, eg) and near(b, eb), "the plate's edge is the accent")
+	Layout.Exit(true)
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("layout mode ok")

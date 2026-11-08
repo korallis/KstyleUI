@@ -230,6 +230,7 @@ end
 local function Build()
 	local root = K.Scale.Root()
 	win = Widgets.Panel(root, {
+		shape = "window",
 		strata = "HIGH",
 		escape = true,
 		hidden = true,

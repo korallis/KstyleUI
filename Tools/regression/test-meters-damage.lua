@@ -35,6 +35,12 @@ assert(blizzard:GetParent() ~= env.UIParent, "Blizzard's meter is hidden through
 assert(K.Safe.IsHidden(blizzard), "Safe holds Blizzard's meter")
 assert(M.Calls(blizzard, "Hide") == 0 and M.Calls(blizzard, "SetScript") == 0, "Blizzard's meter is never hidden or scripted directly")
 
+-- Each row's track is the near-black button body, as the unit frames' tracks inside their glass, not the kit's translucent track.
+do
+	local fr, fg, fb = K.Tokens.Color("buttonFill")
+	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the buttonFill body")
+end
+
 -- Rows mirror the current session.
 assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.METER.DamageDone, "the window reads the current fight's damage done")
 assert(list.count == 2, "two sources show")

@@ -76,7 +76,7 @@ local function SkinBar(item)
 		Skin.Strip(bar, { keep = Keep(bar:GetStatusBarTexture()) })
 		bar:SetStatusBarTexture(cfg.texture)
 		bar:SetStatusBarColor(Settings.BarColor())
-		Skin.Backdrop(bar, { shape = "tile", fill = "surface", inset = -BAR_OUTSET })
+		Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", inset = -BAR_OUTSET })
 		Text(bar.Name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
 		Text(bar.Duration, current.timerFont, cfg.timerSize, current.timerOutline)
 	end

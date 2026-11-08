@@ -417,6 +417,7 @@ do
 	assert(Near(size, 20 * K.Theme.FontScale()), "a size change shows in the sample")
 	assert(frame.title:GetText() == "RANGER'S LONG BOW" and frame.caption:GetText() == "RARE", "the sample name in capitals over its rarity caption")
 	assert(select(2, frame.icon:GetPoint(1)) == frame.glass, "the sample icon sits inside the sample panel")
+	assert(type(W.LastCall(frame.icon.texture, "SetTexture")[1]) == "number", "the sample icon is a file ID through the icon service, as Style.Icon paints a real tooltip's icon")
 	assert(SameEdge(frame.glass, K.Tokens.Color("edgeInner")), "the sample keeps the kit's faint hairline")
 	K.Options.Write("Tooltips", "qualityEdge", true)
 	frame:Refresh()

@@ -156,6 +156,7 @@ do
 	settle(env)
 	assert(win:GetAlpha() == 1, "the window fades in to full alpha")
 	assert(win:GetFrameStrata() == "HIGH", "the window sits in the HIGH strata")
+	assert(win.chrome and win.chrome.shapeName == "window", "the settings window, a titled window, wears the window grade's 12-unit chamfer, not the panel's 8")
 	local element = O.Find(layout.elements, function(e) return e.key == "Options.Window" end)
 	assert(element and element.frame == win, "the window registers with Layout")
 	assert(element.opts.resizable and element.opts.scalable and element.opts.module == "Options", "the window is resizable and scalable")

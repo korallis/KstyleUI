@@ -56,7 +56,7 @@ local function StyleEntry(entry)
 	if styled == nil then
 		local fill = bar:GetStatusBarTexture()
 		K.Skin.Strip(bar, { keep = fill and { [fill] = true } or nil })
-		K.Skin.Backdrop(bar, { shape = "tile", fill = "track", shadow = false })
+		K.Skin.Backdrop(bar, { shape = "tile", fill = "buttonFill", shadow = false })
 		if type(entry.UpdateStatusBarColor) == "function" then
 			hooksecurefunc(entry, "UpdateStatusBarColor", Recolor)
 		end

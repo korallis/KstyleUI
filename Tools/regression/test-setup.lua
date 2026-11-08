@@ -279,4 +279,24 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Each card is the button grade; its screen preview is a glass panel at the tile chamfer with the shadow ----
+
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	local card = panel.cards.DPS
+	local br, bg, bb = K.Tokens.Color("buttonFill")
+	local r, g, b = card.chrome.fill[5]:GetVertexColor()
+	assert(W.Near(r, br) and W.Near(g, bg) and W.Near(b, bb), "the card body is the button grade's tone")
+	assert(card.chrome.shapeName == "tile" and not card.chrome.shadow[5]:IsShown(), "a tile without a shadow")
+	local sr, sg, sb = K.Tokens.Color("surface")
+	r, g, b = card.screenChrome.fill[5]:GetVertexColor()
+	assert(W.Near(r, sr) and W.Near(g, sg) and W.Near(b, sb), "the screen preview is filled surface")
+	assert(card.screenChrome.shapeName == "tile", "at the tile chamfer")
+	assert(card.screenChrome.shadow[5]:IsShown(), "with the glass panel's drop shadow")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("setup ok")

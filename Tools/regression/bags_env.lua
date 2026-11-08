@@ -553,10 +553,15 @@ end
 -- New(opts) -> env, KstyleUI, ns. opts: the B.Game options, plus
 --   enable   false to leave the module off
 --   setup    function(env) that runs after the fake game is installed
+--   saved    KstyleUIDB as the game loads it; width, height, uiScale  the screen, as CoreEnv.New takes them
 function B.New(opts)
 	opts = opts or {}
 	local env, K = W.New({
 		boot = false,
+		saved = opts.saved,
+		width = opts.width,
+		height = opts.height,
+		uiScale = opts.uiScale,
 		setup = function(env)
 			B.Game(env, opts)
 			if opts.setup then

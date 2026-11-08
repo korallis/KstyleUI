@@ -21,7 +21,7 @@ Tests: `Tools/regression/test-setup.lua` and `test-setup-layouts.lua`.
 The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows the four steps. A step the player has not reached is disabled, and each page fades in over `fade`.
 
 1. **Welcome.** The logo, a short welcome, the three steps ahead, **Skip setup** and **Next**.
-2. **Layout.** One card per layout: a 16:9 preview that draws each element's footprint from `Setup.Layouts`, the layout's name and its one-line note. A click picks the card: an `accent` hairline, a selection glow and an `accent` preview. DPS is picked first.
+2. **Layout.** One card per layout on the button grade's body: a 16:9 preview, a glass panel at the tile chamfer with the drop shadow, that draws each element's footprint from `Setup.Layouts`, the layout's name and its one-line note. A click picks the card: an `accent` hairline, a selection glow and an `accent` preview. DPS is picked first.
 3. **Modules.** A toggle and a one-line note for each module in `Setup.PICKER`, with **All on** and **All off**. Every module whose addon loaded starts on. A module whose addon did not load is off, disabled and says so. Custom icons need the `KstyleUI_IconsColour` addon, the default set B, to exist. The settings window and icon set B are not in the list: the settings window loads on demand, and the Icons page picks the set.
 4. **Summary.** The layout and the modules that will be on and off, then **Apply**. After Apply, the secure **Reload** button and **Later**. Changing a choice afterwards shows **Apply** again.
 

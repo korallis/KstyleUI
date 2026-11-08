@@ -11,7 +11,7 @@ ns.Preview = Preview
 local SAMPLE_WIDTH = 190
 local SAMPLE_QUALITY = 3
 local SAMPLE_HEALTH = 0.72
-local SAMPLE_ICON = "Interface\\Icons\\INV_Weapon_Bow_07"
+local SAMPLE_ICON = 135499
 local SAMPLE_GAP = 24
 local LINE_GAP = 2
 local DIVIDER_GAP = 1
@@ -221,7 +221,12 @@ function Preview.Build(parent)
 	frame.item:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit = Sample(frame, UNIT)
 	frame.icon = Style.IconTile(frame.item)
-	frame.icon.texture:SetTexture(SAMPLE_ICON)
+	local Icons = K.Icons
+	if Icons and type(Icons.Apply) == "function" then
+		Icons.Apply(frame.icon.texture, SAMPLE_ICON)
+	else
+		frame.icon.texture:SetTexture(SAMPLE_ICON)
+	end
 	frame.bar = Widgets.StatusBar(frame.unit, { background = "track", border = true, min = 0, max = 1, value = SAMPLE_HEALTH })
 	frame.glass, frame.title, frame.caption = frame.item, frame.item.rows[1].left, frame.item.rows[2].left
 	frame.Refresh = Refresh

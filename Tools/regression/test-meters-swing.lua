@@ -11,6 +11,15 @@ M.Enable(env, K)
 local Swing = ns.Swing
 local main, off, ranged = Swing.bars[MAIN], Swing.bars[OFF], Swing.bars[RANGED]
 
+-- Each bar stands alone over the scene, so it wears the bar grade: a surface tile with the faint edgeBar line and no shadow.
+for _, bar in ipairs({ main, off, ranged }) do
+	local chrome = bar.chrome
+	assert(chrome, "a swing bar draws the bar grade's chrome around itself")
+	assert(chrome.shapeName == "tile" and chrome.fillName == "surface" and not chrome.shadowOn, "the swing bar's chrome is the surface tile without a shadow")
+	local er, eg, eb, ea = K.Tokens.Color("edgeBar")
+	assert(M.W.Near(chrome.edge[1], er) and M.W.Near(chrome.edge[2], eg) and M.W.Near(chrome.edge[3], eb) and M.W.Near(chrome.edge[4], ea), "the swing bar's line is the faint edgeBar line")
+end
+
 -- Blizzard's swing timers fade out while KstyleUI's runs, and stay out when Blizzard sets their alpha.
 assert(blizzMain:GetAlpha() == 0, "Blizzard's main-hand timer is held at alpha 0")
 blizzMain:SetAlpha(1)

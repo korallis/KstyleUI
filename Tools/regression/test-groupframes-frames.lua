@@ -110,6 +110,10 @@ eq(env.Reveal(range[2]), 100, "and ends at the secret maximum")
 local color = last(c.health, "SetStatusBarColor")
 local warrior = G.CLASS_COLORS.WARRIOR
 assert(near(color[1], warrior[1]) and near(color[2], warrior[2]) and near(color[3], warrior[3]), "party1's bar is warrior coloured")
+-- The tracks under the fills are the button body, the mockup's one dark tone under every bar (the bar grade's
+-- #101214 track), never the kit's translucent black.
+eq(c.health.backgroundName, "buttonFill", "the health track is the button body")
+eq(c.power.backgroundName, "buttonFill", "the power track is the button body")
 local formatted = c.healthText._state.FormattedText
 assert(formatted, "the percent text is formatted by the engine")
 eq(formatted[1], "%.0f%%", "percent format")

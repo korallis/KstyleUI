@@ -497,6 +497,50 @@ local function headerUnits(env, header)
 	return list
 end
 
+-- relativeAnchor(point) -> the relative point and offset signs getRelativePointAnchor gives in SecureGroupHeaders.lua.
+local RELATIVE = {
+	TOP = { "BOTTOM", 0, -1 }, BOTTOM = { "TOP", 0, 1 }, LEFT = { "RIGHT", 1, 0 }, RIGHT = { "LEFT", -1, 0 },
+	TOPLEFT = { "BOTTOMRIGHT", 1, -1 }, TOPRIGHT = { "BOTTOMLEFT", -1, -1 }, BOTTOMLEFT = { "TOPRIGHT", 1, 1 }, BOTTOMRIGHT = { "TOPLEFT", -1, 1 },
+}
+local function relativeAnchor(point)
+	local r = RELATIVE[point] or { "CENTER", 0, 0 }
+	return r[1], r[2], r[3]
+end
+
+-- Anchors the shown children as configureChildren does in SecureGroupHeaders.lua: the first at the header's
+-- point, each next one against the previous at the header's xOffset and yOffset, each new column against the
+-- first of the previous column at columnAnchorPoint and columnSpacing; then sizes the header around them.
+local function anchorChildren(env, header, numDisplayed, perColumn, columns)
+	local a = header._attributes
+	local point = a.point or "TOP"
+	local relativePoint, xSign, ySign = relativeAnchor(point)
+	local xMult, yMult = math.abs(xSign), math.abs(ySign)
+	local xOffset, yOffset = a.xOffset or 0, a.yOffset or 0
+	local columnPoint = a.columnAnchorPoint
+	local columnSpacing = a.columnSpacing or 0
+	local colRel, colX, colY = relativeAnchor(columnPoint)
+	for i = 1, numDisplayed do
+		local button = a["child" .. i]
+		local buttonNum = (i - 1) % perColumn + 1
+		local columnNum = math.floor((i - 1) / perColumn) + 1
+		if buttonNum == 1 and columnNum == 1 then
+			button:SetPoint(point, header, point, 0, 0)
+		elseif buttonNum == 1 and columnPoint then
+			button:SetPoint(columnPoint, a["child" .. (i - perColumn)], colRel, colX * columnSpacing, colY * columnSpacing)
+		else
+			button:SetPoint(point, a["child" .. (i - 1)], relativePoint, xMult * xOffset, yMult * yOffset)
+		end
+	end
+	if numDisplayed > 0 then
+		local first = a.child1
+		local w, h = first:GetWidth(), first:GetHeight()
+		local count = math.min(numDisplayed, perColumn)
+		local width = w + (count - 1) * xMult * (w + xSign * xOffset) + (columns - 1) * math.abs(colX) * (w + columnSpacing)
+		local height = h + (count - 1) * yMult * (h + ySign * yOffset) + (columns - 1) * math.abs(colY) * (h + columnSpacing)
+		header:SetSize(math.max(0.1, width), math.max(0.1, height))
+	end
+end
+
 local function configureChildren(env, header, units)
 	local a = header._attributes
 	local startingIndex = a.startingIndex or 1
@@ -546,6 +590,7 @@ local function configureChildren(env, header, units)
 		n = n + 1
 	end
 	header._displayed = math.max(0, numDisplayed)
+	anchorChildren(env, header, header._displayed, perColumn, columns)
 end
 
 local function runScript(env, frame, script, ...)

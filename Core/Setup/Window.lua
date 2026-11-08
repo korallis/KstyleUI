@@ -177,10 +177,10 @@ local function NewCard(page, name, width)
 	end
 	card.layout = name
 	Widgets.Size(card, width, CARD_HEIGHT)
-	card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "raised", shadow = false })
+	card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
 	card.glow = Widgets.Glow(card, { kind = "selection" })
 	card.screen = CreateFrame("Frame", nil, card)
-	card.screenChrome = Widgets.Chrome(card.screen, { shape = "tile", fill = "surface", shadow = false, grain = false })
+	card.screenChrome = Widgets.Chrome(card.screen, { shape = "tile", fill = "surface", shadow = true })
 	card.rects = {}
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not SKIP_IN_PREVIEW[element.key] then

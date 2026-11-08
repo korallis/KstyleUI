@@ -32,7 +32,7 @@ local function NewRow(list)
 	local section = list.section
 	local bar = Widgets.StatusBar(list.panel, {
 		texture = ns.Get(section .. ".texture"),
-		background = "track",
+		background = "buttonFill",
 		smooth = true,
 		min = 0,
 		max = 1,

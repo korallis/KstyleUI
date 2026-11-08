@@ -16,6 +16,7 @@ local MANA_MIN, MANA_MAX = 3, 6
 local GAP = 2
 local LIMITS = { minWidth = 40, minHeight = 4, maxWidth = 400, maxHeight = 48 }
 local POWER_MANA, POWER_ENERGY, POWER_COMBO = 0, 3, 4
+local TRACK = "buttonFill"
 
 local state = { built = false, running = false, showCombo = false, showMana = false }
 Resource.state = state
@@ -48,12 +49,12 @@ local function Build()
 	local dot = Tokens.Texture("dot")
 	local pips = {}
 	for i = 1, PIPS do
-		local pip = Widgets.StatusBar(content, { texture = dot })
+		local pip = Widgets.StatusBar(content, { texture = dot, background = TRACK })
 		pip:SetBarRange(i - 1, i)
 		pip:SetBarValue(0)
 		pips[i] = pip
 	end
-	local mana = Widgets.StatusBar(content, { smooth = true })
+	local mana = Widgets.StatusBar(content, { smooth = true, background = TRACK })
 	state.holder, state.content, state.pips, state.mana = holder, content, pips, mana
 	holder:HookScript("OnSizeChanged", function()
 		Resource.Layout()

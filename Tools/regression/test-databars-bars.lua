@@ -313,7 +313,7 @@ end
 -- The preview builds sample bars that follow the settings --------------------------------------------
 
 do
-	local env, K = D.New()
+	local env, K, ns = D.New()
 	local build = assert(K.Options.Preview("DataBars"), "DataBars gives the settings window a preview")
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(248, 400)
@@ -324,6 +324,21 @@ do
 	K.Options.Write("DataBars", "xp.colorSource", "custom")
 	frame:Refresh()
 	assert(sameColor(sample.fill, 0, 0, 1), "the preview follows the settings")
+	-- Each caption sits above its own bar and clear of the bar before it, so no caption hides under a bar.
+	local captionSize = K.Tokens.Size("caption")
+	local previousBottom
+	for _, def in ipairs(ns.Bars.DEFS) do
+		local caption, shown = frame.captions[def.id], frame.bars[def.id]
+		local captionTop = -select(5, caption:GetPoint(1))
+		local barTop = -select(5, shown.holder:GetPoint(1))
+		assert(captionTop + captionSize <= barTop, def.id .. ": the caption sits above its bar, got caption " .. captionTop .. " and bar " .. barTop)
+		if previousBottom then
+			assert(captionTop >= previousBottom, def.id .. ": the caption sits below the bar before it, got caption " .. captionTop .. " and bar bottom " .. previousBottom)
+		end
+		previousBottom = barTop + shown.holder:GetHeight()
+	end
+	local stripCaptionTop = -select(5, frame.captions.strip:GetPoint(1))
+	assert(stripCaptionTop >= previousBottom and stripCaptionTop + captionSize <= frame.strip.top, "the strip's caption sits between the last bar and the strip")
 	noErrors(env, K)
 end
 

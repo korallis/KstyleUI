@@ -50,6 +50,12 @@ local color = W.LastCall(bar.Bar, "SetStatusBarColor")
 assert(color[1] == r and color[2] == g and color[3] == b, "the bar takes the class colour")
 assert(W.Near(color[4], 0.15), "the fill is subtle over the glass: alpha " .. tostring(color[4]))
 assert(K.Skin.Parts(bar.Bar).backdrop.chrome.fillName == "surface", "a restyled bar is a glass tile")
+-- The restyled bar wears the bar grade's faint edgeBar line, as the mirror's bars and the mockup's buff bars do.
+do
+	local barEdge = K.Skin.Parts(bar.Bar).backdrop.chrome.edge
+	local er, eg, eb, ea = K.Widgets.Rgba("edgeBar")
+	assert(W.Near(barEdge[1], er) and W.Near(barEdge[2], eg) and W.Near(barEdge[3], eb) and W.Near(barEdge[4], ea), "a restyled bar wears the mockup's faint bar edge, got alpha " .. tostring(barEdge[4]))
+end
 assert(K.Skin.Parts(bar.Icon).backdrop.chrome.fillName == "buttonFill", "a restyled bar's icon sits on a dark tile")
 assert(Alpha(bar.Bar.BarBG) == 0 and Alpha(bar.Bar.Pip) == 0, "the bar's background and pip are hushed")
 assert(W.LastCall(bar.Bar.Name, "SetFont"), "the bar name is restyled")

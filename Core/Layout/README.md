@@ -139,7 +139,7 @@ A resizable element's width and height snap so that size times scale is a whole 
 | Part | What it does |
 | --- | --- |
 | Overlay | A frame over `KstyleUI_Root` in the `FULLSCREEN` strata. It takes the keyboard with propagation on, so only the keys below stop at it. |
-| Plates | One per element whose `plate` option is not `false` and whose module is running: a chamfered tile over the element, washed in the accent, with the element's name as a caption. The selected plate shows its anchor, offsets, size and scale. A plate is at least 16 units on each side, so an empty frame can still be grabbed. |
+| Plates | One per element whose `plate` option is not `false` and whose module is running: a chamfered tile over the element on the button grade's body, translucent so the element shows through, with the accent on its edge and the element's name as a caption. The body deepens and the edge brightens under the mouse and when selected. The selected plate shows its anchor, offsets, size and scale. A plate is at least 16 units on each side, so an empty frame can still be grabbed. |
 | Handles | The selected resizable element shows eight handles on its corners and edges. A selected element that is scalable and not resizable shows one scale handle on its bottom right corner. |
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |

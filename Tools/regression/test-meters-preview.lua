@@ -28,6 +28,7 @@ assert(frame.damage.count > 0, "the preview shows sample damage rows")
 assert(frame.threat.count > 0, "the preview shows sample threat rows")
 assert(Text(frame.damage.title) == "DAMAGE DONE", "the sample damage meter is titled")
 assert(frame.threat.warning == 1, "the sample player at 88% shows the warning")
+assert(frame.swing.chrome and frame.swing.chrome.shapeName == "tile" and frame.swing.chrome.fillName == "surface" and not frame.swing.chrome.shadowOn, "the sample swing bar wears the bar grade's chrome, as the live bars do")
 
 -- Settings show in the preview.
 K.Options.Write("Meters", "damage.colorSource", "custom")

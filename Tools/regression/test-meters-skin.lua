@@ -111,6 +111,20 @@ for _, child in ipairs(window._kids) do
 	end
 end
 assert(backdrop, "a KstyleUI backdrop is a child of the window")
+assert(backdrop.chrome.shapeName == "panel" and backdrop.chrome.fillName == "surface", "the window wears the glass panel, as KstyleUI's own meter window does")
+
+-- Each row's backdrop is the button-grade tile: the buttonFill body behind the fill, as the brief's bar tracks, not a track-tinted chrome.
+do
+	local rowBackdrop
+	for _, child in ipairs(window.entries[1].StatusBar._kids) do
+		if child.chrome then
+			rowBackdrop = child
+		end
+	end
+	assert(rowBackdrop, "a KstyleUI backdrop is a child of each row's bar")
+	assert(rowBackdrop.chrome.shapeName == "tile" and not rowBackdrop.chrome.shadowOn, "the row backdrop is a tile without a shadow")
+	assert(rowBackdrop.chrome.fillName == "buttonFill", "the row backdrop is filled with the button body, got " .. tostring(rowBackdrop.chrome.fillName))
+end
 
 -- Entries take KstyleUI's texture, font and colours.
 local entry = window.entries[1]

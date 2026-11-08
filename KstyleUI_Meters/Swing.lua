@@ -405,7 +405,7 @@ local function Build()
 	Swing.driver = CreateFrame("Frame")
 	for _, slot in ipairs(SLOTS) do
 		local bar = Widgets.StatusBar(content, {
-			texture = ns.Get("swing.texture"), background = "track", min = 0, max = 1, value = 0,
+			texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = 0,
 			width = width or 260, height = height or 8,
 		})
 		bar.time = Widgets.FontString(bar, "OVERLAY")

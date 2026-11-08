@@ -203,6 +203,153 @@ function D.Blizzard(env)
 	return manager
 end
 
+-- Forever's micro buttons in the order Camelot's GenerateButtonInfos adds them, each with the atlas of its glyph,
+-- and the bag bar from left to right as Forever's bar grows left from the backpack.
+D.MICRO = {
+	{ "CharacterMicroButton" }, { "ProfessionMicroButton", "Professions" }, { "SpellbookMicroButton", "SpellbookAbilities" },
+	{ "TalentMicroButton", "SpecTalents" }, { "LegacyMicroButton", "Legacy" }, { "QuestLogMicroButton", "Questlog" },
+	{ "HousingMicroButton", "Housing" }, { "GuildMicroButton", "GuildCommunities" }, { "LFDMicroButton", "Groupfinder" },
+	{ "CollectionsMicroButton", "Collections" }, { "EJMicroButton", "AdventureGuide" }, { "HelpMicroButton", "Help" },
+	{ "StoreMicroButton", "Shop" }, { "MainMenuMicroButton", "MainMenu" },
+}
+D.KEYRING = -2
+D.BAGS = {
+	{ "KeyRingButton", D.KEYRING }, { "CharacterReagentBag0Slot", 5 }, { "CharacterBag3Slot", 4 }, { "CharacterBag2Slot", 3 },
+	{ "CharacterBag1Slot", 2 }, { "CharacterBag0Slot", 1 }, { "MainMenuBarBackpackButton", 0 },
+}
+
+-- Menus(env, opts) -> game: stand-ins for Blizzard's micro menu (MicroMenuContainer > MicroMenu > the buttons,
+-- Help hidden) and bag bar (BagsBar > BagSlotCluster > the slots, the reagent bag hidden), with the container,
+-- inventory and portrait API the Menus part reads. opts.glyphs maps a micro button's name to a texture (a file
+-- ID or path) its normal texture shows instead of Blizzard's atlas; opts.bags maps an inventory slot (31 to 35)
+-- to the texture of the bag equipped there; opts.backpack and opts.keyring give those two buttons' icons.
+-- game.free holds the free slots per bag, game.textures the bag textures by inventory slot.
+function D.Menus(env, opts)
+	opts = opts or {}
+	local glyphs = opts.glyphs or {}
+	local game = {
+		free = { [0] = 4, [1] = 10, [2] = 0, [3] = 2, [4] = 6, [5] = 0, [D.KEYRING] = 0 }, slots = 16, cursor = false, calls = {},
+		textures = opts.bags or { [31] = 1001, [32] = 1002, [33] = 1003 },
+	}
+	env._menus = game
+	local container = env.CreateFrame("Frame", "MicroMenuContainer", env.UIParent)
+	local menu = env.CreateFrame("Frame", "MicroMenu", container)
+	for i, def in ipairs(D.MICRO) do
+		local button = env._G[def[1]] or env.CreateFrame("Button", def[1], menu)
+		button:SetParent(menu)
+		button.layoutIndex = i
+		button.callbacks = {}
+		function button.RegisterCallback(self, event, fn, owner)
+			self.callbacks[#self.callbacks + 1] = { event, fn, owner }
+		end
+		function button.TriggerEvent(self, event, ...)
+			for _, callback in ipairs(self.callbacks) do
+				if callback[1] == event then
+					callback[2](callback[3], ...)
+				end
+			end
+		end
+		if def[2] then
+			local normal = button:CreateTexture(nil, "ARTWORK")
+			if glyphs[def[1]] then
+				normal:SetTexture(glyphs[def[1]])
+			else
+				normal:SetAtlas("UI-HUD-MicroMenu-" .. def[2] .. "-Up")
+			end
+			button:SetNormalTexture(normal)
+		end
+	end
+	env.HelpMicroButton:Hide()
+	local bags = env.CreateFrame("Frame", "BagsBar", env.UIParent)
+	local cluster = env.CreateFrame("Frame", "BagSlotCluster", bags)
+	for _, def in ipairs(D.BAGS) do
+		local name, bag = def[1], def[2]
+		local button = env._G[name] or env.CreateFrame("Button", name, bags)
+		button:SetParent(name:match("^Character") and cluster or bags)
+		button:SetID(bag == D.KEYRING and D.KEYRING or 30 + bag)
+		button.icon = button:CreateTexture(nil, "BORDER")
+		if name == "KeyRingButton" then
+			if opts.keyring then
+				button.icon:SetTexture(opts.keyring)
+			else
+				button.icon:SetAtlas("UI-HUD-ActionBar-Keyring-Small")
+			end
+		elseif name == "MainMenuBarBackpackButton" then
+			button.icon:SetTexture(opts.backpack or "Interface\\Icons\\ui-hud-actionbar-bag")
+		else
+			button.icon:SetTexture(game.textures[30 + bag] and 9000 + bag or "Interface\\PaperDoll\\UI-PaperDoll-Slot-Bag")
+		end
+	end
+	env.CharacterReagentBag0Slot:Hide()
+
+	env.KEYRING_CONTAINER = D.KEYRING
+	env.C_Container = {
+		ContainerIDToInventoryID = function(bag)
+			return 30 + bag
+		end,
+		GetContainerNumFreeSlots = function(bag)
+			return game.free[bag] or 0
+		end,
+		GetContainerNumSlots = function()
+			return game.slots
+		end,
+		CalculateTotalNumberOfFreeBagSlots = function()
+			local total = 0
+			for bag = 0, 5 do
+				total = total + (game.free[bag] or 0)
+			end
+			return total
+		end,
+	}
+	function env.GetInventoryItemTexture(_, slot)
+		return game.textures[slot]
+	end
+	function env.GetInventoryItemLink(_, slot)
+		if slot > 30 and slot <= 35 then
+			return "[Bag " .. slot .. "]"
+		end
+	end
+	function env.CursorHasItem()
+		return game.cursor
+	end
+	function env.PutItemInBag(slot)
+		game.calls[#game.calls + 1] = "PutItemInBag(" .. slot .. ")"
+	end
+	function env.PutItemInBackpack()
+		game.calls[#game.calls + 1] = "PutItemInBackpack()"
+	end
+	function env.PutKeyInKeyRing()
+		game.calls[#game.calls + 1] = "PutKeyInKeyRing()"
+	end
+	function env.PickupBagFromSlot(slot)
+		game.calls[#game.calls + 1] = "PickupBagFromSlot(" .. slot .. ")"
+	end
+	if type(opts.portrait) == "function" then
+		env.SetPortraitTexture = opts.portrait
+	else
+		function env.SetPortraitTexture(texture, unit)
+			game.portraits = (game.portraits or 0) + 1
+			texture._portrait = unit
+		end
+	end
+	function env.UpdateMicroButtons() end
+	function env.MicroButtonPulse() end
+	function env.MicroButtonPulseStop() end
+	function env.LoadMicroButtonTextures(button, name)
+		button:GetNormalTexture():SetAtlas("UI-HUD-MicroMenu-" .. name .. "-Up")
+	end
+	function env.PaperDollItemSlotButton_Update() end
+	function env.MainActionBar_InitializeGamepad()
+		env.MicroMenu:Hide()
+		env.BagsBar:Hide()
+	end
+	function env.MainActionBar_InitializeMKB()
+		env.MicroMenu:Show()
+		env.BagsBar:Show()
+	end
+	return game
+end
+
 -- New(opts) -> env, KstyleUI, the module's addon table, game. opts:
 --   game       fields that replace the default game state
 --   saved      KstyleUIDB as the game loads it

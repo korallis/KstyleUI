@@ -135,7 +135,7 @@ function Preview.Build(parent)
 	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage") })
 	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat") })
 	frame.swing = Widgets.StatusBar(frame, {
-		texture = ns.Get("swing.texture"), background = "track", min = 0, max = 1, value = SWING_FILL,
+		texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,
 		width = FALLBACK_WIDTH, height = SWING_HEIGHT,
 	})
 	frame.Refresh = Refresh

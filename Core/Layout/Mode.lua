@@ -18,7 +18,7 @@ local GRID_STRATA = "BACKGROUND"
 local PLATE_MIN = 16
 local HANDLE_SIZE = 8
 local HANDLE_LEVELS = 20
-local FILL_REST, FILL_HOVER, FILL_SELECTED = 0.1, 0.18, 0.28
+local FILL_REST, FILL_HOVER, FILL_SELECTED = 0.6, 0.72, 0.85
 local EDGE_REST, EDGE_ACTIVE = 0.55, 1
 local GRID_LINE_ALPHA, GRID_CENTRE_ALPHA = 0.07, 0.45
 local GUIDE_ALPHA = 0.9
@@ -78,7 +78,7 @@ end
 local function PaintPlate(plate)
 	local active = selected == plate.key
 	local fill = active and FILL_SELECTED or (plate.hover and FILL_HOVER or FILL_REST)
-	plate.chrome:SetFillRGBA(Widgets.Rgba("accent", fill))
+	plate.chrome:SetFill("buttonFill", fill)
 	plate.chrome:SetEdgeRGBA(Widgets.Rgba("accent", (active or plate.hover) and EDGE_ACTIVE or EDGE_REST))
 	Widgets.SetText(plate.info, active and Describe(plate.key) or "")
 end
@@ -406,7 +406,7 @@ end
 function Mode.NewPlate(key)
 	local plate = CreateFrame("Button", nil, overlay)
 	plate.key = key
-	plate.chrome = Widgets.Chrome(plate, { shape = "tile", fill = "raised", shadow = false })
+	plate.chrome = Widgets.Chrome(plate, { shape = "tile", fill = "buttonFill", shadow = false })
 	plate.label = Widgets.Text(plate, "caption", "textEmphasis")
 	plate.label:SetPoint("CENTER", plate, "CENTER")
 	plate.info = Widgets.Text(plate, "caption", "text")

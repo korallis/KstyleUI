@@ -17,6 +17,7 @@ local PORTRAIT_INSET = 2
 local HOVER_ALPHA = 0.6
 local RING_LINES = 2
 local WASH = "chamferTile"
+local TRACK = "buttonFill"
 
 local logged = {}
 local function LogOnce(key, message)
@@ -72,8 +73,8 @@ end
 function Style.Build(f, kind)
 	f.kind = kind
 	f.chrome = Widgets.Chrome(f, { shape = "tile", fill = "surface", shadow = kind == "party" })
-	f.health = Widgets.StatusBar(f, { smooth = true })
-	f.power = Widgets.StatusBar(f, { smooth = true })
+	f.health = Widgets.StatusBar(f, { smooth = true, background = TRACK })
+	f.power = Widgets.StatusBar(f, { smooth = true, background = TRACK })
 	f.portrait = f:CreateTexture(nil, "ARTWORK")
 	f.portraitMask = f:CreateMaskTexture()
 	f.portraitMask:SetTexture((Tokens.Texture("dot")))
