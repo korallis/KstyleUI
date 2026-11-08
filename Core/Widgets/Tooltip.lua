@@ -1,4 +1,4 @@
--- Tooltip.lua: the glass tooltip for KstyleUI's own controls, with an icon, a title, captions, lines, double lines and dividers.
+-- Tooltip.lua: the glass tooltip for KstyleUI's own controls, with a lit icon tile, a tracked title, captions, lines, double lines, the accent rule and dividers.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -8,6 +8,20 @@ local max, min = math.max, math.min
 local MIN_WIDTH = 160
 local MAX_WIDTH = 300
 local ANCHOR_GAP = 6
+local ICON_SIZE = 50
+local ICON_INSET = 9.5
+local ICON_LINES = 2
+local ICON_CROP = 0.07
+local TEXT_GAP = 11
+local LINE_HEIGHT = 1.2
+local LINE_GAP = 0.5
+local TITLE_GAP = 2
+local CAPTION_GAP = 4
+local RULE_LENGTH = 56
+local RULE_GAP = 4
+local DIVIDER_GAP = 6.5
+local THIN_SPACE = "\226\128\137"
+local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
 Widgets.TOOLTIP_MIN_WIDTH = MIN_WIDTH
 
 local ANCHORS = {
@@ -17,10 +31,19 @@ local ANCHORS = {
 	BOTTOM = { "TOP", "BOTTOM", 0, -1 },
 }
 
-local ROLES = { title = "heading", caption = "caption", line = "body", double = "body" }
+local ROLES = { title = "body", caption = "caption", line = "body", double = "body" }
+local GAPS_AFTER = { title = TITLE_GAP, caption = CAPTION_GAP }
 
 local tip
 local Tip = {}
+
+local function Tracked(text)
+	if Widgets.IsSecret(text) or type(text) ~= "string" or text:find("|", 1, true) then
+		return text
+	end
+	local spaced = text:upper():gsub(CODEPOINT, "%1" .. THIN_SPACE)
+	return spaced:sub(1, -#THIN_SPACE - 1)
+end
 
 local function NewLine(self)
 	local line = {
@@ -89,21 +112,41 @@ function Tip:ClearLines()
 	self.iconShown = false
 end
 
-function Tip:SetIcon(texture)
-	self.icon:SetTexture(texture)
-	self.icon:Show()
+function Tip:SetIcon(texture, a, b, c)
+	local icon = self.icon
+	local Icons = ns.Icons
+	if Icons and type(Icons.Apply) == "function" then
+		Icons.Apply(icon.texture, texture)
+	else
+		icon.texture:SetTexture(texture)
+	end
+	local r, g, bl
+	if type(a) == "string" then
+		r, g, bl = Tokens.Color(a)
+	elseif type(a) == "number" and type(b) == "number" and type(c) == "number" then
+		r, g, bl = a, b, c
+	end
+	if r then
+		icon.chrome:SetEdgeRGBA(r, g, bl, 1)
+		icon.glow:SetColorRGB(r, g, bl)
+		icon.glow:SetIntensity(1)
+	else
+		icon.chrome:SetEdge("edgeInner")
+		icon.glow:SetIntensity(0)
+	end
+	icon:Show()
 	self.iconShown = true
 end
 
 function Tip:AddTitle(text, a, b, c)
 	local line = Acquire(self, "title")
-	Widgets.SetText(line.left, text)
+	Widgets.SetText(line.left, Tracked(text))
 	Color(line.left, a, b, c, "textEmphasis")
 end
 
 function Tip:AddCaption(text, a, b, c)
 	local line = Acquire(self, "caption")
-	Widgets.SetText(line.left, text)
+	Widgets.SetText(line.left, Tracked(text))
 	Color(line.left, a, b, c, "text")
 end
 
@@ -132,11 +175,16 @@ function Tip:AddDivider()
 	line.divider:Show()
 end
 
+function Tip:AddRule()
+	local line = Acquire(self, "rule")
+	line.divider:Show()
+end
+
 local function Measure(self, x0, pad)
 	local gap = Tokens.Size("gapLarge")
 	local widest = 0
 	for _, line in ipairs(self.used) do
-		if line.kind ~= "divider" then
+		if ROLES[line.kind] then
 			local w = Widgets.TextWidth(line.left, MIN_WIDTH)
 			if line.kind == "double" then
 				w = w + gap + Widgets.TextWidth(line.right, 0)
@@ -148,29 +196,60 @@ local function Measure(self, x0, pad)
 	return Widgets.Snap(self, total), Widgets.Snap(self, total - x0 - pad)
 end
 
+local function PaintRule(texture)
+	local r, g, b = Tokens.Color("accent")
+	if type(texture.SetGradient) == "function" and type(CreateColor) == "function" then
+		texture:SetColorTexture(Tokens.Color("white"))
+		texture:SetGradient("HORIZONTAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+	else
+		texture:SetTexture((Tokens.Texture("divider")))
+		texture:SetVertexColor(r, g, b, 1)
+	end
+end
+
+local function PaintDivider(texture)
+	texture:SetTexture((Tokens.Texture("divider")))
+	Widgets.Tint(texture, "edgeFaint")
+end
+
 function Tip:Layout()
 	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
-	local gapTiny = Widgets.Snap(self, Tokens.Size("gapTiny"))
-	local gapSmall = Widgets.Snap(self, Tokens.Size("gapSmall"))
-	local iconSize = Widgets.Snap(self, Tokens.Size("actionButton"))
+	local inset = Widgets.Snap(self, ICON_INSET)
+	local iconSize = Widgets.Snap(self, ICON_SIZE)
 	local border = Widgets.Border(self)
 	local x0 = pad
 	if self.iconShown then
-		x0 = pad + iconSize + Widgets.Snap(self, Tokens.Size("gapMedium"))
-		self.icon:ClearAllPoints()
-		self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
-		self.icon:SetSize(iconSize, iconSize)
+		x0 = Widgets.Snap(self, ICON_INSET + ICON_SIZE + TEXT_GAP)
+		local icon = self.icon
+		icon:ClearAllPoints()
+		icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset)
+		icon:SetSize(iconSize, iconSize)
+		local lines = border * ICON_LINES
+		icon.texture:ClearAllPoints()
+		icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", lines, -lines)
+		icon.texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -lines, lines)
+		icon.chrome:Restyle()
+		icon.glow:Restyle()
 	end
 	local width, inner = Measure(self, x0, pad)
-	local y = pad
+	local y = inset
 	for _, line in ipairs(self.used) do
-		if line.kind == "divider" then
-			y = y + gapSmall
+		if line.kind == "rule" then
+			local gap = Widgets.Snap(self, RULE_GAP)
+			y = y + gap
 			line.divider:ClearAllPoints()
 			line.divider:SetPoint("TOPLEFT", self, "TOPLEFT", x0, -y)
-			line.divider:SetSize(inner, border)
-			Widgets.Tint(line.divider, "edgeFaint")
-			y = y + border + gapSmall
+			line.divider:SetSize(Widgets.Snap(self, RULE_LENGTH), border)
+			PaintRule(line.divider)
+			y = y + border + gap
+		elseif line.kind == "divider" then
+			local gap = Widgets.Snap(self, DIVIDER_GAP)
+			y = y + gap
+			line.divider:ClearAllPoints()
+			line.divider:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -y)
+			line.divider:SetSize(width - 2 * pad, border)
+			PaintDivider(line.divider)
+			y = y + border + gap
 		else
 			local left = line.left
 			left:ClearAllPoints()
@@ -184,12 +263,12 @@ function Tip:Layout()
 				left:SetWidth(inner)
 			end
 			local _, size = Tokens.Font(ROLES[line.kind])
-			y = y + Widgets.TextHeight(left, size) + gapTiny
+			y = y + Widgets.TextHeight(left, size * LINE_HEIGHT) + LINE_GAP + (GAPS_AFTER[line.kind] or 0)
 		end
 	end
-	local height = y - gapTiny + pad
+	local height = y - LINE_GAP + inset
 	if self.iconShown then
-		height = max(height, iconSize + 2 * pad)
+		height = max(height, iconSize + 2 * inset)
 	end
 	self:SetSize(width, Widgets.Snap(self, height))
 end
@@ -213,6 +292,22 @@ function Tip:Restyle()
 	end
 end
 
+local function IconTile(parent)
+	local icon = CreateFrame("Frame", nil, parent)
+	icon:SetFrameLevel(parent:GetFrameLevel() + ICON_LINES)
+	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "raised", shadow = false })
+	local texture = icon:CreateTexture(nil, "ARTWORK")
+	texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	local mask = icon:CreateMaskTexture()
+	mask:SetTexture(Tokens.Texture("iconMask"), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(texture)
+	texture:AddMaskTexture(mask)
+	icon.texture, icon.mask = texture, mask
+	icon.glow = Widgets.Glow(icon, { kind = "selection", spread = Tokens.Size("gapSmall") })
+	icon:Hide()
+	return icon
+end
+
 function Widgets.Tooltip()
 	if tip then
 		return tip
@@ -226,11 +321,7 @@ function Widgets.Tooltip()
 	tip:SetClampedToScreen(true)
 	tip:EnableMouse(false)
 	tip.chrome = Widgets.Chrome(tip, { shape = "panel", fill = "surface", shadow = true })
-	tip.icon = tip:CreateTexture(nil, "ARTWORK")
-	local mask = tip:CreateMaskTexture()
-	mask:SetTexture(Tokens.Texture("iconMask"), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	mask:SetAllPoints(tip.icon)
-	tip.icon:AddMaskTexture(mask)
+	tip.icon = IconTile(tip)
 	tip.used, tip.pool = {}, {}
 	function tip.Show(self)
 		self:Layout()

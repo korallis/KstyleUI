@@ -11,6 +11,7 @@
 -- chat lines; the minimap; the data strip; the experience bar; a nameplate on the target; a tooltip.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = Common.Scene
+local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 
 local Hud = {}
 
@@ -551,32 +552,10 @@ function modules.tooltips()
 			tip:AddLine(line[1], line[3], line[4], line[5])
 		end
 	end
-	-- Blizzard sizes its tooltip to its lines and its padding; the stand-in leaves that to the scene: 10-unit
-	-- margins, 2 between lines, and the skin's padding (right, bottom, left, top) pushes the text inward.
+	-- Blizzard sizes its tooltip to its lines and its padding; the stand-in leaves that to tooltip.lua's layout.
 	T.BlizzardShow(tip, true)
 	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Item, id = 4232 })
-	local padding = tip._state.Padding or { 0, 0, 0, 0 }
-	local padRight, padBottom, padLeft, padTop = padding[1] or 0, padding[2] or 0, padding[3] or 0, padding[4] or 0
-	local pad, gap = 10, 2
-	local y = -pad - padTop
-	local width = 0
-	for i = 1, tip:NumLines() do
-		local left, right = tip:GetLeftLine(i), tip:GetRightLine(i)
-		local _, size = left:GetFont()
-		size = size or 12
-		local height = size * 1.2
-		left:ClearAllPoints()
-		left:SetPoint("TOPLEFT", tip, "TOPLEFT", pad + padLeft, y)
-		local chars = Scene.TextWidth(left:GetText() or "", size)
-		if right:IsShown() then
-			right:ClearAllPoints()
-			right:SetPoint("TOPRIGHT", tip, "TOPRIGHT", -pad - padRight, y)
-			chars = chars + Scene.TextWidth(right:GetText() or "", size) + 4 * size
-		end
-		width = math.max(width, chars)
-		y = y - height - gap
-	end
-	tip:SetSize(math.max(180, width + pad * 2 + padLeft + padRight), -y + pad - gap + padBottom)
+	Tooltip.Layout(env, tip)
 	env.RunTimers()
 	T.W.Settle(env)
 	local scene = Scene.Build(env)

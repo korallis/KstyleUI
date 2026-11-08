@@ -45,7 +45,7 @@ local function tooltipText(K)
 	for _, line in ipairs(K.Widgets.Tooltip().used) do
 		lines[#lines + 1] = (line.left:GetText() or "") .. "=" .. (line.right:IsShown() and (line.right:GetText() or "") or "")
 	end
-	return table.concat(lines, "|")
+	return (table.concat(lines, "|"):gsub("\226\128\137", ""))
 end
 
 -- Registered with Layout; the five items in the mockup's order ---------------------------------------
@@ -282,7 +282,7 @@ do
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
 	W.Enter(item(ns, "durability").button)
 	local text = tooltipText(K)
-	assert(text:find("Durability", 1, true), "durability tooltip title: " .. text)
+	assert(text:find("DURABILITY", 1, true), "durability tooltip title in the kit's capitals: " .. text)
 	assert(text:find("Chest=10%", 1, true), "the tooltip lists each worn slot: " .. text)
 	W.Leave(item(ns, "durability").button)
 	W.Enter(item(ns, "latency").button)
