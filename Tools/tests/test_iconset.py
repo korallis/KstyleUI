@@ -844,7 +844,9 @@ class JudgeWrapperTest(unittest.TestCase):
                 return None
 
         self.assertEqual(iconset.make_judge(text=False, check=Check(None), icon_set=SET_B)(Path("1-1.png")), ["frame"])
-        self.assertEqual(iconset.make_judge(text=False, check=Check(None))(Path("1-1.png")), ["frame"])
+        self.assertEqual(iconset.make_judge(text=False, check=Check(None))(Path("1-1.png")), ["frame"], "set B is the default")
+        faithful = iconset.make_judge(text=False, check=Check(None), icon_set=FAITHFUL, sources={1: {"png": "blizzard.png"}})
+        self.assertEqual(faithful(Path("1-1.png")), ["drift"], "the faithful set gets its own check")
 
     def test_the_faithful_check_gets_the_blizzard_raster_of_the_icon(self):
         seen = {}

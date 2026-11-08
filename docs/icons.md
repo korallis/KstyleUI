@@ -68,8 +68,7 @@ Counts from the Forever client 1.60.1.70862 on 2026-11-08 (`iconset.py names`, `
 | Icons in the client's `Interface/Icons` | 30,509 |
 | Encrypted (zero-filled), never replaceable | 55 |
 | Repainted before this change: every player ability and item | 3,271 |
-| Named spells whose icon was not yet repainted | 0 |
-| Left to repaint, by what a player sees: nameless spells 805, currencies 2, achievements 75, items the item list dropped 346, icons no table references 26,001 | 27,183 |
+| Left to repaint, by what a player sees: other spells 787 (778 of them named, such as creature spells and buffs), currencies 2, mounts 18, achievements 75, items the item list dropped 346, icons no table references 26,001 | 27,183 |
 
 `Tools/icons/more_icons.py` lists the client's other icons from its data tables (`SpellMisc`, `SpellName`, `Talent`, `CurrencyTypes`, `Achievement`, `Mount`, `BattlePetSpecies`, `Item`, `ItemSparse`), ranked by what a player sees, into `Tools/data/icons_more.json`; `iconset.py generate --categories spell,currency,mount,companion,achievement,unlisted,misc` repaints them in that order and resumes where it stopped. At 1.5 credits per image and about 10% rerolls, the rest costs about 1.65 credits per icon.
 

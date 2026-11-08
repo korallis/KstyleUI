@@ -215,6 +215,57 @@ class InstallTest(unittest.TestCase):
         self.assertEqual((summary["removed"], summary["kept"]), (1, 1))
         self.assertTrue((self.wow / "Interface" / "AddOns").exists())
 
+    def test_uninstall_refuses_a_manifest_that_names_a_file_outside_the_icons_folder(self):
+        self.install()
+        outside = self.wow / "Interface" / "AddOns" / "Other.lua"
+        outside.write_bytes(b"addon")
+        manifest = self.icons / iconset.MANIFEST
+        data = json.loads(manifest.read_text())
+        for bad in ("../AddOns/Other.lua", str(outside), "sub/Ability_Ambush.tga", "Other.lua"):
+            data["files"][bad] = hashlib.sha256(b"addon").hexdigest()
+        manifest.write_text(json.dumps(data))
+        with self.assertRaisesRegex(SystemExit, "manifest"):
+            self.install(uninstall=True)
+        self.assertTrue(outside.exists())
+        self.assertTrue((self.icons / "Ability_Ambush.tga").exists(), "nothing is removed when the manifest is bad")
+
+    def test_install_refuses_a_symlinked_icons_folder_or_file(self):
+        elsewhere = Path(self.tmp.name) / "elsewhere"
+        elsewhere.mkdir()
+        (self.wow / "Interface" / "Icons").symlink_to(elsewhere)
+        with self.assertRaisesRegex(SystemExit, "symbolic link"):
+            self.install()
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        (self.wow / "Interface" / "Icons").unlink()
+        self.icons.mkdir()
+        victim = Path(self.tmp.name) / "victim.tga"
+        victim.write_bytes(b"keep me")
+        (self.icons / "Ability_Ambush.tga").symlink_to(victim)
+        with self.assertRaisesRegex(SystemExit, "symbolic link"):
+            self.install()
+        self.assertEqual(victim.read_bytes(), b"keep me")
+        (self.icons / "Ability_Ambush.tga").unlink()
+        (self.icons / iconset.MANIFEST).symlink_to(victim)
+        with self.assertRaisesRegex(SystemExit, "symbolic link"):
+            self.install()
+        self.assertEqual(victim.read_bytes(), b"keep me")
+
+    def test_a_newer_pack_removes_the_icons_it_no_longer_has_and_keeps_a_changed_one(self):
+        self.install()
+        (self.pack / "Spell_Fire_FlameBolt.tga").unlink()
+        summary = self.install()
+        self.assertEqual(sorted(p.name for p in self.icons.iterdir()), ["Ability_Ambush.tga", iconset.MANIFEST])
+        self.assertEqual(summary["dropped"], 1)
+        manifest = json.loads((self.icons / iconset.MANIFEST).read_text())
+        self.assertEqual(set(manifest["files"]), {"Ability_Ambush.tga"})
+        (self.pack / "Ability_Ambush.tga").unlink()
+        (self.pack / "New_Icon.tga").write_bytes(iconset.tga_bytes(1, 1, bytes([4, 5, 6])))
+        (self.icons / "Ability_Ambush.tga").write_bytes(b"edited by the player")
+        summary = self.install()
+        self.assertTrue((self.icons / "Ability_Ambush.tga").exists(), "a changed file is kept")
+        self.assertEqual((summary["dropped"], summary["kept"]), (0, 1))
+        self.assertEqual(set(json.loads((self.icons / iconset.MANIFEST).read_text())["files"]), {"New_Icon.tga"})
+
     def test_uninstall_without_a_manifest_removes_nothing(self):
         self.icons.mkdir()
         (self.icons / "Ability_Ambush.tga").write_bytes(b"someone else's")

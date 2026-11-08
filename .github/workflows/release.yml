@@ -42,7 +42,7 @@ jobs:
         run: |
           python3 Tools/icons/iconset.py verify
           python3 Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
-          test -n "$(ls "$RUNNER_TEMP/icons/Interface/Icons/"*.tga | head -1)"
+          test -n "$(find "$RUNNER_TEMP/icons/Interface/Icons" -name '*.tga' -print -quit)"
       - name: Package without uploading
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:

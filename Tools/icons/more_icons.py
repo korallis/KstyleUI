@@ -14,12 +14,13 @@ files already cover them.
 
 Each remaining icon becomes one group with a category, the order the generator draws them in, and a name:
 
-    spell         SpellMisc's SpellIconFileDataID, named by the spells that use it (SpellName), or after the
-                  file when every spell is nameless; a mount's or a companion's summon spell counts here too.
-                  Rank 1 when a talent or a spell with a clean name uses the icon, rank 2 when only
-                  placeholder or nameless spells ([DND], Test, zzOLD) do.
+    spell         SpellMisc's SpellIconFileDataID (joined on SpellMisc.SpellID, not the record's own ID), named
+                  by the spells that use it (SpellName), or after the file when every spell is nameless. Rank 1
+                  when a talent or a spell with a clean name uses the icon, rank 2 when only placeholder or
+                  nameless spells ([DND], Test, zzOLD) do.
     currency      CurrencyTypes.InventoryIconFileID, named by the currency.
-    mount         Mount rows whose source spell has no SpellMisc row, named by the mount.
+    mount         A spell icon one of whose spells is a mount's source spell (Mount.SourceSpellID), named by
+                  the mount; it comes out of the spell groups before they are classified as spells.
     companion     BattlePetSpecies.IconFileDataID, named after the file (the species table carries no name).
     achievement   Achievement.IconFileID, named by the title.
     unlisted      Item.IconFileDataID for items items.json dropped (no ItemSparse row, a placeholder name or the
@@ -99,6 +100,7 @@ def load_known(paths):
 
 
 def _spell_groups(tables, candidates, client):
+    """The spell and mount groups: one per icon SpellMisc gives a spell, keyed by the spell's own ID (SpellID)."""
     names = {_int(row["ID"]): row.get("Name_lang", "") for row in tables.get("SpellName", [])}
     talents = {_int(row["SpellID"]) for row in tables.get("Talent", [])}
     mounts = {_int(row["SourceSpellID"]): row.get("Name_lang", "") for row in tables.get("Mount", [])}
@@ -106,19 +108,21 @@ def _spell_groups(tables, candidates, client):
     for row in tables.get("SpellMisc", []):
         icon = _int(row.get("SpellIconFileDataID"))
         if icon in candidates:
-            spell = _int(row["ID"])
-            by_icon[icon].append({"id": spell, "name": mounts.get(spell) or names.get(spell, ""), "school": _int(row.get("SchoolMask")), "talent": spell in talents})
+            spell = _int(row.get("SpellID"))
+            by_icon[icon].append({"id": spell, "name": mounts.get(spell) or names.get(spell, ""), "school": _int(row.get("SchoolMask")),
+                                  "talent": spell in talents, "mount": spell in mounts})
     groups = {}
     for icon, spells in by_icon.items():
         spells.sort(key=lambda s: s["id"])
+        mount = next((s for s in spells if s["mount"]), None)
         clean = [s for s in spells if clean_name(s["name"])]
         lead_pool = clean or spells
         counter = collections.Counter(s["name"] for s in lead_pool)
         best = max(counter.values())
-        lead = next(s for s in lead_pool if counter[s["name"]] == best)
+        lead = mount or next(s for s in lead_pool if counter[s["name"]] == best)
         groups[icon] = {
-            "category": "spell", "name": lead["name"] or file_words(client[icon]), "school": lead["school"] or 1,
-            "rank": 1 if clean or any(s["talent"] for s in spells) else 2, "count": len(spells),
+            "category": "mount" if mount else "spell", "name": lead["name"] or file_words(client[icon]), "school": lead["school"] or 1,
+            "rank": 1 if mount or clean or any(s["talent"] for s in spells) else 2, "count": len(spells),
             "spells": [{"id": s["id"], "name": s["name"]} for s in spells[:MAX_SPELLS]],
         }
     return groups
@@ -134,16 +138,6 @@ def _simple_groups(rows, icon_field, name_field, category, candidates, client):
         if icon in groups:
             groups[icon]["count"] += 1
     return groups
-
-
-def _mount_groups(tables, candidates, client):
-    spell_icons = {_int(row["ID"]): _int(row.get("SpellIconFileDataID")) for row in tables.get("SpellMisc", [])}
-    rows = []
-    for row in tables.get("Mount", []):
-        icon = spell_icons.get(_int(row.get("SourceSpellID")), 0)
-        if icon:
-            rows.append({"icon": str(icon), "name": row.get("Name_lang", "")})
-    return _simple_groups(rows, "icon", "name", "mount", candidates, client)
 
 
 def _unlisted_groups(tables, candidates, client):
@@ -172,7 +166,6 @@ def build_groups(tables, client, known=()):
     builders = (
         lambda: _spell_groups(tables, candidates, client),
         lambda: _simple_groups(tables.get("CurrencyTypes", []), "InventoryIconFileID", "Name_lang", "currency", candidates, client),
-        lambda: _mount_groups(tables, candidates, client),
         lambda: _simple_groups(tables.get("BattlePetSpecies", []), "IconFileDataID", None, "companion", candidates, client),
         lambda: _simple_groups(tables.get("Achievement", []), "IconFileID", "Title_lang", "achievement", candidates, client),
         lambda: _unlisted_groups(tables, candidates, client),

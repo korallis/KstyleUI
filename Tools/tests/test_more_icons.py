@@ -16,14 +16,15 @@ CHARGE, FROSTBOLT, GRYPHON, WOLF, TICKET, VICTORY, PIGLET, SHIELD, BAG = 132337,
 
 def tables():
     return {
+        # SpellMisc.ID is the record's own ID; SpellID names the spell, as the client's table does.
         "SpellMisc": [
-            {"ID": "100", "SpellIconFileDataID": str(CHARGE), "SchoolMask": "1"},
-            {"ID": "116", "SpellIconFileDataID": str(FROSTBOLT), "SchoolMask": "16"},
-            {"ID": "117", "SpellIconFileDataID": str(FROSTBOLT), "SchoolMask": "16"},
-            {"ID": "200", "SpellIconFileDataID": str(GRYPHON), "SchoolMask": "1"},
-            {"ID": "458", "SpellIconFileDataID": str(WOLF), "SchoolMask": "1"},
-            {"ID": "900", "SpellIconFileDataID": "0", "SchoolMask": "1"},
-            {"ID": "901", "SpellIconFileDataID": "777001", "SchoolMask": "32"},
+            {"ID": "5100", "SpellID": "100", "SpellIconFileDataID": str(CHARGE), "SchoolMask": "1"},
+            {"ID": "5116", "SpellID": "116", "SpellIconFileDataID": str(FROSTBOLT), "SchoolMask": "16"},
+            {"ID": "5117", "SpellID": "117", "SpellIconFileDataID": str(FROSTBOLT), "SchoolMask": "16"},
+            {"ID": "5200", "SpellID": "200", "SpellIconFileDataID": str(GRYPHON), "SchoolMask": "1"},
+            {"ID": "5458", "SpellID": "458", "SpellIconFileDataID": str(WOLF), "SchoolMask": "1"},
+            {"ID": "5900", "SpellID": "900", "SpellIconFileDataID": "0", "SchoolMask": "1"},
+            {"ID": "5901", "SpellID": "901", "SpellIconFileDataID": "777001", "SchoolMask": "32"},
         ],
         "SpellName": [
             {"ID": "100", "Name_lang": "Charge"},
@@ -74,8 +75,8 @@ class BuildGroupsTest(unittest.TestCase):
     def test_a_spell_icon_of_nameless_spells_is_named_after_its_file_at_rank_2(self):
         self.assertEqual((self.by_icon[777001]["category"], self.by_icon[777001]["name"], self.by_icon[777001]["rank"]), ("spell", "Shadow Hidden 01", 2))
 
-    def test_a_mount_spell_counts_as_a_spell_and_keeps_the_mount_name(self):
-        self.assertEqual((self.by_icon[WOLF]["category"], self.by_icon[WOLF]["name"]), ("spell", "Gray Wolf"))
+    def test_a_mount_s_summon_spell_icon_is_a_mount_named_by_the_mount(self):
+        self.assertEqual((self.by_icon[WOLF]["category"], self.by_icon[WOLF]["name"], self.by_icon[WOLF]["rank"]), ("mount", "Gray Wolf", 1))
 
     def test_currency_achievement_and_companion_icons_take_their_own_categories_and_names(self):
         self.assertEqual((self.by_icon[TICKET]["category"], self.by_icon[TICKET]["name"]), ("currency", "Darkmoon Prize Ticket"))
@@ -92,8 +93,8 @@ class BuildGroupsTest(unittest.TestCase):
 
     def test_groups_come_in_generation_order(self):
         order = [group["category"] for group in self.groups]
-        self.assertEqual(order, ["spell", "spell", "spell", "spell", "currency", "companion", "achievement", "unlisted", "unlisted", "misc"])
-        self.assertEqual([g["icon"] for g in self.groups if g["category"] == "spell"], [FROSTBOLT, WOLF, GRYPHON, 777001])
+        self.assertEqual(order, ["spell", "spell", "spell", "currency", "mount", "companion", "achievement", "unlisted", "unlisted", "misc"])
+        self.assertEqual([g["icon"] for g in self.groups if g["category"] == "spell"], [FROSTBOLT, GRYPHON, 777001])
 
     def test_every_group_names_the_blizzard_file(self):
         for group in self.groups:
@@ -137,7 +138,8 @@ class MainTest(unittest.TestCase):
             data = json.loads(out.read_text())
         self.assertEqual(data["build"], "1.60.1.70862")
         self.assertEqual(len(data["icons"]), 10)
-        self.assertEqual(data["counts"]["spell"], 4)
+        self.assertEqual(data["counts"]["spell"], 3)
+        self.assertEqual(data["counts"]["mount"], 1)
         self.assertEqual(data["categories"], list(more_icons.CATEGORIES))
 
 

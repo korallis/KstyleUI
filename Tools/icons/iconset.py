@@ -63,9 +63,12 @@ bottom-left origin, TGA 2.0 footer. Icons it skips are reported with the reason.
 ~/.local/share/wow-dev/icons/pack.
 install copies the pack into <wow>/Interface/Icons and nothing else, refusing a folder without .flavor.info
 (a flavour folder such as _forever_ or _retail_). It copies only files that differ, so a rerun does nothing,
-and writes KstyleUI-Icons.manifest.json beside them with the sha256 of every file it placed. --uninstall
+and writes KstyleUI-Icons.manifest.json beside them with the sha256 of every file it placed; a file an earlier
+install placed that the new pack no longer has is removed when its content still matches, else kept. --uninstall
 removes the manifest's files whose content still matches and the manifest, keeps a file the player changed,
-and touches no other file. --dry-run reports without writing. The game loads the files after a full restart.
+and touches no other file. A manifest entry that is not a plain .tga file name, or a symbolic link where a
+folder or file of the install should be, stops the command before anything changes. --dry-run reports without
+writing. The game loads the files after a full restart.
 """
 
 import argparse
@@ -1212,33 +1215,65 @@ def _sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _no_symlink(path):
+    """Refuse a symbolic link where the install would write or remove: it could point outside Interface/Icons."""
+    if Path(path).is_symlink():
+        raise SystemExit(f"iconset: {path} is a symbolic link; the install touches only real files inside Interface/Icons")
+
+
+def _read_manifest(manifest):
+    """The files an earlier install placed, after checking every entry is a plain .tga name inside Interface/Icons."""
+    _no_symlink(manifest)
+    if not manifest.is_file():
+        return {}
+    listed = json.loads(manifest.read_text()).get("files", {})
+    for name in listed:
+        if (name != Path(name).name or "/" in name or "\\" in name or name in ("", ".", "..") or os.path.isabs(name)
+                or not name.lower().endswith(".tga")):
+            raise SystemExit(f"iconset: the manifest {manifest} names {name!r}, which is not a .tga file in Interface/Icons; nothing was changed")
+    return listed
+
+
+def _drop_owned(icons, owned, dry_run, log):
+    """Remove the files of an earlier install that still match their recorded content; keep the rest. Returns
+    (removed, kept)."""
+    removed = kept = 0
+    for name, digest in sorted(owned.items()):
+        target = icons / name
+        _no_symlink(target)
+        if not target.is_file():
+            continue
+        if _sha256(target) != digest:
+            kept += 1
+            log(f"kept {target}: its content changed since the install")
+            continue
+        if not dry_run:
+            target.unlink()
+        removed += 1
+    return removed, kept
+
+
 def install(pack_dir, wow_dir, uninstall=False, dry_run=False, log=print):
     """Copy the pack's Interface/Icons files into the flavour folder wow_dir, or remove them again. See the module
-    docstring. Returns the counts: copied, unchanged, replaced for an install; removed, kept for an uninstall."""
+    docstring. Returns the counts: copied, unchanged, replaced, dropped, kept for an install; removed, kept for
+    an uninstall."""
     wow_dir, pack_dir = Path(wow_dir), Path(pack_dir)
     if not (wow_dir / FLAVOR_INFO).is_file():
         raise SystemExit(f"iconset: {wow_dir} is not a World of Warcraft flavour folder (no {FLAVOR_INFO}); "
                          "pass the _forever_ folder inside the game folder")
-    icons = wow_dir / "Interface" / "Icons"
+    interface = wow_dir / "Interface"
+    icons = interface / "Icons"
+    _no_symlink(interface)
+    _no_symlink(icons)
     manifest = icons / MANIFEST
     verb = (lambda did, would: f"dry run: would {would}" if dry_run else did)
     if uninstall:
         summary = {"removed": 0, "kept": 0}
-        if not manifest.is_file():
+        listed = _read_manifest(manifest)
+        if not listed and not manifest.is_file():
             log(f"nothing to uninstall: no {MANIFEST} in {icons}")
             return summary
-        listed = json.loads(manifest.read_text()).get("files", {})
-        for name, digest in sorted(listed.items()):
-            target = icons / name
-            if not target.is_file():
-                continue
-            if _sha256(target) != digest:
-                summary["kept"] += 1
-                log(f"kept {target}: its content changed since the install")
-                continue
-            if not dry_run:
-                target.unlink()
-            summary["removed"] += 1
+        summary["removed"], summary["kept"] = _drop_owned(icons, listed, dry_run, log)
         if not dry_run:
             manifest.unlink()
         log(f"{verb('removed', 'remove')} {summary['removed']} icons from {icons}, kept {summary['kept']}")
@@ -1247,9 +1282,11 @@ def install(pack_dir, wow_dir, uninstall=False, dry_run=False, log=print):
     files = sorted(source.glob("*.tga"))
     if not files:
         raise SystemExit(f"iconset: no pack in {source}; run iconset.py pack first")
-    summary = {"copied": 0, "unchanged": 0, "replaced": 0}
+    previous = _read_manifest(manifest)
+    for path in files:
+        _no_symlink(icons / path.name)
+    summary = {"copied": 0, "unchanged": 0, "replaced": 0, "dropped": 0, "kept": 0}
     placed = {}
-    previous = json.loads(manifest.read_text()).get("files", {}) if manifest.is_file() else {}
     if not dry_run:
         icons.mkdir(parents=True, exist_ok=True)
     for path in files:
@@ -1265,10 +1302,13 @@ def install(pack_dir, wow_dir, uninstall=False, dry_run=False, log=print):
         if not dry_run:
             target.write_bytes(path.read_bytes())
         summary["copied"] += 1
+    gone = {name: digest for name, digest in previous.items() if name not in placed}
+    summary["dropped"], summary["kept"] = _drop_owned(icons, gone, dry_run, log)
     if not dry_run:
         manifest.write_text(json.dumps({"pack": "KstyleUI icons", "files": placed}, indent=1, sort_keys=True) + "\n")
     log(f"{verb('copied', 'copy')} {summary['copied']} icons into {icons}, {summary['unchanged']} already there"
         + (f", {summary['replaced']} replaced files of another pack" if summary["replaced"] else "")
+        + (f", {summary['dropped']} of an earlier install removed" if summary["dropped"] else "")
         + "; the game loads them after a full restart")
     return summary
 
