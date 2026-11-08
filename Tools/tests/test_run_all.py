@@ -53,6 +53,26 @@ class RunAllTest(unittest.TestCase):
         result = self.run_all()
         self.assertEqual(result.returncode, 0, result.stdout)
 
+    def test_runs_tests_in_parallel(self):
+        # Two tests that each wait for the other's marker finish only when they run at the same time.
+        marker = Path(self._tmp.name)
+        (self.regression / "test-x.lua").write_text(
+            f"touch {marker}/x; for i in $(seq 50); do [ -e {marker}/y ] && exit 0; sleep 0.1; done; exit 1\n")
+        (self.regression / "test-y.lua").write_text(
+            f"touch {marker}/y; for i in $(seq 50); do [ -e {marker}/x ] && exit 0; sleep 0.1; done; exit 1\n")
+        env = dict(os.environ, LUA="sh", JOBS="2")
+        result = subprocess.run(["bash", str(self.regression / "run-all.sh")], env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue(result.stdout.rstrip().endswith("passed 2, failed 0"))
+
+    def test_reports_failures_in_file_order(self):
+        for name in ("test-c.lua", "test-a.lua", "test-b.lua"):
+            (self.regression / name).write_text("exit 1\n")
+        result = self.run_all()
+        self.assertNotEqual(result.returncode, 0)
+        order = [line for line in result.stdout.splitlines() if line.startswith("FAIL ")]
+        self.assertEqual(order, ["FAIL test-a", "FAIL test-b", "FAIL test-c"])
+
     def test_fails_when_no_tests_exist(self):
         result = self.run_all()
         self.assertNotEqual(result.returncode, 0)

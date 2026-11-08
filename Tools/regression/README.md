@@ -1,6 +1,6 @@
 # Regression tests
 
-`run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. On the Mac, run it with LuaJIT:
+`run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), and report in file order; a test must write only to its own temporary paths. On the Mac, run it with LuaJIT:
 
 ```bash
 LUA=luajit bash Tools/regression/run-all.sh
