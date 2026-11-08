@@ -126,6 +126,19 @@ env.RunTimers()
 assert(env._zoom == 0, "with zoom back out on, a slider zoom returns to 0 after the delay")
 assert(not zoom.fill:IsShown() and zoom.fill:GetHeight() == 0, "and the fill empties with it, without waiting for an event")
 K.Options.Write("Minimap", "zoom.reset", false)
+-- A client without a zoom API or a cursor position leaves the slider and the wheel inert, with no error.
+do
+	local getZoom, setZoom, levels, cursor = env.Minimap.GetZoom, env.Minimap.SetZoom, env.Minimap.GetZoomLevels, env.GetCursorPosition
+	env.Minimap.GetZoom, env.Minimap.GetZoomLevels = nil, nil
+	env.GetCursorPosition = nil
+	local ok, err = pcall(function()
+		env.FireEvent("MINIMAP_UPDATE_ZOOM")
+		zoom:GetScript("OnMouseDown")(zoom, "LeftButton")
+		zoom:GetScript("OnMouseUp")(zoom, "LeftButton")
+	end)
+	assert(ok, "a missing zoom API or cursor position raises nothing: " .. tostring(err))
+	env.Minimap.GetZoom, env.Minimap.SetZoom, env.Minimap.GetZoomLevels, env.GetCursorPosition = getZoom, setZoom, levels, cursor
+end
 env.Minimap:SetZoom(4)
 assert(W.Near(zoom.fill:GetHeight(), 52 * 4 / 5, 0.5), "a zoom by Blizzard's own code, as the gamepad stick makes, refills the track through a secure hook")
 K.Options.Write("Minimap", "zoom.slider", false)

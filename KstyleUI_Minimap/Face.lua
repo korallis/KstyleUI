@@ -56,6 +56,9 @@ end
 local function ShareAtCursor(zoom)
 	local track = zoom.track
 	local bottom, height, scale = track:GetBottom(), track:GetHeight(), track:GetEffectiveScale()
+	if type(GetCursorPosition) ~= "function" then
+		return nil
+	end
 	local _, y = GetCursorPosition()
 	if not (Plain(bottom) and Plain(height) and Plain(scale) and Plain(y)) or height <= 0 or scale <= 0 then
 		return nil

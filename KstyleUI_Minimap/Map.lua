@@ -162,7 +162,7 @@ local function StopCoords()
 end
 
 local function ResetZoom(token)
-	if running and token == zoomToken and Minimap and Settings.Get("zoom.reset") then
+	if running and token == zoomToken and Minimap and type(Minimap.SetZoom) == "function" and Settings.Get("zoom.reset") then
 		Minimap:SetZoom(0)
 	end
 end
@@ -178,16 +178,21 @@ local function ArmReset()
 	end)
 end
 
+local function CanZoom(minimap)
+	return minimap and type(minimap.GetZoom) == "function" and type(minimap.SetZoom) == "function"
+		and type(minimap.GetZoomLevels) == "function"
+end
+
 local function UpdateZoom()
 	local minimap = Minimap
-	if minimap and Map.face then
+	if CanZoom(minimap) and Map.face then
 		Map.face:SetZoom(minimap:GetZoom(), minimap:GetZoomLevels())
 	end
 end
 
 local function ApplyZoom(zoom)
 	local minimap = Minimap
-	if not minimap or zoom == nil then
+	if not CanZoom(minimap) or zoom == nil then
 		return
 	end
 	local current = minimap:GetZoom()
@@ -204,7 +209,7 @@ local function OnWheel(_, delta)
 		return
 	end
 	local minimap = Minimap
-	if not minimap then
+	if not CanZoom(minimap) then
 		return
 	end
 	ApplyZoom(ns.Format.NextZoom(minimap:GetZoom(), minimap:GetZoomLevels(), delta))
@@ -212,7 +217,7 @@ end
 
 local function OnSliderZoom(share)
 	local minimap = Minimap
-	if not minimap then
+	if not CanZoom(minimap) then
 		return
 	end
 	ApplyZoom(ns.Format.ZoomAt(share, minimap:GetZoomLevels()))
