@@ -53,7 +53,8 @@ local function SkinIcon(group, item)
 	end
 	local backdrop = Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET })
 	if backdrop and backdrop.chrome and backdrop.chrome.SetRimAccent then
-		backdrop.chrome:SetRimAccent(Settings.Accent())
+		local r, g, b = Settings.Accent()
+		backdrop.chrome:SetRimAccent(r, g, b)
 	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
