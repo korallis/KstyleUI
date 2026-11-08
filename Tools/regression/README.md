@@ -18,6 +18,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `load_files.lua` | Runs addon files in a stub environment with the addon's `...` arguments. |
 | `stubs/wow.lua` | A stub WoW API for offline tests. Extend it additively. |
 | `widget_env.lua` | Loads the core with the widget kit, boots it, and drives frames like a player: hover, press, click, keys and tween frames. |
+| `render_scenes_lib.lua` | Loads the render scene scripts as libraries and checks a built scene for the `test-render-scenes-*.lua` tests, which split the scenes by area so each file stays short. |
 | `spike_env.lua` | Loads the spike addon into a stub environment that fakes the game APIs its spikes call. |
 | `actionbars_env.lua` | Loads the core and `KstyleUI_ActionBars` into a fake game with action slots, bindings, a pet and forms. Secure frames record protected calls made in combat, and a fake restricted environment runs the bars' page snippet. |
 | `lua_source.lua` | Tokenizes Lua 5.1 source and walks it with block and local scopes. The source scanners use it. |

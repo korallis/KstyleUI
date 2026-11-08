@@ -450,6 +450,13 @@ scene = Scene.Build(env)
 assert(find(scene, hiddenBySecret) == nil, "a secret false with an off alpha of 0 leaves the region transparent")
 near(find(scene, shownBySecret).alpha, 0.5, "a secret true gives the on alpha, over an earlier SetAlpha")
 near(find(scene, plainAfter).alpha, 0.25, "a later SetAlpha wins over SetAlphaFromBoolean")
+-- A build remembers each node's own alpha only for that build: an alpha set on the region or on its parent
+-- after one build shows in the next.
+plainAfter:SetAlpha(0.75)
+f:SetAlpha(0.5)
+scene = Scene.Build(env)
+near(find(scene, plainAfter).alpha, 0.375, "the next build reads the alphas set after the last one")
+f:SetAlpha(1)
 hiddenBySecret:Hide()
 shownBySecret:Hide()
 plainAfter:Hide()

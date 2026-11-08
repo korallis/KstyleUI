@@ -120,7 +120,7 @@ function Gallery.Union(env, frames)
 end
 
 -- Finish(scene, env, K, what) resolves every pending frame onto scene.frames, prefixes the log with `what`,
--- and records the first error the environment caught, so test-render-scenes fails on it.
+-- and records the first error the environment caught, so test-render-scenes-gallery fails on it.
 function Frames:Finish(scene, env, K, what)
 	scene.frames = scene.frames or {}
 	for _, entry in ipairs(self.pending) do

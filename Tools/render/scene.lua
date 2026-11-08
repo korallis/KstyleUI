@@ -268,6 +268,9 @@ end
 
 -- The clock Scene.Build samples playing animation groups at, set for the duration of a build.
 local animationClock = nil
+-- The alpha each node's own calls give it, found once per build: a node's call log can run to thousands of
+-- entries, and every drawable asks for the alpha of each of its ancestors.
+local ownAlphaCache = {}
 
 local function eased(p, smoothing)
 	if smoothing == "IN" then
@@ -323,9 +326,9 @@ local function animationState(frame, now)
 	return dx, dy, alpha
 end
 
--- ownAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
+-- findOwnAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
 -- the on or off alpha from a boolean the addon may not read, so the secret is revealed here, as the engine would.
-local function ownAlpha(node)
+local function findOwnAlpha(node)
 	local calls = node._calls
 	for i = #(calls or {}), 1, -1 do
 		local call = calls[i]
@@ -345,6 +348,17 @@ local function ownAlpha(node)
 	end
 	local own = node._state.Alpha
 	return own and type(own[1]) == "number" and own[1] or 1
+end
+
+-- ownAlpha(node) -> findOwnAlpha(node), remembered for the rest of the build.
+local function ownAlpha(node)
+	local cached = ownAlphaCache[node]
+	if cached then
+		return cached
+	end
+	local alpha = findOwnAlpha(node)
+	ownAlphaCache[node] = alpha
+	return alpha
 end
 
 local function effectiveAlpha(object)
@@ -918,6 +932,7 @@ function Scene.Build(env, opts)
 	end
 	local solver = newSolver(env, opts, logLine)
 	animationClock = opts.time
+	ownAlphaCache = {}
 	local width, height = env.GetPhysicalScreenSize()
 	local uiParent = env.UIParent
 	local parentScale = type(uiParent._scale) == "number" and uiParent._scale or 1
@@ -1405,6 +1420,7 @@ function Scene.Build(env, opts)
 	end
 
 	animationClock = nil
+	ownAlphaCache = {}
 	local physical = { width = width, height = height }
 	return {
 		screen = { width = round4(worldWidth * k), height = SCREEN_UNITS, physical = physical, pixelsPerUnit = round4(height / SCREEN_UNITS) },
