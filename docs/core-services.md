@@ -28,7 +28,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 | `UnregisterAll(owner)` | Removes the owner from every event. |
 | `Fire(event, ...)` | Runs subscribers in registration order. A failing subscriber is reported through `Call`, and the rest still run. A subscriber added during a `Fire` first runs on the next `Fire`. |
 
-The events are `ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged(new, old)`, `IconsChanged`, `SettingChanged(module, key, value)`, `ReloadNeeded(module)`, `LayoutChanged(key)`, which [Layout](../Core/Layout/README.md) fires when an element's settings change, and `ModuleChanged(name, running)`, which `Modules` fires after a module starts or stops. Any other name raises an error. To add an event, add its name to the `EVENTS` table in `Core/Callbacks.lua`.
+The events are `ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged(new, old)`, `SettingChanged(module, key, value)`, `ReloadNeeded(module)`, `LayoutChanged(key)`, which [Layout](../Core/Layout/README.md) fires when an element's settings change, and `ModuleChanged(name, running)`, which `Modules` fires after a module starts or stops. Any other name raises an error. To add an event, add its name to the `EVENTS` table in `Core/Callbacks.lua`.
 
 When a module is disabled, `Modules` removes every callback whose owner is the module's name.
 
@@ -196,7 +196,7 @@ The canvas never calls `SettingsPanel` methods, so it cannot taint Blizzard's se
 
 ## Icons
 
-`Core/Icons.lua` maps game icon file IDs to KstyleUI's custom icon sets. It registers the `Icons` module, its defaults and its settings page at load. `Modules.List()` starts with `Icons`, and `Options.List()` lists it after `Appearance`. Its functions, settings and the data format of the icon addons are in [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#coreiconslua).
+The core has no icon service. KstyleUI's repainted icons ship as a loose-file texture pack the client loads from `_forever_/Interface/Icons`, so every texture that shows a game icon just calls `SetTexture(fileID)` and the client swaps the file; see [`docs/icons.md`](icons.md). Saved data from before this change carried `Icons` and `IconsColour` sections, which `Store.migrations[3]` drops.
 
 ## Setup
 

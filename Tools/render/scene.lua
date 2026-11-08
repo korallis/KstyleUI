@@ -91,8 +91,7 @@ end
 
 local HOME = os.getenv("HOME") or ""
 Scene.ICON_DIRS = {
-	"KstyleUI_IconsColour/Icons",
-	"KstyleUI_Icons/Icons",
+	"Tools/icons/setB/Icons",
 	HOME .. "/.local/share/wow-dev/icons/blizzard",
 }
 

@@ -157,12 +157,7 @@ function Slot.Update(slot, record, level, match)
 	state.quality = record.quality
 	local quality = record.quality
 	state.coloured = not empty and Settings.Get("showQuality") and quality ~= nil and quality >= Settings.Get("qualityMin")
-	if empty then
-		K.Icons.Reset(slot.icon)
-		slot.icon:SetTexture(nil)
-	else
-		K.Icons.Apply(slot.icon, record.icon)
-	end
+	slot.icon:SetTexture(not empty and record.icon or nil)
 	local count = record.count
 	if not empty and Settings.Get("showCount") and count and count > 1 then
 		slot.count:SetText(tostring(count))

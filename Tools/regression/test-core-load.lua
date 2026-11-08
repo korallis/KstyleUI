@@ -21,9 +21,14 @@ assert(rawget(_G, "KstyleUI") == nil, "addon code leaked into the real globals")
 -- Each core service publishes its namespace table, as the roadmap's Core public API names it.
 for _, name in ipairs({
 	"L", "Callbacks", "Events", "Tokens", "Theme", "Scale", "Motion", "Features", "Store", "Modules",
-	"Combat", "Safe", "DevTest", "Icons", "Options", "Skin",
+	"Combat", "Safe", "DevTest", "Options", "Skin",
 }) do
 	assert(type(env.KstyleUI[name]) == "table", "KstyleUI." .. name .. " must be a table, got " .. type(env.KstyleUI[name]))
+end
+-- The icon service is gone: the repainted icons ship as a loose-file texture pack the client loads itself (docs/icons.md).
+assert(env.KstyleUI.Icons == nil, "KstyleUI.Icons must not exist: the icon pack replaced the module")
+for _, path in ipairs(core) do
+	assert(not path:find("Icons.lua", 1, true) and not path:find("IconHooks.lua", 1, true), "Core.xml must not load " .. path)
 end
 
 print("core load ok (" .. #core .. " files)")

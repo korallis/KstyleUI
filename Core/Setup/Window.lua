@@ -279,8 +279,6 @@ local function SyncChoice()
 		toggle:SetValue(choice.modules[entry.name] == true, true)
 		if available then
 			toggle.note:SetText(entry.note)
-		elseif entry.name == "Icons" then
-			toggle.note:SetText(L["Needs the KstyleUI_Icons addon."])
 		else
 			toggle.note:SetText(L["Not installed, or turned off in the AddOns list."])
 		end

@@ -146,7 +146,7 @@ assert(essential.icons[1].entry.spell == 1111, "the override event moves the ico
 local queried = C.Calls(env, "GetSpellCooldownDuration")
 assert(queried[#queried][1] == 1111, "the overridden icon refreshes at once")
 
--- Icons go through the Icons service with the spell's file ID.
+-- Icons take the spell's file ID straight; the icon pack replaces the file the client loads for it.
 assert(essential.icons[1].icon:GetTexture() == 501001 or essential.icons[1].icon:GetTexture() == 501111, "the icon texture is the spell's file ID")
 
 -- Blizzard's viewers are faded, kept faded against their own SetAlpha, and their items take no mouse.

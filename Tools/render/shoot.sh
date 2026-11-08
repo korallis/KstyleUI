@@ -2,15 +2,16 @@
 # shoot.sh: run a scene script, then screenshot it with headless Chrome.
 #
 #   Tools/render/shoot.sh <scene> [--ppu 1.426] [--out Tools/render/out/<scene>.png] [--json-only]
-#                                [--icons A|B|off] [--class WARRIOR] [--backdrop [PNG]] [--backdrop-alpha 1] [--no-standins]
+#                                [--class WARRIOR] [--backdrop [PNG]] [--backdrop-alpha 1] [--no-standins]
 #
 # <scene> is a file in Tools/render/scenes/ without .lua. The scene JSON lands in Tools/render/out/<scene>.json,
 # the page in Tools/render/out/<scene>.html and the PNG next to them. LUA (default luajit) runs the scene.
 # CHROME overrides the browser binary.
 #
-# --icons picks the custom icon set the HUD scenes render with (B when absent, the default set); it sets
-# RENDER_ICONS for the scene. --class picks the class a HUD scene that names none renders (hud_dps_mac; one of
-# the nine in scenes/_classes.lua, the warrior when absent); it sets RENDER_CLASS. --backdrop draws the HUD over a PNG scaled to the canvas, by default the
+# Icons draw as a player with the icon pack installed sees them: set B's repaint for every file ID the pack has,
+# else Blizzard's icon (scenes/_common.lua, Common.IconDirs). --class picks the class a HUD scene that names none
+# renders (hud_dps_mac; one of the nine in scenes/_classes.lua, the warrior when absent); it sets RENDER_CLASS.
+# --backdrop draws the HUD over a PNG scaled to the canvas, by default the
 # backdrop standins.py makes (Tools/render/out/standins/backdrop.png): the UI-free clean plate of the mockup's
 # scene when it exists (KSTYLEUI_PLATE, default ~/.local/share/kstyleui-handoff/scenery/clean.png), else the
 # mockup's scenery with its UI blurred away, at --backdrop-alpha. Before the scene runs, standins.py refreshes
@@ -22,14 +23,13 @@ cd "$root"
 
 scene=${1:-}
 if [ -z "$scene" ]; then
-	echo "usage: Tools/render/shoot.sh <scene> [--ppu N] [--out file.png] [--json-only] [--icons A|B|off] [--class CLASS] [--backdrop [PNG]] [--backdrop-alpha N] [--no-standins]" >&2
+	echo "usage: Tools/render/shoot.sh <scene> [--ppu N] [--out file.png] [--json-only] [--class CLASS] [--backdrop [PNG]] [--backdrop-alpha N] [--no-standins]" >&2
 	exit 2
 fi
 shift
 ppu=1.426
 out=""
 json_only=0
-icons=""
 class=""
 backdrop=""
 backdrop_alpha=1
@@ -39,7 +39,6 @@ while [ $# -gt 0 ]; do
 		--ppu) ppu=$2; shift 2 ;;
 		--out) out=$2; shift 2 ;;
 		--json-only) json_only=1; shift ;;
-		--icons) icons=$2; shift 2 ;;
 		--class) class=$2; shift 2 ;;
 		--backdrop)
 			if [ $# -gt 1 ] && [ "${2#--}" = "$2" ]; then
@@ -52,9 +51,6 @@ while [ $# -gt 0 ]; do
 		*) echo "unknown option $1" >&2; exit 2 ;;
 	esac
 done
-if [ -n "$icons" ]; then
-	export RENDER_ICONS=$icons
-fi
 if [ -n "$class" ]; then
 	export RENDER_CLASS=$class
 fi

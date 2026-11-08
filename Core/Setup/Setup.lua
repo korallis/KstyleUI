@@ -8,7 +8,6 @@ local L = ns.L
 local OWNER = "Setup"
 local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
-local ICON_ADDON = "KstyleUI_IconsColour"
 
 local PICKER = {
 	{ name = "UnitFrames", label = L["Unit frames"], note = L["Player, target, focus, pet and boss frames."] },
@@ -25,7 +24,6 @@ local PICKER = {
 	{ name = "DataBars", label = L["Data bars"], note = L["XP and reputation bars, micro menu and data strip."] },
 	{ name = "Meters", label = L["Meters"], note = L["Damage meter, threat meter and swing timer."] },
 	{ name = "Skins", label = L["Window skins"], note = L["KstyleUI styling for Blizzard's windows."] },
-	{ name = "Icons", label = L["Custom icons"], note = L["KstyleUI's own ability icons in your class colour."] },
 }
 
 local choice
@@ -44,23 +42,8 @@ local function registered()
 	return out
 end
 
-local function iconsInstalled()
-	local AddOns = C_AddOns
-	if not (AddOns and type(AddOns.DoesAddOnExist) == "function") then
-		return true
-	end
-	local ok, exists = pcall(AddOns.DoesAddOnExist, ICON_ADDON)
-	return not ok or exists == true
-end
-
 function Setup.Available(name)
-	if not registered()[name] then
-		return false
-	end
-	if name == "Icons" then
-		return iconsInstalled()
-	end
-	return true
+	return registered()[name] == true
 end
 
 function Setup.NewChoice()

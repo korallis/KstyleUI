@@ -72,7 +72,7 @@ Each button is `KstyleUI.Widgets.IconButton` built on `SecureActionButtonTemplat
 
 | State | Source |
 | --- | --- |
-| Icon | `C_ActionBar.GetActionTexture`, through `KstyleUI.Icons.Apply` with the file ID |
+| Icon | `C_ActionBar.GetActionTexture`, passed to `SetIcon` untouched (a secret file ID included) |
 | Cooldown sweep | `C_ActionBar.GetActionCooldownDuration` into `Cooldown:SetCooldownFromDurationObject`. Without it, `GetActionCooldown` when its values are not secret. |
 | Charges | The kit's charge cooldown with `GetActionChargeDuration` while `GetActionCharges().isActive`, only for actions whose `maxCharges` is above 1 |
 | Count | `C_ActionBar.GetActionDisplayCount`, passed to the text untouched |

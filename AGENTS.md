@@ -53,6 +53,8 @@ After the checks pass, get one cross-family review with `codex review --base ori
 
 The game runs the addons from `~/KstyleUI`, the owner's live copy on `staging`. `bash Tools/dev/link-addons.sh` links `KstyleUI` and every `KstyleUI_*` folder in `~/KstyleUI` into Forever's `Interface/AddOns`. `--spike` also links the spike addon, and `--dry-run` changes nothing. `KSTYLEUI_LIVE` overrides the checkout folder, and `WOW_ADDONS` overrides the AddOns folder. The script never clones, pulls, or switches branches. If the checkout folder has no `KstyleUI.toc`, the script names the folder and exits 1. To bring merged changes into the game, the owner runs `git -C ~/KstyleUI pull --ff-only`, then `/reload` in game.
 
+The repainted icons are not an addon. They ship as a loose-file texture pack in `_forever_/Interface/Icons` that the client loads at a full start; `python3 Tools/icons/iconset.py install --wow "/Applications/World of Warcraft/_forever_"` copies it there and `--uninstall` removes it. An agent never runs `install` against the owner's game folder; it runs `--dry-run` and says so. [`docs/icons.md`](docs/icons.md) has the details.
+
 ## Releases
 
 A release starts when the owner pushes a `vX.Y.Z` tag on `main`, after the in-game pass on `staging` and a fast-forward of `main`. `.github/workflows/release.yml` then runs two jobs:

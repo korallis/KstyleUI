@@ -387,13 +387,7 @@ local function Locked(cb, notInterruptible)
 end
 
 local function Icon(cb, texture)
-	if issecretvalue(texture) then
-		cb.icon:SetTexture(texture)
-	elseif cb.unit == "player" and K.Icons and K.Icons.Apply then
-		K.Icons.Apply(cb.icon, texture)
-	else
-		cb.icon:SetTexture(texture)
-	end
+	cb.icon:SetTexture(texture)
 end
 
 local function Duration(cb, channel)

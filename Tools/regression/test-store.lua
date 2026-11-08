@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 2, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 3, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -210,7 +210,23 @@ do
 	check(env.KstyleUIDB.version == 3)
 	check(K.Store.Module("UnitFrames").width == 200, "migrated values are read")
 
-	-- Data from a newer KstyleUI is left alone; a failing migration stops and is logged.
+	-- Migration 3 drops the Icons and IconsColour sections the removed icon module kept, in every profile.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 2, profiles = {
+			Default = { Icons = { enabled = true, set = "B", tint = "class" }, IconsColour = { enabled = false }, UnitFrames = { enabled = true } },
+			Alt = { Icons = { enabled = false } },
+		} },
+	})
+	CoreEnv.Boot(menv)
+	check(menv.KstyleUIDB.version == 3, "version 2 data migrates to 3")
+	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
+	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
+	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
+-- Data from a newer KstyleUI is left alone; a failing migration stops and is logged.
 	local env2, K2 = CoreEnv.New({ saved = { version = 9, profiles = {} } })
 	CoreEnv.Boot(env2)
 	check(env2.KstyleUIDB.version == 9, "a newer version is not lowered")

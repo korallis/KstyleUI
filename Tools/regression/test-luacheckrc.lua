@@ -114,7 +114,7 @@ for _, folder in ipairs({
 	"Core", "KstyleUI_Options", "KstyleUI_UnitFrames", "KstyleUI_GroupFrames", "KstyleUI_ActionBars",
 	"KstyleUI_Cooldowns", "KstyleUI_Auras", "KstyleUI_Nameplates", "KstyleUI_CombatText",
 	"KstyleUI_Minimap", "KstyleUI_Chat", "KstyleUI_Bags", "KstyleUI_Tooltips", "KstyleUI_DataBars",
-	"KstyleUI_Meters", "KstyleUI_Skins", "KstyleUI_Icons", "KstyleUI_IconsColour",
+	"KstyleUI_Meters", "KstyleUI_Skins",
 }) do
 	assert(folders[folder], "the module section has no line for " .. folder)
 end

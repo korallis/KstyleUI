@@ -15,7 +15,6 @@ return Common.Run(function()
 	local B = dofile("Tools/regression/bags_env.lua")
 	local W = B.W
 	local Item = B.Item
-	local set = Common.IconSet()
 
 	-- The backpack: one row that shows every slot state, then stacks, a quest item and a locked item.
 	local quest = Item("key", { itemID = 5000, name = "Sealed Orders", icon = 134939, classID = 12, type = "Quest", subtype = "Quest" })
@@ -39,7 +38,7 @@ return Common.Run(function()
 		[15] = { size = 28, items = { [1] = Item("ring") } },
 	}
 	local env, K, ns = B.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ Icons = Common.IconsSection(set) }),
+		saved = Gallery.Saved({}),
 		bags = bags,
 		bank = bank,
 		bankTabs = { [B.BANK.Character] = { 6, 7, 8 }, [B.BANK.Account] = { 15 } },
@@ -50,7 +49,6 @@ return Common.Run(function()
 		bankMax = 7,
 		money = 1234567,
 		setup = function(env)
-			Common.InstallAddOns(env)
 			Gallery.Setup(env)
 			env._time = 10
 			env.GetTime = function()
@@ -119,6 +117,6 @@ return Common.Run(function()
 	})
 
 	local scene = Gallery.Build(env, { time = env._time, hover = hover })
-	scene.log[#scene.log + 1] = "icons: " .. (set and ("custom set " .. set) or "Blizzard's, with the sets standing in for icons the folder lacks")
+	scene.log[#scene.log + 1] = "icons: set B's repaint for every file ID the pack has, else Blizzard's icon, as the installed pack shows them"
 	return frames:Finish(scene, env, K, "gallery bags")
 end)

@@ -141,11 +141,7 @@ local function PaintCast(frame, view, kind, height)
 	cb.bar:SetValue(CAST_SHARE)
 	ns.CastBars.SetName(cb, L["Frostbolt"])
 	cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
-	if K.Icons and K.Icons.Apply then
-		K.Icons.Apply(cb.icon, CAST_ICON)
-	else
-		cb.icon:SetTexture(CAST_ICON)
-	end
+	cb.icon:SetTexture(CAST_ICON)
 	cb.frame:SetAlpha(1)
 	cb.frame:Show()
 	return castH + CAST_GAP
@@ -179,11 +175,7 @@ local function PaintAuras(frame, view, kind)
 				tile = ns.Auras.NewTile(host)
 				tiles[i], icons[i] = tile, tile.skin
 			end
-			if K.Icons and K.Icons.Apply then
-				K.Icons.Apply(tile.icon, AURA_ICONS[i])
-			else
-				tile.icon:SetTexture(AURA_ICONS[i])
-			end
+			tile.icon:SetTexture(AURA_ICONS[i])
 			local skin = tile.skin
 			skin:ClearAllPoints()
 			skin:SetPoint(corner, host, corner, sx * (i - 1) * (size + spacing), 0)

@@ -1,19 +1,24 @@
-"""Generate, check and package a custom icon set from Tools/data/abilities.json and Tools/data/items.json.
+"""Generate, check, package and ship icon set B, the repainted ability and item icons, as a loose-file pack.
 
-Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python):
+Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python; names, verify
+and install need none):
     iconset.py extract  [--owner WARRIOR] [--race Orc] [--categories class,pet]
-    iconset.py generate [--set A|B] [--mode style|subject_reference] [--owner WARRIOR] [--race Orc] [--jobs 8]
+    iconset.py generate [--mode style|subject_reference] [--owner WARRIOR] [--race Orc] [--jobs 8]
                         [--floor N] [--limit N] [--categories class,pet] [--reroll FILEID ...] [--dry-run]
-    iconset.py rejudge  [--set A|B] [--mode ...] [--owner ...]
-    iconset.py status   [--set A|B] [--mode ...]
-    iconset.py package  [--set A|B] [--no-data]
-    iconset.py sheets   [--set A|B]
-    iconset.py verify   [--set A|B]
-    iconset.py derive   [--owner WARRIOR] [--race Orc] [--categories class,pet] [--force]
-    iconset.py accept   [--set A|B] [--mode ...] [--attempt N] [--note TEXT] FILEID ...
+    iconset.py rejudge  [--mode ...] [--owner ...]
+    iconset.py status   [--mode ...]
+    iconset.py package
+    iconset.py sheets
+    iconset.py verify
+    iconset.py accept   [--mode ...] [--attempt N] [--note TEXT] FILEID ...
+    iconset.py names    [--listfile FILE] [--blizzard-dir DIR] [--out FILE]
+    iconset.py pack     [--out DIR] [--names FILE] [--source DIR]
+    iconset.py install  --wow "/Applications/World of Warcraft/_forever_" [--pack DIR] [--uninstall] [--dry-run]
 
-Set A is white light art on black, tinted in game (KstyleUI_Icons). Set B is full-colour painted art
-that fills the square (KstyleUI_IconsColour); its prompts also name a palette for the spell school.
+Set B is full-colour art that fills the square. Its source art lives in the repository in Tools/icons/setB
+(Icons/<fileID>.png and PROVENANCE.md) and never ships inside the addon: the game loads it as a loose-file
+texture pack in World of Warcraft/_forever_/Interface/Icons, the way AcidWeb's Clean Icons works, so every
+icon is replaced everywhere, including the buff and debuff tiles the secure aura engine draws (docs/icons.md).
 
 --mode subject_reference repaints Blizzard's own icon instead of painting from a text description, so
 a player recognises the ability. extract reads each icon from the installed WoW Forever client by file
@@ -25,37 +30,42 @@ may add a hand-checked subject sentence for an icon the reference alone does not
 for ALL, every profession skill, every item and, with --race Orc, that race's racials. Tools/icons/items.py
 builds items.json: one group per item icon file ID with the category item and a rank, the order the
 generator draws them in; an icon a spell uses keeps the spell's group. rejudge re-runs the mode's
-check on the images it already has, after the check changes, and stamps each changed verdict; for set A
-in style mode that includes the art derived from set B.
+check on the images it already has, after the check changes, and stamps each changed verdict.
 
 generate makes one 1:1 image per icon group with Higgsfield, in category order (class, pet, racial,
 profession, general, item; items by rank, then by how many items share the icon), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
-its rate limit). Each image goes through the set's check in check_icons (judge for A, judge_colour
-for B, judge_faithful for subject_reference, which also rejects a repaint that drifts from Blizzard's
+its rate limit). Each image goes through the set's check in check_icons (judge_colour for B,
+judge_faithful for subject_reference, which also rejects a repaint that drifts from Blizzard's
 icon); a rejected icon is rerolled at most twice, with a fix for the reasons added to its prompt. Raw
-images and one JSON record per icon live outside the repository in ~/.local/share/wow-dev/icons/<set>/raw,
+images and one JSON record per icon live outside the repository in ~/.local/share/wow-dev/icons/B/raw,
 so a rerun skips finished icons. Each attempt records its mode; a subject_reference run repaints an
 icon whose accepted image came from a style run, and the style image stays in the package until a
 repaint is accepted. The run reads the credit balance at the start and every 100 images, and
-stops before a job would take the balance below --floor (set A 1300, set B 60 by default). --reroll makes a fresh attempt for icons the
+stops before a job would take the balance below --floor (60 by default). --reroll makes a fresh attempt for icons the
 owner marked on a contact sheet, even when they were accepted. accept records a reviewer's decision on a
 rejected image after comparing it with Blizzard's icon by eye: the latest image of the mode (or --attempt N)
 becomes accepted, the check's reasons move to overruled, and the provenance row says accepted by eye.
 
-derive makes set A's light art from set B's accepted subject_reference repaints without the model: the
-brightest channel of each pixel, levels to black and white, an unsharp mask, the art shrunk onto black
-and faded out at the edge (see derive_light), checked with set A's judge (no text check: the repaint
-passed it). The attempt is recorded in set A's raw folder with mode derived, the repaint's job, prompt
-and Blizzard source, and derivedFrom naming the set B image, so a plain generate run treats the group
-as done and the provenance row traces back to the set B record. A group already derived from the same
-repaint is skipped unless --force; a group without a repaint keeps its style art.
-
-package writes each accepted icon as a 128x128 PNG to <addon>/Icons/<fileID>.png (luminance only for
-set A), removes PNGs it no longer selects, writes <addon>/PROVENANCE.md and <addon>/Data.lua, the
-KstyleUIIconData table that Core/Icons.lua reads, and adds Data.lua to the addon's XML load file.
+package writes each accepted icon as a 128x128 RGB PNG to Tools/icons/setB/Icons/<fileID>.png, removes PNGs
+it no longer selects, and writes Tools/icons/setB/PROVENANCE.md.
 sheets writes contact sheets of 64 icons for review: Blizzard's icon from the extract cache, the icon and its
 32-pixel version.
-verify checks the packaged files: Tools/tests/test_iconset.py runs it on every set.
+verify checks the packaged files: Tools/tests/test_iconset.py runs it.
+
+names writes Tools/data/icon_names.csv, the rows of the community listfile for every icon group's file ID
+(id;Interface/ICONS/<Name>.blp, Blizzard's own mixed-case name), with a third field, encrypted, on an icon
+whose extracted BLP is zero-filled: the client encrypts fewer than a hundred store and event icons, and a
+loose file cannot replace one. The default listfile is ~/.local/share/wow-dev/atlas/tact/listfile-withcapitals.csv,
+the wowdev community listfile with capitals; the committed names file keeps CI and the pack offline.
+pack writes <out>/Interface/Icons/<Name>.tga for every packaged icon that has a name and is not encrypted,
+in the format Clean Icons ships: 128x128, 32 bits per pixel with an 8-bit alpha channel (opaque), uncompressed,
+bottom-left origin, TGA 2.0 footer. Icons it skips are reported with the reason. The default output is
+~/.local/share/wow-dev/icons/pack.
+install copies the pack into <wow>/Interface/Icons and nothing else, refusing a folder without .flavor.info
+(a flavour folder such as _forever_ or _retail_). It copies only files that differ, so a rerun does nothing,
+and writes KstyleUI-Icons.manifest.json beside them with the sha256 of every file it placed. --uninstall
+removes the manifest's files whose content still matches and the manifest, keeps a file the player changed,
+and touches no other file. --dry-run reports without writing. The game loads the files after a full restart.
 """
 
 import argparse
@@ -80,15 +90,28 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 ABILITIES = REPO / "Tools" / "data" / "abilities.json"
 ITEMS = REPO / "Tools" / "data" / "items.json"  # item icon groups, built by Tools/icons/items.py; optional
+MORE = REPO / "Tools" / "data" / "icons_more.json"  # the client's other icons, built by Tools/icons/more_icons.py; optional
 SUBJECTS = REPO / "Tools" / "data" / "icon_subjects.json"
 WORK = Path.home() / ".local" / "share" / "wow-dev" / "icons"
 BLIZZARD = WORK / "blizzard"  # Blizzard's icons, read from the installed client; never in the repository
+PACK_DIR = WORK / "pack"  # where pack writes Interface/Icons by default
+ICON_NAMES = REPO / "Tools" / "data" / "icon_names.csv"  # the listfile rows of every icon group, written by names
+LISTFILE = Path.home() / ".local" / "share" / "wow-dev" / "atlas" / "tact" / "listfile-withcapitals.csv"
+MANIFEST = "KstyleUI-Icons.manifest.json"  # install writes it into Interface/Icons; uninstall reads it
+FLAVOR_INFO = ".flavor.info"  # every World of Warcraft flavour folder (_forever_, _retail_) has one
+TGA_FOOTER = bytes(8) + b"TRUEVISION-XFILE.\x00"  # the TGA 2.0 footer Clean Icons' files end with
+TGA_HEADER = struct.Struct("<BBBHHBHHHHBB")
+TGA_TRUECOLOR, TGA_BPP, TGA_ALPHA_BITS = 2, 32, 8
 TACTTOOL = Path.home() / ".local" / "share" / "wow-dev" / "casc" / "TACTTool" / "TACTTool"
 WOW_DIR = Path("/Applications/World of Warcraft")
 TACT_PRODUCT, TACT_REGION = "wowf", "eu"
 REFERENCE_SIZE = 512  # the 64 px Blizzard icon is upscaled to this for the model
 MODES = ("style", "subject_reference")
-CATEGORIES = ("class", "pet", "racial", "profession", "general", "item")
+ABILITY_CATEGORIES = ("class", "pet", "racial", "profession", "general")  # abilities.json: groups with spells a class owns
+CATEGORIES = ABILITY_CATEGORIES + ("item", "spell", "currency", "mount", "companion", "achievement", "unlisted", "misc")
+# What the faithful prompt calls an icon of each category; a category not listed is "ability" (a class spell).
+ICON_KINDS = {"item": "item", "unlisted": "item", "spell": "spell", "currency": "currency", "mount": "mount",
+              "companion": "companion pet", "achievement": "achievement", "misc": ""}
 SCHOOLS = {1: "Physical", 2: "Holy", 4: "Fire", 8: "Nature", 16: "Frost", 32: "Shadow", 64: "Arcane"}
 MAX_IMAGES = 3  # the first image and at most two rerolls
 MAX_FAILURES = 2  # jobs that end without an image
@@ -102,26 +125,7 @@ SHEET_COLUMNS = 8
 SHEET_ICONS = 64
 SHEET_TILE_W = 2 * ICON_SIZE + 48  # Blizzard's icon, the repaint and its 32-pixel version
 
-STYLE_A = (
-    "Draw one simple, iconic subject that captures this ability: a single object, creature head, hand or "
-    "symbol seen up close, centred and filling about two thirds of the square, with a wide margin of pure "
-    "black on every side. Use bold, thick, solid shapes with a bright glowing core and a clean outline, and "
-    "only a little smoke and a few sparks around it, so the silhouette reads clearly when the icon is shrunk "
-    "to 32 pixels. No scene, no landscape, no full-body characters, no busy background. Style: match the "
-    "reference image exactly: a sculpture of glowing white light and luminous white smoke on a pure black "
-    "background, strictly monochrome greyscale, no colour at all. One icon only, not a grid or a sheet. "
-    "No text, no letters, no numbers, no runes, no writing, no border, no frame, no rounded square, nothing "
-    "touching the edges."
-)
-
-HINTS = {
-    "blank": "Make the subject large, bright and clearly lit.",
-    "small": "Make the subject larger, filling about two thirds of the square.",
-    "background": "Keep the background pure black and the subject compact.",
-    "clipped": "Keep the whole subject well inside the square with a wide black margin; nothing may touch or cross the edges.",
-    "colour": "Use only white and grey light, with no colour tint at all.",
-    "text": "Draw no text, letters, numbers or writing of any kind.",
-}
+TEXT_HINT = "Draw no text, letters, numbers or writing of any kind."
 
 STYLE_B = (
     "Paint one bold, iconic subject that captures this ability: the ability's own object, weapon, creature or "
@@ -137,7 +141,7 @@ STYLE_B = (
 )
 
 # Set B names one palette per spell school. A mixed mask takes its first magic school in the order holy,
-# fire, nature, frost, shadow, arcane, as Core/Icons.lua's SchoolColor does; physical counts only alone.
+# fire, nature, frost, shadow, arcane, as the combat text's school colour does; physical counts only alone.
 PALETTES = {
     1: "Colours: the subject's own natural colours, such as steel, leather, wood, stone, fur or bone, lit by a "
        "cool white rim light with one accent colour that suits the ability, against a dark smoky background; "
@@ -160,16 +164,15 @@ HINTS_B = {
     "frame": "Paint all the way to every edge of the square: no border, frame or black margin.",
     "grid": "Paint one single icon that fills the whole square, not a grid or a sheet of several icons.",
     "clipped": "Centre the subject and light it brightly; keep the edges of the square darker than the centre.",
-    "text": HINTS["text"],
+    "text": TEXT_HINT,
 }
 
-CHECKS_A = "no blank, small, clipped, off-black, coloured or text-bearing image is accepted"
 CHECKS_B = ("no blank, flat (unreadable at 32 pixels), framed, grid, off-centre or text-bearing image is "
             "accepted")
 
 # subject_reference: Blizzard's icon is image 1, the action-button strip is image 2. The pilot's v2 prompt.
 FAITHFUL_LEAD = (
-    'Image 1 is a World of Warcraft {what} icon, "{name}"{kind}. Image 2 shows the target UI style, dark glass action '
+    'Image 1 is a World of Warcraft {what}icon, "{name}"{kind}. Image 2 shows the target UI style, dark glass action '
     "buttons holding crisp glowing art, and is for finish and mood only: do not copy any subject from image 2. "
     "Repaint image 1 at high resolution keeping the same subject, silhouette, composition, viewing angle, scale and "
     "dominant colours so a player recognises {it} instantly{subject}. Keep the subject in the same place in the "
@@ -190,23 +193,12 @@ HINTS_FAITHFUL = {
     "grid": "Paint one single icon that fills the whole square, not a grid or a sheet of several icons.",
     "drift": ("Stay much closer to image 1: copy its silhouette, composition, placement and colours exactly, and "
               "change only the rendering quality."),
-    "text": HINTS["text"],
+    "text": TEXT_HINT,
 }
 CHECKS_FAITHFUL = ("no blank, flat (unreadable at 32 pixels), grid or text-bearing image is accepted, no black "
                    "margin with a hard edge round the painting (a vignette is not a frame), and no repaint whose 8x8 "
                    "light-and-dark layout correlates below 0.6 with Blizzard's icon (drift)")
 BUTTONS_REFERENCE = "docs/design/mockups/icons_B_buttons.png"
-
-# derive: set A's light art from a set B repaint. The levels put the backdrop (the median pixel, capped) at
-# black and the brightest half-percent at white; the art is shrunk onto black and faded out at the edge.
-DERIVE_BLACK = 0.5  # percentile of the brightest-channel values that becomes black
-DERIVE_BLACK_CAP = 56  # but never a level above this, so a bright painting keeps its mid tones
-DERIVE_WHITE = 0.995  # percentile that becomes white
-DERIVE_MIN_RANGE = 64  # the white level sits at least this far above the black level
-DERIVE_GAMMA = 0.9  # lifts the mid tones a little, as the in-game tint only darkens
-DERIVE_SHARPEN = (3, 80, 2)  # unsharp mask radius, percent and threshold, for crisp edges at 32 pixels
-DERIVE_SCALE = 0.84  # the art's share of the side: the rest is set A's black margin
-DERIVE_FADE = (0.80, 0.97)  # the edge fade starts and ends at these shares of the half side
 
 CLASS_NAMES = {"DEATHKNIGHT": "Death Knight", "DEMONHUNTER": "Demon Hunter"}
 RACE_NAMES = {"Scourge": "Undead"}
@@ -214,13 +206,11 @@ RACE_NAMES = {"Scourge": "Undead"}
 
 @dataclass(frozen=True)
 class IconSet:
-    name: str  # the set: A or B
-    addon: str
-    xml: str  # the addon's XML load file, which must load Data.lua
+    name: str  # the set: B
+    folder: str  # repository folder of the packaged art: Icons/<fileID>.png and PROVENANCE.md
     model: str
     reference: str  # repository path of the style reference passed as the last image reference
     style: str
-    greyscale: bool
     hints: dict  # reason code -> the fix a reroll adds to the prompt
     floor: float  # credits the generate command leaves unspent by default
     checks: str  # what check_icons rejects, for PROVENANCE.md
@@ -230,15 +220,14 @@ class IconSet:
 
 
 SETS = {
-    "A": IconSet("A", "KstyleUI_Icons", "Icons.xml", "gpt_image_2_5", "docs/design/mockups/icons_A_luminous.jpg", STYLE_A, True,
-                 hints=HINTS, floor=1300.0, checks=CHECKS_A, judge="A"),
-    "B": IconSet("B", "KstyleUI_IconsColour", "IconsColour.xml", "gpt_image_2_5", "docs/design/mockups/icons_B_fullcolour.jpg",
-                 STYLE_B, False, hints=HINTS_B, floor=60.0, checks=CHECKS_B, judge="B", palette=True),
+    "B": IconSet("B", "Tools/icons/setB", "gpt_image_2_5", "docs/design/mockups/icons_B_fullcolour.jpg",
+                 STYLE_B, hints=HINTS_B, floor=60.0, checks=CHECKS_B, judge="B", palette=True),
 }
+SET_B = SETS["B"]
 
 
 def faithful(icon_set):
-    """The set in subject_reference mode: the same addon, repainted from Blizzard's icon in the button strip's finish."""
+    """The set in subject_reference mode: the same folder, repainted from Blizzard's icon in the button strip's finish."""
     return dataclasses.replace(icon_set, mode="subject_reference", judge="faithful", reference=BUTTONS_REFERENCE,
                                style=STYLE_FAITHFUL, hints=HINTS_FAITHFUL, checks=CHECKS_FAITHFUL, palette=False)
 
@@ -264,7 +253,7 @@ def uses(group, owner, race=None):
     the class or the race is in a spell's comma-separated owner list, the list is ALL, or a spell of the group
     is a profession skill, which every class can learn (First Aid shares a paladin icon, so the group's own
     category is not enough)."""
-    if group["category"] == "item":
+    if group["category"] not in ABILITY_CATEGORIES:
         return True
     wanted = {owner, race, "ALL"} - {None}
     return any(spell["category"] == "profession" or wanted & set(spell["owner"].split(",")) for spell in group["spells"])
@@ -277,15 +266,16 @@ def ordered_groups(data, categories=None, owner=None, race=None):
     return sorted(groups, key=lambda g: (CATEGORIES.index(g["category"]), g.get("rank", 0), -g.get("count", 0), g["icon"]))
 
 
-def load_groups(abilities_path=ABILITIES, items_path=ITEMS):
-    """The icon groups of both data files as one list for ordered_groups: the spell groups of abilities.json
-    and the item groups of items.json, when it exists. An icon a spell uses keeps the spell's group, so the
-    item group for that file ID is dropped: the spell's repaint serves the items too."""
+def load_groups(abilities_path=ABILITIES, items_path=ITEMS, more_path=MORE):
+    """The icon groups of the data files as one list for ordered_groups: the spell groups of abilities.json,
+    the item groups of items.json and the client's other icons from icons_more.json, when they exist. An
+    earlier file's group keeps its file ID, so a later file's group for the same icon is dropped: the
+    spell's repaint serves the items too."""
     icons = list(json.loads(Path(abilities_path).read_text())["icons"])
-    items_path = Path(items_path)
-    if items_path.exists():
-        known = {g["icon"] for g in icons}
-        icons += [g for g in json.loads(items_path.read_text())["icons"] if g["icon"] not in known]
+    for path in (Path(items_path), Path(more_path)):
+        if path.exists():
+            known = {g["icon"] for g in icons}
+            icons += [g for g in json.loads(path.read_text())["icons"] if g["icon"] not in known]
     return icons
 
 
@@ -363,9 +353,17 @@ def item_phrase(group):
     return f"{_article(kind)} {kind}"
 
 
+def icon_kind(group):
+    """What the prompts call an icon of the group's category: ability, item, spell, currency and so on; "" for misc."""
+    return ICON_KINDS.get(group["category"], "ability")
+
+
 def lead_for(group):
     if group["category"] == "item":
         return f'Fantasy game item icon for "{group["name"]}", {item_phrase(group)}.'
+    if group["category"] not in ABILITY_CATEGORIES:
+        kind = icon_kind(group)
+        return f'Fantasy game {kind + " " if kind else ""}icon for "{group["name"]}".'
     spell, description = primary_spell(group)
     lead = (
         f'Fantasy game ability icon for "{group["name"]}", {owner_phrase(group, spell)} '
@@ -393,7 +391,8 @@ def load_subjects(path=SUBJECTS):
 def faithful_lead(group, subjects=None):
     sentence = (subjects or {}).get(group["icon"], "")
     item = group["category"] == "item"
-    return FAITHFUL_LEAD.format(what="item" if item else "ability", name=group["name"],
+    kind = icon_kind(group)
+    return FAITHFUL_LEAD.format(what=f"{kind} " if kind else "", name=group["name"],
                                 kind=f", {item_phrase(group)}" if item else "", it="the item" if item else "it",
                                 subject=f": {sentence}" if sentence else "")
 
@@ -619,9 +618,8 @@ def _attempt_icon(group, icon_set, raw_dir, runner, fetch, judge, budget, today,
 
 
 def rejudged_modes(icon_set):
-    """The attempt modes a rejudge of the set re-checks: a style run of set A also covers the art derived from
-    set B, which the same check judged."""
-    return {icon_set.mode, "derived"} if icon_set.mode == "style" else {icon_set.mode}
+    """The attempt modes a rejudge of the set re-checks."""
+    return {icon_set.mode}
 
 
 def rejudge_groups(groups, icon_set, raw_dir):
@@ -753,7 +751,7 @@ def make_judge(text=True, check=None, icon_set=None, sources=None):
     The faithful check also gets the raster of the icon's Blizzard original from sources."""
     if check is None:
         import check_icons as check
-    icon_set = icon_set or SETS["A"]
+    icon_set = icon_set or SET_B
     name = icon_set.judge
 
     def judge(path):
@@ -865,100 +863,6 @@ def extract_all(groups, cache_dir=BLIZZARD, log=print, extract=extract_icon):
     return sources
 
 
-# Deriving set A from set B ----------------------------------------------------------------------
-
-def _percentile(histogram, share):
-    total, seen = sum(histogram), 0
-    for value, count in enumerate(histogram):
-        seen += count
-        if seen >= share * total:
-            return value
-    return len(histogram) - 1
-
-
-def _edge_fade(size):
-    """A mask of 255 inside DERIVE_FADE[0] of the half side, falling smoothly to 0 at DERIVE_FADE[1], measured
-    as the larger of the horizontal and vertical distances from the centre, so the fade follows the square."""
-    Image, _ = _pillow()
-    from PIL import ImageChops
-    vertical = Image.linear_gradient("L").resize((size, size), Image.BILINEAR).point(lambda v: min(255, abs(2 * v - 255)))
-    distance = ImageChops.lighter(vertical, vertical.transpose(Image.Transpose.ROTATE_90))
-    start, end = DERIVE_FADE
-    table = []
-    for level in range(256):
-        t = min(1.0, max(0.0, (level / 255 - start) / (end - start)))
-        table.append(round(255 * (1 - (3 * t * t - 2 * t * t * t))))
-    return distance.point(table)
-
-
-def derive_light(source, target):
-    """Write set A's light art for a set B painting: the brightest channel of each pixel, so a saturated colour
-    counts as light; levels that put the backdrop at black and the brightest pixels at white; a light unsharp
-    mask; the art shrunk to DERIVE_SCALE of the side on black and faded to black at the edge. The file is a
-    luminance ("L") PNG; package turns it into the RGB PNG with equal channels that the game draws."""
-    Image, _ = _pillow()
-    from PIL import ImageChops, ImageFilter
-    with Image.open(source) as image:
-        red, green, blue = image.convert("RGB").split()
-    light = ImageChops.lighter(ImageChops.lighter(red, green), blue)
-    histogram = light.histogram()
-    black = min(_percentile(histogram, DERIVE_BLACK), DERIVE_BLACK_CAP)
-    white = max(_percentile(histogram, DERIVE_WHITE), black + DERIVE_MIN_RANGE)
-    table = [round(255 * max(0.0, min(1.0, (v - black) / (white - black))) ** DERIVE_GAMMA) for v in range(256)]
-    radius, percent, threshold = DERIVE_SHARPEN
-    light = light.point(table).filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
-    size = light.size[0]
-    inner = round(size * DERIVE_SCALE)
-    canvas = Image.new("L", (size, size), 0)
-    canvas.paste(light.resize((inner, inner), Image.LANCZOS), ((size - inner) // 2, (size - inner) // 2))
-    ImageChops.multiply(canvas, _edge_fade(size)).save(target, optimize=True)
-
-
-def _derived_from(record, source):
-    """The record's attempt derived from the set B attempt source, if any."""
-    for attempt in _window(record):
-        origin = attempt.get("derivedFrom", {})
-        if mode_of(attempt) == "derived" and (origin.get("job"), origin.get("image")) == (source["job"], source["image"]):
-            return attempt
-    return None
-
-
-def derive(groups, icon_set, raw_dir, source_dir, *, judge, today, transform=derive_light, force=False, log=print):
-    """Make set A's light art for every group whose set B record has an accepted subject_reference repaint, at
-    no credit cost, and run it through the set's check. The new attempt carries the repaint's job, prompt,
-    model and Blizzard source, so the provenance row traces back to the set B record; derivedFrom names the
-    repaint's image. A group already derived from that repaint is skipped unless force. Returns a summary."""
-    raw_dir, source_dir = Path(raw_dir), Path(source_dir)
-    raw_dir.mkdir(parents=True, exist_ok=True)
-    summary = {"derived": 0, "accepted": 0, "rejected": 0, "skipped": 0, "missing": []}
-    for group in groups:
-        source = accepted_attempt(load_record(source_dir, group))
-        if source is None or mode_of(source) != "subject_reference":
-            summary["missing"].append(group["icon"])
-            continue
-        record = load_record(raw_dir, group)
-        if not force and _derived_from(record, source) is not None:
-            summary["skipped"] += 1
-            continue
-        n = len(record["attempts"]) + 1
-        image = f"{group['icon']}-{n}.png"
-        transform(source_dir / source["image"], raw_dir / image)
-        reasons = list(judge(raw_dir / image))
-        attempt = {
-            "n": n, "model": source["model"], "mode": "derived", "lead": source["lead"], "prompt": source["prompt"],
-            "date": today, "source": source.get("source"), "job": source["job"], "image": image,
-            "derivedFrom": {"set": "B", "image": source["image"], "job": source["job"], "mode": mode_of(source),
-                            "date": source["date"]},
-            "reasons": reasons, "verdict": "rejected" if reasons else "accepted",
-        }
-        record["attempts"].append(attempt)
-        save_record(raw_dir, record)
-        summary["derived"] += 1
-        summary["accepted" if not reasons else "rejected"] += 1
-        log(f"{group['icon']} {group['name']}: derived from B {source['image']}: {attempt['verdict']} ({', '.join(reasons) or 'ok'})")
-    return summary
-
-
 # Packaging -------------------------------------------------------------------------------------
 
 def accepted_entries(groups, raw_dir):
@@ -968,42 +872,6 @@ def accepted_entries(groups, raw_dir):
         if attempt:
             entries.append({"group": group, "attempt": attempt})
     return sorted(entries, key=lambda e: e["group"]["icon"])
-
-
-def texture_path(icon_set, icon):
-    return f"Interface\\AddOns\\{icon_set.addon}\\Icons\\{icon}.png"
-
-
-def render_data_lua(icon_set, entries):
-    entries = sorted(entries, key=lambda e: e["group"]["icon"])
-    lines = [
-        f"-- Data.lua: icon set {icon_set.name}, the table from icon file ID to texture path that KstyleUI.Icons reads; "
-        "Tools/icons/iconset.py writes it.",
-        "_G.KstyleUIIconData = {",
-        f'\tset = "{icon_set.name}",',
-        "\ticons = {",
-    ]
-    for entry in entries:
-        icon = entry["group"]["icon"]
-        lua_path = texture_path(icon_set, icon).replace("\\", "\\\\")
-        lines.append(f'\t\t[{icon}] = "{lua_path}",')
-    lines += ["\t},", "\tschools = {"]
-    for entry in entries:
-        if "school" in entry["group"]:
-            lines.append(f"\t\t[{entry['group']['icon']}] = {entry['group']['school']},")
-    lines += ["\t},", "}", ""]
-    return "\r\n".join(lines)
-
-
-DATA_SCRIPT = '<Script file="Data.lua"/>'
-
-
-def include_data(xml_text):
-    """Add Data.lua as the last script of an addon's CRLF XML load file, once."""
-    if DATA_SCRIPT in xml_text:
-        return xml_text
-    end = xml_text.rindex("</Ui>")
-    return f"{xml_text[:end]}\t{DATA_SCRIPT}\r\n{xml_text[end:]}"
 
 
 def spell_names(group):
@@ -1027,14 +895,15 @@ def _cell(text):
 
 def render_provenance(icon_set, entries):
     entries = sorted(entries, key=lambda e: e["group"]["icon"])
-    tone = "luminance only (RGB PNG with R = G = B)" if icon_set.greyscale else "full colour (RGB PNG)"
+    tone = "full colour (RGB PNG)"
     repaint = faithful(icon_set)
     repainted = any(mode_of(e["attempt"]) == "subject_reference" for e in entries)
     lines = [
-        f"# {icon_set.addon} provenance",
+        f"# Icon set {icon_set.name} provenance",
         "",
         f"Icon set {icon_set.name}. Every icon in `Icons/` has a row below. `Tools/icons/iconset.py package` writes this "
-        "file and the icons from the generation records; do not edit it by hand.",
+        "file and the icons from the generation records; do not edit it by hand. `iconset.py pack` turns the icons into "
+        "the loose-file texture pack players install (`docs/icons.md`).",
         "",
         "| Field | Value |",
         "| --- | --- |",
@@ -1072,23 +941,6 @@ def render_provenance(icon_set, entries):
             repaint.style,
             "```",
         ]
-    if any(mode_of(e["attempt"]) == "derived" for e in entries):
-        lines += [
-            "",
-            "## Derived from set B (`derived`)",
-            "",
-            "| Field | Value |",
-            "| --- | --- |",
-            "| Source | The accepted `subject_reference` repaint of the same file ID in `KstyleUI_IconsColour/PROVENANCE.md`: "
-            "the row's Model, Prompt, Blizzard BLP sha256 and Job are that repaint's, so the job identifies the set B "
-            "image the art came from. The row's Date is the day the light art was derived. |",
-            f"| Method | `iconset.py derive`, Pillow only, no model and no credits: the brightest channel of each pixel, so "
-            f"a saturated colour counts as light; levels that put the {DERIVE_BLACK:.0%} percentile (capped at "
-            f"{DERIVE_BLACK_CAP}) at black and the {DERIVE_WHITE:.1%} percentile at white, gamma {DERIVE_GAMMA}; an "
-            f"unsharp mask (radius {DERIVE_SHARPEN[0]}, {DERIVE_SHARPEN[1]}%); the art shrunk to {DERIVE_SCALE:.0%} of "
-            f"the side on black and faded to black from {DERIVE_FADE[0]:.0%} to {DERIVE_FADE[1]:.0%} of the half side. |",
-            f"| Checks | `Tools/icons/check_icons.py --set A` without the text check, which the repaint passed: {icon_set.checks} |",
-        ]
     if any(e["attempt"].get("reviewed") for e in entries):
         lines += [
             "",
@@ -1121,34 +973,29 @@ def _pillow():
     return Image, ImageDraw
 
 
-def downscale(source, target, greyscale):
+def downscale(source, target):
     Image, _ = _pillow()
     with Image.open(source) as image:
-        image = image.convert("L" if greyscale else "RGB")
+        image = image.convert("RGB")
         image = image.resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
-        image.convert("RGB").save(target, optimize=True)
+        image.save(target, optimize=True)
 
 
-def package(icon_set, groups, raw_dir, repo=REPO, data=True, log=print):
-    addon = Path(repo) / icon_set.addon
-    icons = addon / "Icons"
+def package(icon_set, groups, raw_dir, repo=REPO, log=print):
+    folder = Path(repo) / icon_set.folder
+    icons = folder / "Icons"
     icons.mkdir(parents=True, exist_ok=True)
     entries = accepted_entries(groups, raw_dir)
     keep = set()
     for entry in entries:
         icon = entry["group"]["icon"]
         keep.add(f"{icon}.png")
-        downscale(Path(raw_dir) / entry["attempt"]["image"], icons / f"{icon}.png", icon_set.greyscale)
+        downscale(Path(raw_dir) / entry["attempt"]["image"], icons / f"{icon}.png")
     for stale in icons.glob("*.png"):
         if stale.name not in keep:
             stale.unlink()
-    (addon / "PROVENANCE.md").write_text(render_provenance(icon_set, entries))
-    if data:
-        with open(addon / "Data.lua", "w", newline="") as handle:
-            handle.write(render_data_lua(icon_set, entries))
-        xml = addon / icon_set.xml
-        xml.write_bytes(include_data(xml.read_bytes().decode("ascii")).encode("ascii"))
-    log(f"packaged {len(entries)} icons into {addon}")
+    (folder / "PROVENANCE.md").write_text(render_provenance(icon_set, entries))
+    log(f"packaged {len(entries)} icons into {folder}")
     return entries
 
 
@@ -1160,31 +1007,11 @@ def _png_header(path):
     return width, height, depth, colour
 
 
-def _luminance_only(path):
-    """True when every pixel of a 128x128 8-bit RGB PNG has R = G = B. PNG filters work on each channel
-    alone, so the filtered bytes of a pixel match exactly when its channels do: no unfiltering needed."""
-    data, rows, at = Path(path).read_bytes(), b"", 8
-    while at + 8 <= len(data):
-        length, kind = struct.unpack(">I4s", data[at:at + 8])
-        if kind == b"IDAT":
-            rows += data[at + 8:at + 8 + length]
-        at += length + 12
-    try:
-        raw = zlib.decompress(rows)
-    except zlib.error:
-        return False
-    stride = ICON_SIZE * 3 + 1
-    for start in range(0, len(raw), stride):
-        row = raw[start + 1:start + stride]
-        if row[0::3] != row[1::3] or row[0::3] != row[2::3]:
-            return False
-    return len(raw) == stride * ICON_SIZE
-
-
-def verify_package(icon_set, groups, repo=REPO):
-    """List what is wrong with the packaged set: PNG format, file IDs, provenance rows and Data.lua."""
-    addon = Path(repo) / icon_set.addon
-    icons_dir = addon / "Icons"
+def verify_package(icon_set, groups, repo=REPO, names=None):
+    """List what is wrong with the packaged set: PNG format, file IDs, provenance rows, and with names (the table
+    load_icon_names reads) an icon the pack could not name."""
+    folder = Path(repo) / icon_set.folder
+    icons_dir = folder / "Icons"
     known = {g["icon"]: g for g in groups}
     problems, present = [], {}
     for path in sorted(icons_dir.iterdir()) if icons_dir.is_dir() else []:
@@ -1203,12 +1030,12 @@ def verify_package(icon_set, groups, repo=REPO):
             problems.append(f"Icons/{path.name} is {width}x{height}, not {ICON_SIZE}x{ICON_SIZE}")
         if (depth, colour) != (8, 2):
             problems.append(f"Icons/{path.name} is not an 8-bit RGB PNG")
-        elif icon_set.greyscale and (width, height) == (ICON_SIZE, ICON_SIZE) and not _luminance_only(path):
-            problems.append(f"Icons/{path.name} is not luminance only")
         if icon not in known:
             problems.append(f"Icons/{path.name} is not an icon file ID in Tools/data/abilities.json or items.json")
+        if names is not None and icon not in names:
+            problems.append(f"Icons/{path.name} has no listfile name in Tools/data/icon_names.csv: run iconset.py names")
 
-    provenance = addon / "PROVENANCE.md"
+    provenance = folder / "PROVENANCE.md"
     rows = set()
     if provenance.exists():
         rows = {int(m) for m in re.findall(r"^\| `(\d+)` \|", provenance.read_text(), re.MULTILINE)}
@@ -1219,15 +1046,6 @@ def verify_package(icon_set, groups, repo=REPO):
             problems.append(f"Icons/{icon}.png has no row in PROVENANCE.md")
     for icon in sorted(rows - set(present)):
         problems.append(f"PROVENANCE.md has a row for {icon} but Icons/{icon}.png is missing")
-
-    data = addon / "Data.lua"
-    if data.exists():
-        expected = render_data_lua(icon_set, [{"group": known[i]} for i in present if i in known])
-        if data.read_bytes() != expected.encode("ascii"):
-            problems.append("Data.lua does not match the icons in Icons/: run iconset.py package")
-        xml = addon / icon_set.xml
-        if not xml.exists() or DATA_SCRIPT not in xml.read_text():
-            problems.append(f"Data.lua exists but {icon_set.xml} does not load it")
     return problems
 
 
@@ -1261,15 +1079,198 @@ def contact_sheets(icon_set, groups, raw_dir, out_dir, sources=None, log=print):
                 with Image.open(source["png"]) as original:
                     sheet.paste(original.convert("RGB").resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS), (x, y))
             with Image.open(Path(raw_dir) / entry["attempt"]["image"]) as image:
-                mode = "L" if icon_set.greyscale else "RGB"
-                big = image.convert(mode).resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
-                small = image.convert(mode).resize((32, 32), Image.LANCZOS)
-            sheet.paste(big.convert("RGB"), (x + ICON_SIZE + 4, y))
-            sheet.paste(small.convert("RGB"), (x + 2 * ICON_SIZE + 8, y))
+                big = image.convert("RGB").resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
+                small = image.convert("RGB").resize((32, 32), Image.LANCZOS)
+            sheet.paste(big, (x + ICON_SIZE + 4, y))
+            sheet.paste(small, (x + 2 * ICON_SIZE + 8, y))
             draw.text((x + 2, y + ICON_SIZE + 2), f"{entry['group']['icon']} {entry['group']['name']}"[:34], fill=(200, 200, 200))
         path = out_dir / f"sheet-{start // SHEET_ICONS + 1:02d}.png"
         sheet.save(path)
         log(f"wrote {path}")
+
+
+# The loose-file pack ----------------------------------------------------------------------------
+
+ICON_ROW = re.compile(r"^(\d+);(?:[^;]*/)?interface/icons/([^/;]+)\.blp(;encrypted)?$", re.IGNORECASE)
+
+
+def load_icon_names(path):
+    """Read a listfile (id;path per line): {fileID: Blizzard's icon name} for every Interface/Icons row, with the
+    name's case as the file gives it, and the set of IDs a third field marks encrypted."""
+    names, encrypted = {}, set()
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            match = ICON_ROW.match(line.rstrip("\r\n"))
+            if match:
+                icon = int(match.group(1))
+                names[icon] = match.group(2)
+                if match.group(3):
+                    encrypted.add(icon)
+    return names, encrypted
+
+
+def is_encrypted_blp(path):
+    """True when the extracted file exists and is zero-filled: TACTTool writes zeros for a file whose encryption
+    key the client does not have, so the client cannot show a loose file in its place either."""
+    path = Path(path)
+    if not path.exists():
+        return False
+    data = path.read_bytes()
+    return len(data) > 0 and data.count(0) == len(data)
+
+
+def write_icon_names(listfile, icons, out, blizzard_dir=BLIZZARD):
+    """Write the listfile rows of the given file IDs to out, marking the encrypted ones, and say how many were
+    named, how many are encrypted and which IDs the listfile does not name."""
+    wanted = set(icons)
+    rows = {}
+    with open(listfile, encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            match = ICON_ROW.match(line.rstrip("\r\n"))
+            if match and int(match.group(1)) in wanted:
+                rows[int(match.group(1))] = line.rstrip("\r\n").split(";", 1)[1].split(";")[0]
+    encrypted = {icon for icon in rows if is_encrypted_blp(Path(blizzard_dir) / f"{icon}.blp")}
+    lines = [f"{icon};{rows[icon]}" + (";encrypted" if icon in encrypted else "") for icon in sorted(rows)]
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    Path(out).write_text("".join(line + "\n" for line in lines))
+    return {"named": len(rows), "encrypted": len(encrypted), "unnamed": sorted(wanted - set(rows))}
+
+
+def tga_bytes(width, height, rgb):
+    """A TGA file as Clean Icons ships them: uncompressed true colour, 32 bits per pixel with an 8-bit alpha
+    channel (opaque here), the rows stored bottom first, and the TGA 2.0 footer. rgb is the image's pixels
+    top row first, three bytes each."""
+    if len(rgb) != width * height * 3:
+        raise ValueError(f"{len(rgb)} bytes of pixels for {width}x{height} RGB")
+    header = TGA_HEADER.pack(0, 0, TGA_TRUECOLOR, 0, 0, 0, 0, 0, width, height, TGA_BPP, TGA_ALPHA_BITS)
+    rows = []
+    stride = width * 3
+    for y in range(height - 1, -1, -1):
+        row = rgb[y * stride:(y + 1) * stride]
+        bgra = bytearray(width * 4)
+        bgra[0::4], bgra[1::4], bgra[2::4], bgra[3::4] = row[2::3], row[1::3], row[0::3], b"\xff" * width
+        rows.append(bytes(bgra))
+    return header + b"".join(rows) + TGA_FOOTER
+
+
+def tga_header(data):
+    """The fields of a TGA header, or None when the bytes are not one."""
+    if len(data) < TGA_HEADER.size:
+        return None
+    idlen, cmap, kind, _, _, _, _, _, width, height, bpp, desc = TGA_HEADER.unpack_from(data)
+    if kind not in (1, 2, 3, 9, 10, 11) or cmap not in (0, 1) or width == 0 or height == 0:
+        return None
+    return {"type": kind, "width": width, "height": height, "bpp": bpp, "alpha": desc & 0x0F, "topLeft": bool(desc & 0x20)}
+
+
+def read_png_rgb(path):
+    """(width, height, RGB bytes top row first) of a PNG, through Pillow."""
+    Image, _ = _pillow()
+    with Image.open(path) as image:
+        rgb = image.convert("RGB")
+        return rgb.width, rgb.height, rgb.tobytes()
+
+
+def pack(source, out_dir, names, encrypted=(), decode=None, log=print):
+    """Write <out_dir>/Interface/Icons/<Name>.tga for every <fileID>.png in source that names gives a name and
+    encrypted does not list; remove a .tga the pack no longer makes. Returns the IDs written and the IDs skipped
+    with the reason."""
+    decode = decode or read_png_rgb
+    folder = Path(out_dir) / "Interface" / "Icons"
+    folder.mkdir(parents=True, exist_ok=True)
+    written, skipped, keep = [], {}, set()
+    for png in sorted(Path(source).glob("*.png")):
+        if not png.stem.isdigit():
+            continue
+        icon = int(png.stem)
+        if icon in encrypted:
+            skipped[icon] = "encrypted"
+            continue
+        name = names.get(icon)
+        if name is None:
+            skipped[icon] = "no listfile name"
+            continue
+        width, height, rgb = decode(png)
+        if (width, height) != (ICON_SIZE, ICON_SIZE):
+            raise ValueError(f"{png.name} is {width}x{height}, not {ICON_SIZE}x{ICON_SIZE}")
+        target = folder / f"{name}.tga"
+        data = tga_bytes(width, height, rgb)
+        if not target.exists() or target.read_bytes() != data:
+            target.write_bytes(data)
+        keep.add(target.name)
+        written.append(icon)
+    for stale in folder.glob("*.tga"):
+        if stale.name not in keep:
+            stale.unlink()
+    log(f"packed {len(written)} icons into {folder}" + (f", skipped {len(skipped)}" if skipped else ""))
+    for icon in sorted(skipped):
+        log(f"  skipped {icon}: {skipped[icon]}")
+    return {"written": written, "skipped": skipped}
+
+
+def _sha256(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def install(pack_dir, wow_dir, uninstall=False, dry_run=False, log=print):
+    """Copy the pack's Interface/Icons files into the flavour folder wow_dir, or remove them again. See the module
+    docstring. Returns the counts: copied, unchanged, replaced for an install; removed, kept for an uninstall."""
+    wow_dir, pack_dir = Path(wow_dir), Path(pack_dir)
+    if not (wow_dir / FLAVOR_INFO).is_file():
+        raise SystemExit(f"iconset: {wow_dir} is not a World of Warcraft flavour folder (no {FLAVOR_INFO}); "
+                         "pass the _forever_ folder inside the game folder")
+    icons = wow_dir / "Interface" / "Icons"
+    manifest = icons / MANIFEST
+    verb = (lambda did, would: f"dry run: would {would}" if dry_run else did)
+    if uninstall:
+        summary = {"removed": 0, "kept": 0}
+        if not manifest.is_file():
+            log(f"nothing to uninstall: no {MANIFEST} in {icons}")
+            return summary
+        listed = json.loads(manifest.read_text()).get("files", {})
+        for name, digest in sorted(listed.items()):
+            target = icons / name
+            if not target.is_file():
+                continue
+            if _sha256(target) != digest:
+                summary["kept"] += 1
+                log(f"kept {target}: its content changed since the install")
+                continue
+            if not dry_run:
+                target.unlink()
+            summary["removed"] += 1
+        if not dry_run:
+            manifest.unlink()
+        log(f"{verb('removed', 'remove')} {summary['removed']} icons from {icons}, kept {summary['kept']}")
+        return summary
+    source = pack_dir / "Interface" / "Icons"
+    files = sorted(source.glob("*.tga"))
+    if not files:
+        raise SystemExit(f"iconset: no pack in {source}; run iconset.py pack first")
+    summary = {"copied": 0, "unchanged": 0, "replaced": 0}
+    placed = {}
+    previous = json.loads(manifest.read_text()).get("files", {}) if manifest.is_file() else {}
+    if not dry_run:
+        icons.mkdir(parents=True, exist_ok=True)
+    for path in files:
+        digest = _sha256(path)
+        target = icons / path.name
+        placed[path.name] = digest
+        if target.is_file():
+            if _sha256(target) == digest:
+                summary["unchanged"] += 1
+                continue
+            if path.name not in previous:
+                summary["replaced"] += 1
+        if not dry_run:
+            target.write_bytes(path.read_bytes())
+        summary["copied"] += 1
+    if not dry_run:
+        manifest.write_text(json.dumps({"pack": "KstyleUI icons", "files": placed}, indent=1, sort_keys=True) + "\n")
+    log(f"{verb('copied', 'copy')} {summary['copied']} icons into {icons}, {summary['unchanged']} already there"
+        + (f", {summary['replaced']} replaced files of another pack" if summary["replaced"] else "")
+        + "; the game loads them after a full restart")
+    return summary
 
 
 # Command line ----------------------------------------------------------------------------------
@@ -1298,10 +1299,23 @@ def _print_summary(summary):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify", "derive", "accept"):
+    for name in ("names", "pack", "install"):
         command = sub.add_parser(name)
-        if name != "derive":  # derive always writes set A from set B
-            command.add_argument("--set", default="A", choices=sorted(SETS))
+        if name == "names":
+            command.add_argument("--listfile", type=Path, default=LISTFILE, help="the community listfile with capitals")
+            command.add_argument("--blizzard-dir", type=Path, default=BLIZZARD, help="cache of extracted Blizzard icons")
+            command.add_argument("--out", type=Path, default=ICON_NAMES)
+        elif name == "pack":
+            command.add_argument("--out", type=Path, default=PACK_DIR, help="the folder that gets Interface/Icons")
+            command.add_argument("--names", type=Path, default=ICON_NAMES, help="the icon names (a listfile, or the committed extract)")
+            command.add_argument("--source", type=Path, default=REPO / SET_B.folder / "Icons", help="the packaged PNGs")
+        else:
+            command.add_argument("--wow", type=Path, required=True, help="the flavour folder, such as /Applications/World of Warcraft/_forever_")
+            command.add_argument("--pack", type=Path, default=PACK_DIR, help="the folder pack wrote")
+            command.add_argument("--uninstall", action="store_true", help="remove the files the manifest lists")
+            command.add_argument("--dry-run", action="store_true", help="say what would change; write nothing")
+    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify", "accept"):
+        command = sub.add_parser(name)
         if name not in ("package", "verify"):  # package writes the whole set: a filtered package would drop the rest
             command.add_argument("--categories", help="comma-separated subset of " + ",".join(CATEGORIES))
             command.add_argument("--owner", help="keep the icon groups a character of this class sees, such as WARRIOR")
@@ -1321,18 +1335,29 @@ def main(argv=None):
             command.add_argument("--limit", type=int, help="generate at most this many icons")
             command.add_argument("--reroll", type=int, nargs="*", default=[], help="file IDs to generate afresh")
             command.add_argument("--dry-run", action="store_true", help="print the work and its cost, spend nothing")
-        if name == "package":
-            command.add_argument("--no-data", action="store_true", help="write the icons and PROVENANCE.md only")
         if name == "accept":
             command.add_argument("icons", type=int, nargs="+", help="file IDs whose latest image of the mode a reviewer accepts")
             command.add_argument("--attempt", type=int, help="accept this attempt number instead of the latest image")
             command.add_argument("--note", default="", help="why the reviewer accepted it")
-        if name == "derive":
-            command.add_argument("--source-dir", type=Path, default=None, help="set B's raw folder (default ~/.local/share/wow-dev/icons/B/raw)")
-            command.add_argument("--force", action="store_true", help="derive again even where the same repaint was already used")
     args = parser.parse_args(argv)
 
-    icon_set = with_mode(SETS[getattr(args, "set", "A")], getattr(args, "mode", "style"))
+    if args.command == "names":
+        groups = load_groups()
+        summary = write_icon_names(args.listfile, [g["icon"] for g in groups], args.out, blizzard_dir=args.blizzard_dir)
+        print(f"named {summary['named']} icons in {args.out}, {summary['encrypted']} encrypted, "
+              f"{len(summary['unnamed'])} without a listfile name")
+        if summary["unnamed"]:
+            print("unnamed: " + " ".join(str(i) for i in summary["unnamed"]))
+        return 0
+    if args.command == "pack":
+        names, encrypted = load_icon_names(args.names)
+        pack(args.source, args.out, names, encrypted)
+        return 0
+    if args.command == "install":
+        install(args.pack, args.wow, uninstall=args.uninstall, dry_run=args.dry_run)
+        return 0
+
+    icon_set = with_mode(SET_B, getattr(args, "mode", "style"))
     if getattr(args, "floor", None) is None:
         args.floor = icon_set.floor
     work = args.work_dir or WORK / icon_set.name
@@ -1363,21 +1388,15 @@ def main(argv=None):
                           today=datetime.date.today().isoformat())
         print(f"rejudged: {len(changed)} verdicts changed")
         _print_summary(summarise(groups, raw, mode=icon_set.mode))
-    elif args.command == "derive":
-        import check_icons  # noqa: F401  (make_judge imports it; fail early when Pillow is missing)
-
-        summary = derive(groups, icon_set, raw, args.source_dir or WORK / "B" / "raw", judge=make_judge(text=False, icon_set=icon_set),
-                         today=datetime.date.today().isoformat(), force=args.force)
-        print(f"derived {summary['derived']}: accepted {summary['accepted']}, rejected {summary['rejected']}; "
-              f"skipped {summary['skipped']} already derived, {len(summary['missing'])} groups without a set B repaint")
     elif args.command == "package":
-        package(icon_set, groups, raw, data=not args.no_data)
+        package(icon_set, groups, raw)
     elif args.command == "sheets":
         contact_sheets(icon_set, groups, raw, work / "sheets", sources=blizzard_sources(groups, args.blizzard_dir))
     elif args.command == "verify":
-        problems = verify_package(icon_set, groups)
+        names = load_icon_names(ICON_NAMES)[0] if ICON_NAMES.exists() else None
+        problems = verify_package(icon_set, groups, names=names)
         for problem in problems:
-            print(f"{icon_set.addon}: {problem}")
+            print(f"{icon_set.folder}: {problem}")
         return 1 if problems else 0
     else:
         import check_icons

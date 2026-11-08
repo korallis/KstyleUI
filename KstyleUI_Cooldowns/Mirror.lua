@@ -85,7 +85,7 @@ local function Texture(texture, entry)
 			fileID = file
 		end
 	end
-	K.Icons.Apply(texture, fileID)
+	texture:SetTexture(fileID)
 end
 
 local function SpellCooling(spell)
@@ -764,10 +764,6 @@ local function OnLayout(_, key)
 	end
 end
 
-local function OnIcons()
-	RetextureAll()
-end
-
 function Mirror.Start()
 	Settings.Read()
 	running = true
@@ -805,7 +801,6 @@ function Mirror.Start()
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)
 	K.Callbacks.Register("ScaleChanged", MODULE, OnTheme)
-	K.Callbacks.Register("IconsChanged", MODULE, OnIcons)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	RebuildAll()
 	return true

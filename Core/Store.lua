@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 2
+Store.DB_VERSION = 3
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -19,6 +19,15 @@ Store.migrations[2] = function(data)
 				appearance.motion = "off"
 			end
 			appearance.reducedMotion = nil
+		end
+	end
+end
+
+Store.migrations[3] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			profile.Icons = nil
+			profile.IconsColour = nil
 		end
 	end
 end

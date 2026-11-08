@@ -105,8 +105,5 @@ module_globals("KstyleUI_Meters", {})
 
 module_globals("KstyleUI_Skins", {})
 
-module_globals("KstyleUI_Icons", {})
-
-module_globals("KstyleUI_IconsColour", {})
 
 -- END MODULE GLOBALS

@@ -4,16 +4,15 @@ local TocFiles = dofile("Tools/regression/toc_files.lua")
 -- The modules the spec names. A folder on disk that is not listed here gets the same checks.
 local SPEC_MODULES = {
 	"Options", "UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates",
-	"CombatText", "Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins", "Icons",
-	"IconsColour",
+	"CombatText", "Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins",
 }
-local ON_DEMAND = { Options = true, Icons = true, IconsColour = true }
+local ON_DEMAND = { Options = true }
 
 -- The core service files and area XML files, in the order Core.xml loads them.
 local CORE_FILES = {
 	"Init.lua", "Locale.lua", "Callbacks.lua", "Events.lua", "Tokens.lua", "Theme.lua", "Scale.lua",
 	"Motion.lua", "Features.lua", "Store.lua", "Modules.lua", "Combat.lua", "Safe.lua", "DevTest.lua",
-	"Icons.lua", "Options.lua", "Skin.lua", "Widgets/Widgets.xml", "Layout/Layout.xml", "Setup/Setup.xml",
+	"Options.lua", "Skin.lua", "Widgets/Widgets.xml", "Layout/Layout.xml", "Setup/Setup.xml",
 }
 
 local problems = {}

@@ -221,12 +221,7 @@ function Preview.Build(parent)
 	frame.item:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	frame.unit = Sample(frame, UNIT)
 	frame.icon = Style.IconTile(frame.item)
-	local Icons = K.Icons
-	if Icons and type(Icons.Apply) == "function" then
-		Icons.Apply(frame.icon.texture, SAMPLE_ICON)
-	else
-		frame.icon.texture:SetTexture(SAMPLE_ICON)
-	end
+	frame.icon.texture:SetTexture(SAMPLE_ICON)
 	frame.bar = Widgets.StatusBar(frame.unit, { background = "track", border = true, min = 0, max = 1, value = SAMPLE_HEALTH })
 	frame.glass, frame.title, frame.caption = frame.item, frame.item.rows[1].left, frame.item.rows[2].left
 	frame.Refresh = Refresh

@@ -33,7 +33,7 @@ KstyleUI replaces or restyles the whole World of Warcraft: Forever interface in 
 - **Data Bars.** XP, reputation and honour bars with ticks, rested XP and eased gains. The micro menu and bag bar on glass, placed with Layout. A data strip with frame rate, latency, gold, durability and the clock, each clickable.
 - **Meters.** A damage meter on the game's damage meter data, a threat meter for your group with warning colours, and a swing timer for melee and ranged.
 - **Skins.** Blizzard's windows in KstyleUI's style: the character sheet with quality-rimmed slots, the spellbook and talents, the world map, quest log and objective tracker, the game menu, group finder, mail, merchant, class and profession trainers, professions, the friends list, the guild and communities window, Forever's Legacy window, loot and loot rolls, popups, the ready check and the AddOns list.
-- **Custom icons.** Two optional sets of 654 ability icons: set A, white light art tinted in your class colour, a spell school colour or white; and set B, full-colour paintings. Switch between them, or back to Blizzard's icons, without a reload.
+- **Icon pack.** Every player ability and item icon repainted from Blizzard's own art as a full-colour painting, shipped as a separate download, `KstyleUI-Icons-<version>.zip`, that goes into `_forever_/Interface/Icons`. The client loads it itself, so the repaints show everywhere, buff and debuff tiles included. See `docs/icons.md`.
 
 ### Safety and performance
 

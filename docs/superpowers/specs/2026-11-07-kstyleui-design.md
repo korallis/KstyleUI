@@ -91,8 +91,7 @@ KstyleUI_Tooltips/
 KstyleUI_DataBars/
 KstyleUI_Meters/
 KstyleUI_Skins/
-KstyleUI_Icons/            icon set A, load-on-demand
-KstyleUI_IconsColour/      icon set B, load-on-demand
+Tools/icons/setB/          the repainted icon art, shipped as a loose-file pack, never as an addon (docs/icons.md)
 Tools/                     checks, tests, art pipeline, data extraction. Never packaged.
 docs/                      specs, plans, design references
 ```
@@ -128,7 +127,7 @@ The core exposes one namespace, `KstyleUI`, through the addon's private table. M
 | `Setup` | The first-run setup. |
 | `DevTest` | `/kstyle test` and its SavedVariables log. See [In-game testing](#in-game-testing). |
 
-Callbacks (`ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged`, `IconsChanged`) go through one dispatcher in the core. A frame that subscribes restyles itself when the callback fires. Nothing polls.
+Callbacks (`ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged`) go through one dispatcher in the core. A frame that subscribes restyles itself when the callback fires. Nothing polls.
 
 ### Module lifecycle
 
@@ -275,7 +274,6 @@ Each module either replaces Blizzard's frames with its own, mirrors a Blizzard d
 | `KstyleUI_DataBars` | XP, reputation and honour bars, micro menu, bag bar, a data strip with FPS, latency, gold, durability and time | Reskin, plus our own strip |
 | `KstyleUI_Meters` | Damage Meter skin, our own threat meter, swing timer | Mirror |
 | `KstyleUI_Skins` | Character sheet, spellbook and talents, quest log and objective tracker, world map, game menu, group finder, mail, merchant, trainer, professions, social windows, Legacy, loot, popups, ready check | Reskin, one window per task |
-| `KstyleUI_Icons`, `KstyleUI_IconsColour` | Icon sets A and B | Data addons |
 
 ### Module rules
 
@@ -290,6 +288,8 @@ These rules come from the research. Each module's own README repeats the rules t
 - **Windows** handle Escape with their own key handler, not `UISpecialFrames`.
 
 ### Custom icons
+
+Superseded on 2026-11-08: the owner chose to ship the repainted icons (set B) as a loose-file texture pack in `_forever_/Interface/Icons`, which the client loads itself, so every icon changes everywhere, the secure aura tiles included; set A, the `Icons` service and the data addons were removed. [`docs/icons.md`](../../icons.md) is the current description. The plan below is kept as history.
 
 The icon work has its own pipeline. It runs in parallel with the modules from phase 0.
 

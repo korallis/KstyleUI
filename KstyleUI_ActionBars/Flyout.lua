@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens, Icons = K.Widgets, K.Tokens, K.Icons
+local Widgets, Tokens = K.Widgets, K.Tokens
 
 local Flyout = {}
 ns.Flyout = Flyout
@@ -101,12 +101,7 @@ end
 local function UpdateButtons(frame)
 	for _, b in ipairs(Flyout.buttons) do
 		local spell = b:GetAttribute("spell")
-		local texture = SpellTexture(spell)
-		if texture ~= nil then
-			Icons.Apply(b.icon, texture)
-		else
-			b:SetIcon(nil)
-		end
+		b:SetIcon(SpellTexture(spell))
 		local api = C_Spell
 		local duration = spell and api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spell)
 		if duration then

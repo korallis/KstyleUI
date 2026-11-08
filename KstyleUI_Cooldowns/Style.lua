@@ -101,7 +101,7 @@ local function AfterPaint(icon)
 	local usable = icon.usable and icon:IsEnabled() ~= false
 	if usable and icon.greyWhileCooling and icon.onCooldown then
 		local tint = icon.tint
-		K.Icons.Shade(icon.icon, tint[1], tint[2], tint[3], true)
+		Widgets.ShadeIcon(icon.icon, tint[1], tint[2], tint[3], true)
 	end
 end
 

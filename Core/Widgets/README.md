@@ -183,11 +183,11 @@ The body is the `buttonFill` dark glass, cut 12% of the side at each corner (4.1
 | Selected (`SetSelected(true)`) | `accent` | `buttonFill` | |
 | Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Lifts three quarters of the way to `raised` | Desaturated at 45% brightness |
 
-The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a custom icon keeps its tint in every state.
+The icon's brightness and desaturation go through `Widgets.ShadeIcon(texture, r, g, b, desaturated)`, which sets the vertex colour and keeps the texture's alpha (a `nil` `desaturated` leaves the desaturation alone); the Cooldowns module uses it to grey a cooling icon.
 
 | Method | Behaviour |
 | --- | --- |
-| `SetIcon(texture)` | `KstyleUI.Icons.Reset`, then `SetTexture` on the icon. To use KstyleUI's custom icons, call `KstyleUI.Icons.Apply(button.icon, fileID)` instead. |
+| `SetIcon(texture)` | `SetTexture` on the icon, with a file ID or a path. The repainted icons are a loose-file pack the client applies itself ([`docs/icons.md`](../../docs/icons.md)). |
 | `SetCooldown(start, duration, gcd) -> ok` | Plain numbers only. `Cooldown:SetCooldown` refuses secret arguments from addon code, so a secret is refused, logged once, and returns `false`. |
 | `SetCooldownFromDuration(durationObject, gcd) -> ok` | `Cooldown:SetCooldownFromDurationObject`, for secret cooldowns. Returns `false` and logs once when the method is missing. |
 | `ClearCooldown()` | Clears the cooldown and forgets `gcd`. |

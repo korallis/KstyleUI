@@ -40,7 +40,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Preview.lua` | The settings window's live preview |
 | `Module.lua` | Registers the module, its settings page and preview, its events and callbacks, and its `/kstyle test` check; follows the interface style |
 
-Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua`, `test-bags-junk.lua`, `test-bags-icons.lua` and `test-bags-gamepad.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
+Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua`, `test-bags-junk.lua` and `test-bags-gamepad.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
 
 ## The bag window
 
@@ -54,7 +54,7 @@ Drag the window by its title bar to move it. The drop saves the position through
 
 Each slot shows:
 
-- The item's icon, masked to the kit's chamfer, inside the kit's icon chrome (`Widgets.IconChrome`): the near-black `buttonFill` body every square icon shares, at 55% alpha for an empty slot. The icon goes through `KstyleUI.Icons.Apply`, so the custom icon set shows in the bags when it has art for the item, and `IconsChanged` refreshes an open window.
+- The item's icon, masked to the kit's chamfer, inside the kit's icon chrome (`Widgets.IconChrome`): the near-black `buttonFill` body every square icon shares, at 55% alpha for an empty slot. The icon is the item's file ID through `SetTexture`; the repainted icons reach it through the loose-file icon pack the client loads ([`docs/icons.md`](../docs/icons.md)).
 - The tile's hairline in the item's quality colour (`Theme.QualityColor`) from the chosen quality up; otherwise the accent rim an action button rests on (`Widgets.IconRim`), and the plain grey hairline for an empty slot. Under the mouse the hairline eases to the accent.
 - The stack count at the bottom right and the item level of weapons and armour at the bottom left, in the item's quality colour.
 - A gold dot at the top right on junk: a poor item that sells for money.

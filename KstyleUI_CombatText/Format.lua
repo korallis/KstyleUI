@@ -27,6 +27,27 @@ end
 Format.IsSecret = IsSecret
 
 local logged = {}
+
+local SCHOOL_ORDER = {
+	{ mask = 2, token = "schoolHoly" },
+	{ mask = 4, token = "schoolFire" },
+	{ mask = 8, token = "schoolNature" },
+	{ mask = 16, token = "schoolFrost" },
+	{ mask = 32, token = "schoolShadow" },
+	{ mask = 64, token = "schoolArcane" },
+	{ mask = 1, token = "schoolPhysical" },
+}
+
+local function SchoolToken(mask)
+	if IsSecret(mask) or type(mask) ~= "number" or mask ~= mask or mask <= 0 then
+		return nil
+	end
+	for _, school in ipairs(SCHOOL_ORDER) do
+		if math.floor(mask / school.mask) % 2 == 1 then
+			return school.token
+		end
+	end
+end
 local function LogOnce(key, message)
 	if not logged[key] then
 		logged[key] = true
@@ -124,13 +145,9 @@ function Format.Color(cfg, kind, emphasis, school)
 		return cfg.critR, cfg.critG, cfg.critB
 	end
 	if cfg.colorMode == "school" then
-		local icons = K.Icons
-		local schoolColor = icons and icons.SchoolColor
-		if schoolColor then
-			local r, g, b = schoolColor(school)
-			if r then
-				return r, g, b
-			end
+		local token = SchoolToken(school)
+		if token then
+			return K.Tokens.Color(token)
 		end
 	end
 	return cfg.damageR, cfg.damageG, cfg.damageB

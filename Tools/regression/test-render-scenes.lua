@@ -32,7 +32,9 @@ for _, scene in ipairs(scenes) do
 end
 assert(#hud.items == total, "the merge keeps every module's drawables")
 
--- The HUD shows the mockup's state: the player's name, Slam, the target, and warrior icons from set B.
+-- The HUD shows the mockup's state: the player's name, Slam, the target, and warrior icons from set B, which
+-- the renderer draws for every file ID the pack covers, as the client does with the pack installed (docs/icons.md).
+local SET_B = "Tools/icons/setB/Icons/"
 local texts, files = {}, {}
 for _, item in ipairs(hud.items) do
 	if item.kind == "text" then
@@ -45,7 +47,7 @@ end
 for _, want in ipairs({ "VALERIN", "Slam", "RIVERGLADE CROCOLISK", "82%", "Battle Shout", "Enrage" }) do
 	assert(texts[want], "the HUD shows " .. want)
 end
-assert(files["KstyleUI_IconsColour/Icons/" .. Hud.Classes.WARRIOR.cast[2] .. ".png"], "Slam's icon comes from set B")
+assert(files[SET_B .. Hud.Classes.WARRIOR.cast[2] .. ".png"], "Slam's icon comes from set B")
 local swipes = 0
 for _, item in ipairs(hud.items) do
 	if item.kind == "swipe" then
@@ -62,7 +64,7 @@ end
 -- The centre cluster: six essential and four utility cooldown icons, each with its own warrior icon.
 for _, group in ipairs({ "essential", "utility" }) do
 	for _, entry in ipairs(Hud.Classes.WARRIOR[group]) do
-		assert(files["KstyleUI_IconsColour/Icons/" .. entry[2] .. ".png"], "the cooldown rows show " .. entry[1])
+		assert(files[SET_B .. entry[2] .. ".png"], "the cooldown rows show " .. entry[1])
 	end
 end
 
@@ -82,19 +84,17 @@ end
 assert(hudPlus == 1, "the HUD's chat draws the plus glyph once, got " .. hudPlus)
 
 -- The buff row under the minimap: five icons with their time left, from the Auras module. The aura engine
--- paints each tile's icon itself as a secret, so the row shows the game's own art: the Blizzard folder's file
--- when the machine has it, else the texture keeps its file ID (CI has no Blizzard icon folder).
+-- paints each tile's icon itself as a secret; the client then loads the pack's loose file for that file ID,
+-- so the row shows set B's repaint, as every other icon does.
 assert(texts["24s"] and texts["8m"], "the buff row shows its timers")
-local gameArt, fromSet = {}, false
+local buffFiles = {}
 for _, item in ipairs(scenes[4].items) do
 	if item.kind == "texture" and item.fileID then
-		gameArt[tostring(item.fileID)] = true
-		fromSet = fromSet or (item.file ~= nil and item.file:find("KstyleUI_Icons", 1, true) ~= nil)
+		buffFiles[tostring(item.fileID)] = item.file
 	end
 end
 assert(Hud.Order()[4] == "auras", "the fourth HUD module is the buff row")
-assert(gameArt[tostring(Hud.Classes.WARRIOR.buffRow[1][2])], "the buff row shows Battle Shout as the game draws it")
-assert(not fromSet, "the buff row draws nothing from a set: the engine's file ID is a secret")
+assert(buffFiles[tostring(Hud.Classes.WARRIOR.buffRow[1][2])] == SET_B .. Hud.Classes.WARRIOR.buffRow[1][2] .. ".png", "the buff row shows Battle Shout from set B, as the installed pack does")
 
 -- Combat text: the crit on the crocolisk and the heal on the player.
 assert(texts["142"] and texts["+168"], "the combat numbers 142 and +168 are drawn")
@@ -124,7 +124,7 @@ local function collect(scene)
 	return seenTexts, seenFiles
 end
 local function setB(icon)
-	return "KstyleUI_IconsColour/Icons/" .. icon .. ".png"
+	return SET_B .. icon .. ".png"
 end
 for _, class in ipairs(Classes.ORDER) do
 	local spec = Classes[class]
@@ -200,22 +200,12 @@ for _, class in ipairs(Classes.ORDER) do
 		assert(not cdTexts["Battle Shout"] and not cdTexts["Enrage"], tag .. ": no warrior buff bars")
 	end
 
-	-- The aura engine paints the buff tiles' icons itself (the module hands it the texture), so the row shows
-	-- the game's own art for the class's buffs, from whichever folder holds the file ID.
+	-- The aura engine paints the buff tiles' icons itself (the module hands it the texture); with the pack
+	-- installed the client shows set B's file for the ID, and so does the render.
 	local auras = check(tag .. ".auras", (Hud.Module("auras", { class = class })))
 	local auraTexts, auraFiles = collect(auras)
-	local auraIcons = {}
-	for file in pairs(auraFiles) do
-		auraIcons[file:match("([^/]+)%.png$") or file] = true
-	end
-	-- Without a local file for the ID (CI has no Blizzard icon folder) the texture keeps its file ID.
-	for _, item in ipairs(auras.items) do
-		if item.kind == "texture" and item.fileID then
-			auraIcons[tostring(item.fileID)] = true
-		end
-	end
 	for _, buff in ipairs(spec.buffRow) do
-		assert(auraIcons[tostring(buff[2])], tag .. ": the buff row shows " .. buff[1])
+		assert(auraFiles[setB(buff[2])], tag .. ": the buff row shows " .. buff[1] .. " from set B")
 		if buff[3] ~= "" then
 			assert(auraTexts[buff[3]], tag .. ": the buff row reads " .. buff[3])
 		end
@@ -227,23 +217,12 @@ assert(select(1, Classes.Get("mage")) == "MAGE", "Get upper-cases the class")
 assert(not pcall(Classes.Get, "MONK"), "an unknown class is an error")
 assert(Classes.Hex(Classes.WARRIOR.colour) == "C79C6E" and Classes.Hex(Classes.PRIEST.colour) == "FFFFFF", "Hex spells the colour")
 
--- Set A: the light art tinted by the class colour, under the white additive copy at the highlight
--- strength that brings the bright parts back.
-local setA = Hud.Module("actionbars", { icons = "A" })
-local lightArt, tinted, additive = false, false, false
-for _, item in ipairs(setA.items) do
-	if item.kind == "texture" and item.file and item.file:find("KstyleUI_Icons/Icons/", 1, true) then
-		lightArt = true
-		local v = item.vertex or {}
-		if item.blend == "ADD" then
-			additive = additive or (v[1] == 1 and v[2] == 1 and v[3] == 1 and v[4] == 0.25)
-		elseif math.abs((v[1] or 0) - 0.78) < 0.02 and math.abs((v[2] or 0) - 0.61) < 0.02 and math.abs((v[3] or 0) - 0.43) < 0.02 then
-			tinted = true
-		end
-	end
-	assert(not (item.file and item.file:find("KstyleUI_IconsColour/", 1, true)), "a set A render draws nothing from set B")
-end
-assert(lightArt and tinted and additive, "set A icons are tinted by the warrior colour with a white additive copy at 0.25")
+-- One rule for every icon: a file ID resolves to set B's art when the pack has it, else to Blizzard's icon
+-- folder, whatever the scene; there is no icon set option any more.
+assert(Common.IconDirs()[1] == "Tools/icons/setB/Icons", "set B is searched first")
+assert(#Common.IconDirs() == 2 and Common.IconDirs()[2]:find("/icons/blizzard$"), "then Blizzard's icons")
+assert(Common.IconSet == nil and Common.IconsSection == nil and Common.InstallAddOns == nil, "the icon set switches are gone")
+assert(Common.Scene.ResolvePath(Hud.Classes.WARRIOR.cast[2]) == setB(Hud.Classes.WARRIOR.cast[2]), "Scene.ResolvePath uses the same rule by default")
 
 -- Text widths: a kit font measures by its real glyph advances (gen_glyphs.py), another face by the
 -- class averages, and a Blizzard face the page draws as Source Sans measures as Source Sans.

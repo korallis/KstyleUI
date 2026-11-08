@@ -22,7 +22,7 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
 
 1. **Welcome.** The logo, a short welcome, the three steps ahead, **Skip setup** and **Next**.
 2. **Layout.** One card per layout on the button grade's body: a 16:9 preview, a glass panel at the tile chamfer with the drop shadow, that draws each element's footprint from `Setup.Layouts`, the layout's name and its one-line note. A click picks the card: an `accent` hairline, a selection glow and an `accent` preview. DPS is picked first.
-3. **Modules.** A toggle and a one-line note for each module in `Setup.PICKER`, with **All on** and **All off**. Every module whose addon loaded starts on. A module whose addon did not load is off, disabled and says so. Custom icons need the `KstyleUI_IconsColour` addon, the default set B, to exist. The settings window and icon set B are not in the list: the settings window loads on demand, and the Icons page picks the set.
+3. **Modules.** A toggle and a one-line note for each module in `Setup.PICKER`, with **All on** and **All off**. Every module whose addon loaded starts on. A module whose addon did not load is off, disabled and says so. The settings window is not in the list: it loads on demand.
 4. **Summary.** The layout and the modules that will be on and off, then **Apply**. After Apply, the secure **Reload** button and **Later**. Changing a choice afterwards shows **Apply** again.
 
 ## Apply
@@ -44,7 +44,7 @@ It returns `false` for an unknown layout, or before the saved data loads.
 | `Open() -> boolean` | Opens the window on the welcome step with fresh choices. Refused before the saved data loads. |
 | `Apply(choice) -> boolean` | See above |
 | `Choice()`, `NewChoice()` | The window's current choice, and a fresh one: DPS and every available module on |
-| `Available(name) -> boolean` | The module's addon loaded and registered. For `Icons`, also that `KstyleUI_IconsColour` (the default set B) exists. |
+| `Available(name) -> boolean` | The module's addon loaded and registered. |
 | `Go(step)`, `Step()` | Moves to a step, 1 to 4, and reports the current one |
 | `IsShown() -> boolean` | True from `Open` until the window starts to close, so a reopen during the closing fade shows it again and the first-login timer never resets a setup the player opened |
 | `MarkSeen()`, `Closed(applied)` | Turn the account switch on. `Closed` also prints the `/kstyle setup` hint. |

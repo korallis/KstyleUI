@@ -12,8 +12,8 @@
 -- nameplate on the target with the combat numbers; a tooltip. opts.class picks the class (RENDER_CLASS, then the
 -- mockup's orc warrior, when absent): _classes.lua holds what varies, and the class colour, the power type, the
 -- cast, the spells, the buffs, the stance bar, the pet frame and the pet bar follow from the addon's own code
--- paths. opts.icons picks the custom icon set (A, B or off; RENDER_ICONS, then B, when absent), and the portraits,
--- the minimap's terrain and the backdrop come from Tools/render/standins.py when it has run.
+-- paths. Icons draw as the installed icon pack shows them (Common.IconDirs), and the portraits, the minimap's
+-- terrain and the backdrop come from Tools/render/standins.py when it has run.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = Common.Scene
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
@@ -68,14 +68,14 @@ do
 end
 Hud.BAR1, Hud.BAR2 = slots(Classes.WARRIOR.bar1), slots(Classes.WARRIOR.bar2)
 
--- saved(opts, module, settings, more) -> a KstyleUIDB with that module on, the Icons module on the
--- scene's set, and any further modules named in more on too.
+-- saved(opts, module, settings, more) -> a KstyleUIDB with that module on, and any further modules named in
+-- more on too.
 local function saved(opts, module, settings, more)
 	local section = { enabled = true }
 	for k, v in pairs(settings or {}) do
 		section[k] = v
 	end
-	local profile = { [module] = section, Icons = Common.IconsSection(Common.IconSet(opts)) }
+	local profile = { [module] = section }
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }
 	end
@@ -90,11 +90,9 @@ local function saved(opts, module, settings, more)
 end
 
 -- Shared(env, opts) gives every environment the game's class colours (RAID_CLASS_COLORS, which Theme reads for
--- the accent), the scene's class as UnitClass("player") gives it, the owner's screen and the icon data addons,
--- which the Icons service loads on demand.
+-- the accent), the scene's class as UnitClass("player") gives it, and the owner's screen.
 local function shared(env, opts)
 	Common.ForceScreen(env)
-	Common.InstallAddOns(env)
 	local class, spec = Hud.Class(opts)
 	env.RAID_CLASS_COLORS = env.RAID_CLASS_COLORS or {}
 	for _, name in ipairs(Classes.ORDER) do
@@ -108,9 +106,9 @@ local function shared(env, opts)
 	end
 end
 
--- build(env, opts, extra) -> the scene, with icon IDs resolved for the scene's icon set.
+-- build(env, opts, extra) -> the scene, with icon IDs resolved as the installed pack shows them.
 local function build(env, opts, extra)
-	local sceneOpts = { iconDirs = Common.IconDirs(Common.IconSet(opts)) }
+	local sceneOpts = { iconDirs = Common.IconDirs() }
 	for k, v in pairs(extra or {}) do
 		sceneOpts[k] = v
 	end
@@ -751,12 +749,11 @@ function Hud.Build(opts)
 		scenes[#scenes + 1] = (Hud.Module(name, opts))
 	end
 	local merged = Scene.Merge(scenes)
-	local set = Common.IconSet(opts)
 	local class, spec = Hud.Class(opts)
 	-- The class the scene drew, for Tools/render/classes.py's manifest.
 	merged.class = { class = class, title = spec.title, name = spec.name, colour = { spec.colour[1], spec.colour[2], spec.colour[3] }, power = spec.power.token, cast = spec.cast and spec.cast[1] or nil }
 	merged.log[#merged.log + 1] = "class: " .. class .. " (" .. spec.name .. ", " .. spec.power.token:lower() .. ", " .. (spec.cast and ("casting " .. spec.cast[1]) or "no cast") .. ")"
-	merged.log[#merged.log + 1] = "icons: " .. (set and ("custom set " .. set) or "Blizzard's, with the sets standing in for icons the folder lacks")
+	merged.log[#merged.log + 1] = "icons: set B's repaint for every file ID the pack has, else Blizzard's icon, as the installed pack shows them"
 	return merged
 end
 

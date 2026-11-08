@@ -35,12 +35,15 @@ and a module that is off costs nothing: no frames, no events and no hooks.
 | Data Bars | XP, reputation and honour bars, the micro menu, the bag bar and a data strip with frame rate, latency, gold, durability and time |
 | Meters | A damage meter, a threat meter and a swing timer |
 | Skins | Blizzard's windows in KstyleUI's style: the character sheet, spellbook, talents, world map, quest log, objective tracker, game menu, group finder, mail, merchant, trainers, professions, social windows, Legacy, loot, popups, ready check and the AddOns list |
-| Icons and Colour Icons | Two custom icon sets for 654 ability icons: light art tinted in game, and full-colour paintings |
 
 Every element KstyleUI shows can be moved, resized or scaled in Layout Mode and from the settings
 window, and every module has its own fonts, textures, colours and sizes. No module compares or does
 arithmetic on Forever's secret values, every protected change made in combat waits for combat to end,
 and the action bars, group frames, bags and auras hand back to Blizzard's in the gamepad interface.
+
+## Icon pack
+
+KstyleUI's repainted icons are a separate download, `KstyleUI-Icons-<version>.zip` on the [release](https://github.com/korallis/KstyleUI/releases), not part of the addon. Quit the game, unzip it, and copy its `Interface` folder into `World of Warcraft/_forever_/` so the files land in `_forever_/Interface/Icons/`; then start the game (a full restart, not `/reload`). The client loads the files itself, so every icon the pack covers changes everywhere, buff and debuff tiles included. To go back to Blizzard's icons, delete those files and restart. Encrypted store and event icons stay Blizzard's. [`docs/icons.md`](docs/icons.md) has the details, the install script and how the pack is made.
 
 ## Install
 
@@ -77,7 +80,7 @@ The settings window's Profiles page also exports a profile as one string and imp
 | `KstyleUI_<Module>/` | One addon per module, each with a README on how it works |
 | `Media/` | Fonts, procedural textures and the logo, with their provenance |
 | `docs/` | The design spec, the plans, the mockups, the test guide and the release notes |
-| `Tools/` | Checks, tests, the spike addon, the icon pipeline and developer scripts. They never ship. |
+| `Tools/` | Checks, tests, the spike addon, the icon pipeline with the repainted icon art (`Tools/icons/setB/`) and developer scripts. They never ship in the addon; the icons ship as their own pack. |
 | `research_notes/`, `reports/` | Research on Forever's API, its addon restrictions and existing UI suites |
 
 ## Develop

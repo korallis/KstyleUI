@@ -32,7 +32,7 @@ local function Fill(row, group)
 	local now = GetTime and GetTime() or 0
 	for i = 1, count do
 		local icon = row.icons[i]
-		K.Icons.Apply(icon.icon, SAMPLE_ICONS[group][i])
+		icon:SetIcon(SAMPLE_ICONS[group][i])
 		local sample = SAMPLE_COOLDOWNS[group][i]
 		local cooldownGroup = Settings.COOLDOWN_GROUPS[group]
 		if sample and cooldownGroup then
@@ -59,7 +59,7 @@ local function FillBars(row)
 	local now = GetTime and GetTime() or 0
 	for i = 1, count do
 		local bar, sample = row.bars[i], SAMPLE_BARS[i]
-		K.Icons.Apply(bar.icon, sample.icon)
+		bar.icon:SetTexture(sample.icon)
 		Widgets.SetText(bar.name, sample.name)
 		bar.status:SetMinMaxValues(0, 1)
 		bar.status:SetValue(SAMPLE_BAR_FILL)

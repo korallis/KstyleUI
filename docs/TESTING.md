@@ -53,7 +53,6 @@ On the character screen, click **AddOns**. KstyleUI's addons are grouped under *
 | KstyleUI | The core: theme, scale, Layout Mode, first-run setup, `/kstyle` |
 | KstyleUI Options | The settings window. It loads when you first open it. |
 | KstyleUI Unit Frames, Group Frames, Action Bars, Cooldowns, Auras, Nameplates, Combat Text, Minimap, Chat, Bags, Tooltips, Data Bars, Meters, Skins | One addon per module |
-| KstyleUI Icons, KstyleUI Colour Icons | The two custom icon sets. They load only when you turn custom icons on. |
 | KstyleUI Spike | Only if you linked it with `--spike`. It answers the open questions about the client. |
 
 A module whose addon is not ticked cannot be switched on. Its switch in the setup shows as unavailable.
@@ -315,16 +314,17 @@ Needs RestedXP Guides installed and on. Before you start, note your RestedXP the
 - [ ] `/kstyle test`: `restedXP` is in the `applied` list. Note any devlog lines that start with `restedXP:`.
 - [ ] Disable RestedXP in the AddOns list and reload: no errors, and `restedXP` shows as waiting.
 
-### Custom icons
+### Icon pack
 
-- [ ] General > Icons: turn on **Custom icons**. Action buttons, cooldown icons, cast bar icons and tooltip icons show the light art (set A), tinted in your class colour.
-- [ ] The art shows as glowing light art, not as blank, black or green squares. Set A's PNGs are RGB now, like set B's; before, they were 8-bit greyscale.
-- [ ] Open the spellbook (`P`): every ability shows the same custom art as on the bars, including spells you have not learned yet, which stay dimmed. Page forward, and open the pet tab if you have one: those icons change too.
-- [ ] Open the talents tab: talent icons show the custom art. Spend or refund a point: the icon keeps the custom art.
-- [ ] Switch the tint between class colour, spell school and white. Fireball turns fire-coloured under spell school.
-- [ ] Switch to **Full colour** (set B): the painted art shows untinted on the bars, in the spellbook and in the talents, with no reload and no visible hitch.
-- [ ] Turn custom icons off: Blizzard's icons come back on the bars, in the spellbook and in the talents.
-- [ ] Hearthstone, potions, mounts and other items keep Blizzard's icons. The sets cover abilities only.
+The repainted icons are not an addon: they are loose texture files the client loads from `_forever_/Interface/Icons` ([`docs/icons.md`](icons.md)). Test them with the game closed between steps.
+
+- [ ] Quit the game. Run `python3 Tools/icons/iconset.py pack` (with `~/.local/share/wow-dev/venv/bin/python`, which has Pillow), then `python3 Tools/icons/iconset.py install --wow "/Applications/World of Warcraft/_forever_" --dry-run` and read what it would copy, then the same without `--dry-run`. Start the game.
+- [ ] A buff tile under the minimap shows the repaint (for example Battle Shout), not Blizzard's art. This is the one place no addon could change.
+- [ ] An action button, the spellbook and the talents show the repaints; a bag item and the character sheet's equipment show the repainted item icons; a merchant's wares and the loot window too.
+- [ ] A tooltip's icon and the Cooldown Manager's icons show the repaints.
+- [ ] A store or event icon the pack skipped as encrypted keeps Blizzard's art, with no error.
+- [ ] `/reload` changes nothing: the pack is loaded at start only.
+- [ ] Quit the game, run the install command with `--uninstall`, start the game: Blizzard's icons are back everywhere.
 
 ## Run the smoke checks
 

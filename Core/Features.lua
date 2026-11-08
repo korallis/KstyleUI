@@ -18,8 +18,6 @@ local Features = {
 		DataBars = false,
 		Meters = false,
 		Skins = false,
-		Icons = false,
-		IconsColour = false,
 	},
 	account = {
 		setupSeen = false,

@@ -18,8 +18,6 @@
 	<Script file="Options.lua"/>
 	<Script file="Appearance.lua"/>
 	<Script file="Fonts.lua"/>
-	<Script file="Icons.lua"/>
-	<Script file="IconHooks.lua"/>
 	<Script file="Slash.lua"/>
 	<Script file="OptionsEntry.lua"/>
 	<Script file="Skin.lua"/>

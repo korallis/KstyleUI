@@ -12,22 +12,16 @@ local function new(opts)
 	return env, K, ns
 end
 
--- Icons go through KstyleUI.Icons.Apply with the action's texture file ID; an empty slot clears the icon.
+-- The icon texture takes the action's texture file ID as the game gives it (the icon pack replaces the file the
+-- client loads for it); an empty slot clears the icon.
 do
 	local env, K, ns = new()
-	local applied = {}
-	local apply = K.Icons.Apply
-	K.Icons.Apply = function(texture, fileID, school)
-		applied[#applied + 1] = fileID
-		return apply(texture, fileID, school)
-	end
+	assert(K.Icons == nil, "there is no icon service to go through")
 	AB.Slot(env, 2, { texture = 136048, type = "spell", id = 5 })
 	local b = AB.Button(ns, "bar1", 2)
-	assert(applied[#applied] == 136048, "the file ID goes to Icons.Apply")
-	assert(W.LastCall(b.icon, "SetTexture")[1] == 136048)
+	assert(W.LastCall(b.icon, "SetTexture")[1] == 136048, "the file ID goes straight to the texture")
 	AB.Slot(env, 2, nil)
 	assert(W.LastCall(b.icon, "SetTexture")[1] == nil, "an empty slot shows no icon")
-	K.Callbacks.Fire("IconsChanged")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 

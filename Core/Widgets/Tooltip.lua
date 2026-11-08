@@ -114,12 +114,7 @@ end
 
 function Tip:SetIcon(texture, a, b, c)
 	local icon = self.icon
-	local Icons = ns.Icons
-	if Icons and type(Icons.Apply) == "function" then
-		Icons.Apply(icon.texture, texture)
-	else
-		icon.texture:SetTexture(texture)
-	end
+	icon.texture:SetTexture(texture)
 	local r, g, bl
 	if type(a) == "string" then
 		r, g, bl = Tokens.Color(a)

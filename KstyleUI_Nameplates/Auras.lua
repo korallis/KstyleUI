@@ -78,7 +78,6 @@ local function NewTile(owner)
 	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
-	K.Icons.Watch(icon)
 	return { skin = skin, chrome = chrome, restyleChrome = chrome.Restyle, icon = icon }
 end
 

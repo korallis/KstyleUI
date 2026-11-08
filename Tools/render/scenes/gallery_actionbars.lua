@@ -8,7 +8,6 @@ local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
 local I = Hud.ICONS
 
-local ICON_SET = "B"
 -- Warrior stances and pet abilities from Blizzard's icon table, by file ID.
 local STANCES = { battle = 132349, defensive = 132341, berserker = 132275 }
 local PET = { attack = 132152, follow = 132270, stay = 132111, bite = 132127, claw = 132159, growl = 136100, dash = 135744 }
@@ -27,7 +26,6 @@ return Common.Run(function()
 	local AB = dofile("Tools/regression/actionbars_env.lua")
 	local saved = Gallery.Saved({
 		ActionBars = { bar3 = { enabled = true } },
-		Icons = Common.IconsSection(ICON_SET),
 	})
 	local env, K, ns = AB.New({
 		class = "WARRIOR",
@@ -36,7 +34,6 @@ return Common.Run(function()
 		saved = saved,
 		setup = function(env)
 			Gallery.Setup(env)
-			Common.InstallAddOns(env)
 			local g = env._game
 			local keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=" }
 			local keys2 = { "Q", "W", "E", "R", "T", "Y", "V", "I", "O", "P", "L", "K" }
@@ -189,7 +186,7 @@ return Common.Run(function()
 		match = "Buttons as the mockup's action buttons: body, bezel, class-colour rim and shadow; the states are the kit's own.",
 	})
 
-	local scene = Scene.Build(env, { time = env._time, iconDirs = Common.IconDirs(ICON_SET) })
+	local scene = Gallery.Build(env, { time = env._time })
 	scene.log[#scene.log + 1] = "bar 1 shows the vehicle page by a direct actionpage write; the game's state driver sets it in a vehicle"
 	return frames:Finish(scene, env, K, "gallery actionbars")
 end)

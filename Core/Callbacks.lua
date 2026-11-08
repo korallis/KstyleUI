@@ -1,4 +1,4 @@
--- Callbacks.lua: the dispatcher for ThemeChanged, ClassChanged, ScaleChanged, ProfileChanged, IconsChanged, SettingChanged, ReloadNeeded, LayoutChanged and ModuleChanged.
+-- Callbacks.lua: the dispatcher for ThemeChanged, ClassChanged, ScaleChanged, ProfileChanged, SettingChanged, ReloadNeeded, LayoutChanged and ModuleChanged.
 local _, ns = ...
 
 local Callbacks = {}
@@ -9,7 +9,6 @@ local EVENTS = {
 	ClassChanged = true,
 	ScaleChanged = true,
 	ProfileChanged = true,
-	IconsChanged = true,
 	SettingChanged = true,
 	ReloadNeeded = true,
 	LayoutChanged = true,

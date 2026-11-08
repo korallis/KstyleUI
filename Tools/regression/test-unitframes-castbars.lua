@@ -34,7 +34,7 @@ end
 assert(#CastBars.Get("player") == 1 and #CastBars.Get("target") == 1 and #CastBars.Get("focus") == 1 and #CastBars.Get("boss") == 5, "one cast bar per unit")
 assert(CastBars.Get("targettarget") == nil and CastBars.Get("pet") == nil, "small frames have no cast bar")
 
--- A player cast: the duration object drives the bar; the icon goes through KstyleUI.Icons.
+-- A player cast: the duration object drives the bar; the icon is the spell's file ID.
 local player = CastBars.Get("player")[1]
 assert(not player.frame:IsShown(), "no cast, no bar")
 env._time = 1
@@ -46,7 +46,7 @@ assert(timer and timer[1].finish == 3.5, "the bar runs on the cast's duration ob
 assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills up")
 assert(U.Shown(env, player.text) == "Frostbolt", "the spell name shows as the game writes it, like the mockup's Slam: " .. U.Shown(env, player.text))
 assert(player.geometry.icon == nil, "the player cast bar has no icon, as on the mockup")
-assert(W.LastCall(player.icon, "SetTexture")[1] == 135846, "the icon shows the spell's icon through KstyleUI.Icons")
+assert(W.LastCall(player.icon, "SetTexture")[1] == 135846, "the icon shows the spell's file ID")
 env._time = 2
 W.Tick(env, 0.1)
 assert(U.Shown(env, player.timer) == "1.5s", "the timer counts down with the design's s suffix: " .. U.Shown(env, player.timer))
@@ -105,7 +105,7 @@ U.SetUnit(env, "target", { name = "Summoner", level = 51, health = 50, healthMax
 env.SetTarget(true)
 assert(target.frame:IsShown(), "a target already casting shows its bar on PLAYER_TARGET_CHANGED")
 assert(env.issecretvalue(W.LastCall(target.text, "SetText")[1]), "the secret spell name reaches SetText")
-assert(env.issecretvalue(W.LastCall(target.icon, "SetTexture")[1]), "the secret icon reaches SetTexture, not KstyleUI.Icons")
+assert(env.issecretvalue(W.LastCall(target.icon, "SetTexture")[1]), "the secret icon reaches SetTexture untouched")
 local locked = W.LastCall(target.bar:GetStatusBarTexture(), "SetVertexColorFromBoolean")
 assert(locked and env.issecretvalue(locked[1]), "a secret interruptible flag colours the bar from a boolean")
 env._time = 2
@@ -230,34 +230,13 @@ env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-9", 116)
 assert(not player.frame:IsShown(), "a start event without a cast keeps the bar hidden")
 
--- With a custom icon set on, the player's cast bar shows the custom icon; other units keep Blizzard's.
+-- Every cast bar's icon takes the spell's texture file ID as the game gives it; the icon pack replaces the file.
 do
-	local CUSTOM = "Interface\\AddOns\\KstyleUI_Icons\\Icons\\135846.png"
-	local ienv, IK, ins = U.New({
-		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true }, Icons = { enabled = true, set = "A" } } }, characters = {} },
-		setup = function(e)
-			e.C_AddOns = {
-				LoadAddOn = function()
-					e.KstyleUIIconData = { set = "A", icons = { [135846] = CUSTOM } }
-					return true
-				end,
-				IsAddOnLoaded = function()
-					return e.KstyleUIIconData ~= nil
-				end,
-			}
-		end,
-	})
-	assert(IK.Icons.Resolve(135846) == CUSTOM, "the test icon set is active")
-	local pcb = ins.CastBars.Get("player")[1]
-	ienv._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 }
-	ienv.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
-	assert(W.LastCall(pcb.icon, "SetTexture")[1] == CUSTOM, "the player's cast bar shows the custom icon")
-	local tcb = ins.CastBars.Get("target")[1]
-	U.SetUnit(ienv, "target", { name = "Mage", level = 60, health = 1, healthMax = 1, reaction = 2,
-		cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 } })
-	ienv.SetTarget(true)
-	assert(W.LastCall(tcb.icon, "SetTexture")[1] == 135846, "another unit's cast keeps Blizzard's icon")
-	assert(#ienv._errors == 0, "icons: " .. tostring(ienv._errors[1]))
+	local pcb = player
+	env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 }
+	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
+	assert(W.LastCall(pcb.icon, "SetTexture")[1] == 135846, "the player's cast bar shows the spell's icon file ID")
+	assert(K.Icons == nil, "no icon service rewrites it")
 end
 
 -- A focus frame switched on after login listens for its casts.

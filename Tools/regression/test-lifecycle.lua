@@ -46,7 +46,7 @@ do
 	Raises(function() C.Fire("ProfileChange") end, "unknown callback ProfileChange", "Fire")
 	Raises(function() C.Register("ThemeChanged", nil, function() end) end, "owner", "Register without an owner")
 	Raises(function() C.Register("ThemeChanged", a, "Restyle") end, "function", "Register without a function")
-	for _, name in ipairs({ "ThemeChanged", "ClassChanged", "ScaleChanged", "ProfileChanged", "IconsChanged", "SettingChanged", "ReloadNeeded" }) do
+	for _, name in ipairs({ "ThemeChanged", "ClassChanged", "ScaleChanged", "ProfileChanged", "SettingChanged", "ReloadNeeded" }) do
 		C.Fire(name)
 	end
 
@@ -68,23 +68,23 @@ do
 	C.UnregisterAll("bad")
 	C.UnregisterAll("good")
 	local order = {}
-	C.Register("IconsChanged", "first", function()
+	C.Register("ScaleChanged", "first", function()
 		order[#order + 1] = "first"
-		C.Unregister("IconsChanged", "second")
-		C.Register("IconsChanged", "late", function()
+		C.Unregister("ScaleChanged", "second")
+		C.Register("ScaleChanged", "late", function()
 			order[#order + 1] = "late"
 		end)
 	end)
-	C.Register("IconsChanged", "second", function()
+	C.Register("ScaleChanged", "second", function()
 		order[#order + 1] = "second"
 	end)
-	C.Register("IconsChanged", "third", function()
+	C.Register("ScaleChanged", "third", function()
 		order[#order + 1] = "third"
 	end)
-	C.Fire("IconsChanged")
+	C.Fire("ScaleChanged")
 	assert(table.concat(order, ",") == "first,third", "got " .. table.concat(order, ","))
 	order = {}
-	C.Fire("IconsChanged")
+	C.Fire("ScaleChanged")
 	assert(table.concat(order, ",") == "first,third,late", "got " .. table.concat(order, ","))
 end
 
@@ -314,8 +314,8 @@ do
 	K.Modules.Register(late)
 	assert(late.calls[1] == "Enable", "a module that registers after login starts at once when its switch is on")
 	local names = K.Modules.List()
-	-- The core's Icons service registers the Icons module at load, before any module addon.
-	assert(names[1] == "Icons" and names[2] == "ActionBars" and names[3] == "Chat" and #names == 3, "List gives the registered modules in order")
+	-- The core registers no module of its own: the icon module went with the loose-file icon pack.
+	assert(names[1] == "ActionBars" and names[2] == "Chat" and #names == 2, "List gives the registered modules in order")
 end
 
 print("lifecycle ok")

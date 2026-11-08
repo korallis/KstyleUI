@@ -362,12 +362,7 @@ function Style.Icon(tooltip, fileID, quality, spell)
 	glass.icon = icon
 	Style.PlaceIcon(icon, tooltip, size)
 	Style.PaintIcon(icon, quality, spell)
-	local Icons = K.Icons
-	if Icons and type(Icons.Apply) == "function" then
-		Icons.Apply(icon.texture, fileID)
-	else
-		icon.texture:SetTexture(fileID)
-	end
+	icon.texture:SetTexture(fileID)
 	icon:Show()
 end
 

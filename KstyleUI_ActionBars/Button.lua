@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Icons, Tokens = K.Widgets, K.Icons, K.Tokens
+local Widgets, Tokens = K.Widgets, K.Tokens
 
 local Button = {}
 ns.Button = Button
@@ -263,12 +263,7 @@ local function UpdateAction(b)
 	local has = slot ~= nil and ns.SlotValid(slot) and Flag(bar.HasAction(slot), true)
 	b.hasAction = has
 	if has then
-		local texture = bar.GetActionTexture(slot)
-		if IsSecret(texture) or texture ~= nil then
-			Icons.Apply(b.icon, texture)
-		else
-			b:SetIcon(nil)
-		end
+		b:SetIcon(bar.GetActionTexture(slot))
 		b.spellID = SpellOf(slot)
 		b.isFlyout = ns.Flyout.FlyoutOf(slot) ~= nil
 		local charges = type(bar.GetActionCharges) == "function" and bar.GetActionCharges(slot)
@@ -334,8 +329,8 @@ local function UpdatePet(b)
 	if Flag(isToken, false) and not IsSecret(texture) and type(texture) == "string" then
 		texture = _G[texture]
 	end
-	if b.hasAction and (IsSecret(texture) or texture ~= nil) then
-		Icons.Apply(b.icon, texture)
+	if b.hasAction then
+		b:SetIcon(texture)
 	else
 		b:SetIcon(nil)
 	end
@@ -370,11 +365,7 @@ local function UpdateStance(b)
 		texture, isActive, isCastable, spellID = GetShapeshiftFormInfo(i)
 	end
 	b.hasAction = IsSecret(texture) or texture ~= nil
-	if b.hasAction then
-		Icons.Apply(b.icon, texture)
-	else
-		b:SetIcon(nil)
-	end
+	b:SetIcon(texture)
 	b.formSpell = Plain(spellID)
 	local selected = b.hasAction and Flag(isActive, false)
 	if selected ~= (b.selected == true) then

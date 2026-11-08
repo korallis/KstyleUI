@@ -79,7 +79,7 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("merge-base --is-ancestor", text)
         self.assertIn("bash Tools/hooks/check-package.sh", text)
 
-    def test_release_reads_secrets_only_in_the_upload_step(self):
+    def test_release_reads_secrets_only_in_the_upload_steps(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
         secret_lines = [line.strip() for line in text.splitlines() if "secrets." in line]
         self.assertEqual(
@@ -88,11 +88,27 @@ class WorkflowsTest(unittest.TestCase):
                 "CF_API_KEY: ${{ secrets.CF_API_KEY }}",
                 "WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}",
                 "GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}",
+                "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
             ]),
         )
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
         self.assertEqual(jobs, ["check", "release"])
         self.assertIn("needs: check", text)
+
+    def test_release_builds_the_icon_pack_in_both_jobs_and_uploads_it_beside_the_addon_zip(self):
+        text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+        check, release = text.split("\n  release:\n", 1)
+        # The check job builds and inspects the pack without uploading; the release job builds it again and
+        # uploads KstyleUI-Icons-<version>.zip to the GitHub release the packager made.
+        self.assertIn("Tools/icons/iconset.py pack", check)
+        self.assertIn("python3-pil", check, "pack needs Pillow to read the PNGs")
+        self.assertIn("Tools/icons/iconset.py verify", check)
+        self.assertIn("Tools/icons/iconset.py pack", release)
+        self.assertIn("python3-pil", release)
+        self.assertRegex(release, r"KstyleUI-Icons-\$\{GITHUB_REF_NAME#v\}\.zip")
+        self.assertIn("gh release upload", release)
+        self.assertNotIn("gh release upload", check)
+        self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
 
     def test_checks_has_the_four_jobs(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")

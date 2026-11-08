@@ -51,7 +51,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 
 ## Ability icons
 
-The generated ability icons are not in `Media/`. Each icon set keeps its provenance next to its art: [`KstyleUI_Icons/PROVENANCE.md`](../KstyleUI_Icons/PROVENANCE.md) has a row for every set A icon, and [`KstyleUI_IconsColour/PROVENANCE.md`](../KstyleUI_IconsColour/PROVENANCE.md) one for every set B icon.
+The repainted icons are not in `Media/` and do not ship in the addon. Their art lives in [`Tools/icons/setB/`](../Tools/icons/setB/) with [`PROVENANCE.md`](../Tools/icons/setB/PROVENANCE.md), one row per icon, and ships as the loose-file icon pack described in [`docs/icons.md`](../docs/icons.md).
 
 ## Module media
 

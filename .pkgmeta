@@ -31,5 +31,3 @@ move-folders:
   KstyleUI/KstyleUI_DataBars: KstyleUI_DataBars
   KstyleUI/KstyleUI_Meters: KstyleUI_Meters
   KstyleUI/KstyleUI_Skins: KstyleUI_Skins
-  KstyleUI/KstyleUI_Icons: KstyleUI_Icons
-  KstyleUI/KstyleUI_IconsColour: KstyleUI_IconsColour

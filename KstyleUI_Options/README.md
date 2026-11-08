@@ -49,7 +49,7 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 
 | Page | Rows |
 | --- | --- |
-| General | The schemas of the core's `Appearance` section and, when they are registered, the `Icons`, `IconsColour` and `Widgets` sections, in that order. The preview is a kit sample (status bar, switch, slider, button) that follows accent, font, size and motion changes. |
+| General | The schemas of the core's `Appearance` section and, when it is registered, the `Widgets` section, in that order. The preview is a kit sample (status bar, switch, slider, button) that follows accent, font, size and motion changes. |
 | Elements | The `Layout` section's schema (grid and snapping) when Layout registers one, then every element from `Layout.Elements()`, grouped under its module. |
 | One per module | Each module in `Options.List()` or `Modules.List()`, except `Options` and the General sections, in the spec's module order and then by name. A module's page starts with an **Enable** switch unless its schema has an `enabled` row, then its schema rows, then **Positions and sizes** for its own elements. |
 | Profiles | Active profile, new, copy from, rename, delete, reset, export, import, and every known character's profile. |

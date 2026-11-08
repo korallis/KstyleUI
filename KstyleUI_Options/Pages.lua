@@ -10,10 +10,10 @@ local Pages = {}
 ns.Pages = Pages
 
 Pages.WINDOW_KEY = "Options.Window"
-Pages.GENERAL_SECTIONS = { "Appearance", "Icons", "IconsColour", "Widgets" }
+Pages.GENERAL_SECTIONS = { "Appearance", "Widgets" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
-local HIDDEN_MODULES = { Options = true, Icons = true, IconsColour = true }
+local HIDDEN_MODULES = { Options = true }
 local MODULE_ORDER = {
 	"UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates", "CombatText",
 	"Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins",
@@ -34,8 +34,6 @@ local MODULE_LABELS = {
 	DataBars = L["Data Bars"],
 	Meters = L["Meters"],
 	Skins = L["Window Skins"],
-	Icons = L["Icons"],
-	IconsColour = L["Colour Icons"],
 	Appearance = L["Appearance"],
 	Widgets = L["Widgets"],
 	Layout = L["Layout"],

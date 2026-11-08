@@ -147,7 +147,7 @@ end
 -- Module step: every loaded module on, with a note; missing modules disabled -------------------------------
 
 do
-	local env, K = Boot({ missing = { KstyleUI_IconsColour = true } })
+	local env, K = Boot()
 	local panel = Open(env, K)
 	K.Setup.Go(3)
 	W.Settle(env)
@@ -160,8 +160,7 @@ do
 		assert(p[4] >= toggles[name].trackBox:GetWidth(), name .. "'s note starts right of the 58-unit track, under the label")
 	end
 	assert(toggles.Bags and toggles.Bags:GetValue() == false and not toggles.Bags:IsEnabled(), "a module whose addon did not load is off and disabled")
-	assert(toggles.Icons and toggles.Icons:GetValue() == false and not toggles.Icons:IsEnabled(), "custom icons need their data addon")
-	assert(toggles.Options == nil and toggles.IconsColour == nil, "the settings window and set B are not modules to pick")
+	assert(toggles.Options == nil and toggles.Icons == nil, "the settings window is not a module to pick, and there is no icon module")
 	toggles.Chat:SetValue(false)
 	assert(K.Setup.Choice().modules.Chat == false, "a toggle changes the choice")
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -191,7 +190,6 @@ do
 		assert(changed[name .. ".enabled"] == true, name .. " went through Options.Write, so an open settings window refreshes")
 	end
 	assert(not K.Modules.IsEnabled("Chat"), "a module the player turned off stays off")
-	assert(K.Modules.IsEnabled("Icons"), "custom icons are switched on with the rest")
 	assert(K.Store.Module("Bags").enabled == false, "a module that did not load is not switched on")
 	local stored = K.Store.Layout()
 	local tank = K.Setup.Layouts.Get("Tank")

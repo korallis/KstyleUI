@@ -178,7 +178,7 @@ function IconButton:Paint()
 		end
 	end
 	local tint = self.tint
-	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], desaturated)
+	Widgets.ShadeIcon(self.icon, v * tint[1], v * tint[2], v * tint[3], desaturated)
 	self.hoverGlow:SetIntensity(usable and hover or 0)
 	PlaceIcon(self)
 end
@@ -219,8 +219,14 @@ function IconButton:SetTint(r, g, b)
 end
 
 function IconButton:SetIcon(texture)
-	ns.Icons.Reset(self.icon)
 	self.icon:SetTexture(texture)
+end
+
+function Widgets.ShadeIcon(texture, r, g, b, desaturated)
+	if desaturated ~= nil then
+		texture:SetDesaturated(desaturated)
+	end
+	texture:SetVertexColor(r, g, b, select(4, texture:GetVertexColor()))
 end
 
 local function SetRealCooldown(self, real)
