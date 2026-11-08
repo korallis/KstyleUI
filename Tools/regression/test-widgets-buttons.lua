@@ -305,8 +305,7 @@ do
 	local _, K, button = iconButton({ size = 56, countdownCorner = true })
 	button:Restyle()
 	local p = button.countdown._points[1]
-	local inset = K.Scale.Snap(3)
-	assert(p and p[1] == "TOPRIGHT" and p[2] == button and p[3] == "TOPRIGHT" and W.Near(p[4], -inset) and W.Near(p[5], -inset), "the countdown hangs in the top right corner, 3 units in")
+	assert(p and p[1] == "TOPRIGHT" and p[2] == button and p[3] == "TOPRIGHT" and W.Near(p[4], -K.Scale.Snap(56 * 0.2)) and W.Near(p[5], -K.Scale.Snap(56 * 0.1)), "the countdown hangs in the top right corner, a fifth of the side in and a tenth down, as the mockup's 4s sits 12 by 6 units inside a 56-unit icon")
 	assert(W.LastCall(button.countdown, "SetJustifyH")[1] == "RIGHT", "right-aligned")
 end
 

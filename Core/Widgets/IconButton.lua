@@ -16,6 +16,7 @@ local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA, HOVER_WASH = 10, 0.3, 0.2
 local PROC_HALO_ALPHA = 0.1
 local RIM_HALO = 0.45
 local COUNTDOWN_RISE = 0.25
+local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
 local CHAMFER_SHARE = 0.105
 local ICON_INSET_LINES = 3
 local ICON_INSET_MAX_SHARE = 0.2
@@ -324,7 +325,7 @@ function IconButton:Restyle()
 		if self.countdown then
 			self.countdown:ClearAllPoints()
 			if self.opts.countdownCorner then
-				self.countdown:SetPoint("TOPRIGHT", self, "TOPRIGHT", -inset, -inset)
+				self.countdown:SetPoint("TOPRIGHT", self, "TOPRIGHT", -Widgets.Snap(self, size * COUNTDOWN_CORNER_X), -Widgets.Snap(self, size * COUNTDOWN_CORNER_Y))
 				self.countdown:SetJustifyH("RIGHT")
 			else
 				self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
