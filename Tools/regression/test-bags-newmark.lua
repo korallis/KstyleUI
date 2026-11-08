@@ -4,8 +4,6 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 local W = B.W
 local Item = B.Item
 
-local MOVING = { Scale = true, Translate = true, Rotation = true, Path = true, LineScale = true, LineTranslation = true }
-
 local function Snapshot(button)
 	local set = {}
 	for _, object in ipairs(Geometry.Tree(button)) do
@@ -47,7 +45,7 @@ local function CheckMarker(label, button, before)
 	end
 	for _, group in ipairs(groups) do
 		for _, animation in ipairs(group._anims or {}) do
-			assert(not MOVING[animation._type], label .. ": the marker uses a " .. animation._type .. " animation; it may only fade")
+			assert(animation._type == "Alpha", label .. ": the marker uses a " .. tostring(animation._type) .. " animation; it may only fade")
 		end
 	end
 end
