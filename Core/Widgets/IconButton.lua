@@ -33,7 +33,12 @@ local function PlaceIcon(self)
 	end
 	self.placedOffset = offset
 	local size = self.opts.size or Tokens.Size("actionButton")
-	local inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
+	local inset
+	if type(self.opts.iconInset) == "number" then
+		inset = Widgets.Snap(self, self.opts.iconInset)
+	else
+		inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
+	end
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
 end

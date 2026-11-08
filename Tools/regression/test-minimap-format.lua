@@ -55,6 +55,26 @@ check(Format.NextZoom(2, 6, 0), nil, "no wheel movement, no zoom")
 check(Format.NextZoom(env.Secret(2), 6, 1), nil, "a secret zoom is never compared")
 check(Format.NextZoom(2, nil, 1), nil, "no zoom levels, no zoom")
 
+-- The zoom slider: the filled share of the track for a zoom level, and the level a share of the track means.
+check(Format.ZoomShare(0, 6), 0, "zoom 0 is an empty track")
+check(Format.ZoomShare(5, 6), 1, "the last level fills the track")
+check(Format.ZoomShare(2, 6), 0.4, "a middle level fills its share")
+check(Format.ZoomShare(9, 6), 1, "a zoom past the end reads as full")
+check(Format.ZoomShare(2, 1), 0, "one level is no zoom at all")
+check(Format.ZoomShare(env.Secret(2), 6), nil, "a secret zoom gives no share")
+check(Format.ZoomShare(2, nil), nil, "no zoom levels, no share")
+check(Format.ZoomAt(0.62, 6), 3, "a share of the track rounds to the nearest level")
+check(Format.ZoomAt(0, 6), 0, "the bottom is zoom 0")
+check(Format.ZoomAt(1.5, 6), 5, "past the top clamps to the last level")
+check(Format.ZoomAt(-0.2, 6), 0, "below the bottom clamps to 0")
+check(Format.ZoomAt(0.5, 1), 0, "one level is always 0")
+check(Format.ZoomAt(env.Secret(0.5), 6), nil, "a secret share gives no level")
+check(Format.ZoomAt(0.5, nil), nil, "no zoom levels, no level")
+
+-- The button column's footprint beside the map: the buttons on their plate, plus the gap to the frame.
+check(Format.ColumnReserve(30, 4), 38, "a 30 button on a 34 plate, 4 from the frame")
+check(Format.ColumnReserve(16, 9), 29, "a smaller button keeps the plate's padding")
+
 -- The map is a square at the element's height, beside the button column.
 local left, size = Format.MapRect(226, 196, "left")
 check(left, 30, "the column on the left puts the map on the right")

@@ -1,4 +1,4 @@
--- Map.lua: the live minimap: KstyleUI's frame round Blizzard's Minimap, the Blizzard pieces it hides, wheel zoom and the strip's data.
+-- Map.lua: the live minimap: KstyleUI's frame round Blizzard's Minimap, the Blizzard pieces it hides, wheel and slider zoom and the strip's data.
 local _, ns = ...
 
 local K = KstyleUI
@@ -26,7 +26,7 @@ local MOVE_STOP = { "PLAYER_STOPPED_MOVING", "PLAYER_CONTROL_GAINED" }
 
 local running = false
 local original
-local configHooked = false
+local configHooked, zoomHooked = false, false
 local waitingForEditMode = false
 local queueFaded, queueHooked = false, false
 local checkAdded = false
@@ -167,6 +167,38 @@ local function ResetZoom(token)
 	end
 end
 
+local function ArmReset()
+	if not Settings.Get("zoom.reset") then
+		return
+	end
+	zoomToken = zoomToken + 1
+	local token = zoomToken
+	C_Timer.After(Settings.Get("zoom.delay"), function()
+		ResetZoom(token)
+	end)
+end
+
+local function UpdateZoom()
+	local minimap = Minimap
+	if minimap and Map.face then
+		Map.face:SetZoom(minimap:GetZoom(), minimap:GetZoomLevels())
+	end
+end
+
+local function ApplyZoom(zoom)
+	local minimap = Minimap
+	if not minimap or zoom == nil then
+		return
+	end
+	local current = minimap:GetZoom()
+	if ns.Format.IsNumber(current) and current == zoom then
+		return
+	end
+	minimap:SetZoom(zoom)
+	ArmReset()
+	UpdateZoom()
+end
+
 local function OnWheel(_, delta)
 	if not Settings.Get("zoom.wheel") then
 		return
@@ -175,18 +207,15 @@ local function OnWheel(_, delta)
 	if not minimap then
 		return
 	end
-	local zoom = ns.Format.NextZoom(minimap:GetZoom(), minimap:GetZoomLevels(), delta)
-	if not zoom then
+	ApplyZoom(ns.Format.NextZoom(minimap:GetZoom(), minimap:GetZoomLevels(), delta))
+end
+
+local function OnSliderZoom(share)
+	local minimap = Minimap
+	if not minimap then
 		return
 	end
-	minimap:SetZoom(zoom)
-	if Settings.Get("zoom.reset") then
-		zoomToken = zoomToken + 1
-		local token = zoomToken
-		C_Timer.After(Settings.Get("zoom.delay"), function()
-			ResetZoom(token)
-		end)
-	end
+	ApplyZoom(ns.Format.ZoomAt(share, minimap:GetZoomLevels()))
 end
 
 local function ZoneTooltip(tip, frame)
@@ -264,6 +293,7 @@ function Map.Refresh()
 	UpdateClock()
 	UpdateCoords()
 	UpdateCompass()
+	UpdateZoom()
 	SyncClock()
 	SyncCoords()
 end
@@ -271,6 +301,9 @@ end
 local function Relayout()
 	if running and Map.face then
 		Map.face:Layout()
+		if Map.column then
+			Map.column:Layout()
+		end
 	end
 end
 
@@ -283,7 +316,7 @@ local function Build()
 	holder:SetSize(element.width, element.height)
 	holder:SetFrameStrata("LOW")
 	Map.holder = holder
-	local face = Face.New(holder, { wheel = true })
+	local face = Face.New(holder, { wheel = true, onZoom = OnSliderZoom })
 	Map.face = face
 	face.wheel:SetScript("OnMouseWheel", OnWheel)
 	Widgets.AttachTooltip(face.zoneHit, ZoneTooltip)
@@ -449,11 +482,22 @@ local function OnBlizzardConfig()
 	end
 end
 
+local function OnBlizzardZoom()
+	if running then
+		UpdateZoom()
+	end
+end
+
 local function HookBlizzard()
 	local cluster = MinimapCluster
 	if not configHooked and cluster and type(cluster.UpdateMinimapConfig) == "function" then
 		configHooked = true
 		hooksecurefunc(cluster, "UpdateMinimapConfig", OnBlizzardConfig)
+	end
+	local minimap = Minimap
+	if not zoomHooked and minimap and type(minimap.SetZoom) == "function" then
+		zoomHooked = true
+		hooksecurefunc(minimap, "SetZoom", OnBlizzardZoom)
 	end
 end
 
@@ -475,6 +519,7 @@ local function RegisterEvents()
 		Events.Register(MODULE, event, RefreshColumn)
 	end
 	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", SecureClick.Detach)
+	Events.Register(MODULE, "MINIMAP_UPDATE_ZOOM", UpdateZoom)
 	local registry = EventRegistry
 	if registry and type(registry.RegisterCallback) == "function" then
 		registry:RegisterCallback(QUEUE_CALLBACK, RefreshColumn, Map)

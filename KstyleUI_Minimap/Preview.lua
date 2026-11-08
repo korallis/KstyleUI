@@ -12,6 +12,7 @@ local KEY = "minimap.main"
 local SAMPLE_X, SAMPLE_Y = 0.453, 0.621
 local GRAIN_ALPHA = 0.08
 local PLAYER_SIZE = 8
+local SAMPLE_ZOOM, SAMPLE_ZOOM_LEVELS = 5, 6
 
 local function Refresh(frame)
 	local face = frame.face
@@ -24,6 +25,7 @@ local function Refresh(frame)
 	face:SetClock(Data.Clock(Settings.Get("clock.mode")) or Format.Time(14, 32, true))
 	face:SetCoords(Format.Coords(SAMPLE_X, SAMPLE_Y, Settings.Get("coords.precision")))
 	face:SetRotating(false)
+	face:SetZoom(SAMPLE_ZOOM, SAMPLE_ZOOM_LEVELS)
 	frame.column:Refresh()
 	frame.player:SetVertexColor(Style.Accent())
 end
