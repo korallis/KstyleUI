@@ -56,9 +56,21 @@ assert(holder:GetWidth() == 259 and holder:GetHeight() == 221, "the element fill
 local minimap = env.Minimap
 local face = Map(ns)
 assert(minimap:GetParent() == holder, "Blizzard's minimap moves into KstyleUI's frame")
-assert(LastArg(minimap, "SetAllPoints") == face.mapArea, "the minimap fills the frame's map square")
 local mw, mh = face.mapArea:GetSize()
 assert(mw == mh, "the minimap stays square")
+-- The engine draws the terrain at the size the Minimap was given with SetSize, from the frame's bottom left
+-- corner; anchors alone leave Blizzard's 198 render in a 217 square (ingame-18: a dark band on the right and the
+-- top). So the map takes an explicit size equal to the square, one CENTER point on it, and a zoom nudge that
+-- makes the engine draw again at the new size and lands on the zoom it had.
+local function Fits(what)
+	local size = W.LastCall(minimap, "SetSize")
+	local sw, sh = face.mapArea:GetSize()
+	assert(size and W.Near(size[1], sw) and W.Near(size[2], sh), what .. ": the minimap's own size is the map square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
+	local point, relative, relativePoint = minimap:GetPoint(1)
+	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the map square")
+end
+Fits("adopted")
+assert(env._zoom == 2 and env._zoomCalls >= 2, "the render refresh lands on the zoom the player had")
 -- The map fills the frame to just inside its bevel line: 2 units in on the mockup's 221 frame (the dark line, the
 -- light line and the fade row are three borders), where it used to sit a whole 4-unit gap in. The frame's chamfer
 -- is a share of its side, so the mask texture's fixed cut lines up with the frame's line at every size.
@@ -174,7 +186,9 @@ local bigInset = select(4, face.mapArea:GetPoint(1))
 assert(W.Near(bigInset, Format.MapInset(300), 0.5) and mw == mh and W.Near(mw, 300 - 2 * bigInset), "a resized element resizes the square map inside its inset, snapped to a pixel: " .. tostring(mw) .. " in " .. tostring(bigInset))
 assert(W.Near(face.chrome:Chamfer(), Format.FrameChamfer(300), 0.01) and face.chrome:Chamfer() > 12, "the frame's chamfer grows with the frame, so the mask's cut still meets the line")
 assert(W.Near(Format.MASK_SHARE * mw, face.chrome:Chamfer() - 2 * bigInset, 1), "the mask's cut on the map meets the frame's cut at the map's inset within a pixel")
+Fits("resized")
 M.Resize(holder, 168, 166)
+Fits("shrunk")
 
 -- Wheel zoom ----------------------------------------------------------------------------------------
 

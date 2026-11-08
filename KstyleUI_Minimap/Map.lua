@@ -285,12 +285,15 @@ local function CollectButtons()
 	end
 end
 
+local Fit
+
 function Map.Refresh()
 	local face = Map.face
 	if not (running and face) then
 		return
 	end
 	face:Refresh()
+	Fit()
 	Map.drawer:Sync(running)
 	Map.column:Refresh()
 	SyncQueue()
@@ -306,6 +309,7 @@ end
 local function Relayout()
 	if running and Map.face then
 		Map.face:Layout()
+		Fit()
 		if Map.column then
 			Map.column:Layout()
 		end
@@ -382,6 +386,49 @@ local function QueueOnce(what, fn)
 	end)
 end
 
+local function Plain(value)
+	return type(value) == "number" and not Widgets.IsSecret(value)
+end
+
+local function Redraw(minimap)
+	local getZoom, setZoom, getLevels = minimap.GetZoom, minimap.SetZoom, minimap.GetZoomLevels
+	if type(getZoom) ~= "function" or type(setZoom) ~= "function" or type(getLevels) ~= "function" then
+		return
+	end
+	local zoom, levels = getZoom(minimap), getLevels(minimap)
+	if not (Plain(zoom) and Plain(levels)) or levels < 2 then
+		return
+	end
+	setZoom(minimap, zoom < levels - 1 and zoom + 1 or zoom - 1)
+	setZoom(minimap, zoom)
+end
+
+local function FitLater()
+	QueueOnce("fit", Fit)
+end
+
+function Fit()
+	local minimap, face = Minimap, Map.face
+	if not (running and minimap and face and minimap:GetParent() == Map.holder) then
+		return
+	end
+	if not Widgets.MayMove(minimap) then
+		FitLater()
+		return
+	end
+	local width, height = face.mapArea:GetSize()
+	if not (Plain(width) and Plain(height)) or width <= 0 or height <= 0 then
+		return
+	end
+	minimap:ClearAllPoints()
+	minimap:SetPoint("CENTER", face.mapArea, "CENTER")
+	minimap:SetSize(width, height)
+	if Map.fitWidth ~= width or Map.fitHeight ~= height then
+		Map.fitWidth, Map.fitHeight = width, height
+		Redraw(minimap)
+	end
+end
+
 local function OnEditModeExit()
 	if EventRegistry and EventRegistry.UnregisterCallback then
 		EventRegistry:UnregisterCallback("EditMode.Exit", Map)
@@ -423,10 +470,9 @@ function Adopt()
 	Remember(minimap)
 	local holder = Map.holder
 	minimap:SetParent(holder)
-	minimap:ClearAllPoints()
-	minimap:SetAllPoints(Map.face.mapArea)
 	minimap:SetFrameLevel(holder:GetFrameLevel() + Face.LEVEL_MAP)
 	ApplyMask()
+	Fit()
 	SetBlobRings(0)
 	Log("Minimap moved into KstyleUI's frame with the square mask")
 end
@@ -463,6 +509,7 @@ function Release()
 	if not (minimap and original) then
 		return
 	end
+	Map.fitWidth, Map.fitHeight = nil, nil
 	minimap:SetParent(original.parent)
 	minimap:ClearAllPoints()
 	for _, point in ipairs(original.points) do
