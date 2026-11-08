@@ -13,6 +13,7 @@ ns.Auras = Auras
 local GROUP = "debuffs"
 local TEMPLATE = "CustomAuraContainerTemplate"
 local GAP = Tokens.Size("gapTiny")
+local NAME_GAP = Tokens.Size("gapSmall")
 local ICON_CROP = 0.07
 local ICON_INSET_LINES = 2
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
@@ -277,26 +278,49 @@ local function RestyleButtons(plate)
 	RestyleNow(plate)
 end
 
+local function Shows(plate)
+	return Settings.Get("debuffs.enabled") and not plate.nameOnly
+end
+
+local function RoomAbove(plate)
+	if Settings.Get("name.show") and not plate.nameOnly then
+		return GAP + Settings.Get("name.size") + NAME_GAP
+	end
+	return GAP
+end
+
+local function RoomBelow(plate)
+	local room = GAP
+	for _, component in ipairs(ns.Components) do
+		if component.Room then
+			room = room + component.Room(plate)
+		end
+	end
+	return room
+end
+
 local function Anchor(plate, frame, anchor)
-	local up = anchor:find("^BOTTOM") ~= nil
 	local left = anchor:find("LEFT$") ~= nil
 	local health = plate.health
 	frame:ClearAllPoints()
-	if up then
-		local room = GAP
-		if Settings.Get("name.show") and not plate.nameOnly then
-			room = Settings.Get("name.size") + GAP * 2
-		end
-		frame:SetPoint(anchor, health, left and "TOPLEFT" or "TOPRIGHT", 0, Widgets.Snap(plate, room))
+	if anchor:find("^BOTTOM") then
+		frame:SetPoint(anchor, health, left and "TOPLEFT" or "TOPRIGHT", 0, Widgets.Snap(plate, RoomAbove(plate)))
 	else
-		local room = GAP
-		for _, component in ipairs(ns.Components) do
-			if component.Room then
-				room = room + component.Room(plate)
-			end
-		end
-		frame:SetPoint(anchor, health, left and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, -Widgets.Snap(plate, room))
+		frame:SetPoint(anchor, health, left and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, -Widgets.Snap(plate, RoomBelow(plate)))
 	end
+end
+
+function Auras.Extent(plate)
+	local above, below = RoomAbove(plate), RoomBelow(plate)
+	if not Shows(plate) then
+		return above, below
+	end
+	local size, spacing, _, rows = Grid(plate)
+	local block = rows * size + (rows - 1) * spacing
+	if Settings.Get("debuffs.growthY") == "DOWN" then
+		return above, below + block
+	end
+	return above + block, below
 end
 
 local function LayoutContainer(plate)
@@ -318,10 +342,6 @@ local function LayoutContainer(plate)
 	container:SetAuraGroupFilterString(GROUP, Filter())
 	Anchor(plate, container, anchor)
 	RestyleButtons(plate)
-end
-
-local function Shows(plate)
-	return Settings.Get("debuffs.enabled") and not plate.nameOnly
 end
 
 local function LayoutSamples(plate)

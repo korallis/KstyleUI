@@ -34,8 +34,8 @@ Settings.defaults = {
 		showIcon = true, showName = true, showTime = true, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
-		enabled = true, includePlateOnly = true, size = 18, spacing = 2, columns = 5, rows = 1,
-		growthX = "RIGHT", growthY = "UP", showTime = true, showCount = true, textSize = 8, outline = "OUTLINE",
+		enabled = true, includePlateOnly = true, size = 26, spacing = 2, columns = 5, rows = 1,
+		growthX = "RIGHT", growthY = "UP", showTime = true, showCount = true, textSize = 12, outline = "OUTLINE",
 	},
 	threat = {
 		display = "glow", role = "auto", groupOnly = true,

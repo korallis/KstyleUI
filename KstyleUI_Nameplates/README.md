@@ -87,7 +87,7 @@ The debuffs are a component too. Each plate gets one `CustomAuraContainerTemplat
 | --- | --- |
 | Which auras | The filter string `HARMFUL\|PLAYER\|INCLUDE_NAME_PLATE_ONLY`: the player's harmful auras on the unit, including the ones the game marks for nameplates only. A setting drops `INCLUDE_NAME_PLATE_ONLY`. The engine finds, sorts and updates them; Lua never reads aura data, so `C_Secrets.ShouldAurasBeSecret()` never stops it. |
 | How many | `maxFrameCount` is icons per row times rows. |
-| Layout | The engine's flow layout: horizontal lines `columns` icons long (`SetFlowLayoutMaximumLineSize`), growing right or left and up or down from the matching corner. The container hangs from that corner above the name, or under the cast bar when rows grow down. |
+| Layout | The engine's flow layout: horizontal lines `columns` icons long (`SetFlowLayoutMaximumLineSize`), growing right or left and up or down from the matching corner. The container hangs from that corner 4 units (`gapSmall`) above the name, or under the cast bar when rows grow down. |
 | Unit | `SetUnit(unit)` when the plate attaches, `SetUnit("none")` when it detaches or debuffs are off. |
 | Edit Mode | `SetEditModePreviewEnabled(false)`, so Blizzard's Edit Mode never fills plates with sample auras. |
 | Buttons | `initializeFrame` builds each aura button before the engine restricts it: the kit's icon chrome (`Widgets.IconChrome`: the near-black button body and the accent rim, on a skin frame inside the button), the icon two border lines in and cut to `iconMask`, a cooldown swipe with the same mask, the stack count at the top right and the time left at the bottom, each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
@@ -96,7 +96,9 @@ Aura buttons deny tainted access while auras are secret. A setting that changes 
 
 Icon size and spacing snap to whole physical pixels (`Widgets.Snap` on the plate) before they go to the group layout, the flow line size and the buttons.
 
-The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine.
+The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine. `Auras.Extent(plate)` gives how far a plate reaches above and below its health bar, debuffs included, and the preview spaces its sample plates by the tallest so no plate's debuffs run into the next.
+
+The defaults are sized for a pull: 26-unit icons, five to a row (138 units, inside the 175-unit plate), with the time left and the stacks at 12 units, outlined. The owner judged the earlier 18-unit icons and 8-unit text too small to read in game on 2026-11-08. A plate shrunk for distance (`cvars.minScale` 0.8) still draws the icons at about 21 units. A size saved in a profile keeps its value.
 
 ### Styles
 
@@ -144,9 +146,9 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `cast.colorSource`, `cast.color`, `cast.shieldColor` | accent, `accentDefault`, `textDisabled` | dropdown, colour, colour |
 | `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 10, thin | toggle, toggle, toggle, slider, dropdown |
 | `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
-| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 18, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
+| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 26, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
 | `debuffs.growthX`, `debuffs.growthY` | right, up | dropdown, dropdown |
-| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 8, thin | toggle, toggle, slider, dropdown |
+| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 12, thin | toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |
 | `threat.safe`, `threat.warning`, `threat.danger` | `friendly`, `neutral`, `hostile` | colour |
 | `target.highlight`, `target.colorSource`, `target.color`, `target.dimOthers` | on, accent, `accentDefault`, 1 | toggle, dropdown, colour, slider 0.2 to 1 |
