@@ -593,7 +593,7 @@ function Widgets.Chrome(owner, opts)
 	if opts.bezel then
 		c.plate = Widgets.Line(owner, "BORDER", LINE_SUBLEVELS.plate)
 	end
-	if opts.chamfer == nil and type(owner.HookScript) == "function" then
+	if type(owner.HookScript) == "function" then
 		owner:HookScript("OnSizeChanged", function()
 			c:OnSizeChanged()
 		end)

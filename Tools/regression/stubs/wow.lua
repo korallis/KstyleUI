@@ -134,8 +134,8 @@ end
 function Object:SetSize(w, h) resize(self, w, h) end
 function Object:SetWidth(w) resize(self, w, self._height) end
 function Object:SetHeight(h) resize(self, self._width, h) end
--- A frame with no size of its own that hangs from both corners of one target (SetAllPoints, or a TOPLEFT and a
--- BOTTOMRIGHT point on the same frame) is as big as that target plus its offsets, as in the game.
+-- A frame that hangs from both corners of one target (SetAllPoints, or a TOPLEFT and a BOTTOMRIGHT point on the
+-- same frame) is as big as that target plus its offsets, whatever size it was given, as in the game.
 local function spanned(self, axis)
 	local a, b
 	for _, p in ipairs(self._points) do
@@ -157,8 +157,8 @@ local function spanned(self, axis)
 	end
 	return size + (a[5] or 0) - (b[5] or 0)
 end
-function Object:GetWidth() return self._width or spanned(self, "w") end
-function Object:GetHeight() return self._height or spanned(self, "h") end
+function Object:GetWidth() return spanned(self, "w") or self._width end
+function Object:GetHeight() return spanned(self, "h") or self._height end
 function Object:GetSize() return self:GetWidth(), self:GetHeight() end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
