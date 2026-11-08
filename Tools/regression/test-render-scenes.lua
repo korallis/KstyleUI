@@ -197,6 +197,12 @@ for _, class in ipairs(Classes.ORDER) do
 	for file in pairs(auraFiles) do
 		auraIcons[file:match("([^/]+)%.png$") or file] = true
 	end
+	-- Without a local file for the ID (CI has no Blizzard icon folder) the texture keeps its file ID.
+	for _, item in ipairs(auras.items) do
+		if item.kind == "texture" and item.fileID then
+			auraIcons[tostring(item.fileID)] = true
+		end
+	end
 	for _, buff in ipairs(spec.buffRow) do
 		assert(auraIcons[tostring(buff[2])], tag .. ": the buff row shows " .. buff[1])
 		if buff[3] ~= "" then
