@@ -66,7 +66,7 @@ do
 	eq(item(ns, "durability").label:GetText(), "Durability:", "durability label")
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
-	assert(sameText(item(ns, "fps").value, K.Tokens.Color("friendly")), "a high frame rate reads friendly")
+	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a high frame rate reads in the accent, the class colour the mockup's green stands for")
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("textEmphasis")), "labels read white, as the mockup's FPS: and Durability: do")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
 	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, text at 13 (the five items then span the mockup's 444
@@ -143,6 +143,24 @@ do
 	eq(item(ns, "fps").label:IsShown(), false, "no labels")
 	Options.Write("DataBars", "strip.labels", "full")
 
+	-- The default, "highlight": the frame rate reads in the accent (the mockup's one highlighted value, "144" in the
+	-- class colour), warnings keep their threshold colours, and every other value is white.
+	assert(ns.defaults.strip.valueColor == "highlight", "the strip highlights by default")
+	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a good frame rate reads in the accent")
+	assert(sameText(item(ns, "latency").value, K.Tokens.Color("textEmphasis")) and sameText(item(ns, "durability").value, K.Tokens.Color("textEmphasis")), "good latency and durability stay white, as the mockup draws them")
+	assert(sameText(item(ns, "gold").value, K.Tokens.Color("textEmphasis")), "gold is white")
+	env._game.latencyHome = 400
+	env.RunTimers()
+	ns.Strip.Refresh()
+	assert(sameText(item(ns, "latency").value, K.Tokens.Color("hostile")), "poor latency keeps its warning colour")
+	env._game.fps = 20
+	ns.Strip.Refresh()
+	assert(sameText(item(ns, "fps").value, K.Tokens.Color("hostile")), "a poor frame rate warns rather than highlights")
+	env._game.fps = 144.2
+	env._game.latencyHome = 34
+	ns.Strip.Refresh()
+	Options.Write("DataBars", "strip.valueColor", "threshold")
+	assert(sameText(item(ns, "latency").value, K.Tokens.Color("friendly")), "the threshold mode colours every graded value")
 	Options.Write("DataBars", "strip.valueColor", "plain")
 	assert(sameText(item(ns, "fps").value, K.Tokens.Color("textEmphasis")), "plain values")
 	Options.Write("DataBars", "accentColor", { r = 0, g = 1, b = 0 })

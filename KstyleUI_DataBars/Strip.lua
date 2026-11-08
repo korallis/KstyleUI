@@ -43,6 +43,7 @@ local TITLES = {
 }
 
 local GRADE_TOKEN = { good = "friendly", ok = "neutral", bad = "hostile" }
+local HIGHLIGHTED = { fps = true }
 
 local DURABILITY_SLOTS = {
 	{ 1, L["Head"] }, { 3, L["Shoulder"] }, { 5, L["Chest"] }, { 6, L["Waist"] }, { 7, L["Legs"] }, { 8, L["Feet"] },
@@ -176,6 +177,10 @@ local function ValueColor(item, s, grade)
 		item.value:SetTextColor(ns.Accent())
 	elseif mode == "threshold" and grade then
 		Widgets.TextColor(item.value, GRADE_TOKEN[grade])
+	elseif mode == "highlight" and grade and grade ~= "good" then
+		Widgets.TextColor(item.value, GRADE_TOKEN[grade])
+	elseif mode == "highlight" and grade == "good" and HIGHLIGHTED[item.id] then
+		item.value:SetTextColor(ns.Accent())
 	else
 		Widgets.TextColor(item.value, "textEmphasis")
 	end

@@ -96,7 +96,7 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 | --- | --- | --- |
 | `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. |
 | `strip.labels` | `full` | `full` (FPS:, Durability:), `short` (FPS:, MS:, DUR:, as in the dungeon mockup) or `none` |
-| `strip.valueColor` | `threshold` | `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
+| `strip.valueColor` | `highlight` | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
 | `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |
 | `strip.backdrop`, `strip.separators` | `true`, `true` | The glass panel and the lines between items |
 | `strip.spacing` | 21 | 0 to 32 units each side of a separator |
