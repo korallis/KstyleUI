@@ -81,7 +81,7 @@ end
 
 -- Add(env, frame, spec) records a frame to crop. spec: name, title, caption, grade, reference, match, and pad
 -- (screen units around the frame, default 14). The rect is read when Finish runs, after the scene settles,
--- or from spec.rect ({ x, y, w, h } in screen units) for a frame the scene lays out itself.
+-- or from spec.rect ({ x = , y = , w = , h = } in screen units, as Gallery.Union returns) for a frame the scene lays out itself.
 function Frames:Add(env, frame, spec)
 	check(spec)
 	assert(not self.names[spec.name], "two frames named " .. spec.name)
