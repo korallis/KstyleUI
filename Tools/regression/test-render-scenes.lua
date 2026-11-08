@@ -53,9 +53,25 @@ end
 assert(swipes >= 1, "a cooldown swipe is drawn")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke", "tracker" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
+end
+
+-- The tracker scene builds Blizzard's tracker the way Forever does and shows the skin's one caption header,
+-- its numbered discs and the quest titles, with no Blizzard header text left visible.
+do
+	local tracker = check("tracker", dofile("Tools/render/scenes/tracker.lua")())
+	local shown = {}
+	for _, item in ipairs(tracker.items) do
+		if item.kind == "text" then
+			shown[(item.text:gsub("\226\128\137", ""))] = true
+		end
+	end
+	for _, want in ipairs({ "QUESTS", "1", "2", "Riverglade Crocolisks", "The Lost Patrol", "RIVERGLADES" }) do
+		assert(shown[want], "the tracker scene shows " .. want)
+	end
+	assert(not shown["All Objectives"] and not shown["Quests"], "Blizzard's two header shown are hushed")
 end
 check("components", Components.Build())
 
