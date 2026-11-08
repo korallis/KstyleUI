@@ -180,6 +180,21 @@ timed:Clear()
 built = Scene.Build(env, { time = 10 })
 assert(find(built, countdown) == nil, "a cleared cooldown leaves the font string empty")
 
+-- A font string with no size of its own is as tall as its lines: a title that keeps a blank second line for a
+-- caption ("NAME\n ") is two lines tall, so a caption anchored to its bottom sits under the name.
+local twoLines = f:CreateFontString(nil, "ARTWORK")
+twoLines:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
+twoLines:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+twoLines:SetText("NAME\n ")
+local oneLine = f:CreateFontString(nil, "ARTWORK")
+oneLine:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
+oneLine:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+oneLine:SetText("NAME")
+scene = Scene.Build(env)
+near(find(scene, twoLines).rect[4], 2 * find(scene, oneLine).rect[4], "a two-line text is twice as tall as a one-line text")
+local h = select(4, Scene.Rect(env, twoLines))
+near(h, 2 * select(4, Scene.Rect(env, oneLine)), "Rect sees the two lines too")
+
 -- JSON: the encoder writes the scene without the object references and round-trips a number.
 local json = Scene.ToJSON(scene)
 assert(json:find('"items"', 1, true) and not json:find("table:", 1, true), "JSON has items and no table addresses")

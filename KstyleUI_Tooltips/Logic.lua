@@ -13,6 +13,9 @@ local FLAGS = { OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local STAT = "^%+%d"
 local FOOTER_GLOBALS = { "DURABILITY_TEMPLATE", "ITEM_MIN_LEVEL" }
 local FOOTER_DEFAULTS = { "Durability %d / %d", "Requires Level %d" }
+local THIN_SPACE = "\226\128\137"
+local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
+local RESERVED = "\n "
 
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
@@ -123,12 +126,23 @@ function Logic.Upper(text)
 	return text:find("[\128-\255]") and text or text:upper()
 end
 
-function Logic.TitleText(text, reserve)
+function Logic.Tracked(text)
+	local plain = text:gsub(THIN_SPACE, "")
+	local spaced = plain:gsub(CODEPOINT, "%1" .. THIN_SPACE)
+	return spaced:sub(1, -#THIN_SPACE - 1)
+end
+
+function Logic.TitleText(text, reserve, track)
 	if IsSecret(text) or type(text) ~= "string" or text == "" or text:find("|", 1, true) then
 		return nil
 	end
-	local upper = Logic.Upper((text:gsub("\n $", "")))
-	return reserve and upper .. "\n " or upper
+	local plain = text:gsub(RESERVED .. "$", "")
+	plain = plain:gsub(THIN_SPACE, "")
+	local upper = Logic.Upper(plain)
+	if track then
+		upper = Logic.Tracked(upper)
+	end
+	return reserve and upper .. RESERVED or upper
 end
 
 function Logic.IDText(id)

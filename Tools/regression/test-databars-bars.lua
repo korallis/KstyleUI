@@ -104,8 +104,8 @@ do
 	for _, line in ipairs(tip.used) do
 		lines[#lines + 1] = line.left:GetText()
 	end
-	local all = table.concat(lines, "|")
-	assert(all:find("Experience", 1, true), "the tooltip names the bar: " .. all)
+	local all = (table.concat(lines, "|"):gsub("\226\128\137", ""))
+	assert(all:find("EXPERIENCE", 1, true), "the tooltip names the bar in the kit's capitals: " .. all)
 	assert(all:find("Level 38", 1, true), "the tooltip gives the level: " .. all)
 	assert(all:find("Rested", 1, true), "the tooltip gives rested XP: " .. all)
 	W.Leave(xp.holder)

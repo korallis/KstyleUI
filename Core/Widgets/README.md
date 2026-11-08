@@ -428,16 +428,17 @@ Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`,
 | --- | --- |
 | `SetOwner(owner, anchor, x, y)` | Clears the lines and anchors to `owner`: `"ANCHOR_RIGHT"` (default), `"ANCHOR_LEFT"`, `"ANCHOR_TOP"` or `"ANCHOR_BOTTOM"`, 6 units away, plus `x` and `y`. |
 | `IsOwned(frame) -> boolean` | |
-| `SetIcon(texture)` | A chamfered 34-unit icon at the top left; the lines move right of it. |
-| `AddTitle(text, color)` | Heading text, `textEmphasis` by default |
-| `AddCaption(text, color)` | Upper-case caption text, `text` by default |
+| `SetIcon(texture, color)` | The design's item icon: a 50-unit chamfered raised tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask` through `Icons.Apply`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
+| `AddTitle(text, color)` | The design's title: `body` text in capitals, tracked with a thin space between the letters, `textEmphasis` by default. |
+| `AddCaption(text, color)` | Upper-case tracked caption text, `text` by default |
 | `AddLine(text, color, wrap)` | Body text that wraps unless `wrap` is `false` |
 | `AddDoubleLine(left, right, lr, lg, lb, rr, rg, rb)` | Body text left, `textEmphasis` text right |
-| `AddDivider()` | An `edgeInner` divider |
+| `AddRule()` | The design's 56-unit rule under an item's base lines: one border thick, from the accent to transparent, 4 units of air above and below |
+| `AddDivider()` | The `divider` line that fades at both ends, `edgeFaint`, from the panel's padding on the left to its padding on the right, 6.5 units of air above and below |
 | `ClearLines()` | Returns every line to a pool, so lines are made once. |
 | `Show()`, `Hide()` | Lay out, anchor and fade in, or fade out, hide and drop the owner, over `hover`. |
 
-`color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide.
+`color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide. Lines start 9.5 units below the top and are pitched half a unit apart (the design's 13.5 units for 11-unit text), with 2 more units after a title and 4 after a caption; the string height falls back to 1.2 times the font size where the game gives none.
 
 `AttachTooltip(frame, content)` shows the tooltip on `OnEnter` and hides it on `OnLeave`. `content` is a string, or `function(tooltip, frame)` that adds the lines. `Button` and `IconButton` call it for `opts.tooltip`.
 

@@ -1,6 +1,13 @@
 -- test-widgets-glow-tooltip.lua: proc and selection glows, and the glass tooltip for KstyleUI's own controls.
 local W = dofile("Tools/regression/widget_env.lua")
 
+local THIN = "\226\128\137"
+
+-- Tracked(text): the text with a thin space between its letters, as the kit tracks tooltip titles and captions.
+local function Tracked(text)
+	return (text:gsub("([\1-\127\194-\244][\128-\191]*)", "%1" .. THIN):sub(1, -#THIN - 1))
+end
+
 -- A proc glow sits behind its frame, pulses on an AnimationGroup and fades away when stopped.
 do
 	local env, K = W.New()
@@ -89,30 +96,39 @@ do
 	assert(glow.holder:IsShown() == false)
 end
 
--- The tooltip: one shared glass panel with an icon, a quality-coloured title, a caption, lines and a divider.
+-- The tooltip: one shared glass panel with a rarity-lit icon tile, a tracked upper-case title in body size,
+-- a tracked caption, lines pitched as the design, the 56-unit accent rule and the fading divider.
 do
 	local env, K = W.New()
 	local Widgets, Tokens = K.Widgets, K.Tokens
+	env.CreateColor = function(r, g, b, a)
+		return { r = r, g = g, b = b, a = a }
+	end
 	local tip = Widgets.Tooltip()
 	assert(tip == Widgets.Tooltip(), "one shared tooltip")
 	assert(tip:GetFrameStrata() == "TOOLTIP" and tip.chrome and tip.chrome.shadow[1]:IsShown(), "a glass panel in the tooltip strata")
+	assert(tip.chrome:Chamfer() == Tokens.Size("chamferPanel"), "with the kit's panel chamfer")
 	local owner = env.CreateFrame("Button", nil, K.Scale.Root())
 	tip:SetOwner(owner, "ANCHOR_RIGHT")
 	assert(tip:IsOwned(owner))
-	tip:SetIcon(135489)
+	tip:SetIcon(135489, "friendly")
 	tip:AddTitle("Ranger's Long Bow", "friendly")
 	tip:AddCaption("Uncommon")
 	tip:AddLine("Level 38")
 	tip:AddDoubleLine("Physical Damage", "142 - 198")
-	tip:AddDivider()
+	tip:AddRule()
 	tip:AddLine("+24 Agility", 0.2, 0.9, 0.3)
+	tip:AddDivider()
+	tip:AddLine("Durability 96 / 100")
 	tip:Show()
 	assert(tip:IsShown(), "Show shows it")
 	local texts = {}
 	for _, line in ipairs(tip.used) do
 		texts[#texts + 1] = line.left:GetText()
 	end
-	assert(texts[1] == "Ranger's Long Bow" and texts[2] == "UNCOMMON" and texts[3] == "Level 38", "lines in order, the caption upper case")
+	assert(texts[1] == Tracked("RANGER'S LONG BOW") and texts[2] == Tracked("UNCOMMON") and texts[3] == "Level 38", "lines in order, the title and caption tracked capitals")
+	assert(select(2, tip.used[1].left:GetFont()) == select(2, Tokens.Font("body")), "the title is body size")
+	assert(select(2, tip.used[2].left:GetFont()) == select(2, Tokens.Font("caption")), "the caption is caption size")
 	assert(tip.used[4].right:GetText() == "142 - 198" and tip.used[4].right:IsShown(), "a double line")
 	assert(W.SameRGB({ GetVertexColor = function()
 		return tip.used[1].left:GetTextColor()
@@ -120,15 +136,45 @@ do
 	assert(W.SameRGB({ GetVertexColor = function()
 		return tip.used[6].left:GetTextColor()
 	end }, 0.2, 0.9, 0.3), "a line takes r, g and b")
-	assert(tip.used[5].divider and tip.used[5].divider:IsShown(), "a divider line")
-	assert(W.SameColor(tip.used[5].divider, K.Tokens.Color("edgeFaint")), "as faint as the kit's divider, below the bevel line")
-	assert(W.LastCall(tip.icon, "SetTexture")[1] == 135489 and tip.icon:IsShown(), "the icon")
+	local rule = tip.used[5].divider
+	assert(rule and rule:IsShown() and W.Near(rule:GetWidth(), Widgets.Snap(tip, 56)), "the rule runs 56 units")
+	local ar, ag, ab = Tokens.Color("accent")
+	local stops = W.LastCall(rule, "SetGradient")
+	assert(stops and stops[1] == "HORIZONTAL" and W.Near(stops[2].r, ar) and W.Near(stops[2].g, ag) and W.Near(stops[2].b, ab) and stops[2].a == 1 and stops[3].a == 0, "from the accent to transparent")
+	local divider = tip.used[7].divider
+	assert(divider and divider:IsShown(), "a divider line")
+	assert(W.SameColor(divider, K.Tokens.Color("edgeFaint")), "as faint as the kit's divider, below the bevel line")
+	local pad = Widgets.Snap(tip, Tokens.Size("gapLarge"))
+	assert(W.Near(divider:GetWidth(), tip:GetWidth() - 2 * pad), "the divider spans the panel inside its padding, fading at both ends")
+	local icon = tip.icon
+	assert(W.LastCall(icon.texture, "SetTexture")[1] == 135489 and icon:IsShown(), "the icon")
+	assert(icon.chrome and icon.chrome.shape.fill == "chamferTile", "on the kit's chamfered tile")
+	assert(W.Near(icon:GetWidth(), Widgets.Snap(tip, 50)) and W.Near(icon:GetHeight(), icon:GetWidth()), "50 units square")
+	local ip = icon._points[1]
+	assert(ip[1] == "TOPLEFT" and ip[2] == tip and W.Near(ip[4], Widgets.Snap(tip, 9.5)) and W.Near(ip[5], -Widgets.Snap(tip, 9.5)), "9.5 units inside the top left corner")
+	local fr, fg, fb = Tokens.Color("friendly")
+	local e = icon.chrome.edge
+	assert(W.Near(e[1], fr) and W.Near(e[2], fg) and W.Near(e[3], fb) and e[4] == 1, "its hairline takes the icon's colour")
+	assert(icon.glow.holder:IsShown(), "and glows in it")
+	local tp = tip.used[1].left._points[1]
+	assert(W.Near(tp[4], Widgets.Snap(tip, 9.5 + 50 + 11)), "the text column starts 11 units right of the icon")
+	local y3, y4 = tip.used[3].left._points[1][5], tip.used[4].left._points[1][5]
+	assert(W.Near(y3 - y4, Widgets.TextHeight(tip.used[3].left, 11 * 1.2) + 0.5), "body lines are pitched half a unit apart, the design's 13.5 units")
 	assert(tip:GetHeight() > 0 and tip:GetWidth() >= Widgets.TOOLTIP_MIN_WIDTH, "the tooltip has a size")
 	local p = tip._points[1]
 	assert(p[1] == "LEFT" and p[2] == owner and p[3] == "RIGHT", "ANCHOR_RIGHT puts it right of the owner")
 	local made = #W.Regions(tip, "FontString")
 	tip:ClearLines()
 	assert(#tip.used == 0 and tip.icon:IsShown() == false, "ClearLines empties it")
+	tip:SetIcon(135489)
+	e = icon.chrome.edge
+	local er, eg, eb = Tokens.Color("edgeInner")
+	assert(W.Near(e[1], er) and W.Near(e[2], eg) and W.Near(e[3], eb) and not icon.glow.holder:IsShown(), "an icon with no colour keeps the glass hairline and no glow")
+	tip:ClearLines()
+	local link = "|cff1eff00|Hitem:4500::::::::38:::::|h[Traveler's Backpack]|h|r"
+	tip:AddTitle(link)
+	assert(tip.used[1].left:GetText() == link, "a title with escape codes keeps Blizzard's text: no capitals and no thin spaces inside the codes")
+	tip:ClearLines()
 	tip:AddLine("One")
 	tip:Show()
 	assert(#W.Regions(tip, "FontString") == made, "lines are pooled, not made again")
@@ -178,7 +224,7 @@ do
 		t:AddLine("By a function")
 	end)
 	W.Enter(other)
-	assert(tip.used[1].left:GetText() == "Built" and tip.used[2].left:GetText() == "By a function")
+	assert(tip.used[1].left:GetText() == Tracked("BUILT") and tip.used[2].left:GetText() == "By a function", "a builder adds a tracked title and a line")
 	K.Options.Write("Widgets", "tooltipScale", 1.25)
 	assert(W.LastCall(tip, "SetScale")[1] == 1.25, "the size setting scales the tooltip")
 	local line = tip.chrome.outer[5]:GetHeight() * 1.25

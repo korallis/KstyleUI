@@ -974,7 +974,8 @@ function Scene.Build(env, opts)
 						region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
 					end
 					if not hasH and not (ys[0] and ys[1]) then
-						region._naturalH = size * LINE_HEIGHT_EM
+						local _, breaks = text:gsub("\n", "")
+						region._naturalH = size * LINE_HEIGHT_EM * (breaks + 1)
 						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
 					end
 				end
@@ -1008,6 +1009,13 @@ function Scene.Build(env, opts)
 		log = log,
 		skipped = skipped,
 	}
+end
+
+-- Font(env, region) -> path, size, flags for a font string, from its own font, its font object or its template,
+-- as the page draws it. Scenes use it to pitch stand-in lines by the font the addon set.
+function Scene.Font(env, region)
+	local path, size, flags = fontOf(env, region, function() end)
+	return path, size, flags
 end
 
 -- Rect(env, object) -> x, y, width, height in screen units for one frame or region, or nil when its anchors

@@ -4,6 +4,7 @@ rawset(_G, "RENDER_SCENE_LIB", true)
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Components = dofile("Tools/render/scenes/components.lua")
+local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 
 local function check(name, scene)
 	assert(type(scene) == "table" and type(scene.items) == "table", name .. ": no scene")
@@ -96,12 +97,33 @@ assert(math.abs(semibold - 1914.4) < 10, "the kit font's advances give " .. semi
 assert(math.abs(Scene.TextWidth(sample, 100, "Fonts\\FRIZQT__.TTF") - semibold) < 0.01, "Friz Quadrata measures as the semibold it draws as")
 assert(math.abs(Scene.TextWidth(sample, 100) - semibold) > 20, "an unknown face falls back to the class averages")
 
+-- The tooltip's title keeps a blank second line for the rarity caption, so the caption sits under the name
+-- and the next line under both, as the game lays GameTooltip's lines out.
+local function textItem(scene, prefix)
+	for _, item in ipairs(scene.items) do
+		if item.kind == "text" and (item.text:gsub("\226\128\137", "")):sub(1, #prefix) == prefix then
+			return item
+		end
+	end
+	error("no text " .. prefix)
+end
+for _, triple in ipairs({ { scenes[#scenes], "VANQUISHER", "Item Level" }, { Tooltip.Build(), "RANGER", "Level 38" } }) do
+	local scene, name = triple[1], triple[2]
+	local title, caption, second = textItem(scene, name), textItem(scene, "UNCOMMON"), textItem(scene, triple[3])
+	local line = title.font.size * 1.2
+	assert(math.abs(second.rect[2] - (title.rect[2] + title.rect[4] + 0.5)) < 0.01, name .. ": the next line follows the title at the skin's half-unit spacing")
+	assert(title.rect[4] >= 2 * line - 0.01, name .. ": the title is two lines tall")
+	assert(caption.rect[2] >= title.rect[2] + line - 0.01, name .. ": the caption sits on the title's second line")
+	assert(second.rect[2] >= title.rect[2] + title.rect[4] - 0.01, name .. ": the next line sits under the title's second line")
+end
+
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke", "buttons_mac", "buttons_toned" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 check("components", Components.Build())
+check("tooltip", Tooltip.Build())
 
 -- The button scene: the six states twice, bag slots, aura tiles, and the micro menu and bag bar; a toned
 -- rim changes only the secondary buttons' hairlines.

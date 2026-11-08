@@ -251,15 +251,17 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The kit's type: the title is body-size upper case, the rarity a caption, lines pitched 2.5 units apart --
+-- The kit's type: the title is body-size upper case, the rarity a caption, lines pitched half a unit apart
+-- (the design's 13.5-unit pitch for 11-unit lines) --
 
 do
-	local env, _, ns = Enabled()
+	local env, K, ns = Enabled()
 	assert(ns.Style.KIT_ROLES.title == "body" and ns.Style.KIT_ROLES.small == "caption", "the title takes the body role, the rarity the caption role")
 	for name in pairs(T.TOOLTIPS) do
-		assert(env[name]._lineSpacing == 2.5, name .. ": lines sit 2.5 units apart")
+		assert(env[name]._lineSpacing == 0.5, name .. ": lines sit half a unit apart")
 	end
-	assert(ns.Settings.Get("iconSize") == 46, "the icon is 46 units inside its two-border tile: 50 outside")
+	assert(ns.Settings.Get("iconSize") == 50, "the icon tile is the design's 50 units")
+	assert(ns.Style.Glass(env.GameTooltip).chrome:Chamfer() == K.Tokens.Size("chamferPanel"), "the glass keeps the kit's panel chamfer")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -290,8 +292,13 @@ do
 	assert(Near(glass.divider:GetWidth(), K.Widgets.Snap(glass, 56)), "and runs 56 units")
 	assert(W.SameColor(glass.divider, K.Theme.Accent()), "the divider follows the class colour")
 	assert(glass.footer:IsShown(), "a durability line gets the faint divider before it")
-	local fpoint, frelative, frelativePoint = glass.footer:GetPoint(1)
+	local fpoint, frelative, frelativePoint, fx = glass.footer:GetPoint(1)
 	assert(fpoint == "BOTTOMLEFT" and frelative == tip:GetLeftLine(6) and frelativePoint == "TOPLEFT", "the footer divider sits above the durability line")
+	local padLeft = select(3, tip:GetPadding())
+	assert(Near(10 + padLeft + fx, K.Widgets.Snap(glass, 13)), "it starts 13 units inside the panel's left edge, whatever the icon's column")
+	local rpoint, rrelative, rrelativePoint, rx = glass.footer:GetPoint(2)
+	assert(rpoint == "RIGHT" and rrelative == glass and rrelativePoint == "RIGHT" and Near(rx, -K.Widgets.Snap(glass, 13)), "and ends 13 units short of the right edge, the design's fading divider")
+	assert(W.LastCall(glass.footer, "SetTexture")[1] == K.Tokens.Texture("divider"), "the kit's divider texture, which fades at both ends")
 	assert(W.SameColor(glass.footer, K.Tokens.Color("edgeFaint")), "in the faint edge colour")
 	assert(Near(glass.footer:GetHeight(), K.Widgets.Border(glass)), "one border thick")
 	local r, g, b = tip:GetLeftLine(3):GetTextColor()
