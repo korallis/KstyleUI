@@ -49,7 +49,7 @@ python3 Tools/render/compare.py \
   --out Tools/render/out/cmp_player.png --label-b mockup
 ```
 
-A crop is `x,y,width,height` in that image's pixels, or in screen units with a `u` suffix. The reference crop is rescaled to the render's density, so one unit is the same number of pixels on both sides. `--scale` magnifies both halves. Crop each image with its own coordinates: the mockup is 1909 units wide and the owner's screen 1671, so right-anchored elements sit at different x. The component sheet rendered at 2.0 px per unit puts each section where the design file draws it, so the same pixel box works on both (`--crop 1560,260,990,240 --ref-crop 1560,260,990,240`), except the target frame, which sits further right because the addon's frames are 296 units wide and the design's 234. `compare.py` needs Pillow; it runs itself again with `~/.local/share/wow-dev/venv/bin/python` when the system Python has none.
+A crop is `x,y,width,height` in that image's pixels, or in screen units with a `u` suffix. The reference crop is rescaled to the render's density, so one unit is the same number of pixels on both sides. `--scale` magnifies both halves. Crop each image with its own coordinates: the mockup is 1909 units wide and the owner's screen 1671, so right-anchored elements sit at different x. The component sheet rendered at 2.0 px per unit puts each section where the design file draws it, so the same pixel box works on both (`--crop 1560,260,990,240 --ref-crop 1560,260,990,240`), except the target frame, which sits at the sheet's right end past the button states because the addon's 280-unit frames do not both fit before the design's button section, and the minimap, which starts 6 units left of the design's map because its element carries the button column outside the map. `compare.py` needs Pillow; it runs itself again with `~/.local/share/wow-dev/venv/bin/python` when the system Python has none.
 
 ## Add a scene
 
@@ -70,7 +70,7 @@ end)
 - `Scene.Build(env, opts)` walks UIParent and every parentless frame. `opts.time` is the clock for timer bars and cooldown swipes; `opts.hover` is a set of frames whose HIGHLIGHT regions draw.
 - `Scene.Merge({ sceneA, sceneB })` composites modules drawn in separate environments; every environment must use the same screen options.
 - `Scene.Rect(env, frame)` gives one frame's resolved rect in screen units, for stand-ins the scene has to size itself.
-- `Hud.Module(name, opts)` in `hud.lua` builds one HUD module; `Hud.Build(opts)` merges them all. `opts.icons` picks the icon set. `components.lua` holds the sheet's section origins.
+- `Hud.Module(name, opts)` in `hud.lua` builds one HUD module; `Hud.Build(opts)` merges them all. `opts.icons` picks the icon set. `components.lua` holds the sheet's section origins. `_tracker.lua` holds the objective tracker stand-in both `hud.lua` and `tracker.lua` build, laid out as Blizzard_ObjectiveTracker lays the real one.
 - `Common.StandIn(name)` gives a stand-in's path when `standins.py` has made it; `Common.IconSet(opts)`, `Common.IconDirs(set)`, `Common.IconsSection(set)` and `Common.InstallAddOns(env)` turn the icon service on in an environment.
 - `Tools/regression/test-render-scenes.lua` builds every scene; add yours there so it fails when the code it draws breaks.
 

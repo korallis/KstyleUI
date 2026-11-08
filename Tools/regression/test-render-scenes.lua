@@ -66,6 +66,18 @@ end
 -- The centre cluster's countdowns read with their unit, as the mockup's "4s" and "2m".
 assert(texts["4s"] and texts["2m"], "the cooldown rows show 4s and 2m")
 
+-- The quest tracker is the shared stand-in with the skin's one caption header and numbered discs.
+assert(texts["QUESTS"] and texts["1"] and texts["2"] and not texts["Quests"], "the HUD's tracker shows the QUESTS caption and the numbered discs")
+
+-- The chat's tabs sit on Blizzard's dock as FCFDock_UpdateTabs lays them, with the plus glyph at the right end.
+local hudPlus = 0
+for _, item in ipairs(hud.items) do
+	if item.kind == "texture" and item.file and item.file:find("GlyphClose", 1, true) and item.rotation and math.abs(item.rotation - math.pi / 4) < 1e-3 then
+		hudPlus = hudPlus + 1
+	end
+end
+assert(hudPlus == 1, "the HUD's chat draws the plus glyph once, got " .. hudPlus)
+
 -- The buff row under the minimap: five icons with their time left, from the Auras module.
 assert(texts["24s"] and texts["8m"], "the buff row shows its timers")
 assert(files["KstyleUI_IconsColour/Icons/" .. Hud.ICONS.battleShout .. ".png"], "the buff row shows Battle Shout")

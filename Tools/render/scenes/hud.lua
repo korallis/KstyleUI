@@ -311,42 +311,9 @@ local CHAT_LINES = {
 	{ "CHAT_MSG_CHANNEL", "LFM tank for Razorfen Kraul", { sender = "Thargor", channel = "1. General - Riverglades", guid = "Player-1-0002" } },
 }
 
--- The docked windows, as the player named them in the mockup. Blizzard's dock lays their tabs along
--- the top of ChatFrame1: a 26-unit dock 3 units above the window, each tab 32 tall and as wide as its
--- text plus 20, one unit apart, the text centred 5 units below the tab's centre (FloatingChatFrame.xml
--- and PanelTemplates_TabResize). KstyleUI_Chat then skins each tab: upper case, the kit font, an accent
--- underline on the selected one.
+-- The docked windows, as the player named them in the mockup. C.Dock lays their tabs out as FCFDock_UpdateTabs
+-- does; KstyleUI_Chat then skins each tab: upper case, the kit font, an accent underline on the selected one.
 local CHAT_TABS = { "General", "Combat", "Loot", "Trade" }
-local TAB_HEIGHT, TAB_PADDING, TAB_GAP, TAB_TEXT_DROP = 32, 20, 1, 5
-local DOCK_HEIGHT, DOCK_RISE = 26, 3
-
-local function layoutTabs(env)
-	local chat, dock = env.ChatFrame1, env.GENERAL_CHAT_DOCK
-	dock:ClearAllPoints()
-	dock:SetHeight(DOCK_HEIGHT)
-	dock:SetPoint("BOTTOMLEFT", chat, "TOPLEFT", 0, DOCK_RISE)
-	dock:SetPoint("BOTTOMRIGHT", chat, "TOPRIGHT", 0, DOCK_RISE)
-	local previous
-	for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
-		local tab = env[frame:GetName() .. "Tab"]
-		local text = tab.Text
-		local fontPath, size = text:GetFont()
-		local width = Scene.TextWidth(text:GetText() or "", size or 10, fontPath)
-		text:ClearAllPoints()
-		text:SetSize(width, 8)
-		text:SetPoint("CENTER", tab, "CENTER", 0, -TAB_TEXT_DROP)
-		tab:SetParent(dock)
-		tab:SetSize(width + TAB_PADDING, TAB_HEIGHT)
-		tab:ClearAllPoints()
-		if previous then
-			tab:SetPoint("LEFT", previous, "RIGHT", TAB_GAP, 0)
-		else
-			tab:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0)
-		end
-		tab:Show()
-		previous = tab
-	end
-end
 
 function modules.chat(opts)
 	local C = dofile("Tools/regression/chat_env.lua")
@@ -372,7 +339,6 @@ function modules.chat(opts)
 	if not K.Modules.IsRunning("Chat") then
 		C.Enable(env, K)
 	end
-	layoutTabs(env)
 	local chat = env.ChatFrame1
 	local stamp = env._cvars.showTimestamps
 	local function stamped(text)
@@ -396,8 +362,12 @@ function modules.chat(opts)
 	end
 	env.RunTimers()
 	C.W.Settle(env)
+	C.Dock(env, Scene.TextWidth)
+	env.RunTimers()
+	C.W.Settle(env)
 	-- The stub ScrollingMessageFrame keeps a history but draws nothing; the scene lays its lines out as the
-	-- game does, newest at the bottom, wrapped to the window in its font, one font string per row.
+	-- game does, newest at the bottom, wrapped to the window in its font, one font string per row, pitched
+	-- by the font and the window's spacing.
 	local path, size, flags = chat:GetFont()
 	path, size, flags = path or "Fonts\\ARIALN.TTF", size or 14, flags or ""
 	-- The window's width comes from its anchors in the panel, in its own units.
@@ -406,7 +376,8 @@ function modules.chat(opts)
 	local width = (screenWidth or 300 * 1080 / 768) * toOwn
 	local height = (screenHeight or 120 * 1080 / 768) * toOwn
 	local entries = C.Entries(chat)
-	local lineHeight = size * 1.2
+	local spacing = chat:GetSpacing()
+	local lineHeight = size * 1.2 + (type(spacing) == "number" and spacing or 0)
 	local rows = {}
 	for _, entry in ipairs(entries) do
 		local line = tostring(entry[1])
@@ -553,101 +524,7 @@ end
 
 -- Quest tracker: Blizzard's objective tracker with two quests, wearing the Skins glass -------------------------
 
-local QUESTS = {
-	{ title = "Riverglade Crocolisks", objective = "- Crocolisk Hide 3/8" },
-	{ title = "The Lost Patrol", objective = "- Speak to Ranger Kalanna 0/1" },
-}
-
-local function trackerStandIn(env, B)
-	local tracker = B.frame("Frame", nil, "ObjectiveTrackerFrame")
-	tracker.isCollapsed = false
-	tracker:SetSize(235, 160)
-	-- Edit Mode places Blizzard's tracker; the mockup puts it 16 units from the right edge, under the buffs.
-	tracker:SetPoint("TOPRIGHT", env.UIParent, "TOPRIGHT", -16, -312)
-	tracker.NineSlice = B.frame("Frame", tracker)
-	tracker.NineSlice:SetPoint("TOPLEFT", tracker, "TOPLEFT")
-	tracker.NineSlice:SetPoint("TOPRIGHT", tracker, "TOPRIGHT")
-	tracker.Header = B.frame("Frame", tracker)
-	tracker.Header:SetSize(235, 25)
-	tracker.Header:SetPoint("TOPLEFT", tracker, "TOPLEFT", 0, 0)
-	tracker.Header.Background = B.texture(tracker.Header, "BACKGROUND")
-	tracker.Header.Background:SetAllPoints(tracker.Header)
-	tracker.Header.Text = B.text(tracker.Header)
-	tracker.Header.Text:SetFontObject("ObjectiveTrackerHeaderFont")
-	tracker.Header.Text:SetPoint("LEFT", tracker.Header, "LEFT", 20, 0)
-	tracker.Header.Text:SetText("Quests")
-	tracker.Header.MinimizeButton = B.frame("Button", tracker.Header)
-	tracker.Header.MinimizeButton:SetSize(16, 16)
-	tracker.Header.MinimizeButton:SetPoint("LEFT", tracker.Header, "LEFT", 0, 0)
-	tracker.Header.MinimizeButton.Art = B.texture(tracker.Header.MinimizeButton)
-	tracker.Header.MinimizeButton.Art:SetAllPoints(tracker.Header.MinimizeButton)
-	function tracker.Header.SetCollapsed() end
-	local module = B.frame("Frame", tracker)
-	module:SetPoint("TOPLEFT", tracker.Header, "BOTTOMLEFT", 0, 0)
-	module:SetPoint("TOPRIGHT", tracker.Header, "BOTTOMRIGHT", 0, 0)
-	module.Header = B.frame("Frame", module)
-	module.Header:SetSize(235, 1)
-	module.Header:SetPoint("TOPLEFT", module, "TOPLEFT")
-	module.Header.Background = B.texture(module.Header, "BACKGROUND")
-	module.Header.Background:SetAllPoints(module.Header)
-	module.Header.Text = B.text(module.Header)
-	module.Header.Text:SetPoint("LEFT", module.Header, "LEFT")
-	module.Header.MinimizeButton = B.frame("Button", module.Header)
-	module.Header.MinimizeButton:SetSize(1, 1)
-	module.Header.MinimizeButton:SetPoint("LEFT", module.Header, "LEFT")
-	module.Header.MinimizeButton.Art = B.texture(module.Header.MinimizeButton)
-	module.Header.MinimizeButton.Art:SetAllPoints(module.Header.MinimizeButton)
-	module.Header:Hide()
-	function module.Header.SetCollapsed() end
-	module.usedProgressBars, module.usedTimerBars = {}, {}
-	local y = -4
-	for _, quest in ipairs(QUESTS) do
-		local block = B.frame("Frame", module)
-		block:SetPoint("TOPLEFT", module, "TOPLEFT", 20, y)
-		block:SetPoint("TOPRIGHT", module, "TOPRIGHT", 0, y)
-		block:SetHeight(44)
-		block.HeaderText = B.text(block)
-		block.HeaderText:SetFontObject("ObjectiveTrackerHeaderFont")
-		block.HeaderText:SetPoint("TOPLEFT", block, "TOPLEFT", 10, -2)
-		block.HeaderText:SetJustifyH("LEFT")
-		block.HeaderText:SetText(quest.title)
-		local line = B.text(block)
-		line:SetFontObject("ObjectiveTrackerLineFont")
-		line:SetPoint("TOPLEFT", block.HeaderText, "BOTTOMLEFT", 2, -4)
-		line:SetJustifyH("LEFT")
-		line:SetText(quest.objective)
-		y = y - 50
-	end
-	module.contentsHeight = -y
-	module:SetHeight(-y)
-	function module.GetContentsHeight(self)
-		return self.contentsHeight
-	end
-	function module.GetProgressBar() end
-	function module.GetTimerBar() end
-	function tracker.ForEachModule(_, fn)
-		fn(module)
-	end
-	function tracker.IsCollapsed(self)
-		return self.isCollapsed
-	end
-	function tracker.UpdateHeaderPosition() end
-	function tracker.Update(self)
-		self.NineSlice:SetPoint("BOTTOM", module, "TOP", 0, -module.contentsHeight - 10)
-		self:UpdateHeaderPosition()
-	end
-	function tracker.SetCollapsed(self, collapsed)
-		self.isCollapsed = collapsed
-		self:Update()
-	end
-	tracker:Update()
-	env.GameFontHighlight = B.text(env.UIParent)
-	env.GameFontHighlight:SetFont("Fonts\\ARIALN.TTF", 12, "")
-	env.ObjectiveTrackerLineFont, env.ObjectiveTrackerHeaderFont = B.text(env.UIParent), B.text(env.UIParent)
-	env.ObjectiveTrackerLineFont:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-	env.ObjectiveTrackerHeaderFont:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
-	return tracker
-end
+local Tracker = dofile("Tools/render/scenes/_tracker.lua")
 
 function modules.tracker(opts)
 	local S = dofile("Tools/regression/skins_env.lua")
@@ -660,7 +537,7 @@ function modules.tracker(opts)
 			shared(env)
 		end,
 		before = function(env)
-			tracker = trackerStandIn(env, S.Blizzard(env))
+			tracker = Tracker.StandIn(env, S.Blizzard(env), Tracker.QUESTS)
 		end,
 	})
 	if not K.Modules.IsRunning("Skins") then
@@ -671,7 +548,7 @@ function modules.tracker(opts)
 	S.W.Settle(env)
 	-- Blizzard's objective text is yellow for titles and white for lines, under the tracker's fonts.
 	local scene = build(env, opts)
-	scene.log[#scene.log + 1] = "the quest tracker's blocks are stand-ins the scene lays out; Blizzard's POI buttons are not drawn"
+	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one"
 	return finish(env, K, scene, "tracker"), ns, tracker
 end
 
