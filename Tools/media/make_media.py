@@ -41,6 +41,7 @@ LINE_BAND = (0.25, 0.5)
 SHADOW_REACH = 6  # root units the shadow reaches past the panel edge
 GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bottom
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
+PORTRAIT_CHAMFER = 0.15  # share of the portrait's side, measured on the design file (10 units on 68)
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
 GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units at 8 units across
 
@@ -545,6 +546,8 @@ ASSETS = [
              "solid"),
     _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * 3 / ICON_SIZE),
              "Square mask for icons and portraits: a 3-unit chamfer on a 34-unit square."),
+    _texture("ChamferPortraitMask", 128, 128, lambda: draw_chamfer(128, 128 * PORTRAIT_CHAMFER),
+             "Square mask for the unit frames' chamfered portrait: the cut is 15% of the side, the design file's 10 units on 68."),
     _texture("Shadow", 128, 128, lambda: draw_shadow(128),
              "Nine-slice shadow falloff. Corner pieces are 12 units, centred on the panel's corners; the shadow reaches 6 units out.",
              "analytic Gaussian blur of a box, 4x supersampled"),

@@ -147,7 +147,7 @@ end
 -- Module step: every loaded module on, with a note; missing modules disabled -------------------------------
 
 do
-	local env, K = Boot({ missing = { KstyleUI_Icons = true } })
+	local env, K = Boot({ missing = { KstyleUI_IconsColour = true } })
 	local panel = Open(env, K)
 	K.Setup.Go(3)
 	W.Settle(env)

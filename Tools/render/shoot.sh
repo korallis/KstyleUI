@@ -2,31 +2,59 @@
 # shoot.sh: run a scene script, then screenshot it with headless Chrome.
 #
 #   Tools/render/shoot.sh <scene> [--ppu 1.426] [--out Tools/render/out/<scene>.png] [--json-only]
+#                                [--icons A|B|off] [--backdrop [PNG]] [--backdrop-alpha 1] [--no-standins]
 #
 # <scene> is a file in Tools/render/scenes/ without .lua. The scene JSON lands in Tools/render/out/<scene>.json,
 # the page in Tools/render/out/<scene>.html and the PNG next to them. LUA (default luajit) runs the scene.
 # CHROME overrides the browser binary.
+#
+# --icons picks the custom icon set the HUD scenes render with (B when absent, the default set); it sets
+# RENDER_ICONS for the scene. --backdrop draws the HUD over a PNG scaled to the canvas, by default the
+# mockup's scenery that standins.py cuts (Tools/render/out/standins/backdrop.png), at --backdrop-alpha.
+# Before the scene runs, standins.py refreshes the portraits, the minimap and the backdrop from the
+# handoff mockup when it is there; --no-standins skips that, and a missing mockup is not an error.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"
 
 scene=${1:-}
 if [ -z "$scene" ]; then
-	echo "usage: Tools/render/shoot.sh <scene> [--ppu N] [--out file.png] [--json-only]" >&2
+	echo "usage: Tools/render/shoot.sh <scene> [--ppu N] [--out file.png] [--json-only] [--icons A|B|off] [--backdrop [PNG]] [--backdrop-alpha N] [--no-standins]" >&2
 	exit 2
 fi
 shift
 ppu=1.426
 out=""
 json_only=0
+icons=""
+backdrop=""
+backdrop_alpha=1
+standins=1
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--ppu) ppu=$2; shift 2 ;;
 		--out) out=$2; shift 2 ;;
 		--json-only) json_only=1; shift ;;
+		--icons) icons=$2; shift 2 ;;
+		--backdrop)
+			if [ $# -gt 1 ] && [ "${2#--}" = "$2" ]; then
+				backdrop=$2; shift 2
+			else
+				backdrop="Tools/render/out/standins/backdrop.png"; shift
+			fi ;;
+		--backdrop-alpha) backdrop_alpha=$2; shift 2 ;;
+		--no-standins) standins=0; shift ;;
 		*) echo "unknown option $1" >&2; exit 2 ;;
 	esac
 done
+if [ -n "$icons" ]; then
+	export RENDER_ICONS=$icons
+fi
+if [ "$standins" = 1 ]; then
+	python3 Tools/render/standins.py --quiet \
+		--width "$(python3 -c "import math,sys; print(math.ceil(2383 / 1540 * 1080 * float(sys.argv[1])))" "$ppu")" \
+		--height "$(python3 -c "import math,sys; print(math.ceil(1080 * float(sys.argv[1])))" "$ppu")"
+fi
 
 script="Tools/render/scenes/$scene.lua"
 if [ ! -f "$script" ]; then
@@ -62,7 +90,15 @@ height=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print
 	printf '<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head><body>\n'
 	printf '<script>window.SCENE='
 	cat "$json"
-	printf ';window.RENDER_OPTIONS={ppu:%s,base:"file://%s/"};</script>\n' "$ppu" "$root"
+	if [ -n "$backdrop" ]; then
+		case "$backdrop" in
+			/*) backdrop_url="file://$backdrop" ;;
+			*) backdrop_url="file://$root/$backdrop" ;;
+		esac
+		printf ';window.RENDER_OPTIONS={ppu:%s,base:"file://%s/",backdrop:"%s",backdropAlpha:%s};</script>\n' "$ppu" "$root" "$backdrop_url" "$backdrop_alpha"
+	else
+		printf ';window.RENDER_OPTIONS={ppu:%s,base:"file://%s/"};</script>\n' "$ppu" "$root"
+	fi
 	printf '<script src="file://%s/Tools/render/render.js"></script>\n' "$root"
 	printf '<script src="file://%s/Tools/render/page.js"></script>\n' "$root"
 	printf '</body></html>\n'

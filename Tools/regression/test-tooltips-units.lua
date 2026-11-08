@@ -296,9 +296,15 @@ do
 end
 
 -- The kit's item tooltip: a rarity-lit icon square inside the top left corner, every line in a column
--- right of it, the name in capitals in its rarity colour and a rarity caption under it ---------------
+-- right of it, the name in tracked capitals in its rarity colour and a rarity caption under it -------
 
 local TEXT_INSET = 10
+local THIN = "\226\128\137"
+
+-- Tracked(text): the text with a thin space between its letters, as the kit tracks titles and captions.
+local function Tracked(text)
+	return (text:gsub("([\1-\127\194-\244][\128-\191]*)", "%1" .. THIN):sub(1, -#THIN - 1))
+end
 
 local function Show(env, tip, kind, id, lines)
 	tip:SetOwner(env.UIParent, "ANCHOR_NONE")
@@ -321,8 +327,11 @@ do
 	assert(Near(x, K.Widgets.Snap(icon, 9.5)) and Near(-y, K.Widgets.Snap(icon, 9.5)), "inset 9.5 units inside the panel")
 	assert(Near(icon:GetWidth(), ns.Settings.Get("iconSize")) and Near(icon:GetHeight(), icon:GetWidth()), "a square")
 	assert(icon.chrome.shape.fill == "chamferTile", "with the kit's chamfered tile")
+	local fr, fg, fb = icon.chrome.fill[5]:GetVertexColor()
+	assert(SameRGB(fr, fg, fb, K.Tokens.Color("buttonFill")), "on the near-black button body every square icon shares")
 	local left = select(3, tip:GetPadding())
 	assert(x + icon:GetWidth() < TEXT_INSET + left, "Blizzard's lines start right of the icon")
+	assert(Near(TEXT_INSET + left, x + icon:GetWidth() + 11), "the text column starts 11 units right of the icon, as in the design")
 	tip:ClearPadding()
 	assert(select(3, tip:GetPadding()) == left, "GameTooltip_OnShow clears the padding; the icon's column comes back")
 	tip:SetPadding(16, 0)
@@ -330,11 +339,13 @@ do
 	assert(right == 16 and kept == left, "a close button's right padding keeps the icon's column")
 	local e = icon.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("rare")) and e[4] == 1, "its border is the rarity colour")
+	local hr, hg, hb, ha = icon.chrome.outer[5]:GetVertexColor()
+	assert(SameRGB(hr, hg, hb, K.Tokens.Color("rare")) and Near(ha, 0.45), "with the rim's 45% halo outside it, as an action button")
 	local glow = icon.glow
 	assert(glow.holder:IsShown() and SameRGB(glow.colorRGB[1], glow.colorRGB[2], glow.colorRGB[3], K.Tokens.Color("rare")), "and it glows in it")
-	assert(title:GetText() == "RANGER'S LONG BOW\n ", "the name in capitals, with a line kept for the caption")
+	assert(title:GetText() == Tracked("RANGER'S LONG BOW") .. "\n ", "the name in tracked capitals, with a line kept for the caption")
 	assert(Colored(title, K.Tokens.Color("rare")), "in the kit's rare colour")
-	assert(caption:IsShown() and caption:GetText() == "RARE" and Colored(caption, K.Tokens.Color("rare")), "the rarity word as a caption")
+	assert(caption:IsShown() and caption:GetText() == Tracked("RARE") and Colored(caption, K.Tokens.Color("rare")), "the rarity word as a tracked caption")
 	point, relative, relativePoint = caption:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and relative == title and relativePoint == "BOTTOMLEFT", "on the title's second line")
 	assert(select(2, caption:GetFont()) == select(2, ns.Style.FontSpec("small")), "in the small line size")
@@ -343,21 +354,21 @@ do
 	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("edgeInner")), "the panel keeps its faint hairline")
 
 	Show(env, tip, Item, 2589, { { "Linen Cloth", 1, 1, 1 }, { "Crafting Reagent", 0.4, 0.7, 1 } })
-	assert(caption:GetText() == "COMMON" and Colored(caption, K.Tokens.Color("text")), "a common item's caption is body grey")
+	assert(caption:GetText() == Tracked("COMMON") and Colored(caption, K.Tokens.Color("text")), "a common item's caption is body grey")
 	assert(not glow.holder:IsShown(), "and its icon does not glow")
 
 	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle" })
 	assert(not icon:IsShown() and not caption:IsShown(), "a unit after the item shows no icon and no caption")
 	assert(select(3, tip:GetPadding()) == 0, "and gives Blizzard's lines their place back")
-	assert(tip:GetLeftLine(1):GetText() == "VALERIN", "unit names read in capitals")
+	assert(tip:GetLeftLine(1):GetText() == Tracked("VALERIN"), "unit names read in tracked capitals")
 
 	Show(env, tip, Spell, 133, { { "Fireball", 1, 1, 1 }, { "Hurls a fiery ball.", 1, 0.82, 0 } })
-	assert(icon:IsShown() and not caption:IsShown() and tip:GetLeftLine(1):GetText() == "FIREBALL", "a spell: its icon and capitals, no caption")
+	assert(icon:IsShown() and not caption:IsShown() and tip:GetLeftLine(1):GetText() == Tracked("FIREBALL"), "a spell: its icon and capitals, no caption")
 	e = icon.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Theme.Accent()) and not glow.holder:IsShown(), "its border rests on the accent, unlit")
 	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = { n = 1, 14 }, { n = 1, 14 }
 	Show(env, tip, Spell, 133, { { "Auto Attack", 1, 1, 1 }, { "Toggles auto attack.", 1, 1, 1 } })
-	assert(Near(icon:GetHeight(), K.Widgets.Snap(icon, 30.5), 0.01), "a two-line tooltip's icon shrinks to its lines (two 14-unit lines 2.5 apart), so it never hangs below the panel")
+	assert(Near(icon:GetHeight(), K.Widgets.Snap(icon, 28.5), 0.01), "a two-line tooltip's icon shrinks to its lines (two 14-unit lines half a unit apart), so it never hangs below the panel")
 	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = nil, nil
 
 	local secret = env.Secret("Ranger's Long Bow")

@@ -1,4 +1,4 @@
--- IconButton.lua: the chamfered square icon button with hover, pressed, cooldown, proc, selected and disabled states.
+-- IconButton.lua: the chamfered square icon button with hover, pressed, cooldown, proc, selected and disabled states, and the icon chrome every square icon shares.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -7,13 +7,16 @@ local Tokens, Scale = ns.Tokens, ns.Scale
 local REST_LIFT, HOVER_LIFT = 0.15, 0.25
 local COOLING_EDGE_ALPHA = 0.62
 local PRESSED_EDGE_ALPHA = 0.77
-local PRESS_DIM = 0.25
+local PRESS_DIM = 0.45
+local DIM_FILL_LIFT = 0.75
 local UNUSABLE_BRIGHTNESS = 0.45
 local COOLING_BRIGHTNESS = 0.4
 local SWIPE_ALPHA = 0.65
-local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA = 10, 0.12
+local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA, HOVER_WASH = 10, 0.3, 0.2
+local PROC_HALO_ALPHA = 0.1
 local RIM_HALO = 0.45
 local COUNTDOWN_RISE = 0.25
+local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
 local CHAMFER_SHARE = 0.105
 local ICON_INSET_LINES = 3
 local ICON_INSET_MAX_SHARE = 0.2
@@ -21,7 +24,82 @@ local TEXT_INSET = 3
 local ICON_CROP = 0.07
 local OVERLAY_LEVEL = 2
 
+Widgets.SECONDARY_RIM = 1
+
 local IconButton = {}
+
+local function Plain(v)
+	return type(v) == "number" and not Widgets.IsSecret(v)
+end
+
+function Widgets.IconRim(r, g, b, strength, lift)
+	if not (Plain(r) and Plain(g) and Plain(b)) then
+		r, g, b = Tokens.Color("accent")
+	end
+	local wr, wg, wb = Tokens.Color("textHover")
+	r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, lift or REST_LIFT)
+	if Plain(strength) and strength < 1 then
+		local er, eg, eb, ea = Widgets.Rgba("edgeInner")
+		return Widgets.Mix(er, eg, eb, ea, r, g, b, 1, strength)
+	end
+	return r, g, b, 1
+end
+
+local function PaintRim(chrome)
+	local r, g, b, a
+	if chrome.rimAccent then
+		local own = chrome.rimOwn
+		r, g, b, a = Widgets.IconRim(own and own[1], own and own[2], own and own[3], chrome.rimStrength)
+	elseif chrome.rimSet then
+		local c = chrome.rimColor
+		r, g, b, a = c[1], c[2], c[3], c[4]
+	else
+		chrome:SetEdge("edgeInner")
+		chrome:SetOuter()
+		return
+	end
+	chrome:SetEdgeRGBA(r, g, b, a)
+	chrome:SetOuterRGBA(r, g, b, a * RIM_HALO)
+end
+
+local function SetRim(chrome, r, g, b, a)
+	chrome.rimAccent = false
+	if Plain(r) and Plain(g) and Plain(b) then
+		local c = chrome.rimColor
+		c[1], c[2], c[3], c[4] = r, g, b, Plain(a) and a or 1
+		chrome.rimSet = true
+	else
+		chrome.rimSet = false
+	end
+	PaintRim(chrome)
+end
+
+local function SetRimAccent(chrome, r, g, b, strength)
+	chrome.rimAccent = true
+	if Plain(r) and Plain(g) and Plain(b) then
+		local own = chrome.rimOwn or {}
+		own[1], own[2], own[3] = r, g, b
+		chrome.rimOwn = own
+	else
+		chrome.rimOwn = nil
+	end
+	chrome.rimStrength = Plain(strength) and strength or nil
+	PaintRim(chrome)
+end
+
+function Widgets.IconChrome(owner, opts)
+	opts = opts or {}
+	local chrome = Widgets.Chrome(owner, { shape = "tile", fill = "buttonFill", shadow = false, chamfer = opts.size and opts.size * CHAMFER_SHARE or nil })
+	chrome.rimColor = { 0, 0, 0, 0 }
+	chrome.rimSet, chrome.rimAccent = false, false
+	local paint = chrome.Paint
+	chrome.Paint = function(self)
+		paint(self)
+		PaintRim(self)
+	end
+	chrome.SetRim, chrome.SetRimAccent = SetRim, SetRimAccent
+	return chrome
+end
 
 local function PlaceIcon(self)
 	if not Widgets.MayMove(self) then
@@ -33,13 +111,14 @@ local function PlaceIcon(self)
 	end
 	self.placedOffset = offset
 	local size = self.opts.size or Tokens.Size("actionButton")
-	local inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
+	local inset
+	if type(self.opts.iconInset) == "number" then
+		inset = Widgets.Snap(self, self.opts.iconInset)
+	else
+		inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
+	end
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
-end
-
-local function Plain(v)
-	return type(v) == "number" and not Widgets.IsSecret(v)
 end
 
 local function Accent(self)
@@ -54,30 +133,45 @@ end
 function IconButton:Paint()
 	local hover, press = self.hoverT or 0, self.pressT or 0
 	local usable = self.usable and self:IsEnabled() ~= false
+	local cooling = self.cooling and self.realCooldown
 	local chrome = self.chrome
 	local r, g, b, a
+	local lift = 0
 	if not usable then
 		r, g, b, a = Tokens.Color("textDisabled")
+		lift = DIM_FILL_LIFT
 	elseif self.proc or self.selected then
 		r, g, b = Accent(self)
 		a = 1
-	elseif self.cooling and self.realCooldown then
+	elseif cooling then
 		r, g, b, a = Widgets.Rgba("text", COOLING_EDGE_ALPHA)
+		lift = DIM_FILL_LIFT
 	else
-		r, g, b = Accent(self)
-		local wr, wg, wb = Tokens.Color("textHover")
-		r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, REST_LIFT + (HOVER_LIFT - REST_LIFT) * hover)
+		local ar, ag, ab = Accent(self)
+		local strength = self.opts.primary and 1 or Widgets.SECONDARY_RIM
+		r, g, b, a = Widgets.IconRim(ar, ag, ab, strength, REST_LIFT + (HOVER_LIFT - REST_LIFT) * hover)
 		local pr, pg, pb, pa = Widgets.Rgba("text", PRESSED_EDGE_ALPHA)
-		r, g, b, a = Widgets.Mix(r, g, b, 1, pr, pg, pb, pa, press)
+		r, g, b, a = Widgets.Mix(r, g, b, a, pr, pg, pb, pa, press)
+		lift = DIM_FILL_LIFT * press
 	end
-	chrome:SetEdgeRGBA(r, g, b, a)
-	chrome:SetOuterRGBA(r, g, b, a * RIM_HALO)
-	local v = UNUSABLE_BRIGHTNESS
+	chrome:SetRim(r, g, b, a)
+	local fr, fg, fb, fa = Tokens.Color("buttonFill")
+	if lift > 0 then
+		local xr, xg, xb, xa = Tokens.Color("raised")
+		fr, fg, fb, fa = Widgets.Mix(fr, fg, fb, fa, xr, xg, xb, xa, lift)
+	end
+	chrome:SetFillRGBA(fr, fg, fb, fa)
+	local v, desaturated = UNUSABLE_BRIGHTNESS, not usable
 	if usable then
-		v = (self.cooling and self.realCooldown) and COOLING_BRIGHTNESS or (1 - PRESS_DIM * press)
+		if cooling then
+			v = COOLING_BRIGHTNESS
+		else
+			v = 1 - PRESS_DIM * press
+			desaturated = press >= 0.5
+		end
 	end
 	local tint = self.tint
-	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], not usable)
+	ns.Icons.Shade(self.icon, v * tint[1], v * tint[2], v * tint[3], desaturated)
 	self.hoverGlow:SetIntensity(usable and hover or 0)
 	PlaceIcon(self)
 end
@@ -184,7 +278,7 @@ end
 function IconButton:SetProc(on)
 	self.proc = on and true or false
 	if self.proc and not self.procGlow then
-		self.procGlow = Widgets.Glow(self, { kind = "proc" })
+		self.procGlow = Widgets.Glow(self, { kind = "proc", alpha = PROC_HALO_ALPHA })
 		if self.accent then
 			ColorGlow(self, self.procGlow)
 		end
@@ -230,7 +324,13 @@ function IconButton:Restyle()
 		self.count:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset)
 		if self.countdown then
 			self.countdown:ClearAllPoints()
-			self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
+			if self.opts.countdownCorner then
+				self.countdown:SetPoint("TOPRIGHT", self, "TOPRIGHT", -Widgets.Snap(self, size * COUNTDOWN_CORNER_X), -Widgets.Snap(self, size * COUNTDOWN_CORNER_Y))
+				self.countdown:SetJustifyH("RIGHT")
+			else
+				self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
+				self.countdown:SetJustifyH("CENTER")
+			end
 		end
 		self.hoverGlow:Restyle()
 		if self.procGlow then
@@ -266,7 +366,7 @@ function Widgets.IconButton(parent, opts)
 	button.usable = true
 	button.tint = { 1, 1, 1 }
 	local size = opts.size or Tokens.Size("actionButton")
-	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "buttonFill", shadow = false, chamfer = size * CHAMFER_SHARE })
+	button.chrome = Widgets.IconChrome(button, { size = size })
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	if opts.crop ~= false then
@@ -277,7 +377,7 @@ function Widgets.IconButton(parent, opts)
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
 	button.icon, button.mask = icon, mask
-	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA })
+	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA, core = HOVER_WASH })
 	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
 	cooldown:SetAllPoints(icon)
 	cooldown:SetSwipeTexture(maskPath)

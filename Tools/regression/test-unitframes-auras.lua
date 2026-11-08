@@ -62,6 +62,33 @@ local function cornerSizes(skin)
 end
 local skin = aura.SetIcon[1]:GetParent()
 local paths = tilePaths(skin)
+
+-- Each tile sits on the near-black button body with the accent rim every square icon shares.
+local function TileColours(kit, frame)
+	local body, raised, rim = false, false, false
+	local fr, fg, fb = kit.Tokens.Color("buttonFill")
+	local xr, xg, xb = kit.Tokens.Color("raised")
+	local rr, rg, rb = kit.Widgets.IconRim()
+	local function same(a, b)
+		return math.abs(a - b) < 1e-3
+	end
+	for _, region in ipairs(W.Regions(frame, "Texture")) do
+		local set = W.LastCall(region, "SetTexture")
+		local r, g, b = region:GetVertexColor()
+		if set and set[1] == (kit.Tokens.Texture("chamferTile")) and type(r) == "number" then
+			body = body or (same(r, fr) and same(g, fg) and same(b, fb))
+			raised = raised or (same(r, xr) and same(g, xg) and same(b, xb))
+		elseif type(r) == "number" and same(r, rr) and same(g, rg) and same(b, rb) then
+			rim = true
+		end
+	end
+	return body, raised, rim
+end
+do
+	local body, raised, rim = TileColours(K, skin)
+	assert(body and not raised, "the tile's body is the near-black button fill, not a raised tile")
+	assert(rim, "its hairline rests on the accent lifted 15% toward white, as an action button")
+end
 assert((paths[(Tokens.Texture("chamferTile"))] or 0) >= 9, "the tile has a chamfered fill")
 assert(paths[(Tokens.Texture("line"))] == 12, "the tile has the kit's three bevel lines, four diagonal corners each")
 assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")

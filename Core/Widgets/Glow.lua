@@ -40,7 +40,7 @@ local function Reconcile(handle)
 	end
 	if Motion.ReducedMotion() then
 		StopAnimations(handle)
-		handle.holder:SetAlpha(1)
+		handle.holder:SetAlpha(handle.alpha)
 	else
 		StartAnimations(handle)
 	end
@@ -84,9 +84,11 @@ function Glow:Restyle()
 		PlaceStreak(self.sparkCross, self.frame, insetX, insetY)
 		self.spark:SetVertexColor(r, g, b, 1)
 		self.sparkCross:SetVertexColor(r, g, b, 1)
+	end
+	if self.core then
 		local width, height = FrameSize(self.frame)
 		Widgets.Size(self.core, CORE_SHARE * width, CORE_SHARE * height)
-		self.core:SetVertexColor(r, g, b, CORE_ALPHA)
+		self.core:SetVertexColor(r, g, b, self.coreAlpha)
 	end
 	Reconcile(self)
 end
@@ -182,6 +184,13 @@ function Widgets.Glow(frame, opts)
 		end
 	end
 	local body = holder
+	local function Core(top)
+		local core = top:CreateTexture(nil, "ARTWORK")
+		core:SetTexture((Tokens.Texture("glow")))
+		core:SetBlendMode("ADD")
+		core:SetPoint("CENTER", frame, "CENTER")
+		handle.core = core
+	end
 	if kind == "proc" then
 		body = CreateFrame("Frame", nil, holder)
 		body:SetAllPoints(holder)
@@ -197,11 +206,8 @@ function Widgets.Glow(frame, opts)
 			streak:SetBlendMode("ADD")
 			handle[key] = streak
 		end
-		local core = top:CreateTexture(nil, "ARTWORK")
-		core:SetTexture((Tokens.Texture("glow")))
-		core:SetBlendMode("ADD")
-		core:SetPoint("CENTER", frame, "CENTER")
-		handle.core = core
+		Core(top)
+		handle.coreAlpha = CORE_ALPHA
 		local sparkPulse = Pulse(top, PULSE_LOW, PULSE_HIGH, Tokens.Duration("procPulse") / 2)
 		local grow = sparkPulse:CreateAnimation("Scale")
 		grow:SetScaleFrom(1, 1)
@@ -209,6 +215,13 @@ function Widgets.Glow(frame, opts)
 		grow:SetDuration(Tokens.Duration("procPulse") / 2)
 		grow:SetSmoothing("IN_OUT")
 		handle.sparkPulse = sparkPulse
+	elseif type(opts.core) == "number" and opts.core > 0 then
+		local top = CreateFrame("Frame", nil, holder)
+		top:SetAllPoints(frame)
+		top:SetFrameLevel(frame:GetFrameLevel() + SPARK_LEVEL)
+		handle.top = top
+		Core(top)
+		handle.coreAlpha = math.min(1, opts.core / handle.alpha)
 	end
 	handle.slice = Widgets.NineSlice(body, "shadow", "BACKGROUND", 0)
 	for _, piece in ipairs(handle.slice) do

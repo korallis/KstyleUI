@@ -51,7 +51,7 @@ local element = K.Layout.Element("minimap.main")
 assert(element.label == K.Setup.Layouts.Element("minimap.main").label, "the mover plate uses the setup's label")
 assert(element.module == "Minimap", "Layout knows the element belongs to the Minimap module")
 assert(element.opts.resizable and element.opts.aspect, "the minimap resizes in Layout Mode and keeps its proportions")
-assert(holder:GetWidth() == 168 and holder:GetHeight() == 166, "the element fills its footprint at the 1080 reference")
+assert(holder:GetWidth() == 259 and holder:GetHeight() == 221, "the element fills its footprint at the 1080 reference")
 
 local minimap = env.Minimap
 local face = Map(ns)
@@ -59,18 +59,92 @@ assert(minimap:GetParent() == holder, "Blizzard's minimap moves into KstyleUI's 
 assert(LastArg(minimap, "SetAllPoints") == face.mapArea, "the minimap fills the frame's map square")
 local mw, mh = face.mapArea:GetSize()
 assert(mw == mh, "the minimap stays square")
-assert(W.Near(mw, 158), "the map square fills the frame's height inside one gap: " .. tostring(mw))
-assert(W.Near(face.box:GetWidth(), 168) and W.Near(face.box:GetHeight(), 166), "with the column inside, the chamfered frame is the whole element")
-assert(W.Near(select(4, face.box:GetPoint(1)), 0) and W.Near(select(4, face.mapArea:GetPoint(1)), 4), "the map square sits at the frame's left, one gap in")
-assert(W.Near(face.strip:GetHeight(), 18), "the footer is 18 tall inside the gap, 22 from the frame's edge: " .. tostring(face.strip:GetHeight()))
+assert(W.Near(mw, 213), "the map square fills the frame's height inside one gap: " .. tostring(mw))
+assert(W.Near(face.box:GetWidth(), 221) and W.Near(face.box:GetHeight(), 221), "the chamfered frame is the mockup's 221 square beside the button column")
+assert(W.Near(face.chrome:Chamfer(), 12), "the frame has the mockup's 12 chamfer")
+assert(W.Near(select(4, face.box:GetPoint(1)), 38) and W.Near(select(4, face.mapArea:GetPoint(1)), 4), "the frame leaves the column's 38 on its left; the map square sits one gap in")
+assert(W.Near(face.strip:GetHeight(), 26), "the footer is 26 tall inside the gap, 30 from the frame's edge: " .. tostring(face.strip:GetHeight()))
 local _, stripRel, stripRelPoint, stripX = face.strip:GetPoint(2)
-assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -4), "the footer reaches the frame's right edge under the button strip")
-assert(W.Near(select(4, face.zone:GetPoint(1)), 7), "the zone name starts 11 from the frame's edge")
-assert(W.Near(select(4, face.clock:GetPoint(1)), -8), "the clock ends 12 from the frame's edge")
+assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -4), "the footer reaches the frame's right edge")
+assert(W.Near(select(4, face.zone:GetPoint(1)), 12), "the zone name starts 16 from the frame's edge")
+assert(W.Near(select(4, face.clock:GetPoint(1)), -14), "the clock ends 18 from the frame's edge")
 assert(W.Near(select(4, face.strip.divider:GetPoint(1)), -9), "the divider stands 9 left of the clock")
-assert(W.Near(face.compassPlate:GetWidth(), 25) and W.Near(face.compassPlate:GetHeight(), 16), "the north plate is 25 by 16 under the top edge")
+local _, zoneSize = face.zone:GetFont()
+local _, clockSize = face.clock:GetFont()
+assert(W.Near(zoneSize, 14 * K.Theme.FontScale()) and W.Near(clockSize, 14 * K.Theme.FontScale()), "the zone and the clock read at the mockup's size 14")
+local plate = face.compassPlate
+assert(W.Near(plate:GetWidth(), 44) and W.Near(plate:GetHeight(), 23), "the north plate is 44 by 23 under the top edge")
+local pp, prel, prelp, _, py = plate:GetPoint(1)
+assert(pp == "TOP" and prel == face.mapArea and prelp == "TOP" and W.Near(py, 0), "the plate hangs flush under the map's top edge")
+for _, piece in ipairs({ 1, 2, 3, 4, 6 }) do
+	assert(not plate.slice[piece]:IsShown(), "the plate's top row and side pieces are hidden: its top corners are square")
+end
+assert(plate.slice[7]:IsShown() and plate.slice[9]:IsShown() and plate.slice[5]:IsShown(), "the body and the bottom row draw")
+assert(W.Near(plate.slice[7]:GetWidth(), 11) and W.Near(plate.slice[7]:GetHeight(), 18), "the lower corners are chamfered 11 in and 18 up, the design's steep cut")
+assert(plate.slice[7].texture == "chamferPanel" or plate.slice.texture == "chamferPanel", "the chamfer comes from the panel texture")
 local _, compassSize = face.compass:GetFont()
-assert(W.Near(compassSize, 11 * K.Theme.FontScale()), "the N reads at the body size: " .. tostring(compassSize))
+assert(W.Near(compassSize, 16 * K.Theme.FontScale()), "the N reads at the heading size: " .. tostring(compassSize))
+
+-- The zoom slider inside the map's right edge ------------------------------------------------------
+
+local zoom = face.zoom
+assert(zoom and zoom:IsShown() and zoom.track and zoom.fill, "a zoom slider stands inside the map's right edge")
+assert(W.Near(zoom.track:GetWidth(), 2) and W.Near(zoom.track:GetHeight(), 52), "the track is the mockup's 2 by 52 line")
+local tp, trel, trelp, tx, ty = zoom.track:GetPoint(1)
+assert(tp == "BOTTOM" and trel == face.mapArea and trelp == "BOTTOMRIGHT" and W.Near(tx, -7) and W.Near(ty, 34), "its bottom stands 8 above the footer, 11 in from the frame's edge")
+assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the fill takes the accent")
+assert(W.Near(zoom.fill:GetHeight(), 52 * 2 / 5, 0.5), "zoom 2 of 6 levels fills two fifths of the track: " .. tostring(zoom.fill:GetHeight()))
+env._zoom = 5
+env.FireEvent("MINIMAP_UPDATE_ZOOM")
+assert(W.Near(zoom.fill:GetHeight(), 52, 0.5), "MINIMAP_UPDATE_ZOOM refills the track: the last level fills it")
+assert(zoom:GetWidth() > 2, "the hit area is wider than the line")
+zoom.track.GetBottom = function()
+	return 100
+end
+local zscale = zoom.track:GetEffectiveScale()
+env.GetCursorPosition = function()
+	return 0, (100 + 52 * 0.62) * zscale
+end
+env._zoomCalls = 0
+zoom:GetScript("OnMouseDown")(zoom, "LeftButton")
+assert(env._zoom == 3 and env._zoomCalls == 1, "pressing on the track sets the nearest zoom level: " .. tostring(env._zoom))
+env.GetCursorPosition = function()
+	return 0, (100 + 52 * 1.5) * zscale
+end
+zoom:GetScript("OnUpdate")(zoom, 0.016)
+assert(env._zoom == 5, "dragging past the top clamps to the last level")
+zoom:GetScript("OnMouseUp")(zoom, "LeftButton")
+assert(zoom:GetScript("OnUpdate") == nil, "the drag ends on release")
+env.GetCursorPosition = function()
+	return 0, (100 + 52 * 0.2) * zscale
+end
+K.Options.Write("Minimap", "zoom.reset", true)
+zoom:GetScript("OnMouseDown")(zoom, "LeftButton")
+zoom:GetScript("OnMouseUp")(zoom, "LeftButton")
+assert(env._zoom == 1, "a press zooms before the reset")
+env.RunTimers()
+assert(env._zoom == 0, "with zoom back out on, a slider zoom returns to 0 after the delay")
+assert(not zoom.fill:IsShown() and zoom.fill:GetHeight() == 0, "and the fill empties with it, without waiting for an event")
+K.Options.Write("Minimap", "zoom.reset", false)
+-- A client without a zoom API or a cursor position leaves the slider and the wheel inert, with no error.
+do
+	local getZoom, setZoom, levels, cursor = env.Minimap.GetZoom, env.Minimap.SetZoom, env.Minimap.GetZoomLevels, env.GetCursorPosition
+	env.Minimap.GetZoom, env.Minimap.GetZoomLevels = nil, nil
+	env.GetCursorPosition = nil
+	local ok, err = pcall(function()
+		env.FireEvent("MINIMAP_UPDATE_ZOOM")
+		zoom:GetScript("OnMouseDown")(zoom, "LeftButton")
+		zoom:GetScript("OnMouseUp")(zoom, "LeftButton")
+	end)
+	assert(ok, "a missing zoom API or cursor position raises nothing: " .. tostring(err))
+	env.Minimap.GetZoom, env.Minimap.SetZoom, env.Minimap.GetZoomLevels, env.GetCursorPosition = getZoom, setZoom, levels, cursor
+end
+env.Minimap:SetZoom(4)
+assert(W.Near(zoom.fill:GetHeight(), 52 * 4 / 5, 0.5), "a zoom by Blizzard's own code, as the gamepad stick makes, refills the track through a secure hook")
+K.Options.Write("Minimap", "zoom.slider", false)
+assert(not zoom:IsShown(), "the slider can be turned off")
+K.Options.Write("Minimap", "zoom.slider", true)
+assert(zoom:IsShown(), "and on again")
 assert(LastArg(minimap, "SetMaskTexture") == (K.Tokens.Texture("minimapMask")), "the minimap uses KstyleUI's square mask")
 for _, method in ipairs({ "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }) do
 	assert(LastArg(minimap, method) == 0, method .. "(0) removes the round blob ring on a square map")
@@ -132,8 +206,8 @@ assert(W.Near(zr, hr) and W.Near(zg, hg) and W.Near(zb, hb), "PvP colouring show
 K.Options.Write("Minimap", "zone.color", "plain")
 
 assert(face.clock:GetText() == "14:32", "the clock follows the game's clock by default: " .. tostring(face.clock:GetText()))
-local _, clockSize = face.clock:GetFont()
-assert(W.Near(clockSize, 9 * K.Theme.FontScale()), "the clock reads at the caption size by default: " .. tostring(clockSize))
+local _, clockSizeNow = face.clock:GetFont()
+assert(W.Near(clockSizeNow, 14 * K.Theme.FontScale()), "the clock reads at the mockup's size 14 by default: " .. tostring(clockSizeNow))
 env._clock.minute = 33
 local tables = env._dateCalls["*t"] or 0
 M.RunTickers(env)
@@ -268,7 +342,7 @@ do
 	M.Settle(benv)
 	local bface = Map(bns)
 	assert(bface.clock:GetText() == "14:32", "an unknown clock mode uses the game's clock")
-	assert(bns.Settings.Get("column.side") == "inside", "an unknown column side uses the default, inside the frame")
+	assert(bns.Settings.Get("column.side") == "left", "an unknown column side uses the default, left of the frame")
 	NoErrors(benv, "bad values")
 end
 
@@ -297,6 +371,7 @@ do
 	local pface = frame.face
 	assert(pface.zone:GetText() and pface.zone:GetText() ~= "", "the preview shows a zone")
 	assert(pface.clock:IsShown(), "the preview shows the clock")
+	assert(pface.zoom:IsShown() and W.Near(pface.zoom.fill:GetHeight(), 52, 0.5), "the preview shows the zoom slider full, as the mockup draws it")
 	PK.Options.Write("Minimap", "clock.shown", false)
 	frame:Refresh()
 	assert(not pface.clock:IsShown(), "the preview follows the settings")

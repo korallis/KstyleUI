@@ -26,9 +26,11 @@ Style.KIT_ROLES = KIT_ROLES
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
 local ICON_INSET = 9.5
-local LINE_SPACING = 2.5
+local TEXT_MARGIN = 10
+local TEXT_GAP = 11
+local LINE_SPACING = 0.5
 local RULE_LENGTH = 56
-local FOOTER_INSET = 12
+local FOOTER_INSET = 13
 local ICON_LEVEL = 2
 local ICON_CROP = 0.07
 local BORDER_LINES = 2
@@ -136,7 +138,7 @@ function Style.Skin(tooltip, name)
 	divider:Hide()
 	glass.divider = divider
 	local footer = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
-	footer:SetColorTexture(Tokens.Color("white"))
+	footer:SetTexture((Tokens.Texture("divider")))
 	footer:Hide()
 	glass.footer = footer
 	glass.caption = Widgets.FontString(glass, "OVERLAY")
@@ -255,9 +257,10 @@ end
 local function PlaceFooter(glass, line)
 	local footer = glass.footer
 	glass.footerLine = line
+	local inset = Widgets.Snap(glass, FOOTER_INSET)
 	footer:ClearAllPoints()
-	footer:SetPoint("BOTTOMLEFT", line, "TOPLEFT", 0, Widgets.Snap(glass, DIVIDER_GAP))
-	footer:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, FOOTER_INSET), 0)
+	footer:SetPoint("BOTTOMLEFT", line, "TOPLEFT", inset - TEXT_MARGIN - (glass.padded or 0), Widgets.Snap(glass, DIVIDER_GAP))
+	footer:SetPoint("RIGHT", glass, "RIGHT", -inset, 0)
 	footer:SetHeight(Widgets.Border(glass))
 	footer:SetVertexColor(Widgets.Rgba("edgeFaint"))
 	footer:Show()
@@ -285,7 +288,7 @@ end
 
 function Style.IconTile(parent)
 	local icon = CreateFrame("Frame", nil, parent)
-	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "raised", shadow = false })
+	icon.chrome = Widgets.IconChrome(icon)
 	local texture = icon:CreateTexture(nil, "ARTWORK")
 	texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = icon:CreateMaskTexture()
@@ -328,7 +331,7 @@ function Style.PaintIcon(icon, quality, spell)
 	else
 		r, g, b, a = Widgets.Rgba("text", PLAIN_EDGE_ALPHA)
 	end
-	icon.chrome:SetEdgeRGBA(r, g, b, a)
+	icon.chrome:SetRim(r, g, b, a)
 	icon.glow:SetIntensity(lit and 1 or 0)
 end
 
@@ -351,7 +354,7 @@ function Style.Icon(tooltip, fileID, quality, spell)
 		return
 	end
 	local size = min(Settings.Get("iconSize"), TextHeight(tooltip) or math.huge)
-	if not Settings.Get("icon") or Logic.IsSecret(fileID) or fileID == nil or not Pad(tooltip, glass, size + Tokens.Size("gapLarge")) then
+	if not Settings.Get("icon") or Logic.IsSecret(fileID) or fileID == nil or not Pad(tooltip, glass, Widgets.Snap(glass, ICON_INSET) + size + TEXT_GAP - TEXT_MARGIN) then
 		HideIcon(tooltip, glass)
 		return
 	end
@@ -368,6 +371,18 @@ function Style.Icon(tooltip, fileID, quality, spell)
 	icon:Show()
 end
 
+local ownFonts
+
+local function OwnFont(path)
+	if not ownFonts then
+		ownFonts = {}
+		for _, face in ipairs(Tokens.MediaList("font")) do
+			ownFonts[face.path] = true
+		end
+	end
+	return ownFonts[path] == true
+end
+
 function Style.Title(tooltip, quality)
 	local glass = Style.Glass(tooltip)
 	local title = glass and Style.Line(tooltip, "left", 1)
@@ -376,7 +391,7 @@ function Style.Title(tooltip, quality)
 	end
 	local caption = Logic.IsNumber(quality) and _G["ITEM_QUALITY" .. quality .. "_DESC"] or nil
 	caption = type(caption) == "string" and caption or nil
-	local text = Logic.TitleText(title:GetText(), caption ~= nil)
+	local text = Logic.TitleText(title:GetText(), caption ~= nil, OwnFont((Style.FontSpec("title"))))
 	if not text then
 		Settings.LogOnce("title", "a tooltip title was secret or held escape codes; it keeps Blizzard's text")
 		return
@@ -397,7 +412,8 @@ function Style.Title(tooltip, quality)
 	if Logic.IsNumber(size) and size > titleSize then
 		label:SetFont(path, titleSize, flags)
 	end
-	label:SetText(Logic.Upper(caption))
+	local upper = Logic.Upper(caption)
+	label:SetText(OwnFont(path) and Logic.Tracked(upper) or upper)
 	label:SetTextColor(r, g, b)
 	label:ClearAllPoints()
 	label:SetPoint("BOTTOMLEFT", title, "BOTTOMLEFT", 0, 0)

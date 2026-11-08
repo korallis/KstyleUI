@@ -94,6 +94,7 @@ do
 	S.LoadAddOn(env, "Blizzard_PlayerSpells")
 	p.paged:DisplayViewsForCurrentPage()
 	assert(Shown(p.icons[1]) == FIREBALL and rawget(p.icons[1], "SetTexture") == nil, "off: nothing is hooked and Blizzard's icon stays")
+	K.Options.Write("Icons", "set", "A")
 	K.Options.Write("Icons", "enabled", true)
 	assert(Shown(p.icons[1]) == A_PATH .. FIREBALL .. ".png", "an open spellbook gets the custom icons when custom icons start")
 	assert(#env._errors == 0)
@@ -103,6 +104,7 @@ end
 
 do
 	local env, K = New()
+	K.Options.Write("Icons", "set", "A")
 	K.Options.Write("Icons", "enabled", true)
 	local B = S.Blizzard(env)
 	local p = PlayerSpells(B, FIREBALL, UNKNOWN, REJUV)
@@ -182,6 +184,7 @@ do
 	end
 	local snap = B.snapshot()
 	Acquire(buttons[1], FIREBALL)
+	K.Options.Write("Icons", "set", "A")
 	K.Options.Write("Icons", "enabled", true)
 	S.LoadAddOn(env, "Blizzard_PlayerSpells")
 	assert(Shown(buttons[1].Icon) == A_PATH .. FIREBALL .. ".png", "a talent button made before the hook is watched")

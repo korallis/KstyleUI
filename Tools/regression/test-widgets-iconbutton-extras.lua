@@ -87,4 +87,14 @@ do
 	assert(#env._errors == 0)
 end
 
+-- iconInset draws a smaller icon centred in a larger button, for a glyph on a round plate.
+do
+	local env, _, button = iconButton({ size = 30, iconInset = 7 })
+	local _, _, _, x, y = button.icon:GetPoint(1)
+	assert(W.Near(x, 7) and W.Near(y, -7), "the icon starts the inset in from the button's top left corner, got " .. tostring(x) .. ", " .. tostring(y))
+	local _, _, _, x2, y2 = button.icon:GetPoint(2)
+	assert(W.Near(x2, -7) and W.Near(y2, 7), "and ends the inset in from the bottom right corner")
+	assert(#env._errors == 0)
+end
+
 print("icon button extras ok")

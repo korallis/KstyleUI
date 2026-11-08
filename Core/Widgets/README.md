@@ -155,19 +155,19 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 `IconButton(parent, opts) -> Button`: a chamfered square for action, cooldown and aura icons.
 
-Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `silent` (no click sound, for buttons that keys press, such as action buttons).
+Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `countdownCorner` (the countdown hangs right-aligned in the top right corner, a fifth of the side in and a tenth down, as the composition mockup's centre cluster reads "4s"; the default is the design's centred number low on the button), `silent` (no click sound, for buttons that keys press, such as action buttons), `primary` (an action button: its rim is always the full accent rim; see [Icon chrome](#icon-chrome) for the secondary rim strength every other icon button follows).
 
-The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button. The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`; on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row:
+The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button, drawn by [`IconChrome`](#icon-chrome). The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`; on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row (measured against it at 2 px per unit with `Tools/render/scenes/buttons.lua`):
 
-| State | Hairline | Icon |
-| --- | --- | --- |
-| Rest | `accent` mixed 15% toward `textHover` | Full colour |
-| Hover | `accent` mixed 25% toward `textHover`, and a selection glow 10 units out at 12% | |
-| Pressed | Mixes toward `text` at 77% | Dims by 25% and moves down `pressOffset` |
-| Cooldown running | `text` at 62% | Dims to 40%; swipe in `black` at 65%; the countdown, in the `number` font, is centred a quarter of the height above the bottom |
-| Proc (`SetProc(true)`) | `accent` | Proc glow pulses, with its star and inner glow |
-| Selected (`SetSelected(true)`) | `accent` | |
-| Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Desaturated at 45% brightness |
+| State | Hairline | Body | Icon |
+| --- | --- | --- | --- |
+| Rest | `accent` mixed 15% toward `textHover` | `buttonFill` | Full colour |
+| Hover | `accent` mixed 25% toward `textHover`, a selection glow 10 units out at 30% of the `shadow` falloff (the design's +25 luminance beside the rim), and the glow's inner wash over the icon at 20% of the accent | `buttonFill` | |
+| Pressed | Mixes toward `text` at 77% | Lifts three quarters of the way to `raised` | Desaturated, dims to 55% and moves down `pressOffset` |
+| Cooldown running | `text` at 62% | Lifts three quarters of the way to `raised` | Dims to 40%; swipe in `black` at 65%; the countdown, the cooldown's own font string in the `number` font and `textEmphasis`, is centred a quarter of the height above the bottom |
+| Proc (`SetProc(true)`) | `accent` | `buttonFill` | The proc glow pulses inside the rim: its inner glow and star, with the outer halo at 10%, because the design's proc glows inside the button, not around it |
+| Selected (`SetSelected(true)`) | `accent` | `buttonFill` | |
+| Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Lifts three quarters of the way to `raised` | Desaturated at 45% brightness |
 
 The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a custom icon keeps its tint in every state.
 
@@ -186,6 +186,18 @@ The icon's brightness and desaturation go through `KstyleUI.Icons.Shade`, so a c
 | `SetChargeCooldownFromDuration(durationObject) -> ok`, `ClearChargeCooldown()` | A second Cooldown, `chargeCooldown`, made on first use, that draws only its edge and no numbers: the recharge of a spell with charges left. Returns `false` and logs once when the method is missing. |
 
 Fields: `icon`, `mask`, `cooldown`, `countdown` (the cooldown's countdown font string, when the client gives one), `chargeCooldown` (made on first use), `overlay`, `hotkey`, `count`, `chrome`, `hoverGlow`, `procGlow` (made on the first `SetProc(true)`). `Restyle()` restyles both glows, so a button that changes size (a `size` option a module rewrites) keeps its glow geometry.
+
+### Icon chrome
+
+Every square icon in KstyleUI draws the same body and rim through one helper, so the action buttons, the bag slots, the aura tiles of the Auras, UnitFrames, GroupFrames and Nameplates modules, the skins' item rims, the tooltip's item icon, the micro menu, the bag bar, the cooldown icons and the flyouts all look like the design's button.
+
+| Function | Behaviour |
+| --- | --- |
+| `IconChrome(owner, opts) -> chrome` | A [`Chrome`](#chrome) with the `tile` shape, the `buttonFill` body and no shadow. `opts.size` gives the icon button's chamfer, 10.5% of the side; without it the tile's 3.5 units. The chrome gains `SetRim` and `SetRimAccent`, and its `Paint` repaints the rim on every restyle. |
+| `chrome:SetRim(r, g, b, a)` | Paints the hairline in that colour and the outer line as its halo at 45%. With no colour, the plain `edgeInner` hairline and the shape's dark outer line: an empty bag slot, or a skinned item with no quality colour. Allocates nothing, so Paint paths may call it every frame. |
+| `chrome:SetRimAccent(r, g, b, strength)` | Rests the rim on `IconRim(r, g, b, strength)`, and derives it again on every restyle, so a tile that gives no colour follows the theme accent through `ThemeChanged`. A module with its own accent setting passes its colour each time it styles the tile. |
+| `IconRim(r, g, b, strength, lift) -> r, g, b, a` | The rim colour of a filled icon at rest: the accent (the theme's, or the plain numbers given) mixed `lift` (default 15%) toward `textHover`. A `strength` under 1 mixes that from the plain `edgeInner` hairline, so 0.5 is halfway between the grey hairline and the accent rim. |
+| `Widgets.SECONDARY_RIM` | The rim strength of every icon button that is not `primary`: the micro menu, the bag bar, the cooldown icons, the flyouts and the minimap column. `1`, the default, is the full accent rim the action buttons wear. The owner can tone those buttons down in this one number; `Tools/render/scenes/buttons_toned.lua` renders the scene at 0.5. |
 
 ## Tabs
 
@@ -393,10 +405,10 @@ Field: `editBox`, when the popup has one.
 
 `Glow(frame, opts) -> handle`: a glow drawn from the `shadow` falloff with additive blending, on a frame one level behind `frame`, so the frame's own fill hides the inside.
 
-Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`), `alpha` (the glow's full strength, default 1 for a proc and 60% for a selection).
+Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, default `accent`), `spread` (units the glow reaches out, default `gapMedium`), `alpha` (the glow's full strength, default 1 for a proc and 60% for a selection; an icon button's proc glow passes 10%, so only its inner glow and star show), `core` (for a selection glow: the strength of an additive inner wash over the frame, as a share of the colour at full intensity, such as the icon button's 20% hover wash; off by default).
 
-- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with the design's four-point star, two crossed 6-unit streaks one unit thick in the glow's colour (the accent, so it matches the rest of the theme), centred 3 units in from the frame's right edge and 2.5 below its top, and an additive inner glow (`core`) over the frame at 35%, 1.2 times the frame's size. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
-- A selection glow is steady at `alpha`.
+- A proc glow fades in, then pulses from 45% to 100% alpha and back over `procPulse` (1.2 s) on an AnimationGroup, with the design's four-point star, two crossed 6-unit streaks one unit thick in the glow's colour (the accent, so it matches the rest of the theme), centred 3 units in from the frame's right edge and 2.5 below its top, and an additive inner glow (`core`) over the frame at 35%, 1.2 times the frame's size. `alpha` scales only the outer halo; the star and the inner glow keep their strength. Reduced motion shows it steadily, and switching reduced motion on or off stops or restarts the pulse of a glow that is already running.
+- A selection glow is steady at `alpha`. With `core`, its inner wash (1.2 times the frame, on a `top` frame inside the holder) follows `SetIntensity` with the halo.
 
 | Method | Behaviour |
 | --- | --- |
@@ -406,7 +418,7 @@ Options: `kind` (`"proc"`, the default, or `"selection"`), `color` (a token, def
 | `SetColor(name)`, `Restyle()` | |
 | `SetColorRGB(r, g, b)` | Colours the glow with plain numbers instead of a token, kept through restyles. No arguments return to the token. |
 
-Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spark`, `sparkCross` and `core`.
+Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`, `sparkCross` and `core`, and for a selection glow with a wash `top` and `core`.
 
 ## Tooltip
 
@@ -416,16 +428,17 @@ Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spa
 | --- | --- |
 | `SetOwner(owner, anchor, x, y)` | Clears the lines and anchors to `owner`: `"ANCHOR_RIGHT"` (default), `"ANCHOR_LEFT"`, `"ANCHOR_TOP"` or `"ANCHOR_BOTTOM"`, 6 units away, plus `x` and `y`. |
 | `IsOwned(frame) -> boolean` | |
-| `SetIcon(texture)` | A chamfered 34-unit icon at the top left; the lines move right of it. |
-| `AddTitle(text, color)` | Heading text, `textEmphasis` by default |
-| `AddCaption(text, color)` | Upper-case caption text, `text` by default |
+| `SetIcon(texture, color)` | The design's item icon: a 50-unit chamfered raised tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask` through `Icons.Apply`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
+| `AddTitle(text, color)` | The design's title: `body` text in capitals, tracked with a thin space between the letters, `textEmphasis` by default. |
+| `AddCaption(text, color)` | Upper-case tracked caption text, `text` by default |
 | `AddLine(text, color, wrap)` | Body text that wraps unless `wrap` is `false` |
 | `AddDoubleLine(left, right, lr, lg, lb, rr, rg, rb)` | Body text left, `textEmphasis` text right |
-| `AddDivider()` | An `edgeInner` divider |
+| `AddRule()` | The design's 56-unit rule under an item's base lines: one border thick, from the accent to transparent, 4 units of air above and below |
+| `AddDivider()` | The `divider` line that fades at both ends, `edgeFaint`, from the panel's padding on the left to its padding on the right, 6.5 units of air above and below |
 | `ClearLines()` | Returns every line to a pool, so lines are made once. |
 | `Show()`, `Hide()` | Lay out, anchor and fade in, or fade out, hide and drop the owner, over `hover`. |
 
-`color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide.
+`color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide. Lines start 9.5 units below the top and are pitched half a unit apart (the design's 13.5 units for 11-unit text), with 2 more units after a title and 4 after a caption; the string height falls back to 1.2 times the font size where the game gives none.
 
 `AttachTooltip(frame, content)` shows the tooltip on `OnEnter` and hides it on `OnLeave`. `content` is a string, or `function(tooltip, frame)` that adds the lines. `Button` and `IconButton` call it for `opts.tooltip`.
 
@@ -445,7 +458,7 @@ Fields: `holder`, `slice`, and for proc glows `pulse`, `sparkPulse`, `top`, `spa
 | Function | Behaviour |
 | --- | --- |
 | `Strip(frame, opts) -> count` | Sets every texture region of `frame` to alpha 0 and hooks its `SetAlpha`, so Blizzard code cannot bring it back. Font strings stay. `opts.keep` is a set of regions to leave; `opts.children` lists child keys, dotted paths such as `"Inset.NineSlice"`, frames or textures to strip as well. A hooked `OnShow` strips textures the frame adds later, unless `opts.watch` is `false`. Returns the number of textures stripped. |
-| `Backdrop(frame, opts) -> Frame` | A KstyleUI [chrome](#chrome) on a child frame one level behind `frame`. `opts`: `shape`, `fill`, `shadow`, `inset` (a number, or `{ left, right, top, bottom }`), snapped in the frame's own scale and snapped again on `ScaleChanged`, and `target`: a KstyleUI frame the panel surrounds instead of `frame`, such as one anchored to the content a Blizzard frame shows. |
+| `Backdrop(frame, opts) -> Frame` | A KstyleUI [chrome](#chrome) on a child frame one level behind `frame`. `opts`: `shape`, `fill`, `shadow`, `icon` (`true`: the chrome is an [`IconChrome`](#icon-chrome), the dark button body with `SetRim` and `SetRimAccent`, and `shape`, `fill` and `shadow` are ignored), `inset` (a number, or `{ left, right, top, bottom }`), snapped in the frame's own scale and snapped again on `ScaleChanged`, and `target`: a KstyleUI frame the panel surrounds instead of `frame`, such as one anchored to the content a Blizzard frame shows. |
 | `CloseButton(button) -> Texture` | Strips the button and draws the `glyphClose` cross on a child frame: `text` at rest, `textHover` under the mouse, `textDisabled` when disabled. |
 | `Tab(tab) -> parts` | Strips the tab and draws an `accent` underline on a child frame while the tab is selected. The selected text is `textEmphasis`, others `text`, a disabled tab `textDisabled`. Selection comes from a hook on the tab's `SetTabSelected` (the tab system), or from global hooks on `PanelTemplates_SelectTab`, `PanelTemplates_DeselectTab` and `PanelTemplates_SetDisabledTabState`. A tab whose `isDisabled` is set (Blizzard uses `1`) counts as disabled. |
 | `Tabs(frame) -> count` | `Tab` for each of `frame.Tabs`, or `<name>Tab1` to `<name>Tab<numTabs>`. |

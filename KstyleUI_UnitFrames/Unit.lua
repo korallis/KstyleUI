@@ -173,7 +173,17 @@ function Unit.Power(view, unit, instant)
 		return
 	end
 	local bar = view.power
-	bar:SetBarRange(0, UnitPowerMax(unit))
+	local max = UnitPowerMax(unit)
+	local empty = false
+	if issecretvalue ~= nil and not issecretvalue(max) then
+		empty = type(max) == "number" and max <= 0
+	end
+	bar:SetShown(not empty)
+	if empty then
+		view.powerText:SetText("")
+		return
+	end
+	bar:SetBarRange(0, max)
 	SetValue(bar, UnitPower(unit), instant)
 	Format.Power(view.powerText, unit, view.s.powerText)
 end
@@ -201,12 +211,17 @@ local function OwnFont(path)
 	return ownFonts[path] == true
 end
 
+function Unit.Tracked(text, fontPath)
+	text = text:upper()
+	if OwnFont(fontPath) then
+		text = text:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1)
+	end
+	return text
+end
+
 function Unit.SetName(view, name)
 	if view.s.nameCaps then
-		name = name:upper()
-		if OwnFont((ns.Settings.Font(view.kind, "name"))) then
-			name = name:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1)
-		end
+		name = Unit.Tracked(name, (ns.Settings.Font(view.kind, "name")))
 	end
 	view.name:SetText(name)
 end

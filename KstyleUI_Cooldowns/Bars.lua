@@ -1,4 +1,4 @@
--- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with an icon, the buff's name, a fill driven by a duration object and a countdown.
+-- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,9 +10,9 @@ BarRow.__index = BarRow
 ns.BarRow = BarRow
 
 local ICON_CROP = 0.07
-local TIMER_SHARE = 2.5
-local TEXT_INSET = 4
-local EDGE_ALPHA = 0.5
+local ICON_INSET_LINES = 3
+local ICON_INSET_MAX_SHARE = 0.2
+local TEXT_INSET = 10
 
 function BarRow.New(parent, cfg)
 	local holder = CreateFrame("Frame", nil, parent)
@@ -38,12 +38,16 @@ function BarRow:StyleBar(bar)
 	Widgets.Size(bar, cfg.width, cfg.height)
 	local height = Widgets.Snap(holder, cfg.height)
 	local border = Widgets.Border(bar)
+	local inset = Widgets.Snap(holder, TEXT_INSET)
+	local tile = bar.iconTile
+	tile:SetShown(cfg.icon)
 	local left = 0
-	bar.icon:ClearAllPoints()
-	bar.icon:SetShown(cfg.icon)
 	if cfg.icon then
-		bar.icon:SetPoint("TOPLEFT", bar, "TOPLEFT", border, -border)
-		bar.icon:SetPoint("BOTTOMRIGHT", bar, "TOPLEFT", height - border, -height + border)
+		Widgets.Size(tile, cfg.height, cfg.height)
+		local iconInset = math.min(border * ICON_INSET_LINES, Widgets.Snap(holder, cfg.height * ICON_INSET_MAX_SHARE))
+		bar.icon:ClearAllPoints()
+		bar.icon:SetPoint("TOPLEFT", tile, "TOPLEFT", iconInset, -iconInset)
+		bar.icon:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -iconInset, iconInset)
 		left = height
 	end
 	local status = bar.status
@@ -56,25 +60,33 @@ function BarRow:StyleBar(bar)
 	status:SetBarTexture(cfg.texture)
 	status:Restyle()
 	Color(bar)
-	local inset = Widgets.Snap(holder, TEXT_INSET)
-	bar.timer:ClearAllPoints()
-	bar.timer:SetPoint("TOPRIGHT", status, "TOPRIGHT", 0, 0)
-	bar.timer:SetPoint("BOTTOMRIGHT", status, "BOTTOMRIGHT", 0, 0)
-	bar.timer:SetWidth(Widgets.Snap(holder, cfg.height * TIMER_SHARE))
 	bar.timer:SetHideCountdownNumbers(not cfg.timer)
+	Style.Countdown(bar.timer)
+	local countdown = bar.countdown
+	local nameEnd, nameEndPoint = bar, "RIGHT"
+	if countdown then
+		countdown:ClearAllPoints()
+		countdown:SetPoint("RIGHT", bar, "RIGHT", -inset, 0)
+		countdown:SetJustifyH("RIGHT")
+		Style.Font(countdown, current.timerFont, cfg.timerSize, current.timerOutline)
+		if cfg.timer then
+			nameEnd, nameEndPoint = countdown, "LEFT"
+		end
+	end
 	bar.name:ClearAllPoints()
-	bar.name:SetPoint("LEFT", status, "LEFT", inset, 0)
-	bar.name:SetPoint("RIGHT", bar.timer, "LEFT", -inset, 0)
+	if cfg.icon then
+		bar.name:SetPoint("LEFT", tile, "RIGHT", inset, 0)
+	else
+		bar.name:SetPoint("LEFT", bar, "LEFT", inset, 0)
+	end
+	bar.name:SetPoint("RIGHT", nameEnd, nameEndPoint, -inset, 0)
 	bar.name:SetShown(cfg.name)
 	Style.Font(bar.name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
-	Style.Font(bar.timer:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
 	Style.Font(bar.count, current.countFont, cfg.countSize, current.countOutline)
 	bar.count:ClearAllPoints()
 	bar.count:SetPoint("BOTTOMRIGHT", bar.icon, "BOTTOMRIGHT", 0, 0)
 	bar.count:SetShown(cfg.icon)
 	Style.Mouse(bar, current.tooltips)
-	local r, g, b = ns.Settings.Accent()
-	bar.chrome:SetEdgeRGBA(r, g, b, EDGE_ALPHA)
 end
 
 function BarRow:Bar(index)
@@ -83,20 +95,31 @@ function BarRow:Bar(index)
 		return bar
 	end
 	bar = CreateFrame("Frame", nil, self.content)
-	bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "raised", shadow = false })
-	local icon = bar:CreateTexture(nil, "ARTWORK")
+	bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "surface", shadow = false })
+	local tile = CreateFrame("Frame", nil, bar)
+	tile:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
+	tile.chrome = Widgets.Chrome(tile, { shape = "tile", fill = "buttonFill", shadow = false })
+	bar.iconTile = tile
+	local icon = tile:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	local mask = bar:CreateMaskTexture()
+	local mask = tile:CreateMaskTexture()
 	mask:SetTexture(Tokens.Texture("iconMask"), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
 	bar.icon = icon
-	bar.status = Widgets.StatusBar(bar, { background = "track" })
+	bar.status = Widgets.StatusBar(bar, { background = false })
 	local timer = CreateFrame("Cooldown", nil, bar.status, "CooldownFrameTemplate")
+	timer:SetAllPoints(bar.status)
 	timer:SetDrawSwipe(false)
 	timer:SetDrawEdge(false)
 	timer:SetDrawBling(false)
 	bar.timer = timer
+	local countdown = timer:GetCountdownFontString()
+	if countdown then
+		Widgets.StyleText(countdown, "number")
+		Widgets.TextColor(countdown, "textEmphasis")
+	end
+	bar.countdown = countdown
 	local overlay = CreateFrame("Frame", nil, bar)
 	overlay:SetAllPoints(bar)
 	overlay:SetFrameLevel(timer:GetFrameLevel() + 1)

@@ -32,13 +32,13 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 122, 12
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 175, 18
 
 local GAP = Tokens.Size("gapTiny")
 local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")
 local BADGE_PAD = Tokens.Size("gapSmall")
-local DISC_SIZE = 23
+local DISC_SIZE, DISC_CHAMFER, DISC_OVERLAP = 34, 10.5, 1
 local MARKER_SIZE = 8
 local MARKER_ROTATION = math.pi / 4
 local GLOW_CORNER, GLOW_OUTSET = 8, 6
@@ -64,10 +64,6 @@ local function LogOnce(key, message)
 	end
 end
 ns.LogOnce = LogOnce
-
-local function Plain(value)
-	return not IsSecret(value) and value
-end
 
 local function StyleFont(text, size, outline)
 	local flags = OUTLINE_FLAGS[outline] or "OUTLINE"
@@ -154,7 +150,8 @@ function ns.NewPlate(parent, sample)
 	plate.name = NewText(plate, "LEFT")
 
 	local badge = CreateFrame("Frame", nil, plate)
-	badge.chrome = Widgets.Chrome(badge, { shape = "panel", fill = "surface", shadow = false, grain = false })
+	badge:SetFrameLevel(health:GetFrameLevel() + 1)
+	badge.chrome = Widgets.Chrome(badge, { shape = "panel", fill = "surface", chamfer = DISC_CHAMFER, shadow = false, grain = false })
 	plate.level = badge
 	plate.levelText = NewText(badge, "CENTER")
 
@@ -237,7 +234,7 @@ function Plate:Restyle()
 	local side = math.max(DISC_SIZE, h, Settings.Get("level.size") + BADGE_PAD)
 	Widgets.Size(badge, side, side)
 	badge:ClearAllPoints()
-	badge:SetPoint("RIGHT", health, "LEFT", 0, 0)
+	badge:SetPoint("RIGHT", health, "LEFT", Widgets.Snap(self, DISC_OVERLAP), 0)
 	badge.chrome:Restyle()
 	self.levelText:ClearAllPoints()
 	self.levelText:SetPoint("CENTER", badge, "CENTER")
@@ -446,11 +443,8 @@ function Plate:UpdateLevel()
 		return
 	end
 	self.levelText:SetText(text)
-	local color = level ~= SKULL_LEVEL and self.kind == "enemy" and UnitValue(GetQuestDifficultyColor, level)
 	if level == SKULL_LEVEL then
 		self.levelText:SetTextColor(Tokens.Color("hostile"))
-	elseif type(color) == "table" and Plain(color.r) and Plain(color.g) and Plain(color.b) then
-		self.levelText:SetTextColor(color.r, color.g, color.b)
 	else
 		self.levelText:SetTextColor(Tokens.Color("textEmphasis"))
 	end

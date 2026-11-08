@@ -13,7 +13,9 @@ local OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0, 1, 0.05
 local FONT_MIN, FONT_MAX = 8, 24
 local TAB_FONT_MIN, TAB_FONT_MAX = 8, 16
 local FADE_MIN, FADE_MAX, FADE_STEP = 10, 600, 10
+local SPACING_MIN, SPACING_MAX = 0, 10
 ns.FONT_MIN, ns.FONT_MAX = FONT_MIN, FONT_MAX
+ns.SPACING_MIN, ns.SPACING_MAX = SPACING_MIN, SPACING_MAX
 
 local function Rgb(name)
 	local r, g, b = Tokens.Color(name)
@@ -27,14 +29,16 @@ local defaults = {
 	shadow = true,
 	buttons = false,
 	copyButton = true,
-	font = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE),
-	fontSize = 12,
+	editBox = "typing",
+	font = Tokens.FontPath("SourceSans3Regular"),
+	fontSize = 14,
+	lineSpacing = 4,
 	fontOutline = "none",
 	fade = true,
 	fadeTime = 120,
 	tabStyle = "underline",
 	tabCase = "upper",
-	tabFontSize = 10,
+	tabFontSize = 13,
 	accentSource = "class",
 	accentColor = Rgb("accentDefault"),
 	timestamp = "%H:%M",
@@ -130,7 +134,12 @@ function ns.Schema()
 		},
 		{
 			type = "toggle", key = "copyButton", label = L["Copy button"],
-			help = L["Shows a Copy button in the tab strip. The tab's right-click menu can copy too."],
+			help = L["A small copy glyph beside the plus in the tab row. A tab's right-click menu can copy too."],
+		},
+		{
+			type = "dropdown", key = "editBox", label = L["Edit box"],
+			help = L["Show the box you type in only while you type, or keep the game's resting box under the messages."],
+			options = { { value = "typing", label = L["Only while typing"] }, { value = "always", label = L["Always shown"] } },
 		},
 		{
 			type = "toggle", key = "buttons", label = L["Chat buttons"],
@@ -145,6 +154,11 @@ function ns.Schema()
 			type = "slider", key = "fontSize", label = L["Text size"],
 			help = L["The size of chat messages and the edit box."],
 			min = FONT_MIN, max = FONT_MAX, step = 1,
+		},
+		{
+			type = "slider", key = "lineSpacing", label = L["Line spacing"],
+			help = L["Extra space between chat lines, in units."],
+			min = SPACING_MIN, max = SPACING_MAX, step = 1,
 		},
 		{
 			type = "dropdown", key = "fontOutline", label = L["Outline"],

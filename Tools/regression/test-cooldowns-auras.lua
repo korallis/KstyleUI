@@ -39,7 +39,7 @@ end
 local bw, bh = buffs.holder:GetSize()
 assert(bw == 195 and bh == 30, "the buff icons fill a 195 by 30 footprint")
 local rw, rh = bars.holder:GetSize()
-assert(rw == 172 and rh == 78, "three bars of 172 by 24 fill a 172 by 78 footprint, got " .. tostring(rw) .. " by " .. tostring(rh))
+assert(rw == 195 and rh == 51, "two bars of 195 by 24 fill a 195 by 51 footprint, got " .. tostring(rw) .. " by " .. tostring(rh))
 assert(env._viewers.BuffIconCooldownViewer:GetAlpha() == 0 and env._viewers.BuffBarCooldownViewer:GetAlpha() == 0, "Blizzard's buff viewers are faded")
 
 -- Only active buffs show; an icon sweeps backward from its aura's duration object and shows its stacks.
@@ -116,7 +116,7 @@ K.Options.Write("Cooldowns", "bars.width", 220)
 K.Options.Write("Cooldowns", "bars.height", 20)
 assert(bar:GetWidth() == 220 and bar:GetHeight() == 20, "bars follow the width and height settings")
 local fw, fh = bars.holder:GetSize()
-assert(fw == 220 and fh == 3 * 20 + 2 * 3, "the holder follows the bar size")
+assert(fw == 220 and fh == 2 * 20 + 3, "the holder follows the bar size")
 K.Options.Write("Cooldowns", "bars.texture", "Interface\\AddOns\\Some\\Bar.tga")
 assert(LastArg(bar.status, "SetStatusBarTexture") == "Interface\\AddOns\\Some\\Bar.tga", "the texture setting reaches the bar")
 K.Options.Write("Cooldowns", "bars.colorSource", "custom")

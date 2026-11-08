@@ -1,6 +1,6 @@
 # KstyleUI_Chat
 
-Chat panels, tabs with an accent underline, edit box, copy chat, clickable links and class-coloured names.
+Chat panels, tabs with an accent underline, an edit box that shows while typing, copy chat, clickable links and class-coloured names.
 
 | Field | Value |
 | --- | --- |
@@ -46,15 +46,17 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | --- | --- | --- |
 | `panelOpacity` | the `surface` token's alpha, 0.88 | The glass behind the chat, 0 to 1. The text stays fully visible. |
 | `shadow` | `true` | The panel's soft shadow |
-| `copyButton` | `true` | The Copy button at the right end of the tab strip |
+| `copyButton` | `true` | The copy glyph beside the plus at the right end of the tab row |
+| `editBox` | `typing` | `typing` shows the edit box only while the player types; `always` keeps the game's resting box under the messages at Blizzard's alpha and leaves it room. In the game's Classic chat style Blizzard hides the resting box itself, so `always` only keeps the room. |
 | `buttons` | `false` | Shows Blizzard's chat menu and channel buttons beside the chat |
-| `font` | KstyleUI's body font | Messages, tabs and the edit box. A font the game cannot load falls back to the body font and logs once. |
-| `fontSize` | 12 | 8 to 24, messages and the edit box. A size picked from the game's tab menu becomes this setting. |
+| `font` | Source Sans 3 Regular | Messages, tabs and the edit box; the regular face matches the mockup's lighter chat text. A font the game cannot load falls back to the body font and logs once. |
+| `fontSize` | 14 | 8 to 24, messages and the edit box, the mockup's size. A size picked from the game's tab menu becomes this setting. |
+| `lineSpacing` | 4 | 0 to 10 units between lines; 4 gives the mockup's pitch at size 14 |
 | `fontOutline` | `none` | `none` (the soft text shadow), `OUTLINE` or `THICKOUTLINE` |
 | `fade`, `fadeTime` | `true`, 120 | Old lines fade after this many seconds, 10 to 600 |
 | `tabStyle` | `underline` | `underline` (the accent underline), `filled` (a raised tile behind the selected tab) or `minimal` (bright text only) |
 | `tabCase` | `upper` | Tab names in capitals or as typed |
-| `tabFontSize` | 10 | 8 to 16 |
+| `tabFontSize` | 13 | 8 to 16; the mockup's tab labels measure 13 at 1.348 px per unit |
 | `accentSource`, `accentColor` | `class`, the default accent | Links and the chat's highlights follow the class colour or a custom colour |
 | `timestamp` | `%H:%M` | `none`, `%H:%M`, `%H:%M:%S`, `%I:%M %p`, `%I:%M:%S %p`, `%I:%M` or `%I:%M:%S`: the game's six formats. The game draws it, so system and loot lines have none. |
 | `timestampColor` | the `text` token | The colour of the time |
@@ -92,7 +94,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 
 ## The panel
 
-`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 320 by 130 units at the bottom left in every layout. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
+`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 424 by 164 units at the bottom left in every layout. The owner's mockup draws the chat 430 by 164 at 1.348 px per unit; 424 keeps it clear of the tracked buff bars on the owner's screen, which sit 4 units above the panel's top. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
 
 The glass is a `Widgets.Panel` child of the holder that fills it, in the `BACKGROUND` strata with `SetFixedFrameStrata(true)`, so a strata the player picks for the element never lifts the glass over Blizzard's chat, whose windows and dock stay in their own strata.
 
@@ -100,13 +102,14 @@ Blizzard's `ChatFrame1` is anchored inside the holder by two points, so it follo
 
 | Part | Where, in root units at the 1080 reference |
 | --- | --- |
-| Tabs | The tab text sits 12 units below the panel's top. A faint divider runs where Blizzard's dock meets the window, under the tabs, and the selected tab's underline lies on it: one unit, the accent lifted 60% toward white, across the tab's full width, with a 5-unit accent glow fading upward from it. |
-| Messages | `gapMedium` in from the left, below the tabs, and in from the right by `gapMedium` plus the scroll bar's column |
-| Edit box | Blizzard keeps it under the window. The panel leaves room for it: its raised tile is 22 units tall and 6 units above the panel's bottom. |
+| Tabs | The tabs sit inside the glass, in a 32-unit row as the mockup draws them. A faint divider closes the row where Blizzard's dock meets the window, and the selected tab's underline lies on it: one unit in the accent (the class colour), across the tab's full width, with a 5-unit accent glow fading upward from it. Blizzard centres the tab text 14 units above its window, so the labels sit 21 units below the panel's top. |
+| Glyphs | At the row's right end, level with the tab labels: a plus, the close glyph turned an eighth of a turn, centred 22 units in from the right edge, which opens the chat's settings page; and a copy glyph, two outlined squares drawn from the kit's white texture, one button and a tiny gap to its left, which opens the copy window. Both are 8 units across in the accent (white on hover) with 20-unit hit areas. |
+| Messages | 16 units in from the left and up from the bottom, as the mockup, below the tab row, and in from the right by whichever is wider: 16 plus the scroll bar's column, or the glyphs' room. Blizzard's dock ends 2 chat units past the window and its 16-unit overflow button sits at that end, so the window stops where the button clears the last glyph's hit area: 56 units with the copy glyph, 352 units of room for the mockup's lines. |
+| Edit box | Blizzard keeps it under the window. With `editBox` at `typing` the panel keeps no room for it, so the box hangs under the panel while the player types; when the chat window's units are larger than the root's or the panel sits low, the bottom inset grows until the box's tile clears the screen's edge by `gapTiny`, and a `LayoutChanged` callback places the window again when the panel moves. With `always` the panel keeps the room: the tile is 22 units tall and 6 units above the panel's bottom. |
 
-The offsets come from Blizzard's own geometry in the chat window's units (`FloatingChatFrame.xml` and `ChatFrameEditBox.xml`: the tab text 14 units above the window, the dock 3 units above it, the edit box 2 units below it and 32 tall, starting 5 units left of the window and ending 8 past the scroll bar), converted through the ratio of the chat window's effective scale to the panel's and snapped to whole physical pixels. They are worked out again on `ScaleChanged`.
+The offsets come from Blizzard's own geometry in the chat window's units (`FloatingChatFrame.xml` and `ChatFrameEditBox.xml`: the tab text 14 units above the window, the dock 3 units above it, the edit box 2 units below it and 32 tall, starting 5 units left of the window and ending 8 past the scroll bar), converted through the ratio of the chat window's effective scale to the panel's and snapped to whole physical pixels. They are worked out again on `ScaleChanged`. The line pitch is the font's own line height plus the `lineSpacing` setting, which goes through the window's `SetSpacing` (`ScrollingMessageFrameSecureMixin` in Forever's `ScrollingMessageFrame.lua`; its lines anchor one spacing apart).
 
-The panel's visibility and opacity carry over to Blizzard's chat: hooks on the holder's `Show`, `Hide`, `SetShown` and `SetAlpha` set the same alpha on `GENERAL_CHAT_DOCK` (the tabs) and every docked window. A docked window's edit box, which Blizzard parents to `UIParent` and fades itself, keeps Blizzard's alpha times the panel's, except while the player types in it. A window that leaves the dock gets full alpha back, a window opened into the dock takes the panel's at once, and turning the module off puts everything back.
+The panel's visibility and opacity carry over to Blizzard's chat: hooks on the holder's `Show`, `Hide`, `SetShown` and `SetAlpha` set the same alpha on `GENERAL_CHAT_DOCK` (the tabs) and every docked window. An edit box, which Blizzard parents to `UIParent` and fades itself, is at alpha 0 with its mouse off until the player types in it, when it shows at Blizzard's own alpha and takes the mouse again; with `editBox` at `always` a docked window's box keeps Blizzard's alpha times the panel's instead. A window that leaves the dock gets full alpha back, a window opened into the dock takes the panel's at once, and turning the module off puts everything back.
 
 ## The windows
 
@@ -119,7 +122,7 @@ The panel's visibility and opacity carry over to Blizzard's chat: hooks on the h
 | Tab names | Upper-cased with the tab's own `SetText`; the typed name is kept in `Safe.Side(tab)` so the normal case can come back. A secret name, such as a whisper window's, is left alone. A hook on `FCF_SetWindowName` handles renames. |
 | Edit box | `Skin.EditBox`: a raised tile whose hairline lights in the module accent while it has focus |
 | Scroll bar | `Skin.ScrollBar`, and a chevron on the jump-to-bottom button, which keeps its flash |
-| Fonts | `SetFont`, `SetShadowColor` and `SetShadowOffset` on each window, its edit box and the edit box's header texts, and on each tab's text. They are set again after `UPDATE_CHAT_WINDOWS`, which resets each window's size. |
+| Fonts | `SetFont`, `SetShadowColor`, `SetShadowOffset` and `SetSpacing` on each window, its edit box and the edit box's header texts, and on each tab's text. They are set again after `UPDATE_CHAT_WINDOWS`, which resets each window's size. |
 | Fading | `SetFading` and `SetTimeVisible` |
 | Buttons | Blizzard's button column next to `ChatFrame1` (chat menu, channels) is hidden with `Safe.HideBlizzard` unless `buttons` is on |
 | Undocked windows | A glass backdrop from `Skin.Backdrop` that reaches out to cover the tab and the edit box. Hooks on `FCF_DockFrame` and `FCF_UnDockFrame` show and hide it. |
@@ -132,7 +135,7 @@ The copy window is a `Widgets.Panel` titled "Copy chat - <tab>" in the `DIALOG` 
 
 | Way in | Window it copies |
 | --- | --- |
-| The **Copy** button at the right end of the panel's tab strip | The selected docked window. The button fades with `ChatFrame1Tab`, as Blizzard fades the tabs. |
+| The copy glyph beside the plus at the right end of the panel's tab row | The selected docked window. The glyphs fade with `ChatFrame1Tab`, as Blizzard fades the tabs. |
 | **Copy chat** in a chat tab's right-click menu, added with `Menu.ModifyMenu("MENU_FCF_TAB", ...)` | That tab's window |
 
 It shows every line in the window's history, oldest first, as plain text: `Format.Strip` drops colours, textures and atlases and keeps link text. A secret line becomes "(a line the game keeps hidden)". The text scrolls to the end and is selected, ready for Ctrl+C.
@@ -159,4 +162,6 @@ The schema's `preview` builds a small glass panel with three sample tabs and fou
 - The button column is reparented through `Safe.HideBlizzard`, not hidden, because Blizzard lays it out and fades it.
 - Copying: secret lines cannot be concatenated into the copy text without making the whole text secret, so each one is replaced by a placeholder line. Messages are read with the window's own `GetNumMessages` and `GetMessageInfo`.
 - The tab menu entry uses `Menu.ModifyMenu`, the hook Blizzard's menu system offers addons, so Blizzard's menu builder is never replaced. Its handle is unregistered when the module turns off. A client without it logs that the entry is missing; the Copy button still works.
-- The Copy button's column is taken from the messages' width so the dock's tabs never run under it.
+- The glyphs' room is taken from the messages' width so the dock's tabs and its overflow button never run under them.
+- The plus opens the module's settings page because the module cannot do what a plus on a chat strip usually does: `FCF_NewChatWindow` and the chat menu are Blizzard functions that open Blizzard windows, and running them from addon code would taint the dock.
+- The invisible resting box also has `EnableMouse(false)`, so a click under the messages reaches the world instead of waking the box; the mouse comes back with focus, with the `always` mode and when the module turns off. The edit box is never hidden or shown by the module: Blizzard's own `Deactivate` hides it only in the `classic` chat style, and writing the `chatStyle` CVar would run Blizzard's chat-style handlers from addon code; in that style `always` cannot bring the resting box back and keeps only its room. The module sets the box's alpha instead, the one call it already makes to mirror the panel's opacity, and the game's activate path (`ChatFrameUtil.ActivateChat` sets alpha 1, then focuses the box) brings it back through the focus hooks.

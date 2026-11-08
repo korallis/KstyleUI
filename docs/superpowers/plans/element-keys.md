@@ -23,21 +23,21 @@ Footprints are width x height in units at the 1080 reference.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
-| `unitframes.player` | UnitFrames | Player frame | 296 x 89 | The kit sheet's 469 by 141 proportions: an 89-unit portrait over one glass panel |
-| `unitframes.target` | UnitFrames | Target frame | 296 x 89 | Mirror of the player frame |
-| `unitframes.targettarget` | UnitFrames | Target of target | 120 x 24 | Under the target frame, right-aligned |
+| `unitframes.player` | UnitFrames | Player frame | 280 x 89 | The owner's mockup: a round 89-unit portrait over one glass panel, 279 units from the ring's edge to the glass's end |
+| `unitframes.target` | UnitFrames | Target frame | 280 x 89 | Mirror of the player frame |
+| `unitframes.targettarget` | UnitFrames | Target of target | 104 x 24 | Beside the target frame's portrait end, 4 units right of it, bottom-aligned; the mockup shows no target of target |
 | `unitframes.focus` | UnitFrames | Focus frame | 240 x 96 | A 240 by 72 frame with its 20-unit cast bar under it |
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 24 | Under the focus frame, right-aligned |
-| `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned, mirroring the target of target |
+| `unitframes.pet` | UnitFrames | Pet frame | 104 x 24 | Beside the player frame's portrait end, 4 units left of it, bottom-aligned, mirroring the target of target; the mockup shows no pet |
 | `unitframes.boss` | UnitFrames | Boss frames | 200 x 400 | Boss 1 to 5 stacked downward, 72 units each with 10-unit gaps: a 200 by 60 frame and a 10-unit cast bar |
 | `unitframes.castbar.player` | UnitFrames | Player cast bar | 340 x 36 | Above the essential cooldowns and the frames, with the spell name and time over a thin bar |
-| `unitframes.castbar.target` | UnitFrames | Target cast bar | 194 x 18 | Under the target frame and the tracked buff icons |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 272 x 28 | Under the target frame and the tracked buff icons, nearly the frame's width like the design file's, clear of the experience bar's end |
 | `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, on top of the player frame, right-aligned |
 | `groupframes.party` | GroupFrames | Party frames | 230 x 270 | Five 46-unit frames stacked downward with 10-unit gaps |
 | `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row |
 | `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | The second row, 10 units under bar 1 |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | A column of 12 at the right edge |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | A column of 12 at the right edge, under the debuff row |
 | `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | A column of 12, left of bar 3 |
 | `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | A column of 12 at the left edge |
 | `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | A column of 12, right of bar 5 |
@@ -46,15 +46,15 @@ Footprints are width x height in units at the 1080 reference.
 | `cooldowns.essential` | Cooldowns | Essential cooldowns | 376 x 56 | 6 icons of 56 units with 8-unit gaps, between the player and target frames |
 | `cooldowns.utility` | Cooldowns | Utility cooldowns | 238 x 52 | 4 icons of 52 units with 10-unit gaps, under the essential row and the frames |
 | `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, under the target frame |
-| `cooldowns.bars` | Cooldowns | Tracked buff bars | 172 x 78 | Three 172 by 24 bars, under the player frame, right-aligned |
-| `auras.buffs` | Auras | Buffs | 420 x 76 | Two rows of icons under the minimap, growing left |
-| `auras.debuffs` | Auras | Debuffs | 420 x 38 | One row under the buffs |
-| `minimap.main` | Minimap | Minimap | 168 x 166 | A 142 map square, the 24-unit button strip inside its right edge and the 22-unit footer |
-| `chat.main` | Chat | Chat | 320 x 130 | The panel with its tabs and edit box |
+| `cooldowns.bars` | Cooldowns | Tracked buff bars | 195 x 51 | Two 195 by 24 bars, 5 units under the player frame, right-aligned with it: the mockup's bars start 225 units above the screen's bottom, ours 235, so they clear the 424-unit chat panel on the owner's 1671-unit-wide root |
+| `auras.buffs` | Auras | Buffs | 222 x 102 | Two rows of five 38-unit icons with their timers, 15 units under the minimap and centred under the map square, growing right so the shortest time left comes first |
+| `auras.debuffs` | Auras | Debuffs | 222 x 51 | One row of five under the buffs |
+| `minimap.main` | Minimap | Minimap | 259 x 221 | The mockup's 221 chamfered frame: a 213 map square with the 30-unit footer over its bottom, and the 34-unit button column 4 units left of it |
+| `chat.main` | Chat | Chat | 424 x 164 | The panel with its tabs and edit box |
 | `databars.xp` | DataBars | Experience bar | 440 x 4 | Between the utility row and action bar 1, with its XP caption on the line |
 | `databars.rep` | DataBars | Reputation bar | 440 x 5 | Under action bar 2 |
 | `databars.honor` | DataBars | Honour bar | 440 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
-| `databars.strip` | DataBars | Data strip | 360 x 36 | FPS, latency, gold, durability and time |
+| `databars.strip` | DataBars | Data strip | 492 x 43 | FPS, latency, gold, durability and time |
 | `databars.micro` | DataBars | Micro menu | 270 x 28 | One row above the data strip |
 | `databars.bags` | DataBars | Bag bar | 180 x 30 | One row above the micro menu |
 | `meters.damage` | Meters | Damage meter | 208 x 130 | Right side, inside the right-hand bar columns, above the tooltip anchor |

@@ -61,7 +61,7 @@ Each element is a holder frame registered with Layout as resizable, at its footp
 | `<bar>.texture` | Glass | Any status bar texture, LibSharedMedia's included |
 | `<bar>.orientation` | `HORIZONTAL` | `HORIZONTAL` or `VERTICAL`. A change swaps the element's width and height through `Layout.Update`. |
 | `<bar>.reverse` | `false` | Fill from the other end |
-| `<bar>.segments` | 10 | 0 to 20 equal segments, drawn as ticks one border wide |
+| `<bar>.segments` | 0 | 0 to 20 equal segments, drawn as ticks one border wide; the mockup's experience line is unbroken |
 | `<bar>.border` | `true` | The chamfered frame around the bar |
 | `xp.rested`, `xp.restedColor` | `true`, `rare` at 50% | The rested overlay and its colour |
 | `honor.show` | `pvp` | `pvp` or `always` |
@@ -69,14 +69,14 @@ Each element is a holder frame registered with Layout as resizable, at its footp
 | `<bar>.textHover` | `true` | Show the text only under the pointer |
 | `<bar>.textPosition` | `CENTER` | On, above, below, left or right of the bar |
 | `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font |
-| `<bar>.fontSize` | 9, the `caption` size | 6 to 24, times the Appearance page's text size |
+| `<bar>.fontSize` | 12 for experience (the mockup's "XP 32%"), 9 (the `caption` size) for the others | 6 to 24, times the Appearance page's text size |
 | `<bar>.outline` | `OUTLINE` | `NONE` (a soft shadow), `OUTLINE` or `THICKOUTLINE` |
 
 Layout gives each bar its shown rule, position, size, opacity and strata.
 
 ## Data strip
 
-`databars.strip` is one resizable glass panel registered with Layout at its footprint, 360 x 36, bottom right. It holds up to five items, each a label and a value on a button that lights under the pointer and shows a KstyleUI tooltip.
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each a white label and a value on a button that lights under the pointer and shows a KstyleUI tooltip. The separators between items are one border wide, a quarter of the strip tall, in the full text grey.
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |
@@ -96,12 +96,12 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 | --- | --- | --- |
 | `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. |
 | `strip.labels` | `full` | `full` (FPS:, Durability:), `short` (FPS:, MS:, DUR:, as in the dungeon mockup) or `none` |
-| `strip.valueColor` | `threshold` | `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
+| `strip.valueColor` | `highlight` | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
 | `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |
 | `strip.backdrop`, `strip.separators` | `true`, `true` | The glass panel and the lines between items |
-| `strip.spacing` | 8 | 0 to 32 units each side of a separator |
+| `strip.spacing` | 21 | 0 to 32 units each side of a separator |
 | `strip.orientation` | `HORIZONTAL` | A row, or a column. A change resizes the element through `Layout.Update`. |
-| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 10, `NONE` | As for the bars' text |
+| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 13, `NONE` | As for the bars' text. At 13 the five default items span the mockup's 444 units inside the 492 strip. |
 | `strip.money` | `full` | `full`, `gold` or `icons` |
 | `strip.latency` | `home` | `home` or `world` |
 | `strip.timeSource`, `strip.clock24` | `local`, `true` | Local or realm time, and the clock format |

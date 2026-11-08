@@ -44,11 +44,12 @@ assert(player.frame:IsShown(), "a cast shows the bar")
 local timer = W.LastCall(player.bar, "SetTimerDuration")
 assert(timer and timer[1].finish == 3.5, "the bar runs on the cast's duration object")
 assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills up")
-assert(U.Shown(env, player.text) == "FROSTBOLT", "the spell name shows")
+assert(U.Shown(env, player.text) == "Frostbolt", "the spell name shows as the game writes it, like the mockup's Slam: " .. U.Shown(env, player.text))
+assert(player.geometry.icon == nil, "the player cast bar has no icon, as on the mockup")
 assert(W.LastCall(player.icon, "SetTexture")[1] == 135846, "the icon shows the spell's icon through KstyleUI.Icons")
 env._time = 2
 W.Tick(env, 0.1)
-assert(U.Shown(env, player.timer) == "1.5", "the timer counts down: " .. U.Shown(env, player.timer))
+assert(U.Shown(env, player.timer) == "1.5s", "the timer counts down with the design's s suffix: " .. U.Shown(env, player.timer))
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-1", 116)
 settle()
@@ -60,12 +61,19 @@ noErrors("player cast")
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1500, finish = 4000, spellID = 116, barID = 7 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-7", 116, 7)
 env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-8", 2139, 8)
-assert(U.Shown(env, player.text) == "FROSTBOLT" and player.frame:GetScript("OnUpdate"), "a failed cast with another cast bar ID is ignored")
+assert(U.Shown(env, player.text) == "Frostbolt" and player.frame:GetScript("OnUpdate"), "a failed cast with another cast bar ID is ignored")
 env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-8", 2139)
-assert(U.Shown(env, player.text) == "FROSTBOLT", "without an ID, a failure while the cast still runs is ignored")
+assert(U.Shown(env, player.text) == "Frostbolt", "without an ID, a failure while the cast still runs is ignored")
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-7", 116, 7)
-assert(U.Shown(env, player.text) == K.L["Failed"]:upper(), "the running cast's own failure shows Failed")
+assert(U.Shown(env, player.text) == K.L["Failed"], "the running cast's own failure shows Failed")
+settle()
+K.Options.Write("UnitFrames", "player.castbarCaps", true)
+env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1500, finish = 4000, spellID = 116 }
+env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-9", 116)
+assert(U.Shown(env, player.text) == "FROSTBOLT", "with capitals on, the spell name is upper-cased: " .. U.Shown(env, player.text))
+env._units.player.cast = nil
+env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-9", 116)
 settle()
 
 -- An interrupted cast says so in the hostile colour, then fades.
@@ -102,7 +110,7 @@ local locked = W.LastCall(target.bar:GetStatusBarTexture(), "SetVertexColorFromB
 assert(locked and env.issecretvalue(locked[1]), "a secret interruptible flag colours the bar from a boolean")
 env._time = 2
 W.Tick(env, 0.1)
-assert(U.Shown(env, target.timer) == "1.8", "the timer shows a secret remaining time: " .. U.Shown(env, target.timer))
+assert(U.Shown(env, target.timer) == "1.8s", "the timer shows a secret remaining time: " .. U.Shown(env, target.timer))
 stopTimer(target)
 U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 1, healthMax = 2, reaction = 2 })
 env.SetTarget(true)
@@ -184,7 +192,9 @@ assert(not player.iconFrame:IsShown(), "the icon can be switched off")
 local _, _, _, px = player.panel:GetPoint(1)
 assert(math.abs(px) < 1e-6 and player.geometry.icon == nil, "and the glass bar takes its room")
 local _, _, _, bx = player.bar:GetPoint(1)
-assert(math.abs(bx - player.geometry.bar.x) < 1 and player.geometry.bar.x - player.geometry.panel.x < 10, "with the bar just inside the glass")
+assert(math.abs(bx - player.geometry.bar.x) < 1 and player.geometry.bar.x - player.geometry.panel.x == math.floor(0.5 * 36 + 0.5), "with the bar inside the glass at the mockup's 0.5 H inset (Slam's bar starts 18 units in on a 37-unit bar)")
+local narrowTall = CastBars.Geometry(200, 120, true, true, 14)
+assert(narrowTall.stacked and narrowTall.bar.w >= 0.5 * narrowTall.panel.w and narrowTall.text.w > 0, "a tall, narrow bar beside its icon keeps at least half its glass for the fill: the insets never eat the panel, got " .. narrowTall.bar.w)
 K.Options.Write("UnitFrames", "player.castbarTimer", false)
 K.Options.Write("UnitFrames", "player.castbarText", false)
 assert(not player.timer:IsShown() and not player.text:IsShown(), "the timer and the spell name can be switched off")
@@ -224,7 +234,7 @@ assert(not player.frame:IsShown(), "a start event without a cast keeps the bar h
 do
 	local CUSTOM = "Interface\\AddOns\\KstyleUI_Icons\\Icons\\135846.png"
 	local ienv, IK, ins = U.New({
-		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true }, Icons = { enabled = true } } }, characters = {} },
+		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true }, Icons = { enabled = true, set = "A" } } }, characters = {} },
 		setup = function(e)
 			e.C_AddOns = {
 				LoadAddOn = function()

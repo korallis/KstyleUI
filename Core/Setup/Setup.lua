@@ -8,7 +8,7 @@ local L = ns.L
 local OWNER = "Setup"
 local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
-local ICON_ADDON = "KstyleUI_Icons"
+local ICON_ADDON = "KstyleUI_IconsColour"
 
 local PICKER = {
 	{ name = "UnitFrames", label = L["Unit frames"], note = L["Player, target, focus, pet and boss frames."] },

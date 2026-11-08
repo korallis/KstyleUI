@@ -87,14 +87,23 @@ do
 			shownTicks = shownTicks + 1
 		end
 	end
+	eq(shownTicks, 0, "no ticks by default: the mockup's experience line is unbroken")
+	K.Options.Write("DataBars", "xp.segments", 10)
+	shownTicks = 0
+	for _, tick in ipairs(xp.ticks) do
+		if tick:IsShown() then
+			shownTicks = shownTicks + 1
+		end
+	end
 	eq(shownTicks, 9, "ten segments draw nine ticks")
+	K.Options.Write("DataBars", "xp.segments", 0)
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the mockup's XP 32% does")
 	eq(xp.text:GetText(), "XP 24%", "the default caption is the short name and the percent")
 	W.Enter(xp.holder)
 	eq(xp.text:IsShown(), true, "hovering keeps the caption")
 	local _, labelSize = xp.text:GetFont()
-	eq(labelSize, 9 * K.Theme.FontScale(), "the label reads at the caption size")
+	eq(labelSize, 12 * K.Theme.FontScale(), "the label reads at 12, the mockup's XP 32% cap height")
 	local point = xp.text:GetPoint(1)
 	eq(point, "CENTER", "the label is centred on the bar")
 	local tip = K.Widgets.Tooltip()
@@ -104,8 +113,8 @@ do
 	for _, line in ipairs(tip.used) do
 		lines[#lines + 1] = line.left:GetText()
 	end
-	local all = table.concat(lines, "|")
-	assert(all:find("Experience", 1, true), "the tooltip names the bar: " .. all)
+	local all = (table.concat(lines, "|"):gsub("\226\128\137", ""))
+	assert(all:find("EXPERIENCE", 1, true), "the tooltip names the bar in the kit's capitals: " .. all)
 	assert(all:find("Level 38", 1, true), "the tooltip gives the level: " .. all)
 	assert(all:find("Rested", 1, true), "the tooltip gives rested XP: " .. all)
 	W.Leave(xp.holder)

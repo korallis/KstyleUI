@@ -11,10 +11,13 @@ local Components = {}
 
 -- Section origins in screen units, read off the design file at 2 px per unit.
 Components.SECTIONS = {
-	minimap = { x = 32, y = 120 },
+	-- The minimap element is 259 wide (the button column outside the map), so it starts 6 units left of the design's
+	-- map to clear the player section.
+	minimap = { x = 26, y = 120 },
 	player = { x = 288, y = 132 },
-	-- The design draws the frames 234 units wide; the addon's are 296, so the target sits further right.
-	target = { x = 624, y = 132 },
+	-- The design draws the frames 234 units wide; the addon's are 280, so two do not fit before the button states
+	-- at 800. The target sits at the sheet's right end, past them.
+	target = { x = 1360, y = 132 },
 	targetCast = { x = 660, y = 232 },
 	buttons = { x = 800, y = 150, step = 80, size = 62 },
 	panel = { x = 32, y = 350, w = 220, h = 135 },
@@ -184,9 +187,9 @@ function Components.Widgets()
 	tip:AddLine("Two-Handed Bow")
 	tip:AddDoubleLine("Physical Damage", "142 - 198")
 	tip:AddDoubleLine("Attack Speed", "1.8")
-	tip:AddDivider()
-	tip:AddLine("+24 Agility", K.Tokens.Color("friendly"))
-	tip:AddLine("+18 Critical Strike", K.Tokens.Color("friendly"))
+	tip:AddRule()
+	tip:AddLine("+24 Agility", K.Tokens.Color("accent"))
+	tip:AddLine("+18 Critical Strike", K.Tokens.Color("accent"))
 	tip:AddDivider()
 	tip:AddLine("Durability 96 / 100")
 	tip:AddLine("Requires Level 38")

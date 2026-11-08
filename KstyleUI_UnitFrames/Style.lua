@@ -11,7 +11,6 @@ ns.Style = Style
 local LEVEL_PORTRAIT = 3
 local LEVEL_BADGE = 5
 local LEVEL_TEXT = 8
-local BADGE_RING_ALPHA = 0.8
 local BADGE_EDGE = "text"
 local BADGE_EDGE_ALPHA = 0.6
 local PORTRAIT_BACK_ALPHA = 1
@@ -20,8 +19,13 @@ local ABSORB_ALPHA = 0.35
 local IMAGE_SUBLEVEL = -4
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local TRACK = "raised"
-local TRACK_LINE, TRACK_LINE_ALPHA = "edgeFaint", 1.6
+local POWER_TRACK = "powerTrack"
+local TRACK_LINE, TRACK_LINE_ALPHA = "powerTrack", 1
 local TINT = 0.85
+local RIM_WHITE = 0.15
+local OCTAGON = 1 / (2 + math.sqrt(2))
+local PORTRAIT_CHAMFER = 0.15
+local GLASS_CHAMFER = 0.125
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -77,7 +81,7 @@ function Style.New(parent, kind)
 	view.health:SetClipsChildren(true)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
-	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
+	view.power = Widgets.StatusBar(panel, { smooth = true, background = POWER_TRACK })
 	view.trackLine = panel:CreateTexture(nil, "ARTWORK")
 	view.trackLine:SetColorTexture(Tokens.Color("white"))
 
@@ -100,13 +104,7 @@ function Style.New(parent, kind)
 	local badge = CreateFrame("Frame", nil, parent)
 	badge:SetFrameLevel(base + LEVEL_BADGE)
 	view.badge = badge
-	view.badgeChrome = Widgets.Chrome(badge, { shape = "tile", fill = "raised", shadow = false })
-	view.badgeBack = badge:CreateTexture(nil, "BACKGROUND")
-	view.badgeBack:SetTexture(dot)
-	view.badgeBack:SetAllPoints(badge)
-	view.badgeRing = badge:CreateTexture(nil, "BORDER")
-	view.badgeRing:SetTexture(ring)
-	view.badgeRing:SetAllPoints(badge)
+	view.badgeChrome = Widgets.Chrome(badge, { shape = "panel", fill = "surface", shadow = false, grain = false })
 
 	local top = CreateFrame("Frame", nil, parent)
 	top:SetFrameLevel(base + LEVEL_TEXT)
@@ -124,12 +122,9 @@ function Style.Shape(view, round)
 	view.round = round
 	view.portraitBack:SetShown(round)
 	view.ring:SetShown(round)
-	view.badgeBack:SetShown(round)
-	view.badgeRing:SetShown(round)
 	view.portraitChrome:SetShadow(not round)
 	view.portraitChrome:SetShown(not round)
-	view.badgeChrome:SetShown(not round)
-	view.mask:SetTexture((Tokens.Texture(round and "dot" or "iconMask")), MASK_WRAP, MASK_WRAP)
+	view.mask:SetTexture((Tokens.Texture(round and "dot" or "portraitMask")), MASK_WRAP, MASK_WRAP)
 end
 
 local function Snap(view, units)
@@ -179,6 +174,7 @@ function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 	view.geometry = g
 	Place(view, view.panel, g.glass)
+	view.chrome:SetChamfer(not g.compact and GLASS_CHAMFER * g.glass.h or nil)
 	view.chrome:Restyle()
 	PlaceBar(view, view.health, g.health)
 	PlaceBar(view, view.power, g.power)
@@ -190,6 +186,7 @@ function Style.Layout(view, s, width, height)
 	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
 	if g.portrait then
 		Place(view, view.portraitFrame, g.portrait)
+		view.portraitChrome:SetChamfer(PORTRAIT_CHAMFER * g.portrait.w)
 		view.portraitChrome:Restyle()
 		local inset = Widgets.Border(view.parent) * (view.round and 1 or 2)
 		view.portrait:ClearAllPoints()
@@ -201,6 +198,7 @@ function Style.Layout(view, s, width, height)
 	end
 	if g.badge then
 		Place(view, view.badge, g.badge)
+		view.badgeChrome:SetChamfer(OCTAGON * g.badge.w)
 		view.badgeChrome:Restyle()
 		view.badge:Show()
 		view.levelText:ClearAllPoints()
@@ -283,13 +281,15 @@ end
 function Style.Accent(view)
 	local r, g, b = Settings.Accent()
 	view.ring:SetVertexColor(r, g, b, 1)
-	view.portraitChrome:SetEdgeRGBA(r, g, b, 1)
+	view.portraitChrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RIM_WHITE))
 	view.icons.resting:SetTextColor(r, g, b, 1)
-	view.badgeRing:SetVertexColor(r, g, b, BADGE_RING_ALPHA)
-	view.badgeChrome:SetEdge(BADGE_EDGE, BADGE_EDGE_ALPHA)
+	if view.round then
+		view.badgeChrome:SetEdgeRGBA(r, g, b, 1)
+	else
+		view.badgeChrome:SetEdge(BADGE_EDGE, BADGE_EDGE_ALPHA)
+	end
 	local br, bg, bb = Tokens.Color("raised")
 	view.portraitBack:SetVertexColor(br, bg, bb, PORTRAIT_BACK_ALPHA)
-	view.badgeBack:SetVertexColor(br, bg, bb, PORTRAIT_BACK_ALPHA)
 end
 
 Style.ORIENTATION = ORIENTATION

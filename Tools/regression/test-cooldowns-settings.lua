@@ -63,8 +63,9 @@ local defaults = ns.Settings.defaults
 assert(defaults.essential.size == 56, "essential icons are 56 units, as the composition mockup measures")
 assert(defaults.utility.size == 52 and defaults.utility.spacing == 10 and defaults.utility.columns == 4, "a row of four 52-unit utility icons with 10-unit gaps")
 assert(defaults.essential.spacing == 8 and defaults.essential.columns == 6, "six essential icons per row with 8-unit gaps")
-assert(defaults.bars.width == 172 and defaults.bars.height == 24 and defaults.bars.count == 3, "three bars of 172 by 24 units")
+assert(defaults.bars.width == 195 and defaults.bars.height == 24 and defaults.bars.count == 2, "two bars of 195 by 24 units, as the mockup draws them")
 assert(defaults.path == "auto", "the path is automatic by default")
+assert(defaults.essential.desaturate == false and defaults.utility.desaturate == false, "a cooling icon keeps its colour, as the mockup's centre cluster shows")
 
 -- The font dropdown lists the kit font first, then the media fonts as paths.
 local fonts = ns.Settings.FontOptions()

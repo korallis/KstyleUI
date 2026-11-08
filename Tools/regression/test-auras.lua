@@ -86,27 +86,40 @@ do
 	local debuffs, dg = A.Container(env, "HARMFUL")
 	check(buffs and debuffs and buffs ~= debuffs, "buffs and debuffs are separate groups")
 	check(buffs._unit == "player" and debuffs._unit == "player", "both follow the player")
-	check(bg.maxFrameCount == 24 and dg.maxFrameCount == 12, "2 rows of 12 buffs and 1 row of 12 debuffs")
+	do
+		local skin = (bg.frames[1]:GetChildren())
+		local fr, fg, fb = K.Tokens.Color("buttonFill")
+		local body = false
+		for _, region in ipairs({ skin:GetRegions() }) do
+			local set = region._state.Texture and region._state.Texture[1]
+			local r, g, b = region:GetVertexColor()
+			if type(r) == "number" and set == (K.Tokens.Texture("chamferTile")) and math.abs(r - fr) < 1e-3 and math.abs(g - fg) < 1e-3 and math.abs(b - fb) < 1e-3 then
+				body = true
+			end
+		end
+		check(body, "each aura button sits on the near-black button body every square icon shares")
+	end
+	check(bg.maxFrameCount == 10 and dg.maxFrameCount == 5, "2 rows of 5 buffs and 1 row of 5 debuffs")
 	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
-	check(bg.layout.elementWidth == 28 and bg.layout.elementHeight == 38, "each buff is a 28-unit icon with its timer under it")
-	check(bg.layout.elementSpacing == 6 and bg.layout.lineSpacing == 0, "6-unit gaps between icons")
-	check(buffs._flow.anchor == "TOPRIGHT" and buffs._flow.horizontal == -1 and buffs._flow.vertical == -1, "buffs grow left, then down")
-	check(buffs._flow.lineSize >= 12 * 28 + 11 * 6 and buffs._flow.lineSize < 13 * 28 + 12 * 6, "twelve icons fit on a line, and a thirteenth wraps")
+	check(bg.layout.elementWidth == 38 and bg.layout.elementHeight == 51, "each buff is a 38-unit icon with its 12-unit timer under it")
+	check(bg.layout.elementSpacing == 8 and bg.layout.lineSpacing == 0, "8-unit gaps between icons")
+	check(buffs._flow.anchor == "TOPLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == -1, "buffs grow right, then down, so the shortest time left sits at the left")
+	check(buffs._flow.lineSize >= 5 * 38 + 4 * 8 and buffs._flow.lineSize < 6 * 38 + 5 * 8, "five icons fit on a line, and a sixth wraps")
 
 	local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
 	check(b and d, "both elements register with Layout under the element keys")
 	check(b.opts.label == "Buffs" and d.opts.label == "Debuffs", "labels come from Setup.Layouts")
 	check(b.opts.module == "Auras" and b.opts.scalable == true and not b.opts.resizable, "the elements scale in Layout Mode")
-	check(b.position.anchor == "TOPRIGHT" and b.position.x == -16 and b.position.y == -222, "buffs sit under the minimap")
-	check(d.position.anchor == "TOPRIGHT" and d.position.y == -306, "debuffs sit under the buffs")
+	check(b.position.anchor == "TOPRIGHT" and b.position.x == -16 and b.position.y == -252, "buffs sit 15 units under the minimap's 221-unit frame, as the mockup measures")
+	check(d.position.anchor == "TOPRIGHT" and d.position.y == -354, "debuffs sit under the buffs")
 	local w, h = size(b.frame)
-	check(near(w, 402) and near(h, 76), "the buff element is 402 x 76, got " .. tostring(w) .. " x " .. tostring(h))
+	check(near(w, 222) and near(h, 102), "the buff element is 222 x 102, centred under the map square, got " .. tostring(w) .. " x " .. tostring(h))
 	w, h = size(d.frame)
-	check(near(w, 402) and near(h, 38), "the debuff element is 402 x 38")
+	check(near(w, 222) and near(h, 51), "the debuff element is 222 x 51")
 	check(not isAncestor(b.frame, buffs), "the Layout element is not an ancestor of the container, so Layout never touches an aura button")
 	local host = buffs:GetParent()
 	local point, rel, relPoint = buffs:GetPoint(1)
-	check(point == "TOPRIGHT" and rel == host and relPoint == "TOPRIGHT", "the container grows from its host's top right corner")
+	check(point == "TOP" and rel == host and relPoint == "TOP", "the container hangs centred from its host's top edge, so a short row sits centred under the minimap")
 
 	for _, button in ipairs(groupButtons(bg)) do
 		local aura = button._aura
@@ -114,7 +127,7 @@ do
 		check(aura.cancel == "RightButtonUp", "right-click cancels a buff through the secure template")
 		check(#aura.dispel == 0, "buffs show no dispel border")
 		local bw, bh = button:GetSize()
-		check(near(bw, 28) and near(bh, 38), "an aura button is sized to its element")
+		check(near(bw, 38) and near(bh, 51), "an aura button is sized to its element")
 	end
 	for _, button in ipairs(groupButtons(dg)) do
 		local aura = button._aura
@@ -148,11 +161,11 @@ do
 	local b = registered(env, "auras.buffs")
 
 	K.Options.Write("Auras", "buffs.iconSize", 32)
-	check(bg.layout.elementWidth == 32 and bg.layout.elementHeight == 42, "a new icon size reaches the group layout")
+	check(bg.layout.elementWidth == 32 and bg.layout.elementHeight == 45, "a new icon size reaches the group layout")
 	local bw, bh = groupButtons(bg)[1]:GetSize()
-	check(near(bw, 32) and near(bh, 42), "and the buttons")
+	check(near(bw, 32) and near(bh, 45), "and the buttons")
 	local w, h = size(b.frame)
-	check(near(w, 12 * 32 + 11 * 6) and near(h, 2 * 42), "and the Layout element's footprint")
+	check(near(w, 5 * 32 + 4 * 8) and near(h, 2 * 45), "and the Layout element's footprint")
 
 	K.Options.Write("Auras", "buffs.sort", "name")
 	K.Options.Write("Auras", "buffs.reverse", true)
@@ -161,12 +174,12 @@ do
 	K.Options.Write("Auras", "buffs.growth", "RIGHT_UP")
 	check(buffs._flow.anchor == "BOTTOMLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == 1, "growth right, then up")
 	local point, _, relPoint = buffs:GetPoint(1)
-	check(point == "BOTTOMLEFT" and relPoint == "BOTTOMLEFT", "the container moves to the corner it grows from")
+	check(point == "BOTTOM" and relPoint == "BOTTOM", "the container moves to the edge it grows from, still centred")
 
 	K.Options.Write("Auras", "buffs.rows", 3)
 	K.Options.Write("Auras", "buffs.columns", 8)
 	check(bg.maxFrameCount == 24, "3 rows of 8")
-	check(buffs._flow.lineSize >= 8 * 32 + 7 * 6 and buffs._flow.lineSize < 9 * 32 + 8 * 6, "eight icons per line")
+	check(buffs._flow.lineSize >= 8 * 32 + 7 * 8 and buffs._flow.lineSize < 9 * 32 + 8 * 8, "eight icons per line")
 
 	K.Options.Write("Auras", "buffs.cancel", false)
 	check(groupButtons(bg)[1]._aura.cancel == nil, "right-click cancel can be turned off")
@@ -182,7 +195,7 @@ do
 
 	K.Options.Write("Auras", "timer.format", "none")
 	check(groupButtons(dg)[1]._aura.timer == nil, "a hidden timer is cleared from the engine")
-	check(dg.layout.elementHeight == 28, "and takes no room under the icon")
+	check(dg.layout.elementHeight == 38, "and takes no room under the icon")
 	K.Options.Write("Auras", "timer.format", "long")
 	local aura = groupButtons(dg)[1]._aura
 	check(aura.timer, "the timer comes back")
@@ -212,16 +225,16 @@ end
 do
 	local env = start({ layout = true })
 	local _, bg = A.Container(env, "HELPFUL")
-	check(bg.maxFrameCount == 24, "no enchantment, 24 buffs")
+	check(bg.maxFrameCount == 10, "no enchantment, 10 buffs")
 	env._enchants[env.INVSLOT_MAINHAND] = { enchantID = 1, hasExpirationTime = true, remainingTimeMs = 60000 }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(bg.maxFrameCount == 23, "a main-hand enchantment leaves 23 buffs, got " .. bg.maxFrameCount)
+	check(bg.maxFrameCount == 9, "a main-hand enchantment leaves 9 buffs, got " .. bg.maxFrameCount)
 	env._enchants[env.INVSLOT_OFFHAND] = { enchantID = 2, hasExpirationTime = false, remainingTimeMs = 0 }
 	env.FireEvent("WEAPON_SLOT_CHANGED")
-	check(bg.maxFrameCount == 22, "two enchantments leave 22")
+	check(bg.maxFrameCount == 8, "two enchantments leave 8")
 	env._enchants = {}
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(bg.maxFrameCount == 24, "expired enchantments give their places back")
+	check(bg.maxFrameCount == 10, "expired enchantments give their places back")
 end
 
 -- A panel smaller than the enchantment slots shows only as many enchantments as it has places.
@@ -291,7 +304,7 @@ do
 	env.C_Secrets = nil
 	env.SetCombat(true)
 	K.Options.Write("Auras", "buffs.iconSize", 20)
-	check(near(groupButtons(bg)[1]:GetSize(), 28), "nothing is resized in combat")
+	check(near(groupButtons(bg)[1]:GetSize(), 38), "nothing is resized in combat")
 	env.SetCombat(false)
 	env.RunTimers()
 	check(near(groupButtons(bg)[1]:GetSize(), 20), "the change lands when combat ends")
@@ -303,7 +316,7 @@ do
 	local _, bg = A.Container(env, "HELPFUL")
 	env.SetCombat(true)
 	K.Options.Write("Auras", "buffs.iconSize", 22)
-	check(near(groupButtons(bg)[1]:GetSize(), 28), "nothing is resized in combat")
+	check(near(groupButtons(bg)[1]:GetSize(), 38), "nothing is resized in combat")
 	env.SetCombat(false)
 	env.RunTimers()
 	check(near(groupButtons(bg)[1]:GetSize(), 22), "the change lands when combat ends")
@@ -316,8 +329,8 @@ do
 	check(K.Theme.SetFontScale(1.2), "the text size changes")
 	K.Callbacks.Fire("ThemeChanged")
 	local _, fontSize = groupButtons(bg)[1]._aura.timer:GetFont()
-	check(near(fontSize, 9 * 1.2), "a 9-unit timer at a text size of 1.2 is 10.8 units, got " .. tostring(fontSize))
-	check(near(bg.layout.elementHeight, 40), "the timer's room grows to 11.8 units, snapped to 12 at 1080, got " .. tostring(bg.layout.elementHeight))
+	check(near(fontSize, 12 * 1.2), "a 12-unit timer at a text size of 1.2 is 14.4 units, got " .. tostring(fontSize))
+	check(near(bg.layout.elementHeight, 53), "the timer's room grows to 15.4 units, snapped to 15 at 1080, got " .. tostring(bg.layout.elementHeight))
 end
 
 -- Buttons the engine makes later, even while auras are secret, are styled before restrictions apply.

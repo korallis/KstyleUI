@@ -13,7 +13,6 @@ local OUTLINES = { none = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE"
 local EDIT_TEXTS = { "header", "headerSuffix", "languageHeader", "prompt", "NewcomerHint" }
 local TAB_FILL_INSET = { left = 4, right = 4, top = 9, bottom = 1 }
 local UNDERLINE_UNITS = 1
-local UNDERLINE_LIFT = 0.6
 local UNDERLINE_GLOW_UNITS = 5
 local UNDERLINE_GLOW_ALPHA = 0.25
 local CHEVRON = 8
@@ -146,10 +145,6 @@ local function Accent()
 	return r, g, b, 1
 end
 
-local function Lift(v)
-	return v + (1 - v) * UNDERLINE_LIFT
-end
-
 local function PaintGlow(glow, r, g, b)
 	if type(glow.SetGradient) == "function" and type(CreateColor) == "function" then
 		glow:SetColorTexture(Tokens.Color("white"))
@@ -168,7 +163,7 @@ local function PaintTab(parts)
 	local selected = parts.selected == true
 	local r, g, b = Accent()
 	local underlined = selected and style == "underline"
-	parts.underline:SetVertexColor(Lift(r), Lift(g), Lift(b), 1)
+	parts.underline:SetVertexColor(r, g, b, 1)
 	parts.underline:SetShown(underlined)
 	if parts.chatGlow then
 		PaintGlow(parts.chatGlow, r, g, b)
@@ -309,6 +304,9 @@ local function ApplyFrame(frame)
 	Frames.ApplyFont(frame, path, size, flags)
 	if type(frame.SetFading) == "function" then
 		frame:SetFading(s.fade == true)
+	end
+	if type(frame.SetSpacing) == "function" then
+		frame:SetSpacing(Whole(s.lineSpacing, ns.SPACING_MIN, ns.SPACING_MAX, ns.defaults.lineSpacing))
 	end
 	if s.fade == true and type(frame.SetTimeVisible) == "function" then
 		frame:SetTimeVisible(Whole(s.fadeTime, 1, math.huge, FADE_DEFAULT))

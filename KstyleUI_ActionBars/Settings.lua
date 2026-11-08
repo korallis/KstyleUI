@@ -41,6 +41,7 @@ local function BarDefaults(def)
 		fadeAlpha = 0,
 		hotkey = true,
 		cooldown = true,
+		backing = action and ON_BY_DEFAULT[def.key] == true,
 	}
 	if def.kind ~= "stance" then
 		out.showEmpty = true
@@ -142,6 +143,7 @@ local function BarRows(schema, def)
 	if def.kind ~= "stance" then
 		add({ type = "toggle", key = key .. ".showEmpty", label = L["Show empty buttons"], help = L["Shows slots with no action as empty tiles."] })
 	end
+	add({ type = "toggle", key = key .. ".backing", label = L["Backing strip"], help = L["Draws a strip of smoked glass behind the bar's buttons."] })
 	add({ type = "toggle", key = key .. ".fade", label = L["Fade until hovered"], help = L["Fades the bar until the pointer is over it."] })
 	add({
 		type = "slider", key = key .. ".fadeAlpha", label = L["Faded opacity"], help = L["How visible the bar stays while faded."],

@@ -71,7 +71,7 @@ end
 local function NewTile(owner)
 	local skin = CreateFrame("Frame", nil, owner)
 	skin:SetAllPoints(owner)
-	local chrome = Widgets.Chrome(skin, { shape = "tile", fill = "raised", shadow = false })
+	local chrome = Widgets.IconChrome(skin)
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = skin:CreateMaskTexture()
@@ -84,6 +84,7 @@ end
 local function LayoutTile(tile)
 	local skin, icon = tile.skin, tile.icon
 	tile.restyleChrome(tile.chrome)
+	tile.chrome:SetRimAccent()
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
 	icon:ClearAllPoints()
 	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)

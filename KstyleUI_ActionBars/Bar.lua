@@ -10,6 +10,7 @@ Bar.__index = Bar
 ns.BarClass = Bar
 
 local FADE_DELAY = 0.2
+local BACKING_MARGIN, BACKING_CHAMFER = 4, 6
 local FLYOUT_DIRECTIONS = { TOPLEFT = "DOWN", TOP = "DOWN", TOPRIGHT = "DOWN", LEFT = "RIGHT", RIGHT = "LEFT" }
 local PET_DRIVER = "[@pet,exists] show; hide"
 local SPECIAL_STATES = { vehicle = true, override = true, possess = true, shapeshift = true }
@@ -46,6 +47,10 @@ function ns.NewBar(def)
 	local header = CreateFrame("Frame", "KstyleUI_" .. def.name, holder, "SecureHandlerStateTemplate")
 	header:SetAllPoints(holder)
 	bar.holder, bar.header = holder, header
+	local backing = CreateFrame("Frame", nil, header)
+	backing:SetFrameLevel(header:GetFrameLevel())
+	backing.chrome = Widgets.Chrome(backing, { shape = "tile", fill = "surface", shadow = false, chamfer = BACKING_CHAMFER })
+	bar.backing = backing
 	if def.kind == "action" then
 		header:SetAttribute("actionpage", def.page)
 		header:SetAttribute("_onstate-page", ns.PAGE_SNIPPET)
@@ -180,6 +185,11 @@ function Bar:Layout()
 	local size, gap = Widgets.Snap(header, cfg.size), Widgets.Snap(header, cfg.spacing)
 	local width, height = ns.GridSize(count, cfg.rows, size, gap)
 	self.holder:SetSize(width, height)
+	local margin = Widgets.Snap(header, BACKING_MARGIN)
+	self.backing:ClearAllPoints()
+	self.backing:SetPoint("TOPLEFT", header, "TOPLEFT", -margin, margin)
+	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin, -margin)
+	self.backing:SetShown(cfg.backing == true)
 	for i, b in ipairs(self.buttons) do
 		b.opts.size = cfg.size
 		if i <= count then

@@ -574,6 +574,7 @@ function Button.New(bar, index)
 		template = "SecureActionButtonTemplate",
 		size = cfg.size,
 		silent = true,
+		primary = true,
 	})
 	b.kbar, b.index, b.kind = bar, index, def.kind
 	b.hasAction, b.outOfRange, b.lacksPower = false, false, false

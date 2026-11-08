@@ -8,25 +8,30 @@ ns.Geometry = Geometry
 
 local max, min, ceil, floor = math.max, math.min, math.ceil, math.floor
 
-local PORTRAIT_GAP = 2
+local PORTRAIT_GAP = 0
 local PAD_X, PAD_TOP, PAD_BOTTOM = 6, 4, 2
-local INNER_SHARE, OUTER_SHARE = 0.12, 0.18
-local TOP_SHARE, GAP_SHARE, BOTTOM_SHARE = 0.15, 0.09, 0.035
+local GAP_SHARE, BOTTOM_SHARE = 0.1, 0.14
+local POWER_SHARE = 0.37
 local LINE_GAP = 2
 local PAD_LIMIT = 0.4
 local COMPACT_PAD = 3
 local GAP = 2
 local ROW_GAP = 1
 local TEXT_GAP = 4
-local TEXT_INSET = 2
 local NAME_EXTRA = 3
 local ROW_SHARE = 0.85
 local GLYPH_SHARE = 0.7
 local DETAIL_SHARE = 0.85
 local FULL_MIN_HEIGHT = 36
-local GLASS_INSET = 2
-local BADGE_SHARE = 0.34
 local BADGE_MIN = 14
+local SHAPE = {
+	chamfered = { share = 0.36, across = 0.19, up = 0.125, inner = 0.147, outer = 0.2, inset = 2, top = 0.15 },
+	round = { share = 0.37, across = 0.196, up = 0.196, inner = 0.085, outer = 0.15, insetShare = 0.06, top = 0.095, textShare = 0.28 },
+}
+
+local function Shape(s)
+	return SHAPE[s.portraitShape] or SHAPE.chamfered
+end
 local LEVEL_COLUMN = 2.6
 local MIN_HEALTH = 2
 local MAX_COLUMN_SHARE = 0.5
@@ -67,7 +72,8 @@ local function Glass(out, s, width, height)
 	if not portrait then
 		return Rect(0, 0, width, height)
 	end
-	local inset = out.compact and 0 or min(GLASS_INSET, height / 4)
+	local shape = Shape(s)
+	local inset = out.compact and 0 or min(shape.inset or shape.insetShare * height, height / 4)
 	local centre = portrait.x + portrait.w / 2
 	if s.portraitSide == "RIGHT" then
 		return Rect(0, inset, centre, height - 2 * inset)
@@ -80,12 +86,14 @@ local function Badge(out, s)
 	if not (portrait and s.level) then
 		return
 	end
-	local size = max(BADGE_MIN, ceil(portrait.w * BADGE_SHARE))
-	local x = portrait.x
+	local shape = Shape(s)
+	local size = max(BADGE_MIN, ceil(portrait.w * shape.share))
+	local across, up = shape.across * portrait.w, shape.up * portrait.h
+	local x = portrait.x + across - size / 2
 	if s.portraitSide == "RIGHT" then
-		x = portrait.x + portrait.w - size
+		x = portrait.x + portrait.w - across - size / 2
 	end
-	out.badge = Rect(x, portrait.y + portrait.h - size, size, size)
+	out.badge = Rect(x, portrait.y + portrait.h - up - size / 2, size, size)
 end
 
 local function PowerHeight(s, room)
@@ -106,7 +114,8 @@ local function TextRow(x, w, slotY, slotH, size, height)
 end
 
 local function ColumnX(out, s, height)
-	local inner, outer = max(PAD_X, INNER_SHARE * height), max(PAD_X, OUTER_SHARE * height)
+	local shape = Shape(s)
+	local inner, outer = max(PAD_X, shape.inner * height), max(PAD_X, shape.outer * height)
 	local left, right = outer, outer
 	if out.portrait and s.portraitSide == "RIGHT" then
 		right = inner
@@ -121,10 +130,10 @@ local function ColumnX(out, s, height)
 end
 
 local function Full(out, s, scale, height)
-	local glass = out.glass
+	local glass, shape = out.glass, Shape(s)
 	local ix, iw = ColumnX(out, s, height)
 	local top = glass.y
-	local bottom = glass.y + glass.h - max(PAD_BOTTOM, floor(BOTTOM_SHARE * height + 0.5))
+	local bottom = glass.y + glass.h - max(PAD_BOTTOM, floor(BOTTOM_SHARE * glass.h + 0.5))
 	local room = max(0, bottom - top)
 	local powerH = PowerHeight(s, max(0, room - PAD_TOP))
 	local healthSize, powerSize = Size(s, "health", scale), Size(s, "power", scale)
@@ -132,14 +141,11 @@ local function Full(out, s, scale, height)
 	local trackMin = healthText and max(MIN_HEALTH, ceil(healthSize * ROW_SHARE)) or MIN_HEALTH
 	local detail = s.healthText == "both"
 	local powerText = powerH > 0 and (s.powerText or "none") ~= "none"
-	local rowH = ceil(max(detail and healthSize * DETAIL_SHARE or 0, powerText and powerSize or 0) * ROW_SHARE)
+	local rowH = max(ceil(max(detail and healthSize * DETAIL_SHARE or 0, powerText and powerSize or 0) * ROW_SHARE), powerH)
 	local nameSize = s.name and Size(s, "name", scale) or 0
 	local nameH = ceil(nameSize * ROW_SHARE)
 	local function Need(pad, gap, name, row)
 		local n = pad + trackMin
-		if powerH > 0 then
-			n = n + gap + powerH
-		end
 		if name > 0 then
 			n = n + name + gap
 		end
@@ -157,30 +163,31 @@ local function Full(out, s, scale, height)
 			nameH = 0
 		end
 	end
-	local pad, gap = max(PAD_TOP, TOP_SHARE * height), max(ROW_GAP, GAP_SHARE * height)
+	local pad, gap = max(PAD_TOP, shape.top * glass.h), max(ROW_GAP, GAP_SHARE * glass.h)
 	local over = Need(pad, gap, nameH, rowH) - room
 	if over > 0 then
-		local gaps = (powerH > 0 and 1 or 0) + (nameH > 0 and 1 or 0) + (rowH > 0 and 1 or 0)
+		local gaps = (nameH > 0 and 1 or 0) + (rowH > 0 and 1 or 0)
 		local slack = pad - PAD_TOP + gaps * (gap - ROW_GAP)
 		local t = slack > 0 and max(0, 1 - over / slack) or 0
 		pad, gap = PAD_TOP + (pad - PAD_TOP) * t, ROW_GAP + (gap - ROW_GAP) * t
 	end
 	local y = bottom
-	if powerH > 0 then
-		y = y - powerH
-		out.power = Rect(ix, y, iw, powerH)
-		y = y - gap
-	end
-	local tx, tw = ix + TEXT_INSET, max(0, iw - 2 * TEXT_INSET)
 	if rowH > 0 then
 		local rowY = y - rowH
-		local half = max(0, (tw - TEXT_GAP) / 2)
+		local left, right = ix, ix + iw
+		if powerH > 0 then
+			local powerW = floor(iw * POWER_SHARE)
+			out.power = Rect(ix, rowY + (rowH - powerH) / 2, powerW, powerH)
+			left = ix + powerW + TEXT_GAP
+		end
+		local rest = max(0, right - left)
+		local half = max(0, (rest - TEXT_GAP) / 2)
 		if detail then
-			local w = powerText and half or tw
-			out.healthSub = TextRow(tx + tw - w, w, rowY, rowH, healthSize * DETAIL_SHARE, height)
+			local w = powerText and half or rest
+			out.healthSub = TextRow(right - w, w, rowY, rowH, healthSize * DETAIL_SHARE, height)
 		end
 		if powerText then
-			out.powerText = TextRow(tx, detail and half or tw, rowY, rowH, powerSize, height)
+			out.powerText = TextRow(left, detail and half or rest, rowY, rowH, powerSize, height)
 		end
 		y = rowY - gap
 	end
@@ -196,11 +203,21 @@ local function Full(out, s, scale, height)
 		out.name = TextRow(ix, nameW, trackTop, nameH, nameSize, height)
 		trackTop = trackTop + nameH + gap
 	end
-	out.health = Rect(ix, trackTop, iw, y - trackTop)
+	local trackW = iw
 	if healthText then
-		out.healthText = TextRow(tx, tw, out.health.y, out.health.h, healthSize, height)
+		local col = Column(Format.Shown(s.healthText, detail and rowH > 0), healthSize, iw)
+		if shape.textShare then
+			col = max(col, floor(iw * shape.textShare))
+		end
+		if iw - col - TEXT_GAP >= iw * MAX_COLUMN_SHARE then
+			trackW = iw - col - TEXT_GAP
+			out.healthText = TextRow(ix + iw - col, col, trackTop, y - trackTop, healthSize, height)
+		else
+			out.healthText = TextRow(ix, iw, trackTop, y - trackTop, healthSize, height)
+		end
 	end
-	if (rowH > 0 or powerH > 0) and gap >= LINE_GAP + 1 then
+	out.health = Rect(ix, trackTop, trackW, y - trackTop)
+	if rowH > 0 and gap >= LINE_GAP + 1 then
 		out.trackLine = Rect(ix, y + LINE_GAP, iw, 1)
 	end
 end

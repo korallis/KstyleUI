@@ -77,16 +77,29 @@ do
 	assert(Logic.IDText(env.Secret(5)) == nil and Logic.IDText(nil) == nil and Logic.IDText(1.5) == nil, "secrets, nothing and fractions give no line")
 end
 
--- TitleText: the kit's titles are capitals; an item's title keeps a blank second line for its caption
+-- TitleText: the kit's titles are capitals, tracked with a thin space between the letters when the font is
+-- KstyleUI's own; an item's title keeps a blank second line for its caption
 
 do
+	local THIN = "\226\128\137"
+	local function Tracked(text)
+		return (text:gsub("([\1-\127\194-\244][\128-\191]*)", "%1" .. THIN):sub(1, -#THIN - 1))
+	end
+	assert(Tracked("AB C") == "A" .. THIN .. "B" .. THIN .. " " .. THIN .. "C", "the test's own tracking helper")
 	assert(Logic.TitleText("Ranger's Long Bow") == "RANGER'S LONG BOW", "titles read in capitals")
 	assert(Logic.TitleText("Ranger's Long Bow", true) == "RANGER'S LONG BOW\n ", "an item title reserves the caption's line")
 	assert(Logic.TitleText("RANGER'S LONG BOW\n ", true) == "RANGER'S LONG BOW\n ", "a second pass adds no second line")
+	assert(Logic.TitleText("Ranger's Long Bow", false, true) == Tracked("RANGER'S LONG BOW"), "a tracked title: capitals with a thin space between the letters")
+	assert(Logic.TitleText("Ranger's Long Bow", true, true) == Tracked("RANGER'S LONG BOW") .. "\n ", "a tracked item title still reserves the caption's line")
+	assert(Logic.TitleText(Tracked("RANGER'S LONG BOW") .. "\n ", true, true) == Tracked("RANGER'S LONG BOW") .. "\n ", "a second tracked pass adds no spaces and no line")
+	assert(Logic.TitleText(Tracked("RANGER'S LONG BOW") .. "\n ", true) == "RANGER'S LONG BOW\n ", "an untracked pass takes the spaces out again")
 	assert(Logic.TitleText("Bow |cff00ff00x|r") == nil and Logic.TitleText("|A:Tier3:16:16|a Ore") == nil, "escape codes stay as Blizzard set them")
 	assert(Logic.TitleText(env.Secret("Bow")) == nil and Logic.TitleText(nil) == nil and Logic.TitleText("") == nil, "secrets and empty titles are left alone")
 	assert(Logic.TitleText("Gro\195\159er B\195\164r", true) == "Gro\195\159er B\195\164r\n ", "string.upper misses accents, so a name with them keeps its case")
+	assert(Logic.TitleText("Gro\195\159er B\195\164r", true, true) == Tracked("Gro\195\159er B\195\164r") .. "\n ", "a name with accents is tracked by code point")
 	assert(Logic.Upper("Rare") == "RARE" and Logic.Upper("Ungew\195\182hnlich") == "Ungew\195\182hnlich", "captions follow the same rule")
+	assert(Logic.Tracked("RARE") == Tracked("RARE") and Logic.Tracked(Tracked("RARE")) == Tracked("RARE"), "Tracked spaces a caption's letters once")
+	assert(Logic.Tracked("") == "" and Logic.Tracked("A") == "A", "an empty or one-letter text gains no space")
 end
 
 -- A secrecy check comes before any nil test of the same value ------------------------------------

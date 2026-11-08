@@ -53,9 +53,30 @@ local BLIZZARD_FONTS = {
 }
 local DEFAULT_FONT = { "Fonts\\FRIZQT__.TTF", 12, "", { 1, 1, 1 } }
 
--- Average glyph widths in em for the kit's semibold face, for a text whose width nothing else gives.
+-- Average glyph widths in em for the kit's semibold face, for a text whose width nothing else gives and
+-- whose font Tools/render/glyphs.lua does not list.
 local GLYPH_EM = { upper = 0.60, lower = 0.48, digit = 0.52, space = 0.22, other = 0.30, thin = 0.10 }
 local LINE_HEIGHT_EM = 1.2
+
+-- The kit fonts' real advances per ASCII glyph, by font file name, from gen_glyphs.py. Blizzard's faces
+-- the repository lacks draw as Source Sans on the page, so they measure as Source Sans too.
+local GLYPHS = {}
+do
+	local ok, table_ = pcall(dofile, "Tools/render/glyphs.lua")
+	if ok and type(table_) == "table" then
+		GLYPHS = table_
+	end
+end
+local FONT_STAND_INS = { FRIZQT__ = "SourceSans3-Semibold", ARIALN = "SourceSans3-Regular" }
+
+local function glyphTable(fontPath)
+	if type(fontPath) ~= "string" then
+		return nil
+	end
+	local name = fontPath:gsub("\\", "/"):match("([^/]+)$") or fontPath
+	name = name:gsub("%.[^.]+$", "")
+	return GLYPHS[name] or GLYPHS[FONT_STAND_INS[name] or ""]
+end
 
 -- Paths -------------------------------------------------------------------------------------------
 
@@ -80,10 +101,11 @@ local pathCache = {}
 -- ResolvePath(path) -> a repository-relative or absolute file, or nil when the game path has no local file.
 function Scene.ResolvePath(path, iconDirs)
 	if type(path) == "number" then
-		local key = "id:" .. path
+		local dirs = iconDirs or Scene.ICON_DIRS
+		local key = "id:" .. path .. ":" .. table.concat(dirs, ";")
 		if pathCache[key] == nil then
 			pathCache[key] = false
-			for _, dir in ipairs(iconDirs or Scene.ICON_DIRS) do
+			for _, dir in ipairs(dirs) do
 				local candidate = dir .. "/" .. path .. ".png"
 				if fileExists(candidate) then
 					pathCache[key] = candidate
@@ -145,12 +167,14 @@ local function state(object, field)
 	end
 end
 
+-- An object's scale times its ancestors', stopping at an object that ignores its parent's scale, as the game does
+-- for a nameplate's plate on a base the engine scales.
 local function effectiveScale(object)
 	local scale = type(object._scale) == "number" and object._scale or 1
-	local parent = object._parent
-	while parent do
-		scale = scale * (type(parent._scale) == "number" and parent._scale or 1)
-		parent = parent._parent
+	local node = object
+	while not node._ignoreParentScale and node._parent do
+		node = node._parent
+		scale = scale * (type(node._scale) == "number" and node._scale or 1)
 	end
 	return scale
 end
@@ -196,7 +220,8 @@ end
 
 -- Text measurement ------------------------------------------------------------------------------
 
-local function textWidthEm(text)
+local function textWidthEm(text, fontPath)
+	local glyphs = glyphTable(fontPath)
 	local em = 0
 	local i, n = 1, #text
 	while i <= n do
@@ -212,6 +237,8 @@ local function textWidthEm(text)
 		local ch = text:sub(i, i + size - 1)
 		if ch == "\226\128\137" then
 			em = em + GLYPH_EM.thin
+		elseif glyphs and size == 1 and glyphs[c] then
+			em = em + glyphs[c]
 		elseif ch == " " then
 			em = em + GLYPH_EM.space
 		elseif size > 1 then
@@ -230,9 +257,10 @@ local function textWidthEm(text)
 	return em
 end
 
--- TextWidth(text, size) -> the approximate width of a text in a font of the given size, in the same units.
-function Scene.TextWidth(text, size)
-	return textWidthEm(text) * size
+-- TextWidth(text, size, fontPath) -> the width of a text in a font of the given size, in the same units:
+-- exact for a kit font (or a Blizzard face the page draws as one), approximate for any other.
+function Scene.TextWidth(text, size, fontPath)
+	return textWidthEm(text, fontPath) * size
 end
 
 local function formatText(env, stored)
@@ -258,6 +286,9 @@ local function formatText(env, stored)
 end
 
 local function textOf(env, region)
+	if region._renderText ~= nil then
+		return region._renderText
+	end
 	local calls = region._calls or {}
 	for i = #calls, 1, -1 do
 		local call = calls[i]
@@ -795,6 +826,22 @@ function Scene.Build(env, opts)
 		return item
 	end
 
+	-- The countdown numbers as the engine formats them: through the formatter SetCountdownFormatter gave the
+	-- frame when it has one, else whole seconds, or minutes past a minute.
+	local function countdownText(left, frame)
+		local formatter = frame and state(frame, "CountdownFormatter")
+		if type(formatter) == "table" then
+			local fn = formatter.Format or formatter.FormatNumber
+			if type(fn) == "function" then
+				local ok, text = pcall(fn, formatter, left)
+				if ok and type(text) == "string" then
+					return text
+				end
+			end
+		end
+		return left >= 60 and string.format("%dm", floor(left / 60 + 0.5)) or string.format("%d", floor(left + 0.5))
+	end
+
 	local function swipeItem(frame, alpha)
 		local fraction, left = Scene.CooldownFraction(env, frame, now)
 		if not fraction then
@@ -811,8 +858,8 @@ function Scene.Build(env, opts)
 			item.file = resolve(swipe)
 			item.path = swipe
 		end
-		if state(frame, "HideCountdownNumbers") ~= true then
-			item.countdown = left >= 60 and string.format("%dm", floor(left / 60 + 0.5)) or string.format("%d", floor(left + 0.5))
+		if state(frame, "HideCountdownNumbers") ~= true and not frame._countdown then
+			item.countdown = countdownText(left, frame)
 			local fontPath, size = DEFAULT_FONT[1], 12
 			item.font = { file = resolve(fontPath), path = fontPath, size = round4(size * effectiveScale(frame) * k), flags = "OUTLINE" }
 		end
@@ -900,18 +947,31 @@ function Scene.Build(env, opts)
 		end
 	end
 
-	-- A status bar's fill texture is the stub's _barTexture, which it lists among the bar's regions. A font
-	-- string with no width or height of its own takes its natural size from its text, approximately.
+	-- A status bar's fill texture is the stub's _barTexture, which it lists among the bar's regions. A
+	-- Cooldown frame with a countdown font string draws its numbers through that string, so the addon's
+	-- anchors, font and justification place them. A font string with no width or height of its own takes
+	-- its natural size from its text, approximately.
 	for _, frame in ipairs(env._frames) do
 		if frame._barTexture then
 			frame._barTexture._barOwner = frame
+		end
+		local countdown = frame._countdown
+		if countdown then
+			local text
+			if state(frame, "HideCountdownNumbers") ~= true then
+				local _, left = Scene.CooldownFraction(env, frame, now)
+				if left then
+					text = countdownText(left, frame)
+				end
+			end
+			countdown._renderText = text
 		end
 		for _, region in ipairs(frame._regions or {}) do
 			if region._type == "FontString" then
 				region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
 				local text = textOf(env, region)
 				if text ~= "" then
-					local _, size = fontOf(env, region, logLine)
+					local fontPath, size = fontOf(env, region, logLine)
 					local xs, ys = {}, {}
 					for _, pack in ipairs(region._points or {}) do
 						local point = POINTS[(pack[1])]
@@ -923,11 +983,12 @@ function Scene.Build(env, opts)
 					local hasW = type(region._width) == "number" and region._width > 0
 					local hasH = type(region._height) == "number" and region._height > 0
 					if not hasW and not (xs[0] and xs[1]) then
-						region._naturalW = textWidthEm(text) * size
+						region._naturalW = textWidthEm(text, fontPath) * size
 						region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
 					end
 					if not hasH and not (ys[0] and ys[1]) then
-						region._naturalH = size * LINE_HEIGHT_EM
+						local _, breaks = text:gsub("\n", "")
+						region._naturalH = size * LINE_HEIGHT_EM * (breaks + 1)
 						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
 					end
 				end
@@ -961,6 +1022,13 @@ function Scene.Build(env, opts)
 		log = log,
 		skipped = skipped,
 	}
+end
+
+-- Font(env, region) -> path, size, flags for a font string, from its own font, its font object or its template,
+-- as the page draws it. Scenes use it to pitch stand-in lines by the font the addon set.
+function Scene.Font(env, region)
+	local path, size, flags = fontOf(env, region, function() end)
+	return path, size, flags
 end
 
 -- Rect(env, object) -> x, y, width, height in screen units for one frame or region, or nil when its anchors

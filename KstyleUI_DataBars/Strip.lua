@@ -13,12 +13,13 @@ ns.Strip = Strip
 local KEY = "databars.strip"
 local SLOTS = 5
 local TICK_SECONDS = 1
-local LABEL_GAP = 4
+local LABEL_GAP = 6
 local ROW_SHARE = 1.8
 local PAD = 12
-local SEPARATOR_SHARE = 0.45
-local SEPARATOR_ALPHA = 0.35
-local CHAR_WIDTH_SHARE = 0.55
+local CHAMFER = 10.5
+local SEPARATOR_SHARE = 0.25
+local SEPARATOR_ALPHA = 1
+local CHAR_WIDTH_SHARE = 0.45
 local VERTICAL_WIDTH = 160
 local ROW_ASPECT = 3
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 40, 16, 1600, 800
@@ -42,6 +43,7 @@ local TITLES = {
 }
 
 local GRADE_TOKEN = { good = "friendly", ok = "neutral", bad = "hostile" }
+local HIGHLIGHTED = { fps = true }
 
 local DURABILITY_SLOTS = {
 	{ 1, L["Head"] }, { 3, L["Shoulder"] }, { 5, L["Chest"] }, { 6, L["Waist"] }, { 7, L["Legs"] }, { 8, L["Feet"] },
@@ -166,7 +168,7 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
@@ -175,6 +177,10 @@ local function ValueColor(item, s, grade)
 		item.value:SetTextColor(ns.Accent())
 	elseif mode == "threshold" and grade then
 		Widgets.TextColor(item.value, GRADE_TOKEN[grade])
+	elseif mode == "highlight" and grade and grade ~= "good" then
+		Widgets.TextColor(item.value, GRADE_TOKEN[grade])
+	elseif mode == "highlight" and grade == "good" and HIGHLIGHTED[item.id] then
+		item.value:SetTextColor(ns.Accent())
 	else
 		Widgets.TextColor(item.value, "textEmphasis")
 	end
@@ -203,7 +209,7 @@ function Strip.NewView(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	local view = { frame = frame, items = {}, order = {}, values = {} }
 	frame.kView = view
-	view.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface" })
+	view.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface", chamfer = CHAMFER })
 	frame:HookScript("OnHide", function()
 		for _, item in pairs(view.items) do
 			ns.Click.Release(item)

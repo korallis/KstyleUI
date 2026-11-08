@@ -12,7 +12,8 @@ local floor, max, min = math.floor, math.max, math.min
 local GAP = Tokens.Size("actionGap")
 local ESSENTIAL_SIZE, ESSENTIAL_GAP = 56, 8
 local UTILITY_SIZE, UTILITY_GAP, UTILITY_COLUMNS = 52, 10, 4
-local BAR_WIDTH, BAR_HEIGHT = 172, 24
+local BAR_WIDTH, BAR_HEIGHT = 195, 24
+local BAR_FILL_ALPHA = 0.15
 local GROUPS = { "essential", "utility", "buffs", "bars" }
 local ICON_GROUPS = { "essential", "utility", "buffs" }
 local COOLDOWN_GROUPS = { essential = true, utility = true }
@@ -67,7 +68,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		countSize = countSize,
 	}
 	if cooldown then
-		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow = false, true, true, false, true
+		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow = false, false, true, false, true
 	else
 		out.inactive = false
 	end
@@ -95,8 +96,8 @@ Settings.defaults = {
 		width = BAR_WIDTH,
 		height = BAR_HEIGHT,
 		spacing = GAP,
-		count = 3,
-		growth = "up",
+		count = 2,
+		growth = "down",
 		texture = DEFAULT_BAR_TEXTURE,
 		colorSource = "class",
 		color = { r = accentR, g = accentG, b = accentB },
@@ -376,7 +377,7 @@ function Settings.Accent()
 	return K.Theme.Accent()
 end
 
-function Settings.BarColor()
+local function BarRGB()
 	local bars = current.bars
 	if bars.colorSource == "custom" and bars.colorR then
 		return bars.colorR, bars.colorG, bars.colorB
@@ -388,4 +389,9 @@ function Settings.BarColor()
 		return K.Theme.ClassColor(class)
 	end
 	return K.Theme.Accent()
+end
+
+function Settings.BarColor()
+	local r, g, b = BarRGB()
+	return r, g, b, BAR_FILL_ALPHA
 end

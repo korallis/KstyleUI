@@ -202,6 +202,14 @@ function T.Blizzard(env)
 	env.NORMAL_FONT_COLOR = color(1, 0.82, 0)
 	env.HIGHLIGHT_FONT_COLOR = color(1, 1, 1)
 	env.GREEN_FONT_COLOR = color(0.1, 1, 0.1)
+	env.CreateColor = function(r, g, b, a)
+		local c = color(r, g, b)
+		c.a = a
+		c.GetRGBA = function(self)
+			return self.r, self.g, self.b, self.a
+		end
+		return c
+	end
 	env.ITEM_QUALITY1_DESC, env.ITEM_QUALITY2_DESC = "Common", "Uncommon"
 	env.ITEM_QUALITY3_DESC, env.ITEM_QUALITY4_DESC = "Rare", "Epic"
 	env._postCalls = {}
@@ -227,10 +235,17 @@ function T.Blizzard(env)
 		tooltip:SetPoint("BOTTOMRIGHT", env.GameTooltipDefaultContainer, "BOTTOMRIGHT")
 	end
 	env._items = {}
+	local qualityColors = { [0] = { 0.62, 0.62, 0.62 }, { 1, 1, 1 }, { 0.12, 1, 0 }, { 0, 0.44, 0.87 }, { 0.64, 0.21, 0.93 }, { 1, 0.5, 0 } }
 	env.C_Item = {
 		GetItemQualityByID = function(info)
 			local item = env._items[info]
 			return item and item.quality
+		end,
+		GetItemQualityColor = function(quality)
+			local c = qualityColors[quality]
+			if c then
+				return c[1], c[2], c[3]
+			end
 		end,
 		GetItemIconByID = function(info)
 			local item = env._items[info]

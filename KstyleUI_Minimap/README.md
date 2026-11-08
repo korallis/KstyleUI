@@ -1,6 +1,6 @@
 # KstyleUI_Minimap
 
-Square minimap, chamfered frame, zone and clock strip inside its bottom edge, side button column, addon-button drawer and coordinates.
+Square minimap, chamfered frame, zone and clock strip inside its bottom edge, zoom slider, side button column, addon-button drawer and coordinates.
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@ Square minimap, chamfered frame, zone and clock strip inside its bottom edge, si
 | Approach | Reskin |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Minimap.toc` lists `Minimap.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Layout element | `minimap.main`: resizable, keeps its proportions, 168 by 166 units at the 1080 reference: a 158 map square one gap inside the frame, the 24-unit button strip over its right edge and the 22-unit footer over its bottom edge |
+| Layout element | `minimap.main`: resizable, keeps its proportions, 259 by 221 units at the 1080 reference, the leveling mockup's minimap: a 221 chamfered frame holding a 213 map square one gap inside it, with the 30-unit footer over the square's bottom edge, and the 34-unit button column 4 units left of the frame |
 | Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-drawer.lua` (the addon drawer against a LibDBIcon stand-in), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
 | Media | `Media/Glyphs.png`, drawn by `Tools/media/make_minimap_glyphs.py`; its row is in `Media/PROVENANCE.md` |
 
@@ -30,15 +30,15 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the map square's place in the element, and the drawer's direction, grid and size |
+| `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the zoom slider's share and level, the column's footprint, the map square's place in the element, and the drawer's direction, grid and size |
 | `Settings.lua` | Defaults, the settings page rows and `Settings.Get(key)`, which gives the default for a saved value the row does not allow |
 | `Style.lua` | The accent (class or custom colour) and each text's font, size and outline |
 | `Data.lua` | Reads from the game: zone and PvP type, local and realm time, coordinates, map rotation, game rules, mail, calendar invites, the queue and tracking. Each read checks the API exists and that the value is not secret. |
-| `Face.lua` | The visible frame, shared by the live map and the preview: the chamfered square, the strip, the north mark and the coordinates |
+| `Face.lua` | The visible frame, shared by the live map and the preview: the chamfered square, the strip, the north mark, the zoom slider and the coordinates |
 | `SecureClick.lua` | One shared secure button that clicks Blizzard's own calendar, clock, world map and queue buttons for KstyleUI's buttons |
 | `Column.lua` | The button column: tracking, mail, calendar, group finder status and the drawer button, built from `Widgets.IconButton` with the glyph sheet |
 | `Drawer.lua` | The addon drawer: LibDBIcon buttons in a glass flyout, and the addon compartment's list |
-| `Map.lua` | The live minimap: hosting Blizzard's `Minimap`, hiding the cluster, wheel zoom, events and the clock ticker |
+| `Map.lua` | The live minimap: hosting Blizzard's `Minimap`, hiding the cluster, wheel and slider zoom, events and the clock ticker |
 | `Preview.lua` | The settings window's preview, with a drawn map instead of Blizzard's |
 | `Module.lua` | `Modules.Register` and `Options.Register` |
 
@@ -57,13 +57,15 @@ When the module starts it:
 
 Turning it off puts `Minimap` back in its container with its saved points, size, level and Blizzard's mask, brings the hidden frames back, withdraws `GetMinimapShape` and asks for a reload.
 
-### Wheel zoom
+### Zoom
 
 A frame with only the mouse wheel enabled covers the map square, so clicks and pings still reach `Minimap`, and the wheel works in the square's corners, outside Blizzard's round hit area. It steps `Minimap:SetZoom` one level within `GetZoomLevels()`. With **Zoom back out** on, the map returns to zoom 0 after the delay; a newer zoom restarts the wait.
 
+The zoom slider is the mockup's thin line inside the map's right edge: a 2 by 52 track, 11 units in from the frame's edge, standing 8 units above the footer, with an accent fill that grows from the bottom as the map zooms in. A 12-unit-wide frame of KstyleUI's own takes the mouse: a click or a drag on it reads the cursor's height on the track and sets the nearest level with `Minimap:SetZoom`, through the same path as the wheel, so **Zoom back out** applies. The fill follows every zoom: KstyleUI's own calls refresh it, a `hooksecurefunc` on `Minimap.SetZoom` catches Blizzard's zoom buttons, the gamepad stick and the zoom-back-out timer, and `MINIMAP_UPDATE_ZOOM` (which Forever's `MinimapMixin` registers for the engine's own zoom changes) refreshes it as well, so the slider never guesses. With the column inside the frame, the slider takes the strip's free end (the bottom while the buttons grow down, the top while they grow up) and hides when the buttons leave it less than its 60 units. `Minimap` is not a protected frame and `SetZoom` is an ordinary method (`MinimapFrameAPIDocumentation.lua` flags it only as `SecretArguments = "AllowedWhenUntainted"`), so the slider works in combat and never touches Blizzard's `ZoomIn`, `ZoomOut` or `ZoomHitArea`, which stay hidden.
+
 ### The strip
 
-The strip sits inside the map's bottom edge: the zone name on the left in capitals, the clock on the right, with a hairline between them. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
+The strip sits inside the map's bottom edge, 30 units tall from the frame's edge: the zone name on the left in capitals, 16 units in, the clock on the right, 18 units in, with a hairline between them. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
 
 | Clock format | Text |
 | --- | --- |
@@ -77,11 +79,11 @@ The clock ticks once a second through `C_Timer.NewTicker`, only while the module
 
 Coordinates come from `C_Map.GetBestMapForUnit("player")` and `C_Map.GetPlayerMapPosition`. They update on zone changes, and every 0.2 s only while the player moves (`PLAYER_STARTED_MOVING` to `PLAYER_STOPPED_MOVING`, and `PLAYER_CONTROL_LOST` to `PLAYER_CONTROL_GAINED` for flight paths). No position, as in instances, or a secret one hides them.
 
-The north mark sits on a small dark glass tab at the top of the map and shows while `rotateMinimap` is off. A secret rotation hides it rather than guess.
+The north mark is a heading-size N on a dark plate flush under the map's top edge, 44 by 23 units with the design's steep lower chamfers (11 units in, 18 up: the panel texture's bottom corner pieces stretched taller than wide, with the top row hidden so the top corners stay square). It shows while `rotateMinimap` is off. A secret rotation hides it rather than guess.
 
 ### The button column
 
-By default the column is the design's raised strip inside the map's right edge: a band of the footer's glass, one button and two gaps wide, from the frame's top to the footer, with bare 16-unit glyphs down it at a 25-unit pitch. Growing up, it starts at the strip's bottom, above the footer. It can also hang beside the map square instead, from its top corner downward or from its bottom corner upward; the map square then leaves room for one button and one gap beside it, so a larger button size shrinks the map rather than pushing the column outside the Layout element. Only the buttons that apply show, and the rest close up.
+By default the column is the leveling mockup's: round 30-unit buttons at a 37-unit pitch, each a dark disc with a light ring and a 16-unit glyph, down a dark chamfered plate (kit glass with the faint inner edge) 4 units left of the frame. The plate is one button and 2 units each side wide, starts 4 units below the frame's top and wraps the shown buttons with 4 units above and below, so it shrinks as buttons hide. Growing up, it hangs from the frame's bottom corner instead. The column can sit on the right, or inside the map's right edge as the design file draws it: a 24-unit band of the footer's glass from the frame's top to the footer, with bare glyphs down it (set the button size to 16 and the spacing to 9 for the design's 25-unit pitch). Beside the map, the map square leaves room for the plate and its gap, so a larger button size shrinks the map rather than pushing the column outside the Layout element. Inside, the frame stays the square at the element's right and the column's room on the left stays empty, so the strip and the zoom slider keep lying over the map's right edge. Only the buttons that apply show, and the rest close up.
 
 | Button | Shows | Click |
 | --- | --- | --- |
@@ -118,19 +120,19 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | Key | Default | Row |
 | --- | --- | --- |
 | `accent.source`, `accent.color` | `class`, the kit's accent | Hairline colour: class or custom colour |
-| `column.side`, `column.growth` | `inside`, `down` | Inside the map's right edge, as the kit draws it, or beside the map on the left or right; and whether the column starts at the top or the bottom |
-| `column.size`, `column.spacing` | 16, 9 | Button size and the gap between buttons and beside the map |
+| `column.side`, `column.growth` | `left`, `down` | Beside the map on the left, as the mockup draws it, on the right, or inside the map's right edge as the design file draws it; and whether the column starts at the top or the bottom |
+| `column.size`, `column.spacing` | 30, 7 | Button size and the gap between buttons |
 | `column.tracking`, `column.mail`, `column.calendar`, `column.queue`, `column.drawer` | on | Each button |
 | `drawer.behaviour`, `drawer.direction` | `click`, `auto` | Open on click, on mouseover or always; which way it opens |
 | `drawer.size`, `drawer.spacing`, `drawer.columns` | 24, 4, 6 | The drawer's icon size, gap and icons per row |
 | `drawer.autoClose`, `drawer.compartment`, `drawer.hideEmpty` | on | Close after a click, the compartment list, and hiding the button while there is nothing to show |
-| `zoom.wheel`, `zoom.reset`, `zoom.delay` | on, off, 10 s | Wheel zoom and zooming back out |
+| `zoom.wheel`, `zoom.slider`, `zoom.reset`, `zoom.delay` | on, on, off, 10 s | Wheel zoom, the zoom slider and zooming back out |
 | `compass` | on | The north mark |
 | `strip.opacity` | 0.8 | The band behind the zone and clock |
 | `zone.shown`, `zone.color` | on, `plain` | Zone name, coloured plainly, by PvP status or with the accent |
 | `clock.shown`, `clock.mode` | on, `game` | The clock and its format |
 | `coords.shown`, `coords.precision`, `coords.position` | off, 1, `top` | Coordinates, 0 to 2 decimals, at the top or above the strip |
-| `zone.*`, `clock.*`, `coords.*` `font`, `size`, `outline` | interface font; 9, 9, 10; none | Each text's typeface, size (times the Appearance text size) and outline |
+| `zone.*`, `clock.*`, `coords.*` `font`, `size`, `outline` | interface font; 14, 14, 10; none | Each text's typeface, size (times the Appearance text size) and outline |
 
 ## Why
 

@@ -27,6 +27,20 @@ local font = W.LastCall(item.Cooldown:GetCountdownFontString(), "SetFont")
 assert(font and font[2] == ns.Settings.current.essential.timerSize, "the countdown takes the timer size")
 assert(W.LastCall(item.ChargeCount.Current, "SetFont"), "the charge count is restyled")
 
+-- The restyled icon has the action buttons' dark body and rim: buttonFill, and the accent lifted 15% toward white.
+local backdrop = K.Skin.Parts(item).backdrop
+assert(backdrop.chrome.fillName == "buttonFill", "a restyled icon has the dark button body, got " .. tostring(backdrop.chrome.fillName))
+local ar, ag, ab = ns.Settings.Accent()
+local wr, wg, wb = K.Tokens.Color("textHover")
+local rr, rg, rb = K.Widgets.Mix(ar, ag, ab, 1, wr, wg, wb, 1, 0.15)
+local edge = backdrop.chrome.edge
+assert(W.Near(edge[1], rr) and W.Near(edge[2], rg) and W.Near(edge[3], rb) and W.Near(edge[4], 1), "the rim is the accent lifted 15% toward white")
+
+-- The rim comes from the shared icon chrome (Widgets.IconChrome), the helper every square icon button uses.
+assert(type(backdrop.chrome.SetRimAccent) == "function" and backdrop.chrome.rimAccent == true, "the restyled icon's chrome is the shared icon chrome, resting on IconRim")
+local formatter = W.LastCall(item.Cooldown, "SetCountdownFormatter")
+assert(formatter and type(formatter[1]) == "table" and formatter[1]:Format(4) == "4s", "the restyled icon's countdown reads 4s")
+
 -- Bar items: the bar takes the texture and colour from the settings; its background and pip are hushed.
 local bars = env._viewers.BuffBarCooldownViewer
 local bar = bars._items[1]
@@ -34,6 +48,9 @@ assert(W.LastCall(bar.Bar, "SetStatusBarTexture")[1] == ns.Settings.current.bars
 local r, g, b = K.Theme.ClassColor(K.Theme.Class())
 local color = W.LastCall(bar.Bar, "SetStatusBarColor")
 assert(color[1] == r and color[2] == g and color[3] == b, "the bar takes the class colour")
+assert(W.Near(color[4], 0.15), "the fill is subtle over the glass: alpha " .. tostring(color[4]))
+assert(K.Skin.Parts(bar.Bar).backdrop.chrome.fillName == "surface", "a restyled bar is a glass tile")
+assert(K.Skin.Parts(bar.Icon).backdrop.chrome.fillName == "buttonFill", "a restyled bar's icon sits on a dark tile")
 assert(Alpha(bar.Bar.BarBG) == 0 and Alpha(bar.Bar.Pip) == 0, "the bar's background and pip are hushed")
 assert(W.LastCall(bar.Bar.Name, "SetFont"), "the bar name is restyled")
 

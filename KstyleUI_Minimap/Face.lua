@@ -1,4 +1,4 @@
--- Face.lua: the minimap's visible frame: the chamfered square, the zone and clock strip, the north mark and the coordinates.
+-- Face.lua: the minimap's visible frame: the chamfered square, the zone and clock strip, the north mark, the zoom slider and the coordinates.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,13 +12,17 @@ ns.Face = Face
 local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_WHEEL = 1, 2, 6, 8
 local MAP_INSET = Tokens.Size("gapSmall")
 local GAP = Tokens.Size("gapSmall")
-local COMPASS_ROLE = "body"
-local PLATE_RISE = Tokens.Size("chamferTile")
-local FOOTER = 22 - MAP_INSET
-local ZONE_PAD = 11 - MAP_INSET
-local CLOCK_PAD = 12 - MAP_INSET
+local COMPASS_ROLE = "heading"
+local FRAME_CHAMFER = "chamferWindow"
+local FOOTER = 30 - MAP_INSET
+local ZONE_PAD = 16 - MAP_INSET
+local CLOCK_PAD = 18 - MAP_INSET
 local DIVIDER_GAP = 9
-local PLATE_WIDTH, PLATE_HEIGHT = 25, 16
+local PLATE_WIDTH, PLATE_HEIGHT = 44, 23
+local PLATE_LEG_IN, PLATE_LEG_UP = 11, 18
+local PLATE_HIDDEN = { 1, 2, 3, 4, 6 }
+local SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_HIT = 2, 52, 12
+local SLIDER_INSET, SLIDER_RISE = 11 - MAP_INSET, 8
 local min = math.min
 
 Face.LEVEL_MAP = LEVEL_MAP
@@ -35,20 +39,60 @@ local function ClearCentre(chrome)
 	end
 end
 
+local function Snap(frame, units)
+	return Widgets.Snap(frame, units)
+end
+
 local function NewText(parent)
 	local text = Widgets.FontString(parent, "OVERLAY")
 	text:SetWordWrap(false)
 	return text
 end
 
+local function Plain(value)
+	return type(value) == "number" and not Widgets.IsSecret(value)
+end
+
+local function ShareAtCursor(zoom)
+	local track = zoom.track
+	local bottom, height, scale = track:GetBottom(), track:GetHeight(), track:GetEffectiveScale()
+	if type(GetCursorPosition) ~= "function" then
+		return nil
+	end
+	local _, y = GetCursorPosition()
+	if not (Plain(bottom) and Plain(height) and Plain(scale) and Plain(y)) or height <= 0 or scale <= 0 then
+		return nil
+	end
+	return (y / scale - bottom) / height
+end
+
+local function Drag(zoom)
+	local share, onZoom = ShareAtCursor(zoom), zoom.face.onZoom
+	if share and onZoom then
+		onZoom(share)
+	end
+end
+
+local function StopDrag(zoom)
+	zoom:SetScript("OnUpdate", nil)
+end
+
+local function StartDrag(zoom, button)
+	if button and button ~= "LeftButton" then
+		return
+	end
+	Drag(zoom)
+	zoom:SetScript("OnUpdate", Drag)
+end
+
 function Face.New(holder, opts)
 	opts = opts or {}
-	local face = setmetatable({ holder = holder, rotating = false }, Face)
+	local face = setmetatable({ holder = holder, rotating = false, onZoom = opts.onZoom, zoomShare = 0 }, Face)
 
 	local box = CreateFrame("Frame", nil, holder)
 	Level(box, holder, LEVEL_BOX)
 	face.box = box
-	local chrome = Widgets.Chrome(box, { shape = "panel" })
+	local chrome = Widgets.Chrome(box, { shape = "panel", chamfer = Tokens.Size(FRAME_CHAMFER) })
 	local paint = chrome.Paint
 	chrome.Paint = function(self)
 		paint(self)
@@ -85,10 +129,25 @@ function Face.New(holder, opts)
 	face.clockHit:SetAllPoints(face.clock)
 
 	local plate = CreateFrame("Frame", nil, overlay)
-	plate.slice = Widgets.NineSlice(plate, "chamferTile", "BACKGROUND", 0)
+	plate.slice = Widgets.NineSlice(plate, "chamferPanel", "BACKGROUND", 0)
+	for _, piece in ipairs(PLATE_HIDDEN) do
+		plate.slice[piece]:Hide()
+	end
 	face.compassPlate = plate
 	face.compass = NewText(plate)
 	face.compass:SetText(L["N"])
+
+	local zoom = CreateFrame("Frame", nil, overlay)
+	zoom.face = face
+	zoom:EnableMouse(true)
+	zoom.track = zoom:CreateTexture(nil, "ARTWORK")
+	zoom.track:SetColorTexture(Tokens.Color("white"))
+	zoom.fill = zoom:CreateTexture(nil, "ARTWORK", nil, 1)
+	zoom.fill:SetColorTexture(Tokens.Color("white"))
+	zoom:SetScript("OnMouseDown", StartDrag)
+	zoom:SetScript("OnMouseUp", StopDrag)
+	zoom:SetScript("OnHide", StopDrag)
+	face.zoom = zoom
 
 	local coordsFrame = CreateFrame("Frame", nil, overlay)
 	face.coordsFrame = coordsFrame
@@ -134,6 +193,40 @@ function Face:SetRotating(rotating)
 	self.compassPlate:SetShown(north)
 end
 
+function Face:PaintZoom()
+	local zoom = self.zoom
+	local height = Widgets.Snap(self.mapArea, self.zoomShare * SLIDER_HEIGHT)
+	zoom.fill:SetHeight(height)
+	zoom.fill:SetShown(height > 0)
+end
+
+function Face:SetZoom(level, levels)
+	self.zoomShare = Format.ZoomShare(level, levels) or 0
+	self:PaintZoom()
+end
+
+function Face:PlaceSlider(fromTop, room)
+	local area, zoom = self.mapArea, self.zoom
+	local track = zoom.track
+	local fits = room == nil or room >= SLIDER_RISE + SLIDER_HEIGHT
+	zoom:SetShown(fits and Settings.Get("zoom.slider"))
+	local inset, rise = Snap(area, SLIDER_INSET), Snap(area, SLIDER_RISE)
+	local point, relative, y = "BOTTOM", "BOTTOMRIGHT", (self.sliderBelow or 0) + rise
+	if fromTop then
+		point, relative, y = "TOP", "TOPRIGHT", -rise
+	end
+	track:ClearAllPoints()
+	track:SetPoint(point, area, relative, -inset, y)
+	track:SetSize(Snap(area, SLIDER_WIDTH), Snap(area, SLIDER_HEIGHT))
+	zoom:ClearAllPoints()
+	zoom:SetPoint(point, area, relative, -inset, y)
+	zoom:SetSize(Snap(area, SLIDER_HIT), Snap(area, SLIDER_HEIGHT))
+	zoom.fill:ClearAllPoints()
+	zoom.fill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT")
+	zoom.fill:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT")
+	self:PaintZoom()
+end
+
 function Face:Paint()
 	local r, g, b = Style.Accent()
 	self.chrome:SetEdgeRGBA(r, g, b, 1)
@@ -142,6 +235,9 @@ function Face:Paint()
 	Widgets.Tint(self.strip.line, "edgeInner")
 	Widgets.Tint(self.strip.divider, "edgeInner")
 	Widgets.ColorSlice(self.compassPlate.slice, sr, sg, sb, Settings.Get("strip.opacity"))
+	Widgets.Tint(self.zoom.track, "track")
+	self.zoom.fill:SetVertexColor(r, g, b, 1)
+	self.zoom:SetShown(Settings.Get("zoom.slider"))
 
 	self.zoneSize = Style.Text(self.zone, "caption", "zone")
 	self.clockSize = Style.Text(self.clock, "caption", "clock")
@@ -162,10 +258,6 @@ function Face:Paint()
 	self:SetRotating(self.rotating)
 end
 
-local function Snap(frame, units)
-	return Widgets.Snap(frame, units)
-end
-
 function Face:Layout()
 	local holder = self.holder
 	local width, height = holder:GetWidth(), holder:GetHeight()
@@ -173,12 +265,12 @@ function Face:Layout()
 		return
 	end
 	local side = Settings.Get("column.side")
-	local left, boxWidth, boxHeight = 0, width, height
+	local reserve = 0
 	if side ~= "inside" then
-		local reserve = Settings.Get("column.size") + Settings.Get("column.spacing")
-		left, boxWidth = Format.MapRect(width, height, side, reserve)
-		boxHeight = boxWidth
+		reserve = Format.ColumnReserve(Settings.Get("column.size"), GAP)
 	end
+	local left, boxWidth = Format.MapRect(width, height, side, reserve)
+	local boxHeight = boxWidth
 	left, boxWidth, boxHeight = Snap(holder, left), Snap(holder, boxWidth), Snap(holder, boxHeight)
 	local box = self.box
 	box:ClearAllPoints()
@@ -233,23 +325,36 @@ function Face:Layout()
 	local top = Snap(area, GAP)
 	local plate = self.compassPlate
 	plate:ClearAllPoints()
-	plate:SetPoint("TOP", area, "TOP", 0, Snap(area, PLATE_RISE))
+	plate:SetPoint("TOP", area, "TOP", 0, 0)
 	Widgets.Size(plate, PLATE_WIDTH, PLATE_HEIGHT)
-	Widgets.LayoutSlice(plate.slice, plate, PLATE_RISE, 0)
+	local slice = plate.slice
+	local legIn, legUp = Snap(plate, PLATE_LEG_IN), Snap(plate, PLATE_LEG_UP)
+	slice[7]:ClearAllPoints()
+	slice[7]:SetSize(legIn, legUp)
+	slice[7]:SetPoint("BOTTOMLEFT", plate, "BOTTOMLEFT")
+	slice[9]:ClearAllPoints()
+	slice[9]:SetSize(legIn, legUp)
+	slice[9]:SetPoint("BOTTOMRIGHT", plate, "BOTTOMRIGHT")
+	slice[5]:ClearAllPoints()
+	slice[5]:SetPoint("TOPLEFT", plate, "TOPLEFT")
+	slice[5]:SetPoint("BOTTOMRIGHT", slice[9], "TOPRIGHT")
 	self.compass:ClearAllPoints()
 	self.compass:SetPoint("CENTER", plate, "CENTER", 0, 0)
+
+	local below = (zoneShown or clockShown) and stripHeight or 0
+	self.sliderBelow = below
+	self:PlaceSlider(false, nil)
 
 	local coordsFrame = self.coordsFrame
 	coordsFrame:ClearAllPoints()
 	coordsFrame:SetHeight(Snap(coordsFrame, self.coordsSize or 0))
 	if Settings.Get("coords.position") == "bottom" then
-		local below = (zoneShown or clockShown) and stripHeight or 0
 		coordsFrame:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, below + top)
 		coordsFrame:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, below + top)
 	else
 		local offset = top
 		if Settings.Get("compass") then
-			offset = offset + Snap(area, PLATE_HEIGHT - PLATE_RISE)
+			offset = offset + Snap(area, PLATE_HEIGHT)
 		end
 		coordsFrame:SetPoint("TOPLEFT", area, "TOPLEFT", 0, -offset)
 		coordsFrame:SetPoint("TOPRIGHT", area, "TOPRIGHT", 0, -offset)

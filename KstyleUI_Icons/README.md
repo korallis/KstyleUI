@@ -83,8 +83,8 @@ The `Icons` settings page, registered with `Options.Register("Icons", schema)`:
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `enabled` | `false` | toggle | The `Icons` module switch: custom icons on or off |
-| `set` | `"A"` | dropdown: light art, tinted (A) or full colour (B) | Which data addon loads |
+| `enabled` | `false` at load, as every module switch; the first-run setup turns it on with the other modules | toggle | The `Icons` module switch: custom icons on or off |
+| `set` | `"B"` (the owner's choice of 2026-11-08) | dropdown: light art, tinted (A) or full colour (B) | Which data addon loads |
 | `tint` | `"class"` | dropdown, set A only: class colour, spell school colour or white | The colour that tints set A. Class colour is `Theme.Accent()`, so it follows a custom accent too. |
 | `highlight` | `0.25` | slider from 0 to 0.6 in steps of 0.05, set A only | The alpha of the additive copy. 0 hides it. |
 

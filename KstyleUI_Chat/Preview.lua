@@ -9,8 +9,8 @@ local Preview = {}
 ns.Preview = Preview
 
 local TAB_WIDTH = 72
-local TAB_TOP = 12
-local UNDERLINE = 2
+local TAB_TOP = 16
+local UNDERLINE = 1
 local DIVIDER_ALPHA = 0.25
 local LINE_GAP = 3
 

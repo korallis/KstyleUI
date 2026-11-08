@@ -8,7 +8,8 @@ local max = math.max
 
 local DEFAULT_TEXTURE = "Glass"
 local FONT_SIZE = Tokens.Size("caption")
-local SEGMENTS = 10
+local XP_FONT_SIZE = 12
+local SEGMENTS = 0
 local MAX_SEGMENTS = 20
 local RESTED_ALPHA = 0.5
 local PREVIEW_BAR = 8
@@ -16,8 +17,8 @@ local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
 local PREVIEW_STRIP = 36
 local PREVIEW_STRIP_PAD = 12
-local STRIP_FONT_SIZE = 10
-local STRIP_SPACING = 8
+local STRIP_FONT_SIZE = 13
+local STRIP_SPACING = 21
 local MAX_SPACING = 32
 local MICRO_SIZE = 24
 local BAG_SIZE = 22
@@ -63,13 +64,14 @@ defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
 defaults.xp = BarDefaults("class", "accentDefault", "shortPercent")
 defaults.xp.textHover = false
+defaults.xp.fontSize = XP_FONT_SIZE
 defaults.xp.rested = true
 defaults.xp.restedColor = Rgb("rare", RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
-	labels = "full", valueColor = "threshold", accentEdge = false, backdrop = true, separators = true,
+	labels = "full", valueColor = "highlight", accentEdge = false, backdrop = true, separators = true,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
@@ -184,6 +186,7 @@ local STRIP_LABELS = {
 	{ value = "none", label = L["None"] },
 }
 local VALUE_COLORS = {
+	{ value = "highlight", label = L["Highlight and warnings"] },
 	{ value = "threshold", label = L["Good, fair or poor"] },
 	{ value = "accent", label = L["Accent colour"] },
 	{ value = "plain", label = L["Plain"] },
@@ -211,7 +214,7 @@ for i = 1, Strip.SLOTS do
 end
 for _, row in ipairs({
 	{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
-	{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Colours values by how good they are, in the accent colour, or plainly."], options = VALUE_COLORS },
+	{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Frame rate in the accent and warnings in theirs, every value by grade, all in the accent, or plain."], options = VALUE_COLORS },
 	{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
 	{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
 	{ type = "toggle", key = "strip.separators", label = L["Separators"], help = L["Draws a thin line between the items."] },

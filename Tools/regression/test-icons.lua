@@ -98,12 +98,19 @@ local function Is(texture, r, g, b)
 	return W.SameRGB(texture, r, g, b)
 end
 
+-- OnA(K) turns custom icons on with set A, the light art, which most of the sections below exercise; the
+-- default set is B.
+local function OnA(K)
+	K.Options.Write("Icons", "set", "A")
+	K.Options.Write("Icons", "enabled", true)
+end
+
 -- Settings: the Icons module's defaults and its settings page ------------------------------------
 
 do
 	local env, K = New()
 	local defaults = K.Store.Defaults("Icons")
-	assert(defaults.enabled == false and defaults.set == "A" and defaults.tint == "class" and defaults.highlight == 0.25, "defaults: off, set A, class tint, highlight 0.25")
+	assert(defaults.enabled == false and defaults.set == "B" and defaults.tint == "class" and defaults.highlight == 0.25, "defaults: off at load, as every module switch (the setup turns it on), set B as the owner chose on 2026-11-08, class tint, highlight 0.25")
 	local schema = K.Options.Get("Icons")
 	assert(schema, "the Icons page is registered with Options")
 	local keys = {}
@@ -146,12 +153,25 @@ do
 	assert(#env._loads == 0)
 end
 
+-- On with the default set B: loads KstyleUI_IconsColour, full colour, no tint ------------------------
+
+do
+	local env, K = New()
+	K.Options.Write("Icons", "enabled", true)
+	assert(env._loads[1] == "KstyleUI_IconsColour" and #env._loads == 1, "turning icons on loads set B's addon, the default the owner chose on 2026-11-08")
+	assert(K.Icons.ActiveSet() == "B")
+	local texture = Texture(K)
+	assert(K.Icons.Apply(texture, FIREBALL) == true and W.LastCall(texture, "SetTexture")[1] == B_PATH .. FIREBALL .. ".png", "Apply maps to set B's texture")
+	assert(Is(texture, 1, 1, 1), "set B is never tinted")
+	assert(#env._errors == 0)
+end
+
 -- On with set A: loads KstyleUI_Icons, resolves, tints by class colour with an additive highlight -----
 
 do
 	local env, K = New()
 	local changed = Count(K)
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	assert(env._loads[1] == "KstyleUI_Icons" and #env._loads == 1, "turning icons on loads set A's addon once")
 	assert(K.Icons.ActiveSet() == "A")
 	assert(changed.n >= 1, "turning icons on fires IconsChanged")
@@ -203,7 +223,7 @@ end
 
 do
 	local env, K = New()
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	K.Options.Write("Icons", "tint", "school")
 	local texture = Texture(K)
 	K.Icons.Apply(texture, FIREBALL)
@@ -243,7 +263,7 @@ end
 
 do
 	local _, K = New()
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	local texture = Texture(K)
 	K.Icons.Apply(texture, FIREBALL)
 	K.Theme.SetCustomAccent(0.2, 0.4, 0.6)
@@ -260,7 +280,7 @@ end
 
 do
 	local env, K = New()
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	local texture = Texture(K)
 	texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 	K.Icons.Apply(texture, FIREBALL)
@@ -275,7 +295,7 @@ end
 
 do
 	local env, K = New()
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	local texture = Texture(K)
 	K.Icons.Apply(texture, FIREBALL)
 	local changed = Count(K)
@@ -301,7 +321,7 @@ end
 
 do
 	local env, K = New({ fail = { KstyleUI_Icons = "MISSING" } })
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	assert(K.Icons.Resolve(FIREBALL) == nil and K.Icons.ActiveSet() == nil, "a failed load keeps Blizzard's icons")
 	assert(Logged(env, "MISSING"), "the reason goes to the devlog")
 	local texture = Texture(K)
@@ -311,20 +331,20 @@ end
 
 do
 	local env, K = New({ data = { KstyleUI_Icons = false } })
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	assert(K.Icons.ActiveSet() == nil and Logged(env, "KstyleUIIconData"), "an addon that defines no data is logged")
 end
 
 do
 	local env, K = New({ data = { KstyleUI_Icons = { set = "B", icons = { [FIREBALL] = "x" } } } })
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	assert(K.Icons.Resolve(FIREBALL) == nil, "data for the other set is not used")
 	assert(Logged(env, "KstyleUIIconData"))
 end
 
 do
 	local env, K = New({ data = { KstyleUI_Icons = { set = "A", icons = { [FIREBALL] = 7, [REJUV] = A_PATH .. "r.png" } } } })
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	assert(K.Icons.Resolve(FIREBALL) == nil, "an entry that is not a path is ignored")
 	assert(K.Icons.Resolve(REJUV) == A_PATH .. "r.png", "schools are optional")
 	assert(#env._errors == 0)
@@ -355,7 +375,7 @@ end
 
 do
 	local env, K = New()
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	local plain = Texture(K)
 	K.Icons.Shade(plain, 0.5, 0.5, 0.5, true)
 	assert(Is(plain, 0.5, 0.5, 0.5) and W.LastCall(plain, "SetDesaturated")[1] == true, "a texture Apply never saw is shaded as given")
@@ -369,7 +389,8 @@ do
 	assert(Is(button.icon, ar, ag, ab), "hover keeps the tint")
 	W.Down(button)
 	W.Settle(env)
-	assert(Is(button.icon, ar * 0.75, ag * 0.75, ab * 0.75), "press dims the tinted icon")
+	assert(Is(button.icon, ar * 0.55, ag * 0.55, ab * 0.55), "press dims the tinted icon to 55%, as the design's pressed button")
+	assert(W.LastCall(button.icon, "SetDesaturated")[1] == true, "and desaturates it, keeping the tint")
 	W.Up(button)
 	W.Settle(env)
 	button:SetUsable(false)
@@ -388,7 +409,7 @@ end
 
 do
 	local env, K = New()
-	K.Options.Write("Icons", "enabled", true)
+	OnA(K)
 	K.DevTest.Run()
 	local found
 	for _, entry in ipairs(env.KstyleUIDB.devlog) do

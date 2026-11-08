@@ -45,7 +45,7 @@ do
 	local settings = K.Layout.Get("chat.main")
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
-	assert(near(settings.width, 320) and near(settings.height, 130), "the 320 by 130 footprint")
+	assert(near(settings.width, 424) and near(settings.height, 164), "the 424 by 164 footprint")
 	local holder, glass = ns.Panel.Holder(), ns.Panel.Glass()
 	assert(holder and holder:IsShown(), "the panel shows")
 	assert(glass:GetParent() == holder and glass:GetFrameStrata() == "BACKGROUND", "the glass sits behind the chat")
@@ -97,6 +97,112 @@ do
 	assert(near(left, g.left), "the inset in root units matches the geometry")
 end
 
+-- The geometry follows the owner's mockup: a 32-unit tab strip, 16 units of glass left of and below the messages,
+-- and no room kept for the edit box unless the player wants it always shown.
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	local chat = env.ChatFrame1
+	local snap = K.Scale.Snap
+	local g = ns.Panel.Geometry(chat)
+	assert(near(g.divider, snap(32)), "the divider closes a 32-unit tab strip, got " .. g.divider)
+	assert(near(g.top, snap(32 + 3 * g.k)), "the window's top sits where Blizzard's dock ends, 3 chat units under the strip, got " .. g.top)
+	assert(near(g.left, snap(16)), "16 units of glass left of the messages, got " .. g.left)
+	local reach = (2 + 32) * g.k - math.max(0, (32 * g.k - 22) / 2)
+	local clear = reach + K.Tokens.Size("gapTiny") - select(2, K.Layout.Rect("chat.main"))
+	assert(near(g.bottom, snap(math.max(16, clear))), "16 units of glass below the messages, or what keeps the edit box on screen, got " .. g.bottom)
+	-- Blizzard's dock ends 2 chat units right of the window and its 16-unit overflow button sits at that end; the
+	-- window stops where the button clears the copy glyph's 20-unit hit area, 352 units of room for the mockup's lines.
+	local copyCentre = 22 + 20 + K.Tokens.Size("gapTiny")
+	assert(near(g.right, snap(copyCentre + 10 + 2 * g.k)), "the overflow button clears the copy glyph, got " .. g.right)
+	K.Options.Write("Chat", "copyButton", false)
+	env.RunTimers()
+	assert(near(ns.Panel.Geometry(chat).right, snap(22 + 10 + 2 * g.k)), "without the copy glyph the plus alone is cleared")
+	K.Options.Write("Chat", "copyButton", true)
+	env.RunTimers()
+	local divider = ns.Panel.Glass().divider
+	local _, _, _, _, dy = divider:GetPoint(1)
+	assert(near(dy, -g.divider), "the divider is drawn at the strip's bottom edge")
+	K.Options.Write("Chat", "editBox", "always")
+	env.RunTimers()
+	g = ns.Panel.Geometry(chat)
+	assert(g.bottom > snap(16) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
+	assert(near(g.left, snap(16)), "the other insets stay")
+end
+
+-- While the edit box shows only when typing it hangs under the panel, so where the chat window's units are larger
+-- than the root's (Blizzard UI scale 1) the bottom inset grows until the box's tile clears the screen's edge, and
+-- grows again when Layout moves the panel down.
+do
+	local env, K, ns = C.New({ width = 1920, height = 1080, uiScale = 1 })
+	C.Enable(env, K)
+	local chat = env.ChatFrame1
+	local snap = K.Scale.Snap
+	local g = ns.Panel.Geometry(chat)
+	assert(g.k > 1.3, "the chat window's units are larger than the root's: " .. g.k)
+	local tile = math.max(0, (32 * g.k - 22) / 2)
+	local reach = (2 + 32) * g.k - tile
+	local bottom = select(2, K.Layout.Rect("chat.main"))
+	assert(near(bottom, 16), "the panel sits 16 above the screen's edge, got " .. tostring(bottom))
+	assert(g.bottom > snap(16), "the inset grows past 16")
+	assert(near(g.bottom, snap(reach - bottom + K.Tokens.Size("gapTiny"))), "the box's tile ends a tiny gap above the screen's edge, got " .. g.bottom)
+	K.Layout.Set("chat.main", "y", 0)
+	env.RunTimers()
+	local moved = ns.Panel.Geometry(chat)
+	assert(near(moved.bottom, snap(reach + K.Tokens.Size("gapTiny"))), "moving the panel to the edge re-places the window, got " .. moved.bottom)
+	assert(near(select(5, chat:GetPoint(2)) * g.k, moved.bottom), "the window's anchor follows")
+	K.Layout.Set("chat.main", "y", 200)
+	env.RunTimers()
+	assert(near(ns.Panel.Geometry(chat).bottom, snap(16)), "high on the screen the inset is the mockup's 16 again")
+end
+
+-- The tab row's right end: a plus glyph that opens the chat's settings page and, beside it, a small copy glyph that
+-- copies the selected window. Both wear the class colour and brighten on hover.
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	local plus, copy, glass = ns.Panel.MenuButton(), ns.Panel.CopyButton(), ns.Panel.Glass()
+	assert(plus and plus:IsShown() and copy and copy:IsShown(), "both glyphs show")
+	local g = ns.Panel.Geometry(env.ChatFrame1)
+	local p, rel, relp, x, y = plus:GetPoint(1)
+	assert(p == "CENTER" and rel == glass and relp == "TOPRIGHT", "the plus sits in the row's right end")
+	assert(near(x, -22) and near(y, -(g.top - 14 * g.k)), "22 units in from the right, level with the tab names, got " .. x .. ", " .. y)
+	local cp, crel, crelp, cx, cy = copy:GetPoint(1)
+	assert(cp == "CENTER" and crel == glass and crelp == "TOPRIGHT" and near(cx, -(22 + 20 + K.Tokens.Size("gapTiny"))) and near(cy, y), "the copy glyph sits one button and a tiny gap left of the plus, got " .. cx)
+	for _, button in ipairs({ plus, copy }) do
+		assert(near(button:GetWidth(), K.Widgets.Snap(button, 20)) and near(button:GetHeight(), K.Widgets.Snap(button, 20)), "a 20-unit hit area")
+		assert(near(button.art:GetWidth(), K.Widgets.Snap(button.art, 8)), "8 units of glyph, as the mockup draws the plus")
+		assert(button.label == nil, "no text label")
+	end
+	local glyph = plus.glyph
+	assert(glyph and W.LastCall(glyph, "SetTexture")[1] == (K.Tokens.Texture("glyphClose")), "the plus is the close glyph")
+	assert(near(W.LastCall(glyph, "SetRotation")[1], math.pi / 4), "turned an eighth of a turn")
+	assert(#copy.tinted >= 8, "the copy glyph is drawn from outlines")
+	local ar, ag, ab = ns.Accent(K.Store.Module("Chat"))
+	local vr, vg, vb = glyph:GetVertexColor()
+	assert(near(vr, ar) and near(vg, ag) and near(vb, ab), "the plus wears the class colour")
+	vr, vg, vb = copy.tinted[1]:GetVertexColor()
+	assert(near(vr, ar) and near(vg, ag) and near(vb, ab), "so does the copy glyph")
+	local opened
+	K.Options.SetWindow(function(page)
+		opened = page
+		return true
+	end)
+	plus:GetScript("OnClick")(plus, "LeftButton")
+	assert(opened == "Chat", "the plus opens the chat's settings page, got " .. tostring(opened))
+	env.GENERAL_CHAT_DOCK.selected = env.ChatFrame2
+	copy:GetScript("OnClick")(copy, "LeftButton")
+	env.RunTimers()
+	assert(ns.Copy.Window():IsShown() and ns.Copy.Source() == env.ChatFrame2, "the copy glyph copies the selected window")
+	local right = select(4, env.ChatFrame1:GetPoint(2))
+	K.Options.Write("Chat", "copyButton", false)
+	env.RunTimers()
+	assert(not copy:IsShown() and plus:IsShown(), "the setting hides the copy glyph only")
+	assert(select(4, env.ChatFrame1:GetPoint(2)) > right, "the messages take the copy glyph's room")
+	env.ChatFrame1Tab:SetAlpha(0.4)
+	assert(near(plus:GetAlpha(), 0.4), "the plus fades with the tabs")
+end
+
 -- Layout's shown rule and opacity carry over to Blizzard's chat, and turning the module off restores them.
 do
 	local env, K, ns = C.New()
@@ -132,16 +238,33 @@ do
 	assert(glass:GetFrameStrata() == "BACKGROUND" and W.LastCall(glass, "SetFixedFrameStrata")[1] == true, "the glass stays behind Blizzard's chat")
 end
 
--- Edit boxes, windows that leave the dock and windows opened later follow the panel's opacity too.
+-- The edit box shows only while the player types: at rest its alpha is 0, whatever Blizzard set, and a box being
+-- typed in shows at Blizzard's alpha. Windows that leave the dock and windows opened later follow the panel's opacity.
 do
 	local env, K, ns = C.New()
 	C.Enable(env, K)
 	local holder = ns.Panel.Holder()
 	local box = env.ChatFrame1.editBox
-	holder:SetAlpha(0.5)
-	assert(math.abs(box:GetAlpha() - 0.5) < 1e-6, "the edit box fades with the panel")
+	assert(box:GetAlpha() == 0, "the edit box is hidden while nobody types")
+	assert(W.LastCall(box, "EnableMouse")[1] == false, "and takes no clicks while invisible")
 	box:SetAlpha(0.35)
-	assert(math.abs(box:GetAlpha() - 0.175) < 1e-6, "Blizzard's own resting alpha is scaled, not replaced")
+	assert(box:GetAlpha() == 0, "Blizzard's resting alpha is hidden too")
+	box:SetAlpha(1)
+	rawset(box, "HasFocus", function()
+		return true
+	end)
+	box:GetScript("OnEditFocusGained")(box)
+	assert(math.abs(box:GetAlpha() - 1) < 1e-6, "a box being typed in shows at Blizzard's alpha")
+	assert(W.LastCall(box, "EnableMouse")[1] == true, "and takes the mouse again")
+	rawset(box, "HasFocus", nil)
+	box:GetScript("OnEditFocusLost")(box)
+	assert(box:GetAlpha() == 0, "and hides again when typing ends")
+	assert(W.LastCall(box, "EnableMouse")[1] == false, "without the mouse")
+	box:SetAlpha(0.35)
+	holder:SetAlpha(0.5)
+	K.Options.Write("Chat", "editBox", "always")
+	assert(math.abs(box:GetAlpha() - 0.175) < 1e-6, "always shown: Blizzard's own resting alpha is scaled by the panel's, not replaced")
+	assert(W.LastCall(box, "EnableMouse")[1] == true, "always shown: the resting box takes clicks, as Blizzard's does")
 	rawset(box, "HasFocus", function()
 		return true
 	end)
@@ -154,9 +277,12 @@ do
 	env.RunTimers()
 	assert(math.abs(whisper:GetAlpha() - 0.5) < 1e-6, "a window opened into the dock fades with the panel")
 	holder:SetAlpha(1)
+	K.Options.Write("Chat", "editBox", "typing")
+	assert(box:GetAlpha() == 0, "back to typing only: hidden at rest")
 	K.Modules.Disable("Chat")
 	env.RunTimers()
 	assert(math.abs(box:GetAlpha() - 0.35) < 1e-6, "off: the edit box is back at Blizzard's alpha")
+	assert(W.LastCall(box, "EnableMouse")[1] == true, "off: and takes the mouse")
 end
 
 -- Window art, tabs and edit boxes.
@@ -179,10 +305,10 @@ do
 	local lp, lrel, _, lx = line:GetPoint(1)
 	local rp, rrel, _, rx = line:GetPoint(2)
 	assert(lp == "BOTTOMLEFT" and lrel == tab and near(lx, 0) and rp == "BOTTOMRIGHT" and rrel == tab and near(rx, 0), "the underline spans the tab's full width, as the design's tabs do")
-	assert(near(line:GetHeight(), K.Widgets.Snap(line, 1)), "the underline is one unit")
+	assert(near(line:GetHeight(), K.Widgets.Snap(line, 1)), "the underline is one unit: the mockup's thin line")
 	local ar, ag, ab = K.Theme.Accent()
 	local lr, lg, lb = line:GetVertexColor()
-	assert(near(lr, ar + (1 - ar) * 0.6) and near(lg, ag + (1 - ag) * 0.6) and near(lb, ab + (1 - ab) * 0.6), "the underline is the accent lifted 60% toward white")
+	assert(near(lr, ar) and near(lg, ag) and near(lb, ab), "the underline is the class colour itself")
 	local glow = parts.chatGlow
 	assert(glow and glow:IsShown(), "a glow rises from the underline")
 	assert(near(glow:GetHeight(), K.Widgets.Snap(glow, 5)), "the glow is 5 units tall")
@@ -213,8 +339,10 @@ do
 	local env, K = C.New()
 	C.Enable(env, K)
 	local path = K.Store.Module("Chat").font
+	assert(path == K.Tokens.FontPath("SourceSans3Regular"), "messages default to the regular face, the mockup's lighter chat text: " .. tostring(path))
 	local args = lastCall(env.ChatFrame1, "SetFont")
-	assert(args and args[1] == path and args[2] == 12 and args[3] == "", "messages in the chat font at 12")
+	assert(args and args[1] == path and args[2] == 14 and args[3] == "", "messages in the chat font at 14, the mockup's size")
+	assert(K.Store.Module("Chat").tabFontSize == 13, "tab names at 13: the mockup's cap height and label widths at 1.348 px per unit")
 	K.Options.Write("Chat", "fontSize", 15)
 	K.Options.Write("Chat", "fontOutline", "OUTLINE")
 	args = lastCall(env.ChatFrame2, "SetFont")
@@ -230,6 +358,9 @@ do
 	env.ChatFrame1:SetFont(path, 14, "")
 	env.RunTimers()
 	assert(lastCall(env.ChatFrame1, "SetFont")[2] == 18, "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
+	assert(lastCall(env.ChatFrame1, "SetSpacing")[1] == 4, "4 units between lines, the mockup's pitch at 14")
+	K.Options.Write("Chat", "lineSpacing", 0)
+	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == 0, "line spacing reaches every window")
 	K.Options.Write("Chat", "fade", false)
 	assert(lastCall(env.ChatFrame1, "SetFading")[1] == false, "fading off")
 	K.Options.Write("Chat", "fade", true)
