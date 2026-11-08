@@ -14,7 +14,8 @@ The references are crops of the owner's mockup (1.348 px per unit) rescaled to t
 grade crop the scenes may name (REFERENCE_BOXES, mockup pixels), written as ref_<key>.png into --refs (default
 the handoff folder's theme-crops, beside the measured m_*.png crops) and referred to from the manifest relative
 to the frames folder. Without scene names every gallery_*.lua scene runs. --no-render reuses the PNG and JSON a
-previous shoot.sh left in Tools/render/out.
+previous shoot.sh left in Tools/render/out. A run with scene names replaces those scenes' entries in an existing
+manifest and keeps the rest, so one scene can be redone without rendering them all.
 
 Pillow is needed. When the Python running this has none, the script runs itself again with the wow-dev virtual
 environment's Python if that exists.
@@ -147,6 +148,15 @@ def cut(scene, frames, ppu, out_dir, refs, ref_relative):
     return entries
 
 
+def merged(path, entries, scenes):
+    """The existing manifest with the rendered scenes' entries replaced by `entries`, in scene order."""
+    with open(path, "r", encoding="utf-8") as handle:
+        kept = [entry for entry in json.load(handle) if entry.get("scene") not in scenes]
+    out = kept + entries
+    out.sort(key=lambda entry: entry.get("scene", ""))
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("scenes", nargs="*", help="gallery scene names (default: every gallery_*.lua)")
@@ -178,6 +188,8 @@ def main(argv=None):
     for scene in names:
         manifest.extend(cut(scene, per_scene[scene], args.ppu, args.out, refs, True))
     path = os.path.join(args.out, "kstyle_manifest.json")
+    if args.scenes and os.path.exists(path):
+        manifest = merged(path, manifest, set(names))
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2)
         handle.write("\n")

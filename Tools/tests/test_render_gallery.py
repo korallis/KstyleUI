@@ -115,6 +115,17 @@ class GalleryTest(unittest.TestCase):
         manifest = json.loads((out / "kstyle_manifest.json").read_text(encoding="utf-8"))
         self.assertEqual([entry["scene"] for entry in manifest], ["gallery_a", "gallery_b"])
 
+    def test_named_scenes_replace_their_entries_in_an_existing_manifest(self):
+        self.scene("gallery_a", [self.frame("a_one")])
+        self.scene("gallery_b", [self.frame("b_one")])
+        out = self.root / "frames"
+        common = ["--no-render", "--out", str(out), "--refs", str(self.root / "refs"), "--mockup", str(self.mockup)]
+        self.gallery.main(common)
+        self.scene("gallery_b", [self.frame("b_two")])
+        self.gallery.main(["gallery_b", *common])
+        manifest = json.loads((out / "kstyle_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([entry["file"] for entry in manifest], ["kstyle_a_one.png", "kstyle_b_two.png"])
+
     def test_a_scene_without_frames_fails(self):
         self.scene("gallery_empty", [])
         with self.assertRaises(SystemExit):

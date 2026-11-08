@@ -149,7 +149,7 @@ return Common.Run(function()
 	frames:Add(env, bar1.holder, {
 		name = "actionbars_vehicle", title = "Vehicle bar and leave button", grade = "button", reference = "actionbars",
 		caption = "Bar 1 paged to the vehicle bar (Bar.lua, page 12 of the state driver) on its backing strip, with Vehicle.lua's leave button beside it: a primary IconButton showing the close glyph.",
-		match = "Buttons wear the mockup's body, bezel, class-colour rim and shadow; the leave button is the same IconButton with a glyph instead of an icon. The backing strip is surface glass, lighter than the mockup's opaque #101214 strip (see actionbars_bar_backing).",
+		match = "Buttons wear the mockup's body, bezel, class-colour rim and shadow; the leave button is the same IconButton with a glyph instead of an icon. The backing strip is the mockup's opaque #101214 band with the light edge line (see actionbars_bar_backing).",
 		rect = Gallery.Union(env, { bar1.backing, leave }),
 	})
 	frames:Add(env, flyout.frame, {
@@ -161,8 +161,8 @@ return Common.Run(function()
 	local bx, by, _, bh = Scene.Rect(env, bar1.backing)
 	frames:Add(env, bar1.backing, {
 		name = "actionbars_bar_backing", title = "Bar backing strip", grade = "button", reference = "actionbars",
-		caption = "A close crop of the left end of bar 1's backing strip (Bar.lua:52): a surface-filled tile chrome with a 6-unit chamfer, 4 units beyond the buttons, the two-line edge and no shadow.",
-		match = "The strip reaches 4 units past the buttons where the mockup's reaches 3, and its chamfer is 6 units against the mockup's 10. Its fill is the panel's surface glass at the panel opacity; the mockup's strip is opaque #101214, the button body. The light edge line matches the mockup's.",
+		caption = "A close crop of the left end of bar 1's backing strip (Bar.lua:52): the button grade's opaque buttonFill body as a tile chrome with 10-unit chamfered ends, 3 units beyond the buttons, the two-line edge and no shadow.",
+		match = "Fill, reach and ends as the theme spec measured on the mockup's strip: opaque #101214, 3 units above and below the buttons, 10-unit ends, the light edge line; the mockup's line is a little brighter at the ends (lum 94) than the kit's edgeInner over this body.",
 		rect = { x = bx, y = by, w = 130, h = bh },
 		pad = 10,
 	})
