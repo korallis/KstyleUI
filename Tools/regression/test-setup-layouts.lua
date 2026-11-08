@@ -216,7 +216,7 @@ do
 		local element = Layouts.Element(key)
 		return element.width .. "x" .. element.height
 	end
-	assert(footprint("minimap.main") == "168x166", "the minimap is 168 by 166: a 142 map, a 24 strip and a 22 footer, got " .. footprint("minimap.main"))
+	assert(footprint("minimap.main") == "259x221", "the minimap is 259 by 221: the mockup's 221 frame with a 34 button column and a 4 gap beside it, got " .. footprint("minimap.main"))
 	assert(footprint("chat.main") == "320x130", "the chat panel is 320 by 130, got " .. footprint("chat.main"))
 	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
 	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))

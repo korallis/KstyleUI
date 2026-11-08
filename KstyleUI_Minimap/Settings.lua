@@ -23,13 +23,13 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "inside", size = 16, spacing = 9, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	column = { side = "left", size = 30, spacing = 7, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
-	zoom = { wheel = true, reset = false, delay = 10 },
+	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
 	compass = true,
 	strip = { opacity = 0.8 },
-	zone = { shown = true, color = "plain", font = "", size = 9, outline = "" },
-	clock = { shown = true, mode = "game", font = "", size = 9, outline = "" },
+	zone = { shown = true, color = "plain", font = "", size = 14, outline = "" },
+	clock = { shown = true, mode = "game", font = "", size = 14, outline = "" },
 	coords = { shown = false, precision = 1, position = "top", font = "", size = 10, outline = "" },
 }
 
@@ -145,7 +145,7 @@ local schema = {
 	{
 		type = "slider", key = "column.spacing", label = L["Button spacing"],
 		min = SPACING_MIN, max = SPACING_MAX, step = SPACING_STEP,
-		help = L["The gap between the buttons, and between the column and the map."],
+		help = L["The gap between the buttons in the column."],
 	},
 	{
 		type = "toggle", key = "column.tracking", label = L["Tracking button"],
@@ -207,6 +207,10 @@ local schema = {
 	{
 		type = "toggle", key = "zoom.wheel", label = L["Zoom with the mouse wheel"],
 		help = L["Scroll over the map to zoom in and out."],
+	},
+	{
+		type = "toggle", key = "zoom.slider", label = L["Zoom slider"],
+		help = L["A thin slider inside the map's right edge. Click or drag it to zoom."],
 	},
 	{
 		type = "toggle", key = "zoom.reset", label = L["Zoom back out"],

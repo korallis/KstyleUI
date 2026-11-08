@@ -1,4 +1,4 @@
--- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, wheel zoom steps and the map's place in its element.
+-- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, and the map's place in its element.
 local _, ns = ...
 
 local Format = {}
@@ -8,6 +8,7 @@ local ceil, floor, format, max, min = math.ceil, math.floor, string.format, math
 
 local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
+local COLUMN_PAD = 2
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
 local PVP_TOKENS = {
@@ -26,6 +27,9 @@ end
 local function IsNumber(value)
 	return not IsSecret(value) and type(value) == "number" and value == value
 end
+
+Format.IsNumber = IsNumber
+Format.COLUMN_PAD = COLUMN_PAD
 
 function Format.Coords(x, y, precision)
 	if not IsNumber(x) or not IsNumber(y) then
@@ -86,6 +90,32 @@ function Format.NextZoom(current, levels, delta)
 		return nil
 	end
 	return target
+end
+
+function Format.ZoomShare(zoom, levels)
+	if not IsNumber(zoom) or not IsNumber(levels) or levels < 2 then
+		if IsNumber(zoom) and IsNumber(levels) then
+			return 0
+		end
+		return nil
+	end
+	local last = levels - 1
+	return max(0, min(zoom, last)) / last
+end
+
+function Format.ZoomAt(share, levels)
+	if not IsNumber(share) or not IsNumber(levels) then
+		return nil
+	end
+	local last = levels - 1
+	if last < 1 then
+		return 0
+	end
+	return max(0, min(last, floor(share * last + 0.5)))
+end
+
+function Format.ColumnReserve(size, gap)
+	return size + 2 * COLUMN_PAD + gap
 end
 
 function Format.MapRect(width, height, side, reserve)

@@ -1,4 +1,4 @@
--- Column.lua: the raised strip inside the map's right edge, or a column beside the map, of small monochrome buttons: tracking, mail, calendar and the group finder status.
+-- Column.lua: the mockup's column of ringed round buttons on a dark plate beside the map, or the design's raised strip inside its right edge: tracking, mail, calendar and the group finder status.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,6 +15,11 @@ local CELLS = { tracking = 0, mail = 1, calendar = 2, queue = 3, drawer = 4 }
 local BADGE_SIZE = 6
 local BADGE_INSET = 1
 local STRIP_GAP = Tokens.Size("gapSmall")
+local GAP = Tokens.Size("gapSmall")
+local PLATE_INSET = Tokens.Size("gapSmall")
+local GLYPH_SHARE = 16 / 30
+local RING_ALPHA_SCALE = 1.5
+local max = math.max
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
 Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
@@ -147,6 +152,10 @@ local function NewButton(column, name)
 	disc:SetAllPoints(button)
 	disc:SetVertexColor(Tokens.Color("surface"))
 	button.disc = disc
+	local ring = button:CreateTexture(nil, "BACKGROUND", nil, 1)
+	ring:SetTexture((Tokens.Texture("ring")))
+	ring:SetAllPoints(button)
+	button.ring = ring
 	local badge = button.overlay:CreateTexture(nil, "OVERLAY")
 	badge:SetTexture((Tokens.Texture("dot")))
 	badge:SetSize(BADGE_SIZE, BADGE_SIZE)
@@ -186,7 +195,11 @@ function Column.New(face, opts)
 	strip.fill = strip:CreateTexture(nil, "BACKGROUND")
 	strip.fill:SetColorTexture(Tokens.Color("white"))
 	strip.fill:SetAllPoints(strip)
-	local column = setmetatable({ face = face, holder = face.holder, host = host, strip = strip, preview = opts.preview == true, buttons = {} }, Column)
+	local plate = CreateFrame("Frame", nil, host)
+	plate:SetFrameLevel(host:GetFrameLevel())
+	plate.chrome = Widgets.Chrome(plate, { shape = "panel", edge = "edgeInner" })
+	plate:Hide()
+	local column = setmetatable({ face = face, holder = face.holder, host = host, strip = strip, plate = plate, preview = opts.preview == true, buttons = {} }, Column)
 	for _, name in ipairs(Column.ORDER) do
 		column.buttons[name] = NewButton(column, name)
 	end
@@ -242,40 +255,70 @@ local function PlaceStrip(self, size)
 	return gap
 end
 
+local function PlacePlate(self, size, spacing, count, up, right)
+	local face, plate = self.face, self.plate
+	local gap = Widgets.Snap(face.box, GAP)
+	local pad = Widgets.Snap(face.box, ns.Format.COLUMN_PAD)
+	local inset = Widgets.Snap(face.box, PLATE_INSET)
+	local vertical = up and "BOTTOM" or "TOP"
+	local y = up and gap or -gap
+	plate:ClearAllPoints()
+	if right then
+		plate:SetPoint(vertical .. "LEFT", face.box, vertical .. "RIGHT", gap, y)
+	else
+		plate:SetPoint(vertical .. "RIGHT", face.box, vertical .. "LEFT", -gap, y)
+	end
+	count = max(count, 1)
+	plate:SetWidth(size + 2 * pad)
+	plate:SetHeight(2 * inset + count * size + (count - 1) * spacing)
+	return inset
+end
+
+local function Fit(button, size, inset)
+	if button.opts.size ~= size or button.opts.iconInset ~= inset then
+		button.opts.size, button.opts.iconInset = size, inset
+		button:Restyle()
+	end
+end
+
 function Column:Layout()
-	local holder, face = self.holder, self.face
+	local holder = self.holder
 	local size = Widgets.Snap(holder, Settings.Get("column.size"))
 	local spacing = Widgets.Snap(holder, Settings.Get("column.spacing"))
 	local side = Settings.Get("column.side")
 	local inside = side == "inside"
-	local right = side == "right"
 	local up = Settings.Get("column.growth") == "up"
 	local vertical = up and "BOTTOM" or "TOP"
-	local point = vertical .. (right and "LEFT" or "RIGHT")
-	local relative = vertical .. (right and "RIGHT" or "LEFT")
-	local x = right and spacing or -spacing
-	local box, start = face.box, 0
-	self.strip:SetShown(inside)
-	if inside then
-		box, point, relative, x = self.strip, vertical, vertical, 0
-		start = PlaceStrip(self, size)
-	end
-	local slot = 0
+	local shown = {}
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
-		local shown = self:Wanted(name)
-		button:SetShown(shown)
-		if shown then
-			local offset = start + slot * (size + spacing)
-			if button.opts.size ~= size then
-				button.opts.size = size
-				button:Restyle()
-			end
-			button.disc:SetShown(not inside)
-			button:ClearAllPoints()
-			button:SetPoint(point, box, relative, x, up and offset or -offset)
-			slot = slot + 1
+		local wanted = self:Wanted(name)
+		button:SetShown(wanted)
+		if wanted then
+			shown[#shown + 1] = button
 		end
+	end
+	self.strip:SetShown(inside)
+	self.plate:SetShown(not inside and #shown > 0)
+	local box, start, inset
+	local face = self.face
+	if inside then
+		box, start = self.strip, PlaceStrip(self, size)
+		local footer = face.strip:IsShown() and face.strip:GetHeight() or 0
+		local occupied = start + #shown * size + max(#shown - 1, 0) * spacing
+		face:PlaceSlider(up, (face.mapSize or 0) - footer - occupied)
+	else
+		box, start = self.plate, PlacePlate(self, size, spacing, #shown, up, side == "right")
+		inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
+		face:PlaceSlider(false, nil)
+	end
+	for slot, button in ipairs(shown) do
+		local offset = start + (slot - 1) * (size + spacing)
+		Fit(button, size, inset)
+		button.disc:SetShown(not inside)
+		button.ring:SetShown(not inside)
+		button:ClearAllPoints()
+		button:SetPoint(vertical, box, vertical, 0, up and offset or -offset)
 	end
 end
 
@@ -294,6 +337,7 @@ function Column:Paint()
 			button:SetTint(tr, tg, tb)
 		end
 		button.badge:SetVertexColor(ar, ag, ab)
+		Widgets.Tint(button.ring, "edgeInner", RING_ALPHA_SCALE)
 		button.badge:SetShown(name == "calendar" and active)
 	end
 end
