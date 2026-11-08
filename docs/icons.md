@@ -30,7 +30,7 @@ Delete the pack's files from `World of Warcraft/_forever_/Interface/Icons/` (or 
 ## What stays Blizzard's
 
 - **Encrypted icons.** The client encrypts fewer than a hundred icons for store and event items; a loose file cannot replace one. The pack skips them (`iconset.py pack` reports each, and `Tools/data/icon_names.csv` marks them `encrypted`), so those icons stay Blizzard's.
-- **Icons not yet repainted.** An icon the pack has no file for shows Blizzard's art. The pack covers every player ability and item (see the counts below) and grows as more icons are repainted.
+- **Icons not yet repainted.** An icon the pack has no file for shows Blizzard's art. The pack covers every player ability and item, and every other spell, currency, mount, achievement and dropped-item icon the client's data tables reference, except the encrypted ones and three that Higgsfield's moderation refused twice: `236544` (Learn a Second Talent Specialization, the World of Warcraft logo), `133886` (Flames of the Red) and `134614` (Pants Cloth 20). Of the 26,001 icons none of the scanned tables references, 103 are repainted and 25,898 are not (see the counts below).
 - **A client that stops loading loose files.** Blizzard can turn the mechanism off: retail 12.1.0 did so briefly in August 2026. Nothing breaks when that happens; the game shows its own icons until a new pack is made.
 
 ## Switching
@@ -61,16 +61,27 @@ The pack matches what AcidWeb's Clean Icons ships, which the Forever client is k
 
 ## Coverage
 
-Counts from the Forever client 1.60.1.70862 on 2026-11-08 (`iconset.py names`, `Tools/icons/more_icons.py`):
+Counts from the Forever client 1.60.1.70862 on 2026-11-08 (`iconset.py names`, `Tools/icons/more_icons.py`, `iconset.py status`):
 
 | What | Icons |
 | --- | --- |
 | Icons in the client's `Interface/Icons` | 30,509 |
 | Encrypted (zero-filled), never replaceable | 55 |
-| Repainted before this change: every player ability and item | 3,271 |
-| Left to repaint, by what a player sees: other spells 787 (778 of them named, such as creature spells and buffs), currencies 2, mounts 18, achievements 75, items the item list dropped 346, icons no table references 26,001 | 27,183 |
+| Repainted and in the pack | 4,575 |
+| Of those, every player ability and item (`abilities.json`, `items.json`) | 3,271 |
+| Other spells a player sees, such as creature spells and buffs (`icons_more.json` spell): 774 of 787 | 774 |
+| Currencies: 2 of 2 | 2 |
+| Mounts: 5 of 18 | 5 |
+| Achievements: 75 of 75 | 75 |
+| Items the item list dropped (unlisted): 345 of 346 | 345 |
+| Icons none of the scanned tables references (misc): 103 of 26,001 | 103 |
+| Not repainted: 33 encrypted (9 items, 11 spells, 13 mounts), 3 refused by moderation, 25,898 misc | 25,934 |
 
-`Tools/icons/more_icons.py` lists the client's other icons from its data tables (`SpellMisc`, `SpellName`, `Talent`, `CurrencyTypes`, `Achievement`, `Mount`, `BattlePetSpecies`, `Item`, `ItemSparse`), ranked by what a player sees, into `Tools/data/icons_more.json`; `iconset.py generate --categories spell,currency,mount,companion,achievement,unlisted,misc` repaints them in that order and resumes where it stopped. At 1.5 credits per image and about 10% rerolls, the rest costs about 1.65 credits per icon.
+The 55 encrypted icons are zero-filled in the client, so there is no source to repaint and no loose file could replace them. 33 of them sit in the categories the pack covers: 9 item icons (store mounts and pets), the Ent pet spells `7929458` to `7929463`, the Furbolg pet spells `7959843` to `7959847`, the Druid Moose mounts `7949967`, `7949968`, `7949969` and `7949972`, the Devilsaur mounts `7962715` to `7962719` and the Warden Saber mounts `7967612` to `7967615`. The other 22 are among the misc icons. `Tools/data/icon_names.csv` marks every one `encrypted`.
+
+Every repaint went through `Tools/icons/check_icons.py` and a review by eye on contact sheets (`iconset.py sheets`). The check rejects a faithful repaint when the reason sits in Blizzard's icon itself: an icon that is a word (`XP`, `BONUS XP`), two figures side by side, a shield drawn as a frame, or a light backdrop the dark vignette drifts from. 24 such repaints of this run and 46 of the earlier ones were accepted by eye after comparing them with Blizzard's icon; `PROVENANCE.md` says so on their rows.
+
+`Tools/icons/more_icons.py` lists the client's other icons from its data tables (`SpellMisc`, `SpellName`, `Talent`, `CurrencyTypes`, `Achievement`, `Mount`, `BattlePetSpecies`, `Item`, `ItemSparse`), ranked by what a player sees, into `Tools/data/icons_more.json`; `iconset.py generate --categories spell,currency,mount,companion,achievement,unlisted,misc` repaints them in that order and resumes where it stopped. The owner stopped the run after the misc category's first 103 icons on 2026-11-08: none of the scanned tables references the rest, though the game's UI code or a table the script does not read may still draw some of them. At 1.5 credits per image and about 10% rerolls, the rest costs about 1.65 credits per icon.
 
 ## Research: how Clean Icons does it
 
