@@ -53,7 +53,8 @@ repaint is skipped unless --force; a group without a repaint keeps its style art
 package writes each accepted icon as a 128x128 PNG to <addon>/Icons/<fileID>.png (luminance only for
 set A), removes PNGs it no longer selects, writes <addon>/PROVENANCE.md and <addon>/Data.lua, the
 KstyleUIIconData table that Core/Icons.lua reads, and adds Data.lua to the addon's XML load file.
-sheets writes contact sheets of 64 icons for review.
+sheets writes contact sheets of 64 icons for review: Blizzard's icon from the extract cache, the icon and its
+32-pixel version.
 verify checks the packaged files: Tools/tests/test_iconset.py runs it on every set.
 """
 
@@ -99,6 +100,7 @@ MAX_DESCRIPTION = 300
 ICON_SIZE = 128
 SHEET_COLUMNS = 8
 SHEET_ICONS = 64
+SHEET_TILE_W = 2 * ICON_SIZE + 48  # Blizzard's icon, the repaint and its 32-pixel version
 
 STYLE_A = (
     "Draw one simple, iconic subject that captures this ability: a single object, creature head, hand or "
@@ -1221,13 +1223,24 @@ def verify_package(icon_set, groups, repo=REPO):
     return problems
 
 
-def contact_sheets(icon_set, groups, raw_dir, out_dir, log=print):
-    """Write sheets of 64 accepted icons at full and 32-pixel size, captioned with the file ID."""
+def blizzard_sources(groups, cache_dir=BLIZZARD):
+    """The extracted Blizzard icon of each group already in the cache, for the contact sheets; nothing is extracted."""
+    sources = {}
+    for group in groups:
+        png = Path(cache_dir) / f"{group['icon']}.png"
+        if png.exists():
+            sources[group["icon"]] = {"png": str(png)}
+    return sources
+
+
+def contact_sheets(icon_set, groups, raw_dir, out_dir, sources=None, log=print):
+    """Write sheets of 64 accepted icons in the groups' order, captioned with the file ID: Blizzard's icon from
+    sources when there is one (else a dark tile), the icon at full size and at 32 pixels."""
     Image, ImageDraw = _pillow()
     entries = [e for g in groups for e in accepted_entries([g], raw_dir)]
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    tile_w, tile_h = ICON_SIZE + 40, ICON_SIZE + 16
+    tile_w, tile_h = SHEET_TILE_W, ICON_SIZE + 16
     for start in range(0, len(entries), SHEET_ICONS):
         chunk = entries[start:start + SHEET_ICONS]
         rows = (len(chunk) + SHEET_COLUMNS - 1) // SHEET_COLUMNS
@@ -1235,13 +1248,17 @@ def contact_sheets(icon_set, groups, raw_dir, out_dir, log=print):
         draw = ImageDraw.Draw(sheet)
         for i, entry in enumerate(chunk):
             x, y = (i % SHEET_COLUMNS) * tile_w, (i // SHEET_COLUMNS) * tile_h
+            source = (sources or {}).get(entry["group"]["icon"])
+            if source:
+                with Image.open(source["png"]) as original:
+                    sheet.paste(original.convert("RGB").resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS), (x, y))
             with Image.open(Path(raw_dir) / entry["attempt"]["image"]) as image:
                 mode = "L" if icon_set.greyscale else "RGB"
                 big = image.convert(mode).resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
                 small = image.convert(mode).resize((32, 32), Image.LANCZOS)
-            sheet.paste(big.convert("RGB"), (x, y))
-            sheet.paste(small.convert("RGB"), (x + ICON_SIZE + 4, y))
-            draw.text((x + 2, y + ICON_SIZE + 2), f"{entry['group']['icon']} {entry['group']['name']}"[:24], fill=(200, 200, 200))
+            sheet.paste(big.convert("RGB"), (x + ICON_SIZE + 4, y))
+            sheet.paste(small.convert("RGB"), (x + 2 * ICON_SIZE + 8, y))
+            draw.text((x + 2, y + ICON_SIZE + 2), f"{entry['group']['icon']} {entry['group']['name']}"[:34], fill=(200, 200, 200))
         path = out_dir / f"sheet-{start // SHEET_ICONS + 1:02d}.png"
         sheet.save(path)
         log(f"wrote {path}")
@@ -1282,7 +1299,7 @@ def main(argv=None):
             command.add_argument("--owner", help="keep the icon groups a character of this class sees, such as WARRIOR")
             command.add_argument("--race", help="with --owner, also keep this race's racials, such as Orc")
         command.add_argument("--work-dir", type=Path, default=None, help="default ~/.local/share/wow-dev/icons/<set>")
-        if name in ("extract", "generate", "rejudge"):
+        if name in ("extract", "generate", "rejudge", "sheets"):
             command.add_argument("--blizzard-dir", type=Path, default=BLIZZARD, help="cache of extracted Blizzard icons")
         if name in ("generate", "rejudge", "status", "accept"):
             command.add_argument("--mode", default="style", choices=MODES,
@@ -1348,7 +1365,7 @@ def main(argv=None):
     elif args.command == "package":
         package(icon_set, groups, raw, data=not args.no_data)
     elif args.command == "sheets":
-        contact_sheets(icon_set, groups, raw, work / "sheets")
+        contact_sheets(icon_set, groups, raw, work / "sheets", sources=blizzard_sources(groups, args.blizzard_dir))
     elif args.command == "verify":
         problems = verify_package(icon_set, groups)
         for problem in problems:

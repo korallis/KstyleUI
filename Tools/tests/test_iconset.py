@@ -1305,3 +1305,42 @@ class AcceptByEyeTest(unittest.TestCase):
             self.assertIn("132208 Rapid Fire: attempt 3 accepted by eye over drift", out.getvalue())
             record = json.loads((raw / "132208.json").read_text())
             self.assertEqual(record["attempts"][2]["note"], "faithful by eye")
+
+
+@unittest.skipUnless(has_pillow(), "needs Pillow")
+class ContactSheetTest(unittest.TestCase):
+    """A contact sheet puts Blizzard's icon beside each repaint, so a reviewer compares them at a glance."""
+
+    def test_a_sheet_shows_blizzard_s_icon_then_the_repaint_then_the_small_version(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            raw, out, blizzard = Path(tmp) / "raw", Path(tmp) / "sheets", Path(tmp) / "blizzard"
+            raw.mkdir()
+            blizzard.mkdir()
+            g = group(10, "Charge")
+            Image.new("RGB", (1024, 1024), (200, 40, 40)).save(raw / "10-1.png")
+            Image.new("RGB", (512, 512), (40, 40, 200)).save(blizzard / "10.png")
+            iconset.save_record(raw, {"icon": 10, "name": "Charge", "category": "class", "rerollFrom": 0, "attempts": [
+                {"n": 1, "verdict": "accepted", "image": "10-1.png", "mode": "subject_reference", "model": "m", "lead": "x",
+                 "prompt": "x", "job": "j", "date": "d"}]})
+            iconset.contact_sheets(SET_B, [g], raw, out, sources={10: {"png": str(blizzard / "10.png")}}, log=lambda m: None)
+            with Image.open(out / "sheet-01.png") as sheet:
+                self.assertEqual(sheet.size, (iconset.SHEET_COLUMNS * iconset.SHEET_TILE_W, iconset.ICON_SIZE + 16))
+                self.assertEqual(sheet.getpixel((64, 64)), (40, 40, 200), "Blizzard's icon first")
+                self.assertEqual(sheet.getpixel((iconset.ICON_SIZE + 4 + 64, 64)), (200, 40, 40), "then the repaint")
+                self.assertEqual(sheet.getpixel((2 * iconset.ICON_SIZE + 8 + 16, 16)), (200, 40, 40), "then the 32-pixel version")
+
+    def test_a_sheet_without_a_source_leaves_blizzard_s_tile_dark(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            raw, out = Path(tmp) / "raw", Path(tmp) / "sheets"
+            raw.mkdir()
+            Image.new("RGB", (64, 64), (200, 40, 40)).save(raw / "10-1.png")
+            iconset.save_record(raw, {"icon": 10, "name": "Charge", "category": "class", "rerollFrom": 0, "attempts": [
+                {"n": 1, "verdict": "accepted", "image": "10-1.png", "model": "m", "lead": "x", "prompt": "x", "job": "j", "date": "d"}]})
+            iconset.contact_sheets(SET_B, [group(10, "Charge")], raw, out, log=lambda m: None)
+            with Image.open(out / "sheet-01.png") as sheet:
+                self.assertEqual(sheet.getpixel((64, 64)), (24, 24, 24))
+                self.assertEqual(sheet.getpixel((iconset.ICON_SIZE + 4 + 64, 64)), (200, 40, 40))
