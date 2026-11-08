@@ -495,7 +495,8 @@ end
 -- Auras: the player's buffs under the minimap, five with their time left -------------------------------------
 
 -- The engine binds each button's icon and timer itself; the stub does not, so the scene fills the first
--- five buff buttons and lays them out as the container's flow layout would: from the top right, leftwards.
+-- five buff buttons and lays them out as the container's flow layout would: from the top left, rightwards,
+-- the shortest time left first, the container centred under the map as the module anchors it.
 Hud.BUFFS = {
 	{ "battleShout", "24s" },
 	{ "berserkerRage", "17s" },
@@ -519,7 +520,7 @@ function modules.auras(opts)
 	local buffs, group = A.Container(env, "HELPFUL")
 	if buffs then
 		local layout = group.layout or {}
-		local width, height, spacing = layout.elementWidth or 28, layout.elementHeight or 38, layout.elementSpacing or 6
+		local width, height, spacing = layout.elementWidth or 38, layout.elementHeight or 51, layout.elementSpacing or 8
 		-- The engine sizes the container to its content; the stub leaves it unsized.
 		buffs:SetSize(#Hud.BUFFS * width + (#Hud.BUFFS - 1) * spacing, height)
 		for _, container in ipairs(env._containers) do
@@ -533,7 +534,7 @@ function modules.auras(opts)
 				local aura = button._aura
 				button:ClearAllPoints()
 				button:SetSize(width, height)
-				button:SetPoint("TOPRIGHT", buffs, "TOPRIGHT", -(i - 1) * (width + spacing), 0)
+				button:SetPoint("TOPLEFT", buffs, "TOPLEFT", (i - 1) * (width + spacing), 0)
 				if aura.icon then
 					aura.icon:SetTexture(I[buff[1]])
 				end

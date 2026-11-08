@@ -39,8 +39,8 @@ Two panels, each a `CustomAuraContainerTemplate` container on the player:
 
 | Element key | Filter | Default place | Default shape |
 | --- | --- | --- | --- |
-| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, -16, -222, under the minimap | 2 rows of 12 icons of 28 units, 6-unit gaps, growing left, then down: 402 by 76 units |
-| `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, -16, -306, under the buffs | 1 row of 12: 402 by 38 units |
+| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, -16, -252: 15 units under the minimap's 221-unit frame, the row centred under the map square, as the composition mockup draws it at 1.348 px per unit | 2 rows of 5 icons of 38 units, 8-unit gaps (the mockup's 46-unit pitch), growing right, then down, so the shortest time left sits at the left: 222 by 102 units |
+| `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, -16, -354, under the buffs | 1 row of 5: 222 by 51 units |
 
 Each icon is the kit's chamfered tile with the icon masked inside it. The timer sits under the icon (or on its lower edge) and the stack count on its lower right corner. The engine fills in the icon, the timer, the stack count, the tooltip and the dispel colour, so secret aura data never reaches KstyleUI's Lua.
 
@@ -57,11 +57,11 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 | Key | Default | Row |
 | --- | --- | --- |
 | `hideBlizzard` | `true` | toggle |
-| `buffs.iconSize`, `debuffs.iconSize` | 28 | slider, 16 to 64 |
-| `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 6, 0 | slider, 0 to 24 |
+| `buffs.iconSize`, `debuffs.iconSize` | 38 | slider, 16 to 64 |
+| `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 8, 0 | slider, 0 to 24 |
 | `buffs.rows`, `debuffs.rows` | 2, 1 | slider, 1 to 8 |
-| `buffs.columns`, `debuffs.columns` | 12 | slider, 1 to 24 |
-| `buffs.growth`, `debuffs.growth` | `LEFT_DOWN` | dropdown: left or right, then down or up |
+| `buffs.columns`, `debuffs.columns` | 5 | slider, 1 to 24 |
+| `buffs.growth`, `debuffs.growth` | `RIGHT_DOWN` | dropdown: left or right, then down or up. The container hangs centred from the element's top (or bottom, growing up), so a short row sits centred under the minimap whichever way it grows |
 | `buffs.sort`, `debuffs.sort` | `time` | dropdown: time, name, applied, blizzard |
 | `buffs.reverse`, `debuffs.reverse` | `false` | toggle |
 | `buffs.enchants` | `true` | toggle: weapon enchantments |
@@ -70,7 +70,7 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 | `timer.format` | `short` | dropdown: short, long, decimal, none |
 | `timer.position` | `below` | dropdown: under the icon, on the icon |
 | `timer.font`, `count.font` | the `number` font | font |
-| `timer.size`, `count.size` | 9, 11 | slider, 6 to 24, times the Appearance text size |
+| `timer.size`, `count.size` | 12, 11 | slider, 6 to 24, times the Appearance text size |
 | `timer.outline`, `count.outline` | `OUTLINE` | dropdown: soft shadow, thin, thick |
 | `timer.expiring` | 5 | slider, 0 to 30 seconds; 0 is off |
 | `accent.source`, `accent.color` | `class`, the kit accent | dropdown and colour: the buff border |

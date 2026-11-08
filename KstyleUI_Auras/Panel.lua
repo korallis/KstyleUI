@@ -20,8 +20,8 @@ local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
 local EDGE_TOKENS = { buffs = "accent", debuffs = "hostile" }
 local FALLBACK = {
-	buffs = { position = { anchor = "TOPRIGHT", x = -16, y = -222 }, label = K.L["Buffs"] },
-	debuffs = { position = { anchor = "TOPRIGHT", x = -16, y = -306 }, label = K.L["Debuffs"] },
+	buffs = { position = { anchor = "TOPRIGHT", x = -16, y = -252 }, label = K.L["Buffs"] },
+	debuffs = { position = { anchor = "TOPRIGHT", x = -16, y = -354 }, label = K.L["Debuffs"] },
 }
 
 local groups = {}
@@ -463,7 +463,8 @@ local function ApplyContainer(desc)
 	container:SetFlowLayoutGrowthDirection(directions[horizontal], directions[vertical])
 	container:SetFlowLayoutMaximumLineSize(ctx.lineSize)
 	container:ClearAllPoints()
-	container:SetPoint(anchor, desc.host, anchor, 0, 0)
+	local edge = Model.ContainerAnchor(ctx.group.growth)
+	container:SetPoint(edge, desc.host, edge, 0, 0)
 	container:SetAuraGroupLayout(desc.name, GroupLayout(ctx))
 	local method, direction = SortEnums(ctx.group)
 	if method ~= nil and direction ~= nil then

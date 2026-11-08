@@ -37,7 +37,7 @@ Footprints are width x height in units at the 1080 reference.
 | `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row |
 | `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | The second row, 10 units under bar 1 |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | A column of 12 at the right edge |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | A column of 12 at the right edge, under the debuff row |
 | `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | A column of 12, left of bar 3 |
 | `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | A column of 12 at the left edge |
 | `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | A column of 12, right of bar 5 |
@@ -47,8 +47,8 @@ Footprints are width x height in units at the 1080 reference.
 | `cooldowns.utility` | Cooldowns | Utility cooldowns | 238 x 52 | 4 icons of 52 units with 10-unit gaps, under the essential row and the frames |
 | `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, under the target frame |
 | `cooldowns.bars` | Cooldowns | Tracked buff bars | 195 x 51 | Two 195 by 24 bars, 5 units under the player frame, right-aligned with it: the mockup's bars start 225 units above the screen's bottom, ours 235, so they clear the 424-unit chat panel on the owner's 1671-unit-wide root |
-| `auras.buffs` | Auras | Buffs | 420 x 76 | Two rows of icons under the minimap, growing left |
-| `auras.debuffs` | Auras | Debuffs | 420 x 38 | One row under the buffs |
+| `auras.buffs` | Auras | Buffs | 222 x 102 | Two rows of five 38-unit icons with their timers, 15 units under the minimap and centred under the map square, growing right so the shortest time left comes first |
+| `auras.debuffs` | Auras | Debuffs | 222 x 51 | One row of five under the buffs |
 | `minimap.main` | Minimap | Minimap | 259 x 221 | The mockup's 221 chamfered frame: a 213 map square with the 30-unit footer over its bottom, and the 34-unit button column 4 units left of it |
 | `chat.main` | Chat | Chat | 424 x 164 | The panel with its tabs and edit box |
 | `databars.xp` | DataBars | Experience bar | 440 x 4 | Between the utility row and action bar 1, with its XP caption on the line |
