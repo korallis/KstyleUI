@@ -128,6 +128,21 @@ class OrderTest(unittest.TestCase):
         self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, owner="WARRIOR")], [2, 1])
         self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, ["class"], owner="WARRIOR")], [2])
 
+    def test_a_class_sees_general_spells_for_all_every_profession_and_with_a_race_its_racials(self):
+        throw = group(1, "Throw", "general", spells=[spell("Throw", "HUNTER,ROGUE,WARRIOR", "General", category="general")])
+        riding = group(2, "Horse Riding", "general", spells=[spell("Horse Riding", "ALL", "Riding", category="general")])
+        shoot = group(3, "Shoot", "general", spells=[spell("Shoot", "MAGE,PRIEST,WARLOCK", "Wands", category="general")])
+        smelting = group(4, "Smelting", "profession", spells=[spell("Smelting", "Mining", "Mining", category="profession")])
+        fury = group(5, "Blood Fury", "racial", spells=[spell("Blood Fury", "Orc", "Orc Racial", category="racial")])
+        stomp = group(6, "War Stomp", "racial", spells=[spell("War Stomp", "Tauren", "Tauren Racial", category="racial")])
+        bite = group(7, "Bite", "pet", spells=[spell("Bite", "HUNTER", "Pet - Wolf", category="pet")])
+        charge = group(8, "Charge", owner="WARRIOR", line="Arms")
+        data = {"icons": [throw, riding, shoot, smelting, fury, stomp, bite, charge]}
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, owner="WARRIOR")], [8, 4, 1, 2])
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, owner="WARRIOR", race="Orc")], [8, 5, 4, 1, 2])
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, ["racial"], owner="WARRIOR", race="Orc")], [5])
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, race="Orc")], [5, 4, 2])
+
 
 class DescriptionTest(unittest.TestCase):
     def test_drops_number_placeholders(self):
@@ -404,6 +419,164 @@ class FaithfulGenerateTest(unittest.TestCase):
                 self.assertEqual(iconset.accepted_attempt(iconset.load_record(raw, g))["mode"], "subject_reference")
             run([groups[1]], service, raw, icon_set=SET_B, reroll={11})
             self.assertEqual(len(service.prompts), 4, "an explicit reroll still makes a style image")
+
+
+def has_pillow():
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+class DeriveTest(unittest.TestCase):
+    """derive rebuilds set A's light art from set B's accepted repaints, at no credit cost."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.raw_a = Path(self.tmp.name) / "A"
+        self.raw_b = Path(self.tmp.name) / "B"
+        self.raw_a.mkdir()
+        self.raw_b.mkdir()
+        self.groups = [group(10, "Charge"), group(11, "Rend"), group(12, "Slam")]
+        self.sources = {i: {"png": f"/c/{i}.png", "blp_sha256": f"blp{i}"} for i in (10, 11, 12)}
+        run([self.groups[0], self.groups[1]], FakeService(), self.raw_b, icon_set=FAITHFUL, sources=self.sources)
+        run([self.groups[2]], FakeService(), self.raw_b, icon_set=SET_B)  # a free painting, not a repaint
+        run(self.groups, FakeService(), self.raw_a)  # set A's old free art
+        self.transforms = []
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def transform(self, source, target):
+        self.transforms.append((Path(source).name, Path(target).name))
+        Path(target).write_bytes(b"light:" + Path(source).read_bytes())
+
+    def derive(self, judge=lambda path: [], today="2026-11-08", **kwargs):
+        return iconset.derive(self.groups, SET_A, self.raw_a, self.raw_b, judge=judge, today=today,
+                              transform=self.transform, log=lambda message: None, **kwargs)
+
+    def test_derives_a_light_icon_from_each_accepted_repaint_and_records_where_it_came_from(self):
+        summary = self.derive()
+        self.assertEqual((summary["derived"], summary["accepted"], summary["rejected"]), (2, 2, 0))
+        self.assertEqual(summary["missing"], [12], "a group with only a free set B painting is skipped")
+        self.assertEqual(self.transforms, [("10-1.png", "10-2.png"), ("11-1.png", "11-2.png")])
+        record = iconset.load_record(self.raw_a, self.groups[0])
+        attempt = record["attempts"][1]
+        source = iconset.accepted_attempt(iconset.load_record(self.raw_b, self.groups[0]))
+        self.assertEqual(attempt["mode"], "derived")
+        self.assertEqual(attempt["verdict"], "accepted")
+        self.assertEqual(attempt["image"], "10-2.png")
+        self.assertEqual(attempt["date"], "2026-11-08")
+        self.assertEqual(attempt["derivedFrom"], {"set": "B", "image": "10-1.png", "job": source["job"], "mode": "subject_reference",
+                                                  "date": source["date"]})
+        self.assertEqual(attempt["job"], source["job"], "the job identifies the repaint the art came from")
+        self.assertEqual(attempt["source"], source["source"], "the Blizzard BLP the repaint followed")
+        self.assertEqual(attempt["model"], source["model"])
+        self.assertEqual(attempt["lead"], source["lead"])
+        self.assertEqual((self.raw_a / "10-2.png").read_bytes(), b"light:" + (self.raw_b / "10-1.png").read_bytes())
+        self.assertEqual(iconset.accepted_attempt(record)["mode"], "derived", "the derived art replaces the free art")
+        self.assertEqual(iconset.accepted_attempt(iconset.load_record(self.raw_a, self.groups[2]))["mode"], "style")
+
+    def test_a_derived_icon_counts_as_done_for_a_set_a_generate_run(self):
+        self.derive()
+        service = FakeService()
+        summary = run(self.groups, service, self.raw_a)
+        self.assertEqual(service.prompts, [])
+        self.assertEqual(summary["accepted"], 3)
+
+    def test_a_rerun_skips_art_already_derived_from_the_same_repaint_and_follows_a_new_repaint(self):
+        self.derive()
+        summary = self.derive()
+        self.assertEqual((summary["derived"], summary["skipped"]), (0, 2))
+        self.assertEqual(len(iconset.load_record(self.raw_a, self.groups[0])["attempts"]), 2)
+        run([self.groups[0]], FakeService(), self.raw_b, icon_set=FAITHFUL, sources=self.sources, reroll={10})
+        summary = self.derive()
+        self.assertEqual((summary["derived"], summary["skipped"]), (1, 1))
+        record = iconset.load_record(self.raw_a, self.groups[0])
+        self.assertEqual(len(record["attempts"]), 3)
+        self.assertEqual(iconset.accepted_attempt(record)["derivedFrom"]["image"], "10-2.png")
+        summary = self.derive(force=True)
+        self.assertEqual(summary["derived"], 2)
+
+    def test_art_the_set_a_check_rejects_is_recorded_and_the_free_art_stays(self):
+        summary = self.derive(judge=lambda path: ["background"] if path.name.startswith("10-") else [])
+        self.assertEqual((summary["derived"], summary["accepted"], summary["rejected"]), (2, 1, 1))
+        record = iconset.load_record(self.raw_a, self.groups[0])
+        self.assertEqual(record["attempts"][1]["verdict"], "rejected")
+        self.assertEqual(record["attempts"][1]["reasons"], ["background"])
+        self.assertEqual(iconset.accepted_attempt(record)["mode"], "style")
+        self.assertEqual(iconset.accepted_attempt(iconset.load_record(self.raw_a, self.groups[1]))["mode"], "derived")
+        summary = self.derive(judge=lambda path: ["background"] if path.name.startswith("10-") else [])
+        self.assertEqual(summary["derived"], 0, "a deterministic derivation is not repeated without --force")
+
+    def test_a_derived_row_in_the_provenance_names_the_method_and_the_set_b_repaint(self):
+        self.derive()
+        entries = iconset.accepted_entries(self.groups, self.raw_a)
+        text = iconset.render_provenance(SET_A, entries)
+        rows = [line for line in text.splitlines() if line.startswith("| `")]
+        source = iconset.accepted_attempt(iconset.load_record(self.raw_b, self.groups[0]))
+        self.assertTrue(rows[0].startswith(f"| `10` | Charge | gpt_image_2_5 | derived | {source['lead']} | blp10 | {source['job']} | 2026-11-08 |"), rows[0])
+        self.assertIn("| `12` | Slam | gpt_image_2_5 | style |", rows[2])
+        self.assertIn("## Derived from set B (`derived`)", text)
+        self.assertIn("KstyleUI_IconsColour/PROVENANCE.md", text)
+        self.assertIn("brightest channel", text)
+        plain = iconset.render_provenance(SET_A, [e for e in entries if e["group"]["icon"] == 12])
+        self.assertNotIn("Derived from set B", plain)
+
+    def test_derive_is_a_set_a_command_that_takes_the_owner_filters(self):
+        import contextlib
+        import io
+
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
+            iconset.main(["derive", "--set", "B"])
+        self.assertEqual(stop.exception.code, 2)
+        self.assertIn("unrecognized arguments", err.getvalue())
+
+
+@unittest.skipUnless(has_pillow(), "needs Pillow")
+class DeriveLightTest(unittest.TestCase):
+    """The derivation itself: set B's painting becomes bright light on black that set A's check accepts."""
+
+    def painting(self, size=256):
+        from PIL import Image, ImageDraw
+
+        image = Image.new("RGB", (size, size), (30, 30, 60))  # a dark blue backdrop, as the repaints have
+        draw = ImageDraw.Draw(image)
+        draw.ellipse([size * 0.2, size * 0.2, size * 0.8, size * 0.8], fill=(220, 30, 30))  # a saturated red subject
+        draw.rectangle([0, 0, size, size * 0.06], fill=(90, 90, 120))  # a lighter band at the top edge
+        return image
+
+    def test_writes_bright_light_on_black_that_the_set_a_check_accepts(self):
+        import check_icons
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source, target = Path(tmp) / "b.png", Path(tmp) / "a.png"
+            self.painting().save(source)
+            iconset.derive_light(source, target)
+            with Image.open(target) as image:
+                self.assertEqual(image.mode, "L")
+                self.assertEqual(image.size, (256, 256))
+                centre = image.getpixel((128, 128))
+                corner = image.getpixel((2, 2))
+                top = image.getpixel((128, 2))
+            self.assertGreater(centre, 230, "a saturated colour counts as light")
+            self.assertEqual(corner, 0)
+            self.assertEqual(top, 0, "the edge fades to black whatever the painting has there")
+            raster = check_icons.load_raster(target)
+            self.assertEqual(check_icons.judge(raster), [])
+            self.assertLess(check_icons._band_mean(raster), 4)
+
+    def test_the_packaged_icon_is_an_rgb_png_with_equal_channels(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, light, packaged = Path(tmp) / "b.png", Path(tmp) / "a.png", Path(tmp) / "128.png"
+            self.painting().save(source)
+            iconset.derive_light(source, light)
+            iconset.downscale(light, packaged, greyscale=True)
+            self.assertEqual(iconset._png_header(packaged), (128, 128, 8, 2))
+            self.assertTrue(iconset._luminance_only(packaged))
 
 
 class RejudgeTest(unittest.TestCase):
@@ -796,6 +969,24 @@ class PackageFiltersTest(unittest.TestCase):
                 iconset.main(argv)
             self.assertEqual(stop.exception.code, 2, argv)
             self.assertIn("unrecognized arguments", err.getvalue())
+
+
+class DryRunTest(unittest.TestCase):
+    def test_a_dry_run_lists_every_group_it_would_paint_and_the_cost(self):
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = iconset.main(["generate", "--set", "B", "--mode", "subject_reference", "--owner", "WARRIOR", "--race", "Orc",
+                                     "--categories", "racial", "--dry-run", "--work-dir", tmp])
+            self.assertEqual(code, 0)
+            text = out.getvalue()
+            self.assertIn("2 icons to generate, about 3.0 credits", text)
+            self.assertIn("133125 Hardiness (racial)", text)
+            self.assertIn("135726 Blood Fury (racial)", text)
+            self.assertNotIn("War Stomp", text)
 
 
 class FloorTest(unittest.TestCase):

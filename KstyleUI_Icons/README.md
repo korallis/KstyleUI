@@ -32,7 +32,16 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it.
 
-Set B's 79 warrior icon groups were repainted from Blizzard's own icons so a player recognises them (see [`KstyleUI_IconsColour/README.md`](../KstyleUI_IconsColour/README.md#repainted-from-blizzards-icon)). Set A still has the old free art for those icons. A later task can derive set A from the faithful set B art instead of generating it again: take set B's accepted 1024-pixel repaint, convert it to luminance, raise the contrast so the subject is white light on black, and run it through `judge` for set A, so both sets share one recognisable silhouette per icon and set A costs no credits. The pipeline would gain a `derive` command that reads set B's records and writes set A's.
+### Derived from set B
+
+Set B's 109 icon groups an orc warrior sees were repainted from Blizzard's own icons so a player recognises them (see [`KstyleUI_IconsColour/README.md`](../KstyleUI_IconsColour/README.md#repainted-from-blizzards-icon)). Set A takes those groups from set B instead of generating them again, so both sets share one recognisable silhouette per icon and set A costs no credits:
+
+| Step | Command | What it does |
+| --- | --- | --- |
+| Derive | `iconset.py derive [--owner WARRIOR --race Orc] [--force]` | For every group whose set B record has an accepted `subject_reference` repaint, `derive_light` turns the 1024-pixel repaint into light on black: the brightest channel of each pixel (so a saturated colour counts as light), levels that put the backdrop at black and the brightest pixels at white, a light unsharp mask, the art shrunk to 84% of the side on black and faded to black at the edge. The result goes through set A's `judge` (no text check: the repaint passed it) and is recorded in `~/.local/share/wow-dev/icons/A/raw` as an attempt with mode `derived`, the repaint's job, prompt, model and Blizzard source, and `derivedFrom` naming the set B image. A group already derived from the same repaint is skipped unless `--force`; a group with only a free set B painting keeps its style art. |
+| Package | `iconset.py package` | As above. The provenance row's method is `derived`; its job, prompt and Blizzard BLP sha256 are the set B repaint's, and a section explains the derivation. |
+
+A `generate` run treats a derived group as done. An owner `--reroll` in `generate` hides the derived attempt and paints a new free image, as for any accepted icon.
 
 ## Why
 

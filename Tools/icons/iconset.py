@@ -1,14 +1,15 @@
 """Generate, check and package a custom icon set from Tools/data/abilities.json.
 
 Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python):
-    iconset.py extract  [--owner WARRIOR] [--categories class,pet]
-    iconset.py generate [--set A|B] [--mode style|subject_reference] [--owner WARRIOR] [--jobs 8] [--floor N]
-                        [--limit N] [--categories class,pet] [--reroll FILEID ...] [--dry-run]
+    iconset.py extract  [--owner WARRIOR] [--race Orc] [--categories class,pet]
+    iconset.py generate [--set A|B] [--mode style|subject_reference] [--owner WARRIOR] [--race Orc] [--jobs 8]
+                        [--floor N] [--limit N] [--categories class,pet] [--reroll FILEID ...] [--dry-run]
     iconset.py rejudge  [--set A|B] [--mode ...] [--owner ...]
     iconset.py status   [--set A|B] [--mode ...]
     iconset.py package  [--set A|B] [--no-data]
     iconset.py sheets   [--set A|B]
     iconset.py verify   [--set A|B]
+    iconset.py derive   [--owner WARRIOR] [--race Orc] [--categories class,pet] [--force]
 
 Set A is white light art on black, tinted in game (KstyleUI_Icons). Set B is full-colour painted art
 that fills the square (KstyleUI_IconsColour); its prompts also name a palette for the spell school.
@@ -19,8 +20,9 @@ ID with TACTTool (read-only) into ~/.local/share/wow-dev/icons/blizzard/<fileID>
 prompt then gets two image references: the Blizzard icon (image 1, the subject) and the action-button
 strip docs/design/mockups/icons_B_buttons.png (image 2, finish only). Tools/data/icon_subjects.json
 may add a hand-checked subject sentence for an icon the reference alone does not carry.
---owner WARRIOR keeps the icon groups with a spell that class uses. rejudge re-runs the mode's check on
-the images it already has, after the check changes, and stamps each changed verdict.
+--owner WARRIOR keeps the icon groups a character of that class sees: the class's spells, general spells
+for ALL, every profession skill and, with --race Orc, that race's racials. rejudge re-runs the mode's
+check on the images it already has, after the check changes, and stamps each changed verdict.
 
 generate makes one 1:1 image per icon group with Higgsfield, in category order (class, pet, racial,
 profession, general), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
@@ -33,6 +35,14 @@ icon whose accepted image came from a style run, and the style image stays in th
 repaint is accepted. The run reads the credit balance at the start and every 100 images, and
 stops before a job would take the balance below --floor (set A 1300, set B 60 by default). --reroll makes a fresh attempt for icons the
 owner marked on a contact sheet, even when they were accepted.
+
+derive makes set A's light art from set B's accepted subject_reference repaints without the model: the
+brightest channel of each pixel, levels to black and white, an unsharp mask, the art shrunk onto black
+and faded out at the edge (see derive_light), checked with set A's judge (no text check: the repaint
+passed it). The attempt is recorded in set A's raw folder with mode derived, the repaint's job, prompt
+and Blizzard source, and derivedFrom naming the set B image, so a plain generate run treats the group
+as done and the provenance row traces back to the set B record. A group already derived from the same
+repaint is skipped unless --force; a group without a repaint keeps its style art.
 
 package writes each accepted icon as a 128x128 PNG to <addon>/Icons/<fileID>.png (luminance only for
 set A), removes PNGs it no longer selects, writes <addon>/PROVENANCE.md and <addon>/Data.lua, the
@@ -176,6 +186,17 @@ CHECKS_FAITHFUL = ("no blank, flat (unreadable at 32 pixels), grid or text-beari
                    "light-and-dark layout correlates below 0.6 with Blizzard's icon (drift)")
 BUTTONS_REFERENCE = "docs/design/mockups/icons_B_buttons.png"
 
+# derive: set A's light art from a set B repaint. The levels put the backdrop (the median pixel, capped) at
+# black and the brightest half-percent at white; the art is shrunk onto black and faded out at the edge.
+DERIVE_BLACK = 0.5  # percentile of the brightest-channel values that becomes black
+DERIVE_BLACK_CAP = 56  # but never a level above this, so a bright painting keeps its mid tones
+DERIVE_WHITE = 0.995  # percentile that becomes white
+DERIVE_MIN_RANGE = 64  # the white level sits at least this far above the black level
+DERIVE_GAMMA = 0.9  # lifts the mid tones a little, as the in-game tint only darkens
+DERIVE_SHARPEN = (3, 80, 2)  # unsharp mask radius, percent and threshold, for crisp edges at 32 pixels
+DERIVE_SCALE = 0.84  # the art's share of the side: the rest is set A's black margin
+DERIVE_FADE = (0.80, 0.97)  # the edge fade starts and ends at these shares of the half side
+
 CLASS_NAMES = {"DEATHKNIGHT": "Death Knight", "DEMONHUNTER": "Demon Hunter"}
 RACE_NAMES = {"Scourge": "Undead"}
 
@@ -227,14 +248,20 @@ class RateLimited(GenerationError):
 
 # Prompts ---------------------------------------------------------------------------------------
 
-def uses(group, owner):
-    """True when a spell of the group belongs to owner, alone or in a comma-separated list of classes."""
-    return any(owner in spell["owner"].split(",") for spell in group["spells"])
+def uses(group, owner, race=None):
+    """True when a character of that class, and of that race when one is given, sees a spell of the group:
+    the class or the race is in a spell's comma-separated owner list, the list is ALL, or the group is a
+    profession skill, which every class can learn."""
+    if group["category"] == "profession":
+        return True
+    wanted = {owner, race, "ALL"} - {None}
+    return any(wanted & set(spell["owner"].split(",")) for spell in group["spells"])
 
 
-def ordered_groups(data, categories=None, owner=None):
+def ordered_groups(data, categories=None, owner=None, race=None):
     wanted = set(categories or CATEGORIES)
-    groups = [g for g in data["icons"] if g["category"] in wanted and (owner is None or uses(g, owner))]
+    filtered = owner is not None or race is not None
+    groups = [g for g in data["icons"] if g["category"] in wanted and (not filtered or uses(g, owner, race))]
     return sorted(groups, key=lambda g: (CATEGORIES.index(g["category"]), g["icon"]))
 
 
@@ -745,6 +772,100 @@ def extract_all(groups, cache_dir=BLIZZARD, log=print):
     return sources
 
 
+# Deriving set A from set B ----------------------------------------------------------------------
+
+def _percentile(histogram, share):
+    total, seen = sum(histogram), 0
+    for value, count in enumerate(histogram):
+        seen += count
+        if seen >= share * total:
+            return value
+    return len(histogram) - 1
+
+
+def _edge_fade(size):
+    """A mask of 255 inside DERIVE_FADE[0] of the half side, falling smoothly to 0 at DERIVE_FADE[1], measured
+    as the larger of the horizontal and vertical distances from the centre, so the fade follows the square."""
+    Image, _ = _pillow()
+    from PIL import ImageChops
+    vertical = Image.linear_gradient("L").resize((size, size), Image.BILINEAR).point(lambda v: min(255, abs(2 * v - 255)))
+    distance = ImageChops.lighter(vertical, vertical.transpose(Image.Transpose.ROTATE_90))
+    start, end = DERIVE_FADE
+    table = []
+    for level in range(256):
+        t = min(1.0, max(0.0, (level / 255 - start) / (end - start)))
+        table.append(round(255 * (1 - (3 * t * t - 2 * t * t * t))))
+    return distance.point(table)
+
+
+def derive_light(source, target):
+    """Write set A's light art for a set B painting: the brightest channel of each pixel, so a saturated colour
+    counts as light; levels that put the backdrop at black and the brightest pixels at white; a light unsharp
+    mask; the art shrunk to DERIVE_SCALE of the side on black and faded to black at the edge. The file is a
+    luminance ("L") PNG; package turns it into the RGB PNG with equal channels that the game draws."""
+    Image, _ = _pillow()
+    from PIL import ImageChops, ImageFilter
+    with Image.open(source) as image:
+        red, green, blue = image.convert("RGB").split()
+    light = ImageChops.lighter(ImageChops.lighter(red, green), blue)
+    histogram = light.histogram()
+    black = min(_percentile(histogram, DERIVE_BLACK), DERIVE_BLACK_CAP)
+    white = max(_percentile(histogram, DERIVE_WHITE), black + DERIVE_MIN_RANGE)
+    table = [round(255 * max(0.0, min(1.0, (v - black) / (white - black))) ** DERIVE_GAMMA) for v in range(256)]
+    radius, percent, threshold = DERIVE_SHARPEN
+    light = light.point(table).filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+    size = light.size[0]
+    inner = round(size * DERIVE_SCALE)
+    canvas = Image.new("L", (size, size), 0)
+    canvas.paste(light.resize((inner, inner), Image.LANCZOS), ((size - inner) // 2, (size - inner) // 2))
+    ImageChops.multiply(canvas, _edge_fade(size)).save(target, optimize=True)
+
+
+def _derived_from(record, source):
+    """The record's attempt derived from the set B attempt source, if any."""
+    for attempt in _window(record):
+        origin = attempt.get("derivedFrom", {})
+        if mode_of(attempt) == "derived" and (origin.get("job"), origin.get("image")) == (source["job"], source["image"]):
+            return attempt
+    return None
+
+
+def derive(groups, icon_set, raw_dir, source_dir, *, judge, today, transform=derive_light, force=False, log=print):
+    """Make set A's light art for every group whose set B record has an accepted subject_reference repaint, at
+    no credit cost, and run it through the set's check. The new attempt carries the repaint's job, prompt,
+    model and Blizzard source, so the provenance row traces back to the set B record; derivedFrom names the
+    repaint's image. A group already derived from that repaint is skipped unless force. Returns a summary."""
+    raw_dir, source_dir = Path(raw_dir), Path(source_dir)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    summary = {"derived": 0, "accepted": 0, "rejected": 0, "skipped": 0, "missing": []}
+    for group in groups:
+        source = accepted_attempt(load_record(source_dir, group))
+        if source is None or mode_of(source) != "subject_reference":
+            summary["missing"].append(group["icon"])
+            continue
+        record = load_record(raw_dir, group)
+        if not force and _derived_from(record, source) is not None:
+            summary["skipped"] += 1
+            continue
+        n = len(record["attempts"]) + 1
+        image = f"{group['icon']}-{n}.png"
+        transform(source_dir / source["image"], raw_dir / image)
+        reasons = list(judge(raw_dir / image))
+        attempt = {
+            "n": n, "model": source["model"], "mode": "derived", "lead": source["lead"], "prompt": source["prompt"],
+            "date": today, "source": source.get("source"), "job": source["job"], "image": image,
+            "derivedFrom": {"set": "B", "image": source["image"], "job": source["job"], "mode": mode_of(source),
+                            "date": source["date"]},
+            "reasons": reasons, "verdict": "rejected" if reasons else "accepted",
+        }
+        record["attempts"].append(attempt)
+        save_record(raw_dir, record)
+        summary["derived"] += 1
+        summary["accepted" if not reasons else "rejected"] += 1
+        log(f"{group['icon']} {group['name']}: derived from B {source['image']}: {attempt['verdict']} ({', '.join(reasons) or 'ok'})")
+    return summary
+
+
 # Packaging -------------------------------------------------------------------------------------
 
 def accepted_entries(groups, raw_dir):
@@ -849,6 +970,23 @@ def render_provenance(icon_set, entries):
             "```text",
             repaint.style,
             "```",
+        ]
+    if any(mode_of(e["attempt"]) == "derived" for e in entries):
+        lines += [
+            "",
+            "## Derived from set B (`derived`)",
+            "",
+            "| Field | Value |",
+            "| --- | --- |",
+            "| Source | The accepted `subject_reference` repaint of the same file ID in `KstyleUI_IconsColour/PROVENANCE.md`: "
+            "the row's Model, Prompt, Blizzard BLP sha256 and Job are that repaint's, so the job identifies the set B "
+            "image the art came from. The row's Date is the day the light art was derived. |",
+            f"| Method | `iconset.py derive`, Pillow only, no model and no credits: the brightest channel of each pixel, so "
+            f"a saturated colour counts as light; levels that put the {DERIVE_BLACK:.0%} percentile (capped at "
+            f"{DERIVE_BLACK_CAP}) at black and the {DERIVE_WHITE:.1%} percentile at white, gamma {DERIVE_GAMMA}; an "
+            f"unsharp mask (radius {DERIVE_SHARPEN[0]}, {DERIVE_SHARPEN[1]}%); the art shrunk to {DERIVE_SCALE:.0%} of "
+            f"the side on black and faded to black from {DERIVE_FADE[0]:.0%} to {DERIVE_FADE[1]:.0%} of the half side. |",
+            f"| Checks | `Tools/icons/check_icons.py --set A` without the text check, which the repaint passed: {icon_set.checks} |",
         ]
     lines += [
         "",
@@ -1017,7 +1155,7 @@ def _load_groups(args):
     unknown = set(categories or ()) - set(CATEGORIES)
     if unknown:
         raise SystemExit(f"iconset: unknown categories: {', '.join(sorted(unknown))}")
-    return ordered_groups(data, categories, getattr(args, "owner", None))
+    return ordered_groups(data, categories, getattr(args, "owner", None), getattr(args, "race", None))
 
 
 def _print_summary(summary):
@@ -1035,12 +1173,14 @@ def _print_summary(summary):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify"):
+    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify", "derive"):
         command = sub.add_parser(name)
-        command.add_argument("--set", default="A", choices=sorted(SETS))
+        if name != "derive":  # derive always writes set A from set B
+            command.add_argument("--set", default="A", choices=sorted(SETS))
         if name not in ("package", "verify"):  # package writes the whole set: a filtered package would drop the rest
             command.add_argument("--categories", help="comma-separated subset of " + ",".join(CATEGORIES))
-            command.add_argument("--owner", help="keep the icon groups with a spell this class uses, such as WARRIOR")
+            command.add_argument("--owner", help="keep the icon groups a character of this class sees, such as WARRIOR")
+            command.add_argument("--race", help="with --owner, also keep this race's racials, such as Orc")
         command.add_argument("--work-dir", type=Path, default=None, help="default ~/.local/share/wow-dev/icons/<set>")
         if name in ("extract", "generate", "rejudge"):
             command.add_argument("--blizzard-dir", type=Path, default=BLIZZARD, help="cache of extracted Blizzard icons")
@@ -1058,9 +1198,12 @@ def main(argv=None):
             command.add_argument("--dry-run", action="store_true", help="print the work and its cost, spend nothing")
         if name == "package":
             command.add_argument("--no-data", action="store_true", help="write the icons and PROVENANCE.md only")
+        if name == "derive":
+            command.add_argument("--source-dir", type=Path, default=None, help="set B's raw folder (default ~/.local/share/wow-dev/icons/B/raw)")
+            command.add_argument("--force", action="store_true", help="derive again even where the same repaint was already used")
     args = parser.parse_args(argv)
 
-    icon_set = with_mode(SETS[args.set], getattr(args, "mode", "style"))
+    icon_set = with_mode(SETS[getattr(args, "set", "A")], getattr(args, "mode", "style"))
     if getattr(args, "floor", None) is None:
         args.floor = icon_set.floor
     work = args.work_dir or WORK / icon_set.name
@@ -1083,6 +1226,13 @@ def main(argv=None):
                           today=datetime.date.today().isoformat())
         print(f"rejudged: {len(changed)} verdicts changed")
         _print_summary(summarise(groups, raw, mode=icon_set.mode))
+    elif args.command == "derive":
+        import check_icons  # noqa: F401  (make_judge imports it; fail early when Pillow is missing)
+
+        summary = derive(groups, icon_set, raw, args.source_dir or WORK / "B" / "raw", judge=make_judge(text=False, icon_set=icon_set),
+                         today=datetime.date.today().isoformat(), force=args.force)
+        print(f"derived {summary['derived']}: accepted {summary['accepted']}, rejected {summary['rejected']}; "
+              f"skipped {summary['skipped']} already derived, {len(summary['missing'])} groups without a set B repaint")
     elif args.command == "package":
         package(icon_set, groups, raw, data=not args.no_data)
     elif args.command == "sheets":
@@ -1101,6 +1251,8 @@ def main(argv=None):
         if args.dry_run:
             print(f"{len(todo)} icons to generate, about {len(todo) * args.cost:.1f} credits before rerolls; "
                   f"the run stops before the balance falls below {args.floor:g}")
+            for group in todo:
+                print(f"  {group['icon']} {group['name']} ({group['category']})")
             for group in todo[:5]:
                 print(prompt_for(icon_set, group, subjects=subjects)[1])
             return 0
