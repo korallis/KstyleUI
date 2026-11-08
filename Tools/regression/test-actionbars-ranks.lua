@@ -195,4 +195,115 @@ do
 	assert(Holds(g, 3, HS2) and Holds(g, 5, REND1) and env.issecretvalue(g.slots[100].id) and #env._errors == 0, "only the plain slots change" .. AB.Errors(env))
 end
 
+local function Logged(env, part)
+	local found = 0
+	for _, entry in ipairs(env.KstyleUIDB.devlog) do
+		found = found + (tostring(entry.message):find(part, 1, true) and 1 or 0)
+	end
+	return found
+end
+
+-- A rank whose text has not loaded is asked for with RequestLoadSpellData and offered once SPELL_DATA_LOAD_RESULT says it loaded.
+do
+	local env, K, g = Setup()
+	local data = g.spells[HS2]
+	g.spells[HS2] = nil
+	Learn(env, HS2, REND2)
+	assert(Has(Shown(env, K), "REND (RANK 2)") and not Has(Shown(env, K), "HEROIC"), "the loaded rank is offered at once")
+	assert(#g.loadRequests == 1 and g.loadRequests[1] == HS2, "only the unloaded rank is requested: " .. #g.loadRequests)
+	Press(env, K, "Not now")
+	env.FireEvent("SPELL_DATA_LOAD_RESULT", env.Secret(HS2), true)
+	env.FireEvent("SPELL_DATA_LOAD_RESULT", REND2, true)
+	env.RunTimers()
+	assert(Shown(env, K) == nil and #env._errors == 0, "a secret or unrequested result does nothing" .. AB.Errors(env))
+	g.spells[HS2] = data
+	env.FireEvent("SPELL_DATA_LOAD_RESULT", HS2, true)
+	env.RunTimers()
+	assert(Has(Shown(env, K), "You learned a new rank: |T1000284:0|t HEROIC STRIKE (RANK 2)."), "the loaded rank is offered: " .. tostring(Shown(env, K)))
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2) and g.cursor == nil and #g.loadRequests == 1, "and placed, with no second request")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+-- A load that fails is dropped: no popup, no second request, no error. An unranked spell that has loaded is never requested.
+do
+	local env, K, g = Setup()
+	local data = g.spells[HS2]
+	g.spells[HS2] = nil
+	Learn(env, HS2, CHARGE)
+	assert(#g.loadRequests == 1 and g.loadRequests[1] == HS2, "Charge has loaded and has no rank, so only Heroic Strike is requested")
+	g.spells[HS2] = data
+	env.FireEvent("SPELL_DATA_LOAD_RESULT", HS2, false)
+	env.RunTimers()
+	assert(Shown(env, K) == nil and #g.loadRequests == 1 and Holds(g, 3, HS1), "a failed load is dropped")
+	Learn(env, HS2)
+	assert(Has(Shown(env, K), "HEROIC STRIKE (RANK 2)"), "learning it again, loaded, offers it")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+-- Without IsSpellDataCached a spell with no rank text is requested once and dropped when the loaded data still has no rank.
+do
+	local env, K, g = Setup()
+	env.C_Spell.IsSpellDataCached = nil
+	local data = g.spells[HS2]
+	g.spells[HS2] = nil
+	Learn(env, HS2, CHARGE)
+	table.sort(g.loadRequests)
+	assert(#g.loadRequests == 2 and g.loadRequests[1] == CHARGE and g.loadRequests[2] == HS2, "both are requested once: " .. table.concat(g.loadRequests, ","))
+	g.spells[HS2] = data
+	env.FireEvent("SPELL_DATA_LOAD_RESULT", CHARGE, true)
+	env.FireEvent("SPELL_DATA_LOAD_RESULT", HS2, true)
+	env.RunTimers()
+	local text = Shown(env, K)
+	assert(Has(text, "HEROIC STRIKE (RANK 2)") and not Has(text, "CHARGE") and #g.loadRequests == 2, "the rank is offered and Charge is not requested again: " .. tostring(text))
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+-- Without RequestLoadSpellData an unloaded rank is skipped and logged once. Off requests nothing.
+do
+	local env, K, g = Setup()
+	env.C_Spell.RequestLoadSpellData = nil
+	g.spells[HS2] = nil
+	Learn(env, HS2)
+	Learn(env, HS2)
+	assert(Shown(env, K) == nil and Logged(env, "RequestLoadSpellData") == 1 and #env._errors == 0, "skipped and logged once" .. AB.Errors(env))
+	env, K, g = Setup("off")
+	g.spells[HS2] = nil
+	Learn(env, HS2)
+	assert(#g.loadRequests == 0 and Shown(env, K) == nil, "Off asks the client for nothing")
+end
+
+-- A result the client delivers from inside RequestLoadSpellData itself is kept, and the rank is offered.
+do
+	local env, K, g = Setup()
+	local data = g.spells[HS2]
+	g.spells[HS2] = nil
+	env.C_Spell.RequestLoadSpellData = function(id)
+		g.loadRequests[#g.loadRequests + 1] = id
+		g.spells[id] = data
+		env.FireEvent("SPELL_DATA_LOAD_RESULT", id, true)
+	end
+	Learn(env, HS2)
+	assert(#g.loadRequests == 1 and Has(Shown(env, K), "HEROIC STRIKE (RANK 2)"), "a synchronous load still offers the rank: " .. tostring(Shown(env, K)))
+	Press(env, K, "Update bars")
+	assert(Holds(g, 3, HS2) and Holds(g, 75, HS2) and #env._errors == 0, "and places it" .. AB.Errors(env))
+end
+
+-- The loading set is bounded, and a result frees its slot.
+do
+	local env, _, g = Setup()
+	local ids = {}
+	for i = 1, 25 do
+		ids[i] = 900000 + i
+	end
+	Learn(env, unpack(ids))
+	assert(#g.loadRequests == 20 and Logged(env, "loading") == 1, "at most 20 spells load at once, logged once: " .. #g.loadRequests)
+	for i = 1, 25 do
+		env.FireEvent("SPELL_DATA_LOAD_RESULT", ids[i], false)
+	end
+	env.RunTimers()
+	Learn(env, ids[25])
+	assert(#g.loadRequests == 21 and g.loadRequests[21] == ids[25] and #env._errors == 0, "a result frees its slot" .. AB.Errors(env))
+end
+
 print("test-actionbars-ranks: ok")

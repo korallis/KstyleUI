@@ -471,6 +471,15 @@ local function InstallGame(env, opts)
 	env.C_Spell.PickupSpell = function(id)
 		g.cursor = { type = "spell", id = id, texture = 1000000 + id }
 	end
+	-- A spell with no entry in g.spells has not loaded. RequestLoadSpellData records the ID in
+	-- g.loadRequests; a test then adds the entry and fires SPELL_DATA_LOAD_RESULT itself.
+	g.loadRequests = {}
+	env.C_Spell.IsSpellDataCached = function(id)
+		return g.spells[id] ~= nil
+	end
+	env.C_Spell.RequestLoadSpellData = function(id)
+		g.loadRequests[#g.loadRequests + 1] = id
+	end
 	env.GameTooltip_SetDefaultAnchor = function(tooltip, owner)
 		tooltip:SetOwner(owner)
 	end

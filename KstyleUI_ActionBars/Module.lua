@@ -155,6 +155,10 @@ local function OnLearned(_, spellID)
 	ns.Ranks.Learned(spellID)
 end
 
+local function OnSpellLoaded(_, spellID, success)
+	ns.Ranks.Loaded(spellID, success)
+end
+
 local function OnUsableChanged(_, changes)
 	if ns.IsSecret(changes) or type(changes) ~= "table" then
 		ForActions(ns.Button.UpdateUsable)
@@ -317,6 +321,7 @@ local EVENTS = {
 	INPUT_DEVICE_INTERFACE_TRANSITION = OnTransition,
 	SPELLS_CHANGED = OnSpells,
 	LEARNED_SPELL_IN_SKILL_LINE = OnLearned,
+	SPELL_DATA_LOAD_RESULT = OnSpellLoaded,
 	SPELL_FLYOUT_UPDATE = OnSpells,
 	VEHICLE_UPDATE = ns.Vehicle.Update,
 	UPDATE_BONUS_ACTIONBAR = ns.Vehicle.Update,

@@ -6,10 +6,11 @@ local L = K.L
 
 ns.Ranks = {}
 
-local BATCH_DELAY, CURSOR_WAIT = 0.5, 1
+local BATCH_DELAY, CURSOR_WAIT, MAX_LOADING = 0.5, 1, 20
 
-local pending, offer, approved = {}, {}, {}
-local scheduled, handle = false, nil
+local pending, offer, approved, loading = {}, {}, {}, {}
+local scheduled, handle, loadingCount = false, nil, 0
+local Flush
 
 local function Plain(v)
 	return not ns.IsSecret(v) and v ~= nil
@@ -38,6 +39,37 @@ end
 
 local function Drop()
 	offer, handle = {}, nil
+end
+
+local function Schedule()
+	if not scheduled then
+		scheduled = true
+		C_Timer.After(BATCH_DELAY, Flush)
+	end
+end
+
+local function Cached(id)
+	if C_Spell and type(C_Spell.IsSpellDataCached) == "function" then
+		local cached = C_Spell.IsSpellDataCached(id)
+		return Plain(cached) and cached == true
+	end
+	return false
+end
+
+local function Request(id)
+	if loading[id] or Cached(id) then
+		return
+	end
+	if not (C_Spell and type(C_Spell.RequestLoadSpellData) == "function") then
+		ns.LogOnce("ranksLoad", "C_Spell.RequestLoadSpellData is missing; a rank whose text has not loaded is skipped")
+		return
+	end
+	if loadingCount >= MAX_LOADING then
+		ns.LogOnce("ranksLoading", MAX_LOADING .. " spells are already loading; spell " .. id .. " is skipped")
+		return
+	end
+	loading[id], loadingCount = true, loadingCount + 1
+	C_Spell.RequestLoadSpellData(id)
 end
 
 local function Apply()
@@ -103,21 +135,22 @@ local function Ask()
 	})
 end
 
-local function Flush()
+function Flush()
 	scheduled = false
-	local learned = {}
-	for id in pairs(pending) do
+	local mode, learned, found, batch = ns.Config("ranks"), {}, false, pending
+	pending = {}
+	if not ns.running or mode == "off" then
+		return
+	end
+	for id, fresh in pairs(batch) do
 		local name, rank, sub = NameRank(id)
 		if name then
 			local icon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(id)
 			icon = Plain(icon) and type(icon) == "number" and ("|T%d:0|t "):format(icon) or ""
 			learned[#learned + 1] = { spell = id, name = name, rank = rank, label = icon .. name:upper() .. " (" .. sub:upper() .. ")" }
+		elseif fresh == true then
+			Request(id)
 		end
-	end
-	pending = {}
-	local mode, found = ns.Config("ranks"), false
-	if not ns.running or mode == "off" then
-		return
 	end
 	for slot = 1, #learned > 0 and ns.MAX_SLOT or 0 do
 		local id = SpellIn(slot)
@@ -139,10 +172,18 @@ end
 function ns.Ranks.Learned(spellID)
 	if Plain(spellID) and type(spellID) == "number" then
 		pending[spellID] = true
-		if not scheduled then
-			scheduled = true
-			C_Timer.After(BATCH_DELAY, Flush)
-		end
+		Schedule()
+	end
+end
+
+function ns.Ranks.Loaded(spellID, success)
+	if not (Plain(spellID) and type(spellID) == "number" and loading[spellID]) then
+		return
+	end
+	loading[spellID], loadingCount = nil, loadingCount - 1
+	if Plain(success) and success == true then
+		pending[spellID] = "loaded"
+		Schedule()
 	end
 end
 
@@ -150,5 +191,5 @@ function ns.Ranks.Stop()
 	if handle then
 		handle:Close()
 	end
-	pending, offer, approved, handle = {}, {}, {}, nil
+	pending, offer, approved, loading, handle, loadingCount = {}, {}, {}, {}, nil, 0
 end
