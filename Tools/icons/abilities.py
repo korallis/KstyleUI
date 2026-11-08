@@ -108,15 +108,15 @@ def fetch_url(url, headers):
         raise DownloadError(f"could not reach {url}: {err.reason}. {FALLBACK}") from err
 
 
-def download_tables(build, cache_dir, fetch=fetch_url):
+def download_tables(build, cache_dir, fetch=fetch_url, tables=TABLES):
     """Download every table for build into cache_dir/<build>/ and return that folder.
 
     A table already in the folder is not downloaded again. A table is saved only after it checks
-    out as CSV, so the folder never holds an error page.
+    out as CSV, so the folder never holds an error page. items.py passes its own tables.
     """
     folder = Path(cache_dir) / build
     folder.mkdir(parents=True, exist_ok=True)
-    for table in TABLES:
+    for table in tables:
         path = folder / f"{table}.csv"
         if path.exists():
             continue

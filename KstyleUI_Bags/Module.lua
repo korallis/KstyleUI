@@ -23,6 +23,14 @@ local function Restyle()
 	end
 end
 
+local function RefreshWindows()
+	for _, window in ipairs({ Inventory.window or false, Bank.window or false }) do
+		if window then
+			window:RefreshSoon()
+		end
+	end
+end
+
 local function SettingsChanged(_, key)
 	Inventory.SettingsChanged(key)
 	Bank.SettingsChanged(key)
@@ -84,6 +92,7 @@ local function Enable()
 	end)
 	K.Callbacks.Register("ProfileChanged", MODULE, SettingsChanged)
 	K.Callbacks.Register("ThemeChanged", MODULE, Restyle)
+	K.Callbacks.Register("IconsChanged", MODULE, RefreshWindows)
 	K.Callbacks.Register("LayoutChanged", MODULE, function(_, key)
 		local window = (key == Inventory.KEY and Inventory.window) or (key == Bank.KEY and Bank.window)
 		if window then

@@ -1,4 +1,4 @@
--- test-icons-blizzard.lua: with custom icons on, Blizzard's spellbook and talent icons show the custom set through hooks, keep Blizzard's own shading, and get Blizzard's art back when custom icons stop.
+-- test-icons-blizzard.lua: with custom icons on, Blizzard's spellbook, talent, item-button and loot icons show the custom set through hooks, keep Blizzard's own shading, and get Blizzard's art back when custom icons stop.
 local W = dofile("Tools/regression/widget_env.lua")
 local S = dofile("Tools/regression/skins_env.lua")
 
@@ -197,4 +197,76 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-print("icons on Blizzard's spellbook and talents ok")
+-- Item buttons: the merchant, the character sheet, Blizzard's bags, trade, mail and quest rewards all draw through SetItemButtonTexture ----
+
+do
+	local env, K = New()
+	local B = S.Blizzard(env)
+	-- Blizzard_ItemButton's globals, as Forever defines them: the button's icon region gets the texture.
+	function env.GetItemButtonIconTexture(button)
+		return button.icon
+	end
+	function env.SetItemButtonTexture(button, texture)
+		local icon = env.GetItemButtonIconTexture(button)
+		icon:SetShown(texture ~= nil)
+		icon:SetTexture(texture)
+		icon:SetTexCoord(0, 1, 0, 1)
+	end
+	local function ItemButton(name)
+		local button = B.frame("Button", nil, name)
+		OneAlpha(button)
+		button.icon = B.texture(button)
+		return button
+	end
+	local merchant, slot = ItemButton("MerchantItem1ItemButton"), ItemButton("CharacterHeadSlot")
+	env.SetItemButtonTexture(merchant, FIREBALL)
+	local snap = B.snapshot()
+	K.Options.Write("Icons", "enabled", true)
+	env.SetItemButtonTexture(merchant, FIREBALL)
+	assert(Shown(merchant.icon) == A_PATH .. FIREBALL .. ".png", "an item button Blizzard draws shows set A's art")
+	local ar, ag, ab = K.Theme.Accent()
+	assert(W.SameRGB(merchant.icon, ar, ag, ab) and Highlight(merchant.icon), "with set A's tint and highlight")
+	env.SetItemButtonTexture(slot, REJUV)
+	assert(Shown(slot.icon) == A_PATH .. REJUV .. ".png", "every item button goes through the one hook")
+	merchant.icon:SetVertexColor(0.5, 0.5, 0.5, 1)
+	assert(W.SameRGB(merchant.icon, ar * 0.5, ag * 0.5, ab * 0.5), "Blizzard's cannot-afford shading multiplies the tint")
+	env.SetItemButtonTexture(slot, UNKNOWN)
+	assert(Shown(slot.icon) == UNKNOWN, "a file ID the set lacks keeps Blizzard's art")
+	env.SetItemButtonTexture(slot, nil)
+	assert(Shown(slot.icon) == nil and not slot.icon:IsShown(), "an emptied button shows nothing, as Blizzard drew it")
+	K.Options.Write("Icons", "enabled", false)
+	assert(Shown(merchant.icon) == FIREBALL and W.SameRGB(merchant.icon, 0.5, 0.5, 0.5), "off: Blizzard's icon and shading return")
+	B.check(snap, HOOKS)
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Loot: the loot window's rows set their icon directly, so the service watches each row the list shows -----------
+
+do
+	local env, K = New()
+	local B = S.Blizzard(env)
+	S.UseScrollUtil(env)
+	local frame = B.frame("Frame", nil, "LootFrame")
+	local box = S.ScrollBox(B, frame)
+	frame.ScrollBox = box
+	local function Row(fileID)
+		local row = B.frame("Frame", box.ScrollTarget)
+		row.Item = B.frame("Button", row)
+		OneAlpha(row.Item)
+		row.Item.icon = B.texture(row.Item)
+		row.Item.icon:SetTexture(fileID)
+		return row
+	end
+	local first, second = box.AddRow(Row(FIREBALL), { slotIndex = 1 }), Row(REJUV)
+	local snap = B.snapshot()
+	K.Options.Write("Icons", "enabled", true)
+	assert(Shown(first.Item.icon) == A_PATH .. FIREBALL .. ".png", "a loot row already shown gets set A's art")
+	box.Init(second, { slotIndex = 2 })
+	assert(Shown(second.Item.icon) == A_PATH .. REJUV .. ".png", "a row the list shows later is watched when it is initialised")
+	second.Item.icon:SetTexture(FIREBALL)
+	assert(Shown(second.Item.icon) == A_PATH .. FIREBALL .. ".png", "a pooled row reused for another item follows")
+	B.check(snap, HOOKS)
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+print("icons on Blizzard's spellbook, talents, item buttons and loot ok")

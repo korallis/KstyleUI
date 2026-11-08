@@ -1,8 +1,9 @@
--- IconHooks.lua: shows the custom icon set on Blizzard's spellbook and talent icons by watching their textures with Icons.Watch.
+-- IconHooks.lua: shows the custom icon set on Blizzard's spellbook, talent, item-button and loot icons by watching their textures with Icons.Watch.
 local _, ns = ...
 
 local MODULE, ADDON = "Icons", "Blizzard_PlayerSpells"
-local hooked = false
+local hooked, itemsHooked = false, false
+local lootOwner = {}
 
 local function log(message)
 	ns.DevTest.Log(MODULE, message)
@@ -60,6 +61,56 @@ local function hook()
 	hookTalents(frame)
 end
 
+local function watchItemButton(button)
+	local icon
+	if type(GetItemButtonIconTexture) == "function" then
+		icon = GetItemButtonIconTexture(button)
+	end
+	if type(icon) ~= "table" and type(button) == "table" then
+		icon = button.icon or button.Icon
+	end
+	if type(icon) == "table" then
+		ns.Icons.Watch(icon)
+	end
+end
+
+local function hookItemButtons()
+	if type(SetItemButtonTexture) ~= "function" or type(hooksecurefunc) ~= "function" then
+		log("item buttons: SetItemButtonTexture is missing; Blizzard's item icons stay")
+		return
+	end
+	hooksecurefunc("SetItemButtonTexture", watchItemButton)
+	log("item buttons: watching every item button Blizzard draws")
+end
+
+local function watchLootRow(row)
+	local item = type(row) == "table" and row.Item
+	if type(item) == "table" and type(item.icon) == "table" then
+		ns.Icons.Watch(item.icon)
+	end
+end
+
+local function hookLoot()
+	local frame = _G.LootFrame
+	local box = type(frame) == "table" and frame.ScrollBox
+	local util = ScrollUtil
+	if type(box) ~= "table" or type(box.ForEachFrame) ~= "function" or type(util) ~= "table" or type(util.AddInitializedFrameCallback) ~= "function" then
+		log("loot: the loot list is missing; Blizzard's loot icons stay")
+		return
+	end
+	box:ForEachFrame(watchLootRow)
+	util.AddInitializedFrameCallback(box, function(_, row)
+		watchLootRow(row)
+	end, lootOwner, false)
+	log("loot: watching its item icons")
+end
+
+local function hookItems()
+	itemsHooked = true
+	hookItemButtons()
+	hookLoot()
+end
+
 local function onAddonLoaded(_, name)
 	if name == ADDON then
 		ns.Events.Unregister(MODULE, "ADDON_LOADED")
@@ -68,7 +119,13 @@ local function onAddonLoaded(_, name)
 end
 
 ns.Callbacks.Register("ModuleChanged", "IconHooks", function(_, name, running)
-	if name ~= MODULE or not running or hooked then
+	if name ~= MODULE or not running then
+		return
+	end
+	if not itemsHooked then
+		hookItems()
+	end
+	if hooked then
 		return
 	end
 	local AddOns = C_AddOns

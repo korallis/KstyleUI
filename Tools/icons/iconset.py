@@ -73,6 +73,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 ABILITIES = REPO / "Tools" / "data" / "abilities.json"
+ITEMS = REPO / "Tools" / "data" / "items.json"  # item icon groups, built by Tools/icons/items.py; optional
 SUBJECTS = REPO / "Tools" / "data" / "icon_subjects.json"
 WORK = Path.home() / ".local" / "share" / "wow-dev" / "icons"
 BLIZZARD = WORK / "blizzard"  # Blizzard's icons, read from the installed client; never in the repository
@@ -81,7 +82,7 @@ WOW_DIR = Path("/Applications/World of Warcraft")
 TACT_PRODUCT, TACT_REGION = "wowf", "eu"
 REFERENCE_SIZE = 512  # the 64 px Blizzard icon is upscaled to this for the model
 MODES = ("style", "subject_reference")
-CATEGORIES = ("class", "pet", "racial", "profession", "general")
+CATEGORIES = ("class", "pet", "racial", "profession", "general", "item")
 SCHOOLS = {1: "Physical", 2: "Holy", 4: "Fire", 8: "Nature", 16: "Frost", 32: "Shadow", 64: "Arcane"}
 MAX_IMAGES = 3  # the first image and at most two rerolls
 MAX_FAILURES = 2  # jobs that end without an image
@@ -159,10 +160,10 @@ CHECKS_B = ("no blank, flat (unreadable at 32 pixels), framed, grid, off-centre 
 
 # subject_reference: Blizzard's icon is image 1, the action-button strip is image 2. The pilot's v2 prompt.
 FAITHFUL_LEAD = (
-    'Image 1 is a World of Warcraft ability icon, "{name}". Image 2 shows the target UI style, dark glass action '
+    'Image 1 is a World of Warcraft {what} icon, "{name}"{kind}. Image 2 shows the target UI style, dark glass action '
     "buttons holding crisp glowing art, and is for finish and mood only: do not copy any subject from image 2. "
     "Repaint image 1 at high resolution keeping the same subject, silhouette, composition, viewing angle, scale and "
-    "dominant colours so a player recognises it instantly{subject}. Keep the subject in the same place in the "
+    "dominant colours so a player recognises {it} instantly{subject}. Keep the subject in the same place in the "
     "square. Remove image 1's dark bevelled frame and extend the art to every edge; draw no button, frame or glass "
     "around it. Turn the blurry pixel art into a crisp modern painting; add nothing that is not in image 1."
 )
@@ -254,6 +255,8 @@ def uses(group, owner, race=None):
     the class or the race is in a spell's comma-separated owner list, the list is ALL, or a spell of the group
     is a profession skill, which every class can learn (First Aid shares a paladin icon, so the group's own
     category is not enough)."""
+    if group["category"] == "item":
+        return True
     wanted = {owner, race, "ALL"} - {None}
     return any(spell["category"] == "profession" or wanted & set(spell["owner"].split(",")) for spell in group["spells"])
 
@@ -262,7 +265,19 @@ def ordered_groups(data, categories=None, owner=None, race=None):
     wanted = set(categories or CATEGORIES)
     filtered = owner is not None or race is not None
     groups = [g for g in data["icons"] if g["category"] in wanted and (not filtered or uses(g, owner, race))]
-    return sorted(groups, key=lambda g: (CATEGORIES.index(g["category"]), g["icon"]))
+    return sorted(groups, key=lambda g: (CATEGORIES.index(g["category"]), g.get("rank", 0), -g.get("count", 0), g["icon"]))
+
+
+def load_groups(abilities_path=ABILITIES, items_path=ITEMS):
+    """The icon groups of both data files as one list for ordered_groups: the spell groups of abilities.json
+    and the item groups of items.json, when it exists. An icon a spell uses keeps the spell's group, so the
+    item group for that file ID is dropped: the spell's repaint serves the items too."""
+    icons = list(json.loads(Path(abilities_path).read_text())["icons"])
+    items_path = Path(items_path)
+    if items_path.exists():
+        known = {g["icon"] for g in icons}
+        icons += [g for g in json.loads(items_path.read_text())["icons"] if g["icon"] not in known]
+    return icons
 
 
 def primary_spell(group):
@@ -334,7 +349,14 @@ def owner_phrase(group, spell):
     return "a general skill"
 
 
+def item_phrase(group):
+    kind = group.get("kind") or "item"
+    return f"{_article(kind)} {kind}"
+
+
 def lead_for(group):
+    if group["category"] == "item":
+        return f'Fantasy game item icon for "{group["name"]}", {item_phrase(group)}.'
     spell, description = primary_spell(group)
     lead = (
         f'Fantasy game ability icon for "{group["name"]}", {owner_phrase(group, spell)} '
@@ -361,7 +383,10 @@ def load_subjects(path=SUBJECTS):
 
 def faithful_lead(group, subjects=None):
     sentence = (subjects or {}).get(group["icon"], "")
-    return FAITHFUL_LEAD.format(name=group["name"], subject=f": {sentence}" if sentence else "")
+    item = group["category"] == "item"
+    return FAITHFUL_LEAD.format(what="item" if item else "ability", name=group["name"],
+                                kind=f", {item_phrase(group)}" if item else "", it="the item" if item else "it",
+                                subject=f": {sentence}" if sentence else "")
 
 
 def prompt_for(icon_set, group, reasons=(), subjects=None):
@@ -743,14 +768,37 @@ def run_tacttool(icon, blp):
         raise ExtractError(f"TACTTool failed for {icon}: {(result.stderr or result.stdout).strip()[-300:]}")
 
 
-def decode_blp(blp, png, size=REFERENCE_SIZE):
-    """Decode a BLP with Pillow, composite it over black and upscale it to size for the model."""
+BLP2_HEADER = struct.Struct("<4sIBBBBII16I16I")  # magic, type, encoding, alpha depth, alpha encoding, mips, w, h, offsets, sizes
+BLP2_RAW_BGRA = 3  # an encoding Pillow does not read: the first mip is width * height BGRA pixels
+
+
+def _open_raw_bgra(blp):
+    """A BLP2 file in encoding 3 as a Pillow RGBA image, or None when the file is something else."""
     Image, _ = _pillow()
-    with Image.open(blp) as image:
-        rgba = image.convert("RGBA")
-        black = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
-        flat = Image.alpha_composite(black, rgba).convert("RGB")
-        flat.resize((size, size), Image.LANCZOS).save(png, optimize=True)
+    data = Path(blp).read_bytes()
+    if len(data) < BLP2_HEADER.size or data[:4] != b"BLP2":
+        return None
+    fields = BLP2_HEADER.unpack_from(data)
+    encoding, width, height, offset, length = fields[2], fields[6], fields[7], fields[8], fields[24]
+    if encoding != BLP2_RAW_BGRA or length < width * height * 4 or offset + width * height * 4 > len(data):
+        return None
+    return Image.frombytes("RGBA", (width, height), data[offset:offset + width * height * 4], "raw", "BGRA")
+
+
+def decode_blp(blp, png, size=REFERENCE_SIZE):
+    """Decode a BLP, composite it over black and upscale it to size for the model. Pillow reads palette and
+    DXT BLPs; the raw BGRA encoding some item icons use is read here. Anything else is an ExtractError."""
+    Image, _ = _pillow()
+    try:
+        with Image.open(blp) as image:
+            rgba = image.convert("RGBA")
+    except (OSError, ValueError, NotImplementedError) as error:  # Pillow's BLPFormatError is a NotImplementedError
+        rgba = _open_raw_bgra(blp)
+        if rgba is None:
+            raise ExtractError(f"{Path(blp).name}: {error}") from error
+    black = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
+    flat = Image.alpha_composite(black, rgba).convert("RGB")
+    flat.resize((size, size), Image.LANCZOS).save(png, optimize=True)
 
 
 def extract_icon(icon, cache_dir, tool=run_tacttool, decode=decode_blp):
@@ -767,12 +815,12 @@ def extract_icon(icon, cache_dir, tool=run_tacttool, decode=decode_blp):
     return {"png": str(png), "blp_sha256": hashlib.sha256(blp.read_bytes()).hexdigest()}
 
 
-def extract_all(groups, cache_dir=BLIZZARD, log=print):
+def extract_all(groups, cache_dir=BLIZZARD, log=print, extract=extract_icon):
     """Extract the Blizzard icon of every group; return the sources map for generate. A missing icon is logged."""
     sources, missing = {}, []
     for group in groups:
         try:
-            sources[group["icon"]] = extract_icon(group["icon"], cache_dir)
+            sources[group["icon"]] = extract(group["icon"], cache_dir)
         except (ExtractError, OSError, subprocess.TimeoutExpired) as error:
             missing.append(group["icon"])
             log(f"{group['icon']} {group['name']}: {error}")
@@ -904,7 +952,8 @@ def render_data_lua(icon_set, entries):
         lines.append(f'\t\t[{icon}] = "{lua_path}",')
     lines += ["\t},", "\tschools = {"]
     for entry in entries:
-        lines.append(f"\t\t[{entry['group']['icon']}] = {entry['group']['school']},")
+        if "school" in entry["group"]:
+            lines.append(f"\t\t[{entry['group']['icon']}] = {entry['group']['school']},")
     lines += ["\t},", "}", ""]
     return "\r\n".join(lines)
 
@@ -921,11 +970,18 @@ def include_data(xml_text):
 
 
 def spell_names(group):
+    """The spells of a group, or its items, the group's name first; an item group names how many more items
+    share the icon than it lists."""
     names = []
-    for spell in [{"name": group["name"]}] + group["spells"]:
-        if spell["name"] not in names:
-            names.append(spell["name"])
-    return ", ".join(names)
+    members = group.get("spells") or group.get("items") or []
+    for member in [{"name": group["name"]}] + list(members):
+        if member["name"] not in names:
+            names.append(member["name"])
+    text = ", ".join(names)
+    more = group.get("count", 0) - len(members)
+    if group["category"] == "item" and more > 0:
+        text += f" and {more} more item{'s' if more > 1 else ''}"
+    return text
 
 
 def _cell(text):
@@ -998,7 +1054,7 @@ def render_provenance(icon_set, entries):
         ]
     lines += [
         "",
-        "| File ID | Spells | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |",
+        "| File ID | Spells or items | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in entries:
@@ -1104,7 +1160,7 @@ def verify_package(icon_set, groups, repo=REPO):
         elif icon_set.greyscale and (width, height) == (ICON_SIZE, ICON_SIZE) and not _luminance_only(path):
             problems.append(f"Icons/{path.name} is not luminance only")
         if icon not in known:
-            problems.append(f"Icons/{path.name} is not an icon file ID in Tools/data/abilities.json")
+            problems.append(f"Icons/{path.name} is not an icon file ID in Tools/data/abilities.json or items.json")
 
     provenance = addon / "PROVENANCE.md"
     rows = set()
@@ -1158,7 +1214,7 @@ def contact_sheets(icon_set, groups, raw_dir, out_dir, log=print):
 # Command line ----------------------------------------------------------------------------------
 
 def _load_groups(args):
-    data = json.loads(ABILITIES.read_text())
+    data = {"icons": load_groups()}
     categories = args.categories.split(",") if getattr(args, "categories", None) else None
     unknown = set(categories or ()) - set(CATEGORIES)
     if unknown:

@@ -814,7 +814,7 @@ class PackageTextTest(unittest.TestCase):
         text = iconset.render_provenance(SET_A, self.entries())
         rows = [line for line in text.splitlines() if line.startswith("| `")]
         self.assertEqual(len(rows), 2)
-        self.assertIn("| File ID | Spells | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |", text)
+        self.assertIn("| File ID | Spells or items | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |", text)
         self.assertTrue(rows[0].startswith("| `132089` | Prowl, Shadowmeld | gpt_image_2_5 | style | Icon for \"Prowl\" |  | job-1 |"))
         self.assertIn('Icon for "Fireball" \\| hot', rows[1])
         self.assertIn("job-2", rows[1])
@@ -1099,10 +1099,148 @@ class JudgeWrapperTest(unittest.TestCase):
 
 class ShippedSetsTest(unittest.TestCase):
     def test_every_packaged_set_in_the_repository_is_consistent(self):
-        groups = iconset.ordered_groups(json.loads(iconset.ABILITIES.read_text()))
+        groups = iconset.ordered_groups({"icons": iconset.load_groups()})
         for icon_set in iconset.SETS.values():
             self.assertEqual(iconset.verify_package(icon_set, groups), [], icon_set.addon)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def item_group(icon=134829, name="Minor Healing Potion", kind="Consumable (Potions)", rank=1, items=None):
+    items = items or [{"id": 118, "name": name, "classID": 0, "subclassID": 1, "quality": 1, "level": 1}]
+    return {"icon": icon, "category": "item", "name": name, "kind": kind, "rank": rank, "count": len(items), "items": items}
+
+
+class ItemGroupTest(unittest.TestCase):
+    def test_item_is_the_last_category(self):
+        self.assertEqual(iconset.CATEGORIES[-1], "item")
+
+    def test_item_groups_come_after_the_spell_groups_in_rank_then_count_order(self):
+        data = {"icons": [item_group(5, rank=2), item_group(4, rank=1), group(9, "Shoot", "general"), group(2, "Frostbolt"),
+                          item_group(3, rank=1, items=[{"id": 1, "name": "a"}, {"id": 2, "name": "b"}])]}
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data)], [2, 9, 3, 4, 5])
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, ["item"])], [3, 4, 5])
+
+    def test_every_class_sees_the_item_groups(self):
+        data = {"icons": [item_group(4), group(2, "Frostbolt")]}
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, owner="WARRIOR", race="Orc")], [4])
+
+    def test_load_groups_merges_the_two_data_files_and_an_ability_keeps_a_shared_icon(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            abilities_path, items_path = Path(tmp) / "abilities.json", Path(tmp) / "items.json"
+            abilities_path.write_text(json.dumps({"icons": [group(135812, "Fireball"), group(134829, "Healing Touch")]}))
+            items_path.write_text(json.dumps({"icons": [item_group(134829), item_group(134830, "Lesser Healing Potion")]}))
+            groups = iconset.load_groups(abilities_path, items_path)
+            self.assertEqual([(g["icon"], g["category"]) for g in groups],
+                             [(135812, "class"), (134829, "class"), (134830, "item")])
+            self.assertEqual([g["icon"] for g in iconset.load_groups(abilities_path, Path(tmp) / "missing.json")],
+                             [135812, 134829])
+
+    def test_an_item_faithful_lead_says_item_icon_and_names_the_kind(self):
+        lead, prompt = iconset.prompt_for(FAITHFUL, item_group())
+        self.assertTrue(lead.startswith(
+            'Image 1 is a World of Warcraft item icon, "Minor Healing Potion", a Consumable (Potions). Image 2 shows'), lead)
+        self.assertIn("so a player recognises the item instantly. Keep", lead)
+        self.assertNotIn("ability", lead)
+        self.assertEqual(prompt, f"{lead} {FAITHFUL.style}")
+
+    def test_a_spell_faithful_lead_is_unchanged(self):
+        lead, _ = iconset.prompt_for(FAITHFUL, group(132337, "Charge"))
+        self.assertTrue(lead.startswith('Image 1 is a World of Warcraft ability icon, "Charge". Image 2 shows'), lead)
+        self.assertIn("so a player recognises it instantly. Keep", lead)
+
+    def test_an_item_subject_sentence_follows_the_kind(self):
+        lead, _ = iconset.prompt_for(FAITHFUL, item_group(), subjects={134829: "a red potion flask"})
+        self.assertIn("recognises the item instantly: a red potion flask. Keep", lead)
+
+    def test_an_item_style_lead_names_the_item_and_its_kind(self):
+        self.assertEqual(iconset.lead_for(item_group(kind="Weapon (One-Handed Swords)", name="Worn Shortsword")),
+                         'Fantasy game item icon for "Worn Shortsword", a Weapon (One-Handed Swords).')
+        self.assertEqual(iconset.lead_for(item_group(kind="Armor (Shield)")), 'Fantasy game item icon for "Minor Healing Potion", an Armor (Shield).')
+
+    def test_data_lua_lists_no_school_for_an_item(self):
+        entries = [{"group": item_group(), "attempt": {}}, {"group": group(135812, "Fireball", school=4), "attempt": {}}]
+        lines = iconset.render_data_lua(SET_B, entries).split("\r\n")
+        self.assertIn('\t\t[134829] = "Interface\\\\AddOns\\\\KstyleUI_IconsColour\\\\Icons\\\\134829.png",', lines)
+        self.assertIn("\t\t[135812] = 4,", lines)
+        self.assertEqual(sum(1 for line in lines if line.startswith("\t\t[134829] = ")), 1)
+
+    def test_a_provenance_row_lists_the_items_and_how_many_more_share_the_icon(self):
+        many = [{"id": i, "name": f"Recipe {i}"} for i in range(1, 4)]
+        g = item_group(134939, "Recipe 1", items=many)
+        g["count"] = 10
+        text = iconset.render_provenance(SET_B, [{"group": g, "attempt": {
+            "lead": 'Image 1 is "Recipe 1"', "job": "job-9", "model": "gpt_image_2_5", "date": "2026-11-08",
+            "mode": "subject_reference", "source": {"fileID": 134939, "blp_sha256": "ab" * 32}}}])
+        self.assertIn("| File ID | Spells or items | Model |", text)
+        rows = [line for line in text.splitlines() if line.startswith("| `")]
+        self.assertTrue(rows[0].startswith("| `134939` | Recipe 1, Recipe 2, Recipe 3 and 7 more items | gpt_image_2_5 | subject_reference |"), rows[0])
+
+    def test_verify_knows_an_item_file_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            icons = repo / SET_B.addon / "Icons"
+            icons.mkdir(parents=True)
+            (icons / "134829.png").write_bytes(png())
+            entries = [{"group": item_group(), "attempt": {"lead": "x", "job": "j", "model": "m", "date": "d"}}]
+            (repo / SET_B.addon / "PROVENANCE.md").write_text(iconset.render_provenance(SET_B, entries))
+            (repo / SET_B.addon / "Data.lua").write_bytes(iconset.render_data_lua(SET_B, entries).encode())
+            (repo / SET_B.addon / SET_B.xml).write_text(iconset.include_data(XML_WITHOUT_DATA))
+            self.assertEqual(iconset.verify_package(SET_B, [item_group()], repo), [])
+            self.assertIn("Icons/134829.png is not an icon file ID in Tools/data/abilities.json or items.json",
+                          iconset.verify_package(SET_B, [], repo))
+
+
+def blp2_bgra(width, height, pixels):
+    """A BLP2 file in encoding 3, raw BGRA after the 148-byte header and the 1024-byte palette, as some of
+    Forever's item icons are stored; Pillow reads only encodings 1 and 2."""
+    import struct
+
+    header = b"BLP2" + struct.pack("<IBBBBII", 1, 3, 8, 0, 0, width, height)
+    header += struct.pack("<16I", 148 + 1024, *([0] * 15)) + struct.pack("<16I", width * height * 4, *([0] * 15))
+    return header + bytes(1024) + b"".join(bytes(pixel) for pixel in pixels)
+
+
+@unittest.skipUnless(has_pillow(), "needs Pillow")
+class BlpDecodeTest(unittest.TestCase):
+    def test_decodes_a_raw_bgra_blp_pillow_cannot_read_and_composites_it_over_black(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            blp, png = Path(tmp) / "x.blp", Path(tmp) / "x.png"
+            blp.write_bytes(blp2_bgra(2, 2, [(255, 0, 0, 255), (0, 0, 255, 128), (0, 0, 0, 255), (0, 255, 0, 0)]))
+            iconset.decode_blp(blp, png, size=2)
+            with Image.open(png) as image:
+                self.assertEqual((image.mode, image.size), ("RGB", (2, 2)))
+                self.assertEqual(image.getpixel((0, 0)), (0, 0, 255), "BGRA becomes RGB")
+                red = image.getpixel((1, 0))
+                self.assertEqual((red[1], red[2]), (0, 0))
+                self.assertTrue(126 <= red[0] <= 130, "half alpha over black halves the colour")
+                self.assertEqual(image.getpixel((1, 1)), (0, 0, 0), "a transparent pixel is black")
+
+    def test_a_blp_nobody_can_read_is_an_extract_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            blp = Path(tmp) / "x.blp"
+            blp.write_bytes(b"BLP2" + bytes(200))
+            with self.assertRaises(iconset.ExtractError):
+                iconset.decode_blp(blp, Path(tmp) / "x.png")
+
+
+class ExtractAllTest(unittest.TestCase):
+    def test_reports_an_icon_it_cannot_extract_or_decode_and_goes_on(self):
+        logged = []
+
+        def extract(icon, cache_dir):
+            if icon == 2:
+                raise iconset.ExtractError("TACTTool failed for 2")
+            if icon == 3:
+                raise iconset.ExtractError("x.blp: unknown BLP encoding 9")
+            return {"png": f"{cache_dir}/{icon}.png", "blp_sha256": "ab"}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = iconset.extract_all([group(1, "a"), group(2, "b"), group(3, "c")], tmp, log=logged.append, extract=extract)
+        self.assertEqual(sorted(sources), [1])
+        self.assertEqual(logged[-1], f"blizzard icons: 1 in {tmp}, 2 missing")
+        self.assertTrue(any("3 c: x.blp: unknown BLP encoding 9" in line for line in logged), logged)
