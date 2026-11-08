@@ -28,6 +28,7 @@ local GUTTER_GAP = "gapSmall"
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
+local guideTitles = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
@@ -166,10 +167,15 @@ local function Caption(text, colorName)
 	end
 end
 
+local function PaintGuideTitle(text)
+	Style.ApplyFont(text, "heading", (select(2, Style.Font("body"))))
+	Widgets.TextColor(text, "textEmphasis")
+end
+
 local function GuideTitle(text)
 	if IsTable(text) and type(text.SetFont) == "function" then
-		Style.ApplyFont(text, "heading", (select(2, Style.Font("body"))))
-		Widgets.TextColor(text, "textEmphasis")
+		guideTitles[text] = true
+		PaintGuideTitle(text)
 	end
 end
 
@@ -203,6 +209,9 @@ end
 local function Restyle()
 	for text in pairs(titles) do
 		PaintTitle(text)
+	end
+	for text in pairs(guideTitles) do
+		PaintGuideTitle(text)
 	end
 	for _, list in pairs(dress.tinted) do
 		for text in pairs(list) do
