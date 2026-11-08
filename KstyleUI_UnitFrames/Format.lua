@@ -132,6 +132,14 @@ function Format.Main(format)
 	return format == "both" and "percent" or format
 end
 
+function Format.Shown(format, detailShown)
+	local main = detailShown and Format.Main(format) or format
+	if (main == "percent" or main == "both") and not (Curve() and UnitHealthPercent) then
+		return "currentMax"
+	end
+	return main
+end
+
 function Format.HealthDetail(text, unit, format)
 	if format ~= "both" or Gone(unit) or not (Curve() and UnitHealthPercent) then
 		text:SetText("")

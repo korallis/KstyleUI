@@ -139,8 +139,8 @@ local function PaintCast(frame, view, kind, height)
 	ns.CastBars.Layout(cb, g.panel.w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(CAST_SHARE)
-	cb.text:SetText(L["Frostbolt"]:upper())
-	cb.timer:SetFormattedText("%.1f", CAST_LEFT)
+	ns.CastBars.SetName(cb, L["Frostbolt"])
+	cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
 	if K.Icons and K.Icons.Apply then
 		K.Icons.Apply(cb.icon, CAST_ICON)
 	else

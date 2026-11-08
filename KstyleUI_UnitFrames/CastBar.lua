@@ -11,17 +11,20 @@ ns.CastBars = CastBars
 local MODULE = Settings.MODULE
 local HOLD = 0.6
 local TIMER_STEP = 0.05
-local ICON_GAP = 4
+local GAP_SHARE = 0.21
+local GAP_MIN = 2
 local TEXT_PAD = 4
-local PAD_X = 5
+local PAD_SHARE = 0.5
+local PAD_LIMIT = 0.1
+local BOTTOM_SHARE = 0.22
 local LINES = 2
 local ROW_GAP = 1
 local BAR_MIN = 3
 local BAR_SHARE = 0.22
 local TEXT_EXTRA = 3
-local TIMER_COLUMN = 2.4
+local TIMER_COLUMN = 3
 local TRACK = "raised"
-local TIMER_FORMAT = "%.1f"
+local TIMER_FORMAT = "%.1fs"
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
 local ORIENTATION = Style.ORIENTATION
@@ -81,11 +84,11 @@ local function NewText(owner, justify)
 	return text
 end
 
-local function SetName(cb, text)
-	if issecretvalue(text) or type(text) ~= "string" then
+function CastBars.SetName(cb, text)
+	if issecretvalue(text) or type(text) ~= "string" or not Settings.Value(cb.kind, "castbarCaps") then
 		cb.text:SetText(text)
 	else
-		cb.text:SetText(text:upper())
+		cb.text:SetText(ns.Unit.Tracked(text, (Settings.Font(cb.kind, "cast"))))
 	end
 end
 
@@ -182,8 +185,8 @@ local function Inline(out, bar, tall, timer, size)
 		out.timer = Rect(bar.x, bar.y + bar.h - TEXT_PAD - h, bar.w, h)
 		return
 	end
-	local timerW = timer and math.ceil(TIMER_COLUMN * size) or 0
 	local x, w = bar.x + TEXT_PAD, bar.w - 2 * TEXT_PAD
+	local timerW = timer and math.min(math.ceil(TIMER_COLUMN * size), math.floor(w / 2)) or 0
 	out.timer = TextRect(x + w - timerW, timerW, bar.y, bar.h, size)
 	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), bar.y, bar.h, size)
 end
@@ -194,7 +197,7 @@ function CastBars.Geometry(width, height, icon, timer, size)
 	local offset = 0
 	if icon then
 		out.icon = Rect(0, 0, thick, thick)
-		offset = thick + ICON_GAP
+		offset = thick + math.max(GAP_MIN, math.floor(thick * GAP_SHARE + 0.5))
 	end
 	local panel
 	if out.tall then
@@ -203,21 +206,23 @@ function CastBars.Geometry(width, height, icon, timer, size)
 		panel = Rect(offset, 0, width - offset, height)
 	end
 	out.panel = panel
-	local room = panel.h - 2 * LINES
+	local bottom = math.max(LINES, math.floor(panel.h * BOTTOM_SHARE + 0.5))
+	local room = panel.h - LINES - bottom
 	if out.tall or room < size + ROW_GAP + BAR_MIN then
 		out.stacked = false
-		out.bar = Rect(panel.x + LINES, panel.y + LINES, panel.w - 2 * LINES, room)
+		out.bar = Rect(panel.x + LINES, panel.y + LINES, panel.w - 2 * LINES, panel.h - 2 * LINES)
 		Inline(out, out.bar, out.tall, timer, size)
 		return out
 	end
 	out.stacked = true
 	local barH = math.min(room - size - ROW_GAP, math.max(BAR_MIN, math.floor(panel.h * BAR_SHARE)))
-	local x, w = panel.x + PAD_X, panel.w - 2 * PAD_X
-	local barY = panel.y + panel.h - LINES - barH
+	local pad = math.max(LINES, math.min(math.floor(panel.h * PAD_SHARE + 0.5), math.floor(panel.w * PAD_LIMIT)))
+	local x, w = panel.x + pad, panel.w - 2 * pad
+	local barY = panel.y + panel.h - bottom - barH
 	out.bar = Rect(x, barY, w, barH)
 	local rowY = panel.y + LINES
 	local rowH = barY - ROW_GAP - rowY
-	local timerW = timer and math.ceil(TIMER_COLUMN * size) or 0
+	local timerW = timer and math.min(math.ceil(TIMER_COLUMN * size), math.floor(w / 2)) or 0
 	out.timer = TextRect(x + w - timerW, timerW, rowY, rowH, size)
 	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), rowY, rowH, size)
 	return out
@@ -459,7 +464,7 @@ local function Start(cb, channel)
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
 	Motion.FadeIn(cb.frame, Tokens.Duration("fade"))
-	SetName(cb, text)
+	CastBars.SetName(cb, text)
 	Icon(cb, texture)
 	if not cb.styled then
 		CastBars.Restyle(cb)
@@ -490,7 +495,7 @@ local function Finish(cb, message)
 	cb.active = false
 	StopTimer(cb)
 	cb.duration = nil
-	SetName(cb, message)
+	CastBars.SetName(cb, message)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(1)
 	Paint(cb, Tokens.Color("hostile"))

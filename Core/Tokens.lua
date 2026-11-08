@@ -125,6 +125,7 @@ local TEXTURES = {
 	chamferWindow = { file = "Textures\\ChamferWindow.png", slice = 48, density = 4 },
 	line = { file = "Textures\\Line.png" },
 	iconMask = { file = "Textures\\ChamferIconMask.png" },
+	portraitMask = { file = "Textures\\ChamferPortraitMask.png" },
 	shadow = { file = "Textures\\Shadow.png", slice = 24, density = 2 },
 	glow = { file = "Textures\\Glow.png" },
 	divider = { file = "Textures\\Divider.png" },

@@ -69,7 +69,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		enabled = true,
 		portrait = full,
 		portraitStyle = "portrait",
-		portraitShape = "chamfered",
+		portraitShape = "round",
 		portraitSide = "LEFT",
 		level = full,
 		name = true,
@@ -81,9 +81,9 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		healthText = full and "both" or "percent",
 		healPrediction = true,
 		power = full,
-		powerHeight = 3,
+		powerHeight = full and 7 or 3,
 		powerTexture = BAR_TEXTURE,
-		powerColor = "power",
+		powerColor = full and "class" or "power",
 		powerCustom = Color("rare"),
 		powerOrientation = "RIGHT",
 		powerText = "none",
@@ -99,6 +99,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarHeight = castHeight or 20,
 		castbarIcon = true,
 		castbarText = true,
+		castbarCaps = true,
 		castbarTimer = true,
 		castbarTexture = BAR_TEXTURE,
 		castbarColor = "class",
@@ -133,8 +134,8 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true, { combat = true, resting = true }, 20, 11, { on = false, size = 22, position = "BELOW" }, { 15, 15, 13, 15 }),
-	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction" }, 14, 10, { on = false, size = 20, position = "ABOVE" }, { 15, 15, 13, 15 }),
+	player = Kind(true, { combat = true, resting = true, castbarIcon = false, castbarCaps = false }, 20, 15, { on = false, size = 22, position = "BELOW" }, { 15, 15, 13, 16 }),
+	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction" }, 14, 12, { on = false, size = 20, position = "ABOVE" }, { 15, 15, 13, 16 }),
 	targettarget = Kind(false),
 	focus = Kind(true, nil, 20, 10, { on = true, size = 20, position = "RIGHT" }, { 12, 12, 10, 12 }),
 	focustarget = Kind(false),
@@ -508,6 +509,12 @@ CastRows = function(schema, kind)
 		type = "toggle", key = "castbarText", label = L["Spell name"],
 		help = L["Shows the spell's name on the cast bar."],
 	}, on)
+	schema[#schema + 1] = Row(kind, {
+		type = "toggle", key = "castbarCaps", label = L["Spell name in capitals"],
+		help = L["Capitals spaced wide, like the frame's name. Off, the name reads as the game writes it."],
+	}, function(settings)
+		return on(settings) and settings.castbarText ~= false
+	end)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarTimer", label = L["Timer"],
 		help = L["Shows the seconds left on the cast bar."],

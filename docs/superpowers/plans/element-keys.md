@@ -23,15 +23,15 @@ Footprints are width x height in units at the 1080 reference.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
-| `unitframes.player` | UnitFrames | Player frame | 296 x 89 | The kit sheet's 469 by 141 proportions: an 89-unit portrait over one glass panel |
-| `unitframes.target` | UnitFrames | Target frame | 296 x 89 | Mirror of the player frame |
-| `unitframes.targettarget` | UnitFrames | Target of target | 120 x 24 | Under the target frame, right-aligned |
+| `unitframes.player` | UnitFrames | Player frame | 280 x 89 | The owner's mockup: a round 89-unit portrait over one glass panel, 279 units from the ring's edge to the glass's end |
+| `unitframes.target` | UnitFrames | Target frame | 280 x 89 | Mirror of the player frame |
+| `unitframes.targettarget` | UnitFrames | Target of target | 104 x 24 | Under the target frame, right-aligned, beside the tracked buff icons |
 | `unitframes.focus` | UnitFrames | Focus frame | 240 x 96 | A 240 by 72 frame with its 20-unit cast bar under it |
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 24 | Under the focus frame, right-aligned |
-| `unitframes.pet` | UnitFrames | Pet frame | 120 x 24 | Under the player frame, left-aligned, mirroring the target of target |
+| `unitframes.pet` | UnitFrames | Pet frame | 104 x 24 | Under the player frame, left-aligned, mirroring the target of target, beside the tracked buff bars |
 | `unitframes.boss` | UnitFrames | Boss frames | 200 x 400 | Boss 1 to 5 stacked downward, 72 units each with 10-unit gaps: a 200 by 60 frame and a 10-unit cast bar |
 | `unitframes.castbar.player` | UnitFrames | Player cast bar | 340 x 36 | Above the essential cooldowns and the frames, with the spell name and time over a thin bar |
-| `unitframes.castbar.target` | UnitFrames | Target cast bar | 194 x 18 | Under the target frame and the tracked buff icons |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 272 x 28 | Under the target frame and the tracked buff icons, nearly the frame's width like the design file's, clear of the experience bar's end |
 | `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, on top of the player frame, right-aligned |
 | `groupframes.party` | GroupFrames | Party frames | 230 x 270 | Five 46-unit frames stacked downward with 10-unit gaps |
 | `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |

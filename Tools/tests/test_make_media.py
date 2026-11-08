@@ -39,7 +39,7 @@ class ManifestTest(unittest.TestCase):
     def test_textures_cover_the_spec_list(self):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
-            "ChamferPanel", "ChamferTile", "ChamferWindow", "Line", "ChamferIconMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
+            "ChamferPanel", "ChamferTile", "ChamferWindow", "Line", "ChamferIconMask", "ChamferPortraitMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
@@ -159,6 +159,16 @@ class DrawingTest(unittest.TestCase):
             for y in range(m + 1, asset.height - m):
                 for x in range(asset.width):
                     self.assertLessEqual(abs(self.alpha(name, x, y) - self.alpha(name, x, m)), 2, f"{name} row {y} column {x}")
+
+    def test_portrait_mask_chamfer_is_15_percent_of_its_side(self):
+        # The design file cuts the portrait's corners 10 units on a 68-unit square. The mask is stretched over the
+        # portrait, so its cut is a share of its side, and the Chrome frame around it uses the same share.
+        legs = 128 * 0.15
+        self.assertEqual(self.alpha("ChamferPortraitMask.png", 0, 0), 0)
+        self.assertEqual(self.alpha("ChamferPortraitMask.png", 64, 64), 255)
+        self.assertEqual(self.alpha("ChamferPortraitMask.png", int(legs) + 2, 0), 255)
+        self.assertEqual(self.alpha("ChamferPortraitMask.png", int(legs) - 3, 0), 0)
+        self.assertEqual(self.alpha("ChamferPortraitMask.png", 127, 127 - int(legs) + 3), 0)
 
     def test_icon_mask_chamfer_is_3_units_of_34(self):
         legs = 128 * 3 / 34
