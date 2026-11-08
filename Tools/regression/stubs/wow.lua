@@ -128,8 +128,14 @@ function Object:GetWidth() return self._width end
 function Object:GetHeight() return self._height end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
+-- An object's own scale times its parent's effective scale, unless it ignores its parent's scale.
+function Object:SetIgnoreParentScale(ignore) self._ignoreParentScale = not not ignore end
+function Object:IsIgnoringParentScale() return self._ignoreParentScale == true end
 function Object:GetEffectiveScale()
-	return self._scale * (self._parent and self._parent:GetEffectiveScale() or 1)
+	if self._ignoreParentScale or not self._parent then
+		return self._scale
+	end
+	return self._scale * self._parent:GetEffectiveScale()
 end
 
 -- A frame made from a Secure template is protected. The game refuses to anchor a protected frame to a

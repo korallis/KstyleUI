@@ -389,11 +389,16 @@ function N.New(opts)
 	return env, K, env._addons.KstyleUI_Nameplates
 end
 
--- Base(env) -> a nameplate base frame as the game creates it, with Blizzard's UnitFrame, its
--- selectionHighlight and its SoftTargetFrame, which holds the soft-target icon.
-function N.Base(env)
+-- Base(env, opts) -> a nameplate base frame as the game creates it, with Blizzard's UnitFrame, its
+-- selectionHighlight and its SoftTargetFrame, which holds the soft-target icon. opts.scale is the
+-- scale the game gives the base: UIParent's effective scale times the plate's own factor (its
+-- distance and target scaling), which C code changes per frame with no event.
+function N.Base(env, opts)
 	local base = env.CreateFrame("Frame", nil, env.WorldFrame)
 	base:SetSize(110, 45)
+	if opts and opts.scale then
+		base:SetScale(opts.scale)
+	end
 	base.UnitFrame = env.CreateFrame("Button", nil, base)
 	base.UnitFrame.selectionHighlight = base.UnitFrame:CreateTexture(nil, "OVERLAY")
 	base.UnitFrame.selectionHighlight:SetAlpha(0.25)
@@ -405,8 +410,9 @@ function N.Base(env)
 end
 
 -- Add(env, token, data, opts) -> base. Registers the unit, gives it a base frame (opts.base reuses
--- one) and fires NAME_PLATE_UNIT_ADDED. opts.lateUnitFrame attaches Blizzard's UnitFrame only after
--- the event, as when KstyleUI's handler runs before Blizzard's driver.
+-- one, opts.scale sets a new one's scale) and fires NAME_PLATE_UNIT_ADDED. opts.lateUnitFrame
+-- attaches Blizzard's UnitFrame only after the event, as when KstyleUI's handler runs before
+-- Blizzard's driver.
 function N.Add(env, token, data, opts)
 	opts = opts or {}
 	local u = {}
@@ -417,7 +423,7 @@ function N.Add(env, token, data, opts)
 		u[k] = v
 	end
 	env._units[token] = u
-	local base = opts.base or N.Base(env)
+	local base = opts.base or N.Base(env, opts)
 	local unitFrame = base.UnitFrame or env.CreateFrame("Button", nil, base)
 	if opts.lateUnitFrame then
 		base.UnitFrame = nil

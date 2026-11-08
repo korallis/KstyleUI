@@ -39,6 +39,11 @@ do
 	-- The plate's scale turns plate units into KstyleUI root units.
 	assert(Logic.PlateScale(0.5, 1) == 0.5 and Logic.PlateScale(0.711, 0.64) > 1.1)
 	assert(Logic.PlateScale(env.Secret(1), 1) == 1 and Logic.PlateScale(1, 0) == 1 and Logic.PlateScale(nil, 1) == 1)
+	-- With "Shrink distant plates" on, the plate's reference is its base's parent times UIParent's
+	-- scale, because the game scales a base by UIParent's effective scale times the plate's own factor.
+	assert(N.Same(Logic.ShrinkReference(1, 0.64), 0.64) and N.Same(Logic.ShrinkReference(2, 0.5), 1))
+	assert(Logic.ShrinkReference(env.Secret(1), 0.64) == nil and Logic.ShrinkReference(1, 0) == nil and Logic.ShrinkReference(nil, 1) == nil)
+	assert(Logic.PlateScale(0.711, Logic.ShrinkReference(nil, 1)) == 1, "a missing reference leaves the plate at scale 1")
 
 	-- The CVar plan: names and values for the game, in a fixed order.
 	local plan = Logic.CVarPlan({ maxDistance = 45, verticalDistance = 0, stacking = "enemy", selectedScale = 1.25, minScale = 0.8, clickSize = 3 })
@@ -78,6 +83,8 @@ do
 		assert(rows[key].type == kind, key .. " is a " .. kind .. " row")
 	end
 	need("font", "font")
+	need("shrinkDistant", "toggle")
+	assert(ns.Settings.Get("shrinkDistant") == false, "plates hold their size by default")
 	for _, text in ipairs({ "name", "level", "healthText" }) do
 		need(text .. ".show", "toggle")
 		need(text .. ".size", "slider")

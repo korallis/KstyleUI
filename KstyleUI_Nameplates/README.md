@@ -122,7 +122,7 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 The plate's width and height belong to the Layout element `nameplates.plate`, a sample plate on `KstyleUI_Root`. It shows only in Layout Mode, where its handles resize every plate. Its **Width** and **Height** rows on the module's page in the settings window do the same. The element is not in the setup layouts: plates sit on Blizzard's plates, so the sample's position means nothing outside Layout Mode. **Height above the unit** moves every plate up or down.
 
-Sizes are in KstyleUI root units. Each plate is scaled by `KstyleUI_Root`'s effective scale over the effective scale of its base frame's parent, so a plate is as large as the same element on the HUD, times the game's own per-plate scale (the target's larger plate, distant plates shrinking).
+Sizes are in KstyleUI root units. The game scales each base frame itself: C code sets the base's scale to `UIParent`'s effective scale times the plate's own factor (`nameplateGlobalScale`, `nameplateMinScale` to `nameplateMaxScale` by distance, `nameplateSelectedScale` on the target), and changes it per frame with no event. The plate is a child of the base, so by default it ignores its parent's scale (`SetIgnoreParentScale(true)`) and takes `KstyleUI_Root`'s effective scale as its own: a plate is exactly as large as the same units on the HUD at any distance, and nothing has to update as the base's scale changes. With **Shrink distant plates** on, the plate inherits the base's scale again and is scaled by `KstyleUI_Root`'s effective scale over the base's parent's effective scale times `UIParent`'s, so it draws in root units times the game's per-plate factor: the target's larger plate, distant plates shrinking. On a client without `SetIgnoreParentScale`, the default divides by the base's effective scale at each restyle instead, which the devlog says and which goes stale as the unit moves. The sample plate on `KstyleUI_Root` keeps scale 1. Blizzard's base frame is never scaled, sized or reparented.
 
 ## Settings
 
@@ -131,6 +131,7 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | Key | Default | Row |
 | --- | --- | --- |
 | `offsetY` | 0 | slider, -40 to 40 |
+| `shrinkDistant` | off | toggle |
 | `font` | Source Sans 3 Semibold | font |
 | `health.texture`, `health.orientation`, `health.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
 | `enemy.colorSource`, `enemy.color` | class, `hostile` | dropdown, colour |

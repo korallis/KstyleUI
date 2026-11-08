@@ -20,6 +20,7 @@ local FONT = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
 
 Settings.defaults = {
 	offsetY = 0,
+	shrinkDistant = false,
 	font = FONT,
 	health = { texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
 	enemy = { colorSource = "class", color = Color("hostile") },
@@ -146,6 +147,10 @@ local schema = {
 		type = "slider", key = "offsetY", label = L["Height above the unit"],
 		help = L["Moves every plate up or down from where the game places it."],
 		min = -40, max = 40, step = 1,
+	},
+	{
+		type = "toggle", key = "shrinkDistant", label = L["Shrink distant plates"],
+		help = L["Plates shrink with distance and grow on your target, as the game's own do."],
 	},
 	{
 		type = "font", key = "font", label = L["Font"],

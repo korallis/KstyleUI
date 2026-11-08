@@ -181,13 +181,24 @@ function Plate:ApplyScale()
 		self:SetScale(1)
 		return
 	end
-	local parent = self:GetParent()
-	local reference = parent:GetParent() or parent
-	local root, outer, base = Scale.Root():GetEffectiveScale(), reference:GetEffectiveScale(), parent:GetEffectiveScale()
-	local scale = Logic.PlateScale(root, outer)
-	self:SetScale(scale)
-	if type((Plain(base))) == "number" and type((Plain(outer))) == "number" and outer > 0 then
-		LogOnce("scale", string.format("plates draw at %.3f of their base; the first base drew at %.3f of its parent", scale, base / outer))
+	local root = Scale.Root():GetEffectiveScale()
+	local base = self:GetParent()
+	local canIgnore = type(self.SetIgnoreParentScale) == "function"
+	if Settings.Get("shrinkDistant") then
+		if canIgnore then
+			self:SetIgnoreParentScale(false)
+		end
+		local outer = base:GetParent()
+		local reference = Logic.ShrinkReference(outer and outer:GetEffectiveScale() or 1, UIParent:GetEffectiveScale())
+		self:SetScale(Logic.PlateScale(root, reference))
+		LogOnce("shrink", "plates follow their base plate's scale, the game's distance and target scaling")
+	elseif canIgnore then
+		self:SetIgnoreParentScale(true)
+		self:SetScale(Logic.PlateScale(root, 1))
+		LogOnce("hold", "plates ignore their base plate's scale and draw in root units")
+	else
+		self:SetScale(Logic.PlateScale(root, base:GetEffectiveScale()))
+		LogOnce("hold", "SetIgnoreParentScale is missing; plates take their base plate's scale at each restyle")
 	end
 end
 

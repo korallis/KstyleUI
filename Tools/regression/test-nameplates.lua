@@ -403,3 +403,42 @@ do
 end
 
 print("nameplates ok")
+
+-- Size: a plate draws in KstyleUI root units whatever scale the game gives its base -----------------
+
+do
+	local env, K, ns = N.New()
+	local root = K.Scale.Root():GetEffectiveScale()
+	local ui = env.UIParent:GetEffectiveScale()
+	-- The game scales a base by UIParent's effective scale times the plate's own factor: here 0.58,
+	-- as the owner's Mac reads for a plate near the player.
+	local base = N.Add(env, "nameplate1", nil, { scale = 0.58 })
+	local plate = ns.Plates.Get("nameplate1")
+	assert(N.Same(base:GetEffectiveScale(), 0.58), "the fake base draws at 0.58")
+	assert(N.Same(plate:GetEffectiveScale(), root), "a plate on a base at 0.58 draws at KstyleUI_Root's scale")
+	assert(N.Same(plate:GetWidth() * plate:GetEffectiveScale(), ns.state.width * root), "so its bar is as wide as the same units on the HUD")
+
+	-- The unit walks away: C code shrinks the base per frame with no event.
+	assert(#Calls(base, "SetScale") == 0, "KstyleUI never scales Blizzard's base")
+	base:SetScale(0.4)
+	assert(N.Same(plate:GetEffectiveScale(), root), "a distant base leaves the plate's size alone, with no update needed")
+	assert(#Calls(base, "SetIgnoreParentScale") == 0 and #Calls(base, "SetSize") == 0, "only the plate's own scale changes")
+
+	-- Shrink distant plates: the plate takes the base's share of the UI scale and follows it.
+	K.Options.Write("Nameplates", "shrinkDistant", true)
+	assert(N.Same(plate:GetEffectiveScale(), root * 0.4 / ui), "with the setting on, a base at 0.4 of the UI scale draws the plate at 0.4 of root units")
+	base:SetScale(ui * 1.2)
+	assert(N.Same(plate:GetEffectiveScale(), root * 1.2), "and the target's larger base grows the plate with it")
+	K.Options.Write("Nameplates", "shrinkDistant", false)
+	assert(N.Same(plate:GetEffectiveScale(), root), "off again, the plate holds its size")
+
+	-- A base reused for a new unit keeps the plate's scale right.
+	N.Remove(env, "nameplate1")
+	N.Add(env, "nameplate2", { name = "Defias Pillager" }, { base = base })
+	assert(ns.Plates.Get("nameplate2") == plate and N.Same(plate:GetEffectiveScale(), root), "a reused base keeps its plate at root scale")
+
+	-- The sample plate lives on KstyleUI_Root and keeps scale 1.
+	local sample = ns.Preview.samplePlate
+	assert(sample and sample:GetScale() == 1 and not sample:IsIgnoringParentScale(), "the sample plate keeps scale 1 and its parent's scale")
+	assert(N.Same(sample:GetEffectiveScale(), root), "so it draws at root scale too")
+end

@@ -67,6 +67,13 @@ function Logic.PlateScale(rootScale, parentScale)
 	return rootScale / parentScale
 end
 
+function Logic.ShrinkReference(parentScale, uiScale)
+	if not IsNumber(parentScale) or not IsNumber(uiScale) or parentScale <= 0 or uiScale <= 0 then
+		return nil
+	end
+	return parentScale * uiScale
+end
+
 local STACK_ENEMY, STACK_FRIENDLY = 1, 2
 local STACKING = {
 	none = { enemy = false, friendly = false, motion = "0" },
