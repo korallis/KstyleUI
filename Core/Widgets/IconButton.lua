@@ -1,8 +1,8 @@
--- IconButton.lua: the chamfered square icon button with hover, pressed, cooldown, proc, selected and disabled states, and the icon chrome every square icon shares.
+-- IconButton.lua: the chamfered square icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares.
 local _, ns = ...
 
 local Widgets = ns.Widgets
-local Tokens, Scale = ns.Tokens, ns.Scale
+local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
 
 local REST_LIFT, HOVER_LIFT = 0.15, 0.25
 local COOLING_EDGE_ALPHA = 0.62
@@ -25,6 +25,7 @@ local ICON_INSET_MAX_SHARE = 0.2
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
 local OVERLAY_LEVEL = 2
+local READY_ALPHA = 0.35
 
 Widgets.SECONDARY_RIM = 1
 
@@ -362,9 +363,15 @@ local function WatchCooldown(button, cooldown)
 		button.cooling = false
 		button:Paint()
 	end
+	local function done()
+		ended()
+		if button.realCooldown and button:IsVisible() then
+			Motion.Tween(button.ready, "SetAlpha", READY_ALPHA, 0, Tokens.Duration("castSheen"), Tokens.Easing("fade"))
+		end
+	end
 	cooldown:HookScript("OnShow", started)
 	cooldown:HookScript("OnHide", ended)
-	cooldown:HookScript("OnCooldownDone", ended)
+	cooldown:HookScript("OnCooldownDone", done)
 end
 
 function Widgets.IconButton(parent, opts)
@@ -390,6 +397,13 @@ function Widgets.IconButton(parent, opts)
 	mask:SetAllPoints(icon)
 	icon:AddMaskTexture(mask)
 	button.icon, button.mask = icon, mask
+	local ready = button:CreateTexture(nil, "OVERLAY")
+	ready:SetColorTexture(Tokens.Color("textHover"))
+	ready:SetBlendMode("ADD")
+	ready:SetAllPoints(icon)
+	ready:AddMaskTexture(mask)
+	ready:SetAlpha(0)
+	button.ready = ready
 	button.hoverGlow = Widgets.Glow(button, { kind = "selection", spread = HOVER_GLOW_SPREAD, alpha = HOVER_GLOW_ALPHA, core = HOVER_WASH })
 	local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
 	cooldown:SetAllPoints(icon)

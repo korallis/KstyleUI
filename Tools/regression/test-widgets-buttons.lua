@@ -231,6 +231,39 @@ do
 	assert(W.Near(button.icon:GetVertexColor(), 0.4), "ClearCooldown forgets the flag, so the next real cooldown dims")
 end
 
+-- Ready: when a real cooldown runs out, the icon brightens for a moment and settles, the theme's answer to the
+-- game's cooldown flash (which the kit turns off with SetDrawBling). It reads the cooldown frame's own
+-- OnCooldownDone, so no time is compared and secret durations are fine. The GCD alone, a directly driven frame
+-- and a hidden button never flash, so the bar does not sparkle after every press.
+do
+	local env, K, button = iconButton({})
+	local cd = button.cooldown
+	local flash = assert(button.ready, "the button has a ready flash")
+	assert(flash:GetAlpha() == 0, "it rests invisible")
+	assert(W.LastCall(flash, "SetBlendMode")[1] == "ADD", "it adds light")
+	button:SetCooldownFromDuration({})
+	cd:GetScript("OnShow")(cd)
+	cd:GetScript("OnCooldownDone")(cd)
+	local peak = 0
+	for _, call in ipairs(W.Calls(flash, "SetAlpha")) do
+		peak = math.max(peak, call[1])
+	end
+	assert(peak > 0.2 and peak <= 0.5, "a real cooldown's end lights the icon briefly: " .. peak)
+	W.Tick(env, K.Tokens.Duration("castSheen") + 0.1)
+	assert(flash:GetAlpha() == 0, "and settles")
+	local calls = #W.Calls(flash, "SetAlpha")
+	button:SetCooldownFromDuration({}, true)
+	cd:GetScript("OnCooldownDone")(cd)
+	assert(#W.Calls(flash, "SetAlpha") == calls, "the GCD alone never flashes")
+	button:ClearCooldown()
+	cd:GetScript("OnCooldownDone")(cd)
+	assert(#W.Calls(flash, "SetAlpha") == calls, "nor a frame driven directly")
+	button:SetCooldownFromDuration({})
+	button:Hide()
+	cd:GetScript("OnCooldownDone")(cd)
+	assert(#W.Calls(flash, "SetAlpha") == calls, "nor a hidden button")
+end
+
 -- A cooldown frame a module drives directly (the Cooldowns mirror's buff timers) never dims or greys the button:
 -- only a real cooldown set through the button's own setters does.
 do
