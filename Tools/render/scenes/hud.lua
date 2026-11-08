@@ -5,35 +5,68 @@
 --   local scene = Hud.Module("unitframes", { layout = "DPS" })
 --
 -- Every environment uses the same screen options, so each module's rects land where the game puts them.
--- The state: a level 38 orc warrior "Valerin" at 82% health with rage, casting Slam with 0.8 s left; a
--- hostile level 38 Riverglade Crocolisk at 56% health, casting; warrior icons on two bars, one on cooldown,
--- one proc, one pressed, one disabled; six essential and four utility cooldowns between the unit frames;
--- Battle Shout and Enrage as buff bars and five tracked buff icons; two quests; five chat lines under four
--- tabs; the minimap; the data strip; the experience bar; a nameplate on the target with the combat numbers;
--- a tooltip. opts.icons picks the custom icon set (A, B or off; RENDER_ICONS, then B, when absent), and
--- the portraits, the minimap's terrain and the backdrop come from Tools/render/standins.py when it has run.
+-- The state: a level 38 character at 82% health, mid-cast with 0.8 s left; a hostile level 38 Riverglade
+-- Crocolisk at 56% health, casting; the class's icons on two bars, one on cooldown, one proc, one pressed, one
+-- disabled; six essential and four utility cooldowns between the unit frames; two buff bars and five tracked
+-- buff icons; two quests; five chat lines under four tabs; the minimap; the data strip; the experience bar; a
+-- nameplate on the target with the combat numbers; a tooltip. opts.class picks the class (RENDER_CLASS, then the
+-- mockup's orc warrior, when absent): _classes.lua holds what varies, and the class colour, the power type, the
+-- cast, the spells, the buffs, the stance bar, the pet frame and the pet bar follow from the addon's own code
+-- paths. opts.icons picks the custom icon set (A, B or off; RENDER_ICONS, then B, when absent), and the portraits,
+-- the minimap's terrain and the backdrop come from Tools/render/standins.py when it has run.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = Common.Scene
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
+local Classes = dofile("Tools/render/scenes/_classes.lua")
 
 local Hud = {}
+Hud.Classes = Classes
 
-local PLAYER = { name = "Valerin", class = "WARRIOR", level = 38, health = 2750, healthMax = 3350, power = 45, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = true, reaction = 5 }
+-- Class(opts) -> the scene's class token and its _classes.lua entry.
+function Hud.Class(opts)
+	return Classes.Get(opts and opts.class)
+end
+
 local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, classification = "normal" }
 
--- Warrior icons from Tools/data/abilities.json, by file ID.
-Hud.ICONS = {
-	heroicStrike = 132282, slam = 132340, charge = 132337, rend = 132155, thunderClap = 136105, battleShout = 132333,
-	bloodrage = 132277, execute = 135358, overpower = 132223, hamstring = 132316, cleave = 132338, whirlwind = 132369,
-	mortalStrike = 132355, shieldBlock = 132110, sunderArmor = 132363, taunt = 136080, demoralizingShout = 132366,
-	berserkerRage = 136009, intercept = 132307, pummel = 132938, revenge = 132353, disarm = 132343, victoryRush = 132342,
-	bloodFury = 135726, enrage = 136224, shieldBash = 132357, retaliation = 132336, sweepingStrikes = 132306,
-}
-local I = Hud.ICONS
+-- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
+function Hud.Player(opts)
+	local class, spec = Hud.Class(opts)
+	return {
+		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
+		power = spec.power.value, powerMax = spec.power.max, powerType = spec.power.type, powerToken = spec.power.token,
+		isPlayer = true, reaction = 5,
+	}
+end
 
--- The slots on bar 1 (page 1, slots 1 to 12) and bar 2 (page 6, slots 61 to 72), left to right.
-Hud.BAR1 = { I.heroicStrike, I.slam, I.charge, I.rend, I.thunderClap, I.execute, I.overpower, I.hamstring, I.cleave, I.whirlwind, I.mortalStrike, nil }
-Hud.BAR2 = { I.battleShout, I.bloodrage, I.demoralizingShout, I.sunderArmor, I.shieldBlock, I.taunt, I.berserkerRage, I.intercept, I.pummel, I.revenge, I.disarm, I.bloodFury }
+-- Slots(list) -> the icons of a bar's spells by slot, left to right (a short list leaves the last slots empty).
+local function slots(list)
+	local out = {}
+	for i, spell in ipairs(list) do
+		out[i] = spell[2]
+	end
+	return out
+end
+
+-- The warrior's icons by camel-cased spell name (Hud.ICONS.mortalStrike), and its two bars by slot, for the
+-- gallery, component and button scenes, which draw the mockup's warrior whatever class the HUD renders.
+Hud.ICONS = { shieldBash = 132357 }
+do
+	local function key(name)
+		local words = {}
+		for word in name:gmatch("%a+") do
+			words[#words + 1] = #words == 0 and word:lower() or (word:sub(1, 1):upper() .. word:sub(2):lower())
+		end
+		return table.concat(words)
+	end
+	local W = Classes.WARRIOR
+	for _, list in ipairs({ W.bar1, W.bar2, W.essential, W.utility, W.buffs, W.bars, W.buffRow, W.forms }) do
+		for _, spell in ipairs(list) do
+			Hud.ICONS[key(spell[1])] = spell[2]
+		end
+	end
+end
+Hud.BAR1, Hud.BAR2 = slots(Classes.WARRIOR.bar1), slots(Classes.WARRIOR.bar2)
 
 -- saved(opts, module, settings, more) -> a KstyleUIDB with that module on, the Icons module on the
 -- scene's set, and any further modules named in more on too.
@@ -56,16 +89,21 @@ local function saved(opts, module, settings, more)
 	}
 end
 
--- Shared(env) gives every environment the warrior's class colour, the owner's clock and the icon data
--- addons, which the Icons service loads on demand.
-local function shared(env)
+-- Shared(env, opts) gives every environment the game's class colours (RAID_CLASS_COLORS, which Theme reads for
+-- the accent), the scene's class as UnitClass("player") gives it, the owner's screen and the icon data addons,
+-- which the Icons service loads on demand.
+local function shared(env, opts)
 	Common.ForceScreen(env)
 	Common.InstallAddOns(env)
+	local class, spec = Hud.Class(opts)
 	env.RAID_CLASS_COLORS = env.RAID_CLASS_COLORS or {}
-	env.RAID_CLASS_COLORS.WARRIOR = { r = Common.WARRIOR[1], g = Common.WARRIOR[2], b = Common.WARRIOR[3] }
+	for _, name in ipairs(Classes.ORDER) do
+		local c = Classes[name].colour
+		env.RAID_CLASS_COLORS[name] = { r = c[1], g = c[2], b = c[3] }
+	end
 	env.UnitClass = function(unit)
 		if unit == "player" or unit == nil then
-			return "Warrior", "WARRIOR", 1
+			return spec.title, class, 1
 		end
 	end
 end
@@ -104,26 +142,36 @@ end
 
 local modules = {}
 
--- Unit frames: player, target, both cast bars, the target of target, and the class resource ----------------
+-- Unit frames: player, target, both cast bars, the target of target, the pet and the class resource ----------
+
+-- The player's cast ends 0.8 s from the scene's clock (10 s), as the mockup's Slam does; each class's cast
+-- started its own cast time earlier.
+local CAST_END = 10800
 
 function modules.unitframes(opts)
 	local U = dofile("Tools/regression/unitframes_env.lua")
-	local player, target = {}, {}
-	for k, v in pairs(PLAYER) do
-		player[k] = v
-	end
+	local class, spec = Hud.Class(opts)
+	local player, target = Hud.Player(opts), {}
 	for k, v in pairs(TARGET) do
 		target[k] = v
 	end
-	player.cast = { name = "Slam", texture = I.slam, start = 9300, finish = 10800, spellID = 1464 }
+	if spec.cast then
+		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = CAST_END - spec.cast[4] * 1000, finish = CAST_END, spellID = spec.cast[3] }
+	end
 	target.cast = { name = "Snap", texture = 132200, start = 9000, finish = 11500, spellID = 999 }
+	local pet
+	if spec.pet then
+		pet = { name = spec.pet.name, level = spec.pet.level, health = spec.pet.health, healthMax = spec.pet.healthMax, power = spec.pet.power, powerMax = spec.pet.powerMax, powerType = spec.pet.powerType, powerToken = spec.pet.powerToken, reaction = 5 }
+	end
 	-- Round portraits: the owner chose the mockup's round shape as the default on 2026-11-08.
 	local env, K, ns = U.New(Common.ScreenOpts({
 		saved = saved(opts, "UnitFrames", { player = { portraitShape = "round" }, target = { portraitShape = "round" } }),
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			env._units.player = player
 			env._units.target = target
+			env._units.pet = pet
+			env._comboPoints = spec.combo or 0
 			env.UnitClass = function(token)
 				local u = env._units[token]
 				if u and u.class then
@@ -134,17 +182,24 @@ function modules.unitframes(opts)
 	}))
 	env._time = 10
 	env.SetTarget(true)
-	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 1464)
+	if player.cast then
+		env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", player.cast.spellID)
+	end
 	env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 999)
 	env.RunTimers()
 	-- The cast bars fade in over a tween; run the frames with the clock held, so the bars read as mid-cast.
 	for _ = 1, 40 do
 		U.W.Tick(env, 0.05)
 	end
-	-- The stub draws no portraits: the mockup's faces, or a flat tone, stand in for the unit's model.
+	-- The stub draws no portraits: the class's portrait (standins.py copies scenery/portraits/<class>.png), the
+	-- mockup's faces, or a flat tone, stand in for the unit's model.
 	local notes = {}
 	for texture, token in pairs(env._portraits) do
-		notes[#notes + 1] = standIn(texture, "portrait-" .. tostring(token) .. ".png", 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
+		local name = "portrait-" .. tostring(token) .. ".png"
+		if token == "player" and Common.StandIn("portrait-player-" .. class:lower() .. ".png") then
+			name = "portrait-player-" .. class:lower() .. ".png"
+		end
+		notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
 	end
 	table.sort(notes)
 	local scene = build(env, opts, { time = env._time })
@@ -154,17 +209,20 @@ function modules.unitframes(opts)
 	return finish(env, K, scene, "unitframes"), ns
 end
 
--- Action bars: bar 1 and bar 2 filled with warrior icons, one on cooldown, one proc, one pressed, one disabled.
+-- Action bars: bar 1 and bar 2 filled with the class's icons, one on cooldown, one proc, one pressed, one
+-- disabled; the stance bar when the class has forms; the pet bar when it has a pet.
 
 function modules.actionbars(opts)
 	local AB = dofile("Tools/regression/actionbars_env.lua")
+	local class, spec = Hud.Class(opts)
+	local bar1, bar2 = slots(spec.bar1), slots(spec.bar2)
 	local env, K, ns = AB.New({
-		class = "WARRIOR",
+		class = class,
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
 		saved = saved(opts, "ActionBars"),
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			local keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=" }
 			local keys2 = { "Q", "W", "E", "R", "T", "Y", "V", "I", "O", "P", "L", "1" }
 			for i = 1, 12 do
@@ -174,6 +232,17 @@ function modules.actionbars(opts)
 			env.GetBindingText = function(key)
 				return key
 			end
+			-- The game lists the class's forms (GetNumShapeshiftForms); the bar shows one button per form.
+			for i, form in ipairs(spec.forms or {}) do
+				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
+			end
+			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows.
+			if spec.pet then
+				env._game.petExists = true
+				for i, action in ipairs(spec.pet.actions) do
+					env._game.pet[i] = { name = action[1], texture = action[2], spellID = 8000 + i, autoCastAllowed = true, autoCastEnabled = i <= 2 }
+				end
+			end
 		end,
 	})
 	env._time = 10
@@ -181,15 +250,16 @@ function modules.actionbars(opts)
 		return env._time
 	end
 	AB.Enable(env, K)
-	for i, icon in ipairs(Hud.BAR1) do
-		if icon then
-			env._game.slots[i] = { texture = icon, type = "spell", id = 1000 + i }
+	for i = 1, 12 do
+		if bar1[i] then
+			env._game.slots[i] = { texture = bar1[i], type = "spell", id = 1000 + i }
+		end
+		if bar2[i] then
+			env._game.slots[60 + i] = { texture = bar2[i], type = "spell", id = 2000 + i }
 		end
 	end
-	for i, icon in ipairs(Hud.BAR2) do
-		env._game.slots[60 + i] = { texture = icon, type = "spell", id = 2000 + i }
-	end
-	-- States: Charge on an 8 s cooldown with 4 s left, Overpower procs, Execute disabled, Slam pressed.
+	-- States: slot 3 on an 8 s cooldown with 4 s left, slot 7 procs, slot 6 disabled, slot 2 pressed (for the
+	-- warrior: Charge, Overpower, Execute and Slam).
 	env._game.slots[3].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
 	env._game.procs[1007] = true
 	env._game.slots[6].usable = false
@@ -215,53 +285,42 @@ end
 
 -- Cooldowns: the centre cluster (six essential, four utility), five tracked buff icons and two buff bars ----
 
--- Each entry: cooldown ID, spell ID, the icon, the name, and its state: a cooldown as { total, left } or a
--- buff as { total, left }, "proc" for the activation glow, nil when ready.
-Hud.COOLDOWNS = {
-	essential = {
-		{ 501, 5001, "mortalStrike", "Mortal Strike", { 6, 4 } },
-		{ 502, 5002, "whirlwind", "Whirlwind", { 10, 8 } },
-		{ 503, 5003, "overpower", "Overpower", { 5, 3 } },
-		{ 504, 5004, "execute", "Execute" },
-		{ 505, 5005, "retaliation", "Retaliation", { 300, 118 } },
-		{ 506, 5006, "sweepingStrikes", "Sweeping Strikes", "proc" },
-	},
-	utility = {
-		{ 601, 6001, "intercept", "Intercept" },
-		{ 602, 6002, "hamstring", "Hamstring" },
-		{ 603, 6003, "pummel", "Pummel" },
-		{ 604, 6004, "berserkerRage", "Berserker Rage" },
-	},
-	buffs = {
-		{ 301, 3001, "bloodrage", "Bloodrage", { 30, 24 } },
-		{ 302, 3002, "bloodFury", "Blood Fury", { 25, 17 } },
-		{ 303, 3003, "victoryRush", "Victory Rush", { 20, 12 } },
-		{ 304, 3004, "shieldBlock", "Shield Block", { 600, 480 } },
-		{ 305, 3005, "demoralizingShout", "Demoralizing Shout", { 300, 180 } },
-	},
-	bars = {
-		{ 401, 4001, "battleShout", "Battle Shout", { 120, 24 } },
-		{ 402, 4002, "enrage", "Enrage", { 12, 12 } },
-	},
-}
+-- The class's groups in _classes.lua (essential, utility, buffs, bars) become Cooldown Manager entries: group
+-- g's entry i is cooldown ID BASE[g] + i with spell ID BASE[g] * 10 + i; its state is a cooldown or a buff as
+-- { total, left }, "proc" for the activation glow, nil when ready.
+local COOLDOWN_BASE = { essential = 500, utility = 600, buffs = 300, bars = 400 }
+local COOLDOWN_GROUPS = { "essential", "utility", "buffs", "bars" }
+
+-- Cooldowns(spec) -> the class's entries as { group, id, spell, icon, name, state }, in group order.
+function Hud.Cooldowns(spec)
+	local out = {}
+	for _, group in ipairs(COOLDOWN_GROUPS) do
+		for i, entry in ipairs(spec[group]) do
+			out[#out + 1] = { group = group, id = COOLDOWN_BASE[group] + i, spell = COOLDOWN_BASE[group] * 10 + i, icon = entry[2], name = entry[1], state = entry[3] }
+		end
+	end
+	return out
+end
 
 function modules.cooldowns(opts)
 	local C = dofile("Tools/regression/cooldowns_env.lua")
+	local _, spec = Hud.Class(opts)
+	local entries = Hud.Cooldowns(spec)
 	local CAT = { essential = C.CATEGORY.Essential, utility = C.CATEGORY.Utility, buffs = C.CATEGORY.TrackedBuff, bars = C.CATEGORY.TrackedBar }
-	local cooldowns, names, textures = {}, {}, {}
-	for group, list in pairs(Hud.COOLDOWNS) do
-		for _, entry in ipairs(list) do
-			local id, spell, icon, name = entry[1], entry[2], entry[3], entry[4]
-			local aura = group == "buffs" or group == "bars"
-			cooldowns[id] = { spellID = spell, category = CAT[group], selfAura = aura, hasAura = aura }
-			names[spell], textures[spell] = name, I[icon]
+	local cooldowns, names, textures, procs = {}, {}, {}, {}
+	for _, entry in ipairs(entries) do
+		local aura = entry.group == "buffs" or entry.group == "bars"
+		cooldowns[entry.id] = { spellID = entry.spell, category = CAT[entry.group], selfAura = aura, hasAura = aura }
+		names[entry.spell], textures[entry.spell] = entry.name, entry.icon
+		if entry.state == "proc" then
+			procs[#procs + 1] = entry.spell
 		end
 	end
 	local env, K, ns = C.New({
 		saved = saved(opts, "Cooldowns", { path = "mirror" }),
 		cooldowns = cooldowns,
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			C.Game(env)
 			Common.ForceScreen(env)
 			env.C_Spell.GetSpellName = function(spell)
@@ -276,24 +335,24 @@ function modules.cooldowns(opts)
 	local now = 10
 	env._time = now
 	local instance = 80
-	for group, list in pairs(Hud.COOLDOWNS) do
-		for _, entry in ipairs(list) do
-			local spell, state = entry[2], entry[5]
-			if group == "buffs" or group == "bars" then
-				instance = instance + 1
-				cdm.auras[spell] = { auraInstanceID = instance }
-				cdm.auraDurations[instance] = { kind = "aura", start = now - (state[1] - state[2]), finish = now + state[2], remaining = state[2], total = state[1] }
-			elseif type(state) == "table" then
-				cdm.cooldown[spell] = { active = true }
-				cdm.durations[spell] = { kind = "cooldown", start = now - (state[1] - state[2]), finish = now + state[2] }
-			elseif state == "proc" then
-				cdm.overlay[spell] = true
-			end
+	for _, entry in ipairs(entries) do
+		local spell, state = entry.spell, entry.state
+		if entry.group == "buffs" or entry.group == "bars" then
+			instance = instance + 1
+			cdm.auras[spell] = { auraInstanceID = instance }
+			cdm.auraDurations[instance] = { kind = "aura", start = now - (state[1] - state[2]), finish = now + state[2], remaining = state[2], total = state[1] }
+		elseif type(state) == "table" then
+			cdm.cooldown[spell] = { active = true }
+			cdm.durations[spell] = { kind = "cooldown", start = now - (state[1] - state[2]), finish = now + state[2] }
+		elseif state == "proc" then
+			cdm.overlay[spell] = true
 		end
 	end
 	C.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
-	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 5006)
+	for _, spell in ipairs(procs) do
+		env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", spell)
+	end
 	env.RunTimers()
 	C.W.Settle(env)
 	local scene = build(env, opts, { time = env._time })
@@ -323,7 +382,7 @@ function modules.chat(opts)
 		saved = saved(opts, "Chat"),
 		install = { frames = #CHAT_TABS },
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			env._now = os.time({ year = 2026, month = 11, day = 7, hour = 14, min = 31, sec = 0 })
 			local dock = env.GENERAL_CHAT_DOCK
 			for i, name in ipairs(CHAT_TABS) do
@@ -429,7 +488,7 @@ function modules.minimap(opts)
 		enabled = true,
 		zone = "Riverglades",
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			Common.ForceScreen(env)
 			env._clock = { hour = 14, minute = 32, realmHour = 9, realmMinute = 5 }
 		end,
@@ -453,7 +512,7 @@ function modules.databars(opts)
 		-- No watched faction: the mockup shows no reputation bar under the action bars.
 		game = { xp = 16000, xpMax = 50000, rested = 6000, level = 38, faction = false },
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			Common.ForceScreen(env)
 		end,
 	})
@@ -466,22 +525,18 @@ end
 -- Auras: the player's buffs under the minimap, five with their time left -------------------------------------
 
 -- The engine binds each button's icon and timer itself; the stub does not, so the scene fills the first
--- five buff buttons and lays them out as the container's flow layout would: from the top left, rightwards,
--- the shortest time left first, the container centred under the map as the module anchors it.
-Hud.BUFFS = {
-	{ "battleShout", "24s" },
-	{ "berserkerRage", "17s" },
-	{ "bloodrage", "12s" },
-	{ "shieldBlock", "8m" },
-	{ "bloodFury", "3m" },
-}
+-- five buff buttons with the class's buff row (_classes.lua) and lays them out as the container's flow layout
+-- would: from the top left, rightwards, the shortest time left first, the container centred under the map as
+-- the module anchors it.
 
 function modules.auras(opts)
 	local A = dofile("Tools/regression/auras_env.lua")
+	local _, spec = Hud.Class(opts)
+	local row = spec.buffRow
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 		end,
 	}))
 	if not K.Modules.IsRunning("Auras") then
@@ -493,13 +548,13 @@ function modules.auras(opts)
 		local layout = group.layout or {}
 		local width, height, spacing = layout.elementWidth or 38, layout.elementHeight or 51, layout.elementSpacing or 8
 		-- The engine sizes the container to its content; the stub leaves it unsized.
-		buffs:SetSize(#Hud.BUFFS * width + (#Hud.BUFFS - 1) * spacing, height)
+		buffs:SetSize(#row * width + (#row - 1) * spacing, height)
 		for _, container in ipairs(env._containers) do
 			for _, button in ipairs(A.Buttons(container)) do
 				button:Hide()
 			end
 		end
-		for i, buff in ipairs(Hud.BUFFS) do
+		for i, buff in ipairs(row) do
 			local button = group.frames[i]
 			if button then
 				local aura = button._aura
@@ -507,10 +562,10 @@ function modules.auras(opts)
 				button:SetSize(width, height)
 				button:SetPoint("TOPLEFT", buffs, "TOPLEFT", (i - 1) * (width + spacing), 0)
 				if aura.icon then
-					aura.icon:SetTexture(I[buff[1]])
+					aura.icon:SetTexture(buff[2])
 				end
 				if aura.timer then
-					aura.timer:SetText(buff[2])
+					aura.timer:SetText(buff[3])
 				end
 				button:Show()
 			end
@@ -534,7 +589,7 @@ function modules.tracker(opts)
 		height = Common.SCREEN.height,
 		saved = saved(opts, "Skins"),
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 		end,
 		before = function(env)
 			tracker = Tracker.StandIn(env, S.Blizzard(env), Tracker.QUESTS)
@@ -573,7 +628,7 @@ function modules.nameplates(opts)
 		login = false,
 		saved = saved(opts, "Nameplates", nil, { "CombatText" }),
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 			-- The combat text stub labels its formatters; the scene wants the plain number.
 			env.AbbreviateNumbers = function(n)
 				return tostring(n)
@@ -646,7 +701,7 @@ function modules.tooltips(opts)
 		height = Common.SCREEN.height,
 		saved = saved(opts, "Tooltips"),
 		setup = function(env)
-			shared(env)
+			shared(env, opts)
 		end,
 	})
 	if not K.Modules.IsRunning("Tooltips") then
@@ -697,6 +752,10 @@ function Hud.Build(opts)
 	end
 	local merged = Scene.Merge(scenes)
 	local set = Common.IconSet(opts)
+	local class, spec = Hud.Class(opts)
+	-- The class the scene drew, for Tools/render/classes.py's manifest.
+	merged.class = { class = class, title = spec.title, name = spec.name, colour = { spec.colour[1], spec.colour[2], spec.colour[3] }, power = spec.power.token, cast = spec.cast and spec.cast[1] or nil }
+	merged.log[#merged.log + 1] = "class: " .. class .. " (" .. spec.name .. ", " .. spec.power.token:lower() .. ", " .. (spec.cast and ("casting " .. spec.cast[1]) or "no cast") .. ")"
 	merged.log[#merged.log + 1] = "icons: " .. (set and ("custom set " .. set) or "Blizzard's, with the sets standing in for icons the folder lacks")
 	return merged
 end

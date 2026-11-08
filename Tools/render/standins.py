@@ -13,10 +13,15 @@ Tools/render/out/standins/, which git ignores:
     minimap.png           the map art inside the mockup's minimap square
     backdrop.png          the scene behind the HUD at the render's size: the clean plate when there is one, else
                           the mockup's scenery with its UI areas blurred away
+    portrait-player-<class>.png   one per class portrait in the portraits folder (`--portraits DIR`, or
+                          KSTYLEUI_PORTRAITS, default ~/.local/share/kstyleui-handoff/scenery/portraits/<class>.png,
+                          the class lower-cased): the painted head-and-shoulders portrait squared from its centre
+                          and resampled to the portrait size, for the HUD scene of that class
 
 The scenes use a crop when its file exists and fall back to a flat colour when it does not, so a render
-on a machine without the mockup still works. The backdrop is scaled to the render's height and cropped
-to its width from the centre, because the mockup is 1909 units wide and the owner's screen 1671.
+on a machine without the mockup still works; a class with no portrait in the folder falls back to the orc.
+The backdrop is scaled to the render's height and cropped to its width from the centre, because the mockup
+is 1909 units wide and the owner's screen 1671.
 
 The clean plate (`--plate PNG`, or KSTYLEUI_PLATE, default `~/.local/share/kstyleui-handoff/scenery/clean.png`)
 is a UI-free render of the mockup's scene. When it exists it is the backdrop as it is, so no blurred square
@@ -34,6 +39,9 @@ import sys
 MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
 PLATE = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/clean.png")
 PLATE_ENV = "KSTYLEUI_PLATE"
+PORTRAITS = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/portraits")
+PORTRAITS_ENV = "KSTYLEUI_PORTRAITS"
+CLASSES = ("warrior", "paladin", "hunter", "rogue", "priest", "shaman", "mage", "warlock", "druid")
 OUT = "Tools/render/out/standins"
 VENV_PYTHON = os.path.expanduser("~/.local/share/wow-dev/venv/bin/python")
 
@@ -83,6 +91,48 @@ def square(image, box, size):
     return image.crop(box).resize((size, size), Image.LANCZOS)
 
 
+def centre_square(image):
+    """The largest square cut from the image's centre: a portrait wider or taller than square keeps its middle."""
+    side = min(image.width, image.height)
+    left = (image.width - side) // 2
+    top = (image.height - side) // 2
+    return (left, top, left + side, top + side)
+
+
+def class_portraits(folder, classes=CLASSES):
+    """The class portraits the folder holds, as (class, path) pairs for each <class>.png that exists."""
+    out = []
+    for name in classes:
+        path = os.path.join(folder, name + ".png")
+        if os.path.exists(path):
+            out.append((name, path))
+    return out
+
+
+def portraits_path(flag, environ):
+    """The portraits folder: the parsed --portraits value, then KSTYLEUI_PORTRAITS, then the handoff folder's."""
+    return flag or environ.get(PORTRAITS_ENV) or PORTRAITS
+
+
+def write_portraits(out_dir, portraits):
+    """Write portrait-player-<class>.png for each class portrait the folder holds, squared from its centre at the
+    portrait size, and remove the file of any class the folder no longer holds, so a missing portrait falls back
+    to the orc; returns the paths written and sets write_portraits.used to the classes written."""
+    os.makedirs(out_dir, exist_ok=True)
+    found = dict(class_portraits(portraits)) if portraits else {}
+    written = []
+    for name in CLASSES:
+        path = os.path.join(out_dir, "portrait-player-%s.png" % name)
+        if name in found:
+            portrait = Image.open(found[name]).convert("RGB")
+            square(portrait, centre_square(portrait), PORTRAIT_SIZE).save(path)
+            written.append(path)
+        elif os.path.exists(path):
+            os.remove(path)
+    write_portraits.used = [name for name in CLASSES if name in found]
+    return written
+
+
 def backdrop(image, width, height, areas=UI_AREAS, radius=BLUR_RADIUS, feather=FEATHER):
     """The mockup scaled to the render's height, cropped to its width from the centre, UI areas blurred."""
     blurred = image.filter(ImageFilter.GaussianBlur(radius))
@@ -116,8 +166,9 @@ def plate_path(argv, environ):
     return environ.get(PLATE_ENV) or PLATE
 
 
-def write(mockup, out_dir, width, height, plate=None):
-    """Write every stand-in from the mockup into out_dir; returns the paths written."""
+def write(mockup, out_dir, width, height, plate=None, portraits=None):
+    """Write every stand-in from the mockup into out_dir, and a portrait-player-<class>.png for each class
+    portrait the portraits folder holds; returns the paths written."""
     if not pillow():
         sys.exit("standins.py needs Pillow: pip install Pillow, or create the wow-dev venv at " + VENV_PYTHON)
     image = Image.open(mockup).convert("RGB")
@@ -133,6 +184,8 @@ def write(mockup, out_dir, width, height, plate=None):
     backdrop(source, width, height, areas=[] if used else UI_AREAS).save(path)
     written.append(path)
     write.plate_used = used
+    written.extend(write_portraits(out_dir, portraits))
+    write.portraits_used = write_portraits.used
     return written
 
 
@@ -143,14 +196,20 @@ def main(argv=None):
     parser.add_argument("--width", type=int, default=2383, help="the backdrop's width in pixels")
     parser.add_argument("--height", type=int, default=1540, help="the backdrop's height in pixels")
     parser.add_argument("--plate", default=None, help="the UI-free plate of the scene for the backdrop (default: KSTYLEUI_PLATE, then the handoff folder's clean.png)")
+    parser.add_argument("--portraits", default=None, help="the folder of <class>.png portraits (default: KSTYLEUI_PORTRAITS, then the handoff folder's scenery/portraits)")
     parser.add_argument("--quiet", action="store_true", help="say nothing when the mockup is missing")
     args = parser.parse_args(argv)
+    portraits = portraits_path(args.portraits, os.environ)
     if not os.path.exists(args.mockup):
+        # The class portraits do not need the mockup; the other stand-ins fall back to flat colours.
+        if pillow():
+            write_portraits(args.out, portraits)
         if not args.quiet:
             print("no mockup at " + args.mockup + "; the scenes fall back to flat stand-ins", file=sys.stderr)
         return 0
-    plate = plate_path(argv if argv is not None else sys.argv[1:], os.environ)
-    for path in write(args.mockup, args.out, args.width, args.height, plate=plate):
+    raw = argv if argv is not None else sys.argv[1:]
+    plate = plate_path(raw, os.environ)
+    for path in write(args.mockup, args.out, args.width, args.height, plate=plate, portraits=portraits):
         if not args.quiet:
             print("wrote " + path)
     if not args.quiet:
@@ -158,6 +217,10 @@ def main(argv=None):
             print("backdrop: the clean plate " + write.plate_used)
         else:
             print("backdrop: the mockup with its UI blurred away (no plate at " + plate + ")")
+        if write.portraits_used:
+            print("class portraits: " + ", ".join(write.portraits_used) + " from " + portraits)
+        else:
+            print("class portraits: none in " + portraits + "; every class uses the mockup's orc")
     return 0
 
 
