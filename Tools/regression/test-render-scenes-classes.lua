@@ -13,16 +13,36 @@ for _, class in ipairs(Classes.ORDER) do
 	local spec = Classes[class]
 	local tag = "hud." .. class
 	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class })))
-	-- The player frame paints its power bar in the class colour, as the mockup does and the module defaults
-	-- (powerColor "class" for the full frame); the power type shows as the fill's fraction. The compact pet
-	-- frame draws its health only, in the reaction colour, at the pet's fraction.
+	-- The player frame paints its power bar in the power type's colour (the owner's ruling of 2026-11-08: mana
+	-- blue, rage red, energy yellow, PowerBarColor lifted by Theme.Brighten, so every channel is at least the
+	-- game's and the brightest channel stays the brightest), never the class colour; the power type shows as the
+	-- fill's fraction. The compact pet frame draws its health only, in the reaction colour, at the pet's fraction.
+	local powerColour = assert(Classes.POWER_COLORS[spec.power.token], tag .. ": _classes.lua knows the " .. spec.power.token .. " colour")
+	local function brightened(vertex, base)
+		if type(vertex) ~= "table" then
+			return false
+		end
+		local maxBase, maxVertex = 1, 1
+		for c = 1, 3 do
+			if (vertex[c] or 0) < base[c] - 1e-3 then
+				return false
+			end
+			if base[c] > base[maxBase] then
+				maxBase = c
+			end
+			if (vertex[c] or 0) > (vertex[maxVertex] or 0) then
+				maxVertex = c
+			end
+		end
+		return maxBase == maxVertex
+	end
 	local health, power, petHealth = false, false, false
 	for _, item in ipairs(uf.items) do
 		if item.kind == "texture" and item.bar then
 			if near(item.fraction, 2750 / 3350) and sameColour(item.vertex, spec.colour) then
 				health = true
 			end
-			if near(item.fraction, spec.power.value / spec.power.max) and sameColour(item.vertex, spec.colour) and item.rect[4] < 10 then
+			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and brightened(item.vertex, powerColour) and not sameColour(item.vertex, spec.colour) then
 				power = true
 			end
 			if spec.pet and near(item.fraction, spec.pet.health / spec.pet.healthMax) and not sameColour(item.vertex, spec.colour) then
@@ -31,7 +51,7 @@ for _, class in ipairs(Classes.ORDER) do
 		end
 	end
 	assert(health, tag .. ": the player's health fill wears the class colour")
-	assert(power, tag .. ": the power fill reads " .. spec.power.token .. " at " .. spec.power.value .. "/" .. spec.power.max .. " in the class colour")
+	assert(power, tag .. ": the power fill reads " .. spec.power.token .. " at " .. spec.power.value .. "/" .. spec.power.max .. " in the power type's colour")
 	local ufTexts = collect(uf)
 	assert(ufTexts[spec.name:upper()], tag .. ": the player's name reads " .. spec.name:upper())
 	if spec.cast then

@@ -64,10 +64,10 @@ for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
 	assert(element.label == K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 end
 local ew, eh = essential.holder:GetSize()
-assert(ew == 376 and eh == 56, "the essential holder is its 376 by 56 footprint, got " .. tostring(ew) .. " by " .. tostring(eh))
+assert(ew == 294 and eh == 44, "the essential holder is its 294 by 44 footprint, got " .. tostring(ew) .. " by " .. tostring(eh))
 local uw, uh = utility.holder:GetSize()
-assert(uw == 238 and uh == 52, "the utility holder is its 238 by 52 footprint")
-assert(essential.icons[1].opts.size == 56 and utility.icons[1].opts.size == 52, "icons are 56 and 52 units")
+assert(uw == 170 and uh == 38, "the utility holder is its 170 by 38 footprint")
+assert(essential.icons[1].opts.size == 44 and utility.icons[1].opts.size == 38, "icons are 44 and 38 units")
 
 -- The cooldown rows' countdowns read "4s" and "2m", as the mockup's centre cluster does: a one-letter seconds
 -- formatter from C_StringUtil goes on each Cooldown; the tracked buff icons keep the engine's numbers.
@@ -178,7 +178,7 @@ assert(LastArg(essential.icons[2], "EnableMouse") == false, "without tooltips th
 K.Options.Write("Cooldowns", "essential.size", 36)
 assert(essential.icons[1].opts.size == 36, "the icon size follows the setting")
 local w36 = essential.holder:GetWidth()
-assert(w36 == 6 * 36 + 5 * 8, "the holder follows the icon size, got " .. tostring(w36))
+assert(w36 == 6 * 36 + 5 * 6, "the holder follows the icon size, got " .. tostring(w36))
 K.Options.Write("Cooldowns", "essential.columns", 2)
 assert(essential.count == 2, "a row of two shows two icons")
 assert(not essential.icons[3]:IsShown(), "the third icon hides")

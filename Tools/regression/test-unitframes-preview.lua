@@ -46,6 +46,16 @@ assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
 assert(U.Shown(env, view.healthText) == "78%", "the sample health text follows the format")
 assert(U.Shown(env, view.healthSub) == "3120 / 3980", "the sample shows current and max under the track")
 assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
+do
+	-- The sample's power bar reads the player's own power type (the owner's ruling of 2026-11-08: power is never
+	-- class-coloured by default), so a warrior's preview shows a rage-red bar, not the class colour or a flat blue.
+	local c = view.power.colorRGBA
+	local pr, pg, pb = c[1], c[2], c[3]
+	local er, eg, eb = uf.Unit.PowerTypeColor("player")
+	assert(math.abs(pr - er) < 1e-6 and math.abs(pg - eg) < 1e-6 and math.abs(pb - eb) < 1e-6, "the player sample's power bar wears the player's power type colour")
+	local cr, cg, cb = K.Theme.ClassColor(K.Theme.Class())
+	assert(not (math.abs(pr - cr) < 1e-6 and math.abs(pg - cg) < 1e-6 and math.abs(pb - cb) < 1e-6), "and not the class colour")
+end
 assert(view.geometry.glass.x < view.geometry.portrait.x + view.geometry.portrait.w, "the sample's glass runs under its portrait")
 assert(view.ring:IsShown() and not view.portraitChrome.inner[1]:IsShown(), "the sample portrait is round by default, as the owner's mockup draws it")
 assert(view.badgeChrome.inner[1]:IsShown(), "with the octagon level badge on the ring")

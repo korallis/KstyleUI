@@ -40,18 +40,9 @@ return Common.Run(function()
 	local drawer = ns.Map.drawer
 	local toggle = ns.Map.column.buttons.drawer
 	assert(drawer and toggle:IsShown(), "the column ends with the drawer button")
-	-- The map's terrain: the mockup's crop when standins.py has made it, a flat tone otherwise.
-	local map = env.Minimap:CreateTexture(nil, "BACKGROUND")
-	map:SetAllPoints(env.Minimap)
-	local file = Common.StandIn("minimap.png")
-	local note
-	if file then
-		map:SetTexture(file)
-		note = "the minimap's terrain is a crop of the mockup (" .. file .. "); the game draws it itself"
-	else
-		map:SetColorTexture(0.22, 0.30, 0.20, 1)
-		note = "the minimap's terrain is a flat stand-in; run Tools/render/standins.py for the mockup's crop"
-	end
+	-- The map's terrain: the mockup's crop when standins.py has made it, a flat tone otherwise, clipped by the mask
+	-- the module set on the Minimap frame, as the game clips it.
+	local _, note = Hud.Terrain(env)
 	-- Open the drawer with a click, as the player does.
 	M.W.Click(toggle)
 	M.Settle(env)

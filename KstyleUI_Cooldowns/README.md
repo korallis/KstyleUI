@@ -1,6 +1,6 @@
 # KstyleUI_Cooldowns
 
-Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (56 units), utility cooldowns (52 units), tracked buff icons (30 units) and tracked buff bars (195 by 24 units), placed in the HUD band as the composition mockup lays them out.
+Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (44 units), utility cooldowns (38 units, the action button's size), tracked buff icons (30 units) and tracked buff bars (195 by 20 units), placed in the HUD band as the composition mockup lays them out, at the owner's in-game scale of 2026-11-08 (one notch up from the 38-unit action button for the essentials, the button itself for the utilities).
 
 | Field | Value |
 | --- | --- |
@@ -48,12 +48,12 @@ Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `t
 
 | Key | Element | Default | Layout |
 | --- | --- | --- | --- |
-| `cooldowns.essential` | Essential cooldowns | 6 icons of 56 units with 8-unit gaps, 376 by 56, between the player and target frames | Scalable |
-| `cooldowns.utility` | Utility cooldowns | 4 icons of 52 units with 10-unit gaps, 238 by 52, under the essential row | Scalable |
+| `cooldowns.essential` | Essential cooldowns | 6 icons of 44 units with 6-unit gaps, 294 by 44, between the player and target frames | Scalable |
+| `cooldowns.utility` | Utility cooldowns | 4 icons of 38 units with 6-unit gaps, 170 by 38, under the essential row | Scalable |
 | `cooldowns.buffs` | Tracked buff icons | 6 icons of 30 units, 195 by 30, under the target frame | Scalable |
-| `cooldowns.bars` | Tracked buff bars | 2 bars of 195 by 24 with a 3-unit gap, 195 by 51, 5 units under the player frame, right-aligned with it | Scalable |
+| `cooldowns.bars` | Tracked buff bars | 2 bars of 195 by 20 with a 3-unit gap, 195 by 43, under the player frame, right-aligned with it | Scalable |
 
-A tracked buff bar follows the composition mockup: a glass tile (`surface`) 195 by 24 units, the mockup's width at 1.348 px per unit (the pet frame moved beside the player frame to free the row; the bars sit 10 units higher than the mockup's so they clear the chat panel on the owner's 1671-unit-wide root), with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
+A tracked buff bar follows the composition mockup: a glass tile (`surface`) 195 by 20 units, the mockup's width at 1.348 px per unit and its 24-unit height at the owner's in-game scale (the pet frame moved beside the player frame to free the row; the bars sit 10 units higher than the mockup's so they clear the chat panel on the owner's 1671-unit-wide root), with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
 
 A group registers with Layout the first time it takes the mirror path, so a group that only ever restyles Blizzard's viewer adds no mover plate. Each holder is sized to its grid (icons per row by rows, or the bar count), so its footprint does not change with the number of entries. Layout owns the holder; the module shows and hides a child, so the two never fight over one frame. Icon size, bar size, spacing and the grid are module settings rather than Layout sizes, because they decide how many entries fit.
 
@@ -67,19 +67,19 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `timerFont`, `timerOutline` | `"kit"`, `"none"` | The countdown numbers' font, and a soft shadow or an outline |
 | `countFont`, `countOutline` | `"kit"`, `"none"` | The charge and stack counts' font and outline |
 | `nameFont`, `nameOutline` | `"kit"`, `"none"` | The buff bars' name font and outline |
-| `<icons>.size` | 56 for essential, 52 for utility, 30 for tracked buffs | Icon size, 16 to 64 |
-| `<icons>.spacing` | 8 for essential, 10 for utility, 3 for tracked buffs | Gap between icons, 0 to 12 |
+| `<icons>.size` | 44 for essential, 38 for utility, 30 for tracked buffs | Icon size, 16 to 64 |
+| `<icons>.spacing` | 6 for essential and utility, 3 for tracked buffs | Gap between icons, 0 to 12 |
 | `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
-| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on, 16 or 12, 12 or 10 | The countdown numbers and the count |
+| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 15, 13 or 12; 12, 11 or 10 | The countdown numbers and the count: the action bars' 13-unit cooldown numbers on the 38-unit utility icons, scaled up on the essentials |
 | `<cooldowns>.gcd` | `false` | Sweep every icon during the global cooldown |
 | `<cooldowns>.desaturate` | `false` | Grey an icon while its spell is on a real cooldown. Off by default: the composition mockup keeps a cooling icon in colour under its swipe |
 | `<cooldowns>.usable` | `true` | Dim an icon while its spell cannot be cast |
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 24, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |

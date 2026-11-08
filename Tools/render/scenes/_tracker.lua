@@ -23,10 +23,12 @@
 --     hangs its TOPRIGHT at the title's TOPLEFT (-7, 5), its NormalTexture and Display icon are 32 by 32 about
 --     its centre, its Glow 50 by 50; Forever shows the "Quest-In-Progress-Icon-yellow" atlas with no numeral.
 -- The game's atlases draw as grey boxes and its texture files have no local copy; the skin hushes all of them.
--- The tracker's position is Edit Mode's: here its right edge sits one window content inset (16 units) left of the minimap's right
--- edge so the panel aligns with the minimap, and its top sits where the panel's top lands 89 units below
--- the minimap's 221-unit frame (16 from the top), which is where the mockup puts it at 1.348 px per unit. OBJECTIVE_TRACKER_BLOCK_HEADER_COLOR is not in the UI source
--- dump; the game's tracker draws gold titles (spec/g_quest.png), so the stand-in uses NORMAL_FONT_COLOR.
+-- The tracker's position is Edit Mode's, and the stand-in takes Forever's preset for it: TOPRIGHT of UIParent at
+-- -110, -275 (Blizzard_EditMode/Mainline/EditModePresetLayouts.lua, the ObjectiveTracker anchorInfo, which the
+-- camelot game type loads through the toc's [Family] line). The mockup draws the tracker 89 units under the
+-- minimap with its right edge on the minimap's, but KstyleUI never moves Blizzard's tracker: the player does, in
+-- Edit Mode. OBJECTIVE_TRACKER_BLOCK_HEADER_COLOR is not in the UI source dump; the game's tracker draws gold
+-- titles (spec/g_quest.png), so the stand-in uses NORMAL_FONT_COLOR.
 local Common = dofile("Tools/render/scenes/_common.lua")
 
 local Tracker = {}
@@ -38,8 +40,7 @@ local FROM_HEADER_OFFSET_Y, FROM_BLOCK_OFFSET_Y, BLOCK_OFFSET_X, LINE_SPACING = 
 local LINE_FONT_SIZE, HEADER_FONT_SIZE = 12, 14
 local LINE_HEIGHT = LINE_FONT_SIZE + 3
 local POI_SIZE, POI_ART, POI_GLOW = 20, 32, 50
-local MINIMAP_RIGHT, MINIMAP_BOTTOM = 17, 16 + 221
-local PANEL_PADDING, PANEL_RISE, PANEL_GAP = 16, 4, 89
+local EDIT_MODE_X, EDIT_MODE_Y = -110, -275
 local GOLD = { 1, 0.82, 0 }
 local NORMAL = { 0.8, 0.8, 0.8 }
 
@@ -192,8 +193,7 @@ function Tracker.StandIn(env, B, quests)
 	local tracker = B.frame("Frame", nil, "ObjectiveTrackerFrame")
 	tracker.isCollapsed = false
 	tracker:SetSize(WIDTH, EDIT_MODE_HEIGHT)
-	local top = MINIMAP_BOTTOM + PANEL_GAP + PANEL_RISE - BASE_TOP_PADDING
-	tracker:SetPoint("TOPRIGHT", env.UIParent, "TOPRIGHT", -(MINIMAP_RIGHT + PANEL_PADDING), -top)
+	tracker:SetPoint("TOPRIGHT", env.UIParent, "TOPRIGHT", EDIT_MODE_X, EDIT_MODE_Y)
 	tracker.NineSlice = B.frame("Frame", tracker)
 	tracker.NineSlice:SetPoint("TOPLEFT", tracker, "TOPLEFT", -30, 0)
 	tracker.NineSlice:SetPoint("TOPRIGHT", tracker, "TOPRIGHT", 5, 0)

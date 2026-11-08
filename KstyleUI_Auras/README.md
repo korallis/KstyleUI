@@ -39,8 +39,10 @@ Two panels, each a `CustomAuraContainerTemplate` container on the player:
 
 | Element key | Filter | Default place | Default shape |
 | --- | --- | --- | --- |
-| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, -16, -252: 15 units under the minimap's 221-unit frame, the row centred under the map square, as the composition mockup draws it at 1.348 px per unit | 2 rows of 5 icons of 38 units, 8-unit gaps (the mockup's 46-unit pitch), growing right, then down, so the shortest time left sits at the left: 222 by 102 units |
-| `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, -16, -354, under the buffs | 1 row of 5: 222 by 51 units |
+| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, -287, -16: beside the minimap, 12 units left of its 259-unit element and top-aligned with it | 2 rows of 8 icons of 38 units (the action button's size), 8-unit gaps (the mockup's 46-unit pitch), growing left from the minimap, then down, so the shortest time left sits next to the map: 360 by 102 units |
+| `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, -287, -126, 8 units under the buffs | 1 row of 8: 360 by 51 units |
+
+The composition mockup draws one buff row under the minimap with the quest tracker under that. Forever's Edit Mode preset pins the objective tracker's top 275 units under the screen's top (`Blizzard_EditMode/Mainline/EditModePresetLayouts.lua`, the `ObjectiveTracker` entry: `TOPRIGHT` of `UIParent` at -110, -275, loaded for the camelot game type through the toc's `[Family]` line), 38 units under the minimap's 221-unit frame, and KstyleUI never moves Blizzard's tracker (no `SetPoint` on a Blizzard frame). One 51-unit row does not fit there, let alone two rows and the debuffs, so the rows stand beside the minimap, where no buff count reaches the tracker. A player who moves the tracker down in Edit Mode can drag the buffs back under the minimap in Layout Mode.
 
 Each icon is the kit's chamfered tile with the icon masked inside it. The timer sits under the icon (or on its lower edge) and the stack count on its lower right corner. The engine fills in the icon, the timer, the stack count, the tooltip and the dispel colour, so secret aura data never reaches KstyleUI's Lua. The engine draws each aura's icon as a secret (`secretwrap`), so no addon code can swap it; the repainted icons reach the tiles anyway, because they ship as a loose-file pack the client loads for every icon ([`docs/icons.md`](../docs/icons.md)), in game and in the renders.
 
@@ -60,8 +62,8 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 | `buffs.iconSize`, `debuffs.iconSize` | 38 | slider, 16 to 64 |
 | `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 8, 0 | slider, 0 to 24 |
 | `buffs.rows`, `debuffs.rows` | 2, 1 | slider, 1 to 8 |
-| `buffs.columns`, `debuffs.columns` | 5 | slider, 1 to 24 |
-| `buffs.growth`, `debuffs.growth` | `RIGHT_DOWN` | dropdown: left or right, then down or up. The container hangs centred from the element's top (or bottom, growing up), so a short row sits centred under the minimap whichever way it grows |
+| `buffs.columns`, `debuffs.columns` | 8 | slider, 1 to 24 |
+| `buffs.growth`, `debuffs.growth` | `LEFT_DOWN` | dropdown: left or right, then down or up. The container hangs from the element's corner the rows grow from, so a short row sits flush with the minimap's side |
 | `buffs.sort`, `debuffs.sort` | `time` | dropdown: time, name, applied, blizzard |
 | `buffs.reverse`, `debuffs.reverse` | `false` | toggle |
 | `buffs.enchants` | `true` | toggle: weapon enchantments |

@@ -33,7 +33,7 @@ local row = ns.Mirror.Row("bars")
 assert(row.count == 2, "two active bars show, got " .. tostring(row.count))
 local holder = row.holder
 local width, height = holder:GetSize()
-assert(width == 195 and height == 51, "two bars of 195 by 24 fill a 195 by 51 footprint, as the mockup draws two, got " .. tostring(width) .. " by " .. tostring(height))
+assert(width == 195 and height == 43, "two bars of 195 by 20 fill a 195 by 43 footprint, the mockup's two bars at the owner's in-game scale, got " .. tostring(width) .. " by " .. tostring(height))
 
 -- The countdown reads "24s", as the mockup writes it, through the same one-letter formatter as the cooldown rows.
 do
@@ -45,7 +45,7 @@ end
 local first, second = row.bars[1], row.bars[2]
 assert(ns.Settings.current.bars.growth == "down", "bars grow downward by default")
 assert(LastArg(first, "SetPoint", 5) == 0, "the first bar sits at the top of the holder")
-assert(LastArg(second, "SetPoint", 5) == -K.Widgets.Snap(holder, 27), "the second bar sits one bar and one gap below")
+assert(LastArg(second, "SetPoint", 5) == -K.Widgets.Snap(holder, 23), "the second bar sits one 20-unit bar and one 3-unit gap below")
 
 -- The bar is a glass tile with no accent edge; the icon sits on its own dark button tile, inset inside it.
 assert(first.chrome.fillName == "surface", "a bar is a glass tile, got " .. tostring(first.chrome.fillName))
@@ -54,7 +54,7 @@ assert(W.Near(first.chrome.edge[1], er) and W.Near(first.chrome.edge[2], eg) and
 local tile = first.iconTile
 assert(tile and tile.chrome.fillName == "buttonFill", "the icon sits on a dark button tile")
 local tw, th = tile:GetSize()
-assert(tw == 24 and th == 24, "the icon tile is a 24-unit square, got " .. tostring(tw) .. " by " .. tostring(th))
+assert(tw == 20 and th == 20, "the icon tile is a square as tall as the 20-unit bar, got " .. tostring(tw) .. " by " .. tostring(th))
 local iconPoint = Point(first.icon, "TOPLEFT")
 assert(iconPoint and iconPoint[2] == tile and iconPoint[4] > 0, "the icon is inset inside its tile")
 

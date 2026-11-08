@@ -10,19 +10,18 @@ Face.__index = Face
 ns.Face = Face
 
 local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_WHEEL = 1, 2, 6, 8
-local MAP_INSET = Tokens.Size("gapSmall")
 local GAP = Tokens.Size("gapSmall")
 local COMPASS_ROLE = "heading"
-local FRAME_CHAMFER = "chamferWindow"
-local FOOTER = 30 - MAP_INSET
-local ZONE_PAD = 16 - MAP_INSET
-local CLOCK_PAD = 18 - MAP_INSET
+local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
+local FOOTER = 30
+local ZONE_PAD = 16
+local CLOCK_PAD = 18
 local DIVIDER_GAP = 9
 local PLATE_WIDTH, PLATE_HEIGHT = 44, 23
 local PLATE_LEG_IN, PLATE_LEG_UP = 11, 18
 local PLATE_HIDDEN = { 1, 2, 3, 4, 6 }
 local SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_HIT = 2, 52, 12
-local SLIDER_INSET, SLIDER_RISE = 11 - MAP_INSET, 8
+local SLIDER_INSET, SLIDER_RISE = 11, 8
 local min = math.min
 
 Face.LEVEL_MAP = LEVEL_MAP
@@ -92,7 +91,7 @@ function Face.New(holder, opts)
 	local box = CreateFrame("Frame", nil, holder)
 	Level(box, holder, LEVEL_BOX)
 	face.box = box
-	local chrome = Widgets.Chrome(box, { shape = "panel", chamfer = Tokens.Size(FRAME_CHAMFER) })
+	local chrome = Widgets.Chrome(box, { shape = "panel", share = Format.FRAME_CHAMFER_SHARE })
 	local paint = chrome.Paint
 	chrome.Paint = function(self)
 		paint(self)
@@ -109,12 +108,19 @@ function Face.New(holder, opts)
 	overlay:SetAllPoints(mapArea)
 	face.overlay = overlay
 
+	local mask = overlay:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("minimapMask")), MASK_WRAP, MASK_WRAP)
+	mask:SetAllPoints(mapArea)
+	face.mask = mask
+
 	local strip = CreateFrame("Frame", nil, overlay)
 	strip.fill = strip:CreateTexture(nil, "BACKGROUND")
 	strip.fill:SetColorTexture(Tokens.Color("white"))
 	strip.fill:SetAllPoints(strip)
+	strip.fill:AddMaskTexture(mask)
 	strip.line = strip:CreateTexture(nil, "BORDER")
 	strip.line:SetColorTexture(Tokens.Color("white"))
+	strip.line:AddMaskTexture(mask)
 	strip.divider = strip:CreateTexture(nil, "BORDER")
 	strip.divider:SetColorTexture(Tokens.Color("white"))
 	face.strip = strip
@@ -210,7 +216,7 @@ function Face:PlaceSlider(fromTop, room)
 	local track = zoom.track
 	local fits = room == nil or room >= SLIDER_RISE + SLIDER_HEIGHT
 	zoom:SetShown(fits and Settings.Get("zoom.slider"))
-	local inset, rise = Snap(area, SLIDER_INSET), Snap(area, SLIDER_RISE)
+	local inset, rise = Snap(area, SLIDER_INSET - (self.inset or 0)), Snap(area, SLIDER_RISE)
 	local point, relative, y = "BOTTOM", "BOTTOMRIGHT", (self.sliderBelow or 0) + rise
 	if fromTop then
 		point, relative, y = "TOP", "TOPRIGHT", -rise
@@ -277,7 +283,7 @@ function Face:Layout()
 	box:SetPoint("TOPLEFT", holder, "TOPLEFT", left, 0)
 	box:SetSize(boxWidth, boxHeight)
 
-	local inset = Snap(box, MAP_INSET)
+	local inset = Snap(box, Format.MapInset(min(boxWidth, boxHeight)))
 	local size = min(boxWidth, boxHeight) - 2 * inset
 	self.mapLeft, self.mapSize, self.inset = left, size, inset
 	local area = self.mapArea
@@ -294,7 +300,7 @@ function Face:Layout()
 		tallest = self.clockSize
 	end
 	local strip = self.strip
-	local stripHeight = Snap(strip, math.max(FOOTER, tallest + 2 * GAP))
+	local stripHeight = Snap(strip, math.max(FOOTER - inset, tallest + 2 * GAP))
 	strip:ClearAllPoints()
 	strip:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT")
 	strip:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -inset, inset)
@@ -305,12 +311,12 @@ function Face:Layout()
 	strip.line:SetPoint("TOPRIGHT", strip, "TOPRIGHT")
 	strip.line:SetHeight(border)
 
-	local clockPad = Snap(strip, CLOCK_PAD)
+	local clockPad = Snap(strip, CLOCK_PAD - inset)
 	local clock, zone = self.clock, self.zone
 	clock:ClearAllPoints()
 	clock:SetPoint("RIGHT", strip, "RIGHT", -clockPad, 0)
 	zone:ClearAllPoints()
-	zone:SetPoint("LEFT", strip, "LEFT", Snap(strip, ZONE_PAD), 0)
+	zone:SetPoint("LEFT", strip, "LEFT", Snap(strip, ZONE_PAD - inset), 0)
 	local divider = strip.divider
 	divider:ClearAllPoints()
 	divider:SetPoint("RIGHT", clock, "LEFT", -Snap(strip, DIVIDER_GAP), 0)

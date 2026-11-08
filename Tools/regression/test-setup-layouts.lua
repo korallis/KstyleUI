@@ -164,7 +164,15 @@ for _, name in ipairs(names) do
 	assert(cast.bottom - player.top >= 4 and cast.bottom - player.top <= 12, name .. ": the cast bar sits a few units above the frames")
 	local xp, swing = rect("databars.xp"), rect("meters.swing")
 	assert(centred(xp) and xp.bottom > bar1.top + 10 and xp.top < utility.bottom - 10, name .. ": the experience bar runs between action bar 1 and the utility row, with room for its caption")
-	assert(xp.left > player.right - 1 and xp.right < target.left + 1, name .. ": the experience bar stays between the frames' inner edges")
+	assert(xp.left > bar1.left and xp.right < bar1.right, name .. ": the experience bar stays inside the action bars' ends")
+	assert(xp.right <= rect("unitframes.castbar.target").left and xp.left >= rect("cooldowns.bars").right, name .. ": the experience bar ends before the target cast bar and the tracked buff bars")
+	-- The owner's in-game ruling of 2026-11-08: the HUD reads at one scale, the 38-unit action button. The essential
+	-- icons step up one notch from it, the utility icons are the button's size, and the unit frames stand under
+	-- two button pitches tall, so no frame or icon dwarfs the bars.
+	assert(utility.top - utility.bottom == bar1.top - bar1.bottom, name .. ": the utility icons are the action button's size")
+	local essentialH = essential.top - essential.bottom
+	assert(essentialH > bar1.top - bar1.bottom and essentialH <= (bar1.top - bar1.bottom) * 1.2, name .. ": the essential icons are one notch larger than the action buttons, not half again")
+	assert(player.top - player.bottom <= 2 * (bar1.top - bar1.bottom) - 4, name .. ": the player frame stands under two action buttons tall")
 	assert(swing.bottom >= cast.top, name .. ": the swing timer sits above the cast bar")
 	local resource, pet, targetCast, tot = rect("unitframes.resource"), rect("unitframes.pet"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
 	assert(targetCast.top <= target.bottom and targetCast.left >= target.left and targetCast.right <= target.right, name .. ": the target cast bar sits under its frame")
@@ -179,9 +187,16 @@ for _, name in ipairs(names) do
 	assert(bars.top >= 225 and bars.top <= 236, name .. ": the bars' top sits 225 to 236 units above the bottom: the mockup's 225, raised to clear the chat panel on the owner's 1671-unit-wide root")
 	assert(buffs.top <= target.bottom and buffs.left >= target.left and buffs.right <= target.right, name .. ": the tracked buff icons hang under the target frame")
 	assert(bar1.bottom - bar2.top >= 6 and bar1.bottom - bar2.top <= 12, name .. ": the two bar rows keep the mockup's 10-unit gap")
-	local minimap, auraBuffs = rect("minimap.main"), rect("auras.buffs")
+	local minimap, auraBuffs, auraDebuffs = rect("minimap.main"), rect("auras.buffs"), rect("auras.debuffs")
 	assert(minimap.top > HEIGHT - 40 and minimap.right > width - 40, name .. ": the minimap sits top right")
-	assert(auraBuffs.top <= minimap.bottom and auraBuffs.right > width - 40, name .. ": the buffs sit under the minimap")
+	-- Forever's Edit Mode preset pins the objective tracker's top 275 units under the screen's top
+	-- (Blizzard_EditMode/Mainline/EditModePresetLayouts.lua, the ObjectiveTracker anchorInfo), 38 units under the
+	-- minimap's frame: no aura row fits there, so the aura rows stand beside the minimap, top-aligned with it, and
+	-- the debuffs under the buffs, all above the tracker's top whatever the buff count.
+	local trackerTop = HEIGHT - 275
+	assert(auraBuffs.right <= minimap.left - 8 and auraBuffs.right >= minimap.left - 16 and math.abs(auraBuffs.top - minimap.top) < 1, name .. ": the buffs stand beside the minimap, top-aligned with it")
+	assert(auraDebuffs.top <= auraBuffs.bottom - 4 and auraDebuffs.right == auraBuffs.right, name .. ": the debuffs hang under the buffs, flush with them")
+	assert(auraDebuffs.bottom > trackerTop and minimap.bottom > trackerTop, name .. ": the aura rows and the minimap clear the tracker's Edit Mode top")
 	local chat, strip = rect("chat.main"), rect("databars.strip")
 	assert(chat.left < 40 and chat.bottom < 40, name .. ": chat sits bottom left")
 	assert(bars.left >= chat.right + 3.5 or bars.bottom >= chat.top + 4, name .. ": the buff bars clear the chat panel by about 4 units on the owner's 1671-unit-wide root")
@@ -200,11 +215,12 @@ do
 	assert(x("Tank", "meters.threat") < x("DPS", "meters.threat"), "Tank brings the threat meter in beside the target frame")
 end
 
--- Player and target take the kit sheet's proportions (docs/design/mockups/05_kit_hunter.jpg), about 3.3 times as wide as
--- tall, at the 80 to 95 units the v3 HUD mockups show. The compact frames stay compact.
+-- Player and target keep the owner's mockup's proportions (279 by 90) at the height the owner's in-game test of
+-- 2026-11-08 asked for: 70 units, under two 38-unit action buttons, where the mockup's 89 dwarfed the bars.
+-- The compact frames stay compact.
 for _, key in ipairs({ "unitframes.player", "unitframes.target" }) do
 	local e = Layouts.Element(key)
-	assert(e.height >= 88 and e.height <= 100, key .. " is close to the kit sheet's 100 units at the 1080 reference, as large as the Mac's screen allows beside the chat, got " .. e.height)
+	assert(e.height == 70, key .. " is 70 units tall, the owner's in-game scale beside 38-unit action buttons, got " .. e.height)
 	assert(math.abs(e.width / e.height - 279 / 90) < 0.05, key .. " has the owner's mockup's 279 by 90 proportions, got " .. e.width .. " x " .. e.height)
 end
 
@@ -224,15 +240,16 @@ do
 	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
 	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
 	assert(footprint("databars.strip") == "492x43", "the data strip is 492 by 43, as the composition mockup measures, got " .. footprint("databars.strip"))
-	assert(footprint("databars.xp") == "440x4", "the experience bar is 440 by 4, got " .. footprint("databars.xp"))
+	assert(footprint("databars.xp") == "352x4", "the experience bar is 352 by 4: the mockup's 440 line between frames 220 from the centre, scaled with the frames to end inside the target cast bar, got " .. footprint("databars.xp"))
 	local layout = Layouts.Get("DPS")
 	local minimap = layout["minimap.main"]
 	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -16 and minimap.y == -16, "the minimap stays 16 in from the top right corner")
 end
 
--- The HUD band takes the composition mockup's sizes (docs/design/mockups/v3/leveling_warrior.jpg, measured at the 1080
--- reference from the owner's 2574 by 1456 render, 1.348 px per unit): 38-unit buttons at a 41 pitch, 56-unit essential
--- icons at a 64 pitch, 52-unit utility icons, a 340 by 36 cast bar, a 440-wide experience line and 24-unit buff bars.
+-- The HUD band keeps the composition mockup's layout (docs/design/mockups/v3/leveling_warrior.jpg) at the owner's
+-- in-game scale of 2026-11-08: the 38-unit action button at a 41 pitch is the module. The essential icons are 44
+-- (one notch up) at a 50 pitch, the utility icons 38, the player cast bar 272 by 30, the buff bars 20 tall, the aura
+-- tiles 38 like the buttons, and the frames 220 by 70. The experience line keeps its 440.
 local FOOTPRINTS = {
 	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
@@ -240,11 +257,21 @@ local FOOTPRINTS = {
 	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
-	["cooldowns.essential"] = { 6 * 56 + 5 * 8, 56 },
-	["cooldowns.utility"] = { 4 * 52 + 3 * 10, 52 },
-	["cooldowns.bars"] = { 195, 2 * 24 + 3 },
-	["unitframes.castbar.player"] = { 340, 36 },
-	["databars.xp"] = { 440, 4 },
+	["cooldowns.essential"] = { 6 * 44 + 5 * 6, 44 },
+	["cooldowns.utility"] = { 4 * 38 + 3 * 6, 38 },
+	["cooldowns.buffs"] = { 6 * 30 + 5 * 3, 30 },
+	["cooldowns.bars"] = { 195, 2 * 20 + 3 },
+	["unitframes.player"] = { 220, 70 },
+	["unitframes.target"] = { 220, 70 },
+	["unitframes.targettarget"] = { 88, 22 },
+	["unitframes.pet"] = { 88, 22 },
+	["unitframes.focustarget"] = { 96, 22 },
+	["unitframes.focus"] = { 200, 80 },
+	["unitframes.castbar.player"] = { 272, 30 },
+	["unitframes.castbar.target"] = { 220, 24 },
+	["auras.buffs"] = { 8 * 38 + 7 * 8, 2 * 51 },
+	["auras.debuffs"] = { 8 * 38 + 7 * 8, 51 },
+	["databars.xp"] = { 352, 4 },
 }
 for key, size in pairs(FOOTPRINTS) do
 	local e = Layouts.Element(key)

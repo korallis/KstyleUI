@@ -138,6 +138,49 @@ local function standIn(texture, name, r, g, b, what)
 	return what .. " is a flat stand-in; run Tools/render/standins.py for the mockup's crop"
 end
 
+-- Terrain(env) -> the minimap's terrain stand-in on env.Minimap and the log line that says which. The game
+-- clips the Minimap frame to the mask the module set with Minimap:SetMaskTexture; the stub records that call,
+-- and the stand-in draws through the same file anchored over the frame, so the render shows the clip at the
+-- frame's cut corners as the game makes it.
+function Hud.Terrain(env)
+	local minimap = env.Minimap
+	local map = minimap:CreateTexture(nil, "BACKGROUND")
+	map:SetAllPoints(minimap)
+	local note = standIn(map, "minimap.png", 0.22, 0.30, 0.20, "the minimap's terrain")
+	local set = minimap._state and minimap._state.MaskTexture
+	local path = set and set[1]
+	if type(path) == "string" then
+		local mask = minimap:CreateMaskTexture()
+		mask:SetTexture(path, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		mask:SetAllPoints(minimap)
+		map:AddMaskTexture(mask)
+		note = note .. "; it draws through the module's mask (" .. path .. "), as the game clips the Minimap frame"
+	else
+		note = note .. "; the module set no mask, so it draws square"
+	end
+	return map, note
+end
+
+-- PlaceAuras(container, group, buttons, columns) lays aura buttons out as the AuraContainer engine's flow layout
+-- would, from the corner the container grows from (its flow anchor), along its growth directions, wrapping after
+-- the group's columns, and sizes the container to the rows it holds. The fake engine lays out no buttons.
+function Hud.PlaceAuras(container, group, buttons, columns)
+	local layout = group.layout or {}
+	local width, height, spacing = layout.elementWidth or 38, layout.elementHeight or 51, layout.elementSpacing or 8
+	local flow = container._flow or {}
+	local corner, dx, dy = flow.anchor or "TOPLEFT", flow.horizontal or 1, flow.vertical or -1
+	local rows = math.ceil(#buttons / columns)
+	local across = math.min(#buttons, columns)
+	container:SetSize(math.max(0, across * width + (across - 1) * spacing), rows * height)
+	for i, button in ipairs(buttons) do
+		local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
+		button:ClearAllPoints()
+		button:SetSize(width, height)
+		button:SetPoint(corner, container, corner, dx * col * (width + spacing), dy * row * height)
+		button:Show()
+	end
+end
+
 local modules = {}
 
 -- Unit frames: player, target, both cast bars, the target of target, the pet and the class resource ----------
@@ -492,10 +535,9 @@ function modules.minimap(opts)
 		end,
 	})
 	M.Settle(env)
-	-- The Minimap frame draws the world in the game; the mockup's map, or a flat tone, stands in.
-	local map = env.Minimap:CreateTexture(nil, "BACKGROUND")
-	map:SetAllPoints(env.Minimap)
-	local note = standIn(map, "minimap.png", 0.22, 0.30, 0.20, "the minimap's terrain")
+	-- The Minimap frame draws the world in the game; the mockup's map, or a flat tone, stands in, clipped as the
+	-- game clips the frame.
+	local _, note = Hud.Terrain(env)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = note
 	return finish(env, K, scene, "minimap"), ns
@@ -520,17 +562,66 @@ function modules.databars(opts)
 	return finish(env, K, scene, "databars"), ns
 end
 
--- Auras: the player's buffs under the minimap, five with their time left -------------------------------------
+-- Auras: the player's buffs beside the minimap, five with their time left ----------------------------------
 
--- The engine binds each button's icon and timer itself; the stub does not, so the scene fills the first
--- five buff buttons with the class's buff row (_classes.lua) and lays them out as the container's flow layout
--- would: from the top left, rightwards, the shortest time left first, the container centred under the map as
--- the module anchors it.
+-- The engine binds each button's icon and timer itself; the stub does not, so the scene fills the buff buttons
+-- with the class's buff row (_classes.lua), then more of its spells when opts.buffs asks for a longer row, and
+-- lays them out as the container's flow layout would: from the corner the module anchors the container at (the
+-- top right, beside the minimap, by default), leftwards, the shortest time left first, wrapping into rows.
+-- opts.debuffs fills that many debuff tiles the same way.
+
+local MORE_TIMERS = { "6m", "42s", "1h", "15m", "28s", "2h", "9m", "51s", "3h", "7m", "33s", "4h" }
+local DEBUFF_ROW = { { "Rend", 132155, "18s" }, { "Hamstring", 132316, "9s" }, { "Sunder Armor", 132363, "4s" }, { "Demoralizing Shout", 132366, "1m" }, { "Thunder Clap", 136105, "26s" } }
+
+-- BuffRow(spec, count) -> count { "Name", icon, "time" } entries: the class's buff row, then its other spells.
+function Hud.BuffRow(spec, count)
+	local out = {}
+	for i, buff in ipairs(spec.buffRow) do
+		if i <= count then
+			out[i] = buff
+		end
+	end
+	local pool = {}
+	for _, list in ipairs({ spec.bar2, spec.bar1 }) do
+		for _, spell in ipairs(list) do
+			pool[#pool + 1] = spell
+		end
+	end
+	local n = 0
+	while #out < count and n < #pool do
+		n = n + 1
+		out[#out + 1] = { pool[n][1], pool[n][2], MORE_TIMERS[(n - 1) % #MORE_TIMERS + 1] }
+	end
+	return out
+end
+
+-- fillAuras(env, A, container, key, group, entries) -> the group's first #entries buttons, bound as the engine
+-- would bind them; past the engine's first batch of ten it makes more, as the engine does for a later batch.
+local function fillAuras(env, A, container, key, group, entries)
+	local buttons = {}
+	for i, entry in ipairs(entries) do
+		local button = group.frames[i]
+		if not button then
+			button = A.MakeButton(env, container, env._initializers[key])
+			group.frames[i] = button
+		end
+		do
+			local aura = button._aura
+			if aura.icon then
+				aura.icon:SetTexture(env.Secret(entry[2]))
+			end
+			if aura.timer then
+				aura.timer:SetText(entry[3])
+			end
+			buttons[#buttons + 1] = button
+		end
+	end
+	return buttons
+end
 
 function modules.auras(opts)
 	local A = dofile("Tools/regression/auras_env.lua")
 	local _, spec = Hud.Class(opts)
-	local row = spec.buffRow
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
@@ -541,33 +632,24 @@ function modules.auras(opts)
 		K.Modules.Enable("Auras")
 	end
 	env.RunTimers()
+	for _, container in ipairs(env._containers) do
+		for _, button in ipairs(A.Buttons(container)) do
+			button:Hide()
+		end
+	end
+	local settings = K.Store.Module("Auras")
 	local buffs, group = A.Container(env, "HELPFUL")
 	if buffs then
-		local layout = group.layout or {}
-		local width, height, spacing = layout.elementWidth or 38, layout.elementHeight or 51, layout.elementSpacing or 8
-		-- The engine sizes the container to its content; the stub leaves it unsized.
-		buffs:SetSize(#row * width + (#row - 1) * spacing, height)
-		for _, container in ipairs(env._containers) do
-			for _, button in ipairs(A.Buttons(container)) do
-				button:Hide()
-			end
+		local columns = ns.Model.Group(settings, "buffs").columns
+		Hud.PlaceAuras(buffs, group, fillAuras(env, A, buffs, "buffs", group, Hud.BuffRow(spec, opts.buffs or #spec.buffRow)), columns)
+	end
+	local debuffs, harmful = A.Container(env, "HARMFUL")
+	if debuffs and (opts.debuffs or 0) > 0 then
+		local entries = {}
+		for i = 1, opts.debuffs do
+			entries[i] = DEBUFF_ROW[(i - 1) % #DEBUFF_ROW + 1]
 		end
-		for i, buff in ipairs(row) do
-			local button = group.frames[i]
-			if button then
-				local aura = button._aura
-				button:ClearAllPoints()
-				button:SetSize(width, height)
-				button:SetPoint("TOPLEFT", buffs, "TOPLEFT", (i - 1) * (width + spacing), 0)
-				if aura.icon then
-					aura.icon:SetTexture(env.Secret(buff[2]))
-				end
-				if aura.timer then
-					aura.timer:SetText(buff[3])
-				end
-				button:Show()
-			end
-		end
+		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
 	end
 	A.W.Settle(env)
 	local scene = build(env, opts)

@@ -41,7 +41,7 @@ local function SampleColor(s, sample, source, custom)
 		return custom.r, custom.g, custom.b
 	end
 	if source == "power" then
-		return Tokens.Color("rare")
+		return ns.Unit.PowerTypeColor(sample.own and "player" or nil)
 	end
 	if source == "class" and sample.own then
 		return Theme.ClassColor(Theme.Class())

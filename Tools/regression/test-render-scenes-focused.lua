@@ -7,9 +7,36 @@ local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local RestedXP = dofile("Tools/render/scenes/restedxp.lua")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design", "auras_tracker" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
+end
+
+-- The aura rows beside the minimap never reach the objective tracker, which Forever's Edit Mode preset pins 275
+-- units under the screen's top: at the full two rows of eight buffs and three debuffs every tile's bottom sits
+-- above the tracker's caption, and the rows stay beside the minimap, not under it.
+do
+	local Hud = L.Hud
+	local scene = check("auras_tracker", Hud.Build({ layout = "DPS", modules = { "minimap", "auras", "tracker" }, buffs = 16, debuffs = 3 }))
+	local tiles, questsTop, minimapLeft = {}, nil, nil
+	for _, item in ipairs(scene.items) do
+		local text = item.kind == "text" and item.text and (item.text:gsub("\226\128\137", ""))
+		if text == "QUESTS" then
+			questsTop = item.rect[2]
+		end
+		if text == "RIVERGLADES" then
+			minimapLeft = item.rect[1]
+		end
+		if item.kind == "texture" and item.fileID and item.rect[3] < 40 then
+			tiles[#tiles + 1] = item.rect
+		end
+	end
+	assert(questsTop and minimapLeft, "the scene shows the tracker's caption and the minimap's zone")
+	assert(#tiles == 19, "sixteen buff tiles and three debuff tiles draw, got " .. #tiles)
+	for _, rect in ipairs(tiles) do
+		assert(rect[2] + rect[4] < questsTop, "every aura tile ends above the tracker's caption")
+		assert(rect[1] + rect[3] <= minimapLeft, "every aura tile sits left of the minimap")
+	end
 end
 
 -- The tracker scene builds Blizzard's tracker the way Forever does and shows the skin's one caption header,

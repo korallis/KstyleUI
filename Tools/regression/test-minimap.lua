@@ -59,15 +59,26 @@ assert(minimap:GetParent() == holder, "Blizzard's minimap moves into KstyleUI's 
 assert(LastArg(minimap, "SetAllPoints") == face.mapArea, "the minimap fills the frame's map square")
 local mw, mh = face.mapArea:GetSize()
 assert(mw == mh, "the minimap stays square")
-assert(W.Near(mw, 213), "the map square fills the frame's height inside one gap: " .. tostring(mw))
+-- The map fills the frame to just inside its bevel line: 2 units in on the mockup's 221 frame (the dark line, the
+-- light line and the fade row are three borders), where it used to sit a whole 4-unit gap in. The frame's chamfer
+-- is a share of its side, so the mask texture's fixed cut lines up with the frame's line at every size.
+local Format = ns.Format
+assert(W.Near(Format.MapInset(221), 2), "the map sits 2 units inside the 221 frame: " .. tostring(Format.MapInset(221)))
+assert(W.Near(mw, 217), "the map square fills the frame's height inside the bevel line: " .. tostring(mw))
 assert(W.Near(face.box:GetWidth(), 221) and W.Near(face.box:GetHeight(), 221), "the chamfered frame is the mockup's 221 square beside the button column")
-assert(W.Near(face.chrome:Chamfer(), 12), "the frame has the mockup's 12 chamfer")
-assert(W.Near(select(4, face.box:GetPoint(1)), 38) and W.Near(select(4, face.mapArea:GetPoint(1)), 4), "the frame leaves the column's 38 on its left; the map square sits one gap in")
-assert(W.Near(face.strip:GetHeight(), 26), "the footer is 26 tall inside the gap, 30 from the frame's edge: " .. tostring(face.strip:GetHeight()))
+assert(W.Near(face.chrome:Chamfer(), 12), "the frame has the mockup's 12 chamfer at 221")
+assert(W.Near(select(4, face.box:GetPoint(1)), 38) and W.Near(select(4, face.mapArea:GetPoint(1)), 2), "the frame leaves the column's 38 on its left; the map square sits inside the bevel line")
+-- The strip and the terrain clip to the same chamfered mask the Minimap frame wears, anchored over the map square,
+-- so the footer's corners end at the frame's cuts instead of poking past them.
+local mask = face.mask
+assert(mask and W.LastCall(mask, "SetTexture")[1] == (K.Tokens.Texture("minimapMask")), "the face owns a mask texture with the minimap mask")
+assert(LastArg(mask, "SetAllPoints") == face.mapArea, "the mask covers the map square")
+assert(face.strip.fill:GetMaskTexture(1) == mask and face.strip.line:GetMaskTexture(1) == mask, "the footer's fill and line draw through the mask")
+assert(W.Near(face.strip:GetHeight(), 28), "the footer is 28 tall inside the inset, 30 from the frame's edge: " .. tostring(face.strip:GetHeight()))
 local _, stripRel, stripRelPoint, stripX = face.strip:GetPoint(2)
-assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -4), "the footer reaches the frame's right edge")
-assert(W.Near(select(4, face.zone:GetPoint(1)), 12), "the zone name starts 16 from the frame's edge")
-assert(W.Near(select(4, face.clock:GetPoint(1)), -14), "the clock ends 18 from the frame's edge")
+assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -2), "the footer reaches the frame's right edge")
+assert(W.Near(select(4, face.zone:GetPoint(1)), 14), "the zone name starts 16 from the frame's edge")
+assert(W.Near(select(4, face.clock:GetPoint(1)), -16), "the clock ends 18 from the frame's edge")
 assert(W.Near(select(4, face.strip.divider:GetPoint(1)), -9), "the divider stands 9 left of the clock")
 local _, zoneSize = face.zone:GetFont()
 local _, clockSize = face.clock:GetFont()
@@ -91,7 +102,7 @@ local zoom = face.zoom
 assert(zoom and zoom:IsShown() and zoom.track and zoom.fill, "a zoom slider stands inside the map's right edge")
 assert(W.Near(zoom.track:GetWidth(), 2) and W.Near(zoom.track:GetHeight(), 52), "the track is the mockup's 2 by 52 line")
 local tp, trel, trelp, tx, ty = zoom.track:GetPoint(1)
-assert(tp == "BOTTOM" and trel == face.mapArea and trelp == "BOTTOMRIGHT" and W.Near(tx, -7) and W.Near(ty, 34), "its bottom stands 8 above the footer, 11 in from the frame's edge")
+assert(tp == "BOTTOM" and trel == face.mapArea and trelp == "BOTTOMRIGHT" and W.Near(tx, -9) and W.Near(ty, 36), "its bottom stands 8 above the footer, 11 in from the frame's edge")
 assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the fill takes the accent")
 assert(W.Near(zoom.fill:GetHeight(), 52 * 2 / 5, 0.5), "zoom 2 of 6 levels fills two fifths of the track: " .. tostring(zoom.fill:GetHeight()))
 env._zoom = 5
@@ -159,7 +170,10 @@ assert(LastArg(minimap, "SetMaskTexture") == (K.Tokens.Texture("minimapMask")), 
 
 M.Resize(holder, 346, 300)
 mw, mh = face.mapArea:GetSize()
-assert(mw == mh and W.Near(mw, 292), "a resized element resizes the square map: " .. tostring(mw))
+local bigInset = select(4, face.mapArea:GetPoint(1))
+assert(W.Near(bigInset, Format.MapInset(300), 0.5) and mw == mh and W.Near(mw, 300 - 2 * bigInset), "a resized element resizes the square map inside its inset, snapped to a pixel: " .. tostring(mw) .. " in " .. tostring(bigInset))
+assert(W.Near(face.chrome:Chamfer(), Format.FrameChamfer(300), 0.01) and face.chrome:Chamfer() > 12, "the frame's chamfer grows with the frame, so the mask's cut still meets the line")
+assert(W.Near(Format.MASK_SHARE * mw, face.chrome:Chamfer() - 2 * bigInset, 1), "the mask's cut on the map meets the frame's cut at the map's inset within a pixel")
 M.Resize(holder, 168, 166)
 
 -- Wheel zoom ----------------------------------------------------------------------------------------
@@ -372,6 +386,7 @@ do
 	assert(pface.zone:GetText() and pface.zone:GetText() ~= "", "the preview shows a zone")
 	assert(pface.clock:IsShown(), "the preview shows the clock")
 	assert(pface.zoom:IsShown() and W.Near(pface.zoom.fill:GetHeight(), 52, 0.5), "the preview shows the zoom slider full, as the mockup draws it")
+	assert(frame.terrain and frame.terrain:GetMaskTexture(1) == pface.mask, "the preview's drawn terrain clips to the same chamfered mask as the live map")
 	PK.Options.Write("Minimap", "clock.shown", false)
 	frame:Refresh()
 	assert(not pface.clock:IsShown(), "the preview follows the settings")

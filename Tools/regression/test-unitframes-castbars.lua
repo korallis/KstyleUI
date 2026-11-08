@@ -142,7 +142,7 @@ local focusBar = CastBars.Get("focus")[1]
 local _, frameH = focusView.button:GetSize()
 local focusH = K.Setup.Layouts.Element("unitframes.focus").height
 local bossSlot = ns.Geometry.Slots(5, 10, 1, K.Setup.Layouts.Element("unitframes.boss").height)[1].h
-assert(math.abs(focusView.geometry.panel.h - (focusH - 20 - 4)) < 1, "the focus frame leaves room for its cast bar: " .. focusView.geometry.panel.h)
+assert(math.abs(focusView.geometry.panel.h - (focusH - 16 - 4)) < 1, "the focus frame leaves room for its 16-unit cast bar: " .. focusView.geometry.panel.h)
 local _, _, _, _, y = focusBar.frame:GetPoint(1)
 assert(y < -40, "the focus cast bar sits under the frame")
 assert(frameH == focusH, "the focus button spans its element")
@@ -192,7 +192,8 @@ assert(not player.iconFrame:IsShown(), "the icon can be switched off")
 local _, _, _, px = player.panel:GetPoint(1)
 assert(math.abs(px) < 1e-6 and player.geometry.icon == nil, "and the glass bar takes its room")
 local _, _, _, bx = player.bar:GetPoint(1)
-assert(math.abs(bx - player.geometry.bar.x) < 1 and player.geometry.bar.x - player.geometry.panel.x == math.floor(0.5 * 36 + 0.5), "with the bar inside the glass at the mockup's 0.5 H inset (Slam's bar starts 18 units in on a 37-unit bar)")
+local playerCastH = K.Setup.Layouts.Element("unitframes.castbar.player").height
+assert(math.abs(bx - player.geometry.bar.x) < 1 and player.geometry.bar.x - player.geometry.panel.x == math.floor(0.5 * playerCastH + 0.5), "with the bar inside the glass at the mockup's 0.5 H inset (Slam's bar starts 18 units in on a 37-unit bar; 15 on the 30-unit bar)")
 local narrowTall = CastBars.Geometry(200, 120, true, true, 14)
 assert(narrowTall.stacked and narrowTall.bar.w >= 0.5 * narrowTall.panel.w and narrowTall.text.w > 0, "a tall, narrow bar beside its icon keeps at least half its glass for the fill: the insets never eat the panel, got " .. narrowTall.bar.w)
 K.Options.Write("UnitFrames", "player.castbarTimer", false)

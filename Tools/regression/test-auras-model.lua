@@ -23,14 +23,16 @@ local debuffs = Model.Group(d, "debuffs")
 local timer = Model.Timer(d)
 local bw, bh = Model.Footprint(buffs, timer)
 local dw, dh = Model.Footprint(debuffs, timer)
--- The mockup's row under the minimap: five 38-unit icons at a 46 pitch (measured at 1.348 px per unit), the
--- 12-unit timer under each, so a row is 222 by 51, the buffs two rows and the debuffs one.
-check(buffs.iconSize == 38 and buffs.spacing == 8 and buffs.columns == 5 and timer.size == 12, "38-unit icons, 8-unit gaps, five per row, 12-unit timers, as the mockup measures")
-check(bw == 222 and bh == 102, "the buff footprint at defaults is 222 x 102, got " .. bw .. " x " .. bh)
-check(dw == 222 and dh == 51, "the debuff footprint at defaults is 222 x 51, got " .. dw .. " x " .. dh)
+-- The mockup's tiles: 38-unit icons at a 46 pitch (measured at 1.348 px per unit) with the 12-unit timer under
+-- each, so a row is 51 tall. The rows stand beside the minimap (Forever's Edit Mode preset leaves no room under
+-- it before the objective tracker), eight to a row so a raid's worth of buffs shows: 360 wide, the buffs two
+-- rows and the debuffs one.
+check(buffs.iconSize == 38 and buffs.spacing == 8 and buffs.columns == 8 and timer.size == 12, "38-unit icons, 8-unit gaps, eight per row, 12-unit timers")
+check(bw == 360 and bh == 102, "the buff footprint at defaults is 360 x 102, got " .. bw .. " x " .. bh)
+check(dw == 360 and dh == 51, "the debuff footprint at defaults is 360 x 51, got " .. dw .. " x " .. dh)
 check(buffs.rows == 2 and debuffs.rows == 1, "two rows of buffs and one of debuffs by default")
-check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both groups grow right, so the shortest time left comes first at the left, as in the mockup")
-check(Model.ContainerAnchor("RIGHT_DOWN") == "TOP" and Model.ContainerAnchor("LEFT_DOWN") == "TOP" and Model.ContainerAnchor("RIGHT_UP") == "BOTTOM" and Model.ContainerAnchor("LEFT_UP") == "BOTTOM", "the container hangs centred from the element's top or bottom edge, so a short row sits centred under the minimap")
+check(buffs.growth == "LEFT_DOWN" and debuffs.growth == "LEFT_DOWN", "both groups grow left from the minimap, so the shortest time left sits next to it")
+check(Model.ContainerAnchor("RIGHT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("LEFT_DOWN") == "TOPRIGHT" and Model.ContainerAnchor("RIGHT_UP") == "BOTTOMLEFT" and Model.ContainerAnchor("LEFT_UP") == "BOTTOMRIGHT", "the container hangs from the corner the rows grow from, so a short row sits flush with the minimap's side")
 
 -- Growth: the corner the panel grows from and the engine's direction names.
 local cases = {
@@ -44,7 +46,7 @@ for _, case in ipairs(cases) do
 	check(anchor == case[2] and h == case[3] and v == case[4], "growth " .. case[1] .. " maps to " .. case[2] .. ", got " .. tostring(anchor))
 end
 local anchor = Model.Growth("SIDEWAYS")
-check(anchor == "TOPLEFT", "an unknown growth falls back to right and down")
+check(anchor == "TOPRIGHT", "an unknown growth falls back to the default, left then down")
 
 -- Sort: setting value to the engine's AuraContainerSortMethod and direction names.
 local sorts = {

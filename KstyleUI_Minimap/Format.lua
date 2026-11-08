@@ -9,6 +9,11 @@ local ceil, floor, format, max, min = math.ceil, math.floor, string.format, math
 local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
 local COLUMN_PAD = 2
+local FRAME_SIZE = 221
+local FRAME_CHAMFER = 12
+local MAP_INSET = 2
+local FRAME_CHAMFER_SHARE = FRAME_CHAMFER / FRAME_SIZE
+local MASK_SHARE = (FRAME_CHAMFER - 2 * MAP_INSET) / (FRAME_SIZE - 2 * MAP_INSET)
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
 local PVP_TOKENS = {
@@ -30,6 +35,16 @@ end
 
 Format.IsNumber = IsNumber
 Format.COLUMN_PAD = COLUMN_PAD
+Format.FRAME_CHAMFER_SHARE = FRAME_CHAMFER_SHARE
+Format.MASK_SHARE = MASK_SHARE
+
+function Format.FrameChamfer(box)
+	return box * FRAME_CHAMFER_SHARE
+end
+
+function Format.MapInset(box)
+	return box * (FRAME_CHAMFER_SHARE - MASK_SHARE) / (2 * (1 - MASK_SHARE))
+end
 
 function Format.Coords(x, y, precision)
 	if not IsNumber(x) or not IsNumber(y) then

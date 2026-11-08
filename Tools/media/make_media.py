@@ -43,6 +43,13 @@ GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bott
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
 PORTRAIT_CHAMFER = 0.15  # share of the portrait's side, measured on the design file (10 units on 68)
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
+# The minimap's mask. The map fills KstyleUI_Minimap's frame to just inside its bevel line: on the mockup's 221-unit
+# frame with its 12-unit chamfer the map sits 2 units in (the dark line, the light line and the fade row), so the
+# mask cuts 8 of the map's 217 units. The game stretches the mask over the map, so the cut is a share of the side;
+# Format.lua in the module places the map from the same three numbers and lets the frame's chamfer grow with it, so
+# the mask's cut meets the frame's cut at every size. 512 texels keep the diagonal crisp on a 300-pixel map.
+MINIMAP_FRAME, MINIMAP_CHAMFER, MINIMAP_INSET = 221, 12, 2
+MINIMAP_MASK_SHARE = (MINIMAP_CHAMFER - 2 * MINIMAP_INSET) / (MINIMAP_FRAME - 2 * MINIMAP_INSET)
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
 # the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
 # 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
@@ -602,7 +609,8 @@ ASSETS = [
     _texture("BarGlass", 256, 32, lambda: draw_bar(256, 32, "glass"),
              "Status bar fill whose top is 12% brighter than its bottom, the design's near-flat health fill.",
              "4x supersampled gradient"),
-    _texture("MinimapMask", 128, 128, lambda: draw_full(128, 128), "Square minimap mask for Minimap:SetMaskTexture.", "solid"),
+    _texture("MinimapMask", 512, 512, lambda: draw_chamfer(512, 512 * MINIMAP_MASK_SHARE),
+             "Chamfered square mask for Minimap:SetMaskTexture and the minimap footer: the cut is 8 of 217 units, the frame's 12-unit chamfer at the map's 2-unit inset on the mockup's 221 frame."),
     _texture("Dot", 64, 64, lambda: draw_dot(64), "Filled disc for toggle and slider knobs."),
     _texture("Pill", 64, 32, lambda: draw_pill(64, 32),
              f"Capsule for toggle and slider tracks. Each round cap is {PILL_CAP} texels wide, so a widget three-slices it."),

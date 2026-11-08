@@ -95,6 +95,22 @@ left, size = Format.MapRect(226, 196, "left", 28)
 check(left, 30, "a column that fits leaves the map where it was")
 check(size, 196, "at full height")
 
+-- The map's clip. The frame's chamfer is the mockup's 12 on its 221 square and grows with the frame; the map sits
+-- just inside the bevel line, 2 units in at 221; and Media/Textures/MinimapMask.png cuts the map's corners at a
+-- fixed share of its side. The inset is chosen per size so the mask's cut meets the frame's cut at every size.
+local function near(a, b, what)
+	assert(math.abs(a - b) < 1e-6, what .. ": want " .. tostring(b) .. ", got " .. tostring(a))
+end
+near(Format.FrameChamfer(221), 12, "the frame's chamfer at the mockup's size")
+near(Format.MapInset(221), 2, "the map's inset at the mockup's size")
+near(Format.MASK_SHARE, 8 / 217, "the mask's cut is 8 of the 217 map at the mockup's size")
+for _, box in ipairs({ 120, 221, 300, 480 }) do
+	local inset = Format.MapInset(box)
+	local map = box - 2 * inset
+	near(Format.MASK_SHARE * map, Format.FrameChamfer(box) - 2 * inset, "the mask's cut meets the frame's cut on a " .. box .. " frame")
+	assert(inset > 0 and inset < box / 20, "the inset stays a thin margin on a " .. box .. " frame: " .. inset)
+end
+
 -- The drawer: which way it opens, where each icon sits, and how big the drawer is.
 check(Format.Direction("auto", "left"), "left", "with the column on the left, the drawer opens away from the map")
 check(Format.Direction("auto", "right"), "right", "and on the right, to the right")

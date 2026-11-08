@@ -126,6 +126,23 @@ local function PlaceGroup(box, entries, group, timer)
 	return boxWidth, boxHeight, horizontal
 end
 
+local function Fit(group, timer, available)
+	if not available then
+		return group
+	end
+	local w = Model.ElementSize(group, timer)
+	local columns = max(1, floor((available + group.spacing) / (w + group.spacing)))
+	if columns >= group.columns then
+		return group
+	end
+	local fitted = {}
+	for key, value in pairs(group) do
+		fitted[key] = value
+	end
+	fitted.columns = columns
+	return fitted
+end
+
 local function Refresh(frame)
 	local settings = Settings()
 	local timer, count = Model.Timer(settings), Model.Count(settings)
@@ -135,9 +152,13 @@ local function Refresh(frame)
 	local widest = 0
 	local boxes = { { frame.buffBox, frame.buffs, "buffs" }, { frame.debuffBox, frame.debuffs, "debuffs" } }
 	local top = 0
+	local available = frame:GetWidth()
+	if type(available) ~= "number" or Widgets.IsSecret(available) or available <= 0 then
+		available = nil
+	end
 	for _, item in ipairs(boxes) do
 		local box, entries, name = item[1], item[2], item[3]
-		local group = Model.Group(settings, name)
+		local group = Fit(Model.Group(settings, name), timer, available)
 		local edge = { Tokens.Color("hostile") }
 		if name == "buffs" then
 			edge = { Tokens.Color("edgeInner") }
@@ -156,9 +177,8 @@ local function Refresh(frame)
 		top = top + h + gap
 		widest = max(widest, w)
 	end
-	local available = frame:GetWidth()
 	local scale = 1
-	if type(available) == "number" and not Widgets.IsSecret(available) and available > 0 and widest > available then
+	if available and widest > available then
 		scale = available / widest
 	end
 	frame.canvas:SetScale(scale)

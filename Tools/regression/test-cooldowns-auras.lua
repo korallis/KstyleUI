@@ -39,7 +39,7 @@ end
 local bw, bh = buffs.holder:GetSize()
 assert(bw == 195 and bh == 30, "the buff icons fill a 195 by 30 footprint")
 local rw, rh = bars.holder:GetSize()
-assert(rw == 195 and rh == 51, "two bars of 195 by 24 fill a 195 by 51 footprint, got " .. tostring(rw) .. " by " .. tostring(rh))
+assert(rw == 195 and rh == 43, "two bars of 195 by 20 fill a 195 by 43 footprint, got " .. tostring(rw) .. " by " .. tostring(rh))
 assert(env._viewers.BuffIconCooldownViewer:GetAlpha() == 0 and env._viewers.BuffBarCooldownViewer:GetAlpha() == 0, "Blizzard's buff viewers are faded")
 
 -- Only active buffs show; an icon sweeps backward from its aura's duration object and shows its stacks.

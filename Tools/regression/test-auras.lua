@@ -99,27 +99,30 @@ do
 		end
 		check(body, "each aura button sits on the near-black button body every square icon shares")
 	end
-	check(bg.maxFrameCount == 10 and dg.maxFrameCount == 5, "2 rows of 5 buffs and 1 row of 5 debuffs")
+	check(bg.maxFrameCount == 16 and dg.maxFrameCount == 8, "2 rows of 8 buffs and 1 row of 8 debuffs")
 	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
 	check(bg.layout.elementWidth == 38 and bg.layout.elementHeight == 51, "each buff is a 38-unit icon with its 12-unit timer under it")
 	check(bg.layout.elementSpacing == 8 and bg.layout.lineSpacing == 0, "8-unit gaps between icons")
-	check(buffs._flow.anchor == "TOPLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == -1, "buffs grow right, then down, so the shortest time left sits at the left")
-	check(buffs._flow.lineSize >= 5 * 38 + 4 * 8 and buffs._flow.lineSize < 6 * 38 + 5 * 8, "five icons fit on a line, and a sixth wraps")
+	check(buffs._flow.anchor == "TOPRIGHT" and buffs._flow.horizontal == -1 and buffs._flow.vertical == -1, "buffs grow left from the minimap, then down, so the shortest time left sits beside the map")
+	check(buffs._flow.lineSize >= 8 * 38 + 7 * 8 and buffs._flow.lineSize < 9 * 38 + 8 * 8, "eight icons fit on a line, and a ninth wraps")
 
 	local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
 	check(b and d, "both elements register with Layout under the element keys")
 	check(b.opts.label == "Buffs" and d.opts.label == "Debuffs", "labels come from Setup.Layouts")
 	check(b.opts.module == "Auras" and b.opts.scalable == true and not b.opts.resizable, "the elements scale in Layout Mode")
-	check(b.position.anchor == "TOPRIGHT" and b.position.x == -16 and b.position.y == -252, "buffs sit 15 units under the minimap's 221-unit frame, as the mockup measures")
-	check(d.position.anchor == "TOPRIGHT" and d.position.y == -354, "debuffs sit under the buffs")
+	-- Forever's Edit Mode preset pins the objective tracker 275 units under the screen's top, 38 under the minimap's
+	-- 221-unit frame (Blizzard_EditMode/Mainline/EditModePresetLayouts.lua), so the rows stand beside the minimap:
+	-- 12 units left of its 259-unit element, top-aligned with it, the debuffs 8 units under the buffs.
+	check(b.position.anchor == "TOPRIGHT" and b.position.x == -287 and b.position.y == -16, "buffs stand beside the minimap, 12 units left of its element and top-aligned with it")
+	check(d.position.anchor == "TOPRIGHT" and d.position.x == -287 and d.position.y == -126, "debuffs hang 8 units under the buffs' two rows")
 	local w, h = size(b.frame)
-	check(near(w, 222) and near(h, 102), "the buff element is 222 x 102, centred under the map square, got " .. tostring(w) .. " x " .. tostring(h))
+	check(near(w, 360) and near(h, 102), "the buff element is 360 x 102, two rows of eight, got " .. tostring(w) .. " x " .. tostring(h))
 	w, h = size(d.frame)
-	check(near(w, 222) and near(h, 51), "the debuff element is 222 x 51")
+	check(near(w, 360) and near(h, 51), "the debuff element is 360 x 51")
 	check(not isAncestor(b.frame, buffs), "the Layout element is not an ancestor of the container, so Layout never touches an aura button")
 	local host = buffs:GetParent()
 	local point, rel, relPoint = buffs:GetPoint(1)
-	check(point == "TOP" and rel == host and relPoint == "TOP", "the container hangs centred from its host's top edge, so a short row sits centred under the minimap")
+	check(point == "TOPRIGHT" and rel == host and relPoint == "TOPRIGHT", "the container hangs from its host's top right corner, the corner the rows grow from, so a short row sits flush beside the minimap")
 
 	for _, button in ipairs(groupButtons(bg)) do
 		local aura = button._aura
@@ -165,7 +168,7 @@ do
 	local bw, bh = groupButtons(bg)[1]:GetSize()
 	check(near(bw, 32) and near(bh, 45), "and the buttons")
 	local w, h = size(b.frame)
-	check(near(w, 5 * 32 + 4 * 8) and near(h, 2 * 45), "and the Layout element's footprint")
+	check(near(w, 8 * 32 + 7 * 8) and near(h, 2 * 45), "and the Layout element's footprint")
 
 	K.Options.Write("Auras", "buffs.sort", "name")
 	K.Options.Write("Auras", "buffs.reverse", true)
@@ -174,7 +177,7 @@ do
 	K.Options.Write("Auras", "buffs.growth", "RIGHT_UP")
 	check(buffs._flow.anchor == "BOTTOMLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == 1, "growth right, then up")
 	local point, _, relPoint = buffs:GetPoint(1)
-	check(point == "BOTTOM" and relPoint == "BOTTOM", "the container moves to the edge it grows from, still centred")
+	check(point == "BOTTOMLEFT" and relPoint == "BOTTOMLEFT", "the container moves to the corner it grows from")
 
 	K.Options.Write("Auras", "buffs.rows", 3)
 	K.Options.Write("Auras", "buffs.columns", 8)
@@ -225,16 +228,16 @@ end
 do
 	local env = start({ layout = true })
 	local _, bg = A.Container(env, "HELPFUL")
-	check(bg.maxFrameCount == 10, "no enchantment, 10 buffs")
+	check(bg.maxFrameCount == 16, "no enchantment, 16 buffs")
 	env._enchants[env.INVSLOT_MAINHAND] = { enchantID = 1, hasExpirationTime = true, remainingTimeMs = 60000 }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(bg.maxFrameCount == 9, "a main-hand enchantment leaves 9 buffs, got " .. bg.maxFrameCount)
+	check(bg.maxFrameCount == 15, "a main-hand enchantment leaves 15 buffs, got " .. bg.maxFrameCount)
 	env._enchants[env.INVSLOT_OFFHAND] = { enchantID = 2, hasExpirationTime = false, remainingTimeMs = 0 }
 	env.FireEvent("WEAPON_SLOT_CHANGED")
-	check(bg.maxFrameCount == 8, "two enchantments leave 8")
+	check(bg.maxFrameCount == 14, "two enchantments leave 14")
 	env._enchants = {}
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(bg.maxFrameCount == 10, "expired enchantments give their places back")
+	check(bg.maxFrameCount == 16, "expired enchantments give their places back")
 end
 
 -- A panel smaller than the enchantment slots shows only as many enchantments as it has places.

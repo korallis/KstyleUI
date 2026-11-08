@@ -62,20 +62,10 @@ local function fill(env, button, icon, timer, count)
 	end
 end
 
--- place(container, group, buttons) lays the buttons out as the container's flow layout would: from the top left,
--- rightwards, wrapping after the group's columns, and sizes the container to the rows it holds.
+-- place(container, group, buttons, columns) lays the buttons out as the container's flow layout would, from the
+-- corner the module anchors the container at, and sizes the container to the rows it holds (Hud.PlaceAuras).
 local function place(container, group, buttons, columns)
-	local layout = group.layout or {}
-	local width, height, spacing = layout.elementWidth or 38, layout.elementHeight or 51, layout.elementSpacing or 8
-	local rows = math.ceil(#buttons / columns)
-	container:SetSize(columns * width + (columns - 1) * spacing, rows * height)
-	for i, button in ipairs(buttons) do
-		local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
-		button:ClearAllPoints()
-		button:SetSize(width, height)
-		button:SetPoint("TOPLEFT", container, "TOPLEFT", col * (width + spacing), -row * height)
-		button:Show()
-	end
+	Hud.PlaceAuras(container, group, buttons, columns)
 end
 
 -- dispel(env, Widgets, button, kind) paints the debuff's nine-piece rim in the dispel type's colour, as the

@@ -39,7 +39,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Textures/BarFlat.png` | 256x32 | Flat status bar fill. | `Tools/media/make_media.py`, procedural, no model | solid | 2026-11-07 |
 | `Media/Textures/BarSoft.png` | 256x32 | Status bar fill with a soft top-to-bottom gradient. | `Tools/media/make_media.py`, procedural, no model | 4x supersampled gradient | 2026-11-07 |
 | `Media/Textures/BarGlass.png` | 256x32 | Status bar fill whose top is 12% brighter than its bottom, the design's near-flat health fill. | `Tools/media/make_media.py`, procedural, no model | 4x supersampled gradient | 2026-11-07 |
-| `Media/Textures/MinimapMask.png` | 128x128 | Square minimap mask for Minimap:SetMaskTexture. | `Tools/media/make_media.py`, procedural, no model | solid | 2026-11-07 |
+| `Media/Textures/MinimapMask.png` | 512x512 | Chamfered square mask for Minimap:SetMaskTexture and the minimap footer: the cut is 8 of 217 units, the frame's 12-unit chamfer at the map's 2-unit inset on the mockup's 221 frame. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Textures/Dot.png` | 64x64 | Filled disc for toggle and slider knobs. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Textures/Pill.png` | 64x32 | Capsule for toggle and slider tracks. Each round cap is 16 texels wide, so a widget three-slices it. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Textures/GlyphChevron.png` | 32x32 | Downward chevron for dropdowns and scroll steppers. Flip the texture coordinates to point it up. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |

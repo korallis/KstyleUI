@@ -8,7 +8,7 @@ Square minimap, chamfered frame, zone and clock strip inside its bottom edge, zo
 | Approach | Reskin |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Minimap.toc` lists `Minimap.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Layout element | `minimap.main`: resizable, keeps its proportions, 259 by 221 units at the 1080 reference, the leveling mockup's minimap: a 221 chamfered frame holding a 213 map square one gap inside it, with the 30-unit footer over the square's bottom edge, and the 34-unit button column 4 units left of the frame |
+| Layout element | `minimap.main`: resizable, keeps its proportions, 259 by 221 units at the 1080 reference, the leveling mockup's minimap: a 221 chamfered frame holding a 217 map square 2 units inside its bevel line, clipped to the frame's cut corners, with the 30-unit footer over the square's bottom edge, and the 34-unit button column 4 units left of the frame |
 | Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-drawer.lua` (the addon drawer against a LibDBIcon stand-in), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
 | Media | `Media/Glyphs.png`, drawn by `Tools/media/make_minimap_glyphs.py`; its row is in `Media/PROVENANCE.md` |
 
@@ -50,12 +50,16 @@ When the module starts it:
 
 1. Builds `KstyleUI_Minimap` on `KstyleUI_Root` and registers it as `minimap.main`.
 2. Moves `Minimap` into the frame's map square: `SetParent`, then `SetAllPoints` on the square, so later resizes never touch Blizzard's frame. It waits for Edit Mode to close, and for combat to end if the frame is ever protected.
-3. Sets the square mask (`Tokens.Texture("minimapMask")`) and sets the arch, quest and task blob rings to 0, since their round rings do not fit a square map. A hook on `MinimapCluster.UpdateMinimapConfig`, which Camelot runs when `rotateMinimap` changes, puts the square mask back.
+3. Sets the chamfered square mask (`Tokens.Texture("minimapMask")`, `Media/Textures/MinimapMask.png`) and sets the arch, quest and task blob rings to 0, since their round rings do not fit a square map. A hook on `MinimapCluster.UpdateMinimapConfig`, which Camelot runs when `rotateMinimap` changes (`Blizzard_Minimap/Camelot/Minimap.lua`, `MinimapClusterMixin:UpdateMinimapConfig` calls `minimap:SetMaskTexture(data.mask)` with Blizzard's round `ui-hud-minimap-frame-generic-mask`), puts KstyleUI's mask back.
 4. Hides `MinimapCluster`, `MinimapBackdrop`, `Minimap.ZoomIn`, `Minimap.ZoomOut` and `Minimap.ZoomHitArea` through `KstyleUI.Safe.HideBlizzard`. Hiding the cluster hides the header, tracking, mail indicator, calendar, clock, compartment, day and night orb and Blizzard's coordinates with it.
 5. Sets the global `GetMinimapShape` to return `"SQUARE"`, which minimap button libraries read to place buttons on the edge.
 6. Masks `HybridMinimap.CircleMask` square when `Blizzard_HybridMinimap` loads.
 
 Turning it off puts `Minimap` back in its container with its saved points, size, level and Blizzard's mask, brings the hidden frames back, withdraws `GetMinimapShape` and asks for a reload.
+
+### The map's clip
+
+`Minimap:SetMaskTexture` takes a file (`MinimapFrameAPIDocumentation.lua`: one `TextureAsset` argument), which the game stretches over the frame, so the map's cut is a fixed share of its side. The frame and the mask are built from three numbers in `Format.lua`: the mockup's 221 frame, its 12-unit chamfer and a 2-unit map inset (the dark line, the light line and the fade row are three borders on the owner's screen). The mask cuts 8 of the map's 217 units; the frame's chamfer is a share of its side (`Format.FrameChamfer`, 12 at 221) rather than the window cap, and the inset grows with the frame (`Format.MapInset`, 2 at 221, 4.3 at 480), so at every size the mask's cut meets the frame's cut and the terrain never shows past the line. The footer's fill and line draw through the same mask (a `MaskTexture` over the map square, `face.mask`), so its corners end at the frame's cuts; the preview's drawn terrain and grain do too. `Tools/media/make_media.py` draws the mask from the same three numbers, and `Tools/tests/test_make_media.py` fails when `Format.lua` and the script disagree.
 
 ### Zoom
 
@@ -65,7 +69,7 @@ The zoom slider is the mockup's thin line inside the map's right edge: a 2 by 52
 
 ### The strip
 
-The strip sits inside the map's bottom edge, 30 units tall from the frame's edge: the zone name on the left in capitals, 16 units in, the clock on the right, 18 units in, with a hairline between them. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
+The strip sits inside the map's bottom edge, 30 units tall from the frame's edge, its corners cut by the map's mask: the zone name on the left in capitals, 16 units in, the clock on the right, 18 units in, with a hairline between them. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
 
 | Clock format | Text |
 | --- | --- |

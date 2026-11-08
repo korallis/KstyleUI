@@ -40,12 +40,12 @@ Model.defaults = {
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {
-		iconSize = 38, spacing = 8, rowSpacing = 0, rows = 2, columns = 5,
-		growth = "RIGHT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
+		iconSize = 38, spacing = 8, rowSpacing = 0, rows = 2, columns = 8,
+		growth = "LEFT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
 	},
 	debuffs = {
-		iconSize = 38, spacing = 8, rowSpacing = 0, rows = 1, columns = 5,
-		growth = "RIGHT_DOWN", sort = "time", reverse = false, dispel = true,
+		iconSize = 38, spacing = 8, rowSpacing = 0, rows = 1, columns = 8,
+		growth = "LEFT_DOWN", sort = "time", reverse = false, dispel = true,
 	},
 	timer = { format = "short", position = "below", font = NUMBER_FONT, size = 12, outline = "OUTLINE", expiring = 5 },
 	count = { font = NUMBER_FONT, size = 11, outline = "OUTLINE" },
@@ -205,8 +205,7 @@ function Model.Growth(growth)
 end
 
 function Model.ContainerAnchor(growth)
-	local _, _, vertical = Model.Growth(growth)
-	return vertical == "Up" and "BOTTOM" or "TOP"
+	return (Model.Growth(growth))
 end
 
 function Model.Sort(sort, reverse)

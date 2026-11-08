@@ -20,8 +20,8 @@ local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
 local EDGE_TOKENS = { buffs = "edgeInner", debuffs = "hostile" }
 local FALLBACK = {
-	buffs = { position = { anchor = "TOPRIGHT", x = -16, y = -252 }, label = K.L["Buffs"] },
-	debuffs = { position = { anchor = "TOPRIGHT", x = -16, y = -354 }, label = K.L["Debuffs"] },
+	buffs = { position = { anchor = "TOPRIGHT", x = -287, y = -16 }, label = K.L["Buffs"] },
+	debuffs = { position = { anchor = "TOPRIGHT", x = -287, y = -126 }, label = K.L["Debuffs"] },
 }
 
 local groups = {}

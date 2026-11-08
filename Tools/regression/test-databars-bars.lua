@@ -256,10 +256,10 @@ do
 	Options.Write("DataBars", "xp.orientation", "VERTICAL")
 	eq(xp.fill:GetOrientation(), "VERTICAL", "the bar can stand upright")
 	local size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "4x440", "an upright bar swaps its width and height")
+	eq(size.width .. "x" .. size.height, "4x352", "an upright bar swaps its width and height")
 	Options.Write("DataBars", "xp.orientation", "HORIZONTAL")
 	size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "440x4", "and swaps back")
+	eq(size.width .. "x" .. size.height, "352x4", "and swaps back")
 
 	Options.Write("DataBars", "xp.textHover", true)
 	eq(xp.text:IsShown(), false, "with the hover setting the text waits for the pointer")

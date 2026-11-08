@@ -86,7 +86,11 @@ function Unit.HealthColor(view, unit)
 end
 
 local function PowerTypeColor(unit)
-	local _, token = UnitPowerType(unit)
+	local token = "MANA"
+	if unit then
+		local _, own = UnitPowerType(unit)
+		token = own
+	end
 	local colors = PowerBarColor
 	local c = type(token) == "string" and not IsSecret(token) and colors and colors[token]
 	if type(c) == "table" and type(c.r) == "number" then
@@ -94,6 +98,8 @@ local function PowerTypeColor(unit)
 	end
 	return Tokens.Color("rare")
 end
+
+Unit.PowerTypeColor = PowerTypeColor
 
 function Unit.PowerColor(view, unit)
 	local s = view.s

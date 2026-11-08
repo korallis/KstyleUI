@@ -159,40 +159,42 @@ assert(select(2, pieces(Frames.Get("target").views[1].panel, "chamferPanel")) ==
 -- Cast bars. The player's, as the owner's mockup draws Slam: no icon, the glass across the whole width.
 local cast = CastBars.Get("player")[1]
 local cg = cast.geometry
-assert(cg and cg.icon == nil and near(cg.panel.x, 0) and near(cg.panel.w, 340), "the player cast bar has no icon by default and its glass spans the width")
+assert(cg and cg.icon == nil and near(cg.panel.x, 0) and near(cg.panel.w, K.Setup.Layouts.Element("unitframes.castbar.player").width), "the player cast bar has no icon by default and its glass spans the width")
 -- With the icon on, the design file's layout: the spell icon in its own chamfered square, a gap, then the glass bar.
 K.Options.Write("UnitFrames", "player.castbarIcon", true)
 K.Options.Write("UnitFrames", "player.castbarCaps", true)
 cg = cast.geometry
+local castW, castH = K.Setup.Layouts.Element("unitframes.castbar.player").width, K.Setup.Layouts.Element("unitframes.castbar.player").height
 assert(cg and cg.icon and cg.panel and cg.bar, "the cast bar lays out an icon, a glass panel and a bar")
-assert(near(cg.icon.x, 0) and near(cg.icon.w, cg.icon.h) and near(cg.icon.h, 36), "the icon is a square as tall as the cast bar")
+assert(near(cg.icon.x, 0) and near(cg.icon.w, cg.icon.h) and near(cg.icon.h, castH), "the icon is a square as tall as the cast bar")
 local iw, ih = cast.iconFrame:GetSize()
-assert(near(iw, 36, 1) and near(ih, 36, 1), "the icon frame takes that square")
+assert(near(iw, castH, 1) and near(ih, castH, 1), "the icon frame takes that square")
 assert(select(2, pieces(cast.iconFrame, "chamferTile")) == 9, "the icon square is a chamfered tile")
-assert(near(cg.panel.x, cg.icon.x + cg.icon.w + math.floor(0.21 * 36 + 0.5)) and near(cg.panel.x + cg.panel.w, 340) and near(cg.panel.h, 36), "the glass starts after the design's gap, 0.21 of the bar's height (6 on 28), and runs to the end")
-assert(near(cg.panel.y + cg.panel.h - (cg.bar.y + cg.bar.h), math.floor(0.22 * 36 + 0.5)), "the bar sits 0.22 H above the glass's bottom, under the text as the mockup draws Slam's bar")
-assert(near(cg.bar.x - cg.panel.x, math.floor(0.5 * 36 + 0.5)), "the bar and the spell name start 0.5 H in: the mockup's 18 units on a 37-unit bar")
+assert(near(cg.panel.x, cg.icon.x + cg.icon.w + math.floor(0.21 * castH + 0.5)) and near(cg.panel.x + cg.panel.w, castW) and near(cg.panel.h, castH), "the glass starts after the design's gap, 0.21 of the bar's height (6 on 28), and runs to the end")
+assert(near(cg.panel.y + cg.panel.h - (cg.bar.y + cg.bar.h), math.floor(0.22 * castH + 0.5)), "the bar sits 0.22 H above the glass's bottom, under the text as the mockup draws Slam's bar")
+assert(near(cg.bar.x - cg.panel.x, math.floor(0.5 * castH + 0.5)), "the bar and the spell name start 0.5 H in: the mockup's 18 units on a 37-unit bar")
 assert(select(2, pieces(cast.panel, "chamferPanel")) == 9, "the cast bar's glass is a chamfered panel: the mockup cuts its ends 11 units on a 37-unit bar, 30% of its height, which the panel grade allows")
 assert(near(cast.chrome:Chamfer(), math.min(12, 0.3 * cg.panel.h), 0.01), "the glass cuts 30% of its height, got " .. tostring(cast.chrome:Chamfer()))
 assert(W.SameColor(cast.chrome.inner[7], K.Tokens.Color("edgeInner")), "with the panel's edge line: the mockup's cast bar line averages lum 97 along its top, the panel strength, not the bars' faint line")
 assert(cast.bar.chrome == nil, "the bar inside the glass has no border of its own")
 
--- At 36 units the kit's two rows fit: the spell name and the time on top, a thin bar under them.
-assert(cg.stacked, "a 36-unit cast bar stacks its text over a thin bar")
+-- At 30 units the kit's two rows fit: the spell name and the time on top, a thin bar under them.
+assert(cg.stacked, "a 30-unit cast bar stacks its text over a thin bar")
 assert(cg.bar.x > cg.panel.x and cg.bar.x + cg.bar.w < cg.panel.x + cg.panel.w, "the bar sits inside the glass")
-assert(cg.bar.y + cg.bar.h <= cg.panel.y + cg.panel.h and cg.bar.h == 7, "the bar is a thin line inside the glass's bottom edge: 22% of 36 units, the mockup's 7")
+assert(cg.bar.y + cg.bar.h <= cg.panel.y + cg.panel.h and cg.bar.h == math.floor(0.22 * castH), "the bar is a thin line inside the glass's bottom edge: 22% of the bar's height, the mockup's 7 on 37")
 assert(mid(cg.text) < cg.bar.y and near(mid(cg.text), mid(cg.timer)), "the spell name and the time share the row above the bar")
 assert(near(cg.text.x, cg.bar.x) and near(cg.timer.x + cg.timer.w, cg.bar.x + cg.bar.w), "the name starts and the time ends with the bar")
 local _, _, _, bx, by = cast.bar:GetPoint(1)
 assert(near(bx, cg.bar.x, 1) and near(-by, cg.bar.y, 1), "the bar is placed from the geometry")
 
--- The target cast bar at its 28-unit footprint: the icon square, then the glass with the spell name and the time
+-- The target cast bar at its 24-unit footprint: the icon square, then the glass with the spell name and the time
 -- stacked over a thin bar, as the kit sheet draws it. Made 14 units tall in Layout, the name and time sit on the bar.
 local target = CastBars.Get("target")[1]
 local tg = target.geometry
-assert(near(tg.icon.w, 28) and near(tg.icon.h, 28) and near(tg.panel.x, 28 + 6), "the target's icon is its own 28-unit square, then the same share of a gap")
+local targetCastH = K.Setup.Layouts.Element("unitframes.castbar.target").height
+assert(near(tg.icon.w, targetCastH) and near(tg.icon.h, targetCastH) and near(tg.panel.x, targetCastH + math.floor(0.21 * targetCastH + 0.5)), "the target's icon is its own square as tall as the bar, then the design's 0.21 H gap")
 assert(select(2, pieces(target.panel, "chamferPanel")) == 9, "the target cast bar's glass is a chamfered panel too")
-assert(tg.stacked and mid(tg.text) < tg.bar.y and near(mid(tg.text), mid(tg.timer)), "28 units: the name and time stack over a thin bar")
+assert(tg.stacked and mid(tg.text) < tg.bar.y and near(mid(tg.text), mid(tg.timer)), "24 units: the name and time stack over a thin bar")
 assert(K.Layout.Set("unitframes.castbar.target", "height", 14), "the target cast bar can be 14 units tall")
 tg = target.geometry
 assert(not tg.stacked and near(mid(tg.text), mid(tg.bar)) and near(mid(tg.timer), mid(tg.bar)), "14 units: the name and time sit on the bar")
