@@ -153,7 +153,7 @@ local function NewButton(column, name)
 	disc:SetVertexColor(Tokens.Color("buttonFill"))
 	button.disc = disc
 	local ring = button:CreateTexture(nil, "BACKGROUND", nil, 1)
-	ring:SetTexture((Tokens.Texture("ring")))
+	ring:SetTexture((Tokens.Texture("ringBevel")))
 	ring:SetAllPoints(button)
 	button.ring = ring
 	local badge = button.overlay:CreateTexture(nil, "OVERLAY")

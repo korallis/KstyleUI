@@ -72,7 +72,7 @@ do
 	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, text at 13 (the five items then span the mockup's 444
 	-- units), 21 units each side of a separator as tall as the text's cap height, a quarter of the strip.
 	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
-	eq(ns.Strip.view.chrome:Chamfer(), 10.5, "the strip's chamfer")
+	eq(ns.Strip.view.chrome:Chamfer(), math.min(12, 0.3 * 43), "the strip's ends cut 30% of its height, the shared rule (the mockup cuts its 30-unit strip 11)")
 	local s = ns.Settings().strip
 	eq(s.fontSize, 13, "the strip reads at 13 by default")
 	eq(s.spacing, 21, "21 units each side of a separator")

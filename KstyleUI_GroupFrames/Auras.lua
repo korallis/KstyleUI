@@ -111,9 +111,9 @@ local function NewDispel(owner)
 	return wash, Style.Ring(owner, "OVERLAY")
 end
 
-local function LayoutDispel(wash, ring, owner)
-	Style.LayoutWash(wash, owner)
-	Style.LayoutRing(ring, owner)
+local function LayoutDispel(wash, ring, owner, chamfer)
+	Style.LayoutWash(wash, owner, chamfer)
+	Style.LayoutRing(ring, owner, chamfer)
 end
 
 local pending = setmetatable({}, { __mode = "k" })
@@ -163,8 +163,7 @@ local function StyleIcon(button)
 	p.restyleChrome(p.chrome)
 	p.chrome:SetRimAccent(Style.Accent())
 	local inset = PlaceIcon(p)
-	local _, _, corner = Tokens.Texture("chamferTile")
-	Widgets.LayoutSlice(p.dispel, p.skin, corner, 0)
+	Widgets.LayoutSlice(p.dispel, p.skin, p.chrome:Chamfer(), 0)
 	p.count:ClearAllPoints()
 	p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 	local text = Settings.current.text
@@ -184,7 +183,7 @@ function RestyleNow(f)
 		end
 	end
 	if f.dispelWash then
-		local ok, err = pcall(LayoutDispel, f.dispelWash, f.dispelRing, f.dispelFrame)
+		local ok, err = pcall(LayoutDispel, f.dispelWash, f.dispelRing, f.dispelFrame, f.chrome:Chamfer())
 		if not ok then
 			Style.LogOnce("dispelStyle", "laying out the dispel highlight failed: " .. tostring(err))
 		end
@@ -271,7 +270,7 @@ local function BuildDispel(slot, f)
 	slot:ClearAllPoints()
 	slot:SetAllPoints(f)
 	local wash, ring = NewDispel(slot)
-	LayoutDispel(wash, ring, slot)
+	LayoutDispel(wash, ring, slot, f.chrome:Chamfer())
 	f.dispelWash, f.dispelRing, f.dispelFrame = wash, ring, slot
 	local style = DispelStyle()
 	if style then
@@ -502,7 +501,7 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
-	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel)
+	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel, f.chrome:Chamfer())
 end
 
 local function Applied(f, _, k)

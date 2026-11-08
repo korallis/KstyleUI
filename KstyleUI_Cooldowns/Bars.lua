@@ -98,7 +98,7 @@ function BarRow:Bar(index)
 	bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	local tile = CreateFrame("Frame", nil, bar)
 	tile:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
-	tile.chrome = Widgets.Chrome(tile, { shape = "tile", fill = "buttonFill", shadow = false })
+	tile.chrome = Widgets.IconChrome(tile)
 	bar.iconTile = tile
 	local icon = tile:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)

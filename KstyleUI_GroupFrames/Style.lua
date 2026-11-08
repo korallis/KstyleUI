@@ -12,7 +12,6 @@ local TEXT_LEVEL = 4
 local NAME_LINE_EXTRA = 2
 local NAME_RESERVE_EMS = 3.4
 local LEVEL_SHARE = 0.36
-local RING_OUTSET = 1
 local BADGE = "buttonFill"
 local PORTRAIT_INSET = 2
 local HOVER_ALPHA = 0.6
@@ -38,9 +37,9 @@ function Style.Ring(owner, layer, sublevel)
 	return ring
 end
 
-function Style.LayoutRing(ring, owner)
+function Style.LayoutRing(ring, owner, chamfer)
 	local border = Widgets.Border(owner)
-	local chamfer = Tokens.Size("chamferTile")
+	chamfer = chamfer or Tokens.Size("chamferTile")
 	for i, line in ipairs(ring) do
 		Widgets.LayoutLine(line, owner, chamfer, border * (i - 1))
 	end
@@ -66,9 +65,9 @@ function Style.Wash(owner, layer, sublevel)
 	return Widgets.NineSlice(owner, WASH, layer, sublevel)
 end
 
-function Style.LayoutWash(wash, owner)
+function Style.LayoutWash(wash, owner, chamfer)
 	local _, _, corner = Tokens.Texture(WASH)
-	Widgets.LayoutSlice(wash, owner, corner, 0)
+	Widgets.LayoutSlice(wash, owner, chamfer or corner, 0)
 end
 
 function Style.Build(f, kind)
@@ -82,14 +81,14 @@ function Style.Build(f, kind)
 	f.portraitMask:SetAllPoints(f.portrait)
 	f.portrait:AddMaskTexture(f.portraitMask)
 	f.ring = f:CreateTexture(nil, "OVERLAY")
-	f.ring:SetTexture((Tokens.Texture("ring")))
+	f.ring:SetTexture((Tokens.Texture("ringBevel")))
 	f.text = CreateFrame("Frame", nil, f)
 	f.text:SetAllPoints(f)
 	f.text:SetFrameLevel(f:GetFrameLevel() + TEXT_LEVEL)
 	f.badge = f.text:CreateTexture(nil, "ARTWORK")
 	f.badge:SetTexture((Tokens.Texture("dot")))
 	f.badgeRing = f.text:CreateTexture(nil, "ARTWORK", nil, 1)
-	f.badgeRing:SetTexture((Tokens.Texture("ring")))
+	f.badgeRing:SetTexture((Tokens.Texture("ringBevel")))
 	f.level = Widgets.FontString(f.text, "OVERLAY")
 	f.name = Widgets.FontString(f.text, "OVERLAY")
 	f.name:SetWordWrap(false)
@@ -203,7 +202,7 @@ local function LayoutPortrait(f, parts)
 	f.portrait:ClearAllPoints()
 	f.portrait:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left + inset), -Widgets.Snap(f, rect.top + inset))
 	f.portrait:SetSize(size, size)
-	local outset = Widgets.Border(f) * RING_OUTSET
+	local outset = Widgets.Snap(f, size * Widgets.RING_INSET / (1 - 2 * Widgets.RING_INSET))
 	f.ring:ClearAllPoints()
 	f.ring:SetPoint("TOPLEFT", f.portrait, "TOPLEFT", -outset, outset)
 	f.ring:SetPoint("BOTTOMRIGHT", f.portrait, "BOTTOMRIGHT", outset, -outset)
@@ -212,9 +211,10 @@ local function LayoutPortrait(f, parts)
 	f.badge:SetSize(badge, badge)
 	f.badge:SetPoint("BOTTOMLEFT", f.portrait, "BOTTOMLEFT", 0, 0)
 	f.badge:SetVertexColor(Tokens.Color(BADGE))
+	local badgeOutset = Widgets.Snap(f, badge * Widgets.RING_INSET / (1 - 2 * Widgets.RING_INSET))
 	f.badgeRing:ClearAllPoints()
-	f.badgeRing:SetPoint("TOPLEFT", f.badge, "TOPLEFT", -outset, outset)
-	f.badgeRing:SetPoint("BOTTOMRIGHT", f.badge, "BOTTOMRIGHT", outset, -outset)
+	f.badgeRing:SetPoint("TOPLEFT", f.badge, "TOPLEFT", -badgeOutset, badgeOutset)
+	f.badgeRing:SetPoint("BOTTOMRIGHT", f.badge, "BOTTOMRIGHT", badgeOutset, -badgeOutset)
 	f.level:ClearAllPoints()
 	f.level:SetPoint("CENTER", f.badge, "CENTER", 0, 0)
 	SetFont(f.level, Settings.current.text.healthFont, Tokens.Size("caption"), "NONE")
@@ -250,7 +250,7 @@ function Style.Apply(f, width, height)
 	end
 	LayoutPortrait(f, parts)
 	LayoutTexts(f, k, parts)
-	Style.LayoutRing(f.targetRing, f.target)
+	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
 	f.chrome:Restyle()
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)

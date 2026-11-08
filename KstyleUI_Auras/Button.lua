@@ -148,8 +148,7 @@ function Button.Style(entry, ctx)
 	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
 	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
 	if entry.dispel then
-		local _, _, corner = Tokens.Texture("chamferTile")
-		Widgets.LayoutSlice(entry.dispel, skin, corner, 0)
+		Widgets.LayoutSlice(entry.dispel, skin, entry.chrome:Chamfer(), 0)
 	end
 	PlaceTexts(entry, ctx, inset)
 	Button.Bind(entry, ctx)

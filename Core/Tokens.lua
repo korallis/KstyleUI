@@ -42,8 +42,8 @@ local COLORS = {
 }
 
 local SIZES = {
-	chamferPanel = 8,
-	chamferTile = 3.5,
+	chamferPanel = 12,
+	chamferTile = 6,
 	chamferWindow = 12,
 	shadow = 10,
 	shadowOffset = 2,
@@ -74,6 +74,11 @@ local SIZES = {
 	gapHuge = 16,
 	panelPadding = 16,
 	rowHeight = 24,
+}
+
+local SHARES = {
+	chamfer = 0.3,
+	chamferIcon = 0.12,
 }
 
 local DURATIONS = {
@@ -130,6 +135,7 @@ local TEXTURES = {
 	divider = { file = "Textures\\Divider.png" },
 	noise = { file = "Textures\\Noise.png" },
 	ring = { file = "Textures\\Ring.png" },
+	ringBevel = { file = "Textures\\RingBevel.png" },
 	barFlat = { file = "Textures\\BarFlat.png" },
 	barSoft = { file = "Textures\\BarSoft.png" },
 	barGlass = { file = "Textures\\BarGlass.png" },
@@ -177,6 +183,14 @@ function Tokens.Size(name)
 	local v = SIZES[name]
 	if not v then
 		unknown("Size", name)
+	end
+	return v
+end
+
+function Tokens.Share(name)
+	local v = SHARES[name]
+	if not v then
+		unknown("Share", name)
 	end
 	return v
 end

@@ -43,6 +43,13 @@ GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bott
 ICON_SIZE = 34  # root units: an action button at the 1080 reference
 PORTRAIT_CHAMFER = 0.15  # share of the portrait's side, measured on the design file (10 units on 68)
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
+# The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
+# the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
+# 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
+# accent lifted toward white, gives all three tones. A portrait inside starts at radius 56: 8/128 of the size.
+RING_BEVEL_BAND = (57, 62)
+RING_BEVEL_LEVELS = (0.75, 1.0, 0.45)  # inner edge, the lit middle, outer edge
+RING_BEVEL_INSET = (64 - 56) / 128
 GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units at 8 units across
 
 
@@ -419,6 +426,34 @@ def draw_ring(size, thickness):
     return white(sample(size, size, fn))
 
 
+def shaded(levels, coverage):
+    """Grey RGBA: each level in the colour channels, each coverage in alpha."""
+    out = bytearray()
+    for v, a in zip(levels, coverage):
+        g = byte(v)
+        out += bytes((g, g, g, byte(a)))
+    return bytes(out)
+
+
+def draw_ring_bevel(size):
+    centre = size / 2
+    scale = size / 128
+    inner, outer = RING_BEVEL_BAND[0] * scale, RING_BEVEL_BAND[1] * scale
+    lo, peak, hi = RING_BEVEL_LEVELS
+
+    def level(x, y):
+        r = max(inner, min(outer, math.hypot(x - centre, y - centre)))
+        t = (r - inner) / (outer - inner)
+        if t < 0.5:
+            return lo + (peak - lo) * (t / 0.5)
+        return peak + (hi - peak) * ((t - 0.5) / 0.5)
+
+    def inside(x, y):
+        return 1.0 if inner <= math.hypot(x - centre, y - centre) <= outer else 0.0
+
+    return shaded(sample(size, size, level), sample(size, size, inside))
+
+
 def draw_dot(size):
     centre = size / 2
     radius = centre - 1
@@ -558,6 +593,9 @@ ASSETS = [
     _texture("Noise", 128, 128, lambda: draw_noise(128), "Tileable grain for the smoked-glass surface, used at low alpha.",
              f"seeded random field (seed {NOISE_SEED}), 4x4 box-downsampled, 3x3 wrap blur"),
     _texture("Ring", 128, 128, lambda: draw_ring(128, 8), "Thin ring, 8 texels wide, for round indicators and pings."),
+    _texture("RingBevel", 128, 128, lambda: draw_ring_bevel(128),
+             "Bevelled ring for portraits and round badges: a 5-texel line from radius 57 to 62, shaded dark outside, lit in the middle and three quarters inside, so one tint reads as the mockup's thin metal ring. The disc under it shows for 2 texels outside; a portrait inside starts at radius 56.",
+             "4x4 supersampled, shading in the colour channels"),
     _texture("BarFlat", 256, 32, lambda: draw_bar(256, 32, "flat"), "Flat status bar fill.", "solid"),
     _texture("BarSoft", 256, 32, lambda: draw_bar(256, 32, "soft"), "Status bar fill with a soft top-to-bottom gradient.",
              "4x supersampled gradient"),

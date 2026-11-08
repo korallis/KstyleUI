@@ -259,7 +259,7 @@ do
 	assert(near(br, fr) and near(bg, fg) and near(bb, fb), "the disc is the button body, the mockup's #101214 badge")
 	local ring = p1.badgeRing
 	assert(ring and ring:IsShown(), "the disc wears an edge ring")
-	eq(ring:GetTexture(), (K.Tokens.Texture("ring")), "the edge is the kit's ring texture")
+	eq(ring:GetTexture(), (K.Tokens.Texture("ringBevel")), "the edge is the kit's bevelled ring: the mockup's thin metal ring, dark outside, lit, then the accent")
 	local ar, ag, ab = ns.Style.Accent()
 	local rr, rg, rb, ra = ring:GetVertexColor()
 	assert(near(rr, ar) and near(rg, ag) and near(rb, ab) and near(ra, 1), "the ring takes the accent, as the unit frames' round badge does")

@@ -55,7 +55,7 @@ local pw, ph = player.panel:GetSize()
 assert(near(pw, g.glass.w, 1) and near(ph, g.glass.h, 1), "the glass takes Geometry's size")
 assert(g.glass.x < g.portrait.x + g.portrait.w, "the glass runs under the portrait")
 assert(player.portraitFrame:GetFrameLevel() > player.panel:GetFrameLevel(), "the portrait draws over the glass's outer end")
-assert(near(player.chrome:Chamfer(), 0.125 * g.glass.h, 0.01), "the glass's far-end chamfer is an eighth of its height: the design's 8 units on 64, got " .. tostring(player.chrome:Chamfer()))
+assert(near(player.chrome:Chamfer(), math.min(12, 0.3 * g.glass.h), 0.01), "the glass's far-end chamfer follows the shared rule, 30% of its height up to 12: the mockup's 12 units on 75, got " .. tostring(player.chrome:Chamfer()))
 assert(player.power.backgroundName == "buttonFill", "the power bar's track is the mockup's dark #101214 track, the button body, like the health track")
 local _, _, _, _, iconY = player.icons.leader:GetPoint(1)
 assert(near(-iconY, g.glass.y, 1), "the status icons sit on the glass's top edge: " .. tostring(iconY))
@@ -131,7 +131,8 @@ assert(env._unmasked[player.portrait] == false, "round: the 2D portrait keeps th
 assert(select(2, pieces(player.badge, "chamferPanel")) == 9, "round: the badge is still the octagon, as the mockup draws it on the ring")
 assert(W.SameRGB(player.badgeChrome.inner[1], ar, ag, ab), "round: the octagon's line is the class colour, like the ring on the mockup")
 assert(player.badgeChrome.fillName == "buttonFill", "round: filled with the button body, the mockup's #101214")
-assert(W.SameRGB(player.ring, ar, ag, ab), "round: the ring is the plain class colour, as the mockup draws it")
+assert(W.LastCall(player.ring, "SetTexture")[1] == (Tokens.Texture("ringBevel")), "round: the ring is the bevelled ring texture, the mockup's thin metal ring")
+assert(W.SameRGB(player.ring, K.Widgets.Mix(ar, ag, ab, 1, 1, 1, 1, 1, 0.3)), "round: the ring's tint is the class colour lifted 30% toward white, the mockup's #d7b89f line; the texture shades it down to the colour and below")
 local _, _, _, discX, discY = player.badge:GetPoint(1)
 assert(near(discX, player.geometry.badge.x, 1) and near(-discY, player.geometry.badge.y, 1) and player.geometry.badge.x > 0, "round: the badge sits on the ring's lower outer point, where Geometry puts it")
 local shadowShown = 0
@@ -171,7 +172,9 @@ assert(select(2, pieces(cast.iconFrame, "chamferTile")) == 9, "the icon square i
 assert(near(cg.panel.x, cg.icon.x + cg.icon.w + math.floor(0.21 * 36 + 0.5)) and near(cg.panel.x + cg.panel.w, 340) and near(cg.panel.h, 36), "the glass starts after the design's gap, 0.21 of the bar's height (6 on 28), and runs to the end")
 assert(near(cg.panel.y + cg.panel.h - (cg.bar.y + cg.bar.h), math.floor(0.22 * 36 + 0.5)), "the bar sits 0.22 H above the glass's bottom, under the text as the mockup draws Slam's bar")
 assert(near(cg.bar.x - cg.panel.x, math.floor(0.5 * 36 + 0.5)), "the bar and the spell name start 0.5 H in: the mockup's 18 units on a 37-unit bar")
-assert(select(2, pieces(cast.panel, "chamferTile")) == 9, "the cast bar's glass is a chamfered tile with the double bevel")
+assert(select(2, pieces(cast.panel, "chamferPanel")) == 9, "the cast bar's glass is a chamfered panel: the mockup cuts its ends 11 units on a 37-unit bar, 30% of its height, which the panel grade allows")
+assert(near(cast.chrome:Chamfer(), math.min(12, 0.3 * cg.panel.h), 0.01), "the glass cuts 30% of its height, got " .. tostring(cast.chrome:Chamfer()))
+assert(W.SameColor(cast.chrome.inner[7], K.Tokens.Color("edgeInner")), "with the panel's edge line: the mockup's cast bar line averages lum 97 along its top, the panel strength, not the bars' faint line")
 assert(cast.bar.chrome == nil, "the bar inside the glass has no border of its own")
 
 -- At 36 units the kit's two rows fit: the spell name and the time on top, a thin bar under them.
@@ -188,7 +191,7 @@ assert(near(bx, cg.bar.x, 1) and near(-by, cg.bar.y, 1), "the bar is placed from
 local target = CastBars.Get("target")[1]
 local tg = target.geometry
 assert(near(tg.icon.w, 28) and near(tg.icon.h, 28) and near(tg.panel.x, 28 + 6), "the target's icon is its own 28-unit square, then the same share of a gap")
-assert(select(2, pieces(target.panel, "chamferTile")) == 9, "the target cast bar's glass is a chamfered tile")
+assert(select(2, pieces(target.panel, "chamferPanel")) == 9, "the target cast bar's glass is a chamfered panel too")
 assert(tg.stacked and mid(tg.text) < tg.bar.y and near(mid(tg.text), mid(tg.timer)), "28 units: the name and time stack over a thin bar")
 assert(K.Layout.Set("unitframes.castbar.target", "height", 14), "the target cast bar can be 14 units tall")
 tg = target.geometry

@@ -64,6 +64,7 @@ assert(W.Near(Y(buttons.calendar), -41), "the next shown button sits 37 lower: t
 assert(buttons.tracking.disc:IsShown() and buttons.tracking.ring:IsShown(), "beside the map each button is a dark disc with a light ring")
 assert(W.SameRGB(buttons.tracking.disc, K.Tokens.Color("buttonFill")), "the disc is the button body, the mockup's dark plate")
 assert(select(4, buttons.tracking.ring:GetVertexColor()) > select(4, K.Tokens.Color("edgeInner")), "the ring is brighter than a panel's edge line, as the mockup's column rings read")
+assert(W.LastCall(buttons.tracking.ring, "SetTexture")[1] == (K.Tokens.Texture("ringBevel")), "the ring is the kit's bevelled ring, the mockup's thin metal ring")
 assert(select(2, buttons.tracking.ring:GetPoint(1)) == buttons.tracking, "the ring fills the button: it is the disc's edge")
 assert(not buttons.tracking.chrome.fill[5]:IsShown(), "not a chamfered tile")
 assert(W.Near(select(4, buttons.tracking.icon:GetPoint(1)), 7), "the glyph is 16 inside the 30 disc")

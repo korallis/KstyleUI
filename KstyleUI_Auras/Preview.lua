@@ -89,8 +89,7 @@ local function StyleSample(entry, group, timer, count, edge)
 		button.chrome:SetEdgeRGBA(edge[1], edge[2], edge[3], edge[4])
 	end
 	if entry.dispel then
-		local _, _, corner = Tokens.Texture("chamferTile")
-		Widgets.LayoutSlice(entry.dispel, button, corner, 0)
+		Widgets.LayoutSlice(entry.dispel, button, button.chrome:Chamfer(), 0)
 		Widgets.ColorSlice(entry.dispel, DispelColor(entry.spec.kind))
 		Widgets.ShowSlice(entry.dispel, group.dispel == true)
 	end

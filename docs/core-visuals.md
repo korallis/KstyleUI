@@ -40,16 +40,18 @@ The mockup draws three backdrop grades (`~/.local/share/kstyleui-handoff/THEME_S
 
 | Grade | Chrome | Worn by |
 | --- | --- | --- |
-| Glass panel | `surface` fill at `panelOpacity`, the `edgeOuter` line outside the `edgeInner` line, a chamfer (`chamferPanel` 8, `chamferWindow` 12, `chamferTile` 3.5), the drop shadow | Every `Widgets.Panel` and window (the options and setup windows, the bags, the meters, the chat glass and tabs, the quest tracker, the RestedXP and Blizzard window skins in `Core/Skin.lua`), the unit frames' glass, the cast bar's glass, the group frames' tiles, the nameplate frame, the minimap footer, the dropdown's shared menu, tooltips |
+| Glass panel | `surface` fill at `panelOpacity`, the `edgeOuter` line outside the bevelled `edgeInner` line and its fade row, a corner cut of 30% of the shorter side up to the shape's cap (`chamferPanel` 12, `chamferWindow` 12), the drop shadow | Every `Widgets.Panel` and window (the options and setup windows, the bags, the meters, the chat glass and tabs, the quest tracker, the RestedXP and Blizzard window skins in `Core/Skin.lua`), the unit frames' glass, the cast bar's glass, the group frames' tiles, the nameplate frame, the minimap footer, the dropdown's shared menu, tooltips |
 | Button | `buttonFill` body, one border of the rim colour, a `buttonBezel` plate outside the rim on icon buttons, no shadow of its own | Action buttons, bag slots, cooldown icons, aura tiles and the bezel around them; the kit's inputs and controls: `Button`, `EditBox`, `TextArea`, the `Dropdown` box, `ColorSwatch`, the `Tabs` strip, the tooltip's item icon; the unit frames' portrait frame and level badge, the group frames' level disc, the minimap's column plates and N plate, the data strip pill, the combat text preview's sample frame |
-| Bar / track | `surface` fill, one `edgeBar` line, the tile chamfer, no shadow | `Widgets.StatusBar` chrome: buff bars, the cast bar's track, the experience, reputation and honour bars, the meters' swing bar; the hairline under a unit frame's health track |
+| Bar / track | `surface` fill, the bevelled `edgeBar` line, a cut of 30% of the height up to the tile cap (`chamferTile` 6), no shadow | `Widgets.StatusBar` chrome: buff bars, the cast bar's track, the experience, reputation and honour bars, the meters' swing bar; the hairline under a unit frame's health track |
 | Track inside a bar | `buttonFill`, no edge | The empty part of the unit frames' health and power bars and of the group frames' bars: the mockup's dark #101214 track |
 
 `raised` fills no chrome. It is only the tone an icon button's body tints toward while pressed, cooling or unusable. Rows in the options window have no chrome of their own: they sit on the window's glass and light their text on hover.
 
 ### Sizes, durations and easings
 
-`Size(name)` returns root units at the 1080 reference: `chamferPanel` 8, `chamferTile` 3.5, `chamferWindow` 12, `shadow` 10 (how far the shadow reaches out), `shadowOffset` 2 (how far it drops), `buttonBezel` 3 (the dark plate outside an icon button's rim), `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18, the type sizes `display` 24, `heading` 16, `body` 11, `caption` 9, `number` 11 and `world` 12, `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2, the gaps `gapTiny` 2, `gapSmall` 4, `gapMedium` 8, `gapLarge` 12 and `gapHuge` 16, `panelPadding` 16 and `rowHeight` 24.
+`Size(name)` returns root units at the 1080 reference: the corner-cut caps `chamferPanel` 12, `chamferTile` 6 and `chamferWindow` 12 (a chrome cuts `Share("chamfer")` of its shorter side, 30%, up to its shape's cap; see [Corner sizes](../Core/Widgets/README.md#corner-sizes)), `shadow` 10 (how far the shadow reaches out), `shadowOffset` 2 (how far it drops), `buttonBezel` 3 (the dark plate outside an icon button's rim), `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18, the type sizes `display` 24, `heading` 16, `body` 11, `caption` 9, `number` 11 and `world` 12, `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2, the gaps `gapTiny` 2, `gapSmall` 4, `gapMedium` 8, `gapLarge` 12 and `gapHuge` 16, `panelPadding` 16 and `rowHeight` 24.
+
+`Share(name)` returns a plain fraction: `chamfer` 0.3, the corner cut as a share of a backdrop's shorter side, measured on the mockup's cast bar (11 of 37 units), data strip, nameplate frame and unit frames; and `chamferIcon` 0.12, an icon button's cut as a share of its side (the mockup's cluster buttons cut 13%, its action buttons 10 to 12%).
 
 `Duration(name)` returns seconds and `Easing(name)` the name of a `Motion.Ease` function:
 
@@ -93,12 +95,13 @@ The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default: a key of `
 
 | Name | File | Slice margin | Corner piece |
 | --- | --- | --- | --- |
-| `chamferPanel` | `ChamferPanel.png`, 128x128 | 32 texels | 8 units |
-| `chamferTile` | `ChamferTile.png`, 32x32 | 14 texels | 3.5 units |
-| `chamferWindow` | `ChamferWindow.png`, 128x128 | 48 texels | 12 units |
+| `chamferPanel` | `ChamferPanel.png`, 128x128 | 32 texels | drawn at 8 units; `Chrome` stretches the corner piece to the cut it computes |
+| `chamferTile` | `ChamferTile.png`, 32x32 | 14 texels | drawn at 3.5 units, stretched the same way |
+| `chamferWindow` | `ChamferWindow.png`, 128x128 | 48 texels | drawn at 12 units |
 | `line` | `Line.png`, 4x4: one opaque row (row 1) between clear rows | | mapped onto each chamfer's diagonal by `Widgets.LayoutLine` |
 | `shadow` | `Shadow.png`, 128x128 | 24 texels | 12 units in the texture; `Chrome` draws the corner at twice `Size("shadow")`, so the shadow reaches 10 units out, and drops it `shadowOffset` |
 | `iconMask` | `ChamferIconMask.png`, a 3-unit chamfer on a 34-unit square | | |
+| `ringBevel` | `RingBevel.png`, 128x128: a 5-texel line from radius 57 to 62 whose colour channels shade it dark outside, lit in the middle and three quarters inside | | tinted once (the accent lifted 30% toward white) it is the mockup's thin metal ring; a portrait inside starts `Widgets.RING_INSET` (8/128 of the size) in |
 | `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `minimapMask`, `logo`, `logoLarge` | | | |
 | `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |
 | `glyphChevron`, `glyphClose` | `GlyphChevron.png`, `GlyphClose.png`, 32x32 | | |

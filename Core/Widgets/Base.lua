@@ -13,7 +13,10 @@ local NOISE_ALPHA = 0.035
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
 local SUBLEVEL_SHADOW, SUBLEVEL_BEZEL, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -7, -6, -5
-local LINE_SUBLEVELS = { outer = -2, inner = -1 }
+local LINE_SUBLEVELS = { outer = -2, inner = -1, fade = -3, plate = -4 }
+local BEVEL = { top = 1.4, bottom = 1.1, side = 1, cut = 1.6 }
+local FADE = 0.65
+local PLATE_ALPHA = 1.25
 local LINE_BAND_START, LINE_BAND_SIZE = 0.25, 0.25
 local LINE_COLUMN = 0.5
 local SQRT2 = math.sqrt(2)
@@ -358,15 +361,19 @@ function Widgets.Size(frame, width, height)
 end
 
 local LINES = {
-	{ key = "outer", color = "edgeOuter", borders = 0, units = 0 },
-	{ key = "inner", borders = 1, units = 0 },
+	{ key = "outer", color = "edgeOuter", borders = 0 },
+	{ key = "inner", borders = 1, edge = true },
+	{ key = "fade", borders = 2, edge = true, scale = FADE },
 }
+local ICON_LINES = { LINES[1], LINES[2] }
 
 local SHAPES = {
-	panel = { fill = "chamferPanel", chamfer = "chamferPanel", edgeColor = "edgeInner", lines = LINES, shadow = true, grain = true },
-	tile = { fill = "chamferTile", chamfer = "chamferTile", edgeColor = "edgeInner", lines = LINES },
-	window = { fill = "chamferWindow", chamfer = "chamferWindow", edgeColor = "edgeInner", lines = LINES, shadow = true, grain = true },
+	panel = { fill = "chamferPanel", chamfer = "chamferPanel", edgeColor = "edgeInner", shadow = true, grain = true },
+	tile = { fill = "chamferTile", chamfer = "chamferTile", edgeColor = "edgeInner" },
+	window = { fill = "chamferWindow", chamfer = "chamferWindow", edgeColor = "edgeInner", shadow = true, grain = true },
 }
+
+Widgets.RING_INSET = 8 / 128
 
 local function SliceCoords(texture, piece, f)
 	local col, row = (piece - 1) % 3, floor((piece - 1) / 3)
@@ -442,6 +449,22 @@ function Widgets.ShowSlice(slice, shown)
 	for i = 1, #slice do
 		slice[i]:SetShown(shown)
 	end
+end
+
+function Widgets.ColorLine(line, r, g, b, a, factors)
+	if not factors then
+		Widgets.ColorSlice(line, r, g, b, a)
+		return
+	end
+	local cut = min(1, a * factors.cut)
+	for i = 1, 4 do
+		line[i]:SetVertexColor(r, g, b, cut)
+	end
+	line[5]:SetVertexColor(r, g, b, min(1, a * factors.top))
+	line[6]:SetVertexColor(r, g, b, min(1, a * factors.bottom))
+	local side = min(1, a * factors.side)
+	line[7]:SetVertexColor(r, g, b, side)
+	line[8]:SetVertexColor(r, g, b, side)
 end
 
 local PILL_CAP = 0.25
@@ -540,6 +563,9 @@ function Widgets.Chrome(owner, opts)
 		shape = shape,
 		shapeName = shapeName,
 		chamfer = opts.chamfer,
+		share = opts.share,
+		lines = opts.fade == false and ICON_LINES or LINES,
+		bevel = opts.bevel or BEVEL,
 		bezelUnits = opts.bezel,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or "surface",
@@ -561,32 +587,67 @@ function Widgets.Chrome(owner, opts)
 		noise:SetVertTile(true)
 		c.noise = noise
 	end
-	for _, spec in ipairs(shape.lines) do
+	for _, spec in ipairs(c.lines) do
 		c[spec.key] = Widgets.Line(owner, "BORDER", LINE_SUBLEVELS[spec.key])
+	end
+	if opts.bezel then
+		c.plate = Widgets.Line(owner, "BORDER", LINE_SUBLEVELS.plate)
+	end
+	if opts.chamfer == nil and type(owner.HookScript) == "function" then
+		owner:HookScript("OnSizeChanged", function()
+			c:OnSizeChanged()
+		end)
 	end
 	c:Restyle()
 	return Widgets.Track(c)
 end
 
+local function ShortSide(owner)
+	local w, h = owner:GetWidth(), owner:GetHeight()
+	if IsSecret(w) or IsSecret(h) or type(w) ~= "number" or type(h) ~= "number" or w <= 0 or h <= 0 then
+		return nil
+	end
+	return min(w, h)
+end
+
 function Chrome:Chamfer()
-	return self.chamfer or Tokens.Size(self.shape.chamfer)
+	if self.chamfer then
+		return self.chamfer
+	end
+	local cap = Tokens.Size(self.shape.chamfer)
+	local short = ShortSide(self.owner)
+	if not short then
+		return cap
+	end
+	if self.share then
+		return short * self.share
+	end
+	return min(cap, short * Tokens.Share("chamfer"))
+end
+
+function Chrome:OnSizeChanged()
+	if self.chamfer == nil and self:Chamfer() ~= self.laidChamfer then
+		self:Restyle()
+	end
 end
 
 function Chrome:Layout()
-	local owner, shape = self.owner, self.shape
+	local owner = self.owner
 	local f = Widgets.ScaleFactor(owner)
 	local chamfer = self:Chamfer()
+	self.laidChamfer = chamfer
 	Widgets.LayoutSlice(self.fill, owner, chamfer, 0)
 	local outset = 0
 	if self.bezel then
 		outset = SnapIn(self.bezelUnits, f)
 		Widgets.LayoutSlice(self.bezel, owner, chamfer + self.bezelUnits * (2 - SQRT2), outset)
+		Widgets.LayoutLine(self.plate, owner, chamfer, -outset)
 	end
 	local reach = Tokens.Size("shadow")
 	Widgets.LayoutSlice(self.shadow, owner, 2 * reach, SnapIn(reach, f) + outset, Tokens.Size("shadowOffset"))
 	local border = Scale.Border() / f
-	for _, spec in ipairs(shape.lines) do
-		Widgets.LayoutLine(self[spec.key], owner, chamfer, spec.borders * border + SnapIn(spec.units, f))
+	for _, spec in ipairs(self.lines) do
+		Widgets.LayoutLine(self[spec.key], owner, chamfer, spec.borders * border)
 	end
 	if self.noise then
 		local inset = SnapIn(chamfer, f)
@@ -617,21 +678,30 @@ function Chrome:Paint()
 	if self.noise then
 		self.noise:SetVertexColor(Widgets.Rgba("white", NOISE_ALPHA))
 	end
-	for _, spec in ipairs(self.shape.lines) do
-		if spec.key == "inner" then
-			local e = self.edge
-			Widgets.ColorSlice(self.inner, e[1], e[2], e[3], e[4])
-		elseif spec.key == "outer" and self.ownOuter then
-			local o = self.outerColor
-			Widgets.ColorSlice(self.outer, o[1], o[2], o[3], o[4])
-		else
-			Widgets.ColorSlice(self[spec.key], Tokens.Color(spec.color))
+	self:PaintEdge()
+	if self.ownOuter then
+		local o = self.outerColor
+		Widgets.ColorSlice(self.outer, o[1], o[2], o[3], o[4])
+	else
+		Widgets.ColorSlice(self.outer, Tokens.Color(LINES[1].color))
+	end
+	if self.plate then
+		local pr, pg, pb, pa = Tokens.Color("edgeInner")
+		Widgets.ColorLine(self.plate, pr, pg, pb, pa * PLATE_ALPHA, BEVEL)
+	end
+end
+
+function Chrome:PaintEdge()
+	local e = self.edge
+	for _, spec in ipairs(self.lines) do
+		if spec.edge then
+			Widgets.ColorLine(self[spec.key], e[1], e[2], e[3], e[4] * (spec.scale or 1), self.bevel)
 		end
 	end
 end
 
 local function ShapeColor(chrome, key)
-	for _, spec in ipairs(chrome.shape.lines) do
+	for _, spec in ipairs(chrome.lines) do
 		if spec.key == key then
 			return Tokens.Color(spec.color)
 		end
@@ -679,7 +749,7 @@ end
 function Chrome:SetEdgeRGBA(r, g, b, a)
 	local e = self.edge
 	e[1], e[2], e[3], e[4] = r, g, b, a
-	Widgets.ColorSlice(self.inner, r, g, b, a)
+	self:PaintEdge()
 end
 
 function Chrome:SetOuterRGBA(r, g, b, a)
@@ -715,8 +785,11 @@ function Chrome:SetShown(shown)
 	if self.bezel then
 		Widgets.ShowSlice(self.bezel, shown)
 	end
-	for _, spec in ipairs(self.shape.lines) do
+	for _, spec in ipairs(self.lines) do
 		Widgets.ShowSlice(self[spec.key], shown)
+	end
+	if self.plate then
+		Widgets.ShowSlice(self.plate, shown)
 	end
 	if self.noise then
 		self.noise:SetShown(shown)

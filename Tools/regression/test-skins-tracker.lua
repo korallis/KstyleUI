@@ -352,7 +352,7 @@ do
 	assert(timer.Bar.BorderLeft:GetAlpha() == 0, "timer bars lose their border art")
 	assert(timer.Bar:GetStatusBarTexture():GetAlpha() == 1, "timer bars keep their fill")
 	local timerChrome = K.Skin.Parts(timer.Bar).backdrop.chrome
-	assert(timerChrome.fillName == "surface" and S.W.SameColor(timerChrome.inner[5], K.Tokens.Color("edgeBar")), "timer and progress bars wear the bar grade: the glass surface under the edgeBar line")
+	assert(timerChrome.fillName == "surface" and S.W.SameColor(timerChrome.inner[7], K.Tokens.Color("edgeBar")), "timer and progress bars wear the bar grade: the glass surface under the edgeBar line")
 	assert(FontPath(module:GetProgressBar("q1").Bar.Label) == Style.Font("caption"), "progress bar labels take the skin font")
 	K.Options.Write("Skins", "tracker.panel", false)
 	assert(not panel:IsShown(), "the panel switch still hides the panel")
@@ -424,7 +424,7 @@ do
 	-- the block's order; the super-tracked quest and the hovered button show a ring.
 	local function Disc(button)
 		local disc, holder = Region(env, K, button, "Texture", "dot")
-		local ring = Region(env, K, button, "Texture", "ring")
+		local ring = Region(env, K, button, "Texture", "ringBevel")
 		local numeral = Region(env, K, button, "FontString")
 		return disc, ring, numeral, holder
 	end

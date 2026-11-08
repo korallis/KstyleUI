@@ -16,7 +16,6 @@ local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
 local PAD = 12
-local CHAMFER = 10.5
 local SEPARATOR_SHARE = 0.25
 local SEPARATOR_ALPHA = 1
 local CHAR_WIDTH_SHARE = 0.45
@@ -209,7 +208,7 @@ function Strip.NewView(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	local view = { frame = frame, items = {}, order = {}, values = {} }
 	frame.kView = view
-	view.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface", chamfer = CHAMFER })
+	view.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface" })
 	frame:HookScript("OnHide", function()
 		for _, item in pairs(view.items) do
 			ns.Click.Release(item)

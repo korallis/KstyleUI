@@ -39,7 +39,7 @@ class ManifestTest(unittest.TestCase):
     def test_textures_cover_the_spec_list(self):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
-            "ChamferPanel", "ChamferTile", "ChamferWindow", "Line", "ChamferIconMask", "ChamferPortraitMask", "Shadow", "Glow", "Divider", "Noise", "Ring",
+            "ChamferPanel", "ChamferTile", "ChamferWindow", "Line", "ChamferIconMask", "ChamferPortraitMask", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
@@ -247,6 +247,24 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual(self.alpha("Ring.png", 64, 64), 0)
         self.assertEqual(self.alpha("Ring.png", 64, 3), 255)
         self.assertEqual(self.alpha("Ring.png", 0, 0), 0)
+
+    def test_ring_bevel_is_a_thin_ring_lit_between_a_dark_outer_and_a_mid_inner_edge(self):
+        # The mockup's portrait ring (measured at 1.348 px per unit): a dark bronze outer edge, a bright line, then the
+        # accent, 3 px on a 118 px disc, with the dark disc showing 2 px outside it. The texture bakes the shading into
+        # its colour channels so one tint (the accent lifted toward white) gives all three tones.
+        width, height, _ = self.rendered["RingBevel.png"]
+        self.assertEqual((width, height), (128, 128))
+        self.assertEqual(self.alpha("RingBevel.png", 64, 64), 0, "clear inside")
+        self.assertEqual(self.alpha("RingBevel.png", 0, 0), 0, "clear at the corners")
+        self.assertEqual(self.alpha("RingBevel.png", 64, 0), 0, "the disc under it shows outside the line")
+        outer, peak, inner = self.px("RingBevel.png", 64, 2), self.px("RingBevel.png", 64, 4), self.px("RingBevel.png", 64, 6)
+        self.assertEqual((outer[3], peak[3], inner[3]), (255, 255, 255), "the band is opaque from radius 57 to 62")
+        self.assertEqual(self.alpha("RingBevel.png", 64, 8), 0, "and clear inside radius 56, where the portrait starts")
+        self.assertLess(outer[0], inner[0], "the outer edge is darker than the inner")
+        self.assertLess(inner[0], peak[0], "and the middle is the brightest: the lit bevel")
+        self.assertGreaterEqual(peak[0], 235, "the lit middle is near white before the tint")
+        self.assertEqual(peak[0], peak[1], "grey, so SetVertexColor tints it")
+        self.assertAlmostEqual(self.mm.RING_BEVEL_INSET, 8 / 128)
 
     def test_status_bars_are_opaque_and_shaded_top_to_bottom(self):
         for name in ("BarFlat.png", "BarSoft.png", "BarGlass.png"):

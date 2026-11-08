@@ -10,7 +10,7 @@ Bar.__index = Bar
 ns.BarClass = Bar
 
 local FADE_DELAY = 0.2
-local BACKING_MARGIN, BACKING_CHAMFER = 3, 10
+local BACKING_MARGIN = 3
 local FLYOUT_DIRECTIONS = { TOPLEFT = "DOWN", TOP = "DOWN", TOPRIGHT = "DOWN", LEFT = "RIGHT", RIGHT = "LEFT" }
 local PET_DRIVER = "[@pet,exists] show; hide"
 local SPECIAL_STATES = { vehicle = true, override = true, possess = true, shapeshift = true }
@@ -49,7 +49,7 @@ function ns.NewBar(def)
 	bar.holder, bar.header = holder, header
 	local backing = CreateFrame("Frame", nil, header)
 	backing:SetFrameLevel(header:GetFrameLevel())
-	backing.chrome = Widgets.Chrome(backing, { shape = "tile", fill = "buttonFill", shadow = false, chamfer = BACKING_CHAMFER })
+	backing.chrome = Widgets.Chrome(backing, { shape = "tile", fill = "buttonFill", shadow = false })
 	bar.backing = backing
 	if def.kind == "action" then
 		header:SetAttribute("actionpage", def.page)

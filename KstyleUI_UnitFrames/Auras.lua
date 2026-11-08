@@ -122,8 +122,7 @@ function Auras.LayoutTile(tile)
 	tile.icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
 	tile.icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
 	if tile.dispel then
-		local _, _, corner = Tokens.Texture("chamferTile")
-		Widgets.LayoutSlice(tile.dispel, skin, corner, 0)
+		Widgets.LayoutSlice(tile.dispel, skin, tile.chrome:Chamfer(), 0)
 	end
 end
 

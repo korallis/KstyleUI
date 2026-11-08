@@ -70,7 +70,7 @@ local SIZE_NAMES = {
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight", "chamferWindow",
 }
 local SLICED = { "chamferPanel", "chamferTile", "chamferWindow", "shadow" }
--- Chamfers are sizes in units snapped to whole pixels; every bevel line is one border thick, its straight pieces
+-- Chamfers are 30% of the shorter side up to the shape's cap, snapped to whole pixels; every bevel line is one border thick, its straight pieces
 -- solid and its corner pieces a diagonal band mapped from the line strip. Frame scales: a frame on the root, and a
 -- tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
@@ -92,10 +92,11 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local px = ppu * frameScale
 	local border = ns.Scale.Border() * ppu
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	local lines = { c.outer, c.inner }
-	assert(c.hairline == nil and c.dark == nil, where .. ": every shape draws the mockup's one light line over the dark one, nothing inside")
+	local lines = { c.outer, c.inner, c.fade }
+	assert(c.hairline == nil and c.dark == nil, where .. ": every shape draws the mockup's bevel: the light line over the dark one and its fade row, nothing further in")
 	local chamferPx = c.fill[1]:GetWidth() * px
-	local wantPx = Tokens.Size(c.shape.chamfer) * px
+	local ow, oh = c.owner:GetSize()
+	local wantPx = math.min(Tokens.Size(c.shape.chamfer), Tokens.Share("chamfer") * math.min(ow, oh)) * px
 	assert(whole(chamferPx) and math.abs(chamferPx - wantPx) <= 0.5 + 1e-6, where .. ": the chamfer is " .. chamferPx .. " px, the nearest whole pixel to " .. wantPx)
 	for i = 1, 9, 2 do
 		if i ~= 5 then

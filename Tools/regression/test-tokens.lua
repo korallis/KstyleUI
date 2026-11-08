@@ -121,7 +121,7 @@ end
 
 -- The spec's shape and HUD sizes, type scale and motion.
 for name, want in pairs({
-	chamferPanel = 8, chamferTile = 3.5, chamferWindow = 12, shadow = 10, shadowOffset = 2, buttonBezel = 3, actionButton = 34, actionGap = 3, cooldownEssential = 40,
+	chamferPanel = 12, chamferTile = 6, chamferWindow = 12, shadow = 10, shadowOffset = 2, buttonBezel = 3, actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
 	buffBarHeight = 18, display = 24, heading = 16, body = 11, caption = 9, textShadowOffset = 0.6,
 	pressOffset = 1, panelRise = 16, panelOvershoot = 2,
@@ -129,6 +129,10 @@ for name, want in pairs({
 	assert(Tokens.Size(name) == want, "Tokens.Size(" .. name .. ") is " .. tostring(Tokens.Size(name)) .. ", spec says " .. want)
 end
 assert(not pcall(Tokens.Size, "nope"), "an unknown size is an error")
+-- The corner cut as a share of a backdrop's shorter side (the mockup's 30%, measured on the cast bar, the data strip,
+-- the nameplate frame and the unit frames) and of an icon button's side (12%: the cluster and action buttons).
+assert(Tokens.Share("chamfer") == 0.3 and Tokens.Share("chamferIcon") == 0.12, "the cut shares")
+assert(not pcall(Tokens.Share, "nope"), "an unknown share is an error")
 for name, want in pairs({ hover = 0.15, panelOpen = 0.25, panelRise = 0.4, panelClose = 0.15, listStagger = 0.05, castSheen = 0.6, procPulse = 1.2 }) do
 	assert(Tokens.Duration(name) == want, "Tokens.Duration(" .. name .. ") is " .. tostring(Tokens.Duration(name)))
 end
@@ -174,7 +178,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 
 -- Textures: each names a file on disk, and sliced ones say how big a corner piece draws.
 for _, name in ipairs({
-	"chamferPanel", "chamferTile", "chamferWindow", "line", "iconMask", "shadow", "glow", "divider", "noise", "ring",
+	"chamferPanel", "chamferTile", "chamferWindow", "line", "iconMask", "shadow", "glow", "divider", "noise", "ring", "ringBevel",
 	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
 	local path = Tokens.Texture(name)
@@ -184,11 +188,11 @@ for _, name in ipairs({ "bevelPanelOuter", "bevelTileInner", "bevelWindowOuter" 
 	assert(not pcall(Tokens.Texture, name), "the baked bevel corners are gone: lines are drawn in code")
 end
 local _, texels, units = Tokens.Texture("chamferPanel")
-assert(texels == 32 and units == Tokens.Size("chamferPanel"), "a panel chamfer corner is 32 texels drawn at 8 units")
+assert(texels == 32 and units == 8, "the panel chamfer texture's corner is 32 texels drawn at 8 units; Chrome stretches it to the cut")
 _, texels, units = Tokens.Texture("chamferTile")
-assert(texels == 14 and units == Tokens.Size("chamferTile"), "a tile chamfer corner is 14 texels drawn at 3.5 units")
+assert(texels == 14 and units == 3.5, "the tile chamfer texture's corner is 14 texels drawn at 3.5 units")
 _, texels, units = Tokens.Texture("chamferWindow")
-assert(texels == 48 and units == Tokens.Size("chamferWindow"), "a window chamfer corner is 48 texels drawn at 12 units")
+assert(texels == 48 and units == 12, "the window chamfer texture's corner is 48 texels drawn at 12 units")
 _, texels, units = Tokens.Texture("shadow")
 assert(texels == 24 and units == 12, "the shadow texture's corner is 12 units; Chrome stretches it to twice the shadow reach")
 assert(select(2, Tokens.Texture("glow")) == nil, "an unsliced texture has no margin")

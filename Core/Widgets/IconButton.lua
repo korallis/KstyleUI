@@ -15,9 +15,10 @@ local SWIPE_ALPHA = 0.65
 local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA, HOVER_WASH = 10, 0.3, 0.2
 local PROC_HALO_ALPHA = 0.1
 local RIM_HALO = 0.45
+local RIM_SIDE = 0.65
+local ICON_BEVEL = { top = 1, bottom = 1, side = RIM_SIDE, cut = 1 }
 local COUNTDOWN_RISE = 0.25
 local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
-local CHAMFER_SHARE = 0.105
 local ICON_INSET_LINES = 3
 local ICON_INSET_SHARE = 0.11
 local ICON_INSET_MAX_SHARE = 0.2
@@ -90,7 +91,11 @@ end
 
 function Widgets.IconChrome(owner, opts)
 	opts = opts or {}
-	local chrome = Widgets.Chrome(owner, { shape = "tile", fill = "buttonFill", shadow = opts.bezel ~= nil, bezel = opts.bezel, chamfer = opts.size and opts.size * CHAMFER_SHARE or nil })
+	local share = Tokens.Share("chamferIcon")
+	local chrome = Widgets.Chrome(owner, {
+		shape = "tile", fill = "buttonFill", shadow = opts.bezel ~= nil, bezel = opts.bezel,
+		chamfer = opts.size and opts.size * share or nil, share = share, fade = false, bevel = ICON_BEVEL,
+	})
 	chrome.rimColor = { 0, 0, 0, 0 }
 	chrome.rimSet, chrome.rimAccent = false, false
 	local paint = chrome.Paint
@@ -317,7 +322,7 @@ function IconButton:Restyle()
 	if Widgets.MayMove(self) then
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
-		self.chrome:SetChamfer(size * CHAMFER_SHARE)
+		self.chrome:SetChamfer(size * Tokens.Share("chamferIcon"))
 		self.placedOffset = nil
 		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()

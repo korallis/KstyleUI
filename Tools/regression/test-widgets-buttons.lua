@@ -13,11 +13,11 @@ do
 		end,
 	})
 	assert(button:GetObjectType() == "Button" and button.chrome and #button.chrome.fill == 9)
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("chamferTile"))), "a tile: 3-unit chamfers")
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Scale.Snap(button.chrome:Chamfer())) and W.Near(button.chrome:Chamfer(), math.min(6, 0.3 * button:GetHeight())), "a tile: the shared cut, 30% of its height up to 6")
 	assert(button.chrome.shadow[1]:IsShown() == false, "buttons cast no shadow")
 	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("buttonFill")), "the button grade's body, the mockup's one dark tone")
 	assert(button.label:GetText() == "Accept")
-	assert(W.SameColor(button.chrome.inner[5], Tokens.Color("edgeInner")), "the hairline rests at edgeInner")
+	assert(W.SameColor(button.chrome.inner[7], Tokens.Color("edgeInner")), "the hairline rests at edgeInner (its side piece; the top is lit)")
 	assert(W.SameColor({ GetVertexColor = function()
 		return button.label:GetTextColor()
 	end }, Tokens.Color("text")), "the text rests at the text colour")
@@ -38,7 +38,7 @@ do
 	assert(#clicks == 1 and clicks[1][1] == button and clicks[1][2] == "LeftButton", "a click runs onClick with the button")
 	W.Leave(button)
 	W.Settle(env)
-	assert(W.SameColor(button.chrome.inner[5], Tokens.Color("edgeInner")), "leaving rests the hairline")
+	assert(W.SameColor(button.chrome.inner[7], Tokens.Color("edgeInner")), "leaving rests the hairline")
 	button:Disable()
 	assert(W.SameColor({ GetVertexColor = function()
 		return button.label:GetTextColor()
@@ -290,10 +290,10 @@ end
 do
 	local _, K, button = iconButton({ size = 34 })
 	local Snap = K.Scale.Snap
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.105 * 34)), "a 34-unit button cuts 3.6 units")
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.12 * 34)), "a 34-unit button cuts 12% of its side, 4.08 units: the mockup's action and cluster buttons")
 	button.opts.size = 38
 	button:Restyle()
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.105 * 38)), "a 38-unit button cuts 4 units")
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.12 * 38)), "a 38-unit button cuts 4.56 units")
 	assert(W.Near(button.chrome.outer[5]:GetHeight(), K.Scale.Border()), "the rim stays one border")
 end
 
@@ -487,9 +487,9 @@ do
 	local chrome = Widgets.IconChrome(owner)
 	assert(chrome.shapeName == "tile" and chrome.shadowOn == false, "a tile with no shadow")
 	assert(W.SameColor(chrome.fill[5], K.Tokens.Color("buttonFill")), "the near-black button body")
-	assert(W.Near(chrome:Chamfer(), K.Tokens.Size("chamferTile")), "the tile's 3.5-unit chamfer without a size")
+	assert(W.Near(chrome:Chamfer(), 20 * 0.12), "without a size the cut is 12% of the owner's side, the icon share")
 	local sized = Widgets.IconChrome(owner, { size = 40 })
-	assert(W.Near(sized:Chamfer(), 40 * 0.105), "a size gives the icon button's 10.5% chamfer")
+	assert(W.Near(sized:Chamfer(), 40 * 0.12), "a size gives 12% of that size")
 	chrome:SetRim(0.2, 0.4, 0.6, 1)
 	assert(W.SameColor(chrome.inner[5], 0.2, 0.4, 0.6, 1) and W.SameColor(chrome.outer[5], 0.2, 0.4, 0.6, 0.45), "SetRim paints the hairline and its halo")
 	chrome:Restyle()

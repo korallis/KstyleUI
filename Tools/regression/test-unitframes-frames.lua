@@ -220,10 +220,10 @@ noErrors("resize")
 -- The accent recolours the portrait ring on a theme change.
 K.Options.Write("UnitFrames", "accent", "custom")
 K.Options.Write("UnitFrames", "accentColor", { r = 0.9, g = 0.1, b = 0.1 })
-assert(W.SameRGB(player.ring, 0.9, 0.1, 0.1), "the ring takes the custom accent")
+assert(W.SameRGB(player.ring, K.Widgets.Mix(0.9, 0.1, 0.1, 1, 1, 1, 1, 1, 0.3)), "the ring takes the custom accent, lifted 30% toward white: the mockup's bright ring line over the bevel texture's shading")
 K.Options.Write("UnitFrames", "accent", "class")
 local ar, ag, ab = K.Theme.Accent()
-assert(W.SameRGB(player.ring, ar, ag, ab), "the ring follows the class accent again")
+assert(W.SameRGB(player.ring, K.Widgets.Mix(ar, ag, ab, 1, 1, 1, 1, 1, 0.3)), "the ring follows the class accent again")
 
 -- Layout's shown rule wins over the module's own updates.
 assert(K.Layout.Set("unitframes.player", "shown", "never"))

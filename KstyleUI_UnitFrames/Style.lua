@@ -22,9 +22,9 @@ local TRACK = "buttonFill"
 local TRACK_LINE, TRACK_LINE_ALPHA = "edgeBar", 1
 local TINT = 0.85
 local RIM_WHITE = 0.15
+local RING_LIFT = 0.3
 local OCTAGON = 1 / (2 + math.sqrt(2))
 local PORTRAIT_CHAMFER = 0.15
-local GLASS_CHAMFER = 0.125
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -88,7 +88,7 @@ function Style.New(parent, kind)
 	portraitFrame:SetFrameLevel(base + LEVEL_PORTRAIT)
 	view.portraitFrame = portraitFrame
 	view.portraitChrome = Widgets.Chrome(portraitFrame, { shape = "panel", fill = "buttonFill", grain = false })
-	local dot, ring = Tokens.Texture("dot"), Tokens.Texture("ring")
+	local dot, ring = Tokens.Texture("dot"), Tokens.Texture("ringBevel")
 	view.portraitBack = portraitFrame:CreateTexture(nil, "BACKGROUND")
 	view.portraitBack:SetTexture(dot)
 	view.portraitBack:SetAllPoints(portraitFrame)
@@ -173,7 +173,6 @@ function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 	view.geometry = g
 	Place(view, view.panel, g.glass)
-	view.chrome:SetChamfer(not g.compact and GLASS_CHAMFER * g.glass.h or nil)
 	view.chrome:Restyle()
 	PlaceBar(view, view.health, g.health)
 	PlaceBar(view, view.power, g.power)
@@ -187,7 +186,7 @@ function Style.Layout(view, s, width, height)
 		Place(view, view.portraitFrame, g.portrait)
 		view.portraitChrome:SetChamfer(PORTRAIT_CHAMFER * g.portrait.w)
 		view.portraitChrome:Restyle()
-		local inset = Widgets.Border(view.parent) * (view.round and 1 or 2)
+		local inset = view.round and Snap(view, g.portrait.w * Widgets.RING_INSET) or Widgets.Border(view.parent) * 2
 		view.portrait:ClearAllPoints()
 		view.portrait:SetPoint("TOPLEFT", view.portraitFrame, "TOPLEFT", inset, -inset)
 		view.portrait:SetPoint("BOTTOMRIGHT", view.portraitFrame, "BOTTOMRIGHT", -inset, inset)
@@ -279,7 +278,7 @@ end
 
 function Style.Accent(view)
 	local r, g, b = Settings.Accent()
-	view.ring:SetVertexColor(r, g, b, 1)
+	view.ring:SetVertexColor(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RING_LIFT))
 	view.portraitChrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RIM_WHITE))
 	view.icons.resting:SetTextColor(r, g, b, 1)
 	if view.round then

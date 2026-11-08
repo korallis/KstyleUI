@@ -44,8 +44,7 @@ local function LayoutRim(holder)
 	holder:ClearAllPoints()
 	holder:SetPoint("TOPLEFT", target, "TOPLEFT", -outset, outset)
 	holder:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", outset, -outset)
-	local _, _, corner = Tokens.Texture("chamferTile")
-	Widgets.LayoutSlice(holder.rim, holder, corner, RIM_UNITS)
+	Widgets.LayoutSlice(holder.rim, holder, holder.chrome:Chamfer(), RIM_UNITS)
 end
 
 local function PaintRim(holder)

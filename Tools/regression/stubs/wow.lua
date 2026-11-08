@@ -120,12 +120,46 @@ function Object:Hide() self._shown = false end
 function Object:SetShown(shown) self._shown = not not shown end
 function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
-function Object:SetSize(w, h) self._width, self._height = w, h end
-function Object:SetWidth(w) self._width = w end
-function Object:SetHeight(h) self._height = h end
-function Object:GetSize() return self._width, self._height end
-function Object:GetWidth() return self._width end
-function Object:GetHeight() return self._height end
+-- A size change runs OnSizeChanged, as the game does, so chrome that follows its owner's size relays out.
+local function resize(self, w, h)
+	if self._width == w and self._height == h then
+		return
+	end
+	self._width, self._height = w, h
+	local script = self._scripts.OnSizeChanged
+	if script then
+		script(self, w, h)
+	end
+end
+function Object:SetSize(w, h) resize(self, w, h) end
+function Object:SetWidth(w) resize(self, w, self._height) end
+function Object:SetHeight(h) resize(self, self._width, h) end
+-- A frame with no size of its own that hangs from both corners of one target (SetAllPoints, or a TOPLEFT and a
+-- BOTTOMRIGHT point on the same frame) is as big as that target plus its offsets, as in the game.
+local function spanned(self, axis)
+	local a, b
+	for _, p in ipairs(self._points) do
+		if p[1] == "TOPLEFT" then a = p elseif p[1] == "BOTTOMRIGHT" then b = p end
+	end
+	if not (a and b) or a[2] ~= b[2] or type(a[2]) ~= "table" or a[2] == self then
+		return nil
+	end
+	local size = axis == "w" and a[2]:GetWidth() or a[2]:GetHeight()
+	if type(size) ~= "number" then
+		return nil
+	end
+	local own, theirs = self:GetEffectiveScale(), a[2]:GetEffectiveScale()
+	if type(own) == "number" and type(theirs) == "number" and own > 0 then
+		size = size * theirs / own
+	end
+	if axis == "w" then
+		return size + (b[4] or 0) - (a[4] or 0)
+	end
+	return size + (a[5] or 0) - (b[5] or 0)
+end
+function Object:GetWidth() return self._width or spanned(self, "w") end
+function Object:GetHeight() return self._height or spanned(self, "h") end
+function Object:GetSize() return self:GetWidth(), self:GetHeight() end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
 -- An object's own scale times its parent's effective scale, unless it ignores its parent's scale.
