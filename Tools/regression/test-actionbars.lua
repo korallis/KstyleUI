@@ -167,6 +167,28 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- The mockup draws a dark glass strip behind each action bar row, 4 units beyond the buttons with 6-unit
+-- chamfers; bars 1 and 2 have it on, the pet and stance bars off, and a toggle switches it.
+do
+	local env, K, ns = AB.New()
+	AB.Enable(env, K)
+	local bar1, pet = ns.bars.bar1, ns.bars.pet
+	local backing = bar1.backing
+	assert(backing and backing:IsShown() and backing:GetParent() == bar1.header, "bar 1 has a backing strip on its header, so it fades with the bar")
+	assert(backing.chrome and backing.chrome.fillName == "surface" and near(backing.chrome:Chamfer(), 6), "the strip is smoked glass with 6-unit chamfers")
+	local p1, p2 = backing._points[1], backing._points[2]
+	assert(p1[1] == "TOPLEFT" and p1[2] == bar1.header and near(p1[4], -4) and near(p1[5], 4), "the strip starts 4 units outside the buttons' top left")
+	assert(p2[1] == "BOTTOMRIGHT" and p2[2] == bar1.header and near(p2[4], 4) and near(p2[5], -4), "and ends 4 units outside their bottom right")
+	assert(backing:GetFrameLevel() < bar1.buttons[1]:GetFrameLevel(), "the strip draws behind the buttons")
+	assert(pet.backing and not pet.backing:IsShown(), "the pet bar has no strip by default")
+	K.Options.Write("ActionBars", "bar1.backing", false)
+	assert(not backing:IsShown(), "the toggle hides the strip")
+	K.Options.Write("ActionBars", "pet.backing", true)
+	assert(pet.backing:IsShown(), "and shows it on another bar")
+	assert(K.Options.Row("ActionBars", "bar1.backing") and K.Options.Row("ActionBars", "bar1.backing").type == "toggle", "the strip is a per-bar toggle")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Settings reshape a bar out of combat: buttons shown, rows, size and spacing; enabling bar 3 builds it.
 do
 	local env, K, ns = AB.New()

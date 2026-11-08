@@ -135,7 +135,7 @@ The page starts with **Bar to edit**, a picker that shows one bar's rows at a ti
 | Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. |
 | Fill order, Growth | Along rows or down columns first; right or left, then down or up |
 | Button size, Spacing | 16 to 64 and 0 to 16 units. 38 and 3 for the action bars, 30 and 3 for the pet and stance bars. |
-| Show empty buttons, Fade until hovered, Faded opacity | On, off, 0 |
+| Show empty buttons, Backing strip, Fade until hovered, Faded opacity | On, on for bars 1 and 2 (off for the other bars), off, 0. The backing strip is the composition mockup's smoked-glass band behind each bar row: `surface` glass with 6-unit chamfers, 4 units beyond the buttons on every side, a child of the bar's header so it fades with the bar |
 | Keybind text, Count text, Macro names, Cooldown numbers | On, on, off, on |
 | Paging (bar 1) | Stances and forms, Stealth, Possess and vehicles, Page keys: all on |
 | Custom paging (action bars) | Empty |
