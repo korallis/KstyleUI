@@ -29,7 +29,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Package | `iconset.py package --set B` writes `Icons/<fileID>.png` as 128x128 RGB, `PROVENANCE.md` and `Data.lua`, and adds `Data.lua` to `IconsColour.xml`. `--no-data` writes the icons and `PROVENANCE.md` only. |
 | Review and verify | `iconset.py sheets --set B` and `iconset.py verify --set B`, as for set A. |
 
-An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it. Today all 654 spell groups have art, and so do ITEM_DONE item groups (see [Items](#items)).
+An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it. Today all 654 spell groups have art, and so do 2617 item groups (see [Items](#items)).
 
 ### Repainted from Blizzard's icon
 
@@ -60,7 +60,7 @@ Items share icons with each other and with spells, so the sets map item icons th
 
 `iconset.py` reads both data files; an icon a spell uses keeps the spell's group (250 item icons are spell icons too), so 2626 item groups need their own art. Within a rank an icon more items share comes first. `generate --categories item` repaints them in that order with the same `subject_reference` method; the prompt says `item icon`, names the item and its kind, and asks for the same object so a player recognises the item instantly. A group that is not repainted yet has no entry in `Data.lua`, so the game's icon stays for it.
 
-ITEM_STATUS
+On 2026-11-08 every item group was repainted except nine whose texture in the client is a zero-filled placeholder (store mounts and pets such as Crimson Rooster and Verdant Sea Turtle): TACTTool returns an empty file for them, so there is no Blizzard icon to repaint and the game's icon stays. 37 item repaints and nine spell repaints were accepted by eye with `iconset.py accept` after the automatic check rejected them (a dark backdrop read as drift, a gap read as a grid, runic script read as text); their provenance rows say so.
 
 In game, item icons show through `KstyleUI.Icons` wherever a file ID reaches it: the bag and bank slots, KstyleUI's action buttons and tooltips through `Apply`, and Blizzard's item buttons (the character sheet, merchant, trade, mail, quest rewards and Blizzard's own bags) and the loot window through `Core/IconHooks.lua` (see [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#blizzards-icons)).
 
