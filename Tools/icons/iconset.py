@@ -476,8 +476,9 @@ def _last_reasons(record, mode=None):
 def accept_by_eye(group, icon_set, raw_dir, *, today, attempt=None, note=""):
     """A reviewer who compared a rejected image with Blizzard's icon accepts it: the latest image of the set's
     mode, or attempt n. The check's reasons move to overruled, reviewed carries the date and note the reason,
-    so the provenance row says the icon was accepted by eye; rejudge leaves a reviewed attempt alone. Saves
-    the record and returns the attempt."""
+    so the provenance row says the icon was accepted by eye; rejudge leaves a reviewed attempt alone. Any
+    other accepted attempt of the mode is superseded, so the package takes the reviewer's choice. Saves the
+    record and returns the attempt."""
     record = load_record(raw_dir, group)
     images = [a for a in _window(record, icon_set.mode)
               if mode_of(a) == icon_set.mode and "image" in a and a["verdict"] != "failed"]
@@ -488,9 +489,14 @@ def accept_by_eye(group, icon_set, raw_dir, *, today, attempt=None, note=""):
     if not images:
         raise ValueError(f"{group['icon']} {group['name']}: no {icon_set.mode} image to accept")
     chosen = images[-1]
-    chosen.update(overruled=list(chosen.get("reasons", [])), reasons=[], verdict="accepted", reviewed=today)
+    chosen.update(overruled=list(chosen.get("overruled") or chosen.get("reasons", [])), reasons=[], verdict="accepted",
+                  reviewed=today)
     if note:
         chosen["note"] = note
+    for other in _window(record, icon_set.mode):
+        if other is not chosen and mode_of(other) == icon_set.mode and other["verdict"] == "accepted":
+            other.update(overruled=list(other.get("overruled") or other.get("reasons", [])),
+                         reasons=[f"superseded by attempt {chosen['n']}"], verdict="rejected", reviewed=today)
     save_record(raw_dir, record)
     return chosen
 

@@ -1281,6 +1281,28 @@ class AcceptByEyeTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "attempt 7"):
                 iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d", attempt=7)
 
+    def test_an_explicit_choice_supersedes_a_later_accepted_attempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.record(Path(tmp))
+            iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d1")
+            chosen = iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d2", attempt=2)
+            record = iconset.load_record(Path(tmp), g)
+            self.assertEqual(iconset.accepted_attempt(record)["n"], 2, "the package takes the reviewer's choice")
+            self.assertEqual(chosen["verdict"], "accepted")
+            later = record["attempts"][2]
+            self.assertEqual(later["verdict"], "rejected")
+            self.assertEqual(later["reasons"], ["superseded by attempt 2"])
+            self.assertEqual(later["overruled"], ["drift"], "the check's reasons it once overruled are kept")
+            self.assertEqual(iconset.next_step(record, "subject_reference"), "done")
+
+    def test_accepting_the_same_image_again_keeps_the_reasons_it_overruled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.record(Path(tmp))
+            iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d1")
+            again = iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d2")
+            self.assertEqual(again["overruled"], ["drift"])
+            self.assertEqual(again["reviewed"], "d2")
+
     def test_a_reviewed_row_says_so_in_the_method_column(self):
         entries = [{"group": group(132208, "Rapid Fire"), "attempt": {
             "lead": "x", "job": "job-3", "model": "gpt_image_2_5", "date": "2026-11-08", "mode": "subject_reference",

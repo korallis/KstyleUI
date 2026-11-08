@@ -98,6 +98,7 @@ local function hookBags()
 	local hookedBags = 0
 	for _, frame in ipairs(frames) do
 		if type(frame) == "table" and type(frame.UpdateItems) == "function" and type(frame.EnumerateValidItems) == "function" and type(hooksecurefunc) == "function" then
+			watchBagItems(frame)
 			hooksecurefunc(frame, "UpdateItems", watchBagItems)
 			hookedBags = hookedBags + 1
 		end
