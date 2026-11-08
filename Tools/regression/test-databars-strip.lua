@@ -201,9 +201,13 @@ do
 	local layout = K.Layout.Get("databars.strip")
 	assert(layout.width < 492 and layout.height > 43, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
 	local first, second = item(ns, "fps").button, item(ns, "latency").button
-	local _, _, _, _, y1 = first:GetPoint(1)
+	local _, _, _, x1, y1 = first:GetPoint(1)
 	local _, _, _, _, y2 = second:GetPoint(1)
 	assert(y2 < y1, "upright items stack downward")
+	local inset = ns.Strip.view.chrome:Inset()
+	assert(math.abs(x1 - inset) < 0.01, "upright items start one content inset from the left, the rule every text panel follows, got " .. x1 .. " for " .. inset)
+	local rows = 5
+	assert(math.abs(layout.height - K.Widgets.Snap(ns.Strip.view.frame, rows * 13 * 1.8 + 2 * inset)) < 1.01, "the column is its rows plus one inset above and below, got " .. layout.height)
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
 	eq(layout.width .. "x" .. layout.height, "492x43", "a row strip returns to its footprint")

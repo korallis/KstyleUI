@@ -180,7 +180,7 @@ local function Relayout()
 	if type(width) ~= "number" or type(height) ~= "number" then
 		return
 	end
-	local pad, gap = Tokens.Size("panelPadding"), Tokens.Size("gapMedium")
+	local pad, gap = Widgets.WindowInset(win), Tokens.Size("gapMedium")
 	local footer = Tokens.Size("rowHeight") + Tokens.Size("gapSmall")
 	local top = pad + HEADER
 	local bodyHeight = max(1, height - top - pad)

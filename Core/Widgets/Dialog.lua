@@ -116,14 +116,14 @@ local function TakeButton(i, spec)
 end
 
 local function Layout()
-	local pad = Widgets.Snap(host, Tokens.Size("panelPadding"))
+	local pad = Widgets.WindowInset(host)
 	local gap = Widgets.Snap(host, Tokens.Size("gapMedium"))
 	local inner = Widgets.Snap(host, WIDTH) - 2 * pad
 	local body = host.body
 	body:SetWidth(inner)
 	local _, bodySize = Tokens.Font("body")
 	local bodyHeight = Widgets.TextHeight(body, bodySize * BODY_LINES)
-	local y = Widgets.Snap(host, Tokens.Size("panelPadding") + Tokens.Size("heading") + Tokens.Size("gapMedium")) + gap
+	local y = Widgets.Snap(host, pad + Tokens.Size("heading") + Tokens.Size("gapMedium")) + gap
 	body:ClearAllPoints()
 	body:SetPoint("TOPLEFT", host, "TOPLEFT", pad, -y)
 	y = y + bodyHeight + gap

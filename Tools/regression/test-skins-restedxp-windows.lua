@@ -69,7 +69,8 @@ do
 	assert(Hushed(f.BottomFrame), "RestedXP's backdrop under the list goes")
 	assert(Alpha(f.GuideName.bg) == 0 and Alpha(f.GuideName._pieces[1]) == 0, "the header's banner and backdrop go")
 	assert(Alpha(f.GuideName.icon) == 1 and Alpha(f.GuideName.classIcon) == 1, "the logo and class icon stay")
-	assert(select(2, f.GuideName.text:GetFont()) == select(2, K.Tokens.Font("heading")), "the guide's title is a kit heading")
+	assert(f.GuideName.text:GetFont() == (ns.Style.Font("heading")), "the guide's title is in the kit's heading face")
+	assert(select(2, f.GuideName.text:GetFont()) == select(2, ns.Style.Font("body")), "at body size: RestedXP's guide names run to two lines inside a 35-unit header")
 	assert(Colored(f.GuideName.text, K.Tokens.Color("textEmphasis")), "in the emphasised text colour, as every window title")
 	assert(K.Skin.IsSkinned(f.Footer, "Backdrop") and Alpha(f.Footer.bg) == 0, "the footer is a KstyleUI tile")
 	assert(K.Skin.Parts(f.Footer).backdrop.chrome.fillName == "surface", "on the same glass surface as the windows")
@@ -80,10 +81,44 @@ do
 	local row = f.ScrollChild.framePool[1]
 	assert(Alpha(row._pieces[1]) == 1 and not K.Skin.IsSkinned(row, "Backdrop"), "step rows keep RestedXP's fill in the theme's colours")
 
+	-- RestedXP's text cannot move, so the glass grows outward instead: RestedXP keeps its content 4 units from
+	-- its frames' sides (a step's check box, the list's rows, the footer's cog), and the glass reaches one content
+	-- inset (the rule every text panel follows, at the window cut) past that on the left and the right, so every
+	-- check box and line clears the corner cuts and the light line. Top and bottom stay: the steps stack 5 apart.
+	local reach = K.Widgets.Inset(f.GuideName, K.Tokens.Size("chamferWindow")) - 4
+	assert(reach > 6, "the glass reaches more than 6 units past RestedXP's frames, got " .. tostring(reach))
+	local function Reaches(frame, what)
+		local glass = K.Skin.Parts(frame).backdrop
+		local tl, br = glass._points[1], glass._points[2]
+		assert(tl[1] == "TOPLEFT" and br[1] == "BOTTOMRIGHT", what .. ": the glass hangs from both corners")
+		local snapped = K.Widgets.Snap(glass, reach)
+		assert(W.Near(tl[4], -snapped) and W.Near(br[4], snapped), what .. ": the glass reaches " .. reach .. " past both sides, got " .. tostring(tl[4]) .. " and " .. tostring(br[4]))
+		assert(W.Near(tl[5], 0) and W.Near(br[5], 0), what .. ": the glass keeps RestedXP's top and bottom")
+	end
+	Reaches(f.GuideName, "the header")
+	Reaches(f.BottomFrame, "the step list")
+	Reaches(f.Footer, "the footer")
+
+	-- The scroll bar sits in its own gutter: a faint line, one border wide, runs the list's height a gap left
+	-- of the bar, on KstyleUI's own glass frame.
+	local gutter = ns.RestedXP.Chrome.Gutter(f.BottomFrame)
+	assert(gutter and gutter:IsShown(), "a gutter line beside the step list's scroll bar")
+	assert(gutter:GetParent() == K.Skin.Parts(f.BottomFrame).backdrop, "drawn on KstyleUI's glass, not on RestedXP's frame")
+	assert(W.SameColor(gutter, K.Tokens.Color("edgeFaint")), "as faint as the kit's dividers")
+	assert(W.Near(gutter:GetWidth(), K.Widgets.Border(gutter)), "one border wide")
+	local points = {}
+	for _, p in ipairs(gutter._points) do
+		points[p[1]] = p
+	end
+	assert(points.TOP and points.TOP[2] == f.BottomFrame and points.BOTTOM and points.BOTTOM[2] == f.BottomFrame, "from the list's top to its bottom")
+	local right = points.RIGHT
+	assert(right and right[2] == f.ScrollFrame.ScrollBar and right[3] == "LEFT" and W.Near(right[4], -K.Widgets.Snap(gutter, K.Tokens.Size("gapSmall") / 2)), "half a gapSmall left of the bar")
+
 	assert(#f.CurrentStepFrame.framePool == 0)
 	rxp.SetStep(2)
 	for _, step in ipairs(f.CurrentStepFrame.framePool) do
 		assert(Glass(K, step) and Hushed(step), "each active step frame is skinned as RestedXP makes it")
+		Reaches(step, "an active step")
 		assert(K.Skin.IsSkinned(step.number, "Backdrop") and Hushed(step.number), "its number badge is a tile")
 		assert(K.Skin.Parts(step.number).backdrop.chrome.fillName == "surface", "on the glass surface")
 		assert(select(2, step.number.text:GetFont()) == select(2, K.Tokens.Font("caption")), "its number is a caption")

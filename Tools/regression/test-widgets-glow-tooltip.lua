@@ -144,7 +144,7 @@ do
 	local divider = tip.used[7].divider
 	assert(divider and divider:IsShown(), "a divider line")
 	assert(W.SameColor(divider, K.Tokens.Color("edgeFaint")), "as faint as the kit's divider, below the bevel line")
-	local pad = Widgets.Snap(tip, Tokens.Size("gapLarge"))
+	local pad = tip.chrome:Inset()
 	assert(W.Near(divider:GetWidth(), tip:GetWidth() - 2 * pad), "the divider spans the panel inside its padding, fading at both ends")
 	local icon = tip.icon
 	assert(W.LastCall(icon.texture, "SetTexture")[1] == 135489 and icon:IsShown(), "the icon")

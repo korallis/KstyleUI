@@ -23,8 +23,11 @@ local CLEANUP_BUTTON = "RXPQuestLogCleanupButton"
 local IMPORT_BUTTONS = { "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }
 local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
+local RXP_MARGIN = 4
+local GUTTER_GAP = "gapSmall"
 
 local WEAK = { __mode = "k" }
+local gutters = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
@@ -95,20 +98,54 @@ local function Panel(frame)
 	return parts and parts.backdrop or nil
 end
 
+local function Reach(frame)
+	local reach = Widgets.Inset(frame, Tokens.Size("chamferWindow")) - RXP_MARGIN
+	return { left = -reach, right = -reach }
+end
+
 local function Glass(frame, opts)
 	if not IsTable(frame) or type(frame.GetRegions) ~= "function" then
 		return nil
 	end
 	opts = opts or {}
 	Skin.Strip(frame, { keep = opts.keep, children = RXP_ART })
+	local inset = opts.reach and Reach(frame) or nil
 	if opts.tile then
-		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false })
+		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = inset })
 	end
-	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true })
+	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset })
 end
 
-local function Tile(frame)
-	return Glass(frame, { tile = true })
+local function Tile(frame, reach)
+	return Glass(frame, { tile = true, reach = reach })
+end
+
+local function LayoutGutter(gutter)
+	local line, list, bar = gutter.line, gutter.list, gutter.bar
+	local gap = Widgets.Snap(line, Tokens.Size(GUTTER_GAP) / 2)
+	line:ClearAllPoints()
+	line:SetPoint("TOP", list, "TOP")
+	line:SetPoint("BOTTOM", list, "BOTTOM")
+	line:SetPoint("RIGHT", bar, "LEFT", -gap, 0)
+	line:SetWidth(Widgets.Border(line))
+	Widgets.Tint(line, "edgeFaint")
+end
+
+local function Gutter(list, bar)
+	local glass = Panel(list)
+	if not glass or gutters[list] or not IsTable(bar) or type(bar.GetObjectType) ~= "function" then
+		return
+	end
+	local line = glass:CreateTexture(nil, "ARTWORK")
+	line:SetColorTexture(Tokens.Color("white"))
+	local gutter = { line = line, list = list, bar = bar, Restyle = LayoutGutter }
+	LayoutGutter(gutter)
+	Widgets.Track(gutter)
+	gutters[list] = line
+end
+
+function Chrome.Gutter(list)
+	return gutters[list]
 end
 
 local function PaintTitle(text)
@@ -129,9 +166,9 @@ local function Caption(text, colorName)
 	end
 end
 
-local function Heading(text)
+local function GuideTitle(text)
 	if IsTable(text) and type(text.SetFont) == "function" then
-		Style.Text(text, "heading")
+		Style.ApplyFont(text, "heading", (select(2, Style.Font("body"))))
 		Widgets.TextColor(text, "textEmphasis")
 	end
 end
@@ -190,7 +227,7 @@ local function StepFrames(f)
 	for _, step in pairs(pool) do
 		if IsTable(step) then
 			if not Skin.IsSkinned(step, "Backdrop") then
-				Glass(step)
+				Glass(step, { reach = true })
 			end
 			if IsTable(step.number) then
 				if not Skin.IsSkinned(step.number, "Backdrop") then
@@ -221,16 +258,21 @@ local function GuideWindow(rxp)
 				keep[name[key]] = true
 			end
 		end
-		Glass(name, { keep = keep })
-		Heading(name.text)
+		Glass(name, { keep = keep, reach = true })
+		GuideTitle(name.text)
 	end
-	Glass(Find(f, "BottomFrame"))
+	local list = Find(f, "BottomFrame")
+	Glass(list, { reach = true })
 	local footer = Find(f, "Footer")
-	Tile(footer)
+	Tile(footer, true)
 	if footer then
 		Caption(footer.text)
 	end
-	ScrollBar(IsTable(f.ScrollFrame) and f.ScrollFrame.ScrollBar or Find(f, "ScrollFrame.ScrollBar"))
+	local bar = IsTable(f.ScrollFrame) and f.ScrollFrame.ScrollBar or Find(f, "ScrollFrame.ScrollBar")
+	ScrollBar(bar)
+	if list then
+		Gutter(list, bar)
+	end
 	StepFrames(f)
 	Hook(rxp, "SetStep", "SetStep", function()
 		StepFrames(f)

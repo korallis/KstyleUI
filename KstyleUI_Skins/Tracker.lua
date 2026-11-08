@@ -9,7 +9,7 @@ local KEY = "tracker"
 local LINE_DEFAULT, HEADER_EXTRA = 12, 2
 local PANEL_LEFT, PANEL_TOP, PANEL_BOTTOM = 16, -4, -8
 local LINE_ALPHA, LINE_UNITS, LINE_INSET = 0.5, 1, -2
-local CHEVRON_UNITS, CHEVRON_X, CAPTION_X, CAPTION_Y, CAPTION_SIZE, CAPTION_RIGHT = 19, -1.5, 12, 2, 12.5, 24
+local CHEVRON_UNITS, CAPTION_Y, CAPTION_SIZE, CAPTION_RIGHT = 19, 2, 12.5, 24
 local QUARTER_TURN = math.pi / 2
 local DISC_UNITS, RING_UNITS, NUMERAL_SIZE = 18, 24, 11
 local RING_ALPHA, HOVER_RING_ALPHA, HOVER_MIX = 0.9, 0.45, 0.15
@@ -123,14 +123,15 @@ end
 local function RestyleCaption(state)
 	Style.Text(state.text, "caption", "textEmphasis")
 	Style.ApplyFont(state.text, "caption", CAPTION_SIZE * Style.Setting("text", "size"))
+	local left = Widgets.Inset(state.row, Tokens.Size("chamferWindow")) - PANEL_LEFT
 	state.text:ClearAllPoints()
-	state.text:SetPoint("LEFT", state.row, "LEFT", Widgets.Snap(state.row, CAPTION_X), Widgets.Snap(state.row, CAPTION_Y))
+	state.text:SetPoint("LEFT", state.row, "LEFT", Widgets.Snap(state.row, left + CHEVRON_UNITS + Tokens.Size("gapSmall")), Widgets.Snap(state.row, CAPTION_Y))
 	state.text:SetPoint("RIGHT", state.row, "RIGHT", -Widgets.Snap(state.row, CAPTION_RIGHT), Widgets.Snap(state.row, CAPTION_Y))
 	state.text:SetJustifyH("LEFT")
 	state.text:SetWordWrap(false)
 	Widgets.Size(state.chevron, CHEVRON_UNITS, CHEVRON_UNITS)
 	state.chevron:ClearAllPoints()
-	state.chevron:SetPoint("LEFT", state.row, "LEFT", Widgets.Snap(state.row, CHEVRON_X - CHEVRON_UNITS / 2), Widgets.Snap(state.row, CAPTION_Y))
+	state.chevron:SetPoint("LEFT", state.row, "LEFT", Widgets.Snap(state.row, left), Widgets.Snap(state.row, CAPTION_Y))
 	Style.TintAccent(state.chevron)
 	SetCaption(state, state.value)
 end
@@ -425,7 +426,7 @@ local function Fit(tracker)
 end
 
 local function PanelInset()
-	return { left = 0, right = -Tokens.Size("panelPadding"), top = PANEL_TOP, bottom = PANEL_BOTTOM }
+	return { left = 0, right = -Widgets.WindowInset(), top = PANEL_TOP, bottom = PANEL_BOTTOM }
 end
 
 local function PaintPanel()

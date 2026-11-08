@@ -305,7 +305,7 @@ do
 	local bottom, bottomPoint, _, bottomY = Bottom()
 	assert(bottom == tracker.NineSlice and bottomPoint == "BOTTOM", "with quests tracked, the panel ends where Blizzard's content ends, not at the tracker's Edit Mode height: " .. tostring(bottomPoint))
 	assert(Near(bottomY, -Snap(PANEL_BOTTOM)), "the panel ends " .. PANEL_BOTTOM .. " below Blizzard's content, got " .. tostring(bottomY))
-	local pad, pixel = Snap(K.Tokens.Size("panelPadding")), K.Scale.Pixel()
+	local pad, pixel = K.Widgets.WindowInset(panel), K.Scale.Pixel()
 	local function Sides()
 		local left, leftPoint, leftX = Edge(panel, "LEFT", snap)
 		local right, rightPoint, rightX = Edge(panel, "RIGHT", snap)
@@ -396,6 +396,12 @@ do
 	local chevronPoint = { chevron:GetPoint(1) }
 	local captionPoint = { caption:GetPoint(1) }
 	assert(chevronPoint[1] == "LEFT" and captionPoint[1] == "LEFT" and captionPoint[4] > chevronPoint[4], "the chevron leads the caption from the left")
+	-- The panel starts PANEL_LEFT left of the header, so the chevron's left edge sits one content inset (the
+	-- rule every text panel follows: half the window cut, the edge band and gapSmall) inside the glass, clear of
+	-- the top-left cut, and the caption follows it after a gapSmall.
+	local inset = K.Widgets.Inset(row, K.Tokens.Size("chamferWindow"))
+	assert(Near(chevronPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT), K.Scale.Pixel()), "the chevron's left edge is one content inset inside the glass, got " .. tostring(chevronPoint[4]) .. " for " .. tostring(inset - PANEL_LEFT))
+	assert(Near(captionPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT + 19 + K.Tokens.Size("gapSmall")), K.Scale.Pixel()), "the caption starts a gapSmall after the 19-unit chevron, got " .. tostring(captionPoint[4]))
 	local rule = Region(env, K, quests.Header, "Texture", "divider")
 	assert(rule and Near(rule:GetHeight(), K.Widgets.Snap(rule, 1)), "a 1-unit rule closes the header row")
 	local allCaption, allRow = Caption(env, tracker.Header, "OBJECTIVES")

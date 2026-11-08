@@ -108,10 +108,12 @@ do
 	local g = ns.Panel.Geometry(chat)
 	assert(near(g.divider, snap(32)), "the divider closes a 32-unit tab strip, got " .. g.divider)
 	assert(near(g.top, snap(32 + 3 * g.k)), "the window's top sits where Blizzard's dock ends, 3 chat units under the strip, got " .. g.top)
-	assert(near(g.left, snap(16)), "16 units of glass left of the messages, got " .. g.left)
+	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
+	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
+	assert(near(g.left, pad), "one window content inset of glass left of the messages, got " .. g.left .. " for " .. pad)
 	local reach = (2 + 32) * g.k - math.max(0, (32 * g.k - 22) / 2)
 	local clear = reach + K.Tokens.Size("gapTiny") - select(2, K.Layout.Rect("chat.main"))
-	assert(near(g.bottom, snap(math.max(16, clear))), "16 units of glass below the messages, or what keeps the edit box on screen, got " .. g.bottom)
+	assert(near(g.bottom, snap(math.max(pad, clear))), "one inset of glass below the messages, or what keeps the edit box on screen, got " .. g.bottom)
 	-- Blizzard's dock ends 2 chat units right of the window and its 16-unit overflow button sits at that end; the
 	-- window stops where the button clears the copy glyph's 20-unit hit area, 352 units of room for the mockup's lines.
 	local copyCentre = 22 + 20 + K.Tokens.Size("gapTiny")
@@ -128,7 +130,7 @@ do
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)
 	assert(g.bottom > snap(16) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
-	assert(near(g.left, snap(16)), "the other insets stay")
+	assert(near(g.left, ns.Panel.Glass().chrome:Inset("gapMedium")), "the other insets stay")
 end
 
 -- While the edit box shows only when typing it hangs under the panel, so where the chat window's units are larger
@@ -154,7 +156,7 @@ do
 	assert(near(select(5, chat:GetPoint(2)) * g.k, moved.bottom), "the window's anchor follows")
 	K.Layout.Set("chat.main", "y", 200)
 	env.RunTimers()
-	assert(near(ns.Panel.Geometry(chat).bottom, snap(16)), "high on the screen the inset is the mockup's 16 again")
+	assert(near(ns.Panel.Geometry(chat).bottom, ns.Panel.Glass().chrome:Inset("gapMedium")), "high on the screen the inset is the window's content inset again")
 end
 
 -- The tab row's right end: a plus glyph that opens the chat's settings page and, beside it, a small copy glyph that

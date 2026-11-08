@@ -19,7 +19,7 @@ local function Build(frame)
 	end
 	built = true
 	local Widgets, Tokens = ns.Widgets, ns.Tokens
-	local pad = Tokens.Size("panelPadding")
+	local pad = Widgets.WindowInset(frame)
 	local gap = Tokens.Size("gapMedium")
 	local logo = frame:CreateTexture(nil, "ARTWORK")
 	logo:SetTexture((Tokens.Texture("logo")))

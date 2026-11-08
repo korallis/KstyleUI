@@ -115,8 +115,8 @@ for _, want in ipairs({ "VALERIN", "FROST HOWLER", "78%", "56%", "FROST BITE", "
 	assert(designTexts[want], "the design scene shows " .. want)
 end
 
--- The RestedXP windows the fake builds, skinned, laid out by the scene: the step window, the guide window and the
--- v2 window show as glass, with the step plate and footer texts.
+-- The RestedXP windows the fake builds, skinned, laid out as RestedXP lays them out in the game: the step
+-- frames, the guide window and the v2 window show as glass, with the step plate, the guide name and footer texts.
 local rested = check("restedxp", RestedXP())
 local restedTexts = {}
 for _, item in ipairs(rested.items) do
@@ -124,8 +124,28 @@ for _, item in ipairs(rested.items) do
 		restedTexts[item.text] = true
 	end
 end
-for _, want in ipairs({ "Step 25", "RestedXP Guides v4.11.34", "Durotar 1-6" }) do
+for _, want in ipairs({ "Step 35", "RestedXP Guides v4.11.35", "6-10 Durotar\nSpeedrun Guide 1-22", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
 	assert(restedTexts[want], "the RestedXP scene shows " .. want)
+end
+-- RestedXP's own geometry is kept, so the render shows how close its content sits to the skin's glass: a
+-- step's check button 6 units in from the step frame, the guide name's left edge 29 in, the list's scroll bar 20
+-- before the list's right edge.
+do
+	local Common = L.Common
+	local Lib = dofile("Tools/render/scenes/_restedxp.lua")
+	local R = Lib.Build()
+	local f = R.rxp.RXPFrame
+	local step = f.CurrentStepFrame.framePool[1]
+	local sx = Common.Scene.Rect(R.env, step)
+	local bx = Common.Scene.Rect(R.env, step.elements[1].button)
+	assert(sx and bx and math.abs((bx - sx) - 6) < 0.01, "the check button sits 6 in from the step frame, got " .. tostring(bx and sx and bx - sx))
+	local lx, _, lw = Common.Scene.Rect(R.env, f.BottomFrame)
+	local barX, _, barW = Common.Scene.Rect(R.env, f.ScrollFrame.ScrollBar)
+	assert(math.abs((lx + lw) - (barX + barW) - 4) < 0.01, "the scroll bar ends 4 before the list's right edge, got " .. tostring((lx + lw) - (barX + barW)))
+	local _, sy, _, sh = Common.Scene.Rect(R.env, step)
+	local _, ny = Common.Scene.Rect(R.env, step.number)
+	assert(math.abs((sy - ny) - 5) < 0.01, "the Step plate rises 5 above the step frame")
+	assert(sh > 60, "the first step holds its four elements, got " .. tostring(sh))
 end
 
 print("ok")

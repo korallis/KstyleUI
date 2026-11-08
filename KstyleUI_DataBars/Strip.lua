@@ -15,7 +15,6 @@ local SLOTS = 5
 local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
-local PAD = 12
 local SEPARATOR_SHARE = 0.25
 local SEPARATOR_ALPHA = 1
 local CHAR_WIDTH_SHARE = 0.45
@@ -226,6 +225,10 @@ local function Size(frame)
 	return IsNumber(w) and w or 0, IsNumber(h) and h or 0
 end
 
+local function Pad(frame)
+	return Widgets.Inset(frame, Tokens.Size("chamferPanel"))
+end
+
 local function PlaceItems(view, s, force)
 	local frame = view.frame
 	local w, h = Size(frame)
@@ -261,7 +264,7 @@ local function PlaceItems(view, s, force)
 		button:ClearAllPoints()
 		separator:ClearAllPoints()
 		if vertical then
-			button:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(frame, PAD), y)
+			button:SetPoint("TOPLEFT", frame, "TOPLEFT", Pad(frame), y)
 			button:SetSize(max(1, item.width), rowHeight)
 			separator:SetShown(false)
 			y = y - rowHeight
@@ -573,7 +576,7 @@ local function MatchOrientation(s, changed)
 	local vertical = s.orientation == "VERTICAL"
 	if vertical and (changed or layout.width >= ROW_ASPECT * layout.height) then
 		local rows = max(1, #Order(s))
-		K.Layout.Update(KEY, { width = VERTICAL_WIDTH, height = Widgets.Snap(Strip.view.frame, rows * s.fontSize * ROW_SHARE + 2 * PAD) })
+		K.Layout.Update(KEY, { width = VERTICAL_WIDTH, height = Widgets.Snap(Strip.view.frame, rows * s.fontSize * ROW_SHARE + 2 * Pad(Strip.view.frame)) })
 	elseif not vertical and (changed or layout.height > layout.width) then
 		local width, height = Footprint()
 		K.Layout.Update(KEY, { width = width, height = height })

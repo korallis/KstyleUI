@@ -359,11 +359,14 @@ local function V1Window(m, rxp)
 	f.Footer = footer
 	m.texture(footer, "BACKGROUND", "bg")
 	footer.icon = m.frame("Button", footer, "RXPFrameGuideNameResize")
+	m.texture(footer.icon, "ARTWORK", "Normal")
+	footer.cog = m.frame("Button", f, "RXPFrameGuideNameCogwheel")
+	m.texture(footer.cog, "ARTWORK", "Normal")
 	footer.text = m.text(name)
 	local scroll = m.frame("ScrollFrame", f.BottomFrame, "RXPFrame_bottomFrameScrollFrame", "UIPanelScrollFrameTemplate")
 	scroll.ScrollBar = ScrollBar(m, scroll, "RXPFrame_bottomFrameScrollFrameScrollBar")
 	f.ScrollFrame = scroll
-	f.ScrollChild = m.frame("Frame", f.BottomFrame, "RXPFrame_bottomFrame_steps")
+	f.ScrollChild = m.frame("Frame", scroll, "RXPFrame_bottomFrame_steps")
 	f.ScrollChild.framePool = {}
 	f.CurrentStepFrame = m.frame("Frame", f)
 	f.CurrentStepFrame.framePool = {}
@@ -377,8 +380,9 @@ local function V1Window(m, rxp)
 	end
 	f:UpdateVisuals()
 	rxp.RXPFrame = f
-	-- SetStep makes an active step frame per step on first use, each with a number badge and a check button.
-	rxp.SetStep = m.trust(function(count)
+	-- SetStep makes an active step frame per step on first use, each with a number badge and its check buttons:
+	-- elements is how many a step holds (a number for every step, or one per step), default one.
+	rxp.SetStep = m.trust(function(count, elements)
 		local pool = f.CurrentStepFrame.framePool
 		for i = 1, count or 1 do
 			local step = pool[i]
@@ -386,11 +390,15 @@ local function V1Window(m, rxp)
 				step = Backdrop(m, m.frame("Frame", f.CurrentStepFrame))
 				step.number = Backdrop(m, m.frame("Frame", step))
 				m.text(step.number, "text")
-				local element = m.frame("Frame", step)
-				element.button = m.frame("CheckButton", element, nil, "ChatConfigCheckButtonTemplate")
-				m.texture(element.button, "ARTWORK", "NormalArt")
-				element.text = m.text(element)
-				step.elements = { element }
+				step.elements = {}
+				local wanted = type(elements) == "table" and elements[i] or elements or 1
+				for e = 1, wanted do
+					local element = m.frame("Frame", step)
+					element.button = m.frame("CheckButton", element, nil, "ChatConfigCheckButtonTemplate")
+					m.texture(element.button, "ARTWORK", "NormalArt")
+					element.text = m.text(element)
+					step.elements[e] = element
+				end
 				pool[i] = step
 				m.seal()
 				step:SetBackdrop(f.backdrop.edge)
@@ -398,10 +406,21 @@ local function V1Window(m, rxp)
 			end
 		end
 	end)
-	-- Step list rows: RestedXP draws them flat in the theme's bottomFrameBG colour.
-	local row = Backdrop(m, m.frame("Frame", f.ScrollChild, "RXPFrame_bottomFrame_steps_frame_1"))
-	row:SetBackdrop(f.backdrop.bottom)
-	f.ScrollChild.framePool[1] = row
+	-- Step list rows: RestedXP draws them flat in the theme's bottomFrameBG colour, each with its text and a
+	-- number at its bottom right. m.rows(count) makes more as the guide list grows.
+	function m.rows(count)
+		local pool = f.ScrollChild.framePool
+		for n = #pool + 1, count do
+			local row = Backdrop(m, m.frame("Frame", f.ScrollChild, "RXPFrame_bottomFrame_steps_frame_" .. n))
+			row.text = m.text(row)
+			row.number = m.frame("Frame", row)
+			m.text(row.number, "text")
+			pool[n] = row
+			m.seal()
+			row:SetBackdrop(f.backdrop.bottom)
+		end
+	end
+	m.rows(1)
 	return f
 end
 

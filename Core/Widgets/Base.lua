@@ -17,6 +17,8 @@ local LINE_SUBLEVELS = { outer = -2, inner = -1, fade = -3, plate = -4 }
 local BEVEL = { top = 1.4, bottom = 1.1, side = 1, cut = 1.6 }
 local FADE = 0.65
 local PLATE_ALPHA = 1.25
+local EDGE_ROWS = 3
+local INSET_GAP = "gapSmall"
 local LINE_BAND_START, LINE_BAND_SIZE = 0.25, 0.25
 local LINE_COLUMN = 0.5
 local SQRT2 = math.sqrt(2)
@@ -360,6 +362,11 @@ function Widgets.Size(frame, width, height)
 	frame:SetSize(SnapIn(width, f), SnapIn(height, f))
 end
 
+function Widgets.Inset(frame, chamfer, gap)
+	local f = frame and Widgets.ScaleFactor(frame) or 1
+	return SnapIn(chamfer / 2 + EDGE_ROWS * Scale.Border() / f + Tokens.Size(gap or INSET_GAP), f)
+end
+
 local LINES = {
 	{ key = "outer", color = "edgeOuter", borders = 0 },
 	{ key = "inner", borders = 1, edge = true },
@@ -623,6 +630,14 @@ function Chrome:Chamfer()
 		return short * self.share
 	end
 	return min(cap, short * Tokens.Share("chamfer"))
+end
+
+function Chrome:Inset(gap)
+	return Widgets.Inset(self.owner, self:Chamfer(), gap)
+end
+
+function Widgets.WindowInset(frame)
+	return Widgets.Inset(frame, Tokens.Size("chamferWindow"), "gapMedium")
 end
 
 function Chrome:OnSizeChanged()

@@ -41,6 +41,22 @@ do
 	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the buttonFill body")
 end
 
+-- The title, the rows and the values sit one content inset inside the glass, the rule every text panel follows,
+-- so nothing sits under a corner cut or on the light line.
+do
+	local inset = list.panel.chrome:Inset()
+	assert(M.W.Near(list.pad, inset), "the meter's padding is the chrome's content inset, got " .. tostring(list.pad) .. " for " .. tostring(inset))
+	local title = { list.title:GetPoint(1) }
+	assert(title[1] == "TOPLEFT" and M.W.Near(title[4], inset) and M.W.Near(title[5], -inset), "the title starts one inset from the top left")
+	local column = { list.column:GetPoint(1) }
+	assert(column[1] == "TOPRIGHT" and M.W.Near(column[4], -inset), "the column heading ends one inset from the right")
+	local bar = { list.rows[1].bar:GetPoint(1) }
+	assert(bar[1] == "TOPLEFT" and M.W.Near(bar[4], inset), "each bar starts one inset from the left")
+	local percent = { list.rows[1].percent:GetPoint(1) }
+	assert(M.W.Near(percent[4], -inset), "the percentage ends one inset from the right")
+	assert(list:Capacity() * (ns.Get("damage.rowHeight") + ns.Get("damage.spacing")) - ns.Get("damage.spacing") <= list.holder:GetHeight() - list:Top() - inset, "the last row ends at least one inset above the bottom")
+end
+
 -- Rows mirror the current session.
 assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.METER.DamageDone, "the window reads the current fight's damage done")
 assert(list.count == 2, "two sources show")

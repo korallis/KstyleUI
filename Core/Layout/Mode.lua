@@ -570,7 +570,7 @@ local function BuildToolbar()
 		x = x + (item:GetWidth() or 0) + (i == 2 and gap * 2 or gap)
 		tallest = max(tallest, item:GetHeight() or 0)
 	end
-	local pad = Tokens.Size("panelPadding")
+	local pad = Widgets.WindowInset(panel)
 	local top = pad + Tokens.Size("heading") + gap * 2
 	panel.opts.width = x - gap + pad * 2
 	panel.opts.height = top + tallest + pad

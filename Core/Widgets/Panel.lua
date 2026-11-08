@@ -8,8 +8,10 @@ local RISE_UP_SHARE = 0.75
 
 local Panel = {}
 
-local function TitleBarHeight()
-	return Tokens.Size("panelPadding") + Tokens.Size("heading") + Tokens.Size("gapMedium")
+local PAD_GAP = "gapMedium"
+
+local function TitleBarHeight(panel)
+	return panel.chrome:Inset(PAD_GAP) + Tokens.Size("heading") + Tokens.Size("gapMedium")
 end
 
 local function BuildRise(panel)
@@ -80,10 +82,10 @@ function Panel:Restyle()
 	if opts.width and opts.height then
 		Widgets.Size(self, opts.width, opts.height)
 	end
-	local pad = Widgets.Snap(self, Tokens.Size("panelPadding"))
+	local pad = self.chrome:Inset(PAD_GAP)
 	local top = pad
 	if self.titleText then
-		local bar = Widgets.Snap(self, TitleBarHeight())
+		local bar = Widgets.Snap(self, TitleBarHeight(self))
 		self.titleBar:SetHeight(bar)
 		self.titleText:ClearAllPoints()
 		self.titleText:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)

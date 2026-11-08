@@ -72,7 +72,6 @@ local SIZES = {
 	gapMedium = 8,
 	gapLarge = 12,
 	gapHuge = 16,
-	panelPadding = 16,
 	rowHeight = 24,
 }
 

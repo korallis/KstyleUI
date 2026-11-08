@@ -18,8 +18,8 @@ do
 	local content = panel.content
 	assert(content and content:GetParent() == panel, "a content frame")
 	local p = content._points[1]
-	local pad = Scale.Snap(Tokens.Size("panelPadding"))
-	assert(p[1] == "TOPLEFT" and W.Near(p[4], pad) and W.Near(p[5], -pad), "content starts one padding in")
+	local pad = K.Widgets.WindowInset(panel)
+	assert(p[1] == "TOPLEFT" and W.Near(p[4], pad) and W.Near(p[5], -pad), "content starts one rule inset in")
 	assert(panel.titleText == nil and panel.closeButton == nil, "no title bar unless asked")
 	assert(#env._errors == 0)
 end
@@ -44,7 +44,7 @@ do
 		assert(region:GetTexture() ~= Tokens.Texture("divider"), "no divider texture on the panel")
 	end
 	local top = panel.content._points[1]
-	assert(top[5] < -Tokens.Size("panelPadding") - Tokens.Size("heading"), "content starts below the title bar")
+	assert(top[5] < -K.Widgets.WindowInset(panel) - Tokens.Size("heading"), "content starts below the title bar")
 	panel:SetTitle("Other")
 	assert(panel.titleText:GetText() == "OTHER")
 	local secret = env.Secret("Name")

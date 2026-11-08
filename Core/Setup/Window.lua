@@ -304,7 +304,7 @@ local function Build()
 		layout = { key = WINDOW_KEY, position = WINDOW_POSITION, options = { scalable = true, window = true, label = L["First-run setup"] } },
 	})
 	local content = panel.content
-	local width = WIDTH - 2 * Tokens.Size("panelPadding")
+	local width = WIDTH - 2 * Widgets.WindowInset(panel)
 	local tabs = {}
 	for i, label in ipairs(STEP_LABELS) do
 		tabs[i] = { value = i, label = label, disabled = i > 1 }

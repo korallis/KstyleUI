@@ -23,7 +23,7 @@
 --     hangs its TOPRIGHT at the title's TOPLEFT (-7, 5), its NormalTexture and Display icon are 32 by 32 about
 --     its centre, its Glow 50 by 50; Forever shows the "Quest-In-Progress-Icon-yellow" atlas with no numeral.
 -- The game's atlases draw as grey boxes and its texture files have no local copy; the skin hushes all of them.
--- The tracker's position is Edit Mode's: here its right edge sits panelPadding left of the minimap's right
+-- The tracker's position is Edit Mode's: here its right edge sits one window content inset (16 units) left of the minimap's right
 -- edge so the panel aligns with the minimap, and its top sits where the panel's top lands 89 units below
 -- the minimap's 221-unit frame (16 from the top), which is where the mockup puts it at 1.348 px per unit. OBJECTIVE_TRACKER_BLOCK_HEADER_COLOR is not in the UI source
 -- dump; the game's tracker draws gold titles (spec/g_quest.png), so the stand-in uses NORMAL_FONT_COLOR.

@@ -223,7 +223,7 @@ function Window:Layout(force)
 	local rowsLimit = Settings.Get("rows")
 	local size, spacing = Snap(self, Settings.Get("slotSize")), Snap(self, Settings.Get("spacing"))
 	self.geometry = { size = size, spacing = spacing, growth = Settings.Get("growth") }
-	local pad = Snap(self, Tokens.Size("panelPadding"))
+	local pad = Widgets.WindowInset(panel)
 	local gap = Snap(self, Tokens.Size("gapMedium"))
 	local rowHeight = Snap(self, Tokens.Size("rowHeight") + Tokens.Size("gapSmall"))
 	local sortWidth = Snap(self, SORT_WIDTH)

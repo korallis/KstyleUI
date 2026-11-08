@@ -208,7 +208,7 @@ local function PaintDivider(texture)
 end
 
 function Tip:Layout()
-	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
+	local pad = self.chrome:Inset()
 	local inset = Widgets.Snap(self, ICON_INSET)
 	local iconSize = Widgets.Snap(self, ICON_SIZE)
 	local border = Widgets.Border(self)

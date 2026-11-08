@@ -48,7 +48,7 @@ Tests: `Tools/regression/test-meters-logic.lua`, `test-meters-module.lua`, `test
 | `meters.threat` | Threat meter | 208 x 104 | 120 to 600 wide, 40 to 800 tall |
 | `meters.swing` | Swing timer | 260 x 8 | 40 to 800 wide, 2 to 64 tall |
 
-Each element is a holder frame that Layout places, sizes and shows. The meter draws inside it on a child frame, so Layout and the module never show or hide the same frame. A meter switched off in the settings hides its holder too. The rows that fit follow the holder's height: a taller meter shows more rows.
+Each element is a holder frame that Layout places, sizes and shows. The meter draws inside it on a child frame, so Layout and the module never show or hide the same frame. A meter switched off in the settings hides its holder too. The rows that fit follow the holder's height: a taller meter shows more rows. The title, the rows and the values sit one content inset (`chrome:Inset()`, the rule every text panel follows: half the corner cut, the edge lines and a `gapSmall`, about 12 units) inside the glass, so nothing sits under a corner cut or on the light line; at that padding the default damage footprint fits four 14-unit rows under its title and the threat footprint three.
 
 ## Damage meter
 

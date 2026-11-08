@@ -28,7 +28,6 @@ local EDIT_PAST_SCROLLBAR = 8
 local SCROLLBAR_WIDTH = 8
 
 local STRIP_HEIGHT = 32
-local PAD = 16
 local EDIT_TILE = 22
 local EDIT_BOTTOM = 6
 
@@ -74,6 +73,14 @@ local function Number(v, fallback)
 	return v
 end
 
+local function Pad()
+	local glass = state.glass
+	if glass then
+		return glass.chrome:Inset("gapMedium")
+	end
+	return Widgets.WindowInset()
+end
+
 local function Ratio(chat, holder)
 	local own = Number(chat:GetEffectiveScale(), nil)
 	local root = Number((holder or Scale.Root()):GetEffectiveScale(), nil)
@@ -98,7 +105,7 @@ function Panel.Column(frame, k)
 	if settings and settings.copyButton == true then
 		centre = centre + BUTTON_SIZE + Tokens.Size("gapTiny")
 	end
-	return max(column, centre + BUTTON_SIZE / 2 + DOCK_SIDE * k - PAD)
+	return max(column, centre + BUTTON_SIZE / 2 + DOCK_SIDE * k - Pad())
 end
 
 local function EditAlways()
@@ -120,13 +127,13 @@ function Panel.Geometry(chat)
 	if EditAlways() then
 		bottom = EDIT_BOTTOM + reach
 	else
-		bottom = max(PAD, reach + Tokens.Size("gapTiny") - PanelBottom())
+		bottom = max(Pad(), reach + Tokens.Size("gapTiny") - PanelBottom())
 	end
 	return {
 		k = k,
-		left = snap(PAD),
+		left = snap(Pad()),
 		top = snap(STRIP_HEIGHT + BACKGROUND_RISE * k),
-		right = snap(PAD + Panel.Column(chat, k)),
+		right = snap(Pad() + Panel.Column(chat, k)),
 		bottom = snap(bottom),
 		divider = snap(STRIP_HEIGHT),
 	}
@@ -144,7 +151,7 @@ end
 
 function Panel.UndockedInsets(frame)
 	local k = Ratio(frame, nil)
-	local pad = PAD / k
+	local pad = Pad() / k
 	local bottom = -pad
 	if EditAlways() then
 		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2) + EDIT_BOTTOM / k)

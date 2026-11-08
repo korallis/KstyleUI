@@ -49,7 +49,7 @@ local function LayOutToolbar(env, K, panel)
 		x = x + width + (i == 2 and gap * 2 or gap)
 		tallest = math.max(tallest, item:GetHeight() or 0)
 	end
-	local pad = Tokens.Size("panelPadding")
+	local pad = Widgets.WindowInset(panel)
 	panel.opts.width = x - gap + pad * 2
 	panel.opts.height = pad + Tokens.Size("heading") + gap * 2 + tallest + pad
 	panel:Restyle()

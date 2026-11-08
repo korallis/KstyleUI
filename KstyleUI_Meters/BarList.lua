@@ -114,7 +114,7 @@ end
 
 function List:Restyle()
 	local section = self.section
-	self.pad = Widgets.Snap(self.panel, Tokens.Size("gapMedium"))
+	self.pad = self.panel.chrome:Inset()
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
 	local width = Size(self.holder, self.width, self.height)
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()

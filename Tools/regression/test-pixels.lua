@@ -67,7 +67,7 @@ end
 local SIZE_NAMES = {
 	"chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
-	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "panelPadding", "rowHeight", "chamferWindow",
+	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow",
 }
 local SLICED = { "chamferPanel", "chamferTile", "chamferWindow", "shadow" }
 -- Chamfers are 30% of the shorter side up to the shape's cap, snapped to whole pixels; every bevel line is one border thick, its straight pieces

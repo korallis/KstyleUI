@@ -126,7 +126,7 @@ function Preview.Create(parent)
 	pane.built = {}
 	pane.placeholder = Placeholder(pane)
 	pane.Layout = function(self)
-		local pad = Widgets.Snap(self, Tokens.Size("panelPadding"))
+		local pad = Widgets.WindowInset(self)
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
 		self.caption:ClearAllPoints()
 		self.caption:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)

@@ -47,6 +47,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 | `Mix(r1, g1, b1, a1, r2, g2, b2, a2, t)`, `MixTokens(nameA, alphaA, nameB, alphaB, t)` | Linear mix of two colours. |
 | `ScaleFactor(frame) -> number` | The frame's effective scale over `KstyleUI_Root`'s: 1 for a frame at the root's scale, 1.25 for a tooltip at a size of 1.25. A secret or missing scale gives 1. |
 | `Snap(frame, units) -> units`, `Border(frame) -> units` | `Scale.Snap` and `Scale.Border` in the frame's own units, so a frame with its own scale still draws whole pixels. Every component snaps through these. |
+| `Inset(frame, chamfer, gap) -> units`, `WindowInset(frame) -> units` | The one content-inset rule: where text and art start inside a chrome's edge. Half the corner cut (a 45-degree facet of `chamfer` units clears a box inset by half of it), plus the three edge rows (`Border(frame)` each: the dark line, the light line and its fade), plus a gap token, `gapSmall` by default (about 12 units at the 12-unit cap: the mockup's text margin on the chat, the tracker and the meters) or `gapMedium` for windows (16 at the cap, the padding every window and dialog uses; `WindowInset` is that at the window cap). Snapped in the frame's own units; `frame` may be nil for root units. A chrome answers it for its own cut as `chrome:Inset(gap)`. Every text panel pads with it: the kit's panels, dialogs and tooltips, the meters, the chat glass, the data strip, the tracker's caption row and the RestedXP glass, so nothing sits under a cut or on the light line, and `Tools/regression/test-widgets-inset.lua` holds the rule. |
 | `Size(frame, width, height)` | `SetSize` snapped to whole pixels in the frame's units. |
 | `Clamp(v, low, high)` | |
 | `Hover(widget, on)`, `Press(widget, down)` | Tween `widget.hoverT` and `widget.pressT` between 0 and 1 and call `widget:Paint()` on each step. |
@@ -101,6 +102,7 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the light line that hover and selection light up. |
 | `SetOuter(name, alphaScale)`, `SetOuterRGBA(r, g, b, a)` | Recolours the outer line, kept through a restyle. `SetOuter()` with no token returns it to the shape's line. Icon buttons draw it as the rim's halo. Both allocate nothing. |
 | `SetChamfer(units)` | Pins the cut to `units` and re-lays the chrome out when it differs. `Chamfer()` returns the units in use: the pinned value, or the computed cut (the share of the owner's shorter side up to the cap; the cap alone while the owner has no size). |
+| `Inset(gap)` | `Widgets.Inset(owner, Chamfer(), gap)`: where the owner's content starts inside this chrome's edge, so a shorter panel with a smaller cut lets its text sit closer to the edge and a tall one keeps the full margin. |
 | `SetShadow(on)`, `SetShown(shown)` | `SetShown` hides and shows the bezel with the rest. |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
@@ -140,7 +142,7 @@ A chrome cuts each corner `Tokens.Share("chamfer")` (30%) of its owner's shorter
 | `strata`, `name`, `hidden` | |
 | `layout = { key, position, options }` | Calls `Widgets.Place` with them |
 
-Fields: `chrome`, `content` (a frame one `panelPadding` inside, below the title bar), `titleBar`, `titleText`, `closeButton`, `rise` and `riseParts` (the open animation).
+Fields: `chrome`, `content` (a frame one `chrome:Inset("gapMedium")` inside, below the title bar), `titleBar`, `titleText`, `closeButton`, `rise` and `riseParts` (the open animation).
 
 | Method | Behaviour |
 | --- | --- |
