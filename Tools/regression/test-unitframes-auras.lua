@@ -90,7 +90,7 @@ do
 	assert(rim, "its hairline rests on the accent lifted 15% toward white, as an action button")
 end
 assert((paths[(Tokens.Texture("chamferTile"))] or 0) >= 9, "the tile has a chamfered fill")
-assert(paths[(Tokens.Texture("line"))] == 12, "the tile has the kit's three bevel lines, four diagonal corners each")
+assert(paths[(Tokens.Texture("line"))] == 8, "the tile has the kit's two bevel lines, four diagonal corners each")
 assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
 local corners = cornerSizes(skin)
 assert(#corners >= 4, "the chamfer corners are sized")

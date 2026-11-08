@@ -453,7 +453,7 @@ local function Apply()
 	else
 		Log("UpdateHeaderPosition is missing; the panel keeps its first fit through collapses and empty layouts")
 	end
-	panel = Skin.Backdrop(tracker, { shape = "panel", fill = "surface", inset = PanelInset(), target = fit })
+	panel = Skin.Backdrop(tracker, { shape = "window", fill = "surface", inset = PanelInset(), target = fit })
 	PaintPanel()
 	if type(tracker.ForEachModule) == "function" then
 		tracker:ForEachModule(Module)

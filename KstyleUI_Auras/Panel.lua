@@ -18,7 +18,7 @@ local GATE_EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_ENABLED" 
 local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYER_ENTERING_WORLD" }
 local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
-local EDGE_TOKENS = { buffs = "accent", debuffs = "hostile" }
+local EDGE_TOKENS = { buffs = "edgeInner", debuffs = "hostile" }
 local FALLBACK = {
 	buffs = { position = { anchor = "TOPRIGHT", x = -16, y = -252 }, label = K.L["Buffs"] },
 	debuffs = { position = { anchor = "TOPRIGHT", x = -16, y = -354 }, label = K.L["Debuffs"] },

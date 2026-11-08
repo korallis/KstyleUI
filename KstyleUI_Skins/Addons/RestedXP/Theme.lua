@@ -20,7 +20,6 @@ local BASE_V1, DARK_V1, BASE_V2 = "RXP Blue", "DarkMode", "RXP Blue V2"
 local FLAT = "Interface\\Buttons\\WHITE8X8"
 local V2_VERSION = 2
 local HIGHLIGHT_ALPHA = 0.5
-local BORDER_ALPHA = 0.6
 local EDGES = { "edge", "guideName" }
 local BORDER_ART = "rxp-borders"
 local BYTE = 255
@@ -212,13 +211,13 @@ local function BuildV2(rxp)
 	Token(back, "guideName", "surface", opacity)
 	Token(back, "guideWindow", "surface", opacity)
 	Token(back, "scrollbar", "track")
-	Token(back, "guideSelector", "raised")
+	Token(back, "guideSelector", "buttonFill")
 	Token(back, "inactivePartyTab", "surface", opacity)
-	Token(back, "activeStepCheckbox", "raised")
+	Token(back, "activeStepCheckbox", "buttonFill")
 	Accent(back, "activeStepCheckboxChecked")
 	local border = List(v2, "borderColors")
-	Accent(border, "common", BORDER_ALPHA)
-	Accent(border, "commonEdge", BORDER_ALPHA)
+	Token(border, "common", "edgeInner")
+	Token(border, "commonEdge", "edgeInner")
 	Token(border, "inactivePartyTab", "edgeInner")
 	Accent(border, "activeStepCheckboxChecked")
 	local text = List(v2, "textColor")

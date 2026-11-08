@@ -65,6 +65,7 @@ do
 	local f = rxp.RXPFrame
 	assert(ns.Skins.IsApplied("restedXP"))
 	assert(Glass(K, f.GuideName) and Glass(K, f.BottomFrame), "the header and the step list sit on KstyleUI glass")
+	assert(K.Skin.Parts(f.BottomFrame).backdrop.chrome.shapeName == "window" and K.Skin.Parts(f.GuideName).backdrop.chrome.shapeName == "window", "window-grade glass, as the HUD's chat and tracker")
 	assert(Hushed(f.BottomFrame), "RestedXP's backdrop under the list goes")
 	assert(Alpha(f.GuideName.bg) == 0 and Alpha(f.GuideName._pieces[1]) == 0, "the header's banner and backdrop go")
 	assert(Alpha(f.GuideName.icon) == 1 and Alpha(f.GuideName.classIcon) == 1, "the logo and class icon stay")

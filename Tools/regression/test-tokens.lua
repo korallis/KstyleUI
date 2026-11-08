@@ -85,26 +85,28 @@ end
 
 -- The spec's colour table.
 for name, want in pairs({
-	surface = { "101010", 0.88 },
+	surface = { "151a20", 0.97 },
 	raised = { "1c1c1c", 1 },
-	edgeOuter = { "000000", 0.6 },
+	edgeOuter = { "000000", 0.8 },
 	edgeInner = { "ffffff", 0.28 },
 	edgeFaint = { "ffffff", 0.08 },
+	edgeBar = { "ffffff", 0.16 },
 	text = { "ababab", 1 },
 	textEmphasis = { "ffffff", 1 },
 	textHover = { "ffffff", 1 },
 	textDisabled = { "666666", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
-	buttonFill = { "090c0c", 1 },
+	buttonFill = { "101214", 1 },
 	powerTrack = { "ffffff", 0.15 },
-	edgeWindowOuter = { "ffffff", 0.35 },
-	edgeWindowInner = { "ffffff", 0.5 },
-	edgeWindowFaint = { "ffffff", 0.15 },
 }) do
 	local r, g, b, a = Tokens.Color(name)
 	local wr, wg, wb = hexColor(want[1])
 	assert(near(r, wr) and near(g, wg) and near(b, wb) and near(a, want[2]), "Tokens.Color(" .. name .. ") is not #" .. want[1])
+end
+do
+	local r, g, b, a = Tokens.Color("shadow")
+	assert(r == 0 and g == 0 and b == 0 and near(a, 0.6), "the panel shadow is black at 60%, the mockup's drop shadow")
 end
 for _, name in ipairs({ "hostile", "neutral", "friendly", "accent", "accentDefault", "shadow", "textShadow", "track", "white", "black" }) do
 	local r, g, b, a = Tokens.Color(name)
@@ -113,10 +115,13 @@ for _, name in ipairs({ "hostile", "neutral", "friendly", "accent", "accentDefau
 	end
 end
 assert(not pcall(Tokens.Color, "surfaec"), "an unknown colour name is an error")
+for _, name in ipairs({ "edgeWindowOuter", "edgeWindowInner", "edgeWindowFaint" }) do
+	assert(not pcall(Tokens.Color, name), name .. " is gone: the mockup draws every panel with the one edge line")
+end
 
 -- The spec's shape and HUD sizes, type scale and motion.
 for name, want in pairs({
-	chamferPanel = 8, chamferTile = 3.5, chamferWindow = 12, shadow = 6, actionButton = 34, actionGap = 3, cooldownEssential = 40,
+	chamferPanel = 8, chamferTile = 3.5, chamferWindow = 12, shadow = 10, shadowOffset = 2, buttonBezel = 3, actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
 	buffBarHeight = 18, display = 24, heading = 16, body = 11, caption = 9, textShadowOffset = 0.6,
 	pressOffset = 1, panelRise = 16, panelOvershoot = 2,
@@ -185,7 +190,7 @@ assert(texels == 14 and units == Tokens.Size("chamferTile"), "a tile chamfer cor
 _, texels, units = Tokens.Texture("chamferWindow")
 assert(texels == 48 and units == Tokens.Size("chamferWindow"), "a window chamfer corner is 48 texels drawn at 12 units")
 _, texels, units = Tokens.Texture("shadow")
-assert(texels == 24 and units == 2 * Tokens.Size("shadow"), "shadow corners are centred on the panel's corners, reaching 6 units out")
+assert(texels == 24 and units == 12, "the shadow texture's corner is 12 units; Chrome stretches it to twice the shadow reach")
 assert(select(2, Tokens.Texture("glow")) == nil, "an unsliced texture has no margin")
 assert(not pcall(Tokens.Texture, "nope"), "an unknown texture is an error")
 

@@ -12,13 +12,13 @@ The core's visual service files carry one comment each, their first line, so the
 
 | Name | Value | Use |
 | --- | --- | --- |
-| `surface` | `#101010` at 88% | Panels |
-| `raised` | `#1c1c1c` | Cards, tiles, inputs |
-| `edgeOuter` | `#000000` at 60% | Outer bevel line |
-| `edgeInner` | `#ffffff` at 28% | Inner bevel line, the light line of the kit's double-line edge |
-| `edgeFaint` | `#ffffff` at 8% | The bevel's faint third line and neutral dividers |
-| `edgeWindowOuter`, `edgeWindowInner`, `edgeWindowFaint` | `#ffffff` at 35%, 50% and 15% | The window-grade edge measured from the design file's GLASS PANEL: the edge line, the bright inner line and the hairline |
-| `buttonFill` | `#090c0c` | The body of action buttons, bag slots and cooldown icons |
+| `surface` | `#151a20` at 97% | Panels: the mockup's glass, measured against the UI-free plate of its scene (fill #14191e to #161c22, alpha 0.97 to 1.0 on every panel) |
+| `raised` | `#1c1c1c` | Inputs and list rows in the kit's windows |
+| `edgeOuter` | `#000000` at 80% | The dark line on every panel's edge, the mockup's #101214 line outside the light one |
+| `edgeInner` | `#ffffff` at 28% | The light line one border inside the edge: the mockup's panel line reads lum 85 to 100 over its fill |
+| `edgeFaint` | `#ffffff` at 8% | Neutral dividers |
+| `edgeBar` | `#ffffff` at 16% | The bar grade's light line: the mockup's buff bars and cast bar wear a fainter edge (lum 40 to 78) |
+| `buttonFill` | `#101214` | The body of action buttons, bag slots, cooldown icons, aura tiles and the bezel around a button: the mockup's one solid dark tone |
 | `powerTrack` | `#ffffff` at 15% | The empty part of a power bar, a visible light track |
 | `text` | `#ababab` | Body text at rest |
 | `textEmphasis` | `#ffffff` | Titles and values, the design's TEXT-HI |
@@ -28,7 +28,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `hostile`, `neutral`, `friendly` | `#e5534b`, `#e8c14f`, `#5fcf72` | Reactions, tuned for the glass |
 | `healthHostile` | `#e03b3f` | A hostile unit frame's health fill, the kit sheet's red under the Glass texture |
 | `accentDefault` | `#aad372` | The kit's accent: the fallback and the default custom accent |
-| `shadow` | `#000000` at 55% | Panel shadow tint |
+| `shadow` | `#000000` at 60% | Panel shadow tint; the mockup's panels darken the scene to 0.4 to 0.8 just outside the edge |
 | `textShadow` | `#000000` at 80% | Text shadow |
 | `track` | `#000000` at 45% | The empty part of bars and sliders |
 | `white`, `black` | | Plain tints, such as resetting a vertex colour |
@@ -37,7 +37,7 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Sizes, durations and easings
 
-`Size(name)` returns root units at the 1080 reference: `chamferPanel` 8, `chamferTile` 3.5, `chamferWindow` 12, `shadow` 6, `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18, the type sizes `display` 24, `heading` 16, `body` 11, `caption` 9, `number` 11 and `world` 12, `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2, the gaps `gapTiny` 2, `gapSmall` 4, `gapMedium` 8, `gapLarge` 12 and `gapHuge` 16, `panelPadding` 16 and `rowHeight` 24.
+`Size(name)` returns root units at the 1080 reference: `chamferPanel` 8, `chamferTile` 3.5, `chamferWindow` 12, `shadow` 10 (how far the shadow reaches out), `shadowOffset` 2 (how far it drops), `buttonBezel` 3 (the dark plate outside an icon button's rim), `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18, the type sizes `display` 24, `heading` 16, `body` 11, `caption` 9, `number` 11 and `world` 12, `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2, the gaps `gapTiny` 2, `gapSmall` 4, `gapMedium` 8, `gapLarge` 12 and `gapHuge` 16, `panelPadding` 16 and `rowHeight` 24.
 
 `Duration(name)` returns seconds and `Easing(name)` the name of a `Motion.Ease` function:
 
@@ -85,7 +85,7 @@ The UI face is `Theme.FontFace()`, Source Sans 3 Semibold by default: a key of `
 | `chamferTile` | `ChamferTile.png`, 32x32 | 14 texels | 3.5 units |
 | `chamferWindow` | `ChamferWindow.png`, 128x128 | 48 texels | 12 units |
 | `line` | `Line.png`, 4x4: one opaque row (row 1) between clear rows | | mapped onto each chamfer's diagonal by `Widgets.LayoutLine` |
-| `shadow` | `Shadow.png`, 128x128 | 24 texels | 12 units, centred on the panel's corner; the shadow reaches 6 units out |
+| `shadow` | `Shadow.png`, 128x128 | 24 texels | 12 units in the texture; `Chrome` draws the corner at twice `Size("shadow")`, so the shadow reaches 10 units out, and drops it `shadowOffset` |
 | `iconMask` | `ChamferIconMask.png`, a 3-unit chamfer on a 34-unit square | | |
 | `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `minimapMask`, `logo`, `logoLarge` | | | |
 | `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |

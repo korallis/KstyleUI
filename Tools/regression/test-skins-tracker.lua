@@ -289,6 +289,7 @@ do
 	local quests = p.modules[1]
 	local panel = K.Skin.Parts(tracker).backdrop
 	assert(panel and panel:IsShown(), "a glass panel sits behind the tracker")
+	assert(panel.chrome.shapeName == "window", "window-grade glass: the mockup cuts the tracker's corners 12 units")
 	local function Top()
 		return Edge(panel, "TOP", snap)
 	end

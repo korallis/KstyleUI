@@ -123,6 +123,8 @@ do
 	assert(K.Skin.IsSkinned(frame, "Backdrop"))
 	local tile = K.Skin.Backdrop(B.frame(), { shape = "tile", fill = "raised", shadow = false })
 	assert(tile.chrome.shadow[1]:IsShown() == false)
+	local bar = K.Skin.Backdrop(B.frame(), { shape = "tile", edge = "edgeBar", shadow = false })
+	assert(W.SameColor(bar.chrome.inner[5], K.Tokens.Color("edgeBar")), "a backdrop takes the bar grade's edge")
 	B.check(snap)
 end
 

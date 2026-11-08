@@ -92,11 +92,8 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local px = ppu * frameScale
 	local border = ns.Scale.Border() * ppu
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	local lines = { c.outer, c.inner, c.hairline }
-	if c.dark then
-		lines[#lines + 1] = c.dark
-	end
-	assert(#lines == (shapeName == "window" and 4 or 3), where .. ": a window has four lines, the others three")
+	local lines = { c.outer, c.inner }
+	assert(c.hairline == nil and c.dark == nil, where .. ": every shape draws the mockup's one light line over the dark one, nothing inside")
 	local chamferPx = c.fill[1]:GetWidth() * px
 	local wantPx = Tokens.Size(c.shape.chamfer) * px
 	assert(whole(chamferPx) and math.abs(chamferPx - wantPx) <= 0.5 + 1e-6, where .. ": the chamfer is " .. chamferPx .. " px, the nearest whole pixel to " .. wantPx)

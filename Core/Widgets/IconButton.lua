@@ -19,6 +19,7 @@ local COUNTDOWN_RISE = 0.25
 local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
 local CHAMFER_SHARE = 0.105
 local ICON_INSET_LINES = 3
+local ICON_INSET_SHARE = 0.11
 local ICON_INSET_MAX_SHARE = 0.2
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
@@ -89,7 +90,7 @@ end
 
 function Widgets.IconChrome(owner, opts)
 	opts = opts or {}
-	local chrome = Widgets.Chrome(owner, { shape = "tile", fill = "buttonFill", shadow = false, chamfer = opts.size and opts.size * CHAMFER_SHARE or nil })
+	local chrome = Widgets.Chrome(owner, { shape = "tile", fill = "buttonFill", shadow = opts.bezel ~= nil, bezel = opts.bezel, chamfer = opts.size and opts.size * CHAMFER_SHARE or nil })
 	chrome.rimColor = { 0, 0, 0, 0 }
 	chrome.rimSet, chrome.rimAccent = false, false
 	local paint = chrome.Paint
@@ -115,7 +116,8 @@ local function PlaceIcon(self)
 	if type(self.opts.iconInset) == "number" then
 		inset = Widgets.Snap(self, self.opts.iconInset)
 	else
-		inset = math.min(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
+		inset = math.max(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_SHARE))
+		inset = math.min(inset, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
 	end
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
@@ -366,7 +368,7 @@ function Widgets.IconButton(parent, opts)
 	button.usable = true
 	button.tint = { 1, 1, 1 }
 	local size = opts.size or Tokens.Size("actionButton")
-	button.chrome = Widgets.IconChrome(button, { size = size })
+	button.chrome = Widgets.IconChrome(button, { size = size, bezel = Tokens.Size("buttonBezel") })
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	if opts.crop ~= false then

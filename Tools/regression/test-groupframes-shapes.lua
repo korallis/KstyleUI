@@ -172,7 +172,7 @@ for _, texture in ipairs(textures(button)) do
 	end
 end
 assert((seen.chamferTile or 0) >= 9, "each icon sits on a chamfered tile")
-assert((seen.line or 0) >= 12, "with the kit's three-line bevel edge")
+assert((seen.line or 0) >= 8, "with the kit's two-line bevel edge")
 local dispel = {}
 for _, entry in ipairs(button._aura.dispel) do
 	dispel[#dispel + 1] = entry.texture

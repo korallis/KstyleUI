@@ -295,7 +295,7 @@ end
 local function IconTile(parent)
 	local icon = CreateFrame("Frame", nil, parent)
 	icon:SetFrameLevel(parent:GetFrameLevel() + ICON_LINES)
-	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "raised", shadow = false })
+	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "buttonFill", shadow = false })
 	local texture = icon:CreateTexture(nil, "ARTWORK")
 	texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = icon:CreateMaskTexture()

@@ -5,6 +5,7 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Components = dofile("Tools/render/scenes/components.lua")
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
+local RestedXP = dofile("Tools/render/scenes/restedxp.lua")
 
 local function check(name, scene)
 	assert(type(scene) == "table" and type(scene.items) == "table", name .. ": no scene")
@@ -239,6 +240,19 @@ for _, item in ipairs(design.items) do
 end
 for _, want in ipairs({ "VALERIN", "FROST HOWLER", "78%", "56%", "FROST BITE", "42", "40" }) do
 	assert(designTexts[want], "the design scene shows " .. want)
+end
+
+-- The RestedXP windows the fake builds, skinned, laid out by the scene: the step window, the guide window and the
+-- v2 window show as glass, with the step plate and footer texts.
+local rested = check("restedxp", RestedXP())
+local restedTexts = {}
+for _, item in ipairs(rested.items) do
+	if item.kind == "text" then
+		restedTexts[item.text] = true
+	end
+end
+for _, want in ipairs({ "Step 25", "RestedXP Guides v4.11.34", "Durotar 1-6" }) do
+	assert(restedTexts[want], "the RestedXP scene shows " .. want)
 end
 
 print("ok")

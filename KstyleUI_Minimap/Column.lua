@@ -18,7 +18,7 @@ local STRIP_GAP = Tokens.Size("gapSmall")
 local GAP = Tokens.Size("gapSmall")
 local PLATE_INSET = Tokens.Size("gapSmall")
 local GLYPH_SHARE = 16 / 30
-local RING_ALPHA_SCALE = 1.5
+local RING_ALPHA_SCALE = 2.5
 local max = math.max
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
@@ -150,7 +150,7 @@ local function NewButton(column, name)
 	local disc = button:CreateTexture(nil, "BACKGROUND")
 	disc:SetTexture((Tokens.Texture("dot")))
 	disc:SetAllPoints(button)
-	disc:SetVertexColor(Tokens.Color("surface"))
+	disc:SetVertexColor(Tokens.Color("buttonFill"))
 	button.disc = disc
 	local ring = button:CreateTexture(nil, "BACKGROUND", nil, 1)
 	ring:SetTexture((Tokens.Texture("ring")))

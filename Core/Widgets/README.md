@@ -21,7 +21,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `panelOpacity` | the `surface` token's alpha, 0.88 | slider, 0.5 to 1 in steps of 0.01 | The alpha of every `surface` fill |
+| `panelOpacity` | the `surface` token's alpha, 0.97, the opacity measured on the mockup's panels | slider, 0.5 to 1 in steps of 0.01 | The alpha of every `surface` fill |
 | `shadows` | `true` | toggle | Shows the shadow of panels, windows and tooltips |
 | `sounds` | `true` | toggle | Plays the kit's click and open sounds |
 | `tooltipScale` | `1` | slider, 0.75 to 1.5 in steps of 0.05 | The scale of `Widgets.Tooltip()` |
@@ -74,12 +74,21 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Part | Layer | What it is |
 | --- | --- | --- |
-| `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces `Snap(12)` centred on the owner's corners, tinted `shadow`: a 6-unit spread with no offset |
+| `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `shadow` texture, corner pieces twice `Size("shadow")` centred on the owner's corners (or on the bezel's, when there is one), dropped `Size("shadowOffset")`, tinted `shadow`: a 10-unit spread that falls 2 units, the mockup's drop shadow |
+| `chrome.bezel` | `BACKGROUND` -7 | Only with `opts.bezel`: the fill texture again, `buttonFill`, reaching `bezel` units outside the owner. Icon buttons draw it: the mockup's buttons sit on a dark plate 3 units wider than their rim |
 | `chrome.fill` | `BACKGROUND` -6 | The nine-sliced `chamferPanel`, `chamferTile` or `chamferWindow` texture, corner pieces the chamfer's size: `chamferPanel` 8, `chamferTile` 3.5 or `chamferWindow` 12 units, snapped to whole pixels |
 | `chrome.noise` | `BACKGROUND` -5 | Panels and windows: the `noise` grain, tiled at 3.5% white, inset by the chamfer |
-| `chrome.outer`, `chrome.inner`, `chrome.hairline`, and `chrome.dark` for windows | `BORDER` | Each line is a [`Line`](#lines): one `Scale.Border()` thick on every screen, whatever the chamfer measures in pixels. Panels and tiles draw the small-panel edge from the design file: the dark `edgeOuter` line on the edge, the light `edgeInner` line one border inside it, then two units of glass and the faint `edgeFaint` hairline. Windows draw the design's GLASS PANEL edge: `edgeWindowOuter` (white 35%) on the edge, `edgeWindowInner` (50%) 3.75 units in as the bright line hover and selection light up, the dark `edgeOuter` line right inside it, then the `edgeWindowFaint` hairline (15%) 6.25 units in. |
+| `chrome.outer`, `chrome.inner` | `BORDER` | Each line is a [`Line`](#lines): one `Scale.Border()` thick on every screen, whatever the chamfer measures in pixels. Every shape draws the mockup's edge: the dark `edgeOuter` line on the edge and the light `edgeInner` line one border inside it, with nothing further in. The shapes differ only in chamfer, shadow and grain. |
 
-`opts`: `shape` (`"panel"`, 8-unit chamfers, `"tile"`, 3.5 units, or `"window"`, 12 units; see [Corner sizes](#corner-sizes)), `chamfer` (units, overriding the shape's size; icon buttons use 10.5% of their side), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`, or `edgeWindowInner` for a window), `shadow` (default on for panels and windows, off for tiles), `grain` (`false` removes the grain). The field `shapeName` holds the shape.
+`opts`: `shape` (`"panel"`, 8-unit chamfers, `"tile"`, 3.5 units, or `"window"`, 12 units; see [Corner sizes](#corner-sizes)), `chamfer` (units, overriding the shape's size; icon buttons use 10.5% of their side), `fill` (a colour token, default `surface`), `edge` (the inner line's token, default `edgeInner`; bars pass `edgeBar`), `shadow` (default on for panels and windows, off for tiles), `grain` (`false` removes the grain), `bezel` (units of `buttonFill` plate outside the owner, with the shadow beyond it). The field `shapeName` holds the shape.
+
+The three grades every element uses, measured on the owner's mockup against the UI-free plate of its scene (`~/.local/share/kstyleui-handoff/THEME_SPEC.md`):
+
+| Grade | Chrome | Used by |
+| --- | --- | --- |
+| Glass panel | `surface` fill, the two-line edge, shadow; `window` chamfer 12 for the chat, the tracker, the Blizzard window skins and RestedXP's windows, `panel` 8 for unit frames, tooltips and the data strip, `tile` 3.5 for badges and plates | every backdrop |
+| Button | `buttonFill` body, a 3-unit `buttonFill` bezel, the accent rim (`IconRim`) with its halo, shadow, the icon 11% of the side in | action, cooldown, micro menu and bag bar buttons, flyouts; aura tiles, bag slots and skin rims draw the same body and rim without the bezel |
+| Bar | `surface` fill, `edgeBar` edge, `tile` chamfer, no shadow | buff bars, the cast bar panel, a `StatusBar` border, the experience bar |
 
 A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow shows only while `shadows` is on.
 
@@ -89,7 +98,7 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the inner line, the light line that hover and selection light up. |
 | `SetOuter(name, alphaScale)`, `SetOuterRGBA(r, g, b, a)` | Recolours the outer line, kept through a restyle. `SetOuter()` with no token returns it to the shape's line. Icon buttons draw it as the rim's halo. Both allocate nothing. |
 | `SetChamfer(units)` | Changes the chamfer and re-lays the chrome out when it differs. `Chamfer()` returns the units in use. |
-| `SetShadow(on)`, `SetShown(shown)` | |
+| `SetShadow(on)`, `SetShown(shown)` | `SetShown` hides and shows the bezel with the rest. |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
 `Pill(box, layer, sublevel) -> list` draws the `pill` texture over a frame as a left cap, a middle and a right cap; `LayoutPill(pill, height)` makes each cap half the height wide. `NineSlice(owner, textureName, layer, sublevel) -> list`, `LayoutSlice(slice, owner, cornerUnits, outsetUnits)`, `ColorSlice(slice, r, g, b, a)` and `ShowSlice(slice, shown)` build and place any sliced texture; `cornerUnits` and `outsetUnits` are units snapped to whole pixels, so a `chamferTile` slice laid out with the texture's own units (`select(3, Tokens.Texture("chamferTile"))`, 3.5) lines up with a tile's chrome. `TEXTURE_TEXELS` holds each sliced texture's size in texels; `test-widgets-kit.lua` checks it against the PNG files.
@@ -157,7 +166,7 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `countdownCorner` (the countdown hangs right-aligned in the top right corner, a fifth of the side in and a tenth down, as the composition mockup's centre cluster reads "4s"; the default is the design's centred number low on the button), `silent` (no click sound, for buttons that keys press, such as action buttons), `primary` (an action button: its rim is always the full accent rim; see [Icon chrome](#icon-chrome) for the secondary rim strength every other icon button follows).
 
-The body is the `buttonFill` near-black glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), the design's button, drawn by [`IconChrome`](#icon-chrome). The icon sits three borders inside the edge, so one border of body shows between the hairline and the icon, masked to the chamfer by `iconMask`; on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row (measured against it at 2 px per unit with `Tools/render/scenes/buttons.lua`):
+The body is the `buttonFill` dark glass, cut 10.5% of the side at each corner (3.6 units at 34, 4 at 38), drawn by [`IconChrome`](#icon-chrome) with a `buttonBezel` plate 3 units outside the rim and the panel shadow beyond it, the mockup's button. The icon sits 11% of the side inside the edge (never less than three borders), so a band of body shows between the hairline and the icon as the mockup's 5-unit band on a 52-unit button, masked to the chamfer by `iconMask`; on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. The outer line is the hairline's own colour at 45%, a halo that makes the one-border rim read as the design's soft line on a screen where a border is one pixel. The states match the design file's ACTION BUTTON STATES row (measured against it at 2 px per unit with `Tools/render/scenes/buttons.lua`):
 
 | State | Hairline | Body | Icon |
 | --- | --- | --- | --- |
@@ -193,7 +202,7 @@ Every square icon in KstyleUI draws the same body and rim through one helper, so
 
 | Function | Behaviour |
 | --- | --- |
-| `IconChrome(owner, opts) -> chrome` | A [`Chrome`](#chrome) with the `tile` shape, the `buttonFill` body and no shadow. `opts.size` gives the icon button's chamfer, 10.5% of the side; without it the tile's 3.5 units. The chrome gains `SetRim` and `SetRimAccent`, and its `Paint` repaints the rim on every restyle. |
+| `IconChrome(owner, opts) -> chrome` | A [`Chrome`](#chrome) with the `tile` shape and the `buttonFill` body. `opts.size` gives the icon button's chamfer, 10.5% of the side; without it the tile's 3.5 units. `opts.bezel` (units) adds the dark bezel and the shadow, as `IconButton` passes `buttonBezel`; a tile without it (aura tiles, bag slots, skin rims, the tooltip icon) has neither. The chrome gains `SetRim` and `SetRimAccent`, and its `Paint` repaints the rim on every restyle. |
 | `chrome:SetRim(r, g, b, a)` | Paints the hairline in that colour and the outer line as its halo at 45%. With no colour, the plain `edgeInner` hairline and the shape's dark outer line: an empty bag slot, or a skinned item with no quality colour. Allocates nothing, so Paint paths may call it every frame. |
 | `chrome:SetRimAccent(r, g, b, strength)` | Rests the rim on `IconRim(r, g, b, strength)`, and derives it again on every restyle, so a tile that gives no colour follows the theme accent through `ThemeChanged`. A module with its own accent setting passes its colour each time it styles the tile. |
 | `IconRim(r, g, b, strength, lift) -> r, g, b, a` | The rim colour of a filled icon at rest: the accent (the theme's, or the plain numbers given) mixed `lift` (default 15%) toward `textHover`. A `strength` under 1 mixes that from the plain `edgeInner` hairline, so 0.5 is halfway between the grey hairline and the accent rim. |

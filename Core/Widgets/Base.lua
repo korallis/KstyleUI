@@ -12,8 +12,8 @@ local FALLBACK_FONT = "GameFontHighlight"
 local NOISE_ALPHA = 0.035
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
-local SUBLEVEL_SHADOW, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -6, -5
-local LINE_SUBLEVELS = { outer = -2, inner = -1, dark = -4, hairline = -3 }
+local SUBLEVEL_SHADOW, SUBLEVEL_BEZEL, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -7, -6, -5
+local LINE_SUBLEVELS = { outer = -2, inner = -1 }
 local LINE_BAND_START, LINE_BAND_SIZE = 0.25, 0.25
 local LINE_COLUMN = 0.5
 local SQRT2 = math.sqrt(2)
@@ -357,22 +357,15 @@ function Widgets.Size(frame, width, height)
 	frame:SetSize(SnapIn(width, f), SnapIn(height, f))
 end
 
-local SMALL_LINES = {
+local LINES = {
 	{ key = "outer", color = "edgeOuter", borders = 0, units = 0 },
 	{ key = "inner", borders = 1, units = 0 },
-	{ key = "hairline", color = "edgeFaint", borders = 1, units = 2 },
-}
-local WINDOW_LINES = {
-	{ key = "outer", color = "edgeWindowOuter", borders = 0, units = 0 },
-	{ key = "inner", borders = 0, units = 3.75 },
-	{ key = "dark", color = "edgeOuter", borders = 1, units = 3.75 },
-	{ key = "hairline", color = "edgeWindowFaint", borders = 0, units = 6.25 },
 }
 
 local SHAPES = {
-	panel = { fill = "chamferPanel", chamfer = "chamferPanel", edgeColor = "edgeInner", lines = SMALL_LINES, shadow = true, grain = true },
-	tile = { fill = "chamferTile", chamfer = "chamferTile", edgeColor = "edgeInner", lines = SMALL_LINES },
-	window = { fill = "chamferWindow", chamfer = "chamferWindow", edgeColor = "edgeWindowInner", lines = WINDOW_LINES, shadow = true, grain = true },
+	panel = { fill = "chamferPanel", chamfer = "chamferPanel", edgeColor = "edgeInner", lines = LINES, shadow = true, grain = true },
+	tile = { fill = "chamferTile", chamfer = "chamferTile", edgeColor = "edgeInner", lines = LINES },
+	window = { fill = "chamferWindow", chamfer = "chamferWindow", edgeColor = "edgeInner", lines = LINES, shadow = true, grain = true },
 }
 
 local function SliceCoords(texture, piece, f)
@@ -415,15 +408,16 @@ local function NewSlice(owner, name, layer, sublevel)
 	return p
 end
 
-local function PlaceCorners(owner, tl, tr, bl, br, size, outset)
+local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop)
+	drop = drop or 0
 	for _, corner in ipairs({ tl, tr, bl, br }) do
 		corner:ClearAllPoints()
 		corner:SetSize(size, size)
 	end
-	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outset, outset)
-	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outset, outset)
-	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outset, -outset)
-	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outset, -outset)
+	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outset, outset - drop)
+	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outset, outset - drop)
+	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outset, -outset - drop)
+	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outset, -outset - drop)
 end
 
 function Widgets.NineSlice(owner, name, layer, sublevel)
@@ -433,9 +427,9 @@ function Widgets.NineSlice(owner, name, layer, sublevel)
 	return NewSlice(owner, name, layer or "BACKGROUND", sublevel or 0)
 end
 
-function Widgets.LayoutSlice(slice, owner, corner, outset)
+function Widgets.LayoutSlice(slice, owner, corner, outset, drop)
 	local f = Widgets.ScaleFactor(owner)
-	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f))
+	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f))
 end
 
 function Widgets.ColorSlice(slice, r, g, b, a)
@@ -546,6 +540,7 @@ function Widgets.Chrome(owner, opts)
 		shape = shape,
 		shapeName = shapeName,
 		chamfer = opts.chamfer,
+		bezelUnits = opts.bezel,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or "surface",
 		edge = { Widgets.Rgba(opts.edge or shape.edgeColor) },
@@ -555,6 +550,9 @@ function Widgets.Chrome(owner, opts)
 		ownOuter = false,
 	}, Chrome)
 	c.shadow = NewSlice(owner, "shadow", "BACKGROUND", SUBLEVEL_SHADOW)
+	if opts.bezel then
+		c.bezel = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_BEZEL)
+	end
 	c.fill = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_FILL)
 	if opts.grain ~= false and shape.grain then
 		local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
@@ -576,11 +574,16 @@ end
 
 function Chrome:Layout()
 	local owner, shape = self.owner, self.shape
-	local _, _, shadowUnits = Tokens.Texture("shadow")
 	local f = Widgets.ScaleFactor(owner)
 	local chamfer = self:Chamfer()
 	Widgets.LayoutSlice(self.fill, owner, chamfer, 0)
-	Widgets.LayoutSlice(self.shadow, owner, shadowUnits, shadowUnits / 2)
+	local outset = 0
+	if self.bezel then
+		outset = SnapIn(self.bezelUnits, f)
+		Widgets.LayoutSlice(self.bezel, owner, chamfer + self.bezelUnits * (2 - SQRT2), outset)
+	end
+	local reach = Tokens.Size("shadow")
+	Widgets.LayoutSlice(self.shadow, owner, 2 * reach, SnapIn(reach, f) + outset, Tokens.Size("shadowOffset"))
 	local border = Scale.Border() / f
 	for _, spec in ipairs(shape.lines) do
 		Widgets.LayoutLine(self[spec.key], owner, chamfer, spec.borders * border + SnapIn(spec.units, f))
@@ -605,6 +608,9 @@ function Chrome:Paint()
 		end
 	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
+	if self.bezel then
+		Widgets.ColorSlice(self.bezel, Tokens.Color("buttonFill"))
+	end
 	local shadowShown = self.shadowOn and Widgets.Setting("shadows")
 	Widgets.ShowSlice(self.shadow, shadowShown)
 	Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
@@ -706,6 +712,9 @@ end
 
 function Chrome:SetShown(shown)
 	Widgets.ShowSlice(self.fill, shown)
+	if self.bezel then
+		Widgets.ShowSlice(self.bezel, shown)
+	end
 	for _, spec in ipairs(self.shape.lines) do
 		Widgets.ShowSlice(self[spec.key], shown)
 	end

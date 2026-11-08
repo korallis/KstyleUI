@@ -73,6 +73,43 @@ class StandinsTest(unittest.TestCase):
         self.assertLess(max(blurred) - min(blurred), 60, "the UI area is blurred flat")
         self.assertGreater(max(sharp) - min(sharp), 150, "the scenery keeps its stripes")
 
+    def test_backdrop_source_prefers_the_clean_plate(self):
+        """With a UI-free plate of the scene, the backdrop is that plate scaled to the render, with nothing blurred."""
+        plate = Image.new("RGB", (2688, 1520), (0, 0, 0))
+        for x in range(0, 2688, 2):
+            plate.paste((255, 255, 255), (x, 0, x + 1, 1520))  # one-pixel stripes everywhere, UI areas included
+        plate_path = self.root / "clean.png"
+        plate.save(plate_path)
+        mockup = Image.new("RGB", (2574, 1456), (200, 30, 30))
+        source, used = self.standins.backdrop_source(mockup, str(plate_path))
+        self.assertEqual(used, str(plate_path))
+        out = self.standins.backdrop(source, 2574, 1456, areas=[] if used else self.standins.UI_AREAS)
+        self.assertEqual(out.size, (2574, 1456))
+        band = [out.getpixel((x, 1300))[0] for x in range(100, 140)]  # inside the chat's UI area on the mockup
+        self.assertGreater(max(band) - min(band), 100, "the plate is not blurred where the mockup has UI")
+
+    def test_backdrop_source_falls_back_to_the_blurred_mockup(self):
+        mockup = Image.new("RGB", (2574, 1456), (200, 30, 30))
+        source, used = self.standins.backdrop_source(mockup, str(self.root / "missing.png"))
+        self.assertIsNone(used)
+        self.assertIs(source, mockup)
+
+    def test_write_uses_the_plate_when_given(self):
+        plate_path = self.root / "clean.png"
+        Image.new("RGB", (2688, 1520), (10, 200, 10)).save(plate_path)
+        out = self.root / "standins"
+        self.standins.write(str(self.mockup()), str(out), 2383, 1540, plate=str(plate_path))
+        self.assertEqual(Image.open(out / "backdrop.png").getpixel((1200, 700)), (10, 200, 10))
+        self.standins.write(str(self.mockup()), str(out), 2383, 1540, plate=str(self.root / "missing.png"))
+        self.assertEqual(Image.open(out / "backdrop.png").getpixel((1200, 700))[2], 200, "without a plate the mockup's scenery is the backdrop")
+
+    def test_plate_option_and_environment(self):
+        """--plate names the plate; KSTYLEUI_PLATE overrides the default; the default is the handoff folder's clean plate."""
+        self.assertTrue(self.standins.PLATE.endswith("scenery/clean.png"))
+        self.assertEqual(self.standins.plate_path(["--plate", "/tmp/x.png"], {}), "/tmp/x.png")
+        self.assertEqual(self.standins.plate_path([], {"KSTYLEUI_PLATE": "/tmp/env.png"}), "/tmp/env.png")
+        self.assertEqual(self.standins.plate_path([], {}), self.standins.PLATE)
+
     def test_main_without_a_mockup_is_quiet_and_succeeds(self):
         code = self.standins.main(["--mockup", str(self.root / "missing.png"), "--out", str(self.root / "out"), "--quiet"])
         self.assertEqual(code, 0)

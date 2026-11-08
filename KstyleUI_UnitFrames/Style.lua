@@ -88,7 +88,7 @@ function Style.New(parent, kind)
 	local portraitFrame = CreateFrame("Frame", nil, parent)
 	portraitFrame:SetFrameLevel(base + LEVEL_PORTRAIT)
 	view.portraitFrame = portraitFrame
-	view.portraitChrome = Widgets.Chrome(portraitFrame, { shape = "panel", fill = "raised", grain = false })
+	view.portraitChrome = Widgets.Chrome(portraitFrame, { shape = "panel", fill = "buttonFill", grain = false })
 	local dot, ring = Tokens.Texture("dot"), Tokens.Texture("ring")
 	view.portraitBack = portraitFrame:CreateTexture(nil, "BACKGROUND")
 	view.portraitBack:SetTexture(dot)
@@ -288,7 +288,7 @@ function Style.Accent(view)
 	else
 		view.badgeChrome:SetEdge(BADGE_EDGE, BADGE_EDGE_ALPHA)
 	end
-	local br, bg, bb = Tokens.Color("raised")
+	local br, bg, bb = Tokens.Color("buttonFill")
 	view.portraitBack:SetVertexColor(br, bg, bb, PORTRAIT_BACK_ALPHA)
 end
 

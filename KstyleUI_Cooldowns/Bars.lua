@@ -95,7 +95,7 @@ function BarRow:Bar(index)
 		return bar
 	end
 	bar = CreateFrame("Frame", nil, self.content)
-	bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "surface", shadow = false })
+	bar.chrome = Widgets.Chrome(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	local tile = CreateFrame("Frame", nil, bar)
 	tile:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
 	tile.chrome = Widgets.Chrome(tile, { shape = "tile", fill = "buttonFill", shadow = false })

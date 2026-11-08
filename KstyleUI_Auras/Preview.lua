@@ -141,7 +141,7 @@ local function Refresh(frame)
 		local group = Model.Group(settings, name)
 		local edge = { Tokens.Color("hostile") }
 		if name == "buffs" then
-			edge = { Model.AccentColor(settings) }
+			edge = { Tokens.Color("edgeInner") }
 		end
 		edge[4] = REST_EDGE_ALPHA
 		for _, entry in ipairs(entries) do

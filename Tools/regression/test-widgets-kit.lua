@@ -129,7 +129,8 @@ local function chrome(env, K, shape)
 	return frame, K.Widgets.Chrome(frame, { shape = shape, fill = "surface", shadow = true })
 end
 
--- Chrome: a nine-sliced shadow and fill, and a bevel whose straight lines are one border thick.
+-- Chrome: a nine-sliced shadow and fill, and the mockup's edge: a dark line on the edge and one light line inside it,
+-- with no hairline further in. The shadow reaches 10 units out and drops 2 units, as the mockup's panels cast it.
 do
 	local env, K = W.New()
 	local Scale, Tokens = K.Scale, K.Tokens
@@ -141,21 +142,19 @@ do
 	assert(coords[1] == 0 and W.Near(coords[2], 32 / 128) and coords[3] == 0 and W.Near(coords[4], 32 / 128), "the corner piece is the texture's 32-texel corner")
 	local w, h = tl:GetSize()
 	assert(W.Near(w, Scale.Snap(8)) and W.Near(h, Scale.Snap(8)), "a panel's fill corner is 8 units")
-	assert(c.shapeName == "panel" and c.dark == nil, "a panel has the three-line edge and no dark inner line")
+	assert(c.shapeName == "panel" and c.dark == nil and c.hairline == nil, "a panel has the two-line edge and no hairline: the mockup's glass")
 	local r, g, b, a = Tokens.Color("surface")
 	assert(W.SameColor(c.fill[5], r, g, b, a), "the fill is the surface colour at the panel opacity")
 	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")), "the outer line is edgeOuter")
 	assert(W.SameColor(c.inner[5], Tokens.Color("edgeInner")), "the inner line is edgeInner")
-	assert(#c.hairline == 8 and W.SameColor(c.hairline[5], Tokens.Color("edgeFaint")), "the kit's third line: a faint hairline")
 	local function inset(line)
 		return -line[5]._points[1][5]
 	end
 	local border = Scale.Border()
 	assert(W.Near(inset(c.outer), 0) and W.Near(inset(c.inner), border), "the dark line on the edge, the light line inside it")
-	assert(W.Near(inset(c.hairline), border + Scale.Snap(2)), "and the hairline two units of glass further in, as the design's small panel")
-	assert(W.Near(c.hairline[5]:GetHeight(), border), "one border thick")
+	assert(W.Near(c.inner[5]:GetHeight(), border), "one border thick")
 	local chamfer = Tokens.Size("chamferPanel")
-	for _, pair in ipairs({ { c.outer, 0 }, { c.inner, border }, { c.hairline, border + Scale.Snap(2) } }) do
+	for _, pair in ipairs({ { c.outer, 0 }, { c.inner, border } }) do
 		local line, at = pair[1], pair[2]
 		local square = cornerSquare(K, chamfer, at)
 		for i = 1, 4 do
@@ -167,13 +166,16 @@ do
 		assert(W.Near(line[5]:GetHeight(), border), "and is one border thick")
 	end
 	c:SetShown(false)
-	assert(not c.hairline[1]:IsShown() and not c.hairline[5]:IsShown(), "SetShown hides the hairline with the rest")
+	assert(not c.inner[1]:IsShown() and not c.inner[5]:IsShown(), "SetShown hides the lines with the rest")
 	c:SetShown(true)
 	assert(W.Near(c.outer[5]:GetHeight(), Scale.Border()), "the top line is one border thick")
+	local reach, drop = Scale.Snap(Tokens.Size("shadow")), Scale.Snap(Tokens.Size("shadowOffset"))
 	local shadowCorner = c.shadow[1]
-	assert(W.Near(shadowCorner:GetWidth(), Scale.Snap(12)), "the shadow's corner piece is 12 units: 6 units of reach each way")
+	assert(W.Near(shadowCorner:GetWidth(), Scale.Snap(2 * Tokens.Size("shadow"))), "the shadow's corner piece is twice the reach: 10 units of reach each way")
 	local point = shadowCorner._points[1]
-	assert(W.Near(point[4], -Scale.Snap(6)) and W.Near(point[5], Scale.Snap(6)), "the shadow corner is centred on the panel's corner")
+	assert(W.Near(point[4], -reach) and W.Near(point[5], reach - drop), "the shadow corner is centred on the panel's corner and drops 2 units")
+	local bottom = c.shadow[7]._points[1]
+	assert(W.Near(bottom[4], -reach) and W.Near(bottom[5], -reach - drop), "the bottom corners drop too, so the shadow reads below the panel")
 	c:SetEdge("accent")
 	assert(W.SameColor(c.inner[5], Tokens.Color("accent")), "SetEdge recolours the inner line")
 	c:SetOuterRGBA(0.1, 0.2, 0.3, 0.4)
@@ -184,8 +186,8 @@ do
 	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")), "SetOuter with no token returns to the shape's line")
 end
 
--- The window grade, from the design's GLASS PANEL: a 35% line on the edge, three borders of glass, a 50% line, a dark line
--- and a 15% hairline, seven borders deep, with 10-border chamfers and a shadow.
+-- The window grade: the mockup's chat, tracker and strip wear the same two-line edge as every panel, with a 12-unit
+-- chamfer and a shadow. The design file's five-line window edge is gone.
 do
 	local env, K = W.New()
 	local Scale, Tokens = K.Scale, K.Tokens
@@ -196,22 +198,30 @@ do
 	end
 	assert(c.shapeName == "window", "the chrome knows its shape")
 	assert(W.Near(c.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("chamferWindow"))), "a window's chamfer is 12 units, in units on every screen")
-	assert(W.SameColor(c.outer[5], Tokens.Color("edgeWindowOuter")) and W.Near(inset(c.outer), 0), "the 35% line on the edge")
-	assert(W.SameColor(c.inner[5], Tokens.Color("edgeWindowInner")) and W.Near(inset(c.inner), Scale.Snap(3.75)), "the 50% line 3.75 units in")
-	assert(c.dark and #c.dark == 8 and W.SameColor(c.dark[5], Tokens.Color("edgeOuter")) and W.Near(inset(c.dark), Scale.Snap(3.75) + border), "the dark line right inside it")
-	assert(W.SameColor(c.hairline[5], Tokens.Color("edgeWindowFaint")) and W.Near(inset(c.hairline), Scale.Snap(6.25)), "the 15% hairline 6.25 units in")
+	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")) and W.Near(inset(c.outer), 0), "the dark line on the edge")
+	assert(W.SameColor(c.inner[5], Tokens.Color("edgeInner")) and W.Near(inset(c.inner), border), "the one light line a border in, as on every panel")
+	assert(c.dark == nil and c.hairline == nil, "no further lines: the mockup's windows are the same glass as its panels")
 	assert(W.Near(c.outer[1]:GetWidth(), cornerSquare(K, Tokens.Size("chamferWindow"), 0)), "the edge line's corner square")
-	for _, line in ipairs({ c.outer, c.inner, c.dark, c.hairline }) do
+	for _, line in ipairs({ c.outer, c.inner }) do
 		assert(W.Near(line[5]:GetHeight(), border), "every line is one border thick")
 	end
 	assert(c.shadow[1]:IsShown(), "windows cast a shadow")
-	c:SetShown(false)
-	assert(not c.dark[1]:IsShown() and not c.dark[5]:IsShown(), "SetShown hides the dark line too")
 	c:SetEdge("accent")
-	assert(W.SameColor(c.inner[5], Tokens.Color("accent")), "SetEdge recolours the bright inner line")
+	assert(W.SameColor(c.inner[5], Tokens.Color("accent")), "SetEdge recolours the light line")
 	W.Raises(function()
 		K.Widgets.Chrome(env.CreateFrame("Frame", nil, Scale.Root()), { shape = "disc" })
 	end, "shape must be panel, tile or window")
+end
+
+-- A bar's edge: the mockup draws its bars with a fainter line, so a chrome takes an edge token.
+do
+	local env, K = W.New()
+	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
+	frame:SetSize(180, 18)
+	local c = K.Widgets.Chrome(frame, { shape = "tile", edge = "edgeBar", shadow = false })
+	assert(W.SameColor(c.inner[5], K.Tokens.Color("edgeBar")), "the light line takes the edge token")
+	K.Callbacks.Fire("ThemeChanged")
+	assert(W.SameColor(c.inner[5], K.Tokens.Color("edgeBar")), "and keeps it through a restyle")
 end
 
 -- Review Focus 2: a move to a 1440p screen redraws the lines as whole pixels.
@@ -235,7 +245,7 @@ do
 	assert(W.Near(c.outer[5]:GetHeight(), border), "the line is redrawn one pixel thick")
 	assert(W.Near(c.fill[1]:GetWidth(), K.Scale.Snap(3.5)) and W.Near(c.fill[1]:GetWidth(), 5 * border), "a tile's chamfer is still 3.5 units: five 1440p pixels, not three borders")
 	assert(W.Near(c.outer[1]:GetWidth(), cornerSquare(K, 3.5, 0)), "the edge line's corner square follows the chamfer in units")
-	assert(W.Near(c.hairline[5]:GetHeight(), border), "the tile's hairline is redrawn too")
+	assert(W.Near(c.inner[5]:GetHeight(), border), "the tile's light line is redrawn too")
 	assert(W.Near(rim[1]:GetWidth(), c.fill[1]:GetWidth()), "a chamfer slice laid out by LayoutSlice lines up with the chrome")
 end
 
@@ -245,7 +255,7 @@ do
 	local env, K = W.New()
 	local _, c = chrome(env, K, "tile")
 	local function noop() end
-	for _, list in ipairs({ c.fill, c.shadow, c.outer, c.inner, c.hairline }) do
+	for _, list in ipairs({ c.fill, c.shadow, c.outer, c.inner }) do
 		for _, piece in ipairs(list) do
 			piece.SetVertexColor, piece.SetShown = noop, noop
 		end

@@ -258,7 +258,32 @@ do
 	assert(p[1] == "TOPLEFT" and inset <= K.Scale.Snap(6 * 0.2) + 1e-6 and inset >= K.Scale.Pixel(1) - 1e-6, "the inset shrinks to a fifth of the side on a tiny button, got " .. tostring(inset))
 	assert(button:GetWidth() - 2 * inset >= K.Scale.Pixel(4) - 1e-6, "at least four pixels of icon remain")
 	local big = select(3, iconButton({ size = 34 }))
-	assert(W.Near(big.icon._points[1][4], 3 * K.Scale.Border()), "a normal button keeps the three-border inset")
+	assert(W.Near(big.icon._points[1][4], math.max(3 * K.Scale.Border(), K.Scale.Snap(34 * 0.11))), "a normal button's icon sits 11% of the side in, the mockup's dark band, and never less than three borders")
+end
+
+-- The mockup's button sits on a dark bezel: the body colour reaches 3 units outside the rim, a shadow falls beyond
+-- it, and a press lifts the body but never the bezel.
+do
+	local env, K, button = iconButton({ icon = 135489 })
+	local Tokens, Scale = K.Tokens, K.Scale
+	local chrome = button.chrome
+	assert(chrome.bezel and #chrome.bezel == 9, "the bezel is a nine-sliced tile")
+	assert(W.SameColor(chrome.bezel[5], Tokens.Color("buttonFill")), "in the button body colour")
+	local bezel = Scale.Snap(Tokens.Size("buttonBezel"))
+	local p = chrome.bezel[1]._points[1]
+	assert(p[1] == "TOPLEFT" and W.Near(p[4], -bezel) and W.Near(p[5], bezel), "reaching 3 units outside the button")
+	local _, sub = chrome.bezel[5]:GetDrawLayer()
+	local _, fillSub = chrome.fill[5]:GetDrawLayer()
+	assert(sub < fillSub, "under the fill")
+	assert(chrome.shadow[1]:IsShown(), "a button casts the panel shadow")
+	local sp = chrome.shadow[1]._points[1]
+	assert(W.Near(sp[4], -(Scale.Snap(Tokens.Size("shadow")) + bezel)), "the shadow starts at the bezel's edge, got " .. tostring(sp[4]))
+	W.Down(button)
+	W.Settle(env)
+	assert(W.SameColor(chrome.bezel[5], Tokens.Color("buttonFill")), "pressed, the bezel keeps the body colour while the fill lifts")
+	W.Up(button)
+	local plain = K.Widgets.IconChrome(env.CreateFrame("Frame", nil, Scale.Root()))
+	assert(plain.bezel == nil and not plain.shadow[1]:IsShown(), "an icon tile with no bezel option has none and no shadow: aura tiles, bag slots and skin rims")
 end
 
 -- The button's chamfer is a share of its size, the design's 11% cut, so the ratio holds at 34 and at 38 units.

@@ -49,8 +49,8 @@ assert(LastArg(second, "SetPoint", 5) == -K.Widgets.Snap(holder, 27), "the secon
 
 -- The bar is a glass tile with no accent edge; the icon sits on its own dark button tile, inset inside it.
 assert(first.chrome.fillName == "surface", "a bar is a glass tile, got " .. tostring(first.chrome.fillName))
-local er, eg, eb, ea = K.Widgets.Rgba("edgeInner")
-assert(W.Near(first.chrome.edge[1], er) and W.Near(first.chrome.edge[2], eg) and W.Near(first.chrome.edge[3], eb) and W.Near(first.chrome.edge[4], ea), "the bar keeps the tile's neutral edge")
+local er, eg, eb, ea = K.Widgets.Rgba("edgeBar")
+assert(W.Near(first.chrome.edge[1], er) and W.Near(first.chrome.edge[2], eg) and W.Near(first.chrome.edge[3], eb) and W.Near(first.chrome.edge[4], ea), "the bar wears the mockup's faint bar edge")
 local tile = first.iconTile
 assert(tile and tile.chrome.fillName == "buttonFill", "the icon sits on a dark button tile")
 local tw, th = tile:GetSize()

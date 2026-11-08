@@ -203,7 +203,7 @@ function Widgets.StatusBar(parent, opts)
 		local frame = CreateFrame("Frame", nil, bar)
 		frame:SetFrameLevel(math.max(0, bar:GetFrameLevel() - 1))
 		bar.borderFrame = frame
-		bar.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "raised", shadow = false })
+		bar.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "surface", shadow = false, edge = opts.edge or "edgeBar" })
 	end
 	if opts.spark then
 		local spark = bar:CreateTexture(nil, "OVERLAY")

@@ -116,7 +116,7 @@ for _, region in ipairs(W.Regions(preview.auraIcons.target[1], "Texture")) do
 		bevels = bevels + 1
 	end
 end
-assert(bevels == 12, "the sample aura icons wear the live aura tile: three lines of four diagonal corners")
+assert(bevels == 8, "the sample aura icons wear the live aura tile: two lines of four diagonal corners")
 K.Options.Write("UnitFrames", "target.auraPosition", "RIGHT")
 K.Options.Write("UnitFrames", "target.auraGrowth", "LEFT_DOWN")
 settle()

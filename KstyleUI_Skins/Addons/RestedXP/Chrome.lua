@@ -104,7 +104,7 @@ local function Glass(frame, opts)
 	if opts.tile then
 		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false })
 	end
-	return Skin.Backdrop(frame, { shape = "panel", fill = "surface", shadow = true })
+	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true })
 end
 
 local function Tile(frame)

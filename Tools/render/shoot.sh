@@ -10,9 +10,11 @@
 #
 # --icons picks the custom icon set the HUD scenes render with (B when absent, the default set); it sets
 # RENDER_ICONS for the scene. --backdrop draws the HUD over a PNG scaled to the canvas, by default the
-# mockup's scenery that standins.py cuts (Tools/render/out/standins/backdrop.png), at --backdrop-alpha.
-# Before the scene runs, standins.py refreshes the portraits, the minimap and the backdrop from the
-# handoff mockup when it is there; --no-standins skips that, and a missing mockup is not an error.
+# backdrop standins.py makes (Tools/render/out/standins/backdrop.png): the UI-free clean plate of the mockup's
+# scene when it exists (KSTYLEUI_PLATE, default ~/.local/share/kstyleui-handoff/scenery/clean.png), else the
+# mockup's scenery with its UI blurred away, at --backdrop-alpha. Before the scene runs, standins.py refreshes
+# the portraits, the minimap and the backdrop from the handoff mockup when it is there; --no-standins skips
+# that, and a missing mockup is not an error.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"

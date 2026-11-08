@@ -11,11 +11,16 @@ Tools/render/out/standins/, which git ignores:
     portrait-player.png   the orc's face inside the mockup's round player portrait
     portrait-target.png   the crocolisk's face inside the mockup's round target portrait
     minimap.png           the map art inside the mockup's minimap square
-    backdrop.png          the mockup's scenery at the render's size, its UI areas blurred away
+    backdrop.png          the scene behind the HUD at the render's size: the clean plate when there is one, else
+                          the mockup's scenery with its UI areas blurred away
 
 The scenes use a crop when its file exists and fall back to a flat colour when it does not, so a render
 on a machine without the mockup still works. The backdrop is scaled to the render's height and cropped
 to its width from the centre, because the mockup is 1909 units wide and the owner's screen 1671.
+
+The clean plate (`--plate PNG`, or KSTYLEUI_PLATE, default `~/.local/share/kstyleui-handoff/scenery/clean.png`)
+is a UI-free render of the mockup's scene. When it exists it is the backdrop as it is, so no blurred square
+sits next to a panel; when it is missing the mockup's scenery is blurred where its UI was, as before.
 
 Pillow is needed. When the Python running this has none, the script runs itself again with the wow-dev
 virtual environment's Python if that exists. shoot.sh calls this before every render and ignores a
@@ -27,6 +32,8 @@ import os
 import sys
 
 MOCKUP = os.path.expanduser("~/.local/share/kstyleui-handoff/screens/mockup-leveling-warrior-2574.png")
+PLATE = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/clean.png")
+PLATE_ENV = "KSTYLEUI_PLATE"
 OUT = "Tools/render/out/standins"
 VENV_PYTHON = os.path.expanduser("~/.local/share/wow-dev/venv/bin/python")
 
@@ -93,7 +100,23 @@ def backdrop(image, width, height, areas=UI_AREAS, radius=BLUR_RADIUS, feather=F
     return out
 
 
-def write(mockup, out_dir, width, height):
+def backdrop_source(mockup_image, plate):
+    """The image the backdrop is made from: the clean plate when its file exists, else the mockup itself.
+
+    Returns (image, plate_path_or_None)."""
+    if plate and os.path.exists(plate):
+        return Image.open(plate).convert("RGB"), plate
+    return mockup_image, None
+
+
+def plate_path(argv, environ):
+    """The plate to use: --plate on the command line, then KSTYLEUI_PLATE, then the handoff folder's clean plate."""
+    if "--plate" in argv:
+        return argv[argv.index("--plate") + 1]
+    return environ.get(PLATE_ENV) or PLATE
+
+
+def write(mockup, out_dir, width, height, plate=None):
     """Write every stand-in from the mockup into out_dir; returns the paths written."""
     if not pillow():
         sys.exit("standins.py needs Pillow: pip install Pillow, or create the wow-dev venv at " + VENV_PYTHON)
@@ -106,8 +129,10 @@ def write(mockup, out_dir, width, height):
         square(image, box, size).save(path)
         written.append(path)
     path = os.path.join(out_dir, "backdrop.png")
-    backdrop(image, width, height).save(path)
+    source, used = backdrop_source(image, plate)
+    backdrop(source, width, height, areas=[] if used else UI_AREAS).save(path)
     written.append(path)
+    write.plate_used = used
     return written
 
 
@@ -117,15 +142,22 @@ def main(argv=None):
     parser.add_argument("--out", default=OUT, help="the folder the stand-ins land in")
     parser.add_argument("--width", type=int, default=2383, help="the backdrop's width in pixels")
     parser.add_argument("--height", type=int, default=1540, help="the backdrop's height in pixels")
+    parser.add_argument("--plate", default=None, help="the UI-free plate of the scene for the backdrop (default: KSTYLEUI_PLATE, then the handoff folder's clean.png)")
     parser.add_argument("--quiet", action="store_true", help="say nothing when the mockup is missing")
     args = parser.parse_args(argv)
     if not os.path.exists(args.mockup):
         if not args.quiet:
             print("no mockup at " + args.mockup + "; the scenes fall back to flat stand-ins", file=sys.stderr)
         return 0
-    for path in write(args.mockup, args.out, args.width, args.height):
+    plate = plate_path(argv if argv is not None else sys.argv[1:], os.environ)
+    for path in write(args.mockup, args.out, args.width, args.height, plate=plate):
         if not args.quiet:
             print("wrote " + path)
+    if not args.quiet:
+        if write.plate_used:
+            print("backdrop: the clean plate " + write.plate_used)
+        else:
+            print("backdrop: the mockup with its UI blurred away (no plate at " + plate + ")")
     return 0
 
 

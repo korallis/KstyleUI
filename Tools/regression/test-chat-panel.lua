@@ -49,6 +49,7 @@ do
 	local holder, glass = ns.Panel.Holder(), ns.Panel.Glass()
 	assert(holder and holder:IsShown(), "the panel shows")
 	assert(glass:GetParent() == holder and glass:GetFrameStrata() == "BACKGROUND", "the glass sits behind the chat")
+	assert(glass.chrome.shapeName == "window", "the chat is window-grade glass: the mockup cuts its corners 12 units")
 	local chat = env.ChatFrame1
 	assert(chat:GetNumPoints() == 2, "two anchors")
 	local p1, p2 = { chat:GetPoint(1) }, { chat:GetPoint(2) }

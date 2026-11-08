@@ -71,6 +71,7 @@ local ar, ag, ab = K.Theme.Accent()
 local function rim(r, g2, b)
 	return r + (1 - r) * 0.15, g2 + (1 - g2) * 0.15, b + (1 - b) * 0.15
 end
+assert(player.portraitChrome.fillName == "buttonFill", "the portrait frame is the button body, the mockup's one dark tone behind icons and portraits")
 assert(W.SameRGB(player.portraitChrome.inner[1], rim(ar, ag, ab)), "the portrait's inner bevel line is the accent lifted 15% towards white, as on the design file")
 assert(W.SameRGB(player.portraitChrome.inner[5], rim(ar, ag, ab)), "on its straight edges too")
 local layer, sublevel = player.portrait:GetDrawLayer()
