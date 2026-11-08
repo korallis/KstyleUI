@@ -373,6 +373,7 @@ local function genericMethod(key)
 			local child = newObject(self._env, childType, type(a) == "string" and a or nil, self)
 			if childType == "FontString" then
 				child._font = type(c) == "string" and c ~= ""
+				child._template = type(c) == "string" and c or nil
 			end
 			if REGIONS[childType] then
 				self._regions[#self._regions + 1] = child
