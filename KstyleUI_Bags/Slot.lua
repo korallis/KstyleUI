@@ -20,6 +20,9 @@ local JUNK_SIZE = 8
 local SWIPE_ALPHA = 0.65
 local OVERLAY_LEVEL = 2
 local FALLBACK_FONT = "NumberFontNormal"
+local NEW_ATLAS = "bags-glow-white"
+local NEW_LOW, NEW_HIGH = 0.3, 1
+local NEW_REST = 0.8
 
 local bySlotButton = setmetatable({}, { __mode = "k" })
 
@@ -101,17 +104,74 @@ function Slot.Style(slot)
 	ApplyFont(slot.count)
 	ApplyFont(slot.level)
 	if slot.glow then
-		Slot.ColorGlow(slot)
+		slot.glow:Restyle()
 	end
 end
 
-function Slot.ColorGlow(slot)
-	local glow = slot.glow
-	glow:Restyle()
-	if Settings.Get("accentSource") == "custom" then
-		local r, g, b = Accent()
-		Widgets.ColorSlice(glow.slice, r, g, b, 1)
+local Mark = {}
+Mark.__index = Mark
+
+function Mark:IsPlaying()
+	return self.playing
+end
+
+function Mark:Restyle()
+	local r, g, b = Accent()
+	self.texture:SetVertexColor(r, g, b, 1)
+	if not self.playing then
+		return
 	end
+	if Motion.ReducedMotion() then
+		self.pulse:Stop()
+		self.texture:SetAlpha(NEW_REST)
+	elseif not self.pulse:IsPlaying() then
+		self.pulse:Play()
+	end
+end
+
+function Mark:Start()
+	if self.playing then
+		return
+	end
+	self.playing = true
+	self.texture:SetAlpha(NEW_HIGH)
+	self.texture:Show()
+	self:Restyle()
+end
+
+function Mark:Stop()
+	if not self.playing then
+		return
+	end
+	self.playing = false
+	self.pulse:Stop()
+	self.texture:Hide()
+end
+
+local function NewMark(slot)
+	local overlay, icon = slot.overlay, slot.icon
+	local texture = overlay:CreateTexture(nil, "ARTWORK")
+	texture:SetAllPoints(icon)
+	local atlases = C_Texture
+	if atlases and atlases.GetAtlasInfo and atlases.GetAtlasInfo(NEW_ATLAS) then
+		texture:SetAtlas(NEW_ATLAS)
+	else
+		texture:SetTexture((Tokens.Texture("glow")))
+	end
+	texture:SetBlendMode("ADD")
+	local mask = overlay:CreateMaskTexture()
+	mask:SetTexture(Tokens.Texture("iconMask"), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(icon)
+	texture:AddMaskTexture(mask)
+	texture:Hide()
+	local pulse = texture:CreateAnimationGroup()
+	pulse:SetLooping("BOUNCE")
+	local fade = pulse:CreateAnimation("Alpha")
+	fade:SetFromAlpha(NEW_HIGH)
+	fade:SetToAlpha(NEW_LOW)
+	fade:SetDuration(Tokens.Duration("procPulse") / 2)
+	fade:SetSmoothing("IN_OUT")
+	return setmetatable({ texture = texture, mask = mask, pulse = pulse, playing = false }, Mark)
 end
 
 function Slot.Layout(slot, size, force)
@@ -139,8 +199,7 @@ end
 local function SetGlow(slot, on)
 	if on then
 		if not slot.glow then
-			slot.glow = Widgets.Glow(slot.button, { kind = "proc" })
-			Slot.ColorGlow(slot)
+			slot.glow = NewMark(slot)
 		end
 		slot.glow:Start()
 	elseif slot.glow then
