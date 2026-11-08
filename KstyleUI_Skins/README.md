@@ -126,7 +126,7 @@ Every skin styles its text, bars and accent lines through `ns.Style`, so the set
 
 | Function | Behaviour |
 | --- | --- |
-| `Parts.Rim(frame, opts) -> rim` | A raised chamfered tile behind `frame`, on a child frame one level below it, `opts.outset` units outside `opts.target` (default `frame`). `rim:SetRimColor(r, g, b, a)` draws a 2-unit chamfered ring and an inner hairline in that colour; `nil` removes both. A second call returns the same rim. `Parts.RimOf(frame)` returns it. |
+| `Parts.Rim(frame, opts) -> rim` | The kit's icon chrome (`Widgets.IconChrome`: the near-black button body) behind `frame`, on a child frame one level below it, `opts.outset` units outside `opts.target` (default `frame`). `rim:SetRimColor(r, g, b, a)` draws a 2-unit chamfered ring and the hairline with its halo in that colour; `nil` removes both and leaves the plain grey hairline. A second call returns the same rim. `Parts.RimOf(frame)` returns it. |
 | `Parts.AccentLine(owner, opts) -> line` | A 2-unit accent divider along the owner's `BOTTOM` (default) or `TOP` edge, or across `opts.anchor`. It follows the accent setting. |
 | `Parts.Hush(texture)`, `Parts.Divider(owner, texture)` | Hide one Blizzard texture for good, and replace a Blizzard divider texture with an accent line at the same place. |
 | `Parts.SideTab(tab)` | Strips a side tab, a sidebar check button or an icon-only tab-system tab but its `Icon`, and rims the icon: accent while checked or selected, `text` at 50% under the mouse. It follows `SetChecked`, `SetTabSelected`, clicks and hover, and keeps a selection Blizzard made before the skin. |
@@ -200,7 +200,7 @@ On Forever the spellbook and the talents live in one window, `PlayerSpellsFrame`
 | `GameMenu.lua` | `gameMenu` | `Blizzard_GameMenu` | `GameMenuFrame` | The dialog border and header art go; a glass panel, the heading font and a raised tile for each pooled button come. A hook on `InitButtons` skins buttons the menu adds later. |
 | `GroupFinder.lua` | `groupFinder` | `Blizzard_GroupFinder_VanillaStyle` | `LFGParentFrame` | The listing, browse and who-list pages become glass windows. Side tabs, dropdowns, check boxes, scroll bars, the comment box and the result and who rows are restyled. |
 | `Mail.lua` | `mail` | `Blizzard_MailFrame` | `MailFrame` | The inbox, the send form and `OpenMailFrame`. Every inbox item and attachment gets a quality rim; the cash-on-delivery tint and the coin icons stay. |
-| `Merchant.lua` | `merchant` | `Blizzard_UIPanels_Game` | `MerchantFrame` | Item rows become raised tiles with quality-rimmed icons; repair and junk buttons keep their icons; the page buttons get chevrons. |
+| `Merchant.lua` | `merchant` | `Blizzard_UIPanels_Game` | `MerchantFrame` | Item slots become near-black `buttonFill` tiles with quality-rimmed icons; repair and junk buttons keep their icons; the page buttons get chevrons. |
 | `Trainer.lua` | `trainer` | `Blizzard_TrainerUI` | `ClassTrainerFrame` | The skill bar takes the shared bar look; category and skill rows become tiles that light while selected. |
 | `Professions.lua` | `professions` | `Blizzard_Professions` | `ProfessionsFrame` | Side tabs, the recipe list, the schematic, tool slots and the craft-count spinner. The skill bars on the crafting and overview pages are drawn by KstyleUI status bars. |
 
@@ -213,7 +213,7 @@ The mail, merchant and professions skins add a `qualityRims` switch, on by defau
 | `Arrow(button, direction)` | `Parts.Glyph` with a chevron turned `left` or `right`, for page and spinner buttons. |
 | `Hush(frame, ...)` | `Parts.Hush` on each named texture. |
 | `Select(frame, marker)` | A raised tile behind a list row whose edge takes the module's accent under the mouse and while `marker`, Blizzard's selection texture, shows. |
-| `Square(button)` | An icon button on a raised tile that keeps its `Icon`. |
+| `Square(button)` | An icon button on a near-black `buttonFill` tile that keeps its `Icon`. |
 | `Inset(frame)`, `MoneyBox(box)`, `InputScroll(scroll)`, `NumberBox(box)` | Inset art, money and spinner boxes, and scrolling text boxes. |
 | `RankBar(frame)` | Hides a `ProfessionsRankBarTemplate`'s art and draws a `Widgets.StatusBar` over it that mirrors Blizzard's `Update(professionInfo)`. A secret value passes straight to the bar. |
 | `Bar(statusBar)` | Keeps a Blizzard status bar's fill and applies `Style.StatusBar`. |

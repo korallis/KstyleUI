@@ -39,7 +39,6 @@ local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_INSET = 1
 local SWIPE_ALPHA = 0.65
 local DISPEL_SUBLEVEL = 7
-local TILE = { shape = "tile", fill = "raised", shadow = false }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -104,7 +103,7 @@ end
 
 function Auras.NewTile(parent)
 	local skin = CreateFrame("Frame", nil, parent)
-	local chrome = Widgets.Chrome(skin, TILE)
+	local chrome = Widgets.IconChrome(skin)
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = skin:CreateMaskTexture()
@@ -117,6 +116,7 @@ end
 function Auras.LayoutTile(tile)
 	local skin = tile.skin
 	tile.restyleChrome(tile.chrome)
+	tile.chrome:SetRimAccent(Settings.Accent())
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
 	tile.icon:ClearAllPoints()
 	tile.icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)

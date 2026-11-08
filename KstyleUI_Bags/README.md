@@ -54,8 +54,8 @@ Drag the window by its title bar to move it. The drop saves the position through
 
 Each slot shows:
 
-- The item's icon, masked to the kit's chamfer, inside a raised tile.
-- The tile's hairline in the item's quality colour (`Theme.QualityColor`) from the chosen quality up. Under the mouse the hairline eases to the accent.
+- The item's icon, masked to the kit's chamfer, inside the kit's icon chrome (`Widgets.IconChrome`): the near-black `buttonFill` body every square icon shares, at 55% alpha for an empty slot.
+- The tile's hairline in the item's quality colour (`Theme.QualityColor`) from the chosen quality up; otherwise the accent rim an action button rests on (`Widgets.IconRim`), and the plain grey hairline for an empty slot. Under the mouse the hairline eases to the accent.
 - The stack count at the bottom right and the item level of weapons and armour at the bottom left, in the item's quality colour.
 - A gold dot at the top right on junk: a poor item that sells for money.
 - A pulsing accent glow on a new item, until the pointer touches it or the window closes. Closing the window clears the new marks, as Blizzard's bags do.

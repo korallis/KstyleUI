@@ -86,6 +86,19 @@ do
 	local debuffs, dg = A.Container(env, "HARMFUL")
 	check(buffs and debuffs and buffs ~= debuffs, "buffs and debuffs are separate groups")
 	check(buffs._unit == "player" and debuffs._unit == "player", "both follow the player")
+	do
+		local skin = (bg.frames[1]:GetChildren())
+		local fr, fg, fb = K.Tokens.Color("buttonFill")
+		local body = false
+		for _, region in ipairs({ skin:GetRegions() }) do
+			local set = region._state.Texture and region._state.Texture[1]
+			local r, g, b = region:GetVertexColor()
+			if type(r) == "number" and set == (K.Tokens.Texture("chamferTile")) and math.abs(r - fr) < 1e-3 and math.abs(g - fg) < 1e-3 and math.abs(b - fb) < 1e-3 then
+				body = true
+			end
+		end
+		check(body, "each aura button sits on the near-black button body every square icon shares")
+	end
 	check(bg.maxFrameCount == 24 and dg.maxFrameCount == 12, "2 rows of 12 buffs and 1 row of 12 debuffs")
 	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
 	check(bg.layout.elementWidth == 28 and bg.layout.elementHeight == 38, "each buff is a 28-unit icon with its timer under it")

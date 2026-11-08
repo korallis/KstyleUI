@@ -78,6 +78,25 @@ do
 	assert(button._aura.timer, "and a time left")
 	local w, h = button:GetSize()
 	assert(w == size and h == size, "buttons start at the icon size")
+	do
+		local K = select(2, N.New())
+		local skin = (button:GetChildren())
+		local Widgets, Tokens = K.Widgets, K.Tokens
+		local fr, fg, fb = Tokens.Color("buttonFill")
+		local rr, rg, rb = Widgets.IconRim()
+		local body, rim = false, false
+		for _, region in ipairs({ skin:GetRegions() }) do
+			local set = region._state.Texture and region._state.Texture[1]
+			local cr, cg, cb = region:GetVertexColor()
+			if type(cr) == "number" and set == (Tokens.Texture("chamferTile")) and math.abs(cr - fr) < 1e-3 and math.abs(cg - fg) < 1e-3 and math.abs(cb - fb) < 1e-3 then
+				body = true
+			elseif type(cr) == "number" and math.abs(cr - rr) < 1e-3 and math.abs(cg - rg) < 1e-3 and math.abs(cb - rb) < 1e-3 then
+				rim = true
+			end
+		end
+		assert(body, "the tile's body is the near-black button fill every square icon shares")
+		assert(rim, "its hairline rests on the accent rim, as an action button")
+	end
 	assert(N.Last(button, "EnableMouse")[1] == false, "debuff buttons let clicks through to the world, as Blizzard's plate auras do")
 
 	-- The flow layout: icons grow right and up from above the name, wrapping after the columns.

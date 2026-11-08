@@ -80,7 +80,7 @@ function ns.Preview(parent)
 	frame:SetPoint("CENTER", parent, "CENTER")
 	frame.buttons = {}
 	for i = 1, ns.BAR.bar1.max do
-		local button = Widgets.IconButton(frame, { size = ns.Config("bar1").size, silent = true })
+		local button = Widgets.IconButton(frame, { size = ns.Config("bar1").size, silent = true, primary = true })
 		button.macroText = Widgets.Text(button.overlay, "caption", "textEmphasis")
 		button.macroText:SetPoint("BOTTOM", button, "BOTTOM", 0, Widgets.Snap(button, 2))
 		frame.buttons[i] = button

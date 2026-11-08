@@ -53,10 +53,10 @@ local function PaintRim(holder)
 	if color then
 		Widgets.ShowSlice(holder.rim, true)
 		Widgets.ColorSlice(holder.rim, color[1], color[2], color[3], color[4] or 1)
-		holder.chrome:SetEdgeRGBA(color[1], color[2], color[3], color[4] or 1)
+		holder.chrome:SetRim(color[1], color[2], color[3], color[4] or 1)
 	else
 		Widgets.ShowSlice(holder.rim, false)
-		holder.chrome:SetEdge("edgeInner")
+		holder.chrome:SetRim()
 	end
 end
 
@@ -86,7 +86,7 @@ function Parts.Rim(frame, opts)
 	holder:SetFrameLevel(math.max(0, frame:GetFrameLevel() - LEVEL_BELOW))
 	holder.target = opts.target or frame
 	holder.outset = opts.outset or 0
-	holder.chrome = Widgets.Chrome(holder, { shape = "tile", fill = opts.fill or "raised", shadow = false })
+	holder.chrome = Widgets.IconChrome(holder)
 	holder.rim = Widgets.NineSlice(holder, "chamferTile", "BACKGROUND", RIM_SUBLEVEL)
 	holder.Restyle = RestyleRim
 	holder.SetRimColor = SetRimColor

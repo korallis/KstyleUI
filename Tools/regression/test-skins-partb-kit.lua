@@ -86,6 +86,8 @@ do
 	assert(crop and W.Near(crop[1], 0.07), "the icon is cropped like the kit's icons")
 	assert(item.rim:GetParent() == button, "the rim is KstyleUI's own child frame")
 	assert(item.rim.color == nil, "no quality, no ring")
+	assert(W.SameColor(item.rim.chrome.fill[5], K.Tokens.Color("buttonFill")), "the rim's tile is the near-black button body every square icon shares")
+	assert(W.SameRGB(item.rim.chrome.inner[1], K.Tokens.Color("edgeInner")), "with the plain hairline until a quality colours it")
 
 	local r, g, b = 0.64, 0.21, 0.93
 	button.IconBorder:SetVertexColor(r, g, b)
@@ -403,3 +405,13 @@ do
 end
 
 print("skins part B kit ok")
+
+-- Square: an icon button on the near-black button body, as every square icon.
+do
+	local _, K, _, B, kit = Started()
+	local button = ItemButton(B)
+	local square = kit.Square(button)
+	assert(square and square.backdrop, "a square gets a backdrop")
+	assert(W.SameColor(square.backdrop.chrome.fill[5], K.Tokens.Color("buttonFill")), "the square's body is the near-black button fill, not a raised tile")
+	assert(button.icon:GetAlpha() == 1, "the icon stays")
+end

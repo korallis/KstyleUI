@@ -15,7 +15,7 @@ end
 
 local function Slot(slot)
 	Skin.Strip(slot)
-	Skin.Backdrop(slot, { shape = "tile", fill = "raised", shadow = false })
+	Skin.Backdrop(slot, { shape = "tile", fill = "buttonFill", shadow = false })
 	Item(slot.ItemButton)
 end
 

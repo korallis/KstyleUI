@@ -12,6 +12,8 @@ From the repository root, with `luajit` and Google Chrome installed:
 Tools/render/shoot.sh hud_dps_mac                                               # Tools/render/out/hud_dps_mac.png at 1.426 px/unit
 Tools/render/shoot.sh components_mac                                            # the component sheet at the owner's density
 Tools/render/shoot.sh components_mac --ppu 2.0 --out Tools/render/out/components_design.png   # the sheet at the design file's density
+Tools/render/shoot.sh buttons_mac --ppu 2.0                                     # every square icon button: the six states, bag slots, aura tiles, the micro menu and bag bar
+Tools/render/shoot.sh buttons_toned                                             # the same with Widgets.SECONDARY_RIM at 0.5
 Tools/render/shoot.sh smoke --json-only                                         # the scene JSON only, no Chrome
 ```
 
@@ -60,7 +62,7 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 - Visibility and alpha chains with `SetIgnoreParentAlpha`; draw order by strata, frame level (`SetUsingParentLevel`), draw layer, sublevel, creation order; HIGHLIGHT only for hovered frames.
 - Textures: file paths under `Interface\AddOns\` mapped to the repository (`KstyleUI\` is the root), numeric file IDs to `KstyleUI_IconsColour/Icons`, then `KstyleUI_Icons/Icons`, then `~/.local/share/wow-dev/icons/blizzard`; `SetColorTexture`, vertex colour (multiply), 4- and 8-value texcoords (affine), `ADD` as `lighter`, desaturation, rotation, gradients, REPEAT tiling at texel size, masks via `destination-in`.
 - Status bars: the fill texture covers the bar times its fraction from `SetValue` over `SetMinMaxValues`, or from `SetTimerDuration` with a `{ start, finish }` object against the clock, honouring orientation and reverse fill; `SetStatusBarColor` tints the fill.
-- Cooldown swipes from `SetCooldown(start, duration)` or a duration object with `start`/`finish` or `remaining`/`total`, with `SetReverse`, `SetSwipeColor`, the swipe texture as a mask, and countdown numbers unless hidden.
+- Cooldown swipes from `SetCooldown(start, duration)` or a duration object with `start`/`finish` or `remaining`/`total`, with `SetReverse`, `SetSwipeColor`, the swipe texture as a mask, and countdown numbers unless hidden. A frame whose `GetCountdownFontString` was called draws the number through that font string, as the game does, so the addon's font, colour and anchor place it; any other cooldown draws a default 12-unit outlined number at its centre.
 - Text: `SetText` and `SetFormattedText` (secrets revealed), fonts from `SetFont`, `SetFontObject` or the template name (Blizzard names map to Friz Quadrata sizes), colour, shadow, justify, word wrap, `|c`/`|r` colours, links and textures stripped. A text with no width of its own takes an estimated natural width in the solver and its measured width on the page, keeping its anchored side.
 - Pixel snapping: every rect edge rounds to a device pixel.
 
@@ -72,5 +74,5 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 - Fonts the repository lacks (`Fonts\FRIZQT__.TTF`, `ARIALN.TTF`) fall back to Source Sans on the page; the log names them.
 - Tiled textures repeat at one texel per unit of the region's own scale, which is the game's behaviour as far as the owner's screenshots show; check the grain against a screenshot before trusting it.
 - Motion is sampled: scenes tick tweens with `W.Tick` and hold the clock, so a fade or a cast reads mid-way, not at a precise frame.
-- Hover glows use the addon's low alpha, so a hovered button reads close to a normal one; the design file's strong hover glow is a design difference, not a renderer one.
+- The fake aura engine lays out no buttons, so a scene with the Auras module counts its engine buttons as unresolved; the module's own preview tiles draw.
 - Chrome's canvas does the compositing, so `multiply` tinting and `destination-in` masking are exact to 8 bits; the game's blend modes other than `BLEND` and `ADD` draw as `BLEND`.

@@ -612,3 +612,21 @@ do
 end
 
 print("databars menus ok")
+
+-- The micro menu and bag bar are secondary icon buttons: their rims follow Widgets.SECONDARY_RIM, the one
+-- number that tones them toward the plain hairline. The default keeps the full accent rim.
+do
+	local env, K, ns = New()
+	local button = ns.Menus.Shown("micro")[2]
+	local rr, rg, rb = K.Widgets.IconRim()
+	assert(W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "at the default the micro menu's rim is the full accent rim, as the action buttons")
+	K.Widgets.SECONDARY_RIM = 0.5
+	button:Paint()
+	local tr, tg, tb, ta = K.Widgets.IconRim(nil, nil, nil, 0.5)
+	assert(W.SameColor(button.chrome.inner[5], tr, tg, tb, ta), "at half strength the micro menu's rim tones toward the plain hairline")
+	local bag = ns.Menus.Shown("bags")[1]
+	bag:Paint()
+	assert(W.SameColor(bag.chrome.inner[5], tr, tg, tb, ta), "and so does the bag bar's")
+	K.Widgets.SECONDARY_RIM = 1
+	noErrors(env, K)
+end
