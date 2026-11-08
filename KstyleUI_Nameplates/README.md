@@ -96,7 +96,7 @@ Aura buttons deny tainted access while auras are secret. A setting that changes 
 
 Icon size and spacing snap to whole physical pixels (`Widgets.Snap` on the plate) before they go to the group layout, the flow line size and the buttons.
 
-The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine. `Auras.Extent(plate)` gives how far a plate reaches above and below its health bar, debuffs included, and the preview spaces its sample plates by the tallest so no plate's debuffs run into the next.
+The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine. `Auras.Extent(plate)` gives how far a plate reaches above and below its health bar, debuffs included, and the preview spaces its sample plates by the tallest so no plate's debuffs run into the next. The pane clips its children, so when a large grid makes the stack taller than the pane, the preview shows only the plates that fit, at least one, and stacks again when the pane changes size.
 
 The defaults are sized for a pull: 26-unit icons, five to a row (138 units, inside the 175-unit plate), with the time left and the stacks at 12 units, outlined. The owner judged the earlier 18-unit icons and 8-unit text too small to read in game on 2026-11-08. A plate shrunk for distance (`cvars.minScale` 0.8) still draws the icons at about 21 units. A size saved in a profile keeps its value.
 

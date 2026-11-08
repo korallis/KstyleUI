@@ -71,27 +71,45 @@ local function intersects(a, b)
 	return a[1] < b[1] + b[3] and b[1] < a[1] + a[3] and a[2] < b[2] + b[4] and b[2] < a[2] + a[4]
 end
 
+local PANE_HEIGHT = 500
+
+local function inside(a, b)
+	return a[1] >= b[1] - 0.01 and a[2] >= b[2] - 0.01 and a[1] + a[3] <= b[1] + b[3] + 0.01 and a[2] + a[4] <= b[2] + b[4] + 0.01
+end
+
 local function PreviewOverlaps(write)
 	local env, K = N.New()
 	for key, value in pairs(write or {}) do
 		K.Options.Write("Nameplates", key, value)
 	end
 	local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
-	holder:SetSize(400, 300)
+	holder:SetSize(400, PANE_HEIGHT)
 	holder:SetPoint("CENTER")
 	local preview = K.Options.Preview("Nameplates")(holder)
 	preview:SetAllPoints(holder)
 	preview:Refresh()
+	local pane = { Scene.Rect(env, holder) }
 	local plates = preview.plates
+	local shown = 0
 	for i, plate in ipairs(plates) do
+		if plate:IsVisible() then
+			shown = shown + 1
+			local h = { Scene.Rect(env, plate.health) }
+			if not inside(h, pane) then
+				return string.format("plate %d's health bar leaves the pane", i)
+			end
+		end
 		for _, icon in ipairs(plate.sampleAuras) do
-			if icon:IsShown() then
+			if icon:IsVisible() then
 				local a = { Scene.Rect(env, icon) }
 				assert(a[1], "sample debuff " .. i .. " resolves")
+				if not inside(a, pane) then
+					return string.format("plate %d's debuffs leave the pane", i)
+				end
 				for j, other in ipairs(plates) do
 					for _, part in ipairs({ "health", "cast", "level" }) do
 						local object = other[part]
-						if object and object:IsShown() and (j ~= i or part ~= "level") then
+						if object and object:IsVisible() and (j ~= i or part ~= "level") then
 							local b = { Scene.Rect(env, object) }
 							if b[1] and intersects(a, b) then
 								return string.format("plate %d's debuffs overlap plate %d's %s", i, j, part)
@@ -103,16 +121,21 @@ local function PreviewOverlaps(write)
 		end
 	end
 	assert(#env._errors == 0, tostring(env._errors[1]))
-	return nil
+	return nil, shown
 end
 
 do
-	local problem = PreviewOverlaps()
+	local problem, shown = PreviewOverlaps()
 	assert(not problem, "at the defaults, " .. tostring(problem))
+	assert(shown == 3, "the defaults show all three sample plates, not " .. shown)
 	problem = PreviewOverlaps({ ["debuffs.rows"] = 2, ["debuffs.size"] = 32 })
 	assert(not problem, "with two rows of 32-unit icons, " .. tostring(problem))
 	problem = PreviewOverlaps({ ["debuffs.growthY"] = "DOWN" })
 	assert(not problem, "growing down under the cast bar, " .. tostring(problem))
+	-- The largest grid the sliders allow: the pane clips its children, so it shows the plates that fit.
+	problem, shown = PreviewOverlaps({ ["debuffs.rows"] = 4, ["debuffs.size"] = 40 })
+	assert(not problem, "with four rows of 40-unit icons, " .. tostring(problem))
+	assert(shown >= 1, "at least one sample plate shows")
 end
 
 -- A size the player saved keeps its value ----------------------------------------------------------------

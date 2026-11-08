@@ -39,10 +39,15 @@ local function Stack(frame)
 	end
 	local pitch = above + ns.state.height + below + ROW_GAP
 	local count = #frame.plates
+	local room = frame:GetHeight()
+	if type(room) == "number" and room > 0 then
+		count = math.max(1, math.min(count, math.floor((room + ROW_GAP) / pitch)))
+	end
 	for i, plate in ipairs(frame.plates) do
 		local holder = plate:GetParent()
 		holder:ClearAllPoints()
 		holder:SetPoint("CENTER", frame, "CENTER", 0, ((count + 1) / 2 - i) * pitch + (below - above) / 2)
+		holder:SetShown(i <= count)
 	end
 end
 
@@ -57,6 +62,7 @@ function Preview.Build(parent)
 		frame.plates[i] = plate
 	end
 	Stack(frame)
+	frame:SetScript("OnSizeChanged", Stack)
 	function frame.Refresh()
 		Settings.Invalidate()
 		if not Plates.running then
