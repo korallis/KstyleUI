@@ -116,7 +116,7 @@ function Preview.Refresh(pane, module)
 end
 
 function Preview.Create(parent)
-	local pane = Widgets.Panel(parent, { shape = "tile", fill = "raised", shadow = false })
+	local pane = Widgets.Panel(parent, { shape = "tile", fill = "buttonFill", shadow = false })
 	pane.caption = Widgets.Text(pane, "caption", "text")
 	Widgets.SetText(pane.caption, L["Live preview"])
 	pane.rule = pane:CreateTexture(nil, "ARTWORK")

@@ -23,7 +23,7 @@ local BAR_MIN = 3
 local BAR_SHARE = 0.22
 local TEXT_EXTRA = 3
 local TIMER_COLUMN = 3
-local TRACK = "raised"
+local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }

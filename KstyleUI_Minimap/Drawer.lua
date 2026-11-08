@@ -293,7 +293,7 @@ function Drawer:Adopt(name, button)
 			keep[button.icon] = true
 		end
 		K.Skin.Strip(button, { keep = keep })
-		K.Skin.Backdrop(button, { shape = "tile", fill = "raised" })
+		K.Skin.Backdrop(button, { shape = "tile", fill = "buttonFill" })
 		hooksecurefunc(button, "SetPoint", OnMoved)
 		hooksecurefunc(button, "SetAlpha", KeepOpaque)
 		local fade = button.fadeOut

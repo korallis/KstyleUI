@@ -83,7 +83,7 @@ function Preview.Build(parent)
 	glass:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -pad, pad)
 	frame.glass = glass
 	frame.fill = CreateFrame("Frame", nil, glass)
-	frame.fill.chrome = Widgets.Chrome(frame.fill, { shape = "tile", fill = "raised", shadow = false })
+	frame.fill.chrome = Widgets.Chrome(frame.fill, { shape = "tile", fill = "buttonFill", shadow = false })
 	local top = CreateFrame("Frame", nil, glass)
 	top:SetAllPoints(glass)
 	top:SetFrameLevel(frame.fill:GetFrameLevel() + 1)

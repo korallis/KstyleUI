@@ -1,7 +1,7 @@
 -- test-widgets-buttons.lua: the text button, the close button, the icon button's states and the tab strip.
 local W = dofile("Tools/regression/widget_env.lua")
 
--- Button: a raised chamfered tile; hover brightens the hairline to the accent and the text to white; press moves the text down.
+-- Button: a chamfered tile on the button body; hover brightens the hairline to the accent and the text to white; press moves the text down.
 do
 	local env, K = W.New()
 	local Tokens, Scale = K.Tokens, K.Scale
@@ -15,7 +15,7 @@ do
 	assert(button:GetObjectType() == "Button" and button.chrome and #button.chrome.fill == 9)
 	assert(W.Near(button.chrome.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("chamferTile"))), "a tile: 3-unit chamfers")
 	assert(button.chrome.shadow[1]:IsShown() == false, "buttons cast no shadow")
-	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("raised")), "the raised fill")
+	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("buttonFill")), "the button grade's body, the mockup's one dark tone")
 	assert(button.label:GetText() == "Accept")
 	assert(W.SameColor(button.chrome.inner[5], Tokens.Color("edgeInner")), "the hairline rests at edgeInner")
 	assert(W.SameColor({ GetVertexColor = function()

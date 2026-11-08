@@ -88,7 +88,7 @@ function Widgets.EditBox(parent, opts)
 	if opts.numeric then
 		box:SetNumeric(true)
 	end
-	box.chrome = Widgets.Chrome(box, { shape = "tile", fill = "raised", shadow = false })
+	box.chrome = Widgets.Chrome(box, { shape = "tile", fill = "buttonFill", shadow = false })
 	box.placeholder = Widgets.Text(box, "body", "textDisabled")
 	box.placeholder:SetJustifyH("LEFT")
 	box.placeholder:SetWordWrap(false)

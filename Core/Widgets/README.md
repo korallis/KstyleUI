@@ -90,6 +90,8 @@ The three grades every element uses, measured on the owner's mockup against the 
 | Button | `buttonFill` body, a 3-unit `buttonFill` bezel, the accent rim (`IconRim`) with its halo, shadow, the icon 11% of the side in | action, cooldown, micro menu and bag bar buttons, flyouts; aura tiles, bag slots and skin rims draw the same body and rim without the bezel |
 | Bar | `surface` fill, `edgeBar` edge, `tile` chamfer, no shadow | buff bars, the cast bar panel, a `StatusBar` border, the experience bar |
 
+The kit's controls take the button grade's body too: text buttons, edit boxes, text areas, dropdown boxes, tab strips, colour swatches, the setup window's layout cards, Layout Mode's mover plates and the tracks of health and cast bars are `buttonFill` tiles with the plain `edgeInner` hairline, the mockup's one dark tone under a one-border light line (its data strip pill and N plate). No chrome fills with the `raised` tone any more; `Tools/regression/test-grades.lua` fails on one. `raised` remains the tone a pressed, cooling or unusable icon button lifts its body toward.
+
 A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow shows only while `shadows` is on.
 
 | Method | Behaviour |
@@ -145,7 +147,7 @@ Fields: `chrome`, `content` (a frame one `panelPadding` inside, below the title 
 
 ## Button
 
-`Button(parent, opts) -> Button`: a raised tile with a centred label.
+`Button(parent, opts) -> Button`: a chamfered tile on the button grade's body (`buttonFill`) with a centred label.
 
 Options: `text`, `width` (default: the text plus `gapLarge` each side, at least 80), `height` (default `rowHeight` + `gapSmall`), `onClick(button, mouseButton)`, `primary` (the hairline rests on the accent and the text on `textEmphasis`), `template`, `name`, `tooltip` (see [Tooltip](#tooltip)).
 
@@ -210,7 +212,7 @@ Every square icon in KstyleUI draws the same body and rim through one helper, so
 
 ## Tabs
 
-`Tabs(parent, opts) -> Frame`: a raised strip of upper-case tabs. The selected tab's text is `textEmphasis`, and an underline slides to it over `fade` (0.2 s): a line one border thick on the strip's bottom edge, `accent` mixed 60% toward `textHover`, spanning the tab's full width, with a 5-unit accent glow (`underGlow`, the `shadow` falloff, additive, peaking at 25%) fading upward from it.
+`Tabs(parent, opts) -> Frame`: a strip of upper-case tabs on the button grade's body. The selected tab's text is `textEmphasis`, and an underline slides to it over `fade` (0.2 s): a line one border thick on the strip's bottom edge, `accent` mixed 60% toward `textHover`, spanning the tab's full width, with a 5-unit accent glow (`underGlow`, the `shadow` falloff, additive, peaking at 25%) fading upward from it.
 
 Options: `tabs = { { value, label, disabled }, ... }`, `value` (the selected tab, default the first), `onSelect(value, tabs)`, `width` (equal tab widths that fill it; without it each tab fits its label, at least 64 units), `height` (default 32), `name`.
 
@@ -259,7 +261,7 @@ Methods: `GetValue()`, `SetValue(value, silent)`, `SetRange(min, max, step)` (ke
 
 ## EditBox
 
-`EditBox(parent, opts) -> EditBox`: a raised tile in the `body` font with `textEmphasis` text and a `textDisabled` placeholder. It never takes focus by itself.
+`EditBox(parent, opts) -> EditBox`: a tile on the button grade's body in the `body` font with `textEmphasis` text and a `textDisabled` placeholder. It never takes focus by itself.
 
 Options: `text`, `placeholder`, `width` (default 200), `height` (default `rowHeight` + `gapSmall`), `maxLetters`, `numeric`, `name`, `tooltip`, and the callbacks `onEnter(text, box)`, `onEscape(box)`, `onChange(text, box, userInput)`, `onFocus(box)`, `onBlur(box)`.
 
@@ -288,7 +290,7 @@ Fields: `view`, `rows` (each with `index` and `list`), `bar`, `track`, `thumb`, 
 
 ## TextArea
 
-`TextArea(parent, opts) -> Frame`: a multi-line text field for text the player reads, edits or copies, such as a chat log or a long string. A raised tile holds a clipped `ScrollFrame` whose scroll child is a multi-line `EditBox` in the `body` font with `textEmphasis` text. It never takes focus by itself.
+`TextArea(parent, opts) -> Frame`: a multi-line text field for text the player reads, edits or copies, such as a chat log or a long string. A tile on the button grade's body holds a clipped `ScrollFrame` whose scroll child is a multi-line `EditBox` in the `body` font with `textEmphasis` text. It never takes focus by itself.
 
 Options: `width` and `height` (default 300 by 160; without both, a size set by anchors is kept), `text`, `readOnly`, `maxLetters`, `onChange(text, area, userInput)`, `name`.
 
@@ -314,7 +316,7 @@ Fields: `chrome`, `scroll`, `box`, `bar`, `track`, `thumb`.
 
 ## Dropdown
 
-`Dropdown(parent, opts) -> Button`: a raised box with the chosen label, or a placeholder, and a chevron.
+`Dropdown(parent, opts) -> Button`: a box on the button grade's body with the chosen label, or a placeholder, and a chevron.
 
 Options: `options` (a list of `{ value, label }`, or a function that returns one), `value`, `onChange(value, dropdown)`, `placeholder` (default `Select Option`), `width` (default 200), `height` (default `rowHeight` + `gapTiny`, the design's 26), `maxRows` (default 8), `renderRow(row, option, dropdown)` to customise a menu row, `unknownLabel(value) -> label` for a value no option holds, `name`, `tooltip`.
 
@@ -344,7 +346,7 @@ Menu rows have `label`, `mark`, `wash` and `sample` (a hidden texture). Each row
 
 ## ColorSwatch
 
-`ColorSwatch(parent, opts) -> Button`: a chamfered tile filled with the colour.
+`ColorSwatch(parent, opts) -> Button`: a chamfered tile on the button grade's body, filled with the colour.
 
 Options: `color = { r, g, b, a }`, `hasAlpha`, `onChange(r, g, b, a, swatch)`, `size` (default 20), `name`, `tooltip`.
 
@@ -437,7 +439,7 @@ Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`,
 | --- | --- |
 | `SetOwner(owner, anchor, x, y)` | Clears the lines and anchors to `owner`: `"ANCHOR_RIGHT"` (default), `"ANCHOR_LEFT"`, `"ANCHOR_TOP"` or `"ANCHOR_BOTTOM"`, 6 units away, plus `x` and `y`. |
 | `IsOwned(frame) -> boolean` | |
-| `SetIcon(texture, color)` | The design's item icon: a 50-unit chamfered raised tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask` through `Icons.Apply`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
+| `SetIcon(texture, color)` | The design's item icon: a 50-unit chamfered `buttonFill` tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask` through `Icons.Apply`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
 | `AddTitle(text, color)` | The design's title: `body` text in capitals, tracked with a thin space between the letters, `textEmphasis` by default. |
 | `AddCaption(text, color)` | Upper-case tracked caption text, `text` by default |
 | `AddLine(text, color, wrap)` | Body text that wraps unless `wrap` is `false` |

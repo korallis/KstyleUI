@@ -32,7 +32,7 @@ local function Caption(frame, anchor, text)
 end
 
 local function SampleFrame(frame)
-	local tile = Widgets.Panel(frame, { shape = "tile", fill = "raised", shadow = false, width = FRAME_WIDTH, height = FRAME_HEIGHT })
+	local tile = Widgets.Panel(frame, { shape = "tile", fill = "buttonFill", shadow = false, width = FRAME_WIDTH, height = FRAME_HEIGHT })
 	tile:ClearAllPoints()
 	tile:SetPoint("BOTTOM", frame, "BOTTOM", 0, FRAME_BOTTOM)
 	local bar = Widgets.StatusBar(tile, {

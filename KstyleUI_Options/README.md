@@ -40,7 +40,7 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 | Header | The logo, the spaced title, the search field with its clear button, and the close button. The header is the drag handle. |
 | Rail | `Rail.lua`: a `ScrollList` of pages. The selected page has an accent bar and an accent wash that fades to the right. |
 | Rows | A `ScrollList` of 48-unit rows (`Rows.lua`). Each row is a header, a note, or a label with help text and one kit control on the right, 220 units wide. |
-| Preview | `Preview.lua`: a raised tile captioned "Live preview". |
+| Preview | `Preview.lua`: a `buttonFill` tile captioned "Live preview". |
 | Footer | **Layout Mode** (primary) and **Reset** under the preview. |
 
 ## Pages

@@ -76,7 +76,7 @@ python3 - "$json" <<'PY'
 import json, sys
 scene = json.load(open(sys.argv[1]))
 skipped = scene.get("skipped", {})
-print(f"{len(scene['items'])} drawables; skipped hidden {skipped.get('hidden', 0)}, transparent {skipped.get('transparent', 0)}, unresolved {skipped.get('unresolved', 0)}")
+print(f"{len(scene['items'])} drawables; skipped hidden {skipped.get('hidden', 0)}, transparent {skipped.get('transparent', 0)}, unresolved {skipped.get('unresolved', 0)}, clipped {skipped.get('clipped', 0)}")
 for line in scene.get("log", []):
     print("  log: " + line)
 PY

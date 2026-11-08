@@ -304,7 +304,7 @@ function Widgets.Dropdown(parent, opts)
 	end
 	dd.opts = opts
 	dd.options = opts.options
-	dd.chrome = Widgets.Chrome(dd, { shape = "tile", fill = "raised", shadow = false })
+	dd.chrome = Widgets.Chrome(dd, { shape = "tile", fill = "buttonFill", shadow = false })
 	dd.text = Widgets.Text(dd, "body", "text")
 	dd.text:SetJustifyH("LEFT")
 	dd.text:SetWordWrap(false)

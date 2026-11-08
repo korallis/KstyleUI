@@ -109,7 +109,7 @@ local function SkinParts(tooltip)
 	local header = tooltip.CompareHeader
 	if type(header) == "table" then
 		Skin.Strip(header)
-		Skin.Backdrop(header, { shape = "tile", fill = "raised", shadow = false })
+		Skin.Backdrop(header, { shape = "tile", fill = "buttonFill", shadow = false })
 		if type(header.Label) == "table" then
 			Skin.Text(header.Label, "caption", "text")
 		end
@@ -461,7 +461,7 @@ function Style.ItemBorder(item)
 	frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -outset, outset)
 	frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outset, -outset)
 	UseParentLevel(frame, item)
-	frame.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "raised", shadow = false })
+	frame.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "buttonFill", shadow = false })
 	side.tooltipsBorder = frame
 	hooksecurefunc(border, "SetVertexColor", function()
 		PaintItemBorder(item)

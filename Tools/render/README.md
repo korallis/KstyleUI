@@ -41,6 +41,15 @@ Tools/render/shoot.sh hud_dps_mac --icons off                                   
 
 To look at a scene in a browser instead, open `Tools/render/out/<scene>.html` with Chrome started as `--allow-file-access-from-files`, or `render.html?scene=out/<scene>.json&ppu=1.426`.
 
+## Gallery
+
+```bash
+python3 Tools/render/gallery.py                      # every scenes/gallery_*.lua: render over the plate, crop each frame, write the manifest
+python3 Tools/render/gallery.py gallery_widgets --no-render --out /tmp/gw   # reuse the last render; crops into /tmp/gw
+```
+
+A gallery scene (`scenes/gallery_<area>.lua`, built on `scenes/_gallery.lua`) draws one area's frames in a representative state and lists each one in `scene.frames` (`frames:Add(env, frame, { name, title, caption, grade, reference, match, pad })`): the grade it wears (`panel`, `window`, `button` or `bar`) and the mockup crop that shares that grade (`Gallery.REFERENCES`: `chat`, `tracker`, `player`, `target`, `cast`, `buffbars`, `actionbars`, `cluster`, `datastrip`, `minimap`, `nameplate`, `bufficons`, `xp`). `gallery.py` runs `shoot.sh <scene> --backdrop` for each, cuts every listed frame plus its padding out of the PNG into `~/.local/share/kstyleui-handoff/final/frames/kstyle_<name>.png`, cuts each named mockup reference at the render's density into `theme-crops/ref_<key>.png` (`REFERENCE_BOXES`, mockup pixels), and writes `kstyle_manifest.json`: a list of `{ file, title, caption, grade, reference, match, scene }`, the reference as a path relative to the frames folder. `test-render-scenes.lua` builds every gallery scene and checks each frame names a grade and a reference and sits on the screen; `Tools/tests/test_render_gallery.py` covers the cropping and the manifest.
+
 ## Compare
 
 ```bash
@@ -85,6 +94,8 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 - Status bars: the fill texture covers the bar times its fraction from `SetValue` over `SetMinMaxValues`, or from `SetTimerDuration` with a `{ start, finish }` object against the clock, honouring orientation and reverse fill; `SetStatusBarColor` tints the fill.
 - Cooldown swipes from `SetCooldown(start, duration)` or a duration object with `start`/`finish` or `remaining`/`total`, with `SetReverse`, `SetSwipeColor`, the swipe texture as a mask, and countdown numbers unless hidden. A frame whose `GetCountdownFontString` was called draws the number through that font string, as the game does, so the addon's font, colour and anchor place it; any other cooldown draws a default 12-unit outlined number at its centre.
 - Text: `SetText` and `SetFormattedText` (secrets revealed), fonts from `SetFont`, `SetFontObject` or the template name (Blizzard names map to Friz Quadrata sizes), colour, shadow, justify, word wrap, `|c`/`|r` colours, links and textures stripped. A text with no width of its own takes an estimated natural width in the solver and its measured width on the page, keeping its anchored side.
+- Edit boxes draw their own text inside their text insets, from the left, and from the top when multi-line; an empty box draws nothing, so a placeholder shows through. A scroll frame's child (`SetScrollChild`) hangs from the frame's top left corner moved by the scroll offsets, as the game places it.
+- A frame that clips its children (`SetClipsChildren`) bounds everything drawn under it: an item outside the frame's rect is dropped (counted as `clipped`), one across it carries the rect as `clip` and the page draws it through that rect.
 - Pixel snapping: every rect edge rounds to a device pixel.
 
 ## Known limitations

@@ -448,11 +448,17 @@ function Solver:solve(object)
 	end
 	local points = object._points or {}
 	if #points == 0 then
-		if object._rect then
+		-- A scroll frame's child hangs from the frame's top left corner, moved by the scroll offsets, as the game
+		-- places it; the addon never anchors it.
+		local parent = object._parent
+		if parent and parent._type == "ScrollFrame" and state(parent, "ScrollChild") == object then
+			points = { { "TOPLEFT", parent, "TOPLEFT", -(num(env, (state(parent, "HorizontalScroll")), 0)), num(env, (state(parent, "VerticalScroll")), 0) } }
+		elseif object._rect then
 			local l, b, w, h = unpack(object._rect, 1, 4)
 			return { l, b, l + w, b + h }
+		else
+			return nil, "no anchors"
 		end
-		return nil, "no anchors"
 	end
 	local xs, ys = {}, {}
 	for _, pack in ipairs(points) do
@@ -675,7 +681,7 @@ function Scene.Build(env, opts)
 
 	local items = {}
 	local seq = 0
-	local skipped = { hidden = 0, transparent = 0, unresolved = 0 }
+	local skipped = { hidden = 0, transparent = 0, unresolved = 0, clipped = 0 }
 
 	local function describe(object)
 		local name = object._name
@@ -867,10 +873,53 @@ function Scene.Build(env, opts)
 		return item
 	end
 
+	-- An edit box draws its own text, as the game does: inside its text insets, from the left, and from the top
+	-- when it is multi-line. A box with no text draws nothing, so a placeholder font string shows through.
+	local function editBoxItem(frame, rect, alpha)
+		local item = textItem(frame, frame, alpha)
+		if not item then
+			return nil
+		end
+		local s = effectiveScale(frame) * k
+		local l, r, t, b = state(frame, "TextInsets")
+		l, r, t, b = (type(l) == "number" and l or 0) * s, (type(r) == "number" and r or 0) * s, (type(t) == "number" and t or 0) * s, (type(b) == "number" and b or 0) * s
+		local screen = toScreen(rect)
+		item.rect = { round4(screen[1] + l), round4(screen[2] + t), round4(screen[3] - l - r), round4(screen[4] - t - b) }
+		item.justifyH = state(frame, "JustifyH") or "LEFT"
+		item.justifyV = state(frame, "MultiLine") == true and "TOP" or "MIDDLE"
+		item.object = frame
+		return item
+	end
+
 	local visited = {}
 	local kidsOf, regionsOf = {}, {}
 
-	local function walkFrame(frame, inheritedHidden)
+	-- A frame that clips its children (SetClipsChildren) bounds everything drawn under it, as a scroll list's
+	-- view does; clip is that bound in screen units, or nil. An item outside it is dropped, one across it is
+	-- drawn through it by the page.
+	local function clipped(item, clip)
+		if not clip then
+			return true
+		end
+		local r = item.rect
+		if r[1] + r[3] <= clip[1] or r[1] >= clip[1] + clip[3] or r[2] + r[4] <= clip[2] or r[2] >= clip[2] + clip[4] then
+			skipped.clipped = (skipped.clipped or 0) + 1
+			return false
+		end
+		item.clip = clip
+		return true
+	end
+
+	local function intersect(a, b)
+		if not a then
+			return b
+		end
+		local x0, y0 = math.max(a[1], b[1]), math.max(a[2], b[2])
+		local x1, y1 = math.min(a[1] + a[3], b[1] + b[3]), math.min(a[2] + a[4], b[2] + b[4])
+		return { x0, y0, math.max(0, x1 - x0), math.max(0, y1 - y0) }
+	end
+
+	local function walkFrame(frame, inheritedHidden, clip)
 		if visited[frame] then
 			return
 		end
@@ -895,6 +944,15 @@ function Scene.Build(env, opts)
 			if item then
 				item.rect = toScreen(rect)
 				item.object = frame
+			end
+			if item and clipped(item, clip) then
+				seq = seq + 1
+				item.strata, item.level, item.layer, item.sublevel, item.seq = strata, level, LAYERS.ARTWORK, 0, seq
+				items[#items + 1] = item
+			end
+		elseif frame._type == "EditBox" and rect and alpha > 0 then
+			local item = editBoxItem(frame, rect, alpha)
+			if item and clipped(item, clip) then
 				seq = seq + 1
 				item.strata, item.level, item.layer, item.sublevel, item.seq = strata, level, LAYERS.ARTWORK, 0, seq
 				items[#items + 1] = item
@@ -916,7 +974,7 @@ function Scene.Build(env, opts)
 					elseif region._type == "Texture" or region._type == "Line" then
 						item = textureItem(region, frame, regionAlpha)
 					end
-					if item and mark(region, item) then
+					if item and mark(region, item) and clipped(item, clip) then
 						seq = seq + 1
 						item.strata, item.level, item.layer, item.sublevel, item.seq = strata, level, layer, type(sublevel) == "number" and sublevel or 0, seq
 						items[#items + 1] = item
@@ -926,8 +984,12 @@ function Scene.Build(env, opts)
 				end
 			end
 		end
+		local kidClip = clip
+		if rect and state(frame, "ClipsChildren") == true then
+			kidClip = intersect(clip, toScreen(rect))
+		end
 		for _, kid in ipairs(kidsOf[frame] or {}) do
-			walkFrame(kid, false)
+			walkFrame(kid, false, kidClip)
 		end
 	end
 
@@ -1050,7 +1112,7 @@ end
 
 -- Merge(scenes) -> one scene whose items are every scene's items in order, for modules drawn in separate environments.
 function Scene.Merge(scenes)
-	local out = { screen = scenes[1].screen, items = {}, log = {}, skipped = { hidden = 0, transparent = 0, unresolved = 0 } }
+	local out = { screen = scenes[1].screen, items = {}, log = {}, skipped = { hidden = 0, transparent = 0, unresolved = 0, clipped = 0 } }
 	for _, scene in ipairs(scenes) do
 		for _, item in ipairs(scene.items) do
 			out.items[#out.items + 1] = item

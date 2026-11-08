@@ -112,7 +112,7 @@ function Widgets.ColorSwatch(parent, opts)
 	end
 	swatch.opts = opts
 	swatch.color = { 1, 1, 1, 1 }
-	swatch.chrome = Widgets.Chrome(swatch, { shape = "tile", fill = "raised", shadow = false })
+	swatch.chrome = Widgets.Chrome(swatch, { shape = "tile", fill = "buttonFill", shadow = false })
 	local c = opts.color or {}
 	swatch:SetColor(c.r or 1, c.g or 1, c.b or 1, c.a or 1, true)
 	swatch.onClick = function(self)

@@ -54,7 +54,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | `lineSpacing` | 4 | 0 to 10 units between lines; 4 gives the mockup's pitch at size 14 |
 | `fontOutline` | `none` | `none` (the soft text shadow), `OUTLINE` or `THICKOUTLINE` |
 | `fade`, `fadeTime` | `true`, 120 | Old lines fade after this many seconds, 10 to 600 |
-| `tabStyle` | `underline` | `underline` (the accent underline), `filled` (a raised tile behind the selected tab) or `minimal` (bright text only) |
+| `tabStyle` | `underline` | `underline` (the accent underline), `filled` (a `buttonFill` tile behind the selected tab) or `minimal` (bright text only) |
 | `tabCase` | `upper` | Tab names in capitals or as typed |
 | `tabFontSize` | 13 | 8 to 16; the mockup's tab labels measure 13 at 1.348 px per unit |
 | `accentSource`, `accentColor` | `class`, the default accent | Links and the chat's highlights follow the class colour or a custom colour |

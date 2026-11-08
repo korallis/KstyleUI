@@ -196,7 +196,7 @@ function Widgets.Tabs(parent, opts)
 	strip.opts = opts
 	strip.buttons = {}
 	strip.items = {}
-	strip.chrome = Widgets.Chrome(strip, { shape = "tile", fill = "raised", shadow = false })
+	strip.chrome = Widgets.Chrome(strip, { shape = "tile", fill = "buttonFill", shadow = false })
 	strip.underline = strip:CreateTexture(nil, "ARTWORK")
 	strip.underline:SetColorTexture(Tokens.Color("white"))
 	local glow = strip:CreateTexture(nil, "ARTWORK", nil, -1)

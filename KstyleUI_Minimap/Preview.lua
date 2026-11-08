@@ -41,7 +41,7 @@ function Preview.Build(parent)
 	local area = face.mapArea
 	local terrain = area:CreateTexture(nil, "ARTWORK")
 	terrain:SetColorTexture(Tokens.Color("white"))
-	Widgets.Tint(terrain, "raised")
+	Widgets.Tint(terrain, "buttonFill")
 	terrain:SetAllPoints(area)
 	local grain = area:CreateTexture(nil, "ARTWORK", nil, 1)
 	grain:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")

@@ -236,7 +236,7 @@ function Widgets.TextArea(parent, opts)
 	area.opts = opts
 	area.offset = 0
 	area.readOnly = opts.readOnly == true
-	area.chrome = Widgets.Chrome(area, { shape = "tile", fill = "raised", shadow = false })
+	area.chrome = Widgets.Chrome(area, { shape = "tile", fill = "buttonFill", shadow = false })
 	area.scroll = CreateFrame("ScrollFrame", nil, area)
 	area.scroll:SetClipsChildren(true)
 	area.box = CreateFrame("EditBox", nil, area.scroll)

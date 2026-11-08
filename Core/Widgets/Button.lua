@@ -116,7 +116,7 @@ function Widgets.Button(parent, opts)
 	button.opts = opts
 	button.primary = opts.primary == true
 	button.onClick = opts.onClick
-	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "raised", shadow = false })
+	button.chrome = Widgets.Chrome(button, { shape = "tile", fill = "buttonFill", shadow = false })
 	button.label = Widgets.Text(button, "body", "text")
 	button.label:SetWordWrap(false)
 	Widgets.SetText(button.label, opts.text or "")

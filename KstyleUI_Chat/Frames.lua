@@ -171,7 +171,7 @@ local function PaintTab(parts)
 	end
 	local fill = parts.backdrop
 	if not fill and style == "filled" then
-		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "raised", shadow = false, inset = TAB_FILL_INSET })
+		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "buttonFill", shadow = false, inset = TAB_FILL_INSET })
 	end
 	if fill then
 		fill:SetShown(selected and style == "filled")

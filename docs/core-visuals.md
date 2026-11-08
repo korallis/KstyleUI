@@ -13,7 +13,7 @@ The core's visual service files carry one comment each, their first line, so the
 | Name | Value | Use |
 | --- | --- | --- |
 | `surface` | `#151a20` at 97% | Panels: the mockup's glass, measured against the UI-free plate of its scene (fill #14191e to #161c22, alpha 0.97 to 1.0 on every panel) |
-| `raised` | `#1c1c1c` | Inputs and list rows in the kit's windows |
+| `raised` | `#1c1c1c` | The tone a pressed, cooling or unusable icon button lifts its body toward; no chrome fills with it (`test-grades.lua`) |
 | `edgeOuter` | `#000000` at 80% | The dark line on every panel's edge, the mockup's #101214 line outside the light one |
 | `edgeInner` | `#ffffff` at 28% | The light line one border inside the edge: the mockup's panel line reads lum 85 to 100 over its fill |
 | `edgeFaint` | `#ffffff` at 8% | Neutral dividers |

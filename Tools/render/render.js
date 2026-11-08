@@ -647,12 +647,23 @@
 			if (options.filter && !options.filter(item)) {
 				continue;
 			}
+			// An item under a frame that clips its children draws only inside that frame's rect.
+			if (item.clip) {
+				const c = snapRect(item.clip, ppu);
+				ctx.save();
+				ctx.beginPath();
+				ctx.rect(c.x, c.y, c.w, c.h);
+				ctx.clip();
+			}
 			if (item.kind === "texture") {
 				await drawTexture(ctx, item, ppu, base);
 			} else if (item.kind === "text") {
 				await drawText(ctx, item, ppu, base);
 			} else if (item.kind === "swipe") {
 				await drawSwipe(ctx, item, ppu, base);
+			}
+			if (item.clip) {
+				ctx.restore();
 			}
 		}
 		return canvas;
