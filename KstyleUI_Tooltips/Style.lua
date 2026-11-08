@@ -285,7 +285,7 @@ end
 
 function Style.IconTile(parent)
 	local icon = CreateFrame("Frame", nil, parent)
-	icon.chrome = Widgets.Chrome(icon, { shape = "tile", fill = "raised", shadow = false })
+	icon.chrome = Widgets.IconChrome(icon)
 	local texture = icon:CreateTexture(nil, "ARTWORK")
 	texture:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = icon:CreateMaskTexture()
@@ -328,7 +328,7 @@ function Style.PaintIcon(icon, quality, spell)
 	else
 		r, g, b, a = Widgets.Rgba("text", PLAIN_EDGE_ALPHA)
 	end
-	icon.chrome:SetEdgeRGBA(r, g, b, a)
+	icon.chrome:SetRim(r, g, b, a)
 	icon.glow:SetIntensity(lit and 1 or 0)
 end
 

@@ -284,6 +284,9 @@ local function formatText(env, stored)
 end
 
 local function textOf(env, region)
+	if region._renderText ~= nil then
+		return region._renderText
+	end
 	local calls = region._calls or {}
 	for i = #calls, 1, -1 do
 		local call = calls[i]
@@ -821,6 +824,11 @@ function Scene.Build(env, opts)
 		return item
 	end
 
+	-- The countdown numbers as the engine formats them: whole seconds, or minutes past a minute.
+	local function countdownText(left)
+		return left >= 60 and string.format("%dm", floor(left / 60 + 0.5)) or string.format("%d", floor(left + 0.5))
+	end
+
 	local function swipeItem(frame, alpha)
 		local fraction, left = Scene.CooldownFraction(env, frame, now)
 		if not fraction then
@@ -837,8 +845,8 @@ function Scene.Build(env, opts)
 			item.file = resolve(swipe)
 			item.path = swipe
 		end
-		if state(frame, "HideCountdownNumbers") ~= true then
-			item.countdown = left >= 60 and string.format("%dm", floor(left / 60 + 0.5)) or string.format("%d", floor(left + 0.5))
+		if state(frame, "HideCountdownNumbers") ~= true and not frame._countdown then
+			item.countdown = countdownText(left)
 			local fontPath, size = DEFAULT_FONT[1], 12
 			item.font = { file = resolve(fontPath), path = fontPath, size = round4(size * effectiveScale(frame) * k), flags = "OUTLINE" }
 		end
@@ -926,11 +934,24 @@ function Scene.Build(env, opts)
 		end
 	end
 
-	-- A status bar's fill texture is the stub's _barTexture, which it lists among the bar's regions. A font
-	-- string with no width or height of its own takes its natural size from its text, approximately.
+	-- A status bar's fill texture is the stub's _barTexture, which it lists among the bar's regions. A
+	-- Cooldown frame with a countdown font string draws its numbers through that string, so the addon's
+	-- anchors, font and justification place them. A font string with no width or height of its own takes
+	-- its natural size from its text, approximately.
 	for _, frame in ipairs(env._frames) do
 		if frame._barTexture then
 			frame._barTexture._barOwner = frame
+		end
+		local countdown = frame._countdown
+		if countdown then
+			local text
+			if state(frame, "HideCountdownNumbers") ~= true then
+				local _, left = Scene.CooldownFraction(env, frame, now)
+				if left then
+					text = countdownText(left)
+				end
+			end
+			countdown._renderText = text
 		end
 		for _, region in ipairs(frame._regions or {}) do
 			if region._type == "FontString" then

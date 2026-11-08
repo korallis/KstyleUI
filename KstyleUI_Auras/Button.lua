@@ -46,7 +46,7 @@ end
 
 function Button.Create(button, hasDispel)
 	local skin = CreateFrame("Frame", nil, button)
-	local chrome = Widgets.Chrome(skin, { shape = "tile", fill = "raised", shadow = false })
+	local chrome = Widgets.IconChrome(skin)
 	local restyleChrome = chrome.Restyle
 	chrome.Restyle = function(self)
 		if ns.Panel.Open() then
@@ -141,7 +141,7 @@ function Button.Style(entry, ctx)
 	skin:SetSize(ctx.icon, ctx.icon)
 	entry.restyleChrome(entry.chrome)
 	local edge = ctx.edge
-	entry.chrome:SetEdgeRGBA(edge[1], edge[2], edge[3], edge[4])
+	entry.chrome:SetRim(edge[1], edge[2], edge[3], edge[4])
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
 	local icon = entry.icon
 	icon:ClearAllPoints()

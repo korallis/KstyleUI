@@ -97,10 +97,29 @@ assert(math.abs(Scene.TextWidth(sample, 100, "Fonts\\FRIZQT__.TTF") - semibold) 
 assert(math.abs(Scene.TextWidth(sample, 100) - semibold) > 20, "an unknown face falls back to the class averages")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke", "buttons_mac", "buttons_toned" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 check("components", Components.Build())
+
+-- The button scene: the six states twice, bag slots, aura tiles, and the micro menu and bag bar; a toned
+-- rim changes only the secondary buttons' hairlines.
+local Buttons = dofile("Tools/render/scenes/buttons.lua")
+local full = check("buttons", Buttons.Build({ rim = 1 }))
+local toned = check("buttons toned", Buttons.Build({ rim = 0.5 }))
+assert(#full.items == #toned.items, "the toned scene draws the same drawables")
+local fullTexts, buttonSwipes = {}, 0
+for _, item in ipairs(full.items) do
+	if item.kind == "text" then
+		fullTexts[item.text] = true
+	elseif item.kind == "swipe" then
+		buttonSwipes = buttonSwipes + 1
+	end
+end
+for _, want in ipairs({ "NORMAL", "HOVER", "PRESSED", "COOLDOWN", "PROC", "DISABLED", "3" }) do
+	assert(fullTexts[want], "the button scene shows " .. want)
+end
+assert(buttonSwipes >= 2, "both cooldown buttons draw their swipe")
 
 print("ok")

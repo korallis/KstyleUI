@@ -408,7 +408,7 @@ local function Square(button, opts)
 	end
 	K.Skin.Strip(button, { keep = keep })
 	local square = { frame = button, Paint = PaintSquare, Restyle = PaintSquare }
-	square.backdrop = K.Skin.Backdrop(button, { shape = "tile", fill = "raised", shadow = false })
+	square.backdrop = K.Skin.Backdrop(button, { shape = "tile", fill = "buttonFill", shadow = false })
 	HoverHooks(button, square)
 	side.partBSquare = square
 	square:Paint()

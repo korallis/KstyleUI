@@ -40,6 +40,7 @@ function Vehicle.Build()
 		crop = false,
 		onClick = Leave,
 		tooltip = L["Leave vehicle"],
+		primary = true,
 	})
 	button:Hide()
 	ns.leaveButton = button

@@ -321,6 +321,8 @@ do
 	assert(Near(x, K.Widgets.Snap(icon, 9.5)) and Near(-y, K.Widgets.Snap(icon, 9.5)), "inset 9.5 units inside the panel")
 	assert(Near(icon:GetWidth(), ns.Settings.Get("iconSize")) and Near(icon:GetHeight(), icon:GetWidth()), "a square")
 	assert(icon.chrome.shape.fill == "chamferTile", "with the kit's chamfered tile")
+	local fr, fg, fb = icon.chrome.fill[5]:GetVertexColor()
+	assert(SameRGB(fr, fg, fb, K.Tokens.Color("buttonFill")), "on the near-black button body every square icon shares")
 	local left = select(3, tip:GetPadding())
 	assert(x + icon:GetWidth() < TEXT_INSET + left, "Blizzard's lines start right of the icon")
 	tip:ClearPadding()
@@ -330,6 +332,8 @@ do
 	assert(right == 16 and kept == left, "a close button's right padding keeps the icon's column")
 	local e = icon.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("rare")) and e[4] == 1, "its border is the rarity colour")
+	local hr, hg, hb, ha = icon.chrome.outer[5]:GetVertexColor()
+	assert(SameRGB(hr, hg, hb, K.Tokens.Color("rare")) and Near(ha, 0.45), "with the rim's 45% halo outside it, as an action button")
 	local glow = icon.glow
 	assert(glow.holder:IsShown() and SameRGB(glow.colorRGB[1], glow.colorRGB[2], glow.colorRGB[3], K.Tokens.Color("rare")), "and it glows in it")
 	assert(title:GetText() == "RANGER'S LONG BOW\n ", "the name in capitals, with a line kept for the caption")

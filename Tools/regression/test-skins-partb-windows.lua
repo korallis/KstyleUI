@@ -403,7 +403,8 @@ do
 		return { merchant = merchant, slots = slots, buyback = buyback, repair = repair, prev = prev }
 	end)
 	for _, slot in ipairs(made.slots) do
-		assert(Hidden(slot.SlotTexture) and Skinned(K, slot, "Backdrop"), "each item row is a raised tile")
+		assert(Hidden(slot.SlotTexture) and Skinned(K, slot, "Backdrop"), "each item row is a tile")
+		assert(W.SameColor(K.Skin.Parts(slot).backdrop.chrome.fill[5], K.Tokens.Color("buttonFill")), "on the near-black button body")
 		assert(K.Safe.Side(slot.ItemButton).partBItem, "each item gets a rim")
 	end
 	assert(K.Safe.Side(made.buyback.ItemButton).partBItem, "the buyback item too")

@@ -77,6 +77,23 @@ for _, call in ipairs(button._calls) do
 end
 assert(passes, "debuff icons let clicks through to the unit button")
 eq(#button._aura.dispel, 9, "the chamfered tile behind the icon, nine slices, takes the debuff type colour")
+do
+	local skin = (button:GetChildren())
+	local fr, fg, fb = K.Tokens.Color("buttonFill")
+	local rr, rg, rb = K.Widgets.IconRim()
+	local body, rim = false, false
+	for _, region in ipairs({ skin:GetRegions() }) do
+		local set = region._state.Texture and region._state.Texture[1]
+		local r, g, b = region:GetVertexColor()
+		if type(r) == "number" and set == (K.Tokens.Texture("chamferTile")) and math.abs(r - fr) < 1e-3 and math.abs(g - fg) < 1e-3 and math.abs(b - fb) < 1e-3 then
+			body = true
+		elseif type(r) == "number" and math.abs(r - rr) < 1e-3 and math.abs(g - rg) < 1e-3 and math.abs(b - rb) < 1e-3 then
+			rim = true
+		end
+	end
+	assert(body, "the tile's body is the near-black button fill every square icon shares")
+	assert(rim, "its hairline rests on the accent rim, as an action button")
+end
 
 -- The dispel highlight: a slot for debuffs the player can dispel, drawn as a coloured border over the frame.
 local slot = container._slots.dispel

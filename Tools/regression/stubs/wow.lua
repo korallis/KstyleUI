@@ -309,6 +309,24 @@ function Object:SetStatusBarTexture(asset)
 end
 function Object:GetStatusBarTexture() return self._barTexture end
 
+-- A Cooldown frame draws its countdown numbers with a font string that GetCountdownFontString returns,
+-- centred on the frame until the addon anchors it, as the engine does. Other frames have none.
+function Object:GetCountdownFontString()
+	if self._type ~= "Cooldown" then
+		return nil
+	end
+	if not self._countdown then
+		local text = newObject(self._env, "FontString", nil, self)
+		text._font = true
+		text._template = "GameFontHighlight"
+		text._state.DrawLayer = pack("OVERLAY", 0)
+		self._regions[#self._regions + 1] = text
+		text:SetPoint("CENTER", self, "CENTER", 0, 0)
+		self._countdown = text
+	end
+	return self._countdown
+end
+
 -- A FontString has a font once it inherits a template or SetFont or SetFontObject gives it one.
 -- Until then SetText and SetFormattedText raise the game's "Font not set" error.
 local function needFont(self, method)

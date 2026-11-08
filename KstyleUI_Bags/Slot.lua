@@ -49,7 +49,10 @@ local function EdgeColor(slot)
 		local r, g, b = Theme.QualityColor(state.quality)
 		return r, g, b, 1
 	end
-	return Widgets.Rgba("edgeInner")
+	if state.empty then
+		return Widgets.Rgba("edgeInner")
+	end
+	return Widgets.IconRim(Accent())
 end
 
 function Slot.Paint(slot)
@@ -61,11 +64,15 @@ function Slot.Paint(slot)
 		local ar, ag, ab = Accent()
 		r, g, b, a = Widgets.Mix(r, g, b, a, ar, ag, ab, 1, t)
 	end
-	slot.chrome:SetEdgeRGBA(r, g, b, a)
-	if state.empty then
-		slot.chrome:SetFillRGBA(Widgets.Rgba("raised", EMPTY_FILL_ALPHA))
+	if state.empty and t == 0 then
+		slot.chrome:SetRim()
 	else
-		slot.chrome:SetFillRGBA(Widgets.Rgba("raised"))
+		slot.chrome:SetRim(r, g, b, a)
+	end
+	if state.empty then
+		slot.chrome:SetFillRGBA(Widgets.Rgba("buttonFill", EMPTY_FILL_ALPHA))
+	else
+		slot.chrome:SetFillRGBA(Tokens.Color("buttonFill"))
 	end
 	slot.icon:SetAlpha(state.match and 1 or DIM_ALPHA)
 	slot.icon:SetDesaturated(state.locked == true)
@@ -269,7 +276,7 @@ function Slot.New(parent, id, opts)
 		store:Hide()
 	end
 	local slot = { button = button, id = id, bag = opts.bag, state = { empty = true, match = true }, record = {} }
-	slot.chrome = Widgets.Chrome(button, { shape = "tile", fill = "raised", shadow = false })
+	slot.chrome = Widgets.IconChrome(button)
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)

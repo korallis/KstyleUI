@@ -448,3 +448,15 @@ do
 end
 
 print("action bar buttons ok")
+
+-- Action buttons are primary icon buttons: their rim keeps the full accent whatever Widgets.SECONDARY_RIM says.
+do
+	local _, K, ns = new()
+	local b = AB.Button(ns, "bar1", 1)
+	assert(b.opts.primary == true, "an action button is a primary icon button")
+	K.Widgets.SECONDARY_RIM = 0.5
+	b:Paint()
+	local rr, rg, rb = K.Widgets.IconRim()
+	assert(W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "its rim keeps the full accent at any secondary strength")
+	K.Widgets.SECONDARY_RIM = 1
+end
