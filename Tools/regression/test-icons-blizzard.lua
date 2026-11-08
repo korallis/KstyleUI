@@ -224,7 +224,7 @@ do
 	local merchant, slot = ItemButton("MerchantItem1ItemButton"), ItemButton("CharacterHeadSlot")
 	env.SetItemButtonTexture(merchant, FIREBALL)
 	local snap = B.snapshot()
-	K.Options.Write("Icons", "set", "A") -- set B is the default; this test checks set A's tinted art
+	K.Options.Write("Icons", "set", "A")
 	K.Options.Write("Icons", "enabled", true)
 	env.SetItemButtonTexture(merchant, FIREBALL)
 	assert(Shown(merchant.icon) == A_PATH .. FIREBALL .. ".png", "an item button Blizzard draws shows set A's art")
@@ -263,6 +263,7 @@ do
 	end
 	local first, second = box.AddRow(Row(FIREBALL), { slotIndex = 1 }), Row(REJUV)
 	local snap = B.snapshot()
+	K.Options.Write("Icons", "set", "A")
 	K.Options.Write("Icons", "enabled", true)
 	assert(Shown(first.Item.icon) == A_PATH .. FIREBALL .. ".png", "a loot row already shown gets set A's art")
 	box.Init(second, { slotIndex = 2 })
@@ -313,6 +314,7 @@ do
 	local backpack, bag2, combined = Bag("ContainerFrame1", FIREBALL, UNKNOWN), Bag("ContainerFrame2", REJUV), Bag("ContainerFrameCombinedBags", REJUV)
 	backpack:UpdateItems()
 	local snap = B.snapshot()
+	K.Options.Write("Icons", "set", "A")
 	K.Options.Write("Icons", "enabled", true)
 	assert(Shown(backpack.buttons[1].icon) == A_PATH .. FIREBALL .. ".png", "a bag already open when custom icons start shows set A's art at once")
 	assert(Shown(backpack.buttons[2].icon) == UNKNOWN, "a file ID the set lacks keeps Blizzard's art")

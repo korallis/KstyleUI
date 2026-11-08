@@ -27,7 +27,7 @@ local Inventory = ns.Inventory
 local potion, sword = Inventory.Slot(0, 1), Inventory.Slot(0, 2)
 assert(W.LastCall(potion.icon, "SetTexture")[1] == POTION, "off: a slot shows the game's icon")
 
-K.Options.Write("Icons", "set", "A") -- set B is the default; this test checks set A's tinted art
+K.Options.Write("Icons", "set", "A")
 K.Options.Write("Icons", "enabled", true)
 env.RunTimers()
 assert(W.LastCall(potion.icon, "SetTexture")[1] == A_PATH .. POTION .. ".png", "custom icons on: the open bag redraws its slots with set A's art")
