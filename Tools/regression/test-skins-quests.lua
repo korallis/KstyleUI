@@ -2,7 +2,7 @@
 local S = dofile("Tools/regression/skins_env.lua")
 local W = S.W
 
-local HOOKED = { GetProgressBar = true, AddModule = true, SetFontObject = true }
+local HOOKED = { GetProgressBar = true, AddModule = true, SetFontObject = true, SetText = true }
 
 local function Alpha(region)
 	return region:GetAlpha()
@@ -167,7 +167,7 @@ do
 	local t = tracker.tracker
 	assert(Alpha(tracker.nine) == 0, "Blizzard's tracker backdrop goes")
 	assert(K.Skin.IsSkinned(t, "Backdrop"), "a glass panel sits behind the tracker")
-	assert(Alpha(t.Header.Background) == 0 and FontPath(t.Header.Text) == Style.Font("caption"), "the header reads as a caption")
+	assert(Alpha(t.Header.Background) == 0 and Alpha(t.Header.Text) == 0, "the header's art and text go under a KstyleUI caption")
 	local module = tracker.modules[1]
 	assert(Alpha(module.Header.Background) == 0, "module headers lose their art")
 	local holder = module:GetProgressBar("q1")
