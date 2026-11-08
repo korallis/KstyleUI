@@ -19,6 +19,7 @@ Tools/render/shoot.sh smoke --json-only                                         
 Tools/render/shoot.sh nameplate                                                 # the target's plate on a base the game scaled to 0.58
 Tools/render/shoot.sh databars                                                  # the experience bar and the data strip in the mockup's state
 Tools/render/shoot.sh restedxp --backdrop                                       # the RestedXP windows the skin tests' fake builds, skinned, laid out by the scene
+Tools/render/shoot.sh gallery_skins_mail --backdrop                             # one skinned Blizzard window (gallery_skins_<window>.lua, 19 of them); see Gallery below
 ```
 
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.
@@ -49,6 +50,8 @@ python3 Tools/render/gallery.py gallery_widgets --no-render --out /tmp/gw   # re
 ```
 
 A gallery scene (`scenes/gallery_<area>.lua`, built on `scenes/_gallery.lua`) draws one area's frames in a representative state and lists each one in `scene.frames` (`frames:Add(env, frame, { name, title, caption, grade, reference, match, pad })`): the grade it wears (`panel`, `window`, `button` or `bar`) and the mockup crop that shares that grade (`Gallery.REFERENCES`: `chat`, `tracker`, `player`, `target`, `cast`, `buffbars`, `actionbars`, `cluster`, `datastrip`, `minimap`, `nameplate`, `bufficons`, `xp`). `gallery.py` runs `shoot.sh <scene> --backdrop` for each, cuts every listed frame plus its padding out of the PNG into `~/.local/share/kstyleui-handoff/final/frames/kstyle_<name>.png`, cuts each named mockup reference at the render's density into `theme-crops/ref_<key>.png` (`REFERENCE_BOXES`, mockup pixels), and writes `kstyle_manifest.json`: a list of `{ file, title, caption, grade, reference, match, scene }`, the reference as a path relative to the frames folder. `test-render-scenes.lua` builds every gallery scene and checks each frame names a grade and a reference and sits on the screen; `Tools/tests/test_render_gallery.py` covers the cropping and the manifest.
+
+The Blizzard windows `KstyleUI_Skins` restyles are gallery scenes too: `scenes/gallery_skins_<window>.lua`, one per window (19), through `scenes/_skins.lua`, which builds the window from `Tools/regression/skins_windows.lua` (Blizzard's fields, sizes and anchors from Forever's XML, with the texts and icons a window shows in play; Blizzard's own layout is not modelled), lets the skin apply as in the game and lists the window as the frame `skins_<window>` with the grade it wears, so `gallery.py` writes `kstyle_skins_<window>.png` beside the other frames in the same manifest. `python3 Tools/render/gallery.py gallery_skins_mail` redoes one.
 
 ## Compare
 

@@ -267,7 +267,7 @@ do
 	pipe:close()
 end
 assert(#galleryScenes >= 1, "at least one gallery scene")
-local galleryItems = {}
+local galleryItems, galleryNames = {}, {}
 for _, name in ipairs(galleryScenes) do
 	local build = dofile("Tools/render/scenes/" .. name .. ".lua")
 	assert(type(build) == "function", name .. ".lua returns its builder")
@@ -285,6 +285,7 @@ for _, name in ipairs(galleryScenes) do
 		assert(r[1] >= -1 and r[2] >= -1 and r[1] + r[3] <= scene.screen.width + 1 and r[2] + r[4] <= scene.screen.height + 1, name .. ": " .. frame.name .. " sits on the screen")
 	end
 	galleryItems[name] = scene.items
+	galleryNames[name] = scene.frames[1].name
 end
 
 -- The widget gallery: the renderer draws an edit box's own text and a text area's log (an edit box inside a scroll
@@ -315,3 +316,23 @@ do
 end
 
 print("ok")
+
+-- The skins gallery: every window Tools/regression/skins_windows.lua stands in is one gallery_skins_<window>.lua scene
+-- (built above with the other gallery scenes). Each lists one frame named skins_<window>, its skins applied (the
+-- scene logs an error line otherwise, which check fails on), and draws the window-grade glass, or the loot rolls'
+-- panel grade.
+local Skins = dofile("Tools/render/scenes/_skins.lua")
+for _, spec in ipairs(Skins.Windows.LIST) do
+	local name = "gallery_skins_" .. spec.key
+	local items = assert(galleryItems[name], name .. " is one of the gallery scenes")
+	assert(Skins.WINDOWS[spec.key], spec.key .. " has a gallery entry")
+	local grade = spec.key == "lootrolls" and "ChamferPanel" or "ChamferWindow"
+	local drawn = false
+	for _, item in ipairs(items) do
+		if item.kind == "texture" and item.file and item.file:find(grade, 1, true) then
+			drawn = true
+		end
+	end
+	assert(drawn, spec.key .. " draws its " .. grade .. " glass")
+end
+assert(galleryNames["gallery_skins_mail"] == "skins_mail", "a skins scene lists its window as skins_<window>")

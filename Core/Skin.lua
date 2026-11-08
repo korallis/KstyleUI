@@ -397,6 +397,15 @@ local function Tabs(frame)
 			Tab(tab)
 		end
 	end
+	local parts = Parts(frame)
+	if list[1] and not parts.strip then
+		local strip = CreateFrame("Frame", nil, frame)
+		strip:SetFrameLevel(max(0, list[1]:GetFrameLevel() - 1))
+		strip:SetPoint("TOPLEFT", list[1], "TOPLEFT")
+		strip:SetPoint("BOTTOMRIGHT", list[#list], "BOTTOMRIGHT")
+		strip.chrome = W().Chrome(strip, { shape = "tile", fill = "buttonFill", shadow = false })
+		parts.strip = strip
+	end
 	Mark(frame, "Tabs")
 	return #list
 end

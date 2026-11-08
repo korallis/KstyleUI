@@ -93,6 +93,9 @@ local function Apply()
 		return false
 	end
 	Skin.CloseButton(LFGParentFrameCloseButton)
+	if type(parent.numTabs) == "number" then
+		Skin.Tabs(parent)
+	end
 	Each(Kit.Tab, parent.Tab1, parent.Tab2, parent.Tab3)
 	Each(Kit.SideTab, parent.ListingTab, parent.BrowsingTab, parent.WhoListingTab)
 	Listing(LFGListingFrame)

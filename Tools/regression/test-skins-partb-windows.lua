@@ -294,7 +294,8 @@ do
 		local parent = B.frame("Frame", nil, "LFGParentFrame")
 		parent:Hide()
 		P.Button(B, parent, "LFGParentFrameCloseButton")
-		parent.Tab1, parent.Tab2, parent.Tab3 = P.Button(B, parent), P.Button(B, parent), P.Button(B, parent)
+		parent.Tab1, parent.Tab2, parent.Tab3 = P.Button(B, parent, "LFGParentFrameTab1"), P.Button(B, parent, "LFGParentFrameTab2"), P.Button(B, parent, "LFGParentFrameTab3")
+		parent.numTabs = 2
 		parent.ListingTab, parent.BrowsingTab, parent.WhoListingTab = P.SideTab(B, parent), P.SideTab(B, parent), P.SideTab(B, parent)
 		local listing = P.Window(B, "LFGListingFrame", parent)
 		listing.BackButton, listing.PostButton = P.Button(B, listing), P.Button(B, listing)
@@ -323,7 +324,9 @@ do
 		return { parent = parent, listing = listing, browse = browse, who = who, row = row }
 	end)
 	assert(Skinned(K, made.listing, "Window") and Skinned(K, made.browse, "Window") and Skinned(K, made.who, "Window"), "each page is a glass window")
-	assert(Skinned(K, made.parent.Tab1, "Tab"), "the bottom tabs get the accent underline")
+	assert(Skinned(K, made.parent.Tab1, "Tab") and Skinned(K, made.parent.Tab3, "Tab"), "the bottom tabs get the accent underline")
+	local strip = K.Skin.Parts(made.parent).strip
+	assert(strip and strip.chrome.fillName == "buttonFill", "the bottom tabs sit on the button-body strip, as every window's")
 	assert(ns.Parts.RimOf(made.parent.ListingTab) and Hidden(made.parent.ListingTab.Background), "the side tabs get the shared rimmed side tab")
 	assert(Skinned(K, made.listing.BackButton, "Button") and Skinned(K, made.listing.ActivityView.ScrollBar, "ScrollBar"))
 	assert(Hidden(made.listing.ActivityView.BarTop), "the activity view's art is hidden")
