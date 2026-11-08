@@ -50,7 +50,7 @@ Footprints are width x height in units at the 1080 reference.
 | `auras.buffs` | Auras | Buffs | 420 x 76 | Two rows of icons under the minimap, growing left |
 | `auras.debuffs` | Auras | Debuffs | 420 x 38 | One row under the buffs |
 | `minimap.main` | Minimap | Minimap | 259 x 221 | The mockup's 221 chamfered frame: a 213 map square with the 30-unit footer over its bottom, and the 34-unit button column 4 units left of it |
-| `chat.main` | Chat | Chat | 320 x 130 | The panel with its tabs and edit box |
+| `chat.main` | Chat | Chat | 424 x 164 | The panel with its tabs and edit box |
 | `databars.xp` | DataBars | Experience bar | 440 x 4 | Between the utility row and action bar 1, with its XP caption on the line |
 | `databars.rep` | DataBars | Reputation bar | 440 x 5 | Under action bar 2 |
 | `databars.honor` | DataBars | Honour bar | 440 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
