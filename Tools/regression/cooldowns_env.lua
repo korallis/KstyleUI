@@ -94,6 +94,38 @@ end
 --   layout      { order = { ids }, category = { [id] = category } }: a clean Blizzard settings provider
 --   dirty       true: the provider exists but its data is dirty
 --   noDuration  true: C_Spell has no GetSpellCooldownDuration
+-- StringUtil(env) gives the environment C_StringUtil.CreateSecondsFormatter and the SecondsFormatter enums.
+-- The fake formatter records every setter and formats as the game's one-letter mode does with whitespace
+-- stripped and the last unit rounded up: "4s" under a minute, "2m" under an hour, "3h" beyond.
+function C.StringUtil(env)
+	env.Enum = env.Enum or {}
+	env.Enum.SecondsFormatterAbbreviation = env.Enum.SecondsFormatterAbbreviation or { None = 0, Truncate = 1, OneLetter = 2 }
+	env.Enum.SecondsFormatterInterval = env.Enum.SecondsFormatterInterval or { Seconds = 0, Minutes = 1, Hours = 2, Days = 3 }
+	env.Enum.SecondsFormatterRounding = env.Enum.SecondsFormatterRounding or { RoundUp = 0, Truncate = 1 }
+	env.Enum.SecondsFormatterIntervalWhitespace = env.Enum.SecondsFormatterIntervalWhitespace or { Preserve = 0, Strip = 1, StripIgnoreLocale = 2 }
+	env.C_StringUtil = env.C_StringUtil or {}
+	env.C_StringUtil.CreateSecondsFormatter = env.C_StringUtil.CreateSecondsFormatter or function()
+		local f = { calls = {} }
+		function f.Format(_, seconds)
+			seconds = math.max(0, seconds)
+			if seconds < 60 then
+				return string.format("%ds", math.ceil(seconds))
+			elseif seconds < 3600 then
+				return string.format("%dm", math.ceil(seconds / 60))
+			end
+			return string.format("%dh", math.ceil(seconds / 3600))
+		end
+		f.FormatNumber = f.Format
+		return setmetatable(f, {
+			__index = function(_, method)
+				return function(_, ...)
+					f.calls[#f.calls + 1] = { method = method, args = { ... } }
+				end
+			end,
+		})
+	end
+end
+
 function C.Install(env, opts)
 	opts = opts or {}
 	local cdm = {
@@ -123,6 +155,7 @@ function C.Install(env, opts)
 	env.Enum.CooldownSetSpellFlags = C.FLAGS
 	env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
+	C.StringUtil(env)
 	env._time = 1000
 	env.GetTime = function()
 		return env._time

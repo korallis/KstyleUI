@@ -323,7 +323,13 @@ function IconButton:Restyle()
 		self.count:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset)
 		if self.countdown then
 			self.countdown:ClearAllPoints()
-			self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
+			if self.opts.countdownCorner then
+				self.countdown:SetPoint("TOPRIGHT", self, "TOPRIGHT", -inset, -inset)
+				self.countdown:SetJustifyH("RIGHT")
+			else
+				self.countdown:SetPoint("CENTER", self.cooldown, "BOTTOM", 0, Widgets.Snap(self, size * COUNTDOWN_RISE))
+				self.countdown:SetJustifyH("CENTER")
+			end
 		end
 		self.hoverGlow:Restyle()
 		if self.procGlow then

@@ -826,8 +826,19 @@ function Scene.Build(env, opts)
 		return item
 	end
 
-	-- The countdown numbers as the engine formats them: whole seconds, or minutes past a minute.
-	local function countdownText(left)
+	-- The countdown numbers as the engine formats them: through the formatter SetCountdownFormatter gave the
+	-- frame when it has one, else whole seconds, or minutes past a minute.
+	local function countdownText(left, frame)
+		local formatter = frame and state(frame, "CountdownFormatter")
+		if type(formatter) == "table" then
+			local fn = formatter.Format or formatter.FormatNumber
+			if type(fn) == "function" then
+				local ok, text = pcall(fn, formatter, left)
+				if ok and type(text) == "string" then
+					return text
+				end
+			end
+		end
 		return left >= 60 and string.format("%dm", floor(left / 60 + 0.5)) or string.format("%d", floor(left + 0.5))
 	end
 
@@ -848,7 +859,7 @@ function Scene.Build(env, opts)
 			item.path = swipe
 		end
 		if state(frame, "HideCountdownNumbers") ~= true and not frame._countdown then
-			item.countdown = countdownText(left)
+			item.countdown = countdownText(left, frame)
 			local fontPath, size = DEFAULT_FONT[1], 12
 			item.font = { file = resolve(fontPath), path = fontPath, size = round4(size * effectiveScale(frame) * k), flags = "OUTLINE" }
 		end
@@ -950,7 +961,7 @@ function Scene.Build(env, opts)
 			if state(frame, "HideCountdownNumbers") ~= true then
 				local _, left = Scene.CooldownFraction(env, frame, now)
 				if left then
-					text = countdownText(left)
+					text = countdownText(left, frame)
 				end
 			end
 			countdown._renderText = text

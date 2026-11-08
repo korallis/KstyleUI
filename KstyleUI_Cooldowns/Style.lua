@@ -33,6 +33,54 @@ function Style.Font(text, choice, size, outline, role)
 	end
 end
 
+local formatter
+
+local function Formatter()
+	if formatter ~= nil then
+		return formatter or nil
+	end
+	formatter = false
+	local util, E = C_StringUtil, Enum
+	if not (util and type(util.CreateSecondsFormatter) == "function" and E and E.SecondsFormatterAbbreviation and E.SecondsFormatterRounding and E.SecondsFormatterInterval) then
+		ns.LogOnce("countdown", "C_StringUtil.CreateSecondsFormatter is missing; countdowns keep the engine's numbers")
+		return nil
+	end
+	local ok, made = pcall(function()
+		local f = util.CreateSecondsFormatter()
+		f:SetDefaultAbbreviation(E.SecondsFormatterAbbreviation.OneLetter)
+		f:SetRounding(E.SecondsFormatterRounding.Truncate)
+		f:SetCanRoundUpLastUnit(true)
+		f:SetMinInterval(E.SecondsFormatterInterval.Seconds)
+		f:SetDesiredUnitCount(1)
+		if E.SecondsFormatterIntervalWhitespace and E.SecondsFormatterIntervalWhitespace.Strip ~= nil then
+			f:SetStripIntervalWhitespace(E.SecondsFormatterIntervalWhitespace.Strip)
+		end
+		return f
+	end)
+	if ok and made then
+		formatter = made
+		ns.LogOnce("countdown", "countdowns read with a one-letter seconds formatter (4s, 2m)")
+	else
+		ns.LogOnce("countdown", "the countdown formatter failed (" .. tostring(made) .. "); countdowns keep the engine's numbers")
+	end
+	return formatter or nil
+end
+
+function Style.Countdown(cooldown)
+	if type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
+		return false
+	end
+	local f = Formatter()
+	if not f then
+		return false
+	end
+	local ok, err = pcall(cooldown.SetCountdownFormatter, cooldown, f)
+	if not ok then
+		ns.LogOnce("countdown-set", "SetCountdownFormatter failed (" .. tostring(err) .. "); countdowns keep the engine's numbers")
+	end
+	return ok
+end
+
 local function Custom()
 	local current = ns.Settings.current
 	return current.accent == "custom" and current.accentR ~= nil

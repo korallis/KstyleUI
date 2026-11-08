@@ -63,6 +63,9 @@ for _, key in ipairs({ "mortalStrike", "whirlwind", "overpower", "execute", "ret
 	assert(files["KstyleUI_IconsColour/Icons/" .. Hud.ICONS[key] .. ".png"], "the cooldown rows show " .. key)
 end
 
+-- The centre cluster's countdowns read with their unit, as the mockup's "4s" and "2m".
+assert(texts["4s"] and texts["2m"], "the cooldown rows show 4s and 2m")
+
 -- The buff row under the minimap: five icons with their time left, from the Auras module.
 assert(texts["24s"] and texts["8m"], "the buff row shows its timers")
 assert(files["KstyleUI_IconsColour/Icons/" .. Hud.ICONS.battleShout .. ".png"], "the buff row shows Battle Shout")

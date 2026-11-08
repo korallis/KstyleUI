@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, Widgets, Tokens = K.Skin, K.Widgets, K.Tokens
+local Skin, Widgets = K.Skin, K.Widgets
 local Settings, Style, Viewers = ns.Settings, ns.Style, ns.Viewers
 
 local Reskin = {}
@@ -11,8 +11,6 @@ ns.Reskin = Reskin
 local ICON_CROP = 0.07
 local ICON_OUTSET = 2
 local BAR_OUTSET = 1
-local RIM_LIFT = 0.15
-local RIM_HALO = 0.45
 local CVAR = "cooldownViewerEnabled"
 
 local active = {}
@@ -20,18 +18,6 @@ local hinted = false
 
 local function IsTexture(region)
 	return type(region) == "table" and type(region.GetObjectType) == "function" and region:GetObjectType() == "Texture"
-end
-
-local function Rim(backdrop)
-	local chrome = backdrop and backdrop.chrome
-	if not chrome then
-		return
-	end
-	local r, g, b = ns.Settings.Accent()
-	local wr, wg, wb = Tokens.Color("textHover")
-	r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, RIM_LIFT)
-	chrome:SetEdgeRGBA(r, g, b, 1)
-	chrome:SetOuterRGBA(r, g, b, RIM_HALO)
 end
 
 local function Keep(...)
@@ -65,10 +51,16 @@ local function SkinIcon(group, item)
 		Skin.Strip(item, { keep = Keep(icon, item.OutOfRange) })
 		Crop(icon)
 	end
-	Rim(Skin.Backdrop(item, { shape = "tile", fill = "buttonFill", inset = -ICON_OUTSET }))
+	local backdrop = Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET })
+	if backdrop and backdrop.chrome and backdrop.chrome.SetRimAccent then
+		backdrop.chrome:SetRimAccent(Settings.Accent())
+	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
 		Text(cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
+		if Settings.COOLDOWN_GROUPS[group] then
+			Style.Countdown(cooldown)
+		end
 	end
 	local charges = item.ChargeCount
 	Text(type(charges) == "table" and charges.Current, current.countFont, cfg.countSize, current.countOutline)

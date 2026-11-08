@@ -300,6 +300,16 @@ do
 	assert(W.Near(p[5], K.Scale.Snap(button:GetHeight() * 0.25)), "a quarter of the height up")
 end
 
+-- With countdownCorner the countdown sits in the top right corner, as the mockup's centre cluster reads "4s".
+do
+	local _, K, button = iconButton({ size = 56, countdownCorner = true })
+	button:Restyle()
+	local p = button.countdown._points[1]
+	local inset = K.Scale.Snap(3)
+	assert(p and p[1] == "TOPRIGHT" and p[2] == button and p[3] == "TOPRIGHT" and W.Near(p[4], -inset) and W.Near(p[5], -inset), "the countdown hangs in the top right corner, 3 units in")
+	assert(W.LastCall(button.countdown, "SetJustifyH")[1] == "RIGHT", "right-aligned")
+end
+
 -- Hotkey and count text sit on the button.
 do
 	local _, K, button = iconButton({})

@@ -31,6 +31,9 @@ function Row:StyleIcon(icon)
 	end
 	icon.cooldown:SetHideCountdownNumbers(not cfg.timer)
 	icon.cooldown:SetReverse(self.group == "buffs")
+	if ns.Settings.COOLDOWN_GROUPS[self.group] then
+		Style.Countdown(icon.cooldown)
+	end
 	icon.greyWhileCooling = cfg.desaturate
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
@@ -41,7 +44,7 @@ end
 function Row:Icon(index)
 	local icon = self.icons[index]
 	if not icon then
-		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size }))
+		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size, countdownCorner = ns.Settings.COOLDOWN_GROUPS[self.group] == true }))
 		self.icons[index] = icon
 		self:StyleIcon(icon)
 	end

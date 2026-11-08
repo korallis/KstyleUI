@@ -262,7 +262,11 @@ local function Backdrop(frame, opts)
 	panel.inset, panel.target = opts.inset, opts.target
 	panel.Restyle = PlaceBackdrop
 	PlaceBackdrop(panel)
-	panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow })
+	if opts.icon then
+		panel.chrome = W().IconChrome(panel, {})
+	else
+		panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow })
+	end
 	W().Track(panel)
 	parts.backdrop = panel
 	Mark(frame, "Backdrop")

@@ -31,13 +31,13 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Grid.lua` | Pure maths: where each icon or bar sits by cell size, spacing, columns, rows, growth and wrap |
 | `Data.lua` | The entries each group shows, read from `C_CooldownViewer` and the player's Blizzard layout |
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
-| `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows and tooltips |
-| `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid |
+| `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows, tooltips, and `Style.Countdown(cooldown)`: one `C_StringUtil` seconds formatter (one letter, whitespace stripped, the last unit rounded up: `4s`, `2m`) set on a cooldown row's `Cooldown` through `SetCountdownFormatter`, so the numbers read as the mockup's; without the API the engine's plain numbers stay, and the devlog says so |
+| `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows take `countdownCorner`, so the countdown hangs in the icon's top right corner as the mockup draws "4s"; the tracked buff icons keep the kit's centred countdown |
 | `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
-| `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin` |
+| `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin`. An icon item's backdrop is the shared icon chrome (`Skin.Backdrop` with `icon = true`, a `Widgets.IconChrome`) resting on `SetRimAccent` with the module's accent, the same rim every KstyleUI icon button wears |
 | `Mirror.lua` | Runs each group on its path: events, refreshes, Layout registration and the switch to the reskin |
 | `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |
@@ -74,7 +74,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
 | `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on, 16 or 12, 12 or 10 | The countdown numbers and the count |
 | `<cooldowns>.gcd` | `false` | Sweep every icon during the global cooldown |
-| `<cooldowns>.desaturate` | `true` | Grey an icon while its spell is on a real cooldown |
+| `<cooldowns>.desaturate` | `false` | Grey an icon while its spell is on a real cooldown. Off by default: the composition mockup keeps a cooling icon in colour under its swipe |
 | `<cooldowns>.usable` | `true` | Dim an icon while its spell cannot be cast |
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell |

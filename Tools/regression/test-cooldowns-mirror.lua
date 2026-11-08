@@ -69,6 +69,19 @@ local uw, uh = utility.holder:GetSize()
 assert(uw == 238 and uh == 52, "the utility holder is its 238 by 52 footprint")
 assert(essential.icons[1].opts.size == 56 and utility.icons[1].opts.size == 52, "icons are 56 and 52 units")
 
+-- The cooldown rows' countdowns read "4s" and "2m", as the mockup's centre cluster does: a one-letter seconds
+-- formatter from C_StringUtil goes on each Cooldown; the tracked buff icons keep the engine's numbers.
+do
+	local formatter = LastArg(essential.icons[1].cooldown, "SetCountdownFormatter")
+	assert(type(formatter) == "table" and formatter:Format(4) == "4s" and formatter:Format(120) == "2m", "an essential icon's countdown has the one-letter formatter")
+	assert(LastArg(utility.icons[1].cooldown, "SetCountdownFormatter") == formatter, "the utility row shares it")
+	assert(essential.icons[1].countdown._points[1][1] == "TOPRIGHT", "the countdown sits in the icon's top right corner")
+	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
+	local buffIcon = buffRow:Icon(1)
+	assert(W.LastCall(buffIcon.cooldown, "SetCountdownFormatter") == nil, "the tracked buff icons keep the engine's numbers")
+	assert(buffIcon.countdown._points[1][1] == "CENTER", "a tracked buff icon keeps its countdown centred low")
+end
+
 -- Each icon's cooldown comes from the API's duration object, the global cooldown left out by default.
 for i, spell in ipairs({ 1001, 1002, 1033 }) do
 	local duration = LastArg(essential.icons[i].cooldown, "SetCooldownFromDurationObject")

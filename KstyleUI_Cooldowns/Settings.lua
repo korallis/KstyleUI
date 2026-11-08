@@ -68,7 +68,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		countSize = countSize,
 	}
 	if cooldown then
-		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow = false, true, true, false, true
+		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow = false, false, true, false, true
 	else
 		out.inactive = false
 	end

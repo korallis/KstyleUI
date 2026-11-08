@@ -36,6 +36,11 @@ local rr, rg, rb = K.Widgets.Mix(ar, ag, ab, 1, wr, wg, wb, 1, 0.15)
 local edge = backdrop.chrome.edge
 assert(W.Near(edge[1], rr) and W.Near(edge[2], rg) and W.Near(edge[3], rb) and W.Near(edge[4], 1), "the rim is the accent lifted 15% toward white")
 
+-- The rim comes from the shared icon chrome (Widgets.IconChrome), the helper every square icon button uses.
+assert(type(backdrop.chrome.SetRimAccent) == "function" and backdrop.chrome.rimAccent == true, "the restyled icon's chrome is the shared icon chrome, resting on IconRim")
+local formatter = W.LastCall(item.Cooldown, "SetCountdownFormatter")
+assert(formatter and type(formatter[1]) == "table" and formatter[1]:Format(4) == "4s", "the restyled icon's countdown reads 4s")
+
 -- Bar items: the bar takes the texture and colour from the settings; its background and pip are hushed.
 local bars = env._viewers.BuffBarCooldownViewer
 local bar = bars._items[1]
