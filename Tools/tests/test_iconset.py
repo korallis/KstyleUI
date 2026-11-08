@@ -1244,3 +1244,64 @@ class ExtractAllTest(unittest.TestCase):
         self.assertEqual(sorted(sources), [1])
         self.assertEqual(logged[-1], f"blizzard icons: 1 in {tmp}, 2 missing")
         self.assertTrue(any("3 c: x.blp: unknown BLP encoding 9" in line for line in logged), logged)
+
+
+class AcceptByEyeTest(unittest.TestCase):
+    """A reviewer who compared a rejected repaint with Blizzard's icon can accept it; the record keeps the check's reasons."""
+
+    def record(self, raw):
+        g = group(132208, "Rapid Fire")
+        service = FakeService(verdicts={132208: [["drift"], ["drift"], ["drift"]]})
+        summary = run([g], service, raw, icon_set=FAITHFUL, sources={132208: {"png": "/cache/132208.png", "blp_sha256": "ab"}})
+        self.assertEqual(summary["missing"], [132208])
+        return g
+
+    def test_accepts_the_latest_image_of_the_mode_and_keeps_the_reasons_it_overrules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.record(Path(tmp))
+            attempt = iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="2026-11-08", note="faithful: the darker backdrop failed the drift check")
+            self.assertEqual((attempt["n"], attempt["verdict"], attempt["image"]), (3, "accepted", "132208-3.png"))
+            self.assertEqual(attempt["overruled"], ["drift"])
+            self.assertEqual(attempt["reviewed"], "2026-11-08")
+            self.assertEqual(attempt["note"], "faithful: the darker backdrop failed the drift check")
+            record = iconset.load_record(Path(tmp), g)
+            self.assertEqual(record["attempts"][2]["verdict"], "accepted")
+            self.assertEqual(iconset.next_step(record, "subject_reference"), "done")
+            self.assertEqual(iconset.accepted_attempt(record)["n"], 3)
+            self.assertEqual(iconset.summarise([g], Path(tmp), mode="subject_reference")["accepted"], 1)
+            changed = iconset.rejudge([g], FAITHFUL, Path(tmp), judge=lambda path: ["drift"], today="2026-11-09", log=lambda m: None)
+            self.assertEqual(changed, [], "a rejudge leaves a reviewed attempt alone")
+
+    def test_accepts_a_chosen_attempt_and_refuses_one_without_an_image_of_the_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.record(Path(tmp))
+            self.assertEqual(iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d", attempt=2)["n"], 2)
+            with self.assertRaisesRegex(ValueError, "no subject_reference image"):
+                iconset.accept_by_eye(group(5, "Shoot"), FAITHFUL, Path(tmp), today="d")
+            with self.assertRaisesRegex(ValueError, "attempt 7"):
+                iconset.accept_by_eye(g, FAITHFUL, Path(tmp), today="d", attempt=7)
+
+    def test_a_reviewed_row_says_so_in_the_method_column(self):
+        entries = [{"group": group(132208, "Rapid Fire"), "attempt": {
+            "lead": "x", "job": "job-3", "model": "gpt_image_2_5", "date": "2026-11-08", "mode": "subject_reference",
+            "reviewed": "2026-11-08", "overruled": ["drift"], "source": {"fileID": 132208, "blp_sha256": "ab" * 32}}}]
+        text = iconset.render_provenance(SET_B, entries)
+        rows = [line for line in text.splitlines() if line.startswith("| `")]
+        self.assertIn("| gpt_image_2_5 | subject_reference, accepted by eye over drift |", rows[0])
+        self.assertIn("accepted by eye", text.split("| File ID |")[0], "the header explains the mark")
+
+    def test_the_accept_command_records_the_review(self):
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp) / "raw"
+            raw.mkdir()
+            self.record(raw)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = iconset.main(["accept", "--set", "B", "--mode", "subject_reference", "--work-dir", tmp, "--note", "faithful by eye", "132208"])
+            self.assertEqual(code, 0)
+            self.assertIn("132208 Rapid Fire: attempt 3 accepted by eye over drift", out.getvalue())
+            record = json.loads((raw / "132208.json").read_text())
+            self.assertEqual(record["attempts"][2]["note"], "faithful by eye")

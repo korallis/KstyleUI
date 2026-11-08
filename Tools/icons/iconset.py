@@ -1,4 +1,4 @@
-"""Generate, check and package a custom icon set from Tools/data/abilities.json.
+"""Generate, check and package a custom icon set from Tools/data/abilities.json and Tools/data/items.json.
 
 Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bin/python):
     iconset.py extract  [--owner WARRIOR] [--race Orc] [--categories class,pet]
@@ -10,6 +10,7 @@ Usage (run with a Python that has Pillow, such as ~/.local/share/wow-dev/venv/bi
     iconset.py sheets   [--set A|B]
     iconset.py verify   [--set A|B]
     iconset.py derive   [--owner WARRIOR] [--race Orc] [--categories class,pet] [--force]
+    iconset.py accept   [--set A|B] [--mode ...] [--attempt N] [--note TEXT] FILEID ...
 
 Set A is white light art on black, tinted in game (KstyleUI_Icons). Set B is full-colour painted art
 that fills the square (KstyleUI_IconsColour); its prompts also name a palette for the spell school.
@@ -21,12 +22,14 @@ prompt then gets two image references: the Blizzard icon (image 1, the subject) 
 strip docs/design/mockups/icons_B_buttons.png (image 2, finish only). Tools/data/icon_subjects.json
 may add a hand-checked subject sentence for an icon the reference alone does not carry.
 --owner WARRIOR keeps the icon groups a character of that class sees: the class's spells, general spells
-for ALL, every profession skill and, with --race Orc, that race's racials. rejudge re-runs the mode's
+for ALL, every profession skill, every item and, with --race Orc, that race's racials. Tools/icons/items.py
+builds items.json: one group per item icon file ID with the category item and a rank, the order the
+generator draws them in; an icon a spell uses keeps the spell's group. rejudge re-runs the mode's
 check on the images it already has, after the check changes, and stamps each changed verdict; for set A
 in style mode that includes the art derived from set B.
 
 generate makes one 1:1 image per icon group with Higgsfield, in category order (class, pet, racial,
-profession, general), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
+profession, general, item; items by rank, then by how many items share the icon), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
 its rate limit). Each image goes through the set's check in check_icons (judge for A, judge_colour
 for B, judge_faithful for subject_reference, which also rejects a repaint that drifts from Blizzard's
 icon); a rejected icon is rerolled at most twice, with a fix for the reasons added to its prompt. Raw
@@ -35,7 +38,9 @@ so a rerun skips finished icons. Each attempt records its mode; a subject_refere
 icon whose accepted image came from a style run, and the style image stays in the package until a
 repaint is accepted. The run reads the credit balance at the start and every 100 images, and
 stops before a job would take the balance below --floor (set A 1300, set B 60 by default). --reroll makes a fresh attempt for icons the
-owner marked on a contact sheet, even when they were accepted.
+owner marked on a contact sheet, even when they were accepted. accept records a reviewer's decision on a
+rejected image after comparing it with Blizzard's icon by eye: the latest image of the mode (or --attempt N)
+becomes accepted, the check's reasons move to overruled, and the provenance row says accepted by eye.
 
 derive makes set A's light art from set B's accepted subject_reference repaints without the model: the
 brightest channel of each pixel, levels to black and white, an unsharp mask, the art shrunk onto black
@@ -464,6 +469,28 @@ def _last_reasons(record, mode=None):
     return ()
 
 
+def accept_by_eye(group, icon_set, raw_dir, *, today, attempt=None, note=""):
+    """A reviewer who compared a rejected image with Blizzard's icon accepts it: the latest image of the set's
+    mode, or attempt n. The check's reasons move to overruled, reviewed carries the date and note the reason,
+    so the provenance row says the icon was accepted by eye; rejudge leaves a reviewed attempt alone. Saves
+    the record and returns the attempt."""
+    record = load_record(raw_dir, group)
+    images = [a for a in _window(record, icon_set.mode)
+              if mode_of(a) == icon_set.mode and "image" in a and a["verdict"] != "failed"]
+    if attempt is not None:
+        images = [a for a in images if a["n"] == attempt]
+        if not images:
+            raise ValueError(f"{group['icon']} {group['name']}: attempt {attempt} has no {icon_set.mode} image")
+    if not images:
+        raise ValueError(f"{group['icon']} {group['name']}: no {icon_set.mode} image to accept")
+    chosen = images[-1]
+    chosen.update(overruled=list(chosen.get("reasons", [])), reasons=[], verdict="accepted", reviewed=today)
+    if note:
+        chosen["note"] = note
+    save_record(raw_dir, record)
+    return chosen
+
+
 # Credits ---------------------------------------------------------------------------------------
 
 class Budget:
@@ -602,7 +629,7 @@ def rejudge(groups, icon_set, raw_dir, *, judge, today, log=print):
     for group in groups:
         record = load_record(raw_dir, group)
         for attempt in record["attempts"]:
-            if mode_of(attempt) not in modes or attempt["verdict"] == "failed" or "image" not in attempt:
+            if mode_of(attempt) not in modes or attempt["verdict"] == "failed" or "image" not in attempt or attempt.get("reviewed"):
                 continue
             reasons = list(judge(Path(raw_dir) / attempt["image"]))
             verdict = "rejected" if reasons else "accepted"
@@ -1052,6 +1079,12 @@ def render_provenance(icon_set, entries):
             f"the side on black and faded to black from {DERIVE_FADE[0]:.0%} to {DERIVE_FADE[1]:.0%} of the half side. |",
             f"| Checks | `Tools/icons/check_icons.py --set A` without the text check, which the repaint passed: {icon_set.checks} |",
         ]
+    if any(e["attempt"].get("reviewed") for e in entries):
+        lines += [
+            "",
+            "A method marked `accepted by eye` names the check reasons a reviewer overruled after comparing the image "
+            "with Blizzard's icon at 128 and 32 pixels (`iconset.py accept`); the record keeps the review date.",
+        ]
     lines += [
         "",
         "| File ID | Spells or items | Model | Method | Prompt | Blizzard BLP sha256 | Job | Date |",
@@ -1060,8 +1093,11 @@ def render_provenance(icon_set, entries):
     for entry in entries:
         group, attempt = entry["group"], entry["attempt"]
         digest = attempt.get("source", {}).get("blp_sha256", "")
+        method = mode_of(attempt)
+        if attempt.get("reviewed"):
+            method += ", accepted by eye over " + ", ".join(attempt.get("overruled", []))
         lines.append(
-            f"| `{group['icon']}` | {_cell(spell_names(group))} | {attempt['model']} | {mode_of(attempt)} "
+            f"| `{group['icon']}` | {_cell(spell_names(group))} | {attempt['model']} | {method} "
             f"| {_cell(attempt['lead'])} | {digest} | {attempt['job']} | {attempt['date']} |"
         )
     return "\n".join(lines) + "\n"
@@ -1237,7 +1273,7 @@ def _print_summary(summary):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify", "derive"):
+    for name in ("extract", "generate", "rejudge", "status", "package", "sheets", "verify", "derive", "accept"):
         command = sub.add_parser(name)
         if name != "derive":  # derive always writes set A from set B
             command.add_argument("--set", default="A", choices=sorted(SETS))
@@ -1248,7 +1284,7 @@ def main(argv=None):
         command.add_argument("--work-dir", type=Path, default=None, help="default ~/.local/share/wow-dev/icons/<set>")
         if name in ("extract", "generate", "rejudge"):
             command.add_argument("--blizzard-dir", type=Path, default=BLIZZARD, help="cache of extracted Blizzard icons")
-        if name in ("generate", "rejudge", "status"):
+        if name in ("generate", "rejudge", "status", "accept"):
             command.add_argument("--mode", default="style", choices=MODES,
                                  help="style paints from the tooltip; subject_reference repaints Blizzard's icon")
         if name in ("generate", "rejudge"):
@@ -1262,6 +1298,10 @@ def main(argv=None):
             command.add_argument("--dry-run", action="store_true", help="print the work and its cost, spend nothing")
         if name == "package":
             command.add_argument("--no-data", action="store_true", help="write the icons and PROVENANCE.md only")
+        if name == "accept":
+            command.add_argument("icons", type=int, nargs="+", help="file IDs whose latest image of the mode a reviewer accepts")
+            command.add_argument("--attempt", type=int, help="accept this attempt number instead of the latest image")
+            command.add_argument("--note", default="", help="why the reviewer accepted it")
         if name == "derive":
             command.add_argument("--source-dir", type=Path, default=None, help="set B's raw folder (default ~/.local/share/wow-dev/icons/B/raw)")
             command.add_argument("--force", action="store_true", help="derive again even where the same repaint was already used")
@@ -1279,6 +1319,14 @@ def main(argv=None):
         return 0 if len(sources) == len(groups) else 1
     if args.command == "status":
         _print_summary(summarise(groups, raw, mode=icon_set.mode))
+    elif args.command == "accept":
+        by_icon = {g["icon"]: g for g in groups}
+        for icon in args.icons:
+            if icon not in by_icon:
+                raise SystemExit(f"iconset: {icon} is not an icon group")
+            attempt = accept_by_eye(by_icon[icon], icon_set, raw, today=datetime.date.today().isoformat(),
+                                    attempt=args.attempt, note=args.note)
+            print(f"{icon} {by_icon[icon]['name']}: attempt {attempt['n']} accepted by eye over {', '.join(attempt['overruled']) or 'nothing'}")
     elif args.command == "rejudge":
         import check_icons
 

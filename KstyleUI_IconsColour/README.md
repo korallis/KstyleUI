@@ -29,21 +29,40 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | Package | `iconset.py package --set B` writes `Icons/<fileID>.png` as 128x128 RGB, `PROVENANCE.md` and `Data.lua`, and adds `Data.lua` to `IconsColour.xml`. `--no-data` writes the icons and `PROVENANCE.md` only. |
 | Review and verify | `iconset.py sheets --set B` and `iconset.py verify --set B`, as for set A. |
 
-An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it. Today all 654 icon groups have art.
+An icon group with no accepted image has no entry in `Data.lua`, so the game's icon stays for it. Today all 654 spell groups have art, and so do ITEM_DONE item groups (see [Items](#items)).
 
 ### Repainted from Blizzard's icon
 
-The free paintings above were not recognisable as the abilities they stand for. The 116 icon groups an orc warrior sees were repainted from Blizzard's own icon with `--mode subject_reference`, the method the owner approved in a pilot: the 79 warrior groups (every spec, stances, shared talents and the general Throw), the orc racials Hardiness, Blood Fury and Shatter Curse (Command shares Demoralizing Shout's icon), every profession skill, including the ones that share another class's icon such as First Aid, and the general spells every class has. The other icon groups still have the free paintings until their class or race is repainted the same way. Set A derives its art for these groups from the repaints (see [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#derived-from-set-b)).
+The free paintings above were not recognisable as the abilities they stand for. Every icon group is repainted from Blizzard's own icon with `--mode subject_reference`, the method the owner approved in a pilot on the 116 groups an orc warrior sees and then applied to every class, pet, racial, profession and general group and to the item groups. A group whose repaint failed the check three times keeps its free painting; `iconset.py status --set B --mode subject_reference` lists them as missing. Set A derives its art for every repainted group from the repaint (see [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#derived-from-set-b)).
 
 | Step | Command | What it does |
 | --- | --- | --- |
-| Extract | `iconset.py extract --owner WARRIOR --race Orc` | Reads each icon's BLP2 texture from the installed WoW Forever client by file ID with TACTTool (`~/.local/share/wow-dev/casc/TACTTool`, read-only, product `wowf`), decodes it with Pillow, composites it over black and upscales it to 512 pixels in `~/.local/share/wow-dev/icons/blizzard/<fileID>.png`. Nothing from the client enters the repository; `PROVENANCE.md` records the BLP's sha256. |
-| Generate | `iconset.py generate --set B --mode subject_reference --owner WARRIOR --race Orc` | Extracts any icon the cache lacks, then one `gpt_image_2_5` image per group at `1:1 --resolution 1k --quality high` with two image references: the Blizzard icon first (image 1, the subject) and `docs/design/mockups/icons_B_buttons.png` second (image 2, the action-button strip from the design sheet, finish only). The prompt asks for image 1 repainted with the same subject, silhouette, composition, viewing angle, scale and colours, the bevelled frame removed and the art extended to every edge, and nothing added. A group accepted in `style` mode is repainted; its style image stays in the package until a repaint is accepted. |
+| Extract | `iconset.py extract [--categories item]` | Reads each icon's BLP2 texture from the installed WoW Forever client by file ID with TACTTool (`~/.local/share/wow-dev/casc/TACTTool`, read-only, product `wowf`), decodes it (Pillow for palette and DXT BLPs, `iconset.py` itself for the raw BGRA encoding some item icons use), composites it over black and upscales it to 512 pixels in `~/.local/share/wow-dev/icons/blizzard/<fileID>.png`. Nothing from the client enters the repository; `PROVENANCE.md` records the BLP's sha256. |
+| Generate | `iconset.py generate --set B --mode subject_reference [--owner WARRIOR --race Orc] [--categories item] --floor N` | Extracts any icon the cache lacks, then one `gpt_image_2_5` image per group at `1:1 --resolution 1k --quality high` with two image references: the Blizzard icon first (image 1, the subject) and `docs/design/mockups/icons_B_buttons.png` second (image 2, the action-button strip from the design sheet, finish only). The prompt asks for image 1 repainted with the same subject, silhouette, composition, viewing angle, scale and colours, the bevelled frame removed and the art extended to every edge, and nothing added. A group accepted in `style` mode is repainted; its style image stays in the package until a repaint is accepted. |
 | Subjects | `Tools/data/icon_subjects.json` | A hand-checked sentence per file ID, added to the prompt only where the reference alone was not enough. |
 | Check | `check_icons.py --set faithful` inside `generate` | `judge_faithful`: blank, flat, frame, grid and text as for set B, no off-centre check (Blizzard's composition decides where the subject sits), plus `drift` when the 8x8 light-and-dark layout of the repaint correlates below 0.6 with the Blizzard icon. The pilot's eight repaints scored 0.79 to 0.95; the free paintings scored -0.24 to 0.48. Every result was also compared by eye against its original at 128 and 32 pixels. |
 | Package | `iconset.py package --set B` | As above. The provenance row carries the method (`style` or `subject_reference`) and the Blizzard BLP sha256. |
 
-`--owner WARRIOR` keeps the groups a character of that class sees: the class's spells, general spells for `ALL` and every group with a profession skill; `--race Orc` adds that race's racials. `--categories racial,profession,general` narrows the run further. `--dry-run` lists every group the run would paint, the credit cost before rerolls and the first prompts. The run stops before the balance would fall below `--floor`.
+`--owner WARRIOR` keeps the groups a character of that class sees: the class's spells, general spells for `ALL`, every group with a profession skill and every item group; `--race Orc` adds that race's racials. `--categories racial,profession,general` narrows the run further. `--dry-run` lists every group the run would paint, the credit cost before rerolls and the first prompts. The run stops before the balance would fall below `--floor`.
+
+### Items
+
+Items share icons with each other and with spells, so the sets map item icons the same way, by file ID. `Tools/icons/items.py --build 1.60.1.70840` builds `Tools/data/items.json` from the client's `Item`, `ItemSparse`, `ItemClass` and `ItemSubClass` tables (wago.tools, or the folder `--from-dir` names): one group per icon file ID for every item the client has a name for that is not a placeholder (`Monster -`, `OLD`, `Deprecated`, `[PH]`, test items, the deprecated flag). Each group has the category `item`, the most common item name, the item's kind (class and subclass, such as `Consumable (Potions)`), up to six items by ID, the count of all of them, and a rank: the order the generator draws them in, from what a player sees most to least.
+
+| Rank | Items | Groups |
+| --- | --- | --- |
+| 1 | consumables: potions, food, scrolls, bandages | 681 |
+| 2 | trade goods, reagents and recipes | 309 |
+| 3 | gear: weapons and armour of every quality | 946 |
+| 4 | containers: bags, quivers, ammunition and keys | 70 |
+| 5 | quest items | 625 |
+| 6 | everything else: junk, mounts, pets, gems, tokens | 243 |
+
+`iconset.py` reads both data files; an icon a spell uses keeps the spell's group (250 item icons are spell icons too), so 2626 item groups need their own art. Within a rank an icon more items share comes first. `generate --categories item` repaints them in that order with the same `subject_reference` method; the prompt says `item icon`, names the item and its kind, and asks for the same object so a player recognises the item instantly. A group that is not repainted yet has no entry in `Data.lua`, so the game's icon stays for it.
+
+ITEM_STATUS
+
+In game, item icons show through `KstyleUI.Icons` wherever a file ID reaches it: the bag and bank slots, KstyleUI's action buttons and tooltips through `Apply`, and Blizzard's item buttons (the character sheet, merchant, trade, mail, quest rewards and Blizzard's own bags) and the loot window through `Core/IconHooks.lua` (see [`KstyleUI_Icons/README.md`](../KstyleUI_Icons/README.md#blizzards-icons)).
 
 `Data.lua` defines `KstyleUIIconData` with `set = "B"`, and `IconsColour.xml` loads it after `Init.lua`. Tests: `Tools/regression/test-icons-set-b.lua` loads the real addon through the `Icons` service at login, checks that every path has its PNG, and checks that set B is shown untinted and that a file ID with no art keeps the game's icon.
 
