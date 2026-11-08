@@ -49,6 +49,10 @@ eq(tank.role:IsShown(), true, "the tank shows a role icon")
 eq(last(tank.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Tank-Micro-GroupFinder", "the tank's role icon, the atlas GetMicroIconForRole gives")
 eq(last(healer.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Healer-Micro-GroupFinder", "the healer's role icon")
 
+-- Leader: the game's leader atlas, which the client has (C_Texture.GetAtlasInfo knows it), never the assistant
+-- texture fallback; SetAtlas returns nothing on Forever, so its return value says nothing about the atlas.
+eq(last(tank.leader, "SetAtlas")[1], "UI-HUD-UnitFrame-Player-Group-LeaderIcon", "the leader icon is the leader atlas")
+eq(last(tank.leader, "SetTexture"), nil, "the assistant texture is not drawn over a known leader atlas")
 -- Leader: alpha from the secret boolean.
 local leader = last(tank.leader, "SetAlphaFromBoolean")
 assert(leader and env.issecretvalue(leader[1]), "the leader icon follows the secret leader flag")

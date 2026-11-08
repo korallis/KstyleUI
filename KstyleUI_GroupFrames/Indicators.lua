@@ -29,11 +29,22 @@ local readyActive = false
 local readyFinished = false
 local readyToken = 0
 
+local function HasAtlas(name)
+	local api = C_Texture and C_Texture.GetAtlasInfo
+	if type(api) ~= "function" then
+		return false
+	end
+	local ok, info = pcall(api, name)
+	return ok and info ~= nil
+end
+
 local function Build(f)
 	local layer = f.text
 	f.role = layer:CreateTexture(nil, "OVERLAY")
 	f.leader = layer:CreateTexture(nil, "OVERLAY")
-	if not f.leader:SetAtlas(LEADER_ATLAS) then
+	if HasAtlas(LEADER_ATLAS) then
+		f.leader:SetAtlas(LEADER_ATLAS)
+	else
 		f.leader:SetTexture(ASSIST_TEXTURE)
 		Style.LogOnce("leaderAtlas", "the leader atlas is missing; the leader icon uses the assistant texture")
 	end

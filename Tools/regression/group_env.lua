@@ -234,6 +234,16 @@ local function installRoster(env)
 	function env.GetMicroIconForRole(role)
 		return roleIcons[role] or roleIcons.DAMAGER
 	end
+	-- C_Texture.GetAtlasInfo answers for the atlases the client has (the names above, the leader crown and the
+	-- ready-check marks) and nothing for any other name, as the game does; SetAtlas itself returns nothing.
+	local atlases = { ["UI-HUD-UnitFrame-Player-Group-LeaderIcon"] = { width = 16, height = 16 }, ["UI-LFG-ReadyMark"] = { width = 32, height = 32 }, ["UI-LFG-DeclineMark"] = { width = 32, height = 32 }, ["UI-LFG-PendingMark"] = { width = 32, height = 32 } }
+	for _, name in pairs(roleIcons) do
+		atlases[name] = { width = 21, height = 21 }
+	end
+	env.C_Texture = env.C_Texture or {}
+	function env.C_Texture.GetAtlasInfo(name)
+		return atlases[name]
+	end
 	function env.UnitGetIncomingHeals(unit)
 		local m = member(unit)
 		return env.Secret(m and m.incoming or 0)

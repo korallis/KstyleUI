@@ -284,12 +284,35 @@ local function animationState(frame, now)
 	return dx, dy, alpha
 end
 
+-- ownAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
+-- the on or off alpha from a boolean the addon may not read, so the secret is revealed here, as the engine would.
+local function ownAlpha(node)
+	local calls = node._calls
+	for i = #(calls or {}), 1, -1 do
+		local call = calls[i]
+		if call.method == "SetAlpha" then
+			break
+		elseif call.method == "SetAlphaFromBoolean" then
+			local value = reveal(node._env, call.args[1])
+			if type(value) == "boolean" then
+				local on, off = call.args[2], call.args[3]
+				if value then
+					return type(on) == "number" and on or 1
+				end
+				return type(off) == "number" and off or 0
+			end
+			break
+		end
+	end
+	local own = node._state.Alpha
+	return own and type(own[1]) == "number" and own[1] or 1
+end
+
 local function effectiveAlpha(object)
 	local alpha = 1
 	local node = object
 	while node do
-		local own = node._state.Alpha
-		alpha = alpha * (own and type(own[1]) == "number" and own[1] or 1)
+		alpha = alpha * ownAlpha(node)
 		if node._groups then
 			local _, _, scale = animationState(node, animationClock)
 			alpha = alpha * scale
@@ -596,6 +619,9 @@ function Solver:solve(object)
 	local scale = effectiveScale(object)
 	local width = num(env, object._width)
 	local height = num(env, object._height)
+	if object._atlasSize then
+		width, height = object._atlasSize[1], object._atlasSize[2]
+	end
 	if (not width or width == 0) and object._naturalW then
 		width = object._naturalW
 	end
@@ -1237,12 +1263,12 @@ function Scene.Build(env, opts)
 		end
 		for _, region in ipairs(frame._regions or {}) do
 			if region._type == "Texture" then
-				-- SetAtlas(name, true) sizes the region to the atlas, as the game does.
-				region._naturalW, region._naturalH = nil, nil
+				-- SetAtlas(name, true) sizes the region to the atlas, over any size it had, as the game does.
+				region._atlasSize = nil
 				local atlas, useAtlasSize = state(region, "Atlas")
 				local info = useAtlasSize == true and Scene.AtlasInfo(atlas)
 				if info then
-					region._naturalW, region._naturalH = info.width, info.height
+					region._atlasSize = { info.width, info.height }
 				end
 			elseif region._type == "FontString" then
 				region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
