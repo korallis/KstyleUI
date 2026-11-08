@@ -224,6 +224,7 @@ do
 	local merchant, slot = ItemButton("MerchantItem1ItemButton"), ItemButton("CharacterHeadSlot")
 	env.SetItemButtonTexture(merchant, FIREBALL)
 	local snap = B.snapshot()
+	K.Options.Write("Icons", "set", "A") -- set B is the default; this test checks set A's tinted art
 	K.Options.Write("Icons", "enabled", true)
 	env.SetItemButtonTexture(merchant, FIREBALL)
 	assert(Shown(merchant.icon) == A_PATH .. FIREBALL .. ".png", "an item button Blizzard draws shows set A's art")
