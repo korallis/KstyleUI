@@ -307,7 +307,7 @@ local function Bar(holder)
 		keep[fill] = true
 	end
 	Skin.Strip(bar, { keep = keep })
-	Skin.Backdrop(bar, { shape = "tile", fill = "track", shadow = false })
+	Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	Style.StatusBar(bar)
 	if bar.Label then
 		Style.Text(bar.Label, "caption", "textEmphasis")

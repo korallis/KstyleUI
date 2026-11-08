@@ -392,17 +392,19 @@ local function Tabs(frame)
 			list[i] = _G[frame:GetName() .. "Tab" .. i]
 		end
 	end
+	local skinned = {}
 	for _, tab in ipairs(list) do
 		if Usable(tab, "Tabs") then
 			Tab(tab)
+			skinned[#skinned + 1] = tab
 		end
 	end
 	local parts = Parts(frame)
-	if list[1] and not parts.strip then
+	if skinned[1] and not parts.strip then
 		local strip = CreateFrame("Frame", nil, frame)
-		strip:SetFrameLevel(max(0, list[1]:GetFrameLevel() - 1))
-		strip:SetPoint("TOPLEFT", list[1], "TOPLEFT")
-		strip:SetPoint("BOTTOMRIGHT", list[#list], "BOTTOMRIGHT")
+		strip:SetFrameLevel(max(0, skinned[1]:GetFrameLevel() - 1))
+		strip:SetPoint("TOPLEFT", skinned[1], "TOPLEFT")
+		strip:SetPoint("BOTTOMRIGHT", skinned[#skinned], "BOTTOMRIGHT")
 		strip.chrome = W().Chrome(strip, { shape = "tile", fill = "buttonFill", shadow = false })
 		parts.strip = strip
 	end

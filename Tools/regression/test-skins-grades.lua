@@ -1,24 +1,6 @@
--- test-skins-grades.lua: every piece the skins draw takes one of the mockup's measured grades (THEME_SPEC): windows the window shape, rows, insets and list bodies the glass surface, controls the dark button body, bars the bar edge; no grey raised tile is left in the skins.
+-- test-skins-grades.lua: every piece the skins draw takes one of the mockup's measured grades (THEME_SPEC): windows the window shape, rows, insets and list bodies the glass surface, controls the dark button body, bars the bar edge, bottom tabs the button-body strip (test-grades.lua lints the raised tone away).
 local S = dofile("Tools/regression/skins_env.lua")
 local W = S.W
-
--- No skin file, and no core skin helper, asks for the raised tile: the mockup has no grey tile, only glass, the button body and bars.
-do
-	local files = { "Core/Skin.lua" }
-	for _, path in ipairs(S.Files()) do
-		files[#files + 1] = path
-	end
-	for _, path in ipairs(files) do
-		local f = assert(io.open(path, "rb"), path)
-		local text = f:read("*a")
-		f:close()
-		local line = 0
-		for row in (text .. "\n"):gmatch("([^\n]*)\n") do
-			line = line + 1
-			assert(not row:find('"raised"', 1, true), path .. ":" .. line .. " draws a raised tile; use surface, buttonFill or the bar grade")
-		end
-	end
-end
 
 local function EdgeIs(K, chrome, name)
 	local r, g, b, a = K.Widgets.Rgba(name)
