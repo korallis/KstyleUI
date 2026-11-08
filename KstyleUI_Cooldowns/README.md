@@ -33,7 +33,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
 | `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows and tooltips |
 | `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid |
-| `Bars.lua` | A holder of tracked buff bars: a chamfered tile, the icon, a `Widgets.StatusBar`, the name and a countdown |
+| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
@@ -52,6 +52,8 @@ Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `t
 | `cooldowns.utility` | Utility cooldowns | 4 icons of 52 units with 10-unit gaps, 238 by 52, under the essential row | Scalable |
 | `cooldowns.buffs` | Tracked buff icons | 6 icons of 30 units, 195 by 30, under the target frame | Scalable |
 | `cooldowns.bars` | Tracked buff bars | 3 bars of 172 by 24 with 3-unit gaps, 172 by 78, under the player frame | Scalable |
+
+A tracked buff bar follows the composition mockup: a glass tile (`surface`) 172 by 24 units (the composition mockup draws it 195 wide, but the pet frame shares the row under the player frame) with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
 
 A group registers with Layout the first time it takes the mirror path, so a group that only ever restyles Blizzard's viewer adds no mover plate. Each holder is sized to its grid (icons per row by rows, or the bar count), so its footprint does not change with the number of entries. Layout owns the holder; the module shows and hides a child, so the two never fight over one frame. Icon size, bar size, spacing and the grid are module settings rather than Layout sizes, because they decide how many entries fit.
 
@@ -78,7 +80,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
 | `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 172, 24, 3, 3 | Bar size, gap and how many fit |
-| `bars.growth` | `"up"` | New bars stack upward or downward |
+| `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |
 | `bars.orientation`, `bars.reverse` | horizontal, off | Fill direction |
@@ -115,8 +117,8 @@ If a mirror call raises an error, in combat or out, or a category set cannot be 
 
 `Reskin.Start(group)` restyles every item of the group's Blizzard viewer and every item the viewer acquires later, through a `hooksecurefunc` on the viewer's `OnAcquireItemFrame`. Settings and theme changes restyle them again.
 
-- Icon items: `Skin.Strip` hushes Blizzard's icon overlay and keeps the icon and the out-of-range shade; the icon is cropped; `Skin.Backdrop` puts a raised chamfered tile two units outside the icon, with an accent hairline; the countdown, charge and stack texts take the module's fonts, sizes and outlines.
-- Bar items: the bar's background and pip are hushed, the fill takes the bar texture and colour settings, the bar and its icon get raised tiles, and the name and duration texts take the module's fonts.
+- Icon items: `Skin.Strip` hushes Blizzard's icon overlay and keeps the icon and the out-of-range shade; the icon is cropped; `Skin.Backdrop` puts the action buttons' dark body (`buttonFill`) two units outside the icon, with their rim: the accent lifted 15 % toward white, and a faint halo outside it; the countdown, charge and stack texts take the module's fonts, sizes and outlines.
+- Bar items: the bar's background and pip are hushed, the fill takes the bar texture and colour settings at the bars' fill alpha, the bar gets a glass tile and its icon a dark button tile, and the name and duration texts take the module's fonts. Blizzard's template places the name and the duration, so the restyled bar keeps its text positions.
 - Blizzard's Edit Mode keeps the viewers' positions, sizes, padding, visibility and timer switches. Move them with Edit Mode; Layout Mode moves only KstyleUI's own frames.
 - When Blizzard's Cooldown Manager is switched off (`cooldownViewerEnabled`), the restyled viewers show nothing, so the module prints one line saying where to turn it on.
 

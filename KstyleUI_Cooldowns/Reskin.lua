@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, Widgets = K.Skin, K.Widgets
+local Skin, Widgets, Tokens = K.Skin, K.Widgets, K.Tokens
 local Settings, Style, Viewers = ns.Settings, ns.Style, ns.Viewers
 
 local Reskin = {}
@@ -11,7 +11,8 @@ ns.Reskin = Reskin
 local ICON_CROP = 0.07
 local ICON_OUTSET = 2
 local BAR_OUTSET = 1
-local EDGE_ALPHA = 0.5
+local RIM_LIFT = 0.15
+local RIM_HALO = 0.45
 local CVAR = "cooldownViewerEnabled"
 
 local active = {}
@@ -21,13 +22,16 @@ local function IsTexture(region)
 	return type(region) == "table" and type(region.GetObjectType) == "function" and region:GetObjectType() == "Texture"
 end
 
-local function Edge(backdrop)
+local function Rim(backdrop)
 	local chrome = backdrop and backdrop.chrome
 	if not chrome then
 		return
 	end
 	local r, g, b = ns.Settings.Accent()
-	chrome:SetEdgeRGBA(r, g, b, EDGE_ALPHA)
+	local wr, wg, wb = Tokens.Color("textHover")
+	r, g, b = Widgets.Mix(r, g, b, 1, wr, wg, wb, 1, RIM_LIFT)
+	chrome:SetEdgeRGBA(r, g, b, 1)
+	chrome:SetOuterRGBA(r, g, b, RIM_HALO)
 end
 
 local function Keep(...)
@@ -61,7 +65,7 @@ local function SkinIcon(group, item)
 		Skin.Strip(item, { keep = Keep(icon, item.OutOfRange) })
 		Crop(icon)
 	end
-	Edge(Skin.Backdrop(item, { shape = "tile", fill = "raised", inset = -ICON_OUTSET }))
+	Rim(Skin.Backdrop(item, { shape = "tile", fill = "buttonFill", inset = -ICON_OUTSET }))
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
 		Text(cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
@@ -79,7 +83,7 @@ local function SkinBar(item)
 		Skin.Strip(bar, { keep = Keep(bar:GetStatusBarTexture()) })
 		bar:SetStatusBarTexture(cfg.texture)
 		bar:SetStatusBarColor(Settings.BarColor())
-		Edge(Skin.Backdrop(bar, { shape = "tile", fill = "raised", inset = -BAR_OUTSET }))
+		Skin.Backdrop(bar, { shape = "tile", fill = "surface", inset = -BAR_OUTSET })
 		Text(bar.Name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
 		Text(bar.Duration, current.timerFont, cfg.timerSize, current.timerOutline)
 	end
@@ -87,7 +91,7 @@ local function SkinBar(item)
 	if type(frame) == "table" and IsTexture(frame.Icon) then
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
 		Crop(frame.Icon)
-		Edge(Skin.Backdrop(frame, { shape = "tile", fill = "raised", inset = -BAR_OUTSET }))
+		Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_OUTSET })
 		Text(frame.Applications, current.countFont, cfg.countSize, current.countOutline)
 	end
 end

@@ -273,8 +273,7 @@ end
 -- The cooldown countdown sits low on the button, its centre a quarter of the height above the bottom, as the design's "3.2s".
 do
 	local _, K, button = iconButton({})
-	assert(button.countdown == nil, "the stub cooldown reports no countdown font string")
-	button.countdown = K.Widgets.FontString(button)
+	assert(button.countdown == button.cooldown:GetCountdownFontString(), "the button places the cooldown's own countdown font string")
 	button:Restyle()
 	local p = button.countdown._points[1]
 	assert(p and p[1] == "CENTER" and p[2] == button.cooldown and p[3] == "BOTTOM" and W.Near(p[4], 0), "centred over the cooldown's bottom edge")
