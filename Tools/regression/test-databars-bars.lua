@@ -106,6 +106,17 @@ do
 	eq(labelSize, 12 * K.Theme.FontScale(), "the label reads at 12, the mockup's XP 32% cap height")
 	local point = xp.text:GetPoint(1)
 	eq(point, "CENTER", "the label is centred on the bar")
+	-- The label sits in a small glass plate on the line, as the mockup's XP 32% sits in a gap in its line: the
+	-- 12-point label on a 4-unit line collided with the fill in ingame-18.
+	local plate = assert(xp.plate, "the bar has a plate for its label")
+	eq(plate:IsShown(), true, "the plate shows under a label on the line")
+	local pp, prel, prelp = plate:GetPoint(1)
+	eq(pp .. ">" .. tostring(prel == xp.text) .. ">" .. prelp, "CENTER>true>CENTER", "the plate is centred on the label")
+	local gap = K.Tokens.Size("gapMedium")
+	local textWidth = K.Widgets.TextWidth(xp.text, 0)
+	assert(math.abs(plate:GetWidth() - (textWidth + 2 * gap)) <= 1, "the plate leaves a medium gap each side of the label: " .. plate:GetWidth() .. " for " .. textWidth)
+	assert(plate:GetHeight() >= labelSize and plate:GetHeight() > xp.holder:GetHeight(), "the plate is taller than the label and the line")
+	assert(xp.text:GetParent():GetFrameLevel() > plate:GetFrameLevel(), "the label draws over its plate")
 	local tip = K.Widgets.Tooltip()
 	eq(tip:IsShown(), true, "hovering shows the KstyleUI tooltip")
 	eq(tip:IsOwned(xp.holder), true, "the tooltip belongs to the bar")
@@ -269,6 +280,7 @@ do
 	eq(xp.text:GetText(), "24%", "in the chosen format")
 	Options.Write("DataBars", "xp.text", "none")
 	eq(xp.text:IsShown(), false, "no text hides it")
+	eq(xp.plate:IsShown(), false, "and its plate")
 	Options.Write("DataBars", "xp.text", "remaining")
 
 	local face = K.Tokens.MediaList("font")[3].path
@@ -287,6 +299,7 @@ do
 	local point, relative, relativePoint = xp.text:GetPoint(1)
 	eq(point .. ">" .. relativePoint, "BOTTOM>TOP", "text above the bar")
 	eq(relative, xp.holder, "anchored to the bar")
+	eq(xp.plate:IsShown(), false, "text off the line needs no plate")
 	noErrors(env, K)
 end
 

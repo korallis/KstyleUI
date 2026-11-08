@@ -15,8 +15,8 @@ local SLOTS = 5
 local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
-local SEPARATOR_SHARE = 0.25
-local SEPARATOR_ALPHA = 1
+local SEPARATOR_SIZE = 4
+local SEPARATOR_TURN = math.pi / 4
 local CHAR_WIDTH_SHARE = 0.45
 local VERTICAL_WIDTH = 160
 local ROW_ASPECT = 3
@@ -166,7 +166,7 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
@@ -193,6 +193,7 @@ local function NewItem(view, id)
 	item.value = Widgets.FontString(button, "OVERLAY")
 	item.separator = view.frame:CreateTexture(nil, "ARTWORK")
 	item.separator:SetColorTexture(Tokens.Color("white"))
+	item.separator:SetRotation(SEPARATOR_TURN)
 	button.Paint = function()
 		PaintItem(item)
 	end
@@ -234,7 +235,6 @@ local function PlaceItems(view, s, force)
 	local w, h = Size(frame)
 	local gap = Widgets.Snap(frame, s.spacing)
 	local labelGap = Widgets.Snap(frame, LABEL_GAP)
-	local border = Widgets.Border(frame)
 	local vertical = s.orientation == "VERTICAL"
 	local fontSize = s.fontSize
 	local total, changed = 0, force == true
@@ -248,7 +248,7 @@ local function PlaceItems(view, s, force)
 		if vertical then
 			total = total + Widgets.Snap(frame, fontSize * ROW_SHARE)
 		else
-			total = total + item.width + (i > 1 and 2 * gap + border or 0)
+			total = total + item.width + (i > 1 and 2 * gap + Widgets.Snap(frame, SEPARATOR_SIZE) or 0)
 		end
 	end
 	view.contentWidth = total
@@ -270,12 +270,13 @@ local function PlaceItems(view, s, force)
 			y = y - rowHeight
 		else
 			if i > 1 then
+				local mark = Widgets.Snap(frame, SEPARATOR_SIZE)
 				x = x + gap
 				separator:SetPoint("LEFT", frame, "LEFT", x, 0)
-				separator:SetSize(border, Widgets.Snap(frame, h * SEPARATOR_SHARE))
-				separator:SetVertexColor(Widgets.Rgba("text", SEPARATOR_ALPHA))
+				separator:SetSize(mark, mark)
+				separator:SetVertexColor(ns.Accent())
 				separator:SetShown(s.separators ~= false)
-				x = x + border + gap
+				x = x + mark + gap
 			else
 				separator:SetShown(false)
 			end

@@ -8,7 +8,8 @@ local floor, ceil, max, min, format = math.floor, math.ceil, math.max, math.min,
 local Menus = {}
 ns.Menus = Menus
 
-local PAD = 2
+local PAD = 3
+
 local MICRO_ASPECT = 0.75
 local ICON_CROP = 0.07
 local PORTRAIT_CROP = (1 - MICRO_ASPECT) / 2
@@ -591,7 +592,7 @@ local function Build(id)
 	local glass = CreateFrame("Frame", nil, content)
 	glass:SetAllPoints(content)
 	glass:SetFrameLevel(content:GetFrameLevel())
-	Widgets.Chrome(glass, { shape = "panel", fill = "surface" })
+	glass.chrome = Widgets.Chrome(glass, { shape = "tile", fill = "surface", shadow = true })
 	local bar = { id = id, group = group, holder = holder, content = content, glass = glass, entries = {}, shown = {} }
 	for index, def in ipairs(group.buttons) do
 		local target = Frame(def.name)

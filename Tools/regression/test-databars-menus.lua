@@ -445,6 +445,30 @@ do
 	noErrors(env, K)
 end
 
+-- Room: one 26-unit button for both bars with 4-unit gaps, on a tile of glass whose cut nests the buttons' own
+-- cut corners: each button's corner stands clear of the tray's cut by more than a tiny gap, and the tray stays
+-- inside the 36-unit pitch the saved layout puts between the two bars. In ingame-18 the 24-unit micro buttons
+-- (art about 10 units wide) and 22-unit bags sat 2 units apart, 2 from a panel's 10-unit cuts.
+
+do
+	local _, K, ns = New()
+	local s = ns.Settings()
+	eq(s.micro.size .. "/" .. s.bags.size, "26/26", "the micro menu and the bag bar share a 26-unit button")
+	eq(s.micro.spacing .. "/" .. s.bags.spacing, "4/4", "4 units between buttons")
+	for _, id in ipairs({ "micro", "bags" }) do
+		local glass = ns.Menus.Glass(id)
+		local chrome = assert(glass.chrome, id .. ": the glass keeps its chrome")
+		local cut = chrome:Chamfer()
+		assert(cut <= K.Tokens.Size("chamferTile"), id .. ": the tray is a tile of glass, its cut " .. cut)
+		local first = ns.Menus.Shown(id)[1]
+		local _, _, _, x, y = first:GetPoint(1)
+		local own = first.chrome:Chamfer()
+		local clear = (x + -y + own - cut) / math.sqrt(2)
+		assert(clear >= K.Tokens.Size("gapTiny"), id .. ": the first button's cut corner clears the tray's cut by " .. clear)
+		assert(ns.Menus.Holder(id):GetHeight() <= 32, id .. ": the tray fits the saved layout's 36-unit pitch with a gap")
+	end
+end
+
 -- Settings: size, spacing, rows, glass and icon colour ------------------------------------------------
 
 do

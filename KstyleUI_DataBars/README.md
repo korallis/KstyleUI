@@ -49,7 +49,7 @@ Each part file adds a part with `ns.AddPart({ Enable, Disable, Setting, Refresh 
 | `databars.rep` | Reputation | While a faction is watched | `C_Reputation.GetWatchedFactionData`, with paragon, renown (`C_MajorFactions.GetMajorFactionData`) and friendship (`C_GossipInfo.GetFriendshipReputation`) progress |
 | `databars.honor` | Honour | In battlegrounds and world PvP, or always | Forever's PvP rank points (`C_MajorFactions.GetMajorFactionProgressionInfo(2800)`), else `UnitHonor` and `UnitHonorMax` |
 
-Each element is a holder frame registered with Layout as resizable, at its footprint from `Setup.Layouts`. The holder never hides itself: a bar with nothing to show hides its `content` child, so Layout Mode still shows its plate. Inside the content a track bar draws the background, the frame and the rested overlay, and a fill bar draws progress above it. A gain eases the fill over `fade` with `Motion.Tween`; a new level, a new faction or a new range jumps at once. The text and the KstyleUI tooltip show on hover; the holder's hit area reaches 4 units past the thin bar.
+Each element is a holder frame registered with Layout as resizable, at its footprint from `Setup.Layouts`. The holder never hides itself: a bar with nothing to show hides its `content` child, so Layout Mode still shows its plate. Inside the content a track bar draws the background, the frame and the rested overlay, and a fill bar draws progress above it. A gain eases the fill over `fade` with `Motion.Tween`; a new level, a new faction or a new range jumps at once. The text and the KstyleUI tooltip show on hover; the holder's hit area reaches 4 units past the thin bar. Text on a sideways bar's line sits in a small plate of glass (the tile grade with the bar's faint edge) a medium gap wider than the label each side, as the mockup's XP 32% sits in a gap in its line, so the label never collides with the fill; text placed off the line needs no plate.
 
 ### Settings
 
@@ -76,7 +76,7 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 
 ## Data strip
 
-`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each a white label and a value on a button that lights under the pointer and shows a KstyleUI tooltip. The separators between items are one border wide, a quarter of the strip tall, in the full text grey.
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each a label in the text grey and a value in white (or graded) on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it. A small diamond in the class accent, 4 units square and turned a quarter, sits on the centre line between items: the strip's one ornament, in the colour the rims and fills share.
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |
@@ -99,9 +99,9 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 | `strip.valueColor` | `highlight` | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
 | `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |
 | `strip.backdrop`, `strip.separators` | `true`, `true` | The glass panel and the lines between items |
-| `strip.spacing` | 21 | 0 to 32 units each side of a separator |
+| `strip.spacing` | 16 | 0 to 32 units each side of a separator |
 | `strip.orientation` | `HORIZONTAL` | A row, or a column. A change resizes the element through `Layout.Update`. |
-| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 13, `NONE` | As for the bars' text. At 13 the five default items span the mockup's 444 units inside the 492 strip. |
+| `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 12, `NONE` | As for the bars' text. 12 is the HUD's bar text, the unit frames' size; 13 read oversized in game. |
 | `strip.money` | `full` | `full`, `gold` or `icons` |
 | `strip.latency` | `home` | `home` or `world` |
 | `strip.timeSource`, `strip.clock24` | `local`, `true` | Local or realm time, and the clock format |
@@ -126,8 +126,8 @@ The bars follow Blizzard's state through `hooksecurefunc` on `UpdateMicroButtons
 | Key | Default | Row |
 | --- | --- | --- |
 | `micro.enabled`, `bags.enabled` | `true` | Show KstyleUI's bar in place of Blizzard's. Off, `Safe.RestoreBlizzard` gives Blizzard's back where Edit Mode puts it. |
-| `micro.size`, `bags.size` | 24, 22 | Button height, 12 to 48. A micro button is three quarters as wide. |
-| `micro.spacing`, `bags.spacing` | 2 | The gap between buttons, 0 to 12 |
+| `micro.size`, `bags.size` | 26, 26 | Button height, 12 to 48. A micro button is three quarters as wide. Both bars sit on a tile of glass with a 3-unit rim, so each button's cut corner nests inside the tray's cut and each tray is 32 units tall, inside the 36-unit pitch the layouts put between the two bars. |
+| `micro.spacing`, `bags.spacing` | 4 | The gap between buttons, 0 to 12 |
 | `micro.rows`, `bags.rows` | 1 | How many rows the buttons fill |
 | `micro.backdrop`, `bags.backdrop` | `true` | The glass behind the buttons |
 | `micro.tint` | `none` | `none` keeps Blizzard's glyph colours; `accent` and `white` desaturate the glyphs and tint them |

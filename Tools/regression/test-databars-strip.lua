@@ -67,19 +67,26 @@ do
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
 	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a high frame rate reads in the accent, the class colour the mockup's green stands for")
-	assert(sameText(item(ns, "fps").label, K.Tokens.Color("textEmphasis")), "labels read white, as the mockup's FPS: and Durability: do")
+	-- Labels step back in the text grey and the values lead in white, the hierarchy a player scans for: the
+	-- all-white strip of ingame-18 read as one flat sentence.
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
-	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, text at 13 (the five items then span the mockup's 444
-	-- units), 21 units each side of a separator as tall as the text's cap height, a quarter of the strip.
+	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers. Its text reads at the HUD's bar size, 12 (13 read
+	-- oversized in game), and a small diamond in the class accent sits 16 units from each item where the
+	-- mockup's grey pipes were: the strip's one ornament, in the colour every rim and fill shares.
 	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
 	eq(ns.Strip.view.chrome:Chamfer(), math.min(12, 0.3 * 43), "the strip's ends cut 30% of its height, the shared rule (the mockup cuts its 30-unit strip 11)")
 	local s = ns.Settings().strip
-	eq(s.fontSize, 13, "the strip reads at 13 by default")
-	eq(s.spacing, 21, "21 units each side of a separator")
+	eq(s.fontSize, 12, "the strip reads at 12 by default")
+	eq(s.spacing, 16, "16 units each side of a separator")
 	local separator = item(ns, "latency").separator
-	assert(separator:GetHeight() >= 10 and separator:GetHeight() <= 11.5, "a separator is a quarter of the strip tall, got " .. tostring(separator:GetHeight()))
-	local sr, sg, sb, sa = separator:GetVertexColor()
-	assert(near(sr, K.Tokens.Color("text")) and near(sg, sr) and near(sb, sr) and near(sa, 1), "a separator reads in the full text grey")
+	assert(separator:GetHeight() >= 3 and separator:GetHeight() <= 5 and near(separator:GetWidth(), separator:GetHeight()), "a separator is a small square, got " .. tostring(separator:GetWidth()) .. "x" .. tostring(separator:GetHeight()))
+	assert(near(W.LastCall(separator, "SetRotation")[1], math.pi / 4), "turned to a diamond")
+	local sr, sg, sb = separator:GetVertexColor()
+	local ar, ag, ab = K.Theme.Accent()
+	assert(near(sr, ar) and near(sg, ag) and near(sb, ab), "a separator is the class accent")
+	local _, sy = select(4, separator:GetPoint(1))
+	assert(near(sy, 0), "and sits on the strip's centre line")
 	noErrors(env, K)
 end
 
@@ -189,7 +196,7 @@ do
 	local face = K.Tokens.MediaList("font")[2].path
 	Options.Write("DataBars", "strip.font", face)
 	local _, defaultSize = item(ns, "gold").value:GetFont()
-	eq(defaultSize, 13 * K.Theme.FontScale(), "the strip reads at 13 by default")
+	eq(defaultSize, 12 * K.Theme.FontScale(), "the strip reads at 12 by default")
 	Options.Write("DataBars", "strip.fontSize", 13)
 	Options.Write("DataBars", "strip.outline", "OUTLINE")
 	local path, size, flags = item(ns, "gold").value:GetFont()
