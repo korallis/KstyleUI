@@ -52,7 +52,7 @@ end
 local function InviteHeader(row, first)
 	if first then
 		Skin.Strip(row, { keep = Keep(row, INVITE_HEADER_KEEP) })
-		Skin.Backdrop(row, { shape = "tile", fill = "raised", shadow = false })
+		Skin.Backdrop(row, { shape = "tile", fill = "surface", shadow = false })
 	end
 	local text = type(row.GetFontString) == "function" and row:GetFontString()
 	if text then
@@ -110,7 +110,7 @@ end
 
 local function Broadcast(bnet)
 	Skin.Strip(bnet)
-	Skin.Backdrop(bnet, { shape = "tile", fill = "raised", shadow = false })
+	Skin.Backdrop(bnet, { shape = "tile", fill = "surface", shadow = false })
 	if bnet.Tag then
 		Style.Text(bnet.Tag, "body")
 	end
@@ -120,7 +120,7 @@ local function Broadcast(bnet)
 	local broadcast = bnet.BroadcastFrame
 	if type(broadcast) == "table" then
 		Skin.Strip(broadcast, { children = { "Border", "Border.NineSlice" } })
-		Skin.Backdrop(broadcast, { shape = "panel", fill = "surface", shadow = true })
+		Skin.Backdrop(broadcast, { shape = "window", fill = "surface", shadow = true })
 		Kit.Texts(broadcast, "heading", "textEmphasis")
 		Kit.EditBox(broadcast.EditBox)
 		Kit.Each(KEY, broadcast, BROADCAST_BUTTONS, Kit.Button)
@@ -128,7 +128,7 @@ local function Broadcast(bnet)
 	local unavailable = bnet.UnavailableInfoFrame
 	if type(unavailable) == "table" then
 		Skin.Strip(unavailable, { children = { "NineSlice" } })
-		Skin.Backdrop(unavailable, { shape = "panel", fill = "surface", shadow = true })
+		Skin.Backdrop(unavailable, { shape = "window", fill = "surface", shadow = true })
 	end
 end
 
@@ -155,7 +155,7 @@ local function Raid()
 	local info = _G.RaidInfoFrame
 	if type(info) == "table" then
 		Skin.Strip(info, { children = { "Border", "Border.NineSlice", "Header" } })
-		Skin.Backdrop(info, { shape = "panel", fill = "surface", shadow = true })
+		Skin.Backdrop(info, { shape = "window", fill = "surface", shadow = true })
 		local close = _G.RaidInfoCloseButton
 		if type(close) == "table" then
 			Skin.CloseButton(close)

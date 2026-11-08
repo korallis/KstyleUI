@@ -281,7 +281,7 @@ function Parts.Dropdown(drop)
 		keep[drop.Arrow] = true
 	end
 	Skin.Strip(drop, { keep = keep })
-	local panel = Skin.Backdrop(drop, { shape = "tile", fill = "raised", shadow = false })
+	local panel = Skin.Backdrop(drop, { shape = "tile", fill = "buttonFill", shadow = false })
 	if drop.Text then
 		ns.Style.Text(drop.Text, "body")
 	end
@@ -396,7 +396,7 @@ function Parts.FillBar(bar)
 	end
 	local track = CreateFrame("Frame", nil, bar)
 	track:SetFrameLevel(math.max(0, bar:GetFrameLevel() - LEVEL_BELOW))
-	track.chrome = Widgets.Chrome(track, { shape = "tile", fill = "track", shadow = false })
+	track.chrome = Widgets.Chrome(track, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	local state = { bar = bar, fill = fill, track = track, area = bar.FillArea or bar }
 	state.r, state.g, state.b, state.a = fill:GetVertexColor()
 	state.Restyle = RestyleFill

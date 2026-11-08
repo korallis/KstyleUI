@@ -21,7 +21,7 @@ end
 local function ApplyMap()
 	local map = _G[FRAME]
 	local border = map.BorderFrame
-	Skin.Backdrop(map, { shape = "panel", fill = "surface", shadow = true })
+	Skin.Backdrop(map, { shape = "window", fill = "surface", shadow = true })
 	if type(border) == "table" then
 		Skin.Strip(border, { children = BORDER_ART })
 		Skin.CloseButton(border.CloseButton)
@@ -40,7 +40,7 @@ local function ApplyMap()
 	local nav = map.NavBar
 	if type(nav) == "table" then
 		Skin.Strip(nav, { children = { "overlay" } })
-		Skin.Backdrop(nav, { shape = "tile", fill = "raised", shadow = false })
+		Skin.Backdrop(nav, { shape = "tile", fill = "surface", shadow = false })
 	else
 		Log("worldMap", "NavBar is missing; skipped")
 	end
@@ -116,7 +116,7 @@ local function ApplyQuestLog()
 			end
 		end
 	end
-	Skin.Backdrop(log, { shape = "tile", fill = "raised", shadow = false })
+	Skin.Backdrop(log, { shape = "tile", fill = "surface", shadow = false })
 	if type(QuestLogQuests_Update) == "function" then
 		hooksecurefunc("QuestLogQuests_Update", QuestRows)
 	else

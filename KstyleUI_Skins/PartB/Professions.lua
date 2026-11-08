@@ -35,7 +35,7 @@ local function RecipeList(list)
 		return
 	end
 	Skin.Strip(list, { children = { "BackgroundNineSlice" } })
-	Skin.Backdrop(list, { shape = "tile", fill = "raised", shadow = false })
+	Skin.Backdrop(list, { shape = "tile", fill = "surface", shadow = false })
 	Kit.EditBox(list.SearchBox)
 	Kit.Dropdown(list.FilterDropdown)
 	Kit.ScrollBar(list.ScrollBar)
@@ -50,7 +50,7 @@ local function CraftingPage(page)
 	local form = page.SchematicForm
 	if type(form) == "table" then
 		Skin.Strip(form, { children = { "Background", "MinimalBackground", "NineSlice" } })
-		Skin.Backdrop(form, { shape = "tile", fill = "raised", shadow = false })
+		Skin.Backdrop(form, { shape = "tile", fill = "surface", shadow = false })
 	end
 	Kit.RankBar(page.RankBar)
 	Kit.NumberBox(page.CreateMultipleInputBox)

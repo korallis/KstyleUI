@@ -51,7 +51,7 @@ local function Apply()
 		return false
 	end
 	K.Skin.Strip(menu, { children = { "Border", "Header" } })
-	K.Skin.Backdrop(menu)
+	K.Skin.Backdrop(menu, { shape = "window", fill = "surface", shadow = true })
 	local header = menu.Header
 	if type(header) == "table" and type(header.Text) == "table" then
 		Kit.Text(header.Text, "heading", "textEmphasis")

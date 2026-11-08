@@ -198,13 +198,16 @@ do
 	assert(Alpha(map.nine) == 0 and Alpha(border.Bg) == 0 and Alpha(border.InsetBorderTop) == 0, "the map's frame art goes")
 	assert(K.Skin.IsSkinned(border.CloseButton, "CloseButton") and Alpha(map.minimizeArt) == 0)
 	assert(FontPath(border.TitleContainer.TitleText) == Style.Font("heading"))
-	assert(Alpha(map.navArt) == 0 and Alpha(map.navOverlay) == 0 and K.Skin.IsSkinned(m.NavBar, "Backdrop"), "the navigation bar sits on a raised tile")
+	assert(Alpha(map.navArt) == 0 and Alpha(map.navOverlay) == 0 and K.Skin.IsSkinned(m.NavBar, "Backdrop"), "the navigation bar sits on a tile")
+	assert(K.Skin.Parts(m.NavBar).backdrop.chrome.fillName == "surface", "on the glass surface")
+	assert(K.Skin.Parts(m).backdrop.chrome.shapeName == "window", "the map is window-grade glass, as every Blizzard window")
 	assert(Alpha(map.homeArt) == 1, "the navigation buttons keep their art")
 
 	S.Show(map.log)
 	assert(ns.Skins.IsApplied("questLog"), "the quest log is skinned on its first show")
 	local scroll = map.scroll
 	assert(Alpha(scroll.Background) == 0 and Alpha(scroll.Edge) == 0 and Alpha(map.logBorder) == 0, "the quest list's art goes")
+	assert(K.Skin.Parts(map.log).backdrop.chrome.fillName == "surface", "the quest log is a glass tile, as every list body")
 	assert(K.Skin.IsSkinned(scroll.ScrollBar, "ScrollBar") and K.Skin.IsSkinned(scroll.SearchBox, "EditBox"))
 	assert(FontPath(map.header.ButtonText) == Style.Font("body") and FontPath(map.title.Text) == Style.Font("body"), "headers and quest titles use the skin font")
 	map.titles[#map.titles + 1] = map.lateTitle

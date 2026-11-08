@@ -1,4 +1,4 @@
--- Merchant.lua: the merchant skin: the vendor and buyback pages, item rows with quality tiles, repair and junk buttons, and the page arrows.
+-- Merchant.lua: the merchant skin: the vendor and buyback pages, item rows on glass tiles with quality-rimmed icons, repair and junk buttons, and the page arrows.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,7 +15,7 @@ end
 
 local function Slot(slot)
 	Skin.Strip(slot)
-	Skin.Backdrop(slot, { shape = "tile", fill = "buttonFill", shadow = false })
+	Skin.Backdrop(slot, { shape = "tile", fill = "surface", shadow = false })
 	Item(slot.ItemButton)
 end
 

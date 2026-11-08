@@ -444,7 +444,7 @@ local function Select(frame, marker, opts)
 		return side.partBSelect
 	end
 	local row = { frame = frame, Paint = PaintSelect, Restyle = PaintSelect }
-	row.backdrop = K.Skin.Backdrop(frame, { shape = "tile", fill = "raised", shadow = false })
+	row.backdrop = K.Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false })
 	if IsTexture(marker) then
 		row.marker = marker
 		Repaint(row, marker)
@@ -461,7 +461,7 @@ local function Inset(frame, opts)
 	opts = opts or {}
 	K.Skin.Strip(frame, { children = { "NineSlice", "Bg" } })
 	if opts.tile then
-		return K.Skin.Backdrop(frame, { shape = "tile", fill = "raised", shadow = false, inset = opts.inset })
+		return K.Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = opts.inset })
 	end
 	return frame
 end
@@ -477,7 +477,7 @@ end
 
 local function InputScroll(scroll)
 	K.Skin.Strip(scroll)
-	local backdrop = K.Skin.Backdrop(scroll, { shape = "tile", fill = "raised", shadow = false })
+	local backdrop = K.Skin.Backdrop(scroll, { shape = "tile", fill = "buttonFill", shadow = false })
 	if scroll.ScrollBar then
 		Kit.ScrollBar(scroll.ScrollBar)
 	end
@@ -565,7 +565,7 @@ local function Bar(frame)
 	end
 	K.Skin.Strip(frame, { keep = keep })
 	local bar = { frame = frame }
-	bar.backdrop = K.Skin.Backdrop(frame, { shape = "tile", fill = "raised", shadow = false })
+	bar.backdrop = K.Skin.Backdrop(frame, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	ns.Style.StatusBar(frame)
 	if type(frame.rankText) == "table" then
 		ns.Style.Text(frame.rankText, "number", "textEmphasis")

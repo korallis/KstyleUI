@@ -102,6 +102,7 @@ do
 	assert(ns.Skins.IsApplied("popups"), "the first popup skins every popup frame")
 	for _, f in ipairs(popups) do
 		assert(K.Skin.IsSkinned(f, "Backdrop") and Alpha(f.BG.Top) == 0 and Alpha(f.BG.Bottom) == 0, "a glass panel replaces the dialog art")
+		assert(K.Skin.Parts(f).backdrop.chrome.shapeName == "window", "a popup is window-grade glass: the mockup cuts its windows 12 units")
 		assert(K.Skin.IsSkinned(f.CloseButton, "CloseButton"), "the close button becomes the close glyph")
 		for n = 1, 4 do
 			assert(K.Skin.IsSkinned(f.ButtonContainer["Button" .. n], "Button"), "every dialog button is restyled")

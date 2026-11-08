@@ -308,7 +308,7 @@ do
 	local snap = B.snapshot()
 	local backdrop = K.Skin.EditBox(box)
 	assert(left:GetAlpha() == 0 and box.searchIcon:GetAlpha() == 1, "the search icon stays")
-	assert(backdrop and W.SameRGB(backdrop.chrome.fill[5], K.Tokens.Color("raised")))
+	assert(backdrop and W.SameRGB(backdrop.chrome.fill[5], K.Tokens.Color("buttonFill")), "an edit box is the dark button body, the design kit's input")
 	box:GetScript("OnEditFocusGained")(box)
 	assert(W.SameRGB(backdrop.chrome.inner[5], K.Tokens.Color("accent")), "focus lights the edit box")
 	box:GetScript("OnEditFocusLost")(box)

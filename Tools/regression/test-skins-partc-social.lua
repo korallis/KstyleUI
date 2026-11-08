@@ -177,10 +177,12 @@ do
 	assert(K.Skin.IsSkinned(system.spare, "Tab"), "a tab added later is skinned")
 	assert(K.Skin.IsSkinned(f.FriendsTabHeader.StatusDropdown, "Backdrop"), "the status dropdown wears a raised tile")
 	local bnet = f.FriendsTabHeader.BattlenetFrame
-	assert(Alpha(p.bnetArt) == 0 and K.Skin.IsSkinned(bnet, "Backdrop"), "the battle tag bar wears a raised tile")
+	assert(Alpha(p.bnetArt) == 0 and K.Skin.IsSkinned(bnet, "Backdrop"), "the battle tag bar wears a tile")
+	assert(K.Skin.Parts(bnet).backdrop.chrome.fillName == "surface", "on the glass surface")
 	assert(FontPath(bnet.Tag) == Style.Font("body"))
 	local broadcast = bnet.BroadcastFrame
 	assert(Alpha(p.broadcastBorder) == 0 and K.Skin.IsSkinned(broadcast, "Backdrop"), "the broadcast box sits on glass")
+	assert(K.Skin.Parts(broadcast).backdrop.chrome.shapeName == "window", "window-grade glass, as every dialog")
 	assert(K.Skin.IsSkinned(broadcast.EditBox, "EditBox") and Alpha(p.broadcastEdit) == 0)
 	assert(K.Skin.IsSkinned(broadcast.UpdateButton, "Button") and K.Skin.IsSkinned(broadcast.CancelButton, "Button"))
 	assert(FontPath(p.broadcastTitle) == Style.Font("heading"))
@@ -196,6 +198,7 @@ do
 	assert(K.Skin.IsSkinned(p.invite.AcceptButton, "Button") and K.Skin.IsSkinned(p.invite.DeclineButton, "Button"), "invite buttons are restyled")
 	assert(Alpha(p.invite.DeclineButton.Icon) == 1 and Alpha(p.invite.DeclineButton.Art) == 0, "the decline button keeps its cross")
 	assert(Alpha(p.inviteHeader.BG) == 0 and Alpha(p.inviteHeader.RightArrow) == 1 and K.Skin.IsSkinned(p.inviteHeader, "Backdrop"), "an invite header becomes a tile and keeps its arrows")
+	assert(K.Skin.Parts(p.inviteHeader).backdrop.chrome.fillName == "surface", "a row tile is the glass surface")
 
 	local ignore = f.IgnoreListWindow
 	assert(K.Skin.IsSkinned(ignore, "Window") and K.Skin.IsSkinned(ignore.UnignorePlayerButton, "Button"), "the ignore list window sits on glass")

@@ -1,4 +1,4 @@
--- Loot.lua: the loot window skin: a glass panel, the close glyph and a slim scroll bar, and each loot row as a raised tile with a quality-rimmed icon.
+-- Loot.lua: the loot window skin: a glass panel, the close glyph and a slim scroll bar, and each loot row as a glass tile with a quality-rimmed icon.
 local _, ns = ...
 
 local K = KstyleUI
@@ -50,7 +50,7 @@ local function Row(row, elementData)
 			Parts.Hush(row[key])
 		end
 		Kit.Wash(row.HighlightNameFrame)
-		Kit.Below(Skin.Backdrop(row, { shape = "tile", fill = "raised", shadow = false }), row, TILE_BELOW)
+		Kit.Below(Skin.Backdrop(row, { shape = "tile", fill = "surface", shadow = false }), row, TILE_BELOW)
 		state.rim = Kit.Item(row.Item)
 	end
 	if row.Text then

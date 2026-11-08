@@ -33,7 +33,7 @@ local function SkinPopup(popup)
 		end
 	end
 	Skin.Strip(popup, { keep = keep, children = { "NineSlice", "BG", "Bg" } })
-	Skin.Backdrop(popup, { shape = "panel", fill = "surface", shadow = true })
+	Skin.Backdrop(popup, { shape = "window", fill = "surface", shadow = true })
 	if type(popup.CloseButton) == "table" then
 		Skin.CloseButton(popup.CloseButton)
 	end

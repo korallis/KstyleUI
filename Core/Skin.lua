@@ -510,7 +510,7 @@ local function EditBox(box, opts)
 		keep[box.searchIcon] = true
 	end
 	StripFrame(box, { keep = keep })
-	local panel = Backdrop(box, { shape = "tile", fill = "raised", shadow = false, inset = opts.inset })
+	local panel = Backdrop(box, { shape = "tile", fill = "buttonFill", shadow = false, inset = opts.inset })
 	box:HookScript("OnEditFocusGained", function()
 		panel.chrome:SetEdge("accent")
 	end)
@@ -548,7 +548,7 @@ local function CheckBox(check)
 	local box = CreateFrame("Frame", nil, check)
 	box:SetPoint("CENTER", check, "CENTER")
 	box:SetFrameLevel(check:GetFrameLevel() + LEVEL_ABOVE)
-	box.chrome = W().Chrome(box, { shape = "tile", fill = "raised", shadow = false })
+	box.chrome = W().Chrome(box, { shape = "tile", fill = "buttonFill", shadow = false })
 	local mark = box:CreateTexture(nil, "OVERLAY")
 	mark:SetTexture((Tokens.Texture("chamferTile")))
 	mark:SetPoint("CENTER", box, "CENTER")
@@ -595,7 +595,7 @@ local function Button(button, opts)
 		return parts.backdrop
 	end
 	StripFrame(button)
-	Backdrop(button, { shape = "tile", fill = "raised", shadow = false, inset = opts.inset })
+	Backdrop(button, { shape = "tile", fill = "buttonFill", shadow = false, inset = opts.inset })
 	parts.text = type(button.GetFontString) == "function" and button:GetFontString() or nil
 	if parts.text and opts.font then
 		W().StyleText(parts.text, opts.font)

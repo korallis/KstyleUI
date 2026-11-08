@@ -153,7 +153,8 @@ do
 	local row = p.epic
 	assert(Alpha(row.NameFrame) == 0 and Alpha(row.BorderFrame) == 0 and Alpha(row.QualityStripe) == 0, "the item card art goes")
 	assert(Alpha(row.PushedNameFrame) == 0, "the pressed card art goes")
-	assert(K.Skin.IsSkinned(row, "Backdrop"), "a raised tile sits behind the row")
+	assert(K.Skin.IsSkinned(row, "Backdrop"), "a tile sits behind the row")
+	assert(K.Skin.Parts(row).backdrop.chrome.fillName == "surface", "a row is the glass surface, as every list row")
 	assert(K.Skin.Parts(row).backdrop:GetFrameLevel() < ns.Parts.RimOf(row.Item):GetFrameLevel(), "the row's tile sits under the icon's rim")
 	assert(Alpha(row.IconQuestTexture) == 1, "the quest marker stays")
 	local item = row.Item
@@ -228,6 +229,7 @@ do
 	for _, frame in ipairs(rolls) do
 		assert(Alpha(frame.Background) == 0 and Alpha(frame.Border) == 0, "the toast art goes")
 		assert(K.Skin.IsSkinned(frame, "Backdrop"), "a glass panel sits behind each roll")
+		assert(K.Skin.Parts(frame).backdrop.chrome.shapeName == "panel", "a 67-unit toast takes the panel grade's 8-unit chamfer, as the unit frames")
 		assert(Alpha(frame.IconFrame.Icon) == 1 and Alpha(frame.IconFrame.Border) == 0, "the icon stays and its border goes")
 		assert(FontPath(frame.Name) == Style.Font("body"), "the item name wears the body font")
 		assert(Alpha(frame.LootButtonContainer.NeedButton.Art) == 1, "the need, greed and pass buttons keep their icons")

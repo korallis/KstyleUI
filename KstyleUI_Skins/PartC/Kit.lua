@@ -331,7 +331,7 @@ function Kit.Bar(bar)
 	Skin.Strip(bar, { keep = keep })
 	Style.StatusBar(bar)
 	local before = RegionSet(bar)
-	local track = Widgets.Chrome(bar, { shape = "tile", fill = "track", shadow = false })
+	local track = Widgets.Chrome(bar, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
 	local added = {}
 	for region in pairs(RegionSet(bar)) do
 		if not before[region] then
