@@ -113,7 +113,7 @@ do
 	local pp, prel, prelp = plate:GetPoint(1)
 	eq(pp .. ">" .. tostring(prel == xp.text) .. ">" .. prelp, "CENTER>true>CENTER", "the plate is centred on the label")
 	local gap = K.Tokens.Size("gapMedium")
-	local textWidth = K.Widgets.TextWidth(xp.text, 0)
+	local textWidth = K.Widgets.TextWidth(xp.text, #xp.text:GetText() * labelSize * 0.5)
 	assert(math.abs(plate:GetWidth() - (textWidth + 2 * gap)) <= 1, "the plate leaves a medium gap each side of the label: " .. plate:GetWidth() .. " for " .. textWidth)
 	assert(plate:GetHeight() >= labelSize and plate:GetHeight() > xp.holder:GetHeight(), "the plate is taller than the label and the line")
 	assert(xp.text:GetParent():GetFrameLevel() > plate:GetFrameLevel(), "the label draws over its plate")

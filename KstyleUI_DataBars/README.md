@@ -76,7 +76,7 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 
 ## Data strip
 
-`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each a label in the text grey and a value in white (or graded) on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it. A small diamond in the class accent, 4 units square and turned a quarter, sits on the centre line between items: the strip's one ornament, in the colour the rims and fills share.
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each a label in the text grey and a value in white (or graded) on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it. A small square in the class accent, 4 units and snapped to whole pixels, sits on the centre line between items: the strip's one ornament, in the colour the rims and fills share.
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |

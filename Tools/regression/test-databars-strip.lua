@@ -72,8 +72,9 @@ do
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
 	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers. Its text reads at the HUD's bar size, 12 (13 read
-	-- oversized in game), and a small diamond in the class accent sits 16 units from each item where the
-	-- mockup's grey pipes were: the strip's one ornament, in the colour every rim and fill shares.
+	-- oversized in game), and a small square in the class accent sits 16 units from each item where the
+	-- mockup's grey pipes were: the strip's one ornament, in the colour every rim and fill shares, snapped to
+	-- whole pixels (a turned 4-unit square blurs at the owner's 1.2 pixels per unit).
 	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
 	eq(ns.Strip.view.chrome:Chamfer(), math.min(12, 0.3 * 43), "the strip's ends cut 30% of its height, the shared rule (the mockup cuts its 30-unit strip 11)")
 	local s = ns.Settings().strip
@@ -81,7 +82,6 @@ do
 	eq(s.spacing, 16, "16 units each side of a separator")
 	local separator = item(ns, "latency").separator
 	assert(separator:GetHeight() >= 3 and separator:GetHeight() <= 5 and near(separator:GetWidth(), separator:GetHeight()), "a separator is a small square, got " .. tostring(separator:GetWidth()) .. "x" .. tostring(separator:GetHeight()))
-	assert(near(W.LastCall(separator, "SetRotation")[1], math.pi / 4), "turned to a diamond")
 	local sr, sg, sb = separator:GetVertexColor()
 	local ar, ag, ab = K.Theme.Accent()
 	assert(near(sr, ar) and near(sg, ag) and near(sb, ab), "a separator is the class accent")

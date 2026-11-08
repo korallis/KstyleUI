@@ -16,7 +16,6 @@ local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
 local SEPARATOR_SIZE = 4
-local SEPARATOR_TURN = math.pi / 4
 local CHAR_WIDTH_SHARE = 0.45
 local VERTICAL_WIDTH = 160
 local ROW_ASPECT = 3
@@ -193,7 +192,6 @@ local function NewItem(view, id)
 	item.value = Widgets.FontString(button, "OVERLAY")
 	item.separator = view.frame:CreateTexture(nil, "ARTWORK")
 	item.separator:SetColorTexture(Tokens.Color("white"))
-	item.separator:SetRotation(SEPARATOR_TURN)
 	button.Paint = function()
 		PaintItem(item)
 	end

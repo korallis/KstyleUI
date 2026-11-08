@@ -12,6 +12,7 @@ ns.Bars = Bars
 local MAX_SEGMENTS = 20
 local HIT_PAD = 4
 local TEXT_GAP = 2
+local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 local FALLBACK_WIDTH, FALLBACK_HEIGHT = 441, 5
@@ -129,7 +130,9 @@ local function PlacePlate(view, s)
 	local _, size = text:GetFont()
 	size = ns.IsNumber(size) and size or s.fontSize
 	local holder = view.holder
-	local width = Widgets.TextWidth(text, 0) + 2 * Widgets.Snap(holder, Tokens.Size("gapMedium"))
+	local label = text:GetText()
+	local guess = type(label) == "string" and not ns.IsSecret(label) and #label * size * CHAR_WIDTH_SHARE or 0
+	local width = Widgets.TextWidth(text, guess) + 2 * Widgets.Snap(holder, Tokens.Size("gapMedium"))
 	local height = size + 2 * Widgets.Snap(holder, Tokens.Size("gapTiny"))
 	plate:ClearAllPoints()
 	plate:SetPoint("CENTER", text, "CENTER")
