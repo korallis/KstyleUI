@@ -94,7 +94,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 
 ## The panel
 
-`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 424 by 164 units at the bottom left in every layout. The owner's mockup draws the chat 430 by 164 at 1.348 px per unit; 424 keeps it clear of the tracked buff bars on the owner's screen. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
+`Panel.lua` builds a plain holder frame and registers it with Layout as `chat.main` (label from `Setup.Layouts`, module `Chat`), resizable from 260 by 120 to 1000 by 800 units, at the setup's position: 424 by 164 units at the bottom left in every layout. The owner's mockup draws the chat 430 by 164 at 1.348 px per unit; 424 keeps it clear of the tracked buff bars on the owner's screen, which sit 4 units above the panel's top. Layout gives it the element settings: position, size, shown rule, opacity in and out of combat, and strata.
 
 The glass is a `Widgets.Panel` child of the holder that fills it, in the `BACKGROUND` strata with `SetFixedFrameStrata(true)`, so a strata the player picks for the element never lifts the glass over Blizzard's chat, whose windows and dock stay in their own strata.
 

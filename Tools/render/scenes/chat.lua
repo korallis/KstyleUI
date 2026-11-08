@@ -36,9 +36,9 @@ local function plain(word)
 	return (word:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", ""))
 end
 
--- The scene's glyph widths are averages (Scene.TextWidth), about 4% over Source Sans Semibold's real widths on
--- a chat line, so a row wraps only when the estimate exceeds the window by more than that.
-local WIDTH_SLACK = 1.05
+-- Scene.TextWidth measures a kit font by its real glyph advances when it is given the font's path, so a row
+-- wraps where the game wraps it.
+local WIDTH_SLACK = 1
 
 -- Lines(env, chat) lays the window's history out bottom up in its font, wrapped to its width, one font string a
 -- row, as ScrollingMessageFrame does in the game.
@@ -54,14 +54,15 @@ local function Lines(env, chat)
 	local rows = {}
 	for _, entry in ipairs(C.Entries(chat)) do
 		local row, rowWidth = "", 0
+		local space = Scene.TextWidth(" ", size, path)
 		for word in tostring(entry[1]):gmatch("%S+") do
-			local w = Scene.TextWidth(plain(word) .. " ", size)
-			if row ~= "" and rowWidth + w > width * WIDTH_SLACK then
+			local w = Scene.TextWidth(plain(word), size, path)
+			if row ~= "" and rowWidth + space + w > width * WIDTH_SLACK then
 				rows[#rows + 1] = { row, entry }
 				row, rowWidth = "", 0
 			end
 			row = row == "" and word or (row .. " " .. word)
-			rowWidth = rowWidth + w
+			rowWidth = rowWidth + (rowWidth > 0 and space or 0) + w
 		end
 		rows[#rows + 1] = { row, entry }
 	end

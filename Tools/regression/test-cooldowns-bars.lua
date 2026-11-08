@@ -1,4 +1,4 @@
--- test-cooldowns-bars.lua: a tracked buff bar on the mirror path is a glass tile, 172 by 24, with a dark icon tile at its left, the name 10 units in, the countdown right-aligned 10 units from the right end, a subtle fill over the glass, and the first bar at the top.
+-- test-cooldowns-bars.lua: a tracked buff bar on the mirror path is a glass tile, 195 by 24, with a dark icon tile at its left, the name 10 units in, the countdown right-aligned 10 units from the right end, a subtle fill over the glass, and the first bar at the top.
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local W = C.W
 
@@ -33,7 +33,7 @@ local row = ns.Mirror.Row("bars")
 assert(row.count == 2, "two active bars show, got " .. tostring(row.count))
 local holder = row.holder
 local width, height = holder:GetSize()
-assert(width == 172 and height == 78, "three bars of 172 by 24 fill a 172 by 78 footprint, got " .. tostring(width) .. " by " .. tostring(height))
+assert(width == 195 and height == 51, "two bars of 195 by 24 fill a 195 by 51 footprint, as the mockup draws two, got " .. tostring(width) .. " by " .. tostring(height))
 
 -- The first bar sits at the top of the holder and the second below it: the mockup lists Battle Shout above Enrage.
 local first, second = row.bars[1], row.bars[2]

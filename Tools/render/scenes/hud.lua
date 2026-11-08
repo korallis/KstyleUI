@@ -414,14 +414,15 @@ function modules.chat(opts)
 			return (word:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", ""))
 		end
 		local row, rowWidth = "", 0
+		local space = Scene.TextWidth(" ", size, path)
 		for word in line:gmatch("%S+") do
-			local w = Scene.TextWidth(plainWord(word) .. " ", size, path)
-			if row ~= "" and rowWidth + w > width then
+			local w = Scene.TextWidth(plainWord(word), size, path)
+			if row ~= "" and rowWidth + space + w > width then
 				rows[#rows + 1] = { row, entry }
 				row, rowWidth = "", 0
 			end
 			row = row == "" and word or (row .. " " .. word)
-			rowWidth = rowWidth + w
+			rowWidth = rowWidth + (rowWidth > 0 and space or 0) + w
 		end
 		rows[#rows + 1] = { row, entry }
 	end

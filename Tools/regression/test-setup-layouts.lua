@@ -167,14 +167,16 @@ for _, name in ipairs(names) do
 	assert(xp.left > player.right - 1 and xp.right < target.left + 1, name .. ": the experience bar stays between the frames' inner edges")
 	assert(swing.bottom >= cast.top, name .. ": the swing timer sits above the cast bar")
 	local resource, pet, targetCast, tot = rect("unitframes.resource"), rect("unitframes.pet"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
-	for _, under in ipairs({ { pet, player, "the pet frame" }, { targetCast, target, "the target cast bar" }, { tot, target, "the target of target" } }) do
-		local small, frame = under[1], under[2]
-		assert(small.top <= frame.bottom and small.left >= frame.left and small.right <= frame.right, name .. ": " .. under[3] .. " sits under its frame")
-	end
+	assert(targetCast.top <= target.bottom and targetCast.left >= target.left and targetCast.right <= target.right, name .. ": the target cast bar sits under its frame")
+	-- The mockup shows neither small frame, and its 195-unit buff bars take the whole row under the player frame,
+	-- so the pet frame sits beside the player frame's portrait end and the target of target beside the target's.
+	assert(pet.right <= player.left - 2 and pet.right >= player.left - 12 and pet.bottom == player.bottom, name .. ": the pet frame sits beside the player frame, bottom-aligned")
+	assert(tot.left >= target.right + 2 and tot.left <= target.right + 12 and tot.bottom == target.bottom, name .. ": the target of target sits beside the target frame, bottom-aligned")
 	assert(resource.bottom >= player.top and resource.left >= player.left and resource.right <= player.right, name .. ": the class resource sits on top of the player frame")
 	assert(math.abs((mid - pet.x) - (tot.x - mid)) < 1 and pet.bottom == tot.bottom, name .. ": the pet frame and the target of target mirror each other")
 	local bars, buffs = rect("cooldowns.bars"), rect("cooldowns.buffs")
-	assert(bars.top <= player.bottom and bars.top >= player.bottom - 4 and math.abs(bars.right - player.right) <= 4, name .. ": the tracked buff bars hang under the player frame, right-aligned, as in the mockup")
+	assert(bars.top <= player.bottom - 4 and bars.top >= player.bottom - 40 and math.abs(bars.right - player.right) <= 4, name .. ": the tracked buff bars hang a few units under the player frame, right-aligned with it, as in the mockup")
+	assert(bars.top >= 225 and bars.top <= 236, name .. ": the bars' top sits 225 to 236 units above the bottom: the mockup's 225, raised to clear the chat panel on the owner's 1671-unit-wide root")
 	assert(buffs.top <= target.bottom and buffs.left >= target.left and buffs.right <= target.right, name .. ": the tracked buff icons hang under the target frame")
 	assert(bar1.bottom - bar2.top >= 6 and bar1.bottom - bar2.top <= 12, name .. ": the two bar rows keep the mockup's 10-unit gap")
 	local minimap, auraBuffs = rect("minimap.main"), rect("auras.buffs")
@@ -182,6 +184,7 @@ for _, name in ipairs(names) do
 	assert(auraBuffs.top <= minimap.bottom and auraBuffs.right > width - 40, name .. ": the buffs sit under the minimap")
 	local chat, strip = rect("chat.main"), rect("databars.strip")
 	assert(chat.left < 40 and chat.bottom < 40, name .. ": chat sits bottom left")
+	assert(bars.left >= chat.right + 3.5 or bars.bottom >= chat.top + 4, name .. ": the buff bars clear the chat panel by about 4 units on the owner's 1671-unit-wide root")
 	assert(strip.right > width - 40 and strip.bottom < 40, name .. ": the data strip sits bottom right")
 	local micro, bags = rect("databars.micro"), rect("databars.bags")
 	assert(micro.bottom >= strip.top + 4 and bags.bottom >= micro.top + 4, name .. ": the micro menu sits clear above the strip and the bag bar clear above the micro menu")
@@ -217,7 +220,7 @@ do
 		return element.width .. "x" .. element.height
 	end
 	assert(footprint("minimap.main") == "259x221", "the minimap is 259 by 221: the mockup's 221 frame with a 34 button column and a 4 gap beside it, got " .. footprint("minimap.main"))
-	assert(footprint("chat.main") == "424x164", "the chat panel is 424 by 164: the mockup's 430 by 164 at 1.348 px per unit, trimmed to clear the tracked buff bars on the owner's screen, got " .. footprint("chat.main"))
+	assert(footprint("chat.main") == "424x164", "the chat panel is 424 by 164: the mockup's 430 by 164 at 1.348 px per unit, trimmed so the tracked buff bars clear it on the owner's screen, got " .. footprint("chat.main"))
 	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
 	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
 	assert(footprint("databars.strip") == "492x43", "the data strip is 492 by 43, as the composition mockup measures, got " .. footprint("databars.strip"))
@@ -239,7 +242,7 @@ local FOOTPRINTS = {
 	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
 	["cooldowns.essential"] = { 6 * 56 + 5 * 8, 56 },
 	["cooldowns.utility"] = { 4 * 52 + 3 * 10, 52 },
-	["cooldowns.bars"] = { 172, 3 * 24 + 2 * 3 },
+	["cooldowns.bars"] = { 195, 2 * 24 + 3 },
 	["unitframes.castbar.player"] = { 340, 36 },
 	["databars.xp"] = { 440, 4 },
 }

@@ -1,6 +1,6 @@
 # KstyleUI_Cooldowns
 
-Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (56 units), utility cooldowns (52 units), tracked buff icons (30 units) and tracked buff bars (172 by 24 units), placed in the HUD band as the composition mockup lays them out.
+Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (56 units), utility cooldowns (52 units), tracked buff icons (30 units) and tracked buff bars (195 by 24 units), placed in the HUD band as the composition mockup lays them out.
 
 | Field | Value |
 | --- | --- |
@@ -51,9 +51,9 @@ Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `t
 | `cooldowns.essential` | Essential cooldowns | 6 icons of 56 units with 8-unit gaps, 376 by 56, between the player and target frames | Scalable |
 | `cooldowns.utility` | Utility cooldowns | 4 icons of 52 units with 10-unit gaps, 238 by 52, under the essential row | Scalable |
 | `cooldowns.buffs` | Tracked buff icons | 6 icons of 30 units, 195 by 30, under the target frame | Scalable |
-| `cooldowns.bars` | Tracked buff bars | 3 bars of 172 by 24 with 3-unit gaps, 172 by 78, under the player frame | Scalable |
+| `cooldowns.bars` | Tracked buff bars | 2 bars of 195 by 24 with a 3-unit gap, 195 by 51, 5 units under the player frame, right-aligned with it | Scalable |
 
-A tracked buff bar follows the composition mockup: a glass tile (`surface`) 172 by 24 units (the composition mockup draws it 195 wide, but the pet frame shares the row under the player frame) with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
+A tracked buff bar follows the composition mockup: a glass tile (`surface`) 195 by 24 units, the mockup's width at 1.348 px per unit (the pet frame moved beside the player frame to free the row; the bars sit 10 units higher than the mockup's so they clear the chat panel on the owner's 1671-unit-wide root), with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
 
 A group registers with Layout the first time it takes the mirror path, so a group that only ever restyles Blizzard's viewer adds no mover plate. Each holder is sized to its grid (icons per row by rows, or the bar count), so its footprint does not change with the number of entries. Layout owns the holder; the module shows and hides a child, so the two never fight over one frame. Icon size, bar size, spacing and the grid are module settings rather than Layout sizes, because they decide how many entries fit.
 
@@ -79,7 +79,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 172, 24, 3, 3 | Bar size, gap and how many fit |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 24, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |
