@@ -962,8 +962,10 @@ function Scene.Build(env, opts)
 		end
 		item.rect = toScreen(rect)
 		item.object = object
-		-- A wrapped text's height came from the solver; the page keeps it instead of re-deriving one line.
+		-- A wrapped text's height came from the solver; the page keeps it instead of re-deriving one line, and
+		-- draws a block it measures shorter from the side the text grows from, as the game does.
 		if object._wrapped and item.natural then
+			item.grow = item.natural.height
 			item.natural.height = nil
 			if next(item.natural) == nil then
 				item.natural = nil

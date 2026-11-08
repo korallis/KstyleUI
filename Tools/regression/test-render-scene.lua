@@ -238,6 +238,7 @@ assert(lines > 2, "the sample text needs more than two 100-unit lines at 10 unit
 assert(paragraphItem.rect[4] >= 3 * lineH - 1e-3, "a wrapped text is as tall as its wrapped lines, got " .. tostring(paragraphItem.rect[4]) .. " for a line of " .. tostring(lineH))
 near(underItem.rect[2], paragraphItem.rect[2] + paragraphItem.rect[4], "the next text sits under the whole paragraph")
 assert(paragraphItem.natural == nil or paragraphItem.natural.height == nil, "the page keeps the solver's height instead of re-deriving one line")
+assert(paragraphItem.grow == "top", "a wrapped text anchored at its top grows down from it, so the page draws a shorter measured block at the top, not centred: " .. tostring(paragraphItem.grow))
 local noWrap = column:CreateFontString(nil, "ARTWORK")
 noWrap:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
 noWrap:SetWordWrap(false)

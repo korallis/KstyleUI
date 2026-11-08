@@ -551,7 +551,15 @@
 		ctx.textAlign = align;
 		const block = lines.length * lh;
 		let top = dest.y;
-		if (item.justifyV === "MIDDLE") {
+		if (item.grow && block < dest.h) {
+			// A wrapped text sized to its content: the solver's estimate ran longer than the canvas measures,
+			// so the lines sit on the side the text grows from instead of floating in the middle.
+			if (item.grow === "bottom") {
+				top = dest.y + dest.h - block;
+			} else if (item.grow === "middle") {
+				top = dest.y + (dest.h - block) / 2;
+			}
+		} else if (item.justifyV === "MIDDLE") {
 			top = dest.y + (dest.h - block) / 2;
 		} else if (item.justifyV === "BOTTOM") {
 			top = dest.y + dest.h - block;
