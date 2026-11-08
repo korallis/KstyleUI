@@ -61,6 +61,7 @@ function BarRow:StyleBar(bar)
 	status:Restyle()
 	Color(bar)
 	bar.timer:SetHideCountdownNumbers(not cfg.timer)
+	Style.Countdown(bar.timer)
 	local countdown = bar.countdown
 	local nameEnd, nameEndPoint = bar, "RIGHT"
 	if countdown then

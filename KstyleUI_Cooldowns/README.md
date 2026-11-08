@@ -33,7 +33,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
 | `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows, tooltips, and `Style.Countdown(cooldown)`: one `C_StringUtil` seconds formatter (one letter, whitespace stripped, the last unit rounded up: `4s`, `2m`) set on a cooldown row's `Cooldown` through `SetCountdownFormatter`, so the numbers read as the mockup's; without the API the engine's plain numbers stay, and the devlog says so |
 | `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows take `countdownCorner`, so the countdown hangs in the icon's top right corner as the mockup draws "4s"; the tracked buff icons keep the kit's centred countdown |
-| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown |
+| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown that reads "24s" through `Style.Countdown` |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |

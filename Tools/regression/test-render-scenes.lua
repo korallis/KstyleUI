@@ -173,7 +173,7 @@ for _, item in ipairs(cooldowns.items) do
 		fills = fills + 1
 	end
 end
-assert(rightAligned["24"] and rightAligned["12"], "the buff bars' countdowns draw right-aligned")
+assert(rightAligned["24s"] and rightAligned["12s"], "the buff bars' countdowns draw right-aligned, with their unit")
 assert(fills >= 2, "the buff bars draw their fills")
 
 -- The focused scenes. The nameplate scene puts the plate on a base the game scaled to 0.58, as the owner's Mac

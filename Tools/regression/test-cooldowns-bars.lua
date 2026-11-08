@@ -35,6 +35,12 @@ local holder = row.holder
 local width, height = holder:GetSize()
 assert(width == 195 and height == 51, "two bars of 195 by 24 fill a 195 by 51 footprint, as the mockup draws two, got " .. tostring(width) .. " by " .. tostring(height))
 
+-- The countdown reads "24s", as the mockup writes it, through the same one-letter formatter as the cooldown rows.
+do
+	local formatter = W.LastCall(row.bars[1].timer, "SetCountdownFormatter")
+	assert(formatter and type(formatter[1]) == "table" and formatter[1]:Format(24) == "24s", "a bar's countdown has the one-letter formatter")
+end
+
 -- The first bar sits at the top of the holder and the second below it: the mockup lists Battle Shout above Enrage.
 local first, second = row.bars[1], row.bars[2]
 assert(ns.Settings.current.bars.growth == "down", "bars grow downward by default")
