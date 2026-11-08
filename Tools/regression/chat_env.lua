@@ -57,6 +57,11 @@ local function newChatFrame(env, id, parent)
 	frame:SetSize(430, 120)
 	frame.Background = blizzard(env, frame:CreateTexture(name .. "Background", "BACKGROUND"))
 	env[name .. "Background"] = frame.Background
+	-- FloatingChatFrame.xml: the background reaches 2 units past the sides, 3 above and 6 below the window.
+	frame.Background:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 3)
+	frame.Background:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 2, 3)
+	frame.Background:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", -2, -6)
+	frame.Background:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -6)
 	for _, piece in ipairs({ "TopLeftTexture", "BottomLeftTexture", "TopRightTexture", "BottomRightTexture", "LeftTexture", "RightTexture", "BottomTexture", "TopTexture" }) do
 		env[name .. piece] = blizzard(env, frame:CreateTexture(name .. piece, "BORDER"))
 	end
@@ -112,10 +117,15 @@ local function newChatFrame(env, id, parent)
 	frame.buttonFrame = blizzard(env, env.CreateFrame("Frame", name .. "ButtonFrame", frame))
 	local tab = blizzard(env, env.CreateFrame("Button", name .. "Tab", env.UIParent))
 	tab:SetID(id)
+	-- ChatTabArtTemplate: a 64 by 32 button, 16-unit side pieces, the text centred 5 units below the middle.
+	tab:SetSize(64, 32)
 	tab.Text = blizzard(env, tab:CreateFontString(name .. "TabText", "OVERLAY", "GameFontNormalSmall"))
+	tab.Text:SetPoint("CENTER", tab, "CENTER", 0, -5)
 	for _, piece in ipairs({ "Left", "Middle", "Right", "ActiveLeft", "ActiveMiddle", "ActiveRight", "HighlightLeft", "HighlightMiddle", "HighlightRight" }) do
 		tab[piece] = blizzard(env, tab:CreateTexture(nil, "BACKGROUND"))
 	end
+	tab.Left:SetSize(16, 32)
+	tab.Right:SetSize(16, 32)
 	tab.glow = blizzard(env, tab:CreateTexture(name .. "TabGlow", "BORDER"))
 	function tab:GetFontString()
 		return self.Text
@@ -430,6 +440,40 @@ function C.Install(env, opts)
 	function env.FCF_SetChatWindowFontSize(_, frame, size)
 		local path, _, flags = frame:GetFont()
 		frame:SetFont(path, size, flags)
+	end
+end
+
+-- Dock(env, measure) lays the dock and its tabs out the way FCFDock_UpdateTabs does on the forever branch: the
+-- dock, 26 tall, sits on the primary window's Background; the primary tab is static, its text's width plus
+-- PanelTemplates_TabResize's 20 units of sides, at the dock's bottom left; every other docked tab is dynamic,
+-- 90 wide (FCFDock_CalculateTabSize's maximum, when they fit), one unit right of the one before. The stub font
+-- strings have no metrics, so measure(text, size) -> width stands in for GetStringWidth.
+function C.Dock(env, measure)
+	local dock = env.GENERAL_CHAT_DOCK
+	local primary = dock.primary
+	dock:ClearAllPoints()
+	dock:SetPoint("BOTTOMLEFT", primary.Background, "TOPLEFT", 0, 0)
+	dock:SetPoint("BOTTOMRIGHT", primary.Background, "TOPRIGHT", 0, 0)
+	dock:SetHeight(26)
+	local previous
+	for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
+		local tab = env[frame:GetName() .. "Tab"]
+		local _, size = tab.Text:GetFont()
+		local textWidth = measure(tab.Text:GetText() or "", size or 10)
+		tab:ClearAllPoints()
+		tab:SetParent(dock)
+		if frame == primary then
+			tab.Text:SetWidth(textWidth)
+			tab:SetWidth(textWidth + 20)
+			tab:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0)
+		else
+			tab.Text:SetWidth(90 - 20)
+			tab:SetWidth(90)
+			tab:SetPoint("LEFT", previous, "RIGHT", 1, 0)
+		end
+		tab:Show()
+		env.FCFTab_UpdateColors(tab, frame == dock.selected)
+		previous = tab
 	end
 end
 

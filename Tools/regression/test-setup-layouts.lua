@@ -215,7 +215,7 @@ do
 		return element.width .. "x" .. element.height
 	end
 	assert(footprint("minimap.main") == "168x166", "the minimap is 168 by 166: a 142 map, a 24 strip and a 22 footer, got " .. footprint("minimap.main"))
-	assert(footprint("chat.main") == "320x130", "the chat panel is 320 by 130, got " .. footprint("chat.main"))
+	assert(footprint("chat.main") == "424x164", "the chat panel is 424 by 164: the mockup's 430 by 164 at 1.348 px per unit, trimmed to clear the tracked buff bars on the owner's screen, got " .. footprint("chat.main"))
 	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
 	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
 	assert(footprint("databars.strip") == "360x36", "the data strip is 360 wide, got " .. footprint("databars.strip"))

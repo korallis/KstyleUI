@@ -13,8 +13,11 @@ local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
 local DIVIDER_ALPHA = 0.25
-local COPY_WIDTH, COPY_HEIGHT = 44, 18
+local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
+local COPY_SQUARE = 5.5
+local DOCK_SIDE = 2
 local EDIT_MODE_EXIT = "EditMode.Exit"
+local LAYOUT_CHANGED = "LayoutChanged"
 
 local TAB_TEXT_RISE = 14
 local BACKGROUND_RISE = 3
@@ -24,7 +27,8 @@ local EDIT_LEFT = 5
 local EDIT_PAST_SCROLLBAR = 8
 local SCROLLBAR_WIDTH = 8
 
-local TAB_TEXT_DROP = 12
+local STRIP_HEIGHT = 32
+local PAD = 16
 local EDIT_TILE = 22
 local EDIT_BOTTOM = 6
 
@@ -89,25 +93,42 @@ end
 
 function Panel.Column(frame, k)
 	local column = ScrollWidth(frame) * k + Tokens.Size("gapSmall")
+	local centre = BUTTON_INSET
 	local settings = state.settings
 	if settings and settings.copyButton == true then
-		column = max(column, COPY_WIDTH + Tokens.Size("gapSmall"))
+		centre = centre + BUTTON_SIZE + Tokens.Size("gapTiny")
 	end
-	return column
+	return max(column, centre + BUTTON_SIZE / 2 + DOCK_SIDE * k - PAD)
+end
+
+local function EditAlways()
+	local settings = state.settings
+	return settings ~= nil and settings.editBox == "always"
+end
+
+local function PanelBottom()
+	local _, bottom = K.Layout.Rect(KEY)
+	return Number(bottom, 0)
 end
 
 function Panel.Geometry(chat)
 	local k = Ratio(chat, state.holder)
 	local snap = Scale.Snap
-	local pad = Tokens.Size("gapMedium")
 	local tile = max(0, (EDIT_HEIGHT * k - EDIT_TILE) / 2)
+	local reach = (EDIT_DROP + EDIT_HEIGHT) * k - tile
+	local bottom
+	if EditAlways() then
+		bottom = EDIT_BOTTOM + reach
+	else
+		bottom = max(PAD, reach + Tokens.Size("gapTiny") - PanelBottom())
+	end
 	return {
 		k = k,
-		left = snap(pad),
-		top = snap(TAB_TEXT_DROP + TAB_TEXT_RISE * k),
-		right = snap(pad + Panel.Column(chat, k)),
-		bottom = snap(EDIT_BOTTOM + (EDIT_DROP + EDIT_HEIGHT) * k - tile),
-		divider = snap(TAB_TEXT_DROP + (TAB_TEXT_RISE - BACKGROUND_RISE) * k),
+		left = snap(PAD),
+		top = snap(STRIP_HEIGHT + BACKGROUND_RISE * k),
+		right = snap(PAD + Panel.Column(chat, k)),
+		bottom = snap(bottom),
+		divider = snap(STRIP_HEIGHT),
 	}
 end
 
@@ -123,12 +144,16 @@ end
 
 function Panel.UndockedInsets(frame)
 	local k = Ratio(frame, nil)
-	local pad = Tokens.Size("gapMedium") / k
+	local pad = PAD / k
+	local bottom = -pad
+	if EditAlways() then
+		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2) + EDIT_BOTTOM / k)
+	end
 	return {
 		left = -pad,
 		right = -(ScrollWidth(frame) + pad),
-		top = -(TAB_TEXT_RISE + TAB_TEXT_DROP / k),
-		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - EDIT_TILE / k) / 2) + EDIT_BOTTOM / k),
+		top = -(BACKGROUND_RISE + STRIP_HEIGHT / k),
+		bottom = bottom,
 	}
 end
 
@@ -142,6 +167,10 @@ end
 
 function Panel.CopyButton()
 	return state.glass and state.glass.copy
+end
+
+function Panel.MenuButton()
+	return state.glass and state.glass.plus
 end
 
 function Panel.Status()
@@ -182,13 +211,20 @@ local function Focused(box)
 end
 
 local function ApplyEdit(box, info)
-	local factor = 1
-	if state.active and info.frame.isDocked and not Focused(box) then
-		factor = state.alpha or 1
+	local factor, mouse = 1, true
+	if state.active and not Focused(box) then
+		if not EditAlways() then
+			factor, mouse = 0, false
+		elseif info.frame.isDocked then
+			factor = state.alpha or 1
+		end
 	end
 	busy = true
 	box:SetAlpha(info.wanted * factor)
 	busy = false
+	if type(box.EnableMouse) == "function" then
+		box:EnableMouse(mouse)
+	end
 end
 
 local function EditAlpha(frame)
@@ -261,9 +297,11 @@ local function PlaceDivider(g)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Scale.Border())
 	Widgets.Tint(divider, "text", DIVIDER_ALPHA)
-	local copy = glass.copy
-	copy:ClearAllPoints()
-	copy:SetPoint("RIGHT", glass, "TOPRIGHT", -g.left, -TAB_TEXT_DROP)
+	local y = -(g.top - TAB_TEXT_RISE * g.k)
+	glass.plus:ClearAllPoints()
+	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -BUTTON_INSET, y)
+	glass.copy:ClearAllPoints()
+	glass.copy:SetPoint("CENTER", glass, "TOPRIGHT", -(BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny")), y)
 end
 
 function Panel.Place()
@@ -317,19 +355,154 @@ local function OnEditModeExit()
 	end
 end
 
+local function OnLayoutChanged(_, key)
+	if state.active and key == KEY then
+		Schedule()
+	end
+end
+
 local function Paint(settings)
 	local glass = state.glass
 	local r, g, b = Tokens.Color("surface")
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
 	glass.copy:SetShown(settings.copyButton == true)
+	glass.copy:Paint()
+	glass.plus:Paint()
 end
 
 local function FollowTab(_, alpha)
 	local glass = state.glass
 	if state.active and glass then
 		glass.copy:SetAlpha(Number(alpha, 1))
+		glass.plus:SetAlpha(Number(alpha, 1))
 	end
+end
+
+local function OnSettings()
+	K.Options.Open(ns.NAME)
+end
+
+local function OnCopy()
+	ns.Copy.Open()
+end
+
+local function PaintGlyphButton(self)
+	local r, g, b = Tokens.Color("text")
+	if self:IsEnabled() == false then
+		r, g, b = Tokens.Color("textDisabled")
+	elseif state.settings then
+		r, g, b = ns.Accent(state.settings)
+	end
+	local t = self.hoverT or 0
+	r, g, b = r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
+	for _, region in ipairs(self.tinted) do
+		region:SetVertexColor(r, g, b, 1)
+	end
+	if Widgets.MayMove(self) then
+		local offset = Widgets.PressOffset(self)
+		if self.placedOffset ~= offset then
+			self.placedOffset = offset
+			self.art:SetPoint("CENTER", self, "CENTER", 0, -offset)
+		end
+	end
+end
+
+local function RestyleGlyphButton(self)
+	if Widgets.MayMove(self) then
+		Widgets.Size(self, BUTTON_SIZE, BUTTON_SIZE)
+		Widgets.Size(self.art, BUTTON_GLYPH, BUTTON_GLYPH)
+		self.placedOffset = nil
+		if self.Shape then
+			self:Shape()
+		end
+	end
+	self:Paint()
+end
+
+local function GlyphButton(glass, onClick, tooltip)
+	local button = CreateFrame("Button", nil, glass)
+	button.art = CreateFrame("Frame", nil, button)
+	button.tinted = {}
+	button.onClick = onClick
+	button.Paint, button.Restyle = PaintGlyphButton, RestyleGlyphButton
+	Widgets.HookPointer(button)
+	Widgets.AttachTooltip(button, tooltip)
+	return button
+end
+
+local function PlusButton(glass)
+	local button = GlyphButton(glass, OnSettings, K.L["Chat settings"])
+	local glyph = button.art:CreateTexture(nil, "ARTWORK")
+	glyph:SetTexture((Tokens.Texture("glyphClose")))
+	glyph:SetAllPoints(button.art)
+	glyph:SetRotation(math.pi / 4)
+	button.glyph = glyph
+	button.tinted[1] = glyph
+	button:Restyle()
+	return Widgets.Track(button)
+end
+
+local function Square(button, level, filled)
+	local square = CreateFrame("Frame", nil, button.art)
+	square:SetFrameLevel(button.art:GetFrameLevel() + level)
+	if filled then
+		square.fill = square:CreateTexture(nil, "BACKGROUND")
+		square.fill:SetColorTexture(Tokens.Color("surface"))
+		square.fill:SetAllPoints(square)
+	end
+	square.lines = {}
+	for i = 1, 4 do
+		local line = square:CreateTexture(nil, "ARTWORK")
+		line:SetColorTexture(Tokens.Color("white"))
+		square.lines[i] = line
+		button.tinted[#button.tinted + 1] = line
+	end
+	return square
+end
+
+local function ShapeSquare(square, size, border)
+	local top, bottom, left, right = square.lines[1], square.lines[2], square.lines[3], square.lines[4]
+	square:SetSize(size, size)
+	if square.fill then
+		square.fill:SetVertexColor(Tokens.Color("surface"))
+		square.fill:SetAlpha(1)
+	end
+	top:ClearAllPoints()
+	top:SetPoint("TOPLEFT", square, "TOPLEFT", 0, 0)
+	top:SetPoint("TOPRIGHT", square, "TOPRIGHT", 0, 0)
+	top:SetHeight(border)
+	bottom:ClearAllPoints()
+	bottom:SetPoint("BOTTOMLEFT", square, "BOTTOMLEFT", 0, 0)
+	bottom:SetPoint("BOTTOMRIGHT", square, "BOTTOMRIGHT", 0, 0)
+	bottom:SetHeight(border)
+	left:ClearAllPoints()
+	left:SetPoint("TOPLEFT", square, "TOPLEFT", 0, 0)
+	left:SetPoint("BOTTOMLEFT", square, "BOTTOMLEFT", 0, 0)
+	left:SetWidth(border)
+	right:ClearAllPoints()
+	right:SetPoint("TOPRIGHT", square, "TOPRIGHT", 0, 0)
+	right:SetPoint("BOTTOMRIGHT", square, "BOTTOMRIGHT", 0, 0)
+	right:SetWidth(border)
+end
+
+local function ShapeCopy(self)
+	local size, border = Widgets.Snap(self.art, COPY_SQUARE), Widgets.Border(self.art)
+	ShapeSquare(self.back, size, border)
+	ShapeSquare(self.front, size, border)
+	self.back:ClearAllPoints()
+	self.back:SetPoint("TOPLEFT", self.art, "TOPLEFT", 0, 0)
+	self.front:ClearAllPoints()
+	self.front:SetPoint("BOTTOMRIGHT", self.art, "BOTTOMRIGHT", 0, 0)
+end
+
+local function CopyButton(glass)
+	local button = GlyphButton(glass, OnCopy, K.L["Copy the selected chat window's text."])
+	button.back = Square(button, 1, false)
+	button.front = Square(button, 2, true)
+	button.Shape = ShapeCopy
+	button:Restyle()
+	return Widgets.Track(button)
 end
 
 local function Build()
@@ -343,15 +516,8 @@ local function Build()
 	glass:SetFixedFrameStrata(true)
 	glass.divider = glass:CreateTexture(nil, "ARTWORK")
 	glass.divider:SetTexture((Tokens.Texture("divider")))
-	glass.copy = Widgets.Button(glass, {
-		text = K.L["Copy"],
-		width = COPY_WIDTH,
-		height = COPY_HEIGHT,
-		tooltip = K.L["Copy the selected chat window's text."],
-		onClick = function()
-			ns.Copy.Open()
-		end,
-	})
+	glass.plus = PlusButton(glass)
+	glass.copy = CopyButton(glass)
 	for _, method in ipairs({ "Show", "Hide", "SetShown", "SetAlpha" }) do
 		hooksecurefunc(holder, method, Mirror)
 	end
@@ -397,6 +563,7 @@ function Panel.Start(settings)
 	end
 	state.chat = chat
 	Watch(chat)
+	K.Callbacks.Register(LAYOUT_CHANGED, Panel, OnLayoutChanged)
 	local registry = EventRegistry
 	if type(registry) == "table" and type(registry.RegisterCallback) == "function" then
 		registry:RegisterCallback(EDIT_MODE_EXIT, OnEditModeExit, Panel)
@@ -412,8 +579,11 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "copyButton" then
+	if key == nil or key == "scale" or key == "copyButton" or key == "editBox" then
 		Schedule()
+	end
+	if key == nil or key == "editBox" then
+		Panel.Sync()
 	end
 end
 
@@ -424,6 +594,8 @@ function Panel.Stop()
 		registry:UnregisterCallback(EDIT_MODE_EXIT, Panel)
 	end
 	state.editMode = false
+	K.Callbacks.Unregister(LAYOUT_CHANGED, Panel)
+	state.alpha = nil
 	SetChatAlpha(1)
 	if state.holder then
 		state.holder:Hide()

@@ -53,10 +53,29 @@ end
 assert(swipes >= 1, "a cooldown swipe is drawn")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke" }) do
+for _, script in ipairs({ "hud_dps_mac", "components_mac", "smoke", "chat" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 check("components", Components.Build())
+
+-- The chat scene shows the mockup's four tabs on Blizzard's dock, the plus glyph and five lines.
+local chat = check("chat", (dofile("Tools/render/scenes/chat.lua"))())
+local chatTexts, plus, lines = {}, 0, 0
+for _, item in ipairs(chat.items) do
+	if item.kind == "text" then
+		chatTexts[item.text] = true
+		if item.text:find("[14:3", 1, true) then
+			lines = lines + 1
+		end
+	elseif item.kind == "texture" and item.file and item.file:find("GlyphClose", 1, true) and item.rotation and math.abs(item.rotation - math.pi / 4) < 1e-3 then
+		plus = plus + 1
+	end
+end
+for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT", "TRADE" }) do
+	assert(chatTexts[want], "the chat scene shows the " .. want .. " tab")
+end
+assert(plus == 1, "the plus glyph is drawn once, got " .. plus)
+assert(lines == 5, "five timestamped lines, got " .. lines)
 
 print("ok")

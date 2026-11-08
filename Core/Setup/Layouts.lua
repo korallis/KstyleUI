@@ -37,7 +37,7 @@ local ELEMENTS = {
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 420, height = 76 },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 420, height = 38 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 168, height = 166 },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 320, height = 130 },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 424, height = 164 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 440, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 440, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 440, height = 5 },
