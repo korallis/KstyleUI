@@ -34,7 +34,7 @@ An icon group with no accepted image has no entry in `Data.lua`, so the game's i
 
 ### Derived from set B
 
-Set B's 109 icon groups an orc warrior sees were repainted from Blizzard's own icons so a player recognises them (see [`KstyleUI_IconsColour/README.md`](../KstyleUI_IconsColour/README.md#repainted-from-blizzards-icon)). Set A takes those groups from set B instead of generating them again, so both sets share one recognisable silhouette per icon and set A costs no credits:
+Set B's 116 icon groups an orc warrior sees were repainted from Blizzard's own icons so a player recognises them (see [`KstyleUI_IconsColour/README.md`](../KstyleUI_IconsColour/README.md#repainted-from-blizzards-icon)). Set A takes those groups from set B instead of generating them again, so both sets share one recognisable silhouette per icon and set A costs no credits:
 
 | Step | Command | What it does |
 | --- | --- | --- |

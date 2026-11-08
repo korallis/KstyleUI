@@ -143,6 +143,12 @@ class OrderTest(unittest.TestCase):
         self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, ["racial"], owner="WARRIOR", race="Orc")], [5])
         self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, race="Orc")], [5, 4, 2])
 
+    def test_a_profession_skill_that_shares_another_class_s_icon_counts_for_every_class(self):
+        first_aid = group(1, "Blessing of Sacrifice", spells=[spell("Blessing of Sacrifice", "PALADIN", "Holy"),
+                                                               spell("First Aid", "First Aid", "First Aid", category="profession")])
+        data = {"icons": [first_aid, group(2, "Fireball")]}
+        self.assertEqual([g["icon"] for g in iconset.ordered_groups(data, owner="WARRIOR")], [1])
+
 
 class DescriptionTest(unittest.TestCase):
     def test_drops_number_placeholders(self):
@@ -618,6 +624,19 @@ class RejudgeTest(unittest.TestCase):
             changed = iconset.rejudge(groups, FAITHFUL, raw, judge=lambda path: [], today="d", log=lambda m: None)
             self.assertEqual(changed, [])
             self.assertEqual([a["verdict"] for a in iconset.load_record(raw, groups[0])["attempts"]], ["rejected", "accepted"])
+
+    def test_a_set_a_rejudge_covers_the_art_derived_from_set_b(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw_a, raw_b = Path(tmp) / "A", Path(tmp) / "B"
+            groups = [group(10, "Charge")]
+            run(groups, FakeService(), raw_b, icon_set=FAITHFUL, sources={10: {"png": "/c/10.png", "blp_sha256": "a"}})
+            run(groups, FakeService(), raw_a)
+            iconset.derive(groups, SET_A, raw_a, raw_b, judge=lambda path: [], today="d",
+                           transform=lambda source, target: Path(target).write_bytes(b"light"), log=lambda m: None)
+            self.assertEqual([g["icon"] for g in iconset.rejudge_groups(groups, SET_A, raw_a)], [10])
+            changed = iconset.rejudge(groups, SET_A, raw_a, judge=lambda path: ["background"], today="e", log=lambda m: None)
+            self.assertEqual(changed, [(10, "10-1.png", [], ["background"]), (10, "10-2.png", [], ["background"])])
+            self.assertIsNone(iconset.accepted_attempt(iconset.load_record(raw_a, groups[0])))
 
     def test_a_stricter_check_can_reject_an_accepted_image(self):
         with tempfile.TemporaryDirectory() as tmp:

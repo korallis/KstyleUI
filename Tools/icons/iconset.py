@@ -22,7 +22,8 @@ strip docs/design/mockups/icons_B_buttons.png (image 2, finish only). Tools/data
 may add a hand-checked subject sentence for an icon the reference alone does not carry.
 --owner WARRIOR keeps the icon groups a character of that class sees: the class's spells, general spells
 for ALL, every profession skill and, with --race Orc, that race's racials. rejudge re-runs the mode's
-check on the images it already has, after the check changes, and stamps each changed verdict.
+check on the images it already has, after the check changes, and stamps each changed verdict; for set A
+in style mode that includes the art derived from set B.
 
 generate makes one 1:1 image per icon group with Higgsfield, in category order (class, pet, racial,
 profession, general), up to --jobs at a time (at most 12; the plus plan runs 8 and the run waits out
@@ -250,12 +251,11 @@ class RateLimited(GenerationError):
 
 def uses(group, owner, race=None):
     """True when a character of that class, and of that race when one is given, sees a spell of the group:
-    the class or the race is in a spell's comma-separated owner list, the list is ALL, or the group is a
-    profession skill, which every class can learn."""
-    if group["category"] == "profession":
-        return True
+    the class or the race is in a spell's comma-separated owner list, the list is ALL, or a spell of the group
+    is a profession skill, which every class can learn (First Aid shares a paladin icon, so the group's own
+    category is not enough)."""
     wanted = {owner, race, "ALL"} - {None}
-    return any(wanted & set(spell["owner"].split(",")) for spell in group["spells"])
+    return any(spell["category"] == "profession" or wanted & set(spell["owner"].split(",")) for spell in group["spells"])
 
 
 def ordered_groups(data, categories=None, owner=None, race=None):
@@ -556,9 +556,16 @@ def _attempt_icon(group, icon_set, raw_dir, runner, fetch, judge, budget, today,
     return record
 
 
+def rejudged_modes(icon_set):
+    """The attempt modes a rejudge of the set re-checks: a style run of set A also covers the art derived from
+    set B, which the same check judged."""
+    return {icon_set.mode, "derived"} if icon_set.mode == "style" else {icon_set.mode}
+
+
 def rejudge_groups(groups, icon_set, raw_dir):
     """The groups that have an image of the set's mode to re-check."""
-    return [g for g in groups if any(mode_of(a) == icon_set.mode and a["verdict"] != "failed" and "image" in a
+    modes = rejudged_modes(icon_set)
+    return [g for g in groups if any(mode_of(a) in modes and a["verdict"] != "failed" and "image" in a
                                      for a in load_record(raw_dir, g)["attempts"])]
 
 
@@ -566,10 +573,11 @@ def rejudge(groups, icon_set, raw_dir, *, judge, today, log=print):
     """Re-run the set's check on every image of the set's mode, after the check changed. Returns the
     (icon, image, old reasons, new reasons) of each attempt whose verdict changed; each is stamped rejudged."""
     changed = []
+    modes = rejudged_modes(icon_set)
     for group in groups:
         record = load_record(raw_dir, group)
         for attempt in record["attempts"]:
-            if mode_of(attempt) != icon_set.mode or attempt["verdict"] == "failed" or "image" not in attempt:
+            if mode_of(attempt) not in modes or attempt["verdict"] == "failed" or "image" not in attempt:
                 continue
             reasons = list(judge(Path(raw_dir) / attempt["image"]))
             verdict = "rejected" if reasons else "accepted"
