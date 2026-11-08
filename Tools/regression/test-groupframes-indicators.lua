@@ -46,8 +46,8 @@ local tank, healer, dps = content("party1"), content("party2"), content("party3"
 
 -- Role icons: Blizzard's secret-safe role helper is missing here, so the fallback reads the role.
 eq(tank.role:IsShown(), true, "the tank shows a role icon")
-eq(last(tank.role, "SetAtlas")[1], "micro-TANK", "the tank's role icon")
-eq(last(healer.role, "SetAtlas")[1], "micro-HEALER", "the healer's role icon")
+eq(last(tank.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Tank-Micro-GroupFinder", "the tank's role icon, the atlas GetMicroIconForRole gives")
+eq(last(healer.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Healer-Micro-GroupFinder", "the healer's role icon")
 
 -- Leader: alpha from the secret boolean.
 local leader = last(tank.leader, "SetAlphaFromBoolean")

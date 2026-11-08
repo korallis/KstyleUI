@@ -210,7 +210,7 @@ D.MICRO = {
 	{ "TalentMicroButton", "SpecTalents" }, { "LegacyMicroButton", "Legacy" }, { "QuestLogMicroButton", "Questlog" },
 	{ "HousingMicroButton", "Housing" }, { "GuildMicroButton", "GuildCommunities" }, { "LFDMicroButton", "Groupfinder" },
 	{ "CollectionsMicroButton", "Collections" }, { "EJMicroButton", "AdventureGuide" }, { "HelpMicroButton", "Help" },
-	{ "StoreMicroButton", "Shop" }, { "MainMenuMicroButton", "MainMenu" },
+	{ "StoreMicroButton", "Shop" }, { "MainMenuMicroButton", "GameMenu" },
 }
 D.KEYRING = -2
 D.BAGS = {

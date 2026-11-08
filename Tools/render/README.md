@@ -24,7 +24,19 @@ Tools/render/shoot.sh gallery_skins_mail --backdrop                             
 
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.
 
-`shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas drawn as a grey box. Read the log before you trust a render. `Tools/render/out/` is ignored by git.
+`shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas the atlas cache lacks (drawn as a grey box). Read the log before you trust a render. `Tools/render/out/` is ignored by git.
+
+### Blizzard atlases
+
+```bash
+python3 Tools/render/atlas.py build --scan                 # export the client's atlas tables, write the map, fetch every sheet the last renders asked for
+python3 Tools/render/atlas.py build roleicon-tiny-tank     # the same, fetching the named atlases' sheets
+python3 Tools/render/atlas.py fetch UI-HUD-MicroMenu-Questlog-Up --scan   # add sheets to an existing cache
+```
+
+`SetAtlas(name)` draws a rectangle of a larger sheet. The UI source has no atlas data; the installed client does, in three DB2 tables (`UiTextureAtlas`, `UiTextureAtlasMember`, `UiTextureAtlasElement`). `atlas.py build` exports them with `Tools/icons/casc_export.py` (TACTTool and DBC2CSV read the game folder and never write to it), writes `~/.local/share/wow-dev/atlas/atlas.tsv`, one line per atlas name (its sheet's file ID and size, its rectangle in pixels, its size in units, its tiling flags), and fetches each named atlas's sheet into `textures/<fileID>.png`, decoded with alpha at its own size. The game looks an atlas up by its element name; an element can have a 1x member, a 2x member and Forever's own `-c60` art, and the map keeps Forever's art over the shared one and the 2x sheet over the 1x, with the size in 1x units (what `SetAtlas(name, true)` sizes a region to). The cache lives outside the repository and is never committed.
+
+`scene.lua` reads the map when it exists: a known atlas whose sheet is in the cache draws as that sheet with the member's texture coordinates, and `useAtlasSize` gives an unsized region the member's size; a known atlas whose sheet is not fetched, or a name the client has no atlas for, draws as a grey box and is logged with the command that fetches it. Without the cache every atlas is a grey box, so CI needs none. `Scene.ATLAS` lets a test stand in for the file. `Tools/tests/test_render_atlas.py` covers the map and the fetch, `test-render-scene.lua` the drawing. Blizzard texture files named by path (`Interface\...`) are still not fetched: a scene that shows one draws a grey box and logs it.
 
 ### Icon sets, stand-ins and the backdrop
 
@@ -100,15 +112,17 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 - Edit boxes draw their own text inside their text insets, from the left, and from the top when multi-line; an empty box draws nothing, so a placeholder shows through. A scroll frame's child (`SetScrollChild`) hangs from the frame's top left corner moved by the scroll offsets, as the game places it.
 - A frame that clips its children (`SetClipsChildren`) bounds everything drawn under it: an item outside the frame's rect is dropped (counted as `clipped`), one across it carries the rect as `clip` and the page draws it through that rect.
 - Pixel snapping: every rect edge rounds to a device pixel.
+- A font string that wraps and has a width but no height of its own is as tall as its wrapped lines, counted with the glyph table at the solved width, so a text anchored under it sits under the whole paragraph (`WordWrap` off, or an explicit height, keeps one line).
+- Animation groups: a group the addon played (`Play`, recorded by the stub at its clock `env._now`) is sampled at the scene's `time`: a `Translation` moves the frame by its offset times its progress (with the animation's start delay and `IN`, `OUT` and `IN_OUT` smoothing), an `Alpha` animation scales the frame's alpha between its from and to values, `REPEAT` looping wraps the clock, and a finished group leaves each animation at its end, as the game does until `OnFinished` runs. A scene that wants mid-flight numbers advances `env._now` as it ticks (`gallery_combattext.lua`). Scale animations are not modelled.
 
 ## Known limitations
 
-- The stub draws no world: the portraits, the minimap and the scenery are crops of the mockup when `standins.py` has run, flat colours otherwise; icons no folder holds draw as flat boxes. Blizzard atlases draw as grey boxes.
+- The stub draws no world: the portraits, the minimap and the scenery are crops of the mockup when `standins.py` has run, flat colours otherwise; icons no folder holds draw as flat boxes. A Blizzard atlas draws from the atlas cache when `atlas.py` has fetched its sheet, else as a grey box; a Blizzard texture named by file path draws as a grey box.
 - Text widths that other frames depend on come from the kit fonts' glyph advances, or from average glyph widths for a face `glyphs.lua` does not list, so a frame anchored to a text in another face can sit a few units off. The page measures the real glyphs for the text itself.
 - Blizzard-owned layout is not modelled: the chat window's lines and tabs, the quest tracker's blocks, the tooltip's lines and the world combat numbers over the target are laid out by the scene the way the game would, and say so in the log. Blizzard's POI buttons are not drawn, and the game fades chat tabs when the pointer is away.
 - The HUD scene renders the unit frames with round portraits through a saved setting, the default the owner chose on 2026-11-08; `KstyleUI_UnitFrames` still defaults to chamfered until that change lands.
 - Fonts the repository lacks (`Fonts\FRIZQT__.TTF`, `ARIALN.TTF`) fall back to Source Sans on the page; the log names them.
 - Tiled textures repeat at one texel per unit of the region's own scale, which is the game's behaviour as far as the owner's screenshots show; check the grain against a screenshot before trusting it.
-- Motion is sampled: scenes tick tweens with `W.Tick` and hold the clock, so a fade or a cast reads mid-way, not at a precise frame.
+- Motion is sampled: scenes tick tweens with `W.Tick` and hold the clock, so a fade or a cast reads mid-way, not at a precise frame. Animation groups are sampled at the scene's clock as above; a `Scale` animation is not applied.
 - The fake aura engine lays out no buttons, so a scene with the Auras module counts its engine buttons as unresolved; the module's own preview tiles draw.
 - Chrome's canvas does the compositing, so `multiply` tinting and `destination-in` masking are exact to 8 bits; the game's blend modes other than `BLEND` and `ADD` draw as `BLEND`.

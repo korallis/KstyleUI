@@ -215,6 +215,127 @@ near(find(scene, twoLines).rect[4], 2 * find(scene, oneLine).rect[4], "a two-lin
 local h = select(4, Scene.Rect(env, twoLines))
 near(h, 2 * select(4, Scene.Rect(env, oneLine)), "Rect sees the two lines too")
 
+-- A font string with a width from two anchors, word wrap on and no height of its own is as tall as its wrapped
+-- lines, so a text anchored under it sits below the whole paragraph, as the chat preview's sample lines do.
+local column = env.CreateFrame("Frame", nil, UIParent)
+column:SetSize(100, 200)
+column:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+local paragraph = column:CreateFontString(nil, "ARTWORK")
+paragraph:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
+paragraph:SetWordWrap(true)
+paragraph:SetPoint("TOPLEFT", column, "TOPLEFT", 0, 0)
+paragraph:SetPoint("RIGHT", column, "RIGHT", 0, 0)
+paragraph:SetText("Anyone for the crocolisk hunt by the river tonight")
+local under = column:CreateFontString(nil, "ARTWORK")
+under:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
+under:SetPoint("TOPLEFT", paragraph, "BOTTOMLEFT", 0, 0)
+under:SetText("next")
+scene = Scene.Build(env)
+local paragraphItem, underItem = find(scene, paragraph), find(scene, under)
+local lineH = find(scene, oneLine).rect[4]
+local lines = Scene.TextWidth("Anyone for the crocolisk hunt by the river tonight", 10, "SourceSans3-Semibold.ttf") / 100
+assert(lines > 2, "the sample text needs more than two 100-unit lines at 10 units, got " .. tostring(lines))
+assert(paragraphItem.rect[4] >= 3 * lineH - 1e-3, "a wrapped text is as tall as its wrapped lines, got " .. tostring(paragraphItem.rect[4]) .. " for a line of " .. tostring(lineH))
+near(underItem.rect[2], paragraphItem.rect[2] + paragraphItem.rect[4], "the next text sits under the whole paragraph")
+assert(paragraphItem.natural == nil or paragraphItem.natural.height == nil, "the page keeps the solver's height instead of re-deriving one line")
+local noWrap = column:CreateFontString(nil, "ARTWORK")
+noWrap:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
+noWrap:SetWordWrap(false)
+noWrap:SetPoint("TOPLEFT", column, "TOPLEFT", 0, -100)
+noWrap:SetPoint("RIGHT", column, "RIGHT", 0, 0)
+noWrap:SetText("Anyone for the crocolisk hunt by the river tonight")
+scene = Scene.Build(env)
+near(find(scene, noWrap).rect[4], lineH, "a text with word wrap off stays one line tall")
+
+-- An atlas draws from the atlas cache when it is known there: the region takes the sheet's file, the member's
+-- texture coordinates, and with useAtlasSize the member's size; an unknown atlas stays a grey box and is logged.
+Scene.ATLAS = {
+	["ui-test-glyph"] = { file = "Media/Textures/Dot.png", left = 0.25, right = 0.75, top = 0, bottom = 0.5, width = 16, height = 8 },
+	["ui-test-missing"] = { file = "Tools/render/out/no-such-sheet.png", left = 0, right = 1, top = 0, bottom = 1, width = 4, height = 4 },
+}
+local glyph = f:CreateTexture(nil, "ARTWORK")
+glyph:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+glyph:SetAtlas("UI-Test-Glyph", true)
+local sized = f:CreateTexture(nil, "ARTWORK")
+sized:SetSize(30, 30)
+sized:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+sized:SetAtlas("ui-test-glyph")
+local unknown = f:CreateTexture(nil, "ARTWORK")
+unknown:SetSize(10, 10)
+unknown:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+unknown:SetAtlas("UI-Not-In-The-Client")
+local missing = f:CreateTexture(nil, "ARTWORK")
+missing:SetSize(10, 10)
+missing:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+missing:SetAtlas("UI-Test-Missing")
+scene = Scene.Build(env)
+local glyphItem = find(scene, glyph)
+assert(glyphItem.file == "Media/Textures/Dot.png", "a known atlas draws its sheet, got " .. tostring(glyphItem.file))
+assert(glyphItem.atlas == "UI-Test-Glyph", "the item still names the atlas")
+local tc = glyphItem.texCoord
+assert(tc, "the member's coordinates become the texture coordinates")
+near(tc[1], 0.25, "atlas left")
+near(tc[2], 0.75, "atlas right")
+near(tc[3], 0, "atlas top")
+near(tc[4], 0.5, "atlas bottom")
+near(glyphItem.rect[3], 16 * K, "useAtlasSize gives the region the member's width")
+near(glyphItem.rect[4], 8 * K, "and its height")
+near(find(scene, sized).rect[3], 30 * K, "a sized region keeps its own size")
+local unknownItem, missingItem = find(scene, unknown), find(scene, missing)
+assert(unknownItem.file == nil and unknownItem.atlas == "UI-Not-In-The-Client", "an unknown atlas stays a grey box")
+assert(missingItem.file == nil, "a known atlas whose sheet is not in the cache stays a grey box")
+local sawUnknown, sawMissing, sawGlyph = false, false, false
+for _, line in ipairs(scene.log) do
+	sawUnknown = sawUnknown or (line:find("UI-Not-In-The-Client", 1, true) ~= nil and line:find("grey box", 1, true) ~= nil)
+	sawMissing = sawMissing or (line:find("UI-Test-Missing", 1, true) ~= nil and line:find("atlas.py", 1, true) ~= nil)
+	sawGlyph = sawGlyph or line:find("UI-Test-Glyph", 1, true) ~= nil
+end
+assert(sawUnknown, "the unknown atlas is logged as a grey box")
+assert(sawMissing, "the missing sheet is logged with the command that fetches it")
+assert(not sawGlyph, "a drawn atlas is not logged")
+Scene.ATLAS = {}
+glyph:Hide()
+sized:Hide()
+unknown:Hide()
+missing:Hide()
+
+-- A playing animation group moves and fades its frame as the game would at the scene's clock: a Translation
+-- shifts the frame by its offset times its progress, an Alpha animation scales the frame's alpha, a start delay
+-- waits, and a finished group leaves the frame at the animation's end; a stopped group leaves it where it was.
+env._now = 5
+local mover = env.CreateFrame("Frame", nil, UIParent)
+mover:SetSize(10, 10)
+mover:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 100, -100)
+local moverFill = mover:CreateTexture(nil, "ARTWORK")
+moverFill:SetAllPoints(mover)
+moverFill:SetColorTexture(1, 1, 1, 1)
+local group = mover:CreateAnimationGroup()
+local move = group:CreateAnimation("Translation")
+move:SetOffset(10, 20)
+move:SetDuration(2)
+local fade = group:CreateAnimation("Alpha")
+fade:SetFromAlpha(1)
+fade:SetToAlpha(0)
+fade:SetStartDelay(1)
+fade:SetDuration(1)
+scene = Scene.Build(env, { time = 6.5 })
+rect(find(scene, moverFill), 100 * K, 100 * K, 10 * K, 10 * K, "before Play the frame sits where it is anchored")
+group:Play()
+assert(group:IsPlaying() == true, "a played group is playing")
+scene = Scene.Build(env, { time = 6.5 })
+local moving = find(scene, moverFill)
+rect(moving, (100 + 7.5) * K, (100 - 15) * K, 10 * K, 10 * K, "at 1.5 s of a 2 s translation the frame has moved three quarters of its offset, up and right")
+near(moving.alpha, 0.5, "the alpha animation, half a second into its second, halves the frame")
+scene = Scene.Build(env, { time = 5.5 })
+near(find(scene, moverFill).alpha, 1, "before its start delay the alpha animation leaves the frame opaque")
+scene = Scene.Build(env, { time = 9 })
+assert(find(scene, moverFill) == nil, "a finished fade leaves the frame transparent, so it is not drawn")
+group:Stop()
+assert(group:IsPlaying() == false, "a stopped group is not playing")
+scene = Scene.Build(env, { time = 6.5 })
+rect(find(scene, moverFill), 100 * K, 100 * K, 10 * K, 10 * K, "a stopped group leaves the frame where it is anchored")
+mover:Hide()
+
 -- JSON: the encoder writes the scene without the object references and round-trips a number.
 local json = Scene.ToJSON(scene)
 assert(json:find('"items"', 1, true) and not json:find("table:", 1, true), "JSON has items and no table addresses")

@@ -16,9 +16,10 @@ local PARTY = {
 	{ name = "Kragar", class = "SHAMAN", health = 0, maxHealth = 100, power = 0, maxPower = 100, dead = true, role = "DAMAGER" },
 	{ name = "Lunara", class = "MAGE", health = 64, maxHealth = 100, power = 90, maxPower = 100, role = "DAMAGER" },
 }
--- The role, leader and marker icons are Blizzard atlases and textures the renderer has no files for (it draws an
--- atlas as a grey box), so the scene switches them off; the frames' chrome is what the gallery compares.
-local ICONS_OFF = { icons = { role = false, leader = false, marker = false, readyCheck = false } }
+-- The role and leader icons are Blizzard atlases, drawn from the atlas cache Tools/render/atlas.py builds (a grey
+-- box, and a log line, when the cache lacks them); the raid marker is a Blizzard texture file the renderer has
+-- no copy of, so the scene leaves it off.
+local ICONS = { icons = { marker = false } }
 local DEBUFF_ICONS = { I.rend, I.sunderArmor }
 local MAGIC = "rare"
 
@@ -38,7 +39,7 @@ end
 -- UnitClass comes back after it: the members keep their classes and the player is the warrior.
 local function newEnv(G)
 	return G.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ GroupFrames = ICONS_OFF }),
+		saved = Gallery.Saved({ GroupFrames = ICONS }),
 		setup = function(env)
 			local unitClass = env.UnitClass
 			Gallery.Setup(env)
@@ -100,7 +101,7 @@ local function raid(frames, x, y)
 	assert(#shown == 20, "twenty raid frames show, got " .. #shown)
 	frames:Add(env, ns.Headers.holders.raid, {
 		name = "groupframes_raid", title = "Raid frames", grade = "panel", reference = "nameplate",
-		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 glass tiles with the class-coloured health fill on a buttonFill track, the name on the bar, a dead and an offline member in grey, and the first tank's threat glow; the role and leader icons are Blizzard atlases the renderer cannot draw, so they are off here.",
+		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 glass tiles with the class-coloured health fill on a buttonFill track, the name on the bar, a dead and an offline member in grey, and the first tank's threat glow; the role icons are Blizzard's micro role atlases and the tank's leader crown is Blizzard's leader atlas, drawn from the atlas cache.",
 		match = "Glass fill, two-line edge and 3.5-unit chamfer as the mockup's nameplate frame; raid tiles draw no drop shadow (Style.lua keeps the shadow for party frames), so the 3-unit gaps between them stay clean.",
 		rect = Gallery.Union(env, shown),
 	})
@@ -155,13 +156,13 @@ return Common.Run(function()
 	end
 	frames:Add(env, tank, {
 		name = "groupframes_unit", title = "Party unit", grade = "panel", reference = "nameplate",
-		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, the rage bar under it, the threat glow, and two debuff tiles to its right, one washed in the Magic dispel colour; role and leader icons are off (Blizzard atlases).",
+		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, the rage bar under it, the threat glow, and two debuff tiles to its right, one washed in the Magic dispel colour; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow as the mockup's nameplate frame; the aura tiles are the button grade as the mockup's buff icons, with the class accent rim.",
 		rect = Gallery.Union(env, { tank, tiles[1], tiles[2] }),
 	})
 	frames:Add(env, ns.Headers.holders.party, {
 		name = "groupframes_party", title = "Party frames", grade = "panel", reference = "nameplate",
-		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro and two debuffs, a healer, a dead shaman in grey and a mage; role and leader icons are off (Blizzard atlases).",
+		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro and two debuffs, a healer, a dead shaman in grey and a mage; each member's role icon and the tank's leader crown are Blizzard atlases from the atlas cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow on each tile as the mockup's nameplate frame.",
 		rect = Gallery.Union(env, { ns.Headers.holders.party, tiles[1], tiles[2] }),
 	})

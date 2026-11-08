@@ -98,6 +98,52 @@ Scene.ICON_DIRS = {
 
 local pathCache = {}
 
+-- The atlas cache Tools/render/atlas.py builds outside the repository: atlas.tsv maps an atlas name to its
+-- sheet's file ID and its rectangle, textures/<fileID>.png holds each sheet. Scene.ATLAS, when a test sets it,
+-- stands in for the file: a table of lowercased names to { file, left, right, top, bottom, width, height }.
+Scene.ATLAS = nil
+Scene.ATLAS_DIR = HOME .. "/.local/share/wow-dev/atlas"
+local atlasLoaded = nil
+
+local function atlasTable()
+	if Scene.ATLAS then
+		return Scene.ATLAS
+	end
+	if atlasLoaded then
+		return atlasLoaded
+	end
+	atlasLoaded = {}
+	local f = io.open(Scene.ATLAS_DIR .. "/atlas.tsv", "rb")
+	if not f then
+		return atlasLoaded
+	end
+	local header = f:read("*l")
+	if header then
+		for line in f:lines() do
+			local name, file, aw, ah, l, r, t, b, w, h, th, tv = line:match("^([^\t]*)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(%d+)\t(%d)\t(%d)")
+			if name and tonumber(aw) > 0 and tonumber(ah) > 0 then
+				aw, ah = tonumber(aw), tonumber(ah)
+				atlasLoaded[name] = {
+					file = Scene.ATLAS_DIR .. "/textures/" .. file .. ".png", fileID = tonumber(file),
+					left = tonumber(l) / aw, right = tonumber(r) / aw, top = tonumber(t) / ah, bottom = tonumber(b) / ah,
+					width = tonumber(w), height = tonumber(h), tilesH = th == "1", tilesV = tv == "1",
+				}
+			end
+		end
+	end
+	f:close()
+	return atlasLoaded
+end
+
+-- AtlasInfo(name) -> the cache's entry for an atlas, or nil when the client has no atlas of that name or the
+-- cache is not built.
+function Scene.AtlasInfo(name)
+	if type(name) ~= "string" then
+		return nil
+	end
+	return atlasTable()[name:lower()]
+end
+
 -- ResolvePath(path) -> a repository-relative or absolute file, or nil when the game path has no local file.
 function Scene.ResolvePath(path, iconDirs)
 	if type(path) == "number" then
@@ -179,12 +225,75 @@ local function effectiveScale(object)
 	return scale
 end
 
+-- Animations ------------------------------------------------------------------------------------
+
+-- The clock Scene.Build samples playing animation groups at, set for the duration of a build.
+local animationClock = nil
+
+local function eased(p, smoothing)
+	if smoothing == "IN" then
+		return p * p
+	elseif smoothing == "OUT" then
+		return 1 - (1 - p) * (1 - p)
+	elseif smoothing == "IN_OUT" then
+		return p * p * (3 - 2 * p)
+	end
+	return p
+end
+
+-- animationState(frame, now) -> dx, dy (in the frame's own units), alpha scale: what the frame's playing
+-- animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an Alpha
+-- animation scales the alpha between its from and to values once its start delay has passed, and a finished
+-- group leaves each animation at its end, as the game does until OnFinished hides the frame.
+local function animationState(frame, now)
+	local dx, dy, alpha = 0, 0, 1
+	if type(now) ~= "number" then
+		return dx, dy, alpha
+	end
+	for _, group in ipairs(frame._groups or {}) do
+		local started = group._playedAt
+		if type(started) == "number" then
+			local elapsed = now - started
+			local total = 0
+			for _, anim in ipairs(group._anims or {}) do
+				total = math.max(total, (state(anim, "StartDelay") or 0) + (state(anim, "Duration") or 0))
+			end
+			if state(group, "Looping") == "REPEAT" and total > 0 then
+				elapsed = elapsed % total
+			end
+			for _, anim in ipairs(group._anims or {}) do
+				local delay, duration = state(anim, "StartDelay") or 0, state(anim, "Duration") or 0
+				local p = 0
+				if elapsed >= delay then
+					p = duration > 0 and math.min(1, (elapsed - delay) / duration) or 1
+				end
+				p = eased(p, state(anim, "Smoothing"))
+				if anim._type == "Translation" then
+					local ox, oy = state(anim, "Offset")
+					dx = dx + (type(ox) == "number" and ox or 0) * p
+					dy = dy + (type(oy) == "number" and oy or 0) * p
+				elseif anim._type == "Alpha" and elapsed >= delay then
+					local from, to = state(anim, "FromAlpha"), state(anim, "ToAlpha")
+					from = type(from) == "number" and from or 1
+					to = type(to) == "number" and to or 1
+					alpha = alpha * (from + (to - from) * p)
+				end
+			end
+		end
+	end
+	return dx, dy, alpha
+end
+
 local function effectiveAlpha(object)
 	local alpha = 1
 	local node = object
 	while node do
 		local own = node._state.Alpha
 		alpha = alpha * (own and type(own[1]) == "number" and own[1] or 1)
+		if node._groups then
+			local _, _, scale = animationState(node, animationClock)
+			alpha = alpha * scale
+		end
 		if node._ignoreParentAlpha then
 			break
 		end
@@ -261,6 +370,63 @@ end
 -- exact for a kit font (or a Blizzard face the page draws as one), approximate for any other.
 function Scene.TextWidth(text, size, fontPath)
 	return textWidthEm(text, fontPath) * size
+end
+
+-- plainText(text) -> the text without its escapes, as the page draws it: colour codes, links and textures go,
+-- "||" stays a pipe.
+local function plainText(text)
+	local out, i, n = {}, 1, #text
+	while i <= n do
+		local c = text:sub(i, i)
+		if c == "|" and i < n then
+			local code = text:sub(i + 1, i + 1)
+			if code == "|" then
+				out[#out + 1] = "|"
+				i = i + 2
+			elseif code == "c" and i + 9 <= n then
+				i = i + 10
+			elseif code == "r" or code == "h" then
+				i = i + 2
+			elseif code == "H" then
+				local close = text:find("|h", i + 2, true)
+				i = close and close + 2 or n + 1
+			elseif code == "T" or code == "A" then
+				local close = text:find(code == "T" and "|t" or "|a", i + 2, true)
+				i = close and close + 2 or n + 1
+			elseif code == "n" then
+				out[#out + 1] = "\n"
+				i = i + 2
+			else
+				out[#out + 1] = c
+				i = i + 1
+			end
+		else
+			out[#out + 1] = c
+			i = i + 1
+		end
+	end
+	return table.concat(out)
+end
+
+-- WrappedLines(text, size, fontPath, width) -> how many lines a word-wrapping text takes in a width, by the
+-- page's rule: words fill a line while they fit, a word that fits nowhere takes a line of its own, and an
+-- explicit break starts a new line.
+function Scene.WrappedLines(text, size, fontPath, width)
+	local lines = 0
+	for paragraph in (plainText(text) .. "\n"):gmatch("(.-)\n") do
+		local line = nil
+		for word in (paragraph .. " "):gmatch("(.-) ") do
+			local candidate = line and (line .. " " .. word) or word
+			if line and textWidthEm(candidate, fontPath) * size > width then
+				lines = lines + 1
+				line = word
+			else
+				line = candidate
+			end
+		end
+		lines = lines + 1
+	end
+	return lines
 end
 
 local function formatText(env, stored)
@@ -433,8 +599,11 @@ function Solver:solve(object)
 	if (not width or width == 0) and object._naturalW then
 		width = object._naturalW
 	end
+	local wrap = object._wrapSpec
 	if (not height or height == 0) and object._naturalH then
 		height = object._naturalH
+	else
+		wrap = nil
 	end
 	if width then
 		width = width * scale
@@ -480,11 +649,33 @@ function Solver:solve(object)
 			ys[#ys + 1] = { p[2], ay }
 		end
 	end
+	if object._groups then
+		local dx, dy = animationState(object, self.opts.time)
+		if dx ~= 0 or dy ~= 0 then
+			for _, a in ipairs(xs) do
+				a[2] = a[2] + dx * scale
+			end
+			for _, a in ipairs(ys) do
+				a[2] = a[2] + dy * scale
+			end
+		end
+	end
 	local left, right = self:span(xs, width)
-	local bottom, top = self:span(ys, height)
 	if not left then
 		return nil, "width unknown"
 	end
+	-- A wrapping text with a width from its anchors is as tall as the lines it wraps into.
+	object._wrapped = nil
+	local lo, hi = false, false
+	for _, a in ipairs(ys) do
+		lo, hi = lo or a[1] == 0, hi or a[1] == 1
+	end
+	if wrap and not (lo and hi) then
+		local lines = Scene.WrappedLines(wrap.text, wrap.size, wrap.fontPath, (right - left) / scale)
+		height = wrap.size * LINE_HEIGHT_EM * lines * scale
+		object._wrapped = true
+	end
+	local bottom, top = self:span(ys, height)
 	if not bottom then
 		return nil, "height unknown"
 	end
@@ -661,6 +852,7 @@ function Scene.Build(env, opts)
 		end
 	end
 	local solver = newSolver(env, opts, logLine)
+	animationClock = opts.time
 	local width, height = env.GetPhysicalScreenSize()
 	local uiParent = env.UIParent
 	local parentScale = type(uiParent._scale) == "number" and uiParent._scale or 1
@@ -704,6 +896,13 @@ function Scene.Build(env, opts)
 		end
 		item.rect = toScreen(rect)
 		item.object = object
+		-- A wrapped text's height came from the solver; the page keeps it instead of re-deriving one line.
+		if object._wrapped and item.natural then
+			item.natural.height = nil
+			if next(item.natural) == nil then
+				item.natural = nil
+			end
+		end
 		return item
 	end
 
@@ -745,7 +944,15 @@ function Scene.Build(env, opts)
 		local atlas = state(region, "Atlas")
 		if atlas then
 			item.atlas = atlas
-			logLine("atlas " .. tostring(atlas) .. " is drawn as a grey box")
+			local info = Scene.AtlasInfo(atlas)
+			if info and fileExists(info.file) then
+				item.file = info.file
+				item.texCoord = { round4(info.left), round4(info.right), round4(info.top), round4(info.bottom) }
+			elseif info then
+				logLine("atlas " .. tostring(atlas) .. ": its sheet is not in the atlas cache, so it is drawn as a grey box; run python3 Tools/render/atlas.py fetch " .. tostring(atlas))
+			else
+				logLine("atlas " .. tostring(atlas) .. " is drawn as a grey box: the client's atlas tables have no such name, or the atlas cache is not built (python3 Tools/render/atlas.py build --scan)")
+			end
 		end
 		local colour = color4(region._state.ColorTexture)
 		if colour then
@@ -756,7 +963,7 @@ function Scene.Build(env, opts)
 			item.vertex = color4(region._barOwner._state.StatusBarColor, item.vertex)
 		end
 		local coords = region._state.TexCoord
-		if coords and coords.n >= 4 then
+		if coords and coords.n >= 4 and not item.texCoord then
 			local list = {}
 			for i = 1, coords.n do
 				list[i] = round4(num(env, coords[i], 0))
@@ -1029,8 +1236,17 @@ function Scene.Build(env, opts)
 			countdown._renderText = text
 		end
 		for _, region in ipairs(frame._regions or {}) do
-			if region._type == "FontString" then
+			if region._type == "Texture" then
+				-- SetAtlas(name, true) sizes the region to the atlas, as the game does.
+				region._naturalW, region._naturalH = nil, nil
+				local atlas, useAtlasSize = state(region, "Atlas")
+				local info = useAtlasSize == true and Scene.AtlasInfo(atlas)
+				if info then
+					region._naturalW, region._naturalH = info.width, info.height
+				end
+			elseif region._type == "FontString" then
 				region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
+				region._wrapSpec, region._wrapped = nil, nil
 				local text = textOf(env, region)
 				if text ~= "" then
 					local fontPath, size = fontOf(env, region, logLine)
@@ -1052,6 +1268,9 @@ function Scene.Build(env, opts)
 						local _, breaks = text:gsub("\n", "")
 						region._naturalH = size * LINE_HEIGHT_EM * (breaks + 1)
 						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
+						if state(region, "WordWrap") ~= false then
+							region._wrapSpec = { text = text, size = size, fontPath = fontPath }
+						end
 					end
 				end
 			end
@@ -1077,6 +1296,7 @@ function Scene.Build(env, opts)
 		item.strata, item.level, item.layer, item.sublevel, item.seq = nil, nil, nil, nil, nil
 	end
 
+	animationClock = nil
 	local physical = { width = width, height = height }
 	return {
 		screen = { width = round4(worldWidth * k), height = SCREEN_UNITS, physical = physical, pixelsPerUnit = round4(height / SCREEN_UNITS) },

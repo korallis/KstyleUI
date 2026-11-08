@@ -18,8 +18,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `edgeInner` | `#ffffff` at 28% | The light line one border inside the edge: the mockup's panel line reads lum 85 to 100 over its fill |
 | `edgeFaint` | `#ffffff` at 8% | Neutral dividers |
 | `edgeBar` | `#ffffff` at 16% | The bar grade's light line: the mockup's buff bars and cast bar wear a fainter edge (lum 40 to 78) |
-| `buttonFill` | `#101214` | The body of action buttons, bag slots, cooldown icons, aura tiles and the bezel around a button: the mockup's one solid dark tone |
-| `powerTrack` | `#ffffff` at 15% | The empty part of a power bar, a visible light track |
+| `buttonFill` | `#101214` | The button body, the mockup's one solid dark tone: see [Grades](#grades) for every element that wears it |
 | `text` | `#ababab` | Body text at rest |
 | `textEmphasis` | `#ffffff` | Titles and values, the design's TEXT-HI |
 | `textHover` | `#ffffff` | Text under the mouse |
@@ -34,6 +33,19 @@ The core's visual service files carry one comment each, their first line, so the
 | `white`, `black` | | Plain tints, such as resetting a vertex colour |
 | `schoolPhysical`, `schoolHoly`, `schoolFire`, `schoolNature`, `schoolFrost`, `schoolShadow`, `schoolArcane` | `#d8c3a0`, `#ffe27a`, `#ff8a3d`, `#6fdc5a`, `#6fd6ff`, `#9d7bff`, `#e07bff` | Spell school tints for icon set A, read through `KstyleUI.Icons.SchoolColor` |
 | `accent` | live | `Theme.Accent()` at full alpha |
+
+### Grades
+
+The mockup draws three backdrop grades (`~/.local/share/kstyleui-handoff/THEME_SPEC.md`), and every chrome in the addon wears one of them; `test-grades.lua` fails on a chrome filled with any other tone. Where each grade is used today, after the theme work of 2026-11-08:
+
+| Grade | Chrome | Worn by |
+| --- | --- | --- |
+| Glass panel | `surface` fill at `panelOpacity`, the `edgeOuter` line outside the `edgeInner` line, a chamfer (`chamferPanel` 8, `chamferWindow` 12, `chamferTile` 3.5), the drop shadow | Every `Widgets.Panel` and window (the options and setup windows, the bags, the meters, the chat glass and tabs, the quest tracker, the RestedXP and Blizzard window skins in `Core/Skin.lua`), the unit frames' glass, the cast bar's glass, the group frames' tiles, the nameplate frame, the minimap footer, the dropdown's shared menu, tooltips |
+| Button | `buttonFill` body, one border of the rim colour, a `buttonBezel` plate outside the rim on icon buttons, no shadow of its own | Action buttons, bag slots, cooldown icons, aura tiles and the bezel around them; the kit's inputs and controls: `Button`, `EditBox`, `TextArea`, the `Dropdown` box, `ColorSwatch`, the `Tabs` strip, the tooltip's item icon; the unit frames' portrait frame and level badge, the group frames' level disc, the minimap's column plates and N plate, the data strip pill, the combat text preview's sample frame |
+| Bar / track | `surface` fill, one `edgeBar` line, the tile chamfer, no shadow | `Widgets.StatusBar` chrome: buff bars, the cast bar's track, the experience, reputation and honour bars, the meters' swing bar; the hairline under a unit frame's health track |
+| Track inside a bar | `buttonFill`, no edge | The empty part of the unit frames' health and power bars and of the group frames' bars: the mockup's dark #101214 track |
+
+`raised` fills no chrome. It is only the tone an icon button's body tints toward while pressed, cooling or unusable. Rows in the options window have no chrome of their own: they sit on the window's glass and light their text on hover.
 
 ### Sizes, durations and easings
 

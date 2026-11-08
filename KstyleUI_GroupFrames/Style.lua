@@ -13,6 +13,7 @@ local NAME_LINE_EXTRA = 2
 local NAME_RESERVE_EMS = 3.4
 local LEVEL_SHARE = 0.36
 local RING_OUTSET = 1
+local BADGE = "buttonFill"
 local PORTRAIT_INSET = 2
 local HOVER_ALPHA = 0.6
 local RING_LINES = 2
@@ -87,6 +88,8 @@ function Style.Build(f, kind)
 	f.text:SetFrameLevel(f:GetFrameLevel() + TEXT_LEVEL)
 	f.badge = f.text:CreateTexture(nil, "ARTWORK")
 	f.badge:SetTexture((Tokens.Texture("dot")))
+	f.badgeRing = f.text:CreateTexture(nil, "ARTWORK", nil, 1)
+	f.badgeRing:SetTexture((Tokens.Texture("ring")))
 	f.level = Widgets.FontString(f.text, "OVERLAY")
 	f.name = Widgets.FontString(f.text, "OVERLAY")
 	f.name:SetWordWrap(false)
@@ -182,6 +185,7 @@ local function LayoutPortrait(f, parts)
 	f.portrait:SetShown(shown)
 	f.ring:SetShown(shown)
 	f.badge:SetShown(shown)
+	f.badgeRing:SetShown(shown)
 	f.level:SetShown(shown)
 	f.showPortrait = shown
 	if not shown then
@@ -200,7 +204,10 @@ local function LayoutPortrait(f, parts)
 	f.badge:ClearAllPoints()
 	f.badge:SetSize(badge, badge)
 	f.badge:SetPoint("BOTTOMLEFT", f.portrait, "BOTTOMLEFT", 0, 0)
-	f.badge:SetVertexColor(Tokens.Color("surface"))
+	f.badge:SetVertexColor(Tokens.Color(BADGE))
+	f.badgeRing:ClearAllPoints()
+	f.badgeRing:SetPoint("TOPLEFT", f.badge, "TOPLEFT", -outset, outset)
+	f.badgeRing:SetPoint("BOTTOMRIGHT", f.badge, "BOTTOMRIGHT", outset, -outset)
 	f.level:ClearAllPoints()
 	f.level:SetPoint("CENTER", f.badge, "CENTER", 0, 0)
 	SetFont(f.level, Settings.current.text.healthFont, Tokens.Size("caption"), "NONE")
@@ -259,6 +266,7 @@ end
 function Style.Paint(f)
 	local r, g, b = Style.Accent()
 	Style.ColorRing(f.targetRing, r, g, b, 1)
+	f.badgeRing:SetVertexColor(r, g, b, 1)
 	PaintEdge(f, r, g, b)
 	f.healthText:SetTextColor(Tokens.Color("textEmphasis"))
 	local text = Settings.current.text

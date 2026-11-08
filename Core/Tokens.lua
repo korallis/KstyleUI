@@ -16,7 +16,6 @@ local COLORS = {
 	edgeFaint = { "ffffff", 0.08 },
 	edgeBar = { "ffffff", 0.16 },
 	buttonFill = { "101214", 1 },
-	powerTrack = { "ffffff", 0.15 },
 	text = { "ababab", 1 },
 	textEmphasis = { "ffffff", 1 },
 	textHover = { "ffffff", 1 },

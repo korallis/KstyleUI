@@ -249,4 +249,29 @@ env.RunTimers()
 eq(paints(first), painted + 1, "a burst of roster updates refreshes each frame once")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
+-- The level disc on a party portrait is the button body with the edge line the other badges wear: a ring in the
+-- accent, one border outside the disc, so the badge reads on the glass as the unit frames' octagon does.
+do
+	local p1 = content("party1")
+	assert(p1.badge:IsShown(), "the party frame shows its level disc")
+	local br, bg, bb = p1.badge:GetVertexColor()
+	local fr, fg, fb = K.Tokens.Color("buttonFill")
+	assert(near(br, fr) and near(bg, fg) and near(bb, fb), "the disc is the button body, the mockup's #101214 badge")
+	local ring = p1.badgeRing
+	assert(ring and ring:IsShown(), "the disc wears an edge ring")
+	eq(ring:GetTexture(), (K.Tokens.Texture("ring")), "the edge is the kit's ring texture")
+	local ar, ag, ab = ns.Style.Accent()
+	local rr, rg, rb, ra = ring:GetVertexColor()
+	assert(near(rr, ar) and near(rg, ag) and near(rb, ab) and near(ra, 1), "the ring takes the accent, as the unit frames' round badge does")
+	local outset = K.Widgets.Border(p1)
+	local _, rel, relPoint, x, y = ring:GetPoint(1)
+	assert(rel == p1.badge and relPoint == "TOPLEFT" and near(x, -outset) and near(y, outset), "the ring sits one border outside the disc")
+	local _, rel2, relPoint2, x2, y2 = ring:GetPoint(2)
+	assert(rel2 == p1.badge and relPoint2 == "BOTTOMRIGHT" and near(x2, outset) and near(y2, -outset), "on every side")
+	K.Options.Write("GroupFrames", "party.portrait", false)
+	assert(not ring:IsShown(), "the ring goes with the portrait")
+	K.Options.Write("GroupFrames", "party.portrait", true)
+	assert(ring:IsShown(), "and comes back with it")
+end
+
 print("groupframes frames ok")

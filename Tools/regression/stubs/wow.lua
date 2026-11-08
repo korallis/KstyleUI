@@ -299,6 +299,14 @@ local function newObject(env, objectType, name, parent)
 	}, ObjectMeta)
 end
 
+-- An AnimationGroup plays from the stub clock (env._now) when Play is called, so a render can sample its
+-- animations at a later time; Stop and Finish end it. The group lists its animations in _anims and the frame
+-- its groups in _groups.
+function Object:Play() self._playedAt = self._env._now end
+function Object:Stop() self._playedAt = nil end
+function Object:Finish() self._playedAt = nil end
+function Object:IsPlaying() return self._playedAt ~= nil end
+
 -- A status bar draws its fill with a texture region that GetStatusBarTexture returns.
 function Object:SetStatusBarTexture(asset)
 	if not self._barTexture then
@@ -392,9 +400,16 @@ local function genericMethod(key)
 	if childType then
 		return function(self, a, b, c, d)
 			if childType == "Animation" then
-				return newObject(self._env, a or "Animation", b, self)
+				local animation = newObject(self._env, a or "Animation", b, self)
+				self._anims = self._anims or {}
+				self._anims[#self._anims + 1] = animation
+				return animation
 			end
 			local child = newObject(self._env, childType, type(a) == "string" and a or nil, self)
+			if childType == "AnimationGroup" then
+				self._groups = self._groups or {}
+				self._groups[#self._groups + 1] = child
+			end
 			if childType == "FontString" then
 				child._font = type(c) == "string" and c ~= ""
 				child._template = type(c) == "string" and c or nil

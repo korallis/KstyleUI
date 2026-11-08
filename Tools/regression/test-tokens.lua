@@ -98,13 +98,13 @@ for name, want in pairs({
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
 	buttonFill = { "101214", 1 },
-	powerTrack = { "ffffff", 0.15 },
 }) do
 	local r, g, b, a = Tokens.Color(name)
 	local wr, wg, wb = hexColor(want[1])
 	assert(near(r, wr) and near(g, wg) and near(b, wb) and near(a, want[2]), "Tokens.Color(" .. name .. ") is not #" .. want[1])
 end
 do
+	assert(not pcall(Tokens.Color, "powerTrack"), "powerTrack is gone: the power track is the button body")
 	local r, g, b, a = Tokens.Color("shadow")
 	assert(r == 0 and g == 0 and b == 0 and near(a, 0.6), "the panel shadow is black at 60%, the mockup's drop shadow")
 end

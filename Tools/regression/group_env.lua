@@ -229,8 +229,10 @@ local function installRoster(env)
 		local c = env.THREAT_COLORS[status]
 		return c[1], c[2], c[3]
 	end
+	-- Blizzard_SharedXMLBase/TextureUtil.lua's MicroLFGRoleIcons, the atlases the game's helper returns.
+	local roleIcons = { TANK = "UI-LFG-RoleIcon-Tank-Micro-GroupFinder", HEALER = "UI-LFG-RoleIcon-Healer-Micro-GroupFinder", DAMAGER = "UI-LFG-RoleIcon-DPS-Micro-GroupFinder" }
 	function env.GetMicroIconForRole(role)
-		return "micro-" .. tostring(role)
+		return roleIcons[role] or roleIcons.DAMAGER
 	end
 	function env.UnitGetIncomingHeals(unit)
 		local m = member(unit)

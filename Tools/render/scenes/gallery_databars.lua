@@ -5,21 +5,11 @@
 -- at its default position.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
-local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
-local I = Hud.ICONS
-
 local SCREEN_H = 1080
 local PREVIEW_W, PREVIEW_H = 256, 240
 local BAG_ICONS = { [31] = 133634, [32] = 133635, [33] = 133636 }
 local BACKPACK, KEYRING = 133633, 134237
--- Blizzard's micro glyphs are atlases the renderer cannot draw, so warrior icons stand in for them.
-local GLYPHS = {
-	ProfessionMicroButton = I.sunderArmor, SpellbookMicroButton = I.battleShout, TalentMicroButton = I.sweepingStrikes,
-	LegacyMicroButton = I.retaliation, QuestLogMicroButton = I.charge, HousingMicroButton = I.shieldBlock,
-	GuildMicroButton = I.demoralizingShout, LFDMicroButton = I.intercept, CollectionsMicroButton = I.taunt,
-	EJMicroButton = I.disarm, HelpMicroButton = I.pummel, StoreMicroButton = I.bloodFury, MainMenuMicroButton = I.revenge,
-}
 
 local function at(frame, x, y, w, h)
 	frame:ClearAllPoints()
@@ -48,7 +38,7 @@ return Common.Run(function()
 		setup = function(env)
 			Gallery.Setup(env)
 			D.Menus(env, {
-				glyphs = GLYPHS, bags = BAG_ICONS, backpack = BACKPACK, keyring = KEYRING,
+				bags = BAG_ICONS, backpack = BACKPACK, keyring = KEYRING,
 				portrait = function(texture)
 					local file = Common.StandIn("portrait-player.png")
 					if file then
@@ -100,7 +90,7 @@ return Common.Run(function()
 	layout(K, "databars.micro", 60, 240, nil, mh)
 	frames:Add(env, micro, {
 		name = "databars_micro", title = "Micro menu", grade = "button", reference = "actionbars",
-		caption = "Menus.lua's micro menu: thirteen secure Widgets.IconButton tiles, upright at 24 units, on a panel-grade glass holder (surface fill, two-line edge, 8-unit chamfer, shadow); the character button shows the portrait. Blizzard's glyphs are atlases the renderer draws as grey boxes, so warrior icons stand in for them here.",
+		caption = "Menus.lua's micro menu: thirteen secure Widgets.IconButton tiles, upright at 24 units, on a panel-grade glass holder (surface fill, two-line edge, 8-unit chamfer, shadow); the character button shows the portrait and the others Blizzard's own micro-menu glyph atlases (UI-HUD-MicroMenu-<name>-Up), drawn from the atlas cache as the game shows them.",
 		match = "Buttons as the mockup's action buttons (body, bezel, accent rim); the glass behind them is the panel grade, where the mockup's action bar strip is a solid #101214 band with the light line.",
 	})
 	local _, bh = bags:GetSize()
@@ -126,6 +116,6 @@ return Common.Run(function()
 	env.RunTimers()
 	local scene = Scene.Build(env)
 	scene.log[#scene.log + 1] = portraitNote or "the character button got no portrait"
-	scene.log[#scene.log + 1] = "micro glyphs are warrior icons standing in for Blizzard's atlases; bag icons are bag file IDs from the icon set"
+	scene.log[#scene.log + 1] = "micro glyphs are Blizzard's atlases from the atlas cache; bag icons are bag file IDs from the icon set"
 	return frames:Finish(scene, env, K, "gallery databars")
 end)

@@ -72,7 +72,7 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `party.growth` | `DOWN` | Which way the next frame goes |
 | `party.sortBy` | `INDEX` | Group order, name or role |
 | `party.showPlayer`, `party.showSolo` | on, off | Include yourself; show when solo |
-| `party.portrait` | on | The class-ringed portrait with the level badge |
+| `party.portrait` | on | The class-ringed portrait with the level disc: a `buttonFill` disc with a ring in the accent one border outside it, the edge line the unit frames' badge wears |
 | `raid.width`, `raid.height`, `raid.spacing` | 72, 40, 3 | Frame size and gap |
 | `raid.growth`, `raid.groupGrowth`, `raid.groupSpacing` | `DOWN`, `RIGHT`, 3 | Member growth, group or column growth and the gap between groups |
 | `raid.sortBy` | `GROUP` | Group, role or class |

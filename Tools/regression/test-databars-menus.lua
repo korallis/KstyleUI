@@ -10,7 +10,7 @@ local MICRO = {
 	{ "TalentMicroButton", "SpecTalents" }, { "LegacyMicroButton", "Legacy" }, { "QuestLogMicroButton", "Questlog" },
 	{ "HousingMicroButton", "Housing" }, { "GuildMicroButton", "GuildCommunities" }, { "LFDMicroButton", "Groupfinder" },
 	{ "CollectionsMicroButton", "Collections" }, { "EJMicroButton", "AdventureGuide" }, { "HelpMicroButton", "Help" },
-	{ "StoreMicroButton", "Shop" }, { "MainMenuMicroButton", "MainMenu" },
+	{ "StoreMicroButton", "Shop" }, { "MainMenuMicroButton", "GameMenu" },
 }
 -- Built by the XML but never added to Forever's menu.
 local LOOSE = { "PlayerSpellsMicroButton", "AchievementMicroButton" }

@@ -19,8 +19,7 @@ local ABSORB_ALPHA = 0.35
 local IMAGE_SUBLEVEL = -4
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local TRACK = "buttonFill"
-local POWER_TRACK = "powerTrack"
-local TRACK_LINE, TRACK_LINE_ALPHA = "powerTrack", 1
+local TRACK_LINE, TRACK_LINE_ALPHA = "edgeBar", 1
 local TINT = 0.85
 local RIM_WHITE = 0.15
 local OCTAGON = 1 / (2 + math.sqrt(2))
@@ -81,7 +80,7 @@ function Style.New(parent, kind)
 	view.health:SetClipsChildren(true)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
-	view.power = Widgets.StatusBar(panel, { smooth = true, background = POWER_TRACK })
+	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
 	view.trackLine = panel:CreateTexture(nil, "ARTWORK")
 	view.trackLine:SetColorTexture(Tokens.Color("white"))
 
@@ -104,7 +103,7 @@ function Style.New(parent, kind)
 	local badge = CreateFrame("Frame", nil, parent)
 	badge:SetFrameLevel(base + LEVEL_BADGE)
 	view.badge = badge
-	view.badgeChrome = Widgets.Chrome(badge, { shape = "panel", fill = "surface", shadow = false, grain = false })
+	view.badgeChrome = Widgets.Chrome(badge, { shape = "panel", fill = TRACK, shadow = false, grain = false })
 
 	local top = CreateFrame("Frame", nil, parent)
 	top:SetFrameLevel(base + LEVEL_TEXT)
