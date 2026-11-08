@@ -14,12 +14,11 @@ local PARTY = {
 	{ name = "Thaldren", class = "WARRIOR", health = 92, maxHealth = 100, power = 35, maxPower = 100, powerType = "RAGE", role = "TANK", leader = true, threat = 3, incoming = 12, absorb = 6 },
 	{ name = "Sylaen", class = "DRUID", health = 87, maxHealth = 100, power = 80, maxPower = 100, role = "HEALER" },
 	{ name = "Kragar", class = "SHAMAN", health = 0, maxHealth = 100, power = 0, maxPower = 100, dead = true, role = "DAMAGER" },
-	{ name = "Lunara", class = "MAGE", health = 64, maxHealth = 100, power = 90, maxPower = 100, role = "DAMAGER" },
+	{ name = "Lunara", class = "MAGE", health = 64, maxHealth = 100, power = 90, maxPower = 100, role = "DAMAGER", marker = 8 },
 }
--- The role and leader icons are Blizzard atlases, drawn from the atlas cache Tools/render/atlas.py builds (a grey
--- box, and a log line, when the cache lacks them); the raid marker is a Blizzard texture file the renderer has
--- no copy of, so the scene leaves it off.
-local ICONS = { icons = { marker = false } }
+-- The role and leader icons are Blizzard atlases and the raid marker a cell of Blizzard's marker sheet, drawn from
+-- the texture cache Tools/render/atlas.py builds (a grey box, and a log line, when the cache lacks them).
+local ICONS = {}
 local DEBUFF_ICONS = { I.rend, I.sunderArmor }
 local MAGIC = "rare"
 
@@ -162,7 +161,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, ns.Headers.holders.party, {
 		name = "groupframes_party", title = "Party frames", grade = "panel", reference = "nameplate",
-		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro and two debuffs, a healer, a dead shaman in grey and a mage; each member's role icon and the tank's leader crown are Blizzard atlases from the atlas cache.",
+		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro and two debuffs, a healer, a dead shaman in grey and a mage with the skull marker on the frame's top edge; each member's role icon and the tank's leader crown are Blizzard atlases and the skull a cell of Blizzard's marker sheet, all from the texture cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow on each tile as the mockup's nameplate frame.",
 		rect = Gallery.Union(env, { ns.Headers.holders.party, tiles[1], tiles[2] }),
 	})

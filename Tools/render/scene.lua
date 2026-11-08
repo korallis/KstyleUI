@@ -144,6 +144,42 @@ function Scene.AtlasInfo(name)
 	return atlasTable()[name:lower()]
 end
 
+-- Blizzard textures named by file path (`Interface\TargetingFrame\UI-RaidTargetingIcons`) come from the same cache:
+-- `python3 Tools/render/atlas.py paths` writes each as paths/<key>.png, the key being the game path lowercased, with
+-- forward slashes and no extension. Scene.PATHS_DIR, when a test sets it, replaces that folder.
+Scene.PATHS_DIR = nil
+
+-- PathKey(path) -> the cache key of a Blizzard texture path, or nil for anything else: a number, an addon's own
+-- file, or a path outside Interface. The game matches paths without regard to case, separator or extension.
+function Scene.PathKey(path)
+	if type(path) ~= "string" then
+		return nil
+	end
+	local key = path:gsub("\\", "/"):lower():gsub("^/+", "")
+	if not key:match("^interface/") or key:match("^interface/addons/") then
+		return nil
+	end
+	key = key:gsub("%.[a-z0-9]+$", "")
+	if key == "interface/" or key:match("/$") then
+		return nil
+	end
+	return key
+end
+
+-- PathFile(path) -> the cached PNG of a Blizzard texture path, or nil when the cache lacks it.
+function Scene.PathFile(path)
+	local key = Scene.PathKey(path)
+	if not key then
+		return nil
+	end
+	local dir = Scene.PATHS_DIR or (Scene.ATLAS_DIR .. "/paths")
+	local candidate = dir .. "/" .. key .. ".png"
+	if fileExists(candidate) then
+		return candidate
+	end
+	return nil
+end
+
 -- ResolvePath(path) -> a repository-relative or absolute file, or nil when the game path has no local file.
 function Scene.ResolvePath(path, iconDirs)
 	if type(path) == "number" then
@@ -163,6 +199,10 @@ function Scene.ResolvePath(path, iconDirs)
 	end
 	if type(path) ~= "string" then
 		return nil
+	end
+	local cached = Scene.PathFile(path)
+	if cached then
+		return cached
 	end
 	if pathCache[path] == nil then
 		local local_ = path:gsub("\\", "/")
@@ -949,15 +989,38 @@ function Scene.Build(env, opts)
 		return out
 	end
 
+	-- A flat colour set after the file replaces it, as SetColorTexture does in the game; a file set after the
+	-- colour replaces the colour.
+	local function colourWins(region)
+		if not region._state.ColorTexture then
+			return false
+		end
+		for i = #region._calls, 1, -1 do
+			local method = region._calls[i].method
+			if method == "SetColorTexture" then
+				return true
+			elseif method == "SetTexture" or method == "SetAtlas" then
+				return false
+			end
+		end
+		return true
+	end
+
 	local function textureItem(region, frame, alpha)
 		local item = { kind = "texture", alpha = round4(alpha) }
 		local path, wrapH, wrapV = state(region, "Texture")
+		if path ~= nil and colourWins(region) then
+			path = nil
+		end
 		if path ~= nil then
 			local resolved = resolve(path)
 			if resolved then
 				item.file = resolved
+			elseif Scene.PathKey(path) then
+				item.pendingLog = "texture " .. tostring(path) .. " is drawn as a grey box: the client's file is not in the texture cache; run python3 Tools/render/atlas.py paths --scan"
+				item.missing = tostring(path)
 			else
-				logLine("no local file for texture " .. tostring(path))
+				item.pendingLog = "no local file for texture " .. tostring(path)
 				item.missing = tostring(path)
 			end
 			if type(path) == "number" then
@@ -975,9 +1038,9 @@ function Scene.Build(env, opts)
 				item.file = info.file
 				item.texCoord = { round4(info.left), round4(info.right), round4(info.top), round4(info.bottom) }
 			elseif info then
-				logLine("atlas " .. tostring(atlas) .. ": its sheet is not in the atlas cache, so it is drawn as a grey box; run python3 Tools/render/atlas.py fetch " .. tostring(atlas))
+				item.pendingLog = "atlas " .. tostring(atlas) .. ": its sheet is not in the atlas cache, so it is drawn as a grey box; run python3 Tools/render/atlas.py fetch " .. tostring(atlas)
 			else
-				logLine("atlas " .. tostring(atlas) .. " is drawn as a grey box: the client's atlas tables have no such name, or the atlas cache is not built (python3 Tools/render/atlas.py build --scan)")
+				item.pendingLog = "atlas " .. tostring(atlas) .. " is drawn as a grey box: the client's atlas tables have no such name, or the atlas cache is not built (python3 Tools/render/atlas.py build --scan)"
 			end
 		end
 		local colour = color4(region._state.ColorTexture)
@@ -995,6 +1058,17 @@ function Scene.Build(env, opts)
 				list[i] = round4(num(env, coords[i], 0))
 			end
 			item.texCoord = list
+		end
+		-- SetSpriteSheetCell(index, rows, columns) shows one cell of a grid sheet, counted along the rows from
+		-- the top left, as the raid target icons are; the index may be a secret.
+		local cell, rows, columns = state(region, "SpriteSheetCell")
+		if cell ~= nil and not item.atlas then
+			local index = num(env, cell, 0)
+			rows, columns = num(env, rows, 1), num(env, columns, 1)
+			if index >= 1 and rows >= 1 and columns >= 1 and index <= rows * columns then
+				local column, row = (index - 1) % columns, math.floor((index - 1) / columns)
+				item.texCoord = { round4(column / columns), round4((column + 1) / columns), round4(row / rows), round4((row + 1) / rows) }
+			end
 		end
 		local blend = state(region, "BlendMode")
 		if blend and blend ~= "BLEND" then
@@ -1208,6 +1282,11 @@ function Scene.Build(env, opts)
 						item = textureItem(region, frame, regionAlpha)
 					end
 					if item and mark(region, item) and clipped(item, clip) then
+						if item.pendingLog then
+							-- A grey box is worth a log line only when the region is drawn: a faded or clipped one is not.
+							logLine(item.pendingLog)
+							item.pendingLog = nil
+						end
 						seq = seq + 1
 						item.strata, item.level, item.layer, item.sublevel, item.seq = strata, level, layer, type(sublevel) == "number" and sublevel or 0, seq
 						items[#items + 1] = item

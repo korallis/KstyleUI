@@ -63,6 +63,15 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 - A hook on the header's `OnAttributeChanged` sees each new `child<n>` and dresses it. The hook on the button's `OnAttributeChanged` follows the `unit` attribute and only touches the plain content frame, so a unit change in combat makes no protected call.
 - Attribute, size and anchor changes wait for `KstyleUI.Combat.Queue` in combat.
 
+## Status icons
+
+`Geometry.Button` lays the role, leader and raid marker icons out with the texts, so none of the four overlaps at any frame size (`test-groupframes-indicators-layout.lua` resolves them with the renderer's solver at the default, smallest and largest party and raid sizes):
+
+- The icons share the frame's top band, each a `gapTiny` in from the edge: the role icon at the top right, the leader icon on the top-left corner, over the portrait's corner when there is one, and the raid marker centred on the top edge, no lower than the name row. Their size is the `iconSize` setting, shrunk so three fit across the frame and one fits its height.
+- With the name above the bar, the name row ends a gap before the role icon, and starts after the leader icon when no portrait carries it; the health text is right-aligned at the row's end.
+- With the name on the bar, the health text centres on the bar at its natural width while its line sits below the icon band; when the bar is so short that the line reaches into the band, the text narrows to the span between the icons.
+- The ready-check icon sits on the bar's centre and the assistant icon on the leader icon, as before.
+
 ## Settings
 
 | Key | Default | What it does |

@@ -153,6 +153,7 @@ local function LayoutTexts(f, k, parts)
 	healthText:ClearAllPoints()
 	local showHealth = k.healthText ~= "NONE"
 	healthText:SetShown(showHealth)
+	local spot = parts.healthText
 	if not parts.nameInside then
 		local rect = parts.name
 		local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
@@ -161,19 +162,25 @@ local function LayoutTexts(f, k, parts)
 		name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
 		name:SetWidth(math.max(1, Widgets.Snap(f, rect.width - reserve)))
 		healthText:SetJustifyH("RIGHT")
-		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, rect.left + rect.width), top)
+		healthText:SetWidth(0)
+		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, spot.right), top)
 		return
 	end
 	local rect = parts.health
 	local inset = Tokens.Size("gapTiny")
 	local cx = Widgets.Snap(f, rect.left + rect.width / 2)
-	local cy = -Widgets.Snap(f, rect.top + rect.height / 2)
+	local cy = -Widgets.Snap(f, spot.top)
 	name:SetJustifyH("CENTER")
 	name:SetWidth(math.max(1, Widgets.Snap(f, rect.width - 2 * inset)))
 	healthText:SetJustifyH("CENTER")
+	if spot.width then
+		healthText:SetWidth(math.max(1, Widgets.Snap(f, spot.width)))
+	else
+		healthText:SetWidth(0)
+	end
 	if showHealth then
 		name:SetPoint("BOTTOM", f, "TOPLEFT", cx, cy)
-		healthText:SetPoint("TOP", f, "TOPLEFT", cx, cy)
+		healthText:SetPoint("TOP", f, "TOPLEFT", Widgets.Snap(f, spot.center), cy)
 	else
 		name:SetPoint("CENTER", f, "TOPLEFT", cx, cy)
 	end
@@ -225,6 +232,10 @@ function Style.Apply(f, width, height)
 		powerHeight = k.powerHeight,
 		nameAbove = k.textLayout == "ABOVE",
 		nameHeight = k.nameSize + NAME_LINE_EXTRA,
+		iconSize = k.iconSize,
+		role = cfg.icons.role,
+		leader = cfg.icons.leader,
+		marker = cfg.icons.marker,
 	})
 	f.parts = parts
 	local health = cfg.health

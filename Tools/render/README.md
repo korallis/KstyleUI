@@ -24,19 +24,24 @@ Tools/render/shoot.sh gallery_skins_mail --backdrop                             
 
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.
 
-`shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas the atlas cache lacks (drawn as a grey box). Read the log before you trust a render. `Tools/render/out/` is ignored by git.
+`shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas or a path texture the texture cache lacks (drawn as a grey box). Read the log before you trust a render. `Tools/render/out/` is ignored by git.
 
-### Blizzard atlases
+### Blizzard atlases and textures
 
 ```bash
-python3 Tools/render/atlas.py build --scan                 # export the client's atlas tables, write the map, fetch every sheet the last renders asked for
+python3 Tools/render/atlas.py build --scan                 # export the client's atlas tables, write the map, fetch every sheet and path texture the last renders asked for
 python3 Tools/render/atlas.py build roleicon-tiny-tank     # the same, fetching the named atlases' sheets
-python3 Tools/render/atlas.py fetch UI-HUD-MicroMenu-Questlog-Up --scan   # add sheets to an existing cache
+python3 Tools/render/atlas.py fetch UI-HUD-MicroMenu-Questlog-Up --scan   # add sheets (and the scanned path textures) to an existing cache
+python3 Tools/render/atlas.py paths 'Interface\TargetingFrame\UI-RaidTargetingIcons' --scan   # fetch textures named by file path
 ```
+
+Run it with `~/.local/share/wow-dev/venv/bin/python` when the system Python has no Pillow; the BLP decoder needs it.
 
 `SetAtlas(name)` draws a rectangle of a larger sheet. The UI source has no atlas data; the installed client does, in three DB2 tables (`UiTextureAtlas`, `UiTextureAtlasMember`, `UiTextureAtlasElement`). `atlas.py build` exports them with `Tools/icons/casc_export.py` (TACTTool and DBC2CSV read the game folder and never write to it), writes `~/.local/share/wow-dev/atlas/atlas.tsv`, one line per atlas name (its sheet's file ID and size, its rectangle in pixels, its size in units, its tiling flags), and fetches each named atlas's sheet into `textures/<fileID>.png`, decoded with alpha at its own size. The game looks an atlas up by its element name; an element can have a 1x member, a 2x member and Forever's own `-c60` art, and the map keeps Forever's art over the shared one and the 2x sheet over the 1x, with the size in 1x units (what `SetAtlas(name, true)` sizes a region to). The cache lives outside the repository and is never committed.
 
-`scene.lua` reads the map when it exists: a known atlas whose sheet is in the cache draws as that sheet with the member's texture coordinates, and `useAtlasSize` gives an unsized region the member's size; a known atlas whose sheet is not fetched, or a name the client has no atlas for, draws as a grey box and is logged with the command that fetches it. Without the cache every atlas is a grey box, so CI needs none. `Scene.ATLAS` lets a test stand in for the file. `Tools/tests/test_render_atlas.py` covers the map and the fetch, `test-render-scene.lua` the drawing. Blizzard texture files named by path (`Interface\...`) are still not fetched: a scene that shows one draws a grey box and logs it.
+`scene.lua` reads the map when it exists: a known atlas whose sheet is in the cache draws as that sheet with the member's texture coordinates, and `useAtlasSize` gives an unsized region the member's size; a known atlas whose sheet is not fetched, or a name the client has no atlas for, draws as a grey box and is logged with the command that fetches it. Without the cache every atlas is a grey box, so CI needs none. `Scene.ATLAS` lets a test stand in for the file. `Tools/tests/test_render_atlas.py` covers the map and the fetch, `test-render-scene.lua` the drawing.
+
+A texture the game names by file path (`SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")`) has no atlas entry. `atlas.py paths` fetches those by name through TACTTool's list mode, which looks each path up in the client's install manifest and then in the community listfile (downloaded once, 150 MB, into the cache's `tact/` folder), and decodes each into `~/.local/share/wow-dev/atlas/paths/<key>.png`, the key being the game path lowercased, with forward slashes and no extension (`interface/targetingframe/ui-raidtargetingicons`). `--scan` adds every path the scene JSON files report missing, and `build --scan` and `fetch --scan` fetch those too. `scene.lua` resolves a path through `Scene.PathKey` and draws the cached PNG when it exists; otherwise the texture is a grey box, logged with the command that fetches it, so CI needs no cache. `SetSpriteSheetCell(index, rows, columns)` draws one cell of a grid sheet, as the raid target icons are. `Scene.PATHS_DIR` lets a test point at its own folder.
 
 ### Icon sets, stand-ins and the backdrop
 
@@ -117,7 +122,7 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 
 ## Known limitations
 
-- The stub draws no world: the portraits, the minimap and the scenery are crops of the mockup when `standins.py` has run, flat colours otherwise; icons no folder holds draw as flat boxes. A Blizzard atlas draws from the atlas cache when `atlas.py` has fetched its sheet, else as a grey box; a Blizzard texture named by file path draws as a grey box.
+- The stub draws no world: the portraits, the minimap and the scenery are crops of the mockup when `standins.py` has run, flat colours otherwise; icons no folder holds draw as flat boxes. A Blizzard atlas draws from the texture cache when `atlas.py` has fetched its sheet, a Blizzard texture named by file path when `atlas.py paths` has fetched it, else either is a grey box.
 - Text widths that other frames depend on come from the kit fonts' glyph advances, or from average glyph widths for a face `glyphs.lua` does not list, so a frame anchored to a text in another face can sit a few units off. The page measures the real glyphs for the text itself.
 - Blizzard-owned layout is not modelled: the chat window's lines and tabs, the quest tracker's blocks, the tooltip's lines and the world combat numbers over the target are laid out by the scene the way the game would, and say so in the log. Blizzard's POI buttons are not drawn, and the game fades chat tabs when the pointer is away.
 - The HUD scene renders the unit frames with round portraits through a saved setting, the default the owner chose on 2026-11-08; `KstyleUI_UnitFrames` still defaults to chamfered until that change lands.

@@ -151,5 +151,143 @@ class AtlasMapTest(unittest.TestCase):
         self.assertEqual(fetched, [1004], "Tiles-H shares the sheet already fetched")
 
 
+class PathsTest(unittest.TestCase):
+    """Textures the game names by file path: the cache key, the scan of missing paths and the fetch."""
+
+    def setUp(self):
+        self.atlas = load("atlas")
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_path_key_ignores_case_separator_and_extension(self):
+        key = self.atlas.path_key
+        self.assertEqual(key("Interface\\TargetingFrame\\UI-RaidTargetingIcons"), "interface/targetingframe/ui-raidtargetingicons")
+        self.assertEqual(key("interface/targetingframe/UI-RaidTargetingIcons.BLP"), "interface/targetingframe/ui-raidtargetingicons")
+        self.assertEqual(key("Interface\\Buttons\\WHITE8X8.blp"), "interface/buttons/white8x8")
+        self.assertEqual(key("Interface\\PaperDoll\\UI-PaperDoll-Slot-Bag"), "interface/paperdoll/ui-paperdoll-slot-bag")
+
+    def test_path_key_rejects_what_is_not_a_client_texture_path(self):
+        key = self.atlas.path_key
+        self.assertIsNone(key("Interface\\AddOns\\KstyleUI\\Media\\Textures\\Dot.png"), "an addon's own file")
+        self.assertIsNone(key("Fonts\\FRIZQT__.TTF"), "a font")
+        self.assertIsNone(key(136235), "a file ID")
+        self.assertIsNone(key(None))
+        self.assertIsNone(key("Interface\\"), "a folder")
+
+    def test_scan_paths_reads_the_missing_textures_of_a_scene(self):
+        scene = self.dir / "scene.json"
+        items = [
+            {"missing": "Interface\\PaperDoll\\UI-PaperDoll-Slot-Bag"},
+            {"missing": "interface/paperdoll/UI-PaperDoll-Slot-Bag.blp"},
+            {"missing": "Interface\\AddOns\\KstyleUI\\Media\\Nope.png"},
+            {"missing": 1234},
+            {"atlas": "UI-Test"},
+            {"file": "x.png"},
+        ]
+        scene.write_text(json.dumps({"items": items}), encoding="utf-8")
+        self.assertEqual(self.atlas.scan_paths([str(scene)]), {"interface/paperdoll/ui-paperdoll-slot-bag"})
+
+    def test_fetch_paths_decodes_each_new_texture_once_and_names_what_the_client_lacks(self):
+        calls, decoded = [], []
+
+        def tool(keys, out_dir):
+            calls.append(list(keys))
+            found = {}
+            for key in keys:
+                if key.endswith("nowhere"):
+                    continue
+                blp = Path(out_dir) / (key + ".blp")
+                blp.parent.mkdir(parents=True, exist_ok=True)
+                blp.write_bytes(b"BLP2")
+                found[key] = blp
+            return found
+
+        def decode(blp, png):
+            decoded.append(Path(png))
+            Path(png).write_bytes(b"PNG")
+
+        paths_dir = self.dir / "paths"
+        unknown = self.atlas.fetch_paths(
+            ["Interface\\Buttons\\WHITE8X8", "interface/buttons/white8x8.blp", "Interface\\Test\\Nowhere", "Interface\\AddOns\\X\\y.tga"],
+            paths_dir, tool=tool, decode=decode,
+        )
+        self.assertEqual(unknown, ["Interface\\AddOns\\X\\y.tga", "Interface\\Test\\Nowhere"])
+        self.assertEqual(calls, [["interface/buttons/white8x8", "interface/test/nowhere"]], "one tool run, one key per texture")
+        self.assertEqual(decoded, [paths_dir / "interface" / "buttons" / "white8x8.png"])
+        self.assertTrue((paths_dir / "interface/buttons/white8x8.png").exists())
+        # A second fetch finds the PNG and runs no tool.
+        self.atlas.fetch_paths(["Interface\\Buttons\\WHITE8X8"], paths_dir, tool=tool, decode=decode)
+        self.assertEqual(len(calls), 1)
+
+    def test_tacttool_paths_passes_absolute_paths_and_collects_the_extracted_files(self):
+        tools = self.dir / "tools"
+        tool = tools / "casc" / "TACTTool" / "TACTTool"
+        tool.parent.mkdir(parents=True)
+        record = self.dir / "argv.txt"
+        # A stand-in TACTTool: records its arguments and extracts the first listed name under the output folder.
+        tool.write_text(
+            "#!/bin/sh\n"
+            f"printf '%s\\n' \"$@\" > '{record}'\n"
+            "while [ $# -gt 0 ]; do case $1 in -i) list=$2;; -o) out=$2;; esac; shift; done\n"
+            "first=$(head -n 1 \"$list\")\n"
+            "mkdir -p \"$out/$(dirname \"$first\")\" && printf 'BLP2' > \"$out/$first\"\n",
+            encoding="utf-8",
+        )
+        tool.chmod(0o755)
+        cache = Path("cache-relative")
+        cwd = os.getcwd()
+        os.chdir(self.dir)
+        try:
+            found = self.atlas.tacttool_paths(["interface/buttons/white8x8", "interface/test/nowhere"], "extract", cache, tools=tools, wow_dir=Path("wow"))
+        finally:
+            os.chdir(cwd)
+        argv = record.read_text(encoding="utf-8").splitlines()
+        listing = argv[argv.index("-i") + 1]
+        self.assertTrue(Path(listing).is_absolute(), listing)
+        self.assertEqual(Path(listing).read_text(encoding="utf-8"), "interface/buttons/white8x8.blp\ninterface/test/nowhere.blp\n")
+        self.assertTrue(Path(argv[argv.index("-o") + 1]).is_absolute())
+        self.assertEqual(sorted(found), ["interface/buttons/white8x8"])
+        self.assertEqual(found["interface/buttons/white8x8"], (self.dir / "extract" / "interface" / "buttons" / "white8x8.blp").resolve())
+
+    def test_main_paths_fetches_named_and_scanned_paths(self):
+        cache = self.dir / "cache"
+        scenes = self.dir / "scenes"
+        scenes.mkdir()
+        (scenes / "a.json").write_text(json.dumps({"items": [{"missing": "Interface\\Common\\WhiteIconFrame"}]}), encoding="utf-8")
+        self.atlas.SCENE_JSON = str(scenes / "*.json")
+        calls = []
+
+        def tool(keys, out_dir):
+            calls.append(list(keys))
+            found = {}
+            for key in keys:
+                blp = Path(out_dir) / (key + ".blp")
+                blp.parent.mkdir(parents=True, exist_ok=True)
+                blp.write_bytes(b"BLP2")
+                found[key] = blp
+            return found
+
+        def decode(blp, png):
+            Path(png).write_bytes(b"PNG")
+
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = self.atlas.main(["paths", "Interface\\Buttons\\WHITE8X8", "--scan", "--cache", str(cache)], tool_paths=tool, decode=decode)
+        self.assertEqual(code, 0)
+        self.assertIn("2 texture path(s)", out.getvalue())
+        self.assertEqual(calls, [["interface/buttons/white8x8", "interface/common/whiteiconframe"]])
+        self.assertTrue((cache / "paths/interface/common/whiteiconframe.png").exists())
+        # fetch --scan on an existing atlas map fetches the scanned paths too.
+        self.atlas.write_tsv({}, cache / "atlas.tsv")
+        (cache / "paths/interface/common/whiteiconframe.png").unlink()
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = self.atlas.main(["fetch", "--scan", "--cache", str(cache)], tool=lambda *_: None, tool_paths=tool, decode=decode)
+        self.assertEqual(code, 0)
+        self.assertEqual(calls[-1], ["interface/common/whiteiconframe"])
+        self.assertTrue((cache / "paths/interface/common/whiteiconframe.png").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

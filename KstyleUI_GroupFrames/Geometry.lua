@@ -153,6 +153,38 @@ local function Rect(left, top, width, height)
 	return { left = left, top = top, width = max(MIN_PART, width), height = max(MIN_PART, height) }
 end
 
+local ICONS_ACROSS = 3
+
+local function Indicators(out, w, h, o, pad, gap)
+	local size = floor(min(o.iconSize, (w - (ICONS_ACROSS + 1) * gap) / ICONS_ACROSS, h - 2 * gap))
+	size = max(MIN_PART, size)
+	local icons = { size = size }
+	out.icons = icons
+	icons.role = Rect(w - gap - size, gap, size, size)
+	icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
+	icons.marker = Rect((w - size) / 2, min(-size / 2, pad - size), size, size)
+	local health = out.health
+	local textLeft, textRight = health.left, health.left + health.width
+	if o.leader and not out.portrait then
+		textLeft = max(textLeft, icons.leader.left + size + gap)
+	end
+	if o.role then
+		textRight = min(textRight, icons.role.left - gap)
+	end
+	textRight = max(textRight, textLeft + MIN_PART)
+	if out.nameInside then
+		local centre = health.top + health.height / 2
+		if centre < gap + size then
+			out.healthText = { center = (textLeft + textRight) / 2, width = textRight - textLeft, top = centre }
+		else
+			out.healthText = { center = health.left + health.width / 2, top = centre }
+		end
+	else
+		out.name = Rect(textLeft, out.name.top, textRight - textLeft, out.name.height)
+		out.healthText = { right = textRight, top = out.name.top }
+	end
+end
+
 function Geometry.Button(w, h, o)
 	local pad, gap = Tokens.Size("gapSmall"), Tokens.Size("gapTiny")
 	local out = { nameInside = true }
@@ -179,6 +211,9 @@ function Geometry.Button(w, h, o)
 	else
 		out.health = Rect(left, top, width, rest)
 		out.name = out.health
+	end
+	if o.iconSize then
+		Indicators(out, w, h, o, pad, gap)
 	end
 	return out
 end

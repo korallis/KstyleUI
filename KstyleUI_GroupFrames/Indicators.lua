@@ -65,20 +65,22 @@ local function Build(f)
 end
 Button.built[#Button.built + 1] = Build
 
+local function PlaceIcon(f, icon, rect, size)
+	icon:ClearAllPoints()
+	icon:SetSize(size, size)
+	icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+end
+
 local function Layout(f, parts, k)
-	local size = Widgets.Snap(f, k.iconSize)
-	local gap = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	local half = Widgets.Snap(f, k.iconSize / 2)
-	for _, icon in ipairs({ f.role, f.leader, f.assist, f.marker }) do
-		icon:ClearAllPoints()
-		icon:SetSize(size, size)
-	end
-	local health = parts.health
-	f.role:SetPoint("TOPRIGHT", f, "TOPRIGHT", -gap, -gap)
-	local leftEdge = parts.portrait and 0 or gap
-	f.leader:SetPoint("CENTER", f, "TOPLEFT", leftEdge + half, -half + gap)
+	local icons = parts.icons
+	local size = Widgets.Snap(f, icons.size)
+	PlaceIcon(f, f.role, icons.role, size)
+	PlaceIcon(f, f.leader, icons.leader, size)
+	PlaceIcon(f, f.marker, icons.marker, size)
+	f.assist:ClearAllPoints()
+	f.assist:SetSize(size, size)
 	f.assist:SetPoint("CENTER", f.leader, "CENTER", 0, 0)
-	f.marker:SetPoint("CENTER", f, "TOP", 0, 0)
+	local health = parts.health
 	local ready = Widgets.Snap(f, math.min(health.height, k.iconSize * READY_SHARE))
 	f.ready:ClearAllPoints()
 	f.ready:SetSize(ready, ready)

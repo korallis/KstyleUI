@@ -1,7 +1,8 @@
-"""Build the renderer's atlas cache from the installed game client, read-only.
+"""Build the renderer's texture cache from the installed game client, read-only.
 
 Usage: python3 Tools/render/atlas.py build [NAME ...] [--scan] [--cache ~/.local/share/wow-dev/atlas]
        python3 Tools/render/atlas.py fetch NAME ... [--scan] [--cache ~/.local/share/wow-dev/atlas]
+       python3 Tools/render/atlas.py paths PATH ... [--scan] [--cache ~/.local/share/wow-dev/atlas]
 
 The game draws an atlas (`texture:SetAtlas(name)`) as a rectangle of a larger sheet. The UI source has no atlas
 data; the client does, in three DB2 tables (UiTextureAtlas: the sheets, their file IDs and sizes; UiTextureAtlasMember:
@@ -15,6 +16,13 @@ mention, so a run after a render fetches what that render lacked. The cache live
 An element can have several members: a 1x and a 2x sheet, and Forever's own art with a `-c60` suffix. The map
 keeps one: Forever's member over the shared one, the 2x sheet over the 1x, and the member's size in 1x units (what
 `SetAtlas(name, true)` sizes a region to). The map is 2 MB of text, so it is a TSV and not a Lua table.
+
+A texture the game names by file path (`texture:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")`)
+has no atlas entry. `paths` fetches those by name: TACTTool's list mode looks each path up in the client's install
+manifest and then in the community listfile (which it downloads once, 150 MB, into the cache's tact folder), so no
+file ID is needed. Each lands as `paths/<key>.png`, the key being the game path lowercased, with forward slashes
+and no extension, as `scene.lua` looks it up. `--scan` adds every such path a scene JSON reports as missing;
+`fetch --scan` and `build --scan` fetch them too, so one command after a render fills both gaps.
 """
 
 import argparse
@@ -24,6 +32,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -141,6 +150,95 @@ def scan_names(json_paths):
     return names
 
 
+def path_key(path):
+    """The cache key of a Blizzard texture path, or None for anything else (an addon's file, a font, a file ID).
+
+    The game matches a path without regard to case, separator or extension, so the key is lowercased, uses
+    forward slashes and has no extension: `Interface\\Buttons\\WHITE8X8.blp` -> `interface/buttons/white8x8`.
+    """
+    if not isinstance(path, str):
+        return None
+    key = path.replace("\\", "/").lower().lstrip("/")
+    if not key.startswith("interface/") or key.startswith("interface/addons/"):
+        return None
+    stem, dot, extension = key.rpartition(".")
+    if dot and "/" not in extension and extension.isalnum():
+        key = stem
+    if key.endswith("/") or key == "interface":
+        return None
+    return key
+
+
+def scan_paths(json_paths):
+    """Every Blizzard texture path (as a cache key) the scene JSON files report as missing."""
+    keys = set()
+    for path in json_paths:
+        with open(path, encoding="utf-8") as handle:
+            scene = json.load(handle)
+        for item in scene.get("items") or []:
+            key = path_key(item.get("missing"))
+            if key:
+                keys.add(key)
+    return keys
+
+
+def tacttool_paths(keys, out_dir, cache_dir, tools=DEFAULT_TOOLS, wow_dir=DEFAULT_WOW_DIR):
+    """Extract the BLP of every key into out_dir/<key>.blp with one TACTTool run in list mode; return {key: blp}.
+
+    TACTTool reads the game folder only. It looks a name up in the install manifest, then in the community
+    listfile, which it downloads into its working folder (the cache's tact folder, so it is kept) on first use;
+    a name it cannot find is skipped and missing from the result.
+    """
+    tool = Path(tools) / "casc" / "TACTTool" / "TACTTool"
+    if not tool.exists():
+        raise RuntimeError(f"{tool} is missing; run Tools/icons/install-casc-tools.sh")
+    work = Path(cache_dir) / "tact"
+    work.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(out_dir).resolve()
+    # TACTTool runs in the cache's tact folder, so every path it gets is absolute.
+    listing = (work / "paths.txt").resolve()
+    listing.write_text("".join(f"{key}.blp\n" for key in keys), encoding="utf-8")
+    command = [str(tool), "-p", PRODUCT, "-r", REGION, "-d", str(Path(wow_dir).resolve()), "-m", "list", "-i", str(listing), "-o", str(out_dir)]
+    result = subprocess.run(command, cwd=work, capture_output=True, text=True, timeout=1800)
+    if result.returncode != 0:
+        raise RuntimeError(f"TACTTool failed for the path list: {(result.stderr or result.stdout).strip()[-300:]}")
+    found = {}
+    for key in keys:
+        blp = out_dir / f"{key}.blp"
+        if blp.exists():
+            found[key] = blp
+    return found
+
+
+def fetch_paths(paths, paths_dir, tool, decode):
+    """Fetch the texture of every path into paths_dir/<key>.png; return the paths the client has no file for.
+
+    `tool(keys, out_dir)` extracts the keys' BLPs under out_dir and returns {key: blp}; `decode(blp, png)` writes
+    the PNG. A path already in the cache costs nothing.
+    """
+    paths_dir = Path(paths_dir)
+    wanted, unknown = {}, []
+    for path in paths:
+        key = path_key(path)
+        if key is None:
+            unknown.append(path)
+        elif not (paths_dir / f"{key}.png").exists():
+            wanted.setdefault(key, path)
+    if not wanted:
+        return unknown
+    with tempfile.TemporaryDirectory(prefix="kstyleui-paths-") as temporary:
+        found = tool(sorted(wanted), temporary)
+        for key, path in wanted.items():
+            blp = found.get(key)
+            if blp is None:
+                unknown.append(path)
+                continue
+            png = paths_dir / f"{key}.png"
+            png.parent.mkdir(parents=True, exist_ok=True)
+            decode(blp, png)
+    return unknown
+
+
 def tacttool(file_id, blp, cache_dir, tools=DEFAULT_TOOLS, wow_dir=DEFAULT_WOW_DIR):
     """Extract one file by ID with TACTTool, which reads the game folder only; its own cache goes under cache_dir."""
     tool = Path(tools) / "casc" / "TACTTool" / "TACTTool"
@@ -213,11 +311,11 @@ def export_tables(out_dir, tools=DEFAULT_TOOLS, wow_dir=DEFAULT_WOW_DIR):
     (Path(out_dir) / "BUILD").write_text(build + "\n", encoding="utf-8")
 
 
-def main(argv=None, export=None, tool=None, decode=None):
-    parser = argparse.ArgumentParser(description="Build or extend the renderer's atlas cache from the game client, read-only.")
-    parser.add_argument("command", choices=("build", "fetch"), help="build: export the tables and write the map, then fetch; fetch: fetch sheets into an existing cache")
-    parser.add_argument("names", nargs="*", help="atlas names whose sheets to fetch")
-    parser.add_argument("--scan", action="store_true", help="also fetch every atlas the scene JSON files in Tools/render/out mention")
+def main(argv=None, export=None, tool=None, decode=None, tool_paths=None):
+    parser = argparse.ArgumentParser(description="Build or extend the renderer's texture cache from the game client, read-only.")
+    parser.add_argument("command", choices=("build", "fetch", "paths"), help="build: export the tables and write the map, then fetch; fetch: fetch sheets into an existing cache; paths: fetch textures named by file path")
+    parser.add_argument("names", nargs="*", help="atlas names whose sheets to fetch, or with paths the texture paths")
+    parser.add_argument("--scan", action="store_true", help="also fetch every atlas, and every texture path, the scene JSON files in Tools/render/out report missing")
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE, help="the cache folder (default ~/.local/share/wow-dev/atlas)")
     parser.add_argument("--tools", type=Path, default=DEFAULT_TOOLS, help="folder install-casc-tools.sh filled")
     parser.add_argument("--wow-dir", type=Path, default=DEFAULT_WOW_DIR, help="game folder that holds .build.info")
@@ -227,8 +325,21 @@ def main(argv=None, export=None, tool=None, decode=None):
     tsv = cache / "atlas.tsv"
     export = export or (lambda out_dir: export_tables(out_dir, args.tools, args.wow_dir))
     tool = tool or (lambda file_id, blp: tacttool(file_id, blp, cache, args.tools, args.wow_dir))
+    tool_paths = tool_paths or (lambda keys, out_dir: tacttool_paths(keys, out_dir, cache, args.tools, args.wow_dir))
     decode = decode or decode_blp
+    scenes = glob.glob(SCENE_JSON) if args.scan else []
+    code = 0
     try:
+        if args.command == "paths":
+            paths = list(dict.fromkeys(args.names))
+            known = {path_key(path) for path in paths}
+            paths.extend(sorted(scan_paths(scenes) - known))
+            unknown = fetch_paths(paths, cache / "paths", tool_paths, decode)
+            print(f"atlas: {len(paths) - len(unknown)} texture path(s) have their PNG in {cache / 'paths'}")
+            if unknown:
+                print("atlas: the client has no file at: " + ", ".join(unknown), file=sys.stderr)
+                code = 1
+            return code
         if args.command == "build":
             export(cache / "db2")
             atlas_map = build_map(cache / "db2")
@@ -241,17 +352,24 @@ def main(argv=None, export=None, tool=None, decode=None):
             atlas_map = read_tsv(tsv)
         names = list(dict.fromkeys(args.names))
         if args.scan:
-            names.extend(sorted(scan_names(glob.glob(SCENE_JSON)) - {name.lower() for name in names}))
+            names.extend(sorted(scan_names(scenes) - {name.lower() for name in names}))
         unknown = fetch(atlas_map, names, cache / "textures", tool, decode)
+        fetched = len(names) - len(unknown)
+        print(f"atlas: {fetched} atlas(es) have their sheet in {cache / 'textures'}")
+        if unknown:
+            print("atlas: not in the client's atlas tables: " + ", ".join(unknown), file=sys.stderr)
+            code = 1
+        if args.scan:
+            missing = sorted(scan_paths(scenes))
+            unknown_paths = fetch_paths(missing, cache / "paths", tool_paths, decode)
+            print(f"atlas: {len(missing) - len(unknown_paths)} texture path(s) have their PNG in {cache / 'paths'}")
+            if unknown_paths:
+                print("atlas: the client has no file at: " + ", ".join(unknown_paths), file=sys.stderr)
+                code = 1
     except (OSError, ValueError, RuntimeError) as error:
         print(f"atlas: {error}", file=sys.stderr)
         return 1
-    fetched = len(names) - len(unknown)
-    print(f"atlas: {fetched} atlas(es) have their sheet in {cache / 'textures'}")
-    if unknown:
-        print("atlas: not in the client's atlas tables: " + ", ".join(unknown), file=sys.stderr)
-        return 1
-    return 0
+    return code
 
 
 if __name__ == "__main__":

@@ -182,6 +182,53 @@ do
 	assert(b.health.width >= 1 and b.health.height >= 1, "a tiny frame still has a bar of at least one unit")
 end
 
+-- The status icons share the top band and the texts keep out of it: the role icon at the top right, the leader
+-- on the top-left corner (over the portrait's corner when there is one), the marker centred on the top edge and
+-- ending at the name row;
+-- a name row ends before the role icon, and a health text on the bar narrows to the span between the icons
+-- only when its line reaches up into the band.
+do
+	local icons = { iconSize = 14, role = true, leader = true, marker = true }
+	local b = Geo.Button(230, 46, { portrait = true, power = true, powerHeight = 4, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
+	eq(b.icons.size, 14, "the party icons keep their size")
+	rect(b.icons.role, 214, 2, 14, 14, "party role icon")
+	rect(b.icons.leader, 0, -2, 14, 14, "party leader icon over the portrait corner")
+	rect(b.icons.marker, 108, -10, 14, 14, "party marker on the top edge")
+	rect(b.name, 50, 4, 162, 13, "the party name row ends a gap before the role icon")
+	eq(b.healthText.right, 212, "the party health text ends with the name row")
+	eq(b.healthText.top, 4, "on the name row")
+
+	b = Geo.Button(230, 46, { portrait = true, power = true, powerHeight = 4, nameAbove = true, nameHeight = 13, iconSize = 14, role = false, leader = true, marker = true })
+	rect(b.name, 50, 4, 176, 13, "with role icons off the name row keeps the bar's width")
+	eq(b.healthText.right, 226, "and the health text ends at the bar")
+
+	b = Geo.Button(120, 46, { portrait = false, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
+	rect(b.icons.leader, 2, -2, 14, 14, "without a portrait the leader icon sits on the top left corner, a gap in")
+	rect(b.name, 18, 4, 84, 13, "and the name row runs from it to the role icon")
+
+	b = Geo.Button(72, 40, { portrait = false, power = false, nameAbove = false, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
+	rect(b.icons.role, 58, 2, 12, 12, "raid role icon")
+	rect(b.icons.marker, 30, -8, 12, 12, "raid marker ends at the bar's top")
+	eq(b.healthText.center, 36, "the raid health text centres on the bar")
+	eq(b.healthText.width, nil, "at its natural width, since its line sits below the icons")
+	eq(b.healthText.top, 20, "from the bar's middle")
+
+	b = Geo.Button(40, 16, { portrait = false, power = false, nameAbove = false, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
+	eq(b.icons.size, 10, "three icons fit across a 40-unit frame at 10 units")
+	rect(b.icons.role, 28, 2, 10, 10, "small raid role icon")
+	rect(b.icons.leader, 2, -2, 10, 10, "small raid leader icon")
+	rect(b.icons.marker, 15, -6, 10, 10, "small raid marker")
+	eq(b.healthText.width, 12, "a health text that reaches the icon band narrows to the span between the icons")
+	eq(b.healthText.center, 20, "centred between them")
+
+	b = Geo.Button(40, 16, { portrait = true, power = true, powerHeight = 4, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
+	rect(b.portrait, 0, 0, 16, 16, "a 40 by 16 party frame keeps its portrait")
+	eq(b.nameInside, true, "and puts the name on the bar")
+	eq(b.healthText.width, 6, "the health text fits between the bar's left and the role icon")
+	eq(b.healthText.center, 23, "centred in that span")
+	assert(icons.iconSize == 14, "the shared options were not changed")
+end
+
 -- Debuff icons: where the container sits and which way it fills.
 do
 	local point, rel, x, y = Geo.AuraAnchor("BOTTOMLEFT", "RIGHT", "UP", 2, 3)
