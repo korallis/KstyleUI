@@ -151,11 +151,9 @@ def portraits_path(flag, environ):
     return flag or environ.get(PORTRAITS_ENV) or PORTRAITS
 
 
-def models_path(argv, environ):
-    """The models folder: --models on the command line, then KSTYLEUI_MODELS, then the handoff folder's."""
-    if "--models" in argv:
-        return argv[argv.index("--models") + 1]
-    return environ.get(MODELS_ENV) or MODELS
+def models_path(flag, environ):
+    """The models folder: the parsed --models value, then KSTYLEUI_MODELS, then the handoff folder's."""
+    return flag or environ.get(MODELS_ENV) or MODELS
 
 
 def write_models(out_dir, models):
@@ -275,7 +273,7 @@ def main(argv=None):
     parser.add_argument("--quiet", action="store_true", help="say nothing when the mockup is missing")
     args = parser.parse_args(argv)
     portraits = portraits_path(args.portraits, os.environ)
-    models = models_path(argv if argv is not None else sys.argv[1:], os.environ)
+    models = models_path(args.models, os.environ)
     if not os.path.exists(args.mockup):
         # The class portraits and models do not need the mockup; the other stand-ins fall back to flat colours.
         if pillow():

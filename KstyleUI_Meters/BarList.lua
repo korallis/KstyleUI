@@ -123,6 +123,7 @@ Split.__index = Split
 
 function Split:Clear()
 	self.used = 0
+	self.noted = false
 	for _, line in ipairs(self.lines) do
 		line.frame:Hide()
 	end
@@ -147,6 +148,7 @@ end
 
 function Split:SetNote(text)
 	Widgets.SetText(self.note, text)
+	self.noted = true
 	self.note:Show()
 end
 
@@ -172,7 +174,7 @@ local function SplitStyle(list, split)
 	ns.ApplyFont(split.note, section)
 end
 
-local function PlaceSplit(list, split, row)
+local function LayoutSplit(list, split, shown, note)
 	local panel = list.panel
 	local pad = split.chrome:Inset()
 	local gap = list.gap
@@ -183,48 +185,86 @@ local function PlaceSplit(list, split, row)
 	local frame = split.frame
 	for i = 1, split.used do
 		local entry = split.lines[i]
-		entry.frame:ClearAllPoints()
-		entry.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
-		entry.frame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
-		entry.frame:SetHeight(line)
-		entry.right:ClearAllPoints()
-		entry.right:SetPoint("TOPRIGHT", entry.frame, "TOPRIGHT", 0, 0)
-		entry.right:SetHeight(line)
-		entry.left:ClearAllPoints()
-		entry.left:SetPoint("TOPLEFT", entry.frame, "TOPLEFT", 0, 0)
-		entry.left:SetPoint("RIGHT", entry.right, "LEFT", -gap, 0)
-		entry.left:SetHeight(line)
-		y = y + line + step
+		if i <= shown then
+			entry.frame:ClearAllPoints()
+			entry.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
+			entry.frame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
+			entry.frame:SetHeight(line)
+			entry.right:ClearAllPoints()
+			entry.right:SetPoint("TOPRIGHT", entry.frame, "TOPRIGHT", 0, 0)
+			entry.right:SetHeight(line)
+			entry.left:ClearAllPoints()
+			entry.left:SetPoint("TOPLEFT", entry.frame, "TOPLEFT", 0, 0)
+			entry.left:SetPoint("RIGHT", entry.right, "LEFT", -gap, 0)
+			entry.left:SetHeight(line)
+			entry.frame:Show()
+			y = y + line + step
+		else
+			entry.frame:Hide()
+		end
 	end
-	if split.note:IsShown() then
+	split.note:SetShown(note)
+	if note then
 		split.note:ClearAllPoints()
 		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
 		split.note:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
 		split.note:SetHeight(line)
 		y = y + line + step
 	end
-	local height = Widgets.Snap(panel, y - step + pad)
-	local pitch = list.rowHeight + Spacing(list)
-	local covered = 1
-	if pitch > 0 then
-		covered = max(1, math.ceil((height + gap) / pitch))
-		height = covered * pitch - gap
+	return Widgets.Snap(panel, y - step + pad)
+end
+
+local function Pitches(space, pitch)
+	if not space or pitch <= 0 then
+		return 0
 	end
-	frame:SetHeight(height)
-	local rowBottom, panelBottom = Logic.Plain(row.frame:GetBottom()), Logic.Plain(panel:GetBottom())
+	return max(0, floor(space / pitch + 0.001))
+end
+
+local function PlaceSplit(list, split, row)
+	local panel = list.panel
+	local gap = list.gap
+	local pitch = list.rowHeight + Spacing(list)
+	local shown, note = split.used, split.noted
+	local height = LayoutSplit(list, split, shown, note)
+	local need = pitch > 0 and max(1, math.ceil((height + gap) / pitch)) or 1
+	local rowBottom, rowTop = Logic.Plain(row.frame:GetBottom()), Logic.Plain(row.frame:GetTop())
+	local panelBottom, panelTop = Logic.Plain(panel:GetBottom()), Logic.Plain(panel:GetTop())
 	local holderBottom, panelHeight = Logic.Plain(list.holder:GetBottom()), Logic.Plain(panel:GetHeight())
 	local below = true
-	if rowBottom and panelBottom then
-		local need = rowBottom - gap - height - list.pad
-		if need < panelBottom then
-			if holderBottom and panelHeight and need >= holderBottom then
-				panel:SetHeight(panelHeight + (panelBottom - need))
+	if rowBottom and rowTop and panelBottom and panelTop then
+		local floorAt = panelBottom + list.pad
+		local roomBelow = Pitches(rowBottom - floorAt, pitch)
+		local roomGrown = holderBottom and Pitches(rowBottom - (holderBottom + list.pad), pitch) or roomBelow
+		local roomAbove = Pitches(panelTop - Widgets.Snap(panel, list:Top()) - rowTop, pitch)
+		if need <= roomBelow then
+			below = true
+		elseif need <= roomGrown then
+			below = true
+			panel:SetHeight(panelHeight + (floorAt - (rowBottom - need * pitch)))
+			split.grew = true
+		elseif need <= roomAbove then
+			below = false
+		else
+			below = roomGrown >= roomAbove
+			local room = max(1, below and roomGrown or roomAbove)
+			if below and roomGrown > roomBelow then
+				panel:SetHeight(panelHeight + (floorAt - (rowBottom - room * pitch)))
 				split.grew = true
-			else
-				below = false
 			end
+			while (note or shown > 1) and math.ceil((height + gap) / pitch) > room do
+				if note then
+					note = false
+				else
+					shown = shown - 1
+				end
+				height = LayoutSplit(list, split, shown, note)
+			end
+			need = min(room, max(1, math.ceil((height + gap) / pitch)))
 		end
 	end
+	local frame = split.frame
+	frame:SetHeight(need * pitch - gap)
 	frame:ClearAllPoints()
 	if below then
 		frame:SetPoint("TOPLEFT", row.frame, "BOTTOMLEFT", 0, -gap)
@@ -235,7 +275,7 @@ local function PlaceSplit(list, split, row)
 	end
 	split.chrome:Restyle()
 	local hidden = split.hidden
-	for n = 1, covered do
+	for n = 1, need do
 		local other = list.rows[below and row.index + n or row.index - n]
 		if other and other.frame:IsShown() then
 			other.frame:Hide()

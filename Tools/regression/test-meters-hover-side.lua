@@ -87,6 +87,44 @@ for _, where in ipairs({ "RIGHT", "LEFT" }) do
 	assert(s6.top <= p.top + 0.01, where .. ": inside the card's top")
 end
 
+-- A middle row of a full card has no room for the whole split on either side: the split takes the side with
+-- more room, lists what fits there (the count line goes first, then the last spells), never covers the cap or
+-- leaves the card, and never hides the row the pointer is on.
+for _, i in ipairs({ 3, 4 }) do
+	list.holder:ClearAllPoints()
+	list.holder:SetSize(318, 190)
+	list.holder:SetPoint("LEFT", root, "LEFT", 28, 0)
+	panel:ClearAllPoints()
+	panel:SetPoint("TOPLEFT", list.holder, "TOPLEFT", 0, 0)
+	panel:SetPoint("TOPRIGHT", list.holder, "TOPRIGHT", 0, 0)
+	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
+	env.RunTimers()
+	assert(list.count == 6 and list.rows[6].frame:IsShown(), "a full card of six rows")
+	local row = list.rows[i].frame
+	row._scripts.OnEnter(row)
+	env.RunTimers()
+	local split = list.split
+	assert(split.frame:IsShown(), "row " .. i .. " opens its split")
+	local s, p = Rect(split.frame), Rect(panel)
+	local contentTop = p.top - K.Widgets.Snap(panel, list:Top())
+	assert(s.top <= contentTop + 0.01, "row " .. i .. ": the split stays under the cap: " .. s.top .. " vs " .. contentTop)
+	assert(s.bottom >= p.bottom + list.pad - 0.01, "row " .. i .. ": and inside the card's bottom: " .. s.bottom .. " vs " .. p.bottom)
+	assert(p.bottom >= Rect(list.holder).bottom - 0.01, "row " .. i .. ": the card grows no further than its holder")
+	assert(row:IsShown(), "row " .. i .. ": the hovered row stays shown")
+	local listed = 0
+	for _, line in ipairs(split.lines) do
+		if line.frame:IsShown() then
+			listed = listed + 1
+		end
+	end
+	assert(listed >= 1 and listed <= 3, "row " .. i .. ": lists what fits: " .. listed)
+	row._scripts.OnLeave(row)
+	env.RunTimers()
+	for j = 1, list.count do
+		assert(list.rows[j].frame:IsShown(), "row " .. i .. ": every row shows again after: " .. j)
+	end
+end
+
 -- A card that hugs three rows grows to hold the split under its first row while the split is open, instead of
 -- the split leaving the glass, and hugs its rows again when it closes. A refresh of the rows while the split is
 -- open keeps the covered rows hidden and the card grown.

@@ -167,9 +167,9 @@ class StandinsTest(unittest.TestCase):
         os.remove(models / "warrior.png")
         self.assertEqual(self.standins.write_models(str(out), str(models)), [])
         self.assertFalse((out / "model-player-warrior.png").exists(), "a model the folder no longer holds is removed")
-        self.assertEqual(self.standins.models_path(["--models", "/tmp/m"], {}), "/tmp/m")
-        self.assertEqual(self.standins.models_path([], {"KSTYLEUI_MODELS": "/tmp/env"}), "/tmp/env")
-        self.assertTrue(self.standins.models_path([], {}).endswith("scenery/models"))
+        self.assertEqual(self.standins.models_path("/tmp/m", {}), "/tmp/m")
+        self.assertEqual(self.standins.models_path(None, {"KSTYLEUI_MODELS": "/tmp/env"}), "/tmp/env")
+        self.assertTrue(self.standins.models_path(None, {}).endswith("scenery/models"))
 
     def test_main_without_a_mockup_is_quiet_and_succeeds(self):
         code = self.standins.main(["--mockup", str(self.root / "missing.png"), "--out", str(self.root / "out"), "--quiet"])

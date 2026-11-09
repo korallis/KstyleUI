@@ -63,8 +63,9 @@ end
 
 -- globs(opts) -> fails when an allowlist glob line matched a scene this test guarded and covered nothing in any of
 -- them (Guard.Stale): a fixed defect leaves the list. Call it after every scene of a test has gone through guard().
--- opts.partial says the test builds one slice of the gallery, so a line whose glob is every scene (*) is judged by
--- the slice that holds the scene it covers, not by this one.
+-- opts.partial says the test builds one slice of the gallery, so a line whose glob is every scene (*) is not judged
+-- by it: no slice holds every scene such a line can cover. The Lumen test (both HUD states) and shoot.sh --strict
+-- on a publish run judge those lines over their whole run.
 function M.globs(opts)
 	local Guard = dofile("Tools/render/guard.lua")
 	local allow = Guard.LoadAllow()
