@@ -322,7 +322,7 @@ do
 	})
 	local bar = ns.bars.stance
 	assert(bar.buttons[1]:IsShown() and bar.buttons[2]:IsShown() and not bar.buttons[3]:IsShown(), "two forms, two buttons")
-	assert(near(bar.holder:GetWidth(), 2 * 30 + 3), "the bar fits its forms")
+	assert(near(bar.holder:GetWidth(), 5 * 30 + 4 * 3) and near(bar.holder:GetHeight(), 30), "two rows of five keep a full row's width, the two forms on one row")
 	assert(bar.buttons[1]:GetAttribute("type") == "spell" and bar.buttons[1]:GetAttribute("spell") == 2457)
 	assert(bar.buttons[1].selected and not bar.buttons[2].selected, "the active form is selected")
 	assert(AB.PressKey(env, "F2") and AB.Used(env) == "spell71")

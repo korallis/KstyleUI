@@ -192,7 +192,7 @@ local HANDS = set({
 -- The combat cluster on the hands: the sigil, the focus and its target, the target of target, and in Tank the threat card.
 local CLUSTER = set({ "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget" })
 -- What a player turns on stacks over the cluster: bar 2, then the plate cast bars (Healer: bar 2 at the top, the casts stay).
-local EXTRAS = set({ "actionbars.bar2", "unitframes.castbar.player", "unitframes.castbar.target" })
+local EXTRAS = set({ "unitframes.castbar.player", "unitframes.castbar.target" })
 -- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster to the top.
 local CLEAR = { half = 260, bottom = 574, top = 1080 - 28 }
 -- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer half, never past it.
@@ -312,14 +312,12 @@ for _, name in ipairs(names) do
 				-- Healer mirrors the group frames: your combat text rises right of the cast bars as the group frames stand
 				-- left of them, the same 152 off the centre line.
 				assert(math.abs(r.left - (mid + HEALER.right)) < 1e-6, label .. ": your combat text mirrors the group frames right of the cast bars")
-			elseif healer and key == "actionbars.bar2" then
-				assert(r.bottom >= HEIGHT / 2, label .. ": " .. key .. " waits at the top centre, over the group frames")
 			elseif EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
 			end
-			if (HANDS[key] or CLUSTER[key] or EXTRAS[key]) and not (healer and key == "actionbars.bar2") then
+			if HANDS[key] or CLUSTER[key] or EXTRAS[key] then
 				assert(r.top <= CLEAR.bottom, label .. ": " .. key .. " sits under the clear centre with the hands")
 			end
 		end
@@ -327,7 +325,7 @@ for _, name in ipairs(names) do
 		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns with the swing line on them.
 		local xp, bar1, vitals = rect("databars.xp"), rect("actionbars.bar1"), rect("unitframes.player")
 		local essential, utility, cast = rect("cooldowns.essential"), rect("cooldowns.utility"), rect("unitframes.castbar.player")
-		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing", "unitframes.target" }) do
+		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing", "unitframes.target" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
 		assert(xp.bottom - 34 >= 14 and xp.bottom - 34 <= 20, label .. ": the XP line sits 34 units up with room for its caption under it")
@@ -374,10 +372,10 @@ for _, name in ipairs(names) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
 		end
 
-		-- What a player turns on: bar 2 stands Layouts.SIGIL_CLEAR (16) over the cluster, clear of the target's sigil
-		-- cap (round 4, Opus #6: at 8 it crowded the target's name in the class renders), and the plate cast bars over
-		-- it, in every layout at the same place; in Healer, whose group frames stand on the cluster's left, bar 2 alone
-		-- waits at the top centre and the cast bars keep their place in the cluster (round 3, Muse #2).
+		-- What a player turns on: bar 2 is a column of twelve beside bars 3 to 6, never over the character (round 5,
+		-- Opus #2: it once stood across the screen's centre over the sigil): DPS and Tank stand it a rail gap in from the
+		-- left rail, bars 3 to 6 beside it; Healer stands it under bar 3 at the right. The plate cast bars keep their place over the cluster,
+		-- Layouts.SIGIL_CLEAR and one bar's room over the sigil cap (round 4, Opus #6).
 		local SIGIL = Layouts.SIGIL_CLEAR
 		assert(type(SIGIL) == "number" and SIGIL >= 16, "Layouts names the gap a bar keeps over the sigil cap")
 		local bar2, targetCast = rect("actionbars.bar2"), rect("unitframes.castbar.target")
@@ -390,14 +388,16 @@ for _, name in ipairs(names) do
 				end
 			end
 		end
+		assert(cast.bottom - clusterTop == SIGIL + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster")
+		local bar3 = rect("actionbars.bar3")
+		assert(bar2.w == bar3.w and bar2.h == bar3.h, label .. ": bar 2 is a column like bars 3 to 6")
 		if healer then
-			assert(bar2.top == HEIGHT - MARGIN, label .. ": bar 2 waits at the top centre")
-			assert(cast.bottom - clusterTop == SIGIL + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster, where DPS keeps them")
+			assert(bar2.left == bar3.left and bar3.bottom - bar2.top == 16, label .. ": bar 2 stands a rail gap under bar 3")
 			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
 				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
 			end
 		else
-			assert(bar2.bottom - clusterTop == SIGIL and cast.bottom - bar2.top == 8 and targetCast.bottom - cast.top == 8, label .. ": bar 2 and the plate cast bars stack over the cluster")
+			assert(bar2.top == bar3.top and bar2.left == BAND and rect("actionbars.bar5").left - bar2.right == 3, label .. ": bar 2 is the column nearest the left rail, bars 3 to 6 beside it")
 		end
 
 		-- The boss column heads the centre's right edge in DPS and Tank, 16 in from the right rail; your combat text
@@ -496,7 +496,7 @@ end
 -- Footprints: the 38-unit module for the hands and what S2 to S4 shipped for the frames and the rail cards -----------
 local FOOTPRINTS = {
 	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
-	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
+	["actionbars.bar2"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar3"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },

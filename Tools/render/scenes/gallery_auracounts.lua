@@ -259,7 +259,7 @@ local function Cooldowns(load, k, frames, path)
 		end
 		frames:Add(env, buffs.holder, {
 			name = "auracounts_buffs_" .. load.key .. "_mirror", title = "Tracked buffs as KstyleUI icons, " .. load.label, grade = "button", reference = "bufficons",
-			caption = string.format("%d tracked buffs and %d tracked bars on the KstyleUI icons path: all six sockets show a buff and a +N chip stands one socket to the left, away from the cluster; both bars show and a +N more bar stands on top. Point at a chip to list the rest with their time left.", load.buffs, load.bars),
+			caption = string.format("%d tracked buffs and %d tracked bars on the KstyleUI icons path: all six sockets show a buff and a +N chip stands one socket to the left, away from the cluster; both bars show and a +N bar stands on top. Point at a chip to list the rest with their time left.", load.buffs, load.bars),
 			match = "Every socket and bar stays readable; the chips grow the group by one socket on its open side.",
 			rect = Gallery.Union(env, shown),
 			pad = 10,
@@ -294,7 +294,10 @@ return Common.Run(function()
 	local scenes = {}
 	for k, load in ipairs(LOADS) do
 		scenes[#scenes + 1] = Frames(load, k, frames)
-		scenes[#scenes + 1] = Cooldowns(load, k, frames, "auto")
+		-- The high load's automatic frame is gallery_tracked.lua's: the column where Apply puts it, among the frames.
+		if load.key ~= "high" then
+			scenes[#scenes + 1] = Cooldowns(load, k, frames, "auto")
+		end
 		scenes[#scenes + 1] = Cooldowns(load, k, frames, "mirror")
 	end
 	local scene = Scene.Merge(scenes)

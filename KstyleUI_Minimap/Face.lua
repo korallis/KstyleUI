@@ -160,7 +160,7 @@ function Face:SetZone(text, pvpType)
 	if issecretvalue and issecretvalue(text) then
 		self.zone:SetText(text)
 	elseif type(text) == "string" then
-		self.zone:SetText(text:upper())
+		self.zone:SetText(K.Locale.Upper(text))
 	else
 		self.zone:SetText("")
 	end

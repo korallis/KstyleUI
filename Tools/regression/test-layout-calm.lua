@@ -55,6 +55,9 @@ do
 	assert(Calm.SOFT >= 0.6, "a card you read never dims below 60% (the judges' floor)")
 	-- Round 3 (Muse #3): at 30% the readout ghosted to illegible mid-pull; it keeps a legible floor instead.
 	assert(Calm.FLOOR == 0.65, "the readout card rests at a legible 65%")
+	-- Round 5, Muse 6e: objective lines over bright scenery were the HUD's hardest read at 75%; the story card (the
+	-- quest tracker and the guide) rests at 90%, above the chat card, whose darker glass already carries its text.
+	assert(Calm.STORY == 0.9 and Calm.STORY > Calm.SOFT, "the story card rests at 90%, above the other read cards")
 	local cards = {}
 	for _, key in ipairs(Calm.CARDS) do
 		cards[key] = true
@@ -232,13 +235,13 @@ do
 	local tracker, guide = env.ObjectiveTrackerFrame, env.RXPFrame
 	env.SetCombat(true)
 	W.Settle(env)
-	assert(near(tracker:GetAlpha(), 0.75) and near(guide:GetAlpha(), 0.75), "the tracker and the guide are read mid-pull: they dim only to 75%")
+	assert(near(tracker:GetAlpha(), 0.9) and near(guide:GetAlpha(), 0.9), "the tracker and the guide are read mid-pull: they dim only to 90%")
 	tracker._mouseOver = true
 	Poll(env)
 	assert(near(tracker:GetAlpha(), 1), "the pointer wakes the tracker")
 	tracker._mouseOver = false
 	Poll(env)
-	assert(near(tracker:GetAlpha(), 0.75))
+	assert(near(tracker:GetAlpha(), 0.9))
 	guide:SetAlpha(0.7)
 	env.SetCombat(false)
 	Wait(env, 4)
@@ -291,10 +294,10 @@ do
 	env.SetCombat(false)
 	Wait(env, 3.2)
 	local rising = tracker:GetAlpha()
-	assert(rising > 0.75 and rising < 1, "the tracker is rising, got " .. rising)
+	assert(rising > 0.9 and rising < 1, "the tracker is rising, got " .. rising)
 	env.SetCombat(true)
 	Wait(env, 0.5)
-	assert(near(tracker:GetAlpha(), 0.75), "a pull mid-rise fades the tracker again, got " .. tracker:GetAlpha())
+	assert(near(tracker:GetAlpha(), 0.9), "a pull mid-rise fades the tracker again, got " .. tracker:GetAlpha())
 	env.SetCombat(false)
 	Wait(env, 4)
 	assert(near(tracker:GetAlpha(), 1), "and it returns after that pull")

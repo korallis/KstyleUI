@@ -12,7 +12,6 @@ local FADE_STEP = 0.05
 local FONT_MIN, FONT_MAX = 6, 24
 local COOLDOWN_TEXT = 13
 local PAGING_LETTERS = 255
-local COLUMN_BARS = { bar3 = true, bar4 = true, bar5 = true, bar6 = true }
 local ON_BY_DEFAULT = { bar1 = true, bar2 = true, pet = true, stance = true }
 
 ns.TEXTS = {
@@ -29,12 +28,13 @@ end
 
 local function BarDefaults(def)
 	local action = def.kind == "action"
+	local grid = K.Setup.Layouts.Grid(def.element) or {}
 	local out = {
 		enabled = ON_BY_DEFAULT[def.key] == true,
 		buttons = def.max,
-		rows = COLUMN_BARS[def.key] and def.max or 1,
+		rows = grid.rows or 1,
 		orientation = "HORIZONTAL",
-		growth = "RIGHTDOWN",
+		growth = grid.growth or "RIGHTDOWN",
 		size = action and ACTION_BUTTON or SMALL_BUTTON,
 		spacing = Tokens.Size("actionGap"),
 		fade = false,

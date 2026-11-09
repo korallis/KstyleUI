@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where the tracked counts fit (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target or over the focus frame), saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -15,7 +15,7 @@ local METER_WIDTH_MIN, METER_WIDTH_MAX = 200, 600
 local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
-local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 4
+local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
 local WARNING_WIDTH, WARNING_HEIGHT = 800, 100
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
@@ -23,6 +23,7 @@ local VIEWERS = {
 	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, fallback = 2, cap = 24, floor = 18 },
 }
 local TRACKED = { ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
+local SPARE = { "actionbars.bar2" }
 
 EditMode.TRACKER_LEFT = 16
 EditMode.TRACKER_TOP = 34
@@ -116,6 +117,10 @@ local function Others(name, rw, rh)
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
 	end
+	local slot = Layouts.Slot(name)
+	if slot then
+		out[#out + 1] = { l = slot.x, b = slot.y, r = slot.x + slot.width, t = slot.y + slot.height }
+	end
 	return out
 end
 
@@ -164,7 +169,11 @@ local function Spots(group, boxes, icons)
 		list[#list + 1] = { x = tot.l, y = utility.t + VIEWER_CLEAR, width = width, gaps = { 2 } }
 	end
 	if focus then
-		list[#list + 1] = { x = focus.l, y = focus.t + FOCUS_CLEAR, width = width, gaps = { 2 } }
+		list[#list + 1] = { x = focus.l, y = focus.t + FOCUS_CLEAR, width = width, trim = true, gaps = { 2 } }
+	end
+	local rail = boxes["meters.damage"]
+	if rail then
+		list[#list + 1] = { x = rail.l - VIEWER_CLEAR, y = slot.b, right = true, width = width, trim = true, gaps = { 2 } }
 	end
 	return list
 end
@@ -172,10 +181,11 @@ end
 local function Try(view, spot, n, scale, gap, k, others, rw, rh)
 	local item = (spot.width and view.height or view.width) * scale / k
 	local length = n * item + (n - 1) * gap / k
-	local thick = item
+	local thick, least = item, item
 	if spot.width then
 		local base = view.width * scale / k
-		thick = Clamp(spot.width, base * BAR_WIDTH_MIN / 100, base * BAR_WIDTH_MAX / 100)
+		least = base * BAR_WIDTH_MIN / 100
+		thick = Clamp(spot.width, least, base * BAR_WIDTH_MAX / 100)
 	end
 	local rect = Shape(spot, length, thick)
 	for _ = 1, SLIDES do
@@ -183,11 +193,14 @@ local function Try(view, spot, n, scale, gap, k, others, rw, rh)
 		if ok then
 			return rect
 		end
-		if not (spot.slide and hit and hit.l < rect.r and hit.l > rect.l - item) then
+		if spot.trim and hit and hit.r + VIEWER_CLEAR > rect.l and hit.r + VIEWER_CLEAR < rect.r - least then
+			rect.l = hit.r + VIEWER_CLEAR
+		elseif spot.slide and hit and hit.l < rect.r and hit.l > rect.l - item then
+			local shift = rect.r - (hit.l - VIEWER_CLEAR)
+			rect.l, rect.r = rect.l - shift, rect.r - shift
+		else
 			return nil
 		end
-		local shift = rect.r - (hit.l - VIEWER_CLEAR)
-		rect.l, rect.r = rect.l - shift, rect.r - shift
 	end
 end
 
@@ -239,15 +252,12 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 		spot, percent, gap, rect = Search(view, spots, n, k, others, rw, rh, 0)
 	end
 	if not spot then
-		local most
-		spot, most, rect = Most(view, spots, n, k, others, rw, rh)
-		percent, gap = VIEWER_SIZE_MIN, spot.gaps[#spot.gaps]
+		local _, most = Most(view, spots, n, k, others, rw, rh)
 		notes[#notes + 1] = { group = group, count = n, fits = most }
+		return nil
 	end
-	if rect then
-		others[#others + 1] = rect
-		chosen[group] = { spot = spot, rect = rect }
-	end
+	others[#others + 1] = rect
+	chosen[group] = { spot = spot, rect = rect }
 	local settings = {}
 	if setting.IconSize ~= nil then
 		settings[setting.IconSize] = (percent - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP
@@ -356,8 +366,41 @@ local function Places(name, story, notes)
 		for key in pairs(Layouts.Get(name)) do
 			boxes[key] = Box(name, key, rw, rh)
 		end
-		for _, group in ipairs({ "buffs", "bars" }) do
-			places[#places + 1] = Viewer(group, k, rw, rh, boxes, others, notes, chosen)
+		local function Arrange(spare, order)
+			local list, out, told, picks = {}, {}, {}, {}
+			for i, box in ipairs(others) do
+				list[i] = box
+			end
+			for _, key in ipairs(spare and SPARE or {}) do
+				list[#list + 1] = boxes[key]
+			end
+			for _, group in ipairs(order) do
+				out[#out + 1] = Viewer(group, k, rw, rh, boxes, list, told, picks)
+			end
+			return out, told, picks
+		end
+		local viewers, told
+		for _, spare in ipairs({ true, false }) do
+			for _, order in ipairs({ { "buffs", "bars" }, { "bars", "buffs" } }) do
+				local out, refused, picked = Arrange(spare, order)
+				if #refused == 0 then
+					viewers, told, chosen = out, refused, picked
+					break
+				end
+			end
+			if viewers then
+				break
+			end
+		end
+		if not viewers then
+			viewers, told, chosen = Arrange(false, { "buffs", "bars" })
+		end
+		for _, place in ipairs(viewers) do
+			places[#places + 1] = place
+		end
+		for _, note in ipairs(told) do
+			log("Edit Mode: " .. note.count .. " tracked " .. note.group .. " fit nowhere clear; Blizzard's viewer keeps the place it had")
+			notes[#notes + 1] = note
 		end
 	end
 	places[#places + 1] = Warning(name, k, rw, rh, Others(name, rw, rh), chosen)
@@ -444,14 +487,19 @@ local function Target(all, presets, layoutName, active)
 end
 
 local NOTE = {
-	buffs = L["%d tracked buffs don't fit around your action bars; %d do. In the Cooldown Manager, untrack the ones you can spare."],
-	bars = L["%d tracked bars don't fit around your action bars; %d do. In the Cooldown Manager, untrack the ones you can spare."],
+	buffs = L["%d tracked buffs don't fit beside your frames (%d would), so they stay where they were."],
+	bars = L["%d tracked bars don't fit beside your frames (%d would), so they stay where they were."],
 }
+local STEP = L["Untrack some in the Cooldown Manager and press Try again, or move them in Edit Mode."]
 
 local last = { state = "none", notes = {} }
 
 function EditMode.Note(note)
 	return NOTE[note.group]:format(note.count, note.fits)
+end
+
+function EditMode.Step()
+	return STEP
 end
 
 function EditMode.Last()
@@ -464,7 +512,7 @@ end
 
 local function Tell(notes)
 	for _, note in ipairs(notes) do
-		local line = EditMode.Note(note)
+		local line = EditMode.Note(note) .. " " .. STEP
 		log("Edit Mode: " .. line)
 		ns.Print(line)
 	end

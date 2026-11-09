@@ -420,6 +420,14 @@ function modules.actionbars(opts)
 		return env._time
 	end
 	AB.Enable(env, K)
+	-- Each bar's shape as Layout > Apply writes it for the layout (rows and growth), so the pet and stance bars draw
+	-- the footprint the layout reserves for them.
+	for _, entry in ipairs(K.Setup.Layouts.Settings(opts.layout or "DPS")) do
+		if entry.module == "ActionBars" and (entry.key:find("%.rows$") or entry.key:find("%.growth$")) then
+			K.Options.Write("ActionBars", entry.key, entry.value)
+		end
+	end
+	env.RunTimers()
 	for i = 1, 12 do
 		if bar1[i] then
 			env._game.slots[i] = { texture = bar1[i], type = "spell", id = 1000 + i }
@@ -472,9 +480,32 @@ function Hud.Cooldowns(spec)
 	return out
 end
 
+-- Tracked(spec, counts) -> the class's spec with its tracked buffs and bars repeated up to counts ({ buffs, bars }),
+-- each repeat a little further from expiring, for scenes that show Apply's placement at a high load.
+local function Tracked(spec, counts)
+	if not counts then
+		return spec
+	end
+	local out = {}
+	for k, v in pairs(spec) do
+		out[k] = v
+	end
+	for _, group in ipairs({ "buffs", "bars" }) do
+		local list, n = {}, counts[group] or #spec[group]
+		for i = 1, n do
+			local entry = spec[group][(i - 1) % #spec[group] + 1]
+			local state = entry[3]
+			list[i] = { entry[1], entry[2], { state[1], math.min(state[1], state[2] + math.floor((i - 1) / #spec[group]) * 3) } }
+		end
+		out[group] = list
+	end
+	return out
+end
+
 function modules.cooldowns(opts)
 	local C = dofile("Tools/regression/cooldowns_env.lua")
 	local _, spec = Hud.Class(opts)
+	spec = Tracked(spec, opts.tracked)
 	local entries = Hud.Cooldowns(spec)
 	local CAT = { essential = C.CATEGORY.Essential, utility = C.CATEGORY.Utility, buffs = C.CATEGORY.TrackedBuff, bars = C.CATEGORY.TrackedBar }
 	local cooldowns, names, textures, procs = {}, {}, {}, {}
@@ -709,7 +740,7 @@ function modules.databars(opts)
 		setup = function(env)
 			shared(env, opts)
 			Common.ForceScreen(env)
-			if opts.menus then
+			if opts.menus ~= false then
 				D.Menus(env, {
 					bags = BAG_ICONS, backpack = BACKPACK, keyring = KEYRING,
 					portrait = function(texture)

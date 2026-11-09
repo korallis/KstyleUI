@@ -201,23 +201,158 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 end
 
--- Past what any arrangement holds, Apply still places every item it can at the smallest size, the setup summary
--- names the counts and offers the Cooldown Manager, and the printed line says the same.
+-- Placement is all or nothing (round 5, Astra #1: at Healer with 16 icons and 12 bars Apply reserved room for nine bars
+-- and saved a viewer holding all twelve over the target of target). From 2 tracked items up past the screen's capacity,
+-- on every preset and screen, each viewer Apply moves holds every tracked item clear of every element, the story rail
+-- and the other viewer, at no less than Edit Mode's 50%. A viewer that cannot hold them all keeps the place it had,
+-- byte for byte, and the summary names the counts with the Cooldown Manager and Edit Mode as the way out.
+
+local function Story(K, name)
+	local slot = K.Setup.Layouts.Slot(name)
+	return { slot.x, slot.y, slot.x + slot.width, slot.y + slot.height }
+end
+
+local function Same(a, b)
+	if type(a) ~= "table" or type(b) ~= "table" then
+		return a == b
+	end
+	for key, value in pairs(a) do
+		if not Same(value, b[key]) then
+			return false
+		end
+	end
+	for key in pairs(b) do
+		if a[key] == nil then
+			return false
+		end
+	end
+	return true
+end
+
+local SWEEPS = {
+	{ group = "bars", other = 16, counts = { 2, 4, 6, 8, 9, 10, 11, 12, 13, 14, 16, 20, 24, 32, 40, 60 } },
+	{ group = "buffs", other = 6, counts = { 2, 6, 10, 12, 16, 20, 24, 30, 40, 60, 80 } },
+}
+
+local placedAt, refusedAt = {}, {}
+for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
+	for _, screen in ipairs(SCREENS) do
+		for _, sweep in ipairs(SWEEPS) do
+			local state = { saved = {}, active = 1 }
+			local env, K = Boot(state, Screen(screen))
+			local counts = {}
+			K.Setup.EditMode.CountTracked(function(group)
+				return counts[group]
+			end)
+			for _, n in ipairs(sweep.counts) do
+				counts[sweep.group] = n
+				counts[sweep.group == "bars" and "buffs" or "bars"] = sweep.other
+				local before = Named(state, "KstyleUI " .. name)
+				before = before and EditModeFake.Copy(before)
+				assert(K.Setup.Apply({ layout = name, modules = {} }))
+				local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
+				local written = Named(state, "KstyleUI " .. name)
+				local icon, bar = Find(written, VIEWER, BUFF_ICON), Find(written, VIEWER, BUFF_BAR)
+				local where = string.format("%s at %s with %d icons and %d bars", name, screen.label, counts.buffs, counts.bars)
+				local refused = {}
+				for _, note in ipairs(K.Setup.EditMode.Last().notes) do
+					refused[note.group] = note
+				end
+				local iconBox = not refused.buffs and { EditModeFake.ViewerRect(icon, counts.buffs, k) }
+				local barBox = not refused.bars and { EditModeFake.ViewerRect(bar, counts.bars, k, true) }
+				local boxes = { buffs = iconBox, bars = barBox }
+				for _, group in ipairs({ "buffs", "bars" }) do
+					local entry = group == "buffs" and icon or bar
+					local index = group == "buffs" and BUFF_ICON or BUFF_BAR
+					if refused[group] then
+						local note = refused[group]
+						assert(note.count == counts[group] and note.fits < note.count, where .. ": the note names the " .. group .. " count and how many fit")
+						local old = before and Find(before, VIEWER, index) or Find(Modern(), VIEWER, index)
+						assert(Same(entry.anchorInfo, old.anchorInfo) and Same(entry.settings, old.settings), where .. ": a viewer that cannot hold every tracked " .. group .. " keeps its place and settings")
+						refusedAt[group] = math.min(refusedAt[group] or math.huge, counts[group])
+					else
+						local box = boxes[group]
+						local hits = Everything(K, name, box)
+						if Overlaps(box, Story(K, name)) then
+							hits[#hits + 1] = "the story rail"
+						end
+						assert(#hits == 0, string.format("%s: the whole %s viewer (%.1f,%.1f-%.1f,%.1f) touches %s", where, group, box[1], box[2], box[3], box[4], table.concat(hits, ", ")))
+						assert(entry.isInDefaultPosition == false, where .. ": the " .. group .. " viewer is placed")
+						local items = math.max(2, counts[group])
+						local item = group == "bars" and (box[4] - box[2] - (items - 1) * 2) / items or math.min(box[3] - box[1], box[4] - box[2])
+						assert(item >= (group == "bars" and 15 or 20) / k - 0.5, where .. ": a " .. group .. " item is at least Edit Mode's 50%")
+						placedAt[group] = math.max(placedAt[group] or 0, counts[group])
+					end
+				end
+				if not refused.buffs and not refused.bars then
+					assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
+					assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing to tell the player")
+				end
+				assert(#env._errors == 0, tostring(env._errors[1]))
+			end
+		end
+	end
+end
+assert(refusedAt.buffs and refusedAt.bars, "the sweep reaches past the screen's capacity for both viewers")
+assert(placedAt.bars >= 24 and placedAt.buffs >= 40, "and there is room for 24 bars and 40 icons somewhere")
+
+-- The reported case: Healer, 16 icons and 12 bars on the owner's screen. Both viewers fit whole, nothing is printed.
+do
+	local state = { saved = {}, active = 1 }
+	local env, K = Boot(state, OWNER)
+	K.Setup.EditMode.CountTracked(function(group)
+		return ({ buffs = 16, bars = 12 })[group]
+	end)
+	assert(K.Setup.Apply({ layout = "Healer", modules = {} }))
+	local _, _, iconBox, barBox = Viewers(K, env, state, "Healer", 16, 12)
+	assert(#Everything(K, "Healer", barBox) == 0, "the twelve bars touch nothing: " .. table.concat(Everything(K, "Healer", barBox), ", "))
+	assert(#Everything(K, "Healer", iconBox) == 0, "the sixteen icons touch nothing")
+	assert(not K.Setup.EditMode.Last().notes[1], "and the summary has no step")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Bar 2 is on by default and Apply switches it off; a player may turn it back on. Where the viewers have other room
+-- (DPS and Tank at 16 icons and 6 bars, on every screen), they keep bar 2's column free; at 12 bars on the owner's
+-- screen nothing else holds them, and the all-or-nothing sweep above holds them clear of every frame that is on.
+for _, name in ipairs({ "DPS", "Tank" }) do
+	for _, screen in ipairs(SCREENS) do
+		for _, bars in ipairs({ 6 }) do
+			local state = { saved = {}, active = 1 }
+			local env, K = Boot(state, Screen(screen))
+			K.Setup.EditMode.CountTracked(function(group)
+				return ({ buffs = 16, bars = bars })[group]
+			end)
+			assert(K.Setup.Apply({ layout = name, modules = {} }))
+			local _, _, iconBox, barBox = Viewers(K, env, state, name, 16, bars)
+			local column = { Slot(K, name, "actionbars.bar2") }
+			local where = string.format("%s at %s with 16 icons and %d bars", name, screen.label, bars)
+			assert(not Overlaps(iconBox, column) and not Overlaps(barBox, column), where .. ": the viewers keep bar 2's column free")
+			assert(not K.Setup.EditMode.Last().notes[1], where .. ": and still hold every item")
+			assert(#env._errors == 0, tostring(env._errors[1]))
+		end
+	end
+end
+
+-- Past what the screen holds, Apply moves neither viewer, the setup summary names the counts and offers the Cooldown
+-- Manager, and the printed line says the same and names Edit Mode.
 
 do
 	local state = { saved = {}, active = 1 }
 	local env, K = Boot(state, OWNER)
 	K.Setup.EditMode.CountTracked(function(group)
-		return ({ buffs = 60, bars = 40 })[group]
+		return ({ buffs = 200, bars = 120 })[group]
 	end)
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	local icon, bar = Viewers(K, env, state, "DPS", 60, 40)
+	local written = Named(state, "KstyleUI DPS")
+	local icon, bar = Find(written, VIEWER, BUFF_ICON), Find(written, VIEWER, BUFF_BAR)
 	local notes = K.Setup.EditMode.Last().notes
-	assert(#notes == 2 and notes[1].group == "buffs" and notes[1].count == 60 and notes[1].fits < 60, "the summary gets the buff count and how many fit")
-	assert(notes[2].group == "bars" and notes[2].count == 40 and notes[2].fits < 40, "and the bar count")
-	assert(Setting(icon, ICON_SIZE) == 0 and Setting(bar, ICON_SIZE) == 0, "both take Edit Mode's smallest size")
-	local line = CoreEnv.Printed(env, "60 tracked buffs")
-	assert(line and line:find("Cooldown Manager", 1, true), "the printed line says where to change it: " .. tostring(line))
+	assert(#notes == 2 and notes[1].group == "buffs" and notes[1].count == 200 and notes[1].fits < 200, "the summary gets the buff count and how many fit")
+	assert(notes[2].group == "bars" and notes[2].count == 120 and notes[2].fits < 120, "and the bar count")
+	assert(icon.isInDefaultPosition == true and bar.isInDefaultPosition == true, "neither viewer leaves the place it had")
+	assert(Same(icon.anchorInfo, Find(Modern(), VIEWER, BUFF_ICON).anchorInfo), "the icons keep the copied layout's anchor")
+	local line = CoreEnv.Printed(env, "200 tracked buffs")
+	assert(line and line:find("Cooldown Manager", 1, true) and line:find("Edit Mode", 1, true), "the printed line says where to change it: " .. tostring(line))
+	assert(K.Setup.EditMode.Last().state == "written", "the rest of the layout is still written")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

@@ -206,4 +206,53 @@ do
 	assert(#aenv._errors == 0, tostring(aenv._errors[1]))
 end
 
-print("setup collisions ok: " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each, " .. blessings .. " Blessings states")
+-- The play field stays clear of action bars (round 5, Opus #2: bar 2, on by default, stood above the sigil across the
+-- screen's centre, over the character). Every action bar a player may turn on, in every preset at 16:9 and 21:9,
+-- stays out of the centre column above the sigil's top and out of the screen's central 40% band.
+local bars = 0
+for _, name in ipairs(Layouts.Names()) do
+	local layout = Layouts.Get(name)
+	for _, aspect in ipairs({ { "16:9", 16 / 9 }, { "21:9", 21 / 9 } }) do
+		local width = HEIGHT * aspect[2]
+		local column = { width * 0.3, 0, width * 0.7, HEIGHT }
+		local band = { width * 0.3, HEIGHT * 0.3, width * 0.7, HEIGHT * 0.7 }
+		local tw, th = Layouts.Footprint(name, "unitframes.target")
+		local _, _, _, sigilTop = Layouts.Rect({ width = tw, height = th }, layout["unitframes.target"], width, HEIGHT)
+		for _, element in ipairs(Layouts.ELEMENTS) do
+			if element.key:find("^actionbars%.") then
+				local w, h = Layouts.Footprint(name, element.key)
+				local r = { Layouts.Rect({ width = w, height = h }, layout[element.key], width, HEIGHT) }
+				local where = string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f)", name, aspect[1], element.key, r[1], r[2], r[3], r[4])
+				assert(not (overlap(r, column) and r[4] > sigilTop), where .. " stands in the centre column above the sigil's top " .. sigilTop)
+				assert(not overlap(r, band), where .. " lies in the screen's central 40% band")
+				bars = bars + 1
+			end
+		end
+	end
+end
+
+-- An action bar's footprint is the grid its preset writes (round 5, Fable #2: the pet bar was planned as two rows of
+-- five while the bar drew one row of ten, so its first button sat on the chat card). Each bar the layouts place, at
+-- the rows and buttons Apply writes and the action bars' own defaults, is exactly its element's size.
+do
+	local A = dofile("Tools/regression/actionbars_env.lua")
+	local aenv, AK, ans = A.New()
+	A.Enable(aenv, AK)
+	local written = {}
+	for _, entry in ipairs(Layouts.Settings("DPS")) do
+		if entry.module == "ActionBars" then
+			written[entry.key] = entry.value
+		end
+	end
+	for _, def in ipairs(ans.BARS) do
+		local element = Layouts.Element(def.element)
+		local cfg = ans.defaults[def.key]
+		assert(written[def.key .. ".rows"] == cfg.rows, def.key .. ": Apply writes the rows the bar has by default (" .. tostring(written[def.key .. ".rows"]) .. " against " .. tostring(cfg.rows) .. ")")
+		local w, h = ans.GridSize(math.min(cfg.buttons, def.max), cfg.rows, cfg.size, cfg.spacing)
+		assert(math.abs(w - element.width) < 0.5 and math.abs(h - element.height) < 0.5,
+			string.format("%s draws %.0f x %.0f in %d rows, but its element is %d x %d", def.key, w, h, cfg.rows, element.width, element.height))
+	end
+	assert(#aenv._errors == 0, tostring(aenv._errors[1]))
+end
+
+print("setup collisions ok: " .. bars .. " action bar rects clear of the play field; " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each, " .. blessings .. " Blessings states")

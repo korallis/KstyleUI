@@ -33,7 +33,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
 | `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows, tooltips, and `Style.Countdown(cooldown)`: one `C_StringUtil` seconds formatter (one letter, whitespace stripped, the last unit rounded up: `4s`, `2m`) set on a cooldown row's `Cooldown` through `SetCountdownFormatter`, so the numbers read as the mockup's; without the API the engine's plain numbers stay, and the devlog says so |
 | `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows centre the countdown on the icon, as the Lumen sockets do (`Style.Decorate(icon, true)`); the tracked buff icons keep the kit's countdown, centred low. Every row's countdown reads "24s" and "2m" through `Style.Countdown`, the same format as the Blessings card. Past a full tracked buff row, a `+N` chip stands one socket to its left, away from the combat cluster |
-| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown that reads "24s" through `Style.Countdown`. Past a full stack, a `+N more` bar stands one slot on top, clear of the buff row under it |
+| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown that reads "24s" through `Style.Countdown`. Past a full stack, a `+N` bar stands one slot on top, clear of the buff row under it |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
@@ -79,7 +79,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell, with the rim and the glow in the `gilt` token (`Style.TOKENS`, `neutral` until S1's gilt lands) whatever the accent: gold only on the active state |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, a `+N more` bar one slot above the stack counts the rest, and pointing at it lists them |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, a `+N` bar one slot above the stack counts the rest, and pointing at it lists them |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |

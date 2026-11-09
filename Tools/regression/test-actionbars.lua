@@ -60,7 +60,9 @@ do
 	assert(button:GetName() == "KstyleUI_ActionBar1Button3")
 	assert(button:GetAttribute("type") == "action" and button:GetAttribute("useparent-actionpage") == true and button:GetID() == 3)
 	assert(bar1.header:GetAttribute("actionpage") == 1 and ns.bars.bar2.header:GetAttribute("actionpage") == 6, "bar 2 shows page 6")
-	assert(near(ns.bars.pet.holder:GetWidth(), 327) and near(ns.bars.pet.holder:GetHeight(), 30), "the pet bar's 327 by 30 footprint")
+	assert(near(ns.bars.pet.holder:GetWidth(), 162) and near(ns.bars.pet.holder:GetHeight(), 63), "the pet bar is two rows of five, the footprint the layouts plan for it")
+	local bar2 = ns.bars.bar2
+	assert(near(bar2.holder:GetWidth(), 38) and near(bar2.holder:GetHeight(), 489), "bar 2 is a column of twelve, as the layouts place it at the right edge")
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
 

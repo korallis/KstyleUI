@@ -16,6 +16,7 @@ local TEXT_WIDTH = 520
 local CARD_HEIGHT = 120
 local REFERENCE_WIDTH, REFERENCE_HEIGHT = 1920, 1080
 local LABEL_ROOM = 4
+local LABEL_FLOOR = 8
 local PREVIEW_FALLBACK, LEGEND_WIDTH = 260, 240
 local SUMMARY_PREVIEW = 352
 local ROW_HEIGHT = 44
@@ -36,22 +37,66 @@ local function gap(name)
 	return Widgets.Snap(panel, Tokens.Size(name))
 end
 
+local function GuidePlaced()
+	if Setup.Choice().modules.Skins ~= true then
+		return false
+	end
+	local ok, skins = pcall(ns.Store.Module, "Skins")
+	local rxp = ok and type(skins) == "table" and skins.restedXP or nil
+	return type(rxp) ~= "table" or (rxp.enabled ~= false and rxp.rail ~= false)
+end
+
+local function GuideStep()
+	return applied and Setup.GuideLoaded() and not GuidePlaced()
+end
+
 local function EditModeText()
 	local EditMode = Setup.EditMode
 	local last = EditMode and EditMode.Last()
-	if not last or last.state == "none" or not (applied or last.state == "failed") then
-		return nil
+	local lines = {}
+	if last and last.state ~= "none" and (applied or last.state == "failed") then
+		if last.state == "waiting" then
+			lines[1] = string.format(L["Edit Mode: %s is written when combat ends."], last.layout)
+		elseif last.state == "failed" then
+			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.why)
+		else
+			lines[1] = string.format(#last.notes > 0 and L["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] or L["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."], last.layout)
+			for _, note in ipairs(last.notes) do
+				lines[#lines + 1] = EditMode.Note(note)
+			end
+			if #last.notes > 0 then
+				lines[#lines + 1] = EditMode.Step()
+			end
+		end
 	end
-	if last.state == "waiting" then
-		return string.format(L["Edit Mode: %s is written when combat ends."], last.layout)
-	elseif last.state == "failed" then
-		return string.format(L["Edit Mode did not take %s. %s"], last.layout, last.why)
+	if GuideStep() then
+		lines[#lines + 1] = L["RestedXP: drag its guide onto the story rail yourself; Window skins place it only with their RestedXP story rail on."]
 	end
-	local lines = { string.format(L["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."], last.layout) }
-	for _, note in ipairs(last.notes) do
-		lines[#lines + 1] = EditMode.Note(note)
+	return #lines > 0 and table.concat(lines, "\n") or nil
+end
+
+local function StepsLeft()
+	local last = Setup.EditMode and Setup.EditMode.Last()
+	local steps = GuideStep() and 1 or 0
+	if last and last.state == "failed" then
+		steps = steps + 1
+	elseif last and last.state == "written" then
+		steps = steps + #last.notes
 	end
-	return table.concat(lines, "\n")
+	return steps
+end
+
+local function SummaryTitle()
+	if not applied then
+		return L["Ready to apply"]
+	end
+	local steps = StepsLeft()
+	if steps == 1 then
+		return L["Applied, with one step left"]
+	elseif steps > 1 then
+		return string.format(L["Applied, with %d steps left"], steps)
+	end
+	return L["Applied"]
 end
 
 local function Manager()
@@ -64,8 +109,11 @@ local function RefreshEditMode()
 	local last = Setup.EditMode and Setup.EditMode.Last()
 	panel.editMode:SetShown(text ~= nil)
 	panel.editMode:SetText(text or "")
-	panel.retry:SetShown(text ~= nil and last.state == "failed")
-	panel.manager:SetShown(text ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
+	panel.retry:SetShown(text ~= nil and last ~= nil and (last.state == "failed" or (last.state == "written" and #last.notes > 0)))
+	panel.manager:SetShown(text ~= nil and last ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
+	if step == STEPS then
+		Widgets.SetText(panel.summaryTitle, SummaryTitle())
+	end
 end
 
 local function Refresh()
@@ -98,10 +146,11 @@ local function Refresh()
 		end
 		local text = string.format(L["Layout: %s. %s"], Layouts.Label(choice.layout), Layouts.Note(choice.layout))
 			.. "\n\n" .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"])
-			.. "\n\n" .. L["Off: "] .. (#off > 0 and table.concat(off, ", ") or L["none"])
+		if #off > 0 then
+			text = text .. "\n" .. L["Off: "] .. table.concat(off, ", ")
+		end
 		panel.summary:SetText(text)
 		panel.summaryPreview:Draw(choice.layout)
-		Widgets.SetText(panel.summaryTitle, applied and L["Applied"] or L["Ready to apply"])
 		panel.summaryHelp:SetText(applied
 			and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."]
 			or L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."])
@@ -249,26 +298,67 @@ local function PlaceSlot(preview, s, line)
 	slot:Show()
 end
 
+local function Widest(label, lines)
+	local widest = 0
+	for _, line in ipairs(lines) do
+		Widgets.SetText(label, line)
+		widest = max(widest, Widgets.TextWidth(label, math.huge))
+	end
+	return widest
+end
+
+local function Lines(text)
+	local best
+	for at in text:gmatch("() ") do
+		if not best or math.abs(at - #text / 2) < math.abs(best - #text / 2) then
+			best = at
+		end
+	end
+	if not best then
+		return nil
+	end
+	return { text:sub(1, best - 1), text:sub(best + 1) }
+end
+
+local function Fit(label, element, width, height)
+	local texts = { element.label, element.short }
+	local face, size, flags = label:GetFont()
+	size = type(size) == "number" and math.floor(size) or Tokens.Size("caption")
+	for points = size, LABEL_FLOOR, -1 do
+		if face and points < size then
+			label:SetFont(face, points, flags)
+		end
+		for _, split in ipairs({ false, true }) do
+			for _, text in ipairs(texts) do
+				local lines = split and Lines(text) or (not split and { text }) or nil
+				if lines and #lines * points <= height - LABEL_ROOM and Widest(label, lines) <= width - LABEL_ROOM then
+					Widgets.SetText(label, table.concat(lines, "\n"))
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 local function Name(rect, width, height)
 	local label, element = rect.label, rect.element
 	label:ClearAllPoints()
 	label:SetPoint("CENTER", rect, "CENTER", 0, 0)
+	label:SetJustifyH("CENTER")
+	Widgets.StyleText(label, "caption")
 	if Layouts.Dock(element.key) or Tokens.Size("caption") > height - LABEL_ROOM then
 		label:Hide()
 		return
 	end
-	for _, text in ipairs({ element.label, element.short }) do
-		Widgets.SetText(label, text)
-		if Widgets.TextWidth(label, width) <= width - LABEL_ROOM then
-			label:Show()
-			return
-		end
-	end
-	label:Hide()
+	label:SetShown(Fit(label, element, width, height))
 end
 
 function Preview:Draw(name)
 	self.layout = name
+	if self.nameText then
+		self.nameText:SetText(string.format(L["Showing: %s"], Layouts.Label(name)))
+	end
 	self:Fit()
 	local s = self:GetWidth() / REFERENCE_WIDTH
 	local line = Widgets.Border(self)
@@ -393,9 +483,14 @@ local function BuildLayouts(page, width)
 	local preview = NewPreview(page)
 	preview.page, preview.pageWidth = page, width
 	panel.preview = preview
+	local shown = Widgets.Text(page, "heading", "textEmphasis")
+	shown:SetJustifyH("LEFT")
+	shown:SetPoint("TOPLEFT", preview, "TOPRIGHT", spacing, 0)
+	preview.nameText = shown
+	panel.previewName = shown
 	local hint = Paragraph(page, "body", "text", width / 2)
-	hint:SetPoint("TOPLEFT", preview, "TOPRIGHT", spacing, 0)
-	hint:SetText(L["The bright blocks change with the role. The outlined space on the left rail is the Story rail: Apply places the quest tracker there through Edit Mode. Drag the RestedXP guide there. In a raid, the raid frames take its top."]
+	hint:SetPoint("TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
+	hint:SetText(L["The bright blocks change with the role. The outlined space on the left rail is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. In a raid, the raid frames take its top."]
 		.. "\n\n" .. L["Point at a layout to preview it."]
 		.. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	panel.layoutHint = hint
@@ -473,7 +568,7 @@ local function BuildSummary(page, width)
 			end
 		end,
 	})
-	manager:SetPoint("TOPLEFT", editMode, "BOTTOMLEFT", 0, -gap("gapMedium"))
+	manager:SetPoint("LEFT", retry, "RIGHT", gap("gapSmall"), 0)
 	manager:Hide()
 	local help = Paragraph(page, "body", "text", column)
 	help:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)

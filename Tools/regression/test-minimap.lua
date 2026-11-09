@@ -258,6 +258,12 @@ assert(face.zone:GetText() == "RIVERGLADES", "the strip shows the zone in capita
 env._zone.text = "Hall of Thanes"
 env.FireEvent("ZONE_CHANGED_NEW_AREA")
 assert(face.zone:GetText() == "HALL OF THANES", "a zone change updates the strip")
+-- Capitals keep their accents (the round 4 localisation carry list): a French zone name reads in accented capitals.
+env._zone.text = "For\195\170t d'\195\137lwynn"
+env.FireEvent("ZONE_CHANGED_NEW_AREA")
+assert(face.zone:GetText() == "FOR\195\138T D'\195\137LWYNN", "accented capitals: " .. tostring(face.zone:GetText()))
+env._zone.text = "Hall of Thanes"
+env.FireEvent("ZONE_CHANGED_NEW_AREA")
 local er, eg, eb = K.Tokens.Color("textEmphasis")
 local tr, tg, tb = face.zone:GetTextColor()
 assert(W.Near(tr, er) and W.Near(tg, eg) and W.Near(tb, eb), "plain zone text is the emphasis colour")

@@ -9,6 +9,24 @@ Setup.Layouts = Layouts
 
 local L = ns.L
 
+local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
+local GRIDS = {
+	["actionbars.bar1"] = { buttons = 12, rows = 1, size = BUTTON },
+	["actionbars.bar2"] = { buttons = 12, rows = 12, size = BUTTON },
+	["actionbars.bar3"] = { buttons = 12, rows = 12, size = BUTTON },
+	["actionbars.bar4"] = { buttons = 12, rows = 12, size = BUTTON },
+	["actionbars.bar5"] = { buttons = 12, rows = 12, size = BUTTON },
+	["actionbars.bar6"] = { buttons = 12, rows = 12, size = BUTTON },
+	["actionbars.pet"] = { buttons = 10, rows = 2, size = SMALL_BUTTON },
+	["actionbars.stance"] = { buttons = 10, rows = 2, size = SMALL_BUTTON, growth = "RIGHTUP" },
+}
+
+local function GridSize(key)
+	local grid = GRIDS[key]
+	local columns = math.ceil(grid.buttons / grid.rows)
+	return columns * grid.size + (columns - 1) * PITCH, grid.rows * grid.size + (grid.rows - 1) * PITCH
+end
+
 local ELEMENTS = {
 	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = 490, height = 80 },
 	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = 490, height = 84, reserve = { 490, 136 } },
@@ -22,14 +40,14 @@ local ELEMENTS = {
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
 	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = 318, height = 324 },
 	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 318, height = 427 },
-	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], width = 489, height = 38 },
-	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], width = 489, height = 38 },
-	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], width = 38, height = 489 },
-	{ key = "actionbars.bar4", module = "ActionBars", label = L["Action bar 4"], width = 38, height = 489 },
-	{ key = "actionbars.bar5", module = "ActionBars", label = L["Action bar 5"], width = 38, height = 489 },
-	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], width = 38, height = 489 },
-	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], width = 162, height = 63 },
-	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], width = 162, height = 63 },
+	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], grid = true },
+	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], grid = true },
+	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], grid = true },
+	{ key = "actionbars.bar4", module = "ActionBars", label = L["Action bar 4"], grid = true },
+	{ key = "actionbars.bar5", module = "ActionBars", label = L["Action bar 5"], grid = true },
+	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], grid = true },
+	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], grid = true },
+	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], grid = true },
 	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = 294, height = 44 },
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = 170, height = 38 },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 195, height = 30 },
@@ -47,14 +65,22 @@ local ELEMENTS = {
 	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = 318, height = 190 },
 	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = 318, height = 144 },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
-	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Text"], width = 160, height = 180 },
+	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
 }
 
+for _, element in ipairs(ELEMENTS) do
+	if element.grid then
+		element.width, element.height = GridSize(element.key)
+		element.grid = nil
+	end
+end
+
 local HEIGHT = 1080
-local MARGIN, RAIL, GAP, NEAR, TIGHT = 28, 318, 16, 12, 4
+local MARGIN, RAIL, GAP, TIGHT = 28, 318, 16, 4
+local NEAR = ns.Tokens.Size("gapLarge")
 local BAND = MARGIN + RAIL + GAP
-local ENDS = 489 / 2 + NEAR + 162 / 2
+local ENDS = GridSize("actionbars.bar1") / 2 + NEAR + GridSize("actionbars.pet") / 2
 local BAR = 38 + 3
 local HANDS_TOP = 264 + 43
 local CLUSTER_TOP = HANDS_TOP + 7 + 136
@@ -67,6 +93,7 @@ local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TIP_Y = MARGIN + 118 + 8
 local BLESSINGS_TOP, BLESSINGS = MARGIN + 346 + GAP, 230
+local _, COLUMN = GridSize("actionbars.bar3")
 local METER_TOP = BLESSINGS_TOP + BLESSINGS + GAP
 
 local DPS = {
@@ -99,15 +126,15 @@ local DPS = {
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
-	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = STACK },
+	["actionbars.bar2"] = { anchor = "TOPLEFT", x = BAND, y = -MARGIN },
 	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 },
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
 	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
 	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
-	["actionbars.bar5"] = { anchor = "TOPLEFT", x = BAND, y = -MARGIN },
-	["actionbars.bar6"] = { anchor = "TOPLEFT", x = BAND + BAR, y = -MARGIN },
-	["actionbars.bar3"] = { anchor = "TOPLEFT", x = BAND + 2 * BAR, y = -MARGIN },
-	["actionbars.bar4"] = { anchor = "TOPLEFT", x = BAND + 3 * BAR, y = -MARGIN },
+	["actionbars.bar5"] = { anchor = "TOPLEFT", x = BAND + BAR, y = -MARGIN },
+	["actionbars.bar6"] = { anchor = "TOPLEFT", x = BAND + 2 * BAR, y = -MARGIN },
+	["actionbars.bar3"] = { anchor = "TOPLEFT", x = BAND + 3 * BAR, y = -MARGIN },
+	["actionbars.bar4"] = { anchor = "TOPLEFT", x = BAND + 4 * BAR, y = -MARGIN },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = TIP_Y },
 }
 
@@ -121,7 +148,7 @@ local CHANGES = {
 		["groupframes.raid"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
 		["unitframes.boss"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 		["combattext.player"] = { anchor = "BOTTOM", x = CAST_HALF + GAP + 160 / 2, y = CLUSTER_TOP + GAP },
-		["actionbars.bar2"] = { anchor = "TOP", x = 0, y = -MARGIN },
+		["actionbars.bar2"] = { anchor = "TOPRIGHT", x = -BAND, y = -(MARGIN + COLUMN + GAP) },
 		["actionbars.bar3"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
 		["actionbars.bar4"] = { anchor = "TOPRIGHT", x = -(BAND + BAR), y = -MARGIN },
 		["actionbars.bar5"] = { anchor = "TOPRIGHT", x = -(BAND + 2 * BAR), y = -MARGIN },
@@ -176,10 +203,6 @@ local OFF = {
 }
 
 local SHARED_SETTINGS = {
-	{ module = "ActionBars", key = "bar1.rows", value = 1 },
-	{ module = "ActionBars", key = "pet.rows", value = 2 },
-	{ module = "ActionBars", key = "stance.rows", value = 2 },
-	{ module = "ActionBars", key = "stance.growth", value = "RIGHTUP" },
 	{ module = "ActionBars", key = "bar1.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar2.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
@@ -193,6 +216,16 @@ local SHARED_SETTINGS = {
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
 	{ module = "GroupFrames", key = "raid.width", value = 77 },
 }
+local GRID_ORDER = { "bar1", "bar2", "bar3", "bar4", "bar5", "bar6", "pet", "stance" }
+for i = #GRID_ORDER, 1, -1 do
+	local bar = GRID_ORDER[i]
+	local grid = GRIDS["actionbars." .. bar]
+	if grid.growth then
+		table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".growth", value = grid.growth })
+	end
+	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".rows", value = grid.rows })
+end
+
 local BOSS_LEFT = {
 	{ module = "UnitFrames", key = "boss.auraPosition", value = "LEFT" },
 	{ module = "UnitFrames", key = "boss.auraGrowth", value = "LEFT_DOWN" },
@@ -280,7 +313,7 @@ for _, name in ipairs(NAMES) do
 		width = RAIL, height = headBottom - GAP - STORY_BOTTOM,
 		raid = raid,
 		label = L["Story rail"],
-		hint = L["Apply places the quest tracker here through Edit Mode. Drag the RestedXP guide here."],
+		hint = L["Apply places the quest tracker here through Edit Mode; Window skins put the RestedXP guide above it."],
 		raidHint = raid > 0 and L["In a raid, the raid frames cover the slot down to the line above."] or nil,
 	}
 end
@@ -306,6 +339,14 @@ end
 
 function Layouts.Element(key)
 	return byKey[key]
+end
+
+function Layouts.Grid(key)
+	local grid = GRIDS[key]
+	if not grid then
+		return nil
+	end
+	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth }
 end
 
 function Layouts.Get(name)

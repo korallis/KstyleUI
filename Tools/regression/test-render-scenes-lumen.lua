@@ -109,9 +109,14 @@ do
 	end
 	assert(find(combat, "BLOODTALON MATRIARCH"), "the boss is the target")
 	assert(find(combat, "Terrifying Screech"), "and its cast shows")
-	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "RestedXP Guides v4.11.35" }) do
+	for _, text in ipairs({ "GENERAL", "RIVERGLADES" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 0.75), text .. " is read mid-pull and dims only to 75% in combat, got " .. tostring(item.alpha))
+	end
+	-- Round 5 (Muse 6e): the story card, objective lines over bright scenery, rests at 90%, above the chat card.
+	for _, text in ipairs({ "QUESTS", "RestedXP Guides v4.11.35" }) do
+		local item = assert(find(combat, text), text .. " draws in combat")
+		assert(near(item.alpha, 0.9), text .. " is on the story card and dims only to 90% in combat, got " .. tostring(item.alpha))
 	end
 	-- Round 3 (Muse #3): the readout keeps a legible 65% floor in combat instead of ghosting at 30%.
 	for _, text in ipairs({ "fps", "armour" }) do

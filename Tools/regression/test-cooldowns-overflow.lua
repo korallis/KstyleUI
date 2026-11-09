@@ -1,6 +1,6 @@
 -- test-cooldowns-overflow.lua: on the mirror path, many active tracked buffs keep every socket readable: the icon
 -- row shows its whole grid and a "+N" chip grows it by one socket on its left, away from the essential cooldowns;
--- the bars show their count and a "+N more" bar grows the stack by one slot on top, clear of the buff row under it;
+-- the bars show their count and a "+N" bar grows the stack by one slot on top, clear of the buff row under it;
 -- active buffs come first in the Cooldown Manager's order, and hovering a chip lists the hidden buffs and time left.
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -146,11 +146,12 @@ do
 	env.RunTimers()
 end
 
--- Five active bars on two: both bars show, and a +3 more bar sits one gap above the stack -------------------------
+-- Five active bars on two: both bars show, and a +3 bar sits one gap above the stack -------------------------
 assert(bars.count == 2, "two bars show")
 local barChip = bars.chip
 assert(barChip and barChip:IsShown(), "a +N more chip shows")
-assert(barChip.text:GetText() == K.L["+%d more"]:format(3), "five bars on two read +3 more, got " .. tostring(barChip.text:GetText()))
+-- Round 5, Muse D8: one overflow idiom; the bar chip reads "+3" as the icon rows' chips do.
+assert(barChip.text:GetText() == "+3", "five bars on two read +3, as the icon rows' chips read, got " .. tostring(barChip.text:GetText()))
 local barsHolder = rect(bars.holder)
 local top, barChipRect = rect(bars.bars[1]), rect(barChip)
 for i = 1, 2 do

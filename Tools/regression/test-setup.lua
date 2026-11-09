@@ -235,7 +235,10 @@ do
 				local text = label:GetText()
 				out[rect.element.key] = text
 				local box = assert(Geometry.Rect(rect, root))
-				local width = env._textWidth(text, nil, select(2, label:GetFont()) or 12)
+				local width = 0
+				for line in text:gmatch("[^\n]+") do
+					width = math.max(width, env._textWidth(line, nil, select(2, label:GetFont()) or 12))
+				end
 				assert(width <= box.right - box.left + 0.5, rect.element.key .. "'s label '" .. text .. "' fits its block")
 				assert(not label:IsTruncated(), rect.element.key .. "'s label is whole")
 			end
@@ -247,10 +250,44 @@ do
 		assert(dps[key], "DPS names " .. key)
 	end
 	assert(not dps["meters.threat"], "DPS draws no threat card")
+	-- Round 5, Fable #5: a block read "TEXT"; your combat text is named as such.
+	assert(dps["combattext.player"] and dps["combattext.player"]:lower():gsub("%s+", " "):find("combat text", 1, true), "DPS names your combat text: " .. tostring(dps["combattext.player"]))
 	W.Click(panel.cards.Tank)
 	W.Settle(env)
 	local tank = labels()
 	assert(tank["meters.threat"], "Tank names its threat card")
+	-- Round 5, Opus #9: German names (BEDROHUNG, STAERKUNGSZAUBER) once left their blocks bare. A name that does not fit
+	-- at the caption size steps down, to no less than the floor, before the block goes unlabelled.
+	env._textWidth = function(text, _, size)
+		return #text * size * 0.8
+	end
+	K.Setup.Go(1)
+	K.Setup.Go(2)
+	W.Settle(env)
+	local wide = labels()
+	assert(wide["meters.threat"] and wide["auras.buffs"], "with wider glyphs the threat and buff blocks keep their names")
+	for _, rect in ipairs(preview.rects) do
+		if rect:IsShown() and rect.label:IsShown() then
+			local _, size = rect.label:GetFont()
+			assert(size >= 8, rect.element.key .. "'s name stays at least 8 units, got " .. tostring(size))
+		end
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The preview names the layout it draws (round 5, Fable #5: with DPS picked and the mouse on Tank, Tank's threat card
+-- read as DPS's): a line over the legend says which layout the blocks are, and follows the hover.
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	assert(panel.previewName and panel.previewName:IsShown(), "the layout step names the previewed layout")
+	assert(panel.previewName:GetText():lower():find("dps", 1, true), "the picked one: " .. tostring(panel.previewName:GetText()))
+	W.Enter(panel.cards.Tank)
+	assert(panel.previewName:GetText():lower():find("tank", 1, true), "the hovered one: " .. tostring(panel.previewName:GetText()))
+	W.Leave(panel.cards.Tank)
+	assert(panel.previewName:GetText():lower():find("dps", 1, true), "and back")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -271,8 +308,10 @@ do
 		lowest = math.min(lowest, box.bottom)
 	end
 	local preview = assert(Geometry.Rect(panel.preview, root))
-	local p = panel.layoutHint._points[1]
-	assert(p[2] == panel.preview and p[3] == "TOPRIGHT", "the legend stands beside the preview")
+	local p = panel.previewName._points[1]
+	assert(p[2] == panel.preview and p[3] == "TOPRIGHT", "the legend, headed by the previewed layout's name, stands beside the preview")
+	local h = panel.layoutHint._points[1]
+	assert(h[2] == panel.previewName and h[3] == "BOTTOMLEFT", "the legend's text runs under that name")
 	assert(preview.right + p[4] + panel.layoutHint:GetWidth() <= page.right + 0.5, "and ends at the page's right edge")
 	assert(lowest - page.bottom <= K.Tokens.Size("gapLarge") * 2, "the step has no empty lower half: its content ends " .. (lowest - page.bottom) .. " units above the page bottom")
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -441,6 +480,8 @@ do
 		assert(panel.layoutHint:GetText():find("Story rail", 1, true) and panel.layoutHint:GetText():find("Edit Mode", 1, true), "the step names the Story rail and says what goes there")
 		assert(panel.layoutHint:GetText():find("Apply places the quest tracker there", 1, true), "and that Apply places the tracker itself (round 3, Opus #4)")
 		assert(not panel.layoutHint:GetText():find("yourself", 1, true), "with no drag instruction: a refusal gets Try again on the summary (round 4, Muse #4)")
+		-- Round 5, Muse #5: the RestedXP step moved to the summary's checklist; the layout choice carries no chore.
+		assert(not panel.layoutHint:GetText():find("Drag", 1, true) and not K.Setup.Layouts.Slot(name).hint:find("Drag", 1, true), "the layout step and the slot hint ask for no drag")
 		for _, rect in ipairs(preview.rects) do
 			assert(K.Setup.Layouts.Shown(name, rect.element.key) ~= false or not rect:IsShown(), name .. "'s preview hides " .. rect.element.key .. ", which the layout switches off")
 		end
@@ -622,6 +663,8 @@ do
 	assert(panel.editMode:IsShown() and panel.editMode:GetText():find("Edit Mode", 1, true), "a refusal is on the summary: " .. tostring(panel.editMode:GetText()))
 	assert(not panel.editMode:GetText():find("yourself", 1, true) and not panel.editMode:GetText():find("drag", 1, true), "with no drag instruction")
 	assert(panel.retry:IsShown() and panel.retry.label:GetText() == "Try again", "and a Try again button")
+	-- Round 5, Opus #4: the heading says a step is left, not a bare "Applied".
+	assert(panel.summaryTitle:GetText():lower() == "applied, with one step left", "the heading counts the step left: " .. panel.summaryTitle:GetText())
 	local state = { saved = {}, active = 1 }
 	EditModeFake.Install(env, state)
 	W.Click(panel.retry)
@@ -630,6 +673,7 @@ do
 	assert(not panel.retry:IsShown(), "and the button goes once it took")
 	assert(panel.editMode:GetText():find("KstyleUI DPS", 1, true), "the summary names the active layout: " .. panel.editMode:GetText())
 	assert(not panel.manager:IsShown(), "no Cooldown Manager button while everything fits")
+	assert(panel.summaryTitle:GetText():lower() == "applied", "and with nothing left the heading is Applied")
 	K.Setup.EditMode.CountTracked(function(group)
 		return ({ buffs = 60, bars = 40 })[group]
 	end)
@@ -639,9 +683,84 @@ do
 	W.Settle(env)
 	assert(panel.editMode:GetText():find("60 tracked buffs", 1, true) and panel.editMode:GetText():find("40 tracked bars", 1, true), "the summary names both counts: " .. panel.editMode:GetText())
 	assert(panel.manager:IsShown(), "and offers the Cooldown Manager")
+	assert(panel.summaryTitle:GetText():lower() == "applied, with 2 steps left", "the heading counts both: " .. panel.summaryTitle:GetText())
+	assert(panel.retry:IsShown(), "and Try again, which the lines name, sits beside the Cooldown Manager button")
+	local m = panel.manager._points[1]
+	assert(m[2] == panel.retry and m[3] == "RIGHT", "the Cooldown Manager button stands right of Try again")
 	W.Click(panel.manager)
 	assert(opened == 1, "which opens Blizzard's Cooldown Manager settings")
 	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The summary lists what Apply switches off only when something is off, so the Edit Mode notes keep their room at
+-- the largest text size (codex review).
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	W.Settle(env)
+	assert(not panel.summary:GetText():find("Off:", 1, true), "with every module on there is no Off line: " .. panel.summary:GetText())
+	K.Setup.Choice().modules.Chat = false
+	K.Setup.Go(3)
+	K.Setup.Go(4)
+	W.Settle(env)
+	assert(panel.summary:GetText():find("Off: Chat", 1, true), "a module switched off is listed: " .. panel.summary:GetText())
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- RestedXP's guide (round 5, Muse #5): with Window skins on, the skin puts the guide on the story rail and there is
+-- nothing to do; with them off, the summary's checklist asks for the drag, beside Try again, and counts it as a step.
+do
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	for _, skins in ipairs({ false, true }) do
+		local env, K = Boot({ modules = skins and { "UnitFrames", "Skins" } or MODULES })
+		env.C_AddOns.IsAddOnLoaded = function(name)
+			return name == "RXPGuides"
+		end
+		EditModeFake.Install(env, { saved = {}, active = 1 })
+		local panel = Open(env, K)
+		K.Setup.Go(4)
+		W.Settle(env)
+		W.Click(panel.apply)
+		W.Settle(env)
+		local text = panel.editMode:GetText() or ""
+		if skins then
+			assert(not text:find("RestedXP", 1, true), "with Window skins on, the guide needs no step: " .. text)
+			assert(panel.summaryTitle:GetText():lower() == "applied", "and the heading is Applied")
+		else
+			assert(panel.editMode:IsShown() and text:find("RestedXP", 1, true) and text:find("story rail", 1, true), "with them off, the checklist asks for the drag: " .. text)
+			assert(panel.summaryTitle:GetText():lower() == "applied, with one step left", "and counts it: " .. panel.summaryTitle:GetText())
+		end
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+end
+
+-- The skin places the guide only while its RestedXP part and story rail are on (codex review): with Window skins
+-- picked but either switched off, the drag stays on the checklist.
+do
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	for _, field in ipairs({ "enabled", "rail" }) do
+		local rxp = { enabled = true, rail = true }
+		rxp[field] = false
+		local env, K = Boot({
+			modules = { "UnitFrames", "Skins" },
+			defaults = { Skins = { restedXP = { enabled = true, rail = true } } },
+			saved = { version = 2, profiles = { Default = { Skins = { restedXP = rxp } } }, characters = {}, layouts = {}, account = {} },
+		})
+		env.C_AddOns.IsAddOnLoaded = function(name)
+			return name == "RXPGuides"
+		end
+		EditModeFake.Install(env, { saved = {}, active = 1 })
+		local panel = Open(env, K)
+		K.Setup.Go(4)
+		W.Settle(env)
+		W.Click(panel.apply)
+		W.Settle(env)
+		local text = panel.editMode:GetText() or ""
+		assert(text:find("RestedXP", 1, true), "with restedXP." .. field .. " off, the checklist asks for the drag: " .. text)
+		assert(panel.summaryTitle:GetText():lower() == "applied, with one step left", "and counts it")
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
 end
 
 -- A refusal outlives the window: an Apply made with the window closed (the first-run close, or a write that waited

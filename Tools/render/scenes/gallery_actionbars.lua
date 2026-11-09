@@ -25,7 +25,7 @@ end
 return Common.Run(function()
 	local AB = dofile("Tools/regression/actionbars_env.lua")
 	local saved = Gallery.Saved({
-		ActionBars = { bar3 = { enabled = true }, bar2 = { backing = true } },
+		ActionBars = { bar3 = { enabled = true }, bar2 = { backing = true, rows = 1 } },
 	})
 	local env, K, ns = AB.New({
 		class = "WARRIOR",
@@ -165,7 +165,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, pet.holder, {
 		name = "actionbars_pet", title = "Pet bar", grade = "button", reference = "actionbars",
-		caption = "The pet bar: ten 30-unit IconButtons, attack selected, Bite and Claw with the accent autocast dot, Growl and Dash with autocast off, three slots empty; the backing strip is off by default for the pet bar, so the buttons' bezels meet in one dark band.",
+		caption = "The pet bar at its default two rows of five, the footprint the layouts plan beside bar 1: ten 30-unit IconButtons, attack selected, Bite and Claw with the accent autocast dot, Growl and Dash with autocast off, three slots empty; the backing strip is off by default for the pet bar, so the buttons' bezels meet in one dark band.",
 		match = "Buttons as the mockup's action buttons at 30 units; the mockup shows no pet bar, so the empty tiles and autocast marks have no reference.",
 		rect = Gallery.Union(env, { pet.backing }),
 	})

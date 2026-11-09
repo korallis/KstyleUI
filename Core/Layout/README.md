@@ -9,7 +9,7 @@
 | `Rules.lua` | `Layout.Rules`: the shown rules, as Lua tests and as state-driver macro options |
 | `Layout.lua` | The registry, per-profile settings, applying, sessions, undo, and Layout Mode's own settings page |
 | `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the story slot's outline, the keyboard and the toolbar. The story slot's label and hint stand on their own glass card at its top, and the raid line's note on another under the line; each card hides while a mover plate covers any of it, so a plate's label is never written over and the guidance never hides half under a plate. |
-| `Calm.lua` | `Layout.Calm`: the combat calm, which rests the idle lines at 30%, the readout card at a legible 65% and dims the cards you read to 75% in combat |
+| `Calm.lua` | `Layout.Calm`: the combat calm, which rests the idle lines at 30%, the readout card at a legible 65%, dims the cards you read to 75% and the story card (tracker and guide) only to 90% in combat |
 
 Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook), `test-layout-mode.lua` (the screen, driven like a player) and `test-layout-calm.lua` (the combat calm).
 
@@ -146,7 +146,7 @@ A resizable element's width and height snap so that size times scale is a whole 
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |
 | Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. |
-| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the left rail between the party card and chat. It shows the slot's label, **Story rail**, and a one-line hint: drag the RestedXP guide there, and move the quest tracker there in Edit Mode. KstyleUI never moves those frames. A fainter line marks how far the raid card reaches into the slot in a raid, with a caption that says so. The outline takes no mouse. `Mode.Slot()` returns it. |
+| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the left rail between the party card and chat. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. A fainter line marks how far the raid card reaches into the slot in a raid, with a caption that says so. The outline takes no mouse. `Mode.Slot()` returns it. |
 
 | Input | Effect |
 | --- | --- |
@@ -190,7 +190,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `Calm.READOUT` | The readout card and its docked menus, which a player glances at mid-pull (frame rate, latency, durability): `databars.strip`, `databars.micro`, `databars.bags` |
 | `Calm.READ` | The cards you read mid-pull (raid calls, the map): `chat.main`, `minimap.main` |
 | `Calm.CARDS` | Every list, read cards first |
-| `Calm.SURFACES` | The guide and quest skins: `ObjectiveTrackerFrame` and `RXPFrame`, while the Skins module runs. They are read cards |
+| `Calm.SURFACES` | The guide and quest skins: `ObjectiveTrackerFrame` and `RXPFrame`, while the Skins module runs. They are the story card and rest at `Calm.STORY`, 90%: objective lines over bright scenery were the HUD's hardest read at 75% (round 5, Muse 6e) |
 | `Calm.ALPHA` | 0.3, the idle lines' level |
 | `Calm.FLOOR` | 0.65, the readout card's level: legible, never a ghost (round 3, Muse #3) |
 | `Calm.SOFT` | 0.75, the read cards' and surfaces' level: dimmed so the centre leads, never below 60%, so chat, the map and the quests stay readable |
@@ -198,7 +198,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `Calm.DELAY` | 3 s after combat ends before the cards rise |
 
 - **Focus cards never calm:** party and raid, the boss card, the target sigil and every centre hand (unit frames, cast bars, action bars, cooldowns), the Blessings (`auras.*`), and the damage and threat meters. The damage meter stays readable in a pull.
-- **In combat** (`PLAYER_REGEN_DISABLED`), each idle line tweens to 30%, the readout card to 65% and each read card and surface to 75% over 0.24 s. **Out of combat** (`PLAYER_REGEN_ENABLED`), the cards wait 3 s, counted on an `OnUpdate` that runs only while it waits, then rise over 0.6 s. A pull during the wait keeps them calm, and the wait starts again when it ends.
+- **In combat** (`PLAYER_REGEN_DISABLED`), each idle line tweens to 30%, the readout card to 65%, each read card to 75% and the story surfaces to 90% over 0.24 s. **Out of combat** (`PLAYER_REGEN_ENABLED`), the cards wait 3 s, counted on an `OnUpdate` that runs only while it waits, then rise over 0.6 s. A pull during the wait keeps them calm, and the wait starts again when it ends.
 - **Hover:** while calm, a `C_Timer.NewTicker` reads `IsMouseOver` on each calmed card every 0.1 s. A card under the pointer rises to 100% and calms again when the pointer leaves. A secret `IsMouseOver` counts as over, and a frame that denies access counts as not over. The ticker stops with the calm.
 - **Alpha only:** the calm never changes a size, a point, a scale or a shown rule, so it never touches a protected frame's geometry in combat.
 - **One owner per frame:** a Layout element calms only while its own opacity is at the defaults (`shown` is not `mouseover`, `alphaCombat` and `alphaIdle` are 1). A player's own opacity or mouseover rule wins. Layout's `ApplyAlpha` multiplies its alpha by `Calm.Level(key)` and does not restart a fade already heading to the same alpha. A surface outside Layout calms only from 100%. When the calm ends it rises only if its alpha is still what the calm set, so a fade another addon starts in the meantime is left alone.

@@ -151,7 +151,7 @@ The page starts with **Bar to edit**, a picker that shows one bar's rows at a ti
 | Per bar | Values |
 | --- | --- |
 | Show this bar | On for bars 1 and 2, the pet bar and the stance bar |
-| Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. |
+| Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. By default each bar takes the rows its layout element plans (`Setup.Layouts.Grid`): bar 1 one row, bars 2 to 6 one column of twelve, the pet and stance bars two rows of five (round 5, Fable #2: the pet bar once drew one row of ten in a footprint planned for two rows), and the stance bar grows up. |
 | Fill order, Growth | Along rows or down columns first; right or left, then down or up |
 | Button size, Spacing | 16 to 64 and 0 to 16 units. 38 and 3 for the action bars, 30 and 3 for the pet and stance bars. |
 | Show empty buttons, Backing strip, Fade until hovered, Faded opacity | On, off, off, 0. Lumen's sockets float with no band behind them; the backing strip is the v3 mockup's band behind each bar row, measured in the theme spec: the opaque `buttonFill` body with the panel's light edge line, 10-unit chamfered ends, 3 units beyond the buttons on every side, a child of the bar's header so it fades with the bar |

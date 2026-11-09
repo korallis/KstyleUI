@@ -147,7 +147,7 @@ function Flush()
 		if name then
 			local icon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(id)
 			icon = Plain(icon) and type(icon) == "number" and ("|T%d:0|t "):format(icon) or ""
-			learned[#learned + 1] = { spell = id, name = name, rank = rank, label = icon .. name:upper() .. " (" .. sub:upper() .. ")" }
+			learned[#learned + 1] = { spell = id, name = name, rank = rank, label = icon .. K.Locale.Upper(name) .. " (" .. K.Locale.Upper(sub) .. ")" }
 		elseif fresh == true then
 			Request(id)
 		end
