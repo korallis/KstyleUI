@@ -53,7 +53,9 @@ Store.migrations[4] = function(data)
 			local free = type(databars.strip) == "table" and databars.strip.menus == false
 			for id, defaults in pairs(MENU_DEFAULTS) do
 				local bar = databars[id]
-				if type(bar) == "table" and bar.shown == nil and bar.enabled ~= false and (free or tunedMenu(bar, defaults)) then
+				if bar == nil and free then
+					databars[id] = { shown = true }
+				elseif type(bar) == "table" and bar.shown == nil and bar.enabled ~= false and (free or tunedMenu(bar, defaults)) then
 					bar.shown = true
 				end
 			end

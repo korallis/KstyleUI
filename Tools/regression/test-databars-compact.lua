@@ -114,6 +114,30 @@ do
 	noErrors(env)
 end
 
+-- A row turned on in combat: the card holds its size until combat ends (its docked secure buttons make it protected) --
+
+do
+	local env, K, ns = D.New({ setup = D.Menus })
+	env.RunTimers()
+	local view = ns.Strip.view
+	local before = view.frame:GetHeight()
+	local SECURE = { SetHeight = true, SetSize = true, SetWidth = true, SetPoint = true, ClearAllPoints = true, SetAllPoints = true }
+	local mark = #view.frame._calls
+	env.SetCombat(true)
+	K.Options.Write("DataBars", "micro.shown", true)
+	K.Options.Write("DataBars", "bags.shown", true)
+	env.RunTimers()
+	for n = mark + 1, #view.frame._calls do
+		assert(not SECURE[view.frame._calls[n].method], "the card's " .. view.frame._calls[n].method .. " waits for combat to end")
+	end
+	assert(near(view.frame:GetHeight(), before), "in combat the card keeps its line: " .. view.frame:GetHeight())
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(view.frame:GetHeight() > before + 40, "after combat it grows to hold the rows: " .. view.frame:GetHeight())
+	eq(#ns.Menus.Shown("micro"), 8, "and the micro buttons show")
+	noErrors(env)
+end
+
 -- The layouts keep the rows' room on the right rail's foot, so turning them on moves nothing -----------------------
 
 do
@@ -143,6 +167,8 @@ do
 			Default = { DataBars = { enabled = true, micro = { enabled = true, size = 26, spacing = 4, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }, bags = { enabled = true, size = 26, spacing = 4, rows = 1, backdrop = true, freeSlots = true, shape = "round" }, strip = { menus = true } } },
 			Tuned = { DataBars = { micro = { enabled = true, size = 30, set = "compact" }, bags = { enabled = true, shape = "tile" } } },
 			Free = { DataBars = { strip = { menus = false }, micro = { enabled = true }, bags = { enabled = true } } },
+			Sparse = { DataBars = { strip = { menus = false } } },
+			SparseBlizzard = { DataBars = { strip = { menus = false }, micro = { enabled = false } } },
 			Chosen = { DataBars = { micro = { shown = false, size = 40 } } },
 			Blizzard = { DataBars = { micro = { enabled = false, size = 30 } } },
 			Empty = {},
@@ -158,6 +184,10 @@ do
 	eq(profiles.Tuned.DataBars.bags.shown, true, "a reshaped bag bar stays shown")
 	eq(profiles.Free.DataBars.micro.shown, true, "bars set free of the card stay shown")
 	eq(profiles.Free.DataBars.bags.shown, true, "both of them")
+	eq(profiles.Sparse.DataBars.micro and profiles.Sparse.DataBars.micro.shown, true, "free bars saved with every other setting at its default stay shown")
+	eq(profiles.Sparse.DataBars.bags and profiles.Sparse.DataBars.bags.shown, true, "the bag bar too")
+	eq(profiles.SparseBlizzard.DataBars.micro.shown, nil, "a free bar handed back to Blizzard is left alone")
+	eq(profiles.SparseBlizzard.DataBars.bags.shown, true, "while its free bag bar stays shown")
 	eq(profiles.Chosen.DataBars.micro.shown, false, "a saved choice is never overwritten")
 	eq(profiles.Blizzard.DataBars.micro.shown, nil, "a bar handed back to Blizzard is left alone")
 	eq(profiles.Empty.DataBars, nil, "a profile without DataBars gets nothing")

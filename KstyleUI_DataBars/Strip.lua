@@ -551,6 +551,19 @@ local function SetHeight(view, height)
 	return K.Layout.Update(KEY, { width = layout.width, height = height }) == true
 end
 
+local dockQueued = false
+
+local function DockAfterCombat()
+	if dockQueued then
+		return
+	end
+	dockQueued = true
+	K.Combat.Queue(function()
+		dockQueued = false
+		Strip.Refresh()
+	end)
+end
+
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
@@ -574,9 +587,13 @@ function Strip.DockMenus(view, s)
 	local bagCount = DockCount(Menus, "bags")
 	local plan = Strip.MenuPlan(w - 2 * pad, { micro = DockCount(Menus, "micro"), bags = bagCount },
 		{ micro = settings.micro.size, bags = settings.bags.size }, Widgets.Snap(frame, settings.micro.spacing), gap)
+	local height = plan.height > 0 and (line + gap + plan.height + pad) or (line + pad)
+	if InCombatLockdown() and not Near(frame:GetHeight(), height) then
+		DockAfterCombat()
+		return
+	end
 	view.wrapMenus = not plan.oneRow
 	local rowTop = -(line + gap)
-	local height = plan.height > 0 and (line + gap + plan.height + pad) or (line + pad)
 	local bagGap = Widgets.Snap(frame, settings.bags.spacing)
 	local beside = plan.oneRow and bagCount > 0 and (bagCount * plan.tile + (bagCount - 1) * bagGap + 2 * MENU_PAD + gap) or 0
 	view.line = plan.height > 0 and line or nil
