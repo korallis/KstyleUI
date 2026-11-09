@@ -459,7 +459,7 @@ local function HealIcons(f, k)
 	local size, spacing = BuffSizes(f, k)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	local a = Settings.current.auras
-	local side, count = Geometry.HealIcons(f.width or k.width, f.parts.health, {
+	local side, count = Geometry.HealIcons(f.width or k.width, f.height or k.height, f.parts.health, {
 		inset = inset, gap = Widgets.Snap(f, Tokens.Size("gapSmall")), size = size, spacing = spacing, count = k.buffCount,
 		debuffs = a.enabled, debuffPosition = k.auraPosition, debuffSize = Widgets.Snap(f, k.auraSize),
 		debuffColumns = k.auraColumns, debuffRows = k.auraRows, debuffCount = Count(k), dispelCount = DispelCount(k),

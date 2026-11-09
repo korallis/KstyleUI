@@ -296,12 +296,29 @@ function Geometry.AuraLine(columns, size, spacing)
 	return Line(columns, size, spacing)
 end
 
-function Geometry.HealIcons(w, health, a)
+local function DebuffsReach(h, health, a)
+	local cells = a.debuffColumns * a.debuffRows
+	local total = min(a.debuffCount, cells) + min(a.dispelCount, cells)
+	if total <= 0 then
+		return nil
+	end
+	local columns = min(a.debuffColumns, total)
+	local block = Line(ceil(total / columns), a.debuffSize, a.spacing)
+	local top = a.inset
+	if a.debuffPosition:find("^BOTTOM") then
+		top = h - a.inset - block
+	end
+	local centre = health.top + health.height / 2
+	if top < centre + a.size / 2 and centre - a.size / 2 < top + block then
+		return columns
+	end
+end
+
+function Geometry.HealIcons(w, h, health, a)
 	local side, limit = "RIGHT", health.width - 2 * a.inset
 	local position = a.debuffPosition
-	if a.debuffs and AURA_INSIDE[position] and position:find("^BOTTOM") then
-		local cells = a.debuffColumns * a.debuffRows
-		local columns = min(a.debuffColumns, min(a.debuffCount, cells) + min(a.dispelCount, cells))
+	local columns = a.debuffs and AURA_INSIDE[position] and DebuffsReach(h, health, a)
+	if columns then
 		local strip = a.inset + Line(columns, a.debuffSize, a.spacing) + a.gap
 		if position:find("LEFT$") then
 			limit = health.left + health.width - a.inset - strip

@@ -306,27 +306,36 @@ end
 do
 	local raid = { left = 4, top = 18, width = 64, height = 18 }
 	local a = { inset = 2, gap = 4, size = 10, spacing = 1, count = 3, debuffs = true, debuffPosition = "BOTTOMLEFT", debuffSize = 12, debuffColumns = 2, debuffRows = 1, debuffCount = 2, dispelCount = 1 }
-	local side, count = Geo.HealIcons(72, raid, a)
+	local side, count = Geo.HealIcons(72, 40, raid, a)
 	eq(side, "RIGHT", "debuffs at the bottom left put your heals at the bar's right end")
 	eq(count, 3, "three 10-unit heals fit beside two 12-unit debuff columns on a 72-unit tile")
 	a.debuffColumns = 3
-	count = select(2, Geo.HealIcons(72, raid, a))
+	count = select(2, Geo.HealIcons(72, 40, raid, a))
 	eq(count, 2, "beside three debuff columns only two fit")
 	local strip = 2 + 3 * 12 + 2 + 4
 	assert(raid.left + raid.width - 2 - Geo.AuraLine(count, 10, 1) >= strip, "and the two end before the debuff strip")
 	a.debuffPosition = "BOTTOMRIGHT"
-	side = Geo.HealIcons(72, raid, a)
+	side = Geo.HealIcons(72, 40, raid, a)
 	eq(side, "LEFT", "debuffs at the bottom right put your heals at the bar's left end")
 	a.debuffPosition, a.debuffColumns = "OUTSIDE_RIGHT", 3
-	side, count = Geo.HealIcons(72, raid, a)
+	side, count = Geo.HealIcons(72, 40, raid, a)
 	eq(side, "RIGHT", "debuffs outside the frame leave the bar to your heals")
 	eq(count, 3, "all three")
 	a.debuffPosition, a.debuffs = "BOTTOMLEFT", false
-	count = select(2, Geo.HealIcons(72, raid, a))
+	count = select(2, Geo.HealIcons(72, 40, raid, a))
 	eq(count, 3, "with debuffs off, nothing is reserved")
 	a.debuffs, a.count, a.size = true, 6, 24
-	count = select(2, Geo.HealIcons(72, raid, a))
+	count = select(2, Geo.HealIcons(72, 40, raid, a))
 	eq(count, 0, "icons too big to fit beside the strip show none rather than cover it")
+	a.count, a.size = 3, 10
+	a.debuffPosition, a.debuffColumns, a.debuffCount, a.dispelCount = "TOPRIGHT", 2, 2, 0
+	side, count = Geo.HealIcons(72, 40, raid, a)
+	eq(side, "RIGHT", "one row of debuffs at the top right stays in the name band")
+	eq(count, 3, "so it leaves your heals alone")
+	a.debuffRows, a.debuffCount = 2, 4
+	side, count = Geo.HealIcons(72, 40, raid, a)
+	eq(side, "LEFT", "two rows of top-right debuffs reach the heal row, so your heals go to the left end")
+	assert(count >= 1 and raid.left + 2 + Geo.AuraLine(count, 10, 1) <= 72 - (2 + Geo.AuraLine(2, 12, 1) + 4), "and end before the debuff columns")
 end
 
 print("groupframes geometry ok")

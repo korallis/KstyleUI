@@ -14,6 +14,7 @@ local MARKER_TEXTURE = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
 local MARKER_ROWS, MARKER_COLUMNS = 4, 4
 local READY_HOLD = 6
 local READY_SHARE = 1.6
+local READY_LEVEL = 10
 local THREAT_SPREAD = { party = "gapMedium", raid = "gapSmall" }
 local ROLE_OPTIONS = { displayRoleIcon = true, displayRaidRoleIcon = true }
 
@@ -53,7 +54,10 @@ local function Build(f)
 	f.marker = layer:CreateTexture(nil, "OVERLAY")
 	f.marker:SetTexture(MARKER_TEXTURE)
 	f.marker:Hide()
-	f.ready = layer:CreateTexture(nil, "OVERLAY")
+	f.readyLayer = CreateFrame("Frame", nil, f)
+	f.readyLayer:SetAllPoints(f)
+	f.readyLayer:SetFrameLevel(f:GetFrameLevel() + READY_LEVEL)
+	f.ready = f.readyLayer:CreateTexture(nil, "OVERLAY")
 	f.ready:Hide()
 	f.threat = CreateFrame("Frame", nil, f)
 	f.threat:SetAllPoints(f)

@@ -194,6 +194,7 @@ local bp = buffs._points[1]
 assert(bp[1] == "TOPRIGHT" and bp[2] == f.health and bp[3] == "RIGHT", "anchored to the bar's right end")
 eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Left, "growing left along the bar")
 eq(f.auras._policyOptions.ignoreBuffs, true, "the debuff container still ignores buffs")
+assert(f.ready:GetParent():GetFrameLevel() > buffs:GetFrameLevel() and f.ready:GetParent():GetFrameLevel() > f.auras:GetFrameLevel(), "a ready check's mark draws above your heals and the debuffs")
 local icon = group.frames[1]
 assert(icon._aura.icon and icon._aura.cooldown, "each heal icon has its icon and duration swipe bound")
 assert(W.Near((icon:GetSize()), 10, 0.5), "and is 10 units")
