@@ -480,7 +480,7 @@ function U.Install(env)
 
 	-- A fake AuraContainer engine: CreateFrame("AuraContainer", ..., "CustomAuraContainerTemplate") returns a
 	-- frame with the container's methods. AddAuraGroup makes a batch of aura buttons and runs initializeFrame
-	-- on each, as the engine does. env._auraButtonsSecret makes the buttons refuse SetSize, as
+	-- on each, as the engine does; it lays out nothing, so a test or scene sizes the container as the flow layout would. env._auraButtonsSecret makes the buttons refuse SetSize, as
 	-- DenyTaintedAccessWhenAurasAreSecret does while auras are secret.
 	env.AnchorUtil = { FlowDirection = { Left = -1, Right = 1, Up = 1, Down = -1 } }
 	env.AuraContainerSortMethod = { Default = 0, UnitFrameDebuff = 2, Expiration = 4 }
@@ -516,6 +516,8 @@ function U.Install(env)
 		assert(template == "CustomAuraContainerTemplate", "aura containers use CustomAuraContainerTemplate")
 		local c = createFrame("Frame", name, parent, template)
 		c._groups, c._order = {}, {}
+		-- The engine's layout pass never sizes a container under one unit (AnchorUtil.ApplyFlowLayout's floor).
+		c:SetSize(1, 1)
 		env._containers[#env._containers + 1] = c
 		function c:SetUnit(unit) self._unit = unit end
 		function c:SetEnabled(on) self._enabled = on end
@@ -524,10 +526,20 @@ function U.Install(env)
 			local group = { filter = filter, options = options, enabled = true, layout = options.layout, max = options.maxFrameCount, buttons = {} }
 			self._groups[key] = group
 			self._order[#self._order + 1] = key
-			for i = 1, 3 do
-				group.buttons[i] = auraButton(self)
-				options.initializeFrame(group.buttons[i])
+			self:_Acquire(key, 3)
+		end
+		-- _Acquire(key, n) makes the group's buttons up to n, as the engine's batched allocator does when more
+		-- auras arrive; scenes call it to lay out a long row.
+		function c:_Acquire(key, n)
+			local group = self._groups[key]
+			while #group.buttons < n do
+				local button = auraButton(self)
+				group.buttons[#group.buttons + 1] = button
+				if group.options.initializeFrame then
+					group.options.initializeFrame(button)
+				end
 			end
+			return group.buttons
 		end
 		function c:SetAuraGroupEnabled(key, on) self._groups[key].enabled = on end
 		function c:SetAuraGroupFilterString(key, filter) self._groups[key].filter = filter end

@@ -1,9 +1,10 @@
--- Auras.lua: frame auras on the AuraContainer engine, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
+-- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Settings = ns.Settings
+local Overflow = ns.Overflow
 
 local Auras = {}
 ns.Auras = Auras
@@ -42,6 +43,8 @@ local SWIPE_ALPHA = 0.65
 local DISPEL_SUBLEVEL = 7
 local TIMER_BELOW_GAP = 1
 local TIMER_ROOM_EXTRA = 3
+local CHIP_LEVEL = 8
+local SORT = "Expiration"
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -134,8 +137,12 @@ local function Centred(kind)
 	return position ~= nil and position.centred == true
 end
 
+local function TimerBelow(kind)
+	return Centred(kind) and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
+end
+
 local function TimerRoom(kind)
-	if not (Centred(kind) and Settings.Value(kind, "auraTimer")) then
+	if not TimerBelow(kind) then
 		return 0
 	end
 	local _, fontSize = Settings.Font(kind, "aura")
@@ -144,7 +151,7 @@ end
 
 function Auras.PlaceTimer(timer, skin, kind)
 	timer:ClearAllPoints()
-	if Centred(kind) then
+	if TimerBelow(kind) then
 		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, TIMER_BELOW_GAP))
 	else
 		timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, COUNT_INSET)
@@ -291,6 +298,27 @@ local function Capacity(view)
 	return Value(view, "auraRows") * Value(view, "auraColumns")
 end
 
+local function Sort()
+	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
+	if type(methods) == "table" and type(directions) == "table" and methods[SORT] ~= nil and directions.Normal ~= nil then
+		return methods[SORT], directions.Normal
+	end
+	LogOnce("sort", "frame auras: AuraContainerSortMethod." .. SORT .. " is missing; the engine keeps its default order")
+	return nil
+end
+
+local function BuildOverflow(view, a)
+	a.overflow = {}
+	for _, key in ipairs(GROUPS) do
+		local chip, why = Overflow.New(a.host, view.unit, START_FILTER[key], Capacity(view))
+		if chip then
+			a.overflow[key] = chip
+		else
+			LogOnce("overflow", "frame auras: the overflow chip has no counting container (" .. tostring(why) .. "); a full row shows no +N")
+		end
+	end
+end
+
 local function MirrorHolder(view, host)
 	local holder = view.uf.holder
 	hooksecurefunc(holder, "SetAlpha", function(_, alpha)
@@ -322,9 +350,12 @@ local function Build(view)
 	end
 	a.container = container
 	container:SetUnit(view.unit)
+	local method, direction = Sort()
 	for _, key in ipairs(GROUPS) do
 		local added, err = pcall(container.AddAuraGroup, container, key, START_FILTER[key], {
 			maxFrameCount = Capacity(view),
+			sortMethod = method,
+			sortDirection = direction,
 			layout = GroupLayout(view, key),
 			initializeFrame = function(button)
 				K.Call(Dress, view, key, button)
@@ -337,6 +368,7 @@ local function Build(view)
 			return a
 		end
 	end
+	BuildOverflow(view, a)
 	MirrorHolder(view, host)
 	LogOnce("built", "frame auras: the AuraContainer engine with " .. #a.buttons .. " buttons ready on the first frame")
 	return a
@@ -359,10 +391,50 @@ function Auras.Sync(view)
 	a.host:SetShown(Wanted(view) and Visible(view.button))
 end
 
+function Auras.LastCell(kind, frame, first)
+	local size, spacing = Settings.Value(kind, "auraSize"), Settings.Value(kind, "auraSpacing")
+	local room = TimerRoom(kind)
+	if frame then
+		size, spacing, room = Widgets.Snap(frame, size), Widgets.Snap(frame, spacing), Widgets.Snap(frame, room)
+	end
+	local columns, rows = Settings.Value(kind, "auraColumns"), Settings.Value(kind, "auraRows")
+	local _, _, corner, _, growth = Auras.Footprint(kind, frame)
+	local right, down = growth[2] == "Right", growth[3] == "Down"
+	local x = (columns - 1) * (size + spacing)
+	if not right then
+		x = -(x + size)
+	end
+	if first then
+		local y = (rows - 1) * (size + spacing + room)
+		return corner, x, down and -y or y + size, size
+	end
+	return (down and "BOTTOM" or "TOP") .. (right and "LEFT" or "RIGHT"), x, down and size or 0, size
+end
+
+local function ApplyOverflow(view, filter, want)
+	local a = view.auras
+	if not a.overflow then
+		return
+	end
+	local level = a.host:GetFrameLevel() + CHIP_LEVEL
+	for _, key in ipairs(GROUPS) do
+		local chip = a.overflow[key]
+		if chip then
+			local on = want and filter[key] ~= nil
+			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs)
+			Overflow.Apply(chip, {
+				enabled = on, filter = filter[key], cap = Capacity(view), cell = cell,
+				rel = a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
+			})
+		end
+	end
+end
+
 local function ApplyContainer(view)
 	local a = view.auras
 	local container = a.container
 	local filter = FILTERS[Value(view, "auraFilter")] or FILTERS.mine
+	local method, direction = Sort()
 	for _, key in ipairs(GROUPS) do
 		local on = filter[key] ~= nil
 		container:SetAuraGroupEnabled(key, on)
@@ -371,6 +443,9 @@ local function ApplyContainer(view)
 		end
 		container:SetAuraGroupLayout(key, GroupLayout(view, key))
 		container:SetAuraGroupMaxFrameCount(key, Capacity(view))
+		if method ~= nil and type(container.SetAuraGroupSortMethod) == "function" then
+			container:SetAuraGroupSortMethod(key, method, direction)
+		end
 	end
 	local width, height, corner, line, growth = Auras.Footprint(view.kind, a.host)
 	local directions = AnchorUtil and AnchorUtil.FlowDirection
@@ -386,7 +461,30 @@ local function ApplyContainer(view)
 	else
 		container:SetPoint(corner, a.host, corner, 0, 0)
 	end
+	ApplyOverflow(view, filter, true)
 	Auras.Place(view)
+end
+
+function Auras.Parts(view)
+	local a = view.auras
+	local parts = { a.container }
+	for _, key in ipairs(GROUPS) do
+		local chip = a.overflow and a.overflow[key]
+		if chip then
+			parts[#parts + 1] = chip.window
+		end
+	end
+	return parts
+end
+
+local function EnableOverflow(view, on)
+	local a = view.auras
+	for _, key in ipairs(GROUPS) do
+		local chip = a.overflow and a.overflow[key]
+		if chip then
+			Overflow.Enable(chip, on and chip.window:IsShown())
+		end
+	end
 end
 
 function Auras.Footprint(kind, frame)
@@ -446,6 +544,7 @@ function Auras.Apply(view)
 		K.Call(ApplyContainer, view)
 		Restyle(view)
 	end
+	EnableOverflow(view, want)
 	Auras.Sync(view)
 end
 
@@ -459,6 +558,7 @@ function Auras.Disable()
 		local a = view.auras
 		if a.container then
 			a.container:SetEnabled(false)
+			EnableOverflow(view, false)
 			a.host:Hide()
 		end
 	end

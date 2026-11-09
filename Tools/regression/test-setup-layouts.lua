@@ -476,14 +476,15 @@ local FOOTPRINTS = {
 	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	-- S2 (#153): the vitals line holds its cast line (80) and the small frames are 120 by 22 pill rows. Round 2 (Q2):
-	-- the sigil spans the vitals line at 490 with a bolder cast line (84) and keeps its debuff sockets under it (84 + 46);
+	-- the sigil spans the vitals line at 490 with a bolder cast line (84) and keeps two rows of 24-unit debuff sockets
+	-- under it (84 + 2 + 24 + 2 + 24, round 2 aura overflow);
 	-- the focus is a 200 by 90 card beside it with its debuffs over it (90 + 22).
 	["cooldowns.essential"] = { 6 * 44 + 5 * 6, 44 },
 	["cooldowns.utility"] = { 4 * 38 + 3 * 6, 38 },
 	["cooldowns.buffs"] = { 6 * 30 + 5 * 3, 30 },
 	["cooldowns.bars"] = { 195, 2 * 20 + 3 },
 	["unitframes.player"] = { 490, 80 },
-	["unitframes.target"] = { 490, 130 },
+	["unitframes.target"] = { 490, 136 },
 	["unitframes.boss"] = { 318, 334 },
 	["unitframes.targettarget"] = { 120, 22 },
 	["unitframes.pet"] = { 120, 22 },
@@ -517,10 +518,10 @@ end
 -- layout writes on Apply (the Tank meters).
 do
 	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
-	-- hang under its 84-unit frame, so the layouts keep 130 from its top; the focus card's debuffs sit over its 90-unit
+	-- hang under its 84-unit frame in two rows, so the layouts keep 136 from its top; the focus card's debuffs sit over its 90-unit
 	-- frame, so the layouts keep 112 from its foot; the boss column holds five compact cards and the layouts keep its
 	-- full height plus the debuffs hanging to its left, 318 in all.
-	local RESERVES = { ["unitframes.target"] = { 490, 130 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 } }
+	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]

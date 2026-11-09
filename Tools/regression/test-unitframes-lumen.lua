@@ -296,7 +296,11 @@ local cpnt, crl, crp = a.container:GetPoint(1)
 assert(cpnt == "TOP" and crl == a.host and crp == "TOP", "the engine's row is centred in its host, so it stays centred at any count")
 local entry = a.buttons[1]
 local tp, trel, trp = entry.timer:GetPoint(1)
-assert(tp == "TOP" and trel == entry.skin and trp == "BOTTOM", "the timer sits under each socket, as the mockup draws it")
+assert(tp == "BOTTOM" and trel == entry.skin and trp == "BOTTOM", "two rows of sockets keep each timer on its socket's foot, so the rows pack inside the sigil's reserve")
+K.Options.Write("UnitFrames", "target.auraRows", 1)
+tp, trel, trp = entry.timer:GetPoint(1)
+assert(tp == "TOP" and trel == entry.skin and trp == "BOTTOM", "a single centred row hangs each timer under its socket, as the mockup draws it")
+K.Options.Write("UnitFrames", "target.auraRows", 2)
 
 env._units.target.cast = { name = "Terrifying Screech", texture = 132127, start = 1000, finish = 3500, spellID = 5000 }
 env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 5000)
@@ -377,11 +381,16 @@ assert(ns.CastBars.ElementLive("player"), "with the vitals line off, the classic
 K.Options.Write("UnitFrames", "player.enabled", true)
 assert(not ns.CastBars.ElementLive("player"), "and steps back when the vitals line returns")
 
--- Centred sockets with more than one row leave room for each row's timers.
+-- Centred sockets in stacked rows keep their timers on the socket, so the rows sit one spacing apart; a single
+-- centred row leaves the timer's height under it.
 K.Options.Write("UnitFrames", "target.auraRows", 2)
 local layout = target.auras.container._groups.debuffs.layout
-assert(layout.lineSpacing > layout.elementSpacing + 8, "the rows sit apart by the timer's height: " .. layout.lineSpacing)
+assert(layout.lineSpacing == layout.elementSpacing, "stacked rows sit one spacing apart: " .. layout.lineSpacing)
 K.Options.Write("UnitFrames", "target.auraRows", 1)
+layout = target.auras.container._groups.debuffs.layout
+local _, sizeAura = ns.Settings.Font("target", "aura")
+assert(layout.lineSpacing >= layout.elementSpacing + sizeAura, "a single row keeps the timer's height: " .. layout.lineSpacing)
+K.Options.Write("UnitFrames", "target.auraRows", 2)
 noErrors("fallbacks")
 
 -- No colour curve API: the glow stays off and the devlog says so once.

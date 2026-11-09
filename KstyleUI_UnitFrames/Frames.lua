@@ -219,17 +219,20 @@ local function SigilCasts()
 	return running and Settings.Value("target", "enabled") and Settings.Value("target", "castbar") and true or false
 end
 
-local function AuraContainer(view)
+local function AuraParts(view)
 	local a = view.auras
 	if not (a and a.container) then
 		return nil
 	end
+	local parts = ns.Auras.Parts(view)
 	local filter = Settings.Value("target", "auraFilter")
 	if not Settings.Value("target", "auras") or (filter ~= "both" and filter ~= Settings.Value(view.kind, "auraFilter")) then
-		a.container:SetAlpha(1)
+		for _, part in ipairs(parts) do
+			part:SetAlpha(1)
+		end
 		return nil
 	end
-	return a.container
+	return parts
 end
 
 local function MarkTarget(view)
@@ -241,13 +244,13 @@ local function MarkTarget(view)
 	if SigilCasts() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
 	end
-	local auras = AuraContainer(view)
+	local auras = AuraParts(view) or {}
 	if issecretvalue and issecretvalue(same) then
 		chip:Show()
 		chip:SetAlphaFromBoolean(same, 1, 0)
 		body:SetAlphaFromBoolean(same, 0, 1)
-		if auras then
-			auras:SetAlphaFromBoolean(same, 0, 1)
+		for _, part in ipairs(auras) do
+			part:SetAlphaFromBoolean(same, 0, 1)
 		end
 		return
 	end
@@ -255,8 +258,8 @@ local function MarkTarget(view)
 	chip:SetAlpha(1)
 	chip:SetShown(same)
 	body:SetAlpha(same and 0 or 1)
-	if auras then
-		auras:SetAlpha(same and 0 or 1)
+	for _, part in ipairs(auras) do
+		part:SetAlpha(same and 0 or 1)
 	end
 end
 

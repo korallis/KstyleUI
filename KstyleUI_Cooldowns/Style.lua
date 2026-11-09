@@ -1,4 +1,4 @@
--- Style.lua: the fonts, accent tints, glows and tooltips the Cooldowns icons share.
+-- Style.lua: the fonts, accent tints, glows, tooltips and the "+N" overflow chip the Cooldowns icons and bars share.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,6 +8,46 @@ local Style = {}
 ns.Style = Style
 
 Style.TOKENS = { gilt = "giltLit" }
+
+Style.CHIP_LEVEL = 6
+Style.CHIP_TEXT = 2
+
+function Style.Chip(parent, icon)
+	local chip = CreateFrame("Frame", nil, parent)
+	chip.fill = icon and "buttonFill" or "surface"
+	if icon then
+		chip.chrome = Widgets.IconChrome(chip)
+	else
+		chip.chrome = Widgets.Chrome(chip, { shape = "tile", fill = "surface", edge = "edgeBar", shadow = false })
+	end
+	local text = Widgets.FontString(chip, "OVERLAY")
+	text:SetPoint("CENTER", chip, "CENTER", 0, 0)
+	Widgets.TextColor(text, "textEmphasis")
+	chip.text = text
+	chip:Hide()
+	return chip
+end
+
+function Style.ShowChip(chip, over, width, height, text, size)
+	Widgets.Size(chip, width, height)
+	chip:SetFrameLevel(over:GetFrameLevel() + Style.CHIP_LEVEL)
+	chip:ClearAllPoints()
+	chip:SetPoint("TOPLEFT", over, "TOPLEFT", 0, 0)
+	chip.chrome:Restyle()
+	local r, g, b = Tokens.Color(chip.fill)
+	chip.chrome:SetFillRGBA(r, g, b, 1)
+	if chip.chrome.SetRimAccent then
+		if ns.Settings.current.accent == "custom" then
+			chip.chrome:SetRimAccent(ns.Settings.Accent())
+		else
+			chip.chrome:SetRimAccent()
+		end
+	end
+	local current = ns.Settings.current
+	Style.Font(chip.text, current.countFont, size, current.countOutline)
+	Widgets.SetText(chip.text, text)
+	chip:Show()
+end
 
 function Style.FontPath(choice, role)
 	if choice == "kit" or type(choice) ~= "string" then

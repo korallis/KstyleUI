@@ -11,7 +11,7 @@ local L = ns.L
 
 local ELEMENTS = {
 	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], width = 490, height = 80 },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 490, height = 84, reserve = { 490, 130 } },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 490, height = 84, reserve = { 490, 136 } },
 	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
 	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
@@ -57,7 +57,7 @@ local BAND = MARGIN + RAIL + GAP
 local ENDS = 489 / 2 + NEAR + 162 / 2
 local BAR = 38 + 3
 local HANDS_TOP = 264 + 43
-local CLUSTER_TOP = HANDS_TOP + 13 + 130
+local CLUSTER_TOP = HANDS_TOP + 7 + 136
 local SIDE = 490 / 2 + NEAR
 local FOCUS_X = -(SIDE + 200 / 2)
 local TOT_X = SIDE + 120 / 2

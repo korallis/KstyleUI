@@ -1,4 +1,4 @@
--- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown.
+-- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown; past the last bar, that bar's slot reads "+N more".
 local _, ns = ...
 
 local K = KstyleUI
@@ -142,8 +142,27 @@ function BarRow:Place()
 	end
 end
 
+function BarRow:Overflow(hidden)
+	local chip = self.chip
+	if hidden <= 0 then
+		if chip then
+			chip:Hide()
+		end
+		return
+	end
+	if not chip then
+		chip = Style.Chip(self.content, false)
+		self.chip = chip
+	end
+	local cfg = self.cfg
+	Style.ShowChip(chip, self.bars[self.count], cfg.width, cfg.height, K.L["+%d more"]:format(hidden), cfg.nameSize)
+end
+
 function BarRow:SetCount(count)
+	self.requested = count
+	local hidden = 0
 	if count > self.cfg.count then
+		hidden = count - self.cfg.count + 1
 		count = self.cfg.count
 	end
 	for i = 1, count do
@@ -156,6 +175,7 @@ function BarRow:SetCount(count)
 	end
 	self.count = count
 	self:Place()
+	self:Overflow(count > 0 and hidden or 0)
 	return count
 end
 
@@ -169,5 +189,5 @@ function BarRow:Apply(cfg)
 	for _, bar in ipairs(self.bars) do
 		self:StyleBar(bar)
 	end
-	self:SetCount(self.count)
+	self:SetCount(self.requested or self.count)
 end

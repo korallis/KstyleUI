@@ -42,7 +42,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.
+Tests: `Tools/regression/test-cooldowns-overflow.lua` (many tracked buffs and bars stay in their footprints with their chips), `test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.
 
 ## Elements
 
@@ -69,7 +69,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `nameFont`, `nameOutline` | `"kit"`, `"none"` | The buff bars' name font and outline |
 | `<icons>.size` | 44 for essential, 38 for utility, 30 for tracked buffs | Icon size, 16 to 64 |
 | `<icons>.spacing` | 6 for essential and utility, 3 for tracked buffs | Gap between icons, 0 to 12 |
-| `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown |
+| `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown, and on the tracked buff row the last socket reads `+N` for them (an opaque chip, the covered buff counted) |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
 | `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 15, 13 or 12; 12, 11 or 10 | The countdown numbers and the count: the action bars' 13-unit cooldown numbers on the 38-unit utility icons, scaled up on the essentials |
@@ -79,7 +79,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell, with the rim and the glow in the `gilt` token (`Style.TOKENS`, `neutral` until S1's gilt lands) whatever the accent: gold only on the active state |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, the last bar's slot reads `+N more` |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |
@@ -120,6 +120,7 @@ If a mirror call raises an error, in combat or out, or a category set cannot be 
 - Icon items: `Skin.Strip` hushes Blizzard's icon overlay and keeps the icon and the out-of-range shade; the icon is cropped; `Skin.Backdrop` puts the action buttons' dark body (`buttonFill`) two units outside the icon, with their rim: the accent lifted 15 % toward white, and a faint halo outside it; the countdown, charge and stack texts take the module's fonts, sizes and outlines.
 - Bar items: the bar's background and pip are hushed, the fill takes the bar texture and colour settings at the bars' fill alpha, the bar gets a glass tile and its icon a dark button tile, and the name and duration texts take the module's fonts. Blizzard's template places the name and the duration, so the restyled bar keeps its text positions.
 - Blizzard's Edit Mode keeps the viewers' positions, sizes, padding, visibility and timer switches. Move them with Edit Mode; Layout Mode moves only KstyleUI's own frames.
+- Blizzard's viewer lays out every tracked buff itself, wrapping at Edit Mode's icon limit, so the `+N` chips are the mirror's: on this path the overflow is Edit Mode's to bound.
 - When Blizzard's Cooldown Manager is switched off (`cooldownViewerEnabled`), the restyled viewers show nothing, so the module prints one line saying where to turn it on.
 
 ## Why
