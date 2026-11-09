@@ -940,26 +940,60 @@ local function Targets(rxp)
 	Hook(targeting, "RenderTargetFrameBackground", "targeting.RenderTargetFrameBackground", Refresh)
 end
 
-local function Report(tracker)
-	local ui = IsTable(tracker.ui) and tracker.ui.CharacterFrame
-	if not IsTable(ui) or not IsTable(ui.frame) then
+local function Report(tracker, labels)
+	local reports = tracker.ui
+	if not IsTable(reports) or not next(reports) then
 		LogOnce("report", "RestedXP made no leveling report (its leveling tracker may be off); skipped")
 		return
 	end
-	local frame = ui.frame
-	Glass(frame)
-	if IsTable(ui.titletext) then
-		Style.Text(ui.titletext, "heading")
-		Title(ui.titletext)
-	end
-	local status = IsTable(ui.statustext) and ui.statustext:GetParent()
-	for _, child in ipairs({ frame:GetChildren() }) do
-		if child.obj == ui and child ~= status and child:GetObjectType() == "Button" then
-			Button(child)
+	for _, ui in pairs(reports) do
+		if IsTable(ui) and IsTable(ui.frame) then
+			local frame = ui.frame
+			Glass(frame)
+			if IsTable(ui.titletext) then
+				Style.Text(ui.titletext, "heading")
+				Title(ui.titletext)
+			end
+			local status = IsTable(ui.statustext) and ui.statustext:GetParent()
+			for _, child in ipairs({ frame:GetChildren() }) do
+				if child.obj == ui and child ~= status and child:GetObjectType() == "Button" then
+					Button(child)
+				end
+			end
+			ScrollBar(IsTable(ui.scrollContainer) and ui.scrollContainer.scrollbar or nil)
+			Button(IsTable(ui.levelButton) and ui.levelButton.frame or nil)
+			if labels then labels(ui.scrollContainer) end
+			if not done[frame] then
+				done[frame] = true
+				frame:HookScript("OnShow", function()
+					if Active() then Run("report show", Report, tracker, labels) end
+				end)
+			end
 		end
 	end
-	ScrollBar(IsTable(ui.scrollContainer) and ui.scrollContainer.scrollbar or nil)
-	Button(IsTable(ui.levelButton) and ui.levelButton.frame or nil)
+end
+
+local WidgetLabels
+
+local function IconControl(button, normal)
+	if not IsTable(button) or done[button] then return end
+	normal = normal or (type(button.GetNormalTexture) == "function" and button:GetNormalTexture())
+	if not IsTexture(normal) then return end
+	done[button] = true
+	local path = normal:GetTexture()
+	Button(button)
+	local holder = CreateFrame("Frame", nil, button)
+	holder:SetAllPoints(button)
+	holder:SetFrameLevel(button:GetFrameLevel() + 2)
+	local icon = holder:CreateTexture(nil, "OVERLAY")
+	icon:SetAllPoints(normal)
+	icon:SetTexture(path)
+	icon:SetDesaturated(true)
+	icon:SetVertexColor(Style.Accent())
+	holder.Restyle = function()
+		if Active() then icon:SetVertexColor(Style.Accent()) end
+	end
+	Style.Track(holder)
 end
 
 local function Splits(tracker)
@@ -968,6 +1002,21 @@ local function Splits(tracker)
 		return
 	end
 	IconFrame(splits, "hideSplitsBackground")
+	for _, key in ipairs({ "history", "current", "total" }) do
+		local widget = Find(splits, key)
+		local text = IsTable(widget) and Find(widget, "label")
+		if IsTable(text) then
+			Style.Text(text, "body", "text")
+		end
+	end
+	local title = Find(splits, "title")
+	if title then
+		if IsTable(title.text) then
+			Style.Text(title.text, "heading")
+			Title(title.text)
+		end
+		IconControl(Find(title, "cog"))
+	end
 end
 
 local function Tracker(rxp)
@@ -975,7 +1024,10 @@ local function Tracker(rxp)
 	if not tracker then
 		return
 	end
-	Report(tracker)
+	Report(tracker, WidgetLabels)
+	Hook(tracker, "CreateGui", "tracker.CreateGui", function()
+		Report(tracker, WidgetLabels)
+	end)
 	Splits(tracker)
 	local function Refresh()
 		Splits(tracker)
@@ -1001,6 +1053,156 @@ local function KitButton(button)
 	end
 end
 
+local temporary = setmetatable({}, WEAK)
+
+local function Temporary(root)
+	local entry = temporary[root]
+	if not entry then
+		entry = { active = false, controls = {}, fonts = {}, art = {} }
+		temporary[root] = entry
+		root:HookScript("OnHide", function()
+			entry.active = false
+			for _, control in pairs(entry.controls) do
+				control:Hide()
+			end
+			for text, font in pairs(entry.fonts) do
+				text:SetFont(unpack(font))
+			end
+			entry.fonts = {}
+		end)
+	end
+	entry.active = true
+	UndressOnHide(root)
+	return entry
+end
+
+local function TemporaryText(root, text, role, color)
+	if not IsTable(text) or type(text.GetText) ~= "function" then
+		return
+	end
+	local entry = Temporary(root)
+	local holder = entry.controls[text]
+	if not holder then
+		holder = CreateFrame("Frame", nil, text:GetParent())
+		holder:SetAllPoints(text)
+		local label = Widgets.FontString(holder, "OVERLAY")
+		label:SetAllPoints(text)
+		label:SetJustifyH(text:GetJustifyH())
+		label:SetJustifyV(text:GetJustifyV())
+		holder.label = label
+		holder.Restyle = function()
+			if Active() and entry.active and color == "accent" then label:SetTextColor(Style.Accent()) end
+		end
+		Style.Track(holder)
+		entry.controls[text] = holder
+		hooksecurefunc(text, "SetText", function(_, value)
+			if Active() and entry.active then label:SetText(value) end
+		end)
+	end
+	Veil(root, text)
+	Label(holder.label, role, color ~= "accent" and color or nil)
+	if color == "accent" then holder.label:SetTextColor(Style.Accent()) end
+	holder.label:SetText(text:GetText())
+	holder:Show()
+end
+
+local function TemporaryControl(root, source, kind)
+	if not IsTable(source) or type(source.GetRegions) ~= "function" then
+		return
+	end
+	local entry = Temporary(root)
+	local control = entry.controls[source]
+	if not control then
+		local art = {}
+		entry.art[source] = art
+		for _, region in ipairs({ source:GetRegions() }) do
+			if IsTexture(region) then art[#art + 1] = region end
+		end
+		for _, key in ipairs(RXP_ART) do
+			if IsTable(source[key]) then art[#art + 1] = source[key] end
+		end
+		control = CreateFrame(kind == "Button" and "Button" or kind == "ScrollBar" and "Slider" or "EditBox", nil, source)
+		control:SetAllPoints(source)
+		control:SetFrameLevel(source:GetFrameLevel() + 1)
+		control:EnableMouse(false)
+		if kind == "Button" then
+			Kit.Button(control)
+			local normal = type(source.GetNormalTexture) == "function" and source:GetNormalTexture()
+			if IsTexture(normal) then
+				local icon = control:CreateTexture(nil, "OVERLAY")
+				icon:SetAllPoints(normal)
+				icon:SetTexture(normal:GetTexture())
+				icon:SetDesaturated(true)
+				icon:SetVertexColor(Style.Accent())
+				control.Restyle = function()
+					if Active() and entry.active then icon:SetVertexColor(Style.Accent()) end
+				end
+				Style.Track(control)
+			end
+		elseif kind == "EditBox" then
+			control:SetAutoFocus(false)
+			Kit.EditBox(control)
+		else
+			local thumb = type(source.GetThumbTexture) == "function" and source:GetThumbTexture()
+			if IsTable(thumb) then
+				local texture = control:CreateTexture(nil, "OVERLAY")
+				texture:SetAllPoints(thumb)
+				control.Thumb = texture
+				art[#art + 1] = thumb
+			end
+			for _, key in ipairs({ "ScrollUpButton", "ScrollDownButton" }) do
+				local button = source[key]
+				if IsTable(button) then
+					for _, region in ipairs({ button:GetRegions() }) do
+						if IsTexture(region) then art[#art + 1] = region end
+					end
+					local proxy = CreateFrame("Button", nil, control)
+					proxy:SetAllPoints(button)
+					proxy:EnableMouse(false)
+					control[key] = proxy
+				end
+			end
+			Kit.ScrollBar(control)
+		end
+		entry.controls[source] = control
+	end
+	for _, region in ipairs(entry.art[source] or {}) do Veil(root, region) end
+	control:Show()
+	if kind == "Button" and type(source.GetFontString) == "function" then
+		TemporaryText(root, source:GetFontString(), "body", "textEmphasis")
+	elseif kind == "EditBox" and type(source.GetFont) == "function" then
+		if not entry.fonts[source] then entry.fonts[source] = { source:GetFont() } end
+		source:SetFont(Style.Font("body"))
+	end
+end
+
+local function IconControls(frame, known)
+	if not IsTable(frame) or type(frame.GetChildren) ~= "function" then
+		return
+	end
+	for _, child in ipairs({ frame:GetChildren() }) do
+		if child:GetObjectType() == "Button" and not (known and known[child]) then
+			local normal = type(child.GetNormalTexture) == "function" and child:GetNormalTexture()
+			local path = IsTexture(normal) and normal:GetTexture()
+			if type(path) == "string" and not Widgets.IsSecret(path) then
+				if path:find("rxp%-btn%-close") then
+					CloseButton(child)
+				else
+					IconControl(child, normal)
+				end
+			end
+		end
+	end
+end
+
+WidgetLabels = function(widget)
+	if not IsTable(widget) then return end
+	if (widget.type == "Label" or widget.type == "Heading") and IsTable(widget.frame) then
+		TemporaryText(widget.frame, widget.label, widget.type == "Heading" and "heading" or "body", "text")
+	end
+	for _, child in ipairs(IsTable(widget.children) and widget.children or {}) do WidgetLabels(child) end
+end
+
 local function Option(widget)
 	local row = widget.frame
 	if not IsTable(row) or type(row.GetRegions) ~= "function" then
@@ -1020,7 +1222,12 @@ local function Option(widget)
 		note:SetTextColor(Style.Accent())
 	end
 	local checkbg = widget.checkbg
-	if not IsTable(checkbg) or type(checkbg.GetRegions) ~= "function" or Lumen.RingOf(checkbg) then
+	if not IsTable(checkbg) or type(checkbg.GetRegions) ~= "function" then
+		return
+	end
+	local previous = Lumen.RingOf(checkbg)
+	if previous then
+		previous:SetChecked(widget.checked)
 		return
 	end
 	Skin.Strip(checkbg, { children = RXP_ART })
@@ -1030,15 +1237,17 @@ local function Option(widget)
 	local ring = Lumen.Ring(checkbg, widget.checked)
 	if type(widget.SetChecked) == "function" then
 		hooksecurefunc(widget, "SetChecked", function(_, checked)
-			ring:SetChecked(checked)
+			if Active() then
+				ring:SetChecked(checked)
+			end
 		end)
 	end
 	if type(row.HookScript) == "function" then
 		row:HookScript("OnEnter", function()
-			Widgets.Hover(ring, true)
+			if Active() then Widgets.Hover(ring, true) end
 		end)
 		row:HookScript("OnLeave", function()
-			Widgets.Hover(ring, false)
+			if Active() then Widgets.Hover(ring, false) end
 		end)
 	end
 end
@@ -1046,14 +1255,10 @@ end
 local function EachOption(container, fn)
 	local children = IsTable(container) and container.children
 	for _, child in ipairs(IsTable(children) and children or {}) do
-		if child.type == OPTION_WIDGET then
+		if IsTable(child) and child.type == OPTION_WIDGET then
 			fn(child)
-		elseif IsTable(child.children) then
-			for _, inner in ipairs(child.children) do
-				if inner.type == OPTION_WIDGET then
-					fn(inner)
-				end
-			end
+		elseif IsTable(child) then
+			EachOption(child, fn)
 		end
 	end
 end
@@ -1067,17 +1272,23 @@ local function Configurator(configurator)
 		Glass(ui.frame)
 	end
 	Label(ui.titletext, "title", "textEmphasis")
+	Label(Find(ui, "description"), "body", "text")
+	local known = {}
 	for _, key in ipairs(CONFIGURATOR_BUTTONS) do
 		KitButton(ui[key])
+		if IsTable(ui[key]) then known[ui[key]] = true end
 	end
+	IconControls(ui.frame, known)
 	local container = ui.scrollContainer
 	local pane = IsTable(container) and container.frame
 	if IsTable(pane) and type(pane.GetRegions) == "function" and not Skin.IsSkinned(pane, "Backdrop") then
 		Skin.Backdrop(pane, { shape = "tile", fill = "surface", shadow = false })
 	end
 	ScrollBar(IsTable(container) and container.scrollbar or nil)
+	WidgetLabels(container)
 	EachOption(container, Option)
 	Hook(container, "DoLayout", "configurator.scrollContainer.DoLayout", function()
+		WidgetLabels(container)
 		EachOption(container, Option)
 	end)
 end
@@ -1092,10 +1303,13 @@ local function Importer(importer)
 		Glass(window.frame)
 	end
 	CloseButton(window.closebutton)
+	Label(window.title, "heading")
 	Title(window.title)
+	Label(Find(window, "description"), "body", "text")
 	for _, key in ipairs(IMPORT_BUTTONS) do
 		local widget = widgets[key]
-		Button(IsTable(widget) and widget.frame or nil)
+		KitButton(IsTable(widget) and widget.frame or nil)
+		if IsTable(widget) then Label(widget.text, "body", "textEmphasis") end
 	end
 	local box = widgets.importBox
 	if IsTable(box) then
@@ -1105,6 +1319,21 @@ local function Importer(importer)
 		if IsTable(box.editBox) and not Skin.IsSkinned(box.editBox, "EditBox") then
 			Kit.EditBox(box.editBox)
 		end
+		Label(box.editBox, "body", "text")
+	end
+	for _, key in ipairs({ "importLabel", "guidesLabel", "progressLabel", "progressText", "history" }) do
+		Label(Find(widgets, key), "caption", "text")
+	end
+	local progress = Find(widgets, "progress")
+	if IsTable(progress) and type(progress.GetStatusBarTexture) == "function" then
+		Kit.Bar(progress)
+		Style.StatusBar(progress, { accent = true })
+	end
+	local dropdown = Find(widgets, "currentGuides")
+	if IsTable(dropdown) then
+		TemporaryControl(window.frame, Find(dropdown, "frame"), "EditBox")
+		TemporaryControl(window.frame, Find(dropdown, "button"), "Button")
+		TemporaryText(window.frame, Find(dropdown, "text"), "body", "text")
 	end
 	for _, key in ipairs(IMPORT_POPUPS) do
 		local popup = widgets[key]
@@ -1112,11 +1341,29 @@ local function Importer(importer)
 			if not Skin.IsSkinned(popup.frame, "Backdrop") then
 				Glass(popup.frame)
 			end
+			Label(popup.title, "heading")
 			Title(popup.title)
+			Label(Find(popup, "message"), "body", "text")
+			local known = {}
 			for _, button in pairs(IsTable(popup.buttons) and popup.buttons or {}) do
-				Button(button)
+				KitButton(button)
+				Label(button.text, "body", "textEmphasis")
+				known[button] = true
 			end
+			IconControls(popup.frame, known)
+			Hook(popup, "UpdateSubTheme", "importer." .. key .. ".UpdateSubTheme", function()
+				Importer(importer)
+			end)
 		end
+	end
+	Hook(window, "UpdateSubTheme", "importer.UpdateSubTheme", function()
+		Importer(importer)
+	end)
+	if not done[window.frame] then
+		done[window.frame] = true
+		window.frame:HookScript("OnShow", function()
+			if Active() then Run("importer show", Importer, importer) end
+		end)
 	end
 end
 
@@ -1154,6 +1401,32 @@ local function DressDialog(global)
 	end
 	if IsTable(frame.obj) then
 		Tint(frame, frame.obj.titletext)
+		TemporaryText(frame, frame.obj.titletext, "heading", "accent")
+		local function Children(widget)
+			if not IsTable(widget) then return end
+			if widget.type == "ScrollFrame" then
+				TemporaryControl(frame, Find(widget, "scrollbar"), "ScrollBar")
+			end
+			if widget.type == "MultiLineEditBox" then
+				TemporaryText(frame, Find(widget, "label"), "body", "text")
+				TemporaryControl(frame, Find(widget, "editBox"), "EditBox")
+				TemporaryControl(frame, Find(widget, "button"), "Button")
+				TemporaryControl(frame, Find(widget, "scrollBar"), "ScrollBar")
+				local background = Find(widget, "scrollBG")
+				if IsTable(background) then
+					for _, region in ipairs({ background:GetRegions() }) do
+						if IsTexture(region) then Veil(frame, region) end
+					end
+				end
+			end
+			for _, child in ipairs(IsTable(widget.children) and widget.children or {}) do Children(child) end
+		end
+		Children(frame.obj)
+		for _, child in ipairs({ frame:GetChildren() }) do
+			if child.obj == frame.obj and child:GetObjectType() == "Button" and child ~= (IsTable(frame.obj.statustext) and frame.obj.statustext:GetParent()) then
+				TemporaryControl(frame, child, "Button")
+			end
+		end
 	end
 	DressPanel(frame)
 	UndressOnHide(frame)
