@@ -4,7 +4,7 @@ local _, ns = ...
 local Widgets, Tokens = ns.Widgets, ns.Tokens
 local max, min = math.max, math.min
 
-local SECTION_CAP_HEIGHT = math.max(Tokens.Size("caption"), Tokens.Size("gapLarge"))
+local SECTION_CAP_HEIGHT = math.max(Tokens.Size("title"), Tokens.Size("gapLarge"))
 local PILL_HEIGHT = 4
 local PILL_GLOW_OUTSET = 3
 local PILL_GLOW_ALPHA = 0.35

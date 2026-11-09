@@ -10,7 +10,7 @@ local TEXTURES_DIR = MEDIA .. "Textures\\"
 
 local COLORS = {
 	glass = { "e1f0fa", 0.22 },
-	deep = { "0c141e", 0.62 },
+	deep = { "0c141e", 0.88 },
 	rim = { "d6eeff", 0.55 },
 	rimSoft = { "d6eeff", 0.18 },
 	giltLit = { "f3dca4", 1 },
@@ -21,14 +21,14 @@ local COLORS = {
 	friend = { "62d58d", 1 },
 	magic = { "5aa9ff", 1 },
 	quest = { "f6d27a", 1 },
-	surface = { "0c141e", 0.62 },
+	surface = { "0c141e", 0.88 },
 	raised = { "1a2633", 0.85 },
 	edgeOuter = { "000000", 0.5 },
 	edgeInner = { "d6eeff", 0.55 },
 	edgeFaint = { "d6eeff", 0.08 },
 	edgeBar = { "d6eeff", 0.14 },
 	buttonFill = { "0a1018", 0.7 },
-	text = { "a9b6c2", 1 },
+	text = { "c8d1da", 1 },
 	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
 	textDisabled = { "6f7d8a", 1 },
@@ -41,7 +41,7 @@ local COLORS = {
 	accentDefault = { "aad372", 1 },
 	shadow = { "000000", 0.45 },
 	textShadow = { "000000", 0.85 },
-	track = { "05090e", 0.7 },
+	track = { "05090e", 0.88 },
 	white = { "ffffff", 1 },
 	black = { "000000", 1 },
 	schoolPhysical = { "d8c3a0", 1 },
@@ -75,10 +75,11 @@ local SIZES = {
 	display = 22,
 	heading = 16,
 	body = 12,
-	caption = 9,
+	title = 12,
+	caption = 11,
 	number = 12,
 	world = 13,
-	textShadowOffset = 0.6,
+	textShadowOffset = 1,
 	pressOffset = 1,
 	panelRise = 16,
 	panelOvershoot = 2,
@@ -141,12 +142,14 @@ local FONT_FACES = {
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
 local NUMBER_FACE = "SourceSans3Semibold"
+local MIN_TEXT = 10
 
 local FONT_ROLES = {
 	display = { lumen = "CinzelSemiBold", flags = "", tracking = 0.6 },
 	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
 	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
-	caption = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
+	title = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
+	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
 	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
@@ -284,7 +287,7 @@ function Tokens.Font(role)
 	end
 	local size = SIZES[role]
 	if role ~= "world" and theme and theme.FontScale then
-		size = size * theme.FontScale()
+		size = math.max(MIN_TEXT, size * theme.FontScale())
 	end
 	return path or FACE_PATH[FALLBACK_FACE], size, spec.flags
 end

@@ -85,10 +85,12 @@ end
 
 -- The Lumen palette, from the mockup's :root (handoff arena2/parent/index.html), and the older names mapped onto it:
 -- the surface is the deep tint under the frost, the panel edge is the rim light, the button body is the socket's
--- dark crystal, body text is the muted tone and emphasis the mockup's text colour.
+-- dark crystal, body text is the muted tone and emphasis the mockup's text colour. The deep tint, the body text and
+-- the bar track are raised from the mockup's 62%, #a9b6c2 and 70% so text reads over bright scenery; test-legibility.lua
+-- holds the contrast they buy.
 for name, want in pairs({
 	glass = { "e1f0fa", 0.22 },
-	deep = { "0c141e", 0.62 },
+	deep = { "0c141e", 0.88 },
 	rim = { "d6eeff", 0.55 },
 	rimSoft = { "d6eeff", 0.18 },
 	giltLit = { "f3dca4", 1 },
@@ -100,20 +102,20 @@ for name, want in pairs({
 	friend = { "62d58d", 1 },
 	magic = { "5aa9ff", 1 },
 	quest = { "f6d27a", 1 },
-	surface = { "0c141e", 0.62 },
+	surface = { "0c141e", 0.88 },
 	raised = { "1a2633", 0.85 },
 	edgeOuter = { "000000", 0.5 },
 	edgeInner = { "d6eeff", 0.55 },
 	edgeFaint = { "d6eeff", 0.08 },
 	edgeBar = { "d6eeff", 0.14 },
-	text = { "a9b6c2", 1 },
+	text = { "c8d1da", 1 },
 	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
 	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
 	buttonFill = { "0a1018", 0.7 },
-	track = { "05090e", 0.7 },
+	track = { "05090e", 0.88 },
 }) do
 	local r, g, b, a = Tokens.Color(name)
 	local wr, wg, wb = hexColor(want[1])
@@ -143,7 +145,7 @@ for name, want in pairs({
 	railWidth = 318, railPadding = 20, sectionGap = 22, rowGap = 12, socketGap = 8, screenMargin = 28,
 	actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
-	buffBarHeight = 18, display = 22, heading = 16, body = 12, caption = 9, number = 12, world = 13, textShadowOffset = 0.6,
+	buffBarHeight = 18, display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, world = 13, textShadowOffset = 1,
 	pressOffset = 1, panelRise = 16, panelOvershoot = 2,
 }) do
 	assert(Tokens.Size(name) == want, "Tokens.Size(" .. name .. ") is " .. tostring(Tokens.Size(name)) .. ", spec says " .. want)
@@ -179,9 +181,9 @@ local function onDisk(gamePath)
 	return handle ~= nil
 end
 
--- Font roles: the default face set is Lumen, Cinzel for heads and captions and Alegreya Sans Tabular for body text and
+-- Font roles: the default face set is Lumen, Cinzel for heads and section titles and Alegreya Sans Tabular for captions, body text and
 -- numbers; test-lumen-material.lua covers each role's face and the Source Sans choice.
-for role, size in pairs({ display = 22, heading = 16, body = 12, caption = 9, number = 12, world = 13 }) do
+for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, world = 13 }) do
 	local path, got, flags = Tokens.Font(role)
 	assert(onDisk(path), "Tokens.Font(" .. role .. ") names a missing file: " .. tostring(path))
 	assert(got == size, "Tokens.Font(" .. role .. ") size is " .. tostring(got))
@@ -193,7 +195,9 @@ assert(select(3, Tokens.Font("world")) == "OUTLINE", "text over the 3D world get
 assert(select(3, Tokens.Font("body")) == "", "UI text uses a shadow, not an outline")
 assert(not pcall(Tokens.Font, "nope"), "an unknown font role is an error")
 local tracking, upper = Tokens.TextStyle("caption")
-assert(tracking == 1.4 and upper == true, "captions are uppercase Cinzel tracked 1.4 units, the mockup's 0.14em at 13 units, its rail caps")
+assert(tracking == 0.6 and upper == true, "captions are uppercase Alegreya Sans Medium, opened 0.6 units")
+tracking, upper = Tokens.TextStyle("title")
+assert(tracking == 1.4 and upper == true, "section titles are uppercase Cinzel tracked 1.4 units, the mockup's 0.14em rail caps")
 assert(Tokens.TextStyle("display") == 0.6 and Tokens.TextStyle("heading") == 0.4, "Cinzel heads are tracked open, the mockup's 0.04em")
 
 -- Media lists for the settings window and LibSharedMedia.

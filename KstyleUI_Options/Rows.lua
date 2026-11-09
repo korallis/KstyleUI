@@ -1,16 +1,17 @@
--- Rows.lua: one settings row: a header, a note, or a label with help text and the kit control its kind needs.
+-- Rows.lua: one settings row: a header, a note, or a label with wrapping help text and the kit control its kind needs, as tall as its text.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Model = ns.Model
-local format, floor = string.format, math.floor
+local format, floor, max = string.format, math.floor, math.max
 
 local Rows = {}
 ns.Rows = Rows
 
 Rows.HEIGHT = 48
 Rows.CONTROL_WIDTH = 220
+Rows.MIN_TEXT_WIDTH = 240
 local MAX_BUTTONS = 2
 local SWATCH_SIZE = 20
 local MARK_WIDTH = 2
@@ -193,8 +194,6 @@ local function Control(row, kind)
 	local control = row.controls[kind]
 	if not control and MAKERS[kind] then
 		control = MAKERS[kind](row)
-		control:ClearAllPoints()
-		control:SetPoint("RIGHT", row, "RIGHT", -Gap(row), 0)
 		row.controls[kind] = control
 	end
 	return control
@@ -309,15 +308,45 @@ local function Value(item)
 	return nil
 end
 
-local function PlaceText(row, hasControl)
-	local gap = Gap(row)
-	local right = hasControl and -(Snap(row, Rows.CONTROL_WIDTH) + 2 * gap) or -gap
+local function ControlHeight(control)
+	local height = control:GetHeight()
+	if Widgets.IsSecret(height) or type(height) ~= "number" or height <= 0 then
+		return Tokens.Size("rowHeight")
+	end
+	return height
+end
+
+local function PlaceText(row, control, width)
+	local gap, tiny = Gap(row), Snap(row, Tokens.Size("gapTiny"))
+	local reserve = control and Snap(row, Rows.CONTROL_WIDTH) + gap or 0
+	local column = width - 2 * gap - reserve
+	local stacked = control ~= nil and column < Rows.MIN_TEXT_WIDTH
+	local helpWidth = stacked and width - 2 * gap or column
+	local labelHeight = Widgets.LineHeight(row.label)
+	row.label:SetWidth(max(1, column))
+	local helpHeight = Widgets.WrappedHeight(row.help, max(1, helpWidth))
+	local textHeight = labelHeight + (helpHeight > 0 and tiny + helpHeight or 0)
+	local band = stacked and max(labelHeight, ControlHeight(control)) or 0
+	local blockHeight = stacked and band + (helpHeight > 0 and tiny + helpHeight or 0) or max(textHeight, control and ControlHeight(control) or 0)
+	local height = Snap(row, max(Rows.HEIGHT, blockHeight + 2 * gap))
+	local top = Snap(row, (height - (stacked and blockHeight or textHeight)) / 2)
+	local labelTop = stacked and top + Snap(row, (band - labelHeight) / 2) or top
+	local helpTop = stacked and top + band + tiny or top + labelHeight + tiny
 	row.label:ClearAllPoints()
 	row.help:ClearAllPoints()
-	row.label:SetPoint("BOTTOMLEFT", row, "LEFT", gap, Snap(row, Tokens.Size("gapTiny")))
-	row.label:SetPoint("RIGHT", row, "RIGHT", right, 0)
-	row.help:SetPoint("TOPLEFT", row, "LEFT", gap, -Snap(row, Tokens.Size("gapTiny")))
-	row.help:SetPoint("RIGHT", row, "RIGHT", right, 0)
+	row.label:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -labelTop)
+	row.label:SetPoint("RIGHT", row, "RIGHT", -(gap + reserve), 0)
+	row.help:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -helpTop)
+	row.help:SetPoint("RIGHT", row, "RIGHT", stacked and -gap or -(gap + reserve), 0)
+	if control then
+		control:ClearAllPoints()
+		if stacked then
+			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - ControlHeight(control)) / 2)))
+		else
+			control:SetPoint("RIGHT", row, "TOPRIGHT", -gap, -height / 2)
+		end
+	end
+	return height
 end
 
 local function ShowHeader(row, item)
@@ -347,13 +376,15 @@ local function ShowHeader(row, item)
 	end
 end
 
-local function ShowNote(row, item)
+local function ShowNote(row, item, width)
 	local gap = Gap(row)
-	row.note:ClearAllPoints()
-	row.note:SetPoint("LEFT", row, "LEFT", gap, 0)
-	row.note:SetPoint("RIGHT", row, "RIGHT", -gap, 0)
 	Widgets.SetText(row.note, item.label)
+	local height = Snap(row, max(Rows.HEIGHT, Widgets.WrappedHeight(row.note, max(1, width - 2 * gap)) + 2 * gap))
+	row.note:ClearAllPoints()
+	row.note:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -gap)
+	row.note:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
 	row.note:Show()
+	return height
 end
 
 local function SameSetting(a, b)
@@ -361,14 +392,8 @@ local function SameSetting(a, b)
 		and a.page == b.page and a.module == b.module and a.key == b.key and a.element == b.element
 end
 
-function Rows.Update(row, item)
+local function Layout(row, item, width)
 	local kind = item.kind
-	local keep = SameSetting(row.item, item)
-	row.updating = true
-	if not keep then
-		row.pending = nil
-	end
-	row.item = item
 	for controlKind, control in pairs(row.controls) do
 		if controlKind ~= kind then
 			control:Hide()
@@ -379,15 +404,50 @@ function Rows.Update(row, item)
 	end
 	if kind == "header" then
 		ShowHeader(row, item)
+		return Rows.HEIGHT, nil
 	elseif kind == "note" then
-		ShowNote(row, item)
-	else
-		local control = Control(row, kind)
-		PlaceText(row, control ~= nil)
+		return ShowNote(row, item, width), nil
+	end
+	local control = Control(row, kind)
+	Widgets.SetText(row.label, item.label)
+	Widgets.SetText(row.help, item.help or "")
+	return PlaceText(row, control, width), control
+end
+
+local function RowWidth(list)
+	local width = list and list.GetViewWidth and list:GetViewWidth() or 0
+	if width <= 0 then
+		width = Rows.CONTROL_WIDTH + Rows.MIN_TEXT_WIDTH + 3 * Tokens.Size("gapMedium")
+	end
+	return width
+end
+
+function Rows.Measure(item, _, list, width)
+	local row = list.measureRow
+	if not row then
+		row = Rows.Create(list)
+		row:Hide()
+		list.measureRow = row
+	end
+	row.updating = true
+	local height = Layout(row, item, width and width > 0 and width or RowWidth(list))
+	row.updating = false
+	return height
+end
+
+function Rows.Update(row, item, _, list)
+	local kind = item.kind
+	local keep = SameSetting(row.item, item)
+	row.updating = true
+	if not keep then
+		row.pending = nil
+	end
+	row.item = item
+	row.list = list or row.list
+	local _, control = Layout(row, item, RowWidth(row.list))
+	if kind ~= "header" and kind ~= "note" then
 		local disabled = Model.IsDisabled(item)
-		Widgets.SetText(row.label, item.label)
 		Widgets.TextColor(row.label, disabled and "textDisabled" or "textEmphasis")
-		Widgets.SetText(row.help, item.help or "")
 		Widgets.TextColor(row.help, disabled and "textDisabled" or "text")
 		row.label:Show()
 		row.help:Show()
@@ -405,24 +465,27 @@ function Rows.Restyle(row)
 	Widgets.Tint(row.rule, "edgeFaint", RULE_ALPHA)
 	Widgets.Tint(row.mark, "accent")
 	if row.item then
-		Rows.Update(row, row.item)
+		Rows.Update(row, row.item, nil, row.list)
 	end
 end
 
 function Rows.Create(list)
 	local row = CreateFrame("Frame", nil, list.view)
+	row.list = list
 	row.controls = {}
 	row.label = Widgets.Text(row, "body", "textEmphasis")
 	row.label:SetJustifyH("LEFT")
 	row.label:SetWordWrap(false)
 	row.help = Widgets.Text(row, "body", "text")
 	row.help:SetJustifyH("LEFT")
-	row.help:SetWordWrap(false)
-	row.caption = Widgets.Text(row, "caption", "text")
+	row.help:SetJustifyV("TOP")
+	row.help:SetWordWrap(true)
+	row.caption = Widgets.Text(row, "title", "text")
 	row.caption:SetJustifyH("LEFT")
 	row.caption:SetWordWrap(false)
 	row.note = Widgets.Text(row, "body", "text")
 	row.note:SetJustifyH("LEFT")
+	row.note:SetJustifyV("TOP")
 	row.note:SetWordWrap(true)
 	row.rule = row:CreateTexture(nil, "ARTWORK")
 	row.rule:SetTexture((Tokens.Texture("divider")))

@@ -407,7 +407,7 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(caption:GetText():find(THIN_SPACE, 1, true), "the caption's letters are tracked")
-	assert(FontPath(caption) == Style.Font("caption") and Near((select(2, caption:GetFont())), Lumen.CAP_SIZE), "in the caption face at the mockup's cap size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("title") and Near((select(2, caption:GetFont())), Lumen.CAP_SIZE), "in the title face at the mockup's cap size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
 	assert(Near(cr, gr) and Near(cg, gg) and Near(cb, gb), "the caption is gilt")
 	assert(row:IsShown(), "the quest caption shows while the tracker is expanded")

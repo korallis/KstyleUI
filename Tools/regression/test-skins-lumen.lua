@@ -97,7 +97,7 @@ do
 	local title = cap.title
 	assert(Plain(title) == "QUESTS", "the title is upper case, got " .. Plain(title))
 	assert(title:GetText():find(THIN_SPACE, 1, true), "and tracked when the kit face loads")
-	assert((title:GetFont()) == Style.Font("caption") and Near((select(2, title:GetFont())), Lumen.CAP_SIZE), "in the caption face at the mockup's 13, got " .. tostring((select(2, title:GetFont()))))
+	assert((title:GetFont()) == Style.Font("title") and Near((select(2, title:GetFont())), Lumen.CAP_SIZE), "in the title face at the mockup's 13, got " .. tostring((select(2, title:GetFont()))))
 	assert(TextIs(title, gr, gg, gb), "the title is gilt")
 	local titlePoint = { title:GetPoint(1) }
 	assert(titlePoint[1] == "LEFT" and titlePoint[2] == gem and titlePoint[3] == "RIGHT" and Near(titlePoint[4], K.Widgets.Snap(cap.row, K.Tokens.Size("gapSmall"))), "the title follows the gem after a gapSmall")

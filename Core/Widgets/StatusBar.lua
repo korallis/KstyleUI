@@ -1,4 +1,4 @@
--- StatusBar.lua: the status bar, with a texture, a background, an optional spark and sheen, and values that only reach the engine's setters.
+-- StatusBar.lua: the status bar, with a texture, a background framed by a dark keyline, an optional spark and sheen, and values that only reach the engine's setters.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -16,6 +16,8 @@ local SHEEN_TOP_ALPHA = 0.35
 local SHEEN_TOP_SUBLEVEL = 7
 local GLOW_REACH, GLOW_ALPHA = 4, 0.5
 local CAP_WRAP = "CLAMPTOWHITE"
+local KEYLINE = "edgeOuter"
+local KEYLINE_SUBLEVEL = -1
 
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -173,6 +175,13 @@ function Bar:Restyle()
 	if self.sheenLooping and Motion.ReducedMotion() then
 		self:StopSheen()
 	end
+	if self.keyline then
+		local px = Widgets.Border(self)
+		self.keyline:ClearAllPoints()
+		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -px, px)
+		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px, -px)
+		Widgets.Tint(self.keyline, KEYLINE)
+	end
 	if self.borderFrame then
 		local outset = Widgets.Border(self) * BORDER_LINES
 		self.borderFrame:ClearAllPoints()
@@ -182,7 +191,7 @@ function Bar:Restyle()
 	end
 	if self.caps then
 		self:SizeCaps(height)
-		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self)
+		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self, 0)
 	end
 	self:Paint()
 end
@@ -301,6 +310,10 @@ function Widgets.StatusBar(parent, opts)
 		bar.backgroundName = type(opts.background) == "string" and opts.background or "track"
 		bar.background = bar:CreateTexture(nil, "BACKGROUND")
 		bar.background:SetAllPoints(bar)
+		if not opts.border then
+			bar.keyline = bar:CreateTexture(nil, "BACKGROUND", nil, KEYLINE_SUBLEVEL)
+			bar.keyline:SetColorTexture(Tokens.Color("white"))
+		end
 	end
 	bar:SetBarTexture(opts.texture)
 	if opts.border then

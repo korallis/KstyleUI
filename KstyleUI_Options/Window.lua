@@ -283,6 +283,7 @@ local function Build()
 	win.split:SetColorTexture(Tokens.Color("white"))
 	content = Widgets.ScrollList(win, {
 		rowHeight = Rows.HEIGHT,
+		heightOf = Rows.Measure,
 		createRow = Rows.Create,
 		updateRow = Rows.Update,
 	})

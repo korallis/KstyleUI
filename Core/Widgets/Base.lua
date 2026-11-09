@@ -5,7 +5,7 @@ local Widgets = {}
 ns.Widgets = Widgets
 
 local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
-local floor, max, min = math.floor, math.max, math.min
+local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
 
 local SECTION = "Widgets"
 local FALLBACK_FONT = "GameFontHighlight"
@@ -18,6 +18,8 @@ local INSET_GAP = "gapSmall"
 local GRAIN_CLEAR = 1 - math.sqrt(2) / 2
 local SMALL_RIM_BELOW = 11
 local GILT_OUTSET = 1
+local LINE_HEIGHT_SHARE = 1.2
+local CHAR_WIDTH_SHARE = 0.5
 
 Widgets.TEXTURE_TEXELS = {
 	lumenShape = 128,
@@ -336,6 +338,35 @@ function Widgets.TextHeight(text, fallback)
 	return height
 end
 
+function Widgets.LineHeight(text)
+	local _, size = text:GetFont()
+	if IsSecret(size) or type(size) ~= "number" or size <= 0 then
+		size = Tokens.Size("body")
+	end
+	return size * LINE_HEIGHT_SHARE, size
+end
+
+function Widgets.WrappedHeight(text, width)
+	local line, size = Widgets.LineHeight(text)
+	local value = text:GetText()
+	if IsSecret(value) or type(value) ~= "string" or value == "" then
+		return 0
+	end
+	if IsSecret(width) or type(width) ~= "number" or width <= 0 then
+		return line
+	end
+	text:SetWidth(width)
+	local height = text:GetStringHeight()
+	if not IsSecret(height) and type(height) == "number" and height > 0 then
+		return height
+	end
+	local lines = 0
+	for paragraph in (value .. "\n"):gmatch("(.-)\n") do
+		lines = lines + max(1, ceil(#paragraph * size * CHAR_WIDTH_SHARE / width))
+	end
+	return lines * line
+end
+
 function Widgets.ScaleFactor(frame)
 	local own = frame:GetEffectiveScale()
 	local root = Scale.Root():GetEffectiveScale()
@@ -427,16 +458,17 @@ local function NewSlice(owner, name, layer, sublevel)
 	return p
 end
 
-local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop)
+local function PlaceCorners(owner, tl, tr, bl, br, size, outset, drop, outsetX)
 	drop = drop or 0
+	outsetX = outsetX or outset
 	for _, corner in ipairs({ tl, tr, bl, br }) do
 		corner:ClearAllPoints()
 		corner:SetSize(size, size)
 	end
-	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outset, outset - drop)
-	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outset, outset - drop)
-	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outset, -outset - drop)
-	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outset, -outset - drop)
+	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outsetX, outset - drop)
+	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", outsetX, outset - drop)
+	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", -outsetX, -outset - drop)
+	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outsetX, -outset - drop)
 end
 
 function Widgets.NineSlice(owner, name, layer, sublevel)
@@ -446,9 +478,10 @@ function Widgets.NineSlice(owner, name, layer, sublevel)
 	return NewSlice(owner, name, layer or "BACKGROUND", sublevel or 0)
 end
 
-function Widgets.LayoutSlice(slice, owner, corner, outset, drop, scaleFrame)
+function Widgets.LayoutSlice(slice, owner, corner, outset, drop, scaleFrame, outsetX)
 	local f = Widgets.ScaleFactor(scaleFrame or owner)
-	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f))
+	local across = outsetX and SnapIn(outsetX, f)
+	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f), across)
 end
 
 function Widgets.ColorSlice(slice, r, g, b, a)

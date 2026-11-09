@@ -1,4 +1,4 @@
--- SectionCap.lua: the rail section cap, a gilt gem, a tracked Cinzel caption, a gilt rule that fades out to the right and an optional count at the right end.
+-- SectionCap.lua: the rail section cap, a gilt gem, a tracked Cinzel head, a gilt rule that fades out to the right and an optional count at the right end.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -43,8 +43,7 @@ end
 
 function Cap:Restyle()
 	local opts = self.opts
-	local captionHeight = Tokens.Size("caption")
-	Widgets.Size(self, opts.width or DEFAULT_WIDTH, math.max(captionHeight, Tokens.Size("gapLarge")))
+	Widgets.Size(self, opts.width or DEFAULT_WIDTH, Widgets.SECTION_CAP_HEIGHT)
 	local gem = Widgets.Snap(self, Tokens.Size("gem"))
 	self.gem:SetSize(gem, gem)
 	self.gem:ClearAllPoints()
@@ -70,7 +69,7 @@ function Widgets.SectionCap(parent, opts)
 	cap.gem:SetTexture((Tokens.Texture("gem")))
 	cap.rule = cap:CreateTexture(nil, "ARTWORK")
 	cap.rule:SetTexture((Tokens.Texture("ruleFade")))
-	cap.label = Widgets.Text(cap, "caption", "giltLit")
+	cap.label = Widgets.Text(cap, "title", "giltLit")
 	cap.count = Widgets.Text(cap, "number", "muted")
 	cap.count:SetJustifyH("RIGHT")
 	cap:Restyle()

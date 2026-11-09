@@ -27,11 +27,11 @@ end
 assert(type(Widgets.SectionCap) == "function", "Widgets.SectionCap exists")
 local cap = Widgets.SectionCap(root, { text = "Party", width = 278 })
 
--- The gem leads, the caption follows it in the caption role, in gilt.
+-- The gem leads, the head follows it in the title role, in gilt.
 assert(file(cap.gem) == "LumenGem.png", "a gilt gem leads the cap")
 assert(W.SameRGB(cap.gem, Tokens.Color("giltLit")), "the gem is lit gilt")
 local path = cap.label:GetFont()
-assert(path == (Tokens.Font("caption")), "the caption is in the caption role")
+assert(path == (Tokens.Font("title")), "the head is in the title role")
 assert(path:match("Cinzel%-SemiBold%.ttf$"), "which is Cinzel")
 assert(cap.label:GetText() == "PARTY", "and uppercase, got " .. tostring(cap.label:GetText()))
 assert(textIs(cap.label, "giltLit"), "in lit gilt")

@@ -66,7 +66,7 @@ function Lumen.Texture(name)
 end
 
 function Lumen.Tracked(value)
-	local path = Style.Font("caption")
+	local path = Style.Font("title")
 	if type(path) ~= "string" or not path:find("KstyleUI", 1, true) then
 		return value
 	end
@@ -154,7 +154,7 @@ end
 function Cap:Restyle()
 	local row, opts = self.row, self.opts
 	local y = Widgets.Snap(row, Units(opts.y, row))
-	Style.ApplyFont(self.title, "caption", CAP_SIZE * Style.Setting("text", "size"))
+	Style.ApplyFont(self.title, "title", CAP_SIZE * Style.Setting("text", "size"))
 	Style.Text(self.trail, "number")
 	Widgets.Size(self.gem, GEM_UNITS, GEM_UNITS)
 	self.gem:ClearAllPoints()

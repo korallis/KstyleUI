@@ -142,6 +142,53 @@ do
 	assert(list:GetOffset() == 72, "reduced motion scrolls at once")
 end
 
+-- Rows of their own height: with heightOf, each row is as tall as its item asks and sits under the rows above it.
+do
+	local env, K = W.New()
+	local heights = { 24, 60, 24, 100, 24, 24, 24, 48 }
+	local data, asked = {}, {}
+	for i, h in ipairs(heights) do
+		data[i] = { label = "Item " .. i, h = h }
+	end
+	local list = newList(K, {
+		heightOf = function(item, index, self, width)
+			asked[#asked + 1] = width
+			return item.h
+		end,
+	})
+	list:SetData(data)
+	assert(asked[1] == list:GetViewWidth() and asked[1] > 0 and asked[1] < 200, "heightOf is told the width the rows get, inside the scroll bar")
+	assert(list:GetMaxOffset() == 328 - 120, "the scroll range is the rows' total height less the view, got " .. list:GetMaxOffset())
+	local s = shown(list)
+	assert(s[1] == 1 and s[#s] == 4 and #s == 4, "the rows that reach into the view show: 1 to 4")
+	local function rowFor(index)
+		for _, row in ipairs(list.rows) do
+			if row.index == index and row:IsShown() then
+				return row
+			end
+		end
+	end
+	local second = rowFor(2)
+	assert(second:GetHeight() == 60, "a row takes its item's height, got " .. tostring(second:GetHeight()))
+	assert(second._points[1][5] == -24, "and sits under the rows above it")
+	list:ScrollTo(100, true)
+	W.Settle(env)
+	s = shown(list)
+	assert(s[1] == 3 and s[#s] == 5, "scrolled 100 units, rows 3 to 5 reach into the view, got " .. tostring(s[1]) .. " to " .. tostring(s[#s]))
+	assert(rowFor(3)._points[1][5] == 16, "row 3 starts 84 units down, 16 above the view's top")
+	list:ScrollToIndex(8, true)
+	W.Settle(env)
+	assert(list:GetOffset() == 208, "scrolling to the last row brings its bottom to the view's bottom, got " .. list:GetOffset())
+	list:ScrollToIndex(2, true)
+	W.Settle(env)
+	assert(list:GetOffset() == 24, "scrolling up to row 2 brings its top to the view's top, got " .. list:GetOffset())
+	local before = #asked
+	list:SetSize(160, 120)
+	list:GetScript("OnSizeChanged")(list, 160, 120)
+	assert(#asked > before, "a new width measures the rows again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Rows fade in one after another when new data arrives.
 do
 	local env, K = W.New()

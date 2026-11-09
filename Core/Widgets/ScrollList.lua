@@ -1,4 +1,4 @@
--- ScrollList.lua: the virtualised list, with recycled rows, eased scrolling, a short bounce at either end and staggered row fades.
+-- ScrollList.lua: the virtualised list, with recycled rows of one height or each its own, eased scrolling, a short bounce at either end and staggered row fades.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -23,6 +23,78 @@ local function ViewHeight(self)
 		return 0
 	end
 	return height
+end
+
+function List:GetViewWidth()
+	local width = self:GetWidth()
+	if type(width) ~= "number" or width <= 0 then
+		return 0
+	end
+	return max(0, width - Widgets.Snap(self, BAR_WIDTH + 2 * BAR_GAP))
+end
+
+local function Measure(self)
+	local heightOf = self.opts.heightOf
+	if not heightOf then
+		self.tops, self.shortest = nil, nil
+		return
+	end
+	local tops, width, fallback = self.tops or {}, self:GetViewWidth(), RowHeight(self)
+	local y, shortest = 0, nil
+	for i, item in ipairs(self.items) do
+		tops[i] = y
+		local ok, h = ns.Call(heightOf, item, i, self, width)
+		h = ok and type(h) == "number" and h > 0 and Widgets.Snap(self, h) or fallback
+		shortest = shortest and min(shortest, h) or h
+		y = y + h
+	end
+	local n = #self.items
+	tops[n + 1] = y
+	for i = #tops, n + 2, -1 do
+		tops[i] = nil
+	end
+	self.tops, self.shortest, self.measuredWidth = tops, shortest or fallback, width
+end
+
+local function ContentHeight(self)
+	local tops = self.tops
+	if tops then
+		return tops[#self.items + 1] or 0
+	end
+	return #self.items * RowHeight(self)
+end
+
+local function ItemTop(self, index)
+	local tops = self.tops
+	if tops then
+		return tops[index] or 0
+	end
+	return (index - 1) * RowHeight(self)
+end
+
+local function ItemHeight(self, index)
+	local tops = self.tops
+	if tops then
+		return (tops[index + 1] or 0) - (tops[index] or 0)
+	end
+	return RowHeight(self)
+end
+
+local function FirstIndex(self, offset)
+	local tops = self.tops
+	if not tops then
+		return max(0, floor(offset / RowHeight(self))) + 1
+	end
+	local low, high = 1, #self.items
+	while low < high do
+		local mid = floor((low + high + 1) / 2)
+		if tops[mid] <= offset then
+			low = mid
+		else
+			high = mid - 1
+		end
+	end
+	return max(1, low)
 end
 
 local function ItemLabel(item)
@@ -79,14 +151,14 @@ local function MakeRow(self)
 end
 
 local function EnsureRows(self)
-	local needed = ceil(ViewHeight(self) / RowHeight(self)) + 1
+	local needed = ceil(ViewHeight(self) / (self.shortest or RowHeight(self))) + 1
 	for i = #self.rows + 1, needed do
 		self.rows[i] = MakeRow(self)
 	end
 end
 
 function List:GetMaxOffset()
-	return max(0, #self.items * RowHeight(self) - ViewHeight(self))
+	return max(0, ContentHeight(self) - ViewHeight(self))
 end
 
 function List:GetOffset()
@@ -98,19 +170,26 @@ function List:GetData()
 end
 
 function List:Refresh(force)
-	local rowHeight = RowHeight(self)
 	local offset = self.offset
-	local first = max(0, floor(offset / rowHeight))
+	local first = FirstIndex(self, offset) - 1
 	local update = self.opts.updateRow or DefaultUpdate
+	local sized = self.tops ~= nil
+	local bottom = offset + ViewHeight(self)
 	for i, row in ipairs(self.rows) do
 		local index = first + i
 		local item = self.items[index]
+		if sized and item ~= nil and ItemTop(self, index) >= bottom then
+			item = nil
+		end
 		if item ~= nil then
-			local y = Widgets.Snap(self, offset - (index - 1) * rowHeight)
+			local y = Widgets.Snap(self, offset - ItemTop(self, index))
 			row:SetPoint("TOPLEFT", self.view, "TOPLEFT", 0, y)
 			row:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", 0, y)
 			if force or row.index ~= index then
 				row.index = index
+				if sized then
+					row:SetHeight(ItemHeight(self, index))
+				end
 				ns.Call(update, row, item, index, self)
 			end
 			row:Show()
@@ -129,7 +208,7 @@ end
 
 function List:PaintBar()
 	local view = ViewHeight(self)
-	local content = #self.items * RowHeight(self)
+	local content = ContentHeight(self)
 	local overflow = content > view and view > 0
 	self.bar:SetShown(overflow)
 	if not overflow then
@@ -165,8 +244,8 @@ function List:ScrollTo(offset, instant)
 end
 
 function List:ScrollToIndex(index, instant)
-	local rowHeight = RowHeight(self)
-	local top = (index - 1) * rowHeight
+	local rowHeight = ItemHeight(self, index)
+	local top = ItemTop(self, index)
 	local view = ViewHeight(self)
 	local offset = self.target or self.offset
 	if top < offset then
@@ -208,6 +287,7 @@ end
 
 function List:SetData(items, keepOffset)
 	self.items = items or {}
+	Measure(self)
 	EnsureRows(self)
 	for _, row in ipairs(self.rows) do
 		row.index = nil
@@ -236,9 +316,12 @@ function List:Restyle()
 	self.bar:SetWidth(Widgets.Snap(self, BAR_WIDTH))
 	self.thumb:SetWidth(Widgets.Snap(self, BAR_WIDTH))
 	self.track:SetVertexColor(Widgets.Rgba("track"))
+	Measure(self)
 	EnsureRows(self)
-	for _, row in ipairs(self.rows) do
-		row:SetHeight(Widgets.Snap(self, RowHeight(self)))
+	if not self.tops then
+		for _, row in ipairs(self.rows) do
+			row:SetHeight(Widgets.Snap(self, RowHeight(self)))
+		end
 	end
 	self:Refresh(true)
 end
@@ -313,6 +396,9 @@ function Widgets.ScrollList(parent, opts)
 		Widgets.Hover(list, false)
 	end)
 	list:SetScript("OnSizeChanged", function(self)
+		if self.tops and self:GetViewWidth() ~= self.measuredWidth then
+			Measure(self)
+		end
 		EnsureRows(self)
 		local maxOffset = self:GetMaxOffset()
 		if self.offset > maxOffset or (self.target and self.target > maxOffset) then
