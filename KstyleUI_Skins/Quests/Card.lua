@@ -1,4 +1,4 @@
--- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives with their counts on the right, an item socket) that the wheel scrolls one quest at a time, a slim scroll bar and a more line; quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
+-- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts on the first line's right, an item socket) that the wheel scrolls one quest at a time, a slim scroll bar and a more line; quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,7 +8,7 @@ local Style, Lumen, Data = ns.Style, ns.Lumen, ns.QuestData
 local Card = {}
 ns.QuestCard = Card
 
-local MAX_SHOWN, MAX_LINES = 8, 6
+local MAX_SHOWN, MAX_LINES, MAX_WRAP = 8, 6, 3
 local GUTTER, DISC, RING, NUMERAL = 18, 14, 20, 9
 local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5, 3, 7
 local CAP_ROW, CAP_GAP, MORE_ROW = 22, 2, 16
@@ -17,9 +17,10 @@ local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
 local LINE_SCALE, MORE_SCALE = 0.95, 0.85
 
-local card, glass, cap, view, more, track, thumb
+local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
-local offset, wanted, maxHeight = 1, 3, 0
+local pitch, rowWidth = 0, 0
+local offset, wanted, maxHeight = 1, 4, 0
 local docked, pending, waiting, active = false, false, false, false
 
 local function Snap(units)
@@ -206,7 +207,8 @@ local function NewRow(index)
 	for i = 1, MAX_LINES do
 		local text = Widgets.FontString(row, "OVERLAY")
 		text:SetJustifyH("LEFT")
-		text:SetWordWrap(false)
+		text:SetJustifyV("TOP")
+		text:SetWordWrap(true)
 		local count = Widgets.FontString(row, "OVERLAY")
 		count:SetJustifyH("RIGHT")
 		row.lines[i] = { text = text, count = count }
@@ -224,17 +226,42 @@ local function NewRow(index)
 	return row
 end
 
-local function Line(row, i, y, right, text, count, colorName)
+local function Right(entry)
+	return entry.item and Snap(SOCKET + SOCKET_GAP) or 0
+end
+
+local function Span(lines)
+	return Snap(LineHeight() + (lines - 1) * pitch)
+end
+
+local function Room(right, objective)
+	local room = rowWidth - Snap(GUTTER) - right
+	if objective and objective.count then
+		countRuler:SetText(objective.count)
+		room = room - Widgets.TextWidth(countRuler, 0) - Snap(SOCKET_GAP)
+	end
+	return room
+end
+
+local function Lines(objective, room)
+	if room <= 0 then
+		return 1
+	end
+	ruler:SetWidth(room)
+	ruler:SetText(objective.text)
+	local lines = math.floor(Widgets.TextHeight(ruler, pitch) / pitch + 0.5)
+	return math.max(1, math.min(MAX_WRAP, lines))
+end
+
+local function Line(row, i, y, right, text, count, colorName, room, lines)
 	local line = row.lines[i]
 	line.text:ClearAllPoints()
-	line.text:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(GUTTER), -y)
+	line.text:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(GUTTER), -Snap(y))
+	line.text:SetWidth(math.max(room, 1))
+	line.text:SetHeight(Snap(lines * pitch))
+	line.text:SetMaxLines(lines)
 	line.count:ClearAllPoints()
-	line.count:SetPoint("TOPRIGHT", row, "TOPRIGHT", -right, -y)
-	if count then
-		line.text:SetPoint("RIGHT", line.count, "LEFT", -Snap(SOCKET_GAP), 0)
-	else
-		line.text:SetPoint("RIGHT", row, "RIGHT", -right, 0)
-	end
+	line.count:SetPoint("TOPRIGHT", row, "TOPRIGHT", -right, -Snap(y))
 	line.text:SetText(text)
 	line.count:SetText(count or "")
 	Widgets.TextColor(line.text, colorName)
@@ -243,29 +270,26 @@ local function Line(row, i, y, right, text, count, colorName)
 	line.count:SetShown(count ~= nil)
 end
 
-local function LinesOf(entry)
-	if entry.complete or entry.failed then
-		return 1
-	end
-	return entry.count
-end
-
 local function Words(row, entry)
-	local titleH, lineH = TitleHeight(), LineHeight()
-	local right = entry.item and Snap(SOCKET + SOCKET_GAP) or 0
+	local titleH = TitleHeight()
+	local right = Right(entry)
 	row.title:SetText(entry.title)
 	local used = 0
 	if entry.complete then
 		used = 1
-		Line(row, 1, titleH, right, Ready(), nil, "friend")
+		Line(row, 1, titleH, right, Ready(), nil, "friend", Room(right), 1)
 	elseif entry.failed then
 		used = 1
-		Line(row, 1, titleH, right, Failed(), nil, "hostile")
+		Line(row, 1, titleH, right, Failed(), nil, "hostile", Room(right), 1)
 	else
+		local y = titleH
 		for i = 1, entry.count do
 			local objective = entry.objectives[i]
+			local room = Room(right, objective)
+			local lines = Lines(objective, room)
 			used = i
-			Line(row, i, titleH + (i - 1) * lineH, right, objective.text, objective.count, objective.done and "textDisabled" or "text")
+			Line(row, i, y, right, objective.text, objective.count, objective.done and "textDisabled" or "text", room, lines)
+			y = y + Span(lines)
 		end
 	end
 	for i = used + 1, MAX_LINES do
@@ -279,6 +303,7 @@ local function Bind(row, entry, position, y, height, right)
 	row:SetPoint("TOPLEFT", view, "TOPLEFT", 0, -y)
 	row:SetPoint("TOPRIGHT", view, "TOPRIGHT", -right, -y)
 	row:SetHeight(height)
+	row.span = height
 	row.questID = entry.id
 	row.item, row.logIndex = entry.item, entry.logIndex
 	row.marked = entry.id == Data.super
@@ -308,7 +333,16 @@ local function Bind(row, entry, position, y, height, right)
 end
 
 local function Height(entry)
-	local height = TitleHeight() + LinesOf(entry) * LineHeight()
+	local height = TitleHeight()
+	if entry.complete or entry.failed then
+		height = height + LineHeight()
+	else
+		local right = Right(entry)
+		for i = 1, entry.count do
+			local objective = entry.objectives[i]
+			height = height + Span(Lines(objective, Room(right, objective)))
+		end
+	end
 	if entry.item and height < SOCKET then
 		height = SOCKET
 	end
@@ -370,7 +404,7 @@ local function Repaint()
 			for n = 1, Data.Count() do
 				local entry = Data.Get(n)
 				if entry.id == row.questID then
-					if LinesOf(entry) == row.used then
+					if Height(entry) == row.span then
 						Words(row, entry)
 					end
 					break
@@ -415,18 +449,19 @@ function Card.Render()
 	end
 	local n = math.min(wanted, total)
 	local gap = Snap(ROW_GAP)
+	local over = total > n
+	local inset = Inset()
+	local right = over and Snap(BAR_WIDTH + BAR_GAP) or 0
+	rowWidth = (card:GetWidth() or 0) - 2 * inset - right
 	for i = 1, total do
 		heights[i] = Height(Data.Get(i))
 	end
-	local over = total > n
-	local inset = Inset()
 	local top, bottom = Snap(Tokens.Size("gapSmall")), Snap(Tokens.Size("gapSmall"))
 	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + bottom + (over and Snap(MORE_ROW) or 0)
 	local room = math.max(heights[1], maxHeight - chrome)
 	local viewHeight = math.min(Window(total, n, gap), room)
 	local fit = FitFromEnd(total, n, viewHeight, gap)
 	offset = math.max(1, math.min(offset, total - fit + 1))
-	local right = over and Snap(BAR_WIDTH + BAR_GAP) or 0
 	local y, k = 0, 0
 	while k < n and offset + k <= total do
 		local h = heights[offset + k]
@@ -436,7 +471,6 @@ function Card.Render()
 		k = k + 1
 		local row = rows[k]
 		Bind(row, Data.Get(offset + k - 1), offset + k - 1, y, h, right)
-		row.used = LinesOf(Data.Get(offset + k - 1))
 		y = y + h + gap
 	end
 	for i = k + 1, #rows do
@@ -554,7 +588,7 @@ function Card.SetActive(on)
 end
 
 function Card.SetShownCount(n)
-	wanted = math.max(1, math.min(MAX_SHOWN, math.floor(tonumber(n) or 3)))
+	wanted = math.max(1, math.min(MAX_SHOWN, math.floor(tonumber(n) or 4)))
 end
 
 function Card.Place(root, left, top, width, height)
@@ -574,6 +608,11 @@ function Card.Docked()
 end
 
 local function Restyle()
+	Style.ApplyFont(ruler, "body", Size("body", LINE_SCALE))
+	Style.ApplyFont(countRuler, "number", Size("number", LINE_SCALE))
+	ruler:SetWidth(0)
+	ruler:SetText("Ag")
+	pitch = Widgets.TextHeight(ruler, (Widgets.LineHeight(ruler)))
 	Style.ApplyFont(more, "body", Size("body", MORE_SCALE))
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
@@ -609,6 +648,11 @@ function Card.Build(root)
 	track:SetPoint("TOPRIGHT", view, "TOPRIGHT")
 	track:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT")
 	thumb = view:CreateTexture(nil, "ARTWORK")
+	ruler = Widgets.FontString(card, "OVERLAY")
+	ruler:SetWordWrap(true)
+	ruler:Hide()
+	countRuler = Widgets.FontString(card, "OVERLAY")
+	countRuler:Hide()
 	more = Widgets.FontString(card, "OVERLAY")
 	more:SetPoint("TOP", view, "BOTTOM", 0, -Snap(CAP_GAP))
 	more:SetJustifyH("CENTER")

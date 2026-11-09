@@ -430,4 +430,33 @@ do
 	assert(child:GetRight() == 115 and child:GetTop() == 65, "its size reads in that scale too")
 end
 
+-- A font string's lines and height: nil without a text measure; with env._textWidth a string takes the lines its
+-- text wraps into at its width (words fill a line while they fit, "\n" starts one, word wrap off is one line per
+-- paragraph), SetMaxLines caps them, and the height is the lines times the font size times 1.2.
+do
+	local e = Stubs.NewEnv({ width = 1920, height = 1080 })
+	local fs = e.CreateFrame("Frame", nil, e.UIParent):CreateFontString(nil, "OVERLAY")
+	fs:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+	fs:SetText("aaaa bbbb cccc")
+	fs:SetWidth(40)
+	assert(fs:GetStringHeight() == nil and fs:GetNumLines() == nil, "no measure, no answer")
+	e._textWidth = function(words, _, size)
+		return #words * size * 0.5
+	end
+	assert(fs:GetNumLines() == 3 and fs:GetStringHeight() == 36, "three words of 20 wide fill three lines of a 40 wide string")
+	fs:SetWidth(200)
+	assert(fs:GetNumLines() == 1 and fs:GetStringHeight() == 12, "one line where they fit")
+	fs:SetWidth(40)
+	fs:SetMaxLines(2)
+	assert(fs:GetNumLines() == 2 and fs:GetStringHeight() == 24, "a line cap holds the count")
+	fs:SetMaxLines(0)
+	fs:SetWordWrap(false)
+	assert(fs:GetNumLines() == 1 and fs:GetStringHeight() == 12, "word wrap off is one line")
+	fs:SetText("aaaa\nbbbb")
+	assert(fs:GetNumLines() == 2, "and an explicit break starts another")
+	fs:SetWordWrap(true)
+	fs:SetText("aaaa\nbbbb cccc")
+	assert(fs:GetNumLines() == 3, "a break and a wrap together")
+end
+
 print("stubs ok")

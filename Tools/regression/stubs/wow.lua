@@ -220,6 +220,52 @@ function Object:IsTruncated()
 	end
 	return width > own + 0.01
 end
+-- GetNumLines and GetStringHeight answer only where the environment measures text (env._textWidth); without it
+-- both answer nil, as before. A string that wraps and has a width (GetWidth) takes the lines its text wraps
+-- into by the renderer's rule (Tools/render/scene.lua Scene.WrappedLines: words fill a line while they fit, a
+-- word that fits nowhere takes a line of its own, an explicit "\n" starts a new line); a string with word wrap
+-- off takes one line per paragraph. SetMaxLines caps the count. The height is the lines times the font's size
+-- times 1.2, the renderer's line height (LINE_HEIGHT_EM). A test that sets _state.StringHeight sets the height.
+local function textLines(self)
+	local measure = self._env and self._env._textWidth
+	local stored = self._state.Text
+	if type(measure) ~= "function" or not stored or type(stored[1]) ~= "string" then
+		return nil
+	end
+	local font = self._state.Font
+	local size = font and type(font[2]) == "number" and font[2] or 12
+	local path = font and font[1]
+	local width, wrap = self:GetWidth(), self._state.WordWrap
+	local wraps = not (wrap and wrap[1] == false) and type(width) == "number" and width > 0
+	local lines = 0
+	for paragraph in (plainText(stored[1]) .. "\n"):gmatch("(.-)\n") do
+		local line
+		for word in (paragraph .. " "):gmatch("(.-) ") do
+			local candidate = line and (line .. " " .. word) or word
+			if wraps and line and measure(candidate, path, size) > width + 0.01 then
+				lines, line = lines + 1, word
+			else
+				line = candidate
+			end
+		end
+		lines = lines + 1
+	end
+	local cap = self._state.MaxLines
+	cap = cap and cap[1]
+	if type(cap) == "number" and cap > 0 then
+		lines = math.min(lines, cap)
+	end
+	return lines, size
+end
+function Object:GetNumLines() return (textLines(self)) end
+function Object:GetStringHeight()
+	local stored = self._state.StringHeight
+	if stored then
+		return stored[1]
+	end
+	local lines, size = textLines(self)
+	return lines and lines * size * 1.2
+end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
 -- An object's own scale times its parent's effective scale, unless it ignores its parent's scale.

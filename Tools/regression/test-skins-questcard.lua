@@ -1,8 +1,9 @@
--- test-skins-questcard.lua: the quest card shows a set number of tracked quests (3 by default, 1 to 8) in the right rail's story slot, scrolls to the rest with the wheel, never crosses the map, the aura rows, the damage meter or the readout at the owner's screen, docks under the RestedXP guide, never changes its item buttons in combat, hands the screen back to Blizzard's tracker for scenarios and when switched off, and keeps the combat path cheap.
+-- test-skins-questcard.lua: the quest card shows a set number of tracked quests (4 by default, 1 to 8) in the right rail's story slot, scrolls to the rest with the wheel, never crosses the map, the aura rows, the damage meter or the readout at the owner's screen, docks under the RestedXP guide, never changes its item buttons in combat, hands the screen back to Blizzard's tracker for scenarios and when switched off, and keeps the combat path cheap.
 local S = dofile("Tools/regression/skins_env.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
 local RestedXP = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
+local Measure = dofile("Tools/regression/databars_env.lua")
 local W = S.W
 
 local OWNER = { width = 2383, height = 1540, uiScale = 768 / 1080 }
@@ -13,7 +14,8 @@ local PROTECTED = {
 }
 
 -- Boot(opts) -> env, K, ns, log, tracker: Skins on, Blizzard's tracker loaded, opts.quests tracked (10 by
--- default). opts.rxp installs RestedXP; opts.screen sets the screen; opts.saved the saved Skins section.
+-- default). opts.rxp installs RestedXP; opts.screen sets the screen; opts.saved the saved Skins section; opts.measure
+-- gives the font strings the kit fonts' glyph widths, so a line wraps where the game wraps it.
 local function Boot(opts)
 	opts = opts or {}
 	local log, tracker, rxp
@@ -26,6 +28,9 @@ local function Boot(opts)
 		setup = function(env)
 			log = Quests.Install(env, opts.quests or Quests.List(10))
 			log.super = opts.super or 0
+			if opts.measure then
+				env._textWidth = Measure.TextWidth
+			end
 			if opts.rxp then
 				rxp = RestedXP.Install(env, {})
 			end
@@ -89,7 +94,7 @@ local function RootRect(K, object)
 	return { left = r.left * s, right = r.right * s, bottom = r.bottom * s, top = r.top * s }
 end
 
--- Three of ten: the card shows three quests, the super-tracked one first and marked, and counts all ten -------------
+-- Four of ten: the card shows four quests (the picture's count, LEE-20), the super-tracked one first and marked, and counts all ten -------------
 
 do
 	local env, K, ns, _, tracker = Boot({ super = 305 })
@@ -97,7 +102,7 @@ do
 	assert(ns.Quests.Active(), "the card stands in for Blizzard's quest list")
 	assert(ns.Quests.Card():IsShown(), "and shows")
 	local shown = Shown(ns)
-	assert(Ids(shown) == "305,301,302", "three of ten, the super-tracked quest first, got " .. Ids(shown))
+	assert(Ids(shown) == "305,301,302,303", "four of ten, the super-tracked quest first, got " .. Ids(shown))
 	local first = ns.Quests.Rows()[1]
 	assert(first.marked == true, "the super-tracked quest is marked")
 	assert(ns.Quests.Rows()[2].marked ~= true, "and only that one")
@@ -106,7 +111,7 @@ do
 	assert(parts.cap.trailValue == "10", "the cap counts every tracked quest, got " .. tostring(parts.cap.trailValue))
 	local title = first.title:GetText()
 	assert(title:find("[10]", 1, true) and title:find("Dark Storms", 1, true), "the title carries the quest's level as Forever shows it, got " .. title)
-	assert(parts.more:IsShown() and parts.more:GetText():find("7", 1, true), "the card says how many more there are, got " .. tostring(parts.more:GetText()))
+	assert(parts.more:IsShown() and parts.more:GetText():find("6", 1, true), "the card says how many more there are, got " .. tostring(parts.more:GetText()))
 	assert(parts.thumb:IsShown(), "and a slim scroll bar shows")
 	assert(not tracker:IsVisible(), "Blizzard's tracker does not show the quests a second time")
 	Clean(env, K)
@@ -116,21 +121,21 @@ end
 
 do
 	local env, K, ns = Boot()
-	assert(Ids(Shown(ns)) == "301,302,303", "the first three, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "301,302,303,304", "the first four, got " .. Ids(Shown(ns)))
 	Wheel(ns, -1)
-	assert(Ids(Shown(ns)) == "302,303,304", "one wheel step down shows the next quest, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "302,303,304,305", "one wheel step down shows the next quest, got " .. Ids(Shown(ns)))
 	for _ = 1, 20 do
 		Wheel(ns, -1)
 	end
-	assert(Ids(Shown(ns)) == "308,309,310", "the wheel reaches the last quest and stops there, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "307,308,309,310", "the wheel reaches the last quest and stops there, got " .. Ids(Shown(ns)))
 	local more = ns.Quests.Parts().more
-	assert(more:IsShown() and more:GetText() == "7 above, scroll up", "at the end the more line points up, got " .. tostring(more:GetText()))
+	assert(more:IsShown() and more:GetText() == "6 above, scroll up", "at the end the more line points up, got " .. tostring(more:GetText()))
 	Wheel(ns, 1)
-	assert(Ids(Shown(ns)) == "307,308,309", "and back up, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "306,307,308,309", "and back up, got " .. Ids(Shown(ns)))
 	for _ = 1, 20 do
 		Wheel(ns, 1)
 	end
-	assert(Ids(Shown(ns)) == "301,302,303", "up to the top and no further, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "301,302,303,304", "up to the top and no further, got " .. Ids(Shown(ns)))
 	Clean(env, K)
 end
 
@@ -231,7 +236,7 @@ do
 	list[1].item = { link = "|cffffffff|Hitem:5179::::::::|h[Moss-Twined Heart]|h|r", icon = 134339 }
 	list[4].item = { link = "|cffffffff|Hitem:6145::::::::|h[Clarice's Pendant]|h|r", icon = 133279 }
 	local heart, pendant = list[1].item.link, list[4].item.link
-	local env, K, ns, log = Boot({ quests = list })
+	local env, K, ns, log = Boot({ quests = list, saved = Saved({ enabled = true, quests = { shown = 3 } }) })
 	local buttons = ns.Quests.Buttons()
 	local used
 	for _, button in ipairs(buttons) do
@@ -391,7 +396,7 @@ do
 	env.RunTimers()
 	local removed = log.Called("RemoveQuestWatch")
 	assert(#removed == 1 and removed[1].args[1] == 302, "shift untracks it")
-	assert(Ids(Shown(ns)) == "301,303,304", "and the card moves up, got " .. Ids(Shown(ns)))
+	assert(Ids(Shown(ns)) == "301,303,304,305", "and the card moves up, got " .. Ids(Shown(ns)))
 	W.Click(ns.Quests.Rows()[1], "RightButton")
 	assert(#log.Called("CreateContextMenu") == 1 and log.menu, "a right click opens the quest's menu")
 	local track
@@ -438,6 +443,136 @@ do
 	local xr, xg, xb = K.Tokens.Color("textDisabled")
 	assert(W.Near(dr, xr) and W.Near(dg, xg) and W.Near(db, xb), "and dims")
 	assert(not done[1].text:GetText():find("%d+/%d+"), "the count sits in its own column, out of the words")
+	Clean(env, K)
+end
+
+-- An objective wider than its room wraps onto up to three lines under its quest's title, the count stays on the first
+-- line, and the quest is as tall as the lines it really takes: nothing overlaps and the next quest starts below -------
+
+do
+	local LONG = "Find and speak with Elegael Thornpaw in the northeastern part of Shadowgale Forest."
+	local COUNTED = "Slay the corrupted Thornpaw wolves prowling the northeastern part of Shadowgale Forest: 0/12"
+	local HUGE = string.rep("Gather every last scrap of the shattered Thornpaw banner scattered across ", 4)
+	local ITEM = { link = "|cffffffff|Hitem:5179::::::::|h[Moss-Twined Heart]|h|r", icon = 134339 }
+	local function Quest(id, objectives, item)
+		return { id = id, title = "Quest " .. id, level = 10, objectives = objectives, item = item }
+	end
+	local function List()
+		return {
+			Quest(401, { { text = LONG, finished = false }, { text = "Speak to Ranger Kalanna", finished = false } }),
+			Quest(402, { { text = COUNTED, finished = false } }),
+			Quest(403, { { text = COUNTED, finished = false } }, ITEM),
+			Quest(404, { { text = HUGE, finished = false } }),
+			Quest(405, { { text = "Speak to Ranger Kalanna", finished = false } }),
+		}
+	end
+	local env, K, ns = Boot({ quests = List(), measure = true })
+	K.Options.Write("Skins", "quests.shown", 5)
+	env.RunTimers()
+	local rows = ns.Quests.Rows()
+	local function Text(row, i)
+		return row.lines[i].text
+	end
+	local _, size = Text(rows[1], 1):GetFont()
+	local pitch = size * 1.2
+	local function Top(row, i)
+		return RootRect(K, Text(row, i)).top
+	end
+	local function High(row, i)
+		local r = RootRect(K, Text(row, i))
+		return r.top - r.bottom
+	end
+
+	local wrap = W.LastCall(Text(rows[1], 1), "SetWordWrap")
+	assert(wrap and wrap[1] == true, "a long objective's font string wraps")
+	local one = High(rows[1], 2)
+	local first = High(rows[1], 1)
+	assert(first > one * 1.9, "the long objective is taller than a one-line objective, got " .. first .. " against " .. one)
+	assert(not Text(rows[1], 1):IsTruncated(), "and is not cut")
+	assert(Text(rows[1], 1):GetText() == LONG, "with its whole words")
+	assert(RootRect(K, Text(rows[1], 1)).bottom >= RootRect(K, Text(rows[1], 2)).top - 0.01, "the next objective starts below the wrapped lines")
+	local r1, r2 = RootRect(K, rows[1]), RootRect(K, rows[2])
+	assert(r1.bottom >= r2.top - 0.01, "the next quest starts below the wrapped quest, got " .. r1.bottom .. " over " .. r2.top)
+	local lastBottom = RootRect(K, Text(rows[1], 2)).bottom
+	assert(r1.bottom <= lastBottom + 0.01 and r1.bottom >= lastBottom - 6, "the quest ends at its last line, got " .. r1.bottom .. " for " .. lastBottom)
+	local title = RootRect(K, rows[1].title)
+	assert(Top(rows[1], 1) <= title.bottom + 0.01 and title.bottom >= Top(rows[1], 1), "the objective sits under the title")
+	local plain = RootRect(K, rows[5])
+	assert(plain.top - plain.bottom < r1.top - r1.bottom, "a quest of one short line is shorter than the wrapped one")
+
+	local function CountRect(row, line)
+		local _, _, _, x, y = line.count:GetPoint(1)
+		local at = RootRect(K, row)
+		local s = K.Scale.Root()._env.UIParent:GetEffectiveScale() / K.Scale.Root():GetEffectiveScale()
+		local width = line.count:GetUnboundedStringWidth() * s
+		return { right = at.right + x * s, left = at.right + x * s - width, top = at.top + y * s, bottom = at.top + y * s - pitch * s }
+	end
+	local count = rows[2].lines[1].count
+	local words = rows[2].lines[1].text
+	assert(count:GetText() == "0/12" and count:IsShown(), "the count shows, got " .. tostring(count:GetText()))
+	assert(High(rows[2], 1) > one * 1.9, "a counted long objective wraps too")
+	local c, t = CountRect(rows[2], rows[2].lines[1]), RootRect(K, words)
+	assert(math.abs(c.top - t.top) <= 0.01, "the count stays on the first line, got " .. c.top .. " for " .. t.top)
+	assert(c.top - c.bottom < t.top - t.bottom, "one line high, the words are more")
+	assert(t.right <= c.left + 0.01, "the words end before the count column, got " .. t.right .. " for " .. c.left)
+	assert(math.abs(c.right - RootRect(K, rows[2]).right) <= 0.01, "the count stays right-aligned")
+
+	local socketed, bare = rows[3], rows[2]
+	local s3 = RootRect(K, socketed.socket)
+	local w3, w2 = RootRect(K, Text(socketed, 1)), RootRect(K, Text(bare, 1))
+	assert(socketed.socket:IsShown(), "the item quest has its socket")
+	assert(w3.right <= s3.left + 0.01, "the words stay clear of the item socket, got " .. w3.right .. " for " .. s3.left)
+	assert(w3.right - w3.left < w2.right - w2.left - 20, "with a count and a socket the words get a narrower room")
+	assert(High(socketed, 1) >= High(bare, 1) - 0.01, "so they take at least as many lines")
+	assert(CountRect(socketed, socketed.lines[1]).right <= s3.left + 0.01, "and the count sits left of the socket")
+
+	local huge = Text(rows[4], 1)
+	local cap = W.LastCall(huge, "SetMaxLines")
+	assert(cap and cap[1] == 3, "an objective takes three lines at most")
+	assert(math.abs(High(rows[4], 1) - 3 * one) <= 1.5, "and is three lines high, got " .. High(rows[4], 1) .. " for " .. 3 * one)
+
+	for i = 1, 4 do
+		local a, b = RootRect(K, rows[i]), RootRect(K, rows[i + 1])
+		assert(a.bottom >= b.top - 0.01, "quest " .. i .. " does not overlap the next")
+	end
+	local card = RootRect(K, ns.Quests.Card())
+	assert(rows[5]:IsShown() and RootRect(K, rows[5]).bottom >= card.bottom - 0.01, "every quest sits inside the card")
+	Clean(env, K)
+end
+
+-- In combat with an item button shown the rows hold still: words repaint only where the row keeps its height; the
+-- quest is laid out again when combat ends ------------------------------------------------------------------------
+
+do
+	local LONG = "Find and speak with Elegael Thornpaw in the northeastern part of Shadowgale Forest."
+	local ITEM = { link = "|cffffffff|Hitem:5179::::::::|h[Moss-Twined Heart]|h|r", icon = 134339 }
+	local list = {
+		{ id = 411, title = "First", level = 10, objectives = { { text = "Crocolisk Hide: 0/6", finished = false } }, item = ITEM },
+		{ id = 412, title = "Second", level = 10, objectives = { { text = "Speak to Ranger Kalanna", finished = false } } },
+	}
+	local env, K, ns, log = Boot({ quests = list, measure = true })
+	local rows = ns.Quests.Rows()
+	local before = { RootRect(K, rows[1]), RootRect(K, rows[2]) }
+	env.SetCombat(true)
+	list[1].objectives[1].text = "Crocolisk Hide: 3/6"
+	log.Fire("QUEST_LOG_UPDATE")
+	env.RunTimers()
+	assert(rows[1].lines[1].count:GetText() == "3/6", "a count repaints in combat, got " .. tostring(rows[1].lines[1].count:GetText()))
+	list[1].objectives[1].text = LONG
+	log.Fire("QUEST_LOG_UPDATE")
+	env.RunTimers()
+	assert(rows[1].lines[1].text:GetText() == "Crocolisk Hide", "words that would change the row's height wait for combat to end, got " .. tostring(rows[1].lines[1].text:GetText()))
+	for i = 1, 2 do
+		local now = RootRect(K, rows[i])
+		assert(math.abs(now.top - before[i].top) <= 0.01 and math.abs(now.bottom - before[i].bottom) <= 0.01, "row " .. i .. " holds still in combat")
+	end
+	env.SetCombat(false)
+	env.RunTimers()
+	W.Settle(env)
+	assert(rows[1].lines[1].text:GetText() == LONG, "after combat the quest shows its new words")
+	local now = RootRect(K, rows[1])
+	assert(now.top - now.bottom > before[1].top - before[1].bottom + 5, "taller, with its wrapped lines")
+	assert(RootRect(K, rows[2]).top <= now.bottom + 0.01, "and the next quest starts below it")
 	Clean(env, K)
 end
 
