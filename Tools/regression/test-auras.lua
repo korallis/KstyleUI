@@ -81,7 +81,7 @@ end
 do
 	local env, K = start({ layout = true })
 	check(K.Modules.IsRunning("Auras"), "the module runs")
-	check(#env._containers == 2, "one container for buffs and one for debuffs, got " .. #env._containers)
+	check(#A.Rows(env) == 4, "one container for buffs and one for debuffs, and the full list's two, built up front so it opens in combat, got " .. #A.Rows(env))
 	local buffs, bg = A.Container(env, "HELPFUL")
 	local debuffs, dg = A.Container(env, "HARMFUL")
 	check(buffs and debuffs and buffs ~= debuffs, "buffs and debuffs are separate groups")
@@ -103,7 +103,7 @@ do
 	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
 	check(bg.layout.elementWidth == 38 and bg.layout.elementHeight == 51, "each buff is a 38-unit icon with its 12-unit timer under it")
 	check(bg.layout.elementSpacing == 10 and bg.layout.lineSpacing == 0, "10-unit gaps between icons")
-	check(buffs._flow.anchor == "TOPRIGHT" and buffs._flow.horizontal == -1 and buffs._flow.vertical == -1, "buffs grow left from the minimap, then down, so the shortest time left sits beside the map")
+	check(buffs._flow.anchor == "TOPLEFT" and buffs._flow.horizontal == 1 and buffs._flow.vertical == -1, "buffs read right from under the cap's title, then down, so every row starts under the header")
 	check(buffs._flow.lineSize >= 6 * 38 + 5 * 10 and buffs._flow.lineSize < 7 * 38 + 6 * 10, "six icons fit on a line, and a seventh wraps")
 
 	local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
@@ -125,7 +125,7 @@ do
 	local host = buffs:GetParent()
 	local point, rel, relPoint = buffs:GetPoint(1)
 	check(rel and rel ~= host and rel:GetParent() == host, "the container hangs from a content frame on its host, inside the card's padding and under the cap")
-	check(point == "TOPRIGHT" and relPoint == "TOPRIGHT", "from its top right corner, the corner the rows grow from, so a short row sits flush at the card's right")
+	check(point == "TOPLEFT" and relPoint == "TOPLEFT", "from its top left corner, under the cap's title, so a short row sits under the header with no dead glass before it")
 
 	for _, button in ipairs(groupButtons(bg)) do
 		local aura = button._aura
@@ -362,7 +362,7 @@ do
 	check(env.BuffFrame:GetParent() == env.UIParent and env.DebuffFrame:GetParent() == env.UIParent, "Blizzard's frames come back")
 	K.Modules.Enable("Auras")
 	env.RunTimers()
-	check(#env._containers == 2, "enabling again reuses the containers")
+	check(#A.Rows(env) == 4, "enabling again reuses the containers")
 	check(holder:IsShown() and buffs:GetParent():IsShown(), "and shows them")
 	check(A.Hidden(env, env.BuffFrame), "and hides Blizzard's frames again")
 	K.Options.Write("Auras", "hideBlizzard", false)

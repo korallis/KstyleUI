@@ -588,6 +588,7 @@ function Plate:UpdateHighlight()
 		isTarget = ns.Plates.IsUnit(self, "target")
 		isFocus = ns.Plates.IsUnit(self, "focus")
 	end
+	ns.Cast.Gate(self, isTarget)
 	local bar = not self.nameOnly
 	local glow = self.targetGlow
 	local chrome = self.health.chrome

@@ -219,6 +219,7 @@ local function installContainer(env, container)
 		local group = {
 			key = key, filter = filter, enabled = true, maxFrameCount = maxFrameCount, candidateFilters = candidates,
 			sortMethod = sortMethod, sortDirection = sortDirection, layout = options.layout, frames = {},
+			initializeFrame = options.initializeFrame,
 		}
 		self._groups[key] = group
 		self._order[#self._order + 1] = key
@@ -460,9 +461,21 @@ end
 -- Container(env, filter) -> the fake container whose aura group uses filter, or nil.
 -- Container(env, filter, nth) -> the nth container (the first by default) with a group on the filter, and that
 -- group: the first group in the order the module added them.
+-- Rows(env) -> the containers that show auras: every container but the overflow chips' counting ones, whose one
+-- group is keyed "count" (K.Widgets.Overflow).
+function A.Rows(env)
+	local out = {}
+	for _, container in ipairs(env._containers) do
+		if not container._groups.count then
+			out[#out + 1] = container
+		end
+	end
+	return out
+end
+
 function A.Container(env, filter, nth)
 	local seen = 0
-	for _, container in ipairs(env._containers) do
+	for _, container in ipairs(A.Rows(env)) do
 		for _, key in ipairs(container._order) do
 			local group = container._groups[key]
 			if group.filter == filter then
@@ -498,7 +511,7 @@ function A.Assign(env, container, key, count)
 	local want = math.min(count, group.maxFrameCount)
 	while #group.frames < want do
 		for _ = 1, BATCH do
-			group.frames[#group.frames + 1] = makeButton(env, container, env._initializers[key])
+			group.frames[#group.frames + 1] = makeButton(env, container, group.initializeFrame)
 		end
 	end
 	for i, frame in ipairs(group.frames) do
@@ -510,6 +523,60 @@ function A.Assign(env, container, key, count)
 	end
 	group.assigned = count
 	return want
+end
+
+-- Ghosts(chip, counts) plays the engine's layout pass for an overflow chip's counting containers (K.Widgets.Overflow):
+-- counts[g] auras pass the chip's g-th group (a number counts the first), each counting container holds as many as
+-- its group allows while it is enabled, one line of chip.pitch units each, and an empty one keeps one unit.
+function A.Ghosts(chip, counts)
+	if type(counts) == "number" then
+		counts = { counts }
+	end
+	local function lay(ghost, n)
+		local group = ghost._groups.count
+		local held = group.enabled and ghost._enabled ~= false and math.min(n, group.maxFrameCount) or 0
+		ghost:SetSize(1, math.max(1, held * chip.pitch))
+	end
+	for g, pair in ipairs(chip.pairs) do
+		local n = counts[g] or 0
+		lay(pair.a, n)
+		if pair.b then
+			lay(pair.b, n)
+		end
+	end
+end
+
+-- Counters(ns, counts) lays out the Blessings card's counting containers, its cap's and its full list's, for counts
+-- auras in each group (buffs, dispellable debuffs, the rest), as the engine's layout pass would.
+function A.Counters(ns, counts)
+	local desc = ns.Panel.Group("buffs")
+	local card = desc and desc.card
+	for _, chip in ipairs({ card and card.counter or false, card and card.moreCounter or false }) do
+		if chip then
+			A.Ghosts(chip, counts)
+		end
+	end
+end
+
+-- Chip(chip) -> the text the chip's window shows (nil when no label sits in it), and whether its face fills the
+-- window. Geometry runs from the window, so the chip reads the same wherever its host sits.
+function A.Chip(chip)
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	if not chip.window:IsShown() then
+		return nil, false
+	end
+	local root = chip.window
+	local win = assert(Geometry.Rect(root, root))
+	local eps = 1e-3
+	local strip = Geometry.Rect(chip.strip, root)
+	local face = strip ~= nil and strip.bottom <= win.bottom + eps and strip.top >= win.top - eps
+	for i, label in ipairs(chip.labels) do
+		local r = Geometry.Rect(label, root)
+		if r and math.abs(r.top - win.top) < eps and math.abs(r.bottom - win.bottom) < eps then
+			return chip.texts[i]:GetText(), face
+		end
+	end
+	return nil, face
 end
 
 function A.MakeButton(env, container, initializeFrame)

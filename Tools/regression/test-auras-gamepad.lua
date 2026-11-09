@@ -68,7 +68,7 @@ do
 		end,
 	})
 	check(K.Modules.IsRunning("Auras"), "the module runs")
-	check(#env._containers == 2, "the containers are still built")
+	check(#A.Rows(env) == 4, "the containers are still built")
 	check(blizzardShown(env), "Blizzard's buff and debuff frames keep their parent, so the gamepad can focus them")
 	check(not K.Safe.IsHidden(env.BuffFrame) and not K.Safe.IsHidden(env.DebuffFrame), "Safe holds neither frame")
 	local bh, dh = hosts(env)

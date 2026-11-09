@@ -111,6 +111,9 @@ return Common.Run(function()
 	for _ = 1, 10 do
 		N.Tick(env, 0.05)
 	end
+	for i, token in ipairs({ "nameplate1", "nameplate3", "nameplate4" }) do
+		Hud.FillCast(ns.Plates.Get(token), 0.35 + 0.15 * i)
+	end
 
 	local list = {}
 	for _, token in ipairs(all) do
@@ -119,7 +122,7 @@ return Common.Run(function()
 		list[#list + 1] = plate.level
 		if plate.auras and token == "nameplate1" then
 			list[#list + 1] = plate.auras
-			list[#list + 1] = plate.auraChip
+			list[#list + 1] = plate.auraChip.window
 		end
 		if plate.raid:IsShown() then
 			list[#list + 1] = plate.raid

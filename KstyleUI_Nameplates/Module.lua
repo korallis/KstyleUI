@@ -7,7 +7,30 @@ local MODULE = Settings.MODULE
 
 local checkAdded = false
 
+local SIGIL_KEY = {}
+for _, key in ipairs(ns.Cast.SIGIL_KEYS) do
+	SIGIL_KEY[key] = true
+end
+
+local function Rehighlight()
+	if Plates.running then
+		Plates.Each(function(plate)
+			plate:UpdateHighlight()
+		end)
+	end
+end
+
+local function OnModule(_, name)
+	if name == ns.Cast.SIGIL_MODULE then
+		Rehighlight()
+	end
+end
+
 local function OnSetting(_, module, key)
+	if module == ns.Cast.SIGIL_MODULE and SIGIL_KEY[key] then
+		Rehighlight()
+		return
+	end
 	if module ~= MODULE then
 		return
 	end
@@ -68,6 +91,7 @@ local function Enable()
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	K.Callbacks.Register("ScaleChanged", MODULE, Stacking.Schedule)
+	K.Callbacks.Register("ModuleChanged", MODULE, OnModule)
 	Preview.Register()
 	Plates.ReadSize()
 	Plates.RestyleAll()

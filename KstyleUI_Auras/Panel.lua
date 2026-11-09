@@ -1,8 +1,9 @@
--- Panel.lua: the Blessings card: the buff and debuff containers on the AuraContainer engine, the card and its cap on the buff element, the debuff rows (dispellable first) docked under a hairline or free as their own element, weapon enchantments, the "+N" count whose hover opens the full list, the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
+-- Panel.lua: the Blessings card: the buff and debuff containers on the AuraContainer engine, the card and its cap on the buff element, the debuff rows (dispellable first) docked under a hairline or free as their own element, weapon enchantments, the cap's "+N" (counted by the engine's own layout, so it stays true in combat) and the cap's route to the full list (hover to peek, click to pin), the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
 local L, Widgets, Tokens = K.L, K.Widgets, K.Tokens
+local Overflow = Widgets.Overflow
 local Model, Button = ns.Model, ns.Button
 local format, concat, min = string.format, table.concat, math.min
 
@@ -26,6 +27,9 @@ local DISPEL_GROUP, REST_GROUP = "dispel", "debuffs"
 local MORE_CLOSE_DELAY = 0.5
 local MORE_GAP = Tokens.Size("gapMedium")
 local SLOT_PAGE = 40
+local COUNT_RESERVE = "+00"
+local COUNT_WIDTH = 28
+local BUTTON_LEVEL = 4
 local FALLBACK = {
 	buffs = { position = { anchor = "TOPRIGHT", x = -287, y = -16 }, label = K.L["Buffs"] },
 	debuffs = { position = { anchor = "TOPRIGHT", x = -287, y = -126 }, label = K.L["Debuffs"] },
@@ -34,7 +38,6 @@ local FALLBACK = {
 local groups = {}
 local running, pending, waiting, gamepad = false, false, false, false
 local logged = {}
-local formatters = {}
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
@@ -146,7 +149,7 @@ function Panel.Flush()
 	end
 end
 
-local Fit, BuildMoreButton, SetMore
+local Fit, BuildMoreButton, Recount
 
 local function OnGateEvent(event)
 	if waiting then
@@ -168,38 +171,13 @@ local function Formatter(timerFormat)
 	if timerFormat == "short" then
 		return nil
 	end
-	local cached = formatters[timerFormat]
-	if cached ~= nil then
-		return cached or nil
-	end
-	local util, E = C_StringUtil, Enum
-	local made = false
-	if util and type(util.CreateSecondsFormatter) == "function" and E and E.SecondsFormatterAbbreviation and E.SecondsFormatterRounding and E.SecondsFormatterInterval then
-		local ok, result = pcall(function()
-			local f = util.CreateSecondsFormatter()
-			f:SetDefaultAbbreviation(E.SecondsFormatterAbbreviation.OneLetter)
-			f:SetRounding(E.SecondsFormatterRounding.Truncate)
-			f:SetCanRoundUpLastUnit(true)
-			f:SetMinInterval(E.SecondsFormatterInterval.Seconds)
-			if timerFormat == "long" then
-				f:SetDesiredUnitCount(2)
-			else
-				f:SetDesiredUnitCount(1)
-				f:SetMillisecondsThreshold(Model.DECIMAL_BELOW)
-			end
-			return f
-		end)
-		if ok then
-			made = result
-			Log("the " .. timerFormat .. " timer format uses a C_StringUtil seconds formatter")
-		else
-			Log("the " .. timerFormat .. " timer format failed (" .. tostring(result) .. "); timers use the engine's default format")
-		end
+	local formatter = Widgets.Duration.Formatter(timerFormat)
+	if formatter then
+		LogOnce("formatter:" .. timerFormat, "the " .. timerFormat .. " timer format uses the kit's seconds formatter")
 	else
-		Log("C_StringUtil.CreateSecondsFormatter is missing; timers use the engine's default format")
+		LogOnce("formatter:" .. timerFormat, "C_StringUtil.CreateSecondsFormatter is missing or failed; timers use the engine's default format")
 	end
-	formatters[timerFormat] = made
-	return made or nil
+	return formatter
 end
 
 local function ExpiringColor(expiring)
@@ -472,7 +450,6 @@ local function BuildCard(desc)
 	card.rule:Hide()
 	desc.card = card
 	BuildMoreButton(desc)
-	SetMore(desc, 0)
 end
 
 local function Docked()
@@ -705,6 +682,52 @@ local function Count(filter)
 	return total
 end
 
+local function CountSpecs(docked, buffCap, debuffCap)
+	local other = groups[DOCKED_GROUP]
+	local group = other and not other.failed and other.ctx.group
+	local first = group and group.dispelFirst == true
+	local dispel = DispelSet()
+	return {
+		{ filter = Model.FILTERS.buffs, cap = buffCap },
+		{ filter = Model.FILTERS.debuffs, candidates = { includeDispelTypes = dispel }, cap = debuffCap, off = not (docked and first) },
+		{ filter = Model.FILTERS.debuffs, candidates = first and { excludeDispelTypes = dispel } or nil, cap = debuffCap, off = not (docked and group) },
+	}
+end
+
+local function NewCounter(host)
+	local chip, why = Overflow.New(host, UNIT, CountSpecs(true, 0, 0), 0, { face = false, labels = Model.MORE.buffs })
+	if not chip then
+		LogOnce("counter", "the cap's +N has no counting container (" .. tostring(why) .. "); the full list stays a click away")
+	end
+	return chip
+end
+
+local function CountStyle(source)
+	return function(text)
+		local font, size, flags = source:GetFont()
+		if font then
+			text:SetFont(font, size, flags)
+		end
+		Widgets.TextColor(text, "muted")
+		text:SetJustifyH("RIGHT")
+		text:SetJustifyV("MIDDLE")
+	end
+end
+
+local function ApplyCounter(chip, cap, specs)
+	if not chip then
+		return
+	end
+	local frame = cap.frame
+	frame:SetCount(COUNT_RESERVE)
+	frame.count:SetAlpha(0)
+	local width = math.max(Widgets.Snap(frame, COUNT_WIDTH), Widgets.TextWidth(frame.count, 0))
+	Overflow.Apply(chip, {
+		enabled = true, groups = specs, cap = 0, cell = Widgets.Snap(frame, Widgets.SECTION_CAP_HEIGHT), width = width, after = true,
+		point = "RIGHT", rel = frame, relPoint = "RIGHT", x = 0, y = 0, level = frame:GetFrameLevel() + 2, style = CountStyle(frame.count),
+	})
+end
+
 local function MoreContext(desc, host)
 	local ctx, more = desc.ctx, Model.MORE
 	local out = {}
@@ -759,16 +782,22 @@ end
 
 local function BuildMore(desc)
 	local card, host = desc.card, desc.host
-	local more = CreateFrame("Frame", nil, host)
+	local more = LayoutFrame(host)
 	more:SetClampedToScreen(true)
 	more:EnableMouse(true)
 	more:Hide()
 	card.more = more
+	card.moreSheet = LayoutFrame(host)
 	card.moreChrome = Widgets.Chrome(more, { shape = "panel" })
-	card.moreRule = more:CreateTexture(nil, "ARTWORK")
+	card.moreCap = Widgets.RailCap(more, { title = L["All auras"] })
+	card.moreSplit = LayoutFrame(more)
+	card.moreRule = card.moreSplit:CreateTexture(nil, "ARTWORK")
+	card.moreRule:SetAllPoints(card.moreSplit)
 	card.moreRule:SetColorTexture(Tokens.Color("white"))
 	Widgets.LumenTint(card.moreRule, "hairline")
+	card.moreFoot = LayoutFrame(more)
 	card.moreGroups = { buffs = MoreGroup(desc, "buffs"), debuffs = MoreGroup(desc, "debuffs") }
+	card.moreCounter = NewCounter(more)
 	more:SetScript("OnEnter", function()
 		card.moreLeft = nil
 	end)
@@ -779,46 +808,57 @@ end
 
 local function LayoutMore(desc)
 	local card = desc.card
-	local more, counts = card.more, card.counts or {}
-	local pad = Widgets.Snap(more, Model.CARD_PAD)
-	local gap = Widgets.Snap(more, Model.CARD_GAP)
-	local y, width = pad, 0
-	local rule = card.moreRule
-	rule:Hide()
-	for _, name in ipairs(Model.GROUPS) do
-		local entry = card.moreGroups[name]
-		local shown = entry and math.min(counts[name] or 0, Model.MORE[name] * #entry.keys) or 0
-		if entry and shown > 0 then
-			local ctx = entry.ctx
-			local columns = math.min(shown, ctx.group.columns)
-			local rows = math.ceil(shown / ctx.group.columns)
-			local w = columns * ctx.width + (columns - 1) * ctx.spacing
-			local h = rows * ctx.height + (rows - 1) * ctx.rowSpacing
-			if name == DOCKED_GROUP and y > pad then
-				rule:ClearAllPoints()
-				rule:SetPoint("TOPLEFT", more, "TOPLEFT", pad, -(y + gap))
-				rule:SetSize(Model.MORE.columns * ctx.width + (Model.MORE.columns - 1) * ctx.spacing, Widgets.Border(more))
-				rule:Show()
-				y = y + gap + Widgets.Border(more) + gap
-			end
-			entry.container:ClearAllPoints()
-			entry.container:SetPoint("TOPLEFT", more, "TOPLEFT", pad, -y)
-			entry.container:Show()
-			width = math.max(width, w)
-			y = y + h
-		elseif entry then
-			entry.container:Hide()
-		end
+	local more, sheet = card.more, card.moreSheet
+	local function snap(units)
+		return Widgets.Snap(more, units)
 	end
-	local full = card.moreGroups.buffs or card.moreGroups.debuffs
-	local columns = full and full.ctx.group.columns or Model.MORE.columns
-	local tile = full and full.ctx.width or Model.MORE.iconSize
-	local spacing = full and full.ctx.spacing or Model.MORE.spacing
-	width = math.max(width, columns * tile + (columns - 1) * spacing)
-	more:SetSize(width + 2 * pad, y + pad)
+	local pad, gap = snap(Model.CARD_PAD), snap(Model.CARD_GAP)
+	local list = card.moreGroups
+	local full = list.buffs or list.debuffs
+	local columns = Model.MORE.columns
+	local tile = full and full.ctx.width or snap(Model.MORE.iconSize)
+	local spacing = full and full.ctx.spacing or snap(Model.MORE.spacing)
+	local inner = columns * tile + (columns - 1) * spacing
+	sheet:ClearAllPoints()
+	sheet:SetPoint("TOPRIGHT", desc.host, "TOPLEFT", -snap(MORE_GAP), 0)
+	sheet:SetSize(inner + 2 * pad, 1)
+	local cap = card.moreCap
+	cap.frame:ClearAllPoints()
+	cap.frame:SetPoint("TOPLEFT", sheet, "TOPLEFT", pad, -pad)
+	cap.frame:SetPoint("TOPRIGHT", sheet, "TOPRIGHT", -pad, -pad)
+	cap:Restyle()
+	local above, point, y = sheet, "TOPLEFT", -(pad + snap(Widgets.SECTION_CAP_HEIGHT) + gap)
+	local x = pad
+	if list.buffs then
+		local container = list.buffs.container
+		container:ClearAllPoints()
+		container:SetPoint("TOPLEFT", above, point, x, y)
+		container:Show()
+		above, point, x, y = container, "BOTTOMLEFT", 0, -gap
+	end
+	local split = card.moreSplit
+	split:ClearAllPoints()
+	split:SetPoint("TOPLEFT", above, point, x, y)
+	split:SetSize(inner, Widgets.Border(more))
+	Widgets.LumenTint(card.moreRule, "hairline")
+	split:SetShown(list.buffs ~= nil and list.debuffs ~= nil)
+	above, point, x, y = split, "BOTTOMLEFT", 0, -gap
+	if list.debuffs then
+		local container = list.debuffs.container
+		container:ClearAllPoints()
+		container:SetPoint("TOPLEFT", above, point, x, y)
+		container:Show()
+		above, point, x, y = container, "BOTTOMLEFT", 0, 0
+	end
+	local foot = card.moreFoot
+	foot:ClearAllPoints()
+	foot:SetPoint("TOPLEFT", above, point, x - pad, y)
+	foot:SetSize(1, pad)
 	more:ClearAllPoints()
-	more:SetPoint("TOPRIGHT", desc.host, "TOPLEFT", -Widgets.Snap(more, MORE_GAP), 0)
+	more:SetPoint("TOPRIGHT", sheet, "TOPRIGHT", 0, 0)
+	more:SetPoint("BOTTOMLEFT", foot, "BOTTOMLEFT", 0, 0)
 	card.moreChrome:SetEdge("edgeInner")
+	ApplyCounter(card.moreCounter, cap, CountSpecs(true, Model.MORE.buffs, Model.MORE.debuffs))
 end
 
 local function ApplyMore(desc)
@@ -835,66 +875,73 @@ local function ApplyMore(desc)
 			RestyleButtons(entry)
 		end
 	end
-	if card.more:IsShown() then
-		LayoutMore(desc)
-	end
+	LayoutMore(desc)
 end
 
 function Panel.OpenMore(desc)
 	local card = desc.card
 	if not card.more then
 		BuildMore(desc)
+		LayoutMore(desc)
 	end
 	card.moreLeft = nil
 	for _, entry in pairs(card.moreGroups) do
 		RestyleButtons(entry)
 	end
-	LayoutMore(desc)
 	card.more:Show()
 end
 
 function Panel.LeaveMore(desc)
 	local card = desc.card
-	if not card.more or not card.more:IsShown() then
+	if card.pinned or not card.more or not card.more:IsShown() then
 		return
 	end
 	local token = {}
 	card.moreLeft = token
 	C_Timer.After(MORE_CLOSE_DELAY, function()
-		if card.moreLeft == token then
+		if card.moreLeft == token and not card.pinned then
 			card.more:Hide()
 		end
 	end)
 end
 
+function Panel.PinMore(desc)
+	local card = desc.card
+	card.pinned = not card.pinned
+	if card.pinned then
+		Panel.OpenMore(desc)
+	elseif card.more then
+		card.moreLeft = nil
+		card.more:Hide()
+	end
+end
+
 function BuildMoreButton(desc)
 	local card = desc.card
 	local button = CreateFrame("Button", nil, desc.host)
-	button:SetAllPoints(card.cap.frame.count)
+	button:SetAllPoints(card.cap.frame)
+	button:SetFrameLevel(card.cap.frame:GetFrameLevel() + BUTTON_LEVEL)
 	button:SetScript("OnEnter", function()
 		Panel.OpenMore(desc)
 	end)
 	button:SetScript("OnLeave", function()
 		Panel.LeaveMore(desc)
 	end)
-	button:Hide()
+	button:SetScript("OnClick", function()
+		Panel.PinMore(desc)
+	end)
 	card.moreButton = button
+	card.counter = NewCounter(desc.host)
 end
 
-function SetMore(desc, over)
+function Recount(desc)
 	local card = desc.card
-	if over and over > 0 then
-		card.cap.frame:SetCount("+" .. over)
-		card.cap.frame.count:Show()
-		card.moreButton:Show()
-	else
-		card.cap.frame:SetCount(nil)
-		card.cap.frame.count:Hide()
-		card.moreButton:Hide()
-		if card.more then
-			card.more:Hide()
-		end
+	if not card then
+		return
 	end
+	local other = groups[DOCKED_GROUP]
+	local debuffCap = other and not other.failed and Model.Capacity(other.ctx.group, 0) or 0
+	ApplyCounter(card.counter, card.cap, CountSpecs(Docked(), Model.Capacity(desc.ctx.group, ActiveEnchants(desc)), debuffCap))
 end
 
 function Fit(unknown)
@@ -907,23 +954,12 @@ function Fit(unknown)
 	if not unknown then
 		buffs, debuffs = Count(Model.FILTERS.buffs), Count(Model.FILTERS.debuffs)
 	end
-	local known = buffs ~= nil and debuffs ~= nil
 	local docked = Docked()
 	local band, empty = card.band ~= false, false
-	if known then
-		local other = groups[DOCKED_GROUP]
+	if buffs ~= nil and debuffs ~= nil then
 		local enchants = ActiveEnchants(desc)
 		band = debuffs > 0 and (buffs > 0 or enchants > 0)
 		empty = buffs == 0 and enchants == 0 and (not docked or debuffs == 0)
-		local over = math.max(0, buffs - Model.Capacity(desc.ctx.group, enchants))
-		if docked and other and not other.failed then
-			over = over + math.max(0, debuffs - Model.Capacity(other.ctx.group, 0))
-		end
-		card.counts = { buffs = buffs, debuffs = debuffs }
-		SetMore(desc, over)
-		if card.more and card.more:IsShown() then
-			LayoutMore(desc)
-		end
 	end
 	if card.band == band and card.empty == empty then
 		return
@@ -964,6 +1000,7 @@ local function Apply(desc, relayout)
 	if desc.card then
 		desc.card.band, desc.card.empty = nil, nil
 		Fit()
+		Recount(desc)
 	end
 	local card = groups[CARD_GROUP] and groups[CARD_GROUP].card
 	if card and card.moreGroups and card.moreGroups[desc.name] then
@@ -1040,6 +1077,7 @@ local function OnEnchant()
 	if desc and not desc.failed then
 		K.Call(UpdateCapacity, desc)
 		Fit()
+		Recount(desc)
 	end
 end
 
@@ -1074,6 +1112,10 @@ function Panel.Enable()
 		if not desc.failed then
 			desc.holder:Show()
 		end
+	end
+	local card = groups[CARD_GROUP]
+	if card and not card.failed and card.card and not card.card.more then
+		BuildMore(card)
 	end
 	ApplyAll(true)
 	Blizzard()

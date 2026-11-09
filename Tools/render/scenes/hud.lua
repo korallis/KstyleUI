@@ -231,6 +231,29 @@ function Hud.PlaceAuras(container, group, buttons, columns)
 	end
 end
 
+-- PlateCasts(env, K, ns, class) readies the player's interrupt for the scene's class and stands in for the target
+-- sigil's cast settings, so the plates read them as they would beside KstyleUI_UnitFrames.
+function Hud.PlateCasts(env, K, ns, class)
+	for _, id in ipairs(ns.Logic.INTERRUPTS[class] or {}) do
+		env._known[id] = true
+	end
+	env._playerClass = class
+	ns.Interrupt.Resolve()
+	if not K.Modules.IsRunning("UnitFrames") then
+		K.Modules.Register({ name = "UnitFrames", defaults = { target = { enabled = true, castbar = true } }, Enable = function() end, Disable = function() end })
+		K.Modules.Enable("UnitFrames")
+	end
+end
+
+-- FillCast(plate, share) fills a running plate cast bar to share of its length: the engine fills it from the cast's
+-- duration object, which the stub does not run.
+function Hud.FillCast(plate, share)
+	if plate.casting then
+		plate.castBar:SetBarRange(0, 1)
+		plate.castBar:SetValue(share)
+	end
+end
+
 local modules = {}
 
 -- Unit frames: player, target, both cast bars, the target of target, the pet and the class resource ----------
@@ -734,7 +757,7 @@ local function fillAuras(env, A, container, key, group, entries)
 	for i, entry in ipairs(entries) do
 		local button = group.frames[i]
 		if not button then
-			button = A.MakeButton(env, container, env._initializers[key])
+			button = A.MakeButton(env, container, container._groups[key].initializeFrame)
 			group.frames[i] = button
 		end
 		do
@@ -798,6 +821,7 @@ function modules.auras(opts)
 		return nil, unpack(out)
 	end
 	env.FireEvent("UNIT_AURA", "player")
+	A.Counters(ns, { #buffRow, 0, #entries })
 	A.W.Settle(env)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "the buffs are laid out by the scene as the AuraContainer engine would; the game binds each icon (as a secret, so the tiles show Blizzard's art) and timer itself"
@@ -845,6 +869,12 @@ end
 local PLATE_X, PLATE_Y = 984, 396
 -- Blizzard's world numbers (the damage you deal) float above the target in DAMAGE_TEXT_FONT, which
 -- KstyleUI_CombatText sets to the kit font; the game sizes them itself. A crit reads larger and gold.
+-- A second mob in the pull, casting a spell the player can interrupt right now.
+local ADD = {
+	x = 700, y = 470,
+	unit = { name = "Mirefin Oracle", health = 980, maxHealth = 1210, level = 39, reaction = 2, canAttack = true, powerType = 0, powerMax = 1600 },
+	cast = { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false },
+}
 local WORLD_NUMBERS = {
 	{ "142", 26, { 1, 0.82, 0.2 }, 0, 72 },
 	{ "87", 19, { 1, 1, 1 }, 18, 42 },
@@ -877,15 +907,25 @@ function modules.nameplates(opts)
 	env.WorldFrame:SetPoint("BOTTOMRIGHT")
 	env._time = 10
 	env._now = 10
-	local base = N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 864, maxHealth = 1540, level = 38, reaction = 2, canAttack = true })
+	local class = Hud.Class(opts)
+	Hud.PlateCasts(env, K, ns, class)
+	local target = type(opts.target) == "table" and opts.target or TARGET
+	local cast = target.cast or { name = "Snap", texture = 132200 }
+	local base = N.Add(env, "nameplate1", { name = target.name, health = target.health, maxHealth = target.healthMax, level = target.level, classification = target.classification, reaction = 2, canAttack = true })
 	local k = 768 / 1080
 	base:ClearAllPoints()
 	base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", PLATE_X * k, (1080 - PLATE_Y) * k)
+	local add = N.Add(env, "nameplate2", ADD.unit)
+	add:ClearAllPoints()
+	add:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", ADD.x * k, (1080 - ADD.y) * k)
 	N.Target(env, "nameplate1")
-	N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = false })
+	N.Cast(env, "nameplate1", { name = cast.name, text = cast.name, texture = cast.texture, notInterruptible = false })
+	N.Cast(env, "nameplate2", ADD.cast)
 	for _ = 1, 20 do
 		N.Tick(env, 0.05)
 	end
+	Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
+	Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
 	-- The heal on the player shows in KstyleUI's own field above the character; the numbers sit at
 	-- the start of their travel, since the stub runs no animations.
 	local combatText = K.Modules.IsRunning("CombatText")
@@ -904,6 +944,7 @@ function modules.nameplates(opts)
 	end
 	local scene = build(env, opts, { time = env._time })
 	scene.log[#scene.log + 1] = "the world numbers over the target are stand-ins in DAMAGE_TEXT_FONT; the game draws and sizes them itself"
+	scene.log[#scene.log + 1] = "nameplates: the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); the " .. ADD.unit.name .. " casts " .. ADD.cast.name .. " with the " .. class:lower() .. "'s interrupt ready, so its bar takes the accent; cast fills stand in for the engine's timer"
 	if not combatText then
 		scene.log[#scene.log + 1] = "error: CombatText did not start"
 	end

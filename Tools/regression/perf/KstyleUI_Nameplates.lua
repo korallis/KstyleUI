@@ -61,12 +61,21 @@ return {
 		end,
 	},
 	{
-		name = "Nameplates UNIT_AURA with eight debuffs",
-		budget = 45,
+		-- The plates do no work on UNIT_AURA: the debuff rows and their "+N" chip are the engine's. A target swap
+		-- re-highlights every plate and decides, per plate, whether its cast stands down for the target sigil.
+		name = "Nameplates PLAYER_TARGET_CHANGED over three casting plates",
+		budget = 200,
 		setup = function()
-			local env = Plate()
-			N.Debuffs(env, "nameplate1", 8)
-			return env, Perf.Event(env, "UNIT_AURA", "nameplate1")
+			local env = N.New()
+			local cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
+			for i = 1, 3 do
+				N.Add(env, "nameplate" .. i)
+				N.Debuffs(env, "nameplate" .. i, 8)
+				env._units["nameplate" .. i].cast = cast
+				env.FireEvent("UNIT_SPELLCAST_START", "nameplate" .. i)
+			end
+			N.Target(env, "nameplate1")
+			return env, Perf.Event(env, "PLAYER_TARGET_CHANGED")
 		end,
 	},
 	{

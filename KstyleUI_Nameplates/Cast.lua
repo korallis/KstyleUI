@@ -1,4 +1,4 @@
--- Cast.lua: the plate's cast bar, run by the engine from the cast APIs' duration objects, with the spell's name, icon and interruptible state passed through.
+-- Cast.lua: the plate's cast bar, run by the engine from the cast APIs' duration objects, with the spell's name, icon and interruptible state passed through, and stood down on your target's plate while the target sigil shows that cast.
 local _, ns = ...
 
 local K = KstyleUI
@@ -17,6 +17,8 @@ local INTERRUPT_FADE = 0.8
 local SHIELD_ALPHA = 0.6
 local ICON_CROP = 0.07
 local MS = 1000
+local SIGIL_MODULE = "UnitFrames"
+local SIGIL_KEYS = { "target.enabled", "target.castbar" }
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -335,8 +337,32 @@ end
 local Component = { events = {} }
 ns.Components[#ns.Components + 1] = Component
 
+local function SigilCasts()
+	local modules, options = K.Modules, K.Options
+	if not modules.IsRunning(SIGIL_MODULE) then
+		return false
+	end
+	for _, key in ipairs(SIGIL_KEYS) do
+		local ok, on = pcall(options.Read, SIGIL_MODULE, key)
+		if not ok or on ~= true then
+			return false
+		end
+	end
+	return true
+end
+Cast.SIGIL_MODULE, Cast.SIGIL_KEYS = SIGIL_MODULE, SIGIL_KEYS
+
+function Cast.Gate(plate, isTarget)
+	local gate = plate.castGate
+	if gate then
+		gate:SetShown(not (isTarget and not plate.sample and Settings.Get("cast.hideOnTarget") and SigilCasts()))
+	end
+end
+
 function Component.Build(plate)
-	local cast = CreateFrame("Frame", nil, plate)
+	local gate = CreateFrame("Frame", nil, plate)
+	plate.castGate = gate
+	local cast = CreateFrame("Frame", nil, gate)
 	cast:Hide()
 	plate.cast = cast
 	plate.castBarOpts = { width = 100, height = 12, border = true, spark = true, sheen = true }

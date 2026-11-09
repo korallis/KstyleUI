@@ -1,10 +1,9 @@
--- test-nameplates-overflow.lua: a plate with more of the player's debuffs than its tiles shows the ones the engine ranks first and a "+N" chip, counted only while aura data is open, and hidden while it is secret.
+-- test-nameplates-overflow.lua: a plate with more of the player's debuffs than its tiles shows the ones the engine ranks first and a "+N" chip after the row, counted by hidden AuraContainers' own flow layout through anchors alone, so the count stays true in combat while aura data is secret and the module never asks the game for a count.
 local N = dofile("Tools/regression/nameplates_env.lua")
+local A = dofile("Tools/regression/auras_env.lua")
 
--- chipText(chip) -> what the chip last formatted: the stub records SetFormattedText's arguments.
 local function chipText(chip)
-	local call = N.Last(chip.text, "SetFormattedText")
-	return call and string.format(unpack(call)) or nil
+	return (A.Chip(chip))
 end
 
 local function shownTiles(ns, plate)
@@ -25,72 +24,83 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	assert(plate.auras, "the plate has its debuff container")
 	local chip = plate.auraChip
-	assert(chip and not chip:IsShown(), "no debuffs, no chip")
+	assert(chip and chipText(chip) == nil, "no debuffs, no chip")
 
 	N.Debuffs(env, "nameplate1", 3)
-	assert(shownTiles(ns, plate) == 3 and not chip:IsShown(), "three debuffs fit; no chip")
+	assert(shownTiles(ns, plate) == 3 and chipText(chip) == nil, "three debuffs fit; no chip")
+
+	N.Debuffs(env, "nameplate1", 5)
+	local text, face = A.Chip(chip)
+	assert(text == nil and not face, "five debuffs fill the row: no chip and no sliver of its glass")
 
 	N.Debuffs(env, "nameplate1", 8)
 	assert(shownTiles(ns, plate) == 5, "five tiles show the five the engine ranks first")
-	assert(chip:IsShown() and chipText(chip) == "+3", "the chip counts the three that did not fit, got " .. tostring(chipText(chip)))
-	local slots = N.Last(env.C_UnitAuras, "GetAuraSlots")
-	assert(slots and slots[1] == "nameplate1" and slots[2] == plate.auras._groups[ns.Auras.GROUP].filter, "the count asks the game for the same debuffs the tiles show")
-	assert(slots[3] == 5 + ns.Auras.OVERFLOW_MAX, "and asks for no more slots than the tiles plus the cap")
+	text, face = A.Chip(chip)
+	assert(text == "+3" and face, "the chip counts the three that did not fit, on its own glass, got " .. tostring(text))
+	assert(chip.ghost._unit == "nameplate1" and chip.ghost._groups.count.filter == plate.auras._groups[ns.Auras.GROUP].filter,
+		"the chip counts the same debuffs the tiles show")
+	assert(chip.ghostHost:GetAlpha() == 0, "the counting container draws nothing")
+	assert(#N.Calls(env.C_UnitAuras, "GetAuraSlots") == 0, "the module never asks the game for a count")
 
 	-- The chip sits at the end of the row, after the last tile, on the row's own line, hung from the health bar
-	-- (an aura container forbids layout on anything anchored to it).
-	local point, relative, relativePoint, x = chip:GetPoint(1)
+	-- as the container is (an aura container forbids layout on anything anchored to it).
+	local point, relative, relativePoint, x, y = chip.window:GetPoint(1)
 	local size, spacing = ns.Auras.Grid(plate)
 	assert(relative == plate.health and point == "BOTTOMLEFT" and relativePoint == "TOPLEFT", "the chip hangs from the bar as the container does")
 	local _, containerRelative, _, cx, cy = plate.auras:GetPoint(1)
-	local _, _, _, _, y = chip:GetPoint(1)
 	assert(containerRelative == plate.health and N.Same(x - cx, 5 * size + 5 * spacing) and N.Same(y, cy), "one tile pitch past the fifth tile, level with the row, got " .. tostring(x - cx))
-	assert(N.Same(chip:GetHeight(), size), "as tall as a tile")
+	assert(N.Same(chip.window:GetHeight(), size) and N.Same(chip.window:GetWidth(), size), "a tile's size")
 
 	N.Debuffs(env, "nameplate1", 17)
 	assert(chipText(chip) == "+12", "twelve more: +12")
 	N.Debuffs(env, "nameplate1", 40)
-	assert(chipText(chip) == "+" .. ns.Auras.OVERFLOW_MAX, "the count stops at the cap")
+	assert(chipText(chip) == "+" .. ns.Auras.OVERFLOW_MAX, "the count stops at the cap, got " .. tostring(chipText(chip)))
 
 	N.Debuffs(env, "nameplate1", 5)
-	assert(not chip:IsShown(), "back to five: the chip hides")
+	assert(chipText(chip) == nil, "back to five: the chip goes")
 
 	-- A second row takes ten before the chip appears.
 	K.Options.Write("Nameplates", "debuffs.rows", 2)
 	N.Debuffs(env, "nameplate1", 12)
-	assert(shownTiles(ns, plate) == 10 and chipText(chip) == "+2", "two rows show ten, the chip the other two")
+	assert(shownTiles(ns, plate) == 10 and chipText(chip) == "+2", "two rows show ten, the chip the other two, got " .. tostring(chipText(chip)))
 	K.Options.Write("Nameplates", "debuffs.rows", 1)
 
-	-- The plate leaves and its base comes back for a unit with no debuffs: no stale count.
+	-- The plate leaves and its base comes back for another unit: the chip counts the new unit.
 	local base = env._bases.nameplate1
 	N.Remove(env, "nameplate1")
-	assert(not chip:IsShown(), "a detached plate shows no chip")
+	assert(not chip.window:IsShown(), "a detached plate shows no chip")
+	assert(chip.ghost._unit == "none", "and its counting container lets the unit go")
 	N.Add(env, "nameplate2", { name = "Clean Mob" }, { base = base })
-	assert(ns.Plates.Get("nameplate2") == plate and not chip:IsShown(), "the reused plate counts its new unit, which has none")
+	assert(ns.Plates.Get("nameplate2") == plate and chip.ghost._unit == "nameplate2", "the reused plate counts its new unit")
+	N.Debuffs(env, "nameplate2", 0)
+	assert(chipText(chip) == nil, "which has none")
 	N.Debuffs(env, "nameplate2", 7)
 	assert(chipText(chip) == "+2", "and counts again when that unit gains debuffs")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
--- While auras are secret the game refuses the count: the chip hides rather than guess, and nothing errors -------
+-- In a pull aura data is secret: the chip keeps counting through the engine's layout, and never asks --------------
 
 do
 	local env, K, ns = N.New()
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	N.Debuffs(env, "nameplate1", 9)
-	assert(plate.auraChip:IsShown(), "+4 while aura data is open")
+	assert(chipText(plate.auraChip) == "+4", "+4 while aura data is open")
 	env._aurasSecret = true
-	local calls = #N.Calls(env.C_UnitAuras, "GetAuraSlots")
-	env.FireEvent("UNIT_AURA", "nameplate1")
-	assert(not plate.auraChip:IsShown(), "the chip hides while auras are secret")
-	assert(#N.Calls(env.C_UnitAuras, "GetAuraSlots") == calls, "and the module never asks the game, which would raise")
+	env.SetCombat(true)
+	N.Debuffs(env, "nameplate1", 12)
+	assert(chipText(plate.auraChip) == "+7", "in the pull the chip follows the debuffs: +7, got " .. tostring(chipText(plate.auraChip)))
+	N.Debuffs(env, "nameplate1", 4)
+	assert(chipText(plate.auraChip) == nil, "and goes when they fit again, with no stale count")
+	N.Debuffs(env, "nameplate1", 8)
+	assert(chipText(plate.auraChip) == "+3", "and comes back: +3")
+	assert(#N.Calls(env.C_UnitAuras, "GetAuraSlots") == 0, "no count was asked for, which would raise while secret")
+	env.SetCombat(false)
 	env._aurasSecret = false
-	env.FireEvent("UNIT_AURA", "nameplate1")
-	assert(plate.auraChip:IsShown() and chipText(plate.auraChip) == "+4", "open again: the chip is back")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 
-	-- A client without the slot API: no chip, no error, one devlog line.
+	-- A client without the slot API counts the same way: the chip never needed it.
 	local env2, K2, ns2 = N.New({
 		setup = function(e)
 			e.C_UnitAuras.GetAuraSlots = nil
@@ -98,7 +108,7 @@ do
 	})
 	N.Add(env2, "nameplate1")
 	N.Debuffs(env2, "nameplate1", 9)
-	assert(not ns2.Plates.Get("nameplate1").auraChip:IsShown(), "no slot API, no chip")
+	assert(chipText(ns2.Plates.Get("nameplate1").auraChip) == "+4", "no slot API, the chip still counts")
 	assert(#env2._errors == 0 and K2.ErrorCount() == 0, tostring(env2._errors[1]))
 end
 

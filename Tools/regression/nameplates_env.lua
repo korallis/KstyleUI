@@ -507,6 +507,10 @@ function N.Add(env, token, data, opts)
 	if opts.lateUnitFrame then
 		base.UnitFrame = unitFrame
 	end
+	local plate = env._addons.KstyleUI_Nameplates.Plates.Get(token)
+	if plate and plate.auraChip then
+		dofile("Tools/regression/auras_env.lua").Ghosts(plate.auraChip, u.debuffCount or 0)
+	end
 	return base
 end
 
@@ -523,7 +527,8 @@ function N.Remove(env, token)
 end
 
 -- Debuffs(env, token, count) assigns `count` of the player's debuffs to the unit's plate, as the engine's
--- frame refresh does for every group on the plate's container.
+-- frame refresh does for every group on the plate's container, and lays out the overflow chip's counting
+-- containers as the engine's layout pass would.
 function N.Debuffs(env, token, count)
 	local plate = env._addons.KstyleUI_Nameplates.Plates.Get(token)
 	local container = assert(plate and plate.auras, "no debuff container on " .. token)
@@ -531,6 +536,9 @@ function N.Debuffs(env, token, count)
 	env._units[token].debuffCount = count
 	for key in pairs(container._groups) do
 		A.Assign(env, container, key, count)
+	end
+	if plate.auraChip then
+		A.Ghosts(plate.auraChip, count)
 	end
 	env.FireEvent("UNIT_AURA", token)
 end

@@ -47,7 +47,7 @@ local function buttons(env, A, container, key, n)
 	for i = 1, n do
 		local button = group.frames[i]
 		if not button then
-			button = A.MakeButton(env, container, env._initializers[key])
+			button = A.MakeButton(env, container, container._groups[key].initializeFrame)
 			group.frames[i] = button
 		end
 		out[i] = button
@@ -120,6 +120,7 @@ local function card(index, n)
 	}
 	env.FireEvent("UNIT_AURA", "player")
 	env.RunTimers()
+	A.Counters(ns, { n, 0, DEBUFFS })
 	A.W.Settle(env)
 	local desc = ns.Panel.Group("buffs")
 	local element = K.Layout.Element("auras.buffs").frame

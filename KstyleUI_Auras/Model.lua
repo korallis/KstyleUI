@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Tokens, L = K.Tokens, K.L
-local floor, ceil, max, min, format = math.floor, math.ceil, math.max, math.min, string.format
+local floor, max, min = math.floor, math.max, math.min
 
 local Model = {}
 ns.Model = Model
@@ -15,12 +15,7 @@ Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL" }
 
 local TIMER_GAP = 1
 local LINE_SLACK = 0.5
-local SECONDS_BAND = 91
-local MINUTES_BAND = 5401
-local HOURS_BAND = 129601
-local MINUTE, HOUR, DAY = 60, 3600, 86400
-local DECIMAL_BELOW = 3
-Model.DECIMAL_BELOW = DECIMAL_BELOW
+Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
 
 Model.LIMITS = {
 	iconSize = { min = 16, max = 64, step = 1 },
@@ -41,11 +36,11 @@ Model.defaults = {
 	hideBlizzard = true,
 	buffs = {
 		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 2, columns = 6,
-		growth = "LEFT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
+		growth = "RIGHT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
 	},
 	debuffs = {
 		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 2, columns = 6,
-		growth = "LEFT_DOWN", sort = "priority", reverse = false, dispel = true, dispelFirst = true,
+		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true, dispelFirst = true,
 	},
 	card = { docked = true },
 	timer = { format = "short", position = "below", font = NUMBER_FONT, size = 12, outline = "OUTLINE", expiring = 5 },
@@ -210,7 +205,8 @@ function Model.Growth(growth)
 end
 
 function Model.ContainerAnchor(growth)
-	return (Model.Growth(growth))
+	local anchor = Model.Growth(growth)
+	return (anchor:gsub("RIGHT$", "LEFT"))
 end
 
 function Model.Sort(sort, reverse)
@@ -288,38 +284,6 @@ function Model.AccentColor(settings)
 	return K.Theme.Accent()
 end
 
-local function short(seconds)
-	if seconds < SECONDS_BAND then
-		return format("%ds", floor(seconds))
-	elseif seconds < MINUTES_BAND then
-		return format("%dm", ceil(seconds / MINUTE))
-	elseif seconds < HOURS_BAND then
-		return format("%dh", ceil(seconds / HOUR))
-	end
-	return format("%dd", ceil(seconds / DAY))
-end
-
-local function long(seconds)
-	seconds = floor(seconds)
-	if seconds < MINUTE then
-		return format("%ds", seconds)
-	elseif seconds < HOUR then
-		return format("%dm %ds", floor(seconds / MINUTE), seconds % MINUTE)
-	elseif seconds < DAY then
-		return format("%dh %dm", floor(seconds / HOUR), floor(seconds % HOUR / MINUTE))
-	end
-	return format("%dd %dh", floor(seconds / DAY), floor(seconds % DAY / HOUR))
-end
-
 function Model.FormatTime(seconds, timerFormat)
-	if timerFormat == "none" or type(seconds) ~= "number" or seconds ~= seconds then
-		return ""
-	end
-	seconds = max(0, seconds)
-	if timerFormat == "long" then
-		return long(seconds)
-	elseif timerFormat == "decimal" and seconds < DECIMAL_BELOW then
-		return format("%.1f", floor(seconds * 10) / 10)
-	end
-	return short(seconds)
+	return KstyleUI.Widgets.Duration.Format(seconds, timerFormat)
 end

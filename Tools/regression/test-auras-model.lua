@@ -30,8 +30,8 @@ check(buffs.iconSize == 38 and buffs.spacing == 10 and buffs.columns == 6 and ti
 check(bw == 278 and bh == 102, "the buff footprint at defaults is 278 x 102, got " .. bw .. " x " .. bh)
 check(dw == 278 and dh == 102, "the debuff footprint at defaults is 278 x 102, got " .. dw .. " x " .. dh)
 check(buffs.rows == 2 and debuffs.rows == 2, "two rows of buffs and two of debuffs by default")
-check(buffs.growth == "LEFT_DOWN" and debuffs.growth == "LEFT_DOWN", "both groups grow left from the minimap, so the shortest time left sits next to it")
-check(Model.ContainerAnchor("RIGHT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("LEFT_DOWN") == "TOPRIGHT" and Model.ContainerAnchor("RIGHT_UP") == "BOTTOMLEFT" and Model.ContainerAnchor("LEFT_UP") == "BOTTOMRIGHT", "the container hangs from the corner the rows grow from, so a short row sits flush with the minimap's side")
+check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both groups read left to right from under the cap's title, so every row, short or wrapped, starts under the header")
+check(Model.ContainerAnchor("RIGHT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("LEFT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("RIGHT_UP") == "BOTTOMLEFT" and Model.ContainerAnchor("LEFT_UP") == "BOTTOMLEFT", "the container hangs from the header's side at the edge the rows grow from, so a short row sits under the cap's title")
 
 -- Growth: the corner the panel grows from and the engine's direction names.
 local cases = {
@@ -45,7 +45,7 @@ for _, case in ipairs(cases) do
 	check(anchor == case[2] and h == case[3] and v == case[4], "growth " .. case[1] .. " maps to " .. case[2] .. ", got " .. tostring(anchor))
 end
 local anchor = Model.Growth("SIDEWAYS")
-check(anchor == "TOPRIGHT", "an unknown growth falls back to the default, left then down")
+check(anchor == "TOPLEFT", "an unknown growth falls back to the default, right then down")
 
 -- Sort: setting value to the engine's AuraContainerSortMethod and direction names.
 local sorts = {

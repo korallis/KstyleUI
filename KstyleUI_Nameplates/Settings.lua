@@ -36,7 +36,7 @@ Settings.defaults = {
 	cast = {
 		enabled = true, height = 12, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "class", color = Color("accentDefault"), shieldColor = Color("textDisabled"),
-		waitColor = Color("neutral"), interruptSpell = "",
+		waitColor = Color("neutral"), interruptSpell = "", hideOnTarget = true,
 		showIcon = true, showName = true, showTime = true, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
@@ -329,6 +329,11 @@ local rest = {
 		type = "text", key = "cast.interruptSpell", label = L["Interrupt spell"],
 		help = L["The spell the recharging colour watches. Blank finds your class's interrupt."],
 		maxLetters = 40, disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "toggle", key = "cast.hideOnTarget", label = L["One cast for your target"],
+		help = L["Hides your target's cast on its plate while the target frame shows that cast."],
+		disableWhen = Off("cast.enabled"),
 	},
 	{
 		type = "toggle", key = "cast.showIcon", label = L["Spell icon"],
