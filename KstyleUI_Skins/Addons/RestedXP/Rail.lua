@@ -128,7 +128,7 @@ end
 local function Dock(f, story)
 	local Tracker = ns.Tracker
 	local fit, tracker = Fit()
-	local docked = fit ~= nil and Docks() and story ~= nil and story.tracker ~= nil and InSlot(tracker, story.tracker)
+	local docked = fit ~= nil and Docks() and f:IsShown() and story ~= nil and story.tracker ~= nil and InSlot(tracker, story.tracker)
 	local inset = docked and type(Tracker.Inset) == "function" and Tracker.Inset() or nil
 	RestedXP.Chrome.Dock(f, docked and fit or nil, inset and -inset.bottom or nil)
 	if Tracker and type(Tracker.Dock) == "function" then
@@ -263,6 +263,8 @@ local function Hook(f)
 			part:HookScript("OnMouseUp", Check)
 		end
 	end
+	f:HookScript("OnHide", Rail.Undock)
+	f:HookScript("OnShow", Schedule)
 	local rxp = state.rxp
 	if type(rxp.SetStep) == "function" then
 		hooksecurefunc(rxp, "SetStep", Schedule)

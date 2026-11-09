@@ -293,7 +293,6 @@ do
 	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
 	env.RunTimers()
 	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "a tracker moved out of the slot undocks")
-	-- The rail off undocks too.
 	tracker:ClearAllPoints()
 	local story = K.Setup.Story("DPS", true)
 	local at = K.Setup.EditMode.TrackerPlace(story.tracker)
@@ -302,6 +301,14 @@ do
 	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
 	env.RunTimers()
 	assert(ns.RestedXP.Rail.Docked(), "back in the slot, docked")
+	-- RestedXP hides its guide (the player's hide key, a hidewindow step): the card goes with it, so the tracker
+	-- gets its own glass back at once, and docks again when the guide shows (round 3, Codex review).
+	rxp.fake.close(f)
+	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "a hidden guide undocks the quests")
+	rxp.fake.open(f)
+	env.RunTimers()
+	assert(ns.RestedXP.Rail.Docked() and not trackerGlass:IsShown(), "and a shown guide docks them again")
+	-- The rail off undocks too.
 	K.Options.Write("Skins", "restedXP.rail", false)
 	env.RunTimers()
 	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "the rail off gives the tracker its glass back")
