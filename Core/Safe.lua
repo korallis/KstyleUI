@@ -76,12 +76,15 @@ local function apply(frame)
 		return
 	end
 	wanted[frame] = nil
-	if want == "hide" and not hidden[frame] then
-		originals[frame] = frame:GetParent()
+	local parent = frame:GetParent()
+	if want == "hide" and (not hidden[frame] or parent ~= hiddenParent) then
+		originals[frame] = parent
 		frame:SetParent(hiddenParent)
 		hidden[frame] = true
 	elseif want == "restore" and hidden[frame] then
-		frame:SetParent(originals[frame])
+		if parent == hiddenParent then
+			frame:SetParent(originals[frame])
+		end
 		hidden[frame], originals[frame] = nil, nil
 	end
 end
@@ -108,7 +111,7 @@ function Safe.HideBlizzard(frame)
 	if not isFrame(frame) then
 		error("KstyleUI.Safe.HideBlizzard: expected a frame, got " .. type(frame), 2)
 	end
-	if hidden[frame] and wanted[frame] == nil then
+	if hidden[frame] and wanted[frame] == nil and frame:GetParent() == hiddenParent then
 		return
 	end
 	if not hiddenParent then

@@ -379,6 +379,31 @@ do
 	assert(e.CreateFrame("Frame"):GetRect() == nil, "no size, no rect")
 end
 
+-- With _resolveRects on, GetRect answers from the anchors, as the game does, and nil when they cannot place the
+-- frame: an anchor loop, or a target that has no rect. Edit Mode reads the selection's rect while a frame drags.
+do
+	local e = Stubs.NewEnv()
+	e._resolveRects = true
+	local frame = e.CreateFrame("Frame", nil, e.UIParent)
+	frame:SetSize(30, 40)
+	frame:SetPoint("BOTTOMLEFT", e.UIParent, "BOTTOMLEFT", 10, 20)
+	local left, b, w, h = frame:GetRect()
+	assert(math.abs(left - 10) < 1e-6 and math.abs(b - 20) < 1e-6 and math.abs(w - 30) < 1e-6 and math.abs(h - 40) < 1e-6, "GetRect resolves the anchors")
+	local selection = e.CreateFrame("Frame", nil, frame)
+	selection:SetPoint("TOPLEFT", frame, "TOPLEFT", -30, 0)
+	selection:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+	assert(select(3, selection:GetRect()) and math.abs(select(3, selection:GetRect()) - 60) < 1e-6, "a selection hung from both corners has a rect")
+	local a, c = e.CreateFrame("Frame", nil, e.UIParent), e.CreateFrame("Frame", nil, e.UIParent)
+	a:SetSize(10, 10)
+	c:SetSize(10, 10)
+	a:SetPoint("TOPLEFT", c, "BOTTOMLEFT")
+	c:SetPoint("TOPLEFT", a, "BOTTOMLEFT")
+	assert(a:GetRect() == nil, "an anchor loop has no rect")
+	local loose = e.CreateFrame("Frame", nil, e.UIParent)
+	loose:SetPoint("TOPLEFT", e.UIParent, "TOPLEFT")
+	assert(loose:GetRect() == nil, "one point and no size has no rect")
+end
+
 -- GetLeft, GetRight, GetTop, GetBottom and GetCenter answer in the region's own scaled units, as the game does:
 -- a frame's edge times its effective scale is the screen position, so a frame at scale 2 reads half the root's
 -- numbers for the same spot (Blizzard_SharedTalentFrame.lua: cursorX - self:GetLeft() * scale).

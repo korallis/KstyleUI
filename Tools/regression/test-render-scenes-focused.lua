@@ -160,8 +160,13 @@ for _, item in ipairs(rested.items) do
 		restedTexts[(item.text:gsub("\226\128\137", ""))] = true
 	end
 end
-for _, want in ipairs({ "Step 34", "6-10 DUROTAR", "RestedXP Guides v4.11.35", "Speedrun Guide 1-22", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
+for _, want in ipairs({ "Step 34", "6-10 DUROTAR", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
 	assert(restedTexts[want], "the RestedXP scene shows " .. want)
+end
+-- One fact, one place (owner, 2026-11-09): the cap names the guide, so RestedXP's appended guide group and its
+-- version footer are hushed.
+for _, gone in ipairs({ "Speedrun Guide 1-22", "RestedXP Guides v4.11.35" }) do
+	assert(not restedTexts[gone], "the RestedXP scene hushes " .. gone)
 end
 assert(not restedTexts["Step 35"], "the Step plates are hushed: the cap's trail carries the first shown step")
 assert(not restedTexts["6-10 Durotar\nSpeedrun Guide 1-22"], "RestedXP's own two-line title is hushed, not drawn")

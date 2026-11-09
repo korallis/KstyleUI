@@ -72,6 +72,7 @@ do
 	assert(Glass(K, f), "the guide window sits on one KstyleUI glass")
 	local glass = K.Skin.Parts(f).backdrop
 	assert(glass.chrome.shapeName == "window", "window-grade glass, as the HUD's chat and tracker")
+	assert(glass.chrome.gilt == nil, "the story card wears no gilt corner tips: a thin rim and nothing else (owner, 2026-11-09)")
 	assert(glass.target == card, "the glass follows the card frame, not RestedXP's window")
 	assert(glass:GetFrameLevel() < f.GuideName:GetFrameLevel() and glass:GetFrameLevel() <= f:GetFrameLevel(), "under every RestedXP part of the window")
 	assert(not K.Skin.IsSkinned(f.GuideName, "Backdrop") and not K.Skin.IsSkinned(f.BottomFrame, "Backdrop") and not K.Skin.IsSkinned(f.Footer, "Backdrop"), "the header, the list and the footer draw no glass of their own: one card, not three")
@@ -94,10 +95,20 @@ do
 	f.GuideName.text:SetText("Durotar, 6 to 10")
 	assert(Title() == "DUROTAR, 6 TO 10", "a guide change follows RestedXP's title")
 	assert(not path.meta:IsShown(), "a one-line title shows no route row")
+	-- One fact, one place (owner, 2026-11-09): RestedXP appends the guide's group to its name
+	-- (GuideWindow.lua: guidename .. "\n" .. guide.subgroup); the cap already names the guide, so the group line
+	-- is hushed. A guide whose own name runs to two lines (no subgroup) keeps its second line as a caption row.
+	rxp.currentGuide = { name = "6-10 Durotar", subgroup = "Speedrun Guide 1-22" }
 	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
-	assert(Title() == "6-10 DUROTAR", "a title with the guide's route on a second line keeps the first line as the cap")
-	assert(path.meta:IsShown() and path.meta:GetText() == "Speedrun Guide 1-22", "and the route becomes a caption row in RestedXP's header band")
-	assert(select(2, path.meta:GetFont()) == select(2, ns.Style.Font("caption")) and Colored(path.meta, K.Tokens.Color("text")), "a caption in the body grey, as the footer")
+	assert(Title() == "6-10 DUROTAR", "a title with the guide's group on a second line keeps the first line as the cap")
+	assert(not path.meta:IsShown(), "and the group line, which repeats the guide head, is hushed")
+	assert(path.height < 18, "so the header band closes up, got " .. tostring(path.height))
+	rxp.currentGuide = { name = "Elwynn Forest\\n1-10 Human" }
+	f.GuideName.text:SetText("Elwynn Forest\n1-10 Human")
+	assert(Title() == "ELWYNN FOREST" and path.meta:IsShown() and path.meta:GetText() == "1-10 Human", "a guide's own two-line name keeps its second line")
+	assert(select(2, path.meta:GetFont()) == select(2, ns.Style.Font("caption")) and Colored(path.meta, K.Tokens.Color("text")), "a caption in the body grey")
+	rxp.currentGuide = { name = "6-10 Durotar", subgroup = "Speedrun Guide 1-22" }
+	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
 	local holderBottom = path.holder._points[1]
 	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.CurrentStepFrame and holderBottom[3] == "TOPLEFT", "the cap holder stands on RestedXP's active step frame, which RestedXP shows from the start")
 	rxp.fake.close(f.CurrentStepFrame)
@@ -110,14 +121,17 @@ do
 	assert(capTop[1] == "TOPLEFT" and capTop[2] == path.holder, "the cap row hangs from the holder")
 	local cardTop, cardBottom = card._points[1], card._points[3]
 	assert(cardTop[1] == "TOPLEFT" and cardTop[2] == path.holder and cardBottom[1] == "BOTTOM" and cardBottom[2] == f, "the card runs from the cap holder's top to RestedXP's window bottom, the footer")
-	assert(W.Near(f.GuideName:GetHeight(), K.Widgets.Snap(f.GuideName, 18)), "RestedXP's 35-unit header band shrinks to the route's caption row, since the cap left it, got " .. tostring(f.GuideName:GetHeight()))
-	assert(path.height == 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
+	assert(W.Near(f.GuideName:GetHeight(), K.Widgets.Snap(f.GuideName, path.height)), "RestedXP's 35-unit header band shrinks to what is left in it, since the cap left it, got " .. tostring(f.GuideName:GetHeight()))
+	assert(path.height < 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
 	assert(W.Near(select(2, path.cap.title:GetFont()), ns.Lumen.CAP_SIZE * 1.5), "a text size change reaches the cap")
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
-	assert(select(2, f.Footer.text:GetFont()) == select(2, K.Tokens.Font("caption")) and Colored(f.Footer.text, K.Tokens.Color("text")), "the footer line is a caption in the body grey")
+	assert(Alpha(f.Footer.text) == 0, "the footer's version line (RestedXP Guides v4.11.35) is hushed: it tells the player nothing while they play")
+	f.Footer.text:SetAlpha(1)
+	assert(Alpha(f.Footer.text) == 0, "and stays hushed when RestedXP's timer bar gives the footer back (Timers.lua)")
+	assert(f.Footer.cog:IsShown() and Alpha(f.Footer.cog) > 0, "the cog stays: its click opens RestedXP's menu, where the player changes guides")
 	assert(K.Skin.IsSkinned(f.ScrollFrame.ScrollBar, "ScrollBar"), "the step list's scroll bar is KstyleUI's")
 	f:UpdateVisuals()
 	assert(Hushed(f.BottomFrame) and Alpha(f.GuideName._pieces[1]) == 0, "RestedXP's redraw keeps the glass")

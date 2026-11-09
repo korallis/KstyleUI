@@ -875,9 +875,26 @@ function modules.auras(opts)
 	return finish(env, K, scene, "auras"), ns
 end
 
--- Quest tracker: Blizzard's objective tracker with two quests, wearing the Skins glass -------------------------
+-- Quest card: the tracked quests on the Skins quest card, which stands in for Blizzard's objective tracker -------
 
 local Tracker = dofile("Tools/render/scenes/_tracker.lua")
+local QuestLog = dofile("Tools/regression/quests_fake.lua")
+
+-- CardQuests(list) -> the scene's quests as the quest log fake holds them, and the super-tracked quest's id.
+local function CardQuests(list)
+	local out, super = {}, 0
+	for i, quest in ipairs(list) do
+		local objectives = {}
+		for k, text in ipairs(quest.objectives) do
+			objectives[k] = { text = text, finished = false }
+		end
+		out[i] = { id = quest.questID, title = quest.title, level = quest.level or 0, objectives = objectives, complete = quest.complete, item = quest.item }
+		if quest.superTracked then
+			super = quest.questID
+		end
+	end
+	return out, super
+end
 
 function modules.tracker(opts)
 	local S = dofile("Tools/regression/skins_env.lua")
@@ -886,11 +903,14 @@ function modules.tracker(opts)
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
 		saved = saved(opts, "Skins"),
+		loaded = opts.trackerDocked and { RXPGuides = true } or nil,
 		setup = function(env)
 			shared(env, opts)
+			local quests, super = CardQuests(opts.quests or Tracker.QUESTS)
+			QuestLog.Install(env, quests).super = super
 		end,
 		before = function(env)
-			tracker = Tracker.StandIn(env, S.Blizzard(env), opts.quests or Tracker.QUESTS)
+			tracker = QuestLog.Tracker(env, S.Blizzard(env))
 			local a = opts.trackerAnchor
 			if a then
 				tracker:ClearAllPoints()
@@ -904,15 +924,24 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
-	-- With the RestedXP guide docked over it (the skin's one story card), the tracker's own glass yields to the
-	-- guide's, which the restedxp module draws down to the tracker's foot.
+	-- The quest card stands in for Blizzard's tracker in the story slot, three quests at a time. With the RestedXP
+	-- guide docked over it (the skin's one story card), the card's own glass yields to the guide's, which the
+	-- restedxp module draws down to the card's foot.
+	local card = ns.Quests.Active()
 	if opts.trackerDocked then
-		ns.Tracker.Dock(true)
+		if card then
+			ns.Quests.Dock(true)
+		else
+			ns.Tracker.Dock(true)
+		end
 	end
-	-- Blizzard's objective text is yellow for titles and white for lines, under the tracker's fonts.
 	local scene = build(env, opts)
-	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset") .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
-	return finish(env, K, scene, "tracker"), ns, tracker
+	if card then
+		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, three at a time, in the layout's story slot; Blizzard's tracker is hidden while it holds only quests" .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
+	else
+		scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset") .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
+	end
+	return finish(env, K, scene, "tracker"), ns, card and ns.Quests.Card() or tracker
 end
 
 -- Nameplate: the target's plate over the crocolisk, mid-cast, with the combat numbers -----------------------
@@ -1203,7 +1232,7 @@ function modules.restedxp(opts)
 		local scale = K.Widgets.ScaleFactor(fit)
 		fit:SetSize(1, math.max(1, (opts.dockTop or opts.dockBottom + 1) - opts.dockBottom) / scale)
 		fit:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 0, opts.dockBottom / scale)
-		R.ns.RestedXP.Rail.DockTo(fit)
+		R.ns.RestedXP.Rail.DockTo(fit, opts.dockCard)
 		R.env.RunTimers()
 		R.log[#R.log + 1] = "restedxp: the quests dock into the guide's card; its glass runs to the tracker glass's foot and its footer hugs the quests' cap"
 	end

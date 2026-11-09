@@ -154,6 +154,28 @@ do
 	env.RunTimers()
 	assert(bar:GetParent() == hidden, "a restored frame can be hidden again")
 
+	-- Blizzard can put a hidden frame back on a parent of its own: Edit Mode's ApplySystemAnchor runs
+	-- BreakFromFrameManager, which calls SetParent(UIParent), on every layout it applies. Hiding it again takes,
+	-- and a restore then returns it to the parent Blizzard chose, not the stale first one.
+	local managed = env.CreateFrame("Frame", "ObjectiveTrackerFrame", env.CreateFrame("Frame", "RightManagedFrameContainer", env.UIParent))
+	Safe.HideBlizzard(managed)
+	env.RunTimers()
+	assert(managed:GetParent() == hidden, "the managed frame is hidden")
+	managed:SetParent(env.UIParent)
+	Safe.HideBlizzard(managed)
+	env.RunTimers()
+	assert(managed:GetParent() == hidden, "hiding a frame Blizzard reparented hides it again")
+	Safe.RestoreBlizzard(managed)
+	env.RunTimers()
+	assert(managed:GetParent() == env.UIParent, "and a restore returns it to the parent Blizzard last gave it")
+	Safe.HideBlizzard(managed)
+	env.RunTimers()
+	local container = env.RightManagedFrameContainer
+	managed:SetParent(container)
+	Safe.RestoreBlizzard(managed)
+	env.RunTimers()
+	assert(managed:GetParent() == container, "a restore leaves a frame Blizzard already put back where Blizzard put it")
+
 	-- A Blizzard frame that does not exist on this client is skipped and logged, not an error.
 	Safe.HideBlizzard(nil)
 	env.RunTimers()

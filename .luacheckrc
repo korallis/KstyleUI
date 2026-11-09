@@ -103,7 +103,7 @@ module_globals("KstyleUI_DataBars", {})
 
 module_globals("KstyleUI_Meters", {})
 
-module_globals("KstyleUI_Skins", {})
+module_globals("KstyleUI_Skins", { "KstyleUI_QuestCard" })
 
 
 -- END MODULE GLOBALS

@@ -54,8 +54,8 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |
 | `secret_lint.lua` | Finds unsafe uses of secret values and any use of the combat log. |
 | `color_lint.lua` | Finds colour literals, which belong only in `Core/Tokens.lua`. `test-tokens.lua` runs it. |
-| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `perf_runner.lua` runs it for `test-perf.lua` and `test-perf-frames.lua`. |
-| `perf/` | The combat paths `test-perf.lua` and `test-perf-frames.lua` measure, one file per addon folder, split between them by `perf_runner.lua`. |
+| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `perf_runner.lua` runs it for `test-perf.lua`, `test-perf-frames.lua` and `test-perf-skins.lua`. |
+| `perf/` | The combat paths `test-perf.lua`, `test-perf-frames.lua` and `test-perf-skins.lua` measure, one file per addon folder, split between them by `perf_runner.lua`. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
 ## Taint scan
@@ -160,7 +160,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 ## Performance budget
 
-`test-perf.lua` and `test-perf-frames.lua` measure every combat path registered in `perf/`. A path fails when:
+`test-perf.lua`, `test-perf-frames.lua` and `test-perf-skins.lua` measure every combat path registered in `perf/`. A path fails when:
 
 - Its average time per call is over its budget.
 - It allocates memory on an addon line. The spec allows no allocation in a combat path.
@@ -168,7 +168,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 `measure.lua` calls the path 10 times to fill caches, then runs 5 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round, so a round that another process slowed does not set it. When the rounds allocate, it runs 1,000 more calls under a debug hook that charges each allocation to the line that ran it, so a line that allocates only on some calls is found too; the hook costs about fifty times a plain call, which is most of a perf test's time. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that a stub or a fake allocates, such as a duration object from `UnitCastingDuration`, never fails it. A line that allocates less often than once in 1,000 calls can escape the trace. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
 
-The paths run as two test files so each stays well inside its 20 s budget while run-all runs 18 files at once: `test-perf.lua` measures the core, action bar, combat text, cooldown, group frame and meter files, and `test-perf-frames.lua` the nameplate and unit frame files. `perf_runner.lua` holds the two lists (`GROUPS`) and fails both files when a `perf/` file sits in neither, or in both.
+The paths run as three test files so each stays well inside its 20 s budget while run-all runs 18 files at once: `test-perf.lua` measures the core, action bar, combat text, cooldown, group frame and meter files, `test-perf-frames.lua` the nameplate and unit frame files, and `test-perf-skins.lua` the quest card's. `perf_runner.lua` holds the lists (`GROUPS`) and fails every file when a `perf/` file sits in no group, or in two. A slow path can lower `calls` (the quest card's use 100) so its allocation trace, about fifty times a plain call, stays inside the file's time.
 
 A path that fails on time alone (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average, so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
 

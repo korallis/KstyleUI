@@ -10,6 +10,9 @@
 	<Script file="Spellbook.lua"/>
 	<Script file="WorldMap.lua"/>
 	<Script file="Tracker.lua"/>
+	<Script file="Quests\Data.lua"/>
+	<Script file="Quests\Card.lua"/>
+	<Script file="Quests\Quests.lua"/>
 	<!-- End of part A. -->
 
 	<!-- Part B: add part B's skin files below this line, one Script line each, in the order their switches should list. -->

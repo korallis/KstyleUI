@@ -103,7 +103,15 @@ end
 
 local function Fit()
 	if state.standIn then
-		return state.standIn, state.standIn
+		return state.standIn, state.standIn, state.standInCard
+	end
+	local Quests = ns.Quests
+	if Quests and type(Quests.Active) == "function" and Quests.Active() then
+		local card = Quests.Fit()
+		if card then
+			return card, card, true
+		end
+		return nil
 	end
 	local Tracker = ns.Tracker
 	local fit = Tracker and type(Tracker.Fit) == "function" and Tracker.Fit() or nil
@@ -129,24 +137,32 @@ local function InSlot(tracker, band)
 end
 
 local function WillDock(f, story)
-	local fit, tracker = Fit()
+	local fit, tracker, card = Fit()
 	if fit == nil or not Docks() or not f:IsShown() or story == nil or story.tracker == nil then
-		return false, nil
+		return false, nil, false
 	end
-	if state.standIn then
-		return true, fit
+	if state.standIn or card then
+		return true, fit, card == true
 	end
-	return InSlot(tracker, story.tracker), fit
+	return InSlot(tracker, story.tracker), fit, false
+end
+
+local function DockCard(on)
+	local Quests = ns.Quests
+	if Quests and type(Quests.Dock) == "function" then
+		Quests.Dock(on)
+	end
 end
 
 local function Dock(f, story)
 	local Tracker = ns.Tracker
-	local docked, fit = WillDock(f, story)
-	local inset = docked and type(Tracker.Inset) == "function" and Tracker.Inset() or nil
-	RestedXP.Chrome.Dock(f, docked and fit or nil, inset and -inset.bottom or nil)
+	local docked, fit, card = WillDock(f, story)
+	local inset = docked and not card and type(Tracker.Inset) == "function" and Tracker.Inset() or nil
+	RestedXP.Chrome.Dock(f, docked and fit or nil, inset and -inset.bottom or 0)
 	if Tracker and type(Tracker.Dock) == "function" then
-		Tracker.Dock(docked)
+		Tracker.Dock(docked and not card)
 	end
+	DockCard(docked and card)
 	state.docked = docked
 	return docked
 end
@@ -160,8 +176,9 @@ local function Foot(f, story, scale)
 	return foot
 end
 
-function Rail.DockTo(frame)
+function Rail.DockTo(frame, card)
 	state.standIn = IsTable(frame) and frame or nil
+	state.standInCard = card == true
 	return Rail.Place()
 end
 
@@ -173,6 +190,7 @@ function Rail.Undock()
 	if Tracker and type(Tracker.Dock) == "function" then
 		Tracker.Dock(false)
 	end
+	DockCard(false)
 	if state.docked then
 		Rail.Schedule()
 	end
