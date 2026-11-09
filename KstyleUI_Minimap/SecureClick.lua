@@ -60,6 +60,9 @@ local function OverlayLeave()
 		tip:Hide()
 	end
 	SecureClick.Detach()
+	if ns.Map and ns.Map.CheckHover then
+		ns.Map.CheckHover()
+	end
 end
 
 local function OverlayDown()

@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 5
+Store.DB_VERSION = 6
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -86,6 +86,26 @@ Store.migrations[5] = function(data)
 				profile.QoL = { enabled = true }
 			elseif type(qol) == "table" and qol.enabled == nil then
 				qol.enabled = true
+			end
+		end
+	end
+end
+
+Store.migrations[6] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local minimap = type(profile) == "table" and profile.Minimap
+		if type(minimap) == "table" then
+			minimap.compass = nil
+			if type(minimap.coords) == "table" then
+				minimap.coords.position = nil
+			end
+		end
+	end
+	if type(data.layouts) == "table" then
+		for _, layout in pairs(data.layouts) do
+			local entry = type(layout) == "table" and layout["minimap.main"]
+			if type(entry) == "table" then
+				entry.width, entry.height = nil, nil
 			end
 		end
 	end

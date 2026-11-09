@@ -385,19 +385,20 @@ class DrawingTest(unittest.TestCase):
         px = self.px("MinimapMask.png", 256, 256)
         self.assertEqual(px[:3], (255, 255, 255), "white, so the alpha alone masks")
 
-    def test_minimap_module_wears_the_round_lens_mask(self):
-        # The Lumen minimap is a round lens: the module masks the map with the lens mask the material foundation
-        # names (the kit's round dot until it lands), not the chamfered MinimapMask this script still draws for
-        # the hybrid map's fallback, so the square mask's cut no longer has to meet a frame chamfer in Format.lua.
+    def test_minimap_module_wears_the_chamfered_square_mask(self):
+        # The square minimap (owner pass 1): the module masks the map with the chamfered MinimapMask this script
+        # draws, and Format.lua places the map and the rim's chamfer from the same three numbers, so the mask's cut
+        # meets the rim's cut at every size.
         face = (ROOT / "KstyleUI_Minimap" / "Face.lua").read_text(encoding="ascii")
         game = (ROOT / "KstyleUI_Minimap" / "Map.lua").read_text(encoding="ascii")
-        self.assertIn('LumenTexture("lensMask")', face, "the face's own mask is the lens mask")
-        self.assertIn('LumenTexture("lensMask")', game, "the Minimap frame and the hybrid map wear the lens mask")
-        self.assertNotIn("minimapMask", face + game, "nothing in the module asks for the chamfered mask")
+        self.assertIn('Tokens.Texture("minimapMask")', face, "the face's own mask is the chamfered square mask")
+        self.assertIn('Tokens.Texture("minimapMask")', game, "the Minimap frame and the hybrid map wear the square mask")
+        self.assertNotIn("lensMask", face + game, "nothing in the module asks for the round lens mask")
         fmt = (ROOT / "KstyleUI_Minimap" / "Format.lua").read_text(encoding="ascii")
-        self.assertIsNone(re.search(r"local FRAME_CHAMFER\s*=", fmt), "Format.lua no longer places by a frame chamfer")
-        self.assertIsNotNone(re.search(r"local RIM\s*=\s*\d+", fmt), "Format.lua names the rim between the card and the lens")
-        self.assertIsNotNone(re.search(r"local FOOT\s*=\s*\d+", fmt), "and its foot band")
+        numbers = re.search(r"local MASK_FRAME, MASK_CHAMFER, MASK_INSET = (\d+), (\d+), (\d+)", fmt)
+        self.assertIsNotNone(numbers, "Format.lua names the mask's frame, chamfer and inset")
+        self.assertEqual(tuple(int(n) for n in numbers.groups()), (self.mm.MINIMAP_FRAME, self.mm.MINIMAP_CHAMFER, self.mm.MINIMAP_INSET), "the same three numbers as the mask")
+        self.assertIsNone(re.search(r"local (RIM|FOOT|COMPASS_PLATE)\s*=", fmt), "the lens card's bands are gone")
         self.assertIsNone(re.search(r"local HEAD\s*=", fmt), "the card has no head band: the north mark rides the lens")
 
     def test_logo_is_a_chamfered_diamond(self):

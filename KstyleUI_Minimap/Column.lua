@@ -1,4 +1,4 @@
--- Column.lua: the small round crystal buttons on the lens's rim: tracking, mail, calendar, the group finder status and the drawer toggle, spaced along an arc of the circle.
+-- Column.lua: the small crystal buttons in a column inside the map's edge: tracking, mail, calendar, the group finder status and the drawer toggle; tracking, the calendar and the drawer wait in the face's hover group.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,6 +15,7 @@ local CELLS = { tracking = 0, mail = 1, calendar = 2, queue = 3, drawer = 4 }
 local BADGE_SIZE = 6
 local BADGE_INSET = 1
 local GLYPH_SHARE = 14 / 22
+local HOVER_ONLY = { tracking = true, calendar = true, drawer = true }
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
 Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
@@ -116,7 +117,10 @@ function Column.OpenTracking(button)
 		K.DevTest.Log("Minimap", "MenuUtil.CreateContextMenu is missing; the tracking menu cannot open")
 		return
 	end
-	menu.CreateContextMenu(button, TrackingMenu)
+	local open = menu.CreateContextMenu(button, TrackingMenu)
+	if ns.Map and ns.Map.SetMenu then
+		ns.Map.SetMenu(open)
+	end
 end
 
 local RESOLVE = {
@@ -129,7 +133,8 @@ local RESOLVE = {
 }
 
 local function NewButton(column, name)
-	local button = Widgets.IconButton(column.host, {
+	local parent = HOVER_ONLY[name] and column.face.reveal or column.host
+	local button = Widgets.IconButton(parent, {
 		size = Settings.Get("column.size"),
 		crop = false,
 		hideNumbers = true,
@@ -245,13 +250,15 @@ function Column:Layout()
 		end
 	end
 	local area = face.mapArea
-	local radius = (face.mapSize or area:GetWidth() or 0) / 2
 	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
+	local Format = ns.Format
+	local edge, band = Widgets.Snap(holder, Format.EDGE), Widgets.Snap(holder, Format.BAND)
+	local perColumn = Format.PerColumn(face.mapSize or area:GetHeight() or 0, size, spacing, band)
 	for slot, button in ipairs(shown) do
-		local x, y = ns.Format.Arc(slot, size, spacing, radius, side, up)
+		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, band, perColumn)
 		Fit(button, size, inset)
 		button:ClearAllPoints()
-		button:SetPoint("CENTER", area, "CENTER", Widgets.Snap(holder, x), Widgets.Snap(holder, y))
+		button:SetPoint(point, area, point, x, y)
 	end
 	face:PlaceSlider()
 end

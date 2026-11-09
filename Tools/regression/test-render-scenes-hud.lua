@@ -63,19 +63,19 @@ for _, item in ipairs(hud.items) do
 end
 assert(hudPlus == 1, "the HUD's chat draws the plus glyph once, got " .. hudPlus)
 
--- The minimap's terrain stand-in draws through the round lens mask the module set on the Minimap frame
--- (Minimap:SetMaskTexture): the material foundation's lens mask, or the kit's round dot until it lands.
+-- The minimap's terrain stand-in draws through the chamfered square mask the module set on the Minimap frame
+-- (Minimap:SetMaskTexture), as the game clips the frame.
 local masked = false
 for _, item in ipairs(scenes[3].items) do
 	if item.kind == "texture" and item.masks then
 		for _, mask in ipairs(item.masks) do
-			if mask.file and (mask.file:find("LensMask", 1, true) or mask.file:find("Dot", 1, true)) then
+			if mask.file and mask.file:find("MinimapMask", 1, true) then
 				masked = true
 			end
 		end
 	end
 end
-assert(Hud.Order()[3] == "minimap" and masked, "the minimap's terrain draws through the module's round lens mask")
+assert(Hud.Order()[3] == "minimap" and masked, "the minimap's terrain draws through the module's chamfered square mask")
 
 -- The buff row beside the minimap: five icons with their time left, from the Auras module. The aura engine
 -- paints each tile's icon itself as a secret; the client then loads the pack's loose file for that file ID,

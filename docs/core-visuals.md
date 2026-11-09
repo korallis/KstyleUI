@@ -100,12 +100,13 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
 | `gilt`, `gem` | `LumenGilt.png`, `LumenGem.png` | | The filament tip (mirror it for the opposite corner) and the section cap gem, its facets shaded in the colour channels |
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
-| `lensMask` | `LensMask.png`, 512x512 | | A round mask for the minimap lens |
+| `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right |
 | `iconMask`, `portraitMask` | `SocketMask.png`, 128x128 | | Every square icon and the square portrait, rounded 8 units on 44 |
 | `shadow` | `Shadow.png`, 128x128 | 24 texels | A square soft falloff for glows (unit frame glows, a bar's own-colour glow) |
 | `ringBevel` | `RingBevel.png`, 128x128: a 5-texel line from radius 57 to 62 whose colour channels shade it dark outside, lit in the middle and three quarters inside | | tinted once (the accent lifted 30% toward white) it is the mockup's thin metal ring; a portrait inside starts `Widgets.RING_INSET` (8/128 of the size) in |
-| `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `minimapMask`, `logo`, `logoLarge` | | | |
+| `minimapMask` | `MinimapMask.png`, 512x512 | | The minimap's chamfered square mask; its cut is a share of the side, which `KstyleUI_Minimap/Format.lua` gives the rim's chamfer |
+| `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `logo`, `logoLarge` | | | |
 | `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |
 | `glyphChevron`, `glyphClose` | `GlyphChevron.png`, `GlyphClose.png`, 32x32 | | |
 

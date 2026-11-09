@@ -234,7 +234,9 @@ for _, name in ipairs(names) do
 		end
 		for _, key in ipairs(RIGHT_STACK[name]) do
 			local r = rect(key)
-			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail, 318 wide on the 28 margin")
+			-- Owner pass 1: the minimap is a 160 square at the rail's head, flush with the rail's right edge.
+			local wantWidth = key == "minimap.main" and 160 or RAIL
+			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == wantWidth, label .. ": " .. key .. " sits on the right rail, " .. wantWidth .. " wide on the 28 margin")
 		end
 		local strip = rect("databars.strip")
 		assert(math.abs(strip.right - (width - MARGIN)) < 1e-6 and strip.w == RAIL and strip.bottom == MARGIN, label .. ": the readout and menu card sits on the right rail's foot")
@@ -257,7 +259,7 @@ for _, name in ipairs(names) do
 		for i, key in ipairs(RIGHT_STACK[name]) do
 			local r = rect(key)
 			if i == 1 then
-				assert(r.top == top, label .. ": the lens card heads the right rail")
+				assert(r.top == top, label .. ": the square map heads the right rail")
 			else
 				local gap = top - r.top
 				assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. key .. " sits 16 to 22 under the card above it, got " .. gap)
@@ -534,8 +536,8 @@ local FOOTPRINTS = {
 	-- S4 (#157): the lens card, the Blessings card at one buff row with the debuff row docked, six damage rows, four
 	-- threat rows, the readout with the menu docked (at 318 the bag bar wraps under the micro menu: 118 holds both
 	-- rows, with 3 units for the owner's pixel snapping), the party card. Chat is a 318-unit card at the left rail's foot.
-	-- Round 3 (Muse #3): the lens card is a 306 lens under its dome, a rim round it, and the 34-unit foot.
-	["minimap.main"] = { 318, 346 },
+	-- Owner pass 1: a 160-unit square map, half the lens card, with the zone and clock inside it.
+	["minimap.main"] = { 160, 160 },
 	-- Round 3 (Astra #1B): the Blessings footprint reserves the card at its cap, one buff row over the hairline and two
 	-- docked debuff rows (test-setup-collisions.lua measures the live card against it).
 	["auras.buffs"] = { 318, 230 },
@@ -588,7 +590,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -MARGIN and minimap.y == -MARGIN, "the lens card sits on the 28 margin at the top right")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -MARGIN and minimap.y == -MARGIN, "the square map sits on the 28 margin at the top right")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

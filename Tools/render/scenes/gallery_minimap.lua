@@ -1,6 +1,6 @@
 -- gallery_minimap.lua: KstyleUI_Minimap's drawer and preview, each cropped as one frame of the gallery: the addon
--- drawer open beside the button column with six adopted LibDBIcon buttons on button tiles, and the settings
--- window's live preview with its drawn map. The minimap face, column and footer are the HUD scene's frames.
+-- drawer open beside the hovered map's button column with six adopted LibDBIcon buttons on button tiles, and the
+-- settings window's live preview with its drawn map. The minimap face at rest is the HUD scene's frame.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -43,7 +43,10 @@ return Common.Run(function()
 	-- The map's terrain: the mockup's crop when standins.py has made it, a flat tone otherwise, clipped by the mask
 	-- the module set on the Minimap frame, as the game clips it.
 	local _, note = Hud.Terrain(env)
-	-- Open the drawer with a click, as the player does.
+	-- The pointer is over the map, so the hover-only buttons show; then open the drawer with a click, as the player does.
+	ns.Map.holder._mouseOver = true
+	env.Minimap:GetScript("OnEnter")(env.Minimap)
+	M.Settle(env)
 	M.W.Click(toggle)
 	M.Settle(env)
 	assert(drawer.panel:IsShown(), "the drawer is open")
@@ -65,8 +68,8 @@ return Common.Run(function()
 	})
 	frames:Add(env, preview, {
 		name = "minimap_preview", title = "Minimap preview", grade = "panel", reference = "minimap",
-		caption = "Preview.lua in the settings window: the shared Face with a buttonFill terrain stand-in under the grain, the player dot, the zone and clock strip, the zoom slider and the button column with the drawer button.",
-		match = "Frame line, chamfer and footer as the mockup's minimap; the terrain is the button body's tone with the grain where the game draws the world.",
+		caption = "Preview.lua in the settings window: the shared Face with a buttonFill terrain stand-in under the grain, the player dot, the zone and clock bands, the zoom slider and the button column with the drawer button, all shown as on hover.",
+		match = "A thin rim line with the socket chamfer and no glass; the terrain is the button body's tone with the grain where the game draws the world.",
 	})
 
 	local scene = Gallery.Build(env)
