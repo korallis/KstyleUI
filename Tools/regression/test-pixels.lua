@@ -73,7 +73,7 @@ end
 local SIZE_NAMES = {
 	"radius", "radiusTile", "gilt", "gem", "chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
-	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow",
+	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow", "lootTile", "lootText",
 }
 local SLICED = { "lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "shadow" }
 -- Corners are rounded to the shape's radius, at most half the shorter side, snapped to whole pixels; the fill, frost and

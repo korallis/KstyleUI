@@ -325,4 +325,61 @@ do
 	end
 end
 
+local screens = {
+	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+}
+for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
+	local env, K, ns = New({ fit = true, size = "default", uiScale = uiScale })
+	env._textWidth = function(text, _, size) return #text * size * 0.53 end
+	Loot(env, "You receive loot: " .. BUG_EYE)
+	Loot(env, "You receive loot: " .. CLOTH .. "x3")
+	Loot(env, "You receive loot: " .. EPIC)
+	Money(env, "You loot 1 Gold, 4 Silver, 14 Copper")
+	for _, screen in ipairs(screens) do
+		env.GetPhysicalScreenSize = function() return screen[1], screen[2] end
+		env.UIParent:SetSize(768 * screen[1] / screen[2] / uiScale, 768 / uiScale)
+		env.FireEvent("DISPLAY_SIZE_CHANGED")
+		for _, size in ipairs({ 0.6, 16 / 19, 1.5 }) do
+			K.Scale.SetUserScale(size)
+			Settle(env)
+			local root = K.Scale.Root()
+			local px = root:GetEffectiveScale() * screen[2] / 768
+			local where = string.format("feed %dx%d UI %.4f requested %.4f", screen[1], screen[2], uiScale, size)
+			local function whole(value, label)
+				assert(math.abs(value - math.floor(value + 0.5)) < 1e-6, where .. ": " .. label .. " is fractional: " .. value)
+			end
+			local holder = ns.Feed.Holder()
+			local function edges(object, label)
+				local rect = assert(Geometry.Rect(object, root), where .. ": " .. label .. " has no rect")
+				for key, value in pairs(rect) do
+					whole(value * px, label .. "." .. key)
+				end
+				return rect
+			end
+			local box = edges(holder, "holder")
+			local card = edges(ns.Feed.Backdrop(), "backdrop")
+			assert(card.left >= box.left - 1e-6 and card.right <= box.right + 1e-6 and card.bottom >= box.bottom - 1e-6 and card.top <= box.top + 1e-6, where .. ": backdrop fits the planned holder")
+			assert(K.Setup.Layouts.Fits("DPS", screen[1], screen[2], K.Scale.AppliedUserScale()), where .. ": production cap includes the feed")
+			assert(#ns.Feed.lines == K.Setup.Layouts.FEED_LINES, where .. ": all four rows remain live")
+			for _, line in ipairs(ns.Feed.lines) do
+				assert(not line.name:IsTruncated(), where .. ": a short name must fit its snapped text box: " .. line.name:GetText())
+				whole(line.name:GetWidth() * px, "name width")
+				edges(line, "line")
+				edges(line.tile, "tile")
+				edges(line.icon, "icon")
+				for _, text in ipairs({ line.plus, line.name, line.count }) do
+					local _, fontSize = text:GetFont()
+					local k = text:GetEffectiveScale() * screen[2] / 768
+					whole(fontSize * k, "font height")
+					local x, y = text:GetShadowOffset()
+					whole(x * k, "shadow x")
+					whole(y * k, "shadow y")
+				end
+			end
+			assert(K.ErrorCount() == 0 and #env._errors == 0, where .. ": no callback errors")
+		end
+	end
+end
+
 print("qol feed ok")

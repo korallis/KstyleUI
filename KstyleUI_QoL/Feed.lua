@@ -141,8 +141,9 @@ local function Paint(line)
 	local lead = gapMedium + gapSmall + tile + gapMedium
 	local room = holder:GetWidth() - 2 * Inset() - lead
 	local countWidth = count > 1 and (Widgets.TextWidth(line.count, 0) + gapSmall) or 0
-	local nameWidth = math.min(Widgets.TextWidth(line.name, room), room - countWidth)
-	line.name:SetWidth(Widgets.Snap(holder, nameWidth))
+	local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(holder)
+	local nameWidth = math.min(math.ceil(Widgets.TextWidth(line.name, room) / pixel), math.floor((room - countWidth) / pixel)) * pixel
+	line.name:SetWidth(nameWidth)
 	line.width = lead + nameWidth + countWidth
 end
 

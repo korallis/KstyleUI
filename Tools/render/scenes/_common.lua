@@ -19,19 +19,17 @@ Common.Scene = dofile("Tools/render/scene.lua")
 -- before it loads the scene scripts, as it sets RENDER_SCENE_LIB.
 Common.DEFAULT_SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
 do
-	local picked = rawget(_G, "RENDER_SCREEN")
-	if type(picked) ~= "table" then
-		local spec = os.getenv("RENDER_SCREEN")
-		if spec and spec ~= "" then
-			local w, h, s = spec:match("^(%d+)x(%d+)@?([%d%.]*)$")
-			assert(w, "RENDER_SCREEN must be WIDTHxHEIGHT or WIDTHxHEIGHT@UISCALE, not " .. spec)
-			picked = { width = tonumber(w), height = tonumber(h), uiScale = tonumber(s) }
-		end
-		local size = tonumber(os.getenv("RENDER_SIZE") or "")
-		if size then
-			picked = picked or {}
-			picked.size = size
-		end
+	local picked
+	local spec = os.getenv("RENDER_SCREEN")
+	if spec and spec ~= "" then
+		local w, h, s = spec:match("^(%d+)x(%d+)@?([%d%.]*)$")
+		assert(w, "RENDER_SCREEN must be WIDTHxHEIGHT or WIDTHxHEIGHT@UISCALE, not " .. spec)
+		picked = { width = tonumber(w), height = tonumber(h), uiScale = tonumber(s) }
+	end
+	local size = tonumber(os.getenv("RENDER_SIZE") or "")
+	if size then
+		picked = picked or {}
+		picked.size = size
 	end
 	if type(picked) == "table" then
 		Common.DEFAULT_SCREEN = {
