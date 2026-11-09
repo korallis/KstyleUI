@@ -96,7 +96,8 @@ local rm = Geometry.Frame(base({ healthText = "both", portraitShape = "round", p
 assert(within(rm.badge.x + rm.badge.w / 2, 266 - 0.196 * P, 1), "mirrored on the target's ring")
 assert(near(m.health.x + m.health.w - (m.healthText.x + m.healthText.w), trackEnd - (g.healthText.x + g.healthText.w)), "the target's percentage still ends at the track's right end, as the player's does")
 
--- The kit sheet's proportions at the default size, with the default settings. Measured on the sheet as shares of
+-- The kit sheet's proportions at the default size, with the default settings and the kit's text sizes (the Lumen
+-- styles' larger sizes are the defaults now; the plate is the style setting's other choice). Measured on the sheet as shares of
 -- the frame's height: the name's capitals centred 0.22 below the glass's top, a track 0.18 tall, gaps of about 0.1
 -- between the name, the track, current and max, and the power bar, the column 0.14 from the portrait and 0.18 from the
 -- glass's far end, and a faint hairline under the track.
@@ -104,17 +105,20 @@ do
 	local element = K.Setup.Layouts.Element("unitframes.player")
 	local W, H = element.width, element.height
 	local snapshot = ns.Settings.Snapshot("player")
-	snapshot.portraitShape = "chamfered"
+	local KIT_FONTS = { name = { size = 12 }, health = { size = 12 }, power = { size = 10 }, level = { size = 13 } }
+	snapshot.portraitShape, snapshot.form, snapshot.fonts = "chamfered", "plate", KIT_FONTS
 	local d = Geometry.Frame(snapshot, W, H, 1)
-	local where = "the default " .. W .. " x " .. H .. " frame: "
-	local roundDefault = Geometry.Frame(ns.Settings.Snapshot("player"), W, H, 1)
+	local where = "the default " .. W .. " x " .. H .. " classic plate: "
+	local roundSnapshot = ns.Settings.Snapshot("player")
+	roundSnapshot.form, roundSnapshot.fonts = "plate", KIT_FONTS
+	local roundDefault = Geometry.Frame(roundSnapshot, W, H, 1)
 	assert(roundDefault.health.x - (roundDefault.portrait.x + roundDefault.portrait.w) > 0.08 * H, where .. "under the round portrait the track starts the mockup's 0.085 H past the ring")
 	assert(roundDefault.glass.x + roundDefault.glass.w - (roundDefault.healthText.x + roundDefault.healthText.w) > 0.14 * H, where .. "and the percentage ends the mockup's 0.15 H before the glass's far end")
 	assert(not d.compact and d.name and d.healthSub and d.power, where .. "a full frame with the name, current and max and the power bar")
 	assert(d.powerText == nil, where .. "no power numbers, as on the kit sheet")
 	assert(mid(d.name) - d.glass.y > 0.18 * H, where .. "generous room above the name")
 	assert(d.health.h > 0.14 * H and d.health.h < 0.24 * H, where .. "a track about a fifth of the frame's height, got " .. d.health.h)
-	local rows = { { d.name.y + d.name.h / 2 + 0.35 * ns.Settings.Snapshot("player").fonts.name.size, d.health.y }, { d.health.y + d.health.h, d.healthSub.y } }
+	local rows = { { d.name.y + d.name.h / 2 + 0.35 * KIT_FONTS.name.size, d.health.y }, { d.health.y + d.health.h, d.healthSub.y } }
 	assert(near(mid(d.power), mid(d.healthSub)) and d.power.x + d.power.w < d.healthSub.x, where .. "the power bar shares the row under the track with current and max, at its left")
 	for i, gap in ipairs(rows) do
 		assert(gap[2] - gap[1] > 0.06 * H, where .. "clear gap " .. i .. " between the rows, got " .. (gap[2] - gap[1]))

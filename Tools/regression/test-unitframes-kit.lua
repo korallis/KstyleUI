@@ -2,7 +2,8 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New()
+-- These checks pin the classic plate, the style setting's other choice; test-unitframes-lumen.lua covers the Lumen styles.
+local env, K, ns = U.New({ plate = true })
 local Tokens = K.Tokens
 local Frames, CastBars = ns.Frames, ns.CastBars
 

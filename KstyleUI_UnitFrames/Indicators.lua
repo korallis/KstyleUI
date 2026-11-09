@@ -104,6 +104,8 @@ function Indicators.Layout(view, g, s)
 	marker:ClearAllPoints()
 	marker:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, anchor.x + anchor.w / 2), 0)
 	marker:SetSize(markerSize, markerSize)
+	view.glowFrame:ClearAllPoints()
+	view.glowFrame:SetAllPoints(g.chrome == false and view.health or view.panel)
 	local _, _, shadowUnits = Tokens.Texture("shadow")
 	Widgets.LayoutSlice(view.glow, view.glowFrame, shadowUnits, GLOW_SPREAD)
 end

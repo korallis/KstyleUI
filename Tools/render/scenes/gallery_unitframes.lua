@@ -1,8 +1,8 @@
--- gallery_unitframes.lua: every unit frame the HUD scene does not already show, each cropped as one frame of the
--- gallery: the focus frame with its cast bar mid-cast and three debuff tiles under it, the focus target, the
--- target of target, the pet frame with its power bar, three boss frames (the first casting, with aggro), a
--- rogue's combo points (the class resource, in its own environment), and the options page's live preview on the
--- target frame. The player, the target and their cast bars are the HUD scene's (hud.lua) and stay hidden here.
+-- gallery_unitframes.lua: every unit frame in its Lumen style, each cropped as one frame of the gallery, at the
+-- footprints S6 gives them: the player's vitals line mid-cast with its gilt ring and level disc, the target's sigil
+-- with your three debuffs centred under it and its gold cast line, three boss cards (the first casting, with aggro),
+-- the focus card, the pill rows (focus target, target of target, the pet with its power pill), a rogue's combo points
+-- (the class resource, in its own environment), and the options page's live preview on the sigil.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -10,19 +10,21 @@ local Scene = Common.Scene
 local I = Hud.ICONS
 
 local HUD_KEYS = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
-local FOCUS_SPELL, BOSS_SPELL = 6343, 1680
+local FOCUS_SPELL, BOSS_SPELL, PLAYER_SPELL, TARGET_SPELL = 6343, 1680, 1464, 5000
 local DEBUFF_ICONS = { I.rend, I.sunderArmor, I.hamstring }
 local MAGIC = "rare"
 
 local UNITS = {
-	player = { name = "Valerin", class = "WARRIOR", level = 38, health = 2750, healthMax = 3350, power = 45, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = true, reaction = 5 },
-	target = { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true },
+	player = { name = "Valerin", class = "WARRIOR", level = 38, health = 2750, healthMax = 3350, power = 45, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = true, reaction = 5,
+		cast = { name = "Slam", texture = I.slam, start = 8500, finish = 11000, spellID = PLAYER_SPELL } },
+	target = { name = "Bloodtalon Matriarch", level = 38, classification = "elite", creature = "Beast", health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true,
+		cast = { name = "Terrifying Screech", texture = I.demoralizingShout, start = 8800, finish = 11800, spellID = TARGET_SPELL } },
 	targettarget = { name = "Valerin", class = "WARRIOR", level = 38, health = 2750, healthMax = 3350, power = 45, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = true, reaction = 5 },
 	focus = { name = "Elunara Frostweaver", level = 39, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true,
 		cast = { name = "Thunder Clap", texture = I.thunderClap, start = 8500, finish = 11500, spellID = FOCUS_SPELL } },
 	focustarget = { name = "Krazhk", level = 38, health = 3300, healthMax = 4000, power = 1800, powerMax = 3600, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true },
 	pet = { name = "Rasha", level = 37, health = 1460, healthMax = 2000, power = 80, powerMax = 100, powerType = 2, powerToken = "FOCUS", reaction = 5 },
-	boss1 = { name = "Magmatus", level = -1, classification = "worldboss", health = 72000, healthMax = 100000, power = 40, powerMax = 100, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, threatOn = 3,
+	boss1 = { name = "Magmatus", level = 40, classification = "elite", health = 72000, healthMax = 100000, power = 40, powerMax = 100, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, threatOn = 3,
 		cast = { name = "Whirlwind", texture = I.whirlwind, start = 9000, finish = 12000, spellID = BOSS_SPELL } },
 	boss2 = { name = "Ashen Warden", level = -1, classification = "worldboss", health = 48000, healthMax = 100000, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true },
 	boss3 = { name = "Cinder Shade", level = -1, classification = "worldboss", health = 91000, healthMax = 100000, power = 65, powerMax = 100, powerType = 3, powerToken = "ENERGY", reaction = 2, canAttack = true },
@@ -116,57 +118,27 @@ local function resource(frames, x, y)
 	return scene
 end
 
-return Common.Run(function()
-	local U = dofile("Tools/regression/unitframes_env.lua")
-	local env, K, ns = U.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ "UnitFrames" }),
-		setup = function(env)
-			Gallery.Setup(env)
-			for token, unit in pairs(UNITS) do
-				env._units[token] = unit
-			end
-			unitClasses(env)
-		end,
-	}))
-	local root = K.Scale.Root()
+local FOOTPRINTS = {
+	{ "unitframes.player", 60, 80, 490, 80 },
+	{ "unitframes.target", 600, 70, 640, 80 },
+	{ "unitframes.focus", 60, 250, 318, 120 },
+	{ "unitframes.focustarget", 60, 400, 120, 22 },
+	{ "unitframes.targettarget", 220, 400, 120, 22 },
+	{ "unitframes.pet", 380, 400, 120, 22 },
+	{ "unitframes.boss", 1300, 70, 318, 640 },
+}
+
+-- Debuff stand-ins: the engine lays its buttons out in the game; here the scene places the fake engine's three debuff
+-- buttons where the AuraContainer would, centred under the sigil, with timers under each socket.
+local function sockets(env, K, ns, view, timers, magic)
 	local Widgets, Tokens = K.Widgets, K.Tokens
-	local frames = Gallery.Frames()
-	env._time = 10
-	env.SetTarget(true)
-	env.FireEvent("PLAYER_FOCUS_CHANGED")
-	env.FireEvent("UNIT_PET", "player")
-	env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-	env.FireEvent("UNIT_SPELLCAST_START", "focus", "Cast-1", FOCUS_SPELL)
-	env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", BOSS_SPELL)
-	env.RunTimers()
-	hide(K, HUD_KEYS)
-	hide(K, { "unitframes.resource" })
-	move(K, "unitframes.focus", 60, 90)
-	move(K, "unitframes.focustarget", 60, 240)
-	move(K, "unitframes.targettarget", 60, 300)
-	move(K, "unitframes.pet", 60, 360)
-	-- The small frames leave their power bar off by default; the pet shows its focus bar with the option on.
-	K.Options.Write("UnitFrames", "pet.power", true)
-	move(K, "unitframes.boss", 400, 90)
-	local Frames = ns.Frames
-
-	-- The focus frame, casting, with its cast bar inside the frame.
-	local focus = Frames.Get("focus").views[1]
-	assert(focus.button:IsShown() and focus.castbar and focus.castbar.active, "the focus frame shows and casts")
-	frames:Add(env, focus.button, {
-		name = "unitframes_focus", title = "Focus frame", grade = "panel", reference = "player",
-		caption = "The focus frame on a hostile caster mid-cast: glass panel, round portrait with the class-colour ring and the octagon level badge, health and mana on buttonFill tracks, and the cast bar inside the frame on the bar grade with its icon tile.",
-		match = "Fill, two-line edge, 8-unit chamfer and drop shadow as the mockup's player glass; the cast bar panel is the bar grade (surface, edgeBar line, tile chamfer, shadow) as the mockup's cast bar.",
-	})
-
-	-- Its debuff tiles: the engine lays its buttons out in the game; here the scene places the fake engine's three
-	-- debuff buttons where the AuraContainer would, gives each an icon, a count, a timer and one the Magic rim.
-	local a = focus.auras
-	assert(a and a.container and a.host:IsShown(), "the focus frame has shown auras")
-	local size, spacing = Widgets.Snap(a.host, ns.Settings.Value("focus", "auraSize")), Widgets.Snap(a.host, ns.Settings.Value("focus", "auraSpacing"))
-	a.container:SetSize(a.host:GetSize())
+	local a = view.auras
+	assert(a and a.container and a.host:IsShown(), view.kind .. " has shown auras")
+	local size, spacing = Widgets.Snap(a.host, ns.Settings.Value(view.kind, "auraSize")), Widgets.Snap(a.host, ns.Settings.Value(view.kind, "auraSpacing"))
+	local buttons = a.container._groups.debuffs.buttons
+	a.container:SetSize(#buttons * size + (#buttons - 1) * spacing, size)
 	local tiles = {}
-	for i, button in ipairs(a.container._groups.debuffs.buttons) do
+	for i, button in ipairs(buttons) do
 		local entry
 		for _, e in ipairs(a.buttons) do
 			if e.button == button then
@@ -178,67 +150,117 @@ return Common.Run(function()
 		button:SetPoint("TOPLEFT", a.container, "TOPLEFT", (i - 1) * (size + spacing), 0)
 		button:SetSize(size, size)
 		entry.icon:SetTexture(env.Secret(DEBUFF_ICONS[i]))
-		Widgets.SetText(entry.count, i == 1 and "3" or "")
-		Widgets.SetText(entry.timer, ({ "12s", "8s", "2s" })[i])
-		if i == 2 and entry.dispel then
+		Widgets.SetText(entry.count, i == 3 and "3" or "")
+		Widgets.SetText(entry.timer, timers[i])
+		if magic and i == 2 and entry.dispel then
 			local r, g, b = Tokens.Color(MAGIC)
 			Widgets.ShowSlice(entry.dispel, true)
 			Widgets.ColorSlice(entry.dispel, r, g, b, 1)
 		end
 		tiles[i] = button
 	end
-	frames:Add(env, a.host, {
-		name = "unitframes_auras", title = "Frame auras", grade = "button", reference = "bufficons",
-		caption = "Three debuff tiles under the focus frame from KstyleUI_UnitFrames/Auras.lua: IconChrome tiles on the button body with the accent rim, a stack count, timers, and the middle tile washed in the Magic dispel colour; the scene lays the engine's buttons out, as the game's AuraContainer would.",
-		match = "Body #101214, 3.5-unit tile chamfer and one-border rim as the mockup's buff icons; the rim is the class accent where the mockup's is neutral grey, and the dispel wash has no mockup counterpart.",
-		rect = Gallery.Union(env, tiles),
-	})
+	return tiles
+end
 
-	-- The small frames: the focus target, the target of target and the pet, all compact glass tiles.
-	local small = {
-		{ "focustarget", "unitframes_focustarget", "Focus target", "The focus target frame, a 120 by 24 compact unit: name and health percentage on one row over the health track, the glass on the tile chamfer." },
-		{ "targettarget", "unitframes_targettarget", "Target of target", "The target of target frame, a 104 by 24 compact unit showing the player: name, health percentage and the class-coloured health fill on its buttonFill track." },
-	}
-	for _, entry in ipairs(small) do
-		local view = Frames.Get(entry[1]).views[1]
-		assert(view.button:IsShown(), entry[1] .. " shows")
-		frames:Add(env, view.button, {
-			name = entry[2], title = entry[3], grade = "panel", reference = "nameplate",
-			caption = entry[4],
-			match = "Glass fill, two-line edge and drop shadow as the mockup's nameplate frame, at the 3.5-unit tile chamfer a frame under 36 units tall takes.",
-		})
+return Common.Run(function()
+	local U = dofile("Tools/regression/unitframes_env.lua")
+	local env, K, ns = U.New(Common.ScreenOpts({
+		saved = Gallery.Saved({ "UnitFrames" }),
+		setup = function(env)
+			Gallery.Setup(env)
+			for token, unit in pairs(UNITS) do
+				env._units[token] = unit
+			end
+			env._forms, env._form = { { 2457, "Battle Stance" } }, 1
+			unitClasses(env)
+		end,
+	}))
+	local root = K.Scale.Root()
+	local frames = Gallery.Frames()
+	env._time = 10
+	for _, place in ipairs(FOOTPRINTS) do
+		move(K, place[1], place[2], place[3])
+		assert(K.Layout.Set(place[1], "width", place[4]) and K.Layout.Set(place[1], "height", place[5]), place[1] .. " takes its Lumen footprint")
 	end
-	local pet = Frames.Get("pet").views[1]
-	assert(pet.button:IsShown() and pet.power:IsShown(), "the pet frame shows with its power bar")
-	frames:Add(env, pet.button, {
-		name = "unitframes_pet", title = "Pet frame", grade = "panel", reference = "nameplate",
-		caption = "The pet frame, a 104 by 24 compact unit with its power bar option on (off by default): the pet's name and health percentage over the health fill, and its focus bar under it, both on buttonFill tracks.",
-		match = "Glass fill, two-line edge and drop shadow as the mockup's nameplate frame, at the 3.5-unit tile chamfer a frame under 36 units tall takes.",
+	K.Options.Write("UnitFrames", "pet.power", true)
+	env.SetTarget(true)
+	env.FireEvent("PLAYER_FOCUS_CHANGED")
+	env.FireEvent("UNIT_PET", "player")
+	env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", PLAYER_SPELL)
+	env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", TARGET_SPELL)
+	env.FireEvent("UNIT_SPELLCAST_START", "focus", "Cast-1", FOCUS_SPELL)
+	env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", BOSS_SPELL)
+	env.RunTimers()
+	hide(K, { "unitframes.resource", "unitframes.castbar.player", "unitframes.castbar.target" })
+	local Frames = ns.Frames
+
+	local player = Frames.Get("player").views[1]
+	assert(player.button:IsShown() and player.geometry.form == "vitals" and player.castbar.active, "the vitals line shows and casts")
+	frames:Add(env, player.button, {
+		name = "unitframes_vitals", title = "Vitals line", grade = "bar", reference = "player",
+		caption = "The player's vitals line at 490 by 80: a 62-unit round portrait in the gilt ring with the level disc on its lower right, the name in the heading face with the stance after it, the health value with its max right-aligned, the 12-unit class-coloured health pill over the 5-unit rage pill, and the cast line (Casting Slam, a thin gold-free pill) under the column.",
+		match = "The Lumen mockup's centre floor (arena2/parent, board 1): ring 62, disc 22, name 17, value 15 over a muted 13-unit max, pills 12 and 5 four units apart; no glass behind it. The ring is the bevelled ring texture tinted gilt until S1's conic ring lands.",
+		pad = 10,
 	})
 
-	-- Three boss frames in the boss element's first three slots; the first casts and has aggro on the player.
+	local target = Frames.Get("target").views[1]
+	assert(target.button:IsShown() and target.geometry.form == "sigil" and target.castbar.active, "the sigil shows with its cast line")
+	local targetTiles = sockets(env, K, ns, target, { "14s", "9s", "21s" }, false)
+	local sigilParts = { target.button }
+	for _, tile in ipairs(targetTiles) do
+		sigilParts[#sigilParts + 1] = tile
+	end
+	frames:Add(env, target.button, {
+		name = "unitframes_sigil", title = "Target sigil", grade = "bar", reference = "target",
+		caption = "The target's sigil at 640 units: the name centred in the heading face, the level line (Level 38 elite and the creature type), the 12-unit hostile pill between two gems, the gold cast line centred under it, and your three debuffs as sockets centred under the sigil, each rimmed in the class colour with its timer underneath.",
+		match = "The Lumen mockup's combat board: name 20, level line 13, gem 7 then 14 units to the pill, debuff sockets with timers under them. The gems are the rotated icon mask in gilt until S1's gem texture lands.",
+		rect = Gallery.Union(env, sigilParts),
+		pad = 10,
+	})
+
+	local focus = Frames.Get("focus").views[1]
+	assert(focus.button:IsShown() and focus.geometry.form == "card" and focus.castbar.active, "the focus card shows and casts")
+	frames:Add(env, focus.button, {
+		name = "unitframes_focus", title = "Focus card", grade = "panel", reference = "player",
+		caption = "The focus card at 318 by 120: the section cap (gem, FOCUS, a gilt rule, the level at its right), the name with the percentage on its row, the 10-unit hostile pill and the gold cast line inside the card.",
+		match = "The Lumen mockup's boss card language on today's glass: S1 turns the chamfered panel into the frost card with rounded corners.",
+	})
+
 	local boss = Frames.Get("boss")
 	local shown = {}
 	for i = 1, 3 do
-		assert(boss.views[i].button:IsShown(), "boss" .. i .. " shows")
+		assert(boss.views[i].button:IsShown() and boss.views[i].geometry.form == "card", "boss" .. i .. " shows as a card")
 		shown[i] = boss.views[i].button
 	end
 	assert(boss.views[1].castbar.active, "boss1 casts")
 	frames:Add(env, boss.holder, {
-		name = "unitframes_boss", title = "Boss frames", grade = "panel", reference = "target",
-		caption = "Three boss frames stacked in the boss element: each a glass panel with the round portrait, the ?? level badge, health on its buttonFill track and power under it; Magmatus casts Whirlwind in the cast bar below its frame and has aggro on the player.",
-		match = "Fill, two-line edge, 8-unit chamfer and shadow as the mockup's target glass; the threat glow around the first frame (the shadow slice in ADD blend, red) reads only as a faint haze because most of it lies under the glass.",
+		name = "unitframes_boss", title = "Boss cards", grade = "panel", reference = "target",
+		caption = "Three boss cards stacked 10 apart: each a section cap reading BOSS with the classification at its right, the name and percentage, a hostile pill; Magmatus casts Whirlwind on its gold cast line and has aggro on the player.",
+		match = "The Lumen mockup's boss card (combat board, right rail): cap 13, name 16 with 62% at its right, a 10-unit pill, then Casting and the spell in gold over a thin line.",
 		rect = Gallery.Union(env, shown),
 	})
 
-	-- The options page's live preview, on the target frame: sample values and the target cast bar with its icon
-	-- tile. The target shows no frame auras by default, so the preview draws no tiles; its raid marker is a
-	-- Blizzard texture the renderer has no file for.
+	local rows = {}
+	for _, kind in ipairs({ "focustarget", "targettarget", "pet" }) do
+		local view = Frames.Get(kind).views[1]
+		assert(view.button:IsShown() and view.geometry.form == "row", kind .. " shows as a pill row")
+		rows[#rows + 1] = view.button
+	end
+	frames:Add(env, rows[1], {
+		name = "unitframes_rows", title = "Pill rows", grade = "bar", reference = "nameplate",
+		caption = "The compact frames as pill rows, 120 by 22: the focus target, the target of target (the player, in the class colour) and the pet with its power option on; the name and percentage over a 6-unit pill, no glass.",
+		match = "The party rows of the Lumen mockup: name over a thin pill in the unit's colour, the value at the right.",
+		rect = Gallery.Union(env, rows),
+		pad = 8,
+	})
+
 	K.Options.Write("UnitFrames", "edit", "target")
 	local pane = env.CreateFrame("Frame", nil, root)
-	at(pane, 680, 90, 360, 240)
+	at(pane, 560, 470, 720, 260)
 	local preview = K.Options.Preview("UnitFrames")(pane)
-	assert(preview.kind == "target", "the preview shows the target frame")
+	assert(preview.kind == "target" and preview.views.target.geometry.form == "sigil", "the preview shows the sigil")
 	local parts = { preview.holders.target, preview.casts.target and preview.casts.target.frame, preview.auraHosts.target }
 	local previewFrames = {}
 	for _, part in ipairs(parts) do
@@ -248,8 +270,8 @@ return Common.Run(function()
 	end
 	frames:Add(env, pane, {
 		name = "unitframes_preview", title = "Unit frames preview", grade = "panel", reference = "target",
-		caption = "Preview.lua, the options page's live preview on the target frame: Frost Howler's sample values, the two-tone health fill with the incoming heal after it, and the target cast bar casting Frostbolt below the frame with its icon tile.",
-		match = "The frame glass as the mockup's target panel; the cast bar is the bar grade (surface, edgeBar line, tile chamfer, shadow) and its icon the button body, as the mockup's cast bar.",
+		caption = "Preview.lua, the options page's live preview on the sigil: Frost Howler's sample values, its level line, the hostile pill between the gems, the sample cast line and four sample sockets centred under it.",
+		match = "The same parts as the live sigil, drawn from sample values.",
 		rect = Gallery.Union(env, previewFrames),
 	})
 
@@ -259,6 +281,6 @@ return Common.Run(function()
 	local note = portraits(env)
 	local main = Gallery.Build(env, { time = env._time })
 	main.log[#main.log + 1] = note
-	local scene = Scene.Merge({ main, resource(frames, 60, 430) })
+	local scene = Scene.Merge({ main, resource(frames, 60, 560) })
 	return frames:Finish(scene, env, K, "gallery unitframes")
 end)

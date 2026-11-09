@@ -8,7 +8,8 @@ local ELEMENTS = {
 }
 local UNITS = { player = "player", target = "target", targettarget = "targettarget", focus = "focus", focustarget = "focustarget", pet = "pet" }
 
-local env, K, ns = U.New()
+-- These checks pin the classic plate, the style setting's other choice; test-unitframes-lumen.lua covers the Lumen styles.
+local env, K, ns = U.New({ plate = true })
 assert(K.Modules.IsRunning("UnitFrames"), "the module runs when its switch is on")
 local Frames = ns.Frames
 assert(type(Frames) == "table" and type(Frames.Get) == "function", "ns.Frames.Get is missing")
@@ -309,7 +310,7 @@ noErrors("live elements")
 
 -- A frame that starts switched off is styled before its unit watch first shows it.
 do
-	local env2, K2, ns2 = U.New({ saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, player = { enabled = false } } } }, characters = {} } })
+	local env2, K2, ns2 = U.New({ plate = true, saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, player = { enabled = false } } } }, characters = {} } })
 	local view = ns2.Frames.Get("player").views[1]
 	assert(not env2._watched[view.button], "a switched-off frame has no unit watch")
 	K2.Options.Write("UnitFrames", "player.enabled", true)

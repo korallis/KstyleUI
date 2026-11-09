@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Motion, L = K.Widgets, K.Tokens, K.Motion, K.L
-local Settings, Style = ns.Settings, ns.Style
+local Settings, Style, Lumen = ns.Settings, ns.Style, ns.Lumen
 
 local CastBars = {}
 ns.CastBars = CastBars
@@ -27,6 +27,9 @@ local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
+local LINE_BAR = 4
+local LINE_LABEL_GAP = 5
+local LINE_BAR_GAP = 8
 local ORIENTATION = Style.ORIENTATION
 
 local EVENTS = {
@@ -47,6 +50,7 @@ local issecretvalue = issecretvalue or function()
 end
 
 local bars = {}
+local inline = {}
 local holders = {}
 local hiddenByModule = {}
 local running = false
@@ -162,6 +166,8 @@ local function New(parent, kind, unit)
 	over:SetFrameLevel(cb.bar:GetFrameLevel() + 3)
 	cb.text = NewText(over, "LEFT")
 	cb.timer = NewText(over, "RIGHT")
+	cb.label = NewText(over, "LEFT")
+	cb.label:SetText(L["Casting"])
 	return cb
 end
 
@@ -234,7 +240,61 @@ local function Place(cb, region, rect)
 	region:SetSize(Snap(cb, rect.w), Snap(cb, rect.h))
 end
 
+local function Lined(cb)
+	return cb.attached == true and Settings.Form(cb.kind) ~= "plate"
+end
+
+local function Anchor(cb, region, point, relative, relPoint, x)
+	region:ClearAllPoints()
+	region:SetPoint(point, relative, relPoint, Snap(cb, x), 0)
+end
+
+local function LayoutLine(cb, width, height)
+	cb.geometry = { line = true }
+	cb.iconFrame:Hide()
+	cb.chrome:SetShadow(false)
+	cb.chrome:SetShown(false)
+	cb.panel:ClearAllPoints()
+	cb.panel:SetAllPoints(cb.frame)
+	local frame, timerOn = cb.frame, Settings.Value(cb.kind, "castbarTimer")
+	local h = Snap(cb, height)
+	Anchor(cb, cb.label, "LEFT", frame, "LEFT", 0)
+	cb.label:SetHeight(h)
+	cb.label:SetWidth(0)
+	cb.label:Show()
+	Anchor(cb, cb.text, "LEFT", cb.label, "RIGHT", LINE_LABEL_GAP)
+	cb.text:SetHeight(h)
+	cb.text:SetWidth(0)
+	cb.text:SetJustifyH("LEFT")
+	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
+	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * Settings.FontSize(cb.kind, "cast")), math.floor(width / 3)) or 0
+	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0)
+	cb.timer:SetSize(Snap(cb, timerW), h)
+	cb.timer:SetJustifyH("RIGHT")
+	cb.timer:SetShown(timerOn)
+	local bar = cb.bar
+	bar.opts.width, bar.opts.height = width, math.min(LINE_BAR, height)
+	bar:Restyle()
+	bar:ClearAllPoints()
+	bar:SetPoint("LEFT", cb.text:IsShown() and cb.text or cb.label, "RIGHT", Snap(cb, LINE_BAR_GAP), 0)
+	if timerOn then
+		bar:SetPoint("RIGHT", cb.timer, "LEFT", -Snap(cb, LINE_LABEL_GAP), 0)
+	else
+		bar:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+	end
+	bar:SetSparkShown(false)
+end
+
 function CastBars.Layout(cb, width, height)
+	cb.line = Lined(cb)
+	if cb.line then
+		LayoutLine(cb, width, height)
+		return
+	end
+	cb.label:Hide()
+	cb.chrome:SetShadow(true)
+	cb.chrome:SetShown(true)
+	cb.bar:SetSparkShown(true)
 	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"))
 	cb.geometry = g
 	if g.icon then
@@ -284,6 +344,8 @@ local function BarColor(cb)
 	if source == "custom" then
 		local c = Settings.Value(cb.kind, "castbarCustom")
 		return c.r, c.g, c.b
+	elseif source == "gold" then
+		return Lumen.Color("cast")
 	elseif source == "reaction" then
 		local reaction = Reaction(cb)
 		if type(reaction) == "number" then
@@ -337,10 +399,18 @@ end
 
 function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
+	cb.line = Lined(cb)
 	StyleText(cb.text, path, size, flags)
 	StyleText(cb.timer, path, size, flags)
-	cb.text:SetTextColor(Tokens.Color("textEmphasis"))
-	cb.timer:SetTextColor(Tokens.Color("text"))
+	StyleText(cb.label, path, size, flags)
+	cb.label:SetTextColor(Lumen.Color("muted"))
+	if cb.line then
+		cb.text:SetTextColor(Lumen.Color("cast"))
+		cb.timer:SetTextColor(Lumen.Color("muted"))
+	else
+		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
+		cb.timer:SetTextColor(Tokens.Color("text"))
+	end
 	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
 	Orient(cb)
 	cb.styled = true
@@ -477,7 +547,7 @@ local function Start(cb, channel)
 	else
 		StopTimer(cb)
 	end
-	if not cb.bar.vertical then
+	if not cb.bar.vertical and not cb.line then
 		cb.bar:PlaySheen(false)
 	end
 end
@@ -547,47 +617,64 @@ local HANDLERS = {
 	end,
 }
 
-local function Owner(unit)
-	return MODULE .. ":cast:" .. unit
+local function Owner(cb)
+	return MODULE .. ":cast:" .. cb.unit .. (cb.inline and ":frame" or "")
 end
 
-local function Enabled(kind)
-	return running and Settings.Value(kind, "castbar") and (Settings.CAST_ELEMENTS[kind] ~= nil or Settings.Value(kind, "enabled"))
-end
-
-function CastBars.Refresh(kind)
-	local list = bars[kind]
-	if not list then
-		return
+local function Enabled(cb)
+	local kind = cb.kind
+	if not (running and Settings.Value(kind, "castbar")) then
+		return false
 	end
-	for _, cb in ipairs(list) do
-		if Enabled(kind) and UnitExists(cb.unit) then
-			local _, _, _, _, _, castTrade = UnitCastingInfo(cb.unit)
-			local _, _, _, _, _, channelTrade = UnitChannelInfo(cb.unit)
-			if type(castTrade) == "boolean" then
-				Start(cb, false)
-			elseif type(channelTrade) == "boolean" then
-				Start(cb, true)
-			else
-				Hide(cb, true)
-			end
-		else
-			Hide(cb, true)
+	local plate = Settings.Form(kind) == "plate"
+	if cb.inline then
+		return not plate and Settings.Value(kind, "enabled")
+	end
+	if Settings.CAST_ELEMENTS[kind] then
+		return plate
+	end
+	return Settings.Value(kind, "enabled")
+end
+
+local function Each(kind, fn)
+	for _, list in ipairs({ bars[kind] or {}, inline[kind] or {} }) do
+		for _, cb in ipairs(list) do
+			fn(cb)
 		end
 	end
 end
 
+local function RefreshOne(cb)
+	if Enabled(cb) and UnitExists(cb.unit) then
+		local _, _, _, _, _, castTrade = UnitCastingInfo(cb.unit)
+		local _, _, _, _, _, channelTrade = UnitChannelInfo(cb.unit)
+		if type(castTrade) == "boolean" then
+			Start(cb, false)
+		elseif type(channelTrade) == "boolean" then
+			Start(cb, true)
+		else
+			Hide(cb, true)
+		end
+	else
+		Hide(cb, true)
+	end
+end
+
+function CastBars.Refresh(kind)
+	Each(kind, RefreshOne)
+end
+
 local function Listen(cb)
-	local owner = Owner(cb.unit)
+	local owner = Owner(cb)
 	K.Events.UnregisterAll(owner)
-	if not Enabled(cb.kind) then
+	if not Enabled(cb) then
 		Hide(cb, true)
 		return
 	end
 	if not cb.handler then
 		cb.handler = function(event, ...)
 			local name = EVENTS[event]
-			if name and Enabled(cb.kind) then
+			if name and Enabled(cb) then
 				HANDLERS[name](cb, event, ...)
 			end
 		end
@@ -640,10 +727,16 @@ end
 
 function CastBars.Attach(view)
 	local kind = view.kind
-	bars[kind] = bars[kind] or {}
 	local cb = New(view.button, kind, view.unit)
+	cb.attached = true
 	view.castbar = cb
-	bars[kind][#bars[kind] + 1] = cb
+	local list = bars
+	if Settings.CAST_ELEMENTS[kind] then
+		cb.inline = true
+		list = inline
+	end
+	list[kind] = list[kind] or {}
+	list[kind][#list[kind] + 1] = cb
 	return cb
 end
 
@@ -655,12 +748,23 @@ function CastBars.Build()
 	end
 end
 
-function CastBars.NewBar(parent, kind)
-	return New(parent, kind, nil)
+function CastBars.NewBar(parent, kind, attached)
+	local cb = New(parent, kind, nil)
+	cb.attached = attached == true
+	return cb
 end
 
 function CastBars.Get(kind)
 	return bars[kind]
+end
+
+function CastBars.Inline(kind)
+	return inline[kind]
+end
+
+function CastBars.ElementLive(kind)
+	local list = holders[kind] and bars[kind]
+	return list ~= nil and Enabled(list[1]) == true
 end
 
 function CastBars.Holder(kind)
@@ -668,16 +772,16 @@ function CastBars.Holder(kind)
 end
 
 function CastBars.Apply()
-	for kind, list in pairs(bars) do
-		for _, cb in ipairs(list) do
+	for _, kind in ipairs(Settings.KINDS) do
+		Each(kind, function(cb)
 			Listen(cb)
 			CastBars.Restyle(cb)
-		end
+		end)
 		if holders[kind] then
 			CastBars.LayoutElement(kind)
 			local Layout = K.Layout
 			if Layout and Layout.SetLive then
-				Layout.SetLive(Settings.CAST_ELEMENTS[kind], Enabled(kind) and true or false)
+				Layout.SetLive(Settings.CAST_ELEMENTS[kind], CastBars.ElementLive(kind))
 			end
 		end
 		CastBars.Refresh(kind)
@@ -698,11 +802,11 @@ end
 
 function CastBars.Disable()
 	running = false
-	for _, list in pairs(bars) do
-		for _, cb in ipairs(list) do
-			K.Events.UnregisterAll(Owner(cb.unit))
+	for _, kind in ipairs(Settings.KINDS) do
+		Each(kind, function(cb)
+			K.Events.UnregisterAll(Owner(cb))
 			Hide(cb, true)
-		end
+		end)
 	end
 	for kind, holder in pairs(holders) do
 		holder:Hide()

@@ -17,10 +17,11 @@ for _, scene in ipairs(scenes) do
 end
 assert(#hud.items == total, "the merge keeps every module's drawables")
 
--- The HUD shows the mockup's state: the player's name, Slam, the target, and warrior icons from set B, which
+-- The HUD shows the mockup's state: the vitals line's name, value and cast line (Slam), the target's sigil with its
+-- level line, and warrior icons from set B, which
 -- the renderer draws for every file ID the pack covers, as the client does with the pack installed (docs/icons.md).
 local texts, files = collect(hud)
-for _, want in ipairs({ "VALERIN", "Slam", "RIVERGLADE CROCOLISK", "82%", "Battle Shout", "Enrage" }) do
+for _, want in ipairs({ "VALERIN", "Slam", "Casting", "RIVERGLADE CROCOLISK", "Level 38 \194\183 Beast", "2750", "/ 3350", "Battle Shout", "Enrage" }) do
 	assert(texts[want], "the HUD shows " .. want)
 end
 assert(files[SET_B .. Hud.Classes.WARRIOR.cast[2] .. ".png"], "Slam's icon comes from set B")

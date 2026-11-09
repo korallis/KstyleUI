@@ -46,6 +46,18 @@ Settings.ELEMENTS = {
 
 Settings.TEXTS = { "name", "health", "power", "level" }
 
+Settings.FORMS = {
+	player = "vitals",
+	target = "sigil",
+	targettarget = "row",
+	focus = "card",
+	focustarget = "row",
+	pet = "row",
+	boss = "card",
+}
+
+Settings.CAP_LABELS = { focus = L["Focus"], boss = L["Boss"] }
+
 Settings.CASTBAR = { player = true, target = true, focus = true, boss = true }
 Settings.CAST_ELEMENTS = { player = "unitframes.castbar.player", target = "unitframes.castbar.target" }
 Settings.AURAS = { player = true, target = true, focus = true, boss = true }
@@ -61,12 +73,13 @@ local function TextStyle(size)
 	return { font = THEME_FONT, size = size, outline = "NONE" }
 end
 
-local COMPACT_TEXT = { 9, 9, 9, 9 }
+local COMPACT_TEXT = { 12, 12, 9, 10 }
 
 local function Kind(full, overrides, castHeight, castFont, aura, text)
 	text = text or COMPACT_TEXT
 	local d = {
 		enabled = true,
+		style = "lumen",
 		portrait = full,
 		portraitStyle = "portrait",
 		portraitShape = "round",
@@ -134,13 +147,13 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true, { combat = true, resting = true, castbarIcon = false, castbarCaps = false }, 20, 12, { on = false, size = 22, position = "BELOW" }, { 12, 12, 10, 13 }),
-	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction" }, 14, 10, { on = false, size = 20, position = "ABOVE" }, { 12, 12, 10, 13 }),
+	player = Kind(true, { combat = true, resting = true, castbarIcon = false, castbarCaps = false, powerHeight = 5 }, 20, 12, { on = false, size = 22, position = "BELOW" }, { 17, 15, 10, 12 }),
+	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction", castbarColor = "gold", castbarCaps = false }, 14, 10, { on = true, size = 30, position = "CENTER" }, { 20, 12, 10, 13 }),
 	targettarget = Kind(false),
-	focus = Kind(true, nil, 16, 10, { on = true, size = 20, position = "RIGHT" }, { 11, 11, 9, 11 }),
+	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 10, { on = true, size = 20, position = "RIGHT" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
 	pet = Kind(false),
-	boss = Kind(true, nil, 10, 9, { on = true, size = 18, columns = 6, position = "RIGHT" }, { 10, 10, 9, 10 }),
+	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false, auraGrowth = "LEFT_DOWN" }, 10, 9, { on = true, size = 18, columns = 6, position = "LEFT" }, { 16, 14, 9, 12 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -164,6 +177,7 @@ local function Options(list)
 end
 
 Settings.CHOICES = {
+	style = Options({ { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
@@ -177,14 +191,15 @@ Settings.CHOICES = {
 	outline = Options({ { "NONE", L["None (soft shadow)"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } }),
 	accent = Options({ { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
 	manaColor = Options({ { "power", L["Power type"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } }),
-	castbarColor = Options({ { "class", L["Class colour"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
+	castbarColor = Options({ { "class", L["Class colour"] }, { "gold", L["Gilt"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	auraFilter = Options({ { "mine", L["Your debuffs"] }, { "debuffs", L["All debuffs"] }, { "buffs", L["Buffs"] }, { "both", L["Debuffs and buffs"] } }),
 	auraGrowth = Options({ { "RIGHT_DOWN", L["Right, then down"] }, { "RIGHT_UP", L["Right, then up"] }, { "LEFT_DOWN", L["Left, then down"] }, { "LEFT_UP", L["Left, then up"] } }),
-	auraPosition = Options({ { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
+	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
 }
 local CHOICES = Settings.CHOICES
 
 local CHOICE_OF = {
+	style = "style",
 	portraitStyle = "portraitStyle",
 	portraitShape = "portraitShape",
 	portraitSide = "portraitSide",
@@ -323,6 +338,8 @@ local function OutlineFlags(outline)
 	return ""
 end
 
+local LUMEN_ROLES = { name = "heading", health = "number", level = "number" }
+
 function Settings.Font(kind, element)
 	local own, d = Kinds(kind)
 	local default = d.fonts[element]
@@ -330,7 +347,8 @@ function Settings.Font(kind, element)
 		error("UnitFrames.Settings.Font: unknown text " .. tostring(element), 2)
 	end
 	local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or default
-	local themePath = Tokens.Font("body")
+	local role = LUMEN_ROLES[element]
+	local themePath = Tokens.Font(role and Settings.Form(kind) ~= "plate" and role or "body")
 	local path = themePath
 	local font = style.font
 	if type(font) == "string" and font ~= THEME_FONT then
@@ -345,6 +363,13 @@ function Settings.Font(kind, element)
 		size = default.size
 	end
 	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline)
+end
+
+function Settings.ThemeFont(kind, element)
+	local own, d = Kinds(kind)
+	local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or d.fonts[element]
+	local font = style and style.font
+	return not (type(font) == "string" and font ~= THEME_FONT and K.Theme.IsFontPath(font))
 end
 
 function Settings.FontSize(kind, element)
@@ -363,12 +388,19 @@ function Settings.Accent()
 	return K.Theme.Accent()
 end
 
+function Settings.Form(kind)
+	if Settings.Value(kind, "style") == "plate" then
+		return "plate"
+	end
+	return Settings.FORMS[kind]
+end
+
 function Settings.Snapshot(kind)
 	local fonts = {}
 	for _, element in ipairs(Settings.TEXTS) do
 		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale() }
 	end
-	local s = { fonts = fonts }
+	local s = { fonts = fonts, form = Settings.Form(kind) }
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
 			s[key] = Settings.Value(kind, key)
@@ -651,6 +683,13 @@ ResourceRows = function(schema)
 	end
 end
 
+local STYLE_HELP = {
+	vitals = L["Lumen: one line with a gilt portrait ring. Classic: the glass plate."],
+	sigil = L["Lumen: a centred sigil with gems and your debuffs. Classic: the glass plate."],
+	card = L["Lumen: a glass card with a section cap. Classic: the glass plate."],
+	row = L["Lumen: a name over a thin pill. Classic: a small glass tile."],
+}
+
 local function KindRows(schema, kind)
 	local function portraitOn(s)
 		return s.portrait ~= false
@@ -659,6 +698,10 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "enabled", label = L["Show this frame"],
 		help = L["Turn this frame off to leave its unit without a KstyleUI frame."],
+	})
+	schema[#schema + 1] = Row(kind, {
+		type = "dropdown", key = "style", label = L["Style"],
+		help = STYLE_HELP[Settings.FORMS[kind]], options = CHOICES.style,
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "portrait", label = L["Portrait"],

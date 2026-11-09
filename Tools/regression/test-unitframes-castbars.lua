@@ -2,7 +2,8 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New()
+-- These checks pin the classic plate's cast bars, the style setting's other choice; test-unitframes-lumen.lua covers the Lumen cast lines.
+local env, K, ns = U.New({ plate = true })
 local CastBars = ns.CastBars
 assert(type(CastBars) == "table" and type(CastBars.Get) == "function", "ns.CastBars.Get is missing")
 
@@ -262,7 +263,7 @@ do
 end
 
 -- Without duration objects the bar falls back to the cast times when they are plain, and logs the path.
-local fenv, FK, fns = U.New({ setup = function(e)
+local fenv, FK, fns = U.New({ plate = true, setup = function(e)
 	e.UnitCastingDuration, e.UnitChannelDuration = nil, nil
 end })
 local fallback = fns.CastBars.Get("player")[1]

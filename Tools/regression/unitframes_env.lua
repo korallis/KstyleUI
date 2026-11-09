@@ -64,6 +64,52 @@ local function NewCurve()
 	return curve
 end
 
+-- Colour curves evaluate linearly between colour points. The result is a colour object, as the game's
+-- LuaCurveEvaluatedResult is; through UnitHealthPercent its channels are secrets.
+local function NewColorCurve()
+	local curve = { points = {}, color = true }
+	function curve:SetType(kind)
+		self.kind = kind
+	end
+	function curve:AddPoint(x, color)
+		self.points[#self.points + 1] = { x, color }
+		table.sort(self.points, function(a, b)
+			return a[1] < b[1]
+		end)
+	end
+	function curve:EvaluateUnpacked(x)
+		local p = self.points
+		local function unpackColor(c)
+			return c.r, c.g, c.b, c.a or 1
+		end
+		if x <= p[1][1] then
+			return unpackColor(p[1][2])
+		end
+		for i = 2, #p do
+			if x <= p[i][1] then
+				local a, b = p[i - 1], p[i]
+				local t = (x - a[1]) / (b[1] - a[1])
+				local ar, ag, ab, aa = unpackColor(a[2])
+				local br, bg, bb, ba = unpackColor(b[2])
+				return ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t, aa + (ba - aa) * t
+			end
+		end
+		return unpackColor(p[#p][2])
+	end
+	return curve
+end
+
+local function ColorResult(wrap, r, g, b, a)
+	local c = { r = wrap(r), g = wrap(g), b = wrap(b), a = wrap(a) }
+	function c:GetRGBA()
+		return self.r, self.g, self.b, self.a
+	end
+	function c:GetRGB()
+		return self.r, self.g, self.b
+	end
+	return c
+end
+
 -- Install(env) adds the unit API fakes to an environment before the core loads.
 function U.Install(env)
 	env._units = {
@@ -153,8 +199,47 @@ function U.Install(env)
 		if u and u.healthMax and u.healthMax > 0 then
 			share = u.health / u.healthMax
 		end
+		if curve and curve.color then
+			return ColorResult(env.Secret, curve:EvaluateUnpacked(share))
+		end
 		return env.Secret(curve and curve:Evaluate(share) or share)
 	end
+	function env.UnitCreatureType(token)
+		local u = unitOf(token)
+		if u and u.creature then
+			return secretWhen(u.secretCreature, u.creature), 1
+		end
+	end
+	-- Stances and forms: env._forms is a list of { spellID, name }; env._form the active index, 0 for none.
+	env._forms, env._form = {}, 0
+	function env.GetShapeshiftForm()
+		return env._form
+	end
+	function env.GetShapeshiftFormInfo(index)
+		local form = env._forms[index]
+		if form then
+			return 136000 + index, index == env._form, true, form[1]
+		end
+	end
+	env._spec = nil
+	env.C_Spell = env.C_Spell or {}
+	env.C_Spell.GetSpellName = function(spellID)
+		for _, form in ipairs(env._forms) do
+			if form[1] == spellID then
+				return form[2]
+			end
+		end
+	end
+	env.C_SpecializationInfo = {
+		GetSpecialization = function()
+			return env._spec and 1 or nil
+		end,
+		GetSpecializationInfo = function(index)
+			if index == 1 and env._spec then
+				return 71, env._spec, "", 132355, "DAMAGER"
+			end
+		end,
+	}
 	function env.UnitPowerType(token)
 		local u = unitOf(token)
 		if u then
@@ -235,7 +320,7 @@ function U.Install(env)
 	env.Enum.LuaCurveType = { Linear = 0, Step = 1 }
 	env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
 	env.Enum.PowerType = POWER_TYPES
-	env.C_CurveUtil = { CreateCurve = NewCurve }
+	env.C_CurveUtil = { CreateCurve = NewCurve, CreateColorCurve = NewColorCurve }
 	env.C_Secrets = {
 		ShouldAurasBeSecret = function()
 			return env._restricted == true
@@ -496,6 +581,9 @@ end
 --   enabled  false to leave the module switched off (default: on)
 --   before   function(env, K) that runs after the saved data loads and before the module loads
 --   login    false to stop before PLAYER_LOGIN
+--   plate    true to save every frame's style as the classic plate, for the tests that pin the plate
+U.KINDS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss" }
+
 function U.New(opts)
 	opts = opts or {}
 	local setup = opts.setup
@@ -505,12 +593,19 @@ function U.New(opts)
 			setup(env)
 		end
 	end
-	if opts.enabled ~= false then
+	if opts.enabled ~= false or opts.plate then
 		opts.saved = opts.saved or {
 			version = 2,
-			profiles = { Default = { UnitFrames = { enabled = true } } },
+			profiles = { Default = { UnitFrames = { enabled = opts.enabled ~= false } } },
 			characters = {},
 		}
+	end
+	if opts.plate then
+		local module = opts.saved.profiles.Default.UnitFrames
+		for _, kind in ipairs(U.KINDS) do
+			module[kind] = module[kind] or {}
+			module[kind].style = "plate"
+		end
 	end
 	opts.boot = false
 	local env, K = W.New(opts)

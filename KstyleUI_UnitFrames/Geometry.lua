@@ -244,9 +244,206 @@ local function Compact(out, s, scale, left, right, height)
 	end
 end
 
+local V = { ring = 62, ringGap = 16 / 62, disc = 22 / 62, discOut = 4 / 62, health = 12, pillGap = 4, nameGap = 7, captionMin = 300 }
+local CAST_LINE, CAST_GAP = 12, 6
+local GEM, GEM_GAP = 7, 14
+local SIGIL = { line = 1, bar = 8, cast = 8, castShare = 0.6 }
+local CARD = { padX = 18, top = 16, bottom = 14, capGap = 10, nameGap = 6, health = 10, powerGap = 3, powerMax = 6, castGap = 10, gemGap = 8 }
+local ROW = { pill = 6, gap = 1, power = 3 }
+
+Geometry.CAST_LINE, Geometry.GEM = CAST_LINE, GEM
+
+local function TextH(size)
+	return size + NAME_EXTRA
+end
+
+local function Above(x, w, bottom, size)
+	local h = TextH(size)
+	local y = max(0, bottom - h)
+	return Rect(x, y, w, max(0, bottom - y))
+end
+
+local function ValueFormats(format)
+	if format == "both" or format == "currentMax" then
+		return "current", true
+	end
+	return format or "none", false
+end
+
+local function Vitals(out, s, width, height, scale)
+	local castRoom = s.castbar and CAST_LINE + CAST_GAP or 0
+	local foot = max(0, height - castRoom)
+	local x0 = 0
+	if s.portrait then
+		local size = max(0, min(foot, floor(width / 3)))
+		out.portrait = Rect(0, 0, size, size)
+		x0 = size + floor(size * V.ringGap + 0.5)
+		if s.level then
+			local disc = max(BADGE_MIN, ceil(size * V.disc))
+			local edge = size + size * V.discOut
+			out.badge = Rect(edge - disc, edge - disc, disc, disc)
+		end
+		foot = size
+	end
+	local colW = max(0, width - x0)
+	out.panel = Rect(x0, 0, colW, foot)
+	local y = foot
+	local powerH = PowerHeight(s, max(0, foot - MIN_HEALTH - V.pillGap))
+	if powerH > 0 then
+		out.power = Rect(x0, y - powerH, colW, powerH)
+		y = y - powerH - V.pillGap
+	end
+	local healthH = max(0, min(V.health, y))
+	out.health = Rect(x0, y - healthH, colW, healthH)
+	local nameSize, valueSize, captionSize = Size(s, "name", scale), Size(s, "health", scale), Size(s, "level", scale)
+	local rowBottom = max(0, y - healthH - V.nameGap)
+	rowBottom = max(rowBottom, min(out.health.y, TextH(max(nameSize, valueSize))))
+	local main, split = ValueFormats(s.healthText)
+	local valueW = 0
+	if main ~= "none" then
+		local subW = split and Format.ColumnWidth("current", captionSize) or 0
+		local curW = Format.ColumnWidth(main, valueSize)
+		if split then
+			out.healthSub = Above(x0 + colW - subW, subW, rowBottom, captionSize)
+		end
+		out.healthText = Above(x0 + colW - subW - curW, curW, rowBottom, valueSize)
+		valueW = subW + curW + TEXT_GAP
+	end
+	local nameW = max(0, colW - valueW)
+	if s.name then
+		out.name = Above(x0, nameW, rowBottom, nameSize)
+		if colW >= V.captionMin then
+			out.nameAuto = true
+			out.caption = Above(x0, nameW, rowBottom, captionSize)
+		end
+	end
+	if s.castbar then
+		out.cast = Rect(x0, height - CAST_LINE, colW, CAST_LINE)
+	end
+end
+
+local function Sigil(out, s, width, height, scale)
+	local nameH = s.name and TextH(Size(s, "name", scale)) or 0
+	local captionH = s.level and TextH(Size(s, "level", scale)) or 0
+	local healthH = min(V.health, height)
+	local castH = s.castbar and CAST_LINE or 0
+	local barGap, castGap = SIGIL.bar, castH > 0 and SIGIL.cast or 0
+	local text = nameH + (nameH > 0 and SIGIL.line or 0) + captionH
+	local over = text + barGap + healthH + castGap + castH - height
+	if over > 0 then
+		local slack = barGap + castGap - 2 * SIGIL.line
+		local t = slack > 0 and max(0, 1 - over / slack) or 0
+		barGap = SIGIL.line + (barGap - SIGIL.line) * t
+		castGap = castH > 0 and SIGIL.line + (castGap - SIGIL.line) * t or 0
+	end
+	local y = 0
+	if nameH > 0 then
+		out.name = Rect(0, 0, width, min(nameH, height))
+		y = nameH + SIGIL.line
+	end
+	if captionH > 0 then
+		out.caption = Rect(0, min(y, max(0, height - captionH)), width, min(captionH, height))
+		y = y + captionH
+	end
+	y = min(y + barGap, height - healthH)
+	local inset = GEM + GEM_GAP
+	out.health = Rect(inset, y, width - 2 * inset, healthH)
+	local gemY = y + healthH / 2 - GEM / 2
+	out.gemLeft = Rect(0, gemY, GEM, GEM)
+	out.gemRight = Rect(width - GEM, gemY, GEM, GEM)
+	y = y + healthH + castGap
+	if castH > 0 and y + castH <= height + 1e-6 then
+		local w = floor(width * SIGIL.castShare)
+		out.cast = Rect((width - w) / 2, y, w, castH)
+	end
+end
+
+local function Card(out, s, width, height, scale)
+	local padX = min(CARD.padX, floor(width * 0.08))
+	local colW = max(0, width - 2 * padX)
+	local nameSize, valueSize, capSize = Size(s, "name", scale), Size(s, "health", scale), Size(s, "level", scale)
+	local capH, rowH, healthH = TextH(capSize), TextH(max(nameSize, valueSize)), CARD.health
+	local powerH = s.power and min(s.powerHeight or 0, CARD.powerMax) or 0
+	local castH = s.castbar and CAST_LINE or 0
+	local gaps = { CARD.top, CARD.capGap, CARD.nameGap, powerH > 0 and CARD.powerGap or 0, castH > 0 and CARD.castGap or 0, CARD.bottom }
+	local fixed = capH + rowH + healthH + powerH + castH
+	local sum = 0
+	for _, g in ipairs(gaps) do
+		sum = sum + g
+	end
+	if fixed + sum > height and castH > 0 and fixed > height - 2 then
+		castH, gaps[5] = 0, 0
+		fixed = fixed - CAST_LINE
+	end
+	local t = 1
+	if fixed + sum > height and sum > 0 then
+		t = max(0, (height - fixed) / sum)
+	end
+	local function gap(i)
+		return gaps[i] * t
+	end
+	local y = gap(1)
+	out.cap = Rect(padX, y, colW, capH)
+	out.capGem = Rect(padX, y + capH / 2 - GEM / 2, GEM, GEM)
+	out.capLabel = Rect(padX + GEM + CARD.gemGap, y, floor(colW / 2), capH)
+	out.caption = Rect(padX + floor(colW / 2), y, colW - floor(colW / 2), capH)
+	y = y + capH + gap(2)
+	local main = Format.Main(s.healthText)
+	local pctW = main ~= "none" and Column(main, valueSize, colW) or 0
+	if pctW > 0 then
+		out.healthText = Rect(padX + colW - pctW, y, pctW, rowH)
+	end
+	if s.name then
+		out.name = Rect(padX, y, max(0, colW - pctW - (pctW > 0 and TEXT_GAP or 0)), rowH)
+	end
+	y = y + rowH + gap(3)
+	out.health = Rect(padX, y, colW, healthH)
+	y = y + healthH
+	if powerH > 0 then
+		y = y + gap(4)
+		out.power = Rect(padX, y, colW, powerH)
+		y = y + powerH
+	end
+	if castH > 0 then
+		y = y + gap(5)
+		out.cast = Rect(padX, y, colW, castH)
+	end
+	out.panel = Rect(padX, 0, colW, height)
+end
+
+local function PillRow(out, s, width, height, scale)
+	local powerH = s.power and min(s.powerHeight or 0, ROW.power) or 0
+	local pill = min(ROW.pill, floor(height / 3))
+	local bottom = height
+	if powerH > 0 then
+		out.power = Rect(0, height - powerH, width, powerH)
+		bottom = height - powerH - ROW.gap
+	end
+	out.health = Rect(0, bottom - pill, width, pill)
+	local textH = max(0, out.health.y - ROW.gap)
+	local col = 0
+	if (s.healthText or "none") ~= "none" then
+		col = Column(s.healthText, Size(s, "health", scale), width)
+		out.healthText = Rect(width - col, 0, col, textH)
+	end
+	if s.name then
+		out.name = Rect(0, 0, max(0, width - col - (col > 0 and GAP or 0)), textH)
+	end
+end
+
+local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow }
+
 function Geometry.Frame(s, width, height, fontScale)
 	local scale = fontScale or 1
-	local out = { compact = height < FULL_MIN_HEIGHT }
+	local lumen = LUMEN[s.form]
+	if lumen then
+		local out = { form = s.form, compact = s.form == "row", chrome = s.form == "card" }
+		out.glass = Rect(0, 0, width, height)
+		out.panel = Rect(0, 0, width, height)
+		lumen(out, s, width, height, scale)
+		return out
+	end
+	local out = { compact = height < FULL_MIN_HEIGHT, form = "plate", chrome = true }
 	local left, right = Portrait(out, s, width, height)
 	out.panel = Rect(left, 0, right - left, height)
 	out.glass = Glass(out, s, width, height)

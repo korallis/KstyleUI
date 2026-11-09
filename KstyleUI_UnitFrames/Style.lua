@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
-local Settings, Geometry, Indicators = ns.Settings, ns.Geometry, ns.Indicators
+local Settings, Geometry, Indicators, Lumen = ns.Settings, ns.Geometry, ns.Indicators, ns.Lumen
 
 local Style = {}
 ns.Style = Style
@@ -25,6 +25,12 @@ local RIM_WHITE = 0.15
 local RING_LIFT = 0.3
 local OCTAGON = 1 / (2 + math.sqrt(2))
 local PORTRAIT_CHAMFER = 0.15
+local GLOW_SUBLEVEL = -8
+local GLOW_SPREAD = 1.7
+local CAPTION_GAP = 10
+local RULE_GAP = 8
+local RULE_ALPHA = 0.55
+local VALUE_GAP = 3
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -43,7 +49,10 @@ local TEXTS = {
 	healthSub = { element = "health", justify = "RIGHT", color = "textEmphasis", share = Geometry.DETAIL_SHARE },
 	powerText = { element = "power", justify = "LEFT", color = "text" },
 	levelText = { element = "level", justify = "CENTER", color = "textEmphasis" },
+	caption = { element = "level", justify = "LEFT", color = "text", lumen = "caption", lumenColor = "muted" },
+	capLabel = { element = "level", justify = "LEFT", color = "textEmphasis", lumen = "cap", lumenColor = "goldLit" },
 }
+TEXTS.healthSub.lumen, TEXTS.healthSub.lumenColor, TEXTS.healthSub.lumenShare = "caption", "muted", 1
 
 local function NewText(owner, key)
 	local text = Widgets.FontString(owner, "OVERLAY")
@@ -105,6 +114,21 @@ function Style.New(parent, kind)
 	view.badge = badge
 	view.badgeChrome = Widgets.Chrome(badge, { shape = "panel", fill = TRACK, shadow = false, grain = false })
 
+	view.ringGlow = portraitFrame:CreateTexture(nil, "BACKGROUND", nil, GLOW_SUBLEVEL)
+	view.ringGlow:SetTexture((Tokens.Texture("glow")))
+	view.ringGlow:SetBlendMode("ADD")
+	view.ringGlow:Hide()
+	local disc = CreateFrame("Frame", nil, parent)
+	disc:SetFrameLevel(base + LEVEL_BADGE)
+	view.disc = disc
+	view.discBack = disc:CreateTexture(nil, "BACKGROUND")
+	view.discBack:SetTexture(dot)
+	view.discBack:SetAllPoints(disc)
+	view.discRing = disc:CreateTexture(nil, "BORDER")
+	view.discRing:SetTexture((Tokens.Texture("ring")))
+	view.discRing:SetAllPoints(disc)
+	disc:Hide()
+
 	local top = CreateFrame("Frame", nil, parent)
 	top:SetFrameLevel(base + LEVEL_TEXT)
 	top:SetAllPoints(parent)
@@ -112,6 +136,11 @@ function Style.New(parent, kind)
 	for key in pairs(TEXTS) do
 		view[key] = NewText(top, key)
 	end
+	view.capGem = Lumen.Gem(top)
+	view.gemLeft = Lumen.Gem(top)
+	view.gemRight = Lumen.Gem(top)
+	view.capRule = top:CreateTexture(nil, "ARTWORK")
+	view.capRule:SetTexture((Tokens.Texture("divider")))
 	Indicators.New(view)
 	Style.Shape(view, false)
 	return view
@@ -169,11 +198,189 @@ local function PlacePrediction(view, bar, after)
 	bar:Restyle()
 end
 
+local function PlaceGem(view, gem, rect)
+	if not rect then
+		gem:Hide()
+		return
+	end
+	Place(view, gem, rect)
+	gem:Show()
+end
+
+local function Bottom(view, text, point, relative, relPoint, x, rect)
+	text:ClearAllPoints()
+	text:SetPoint(point, relative, relPoint, Snap(view, x), -Snap(view, rect.y + rect.h))
+	text:SetHeight(Snap(view, rect.h))
+	text:SetWidth(0)
+	text:SetJustifyV("BOTTOM")
+	text:Show()
+end
+
+local function Centre(view, text, point, relative, relPoint, x, rect)
+	text:ClearAllPoints()
+	text:SetPoint(point, relative, relPoint, Snap(view, x), -Snap(view, rect.y + rect.h / 2))
+	text:SetHeight(Snap(view, rect.h))
+	text:SetWidth(0)
+	text:SetJustifyV("MIDDLE")
+	text:Show()
+end
+
+local function LumenTexts(view, g)
+	local form, parent = g.form, view.parent
+	for _, key in ipairs({ "name", "caption", "healthText", "healthSub", "powerText", "capLabel" }) do
+		view[key]:SetJustifyV("MIDDLE")
+	end
+	view.powerText:Hide()
+	view.capRule:Hide()
+	if form == "vitals" then
+		if g.name and g.nameAuto then
+			Bottom(view, view.name, "BOTTOMLEFT", parent, "TOPLEFT", g.name.x, g.name)
+		else
+			PlaceText(view, view.name, g.name)
+			view.name:SetJustifyV("BOTTOM")
+		end
+		view.name:SetJustifyH("LEFT")
+		if g.caption then
+			view.caption:ClearAllPoints()
+			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP), 0)
+			view.caption:SetHeight(Snap(view, g.caption.h))
+			view.caption:SetWidth(0)
+			view.caption:SetJustifyV("BOTTOM")
+			view.caption:SetJustifyH("LEFT")
+			view.caption:Show()
+		else
+			view.caption:Hide()
+		end
+		local sub, main = g.healthSub, g.healthText
+		if sub then
+			Bottom(view, view.healthSub, "BOTTOMRIGHT", parent, "TOPLEFT", sub.x + sub.w, sub)
+		else
+			view.healthSub:Hide()
+		end
+		if main and sub then
+			local text = view.healthText
+			text:ClearAllPoints()
+			text:SetPoint("BOTTOMRIGHT", view.healthSub, "BOTTOMLEFT", -Snap(view, VALUE_GAP), 0)
+			text:SetHeight(Snap(view, main.h))
+			text:SetWidth(0)
+			text:SetJustifyV("BOTTOM")
+			text:Show()
+		elseif main then
+			Bottom(view, view.healthText, "BOTTOMRIGHT", parent, "TOPLEFT", main.x + main.w, main)
+		else
+			view.healthText:Hide()
+		end
+	elseif form == "sigil" then
+		PlaceText(view, view.name, g.name)
+		PlaceText(view, view.caption, g.caption)
+		view.name:SetJustifyH("CENTER")
+		view.caption:SetJustifyH("CENTER")
+		view.healthText:Hide()
+		view.healthSub:Hide()
+	elseif form == "card" then
+		PlaceText(view, view.name, g.name)
+		PlaceText(view, view.healthText, g.healthText)
+		view.name:SetJustifyH("LEFT")
+		view.healthText:SetJustifyH("RIGHT")
+		view.healthSub:Hide()
+		local cap = g.cap
+		Centre(view, view.capLabel, "LEFT", parent, "TOPLEFT", g.capLabel.x, cap)
+		Centre(view, view.caption, "RIGHT", parent, "TOPLEFT", cap.x + cap.w, cap)
+		view.caption:SetJustifyH("RIGHT")
+		local rule = view.capRule
+		rule:ClearAllPoints()
+		rule:SetPoint("LEFT", view.capLabel, "RIGHT", Snap(view, RULE_GAP), 0)
+		rule:SetPoint("RIGHT", view.caption, "LEFT", -Snap(view, RULE_GAP), 0)
+		rule:SetHeight(Widgets.Border(parent))
+		rule:Show()
+	else
+		PlaceText(view, view.name, g.name)
+		PlaceText(view, view.healthText, g.healthText)
+		view.name:SetJustifyH("LEFT")
+		view.healthText:SetJustifyH("RIGHT")
+		view.caption:Hide()
+		view.healthSub:Hide()
+	end
+	if form ~= "card" then
+		view.capLabel:Hide()
+	end
+	PlaceGem(view, view.capGem, g.capGem)
+	PlaceGem(view, view.gemLeft, g.gemLeft)
+	PlaceGem(view, view.gemRight, g.gemRight)
+end
+
+local function LayoutLumen(view, g, s)
+	view.panel:SetShown(true)
+	Place(view, view.panel, g.glass)
+	view.chrome:Restyle()
+	view.chrome:SetShadow(g.chrome)
+	view.chrome:SetShown(g.chrome)
+	PlaceBar(view, view.health, g.health)
+	PlaceBar(view, view.power, g.power)
+	view.trackLine:Hide()
+	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
+	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
+	view.badge:Hide()
+	if g.portrait then
+		local p = g.portrait
+		Place(view, view.portraitFrame, p)
+		local inset = Snap(view, p.w * Widgets.RING_INSET)
+		view.portrait:ClearAllPoints()
+		view.portrait:SetPoint("TOPLEFT", view.portraitFrame, "TOPLEFT", inset, -inset)
+		view.portrait:SetPoint("BOTTOMRIGHT", view.portraitFrame, "BOTTOMRIGHT", -inset, inset)
+		local spread = Snap(view, p.w * GLOW_SPREAD)
+		view.ringGlow:ClearAllPoints()
+		view.ringGlow:SetPoint("CENTER", view.portraitFrame, "CENTER")
+		view.ringGlow:SetSize(spread, spread)
+		view.portraitFrame:Show()
+	else
+		view.portraitFrame:Hide()
+	end
+	if g.badge then
+		Place(view, view.disc, g.badge)
+		view.disc:Show()
+		view.levelText:ClearAllPoints()
+		view.levelText:SetPoint("CENTER", view.disc, "CENTER")
+		view.levelText:SetSize(Snap(view, g.badge.w), Snap(view, g.badge.h))
+		view.levelText:SetJustifyH("CENTER")
+		view.levelText:Show()
+	else
+		view.disc:Hide()
+		view.levelText:Hide()
+	end
+	LumenTexts(view, g)
+	Indicators.Layout(view, g, s)
+end
+
+local function HideLumen(view)
+	view.disc:Hide()
+	view.ringGlow:Hide()
+	view.caption:Hide()
+	view.capLabel:Hide()
+	view.capRule:Hide()
+	view.capGem:Hide()
+	view.gemLeft:Hide()
+	view.gemRight:Hide()
+	for _, key in ipairs({ "name", "healthText", "healthSub", "powerText", "levelText" }) do
+		view[key]:SetJustifyV("MIDDLE")
+	end
+	view.name:SetJustifyH("LEFT")
+	view.healthText:SetJustifyH("RIGHT")
+end
+
 function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 	view.geometry = g
+	view.form = g.form
+	if g.form ~= "plate" then
+		LayoutLumen(view, g, s)
+		return g
+	end
+	HideLumen(view)
 	Place(view, view.panel, g.glass)
 	view.chrome:Restyle()
+	view.chrome:SetShadow(true)
+	view.chrome:SetShown(true)
 	PlaceBar(view, view.health, g.health)
 	PlaceBar(view, view.power, g.power)
 	PlaceText(view, view.trackLine, g.trackLine)
@@ -239,12 +446,29 @@ local function Orient(bar, direction)
 end
 
 function Style.Restyle(view, kind)
+	local form = Settings.Form(kind)
+	view.form = form
+	local lumen = form ~= "plate"
 	for key, spec in pairs(TEXTS) do
-		local path, size, flags = Settings.Font(kind, spec.element or key)
-		ApplyFont(view[key], path, size * (spec.share or 1), flags)
-		view[key]:SetTextColor(Tokens.Color(spec.color))
+		local element = spec.element or key
+		local path, size, flags = Settings.Font(kind, element)
+		local share = spec.share or 1
+		if lumen and spec.lumen then
+			share = spec.lumenShare or share
+			if Settings.ThemeFont(kind, element) then
+				path = Lumen.Font(spec.lumen)
+			end
+		end
+		ApplyFont(view[key], path, size * share, flags)
+		if lumen and spec.lumenColor then
+			view[key]:SetTextColor(Lumen.Color(spec.lumenColor))
+		else
+			view[key]:SetTextColor(Tokens.Color(spec.color))
+		end
 	end
-	Style.Shape(view, Settings.Value(kind, "portraitShape") == "round")
+	view.capRule:SetVertexColor(Lumen.Color("gold"))
+	view.capRule:SetAlpha(RULE_ALPHA)
+	Style.Shape(view, form == "vitals" or Settings.Value(kind, "portraitShape") == "round")
 	view.health:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
 	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))
@@ -269,7 +493,7 @@ local function Plain(...)
 end
 
 function Style.HealthTint(view, r, g, b)
-	if view.geometry and not view.geometry.compact and Plain(r, g, b) then
+	if view.geometry and view.geometry.form == "plate" and not view.geometry.compact and Plain(r, g, b) then
 		view.healthText:SetTextColor(r + (1 - r) * TINT, g + (1 - g) * TINT, b + (1 - b) * TINT)
 	else
 		view.healthText:SetTextColor(Tokens.Color("textEmphasis"))
@@ -278,7 +502,14 @@ end
 
 function Style.Accent(view)
 	local r, g, b = Settings.Accent()
-	view.ring:SetVertexColor(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RING_LIFT))
+	if view.form == "vitals" then
+		local gr, gg, gb = Lumen.Color("gold")
+		view.ring:SetVertexColor(gr, gg, gb, 1)
+	else
+		view.ring:SetVertexColor(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RING_LIFT))
+	end
+	view.discRing:SetVertexColor(Lumen.Color("gold"))
+	view.discBack:SetVertexColor(Lumen.Color("deep"))
 	view.portraitChrome:SetEdgeRGBA(Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, RIM_WHITE))
 	view.icons.resting:SetTextColor(r, g, b, 1)
 	if view.round then

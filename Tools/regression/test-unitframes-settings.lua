@@ -50,23 +50,23 @@ assert(defaults.targettarget.healthText == "percent" and defaults.pet.healthText
 for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
 	assert(defaults[kind].powerText == "none", kind .. ": no power numbers, as on the kit sheet; power shows as the thin bar alone")
 end
--- The owner's in-game scale of 2026-11-08: the frames are 70 units beside 38-unit action buttons, and their texts
--- follow the bars' text family (the kit's body 11, the bars' 13-unit cooldown numbers): name and values 12, the
--- level 13, the power 10; focus one step down; the boss frames keep their 10.
-for kind, sizes in pairs({ player = { 12, 12, 10, 13 }, target = { 12, 12, 10, 13 }, focus = { 11, 11, 9, 11 }, boss = { 10, 10, 9, 10 } }) do
+-- The Lumen mockup's type (arena2/parent/index.html, one unit per pixel): the vitals name 17 over a 15-unit value
+-- and a 12-unit level disc; the sigil's name 20 over its 13-unit level line; the cards' name 16, percentage 14 and
+-- 12-unit cap; the pill rows 12.
+for kind, sizes in pairs({ player = { 17, 15, 10, 12 }, target = { 20, 12, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 16, 14, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
-		kind .. ": the name, percentage, power and level sizes follow the frame's height at the owner's in-game scale")
+		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
 end
 assert(defaults.player.iconSize == 12 and defaults.target.iconSize == 12, "the status icons on the 70-unit frames are 12 units")
 assert(defaults.player.castbarIcon == false and defaults.player.castbarCaps == false, "the player cast bar has no icon and writes the spell as the game does, as the owner's mockup draws Slam")
-assert(defaults.target.castbarIcon == true and defaults.target.castbarCaps == true, "the target cast bar keeps the design file's icon and capitals")
+assert(defaults.target.castbarIcon == true and defaults.target.castbarCaps == false, "the target cast bar keeps its icon for the classic plate, and writes the spell as the game does, as the sigil's cast line reads")
 -- The owner's ruling of 2026-11-08: power reads as its type (mana blue, rage red, energy yellow) on every frame; the
 -- class colour stays a choice under the same powerColor key, so a saved "class" still applies.
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].powerColor == "power", kind .. ": the power bar takes the power type's colour by default")
 end
-assert(defaults.player.powerHeight == 7, "the full frames' power bar is a short bar on the values row, as on the mockup")
+assert(defaults.player.powerHeight == 5, "the vitals line's power pill is the Lumen mockup's 5 units")
 do
 	local allowed = {}
 	for _, option in ipairs(ns.Settings.CHOICES.powerColor) do
@@ -77,8 +77,8 @@ end
 assert(defaults.pet.powerColor == "power" and defaults.pet.powerHeight == 3, "the compact frames keep the power type's colour and a thin bar")
 assert(defaults.player.healthColor == "class", "the player's health fill is the class colour")
 assert(defaults.target.healthColor == "reaction", "the target's fill follows its reaction: red when hostile, as on the kit sheet")
-assert(defaults.player.powerHeight == 7 and defaults.target.powerHeight == 7, "the full frames' power bar is the mockup's short 7-unit bar")
-assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size, "the percentage's numerals are as tall as the name's capitals, as measured on the kit sheet")
+assert(defaults.player.powerHeight == 5 and defaults.target.powerHeight == 7, "the vitals power pill is 5 units; the other full frames keep the plate's 7-unit bar")
+assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 2, "the vitals value is the mockup's 15-unit bold numerals, two under the 17-unit Cinzel name")
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")
 end
@@ -164,8 +164,11 @@ row("hideBlizzard", "toggle")
 -- Only the picked frame's rows show, so the page stays short; module-wide rows always show.
 local settings = K.Store.Module("UnitFrames")
 settings.edit = "target"
-assert(row("target.portrait").showWhen(settings) == true, "the picked frame's rows show")
-assert(row("player.portrait").showWhen(settings) == false, "other frames' rows hide")
+assert(row("target.name").showWhen(settings) == true, "the picked frame's rows show")
+assert(row("player.name").showWhen(settings) == false, "other frames' rows hide")
+assert(row("target.style").showWhen(settings) == true, "each frame picks Lumen or the classic plate")
+local styles = values(row("target.style", "dropdown"))
+assert(styles.lumen and styles.plate, "the style is Lumen or the classic plate")
 assert(row("hideBlizzard").showWhen == nil, "module-wide rows always show")
 settings.edit = "player"
 local custom = row("player.healthCustom")

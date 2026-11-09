@@ -4,9 +4,15 @@ local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local W = U.W
 
+-- These checks pin the classic plate's preview, the style setting's other choice; the Lumen preview is checked at the end.
+local PLATE = { enabled = true }
+for _, kind in ipairs(U.KINDS) do
+	PLATE[kind] = { style = "plate" }
+end
+PLATE.target.auras = false
 local env, K, ns = O.New({
 	setup = U.Install,
-	saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} },
+	saved = { version = 2, profiles = { Default = { UnitFrames = PLATE } }, characters = {} },
 	before = function(e)
 		Load(U.Files(), e)
 	end,
@@ -145,6 +151,38 @@ assert(preview.kind == "boss" and U.Shown(env, preview.views.boss.levelText) == 
 local liveBoss = uf.Frames.Get("boss").views[1].geometry.portrait.h
 local _, sampleBoss = preview.holders.boss:GetSize()
 assert(math.abs(sampleBoss - liveBoss) <= 2, "the boss sample is one live boss frame tall: " .. sampleBoss .. ", live " .. liveBoss)
+
+-- The Lumen preview: the vitals line with its sample values and cast line, the sigil with its level line and its
+-- sockets centred under it, and the boss card with its section cap.
+K.Options.Write("UnitFrames", "player.style", "lumen")
+K.Options.Write("UnitFrames", "edit", "player")
+settle()
+local vitals = preview.views.player
+assert(vitals.geometry.form == "vitals", "the preview draws the vitals line")
+assert(U.Shown(env, vitals.healthText) == "3120" and U.Shown(env, vitals.healthSub) == "/ 3980", "current, then the max: " .. U.Shown(env, vitals.healthText) .. " " .. U.Shown(env, vitals.healthSub))
+assert(U.Shown(env, vitals.levelText) == "60" and vitals.disc:IsShown(), "the level in its disc")
+assert(U.Shown(env, vitals.caption) == K.L["Battle Stance"], "a sample stance follows the name")
+local line = preview.casts.player
+assert(line and line.frame:IsShown() and line.line and U.Shown(env, line.label) == K.L["Casting"], "the sample cast is the vitals line's own cast line")
+assert(line.frame:GetParent() == preview.holders.player, "inside the sample frame")
+K.Options.Write("UnitFrames", "target.style", "lumen")
+K.Options.Write("UnitFrames", "target.castbar", true)
+K.Options.Write("UnitFrames", "edit", "target")
+settle()
+local sigil = preview.views.target
+assert(sigil.geometry.form == "sigil" and U.Shown(env, sigil.caption) == "Level 61 elite \194\183 Beast", "the sigil sample with its level line: " .. U.Shown(env, sigil.caption))
+K.Options.Write("UnitFrames", "target.auraPosition", "CENTER")
+settle()
+local cp, crel, crp = preview.auraHosts.target:GetPoint(1)
+assert(cp == "TOP" and crel == preview.holders.target and crp == "BOTTOM", "the sample sockets hang centred under the sigil")
+local first = preview.auraIcons.target[1]
+local fp, frel, frp, fx = first:GetPoint(1)
+assert(frel == preview.auraHosts.target and fp == "TOPLEFT" and frp == "TOP" and fx < 0, "the sample row is centred on the host's top")
+K.Options.Write("UnitFrames", "boss.style", "lumen")
+K.Options.Write("UnitFrames", "edit", "boss")
+settle()
+local card = preview.views.boss
+assert(card.geometry.form == "card" and U.Shown(env, card.capLabel) == K.L["Boss"] and U.Shown(env, card.caption) == K.L["Boss"], "the boss sample is a card with its section cap")
 
 assert(uf.Frames.Get("player"), "the live frames exist alongside the preview")
 assert(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))

@@ -13,6 +13,7 @@ local COLUMN = { none = 0, percent = 3.2, current = 3.8, currentMax = 7, both = 
 local PERCENT = "%.0f%%"
 local CURRENT_MAX = "%s / %s"
 local BOTH = "%s / %s  %.0f%%"
+local MAX = "/ %s"
 
 function Format.ColumnWidth(format, size)
 	return ceil((COLUMN[format] or 0) * size)
@@ -146,6 +147,18 @@ function Format.HealthDetail(text, unit, format)
 		return
 	end
 	Write(text, "currentMax", UnitHealth(unit), UnitHealthMax(unit))
+end
+
+function Format.Max(text, unit)
+	if Gone(unit) then
+		text:SetText("")
+		return
+	end
+	text:SetFormattedText(MAX, Abbreviate(UnitHealthMax(unit)))
+end
+
+function Format.SampleMax(text, max)
+	text:SetFormattedText(MAX, max)
 end
 
 function Format.Power(text, unit, format, powerType)

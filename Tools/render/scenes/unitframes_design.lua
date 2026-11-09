@@ -16,6 +16,18 @@ local function move(K, key, x, y)
 	assert(K.Layout.Set(key, "y", -y))
 end
 
+-- The classic plate at the kit's text sizes, the look the design file draws; Lumen is the default style now.
+local function plate(extra)
+	local function text(size)
+		return { font = "theme", size = size, outline = "NONE" }
+	end
+	local out = { style = "plate", portraitShape = "chamfered", fonts = { name = text(12), health = text(12), power = text(10), level = text(13) } }
+	for k, v in pairs(extra or {}) do
+		out[k] = v
+	end
+	return out
+end
+
 return Common.Run(function()
 	local U = dofile("Tools/regression/unitframes_env.lua")
 	local player = { name = "Valerin", class = "WARRIOR", level = 42, health = 3120, healthMax = 3980, power = 60, powerMax = 100, powerType = 1, powerToken = "RAGE", isPlayer = true, reaction = 5 }
@@ -24,7 +36,7 @@ return Common.Run(function()
 	local env, K = U.New(Common.ScreenOpts({
 		saved = {
 			version = 2,
-			profiles = { Default = { UnitFrames = { enabled = true, player = { portraitShape = "chamfered" }, target = { portraitShape = "chamfered" } } } },
+			profiles = { Default = { UnitFrames = { enabled = true, player = plate(), target = plate({ castbarCaps = true }) } } },
 			characters = {},
 			layouts = {},
 			account = { setupSeen = true },

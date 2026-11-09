@@ -19,13 +19,13 @@ local AURA_ICONS = { 135846, 136096, 135813, 136075 }
 local THREAT_TANKING = 3
 
 local SAMPLES = {
-	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true },
-	target = { name = L["Frost Howler"], level = 61, health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true },
+	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true, caption = L["Battle Stance"] },
+	target = { name = L["Frost Howler"], level = 61, classification = "elite", creature = L["Beast"], health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true },
 	targettarget = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true },
 	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2 },
 	focustarget = { name = L["Krazhk"], level = 60, health = 3300, healthMax = 4000, power = 1800, powerMax = 3600, reaction = 2 },
 	pet = { name = L["Wolf"], level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 },
-	boss = { name = L["Magmatus"], level = -1, health = 72000, healthMax = 100000, power = 0, powerMax = 100, reaction = 2, marker = true, threat = true },
+	boss = { name = L["Magmatus"], level = -1, classification = "worldboss", health = 72000, healthMax = 100000, power = 0, powerMax = 100, reaction = 2, marker = true, threat = true },
 }
 
 local function EditKind()
@@ -49,6 +49,46 @@ local function SampleColor(s, sample, source, custom)
 	return ns.Unit.ReactionColor(sample.reaction)
 end
 
+local function GlowAlpha(share)
+	local points = ns.Unit.GLOW_POINTS
+	for i = 2, #points do
+		local a, b = points[i - 1], points[i]
+		if share <= b[1] then
+			return a[2] + (b[2] - a[2]) * (share - a[1]) / (b[1] - a[1])
+		end
+	end
+	return points[#points][2]
+end
+
+local function PaintLumen(view, kind, sample)
+	local s, form = view.s, view.form
+	local share = sample.healthMax > 0 and sample.health / sample.healthMax or 0
+	if form == "vitals" then
+		local split = s.healthText == "both" or s.healthText == "currentMax"
+		Format.Sample(view.healthText, split and "current" or s.healthText, sample.health, sample.healthMax)
+		if split then
+			Format.SampleMax(view.healthSub, sample.healthMax)
+		else
+			view.healthSub:SetText("")
+		end
+		view.caption:SetText(sample.caption or "")
+		view.levelText:SetText(sample.level)
+		if view.geometry.portrait then
+			local r, g, b = Tokens.Color("healthHostile")
+			view.ringGlow:SetVertexColor(r, g, b, GlowAlpha(share))
+			view.ringGlow:Show()
+		end
+	elseif form == "card" then
+		Format.Sample(view.healthText, Format.Main(s.healthText), sample.health, sample.healthMax)
+		ns.Unit.LevelText(view.caption, sample.level, sample.classification, nil, true)
+		view.capLabel:SetText(Settings.CAP_LABELS[kind] or "")
+	elseif form == "sigil" then
+		ns.Unit.LevelText(view.caption, sample.level, sample.classification, sample.creature, false)
+	else
+		Format.Sample(view.healthText, s.healthText, sample.health, sample.healthMax)
+	end
+end
+
 local function Paint(view, kind)
 	local s, sample = view.s, SAMPLES[kind]
 	view.health:SetBarRange(0, sample.healthMax)
@@ -56,8 +96,10 @@ local function Paint(view, kind)
 	view.health:SetBarColor(SampleColor(s, sample, s.healthColor, s.healthCustom))
 	Style.HealthTint(view, SampleColor(s, sample, s.healthColor, s.healthCustom))
 	local split = view.geometry and view.geometry.healthSub
-	Format.Sample(view.healthText, split and Format.Main(s.healthText) or s.healthText, sample.health, sample.healthMax)
-	Format.SampleDetail(view.healthSub, split and s.healthText or "none", sample.health, sample.healthMax)
+	if view.form == "plate" then
+		Format.Sample(view.healthText, split and Format.Main(s.healthText) or s.healthText, sample.health, sample.healthMax)
+		Format.SampleDetail(view.healthSub, split and s.healthText or "none", sample.health, sample.healthMax)
+	end
 	view.power:SetBarRange(0, sample.powerMax)
 	view.power:SetValue(sample.power)
 	view.power:SetBarColor(SampleColor(s, sample, s.powerColor, s.powerCustom))
@@ -73,6 +115,9 @@ local function Paint(view, kind)
 	ns.Unit.SetName(view, sample.name)
 	view.levelText:SetText(sample.level > 0 and sample.level or "??")
 	view.levelText:SetTextColor(Tokens.Color("textEmphasis"))
+	if view.form ~= "plate" then
+		PaintLumen(view, kind, sample)
+	end
 	if s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
 		view.portrait:SetAtlas(GetClassAtlas(Theme.Class()))
 	elseif SetPortraitTexture then
@@ -126,17 +171,25 @@ local function PaintCast(frame, view, kind, height)
 		return 0
 	end
 	if not cb then
-		cb = ns.CastBars.NewBar(frame.holders[kind], kind)
+		cb = ns.CastBars.NewBar(frame.holders[kind], kind, true)
 		frame.casts[kind] = cb
 	end
 	local g = view.geometry
 	local castH = CastHeight(kind)
+	local x, y, w, extra = g.panel.x, height + CAST_GAP, g.panel.w, castH + CAST_GAP
+	if g.form ~= "plate" then
+		if not g.cast then
+			cb.frame:Hide()
+			return 0
+		end
+		x, y, w, castH, extra = g.cast.x, g.cast.y, g.cast.w, g.cast.h, 0
+	end
 	cb.frame:ClearAllPoints()
-	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", g.panel.x, -(height + CAST_GAP))
-	cb.frame:SetSize(g.panel.w, castH)
+	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", x, -y)
+	cb.frame:SetSize(w, castH)
 	cb.sampleReaction = SAMPLES[kind].reaction
 	ns.CastBars.Restyle(cb)
-	ns.CastBars.Layout(cb, g.panel.w, castH)
+	ns.CastBars.Layout(cb, w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(CAST_SHARE)
 	ns.CastBars.SetName(cb, L["Frostbolt"])
@@ -144,7 +197,7 @@ local function PaintCast(frame, view, kind, height)
 	cb.icon:SetTexture(CAST_ICON)
 	cb.frame:SetAlpha(1)
 	cb.frame:Show()
-	return castH + CAST_GAP
+	return extra
 end
 
 local function PaintAuras(frame, view, kind)
@@ -169,6 +222,8 @@ local function PaintAuras(frame, view, kind)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
 		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
 		local sx = growth[2] == "Left" and -1 or 1
+		local centred = Settings.Value(kind, "auraPosition") == "CENTER"
+		local start = -(count * size + (count - 1) * spacing) / 2
 		for i = 1, count do
 			local tile = tiles[i]
 			if not tile then
@@ -178,7 +233,11 @@ local function PaintAuras(frame, view, kind)
 			tile.icon:SetTexture(AURA_ICONS[i])
 			local skin = tile.skin
 			skin:ClearAllPoints()
-			skin:SetPoint(corner, host, corner, sx * (i - 1) * (size + spacing), 0)
+			if centred then
+				skin:SetPoint("TOPLEFT", host, "TOP", start + (i - 1) * (size + spacing), 0)
+			else
+				skin:SetPoint(corner, host, corner, sx * (i - 1) * (size + spacing), 0)
+			end
 			skin:SetSize(size, size)
 			ns.Auras.LayoutTile(tile)
 			skin:Show()
@@ -224,7 +283,7 @@ local function Refresh(frame)
 	local view = frame.views[kind]
 	local width, height = Size(frame, kind)
 	view.s = Settings.Snapshot(kind)
-	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and view.s.castbar then
+	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and view.s.castbar and view.s.form == "plate" then
 		height = math.max(0, height - view.s.castbarHeight - CAST_GAP)
 	end
 	holder:SetSize(width, height)

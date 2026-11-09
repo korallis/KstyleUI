@@ -215,7 +215,7 @@ local function NewView(uf, unit)
 	button.view = view
 	button:HookScript("OnShow", OnButtonShow)
 	button:HookScript("OnHide", OnButtonHide)
-	if CAST_GAP[uf.kind] then
+	if Settings.CASTBAR[uf.kind] then
 		ns.CastBars.Attach(view)
 	end
 	return view
@@ -312,7 +312,7 @@ function Frames.Relayout(uf)
 	end
 	local slots = Slots(uf, w, h)
 	local gap = CAST_GAP[uf.kind]
-	local castH = gap and uf.s.castbar and uf.s.castbarHeight or 0
+	local castH = gap and uf.s.form == "plate" and uf.s.castbar and uf.s.castbarHeight or 0
 	for i, view in ipairs(uf.views) do
 		local slot = slots[i]
 		local button = view.button
@@ -329,13 +329,24 @@ function Frames.Relayout(uf)
 		end
 		ns.Auras.Place(view)
 		local cb = view.castbar
-		if cb then
+		if cb and g.cast then
+			local c = g.cast
+			cb.frame:ClearAllPoints()
+			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, c.x), -K.Widgets.Snap(button, c.y))
+			cb.frame:SetSize(K.Widgets.Snap(button, c.w), K.Widgets.Snap(button, c.h))
+			cb.noRoom = false
+			cb.frame:SetShown(cb.active == true)
+			ns.CastBars.Layout(cb, c.w, c.h)
+		elseif cb and gap and g.form == "plate" then
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
 			cb.frame:SetSize(g.panel.w, room)
 			cb.noRoom = room <= 0
 			cb.frame:SetShown(room > 0 and cb.active == true)
 			ns.CastBars.Layout(cb, g.panel.w, room)
+		elseif cb then
+			cb.noRoom = true
+			cb.frame:Hide()
 		end
 	end
 end
@@ -432,7 +443,7 @@ local function OnSettingChanged(_, module, key)
 		elseif uf.active then
 			Frames.Restyle(uf)
 		end
-		if rest:find("^castbar") or rest:find("^fonts%.cast") then
+		if rest == "style" or rest:find("^castbar") or rest:find("^fonts%.cast") then
 			ns.CastBars.Apply()
 			ns.Blizzard.Apply(running)
 		end
@@ -524,6 +535,11 @@ local function RegisterEvents()
 	Events.Register(MODULE, "PLAYER_UPDATE_RESTING", function()
 		OnPlayer(Indicators.Resting)
 	end)
+	for _, event in ipairs({ "UPDATE_SHAPESHIFT_FORM", "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED" }) do
+		Events.Register(MODULE, event, function()
+			OnPlayer(Unit.Caption)
+		end)
+	end
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", function()
 		ForEach(function(uf)
 			RefreshKind(uf.kind, true)

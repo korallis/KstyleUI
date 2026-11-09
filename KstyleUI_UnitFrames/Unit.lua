@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens, Theme = K.Tokens, K.Theme
+local Tokens, Theme, L = K.Tokens, K.Theme, K.L
 local Format, Indicators = ns.Format, ns.Indicators
 
 local Unit = {}
@@ -15,6 +15,11 @@ local THIN_SPACE = "\226\128\137"
 local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
 local ELITE_SUFFIX = "+"
 local ELITE = { elite = true, rareelite = true }
+local DOT = " \194\183 "
+local CLASS_WORDS = { elite = L["elite"], rareelite = L["rare elite"], rare = L["rare"] }
+local CAP_WORDS = { elite = L["Elite"], rareelite = L["Rare elite"], rare = L["Rare"], worldboss = L["Boss"] }
+local GLOW_POINTS = { { 0, 1 }, { 0.25, 0.9 }, { 0.5, 0.55 }, { 0.8, 0.12 }, { 1, 0 } }
+Unit.GLOW_POINTS = GLOW_POINTS
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -160,12 +165,85 @@ function Unit.Prediction(view, unit)
 	view.incoming:Show()
 end
 
+local glowCurve, glowTried
+
+local function GlowCurve()
+	if glowTried then
+		return glowCurve
+	end
+	glowTried = true
+	local util = C_CurveUtil
+	if not (util and type(util.CreateColorCurve) == "function" and CreateColor and UnitHealthPercent) then
+		Log("low-health ring: no colour curve API; the ring does not glow")
+		return nil
+	end
+	local ok, curve = pcall(util.CreateColorCurve)
+	if not ok or not curve then
+		Log("low-health ring: CreateColorCurve failed; the ring does not glow")
+		return nil
+	end
+	local kinds = Enum and Enum.LuaCurveType
+	if kinds and kinds.Linear and curve.SetType then
+		curve:SetType(kinds.Linear)
+	end
+	local r, g, b = Tokens.Color("healthHostile")
+	for _, point in ipairs(GLOW_POINTS) do
+		curve:AddPoint(point[1], CreateColor(r, g, b, point[2]))
+	end
+	glowCurve = curve
+	Log("low-health ring: a C_CurveUtil colour curve over UnitHealthPercent")
+	return curve
+end
+
+function Unit.ResetGlow()
+	glowCurve, glowTried = nil, false
+end
+
+function Unit.Glow(view, unit)
+	local glow = view.ringGlow
+	if view.form ~= "vitals" or not (view.geometry and view.geometry.portrait) then
+		glow:Hide()
+		return
+	end
+	local curve = GlowCurve()
+	if not curve then
+		glow:Hide()
+		return
+	end
+	local color = UnitHealthPercent(unit, true, curve)
+	glow:SetVertexColor(color:GetRGBA())
+	glow:Show()
+end
+
+local function LumenHealth(view, unit, form, format)
+	if form == "vitals" then
+		local main, split = format, false
+		if format == "both" or format == "currentMax" then
+			main, split = "current", true
+		end
+		Format.Health(view.healthText, unit, main)
+		if split then
+			Format.Max(view.healthSub, unit)
+		else
+			view.healthSub:SetText("")
+		end
+	elseif form == "card" then
+		Format.Health(view.healthText, unit, Format.Main(format))
+	elseif form == "row" then
+		Format.Health(view.healthText, unit, format)
+	end
+end
+
 function Unit.Health(view, unit, instant)
 	local bar = view.health
 	bar:SetBarRange(0, UnitHealthMax(unit))
 	SetValue(bar, UnitHealth(unit), instant)
 	local format = view.s.healthText
-	if view.geometry and view.geometry.healthSub then
+	local form = view.geometry and view.geometry.form or "plate"
+	if form ~= "plate" then
+		LumenHealth(view, unit, form, format)
+		Unit.Glow(view, unit)
+	elseif view.geometry and view.geometry.healthSub then
 		Format.Health(view.healthText, unit, Format.Main(format))
 		Format.HealthDetail(view.healthSub, unit, format)
 	else
@@ -245,8 +323,101 @@ local function LevelColor(unit)
 	return Tokens.Color("textEmphasis")
 end
 
+local function Plain(value)
+	return not IsSecret(value)
+end
+
+local function StanceName()
+	if not (GetShapeshiftForm and GetShapeshiftFormInfo) then
+		return nil
+	end
+	local index = GetShapeshiftForm()
+	if not Plain(index) or type(index) ~= "number" or index <= 0 then
+		return nil
+	end
+	local _, _, _, spellID = GetShapeshiftFormInfo(index)
+	local spells = C_Spell
+	if not Plain(spellID) or type(spellID) ~= "number" or not (spells and spells.GetSpellName) then
+		return nil
+	end
+	return spells.GetSpellName(spellID)
+end
+
+local function SpecName()
+	local info = C_SpecializationInfo
+	if not (info and info.GetSpecialization and info.GetSpecializationInfo) then
+		return nil
+	end
+	local index = info.GetSpecialization()
+	if not Plain(index) or type(index) ~= "number" then
+		return nil
+	end
+	local _, name = info.GetSpecializationInfo(index)
+	return name
+end
+
+local function Shows(value)
+	return IsSecret(value) or (type(value) == "string" and value ~= "")
+end
+
+local function LevelText(text, level, classification, creature, short)
+	local fmt, args = {}, {}
+	local plainClass = Plain(classification) and classification
+	if short and plainClass and CAP_WORDS[plainClass] then
+		text:SetText(CAP_WORDS[plainClass])
+		return
+	end
+	if plainClass == "worldboss" or (Plain(level) and (type(level) ~= "number" or level <= 0)) then
+		fmt[1] = L["Boss"]
+	else
+		fmt[1] = L["Level %s"]
+		args[1] = level
+	end
+	if not short and plainClass and CLASS_WORDS[plainClass] and fmt[1] ~= L["Boss"] then
+		fmt[#fmt + 1] = " %s"
+		args[#args + 1] = CLASS_WORDS[plainClass]
+	end
+	if not short and Shows(creature) then
+		fmt[#fmt + 1] = DOT .. "%s"
+		args[#args + 1] = creature
+	end
+	text:SetFormattedText(table.concat(fmt), unpack(args, 1, #args))
+end
+
+Unit.LevelText = LevelText
+
+local function LevelLine(text, unit, short)
+	local creature = not short and UnitCreatureType and UnitCreatureType(unit) or nil
+	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short)
+end
+
+function Unit.Caption(view, unit)
+	local form, text = view.form, view.caption
+	if form == "vitals" then
+		local name = unit == "player" and (StanceName() or SpecName()) or nil
+		if Shows(name) then
+			text:SetText(name)
+		else
+			text:SetText("")
+		end
+	elseif form == "sigil" then
+		LevelLine(text, unit, false)
+	elseif form == "card" then
+		LevelLine(text, unit, true)
+		view.capLabel:SetText(ns.Settings.CAP_LABELS[view.kind] or "")
+	end
+end
+
 function Unit.Level(view, unit)
 	local text = view.levelText
+	if view.form and view.form ~= "plate" then
+		Unit.Caption(view, unit)
+		if view.form == "vitals" and view.s.level then
+			text:SetText(UnitLevel(unit))
+			text:SetTextColor(Tokens.Color("textEmphasis"))
+		end
+		return
+	end
 	if not view.s.level then
 		return
 	end

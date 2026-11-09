@@ -24,6 +24,21 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 - UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `UnitFrames.xml`.
 - Build mode: check that an API exists before calling it, check `issecretvalue` before any comparison, fall back to a safer path when the preferred one is unavailable, and log the path taken with `KstyleUI.DevTest.Log`.
 
+## Lumen styles
+
+Every frame has a `style` setting: `lumen` (the default) or `plate` (the classic glass plate described under Frames). `Settings.Form(kind)` turns the style into the frame's form, and `Settings.Snapshot(kind).form` carries it to the geometry:
+
+| Frame | Lumen form | What it draws | Footprint for S6 |
+| --- | --- | --- | --- |
+| Player | `vitals` | A 62-unit round portrait in a gilt ring with a 22-unit level disc on its lower right; one column 16 units past it: the name in the heading face with the stance or spec after it, the current health with "/ max" right-aligned, a 12-unit health pill in the class colour, a 5-unit power pill in the power type's colour, its foot level with the ring's; the cast line 6 units under the ring. No glass. | 490 x 80 |
+| Target | `sigil` | The name centred in the heading face, the level line (`Level 10 elite`, a middle dot, the creature type), a 12-unit pill between two gems, the gold cast line centred under it at 60% of the width; your debuffs as sockets centred under the frame (`auraPosition = CENTER`), timers under each. No glass, portrait, power or numbers. | 640 x 80, plus the socket row (about 46) under it |
+| Focus, boss | `card` | A glass card: a section cap (gem, `Focus` or `Boss`, a gilt rule, the classification or level at the right), the name with the percentage on its row, a 10-unit pill, an optional power pill, the gold cast line. Short cards close their gaps before they drop the cast line. | 318 x 120 each; the boss element holds five, 10 apart (318 x 640) |
+| Target of target, focus target, pet | `row` | The name and the percentage over a 6-unit pill, an optional 3-unit power pill under it. No glass. | 120 x 22 |
+
+- **Low health.** The vitals ring has a glow behind it (`view.ringGlow`, the `glow` texture in ADD blend). `Unit.Glow` passes a `C_CurveUtil.CreateColorCurve` curve (hostile red, alpha 0 at full health rising to 1 at none) to `UnitHealthPercent(unit, true, curve)` and hands the result's `GetRGBA()` straight to `SetVertexColor`, as Blizzard's aura buttons do with their dispel colour curve. Nothing compares the health. Without the colour curve API the glow stays off and the devlog says so once.
+- **Cast lines.** In a Lumen form the cast bar lives inside the frame at `geometry.cast`: the word Casting in the muted colour, the spell name in gold, then a 4-unit bar to the timer, no icon and no glass. The player and target get their own inline cast bars (`CastBars.Inline(kind)`); their classic cast bar elements run only under the plate (`CastBars.ElementLive(kind)`, `Layout.SetLive`). The `castbarColor` choice `gold` is the Lumen gilt; it is the default on the target, focus and boss.
+- **S1 switch point.** `Lumen.lua` is the only place that names the Lumen palette, the gem and the font roles. `Lumen.Color` reads S1's tokens `gold`, `goldLit`, `goldDim`, `cast`, `muted` and `deep` when Tokens has them and mixes today's tokens until then; `Lumen.Gem` uses S1's `gem` texture when it exists and the icon mask turned 45 degrees until then; the name, cap and value faces are the `heading` and `number` roles, which S1 turns into Cinzel and Alegreya Sans. The bars are `Widgets.StatusBar` and the card is `Widgets.Chrome`, so S1's pill bars and frost card apply without a change here.
+
 ## Frames
 
 | Frame | Element key | Unit | Default size |
@@ -64,6 +79,7 @@ Text never pushes a bar out of the frame, and no two texts overlap. The track al
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
+| `Lumen.lua` | `ns.Lumen`: `Color(name)`, `Font(role)` and `Gem(parent)`, the Lumen palette, faces and gem, from S1's tokens when they exist |
 | `Settings.lua` | `ns.Settings`: the defaults, the choices each setting allows, `Value(kind, key)` (the stored value, or the default with one devlog line when it is not allowed), `Font(kind, element) -> path, size, flags` (the size times Appearance's text size), `Accent() -> r, g, b`, `Snapshot(kind)` (plain values for the geometry) and `Schema()` |
 | `Format.lua` | `ns.Format`: `Health(text, unit, format)` and `Power(text, unit, format, powerType)` write the text with `SetFormattedText`, `AbbreviateNumbers` and `UnitHealthPercent` or `UnitPowerPercent` with a 0 to 100 curve, so no secret is ever read. On a full frame `Main(format)` is the format at the track's end (`both` becomes `percent`) and `HealthDetail(text, unit, format)` writes current and max under the track for `both`, or clears it for a dead, ghost or offline unit, or when there is no curve and the main text already shows current and max. `ColumnWidth(format, size)` is the room a format needs on a compact frame. `Sample` and `SampleDetail` write plain numbers for the preview. |
 | `Geometry.lua` | `ns.Geometry`: `Frame(s, width, height, fontScale) -> parts`, each part `{ x, y, w, h }` from the frame's top left with y growing downward, and `Slots(count, gap, width, height)` for the boss frames. `panel` is the column beside the portrait that holds the bars and texts; `glass` is the chamfered glass, which runs under the portrait; `healthSub` is current and max under the track. Pure maths, tested without frames. |
@@ -78,7 +94,7 @@ Text never pushes a bar out of the frame, and no two texts overlap. The track al
 | `Preview.lua` | `ns.Preview.Build(parent)`: the settings window's live preview |
 | `Module.lua` | Registers the module, the settings page and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-castbar-style.lua`, `test-unitframes-kit.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
+Tests: `Tools/regression/test-unitframes-lumen.lua` (the Lumen forms, the low-health glow, the inline cast lines), `Tools/regression/test-unitframes-settings.lua`, `test-unitframes-geometry.lua`, `test-unitframes-frames.lua`, `test-unitframes-indicators.lua`, `test-unitframes-resource.lua`, `test-unitframes-castbars.lua`, `test-unitframes-castbar-style.lua`, `test-unitframes-kit.lua`, `test-unitframes-auras.lua` and `test-unitframes-preview.lua`, on the fake units in `Tools/regression/unitframes_env.lua`.
 
 ## Settings
 
@@ -89,6 +105,7 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `hideBlizzard` | Hide Blizzard's frames that KstyleUI replaces | on |
 | `accent`, `accentColor` | The portrait frame's colour, and the badge's on a round portrait: `class` (the KstyleUI accent) or `custom` | `class` |
 | `edit` | The frame the page shows | `player` |
+| `<frame>.style` | `lumen` (vitals, sigil, card or row, by frame) or `plate` (the classic glass plate) | `lumen` |
 | `<frame>.enabled` | Show the frame | on |
 | `<frame>.portrait`, `portraitStyle`, `portraitSide` | Portrait: on or off; `portrait` (2D) or `class` (class icon); `LEFT` or `RIGHT` | on for player, target, focus and boss; target on the right |
 | `<frame>.portraitShape` | `round` (the owner's mockup: the ring, the octagon badge with the accent line) or `chamfered` (the design file: the chamfered square, the badge with the grey line) | `round` |
@@ -99,18 +116,18 @@ The settings page starts with the module-wide settings, then a **Frame to custom
 | `<frame>.healthOrientation`, `powerOrientation` | Fill direction: `RIGHT`, `LEFT`, `UP`, `DOWN` | `RIGHT` |
 | `<frame>.healthText`, `powerText` | `percent`, `current`, `currentMax`, `both`, `none`. On a full frame `both` puts the percentage at the track's end and current and max under it. | health `both` on full frames, `percent` on compact ones; power `none` |
 | `<frame>.healPrediction` | Incoming heals and absorbs on the health bar | on |
-| `<frame>.power`, `powerHeight` | Power bar, 2 to 24 units | on for full frames; 7 units on full frames, 3 on compact ones |
+| `<frame>.power`, `powerHeight` | Power bar, 2 to 24 units | on for player, target and compact rows when switched on, off for focus and boss (the cards); 5 units on the player (the vitals pill), 7 on the other full frames, 3 on compact ones |
 | `<frame>.raidMarker`, `leader`, `role`, `pvp`, `combat`, `resting`, `threat` | The raid marker, the status icons and the threat glow. `resting` is the player's only. | on for full frames; combat and resting on the player only; the raid marker on every frame |
 | `<frame>.iconSize` | Status icon size, 8 to 32 units | 14 |
-| `<frame>.castbar`, `castbarIcon`, `castbarText`, `castbarCaps`, `castbarTimer` | The cast bar and its spell icon, spell name, the name in tracked capitals, and timer (player, target, focus and boss) | on; the player's icon and capitals off, as the mockup draws "Slam" |
+| `<frame>.castbar`, `castbarIcon`, `castbarText`, `castbarCaps`, `castbarTimer` | The cast bar and its spell icon, spell name, the name in tracked capitals, and timer (player, target, focus and boss) | on; the icon off on the player; capitals off on every frame, as the Lumen cast lines write the spell |
 | `<frame>.castbarHeight` | The focus and boss cast bar height, 6 to 40 units. The player and target cast bars are their own elements, sized in Layout. | 20 focus, 10 boss |
-| `<frame>.auras` | Frame auras (player, target, focus and boss) | on for focus and boss |
+| `<frame>.auras` | Frame auras (player, target, focus and boss) | on for the target (your debuffs on the sigil), focus and boss |
 | `<frame>.auraFilter` | `mine` (your debuffs), `debuffs`, `buffs`, `both` | `mine` |
-| `<frame>.auraPosition`, `auraGrowth` | `BELOW`, `ABOVE`, `RIGHT`, `LEFT` of the frame; `RIGHT_DOWN`, `RIGHT_UP`, `LEFT_DOWN`, `LEFT_UP` | `RIGHT` for focus and boss, `BELOW` for the player, `ABOVE` for the target; `RIGHT_DOWN` |
+| `<frame>.auraPosition`, `auraGrowth` | `CENTER` (centred under the frame, timers under each icon), `BELOW`, `ABOVE`, `RIGHT`, `LEFT` of the frame; `RIGHT_DOWN`, `RIGHT_UP`, `LEFT_DOWN`, `LEFT_UP` | `CENTER` for the target (30-unit sockets), `RIGHT` for focus, `LEFT` growing `LEFT_DOWN` for boss (the cards sit on the right rail), `BELOW` for the player; `RIGHT_DOWN` |
 | `<frame>.auraSize`, `auraSpacing`, `auraRows`, `auraColumns`, `auraTimer` | Icon size 12 to 48, spacing 0 to 12, 1 to 6 rows of each kind, 1 to 16 columns, the time left on each icon | 20 (boss 18), 2, 1, 8 (boss 6), on |
-| `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent), `reaction` (the caster's reaction to you; the class accent while it is secret) or `custom` colour | Glass, `class` |
+| `<frame>.castbarTexture`, `castbarColor`, `castbarCustom` | Cast bar texture, and `class` (the class accent), `reaction` (the caster's reaction to you; the class accent while it is secret) `gold` (the Lumen gilt) or `custom` colour | Glass; `class` on the player, `gold` on target, focus and boss |
 | `<frame>.castbarOrientation` | Cast bar fill direction: `RIGHT`, `LEFT`, `UP`, `DOWN`. A cast bar taller than it is wide stacks its icon above the bar and puts the spell name at the top and the timer at the bottom. | `RIGHT` |
-| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar and auras, `cast` and `aura` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme`; name, health, power and level 12, 12, 10 and 13 on the player and target (the bars' text family: the kit's body 11 and the action bars' 13-unit cooldown numbers), 11, 11, 9 and 11 on focus, 10, 10, 9 and 10 on boss, 9 on compact frames; cast 12 on the player's 30-unit bar and 10 on the target's 24-unit bar, 10 on focus, 9 on boss; `NONE` |
+| `<frame>.fonts.<text>.font`, `.size`, `.outline` | For the `name`, `health`, `power`, `level` and, on frames with a cast bar and auras, `cast` and `aura` texts: `theme` (Appearance's font) or a font file; 6 to 32 units; `NONE`, `OUTLINE`, `THICKOUTLINE` | `theme` (in a Lumen form the name takes the heading face and the values the number face); name, health, power and level 17, 15, 10 and 12 on the player, 20, 12, 10 and 13 on the target, 16, 14, 9 and 12 on focus and boss, 12, 12, 9 and 10 on compact frames (the Lumen mockup's type); cast 12 on the player's 30-unit bar and 10 on the target's 24-unit bar, 10 on focus, 9 on boss; `NONE` |
 
 The class resource has its own settings, under the player frame's rows:
 

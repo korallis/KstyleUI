@@ -11,12 +11,13 @@ local function noErrors(where)
 end
 noErrors("enable")
 
--- Focus and boss frames show auras by default; the player and target leave them to the Auras module and the HUD.
+-- Focus and boss frames show auras by default, and the target's sigil carries your debuffs; the player leaves them to the Auras module.
 local focus = Frames.Get("focus").views[1]
 local boss = Frames.Get("boss").views[2]
 assert(focus.auras and focus.auras.container, "the focus frame has an aura container")
 assert(boss.auras and boss.auras.container, "each boss frame has an aura container")
-assert(Frames.Get("target").views[1].auras == nil, "the target frame builds no container until its auras are switched on")
+local sigil = Frames.Get("target").views[1].auras
+assert(sigil and sigil.container and sigil.container._unit == "target", "the target's sigil carries an aura container by default")
 assert(Frames.Get("player").views[1].auras == nil, "the player frame shows no auras by default")
 local c = focus.auras.container
 assert(c._unit == "focus" and boss.auras.container._unit == "boss2", "each container follows its unit")
