@@ -77,6 +77,18 @@ function Lumen.Preset(layout)
 	return settings, { left = l, top = HEIGHT - t, width = r - l, height = slot.height }, slot, Layouts.Sizes(layout)
 end
 
+local function glassBottom(scene)
+	local bottom = -math.huge
+	for _, item in ipairs(scene.items) do
+		local r = item.rect
+		local shadow = item.file and item.file:find("Shadow", 1, true)
+		if r and not shadow and (item.alpha or 1) > 0 then
+			bottom = math.max(bottom, r[2] + r[4])
+		end
+	end
+	return bottom
+end
+
 local function bottomOf(env, frame)
 	local _, top, _, h = Scene.Rect(env, frame)
 	return top and h and top + h
@@ -118,6 +130,13 @@ function Lumen.Build(state, opts)
 	scenes[#scenes + 1] = guide
 	local guideBottom = bottomOf(R.env, R.rxp.RXPFrame) or (slot.top + slot.height / 2)
 	base.trackerAt = { slot.left + TRACKER_INSET, guideBottom + SLOT_GAP - TRACKER_HEADER }
+	-- A player drops the quest card so its glass ends inside the slot, clear of chat: lift it by what it overruns.
+	local tracker = Hud.Module("tracker", base)
+	local over = glassBottom(tracker) - (slot.top + slot.height)
+	if over > 0 then
+		base.trackerAt[2] = base.trackerAt[2] - over
+		log[#log + 1] = string.format("lumen: the quest card's glass lifted %.1f units to end in the story slot", over)
+	end
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")

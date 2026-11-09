@@ -52,8 +52,9 @@ for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
 end
 -- The Lumen mockup's type (arena2/parent/index.html, one unit per pixel): the vitals name 17 over a 15-unit value
 -- and a 12-unit level disc; the sigil's name 20 over its 13-unit level line; the cards' name 16, percentage 14 and
--- 12-unit cap; the pill rows 12.
-for kind, sizes in pairs({ player = { 17, 15, 10, 12 }, target = { 20, 12, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 16, 14, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
+-- 12-unit cap; the pill rows 12. The boss column's compact cards are 258 wide, so their name and percentage are 13:
+-- a long boss name in the heading face still fits beside its percentage.
+for kind, sizes in pairs({ player = { 17, 15, 10, 12 }, target = { 20, 12, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")

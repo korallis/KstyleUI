@@ -24,7 +24,9 @@ local ANCHORS = {
 }
 -- Party and raid frames never show together, so they may share space.
 local EXCLUSIVE = { ["groupframes.party"] = "groupframes.raid", ["groupframes.raid"] = "groupframes.party" }
-local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 } }
+local SPARE = { ["actionbars.bar3"] = true, ["actionbars.bar4"] = true, ["actionbars.bar5"] = true, ["actionbars.bar6"] = true }
+-- 16:9 at three sizes, a MacBook, 16:10 and 21:9: the root is 1080 units tall on each.
+local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 }, { 2560, 1600 }, { 3440, 1440 } }
 local HEIGHT = 1080
 
 local function set(list)
@@ -130,22 +132,32 @@ for _, name in ipairs(names) do
 			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
-		-- A docked element sits inside its host card; a threat card a layout switches off waits on the damage card's place.
+		-- A docked element sits inside its host card; the tooltip anchor lies over the readout card and what docks in it; a
+		-- threat card a layout switches off waits on the damage card's place.
+		local function covers(x, y)
+			local host = Layouts.Covers(x)
+			return host ~= nil and (host == y or Layouts.Dock(y) == host)
+		end
 		local function shares(a, c)
-			if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
+			if Layouts.Dock(a) == c or Layouts.Dock(c) == a or covers(a, c) or covers(c, a) then
 				return true
 			end
 			local threat = a == "meters.threat" and c or (c == "meters.threat" and a)
 			return threat == "meters.damage" and Layouts.Shown(name, "meters.threat") == false
 		end
+		-- Bars 3 to 6 are off in every layout. Below 16:10 there is no room for four 489-unit columns beside the boss
+		-- column and the Healer's group frames, so there a player who turns one on places it; test-setup-collisions.lua
+		-- holds them apart at 16:9, 16:10 and 21:9.
+		local narrow = width / HEIGHT < 1.6 - 1e-6
 		for i = 1, #KEYS do
 			for j = i + 1, #KEYS do
 				local a, c = KEYS[i], KEYS[j]
-				if EXCLUSIVE[a] ~= c and not shares(a, c) and overlap(rects[a], rects[c]) then
+				local spare = narrow and (SPARE[a] or SPARE[c])
+				if EXCLUSIVE[a] ~= c and not spare and not shares(a, c) and overlap(rects[a], rects[c]) then
 					error(label .. ": " .. a .. " overlaps " .. c)
 				end
 				local ra, rc = rects[a], rects[c]
-				if (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
+				if not spare and (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
 					error(label .. ": " .. a .. " comes within 2 units of " .. c)
 				end
 			end
@@ -154,14 +166,25 @@ for _, name in ipairs(names) do
 end
 
 -- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
--- Two 318-unit rails on a 28-unit margin hold everything slow: the left rail the party and chat with the story slot
--- between them, the right rail the lens, the Blessings, the boss, the meters and the readout and menu. The centre holds
--- only the hands at the bottom and the target sigil at the top, and the world between them stays clear.
+-- Two 318-unit rails on a 28-unit margin hold everything slow: in DPS and Tank the left rail the party and chat with
+-- the story slot between them, the right rail the lens, the Blessings, the meters and the readout and menu. The centre
+-- holds the hands at the bottom and the enemy at the top: the target sigil, and beside it, 16 units in from the right
+-- rail, the boss column, so all five boss cards fit clear of the meters. The world between stays clear. Healer brings
+-- the party and raid beside the hands, puts the damage card and the focus at the head of the left rail and the boss
+-- column on the right rail.
 
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
-local LEFT_RAIL = { "groupframes.party", "groupframes.raid", "chat.main" }
-local RIGHT_STACK = { "minimap.main", "auras.buffs", "unitframes.boss", "meters.damage", "meters.threat" }
+local LEFT_RAIL = {
+	DPS = { "groupframes.party", "groupframes.raid", "chat.main" },
+	Tank = { "groupframes.party", "groupframes.raid", "chat.main" },
+	Healer = { "meters.damage", "unitframes.focus", "chat.main" },
+}
+local RIGHT_STACK = {
+	DPS = { "minimap.main", "auras.buffs", "meters.damage" },
+	Tank = { "minimap.main", "auras.buffs", "meters.threat", "meters.damage" },
+	Healer = { "minimap.main", "auras.buffs", "unitframes.boss" },
+}
 local DOCKED = { ["auras.debuffs"] = "auras.buffs", ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
 local HANDS = set({
 	"databars.xp", "databars.rep", "databars.honor", "actionbars.bar1", "actionbars.bar2", "actionbars.pet", "actionbars.stance",
@@ -171,14 +194,25 @@ local HANDS = set({
 local SIGIL = set({ "unitframes.target", "unitframes.castbar.target", "unitframes.targettarget" })
 -- The mockup's "world, kept clear" (system board): the centre 520 units wide, from the hands' top to the sigil's foot.
 local CLEAR = { half = 260, bottom = 390, top = 880 }
--- The focus card is a 318-unit card at mid-left, at the clear centre's edge (the brief: "inside the centre clear
--- zone's edge"): on a 1671-unit screen it reaches into the zone's outer half, never past it.
-local EDGE = set({ "unitframes.focus", "unitframes.focustarget" })
-local RAIL_KEYS = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
-	"unitframes.boss", "meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags" })
+-- Cards at the clear centre's edge (the brief: "inside the centre clear zone's edge"): on a 16:10 screen they reach
+-- into the zone's outer half, never past it. The focus card on the left; the boss column on the right.
+local EDGE_LEFT = set({ "unitframes.focus", "unitframes.focustarget" })
+local EDGE_RIGHT = set({ "unitframes.boss" })
+local RAIL_KEYS = {
+	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
+		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+	Healer = set({ "chat.main", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss", "unitframes.focus",
+		"unitframes.focustarget", "meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+}
+RAIL_KEYS.Tank = RAIL_KEYS.DPS
+-- Healer: the party and raid sit beside the hands, left of centre, their right edge 116 units off the centre line and
+-- their foot 400 up, just over the hands' top; the character's column (centre +- 100) stays clear.
+local HEALER = { right = 116, bottom = 400, character = 100 }
+local GROUP = set({ "groupframes.party", "groupframes.raid" })
 
 for _, name in ipairs(names) do
 	local layout = Layouts.Get(name)
+	local healer = name == "Healer"
 	for _, screen in ipairs(SCREENS) do
 		local width = HEIGHT * screen[1] / screen[2]
 		local label = name .. " at " .. screen[1] .. "x" .. screen[2]
@@ -192,11 +226,11 @@ for _, name in ipairs(names) do
 		end
 
 		-- The rails share their columns and width, the same on both sides.
-		for _, key in ipairs(LEFT_RAIL) do
+		for _, key in ipairs(LEFT_RAIL[name]) do
 			local r = rect(key)
 			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the 28 margin")
 		end
-		for _, key in ipairs(RIGHT_STACK) do
+		for _, key in ipairs(RIGHT_STACK[name]) do
 			local r = rect(key)
 			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail, 318 wide on the 28 margin")
 		end
@@ -209,46 +243,75 @@ for _, name in ipairs(names) do
 			local r, h = rect(key), rect(host)
 			assert(r.left >= h.left and r.right <= h.right + 1e-6 and r.bottom >= h.bottom and r.top <= h.top, label .. ": " .. key .. " sits inside " .. host)
 		end
-		local party, raid, chat = rect("groupframes.party"), rect("groupframes.raid"), rect("chat.main")
-		assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
+		-- The tooltip anchor lies on the readout card at the right rail's foot: fixed tooltips cover the idle readout and
+		-- grow up the rail, never over the hands, the combat text or the boss column.
+		local tip = rect("tooltips.anchor")
+		assert(Layouts.Covers("tooltips.anchor") == "databars.strip", "the tooltip anchor covers the readout card")
+		assert(math.abs(tip.right - strip.right) < 1e-6 and tip.bottom == strip.bottom and tip.left >= strip.left, label .. ": the tooltip anchor sits in the readout card's corner")
+		local chat = rect("chat.main")
 		assert(chat.bottom == MARGIN, label .. ": chat sits at the left rail's foot")
 
-		-- The right rail, top to bottom: lens, Blessings, boss, damage, threat (Tank); 16 to 22 units between cards.
+		-- The right rail, top to bottom, 16 to 22 units between cards.
 		local top = HEIGHT - MARGIN
-		for i, key in ipairs(RIGHT_STACK) do
-			if Layouts.Shown(name, key) ~= false then
-				local r = rect(key)
-				if i == 1 then
-					assert(r.top == top, label .. ": the lens card heads the right rail")
-				else
-					local gap = top - r.top
-					assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. key .. " sits 16 to 22 under the card above it, got " .. gap)
-				end
-				top = r.bottom
+		for i, key in ipairs(RIGHT_STACK[name]) do
+			local r = rect(key)
+			if i == 1 then
+				assert(r.top == top, label .. ": the lens card heads the right rail")
+			else
+				local gap = top - r.top
+				assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. key .. " sits 16 to 22 under the card above it, got " .. gap)
 			end
+			top = r.bottom
 		end
 		assert(top - strip.top >= CARD_GAP_MIN, label .. ": the readout and menu card clears the card above it")
 
-		-- The story slot: the space between the party card and chat, where the player drops the guide and the tracker.
+		-- The left rail's head: the party and raid card, or in Healer the damage card with the focus under it.
+		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
+		local head
+		if healer then
+			local damage, focus = rect("meters.damage"), rect("unitframes.focus")
+			assert(damage.top == HEIGHT - MARGIN, label .. ": the damage card heads the left rail")
+			assert(damage.bottom - focus.top == 16, label .. ": the focus card sits 16 under it")
+			local ft = rect("unitframes.focustarget")
+			assert(ft.left == MARGIN and focus.bottom - ft.top >= 4, label .. ": the focus target sits under the focus card")
+			head = ft
+		else
+			assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
+			head = party
+		end
+
+		-- The story slot: the space between the left rail's head and chat, where the player drops the guide and the tracker.
 		local slot = Layouts.Slot(name)
 		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
 		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
 		assert(s[1] == MARGIN and s[3] - s[1] == RAIL, label .. ": the story slot is on the left rail's column")
-		assert(s[2] - chat.top >= CARD_GAP_MIN and party.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the party card and chat")
+		assert(s[2] - chat.top >= CARD_GAP_MIN and head.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the rail's head and chat, 16 from each")
 		assert(s[4] - s[2] >= 280, label .. ": the story slot has room for the guide and the quests")
-		-- In a raid the taller raid card takes the slot's top: the slot says how far, and Layout Mode marks the line.
-		assert(slot.raid == raid.h - party.h and slot.raid > 0 and slot.raid < s[4] - s[2] and slot.raidHint, label .. ": the story slot names the part the raid card covers")
-		assert(party.bottom - slot.raid == raid.bottom, label .. ": the raid card ends that far into the slot")
+		if healer then
+			assert(slot.raid == 0, label .. ": in Healer the raid card is beside the hands and covers none of the slot")
+		else
+			-- In a raid the taller raid card takes the slot's top: the slot says how far, and Layout Mode marks the line.
+			assert(slot.raid == raid.h - party.h and slot.raid > 0 and slot.raid < s[4] - s[2] and slot.raidHint, label .. ": the story slot names the part the raid card covers")
+			assert(party.bottom - slot.raid == raid.bottom, label .. ": the raid card ends that far into the slot")
+		end
 
-		-- Nothing but the rails' own cards enters a rail column; nothing but the hands and the sigil crosses the clear centre.
+		-- Nothing but the rails' own cards enters a rail column; nothing but the hands, the sigil and (in Healer) the group
+		-- frames crosses the clear centre; the edge cards stay in its outer half.
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
-			if not RAIL_KEYS[key] then
+			local onRail = RAIL_KEYS[name][key]
+			if not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
 			end
 			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
-			if EDGE[key] then
+			if healer and GROUP[key] then
+				assert(r.right <= mid - HEALER.right + 1e-6 and r.right <= mid - HEALER.character, label .. ": " .. key .. " stays left of the character's column")
+				assert(r.left >= BAND, label .. ": " .. key .. " stays off the left rail")
+				assert(r.bottom == HEALER.bottom, label .. ": " .. key .. " stands just over the hands")
+			elseif EDGE_LEFT[key] and not onRail then
 				assert(r.right <= mid - CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
+			elseif EDGE_RIGHT[key] and not onRail then
+				assert(r.left >= mid + CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
 			end
@@ -260,7 +323,8 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns, the cast bar.
+		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns with the swing line on
+		-- them, then bar 2 and the plate's cast bar for a player who turns them on.
 		local xp, bar1, vitals = rect("databars.xp"), rect("actionbars.bar1"), rect("unitframes.player")
 		local essential, utility, cast = rect("cooldowns.essential"), rect("cooldowns.utility"), rect("unitframes.castbar.player")
 		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "meters.swing" }) do
@@ -277,9 +341,11 @@ for _, name in ipairs(names) do
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
 		assert(buffs.bottom == essential.bottom and essential.left - buffs.right >= 16, label .. ": the tracked buff icons sit beside the essential cooldowns' other end")
 		assert(bars.bottom >= buffs.top + 4 and bars.left == buffs.left, label .. ": the tracked buff bars sit over the icons")
-		assert(cast.bottom >= essential.top + 8, label .. ": the cast bar sits over the cooldowns")
 		local bar2, swing = rect("actionbars.bar2"), rect("meters.swing")
-		assert(swing.bottom >= cast.top and bar2.bottom >= swing.top, label .. ": bar 2, off in Lumen, waits at the top of the hands")
+		assert(swing.bottom - essential.top >= 4 and swing.bottom - essential.top <= 8, label .. ": the swing line sits on the essential cooldowns, part of the hands, not a stray bar")
+		local block = math.max(swing.top, bars.top, essential.top, utility.top)
+		assert(bar2.bottom >= block and bar2.bottom - block <= 8, label .. ": bar 2 sits on the hands block, not floating over it (" .. (bar2.bottom - block) .. " over)")
+		assert(cast.bottom >= bar2.top, label .. ": the plate's cast bar waits over bar 2")
 		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
 		assert(petBar.right == bar1.left - 12 and petBar.bottom == bar1.bottom, label .. ": the pet sockets sit beside bar 1's left end")
 		assert(stance.left == bar1.right + 12 and stance.bottom == bar1.bottom, label .. ": the stance sockets sit beside bar 1's right end")
@@ -295,10 +361,22 @@ for _, name in ipairs(names) do
 		assert(centred(targetCast) and sigil.bottom - targetCast.top == 8, label .. ": the target cast bar hangs under the sigil")
 		assert(tot.right == sigil.right and tot.top == targetCast.top, label .. ": the target of target sits under the sigil's right end")
 
-		-- The focus card at mid-left, at the clear centre's edge; its target under it.
+		-- The enemy at the top: in DPS and Tank the boss column sits 16 in from the right rail, 16 under the target of
+		-- target, and all five cards end above your combat text.
+		local boss, text = rect("unitframes.boss"), rect("combattext.player")
+		if not healer then
+			assert(math.abs(boss.right - (width - BAND)) < 1e-6, label .. ": the boss column sits 16 units in from the right rail")
+			assert(tot.bottom - boss.top == 16, label .. ": the boss column hangs 16 under the target of target")
+			assert(boss.bottom - text.top >= 16, label .. ": your combat text rises under the boss column")
+		end
+		assert(text.left >= utility.right or text.bottom >= utility.top, label .. ": your combat text stays off the utility cooldowns")
+
+		-- The focus card at mid-left, at the clear centre's edge; its target under it. In Healer they head the left rail.
 		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
-		assert(focus.left == BAND and focus.y > HEIGHT / 3 and focus.y < HEIGHT * 2 / 3, label .. ": the focus card sits mid-left, beside the left rail")
-		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= 4, label .. ": the focus target sits under the focus card")
+		if not healer then
+			assert(focus.left == BAND and focus.y > HEIGHT / 3 and focus.y < HEIGHT * 2 / 3, label .. ": the focus card sits mid-left, beside the left rail")
+			assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= 4, label .. ": the focus target sits under the focus card")
+		end
 	end
 
 	-- Bars 2 to 6 are off in Lumen; bar 1 and the socket rows are on. The threat card shows in Tank only. The cast bar
@@ -338,7 +416,13 @@ do
 	local function h(name, key)
 		return select(2, Layouts.Footprint(name, key))
 	end
-	assert(h("Healer", "groupframes.party") > h("DPS", "groupframes.party") and h("Healer", "groupframes.raid") > h("DPS", "groupframes.raid"), "Healer gets larger party and raid frames on the same column")
+	assert(h("Healer", "groupframes.party") > h("DPS", "groupframes.party") and h("Healer", "groupframes.raid") > h("DPS", "groupframes.raid"), "Healer gets larger party and raid frames")
+	local healerParty, dpsParty = Layouts.Get("Healer")["groupframes.party"], Layouts.Get("DPS")["groupframes.party"]
+	assert(healerParty.anchor ~= dpsParty.anchor or healerParty.x ~= dpsParty.x, "Healer moves the party and raid: it is not the DPS layout with taller rows")
+	assert(h("Tank", "meters.threat") > h("Tank", "meters.damage"), "Tank gives the threat card more rows than the damage card")
+	local hs = {}
+	for _, entry in ipairs(Layouts.Settings("Healer")) do hs[entry.module .. "." .. entry.key] = entry.value end
+	assert(hs["GroupFrames.party.auraDispelCount"] == 2 and hs["GroupFrames.raid.auraDispelCount"] == 2, "Healer shows up to two dispellable debuffs first on every frame")
 	assert(h("Tank", "groupframes.party") == h("DPS", "groupframes.party"), "Tank keeps the DPS party card")
 	local dps, healer = {}, {}
 	for _, entry in ipairs(Layouts.Settings("DPS")) do dps[entry.module .. "." .. entry.key] = entry.value end
@@ -386,7 +470,7 @@ local FOOTPRINTS = {
 	["cooldowns.bars"] = { 195, 2 * 20 + 3 },
 	["unitframes.player"] = { 490, 80 },
 	["unitframes.target"] = { 640, 126 },
-	["unitframes.boss"] = { 318, 120 },
+	["unitframes.boss"] = { 318, 334 },
 	["unitframes.targettarget"] = { 120, 22 },
 	["unitframes.pet"] = { 120, 22 },
 	["unitframes.focustarget"] = { 120, 22 },
@@ -403,7 +487,7 @@ local FOOTPRINTS = {
 	["meters.threat"] = { 318, 144 },
 	["databars.strip"] = { 318, 118 },
 	["databars.micro"] = { 318, 44 },
-	["chat.main"] = { 318, 300 },
+	["chat.main"] = { 318, 260 },
 	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
 	["databars.xp"] = { 489, 4 },
@@ -419,9 +503,9 @@ end
 -- layout writes on Apply (the Tank meters).
 do
 	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
-	-- hang under its 80-unit frame, so the layouts keep 126 from its top; the boss element holds five 120-unit cards,
-	-- and the right rail keeps one card's room under the Blessings, so a second boss card reaches over the damage card.
-	local RESERVES = { ["unitframes.target"] = { 640, 126 }, ["unitframes.boss"] = { 318, 120 } }
+	-- hang under its 80-unit frame, so the layouts keep 126 from its top; the boss column holds five compact cards and
+	-- the layouts keep its full height plus the debuffs hanging to its left, 318 in all.
+	local RESERVES = { ["unitframes.target"] = { 640, 126 }, ["unitframes.boss"] = { 318, 334 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -433,7 +517,7 @@ do
 	end
 	local target, boss = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss")
 	assert(target.width == 640 and target.height == 80 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
-	assert(boss.width == 318 and boss.height == 5 * 120 + 4 * 10, "the boss element holds five 120-unit cards 10 apart")
+	assert(boss.width == 258 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart")
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not RESERVES[element.key] then
 			local w, h = Layouts.Footprint("DPS", element.key)

@@ -26,21 +26,21 @@ Footprints are width x height in units at the 1080 reference. A footprint follow
 | `unitframes.player` | UnitFrames | Player frame | 490 x 80 | The Lumen vitals line over bar 1: a 62-unit portrait ring with its level disc, the name, a 12-unit health pill, a 5-unit power pill and the cast line inside, as wide as bar 1, 12 units over it |
 | `unitframes.target` | UnitFrames | Target frame | 640 x 80 (the layouts keep 640 x 126) | The Lumen target sigil, centred 40 units under the top: name, level line, a gem-ended health pill and the cast line, with your debuffs as sockets hanging under it, inside the 126 the layouts keep |
 | `unitframes.targettarget` | UnitFrames | Target of target | 120 x 22 | A pill row under the sigil's right end, beside the target cast bar |
-| `unitframes.focus` | UnitFrames | Focus frame | 318 x 120 | The focus card at mid-left, 16 units right of the left rail, at the clear centre's outer edge |
+| `unitframes.focus` | UnitFrames | Focus frame | 318 x 120 | The focus card at mid-left, 16 units right of the left rail, at the clear centre's outer edge. Healer: on the left rail under the damage card |
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 22 | A pill row under the focus card, left-aligned |
 | `unitframes.pet` | UnitFrames | Pet frame | 120 x 22 | A pill row beside the vitals line's ring, 12 units left of it, top-aligned |
-| `unitframes.boss` | UnitFrames | Boss frames | 318 x 640 (the layouts keep 318 x 120) | Five 318 by 120 boss cards 10 apart on the right rail, under the Blessings. The rail keeps room for the first card only: in a fight with two or more bosses, the second card on reaches over the damage card |
-| `unitframes.castbar.player` | UnitFrames | Player cast bar | 272 x 30 | Off under the Lumen style, whose cast line is inside the vitals line. Placed over the essential cooldowns for the classic plate |
+| `unitframes.boss` | UnitFrames | Boss frames | 258 x 334 (the layouts keep 318 x 334) | The boss column: five compact 258 by 62 boss cards 6 apart (name and percentage, pill, cast line; no cap), their debuffs hanging in three 18-unit columns to the left, inside the 318 the layouts keep. DPS and Tank: 16 units left of the right rail, 16 under the target of target, so all five fit beside the enemy's sigil and clear of the meters. Healer: on the right rail under the Blessings |
+| `unitframes.castbar.player` | UnitFrames | Player cast bar | 272 x 30 | Off under the Lumen style, whose cast line is inside the vitals line. Placed over bar 2's place for the classic plate |
 | `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 24 | Off under the Lumen style, whose cast line is on the sigil. Placed 8 units under the sigil's sockets for the classic plate |
 | `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, centred between the vitals line and the essential cooldowns |
-| `groupframes.party` | GroupFrames | Party frames | 318 x 324 | S4's party card at the head of the left rail: a Party cap, five 40-unit rows with 8-unit gaps (role ring, name, class line, class pill). Healer: 318 x 354, five 46-unit rows |
-| `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames |
+| `groupframes.party` | GroupFrames | Party frames | 318 x 324 | S4's party card at the head of the left rail: a Party cap, five 40-unit rows with 8-unit gaps (role ring, name, class line, class pill). Healer: 318 x 354, five 46-unit rows, beside the hands left of centre, its right edge 116 units left of the centre line, 400 units up |
+| `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames, in the party card's place beside the hands |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row, 12 units over the XP line |
-| `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | Off in Lumen. Placed at the top of the hands, over the swing timer, for a player who turns it on |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | Off in Lumen. A column of 12 at the top of the right side, 16 units left of the right rail |
-| `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | Off in Lumen. A column of 12, left of bar 3 |
-| `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | Off in Lumen. A column of 12 at the top of the left side, 16 units right of the left rail |
-| `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | Off in Lumen. A column of 12, right of bar 5 |
+| `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | Off in Lumen. Placed on the hands block for a player who turns it on: 5 units over the tracked buff bars and the swing timer, not floating in the world |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | Off in Lumen. A column of 12 at the top of the left side, right of bar 6 (the boss column holds the right side). Healer: 16 units left of the right rail |
+| `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | Off in Lumen. A column of 12, right of bar 3. Healer: left of bar 3 |
+| `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | Off in Lumen. A column of 12 at the top of the left side, 16 units right of the left rail. Healer: left of bar 4, as the party and raid take the left side |
+| `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | Off in Lumen. A column of 12, right of bar 5. Healer: left of bar 5 |
 | `actionbars.pet` | ActionBars | Pet bar | 162 x 63 | Two rows of five 30-unit sockets, 12 units left of bar 1's left end, bottom-aligned with it |
 | `actionbars.stance` | ActionBars | Stance bar | 162 x 63 | Two rows of five 30-unit sockets, 12 units right of bar 1's right end, bottom-aligned with it |
 | `cooldowns.essential` | Cooldowns | Essential cooldowns | 294 x 44 | 6 icons of 44 units with 6-unit gaps (one notch up from the 38-unit action button), centred over the vitals line |
@@ -50,20 +50,20 @@ Footprints are width x height in units at the 1080 reference. A footprint follow
 | `auras.buffs` | Auras | Buffs | 318 x 177 | S4's Blessings card on the right rail, 16 units under the lens card: a cap, one row of six buffs with timers (the layouts write one row), a hairline and the debuff row docked under it. Two buff rows make it 318 x 240 |
 | `auras.debuffs` | Auras | Debuffs | 318 x 63 | Docked in the Blessings card and not live there. Placed at the card's foot, where it stays when the player undocks it |
 | `minimap.main` | Minimap | Minimap | 318 x 326 | S4's lens card at the head of the right rail, on the 28-unit margin: a round lens in a card with the gilt N, the zone and the clock in its foot |
-| `chat.main` | Chat | Chat | 318 x 300 | The chat card at the left rail's foot, on the 28-unit margin, short enough to leave the story slot its room |
+| `chat.main` | Chat | Chat | 318 x 260 | The chat card at the left rail's foot, on the 28-unit margin, short enough to leave the story slot room for the guide and three quests |
 | `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
 | `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
 | `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |
 | `databars.strip` | DataBars | Data strip | 318 x 118 | S4's readout card at the right rail's foot: the readout line, with the micro menu docked under it and the bag bar wrapped under that, which 318 units need, and 3 units for pixel snapping (a card a hair short drops the rows under it) |
 | `databars.micro` | DataBars | Micro menu | 318 x 44 | Docked in the readout card and not live there. Placed at the card's foot |
 | `databars.bags` | DataBars | Bag bar | 212 x 32 | Docked in the readout card and not live there. Placed in the card, over the micro menu's place |
-| `meters.damage` | Meters | Damage meter | 318 x 190 | S4's damage card on the right rail, 16 units under the boss card's room: six rows. Tank: 318 x 98, two rows, which Apply writes |
-| `meters.threat` | Meters | Threat meter | 318 x 144 | Shown in Tank only, under the damage card, at 318 x 98 (two rows), which Apply writes. Off elsewhere, on the damage card's place |
-| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar over the player cast bar |
-| `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, right of the clear centre |
-| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, beside the right rail, over the bag bar |
+| `meters.damage` | Meters | Damage meter | 318 x 190 | S4's damage card on the right rail, 16 units under the Blessings: six rows. Tank: 318 x 98, two rows, which Apply writes, under the threat card. Healer: at the head of the left rail |
+| `meters.threat` | Meters | Threat meter | 318 x 144 | Shown in Tank only, first under the Blessings, four rows. Off elsewhere, on the damage card's place |
+| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar 6 units over the essential cooldowns, part of the hands |
+| `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, right of the clear centre, between the utility cooldowns and the boss column |
+| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from: the right rail's foot, so a tooltip covers the idle readout card, never the hands, the combat text or the boss column |
 
-The story slot is not an element. Each layout has one (`Setup.Layouts.Slot(name)`): the left rail's column between the party card and chat, where the player drags RestedXP's guide and moves Blizzard's quest tracker in Edit Mode. KstyleUI never moves those frames. The setup's previews and Layout Mode draw its outline.
+The story slot is not an element. Each layout has one (`Setup.Layouts.Slot(name)`): the left rail's column between the party card (Healer: the focus target) and chat, where the player drags RestedXP's guide and moves Blizzard's quest tracker in Edit Mode. KstyleUI never moves those frames. The setup's previews and Layout Mode draw its outline.
 
 ## Core windows
 

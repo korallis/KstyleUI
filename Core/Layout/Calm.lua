@@ -1,4 +1,4 @@
--- Calm.lua: combat calm: in combat the rails' slow cards rest at 30% until the pointer wakes them and return a few seconds after; alpha only, through Layout for its own elements.
+-- Calm.lua: combat calm: in combat the rails' idle cards rest at 30% and the cards you read (chat, map, tracker, guide) dim only to 75%, until the pointer wakes them; they return a few seconds after; alpha only, through Layout for its own elements.
 local _, ns = ...
 
 local Layout = ns.Layout
@@ -7,11 +7,10 @@ local Motion, Modules, Tokens = ns.Motion, ns.Modules, ns.Tokens
 local Calm = {}
 Layout.Calm = Calm
 
-Calm.ALPHA, Calm.FALL, Calm.RISE, Calm.DELAY, Calm.HOVER = 0.3, 0.24, 0.6, 3, 0.24
-Calm.CARDS = {
-	"chat.main", "minimap.main", "databars.strip", "databars.micro", "databars.bags",
-	"databars.xp", "databars.rep", "databars.honor",
-}
+Calm.ALPHA, Calm.SOFT, Calm.FALL, Calm.RISE, Calm.DELAY, Calm.HOVER = 0.3, 0.75, 0.24, 0.6, 3, 0.24
+Calm.IDLE = { "databars.strip", "databars.micro", "databars.bags", "databars.xp", "databars.rep", "databars.honor" }
+Calm.READ = { "chat.main", "minimap.main" }
+Calm.CARDS = {}
 Calm.SURFACES = { "ObjectiveTrackerFrame", "RXPFrame" }
 
 local OWNER = "Calm"
@@ -19,9 +18,14 @@ local POLL = 0.1
 local SKINS = "Skins"
 local EPSILON = 0.01
 
-local isCard = {}
-for _, key in ipairs(Calm.CARDS) do
-	isCard[key] = true
+local level = {}
+for _, key in ipairs(Calm.READ) do
+	level[key] = Calm.SOFT
+	Calm.CARDS[#Calm.CARDS + 1] = key
+end
+for _, key in ipairs(Calm.IDLE) do
+	level[key] = Calm.ALPHA
+	Calm.CARDS[#Calm.CARDS + 1] = key
 end
 
 local calm, wait, listening = false, nil, false
@@ -67,18 +71,22 @@ local function Alpha(frame)
 	return alpha
 end
 
+local found = {}
+
 local function Surfaces()
-	local out = {}
+	for i = #found, 1, -1 do
+		found[i] = nil
+	end
 	if not Modules.IsRunning(SKINS) then
-		return out
+		return found
 	end
 	for _, name in ipairs(Calm.SURFACES) do
 		local frame = _G[name]
 		if type(frame) == "table" and type(frame.SetAlpha) == "function" and type(frame.GetAlpha) == "function" then
-			out[#out + 1] = frame
+			found[#found + 1] = frame
 		end
 	end
-	return out
+	return found
 end
 
 local function Fade(frame, rec, value, duration, onDone)
@@ -109,7 +117,7 @@ local function CalmSurface(frame, duration)
 		rec = { value = 1 }
 		owned[frame] = rec
 	end
-	local target = hovered[frame] and 1 or Calm.ALPHA
+	local target = hovered[frame] and 1 or Calm.SOFT
 	if rec.value ~= target then
 		Fade(frame, rec, target, duration)
 	end
@@ -222,8 +230,8 @@ function Calm.Active()
 end
 
 function Calm.Level(key)
-	if calm and isCard[key] and not hovered[key] then
-		return Calm.ALPHA
+	if calm and level[key] and not hovered[key] then
+		return level[key]
 	end
 	return 1
 end

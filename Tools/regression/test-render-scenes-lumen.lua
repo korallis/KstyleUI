@@ -1,6 +1,6 @@
 -- test-render-scenes-lumen.lua: the Lumen Rails HUD scenes build both states of the mockup boards: out of combat the
--- guide and the tracker fit the story slot and every card is lit; in combat the slow cards rest at 30% and the focus
--- cards stay lit.
+-- guide and the tracker fit the story slot and every card is lit; in combat the idle cards rest at 30%, the cards you
+-- read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local check = L.check
 local Lumen = dofile("Tools/render/scenes/_lumen.lua")
@@ -68,7 +68,8 @@ do
 	end
 end
 
--- In combat: the boss card and the boss as the target with its cast; the slow cards calm, the focus cards stay lit.
+-- In combat: the boss card and the boss as the target with its cast; the idle cards calm, the read cards dim a little,
+-- the focus cards stay lit.
 do
 	for _, name in ipairs({ "Leduc", "Trolly", "Khont", "Mira" }) do
 		assert(find(combat, name), "the party of five shows " .. name)
@@ -77,7 +78,11 @@ do
 	assert(find(combat, "Terrifying Screech"), "and its cast shows")
 	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "RestedXP Guides v4.11.35" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
-		assert(near(item.alpha, 0.3), text .. " rests at 30% in combat, got " .. tostring(item.alpha))
+		assert(near(item.alpha, 0.75), text .. " is read mid-pull and dims only to 75% in combat, got " .. tostring(item.alpha))
+	end
+	for _, text in ipairs({ "fps", "armour" }) do
+		local item = assert(find(combat, text), text .. " draws in combat")
+		assert(near(item.alpha, 0.3), text .. " is on the idle readout and rests at 30% in combat, got " .. tostring(item.alpha))
 	end
 	for _, text in ipairs({ "Leduc", "DAMAGE DONE", "BLOODTALON MATRIARCH", "VALERIN" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")

@@ -142,7 +142,7 @@ local focusView = ns.Frames.Get("focus").views[1]
 local focusBar = CastBars.Get("focus")[1]
 local _, frameH = focusView.button:GetSize()
 local focusH = K.Setup.Layouts.Element("unitframes.focus").height
-local bossSlot = ns.Geometry.Slots(5, 10, 1, K.Setup.Layouts.Element("unitframes.boss").height)[1].h
+local bossSlot = ns.Geometry.Slots(ns.Geometry.BOSS_COUNT, ns.Geometry.BOSS_GAP, 1, K.Setup.Layouts.Element("unitframes.boss").height)[1].h
 assert(math.abs(focusView.geometry.panel.h - (focusH - 16 - 4)) < 1, "the focus frame leaves room for its 16-unit cast bar: " .. focusView.geometry.panel.h)
 local _, _, _, _, y = focusBar.frame:GetPoint(1)
 assert(y < -40, "the focus cast bar sits under the frame")

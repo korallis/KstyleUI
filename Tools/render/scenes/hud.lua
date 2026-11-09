@@ -265,7 +265,8 @@ function modules.unitframes(opts)
 			env._units.player = player
 			env._units.target = target
 			env._units.pet = pet
-			env._units.boss1 = opts.boss
+			-- The boss you target is one unit under both tokens, as in the game, so the boss card marks it.
+			env._units.boss1 = opts.boss and opts.target == opts.boss and target or opts.boss
 			env._comboPoints = spec.combo or 0
 			env.UnitClass = function(token)
 				local u = env._units[token]
@@ -1019,8 +1020,28 @@ function Hud.Module(name, opts)
 	return builder(opts or {})
 end
 
+-- StoryTracker(layout) -> the tracker's top left in screen units when the player has moved it to the layout's story
+-- slot, as the setup asks: KstyleUI never moves Blizzard's tracker, so a HUD render shows the arrangement the player
+-- makes, not Blizzard's default spot under the minimap, which the right rail's cards hold.
+function Hud.StoryTracker(layout)
+	local CoreEnv = dofile("Tools/regression/core_env.lua")
+	local env, K = CoreEnv.New()
+	CoreEnv.Boot(env)
+	local Layouts = K.Setup.Layouts
+	local slot = Layouts.Slot(layout)
+	if not slot then
+		return nil
+	end
+	local width = 1080 * Common.SCREEN.width / Common.SCREEN.height
+	local l, _, _, t = Layouts.Rect(slot, slot, width, 1080)
+	return { l + 36, 1080 - t + 12 - 34 }
+end
+
 function Hud.Build(opts)
 	opts = opts or {}
+	if opts.layout and opts.trackerAt == nil then
+		opts.trackerAt = Hud.StoryTracker(opts.layout)
+	end
 	local scenes = {}
 	for _, name in ipairs(opts.modules or Hud.Order()) do
 		scenes[#scenes + 1] = (Hud.Module(name, opts))

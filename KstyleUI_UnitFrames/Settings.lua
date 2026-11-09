@@ -153,7 +153,7 @@ Settings.defaults = {
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 10, { on = true, size = 20, position = "RIGHT" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
 	pet = Kind(false),
-	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false, auraGrowth = "LEFT_DOWN" }, 10, 9, { on = true, size = 18, columns = 6, position = "LEFT" }, { 16, 14, 9, 12 }),
+	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false, auraGrowth = "LEFT_DOWN" }, 10, 9, { on = true, size = 18, columns = 3, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,

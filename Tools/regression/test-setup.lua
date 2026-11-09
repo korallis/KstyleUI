@@ -241,7 +241,7 @@ do
 	assert(updates["unitframes.player"] and updates["unitframes.player"].x == K.Setup.Layouts.Get("DPS")["unitframes.player"].x, "a registered element moves at once through Layout.Update")
 	assert(stored["unitframes.player"] == nil, "Layout stores what it applies itself")
 	assert(K.Setup.Apply({ layout = "Raid", modules = {} }) == false, "an unknown layout is refused")
-	-- Tank sizes the meters with the positions: two damage rows over two threat rows, so the right rail fits.
+	-- Tank sizes the meters with the positions: four threat rows over two damage rows, so the right rail fits.
 	updates = {}
 	K.Layout.Get = function(key)
 		if key == "meters.damage" then
@@ -250,9 +250,10 @@ do
 	end
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
 	assert(updates["meters.damage"] and updates["meters.damage"].height == 98 and updates["meters.damage"].width == 318, "a registered meter takes the layout's size through Layout.Update")
-	assert(stored["meters.threat"].height == 98 and stored["meters.threat"].y == K.Setup.Layouts.Get("Tank")["meters.threat"].y, "a meter that has not registered keeps the size for the reload")
+	assert(stored["meters.threat"].height == 144 and stored["meters.threat"].y == K.Setup.Layouts.Get("Tank")["meters.threat"].y, "a meter that has not registered keeps the size for the reload")
+	updates = {}
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	assert(updates["chat.main"] == nil and stored["meters.threat"].height == 144, "DPS puts the meters back to their footprints")
+	assert(updates["chat.main"] == nil and updates["meters.damage"].height == 190 and stored["meters.threat"].height == 144, "DPS puts the meters back to their footprints")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -314,21 +315,32 @@ end
 
 do
 	local env, K = Boot()
-	assert(K.Setup.Apply({ layout = "Healer", modules = {} }))
+	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
 	assert(K.Layout.Enter(), "Layout Mode opens")
 	W.Settle(env)
 	local slot = K.Layout.Mode.Slot()
 	assert(slot and slot:IsShown(), "Layout Mode shows the story slot")
 	assert(slot.label:GetText() == "Story rail" and slot.hint:GetText():find("RestedXP", 1, true) and slot.hint:GetText():find("Edit Mode", 1, true), "labelled, with a one-line hint")
-	local want = K.Setup.Layouts.Slot("Healer")
+	local want = K.Setup.Layouts.Slot("Tank")
 	local rw, rh = K.Layout.RootSize()
 	local l, b, r, t = K.Setup.Layouts.Rect(want, want, rw, rh)
 	local got = assert(Geometry.Rect(slot, K.Scale.Root()))
-	assert(math.abs(got.left - l) < 1 and math.abs(got.bottom - b) < 1 and math.abs(got.right - r) < 1 and math.abs(got.top - t) < 1, "at the Healer slot")
+	assert(math.abs(got.left - l) < 1 and math.abs(got.bottom - b) < 1 and math.abs(got.right - r) < 1 and math.abs(got.top - t) < 1, "at the Tank slot")
 	assert(not slot:IsMouseEnabled(), "the outline never takes the mouse from the frames the player drops on it")
 	local line = assert(Geometry.Rect(slot.raidLine, K.Scale.Root()))
 	assert(slot.raidLine:IsShown() and math.abs(line.top - (t - want.raid)) < 1, "a line marks how far the raid frames reach into the slot")
 	assert(slot.raidText:GetText():find("raid", 1, true), "and says so")
+	K.Layout.Exit(true)
+	W.Settle(env)
+	-- Healer brings the raid beside the hands: its slot runs from the focus target to chat with no raid line.
+	assert(K.Setup.Apply({ layout = "Healer", modules = {} }))
+	assert(K.Layout.Enter())
+	W.Settle(env)
+	want = K.Setup.Layouts.Slot("Healer")
+	local _, hb, _, ht = K.Setup.Layouts.Rect(want, want, rw, rh)
+	got = assert(Geometry.Rect(slot, K.Scale.Root()))
+	assert(math.abs(got.top - ht) < 1 and math.abs(got.bottom - hb) < 1, "Layout Mode follows the Healer slot")
+	assert(not slot.raidLine:IsShown() and not slot.raidText:IsShown(), "and draws no raid line there")
 	K.Layout.Exit(true)
 	W.Settle(env)
 	assert(not slot:IsShown(), "and hides with Layout Mode")

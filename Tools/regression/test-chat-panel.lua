@@ -45,7 +45,7 @@ do
 	local settings = K.Layout.Get("chat.main")
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
-	assert(near(settings.width, 318) and near(settings.height, 300), "the Lumen chat card's 318 by 300 footprint, at the left rail's foot")
+	assert(near(settings.width, 318) and near(settings.height, 260), "the Lumen chat card's 318 by 260 footprint, at the left rail's foot")
 	local holder, glass = ns.Panel.Holder(), ns.Panel.Glass()
 	assert(holder and holder:IsShown(), "the panel shows")
 	assert(glass:GetParent() == holder and glass:GetFrameStrata() == "BACKGROUND", "the glass sits behind the chat")

@@ -1,4 +1,4 @@
--- test-layout-calm.lua: combat calm. In combat the slow cards rest at 30% and the focus cards stay lit; a hover wakes a calmed card; out of combat the cards return after a delay. Alpha only, one owner per frame, with a setting.
+-- test-layout-calm.lua: combat calm. In combat the idle cards (readout, menus, XP) rest at 30%, the cards you read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit; a hover wakes a calmed card; out of combat the cards return after a delay. Alpha only, one owner per frame, with a setting.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 
@@ -6,6 +6,8 @@ local function near(a, b, eps)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < (eps or 1e-3)
 end
 
+local IDLE = { "databars.strip", "databars.micro", "databars.bags", "databars.xp", "databars.rep", "databars.honor" }
+local READ = { "chat.main", "minimap.main" }
 local SLOW = { "chat.main", "minimap.main", "databars.strip", "databars.micro", "databars.bags", "databars.xp", "databars.rep", "databars.honor" }
 local FOCUS = {
 	"groupframes.party", "groupframes.raid", "unitframes.boss", "unitframes.target", "unitframes.player", "unitframes.castbar.player",
@@ -48,7 +50,8 @@ do
 	local env, K = New()
 	local Calm = K.Layout.Calm
 	assert(type(Calm) == "table", "KstyleUI.Layout.Calm is missing")
-	assert(Calm.ALPHA == 0.3 and Calm.FALL == 0.24 and Calm.RISE == 0.6 and Calm.DELAY == 3, "30% over 0.24 s; back over 0.6 s after 3 s")
+	assert(Calm.ALPHA == 0.3 and Calm.SOFT == 0.75 and Calm.FALL == 0.24 and Calm.RISE == 0.6 and Calm.DELAY == 3, "idle cards 30%, read cards 75%, over 0.24 s; back over 0.6 s after 3 s")
+	assert(Calm.SOFT >= 0.6, "a card you read never dims below 60% (the judges' floor)")
 	local cards = {}
 	for _, key in ipairs(Calm.CARDS) do
 		cards[key] = true
@@ -81,11 +84,16 @@ do
 	end
 	env.SetCombat(true)
 	Wait(env, 0.12)
-	local chat = frames["chat.main"]:GetAlpha()
-	assert(chat < 1 and chat > 0.3, "half way through the fall the chat is between 100% and 30%, got " .. chat)
+	local strip = frames["databars.strip"]:GetAlpha()
+	assert(strip < 1 and strip > 0.3, "half way through the fall the readout is between 100% and 30%, got " .. strip)
 	Wait(env, 0.16)
-	for _, key in ipairs(SLOW) do
-		assert(near(frames[key]:GetAlpha(), 0.3), key .. " rests at 30% in combat, got " .. frames[key]:GetAlpha())
+	for _, key in ipairs(IDLE) do
+		assert(near(frames[key]:GetAlpha(), 0.3), key .. " is idle and rests at 30% in combat, got " .. frames[key]:GetAlpha())
+		assert(K.Layout.Calm.Level(key) == 0.3, key .. ": Level gives the idle alpha")
+	end
+	for _, key in ipairs(READ) do
+		assert(near(frames[key]:GetAlpha(), 0.75), key .. " is read mid-pull and dims only to 75%, got " .. frames[key]:GetAlpha())
+		assert(K.Layout.Calm.Level(key) == 0.75, key .. ": Level gives the read alpha")
 	end
 	for _, key in ipairs(FOCUS) do
 		assert(frames[key]:GetAlpha() == 1, key .. " stays at 100% in combat")
@@ -111,10 +119,10 @@ do
 	chat._mouseOver = true
 	Poll(env)
 	assert(near(chat:GetAlpha(), 1), "the pointer on the chat wakes it")
-	assert(near(frames["minimap.main"]:GetAlpha(), 0.3), "the other cards stay calm")
+	assert(near(frames["minimap.main"]:GetAlpha(), 0.75) and near(frames["databars.strip"]:GetAlpha(), 0.3), "the other cards stay calm")
 	chat._mouseOver = false
 	Poll(env)
-	assert(near(chat:GetAlpha(), 0.3), "the chat calms again once the pointer leaves")
+	assert(near(chat:GetAlpha(), 0.75), "the chat calms again once the pointer leaves")
 	env.SetCombat(false)
 	Wait(env, 4)
 	W.Settle(env)
@@ -126,12 +134,12 @@ end
 
 do
 	local env, K, frames = New()
-	local chat = frames["chat.main"]
+	local chat = frames["databars.strip"]
 	env.SetCombat(true)
 	W.Settle(env)
 	env.SetCombat(false)
 	Wait(env, 2.9)
-	assert(near(chat:GetAlpha(), 0.3), "the chat stays calm for 3 s after combat")
+	assert(near(chat:GetAlpha(), 0.3), "the readout stays calm for 3 s after combat")
 	Wait(env, 0.4)
 	local rising = chat:GetAlpha()
 	assert(rising > 0.3 and rising < 1, "then it rises, got " .. rising)
@@ -145,7 +153,7 @@ do
 	Wait(env, 2)
 	env.SetCombat(true)
 	Wait(env, 2)
-	assert(near(chat:GetAlpha(), 0.3), "a pull during the wait keeps the chat calm")
+	assert(near(chat:GetAlpha(), 0.3), "a pull during the wait keeps the readout calm")
 	env.SetCombat(false)
 	Wait(env, 1.5)
 	assert(near(chat:GetAlpha(), 0.3), "and the wait starts again when that pull ends")
@@ -160,7 +168,7 @@ do
 	local env, K, frames = New()
 	K.Motion.SetLevel("reduced")
 	env.SetCombat(true)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.3), "with reduced motion the chat calms at once")
+	assert(near(frames["chat.main"]:GetAlpha(), 0.75) and near(frames["databars.xp"]:GetAlpha(), 0.3), "with reduced motion the cards calm at once")
 	env.SetCombat(false)
 	Wait(env, 3.05)
 	assert(near(frames["chat.main"]:GetAlpha(), 1), "and returns at once after the wait")
@@ -176,7 +184,7 @@ do
 	assert(frames["chat.main"]:GetAlpha() == 1, "with the setting off the chat stays at 100% in combat")
 	K.Options.Write("Layout", "calm", true)
 	W.Settle(env)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.3), "turned on in combat, the rails calm")
+	assert(near(frames["chat.main"]:GetAlpha(), 0.75), "turned on in combat, the rails calm")
 	K.Options.Write("Layout", "calm", false)
 	W.Settle(env)
 	assert(near(frames["chat.main"]:GetAlpha(), 1), "turned off in combat, the rails return")
@@ -197,7 +205,7 @@ do
 	assert(near(frames["databars.xp"]:GetAlpha(), 0.3), "a card at its defaults calms")
 	assert(K.Layout.Set("chat.main", "alphaCombat", 1))
 	W.Settle(env)
-	assert(near(frames["chat.main"]:GetAlpha(), 0.3), "an opacity put back at 100% hands the chat back to the calm")
+	assert(near(frames["chat.main"]:GetAlpha(), 0.75), "an opacity put back at 100% hands the chat back to the calm")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -217,13 +225,13 @@ do
 	local tracker, guide = env.ObjectiveTrackerFrame, env.RXPFrame
 	env.SetCombat(true)
 	W.Settle(env)
-	assert(near(tracker:GetAlpha(), 0.3) and near(guide:GetAlpha(), 0.3), "the tracker and the guide calm with the rails")
+	assert(near(tracker:GetAlpha(), 0.75) and near(guide:GetAlpha(), 0.75), "the tracker and the guide are read mid-pull: they dim only to 75%")
 	tracker._mouseOver = true
 	Poll(env)
 	assert(near(tracker:GetAlpha(), 1), "the pointer wakes the tracker")
 	tracker._mouseOver = false
 	Poll(env)
-	assert(near(tracker:GetAlpha(), 0.3))
+	assert(near(tracker:GetAlpha(), 0.75))
 	guide:SetAlpha(0.7)
 	env.SetCombat(false)
 	Wait(env, 4)
@@ -276,10 +284,10 @@ do
 	env.SetCombat(false)
 	Wait(env, 3.2)
 	local rising = tracker:GetAlpha()
-	assert(rising > 0.3 and rising < 1, "the tracker is rising, got " .. rising)
+	assert(rising > 0.75 and rising < 1, "the tracker is rising, got " .. rising)
 	env.SetCombat(true)
 	Wait(env, 0.5)
-	assert(near(tracker:GetAlpha(), 0.3), "a pull mid-rise fades the tracker again, got " .. tracker:GetAlpha())
+	assert(near(tracker:GetAlpha(), 0.75), "a pull mid-rise fades the tracker again, got " .. tracker:GetAlpha())
 	env.SetCombat(false)
 	Wait(env, 4)
 	assert(near(tracker:GetAlpha(), 1), "and it returns after that pull")

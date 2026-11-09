@@ -735,7 +735,7 @@ end
 
 function CastBars.Attach(view)
 	local kind = view.kind
-	local cb = New(view.button, kind, view.unit)
+	local cb = New(view.castMute or view.button, kind, view.unit)
 	cb.attached = true
 	view.castbar = cb
 	local list = bars

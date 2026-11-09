@@ -137,6 +137,12 @@ function U.Install(env)
 	function env.UnitExists(token)
 		return unitOf(token) ~= nil
 	end
+	-- UnitIsUnit(a, b): the same unit table under both tokens; secret while env._secretCompare is set, as a restricted
+	-- comparison is in the game.
+	function env.UnitIsUnit(a, b)
+		local u = unitOf(a)
+		return secretWhen(env._secretCompare, u ~= nil and u == unitOf(b))
+	end
 	function env.UnitName(token)
 		local u = unitOf(token)
 		if u then

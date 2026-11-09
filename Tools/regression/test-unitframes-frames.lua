@@ -42,7 +42,7 @@ end
 -- Every full frame takes the kit sheet's proportions: about 3.3 times as wide as tall, its portrait as tall as the frame.
 -- The plate was drawn for the classic sizes; the Lumen layouts give these elements the vitals, sigil and card sizes,
 -- so the plate is measured at its own sizes and the elements go back to their footprints after.
-local CLASSIC = { player = { 220, 70 }, target = { 220, 70 }, focus = { 200, 80 }, boss = { 200, 400 } }
+local CLASSIC = { player = { 220, 70 }, target = { 220, 70 }, focus = { 200, 80 }, boss = { 200, 5 * 72 + 4 * 6 } }
 for kind, size in pairs(CLASSIC) do
 	assert(K.Layout.Update(ELEMENTS[kind], { width = size[1], height = size[2] }))
 end

@@ -39,7 +39,7 @@ local MAX_COLUMN_SHARE = 0.5
 Geometry.TEXT_GAP = TEXT_GAP
 Geometry.FULL_MIN_HEIGHT = FULL_MIN_HEIGHT
 Geometry.DETAIL_SHARE = DETAIL_SHARE
-Geometry.BOSS_COUNT, Geometry.BOSS_GAP = 5, 10
+Geometry.BOSS_COUNT, Geometry.BOSS_GAP = 5, 6
 
 local function Rect(x, y, w, h)
 	return { x = x, y = y, w = max(0, w), h = max(0, h) }
@@ -248,7 +248,7 @@ local V = { ring = 62, ringGap = 16 / 62, disc = 22 / 62, discOut = 4 / 62, heal
 local CAST_LINE, CAST_GAP = 12, 6
 local GEM, GEM_GAP = 7, 14
 local SIGIL = { line = 1, bar = 8, cast = 8, castShare = 0.6 }
-local CARD = { padX = 18, top = 16, bottom = 14, capGap = 10, nameGap = 6, health = 10, powerGap = 3, powerMax = 6, castGap = 10, gemGap = 8 }
+local CARD = { padX = 18, top = 16, bottom = 14, capGap = 10, nameGap = 6, health = 10, powerGap = 3, powerMax = 6, castGap = 10, gemGap = 8, compact = 90 }
 local ROW = { pill = 6, gap = 1, power = 3 }
 
 Geometry.CAST_LINE, Geometry.GEM = CAST_LINE, GEM
@@ -363,9 +363,12 @@ local function Card(out, s, width, height, scale)
 	local colW = max(0, width - 2 * padX)
 	local nameSize, valueSize, capSize = Size(s, "name", scale), Size(s, "health", scale), Size(s, "level", scale)
 	local capH, rowH, healthH = TextH(capSize), TextH(max(nameSize, valueSize)), CARD.health
+	if height < CARD.compact then
+		capH = 0
+	end
 	local powerH = s.power and min(s.powerHeight or 0, CARD.powerMax) or 0
 	local castH = s.castbar and CAST_LINE or 0
-	local gaps = { CARD.top, CARD.capGap, CARD.nameGap, powerH > 0 and CARD.powerGap or 0, castH > 0 and CARD.castGap or 0, CARD.bottom }
+	local gaps = { CARD.top, capH > 0 and CARD.capGap or 0, CARD.nameGap, powerH > 0 and CARD.powerGap or 0, castH > 0 and CARD.castGap or 0, CARD.bottom }
 	local fixed = capH + rowH + healthH + powerH + castH
 	local sum = 0
 	for _, g in ipairs(gaps) do

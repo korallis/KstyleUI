@@ -12,6 +12,7 @@ local BOSS_COUNT, BOSS_GAP = Geometry.BOSS_COUNT, Geometry.BOSS_GAP
 local CAST_GAP = { focus = 4, boss = 2 }
 local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
+local MARK_LEVEL, MARK_GAP = 9, 6
 
 local FULL_LIMITS = { minWidth = 120, minHeight = 24, maxWidth = 640, maxHeight = 160 }
 local SMALL_LIMITS = { minWidth = 60, minHeight = 14, maxWidth = 400, maxHeight = 120 }
@@ -201,6 +202,74 @@ local function OnButtonHide(button)
 	ns.Auras.Sync(button.view)
 end
 
+local function NewMark(button)
+	local mark = CreateFrame("Frame", nil, button)
+	mark:SetFrameLevel(button:GetFrameLevel() + MARK_LEVEL)
+	mark.gem = ns.Lumen.Gem(mark)
+	mark.text = K.Widgets.FontString(mark, "OVERLAY")
+	mark.text:SetJustifyH("LEFT")
+	mark.text:SetJustifyV("MIDDLE")
+	mark.text:SetText(K.L["Targeted"])
+	mark:Hide()
+	return mark
+end
+
+local function MarkTarget(view)
+	local mark, mute = view.targetMark, view.castMute
+	if not mark then
+		return
+	end
+	local same = false
+	if UnitExists(view.unit) then
+		same = UnitIsUnit("target", view.unit)
+	end
+	if issecretvalue and issecretvalue(same) then
+		mark:SetShown(view.markRoom == true)
+		mark:SetAlphaFromBoolean(same, 1, 0)
+		mute:SetAlphaFromBoolean(same, 0, 1)
+		return
+	end
+	same = same == true
+	mark:SetAlpha(1)
+	mark:SetShown(same and view.markRoom == true)
+	mute:SetAlpha(same and 0 or 1)
+end
+
+function Frames.MarkTargets()
+	local uf = frames.boss
+	if not uf then
+		return
+	end
+	for _, view in ipairs(uf.views) do
+		MarkTarget(view)
+	end
+end
+
+local function PlaceMark(view, rect)
+	local mark = view.targetMark
+	view.markRoom = rect ~= nil
+	if not rect then
+		mark:Hide()
+		return
+	end
+	local button, Snap = view.button, K.Widgets.Snap
+	mark:ClearAllPoints()
+	mark:SetPoint("TOPLEFT", button, "TOPLEFT", Snap(button, rect.x), -Snap(button, rect.y))
+	mark:SetSize(Snap(button, rect.w), Snap(button, rect.h))
+	local gem = ns.Geometry.GEM
+	mark.gem:ClearAllPoints()
+	mark.gem:SetPoint("LEFT", mark, "LEFT", 0, 0)
+	mark.gem:SetSize(Snap(button, gem), Snap(button, gem))
+	mark.text:ClearAllPoints()
+	mark.text:SetPoint("LEFT", mark.gem, "RIGHT", Snap(button, MARK_GAP), 0)
+	mark.text:SetHeight(Snap(button, rect.h))
+	local path, size, flags = Settings.Font(view.kind, "cast")
+	if mark.text:SetFont(path, size, flags) == false then
+		mark.text:SetFont((K.Tokens.Font("body")), size, flags)
+	end
+	mark.text:SetTextColor(ns.Lumen.Color("goldLit"))
+end
+
 local function NewView(uf, unit)
 	local button = CreateFrame("Button", nil, uf.holder, "SecureUnitButtonTemplate")
 	button:SetAttribute("unit", unit)
@@ -215,6 +284,11 @@ local function NewView(uf, unit)
 	button.view = view
 	button:HookScript("OnShow", OnButtonShow)
 	button:HookScript("OnHide", OnButtonHide)
+	if uf.kind == "boss" then
+		view.castMute = CreateFrame("Frame", nil, button)
+		view.castMute:SetAllPoints(button)
+		view.targetMark = NewMark(button)
+	end
 	if Settings.CASTBAR[uf.kind] then
 		ns.CastBars.Attach(view)
 	end
@@ -347,6 +421,10 @@ function Frames.Relayout(uf)
 		elseif cb then
 			cb.noRoom = true
 			cb.frame:Hide()
+		end
+		if view.targetMark then
+			PlaceMark(view, g.cast)
+			MarkTarget(view)
 		end
 	end
 end
@@ -500,6 +578,7 @@ local function RegisterEvents()
 	Events.Register(MODULE, "PLAYER_TARGET_CHANGED", function()
 		RefreshKind("target", true)
 		RefreshKind("targettarget", true)
+		Frames.MarkTargets()
 	end)
 	Events.Register(MODULE, "PLAYER_FOCUS_CHANGED", function()
 		RefreshKind("focus", true)
@@ -513,9 +592,11 @@ local function RegisterEvents()
 	end, "player")
 	Events.Register(MODULE, "INSTANCE_ENCOUNTER_ENGAGE_UNIT", function()
 		RefreshKind("boss", true)
+		Frames.MarkTargets()
 	end)
 	Events.Register(MODULE, "UNIT_TARGETABLE_CHANGED", function()
 		RefreshKind("boss", true)
+		Frames.MarkTargets()
 	end)
 	Events.Register(MODULE, "RAID_TARGET_UPDATE", function()
 		EachShown(Indicators.Marker)

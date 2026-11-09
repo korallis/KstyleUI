@@ -9,7 +9,7 @@
 | `Rules.lua` | `Layout.Rules`: the shown rules, as Lua tests and as state-driver macro options |
 | `Layout.lua` | The registry, per-profile settings, applying, sessions, undo, and Layout Mode's own settings page |
 | `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the story slot's outline, the keyboard and the toolbar |
-| `Calm.lua` | `Layout.Calm`: the combat calm, which rests the rails' slow cards at 30% in combat |
+| `Calm.lua` | `Layout.Calm`: the combat calm, which rests the rails' idle cards at 30% and dims the cards you read to 75% in combat |
 
 Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook), `test-layout-mode.lua` (the screen, driven like a player) and `test-layout-calm.lua` (the combat calm).
 
@@ -186,14 +186,17 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 
 | Value | |
 | --- | --- |
-| `Calm.CARDS` | The slow cards: `chat.main`, `minimap.main`, `databars.strip`, `databars.micro`, `databars.bags`, `databars.xp`, `databars.rep`, `databars.honor` |
-| `Calm.SURFACES` | The guide and quest skins: `ObjectiveTrackerFrame` and `RXPFrame`, while the Skins module runs |
-| `Calm.ALPHA` | 0.3 |
+| `Calm.IDLE` | The idle cards, which nobody reads mid-pull: `databars.strip`, `databars.micro`, `databars.bags`, `databars.xp`, `databars.rep`, `databars.honor` |
+| `Calm.READ` | The cards you read mid-pull (raid calls, the map): `chat.main`, `minimap.main` |
+| `Calm.CARDS` | Both lists, read cards first |
+| `Calm.SURFACES` | The guide and quest skins: `ObjectiveTrackerFrame` and `RXPFrame`, while the Skins module runs. They are read cards |
+| `Calm.ALPHA` | 0.3, the idle cards' level |
+| `Calm.SOFT` | 0.75, the read cards' and surfaces' level: dimmed so the centre leads, never below 60%, so chat, the map and the quests stay readable |
 | `Calm.FALL`, `Calm.RISE`, `Calm.HOVER` | 0.24 s into the calm, 0.6 s out of it, 0.24 s for a hover |
 | `Calm.DELAY` | 3 s after combat ends before the cards rise |
 
 - **Focus cards never calm:** party and raid, the boss card, the target sigil and every centre hand (unit frames, cast bars, action bars, cooldowns), the Blessings (`auras.*`), and the damage and threat meters. The damage meter stays readable in a pull.
-- **In combat** (`PLAYER_REGEN_DISABLED`), each slow card tweens to 30% over 0.24 s. **Out of combat** (`PLAYER_REGEN_ENABLED`), the cards wait 3 s, counted on an `OnUpdate` that runs only while it waits, then rise over 0.6 s. A pull during the wait keeps them calm, and the wait starts again when it ends.
+- **In combat** (`PLAYER_REGEN_DISABLED`), each idle card tweens to 30% and each read card and surface to 75% over 0.24 s. **Out of combat** (`PLAYER_REGEN_ENABLED`), the cards wait 3 s, counted on an `OnUpdate` that runs only while it waits, then rise over 0.6 s. A pull during the wait keeps them calm, and the wait starts again when it ends.
 - **Hover:** while calm, a `C_Timer.NewTicker` reads `IsMouseOver` on each calmed card every 0.1 s. A card under the pointer rises to 100% and calms again when the pointer leaves. A secret `IsMouseOver` counts as over, and a frame that denies access counts as not over. The ticker stops with the calm.
 - **Alpha only:** the calm never changes a size, a point, a scale or a shown rule, so it never touches a protected frame's geometry in combat.
 - **One owner per frame:** a Layout element calms only while its own opacity is at the defaults (`shown` is not `mouseover`, `alphaCombat` and `alphaIdle` are 1). A player's own opacity or mouseover rule wins. Layout's `ApplyAlpha` multiplies its alpha by `Calm.Level(key)` and does not restart a fade already heading to the same alpha. A surface outside Layout calms only from 100%. When the calm ends it rises only if its alpha is still what the calm set, so a fade another addon starts in the meantime is left alone.

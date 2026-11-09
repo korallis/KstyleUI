@@ -1,6 +1,7 @@
 -- gallery_unitframes.lua: every unit frame in its Lumen style, each cropped as one frame of the gallery, at the
 -- footprints S6 gives them: the player's vitals line mid-cast with its gilt ring and level disc, the target's sigil
--- with your three debuffs centred under it and its gold cast line, three boss cards (the first casting, with aggro),
+-- with your three debuffs centred under it and its gold cast line, the boss column's five compact cards (the first
+-- casting, with aggro; the second your target, marked Targeted while the sigil carries its cast),
 -- the focus card, the pill rows (focus target, target of target, the pet with its power pill), a rogue's combo points
 -- (the class resource, in its own environment), and the options page's live preview on the sigil.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -28,6 +29,8 @@ local UNITS = {
 		cast = { name = "Whirlwind", texture = I.whirlwind, start = 9000, finish = 12000, spellID = BOSS_SPELL } },
 	boss2 = { name = "Ashen Warden", level = -1, classification = "worldboss", health = 48000, healthMax = 100000, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true },
 	boss3 = { name = "Cinder Shade", level = -1, classification = "worldboss", health = 91000, healthMax = 100000, power = 65, powerMax = 100, powerType = 3, powerToken = "ENERGY", reaction = 2, canAttack = true },
+	boss4 = { name = "Emberling", level = -1, classification = "worldboss", health = 30000, healthMax = 100000, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true },
+	boss5 = { name = "Smoulder", level = -1, classification = "worldboss", health = 100000, healthMax = 100000, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true },
 }
 
 local ROGUE = { name = "Valerin", class = "ROGUE", level = 38, health = 2750, healthMax = 3350, power = 70, powerMax = 100, powerType = 3, powerToken = "ENERGY", isPlayer = true, reaction = 5 }
@@ -125,7 +128,7 @@ local FOOTPRINTS = {
 	{ "unitframes.focustarget", 60, 400, 120, 22 },
 	{ "unitframes.targettarget", 220, 400, 120, 22 },
 	{ "unitframes.pet", 380, 400, 120, 22 },
-	{ "unitframes.boss", 1300, 70, 318, 640 },
+	{ "unitframes.boss", 1360, 70, 258, 334 },
 }
 
 -- Debuff stand-ins: the engine lays its buttons out in the game; here the scene places the fake engine's three debuff
@@ -229,15 +232,18 @@ return Common.Run(function()
 	})
 
 	local boss = Frames.Get("boss")
+	env._units.boss2 = env._units.target
+	env.FireEvent("PLAYER_TARGET_CHANGED")
 	local shown = {}
-	for i = 1, 3 do
+	for i = 1, 5 do
 		assert(boss.views[i].button:IsShown() and boss.views[i].geometry.form == "card", "boss" .. i .. " shows as a card")
 		shown[i] = boss.views[i].button
 	end
 	assert(boss.views[1].castbar.active, "boss1 casts")
+	assert(boss.views[2].targetMark:IsShown(), "boss2, your target, is marked")
 	frames:Add(env, boss.holder, {
 		name = "unitframes_boss", title = "Boss cards", grade = "panel", reference = "target",
-		caption = "Three boss cards stacked 10 apart: each a section cap reading BOSS with the classification at its right, the name and percentage, a hostile pill; Magmatus casts Whirlwind on its gold cast line and has aggro on the player.",
+		caption = "The boss column at 258 by 334: five compact cards 6 apart, each the name and percentage, a hostile pill and the cast line, no cap; Magmatus casts Whirlwind on its gold cast line and has aggro on the player; the Bloodtalon Matriarch is your target, so its card says Targeted where its cast line would be, as the sigil already shows that cast.",
 		match = "The Lumen mockup's boss card (combat board, right rail): cap 13, name 16 with 62% at its right, a 10-unit pill, then Casting and the spell in gold over a thin line.",
 		rect = Gallery.Union(env, shown),
 	})
