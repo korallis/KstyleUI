@@ -4,7 +4,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, UpdateVisuals = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, UpdateVisuals = true }
 
 local function Boot(opts)
 	opts = opts or {}

@@ -382,6 +382,32 @@ local function V1Window(m, rxp)
 	rxp.RXPFrame = f
 	-- SetStep makes an active step frame per step on first use, each with a number badge and its check buttons:
 	-- elements is how many a step holds (a number for every step, or one per step), default one.
+	-- RestedXP sets each new element's font as it makes it (GuideWindow.lua:1117) and measures every element's
+	-- height from its text in CurrentStepFrame.UpdateText before SetStep returns (1222, 1312): so a font changed
+	-- after SetStep needs UpdateText again, or the text overflows its frame. The fake measures one line.
+	local function GuideFont()
+		local profile = rxp.settings and rxp.settings.profile
+		return rxp.font or "Fonts\\FRIZQT__.TTF", (profile and profile.guideFontSize) or 9
+	end
+	local function LineHeight(text)
+		local _, size = text:GetFont()
+		return math.ceil((type(size) == "number" and size or 0) * 1.1) + 1
+	end
+	rxp.measured = { steps = 0, rows = 0 }
+	function f.CurrentStepFrame.UpdateText()
+		rxp.measured.steps = rxp.measured.steps + 1
+		for _, step in ipairs(f.CurrentStepFrame.framePool) do
+			for _, element in ipairs(step.elements) do
+				element:SetHeight(LineHeight(element.text))
+			end
+		end
+	end
+	function f.BottomFrame.UpdateFrame()
+		rxp.measured.rows = rxp.measured.rows + 1
+		for _, row in ipairs(f.ScrollChild.framePool) do
+			row:SetHeight(LineHeight(row.text) + 8)
+		end
+	end
 	rxp.SetStep = m.trust(function(count, elements)
 		local pool = f.CurrentStepFrame.framePool
 		for i = 1, count or 1 do
@@ -397,6 +423,8 @@ local function V1Window(m, rxp)
 					element.button = m.frame("CheckButton", element, nil, "ChatConfigCheckButtonTemplate")
 					m.texture(element.button, "ARTWORK", "NormalArt")
 					element.text = m.text(element)
+					local path, size = GuideFont()
+					element.text:SetFont(path, size + 2, "")
 					step.elements[e] = element
 				end
 				pool[i] = step
@@ -405,6 +433,7 @@ local function V1Window(m, rxp)
 				step.number:SetBackdrop(f.backdrop.edge)
 			end
 		end
+		f.CurrentStepFrame.UpdateText()
 	end)
 	-- Step list rows: RestedXP draws them flat in the theme's bottomFrameBG colour, each with its text and a
 	-- number at its bottom right. m.rows(count) makes more as the guide list grows.
@@ -413,6 +442,8 @@ local function V1Window(m, rxp)
 		for n = #pool + 1, count do
 			local row = Backdrop(m, m.frame("Frame", f.ScrollChild, "RXPFrame_bottomFrame_steps_frame_" .. n))
 			row.text = m.text(row)
+			local path, size = GuideFont()
+			row.text:SetFont(path, size, "")
 			row.number = m.frame("Frame", row)
 			m.text(row.number, "text")
 			pool[n] = row

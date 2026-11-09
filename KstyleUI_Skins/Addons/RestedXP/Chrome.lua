@@ -25,10 +25,13 @@ local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
 local RXP_MARGIN = 4
 local GUTTER_GAP = "gapSmall"
+local HEADER_OVERLAP = 9
+local LIST_LEFT, LIST_RIGHT, LIST_BOTTOM = 5, 20, 7
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
 local guideTitles = setmetatable({}, WEAK)
+local readable = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
@@ -37,7 +40,7 @@ local done = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
 local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), tinted = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
-local state = { rxp = nil, tracked = false }
+local state = { rxp = nil, tracked = false, guide = nil }
 
 local function Active()
 	return K.Modules.IsRunning(MODULE) and Skins.IsOn(KEY)
@@ -149,6 +152,59 @@ function Chrome.Gutter(list)
 	return gutters[list]
 end
 
+local function PaintReadable(text, entry)
+	if entry.busy then
+		return
+	end
+	entry.busy = true
+	local _, minimum = Style.Font(entry.role)
+	pcall(Style.ApplyFont, text, entry.role, math.max(entry.size, minimum))
+	entry.busy = false
+end
+
+local function Readable(text, role)
+	if not IsTable(text) or type(text.GetFont) ~= "function" or readable[text] then
+		return false
+	end
+	local _, size = text:GetFont()
+	local entry = { role = role, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
+	readable[text] = entry
+	hooksecurefunc(text, "SetFont", function(_, _, requested)
+		if Active() and not entry.busy and type(requested) == "number" and not Widgets.IsSecret(requested) then
+			entry.size = requested
+			PaintReadable(text, entry)
+		end
+	end)
+	PaintReadable(text, entry)
+	return true
+end
+
+local function Measure(f, steps, rows)
+	local current, list = f.CurrentStepFrame, f.BottomFrame
+	if steps and IsTable(current) and type(current.UpdateText) == "function" then
+		Run("guide steps measure", current.UpdateText)
+	end
+	if rows and IsTable(list) and type(list.UpdateFrame) == "function" then
+		Run("guide list measure", list.UpdateFrame)
+	end
+end
+
+local function GuideRows(f)
+	local child = f.ScrollChild
+	local changed = false
+	for _, row in pairs(IsTable(child) and IsTable(child.framePool) and child.framePool or {}) do
+		if IsTable(row) then
+			changed = Readable(row.text, "body") or changed
+			if IsTable(row.number) then
+				Readable(row.number.text, "caption")
+			end
+		end
+	end
+	if changed then
+		Measure(f, false, true)
+	end
+end
+
 local function PaintTitle(text)
 	text:SetTextColor(Style.Accent())
 end
@@ -207,6 +263,14 @@ local function PaintArrow(arrow)
 end
 
 local function Restyle()
+	if next(readable) then
+		for text, entry in pairs(readable) do
+			PaintReadable(text, entry)
+		end
+		if state.guide then
+			Measure(state.guide, true, true)
+		end
+	end
 	for text in pairs(titles) do
 		PaintTitle(text)
 	end
@@ -231,8 +295,9 @@ local restyler = { Restyle = Restyle }
 local function StepFrames(f)
 	local pool = IsTable(f.CurrentStepFrame) and f.CurrentStepFrame.framePool
 	if not IsTable(pool) then
-		return
+		return false
 	end
+	local changed = false
 	for _, step in pairs(pool) do
 		if IsTable(step) then
 			if not Skin.IsSkinned(step, "Backdrop") then
@@ -245,6 +310,9 @@ local function StepFrames(f)
 				Caption(step.number.text)
 			end
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
+				if IsTable(element) then
+					changed = Readable(element.text, "body") or changed
+				end
 				local check = IsTable(element) and element.button
 				if IsTable(check) and not Skin.IsSkinned(check, "CheckBox") then
 					Kit.CheckBox(check)
@@ -252,6 +320,31 @@ local function StepFrames(f)
 			end
 		end
 	end
+	return changed
+end
+
+local function NewSteps(f)
+	if StepFrames(f) then
+		Measure(f, true, false)
+	end
+end
+
+local function PlaceGuideScroll(f)
+	local scroll, list = f.ScrollFrame, f.BottomFrame
+	if not IsTable(scroll) or not IsTable(list) or type(scroll.SetPoint) ~= "function" or queued[scroll] then
+		return
+	end
+	queued[scroll] = true
+	K.Combat.Queue(function()
+		queued[scroll] = nil
+		if not Active() then
+			return
+		end
+		local top = HEADER_OVERLAP + Widgets.Inset(scroll, Tokens.Size("chamferWindow"))
+		scroll:ClearAllPoints()
+		scroll:SetPoint("TOPLEFT", list, "TOPLEFT", LIST_LEFT, -Widgets.Snap(scroll, top))
+		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -LIST_RIGHT, LIST_BOTTOM)
+	end)
 end
 
 local function GuideWindow(rxp)
@@ -282,9 +375,19 @@ local function GuideWindow(rxp)
 	if list then
 		Gutter(list, bar)
 	end
-	StepFrames(f)
+	state.guide = f
+	PlaceGuideScroll(f)
+	Hook(f, "UpdateVisuals", "RXPFrame.UpdateVisuals", function()
+		PlaceGuideScroll(f)
+	end)
+	NewSteps(f)
+	GuideRows(f)
 	Hook(rxp, "SetStep", "SetStep", function()
-		StepFrames(f)
+		NewSteps(f)
+		GuideRows(f)
+	end)
+	Hook(rxp, "LoadGuide", "LoadGuide", function()
+		GuideRows(f)
 	end)
 end
 
