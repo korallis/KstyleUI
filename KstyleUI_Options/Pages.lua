@@ -16,7 +16,7 @@ local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
 local HIDDEN_MODULES = { Options = true }
 local MODULE_ORDER = {
 	"UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates", "CombatText",
-	"Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins",
+	"Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins", "QoL",
 }
 local MODULE_LABELS = {
 	Options = L["Settings"],
@@ -34,6 +34,7 @@ local MODULE_LABELS = {
 	DataBars = L["Data Bars"],
 	Meters = L["Meters"],
 	Skins = L["Window Skins"],
+	QoL = L["Quality of Life"],
 	Appearance = L["Appearance"],
 	Widgets = L["Widgets"],
 	Layout = L["Layout"],

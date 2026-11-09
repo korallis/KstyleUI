@@ -105,5 +105,7 @@ module_globals("KstyleUI_Meters", {})
 
 module_globals("KstyleUI_Skins", { "KstyleUI_QuestCard" })
 
+module_globals("KstyleUI_QoL", {})
+
 
 -- END MODULE GLOBALS

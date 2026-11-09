@@ -89,7 +89,7 @@ After `Enable` succeeds, `Modules` fires `ModuleChanged(name, true)`. After `Dis
 
 ## CVars
 
-A module that writes a game CVar puts the player's own value back when it stops. A module that is off at login runs no code, so without this service a character that logs in with the module off keeps what KstyleUI wrote on an earlier login, or on another character. `Core/CVars.lua` closes that gap once per login. It has no functions to call.
+A module that writes a game CVar puts the player's own value back when it stops. A module that is off at login runs no code, so without this service a character that logs in with the module off keeps what KstyleUI wrote on an earlier login, or on another character. `Core/CVars.lua` closes that gap once per login. Its one function, `KstyleUI.CVars.Loaded()`, returns true once `VARIABLES_LOADED` has fired; a module that writes a CVar from `Enable` checks it first, because before that event a CVar can read a stand-in value that looks like the player's own.
 
 It reads the memories the modules keep in `KstyleUIDB.account`. Each record is `{ original, written }`: the player's value and the value the module wrote.
 
@@ -97,6 +97,7 @@ It reads the memories the modules keep in `KstyleUIDB.account`. Each record is `
 | --- | --- | --- |
 | `combatTextCVars[<owner>][<cvar>]` | `CombatText` | `*`, for CVars the game saves for every character, and the character key, for CVars it saves per character |
 | `chatTimestamps[<character key>]` | `Chat` | The character key's record, for `showTimestamps` |
+| `qolCamera[<character key>]` | `QoL` | The character key's record, for `cameraDistanceMaxZoomFactor` |
 
 The service starts when both `PLAYER_LOGIN` and `VARIABLES_LOADED` have fired, in either order. `PLAYER_LOGIN` is when `Modules` starts the modules. `VARIABLES_LOADED` is when the character's saved CVars have loaded, which can be after `PLAYER_LOGIN`; before it, a CVar can read the game's default, which would look like the player's change. Blizzard's own settings wait for the same event before they read CVars. The service then waits one frame and runs through `Combat.Queue`, so in combat it waits for combat to end. For each record this character owns whose module is not running (`Modules.IsRunning`) at that moment:
 

@@ -54,7 +54,7 @@ Settings.defaults = {
 	bankColumns = 14,
 	bankOpensBags = true,
 	replaceBank = true,
-	autoSellJunk = false,
+	autoSellJunk = true,
 	altCounts = true,
 	custom1 = { name = "", rule = "" },
 	custom2 = { name = "", rule = "" },

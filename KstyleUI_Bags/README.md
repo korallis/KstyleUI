@@ -76,7 +76,7 @@ Search is a small grammar, compiled once per text by `Data.Compile` and matched 
 
 ## Selling junk
 
-At a merchant, a Sell junk button shows in the bag window's header while there is junk to sell. With Sell junk by itself on, junk sells as soon as a merchant opens.
+At a merchant, a Sell junk button shows in the bag window's header while there is junk to sell. With Sell junk by itself on, the default, junk sells as soon as a merchant opens.
 
 1. The sale goes through `KstyleUI.Combat.Queue`: out of combat it runs at once; in combat it waits for `PLAYER_REGEN_ENABLED` and chat says so. Each sale belongs to one merchant visit: when the queue or a later batch runs, it sells nothing if that visit ended, even if another merchant is open by then.
 2. The preferred path is `C_MerchantFrame.SellAllJunkItems`, the game's own one-call sale, when `C_MerchantFrame.IsSellAllJunkEnabled` allows it. The devlog records it.
@@ -172,7 +172,7 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | `replaceBank` | `true` | toggle; a change takes effect after `/reload` |
 | `bankColumns` | 14 | slider, 4 to 24 |
 | `bankOpensBags` | `true` | toggle |
-| `autoSellJunk` | `false` | toggle: sell junk when a merchant opens |
+| `autoSellJunk` | `true` | toggle: sell junk when a merchant opens. The QoL page points here instead of a second switch |
 | `altCounts` | `true` | toggle: other characters' counts in item tooltips |
 | `custom1.name`, `custom1.rule` | `""`, `""` | text rows, up to 60 letters; `custom2` and `custom3` the same |
 

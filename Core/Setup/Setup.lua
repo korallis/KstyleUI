@@ -26,6 +26,7 @@ local PICKER = {
 	{ name = "DataBars", label = L["Data bars"], note = L["XP and reputation bars, micro menu and data strip."] },
 	{ name = "Meters", label = L["Meters"], note = L["Damage meter, threat meter and swing timer."] },
 	{ name = "Skins", label = L["Window skins"], note = L["KstyleUI styling for Blizzard's windows."] },
+	{ name = "QoL", label = L["Quality of life"], note = L["Faster loot, auto repair, quest hand-ins and a farther camera."] },
 }
 
 local choice
