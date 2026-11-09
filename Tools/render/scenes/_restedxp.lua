@@ -236,22 +236,18 @@ local function Guide(R, path, top)
 	return top + HEADER_HEIGHT - HEADER_OVERLAP - SIDE + frameHeight
 end
 
--- ConfiguratorRows(env, rxp, frame) fills the configurator's pane as RestedXP's GuideConfigurator.lua fills it,
--- so the window can be judged: the guide's title and description labels, then option rows (its
--- RXPV2GuideConfiguratorOption widget: a 40-unit image, a label, a recommendation line above it and a check box),
--- in RestedXP's own theme colours, since the skin leaves RestedXP's AceGUI option rows as they are.
-local CONFIGURATOR_OPTIONS = {
-	{ label = "Skip Deadmines", note = "Recommended", icon = 136169, checked = true },
-	{ label = "Buy the riding skill at 40", note = "", icon = 132261, checked = true },
-	{ label = "Do the Scarlet Monastery chain", note = "Needs a group", icon = 135987, checked = false },
-}
-local OPTION_ROW, OPTION_GAP, OPTION_IMAGE, OPTION_CHECK = 40, 4, 36, 18
+-- ConfiguratorRows(env, rxp, configurator) lays the configurator's pane out as RestedXP's GuideConfigurator.lua
+-- fills it: the guide's title and description labels, then the option rows the fake renders on Open (its
+-- RXPV2GuideConfiguratorOption widgets, each anchored as RestedXP anchors it: a 40-unit image at the left, the
+-- label beside it, the recommendation line above the label and the 17-unit check at the right), stacked in the
+-- pane, so the skin's treatment of RestedXP's rows can be judged.
+local OPTION_ROW, OPTION_GAP = 40, 4
 local OPTION_FLOOR = 240 - 44 - 10
 
-local function ConfiguratorRows(env, rxp, frame)
+local function ConfiguratorRows(env, rxp, configurator)
+	local Fake = dofile("Tools/regression/restedxp_fake.lua")
+	local frame = configurator.frame
 	local path = rxp.font or "Fonts\\FRIZQT__.TTF"
-	local theme = rxp.v2:GetTheme()
-	local common = theme.backgroundColors.common
 	local left, top, width = 16, 40, 320 - 16 - 28
 	local title = frame:CreateFontString(nil, "OVERLAY")
 	font(title, path, 12)
@@ -265,52 +261,21 @@ local function ConfiguratorRows(env, rxp, frame)
 	description:SetTextColor(0.75, 0.75, 0.82, 1)
 	at(description, frame, left, top + 18, width, 14)
 	description:SetText("Choose what this guide should include.")
-	local y = top + 38
-	for i, option in ipairs(CONFIGURATOR_OPTIONS) do
-		if y + OPTION_ROW > OPTION_FLOOR then
-			break
-		end
-		local row = env.CreateFrame("Button", nil, frame)
-		at(row, frame, left, y, width, OPTION_ROW)
-		local wash = row:CreateTexture(nil, "BACKGROUND")
-		wash:SetAllPoints(row)
-		wash:SetColorTexture(common[1], common[2], common[3], common[4] or 1)
-		local image = row:CreateTexture(nil, "OVERLAY")
-		image:SetSize(OPTION_IMAGE, OPTION_IMAGE)
-		image:SetPoint("LEFT", row, "LEFT", 2, 0)
-		image:SetTexture(option.icon)
-		local label = row:CreateFontString(nil, "OVERLAY")
-		font(label, path, 11)
-		label:SetJustifyH("LEFT")
-		label:SetHeight(16)
-		label:SetPoint("LEFT", image, "RIGHT", 7, 0)
-		label:SetPoint("RIGHT", row, "RIGHT", -(OPTION_CHECK + 12), 0)
-		label:SetTextColor(0.9, 0.9, 0.95, 1)
-		label:SetText(option.label)
-		if option.note ~= "" then
-			local note = row:CreateFontString(nil, "OVERLAY")
-			font(note, path, 9)
-			note:SetJustifyH("LEFT")
-			note:SetTextColor(0.05, 0.75, 1, 1)
-			note:SetPoint("BOTTOMLEFT", label, "TOPLEFT", 0, 2)
-			note:SetSize(width - OPTION_IMAGE - 40, 11)
-			note:SetText(option.note)
-		end
-		local check = env.CreateFrame("Frame", nil, row)
-		check:SetSize(OPTION_CHECK, OPTION_CHECK)
-		check:SetPoint("RIGHT", row, "RIGHT", -6, 0)
-		local box = check:CreateTexture(nil, "BACKGROUND")
-		box:SetAllPoints(check)
-		box:SetColorTexture(0.12, 0.12, 0.2, 1)
-		if option.checked then
-			local fill = check:CreateTexture(nil, "ARTWORK")
-			fill:SetPoint("TOPLEFT", check, "TOPLEFT", 4, -4)
-			fill:SetPoint("BOTTOMRIGHT", check, "BOTTOMRIGHT", -4, 4)
-			fill:SetColorTexture(0.05, 0.75, 1, 1)
-		end
-		y = y + OPTION_ROW + OPTION_GAP
-		if i < #CONFIGURATOR_OPTIONS and y + OPTION_ROW > OPTION_FLOOR then
-			break
+	local pane = configurator.scrollContainer.frame
+	at(pane, frame, left, top + 38, width, OPTION_FLOOR - top - 38)
+	local y = 0
+	for _, option in ipairs(Fake.ConfiguratorOptions(configurator)) do
+		if y + OPTION_ROW > OPTION_FLOOR - top - 38 then
+			option.frame:Hide()
+		else
+			local holder = option.frame:GetParent()
+			if holder ~= pane then
+				at(holder, pane, 0, y, width, OPTION_ROW)
+			end
+			at(option.frame, holder, 0, holder == pane and y or 0, width, OPTION_ROW)
+			option.text:SetHeight(16)
+			option.recommendation:SetHeight(12)
+			y = y + OPTION_ROW + OPTION_GAP
 		end
 	end
 end
@@ -352,7 +317,7 @@ local function Others(R, x, itemsTop)
 		text(button.text, ({ "Back", "Reset", "Submit" })[i], "CENTER", button)
 	end
 	at(configurator.scrollContainer.scrollbar, configurator.frame, 320 - 20, 50, 10, 140)
-	ConfiguratorRows(env, rxp, configurator.frame)
+	ConfiguratorRows(env, rxp, configurator)
 end
 
 function RestedXP.Build()

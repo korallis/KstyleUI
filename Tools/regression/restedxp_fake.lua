@@ -644,6 +644,108 @@ local function RxpButton(m, parent)
 	return button
 end
 
+-- The configurator's option rows, as RestedXP's GuideConfigurator.lua renders a page: label, icon, whether
+-- the row is recommended and checked. The scene draws the same three.
+Fake.CONFIGURATOR_OPTIONS = {
+	{ label = "Skip Deadmines", recommended = true, icon = 136169, checked = true },
+	{ label = "Buy the riding skill at 40", recommended = false, icon = 132261, checked = true },
+	{ label = "Do the Scarlet Monastery chain", recommended = false, icon = 135987, checked = false },
+}
+
+-- ConfiguratorOption(m, rxp, parent, option) is an RXPV2GuideConfiguratorOption widget (GuideConfigurator.lua:579):
+-- a backdrop Button row with its own flat configuratorBackground, a 40-unit image and the "Recommended" line on
+-- the border frame, the label, and a 17-unit checkbg frame at the right holding a tick (checkShort, checkLong)
+-- and the six checkedFill pieces RestedXP tints with its theme's checked colour while the option is on.
+local function ConfiguratorOption(m, rxp, parent, option)
+	local frame = RxpBackdrop(m, m.frame("Button", parent))
+	m.texture(frame, "BACKGROUND", "configuratorBackground")
+	frame.configuratorBackground:SetAllPoints(frame)
+	local image = m.texture(frame.rxpBorder, "OVERLAY")
+	image:SetSize(40, 40)
+	image:SetPoint("LEFT", frame, "LEFT", 2, 0)
+	image:SetTexture(option.icon)
+	local text = m.text(frame)
+	text:SetJustifyH("LEFT")
+	text:SetHeight(16)
+	text:SetPoint("LEFT", image, "RIGHT", 7, 0)
+	text:SetText(option.label)
+	local recommendation = m.text(frame.rxpBorder)
+	recommendation:SetTextColor(0.05, 0.75, 1)
+	recommendation:SetPoint("BOTTOMLEFT", text, "TOPLEFT", 0, 2)
+	recommendation:SetHeight(12)
+	recommendation:SetText("Recommended")
+	recommendation:SetShown(option.recommended == true)
+	local checkbg = RxpBackdrop(m, m.frame("Frame", frame))
+	checkbg:SetPoint("RIGHT", frame, "RIGHT", -11, 0)
+	checkbg:SetSize(17, 17)
+	m.texture(checkbg, "BACKGROUND", "configuratorBackground")
+	checkbg.configuratorBackground:SetAllPoints(checkbg)
+	text:SetPoint("RIGHT", checkbg, "LEFT", -5, 0)
+	local check = m.frame("Frame", checkbg)
+	check:SetAllPoints(checkbg)
+	local checkShort, checkLong = m.texture(check, "OVERLAY"), m.texture(check, "OVERLAY")
+	checkShort:SetSize(3, 1)
+	checkLong:SetSize(6, 1)
+	local checkedFill = {}
+	for i = 1, 6 do
+		checkedFill[i] = m.texture(checkbg, "ARTWORK")
+		checkedFill[i]:SetTexture(WHITE)
+	end
+	local widget = {
+		type = "RXPV2GuideConfiguratorOption", frame = frame, checkbg = checkbg, check = check, checkedFill = checkedFill,
+		text = text, recommendation = recommendation, image = image, checkShort = checkShort, checkLong = checkLong,
+	}
+	widget.SetChecked = m.trust(function(this, checked)
+		this.checked = checked
+		this.check:SetShown(checked)
+		for _, texture in ipairs(this.checkedFill) do
+			texture:SetShown(checked)
+		end
+		this.checkbg.configuratorBackground:SetShown(not checked)
+		this.checkbg.rxpBorder:SetShown(not checked)
+	end)
+	widget.GetChecked = function(this)
+		return this.checked
+	end
+	widget.UpdateSubTheme = m.trust(function(this)
+		local theme = rxp.v2:GetTheme()
+		local common = theme.textColor.common
+		this.text:SetFont(theme.font, 11, "")
+		this.text:SetTextColor(common[1], common[2], common[3], common[4] or 1)
+		this.frame.configuratorBackground:SetColorTexture(unpack(theme.backgroundColors.activeStepCheckbox))
+		this.checkbg.configuratorBackground:SetColorTexture(unpack(theme.backgroundColors.activeStepCheckbox))
+		this.checkShort:SetColorTexture(common[1], common[2], common[3], common[4] or 1)
+		this.checkLong:SetColorTexture(common[1], common[2], common[3], common[4] or 1)
+		for _, texture in ipairs(this.checkedFill) do
+			texture:SetVertexColor(unpack(theme.backgroundColors.activeStepCheckboxChecked))
+		end
+	end)
+	widget.UpdateTheme = m.trust(function(this)
+		this:UpdateSubTheme()
+	end)
+	widget:UpdateSubTheme()
+	widget:SetChecked(option.checked == true)
+	return widget
+end
+
+-- ConfiguratorOptions(ui) -> the option widgets a configurator page shows, in order, through the padding
+-- containers RestedXP wraps the first rows in.
+function Fake.ConfiguratorOptions(ui)
+	local list = {}
+	for _, child in ipairs(ui.scrollContainer.children or {}) do
+		if child.type == "RXPV2GuideConfiguratorOption" then
+			list[#list + 1] = child
+		else
+			for _, inner in ipairs(child.children or {}) do
+				if inner.type == "RXPV2GuideConfiguratorOption" then
+					list[#list + 1] = inner
+				end
+			end
+		end
+	end
+	return list
+end
+
 local function V2Windows(m, rxp)
 	local ui = rxp.ui
 	local configurator = {}
@@ -657,9 +759,30 @@ local function V2Windows(m, rxp)
 		widget.backbutton = RxpButton(m, frame)
 		widget.resetbutton = RxpButton(m, frame)
 		widget.submitbutton = RxpButton(m, frame)
-		widget.scrollContainer = { scrollbar = ScrollBar(m, frame, "RXPV2ScrollFrame1ScrollBar") }
+		local pane = m.frame("Frame", frame)
+		widget.scrollContainer = { frame = pane, scrollbar = ScrollBar(m, frame, "RXPV2ScrollFrame1ScrollBar"), children = {}, layouts = 0 }
+		widget.scrollContainer.DoLayout = function(container)
+			container.layouts = container.layouts + 1
+		end
 		self.ui = widget
 		m.seal()
+	end)
+	-- LoadPages renders the page's option rows into the scroll container as GuideConfigurator.lua's renderOptions
+	-- does: the rows but the last inside padding containers, then the container lays itself out.
+	configurator.LoadPages = m.trust(function(self)
+		local container = self.ui.scrollContainer
+		container.children = {}
+		for i, option in ipairs(Fake.CONFIGURATOR_OPTIONS) do
+			if i < #Fake.CONFIGURATOR_OPTIONS then
+				local padding = { type = "RXPV2GuideConfiguratorOptionPadding", frame = m.frame("Frame", container.frame), children = {} }
+				padding.children[1] = ConfiguratorOption(m, rxp, padding.frame, option)
+				container.children[#container.children + 1] = padding
+			else
+				container.children[#container.children + 1] = ConfiguratorOption(m, rxp, container.frame, option)
+			end
+		end
+		m.seal()
+		container:DoLayout()
 	end)
 	-- UpdateTheme redraws the configurator from the theme, as RestedXP's GuideConfigurator.lua does: the title in
 	-- the theme font at the guide size plus 2 in a fixed gold, each button's label in the theme font and text
@@ -678,11 +801,15 @@ local function V2Windows(m, rxp)
 			button.configuratorBackground:SetColorTexture(0.1, 0.1, 0.2, 1)
 			button.configuratorBackground:SetAlpha(1)
 		end
+		for _, option in ipairs(Fake.ConfiguratorOptions(widget)) do
+			option:UpdateTheme()
+		end
 	end)
 	function configurator.Open(self)
 		if not self.ui then
 			self:CreateGuideConfigurator()
 		end
+		self:LoadPages()
 		m.open(self.ui.frame)
 	end
 

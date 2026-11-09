@@ -45,14 +45,34 @@ class StandinsTest(unittest.TestCase):
     def test_writes_every_stand_in_at_its_size(self):
         out = self.root / "standins"
         written = self.standins.write(str(self.mockup()), str(out), 2383, 1540)
-        self.assertEqual(sorted(os.path.basename(p) for p in written), ["backdrop.png", "minimap.png", "portrait-player.png", "portrait-target.png"])
+        self.assertEqual(sorted(os.path.basename(p) for p in written), ["backdrop.png", "minimap.png", "portrait-player.png", "portrait-target.png", "worldmap.png"])
         self.assertEqual(Image.open(out / "portrait-player.png").size, (128, 128))
         self.assertEqual(Image.open(out / "portrait-target.png").size, (128, 128))
         self.assertEqual(Image.open(out / "minimap.png").size, (256, 256))
+        self.assertEqual(Image.open(out / "worldmap.png").size, (256, 256))
         self.assertEqual(Image.open(out / "backdrop.png").size, (2383, 1540))
         # The player crop is the red square; the target crop is the field.
         self.assertEqual(Image.open(out / "portrait-player.png").getpixel((64, 64)), (200, 30, 30))
         self.assertEqual(Image.open(out / "portrait-target.png").getpixel((64, 64)), (20, 40, 200))
+
+    def test_worldmap_crop_is_the_minimap_terrain_lifted_to_daylight(self):
+        # The mockup's minimap art is painted dark for its lens; the world map window draws the same terrain,
+        # which the game shows at full brightness, so the map stand-in is the crop lifted to the daylight mean.
+        image = Image.new("RGB", (2574, 1456), (18, 26, 14))
+        left, top, right, bottom = self.standins.CROPS["minimap.png"]
+        image.paste((40, 52, 30), (left, top, left + 120, bottom))
+        path = self.root / "mockup.png"
+        image.save(path)
+        out = self.root / "standins"
+        self.standins.write(str(path), str(out), 2383, 1540)
+        night = Image.open(out / "minimap.png").convert("L")
+        day = Image.open(out / "worldmap.png").convert("L")
+        mean = lambda im: sum(im.getdata()) / (im.width * im.height)
+        self.assertLess(mean(night), 60)
+        self.assertGreaterEqual(mean(day), self.standins.MAP_DAYLIGHT - 8)
+        self.assertLessEqual(mean(day), self.standins.MAP_DAYLIGHT + 8)
+        # The lift keeps the terrain's contrast: the brighter strip stays brighter.
+        self.assertGreater(day.getpixel((40, 128)), day.getpixel((220, 128)))
 
     def test_minimap_crop_drops_the_mockup_north_mark(self):
         # The mockup paints a white N at the top of its map art; the addon draws its own in the card's head, so the

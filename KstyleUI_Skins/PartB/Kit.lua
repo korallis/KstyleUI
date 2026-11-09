@@ -165,6 +165,11 @@ local function PaintTab(parts)
 	local tab, text = parts.frame, parts.text
 	parts.underline:SetShown(parts.selected == true)
 	parts.underline:SetVertexColor(AccentRGBA())
+	if parts.wash then
+		parts.wash:SetShown(parts.selected == true)
+		local r, g, b = ns.Style.Accent()
+		parts.wash:SetVertexColor(r, g, b, K.Skin.TAB_WASH_ALPHA)
+	end
 	if not text then
 		return
 	end

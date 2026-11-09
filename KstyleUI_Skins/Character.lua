@@ -223,7 +223,7 @@ local function SkinPaperDoll()
 	for _, name in ipairs(SIDEBAR_TABS) do
 		local tab = _G[name]
 		if type(tab) == "table" then
-			Parts.SideTab(tab)
+			Parts.SideTab(tab, { rimTab = true })
 		end
 	end
 	SkinStats()

@@ -179,10 +179,11 @@ local function PaintTab(state)
 	end
 end
 
-function Parts.SideTab(tab)
+function Parts.SideTab(tab, opts)
 	if type(tab) ~= "table" or tabs[tab] then
 		return tabs[tab]
 	end
+	opts = opts or {}
 	local keep = {}
 	local icon = tab.Icon
 	if IsTexture(icon) then
@@ -197,7 +198,8 @@ function Parts.SideTab(tab)
 	Skin.Strip(tab, { keep = keep })
 	local native = type(tab.IsObjectType) == "function" and tab:IsObjectType("CheckButton") and type(tab.GetChecked) == "function"
 	local state = { tab = tab, checked = wasChecked, hover = false, native = native }
-	state.rim = Parts.Rim(tab, { target = IsTexture(icon) and icon or tab, outset = Tokens.Size("gapTiny") })
+	local target = (IsTexture(icon) and not opts.rimTab) and icon or tab
+	state.rim = Parts.Rim(tab, { target = target, outset = Tokens.Size("gapTiny") })
 	state.icon = IsTexture(icon) and icon or nil
 	state.Restyle = PaintTab
 	tabs[tab] = state
@@ -257,7 +259,7 @@ local function Reaches(dock)
 		return nil
 	end
 	local reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 }
-	local straddle = {}
+	local straddle, head = {}, {}
 	for _, frame in ipairs(dock.frames) do
 		if Shown(frame) then
 			local rect = Edges(frame, scale)
@@ -272,11 +274,15 @@ local function Reaches(dock)
 					if inner[edge] < 0 then
 						straddle[edge] = true
 					end
+					if edge == "LEFT" or edge == "RIGHT" then
+						local below = math.max(0, box.top - rect.top)
+						head[edge] = math.min(head[edge] or below, below)
+					end
 				end
 			end
 		end
 	end
-	return reach, straddle
+	return reach, straddle, head
 end
 
 local function Seam(dock, edge)
@@ -289,7 +295,7 @@ local function Seam(dock, edge)
 	return seam
 end
 
-local function PlaceSeam(dock, edge, reach, straddle)
+local function PlaceSeam(dock, edge, reach, straddle, head)
 	local window = dock.window
 	if reach <= 0 and not dock.seams[edge] then
 		return
@@ -301,6 +307,7 @@ local function PlaceSeam(dock, edge, reach, straddle)
 	end
 	local corner = Widgets.Snap(window, Tokens.Size(DOCK_CORNER))
 	local border = Widgets.Border(window)
+	local top = math.max(corner, Widgets.Snap(window, (head or 0) - Tokens.Size("gapTiny")))
 	seam:ClearAllPoints()
 	if edge == "BOTTOM" then
 		seam:SetPoint("TOPLEFT", window, "BOTTOMLEFT", corner, 0)
@@ -311,11 +318,11 @@ local function PlaceSeam(dock, edge, reach, straddle)
 		seam:SetPoint("BOTTOMRIGHT", window, "TOPRIGHT", -corner, 0)
 		seam:SetHeight(border)
 	elseif edge == "RIGHT" then
-		seam:SetPoint("TOPLEFT", window, "TOPRIGHT", 0, -corner)
+		seam:SetPoint("TOPLEFT", window, "TOPRIGHT", 0, -top)
 		seam:SetPoint("BOTTOMLEFT", window, "BOTTOMRIGHT", 0, corner)
 		seam:SetWidth(border)
 	else
-		seam:SetPoint("TOPRIGHT", window, "TOPLEFT", 0, -corner)
+		seam:SetPoint("TOPRIGHT", window, "TOPLEFT", 0, -top)
 		seam:SetPoint("BOTTOMRIGHT", window, "BOTTOMLEFT", 0, corner)
 		seam:SetWidth(border)
 	end
@@ -337,7 +344,7 @@ local function ShiftTitle(dock)
 end
 
 local function PlaceDock(dock)
-	local reach, straddle = Reaches(dock)
+	local reach, straddle, head = Reaches(dock)
 	if not reach then
 		return false
 	end
@@ -352,7 +359,7 @@ local function PlaceDock(dock)
 		local past = reach[edge] > 0 and Widgets.Snap(panel, reach[edge] + gap) or 0
 		reach[edge] = past
 		inset[EDGE_KEY[edge]] = dock.base[edge] - past
-		PlaceSeam(dock, edge, past, straddle[edge])
+		PlaceSeam(dock, edge, past, straddle[edge], head[edge])
 	end
 	dock.reach = reach
 	panel:Restyle()

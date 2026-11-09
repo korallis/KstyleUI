@@ -240,25 +240,45 @@ function Lumen.RingOf(check)
 	return rings[check]
 end
 
-function Lumen.RingCheck(check)
-	local ring = rings[check]
+local function Checked(value)
+	return not IsSecret(value) and value == true
+end
+
+local function SetRingChecked(ring, checked)
+	ring.checked = Checked(checked)
+	PaintRing(ring)
+end
+
+function Lumen.Ring(host, checked)
+	local ring = rings[host]
 	if ring then
 		return ring
 	end
-	Skin.Strip(check)
-	local box = CreateFrame("Frame", nil, check)
-	box:SetPoint("CENTER", check, "CENTER")
-	box:SetFrameLevel(check:GetFrameLevel() + RING_LEVEL)
+	Skin.Strip(host)
+	local box = CreateFrame("Frame", nil, host)
+	box:SetPoint("CENTER", host, "CENTER")
+	box:SetFrameLevel(host:GetFrameLevel() + RING_LEVEL)
 	local ringTexture = box:CreateTexture(nil, "ARTWORK")
 	ringTexture:SetTexture((Lumen.Texture("checkRing")))
 	ringTexture:SetPoint("CENTER", box, "CENTER")
 	local fill = box:CreateTexture(nil, "OVERLAY")
 	fill:SetTexture((Lumen.Texture("gemFill")))
 	fill:SetPoint("CENTER", box, "CENTER")
-	ring = { check = check, box = box, ring = ringTexture, fill = fill, hoverT = 0, Paint = PaintRing, Restyle = RestyleRing }
+	ring = { check = host, box = box, ring = ringTexture, fill = fill, hoverT = 0, checked = Checked(checked), Paint = PaintRing, Restyle = RestyleRing, SetChecked = SetRingChecked }
+	RestyleRing(ring)
+	Style.Track(ring)
+	Widgets.Track(ring)
+	rings[host] = ring
+	return ring
+end
+
+function Lumen.RingCheck(check)
+	if rings[check] then
+		return rings[check]
+	end
+	local ring = Lumen.Ring(check, check:GetChecked())
 	local function update()
-		ring.checked = check:GetChecked() and true or false
-		PaintRing(ring)
+		ring:SetChecked(check:GetChecked())
 	end
 	hooksecurefunc(check, "SetChecked", update)
 	check:HookScript("OnClick", update)
@@ -269,10 +289,5 @@ function Lumen.RingCheck(check)
 	check:HookScript("OnLeave", function()
 		Widgets.Hover(ring, false)
 	end)
-	ring.checked = check:GetChecked() and true or false
-	RestyleRing(ring)
-	Style.Track(ring)
-	Widgets.Track(ring)
-	rings[check] = ring
 	return ring
 end

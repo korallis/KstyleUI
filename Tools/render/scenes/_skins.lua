@@ -28,9 +28,9 @@ Skins.WINDOWS = {
 	spellbook = { grade = "window", reference = "chat",
 		caption = "PlayerSpellsFrame, spellbook: window glass; spell icons and category tabs on button-body rims; headers as display text over an accent line.",
 		match = "Window grade as the chat panel; icon rims as the mockup's buttons, without the bezel since the icons sit in a list." },
-	talents = { grade = "window", reference = "chat",
-		caption = "PlayerSpellsFrame, talents: window glass; the search box, tabs and buttons on the button body. Talent nodes keep Blizzard's art (stand-ins here).",
-		match = "Window grade as the chat panel; controls as the design kit's dark input." },
+	talents = { grade = "window", reference = "chat", tooltip = true,
+		caption = "PlayerSpellsFrame, talents: window glass; the search box, tabs and buttons on the button body. Talent nodes keep Blizzard's art (stand-ins here: a tree with its edges and rank badges); the hovered node's GameTooltip wears the Tooltips module's panel glass.",
+		match = "Window grade as the chat panel; controls as the design kit's dark input; the tooltip as the mockup's unit frame glass." },
 	worldmap = { grade = "window", reference = "chat",
 		caption = "WorldMapFrame with QuestMapFrame docked: window glass behind the map; the navigation bar and the quest list body on surface tiles; the search box on the button body.",
 		match = "Window grade as the chat panel; the quest list reads as the tracker's glass. The map canvas is a flat stand-in." },
@@ -78,18 +78,56 @@ Skins.WINDOWS = {
 		match = "Window grade as the chat panel; buttons as the design kit's dark controls." },
 }
 
+-- Tooltip(env, K, parts) hangs the Tooltips module's GameTooltip from the window's hovered stand-in (parts.hover):
+-- a spell tooltip with the talent's name, rank and a line of rules text, laid out as the game lays it out, so a
+-- window whose live content is Blizzard's (the talent tree) is judged with the tooltip a player reads it by.
+local function Tooltip(env, K, parts)
+	local T = dofile("Tools/regression/tooltips_env.lua")
+	local Layout = dofile("Tools/render/scenes/tooltip.lua")
+	if not K.Modules.IsRunning("Tooltips") then
+		K.Modules.Enable("Tooltips")
+	end
+	env.RunTimers()
+	local tip = env.GameTooltip
+	tip:SetOwner(parts.hover, "ANCHOR_NONE")
+	tip:ClearAllPoints()
+	tip:SetPoint("TOPLEFT", parts.hover, "BOTTOMRIGHT", 8, -4)
+	tip:AddLine(parts.hoverName, 1, 1, 1)
+	tip:AddLine(parts.hoverRank, 1, 1, 1)
+	tip:AddLine(parts.hoverText, 1, 0.82, 0)
+	if parts.hoverNeed then
+		tip:AddLine(parts.hoverNeed, 1, 0.13, 0.13)
+	end
+	T.BlizzardShow(tip, true)
+	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Spell, id = 12834 })
+	Layout.Layout(env, tip)
+	return tip
+end
+
 function Skins.Scene(key)
 	local spec = Windows.Spec(key)
 	local entry = assert(Skins.WINDOWS[key], "no gallery entry for " .. key)
 	local B, parts
+	local modules = { "Skins" }
+	if entry.tooltip then
+		modules[#modules + 1] = "Tooltips"
+	end
 	local env, K, ns = S.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ "Skins" }),
-		setup = Gallery.Setup,
+		saved = Gallery.Saved(modules),
+		setup = function(env)
+			Gallery.Setup(env)
+			if entry.tooltip then
+				dofile("Tools/regression/tooltips_env.lua").Blizzard(env)
+			end
+		end,
 		before = function(env)
 			B = S.Blizzard(env)
 			parts = select(2, Windows.Build(key, env, B))
 		end,
 	}))
+	if entry.tooltip then
+		dofile("Tools/regression/load_files.lua")(dofile("Tools/regression/tooltips_env.lua").Files(), env)
+	end
 	K.Modules.Enable("Skins")
 	if spec.addon then
 		S.LoadAddOn(env, spec.addon)
@@ -99,6 +137,13 @@ function Skins.Scene(key)
 	end
 	env.RunTimers()
 	S.W.Settle(env)
+	local tooltip
+	if entry.tooltip and parts.hover then
+		tooltip = Tooltip(env, K, parts)
+		parts.bounds[#parts.bounds + 1] = tooltip
+		env.RunTimers()
+		S.W.Settle(env)
+	end
 	-- A texture the game paints with SetPortraitTexture (the character window's first mode tab) gets the
 	-- mockup's player portrait when standins.py has cut it, else a flat tone.
 	local portraits = parts.portraits or {}
@@ -113,14 +158,16 @@ function Skins.Scene(key)
 			portraitNote = "the player portrait is a flat stand-in; run Tools/render/standins.py for the mockup's crop"
 		end
 	end
-	-- A texture the game paints map terrain on (the world map's canvas) gets the mockup's terrain crop when
+	-- A texture the game paints map terrain on (the world map's canvas) gets the mockup's terrain crop lifted to
+	-- daylight (worldmap.png; the mockup paints its minimap dark for the lens, the game's map is bright) when
 	-- standins.py has cut it, else stays the builder's flat field.
 	local mapNote
 	for _, texture in ipairs(parts.maps or {}) do
-		local file = Common.StandIn("minimap.png")
+		local file = Common.StandIn("worldmap.png") or Common.StandIn("minimap.png")
 		if file then
 			texture:SetTexture(file)
-			mapNote = "the map canvas is the mockup's terrain crop (" .. file .. "); the game draws its own map"
+			texture:SetVertexColor(1, 1, 1, 1)
+			mapNote = "the map canvas is the mockup's terrain crop at daylight (" .. file .. "); the game draws its own map"
 		else
 			mapNote = "the map canvas is a flat stand-in; run Tools/render/standins.py for the mockup's terrain"
 		end

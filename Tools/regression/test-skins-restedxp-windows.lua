@@ -4,7 +4,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -369,6 +369,46 @@ do
 	configurator:UpdateTheme()
 	Roles()
 	assert(K.Skin.IsSkinned(ui.scrollContainer.scrollbar, "ScrollBar"))
+	-- The option rows (RXPV2GuideConfiguratorOption widgets, some inside padding containers): each row sits on
+	-- a surface tile, its check is the kit's Lumen ring (gilt fill while checked) in place of RestedXP's cyan
+	-- square, its label is in the body role, and its "Recommended" line takes the accent role, not RestedXP's
+	-- cyan (round 5, Opus #4). RestedXP re-renders the rows on every page, so the skin follows the container's
+	-- layout, and a later theme redraw keeps the treatment.
+	local options = Fake.ConfiguratorOptions(ui)
+	assert(#options == 3, "the fake renders three option rows, got " .. #options)
+	local function Rows()
+		for i, option in ipairs(options) do
+			assert(Glass(K, option.frame), "option " .. i .. " sits on a tile")
+			assert(Alpha(option.frame.configuratorBackground) == 0 and Alpha(option.frame.rxpBorder.textures[1]) == 0, "RestedXP's row wash and border go")
+			local ring = ns.Lumen.RingOf(option.checkbg)
+			assert(ring, "option " .. i .. " wears a Lumen ring check")
+			assert(Alpha(option.checkbg.configuratorBackground) == 0 and Alpha(option.checkedFill[1]) == 0 and Alpha(option.checkShort) == 0, "RestedXP's square and its cyan fill go")
+			assert(ring.fill:IsShown() == (option.checked == true), "the ring shows the option's state: " .. tostring(option.checked))
+			if option.checked then
+				local fr, fg, fb = ring.fill:GetVertexColor()
+				local gr, gg, gb = ns.Lumen.Color("gilt")
+				assert(W.Near(fr, gr) and W.Near(fg, gg) and W.Near(fb, gb), "the checked fill is gilt")
+			end
+			assert(option.text:GetFont() == (ns.Style.Font("body")), "the label is in the body role")
+			if option.recommendation:IsShown() then
+				assert(Accented(ns, option.recommendation), "the Recommended line takes the accent")
+				assert(option.recommendation:GetFont() == (ns.Style.Font("caption")), "in the caption role")
+			end
+		end
+	end
+	Rows()
+	assert(options[1].checked and options[1].recommendation:IsShown() and not options[3].checked, "the fake's first option is checked and recommended, the third unchecked")
+	options[1]:SetChecked(false)
+	assert(not ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "unchecking the option empties the ring")
+	options[1]:SetChecked(true)
+	configurator:UpdateTheme()
+	Rows()
+	-- A new page renders new rows; the skin reaches them as RestedXP lays the container out.
+	configurator:LoadPages()
+	local again = Fake.ConfiguratorOptions(ui)
+	assert(again[1] ~= options[1], "the page re-rendered its rows")
+	options = again
+	Rows()
 
 	rxp.guideImporter:Open()
 	local widgets = rxp.guideImporter.widgets

@@ -1070,7 +1070,7 @@ function Scene.Build(env, opts)
 			end
 		end
 		local colour = color4(region._state.ColorTexture)
-		if colour then
+		if colour and (item.file == nil or colourWins(region)) then
 			item.color = colour
 		end
 		item.vertex = color4(region._state.VertexColor, { 1, 1, 1, 1 })

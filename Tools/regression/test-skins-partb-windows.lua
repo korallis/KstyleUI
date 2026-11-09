@@ -413,6 +413,8 @@ do
 			local slot = B.frame("Frame", merchant, "MerchantItem" .. i)
 			slot.SlotTexture = B.texture(slot)
 			slot.ItemButton = P.Item(B, slot)
+			slot.Name = B.text(slot)
+			slot.Name:SetPoint("LEFT", slot.SlotTexture, "RIGHT", -5, 7)
 			slots[i] = slot
 		end
 		local buyback = B.frame("Frame", merchant, "MerchantBuyBackItem")
@@ -428,6 +430,17 @@ do
 		assert(Hidden(slot.SlotTexture) and Skinned(K, slot, "Backdrop"), "each item row is a tile")
 		assert(K.Skin.Parts(slot).backdrop.chrome.fillName == "surface", "on the glass surface, as every list row; the icon alone sits on the button body")
 		assert(K.Safe.Side(slot.ItemButton).partBItem, "each item gets a rim")
+		-- The item name stops a gap short of the tile's right edge instead of running to it (Blizzard sizes
+		-- the name 100 wide from the icon; the skin's body face is wider than its small font).
+		local right
+		for _, point in ipairs(slot.Name._points) do
+			if point[1] == "RIGHT" and point[2] == slot then
+				right = point
+			end
+		end
+		assert(right, "the name has a right anchor on its tile")
+		assert(right[4] <= -K.Tokens.Size("gapMedium"), "a gap in from the tile's edge, got " .. tostring(right[4]))
+		assert(W.LastCall(slot.Name, "SetWordWrap") == nil or W.LastCall(slot.Name, "SetWordWrap")[1] == true, "a long name may wrap to its second line")
 	end
 	assert(K.Safe.Side(made.buyback.ItemButton).partBItem, "the buyback item too")
 	assert(Hidden(made.repair.slot) and not Hidden(made.repair.Icon), "the repair button keeps its icon on a tile")

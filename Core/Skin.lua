@@ -17,6 +17,8 @@ local THUMB_ALPHA = 0.45
 local CHECK_BOX = 16
 local CHECK_MARK = 8
 local LEVEL_ABOVE = 2
+local TAB_WASH_ALPHA = 0.22
+Skin.TAB_WASH_ALPHA = TAB_WASH_ALPHA
 
 local WEAK = { __mode = "k" }
 local hushed = setmetatable({}, WEAK)
@@ -311,6 +313,8 @@ local function PaintTab(parts)
 	local tab, text = parts.frame, parts.text
 	parts.underline:SetShown(parts.selected == true)
 	Widgets.Tint(parts.underline, "accent")
+	parts.wash:SetShown(parts.selected == true)
+	parts.wash:SetVertexColor(Widgets.Rgba("accent", TAB_WASH_ALPHA))
 	if not text then
 		return
 	end
@@ -363,6 +367,12 @@ local function Tab(tab)
 	local overlay = Overlay(tab)
 	parts.underline = overlay:CreateTexture(nil, "OVERLAY")
 	parts.underline:SetTexture((Tokens.Texture("divider")))
+	local under = CreateFrame("Frame", nil, tab)
+	under:SetAllPoints(tab)
+	under:SetFrameLevel(max(0, tab:GetFrameLevel() - 1))
+	parts.wash = under:CreateTexture(nil, "ARTWORK")
+	parts.wash:SetAllPoints(under)
+	parts.wash:SetColorTexture(Tokens.Color("white"))
 	parts.text = tab.Text or (type(tab.GetFontString) == "function" and tab:GetFontString()) or nil
 	parts.Paint, parts.Layout, parts.Restyle = PaintTab, LayoutTab, Restyle
 	parts.kinds.Tab = true

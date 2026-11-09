@@ -10,7 +10,7 @@ local Window = {}
 Window.__index = Window
 ns.Window = Window
 
-local MIN_CONTENT_WIDTH = 240
+local MIN_CONTENT_WIDTH = 160
 local MIN_SEARCH_WIDTH = 120
 local SORT_WIDTH = 64
 local REFRESH_DELAY = 0.2
@@ -375,7 +375,9 @@ function Window:Layout(force)
 			buttonsWidth = buttonsWidth + (Plain(button:GetWidth()) or SORT_WIDTH) + gap
 		end
 	end
-	local contentWidth = max(Snap(self, MIN_CONTENT_WIDTH), Snap(self, MIN_SEARCH_WIDTH) + gap + sortWidth + buttonsWidth)
+	local controls = sortWidth + buttonsWidth
+	local oneRow = Snap(self, MIN_SEARCH_WIDTH) + gap + controls
+	local contentWidth = max(Snap(self, MIN_CONTENT_WIDTH), Snap(self, MIN_SEARCH_WIDTH), controls)
 	for _, section in ipairs(self.sections) do
 		for _, slot in ipairs(section.order) do
 			Slot.Layout(slot, size, force)
@@ -416,13 +418,17 @@ function Window:Layout(force)
 	if self.spec.above then
 		top = self.spec.above(self, content, top, contentWidth)
 	end
-	local searchWidth = max(1, contentWidth - sortWidth - gap - buttonsWidth)
+	local stacked = contentWidth < oneRow
+	local searchWidth = stacked and contentWidth or max(1, contentWidth - gap - controls)
 	if force or self.search.opts.width ~= searchWidth or self.search.opts.height ~= rowHeight then
 		self.search.opts.width, self.search.opts.height = searchWidth, rowHeight
 		self.search:Restyle()
 	end
 	self.search:ClearAllPoints()
 	self.search:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
+	if stacked then
+		top = top + rowHeight + gap
+	end
 	self.sortButton:ClearAllPoints()
 	self.sortButton:SetPoint("TOPRIGHT", content, "TOPLEFT", contentWidth, -top)
 	local anchor = self.sortButton

@@ -450,6 +450,78 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- The window hugs a five-wide row too: the header stacks rather than holding the window open ---------------
+
+do
+	local env, K, ns = B.New({ bags = Bags(), merchant = true })
+	Open(env)
+	local win = ns.Inventory.window
+	local panel = win.panel
+	local Data = ns.Data
+	local size, spacing = ns.Settings.Get("slotSize"), ns.Settings.Get("spacing")
+	local pad = K.Widgets.WindowInset(panel)
+	local gap = K.Widgets.Snap(panel, K.Tokens.Size("gapMedium"))
+	-- The header's frames hang from the content frame's top-left corner, so their anchor offsets place them.
+	local function Offset(frame)
+		local point = frame._points[1]
+		assert(point and point[2] == panel.content, "anchored on the content frame")
+		return point[4], -point[5]
+	end
+	-- At a merchant, with junk to sell, Sell junk joins Sort in the header. Five cloth stacks make the widest row
+	-- five slots: narrower than the search box, Sort and Sell junk side by side.
+	env.SetMerchant(true)
+	for slot = 2, 5 do
+		B.Put(env, 1, slot, Item("cloth", { count = slot }))
+	end
+	env.RunTimers()
+	W.Settle(env)
+	assert(win.junkButton:IsShown(), "Sell junk shows at the merchant")
+	assert(win.sections[1].groups.tradeGoods.cols == 5, "the row is five wide")
+	local five = Data.Size(5, 1, size, spacing)
+	local shown = {}
+	for _, button in ipairs(win.buttons) do
+		if button:IsShown() then
+			shown[#shown + 1] = button
+		end
+	end
+	assert(#shown >= 1, "a header button beside Sort is shown")
+	local need = 100 + gap + win.sortButton:GetWidth()
+	for _, button in ipairs(shown) do
+		need = need + gap + button:GetWidth()
+	end
+	assert(need > five, "the test case: the header's controls side by side need more than the five-wide row: " .. need .. " vs " .. five)
+	assert(math.abs(panel:GetWidth() - (five + 2 * pad)) < 0.01, "the window hugs the five-wide row: " .. panel:GetWidth() .. " vs " .. five + 2 * pad)
+	-- The header makes room by stacking: the search box takes the row's width, the buttons sit on their own row
+	-- under it, right-aligned, and the sections start below both.
+	assert(math.abs(win.search:GetWidth() - five) < 0.01, "the search box spans the row: " .. win.search:GetWidth() .. " vs " .. five)
+	local _, searchTop = Offset(win.search)
+	local sortRight, sortTop = Offset(win.sortButton)
+	assert(sortTop >= searchTop + win.search:GetHeight(), "the buttons sit under the search box: " .. sortTop .. " vs " .. searchTop .. " + " .. win.search:GetHeight())
+	local previous = win.sortButton
+	for _, button in ipairs(shown) do
+		local point = button._points[1]
+		assert(point[1] == "TOPRIGHT" and point[2] == previous and point[3] == "TOPLEFT" and point[4] < 0, "each button sits left of the one before, on the same row")
+		previous = button
+	end
+	assert(math.abs(sortRight - five) < 0.01, "the buttons end at the row's right edge: " .. sortRight .. " vs " .. five)
+	local _, sectionsTop = Offset(win.viewport)
+	assert(sectionsTop >= sortTop + win.sortButton:GetHeight(), "the sections start under the button row: " .. sectionsTop .. " vs " .. sortTop)
+	-- With a ten-wide row the controls fit beside each other again, on one row.
+	for slot = 6, 8 do
+		B.Put(env, 1, slot, Item("cloth", { count = slot }))
+	end
+	for slot = 6, 7 do
+		B.Put(env, 0, slot, Item("cloth", { count = slot }))
+	end
+	env.RunTimers()
+	W.Settle(env)
+	assert(win.sections[1].groups.tradeGoods.cols >= 9, "the row is wide: " .. tostring(win.sections[1].groups.tradeGoods.cols))
+	local _, searchTopWide = Offset(win.search)
+	local _, sortTopWide = Offset(win.sortButton)
+	assert(math.abs(sortTopWide - searchTopWide) < 0.01, "the buttons share the search box's row again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Custom categories: a named rule gets its own section ahead of the built-in ones -----------------
 
 do

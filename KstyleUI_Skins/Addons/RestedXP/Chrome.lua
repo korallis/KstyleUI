@@ -23,6 +23,7 @@ local CLEANUP_BUTTON = "RXPQuestLogCleanupButton"
 local IMPORT_BUTTONS = { "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }
 local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
+local OPTION_WIDGET = "RXPV2GuideConfiguratorOption"
 local RXP_MARGIN = 4
 local GUTTER_GAP = "gapSmall"
 local HEADER_OVERLAP = 9
@@ -996,6 +997,63 @@ local function KitButton(button)
 	end
 end
 
+local function Option(widget)
+	local row = widget.frame
+	if not IsTable(row) or type(row.GetRegions) ~= "function" then
+		return
+	end
+	if not Skin.IsSkinned(row, "Backdrop") then
+		if IsTable(row.rxpBorder) and IsTexture(widget.image) then
+			Skin.Strip(row.rxpBorder, { keep = { [widget.image] = true } })
+		end
+		Skin.Strip(row, { children = RXP_ART })
+		Skin.Backdrop(row, { shape = "tile", fill = "surface", shadow = false })
+	end
+	Label(widget.text, "body", "textEmphasis")
+	local note = widget.recommendation
+	if IsTable(note) and type(note.SetTextColor) == "function" then
+		Label(note, "caption")
+		note:SetTextColor(Style.Accent())
+	end
+	local checkbg = widget.checkbg
+	if not IsTable(checkbg) or type(checkbg.GetRegions) ~= "function" or Lumen.RingOf(checkbg) then
+		return
+	end
+	Skin.Strip(checkbg, { children = RXP_ART })
+	if IsTable(widget.check) and type(widget.check.GetRegions) == "function" then
+		Skin.Strip(widget.check)
+	end
+	local ring = Lumen.Ring(checkbg, widget.checked)
+	if type(widget.SetChecked) == "function" then
+		hooksecurefunc(widget, "SetChecked", function(_, checked)
+			ring:SetChecked(checked)
+		end)
+	end
+	if type(row.HookScript) == "function" then
+		row:HookScript("OnEnter", function()
+			Widgets.Hover(ring, true)
+		end)
+		row:HookScript("OnLeave", function()
+			Widgets.Hover(ring, false)
+		end)
+	end
+end
+
+local function EachOption(container, fn)
+	local children = IsTable(container) and container.children
+	for _, child in ipairs(IsTable(children) and children or {}) do
+		if child.type == OPTION_WIDGET then
+			fn(child)
+		elseif IsTable(child.children) then
+			for _, inner in ipairs(child.children) do
+				if inner.type == OPTION_WIDGET then
+					fn(inner)
+				end
+			end
+		end
+	end
+end
+
 local function Configurator(configurator)
 	local ui = configurator.ui
 	if not IsTable(ui) or not IsTable(ui.frame) then
@@ -1008,11 +1066,16 @@ local function Configurator(configurator)
 	for _, key in ipairs(CONFIGURATOR_BUTTONS) do
 		KitButton(ui[key])
 	end
-	local pane = IsTable(ui.scrollContainer) and ui.scrollContainer.frame
+	local container = ui.scrollContainer
+	local pane = IsTable(container) and container.frame
 	if IsTable(pane) and type(pane.GetRegions) == "function" and not Skin.IsSkinned(pane, "Backdrop") then
 		Skin.Backdrop(pane, { shape = "tile", fill = "surface", shadow = false })
 	end
-	ScrollBar(IsTable(ui.scrollContainer) and ui.scrollContainer.scrollbar or nil)
+	ScrollBar(IsTable(container) and container.scrollbar or nil)
+	EachOption(container, Option)
+	Hook(container, "DoLayout", "configurator.scrollContainer.DoLayout", function()
+		EachOption(container, Option)
+	end)
 end
 
 local function Importer(importer)

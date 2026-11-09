@@ -54,6 +54,9 @@ CROPS = {
 }
 PORTRAIT_SIZE = 128
 MINIMAP_SIZE = 256
+# The world map window draws the minimap's terrain at daylight: the mockup paints the map art dark for its lens,
+# so worldmap.png is the same crop lifted to this mean luminance (0 to 255), its contrast kept.
+MAP_DAYLIGHT = 112
 # The mockup paints a white N at the top of its map art (left, top, right, bottom, relative to the minimap crop).
 # KstyleUI draws its own north mark in the card's head, so the crop covers the mockup's with the terrain under it.
 NORTH_MARK = (118, 0, 142, 16)
@@ -102,6 +105,19 @@ def cover_mark(crop, mark):
     out = crop.copy()
     out.paste(patch, (left, top))
     return out
+
+
+def daylight(crop, target=MAP_DAYLIGHT):
+    """The crop lifted so its mean luminance is the target: a gamma lift, which keeps the terrain's contrast
+    and never clips a highlight the way a plain multiply would."""
+    grey = crop.convert("L")
+    mean = sum(grey.getdata()) / (grey.width * grey.height)
+    if mean <= 0 or mean >= 255:
+        return crop.copy()
+    import math
+    gamma = math.log(target / 255) / math.log(mean / 255)
+    table = [round(255 * ((i / 255) ** gamma)) for i in range(256)]
+    return crop.point(table * 3)
 
 
 def centre_square(image):
@@ -191,7 +207,11 @@ def write(mockup, out_dir, width, height, plate=None, portraits=None):
         size = MINIMAP_SIZE if name == "minimap.png" else PORTRAIT_SIZE
         path = os.path.join(out_dir, name)
         if name == "minimap.png":
-            cover_mark(image.crop(box), NORTH_MARK).resize((size, size), Image.LANCZOS).save(path)
+            terrain = cover_mark(image.crop(box), NORTH_MARK).resize((size, size), Image.LANCZOS)
+            terrain.save(path)
+            day = os.path.join(out_dir, "worldmap.png")
+            daylight(terrain).save(day)
+            written.append(day)
         else:
             square(image, box, size).save(path)
         written.append(path)

@@ -372,16 +372,34 @@ function build.character(env, B)
 	At(doll.TopBackgroundStripHost, doll, 0, 0, 341, 12)
 	B.texture(doll.TopBackgroundStripHost)
 	env.CharacterLevelText = Text(B.text(doll), "Level 38 Orc Warrior", "BOTTOM", doll, "BOTTOM", 0, 14)
-	for i = 1, 2 do
-		local tab = B.frame("CheckButton", f, "PaperDollSidebarTab" .. i)
-		tab:SetSize(26, 26)
-		Anchor(tab, f.RightPaneHost, "TOPRIGHT", -8 - (i - 1) * 30, -6)
-		tab.Icon = Icon(B, tab, ICONS[20 + i], "BACKGROUND")
+	-- The sidebar tabs (Camelot/PaperDollFrame.xml:372 and :405): three 42-unit check buttons in a 233 by 85
+	-- holder centred on the right pane's top, the middle one 5 under the holder's top and the others beside it
+	-- (PaperDollFrame_UpdateSidebarTabLayout without a pet); each icon fills its tab except the portrait and
+	-- the equipment-set icons, which OnLoad sizes 36 by 33 (Camelot/PaperDollFrame.lua:366).
+	local holder = B.frame("Frame", f, "PaperDollSidebarTabs")
+	holder:SetSize(233, 85)
+	Anchor(holder, f.RightPaneHost, "TOP", 0, -4)
+	local sidebar = {}
+	for i = 1, 3 do
+		local tab = B.frame("CheckButton", holder, "PaperDollSidebarTab" .. i)
+		tab:SetSize(42, 42)
+		tab.Icon = B.texture(tab, "BACKGROUND")
+		tab.Icon:SetTexture(ICONS[20 + i])
+		if i == 2 then
+			tab.Icon:SetSize(42, 42)
+		else
+			tab.Icon:SetSize(36, 33)
+		end
+		tab.Icon:SetPoint("CENTER", tab, "CENTER", 0, 0)
 		B.texture(tab, "BORDER")
 		tab:SetChecked(i == 1)
+		sidebar[i] = tab
 	end
+	Anchor(sidebar[2], holder, "TOP", 0, -5)
+	Anchor(sidebar[1], sidebar[2], "RIGHT", "LEFT", 0, 0)
+	Anchor(sidebar[3], sidebar[2], "LEFT", "RIGHT", 0, 0)
 	local stats = B.frame("Frame", f, "CharacterStatsPaneScrollBox")
-	Fill(stats, f.RightPaneHost, 8, 40, 8, 8)
+	Fill(stats, f.RightPaneHost, 8, 60, 8, 8)
 	stats.Border = B.texture(stats, "BORDER")
 	stats.ScrollBox = ScrollBox(B, stats)
 	stats.ScrollBar = ScrollBar(B, stats)
@@ -679,18 +697,60 @@ function build.talents(env, B)
 	currency.CurrentAmountContainer = B.frame("Frame", currency)
 	At(currency.CurrentAmountContainer, currency, 0, 0, 40, 26)
 	currency.CurrentAmountContainer.CurrencyAmount = Text(B.text(currency.CurrentAmountContainer), "3", "LEFT", currency.CurrentAmountContainer, "LEFT", 0, 0)
-	-- Blizzard's talent nodes keep their own art; the scene stands each in as a spell icon on a dark plate, so
-	-- the skin can be judged around a filled tree.
+	-- Blizzard's talent nodes keep their own art; the scene stands each in as a spell icon on a dark plate with
+	-- the tree's edges between the rows (lit where the rank above is spent, dim where it is not) and a rank
+	-- badge at each node's foot, so the skin can be judged around a tree a player would read. The ranks: a
+	-- warrior's Arms tree at level 38, the first two rows filled, the third started, the fourth locked.
+	local ranks = {
+		{ "3/3", "2/2", "5/5", "1/1", "3/3" },
+		{ "2/2", "3/3", "5/5", "1/1", "2/2" },
+		{ "1/3", "0/2", "2/5", "0/1", "0/3" },
+		{ "0/3", "0/5", "0/1", "0/2", "0/1" },
+	}
+	local nodes = {}
 	for row = 0, 3 do
 		for column = 0, 4 do
+			local rank = ranks[row + 1][column + 1]
+			local spent = rank:sub(1, 1) ~= "0"
+			local x, y = 90 + column * 130, 80 + row * 100
+			if row < 3 then
+				local lit = ranks[row + 2][column + 1]:sub(1, 1) ~= "0"
+				local edge = Colour(B, talents, "BORDER", lit and 0.82 or 0.45, lit and 0.66 or 0.45, lit and 0.3 or 0.45, lit and 0.9 or 0.5)
+				At(edge, talents, x + 19, y + 40, 2, 60)
+			end
+			if column < 4 and row == 1 and column % 2 == 0 then
+				local edge = Colour(B, talents, "BORDER", 0.82, 0.66, 0.3, 0.9)
+				At(edge, talents, x + 40, y + 19, 90, 2)
+			end
 			local plate = Colour(B, talents, "ARTWORK", 0.06, 0.07, 0.08, 0.9)
-			At(plate, talents, 88 + column * 130, 78 + row * 100, 44, 44)
+			At(plate, talents, x - 2, y - 2, 44, 44)
 			local node = B.frame("Frame", talents)
-			At(node, talents, 90 + column * 130, 80 + row * 100, 40, 40)
+			At(node, talents, x, y, 40, 40)
 			node.Icon = Icon(B, node, ICONS[(row * 5 + column) % #ICONS + 1])
+			if not spent then
+				node.Icon:SetAlpha(0.45)
+			end
+			local badge = Colour(B, node, "OVERLAY", 0.04, 0.05, 0.06, 0.95)
+			badge:ClearAllPoints()
+			badge:SetPoint("BOTTOMRIGHT", node, "BOTTOMRIGHT", 4, -4)
+			badge:SetSize(22, 13)
+			local label = B.text(node)
+			label:SetDrawLayer("OVERLAY", 2)
+			Text(label, rank, "CENTER", badge, "CENTER", 0, 0)
+			if spent then
+				label:SetTextColor(1, 0.86, 0.4, 1)
+			else
+				label:SetTextColor(0.6, 0.6, 0.6, 1)
+			end
+			nodes[#nodes + 1] = node
 		end
 	end
-	return f, {}
+	-- The node under the pointer: the stand-in the gallery hangs a spell tooltip from (the last row's middle
+	-- node, so the tooltip opens into the pane's empty band below the tree).
+	return f, {
+		hover = nodes[18], hoverName = "Sweeping Strikes", hoverRank = "Rank 0/1",
+		hoverText = "Your next 5 melee attacks strike an additional\nnearby opponent.", hoverNeed = "Requires 15 points in Arms Talents",
+	}
 end
 
 -- The world map (Blizzard_WorldMap.lua:104, 702 by 534 minimized) with the quest log docked on its right (QuestMapFrame.xml:427, 330 wide).
@@ -1033,8 +1093,13 @@ function build.merchant(env, B)
 		slot.SlotTexture = B.texture(slot)
 		slot.ItemButton = Item(B, slot, ICONS[i], 37)
 		Anchor(slot.ItemButton, slot, "LEFT", 3, 0)
-		slot.Name = Text(B.text(slot), good[1], "TOPLEFT", slot, "TOPLEFT", 46, -5)
-		slot.MoneyFrame = Text(B.text(slot), good[2], "BOTTOMLEFT", slot, "BOTTOMLEFT", 46, 6)
+		-- MerchantFrame.xml:19: the name is GameFontNormalSmall in a 100 by 30 box from the icon's right, so a
+		-- long name wraps to its second line above the price.
+		slot.Name = Text(B.add(slot:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")), good[1], "TOPLEFT", slot, "TOPLEFT", 46, -1)
+		slot.Name:SetSize(100, 30)
+		slot.Name:SetJustifyH("LEFT")
+		slot.Name:SetJustifyV("TOP")
+		slot.MoneyFrame = Text(B.text(slot), good[2], "BOTTOMLEFT", slot, "BOTTOMLEFT", 46, 4)
 	end
 	local buyback = B.frame("Frame", merchant, "MerchantBuyBackItem")
 	buyback:SetSize(153, 44)

@@ -96,6 +96,19 @@ do
 	end
 	local strip = K.Skin.Parts(mail).strip
 	Inside(Rect(strip, root), glass, "the tabs' pill strip stands inside the glass")
+	-- The selected tab (Inbox, disabled by PanelTemplates) reads at a glance: an accent wash fills its segment
+	-- of the pill and the underline shows; the other tab shows neither.
+	local inbox, send = K.Skin.Parts(env.MailFrameTab1), K.Skin.Parts(env.MailFrameTab2)
+	assert(inbox.selected == true and send.selected == false, "Inbox is the selected tab")
+	assert(inbox.wash and inbox.wash:IsShown(), "the selected tab wears an accent wash")
+	assert(inbox.underline:IsShown(), "and its underline")
+	assert(not send.wash:IsShown() and not send.underline:IsShown(), "the other tab wears neither")
+	local wr, wg, wb, wa = inbox.wash:GetVertexColor()
+	local ar, ag, ab = ns.Style.Accent()
+	assert(W.Near(wr, ar) and W.Near(wg, ag) and W.Near(wb, ab), "the wash is the accent")
+	assert(wa > 0.08 and wa < 0.4, "at a wash alpha: " .. tostring(wa))
+	Same(Rect(inbox.wash, root).left, Rect(env.MailFrameTab1, root).left, "the wash fills the tab's segment")
+	Same(Rect(inbox.wash, root).right, Rect(env.MailFrameTab1, root).right, "to its right edge")
 	local seam = dock.seams.BOTTOM
 	assert(seam and seam:IsShown(), "a hairline marks the seam between the window and its tab band")
 	local seamRect = Rect(seam, root)
@@ -138,6 +151,26 @@ do
 	Same(seam.left, window.right, "the seam runs along the window's right edge")
 	assert(seam.top < glass.top and seam.bottom > glass.bottom, "inset from the glass corners")
 	assert(dock.seams.BOTTOM == nil or not dock.seams.BOTTOM:IsShown(), "no seam on an edge without tabs")
+	-- The paper doll's sidebar tabs (stats, titles, equipment sets) wear one rim size whatever Blizzard sizes
+	-- their icons, stand inside the right pane with a gap from the mode column, and the column's seam starts
+	-- at the first mode tab, below the header band, instead of running up between the title and the close glyph.
+	local gap = K.Widgets.Snap(f, K.Tokens.Size("gapMedium"))
+	local pane = Rect(f.RightPaneHost, root)
+	local first
+	for i = 1, 3 do
+		local tab = env["PaperDollSidebarTab" .. i]
+		local rim = ns.Parts.RimOf(tab)
+		assert(rim, "sidebar tab " .. i .. " wears a rim")
+		local r = Rect(rim, root)
+		first = first or r
+		Same(r.right - r.left, first.right - first.left, "sidebar tab " .. i .. " rim width")
+		Same(r.top - r.bottom, first.top - first.bottom, "sidebar tab " .. i .. " rim height")
+		Inside(r, pane, "sidebar tab " .. i .. " stands inside the right pane")
+		assert(r.right <= window.right - gap + EPS, "sidebar tab " .. i .. " keeps a gap from the mode column: " .. r.right .. " vs " .. window.right)
+	end
+	local modeTop = Rect(f.ModeTabs.Tabs[1], root).top
+	assert(seam.top <= modeTop + gap + EPS, "the seam starts at the tab column, below the header band: " .. seam.top .. " vs " .. modeTop)
+	assert(seam.top < Rect(f.TitleContainer, root).bottom, "and under the title band: " .. seam.top)
 	-- The title moves over by half the gutter, so it keeps its place over the grown glass.
 	Shifted(f.TitleContainer.TitleText, f.TitleContainer, window, glass, root)
 	-- With every tab hidden the glass returns to the window.

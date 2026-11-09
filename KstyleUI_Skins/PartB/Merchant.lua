@@ -17,6 +17,19 @@ local function Slot(slot)
 	Skin.Strip(slot)
 	Skin.Backdrop(slot, { shape = "tile", fill = "surface", shadow = false })
 	Item(slot.ItemButton)
+	local name = slot.Name
+	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
+		return
+	end
+	for i = 1, name:GetNumPoints() do
+		local point, _, _, _, y = name:GetPoint(i)
+		local vertical = type(point) == "string" and point:match("^(%u*)LEFT$")
+		if vertical and type(y) == "number" then
+			name:SetPoint(vertical .. "RIGHT", slot, vertical .. "RIGHT", -K.Tokens.Size("gapMedium"), y)
+			name:SetWordWrap(true)
+			return
+		end
+	end
 end
 
 local function Apply()
