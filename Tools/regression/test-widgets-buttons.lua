@@ -293,7 +293,7 @@ do
 	assert(p[1] == "TOPLEFT" and inset <= K.Scale.Snap(6 * 0.2) + 1e-6 and inset >= K.Scale.Pixel(1) - 1e-6, "the inset shrinks to a fifth of the side on a tiny button, got " .. tostring(inset))
 	assert(button:GetWidth() - 2 * inset >= K.Scale.Pixel(4) - 1e-6, "at least four pixels of icon remain")
 	local big = select(3, iconButton({ size = 34 }))
-	assert(W.Near(big.icon._points[1][4], K.Scale.Border()), "a normal button's icon sits one border in, inside the socket's near-black edge, as the owner's picture of 2026-11-09 draws it")
+	assert(W.Near(big.icon._points[1][4], 2 * K.Scale.Border()), "a normal button's icon sits two borders in, inside the socket's near-black edge and its rim, so hover and selection stay visible")
 end
 
 -- Lumen's socket has no bezel plate: the button is the socket, casting the soft shadow; a press lifts the body only.

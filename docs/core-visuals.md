@@ -98,7 +98,7 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 | --- | --- | --- | --- |
 | `lumenShape` | `LumenShape.png`, 128x128 | 56 texels (14 units) | The rounded card: chrome fills, the dispel tint |
 | `cardShape` | `CardShape.png`, 128x128 | 56 texels | The card fill: the same rounded shape, a file of its own so the render guard tells a card from a socket |
-| `ringLine2` to `ringLine6` | `RingLine2.png` to `RingLine6.png`, 128x128 | 64 texels | A ring one line thick on a corner N lines round: a card's edge (6), its rim and tick arcs (5), a socket's edge (3) and rim (2) |
+| `ringLine2` to `ringLine6`, `ringLine8`, `10`, `12`, `16`, `20`, `24`, `32` | `RingLineN.png`, 128x128 | 64 texels | A ring one line thick on a corner N lines round: a card's edge (6), its rim and tick arcs (5), a socket's edge (3) and rim (2); the larger counts serve pinned corners and discs |
 | `lumenOutline` | `LumenOutline.png`, 128x128 | 32 texels | An even outline at the 8-unit radius: highlight rings, the proc rim |
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
@@ -106,7 +106,8 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right |
-| `iconMask`, `portraitMask` | `SocketMask.png`, 128x128 | | Every square icon and the square portrait, rounded 3 units on 44 to meet the socket's inner corner |
+| `iconMask` | `SocketMask.png`, 128x128 | | Every square icon, rounded 3 units on 44 to meet the socket's inner corner |
+| `portraitMask` | `PortraitMask.png`, 128x128 | | The square portrait, rounded 8 units on 44 inside its frame's rounder corner |
 | `shadow` | `Shadow.png`, 128x128 | 24 texels | A square soft falloff for glows (unit frame glows, a bar's own-colour glow) |
 | `ringBevel` | `RingBevel.png`, 128x128: a 5-texel line from radius 57 to 62 whose colour channels shade it dark outside, lit in the middle and three quarters inside | | tinted once (the accent lifted 30% toward white) it is the mockup's thin metal ring; a portrait inside starts `Widgets.RING_INSET` (8/128 of the size) in |
 | `minimapMask` | `MinimapMask.png`, 512x512 | | The minimap's chamfered square mask; its cut is a share of the side, which `KstyleUI_Minimap/Format.lua` gives the rim's chamfer |

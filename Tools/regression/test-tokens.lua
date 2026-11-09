@@ -228,6 +228,7 @@ for _, name in ipairs({ "glass", "lumenFrost", "lumenRim", "lumenRimSmall", "gil
 	assert(not pcall(Tokens.Texture, name), "the texture " .. name .. " is retired: the picture's card has no frost and draws its ticks from the rim")
 end
 assert(not pcall(Tokens.Color, "glass"), "the glass tint is retired with the frost")
+assert(Tokens.Texture("portraitMask") ~= Tokens.Texture("iconMask"), "the square portrait keeps its own, rounder mask")
 for _, name in ipairs({ "chamferTile", "iconMask", "portraitMask" }) do
 	assert(not Tokens.Texture(name):find("Chamfer", 1, true), name .. " is kept for its callers but draws a Lumen file")
 end
@@ -235,7 +236,7 @@ local _, texels, units = Tokens.Texture("lumenShape")
 assert(texels == 56 and units == 14, "the Lumen shape's corner is 56 texels drawn at 14 units; Chrome stretches it to the radius")
 _, texels, units = Tokens.Texture("cardShape")
 assert(texels == 56 and units == 14, "the card shape's corner is 56 texels drawn at 14 units")
-for lines = 2, 6 do
+for _, lines in ipairs({ 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32 }) do
 	_, texels, units = Tokens.Texture("ringLine" .. lines)
 	assert(texels == 64 and units == 16, "a ring line's corner is 64 texels drawn at 16 units; Chrome stretches it to its lines")
 end

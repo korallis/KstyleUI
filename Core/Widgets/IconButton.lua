@@ -105,7 +105,11 @@ local function PlaceIcon(self)
 		return
 	end
 	self.placedOffset = offset
-	local inset = Widgets.Border(self)
+	local line = Widgets.Border(self)
+	local inset = 2 * line
+	if (self.opts.size or Tokens.Size("actionButton")) < 20 * line then
+		inset = line
+	end
 	if type(self.opts.iconInset) == "number" then
 		inset = Widgets.Snap(self, self.opts.iconInset)
 	end

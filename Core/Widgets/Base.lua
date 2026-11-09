@@ -5,7 +5,7 @@ local Widgets = {}
 ns.Widgets = Widgets
 
 local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
-local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
+local abs, ceil, floor, log, max, min = math.abs, math.ceil, math.floor, math.log, math.max, math.min
 
 local SECTION = "Widgets"
 local FALLBACK_FONT = "GameFontHighlight"
@@ -13,7 +13,7 @@ local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
 local SUBLEVEL_SHADOW, SUBLEVEL_FILL = -8, -7
 local SUBLEVEL_LINE, SUBLEVEL_RIM, SUBLEVEL_GILT = -3, -2, -1
-local RING_MIN, RING_MAX = 2, 6
+local RINGS = { 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32 }
 local INSET_GAP = "gapSmall"
 local LINE_HEIGHT_SHARE = 1.2
 local CHAR_WIDTH_SHARE = 0.5
@@ -27,6 +27,13 @@ Widgets.TEXTURE_TEXELS = {
 	ringLine4 = 128,
 	ringLine5 = 128,
 	ringLine6 = 128,
+	ringLine8 = 128,
+	ringLine10 = 128,
+	ringLine12 = 128,
+	ringLine16 = 128,
+	ringLine20 = 128,
+	ringLine24 = 128,
+	ringLine32 = 128,
 	chamferTile = 128,
 	shadow = 128,
 	lumenShadow = 128,
@@ -606,7 +613,10 @@ end
 
 local SOFT = { lumenShadow = true, shadow = true }
 local RUN_PIECES = { 2, 4, 6, 8 }
-local RUNS = { lumenOutline = true, ringLine2 = true, ringLine3 = true, ringLine4 = true, ringLine5 = true, ringLine6 = true }
+local RUNS = { lumenOutline = true }
+for _, lines in ipairs(RINGS) do
+	RUNS["ringLine" .. lines] = true
+end
 
 local function SliceCoords(texture, piece, f)
 	local col, row = (piece - 1) % 3, floor((piece - 1) / 3)
@@ -799,8 +809,8 @@ function Widgets.Chrome(owner, opts)
 	else
 		c.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
 		c.fill = NewSlice(owner, shape.card and "cardShape" or "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
-		c.rim = NewSlice(owner, "ringLine" .. RING_MAX, "BORDER", SUBLEVEL_RIM)
-		c.line = NewSlice(owner, "ringLine" .. RING_MAX, "BORDER", SUBLEVEL_LINE)
+		c.rim = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_RIM)
+		c.line = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_LINE)
 		if shape.card and opts.gilt ~= false then
 			c.gilt = NewTicks(owner)
 		end
@@ -887,7 +897,12 @@ function Chrome:LayoutPill()
 end
 
 local function PickRing(slice, corner, line)
-	local lines = Widgets.Clamp(floor(corner / line + 0.5), RING_MIN, RING_MAX)
+	local want, lines = corner / line, RINGS[1]
+	for _, n in ipairs(RINGS) do
+		if abs(log(n / want)) < abs(log(lines / want)) then
+			lines = n
+		end
+	end
 	local name = "ringLine" .. lines
 	if slice.texture ~= name then
 		PaintSlice(slice, name)

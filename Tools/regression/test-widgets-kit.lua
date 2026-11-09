@@ -173,6 +173,15 @@ do
 	assert(W.Near(ic:Radius(), 3 * line), "a 52-unit socket rounds three lines, got " .. tostring(ic:Radius()))
 	icon:SetSize(38, 38)
 	assert(W.Near(ic:Radius(), 3 * line), "and so does a 38-unit one")
+	local pframe, pinned = chrome(env, K, "panel", 80, 80)
+	pinned:SetRadius(12)
+	assert(W.LastCall(pinned.line[1], "SetTexture")[1] == Tokens.Texture("ringLine12"), "a corner pinned at 12 lines draws the 12-line ring, so its arc stays one line thick")
+	pframe:SetSize(80, 40)
+	pinned:SetRadius(20)
+	assert(W.LastCall(pinned.line[1], "SetTexture")[1] == Tokens.Texture("ringLine20"), "a disc of 40 draws the 20-line ring")
+	pinned:SetRadius(14)
+	local drawn = W.LastCall(pinned.line[1], "SetTexture")[1]
+	assert(drawn == Tokens.Texture("ringLine12") or drawn == Tokens.Texture("ringLine16"), "a count between rings takes the nearest one")
 end
 
 -- Chrome: the picture's card. A near-opaque dark navy fill in the card shape one line in, a one-line outer edge in

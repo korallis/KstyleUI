@@ -40,7 +40,7 @@ class ManifestTest(unittest.TestCase):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
             "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "LumenGem",
-            "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
+            "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "PortraitMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
@@ -245,6 +245,13 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual(self.alpha("SocketMask.png", int(r) + 1, 0), 255, "the top edge after the arc")
         d = round(r - r / 2 ** 0.5)
         self.assertEqual(self.alpha("SocketMask.png", d - 3, d - 3), 0, "outside the arc")
+
+    def test_portrait_mask_rounds_8_units_of_44(self):
+        # The square portrait keeps the rounder mask its frame's pinned corner needs.
+        r = 128 * 8 / 44
+        self.assertEqual(self.alpha("PortraitMask.png", int(r) + 1, 0), 255, "the top edge after the arc")
+        d = round(r - r / 2 ** 0.5)
+        self.assertEqual(self.alpha("PortraitMask.png", d - 3, d - 3), 0, "outside the arc")
 
     def test_shadow_falls_off_from_the_panel_edge(self):
         edge = self.mm.SLICE["Shadow"] // 2  # the panel corner sits in the middle of the corner piece

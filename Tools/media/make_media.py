@@ -45,7 +45,7 @@ RIM_TEXELS = 3
 # number of border lines round: a card's dark edge line on a six-line corner with its rim one line inside it, a
 # socket's dark edge on a three-line corner. RingLineN is a quarter ring one line thick on the outside of an N-line corner, so the kit
 # draws its corner piece N border lines square and the arc lands on the same whole pixels as the straight runs.
-RING_LINES = (2, 3, 4, 5, 6)
+RING_LINES = (2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32)
 RING_TEXELS = 128
 # The gem: the mockup's 7-unit square turned 45 degrees, its four facets lit from the top left, in a 6-unit halo.
 GEM_UNITS, GEM_SIZE, GEM_SIDE, GEM_HALO = 16, 64, 7, 6
@@ -54,6 +54,8 @@ GEM_HALO_ALPHA = 0.5
 # The icon in a socket: the picture's icon is rounded to meet its socket's two-line inner corner, 3 units on a
 # 44-unit icon, as a share of the side (masks stretch).
 ICON_RADIUS_SHARE = 3 / 44
+# The square portrait keeps its own mask, 8 units on 44, matching the rounder corner its frame pins.
+PORTRAIT_RADIUS_SHARE = 8 / 44
 # The card's shadow: the mockup's soft drop shadow under a rounded card, reaching 14 units and dropping 3, from a
 # shape rounded 6 units and blurred with a 3.5-unit Gaussian. The tighter shape and blur keep the corner's falloff
 # inside the corner pieces, so the stretched edges stay even. As a CSS box shadow, it is never drawn under the card:
@@ -756,7 +758,7 @@ def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
 
 LUMEN_ASSETS = {
     "LumenShape", "LumenOutline", "LumenGem", "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "RuleFade",
-    "LumenShadow",
+    "LumenShadow", "PortraitMask",
 }
 PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
 PICTURE_DRAWN = "2026-11-09"
@@ -770,7 +772,7 @@ ASSETS = [
     _texture("LumenOutline", 128, 128, lambda: draw_rim(128, SLICE["LumenOutline"]),
              "Even outline for 8-unit corners: a 0.75-unit line at one strength all round, for bar tracks and highlight rings such as the group frames' target ring. Nine-slice."),
     *(_texture(f"RingLine{n}", RING_TEXELS, RING_TEXELS, lambda n=n: draw_ring_line(RING_TEXELS, n),
-               f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (6), its rim and the arcs of its gilt L-ticks (5), a socket's dark edge (3) and its rim (2); the smaller rings serve a card too short for its full corner. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
+               f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (6), its rim and the arcs of its gilt L-ticks (5), a socket's dark edge (3) and its rim (2); the other counts serve short frames and pinned corners such as discs, so the kit draws the ring nearest the corner's line count. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
       for n in RING_LINES),
     _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
              "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",
@@ -785,7 +787,9 @@ ASSETS = [
     _texture("LensMask", 512, 512, lambda: draw_disc(512),
              "Round mask for the minimap lens: a disc touching the texture's edges."),
     _texture("SocketMask", 128, 128, lambda: draw_rounded(128, 128 * ICON_RADIUS_SHARE),
-             "Icon mask for sockets, portraits and every square icon: corners rounded 3 units on a 44-unit icon (7% of the side), to meet the socket's inner corner."),
+             "Icon mask for sockets and every square icon: corners rounded 3 units on a 44-unit icon (7% of the side), to meet the socket's inner corner."),
+    _texture("PortraitMask", 128, 128, lambda: draw_rounded(128, 128 * PORTRAIT_RADIUS_SHARE),
+             "Mask for the square portrait: corners rounded 8 units on a 44-unit image (18% of the side), inside the portrait frame's own rounder corner."),
     _texture("RuleFade", 256, 4, lambda: draw_rule(256, 4),
              "Section cap rule: a line that fades from full at its left end to nothing at its right.",
              "smoothstep fade, 4x supersampled"),
