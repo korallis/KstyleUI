@@ -5,7 +5,7 @@ local K, L = ns.K, ns.L
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Format, Font, Sources = ns.Format, ns.Font, ns.Sources
 local Call, IsNumber = Sources.Call, ns.IsNumber
-local floor, max, format = math.floor, math.max, string.format
+local floor, max, min, format = math.floor, math.max, math.min, string.format
 
 local Strip = {}
 ns.Strip = Strip
@@ -34,12 +34,18 @@ Strip.ITEMS = { "fps", "latency", "gold", "durability", "time" }
 Strip.SLOTS = SLOTS
 
 local LABELS = {
-	fps = { full = L["Frame rate"], short = L["FPS"] },
-	latency = { full = L["Latency"], short = L["MS"] },
-	gold = { full = L["Gold"], short = "" },
-	durability = { full = L["Durability"], short = L["DUR"] },
-	time = { full = L["Time"], short = "" },
+	fps = { full = L["Frame rate"], short = L["FPS"], inline = L["fps"] },
+	latency = { full = L["Latency"], short = L["MS"], inline = L["ms"] },
+	gold = { full = L["Gold"], short = "", inline = "" },
+	durability = { full = L["Durability"], short = L["DUR"], inline = L["armour"] },
+	time = { full = L["Time"], short = "", inline = "" },
 }
+local UNIT_GAP = 3
+local MENU_GAP = 6
+local LINE = 43
+local MENU_FIT_MIN = 16
+local MENU_PAD = 3
+Strip.UNIT_GAP = UNIT_GAP
 
 local CELL_WEIGHT = { fps = 0.8, latency = 1, gold = 1.6, durability = 1, time = 0.8 }
 
@@ -127,7 +133,7 @@ local VALUES = {
 		if not ms then
 			return nil
 		end
-		if s.labels == "short" then
+		if s.labels == "short" or s.labels == "inline" then
 			return tostring(ms), Grade(ms, MS_GOOD, MS_OK)
 		end
 		return format(L["%d ms"], ms), Grade(ms, MS_GOOD, MS_OK)
@@ -212,9 +218,14 @@ end
 
 function Strip.NewView(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	local view = { frame = frame, items = {}, order = {}, values = {} }
+	local card = CreateFrame("Frame", nil, frame)
+	card:SetFrameLevel(frame:GetFrameLevel())
+	card:SetPoint("TOPLEFT", frame, "TOPLEFT")
+	card:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+	card:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
+	local view = { frame = frame, card = card, items = {}, order = {}, values = {} }
 	frame.kView = view
-	view.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface" })
+	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
 	frame:HookScript("OnHide", function()
 		for _, item in pairs(view.items) do
 			ns.Click.Release(item)
@@ -277,7 +288,7 @@ local function Captioned(view, s, h, cells, gap)
 	local frame = view.frame
 	local scale = K.Theme.FontScale()
 	local caption, value = CaptionSize(s) * scale, s.fontSize * scale
-	if s.labels == "none" or caption + value + 2 * STACK_GAP > h - 2 * EDGE_BORDERS * Widgets.Border(frame) then
+	if s.labels == "none" or s.labels == "inline" or caption + value + 2 * STACK_GAP > h - 2 * EDGE_BORDERS * Widgets.Border(frame) then
 		return false
 	end
 	for i, id in ipairs(view.order) do
@@ -293,6 +304,9 @@ local function PlaceItems(view, s)
 	local frame = view.frame
 	local w, h = Size(frame)
 	local pad = Pad(frame)
+	if view.line and view.line < h then
+		h = view.line
+	end
 	local order = view.order
 	local total = Weight(order)
 	view.contentWidth = Widgets.Snap(frame, total * CELL_EMS * s.fontSize)
@@ -314,22 +328,35 @@ local function PlaceItems(view, s)
 		local item = view.items[id]
 		local button, separator = item.button, item.separator
 		button:ClearAllPoints()
-		button:SetPoint("LEFT", frame, "LEFT", lefts[i], 0)
+		button:SetPoint("TOPLEFT", frame, "TOPLEFT", lefts[i], 0)
 		button:SetSize(cells[i], max(1, h))
 		local inner = max(1, cells[i] - gap)
-		item.label:SetShown(captioned and item.caption ~= "")
+		local inline = s.labels == "inline" and item.caption ~= ""
+		item.label:SetShown((captioned or inline) and item.caption ~= "")
 		item.label:ClearAllPoints()
-		item.label:SetPoint("BOTTOM", button, "CENTER", 0, stack)
-		item.label:SetWidth(inner)
-		item.label:SetJustifyH("CENTER")
 		item.value:ClearAllPoints()
-		if captioned then
-			item.value:SetPoint("TOP", button, "CENTER", 0, -stack)
+		if inline then
+			local unitGap = Widgets.Snap(frame, UNIT_GAP)
+			local labelWidth = TextWidth(item.label, CaptionSize(s))
+			local valueWidth = TextWidth(item.value, s.fontSize)
+			item.value:SetPoint("CENTER", button, "CENTER", -(labelWidth + unitGap) / 2, 0)
+			item.value:SetWidth(max(1, min(inner, valueWidth + 2)))
+			item.value:SetJustifyH("RIGHT")
+			item.label:SetPoint("LEFT", item.value, "RIGHT", unitGap, 0)
+			item.label:SetWidth(max(1, labelWidth + 2))
+			item.label:SetJustifyH("LEFT")
 		else
-			item.value:SetPoint("CENTER", button, "CENTER")
+			item.label:SetPoint("BOTTOM", button, "CENTER", 0, stack)
+			item.label:SetWidth(inner)
+			item.label:SetJustifyH("CENTER")
+			if captioned then
+				item.value:SetPoint("TOP", button, "CENTER", 0, -stack)
+			else
+				item.value:SetPoint("CENTER", button, "CENTER")
+			end
+			item.value:SetWidth(inner)
+			item.value:SetJustifyH("CENTER")
 		end
-		item.value:SetWidth(inner)
-		item.value:SetJustifyH("CENTER")
 		separator:ClearAllPoints()
 		separator:SetPoint("LEFT", button, "LEFT")
 		separator:SetSize(Widgets.Border(frame), Widgets.Snap(frame, h * SEPARATOR_SHARE))
@@ -380,7 +407,71 @@ function Strip.Paint(view, s, values)
 		end
 	end
 	SetValues(view, s, values)
+	Strip.DockMenus(view, s)
 	PlaceItems(view, s)
+end
+
+local DOCK = {
+	micro = { "TOPLEFT", "BOTTOMLEFT", 1 },
+	bags = { "TOPRIGHT", "BOTTOMRIGHT", -1 },
+}
+
+function Strip.DockMenus(view, s)
+	local Menus = ns.Menus
+	local frame, card = view.frame, view.card
+	local docked = s.menus == true and Menus ~= nil and view == Strip.view
+	view.pad = Pad(frame)
+	local pad, gap = view.pad, Widgets.Snap(frame, MENU_GAP)
+	local rowHeight = 0
+	for id in pairs(DOCK) do
+		local holder = Menus and Menus.Holder(id)
+		if holder and view == Strip.view then
+			if docked then
+				local height = holder:GetHeight()
+				if ns.IsNumber(height) and height > rowHeight then
+					rowHeight = height
+				end
+			else
+				Menus.SetDock(id, nil)
+			end
+		end
+	end
+	local w, h = Size(frame)
+	local fit
+	if docked then
+		local count = 0
+		for id in pairs(DOCK) do
+			local shown = #Menus.Shown(id)
+			count = count + (shown > 0 and shown or #Menus.All(id))
+		end
+		if count > 0 then
+			local spacing = ns.Settings().micro.spacing
+			fit = floor((w - 2 * pad - Widgets.Snap(frame, MENU_GAP) - (count - 1) * spacing) / count)
+			fit = max(MENU_FIT_MIN, fit)
+			rowHeight = min(rowHeight, fit + 2 * MENU_PAD)
+		end
+	end
+	local row = docked and rowHeight > 0 and gap + rowHeight + pad or 0
+	local line = Widgets.Snap(frame, LINE)
+	if row > 0 and h - row >= line then
+		line = h - row
+	end
+	view.line = row > 0 and line or nil
+	local extra = row > 0 and max(0, line + row - h) or 0
+	for id, spec in pairs(DOCK) do
+		local bar = Menus and Menus.Holder(id)
+		if bar and docked then
+			Menus.SetDock(id, function(content, width, height)
+				content:ClearAllPoints()
+				content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, -gap + h - line)
+				content:SetSize(width, height)
+			end, frame, fit)
+		end
+	end
+	card:ClearAllPoints()
+	card:SetPoint("TOPLEFT", frame, "TOPLEFT")
+	card:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+	card:SetPoint("BOTTOM", frame, "BOTTOM", 0, -extra)
 end
 
 local function Read(view, s, timedOnly)

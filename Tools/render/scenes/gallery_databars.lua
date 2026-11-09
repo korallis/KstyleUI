@@ -83,22 +83,18 @@ return Common.Run(function()
 		match = "Track, line and chamfer as the mockup's experience bar; the mockup shows no honour bar.",
 	})
 
-	local micro, bags = ns.Menus.Holder("micro"), ns.Menus.Holder("bags")
+	-- The readout and menu card: the strip's line of values and units over the micro menu and the bag bar, docked in
+	-- the same card as round crystal buttons. The card is the strip element at the Lumen footprint, 318 by 94.
+	local micro, bags = ns.Menus.Content("micro"), ns.Menus.Content("bags")
 	assert(micro and bags, "the micro menu and the bag bar are built")
-	local _, mh = micro:GetSize()
-	layout(K, "databars.micro", 60, 240, nil, mh)
-	frames:Add(env, micro, {
-		name = "databars_micro", title = "Micro menu", grade = "button", reference = "actionbars",
-		caption = "Menus.lua's micro menu: thirteen secure Widgets.IconButton tiles, upright at 24 units, on a panel-grade glass holder (surface fill, two-line edge, 8-unit chamfer, shadow); the character button shows the portrait and the others Blizzard's own micro-menu glyph atlases (UI-HUD-MicroMenu-<name>-Up), drawn from the atlas cache as the game shows them.",
-		match = "Buttons as the mockup's action buttons (body, bezel, accent rim); the glass behind them is the panel grade, where the mockup's action bar strip is a solid #101214 band with the light line.",
+	layout(K, "databars.strip", 60, 240, 318, 94)
+	env.RunTimers()
+	frames:Add(env, ns.Strip.view.card, {
+		name = "databars_micro", title = "Readout and menu card", grade = "panel", reference = "datastrip",
+		caption = "The readout card (Strip.lua and Menus.lua): one line of value plus muted unit (144 fps, 34 ms, 143g 82s 17c, 96% armour, 14:32) over the micro menu at the left and the bag bar at the right, docked in the same panel-grade card as round crystal discs (Widgets.CrystalDisc) with Blizzard's own glyph atlases masked round.",
+		match = "The mockup's readout card: values first, units muted, a row of small round buttons under them; the card is the panel grade where the mockup's is the rounded frost card the material slice brings.",
 	})
-	local _, bh = bags:GetSize()
-	layout(K, "databars.bags", 60, 240 + mh + 30, nil, bh)
-	frames:Add(env, bags, {
-		name = "databars_bags", title = "Bag bar", grade = "button", reference = "actionbars",
-		caption = "Menus.lua's bag bar: the key ring, four bag slots and the backpack with its free-slot count as 22-unit IconButton tiles on the same panel-grade glass holder; an empty slot shows Blizzard's slot art.",
-		match = "Buttons as the mockup's action buttons; the glass holder is the panel grade.",
-	})
+	local mh, bh = 94, 0
 
 	-- The settings window's live preview, on a pane the width of the options window's preview holder.
 	local pane = env.CreateFrame("Frame", nil, K.Scale.Root())

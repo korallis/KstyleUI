@@ -114,7 +114,20 @@ function Object:GetName() return self._name end
 function Object:GetObjectType() return self._type end
 function Object:IsObjectType(t) return self._type == t end
 function Object:GetParent() return self._parent end
-function Object:SetParent(parent) self._parent = parent end
+function Object:SetParent(parent)
+	local old = self._parent
+	if old and old._kids then
+		for i = #old._kids, 1, -1 do
+			if old._kids[i] == self then
+				table.remove(old._kids, i)
+			end
+		end
+	end
+	self._parent = parent
+	if parent and parent._kids and self._kids then
+		parent._kids[#parent._kids + 1] = self
+	end
+end
 function Object:Show() self._shown = true end
 function Object:Hide() self._shown = false end
 function Object:SetShown(shown) self._shown = not not shown end

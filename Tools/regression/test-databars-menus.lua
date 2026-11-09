@@ -295,10 +295,15 @@ do
 	eq(Button(ns, "micro", "CharacterMicroButton").icon._portrait, "player", "the character button shows your portrait")
 	local holder = ns.Menus.Holder("micro")
 	local footprint = K.Setup.Layouts.Element("databars.micro")
-	assert(holder:GetWidth() <= footprint.width and holder:GetHeight() <= footprint.height, string.format("the micro menu fits its footprint: %sx%s", holder:GetWidth(), holder:GetHeight()))
+	-- Round crystal buttons are square, so twelve 32-unit discs run 392 wide: the Lumen footprint the layout slice
+	-- sets (the old 314 held the 0.75-aspect tiles).
+	assert(holder:GetHeight() <= footprint.height and holder:GetWidth() <= 12 * 32 + 11 * 4 + 2 * 3 + 0.01, string.format("the micro menu fits twelve discs in a row: %sx%s", holder:GetWidth(), holder:GetHeight()))
 	local first, second = ns.Menus.Shown("micro")[1], ns.Menus.Shown("micro")[2]
 	assert(Left(second) > Left(first), "buttons run left to right")
-	assert(first:GetHeight() > first:GetWidth(), "micro buttons stand upright, like Blizzard's glyphs")
+	assert(W.Near(first:GetHeight(), first:GetWidth()), "round crystal micro buttons are square")
+	K.Options.Write("DataBars", "micro.shape", "tile")
+	assert(first:GetHeight() > first:GetWidth(), "as tiles, micro buttons stand upright, like Blizzard's glyphs")
+	K.Options.Write("DataBars", "micro.shape", "round")
 	local moves = #W.Calls(first, "SetPoint")
 	env.UpdateMicroButtons()
 	eq(#W.Calls(first, "SetPoint"), moves, "Blizzard's frequent updates move nothing when nothing changed")
@@ -452,6 +457,10 @@ end
 
 do
 	local _, K, ns = New()
+	-- Free of the readout card, the bars wear their own tray at their full button size.
+	K.Options.Write("DataBars", "strip.menus", false)
+	K.Options.Write("DataBars", "micro.shape", "tile")
+	K.Options.Write("DataBars", "bags.shape", "tile")
 	local s = ns.Settings()
 	eq(s.micro.size .. "/" .. s.bags.size, "26/26", "the micro menu and the bag bar share a 26-unit button")
 	eq(s.micro.spacing .. "/" .. s.bags.spacing, "4/4", "4 units between buttons")
@@ -473,6 +482,8 @@ end
 
 do
 	local env, K, ns = New()
+	-- Docked in the readout card the buttons shrink to fit its width, so the size setting is read on free bars.
+	K.Options.Write("DataBars", "strip.menus", false)
 	local first = ns.Menus.Shown("micro")[1]
 	local height = first:GetHeight()
 	K.Options.Write("DataBars", "micro.size", 32)
@@ -487,7 +498,10 @@ do
 	assert(ns.Menus.Holder("micro"):GetHeight() > first:GetHeight() * 2, "and taller")
 
 	local glass = ns.Menus.Glass("micro")
-	eq(glass:IsShown(), true, "the bar sits on glass")
+	eq(glass:IsShown(), true, "set free, the bar sits on glass")
+	K.Options.Write("DataBars", "strip.menus", true)
+	eq(glass:IsShown(), false, "docked in the readout card, the bar has no glass of its own")
+	K.Options.Write("DataBars", "strip.menus", false)
 	K.Options.Write("DataBars", "micro.backdrop", false)
 	eq(glass:IsShown(), false, "the glass can be turned off")
 
@@ -506,6 +520,8 @@ end
 
 do
 	local env, K, ns = New()
+	-- A free bar (a docked one has no plate of its own in Layout Mode).
+	K.Options.Write("DataBars", "strip.menus", false)
 	local width = ns.Menus.Holder("micro"):GetWidth()
 	K.Options.Write("DataBars", "micro.enabled", false)
 	env.RunTimers()
@@ -574,6 +590,8 @@ end
 
 do
 	local env, K, ns = New()
+	-- A free bar, whose buttons take the size setting as it is (a docked bar shrinks them to its card).
+	K.Options.Write("DataBars", "strip.menus", false)
 	local frames = { ns.Menus.Holder("micro"), ns.Menus.Content("micro") }
 	for _, button in ipairs(ns.Menus.All("micro")) do
 		frames[#frames + 1] = button

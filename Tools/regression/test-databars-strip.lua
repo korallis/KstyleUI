@@ -59,11 +59,12 @@ do
 	local default, got = K.Setup.Layouts.Default("databars.strip"), K.Layout.Get("databars.strip")
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
 	eq(shown(ns), "fps,latency,gold,durability,time", "the default order")
-	eq(item(ns, "fps").label:GetText(), "Frame rate", "fps caption")
+	eq(item(ns, "fps").label:GetText(), "fps", "fps unit, inline by default")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
-	eq(item(ns, "latency").value:GetText(), "34 ms", "home latency by default")
+	eq(item(ns, "latency").value:GetText(), "34", "home latency by default, its unit inline")
+	eq(item(ns, "latency").label:GetText(), "ms", "the latency unit")
 	eq(item(ns, "gold").value:GetText(), "143g 82s 17c", "gold")
-	eq(item(ns, "durability").label:GetText(), "Durability", "durability caption")
+	eq(item(ns, "durability").label:GetText(), "armour", "durability reads as armour")
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
 	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a high frame rate reads in the accent, the class colour the mockup's green stands for")
@@ -86,8 +87,15 @@ do
 	assert(labelSize < select(2, item(ns, "fps").value:GetFont()), "the caption is smaller than its value")
 	local lp, lrel, lrp = item(ns, "fps").label:GetPoint(1)
 	local vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
-	eq(lp .. ">" .. tostring(lrel == item(ns, "fps").button) .. ">" .. lrp, "BOTTOM>true>CENTER", "the caption sits over the centre line")
+	eq(lp .. ">" .. tostring(lrel == item(ns, "fps").value) .. ">" .. lrp, "LEFT>true>RIGHT", "the inline unit follows its value on one line")
+	eq(vp .. ">" .. tostring(vrel == item(ns, "fps").button) .. ">" .. vrp, "CENTER>true>CENTER", "the value sits on the cell's centre line")
+	-- The full labels still stack: a caption over the value.
+	K.Options.Write("DataBars", "strip.labels", "full")
+	lp, lrel, lrp = item(ns, "fps").label:GetPoint(1)
+	vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
+	eq(lp .. ">" .. tostring(lrel == item(ns, "fps").button) .. ">" .. lrp, "BOTTOM>true>CENTER", "a full caption sits over the centre line")
 	eq(vp .. ">" .. tostring(vrel == item(ns, "fps").button) .. ">" .. vrp, "TOP>true>CENTER", "the value under it")
+	K.Options.Write("DataBars", "strip.labels", "inline")
 	noErrors(env, K)
 end
 
@@ -101,7 +109,7 @@ do
 	env.RunTickers()
 	eq(item(ns, "fps").value:GetText(), "25", "the ticker reads the frame rate")
 	assert(sameText(item(ns, "fps").value, K.Tokens.Color("hostile")), "a low frame rate reads hostile")
-	eq(item(ns, "latency").value:GetText(), "320 ms", "the ticker reads latency")
+	eq(item(ns, "latency").value:GetText(), "320", "the ticker reads latency")
 	assert(sameText(item(ns, "latency").value, K.Tokens.Color("hostile")), "high latency reads hostile")
 	eq(item(ns, "time").value:GetText(), "15:01", "the ticker reads the clock")
 
@@ -290,8 +298,9 @@ do
 	assert(tooltipText(K):find("Gold=9,999,999g 99s 99c", 1, true), "the tooltip carries the whole amount: " .. tooltipText(K))
 	W.Leave(item(ns, "gold").button)
 
-	-- A large font: the caption and the value no longer fit the strip's height, so the captions step aside and the
-	-- values sit on the centre line.
+	-- A large font with stacked captions: the caption and the value no longer fit the strip's height, so the
+	-- captions step aside and the values sit on the centre line.
+	Options.Write("DataBars", "strip.labels", "full")
 	Options.Write("DataBars", "strip.fontSize", 22)
 	eq(item(ns, "fps").label:IsShown(), false, "a 22 font drops the captions")
 	local vp, _, vrp = item(ns, "fps").value:GetPoint(1)
@@ -300,6 +309,7 @@ do
 	ok, what = Inside(ns)
 	assert(ok, "a large font stays inside its cell: " .. tostring(what))
 	Options.Write("DataBars", "strip.fontSize", 12)
+	Options.Write("DataBars", "strip.labels", "inline")
 	eq(item(ns, "fps").label:IsShown(), true, "the captions come back at 12")
 	-- The interface text scale enlarges both: a 17 font fits at scale 1, and not at 1.3.
 	Options.Write("DataBars", "strip.labels", "short")
@@ -351,7 +361,7 @@ do
 	eq(opened, "DataBars", "clicking fps opens the data bar settings")
 	W.Click(item(ns, "latency").button)
 	eq(K.Options.Read("DataBars", "strip.latency"), "world", "clicking latency switches to world latency")
-	eq(item(ns, "latency").value:GetText(), "41 ms", "and shows it")
+	eq(item(ns, "latency").value:GetText(), "41", "and shows it")
 	W.Click(item(ns, "time").button, "RightButton")
 	eq(K.Options.Read("DataBars", "strip.clock24"), false, "right-clicking the clock switches to 12 hours")
 	noErrors(env, K)

@@ -2,13 +2,14 @@
 local _, ns = ...
 
 local K, L = ns.K, ns.L
-local Widgets = K.Widgets
+local Widgets, Tokens = K.Widgets, K.Tokens
 local floor, ceil, max, min, format = math.floor, math.ceil, math.max, math.min, string.format
 
 local Menus = {}
 ns.Menus = Menus
 
 local PAD = 3
+local DOCK_LEVEL = 2
 
 local MICRO_ASPECT = 0.75
 local ICON_CROP = 0.07
@@ -265,14 +266,26 @@ local function Paint(bar)
 		return
 	end
 	local s = Settings(bar.id)
-	bar.glass:SetShown(s.backdrop ~= false)
+	bar.glass:SetShown(s.backdrop ~= false and bar.dock == nil)
+	local round = s.shape ~= "tile"
 	for _, entry in ipairs(bar.entries) do
+		local button = entry.button
 		if bar.id == "micro" then
 			PaintMicro(entry, s)
 		else
 			PaintBag(entry, s)
 		end
-		entry.button:SetUsable(Flag(entry.target:IsEnabled(), true))
+		button:SetUsable(Flag(entry.target:IsEnabled(), true))
+		button.chrome:SetShown(not round)
+		button.crystal:SetShown(round)
+		button.crystal:Paint()
+		if round and not button.kRound then
+			button.kRound = true
+			button.icon:AddMaskTexture(button.roundMask)
+		elseif not round and button.kRound then
+			button.kRound = false
+			button.icon:RemoveMaskTexture(button.roundMask)
+		end
 	end
 end
 
@@ -305,8 +318,9 @@ function Arrange(bar)
 	end
 	table.sort(wanted, ByRank)
 	local list = Active(bar.id) and OwnerShown(bar) and wanted or {}
-	local height = Widgets.Snap(holder, s.size)
-	local width = Widgets.Snap(holder, s.size * bar.group.aspect)
+	local size = bar.dockSize and min(s.size, bar.dockSize) or s.size
+	local height = Widgets.Snap(holder, size)
+	local width = s.shape ~= "tile" and height or Widgets.Snap(holder, size * bar.group.aspect)
 	local gap = Widgets.Snap(holder, s.spacing)
 	local pad = Widgets.Snap(holder, PAD)
 	local cols, rows = Menus.Grid(#wanted > 0 and #wanted or #bar.entries, s.rows)
@@ -314,6 +328,7 @@ function Arrange(bar)
 	for _, entry in ipairs(list) do
 		parts[#parts + 1] = entry.index
 	end
+	parts[#parts + 1] = bar.dock and "docked" or "free"
 	local signature = table.concat(parts, ",")
 	if signature == bar.signature then
 		return
@@ -339,16 +354,48 @@ function Arrange(bar)
 	bar.shown = shown
 	holder:SetSize(max(1, cols * width + (cols - 1) * gap + 2 * pad), max(1, rows * height + (rows - 1) * gap + 2 * pad))
 	content:SetShown(#shown > 0)
-	if bar.registered and type(K.Layout.Restore) == "function" then
+	if bar.dock then
+		bar.dock(content, holder:GetWidth(), holder:GetHeight())
+	elseif bar.registered and type(K.Layout.Restore) == "function" then
 		K.Layout.Restore(bar.group.key)
 	end
 end
+
 
 local function Sync(bar)
 	if bar then
 		Arrange(bar)
 		Paint(bar)
 	end
+end
+
+function Menus.SetDock(id, dock, parent, size)
+	local bar = bars[id]
+	if not bar or (bar.dock == dock and bar.dockParent == parent and bar.dockSize == size) then
+		return
+	end
+	if InCombatLockdown() then
+		K.Combat.Queue(function()
+			Menus.SetDock(id, dock, parent, size)
+		end)
+		return
+	end
+	bar.dock, bar.dockParent, bar.dockSize = dock, parent, size
+	local holder, content = bar.holder, bar.content
+	holder:SetShown(dock == nil)
+	content:ClearAllPoints()
+	if dock == nil then
+		content:SetParent(holder)
+		content:SetAllPoints(holder)
+	elseif bar.dockParent then
+		content:SetParent(bar.dockParent)
+		content:SetFrameLevel(bar.dockParent:GetFrameLevel() + DOCK_LEVEL)
+	end
+	if bar.registered and type(K.Layout.SetLive) == "function" then
+		K.Layout.SetLive(bar.group.key, dock == nil)
+	end
+	bar.signature = nil
+	Sync(bar)
 end
 
 local function Soon(id)
@@ -518,6 +565,10 @@ local function NewButton(bar, def, target)
 		template = "SecureActionButtonTemplate", size = Settings(bar.id).size, crop = bar.group.crop == true, silent = true,
 	})
 	button:RegisterForClicks("AnyUp")
+	button.crystal = Widgets.CrystalDisc(button)
+	button.roundMask = button:CreateMaskTexture()
+	button.roundMask:SetTexture((Tokens.Texture("dot")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	button.roundMask:SetAllPoints(button.icon)
 	button:SetAttribute("clickbutton", target)
 	button:SetAttribute("useOnKeyDown", false)
 	if def.gameMenu then
@@ -681,6 +732,9 @@ function Menus.Enable()
 	end
 	UpdatePortrait()
 	enabling = false
+	if ns.Strip and ns.Strip.view then
+		ns.Strip.Refresh()
+	end
 end
 
 function Menus.Disable()
@@ -709,6 +763,9 @@ function Menus.Setting(key)
 	Sync(bars[id])
 	if field == "enabled" then
 		SyncBlizzard(id)
+	end
+	if bars[id] and bars[id].dock and ns.Strip then
+		ns.Strip.Refresh()
 	end
 end
 

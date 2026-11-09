@@ -73,7 +73,7 @@ defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
-	labels = "full", valueColor = "highlight", accentEdge = false, backdrop = true, separators = false,
+	labels = "inline", menus = true, valueColor = "highlight", accentEdge = false, backdrop = true, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
@@ -81,8 +81,8 @@ defaults.strip = {
 for i, id in ipairs(Strip.ITEMS) do
 	defaults.strip["slot" .. i] = id
 end
-defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none" }
-defaults.bags = { enabled = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true }
+defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round" }
+defaults.bags = { enabled = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
 
 local SOURCES_PLAIN = {
 	{ value = "class", label = L["Class colour"] },
@@ -187,7 +187,12 @@ local STRIP_ITEMS = {
 	{ value = "durability", label = L["Durability"] },
 	{ value = "time", label = L["Time"] },
 }
+local SHAPES = {
+	{ value = "round", label = L["Round crystal"] },
+	{ value = "tile", label = L["Chamfered tile"] },
+}
 local STRIP_LABELS = {
+	{ value = "inline", label = L["Units after the value: 179 fps, 55% armour"] },
 	{ value = "full", label = L["Full: Frame rate, Durability"] },
 	{ value = "short", label = L["Short: FPS, MS, DUR"] },
 	{ value = "none", label = L["None"] },
@@ -222,6 +227,7 @@ end
 for _, row in ipairs({
 	{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
 	{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Frame rate in the accent and warnings in theirs, every value by grade, all in the accent, or plain."], options = VALUE_COLORS },
+	{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card."] },
 	{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
 	{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
 	{ type = "toggle", key = "strip.separators", label = L["Separators"], help = L["Draws a thin line between the cells."] },
@@ -258,6 +264,7 @@ local function MenuRows(id, title, enabledHelp)
 		{ type = "slider", key = id .. ".size", label = L["Button size"], help = L["The height of each button. Layout Mode moves and scales the bar."], min = MENU_SIZE_MIN, max = MENU_SIZE_MAX, step = 1, disableWhen = off },
 		{ type = "slider", key = id .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = MENU_SPACING_MAX, step = 1, disableWhen = off },
 		{ type = "slider", key = id .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = count, step = 1, disableWhen = off },
+		{ type = "dropdown", key = id .. ".shape", label = L["Button shape"], help = L["Round crystal discs, or the chamfered tiles the action buttons wear."], options = SHAPES, disableWhen = off },
 		{ type = "toggle", key = id .. ".backdrop", label = L["Glass"], help = L["Draws smoked glass behind the buttons."], disableWhen = off },
 	}
 	if id == "micro" then
@@ -297,7 +304,7 @@ end
 local function StripSamples(s)
 	return {
 		fps = { tostring(SAMPLE_FPS), "good" },
-		latency = { s.labels == "short" and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
+		latency = { (s.labels == "short" or s.labels == "inline") and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
 		gold = { Format.Money(SAMPLE_MONEY, s.money) },
 		durability = { SAMPLE_DURABILITY .. "%", "good" },
 		time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },

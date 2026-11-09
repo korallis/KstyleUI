@@ -107,7 +107,7 @@ for _, item in ipairs(databars.items) do
 		seen[item.text] = true
 	end
 end
-for _, want in ipairs({ "Level 38 \194\183 32%", "Frame rate", "144", "34 ms", "143g 82s 17c", "Durability", "96%", "14:32" }) do
+for _, want in ipairs({ "Level 38 \194\183 32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%", "14:32" }) do
 	assert(seen[want], "the data bars scene shows " .. want)
 end
 
