@@ -307,7 +307,7 @@ function Tokens.MediaList(kind)
 	end
 	local out = {}
 	for i, item in ipairs(source) do
-		out[i] = { key = item.key, label = item.label, path = item.path }
+		out[i] = { key = item.key, label = item.label, path = source == STATUSBARS and item.path or ns.Locale.Font(item.path) }
 	end
 	return out
 end

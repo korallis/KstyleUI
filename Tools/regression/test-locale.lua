@@ -130,6 +130,7 @@ for code, path in pairs(GAME) do
 	end
 	for _, face in ipairs(K.Tokens.MediaList("font")) do
 		assert(K.Tokens.FontPath(face.key) == path, code .. ": FontPath(" .. face.key .. ") gives the game font")
+		assert(face.path == path, code .. ": a font picker's " .. face.key .. " stores the game font, so picking it keeps the client's glyphs")
 	end
 	assert(K.Locale.Font("Interface\\AddOns\\SharedMedia\\Fonts\\Other.ttf") == "Interface\\AddOns\\SharedMedia\\Fonts\\Other.ttf", code .. ": another addon's font is the player's choice and stays")
 	local fs = K.Widgets.Text(K.Scale.Root(), "body", "text")
