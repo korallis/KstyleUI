@@ -221,6 +221,11 @@ local function New(opts)
 	opts.enable = false
 	local env, K, ns = D.New(opts)
 	local before = Snapshot(env)
+	-- The rows are hidden by default (test-databars-compact.lua); these checks are about the buttons, so they show them.
+	if opts.shown ~= false then
+		K.Options.Write("DataBars", "micro.shown", true)
+		K.Options.Write("DataBars", "bags.shown", true)
+	end
 	if enable ~= false then
 		K.Modules.Enable("DataBars")
 		env.RunTimers()

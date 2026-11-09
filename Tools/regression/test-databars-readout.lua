@@ -29,6 +29,9 @@ local env, K, ns = D.New({
 	end,
 })
 K.Modules.Enable("DataBars")
+-- The menu rows are hidden by default (test-databars-compact.lua); these checks are about the rows, so they show them.
+K.Options.Write("DataBars", "micro.shown", true)
+K.Options.Write("DataBars", "bags.shown", true)
 env.RunTimers()
 -- The Lumen layouts give the readout card 318 by 118; these checks start from the 492 by 43 strip line they were drawn
 -- on, where the card grows upward for the menu row, and come to a full-height card below.

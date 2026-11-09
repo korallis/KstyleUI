@@ -561,8 +561,9 @@ do
 	-- hang under its 84-unit frame in two rows, so the layouts keep 136 from its top; the focus card's debuffs sit over its 90-unit
 	-- frame, so the layouts keep 112 from its foot; the boss column holds five compact cards and the layouts keep its
 	-- full height plus the debuffs hanging to its left, 318 in all; the Blessings card starts at one buff row and grows
-	-- by its docked debuff rows to 230 at its cap.
-	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["auras.buffs"] = { 318, 230 } }
+	-- by its docked debuff rows to 230 at its cap; the readout card is one 42-unit line until the player shows the micro
+	-- menu and bag rows, and the layouts keep the 118 both rows take.
+	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["auras.buffs"] = { 318, 230 }, ["databars.strip"] = { 318, 118 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]

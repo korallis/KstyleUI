@@ -76,7 +76,7 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 
 ## Data strip
 
-`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each in its own fixed cell: a caption in the text grey, 2 points smaller than the value (never below the `caption` size), over a value in white (or graded), on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it.
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 318 x 42 (`Strip.COMPACT`: the 30-unit line and the card's 12-unit padding under it), at the right rail's foot. The layouts keep 318 x 118 there, the card with both menu rows shown, so turning a row on moves nothing and the tooltip anchor stays clear of it. The checks in `test-databars-strip.lua` were drawn on the composition mockup's 492 x 43 strip. It holds up to five items, each in its own fixed cell: a caption in the text grey, 2 points smaller than the value (never below the `caption` size), over a value in white (or graded), on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it.
 
 The cells share the width inside one content inset by weight (`CELL_WEIGHT` in `Strip.lua`): frame rate 0.8, latency 0.9, gold 1.4, durability 1.25, time 0.85. A cell depends only on the strip's size and the items shown, never on a value, so a frame rate that falls from 144 to 9, or gold that grows, moves nothing. A value wider than its cell is cut short, and its tooltip carries the whole value. The readable minimum is 4 ems of the value size per unit of weight, about 250 units for five items at 12; the settings preview scales its sample strip down below that. The captions step aside, and the values sit on the centre line, when the caption and value together are taller than the strip inside its edge lines (a large font) or when any caption is wider than its cell (a narrow strip). No separators by default; turned on, a separator is a hairline at a cell's left edge, 40% of the strip's height, in the text grey at 35%. In a column each row has its caption at the left and its value at the right.
 
@@ -113,6 +113,8 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 
 `databars.micro` and `databars.bags` are KstyleUI's own bars, registered with Layout as scalable holders at their footprints from `Setup.Layouts`: the micro menu above the data strip and the bag bar above it, bottom right. While a bar is on, `Safe.HideBlizzard` hides Blizzard's: `MicroMenuContainer`, the Edit Mode frame that holds `MicroMenu`, and `BagsBar`.
 
+Both bars are hidden by default (`micro.shown` and `bags.shown` are `false`), so the readout card is one line. Hidden, a bar shows no buttons, is not live in Layout Mode, and Blizzard's bar stays hidden through `Safe`, so nothing returns to the bottom centre. The game's keybinds open every window as before (B, C, P, N, L, J, Escape and the rest call Blizzard's toggles, not the micro buttons), and the readout's gold and durability still open the bags and the character sheet through the secure proxy. Neither setting hides, moves or touches a Blizzard frame, so neither is a combat risk; showing a bar again places its secure buttons out of combat, as before.
+
 Each KstyleUI button is a `Widgets.IconButton` made from `SecureActionButtonTemplate`, with `type = "click"` and `clickbutton` set once, when the bar is built, to Blizzard's own button. A click runs Blizzard's handler from secure code, as a click on Blizzard's button would, so the buttons work in combat.
 
 | | Micro menu | Bag bar |
@@ -128,6 +130,7 @@ The bars follow Blizzard's state through `hooksecurefunc` on `UpdateMicroButtons
 | Key | Default | Row |
 | --- | --- | --- |
 | `micro.enabled`, `bags.enabled` | `true` | Show KstyleUI's bar in place of Blizzard's. Off, `Safe.RestoreBlizzard` gives Blizzard's back where Edit Mode puts it. |
+| `micro.shown`, `bags.shown` | `false` | Show the bar's buttons (Show the micro menu, Show the bag bar). Off, the bar is hidden and the readout card shrinks to its line; Blizzard's stays hidden while `enabled` is on. Saved data at version 3 or older (`Store.migrations[4]`) keeps a bar shown when its player had set it up: any size, spacing, rows, glass, shape, set, tint or free-slot setting changed from its default, or `strip.menus` off. A bar handed back to Blizzard keeps the new default. |
 | `micro.size`, `bags.size` | 26, 26 | Button height, 12 to 48. A micro button is three quarters as wide. Both bars sit on a tile of glass with a 3-unit rim, so each button's cut corner nests inside the tray's cut and each tray is 32 units tall, inside the 36-unit pitch the layouts put between the two bars. |
 | `micro.spacing`, `bags.spacing` | 4 | The gap between buttons, 0 to 12 |
 | `micro.rows`, `bags.rows` | 1 | How many rows the buttons fill |
@@ -138,7 +141,7 @@ The bars follow Blizzard's state through `hooksecurefunc` on `UpdateMicroButtons
 
 Layout gives each bar its shown rule, position, scale, opacity and strata.
 
-With `strip.menus` on (the Lumen layouts' default) both bars dock in the readout card under the strip's line, which holds the card's top padding itself (`Strip.LINE`, 30 units), so the first row starts a small gap under the text: both rows end on the card's right edge under the right-aligned readout, the micro menu just left of the bags on the same line when all the buttons fit at their set size or at 22 units, else the bag row under the micro row, and a bar whose buttons do not fit a row at 22 units wraps into more rows rather than shrinking further (`Strip.MenuPlan`). The card's height follows the rows, and `Layout.Update` writes it, so the Layout Mode plate hugs the glass; free of the menus the strip keeps the player's own height.
+With `strip.menus` on (the Lumen layouts' default) both bars dock in the readout card under the strip's line, which holds the card's top padding itself (`Strip.LINE`, 30 units), so the first row starts a small gap under the text: both rows end on the card's right edge under the right-aligned readout, the micro menu just left of the bags on the same line when all the buttons fit at their set size or at 22 units, else the bag row under the micro row, and a bar whose buttons do not fit a row at 22 units wraps into more rows rather than shrinking further (`Strip.MenuPlan`). The card's height follows the rows, and `Layout.Update` writes it, so the Layout Mode plate hugs the glass. With both rows hidden, the default, the card is the line and its padding (`Strip.COMPACT`, 42 units) and the items fill it, so the readout sits on the card's centre line. Free of the menus, the strip keeps the player's own height.
 
 ## Why
 

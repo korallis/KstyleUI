@@ -44,9 +44,11 @@ local LABELS = {
 local UNIT_GAP = 3
 local MENU_GAP = 6
 local LINE = 30
+local COMPACT = 42
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
 Strip.LINE = LINE
+Strip.COMPACT = COMPACT
 
 local CELL_WEIGHT = { fps = 0.8, latency = 0.9, gold = 1.4, durability = 1.25, time = 0.85 }
 
@@ -486,6 +488,9 @@ local MENU_MIN = 22
 Strip.MENU_MIN = MENU_MIN
 
 local function DockCount(Menus, id)
+	if not Menus.Visible(id) then
+		return 0
+	end
 	local shown = #Menus.Shown(id)
 	return shown > 0 and shown or #Menus.All(id)
 end
@@ -510,7 +515,7 @@ function Strip.MenuPlan(inner, counts, sizes, spacing, gap)
 	local tile = min(sizes.micro, sizes.bags)
 	local plan = { tile = tile, rows = { micro = 1, bags = 1 }, oneRow = false }
 	if total == 0 then
-		plan.height = 0
+		plan.height, plan.oneRow = 0, true
 		return plan
 	end
 	local together = counts.micro > 0 and counts.bags > 0 and gap or 0
@@ -566,15 +571,15 @@ function Strip.DockMenus(view, s)
 	end
 	local w = Size(frame)
 	local settings = ns.Settings()
-	local plan = Strip.MenuPlan(w - 2 * pad, { micro = DockCount(Menus, "micro"), bags = DockCount(Menus, "bags") },
+	local bagCount = DockCount(Menus, "bags")
+	local plan = Strip.MenuPlan(w - 2 * pad, { micro = DockCount(Menus, "micro"), bags = bagCount },
 		{ micro = settings.micro.size, bags = settings.bags.size }, Widgets.Snap(frame, settings.micro.spacing), gap)
 	view.wrapMenus = not plan.oneRow
 	local rowTop = -(line + gap)
-	local height = line + gap + plan.height + pad
-	local bagCount = DockCount(Menus, "bags")
+	local height = plan.height > 0 and (line + gap + plan.height + pad) or (line + pad)
 	local bagGap = Widgets.Snap(frame, settings.bags.spacing)
 	local beside = plan.oneRow and bagCount > 0 and (bagCount * plan.tile + (bagCount - 1) * bagGap + 2 * MENU_PAD + gap) or 0
-	view.line = line
+	view.line = plan.height > 0 and line or nil
 	view.lineTop = nil
 	for id, spec in pairs(DOCK) do
 		local drop = (not plan.oneRow and id == "bags") and (plan.microHeight + gap) or 0

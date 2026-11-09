@@ -81,8 +81,8 @@ defaults.strip = {
 for i, id in ipairs(Strip.DEFAULT_SLOTS) do
 	defaults.strip["slot" .. i] = id
 end
-defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
-defaults.bags = { enabled = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
+defaults.micro = { enabled = true, shown = false, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
+defaults.bags = { enabled = true, shown = false, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
 
 local SOURCES_PLAIN = {
 	{ value = "class", label = L["Class colour"] },
@@ -227,7 +227,7 @@ end
 for _, row in ipairs({
 	{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
 	{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Frame rate in the accent and warnings in theirs, every value by grade, all in the accent, or plain."], options = VALUE_COLORS },
-	{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card."] },
+	{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card, when they are shown."] },
 	{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
 	{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
 	{ type = "toggle", key = "strip.separators", label = L["Separators"], help = L["Draws a thin line between the cells."] },
@@ -258,14 +258,20 @@ local SETS = {
 	{ value = "full", label = L["Every button"] },
 }
 
-local function MenuRows(id, title, enabledHelp)
+local function MenuRows(id, title, enabledHelp, shownLabel, shownHelp)
+	local function replaced(settings)
+		return settings[id] ~= nil and settings[id].enabled == true
+	end
 	local function off(settings)
-		return not (settings[id] and settings[id].enabled)
+		return not (replaced(settings) and settings[id].shown == true)
 	end
 	local count = #ns.Menus.GROUPS[id].buttons
 	local rows = {
 		{ type = "header", label = title },
 		{ type = "toggle", key = id .. ".enabled", label = L["Replace Blizzard's"], help = enabledHelp },
+		{ type = "toggle", key = id .. ".shown", label = shownLabel, help = shownHelp, disableWhen = function(settings)
+			return not replaced(settings)
+		end },
 		{ type = "slider", key = id .. ".size", label = L["Button size"], help = L["The height of each button. Layout Mode moves and scales the bar."], min = MENU_SIZE_MIN, max = MENU_SIZE_MAX, step = 1, disableWhen = off },
 		{ type = "slider", key = id .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = MENU_SPACING_MAX, step = 1, disableWhen = off },
 		{ type = "slider", key = id .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = count, step = 1, disableWhen = off },
@@ -281,8 +287,10 @@ local function MenuRows(id, title, enabledHelp)
 	return rows
 end
 
-ns.AddRows(MenuRows("micro", L["Micro menu"], L["Shows KstyleUI's micro menu in place of Blizzard's. Off, Blizzard's returns."]))
-ns.AddRows(MenuRows("bags", L["Bag bar"], L["Shows KstyleUI's bag bar in place of Blizzard's. Off, Blizzard's returns."]))
+ns.AddRows(MenuRows("micro", L["Micro menu"], L["Shows KstyleUI's micro menu in place of Blizzard's. Off, Blizzard's returns."],
+	L["Show the micro menu"], L["The system buttons under the readout. Off, the card is one line; keybinds and Escape still work."]))
+ns.AddRows(MenuRows("bags", L["Bag bar"], L["Shows KstyleUI's bag bar in place of Blizzard's. Off, Blizzard's returns."],
+	L["Show the bag bar"], L["Your bags under the readout. Off, the card is one line; B and the gold still open your bags."]))
 
 local SAMPLES = {
 	xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp" },

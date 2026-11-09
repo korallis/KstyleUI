@@ -54,7 +54,7 @@ Footprints are width x height in units at the 1080 reference. A footprint follow
 | `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
 | `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
 | `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |
-| `databars.strip` | DataBars | Data strip | 318 x 118 | S4's readout card at the right rail's foot: the readout line, with the micro menu docked under it and the bag bar wrapped under that, which 318 units need, and 3 units for pixel snapping (a card a hair short drops the rows under it) |
+| `databars.strip` | DataBars | Data strip | 318 x 42 (the layouts keep 318 x 118) | S4's readout card at the right rail's foot: by default the readout line alone, 30 units with the card's top padding and 12 under it. The micro menu and the bag bar are hidden by default; turned on, they dock under the line, the bag row wrapped under the micro row at 318, and the card grows up into the 118 units the layouts keep, so a row turned on moves nothing and the tooltip anchor stays clear of it |
 | `databars.micro` | DataBars | Micro menu | 318 x 44 | Docked in the readout card and not live there. Placed at the card's foot |
 | `databars.bags` | DataBars | Bag bar | 212 x 32 | Docked in the readout card and not live there. Placed in the card, over the micro menu's place |
 | `meters.damage` | Meters | Damage meter | 318 x 190 | S4's damage card on the right rail, 16 units under the Blessings: six rows. Healer: at the head of the left rail |

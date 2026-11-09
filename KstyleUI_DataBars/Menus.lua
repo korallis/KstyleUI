@@ -94,6 +94,11 @@ local function Active(id)
 	return running and s ~= nil and s.enabled == true
 end
 
+local function Visible(id)
+	return Active(id) and Settings(id).shown == true
+end
+Menus.Visible = Visible
+
 local function Call(fn, ...)
 	if type(fn) ~= "function" then
 		return nil
@@ -320,7 +325,7 @@ function Arrange(bar)
 		end
 	end
 	table.sort(wanted, ByRank)
-	local list = Active(bar.id) and OwnerShown(bar) and wanted or {}
+	local list = Visible(bar.id) and OwnerShown(bar) and wanted or {}
 	local size = bar.dockSize and min(s.size, bar.dockSize) or s.size
 	local height = Widgets.Snap(holder, size)
 	local width = s.shape ~= "tile" and height or Widgets.Snap(holder, size * bar.group.aspect)
@@ -365,8 +370,15 @@ function Arrange(bar)
 end
 
 
+local function SetLive(bar)
+	if bar.registered and type(K.Layout.SetLive) == "function" then
+		K.Layout.SetLive(bar.group.key, bar.dock == nil and Settings(bar.id).shown == true)
+	end
+end
+
 local function Sync(bar)
 	if bar then
+		SetLive(bar)
 		Arrange(bar)
 		Paint(bar)
 	end
@@ -393,9 +405,6 @@ function Menus.SetDock(id, dock, parent, size, rows)
 	elseif bar.dockParent then
 		content:SetParent(bar.dockParent)
 		content:SetFrameLevel(bar.dockParent:GetFrameLevel() + DOCK_LEVEL)
-	end
-	if bar.registered and type(K.Layout.SetLive) == "function" then
-		K.Layout.SetLive(bar.group.key, dock == nil)
 	end
 	bar.signature = nil
 	Sync(bar)

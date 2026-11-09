@@ -76,10 +76,10 @@ do
 	-- all-white strip of ingame-18 read as one flat sentence.
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
-	-- The Lumen readout card on the right rail's foot: 318 x 118, the readout line with the menu rows docked under it.
-	-- Its values read at the HUD's bar size, 12, in fixed cells: no separators by default.
-	eq(got.width .. "x" .. got.height, "318x118", "the strip takes the Lumen readout card's size")
-	eq(ns.Strip.view.chrome:Chamfer(), math.min(14, 118 / 2), "the strip's corners round 14 units, the card radius, never more than half its height")
+	-- The Lumen readout card on the right rail's foot: 318 x 42, the readout line alone (the menu rows are hidden by
+	-- default). Its values read at the HUD's bar size, 12, in fixed cells: no separators by default.
+	eq(got.width .. "x" .. got.height, "318x42", "the strip takes the Lumen readout card's size")
+	eq(ns.Strip.view.chrome:Chamfer(), math.min(14, 42 / 2), "the strip's corners round 14 units, the card radius, never more than half its height")
 	local s = ns.Settings().strip
 	eq(s.fontSize, 12, "the strip reads at 12 by default")
 	eq(s.spacing, 16, "16 units of room inside each cell")
@@ -231,7 +231,7 @@ do
 
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	local layout = K.Layout.Get("databars.strip")
-	assert(layout.width < 318 and layout.height > 118, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
+	assert(layout.width < 318 and layout.height > 42, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
 	local first, second = item(ns, "fps").button, item(ns, "latency").button
 	local _, _, _, x1, y1 = first:GetPoint(1)
 	local _, _, _, _, y2 = second:GetPoint(1)
@@ -242,14 +242,14 @@ do
 	assert(math.abs(layout.height - K.Widgets.Snap(ns.Strip.view.frame, rows * 13 * 1.8 + 2 * inset)) < 1.01, "the column is its rows plus one inset above and below, got " .. layout.height)
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "318x118", "a row strip returns to its footprint")
+	eq(layout.width .. "x" .. layout.height, "318x42", "a row strip returns to its footprint")
 	for i = 2, 5 do
 		Options.Write("DataBars", "strip.slot" .. i, "none")
 	end
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "318x118", "a one-item column also returns to the row footprint")
+	eq(layout.width .. "x" .. layout.height, "318x42", "a one-item column also returns to the row footprint")
 	noErrors(env, K)
 end
 
@@ -289,7 +289,7 @@ do
 	local env, K, ns, game = D.New()
 	local Options = K.Options
 	-- The cells and captions below are measured at the 492 by 43 strip they were drawn for; the Lumen readout card is
-	-- 318 by 118.
+	-- 318 by 42 (118 with both menu rows shown).
 	assert(K.Layout.Update("databars.strip", { width = 492, height = 43 }))
 	env.RunTimers()
 	local before = Cells(ns)
@@ -512,10 +512,13 @@ end
 -- The readout card hugs its rows, and its docked buttons stay readable -----------------------------------
 -- The micro menu docks under the readout line in its compact set (eight buttons), the bag bar on its own
 -- row at the right; no docked button shrinks under 22 units, a row that cannot fit wraps instead, and the
--- card's height follows the rows, in Layout too, so the mover plate and the glass agree.
+-- card's height follows the rows, in Layout too, so the mover plate and the glass agree. Both rows are hidden by
+-- default (test-databars-compact.lua), so these checks turn them on.
 
 do
 	local env, K, ns = D.New({ setup = D.Menus })
+	K.Options.Write("DataBars", "micro.shown", true)
+	K.Options.Write("DataBars", "bags.shown", true)
 	local Strip, Menus = ns.Strip, ns.Menus
 	local view = Strip.view
 	eq(Strip.MENU_MIN, 22, "a docked button is never under 22 units")
@@ -537,7 +540,8 @@ do
 	local want = Strip.LINE + gap + microH + gap + bagsH + pad
 	local h = view.frame:GetHeight()
 	assert(near(h, want), string.format("the card is the readout line, the micro row and the bag row inside the padding: %s for %s", h, want))
-	assert(h <= K.Setup.Layouts.Element("databars.strip").height + 0.5, "the docked card fits the footprint the layouts keep: " .. h)
+	local _, kept = K.Setup.Layouts.Footprint("DPS", "databars.strip")
+	assert(h <= kept + 0.5, "the docked card fits the footprint the layouts keep: " .. h)
 	-- Fable #3: the micro row and the bag row share the card's right edge, under the right-aligned readout.
 	local mp, _, mrp, mx = Menus.Content("micro"):GetPoint(1)
 	local bp, _, brp, bx = Menus.Content("bags"):GetPoint(1)

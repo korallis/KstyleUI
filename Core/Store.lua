@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 3
+Store.DB_VERSION = 4
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -28,6 +28,35 @@ Store.migrations[3] = function(data)
 		if type(profile) == "table" then
 			profile.Icons = nil
 			profile.IconsColour = nil
+		end
+	end
+end
+
+local MENU_DEFAULTS = {
+	micro = { size = 26, spacing = 4, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" },
+	bags = { size = 26, spacing = 4, rows = 1, backdrop = true, freeSlots = true, shape = "round" },
+}
+
+local function tunedMenu(bar, defaults)
+	for key, default in pairs(defaults) do
+		if bar[key] ~= nil and bar[key] ~= default then
+			return true
+		end
+	end
+	return false
+end
+
+Store.migrations[4] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local databars = type(profile) == "table" and profile.DataBars
+		if type(databars) == "table" then
+			local free = type(databars.strip) == "table" and databars.strip.menus == false
+			for id, defaults in pairs(MENU_DEFAULTS) do
+				local bar = databars[id]
+				if type(bar) == "table" and bar.shown == nil and bar.enabled ~= false and (free or tunedMenu(bar, defaults)) then
+					bar.shown = true
+				end
+			end
 		end
 	end
 end

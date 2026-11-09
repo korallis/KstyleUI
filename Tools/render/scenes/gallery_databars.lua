@@ -84,14 +84,17 @@ return Common.Run(function()
 	})
 
 	-- The readout and menu card: the strip's line of values and units over the micro menu and the bag bar, docked in
-	-- the same card as round crystal buttons. The card is the strip element at the Lumen footprint, 318 by 94.
+	-- the same card as round crystal buttons. Both rows are hidden by default, when the card is the readout line the
+	-- HUD scenes show; this frame turns them on, as a player does from the settings.
+	K.Options.Write("DataBars", "micro.shown", true)
+	K.Options.Write("DataBars", "bags.shown", true)
 	local micro, bags = ns.Menus.Content("micro"), ns.Menus.Content("bags")
 	assert(micro and bags, "the micro menu and the bag bar are built")
 	layout(K, "databars.strip", 60, 240, 318, 94)
 	env.RunTimers()
 	frames:Add(env, ns.Strip.view.card, {
 		name = "databars_micro", title = "Readout and menu card", grade = "panel", reference = "datastrip",
-		caption = "The readout card (Strip.lua and Menus.lua): one line of value plus muted unit (144 fps, 34 ms, 143g 82s 17c, 96% armour, 14:32) over the micro menu at the left and the bag bar at the right, docked in the same panel-grade card as round crystal discs (Widgets.CrystalDisc) with Blizzard's own glyph atlases masked round.",
+		caption = "The readout card (Strip.lua and Menus.lua) with Show the micro menu and Show the bag bar turned on (both are off by default, when the card is the line alone): one line of value plus muted unit (144 fps, 34 ms, 143g 82s 17c, 96% armour, 14:32) over the micro menu at the left and the bag bar at the right, docked in the same panel-grade card as round crystal discs (Widgets.CrystalDisc) with Blizzard's own glyph atlases masked round.",
 		match = "The mockup's readout card: values first, units muted, a row of small round buttons under them; the card is the panel grade where the mockup's is the rounded frost card the material slice brings.",
 	})
 	local mh, bh = 94, 0

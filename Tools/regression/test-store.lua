@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 3, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 4, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,7 +219,7 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 3, "version 2 data migrates to 3")
+	check(menv.KstyleUIDB.version == 4, "version 2 data migrates through 3 to the current 4")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")

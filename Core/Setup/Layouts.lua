@@ -59,7 +59,7 @@ local ELEMENTS = {
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
-	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = 318, height = 118 },
+	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = 318, height = 42, reserve = { 318, 118 } },
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
 	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = 318, height = 190 },
