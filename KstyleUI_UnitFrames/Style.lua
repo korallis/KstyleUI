@@ -460,17 +460,10 @@ function Style.Layout(view, s, width, height)
 end
 
 local function ApplyFont(text, path, size, flags)
-	if text:SetFont(path, size, flags) == false then
+	if not Widgets.ApplyFont(text, path, size, flags) then
 		local fallback, fallbackSize = Tokens.Font("body")
-		text:SetFont(fallback, fallbackSize, flags)
+		Widgets.ApplyFont(text, fallback, fallbackSize, flags)
 		Widgets.LogOnce("unitframes-font:" .. tostring(path), "UnitFrames: the font " .. tostring(path) .. " did not load; using KstyleUI's font")
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
 	end
 end
 

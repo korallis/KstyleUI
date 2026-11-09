@@ -171,10 +171,16 @@ end
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
 local LEFT_RAIL = {
-	DPS = { "groupframes.party", "groupframes.raid", "chat.main" },
-	Tank = { "groupframes.party", "groupframes.raid", "chat.main" },
-	Healer = { "unitframes.boss", "chat.main" },
+	DPS = { "groupframes.party", "groupframes.raid" },
+	Tank = { "groupframes.party", "groupframes.raid" },
+	Healer = { "unitframes.boss" },
 }
+-- Owner pass 1 (M6, "the chat box is too thin"): the chat card stands on the left rail's column at its foot but runs
+-- 372 wide, past the 318 rail, so its message column holds about 21 em of 14-unit text instead of 17.5. It keeps a
+-- full gap from everything else on the narrowest screen (the owner's 1.547 aspect, where the pet bar starts at 417).
+-- Healer keeps the 318 rail width: on that screen its tracked buff icons stand in the gap between the chat and the
+-- focus card (test-setup-editmode.lua's 16 icons and 12 bars), so Healer writes 318 when it is applied.
+local CHAT_WIDTH = { DPS = 372, Tank = 372, Healer = 318 }
 local RIGHT_STACK = {
 	DPS = { "minimap.main", "auras.buffs", "meters.damage" },
 	Tank = { "minimap.main", "auras.buffs", "meters.damage" },
@@ -250,7 +256,13 @@ for _, name in ipairs(names) do
 		local tip = rect("tooltips.anchor")
 		assert(math.abs(tip.right - strip.right) < 1e-6 and tip.bottom - strip.top == 8, label .. ": the tooltip anchor sits 8 over the readout card's right corner")
 		local chat = rect("chat.main")
-		assert(chat.bottom == MARGIN, label .. ": chat sits at the left rail's foot")
+		assert(chat.bottom == MARGIN and chat.left == MARGIN and chat.w == CHAT_WIDTH[name], label .. ": chat sits at the left rail's foot, " .. CHAT_WIDTH[name] .. " wide, got " .. chat.w)
+		for _, key in ipairs(KEYS) do
+			local r = rect(key)
+			if key ~= "chat.main" and r.bottom < chat.top + CARD_GAP_MIN and r.top > chat.bottom - CARD_GAP_MIN then
+				assert(r.left - chat.right >= CARD_GAP_MIN or r.right <= chat.left, label .. ": " .. key .. " keeps " .. CARD_GAP_MIN .. " units clear of the chat card, got " .. (r.left - chat.right))
+			end
+		end
 
 		-- The right rail, top to bottom, 16 to 22 units between cards.
 		local top = HEIGHT - MARGIN
@@ -541,7 +553,7 @@ local FOOTPRINTS = {
 	["unitframes.castbar.target"] = { 220, 24 },
 	-- S4 (#157): the lens card, the Blessings card at one buff row with the debuff row docked, six damage rows, four
 	-- threat rows, the readout with the menu docked (at 318 the bag bar wraps under the micro menu: 118 holds both
-	-- rows, with 3 units for the owner's pixel snapping), the party card. Chat is a 318-unit card at the left rail's foot.
+	-- rows, with 3 units for the owner's pixel snapping), the party card. Chat is a 372-unit card at the left rail's foot.
 	-- Owner pass 1: a 160-unit square map, half the lens card, with the zone and clock inside it.
 	["minimap.main"] = { 160, 160 },
 	-- Round 3 (Astra #1B): the Blessings footprint reserves the card at its cap, one buff row over the hairline and two
@@ -552,7 +564,7 @@ local FOOTPRINTS = {
 	["meters.threat"] = { 318, 144 },
 	["databars.strip"] = { 318, 118 },
 	["databars.micro"] = { 318, 44 },
-	["chat.main"] = { 318, 260 },
+	["chat.main"] = { 372, 260 },
 	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
 	["databars.xp"] = { 489, 4 },

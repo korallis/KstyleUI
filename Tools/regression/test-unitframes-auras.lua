@@ -91,7 +91,7 @@ do
 	assert(rim, "its hairline rests on the accent lifted 15% toward white, as an action button")
 end
 assert((paths[(Tokens.Texture("lumenShape"))] or 0) >= 9, "the tile has a rounded fill")
-assert(paths[(Tokens.Texture("lumenRimSmall"))] == 9, "the tile has the socket's rim, nine pieces")
+assert(paths[(Tokens.Texture("lumenRimSmall"))] == 5, "the tile has the socket's rim: four corners and a centre from the texture, the straight runs solid lines")
 assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
 local corners = cornerSizes(skin)
 assert(#corners >= 4, "the rounded corners are sized")

@@ -296,19 +296,19 @@ end
 
 local function Warning(name, k, rw, rh, others, chosen)
 	local system, sigil = Enum.EditModeSystem.RaidWarning, Box(name, "unitframes.target", rw, rh)
-	local left, right = Box(name, "chat.main", rw, rh), Box(name, "minimap.main", rw, rh)
-	if system == nil or not (sigil and left and right) then
-		return nil
-	end
-	local frame = RaidWarningFrame
-	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
-	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	local rects, xs = {}, { rw / 2 }
 	local slot = Layouts.Slot(name, rh)
 	if slot then
 		local l, b, r, t = Layouts.Rect(slot, slot, rw, rh)
 		rects[1] = { l = l, b = b, r = r, t = t }
 	end
+	local left, right = rects[1] or Box(name, "chat.main", rw, rh), Box(name, "minimap.main", rw, rh)
+	if system == nil or not (sigil and left and right) then
+		return nil
+	end
+	local frame = RaidWarningFrame
+	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
+	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	for _, rect in ipairs(others) do
 		rects[#rects + 1] = rect
 	end

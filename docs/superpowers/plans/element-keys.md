@@ -50,7 +50,7 @@ Footprints are width x height in units at the 1080 reference. A footprint follow
 | `auras.buffs` | Auras | Buffs | 318 x 177 (the layouts keep 318 x 230) | S4's Blessings card on the right rail, 16 units under the lens card: a cap, one row of six buffs with timers (the layouts write one row), a hairline and the debuff rows docked under it. At its cap (one buff row and two debuff rows) it is 318 x 230, which the layouts keep, so the damage card starts 16 under that |
 | `auras.debuffs` | Auras | Debuffs | 318 x 63 | Docked in the Blessings card and not live there. Placed at the card's foot, where it stays when the player undocks it |
 | `minimap.main` | Minimap | Minimap | 160 x 160 | The square map at the head of the right rail, on the 28-unit margin (owner pass 1): a 156 chamfered square inside a thin rim, the zone band along its top edge and the clock band along its bottom edge; the controls show on hover |
-| `chat.main` | Chat | Chat | 318 x 260 | The chat card at the left rail's foot, on the 28-unit margin, short enough to leave the story slot room for the guide and three quests |
+| `chat.main` | Chat | Chat | 372 x 260 | The chat card at the left rail's foot, on the 28-unit margin, wider than the 318 rail so a line holds about 21 em of 14-unit text, short enough to leave the story slot room for the guide and three quests |
 | `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
 | `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
 | `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |

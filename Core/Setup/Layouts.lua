@@ -60,7 +60,7 @@ local ELEMENTS = {
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Blessings"], width = 318, height = 177, reserve = { 318, 230 } },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 318, height = 260 },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 372, height = 260 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
@@ -181,9 +181,10 @@ local SIZES = {
 		["groupframes.raid"] = { RAIL, 487 },
 		["meters.damage"] = { RAIL, 190 },
 		["meters.threat"] = { RAIL, 144 },
+		["chat.main"] = { RAIL, 260 },
 	},
 }
-local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true }
+local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true, ["chat.main"] = true }
 
 local DOCKS = {
 	["auras.debuffs"] = "auras.buffs",

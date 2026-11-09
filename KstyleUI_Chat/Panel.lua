@@ -559,12 +559,21 @@ local function CopyButton(glass)
 	return Widgets.Track(button)
 end
 
+local function Footprint(layouts)
+	local Layout = K.Layout
+	local preset = Layout and type(Layout.Setting) == "function" and Layout.Setting("preset")
+	if type(preset) ~= "string" or not layouts.Get(preset) then
+		preset = "DPS"
+	end
+	return layouts.Footprint(preset, KEY)
+end
+
 local function Build()
 	local layouts = K.Setup.Layouts
 	local spec = layouts.Element(KEY)
 	local holder = CreateFrame("Frame", nil, Scale.Root())
 	holder:SetFrameStrata(STRATA)
-	Widgets.Size(holder, spec.width, spec.height)
+	Widgets.Size(holder, Footprint(layouts))
 	local glass = Widgets.Panel(holder, { strata = STRATA, shape = "window" })
 	glass:SetAllPoints(holder)
 	glass:SetFixedFrameStrata(true)

@@ -7,7 +7,8 @@ The roadmap's [Core public API](../../docs/superpowers/plans/2026-11-07-kstyleui
 ## Rules every component follows
 
 - Colours, sizes, durations, easings, fonts and textures come from `KstyleUI.Tokens` only.
-- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleUnder({ [frame] = true })` or its own `Restyle()` to redraw. Layout does this for each scalable element, once per frame however many wheel ticks arrive.
+- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. Every texture the kit draws goes through `Widgets.Crisp(texture)`: `SetSnapToPixelGrid(true)` puts its edges on the pixel grid and `SetTexelSnappingBias(0)` keeps scaled art sampled smoothly, both guarded for a client without them. A rim's straight runs (`lumenRim`, `lumenRimSmall`, `lumenOutline`) are solid lines one border thick, full strength on top and at the `rimSoft` share on the other sides; only the four corners and the centre sample the texture. The texture's 3-texel line is 0.75 px at 1080p and 1.07 px on a 2383 x 1540 screen at UI scale 768 / 1080, so it landed between pixels (owner pass 1). `test-pixels.lua` checks both screens.
+- Text sizes and shadows land on whole physical pixels: `Widgets.ApplyFont(text, path, size, flags) -> ok` snaps `size` in the text's own scale (`Widgets.FontSize(text, size)`) and sets a one-border shadow down and right in `textShadow`, or none for flagged faces (`Widgets.TextShadow(text, flags)`). `StyleText` and every module that sets its own font use it. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleUnder({ [frame] = true })` or its own `Restyle()` to redraw. Layout does this for each scalable element, once per frame however many wheel ticks arrive.
 - Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged`, a change to a setting on the `Widgets` page, and a change to the Appearance page's `motion` setting.
 - Hover and press run through `KstyleUI.Motion`: hover is `Tokens.Duration("hover")` with `outQuart`, and press moves the content down `Tokens.Size("pressOffset")`.
 - Components hook scripts with `HookScript`. A component built on a secure template keeps the template's own `OnClick`.
@@ -385,9 +386,11 @@ Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default
 | `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it, and switching it on stops a looping sheen. |
 | `SetSparkShown(shown)` | |
 
+A flat bar (a `background` and no `border`) reads as a lit, shaded object, so a health bar over a power bar of a similar hue separates by tone while each keeps its colour: `lit`, a white line at 30% one border tall, rides the fill's top, and `shade`, a vertical gradient from clear at the top to black at 28% at the foot, covers the fill (`SetGradient` with `CreateColor`; without them the shade hides). Both follow the fill, so Lua never reads the value. Overlay bars with no track and pill bars draw neither.
+
 The spark is the `glow` texture, additive, 10 units along the bar and 1.8 times the bar's thickness across, centred on the edge of the fill texture (`GetStatusBarTexture()`): right, left for a reversed bar, top or bottom for a vertical one. The engine moves it with the fill.
 
-Fields: `background`, `spark`, `sheen`, `sheenClip`, `sheenAnim`, `sheenMove`, `borderFrame`, `chrome`.
+Fields: `background`, `keyline`, `lit`, `shade`, `spark`, `sheen`, `sheenClip`, `sheenAnim`, `sheenMove`, `borderFrame`, `chrome`.
 
 ## Popup and Confirm
 

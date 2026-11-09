@@ -60,13 +60,34 @@ end
 -- line one border thick along the owner's edge, ending where the kit's diagonal corner pieces begin,
 -- so no square corner sticks out past the rounded corners.
 -- Returns the count per texture and the number of straight lines.
+-- A rim run (owner pass 1, M6): a kit rim's straight edge, a solid line one border thick between two of the corner
+-- pieces drawn in the same list.
+local function rimRun(texture, list, border)
+	if #texture._points ~= 2 then
+		return false
+	end
+	local inList, thin = {}, 0
+	for _, t in ipairs(list) do
+		inList[t] = true
+	end
+	for _, point in ipairs(texture._points) do
+		if not inList[point[2]] or point[2]._state.ColorTexture then
+			return false
+		end
+		thin = math.max(thin, math.abs(point[4] or 0), math.abs(point[5] or 0))
+	end
+	return near(thin, border)
+end
+
 local function kitOnly(K, list, names, owner, what)
 	assert(#list > 0, what .. " draws something")
 	local allowed = kitPaths(K, names)
 	local border = K.Widgets.Border(owner)
-	local counts, lines = {}, 0
+	local counts, lines, runs = {}, 0, 0
 	for _, texture in ipairs(list) do
-		if texture._state.ColorTexture then
+		if texture._state.ColorTexture and rimRun(texture, list, border) then
+			runs = runs + 1
+		elseif texture._state.ColorTexture then
 			lines = lines + 1
 			eq(texture._height or texture._width, border, what .. ": a straight line is one border thick")
 			eq(#texture._points, 2, what .. ": a straight line has two ends")
@@ -80,7 +101,7 @@ local function kitOnly(K, list, names, owner, what)
 			counts[name] = (counts[name] or 0) + 1
 		end
 	end
-	return counts, lines
+	return counts, lines, runs
 end
 
 local function color(texture)
@@ -105,8 +126,9 @@ end
 env.FireEvent("PLAYER_TARGET_CHANGED")
 local shown = healer.target._state.AlphaFromBoolean
 assert(shown and env.issecretvalue(shown[1]), "the target highlight follows the secret target flag")
-local counts, lines = kitOnly(K, textures(healer.target), { "lumenOutline" }, healer.target, "the target highlight")
-eq(counts.lumenOutline, 18, "the target highlight is two rounded outlines, nine pieces each, two lines thick like the old outline")
+local counts, lines, runs = kitOnly(K, textures(healer.target), { "lumenOutline" }, healer.target, "the target highlight")
+eq(counts.lumenOutline, 10, "the target highlight is two rounded outlines, two lines thick like the old outline: four corners and a centre each from the texture")
+eq(runs, 8, "and four straight runs each, solid lines one border thick")
 eq(lines, 0, "with no straight pieces of its own")
 whole(K.Widgets.Border(healer.target), "a line's step")
 local ar, ag, ab = ns.Style.Accent()
@@ -143,9 +165,10 @@ local registered = {}
 for _, entry in ipairs(slot._aura.dispel) do
 	registered[#registered + 1] = entry.texture
 end
-counts, lines = kitOnly(K, registered, { "chamferTile", "lumenOutline" }, slot, "the dispel highlight")
+counts, lines, runs = kitOnly(K, registered, { "chamferTile", "lumenOutline" }, slot, "the dispel highlight")
 eq(counts.chamferTile, 9, "the wash is the rounded tile shape")
-eq(counts.lumenOutline, 18, "the border is two rounded outlines")
+eq(counts.lumenOutline, 10, "the border is two rounded outlines: four corners and a centre each from the texture")
+eq(runs, 8, "and their straight runs, solid lines one border thick")
 eq(lines, 0, "with no straight pieces")
 for _, texture in ipairs(registered) do
 	if asset(texture) == (K.Tokens.Texture("chamferTile")) then
@@ -172,7 +195,7 @@ for _, texture in ipairs(textures(button)) do
 	end
 end
 assert((seen.lumenShape or 0) >= 9, "each icon sits on a rounded socket")
-assert((seen.lumenRimSmall or 0) >= 9, "with the socket's rim")
+assert((seen.lumenRimSmall or 0) >= 5, "with the socket's rim: its corners and centre from the texture, its runs solid lines")
 local dispel = {}
 for _, entry in ipairs(button._aura.dispel) do
 	dispel[#dispel + 1] = entry.texture

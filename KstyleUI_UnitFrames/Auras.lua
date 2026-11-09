@@ -98,16 +98,8 @@ end
 local function StyleText(text, view)
 	local path, size, flags = Settings.Font(view.kind, "aura")
 	size = TextSize(view.kind, size)
-	if text:SetFont(path, size, flags) == false then
-		local fallback = Tokens.Font("number")
-		text:SetFont(fallback, size, flags)
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
+	if not Widgets.ApplyFont(text, path, size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("number")), size, flags)
 	end
 	pcall(text.SetTextColor, text, Tokens.Color("textEmphasis"))
 end
