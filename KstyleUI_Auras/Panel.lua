@@ -402,9 +402,9 @@ local function BuildCard(desc)
 		chrome = Widgets.Chrome(host, { shape = "panel" }),
 		cap = Widgets.RailCap(host, { title = L["Blessings"] }),
 		rule = host:CreateTexture(nil, "ARTWORK"),
-		fit = CreateFrame("Frame", nil, host),
-		tail = CreateFrame("Frame", nil, host),
-		edge = CreateFrame("Frame", nil, host),
+		fit = LayoutFrame(host),
+		tail = LayoutFrame(host),
+		edge = LayoutFrame(host),
 	}
 	card.rule:SetColorTexture(Tokens.Color("white"))
 	Widgets.LumenTint(card.rule, "hairline")

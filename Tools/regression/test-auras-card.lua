@@ -109,7 +109,7 @@ local function rect(object)
 	return r
 end
 local hostile = A.Container(env, "HARMFUL")
-for _, frame in ipairs({ desc.host, ddesc.host, dock }) do
+for _, frame in ipairs({ desc.host, ddesc.host, dock, desc.card.fit, desc.card.tail, desc.card.edge }) do
 	check(frame._template == "DisableUntrustedLayoutScriptsTemplate", "a frame the card anchors to a container carries DisableUntrustedLayoutScriptsTemplate")
 end
 container:SetSize(278, 51)
