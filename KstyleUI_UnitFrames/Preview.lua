@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: the frame being customised, drawn with sample values at its current size.
+-- Preview.lua: the settings window's live preview: the frame being customised, drawn with sample values at its current size and scaled to fill the pane, its sample auras a full grid with times, stacks and the +N chip the live row shows.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,8 +8,8 @@ local Settings, Style, Format, Geometry = ns.Settings, ns.Style, ns.Format, ns.G
 local Preview = {}
 ns.Preview = Preview
 
-local MARGIN = 16
-local MIN_SCALE = 0.75
+local MARGIN = 8
+local MIN_SCALE, MAX_SCALE = 0.5, 1.5
 local INCOMING_SHARE = 0.08
 local SKULL = 8
 local CAST_GAP = 4
@@ -17,6 +17,10 @@ local CAST_SHARE = 0.6
 local CAST_LEFT = 1.2
 local CAST_ICON = 135846
 local AURA_ICONS = { 135846, 136096, 135813, 136075 }
+local AURA_TIMES = { "12s", "4s", "1m", "25s", "8s", "3m", "40s", "2m" }
+local AURA_STACKS = { [2] = "3", [5] = "2" }
+local AURA_MORE = 3
+local CHIP_SHARE, CHIP_MIN, CHIP_LEVEL = 0.42, 8, 4
 local THREAT_TANKING = 3
 
 local SAMPLES = {
@@ -202,12 +206,62 @@ local function PaintCast(frame, view, kind, height)
 	return extra
 end
 
-local function PaintAuras(frame, view, kind)
-	local icons, tiles = frame.auraIcons[kind], frame.auraTiles[kind]
-	if not icons then
-		icons, tiles = {}, {}
-		frame.auraIcons[kind], frame.auraTiles[kind] = icons, tiles
+local function Chip(frame, kind, host)
+	local chip = frame.auraChips[kind]
+	if not chip then
+		chip = CreateFrame("Frame", nil, host)
+		chip.chrome = Widgets.IconChrome(chip)
+		chip.text = Widgets.FontString(chip, "OVERLAY")
+		chip.text:SetAllPoints(chip)
+		chip.text:SetJustifyH("CENTER")
+		chip.text:SetJustifyV("MIDDLE")
+		frame.auraChips[kind] = chip
 	end
+	return chip
+end
+
+local function PaintChip(frame, kind, host, last, size, room)
+	local chip = Chip(frame, kind, host)
+	chip:ClearAllPoints()
+	chip:SetPoint("TOPLEFT", last.skin, "TOPLEFT", 0, 0)
+	chip:SetSize(size, size + room)
+	chip:SetFrameLevel(last.skin:GetFrameLevel() + CHIP_LEVEL)
+	chip.chrome:Restyle()
+	local r, g, b = Tokens.Color("buttonFill")
+	chip.chrome:SetFillRGBA(r, g, b, 1)
+	chip.chrome:SetRimAccent(Settings.Accent())
+	chip.text:SetFont(Tokens.Font("number"), math.max(CHIP_MIN, math.floor(size * CHIP_SHARE + 0.5)), "")
+	pcall(chip.text.SetTextColor, chip.text, Tokens.Color("textEmphasis"))
+	chip.text:SetText("+" .. AURA_MORE)
+	last.timer:Hide()
+	last.count:Hide()
+	last.countBadge:Hide()
+	chip:Show()
+end
+
+local function PlaceTile(skin, host, kind, i, count, size, spacing, pitch, corner, growth)
+	local columns = Settings.Value(kind, "auraColumns")
+	local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
+	skin:ClearAllPoints()
+	if Settings.Value(kind, "auraPosition") == "CENTER" then
+		local inRow = math.min(columns, count - row * columns)
+		local start = -(inRow * size + (inRow - 1) * spacing) / 2
+		skin:SetPoint("TOPLEFT", host, "TOP", start + col * (size + spacing), -row * pitch)
+	else
+		local sx = growth[2] == "Left" and -1 or 1
+		local sy = growth[3] == "Up" and 1 or -1
+		skin:SetPoint(corner, host, corner, sx * col * (size + spacing), sy * row * pitch)
+	end
+	skin:SetSize(size, size)
+end
+
+local function PaintAuras(frame, view, kind)
+	local tiles = frame.auraTiles[kind]
+	if not tiles then
+		tiles = {}
+		frame.auraTiles[kind], frame.auraIcons[kind] = tiles, {}
+	end
+	local icons = frame.auraIcons[kind]
 	local holder = frame.holders[kind]
 	local host = frame.auraHosts[kind]
 	if not host then
@@ -215,37 +269,42 @@ local function PaintAuras(frame, view, kind)
 		frame.auraHosts[kind] = host
 	end
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
-	local count = on and math.min(#AURA_ICONS, Settings.Value(kind, "auraColumns")) or 0
+	local count = on and Settings.Value(kind, "auraColumns") * Settings.Value(kind, "auraRows") or 0
+	local chip = frame.auraChips[kind]
 	if count > 0 then
-		local _, height, corner, _, growth = ns.Auras.Footprint(kind, host)
+		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
 		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
-		host:SetSize(count * size + (count - 1) * spacing, height)
+		local room = Widgets.Snap(host, ns.Auras.TimerRoom(kind))
+		local timers = Settings.Value(kind, "auraTimer") == true
+		local rows = Settings.Value(kind, "auraRows")
+		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * spacing))
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x)
 		host:Show()
-		local sx = growth[2] == "Left" and -1 or 1
-		local centred = Settings.Value(kind, "auraPosition") == "CENTER"
-		local start = -(count * size + (count - 1) * spacing) / 2
 		for i = 1, count do
 			local tile = tiles[i]
 			if not tile then
-				tile = ns.Auras.NewTile(host)
+				tile = ns.Auras.SampleTile(host)
 				tiles[i], icons[i] = tile, tile.skin
 			end
-			tile.icon:SetTexture(AURA_ICONS[i])
-			local skin = tile.skin
-			skin:ClearAllPoints()
-			if centred then
-				skin:SetPoint("TOPLEFT", host, "TOP", start + (i - 1) * (size + spacing), 0)
-			else
-				skin:SetPoint(corner, host, corner, sx * (i - 1) * (size + spacing), 0)
-			end
-			skin:SetSize(size, size)
+			tile.icon:SetTexture(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
+			PlaceTile(tile.skin, host, kind, i, count, size, spacing, size + room + spacing, corner, growth)
 			ns.Auras.LayoutTile(tile)
-			skin:Show()
+			ns.Auras.StyleSample(tile, kind)
+			tile.timer:SetText(AURA_TIMES[(i - 1) % #AURA_TIMES + 1])
+			tile.timer:SetShown(timers)
+			local stack = AURA_STACKS[i]
+			tile.count:SetText(stack or "")
+			tile.count:SetShown(stack ~= nil)
+			tile.countBadge:SetShown(stack ~= nil)
+			tile.skin:Show()
 		end
+		PaintChip(frame, kind, host, tiles[count], size, timers and room or 0)
 	else
 		host:Hide()
+		if chip then
+			chip:Hide()
+		end
 	end
 	for i = count + 1, #icons do
 		icons[i]:Hide()
@@ -307,7 +366,7 @@ local function Fit(frame, holder, kind, width, height)
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
 		end
 	end
-	local scale = 1
+	local scale = MAX_SCALE
 	local roomW, roomH = Room(frame:GetWidth()), Room(frame:GetHeight())
 	if roomW then
 		scale = math.min(scale, roomW / (r - l))
@@ -352,7 +411,7 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts = {}, {}, {}, {}, {}, {}
+	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts, frame.auraChips = {}, {}, {}, {}, {}, {}, {}
 	frame.Refresh = Refresh
 	frame:SetScript("OnSizeChanged", function(self)
 		if self.kind then

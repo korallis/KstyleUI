@@ -500,11 +500,12 @@ function Geometry.Frame(s, width, height, fontScale)
 	return out
 end
 
-function Geometry.Slots(count, gap, width, height)
+function Geometry.Slots(count, gap, width, height, up)
 	local slot = max(0, (height - gap * (count - 1)) / count)
 	local out = {}
 	for i = 1, count do
-		out[i] = Rect(0, (i - 1) * (slot + gap), width, slot)
+		local row = up and count - i or i - 1
+		out[i] = Rect(0, row * (slot + gap), width, slot)
 	end
 	return out
 end

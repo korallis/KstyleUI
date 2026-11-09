@@ -32,8 +32,7 @@ local RULE_GAP = 8
 local RULE_ALPHA = 0.55
 local VALUE_GAP = 3
 local SCRIM_SUBLEVEL = -8
-local SCRIM_PAD_X, SCRIM_PAD_Y = 36, 22
-local SCRIM_ALPHA = 0.5
+local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 } }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -321,16 +320,16 @@ local function LumenTexts(view, g)
 end
 
 local function PlaceScrim(view, g)
-	local scrim = view.scrim
-	if g.form ~= "sigil" then
+	local scrim, pad = view.scrim, SCRIM_PAD[g.form]
+	if not pad then
 		scrim:Hide()
 		return
 	end
 	local r, gg, b = Tokens.Color("black")
-	scrim:SetVertexColor(r, gg, b, SCRIM_ALPHA)
+	scrim:SetVertexColor(r, gg, b, pad[3])
 	scrim:ClearAllPoints()
 	scrim:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, g.glass.x + g.glass.w / 2), -Snap(view, g.glass.y + g.glass.h / 2))
-	scrim:SetSize(Snap(view, g.glass.w + 2 * SCRIM_PAD_X), Snap(view, g.glass.h + 2 * SCRIM_PAD_Y))
+	scrim:SetSize(Snap(view, g.glass.w + 2 * pad[1]), Snap(view, g.glass.h + 2 * pad[2]))
 	scrim:Show()
 end
 

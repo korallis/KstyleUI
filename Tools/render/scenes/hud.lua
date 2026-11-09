@@ -301,7 +301,8 @@ function modules.unitframes(opts)
 	for k, v in pairs(TARGET) do
 		target[k] = v
 	end
-	if spec.cast then
+	-- opts.playerCast == false: the player casts nothing (the questing HUD is out of combat; round 6, Opus).
+	if spec.cast and opts.playerCast ~= false then
 		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = CAST_END - spec.cast[4] * 1000, finish = CAST_END, spellID = spec.cast[3] }
 	end
 	for k, v in pairs(type(opts.target) == "table" and opts.target or {}) do
@@ -1254,8 +1255,14 @@ function Hud.EditModeLayout(layout, guide, counts)
 	env.RaidWarningFrame = warnings
 	warnings:SetSize(K.Setup.EditMode.WARNING_LANE * K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale(), 100)
 	if counts then
+		-- The Cooldowns module restyles Blizzard's buff row on Forever's automatic path and stops it at its six-socket
+		-- grid with a "+N" chip in the seventh slot (KstyleUI_Cooldowns/Cap.lua), so it reports seven slots past six.
 		K.Setup.EditMode.CountTracked(function(group)
-			return counts[group]
+			local n = counts[group]
+			if group == "buffs" and n and n > 6 then
+				return 7
+			end
+			return n
 		end)
 	end
 	if not K.Setup.Apply({ layout = layout, modules = {} }) then
@@ -1299,8 +1306,41 @@ function Hud.NativeViewers(env, C, layout, items, shift)
 	return out, printed or {}
 end
 
-function Hud.Build(opts)
+-- PresetSettings(layout) -> the module settings Layout > Apply writes for the layout (Setup.Layouts.Settings), as
+-- saved sections ({ [module] = { nested } }).
+function Hud.PresetSettings(layout)
+	local CoreEnv = dofile("Tools/regression/core_env.lua")
+	local env, K = CoreEnv.New()
+	CoreEnv.Boot(env)
+	local settings = {}
+	for _, entry in ipairs(K.Setup.Layouts.Settings(layout)) do
+		local node = settings[entry.module] or {}
+		settings[entry.module] = node
+		local parts = {}
+		for part in entry.key:gmatch("[^%.]+") do
+			parts[#parts + 1] = part
+		end
+		for i = 1, #parts - 1 do
+			node[parts[i]] = node[parts[i]] or {}
+			node = node[parts[i]]
+		end
+		node[parts[#parts]] = entry.value
+	end
+	return settings
+end
+
+-- Options(opts) -> opts for a whole-HUD scene: one that names a layout and no settings takes the layout's preset,
+-- so a class page shows what Apply leaves on (round 6, Fable: bar 2 drew on while every preset turns it off).
+function Hud.Options(opts)
 	opts = opts or {}
+	if opts.layout and opts.settings == nil and opts.modules == nil then
+		opts.settings = Hud.PresetSettings(opts.layout)
+	end
+	return opts
+end
+
+function Hud.Build(opts)
+	opts = Hud.Options(opts)
 	if opts.layout and opts.trackerAnchor == nil then
 		opts.trackerAnchor = Hud.StoryTracker(opts.layout, false)
 	end

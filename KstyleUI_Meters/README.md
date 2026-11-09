@@ -31,7 +31,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Logic.lua` | Pure rules with no frames: readable numbers, percentages, swing progress, threat sorting and threat warnings |
 | `Settings.lua` | The defaults, the settings schema, checked setting reads (`ns.Get`), and the colour and font rules every meter shares |
 | `BarList.lua` | The glass panel the damage and threat meters share: title, accent mark, column heading or fight switch, rows of bars with an optional icon and a click, a note line and the warning edge and glow |
-| `Swing.lua` | The swing timer |
+| `Swing.lua` | The swing timer. Each bar carries its name just before its time, inside the track where the fill arrives last (**Swing timer** for one bar, the hand's name when two or three stack; round 6, Fable); both follow the time switch |
 | `Threat.lua` | The threat meter |
 | `DamageSkin.lua` | The restyle of Blizzard's Damage Meter windows and their spell breakdown windows |
 | `Damage.lua` | The damage meter window, its fight segments and spell lists, and the choice between it and the restyle |

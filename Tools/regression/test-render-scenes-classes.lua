@@ -4,6 +4,17 @@ local L = dofile("Tools/regression/render_scenes_lib.lua")
 local Hud, Classes, check, collect = L.Hud, L.Classes, L.check, L.collect
 local near, sameColour, setB = L.near, L.sameColour, L.setB
 
+-- Round 6 (Fable): a class page shows what a player sees after Layout > Apply, so the whole-HUD scene takes the
+-- layout's preset settings when it names none: bar 2, which every preset switches off, stays off.
+do
+	local opts = Hud.Options({ layout = "DPS", class = "MAGE" })
+	local bars = opts.settings and opts.settings.ActionBars
+	assert(bars and bars.bar2 and bars.bar2.enabled == false, "the class HUD applies the DPS preset: bar 2 off")
+	assert(bars.bar1.enabled == true, "and bar 1 on")
+	local own = Hud.Options({ layout = "DPS", settings = { ActionBars = { bar2 = { enabled = true } } } })
+	assert(own.settings.ActionBars.bar2.enabled == true, "a scene's own settings win")
+end
+
 -- Every class: the player's health fill wears the class colour, the power fill reads the class's power at its
 -- fraction, the cast bar names the class's cast (none for the rogue), the bars, the cluster, the buff bars and
 -- the buff row show that class's spells from set B, the warrior and the druid get a stance bar, the hunter and

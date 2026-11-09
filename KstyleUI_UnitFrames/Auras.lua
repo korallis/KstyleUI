@@ -116,6 +116,27 @@ local function Snap(view, units)
 	return Widgets.Snap(view.auras.host, units)
 end
 
+function Auras.SampleTile(parent)
+	local tile = Auras.NewTile(parent)
+	local over = CreateFrame("Frame", nil, tile.skin)
+	over:SetAllPoints(tile.skin)
+	over:SetFrameLevel(tile.skin:GetFrameLevel() + 2)
+	local count = Widgets.FontString(over, "OVERLAY")
+	count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", COUNT_INSET, COUNT_INSET)
+	count:SetJustifyH("RIGHT")
+	tile.count, tile.timer = count, Widgets.FontString(over, "OVERLAY")
+	tile.badge = over:CreateTexture(nil, "BACKGROUND")
+	tile.countBadge = Auras.Badge(over, count)
+	return tile
+end
+
+function Auras.StyleSample(tile, kind)
+	local view = { kind = kind }
+	StyleText(tile.count, view)
+	StyleText(tile.timer, view)
+	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge)
+end
+
 function Auras.NewTile(parent)
 	local skin = CreateFrame("Frame", nil, parent)
 	local chrome = Widgets.IconChrome(skin)
@@ -156,6 +177,10 @@ local function TimerRoom(kind)
 	end
 	local _, fontSize = Settings.Font(kind, "aura")
 	return TIMER_BELOW_GAP + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA
+end
+
+function Auras.TimerRoom(kind)
+	return TimerRoom(kind)
 end
 
 function Auras.PlaceTimer(timer, skin, kind, badge)

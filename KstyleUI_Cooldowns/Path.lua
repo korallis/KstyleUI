@@ -75,6 +75,23 @@ function Path.Choose(group, setting)
 	return Set(group, "mirror")
 end
 
+function Path.Restyles(group, setting)
+	if setting == "reskin" then
+		return true
+	end
+	local aura = AURA_GROUPS[group] == true
+	local ok
+	if aura then
+		ok = Path.ProbeAuras()
+	else
+		ok = Path.Probe()
+	end
+	if not ok then
+		return true
+	end
+	return setting ~= "mirror" and aura and Path.AurasCanTurnSecret()
+end
+
 function Path.Get(group)
 	return state[group]
 end

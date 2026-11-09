@@ -64,20 +64,7 @@ function Lumen.Preset(layout)
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
-	local settings = {}
-	for _, entry in ipairs(Layouts.Settings(layout)) do
-		local node = settings[entry.module] or {}
-		settings[entry.module] = node
-		local parts = {}
-		for part in entry.key:gmatch("[^%.]+") do
-			parts[#parts + 1] = part
-		end
-		for i = 1, #parts - 1 do
-			node[parts[i]] = node[parts[i]] or {}
-			node = node[parts[i]]
-		end
-		node[parts[#parts]] = entry.value
-	end
+	local settings = Hud.PresetSettings(layout)
 	local slot = Layouts.Slot(layout)
 	local width = HEIGHT * Common.SCREEN.width / Common.SCREEN.height
 	local l, _, r, t = Layouts.Rect(slot, slot, width, HEIGHT)
@@ -137,6 +124,7 @@ function Lumen.Build(state, opts)
 	else
 		base.target = false
 		base.meterHover = Lumen.SPELLS
+		base.playerCast = false
 	end
 	base.menus = true
 	base.sizes = {}

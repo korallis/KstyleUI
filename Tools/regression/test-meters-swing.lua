@@ -47,6 +47,13 @@ assert(main:IsShown(), "the main-hand bar shows")
 assert(not off:IsShown(), "no off-hand weapon, no off-hand bar")
 assert(not ranged:IsShown(), "no ranged weapon, no ranged bar")
 assert(Swing.driver:GetScript("OnUpdate"), "a running swing drives an OnUpdate")
+-- Round 6 (Fable): the bar carries its name beside its time, on the dark track the fill reaches last, so it never
+-- reads as a stray bar over the cooldowns: "Swing timer" for one bar, the hand's name when two bars stack.
+assert(main.label and main.label:IsShown() and main.label:GetText() == K.L["Swing timer"], "a lone swing bar is named: " .. tostring(main.label and main.label:GetText()))
+do
+	local p, rel, rp = main.label:GetPoint(1)
+	assert(p == "RIGHT" and rel == main.time and rp == "LEFT", "just before the time, inside the track")
+end
 env.SetTime(101)
 M.Tick(env)
 assert(M.Last(main, "SetValue")[1] == 0.5, "halfway through the swing the bar is half full")
@@ -105,6 +112,7 @@ env.RunTimers()
 assert(off:IsShown(), "an off-hand weapon shows the off-hand bar")
 local h1, h2 = main:GetHeight(), off:GetHeight()
 assert(h1 == h2 and h1 < Swing.holder:GetHeight(), "two bars split the height: " .. tostring(h1))
+assert(main.label:GetText() == K.L["Main hand"] and off.label:GetText() == K.L["Off hand"], "two bars name their hands")
 env.SetTime(300)
 env.FireEvent("PLAYER_SWING", 2, OFF)
 env.SetTime(301)

@@ -230,4 +230,30 @@ env.SetCombat(false)
 assert(select(4, b2.button:GetHitRectInsets()) > 0, "after combat the folded card shrinks to its chip again")
 noErrors("combat")
 
+-- Round 6 (Grok #4): the column grows up from its foot when boss.growth is UP, so boss1, alone in most pulls, sits at
+-- the foot by the combat cluster instead of alone at the top of the screen; the slots keep their size and gap.
+do
+	local w, h = element.width, element.height
+	local down = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, w, h)
+	local up = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, w, h, true)
+	assert(near(up[1].y + up[1].h, h, 1e-6) and near(up[5].y, 0, 1e-6), "growing up, boss1 is the foot slot and boss5 the top")
+	for i = 1, Geometry.BOSS_COUNT do
+		assert(near(up[i].h, down[i].h, 1e-6) and near(up[i].y, down[Geometry.BOSS_COUNT + 1 - i].y, 1e-6), "growing up reverses the order, slot " .. i)
+	end
+	K.Options.Write("UnitFrames", "boss.growth", "UP")
+	env.RunTimers()
+	local holder = uf.holder
+	local _, columnH = holder:GetSize()
+	local at = { uf.views[1].button:GetPoint(1) }
+	local _, cardH = uf.views[1].button:GetSize()
+	assert(at[1] == "TOPLEFT" and at[2] == holder and near(-at[5] + cardH, columnH, 0.5), "boss1's card stands at the column's foot, got y " .. tostring(at[5]))
+	at = { uf.views[5].button:GetPoint(1) }
+	assert(near(at[5], 0, 0.5), "boss5 heads the column")
+	K.Options.Write("UnitFrames", "boss.growth", "DOWN")
+	env.RunTimers()
+	at = { uf.views[1].button:GetPoint(1) }
+	assert(near(at[5], 0, 0.5), "growing down, boss1 heads the column again")
+	noErrors("growth")
+end
+
 print("unitframes boss ok")

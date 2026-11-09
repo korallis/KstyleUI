@@ -1,9 +1,9 @@
--- Reskin.lua: Blizzard's own Cooldown Manager items restyled in place with the Skin helpers, their text set against the item scale Edit Mode's IconSize gives them.
+-- Reskin.lua: Blizzard's own Cooldown Manager items restyled in place with the Skin helpers, their text set against the item scale Edit Mode's IconSize gives them, the tracked buff row stopped at the grid by Cap.
 local _, ns = ...
 
 local K = KstyleUI
 local Skin, Widgets = K.Skin, K.Widgets
-local Settings, Style, Viewers = ns.Settings, ns.Style, ns.Viewers
+local Cap, Settings, Style, Viewers = ns.Cap, ns.Settings, ns.Style, ns.Viewers
 
 local Reskin = {}
 ns.Reskin = Reskin
@@ -115,6 +115,9 @@ function Reskin.Item(group, item)
 	else
 		SkinIcon(group, item)
 	end
+	if group == "buffs" then
+		Cap.Watch(item)
+	end
 end
 
 local function Hint()
@@ -135,6 +138,9 @@ function Reskin.Start(group)
 	end
 	active[group] = true
 	Viewers.EachItem(group, Reskin.Item)
+	if group == "buffs" then
+		Cap.Start()
+	end
 	Hint()
 	return true
 end
@@ -143,11 +149,18 @@ function Reskin.Refresh()
 	for group in pairs(active) do
 		Viewers.EachItem(group, Reskin.Item)
 	end
+	if active.buffs then
+		Cap.Queue()
+	end
 end
 
 function Reskin.Stop()
+	local capped = active.buffs
 	for group in pairs(active) do
 		active[group] = nil
+	end
+	if capped then
+		Cap.Stop()
 	end
 end
 

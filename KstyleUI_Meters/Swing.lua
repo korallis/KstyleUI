@@ -18,9 +18,9 @@ local BLIZZARD = { "SwingTimerMainHandFrame", "SwingTimerOffHandFrame", "SwingTi
 local types = Enum and Enum.PlayerSwingType or {}
 local MAIN, OFF, RANGED = types.MainHand or 0, types.OffHand or 1, types.Ranged or 2
 local SLOTS = {
-	{ type = MAIN, key = "mainHand" },
-	{ type = OFF, key = "offHand" },
-	{ type = RANGED, key = "ranged" },
+	{ type = MAIN, key = "mainHand", name = K.L["Main hand"] },
+	{ type = OFF, key = "offHand", name = K.L["Off hand"] },
+	{ type = RANGED, key = "ranged", name = K.L["Ranged"] },
 }
 local SLOT = {}
 for _, slot in ipairs(SLOTS) do
@@ -169,6 +169,9 @@ local function Arrange()
 		end
 	end
 	Swing.count = count
+	for _, slot in ipairs(SLOTS) do
+		Swing.bars[slot.type].label:SetText(count > 1 and slot.name or K.L["Swing timer"])
+	end
 	local size = Logic.Split(vertical and width or height, count, gap)
 	local index = 0
 	for _, slot in ipairs(SLOTS) do
@@ -406,6 +409,11 @@ local function Style()
 		if not showTime then
 			bar.time:SetText("")
 		end
+		ns.ApplyFont(bar.label, "swing")
+		Widgets.TextColor(bar.label, "text")
+		bar.label:ClearAllPoints()
+		bar.label:SetPoint("RIGHT", bar.time, "LEFT", -Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)
+		bar.label:SetShown(showTime and not bar.vertical)
 	end
 end
 
@@ -425,6 +433,9 @@ local function Build()
 		})
 		bar.time = Widgets.FontString(bar, "OVERLAY")
 		bar.time:SetJustifyH("RIGHT")
+		bar.label = Widgets.FontString(bar, "OVERLAY")
+		bar.label:SetJustifyH("RIGHT")
+		bar.label:SetText(K.L["Swing timer"])
 		bar:Hide()
 		Swing.bars[slot.type] = bar
 		Swing.state[slot.type] = { running = false, engine = false, outOfRange = false }

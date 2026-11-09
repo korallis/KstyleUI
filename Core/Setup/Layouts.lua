@@ -52,7 +52,7 @@ local ELEMENTS = {
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = 170, height = 38 },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 195, height = 30 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = 195, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Buffs"], width = 318, height = 177, reserve = { 318, 230 } },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Blessings"], width = 318, height = 177, reserve = { 318, 230 } },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 318, height = 346 },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 318, height = 260 },
@@ -91,6 +91,7 @@ local SIGIL_CLEAR = GAP
 local STACK = CLUSTER_TOP + SIGIL_CLEAR
 local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
+local TEXT_TOP = CLUSTER_TOP + GAP + 180
 local TIP_Y = MARGIN + 118 + 8
 local BLESSINGS_TOP, BLESSINGS = MARGIN + 346 + GAP, 230
 local _, COLUMN = GridSize("actionbars.bar3")
@@ -129,7 +130,7 @@ local DPS = {
 	["actionbars.bar2"] = { anchor = "TOPLEFT", x = BAND, y = -MARGIN },
 	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 },
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
-	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
+	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = -BAND, y = TEXT_TOP + GAP },
 	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
 	["actionbars.bar5"] = { anchor = "TOPLEFT", x = BAND + BAR, y = -MARGIN },
 	["actionbars.bar6"] = { anchor = "TOPLEFT", x = BAND + 2 * BAR, y = -MARGIN },
@@ -229,6 +230,7 @@ end
 local BOSS_LEFT = {
 	{ module = "UnitFrames", key = "boss.auraPosition", value = "LEFT" },
 	{ module = "UnitFrames", key = "boss.auraGrowth", value = "LEFT_DOWN" },
+	{ module = "UnitFrames", key = "boss.growth", value = "UP" },
 }
 local EXTRA = {
 	DPS = BOSS_LEFT,
@@ -238,6 +240,7 @@ local EXTRA = {
 		{ module = "GroupFrames", key = "raid.auraDispelCount", value = 2 },
 		{ module = "UnitFrames", key = "boss.auraPosition", value = "RIGHT" },
 		{ module = "UnitFrames", key = "boss.auraGrowth", value = "RIGHT_DOWN" },
+		{ module = "UnitFrames", key = "boss.growth", value = "DOWN" },
 	},
 }
 local ROWS = {

@@ -28,6 +28,7 @@ local CARD_HOVER_EDGE = 0.6
 local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
 local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
+local STORY = { label = L["Story rail"], short = L["Quests"] }
 local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Summary"] }
 
 local panel
@@ -269,6 +270,7 @@ local function Roles()
 end
 
 local Preview = {}
+local FitLabel
 
 local function PlaceSlot(preview, s, line)
 	local want = Layouts.Slot(preview.layout)
@@ -296,6 +298,12 @@ local function PlaceSlot(preview, s, line)
 	right:SetPoint("BOTTOMRIGHT")
 	right:SetWidth(line)
 	slot:Show()
+	local label = slot.label
+	label:ClearAllPoints()
+	label:SetPoint("CENTER", slot, "CENTER", 0, 0)
+	label:SetJustifyH("CENTER")
+	Widgets.StyleText(label, "caption")
+	label:SetShown(FitLabel(label, STORY, slot:GetWidth(), slot:GetHeight()))
 end
 
 local function Widest(label, lines)
@@ -340,6 +348,8 @@ local function Fit(label, element, width, height)
 	end
 	return false
 end
+
+FitLabel = Fit
 
 local function Name(rect, width, height)
 	local label, element = rect.label, rect.element
@@ -407,6 +417,7 @@ local function NewPreview(page)
 	for i = 1, 4 do
 		preview.slot.edges[i] = preview.slot:CreateTexture(nil, "BORDER")
 	end
+	preview.slot.label = Widgets.Text(preview.slot, "caption", "textEmphasis", "OVERLAY")
 	preview.rects = {}
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not SKIP_IN_PREVIEW[element.key] then

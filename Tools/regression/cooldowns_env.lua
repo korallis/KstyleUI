@@ -439,7 +439,12 @@ function C.Item(env, viewer, id)
 		item.Applications.Applications = FontString(env, item.Applications)
 	end
 	item:SetMouseMotionEnabled(true)
+	-- UpdateShownState shows an item while it is active (item._active), as CooldownViewerItemMixin does through SetShown.
+	item.UpdateShownState = function(self)
+		self._shown = self._active ~= false
+	end
 	viewer._items[#viewer._items + 1] = item
+	item.layoutIndex = #viewer._items
 	return item
 end
 
@@ -457,6 +462,7 @@ function C.Viewers(env)
 		viewer.SetTooltipsShown = function(self, shown)
 			self.tooltipsShown = shown
 		end
+		viewer.Layout = function() end
 		for i = 1, 2 do
 			C.Item(env, viewer, i)
 		end
@@ -517,7 +523,9 @@ function C.Native(env, name, entry, items, format)
 			x = step
 		end
 		item._points = { { "TOPLEFT", viewer, "TOPLEFT", x / scale, y / scale, n = 5 } }
-		item._shown = i <= n and it ~= nil and it.left ~= nil
+		item.layoutIndex = i
+		item._active = i <= n and it ~= nil and it.left ~= nil
+		item._shown = item._active
 		if it then
 			item.GetCooldownID = function()
 				return it.id
@@ -551,6 +559,7 @@ function C.Native(env, name, entry, items, format)
 			viewer:OnAcquireItemFrame(item)
 		end
 	end
+	viewer:Layout()
 	return viewer
 end
 

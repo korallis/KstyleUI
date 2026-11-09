@@ -178,6 +178,45 @@ assert(cp == "TOP" and crel == preview.holders.target and crp == "BOTTOM", "the 
 local first = preview.auraIcons.target[1]
 local fp, frel, frp, fx = first:GetPoint(1)
 assert(frel == preview.auraHosts.target and fp == "TOPLEFT" and frp == "TOP" and fx < 0, "the sample row is centred on the host's top")
+-- Round 6 (Astra #3, Opus #2): the sample sockets show what the aura settings do: the full grid (columns by rows),
+-- a sample time left on each socket while Aura timers is on, stack counts, and the "+N" chip on the last cell as
+-- the live row draws it when more auras are up than it holds.
+do
+	local columns, rows = 6, 1
+	K.Options.Write("UnitFrames", "target.auraColumns", columns)
+	K.Options.Write("UnitFrames", "target.auraRows", rows)
+	K.Options.Write("UnitFrames", "target.auraTimer", true)
+	settle()
+	assert(preview.auraCount == columns * rows, "the sample fills the grid: " .. preview.auraCount)
+	local timers, stacks = 0, 0
+	for i = 1, preview.auraCount do
+		local tile = preview.auraTiles.target[i]
+		if tile.timer:IsShown() and U.Shown(env, tile.timer):match("^%d+[sm]$") then
+			timers = timers + 1
+		end
+		if tile.count:IsShown() and U.Shown(env, tile.count):match("^%d+$") then
+			stacks = stacks + 1
+		end
+	end
+	assert(timers >= columns - 1, "every socket but the chip's shows a sample time left: " .. timers)
+	assert(stacks >= 1, "a sample socket shows a stack count")
+	local chip = preview.auraChips.target
+	assert(chip and chip:IsShown() and U.Shown(env, chip.text):match("^%+%d+$"), "a +N chip shows on the full row")
+	local lastCell = preview.auraTiles.target[columns * rows].skin
+	local cp1, crel1 = chip:GetPoint(1)
+	assert(crel1 == lastCell and cp1 == "TOPLEFT", "the chip sits on the last cell, as the live row draws it")
+	K.Options.Write("UnitFrames", "target.auraTimer", false)
+	settle()
+	for i = 1, preview.auraCount do
+		assert(not preview.auraTiles.target[i].timer:IsShown(), "Aura timers off hides the sample times")
+	end
+	K.Options.Write("UnitFrames", "target.auraRows", 2)
+	settle()
+	assert(preview.auraCount == columns * 2, "a second row shows in the sample: " .. preview.auraCount)
+	K.Options.Write("UnitFrames", "target.auraRows", 1)
+	K.Options.Write("UnitFrames", "target.auraTimer", true)
+	settle()
+end
 K.Options.Write("UnitFrames", "boss.style", "lumen")
 K.Options.Write("UnitFrames", "edit", "boss")
 settle()

@@ -214,6 +214,7 @@ local function HideTooltip(icon)
 		tip:Hide()
 	end
 end
+Style.HideTooltip = HideTooltip
 
 function Style.Seconds(seconds)
 	local f = Formatter()

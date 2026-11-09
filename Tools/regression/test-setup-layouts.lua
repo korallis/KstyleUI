@@ -400,12 +400,21 @@ for _, name in ipairs(names) do
 			assert(bar2.top == bar3.top and bar2.left == BAND and rect("actionbars.bar5").left - bar2.right == 3, label .. ": bar 2 is the column nearest the left rail, bars 3 to 6 beside it")
 		end
 
-		-- The boss column heads the centre's right edge in DPS and Tank, 16 in from the right rail; your combat text
-		-- rises right of the cluster under it.
+		-- The boss column stands on the centre's right edge in DPS and Tank, 16 in from the right rail, its foot a rail
+		-- gap over your combat text, which rises right of the cluster. It grows up from that foot, so a single boss sits
+		-- by the cluster rather than alone at the top of the screen (round 6, Grok #4); five fill the column upward.
 		local boss, text = rect("unitframes.boss"), rect("combattext.player")
 		if not healer then
-			assert(math.abs(boss.right - (width - BAND)) < 1e-6 and boss.top == HEIGHT - MARGIN, label .. ": the boss column heads the right edge of the centre, 16 in from the right rail")
-			assert(boss.bottom - text.top >= 16, label .. ": your combat text rises under the boss column")
+			assert(math.abs(boss.right - (width - BAND)) < 1e-6, label .. ": the boss column stands on the right edge of the centre, 16 in from the right rail")
+			assert(boss.bottom - text.top == 16, label .. ": the boss column's foot stands a rail gap over your combat text, got " .. (boss.bottom - text.top))
+			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
+			local up = false
+			for _, entry in ipairs(Layouts.Settings(name)) do
+				if entry.module == "UnitFrames" and entry.key == "boss.growth" then
+					up = entry.value == "UP"
+				end
+			end
+			assert(up, label .. ": the layout grows the boss column up from its foot")
 			assert(text.left >= mid + CLEAR.half, label .. ": your combat text rises beside the clear centre")
 		end
 		assert(text.bottom - clusterTop >= 16, label .. ": your combat text rises over the cluster")

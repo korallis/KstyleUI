@@ -20,6 +20,11 @@ local function Boot(opts)
 					return false, "MISSING"
 				end,
 			}
+			if opts.locale then
+				env.GetLocale = function()
+					return opts.locale
+				end
+			end
 		end,
 	})
 	for _, name in ipairs(opts.modules or MODULES) do
@@ -643,6 +648,51 @@ do
 	assert(W.Near(r, sr) and W.Near(g, sg) and W.Near(b, sb), "the preview is filled surface")
 	assert(preview.chrome.shapeName == "tile", "at the tile chamfer")
 	assert(preview.chrome.shadow[5]:IsShown(), "with the glass panel's drop shadow")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Round 6 (Opus): the summary's preview names its blocks too: the story slot carries its name ("Story rail", or
+-- "Quests" where that does not fit), and with German-wide glyphs the buffs block keeps a name, the Blessings card's.
+do
+	local env, K = Boot()
+	Measured(env)
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	W.Settle(env)
+	local preview = panel.summaryPreview
+	local root = K.Scale.Root()
+	local function fits(label, block)
+		local text = label:GetText()
+		local box = assert(Geometry.Rect(block, root))
+		local width = 0
+		for line in text:gmatch("[^\n]+") do
+			width = math.max(width, env._textWidth(line, nil, select(2, label:GetFont()) or 12))
+		end
+		return width <= box.right - box.left + 0.5
+	end
+	local slot = preview.slot
+	assert(slot.label and slot.label:IsShown(), "the summary names the story slot")
+	local name = slot.label:GetText():gsub("\n", " "):lower()
+	assert(name == K.L["Story rail"]:lower() or name == K.L["Quests"]:lower(), "as the story rail: " .. name)
+	assert(fits(slot.label, slot), "and the name fits the slot")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+do
+	local env, K = Boot({ locale = "deDE" })
+	Measured(env)
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	W.Settle(env)
+	local root = K.Scale.Root()
+	local named
+	for _, rect in ipairs(panel.summaryPreview.rects) do
+		if rect.element.key == "auras.buffs" and rect:IsShown() and rect.label:IsShown() then
+			local box = assert(Geometry.Rect(rect, root))
+			local width = env._textWidth(rect.label:GetText(), nil, select(2, rect.label:GetFont()) or 12)
+			named = width <= box.right - box.left + 0.5 and rect.label:GetText()
+		end
+	end
+	assert(named, "in German the summary's buffs block keeps a name")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

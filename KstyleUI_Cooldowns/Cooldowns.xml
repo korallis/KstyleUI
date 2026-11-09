@@ -9,6 +9,7 @@
 	<Script file="Viewers.lua"/>
 	<Script file="Auras.lua"/>
 	<Script file="Path.lua"/>
+	<Script file="Cap.lua"/>
 	<Script file="Reskin.lua"/>
 	<Script file="Mirror.lua"/>
 	<Script file="Preview.lua"/>

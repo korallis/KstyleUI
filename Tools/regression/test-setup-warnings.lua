@@ -1,4 +1,4 @@
--- test-setup-warnings.lua: Apply puts Forever's raid and boss warnings (RaidWarningFrame, an Edit Mode system) in the combat cluster's sightline: the lowest free band above the target, between the rails, centred when the centre is free, clear of the story slot and every element the layout shows, at every layout, screen and scale.
+-- test-setup-warnings.lua: Apply puts Forever's raid and boss warnings (RaidWarningFrame, an Edit Mode system) in the upper band where Blizzard, DBM and BigWigs put warnings, above the fight and off the nameplates that draw over the characters (round 6, Opus #3): the highest free band near 15% under the top, between the rails, centred when the centre is free, clear of the story slot and every element the layout shows, at every layout, screen and scale.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
 local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
@@ -7,7 +7,8 @@ local RAID_WARNING, ACCOUNT = EditModeFake.RAID_WARNING, EditModeFake.ACCOUNT
 
 -- RaidWarning.lua sets the frame's height to five 20-unit lines, in UIParent's units; the skin narrows it to the lane.
 local HEIGHT = 100
-local SIGHTLINE = 260
+-- The lane's top lies in the upper 35% of the screen, and at least the top margin under the screen's edge.
+local UPPER, MARGIN = 0.35, 28
 
 local SCREENS = {
 	{ name = "default" },
@@ -65,7 +66,17 @@ for _, screen in ipairs(SCREENS) do
 		local sigil = Box("unitframes.target")
 		assert(lane.b > sigil.t, where .. ": the warnings sit above the target, never on it")
 		assert(lane.l > Box("chat.main").r and lane.r < Box("minimap.main").l, where .. ": the warnings stay between the rails")
-		if name ~= "Healer" then
+		local centred = { l = rw / 2 - half, r = rw / 2 + half, b = lane.b, t = lane.t }
+		local free = true
+		for key in pairs(Layouts.Get(name)) do
+			if Layouts.Shown(name, key) ~= false then
+				local box = Box(key)
+				if Overlap(centred, { l = box.l - 16, r = box.r + 16, b = box.b - 16, t = box.t + 16 }) then
+					free = false
+				end
+			end
+		end
+		if free then
 			assert(math.abs((lane.l + lane.r) / 2 - rw / 2) < 0.6, where .. ": the centre is free, so the warnings are centred")
 		end
 		local slot = Layouts.Slot(name)
@@ -76,7 +87,8 @@ for _, screen in ipairs(SCREENS) do
 				assert(not Overlap(lane, Box(key)), where .. ": the warnings clear " .. key)
 			end
 		end
-		assert(lane.b - sigil.t <= SIGHTLINE, where .. ": the warnings are in the cluster's sightline, " .. math.floor(lane.b - sigil.t) .. " units over the target")
+		assert(lane.t >= rh * (1 - UPPER), where .. ": the warnings sit in the upper band, their top " .. math.floor(rh - lane.t) .. " units under the screen's top of " .. rh)
+		assert(lane.t <= rh - MARGIN, where .. ": the warnings keep the top margin")
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end

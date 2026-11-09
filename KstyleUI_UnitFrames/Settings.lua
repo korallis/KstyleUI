@@ -153,7 +153,7 @@ Settings.defaults = {
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
 	pet = Kind(false),
-	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false, auraGrowth = "LEFT_DOWN" }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
+	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false, auraGrowth = "LEFT_DOWN", growth = "DOWN" }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -167,6 +167,11 @@ Settings.defaults = {
 		spacing = 3,
 	},
 }
+
+for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
+	local fonts = Settings.defaults[kind].fonts
+	fonts.name.outline, fonts.health.outline = "OUTLINE", "OUTLINE"
+end
 
 local function Options(list)
 	local out = {}
@@ -194,6 +199,7 @@ Settings.CHOICES = {
 	castbarColor = Options({ { "class", L["Class colour"] }, { "gold", L["Gilt"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	auraFilter = Options({ { "mine", L["Your debuffs"] }, { "debuffs", L["All debuffs"] }, { "buffs", L["Buffs"] }, { "both", L["Debuffs and buffs"] } }),
 	auraGrowth = Options({ { "RIGHT_DOWN", L["Right, then down"] }, { "RIGHT_UP", L["Right, then up"] }, { "LEFT_DOWN", L["Left, then down"] }, { "LEFT_UP", L["Left, then up"] } }),
+	growth = Options({ { "DOWN", L["Downward"] }, { "UP", L["Upward"] } }),
 	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
 }
 local CHOICES = Settings.CHOICES
@@ -214,6 +220,7 @@ local CHOICE_OF = {
 	auraFilter = "auraFilter",
 	auraGrowth = "auraGrowth",
 	auraPosition = "auraPosition",
+	growth = "growth",
 }
 
 local function Allowed(list, value)
@@ -703,6 +710,13 @@ local function KindRows(schema, kind)
 		type = "dropdown", key = "style", label = L["Style"],
 		help = STYLE_HELP[Settings.FORMS[kind]], options = CHOICES.style,
 	})
+	if kind == "boss" then
+		schema[#schema + 1] = Row(kind, {
+			type = "dropdown", key = "growth", label = L["Growth"],
+			help = L["Down from the top, or up from the foot so a lone boss sits by your combat cluster."],
+			options = CHOICES.growth,
+		})
+	end
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "portrait", label = L["Portrait"],
 		help = L["Shows a portrait beside the bars."],

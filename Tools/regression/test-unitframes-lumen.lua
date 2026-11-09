@@ -358,6 +358,19 @@ env.FireEvent("UNIT_TARGET", "target")
 local tot = Frames.Get("targettarget").views[1]
 assert(tot.geometry.form == "row" and not glass(tot), "the target of target is a pill row, no glass")
 assert(U.Shown(env, tot.healthText) == "75%", "with its percentage: " .. U.Shown(env, tot.healthText))
+-- Round 6 (Fable #2): a row draws over the world with no glass, so it reads as the sigil does there: the sigil's soft
+-- scrim behind it, sized to the row, and its name and value in the world role's outline.
+do
+	assert(tot.scrim:IsShown(), "the row has the sigil's soft scrim behind it")
+	local sw, sh = tot.scrim:GetSize()
+	local rw, rh = tot.button:GetSize()
+	assert(sw > rw and sh > rh and sw <= rw + 64 and sh <= rh + 40, "the scrim hugs the row, " .. sw .. " by " .. sh .. " for " .. rw .. " by " .. rh)
+	for _, key in ipairs({ "name", "healthText" }) do
+		local font = W.LastCall(tot[key], "SetFont")
+		assert(font and font[3] == "OUTLINE", "the row's " .. key .. " wears the world role's outline, got " .. tostring(font and font[3]))
+	end
+	assert(not focus.scrim:IsShown(), "a card has glass and no scrim")
+end
 U.SetUnit(env, "targettarget", nil)
 noErrors("rows")
 

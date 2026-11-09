@@ -67,15 +67,52 @@ pane:SetSize(220, PANE_H)
 Check("after a resize to 220 units")
 pane:SetSize(PANE_W, PANE_H)
 
--- The target sigil, wider than the pane, is laid out no narrower than the pane holds at three quarters scale, then
--- scaled to fit: its text stays legible instead of shrinking with a 490-unit frame.
+-- The target sigil is laid out at its HUD width while the pane holds it at half scale or more, then scaled to fit, so
+-- its cast line is the HUD's (round 6: Opus #2, Fable #3): laid out narrower at three quarters, the cast line ran out
+-- of room and its bar shrank to a stub beside "Casting Frostbolt". A narrower pane lays it out narrower still.
 K.Options.Write("UnitFrames", "edit", "target")
 preview:Refresh()
 local holder = preview.holders.target
 local element = K.Setup.Layouts.Element("unitframes.target")
 local w, scale = holder:GetWidth(), holder:GetScale()
-assert(w < element.width and w > PANE_W, "the sample sigil is laid out between the pane and its real width " .. element.width .. ": " .. w)
-assert(scale < 1 and scale >= 0.75 - 1e-6, "and scaled down to the pane, no smaller than three quarters: " .. scale)
+assert(math.abs(w - element.width) < 0.5, "the sample sigil is laid out at its real width " .. element.width .. ": " .. w)
+assert(scale < 1 and scale >= 0.5 - 1e-6, "and scaled down to the pane, no smaller than half: " .. scale)
+
+-- Round 6 (Opus #2, Fable #3): the preview fills its pane's width, and the cast bar is as wide, for the frame, as on
+-- the HUD. The HUD's proportion is the sigil at its real width, as a pane wide enough to hold it draws it.
+local function Width(region)
+	local r = { Scene.Rect(env, region) }
+	return r[3] or 0
+end
+local function CastShare()
+	local view, cb = preview.views.target, preview.casts.target
+	return Width(cb.bar) / Width(view.health)
+end
+local function Span()
+	local view = preview.views.target
+	local l, r = math.huge, -math.huge
+	for _, region in ipairs({ view.health, preview.auraHosts.target }) do
+		local x = { Scene.Rect(env, region) }
+		if x[1] then
+			l, r = math.min(l, x[1]), math.max(r, x[1] + x[3])
+		end
+	end
+	return r - l
+end
+local narrowShare, span = CastShare(), Span()
+assert(span >= 0.85 * PANE_W, "the sample sigil fills the pane's width: " .. string.format("%.0f of %d", span, PANE_W))
+pane:SetSize(900, PANE_H)
+preview:Refresh()
+assert(math.abs(preview.holders.target:GetWidth() - element.width) < 0.5 and preview.holders.target:GetScale() >= 1, "a pane wide enough draws the sigil at its HUD width")
+local hudShare = CastShare()
+assert(narrowShare >= 0.85 * hudShare, string.format("the sample cast bar keeps the HUD's share of the health bar: %.2f against %.2f", narrowShare, hudShare))
+pane:SetSize(PANE_W, PANE_H)
+
+-- A narrow frame grows to the pane's width, no more than half again its size.
+K.Options.Write("UnitFrames", "edit", "focus")
+preview:Refresh()
+local focusScale = preview.holders.focus:GetScale()
+assert(focusScale > 1 and focusScale <= 1.5 + 1e-6, "the 200-unit focus card grows towards the pane's width, at most 1.5: " .. focusScale)
 
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "KstyleUI caught no errors")

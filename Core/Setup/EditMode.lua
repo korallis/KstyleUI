@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the rails from 15% under the top, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -16,7 +16,7 @@ local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
-local WARNING_WIDTH, WARNING_HEIGHT = 800, 100
+local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP = 800, 100, 0.15
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
 	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 30, floor = 24 },
@@ -281,13 +281,13 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = spot.right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = x * k, y = spot.y * k, settings = settings }
 end
 
-local function Rise(lane, rects, clear, height)
+local function Sink(lane, rects, clear, height)
 	local moved = true
 	while moved do
-		moved, lane.t = false, lane.b + height
+		moved, lane.b = false, lane.t - height
 		for _, o in ipairs(rects) do
-			if lane.l < o.r and o.l < lane.r and lane.b < o.t and o.b < lane.t then
-				lane.b, lane.t, moved = o.t + clear, o.t + clear + height, true
+			if lane.l < o.r + clear and o.l - clear < lane.r and lane.b < o.t + clear and o.b - clear < lane.t then
+				lane.t, moved = o.b - clear, true
 			end
 		end
 	end
@@ -319,16 +319,17 @@ local function Warning(name, k, rw, rh, others, chosen)
 		xs[#xs + 1], xs[#xs + 2] = o.r + clear + half, o.l - clear - half
 	end
 	local best
+	local top = rh * (1 - WARNING_TOP)
 	for _, x in ipairs(xs) do
 		if x - half >= left.r + clear and x + half <= right.l - clear then
-			local lane = Rise({ l = x - half, r = x + half, b = sigil.t + clear, x = x }, rects, clear, height)
-			if lane.t <= rh and (not best or lane.b < best.b or (lane.b == best.b and abs(x - rw / 2) < abs(best.x - rw / 2))) then
+			local lane = Sink({ l = x - half, r = x + half, t = top, x = x }, rects, clear, height)
+			if lane.b >= sigil.t + clear and (not best or lane.t > best.t or (lane.t == best.t and abs(x - rw / 2) < abs(best.x - rw / 2))) then
 				best = lane
 			end
 		end
 	end
 	if not best then
-		log("Edit Mode: no free band above the target holds the raid warnings; they stay where Edit Mode puts them")
+		log("Edit Mode: no free band between the rails holds the raid warnings; they stay where Edit Mode puts them")
 		return nil
 	end
 	return { label = "the raid and boss warnings", system = system, point = "TOP", x = best.x * k, y = best.t * k, settings = {} }

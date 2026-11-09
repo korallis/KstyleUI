@@ -484,7 +484,7 @@ end
 
 local function Slots(uf, w, h)
 	if uf.kind == "boss" then
-		return Geometry.Slots(BOSS_COUNT, BOSS_GAP, w, h)
+		return Geometry.Slots(BOSS_COUNT, BOSS_GAP, w, h, uf.s and uf.s.growth == "UP")
 	end
 	return { { x = 0, y = 0, w = w, h = h } }
 end
