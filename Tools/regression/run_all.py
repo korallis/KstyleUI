@@ -68,10 +68,43 @@ def peak_mb(usage):
     return usage.ru_maxrss / (1 << 20) if sys.platform == "darwin" else usage.ru_maxrss / 1024
 
 
+class Children:
+    """The running tests' process groups. Each test runs in its own group so a stop kills what it started."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.groups = set()
+        self.stopping = False
+
+    def start(self, args, out):
+        with self.lock:
+            if self.stopping:
+                raise KeyboardInterrupt
+            child = subprocess.Popen(args, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
+            self.groups.add(child.pid)
+            return child
+
+    def done(self, child):
+        with self.lock:
+            self.groups.discard(child.pid)
+
+    def stop_all(self):
+        with self.lock:
+            self.stopping = True
+            for group in self.groups:
+                try:
+                    os.killpg(group, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+
+CHILDREN = Children()
+
+
 def run_one(command, path, log, limit):
     start = time.monotonic()
     with open(log, "wb") as out:
-        child = subprocess.Popen(command + [path], stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
+        child = CHILDREN.start(command + [path], out)
     stopped = []
 
     def stop():
@@ -85,6 +118,7 @@ def run_one(command, path, log, limit):
     timer.start()
     _, status, usage = os.wait4(child.pid, 0)
     timer.cancel()
+    CHILDREN.done(child)
     child.returncode = os.waitstatus_to_exitcode(status)
     return {"seconds": time.monotonic() - start, "mb": peak_mb(usage), "ok": child.returncode == 0, "stopped": bool(stopped)}
 
@@ -124,8 +158,15 @@ def main():
         def task(path):
             return run_one(command, path, os.path.join(logs, Path(path).stem + ".out"), seconds * STOP_AFTER)
 
-        with ThreadPoolExecutor(max_workers=jobs) as pool:
+        pool = ThreadPoolExecutor(max_workers=jobs)
+        try:
             results = dict(zip(tests, pool.map(task, tests)))
+        except BaseException:
+            # Ctrl-C or SIGTERM: the tests are in their own groups and get no signal, so kill them.
+            CHILDREN.stop_all()
+            pool.shutdown(wait=True, cancel_futures=True)
+            raise
+        pool.shutdown()
         wall = time.monotonic() - start
 
         passed = failed = 0
@@ -155,5 +196,13 @@ def main():
     return 0 if failed == 0 else 1
 
 
+def terminated(signum, frame):
+    raise SystemExit(128 + signum)
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    signal.signal(signal.SIGTERM, terminated)
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

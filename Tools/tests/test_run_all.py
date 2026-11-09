@@ -6,6 +6,7 @@ The runner only runs "<interpreter> <file>", so sh stands in for Lua and the tes
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -139,6 +140,24 @@ class RunAllTest(unittest.TestCase):
         self.assertLess(time.monotonic() - start, 10, result.stdout)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FAIL test-hang: stopped after 1.5 s, 3 times the 0.5 s budget", result.stdout)
+
+    def test_stopping_the_runner_stops_its_tests(self):
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            with self.subTest(signal=sig.name):
+                pidfile = self.tmp / f"pid-{sig.name}"
+                (self.regression / "test-hang.lua").write_text(f"echo $$ > {pidfile}.tmp; mv {pidfile}.tmp {pidfile}; exec sleep 30\n")
+                env = {key: value for key, value in os.environ.items() if key != "CI"}
+                runner = subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=dict(env, LUA="sh"),
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                deadline = time.monotonic() + 10
+                while not pidfile.exists() and time.monotonic() < deadline:
+                    time.sleep(0.05)
+                test_pid = int(pidfile.read_text())
+                runner.send_signal(sig)
+                runner.wait(timeout=5)
+                time.sleep(0.2)
+                with self.assertRaises(ProcessLookupError, msg="the test outlived the runner"):
+                    os.kill(test_pid, 0)
 
     def test_the_default_budget_is_20_s_and_four_times_that_on_ci(self):
         (self.regression / "test-a.lua").write_text("true\n")
