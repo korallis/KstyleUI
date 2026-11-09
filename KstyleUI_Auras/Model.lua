@@ -253,6 +253,10 @@ function Model.Docked(settings)
 	return boolean(section(settings, "card").docked, defaults.card.docked)
 end
 
+function Model.Foot(timer, pad, gap)
+	return max(gap, pad - Model.TimerArea(timer))
+end
+
 function Model.Card(buffs, debuffs, pad, gap)
 	local cap = KstyleUI.Widgets.SECTION_CAP_HEIGHT
 	local card = { width = buffs.width + 2 * pad, contentTop = pad + cap + gap }

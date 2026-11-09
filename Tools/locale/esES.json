@@ -1441,7 +1441,7 @@
 	"Shows the damage you take.": "Muestra el daño que recibes.",
 	"Shows the debuffs you put on each unit.": "Muestra los perjuicios que pones en cada unidad.",
 	"Shows the faction badge while the unit is flagged for PvP.": "Muestra la insignia de facción mientras la unidad está marcada para JcJ.",
-	"Shows the game's chat menu and channel buttons beside the chat.": "Muestra el menú del chat y los botones de canales del juego junto al chat.",
+	"Shows the game's chat menu, channel buttons and friends button beside the chat.": "Muestra el menú del chat, los botones de canales y el botón de amigos del juego junto al chat.",
 	"Shows the healing you receive, with a plus sign.": "Muestra la sanación que recibes, con un signo más.",
 	"Shows the item or spell icon in the tooltip's top left corner.": "Muestra el icono del objeto o hechizo en la esquina superior izquierda de la descripción.",
 	"Shows the key bound to each button.": "Muestra la tecla asignada a cada botón.",

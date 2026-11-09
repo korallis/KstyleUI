@@ -1448,7 +1448,7 @@ ns.Locale.Add({
 	["Shows the damage you take."] = "Affiche les d\195\169g\195\162ts que vous subissez.",
 	["Shows the debuffs you put on each unit."] = "Affiche les affaiblissements que vous posez sur chaque unit\195\169.",
 	["Shows the faction badge while the unit is flagged for PvP."] = "Affiche l'embl\195\168me de faction quand l'unit\195\169 est marqu\195\169e JcJ.",
-	["Shows the game's chat menu and channel buttons beside the chat."] = "Affiche le menu de discussion et les boutons de canaux du jeu \195\160 c\195\180t\195\169 de la discussion.",
+	["Shows the game's chat menu, channel buttons and friends button beside the chat."] = "Affiche le menu de discussion, les boutons de canaux et le bouton d'amis du jeu \195\160 c\195\180t\195\169 de la discussion.",
 	["Shows the healing you receive, with a plus sign."] = "Affiche les soins que vous recevez, avec un signe plus.",
 	["Shows the item or spell icon in the tooltip's top left corner."] = "Affiche l'ic\195\180ne de l'objet ou du sort dans le coin sup\195\169rieur gauche de la bulle d'aide.",
 	["Shows the key bound to each button."] = "Affiche la touche associ\195\169e \195\160 chaque bouton.",

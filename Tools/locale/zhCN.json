@@ -1441,7 +1441,7 @@
 	"Shows the damage you take.": "显示你受到的伤害。",
 	"Shows the debuffs you put on each unit.": "显示你在每个单位上施加的负面效果。",
 	"Shows the faction badge while the unit is flagged for PvP.": "单位开启 PvP 时显示阵营徽章。",
-	"Shows the game's chat menu and channel buttons beside the chat.": "在聊天框旁显示游戏的聊天菜单和频道按钮。",
+	"Shows the game's chat menu, channel buttons and friends button beside the chat.": "在聊天框旁显示游戏的聊天菜单、频道按钮和好友按钮。",
 	"Shows the healing you receive, with a plus sign.": "以加号显示你受到的治疗。",
 	"Shows the item or spell icon in the tooltip's top left corner.": "在提示信息左上角显示物品或法术图标。",
 	"Shows the key bound to each button.": "显示绑定在每个按钮上的按键。",
