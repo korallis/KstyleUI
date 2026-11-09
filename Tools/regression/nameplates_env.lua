@@ -35,6 +35,9 @@ N.UNIT = {
 	widgetsOnly = false,
 	secretName = false,
 	secretClass = false,
+	powerType = 0,
+	powerMax = 0,
+	quest = false,
 }
 
 -- Blizzard's class colours for the classes the tests use.
@@ -97,9 +100,10 @@ function N.Install(env, opts)
 	end
 	N.ResolveUnit = unit
 
+	env._playerClass = opts.playerClass or "HUNTER"
 	function env.UnitClass(token)
 		if token == "player" then
-			return "Hunter", "HUNTER", 3
+			return env._playerClass:sub(1, 1) .. env._playerClass:sub(2):lower(), env._playerClass, 3
 		end
 		local u = unit(token)
 		if u then
@@ -220,8 +224,43 @@ function N.Install(env, opts)
 	function env.GetQuestDifficultyColor(level)
 		return { r = 1, g = 0.82, b = 0, font = "QuestDifficulty_Difficult" }
 	end
+	function env.UnitPowerType(token)
+		local u = unit(token)
+		return u and u.powerType or 0, "MANA"
+	end
+	function env.UnitPowerMax(token)
+		local u = unit(token)
+		return u and u.powerMax or 0
+	end
+	env.C_QuestLog = env.C_QuestLog or {}
+	function env.C_QuestLog.UnitIsRelatedToActiveQuest(token)
+		local u = unit(token)
+		return u ~= nil and u.quest == true
+	end
+
+	-- The player's spells: env._known[id] = true for a learned spell (either spell bank), env._cooldowns[id]
+	-- a SpellCooldownInfo (default: nothing running), env._spellIDs[name] the ID a spell name resolves to.
+	env._known = opts.known or {}
+	env._cooldowns = {}
+	env._spellIDs = {}
+	env.C_SpellBook = env.C_SpellBook or {}
+	function env.C_SpellBook.IsSpellKnown(id)
+		return env._known[id] == true
+	end
+	env.C_Spell = env.C_Spell or {}
+	function env.C_Spell.GetSpellCooldown(identifier)
+		return env._cooldowns[identifier] or { startTime = 0, duration = 0, isEnabled = true, isActive = false, modRate = 1, isOnGCD = false }
+	end
+	function env.C_Spell.GetSpellIDForSpellIdentifier(identifier)
+		if type(identifier) == "number" then
+			return identifier
+		end
+		return env._spellIDs[identifier]
+	end
 
 	env.Enum = env.Enum or {}
+	env.Enum.PowerType = env.Enum.PowerType or { Mana = 0, Rage = 1, Energy = 3 }
+	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
 	env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
 	function env.CreateColor(r, g, b, a)
@@ -306,7 +345,22 @@ function N.Install(env, opts)
 			end
 			return out
 		end,
+		-- The size the game stacks and clicks plates by: Blizzard's driver sets 110 x 45; a write in
+		-- combat raises, as the restricted API does.
+		GetNamePlateSize = function()
+			return env._plateSize[1], env._plateSize[2]
+		end,
+		SetNamePlateSize = function(w, h)
+			assert(not env._combat, "C_NamePlate.SetNamePlateSize in combat")
+			env._plateSize = { w, h }
+			env._plateSizeWrites[#env._plateSizeWrites + 1] = { w, h }
+		end,
 	}
+	env._plateSize, env._plateSizeWrites, env._driverSize = { 110, 45 }, {}, { 110, 45 }
+	env.NamePlateDriverFrame = env.CreateFrame("Frame", "NamePlateDriverFrame", nil)
+	function env.NamePlateDriverFrame.UpdateNamePlateSize()
+		env.C_NamePlate.SetNamePlateSize(env._driverSize[1], env._driverSize[2])
+	end
 
 	env._cvars, env._cvarWrites, env._cvarDefaults = {}, {}, {}
 	for name, value in pairs(N.CVAR_DEFAULTS) do

@@ -186,12 +186,17 @@ do
 	local sr, sg, sb = barColor(hidden.health)
 	assert(env.issecretvalue(sr), "a secret class colour reaches the health bar as a secret")
 	assert(SameColor(mage[1], mage[2], mage[3], env.Reveal(sr), env.Reveal(sg), env.Reveal(sb)), "and it is the class colour")
+	local wr, wg, wb = hidden.name:GetTextColor()
+	assert(SameColor(wr, wg, wb, token(K, "textEmphasis")), "the name over a class-coloured bar reads white (test-nameplates-types.lua has the rule)")
+	-- With the bar in the reaction colour, the name carries the class: a secret colour reaches it whole.
+	K.Options.Write("Nameplates", "enemy.colorSource", "reaction")
 	local nr, ng, nb = hidden.name:GetTextColor()
 	assert(env.issecretvalue(nr), "the name takes the secret class colour too")
 	assert(SameColor(mage[1], mage[2], mage[3], env.Reveal(nr), env.Reveal(ng), env.Reveal(nb)), "the class colour")
 	env.FireEvent("UNIT_HEALTH", "nameplate5")
 	env.FireEvent("UNIT_FLAGS", "nameplate5")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a secret class colour is never compared: " .. tostring(env._errors[1]))
+	K.Options.Write("Nameplates", "enemy.colorSource", "class")
 	N.Remove(env, "nameplate5")
 
 	N.Add(env, "nameplate3", { tapped = true })

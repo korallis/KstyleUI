@@ -46,19 +46,37 @@ local function ShieldColor()
 	return c.r, c.g, c.b
 end
 
-local colors = {}
+local function OpenColor()
+	local interrupt = ns.Interrupt
+	if interrupt and interrupt.ready == false then
+		local c = Settings.Get("cast.waitColor")
+		return c.r, c.g, c.b
+	end
+	return CastColor()
+end
+
+local colors = { open = {}, wait = {}, shield = {} }
+local function ColorObject(slot, r, g, b)
+	if slot.r ~= r or slot.g ~= g or slot.b ~= b then
+		slot.r, slot.g, slot.b = r, g, b
+		slot.object = CreateColor(r, g, b, 1)
+	end
+	return slot.object
+end
+
 local function ColorObjects()
 	if not CreateColor then
 		return nil
 	end
-	local r, g, b = CastColor()
-	local sr, sg, sb = ShieldColor()
-	if colors.r ~= r or colors.g ~= g or colors.b ~= b or colors.sr ~= sr or colors.sg ~= sg or colors.sb ~= sb then
-		colors.r, colors.g, colors.b, colors.sr, colors.sg, colors.sb = r, g, b, sr, sg, sb
-		colors.normal = CreateColor(r, g, b, 1)
-		colors.shield = CreateColor(sr, sg, sb, 1)
+	local interrupt = ns.Interrupt
+	local open
+	if interrupt and interrupt.ready == false then
+		local c = Settings.Get("cast.waitColor")
+		open = ColorObject(colors.wait, c.r, c.g, c.b)
+	else
+		open = ColorObject(colors.open, CastColor())
 	end
-	return colors.normal, colors.shield
+	return open, ColorObject(colors.shield, ShieldColor())
 end
 
 local function StyleFont(text)
@@ -117,7 +135,7 @@ local function Paint(plate)
 		if normal and texture and texture.SetVertexColorFromBoolean then
 			texture:SetVertexColorFromBoolean(flag, shield, normal)
 		else
-			bar:SetBarColor(CastColor())
+			bar:SetBarColor(OpenColor())
 			LogOnce("cast-flag", "SetVertexColorFromBoolean is missing; secret uninterruptible casts use the normal colour")
 		end
 		if plate.castShield.SetAlphaFromBoolean then
@@ -127,10 +145,11 @@ local function Paint(plate)
 		bar:SetBarColor(ShieldColor())
 		plate.castShield:SetAlpha(SHIELD_ALPHA)
 	else
-		bar:SetBarColor(CastColor())
+		bar:SetBarColor(OpenColor())
 		plate.castShield:SetAlpha(0)
 	end
 end
+Cast.Paint = Paint
 
 local function Info(unit, channel)
 	if channel then

@@ -15,7 +15,7 @@ local SIZE_LIMITS = { minWidth = 40, maxWidth = 320, minHeight = 4, maxHeight = 
 Preview.SAMPLES = {
 	{
 		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64,
-		enemy = true, reaction = 2, isPlayer = false, target = true, raid = 8,
+		enemy = true, reaction = 2, isPlayer = false, target = true, raid = 8, caster = true,
 		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false },
 	},
 	{

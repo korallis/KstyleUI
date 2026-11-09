@@ -27,6 +27,46 @@ return {
 		end,
 	},
 	{
+		name = "Nameplates SPELL_UPDATE_COOLDOWN while casting",
+		budget = 20,
+		setup = function()
+			local env = N.New({ playerClass = "WARRIOR", known = { [6552] = true } })
+			N.Add(env, "nameplate1")
+			env._units.nameplate1.cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
+			env.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
+			return env, Perf.Event(env, "SPELL_UPDATE_COOLDOWN")
+		end,
+	},
+	{
+		name = "Nameplates interrupt readiness flipping under three casts",
+		budget = 40,
+		setup = function()
+			local env = N.New({ playerClass = "WARRIOR", known = { [6552] = true } })
+			local cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
+			for i = 1, 3 do
+				N.Add(env, "nameplate" .. i)
+				env._units["nameplate" .. i].cast = cast
+				env.FireEvent("UNIT_SPELLCAST_START", "nameplate" .. i)
+			end
+			local busy, idle = { isActive = true, isOnGCD = false }, { isActive = false, isOnGCD = false }
+			local fire = Perf.Event(env, "SPELL_UPDATE_COOLDOWN")
+			local flip = false
+			return env, function()
+				flip = not flip
+				env._cooldowns[6552] = flip and busy or idle
+				fire()
+			end
+		end,
+	},
+	{
+		name = "Nameplates QUEST_LOG_UPDATE with a plate",
+		budget = 20,
+		setup = function()
+			local env = Plate()
+			return env, Perf.Event(env, "QUEST_LOG_UPDATE")
+		end,
+	},
+	{
 		name = "Nameplates UNIT_FLAGS while casting",
 		budget = 30,
 		setup = function()

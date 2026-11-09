@@ -39,6 +39,7 @@ local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")
 local BADGE_PAD = Tokens.Size("gapSmall")
 local DISC_SIZE, DISC_CHAMFER, DISC_OVERLAP = 34, 10.5, 1
+Plate.BADGE_SIZE = DISC_SIZE
 local MARKER_SIZE = 12
 local MARKER_ROTATION = math.pi / 4
 local GLOW_CORNER, GLOW_OUTSET = 8, 6
@@ -50,6 +51,10 @@ local SKULL_LEVEL = -1
 local THREAT_KEYS = { safe = "threat.safe", warning = "threat.warning", danger = "threat.danger" }
 local SOURCE_KEYS = { enemy = "enemy.colorSource", friendly = "friendly.colorSource" }
 local COLOR_KEYS = { enemy = "enemy.color", friendly = "friendly.color" }
+local TYPES = { "quest", "rare", "elite", "caster" }
+local TYPE_KEYS = { quest = "types.quest", rare = "types.rare", elite = "types.elite", caster = "types.caster" }
+local TYPE_COLOR_KEYS = { quest = "types.questColor", rare = "types.rareColor", elite = "types.eliteColor", caster = "types.casterColor" }
+local typeEnabled, typeInfo = {}, {}
 
 local fallbackLogged = {}
 
@@ -241,7 +246,7 @@ function Plate:Restyle()
 
 	Widgets.Size(self.marker, MARKER_SIZE, MARKER_SIZE)
 	self.marker:ClearAllPoints()
-	self.marker:SetPoint("BOTTOMRIGHT", health, "TOPRIGHT", 0, Widgets.Snap(self, GAP))
+	self.marker:SetPoint("BOTTOM", badge, "TOP", 0, Widgets.Snap(self, GAP))
 
 	local raidSize = Settings.Get("markers.raidSize")
 	Widgets.Size(self.raid, raidSize, raidSize)
@@ -260,20 +265,20 @@ end
 function Plate:LayoutName()
 	local name, health = self.name, self.health
 	name:ClearAllPoints()
+	name:SetWidth(ns.state.width)
 	if self.nameOnly then
 		name:SetJustifyH("CENTER")
 		name:SetPoint("CENTER", self, "CENTER")
-		name:SetWidth(ns.state.width)
 	else
 		name:SetJustifyH("LEFT")
 		name:SetPoint("BOTTOMLEFT", health, "TOPLEFT", 0, Widgets.Snap(self, GAP))
-		name:SetWidth(math.max(1, ns.state.width - MARKER_SIZE - GAP))
 	end
 end
 
 function Plate:SetUnit(unit)
 	self.unit = unit
 	self.colorKey.r = nil
+	self.caster = nil
 	self:Show()
 	self:Refresh(true)
 end
@@ -289,6 +294,7 @@ function Plate:Refresh(immediate)
 	if not self.unit and not self.sample then
 		return
 	end
+	self:UpdateType()
 	self:UpdateStyle()
 	self:UpdateHealth(immediate)
 	self:UpdateName()
@@ -333,6 +339,66 @@ function Plate:UpdateStyle()
 	self:UpdateColor()
 end
 
+local function ManaType()
+	local types = Enum and Enum.PowerType
+	return types and types.Mana or 0
+end
+
+local function QuestUnit(unit)
+	local api = C_QuestLog
+	if api and type(api.UnitIsRelatedToActiveQuest) == "function" then
+		return api.UnitIsRelatedToActiveQuest(unit)
+	end
+	if type(UnitIsQuestBoss) == "function" then
+		LogOnce("quest-api", "C_QuestLog.UnitIsRelatedToActiveQuest is missing; quest mobs come from UnitIsQuestBoss")
+		return UnitIsQuestBoss(unit)
+	end
+	LogOnce("quest-api", "no quest unit API; no plate takes the quest colour")
+	return false
+end
+
+function Plate:UpdateType()
+	local sample = self.sample
+	if sample then
+		self.caster = sample.caster
+		self.quest = sample.quest
+		return
+	end
+	local unit = self.unit
+	local caster = Logic.IsCaster((UnitValue(UnitPowerType, unit)), (UnitValue(UnitPowerMax, unit)), ManaType())
+	if caster ~= nil then
+		self.caster = caster
+	end
+	self.quest = IsTrue(QuestUnit(unit))
+end
+
+function Plate:RefreshType()
+	if not self.unit and not self.sample then
+		return
+	end
+	self:UpdateType()
+	self:UpdateColor()
+end
+
+function Plate:TypeColor(isPlayer, tapped)
+	if self.kind ~= "enemy" then
+		return nil
+	end
+	for i = 1, #TYPES do
+		local name = TYPES[i]
+		typeEnabled[name] = Settings.Get(TYPE_KEYS[name])
+	end
+	typeInfo.isPlayer, typeInfo.tapped = isPlayer, tapped
+	typeInfo.quest, typeInfo.caster = self.quest, self.caster
+	typeInfo.classification = self:Is("classification", UnitClassification, self.unit)
+	if IsSecret(typeInfo.classification) then
+		typeInfo.classification = nil
+	end
+	local found = Logic.UnitType(typeEnabled, typeInfo)
+	self.unitType = found
+	return found and TYPE_COLOR_KEYS[found] or nil
+end
+
 function Plate:UpdateColor()
 	local r, g, b
 	local state = self.threatState
@@ -343,7 +409,10 @@ function Plate:UpdateColor()
 		local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
 		local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
 		local source = Logic.ColorKind(Settings.Get(SOURCE_KEYS[kind]), isPlayer, tapped)
-		if source == "tapped" then
+		local typeKey = source ~= "tapped" and source ~= "class" and self:TypeColor(isPlayer, tapped)
+		if typeKey then
+			r, g, b = Rgb(Settings.Get(typeKey))
+		elseif source == "tapped" then
 			r, g, b = Tokens.Color("textDisabled")
 		elseif source == "custom" then
 			r, g, b = Rgb(Settings.Get(COLOR_KEYS[kind]))
@@ -425,7 +494,8 @@ function Plate:UpdateName()
 		name:SetText("")
 	end
 	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
-	if isPlayer and Settings.Get("name.classColor") then
+	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
+	if isPlayer and Settings.Get("name.classColor") and not barHasClass then
 		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
 		name:SetTextColor(Theme.ClassColorForWidget(class))
 	else

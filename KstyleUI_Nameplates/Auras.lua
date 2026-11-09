@@ -310,12 +310,15 @@ local function Anchor(plate, frame, anchor)
 	end
 end
 
-function Auras.Extent(plate)
+function Auras.Extent(plate, rowsCap)
 	local above, below = RoomAbove(plate), RoomBelow(plate)
 	if not Shows(plate) then
 		return above, below
 	end
 	local size, spacing, _, rows = Grid(plate)
+	if rowsCap then
+		rows = math.min(rows, rowsCap)
+	end
 	local block = rows * size + (rows - 1) * spacing
 	if Settings.Get("debuffs.growthY") == "DOWN" then
 		return above, below + block

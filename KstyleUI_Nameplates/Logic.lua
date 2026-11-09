@@ -46,6 +46,81 @@ function Logic.MarkerColor(classification)
 	return MARKERS[classification]
 end
 
+local ELITE_KINDS = { worldboss = true, elite = true }
+local RARE_KINDS = { rareelite = true, rare = true }
+
+function Logic.UnitType(enabled, unit)
+	if unit.isPlayer or unit.tapped then
+		return nil
+	end
+	if enabled.quest and unit.quest then
+		return "quest"
+	end
+	local kind = unit.classification
+	if enabled.rare and RARE_KINDS[kind] then
+		return "rare"
+	elseif enabled.elite and ELITE_KINDS[kind] then
+		return "elite"
+	elseif enabled.caster and unit.caster then
+		return "caster"
+	end
+	return nil
+end
+
+function Logic.IsCaster(powerType, powerMax, mana)
+	if not IsNumber(powerType) or powerType ~= mana then
+		return false
+	end
+	if not IsNumber(powerMax) then
+		return nil
+	end
+	return powerMax > 0
+end
+
+local INTERRUPTS = {
+	WARRIOR = { 6554, 6552, 1672, 1671, 72 },
+	ROGUE = { 1769, 1768, 1767, 1766 },
+	MAGE = { 2139 },
+	SHAMAN = { 10414, 10413, 10412, 8046, 8045, 8044, 8042 },
+	PRIEST = { 15487 },
+	WARLOCK = { 19647, 19244 },
+	PALADIN = { 425609 },
+	DRUID = { 410176, 1238122, 16979 },
+}
+Logic.INTERRUPTS = INTERRUPTS
+
+function Logic.InterruptSpell(class, known)
+	local list = type(class) == "string" and INTERRUPTS[class]
+	if not list then
+		return nil
+	end
+	for i = 1, #list do
+		local id = list[i]
+		if known(id) == true then
+			return id
+		end
+	end
+	return nil
+end
+
+function Logic.InterruptReady(info)
+	if IsSecret(info) or type(info) ~= "table" then
+		return nil
+	end
+	local active, gcd = info.isActive, info.isOnGCD
+	if IsSecret(active) or type(active) ~= "boolean" or IsSecret(gcd) then
+		return nil
+	end
+	return not active or gcd == true
+end
+
+function Logic.Footprint(width, height, above, below, scale)
+	if not IsNumber(scale) or scale <= 0 then
+		return nil
+	end
+	return math.ceil(width * scale), math.ceil((above + height + below) * scale)
+end
+
 local SKULL_LEVEL = -1
 
 function Logic.LevelText(level)

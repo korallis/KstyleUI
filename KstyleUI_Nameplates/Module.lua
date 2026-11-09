@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Plates, CVars, Preview = ns.Settings, ns.Plates, ns.CVars, ns.Preview
+local Settings, Plates, CVars, Stacking, Preview = ns.Settings, ns.Plates, ns.CVars, ns.Stacking, ns.Preview
 local MODULE = Settings.MODULE
 
 local checkAdded = false
@@ -18,22 +18,30 @@ local function OnSetting(_, module, key)
 	end
 	if key == "threat.role" then
 		Plates.GLOBAL_EVENTS.PLAYER_ROLES_ASSIGNED()
+	elseif key == "cast.interruptSpell" and Plates.running then
+		ns.Interrupt.Resolve()
 	end
 	Plates.RestyleAll()
+	Stacking.Schedule()
 end
 
 local function OnProfile()
 	Settings.Invalidate()
 	Plates.GLOBAL_EVENTS.PLAYER_ROLES_ASSIGNED()
+	if Plates.running then
+		ns.Interrupt.Resolve()
+	end
 	Plates.ReadSize()
 	Plates.RestyleAll()
 	CVars.Schedule()
+	Stacking.Schedule()
 end
 
 local function OnLayout(_, key)
 	if key == Plates.LAYOUT_KEY then
 		Plates.ReadSize()
 		Plates.RestyleAll()
+		Stacking.Schedule()
 	end
 end
 
@@ -59,10 +67,12 @@ local function Enable()
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
+	K.Callbacks.Register("ScaleChanged", MODULE, Stacking.Schedule)
 	Preview.Register()
 	Plates.ReadSize()
 	Plates.RestyleAll()
 	CVars.Schedule()
+	Stacking.Schedule()
 	AddCheck()
 end
 
@@ -70,6 +80,7 @@ local function Disable()
 	Plates.Stop()
 	Preview.Hide()
 	CVars.Schedule()
+	Stacking.Schedule()
 end
 
 K.Modules.Register({

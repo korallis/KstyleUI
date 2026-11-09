@@ -19,18 +19,24 @@ local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 local FONT = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
 
 Settings.defaults = {
+	preset = "lumen",
 	offsetY = 0,
 	shrinkDistant = false,
 	font = FONT,
 	health = { texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
 	enemy = { colorSource = "class", color = Color("hostile") },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
+	types = {
+		quest = true, questColor = Color("quest"), rare = true, rareColor = Color("rare"),
+		elite = false, eliteColor = Color("neutral"), caster = true, casterColor = Color("epic"),
+	},
 	name = { show = true, size = 14, outline = "OUTLINE", upper = false, classColor = true },
 	level = { show = true, size = 16, outline = "OUTLINE" },
 	healthText = { show = false, size = 9, outline = "OUTLINE", format = "percent" },
 	cast = {
 		enabled = true, height = 12, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
 		colorSource = "class", color = Color("accentDefault"), shieldColor = Color("textDisabled"),
+		waitColor = Color("neutral"), interruptSpell = "",
 		showIcon = true, showName = true, showTime = true, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
@@ -44,6 +50,7 @@ Settings.defaults = {
 	target = { highlight = true, colorSource = "class", color = Color("accentDefault"), dimOthers = 1 },
 	focus = { highlight = true, color = Color("rare") },
 	markers = { classification = true, raid = true, raidSize = 16 },
+	stacking = { footprint = "plate" },
 	cvars = {
 		enabled = false, maxDistance = 40, verticalDistance = 0, stacking = "enemy",
 		selectedScale = 1.2, minScale = 0.8, clickSize = 2,
@@ -96,6 +103,10 @@ local STACKING = {
 	{ value = "enemy", label = L["Stack enemy plates"] },
 	{ value = "all", label = L["Stack all plates"] },
 }
+local FOOTPRINTS = {
+	{ value = "plate", label = L["KstyleUI's plate"] },
+	{ value = "game", label = L["The game's own size"] },
+}
 
 local TEXT_MIN, TEXT_MAX = 6, 20
 
@@ -142,6 +153,14 @@ local function TextRows(schema, key, label)
 end
 
 local schema = {
+	{ type = "header", label = L["Preset"] },
+	{
+		type = "dropdown", key = "preset", label = L["Preset"],
+		help = L["Applies a whole set of plate settings. Changing a setting by hand makes it Custom."],
+		options = function()
+			return ns.Presets.LIST
+		end,
+	},
 	{ type = "header", label = L["Plates"] },
 	{
 		type = "slider", key = "offsetY", label = L["Height above the unit"],
@@ -195,6 +214,43 @@ local schema = {
 	{
 		type = "toggle", key = "friendly.nameOnly", label = L["Name only"],
 		help = L["Friendly plates show just the name, without a health bar."],
+	},
+	{ type = "header", label = L["Unit types"] },
+	{
+		type = "toggle", key = "types.quest", label = L["Quest mobs"],
+		help = L["Colours the plates of mobs one of your quests needs. Wins over the other types."],
+	},
+	{
+		type = "color", key = "types.questColor", label = L["Quest colour"],
+		help = L["The bar colour of quest mobs."],
+		disableWhen = Off("types.quest"),
+	},
+	{
+		type = "toggle", key = "types.rare", label = L["Rares"],
+		help = L["Colours the plates of rare and rare elite mobs."],
+	},
+	{
+		type = "color", key = "types.rareColor", label = L["Rare colour"],
+		help = L["The bar colour of rares."],
+		disableWhen = Off("types.rare"),
+	},
+	{
+		type = "toggle", key = "types.elite", label = L["Elites"],
+		help = L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."],
+	},
+	{
+		type = "color", key = "types.eliteColor", label = L["Elite colour"],
+		help = L["The bar colour of elites."],
+		disableWhen = Off("types.elite"),
+	},
+	{
+		type = "toggle", key = "types.caster", label = L["Casters"],
+		help = L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."],
+	},
+	{
+		type = "color", key = "types.casterColor", label = L["Caster colour"],
+		help = L["The bar colour of casters."],
+		disableWhen = Off("types.caster"),
 	},
 }
 
@@ -257,6 +313,16 @@ local rest = {
 		type = "color", key = "cast.shieldColor", label = L["Uninterruptible colour"],
 		help = L["The colour of casts nothing can interrupt."],
 		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "color", key = "cast.waitColor", label = L["Interrupt recharging colour"],
+		help = L["The colour of casts you could interrupt, while your interrupt is on cooldown."],
+		disableWhen = Off("cast.enabled"),
+	},
+	{
+		type = "text", key = "cast.interruptSpell", label = L["Interrupt spell"],
+		help = L["The spell the recharging colour watches. Blank finds your class's interrupt."],
+		maxLetters = 40, disableWhen = Off("cast.enabled"),
 	},
 	{
 		type = "toggle", key = "cast.showIcon", label = L["Spell icon"],
@@ -417,6 +483,12 @@ local rest = {
 		help = L["The size of the raid marker, in interface units."],
 		min = 8, max = 32, step = 1, disableWhen = Off("markers.raid"),
 	},
+	{ type = "header", label = L["Stacking"] },
+	{
+		type = "dropdown", key = "stacking.footprint", label = L["Plate size for the game"],
+		help = L["The size the game stacks and clicks plates by. KstyleUI's plate keeps stacked plates apart."],
+		options = FOOTPRINTS,
+	},
 	{ type = "header", label = L["Game nameplate settings"] },
 	{
 		type = "toggle", key = "cvars.enabled", label = L["Manage these settings"],
@@ -465,6 +537,7 @@ for _, row in ipairs(schema) do
 		rows[row.key] = row
 	end
 end
+Settings.rows = rows
 
 local function Lookup(root, key)
 	local node = root
@@ -497,7 +570,11 @@ local function Allowed(row, value)
 		end
 		return math.min(row.max, math.max(row.min, value))
 	elseif kind == "dropdown" then
-		for _, option in ipairs(row.options) do
+		local options = row.options
+		if type(options) == "function" then
+			options = options()
+		end
+		for _, option in ipairs(options) do
 			if option.value == value then
 				return value
 			end

@@ -311,9 +311,13 @@ local UNIT_EVENTS = {
 	UNIT_MAXHEALTH = Method("UpdateHealth"),
 	UNIT_NAME_UPDATE = Method("UpdateName"),
 	UNIT_LEVEL = Method("UpdateLevel"),
-	UNIT_CLASSIFICATION_CHANGED = Method("UpdateMarker"),
+	UNIT_CLASSIFICATION_CHANGED = function(plate)
+		plate:UpdateMarker()
+		plate:RefreshType()
+	end,
 	UNIT_FACTION = Method("RefreshFlags"),
 	UNIT_FLAGS = Method("RefreshFlags"),
+	UNIT_DISPLAYPOWER = Method("RefreshType"),
 	UNIT_THREAT_SITUATION_UPDATE = Method("UpdateThreat"),
 	UNIT_THREAT_LIST_UPDATE = Method("UpdateThreat"),
 }
@@ -357,6 +361,8 @@ local GLOBAL_EVENTS = {
 		UpdateTokens()
 	end,
 	RAID_TARGET_UPDATE = ForAll("UpdateRaid"),
+	QUEST_LOG_UPDATE = ForAll("RefreshType"),
+	UNIT_QUEST_LOG_CHANGED = ForAll("RefreshType"),
 	PLAYER_TARGET_CHANGED = OnHighlight,
 	PLAYER_FOCUS_CHANGED = OnHighlight,
 	PLAYER_ROLES_ASSIGNED = OnRole,
@@ -401,6 +407,7 @@ function Plates.Start()
 	for event, fn in pairs(GLOBAL_EVENTS) do
 		K.Events.Register(MODULE, event, fn)
 	end
+	ns.Interrupt.Start()
 	for i = 1, MAX_PLATES do
 		local unit = TOKENS[i]
 		local exists = UnitExists and UnitExists(unit)
@@ -413,6 +420,7 @@ end
 
 function Plates.Stop()
 	Plates.running = false
+	ns.Interrupt.Stop()
 	for unit in pairs(byUnit) do
 		Detach(unit)
 	end
