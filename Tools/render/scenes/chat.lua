@@ -50,7 +50,7 @@ local function Lines(env, chat)
 	local width = (screenWidth or 300 * 1080 / 768) * toOwn
 	local height = (screenHeight or 120 * 1080 / 768) * toOwn
 	local spacing = chat:GetSpacing()
-	local lineHeight = size * 1.2 + (type(spacing) == "number" and spacing or 0)
+	local lineHeight = size + (type(spacing) == "number" and spacing or 0)
 	local rows = {}
 	for _, entry in ipairs(C.Entries(chat)) do
 		local row, rowWidth = "", 0

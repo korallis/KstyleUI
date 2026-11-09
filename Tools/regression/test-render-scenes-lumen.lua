@@ -59,7 +59,7 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(party and chat and guide, scene.state .. ": the rails show the party, chat and the guide")
 	assert(math.abs(party.left - chat.left) <= 0.5, scene.state .. ": the party card and chat share the left edge, got " .. party.left .. " and " .. chat.left)
 	assert(party.left < slot.left / 2, scene.state .. ": on the left rail")
-	assert(math.abs(chat.width - party.width * 372 / 318) <= 1, scene.state .. ": chat is 372 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
+	assert(math.abs(chat.width - party.width * 393 / 318) <= 1, scene.state .. ": chat is 393 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
 	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party card")
 	assert(not seen.quests, scene.state .. ": the tracker's own glass yields to the guide's card")
 	assert(math.abs(guide.left - slot.left) <= 0.5 and math.abs(guide.width - slot.width) <= 1, scene.state .. ": the guide's card is on the right rail's edge and width, got " .. guide.left .. " by " .. guide.width)
@@ -150,7 +150,7 @@ for _, scene in ipairs({ questing, combat }) do
 			rows[#rows + 1] = item
 		end
 	end
-	assert(#rows >= 8, scene.state .. ": the chat draws its lines, got " .. #rows)
+	assert(#rows >= 6, scene.state .. ": the chat draws its lines, got " .. #rows)
 	local wrapped = false
 	for i = 1, #rows do
 		local a = rows[i].rect

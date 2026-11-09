@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 9, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 10, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,7 +219,7 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 9, "version 2 data migrates through 3 to 8 to the current 9")
+	check(menv.KstyleUIDB.version == 10, "version 2 data migrates through 3 to 8 to the current 10")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
@@ -238,7 +238,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local auras = menv.KstyleUIDB.profiles.Default.Auras
-	check(menv.KstyleUIDB.version == 9, "version 7 data migrates to 9")
+	check(menv.KstyleUIDB.version == 10, "version 7 data migrates to 10")
 	check(auras.card == nil, "the card section is gone")
 	check(auras.buffs.rows == nil and auras.buffs.columns == 6, "the setup's one buff row goes; the player's columns stay")
 	check(auras.debuffs.dispelFirst == nil and auras.debuffs.rows == 3, "the dispellable-first split goes; the player's debuff rows stay")
@@ -266,7 +266,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 9, "version 8 data migrates to 9")
+	check(db.version == 10, "version 8 data migrates to 10")
 	local damage, threat = db.layouts.Default["meters.damage"], db.layouts.Default["meters.threat"]
 	check(damage.anchor == "TOPRIGHT" and damage.x == -28 and damage.y == -300, "a damage card moved only down keeps its place from the top right")
 	check(threat.anchor == "TOPRIGHT" and threat.x == -60 and threat.y == -236 and threat.width == 300, "a threat card moved only sideways keeps its place and size")
@@ -281,10 +281,29 @@ do
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 
+-- Migration 10 (LEE-20: the picture's chat card): a saved card still at #210's 372 by 260, or Healer's 318 by 260,
+-- becomes 393 by 200. A card the player resized stays.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 9, profiles = { Default = {} }, layouts = {
+			Default = { ["chat.main"] = { width = 372, height = 260, x = 28 } },
+			Healer = { ["chat.main"] = { width = 318, height = 260 } },
+			Custom = { ["chat.main"] = { width = 400, height = 180 } },
+		} },
+	})
+	CoreEnv.Boot(menv)
+	local db = menv.KstyleUIDB
+	check(db.version == 10, "version 9 data migrates to 10")
+	check(db.layouts.Default["chat.main"].width == 393 and db.layouts.Default["chat.main"].height == 200 and db.layouts.Default["chat.main"].x == 28, "the old default card takes the picture's size and keeps its place")
+	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 200, "Healer keeps the rail width and takes the picture's height")
+	check(db.layouts.Custom["chat.main"].width == 400 and db.layouts.Custom["chat.main"].height == 180, "a resized card stays")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
 -- Data from a newer KstyleUI is left alone; a failing migration stops and is logged.
-	local env2, K2 = CoreEnv.New({ saved = { version = 10, profiles = {} } })
+	local env2, K2 = CoreEnv.New({ saved = { version = 11, profiles = {} } })
 	CoreEnv.Boot(env2)
-	check(env2.KstyleUIDB.version == 10, "a newer version is not lowered")
+	check(env2.KstyleUIDB.version == 11, "a newer version is not lowered")
 	check(K2.Store.ProfileName() == "Default")
 	local env3, K3 = CoreEnv.New({ saved = { version = 1, profiles = {} } })
 	K3.Store.DB_VERSION = 3

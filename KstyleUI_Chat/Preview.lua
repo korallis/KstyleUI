@@ -51,13 +51,16 @@ local function Refresh(self)
 	local r, g, b = Tokens.Color("surface")
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
-	local path, size, flags, tabSize = ns.Frames.Fonts(settings)
+	local path, size, flags, tabSize, tabPath = ns.Frames.Fonts(settings)
 	local ar, ag, ab = ns.Accent(settings)
+	local plain = settings.tabStyle == "plain"
 	for i, tab in ipairs(self.tabs) do
-		ns.Frames.ApplyFont(tab, path, tabSize, flags)
+		ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 		local label = TABS[i]
 		tab:SetText(settings.tabCase == "upper" and label:upper() or label)
-		if i == 1 then
+		if plain then
+			tab:SetTextColor(Tokens.Color(i == 1 and "gilt" or "text"))
+		elseif i == 1 then
 			tab:SetTextColor(Tokens.Color("textEmphasis"))
 		else
 			tab:SetTextColor(Tokens.Color("text"))

@@ -87,7 +87,7 @@ local function OnAddMessage(frame, message, r, g, b, _, _, _, event)
 	end
 	local opts = state.opts
 	opts.timestamp = opts.stamp
-	if opts.stamp ~= "none" and Stamps.GameDraws() then
+	if opts.stamp ~= "none" and Stamps.GameDraws() and Format.HasStamp(message) then
 		opts.timestamp = "none"
 	end
 	local out = Format.Decorate(message, IsText(event) and event or nil, opts)

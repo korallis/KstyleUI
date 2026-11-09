@@ -500,8 +500,8 @@ function C.Dock(env, measure)
 	local statics, dynamics = {}, {}
 	for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
 		local tab = env[frame:GetName() .. "Tab"]
-		local _, size = tab.Text:GetFont()
-		tab._textWidth = measure(tab.Text:GetText() or "", size or 10)
+		local path, size = tab.Text:GetFont()
+		tab._textWidth = measure(tab.Text:GetText() or "", size or 10, path)
 		if frame == primary then
 			statics[#statics + 1] = tab
 		else
@@ -513,6 +513,11 @@ function C.Dock(env, measure)
 		staticWidth = staticWidth + tab._textWidth + 20 + 1
 	end
 	local scroll = dockWidth - staticWidth
+	local textSum = 0
+	for _, tab in ipairs(dynamics) do
+		textSum = textSum + tab._textWidth + 20 + 1
+	end
+	local fitText = textSum <= scroll
 	local tabSize, whole = 90, #dynamics
 	if #dynamics * 90 >= scroll then
 		if math.floor(scroll / 60) <= #dynamics then
@@ -532,8 +537,9 @@ function C.Dock(env, measure)
 			tab:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0)
 			tab:Show()
 		else
-			tab.Text:SetWidth(math.max(1, tabSize - 20))
-			tab:SetWidth(tabSize)
+			local width = fitText and (tab._textWidth + 20) or tabSize
+			tab.Text:SetWidth(math.max(1, width - 20))
+			tab:SetWidth(width)
 			tab:SetPoint("LEFT", previous, "RIGHT", 1, 0)
 			whole = whole - 1
 			tab:SetShown(whole >= 0)

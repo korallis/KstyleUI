@@ -269,7 +269,7 @@ Each module either replaces Blizzard's frames with its own, mirrors a Blizzard d
 | `KstyleUI_Nameplates` | A KstyleUI plate on each nameplate: health, cast bar, threat colour, debuffs | Replace the visible plate |
 | `KstyleUI_CombatText` | Animated damage and heal numbers on KstyleUI frames and plates, and the KstyleUI font for the game's own world numbers | Mirror, after the spike |
 | `KstyleUI_Minimap` | Square minimap, chamfered frame, zone and clock strip, side button column, addon-button drawer, coordinates | Reskin |
-| `KstyleUI_Chat` | Chat panels, tabs with an accent underline, edit box, copy chat, clickable links, class-coloured names | Reskin |
+| `KstyleUI_Chat` | Chat panels, Cinzel tab names with the selected one gold and no underline (LEE-20: the picture wins over the accent underline), edit box, copy chat, clickable links, class-coloured names | Reskin |
 | `KstyleUI_Bags` | Combined bags and bank, keyring, search, sort, quality borders, selling junk | Replace |
 | `KstyleUI_Tooltips` | Glass tooltips, quality and class colours, optional spell and item IDs, cursor anchoring | Reskin |
 | `KstyleUI_DataBars` | XP, reputation and honour bars, micro menu, bag bar, a data strip with FPS, latency, gold, durability and time | Reskin, plus our own strip |
