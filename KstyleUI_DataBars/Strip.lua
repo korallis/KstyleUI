@@ -458,20 +458,22 @@ function Strip.DockMenus(view, s)
 	end
 	view.line = row > 0 and line or nil
 	local extra = row > 0 and max(0, line + row - h) or 0
+	local rowTop = extra > 0 and extra - pad or -gap + h - line
 	for id, spec in pairs(DOCK) do
 		local bar = Menus and Menus.Holder(id)
 		if bar and docked then
 			Menus.SetDock(id, function(content, width, height)
 				content:ClearAllPoints()
-				content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, -gap + h - line)
+				content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, rowTop)
 				content:SetSize(width, height)
 			end, frame, fit)
 		end
 	end
+	view.lineTop = extra > 0 and 0 or nil
 	card:ClearAllPoints()
-	card:SetPoint("TOPLEFT", frame, "TOPLEFT")
-	card:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
-	card:SetPoint("BOTTOM", frame, "BOTTOM", 0, -extra)
+	card:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, extra)
+	card:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, extra)
+	card:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
 end
 
 local function Read(view, s, timedOnly)

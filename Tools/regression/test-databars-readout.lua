@@ -60,20 +60,32 @@ assert(vp[1] == "CENTER" and vp[2] == fps.button and vp[4] < 0, "the value sits 
 eq(ns.Settings().strip.menus, true, "the menus dock in the readout card by default")
 local view = ns.Strip.view
 assert(view.card and view.card ~= view.frame and view.chrome.owner == view.card, "the chrome moves to a card frame that can outgrow the strip's own line")
+-- The strip's footprint is still the 43-unit line, so the card grows upward for the menu row: the strip sits at
+-- the screen's bottom edge, where growing down would leave the screen. A 94-tall strip holds the row inside.
 local cp = view.card._points
 assert(cp[1][1] == "TOPLEFT" and cp[1][2] == view.frame and cp[2][1] == "TOPRIGHT" and cp[2][2] == view.frame, "the card hangs from the strip's top corners")
-assert(cp[3][1] == "BOTTOM" and cp[3][2] == view.frame and cp[3][3] == "BOTTOM" and cp[3][5] < 0, "and reaches below the strip for the menu row: " .. tostring(cp[3][5]))
+assert(cp[1][5] > 0 and near(cp[2][5], cp[1][5]), "and rises above the strip for the menu row: " .. tostring(cp[1][5]))
+assert(cp[3][1] == "BOTTOM" and cp[3][2] == view.frame and near(cp[3][5], 0), "ending with the strip's line")
 local micro, bags = ns.Menus.Content("micro"), ns.Menus.Content("bags")
 assert(micro and bags, "both bars are built")
 assert(not ns.Menus.Holder("micro"):IsShown() and not ns.Menus.Holder("bags"):IsShown(), "the Layout-owned holders hide while docked")
 assert(micro:GetParent() == view.frame and bags:GetParent() == view.frame, "the docked buttons sit on the strip, so they show while their holders hide")
 assert(micro:IsShown() and bags:IsShown(), "and are shown")
 local mp = micro._points[1]
-assert(mp[1] == "TOPLEFT" and mp[2] == view.frame and mp[3] == "BOTTOMLEFT" and mp[4] > 0 and mp[5] < 0, "the micro menu's buttons dock under the strip's left")
+assert(mp[1] == "TOPLEFT" and mp[2] == view.frame and mp[3] == "BOTTOMLEFT" and mp[4] > 0 and mp[5] > 0, "the micro menu's buttons dock above the strip's left")
 local bp = bags._points[1]
-assert(bp[1] == "TOPRIGHT" and bp[2] == view.frame and bp[3] == "BOTTOMRIGHT" and bp[4] < 0 and near(bp[5], mp[5]), "the bag bar's buttons dock under the strip's right, on the same line")
-local reach = -cp[3][5]
-assert(near(reach, -mp[5] + ns.Menus.Holder("micro"):GetHeight() + view.pad, 0.5), "the card ends one padding under the menu row: " .. tostring(reach))
+assert(bp[1] == "TOPRIGHT" and bp[2] == view.frame and bp[3] == "BOTTOMRIGHT" and bp[4] < 0 and near(bp[5], mp[5]), "the bag bar's buttons dock above the strip's right, on the same line")
+assert(near(cp[1][5], mp[5] + view.pad, 0.5), "the card starts one padding above the menu row: " .. tostring(cp[1][5]))
+-- Given the Lumen footprint, the row sits inside the card under the line.
+K.Layout.Update("databars.strip", { height = 94 })
+env.RunTimers()
+cp = view.card._points
+assert(near(cp[1][5], 0) and near(cp[3][5], 0), "a 94-tall strip is the whole card")
+mp = micro._points[1]
+local rowHeight = ns.Menus.Holder("micro"):GetHeight()
+assert(near(mp[5], view.pad + rowHeight, 0.5) and mp[5] + ns.Strip.UNIT_GAP < 94 - view.line, "and the menu row sits inside it under the line, one padding up from the strip's bottom: " .. tostring(mp[5]))
+K.Layout.Update("databars.strip", { height = 43 })
+env.RunTimers()
 assert(not ns.Menus.Glass("micro"):IsShown() and not ns.Menus.Glass("bags"):IsShown(), "the docked bars have no glass of their own")
 for _, key in ipairs({ "databars.micro", "databars.bags" }) do
 	local el
@@ -106,7 +118,7 @@ Options.Write("DataBars", "strip.menus", false)
 assert(K.Layout.Live("databars.micro") and K.Layout.Live("databars.bags"), "free bars are live in Layout Mode")
 assert(ns.Menus.Glass("micro"):IsShown(), "and wear their glass again")
 assert(micro._points[1][2] == ns.Menus.Holder("micro") and micro:GetParent() == ns.Menus.Holder("micro") and ns.Menus.Holder("micro"):IsShown(), "the micro menu's buttons return to their own holder, which shows again")
-assert(near(view.card._points[3][5], 0), "the card ends with the strip's line")
+assert(near(view.card._points[1][5], 0), "the card is the strip's line again")
 Options.Write("DataBars", "strip.menus", true)
 assert(micro._points[1][2] == view.frame and not K.Layout.Live("databars.micro"), "docking again")
 
