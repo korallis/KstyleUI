@@ -159,10 +159,18 @@ do
 	kit:SetFont(K.Tokens.FontPath("InterSemiBold"), 20, "")
 	local skipped = B.frame("Frame", window)
 	local left = B.text(skipped)
+	local denied = B.text(window)
+	denied.IsForbidden = function() return true end
+	local deniedFrame = B.frame("Frame", window)
+	deniedFrame.IsForbidden = function() return true end
+	local under = B.text(deniedFrame)
+	local after = B.text(window)
 	local snap = B.snapshot()
 
 	local count = Style.Sweep(window, { skip = { [skipped] = true } })
-	assert(count == 4, "the four unstyled Blizzard strings are swept, got " .. tostring(count))
+	assert(count == 5, "the five unstyled Blizzard strings are swept, got " .. tostring(count))
+	assert(denied:GetFont() == nil and under:GetFont() == nil, "a forbidden string, and one under a forbidden frame, are left alone")
+	assert(after:GetFont() ~= nil, "a forbidden string does not stop the strings after it")
 	local bodyPath, bodySize = Style.Font("body")
 	local path, size = label:GetFont()
 	assert(path == bodyPath and W.Near(size, bodySize), "a string with no font of its own takes the body face at the body size")
@@ -181,7 +189,7 @@ do
 	assert(path == K.Tokens.FontPath("InterSemiBold") and size == 20, "a string in a kit face is left alone")
 	assert(left:GetFont() == nil, "a skipped subtree is left alone")
 	assert(Style.Sweep(window) == 1, "a second sweep styles only what the first skipped, got " .. tostring(Style.Sweep(window)))
-	B.check(snap, { SetFontObject = true, SetTextColor = true })
+	B.check(snap, { SetFontObject = true, SetTextColor = true, IsForbidden = true })
 
 	-- Blizzard setting a font object or its yellow again keeps the skin's face and colour.
 	label:SetFontObject("GameFontNormalSmall")

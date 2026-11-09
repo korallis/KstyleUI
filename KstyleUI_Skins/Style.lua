@@ -266,8 +266,12 @@ local YELLOW_MIN_R, YELLOW_MIN_G, YELLOW_MAX_G, YELLOW_MAX_B = 0.9, 0.7, 0.95, 0
 local SWEEP_COLOR = "text"
 local swept = setmetatable({}, WEAK)
 
+local function Forbidden(object)
+	return type(object.IsForbidden) == "function" and object:IsForbidden() == true
+end
+
 local function IsFontString(region)
-	return type(region) == "table" and type(region.GetObjectType) == "function" and region:GetObjectType() == "FontString"
+	return type(region) == "table" and not Forbidden(region) and type(region.GetObjectType) == "function" and region:GetObjectType() == "FontString"
 end
 
 local kitFaces
@@ -358,10 +362,6 @@ local function SweepText(text)
 	return true
 end
 
-local function Forbidden(frame)
-	return type(frame.IsForbidden) == "function" and frame:IsForbidden() == true
-end
-
 local function SweepFrame(frame, skip, depth)
 	if depth > SWEEP_DEPTH or (skip and skip[frame]) or Forbidden(frame) then
 		return 0
@@ -394,7 +394,7 @@ function Style.Sweep(frame, opts)
 		Log("a text sweep stopped: " .. tostring(count))
 		return 0
 	end
-	if opts.onShow and type(frame.HookScript) == "function" and not swept[frame] then
+	if opts.onShow and not Forbidden(frame) and type(frame.HookScript) == "function" and not swept[frame] then
 		swept[frame] = { skip = opts.skip }
 		frame:HookScript("OnShow", function(shown)
 			Style.Sweep(shown, { skip = swept[shown] and swept[shown].skip })
