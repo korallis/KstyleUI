@@ -165,15 +165,28 @@ function Style.Text(text, role, colorName)
 end
 
 local HTML_TYPES = { "P", "H1", "H2", "H3" }
+local htmls = setmetatable({}, WEAK)
 
-function Style.Html(html, role, colorName)
-	local path, size, flags = Style.Font(role or "body")
-	local r, g, b = Tokens.Color(colorName or "text")
+local function PaintHtml(state)
+	local html = state.html
+	local path, size, flags = Style.Font(state.role)
+	local r, g, b = Tokens.Color(state.color)
 	for _, kind in ipairs(HTML_TYPES) do
 		html:SetFont(kind, path, size, flags)
 		html:SetTextColor(kind, r, g, b)
 		html:SetJustifyH(kind, "LEFT")
 	end
+end
+
+function Style.Html(html, role, colorName)
+	local state = htmls[html]
+	if not state then
+		state = { html = html, Restyle = PaintHtml }
+		htmls[html] = state
+		Style.Track(state)
+	end
+	state.role, state.color = role or "body", colorName or "text"
+	PaintHtml(state)
 	return html
 end
 

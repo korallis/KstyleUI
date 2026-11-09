@@ -222,9 +222,62 @@ do
 	assert(B.Count(env, "GameTooltip:SetItemByID") == 1 and B.Calls(env, "GameTooltip:SetItemByID")[1][1] == POTION, "a tile shows the item's tooltip by ID")
 	W.Leave(tile.button)
 	assert(win.panel:GetWidth() >= win.search:GetWidth(), "the window still hugs its controls")
+	-- The live bags' actions rest while another character shows: Sort and Sell junk would act on this character's
+	-- hidden bags, and this character's money events must not overwrite the saved balance.
+	B.Put(env, 1, 2, Item("junk"))
+	env.SetMerchant(true)
+	Run(env)
+	assert(not win.junkButton:IsShown(), "Sell junk stays hidden at a merchant while browsing")
+	assert(win.sortButton:IsEnabled() == false, "and Sort is disabled")
+	W.Click(win.sortButton)
+	Run(env)
+	assert(B.Count(env, "SortBags") == 0, "so nothing sorts this character's bags")
+	env.FireEvent("PLAYER_MONEY")
+	assert(win.money:GetText() == ns.Window.MoneyText(12345), "a money event keeps the saved character's balance on show")
+	env.SetMerchant(false)
+	Run(env)
 	win.picker:SetValue("Lordaeron-Valerin")
 	Run(env)
 	assert(not remote.frame:IsShown() and win.viewport:IsShown(), "picking this character brings the live bags back")
+	assert(win.sortButton:IsEnabled() ~= false, "and Sort works again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+
+	-- A character with hundreds of saved items never pushes the window off the screen: the view clips to the
+	-- height budget and scrolls, as the live sections do, and a saved category the player has since removed
+	-- counts toward the width as the Other row it is drawn in.
+	local many = saved.characters["Lordaeron-Thargor"]
+	for id = 20000, 20299 do
+		many.bank[id] = 1
+		many.items[id] = { icon = 134414, quality = 1, cat = "consumables", name = "Bandage " .. id }
+	end
+	for id = 30000, 30006 do
+		many.bags[id] = 1
+		many.items[id] = { icon = 134414, quality = 1, cat = "custom-gone", name = "Relic " .. id }
+	end
+	for id = 31000, 31006 do
+		many.bags[id] = 1
+		many.items[id] = { icon = 134414, quality = 1, cat = "custom-gone-too", name = "Relic " .. id }
+	end
+	win.picker:SetValue("Lordaeron-Thargor")
+	Run(env)
+	local screen = win:ScreenHeight()
+	assert(win.panel:GetHeight() <= screen, "the window stays on a " .. screen .. " screen, got " .. win.panel:GetHeight())
+	assert(remote.stackHeight > remote.viewHeight, "the saved view is taller than its clip and scrolls")
+	local before = remote.scroll
+	remote.frame:GetScript("OnMouseWheel")(remote.frame, -1)
+	assert(remote.scroll > before, "the wheel scrolls the saved view")
+	local other
+	for _, group in ipairs(remote.groups) do
+		if group.frame:IsShown() and group.cap.label:GetText():find("OTHER", 1, true) then
+			other = group
+		end
+	end
+	assert(other and #other.entries == 14, "the removed categories' items share one Other row, got " .. tostring(other and #other.entries))
+	local Data = ns.Data
+	local size, spacing = ns.Settings.Get("slotSize"), ns.Settings.Get("spacing")
+	local pad = K.Widgets.WindowInset(win.panel)
+	local columns = ns.Settings.Get("columns")
+	assert(win.panel:GetWidth() == Data.Size(math.min(14, columns), 1, size, spacing) + 2 * pad, "and the window is as wide as that row, got " .. win.panel:GetWidth())
 	assert(#env._errors == 0, tostring(env._errors[1]))
 
 	local env2, _, ns2 = B.New({ bags = Bags(), player = "Valerin", realm = "Lordaeron" })

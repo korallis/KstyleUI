@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets = K.Widgets
 local Data, Slot, L = ns.Data, ns.Slot, ns.L
-local max = math.max
+local max, min = math.max, math.min
 
 local Remote = {}
 Remote.__index = Remote
@@ -32,8 +32,15 @@ end
 
 function Remote.New(win)
 	local frame = CreateFrame("Frame", nil, win.panel.content)
+	frame:SetClipsChildren(true)
+	frame:EnableMouseWheel(true)
 	frame:Hide()
-	return setmetatable({ win = win, frame = frame, groups = {}, tiles = {}, shown = 0 }, Remote)
+	local stack = CreateFrame("Frame", nil, frame)
+	local view = setmetatable({ win = win, frame = frame, stack = stack, groups = {}, tiles = {}, shown = 0, scroll = 0, stackHeight = 0, viewHeight = 0, step = 1 }, Remote)
+	frame:SetScript("OnMouseWheel", function(_, delta)
+		view:Scroll(delta)
+	end)
+	return view
 end
 
 local function Tile(group, index)
@@ -52,8 +59,8 @@ end
 function Remote:Group(index, label)
 	local group = self.groups[index]
 	if not group then
-		local holder = CreateFrame("Frame", nil, self.frame)
-		group = { frame = holder, cap = Widgets.SectionCap(self.frame, { text = label }), entries = {}, tiles = {} }
+		local holder = CreateFrame("Frame", nil, self.stack)
+		group = { frame = holder, cap = Widgets.SectionCap(self.stack, { text = label }), entries = {}, tiles = {} }
 		self.groups[index] = group
 	elseif group.label ~= label then
 		group.cap:SetText(label)
@@ -118,24 +125,34 @@ local function Groups(view, data)
 	return list
 end
 
-function Remote.Columns(data, columns)
+function Remote:Columns(data, columns)
 	local widest = 0
-	local byCat = {}
-	for _, entry in ipairs(data.bags) do
-		local key = entry.cat or "other"
-		byCat[key] = (byCat[key] or 0) + 1
+	for _, group in ipairs(Groups(self, data)) do
+		widest = max(widest, #group.entries)
 	end
-	for _, count in pairs(byCat) do
-		widest = max(widest, count)
-	end
-	widest = max(widest, #data.bank)
 	return max(1, (Data.Grid(widest, columns)))
 end
 
-function Remote:Layout(data, parent, top, width, geometry, capBlock, gap)
-	local frame = self.frame
+function Remote:Place()
+	self.scroll = min(self.scroll, max(0, self.stackHeight - self.viewHeight))
+	self.stack:ClearAllPoints()
+	self.stack:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 0, self.scroll)
+end
+
+function Remote:Scroll(delta)
+	delta = Data.Plain(delta, "number") or 0
+	local scroll = min(max(0, self.stackHeight - self.viewHeight), max(0, self.scroll - delta * self.step))
+	if scroll ~= self.scroll then
+		self.scroll = scroll
+		self:Place()
+	end
+end
+
+function Remote:Layout(data, parent, top, width, geometry, capBlock, gap, room)
+	local frame, stack = self.frame, self.stack
 	local size, spacing, columns = geometry.size, geometry.spacing, geometry.columns
 	local step = size + spacing
+	self.step = step
 	local y = 0
 	local used = 0
 	local query = self.win.query
@@ -149,13 +166,13 @@ function Remote:Layout(data, parent, top, width, geometry, capBlock, gap)
 		cap:Restyle()
 		cap:SetCount(tostring(#group.entries))
 		cap:ClearAllPoints()
-		cap:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y)
+		cap:SetPoint("TOPLEFT", stack, "TOPLEFT", 0, -y)
 		cap:Show()
 		y = y + capBlock
 		local cols, rows = Data.Grid(#group.entries, columns)
 		local gridWidth, gridHeight = Data.Size(cols, rows, size, spacing)
 		group.frame:ClearAllPoints()
-		group.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y)
+		group.frame:SetPoint("TOPLEFT", stack, "TOPLEFT", 0, -y)
 		group.frame:SetSize(max(1, gridWidth), max(1, gridHeight))
 		group.frame:Show()
 		for i, entry in ipairs(group.entries) do
@@ -180,11 +197,24 @@ function Remote:Layout(data, parent, top, width, geometry, capBlock, gap)
 		y = y + gridHeight + gap
 	end
 	self.shown = used
+	local stackHeight = max(step, y - gap)
+	local height = stackHeight
+	local rowsLimit = geometry.rows or 0
+	if rowsLimit > 0 then
+		height = min(height, rowsLimit * step + capBlock)
+	end
+	if room then
+		height = min(height, room)
+	end
+	height = max(step, height)
+	self.stackHeight, self.viewHeight = stackHeight, height
+	stack:SetSize(max(1, width), stackHeight)
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -top)
-	frame:SetSize(max(1, width), max(step, y - gap))
+	frame:SetSize(max(1, width), height)
 	frame:Show()
-	return top + max(step, y - gap) + gap
+	self:Place()
+	return top + height + gap
 end
 
 function Remote:SetQuery(query)

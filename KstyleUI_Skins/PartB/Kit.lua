@@ -553,6 +553,23 @@ local function RankBar(frame)
 	return Track(bar)
 end
 
+local function FitBarLabel(bar)
+	local frame, label, rank = bar.frame, bar.label, bar.frame.rankText
+	if not label or bar.labelText == nil then
+		return
+	end
+	local inset = K.Widgets.Snap(frame, K.Tokens.Size("gapMedium"))
+	local gap = K.Widgets.Snap(frame, K.Tokens.Size("gapSmall"))
+	local width = frame:GetWidth()
+	local need = K.Widgets.TextWidth(label, nil)
+	if IsSecret(width) or type(width) ~= "number" or need == nil then
+		label:Show()
+		return
+	end
+	local taken = type(rank) == "table" and (K.Widgets.TextWidth(rank, 0) + gap) or 0
+	label:SetShown(need <= width - 2 * inset - taken)
+end
+
 local function PlaceBarTexts(bar)
 	local frame, label, rank = bar.frame, bar.label, bar.frame.rankText
 	local inset = K.Widgets.Snap(frame, K.Tokens.Size("gapMedium"))
@@ -570,6 +587,7 @@ local function PlaceBarTexts(bar)
 		else
 			label:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
 		end
+		FitBarLabel(bar)
 	end
 end
 
@@ -578,12 +596,14 @@ local function SetBarLabel(bar, text)
 		return
 	end
 	if IsSecret(text) or type(text) ~= "string" or text == "" then
+		bar.labelText = nil
 		bar.label:SetText("")
 		bar.label:Hide()
 		return
 	end
+	bar.labelText = text
 	bar.label:SetText(text)
-	bar.label:Show()
+	FitBarLabel(bar)
 end
 
 local function Bar(frame, opts)

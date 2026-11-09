@@ -1148,17 +1148,17 @@ end
 function build.trainer(env, B)
 	local trainer = Window(B, "ClassTrainerFrame", nil, 338, 424, "Grezz Ragefist", { inset = { top = 90, bottom = 60 } })
 	At(trainer, env.UIParent, 120, 120)
-	-- Blizzard_TrainerUI.xml:167: the skill bar reads "rank / max" (Blizzard_TrainerUI.lua:565); the skill line's
-	-- name comes from GetTrainerServiceSkillLine.
-	local bar = StatusBar(B, trainer, 300, 18, 0.62)
+	-- Blizzard_TrainerUI.xml:167: the skill bar is 130 by 18 at (64, -35) and reads "rank/max"
+	-- (Blizzard_TrainerUI.lua:565); the skill line's name comes from GetTrainerServiceSkillLine.
+	local bar = StatusBar(B, trainer, 130, 18, 0.62)
 	env.ClassTrainerStatusBar = bar
-	Anchor(bar, trainer, "TOP", 0, -36)
-	bar.rankText = Text(B.text(bar), "186 / 300", "CENTER", bar)
+	At(bar, trainer, 64, 35)
+	bar.rankText = Text(B.text(bar), "186/300", "CENTER", bar)
 	env.GetNumTrainerServices = function()
 		return 4
 	end
 	env.GetTrainerServiceSkillLine = function()
-		return "Two-Handed Swords"
+		return "Polearms"
 	end
 	trainer.FilterDropdown = Dropdown(B, trainer, "Available", 100)
 	Anchor(trainer.FilterDropdown, trainer, "TOPRIGHT", -12, -60)

@@ -105,7 +105,7 @@ do
 	local bar = env.ClassTrainerStatusBar
 	local parts = K.Safe.Side(bar).partBBar
 	assert(parts and parts.label, "the skill bar gets a KstyleUI label")
-	assert(parts.label:GetText() == "Two-Handed Swords", "the label names the trainer's skill line, got " .. tostring(parts.label:GetText()))
+	assert(parts.label:GetText() == "Polearms" and parts.label:IsShown(), "the label names the trainer's skill line, got " .. tostring(parts.label:GetText()))
 	assert(Justify(parts.label) == "LEFT" and Justify(bar.rankText) == "RIGHT", "label LEFT, rank RIGHT")
 	assert((bar.rankText:GetFont()) == ns.Style.Font("number"), "the rank wears the number face")
 	Natural(bar.rankText)

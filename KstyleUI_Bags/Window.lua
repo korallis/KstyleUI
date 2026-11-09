@@ -94,7 +94,7 @@ function Window.New(spec)
 		text = L["Sort"],
 		width = SORT_WIDTH,
 		onClick = function()
-			if spec.sort then
+			if spec.sort and not win.remoteData then
 				spec.sort(win)
 			end
 		end,
@@ -393,9 +393,13 @@ function Window:Layout(force)
 			end
 		end
 		panels = {}
-		contentWidth = max(contentWidth, (Data.Size(ns.Remote.Columns(remote, columns), 1, size, spacing)))
+		self.remote = self.remote or ns.Remote.New(self)
+		contentWidth = max(contentWidth, (Data.Size(self.remote:Columns(remote, columns), 1, size, spacing)))
 	elseif self.remote then
 		self.remote:Hide()
+	end
+	if type(self.sortButton.SetEnabled) == "function" then
+		self.sortButton:SetEnabled(remote == nil)
 	end
 	for _, section in ipairs(panels) do
 		local count = #section.order
@@ -448,9 +452,8 @@ function Window:Layout(force)
 	local placedStack = false
 	local used = 0
 	if remote then
-		self.remote = self.remote or ns.Remote.New(self)
-		self.geometry.columns = columns
-		top = self.remote:Layout(remote, content, top, contentWidth, self.geometry, capBlock, gap)
+		self.geometry.columns, self.geometry.rows = columns, rowsLimit
+		top = self.remote:Layout(remote, content, top, contentWidth, self.geometry, capBlock, gap, budget and max(step, budget) or nil)
 	end
 	for _, section in ipairs(remote and {} or self.sections) do
 		if Grouped(section) then
@@ -650,7 +653,7 @@ function Window:UpdateFooter()
 		else
 			Widgets.SetText(self.free, remote.name)
 		end
-		self.money:SetText(remote.money and Window.MoneyText(remote.money) or "")
+		self:UpdateMoney()
 		return
 	end
 	local free, total = 0, 0
@@ -669,6 +672,11 @@ function Window:UpdateFooter()
 end
 
 function Window:UpdateMoney()
+	local remote = self.remoteData
+	if remote then
+		self.money:SetText(remote.money and Window.MoneyText(remote.money) or "")
+		return
+	end
 	local money = type(GetMoney) == "function" and Plain(GetMoney()) or nil
 	if not money then
 		self.money:SetText("")

@@ -384,6 +384,9 @@ do
 		end
 	end
 	assert(calls.P == "LEFT" and calls.H1 == "LEFT", "every text type of the body reads LEFT")
+	K.Options.Write("Skins", "text.size", 1.5)
+	font = W.LastCall(made.body, "SetFont")
+	assert(font[3] == select(2, ns.Style.Font("body")) and font[3] ~= 12, "a text size change restyles the body too, got " .. tostring(font[3]))
 	assert(Skinned(K, made.mail, "Window") and Skinned(K, made.letter, "Window"), "the mailbox and open letters are glass windows")
 	assert(Skinned(K, made.mail, "Tabs"), "the inbox and send tabs are skinned")
 	assert(Hidden(made.inboxBg) and Hidden(made.bar), "the inbox paper and the send form's bars are hidden")
@@ -441,6 +444,8 @@ do
 		bar:SetStatusBarTexture("Interface\\Blizzard\\Bar")
 		B.add(bar:GetStatusBarTexture())
 		local barArt = B.texture(bar)
+		bar.rankText = B.text(bar)
+		bar.rankText:SetText("186 / 300")
 		trainer.FilterDropdown = P.Dropdown(B, trainer)
 		trainer.TrainButton = P.Button(B, trainer)
 		trainer.ScrollBar = P.ScrollBar(B, trainer)
@@ -477,6 +482,20 @@ do
 	end
 	env.ClassTrainerFrame_Update()
 	assert(bar.label:GetText() == "Blacksmithing", "the update hook relabels the bar, got " .. tostring(bar.label:GetText()))
+	-- Forever's bar is 130 units wide (Blizzard_TrainerUI.xml:168). A skill line that cannot sit left of the rank
+	-- inside it hides rather than truncate; a short one shows. The kit fonts' real advances measure the texts.
+	env._textWidth = dofile("Tools/regression/databars_env.lua").TextWidth
+	made.bar:SetWidth(130)
+	env.GetTrainerServiceSkillLine = function()
+		return "Two-Handed Swords"
+	end
+	env.ClassTrainerFrame_Update()
+	assert(not bar.label:IsShown(), "a skill line too long for the bar hides instead of truncating")
+	env.GetTrainerServiceSkillLine = function()
+		return "Mining"
+	end
+	env.ClassTrainerFrame_Update()
+	assert(bar.label:IsShown() and bar.label:GetText() == "Mining", "a short one shows")
 	local ar, ag, ab = ns.Style.Accent()
 	local er, eg, eb = ns.Style.BarColor(ar, ag, ab, 1)
 	local r, g, b = made.bar:GetStatusBarColor()
