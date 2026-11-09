@@ -243,8 +243,9 @@ function Guard.Owner(cards, item, rect)
 	local object = item.object
 	local x, y = centre(rect)
 	local tree, treeDepth, onto
+	local file = fileOf(item)
 	for _, card in ipairs(cards) do
-		local chrome = object._parent == card.frame and fileOf(item):find("Lumen", 1, true)
+		local chrome = object._parent == card.frame and (file:find("Lumen", 1, true) or file:find("CardShape", 1, true) or file:find("RingLine", 1, true))
 		if not chrome then
 			if card.scope and within(object, card.scope) then
 				local d = depth(card.scope)

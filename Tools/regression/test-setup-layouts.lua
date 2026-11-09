@@ -159,7 +159,7 @@ for _, name in ipairs(names) do
 end
 
 -- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
--- Two 318-unit rails on a 28-unit margin hold everything slow: in DPS and Tank the left rail the party and chat, the
+-- Two 318-unit rails on the screen margin (17 units, the owner's picture of 2026-11-09) hold everything slow: in DPS and Tank the left rail the party and chat, the
 -- right rail the map with the aura rows, the story slot, the damage card and the readout and menu. The
 -- centre holds one combat cluster at the bottom: the hands, and right on them the target sigil, with the focus on its
 -- left and the target of target on its right (in Tank the threat card under it), so you, your target, its target and
@@ -169,7 +169,8 @@ end
 -- damage card under the aura rows, as DPS does (round 3: the buffs at 40 and 12 debuffs left no room for the boss
 -- column on the right rail; Muse #2: the cast bars stay in the cluster).
 
-local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
+local MARGIN, RAIL = 17, 318
+local BAND = MARGIN + RAIL + 16
 local CARD_GAP_MIN = 16
 local LEFT_RAIL = {
 	DPS = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
@@ -245,14 +246,14 @@ for _, name in ipairs(names) do
 		-- The rails share their columns and width, the same on both sides.
 		for _, key in ipairs(LEFT_RAIL[name]) do
 			local r = rect(key)
-			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the 28 margin")
+			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the margin")
 		end
 		for _, key in ipairs(RIGHT_STACK[name]) do
 			local r = rect(key)
 			-- Owner pass 1: the minimap is a 160 square at the rail's head, flush with the rail's right edge; the aura rows
 			-- are narrower than the rail (eight 30-unit tiles, 282) and sit right-aligned on it.
 			local wantWidth = key == "minimap.main" and 160 or RAIL
-			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == wantWidth, label .. ": " .. key .. " sits on the right rail, " .. wantWidth .. " wide on the 28 margin")
+			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == wantWidth, label .. ": " .. key .. " sits on the right rail, " .. wantWidth .. " wide on the margin")
 		end
 		do
 			local map, buffs, debuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
@@ -623,7 +624,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -MARGIN and minimap.y == -MARGIN, "the square map sits on the 28 margin at the top right")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -MARGIN and minimap.y == -MARGIN, "the square map sits on the margin at the top right")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

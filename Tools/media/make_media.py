@@ -42,7 +42,7 @@ PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel
 LUMEN_RADIUS, LUMEN_TILE_RADIUS = 14, 8
 RIM_TEXELS = 3
 # The owner's picture (2026-11-09) draws every card and socket edge as lines one border thick on corners a whole
-# number of border lines round: a card's dark edge line on a five-line corner with its rim one line inside it, a
+# number of border lines round: a card's dark edge line on a six-line corner with its rim one line inside it, a
 # socket's dark edge on a three-line corner. RingLineN is a quarter ring one line thick on the outside of an N-line corner, so the kit
 # draws its corner piece N border lines square and the arc lands on the same whole pixels as the straight runs.
 RING_LINES = (2, 3, 4, 5, 6)
@@ -759,18 +759,18 @@ LUMEN_ASSETS = {
     "LumenShadow",
 }
 PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
-PICTURE_DRAWN = "2026-11-10"
+PICTURE_DRAWN = "2026-11-09"
 
 
 ASSETS = [
     _texture("LumenShape", 128, 128, lambda: draw_rounded(128, SLICE["LumenShape"]),
              "Lumen card shape: a square with 14-unit round corners at 4 texels per unit. Nine-slice fill for the deep tint, the socket body and the dispel tint, or a mask."),
     _texture("CardShape", 128, 128, lambda: draw_rounded(128, SLICE["CardShape"]),
-             "The card's fill: the rounded shape, a file of its own so a render tells a card's fill from a socket's. The kit draws its corner pieces five border lines square, the picture's corner. Nine-slice."),
+             "The card's fill: the rounded shape, a file of its own so a render tells a card's fill from a socket's. The kit draws its corner pieces five border lines square, one line inside the card's six-line edge, the picture's corner. Nine-slice."),
     _texture("LumenOutline", 128, 128, lambda: draw_rim(128, SLICE["LumenOutline"]),
              "Even outline for 8-unit corners: a 0.75-unit line at one strength all round, for bar tracks and highlight rings such as the group frames' target ring. Nine-slice."),
     *(_texture(f"RingLine{n}", RING_TEXELS, RING_TEXELS, lambda n=n: draw_ring_line(RING_TEXELS, n),
-               f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (5), its rim and gilt L-ticks (4), a socket's dark edge (3) and its rim (2); 6 serves a pinned corner. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
+               f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (6), its rim and the arcs of its gilt L-ticks (5), a socket's dark edge (3) and its rim (2); the smaller rings serve a card too short for its full corner. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
       for n in RING_LINES),
     _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
              "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",

@@ -186,7 +186,7 @@ do
 	assert(g.k > 1.3, "the chat window's units are larger than the root's: " .. g.k)
 	local tile = math.max(0, (32 * g.k - 22) / 2)
 	local reach = (2 + 32) * g.k - tile
-	assert(near(select(2, K.Layout.Rect("chat.main")), 28), "the panel sits on the Lumen rails' 28-unit margin")
+	assert(near(select(2, K.Layout.Rect("chat.main")), K.Tokens.Size("screenMargin")), "the panel sits on the screen margin")
 	K.Layout.Set("chat.main", "y", 16)
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)

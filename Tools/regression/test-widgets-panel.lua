@@ -9,7 +9,7 @@ end
 -- A plain panel: snapped size, panel chrome with a shadow, a content frame inside the padding.
 do
 	local env, K, panel = panelWith({ width = 300.3, height = 180 })
-	local Scale, Tokens = K.Scale, K.Tokens
+	local Scale = K.Scale
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
 	assert(W.Near(panel:GetWidth(), Scale.Snap(300.3)) and W.Near(panel:GetHeight(), Scale.Snap(180)), "the size is snapped to whole pixels")
 	assert(panel.chrome and #panel.chrome.fill == 9 and not panel.chrome.shadow[1]:IsShown(), "panel chrome with no shadow: the owner's picture (2026-11-09) casts none")

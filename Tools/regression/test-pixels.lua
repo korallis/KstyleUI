@@ -127,7 +127,8 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 			if i ~= 4 then
 				local w, h = c.gilt[i]:GetSize()
 				assert(whole(w * px) and whole(h * px), where .. ": every tick leg is whole pixels")
-				assert(math.abs(math.min(w, h) * px - linePx) < 1e-6, where .. ": one line thick")
+				local thick = (i == 2 or i == 5) and h or w
+				assert(math.abs(thick * px - linePx) < 1e-6, where .. ": one line thick")
 			end
 		end
 		local reach = (linePx + c.gilt[1]:GetWidth() * px + c.gilt[2]:GetWidth() * px)

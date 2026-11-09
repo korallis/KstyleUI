@@ -516,12 +516,12 @@ local LEGACY = {
 		["groupframes.party"] = { "BOTTOM", -311, 466 },
 		["groupframes.raid"] = { "BOTTOM", -311, 466 },
 		["combattext.player"] = { "BOTTOM", 232, 466 },
-		["unitframes.boss"] = { "TOPLEFT", MARGIN, -MARGIN },
-		["actionbars.bar2"] = { "TOPRIGHT", -BAND, -533 },
-		["actionbars.bar3"] = { "TOPRIGHT", -BAND, -MARGIN },
-		["actionbars.bar4"] = { "TOPRIGHT", -403, -MARGIN },
-		["actionbars.bar5"] = { "TOPRIGHT", -444, -MARGIN },
-		["actionbars.bar6"] = { "TOPRIGHT", -485, -MARGIN },
+		["unitframes.boss"] = { "TOPLEFT", 28, -28 },
+		["actionbars.bar2"] = { "TOPRIGHT", -362, -533 },
+		["actionbars.bar3"] = { "TOPRIGHT", -362, -28 },
+		["actionbars.bar4"] = { "TOPRIGHT", -403, -28 },
+		["actionbars.bar5"] = { "TOPRIGHT", -444, -28 },
+		["actionbars.bar6"] = { "TOPRIGHT", -485, -28 },
 	},
 }
 
