@@ -459,16 +459,9 @@ function ns.ApplyFont(text, section, sizeKey)
 	local path = ns.FontPath(section)
 	local size = ns.Get(section .. "." .. (sizeKey or "fontSize")) * Theme.FontScale()
 	local flags = ns.Get(section .. ".outline")
-	if text:SetFont(path, size, flags) == false then
+	if not K.Widgets.ApplyFont(text, path, size, flags) then
 		local fallback, _, fallbackFlags = Tokens.Font("body")
-		text:SetFont(fallback, size, fallbackFlags)
+		K.Widgets.ApplyFont(text, fallback, size, fallbackFlags)
 		ns.LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; the meters use the interface font")
-	end
-	if flags ~= NO_OUTLINE then
-		text:SetShadowOffset(0, 0)
-	else
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
 	end
 end

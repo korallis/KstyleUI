@@ -131,8 +131,7 @@ local function Fit(self)
 	local barSpace = Widgets.Snap(self, BAR_WIDTH + 2 * BAR_GAP)
 	local width = Plain(self:GetWidth(), opts.width or DEFAULT_WIDTH)
 	local height = Plain(self:GetHeight(), opts.height or DEFAULT_HEIGHT)
-	self.box:SetWidth(max(1, width - 2 * pad - barSpace))
-	self.box:SetHeight(max(1, height - 2 * pad))
+	Widgets.Size(self.box, max(1, width - 2 * pad - barSpace), max(1, height - 2 * pad))
 end
 
 function Area:Restyle()

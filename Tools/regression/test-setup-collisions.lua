@@ -1,7 +1,7 @@
 -- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects and the right rail's story slot at 16:9, 16:10, 21:9 and the owner's 2383 x 1540 on the canvas the shipped Interface size gives (Layouts.HEIGHT), every bar 1 to 6 placed, with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live aura rows at 0 to 40 buffs beside 12 debuffs fit the footprint their preset plans and overlap nothing.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
-local env, K = CoreEnv.New()
+local env, K = CoreEnv.New({ fit = true })
 CoreEnv.Boot(env)
 local Layouts = K.Setup.Layouts
 
@@ -32,6 +32,189 @@ end
 local function Story(name, width)
 	local slot = assert(Layouts.Slot(name), name .. " has a story slot")
 	return { Layouts.Rect(slot, slot, width, HEIGHT) }
+end
+
+-- Match live Layout.Place: snap each size first, then align its anchored bottom-left to the pixel grid.
+local function PhysicalRects(name, width, height, user)
+	local rh = 1080 / user
+	local k = height / rh
+	local rw = width / k
+	local positions = Layouts.Get(name, rh)
+	local rects, keys = {}, {}
+	local function add(key, w, h, position)
+		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5
+		local fy = position.anchor:find("BOTTOM") and 0 or position.anchor:find("TOP") and 1 or 0.5
+		w, h = math.max(1, math.floor(w * k + 0.5)) / k, math.max(1, math.floor(h * k + 0.5)) / k
+		local l, b = rw * fx + position.x - w * fx, rh * fy + position.y - h * fy
+		l, b = math.floor(l * k + 0.5), math.floor(b * k + 0.5)
+		rects[key] = { l, b, l + math.floor(w * k + 0.5), b + math.floor(h * k + 0.5) }
+		keys[#keys + 1] = key
+	end
+	for _, element in ipairs(Layouts.ELEMENTS) do
+		local w, h = Layouts.Footprint(name, element.key)
+		add(element.key, w, h, positions[element.key])
+	end
+	local slot = Layouts.Slot(name, rh)
+	add("story", slot.width, slot.height, slot)
+	return rects, keys
+end
+
+local function PhysicalFit(name, width, height, user)
+	local rects, keys = PhysicalRects(name, width, height, user)
+	for i, key in ipairs(keys) do
+		local r = rects[key]
+		if r[1] < 0 or r[2] < 0 or r[3] > width or r[4] > height or r[3] <= r[1] or r[4] <= r[2] then
+			return false, key .. " leaves the screen or has no area"
+		end
+		for j = i + 1, #keys do
+			local other = keys[j]
+			local s = rects[other]
+			if apart(name, key, other) and overlap(r, s) then
+				local pair = { [key] = true, [other] = true }
+				local sharedDockEdge = pair["databars.micro"] and pair["databars.bags"]
+				if not sharedDockEdge or math.min(r[4], s[4]) - math.max(r[2], s[2]) > 1 then
+					return false, key .. " overlaps " .. other
+				end
+			end
+		end
+	end
+	return true
+end
+
+local SCREENS = {
+	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+}
+local REQUESTS = { 0.6, 16 / 19, 1.5 }
+local capped = 0
+for _, screen in ipairs(SCREENS) do
+	local width, height = screen[1], screen[2]
+	local record = { string.format("fit cap %dx%d:", width, height) }
+	for _, name in ipairs(Layouts.Names()) do
+		local cap = Layouts.ScaleLimit(width, height, name)
+		local label = string.format("%s at %dx%d", name, width, height)
+		assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
+		assert(Layouts.Fits(name, width, height, K.Scale.DEFAULT_USER_SCALE), label .. ": the shipped default fits live placement")
+		assert(Layouts.Fits(name, width, height, cap), label .. ": cap fits the snapped footprints")
+		assert(PhysicalFit(name, width, height, cap), label .. ": independent snapped footprint measurement fits")
+		if cap < K.Scale.MAX_USER_SCALE then
+			assert(not Layouts.Fits(name, width, height, cap + 1e-6), label .. ": binary search reaches the fit boundary")
+			for step = 1, 32 do
+				local larger = cap + (K.Scale.MAX_USER_SCALE - cap) * step / 32
+				assert(not PhysicalFit(name, width, height, larger), label .. ": no larger sampled scale fits")
+			end
+		end
+		for _, requested in ipairs(REQUESTS) do
+			local moved = { anchor = "BOTTOMLEFT", x = 91, y = 77, width = 401, height = 263 }
+			local menv, MK = CoreEnv.New({
+				width = width, height = height, fit = true,
+				saved = {
+					version = K.Store.DB_VERSION,
+					account = { setupSeen = true },
+					profiles = { Default = { Appearance = { uiScale = requested }, Layout = { preset = name } } },
+					layouts = { Default = { ["chat.main"] = CoreEnv.DeepCopy(moved) } },
+				},
+			})
+			CoreEnv.Boot(menv)
+			local applied = MK.Scale.AppliedUserScale()
+			local expected = math.min(requested, cap)
+			local where = label .. " requested " .. requested
+			assert(math.abs(MK.Scale.MaxUserScale() - cap) < 1e-9, where .. ": service uses the preset cap")
+			assert(math.abs(applied - expected) < 1e-9, where .. ": service applies the capped size")
+			assert(MK.Scale.UserScale() == requested and MK.Appearance.Get("uiScale") == requested, where .. ": the request remains saved and readable")
+			assert(CoreEnv.DeepEqual(MK.Store.Layout()["chat.main"], moved), where .. ": moved elements are unchanged")
+			assert(math.abs(MK.Scale.Root():GetEffectiveScale() * 1080 / 768 - applied) < 1e-9, where .. ": applied size drives the root")
+			local fits, why = PhysicalFit(name, width, height, applied)
+			assert(fits, where .. ": " .. tostring(why))
+			assert(Layouts.Fits(name, width, height, applied), where .. ": predicate agrees with the independent rects")
+			assert(#menv._errors == 0, tostring(menv._errors[1]))
+			capped = capped + 1
+		end
+		record[#record + 1] = string.format("%s %.9f", name, cap)
+	end
+	print(table.concat(record, " "))
+end
+
+-- Only the shared micro/bags dock edge gets a one-pixel contact allowance, never a general overlap tolerance.
+do
+	local get = Layouts.Get
+	local k = 0.6
+	local overlapPixels = 1
+	Layouts.Get = function(name, rh)
+		local positions = get(name, rh)
+		local micro = positions["databars.micro"]
+		local _, height = Layouts.Footprint(name, "databars.micro")
+		local top = math.floor(micro.y * k + 0.5) + math.floor(height * k + 0.5)
+		positions["databars.bags"].y = (top - overlapPixels) / k
+		return positions
+	end
+	assert(Layouts.Fits("DPS", 1920, 1080, k), "one pixel of contact at the shared dock boundary is intentional")
+	assert(PhysicalFit("DPS", 1920, 1080, k), "the independent live model permits that same shared boundary")
+	overlapPixels = 2
+	assert(not Layouts.Fits("DPS", 1920, 1080, k), "two pixels at the shared dock boundary are refused")
+	assert(not PhysicalFit("DPS", 1920, 1080, k), "the independent live model also refuses two pixels")
+	Layouts.Get = get
+end
+
+-- The original owner-window failure must remain a failure before the service applies the cap.
+do
+	local unsafeRaid = PhysicalRects("Healer", 1920, 1080, 1.035953979)
+	assert(unsafeRaid["groupframes.raid"][4] == 1081, "the old edge-only cap puts the live raid one pixel off screen")
+	assert(not Layouts.Fits("Healer", 1920, 1080, 1.035953979), "live placement rejects the old edge-only false positive")
+	local rects = PhysicalRects("DPS", 2383, 1540, 1.5)
+	assert(overlap(rects["chat.main"], rects["unitframes.player"]), "uncapped owner-window chat overlaps the player")
+	assert(not Layouts.Fits("DPS", 2383, 1540, 1.5), "uncapped owner-window defaults do not fit")
+	assert(Layouts.ScaleLimit(0, 1540, "DPS") == K.Scale.DEFAULT_USER_SCALE, "unknown physical width falls back to the shipped default")
+	assert(Layouts.ScaleLimit(2383, 0 / 0, "DPS") == K.Scale.DEFAULT_USER_SCALE, "invalid physical height falls back safely")
+	assert(Layouts.ScaleLimit(2383, 1540, "unknown") == Layouts.ScaleLimit(2383, 1540, "DPS"), "unknown preset uses DPS")
+	assert(not Layouts.Fits("unknown", 2383, 1540, 1), "unknown preset does not fit")
+	assert(not Layouts.Fits("DPS", 2383, 1540, env.Secret(1)), "secret scales are refused without arithmetic")
+end
+
+-- Display changes restore as much of the saved request as the new aspect can fit, without rewriting it.
+do
+	local screen = { 2383, 1540 }
+	local menv, MK = CoreEnv.New({
+		width = screen[1], height = screen[2], fit = true,
+		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = { Default = { Appearance = { uiScale = 1.5 }, Layout = { preset = "DPS" } } } },
+		setup = function(e)
+			e.GetPhysicalScreenSize = function() return screen[1], screen[2] end
+		end,
+	})
+	CoreEnv.Boot(menv)
+	local narrow = MK.Scale.AppliedUserScale()
+	screen[1], screen[2] = 5120, 1440
+	menv.FireEvent("DISPLAY_SIZE_CHANGED")
+	assert(MK.Scale.AppliedUserScale() > narrow, "a wider aspect restores more of the requested size")
+	assert(math.abs(MK.Scale.AppliedUserScale() - Layouts.ScaleLimit(5120, 1440, "DPS")) < 1e-9, "restoration stops at the new fit cap")
+	MK.Options.Write("Layout", "preset", "Healer")
+	assert(math.abs(MK.Scale.AppliedUserScale() - Layouts.ScaleLimit(5120, 1440, "Healer")) < 1e-9, "changing preset recomputes the cap")
+	assert(MK.Appearance.Get("uiScale") == 1.5 and MK.Scale.UserScale() == 1.5, "aspect and preset changes preserve the saved request")
+	assert(#menv._errors == 0, tostring(menv._errors[1]))
+end
+
+-- The options control exposes the applied cap without overwriting the larger saved request.
+do
+	local O = dofile("Tools/regression/options_env.lua")
+	local oenv, OK, ons = O.New({
+		width = 2383, height = 1540, fit = true,
+		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = { Default = { Appearance = { uiScale = 1.5 } } } },
+	})
+	local list = { view = OK.Scale.Root(), GetViewWidth = function() return 800 end }
+	local row = ons.Rows.Create(list)
+	local items = ons.Model.SchemaItems("Appearance", OK.Appearance.schema, "General")
+	local item
+	for _, entry in ipairs(items) do
+		if entry.key == "uiScale" then item = entry end
+	end
+	assert(item, "the interface size has a real schema row")
+	ons.Rows.Update(row, item, nil, list)
+	local slider = row.controls.slider
+	assert(slider.max == OK.Scale.MaxUserScale(), "the slider never offers a size above the actual fit maximum")
+	assert(slider:GetValue() == OK.Scale.AppliedUserScale(), "a capped request displays its actual size")
+	assert(OK.Options.Read("Appearance", "uiScale") == 1.5, "filling the slider never writes the clamped display value")
+	assert(OK.Options.Row("Appearance", "uiScale").max == 1.5, "the schema keeps the portable profile storage range")
+	assert(#oenv._errors == 0, tostring(oenv._errors[1]))
 end
 
 -- A reserve is room kept around an element, never less than the element ------------------------------------------
@@ -246,4 +429,4 @@ do
 	assert(#aenv._errors == 0, tostring(aenv._errors[1]))
 end
 
-print("setup collisions ok: " .. bars .. " action bar rects clear of the play field; " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each, " .. blessings .. " aura row states")
+print("setup collisions ok: " .. capped .. " capped screen/preset/request cases; " .. bars .. " action bar rects clear of the play field; " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each, " .. blessings .. " aura row states")

@@ -29,12 +29,17 @@ do
 	local Snap = K.Scale.Snap
 	assert(W.Near(across:GetWidth(), Snap(6)) and W.Near(across:GetHeight(), Snap(1)), "the design's 6-unit star")
 	local a, d = across._points[1], down._points[1]
-	assert(a[1] == "CENTER" and a[2] == frame and a[3] == "TOPRIGHT" and W.Near(a[4], d[4]) and W.Near(a[5], d[5]), "crossed at the top right corner")
-	assert(W.Near(a[4], -Snap(3)) and W.Near(a[5], -Snap(2.5)), "3 units in from the right edge and 2.5 below the top, over the hairline")
+	assert(a[1] == "TOPRIGHT" and a[2] == frame and a[3] == "TOPRIGHT" and d[1] == "TOPRIGHT", "the streaks use corner anchors so odd pixel sizes never straddle the grid")
+	for _, streak in ipairs({ across, down }) do
+		local p = streak._points[1]
+		assert(W.Near(p[4], Snap(streak:GetWidth() / 2 - Snap(3))) and W.Near(p[5], Snap(streak:GetHeight() / 2 - Snap(2.5))), "the star stays within half a pixel of 3 units in and 2.5 below the top")
+	end
 	local core = glow.core
 	assert(core and core:GetParent() == glow.top and W.LastCall(core, "SetBlendMode")[1] == "ADD", "an additive glow over the icon")
 	assert(W.Near(core:GetWidth(), Snap(1.2 * 34)) and W.Near(core:GetHeight(), core:GetWidth()), "its radius is 60% of the frame")
-	assert(W.SameColor(core, r, g, b, 0.35) and core._points[1][1] == "CENTER", "the accent at 35%, centred")
+	assert(W.SameColor(core, r, g, b, 0.35) and core._points[1][1] == "TOPLEFT", "the accent at 35%, centred by snapped corner offsets")
+	local cp = core._points[1]
+	assert(W.Near(cp[4], Snap((frame:GetWidth() - core:GetWidth()) / 2)) and W.Near(cp[5], -Snap((frame:GetHeight() - core:GetHeight()) / 2)), "the glow's edges stay whole even when its diameter is odd pixels")
 	assert(W.SameRGB(across, r, g, b) and W.SameRGB(down, r, g, b), "the spark is the accent, like the rest of the theme")
 	glow:Start()
 	assert(#W.Calls(glow.pulse, "Play") == 1, "Start twice plays once")

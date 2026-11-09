@@ -66,7 +66,7 @@ local function Verify(path)
 		probe = Widgets.FontString(holder, "ARTWORK")
 		state.probe = probe
 	end
-	local ok, loaded = pcall(probe.SetFont, probe, path, PROBE_SIZE, "")
+	local ok, loaded = pcall(Widgets.ApplyFont, probe, path, PROBE_SIZE, "")
 	return ok and loaded ~= false
 end
 

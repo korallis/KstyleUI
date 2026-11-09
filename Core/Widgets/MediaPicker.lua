@@ -80,7 +80,7 @@ end
 
 local function FontRow(row, option)
 	local _, size, flags = Tokens.Font("body")
-	if row.label:SetFont(option.value, size, flags) == false then
+	if Widgets.ApplyFont(row.label, option.value, size, flags) == false then
 		Widgets.StyleText(row.label, "body")
 	end
 end

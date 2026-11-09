@@ -15,6 +15,8 @@ local BAR_ICON_OUTSET = 2
 local CVAR = "cooldownViewerEnabled"
 
 local active = {}
+local watchedItems = setmetatable({}, { __mode = "k" })
+local watchedViewers = setmetatable({}, { __mode = "k" })
 local hinted = false
 
 local function IsTexture(region)
@@ -54,9 +56,13 @@ local function ItemScale(item)
 end
 
 local function Outset(backdrop, outset)
-	if backdrop and backdrop.inset ~= -outset then
-		backdrop.inset = -outset
-		backdrop:Restyle()
+	if backdrop then
+		local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(backdrop)
+		if backdrop.inset ~= -outset or backdrop.reskinPixel ~= pixel then
+			backdrop.inset, backdrop.reskinPixel = -outset, pixel
+			backdrop:Restyle()
+			backdrop.chrome:Restyle()
+		end
 	end
 	return backdrop
 end
@@ -110,6 +116,14 @@ function Reskin.Item(group, item)
 	if not active[group] or type(item) ~= "table" then
 		return
 	end
+	if not watchedItems[item] and type(item.SetScale) == "function" then
+		watchedItems[item] = group
+		hooksecurefunc(item, "SetScale", function(frame)
+			Reskin.Item(watchedItems[frame], frame)
+		end)
+	else
+		watchedItems[item] = group
+	end
 	if group == "bars" then
 		SkinBar(item)
 	else
@@ -138,6 +152,16 @@ function Reskin.Start(group)
 		return false
 	end
 	active[group] = true
+	local frame = Viewers.Frame(group)
+	if not watchedViewers[frame] and type(frame.SetScale) == "function" then
+		watchedViewers[frame] = group
+		hooksecurefunc(frame, "SetScale", function(viewer)
+			local current = watchedViewers[viewer]
+			if active[current] then
+				Viewers.EachItem(current, Reskin.Item)
+			end
+		end)
+	end
 	Viewers.EachItem(group, Reskin.Item)
 	if group == "buffs" then
 		Cap.Start()

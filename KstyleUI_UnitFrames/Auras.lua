@@ -124,6 +124,9 @@ end
 
 function Auras.StyleSample(tile, kind)
 	local view = { kind = kind }
+	local inset = Widgets.Snap(tile.skin, COUNT_INSET)
+	tile.count:ClearAllPoints()
+	tile.count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", inset, inset)
 	StyleText(tile.count, view)
 	StyleText(tile.timer, view)
 	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge)
@@ -182,7 +185,8 @@ function Auras.PlaceTimer(timer, skin, kind, badge)
 		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, TIMER_BELOW_GAP))
 		timer:SetJustifyH("CENTER")
 	else
-		timer:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -COUNT_INSET, COUNT_INSET)
+		local inset = Widgets.Snap(skin, COUNT_INSET)
+		timer:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
 		timer:SetJustifyH("RIGHT")
 	end
 	if badge then
@@ -208,6 +212,9 @@ local function StyleButton(view, entry)
 	local size = Snap(view, Value(view, "auraSize"))
 	entry.button:SetSize(size, size)
 	Auras.LayoutTile(entry)
+	local inset = Widgets.Snap(entry.skin, COUNT_INSET)
+	entry.count:ClearAllPoints()
+	entry.count:SetPoint("TOPRIGHT", entry.skin, "TOPRIGHT", inset, inset)
 	StyleText(entry.count, view)
 	StyleText(entry.timer, view)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge)

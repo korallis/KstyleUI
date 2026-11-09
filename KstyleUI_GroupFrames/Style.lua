@@ -132,17 +132,10 @@ end
 
 local function SetFont(text, path, size, outline)
 	local flags = outline == "NONE" and "" or outline
-	if text:SetFont(path, size, flags) == false then
+	if not Widgets.ApplyFont(text, path, size, flags) then
 		local fallback = Tokens.Font("body")
-		text:SetFont(fallback, size, flags)
+		Widgets.ApplyFont(text, fallback, size, flags)
 		LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; group frames use the KstyleUI font")
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
 	end
 end
 Style.SetFont = SetFont

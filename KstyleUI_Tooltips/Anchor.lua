@@ -18,6 +18,7 @@ local FALLBACK = {
 }
 
 local holder
+local holderWidth, holderHeight
 local hooked = false
 
 function Anchor.Frame()
@@ -41,9 +42,16 @@ function Anchor.Build()
 	end
 	local label, width, height, position = Element()
 	holder = CreateFrame("Frame", nil, K.Scale.Root())
-	holder:SetSize(width, height)
+	holderWidth, holderHeight = width, height
 	K.Widgets.Place(holder, KEY, position, { label = label, module = ns.MODULE, scalable = true, fields = { "anchor", "x", "y", "scale" } })
+	Anchor.Resize()
 	return holder
+end
+
+function Anchor.Resize()
+	if holder then
+		K.Widgets.Size(holder, holderWidth, holderHeight)
+	end
 end
 
 function Anchor.Scale()
