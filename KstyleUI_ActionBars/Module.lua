@@ -140,13 +140,18 @@ local function UpdateAll()
 	UpdateStances()
 end
 
+local function UpdateChangedSlot(button)
+	button.gcd = nil
+	ns.Button.Update(button)
+end
+
 local function OnSlotChanged(_, slot)
 	if ns.IsSecret(slot) or type(slot) ~= "number" or slot == 0 then
-		ForActions(ns.Button.Update)
+		ForActions(UpdateChangedSlot)
 		ns.Flyout.QueueRefresh()
 	else
 		ns.Flyout.SlotChanged(slot)
-		ForSlot(slot, ns.Button.Update)
+		ForSlot(slot, UpdateChangedSlot)
 	end
 end
 
@@ -223,6 +228,21 @@ local function OnCooldown()
 	ForActions(ns.Button.UpdateCooldown)
 end
 
+local function UpdateTrustedCooldown(button)
+	ns.Button.UpdateCooldown(button, true)
+end
+
+local function OnSpellCooldown()
+	ForActions(UpdateTrustedCooldown)
+	for _, button in ipairs(ns.petButtons) do
+		ns.Button.Update(button, true)
+	end
+	for _, button in ipairs(ns.stanceButtons) do
+		ns.Button.Update(button, true)
+	end
+	ns.Flyout.UpdateCooldown()
+end
+
 local function OnCharges()
 	ForActions(ns.Button.UpdateCount)
 	ForActions(ns.Button.UpdateCooldown)
@@ -294,7 +314,7 @@ local EVENTS = {
 	PLAYER_ENTERING_WORLD = UpdateAll,
 	ACTIONBAR_SLOT_CHANGED = OnSlotChanged,
 	ACTIONBAR_UPDATE_COOLDOWN = OnCooldown,
-	SPELL_UPDATE_COOLDOWN = OnCooldown,
+	SPELL_UPDATE_COOLDOWN = OnSpellCooldown,
 	SPELL_UPDATE_CHARGES = OnCharges,
 	BAG_UPDATE_DELAYED = OnCharges,
 	ACTIONBAR_UPDATE_STATE = OnState,
@@ -308,7 +328,10 @@ local EVENTS = {
 	PLAYER_TARGET_CHANGED = OnTarget,
 	SPELL_ACTIVATION_OVERLAY_GLOW_SHOW = OnProc,
 	SPELL_ACTIVATION_OVERLAY_GLOW_HIDE = OnProc,
-	SPELL_UPDATE_ICON = OnSlotChanged,
+	SPELL_UPDATE_ICON = function()
+		ForActions(ns.Button.Update)
+		ns.Flyout.QueueRefresh()
+	end,
 	UPDATE_MACROS = OnSlotChanged,
 	UPDATE_BINDINGS = function()
 		ns.ApplyBindings()

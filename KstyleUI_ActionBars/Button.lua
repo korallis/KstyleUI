@@ -130,7 +130,7 @@ local function CooldownInfo(bar, slot)
 	return type(info) == "table" and info or nil
 end
 
-function Button.UpdateCooldown(b)
+function Button.UpdateCooldown(b, trusted)
 	if not b.hasAction then
 		b:ClearCooldown()
 		b:ClearChargeCooldown()
@@ -138,7 +138,10 @@ function Button.UpdateCooldown(b)
 	end
 	local slot, bar = b.slot, C_ActionBar
 	local info = CooldownInfo(bar, slot)
-	local gcd = info ~= nil and Flag(info.isOnGCD, false)
+	if trusted and info then
+		b.gcd = Flag(info.isOnGCD, false)
+	end
+	local gcd = b.gcd == true
 	if type(bar.GetActionCooldownDuration) == "function" then
 		local duration = bar.GetActionCooldownDuration(slot)
 		if duration then
@@ -276,13 +279,18 @@ local function UpdateAction(b)
 	b.hasAction = has
 	if has then
 		b:SetIcon(bar.GetActionTexture(slot))
-		b.spellID = SpellOf(slot)
+		local spellID = SpellOf(slot)
+		if b.spellID ~= spellID then
+			b.gcd = nil
+		end
+		b.spellID = spellID
 		b.isFlyout = ns.Flyout.FlyoutOf(slot) ~= nil
 		local charges = type(bar.GetActionCharges) == "function" and bar.GetActionCharges(slot)
 		local most = type(charges) == "table" and Plain(charges.maxCharges)
 		b.hasCharges = type(most) == "number" and most > 1
 	else
 		b:SetIcon(nil)
+		b.gcd = nil
 		b.spellID, b.hasCharges, b.isFlyout = nil, false, false
 	end
 	local wantRange = has and b.index <= b.kbar.count and b.kbar:Shown()
@@ -303,21 +311,24 @@ local function UpdateAction(b)
 	Button.UpdateAlpha(b)
 end
 
-local function SpellOnGlobalCooldown(spell, spellID)
-	if type(spell.GetSpellCooldown) ~= "function" then
-		return false
+local function SpellOnGlobalCooldown(b, spell, spellID, trusted)
+	if b.gcdSpell ~= spellID then
+		b.gcdSpell, b.gcd = spellID, nil
 	end
-	local info = spell.GetSpellCooldown(spellID)
-	return type(info) == "table" and Flag(info.isOnGCD, false)
+	if trusted and type(spell.GetSpellCooldown) == "function" then
+		local info = spell.GetSpellCooldown(spellID)
+		b.gcd = type(info) == "table" and Flag(info.isOnGCD, false)
+	end
+	return b.gcd == true
 end
 Button.SpellOnGlobalCooldown = SpellOnGlobalCooldown
 
-local function SpellCooldown(b, spellID, start, duration)
+local function SpellCooldown(b, spellID, start, duration, trusted)
 	local spell = C_Spell
 	if spellID and not IsSecret(spellID) and spell and type(spell.GetSpellCooldownDuration) == "function" then
 		local object = spell.GetSpellCooldownDuration(spellID)
 		if object then
-			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(spell, spellID))
+			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(b, spell, spellID, trusted))
 		else
 			b:ClearCooldown()
 		end
@@ -331,7 +342,7 @@ local function SpellCooldown(b, spellID, start, duration)
 	end
 end
 
-local function UpdatePet(b)
+local function UpdatePet(b, trusted)
 	local i = b.index
 	local name, texture, isToken, isActive, autoCastAllowed, autoCastEnabled, spellID
 	if type(GetPetActionInfo) == "function" then
@@ -363,14 +374,14 @@ local function UpdatePet(b)
 		if type(GetPetActionCooldown) == "function" then
 			start, duration = GetPetActionCooldown(i)
 		end
-		SpellCooldown(b, b.petSpell, start, duration)
+		SpellCooldown(b, b.petSpell, start, duration, trusted)
 	else
 		b:ClearCooldown()
 	end
 	Button.UpdateAlpha(b)
 end
 
-local function UpdateStance(b)
+local function UpdateStance(b, trusted)
 	local i = b.index
 	local texture, isActive, isCastable, spellID
 	if type(GetShapeshiftFormInfo) == "function" then
@@ -389,20 +400,20 @@ local function UpdateStance(b)
 		if type(GetShapeshiftFormCooldown) == "function" then
 			start, duration = GetShapeshiftFormCooldown(i)
 		end
-		SpellCooldown(b, b.formSpell, start, duration)
+		SpellCooldown(b, b.formSpell, start, duration, trusted)
 	else
 		b:ClearCooldown()
 	end
 end
 
-function Button.Update(b)
+function Button.Update(b, trusted)
 	local kind = b.kind
 	if kind == "action" then
 		UpdateAction(b)
 	elseif kind == "pet" then
-		UpdatePet(b)
+		UpdatePet(b, trusted)
 	else
-		UpdateStance(b)
+		UpdateStance(b, trusted)
 	end
 end
 
@@ -411,6 +422,7 @@ function Button.SetSlot(b, slot)
 		return false
 	end
 	b.slot = slot
+	b.gcd = nil
 	UpdateAction(b)
 	return true
 end

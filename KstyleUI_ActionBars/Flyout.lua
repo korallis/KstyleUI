@@ -55,6 +55,7 @@ local OWNER_SNIPPET = ([[
 		if i <= count then
 			local offset = (i - 1) * (size + gap)
 			button:SetAttribute("spell", control:GetAttribute("flyout" .. id .. "s" .. i))
+			button:SetAttribute("displaySpell", control:GetAttribute("flyout" .. id .. "d" .. i))
 			button:SetWidth(size)
 			button:SetHeight(size)
 			button:ClearAllPoints()
@@ -98,19 +99,25 @@ local function SpellTexture(spell)
 	end
 end
 
-local function UpdateButtons(frame)
+local function UpdateButtons(frame, trusted)
 	for _, b in ipairs(Flyout.buttons) do
 		local spell = b:GetAttribute("spell")
-		b:SetIcon(SpellTexture(spell))
+		b:SetIcon(SpellTexture(b:GetAttribute("displaySpell") or spell))
 		local api = C_Spell
 		local duration = spell and api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spell)
 		if duration then
-			b:SetCooldownFromDuration(duration, ns.Button.SpellOnGlobalCooldown(api, spell))
+			b:SetCooldownFromDuration(duration, ns.Button.SpellOnGlobalCooldown(b, api, spell, trusted))
 		else
 			b:ClearCooldown()
 		end
 	end
 	ns.Flyout.shownFor = frame:GetAttribute("owner")
+end
+
+function Flyout.UpdateCooldown()
+	if Flyout.frame and Flyout.frame:IsShown() then
+		UpdateButtons(Flyout.frame, true)
+	end
 end
 
 local function ShowTooltip(b)
@@ -188,13 +195,14 @@ local function Spells(id)
 	end
 	local lastName
 	for i = 1, slots do
-		local spell, _, spellKnown, name = GetFlyoutSlotInfo(id, i)
+		local spell, override, spellKnown, name = GetFlyoutSlotInfo(id, i)
 		if not ns.IsSecret(spell) and type(spell) == "number" and not ns.IsSecret(spellKnown) and spellKnown then
+			local display = not ns.IsSecret(override) and type(override) == "number" and override or spell
 			local plainName = not ns.IsSecret(name) and name or nil
 			if plainName and plainName == lastName and #list > 0 then
-				list[#list] = spell
+				list[#list] = { spell = spell, display = display }
 			elseif #list < MAX_SPELLS then
-				list[#list + 1] = spell
+				list[#list + 1] = { spell = spell, display = display }
 			end
 			lastName = plainName
 		end
@@ -207,7 +215,8 @@ local function Store(id)
 	local list = Spells(id)
 	frame:SetAttribute("flyout" .. id .. "n", #list)
 	for i, spell in ipairs(list) do
-		frame:SetAttribute("flyout" .. id .. "s" .. i, spell)
+		frame:SetAttribute("flyout" .. id .. "s" .. i, spell.spell)
+		frame:SetAttribute("flyout" .. id .. "d" .. i, spell.display)
 	end
 	known[id] = true
 end

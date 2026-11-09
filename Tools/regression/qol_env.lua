@@ -154,6 +154,10 @@ function Q.Game(env)
 		GetCVar = function(name)
 			return env._cvars[name]
 		end,
+		GetCVarInfo = function(name)
+			local value = env._cvars[name]
+			if value then return value, value, false, false, false, false, false end
+		end,
 		SetCVar = Recorder(env, "SetCVar", function(name, value)
 			if env._refuseCVar then
 				return false

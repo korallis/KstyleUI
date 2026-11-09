@@ -459,7 +459,7 @@ local function InstallGame(env, opts)
 		local f = g.flyouts[id]
 		local s = f and f.slots[i]
 		if s then
-			return s.spellID, s.spellID, s.known ~= false, s.name, 0
+			return s.spellID, s.overrideSpellID or s.spellID, s.known ~= false, s.name, 0
 		end
 	end
 	env.C_Spell.GetSpellTexture = function(id)

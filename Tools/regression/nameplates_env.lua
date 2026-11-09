@@ -401,6 +401,10 @@ function N.Install(env, opts)
 		GetCVar = function(name)
 			return env._cvars[name]
 		end,
+		GetCVarInfo = function(name)
+			local value = env._cvars[name]
+			if value then return value, env._cvarDefaults[name], false, false, false, false, false end
+		end,
 		GetCVarDefault = function(name)
 			return env._cvarDefaults[name]
 		end,

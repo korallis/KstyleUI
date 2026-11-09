@@ -93,18 +93,19 @@ Case("after a reload nothing is written again, and the player's values still com
 	assert(env._cvars[SELF] == "1" and Targets(env, "1"), "the player's values survive the reload")
 end)
 
-for _, info in ipairs({ true, false }) do
-	Case("a CVar saved for every character is remembered once, one saved per character per character (GetCVarInfo " .. tostring(info) .. ")", function()
-		local function setup(e)
-			e.C_CVar.GetCVarInfo = info and e.C_CVar.GetCVarInfo or nil
-		end
-		local env, K = Relog(On({ setup = setup }), "Alt", setup)
-		assert(K.Modules.IsRunning("CombatText"), "the module starts on the alt")
-		Off(env, K)
-		assert(Targets(env, "1"), "the numbers over targets come back as the first character had them")
-		assert(env._cvars[SELF] == "0", "the alt's own text over you stays as the alt had it")
-	end)
-end
+Case("a CVar saved for every character is remembered once, one saved per character per character", function()
+	local env, K = Relog(On(), "Alt")
+	assert(K.Modules.IsRunning("CombatText"), "the module starts on the alt")
+	Off(env, K)
+	assert(Targets(env, "1"), "the numbers over targets come back as the first character had them")
+	assert(env._cvars[SELF] == "0", "the alt's own text over you stays as the alt had it")
+end)
+
+Case("a missing CVar info API leaves combat text untouched", function()
+	local env, K = On({ setup = function(e) e.C_CVar.GetCVarInfo = nil end })
+	assert(env._cvars[SELF] == "1" and Targets(env, "1") and #env._cvarWrites == 0, "without a probe no writes are attempted")
+	Off(env, K)
+end)
 
 Case("a change made outside Blizzard's Settings panel is put back; one made in it becomes KstyleUI's setting", function()
 	local env, K = On()
