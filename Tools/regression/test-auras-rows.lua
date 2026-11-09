@@ -224,6 +224,33 @@ check(bg.candidateFilters == nil and chip.pairs[1].a._groups.count.candidateFilt
 K.Options.Write("Auras", "buffs.tracked", "cdm")
 env.RunTimers()
 check(bg.candidateFilters and bg.candidateFilters.excludeSpellIDs[1001], "and back")
+-- The player's own Cooldown Manager layout wins over the default set (codex review): a tracked buff the player
+-- removed from the viewer, or moved to another category, shows in the row; a cooldown the default set hides
+-- (HideByDefault) or the player has not learned is never excluded; the layout's changes reach the filter through
+-- CooldownViewerSettings.OnDataChanged.
+env._tracked[506] = { spellID = 1006, flags = env.Enum.CooldownSetSpellFlags.HideByDefault }
+env._tracked[507] = { spellID = 1007, isKnown = false }
+env.FireEvent("COOLDOWN_VIEWER_DATA_LOADED")
+check(bg.candidateFilters.excludeSpellIDs[1006] == nil and bg.candidateFilters.excludeSpellIDs[1007] == nil, "a hidden-by-default or unlearned cooldown is not excluded")
+env._cdmLayout = { [501] = false, [502] = env.Enum.CooldownViewerCategory.Essential, [506] = env.Enum.CooldownViewerCategory.TrackedBuff }
+A.Trigger(env, "CooldownViewerSettings.OnDataChanged")
+local filter = bg.candidateFilters and bg.candidateFilters.excludeSpellIDs
+check(filter and filter[1001] == nil and filter[1002] == nil and filter[2002] == nil, "a tracked buff the player removed or moved shows in the row")
+check(filter[1004] == true and filter[1006] == true, "the buffs the player's layout tracks are left out, a hidden-by-default one the player added too")
+env._cdmLayout = nil
+A.Trigger(env, "CooldownViewerSettings.OnDataChanged")
+check(bg.candidateFilters.excludeSpellIDs[1001] == true, "without a clean saved layout the default set counts again")
+-- The viewer's own visibility: hidden or in-combat-only in Edit Mode, the tracked row is not a place the buff
+-- shows, so the row keeps every buff (codex review).
+env.BuffIconCooldownViewer.visibleSetting = env.Enum.CooldownViewerVisibleSetting.Hidden
+A.Trigger(env, "EditMode.Exit")
+check(bg.candidateFilters == nil, "with the tracked-buff viewer hidden the row shows every buff")
+env.BuffIconCooldownViewer.visibleSetting = env.Enum.CooldownViewerVisibleSetting.InCombat
+A.Trigger(env, "EditMode.Exit")
+check(bg.candidateFilters == nil, "an in-combat-only viewer leaves the buffs out of combat with no place: the row shows them")
+env.BuffIconCooldownViewer.visibleSetting = env.Enum.CooldownViewerVisibleSetting.Always
+A.Trigger(env, "EditMode.Exit")
+check(bg.candidateFilters and bg.candidateFilters.excludeSpellIDs[1001], "shown always, the filter returns")
 check(K.Options.Row("Auras", "buffs.tracked") and K.Options.Row("Auras", "buffs.tracked").type == "dropdown", "the choice is a dropdown on the Auras page")
 check(K.Options.Row("Auras", "card.docked") == nil and K.Options.Row("Auras", "debuffs.dispelFirst") == nil, "the card and dispellable-first rows are gone")
 

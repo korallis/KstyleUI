@@ -393,6 +393,20 @@ function A.Engine(env, opts)
 	env._cvars = env._cvars or {}
 	env._cvars.cooldownViewerEnabled = "1"
 	env.Enum.CooldownViewerCategory = env.Enum.CooldownViewerCategory or { Essential = 0, Utility = 1, TrackedBuff = 2, TrackedBar = 3 }
+	-- A def may carry flags (Enum.CooldownSetSpellFlags.HideByDefault hides it from the default set), isKnown, and
+	-- a category. env._cdmLayout = { [cooldownID] = category } is the player's saved layout (nil: none saved, or
+	-- dirty), read through CooldownViewerSettings:GetDataProvider() as Blizzard's viewers read it; a layout entry
+	-- moves a cooldown to another category or drops it (false). env.BuffIconCooldownViewer.visibleSetting is the
+	-- tracked-buff viewer's Edit Mode visibility. EventRegistry callbacks fire with A.Trigger.
+	env.Enum.CooldownSetSpellFlags = env.Enum.CooldownSetSpellFlags or { HideByDefault = 2 }
+	env.Enum.CooldownViewerVisibleSetting = env.Enum.CooldownViewerVisibleSetting or { Always = 0, InCombat = 1, Hidden = 2 }
+	local function info(id, def)
+		return {
+			cooldownID = id, spellID = def.spellID, overrideSpellID = def.overrideSpellID, linkedSpellIDs = def.linkedSpellIDs or {},
+			selfAura = true, hasAura = true, flags = def.flags or 0, isKnown = def.isKnown ~= false,
+			category = def.category or env.Enum.CooldownViewerCategory.TrackedBuff,
+		}
+	end
 	env.C_CooldownViewer = {
 		GetCooldownViewerCategorySet = function(category, allowUnlearned)
 			local ids = {}
@@ -409,10 +423,50 @@ function A.Engine(env, opts)
 			if not def then
 				return nil
 			end
-			return { cooldownID = id, spellID = def.spellID, overrideSpellID = def.overrideSpellID, linkedSpellIDs = def.linkedSpellIDs or {}, selfAura = true, hasAura = true }
+			return info(id, def)
 		end,
 		IsCooldownViewerAvailable = function()
 			return env._cdmAvailable ~= false, env._cdmAvailable ~= false and "" or "not yet"
+		end,
+	}
+	env._cdmLayout = nil
+	env.CooldownViewerSettings = {
+		GetDataProvider = function()
+			local layout = env._cdmLayout
+			local provider = {}
+			function provider.IsDirty()
+				return layout == nil
+			end
+			function provider.GetDisplayData()
+				local order, byID = {}, {}
+				for id, def in pairs(env._tracked) do
+					local category = layout and layout[id]
+					if category ~= false then
+						order[#order + 1] = id
+						byID[id] = info(id, def)
+						if category ~= nil then
+							byID[id].category = category
+						end
+					end
+				end
+				table.sort(order)
+				return { orderedCooldownIDs = order, cooldownInfoByID = byID }
+			end
+			return provider
+		end,
+	}
+	env.BuffIconCooldownViewer = env.CreateFrame("Frame", "BuffIconCooldownViewer", env.UIParent)
+	env.BuffIconCooldownViewer.visibleSetting = env.Enum.CooldownViewerVisibleSetting.Always
+	env._callbacks = {}
+	env.EventRegistry = env.EventRegistry or {
+		RegisterCallback = function(_, event, fn, owner)
+			env._callbacks[event] = env._callbacks[event] or {}
+			env._callbacks[event][owner or fn] = fn
+		end,
+		UnregisterCallback = function(_, event, owner)
+			if env._callbacks[event] then
+				env._callbacks[event][owner] = nil
+			end
 		end,
 	}
 	env.C_CVar = env.C_CVar or {}
@@ -602,6 +656,13 @@ function A.Counters(ns, counts)
 	end
 	if debuffs and debuffs.chip then
 		A.Ghosts(debuffs.chip, { (counts[2] or 0) + (counts[3] or 0) })
+	end
+end
+
+-- Trigger(env, event, ...) runs every EventRegistry callback registered for the event.
+function A.Trigger(env, event, ...)
+	for owner, fn in pairs(env._callbacks[event] or {}) do
+		fn(owner, ...)
 	end
 end
 
