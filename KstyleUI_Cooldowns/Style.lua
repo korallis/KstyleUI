@@ -79,10 +79,10 @@ function Style.Font(text, choice, size, outline, role)
 	if flags == nil or flags == "none" then
 		flags = ""
 	end
-	local ok = text:SetFont(Style.FontPath(choice, role), size * scale, flags)
-	if ok == false then
+	local ok = Widgets.ApplyFont(text, Style.FontPath(choice, role), size * scale, flags)
+	if not ok then
 		ns.LogOnce("font-" .. tostring(choice), "the font " .. tostring(choice) .. " did not load; using the kit's font")
-		text:SetFont(Style.FontPath("kit", role), size * scale, flags)
+		Widgets.ApplyFont(text, Style.FontPath("kit", role), size * scale, flags)
 	end
 end
 

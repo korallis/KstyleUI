@@ -335,12 +335,13 @@ local function Fit(label, element, width, height)
 	size = type(size) == "number" and math.floor(size) or Tokens.Size("caption")
 	for points = size, LABEL_FLOOR, -1 do
 		if face and points < size then
-			label:SetFont(face, points, flags)
+			Widgets.ApplyFont(label, face, points, flags)
 		end
+		local drawn = Widgets.FontSize(label, points)
 		for _, split in ipairs({ false, true }) do
 			for _, text in ipairs(texts) do
 				local lines = split and Lines(text) or (not split and { text }) or nil
-				if lines and #lines * points <= height - LABEL_ROOM and Widest(label, lines) <= width - LABEL_ROOM then
+				if lines and #lines * drawn <= height - LABEL_ROOM and Widest(label, lines) <= width - LABEL_ROOM then
 					Widgets.SetText(label, table.concat(lines, "\n"))
 					return true
 				end
@@ -489,7 +490,7 @@ local function BuildLayouts(page, width)
 	panel.cards = {}
 	for i, name in ipairs(names) do
 		local card = NewCard(page, name, cardWidth)
-		card:SetPoint("TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
+		card:SetPoint("TOPLEFT", page, "TOPLEFT", Widgets.Snap(card, (i - 1) * (cardWidth + spacing)), 0)
 		panel.cards[name] = card
 	end
 	local preview = NewPreview(page)

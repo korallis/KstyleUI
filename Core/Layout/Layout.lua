@@ -418,15 +418,11 @@ end
 
 local function ApplyGeometry(el)
 	local frame, s = el.frame, el.settings
+	local oldWidth, oldHeight = FrameSize(frame)
+	local restyle = false
 	if el.opts.scalable then
 		frame:SetScale(s.scale)
-		if el.appliedScale ~= s.scale then
-			scaledRoots[frame] = true
-			if not restylePending then
-				restylePending = true
-				C_Timer.After(0, RestyleWidgets)
-			end
-		end
+		restyle = el.appliedScale ~= s.scale
 		el.appliedScale = s.scale
 	end
 	local f = Factor(frame)
@@ -437,8 +433,17 @@ local function ApplyGeometry(el)
 		frame:SetSize(w, h)
 	else
 		w, h = FrameSize(frame)
+		w, h = G.SnapSize(w, f, pixel), G.SnapSize(h, f, pixel)
+		frame:SetSize(w, h)
 	end
 	Place(el, s.anchor, s.x, s.y, w * f, h * f, f, pixel)
+	if restyle or oldWidth ~= w or oldHeight ~= h then
+		scaledRoots[frame] = true
+		if not restylePending then
+			restylePending = true
+			C_Timer.After(0, RestyleWidgets)
+		end
+	end
 	if el.strataSet or s.strata ~= el.default.strata then
 		el.strataSet = true
 		frame:SetFrameStrata(s.strata)

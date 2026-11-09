@@ -251,6 +251,10 @@ end
 
 function FILL.slider(control, item, value)
 	local low, high = item.min or 0, item.max or 1
+	if item.module == "Appearance" and item.key == "uiScale" then
+		high = K.Scale.MaxUserScale()
+		value = K.Scale.AppliedUserScale()
+	end
 	if low < high then
 		control:SetRange(low, high, item.step)
 	end

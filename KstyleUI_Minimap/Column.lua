@@ -153,8 +153,9 @@ local function NewButton(column, name)
 	button.ring = crystal.ring
 	local badge = button.overlay:CreateTexture(nil, "OVERLAY")
 	badge:SetTexture((Tokens.Texture("dot")))
-	badge:SetSize(BADGE_SIZE, BADGE_SIZE)
-	badge:SetPoint("TOPRIGHT", button, "TOPRIGHT", -BADGE_INSET, -BADGE_INSET)
+	Widgets.Size(badge, BADGE_SIZE, BADGE_SIZE)
+	local badgeInset = Widgets.Snap(badge, BADGE_INSET)
+	badge:SetPoint("TOPRIGHT", button, "TOPRIGHT", -badgeInset, -badgeInset)
 	badge:Hide()
 	button.badge = badge
 	if not column.preview then
@@ -257,6 +258,10 @@ function Column:Layout()
 	for slot, button in ipairs(shown) do
 		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, band, perColumn)
 		Fit(button, size, inset)
+		Widgets.Size(button.badge, BADGE_SIZE, BADGE_SIZE)
+		local badgeInset = Widgets.Snap(button.badge, BADGE_INSET)
+		button.badge:ClearAllPoints()
+		button.badge:SetPoint("TOPRIGHT", button, "TOPRIGHT", -badgeInset, -badgeInset)
 		button:ClearAllPoints()
 		button:SetPoint(point, area, point, x, y)
 	end

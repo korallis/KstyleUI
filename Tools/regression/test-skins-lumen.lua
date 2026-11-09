@@ -1,5 +1,12 @@
 -- test-skins-lumen.lua: the Lumen pieces the skins share: the gilt and quest gold colours read S1's token names and fall back to shipped tokens, the section cap draws a gem, a tracked title, a fading rule and a trailing count in one row, and the ring check box follows a Blizzard check button's state.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local W = S.W
 local Near = W.Near
 local THIN_SPACE = "\226\128\137"
@@ -97,7 +104,7 @@ do
 	local title = cap.title
 	assert(Plain(title) == "QUESTS", "the title is upper case, got " .. Plain(title))
 	assert(not title:GetText():find(THIN_SPACE, 1, true), "and carries no thin space, which Cinzel cannot draw")
-	assert((title:GetFont()) == Style.Font("caps") and Near((select(2, title:GetFont())), Lumen.CAP_SIZE), "in the caps face at the picture's 12, got " .. tostring((select(2, title:GetFont()))))
+	assert((title:GetFont()) == Style.Font("caps") and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE), "in the caps face at the picture's 10, got " .. tostring((select(2, title:GetFont()))))
 	assert(TextIs(title, K.Tokens.Color("capsGold")), "the title is the picture's muted gold")
 	local titlePoint = { title:GetPoint(1) }
 	assert(titlePoint[1] == "LEFT" and titlePoint[2] == gem and titlePoint[3] == "RIGHT" and Near(titlePoint[4], K.Widgets.Snap(cap.row, K.Tokens.Size("gapSmall"))), "the title follows the gem after a gapSmall")
@@ -153,7 +160,7 @@ do
 	cap:SetShown(true)
 	assert(cap.row:IsShown())
 	K.Options.Write("Skins", "text.size", 1.2)
-	assert(Near((select(2, title:GetFont())), Lumen.CAP_SIZE * 1.2), "the text size setting scales the title")
+	assert(FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE * 1.2), "the text size setting scales the title")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

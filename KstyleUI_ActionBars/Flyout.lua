@@ -146,8 +146,8 @@ function Flyout.Build()
 	end
 	local frame = CreateFrame("Frame", "KstyleUI_ActionBarsFlyout", K.Scale.Root(), "SecureHandlerBaseTemplate")
 	frame:SetFrameStrata("HIGH")
-	frame:SetSize(Tokens.Size("actionButton"), Tokens.Size("actionButton"))
-	frame:SetAttribute("gap", Tokens.Size("actionGap"))
+	Widgets.Size(frame, Tokens.Size("actionButton"), Tokens.Size("actionButton"))
+	frame:SetAttribute("gap", Widgets.Snap(frame, Tokens.Size("actionGap")))
 	frame:Hide()
 	Flyout.frame, Flyout.buttons = frame, {}
 	for i = 1, MAX_SPELLS do

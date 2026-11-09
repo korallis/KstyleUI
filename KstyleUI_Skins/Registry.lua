@@ -342,6 +342,7 @@ function Skins.Start()
 		PromptSwitchedOff()
 	end)
 	K.Callbacks.Register("ThemeChanged", MODULE, ns.Style.RestyleAll)
+	K.Callbacks.Register("ScaleChanged", MODULE, ns.Style.RestyleAll)
 	for _, def in ipairs(order) do
 		Switch(def, Skins.IsOn(def.key))
 	end

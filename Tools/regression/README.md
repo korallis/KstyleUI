@@ -12,6 +12,8 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 `Stubs.NewEnv` takes a `size` option: the Appearance page's Interface size the addon starts at. It is 1 by default, so a root unit is a whole number of pixels on the stub screens and a module test can measure exact unit sizes; `load_files.lua` applies it once `Core/Appearance.lua` registers its defaults. Pass `size = "default"` to test the size KstyleUI ships (`Scale.DEFAULT_USER_SCALE`, 16 / 19), as `test-hud-scale.lua`, `test-appearance.lua` and the owner's screen in the setup tests do. The render scenes always use the shipped size (`Common.ForceScreen`). The Lumen layouts are drawn on the shipped canvas (`Setup.Layouts.HEIGHT`) whatever the size.
 
+Reference-unit fixtures isolate the fit cap: `load_files.lua` supplies their unrestricted 1.5 maximum. Pass `fit = true` to exercise the production preset-fit calculation at a numeric size; `size = "default"` and render scenes enable it automatically. `test-setup-collisions.lua` explicitly opts into it across nine screens, three requests and all three presets. `test-pixels.lua` checks unbounded pixel arithmetic; `test-text-pixels.lua` builds modules once and drives live display/size changes through production fit and restyle callbacks. Its optional `STUB_ENVS` collector and `STUB_FONT_ORIGINS` marker distinguish addon setters from scene stand-ins: engine-sized world numbers and manually copied chat lines are not addon font setters.
+
 ## Interpreter
 
 CI runs the tests with Lua 5.1 on Ubuntu. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:

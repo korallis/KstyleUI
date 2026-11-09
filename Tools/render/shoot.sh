@@ -103,8 +103,8 @@ if [ "$json_only" = 1 ]; then
 fi
 
 page="$outdir/$scene.html"
-width=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print(math.ceil(s['screen']['width']*float(sys.argv[2])))" "$json" "$ppu")
-height=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print(math.ceil(s['screen']['height']*float(sys.argv[2])))" "$json" "$ppu")
+width=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print(math.floor(s['screen']['width']*float(sys.argv[2])+0.5))" "$json" "$ppu")
+height=$(python3 -c "import json,math,sys; s=json.load(open(sys.argv[1])); print(math.floor(s['screen']['height']*float(sys.argv[2])+0.5))" "$json" "$ppu")
 {
 	printf '<!doctype html><html><head><meta charset="utf-8"><title>%s</title>' "$scene"
 	printf '<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head><body>\n'

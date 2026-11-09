@@ -125,7 +125,7 @@ function Indicators.Layout(view, g, s)
 		icon:SetSize(size, size)
 		if key == "resting" then
 			local path = Settings.Font(view.kind, "level")
-			icon:SetFont(path, size, "OUTLINE")
+			Widgets.ApplyFont(icon, path, size, "OUTLINE")
 		end
 	end
 	local spot = g.marker

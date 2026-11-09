@@ -1,5 +1,12 @@
 -- test-skins-partb-kit.lua: part B's helpers restyle Blizzard item buttons, dropdowns, tabs, arrows, rows and bars through alpha, hooks and KstyleUI's own child frames.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local W = S.W
 
 -- Methods part B hooks with hooksecurefunc, which puts a wrapper on the object it hooks.
@@ -376,7 +383,7 @@ do
 	kit.Tab(tab)
 	assert(label:GetFont() == (ns.Style.Font("body")), "a button label takes the module's text settings")
 	K.Options.Write("Skins", "text.size", 1.5)
-	assert(W.Near(select(2, label:GetFont()), select(2, K.Tokens.Font("body")) * 1.5), "and follows a text size change")
+	assert(FontSize(K, label, select(2, label:GetFont()), select(2, K.Tokens.Font("body")) * 1.5), "and follows a text size change")
 	for _, frame in ipairs({ button }) do
 		W.Enter(frame)
 		W.Settle(env)

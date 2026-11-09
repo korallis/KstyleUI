@@ -1,5 +1,12 @@
 -- test-skins-tracker.lua: the objective tracker skin keeps the skin font, with the interface's fallback, on every tracker text, draws one Lumen section cap (gem, tracked title, fading rule, quest count) with accent discs and quest-gold titles over Blizzard's blocks, moves each objective's count to the line's right, and its glass panel follows the tracker's content.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local Near = S.W.Near
 
 local HOOKED = {
@@ -437,7 +444,7 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(not caption:GetText():find(THIN_SPACE, 1, true), "the caption carries no thin space, which Cinzel cannot draw")
-	assert(FontPath(caption) == Style.Font("caps") and Near((select(2, caption:GetFont())), Lumen.CAP_SIZE), "in the caps face at the picture's cap size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), Lumen.CAP_SIZE), "in the caps face at the picture's cap size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
 	local wr, wg, wb = K.Tokens.Color("capsGold")
 	assert(Near(cr, wr) and Near(cg, wg) and Near(cb, wb), "the caption is the picture's muted gold")
@@ -629,16 +636,16 @@ do
 	local lineFont, headerFont = env.ObjectiveTrackerLineFont, env.ObjectiveTrackerHeaderFont
 	local path, size = lineFont:GetFont()
 	assert(path == FALLBACK_FACE, "quest lines and titles use GameFontHighlight's face, as the rest of the interface does, got " .. tostring(path))
-	assert(Near(size, 12), "at Blizzard's tracker size, got " .. tostring(size))
-	assert(FontPath(headerFont) == FALLBACK_FACE and Near(select(2, headerFont:GetFont()), 14))
+	assert(FontSize(K, lineFont, size, 12), "at Blizzard's tracker size, got " .. tostring(size))
+	assert(FontPath(headerFont) == FALLBACK_FACE and FontSize(K, headerFont, select(2, headerFont:GetFont()), 14))
 	assert(Caption(env, p.modules[1].Header, "QUESTS"), "the caption still draws")
 	assert(S.Logged(env, "GameFontHighlight"), "the fallback is logged")
 
 	lineFont:SetFontObject("ObjectiveTrackerFont16")
 	path, size = lineFont:GetFont()
-	assert(path == FALLBACK_FACE and Near(size, 16), "Edit Mode's text size keeps the fallback face at the new size, got " .. tostring(path) .. " " .. tostring(size))
+	assert(path == FALLBACK_FACE and FontSize(K, lineFont, size, 16), "Edit Mode's text size keeps the fallback face at the new size, got " .. tostring(path) .. " " .. tostring(size))
 	K.Options.Write("Skins", "text.size", 1.25)
-	assert(FontPath(lineFont) == FALLBACK_FACE and Near(select(2, lineFont:GetFont()), 20), "the text size setting still scales it")
+	assert(FontPath(lineFont) == FALLBACK_FACE and FontSize(K, lineFont, select(2, lineFont:GetFont()), 20), "the text size setting still scales it")
 	B.check(snap, HOOKED)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

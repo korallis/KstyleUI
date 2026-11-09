@@ -120,10 +120,7 @@ function Overflow.New(host, unit, groups, cap, opts)
 end
 
 local function StyleLabel(label, size)
-	label:SetFont(Tokens.Font("number"), size, "")
-	label:SetShadowColor(Tokens.Color("textShadow"))
-	local offset = Tokens.Size("textShadowOffset")
-	label:SetShadowOffset(offset, -offset)
+	Widgets.ApplyFont(label, Tokens.Font("number"), size, "")
 	pcall(label.SetTextColor, label, Tokens.Color("textEmphasis"))
 	label:SetJustifyH("CENTER")
 	label:SetJustifyV("MIDDLE")
@@ -195,8 +192,8 @@ function Overflow.Apply(chip, o)
 	local base, at = Chain(chip, window)
 	local lift = #chip.pairs == 1 and (o.groups and o.groups[1].cap or o.cap) * pitch or 0
 	strip:ClearAllPoints()
-	strip:SetPoint("BOTTOMLEFT", base, at, 0, lift + tall / 2)
-	strip:SetPoint("TOPRIGHT", base, at, width, chip.sat and OPEN or lift + chip.count * pitch + tall)
+	strip:SetPoint("BOTTOMLEFT", base, at, 0, Widgets.Snap(strip, lift + tall / 2))
+	strip:SetPoint("TOPRIGHT", base, at, width, Widgets.Snap(strip, chip.sat and OPEN or lift + chip.count * pitch + tall))
 	local face = chip.face
 	if face then
 		face:ClearAllPoints()
@@ -214,7 +211,7 @@ function Overflow.Apply(chip, o)
 	if sat then
 		sat:ClearAllPoints()
 		sat:SetPoint("BOTTOMLEFT", base, at, 0, lift + (chip.count + 1) * pitch - tall)
-		sat:SetPoint("TOPRIGHT", base, at, width, OPEN)
+		sat:SetPoint("TOPRIGHT", base, at, width, Widgets.Snap(sat, OPEN))
 		local label = chip.satLabel
 		label:ClearAllPoints()
 		label:SetAllPoints(window)

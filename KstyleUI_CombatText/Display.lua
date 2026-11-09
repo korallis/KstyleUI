@@ -61,17 +61,19 @@ function Display.Clear(emitter)
 end
 
 local function ApplyFont(text, cfg)
-	if text:SetFont(cfg.fontPath, cfg.size, cfg.flags) == false then
+	if not K.Widgets.ApplyFont(text, cfg.fontPath, cfg.size, cfg.flags) then
 		local fallback = Tokens.Font("number")
-		text:SetFont(fallback, cfg.size, cfg.flags)
+		K.Widgets.ApplyFont(text, fallback, cfg.size, cfg.flags)
 		LogOnce("font:" .. cfg.fontPath, "the font " .. cfg.fontPath .. " did not load; numbers use " .. tostring(fallback))
 	end
-	if cfg.shadow then
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		text:SetShadowOffset(offset, -offset)
-	else
+	if not cfg.shadow then
 		text:SetShadowOffset(0, 0)
+	end
+end
+
+function Display.Restyle(pool, cfg)
+	for _, number in ipairs(pool.active) do
+		ApplyFont(number.text, cfg)
 	end
 end
 
@@ -202,10 +204,6 @@ function Display.Spawn(emitter, cfg, kind, emphasis, amount, word, school)
 	number.emitter = emitter
 	active[#active + 1] = number
 	local text = number.text
-	if number.fontKey ~= cfg.fontKey then
-		ApplyFont(text, cfg)
-		number.fontKey = cfg.fontKey
-	end
 	Format.Text(text, cfg, kind, amount, word)
 	text:SetTextColor(Format.Color(cfg, kind, emphasis, school))
 	text:SetAlpha(Opacity(emitter))
@@ -221,6 +219,7 @@ function Display.Spawn(emitter, cfg, kind, emphasis, amount, word, school)
 	local frame = number.frame
 	Layer(number, emitter.frame)
 	frame:SetScale(scale)
+	ApplyFont(text, cfg)
 	frame:SetAlpha(1)
 	frame:ClearAllPoints()
 	frame:SetPoint("CENTER", emitter.frame, point, x * per, y * per)

@@ -333,7 +333,6 @@ function Settings.Snapshot(values, cfg)
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]
 	cfg.shadow = outline == "NONE"
-	cfg.fontKey = cfg.fontPath .. "|" .. cfg.size .. "|" .. cfg.flags
 	cfg.colorMode = Choice(values.colorMode, COLOR_MODES, d.colorMode)
 	cfg.damageR, cfg.damageG, cfg.damageB = Color(values.damageColor, d.damageColor)
 	cfg.healR, cfg.healG, cfg.healB = Color(values.healColor, d.healColor)

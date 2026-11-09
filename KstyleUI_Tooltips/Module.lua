@@ -8,7 +8,9 @@ local MODULE = ns.MODULE
 
 local function ApplyScale()
 	if ns.active then
+		Anchor.Resize()
 		Style.ApplyScale(Anchor.Scale())
+		Style.ApplyFonts()
 	end
 end
 
@@ -19,7 +21,6 @@ local function ApplyFonts()
 end
 
 local function ApplyAll()
-	ApplyFonts()
 	ApplyScale()
 	if ns.active then
 		Health.Restyle()

@@ -121,7 +121,7 @@ function Pill:SetShare(share)
 	end
 	share = min(1, max(0, share))
 	self.share = share
-	local width = Reach(self) * share
+	local width = Widgets.Snap(self.frame, Reach(self) * share)
 	self.fillBox:SetWidth(width)
 	self.fillBox:SetShown(width > 0)
 end

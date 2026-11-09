@@ -52,8 +52,9 @@ local function Hidden(holder)
 end
 
 local function PlaceStreak(streak, frame, insetX, insetY)
+	local width, height = streak:GetSize()
 	streak:ClearAllPoints()
-	streak:SetPoint("CENTER", frame, "TOPRIGHT", -insetX, -insetY)
+	streak:SetPoint("TOPRIGHT", frame, "TOPRIGHT", Widgets.Snap(streak, width / 2 - insetX), Widgets.Snap(streak, height / 2 - insetY))
 end
 
 local function FrameSize(frame)
@@ -88,6 +89,9 @@ function Glow:Restyle()
 	if self.core then
 		local width, height = FrameSize(self.frame)
 		Widgets.Size(self.core, CORE_SHARE * width, CORE_SHARE * height)
+		local cw, ch = self.core:GetSize()
+		self.core:ClearAllPoints()
+		self.core:SetPoint("TOPLEFT", self.frame, "TOPLEFT", Widgets.Snap(self.core, (width - cw) / 2), -Widgets.Snap(self.core, (height - ch) / 2))
 		self.core:SetVertexColor(r, g, b, self.coreAlpha)
 	end
 	Reconcile(self)

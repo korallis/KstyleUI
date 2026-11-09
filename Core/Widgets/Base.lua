@@ -595,6 +595,9 @@ function Widgets.Crisp(texture)
 end
 
 local function Unbiased(texture)
+	if type(texture.SetSnapToPixelGrid) == "function" then
+		texture:SetSnapToPixelGrid(false)
+	end
 	if type(texture.SetTexelSnappingBias) == "function" then
 		texture:SetTexelSnappingBias(0)
 	end
@@ -641,6 +644,7 @@ local function PaintSlice(p, name)
 	for piece = 1, 9 do
 		local side = soft and RUN_SIDE[piece]
 		if side then
+			Widgets.Crisp(p[piece])
 			p[piece]:SetColorTexture(r, g, b, side == "top" and 1 or soft)
 		else
 			p[piece]:SetTexture(path)
@@ -758,7 +762,7 @@ function Widgets.Pill(box, layer, sublevel)
 end
 
 function Widgets.LayoutPill(pill, height)
-	local cap = height / 2
+	local cap = Widgets.Snap(pill[1], height / 2)
 	pill[1]:SetWidth(cap)
 	pill[3]:SetWidth(cap)
 end
@@ -1166,7 +1170,10 @@ ns.Callbacks.Register("ThemeChanged", SECTION, function()
 	RestyleTexts()
 	Widgets.RestyleAll()
 end)
-ns.Callbacks.Register("ScaleChanged", SECTION, Widgets.RestyleAll)
+ns.Callbacks.Register("ScaleChanged", SECTION, function()
+	RestyleTexts()
+	Widgets.RestyleAll()
+end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION or (module == "Appearance" and key == "motion") then
