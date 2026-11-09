@@ -67,6 +67,7 @@ do
 	parent:SetSize(300, 24)
 	local cap = Lumen.SectionCap(parent, { left = 10, right = 24 })
 	assert(cap.row:GetParent() == parent, "the cap draws on its own row frame under the parent")
+	cap.row:SetAllPoints(parent)
 	cap:SetTitle("Quests")
 	cap:SetTrail(15)
 	local gem = cap.gem
@@ -103,6 +104,23 @@ do
 	assert(trail:GetText() == "", "no count clears the trail")
 	cap:SetTitle("The Deadmines")
 	assert(Plain(title) == "THE DEADMINES", "a new title follows")
+	-- A long title is bounded before the trail: it ellipsises instead of running under the count or the rule
+	-- crossing it; with no measured widths (this stub, or a secret) it keeps its natural width.
+	assert(W.LastCall(title, "SetWidth")[1] == 0, "with no measured width the title sizes to its text")
+	title._state.UnboundedStringWidth = { n = 1, 400 }
+	trail._state.UnboundedStringWidth = { n = 1, 12 }
+	cap:SetTrail(15)
+	local taken = 10 + Lumen.GEM_UNITS + K.Tokens.Size("gapSmall") + 2 * K.Tokens.Size("gapMedium") + 12 + 24
+	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken), "a 400-unit title on a 300-unit row is cut to the room before the trail, got " .. tostring(W.LastCall(title, "SetWidth")[1]))
+	title._state.UnboundedStringWidth = { n = 1, 50 }
+	cap:SetTitle("Quests")
+	assert(Near(W.LastCall(title, "SetWidth")[1], 50), "a short title keeps its measured width")
+	parent:SetSize(120, 24)
+	local onSize = cap.row:GetScript("OnSizeChanged")
+	assert(onSize, "the row refits on a size change")
+	onSize(cap.row)
+	assert(Near(W.LastCall(title, "SetWidth")[1], 120 - taken), "a narrower row refits the title")
+	parent:SetSize(300, 24)
 	cap:SetShown(false)
 	assert(not cap.row:IsShown(), "SetShown hides the whole row")
 	cap:SetShown(true)

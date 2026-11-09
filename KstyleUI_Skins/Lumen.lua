@@ -29,6 +29,13 @@ local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
 end
 
+local function PlainSize(value)
+	if IsSecret(value) or type(value) ~= "number" or value <= 0 then
+		return nil
+	end
+	return value
+end
+
 function Lumen.Color(name)
 	local ok, r, g, b, a = pcall(Tokens.Color, name)
 	if ok then
@@ -89,17 +96,39 @@ function Lumen.Gem(owner, layer, sublevel)
 	return gem
 end
 
+local function Units(value, row)
+	if type(value) == "function" then
+		return value(row)
+	end
+	return value or 0
+end
+
 local Cap = {}
 Cap.__index = Cap
+
+function Cap:Fit()
+	local row, opts = self.row, self.opts
+	local rowWidth = PlainSize(row:GetWidth())
+	local titleWidth = Widgets.TextWidth(self.title)
+	if not rowWidth or not titleWidth then
+		self.title:SetWidth(0)
+		return
+	end
+	local trailWidth = Widgets.TextWidth(self.trail, 0)
+	local taken = Units(opts.left, row) + GEM_UNITS + Tokens.Size(GEM_GAP) + 2 * Tokens.Size(RULE_GAP) + trailWidth + Units(opts.right, row)
+	self.title:SetWidth(math.max(0, math.min(titleWidth, rowWidth - taken)))
+end
 
 function Cap:SetTitle(value)
 	self.titleValue = Lumen.Plain(value)
 	self.title:SetText(Lumen.Tracked(self.titleValue:upper()))
+	self:Fit()
 end
 
 function Cap:SetTrail(value)
 	self.trailValue = Lumen.Plain(value)
 	self.trail:SetText(self.trailValue)
+	self:Fit()
 end
 
 function Cap:SetShown(shown)
@@ -119,13 +148,6 @@ function Cap:Paint()
 		rule:SetTexture((Tokens.Texture("divider")))
 		rule:SetVertexColor(r, g, b, RULE_ALPHA)
 	end
-end
-
-local function Units(value, row)
-	if type(value) == "function" then
-		return value(row)
-	end
-	return value or 0
 end
 
 function Cap:Restyle()
@@ -165,6 +187,9 @@ function Lumen.SectionCap(parent, opts)
 		titleValue = "",
 		trailValue = "",
 	}, Cap)
+	row:HookScript("OnSizeChanged", function()
+		cap:Fit()
+	end)
 	cap:Restyle()
 	Style.Track(cap)
 	Widgets.Track(cap)

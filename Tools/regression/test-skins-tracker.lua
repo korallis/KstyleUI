@@ -481,6 +481,20 @@ do
 	assert(Plain(CountOf(found)) == "1/3", "and shows at the right")
 	assert(speak.Text:GetText() == "Speak with Sergeant Hale", "a line with no count keeps its text")
 	assert(not CountOf(speak) or not CountOf(speak):IsShown(), "and shows no count")
+	-- A line whose full text does not fit on one line with a gap to spare keeps Blizzard's text, so the words
+	-- never wrap under the count and the line never shrinks under the height Blizzard measured.
+	crocolisks.objectives[2] = "0/8 Lake Everstill Thresher slain near the eastern shore"
+	speak.Text._state.UnboundedStringWidth = { n = 1, 320 }
+	speak.Text:SetSize(240, 14)
+	p.layout(tracker)
+	assert(speak.Text:GetText() == "0/8 Lake Everstill Thresher slain near the eastern shore", "a long objective keeps its count inline")
+	assert(not CountOf(speak):IsShown(), "and shows no count at the right")
+	speak.Text._state.UnboundedStringWidth = { n = 1, 200 }
+	p.layout(tracker)
+	assert(speak.Text:GetText() == "Lake Everstill Thresher slain near the eastern shore" and Plain(CountOf(speak)) == "0/8", "once it fits on one line, the count moves right")
+	speak.Text._state.UnboundedStringWidth = nil
+	crocolisks.objectives[2] = "Speak with Sergeant Hale"
+	p.layout(tracker)
 	crocolisks.objectives[1] = "2/4 Riverglade Crocolisk Hide"
 	p.layout(tracker)
 	assert(hide.Text:GetText() == "Riverglade Crocolisk Hide" and Plain(hideCount) == "2/4", "a relayout with progress updates the count")

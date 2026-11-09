@@ -256,6 +256,16 @@ local function Split(text)
 	return nil
 end
 
+local function Fits(state)
+	local text = state.text
+	local full = Widgets.TextWidth(text)
+	local width = PlainSize(text:GetWidth()) or PlainSize(state.line:GetWidth())
+	if not full or not width then
+		return true
+	end
+	return full + Tokens.Size("gapMedium") <= width
+end
+
 local function RestyleCount(state)
 	local _, size = state.text:GetFont()
 	Style.ApplyFont(state.label, "number", PlainSize(size) or LINE_DEFAULT)
@@ -297,6 +307,9 @@ local function PaintCount(state)
 		return
 	end
 	local words, count = Split(current)
+	if words and not Fits(state) then
+		words = nil
+	end
 	if not words or words == "" then
 		state.full, state.words = nil, nil
 		state.label:SetText("")
