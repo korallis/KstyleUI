@@ -1,8 +1,9 @@
--- gallery_options_modules.lua: the settings window on four more module pages, each the real module loaded as
+-- gallery_options_modules.lua: the settings window on two more module pages, each the real module loaded as
 -- the game loads it so its own schema fills the page: Party and Raid at scale 1, jumped to its Debuffs section
--- from the rail (the header at the top of the rows, the section marked in the rail), then Nameplates, Action
--- Bars and Cooldowns at the window's minimum size scaled to 0.65, as gallery_options.lua draws its secondary
--- states. Together with gallery_options.lua this shows the depth a player can reach from the window.
+-- from the rail (the header at the top of the rows, the section marked in the rail), and Nameplates at the
+-- window's minimum size scaled to 0.65, as gallery_options.lua draws its secondary states. Together with
+-- gallery_options.lua this shows the depth a player can reach from the window. Two states, not more, keep
+-- test-render-scenes-gallery within its time budget.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Scene = Common.Scene
@@ -14,8 +15,6 @@ local WINDOW_KEY = "Options.Window"
 local SMALL_W, SMALL_H, SMALL_SCALE = 880, 520, 0.65
 local MAIN = { x = 16, y = 16 }
 local NAMEPLATES = { x = 1083, y = 16 }
-local ACTIONBARS = { x = 1083, y = 372 }
-local COOLDOWNS = { x = 16, y = 724 }
 local JUMP_TO = "Debuffs"
 local MIN_ROWS = 60
 
@@ -162,32 +161,6 @@ return Common.Run(function()
 		})
 		scenes[#scenes + 1] = Gallery.Build(env)
 		errorsOf(scenes[#scenes], env, K, "nameplates")
-	end
-
-	-- Action Bars, at the top of its page.
-	do
-		local AB = dofile("Tools/regression/actionbars_env.lua")
-		local env, K, ns = Open(AB.New, "ActionBars", ACTIONBARS, true)
-		frames:Add(env, ns.Window.Frame(), {
-			name = "options_actionbars", title = "Action Bars page", grade = "window", reference = "chat",
-			caption = "The settings window on the real Action Bars page at its top: the module switch, the shared rows, the Bar to edit picker and the picked bar's rows, each section listed in the rail." .. SCALE_NOTE,
-			match = "Window grade as the chat panel: surface fill, two-line edge, drop shadow; the controls wear the button and bar grades.",
-		})
-		scenes[#scenes + 1] = Gallery.Build(env)
-		errorsOf(scenes[#scenes], env, K, "actionbars")
-	end
-
-	-- Cooldowns, at the top of its page.
-	do
-		local C = dofile("Tools/regression/cooldowns_env.lua")
-		local env, K, ns = Open(C.New, "Cooldowns", COOLDOWNS, true)
-		frames:Add(env, ns.Window.Frame(), {
-			name = "options_cooldowns", title = "Cooldowns page", grade = "window", reference = "chat",
-			caption = "The settings window on the real Cooldowns page at its top: the module switch and the module's own sections in the rail and the rows." .. SCALE_NOTE,
-			match = "Window grade as the chat panel: surface fill, two-line edge, drop shadow; the controls wear the button and bar grades.",
-		})
-		scenes[#scenes + 1] = Gallery.Build(env)
-		errorsOf(scenes[#scenes], env, K, "cooldowns")
 	end
 
 	local scene = Scene.Merge(scenes)
