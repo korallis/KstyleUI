@@ -214,6 +214,50 @@ do
 	assert(K.ErrorCount() == 0)
 end
 
+-- A new gain during the backdrop's fade-out keeps the backdrop, and a row that outlives an older one moves down -----
+do
+	local env, K, ns = New({ layout = true })
+	Loot(env, "You receive loot: " .. BUG_EYE)
+	env.Release()
+	Loot(env, "You receive loot: " .. VEST)
+	local backdrop = ns.Feed.Backdrop()
+	assert(#ns.Feed.lines == 1 and backdrop:IsShown() and backdrop:GetAlpha() == 1, "loot during the fade-out keeps the backdrop: " .. tostring(backdrop:GetAlpha()))
+	Settle(env)
+	assert(#ns.Feed.lines == 1 and K.ErrorCount() == 0, "the new line is still live")
+end
+
+do
+	local env, K, ns = New({ layout = true })
+	local backdrop = ns.Feed.Backdrop()
+	Loot(env, "You receive loot: " .. CLOTH)
+	local before = #env._held
+	Loot(env, "You receive loot: " .. EPIC)
+	assert(#env._held == before + 1, "the epic's hold is the one new timer")
+	local epicHold = env._held[#env._held]
+	Loot(env, "You receive loot: " .. CLOTH)
+	local cloth, epic = ns.Feed.lines[1], ns.Feed.lines[2]
+	assert(#ns.Feed.lines == 2 and cloth.entry.id == 2589 and epic.entry.id == 19019 and cloth.entry.count == 2, "the older item merged and kept its row")
+	local root = K.Scale.Root()
+	env._held = {}
+	epicHold()
+	Settle(env)
+	assert(#ns.Feed.lines == 1 and ns.Feed.lines[1] == cloth, "the newer row leaves first when the older one was refreshed")
+	assert(cloth.y == 0, "the surviving row moved to the bottom slot: " .. tostring(cloth.y))
+	local card, rect = assert(Geometry.Rect(backdrop, root)), assert(Geometry.Rect(cloth, root))
+	assert(rect.left >= card.left and rect.right <= card.right + 0.01 and rect.bottom >= card.bottom - 0.01 and rect.top <= card.top + 0.01, "and it lies on the shrunken backdrop")
+	assert(K.ErrorCount() == 0)
+end
+
+-- Money gains merge into one amount and never show a stack count ------------------------------------------------
+do
+	local env, K, ns = New()
+	Money(env, "You loot 14 Copper")
+	Money(env, "You loot 14 Copper")
+	local coin = ns.Feed.lines[1]
+	assert(#ns.Feed.lines == 1 and coin.name:GetText():find("28c") and not coin.count:IsShown(), "two copper gains read 28c with no x2")
+	assert(K.ErrorCount() == 0)
+end
+
 -- Geometry: inside the element's footprint, the backdrop hugs the lines, left edges line up -----------------------
 do
 	local env, K, ns = New({ layout = true })

@@ -89,10 +89,16 @@ local function Refit()
 	end
 	local width = math.min(holder:GetWidth(), widest + 2 * inset)
 	local height = count * tile + (count - 1) * gap + 2 * inset
-	if not (backdrop:IsShown() and backdrop:GetAlpha() > 0) then
+	local hidden = not (backdrop:IsShown() and backdrop:GetAlpha() > 0)
+	if hidden then
 		Motion.Stop(backdrop.fit, true)
 		Widgets.Size(backdrop, width, height)
+	end
+	if hidden or backdrop.leaving then
+		backdrop.leaving = false
 		Motion.FadeIn(backdrop, Tokens.Duration("panelOpen"))
+	end
+	if hidden then
 		return
 	end
 	local w, h = backdrop:GetSize()
@@ -184,10 +190,14 @@ local function Leave(line)
 	Motion.Tween(line, Place, line.y, line.y + Tokens.Size("gapMedium"), duration, easing)
 	Motion.Tween(line, "SetAlpha", line:GetAlpha(), 0, duration, easing, Retire)
 	if #Feed.lines == 0 then
+		backdrop.leaving = true
 		Motion.FadeOut(backdrop, duration)
-	else
-		Refit()
+		return
 	end
+	for index, live in ipairs(Feed.lines) do
+		Motion.Tween(live, Place, live.y, Rest(#Feed.lines - index), Tokens.Duration("fade"), Tokens.Easing("fade"))
+	end
+	Refit()
 end
 
 local function Expire(line)
@@ -218,8 +228,11 @@ local function Add(entry)
 	for _, line in ipairs(Feed.lines) do
 		local live = line.entry
 		if live.kind == entry.kind and live.id == entry.id then
-			live.count = (live.count or 1) + (entry.count or 1)
-			live.copper = (live.copper or 0) + (entry.copper or 0)
+			if live.kind == "item" then
+				live.count = (live.count or 1) + (entry.count or 1)
+			else
+				live.copper = live.copper + entry.copper
+			end
 			line.token = line.token + 1
 			Paint(line)
 			Expire(line)
@@ -316,6 +329,7 @@ local function Clear()
 	end
 	Feed.pending = {}
 	if backdrop then
+		backdrop.leaving = false
 		backdrop:Hide()
 		backdrop:SetAlpha(0)
 	end
