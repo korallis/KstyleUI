@@ -1,8 +1,9 @@
 -- gallery_groupframes.lua: the group frames in a representative state, each cropped as one frame of the gallery:
 -- a five-player party on the secure party header (the player first; a tank leader with aggro, incoming heals and
 -- two debuffs; a healer; a dead shaman; a mage with the skull marker), a close crop of the tank's frame, a raid of
--- twenty in four groups on the raid headers (in a second environment, since a roster is a party or a raid), and
--- the options page's live preview with its sample party and raid frames.
+-- twenty in four groups on the raid headers (in a second environment, since a roster is a party or a raid), with
+-- the missing health, your heals over time, a shield, a debuff and a Magic dispel highlight as a healer sees them,
+-- and the options page's live preview with its sample party and raid frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -21,6 +22,15 @@ local PARTY = {
 local ICONS = {}
 local DEBUFF_ICONS = { I.rend, I.sunderArmor }
 local MAGIC = "rare"
+local RENEW, SHIELD, PAIN, POLYMORPH = 135953, 135940, 136207, 136071
+local RAID_NAMES = {
+	"Thaldren", "Sylaen", "Brakka", "Ysra", "Orrin", "Kesh", "Maela", "Durn", "Lunara", "Vexen",
+	"Garrok", "Ilyra", "Tovan", "Kragar", "Seluna", "Harn", "Zuli", "Morwen", "Rask", "Elowen",
+}
+-- Your heals over time on five members, a debuff on two, and a Magic debuff you can dispel on one.
+local RAID_HOTS = { [1] = { RENEW, SHIELD }, [2] = { RENEW }, [6] = { SHIELD }, [11] = { RENEW, SHIELD }, [17] = { RENEW } }
+local RAID_DEBUFFS = { [4] = PAIN, [12] = POLYMORPH }
+local RAID_DISPEL = 12
 
 local function move(K, key, x, y)
 	assert(K.Layout.Set(key, "anchor", "TOPLEFT"))
@@ -72,7 +82,11 @@ local function raid(frames, x, y)
 	local G = dofile("Tools/regression/group_env.lua")
 	local env, K, ns = newEnv(G)
 	local members = G.Members(20, function(i, m)
+		m.name = RAID_NAMES[i]
 		m.health = 100 - (i * 7) % 45
+		if i == 1 or i == 11 then
+			m.absorb = 30
+		end
 		m.role = i % 5 == 1 and "TANK" or (i % 5 == 2 and "HEALER" or "DAMAGER")
 		if i == 1 then
 			m.leader = true
@@ -98,10 +112,48 @@ local function raid(frames, x, y)
 		end
 	end
 	assert(#shown == 20, "twenty raid frames show, got " .. #shown)
+	-- The engine lays its aura buttons out in the game; the scene places the fake engine's buttons where the
+	-- containers would: your heals from the bar's right end leftward, debuffs from the tile's bottom left.
+	local Widgets, Tokens = K.Widgets, K.Tokens
+	local k = ns.Settings.current.raid
+	local function place(container, group, icons, corner, step)
+		local buttons = container._groups[group].frames
+		for i, icon in ipairs(icons) do
+			local button = buttons[i]
+			button:ClearAllPoints()
+			button:SetPoint(corner, container, corner, step * (i - 1), 0)
+			button._aura.icon:SetTexture(env.Secret(icon))
+			button:Show()
+		end
+	end
+	for _, header in ipairs(ns.Headers.raid) do
+		for unit, f in pairs(contents(ns, header)) do
+			local i = tonumber(unit:match("%d+"))
+			if RAID_HOTS[i] and f.buffs then
+				local size = Widgets.Snap(f, k.buffSize)
+				f.buffs:SetSize(size, size)
+				place(f.buffs, "buffs", RAID_HOTS[i], "TOPRIGHT", -(size + Widgets.Snap(f, k.auraSpacing)))
+			end
+			if RAID_DEBUFFS[i] and f.auras then
+				local size = Widgets.Snap(f, k.auraSize)
+				f.auras:SetSize(size, size)
+				place(f.auras, "debuffs", { RAID_DEBUFFS[i] }, "BOTTOMLEFT", size)
+			end
+			if i == RAID_DISPEL and f.auras then
+				local slot = f.auras:GetAuraSlotFrame("dispel")
+				local r, g, b = Tokens.Color(MAGIC)
+				for _, entry in ipairs(slot._aura.dispel) do
+					entry.texture:SetVertexColor(r, g, b, 1)
+					entry.texture:Show()
+				end
+				slot:Show()
+			end
+		end
+	end
 	frames:Add(env, ns.Headers.holders.raid, {
 		name = "groupframes_raid", title = "Raid frames", grade = "panel", reference = "nameplate",
-		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 glass tiles with the class-coloured health fill on a buttonFill track, the name on the bar, a dead and an offline member in grey, and the first tank's threat glow; the role icons are Blizzard's micro role atlases and the tank's leader crown is Blizzard's leader atlas, drawn from the atlas cache.",
-		match = "Glass fill, two-line edge and 3.5-unit chamfer as the mockup's nameplate frame; raid tiles draw no drop shadow (Style.lua keeps the shadow for party frames), so the 3-unit gaps between them stay clean.",
+		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 Lumen glass tiles with the name and the missing health above a solid class-coloured bar, so no name sits on a pale fill; your Renew and Power Word: Shield at the bar's right end, a shield line under two bars, a debuff at the bottom left, a Magic debuff you can dispel washing Ilyra's tile, a dead and an offline member in grey, and the first tank's threat glow; role icons and the leader crown are Blizzard atlases from the atlas cache.",
+		match = "Glass fill, one-line edge and 3.5-unit chamfer as the party rows and the mockup's nameplate frame; raid tiles draw no drop shadow (Style.lua keeps the shadow for party frames), so the 3-unit gaps between them stay clean.",
 		rect = Gallery.Union(env, shown),
 	})
 	local scene = Gallery.Build(env)

@@ -67,7 +67,8 @@ function Headers.Build()
 	Headers.party = NewHeader(Headers.holders.party, "party")
 	local party = Headers.holders.party
 	local card = CreateFrame("Frame", nil, Headers.party)
-	card:SetAllPoints(party)
+	card:SetPoint("TOPLEFT", party, "TOPLEFT", 0, 0)
+	card:SetSize(1, 1)
 	card:SetFrameLevel(Headers.party:GetFrameLevel())
 	Headers.cards.party = {
 		frame = card,
@@ -174,9 +175,12 @@ function Headers.ApplyParty(s)
 	holder:SetSize(width, height)
 	local cap = card.cap
 	cap.frame:ClearAllPoints()
-	cap.frame:SetPoint("TOPLEFT", holder, "TOPLEFT", left, -Geometry.CARD_PAD)
-	cap.frame:SetPoint("TOPRIGHT", holder, "TOPRIGHT", -left, -Geometry.CARD_PAD)
+	cap.frame:SetPoint("TOPLEFT", card.frame, "TOPLEFT", left, -Geometry.CARD_PAD)
+	cap.frame:SetPoint("TOPRIGHT", card.frame, "TOPRIGHT", -left, -Geometry.CARD_PAD)
 	cap:Restyle()
+	card.settings = s
+	card.anchor = geo.corner
+	Headers.FitParty(card.members, true)
 	geo.left, geo.top = left, top
 	Quiet(header)
 	header:SetAttribute("showRaid", false)
@@ -202,10 +206,56 @@ function Headers.ApplyParty(s)
 	return geo
 end
 
+local function SetCardSize(frame, width, height)
+	frame:SetSize(width, height)
+end
+
+local function SetCardHeight(frame, height)
+	frame:SetHeight(height)
+end
+
+local function SetCardWidth(frame, width)
+	frame:SetWidth(width)
+end
+
+function Headers.FitParty(members, now)
+	local card = Headers.cards.party
+	local s = card and card.settings
+	if not s then
+		return
+	end
+	card.members = members
+	local frame, holder = card.frame, Headers.holders.party
+	local width, height = Geometry.PartyCard(s, K.Widgets.SECTION_CAP_HEIGHT, Geometry.PartyShown(s, members))
+	local corner = card.anchor or "TOPLEFT"
+	if frame:GetPoint(1) ~= corner then
+		frame:ClearAllPoints()
+		frame:SetPoint(corner, holder, corner, 0, 0)
+	end
+	if card.tween then
+		K.Motion.Stop(card.tween)
+		card.tween = nil
+	end
+	local vertical = Geometry.IsVertical(s.growth)
+	local from = vertical and frame:GetHeight() or frame:GetWidth()
+	local to = vertical and height or width
+	if now or type(from) ~= "number" or from <= 1 or from == to then
+		SetCardSize(frame, width, height)
+		return
+	end
+	if vertical then
+		frame:SetWidth(width)
+	else
+		frame:SetHeight(height)
+	end
+	card.tween = K.Motion.Tween(frame, vertical and SetCardHeight or SetCardWidth, from, to, K.Tokens.Duration("panelOpen"), K.Tokens.Easing("panelOpen"))
+end
+
 function Headers.SetPartyCount(count)
 	local card = Headers.cards.party
 	if card then
 		card.cap:SetAside(count and count > 0 and tostring(count) or nil)
+		Headers.FitParty(count)
 	end
 end
 

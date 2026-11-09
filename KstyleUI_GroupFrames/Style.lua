@@ -10,7 +10,7 @@ ns.Style = Style
 
 local TEXT_LEVEL = 4
 local NAME_LINE_EXTRA = 2
-local NAME_RESERVE_EMS = 3.4
+local ON_BAR_OUTLINE = "OUTLINE"
 local LEVEL_SHARE = 0.36
 local BADGE = "buttonFill"
 local PORTRAIT_INSET = 2
@@ -156,26 +156,35 @@ function Style.Size(f)
 	return f.width or k.width, f.height or k.height
 end
 
+local function OnBar(outline)
+	return outline == "NONE" and ON_BAR_OUTLINE or outline
+end
+
 local function LayoutTexts(f, k, parts)
 	local name, healthText = f.name, f.healthText
 	local cfg = Settings.current.text
-	SetFont(name, cfg.nameFont, k.nameSize, cfg.nameOutline)
-	SetFont(healthText, cfg.healthFont, k.healthTextSize, cfg.healthOutline)
+	local inside = parts.nameInside
+	SetFont(name, cfg.nameFont, k.nameSize, inside and OnBar(cfg.nameOutline) or cfg.nameOutline)
+	SetFont(healthText, cfg.healthFont, k.healthTextSize, inside and OnBar(cfg.healthOutline) or cfg.healthOutline)
 	name:ClearAllPoints()
 	healthText:ClearAllPoints()
 	local showHealth = k.healthText ~= "NONE"
 	healthText:SetShown(showHealth)
 	local spot = parts.healthText
-	if not parts.nameInside then
+	if not inside then
 		local rect = parts.name
 		local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
-		local reserve = showHealth and k.healthTextSize * NAME_RESERVE_EMS or 0
 		name:SetJustifyH("LEFT")
 		name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
-		name:SetWidth(math.max(1, Widgets.Snap(f, rect.width - reserve)))
 		healthText:SetJustifyH("RIGHT")
 		healthText:SetWidth(0)
 		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, spot.right), top)
+		if showHealth then
+			name:SetWidth(0)
+			name:SetPoint("RIGHT", healthText, "LEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
+		else
+			name:SetWidth(math.max(1, Widgets.Snap(f, rect.width)))
+		end
 		return
 	end
 	local rect = parts.health
@@ -279,12 +288,9 @@ function Style.Apply(f, width, height)
 		role = cfg.icons.role,
 		leader = cfg.icons.leader,
 		marker = cfg.icons.marker,
+		pill = f.kind == "party" and health_orientation(cfg) and PILL_HEIGHT or nil,
+		pillRise = PILL_RISE,
 	})
-	if k.pill ~= false and parts.name ~= parts.health and parts.health.height > PILL_HEIGHT and health_orientation(cfg) then
-		local rect = parts.health
-		rect.top = rect.top + rect.height - PILL_HEIGHT - PILL_RISE
-		rect.height = PILL_HEIGHT
-	end
 	f.parts = parts
 	local health = cfg.health
 	f.health:SetBarTexture(health.texture)
@@ -305,7 +311,11 @@ function Style.Apply(f, width, height)
 		local rect = parts.name
 		SetFont(classLine, cfg.text.healthFont, Tokens.Size("caption"), cfg.text.healthOutline)
 		classLine:SetTextColor(Tokens.Color(CLASS_LINE_COLOR))
-		classLine:SetPoint("TOPRIGHT", f, "TOPRIGHT", -Widgets.Snap(f, width - rect.left - rect.width), -Widgets.Snap(f, rect.top))
+		if k.healthText ~= "NONE" then
+			classLine:SetPoint("TOPRIGHT", f.healthText, "TOPLEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
+		else
+			classLine:SetPoint("TOPRIGHT", f, "TOPRIGHT", -Widgets.Snap(f, width - rect.left - rect.width), -Widgets.Snap(f, rect.top))
+		end
 		classLine:SetHeight(Widgets.Snap(f, rect.height))
 		f.name:SetPoint("RIGHT", classLine, "LEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
 	end

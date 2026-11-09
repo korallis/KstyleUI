@@ -182,18 +182,19 @@ do
 	assert(b.health.width >= 1 and b.health.height >= 1, "a tiny frame still has a bar of at least one unit")
 end
 
--- The status icons share the top band and the texts keep out of it: the role icon at the top right, the leader
--- on the top-left corner (over the portrait's corner when there is one), the marker centred on the top edge and
--- ending at the name row;
--- a name row ends before the role icon, and a health text on the bar narrows to the span between the icons
--- only when its line reaches up into the band.
+-- The status icons keep out of the texts: the role icon at the top right; with the name above the bar, the leader
+-- over the portrait's corner (or, with no portrait, on the bar's left end) and the marker inside the frame, in the
+-- room between the name row and the bar or on the bar, never on the edge between two frames; with the name on the
+-- bar, the leader on the top-left corner and the marker centred on the top edge, ending at the name row.
+-- A name row ends before the role icon, and a health text on the bar narrows to the span between the icons only
+-- when its line reaches up into the band.
 do
 	local icons = { iconSize = 14, role = true, leader = true, marker = true }
 	local b = Geo.Button(230, 46, { portrait = true, power = true, powerHeight = 4, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
 	eq(b.icons.size, 14, "the party icons keep their size")
 	rect(b.icons.role, 214, 2, 14, 14, "party role icon")
 	rect(b.icons.leader, 0, -2, 14, 14, "party leader icon over the portrait corner")
-	rect(b.icons.marker, 108, -10, 14, 14, "party marker on the top edge")
+	rect(b.icons.marker, 131, 20.5, 14, 14, "party marker inside the frame, centred on the bar under the name row")
 	rect(b.name, 50, 4, 162, 13, "the party name row ends a gap before the role icon")
 	eq(b.healthText.right, 212, "the party health text ends with the name row")
 	eq(b.healthText.top, 4, "on the name row")
@@ -203,8 +204,19 @@ do
 	eq(b.healthText.right, 226, "and the health text ends at the bar")
 
 	b = Geo.Button(120, 46, { portrait = false, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
-	rect(b.icons.leader, 2, -2, 14, 14, "without a portrait the leader icon sits on the top left corner, a gap in")
-	rect(b.name, 18, 4, 84, 13, "and the name row runs from it to the role icon")
+	rect(b.icons.leader, 4, 23.5, 14, 14, "without a portrait the leader icon sits on the bar's left end, inside the frame")
+	rect(b.name, 4, 4, 98, 13, "so the name row keeps the whole width up to the role icon")
+	rect(b.icons.marker, 53, 23.5, 14, 14, "and the marker centres on the bar")
+
+	b = Geo.Button(278, 40, { portrait = true, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true, pill = 6, pillRise = 2 })
+	rect(b.health, 44, 28, 230, 6, "a pill row draws the bar as a 6-unit pill two units off the row's foot")
+	rect(b.icons.marker, 152, 24, 14, 14, "the marker sits on the pill, wholly inside the 40-unit row")
+
+	b = Geo.Button(77, 40, { portrait = false, power = false, nameAbove = true, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
+	eq(b.nameInside, false, "a 77 by 40 raid tile puts the name above the bar")
+	rect(b.name, 4, 4, 57, 12, "the raid name row runs to the role icon")
+	rect(b.health, 4, 18, 69, 18, "and the bar fills the rest, clear of the name")
+	eq(b.healthText.right, 61, "the missing health ends the name row, before the role icon")
 
 	b = Geo.Button(72, 40, { portrait = false, power = false, nameAbove = false, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
 	rect(b.icons.role, 58, 2, 12, 12, "raid role icon")
@@ -253,6 +265,32 @@ do
 	point = Geo.AuraAnchor("NOWHERE", "UP", "SIDEWAYS", 2, 3)
 	eq(point, "BOTTOMLEFT", "unknown values fall back to bottom left, right, up")
 	eq(Geo.AuraLine(3, 20, 2), 64, "a line of three 20-unit icons with 2-unit gaps")
+end
+
+-- The party card holds only the rows the party shows: you and up to four others, at least one row, the whole
+-- five when the count is unknown.
+do
+	local s = { width = 278, height = 40, spacing = 8, growth = "DOWN", showPlayer = true, showSolo = false }
+	eq(Geo.PartyShown(s, 3), 3, "a party of three shows three rows")
+	eq(Geo.PartyShown(s, 9), 5, "never more than five")
+	eq(Geo.PartyShown(s, nil), 5, "an unknown count keeps the whole card")
+	eq(Geo.PartyShown(s, 0), 1, "solo keeps one row, the card never folds to nothing")
+	s.showSolo = true
+	eq(Geo.PartyShown(s, 0), 1, "shown solo, one row for you")
+	s.showPlayer, s.showSolo = false, false
+	eq(Geo.PartyShown(s, 3), 2, "without yourself, a party of three shows the two others")
+	eq(Geo.PartyShown(s, nil), 4, "and at most four")
+	s.showPlayer = true
+	local w3, h3 = Geo.PartyCard(s, 20, 3)
+	local w5, h5 = Geo.PartyCard(s, 20, 5)
+	eq(w3, 318, "the card keeps the rail width")
+	eq(w5, 318, "at any count")
+	eq(h5 - h3, 2 * (40 + 8), "two fewer rows is two rows and their gaps shorter")
+	eq(h3, 3 * 40 + 2 * 8 + 20 + 20 + 8 + 20, "three rows, the padding, the cap and its gap")
+	s.growth = "RIGHT"
+	local wide3, tall3 = Geo.PartyCard(s, 20, 3)
+	eq(wide3, 3 * 278 + 2 * 8 + 40, "growing sideways, the card narrows instead")
+	eq(tall3, 40 + 20 + 20 + 8 + 20, "and keeps one row's height")
 end
 
 print("groupframes geometry ok")

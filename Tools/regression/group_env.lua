@@ -332,7 +332,9 @@ local function installAuras(env, opts)
 				assert(not self._slots[key], "aura slot '" .. key .. "' already exists with this key.")
 				assert(type(filter) == "string" and filter:find("HARMFUL", 1, true), "invalid filter string " .. tostring(filter))
 				options = options or {}
+				-- The engine shows a slot's frame only while an aura fills it (CustomAuraButton's SetShown).
 				local button = AurasEnv.MakeButton(env, self, options.initializeFrame)
+				button:Hide()
 				self._slots[key] = { key = key, filter = filter, frame = button, enabled = true, options = options }
 				return button
 			end

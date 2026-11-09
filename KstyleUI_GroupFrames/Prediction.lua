@@ -10,6 +10,8 @@ ns.Prediction = Prediction
 
 local HEALER = "player"
 local LEVEL_ABOVE_HEALTH = 1
+local SHIELD_LINES = 2
+local SHIELD_ALPHA = 1
 
 local function Build(f)
 	f.predict = CreateFrame("Frame", nil, f)
@@ -18,6 +20,7 @@ local function Build(f)
 	f.predict:SetFrameLevel(f.health:GetFrameLevel() + LEVEL_ABOVE_HEALTH)
 	f.heals = Widgets.StatusBar(f.predict, { background = false, smooth = true })
 	f.absorbs = Widgets.StatusBar(f.predict, { background = false, smooth = true })
+	f.shield = Widgets.StatusBar(f.predict, { background = false, smooth = true })
 end
 Button.built[#Button.built + 1] = Build
 
@@ -70,6 +73,17 @@ local function Layout(f, parts)
 	end
 	Paint(f.heals, cfg.prediction.healColor)
 	Paint(f.absorbs, cfg.prediction.absorbColor)
+	local shield = f.shield
+	local line = Widgets.Border(f) * SHIELD_LINES
+	shield:SetOrientation("HORIZONTAL")
+	shield:SetBarTexture(cfg.health.texture)
+	shield.opts.width, shield.opts.height = rect.width, line
+	shield:Restyle()
+	shield:ClearAllPoints()
+	shield:SetPoint("BOTTOMLEFT", f.health, "BOTTOMLEFT", 0, 0)
+	local c = cfg.prediction.absorbColor
+	shield:SetBarColor(c.r, c.g, c.b, SHIELD_ALPHA)
+	shield:SetShown(cfg.prediction.shield)
 	f.heals:SetShown(cfg.prediction.heals)
 	f.absorbs:SetShown(cfg.prediction.absorbs)
 	if not cfg.prediction.heals then
@@ -101,8 +115,23 @@ local function Values(f)
 	return heals, absorbs
 end
 
+local function Shield(f)
+	if not Settings.current.prediction.shield then
+		return
+	end
+	local unit = f.unit
+	f.shield:SetBarRange(0, UnitHealthMax(unit))
+	if type(UnitGetTotalAbsorbs) == "function" then
+		f.shield:SetBarValue(UnitGetTotalAbsorbs(unit))
+	else
+		Style.LogOnce("noTotalAbsorbs", "UnitGetTotalAbsorbs is missing; the shield line stays empty")
+		f.shield:SetBarValue(0)
+	end
+end
+
 local function Update(f)
 	local cfg = Settings.current.prediction
+	Shield(f)
 	if not cfg.heals and not cfg.absorbs then
 		return
 	end
@@ -131,6 +160,8 @@ local function PaintSample(f, sample)
 	f.heals:SetBarValue(cfg.heals and sample.incoming or 0)
 	f.absorbs:SetBarRange(0, 1)
 	f.absorbs:SetBarValue(cfg.absorbs and sample.absorb or 0)
+	f.shield:SetBarRange(0, 1)
+	f.shield:SetBarValue(cfg.shield and (sample.shield or sample.absorb) or 0)
 end
 Style.painters[#Style.painters + 1] = PaintSample
 

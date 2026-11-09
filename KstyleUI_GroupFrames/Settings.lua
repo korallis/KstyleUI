@@ -40,16 +40,18 @@ Settings.defaults = {
 		iconSize = 14,
 		auraSize = 20, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
+		buffSize = 14, buffCount = 3,
 	},
 	raid = {
 		width = 72, height = 40, spacing = 3, growth = "DOWN",
 		groupGrowth = "RIGHT", groupSpacing = 3, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5,
 		roleRing = false, classLine = false, power = false, powerHeight = 3,
-		textLayout = "INSIDE", nameSize = 10, healthText = "NONE", healthTextSize = 9,
+		textLayout = "ABOVE", nameSize = 10, healthText = "DEFICIT", healthTextSize = 9,
 		iconSize = 12,
-		auraSize = 14, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
+		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMLEFT", auraGrowth = "RIGHT", auraWrap = "UP",
+		buffSize = 10, buffCount = 3,
 	},
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
@@ -61,7 +63,9 @@ Settings.defaults = {
 	icons = { role = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true },
 	auras = { enabled = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER" },
-	prediction = { heals = true, absorbs = true, healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA) },
+	buffs = { enabled = true },
+	clickCast = { hint = true },
+	prediction = { heals = true, absorbs = true, shield = true, healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA) },
 	accent = { source = "class", color = Rgb("accentDefault") },
 }
 
@@ -186,6 +190,8 @@ local function KindRows(schema, kind, label)
 	add(Dropdown(p .. "auraPosition", L["Debuff position"], L["Where the debuff icons sit on or beside the frame."], AURA_POSITION))
 	add(Dropdown(p .. "auraGrowth", L["Debuff growth"], L["Which way the next debuff icon goes."], AURA_GROWTH))
 	add(Dropdown(p .. "auraWrap", L["Debuff row growth"], L["Which way a new row of debuff icons goes."], AURA_WRAP))
+	add(Slider(p .. "buffSize", L["Your heal icon size"], L["The size of each of your heals over time and shields on the frame."], 6, 24, 1))
+	add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], 1, 6, 1))
 end
 
 local function BuildSchema()
@@ -227,11 +233,16 @@ local function BuildSchema()
 	add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
 	add(Dropdown("auras.dispelFilter", L["Highlight debuffs"], L["Highlights debuffs you can dispel, or ones anyone in the group can."], DISPEL_FILTER))
 	schema[#schema].showWhen = Is("auras.dispelHighlight", true)
+	add({ type = "header", label = L["Your heals over time"] })
+	add(Toggle("buffs.enabled", L["Your heals over time"], L["Shows your own heals over time and shields at the health bar's right end."]))
+	add({ type = "header", label = L["Click casting"] })
+	add(Toggle("clickCast.hint", L["Click casting reminder"], L["Points the tooltip to the game's Click Casting, which these frames use, until you bind a spell."]))
 	add({ type = "header", label = L["Incoming heals and absorbs"] })
 	add(Toggle("prediction.heals", L["Incoming heals"], L["Extends the health bar with heals on the way."]))
 	add({ type = "color", key = "prediction.healColor", label = L["Incoming heal colour"], help = L["The colour of incoming heals on the health bar."], hasAlpha = true, showWhen = Is("prediction.heals", true) })
 	add(Toggle("prediction.absorbs", L["Absorbs"], L["Shows shields, such as Power Word: Shield, after the health."]))
 	add({ type = "color", key = "prediction.absorbColor", label = L["Absorb colour"], help = L["The colour of shields on the health bar."], hasAlpha = true, showWhen = Is("prediction.absorbs", true) })
+	add(Toggle("prediction.shield", L["Shield line"], L["A thin line under the health bar for the whole shield, seen even at full health."]))
 	add({ type = "header", label = L["Range and highlight"] })
 	add(Toggle("range.fade", L["Fade out of range"], L["Fades members who are too far away to heal."]))
 	add(Slider("range.alpha", L["Out of range opacity"], L["How faint a member out of range looks."], 0.1, 1, 0.05))

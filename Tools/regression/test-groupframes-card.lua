@@ -1,5 +1,6 @@
 -- test-groupframes-card.lua: the Lumen party card: a section cap with Party and the count over the member rows, each a role ring in the class colour, a name, a class and level caption and a class pill, with the raid frames in the same language.
 local G = dofile("Tools/regression/group_env.lua")
+local W = dofile("Tools/regression/widget_env.lua")
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
@@ -48,7 +49,34 @@ assert(near(h, geo.height + 20 + Widgets.SECTION_CAP_HEIGHT + 8 + 20), "and the 
 local hp = header._points[1]
 assert(hp[1] == geo.corner and hp[2] == holder and near(hp[4], 20) and near(-hp[5], 20 + Widgets.SECTION_CAP_HEIGHT + 8), "the header hangs under the cap inside the padding: " .. tostring(hp[4]) .. ", " .. tostring(hp[5]))
 local cp = card.cap.frame._points[1]
-assert(cp[1] == "TOPLEFT" and cp[2] == holder and near(cp[4], 20) and near(cp[5], -20), "the cap sits inside the padding at the top")
+assert(cp[1] == "TOPLEFT" and cp[2] == card.frame and near(cp[4], 20) and near(cp[5], -20), "the cap sits inside the card's padding at its top")
+
+-- The card hugs its rows: you and three others make four rows of glass, not five; the holder keeps the five-row
+-- footprint Layout places, and the card hangs from its top.
+W.Settle(env)
+local function rows(n)
+	return n * s.height + (n - 1) * s.spacing + 20 + Widgets.SECTION_CAP_HEIGHT + 8 + 20
+end
+local fp = card.frame._points[1]
+assert(fp[1] == "TOPLEFT" and fp[2] == holder and fp[3] == "TOPLEFT", "the card hangs from the holder's top left")
+assert(near(card.frame:GetHeight(), rows(4)), "four members make a four-row card: " .. tostring(card.frame:GetHeight()) .. ", want " .. rows(4))
+assert(near(card.frame:GetWidth(), w), "at the rail width")
+assert(near(select(2, holder:GetSize()), h), "while the holder keeps its five-row footprint")
+
+-- A member leaves in combat: the card eases to three rows with no protected call, since it is a plain frame that
+-- nothing secure hangs from.
+env._combat = true
+G.SetRoster(env, "party", { party[1], party[2] })
+env.RunTimers()
+W.Settle(env)
+eq(#env._blocked, 0, "resizing the card in combat touches nothing protected: " .. tostring(env._blocked[1]))
+assert(near(card.frame:GetHeight(), rows(3)), "three members make a three-row card: " .. tostring(card.frame:GetHeight()))
+eq(card.cap.aside:GetText(), "3", "and the cap counts three")
+env._combat = false
+G.SetRoster(env, "party", party)
+env.RunTimers()
+W.Settle(env)
+assert(near(card.frame:GetHeight(), rows(4)), "back to four rows")
 
 -- Each member: a role ring in the class colour with the role's letter, the name, the class and level caption at the
 -- right, and a thin class pill along the row's foot.

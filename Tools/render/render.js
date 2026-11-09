@@ -479,6 +479,38 @@
 		}
 	}
 
+	// A text that may not wrap and runs past its width ends in "...", as the game truncates a FontString.
+	function truncateRuns(ctx, runs, maxPx) {
+		const total = runs.reduce((sum, run) => sum + ctx.measureText(run.text).width, 0);
+		if (total <= maxPx + 0.5) {
+			return runs;
+		}
+		const dots = "...";
+		let room = maxPx - ctx.measureText(dots).width;
+		const out = [];
+		let color = runs.length ? runs[0].color : null;
+		for (const run of runs) {
+			let kept = "";
+			for (const ch of run.text) {
+				const w = ctx.measureText(kept + ch).width - ctx.measureText(kept).width;
+				if (w > room) {
+					break;
+				}
+				room -= w;
+				kept += ch;
+			}
+			if (kept) {
+				out.push({ text: kept, color: run.color });
+				color = run.color;
+			}
+			if (kept.length < run.text.length) {
+				break;
+			}
+		}
+		out.push({ text: dots, color: color });
+		return out;
+	}
+
 	async function drawText(ctx, item, ppu, base) {
 		const alpha = item.alpha;
 		if (alpha <= 0 || !item.text) {
@@ -551,6 +583,9 @@
 			}
 			return runs.length ? runs : [{ text: line, color: item.color }];
 		});
+		if (item.wordWrap === false && !(item.natural && item.natural.width) && lineRuns.length === 1 && dest.w > 0) {
+			lineRuns[0] = truncateRuns(ctx, lineRuns[0], dest.w);
+		}
 		const lh = lineHeight * ppu;
 		let align = "left";
 		let x = dest.x;

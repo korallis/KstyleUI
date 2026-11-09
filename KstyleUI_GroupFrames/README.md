@@ -1,6 +1,6 @@
 # KstyleUI_GroupFrames
 
-Party and raid frames up to 40: class colours, role icons, range fade, incoming heals and dispellable debuff highlight.
+Party and raid frames up to 40: class colours, role icons, range fade, missing health, incoming heals, absorbs and a shield line, your own heals over time, the dispellable debuff highlight, and the game's Click Casting.
 
 | Field | Value |
 | --- | --- |
@@ -32,23 +32,23 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Geometry.lua` | `ns.Geometry`: pure layout maths: header attributes per growth, holder sizes, raid group slots, flow columns and the parts inside one frame |
 | `Style.lua` | `ns.Style`: builds a frame's look on any frame (glass tile, portrait, health and power bars, texts, target ring) and lays it out from the settings; `Ring` and `Wash` draw the kit's chamfered bevel lines and chamfered fill for the highlights |
 | `Unit.lua` | `ns.Unit`: reads a unit into a frame on unit events: name, health, health text, power, colours, dead and offline states, portrait, level, range and target |
-| `Button.lua` | `ns.Button`: dresses each secure button a header makes with a plain content frame, hooks that follow its `unit` attribute, hover and the unit tooltip |
+| `Button.lua` | `ns.Button`: dresses each secure button a header makes with a plain content frame, hooks that follow its `unit` attribute, hover, the unit tooltip and the click casting reminder |
 | `Headers.lua` | `ns.Headers`: the party header and eight raid headers, their attributes, buttons made out of combat, and visibility drivers |
 | `Blizzard.lua` | `ns.Blizzard`: hides and restores Blizzard's party frames, compact raid frames and raid manager through `KstyleUI.Safe`, and tells when the gamepad interface is on |
 | `Frames.lua` | `ns.Frames`: `Enable` and `Disable`, settings applied out of combat, Layout registration, group events, the gamepad stand-down and the `/kstyle test` check |
 | `Indicators.lua` | `ns.Indicators`: role, leader and assistant, raid marker and ready-check icons, and the threat glow |
-| `Prediction.lua` | `ns.Prediction`: incoming heals and absorbs after the health fill |
-| `Auras.lua` | `ns.Auras`: debuff icons, dressed as the kit's chamfered icon tiles, and the dispellable debuff highlight on the AuraContainer engine |
+| `Prediction.lua` | `ns.Prediction`: incoming heals and absorbs after the health fill, and the shield line under the bar |
+| `Auras.lua` | `ns.Auras`: debuff icons, dressed as the kit's chamfered icon tiles, the dispellable debuff highlight, and your own heals over time in a second container, all on the AuraContainer engine |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview with sample party and raid frames |
 | `Module.lua` | `KstyleUI.Modules.Register` and `KstyleUI.Options.Register` |
 
-Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-auras.lua` (debuffs and the dispel highlight, secrecy, combat and a client without the engine), `test-groupframes-shapes.lua` (the chamfered highlights and debuff icons, whole-pixel icon sizes, and the icon chrome waiting while auras are secret), `test-groupframes-gamepad.lua` (the stand-down for the gamepad interface, in and out of combat), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
+Tests: `Tools/regression/test-groupframes-geometry.lua` (the maths), `test-groupframes-settings.lua` (registration, schema and damaged values), `test-groupframes-frames.lua` (headers, units, colours, range, sorting, combat safety, Blizzard frames, Disable) `test-groupframes-indicators.lua` (icons, threat, heals and absorbs, with their fallbacks), `test-groupframes-auras.lua` (debuffs and the dispel highlight, secrecy, combat and a client without the engine), `test-groupframes-shapes.lua` (the chamfered highlights and debuff icons, whole-pixel icon sizes, and the icon chrome waiting while auras are secret), `test-groupframes-gamepad.lua` (the stand-down for the gamepad interface, in and out of combat), `test-groupframes-card.lua` (the party card and its fit to the member count, in combat too), `test-groupframes-healer.lua` (raid names off the fill, missing health, your heals over time, the shield line, the click casting reminder, outlined text on the bar), `test-groupframes-preview.lua` and `test-groupframes-fallbacks.lua`. They load the module through `Tools/regression/group_env.lua`, which adds a roster, secure group headers that place units as Blizzard's `SecureGroupHeaders.lua` does, and a combat guard that raises on any protected call outside secure code.
 
 ## Elements
 
 | Key | Frame | Layout options |
 | --- | --- | --- |
-| `groupframes.party` | The party holder: the party header in a frame sized to five members | Scalable |
+| `groupframes.party` | The party holder: the party header in a frame sized to five members, with the party card inside it sized to the members shown | Scalable |
 | `groupframes.raid` | The raid holder: eight group headers, or one header in role or class order | Scalable |
 
 The holders are scalable rather than resizable: frame width, height, spacing and growth are settings, and the holder's size follows them. Layout Mode scales a whole group block.
@@ -67,8 +67,10 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 
 `Geometry.Button` lays the role, leader and raid marker icons out with the texts, so none of the four overlaps at any frame size (`test-groupframes-indicators-layout.lua` resolves them with the renderer's solver at the default, smallest and largest party and raid sizes):
 
-- The icons share the frame's top band, each a `gapTiny` in from the edge: the role icon at the top right, the leader icon on the top-left corner, over the portrait's corner when there is one, and the raid marker centred on the top edge, no lower than the name row. Their size is the `iconSize` setting, shrunk so three fit across the frame and one fits its height.
-- With the name above the bar, the name row ends a gap before the role icon, and starts after the leader icon when no portrait carries it; the health text is right-aligned at the row's end.
+- The role icon sits at the top right, a `gapTiny` in from the edge. Their size is the `iconSize` setting, shrunk so three fit across the frame and one fits its height.
+- With the name above the bar, the leader icon sits over the portrait's corner, or on the bar's left end when there is no portrait, and the raid marker sits inside the frame: in the room between the name row and the bar when it fits there, else centred on the bar. Nothing straddles the seam between two frames, so a marker never reads as a stray icon between rows.
+- With the name above the bar, the name row ends a gap before the role icon and the health text is right-aligned at the row's end; the name ends a gap before the health text and truncates while the text shows.
+- With the name on the bar, the leader icon sits on the top-left corner and the raid marker centres on the top edge, no lower than the name row, and the name starts after the leader icon when no portrait carries it. Text on the bar is outlined when its outline setting is the soft shadow, so it reads on any class fill.
 - With the name on the bar, the health text centres on the bar at its natural width while its line sits below the icon band; when the bar is so short that the line reaches into the band, the text narrows to the span between the icons.
 - The ready-check icon sits on the bar's centre and the assistant icon on the leader icon, as before.
 
@@ -77,24 +79,27 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | Key | Default | What it does |
 | --- | --- | --- |
 | `blizzard.party`, `blizzard.raid`, `blizzard.manager` | on | Hide Blizzard's party frames, compact raid frames and raid manager. In the gamepad interface all three stay Blizzard's |
-| `party.width`, `party.height`, `party.spacing` | 230, 46, 10 | Frame size and gap |
+| `party.width`, `party.height`, `party.spacing` | 278, 40, 8 | Frame size and gap |
 | `party.growth` | `DOWN` | Which way the next frame goes |
 | `party.sortBy` | `INDEX` | Group order, name or role |
 | `party.showPlayer`, `party.showSolo` | on, off | Include yourself; show when solo |
 | `party.portrait` | on | The class-ringed portrait with the level disc: a `buttonFill` disc with a ring in the accent one border outside it, the edge line the unit frames' badge wears |
-| `raid.width`, `raid.height`, `raid.spacing` | 72, 40, 3 | Frame size and gap |
+| `raid.width`, `raid.height`, `raid.spacing` | 72, 40, 3 | Frame size and gap (the Lumen setup writes 77 wide, 40 or 46 tall) |
 | `raid.growth`, `raid.groupGrowth`, `raid.groupSpacing` | `DOWN`, `RIGHT`, 3 | Member growth, group or column growth and the gap between groups |
 | `raid.sortBy` | `GROUP` | Group, role or class |
 | `raid.groupsPerRow` | 8 | Groups side by side before a new row (group sort) |
 | `raid.unitsPerColumn` | 5 | Frames per column (role and class sort) |
 | `<kind>.power`, `<kind>.powerHeight` | party on, 4; raid off, 3 | The power bar |
-| `<kind>.textLayout` | party `ABOVE`, raid `INSIDE` | Name above the bar or on it |
+| `<kind>.textLayout` | `ABOVE` | Name above the bar or on it. Raid frames put it above, on the glass, so no name sits on a pale class fill |
 | `<kind>.nameSize` | 11, 10 | Name size |
-| `<kind>.healthText`, `<kind>.healthTextSize` | party `PERCENT` 11, raid `NONE` 9 | None, percent, current, missing, current and maximum, current and percent |
+| `<kind>.healthText`, `<kind>.healthTextSize` | party `NONE` 11, raid `DEFICIT` 9 | None, percent, current, missing, current and maximum, current and percent. Raid frames show the missing health, hidden at full health |
 | `<kind>.iconSize` | 14, 12 | Role, leader, marker and ready-check icon size |
 | `icons.role`, `icons.leader`, `icons.marker`, `icons.readyCheck` | on | Each status icon |
 | `threat.enabled` | on | The threat glow |
-| `<kind>.auraSize`, `<kind>.auraCount` | party 20, 3; raid 14, 3 | Debuff icon size and the most icons shown |
+| `<kind>.auraSize`, `<kind>.auraCount` | party 20, 3; raid 12, 3 | Debuff icon size and the most icons shown |
+| `<kind>.buffSize`, `<kind>.buffCount` | party 14, 3; raid 10, 3 | The size and most of your heals over time and shields |
+| `buffs.enabled` | on | Your heals over time and shields at the health bar's right end |
+| `clickCast.hint` | on | Until you bind a spell in the game's Click Casting, the unit tooltip says where to bind one |
 | `<kind>.auraDispelCount` | 1 | Dispellable debuffs shown first, before the others; 0 shows none |
 | `<kind>.auraColumns`, `<kind>.auraRows`, `<kind>.auraSpacing` | 3, 1; party 2, raid 1 | Icons per row, rows and the gap; the count stops at columns times rows |
 | `<kind>.auraPosition`, `<kind>.auraGrowth`, `<kind>.auraWrap` | party outside right, right, down; raid inside bottom left, right, up | Where the icons sit and which way they fill |
@@ -102,7 +107,8 @@ The holders are scalable rather than resizable: frame width, height, spacing and
 | `auras.swipe` | on | The duration swipe on each icon |
 | `auras.dispelHighlight`, `auras.dispelFilter` | on, `PLAYER` | The dispel highlight for debuffs you can dispel (`HARMFUL\|RAID`) or anyone in the group can (`HARMFUL\|RAID_PLAYER_DISPELLABLE`) |
 | `prediction.heals`, `prediction.healColor` | on, friendly at 50% | Incoming heals |
-| `prediction.absorbs`, `prediction.absorbColor` | on, white at 45% | Absorb shields |
+| `prediction.absorbs`, `prediction.absorbColor` | on, white at 45% | Absorb shields after the health fill, up to the missing health |
+| `prediction.shield` | on | A thin line under the bar for the whole shield, in the absorb colour, so a shield on a full-health member shows |
 | `health.texture` | Glass | Bar texture for health and power |
 | `health.colorSource`, `health.color` | `class`, friendly | Class, reaction or a custom colour |
 | `health.orientation` | `HORIZONTAL` | Fill left to right, or bottom up |
@@ -139,4 +145,9 @@ Feature files add to the frame without editing it: `Button.built` (build parts o
 - **Debuff icons are the kit's icon tiles.** Each engine button gets a `Widgets.Chrome` tile, the icon two borders in and masked by `iconMask`, and a cooldown swipe drawn with `iconMask`, as `KstyleUI_Auras` dresses its buttons. The debuff type colour fills a `chamferTile` nine-slice behind the icon, so it shows as a chamfered border. Icon size and spacing are snapped to whole pixels with `Widgets.Snap` before they reach the engine's layout, and buttons are sized with `Widgets.Size`. The chrome's `Restyle` is wrapped by the same secrecy gate as the rest of the icon, so `Widgets.RestyleAll` never reaches a restricted aura button.
 - **Containers are made out of combat, when a frame first gets a unit.** Raid buttons are many and most stay empty, so a container per button would cost ten aura buttons each for nothing. A frame that first gets a unit in combat makes its container when combat ends.
 - **Aura buttons are touched only while auras are readable.** The engine denies tainted access to its aura buttons while auras are secret, so icon size and font changes wait until `C_Secrets.ShouldAurasBeSecret()` is false. Container settings (filter, count, layout) go through the container's own methods and apply at once.
+- **The party card hugs its members.** The holder keeps the five-row footprint that Layout places and Layout Mode drags. The card inside it is a plain frame, anchored at the corner the rows grow from, sized to the rows the party shows (`Geometry.PartyShown`: you and the others, at least one, all five when the count is unknown) and eased there over the kit's panel time on `GROUP_ROSTER_UPDATE`. Nothing secure hangs from the card, so it resizes in combat with no protected call.
+- **Raid names live on the glass.** A white or pale class fill (priests, rogues, paladins) makes white text unreadable. Raid frames put the name and the missing health in a row above a solid class-coloured bar, so the text always sits on the dark glass, and the bar keeps at least 16 units for reading health at a glance.
+- **Your heals over time on the engine.** A second `CustomAuraContainerTemplate` container per frame runs Blizzard's unit frame processing with buffs classified and debuffs ignored (`ignoreBuffs = false`, `ignoreDebuffs = true`), and one group takes `HELPFUL|PLAYER` auras whose `processedAuraType` is `Buff`: the heals over time and shields you cast that Blizzard's raid frames would show. The engine finds and draws them while auras are secret; Lua only sets the filter, the count and the anchor at the bar's right end. It is made out of combat, like the debuff container.
+- **A shield line that shows at full health.** The absorb overlay is clamped to the missing health, so a shield on a full-health tank is invisible there. The shield line spans the health maximum and takes `UnitGetTotalAbsorbs`, a secret passed straight to `SetValue`, along the bar's foot.
+- **Click casting is the game's own.** Forever's `SecureUnitButton_OnClick` asks `C_ClickBindings` before it reads a button's `type` attributes, and runs a bound spell or macro on the button's unit (`Blizzard_FrameXML/SecureTemplates.lua`). These frames are `SecureUnitButtonTemplate` buttons, so the game's Click Casting (Options, Keybindings, Click Casting) works on them in and out of combat. A second click system of `type1`/`spell1` attributes would only be shadowed by those bindings, so the module points to them instead: until a spell, macro or pet action is bound (`C_ClickBindings.GetProfileInfo`), the unit tooltip says where to bind one, out of combat only.
 - **Clicks pass through debuff icons.** `SetMouseClickEnabled(false)` keeps the debuff tooltip on hover while a click on an icon still targets the member.

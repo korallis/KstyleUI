@@ -28,10 +28,15 @@ local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
 local SAMPLE_ICONS = { 136207, 135848, 136139 }
 local SAMPLE_COUNT = 2
+local BUFFS = "buffs"
+local BUFF_FILTER = "HELPFUL|PLAYER"
+local SAMPLE_BUFF_ICONS = { 136081, 135953, 135940 }
 
 local available = true
+local buffsAvailable = true
 local parts = setmetatable({}, { __mode = "k" })
 local owners = setmetatable({}, { __mode = "k" })
+local buffHolders = setmetatable({}, { __mode = "k" })
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -59,6 +64,19 @@ local LAYOUT_INDEX = { [DISPELS] = 1, [GROUP] = 2 }
 
 local function Sizes(f, k)
 	return Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
+end
+
+local function BuffSizes(f, k)
+	return Widgets.Snap(f, k.buffSize), Widgets.Snap(f, k.auraSpacing)
+end
+
+local function BuffLayout(f, k)
+	local size, spacing = BuffSizes(f, k)
+	return { elementSpacing = spacing, lineSpacing = spacing, elementWidth = size, elementHeight = size, layoutIndex = 1 }
+end
+
+local function BuffPolicy()
+	return { ignoreBuffs = false, ignoreDebuffs = true, ignoreDispelDebuffs = true, displayOnlyDispellableDebuffs = false }
 end
 
 local function GroupLayout(f, k, key)
@@ -128,7 +146,7 @@ local function Flush()
 	end
 	for f in pairs(pending) do
 		pending[f] = nil
-		if f.auras then
+		if f.auras or f.buffs then
 			RestyleNow(f)
 		end
 	end
@@ -159,7 +177,8 @@ local function StyleIcon(button)
 		return
 	end
 	local k = Settings.current[f.kind]
-	Widgets.Size(button, k.auraSize, k.auraSize)
+	local size = p.buff and k.buffSize or k.auraSize
+	Widgets.Size(button, size, size)
 	p.restyleChrome(p.chrome)
 	p.chrome:SetRimAccent(Style.Accent())
 	local inset = PlaceIcon(p)
@@ -167,19 +186,32 @@ local function StyleIcon(button)
 	p.count:ClearAllPoints()
 	p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 	local text = Settings.current.text
-	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(k.auraSize * COUNT_SHARE + 0.5)), "OUTLINE")
+	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
+end
+
+local function StyleGroup(container, key)
+	for i = 1, container:GetAuraGroupFrameCount(key) do
+		local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(key, i))
+		if not ok then
+			Style.LogOnce("auraStyle", "restyling an aura icon failed: " .. tostring(err))
+			return false
+		end
+	end
+	return true
 end
 
 function RestyleNow(f)
 	local container = f.auras
+	if f.buffs then
+		StyleGroup(f.buffs, BUFFS)
+	end
+	if not container then
+		return
+	end
 	for _, key in ipairs(GROUPS) do
-		for i = 1, container:GetAuraGroupFrameCount(key) do
-			local ok, err = pcall(StyleIcon, container:GetAuraGroupFrame(key, i))
-			if not ok then
-				Style.LogOnce("auraStyle", "restyling a debuff icon failed: " .. tostring(err))
-				return
-			end
+		if not StyleGroup(container, key) then
+			return
 		end
 	end
 	if f.dispelWash then
@@ -225,9 +257,11 @@ local function BuildIcon(button)
 	elseif not pcall(button.EnableMouse, button, false) then
 		Style.LogOnce("auraMouse", "aura buttons refused EnableMouse(false); debuff icons may catch clicks")
 	end
-	local f = owners[button:GetParent()]
+	local holder = button:GetParent()
+	local f = owners[holder]
 	local p = NewTile(button)
 	p.owner = f
+	p.buff = buffHolders[holder] == true
 	p.restyleChrome = GateChrome(p.chrome, f)
 	p.dispel = Widgets.NineSlice(p.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
 	Widgets.ShowSlice(p.dispel, false)
@@ -326,6 +360,19 @@ local function SetUnit(f, unit)
 	end
 end
 
+local function SetBuffUnit(f, unit)
+	local container = f.buffs
+	if not container or f.buffsUnit == unit then
+		return
+	end
+	local ok, err = pcall(container.SetUnit, container, unit)
+	if ok then
+		f.buffsUnit = unit
+	else
+		Style.LogOnce("buffUnit", "a heal icon container refused a unit: " .. tostring(err))
+	end
+end
+
 local function NewContainer(f)
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, f, TEMPLATE)
 	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
@@ -366,6 +413,66 @@ local function NewContainer(f)
 	end
 	Style.LogOnce("auraEngine", "group frame debuffs run on the AuraContainer engine")
 	return container
+end
+
+local function NewBuffContainer(f)
+	local ok, container = pcall(CreateFrame, "AuraContainer", nil, f, TEMPLATE)
+	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
+		buffsAvailable = false
+		Style.LogOnce("buffMissing", "the AuraContainer engine (" .. TEMPLATE .. ") is unavailable, so group frames show none of your heals over time: " .. tostring(container))
+		return nil
+	end
+	owners[container] = f
+	buffHolders[container] = true
+	container:SetFrameLevel(f:GetFrameLevel() + CONTAINER_LEVEL)
+	if type(container.SetEditModePreviewEnabled) == "function" then
+		pcall(container.SetEditModePreviewEnabled, container, false)
+	end
+	local k = Settings.current[f.kind]
+	local added, err = pcall(function()
+		local options = { maxFrameCount = k.buffCount, initializeFrame = InitIcon, layout = BuffLayout(f, k) }
+		local policy, types = Processing()
+		if policy and type(container.SetAuraProcessingPolicy) == "function" then
+			container:SetAuraProcessingPolicy(policy, BuffPolicy())
+			options.candidateFilters = { processedAuraType = types.Buff }
+		else
+			Style.LogOnce("buffPolicy", "the aura processing policy is missing; group frames show every buff you cast as a heal icon")
+		end
+		local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
+		if methods and directions then
+			options.sortMethod = methods.Default
+			options.sortDirection = directions.Normal
+		end
+		container:AddAuraGroup(BUFFS, BUFF_FILTER, options)
+	end)
+	if not added then
+		container:Hide()
+		buffsAvailable = false
+		Style.LogOnce("buffGroup", "the heal icon group could not be added: " .. tostring(err))
+		return nil
+	end
+	Style.LogOnce("buffEngine", "your heals over time on group frames run on the AuraContainer engine")
+	return container
+end
+
+local function ConfigureBuffs(f)
+	local container = f.buffs
+	local k = Settings.current[f.kind]
+	local size = BuffSizes(f, k)
+	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
+	container:ClearAllPoints()
+	container:SetPoint("TOPRIGHT", f.health, "RIGHT", -inset, Widgets.Snap(f, size / 2))
+	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
+	local direction = AnchorUtil and AnchorUtil.FlowDirection
+	if axis and direction then
+		container:SetFlowLayoutAxis(axis.Horizontal)
+		container:SetFlowLayoutAnchorPoint("TOPRIGHT")
+		container:SetFlowLayoutGrowthDirection(direction.Left, direction.Down)
+	end
+	container:SetAuraGroupLayout(BUFFS, BuffLayout(f, k))
+	container:SetAuraGroupMaxFrameCount(BUFFS, k.buffCount)
+	container:SetAuraGroupEnabled(BUFFS, Settings.current.buffs.enabled)
+	Restyle(f)
 end
 
 local function Configure(f)
@@ -410,12 +517,20 @@ local function Configure(f)
 end
 
 local function Layout(f)
-	if f.sample or not f.auras then
+	if f.sample then
 		return
 	end
-	local ok, err = pcall(Configure, f)
-	if not ok then
-		Style.LogOnce("auraConfigure", "configuring debuffs failed: " .. tostring(err))
+	if f.auras then
+		local ok, err = pcall(Configure, f)
+		if not ok then
+			Style.LogOnce("auraConfigure", "configuring debuffs failed: " .. tostring(err))
+		end
+	end
+	if f.buffs then
+		local ok, err = pcall(ConfigureBuffs, f)
+		if not ok then
+			Style.LogOnce("buffConfigure", "configuring heal icons failed: " .. tostring(err))
+		end
 	end
 end
 
@@ -459,6 +574,45 @@ local function Bind(f)
 end
 Auras.Bind = Bind
 
+local buffWaiting = setmetatable({}, { __mode = "k" })
+
+local function BindBuffs(f)
+	if f.sample then
+		return
+	end
+	local on = Settings.current.buffs.enabled and buffsAvailable and Unit.running
+	if not on then
+		if f.buffs then
+			SetBuffUnit(f, NONE)
+			f.buffs:Hide()
+		end
+		return
+	end
+	if not f.buffs then
+		if not f.unit then
+			return
+		end
+		if InCombatLockdown() then
+			if not buffWaiting[f] then
+				buffWaiting[f] = true
+				K.Combat.Queue(function()
+					buffWaiting[f] = nil
+					BindBuffs(f)
+				end)
+			end
+			return
+		end
+		f.buffs = NewBuffContainer(f)
+		if not f.buffs then
+			return
+		end
+		Layout(f)
+	end
+	f.buffs:Show()
+	SetBuffUnit(f, f.unit or NONE)
+end
+Auras.BindBuffs = BindBuffs
+
 local function BuildSamples(f)
 	if not f.sample then
 		return
@@ -473,6 +627,14 @@ local function BuildSamples(f)
 		tile.icon:SetTexture(fileID)
 		icon.tile, icon.art = tile, tile.icon
 		f.sampleAuras[i] = icon
+	end
+	f.sampleBuffs = {}
+	for i, fileID in ipairs(SAMPLE_BUFF_ICONS) do
+		local icon = CreateFrame("Frame", nil, holder)
+		local tile = NewTile(icon)
+		tile.icon:SetTexture(fileID)
+		icon.tile, icon.art = tile, tile.icon
+		f.sampleBuffs[i] = icon
 	end
 	f.sampleDispel = CreateFrame("Frame", nil, holder)
 	f.sampleDispel:SetAllPoints(f)
@@ -501,6 +663,15 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
+	local buffSize, buffSpacing = BuffSizes(f, k)
+	for i, icon in ipairs(f.sampleBuffs) do
+		icon:ClearAllPoints()
+		icon:SetSize(buffSize, buffSize)
+		icon:SetPoint("RIGHT", f.health, "RIGHT", -inset - (i - 1) * (buffSize + buffSpacing), 0)
+		icon.tile.chrome:Restyle()
+		icon.tile.chrome:SetRimAccent(Style.Accent())
+		PlaceIcon(icon.tile)
+	end
 	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel, f.chrome:Chamfer())
 end
 
@@ -519,6 +690,10 @@ local function PaintSample(f, sample)
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
 	end
+	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, k.buffCount) or 0
+	for i, icon in ipairs(f.sampleBuffs) do
+		icon:SetShown(i <= hots)
+	end
 	local dispel = a.dispelHighlight and sample.dispel
 	if dispel then
 		local r, g, b = Tokens.Color("rare")
@@ -531,3 +706,5 @@ Style.painters[#Style.painters + 1] = PaintSample
 
 Unit.changed[#Unit.changed + 1] = Bind
 Unit.extra[#Unit.extra + 1] = Bind
+Unit.changed[#Unit.changed + 1] = BindBuffs
+Unit.extra[#Unit.extra + 1] = BindBuffs

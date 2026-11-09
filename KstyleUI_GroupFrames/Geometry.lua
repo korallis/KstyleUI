@@ -111,6 +111,26 @@ function Geometry.Party(s)
 	return { width = w, height = h, count = count, corner = Geometry.Corner(growth), point = point, xOffset = x, yOffset = y }
 end
 
+function Geometry.PartyShown(s, members)
+	local most = s.showPlayer == false and PARTY_MAX - 1 or PARTY_MAX
+	if type(members) ~= "number" or members ~= members then
+		return most
+	end
+	local shown = members
+	if members <= 0 then
+		shown = s.showSolo and s.showPlayer ~= false and 1 or 0
+	elseif s.showPlayer == false then
+		shown = members - 1
+	end
+	return floor(Clamp(shown, 1, most))
+end
+
+function Geometry.PartyCard(s, cap, shown)
+	local growth = Clean(s.growth)
+	local w, h = Block(growth, shown, s.width, s.height, s.spacing)
+	return Geometry.Card({ width = w, height = h }, cap)
+end
+
 function Geometry.RaidGroups(s)
 	local member, group = Clean(s.growth), Clean(s.groupGrowth, "RIGHT")
 	local wrap = Geometry.Wrap(member, group)
@@ -164,17 +184,33 @@ end
 
 local ICONS_ACROSS = 3
 
+local function Centred(span, start, size)
+	return start + (span - size) / 2
+end
+
 local function Indicators(out, w, h, o, pad, gap)
 	local size = floor(min(o.iconSize, (w - (ICONS_ACROSS + 1) * gap) / ICONS_ACROSS, h - 2 * gap))
 	size = max(MIN_PART, size)
 	local icons = { size = size }
 	out.icons = icons
-	icons.role = Rect(w - gap - size, gap, size, size)
-	icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
-	icons.marker = Rect((w - size) / 2, min(-size / 2, pad - size), size, size)
 	local health = out.health
+	icons.role = Rect(w - gap - size, gap, size, size)
+	if out.nameInside then
+		icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
+		icons.marker = Rect((w - size) / 2, min(-size / 2, pad - size), size, size)
+	else
+		local nameBottom = out.name.top + out.name.height
+		if out.portrait then
+			icons.leader = Rect(0, -gap, size, size)
+		else
+			icons.leader = Rect(health.left, max(nameBottom, Centred(health.height, health.top, size)), size, size)
+		end
+		local room = health.top - nameBottom
+		local top = room >= size and Centred(room, nameBottom, size) or max(nameBottom, Centred(health.height, health.top, size))
+		icons.marker = Rect(Centred(health.width, health.left, size), min(top, h - size), size, size)
+	end
 	local textLeft, textRight = health.left, health.left + health.width
-	if o.leader and not out.portrait then
+	if o.leader and not out.portrait and out.nameInside then
 		textLeft = max(textLeft, icons.leader.left + size + gap)
 	end
 	if o.role then
@@ -216,7 +252,13 @@ function Geometry.Button(w, h, o)
 	if o.nameAbove and rest - nameHeight - gap >= MIN_PART * 2 then
 		out.nameInside = false
 		out.name = Rect(left, top, width, nameHeight)
-		out.health = Rect(left, top + nameHeight + gap, width, rest - nameHeight - gap)
+		local barTop, barHeight = top + nameHeight + gap, rest - nameHeight - gap
+		local pill = o.pill
+		if pill and barHeight > pill then
+			local rise = o.pillRise or 0
+			barTop, barHeight = barTop + barHeight - pill - rise, pill
+		end
+		out.health = Rect(left, barTop, width, barHeight)
 	else
 		out.health = Rect(left, top, width, rest)
 		out.name = out.health

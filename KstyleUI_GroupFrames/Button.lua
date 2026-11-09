@@ -2,7 +2,8 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Style, Unit = ns.Style, ns.Unit
+local Style, Unit, Settings = ns.Style, ns.Unit, ns.Settings
+local L, Tokens = K.L, K.Tokens
 
 local Button = {}
 ns.Button = Button
@@ -29,6 +30,38 @@ local function OnShow(button)
 	end
 end
 
+local issecretvalue = issecretvalue or function()
+	return false
+end
+
+local function ClickSpellsBound()
+	local api = C_ClickBindings
+	local kinds = Enum and Enum.ClickBindingType
+	if not (api and type(api.GetProfileInfo) == "function" and kinds) then
+		return nil
+	end
+	local ok, list = pcall(api.GetProfileInfo)
+	if not ok or type(list) ~= "table" then
+		return nil
+	end
+	for _, info in ipairs(list) do
+		local kind = type(info) == "table" and info.type
+		if not issecretvalue(kind) and (kind == kinds.Spell or kind == kinds.Macro or kind == kinds.PetAction) then
+			return true
+		end
+	end
+	return false
+end
+Button.ClickSpellsBound = ClickSpellsBound
+
+local function ClickHint(tooltip)
+	if not Settings.current.clickCast.hint or InCombatLockdown() or ClickSpellsBound() ~= false then
+		return
+	end
+	local r, g, b = Tokens.Color("text")
+	tooltip:AddLine(L["Bind spells to clicks on these frames in Options, Keybindings, Click Casting."], r, g, b, true)
+end
+
 local function OnEnter(button)
 	local f = contents[button]
 	if not f then
@@ -39,6 +72,7 @@ local function OnEnter(button)
 	if f.unit and tooltip and GameTooltip_SetDefaultAnchor and tooltip.SetUnit then
 		GameTooltip_SetDefaultAnchor(tooltip, button)
 		tooltip:SetUnit(f.unit)
+		ClickHint(tooltip)
 		tooltip:Show()
 	end
 end
