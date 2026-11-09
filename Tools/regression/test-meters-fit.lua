@@ -112,4 +112,50 @@ do
 	end
 end
 
+-- The fight switch is length-safe (round 4, S6: in German, French or Spanish the words Now / Last / All run past
+-- the card). The switch is measured from the stub's glyph widths as the game measures it; when the three words do
+-- not fit beside the title they drop to the selected word alone, and with the title off the words must fit the
+-- card's content width on their own.
+do
+	local D = dofile("Tools/regression/databars_env.lua")
+	local env, K, ns = M.New({
+		setup = function(e)
+			e._textWidth = D.TextWidth
+		end,
+		game = function(e)
+			e._group = { raid = false, size = 2 }
+		end,
+	})
+	M.Enable(env, K)
+	local list = ns.Damage.list
+	local function Plain()
+		return (tostring(M.Last(list.column, "SetText")[1]):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+	end
+	Show(env, 3)
+	assert(Plain():find("Now", 1, true) and Plain():find("All", 1, true), "English words fit the default card: " .. Plain())
+	-- Long words, as a locale table gives them.
+	local words = { "Gegenwaertig", "Vorheriger Kampf", "Insgesamt" }
+	local short = {}
+	list:SetSwitch(words, 1, short)
+	local shown = Plain()
+	assert(not shown:find("Insgesamt", 1, true) and shown:find("Gegenwaertig", 1, true), "words too long for the cap drop to the selected word alone: " .. shown)
+	local aside, title = list.column:GetStringWidth(), list.title:GetStringWidth()
+	assert(aside and title and aside + title <= list.barWidth, "what shows fits beside the title: " .. tostring(aside) .. " + " .. tostring(title) .. " in " .. tostring(list.barWidth))
+	-- With the title off, the words alone must fit the content width, on a narrow card too.
+	M.Write(env, K, "damage.title", false)
+	local wide = list.barWidth
+	list.barWidth = 120
+	list:SetSwitch({ "Gegenwaertig", "Vorheriger Kampf", "Insgesamt und alles" }, 3, {})
+	shown = Plain()
+	aside = list.column:GetStringWidth()
+	assert(aside and aside <= list.barWidth + 0.01, "with the title off the switch still fits a narrow card: " .. tostring(aside) .. " in " .. tostring(list.barWidth) .. " (" .. shown .. ")")
+	assert(shown:find("Insgesamt", 1, true) and not shown:find("Gegenwaertig", 1, true), "the selected word is what stays: " .. shown)
+	list.barWidth = wide
+	M.Write(env, K, "damage.title", true)
+	-- Short forms step in before the selected word alone.
+	list:SetSwitch({ "Gegenwaertig", "Vorheriger", "Insgesamt" }, 2, { "Jetzt", "Zuletzt", "Alle" })
+	shown = Plain()
+	assert(shown:find("Zuletzt", 1, true) and shown:find("Jetzt", 1, true), "short forms show when the long words do not fit: " .. shown)
+end
+
 print("meters fit: passed")

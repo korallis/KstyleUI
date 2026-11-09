@@ -14,6 +14,7 @@ local PILL_GAP = 3
 local TEXT_AIR = 2
 local ICON_CROP = 0.08
 local MORE_GLYPH = 10
+local ESTIMATE_EM = 0.5
 local CAP_RESERVE = 44
 local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
@@ -309,12 +310,21 @@ function List:SetTitle(text)
 	self.cap:SetTitle(text)
 end
 
+-- TextWidth(text) -> the width a font string's text takes: measured by the game; estimated from its letters and
+-- font size when the game has no measure yet, so a long switch never fails open.
 local function TextWidth(text)
 	local width = Logic.Plain(text:GetStringWidth())
 	if width and width > 0 then
 		return width
 	end
-	return nil
+	local value = text:GetText()
+	if Logic.IsSecret(value) or type(value) ~= "string" or value == "" then
+		return nil
+	end
+	local plain = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	local _, size = text:GetFont()
+	size = Logic.Plain(size) or Tokens.Size("body")
+	return #plain * size * ESTIMATE_EM
 end
 
 function List:SetColumn(text, short)
@@ -343,9 +353,19 @@ local function SwitchText(words, selected, only)
 	return table.concat(parts, SWITCH_GAP)
 end
 
+-- Fits(list) -> whether the aside fits the cap: beside the title with the cap's reserve, or, with the title off,
+-- inside the content width on its own.
 local function Fits(list)
-	local title, aside = TextWidth(list.title), TextWidth(list.column)
-	return not (title and aside and title + aside > (list.barWidth or 0) - CAP_RESERVE)
+	local aside = TextWidth(list.column)
+	if not aside then
+		return true
+	end
+	local room = list.barWidth or 0
+	if ns.Get(list.section .. ".title") then
+		local title = TextWidth(list.title)
+		return not title or title + aside <= room - CAP_RESERVE
+	end
+	return aside <= room
 end
 
 function List:SetSwitch(words, selected, short)
@@ -355,7 +375,7 @@ function List:SetSwitch(words, selected, short)
 	end
 	switch:SetShown(ns.Get(self.section .. ".title"))
 	self.cap:SetAside(SwitchText(words, selected))
-	if Fits(self) or not ns.Get(self.section .. ".title") then
+	if Fits(self) then
 		return
 	end
 	if short and short[selected] then

@@ -178,6 +178,11 @@ function Object:GetSize() return self:GetWidth(), self:GetHeight() end
 -- false, unless the environment installs env._textWidth(text, fontPath, size) -> width (the renderer's
 -- glyph measure, or a test's); then a string answers its text's width in its font, and IsTruncated is true
 -- when the string is narrower than its text, as the game answers for a string with word wrap off.
+-- plainText(text) -> the text without its escapes, as the game measures it: colour codes, links and textures go.
+local function plainText(text)
+	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", ""):gsub("|T.-|t", ""):gsub("|A.-|a", ""))
+end
+
 local function measured(self)
 	local stored = self._state.UnboundedStringWidth
 	if stored then
@@ -190,7 +195,7 @@ local function measured(self)
 	end
 	local font = self._state.Font
 	local size = font and font[2]
-	return measure(text[1], font and font[1], type(size) == "number" and size or 12)
+	return measure(plainText(text[1]), font and font[1], type(size) == "number" and size or 12)
 end
 function Object:GetUnboundedStringWidth() return measured(self) end
 function Object:GetStringWidth()
