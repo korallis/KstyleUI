@@ -142,6 +142,24 @@ local function StyleRow(list, row)
 	row.bar:SetReverseFill(reverse)
 end
 
+local function PlaceMore(list, row)
+	local more = row.more
+	if not more then
+		return
+	end
+	local panel = list.panel
+	local glyph = Widgets.Snap(panel, MORE_GLYPH)
+	local reach = Widgets.TextWidth(row.name, 0)
+	local room = Logic.Plain(row.name:GetWidth())
+	if room and room > 0 then
+		reach = math.min(reach, room)
+	end
+	more:ClearAllPoints()
+	more:SetSize(glyph, glyph)
+	more:SetPoint("LEFT", row.name, "LEFT", reach + list.gap, 0)
+	Widgets.Tint(more, "muted")
+end
+
 local function PlaceRow(list, row, i)
 	local rowHeight = list.rowHeight
 	local spacing = Spacing(list)
@@ -188,13 +206,7 @@ local function PlaceRow(list, row, i)
 	else
 		row.name:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
 	end
-	if row.more then
-		local glyph = Widgets.Snap(panel, MORE_GLYPH)
-		row.more:ClearAllPoints()
-		row.more:SetSize(glyph, glyph)
-		row.more:SetPoint("LEFT", row.name, "LEFT", Widgets.TextWidth(row.name, 0) + gap, 0)
-		Widgets.Tint(row.more, "muted")
-	end
+	PlaceMore(list, row)
 end
 
 local function FillHeight(list)
@@ -237,6 +249,7 @@ end
 local function HoldTitle(list)
 	local title = list.title
 	title:SetWidth(0)
+	title:SetShown(true)
 	if Fits(list) or not ns.Get(list.section .. ".title") then
 		return
 	end
@@ -244,6 +257,8 @@ local function HoldTitle(list)
 	local room = (list.barWidth or 0) - CAP_RESERVE - aside
 	if room > 0 then
 		title:SetWidth(room)
+	else
+		title:SetShown(false)
 	end
 end
 
@@ -265,7 +280,9 @@ function List:Restyle()
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", self.pad, -self.pad)
 	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -self.pad)
 	cap:Restyle()
-	if cap.frame.counted then
+	if self.switchWords then
+		self:SetSwitch(self.switchWords, self.switchSelected, self.switchShort)
+	elseif cap.frame.counted then
 		HoldTitle(self)
 	end
 	ns.ApplyFont(self.note, section)
@@ -317,6 +334,7 @@ function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, p
 	row.bar:SetBarRange(0, maxValue)
 	row.bar:SetBarValue(value)
 	row.name:SetText(name)
+	PlaceMore(self, row)
 	row.value:SetText(valueText)
 	row.percent:SetText(percentText)
 	row.value:SetShown(self.valueWidth > 0)
@@ -355,6 +373,7 @@ function List:SetTitle(text)
 end
 
 function List:SetColumn(text, short)
+	self.switchWords = nil
 	self.title:SetWidth(0)
 	self.cap:SetAside(text)
 	if short and short ~= text and ns.Get(self.section .. ".title") and not Fits(self) then
@@ -384,7 +403,9 @@ function List:SetSwitch(words, selected, short)
 		return
 	end
 	switch:SetShown(ns.Get(self.section .. ".title"))
+	self.switchWords, self.switchSelected, self.switchShort = words, selected, short
 	self.title:SetWidth(0)
+	self.title:SetShown(true)
 	self.cap:SetAside(SwitchText(words, selected))
 	if Fits(self) then
 		return

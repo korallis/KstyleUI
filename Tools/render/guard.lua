@@ -302,9 +302,10 @@ Guard.CROSS = 0.35
 -- justifyV, or at the side a natural-height text grows from. A natural-width text never wraps; a text with a
 -- width wraps by the page's rule. Each line's glyphs run from CAP em above the baseline (BASELINE em under the
 -- line's top, plus half the leading) to the baseline, or DESCENDER em below it when the text has descenders.
--- The second return is one line's glyph height, which the crossing rule scales.
+-- The glyphs are laid out in the text's own rect, then cut to its clip, so a clipped text's ink never moves into
+-- view. The second return is one line's glyph height, which the crossing rule scales.
 function Guard.Ink(item)
-	local rect = intersect(item.rect, item.clip)
+	local rect = item.rect
 	local plain = Scene.PlainText(item.text)
 	local size = item.font and item.font.size or 12
 	local path = item.font and item.font.path
@@ -345,7 +346,11 @@ function Guard.Ink(item)
 		x = rect[1] + rect[3] - w
 	end
 	local y0, y1 = math.max(first, rect[2]), math.min(last, rect[2] + rect[4])
-	return { x, y0, w, math.max(0, y1 - y0) }, glyph
+	local ink = { x, y0, w, math.max(0, y1 - y0) }
+	if item.clip then
+		ink = intersect(ink, item.clip)
+	end
+	return ink, glyph
 end
 
 local function crossing(a, b)
@@ -363,7 +368,7 @@ function Guard.Hides(item)
 	end
 	local file = fileOf(item)
 	local solid = item.color ~= nil and file == ""
-	local icon = item.fileID ~= nil or file:lower():find("icons[/\\]", 1, true) ~= nil
+	local icon = item.fileID ~= nil or file:lower():find("icons[/\\]") ~= nil
 	local fill = file:find("LumenShape", 1, true) ~= nil
 	if not (solid or icon or fill) then
 		return false

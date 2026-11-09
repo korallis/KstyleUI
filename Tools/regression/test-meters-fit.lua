@@ -167,6 +167,24 @@ do
 	switchList:SetTitle("DAMAGE DONE")
 	switchList:SetSwitch({ "Now", "Last", "All" }, 1, {})
 	assert((switchList.title:GetWidth() or 0) == 0 or switchList.title:GetWidth() >= switchList.title:GetUnboundedStringWidth() - 0.01, "a title that fits keeps its natural width")
+	assert(switchList.title:IsShown(), "and shows")
+	-- No room at all for the title beside the selected word (a card narrower than the word and the reserve): the
+	-- title hides rather than spreading at its natural width across the switch (codex review).
+	switchList.barWidth = 60
+	switchList:SetSwitch({ "Gegenwaertig", "Zuvor", "Alle" }, 1, {})
+	assert(not switchList.title:IsShown(), "with no room left the title hides")
+	switchList.barWidth = wide
+	-- A restyle fits the switch again from its words: a card that shrinks drops to the selected word, one that
+	-- grows back shows every word (codex review).
+	switchList:SetSwitch({ "Now", "Last", "All" }, 1, {})
+	assert(Plain():find("All", 1, true), "every word on the wide card")
+	switchList.holder:SetSize(90, switchList.holder:GetHeight())
+	switchList:Restyle()
+	assert(not Plain():find("All", 1, true) and Plain():find("Now", 1, true), "a card that shrinks drops to the selected word on restyle: " .. Plain())
+	switchList.holder:SetSize(wide + 2 * switchList.pad, switchList.holder:GetHeight())
+	switchList:Restyle()
+	assert(Plain():find("All", 1, true), "a card that grows shows every word again: " .. Plain())
+	assert(switchList.title:IsShown(), "and the title shows")
 end
 
 print("meters fit: passed")

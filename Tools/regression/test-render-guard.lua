@@ -214,6 +214,30 @@ local bed = under:CreateTexture(nil, "ARTWORK")
 bed:SetAllPoints(under)
 bed:SetColorTexture(0.5, 0.5, 0.5, 1)
 
+-- A clipped text's glyphs stay where the page lays them: a label centred in a wide rect that a holder clips to its
+-- left half keeps its ink at the rect's centre, cut by the clip, and never slides into view to cross a label there.
+local clipper = env.CreateFrame("Frame", "GuardClipper", UIParent)
+clipper:SetSize(100, 40)
+clipper:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 700, -600)
+clipper:SetClipsChildren(true)
+local clipKid = child(clipper)
+local wideLabel = text(clipKid, "Hello", 300, false)
+wideLabel:SetPoint("LEFT", clipKid, "LEFT", 0, 0)
+wideLabel:SetJustifyH("CENTER")
+text(clipKid, "Visible", 60, false):SetPoint("LEFT", clipKid, "LEFT", 2, 0)
+-- An icon file drawn over another frame's label is a cover, as the merchant's repair icon over a page count is.
+local shelf = env.CreateFrame("Frame", "GuardShelf", UIParent)
+shelf:SetSize(120, 40)
+shelf:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 100, -800)
+text(shelf, "Page 1", 60, false):SetPoint("LEFT", shelf, "LEFT", 4, 0)
+local iconHolder = env.CreateFrame("Frame", nil, shelf)
+iconHolder:SetSize(24, 24)
+iconHolder:SetPoint("LEFT", shelf, "LEFT", 8, 0)
+shelf.icon = iconHolder
+local iconArt = iconHolder:CreateTexture(nil, "ARTWORK")
+iconArt:SetAllPoints(iconHolder)
+iconArt:SetTexture("Interface\\Icons\\inv_misc_questionmark")
+
 local scene = Scene.Build(env, {})
 local findings = Guard.Check(scene)
 local by = {}
@@ -247,6 +271,16 @@ for _, f in ipairs(findings) do
 	end
 end
 assert(not textOverTexture, "a text drawn over a texture, on its own frame or a frame below, is the design")
+assert(not by["overlap|Hello & Visible"], "a label clipped out of view does not slide into view to cross a visible one")
+assert(by["overlap|GuardShelf.icon.? inv_misc_questionmark & Page 1"] or by["overlap|GuardShelf.icon.? inv_misc_questionmark.png & Page 1"], "an icon file over another frame's label is a cover: " .. table.concat((function()
+	local subjects = {}
+	for _, f in ipairs(findings) do
+		if f.kind == "overlap" then
+			subjects[#subjects + 1] = f.subject
+		end
+	end
+	return subjects
+end)(), "; "))
 
 assert(not by["ellipsis|Fits"], "a text that fits its rect is not truncated")
 local cut = by["ellipsis|A label far too long for its narrow rect"]
@@ -301,7 +335,7 @@ for _, f in ipairs(allowed) do
 	owners[f.entry.owner] = f.kind
 end
 assert(#allowed == 2 and owners.R4b == "outside" and owners.S3 == "clipped", "the R4b line covers the column and the S3 glob line covers the cut cast label")
-assert(#fresh == 7, "the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill and the two overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
+assert(#fresh == 9, "the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill, the clipped wide label and the three overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
 assert(#stale == 1 and stale[1].match == "Gone", "a line naming this scene that matched nothing is stale; a glob line is not judged by one scene")
 
 -- A glob line is judged by the run: stale when it matched a scene of the run and covered nothing in any of them.
