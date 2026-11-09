@@ -387,6 +387,19 @@ function C.Install(env, opts)
 			frame.TransformMessages = nil
 		end
 	end
+	-- FloatingChatFrameAlertFrame.xml: ChatAlertFrame hangs 27 units over the top left of ChatFrame1's button
+	-- column, a sibling of it under UIParent. QuickJoinToastButton (the friends count, QuickJoinToast.xml) is its
+	-- own child of UIParent that the alert container only anchors, so hiding the container leaves it shown.
+	if env.ChatFrame1 and not opts.noAlerts then
+		local alerts = blizzard(env, env.CreateFrame("Frame", "ChatAlertFrame", env.UIParent))
+		alerts:SetSize(10, 10)
+		alerts:SetPoint("BOTTOMLEFT", env.ChatFrame1.buttonFrame, "TOPLEFT", -1, 27)
+		env.ChatAlertFrame = alerts
+		local friends = blizzard(env, env.CreateFrame("Button", "QuickJoinToastButton", env.UIParent))
+		friends:SetSize(32, 32)
+		friends:SetPoint("BOTTOMLEFT", alerts, "BOTTOMLEFT", 0, 0)
+		env.QuickJoinToastButton = friends
+	end
 	-- Edit Mode's system mixin replaces ChatFrame1's SetPoint and ClearAllPoints with overrides that
 	-- tell the Edit Mode manager, and keeps the widget methods as SetPointBase and ClearAllPointsBase.
 	local primary = env.ChatFrame1

@@ -502,7 +502,8 @@ local function LayoutCard(desc, docked)
 	end
 	edge:ClearAllPoints()
 	edge:SetPoint("TOPRIGHT", holder, "TOPRIGHT", 0, 0)
-	edge:SetPoint("BOTTOMLEFT", tail, "BOTTOMLEFT", -snap(pad), -snap(pad))
+	local last = docking and other.ctx or ctx
+	edge:SetPoint("BOTTOMLEFT", tail, "BOTTOMLEFT", -snap(pad), -snap(Model.Foot(last.timer, pad, gap)))
 	card.fitted = true
 	Follow(desc)
 	return shape.width, shape.height

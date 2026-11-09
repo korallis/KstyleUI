@@ -1441,7 +1441,7 @@
 	"Shows the damage you take.",
 	"Shows the debuffs you put on each unit.",
 	"Shows the faction badge while the unit is flagged for PvP.",
-	"Shows the game's chat menu and channel buttons beside the chat.",
+	"Shows the game's chat menu, channel buttons and friends button beside the chat.",
 	"Shows the healing you receive, with a plus sign.",
 	"Shows the item or spell icon in the tooltip's top left corner.",
 	"Shows the key bound to each button.",

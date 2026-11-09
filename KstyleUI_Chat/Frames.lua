@@ -379,10 +379,19 @@ local function Buttons()
 	if type(column) ~= "table" then
 		return
 	end
-	if state.active and state.settings.buttons ~= true then
-		Safe.HideBlizzard(column)
-	else
-		Safe.RestoreBlizzard(column)
+	local frames = { column }
+	for _, frame in ipairs({ ChatAlertFrame, QuickJoinToastButton }) do
+		if type(frame) == "table" then
+			frames[#frames + 1] = frame
+		end
+	end
+	local hide = state.active and state.settings.buttons ~= true
+	for _, frame in ipairs(frames) do
+		if hide then
+			Safe.HideBlizzard(frame)
+		else
+			Safe.RestoreBlizzard(frame)
+		end
 	end
 end
 

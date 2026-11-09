@@ -204,7 +204,7 @@ local OFF = {
 }
 
 local SHARED_SETTINGS = {
-	{ module = "ActionBars", key = "bar1.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar1.showEmpty", value = true },
 	{ module = "ActionBars", key = "bar2.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar4.showEmpty", value = false },

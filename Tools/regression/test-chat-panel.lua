@@ -444,9 +444,20 @@ do
 	env.RunTimers()
 	local buttons = env.ChatFrame1.buttonFrame
 	assert(K.Safe.IsHidden(buttons), "the button column is hidden")
+	-- First in-game test (2026-11-09): the friends button (QuickJoinToastButton, in ChatAlertFrame, which hangs
+	-- off the column's top) stayed alone at the screen's left edge over chat once the column hid.
+	local friends = env.QuickJoinToastButton
+	assert(K.Safe.IsHidden(env.ChatAlertFrame) and K.Safe.IsHidden(friends), "the alert frame over the column and the friends button hide with it")
+	assert(not friends:IsVisible(), "the friends button is off screen, though UIParent is its parent")
 	K.Options.Write("Chat", "buttons", true)
 	env.RunTimers()
 	assert(not K.Safe.IsHidden(buttons), "and back")
+	assert(not K.Safe.IsHidden(env.ChatAlertFrame) and not K.Safe.IsHidden(friends), "the friends button returns with the column")
+	K.Options.Write("Chat", "buttons", false)
+	env.RunTimers()
+	K.Modules.Disable("Chat")
+	env.RunTimers()
+	assert(not K.Safe.IsHidden(env.ChatAlertFrame) and not K.Safe.IsHidden(friends) and not K.Safe.IsHidden(buttons), "turning chat off gives all three back")
 end
 
 -- Undocked windows get their own glass; docked ones share the panel. A new whisper window is styled too.

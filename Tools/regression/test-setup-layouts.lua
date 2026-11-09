@@ -442,9 +442,11 @@ for _, name in ipairs(names) do
 	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
 	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
 	assert(settings["UnitFrames.boss.auraPosition"] == (name == "Healer" and "RIGHT" or "LEFT"), name .. " hangs the boss debuffs towards the centre")
-	-- Empty sockets hide in Lumen (round 3, Opus #6): bar 1's twelfth socket read as a dark tile at the row's end. A
-	-- spell on the cursor still shows every socket to drop it on.
-	for i = 1, 6 do
+	-- Bar 1 keeps its empty sockets as quiet 35% sockets (first in-game test, 2026-11-09: at level 10 bar 1 showed
+	-- slots 1-3 and 11-12 with a wide hole between them, which read as broken; round 3's hidden sockets are undone).
+	-- The other bars are off in Lumen and still hide theirs. A spell on the cursor shows every socket to drop it on.
+	assert(settings["ActionBars.bar1.showEmpty"] == true, name .. " shows bar 1's empty sockets, quiet, so the bar reads as one row")
+	for i = 2, 6 do
 		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
 	end
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")

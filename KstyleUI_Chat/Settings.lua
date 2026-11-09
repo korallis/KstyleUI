@@ -151,7 +151,7 @@ function ns.Schema()
 		},
 		{
 			type = "toggle", key = "buttons", label = L["Chat buttons"],
-			help = L["Shows the game's chat menu and channel buttons beside the chat."],
+			help = L["Shows the game's chat menu, channel buttons and friends button beside the chat."],
 		},
 		{ type = "header", label = L["Text"] },
 		{
