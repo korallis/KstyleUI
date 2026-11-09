@@ -12,6 +12,15 @@ local function new(opts)
 	return env, K, ns
 end
 
+do
+	local env, _, ns = new()
+	AB.Slot(env, 2, { texture = 10, type = "spell", id = 500 })
+	local button = AB.Button(ns, "bar1", 2)
+	env._game.slots[2].texture = 20
+	env.FireEvent("SPELL_UPDATE_ICON", 500)
+	assert(W.LastCall(button.icon, "SetTexture")[1] == 20, "spell icon updates refresh action buttons regardless of slot")
+end
+
 -- The icon texture takes the action's texture file ID as the game gives it (the icon pack replaces the file the
 -- client loads for it); an empty slot clears the icon.
 do
@@ -37,7 +46,7 @@ do
 		return { isOnGCD = gcd }
 	end
 	local b = AB.Button(ns, "bar1", 1)
-	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(W.LastCall(b.cooldown, "SetCooldownFromDurationObject")[1] == cooldown, "the swipe runs for the GCD")
 	b.cooldown:Show()
 	b.cooldown:GetScript("OnShow")(b.cooldown)
@@ -45,6 +54,11 @@ do
 	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.rim[5], rr, rg, rb, 1), "the icon stays bright and the rim on the accent during the GCD")
 	gcd = false
 	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	assert(b.realCooldown == false, "non-spell cooldown events preserve the last trustworthy GCD state")
+	env._game.slots[1].texture = 2
+	env.FireEvent("SPELL_UPDATE_ICON", 1)
+	assert(b.realCooldown == false, "an icon refresh does not trust a stale GCD value")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.rim[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
 	-- Forever trusts isOnGCD only in response to SPELL_UPDATE_COOLDOWN, so that event refreshes the classification too.
 	gcd = true
@@ -384,7 +398,7 @@ do
 			e._game.flyouts[9] = {
 				name = "Portals",
 				slots = {
-					{ spellID = 10059, name = "Portal: Stormwind" },
+					{ spellID = 10059, overrideSpellID = 20059, name = "Portal: Stormwind" },
 					{ spellID = 11416, name = "Portal: Ironforge", known = false },
 					{ spellID = 3561, name = "Teleport: Stormwind" },
 					{ spellID = 3562, name = "Teleport: Stormwind" },
@@ -400,6 +414,7 @@ do
 	assert(owner.flyoutArrow:IsShown() and not plain.flyoutArrow:IsShown(), "a flyout action shows its arrow")
 	assert(not flyout.frame:IsShown(), "closed at first")
 	env.SetCombat(true)
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	AB.Click(env, owner, "LeftButton", true)
 	assert(AB.Used(env) == nil, "the click does not use the flyout action through Blizzard's SpellFlyout")
 	assert(flyout.frame:IsShown(), "the click opens KstyleUI's flyout")
@@ -407,7 +422,7 @@ do
 	assert(first:IsShown() and second:IsShown() and not third:IsShown(), "one button per known spell")
 	assert(first:GetAttribute("type") == "spell" and first:GetAttribute("spell") == 10059 and second:GetAttribute("spell") == 3562,
 		"the highest known rank of each spell")
-	assert(W.LastCall(first.icon, "SetTexture")[1] == 1010059, "flyout icons come from the spells")
+	assert(W.LastCall(first.icon, "SetTexture")[1] == 1020059, "flyout icons use the override while the secure button casts the base spell")
 	AB.Click(env, owner, "LeftButton", false)
 	assert(flyout.frame:IsShown(), "the release of the same click does not close it")
 	-- The flyout tells its buttons when a spell's cooldown is only the global cooldown, as the action buttons do.
@@ -418,12 +433,19 @@ do
 	env.C_Spell.GetSpellCooldownDuration = function()
 		return running
 	end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	AB.Click(env, first, "LeftButton", true)
 	AB.Click(env, first, "LeftButton", false)
 	AB.Click(env, owner, "LeftButton", true)
 	AB.Click(env, owner, "LeftButton", false)
 	assert(flyout.frame:IsShown() and first.realCooldown == false, "a flyout opened during the GCD leaves its buttons ready")
 	gcd = false
+	AB.Click(env, first, "LeftButton", true)
+	AB.Click(env, first, "LeftButton", false)
+	AB.Click(env, owner, "LeftButton", true)
+	AB.Click(env, owner, "LeftButton", false)
+	assert(first.realCooldown == false, "reopening a flyout preserves its last trustworthy GCD state")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	AB.Click(env, first, "LeftButton", true)
 	AB.Click(env, first, "LeftButton", false)
 	AB.Click(env, owner, "LeftButton", true)

@@ -1,6 +1,7 @@
 """Write every global name the Forever client gives addon code, for luacheck and the taint scan.
 
 Usage: python3 Tools/build/gen_globals.py --source <wow-ui-source on branch forever>
+                                          [--global-strings <GlobalStrings.csv> --client-build <build>]
                                           [--out Tools/data/forever_globals.lua]
 
 The output is `return { read = { ... }, deprecated = { ... } }`, sorted, with a header naming the
@@ -16,7 +17,7 @@ read holds:
   - each named object Blizzard's XML creates (`PlayerFrame`, `GameFontNormal`), outside templates.
   Lua 5.1's own globals are left to luacheck's lua51 std.
 
-deprecated holds the globals that Blizzard_Deprecated* folders define for the camelot game type
+deprecated holds the globals that Blizzard_Deprecated* and Deprecated_* folders define for the camelot game type
 and nothing else defines. Forever does not load those folders, so these names are removed from
 read even when Blizzard code still uses them.
 
@@ -29,7 +30,9 @@ lines load only when they name enUS or enGB. Directives may stand before or afte
 """
 
 import argparse
+import csv
 import dataclasses
+import hashlib
 import os
 import re
 import subprocess
@@ -48,7 +51,7 @@ TOC_SUFFIXES = ("_Camelot", "_Forever", "_Mainline", "")
 PATH_VARIABLES = {"[family]": "Mainline", "[game]": "Camelot"}
 GLOBAL_ENV = "global"
 SECURE_ENV = "secure"
-DEPRECATED_PREFIX = "blizzard_deprecated"
+DEPRECATED_PREFIX = ("blizzard_deprecated", "deprecated_")
 
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 DIRECTIVE = re.compile(r"\[(\w+)(?:[\s:]+([^\]]*))?\]")
@@ -510,6 +513,25 @@ def collect(source):
     return Globals(sorted(read), sorted(deprecated), real.missing + shims.missing)
 
 
+def client_strings(path):
+    """Read only FrameXML-visible tags (Flags bit 0), never GlueXML-only strings or localized text.
+
+    The flag definition is in WoWDBDefs' GlobalStrings.dbd, used by casc_export.py's DBC2CSV.
+    """
+    names = set()
+    with Path(path).open(encoding="utf-8-sig", newline="") as handle:
+        rows = csv.DictReader(handle)
+        if not {"BaseTag", "Flags"} <= set(rows.fieldnames or []):
+            raise ValueError("GlobalStrings CSV needs BaseTag and Flags columns")
+        for row in rows:
+            name = row["BaseTag"]
+            if int(row["Flags"]) & 1 and IDENTIFIER.fullmatch(name):
+                names.add(name)
+    if not names:
+        raise ValueError("GlobalStrings CSV has no FrameXML names")
+    return names
+
+
 # Output
 
 
@@ -552,8 +574,13 @@ def write_atomically(path, text):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source", required=True, type=Path, help="wow-ui-source checkout on branch forever")
+    parser.add_argument("--global-strings", type=Path, help="GlobalStrings.csv exported read-only from the matching client")
+    parser.add_argument("--client-build", help="build of the exported GlobalStrings table; must match source/version.txt")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="Lua file to write")
     args = parser.parse_args(argv)
+
+    if bool(args.global_strings) != bool(args.client_build):
+        parser.error("--global-strings and --client-build must be supplied together")
 
     if not (args.source / DOCS).is_dir():
         print(f"error: {args.source / DOCS} does not exist", file=sys.stderr)
@@ -561,7 +588,15 @@ def main(argv=None):
     try:
         found = collect(args.source)
         commit = describe(args.source)
-    except (RuntimeError, ValueError) as err:
+        if args.global_strings:
+            build = (args.source / "version.txt").read_text(encoding="utf-8").strip()
+            if build != args.client_build:
+                raise ValueError(f"GlobalStrings build {args.client_build} does not match source build {build}")
+            names = client_strings(args.global_strings)
+            found.read = sorted(set(found.read) | (names - set(found.deprecated)))
+            digest = hashlib.sha256(args.global_strings.read_bytes()).hexdigest()
+            commit += f"; FrameXML GlobalStrings {build}, CSV SHA256 {digest}"
+    except (OSError, RuntimeError, ValueError) as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
     if not found.read:

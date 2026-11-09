@@ -16,27 +16,13 @@ local function IsText(v)
 	return not IsSecret(v) and type(v) == "string"
 end
 
-local function Api(name)
-	local fn = C_CVar and C_CVar[name]
-	return type(fn) == "function" and fn or nil
-end
-
 local function Get()
-	local fn = Api("GetCVar")
-	if not fn then
-		return nil
-	end
-	local ok, value = pcall(fn, CVAR)
-	return ok and IsText(value) and value or nil
+	local value = K.CVars.Get(CVAR)
+	return IsText(value) and value or nil
 end
 
 local function Set(value)
-	local fn = Api("SetCVar")
-	if not fn then
-		return false
-	end
-	local ok, done = pcall(fn, CVAR, value)
-	return ok and done ~= false and Get() == value
+	return K.CVars.Set(CVAR, value) and Get() == value
 end
 
 local function Memory(create)
@@ -90,7 +76,12 @@ local function GiveBack()
 	if not record then
 		return
 	end
-	local held = record.written ~= nil and IsText(record.original) and Get() == record.written
+	local valid = record.written ~= nil and IsText(record.original)
+	local current = valid and Get()
+	if valid and current == nil then
+		return
+	end
+	local held = valid and current == record.written
 	if not held or Set(record.original) then
 		shared[CVAR] = nil
 	end

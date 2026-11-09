@@ -88,11 +88,11 @@ On Forever every cast by a unit other than the player and their pet is secret (`
 
 | State | Colour | How the plate knows |
 | --- | --- | --- |
-| Interruptible, the player's interrupt ready | `cast.color` (the accent) | `C_Spell.GetSpellCooldown(spell).isActive` is false, or true with `isOnGCD` true; both fields are `NeverSecret` |
-| Interruptible, the player's interrupt recharging | `cast.waitColor` | `isActive` true and `isOnGCD` false |
+| Interruptible, the player's interrupt ready | `cast.color` (the accent) | `C_Spell.GetSpellCooldown(spell).isActive` is false, or `isOnGCD` is true while responding to `SPELL_UPDATE_COOLDOWN`; both fields are `NeverSecret` |
+| Interruptible, the player's interrupt recharging | `cast.waitColor` | `isActive` is true and a trustworthy GCD-only result is unavailable; `SpellSharedDocumentation.lua` forbids trusting `isOnGCD` outside the cooldown event |
 | Not interruptible | `cast.shieldColor` | the cast's `notInterruptible` flag, plain or through the engine |
 
-`Interrupt.lua` finds the spell: the one named in `cast.interruptSpell` (a name or ID, resolved through `C_Spell.GetSpellIDForSpellIdentifier` when it can be, else handed to the cooldown API as written), or the first spell of `Logic.INTERRUPTS[class]` the player knows (`C_SpellBook.IsSpellKnown`, the player's and the pet's spell banks). The table holds Forever's own IDs, highest rank first: Pummel and Shield Bash, Kick, Counterspell, Earth Shock, Silence, Spell Lock, Rebuke, Skull Bash and Feral Charge. Hunters have no interrupt on Forever, so their cast bars show interruptible and not. `SPELL_UPDATE_COOLDOWN` rereads the cooldown once and, only when the state changes, computes the open colour once and recolours every running cast's fill with one widget call each (`Bar:SetFillColor`), skipping bars already in that colour; `SPELLS_CHANGED` finds the spell again. A secret or missing cooldown counts as ready, so the plate never says "wait" on a guess.
+`Interrupt.lua` finds the spell: the one named in `cast.interruptSpell` (a name or ID, resolved through `C_Spell.GetSpellIDForSpellIdentifier` when it can be, else handed to the cooldown API as written), or the first spell of `Logic.INTERRUPTS[class]` the player knows (`C_SpellBook.IsSpellKnown`, the player's and the pet's spell banks). The table holds Forever's own IDs, highest rank first: Pummel and Shield Bash, Kick, Counterspell, Earth Shock, Silence, Spell Lock, Rebuke, Skull Bash and Feral Charge. Hunters have no interrupt on Forever, so their cast bars show interruptible and not. `SPELL_UPDATE_COOLDOWN` rereads the cooldown once and, only when the state changes, computes the open colour once and recolours every running cast's fill with one widget call each (`Bar:SetFillColor`), skipping bars already in that colour; `SPELLS_CHANGED` finds the spell again. A secret or missing cooldown counts as ready. A readable active cooldown outside `SPELL_UPDATE_COOLDOWN` counts as recharging, so resolving during a GCD can briefly show "wait" until the next trustworthy event.
 
 ### Debuffs
 
@@ -211,7 +211,7 @@ Off by default. With **Manage these settings** on, the module writes these CVars
 | --- | --- | --- |
 | `cvars.maxDistance` | 40 | `nameplateMaxDistance` |
 | `cvars.verticalDistance` | 0 | `nameplateMaxVerticalDistance` (Forever only; 0 turns the check off) |
-| `cvars.stacking` | enemy | `nameplateStackingTypes` bits 1 (enemy) and 2 (friendly), or `nameplateMotion` on a client without the bitfield |
+| `cvars.stacking` | enemy | `nameplateStackingTypes` bits 1 (enemy) and 2 (friendly); without that supported bitfield, stacking is left alone |
 | `cvars.selectedScale` | 1.2 | `nameplateSelectedScale` |
 | `cvars.minScale` | 0.8 | `nameplateMinScale` |
 | `cvars.clickSize` | 2 | `nameplateSize` |

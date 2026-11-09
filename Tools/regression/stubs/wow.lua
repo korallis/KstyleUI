@@ -278,6 +278,31 @@ function Object:GetEffectiveScale()
 	return self._scale * self._parent:GetEffectiveScale()
 end
 
+local function booleanAlpha(value, yes, no)
+	local selected = plain(value) and yes or no
+	if secretValues[value] or secretValues[selected] then
+		return newSecret(plain(selected))
+	end
+	return selected
+end
+
+function Object:SetAlpha(alpha)
+	self._state.Alpha = pack(alpha)
+	self._alpha = alpha
+end
+
+function Object:SetAlphaFromBoolean(value, yes, no)
+	self._state.AlphaFromBoolean = pack(value, yes, no)
+	self._alpha = booleanAlpha(value, yes, no)
+end
+
+function Object:GetAlpha()
+	if type(self._alpha) == "nil" then
+		return 1
+	end
+	return self._alpha
+end
+
 -- A frame made from a Secure template is protected. The game refuses to anchor a protected frame to a
 -- region, or to a frame whose own anchors lead to one, with the error below.
 local ANCHOR_REGIONS = { Texture = true, FontString = true, MaskTexture = true, Line = true }
@@ -676,6 +701,17 @@ local function quietSetter(field)
 end
 
 local Quiet = {}
+
+local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBoolean")
+function Quiet:SetAlpha(alpha)
+	setAlpha(self, alpha)
+	self._alpha = alpha
+end
+
+function Quiet:SetAlphaFromBoolean(value, yes, no)
+	setBooleanAlpha(self, value, yes, no)
+	self._alpha = booleanAlpha(value, yes, no)
+end
 
 function Quiet:SetPoint(point, ...)
 	local points = self._points

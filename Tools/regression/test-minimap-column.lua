@@ -162,6 +162,27 @@ clear.callback(clear.data)
 assert(not env._tracking[2].active and not env._tracking[3].active, "clearing turns optional tracking off")
 assert(env._tracking[1].active and env._tracking[4].active, "and keeps the always-on and conditional filters")
 
+env.Enum.MinimapTrackingFilter.TrivialQuests = 5
+env.Enum.MinimapTrackingFilter.AccountCompletedQuests = 6
+env.MinimapConstants.OPTIONAL_FILTERS[5] = true
+env.MinimapConstants.ALWAYS_ON_FILTERS[6] = true
+env._tracking[5] = { name = "Trivial Quests", filterID = 5, active = false }
+env._tracking[6] = { name = "Account Quests", filterID = 6, active = true }
+env.MinimapUtil = {
+	SetTrackingFilterByFilterIndex = function()
+		error("addon tracking changes must not enter Blizzard's Settings callbacks")
+	end,
+}
+ns.Data.SetTracking(5, true)
+assert(env._tracking[5].active, "tracking uses the native setter even when the Settings-aware utility exists")
+ns.Data.ClearTracking()
+assert(not env._tracking[5].active and env._tracking[6].active, "clear keeps always-on filters without entering Settings callbacks")
+env.MinimapUtil = nil
+ns.Data.SetTracking(5, true)
+assert(env._tracking[5].active, "tracking falls back to C_Minimap without the utility")
+ns.Data.ClearTracking()
+assert(not env._tracking[5].active and env._tracking[6].active, "clear falls back and restores always-on filters")
+
 -- Calendar invites ------------------------------------------------------------------------------------
 
 assert(not buttons.calendar.badge:IsShown(), "no badge without invites")
