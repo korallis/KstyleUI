@@ -163,6 +163,23 @@ do
 	assert(tip:GetHeight() > 0 and tip:GetWidth() >= Widgets.TOOLTIP_MIN_WIDTH, "the tooltip has a size")
 	local p = tip._points[1]
 	assert(p[1] == "LEFT" and p[2] == owner and p[3] == "RIGHT", "ANCHOR_RIGHT puts it right of the owner")
+	-- A line's width never falls under its measured text, whatever the pixel grid rounds the panel to, so the
+	-- widest line's last word never wraps onto a line the height did not count (round 4: a Spanish meter line).
+	do
+		local measure = env._textWidth
+		env._textWidth = function(text)
+			return #text * 4.37
+		end
+		tip:ClearLines()
+		tip:AddLine("Haz clic para ver todos los hechizos")
+		tip:AddDoubleLine("Golpe mortal", "92.4k  33%")
+		tip:Layout()
+		local widest = tip.used[1].left
+		assert(widest:GetWidth() >= widest:GetUnboundedStringWidth() - 0.001, "the widest line keeps its full width: " .. tostring(widest:GetWidth()) .. " for " .. tostring(widest:GetUnboundedStringWidth()))
+		assert(widest:GetWidth() <= tip:GetWidth(), "and stays inside the panel")
+		env._textWidth = measure
+		tip:ClearLines()
+	end
 	local made = #W.Regions(tip, "FontString")
 	tip:ClearLines()
 	assert(#tip.used == 0 and tip.icon:IsShown() == false, "ClearLines empties it")

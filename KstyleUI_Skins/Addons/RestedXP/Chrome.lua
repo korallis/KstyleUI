@@ -883,8 +883,6 @@ local function IconFrame(f, hide)
 	elseif not InCombatLockdown() then
 		Skin.Strip(f, { children = RXP_ART })
 	end
-	-- RestedXP hangs the title plate from the frame's top edge, so the card's glass rises over the plate, and the
-	-- title reads as the card's cap instead of a tab set past its glass.
 	local glass = Panel(f)
 	local rise = TitleRise(f, title)
 	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil

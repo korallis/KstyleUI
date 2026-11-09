@@ -191,7 +191,8 @@ local function Measure(self, x0, pad)
 		end
 	end
 	local total = min(MAX_WIDTH, max(MIN_WIDTH, widest + x0 + pad))
-	return Widgets.Snap(self, total), Widgets.Snap(self, total - x0 - pad)
+	local snapped = Widgets.Snap(self, total)
+	return snapped, max(min(widest, MAX_WIDTH - x0 - pad), Widgets.Snap(self, snapped - x0 - pad))
 end
 
 local function PaintRule(texture)

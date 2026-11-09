@@ -484,9 +484,9 @@ do
 	fs:SetFont(font, size, "")
 	fs:SetPoint("TOPLEFT", e, "TOPLEFT", 4, -4)
 	fs:SetText("Guide configurator")
-	local built = Scene.Build(env, {})
+	local wrapScene = Scene.Build(env, {})
 	local found
-	for _, item in ipairs(built.items) do
+	for _, item in ipairs(wrapScene.items) do
 		if item.kind == "text" and item.text == "Guide configurator" then
 			found = item
 		end
@@ -494,6 +494,23 @@ do
 	assert(found, "the natural-size text draws")
 	assert(math.abs(found.rect[4] - found.font.size * 1.2) < 0.01, "a natural-size, one-line text is one line tall, got " .. found.rect[4] .. " for a " .. found.font.size .. " font")
 	assert(not found.grow, "and is not marked as wrapped")
+	-- A colour-coded text with no width of its own is as wide as its drawn words, not its escapes, so a right-anchored
+	-- switch ("|cff...Now|r  |cff...Last|r") never reaches left past its card and the rule anchored to it stays put.
+	local coded = e:CreateFontString(nil, "OVERLAY")
+	coded:SetFont(font, size, "")
+	coded:SetJustifyH("RIGHT")
+	coded:SetPoint("RIGHT", e, "RIGHT", -4, -40)
+	coded:SetText("|cffd4af37Now|r  |cffa9b6c2Last|r  |cffa9b6c2All|r")
+	local rebuilt = Scene.Build(env, {})
+	local codedItem
+	for _, item in ipairs(rebuilt.items) do
+		if item.kind == "text" and item.object == coded then
+			codedItem = item
+		end
+	end
+	assert(codedItem, "the coded text draws")
+	local plainWidth = Scene.TextWidth("Now  Last  All", codedItem.font.size, font)
+	assert(math.abs(codedItem.rect[3] - plainWidth) < 0.05, "a coded natural-width text is as wide as its plain words, got " .. codedItem.rect[3] .. " for " .. plainWidth)
 end
 
 -- JSON: the encoder writes the scene without the object references and round-trips a number.

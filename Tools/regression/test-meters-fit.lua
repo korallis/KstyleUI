@@ -118,7 +118,7 @@ end
 -- card's content width on their own.
 do
 	local D = dofile("Tools/regression/databars_env.lua")
-	local env, K, ns = M.New({
+	local env2, K2, ns2 = M.New({
 		setup = function(e)
 			e._textWidth = D.TextWidth
 		end,
@@ -126,36 +126,47 @@ do
 			e._group = { raid = false, size = 2 }
 		end,
 	})
-	M.Enable(env, K)
-	local list = ns.Damage.list
+	M.Enable(env2, K2)
+	local switchList = ns2.Damage.list
 	local function Plain()
-		return (tostring(M.Last(list.column, "SetText")[1]):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+		return (tostring(M.Last(switchList.column, "SetText")[1]):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 	end
-	Show(env, 3)
+	Show(env2, 3)
 	assert(Plain():find("Now", 1, true) and Plain():find("All", 1, true), "English words fit the default card: " .. Plain())
 	-- Long words, as a locale table gives them.
 	local words = { "Gegenwaertig", "Vorheriger Kampf", "Insgesamt" }
-	local short = {}
-	list:SetSwitch(words, 1, short)
+	switchList:SetSwitch(words, 1, {})
 	local shown = Plain()
 	assert(not shown:find("Insgesamt", 1, true) and shown:find("Gegenwaertig", 1, true), "words too long for the cap drop to the selected word alone: " .. shown)
-	local aside, title = list.column:GetStringWidth(), list.title:GetStringWidth()
-	assert(aside and title and aside + title <= list.barWidth, "what shows fits beside the title: " .. tostring(aside) .. " + " .. tostring(title) .. " in " .. tostring(list.barWidth))
+	local aside, capTitle = switchList.column:GetStringWidth(), switchList.title:GetStringWidth()
+	assert(aside and capTitle and aside + capTitle <= switchList.barWidth, "what shows fits beside the title: " .. tostring(aside) .. " + " .. tostring(capTitle) .. " in " .. tostring(switchList.barWidth))
 	-- With the title off, the words alone must fit the content width, on a narrow card too.
-	M.Write(env, K, "damage.title", false)
-	local wide = list.barWidth
-	list.barWidth = 120
-	list:SetSwitch({ "Gegenwaertig", "Vorheriger Kampf", "Insgesamt und alles" }, 3, {})
+	M.Write(env2, K2, "damage.title", false)
+	local wide = switchList.barWidth
+	switchList.barWidth = 120
+	switchList:SetSwitch({ "Gegenwaertig", "Vorheriger Kampf", "Insgesamt und alles" }, 3, {})
 	shown = Plain()
-	aside = list.column:GetStringWidth()
-	assert(aside and aside <= list.barWidth + 0.01, "with the title off the switch still fits a narrow card: " .. tostring(aside) .. " in " .. tostring(list.barWidth) .. " (" .. shown .. ")")
+	aside = switchList.column:GetStringWidth()
+	assert(aside and aside <= switchList.barWidth + 0.01, "with the title off the switch still fits a narrow card: " .. tostring(aside) .. " in " .. tostring(switchList.barWidth) .. " (" .. shown .. ")")
 	assert(shown:find("Insgesamt", 1, true) and not shown:find("Gegenwaertig", 1, true), "the selected word is what stays: " .. shown)
-	list.barWidth = wide
-	M.Write(env, K, "damage.title", true)
+	switchList.barWidth = wide
+	M.Write(env2, K2, "damage.title", true)
 	-- Short forms step in before the selected word alone.
-	list:SetSwitch({ "Gegenwaertig", "Vorheriger", "Insgesamt" }, 2, { "Jetzt", "Zuletzt", "Alle" })
+	switchList:SetSwitch({ "Gegenwaertig", "Vorheriger", "Insgesamt" }, 2, { "Jetzt", "Zuletzt", "Alle" })
 	shown = Plain()
 	assert(shown:find("Zuletzt", 1, true) and shown:find("Jetzt", 1, true), "short forms show when the long words do not fit: " .. shown)
+	-- A title too long for the cap (the German "Verursachter Schaden" on a narrow card) gives way to the selected
+	-- word: the title is held to the room left of the word, so the two never cross; a title that fits keeps its
+	-- natural width.
+	switchList.barWidth = 150
+	switchList:SetTitle("VERURSACHTER SCHADEN")
+	switchList:SetSwitch({ "Jetzt", "Zuvor", "Alle" }, 1, {})
+	local titleW, asideW = switchList.title:GetWidth(), switchList.column:GetStringWidth()
+	assert(titleW and titleW > 0 and titleW + asideW <= switchList.barWidth + 0.01, "the title is held clear of the selected word: " .. tostring(titleW) .. " + " .. tostring(asideW) .. " in " .. switchList.barWidth)
+	switchList.barWidth = wide
+	switchList:SetTitle("DAMAGE DONE")
+	switchList:SetSwitch({ "Now", "Last", "All" }, 1, {})
+	assert((switchList.title:GetWidth() or 0) == 0 or switchList.title:GetWidth() >= switchList.title:GetUnboundedStringWidth() - 0.01, "a title that fits keeps its natural width")
 end
 
 print("meters fit: passed")

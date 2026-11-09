@@ -1412,7 +1412,8 @@ function Scene.Build(env, opts)
 					local hasW = type(region._width) == "number" and region._width > 0
 					local hasH = type(region._height) == "number" and region._height > 0
 					if not hasW and not (xs[0] and xs[1]) then
-						region._naturalW = textWidthEm(text, fontPath) * size
+						-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
+						region._naturalW = textWidthEm(plainText(text), fontPath) * size
 						region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
 					end
 					if not hasH and not (ys[0] and ys[1]) then

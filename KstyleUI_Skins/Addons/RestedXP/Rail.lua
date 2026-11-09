@@ -151,9 +151,6 @@ local function Dock(f, story)
 	return docked
 end
 
--- Foot(f, story, scale) -> where the guide's foot sits, in the guide's units up from the screen's bottom: the guide
--- band's foot; or, when the quests dock into the card, one small gap above the tracker band's top, where the QUESTS
--- cap starts, so the card holds no hollow band between the guide's footer and the quests.
 local function Foot(f, story, scale)
 	local band = story.guide
 	local foot = band.bottom / scale
@@ -163,9 +160,6 @@ local function Foot(f, story, scale)
 	return foot
 end
 
--- DockTo(frame) docks the quests into the guide's card against a stand-in for the tracker skin's fit frame (its
--- top the quests' cap, its bottom their foot), for a scene or a test that draws the tracker elsewhere; nil
--- undoes it. The game never calls it: Place finds the tracker's fit itself.
 function Rail.DockTo(frame)
 	state.standIn = IsTable(frame) and frame or nil
 	return Rail.Place()
@@ -179,7 +173,6 @@ function Rail.Undock()
 	if Tracker and type(Tracker.Dock) == "function" then
 		Tracker.Dock(false)
 	end
-	-- The guide's foot hugs the quests only while they dock, so an undocked guide goes back to its band's foot.
 	if state.docked then
 		Rail.Schedule()
 	end

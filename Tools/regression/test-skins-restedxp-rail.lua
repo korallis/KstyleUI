@@ -304,7 +304,7 @@ do
 	env.RunTimers()
 	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "a tracker moved out of the slot undocks")
 	tracker:ClearAllPoints()
-	local story = K.Setup.Story("DPS", true)
+	story = K.Setup.Story("DPS", true)
 	local at = K.Setup.EditMode.TrackerPlace(story.tracker)
 	local scale = K.Widgets.ScaleFactor(tracker)
 	tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", at.x / scale, at.y / scale)

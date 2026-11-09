@@ -461,6 +461,8 @@ Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`,
 
 `color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide. Lines start 9.5 units below the top and are pitched half a unit apart (the design's 13.5 units for 11-unit text), with 2 more units after a title and 4 after a caption; the string height falls back to 1.2 times the font size where the game gives none.
 
+The panel is as wide as its widest line (a double line counts both halves and a `gapLarge` between them) plus its insets, between the minimum and maximum widths, snapped to the pixel grid; the lines' width is never under the widest line's measured text, so snapping cannot wrap that line's last word onto a line the height did not count.
+
 `AttachTooltip(frame, content)` shows the tooltip on `OnEnter` and hides it on `OnLeave`. `content` is a string, or `function(tooltip, frame)` that adds the lines. `Button` and `IconButton` call it for `opts.tooltip`.
 
 ## Skin helpers

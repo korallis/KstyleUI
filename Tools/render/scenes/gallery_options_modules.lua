@@ -136,24 +136,6 @@ return Common.Run(function()
 		end
 		assert(first == index, "the Debuffs header is the first row on screen")
 		assert(railRow(ns, JUMP_TO).mark:IsShown(), "the rail marks the Debuffs section")
-		-- The game resolves the preview pane's anchored size a frame after the page opens and runs the module
-		-- preview's OnSizeChanged, which fits it to the pane; the stub keeps no anchored sizes, so run it here.
-		local pane = parts.preview
-		local onSize = pane.current and pane.current:GetScript("OnSizeChanged")
-		if onSize then
-			-- The holder hangs from the rule under the caption to the pane's inset corner (Options Preview.Create);
-			-- the rule hangs from the caption's text, which only the full build measures.
-			local px, py, pw, ph = Scene.Rect(env, pane)
-			local ry, rh
-			for _, item in ipairs(Scene.Build(env).items) do
-				if item.object == pane.rule then
-					ry, rh = item.rect[2], item.rect[4]
-				end
-			end
-			local pad, gap = K.Widgets.WindowInset(pane), K.Widgets.Snap(pane, K.Tokens.Size("gapMedium"))
-			assert(px and ry, "the preview pane and its rule resolve")
-			onSize(pane.current, pw - 2 * pad, py + ph - pad - (ry + rh + gap))
-		end
 		frames:Add(env, ns.Window.Frame(), {
 			name = "options_groupframes", title = "Party and Raid page", grade = "window", reference = "chat",
 			caption = "The settings window on the real Party and Raid page after a click on Debuffs in the rail: the rail lists the page's sixteen sections (Blizzard frames, Party frames, Raid frames, Health bar, Power bar, Text, Status icons, Debuffs, Debuff priority, Indicators, Your heals over time, Automatic layout, Click casting, Incoming heals and absorbs, Range and highlight, Positions and sizes) with Debuffs marked, the rows start at the Debuffs header (Debuff icons, Which debuffs, Duration swipe, Dispel highlight, Highlight debuffs) and run on into Debuff priority, and the live preview shows the module's sample party and raid frames.",

@@ -206,6 +206,47 @@ local function FillHeight(list)
 	return max(1, snapped)
 end
 
+local function TextWidth(text)
+	local width = Logic.Plain(text:GetStringWidth())
+	if width and width > 0 then
+		return width
+	end
+	local value = text:GetText()
+	if Logic.IsSecret(value) or type(value) ~= "string" or value == "" then
+		return nil
+	end
+	local plain = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	local _, size = text:GetFont()
+	size = Logic.Plain(size) or Tokens.Size("body")
+	return #plain * size * ESTIMATE_EM
+end
+
+local function Fits(list)
+	local aside = TextWidth(list.column)
+	if not aside then
+		return true
+	end
+	local room = list.barWidth or 0
+	if ns.Get(list.section .. ".title") then
+		local title = TextWidth(list.title)
+		return not title or title + aside <= room - CAP_RESERVE
+	end
+	return aside <= room
+end
+
+local function HoldTitle(list)
+	local title = list.title
+	title:SetWidth(0)
+	if Fits(list) or not ns.Get(list.section .. ".title") then
+		return
+	end
+	local aside = TextWidth(list.column) or 0
+	local room = (list.barWidth or 0) - CAP_RESERVE - aside
+	if room > 0 then
+		title:SetWidth(room)
+	end
+end
+
 function List:Restyle()
 	local section = self.section
 	self.pad = self.panel.chrome:Inset()
@@ -224,6 +265,9 @@ function List:Restyle()
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", self.pad, -self.pad)
 	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -self.pad)
 	cap:Restyle()
+	if cap.frame.counted then
+		HoldTitle(self)
+	end
 	ns.ApplyFont(self.note, section)
 
 	self.rowHeight = FillHeight(self)
@@ -310,32 +354,13 @@ function List:SetTitle(text)
 	self.cap:SetTitle(text)
 end
 
--- TextWidth(text) -> the width a font string's text takes: measured by the game; estimated from its letters and
--- font size when the game has no measure yet, so a long switch never fails open.
-local function TextWidth(text)
-	local width = Logic.Plain(text:GetStringWidth())
-	if width and width > 0 then
-		return width
-	end
-	local value = text:GetText()
-	if Logic.IsSecret(value) or type(value) ~= "string" or value == "" then
-		return nil
-	end
-	local plain = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-	local _, size = text:GetFont()
-	size = Logic.Plain(size) or Tokens.Size("body")
-	return #plain * size * ESTIMATE_EM
-end
-
 function List:SetColumn(text, short)
+	self.title:SetWidth(0)
 	self.cap:SetAside(text)
-	if short == nil or short == text or not ns.Get(self.section .. ".title") then
-		return
-	end
-	local title, aside = TextWidth(self.title), TextWidth(self.column)
-	if title and aside and title + aside > (self.barWidth or 0) - CAP_RESERVE then
+	if short and short ~= text and ns.Get(self.section .. ".title") and not Fits(self) then
 		self.cap:SetAside(short)
 	end
+	HoldTitle(self)
 end
 
 local function Hex(name)
@@ -353,27 +378,13 @@ local function SwitchText(words, selected, only)
 	return table.concat(parts, SWITCH_GAP)
 end
 
--- Fits(list) -> whether the aside fits the cap: beside the title with the cap's reserve, or, with the title off,
--- inside the content width on its own.
-local function Fits(list)
-	local aside = TextWidth(list.column)
-	if not aside then
-		return true
-	end
-	local room = list.barWidth or 0
-	if ns.Get(list.section .. ".title") then
-		local title = TextWidth(list.title)
-		return not title or title + aside <= room - CAP_RESERVE
-	end
-	return aside <= room
-end
-
 function List:SetSwitch(words, selected, short)
 	local switch = self.switch
 	if not switch then
 		return
 	end
 	switch:SetShown(ns.Get(self.section .. ".title"))
+	self.title:SetWidth(0)
 	self.cap:SetAside(SwitchText(words, selected))
 	if Fits(self) then
 		return
@@ -390,6 +401,7 @@ function List:SetSwitch(words, selected, short)
 		words = narrow
 	end
 	self.cap:SetAside(SwitchText(words, selected, true))
+	HoldTitle(self)
 end
 
 function List:Paint()
@@ -445,6 +457,7 @@ function BarList.New(parent, section, opts)
 	list.panel = panel
 	list.cap = Widgets.RailCap(panel, {})
 	list.title, list.column = list.cap.title, list.cap.aside
+	list.title:SetWordWrap(false)
 	list.note = Text(panel, "CENTER")
 	list.note:SetTextColor(Tokens.Color("textDisabled"))
 	list.note:SetPoint("CENTER", panel, "CENTER", 0, -floor(Tokens.Size("gapMedium") / 2))
