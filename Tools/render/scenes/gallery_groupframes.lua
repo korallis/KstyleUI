@@ -159,7 +159,7 @@ local function raid(frames, x, y)
 	end
 	assert(#shown == 20, "twenty raid frames show, got " .. #shown)
 	-- The engine lays its aura buttons out in the game; the scene places the fake engine's buttons where the
-	-- containers would: your heals from the bar's right end leftward, debuffs from the tile's bottom left.
+	-- containers would: your heals from the name line's right end leftward, debuffs over the bar's right end.
 	local Tokens = K.Tokens
 	local k = ns.Settings.current.raid
 	for _, header in ipairs(ns.Headers.raid) do
@@ -171,7 +171,21 @@ local function raid(frames, x, y)
 			end
 			if RAID_DEBUFFS[i] and f.auras then
 				local block = ns.Auras.Block(f, k)
-				Flow(env, ns, f, f.auras, RAID_DEBUFFS[i], block.size, math.max(1, block.columns))
+				local entries, boss = {}, nil
+				for key, list in pairs(RAID_DEBUFFS[i]) do
+					if key == "boss" and ns.Auras.BossOn(f) then
+						boss = list[1]
+					else
+						entries[key] = list
+					end
+				end
+				Flow(env, ns, f, f.auras, entries, block.size, math.max(1, block.columns))
+				-- The boss debuff takes the centred boss slot, where the engine's aura slot would show it.
+				local slot = boss and f.highlights and f.highlights:GetAuraSlotFrame("boss")
+				if slot then
+					slot._aura.icon:SetTexture(env.Secret(boss))
+					slot:Show()
+				end
 			end
 			if i == RAID_DISPEL and f.highlights then
 				local slot = f.highlights:GetAuraSlotFrame("dispel")
@@ -186,7 +200,7 @@ local function raid(frames, x, y)
 	end
 	frames:Add(env, ns.Headers.holders.raid, {
 		name = "groupframes_raid", title = "Raid frames", grade = "panel", reference = "nameplate",
-		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 Lumen glass tiles with the name and the missing health above a solid class-coloured bar, so no name sits on a pale fill; your Renew and Power Word: Shield at the bar's right end, a shield line under two bars, a debuff at the bottom left, a Magic debuff you can dispel washing Ilyra's tile, a dead and an offline member in grey, and the first tank's threat glow; role icons and the leader crown are Blizzard atlases from the atlas cache.",
+		caption = "Twenty raid frames in four groups of five on the secure raid headers: 72 by 40 Lumen glass tiles with a whole name lane over a class-coloured bar that spans the tile and fills 60% of its height; your Renew and Power Word: Shield on the name line's right end, never on the fill; the role icon, leader crown and missing health in the bar's left corner; Ysra's dispellable debuffs two by two at 12 units over the bar's right end and her boss debuff in the centred 16-unit slot; a shield line under two bars, a Magic debuff you can dispel washing Ilyra's tile, Dead and Offline centred on the emptied bar, and the first tank's threat glow; role icons and the leader crown are Blizzard atlases from the atlas cache.",
 		match = "Glass fill, one-line edge and 3.5-unit chamfer as the party rows and the mockup's nameplate frame; raid tiles draw no drop shadow (Style.lua keeps the shadow for party frames), so the 3-unit gaps between them stay clean.",
 		rect = Gallery.Union(env, shown),
 	})
@@ -233,7 +247,7 @@ return Common.Run(function()
 		entry.texture:SetVertexColor(r, g, b, 1)
 		entry.texture:Show()
 	end
-	-- Five of your heals on the tank, two more than the bar holds.
+	-- Five of your heals on the tank, two more than the name line holds.
 	local _, healCount, healSize = ns.Auras.HealIcons(tank, k)
 	Flow(env, ns, tank, tank.buffs, { buffs = { RENEW, SHIELD, RENEW, SHIELD, RENEW } }, healSize, math.max(1, healCount))
 	-- The tank's external defensive in indicator slot 1, where the engine would show it at the frame's centre.
@@ -245,13 +259,13 @@ return Common.Run(function()
 	local tiles = { tank.auraClip, tank.auraClip }
 	frames:Add(env, tank, {
 		name = "groupframes_unit", title = "Party unit", grade = "panel", reference = "nameplate",
-		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, a heal absorb eating back from the fill's end in red, an external defensive indicator on the bar, five of your heals in their lane after the pill with a + for the two it cannot hold, the threat glow, and eight debuffs of which the six cells to its right show the dispellable one (washed in the Magic colour), the two boss debuffs and three others, with a + for the rest; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
+		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, a heal absorb eating back from the fill's end in red, an external defensive indicator on the bar, five of your heals on the name line's right end, wholly above the pill, with a + for the two it cannot hold, the threat glow, and eight debuffs of which the six cells to its right show the dispellable one (washed in the Magic colour), the two boss debuffs and three others, with a + for the rest; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow as the mockup's nameplate frame; the aura tiles are the button grade as the mockup's buff icons, with the class accent rim.",
 		rect = Gallery.Union(env, { tank, tiles[1], tiles[2] }),
 	})
 	frames:Add(env, ns.Headers.holders.party, {
 		name = "groupframes_party", title = "Party frames", grade = "panel", reference = "nameplate",
-		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro, eight debuffs (six shown in two rows, a + for the rest in the colour of the first hidden category, all inside the card), five heals in their lane after the health pill with a + for the two that do not fit, the external defensive on the bar, a heal absorb, a healer, a dead shaman reading Dead with a dimmed name, and a mage with the star marker in the name row (a skull there read as a second dead state); each member's role icon and the tank's leader crown are Blizzard atlases and the star a cell of Blizzard's marker sheet, all from the texture cache.",
+		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro, eight debuffs (six shown in two rows, a + for the rest in the colour of the first hidden category, all inside the card), five heals on the tank's name line, clear of the pill that runs the row, with a + for the two that do not fit, the external defensive on the bar, a heal absorb, a healer, a dead shaman reading Dead with a dimmed name, and a mage with the star marker in the name row (a skull there read as a second dead state); each member's role icon and the tank's leader crown are Blizzard atlases and the star a cell of Blizzard's marker sheet, all from the texture cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow on each tile as the mockup's nameplate frame.",
 		rect = Gallery.Union(env, { ns.Headers.holders.party, tiles[1], tiles[2] }),
 	})
@@ -260,10 +274,10 @@ return Common.Run(function()
 	local pane = env.CreateFrame("Frame", nil, root)
 	at(pane, 460, 90, 280, 500)
 	local preview = K.Options.Preview("GroupFrames")(pane)
-	assert(#preview.partyFrames == 3 and #preview.raidFrames == 10, "the preview builds its samples")
+	assert(#preview.partyFrames == 3 and #preview.raidFrames == 4, "the preview builds its samples")
 	frames:Add(env, preview, {
 		name = "groupframes_preview", title = "Group frames preview", grade = "panel", reference = "nameplate",
-		caption = "Preview.lua, the options page's live preview at the settings window's default size: three sample party frames (a tank with aggro carrying two debuffs, two of your heals, a shield line, a heal absorb and an external defensive indicator at once; a healer with the Magic dispel highlight and a crowd control indicator; a targeted shaman) over two sample raid groups of five with a dead mage and an offline warlock, and under them the click casting panel: the game's Click Casting bindings, a slot to drop a spell on and a button to the game's own window.",
+		caption = "Preview.lua, the options page's live preview at the settings window's default size: three sample party frames (a tank with aggro carrying two debuffs, two of your heals on the name line, a shield line, a heal absorb and an external defensive indicator at once; a healer with the Magic dispel highlight and a crowd control indicator; a targeted shaman) over four raid tiles at true scale (the tank with a boss debuff in the centred slot, the Magic-washed healer, a paladin with nine debuffs and the + mark, a dead mage), and under them the click casting panel: the game's Click Casting bindings, a slot to drop a spell on and a button to the game's own window.",
 		match = "Party tiles on the glass with the two-line edge, 3.5-unit chamfer and shadow, raid tiles without the shadow, as the live frames; the dispel highlight washes a tile in the debuff colour.",
 	})
 

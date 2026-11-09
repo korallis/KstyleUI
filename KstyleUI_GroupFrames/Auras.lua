@@ -26,6 +26,8 @@ local MARK_SUBLEVEL = 6
 local GLOWS = { glowBoss = { isBossAura = true }, glowImportant = { isPriorityAura = true } }
 local GLOW_FILTER = "HARMFUL"
 local SLOT = "dispel"
+local BOSS_SLOT = "boss"
+local BOSS_CANDIDATES = { isBossAura = true }
 local TEMPLATE = "CustomAuraContainerTemplate"
 local NONE = "none"
 local FILTERS = { ALL = "HARMFUL", RAID = "HARMFUL|RAID_IN_COMBAT", DISPELLABLE = "HARMFUL|RAID" }
@@ -44,6 +46,7 @@ local SAMPLE_ICONS = { 136207, 135848, 136139, 136071, 135894, 136207, 135848, 1
 local BUFFS = "buffs"
 local BUFF_FILTER = "HELPFUL|PLAYER"
 local SAMPLE_BUFF_ICONS = { 136081, 135953, 135940 }
+local SAMPLE_BOSS_ICON = 136207
 local MARK_COLORS = { [BOSS] = "hostile", [IMPORTANT] = "neutral", [DISPELS] = "rare", [GROUP] = "textEmphasis" }
 local MARK_LIFT = 2
 local MORE = "dispelMore"
@@ -771,6 +774,18 @@ local function NewContainer(f)
 				Style.LogOnce("glowSlot", "the debuff glow slot could not be added: " .. tostring(glowErr))
 			end
 		end
+		local bossMade, bossErr = pcall(highlights.AddAuraSlot, highlights, BOSS_SLOT, GLOW_FILTER, {
+			candidateFilters = BOSS_CANDIDATES,
+			initializeFrame = function(button)
+				Auras.Dress(button, f, function()
+					return Auras.BossSize(f)
+				end)
+			end,
+		})
+		f.bossSlot = bossMade or nil
+		if not bossMade then
+			Style.LogOnce("bossSlot", "the boss debuff slot could not be added; boss debuffs stay in the debuff row: " .. tostring(bossErr))
+		end
 		local slotted, slotErr = pcall(highlights.AddAuraSlot, highlights, SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER, {
 			initializeFrame = function(slot)
 				local built, buildErr = pcall(BuildDispel, slot, f)
@@ -839,15 +854,6 @@ local function HealIcons(f, k)
 	local size, spacing = BuffSizes(f, k)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	local layout = f.parts
-	local lane = layout and layout.healLane
-	if lane then
-		local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
-		local count = k.buffCount
-		while count > 0 and Geometry.Line(count, size, spacing) > lane.width - gap + LINE_SLACK do
-			count = count - 1
-		end
-		return "LEFT", count, size, spacing, inset, gap
-	end
 	local row = layout and layout.healRow
 	if not row then
 		return "LEFT", 0, size, spacing, inset
@@ -856,21 +862,45 @@ local function HealIcons(f, k)
 	while count > 0 and Geometry.Line(count, size, spacing) > row.width + LINE_SLACK do
 		count = count - 1
 	end
-	return "LEFT", count, size, spacing, inset, nil, row
+	return row.side or "LEFT", count, size, spacing, inset, nil, row
 end
 Auras.HealIcons = HealIcons
+
+function Auras.BossSize(f)
+	local rect = f.parts and f.parts.boss
+	return rect and Widgets.Snap(f, rect.width) or 1
+end
+
+function Auras.BossOn(f)
+	return f.bossSlot == true and f.parts ~= nil and f.parts.boss ~= nil and Settings.current.auras.enabled
+end
+
+local function PlaceBoss(f)
+	local highlights = f.highlights
+	local button = f.bossSlot and highlights and highlights:GetAuraSlotFrame(BOSS_SLOT)
+	local rect = f.parts and f.parts.boss
+	if not button or not rect then
+		return
+	end
+	local size = Widgets.Snap(f, rect.width)
+	button:ClearAllPoints()
+	button:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	button:SetFrameLevel(highlights:GetFrameLevel() + TEXT_ABOVE)
+	StyleIcon(button)
+	Widgets.Size(button, size, size)
+end
+Auras.restylers[#Auras.restylers + 1] = PlaceBoss
 
 local function ConfigureBuffs(f)
 	local container = f.buffs
 	local k = Settings.current[f.kind]
-	local side, count, size, spacing, _, lane, row = HealIcons(f, k)
+	local side, count, size, spacing, _, _, row = HealIcons(f, k)
 	local corner = "TOP" .. side
 	local clip = f.buffClip
 	clip:ClearAllPoints()
-	if lane then
-		clip:SetPoint(corner, f.health, "RIGHT", lane, Widgets.Snap(f, size / 2))
-	elseif row then
-		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, row.left), -Widgets.Snap(f, row.top))
+	if row then
+		local x = side == "RIGHT" and row.left + row.width or row.left
+		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x), -Widgets.Snap(f, row.top))
 	else
 		clip:SetPoint(corner, f, corner, 0, 0)
 	end
@@ -923,13 +953,16 @@ local function Configure(f)
 			container:SetAuraGroupFilterString(key, filter)
 			container:SetAuraGroupMaxFrameCount(key, GroupCount(f, k, key))
 		end
-		container:SetAuraGroupEnabled(BOSS, a.enabled)
+		container:SetAuraGroupEnabled(BOSS, a.enabled and not Auras.BossOn(f))
 		container:SetAuraGroupEnabled(IMPORTANT, a.enabled)
 		container:SetAuraGroupEnabled(DISPELS, a.enabled and dispels > 0)
 	end
 	local highlights = f.highlights
 	for key in pairs(f.glowSlots or {}) do
 		highlights:SetAuraSlotEnabled(key, a.glow)
+	end
+	if f.bossSlot then
+		highlights:SetAuraSlotEnabled(BOSS_SLOT, Auras.BossOn(f))
 	end
 	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))
 	container:SetAuraGroupMaxFrameCount(GROUP, GroupCount(f, k, GROUP))
@@ -1076,6 +1109,11 @@ local function BuildSamples(f)
 		icon.tile, icon.art = tile, tile.icon
 		f.sampleBuffs[i] = icon
 	end
+	local boss = CreateFrame("Frame", nil, holder)
+	boss.tile = NewTile(boss)
+	boss.tile.icon:SetTexture(SAMPLE_BOSS_ICON)
+	boss:SetFrameLevel(holder:GetFrameLevel() + #SAMPLE_ICONS + 1)
+	f.sampleBoss = boss
 	local markLayer = CreateFrame("Frame", nil, holder)
 	markLayer:SetAllPoints(holder)
 	markLayer:SetFrameLevel(holder:GetFrameLevel() + #SAMPLE_ICONS + 1)
@@ -1108,14 +1146,14 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
-	local _, fit, buffSize, buffSpacing, _, lane, row = HealIcons(f, k)
+	local side, fit, buffSize, buffSpacing, _, _, row = HealIcons(f, k)
 	f.sampleBuffFit = fit
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:ClearAllPoints()
 		icon:SetSize(buffSize, buffSize)
 		local along = (i - 1) * (buffSize + buffSpacing)
-		if lane then
-			icon:SetPoint("LEFT", f.health, "RIGHT", lane + along, 0)
+		if row and side == "RIGHT" then
+			icon:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, row.left + row.width - along), -Widgets.Snap(f, row.top))
 		elseif row then
 			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, row.left + along), -Widgets.Snap(f, row.top))
 		else
@@ -1124,6 +1162,15 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
+	end
+	local rect, boss = f.parts and f.parts.boss, f.sampleBoss
+	if rect then
+		boss:ClearAllPoints()
+		boss:SetSize(Widgets.Snap(f, rect.width), Widgets.Snap(f, rect.height))
+		boss:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+		boss.tile.chrome:Restyle()
+		boss.tile.chrome:SetRimAccent(Style.Accent())
+		PlaceIcon(boss.tile)
 	end
 	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel, f.chrome:Chamfer())
 end
@@ -1153,6 +1200,7 @@ local function PaintSample(f, sample)
 		f.sampleMark:SetText(MARK)
 	end
 	f.sampleMark:SetShown(more)
+	f.sampleBoss:SetShown(a.enabled and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
 	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)

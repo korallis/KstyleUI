@@ -52,7 +52,7 @@ Settings.defaults = {
 		roleRing = false, classLine = false, power = false, powerHeight = 3,
 		textLayout = "ABOVE", nameSize = 10, healthText = "DEFICIT", healthTextSize = 9, healthTextPlace = "ROW",
 		iconSize = 10,
-		auraSize = 10, auraCount = 4, auraDispelCount = 1, auraColumns = 2, auraRows = 2, auraSpacing = 1,
+		auraSize = 12, auraCount = 4, auraDispelCount = 1, auraColumns = 2, auraRows = 2, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 10, buffCount = 3,
 	},

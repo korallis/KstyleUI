@@ -1,4 +1,4 @@
--- Names.lua: shortens a member's name to the width its row gives it, ending in an ellipsis, keeping it distinct from the other members' names.
+-- Names.lua: fits a member's name to the width its row gives it, stepping the size down first and then ending in an ellipsis, keeping it distinct from the other members' names.
 local _, ns = ...
 
 local Unit = ns.Unit
@@ -106,6 +106,16 @@ function Names.Apply(f)
 	if type(width) ~= "number" or width <= 0 then
 		text:SetText(name)
 		return
+	end
+	local fit = f.nameFit
+	if fit then
+		for step = fit.size, fit.min, -1 do
+			fit.set(text, step)
+			if Width(text, name, step) <= width then
+				text:SetText(name)
+				return
+			end
+		end
 	end
 	local _, size = text:GetFont()
 	size = type(size) == "number" and not Unit.IsSecret(size) and size or 10

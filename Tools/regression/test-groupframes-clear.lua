@@ -1,8 +1,7 @@
--- test-groupframes-clear.lua: no aura ever paints on a group frame's health bar, and the raid tile keeps its own lanes: a name lane that ellipsises at a measured width, the deficit right-aligned in its own lane, a 2x2 debuff block, your heals in a row under the bar and a status ("Dead") off the bar, at the default and the setup layouts' party and raid sizes.
+-- test-groupframes-clear.lua: no helpful aura ever paints on a group frame's health bar, and the raid tile keeps its own lanes: a whole name lane, the deficit in its own lane on the bar, a 2x2 debuff block over the bar's right end (rank R5: harmful auras may overlay a raid bar's end, as Cell draws them), your heals on the name line and a status ("Dead") off the name lane, at the default and the setup layouts' party and raid sizes.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-local ELLIPSIS = "..."
 
 local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
@@ -39,11 +38,13 @@ local function saved(settings)
 	return { version = 2, profiles = { Default = { GroupFrames = settings } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 end
 
--- Every aura rect on the frame that shows: the debuff block, your heals, the six indicator slots.
+-- Every aura rect on the frame that shows: the debuff block, your heals, the six indicator slots. The third field
+-- says whether it is harmful, so it may overlay a raid tile's bar.
 local function Auras(env, f)
 	local out = {}
+	local ns = env._addons.KstyleUI_GroupFrames
 	if f.auraClip and f.auraClip:IsShown() then
-		out[#out + 1] = { "the debuff block", { Scene.Rect(env, f.auraClip) } }
+		out[#out + 1] = { "the debuff block", { Scene.Rect(env, f.auraClip) }, true }
 	end
 	if f.buffClip and f.buffs and f.buffs:IsShown() then
 		local k = f.kind and env._addons.KstyleUI_GroupFrames.Settings.current[f.kind]
@@ -57,7 +58,8 @@ local function Auras(env, f)
 			local slot = f.indicators._slots["indicator" .. i]
 			if slot and slot.enabled then
 				slot.frame:Show()
-				out[#out + 1] = { "indicator " .. i, { Scene.Rect(env, slot.frame) } }
+				local category = ns.Settings.current["indicator" .. i].category
+				out[#out + 1] = { "indicator " .. i, { Scene.Rect(env, slot.frame) }, not ns.Slots.Helpful(category) }
 			end
 		end
 	end
@@ -69,9 +71,12 @@ local function Clear(env, f, what)
 	assert(bar[1], what .. ": the bar resolves")
 	local auras = Auras(env, f)
 	assert(#auras > 0, what .. ": the frame shows auras to check")
+	local overlay = f.parts and f.parts.overlay
 	for _, aura in ipairs(auras) do
 		assert(aura[2][1], what .. ": " .. aura[1] .. " resolves")
-		assert(not intersects(aura[2], bar), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the health bar " .. describe(bar))
+		if not (overlay and aura[3]) then
+			assert(not intersects(aura[2], bar), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the health bar " .. describe(bar))
+		end
 	end
 	return auras, bar
 end
@@ -148,28 +153,28 @@ for _, size in ipairs({ { width = 72, height = 40 }, { width = 77, height = 40 }
 	-- Your heals keep a row of their own and at least two of them show.
 	local _, heals = ns.Auras.HealIcons(f, k)
 	assert(heals >= 2, what .. ": two or more of your heals have room, got " .. heals)
-	-- The name lane and the deficit lane.
+	-- The name lane and the deficit lane. Rank R5: the deficit left the name lane for its own lane at the bar's left
+	-- end; round 4 right-aligned it beside the name, which then ellipsised.
 	local scene = Scene.Build(env)
 	local name, deficit = find(scene, f.name), find(scene, f.healthText)
 	assert(name and deficit, what .. ": the name and the deficit draw")
 	assert(not intersects(name.rect, deficit.rect), what .. ": the name " .. describe(name.rect) .. " never competes with the deficit " .. describe(deficit.rect))
-	local frame = { Scene.Rect(env, f) }
-	local pad = ns.Geometry.PAD
-	assert(math.abs(deficit.rect[1] + deficit.rect[3] - (frame[1] + frame[3] - pad)) < 0.6, what .. ": the deficit is right-aligned in its lane " .. describe(deficit.rect))
-	assert(deficit.rect[2] + deficit.rect[4] <= bar[2] + 0.01, what .. ": and sits above the bar")
+	assert(deficit.rect[2] >= bar[2] - 0.01, what .. ": the deficit sits on the bar, below the name lane " .. describe(deficit.rect))
+	assert(deficit.rect[1] < bar[1] + bar[3] / 2, what .. ": at the bar's left end")
 	for _, aura in ipairs(auras) do
 		assert(not intersects(aura[2], name.rect), what .. ": " .. aura[1] .. " stays off the name")
 		assert(not intersects(aura[2], deficit.rect), what .. ": " .. aura[1] .. " stays off the deficit")
 	end
-	-- Fable R4 D6: a long name ellipsises at the lane's measured width instead of losing letters silently.
-	local shown = f.name:GetText()
-	assert(shown ~= "Thaldrenwick" and shown:sub(-#ELLIPSIS) == ELLIPSIS, what .. ": a long name ends in an ellipsis, got " .. tostring(shown))
+	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole; round 4 ellipsised it
+	-- ("Thald...") beside the deficit.
+	eq(f.name:GetText(), "Thaldrenwick", what .. ": a twelve-letter name stays whole")
 	assert(name.rect[3] <= f.nameWidth + 0.5, what .. ": and fits its lane")
-	-- Muse R4 #2: "Dead" sits in the deficit lane, not on the bar.
+	-- Muse R4 #2, rank R5: "Dead" sits in the status lane on the emptied bar, never in the name lane.
 	local dead = content(ns, ns.Headers.raid[1], "raid2")
 	local status = find(scene, dead.healthText)
 	eq(dead.healthText:GetText(), "Dead", what .. ": the dead member says so")
-	assert(not intersects(status.rect, { Scene.Rect(env, dead.health) }), what .. ": \"Dead\" " .. describe(status.rect) .. " stays off the bar")
+	local deadBar = { Scene.Rect(env, dead.health) }
+	assert(status.rect[2] >= deadBar[2] - 0.01, what .. ": \"Dead\" " .. describe(status.rect) .. " stays below the name lane")
 	assert(not intersects(status.rect, find(scene, dead.name).rect), what .. ": and off the name")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
@@ -224,9 +229,10 @@ for _, screen in ipairs({ { 2560, 1600 }, { 3456, 2234 } }) do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- The options preview's sample frames draw the same lanes: no sample aura on a sample bar.
+-- The options preview's sample frames draw the same lanes: no helpful sample aura on a sample bar; on a raid tile the
+-- sample debuffs and harmful indicators may overlay the bar's end, as the live tiles do.
 do
-	local env, K = G.New()
+	local env, K, ns = G.New()
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(280, 700)
 	parent:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 40, -40)
@@ -242,11 +248,15 @@ do
 	for _, f in ipairs(samples) do
 		if f:IsShown() then
 			local bar = { Scene.Rect(env, f.health) }
-			for _, list in ipairs({ f.sampleAuras, f.sampleBuffs, f.sampleSlots }) do
+			local overlay = f.parts.overlay
+			for which, list in ipairs({ f.sampleAuras, f.sampleBuffs, f.sampleSlots }) do
 				for i, icon in ipairs(list or {}) do
 					if icon:IsShown() then
 						local r = { Scene.Rect(env, icon) }
-						assert(not intersects(r, bar), "preview " .. f.kind .. " " .. f.sample.name .. ": sample aura " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
+						local harmful = which == 1 or (which == 3 and not ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category))
+						if not (overlay and harmful) then
+							assert(not intersects(r, bar), "preview " .. f.kind .. " " .. f.sample.name .. ": sample aura " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
+						end
 						checked = checked + 1
 					end
 				end

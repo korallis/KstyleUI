@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
-local Settings, Geometry, Style, Unit, Button, Auras = ns.Settings, ns.Geometry, ns.Style, ns.Unit, ns.Button, ns.Auras
+local Settings, Style, Unit, Button, Auras = ns.Settings, ns.Style, ns.Unit, ns.Button, ns.Auras
 
 local Slots = {}
 ns.Slots = Slots
@@ -67,6 +67,11 @@ function Slots.Plan(slot)
 	return { filter = filter, candidates = candidates }
 end
 
+function Slots.Helpful(category)
+	local plan = CATEGORIES[category]
+	return plan ~= nil and plan.filter:find("^HELPFUL") ~= nil
+end
+
 local function AnyOn()
 	local cfg = Settings.current
 	for i = 1, COUNT do
@@ -123,7 +128,18 @@ local function Field(f, w, h)
 	end
 	local health = parts.health
 	local k = Settings.current[f.kind]
-	blocked[#blocked + 1] = FromRect(health)
+	local fill = FromRect(health)
+	if not parts.overlay then
+		blocked[#blocked + 1] = fill
+		fill = nil
+	end
+	if parts.overlay then
+		local spot = parts.healthText
+		blocked[#blocked + 1] = Box(spot.left, spot.top, spot.right - spot.left, spot.height)
+		if parts.boss and Settings.current.auras.enabled then
+			blocked[#blocked + 1] = FromRect(parts.boss)
+		end
+	end
 	if parts.nameInside then
 		local line = k.nameSize + NAME_LINE_EXTRA
 		blocked[#blocked + 1] = Box(health.left, health.top + (health.height - line) / 2, health.width, line)
@@ -145,17 +161,12 @@ local function Field(f, w, h)
 		end
 	end
 	if Settings.current.buffs.enabled then
-		local _, count, size, spacing, _, lane, row = Auras.HealIcons(f, k)
-		if count > 0 then
-			local line = Geometry.Line(count, size, spacing)
-			if lane then
-				blocked[#blocked + 1] = Box(health.left + health.width + lane, health.top + health.height / 2 - size / 2, line, size)
-			elseif row then
-				blocked[#blocked + 1] = Box(row.left, row.top, line, size)
-			end
+		local _, count, _, _, _, _, row = Auras.HealIcons(f, k)
+		if count > 0 and row then
+			blocked[#blocked + 1] = FromRect(row)
 		end
 	end
-	return field, blocked, gap
+	return field, blocked, gap, fill
 end
 
 local function Preferred(field, point, size)
@@ -233,7 +244,7 @@ local function Key2(f, w, h, field, blocked)
 	end
 	for i = 1, COUNT do
 		local slot = cfg[Key(i)]
-		out[#out + 1] = (CATEGORIES[slot.category] and "1" or "0") .. slot.position .. slot.size
+		out[#out + 1] = (CATEGORIES[slot.category] and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size
 	end
 	return table.concat(out, "|")
 end
@@ -241,8 +252,8 @@ end
 function Slots.Placements(f)
 	local cfg = Settings.current
 	local w, h = Style.Size(f)
-	local field, blocked, gap = Field(f, w, h)
-	local key = Key2(f, w, h, field, blocked)
+	local field, blocked, gap, fill = Field(f, w, h)
+	local key = Key2(f, w, h, field, blocked) .. (fill and "|fill" or "")
 	if cache[key] then
 		return cache[key]
 	end
@@ -270,8 +281,15 @@ function Slots.Placements(f)
 			local size, spot = wanted, nil
 			local floor, step = math.min(wanted, MIN_SIZE), Widgets.Snap(f, 1)
 			step = step > 0 and step or 1
+			local avoid = taken
+			if fill and Slots.Helpful(slot.category) then
+				avoid = { fill }
+				for j = 1, #taken do
+					avoid[j + 1] = taken[j]
+				end
+			end
 			while size >= floor and not spot do
-				spot = Find(field, taken, point, size, gap)
+				spot = Find(field, avoid, point, size, gap)
 				if not spot then
 					size = size - step
 				end

@@ -73,7 +73,14 @@ for _, size in ipairs(SIZES) do
 		local what = kind .. " " .. size.label .. " (" .. size[kind].width .. " by " .. size[kind].height .. ")"
 		local scene = Scene.Build(env)
 		local rects = {}
-		for _, name in ipairs(INDICATORS) do
+		-- Grok R5 #1: a party row with the role ring reads its role from the ring's letter, so the role icon stays
+		-- hidden and its corner holds your heals.
+		local list = INDICATORS
+		if f.roleInRing then
+			assert(f.ring:IsShown() and f.roleText:IsShown() and not f.role:IsShown(), what .. ": the ring carries the role")
+			list = { "leader", "marker", "healthText" }
+		end
+		for _, name in ipairs(list) do
 			local region = f[name]
 			assert(region:IsShown(), what .. ": the " .. name .. " shows")
 			local item = find(scene, region)
@@ -87,9 +94,9 @@ for _, size in ipairs(SIZES) do
 			local role, leader = rects.role, rects.leader
 			assert(leader[3] < role[3] and leader[1] <= role[1] + 0.01 and leader[2] <= role[2] + 0.01, what .. ": the leader badge sits on the role icon's top-left corner")
 		end
-		for i = 1, #INDICATORS do
-			for j = i + 1, #INDICATORS do
-				local a, b = INDICATORS[i], INDICATORS[j]
+		for i = 1, #list do
+			for j = i + 1, #list do
+				local a, b = list[i], list[j]
 				local pair = (a == "role" and b == "leader") or (a == "leader" and b == "role")
 				if not (badge and pair) then
 					assert(not intersects(rects[a], rects[b]), what .. ": the " .. a .. " " .. describe(rects[a]) .. " overlaps the " .. b .. " " .. describe(rects[b]))
@@ -98,9 +105,11 @@ for _, size in ipairs(SIZES) do
 		end
 		local frameRect = { Scene.Rect(env, f) }
 		assert(frameRect[1], what .. ": the frame resolves")
-		for _, name in ipairs({ "role", "healthText" }) do
+		for _, name in ipairs(list) do
 			local r = rects[name]
-			assert(r[1] >= frameRect[1] - 0.01 and r[1] + r[3] <= frameRect[1] + frameRect[3] + 0.01, what .. ": the " .. name .. " " .. describe(r) .. " stays inside the frame's width " .. describe(frameRect))
+			if name == "role" or name == "healthText" then
+				assert(r[1] >= frameRect[1] - 0.01 and r[1] + r[3] <= frameRect[1] + frameRect[3] + 0.01, what .. ": the " .. name .. " " .. describe(r) .. " stays inside the frame's width " .. describe(frameRect))
+			end
 		end
 	end
 end

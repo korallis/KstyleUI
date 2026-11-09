@@ -57,8 +57,8 @@ eq(cfg.buffs.enabled, true, "your heals over time are on")
 eq(cfg.prediction.shield, true, "the shield line is on")
 eq(cfg.clickCast.hint, true, "the click casting reminder is on")
 
--- A priest's white fill never sits under the name: the renderer resolves the name, the missing health and the bar,
--- and the texts sit above the bar inside the tile, on the glass.
+-- A priest's white fill never sits under the name: the renderer resolves the name, the missing health and the bar;
+-- the name sits above the bar on the glass, and the missing health in its own outlined lane on the bar (rank R5).
 local f = content(ns, ns.Headers.raid[1], "raid1")
 assert(f, "raid1 has a frame")
 local scene = Scene.Build(env)
@@ -66,12 +66,13 @@ local name, deficit, tile = find(scene, f.name), find(scene, f.healthText), { Sc
 local bar = { rect = { Scene.Rect(env, f.health) } }
 assert(name and deficit and bar.rect[1] and tile[1], "the renderer resolves the name, the bar and the missing health")
 assert(not intersects(name.rect, bar.rect), "the name is off the class fill")
-assert(not intersects(deficit.rect, bar.rect), "and so is the missing health")
-assert(not intersects(name.rect, deficit.rect), "the name ends before the missing health")
--- Round 4 (Grok #1, Muse #2): the bar shares the tile with a 2x2 debuff block and your heals' row, so it is a band
--- of at least 8 units over half the lane's width rather than the 16-unit slab the auras used to paint on.
-assert(bar.rect[4] >= 8, "the bar is a solid band, at least 8 units tall: " .. tostring(bar.rect[4]))
-assert(bar.rect[3] >= (tile[3] - 2 * ns.Geometry.PAD) / 2, "and at least half the lane wide: " .. tostring(bar.rect[3]))
+assert(deficit.rect[2] >= bar.rect[2] - 0.01, "the missing health has left the name lane for its own lane on the bar")
+local _, _, deficitFlags = f.healthText:GetFont()
+assert(type(deficitFlags) == "string" and deficitFlags:find("OUTLINE") ~= nil, "outlined, so it reads on a white fill")
+assert(not intersects(name.rect, deficit.rect), "the name and the missing health keep apart")
+-- Rank R5 (Opus #1, Muse #1): health fills the tile's width under the name lane and at least 55% of its height.
+assert(bar.rect[4] >= 0.55 * tile[4] - 0.01, "the bar is at least 55% of the tile's height: " .. tostring(bar.rect[4]))
+assert(bar.rect[3] >= tile[3] - 2 * ns.Geometry.INSET - 0.01, "and spans the tile's width: " .. tostring(bar.rect[3]))
 for _, item in ipairs({ name, deficit, bar }) do
 	local r = item.rect
 	assert(r[1] >= tile[1] - 0.01 and r[1] + r[3] <= tile[1] + tile[3] + 0.01 and r[2] >= tile[2] - 0.01 and r[2] + r[4] <= tile[2] + tile[4] + 0.01, "inside the tile")
@@ -91,7 +92,8 @@ assert(marker.rect[2] >= tile[2] - 0.01 and marker.rect[2] + marker.rect[4] <= t
 K.Options.Write("GroupFrames", "raid.buffCount", 2)
 env.RunTimers()
 -- Everything at once on a default raid tile: the leader, the skull, the role icon, the missing health, a full debuff
--- strip and your heals. Nothing overlaps, so no indicator hides another.
+-- strip and your heals. Nothing overlaps, so no indicator hides another; the status icons, the missing health and the
+-- debuffs may sit on the bar (rank R5, as Cell draws them), your heals never.
 do
 	local m = env._member("raid1")
 	m.leader, m.role = true, "HEALER"
@@ -112,7 +114,7 @@ do
 	rects.bar = { Scene.Rect(env, f.health) }
 	-- One more heal than fits may fill the clipped cell beyond the row, for the overflow mark.
 	eq(heals.maxFrameCount - 1, 2, "the count setting of two stands")
-	assert(rects.heals[2] >= rects.bar[2] + rects.bar[4] - 0.01, "your heals sit in their row under the bar")
+	assert(not intersects(rects.heals, rects.bar), "your heals never sit on the bar")
 	local names = { "leader", "marker", "role", "healthText", "name", "debuffs", "heals", "bar" }
 	for i = 1, #names do
 		local r = rects[names[i]]
@@ -120,41 +122,44 @@ do
 		for j = i + 1, #names do
 			-- The leader crown is a badge on the role icon's corner on a raid tile (round 2); every other pair stays apart.
 			local badge = (names[i] == "leader" and names[j] == "role") and f.parts.icons.badge
-			if not badge then
+			local onBar = names[j] == "bar" and names[i] ~= "heals" and names[i] ~= "name"
+			if not badge and not onBar then
 				assert(not intersects(r, rects[names[j]]), "the " .. names[i] .. " and the " .. names[j] .. " do not overlap")
 			end
 		end
 	end
 	K.Options.Write("GroupFrames", "raid.buffCount", 3)
 	env.RunTimers()
-	eq(heals.maxFrameCount - 1, 3, "three heals fit under the bar beside the default two-column debuff block")
+	-- Rank R5: your heals share the name line with a name that must stay whole up to twelve letters, so a 72-wide
+	-- tile holds two and the third raises the overflow mark; the Healer layout's 77-wide tile holds all three.
+	eq(heals.maxFrameCount - 1, 2, "two heals fit on the name line beside a whole name")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 3)
 	env.RunTimers()
-	eq(ns.Auras.Block(f, ns.Settings.current.raid).columns, 2, "a third debuff column would take more than half the lane, so the block keeps two")
-	eq(heals.maxFrameCount - 1, 3, "and your three heals keep their row")
+	eq(ns.Auras.Block(f, ns.Settings.current.raid).columns, 2, "a third debuff column would cover too much of the bar, so the block keeps two")
+	eq(heals.maxFrameCount - 1, 2, "and your heals keep the name line")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 2)
 	env.RunTimers()
 	m.leader, m.marker = false, nil
 	ns.Unit.Refresh(f)
 end
 
--- A dead or offline member's state reads at the row's end, in the missing health's lane (Muse R4 #2: never drawn on
--- the bar); the name ends before it. Alive again, the missing health returns to the same lane.
+-- A dead or offline member's state reads in the status lane, centred on the emptied bar (rank R5: never in the name
+-- lane); the name stays whole. Alive again, the missing health returns to its own lane.
 do
 	local m = env._member("raid1")
 	m.dead, m.health = true, 0
 	env.FireEvent("UNIT_HEALTH", "raid1")
 	eq(f.healthText:GetText(), "Dead", "the frame says Dead")
 	local hp = f.healthText._points[1]
-	assert(hp[1] == "TOPRIGHT" and #f.healthText._points == 1, "at the row's end")
+	assert(hp[1] == "CENTER" and #f.healthText._points == 1, "centred")
 	scene = Scene.Build(env)
 	local dead, barRect = find(scene, f.healthText), { Scene.Rect(env, f.health) }
-	assert(dead and not intersects(dead.rect, barRect) and not intersects(dead.rect, find(scene, f.name).rect), "off the bar, clear of the name")
+	assert(dead and dead.rect[2] >= barRect[2] - 0.01 and not intersects(dead.rect, find(scene, f.name).rect), "on the bar, out of the name lane")
 	m.dead, m.health = false, 70
 	env.FireEvent("UNIT_HEALTH", "raid1")
-	eq(f.healthText._points[1][1], "TOPRIGHT", "alive, the missing health is back at the row's end")
-	-- The missing health keeps a fixed reserve, so the name gets a known width that ends a gap before it.
-	assert(f.healthText._width > 0 and f.name:GetWidth() > 0, "the reserve and the name's width are set")
+	eq(f.healthText._points[1][1], "TOPLEFT", "alive, the missing health is back in its lane at the bar's left")
+	-- The missing health's lane has a set width, and so does the name.
+	assert(f.healthText._width > 0 and f.name:GetWidth() > 0, "the lane's and the name's widths are set")
 	scene = Scene.Build(env)
 	assert(not intersects(find(scene, f.name).rect, find(scene, f.healthText).rect), "and the name ends before it")
 end
@@ -189,15 +194,16 @@ local group = buffs._groups.buffs
 assert(group, "a heals group")
 eq(group.filter, "HELPFUL|PLAYER", "only the buffs you cast")
 eq(group.candidateFilters.processedAuraType, types.Buff, "that Blizzard's raid frames would show")
-eq(group.maxFrameCount, 4, "three at most, plus one for the overflow mark")
+eq(group.maxFrameCount, 3, "two on a 72-wide tile's name line, plus one for the overflow mark")
 local row = f.parts.healRow
 assert(W.Near(group.layout.elementWidth, row.height, 0.5), "icons as tall as the heal row, snapped to whole pixels: " .. tostring(group.layout.elementWidth))
 do
 	local cx, cy = Scene.Rect(env, f.buffClip)
 	local fx, fy = Scene.Rect(env, f)
-	assert(W.Near(cx - fx, row.left, 0.6) and W.Near(cy - fy, row.top, 0.6), "the clip holding them starts the heal row under the bar")
+	assert(W.Near(cx - fx, row.left, 0.6) and W.Near(cy - fy, row.top, 0.6), "the clip holding them is the heal row on the name line")
+	assert(row.top + row.height <= f.parts.health.top + 0.01, "above the bar")
 end
-eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Right, "growing right along the row")
+eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Left, "growing left from the tile's right edge toward the name")
 eq(f.auras._policyOptions.ignoreBuffs, true, "the debuff container still ignores buffs")
 assert(f.ready:GetParent():GetFrameLevel() > buffs:GetFrameLevel() and f.ready:GetParent():GetFrameLevel() > f.auras:GetFrameLevel(), "a ready check's mark draws above your heals and the debuffs")
 local icon = group.frames[1]

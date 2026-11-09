@@ -44,7 +44,15 @@ end
 local env, K, _, party, content = setup()
 local tank, healer, dps = content("party1"), content("party2"), content("party3")
 
--- Role icons: Blizzard's secret-safe role helper is missing here, so the fallback reads the role.
+-- Grok R5 #1: with the role ring on (the default) the ring's letter carries the role, so the role icon stays hidden
+-- and its corner holds your heals on the name line.
+eq(tank.role:IsShown(), false, "the role ring carries the role, so no second role icon shows")
+eq(tank.roleText:GetText(), "T", "the ring reads T")
+K.Options.Write("GroupFrames", "party.roleRing", false)
+env.RunTimers()
+
+-- Role icons, with the portrait in the ring's place: Blizzard's secret-safe role helper is missing here, so the
+-- fallback reads the role.
 eq(tank.role:IsShown(), true, "the tank shows a role icon")
 eq(last(tank.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Tank-Micro-GroupFinder", "the tank's role icon, the atlas GetMicroIconForRole gives")
 eq(last(healer.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Healer-Micro-GroupFinder", "the healer's role icon")
@@ -135,8 +143,8 @@ eq(tank.absorbs:IsShown(), true, "absorbs stay on")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- Blizzard's secret-safe role helper is used when the client has it.
-local seen
-env, _, _, _, content = setup({
+local seen, utilK
+env, utilK, _, _, content = setup({
 	setup = function(e)
 		e.UnitFrameUtil = {
 			UpdateUnitFrameRoleIcon = function(elements)
@@ -146,6 +154,8 @@ env, _, _, _, content = setup({
 		}
 	end,
 })
+utilK.Options.Write("GroupFrames", "party.roleRing", false)
+env.RunTimers()
 eq(last(content("party1").role, "SetAtlas")[1], "blizzard-role", "UnitFrameUtil draws the role icon")
 assert(seen ~= nil, "UnitFrameUtil gets the unit")
 eq(#env._errors, 0, "no errors with UnitFrameUtil: " .. tostring(env._errors[1]))

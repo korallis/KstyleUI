@@ -11,6 +11,7 @@ ns.Style = Style
 local TEXT_LEVEL = 4
 local NAME_LINE_EXTRA = 2
 local ON_BAR_OUTLINE = "OUTLINE"
+local ON_FILL_OUTLINE = "THICKOUTLINE"
 local LEVEL_SHARE = 0.36
 local BADGE = "buttonFill"
 local PORTRAIT_INSET = 2
@@ -23,6 +24,14 @@ local ROLE_LETTERS = { TANK = "T", HEALER = "H", DAMAGER = "D" }
 local PILL_HEIGHT = 6
 local PILL_RISE = 2
 local CLASS_LINE_COLOR = "text"
+local BOSS_SLOT = 16
+local NAME_STEPS = 2
+local NAME_FLOOR = 7
+Style.BOSS_SLOT = BOSS_SLOT
+
+function Style.NameMin(k)
+	return math.max(NAME_FLOOR, math.min(k.nameSize, k.nameSize - NAME_STEPS))
+end
 local RESERVE = {
 	party = { DEFICIT = { "-88.8k", "-888" }, PERCENT = { "100%" } },
 	raid = { DEFICIT = { "-8.8k", "-88k", "-888" }, PERCENT = { "100%" } },
@@ -176,7 +185,14 @@ local function LayoutTexts(f, k, parts)
 	local name, healthText = f.name, f.healthText
 	local cfg = Settings.current.text
 	local inside = parts.nameInside
-	SetFont(name, cfg.nameFont, k.nameSize, inside and OnBar(cfg.nameOutline) or cfg.nameOutline)
+	local nameOutline = inside and OnBar(cfg.nameOutline) or cfg.nameOutline
+	SetFont(name, cfg.nameFont, k.nameSize, nameOutline)
+	f.nameFit = {
+		size = k.nameSize, min = Style.NameMin(k),
+		set = function(text, size)
+			SetFont(text, cfg.nameFont, size, nameOutline)
+		end,
+	}
 	SetFont(healthText, cfg.healthFont, k.healthTextSize, inside and OnBar(cfg.healthOutline) or cfg.healthOutline)
 	name:ClearAllPoints()
 	healthText:ClearAllPoints()
@@ -307,9 +323,40 @@ function Style.StatusWidth(f, size)
 	return Widgets.Snap(f, math.ceil(Names.Width(f.healthText, text, size)))
 end
 
+local function PlaceOverlay(f, k, parts)
+	local cfg = Settings.current.text
+	local name, healthText = f.name, f.healthText
+	local rect, spot = parts.name, parts.healthText
+	local status = f.status ~= nil
+	local shown = k.healthText ~= "NONE"
+	f.classLine:Hide()
+	SetFont(healthText, cfg.healthFont, k.healthTextSize, cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline)
+	healthText:SetShown(shown or status)
+	healthText:ClearAllPoints()
+	if status or k.healthTextPlace == "BAR" then
+		healthText:SetJustifyH("CENTER")
+		healthText:SetWidth(0)
+		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, spot.center), -Widgets.Snap(f, spot.middle))
+	else
+		healthText:SetJustifyH(spot.justify)
+		healthText:SetWidth(math.max(1, Widgets.Snap(f, spot.right - spot.left)))
+		healthText:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, spot.left), -Widgets.Snap(f, spot.top))
+	end
+	name:ClearAllPoints()
+	name:SetJustifyH("LEFT")
+	name:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	f.nameWidth = math.max(1, Widgets.Snap(f, rect.width))
+	name:SetWidth(f.nameWidth)
+	ApplyName(f)
+end
+
 function Style.PlaceRowEnd(f)
 	local parts = f.parts
 	if not parts then
+		return
+	end
+	if parts.overlay then
+		PlaceOverlay(f, Settings.current[f.kind], parts)
 		return
 	end
 	if parts.nameInside then
@@ -380,26 +427,19 @@ function Style.SetMarked(f, marked)
 	end
 end
 
-local function HealLane(f, k, cfg, height)
-	if f.kind ~= "party" or not health_orientation(cfg) or not cfg.buffs.enabled or k.buffCount <= 0 then
-		return nil
-	end
-	local size = math.min(Widgets.Snap(f, k.buffSize), height - 2 * Widgets.Snap(f, Tokens.Size("gapTiny")))
-	return Widgets.Snap(f, Tokens.Size("gapSmall")) + Geometry.Line(k.buffCount, size, Widgets.Snap(f, k.auraSpacing))
-end
-
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
 	width, height = width or Style.MemberWidth(f.kind), height or k.height
 	f.width, f.height = width, height
-	local lane = HealLane(f, k, cfg, height)
+	local overlay = f.kind == "raid"
 	local place, outside = Geometry.AuraPlace(k, f.kind == "party" and Geometry.AuraLane(k) or 0)
 	local aura = cfg.auras.enabled and not outside and {
 		position = place, count = math.max(1, math.min(k.auraCount, k.auraColumns * k.auraRows)), columns = k.auraColumns, rows = k.auraRows,
 		size = Widgets.Snap(f, k.auraSize), spacing = Widgets.Snap(f, k.auraSpacing),
 	} or nil
 	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, k.buffSize) or nil
+	local nameMin = Style.NameMin(k)
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,
 		power = k.power,
@@ -412,9 +452,15 @@ function Style.Apply(f, width, height)
 		marker = cfg.icons.marker,
 		pill = f.kind == "party" and health_orientation(cfg) and PILL_HEIGHT or nil,
 		pillRise = PILL_RISE,
-		healLane = lane,
+		roleRing = f.kind == "party" and k.roleRing,
 		aura = aura,
 		healRow = healRow,
+		healCount = k.buffCount,
+		healSpacing = Widgets.Snap(f, k.auraSpacing),
+		overlay = overlay,
+		boss = overlay and cfg.auras.enabled and BOSS_SLOT or nil,
+		nameMin = nameMin,
+		healthLine = k.healthTextSize + NAME_LINE_EXTRA,
 		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),
 	})
 	f.parts = parts
@@ -432,8 +478,9 @@ function Style.Apply(f, width, height)
 	LayoutTexts(f, k, parts)
 	local classLine = f.classLine
 	classLine:ClearAllPoints()
-	classLine:SetShown(k.classLine == true and not parts.nameInside)
-	if k.classLine and not parts.nameInside then
+	local captioned = k.classLine == true and not parts.nameInside and not parts.overlay
+	classLine:SetShown(captioned)
+	if captioned then
 		SetFont(classLine, cfg.text.healthFont, Tokens.Size("caption"), cfg.text.healthOutline)
 		classLine:SetTextColor(Tokens.Color(CLASS_LINE_COLOR))
 		classLine:SetHeight(Widgets.Snap(f, parts.name.height))

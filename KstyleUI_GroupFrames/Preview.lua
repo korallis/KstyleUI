@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample party and raid frames drawn with the same look as the real ones, stacked over the click casting panel and scaled to fit the pane whenever its size resolves or changes.
+-- Preview.lua: the settings window's live preview: sample party frames scaled to fit the pane and four raid tiles at true scale, drawn with the same look as the real ones, stacked over the click casting panel and refitted whenever the pane's size resolves or changes.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,7 +10,8 @@ ns.Preview = Preview
 
 local PARTY_SHOWN = 3
 local RAID_GROUPS_SHOWN = 2
-local GROUP_SIZE = 5
+local GROUP_SIZE = 2
+local RAID_SAMPLES = { 1, 2, 6, 4 }
 local SECTION_GAP = 16
 local SAMPLE_LEVEL = 60
 local SAMPLE_MAX = 41800
@@ -19,7 +20,7 @@ local PERCENT = 100
 local SAMPLES = {
 	{
 		name = "Thaldren", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
-		healAbsorb = 0.18, debuffs = 2, hots = 2, indicators = { EXTERNAL = true },
+		healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true },
 	},
 	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true } },
 	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1 },
@@ -124,7 +125,8 @@ end
 local function Sample(parent, kind, index)
 	local f = CreateFrame("Frame", nil, parent)
 	Style.Build(f, kind)
-	f.sample = SAMPLES[(index - 1) % #SAMPLES + 1]
+	local pick = kind == "raid" and RAID_SAMPLES[index] or index
+	f.sample = SAMPLES[(pick - 1) % #SAMPLES + 1]
 	f.others = SAMPLE_NAMES
 	for _, hook in ipairs(ns.Button.built) do
 		hook(f)
@@ -174,7 +176,7 @@ local function Layout(preview)
 	local rh = groupsWide and gh or Geometry.Line(RAID_GROUPS_SHOWN, gh, raid.groupSpacing)
 	preview.raid:SetSize(rw, rh)
 	preview.raid:ClearAllPoints()
-	preview.raid:SetPoint("TOPLEFT", preview.party, "BOTTOMLEFT", 0, -SECTION_GAP)
+	preview.raid:SetPoint("TOPLEFT", preview.raidCanvas, "TOPLEFT", 0, 0)
 	local corner = Geometry.Corner(raid.growth, raid.groupGrowth)
 	for g = 1, RAID_GROUPS_SHOWN do
 		local frames = {}
@@ -188,21 +190,26 @@ local function Layout(preview)
 		Style.Apply(f, raid.width, raid.height)
 		Paint(f, f.sample)
 	end
-	local width = math.max(pw, rw)
-	local height = ph + SECTION_GAP + rh
-	preview.canvas:SetSize(width, height)
+	preview.canvas:SetSize(pw, ph)
+	preview.raidCanvas:SetSize(rw, rh)
 	local availW, availH = preview.fitW or preview:GetWidth(), preview.fitH or preview:GetHeight()
-	local scale = 1
+	local scale, raidScale = 1, 1
 	local top = Tokens.Size("gapTiny")
 	if type(availW) == "number" and type(availH) == "number" and availW > 0 and availH > 0 and not Unit.IsSecret(availW) then
-		availH = math.max(1, availH - top - ns.ClickCast.HEIGHT - SECTION_GAP)
-		scale = math.min(1, availW / width, availH / height)
+		raidScale = math.min(1, availW / rw)
+		availH = math.max(1, availH - top - ns.ClickCast.HEIGHT - 2 * SECTION_GAP - rh * raidScale)
+		scale = math.min(1, availW / pw, availH / ph)
 	end
 	preview.canvas:SetScale(scale)
 	preview.canvas:ClearAllPoints()
 	preview.canvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -top / scale)
+	local raidTop = top + ph * scale + SECTION_GAP
+	preview.raidCanvas:SetScale(raidScale)
+	preview.raidCanvas:ClearAllPoints()
+	preview.raidCanvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -raidTop / raidScale)
+	local height = raidTop + rh * raidScale
 	preview.clickCast:ClearAllPoints()
-	preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(top + height * scale + SECTION_GAP))
+	preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(height + SECTION_GAP))
 	preview.clickCast:SetPoint("RIGHT", preview, "RIGHT", 0, 0)
 	preview.clickCast:SetHeight(ns.ClickCast.HEIGHT)
 	preview.clickCast:Refresh()
@@ -212,8 +219,9 @@ function Preview.Build(parent)
 	local preview = CreateFrame("Frame", nil, parent)
 	preview:SetAllPoints(parent)
 	preview.canvas = CreateFrame("Frame", nil, preview)
+	preview.raidCanvas = CreateFrame("Frame", nil, preview)
 	preview.party = CreateFrame("Frame", nil, preview.canvas)
-	preview.raid = CreateFrame("Frame", nil, preview.canvas)
+	preview.raid = CreateFrame("Frame", nil, preview.raidCanvas)
 	preview.partyFrames, preview.raidFrames = {}, {}
 	for i = 1, PARTY_SHOWN do
 		preview.partyFrames[i] = Sample(preview.party, "party", i)

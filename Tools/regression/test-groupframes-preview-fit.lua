@@ -85,7 +85,17 @@ for _, height in ipairs({ 720, 560 }) do
 	-- Every drawn sample item lies inside the pane and off the click casting panel. Drop shadows and the threat halo
 	-- bleed past a tile's edge by design, as the render guard treats them; they still stay off the click casting panel.
 	local scene = Scene.Build(env)
-	for _, item in ipairs(Drawn(scene, preview.canvas)) do
+	-- Opus R5 #1, Fable R5 #5: four raid tiles at true scale, never scaled down, every sample name whole.
+	eq(#preview.raidFrames, 4, what .. ": four raid tiles")
+	eq(preview.raidCanvas:GetScale(), 1, what .. ": the raid tiles keep true scale")
+	for _, f in ipairs(preview.raidFrames) do
+		eq(f.name:GetText(), f.sample.name, what .. ": the raid sample " .. f.sample.name .. " is whole")
+	end
+	local drawn = Drawn(scene, preview.canvas)
+	for _, item in ipairs(Drawn(scene, preview.raidCanvas)) do
+		drawn[#drawn + 1] = item
+	end
+	for _, item in ipairs(drawn) do
 		local halo = type(item.file) == "string" and item.file:find("Shadow%.png$") ~= nil
 		if not halo then
 			inside(item.rect, box, what .. ": " .. tostring(item.kind) .. " " .. tostring(item.text or item.texture or ""))

@@ -223,13 +223,55 @@ local function Centred(span, start, size)
 	return start + (span - size) / 2
 end
 
+local MIN_ICON = 8
+local MIN_BAR = 6
+local INSET = Tokens.Size("gapTiny")
+local BAR_GAP = 1
+local BLOCK_SHARE = 0.45
+Geometry.MIN_ICON = MIN_ICON
+Geometry.INSET = INSET
+local Overlay
+local NAME_EM = 5.6
+
+local function Whole(v, px)
+	if px and px > 0 then
+		return floor(v / px + 1e-6) * px
+	end
+	return floor(v)
+end
+
+
+local function HealsOnName(out, o, textLeft, textRight, keep, gap)
+	local name = out.name
+	if not o.healRow or (o.healCount or 0) <= 0 or out.nameInside or out.healRow then
+		return textRight
+	end
+	local size = min(o.healRow, name.height)
+	local spacing = o.healSpacing or 0
+	local room = textRight - textLeft - keep - gap
+	local count = min(o.healCount, floor((room + spacing) / (size + spacing)))
+	if count < o.healCount and size > MIN_ICON then
+		local shrunk = Whole((room - (o.healCount - 1) * spacing) / o.healCount, o.pixel)
+		if shrunk >= MIN_ICON then
+			size, count = min(size, shrunk), o.healCount
+		end
+	end
+	if size < MIN_PART or count < 1 then
+		return textRight
+	end
+	local width = Line(count, size, spacing)
+	out.healRow = Rect(textRight - width, name.top + (name.height - size) / 2, width, size)
+	out.healRow.side = "RIGHT"
+	return textRight - width - gap
+end
+
 local function Indicators(out, w, h, o, pad, gap)
 	local size = floor(min(o.iconSize, (w - (ICONS_ACROSS + 1) * gap) / ICONS_ACROSS, h - 2 * gap))
 	size = max(MIN_PART, size)
 	local icons = { size = size }
 	out.icons = icons
 	local health = out.health
-	local row = (out.nameInside or out.healLane) and health or out.name
+	local row = out.nameInside and health or out.name
 	local textLeft, textRight = row.left, row.left + row.width
 	if not out.portrait and not out.nameInside and o.role then
 		icons.role = Rect(gap, gap, size, size)
@@ -240,13 +282,15 @@ local function Indicators(out, w, h, o, pad, gap)
 	else
 		icons.role = Rect(w - gap - size, gap, size, size)
 		icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
+		icons.roleInRing = o.roleRing and out.portrait ~= nil or nil
 		if o.leader and not out.portrait then
 			textLeft = max(textLeft, icons.leader.left + size + gap)
 		end
-		if o.role then
+		if o.role and not icons.roleInRing then
 			textRight = min(textRight, icons.role.left - gap)
 		end
 	end
+	textRight = HealsOnName(out, o, textLeft, textRight, (textRight - textLeft) / 2, pad)
 	textRight = max(textRight, textLeft + MIN_PART)
 	local markedRight = textRight
 	if out.nameInside then
@@ -275,16 +319,6 @@ local function Indicators(out, w, h, o, pad, gap)
 	end
 end
 
-local MIN_ICON = 8
-local MIN_BAR = 6
-Geometry.MIN_ICON = MIN_ICON
-
-local function Whole(v, px)
-	if px and px > 0 then
-		return floor(v / px + 1e-6) * px
-	end
-	return floor(v)
-end
 
 local function InsideBlock(a, aw, ah, laneGap, px)
 	local count = max(0, min(a.count or 0, (a.columns or 1) * (a.rows or 1)))
@@ -346,6 +380,9 @@ local function Lanes(out, area, o, gap, laneGap)
 end
 
 function Geometry.Button(w, h, o)
+	if o.overlay and o.nameAbove then
+		return Overlay(w, h, o)
+	end
 	local pad, gap = Tokens.Size("gapSmall"), Tokens.Size("gapTiny")
 	local out = { nameInside = true }
 	local left = pad
@@ -372,19 +409,11 @@ function Geometry.Button(w, h, o)
 	end
 	local inside = o.aura and AURA_INSIDE_LANES[o.aura.position]
 	local pill = o.pill
-	local lane = o.healLane or 0
 	local pilled = not inside and pill and not out.nameInside and areaHeight > pill
-	local laned = pilled and lane > 0 and width - lane >= h
-	if pilled and (laned or not o.healRow) then
+	if pilled then
 		local rise = o.pillRise or 0
-		local barTop, barHeight = areaTop + areaHeight - pill - rise, pill
-		local barWidth = width
-		if laned then
-			barWidth = width - lane
-			out.healLane = { left = left + barWidth, width = lane }
-		end
-		out.health = Rect(left, barTop, barWidth, barHeight)
-	elseif inside or o.healRow then
+		out.health = Rect(left, areaTop + areaHeight - pill - rise, width, pill)
+	elseif inside or (o.healRow and out.nameInside) then
 		local bottom = out.power and areaTop + areaHeight or h - gap
 		Lanes(out, { left = left, right = left + width, top = areaTop, bottom = bottom }, o, gap, pad)
 	else
@@ -395,7 +424,123 @@ function Geometry.Button(w, h, o)
 	end
 	if o.iconSize then
 		Indicators(out, w, h, o, pad, gap)
+	elseif not out.nameInside then
+		local right = HealsOnName(out, o, out.name.left, out.name.left + out.name.width, out.name.width / 2, pad)
+		out.name = Rect(out.name.left, out.name.top, right - out.name.left, out.name.height)
 	end
+	return out
+end
+
+local function OverlayBlock(a, bar, room, px)
+	local count = max(0, min(a.count or 0, (a.columns or 1) * (a.rows or 1)))
+	if count <= 0 then
+		return nil
+	end
+	local spacing = a.spacing or 0
+	local rows = max(1, min(a.rows or 1, count))
+	local size = a.size
+	while rows >= 1 do
+		size = Whole(min(a.size, (room.bottom - room.top - (rows - 1) * spacing) / rows), px)
+		if size >= MIN_ICON or rows == 1 then
+			break
+		end
+		rows = rows - 1
+	end
+	if size < MIN_PART then
+		return nil
+	end
+	local columns = min(a.columns or 1, ceil(count / rows))
+	while columns > 0 and Line(columns, size, spacing) > bar.width * BLOCK_SHARE do
+		columns = columns - 1
+	end
+	if columns <= 0 then
+		return nil
+	end
+	rows = min(rows, ceil(count / columns))
+	if rows > 1 and count < columns * rows then
+		rows = max(1, floor(count / columns))
+	end
+	local width, height = Line(columns, size, spacing), Line(rows, size, spacing)
+	local right = a.position:find("RIGHT$") ~= nil
+	local top
+	if height <= bar.height then
+		top = a.position:find("^TOP") and bar.top or bar.top + bar.height - height
+	else
+		top = max(room.top, min(bar.top, room.bottom - height))
+	end
+	return {
+		columns = columns, rows = rows, cells = columns * rows, size = size, width = width, height = height,
+		left = right and bar.left + bar.width - width or bar.left, top = top, position = a.position, right = right,
+	}
+end
+
+function Overlay(w, h, o)
+	local inset, gap = INSET, Tokens.Size("gapTiny")
+	local out = { nameInside = false, overlay = true }
+	local left, width = inset, w - 2 * inset
+	local top, bottom = BAR_GAP, h - inset
+	if o.power then
+		local ph = min(o.powerHeight or 0, max(0, bottom - top - MIN_BAR - BAR_GAP))
+		if ph > 0 then
+			out.power = Rect(left, bottom - ph, width, ph)
+			bottom = bottom - ph - BAR_GAP
+		end
+	end
+	local nameHeight = max(MIN_PART, min(o.nameHeight or 0, bottom - top - MIN_BAR - BAR_GAP))
+	out.name = Rect(left, top, width, nameHeight)
+	local barTop = top + nameHeight + BAR_GAP
+	local bar = Rect(left, barTop, width, bottom - barTop)
+	out.health = bar
+	local a = o.aura
+	local block = a and AURA_INSIDE_LANES[a.position] and OverlayBlock(a, bar, { top = barTop - BAR_GAP, bottom = h - BAR_GAP }, o.pixel)
+	out.block = block or nil
+	local spanLeft, spanRight = bar.left, bar.left + bar.width
+	if block then
+		if block.right then
+			spanRight = block.left - BAR_GAP
+		else
+			spanLeft = block.left + block.width + BAR_GAP
+		end
+	end
+	if o.boss then
+		local size = Whole(min(o.boss, bar.height - 2 * BAR_GAP), o.pixel)
+		if size >= MIN_ICON then
+			local x = bar.left + (bar.width - size) / 2
+			x = max(spanLeft, min(x, spanRight - size))
+			out.boss = Rect(x, bar.top + (bar.height - size) / 2, size, size)
+		end
+	end
+	local cornerLeft = not (block and not block.right)
+	local size = Whole(max(MIN_PART, min(o.iconSize or 0, (bar.height - BAR_GAP) / 2)), o.pixel)
+	local icons = { size = size, badge = true }
+	out.icons = icons
+	local edge = cornerLeft and bar.left + BAR_GAP or bar.left + bar.width - BAR_GAP - size
+	local step = cornerLeft and size + BAR_GAP or -(size + BAR_GAP)
+	icons.role = Rect(edge, bar.top + BAR_GAP, size, size)
+	local badge = max(MIN_PART, floor(size * BADGE_SHARE))
+	icons.leader = Rect(cornerLeft and bar.left or bar.left + bar.width - badge, bar.top, badge, badge)
+	icons.marker = Rect(o.role and edge + step or edge, bar.top + BAR_GAP, size, size)
+	local line = o.healthLine or size
+	local lane = { left = spanLeft + BAR_GAP, right = (out.boss and out.boss.left or spanRight) - BAR_GAP }
+	if not cornerLeft then
+		lane = { left = (out.boss and out.boss.left + out.boss.width or spanLeft) + BAR_GAP, right = spanRight - BAR_GAP }
+	end
+	local laneTop = bar.top + bar.height - line
+	if (o.role or o.marker) and laneTop < icons.role.top + size then
+		local beyond = icons.role.left + (o.role and o.marker and 2 or 1) * step
+		if cornerLeft then
+			lane.left = max(lane.left, beyond)
+		else
+			lane.right = min(lane.right, beyond + size)
+		end
+	end
+	out.healthText = {
+		overlay = true, left = lane.left, right = max(lane.left + MIN_PART, lane.right), top = max(bar.top, laneTop), height = line,
+		center = bar.left + bar.width / 2, middle = bar.top + bar.height / 2, justify = cornerLeft and "LEFT" or "RIGHT",
+	}
+	local nameMin = o.nameMin or nameHeight
+	local right = HealsOnName(out, o, left, left + width, NAME_EM * nameMin, gap)
+	out.name = Rect(left, top, right - left, nameHeight)
 	return out
 end
 

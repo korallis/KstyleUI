@@ -163,11 +163,10 @@ eq(#Headers.raid, 8, "eight raid headers")
 same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, "group 1")
 same(G.Shown(Headers.raid[3]), { "raid11", "raid12" }, "group 3")
 eq(Headers.raid[2]._points[1][4], 75, "group 2 sits 75 units right of group 1")
--- A raid row keeps its name to the room left beside the missing health: every stub member shares "Member", so the
--- short form keeps the distinct ending rather than seven identical "Memb" prefixes.
 eq(content("raid7").rawName, "Member7", "raid names")
--- Round 4 (Muse #2, Fable D6): the short form ends in an ellipsis, so it never reads as a whole name.
-eq(content("raid7").name:GetText(), "Me...7", "shortened to the row and kept distinct")
+-- Rank R5 (Grok #2, Muse #1): the missing health left the name lane for its own lane on the bar, so a raid name keeps
+-- the lane and stays whole. (Round 4 shortened it to "Me...7" beside the deficit.)
+eq(content("raid7").name:GetText(), "Member7", "the raid name stays whole")
 
 -- Sort by role: one header in role order, the others hidden.
 K.Options.Write("GroupFrames", "raid.sortBy", "ROLE")

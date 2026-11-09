@@ -135,8 +135,8 @@ do
 	assert(W.LastCall(sample.shield, "SetValue")[1] > 0, "a shield line")
 	assert(W.LastCall(sample.healAbsorbs, "SetValue")[1] > 0, "a heal absorb")
 	assert(shown(sample.sampleSlots) >= 1, "an indicator")
-	local many = preview.raidFrames[6]
-	eq(many.sample.name, "Orrin", "the raid sample with nine debuffs")
+	local many = preview.raidFrames[3]
+	eq(many.sample.name, "Orrin", "the raid sample with nine debuffs, third of the four true-scale tiles")
 	eq(shown(many.sampleAuras), many.sampleCells, "shows only the cells that fit")
 	assert(many.sampleMark:IsShown() and many.sampleMark:GetText() == "+", "and the + mark for the rest")
 end

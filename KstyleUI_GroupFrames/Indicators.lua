@@ -82,6 +82,10 @@ end
 local function Layout(f, parts, k)
 	local icons = parts.icons
 	local size = Widgets.Snap(f, icons.size)
+	f.roleInRing = icons.roleInRing == true
+	if f.roleInRing then
+		f.role:Hide()
+	end
 	PlaceIcon(f, f.role, icons.role, size)
 	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size)
 	PlaceIcon(f, f.marker, icons.marker, size)
@@ -107,7 +111,7 @@ local function UnitRole(f)
 end
 
 local function Role(f)
-	if not Settings.current.icons.role then
+	if not Settings.current.icons.role or f.roleInRing then
 		f.role:Hide()
 		return
 	end
@@ -261,7 +265,7 @@ end
 
 local function PaintSample(f, sample)
 	local icons = Settings.current.icons
-	local atlas = icons.role and sample.role and GetMicroIconForRole and GetMicroIconForRole(sample.role)
+	local atlas = icons.role and not f.roleInRing and sample.role and GetMicroIconForRole and GetMicroIconForRole(sample.role)
 	if type(atlas) == "string" then
 		f.role:SetAtlas(atlas)
 		f.role:Show()

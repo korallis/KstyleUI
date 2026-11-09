@@ -31,7 +31,7 @@ end
 eq(after, events, "the preview registers no events")
 
 eq(#preview.partyFrames, 3, "three sample party frames")
-eq(#preview.raidFrames, 10, "two sample raid groups")
+eq(#preview.raidFrames, 4, "four sample raid tiles at true scale (Opus R5 #1)")
 eq(preview.partyFrames[1].name:GetText(), "Thaldren", "sample names")
 K.Options.Write("GroupFrames", "party.healthText", "PERCENT")
 preview:Refresh()
@@ -45,7 +45,8 @@ eq(preview.raidFrames[1]:GetWidth(), 72, "raid samples use the raid width")
 
 -- Samples show the status icons, the threat border and incoming heals.
 local tank = preview.partyFrames[1]
-eq(tank.role:IsShown(), true, "the sample tank shows a role icon")
+eq(tank.roleText:GetText(), "T", "the sample tank's ring reads its role")
+eq(tank.role:IsShown(), false, "so no second role icon shows")
 eq(tank.threat:IsShown(), true, "the sample tank has aggro")
 local glow = tank.threatGlow.slice[1]._state.VertexColor
 local hr, hg, hb = K.Theme.ThreatColor(3)

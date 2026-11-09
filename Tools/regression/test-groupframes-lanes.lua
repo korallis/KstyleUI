@@ -48,6 +48,14 @@ local function Batch(e, K, settings)
 	e.SetQuiet(false)
 end
 
+-- A raid tile with room for indicators beside its bar's signals (rank R5).
+local BIG = { width = 110, height = 56 }
+
+local function Saved(settings)
+	settings.enabled = true
+	return { version = 2, profiles = { Default = { GroupFrames = settings } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+end
+
 -- A part of the frame in screen units, from the layout's own rect (left and top inside the frame).
 local function Part(e, f, rect)
 	local fx, fy = Scene.Rect(e, f)
@@ -69,6 +77,14 @@ local function Reserved(e, f)
 	if f.buffClip then
 		out.heals = { Scene.Rect(e, f.buffClip) }
 	end
+	-- Rank R5: a raid tile's boss slot and its deficit lane are reserved too.
+	if parts.boss then
+		out.boss = Part(e, f, parts.boss)
+	end
+	if parts.overlay then
+		local spot = parts.healthText
+		out.deficit = Part(e, f, { left = spot.left, top = spot.top, width = spot.right - spot.left, height = spot.height })
+	end
 	return out
 end
 
@@ -87,6 +103,11 @@ local function Indicators(e, ns, f, what)
 			for name, rect in pairs(reserved) do
 				assert(not intersects(r, rect), what .. ": indicator " .. i .. " " .. describe(r) .. " clear of the " .. name .. " " .. describe(rect))
 			end
+			-- Rank R5: a helpful indicator never paints on a raid tile's bar; a harmful one may, as the debuffs do.
+			if f.parts.overlay and ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category) then
+				local bar = { Scene.Rect(e, f.health) }
+				assert(not intersects(r, bar), what .. ": helpful indicator " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
+			end
 			for j, other in pairs(placed) do
 				assert(not intersects(r, other), what .. ": indicators " .. j .. " and " .. i .. " apart " .. describe(other) .. " " .. describe(r))
 			end
@@ -98,7 +119,8 @@ end
 
 local POSITIONS = { "TOPLEFT", "TOP", "TOPRIGHT", "LEFT", "CENTER", "RIGHT", "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT" }
 
-local function Sweep(e, K, ns, f, what, onByDefault)
+local function Sweep(e, K, ns, f, what, onByDefault, category)
+	category = category or "EXTERNAL"
 	-- The defaults: the default indicators that fit keep apart. Round 4 (Grok #1): no indicator sits on the bar, so a
 	-- 72 by 40 raid tile, whose bar, debuff block and heal row fill the space under the name, keeps one.
 	local placed = Indicators(e, ns, f, what .. ", defaults")
@@ -113,7 +135,7 @@ local function Sweep(e, K, ns, f, what, onByDefault)
 		for _, position in ipairs(POSITIONS) do
 			local settings = {}
 			for i = 1, 6 do
-				settings[#settings + 1] = { "indicator" .. i .. ".category", "EXTERNAL" }
+				settings[#settings + 1] = { "indicator" .. i .. ".category", category }
 				settings[#settings + 1] = { "indicator" .. i .. ".position", position }
 				settings[#settings + 1] = { "indicator" .. i .. ".size", size }
 			end
@@ -150,15 +172,16 @@ assert(K.Modules.Enable("GroupFrames"))
 env.RunTimers()
 local tank = content(ns, ns.Headers.party, "party1")
 
--- Grok R3 #1, Opus #14: your heals on a party frame sit in their own lane after the pill, inside the tile, clear of
--- the name row and of the bar itself.
+-- Grok R3 #1, Opus #14, R5 #1: your heals on a party frame sit in their own lane at the name line's right end, inside
+-- the tile, clear of the name text and wholly above the pill (round 4 put them in the pill's row, where they read as
+-- the bar's end).
 do
 	local heals = { Scene.Rect(env, tank.buffClip) }
 	local bar = { Scene.Rect(env, tank.health) }
 	inside(heals, { Scene.Rect(env, tank) }, "party: your heals")
 	assert(not intersects(heals, bar), "party: your heals " .. describe(heals) .. " never cross the bar " .. describe(bar))
-	assert(not intersects(heals, Part(env, tank, tank.parts.name)), "party: nor the name row")
-	assert(heals[1] >= bar[1] + bar[3] - 0.01, "party: the lane follows the bar's end")
+	assert(not intersects(heals, Part(env, tank, tank.parts.name)), "party: nor the name text's lane")
+	assert(heals[2] + heals[4] <= bar[2] - 0.01, "party: the lane sits above the pill, not in its row")
 	local _, count = ns.Auras.HealIcons(tank, ns.Settings.current.party)
 	eq(count, ns.Settings.current.party.buffCount, "party: every heal you may show has room")
 end
@@ -170,6 +193,9 @@ do
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(280, 700)
 	parent:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 40, -40)
+	-- Rank R5: a 72 by 40 raid tile is full (status icons, deficit lane, boss slot and debuffs on its bar, the name and
+	-- your heals on its name line), so indicators get room on a larger tile.
+	Batch(env, K, { { "raid.width", BIG.width }, { "raid.height", BIG.height } })
 	local preview = K.Options.Preview("GroupFrames")(parent)
 	local sample = preview.raidFrames[1]
 	local settings = {}
@@ -179,7 +205,15 @@ do
 		settings[#settings + 1] = { "indicator" .. i .. ".size", 14 }
 	end
 	Batch(env, K, settings)
-	sample.sample.indicators = { EXTERNAL = true }
+	-- A helpful indicator finds no room off a raid tile's bar, so it turns off rather than paint on the fill; a harmful
+	-- one, crowd control, may sit on the bar as the debuffs do.
+	eq(ns.Slots.Placements(sample)[1].fits, false, "preview: a helpful indicator turns off on a raid tile")
+	for i = 1, 6 do
+		settings[(i - 1) * 3 + 1] = { "indicator" .. i .. ".category", "CROWD_CONTROL" }
+	end
+	Batch(env, K, settings)
+	preview:Refresh()
+	sample.sample.indicators = { CROWD_CONTROL = true }
 	ns.Style.Paint(sample)
 	for _, painter in ipairs(ns.Style.painters) do
 		painter(sample, sample.sample)
@@ -197,9 +231,11 @@ do
 		end
 	end
 	assert(placed[1], "preview: the first slot fits a raid tile")
+	Batch(env, K, { { "raid.width", 72 }, { "raid.height", 40 } })
 end
 
--- Raid: a 72 by 40 tile.
+-- Raid: a 72 by 40 tile is full, so the default indicators turn off rather than cover anything; a larger tile places
+-- them, a harmful one on the bar, a helpful one never.
 do
 	local renv, RK, rns = G.New()
 	G.SetRoster(renv, "raid", G.Members(5))
@@ -209,14 +245,17 @@ do
 	local heals = { Scene.Rect(renv, f.buffClip) }
 	assert(not intersects(heals, Part(renv, f, f.parts.name)), "raid: your heals stay off the name row")
 	assert(not intersects(heals, { Scene.Rect(renv, f.auraClip) }), "raid: and off the debuffs")
-	Sweep(renv, RK, rns, f, "raid", 1)
+	local placed = Indicators(renv, rns, f, "raid 72 by 40")
+	eq(next(placed), nil, "raid 72 by 40: the full tile turns its default indicators off")
+	Batch(renv, RK, { { "raid.width", BIG.width }, { "raid.height", BIG.height } })
+	Sweep(renv, RK, rns, f, "raid " .. BIG.width .. " by " .. BIG.height, 1, "CROWD_CONTROL")
 	eq(#renv._errors, 0, tostring(renv._errors[1]))
 end
 
 -- Codex review, round 3: at fractional pixel scales (1440 and 1600 lines tall) whole-pixel snapping must not squeeze
 -- the default indicators off a raid tile. These checks read state only, so the stubs keep no call log.
 for _, height in ipairs({ 1440, 1600 }) do
-	local renv, RK, rns = G.New({ width = height * 16 / 9, height = height, setup = function(e)
+	local renv, RK, rns = G.New({ width = height * 16 / 9, height = height, saved = Saved({ raid = BIG }), setup = function(e)
 		e.SetQuiet(true)
 	end })
 	G.SetRoster(renv, "raid", G.Members(5))
