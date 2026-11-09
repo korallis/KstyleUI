@@ -13,7 +13,7 @@ local S1_NAMES = { questGold = "quest", rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
 local TEXTURES = { gem = "chamferTile", checkRing = "ringBevel", gemFill = "dot" }
 local GEM_UNITS, GEM_TURN = 7, math.pi / 4
-local CAP_SIZE, RULE_ALPHA = 13, 0.55
+local CAP_SIZE, RULE_ALPHA = 12, 0.55
 local GEM_GAP, RULE_GAP = "gapSmall", "gapMedium"
 local RING_UNITS, RING_FILL, RING_LEVEL = 14, 8, 2
 local THIN_SPACE = "\226\128\137"
@@ -66,8 +66,8 @@ function Lumen.Texture(name)
 end
 
 function Lumen.Tracked(value)
-	local path = Style.Font("title")
-	if type(path) ~= "string" or not path:find("KstyleUI", 1, true) or not K.Locale.CanTrack(path) then
+	local path = Style.Font("caps")
+	if type(path) ~= "string" or not path:find("KstyleUI", 1, true) or K.Locale.TrackMode(path) ~= "space" then
 		return value
 	end
 	return (value:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1))
@@ -122,7 +122,7 @@ function Cap:Fit()
 		self.title:SetWidth(0)
 		return
 	end
-	self.title:SetWidth(math.max(0, room))
+	self.title:SetWidth(math.max(0, room) + Widgets.TrackPad(self.title))
 end
 
 function Cap:SetTitle(value)
@@ -144,7 +144,7 @@ end
 function Cap:Paint()
 	Lumen.Tint(self.gem, "gilt")
 	local r, g, b = Lumen.Color("gilt")
-	self.title:SetTextColor(r, g, b)
+	self.title:SetTextColor(Tokens.Color("capsGold"))
 	Widgets.TextColor(self.trail, "text")
 	local rule = self.rule
 	if type(rule.SetGradient) == "function" and type(CreateColor) == "function" then
@@ -159,7 +159,7 @@ end
 function Cap:Restyle()
 	local row, opts = self.row, self.opts
 	local y = Widgets.Snap(row, Units(opts.y, row))
-	Style.ApplyFont(self.title, "title", CAP_SIZE * Style.Setting("text", "size"))
+	Style.ApplyFont(self.title, "caps", CAP_SIZE * Style.Setting("text", "size"))
 	Style.Text(self.trail, "number")
 	Widgets.Size(self.gem, GEM_UNITS, GEM_UNITS)
 	self.gem:ClearAllPoints()
@@ -173,7 +173,7 @@ function Cap:Restyle()
 	self.trail:SetJustifyH("RIGHT")
 	local gap = Widgets.Snap(row, Tokens.Size(RULE_GAP))
 	self.rule:ClearAllPoints()
-	self.rule:SetPoint("LEFT", self.title, "RIGHT", gap, 0)
+	self.rule:SetPoint("LEFT", self.title, "RIGHT", Widgets.Snap(row, Tokens.Size(RULE_GAP) - Widgets.TrackPad(self.title)), 0)
 	self.rule:SetPoint("RIGHT", self.trail, "LEFT", -gap, 0)
 	self.rule:SetHeight(Widgets.Border(row))
 	self:Paint()

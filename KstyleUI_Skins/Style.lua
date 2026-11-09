@@ -142,6 +142,7 @@ end
 function Style.ApplyFont(object, role, size)
 	local path, roleSize, flags = Style.Font(role)
 	local ok = SetFace(object, path, role, size or roleSize, flags)
+	Widgets.SyncTracking(object)
 	if flags == "" then
 		object:SetShadowColor(Tokens.Color("textShadow"))
 		local offset = Tokens.Size("textShadowOffset")

@@ -29,12 +29,17 @@ if tip and tip.AddTitle then
 	end
 end
 
+local tracked = Tokens.Font("caps")
+assert(Locale.TrackMode(tracked) == "face" and Locale.CanTrack(tracked) == true, "the tracked face is spaced by its own advances")
+assert(Locale.TrackMode(cinzel) == nil and Locale.TrackMode(tracked) ~= "space", "no Cinzel file is ever spaced with thin spaces")
+assert(not ns.Lumen.Tracked("QUESTS"):find(THIN_SPACE, 1, true), "the caps cap carries no thin space")
+
 local files = { "Core/Widgets/Tooltip.lua", "KstyleUI_Skins/Lumen.lua", "KstyleUI_UnitFrames/Unit.lua" }
 for _, file in ipairs(files) do
 	local handle = assert(io.open(file, "rb"))
 	local source = handle:read("*a")
 	handle:close()
-	assert(source:find("CanTrack", 1, true), file .. " asks Locale.CanTrack before it inserts thin spaces")
+	assert(source:find('TrackMode', 1, true) and source:find('"space"', 1, true), file .. " asks Locale.TrackMode for the thin-space method before it inserts thin spaces")
 end
 
 assert(#env._errors == 0, tostring(env._errors[1]))

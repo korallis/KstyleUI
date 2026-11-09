@@ -60,7 +60,7 @@ def advance(data, glyph):
 class FontFilesTest(unittest.TestCase):
     def test_every_font_is_static_truetype(self):
         files = sorted(FONTS.glob("*.ttf"))
-        self.assertGreaterEqual(len(files), 7)
+        self.assertGreaterEqual(len(files), 8)
         for path in files:
             data = path.read_bytes()
             self.assertEqual(data[:4], b"\x00\x01\x00\x00", f"{path.name} is TrueType")
@@ -71,6 +71,25 @@ class FontFilesTest(unittest.TestCase):
     def test_cinzel_is_the_semibold_instance(self):
         data = (FONTS / "Cinzel-SemiBold.ttf").read_bytes()
         self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 600)
+
+    def test_tracked_cinzel_is_regular_with_wider_advances(self):
+        # Cinzel Regular's own advances (Cinzel[wght].ttf at weight 400, in 1000 units) and the 150 the script adds.
+        data = (FONTS / "CinzelTracked-Regular.ttf").read_bytes()
+        self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 400)
+        self.assertEqual(struct.unpack(">H", table(data, "head")[18:20])[0], 1000)
+        regular = {"S": 475, "K": 657, "Y": 661, "B": 586, "O": 838, "R": 677, "N": 841, "E": 577}
+        for letter, base in regular.items():
+            self.assertEqual(advance(data, glyph_index(data, ord(letter))), base + 150, f"{letter} is Cinzel Regular's advance plus 150")
+        self.assertGreater(advance(data, glyph_index(data, ord(" "))), 150, "the space carries the tracking too")
+
+    def test_tracked_cinzel_has_no_thin_space_to_misuse(self):
+        for name in ("CinzelTracked-Regular.ttf", "Cinzel-SemiBold.ttf"):
+            data = (FONTS / name).read_bytes()
+            self.assertEqual(glyph_index(data, 0x2009), 0, f"{name} has no thin space: the tracking is in the advances")
+
+    def test_tracked_cinzel_is_renamed(self):
+        data = (FONTS / "CinzelTracked-Regular.ttf").read_bytes()
+        self.assertIn("Cinzel Tracked".encode("utf-16-be"), table(data, "name"), "the modified family carries its own name")
 
     def test_number_faces_have_tabular_lining_digits(self):
         # The game applies no OpenType features, so the files map the digits to their tabular lining figures.
@@ -85,10 +104,10 @@ class FontFilesTest(unittest.TestCase):
         for line in text.splitlines():
             if 'FONTS_DIR .. "' in line:
                 named.add(line.split('FONTS_DIR .. "')[1].split('"')[0])
-        self.assertGreaterEqual(len(named), 7)
+        self.assertGreaterEqual(len(named), 8)
         for name in named:
             self.assertTrue((FONTS / name).exists(), f"Tokens names {name}")
-        for name in ("Cinzel-SemiBold.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
+        for name in ("Cinzel-SemiBold.ttf", "CinzelTracked-Regular.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
             self.assertIn(name, named, f"{name} is registered in Tokens")
 
     def test_licence_covers_every_family(self):

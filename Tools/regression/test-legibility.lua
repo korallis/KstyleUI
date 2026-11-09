@@ -112,7 +112,7 @@ end
 assert(Theme.SetFontScale(1))
 local cap = Widgets.SectionCap(root, { text = "Blessings" })
 local capPath, capSize = cap.label:GetFont()
-assert(file(capPath) == CINZEL and capSize >= 12, "a rail card's section cap is a Cinzel head of 12 units or more")
+assert(file(capPath) == "CinzelTracked-Regular.ttf" and capSize >= 12, "a rail card's section cap is a tracked Cinzel head of 12 units or more")
 assert(Widgets.SECTION_CAP_HEIGHT >= size("title"), "the rail's section cap height fits its head")
 
 -- A text shadow strong enough to lift text off busy glass: at least a whole unit, nearly opaque.

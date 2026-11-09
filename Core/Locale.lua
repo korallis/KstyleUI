@@ -22,8 +22,9 @@ local GAME_FONTS = {
 	koKR = { path = "Fonts\\2002.TTF", every = true },
 	ruRU = { path = "Fonts\\FRIZQT___CYR.TTF" },
 }
-local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true }
-local NO_THIN_SPACE = { ["Cinzel-SemiBold.ttf"] = true }
+local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelTracked-Regular.ttf"] = true }
+local NO_THIN_SPACE = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelTracked-Regular.ttf"] = true }
+local TRACKED_FACES = { ["CinzelTracked-Regular.ttf"] = true }
 local OWN_FONTS = "\\KstyleUI\\Media\\Fonts\\"
 local CAPITALS = { ["\197\147"] = "\197\146", ["\195\191"] = "\197\184" }
 
@@ -71,15 +72,25 @@ local function Capital(lead, trail)
 	return CAPITALS[lead .. trail]
 end
 
+function Locale.TrackMode(path)
+	if type(path) == "string" then
+		local at = path:find(OWN_FONTS, 1, true)
+		local file = at and path:sub(at + #OWN_FONTS)
+		if file and TRACKED_FACES[file] then
+			return "face"
+		end
+		if file and NO_THIN_SPACE[file] then
+			return nil
+		end
+	end
+	if Locale.SPACED then
+		return "space"
+	end
+	return nil
+end
+
 function Locale.CanTrack(path)
-	if not Locale.SPACED then
-		return false
-	end
-	if type(path) ~= "string" then
-		return true
-	end
-	local at = path:find(OWN_FONTS, 1, true)
-	return not (at and NO_THIN_SPACE[path:sub(at + #OWN_FONTS)])
+	return Locale.TrackMode(path) ~= nil
 end
 
 function Locale.Upper(text)

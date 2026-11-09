@@ -11,6 +11,14 @@ DIR holds the files from google/fonts at the commit Media/PROVENANCE.md names:
 Cinzel ships only as a variable font, and the game loads static TrueType files, so this pins the weight axis
 at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
 
+The game has no letter-spacing call (FontString has SetSpacing, which is line spacing, and nothing else spaces
+letters), and Cinzel has no thin-space glyph to space them with. CinzelTracked-Regular.ttf is Cinzel pinned at
+weight 400 with TRACKING_EM of its em added to the advance of every glyph that has one, so the client draws
+letter-spaced capitals from the font itself. The outlines, the left side bearings and the kerning are Cinzel's;
+only hmtx, hhea.advanceWidthMax, OS/2.xAvgCharWidth and the names change. The tracking falls after the last
+glyph too, which Widgets.ApplyFont takes back for centred and right-aligned text. Cinzel's licence names no
+Reserved Font Name; the family is renamed Cinzel Tracked all the same so the file is not mistaken for Cinzel.
+
 The game's text renderer applies no OpenType features, so Alegreya Sans would always draw its default
 figures, which are oldstyle and proportional. Each Alegreya Sans file is copied with its character map
 pointing the digits 0 to 9 at the font's own tabular lining figures (zero.tf to nine.tf), the figures the
@@ -29,6 +37,9 @@ DIGITS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight"
 TABULAR_SUFFIX = ".tf"
 ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
+CINZEL_REGULAR_WEIGHT = 400
+TRACKING_EM = 0.15
+TRACKED_FAMILY = "Cinzel Tracked"
 
 
 def set_names(font, family, style, full, postscript, typographic=None):
@@ -53,6 +64,30 @@ def make_cinzel(src, out):
     static["OS/2"].usWeightClass = CINZEL_WEIGHT
     path = out / "Cinzel-SemiBold.ttf"
     static.save(path)
+    return path
+
+
+def make_tracked(src, out):
+    from fontTools.ttLib import TTFont
+    from fontTools.varLib import instancer
+
+    font = instancer.instantiateVariableFont(TTFont(src / "Cinzel[wght].ttf", recalcTimestamp=False), {"wght": CINZEL_REGULAR_WEIGHT}, static=True)
+    track = round(TRACKING_EM * font["head"].unitsPerEm)
+    hmtx = font["hmtx"]
+    for glyph in font.getGlyphOrder():
+        advance, lsb = hmtx[glyph]
+        if advance > 0:
+            hmtx[glyph] = (advance + track, lsb)
+    font["hhea"].advanceWidthMax = max(advance for advance, _ in hmtx.metrics.values())
+    font["OS/2"].recalcAvgCharWidth(font)
+    set_names(font, TRACKED_FAMILY, "Regular", TRACKED_FAMILY, "CinzelTracked-Regular")
+    name = font["name"]
+    note = f"Cinzel Regular with {track} units of tracking added to every advance by KstyleUI Tools/media/make_fonts.py"
+    name.setName(note, 10, 3, 1, 0x409)
+    name.setName(note, 10, 1, 0, 0)
+    font["OS/2"].usWeightClass = CINZEL_REGULAR_WEIGHT
+    path = out / "CinzelTracked-Regular.ttf"
+    font.save(path)
     return path
 
 
@@ -85,11 +120,15 @@ def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--src", type=Path, required=True, help="folder with the google/fonts source files")
     parser.add_argument("--out", type=Path, default=ROOT / "Media" / "Fonts", help="where to write (default: Media/Fonts)")
+    parser.add_argument("--only", choices=("cinzel", "alegreya"), help="make one family's files; the Cinzel family needs only Cinzel[wght].ttf in --src")
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
-    print("wrote", make_cinzel(args.src, args.out))
-    for style, weight in ALEGREYA:
-        print("wrote", make_alegreya(args.src, args.out, style, weight))
+    if args.only != "alegreya":
+        print("wrote", make_cinzel(args.src, args.out))
+        print("wrote", make_tracked(args.src, args.out))
+    if args.only != "cinzel":
+        for style, weight in ALEGREYA:
+            print("wrote", make_alegreya(args.src, args.out, style, weight))
     return 0
 
 

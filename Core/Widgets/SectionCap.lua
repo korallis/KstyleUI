@@ -15,7 +15,7 @@ local Cap = {}
 local function Placed(self)
 	local count = self.counted
 	self.rule:ClearAllPoints()
-	self.rule:SetPoint("LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP), 0)
+	self.rule:SetPoint("LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP - Widgets.TrackPad(self.label)), 0)
 	if count then
 		self.rule:SetPoint("RIGHT", self.count, "LEFT", -Widgets.Snap(self, GEM_GAP), 0)
 	elseif self.reserve then
@@ -56,7 +56,7 @@ end
 function Cap:Paint()
 	self.gem:SetVertexColor(Widgets.Rgba("giltLit", GEM_ALPHA))
 	self.rule:SetVertexColor(Widgets.Rgba("gilt", RULE_ALPHA))
-	Widgets.TextColor(self.label, "giltLit")
+	Widgets.TextColor(self.label, "capsGold")
 	Widgets.TextColor(self.count, "muted")
 end
 
@@ -88,7 +88,7 @@ function Widgets.SectionCap(parent, opts)
 	cap.gem:SetTexture((Tokens.Texture("gem")))
 	cap.rule = cap:CreateTexture(nil, "ARTWORK")
 	cap.rule:SetTexture((Tokens.Texture("ruleFade")))
-	cap.label = Widgets.Text(cap, "title", "giltLit")
+	cap.label = Widgets.Text(cap, "caps", "capsGold")
 	cap.count = Widgets.Text(cap, "number", "muted")
 	cap.count:SetJustifyH("RIGHT")
 	cap.ruler = Widgets.Text(cap, "number", "muted")
