@@ -132,7 +132,6 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | `drawer.autoClose`, `drawer.compartment`, `drawer.hideEmpty` | on | Close after a click, the compartment list, and hiding the button while there is nothing to show |
 | `zoom.wheel`, `zoom.slider`, `zoom.reset`, `zoom.delay` | on, on, off, 10 s | Wheel zoom, the zoom slider and zooming back out |
 | `compass` | on | The north mark |
-| `strip.opacity` | 0.8 | The band behind the zone and clock |
 | `zone.shown`, `zone.color` | on, `plain` | Zone name, coloured plainly, by PvP status or with the accent |
 | `clock.shown`, `clock.mode` | on, `game` | The clock and its format |
 | `coords.shown`, `coords.precision`, `coords.position` | off, 1, `top` | Coordinates, 0 to 2 decimals, at the top or above the strip |

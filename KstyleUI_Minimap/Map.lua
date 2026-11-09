@@ -1,8 +1,8 @@
--- Map.lua: the live minimap: KstyleUI's frame round Blizzard's Minimap, the Blizzard pieces it hides, wheel and slider zoom and the strip's data.
+-- Map.lua: the live minimap: KstyleUI's Lumen card round Blizzard's Minimap as a round lens, the Blizzard pieces it hides, wheel and slider zoom and the foot's data.
 local _, ns = ...
 
 local K = KstyleUI
-local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
+local L, Widgets = K.L, K.Widgets
 local Settings, Face, Data, Column, SecureClick, Drawer = ns.Settings, ns.Face, ns.Data, ns.Column, ns.SecureClick, ns.Drawer
 
 local Map = {}
@@ -11,6 +11,7 @@ ns.Map = Map
 local MODULE = Settings.MODULE
 local KEY = "minimap.main"
 local HOLDER_NAME = "KstyleUI_Minimap"
+local STRATA = "BACKGROUND"
 local BLIZZARD_MASK = "ui-hud-minimap-frame-generic-mask"
 local HYBRID_ADDON = "Blizzard_HybridMinimap"
 local CLOCK_INTERVAL = 1
@@ -40,11 +41,11 @@ local function Log(message)
 end
 
 local function MaskPath()
-	return (Tokens.Texture("minimapMask"))
+	return (Widgets.LumenTexture("lensMask"))
 end
 
-local function SquareShape()
-	return "SQUARE"
+local function RoundShape()
+	return "ROUND"
 end
 
 local function ApplyMask()
@@ -323,7 +324,7 @@ local function Build()
 	local element = K.Setup.Layouts.Element(KEY)
 	local holder = CreateFrame("Frame", HOLDER_NAME, K.Scale.Root())
 	holder:SetSize(element.width, element.height)
-	holder:SetFrameStrata("LOW")
+	holder:SetFrameStrata(STRATA)
 	Map.holder = holder
 	local face = Face.New(holder, { wheel = true, onZoom = OnSliderZoom })
 	Map.face = face
@@ -456,8 +457,8 @@ function Adopt()
 	minimap:SetFrameLevel(holder:GetFrameLevel() + Face.LEVEL_MAP)
 	ApplyMask()
 	Fit()
-	SetBlobRings(0)
-	Log("Minimap moved into KstyleUI's frame with the square mask")
+	SetBlobRings(1)
+	Log("Minimap moved into KstyleUI's card with the round lens mask")
 end
 
 local function BlizzardPieces()
@@ -607,7 +608,7 @@ function Map.Enable()
 	Adopt()
 	HideBlizzard()
 	HookBlizzard()
-	GetMinimapShape = SquareShape
+	GetMinimapShape = RoundShape
 	RegisterEvents()
 	RegisterCallbacks()
 	SecureClick.SetActive(true)
@@ -638,7 +639,7 @@ function Map.Disable()
 		Map.holder:Hide()
 	end
 	Release()
-	if GetMinimapShape == SquareShape then
+	if GetMinimapShape == RoundShape then
 		GetMinimapShape = nil
 	end
 end

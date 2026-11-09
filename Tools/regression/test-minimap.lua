@@ -1,4 +1,4 @@
--- test-minimap.lua: the square minimap: off until enabled, its frame and Layout element, the Blizzard pieces it hides, wheel zoom, the zone and clock strip, coordinates, the accent and turning it off.
+-- test-minimap.lua: the Lumen lens minimap: off until enabled, its card and Layout element, the round lens and its mask, the Blizzard pieces it hides, wheel zoom, the zone and clock foot, coordinates, the accent and turning it off.
 local M = dofile("Tools/regression/minimap_env.lua")
 local W = M.W
 
@@ -57,54 +57,59 @@ local minimap = env.Minimap
 local face = Map(ns)
 assert(minimap:GetParent() == holder, "Blizzard's minimap moves into KstyleUI's frame")
 local mw, mh = face.mapArea:GetSize()
-assert(mw == mh, "the minimap stays square")
+assert(mw == mh, "the lens stays square")
 -- The engine draws the terrain at the size the Minimap was given with SetSize, from the frame's bottom left
--- corner; anchors alone leave Blizzard's 198 render in a 217 square (ingame-18: a dark band on the right and the
--- top). So the map takes an explicit size equal to the square and one CENTER point on it. Fitting never touches
--- the zoom: nothing in Forever's source shows the engine needs a zoom change to draw at a new size.
+-- corner; anchors alone leave Blizzard's 198 render in a larger square (ingame-18: a dark band on the right and
+-- the top). So the map takes an explicit size equal to the lens square and one CENTER point on it. Fitting never
+-- touches the zoom: nothing in Forever's source shows the engine needs a zoom change to draw at a new size.
 local function Fits(what)
 	local size = W.LastCall(minimap, "SetSize")
 	local sw, sh = face.mapArea:GetSize()
-	assert(size and W.Near(size[1], sw) and W.Near(size[2], sh), what .. ": the minimap's own size is the map square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
+	assert(size and W.Near(size[1], sw) and W.Near(size[2], sh), what .. ": the minimap's own size is the lens square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
 	local point, relative, relativePoint = minimap:GetPoint(1)
-	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the map square")
+	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the lens square")
 end
 Fits("adopted")
 assert(env._zoom == 2 and (env._zoomCalls or 0) == 0, "fitting the map leaves the player's zoom alone: " .. tostring(env._zoomCalls) .. " zoom calls")
--- The map fills the frame to just inside its bevel line: 2 units in on the mockup's 221 frame (the dark line, the
--- light line and the fade row are three borders), where it used to sit a whole 4-unit gap in. The frame's chamfer
--- is a share of its side, so the mask texture's fixed cut lines up with the frame's line at every size.
+-- The Lumen card: the element is one rounded card; the round lens sits under a head that carries the north mark
+-- and over a foot that carries the zone and the clock. The lens is as large as the card's width or the room
+-- between head and foot allows, and it is centred.
 local Format = ns.Format
-assert(W.Near(Format.MapInset(221), 2), "the map sits 2 units inside the 221 frame: " .. tostring(Format.MapInset(221)))
-assert(W.Near(mw, 217), "the map square fills the frame's height inside the bevel line: " .. tostring(mw))
-assert(W.Near(face.box:GetWidth(), 221) and W.Near(face.box:GetHeight(), 221), "the chamfered frame is the mockup's 221 square beside the button column")
-assert(W.Near(face.chrome:Chamfer(), 12), "the frame has the mockup's 12 chamfer at 221")
-assert(W.Near(select(4, face.box:GetPoint(1)), 38) and W.Near(select(4, face.mapArea:GetPoint(1)), 2), "the frame leaves the column's 38 on its left; the map square sits inside the bevel line")
--- The strip and the terrain clip to the same chamfered mask the Minimap frame wears, anchored over the map square,
--- so the footer's corners end at the frame's cuts instead of poking past them.
+assert(W.Near(face.box:GetWidth(), holder:GetWidth()) and W.Near(face.box:GetHeight(), holder:GetHeight()), "the card fills the element")
+assert(face.chrome.fill[5]:IsShown(), "the card's glass stays under the lens: the frost shows round the circle")
+local pad = face.chrome:Inset()
+local lensLeft, lensTop, lens = Format.Lens(holder:GetWidth(), holder:GetHeight(), pad, Format.HEAD, Format.FOOT)
+assert(W.Near(mw, lens, 0.5), "the lens is the largest circle under the head and over the foot: " .. tostring(mw) .. " for " .. tostring(lens))
+assert(W.Near(select(4, face.mapArea:GetPoint(1)), lensLeft, 0.5) and W.Near(select(5, face.mapArea:GetPoint(1)), -lensTop, 0.5), "the lens is centred under the head")
+assert(W.Near(lensLeft, (holder:GetWidth() - lens) / 2, 0.5), "Format.Lens centres the lens")
+assert(W.Near(lensTop, Format.HEAD), "and hangs it under the head")
+-- The round mask: the lens mask the material foundation names, or the kit's round dot until it lands, on the
+-- Minimap frame, the face's own mask and the hybrid map.
 local mask = face.mask
-assert(mask and W.LastCall(mask, "SetTexture")[1] == (K.Tokens.Texture("minimapMask")), "the face owns a mask texture with the minimap mask")
-assert(LastArg(mask, "SetAllPoints") == face.mapArea, "the mask covers the map square")
-assert(face.strip.fill:GetMaskTexture(1) == mask and face.strip.line:GetMaskTexture(1) == mask, "the footer's fill and line draw through the mask")
-assert(W.Near(face.strip:GetHeight(), 28), "the footer is 28 tall inside the inset, 30 from the frame's edge: " .. tostring(face.strip:GetHeight()))
+local lensMask = (K.Widgets.LumenTexture("lensMask"))
+assert(mask and W.LastCall(mask, "SetTexture")[1] == lensMask, "the face owns a mask texture with the round lens mask")
+assert(LastArg(mask, "SetAllPoints") == face.mapArea, "the mask covers the lens square")
+assert(LastArg(minimap, "SetMaskTexture") == lensMask, "the minimap wears the round lens mask")
+-- The foot: zone at the left in the heading role, clock at the right in the number role, on the card's glass.
+assert(face.strip.fill == nil and face.strip.divider == nil, "the foot has no plate and no divider of its own: the card is the surface")
+assert(W.Near(face.strip:GetHeight(), Format.FOOT), "the foot is the card's foot height: " .. tostring(face.strip:GetHeight()))
+local sp, srel, srelp, sx = face.strip:GetPoint(1)
+assert(sp == "TOPLEFT" and srel == face.mapArea and srelp == "BOTTOMLEFT" and W.Near(sx, pad - lensLeft, 0.5), "the foot hangs under the lens, from the card's inset")
 local _, stripRel, stripRelPoint, stripX = face.strip:GetPoint(2)
-assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -2), "the footer reaches the frame's right edge")
-assert(W.Near(select(4, face.zone:GetPoint(1)), 14), "the zone name starts 16 from the frame's edge")
-assert(W.Near(select(4, face.clock:GetPoint(1)), -16), "the clock ends 18 from the frame's edge")
-assert(W.Near(select(4, face.strip.divider:GetPoint(1)), -9), "the divider stands 9 left of the clock")
+assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -pad), "and reaches the card's inset at the right")
+assert(select(1, face.zone:GetPoint(1)) == "LEFT" and W.Near(select(4, face.zone:GetPoint(1)), 0), "the zone name starts at the foot's left")
+assert(select(1, face.clock:GetPoint(1)) == "RIGHT" and W.Near(select(4, face.clock:GetPoint(1)), 0), "the clock ends at the foot's right")
 local _, zoneSize = face.zone:GetFont()
 local _, clockSize = face.clock:GetFont()
-assert(W.Near(zoneSize, 14 * K.Theme.FontScale()) and W.Near(clockSize, 14 * K.Theme.FontScale()), "the zone and the clock read at the mockup's size 14")
-local plate = face.compassPlate
-assert(W.Near(plate:GetWidth(), 44) and W.Near(plate:GetHeight(), 23), "the north plate is 44 by 23 under the top edge")
-local pp, prel, prelp, _, py = plate:GetPoint(1)
-assert(pp == "TOP" and prel == face.mapArea and prelp == "TOP" and W.Near(py, 0), "the plate hangs flush under the map's top edge")
-for _, piece in ipairs({ 1, 2, 3, 4, 6 }) do
-	assert(not plate.slice[piece]:IsShown(), "the plate's top row and side pieces are hidden: its top corners are square")
-end
-assert(plate.slice[7]:IsShown() and plate.slice[9]:IsShown() and plate.slice[5]:IsShown(), "the body and the bottom row draw")
-assert(W.Near(plate.slice[7]:GetWidth(), 11) and W.Near(plate.slice[7]:GetHeight(), 18), "the lower corners reach 11 in and 18 up")
-assert(plate.slice.texture == "lumenShape", "and are rounded from the Lumen shape, not cut")
+assert(W.Near(zoneSize, 14 * K.Theme.FontScale()) and W.Near(clockSize, 14 * K.Theme.FontScale()), "the zone and the clock read at size 14")
+assert(select(1, face.zone:GetFont()) == (K.Tokens.Font("heading")), "the zone reads in the heading face: Cinzel once the material lands")
+assert(select(1, face.clock:GetFont()) == (K.Tokens.Font("number")), "the clock reads in the number face")
+-- The north mark: a gilt letter in the head, on the glass, with no plate of its own.
+assert(face.compassPlate == nil, "the north mark has no plate: it sits on the card")
+local cp, crel, crelp, _, cy = face.compass:GetPoint(1)
+assert(cp == "TOP" and crel == face.box and crelp == "TOP" and W.Near(-cy, (Format.HEAD - face.compassSize) / 2, 1), "the N is centred in the head: " .. tostring(cy))
+local gr, gg, gb = K.Widgets.LumenColor("gilt")
+assert(W.SameRGB(face.compass, gr, gg, gb) or select(1, face.compass:GetTextColor()) == gr, "the N is gilt")
 local _, compassSize = face.compass:GetFont()
 assert(W.Near(compassSize, 16 * K.Theme.FontScale()), "the N reads at the heading size: " .. tostring(compassSize))
 
@@ -114,7 +119,7 @@ local zoom = face.zoom
 assert(zoom and zoom:IsShown() and zoom.track and zoom.fill, "a zoom slider stands inside the map's right edge")
 assert(W.Near(zoom.track:GetWidth(), 2) and W.Near(zoom.track:GetHeight(), 52), "the track is the mockup's 2 by 52 line")
 local tp, trel, trelp, tx, ty = zoom.track:GetPoint(1)
-assert(tp == "BOTTOM" and trel == face.mapArea and trelp == "BOTTOMRIGHT" and W.Near(tx, -9) and W.Near(ty, 36), "its bottom stands 8 above the footer, 11 in from the frame's edge")
+assert(tp == "LEFT" and trel == face.mapArea and trelp == "LEFT" and W.Near(tx, 11) and W.Near(ty, 0), "it stands inside the lens's left edge, at its widest, 11 in: " .. tostring(tp) .. " " .. tostring(tx) .. " " .. tostring(ty))
 assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the fill takes the accent")
 assert(W.Near(zoom.fill:GetHeight(), 52 * 2 / 5, 0.5), "zoom 2 of 6 levels fills two fifths of the track: " .. tostring(zoom.fill:GetHeight()))
 env._zoom = 5
@@ -168,24 +173,24 @@ K.Options.Write("Minimap", "zoom.slider", false)
 assert(not zoom:IsShown(), "the slider can be turned off")
 K.Options.Write("Minimap", "zoom.slider", true)
 assert(zoom:IsShown(), "and on again")
-assert(LastArg(minimap, "SetMaskTexture") == (K.Tokens.Texture("minimapMask")), "the minimap uses KstyleUI's square mask")
+assert(LastArg(minimap, "SetMaskTexture") == lensMask, "the minimap uses the round lens mask")
 for _, method in ipairs({ "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }) do
-	assert(LastArg(minimap, method) == 0, method .. "(0) removes the round blob ring on a square map")
+	assert(LastArg(minimap, method) == 1, method .. "(1) keeps the round blob ring, which fits a round lens")
 end
 for _, frame in ipairs({ env.MinimapCluster, env.MinimapBackdrop, minimap.ZoomIn, minimap.ZoomOut, minimap.ZoomHitArea }) do
 	assert(K.Safe.IsHidden(frame), "Blizzard's cluster, border and zoom buttons are hidden through Safe")
 end
-assert(env.GetMinimapShape and env.GetMinimapShape() == "SQUARE", "minimap button libraries see a square map")
+assert(env.GetMinimapShape and env.GetMinimapShape() == "ROUND", "minimap button libraries see a round map")
 
 env.MinimapCluster.UpdateMinimapConfig()
-assert(LastArg(minimap, "SetMaskTexture") == (K.Tokens.Texture("minimapMask")), "a Blizzard minimap refresh keeps the square mask")
+assert(LastArg(minimap, "SetMaskTexture") == lensMask, "a Blizzard minimap refresh keeps the round mask")
 
-M.Resize(holder, 346, 300)
+M.Resize(holder, 318, 326)
 mw, mh = face.mapArea:GetSize()
-local bigInset = select(4, face.mapArea:GetPoint(1))
-assert(W.Near(bigInset, Format.MapInset(300), 0.5) and mw == mh and W.Near(mw, 300 - 2 * bigInset), "a resized element resizes the square map inside its inset, snapped to a pixel: " .. tostring(mw) .. " in " .. tostring(bigInset))
-assert(W.Near(face.chrome:Chamfer(), Format.FrameChamfer(300), 0.01) and face.chrome:Chamfer() > 12, "the frame's chamfer grows with the frame, so the mask's cut still meets the line")
-assert(W.Near(Format.MASK_SHARE * mw, face.chrome:Chamfer() - 2 * bigInset, 1), "the mask's cut on the map meets the frame's cut at the map's inset within a pixel")
+local bigLeft, bigTop, bigLens = Format.Lens(318, 326, face.chrome:Inset(), Format.HEAD, Format.FOOT)
+assert(mw == mh and W.Near(mw, bigLens, 0.5), "the Lumen footprint, 318 by 326, gives the mockup's lens: " .. tostring(mw) .. " for " .. tostring(bigLens))
+assert(bigLens >= 250 and bigLens <= 272, "a lens of about 262 on the 318 card, got " .. tostring(bigLens))
+assert(W.Near(select(4, face.mapArea:GetPoint(1)), bigLeft, 0.5) and W.Near(select(5, face.mapArea:GetPoint(1)), -bigTop, 0.5), "the lens is centred under the head at the new size")
 Fits("resized")
 M.Resize(holder, 168, 166)
 Fits("shrunk")
@@ -252,10 +257,10 @@ assert(face.clock:GetText() == "9:05 AM", "realm time in 12 hours")
 K.Options.Write("Minimap", "clock.mode", "local24")
 assert(face.clock:GetText() == "14:33", "local time in 24 hours")
 
-assert(face.strip.divider:IsShown(), "a hairline parts the zone from the clock, as in the kit")
+assert(face.clock:IsShown() and face.zone:IsShown(), "the zone and the clock share the foot")
 K.Options.Write("Minimap", "clock.shown", false)
 assert(not face.clock:IsShown(), "the clock hides from the strip")
-assert(not face.strip.divider:IsShown(), "and the hairline goes with it")
+assert(face.zone:IsShown(), "the zone stays")
 assert(face.strip:IsShown(), "the strip stays while the zone shows")
 K.Options.Write("Minimap", "zone.shown", false)
 assert(not face.strip:IsShown(), "the strip hides when it has nothing to show")
@@ -304,10 +309,10 @@ K.Options.Write("Minimap", "coords.shown", true)
 -- The compass mark --------------------------------------------------------------------------------
 
 assert(face.compass:IsShown(), "the north mark shows on a fixed map")
-assert(face.compassPlate:IsShown() and #face.compassPlate.slice == 9, "on the kit's dark glass tab at the top of the map")
+assert(face.compass:GetText() == "N", "a single letter in the head")
 env._cvars.rotateMinimap = true
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "1")
-assert(not face.compass:IsShown() and not face.compassPlate:IsShown(), "a rotating map hides the north mark and its tab")
+assert(not face.compass:IsShown(), "a rotating map hides the north mark")
 env._cvars.rotateMinimap = env.Secret(false)
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "0")
 assert(not face.compass:IsShown(), "a secret rotation hides the north mark rather than guess")
@@ -315,33 +320,33 @@ env._cvars.rotateMinimap = false
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "0")
 assert(face.compass:IsShown(), "the north mark comes back")
 
--- The panel's centre stays clear for Blizzard's hybrid map, which draws below KstyleUI's strata -----
+-- Blizzard's hybrid map is a child of Minimap fixed at BACKGROUND strata, level 100. The card keeps its frost
+-- under the lens, so the holder sits on BACKGROUND under that level and the overlay above it: the hybrid map draws
+-- between the card and the lens's slider and coordinates.
 
 K.Widgets.RestyleAll()
-assert(not face.chrome.fill[5]:IsShown(), "the fill's centre stays hidden after a restyle")
-assert(not face.chrome.shadow[5]:IsShown(), "the shadow's centre stays hidden after a restyle")
+assert(face.chrome.fill[5]:IsShown(), "the fill's centre stays after a restyle")
+assert(holder:GetFrameStrata() == "BACKGROUND", "the card sits on the BACKGROUND strata, where the hybrid map is fixed")
+assert(face.box:GetFrameLevel() < 100 and minimap:GetFrameLevel() < 100, "the card and the map sit under the hybrid map's fixed level 100")
+assert(face.overlay:GetFrameLevel() > 100 and face.wheel:GetFrameLevel() > face.overlay:GetFrameLevel(), "the overlay and the wheel catcher sit above it")
 
--- The accent hairline -----------------------------------------------------------------------------
+-- The accent: the card's rim is the Lumen rim light like every rail card; the accent colours the zoom fill ------
 
-local inner = face.chrome.rim[5]
-assert(W.SameRGB(inner, K.Theme.Accent()), "the hairline follows the class colour")
+local inner = face.chrome.inner[5]
+assert(W.SameRGB(inner, K.Tokens.Color("edgeInner")), "the card's rim is the rim light, not the class colour")
+assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the zoom fill follows the class colour")
 K.Options.Write("Minimap", "accent.source", "custom")
 K.Options.Write("Minimap", "accent.color", { r = 1, g = 0, b = 0 })
-assert(W.SameRGB(inner, 1, 0, 0), "a custom accent colours the hairline")
+assert(W.SameRGB(zoom.fill, 1, 0, 0), "a custom accent colours the zoom fill")
+assert(W.SameRGB(inner, K.Tokens.Color("edgeInner")), "and leaves the rim alone")
 K.Options.Write("Minimap", "accent.source", "class")
-assert(W.SameRGB(inner, K.Theme.Accent()), "the class colour comes back")
-
--- The column side moves the map --------------------------------------------------------------------
-
-K.Options.Write("Minimap", "column.side", "right")
-assert(W.Near(select(4, face.box:GetPoint(1)), 0), "with the column on the right, the map square sits at the left")
-K.Options.Write("Minimap", "column.side", "left")
+assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the class colour comes back")
 
 -- The hybrid minimap gets the square mask too -------------------------------------------------------
 
 env.HybridMinimap = { CircleMask = env.CreateFrame("Frame", nil, env.UIParent):CreateMaskTexture() }
 env.FireEvent("ADDON_LOADED", "Blizzard_HybridMinimap")
-assert(LastArg(env.HybridMinimap.CircleMask, "SetTexture") == (K.Tokens.Texture("minimapMask")), "the hybrid minimap is masked square")
+assert(LastArg(env.HybridMinimap.CircleMask, "SetTexture") == lensMask, "the hybrid minimap wears the lens mask")
 
 NoErrors(env, "enabled")
 
@@ -370,7 +375,7 @@ do
 	M.Settle(benv)
 	local bface = Map(bns)
 	assert(bface.clock:GetText() == "14:32", "an unknown clock mode uses the game's clock")
-	assert(bns.Settings.Get("column.side") == "left", "an unknown column side uses the default, left of the frame")
+	assert(bns.Settings.Get("column.side") == "right", "an unknown button side uses the default, the lens's right")
 	NoErrors(benv, "bad values")
 end
 

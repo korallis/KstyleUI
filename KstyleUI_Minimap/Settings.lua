@@ -12,7 +12,6 @@ Settings.MODULE = MODULE
 
 local TEXT_MIN, TEXT_MAX, TEXT_STEP = 6, 24, 1
 local DELAY_MIN, DELAY_MAX, DELAY_STEP = 3, 30, 1
-local OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0, 1, 0.05
 local BUTTON_MIN, BUTTON_MAX, BUTTON_STEP = 14, 32, 1
 local SPACING_MIN, SPACING_MAX, SPACING_STEP = 0, 12, 1
 local ICON_MIN, ICON_MAX, ICON_STEP = 16, 40, 1
@@ -23,11 +22,10 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "left", size = 30, spacing = 7, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	column = { side = "right", size = 22, spacing = 7, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
 	compass = true,
-	strip = { opacity = 0.8 },
 	zone = { shown = true, color = "plain", font = "", size = 14, outline = "" },
 	clock = { shown = true, mode = "game", font = "", size = 14, outline = "" },
 	coords = { shown = false, precision = 1, position = "top", font = "", size = 10, outline = "" },
@@ -38,9 +36,9 @@ local ACCENT_OPTIONS = {
 	{ value = "custom", label = L["Custom colour"] },
 }
 local SIDE_OPTIONS = {
-	{ value = "inside", label = L["Inside, on the right edge"] },
-	{ value = "left", label = L["Left"] },
-	{ value = "right", label = L["Right"] },
+	{ value = "right", label = L["Right side of the lens"] },
+	{ value = "left", label = L["Left side of the lens"] },
+	{ value = "inside", label = L["Right side of the lens"] },
 }
 local BEHAVIOUR_OPTIONS = {
 	{ value = "click", label = L["Open on click"] },
@@ -121,7 +119,7 @@ end
 local schema = {
 	{ type = "header", label = L["Frame"] },
 	{
-		type = "dropdown", key = "accent.source", label = L["Hairline colour"], options = ACCENT_OPTIONS,
+		type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
 		help = L["The thin line round the map follows your class colour or your own colour."],
 	},
 	{
@@ -228,15 +226,10 @@ local schema = {
 		type = "toggle", key = "compass", label = L["North mark"],
 		help = L["Shows N at the top of the map while the map does not rotate."],
 	},
-	{ type = "header", label = L["Zone and clock strip"] },
-	{
-		type = "slider", key = "strip.opacity", label = L["Strip opacity"],
-		min = OPACITY_MIN, max = OPACITY_MAX, step = OPACITY_STEP,
-		help = L["How dark the band behind the zone name and clock is."],
-	},
+	{ type = "header", label = L["Zone and clock"] },
 	{
 		type = "toggle", key = "zone.shown", label = L["Zone name"],
-		help = L["Shows the zone name on the strip."],
+		help = L["Shows the zone name in the card's foot."],
 	},
 	{
 		type = "dropdown", key = "zone.color", label = L["Zone colour"], options = ZONE_COLOR_OPTIONS,

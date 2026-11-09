@@ -9,7 +9,6 @@ local Hud = dofile("Tools/render/scenes/hud.lua")
 local I = Hud.ICONS
 
 local BUFFS_X, BUFFS_Y = 60, 80
-local DEBUFFS_X, DEBUFFS_Y = 60, 230
 local PREVIEW_X, PREVIEW_Y, PREVIEW_W, PREVIEW_H = 400, 80, 248, 300
 local TILE_PAD = 4
 
@@ -82,7 +81,7 @@ end
 
 return Common.Run(function()
 	local A = dofile("Tools/regression/auras_env.lua")
-	local env, K = A.New(Common.ScreenOpts({ saved = Gallery.Saved({ "Auras" }), setup = Gallery.Setup }))
+	local env, K, ns = A.New(Common.ScreenOpts({ saved = Gallery.Saved({ "Auras" }), setup = Gallery.Setup }))
 	if not K.Modules.IsRunning("Auras") then
 		K.Modules.Enable("Auras")
 	end
@@ -95,7 +94,8 @@ return Common.Run(function()
 		end
 	end
 
-	-- The buff panel: the main-hand enchantment, then eight buffs over two rows of five.
+	-- The Blessings card: the main-hand enchantment, then eight buffs over two rows of six, and the debuff row
+	-- docked under the hairline.
 	move(K, "auras.buffs", BUFFS_X, BUFFS_Y)
 	local buffs, buffGroup = A.Container(env, "HELPFUL")
 	assert(buffs, "the buff container")
@@ -110,15 +110,14 @@ return Common.Run(function()
 		fill(env, button, buff[1], buff[2], buff[3])
 		tiles[#tiles + 1] = button
 	end
-	place(buffs, buffGroup, tiles, 5)
+	place(buffs, buffGroup, tiles, 6)
 	frames:Add(env, K.Layout.Element("auras.buffs").frame, {
-		name = "auras_buffs", title = "Buffs", grade = "button", reference = "bufficons",
-		caption = "The buff panel: a weapon enchantment tile first, then eight buffs by time left over two rows of five, timers under the icons, stack counts on two, one at 1h; each tile is the button grade's buttonFill body with the neutral edgeInner rim at the rest alpha, no bezel.",
+		name = "auras_buffs", title = "Blessings card", grade = "panel", reference = "bufficons",
+		caption = "The Blessings card (Panel.lua): a panel-grade card with a gem and tracked Blessings cap, a weapon enchantment tile first, then eight buffs by time left over two rows of six, timers under the icons, stack counts on two; under a hairline the debuff row docks in the same card. Each tile is the button grade's buttonFill body with the neutral edgeInner rim at the rest alpha.",
 		match = "Body #101214, a one-border neutral grey rim and the 3.5-unit tile chamfer as the mockup's buff icons; the mockup's rim is a shade lighter, and KstyleUI's tiles have no shadow where the mockup's show a faint one.",
 	})
 
-	-- The debuff row: five debuffs, each rim in its dispel type's colour.
-	move(K, "auras.debuffs", DEBUFFS_X, DEBUFFS_Y)
+	-- The debuff row, docked in the card: five debuffs, each rim in its dispel type's colour.
 	local debuffs, debuffGroup = A.Container(env, "HARMFUL")
 	assert(debuffs, "the debuff container")
 	local harmful = {}
@@ -128,10 +127,10 @@ return Common.Run(function()
 		dispel(env, Widgets, button, debuff[3])
 		harmful[#harmful + 1] = button
 	end
-	place(debuffs, debuffGroup, harmful, 5)
-	frames:Add(env, K.Layout.Element("auras.debuffs").frame, {
+	place(debuffs, debuffGroup, harmful, 6)
+	frames:Add(env, ns.Panel.Group("debuffs").dock, {
 		name = "auras_debuffs", title = "Debuffs", grade = "button", reference = "bufficons",
-		caption = "The debuff row: five debuffs on the same buttonFill tiles, the hostile rim at the rest alpha under a nine-piece dispel rim the engine colours magic, curse, poison, disease and none (red), timers under the icons and a stack count on the first.",
+		caption = "The debuff row docked in the Blessings card: five debuffs on the same buttonFill tiles, the hostile rim at the rest alpha under a nine-piece dispel rim the engine colours magic, curse, poison, disease and none (red), timers under the icons and a stack count on the first.",
 		match = "Body and tile chamfer as the mockup's buff icons; the rims are the dispel colours, not the mockup's neutral grey, since the mockup shows no debuffs.",
 	})
 

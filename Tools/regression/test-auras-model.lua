@@ -23,13 +23,12 @@ local debuffs = Model.Group(d, "debuffs")
 local timer = Model.Timer(d)
 local bw, bh = Model.Footprint(buffs, timer)
 local dw, dh = Model.Footprint(debuffs, timer)
--- The mockup's tiles: 38-unit icons at a 46 pitch (measured at 1.348 px per unit) with the 12-unit timer under
--- each, so a row is 51 tall. The rows stand beside the minimap (Forever's Edit Mode preset leaves no room under
--- it before the objective tracker), eight to a row so a raid's worth of buffs shows: 360 wide, the buffs two
+-- The Lumen tiles: 38-unit icons at a 48 pitch with the 12-unit timer under each, so a row is 51 tall. Six to a
+-- row, so a row is 278 wide and the Blessings card round it, padded 20 each side, is the rail's 318: the buffs two
 -- rows and the debuffs one.
-check(buffs.iconSize == 38 and buffs.spacing == 8 and buffs.columns == 8 and timer.size == 12, "38-unit icons, 8-unit gaps, eight per row, 12-unit timers")
-check(bw == 360 and bh == 102, "the buff footprint at defaults is 360 x 102, got " .. bw .. " x " .. bh)
-check(dw == 360 and dh == 51, "the debuff footprint at defaults is 360 x 51, got " .. dw .. " x " .. dh)
+check(buffs.iconSize == 38 and buffs.spacing == 10 and buffs.columns == 6 and timer.size == 12, "38-unit icons, 10-unit gaps, six per row, 12-unit timers")
+check(bw == 278 and bh == 102, "the buff footprint at defaults is 278 x 102, got " .. bw .. " x " .. bh)
+check(dw == 278 and dh == 51, "the debuff footprint at defaults is 278 x 51, got " .. dw .. " x " .. dh)
 check(buffs.rows == 2 and debuffs.rows == 1, "two rows of buffs and one of debuffs by default")
 check(buffs.growth == "LEFT_DOWN" and debuffs.growth == "LEFT_DOWN", "both groups grow left from the minimap, so the shortest time left sits next to it")
 check(Model.ContainerAnchor("RIGHT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("LEFT_DOWN") == "TOPRIGHT" and Model.ContainerAnchor("RIGHT_UP") == "BOTTOMLEFT" and Model.ContainerAnchor("LEFT_UP") == "BOTTOMRIGHT", "the container hangs from the corner the rows grow from, so a short row sits flush with the minimap's side")

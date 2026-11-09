@@ -99,12 +99,12 @@ do
 		end
 		check(body, "each aura button sits on the near-black button body every square icon shares")
 	end
-	check(bg.maxFrameCount == 16 and dg.maxFrameCount == 8, "2 rows of 8 buffs and 1 row of 8 debuffs")
+	check(bg.maxFrameCount == 12 and dg.maxFrameCount == 6, "2 rows of 6 buffs and 1 row of 6 debuffs")
 	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
 	check(bg.layout.elementWidth == 38 and bg.layout.elementHeight == 51, "each buff is a 38-unit icon with its 12-unit timer under it")
-	check(bg.layout.elementSpacing == 8 and bg.layout.lineSpacing == 0, "8-unit gaps between icons")
+	check(bg.layout.elementSpacing == 10 and bg.layout.lineSpacing == 0, "10-unit gaps between icons")
 	check(buffs._flow.anchor == "TOPRIGHT" and buffs._flow.horizontal == -1 and buffs._flow.vertical == -1, "buffs grow left from the minimap, then down, so the shortest time left sits beside the map")
-	check(buffs._flow.lineSize >= 8 * 38 + 7 * 8 and buffs._flow.lineSize < 9 * 38 + 8 * 8, "eight icons fit on a line, and a ninth wraps")
+	check(buffs._flow.lineSize >= 6 * 38 + 5 * 10 and buffs._flow.lineSize < 7 * 38 + 6 * 10, "six icons fit on a line, and a seventh wraps")
 
 	local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
 	check(b and d, "both elements register with Layout under the element keys")
@@ -115,14 +115,18 @@ do
 	-- 12 units left of its 259-unit element, top-aligned with it, the debuffs 8 units under the buffs.
 	check(b.position.anchor == "TOPRIGHT" and b.position.x == -287 and b.position.y == -16, "buffs stand beside the minimap, 12 units left of its element and top-aligned with it")
 	check(d.position.anchor == "TOPRIGHT" and d.position.x == -287 and d.position.y == -126, "debuffs hang 8 units under the buffs' two rows")
+	-- The buff element is the whole Blessings card: the rail's 318 wide, with the cap, two rows of six, the hairline
+	-- and the docked debuff row (test-auras-card.lua has the card's maths).
 	local w, h = size(b.frame)
-	check(near(w, 360) and near(h, 102), "the buff element is 360 x 102, two rows of eight, got " .. tostring(w) .. " x " .. tostring(h))
+	check(near(w, 318), "the buff element is the 318 card, got " .. tostring(w) .. " x " .. tostring(h))
+	check(h > 102 + 51, "and taller than both rows, for the cap, the padding and the hairline: " .. tostring(h))
 	w, h = size(d.frame)
-	check(near(w, 360) and near(h, 51), "the debuff element is 360 x 51")
+	check(near(w, 278) and near(h, 51), "the debuff element is its row, 278 x 51")
 	check(not isAncestor(b.frame, buffs), "the Layout element is not an ancestor of the container, so Layout never touches an aura button")
 	local host = buffs:GetParent()
 	local point, rel, relPoint = buffs:GetPoint(1)
-	check(point == "TOPRIGHT" and rel == host and relPoint == "TOPRIGHT", "the container hangs from its host's top right corner, the corner the rows grow from, so a short row sits flush beside the minimap")
+	check(rel and rel ~= host and rel:GetParent() == host, "the container hangs from a content frame on its host, inside the card's padding and under the cap")
+	check(point == "TOPRIGHT" and relPoint == "TOPRIGHT", "from its top right corner, the corner the rows grow from, so a short row sits flush at the card's right")
 
 	for _, button in ipairs(groupButtons(bg)) do
 		local aura = button._aura
@@ -158,7 +162,7 @@ end
 
 -- Settings: each change reaches the engine and the buttons.
 do
-	local env, K = start({ layout = true })
+	local env, K, ns = start({ layout = true })
 	local buffs, bg = A.Container(env, "HELPFUL")
 	local _, dg = A.Container(env, "HARMFUL")
 	local b = registered(env, "auras.buffs")
@@ -168,7 +172,8 @@ do
 	local bw, bh = groupButtons(bg)[1]:GetSize()
 	check(near(bw, 32) and near(bh, 45), "and the buttons")
 	local w, h = size(b.frame)
-	check(near(w, 8 * 32 + 7 * 8) and near(h, 2 * 45), "and the Layout element's footprint")
+	local card = ns.Model.Card({ width = 6 * 32 + 5 * 10, height = 2 * 45 }, { width = 6 * 38 + 5 * 10, height = 51 }, ns.Model.CARD_PAD, ns.Model.CARD_GAP)
+	check(near(w, card.width) and near(h, card.height), "and the card round it: the wider debuff row sets the width, got " .. tostring(w) .. " x " .. tostring(h) .. " for " .. card.width .. " x " .. card.height)
 
 	K.Options.Write("Auras", "buffs.sort", "name")
 	K.Options.Write("Auras", "buffs.reverse", true)
@@ -228,16 +233,16 @@ end
 do
 	local env = start({ layout = true })
 	local _, bg = A.Container(env, "HELPFUL")
-	check(bg.maxFrameCount == 16, "no enchantment, 16 buffs")
+	check(bg.maxFrameCount == 12, "no enchantment, 12 buffs")
 	env._enchants[env.INVSLOT_MAINHAND] = { enchantID = 1, hasExpirationTime = true, remainingTimeMs = 60000 }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(bg.maxFrameCount == 15, "a main-hand enchantment leaves 15 buffs, got " .. bg.maxFrameCount)
+	check(bg.maxFrameCount == 11, "a main-hand enchantment leaves 11 buffs, got " .. bg.maxFrameCount)
 	env._enchants[env.INVSLOT_OFFHAND] = { enchantID = 2, hasExpirationTime = false, remainingTimeMs = 0 }
 	env.FireEvent("WEAPON_SLOT_CHANGED")
-	check(bg.maxFrameCount == 14, "two enchantments leave 14")
+	check(bg.maxFrameCount == 10, "two enchantments leave 10")
 	env._enchants = {}
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	check(bg.maxFrameCount == 16, "expired enchantments give their places back")
+	check(bg.maxFrameCount == 12, "expired enchantments give their places back")
 end
 
 -- A panel smaller than the enchantment slots shows only as many enchantments as it has places.

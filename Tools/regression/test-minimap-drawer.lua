@@ -47,11 +47,13 @@ assert(not drawer.panel:IsShown(), "the drawer starts closed")
 
 -- Opening and the grid ---------------------------------------------------------------------------------
 
+-- The rim buttons sit on the lens's right by default, where the card meets the screen's edge, so "auto" opens the
+-- drawer inward, to the left of its button.
 W.Click(toggle)
 M.Settle(env)
 assert(drawer.panel:IsShown(), "a click opens the drawer")
 local point, relativeTo, relativePoint = drawer.panel:GetPoint(1)
-assert(point == "TOPRIGHT" and relativeTo == toggle and relativePoint == "TOPLEFT", "with the column on the left, the drawer opens to the left of its button")
+assert(point == "TOPRIGHT" and relativeTo == toggle and relativePoint == "TOPLEFT", "with the rim buttons on the right, the drawer opens inward, to the left of its button")
 assert(alpha:GetPoint(1) == "TOPRIGHT" and W.Near(X(alpha), -4) and W.Near(Y(alpha), -4), "buttons sort by name: Alpha first")
 assert(W.Near(X(bravo), -(4 + 24 + 4)), "Bravo next to it")
 assert(W.Near(alpha:GetWidth(), 24), "buttons take the drawer's icon size")

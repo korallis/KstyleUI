@@ -75,6 +75,10 @@ schema[#schema + 1] = {
 	help = L["Right-clicking a buff or weapon enchantment removes it."],
 }
 schema[#schema + 1] = { type = "header", label = L["Debuffs"] }
+schema[#schema + 1] = {
+	type = "toggle", key = "card.docked", label = L["Debuffs in the Blessings card"],
+	help = L["Keeps the debuff row in the Blessings card under a hairline. Off, it is its own element."],
+}
 groupRows(schema, "debuffs")
 schema[#schema + 1] = {
 	type = "toggle", key = "debuffs.dispel", label = L["Colour by debuff type"],

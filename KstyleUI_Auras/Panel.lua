@@ -1,8 +1,8 @@
--- Panel.lua: the buff and debuff containers on the AuraContainer engine, their Layout elements, weapon enchantments, the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
+-- Panel.lua: the Blessings card: the buff and debuff containers on the AuraContainer engine, the card and its cap on the buff element, the debuff row docked under a hairline or free as its own element, weapon enchantments, the aura-secrecy gate, and Blizzard's frames, which return in the gamepad interface.
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens = K.Widgets, K.Tokens
+local L, Widgets, Tokens = K.L, K.Widgets, K.Tokens
 local Model, Button = ns.Model, ns.Button
 local format, concat, min = string.format, table.concat, math.min
 
@@ -19,6 +19,7 @@ local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYE
 local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
 local EDGE_TOKENS = { buffs = "edgeInner", debuffs = "hostile" }
+local CARD_GROUP, DOCKED_GROUP = "buffs", "debuffs"
 local FALLBACK = {
 	buffs = { position = { anchor = "TOPRIGHT", x = -287, y = -16 }, label = K.L["Buffs"] },
 	debuffs = { position = { anchor = "TOPRIGHT", x = -287, y = -126 }, label = K.L["Debuffs"] },
@@ -336,36 +337,115 @@ local function Init(desc, button)
 	Button.Style(entry, desc.ctx)
 end
 
+function Panel.Group(name)
+	return groups[name]
+end
+
+local function Source(desc)
+	if desc.docked then
+		return groups[CARD_GROUP].holder, desc.dock
+	end
+	return desc.holder, desc.holder
+end
+
 local function ShowHost(desc)
-	desc.host:SetShown(desc.holder:IsShown() and not gamepad)
+	local source = Source(desc)
+	desc.host:SetShown(source:IsShown() and not gamepad)
+end
+
+local function Follow(desc)
+	local host = desc.host
+	local source, anchor = Source(desc)
+	host:ClearAllPoints()
+	host:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, 0)
+	host:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 0, 0)
+	host:SetScale(source:GetScale())
+	host:SetAlpha(source:GetAlpha())
+	host:SetFrameStrata(source:GetFrameStrata())
+	host:SetFrameLevel(source:GetFrameLevel() + HOST_LEVEL)
+	ShowHost(desc)
+end
+
+local function Watch(desc, holder)
+	local function follow()
+		if Source(desc) == holder then
+			Follow(desc)
+		end
+	end
+	for _, method in ipairs({ "SetScale", "SetAlpha", "SetFrameStrata", "Show", "Hide", "SetShown" }) do
+		hooksecurefunc(holder, method, follow)
+	end
 end
 
 local function Mirror(desc)
-	local holder, host = desc.holder, desc.host
-	host:ClearAllPoints()
-	host:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
-	host:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
-	host:SetScale(holder:GetScale())
-	host:SetAlpha(holder:GetAlpha())
-	host:SetFrameStrata(holder:GetFrameStrata())
-	host:SetFrameLevel(holder:GetFrameLevel() + HOST_LEVEL)
-	ShowHost(desc)
-	hooksecurefunc(holder, "SetScale", function(_, scale)
-		host:SetScale(scale)
-	end)
-	hooksecurefunc(holder, "SetAlpha", function(_, alpha)
-		host:SetAlpha(alpha)
-	end)
-	hooksecurefunc(holder, "SetFrameStrata", function(_, strata)
-		host:SetFrameStrata(strata)
-		host:SetFrameLevel(holder:GetFrameLevel() + HOST_LEVEL)
-	end)
-	local function follow()
-		ShowHost(desc)
+	Follow(desc)
+	Watch(desc, desc.holder)
+end
+
+local function BuildCard(desc)
+	local host = desc.host
+	local card = {
+		chrome = Widgets.Chrome(host, { shape = "panel" }),
+		cap = Widgets.SectionCap(host, { title = L["Blessings"] }),
+		rule = host:CreateTexture(nil, "ARTWORK"),
+	}
+	card.rule:SetColorTexture(Tokens.Color("white"))
+	Widgets.LumenTint(card.rule, "hairline")
+	card.rule:Hide()
+	desc.card = card
+end
+
+local function Docked()
+	return Model.Docked(K.Store.Module(MODULE))
+end
+
+local function LayoutCard(desc, docked)
+	local host, card, ctx = desc.host, desc.card, desc.ctx
+	local other = groups[DOCKED_GROUP]
+	local debuffs = docked and other and not other.failed and other.dock ~= nil and { width = other.ctx.footWidth, height = other.ctx.footHeight } or nil
+	local pad, gap = Model.CARD_PAD, Model.CARD_GAP
+	local shape = Model.Card({ width = ctx.footWidth, height = ctx.footHeight }, debuffs, pad, gap)
+	desc.shape = shape
+	local snap = function(units)
+		return Widgets.Snap(host, units)
 	end
-	hooksecurefunc(holder, "Show", follow)
-	hooksecurefunc(holder, "Hide", follow)
-	hooksecurefunc(holder, "SetShown", follow)
+	card.cap.frame:ClearAllPoints()
+	card.cap.frame:SetPoint("TOPLEFT", host, "TOPLEFT", snap(pad), -snap(pad))
+	card.cap.frame:SetPoint("TOPRIGHT", host, "TOPRIGHT", -snap(pad), -snap(pad))
+	card.cap:Restyle()
+	desc.content:ClearAllPoints()
+	desc.content:SetPoint("TOPLEFT", host, "TOPLEFT", snap(pad), -snap(shape.contentTop))
+	desc.content:SetSize(ctx.footWidth, ctx.footHeight)
+	local rule = card.rule
+	rule:ClearAllPoints()
+	if debuffs then
+		rule:SetPoint("TOPLEFT", host, "TOPLEFT", snap(pad), -snap(shape.ruleTop))
+		rule:SetPoint("TOPRIGHT", host, "TOPRIGHT", -snap(pad), -snap(shape.ruleTop))
+		rule:SetHeight(Widgets.Border(host))
+		Widgets.LumenTint(rule, "hairline")
+		rule:Show()
+		local dock = other.dock
+		dock:ClearAllPoints()
+		dock:SetPoint("TOPLEFT", desc.holder, "TOPLEFT", snap(pad), -snap(shape.debuffTop))
+		dock:SetSize(other.ctx.footWidth, other.ctx.footHeight)
+	else
+		rule:Hide()
+	end
+	return shape.width, shape.height
+end
+
+local function Dock(desc, docked)
+	docked = docked == true
+	local changed = desc.docked ~= docked
+	desc.docked = docked
+	desc.holder:SetShown(not docked)
+	local Layout = K.Layout
+	if Layout and type(Layout.SetLive) == "function" then
+		Layout.SetLive(Model.KEYS[desc.name], not docked)
+	end
+	if changed then
+		Follow(desc)
+	end
 end
 
 local function AddEnchants(desc)
@@ -449,6 +529,17 @@ local function Build(name)
 		AddEnchants(desc)
 	end
 	desc.holder = CreateFrame("Frame", nil, root)
+	desc.content = CreateFrame("Frame", nil, host)
+	desc.content:SetAllPoints(host)
+	if name == CARD_GROUP then
+		BuildCard(desc)
+	elseif name == DOCKED_GROUP then
+		local card = groups[CARD_GROUP]
+		if card and not card.failed then
+			desc.dock = CreateFrame("Frame", nil, card.holder)
+			Watch(desc, card.holder)
+		end
+	end
 	Mirror(desc)
 	Register(desc)
 	Log(format("%s: %d aura buttons on the AuraContainer engine", name, #desc.buttons))
@@ -464,7 +555,7 @@ local function ApplyContainer(desc)
 	container:SetFlowLayoutMaximumLineSize(ctx.lineSize)
 	container:ClearAllPoints()
 	local edge = Model.ContainerAnchor(ctx.group.growth)
-	container:SetPoint(edge, desc.host, edge, 0, 0)
+	container:SetPoint(edge, desc.content, edge, 0, 0)
 	container:SetAuraGroupLayout(desc.name, GroupLayout(ctx))
 	local method, direction = SortEnums(ctx.group)
 	if method ~= nil and direction ~= nil then
@@ -484,9 +575,17 @@ local function Apply(desc, relayout)
 	desc.ctx = Context(desc)
 	local ctx, holder = desc.ctx, desc.holder
 	K.Call(ApplyContainer, desc)
+	local wantW, wantH = ctx.footWidth, ctx.footHeight
+	if desc.card then
+		wantW, wantH = LayoutCard(desc, Docked())
+	elseif desc.dock then
+		Dock(desc, Docked())
+		desc.content:ClearAllPoints()
+		desc.content:SetAllPoints(desc.host)
+	end
 	local w, h = holder:GetSize()
-	if w ~= ctx.footWidth or h ~= ctx.footHeight then
-		holder:SetSize(ctx.footWidth, ctx.footHeight)
+	if w ~= wantW or h ~= wantH then
+		holder:SetSize(wantW, wantH)
 		relayout = true
 	end
 	if relayout and K.Layout and K.Layout.Restore then
@@ -496,8 +595,8 @@ local function Apply(desc, relayout)
 end
 
 local function ApplyAll(relayout)
-	for _, name in ipairs(Model.GROUPS) do
-		local desc = groups[name]
+	for i = #Model.GROUPS, 1, -1 do
+		local desc = groups[Model.GROUPS[i]]
 		if desc and not desc.failed then
 			Apply(desc, relayout)
 		end

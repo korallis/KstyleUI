@@ -1,6 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Base.lua"/>
 	<Script file="Glow.lua"/>
+	<Script file="Rail.lua"/>
 	<Script file="Tooltip.lua"/>
 	<Script file="Button.lua"/>
 	<Script file="IconButton.lua"/>

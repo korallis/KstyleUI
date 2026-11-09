@@ -11,7 +11,7 @@ local W = {}
 W.CoreEnv = CoreEnv
 
 -- New(opts) -> env, KstyleUI. opts: the CoreEnv.New options, plus
---   layout   true to install a KstyleUI.Layout stand-in that records Register calls in env._layout
+--   layout   true to install a KstyleUI.Layout stand-in that records Register calls in env._layout and SetLive in env._live
 --   boot     false to skip ADDON_LOADED and PLAYER_LOGIN
 function W.New(opts)
 	opts = opts or {}
@@ -28,9 +28,14 @@ function W.New(opts)
 	local env, K = CoreEnv.New(opts)
 	if opts.layout then
 		env._layout = {}
+		env._live = {}
 		K.Layout = K.Layout or {}
 		K.Layout.Register = function(frame, key, position, layoutOpts)
 			env._layout[#env._layout + 1] = { frame = frame, key = key, position = position, opts = layoutOpts }
+		end
+		K.Layout.SetLive = function(key, live)
+			env._live[key] = live ~= false
+			return true
 		end
 	end
 	if opts.boot ~= false then

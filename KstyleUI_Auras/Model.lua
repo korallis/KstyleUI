@@ -40,13 +40,14 @@ Model.defaults = {
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {
-		iconSize = 38, spacing = 8, rowSpacing = 0, rows = 2, columns = 8,
+		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 2, columns = 6,
 		growth = "LEFT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
 	},
 	debuffs = {
-		iconSize = 38, spacing = 8, rowSpacing = 0, rows = 1, columns = 8,
+		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 1, columns = 6,
 		growth = "LEFT_DOWN", sort = "time", reverse = false, dispel = true,
 	},
+	card = { docked = true },
 	timer = { format = "short", position = "below", font = NUMBER_FONT, size = 12, outline = "OUTLINE", expiring = 5 },
 	count = { font = NUMBER_FONT, size = 11, outline = "OUTLINE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
@@ -240,6 +241,30 @@ function Model.Footprint(group, timer, snap)
 	snap = snap or same
 	local w, h = Model.ElementSize(group, timer, snap)
 	return group.columns * w + (group.columns - 1) * snap(group.spacing), group.rows * h + (group.rows - 1) * snap(group.rowSpacing)
+end
+
+local CARD_PAD = 20
+local CARD_GAP = 8
+local HAIRLINE = 1
+Model.CARD_PAD = CARD_PAD
+Model.CARD_GAP = CARD_GAP
+
+function Model.Docked(settings)
+	return boolean(section(settings, "card").docked, defaults.card.docked)
+end
+
+function Model.Card(buffs, debuffs, pad, gap)
+	local cap = KstyleUI.Widgets.SECTION_CAP_HEIGHT
+	local card = { width = buffs.width + 2 * pad, contentTop = pad + cap + gap }
+	local bottom = card.contentTop + buffs.height
+	if debuffs then
+		card.width = max(card.width, debuffs.width + 2 * pad)
+		card.ruleTop = bottom + gap
+		card.debuffTop = card.ruleTop + HAIRLINE + gap
+		bottom = card.debuffTop + debuffs.height
+	end
+	card.height = bottom + pad
+	return card
 end
 
 function Model.Capacity(group, enchants)

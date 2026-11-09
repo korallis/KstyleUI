@@ -1,4 +1,4 @@
--- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, and the map's place in its element.
+-- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, the lens's place in its card and the rim buttons' arc.
 local _, ns = ...
 
 local Format = {}
@@ -8,12 +8,9 @@ local ceil, floor, format, max, min = math.ceil, math.floor, string.format, math
 
 local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
-local COLUMN_PAD = 2
-local FRAME_SIZE = 221
-local FRAME_CHAMFER = 12
-local MAP_INSET = 2
-local FRAME_CHAMFER_SHARE = FRAME_CHAMFER / FRAME_SIZE
-local MASK_SHARE = (FRAME_CHAMFER - 2 * MAP_INSET) / (FRAME_SIZE - 2 * MAP_INSET)
+local HEAD = 24
+local FOOT = 34
+local ARC_START = math.rad(52)
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
 local PVP_TOKENS = {
@@ -34,16 +31,32 @@ local function IsNumber(value)
 end
 
 Format.IsNumber = IsNumber
-Format.COLUMN_PAD = COLUMN_PAD
-Format.FRAME_CHAMFER_SHARE = FRAME_CHAMFER_SHARE
-Format.MASK_SHARE = MASK_SHARE
+Format.HEAD = HEAD
+Format.FOOT = FOOT
+Format.ARC_START = ARC_START
 
-function Format.FrameChamfer(box)
-	return box * FRAME_CHAMFER_SHARE
+function Format.Lens(width, height, inset, head, foot)
+	local lens = max(0, min(width - 2 * inset, height - head - foot))
+	return (width - lens) / 2, head, lens
 end
 
-function Format.MapInset(box)
-	return box * (FRAME_CHAMFER_SHARE - MASK_SHARE) / (2 * (1 - MASK_SHARE))
+function Format.ArcStep(size, spacing, radius)
+	if radius <= 0 then
+		return 0
+	end
+	return (size + spacing) / radius
+end
+
+function Format.Arc(index, size, spacing, radius, side, up)
+	local angle = ARC_START - (index - 1) * Format.ArcStep(size, spacing, radius)
+	local x, y = math.cos(angle) * radius, math.sin(angle) * radius
+	if up then
+		y = -y
+	end
+	if side == "left" then
+		x = -x
+	end
+	return x, y
 end
 
 function Format.Coords(x, y, precision)
@@ -129,21 +142,6 @@ function Format.ZoomAt(share, levels)
 	return max(0, min(last, floor(share * last + 0.5)))
 end
 
-function Format.ColumnReserve(size, gap)
-	return size + 2 * COLUMN_PAD + gap
-end
-
-function Format.MapRect(width, height, side, reserve)
-	local size = min(width - (reserve or 0), height)
-	if size < 0 then
-		size = 0
-	end
-	if side == "right" then
-		return 0, size
-	end
-	return width - size, size
-end
-
 local GRID_CORNER = { left = "TOPRIGHT", right = "TOPLEFT", down = "TOPLEFT", up = "BOTTOMLEFT" }
 local DRAWER_ANCHORS = {
 	left = { "TOPRIGHT", "TOPLEFT", -1, 0 },
@@ -156,7 +154,7 @@ function Format.Direction(direction, side)
 	if DRAWER_ANCHORS[direction] then
 		return direction
 	end
-	return side == "right" and "right" or "left"
+	return side == "left" and "right" or "left"
 end
 
 function Format.Grid(index, columns, size, spacing, direction, pad)

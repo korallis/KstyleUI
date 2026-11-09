@@ -1,4 +1,4 @@
--- Column.lua: the mockup's column of ringed round buttons on a dark plate beside the map, or the design's raised strip inside its right edge: tracking, mail, calendar and the group finder status.
+-- Column.lua: the small round crystal buttons on the lens's rim: tracking, mail, calendar, the group finder status and the drawer toggle, spaced along an arc of the circle.
 local _, ns = ...
 
 local K = KstyleUI
@@ -14,12 +14,7 @@ local GLYPH_COLUMNS, GLYPH_ROWS = 4, 2
 local CELLS = { tracking = 0, mail = 1, calendar = 2, queue = 3, drawer = 4 }
 local BADGE_SIZE = 6
 local BADGE_INSET = 1
-local STRIP_GAP = Tokens.Size("gapSmall")
-local GAP = Tokens.Size("gapSmall")
-local PLATE_INSET = Tokens.Size("gapSmall")
-local GLYPH_SHARE = 16 / 30
-local RING_ALPHA_SCALE = 2.5
-local max = math.max
+local GLYPH_SHARE = 14 / 22
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
 Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
@@ -147,15 +142,10 @@ local function NewButton(column, name)
 	button.icon:SetTexCoord(Column.Cell(name))
 	button:RegisterForClicks("AnyUp")
 	button.chrome:SetShown(false)
-	local disc = button:CreateTexture(nil, "BACKGROUND")
-	disc:SetTexture((Tokens.Texture("dot")))
-	disc:SetAllPoints(button)
-	disc:SetVertexColor(Tokens.Color("buttonFill"))
-	button.disc = disc
-	local ring = button:CreateTexture(nil, "BACKGROUND", nil, 1)
-	ring:SetTexture((Tokens.Texture("ringBevel")))
-	ring:SetAllPoints(button)
-	button.ring = ring
+	local crystal = Widgets.CrystalDisc(button)
+	button.crystal = crystal
+	button.disc = crystal.disc
+	button.ring = crystal.ring
 	local badge = button.overlay:CreateTexture(nil, "OVERLAY")
 	badge:SetTexture((Tokens.Texture("dot")))
 	badge:SetSize(BADGE_SIZE, BADGE_SIZE)
@@ -191,15 +181,7 @@ function Column.New(face, opts)
 	local host = CreateFrame("Frame", nil, face.holder)
 	host:SetAllPoints(face.holder)
 	host:SetFrameLevel(face.overlay:GetFrameLevel() + 1)
-	local strip = CreateFrame("Frame", nil, host)
-	strip.fill = strip:CreateTexture(nil, "BACKGROUND")
-	strip.fill:SetColorTexture(Tokens.Color("white"))
-	strip.fill:SetAllPoints(strip)
-	local plate = CreateFrame("Frame", nil, host)
-	plate:SetFrameLevel(host:GetFrameLevel())
-	plate.chrome = Widgets.Chrome(plate, { shape = "panel", edge = "edgeInner" })
-	plate:Hide()
-	local column = setmetatable({ face = face, holder = face.holder, host = host, strip = strip, plate = plate, preview = opts.preview == true, buttons = {} }, Column)
+	local column = setmetatable({ face = face, holder = face.holder, host = host, preview = opts.preview == true, buttons = {} }, Column)
 	for _, name in ipairs(Column.ORDER) do
 		column.buttons[name] = NewButton(column, name)
 	end
@@ -240,40 +222,6 @@ function Column:Active(name)
 	return false
 end
 
-local function PlaceStrip(self, size)
-	local face, strip = self.face, self.strip
-	local inset = face.inset or Widgets.Snap(face.box, Tokens.Size("gapSmall"))
-	local gap = Widgets.Snap(face.box, STRIP_GAP)
-	strip:ClearAllPoints()
-	strip:SetPoint("TOPRIGHT", face.box, "TOPRIGHT", -inset, -inset)
-	if face.strip:IsShown() then
-		strip:SetPoint("BOTTOMRIGHT", face.strip, "TOPRIGHT", 0, 0)
-	else
-		strip:SetPoint("BOTTOMRIGHT", face.box, "BOTTOMRIGHT", -inset, inset)
-	end
-	strip:SetWidth(size + 2 * gap)
-	return gap
-end
-
-local function PlacePlate(self, size, spacing, count, up, right)
-	local face, plate = self.face, self.plate
-	local gap = Widgets.Snap(face.box, GAP)
-	local pad = Widgets.Snap(face.box, ns.Format.COLUMN_PAD)
-	local inset = Widgets.Snap(face.box, PLATE_INSET)
-	local vertical = up and "BOTTOM" or "TOP"
-	local y = up and gap or -gap
-	plate:ClearAllPoints()
-	if right then
-		plate:SetPoint(vertical .. "LEFT", face.box, vertical .. "RIGHT", gap, y)
-	else
-		plate:SetPoint(vertical .. "RIGHT", face.box, vertical .. "LEFT", -gap, y)
-	end
-	count = max(count, 1)
-	plate:SetWidth(size + 2 * pad)
-	plate:SetHeight(2 * inset + count * size + (count - 1) * spacing)
-	return inset
-end
-
 local function Fit(button, size, inset)
 	if button.opts.size ~= size or button.opts.iconInset ~= inset then
 		button.opts.size, button.opts.iconInset = size, inset
@@ -282,13 +230,11 @@ local function Fit(button, size, inset)
 end
 
 function Column:Layout()
-	local holder = self.holder
+	local holder, face = self.holder, self.face
 	local size = Widgets.Snap(holder, Settings.Get("column.size"))
 	local spacing = Widgets.Snap(holder, Settings.Get("column.spacing"))
 	local side = Settings.Get("column.side")
-	local inside = side == "inside"
 	local up = Settings.Get("column.growth") == "up"
-	local vertical = up and "BOTTOM" or "TOP"
 	local shown = {}
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
@@ -298,35 +244,21 @@ function Column:Layout()
 			shown[#shown + 1] = button
 		end
 	end
-	self.strip:SetShown(inside)
-	self.plate:SetShown(not inside and #shown > 0)
-	local box, start, inset
-	local face = self.face
-	if inside then
-		box, start = self.strip, PlaceStrip(self, size)
-		local footer = face.strip:IsShown() and face.strip:GetHeight() or 0
-		local occupied = start + #shown * size + max(#shown - 1, 0) * spacing
-		face:PlaceSlider(up, (face.mapSize or 0) - footer - occupied)
-	else
-		box, start = self.plate, PlacePlate(self, size, spacing, #shown, up, side == "right")
-		inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
-		face:PlaceSlider(false, nil)
-	end
+	local area = face.mapArea
+	local radius = (face.mapSize or area:GetWidth() or 0) / 2
+	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
 	for slot, button in ipairs(shown) do
-		local offset = start + (slot - 1) * (size + spacing)
+		local x, y = ns.Format.Arc(slot, size, spacing, radius, side, up)
 		Fit(button, size, inset)
-		button.disc:SetShown(not inside)
-		button.ring:SetShown(not inside)
 		button:ClearAllPoints()
-		button:SetPoint(vertical, box, vertical, 0, up and offset or -offset)
+		button:SetPoint("CENTER", area, "CENTER", Widgets.Snap(holder, x), Widgets.Snap(holder, y))
 	end
+	face:PlaceSlider()
 end
 
 function Column:Paint()
 	local ar, ag, ab = Style.Accent()
 	local tr, tg, tb = Tokens.Color("textEmphasis")
-	local sr, sg, sb = Tokens.Color("surface")
-	self.strip.fill:SetVertexColor(sr, sg, sb, Settings.Get("strip.opacity"))
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
 		local active = self:Active(name)
@@ -337,7 +269,7 @@ function Column:Paint()
 			button:SetTint(tr, tg, tb)
 		end
 		button.badge:SetVertexColor(ar, ag, ab)
-		Widgets.Tint(button.ring, "edgeInner", RING_ALPHA_SCALE)
+		button.crystal:Paint()
 		button.badge:SetShown(name == "calendar" and active)
 	end
 end
