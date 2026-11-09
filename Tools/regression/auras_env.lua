@@ -394,8 +394,8 @@ function A.Engine(env, opts)
 	env._cvars.cooldownViewerEnabled = "1"
 	env.Enum.CooldownViewerCategory = env.Enum.CooldownViewerCategory or { Essential = 0, Utility = 1, TrackedBuff = 2, TrackedBar = 3 }
 	-- A def may carry flags (Enum.CooldownSetSpellFlags.HideByDefault hides it from the default set), isKnown, and
-	-- a category. env._cdmLayout = { [cooldownID] = category } is the player's saved layout (nil: none saved, or
-	-- dirty), read through CooldownViewerSettings:GetDataProvider() as Blizzard's viewers read it; a layout entry
+	-- a category. env._cdmLayout = { [cooldownID] = category } is the player's saved layout (nil: defaults),
+	-- read through CooldownViewerSettings:GetDataProvider(); env._cdmDirty makes it dirty. A layout entry
 	-- moves a cooldown to another category or drops it (false). env.BuffIconCooldownViewer.visibleSetting is the
 	-- tracked-buff viewer's Edit Mode visibility. EventRegistry callbacks fire with A.Trigger.
 	env.Enum.CooldownSetSpellFlags = env.Enum.CooldownSetSpellFlags or { HideByDefault = 2 }
@@ -435,7 +435,7 @@ function A.Engine(env, opts)
 			local layout = env._cdmLayout
 			local provider = {}
 			function provider.IsDirty()
-				return layout == nil
+				return env._cdmDirty == true
 			end
 			function provider.GetDisplayData()
 				local order, byID = {}, {}
@@ -444,6 +444,9 @@ function A.Engine(env, opts)
 					if category ~= false then
 						order[#order + 1] = id
 						byID[id] = info(id, def)
+						if (def.flags or 0) % 4 >= 2 then
+							byID[id].category = -2
+						end
 						if category ~= nil then
 							byID[id].category = category
 						end

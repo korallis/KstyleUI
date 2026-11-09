@@ -317,11 +317,12 @@ local function Range(f)
 		f:SetAlpha(1)
 		return
 	end
-	local inRange = UnitInRange(unit)
+	local inRange, checkedRange = UnitInRange(unit)
 	if f.SetAlphaFromBoolean then
 		f:SetAlphaFromBoolean(inRange, 1, range.alpha)
-	elseif not issecretvalue(inRange) then
-		f:SetAlpha(inRange and 1 or range.alpha)
+		f:SetAlphaFromBoolean(checkedRange, f:GetAlpha(), 1)
+	elseif not issecretvalue(inRange) and not issecretvalue(checkedRange) then
+		f:SetAlpha(checkedRange and not inRange and range.alpha or 1)
 	else
 		f:SetAlpha(1)
 	end

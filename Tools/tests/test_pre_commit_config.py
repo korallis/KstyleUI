@@ -59,9 +59,16 @@ class PreCommitConfigTest(unittest.TestCase):
         planned = {
             "check-merge-conflict", "check-yaml", "check-xml", "check-case-conflict", "detect-private-key",
             "trailing-whitespace", "check-added-large-files", "mixed-line-ending", "actionlint", "zizmor",
-            "conventional-pre-commit", "luacheck", "addon-crlf", "addon-ascii", "no-goto", "toc-files",
+            "conventional-pre-commit", "luacheck", "addon-crlf", "addon-ascii", "no-goto", "toc-files", "forever-api-contracts",
         }
         self.assertLessEqual(planned, set(self.hooks))
+
+    def test_api_contracts_checks_whole_addon_on_contract_changes(self):
+        hook = self.hooks["forever-api-contracts"]
+        self.assertEqual(hook["entry"], "python3 Tools/hooks/check_api_contracts.py")
+        self.assertEqual(hook["pass_filenames"], "false")
+        for path in ("Core/Events.lua", "KstyleUI.toc", "Core/Core.xml", "Tools/data/forever_api_contracts.json", "Tools/build/gen_api_contracts.py"):
+            self.assertRegex(path, hook["files"])
 
     def test_addon_crlf_finds_a_bare_line_feed(self):
         hook = self.hooks["addon-crlf"]

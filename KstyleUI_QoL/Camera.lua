@@ -8,24 +8,15 @@ local MAXIMUM = 2
 local MEMORY = "qolCamera"
 
 local function Get()
-	local get = C_CVar and C_CVar.GetCVar
-	if type(get) ~= "function" then
-		return nil
-	end
-	local ok, value = pcall(get, CVAR)
-	if ok and not ns.IsSecret(value) and type(value) == "string" then
+	local value = K.CVars.Get(CVAR)
+	if not ns.IsSecret(value) and type(value) == "string" then
 		return value
 	end
 	return nil
 end
 
 local function Set(value)
-	local set = C_CVar and C_CVar.SetCVar
-	if type(set) ~= "function" then
-		return false
-	end
-	local ok, done = pcall(set, CVAR, value)
-	return ok and done ~= false
+	return K.CVars.Set(CVAR, value)
 end
 
 local function Records(create)
@@ -83,8 +74,13 @@ local function Restore()
 	if type(record) ~= "table" then
 		return
 	end
-	if type(record.original) == "string" and Get() == record.written then
-		Set(record.original)
+	local valid = type(record.original) == "string" and type(record.written) == "string"
+	local current = valid and Get()
+	if valid and current == nil then
+		return
+	end
+	if valid and current == record.written and not Set(record.original) then
+		return
 	end
 	all[key] = nil
 end

@@ -40,7 +40,7 @@ CI runs everything, once: every Lua test file, the Python suite (`python3 -m uni
 
 `python3 Tools/hooks/check_toc.py` reports each file a TOC or an XML include lists that is missing, or whose letter case differs from the file on disk. Linux CI cannot find a file whose case differs, even when macOS can.
 
-`luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives addons, which `python3 Tools/build/gen_globals.py --source ~/.local/share/wow-dev/wow-ui-source` writes to `Tools/data/forever_globals.lua`. Regenerate that file when the Forever build changes. A global your module creates, such as a named frame, a `BINDING_HEADER_*` or `BINDING_NAME_*` string, or a `SLASH_*` command, goes on your module's line in the module section of `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means Forever does not have it or `.luacheckrc` denies it: use the replacement the deny list names, and never add a Blizzard name to your line.
+`luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives addons. `Tools/build/gen_globals.py --source <matching wow-ui-source> --global-strings <GlobalStrings.csv> --client-build <build>` writes `Tools/data/forever_globals.lua` from the UI source and the matching client's FrameXML GlobalStrings names. Export the CSV read-only with `Tools/icons/casc_export.py`'s `export_tables(..., tables=["GlobalStrings"])`; only names with the FrameXML flag are included, never localized values or GlueXML-only strings. Regenerate when the build changes; mismatched client and UI builds are rejected. A global your module creates, such as a named frame, a `BINDING_HEADER_*` or `BINDING_NAME_*` string, or a `SLASH_*` command, goes on your module's line in `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means the evidence does not prove it or `.luacheckrc` denies it: consult the matching source and never add a Blizzard name to your module's line.
 
 After the checks pass, get one cross-family review with `codex review --base origin/staging` and fix what it finds. KstyleUI does not use CodeRabbit: the owner removed it from the repository and the PR flow on 2026-11-07, overriding the global rule for this repository.
 
@@ -79,7 +79,7 @@ Change these only when your task needs it, and say why in the pull request:
 
 ## Forever API
 
-- Blizzard's UI source for the live build (1.60.1.70840) is the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever). On the owner's Mac a read-only checkout lives at `~/.local/share/wow-dev/wow-ui-source`.
+- Blizzard's UI source for the live build (1.60.1.70862, commit `9dc84f0`) is the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever). The matching read-only audit copy is at `~/.capy/work/wow-ui-source-70862`; the owner's checkout at `~/.local/share/wow-dev/wow-ui-source` is still 70840 and only the owner updates it.
 - Grep that source before you use any API, event, template, mixin, CVar, or Blizzard frame name. `Blizzard_APIDocumentationGenerated/` lists every C API with its `SecretReturns` and `SecretArguments` flags.
 - Forever does not load the `Blizzard_Deprecated*` folders. Forever overrides live in `Camelot/` subfolders.
 - Code defensively, as the spec's "Build mode" section says: check that an API exists before you call it, check `issecretvalue` before any comparison, and fall back to a safer path when the preferred one is unavailable.

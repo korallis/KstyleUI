@@ -1,4 +1,4 @@
--- Tracked.lua: the spells the Cooldown Manager's tracked-buff row shows, read out of the secure engine from the player's saved viewer layout when it is clean, else from the default category set less what it hides (base, override and linked spell ids, never a secret one), and only while that viewer is on and shown always, so the buff row can leave them out through the engine's own excludeSpellIDs filter without a buff ever vanishing from both places.
+-- Tracked.lua: the spells the Cooldown Manager's tracked-buff row shows, read from the player's effective viewer layout only when it is clean (base, override and linked spell ids, never a secret one), and only while that viewer is on and shown always; an unreadable layout leaves every buff in the aura row rather than assuming the default categories still match the player's choices.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,7 +9,6 @@ ns.Tracked = Tracked
 local MODULE = "Auras"
 local CVAR = "cooldownViewerEnabled"
 local CATEGORY = "TrackedBuff"
-local HIDE_BY_DEFAULT = 2
 local EVENTS = { "COOLDOWN_VIEWER_DATA_LOADED", "COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED", "COOLDOWN_VIEWER_TABLE_HOTFIXED", "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED" }
 local CALLBACKS = { "CooldownViewerSettings.OnDataChanged", "EditMode.Exit" }
 
@@ -44,31 +43,31 @@ end
 local function Enabled()
 	local cvars = C_CVar
 	if type(cvars) ~= "table" or type(cvars.GetCVarBool) ~= "function" then
-		return true
+		return false
 	end
 	local ok, on = pcall(cvars.GetCVarBool, CVAR)
 	if not ok or IsSecret(on) then
-		return true
+		return false
 	end
-	return on ~= false
+	return on == true
 end
 
 local function ShownAlways()
 	local viewer = BuffIconCooldownViewer
 	local setting = type(viewer) == "table" and Plain(rawget(viewer, "visibleSetting"))
 	if setting == nil then
-		return true
+		return false
 	end
 	local always = type(Enum) == "table" and type(Enum.CooldownViewerVisibleSetting) == "table" and Plain(Enum.CooldownViewerVisibleSetting.Always)
 	if always == nil then
-		return true
+		return false
 	end
 	return setting == always
 end
 
 local function Available()
 	local api = C_CooldownViewer
-	if type(api) ~= "table" or type(api.GetCooldownViewerCategorySet) ~= "function" or type(api.GetCooldownViewerCooldownInfo) ~= "function" then
+	if type(api) ~= "table" then
 		return false, "C_CooldownViewer is missing"
 	end
 	local category = type(Enum) == "table" and type(Enum.CooldownViewerCategory) == "table" and Enum.CooldownViewerCategory[CATEGORY]
@@ -77,7 +76,7 @@ local function Available()
 	end
 	if type(api.IsCooldownViewerAvailable) == "function" then
 		local ok, available = pcall(api.IsCooldownViewerAvailable)
-		if ok and available == false then
+		if not ok or IsSecret(available) or available ~= true then
 			return false, "the Cooldown Manager is not available"
 		end
 	end
@@ -88,22 +87,6 @@ local function Available()
 		return false, "the tracked-buff viewer is hidden or shown in combat only"
 	end
 	return true, category
-end
-
-local function HideMask()
-	local flags = type(Enum) == "table" and Enum.CooldownSetSpellFlags
-	local mask = type(flags) == "table" and Plain(flags.HideByDefault)
-	if type(mask) == "number" and mask > 0 then
-		return mask
-	end
-	return HIDE_BY_DEFAULT
-end
-
-local function HasFlag(flags, mask)
-	if type(flags) ~= "number" or IsSecret(flags) then
-		return false
-	end
-	return flags % (mask * 2) >= mask
 end
 
 local function Add(set, value)
@@ -157,39 +140,17 @@ local function FromLayout(data, category, set)
 	return n
 end
 
-local function FromDefaults(api, category, set)
-	local okSet, ids = pcall(api.GetCooldownViewerCategorySet, category, false)
-	if not okSet or type(ids) ~= "table" or IsSecret(ids) then
-		return nil
-	end
-	local mask, n = HideMask(), 0
-	for _, id in ipairs(ids) do
-		if Id(id) then
-			local okInfo, info = pcall(api.GetCooldownViewerCooldownInfo, id)
-			if okInfo and type(info) == "table" and not IsSecret(info) and not HasFlag(info.flags, mask) and info.isKnown ~= false then
-				n = n + AddInfo(set, info)
-			end
-		end
-	end
-	return n
-end
-
 function Tracked.Set()
 	local ok, category = Available()
 	if not ok then
 		return nil, category
 	end
-	local set = {}
 	local data = Layout()
-	local n
-	if data then
-		n = FromLayout(data, category, set)
-	else
-		n = FromDefaults(C_CooldownViewer, category, set)
+	if not data then
+		return nil, "the effective tracked-buff layout cannot be read"
 	end
-	if n == nil then
-		return nil, "the tracked-buff set cannot be read"
-	end
+	local set = {}
+	local n = FromLayout(data, category, set)
 	if n == 0 then
 		return nil, "no tracked buffs"
 	end

@@ -388,7 +388,7 @@ local function RowSplits(list, i)
 		return false
 	end
 	local slot = slots[i]
-	return slot ~= nil and slot.ok == true and i <= (list.count or 0) and SourceApi() ~= nil
+	return slot ~= nil and slot.ok == true and i <= (list.count or 0) and SourceApi()
 end
 
 local function FillSpells(list, info, meterType, sessionType, sessionID)

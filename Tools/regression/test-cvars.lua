@@ -39,7 +39,13 @@ end
 local function Start(opts)
 	local env, K = CoreEnv.New({ saved = opts.saved, player = opts.player, setup = function(e)
 		e._cvars, e._cvarWrites = opts.cvars, {}
-		e.C_CVar = { GetCVar = function(name) return e._cvars[name] end }
+		e.C_CVar = {
+			GetCVar = function(name) return e._cvars[name] end,
+			GetCVarInfo = function(name)
+				local value = e._cvars[name]
+				if value then return value, value, false, false, false, false, false end
+			end,
+		}
 		if not opts.noSetCVar then
 			e.C_CVar.SetCVar = function(name, value)
 				e._cvarWrites[#e._cvarWrites + 1] = { name = name, value = value }
@@ -81,6 +87,43 @@ end
 local function NoErrors(env)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
+
+Case("safe CVar operations reject unknown, protected and secret inputs", function()
+	local env, K = Start({ saved = Saved({}), cvars = { ok = "1", locked = "1", secure = "1", readonly = "1" } })
+	local writes = 0
+	env.C_CVar.GetCVarInfo = function(name)
+		if name == "unknown" then error("unknown CVar") end
+		return env._cvars[name], "0", false, false, name == "locked", name == "secure", name == "readonly"
+	end
+	env.C_CVar.GetCVar = function(name)
+		if name == "throws" then error("getter failed") end
+		return env._cvars[name]
+	end
+	env.C_CVar.SetCVar = function() writes = writes + 1; error("setter failed") end
+	env.C_CVar.SetCVarBitfield = function() writes = writes + 1; error("setter failed") end
+	for _, name in ipairs({ "unknown", "locked", "secure", "readonly" }) do
+		assert(not K.CVars.Exists(name) and K.CVars.Get(name) == nil and K.CVars.Default(name) == nil)
+		assert(not K.CVars.Set(name, "0") and not K.CVars.SetBitfield(name, 1, true))
+	end
+	assert(not K.CVars.Set(env.Secret("ok"), "0") and not K.CVars.Set("ok", env.Secret("0")))
+	assert(writes == 0, "unsafe or missing CVars never reach either setter")
+	env._cvars.throws = "1"
+	assert(K.CVars.Get("throws") == nil and not K.CVars.Set("ok", "0") and not K.CVars.SetBitfield("ok", 1, true))
+	assert(writes == 2, "native setter failures are contained")
+end)
+
+Case("a protected remembered CVar retains the player's value for a later retry", function()
+	local env, K = Start({ login = false, saved = Saved({ combatTextCVars = { [MAIN] = { [SELF] = Hidden("1") } } }), cvars = { [SELF] = "0" } })
+	local info = env.C_CVar.GetCVarInfo
+	env.C_CVar.GetCVarInfo = function(name)
+		if name == SELF then return "0", "1", false, true, false, true, false end
+		return info(name)
+	end
+	CoreEnv.Login(env)
+	env.RunTimers()
+	assert(#env._cvarWrites == 0 and Memory(env, "combatTextCVars", MAIN)[SELF], "protected memory is retained without a write")
+	assert(not K.CVars.Exists(SELF))
+end)
 
 Case("an alt whose CombatText is off gets the numbers over targets back, which another character hid for every character", function()
 	local env = Start({

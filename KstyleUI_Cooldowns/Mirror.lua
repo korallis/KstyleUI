@@ -88,7 +88,7 @@ local function Texture(texture, entry)
 	texture:SetTexture(fileID)
 end
 
-local function SpellCooling(spell)
+local function SpellCooling(spell, cooldownEvent)
 	local api = C_Spell
 	if not (Present(spell) and api and api.GetSpellCooldown) then
 		return nil
@@ -97,11 +97,21 @@ local function SpellCooling(spell)
 	if not ok or type(info) ~= "table" or ns.IsSecret(info) then
 		return nil
 	end
-	local active, gcd = info.isActive, info.isOnGCD
-	if ns.IsSecret(active) or ns.IsSecret(gcd) then
+	local active = info.isActive
+	if ns.IsSecret(active) then
 		return nil
 	end
-	return active == true and gcd ~= true
+	if active ~= true then
+		return false
+	end
+	if cooldownEvent then
+		local gcd = info.isOnGCD
+		if ns.IsSecret(gcd) then
+			return nil
+		end
+		return gcd ~= true
+	end
+	return true
 end
 
 local function Ready(row, icon)
@@ -109,8 +119,8 @@ local function Ready(row, icon)
 	Style.SetReady(icon, ready)
 end
 
-local function SetCooldownState(row, icon, spell)
-	local cooling = SpellCooling(spell)
+local function SetCooldownState(row, icon, spell, cooldownEvent)
+	local cooling = SpellCooling(spell, cooldownEvent)
 	if cooling == nil then
 		cooling = icon.cooling == true
 	end
@@ -140,7 +150,7 @@ local function CooldownSpell(entry)
 	return entry.spell or CategorySpell(entry)
 end
 
-local function Cooldown(row, icon)
+local function Cooldown(row, icon, cooldownEvent)
 	local spell = CooldownSpell(icon.entry)
 	local cooldown = icon.cooldown
 	local getter = C_Spell and C_Spell.GetSpellCooldownDuration
@@ -158,7 +168,7 @@ local function Cooldown(row, icon)
 	elseif not SetDuration(row.group, cooldown, duration) then
 		return
 	end
-	SetCooldownState(row, icon, spell)
+	SetCooldownState(row, icon, spell, cooldownEvent)
 end
 
 local function Charges(icon)
@@ -668,7 +678,7 @@ local function EachCooldownIcon(fn)
 end
 
 local function CooldownIcon(row, icon)
-	Cooldown(row, icon)
+	Cooldown(row, icon, true)
 	if icon.entry and icon.entry.charges then
 		Charges(icon)
 	end
