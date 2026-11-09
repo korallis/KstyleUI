@@ -183,6 +183,25 @@ do
 	env.SetCombat(false)
 	panel.open.onClick(panel.open)
 	eq(click.opened, 1, "the button opens the game's Click Casting window")
+	-- Opus R3 #4: the help paragraph and the empty-list line are sentences in the body role, not uppercase captions.
+	local help = panel.help._state.Text[1]
+	assert(help:find("^Drop a spell below"), "the help reads in sentence case: " .. help)
+	click.profile = {}
+	panel:Refresh()
+	eq(panel.more._state.Text[1], "No spells bound yet.", "the empty list says so in sentence case")
+	-- Opus R3 defect 7: a binding the client returns with a secret field is never dropped by a later write; the
+	-- panel refuses to change the profile instead of saving a shorter one.
+	click.profile = {
+		{ type = 1, actionID = env.Secret(774), button = "LeftButton", modifiers = 0 },
+		{ type = 1, actionID = 139, button = "RightButton", modifiers = 0 },
+	}
+	click.saved = nil
+	local removed, why = C.Remove(1)
+	eq(removed, false, "a remove refuses while a binding cannot be read")
+	assert(type(why) == "string" and why ~= "", "and says why")
+	eq((C.Add(1, 2061, "MiddleButton", 0)), false, "so does an add")
+	eq(click.saved, nil, "and nothing reaches the game, so no binding is lost")
+	click.profile = {}
 end
 
 -- Muse #3, Fable R2-2: party debuff icons sit outside right by default; the card keeps a lane for them, so the

@@ -44,6 +44,11 @@ local SAMPLE_ICONS = { 136207, 135848, 136139 }
 local BUFFS = "buffs"
 local BUFF_FILTER = "HELPFUL|PLAYER"
 local SAMPLE_BUFF_ICONS = { 136081, 135953, 135940 }
+local MARK_COLORS = { [BOSS] = "hostile", [IMPORTANT] = "neutral", [DISPELS] = "rare", [GROUP] = "textEmphasis" }
+local MARK_LIFT = 2
+local MORE = "dispelMore"
+local MORE_PITCH = 2
+local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 
 local available = true
 local buffsAvailable = true
@@ -112,6 +117,15 @@ local function Order()
 end
 Auras.Order = Order
 
+local function MarkLift(key)
+	local rank = key and Order()[key]
+	if not rank then
+		return 0
+	end
+	return MARK_LIFT * (#GROUPS + 1 - rank)
+end
+Auras.MarkLift = MarkLift
+
 local function Block(f, k)
 	local w, h = Style.Size(f)
 	local size, spacing = Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
@@ -131,11 +145,14 @@ local function GroupCount(f, k, key)
 	return cells + OVERFLOW
 end
 
-local function Candidates(key, types)
+local function Candidates(key, types, k)
 	if key == BOSS then
 		return { isBossAura = true }
 	elseif key == IMPORTANT then
 		return { isBossAura = false, isPriorityAura = true }
+	end
+	if key == GROUP and k and DispelCount(k) <= 0 then
+		return { isBossAura = false, isPriorityAura = false }
 	end
 	local processed = key == DISPELS and types.Dispel or types.Debuff
 	return { processedAuraType = processed, isBossAura = false, isPriorityAura = false }
@@ -296,8 +313,9 @@ function Auras.PlaceMark(p, button, f, k)
 	back:SetSize(badge, badge)
 	back:SetPoint("TOPRIGHT", button, "TOPRIGHT", (columns - 1) * step * gx, -rows * step * gy)
 	Style.SetFont(mark, Settings.current.text.healthFont, math.max(MARK_MIN, math.floor(badge + 0.5)), "OUTLINE")
-	mark:SetTextColor(Tokens.Color("textEmphasis"))
+	mark:SetTextColor(Tokens.Color(MARK_COLORS[p.group] or "textEmphasis"))
 	mark:SetText(MARK)
+	p.textFrame:SetFrameLevel(button:GetFrameLevel() + TEXT_ABOVE + MarkLift(p.group))
 	mark:ClearAllPoints()
 	mark:SetPoint("CENTER", back, "CENTER", 0, 0)
 end
@@ -380,7 +398,7 @@ local function GateChrome(chrome, f, p)
 	return restyle
 end
 
-local function BuildIcon(button)
+local function BuildIcon(button, key)
 	if button.SetMouseClickEnabled then
 		if not pcall(button.SetMouseClickEnabled, button, false) then
 			Style.LogOnce("auraClicks", "aura buttons refused SetMouseClickEnabled(false); debuff icons may catch clicks")
@@ -393,6 +411,7 @@ local function BuildIcon(button)
 	local p = NewTile(button)
 	p.owner = f
 	p.buff = buffHolders[holder] == true
+	p.group = key
 	p.restyleChrome = GateChrome(p.chrome, f, p)
 	p.dispel = Widgets.NineSlice(p.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
 	Widgets.ShowSlice(p.dispel, false)
@@ -406,6 +425,7 @@ local function BuildIcon(button)
 	local textFrame = CreateFrame("Frame", nil, p.skin)
 	textFrame:SetAllPoints(p.skin)
 	textFrame:SetFrameLevel(button:GetFrameLevel() + TEXT_ABOVE)
+	p.textFrame = textFrame
 	local count = Widgets.FontString(textFrame, "OVERLAY")
 	count:SetJustifyH("RIGHT")
 	p.markBack = textFrame:CreateTexture(nil, "OVERLAY", nil, MARK_BACK_SUBLEVEL)
@@ -427,10 +447,16 @@ local function BuildIcon(button)
 	end
 end
 
-local function InitIcon(button)
-	local ok, err = pcall(BuildIcon, button)
+local function InitIcon(button, key)
+	local ok, err = pcall(BuildIcon, button, key)
 	if not ok then
 		Style.LogOnce("auraButton", "building a debuff icon failed: " .. tostring(err))
+	end
+end
+
+local function GroupInit(key)
+	return function(button)
+		InitIcon(button, key)
 	end
 end
 
@@ -496,14 +522,14 @@ local function BuildDispel(slot, f)
 end
 
 local function GroupOptions(f, k, key, types)
-	local options = { maxFrameCount = GroupCount(f, k, key), initializeFrame = InitIcon, layout = GroupLayout(f, k, key) }
+	local options = { maxFrameCount = GroupCount(f, k, key), initializeFrame = GroupInit(key or GROUP), layout = GroupLayout(f, k, key) }
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if methods and directions then
 		options.sortMethod = types and methods.UnitFrameDebuff or methods.Default
 		options.sortDirection = directions.Normal
 	end
 	if types then
-		options.candidateFilters = Candidates(key, types)
+		options.candidateFilters = Candidates(key, types, k)
 	end
 	return options
 end
@@ -532,6 +558,12 @@ local function SetUnit(f, unit)
 		local lit, litErr = pcall(f.highlights.SetUnit, f.highlights, unit)
 		if not lit then
 			Style.LogOnce("highlightUnit", "a highlight container refused a unit: " .. tostring(litErr))
+		end
+	end
+	if f.dispelMore then
+		local set, moreErr = pcall(f.dispelMore.ghost.SetUnit, f.dispelMore.ghost, unit)
+		if not set then
+			Style.LogOnce("dispelMoreUnit", "the dispel overflow ghost refused a unit: " .. tostring(moreErr))
 		end
 	end
 	if ok then
@@ -566,6 +598,106 @@ local function NewHighlights(f)
 		pcall(container.SetEditModePreviewEnabled, container, false)
 	end
 	return container
+end
+
+local function LayoutFrame(parent)
+	local ok, frame = pcall(CreateFrame, "Frame", nil, parent, LAYOUT_TEMPLATE)
+	if ok and type(frame) == "table" then
+		return frame
+	end
+end
+
+local function Mute(button)
+	pcall(button.EnableMouse, button, false)
+end
+
+local function NewDispelGhost(f, filter)
+	local policy, types = Processing()
+	if not policy then
+		return nil
+	end
+	local host = CreateFrame("Frame", nil, f)
+	host:SetAlpha(0)
+	local ok, ghost = pcall(CreateFrame, "AuraContainer", nil, host, TEMPLATE)
+	local window = LayoutFrame(f)
+	local face = window and LayoutFrame(window)
+	if not ok or type(ghost) ~= "table" or type(ghost.AddAuraGroup) ~= "function" or not face then
+		host:Hide()
+		Style.LogOnce("dispelMore", "the dispel overflow ghost could not be made; dispellable debuffs past the dispel count raise no mark")
+		return nil
+	end
+	if type(ghost.SetEditModePreviewEnabled) == "function" then
+		pcall(ghost.SetEditModePreviewEnabled, ghost, false)
+	end
+	local added, err = pcall(function()
+		ghost:SetAuraProcessingPolicy(policy, PolicyOptions())
+		ghost:AddAuraGroup(MORE, filter, {
+			maxFrameCount = OVERFLOW + 1, initializeFrame = Mute, candidateFilters = Candidates(DISPELS, types),
+			layout = { elementWidth = 1, elementHeight = 1, elementSpacing = 0, lineSpacing = 0 },
+		})
+		ghost:SetFlowLayoutAnchorPoint("TOPLEFT")
+		local direction = AnchorUtil and AnchorUtil.FlowDirection
+		if direction then
+			ghost:SetFlowLayoutGrowthDirection(direction.Right, direction.Down)
+		end
+		ghost:SetFlowLayoutMaximumLineSize(1)
+	end)
+	if not added then
+		host:Hide()
+		window:Hide()
+		Style.LogOnce("dispelMoreGroup", "the dispel overflow ghost refused its group: " .. tostring(err))
+		return nil
+	end
+	window:SetClipsChildren(true)
+	local back = face:CreateTexture(nil, "OVERLAY", nil, MARK_BACK_SUBLEVEL)
+	back:SetAllPoints(face)
+	back:SetColorTexture(Widgets.Rgba("black", MARK_BACK_ALPHA))
+	local text = Widgets.FontString(face, "OVERLAY")
+	text:SetDrawLayer("OVERLAY", MARK_SUBLEVEL)
+	text:SetPoint("CENTER", face, "CENTER", 0, 0)
+	return { host = host, ghost = ghost, window = window, face = face, back = back, text = text, key = MORE }
+end
+
+local function MarkCorner(k, size)
+	local side = k.auraGrowth == "LEFT" and "LEFT" or "RIGHT"
+	local vertical = k.auraWrap == "DOWN" and "TOP" or "BOTTOM"
+	return vertical .. side, side == "LEFT" and size or 0, vertical == "BOTTOM" and size or 0
+end
+
+local function ConfigureDispelGhost(f, k, a, block, filter)
+	local more = f.dispelMore
+	if not more then
+		return
+	end
+	local ghost = more.ghost
+	local on = a.enabled and f.processed and DispelCount(k) > 0 and block.cells > 0
+	ghost:SetAuraGroupEnabled(MORE, on and true or false)
+	more.window:SetShown(on and true or false)
+	if not on then
+		return
+	end
+	local cap = GroupCount(f, k, DISPELS) + OVERFLOW
+	local badge = Widgets.Snap(f, math.max(MARK_MIN, block.size * MARK_SHARE))
+	local pitch = badge * MORE_PITCH
+	ghost:SetAuraProcessingPolicy(Processing(), PolicyOptions())
+	ghost:SetAuraGroupFilterString(MORE, filter)
+	ghost:SetAuraGroupMaxFrameCount(MORE, cap)
+	ghost:SetAuraGroupLayout(MORE, { elementWidth = 1, elementHeight = pitch, elementSpacing = 0, lineSpacing = 0 })
+	local window = more.window
+	local corner, x, y = MarkCorner(k, block.size)
+	window:ClearAllPoints()
+	window:SetSize(badge, badge)
+	window:SetPoint("TOPRIGHT", f.auraClip, corner, x, y)
+	window:SetFrameLevel(f.auras:GetFrameLevel() + 1 + TEXT_ABOVE + MarkLift(DISPELS) + 1)
+	ghost:ClearAllPoints()
+	ghost:SetPoint("TOPLEFT", window, "TOPLEFT", 0, cap * pitch)
+	local face = more.face
+	face:ClearAllPoints()
+	face:SetPoint("TOPLEFT", ghost, "BOTTOMLEFT", 0, 0)
+	face:SetSize(badge, badge)
+	Style.SetFont(more.text, Settings.current.text.healthFont, math.max(MARK_MIN, math.floor(badge + 0.5)), "OUTLINE")
+	more.text:SetTextColor(Tokens.Color(MARK_COLORS[DISPELS]))
+	more.text:SetText(MARK)
 end
 
 local function NewContainer(f)
@@ -626,6 +758,9 @@ local function NewContainer(f)
 		if not slotted then
 			Style.LogOnce("dispelSlot", "the dispel highlight slot could not be added: " .. tostring(slotErr))
 		end
+	end
+	if f.processed then
+		f.dispelMore = NewDispelGhost(f, FILTERS[a.filter] or FILTERS.ALL)
 	end
 	Style.LogOnce("auraEngine", "group frame debuffs run on the AuraContainer engine")
 	return container
@@ -775,7 +910,12 @@ local function Configure(f)
 	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))
 	container:SetAuraGroupMaxFrameCount(GROUP, GroupCount(f, k, GROUP))
 	container:SetAuraGroupFilterString(GROUP, filter)
+	if f.processed then
+		local _, types = Processing()
+		container:SetAuraGroupCandidateFilters(GROUP, Candidates(GROUP, types, k))
+	end
 	container:SetAuraGroupEnabled(GROUP, a.enabled)
+	ConfigureDispelGhost(f, k, a, block, filter)
 	if f.dispelSlot then
 		highlights:SetAuraSlotFilterString(SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
 		highlights:SetAuraSlotEnabled(SLOT, a.dispelHighlight)
@@ -815,6 +955,9 @@ local function Bind(f)
 			f.auras:Hide()
 			if f.highlights then
 				f.highlights:Hide()
+			end
+			if f.dispelMore then
+				f.dispelMore.window:Hide()
 			end
 		end
 		return

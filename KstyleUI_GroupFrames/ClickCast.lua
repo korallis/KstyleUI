@@ -47,13 +47,26 @@ function ClickCast.Profile()
 	if not ok or type(list) ~= "table" then
 		return nil
 	end
-	local out = {}
+	local out, whole = {}, true
 	for _, info in ipairs(list) do
 		if type(info) == "table" and Plain(info.type) and Plain(info.actionID) and Plain(info.button) and Plain(info.modifiers) then
 			out[#out + 1] = { type = info.type, actionID = info.actionID, button = info.button, modifiers = info.modifiers }
+		else
+			whole = false
 		end
 	end
-	return out
+	return out, whole
+end
+
+local function Editable()
+	local profile, whole = ClickCast.Profile()
+	if not profile then
+		return nil, L["This client has no Click Casting."]
+	end
+	if not whole then
+		return nil, L["Some bindings can't be read now; change them in the game's Click Casting window."]
+	end
+	return profile
 end
 
 local function ButtonText(button)
@@ -117,8 +130,11 @@ local function Save(profile)
 end
 
 function ClickCast.Remove(index)
-	local profile = ClickCast.Profile()
-	if not profile or not profile[index] then
+	local profile, why = Editable()
+	if not profile then
+		return false, why
+	end
+	if not profile[index] then
 		return false
 	end
 	table.remove(profile, index)
@@ -126,9 +142,9 @@ function ClickCast.Remove(index)
 end
 
 function ClickCast.Add(kind, actionID, button, modifiers)
-	local profile = ClickCast.Profile()
+	local profile, why = Editable()
 	if not profile then
-		return false, L["This client has no Click Casting."]
+		return false, why
 	end
 	local kept = {}
 	for _, info in ipairs(profile) do
@@ -187,7 +203,7 @@ local function Row(panel)
 	row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
 	row.key = Widgets.Text(row, "caption", "textEmphasis")
 	row.key:SetPoint("LEFT", row.icon, "RIGHT", Tokens.Size("gapSmall"), 0)
-	row.name = Widgets.Text(row, "caption", "text")
+	row.name = Widgets.Text(row, "body", "text")
 	row.name:SetWordWrap(false)
 	row.remove = Widgets.CloseButton(row, function()
 		local ok, err = ClickCast.Remove(row.index)
@@ -237,7 +253,7 @@ function ClickCast.Panel(parent)
 	panel.cap = Widgets.SectionCap(panel, { text = L["Click casting"] })
 	panel.cap:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, 0)
 	panel.cap:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, 0)
-	panel.help = Widgets.Text(panel, "caption", "text")
+	panel.help = Widgets.Text(panel, "body", "text")
 	panel.help:SetJustifyH("LEFT")
 	panel.help:SetPoint("TOPLEFT", panel.cap, "BOTTOMLEFT", 0, -Tokens.Size("gapSmall"))
 	panel.help:SetPoint("RIGHT", panel, "RIGHT", 0, 0)
@@ -252,7 +268,7 @@ function ClickCast.Panel(parent)
 		panel.rows[i] = row
 		above = row
 	end
-	panel.more = Widgets.Text(panel, "caption", "textDisabled")
+	panel.more = Widgets.Text(panel, "body", "textDisabled")
 	panel.more:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 0, 2 * BUTTON_HEIGHT + 2 * Tokens.Size("gapSmall"))
 	panel.drop = Widgets.Button(panel, {
 		text = L["Drop a spell or macro here"],
