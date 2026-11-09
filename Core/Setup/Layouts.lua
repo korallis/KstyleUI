@@ -178,6 +178,7 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar1.rows", value = 1 },
 	{ module = "ActionBars", key = "pet.rows", value = 2 },
 	{ module = "ActionBars", key = "stance.rows", value = 2 },
+	{ module = "ActionBars", key = "stance.growth", value = "RIGHTUP" },
 	{ module = "ActionBars", key = "bar1.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar2.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
@@ -191,12 +192,18 @@ local SHARED_SETTINGS = {
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
 	{ module = "GroupFrames", key = "raid.width", value = 77 },
 }
+local BOSS_LEFT = {
+	{ module = "UnitFrames", key = "boss.auraPosition", value = "LEFT" },
+	{ module = "UnitFrames", key = "boss.auraGrowth", value = "LEFT_DOWN" },
+}
 local EXTRA = {
-	DPS = {},
-	Tank = {},
+	DPS = BOSS_LEFT,
+	Tank = BOSS_LEFT,
 	Healer = {
 		{ module = "GroupFrames", key = "party.auraDispelCount", value = 2 },
 		{ module = "GroupFrames", key = "raid.auraDispelCount", value = 2 },
+		{ module = "UnitFrames", key = "boss.auraPosition", value = "RIGHT" },
+		{ module = "UnitFrames", key = "boss.auraGrowth", value = "RIGHT_DOWN" },
 	},
 }
 local ROWS = {

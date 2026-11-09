@@ -81,6 +81,16 @@ assert(mp[1] == "TOPRIGHT" and mp[2] == view.frame and mp[3] == "TOPRIGHT" and n
 local rowHeight = ns.Menus.Holder("micro"):GetHeight()
 assert(bp[1] == "TOPRIGHT" and bp[2] == view.frame and bp[3] == "TOPRIGHT" and bp[4] < 0 and near(bp[5], mp[5]), "on the 492 strip the bag bar shares the micro row, at the right")
 assert(near(mp[4], bp[4] - bagsWidth - 6, 0.5), "and the micro menu sits just left of the bags: " .. tostring(mp[4]) .. " for " .. tostring(bp[4] - bagsWidth - 6))
+-- The micro row's offset follows the bag row's own spacing (codex review: a wider bag gap once ran the bags into it).
+K.Options.Write("DataBars", "bags.spacing", 12)
+env.RunTimers()
+do
+	local m, bg = micro._points[1], bags._points[1]
+	local width = ns.Menus.Holder("bags"):GetWidth()
+	assert(near(m[4], bg[4] - width - 6, 0.5), "with wider bag gaps the micro menu still sits just left of the bags: " .. tostring(m[4]) .. " for " .. tostring(bg[4] - width - 6))
+end
+K.Options.Write("DataBars", "bags.spacing", ns.Settings().micro.spacing)
+env.RunTimers()
 local height = view.line + 6 + rowHeight + view.pad
 assert(near(view.frame:GetHeight(), height, 0.5) and near(K.Layout.Get("databars.strip").height, height, 0.5), "the card and its Layout element are the line and the row: " .. tostring(view.frame:GetHeight()) .. " for " .. tostring(height))
 -- On the Lumen rail's 318 the two bars cannot share a row at a readable size, so the bag row drops under the micro row.

@@ -1,4 +1,4 @@
--- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width and fills from its foot, so a few forms sit in one row on the bar's baseline.
+-- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width, so a few forms sit in one row on the bar's baseline.
 local _, ns = ...
 
 local K = KstyleUI
@@ -201,7 +201,17 @@ function Bar:Layout()
 		if i <= count then
 			local col, row
 			if cols then
-				col, row = (i - 1) % cols, used - 1 - floor((i - 1) / cols)
+				if cfg.orientation == "VERTICAL" then
+					row, col = (i - 1) % used, floor((i - 1) / used)
+				else
+					col, row = (i - 1) % cols, floor((i - 1) / cols)
+				end
+				if cfg.growth == "LEFTDOWN" or cfg.growth == "LEFTUP" then
+					col = cols - 1 - col
+				end
+				if cfg.growth == "RIGHTUP" or cfg.growth == "LEFTUP" then
+					row = used - 1 - row
+				end
 			else
 				col, row = ns.Cell(i, count, cfg.rows, cfg.orientation, cfg.growth)
 			end

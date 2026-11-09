@@ -339,6 +339,7 @@ do
 	-- forms make one row on the bar's foot, beside bar 1 and on its baseline, never 2 + 1 (round 3, Fable #3); a sixth
 	-- form starts a second row above the first.
 	SK.Options.Write("ActionBars", "stance.rows", 2)
+	SK.Options.Write("ActionBars", "stance.growth", "RIGHTUP")
 	env.RunTimers()
 	local w, h = bar.holder:GetSize()
 	assert(near(w, 5 * 30 + 4 * 3) and near(h, 30), "two rows of five: the bar is a full row wide and one row tall for three forms, got " .. w .. " x " .. h)
@@ -354,7 +355,20 @@ do
 	assert(near(w, 5 * 30 + 4 * 3) and near(h, 2 * 30 + 3), "six forms take a second row: " .. w .. " x " .. h)
 	local _, _, _, x1, y1 = bar.buttons[1]:GetPoint(1)
 	local _, _, _, x6, y6 = bar.buttons[6]:GetPoint(1)
-	assert(near(x1, 0) and near(y1, -33) and near(x6, 0) and near(y6, 0), "the first five stay on the foot, the sixth starts the row above")
+	assert(near(x1, 0) and near(y1, -33) and near(x6, 0) and near(y6, 0), "growing up, the first five stay on the foot, the sixth starts the row above")
+	-- The player's fill order and growth still apply (codex review): growing left and down, form 1 takes the top
+	-- row's right end; filling columns first, forms 1 and 2 stack in the first column.
+	SK.Options.Write("ActionBars", "stance.growth", "LEFTDOWN")
+	env.RunTimers()
+	x1, y1 = select(4, bar.buttons[1]:GetPoint(1)), select(5, bar.buttons[1]:GetPoint(1))
+	assert(near(x1, 4 * 33) and near(y1, 0), "growing left and down, form 1 sits at the top row's right end: " .. x1 .. ", " .. y1)
+	SK.Options.Write("ActionBars", "stance.growth", "RIGHTDOWN")
+	SK.Options.Write("ActionBars", "stance.orientation", "VERTICAL")
+	env.RunTimers()
+	local _, _, _, ax, ay = bar.buttons[1]:GetPoint(1)
+	local _, _, _, bx, by = bar.buttons[2]:GetPoint(1)
+	assert(near(ax, 0) and near(ay, 0) and near(bx, 0) and near(by, -33), "filling columns first, forms 1 and 2 share the first column")
+	SK.Options.Write("ActionBars", "stance.orientation", "HORIZONTAL")
 	SK.Options.Write("ActionBars", "stance.rows", 1)
 	env.RunTimers()
 	env._game.forms = {}

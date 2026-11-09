@@ -571,8 +571,8 @@ function Strip.DockMenus(view, s)
 	local rowTop = -(line + gap)
 	local height = line + gap + plan.height + pad
 	local bagCount = DockCount(Menus, "bags")
-	local spacing = Widgets.Snap(frame, settings.micro.spacing)
-	local beside = plan.oneRow and bagCount > 0 and (bagCount * plan.tile + (bagCount - 1) * spacing + 2 * MENU_PAD + gap) or 0
+	local bagGap = Widgets.Snap(frame, settings.bags.spacing)
+	local beside = plan.oneRow and bagCount > 0 and (bagCount * plan.tile + (bagCount - 1) * bagGap + 2 * MENU_PAD + gap) or 0
 	view.line = line
 	view.lineTop = nil
 	for id, spec in pairs(DOCK) do

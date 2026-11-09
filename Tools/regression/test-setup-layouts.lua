@@ -418,6 +418,8 @@ for _, name in ipairs(names) do
 	end
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
 	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
+	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
+	assert(settings["UnitFrames.boss.auraPosition"] == (name == "Healer" and "RIGHT" or "LEFT"), name .. " hangs the boss debuffs towards the centre")
 	-- Empty sockets hide in Lumen (round 3, Opus #6): bar 1's twelfth socket read as a dark tile at the row's end. A
 	-- spell on the cursor still shows every socket to drop it on.
 	for i = 1, 6 do

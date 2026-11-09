@@ -84,6 +84,35 @@ do
 	assert(s.auraPosition == "LEFT" and fw - element.width >= auraW, "the boss auras hang left of the cards inside the footprint: " .. (fw - element.width) .. " < " .. auraW)
 	local _, _, w, h = UK.Layout.Rect("unitframes.boss")
 	assert(math.abs(w - element.width) < 1 and math.abs(h - element.height) < 1, "the boss holder is built at the element's size")
+	-- Each preset's live boss column: with the preset's own unit-frame settings and at its position, every card's debuff
+	-- row lies inside the footprint the preset keeps and on screen (Healer heads the left rail, where the debuffs
+	-- hang towards the centre on the right of the cards; codex review: they once hung off the left edge).
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	local root = UK.Scale.Root()
+	local rw, rh = UK.Layout.RootSize()
+	for i = 1, 5 do
+		uenv._units["boss" .. i] = { name = "Boss " .. i, level = 62, health = 500, healthMax = 1000, reaction = 2, canAttack = true }
+	end
+	uenv.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+	for _, name in ipairs(Layouts.Names()) do
+		for _, entry in ipairs(Layouts.Settings(name)) do
+			if entry.module == "UnitFrames" then
+				UK.Options.Write("UnitFrames", entry.key, entry.value)
+			end
+		end
+		local position = Layouts.Get(name)["unitframes.boss"]
+		assert(UK.Layout.Update("unitframes.boss", { anchor = position.anchor, x = position.x, y = position.y }))
+		uenv.RunTimers()
+		local bw, bh = Layouts.Footprint(name, "unitframes.boss")
+		local l, b, r, t = Layouts.Rect({ width = bw, height = bh }, position, rw, rh)
+		for i, view in ipairs(UK.Layout and ns.Frames.Get("boss").views or {}) do
+			local host = Geometry.Rect(view.auras.host, root)
+			assert(host and host.left >= l - 0.5 and host.right <= r + 0.5 and host.bottom >= b - 0.5 and host.top <= t + 0.5,
+				string.format("%s: boss%d's debuff row (%.0f-%.0f) lies inside the column's footprint (%.0f-%.0f)", name, i, host and host.left or -1, host and host.right or -1, l, r))
+			local card = Geometry.Rect(view.button, root)
+			assert(host.right <= card.left + 0.5 or host.left >= card.right - 0.5, name .. ": boss" .. i .. "'s debuffs sit beside its card")
+		end
+	end
 	assert(#uenv._errors == 0, tostring(uenv._errors[1]))
 end
 
