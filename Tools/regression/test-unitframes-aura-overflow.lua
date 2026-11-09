@@ -242,7 +242,8 @@ do
 			button:SetShown(i <= shown)
 			K.Widgets.SetText(byButton[button].timer, (2 + i * 3) .. "s")
 		end
-		chip.ghost:SetSize(1, math.max(1, n * chip.pitch))
+		-- The counting container's own layout: one element per line, as tall as its group's layout says.
+		chip.ghost:SetSize(1, math.max(1, n * chip.ghost._groups.count.layout.elementHeight))
 		return buttons, shown
 	end
 	for _, n in ipairs({ cap - 1, cap, cap + 1, 16, 24 }) do

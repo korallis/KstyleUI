@@ -108,7 +108,7 @@ do
 		end
 		return out
 	end
-	local function Check(write, label)
+	local function Check(write, label, between)
 		local env, K, ns = N.New()
 		for key, value in pairs(write) do
 			K.Options.Write("Nameplates", key, value)
@@ -123,6 +123,10 @@ do
 		local n = columns * rows
 		N.Debuffs(env, "nameplate1", n)
 		local buttons = Place(plate.auras, plate.auras._groups.debuffs, n, columns)
+		if between then
+			-- The engine keeps laying out its buttons; the stub's single row needs no new place.
+			between(env, K)
+		end
 		local health = rect(env, plate.health)
 		local above, below = ns.Auras.Extent(plate)
 		local reach = { health[1] - 100, health[2] - above, health[3] + 200, above + health[4] + below }
@@ -148,11 +152,29 @@ do
 				string.format("%s: tile %d's timer lane is inside the plate's extent (%.1f-%.1f in %.1f-%.1f)", label, i, t[2], t[2] + t[4], reach[2], reach[2] + reach[4]))
 		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
+		return env, plate, buttons
 	end
 	Check({}, "the defaults")
 	Check({ ["debuffs.rows"] = 2 }, "two rows")
 	Check({ ["debuffs.growthY"] = "DOWN" }, "growing down")
 	Check({ ["debuffs.rows"] = 2, ["debuffs.growthY"] = "DOWN", ["debuffs.size"] = 32 }, "two rows of 32 growing down")
+	-- Time left switched off while aura data is secret: the buttons keep their timers until their restyle may run,
+	-- so the row keeps its lane until then, and closes it with them (round 5 codex review).
+	local env, plate, buttons = Check({}, "time off while auras are secret", function(env, K)
+		env._aurasSecret = true
+		env.SetCombat(true)
+		K.Options.Write("Nameplates", "debuffs.showTime", false)
+	end)
+	local held = select(5, plate.auras:GetPoint(1))
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(not buttons[1]._aura.timer:IsVisible(), "the timers hide once the buttons may restyle")
+	local closed = select(5, plate.auras:GetPoint(1))
+	assert(closed < held - 1, "and the row drops into the freed lane: " .. tostring(closed) .. " from " .. tostring(held))
+	local _, spacing = env._addons.KstyleUI_Nameplates.Auras.Grid(plate)
+	assert(plate.auras._groups.debuffs.layout.lineSpacing == spacing, "the row's line spacing loses the lane too")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- The settings preview spaces its sample plates so no plate's debuffs run into another plate ---------------

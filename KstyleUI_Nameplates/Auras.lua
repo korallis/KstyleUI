@@ -52,12 +52,16 @@ local function Grid(frame)
 end
 Auras.GROUP, Auras.OVERFLOW_MAX, Auras.Grid = GROUP, OVERFLOW_MAX, Grid
 
-local function Lane(frame)
+local function SettingsLane(frame)
 	if not Settings.Get("debuffs.showTime") then
 		return 0
 	end
 	local lane = TIMER_GAP + Settings.Get("debuffs.textSize") + TIMER_EXTRA
 	return frame and Widgets.Snap(frame, lane) or lane
+end
+
+local function Lane(frame)
+	return frame and frame.timerLane or SettingsLane(frame)
 end
 Auras.Lane = Lane
 
@@ -283,6 +287,8 @@ local function RestyleNow(plate)
 	end
 end
 
+local LayoutContainer
+
 local function Flush()
 	flushScheduled = false
 	if AurasSecret() then
@@ -292,7 +298,7 @@ local function Flush()
 	for plate in pairs(pending) do
 		pending[plate] = nil
 		if plate.auras then
-			RestyleNow(plate)
+			LayoutContainer(plate)
 		end
 	end
 	for chrome, restyle in pairs(waitingChromes) do
@@ -411,7 +417,12 @@ local function ShowChip(plate, on)
 	end
 end
 
-local function LayoutContainer(plate)
+function LayoutContainer(plate)
+	local lane = SettingsLane(plate)
+	if AurasSecret() then
+		lane = math.max(plate.timerLane or 0, lane)
+	end
+	plate.timerLane = lane
 	local container = plate.auras
 	local size, spacing, columns, rows = Grid(plate)
 	local anchor, horizontal, vertical = Logic.AuraGrowth(Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
