@@ -1,4 +1,4 @@
--- Button.lua: dresses an engine aura button as a plain tile: the masked icon one border inside a thin rim plate, the timer under it in the body face, the stack count on a corner badge the engine shows from two applications, the engine's dispel plate on debuffs, and the engine bindings; a plain frame gets the same tile without the bindings, for the preview.
+-- Button.lua: dresses an engine aura button as a plain tile: the masked icon one border inside a thin rim plate, the timer under it in the body face on whole pixels (Widgets.ApplyFont), the stack count on a corner badge the engine shows from two applications, the engine's dispel plate on debuffs, and the engine bindings; a plain frame gets the same tile without the bindings, for the preview.
 local _, ns = ...
 
 local K = KstyleUI
@@ -36,17 +36,10 @@ end
 
 function Button.StyleText(text, spec, colorName)
 	local flags = ns.Model.Flags(spec.outline)
-	if text:SetFont(spec.font, spec.size, flags) == false then
+	if not Widgets.ApplyFont(text, spec.font, spec.size, flags) then
 		local path = Tokens.Font("number")
-		text:SetFont(path, spec.size, flags)
+		Widgets.ApplyFont(text, path, spec.size, flags)
 		LogOnce("font:" .. tostring(spec.font), "the font " .. tostring(spec.font) .. " did not load; aura text uses " .. tostring(path))
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
 	end
 	local ok = pcall(text.SetTextColor, text, Tokens.Color(colorName or "textEmphasis"))
 	if not ok then

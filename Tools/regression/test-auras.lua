@@ -327,8 +327,9 @@ do
 	local _, bg = A.Container(env, "HELPFUL")
 	check(K.Theme.SetFontScale(1.2), "the text size changes")
 	K.Callbacks.Fire("ThemeChanged")
-	local _, fontSize = groupButtons(bg)[1]._aura.timer:GetFont()
-	check(near(fontSize, 11 * 1.2), "an 11-unit timer at a text size of 1.2 is 13.2 units, got " .. tostring(fontSize))
+	local timer = groupButtons(bg)[1]._aura.timer
+	local _, fontSize = timer:GetFont()
+	check(near(fontSize, K.Widgets.FontSize(timer, 11 * 1.2)) and fontSize > 12.5, "an 11-unit timer at a text size of 1.2 is 13.2 units snapped to whole pixels (#210), got " .. tostring(fontSize))
 	check(near(bg.layout.elementHeight, 44), "the timer's room grows to 14.2 units, snapped to 14 at 1080, got " .. tostring(bg.layout.elementHeight))
 end
 
