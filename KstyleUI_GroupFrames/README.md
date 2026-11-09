@@ -94,7 +94,7 @@ No helpful aura ever paints on the health bar (`test-groupframes-clear.lua`). On
 - A name lane across the top, then a health bar across the tile's whole width under it: 24 of 40 units, 60% of the height and over half the tile's area.
 - The name keeps the lane. It steps its size down two points (10 to 8 by default) before it ever ellipsises, so names up to twelve letters stay whole. Your heals share the lane's right end; the missing health and the status never enter it.
 - The debuffs, two by two at 12 units, overlay the bar's right end. The first boss debuff takes a 16-unit slot centred on the bar, an aura slot on the engine (`isBossAura`), and the boss group leaves the block so it never shows twice; the red glow round the tile stays.
-- The bar's left corner holds the role icon, the leader crown on its corner, the raid marker beside it, and the missing health in its own lane below them, outlined thickly so it reads on a white or yellow fill. It fades as health fills, so it shows only while it matters.
+- The bar's left corner holds the role icon, the leader crown on its corner, the raid marker beside it, and the missing health in its own lane below them, outlined thickly so it reads on a white or yellow fill. It fades as health fills, so it shows only while it matters. Both health text places use that lane on a raid tile, and a wider format (current and maximum) steps its size down to fit, then runs at its full width rather than lose letters.
 - `Dead`, `Ghost` and `Offline` centre on the emptied bar.
 - Threat is a glow round the frame's edge; its centre stays clear, so a tank's row never reads as washed in red.
 

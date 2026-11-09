@@ -147,6 +147,33 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
+-- Codex review: the boss slot follows the player's debuff filter; "On the bar" health text keeps clear of the boss
+-- slot; a wide health format is never cut to its lane.
+do
+	local settings = { enabled = true, auras = { filter = "DISPELLABLE" }, raid = { healthTextPlace = "BAR" } }
+	local env, K, ns = G.New({ saved = saved(settings) })
+	G.SetRoster(env, "raid", G.Members(5, function(_, m)
+		m.health = 30
+	end))
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	local f = content(ns, ns.Headers.raid[1], "raid1")
+	eq(f.highlights._slots.boss.filter, "HARMFUL|RAID", "the boss slot takes the selected filter")
+	local slot = f.highlights:GetAuraSlotFrame("boss")
+	slot:Show()
+	local scene = Scene.Build(env)
+	local text = find(scene, f.healthText)
+	assert(text and not intersects(text.rect, { Scene.Rect(env, slot) }), "on the bar, the health text " .. describe(text.rect) .. " keeps clear of the boss slot")
+	slot:Hide()
+	for _, case in ipairs({ { "CURRENT_MAX", "88.8k / 88.8k" }, { "CURRENT_PERCENT", "88.8k  100%" } }) do
+		K.Options.Write("GroupFrames", "raid.healthText", case[1])
+		env.RunTimers()
+		local path, size = f.healthText:GetFont()
+		assert(f.healthText:GetWidth() + 0.5 >= Scene.TextWidth(case[2], size, path), case[1] .. ": the lane holds its widest value whole, width " .. f.healthText:GetWidth())
+	end
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
 -- Grok R5 #1: the party tank with three of your heals and heals on. Their rects never met the bar in round 4, yet the
 -- icons sat in the pill's own row, 4 units past a dark track the glass swallows, so they read as the bar's end. Your
 -- heals now ride the name line: wholly above the pill, with the pill free to run the row.

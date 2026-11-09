@@ -962,6 +962,7 @@ local function Configure(f)
 		highlights:SetAuraSlotEnabled(key, a.glow)
 	end
 	if f.bossSlot then
+		highlights:SetAuraSlotFilterString(BOSS_SLOT, filter)
 		highlights:SetAuraSlotEnabled(BOSS_SLOT, Auras.BossOn(f))
 	end
 	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))

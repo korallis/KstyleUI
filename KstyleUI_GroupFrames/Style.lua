@@ -34,7 +34,10 @@ function Style.NameMin(k)
 end
 local RESERVE = {
 	party = { DEFICIT = { "-88.8k", "-888" }, PERCENT = { "100%" } },
-	raid = { DEFICIT = { "-8.8k", "-88k", "-888" }, PERCENT = { "100%" } },
+	raid = {
+		DEFICIT = { "-8.8k", "-88k", "-888" }, PERCENT = { "100%" }, CURRENT = { "88.8k" }, CURRENT_MAX = { "88.8k / 88.8k" },
+		CURRENT_PERCENT = { "88.8k  100%" },
+	},
 }
 Style.ROLE_RING = ROLE_RING
 Style.ROLE_LETTERS = ROLE_LETTERS
@@ -294,7 +297,7 @@ local function health_orientation(cfg)
 	return cfg.health.orientation ~= "VERTICAL"
 end
 
-function Style.Reserve(f, k)
+function Style.Reserve(f, k, size)
 	local samples = RESERVE[f.kind] and RESERVE[f.kind][k.healthText]
 	local Names = ns.Names
 	if not samples or not Names then
@@ -302,7 +305,7 @@ function Style.Reserve(f, k)
 	end
 	local widest = 0
 	for _, sample in ipairs(samples) do
-		widest = math.max(widest, Names.Width(f.healthText, sample, k.healthTextSize))
+		widest = math.max(widest, Names.Width(f.healthText, sample, size or k.healthTextSize))
 	end
 	return Widgets.Snap(f, math.ceil(widest))
 end
@@ -330,16 +333,24 @@ local function PlaceOverlay(f, k, parts)
 	local status = f.status ~= nil
 	local shown = k.healthText ~= "NONE"
 	f.classLine:Hide()
-	SetFont(healthText, cfg.healthFont, k.healthTextSize, cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline)
+	local outline = cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline
+	local size, lane = k.healthTextSize, spot.right - spot.left
+	SetFont(healthText, cfg.healthFont, size, outline)
+	local reserve = not status and Style.Reserve(f, k)
+	while reserve and reserve > lane and size > NAME_FLOOR do
+		size = size - 1
+		SetFont(healthText, cfg.healthFont, size, outline)
+		reserve = Style.Reserve(f, k, size)
+	end
 	healthText:SetShown(shown or status)
 	healthText:ClearAllPoints()
-	if status or k.healthTextPlace == "BAR" then
+	if status then
 		healthText:SetJustifyH("CENTER")
 		healthText:SetWidth(0)
 		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, spot.center), -Widgets.Snap(f, spot.middle))
 	else
 		healthText:SetJustifyH(spot.justify)
-		healthText:SetWidth(math.max(1, Widgets.Snap(f, spot.right - spot.left)))
+		healthText:SetWidth(math.max(1, Widgets.Snap(f, math.max(lane, reserve or 0))))
 		healthText:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, spot.left), -Widgets.Snap(f, spot.top))
 	end
 	name:ClearAllPoints()
