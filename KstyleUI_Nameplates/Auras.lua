@@ -23,6 +23,9 @@ local SWIPE_ALPHA = 0.65
 local LINE_SLACK = 0.5
 local RETRY_DELAY = 1
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+local COUNT_STEP, COUNT_MIN = 3, 9
+local COUNT_OUT_X, COUNT_OUT_Y = 1, 2
+local BADGE_PAD, BADGE_ALPHA = 1, 0.62
 local SAMPLE_ICONS = { 136118, 135817, 132155 }
 
 local available = true
@@ -78,9 +81,9 @@ local function Filter()
 	return Logic.AuraFilter(Settings.Get("debuffs.includePlateOnly"))
 end
 
-local function StyleText(text)
+local function StyleText(text, size)
 	local flags = OUTLINE_FLAGS[Settings.Get("debuffs.outline")] or "OUTLINE"
-	local size = Settings.Get("debuffs.textSize")
+	size = size or Settings.Get("debuffs.textSize")
 	if text:SetFont(Settings.Get("font"), size, flags) == false then
 		text:SetFont((Tokens.Font("world")), size, flags)
 	end
@@ -136,7 +139,7 @@ local function StyleButton(button)
 	local size = Grid(p.skin)
 	button:SetSize(size, size)
 	LayoutTile(p)
-	StyleText(p.count)
+	StyleText(p.count, math.max(COUNT_MIN, Settings.Get("debuffs.textSize") - COUNT_STEP))
 	StyleText(p.time)
 	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
 	p.timeHolder:SetShown(Settings.Get("debuffs.showTime"))
@@ -162,8 +165,13 @@ local function BuildButton(button)
 	local countHolder = CreateFrame("Frame", nil, textFrame)
 	countHolder:SetAllPoints(textFrame)
 	local count = Widgets.FontString(countHolder, "OVERLAY")
-	count:SetPoint("TOPRIGHT", countHolder, "TOPRIGHT", 0, 0)
+	count:SetPoint("TOPRIGHT", countHolder, "TOPRIGHT", COUNT_OUT_X, COUNT_OUT_Y)
 	count:SetJustifyH("RIGHT")
+	local badge = countHolder:CreateTexture(nil, "BACKGROUND")
+	local pad = Widgets.Snap(countHolder, BADGE_PAD)
+	badge:SetPoint("TOPLEFT", count, "TOPLEFT", -pad, pad)
+	badge:SetPoint("BOTTOMRIGHT", count, "BOTTOMRIGHT", pad, -pad)
+	badge:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
 	local timeHolder = CreateFrame("Frame", nil, textFrame)
 	timeHolder:SetAllPoints(textFrame)
 	local time = Widgets.FontString(timeHolder, "OVERLAY")

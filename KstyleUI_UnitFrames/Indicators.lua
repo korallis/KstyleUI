@@ -3,14 +3,13 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, L = K.Widgets, K.Tokens, K.L
-local Settings = ns.Settings
+local Settings, Geometry = ns.Settings, ns.Geometry
 
 local Indicators = {}
 ns.Indicators = Indicators
 
 local RAID_ICONS = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
 local RAID_ROWS, RAID_COLUMNS = 4, 4
-local MARKER_EXTRA = 4
 local ICON_GAP = 2
 local ICON_INSET = 6
 local GLOW_SPREAD = 6
@@ -80,6 +79,37 @@ local function Snap(view, units)
 	return Widgets.Snap(view.parent, units)
 end
 
+local function PlaceMarker(view, x)
+	local spot = view.geometry.marker
+	local marker = view.marker
+	marker:ClearAllPoints()
+	marker:SetPoint("TOPLEFT", view.parent, "TOPLEFT", Snap(view, x), -Snap(view, spot.y))
+end
+
+function Indicators.Fit(view)
+	local g = view.geometry
+	local lane = g and g.markedName
+	if not lane then
+		return
+	end
+	local on = view.marker:IsShown() == true
+	if on ~= view.markerCut then
+		view.markerCut = on
+		ns.Style.PlaceName(view, on and lane or g.name)
+		ns.Unit.Refit(view)
+	end
+	if not (on and g.markerCentred) then
+		return
+	end
+	local spot = g.marker
+	local width = Widgets.TextWidth(view.name)
+	local x = spot.x
+	if width then
+		x = math.max(spot.x, lane.x + (lane.w - math.min(width, lane.w)) / 2 - Geometry.MARKER_GAP - spot.w)
+	end
+	PlaceMarker(view, x)
+end
+
 function Indicators.Layout(view, g, s)
 	local size = Snap(view, s.iconSize)
 	local panel = g.panel
@@ -98,12 +128,14 @@ function Indicators.Layout(view, g, s)
 			icon:SetFont(path, size, "OUTLINE")
 		end
 	end
-	local marker = view.marker
-	local markerSize = Snap(view, s.iconSize + MARKER_EXTRA)
-	local anchor = g.portrait or panel
-	marker:ClearAllPoints()
-	marker:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, anchor.x + anchor.w / 2), 0)
-	marker:SetSize(markerSize, markerSize)
+	local spot = g.marker
+	if spot then
+		local marker = view.marker
+		marker:SetSize(Snap(view, spot.w), Snap(view, spot.h))
+		PlaceMarker(view, spot.x)
+	end
+	view.markerCut = false
+	Indicators.Fit(view)
 	view.glowFrame:ClearAllPoints()
 	view.glowFrame:SetAllPoints(g.chrome == false and view.health or view.panel)
 	local _, _, shadowUnits = Tokens.Texture("shadow")
@@ -114,6 +146,7 @@ function Indicators.Marker(view, unit)
 	local marker = view.marker
 	if not view.s.raidMarker or not GetRaidTargetIndex then
 		marker:Hide()
+		Indicators.Fit(view)
 		return
 	end
 	local index = GetRaidTargetIndex(unit)
@@ -128,6 +161,7 @@ function Indicators.Marker(view, unit)
 	else
 		marker:Hide()
 	end
+	Indicators.Fit(view)
 end
 
 function Indicators.Leader(view, unit)

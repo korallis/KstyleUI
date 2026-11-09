@@ -44,6 +44,7 @@ local DISPEL_SUBLEVEL = 7
 local TIMER_BELOW_GAP = 1
 local TIMER_ROOM_EXTRA = 3
 local BADGE_PAD, BADGE_ALPHA = 1, 0.62
+local TEXT_FLOOR, TEXT_LINE = 10, 1.2
 local CHIP_LEVEL = 8
 local SORT = "Expiration"
 
@@ -88,8 +89,15 @@ local function Value(view, key)
 	return Settings.Value(view.kind, key)
 end
 
+local function TextSize(kind, size)
+	local tile = Settings.Value(kind, "auraSize")
+	local room = math.floor((tile - 2 * COUNT_INSET) / (2 * TEXT_LINE))
+	return math.max(size, math.min(TEXT_FLOOR, room))
+end
+
 local function StyleText(text, view)
 	local path, size, flags = Settings.Font(view.kind, "aura")
+	size = TextSize(view.kind, size)
 	if text:SetFont(path, size, flags) == false then
 		local fallback = Tokens.Font("number")
 		text:SetFont(fallback, size, flags)
@@ -147,7 +155,7 @@ local function TimerRoom(kind)
 		return 0
 	end
 	local _, fontSize = Settings.Font(kind, "aura")
-	return TIMER_BELOW_GAP + fontSize + TIMER_ROOM_EXTRA
+	return TIMER_BELOW_GAP + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA
 end
 
 function Auras.PlaceTimer(timer, skin, kind, badge)
@@ -168,6 +176,15 @@ function Auras.PlaceTimer(timer, skin, kind, badge)
 		badge:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
 		badge:SetShown(not below)
 	end
+end
+
+function Auras.Badge(parent, text)
+	local badge = parent:CreateTexture(nil, "BACKGROUND")
+	local pad = Widgets.Snap(parent, BADGE_PAD)
+	badge:SetPoint("TOPLEFT", text, "TOPLEFT", -pad, pad)
+	badge:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", pad, -pad)
+	badge:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
+	return badge
 end
 
 local function StyleButton(view, entry)
@@ -265,9 +282,11 @@ local function Dress(view, key, button)
 	over:SetAllPoints(skin)
 	over:SetFrameLevel(cooldown:GetFrameLevel() + 1)
 	local count = Widgets.FontString(over, "OVERLAY")
-	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
+	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", COUNT_INSET, COUNT_INSET)
+	count:SetJustifyH("RIGHT")
 	local timer = Widgets.FontString(over, "OVERLAY")
 	entry.badge = over:CreateTexture(nil, "BACKGROUND")
+	entry.countBadge = Auras.Badge(over, count)
 	entry.button, entry.count, entry.timer = button, count, timer
 	if key == "debuffs" then
 		Dispel(entry, button)

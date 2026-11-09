@@ -53,7 +53,9 @@ do
 	assert(w == d.size and h == d.size, "the debuff button is " .. d.size .. " units square, not " .. w .. " by " .. h)
 	for _, key in ipairs({ "timer", "count" }) do
 		local font = N.Last(button._aura[key], "SetFont")
-		assert(font and font[2] == d.textSize, "the " .. key .. " text is " .. d.textSize .. " units")
+		-- The stack count is a step smaller on its own corner badge, so it never runs into the timer (round 4: Fable #3).
+		local want = key == "timer" and d.textSize or math.max(9, d.textSize - 3)
+		assert(font and font[2] == want, "the " .. key .. " text is " .. want .. " units")
 		assert(font[3] == "OUTLINE", "the " .. key .. " text is outlined")
 	end
 

@@ -318,23 +318,42 @@ local function SetFont(text, path, size, flags)
 	end
 end
 
-function Unit.SetName(view, name)
+local function SetName(view, name)
 	local text = view.name
 	local path, full, flags = ns.Settings.Font(view.kind, "name")
 	SetFont(text, path, full, flags)
 	if IsSecret(name) then
+		view.plainName = nil
 		text:SetText(name)
 		return
 	end
+	view.plainName = name
 	text:SetText(view.s.nameCaps and Unit.Tracked(name, path) or name)
 	local bodyPath, bodySize = Tokens.Font("body")
-	if not Number(full) or bodySize >= full then
+	if not Number(full) then
 		return
 	end
 	local width, room = K.Widgets.TextWidth(text), text:GetWidth()
 	if Number(width) and Number(room) and room > 0 and width > room then
-		SetFont(text, bodyPath, bodySize, flags)
+		SetFont(text, bodyPath, math.min(bodySize, full), flags)
 		text:SetText(name)
+	end
+end
+
+function Unit.Refit(view)
+	if view.plainName then
+		SetName(view, view.plainName)
+	end
+end
+
+function Unit.SetName(view, name)
+	local fit = view.marker and ns.Indicators.Fit
+	if fit then
+		fit(view)
+	end
+	SetName(view, name)
+	if fit then
+		fit(view)
 	end
 end
 

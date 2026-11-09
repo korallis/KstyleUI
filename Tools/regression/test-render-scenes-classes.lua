@@ -60,7 +60,8 @@ for _, class in ipairs(Classes.ORDER) do
 		assert(not ufTexts["Slam"] and not ufTexts["0.8"], tag .. ": no player cast bar")
 	end
 	if spec.pet then
-		assert(ufTexts[spec.pet.name:upper()], tag .. ": the pet frame reads " .. spec.pet.name:upper())
+		-- A pet name too wide in capitals drops to the body face in mixed case before it truncates (round 4: Opus #6).
+		assert(ufTexts[spec.pet.name:upper()] or ufTexts[spec.pet.name], tag .. ": the pet frame reads " .. spec.pet.name .. " whole")
 		assert(petHealth, tag .. ": the pet frame fills its health at " .. spec.pet.health .. "/" .. spec.pet.healthMax .. " in the reaction colour")
 	end
 	if spec.combo then

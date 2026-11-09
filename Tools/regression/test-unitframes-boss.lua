@@ -76,6 +76,15 @@ env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(shown(b1.chip) and muted(b1), "boss1 is the target: its card folds to the Targeted chip")
 assert(not shown(b2.chip) and not muted(b2), "boss2 keeps its card")
 assert(U.Shown(env, b1.chip.text) == K.L["Targeted"], "the chip reads Targeted")
+-- Round 4 (Grok #2, Opus #6, Muse D7): the chip names its boss and spans the card's width, a folded card in the column
+-- rather than a lone pill beside it.
+assert(b1.chip.name and U.Shown(env, b1.chip.name):upper():gsub("[^%w ]", "") == "BOSS 1", "the chip names its boss: " .. U.Shown(env, b1.chip.name))
+assert(b1.chip.name:IsShown(), "and shows the name")
+do
+	local cwidth = b1.chip:GetWidth()
+	local bwidth = b1.button:GetWidth()
+	assert(near(cwidth, bwidth, 1), "the chip spans the card's width: " .. cwidth .. " of " .. bwidth)
+end
 -- The chip holds the column's rail-side edge, at the top of the folded slot, so it lines up with the cards still
 -- standing and with the rail beside the column instead of floating over the world (round 3: Muse #2, Grok #3).
 local point, rel, relPoint, mx, my = b1.chip:GetPoint(1)
@@ -125,6 +134,33 @@ assert(mark and env.issecretvalue(mark[1]) and mark[2] == 1 and mark[3] == 0, "a
 assert(mute and env.issecretvalue(mute[1]) and mute[2] == 0 and mute[3] == 1, "and steps the card back the same way")
 assert(env.Reveal(mark[1]) == true, "the secret answer is boss1")
 assert(b1.chip:IsShown(), "the chip is shown so its alpha decides")
+do
+	-- A long boss name drops to the body face, mixed case, before it truncates in the chip.
+	local D = dofile("Tools/regression/databars_env.lua")
+	env._textWidth = D.TextWidth
+	env._units.boss1.name = "Bloodtalon Matriarch"
+	env._secretCompare = false
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	env._secretCompare = true
+	local chipW = b1.chip:GetWidth()
+	local tw = b1.chip.text:GetUnboundedStringWidth()
+	local nw = b1.chip.name:GetUnboundedStringWidth()
+	assert(nw and tw and nw + tw + 30 < chipW, "the long name fits beside Targeted: " .. tostring(nw) .. " + " .. tostring(tw) .. " in " .. chipW)
+	assert(U.Shown(env, b1.chip.name) == "Bloodtalon Matriarch", "in mixed case: " .. U.Shown(env, b1.chip.name))
+	env._textWidth = nil
+end
+-- A targeted boss renamed in place (a phase change) renames its chip without a target change.
+env._secretCompare = false
+env._units.boss1.name = "Boss One Reborn"
+env.FireEvent("UNIT_NAME_UPDATE", "boss1")
+assert(U.Shown(env, b1.chip.name):upper():gsub("[^%u ]", "") == "BOSS ONE REBORN", "the chip follows a name update: " .. U.Shown(env, b1.chip.name))
+env._secretCompare = true
+env.FireEvent("PLAYER_TARGET_CHANGED")
+env._units.boss1.name = env.Secret("Boss 1")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+local named = W.LastCall(b1.chip.name, "SetText")
+assert(named and env.issecretvalue(named[1]), "a secret boss name reaches the chip's SetText untouched")
+env._units.boss1.name = "Boss 1"
 env._secretCompare = false
 env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
@@ -152,7 +188,7 @@ noErrors("no sigil cast")
 -- secure button's hit rect is protected, so it opens to the whole card as combat starts and waits for the end of it.
 env._units.target = env._units.boss1
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(select(1, b1.button:GetHitRectInsets()) > 0, "out of combat the folded card clicks on its chip only")
+assert(select(4, b1.button:GetHitRectInsets()) > 0, "out of combat the folded card clicks on its chip only")
 env.SetCombat(true)
 l, r, t, b = b1.button:GetHitRectInsets()
 assert(l == 0 and r == 0 and t == 0 and b == 0, "combat opens the folded card's whole slot before lockdown")
@@ -162,7 +198,7 @@ assert(shown(b2.chip) and muted(b2), "the swap happens in combat")
 l, r, t, b = b2.button:GetHitRectInsets()
 assert(l == 0 and r == 0 and t == 0 and b == 0, "in combat no hit rect changes")
 env.SetCombat(false)
-assert(select(1, b2.button:GetHitRectInsets()) > 0, "after combat the folded card shrinks to its chip again")
+assert(select(4, b2.button:GetHitRectInsets()) > 0, "after combat the folded card shrinks to its chip again")
 noErrors("combat")
 
 print("unitframes boss ok")

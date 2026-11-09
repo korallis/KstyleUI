@@ -143,7 +143,9 @@ assert(b1.body:GetAlpha() < 0.5 and visible(b1.chip), "the targeted boss steps i
 assert(U.Shown(env, b1.chip.text) == K.L["Targeted"], "the chip reads Targeted")
 local chipW, chipH = b1.chip:GetSize()
 assert(chipH <= 24 and chipH >= 14, "the chip is slim: " .. chipH)
-assert(chipW <= select(1, b1.button:GetSize()) / 2, "the chip hugs its label, not the card's width: " .. chipW)
+-- Round 4 (Grok #2, Muse D7, Opus #13) reversed round 3's hugging pill, which read as orphaned beside the column: the
+-- chip is now a slim strip as wide as the card, naming its boss, so it reads as the folded card.
+assert(near(chipW, select(1, b1.button:GetSize()), 1), "the chip spans the card's width: " .. chipW)
 local _, _, _, _, cy = b1.chip:GetPoint(1)
 assert(near(cy, 0, 1), "the chip sits at the card's top")
 assert(b1.chip.chrome, "the chip wears its own small glass")

@@ -9,6 +9,7 @@ local Preview = {}
 ns.Preview = Preview
 
 local MARGIN = 16
+local MIN_SCALE = 0.75
 local INCOMING_SHARE = 0.08
 local SKULL = 8
 local CAST_GAP = 4
@@ -138,6 +139,7 @@ local function PaintIndicators(view, s, sample)
 	else
 		view.marker:Hide()
 	end
+	ns.Indicators.Fit(view)
 	local r, g, b
 	if s.threat and sample.threat then
 		r, g, b = K.Theme.ThreatColor(THREAT_TANKING)
@@ -215,12 +217,12 @@ local function PaintAuras(frame, view, kind)
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
 	local count = on and math.min(#AURA_ICONS, Settings.Value(kind, "auraColumns")) or 0
 	if count > 0 then
-		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
-		host:SetSize(width, height)
-		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x)
-		host:Show()
+		local _, height, corner, _, growth = ns.Auras.Footprint(kind, host)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
 		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
+		host:SetSize(count * size + (count - 1) * spacing, height)
+		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x)
+		host:Show()
 		local sx = growth[2] == "Left" and -1 or 1
 		local centred = Settings.Value(kind, "auraPosition") == "CENTER"
 		local start = -(count * size + (count - 1) * spacing) / 2
@@ -251,6 +253,13 @@ local function PaintAuras(frame, view, kind)
 	return count
 end
 
+local function Room(value)
+	if type(value) ~= "number" or (issecretvalue and issecretvalue(value)) or value <= 2 * MARGIN then
+		return nil
+	end
+	return value - 2 * MARGIN
+end
+
 local function Size(frame, kind)
 	local key = Settings.ELEMENTS[kind]
 	local element = K.Setup.Layouts.Element(key)
@@ -262,11 +271,53 @@ local function Size(frame, kind)
 	if kind == "boss" then
 		height = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, width, height)[1].h
 	end
-	local room = frame:GetWidth()
-	if type(room) == "number" and not (issecretvalue and issecretvalue(room)) and room > 2 * MARGIN then
-		width = math.min(width, room - 2 * MARGIN)
+	local room = Room(frame:GetWidth())
+	if room then
+		width = math.min(width, room / MIN_SCALE)
 	end
 	return width, height
+end
+
+local OFFSET = {
+	TOPLEFT = { 0, 0 }, TOP = { 0.5, 0 }, TOPRIGHT = { 1, 0 },
+	LEFT = { 0, 0.5 }, CENTER = { 0.5, 0.5 }, RIGHT = { 1, 0.5 },
+	BOTTOMLEFT = { 0, 1 }, BOTTOM = { 0.5, 1 }, BOTTOMRIGHT = { 1, 1 },
+}
+
+local function Box(region, holder, width, height)
+	if not region:IsShown() then
+		return nil
+	end
+	local point, relative, relPoint, x, y = region:GetPoint(1)
+	local from, to = OFFSET[point], OFFSET[relPoint]
+	if relative ~= holder or not (from and to) then
+		return nil
+	end
+	local w, h = region:GetSize()
+	local left = to[1] * width + (x or 0) - from[1] * w
+	local top = to[2] * height - (y or 0) - from[2] * h
+	return left, top, left + w, top + h
+end
+
+local function Fit(frame, holder, kind, width, height)
+	local l, t, r, b = 0, 0, width, height
+	for _, region in ipairs({ frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame }) do
+		local rl, rt, rr, rb = Box(region, holder, width, height)
+		if rl then
+			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
+		end
+	end
+	local scale = 1
+	local roomW, roomH = Room(frame:GetWidth()), Room(frame:GetHeight())
+	if roomW then
+		scale = math.min(scale, roomW / (r - l))
+	end
+	if roomH then
+		scale = math.min(scale, roomH / (b - t))
+	end
+	holder:SetScale(scale)
+	holder:ClearAllPoints()
+	holder:SetPoint("CENTER", frame, "CENTER", (width - l - r) / 2, (t + b - height) / 2)
 end
 
 local function Refresh(frame)
@@ -292,10 +343,9 @@ local function Refresh(frame)
 	Style.Layout(view, view.s, width, height)
 	Paint(view, kind)
 	PaintIndicators(view, view.s, SAMPLES[kind])
-	local extra = PaintCast(frame, view, kind, height)
+	PaintCast(frame, view, kind, height)
 	frame.auraCount = PaintAuras(frame, view, kind)
-	holder:ClearAllPoints()
-	holder:SetPoint("CENTER", frame, "CENTER", 0, extra / 2)
+	Fit(frame, holder, kind, width, height)
 	frame.kind = kind
 end
 
@@ -304,6 +354,11 @@ function Preview.Build(parent)
 	frame:SetAllPoints(parent)
 	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts = {}, {}, {}, {}, {}, {}
 	frame.Refresh = Refresh
+	frame:SetScript("OnSizeChanged", function(self)
+		if self.kind then
+			Refresh(self)
+		end
+	end)
 	Refresh(frame)
 	return frame
 end

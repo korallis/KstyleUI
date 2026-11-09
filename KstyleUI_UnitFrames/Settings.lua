@@ -133,7 +133,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 			power = TextStyle(text[3]),
 			level = TextStyle(text[4]),
 			cast = TextStyle(castFont or 10),
-			aura = TextStyle(8),
+			aura = { font = THEME_FONT, size = 8, outline = "OUTLINE" },
 		},
 	}
 	for key, value in pairs(overrides or {}) do
@@ -148,7 +148,7 @@ Settings.defaults = {
 	accentColor = Color("accentDefault"),
 	edit = "player",
 	player = Kind(true, { combat = true, resting = true, castbarIcon = false, castbarCaps = false, powerHeight = 5 }, 20, 12, { on = false, size = 22, position = "BELOW" }, { 17, 15, 10, 12 }),
-	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction", castbarColor = "gold", castbarCaps = false }, 14, 13, { on = true, size = 24, columns = 10, rows = 2, position = "CENTER" }, { 17, 12, 10, 13 }),
+	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction", castbarColor = "gold", castbarCaps = false }, 14, 13, { on = true, size = 28, columns = 14, rows = 1, position = "CENTER" }, { 17, 12, 10, 13 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),

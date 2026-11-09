@@ -65,10 +65,12 @@ for _, view in ipairs({ target, focus, bosses[1] }) do
 	end
 end
 
--- The sigil holds two rows of ten 24-unit sockets: 20 of your debuffs before the chip ------------------------------
-assert(Settings.Value("target", "auraRows") == 2 and Settings.Value("target", "auraColumns") == 10 and Settings.Value("target", "auraSize") == 24,
-	"the sigil's debuffs wrap to a second row of ten")
-assert(target.auras.container._groups.debuffs.max == 20, "twenty sockets, then the chip")
+-- The sigil holds one row of fourteen 28-unit sockets, each timer in its own lane under the tile: 14 of your debuffs
+-- before the chip. Round 4 (Fable #3) raised the floor from 24 units; two rows of 28 would need 60 units under the
+-- sigil, past the 52 the layouts keep there, so the row grew wider instead of taller.
+assert(Settings.Value("target", "auraRows") == 1 and Settings.Value("target", "auraColumns") == 14 and Settings.Value("target", "auraSize") == 28,
+	"the sigil's debuffs are one row of fourteen 28-unit sockets")
+assert(target.auras.container._groups.debuffs.max == 14, "fourteen sockets, then the chip")
 -- A boss card holds one row of four 22-unit sockets beside it: three of your debuffs and the chip, big enough to
 -- tell which is which, the timer in a corner badge instead of across the icon (round 3: Opus #5, Grok #1).
 assert(Settings.Value("boss", "auraRows") == 1 and Settings.Value("boss", "auraColumns") == 4, "a boss card holds one row of four sockets")
@@ -147,6 +149,9 @@ local function Read(chip)
 end
 
 do
+	-- The two-row case, as a player sets it: two rows of ten.
+	K.Options.Write("UnitFrames", "target.auraRows", 2)
+	K.Options.Write("UnitFrames", "target.auraColumns", 10)
 	local a = target.auras
 	local chip = a.overflow.debuffs
 	assert(chip and chip.window:IsShown(), "the sigil's debuffs carry an overflow chip")
@@ -184,6 +189,8 @@ do
 	end
 	assert(chip.ghost._unit == "target" and chip.ghost._groups.count.filter == "HARMFUL|PLAYER", "it counts what the row shows")
 	assert(chip.ghost._line == 1, "one element per line, so its height is the count")
+	K.Options.Write("UnitFrames", "target.auraRows", 1)
+	K.Options.Write("UnitFrames", "target.auraColumns", 14)
 end
 noErrors("chip")
 
@@ -230,8 +237,8 @@ do
 	env.FireEvent("PLAYER_TARGET_CHANGED")
 	env.RunTimers()
 	noErrors("no reads")
-	assert(target.auras.overflow.debuffs.ghost._groups.count.max == 16 + Overflow.LABELS, "a new cap reaches the counting container")
-	K.Options.Write("UnitFrames", "target.auraColumns", 10)
+	assert(target.auras.overflow.debuffs.ghost._groups.count.max == 8 * Settings.Value("target", "auraRows") + Overflow.LABELS, "a new cap reaches the counting container")
+	K.Options.Write("UnitFrames", "target.auraColumns", 14)
 	K.Options.Write("UnitFrames", "boss.auraSize", 22)
 	K.Options.Write("UnitFrames", "focus.auraRows", 1)
 end

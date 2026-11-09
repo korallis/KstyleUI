@@ -72,6 +72,30 @@ local function settle(env)
 	env.RunTimers()
 end
 
+-- The engine resolves the preview holder's anchors (under the caption's rule, inset from the pane's bottom right)
+-- to a size and runs OnSizeChanged on the preview that fills it. The stub resolves no anchor chain through a text,
+-- so this sizes the holder from the pane's rect and the holder's own insets, the caption band (caption, rule and
+-- their gaps) measured at its font size, and fires the preview's script.
+local CAPTION_BAND = 2
+local function resolvePreview(env, ns)
+	local pane = ns.Window.Parts().preview
+	local holder = pane.holder
+	local _, _, pw, ph = Scene.Rect(env, pane)
+	local _, _, _, inset = holder:GetPoint(2)
+	local pad = -inset
+	local _, _, _, _, gap = holder:GetPoint(1)
+	local _, size = pane.caption:GetFont()
+	local w = pw - 2 * pad
+	local h = ph - 2 * pad - size * CAPTION_BAND + gap
+	holder:SetSize(w, h)
+	for _, child in ipairs({ holder:GetChildren() }) do
+		local script = child:GetScript("OnSizeChanged")
+		if script then
+			script(child, w, h)
+		end
+	end
+end
+
 -- The real module's frames on the HUD (the player frame, its cast bar and class resource) are not this scene's
 -- subject and would show through the other states' windows, so each state hides them before it builds.
 local function hideHud(K)
@@ -152,6 +176,7 @@ return Common.Run(function()
 	end)
 	place(K, MAIN)
 	settle(env)
+	resolvePreview(env, ns)
 	local win = ns.Window.Frame()
 	local parts = ns.Window.Parts()
 	local state = ns.Window.State()

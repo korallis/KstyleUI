@@ -31,6 +31,7 @@ end
 assert(centreX(player.icons.leader) > centreX(player.icons.role), "the player's icons run leftward from the panel's right end")
 assert(centreX(target.icons.leader) < centreX(target.icons.role), "the target's icons run rightward from the panel's left end")
 local _, _, _, mx = player.marker:GetPoint(1)
+mx = mx + player.marker:GetWidth() / 2
 local g = player.geometry
 assert(math.abs(mx - (g.portrait.x + g.portrait.w / 2)) < 1, "the raid marker sits over the portrait's centre")
 

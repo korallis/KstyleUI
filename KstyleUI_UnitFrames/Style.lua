@@ -395,6 +395,15 @@ local function HideLumen(view)
 	view.healthText:SetJustifyH("RIGHT")
 end
 
+function Style.PlaceName(view, rect)
+	local g = view.geometry
+	if g.form == "vitals" and g.nameAuto then
+		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect)
+	else
+		Place(view, view.name, rect)
+	end
+end
+
 function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 	view.geometry = g

@@ -67,6 +67,9 @@ local HANDLERS = {
 	end,
 	Name = function(view, unit)
 		Unit.Name(view, unit)
+		if view.chip then
+			Frames.ChipName(view)
+		end
 	end,
 	Level = function(view, unit)
 		Unit.Level(view, unit)
@@ -207,8 +210,12 @@ local function NewChip(button)
 	chip:SetFrameLevel(button:GetFrameLevel() + CHIP_LEVEL)
 	chip.chrome = K.Widgets.Chrome(chip, { shape = "tile", fill = "surface", shadow = false })
 	chip.gem = ns.Lumen.Gem(chip)
+	chip.name = K.Widgets.FontString(chip, "OVERLAY")
+	chip.name:SetJustifyH("LEFT")
+	chip.name:SetJustifyV("MIDDLE")
+	chip.name:SetWordWrap(false)
 	chip.text = K.Widgets.FontString(chip, "OVERLAY")
-	chip.text:SetJustifyH("LEFT")
+	chip.text:SetJustifyH("RIGHT")
 	chip.text:SetJustifyV("MIDDLE")
 	chip.text:SetText(K.L["Targeted"])
 	chip:Hide()
@@ -257,6 +264,41 @@ local function Hit(view, folded)
 	end
 end
 
+local function ChipFont(text, path, size, flags)
+	if text:SetFont(path, size, flags) == false then
+		text:SetFont((K.Tokens.Font("body")), size, flags)
+	end
+end
+
+local function ChipName(view)
+	local chip = view.chip
+	local text, font = chip.name, chip.nameFont
+	local name = UnitName and UnitName(view.unit)
+	if not font then
+		return
+	end
+	ChipFont(text, font[1], font[2], font[3])
+	if issecretvalue and issecretvalue(name) then
+		text:SetText(name)
+		return
+	elseif type(name) ~= "string" then
+		text:SetText("")
+		return
+	end
+	text:SetText(view.s.nameCaps and Unit.Tracked(name, font[1]) or name)
+	local width = K.Widgets.TextWidth(text)
+	if width and chip.room and width > chip.room then
+		ChipFont(text, (K.Tokens.Font("body")), font[2], font[3])
+		text:SetText(name)
+	end
+end
+
+function Frames.ChipName(view)
+	if Sigil() and UnitExists(view.unit) then
+		ChipName(view)
+	end
+end
+
 local function MarkTarget(view)
 	local chip, body = view.chip, view.body
 	if not chip then
@@ -265,6 +307,7 @@ local function MarkTarget(view)
 	local same = false
 	if Sigil() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
+		ChipName(view)
 	end
 	local auras = AuraParts(view) or {}
 	if issecretvalue and issecretvalue(same) then
@@ -310,20 +353,26 @@ local function PlaceChip(view, width)
 	local chip, button, Snap = view.chip, view.button, K.Widgets.Snap
 	chip:ClearAllPoints()
 	chip:SetPoint("TOPRIGHT", button, "TOPRIGHT", 0, 0)
+	chip:SetSize(Snap(button, width), Snap(button, CHIP_HEIGHT))
 	local gem = ns.Geometry.GEM
 	chip.gem:ClearAllPoints()
 	chip.gem:SetPoint("LEFT", chip, "LEFT", Snap(button, CHIP_PAD), 0)
 	chip.gem:SetSize(Snap(button, gem), Snap(button, gem))
-	chip.text:ClearAllPoints()
-	chip.text:SetPoint("LEFT", chip.gem, "RIGHT", Snap(button, CHIP_GAP), 0)
-	chip.text:SetHeight(Snap(button, CHIP_HEIGHT))
 	local path, size, flags = Settings.Font(view.kind, "cast")
-	if chip.text:SetFont(path, size, flags) == false then
-		chip.text:SetFont((K.Tokens.Font("body")), size, flags)
-	end
+	chip.text:ClearAllPoints()
+	chip.text:SetPoint("RIGHT", chip, "RIGHT", -Snap(button, CHIP_PAD), 0)
+	chip.text:SetHeight(Snap(button, CHIP_HEIGHT))
+	ChipFont(chip.text, path, size, flags)
 	chip.text:SetTextColor(ns.Lumen.Color("goldLit"))
-	local textW = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
-	chip:SetSize(Snap(button, math.min(width, 2 * CHIP_PAD + gem + CHIP_GAP + textW)), Snap(button, CHIP_HEIGHT))
+	local namePath, _, nameFlags = Settings.Font(view.kind, "name")
+	chip.nameFont = { namePath, size, nameFlags }
+	chip.name:ClearAllPoints()
+	chip.name:SetPoint("LEFT", chip.gem, "RIGHT", Snap(button, CHIP_GAP), 0)
+	chip.name:SetPoint("RIGHT", chip.text, "LEFT", -Snap(button, CHIP_GAP), 0)
+	chip.name:SetHeight(Snap(button, CHIP_HEIGHT))
+	chip.name:SetTextColor(K.Tokens.Color("textEmphasis"))
+	local label = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
+	chip.room = width - 2 * CHIP_PAD - gem - 2 * CHIP_GAP - label
 end
 
 local function FitCard(view)

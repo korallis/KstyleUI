@@ -295,15 +295,16 @@ assert(hp == "TOP" and hrel == target.button and hrelPoint == "BOTTOM", "the row
 local cpnt, crl, crp = a.container:GetPoint(1)
 assert(cpnt == "TOP" and crl == a.host and crp == "TOP", "the engine's row is centred in its host, so it stays centred at any count")
 local entry = a.buttons[1]
+-- Round 4 (Fable #3): the sigil's default is one row of 28-unit sockets, each timer in its own lane under the socket.
 local tp, trel, trp = entry.timer:GetPoint(1)
+assert(tp == "TOP" and trel == entry.skin and trp == "BOTTOM", "a single centred row hangs each timer under its socket, as the mockup draws it")
+assert(not entry.badge:IsShown(), "under the socket the timer needs no badge")
 -- Round 3 (Opus #5, Fable R3-11): a timer inside its socket sits in a corner badge, not across the icon's foot.
+K.Options.Write("UnitFrames", "target.auraRows", 2)
+tp, trel, trp = entry.timer:GetPoint(1)
 assert(tp == "BOTTOMRIGHT" and trel == entry.skin and trp == "BOTTOMRIGHT", "two rows of sockets keep each timer in its socket's corner badge, so the rows pack inside the sigil's reserve")
 assert(entry.badge:IsShown(), "on its dark badge")
 K.Options.Write("UnitFrames", "target.auraRows", 1)
-tp, trel, trp = entry.timer:GetPoint(1)
-assert(tp == "TOP" and trel == entry.skin and trp == "BOTTOM", "a single centred row hangs each timer under its socket, as the mockup draws it")
-assert(not entry.badge:IsShown(), "under the socket the timer needs no badge")
-K.Options.Write("UnitFrames", "target.auraRows", 2)
 
 env._units.target.cast = { name = "Terrifying Screech", texture = 132127, start = 1000, finish = 3500, spellID = 5000 }
 env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 5000)

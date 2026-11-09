@@ -449,6 +449,32 @@ end
 
 local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow }
 
+local MARKER_EXTRA, MARKER_GAP = 4, 4
+Geometry.MARKER_EXTRA, Geometry.MARKER_GAP = MARKER_EXTRA, MARKER_GAP
+
+local function Overlaps(a, b)
+	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+end
+
+local function Marker(out, s)
+	if not s.raidMarker then
+		return
+	end
+	local size = (s.iconSize or 12) + MARKER_EXTRA
+	local anchor = out.portrait or out.panel
+	local spot = Rect(anchor.x + anchor.w / 2 - size / 2, -size / 2, size, size)
+	local name = out.name
+	out.marker = spot
+	if not (name and name.w > 0 and Overlaps(spot, name)) then
+		return
+	end
+	local cut = size + MARKER_GAP
+	local centred = out.form == "sigil"
+	out.marker = Rect(name.x, name.y + name.h / 2 - size / 2, size, size)
+	out.markedName = Rect(name.x + cut, name.y, name.w - (centred and 2 or 1) * cut, name.h)
+	out.markerCentred = centred
+end
+
 function Geometry.Frame(s, width, height, fontScale)
 	local scale = fontScale or 1
 	local lumen = LUMEN[s.form]
@@ -457,6 +483,7 @@ function Geometry.Frame(s, width, height, fontScale)
 		out.glass = Rect(0, 0, width, height)
 		out.panel = Rect(0, 0, width, height)
 		lumen(out, s, width, height, scale)
+		Marker(out, s)
 		return out
 	end
 	local out = { compact = height < FULL_MIN_HEIGHT, form = "plate", chrome = true }
@@ -469,6 +496,7 @@ function Geometry.Frame(s, width, height, fontScale)
 		Badge(out, s)
 		Full(out, s, scale, height)
 	end
+	Marker(out, s)
 	return out
 end
 

@@ -36,6 +36,17 @@ U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow
 env.FireEvent("UNIT_NAME_UPDATE", "focus")
 assert(math.abs(size(focus.name) - body) < 0.01, "a very long name stops at the body size")
 
+-- A pet row's name is as large as the body size already; a capitals name that does not fit drops to the body face, mixed case, before it truncates (round 4: Opus #6, "BRISTLEBA..." on the hunter's pet).
+local pet = Frames.Get("pet").views[1]
+U.SetUnit(env, "pet", { name = "Bristleback", level = 38, health = 300, healthMax = 400, reaction = 5 })
+env.FireEvent("UNIT_PET", "player")
+assert(not pet.name:IsTruncated(), "the pet's name shows whole: " .. tostring(pet.name:GetUnboundedStringWidth()) .. " in " .. tostring(pet.name:GetWidth()))
+local _, petFull = Settings.Font("pet", "name")
+assert(size(pet.name) <= petFull + 0.01, "and never grows past the row's own size")
+U.SetUnit(env, "pet", { name = "Wolf", level = 38, health = 300, healthMax = 400, reaction = 5 })
+env.FireEvent("UNIT_PET", "player")
+assert(U.Shown(env, pet.name) == "WOLF" and math.abs(size(pet.name) - petFull) < 0.01, "a short pet name keeps the row's own capitals: " .. U.Shown(env, pet.name))
+
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "no errors caught by KstyleUI.Call")
 print("unitframes name fit ok")
