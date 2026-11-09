@@ -9,24 +9,24 @@ local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
 
 local SECTION = "Widgets"
 local FALLBACK_FONT = "GameFontHighlight"
-local NOISE_ALPHA = 0.035
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
-local SUBLEVEL_SHADOW, SUBLEVEL_FILL, SUBLEVEL_FROST, SUBLEVEL_NOISE = -8, -7, -6, -5
-local SUBLEVEL_RIM, SUBLEVEL_GILT = -2, -1
+local SUBLEVEL_SHADOW, SUBLEVEL_FILL = -8, -7
+local SUBLEVEL_LINE, SUBLEVEL_RIM, SUBLEVEL_GILT = -3, -2, -1
+local RING_MIN, RING_MAX = 2, 6
 local INSET_GAP = "gapSmall"
-local GRAIN_CLEAR = 1 - math.sqrt(2) / 2
-local SMALL_RIM_BELOW = 11
-local GILT_OUTSET = 1
 local LINE_HEIGHT_SHARE = 1.2
 local CHAR_WIDTH_SHARE = 0.5
 
 Widgets.TEXTURE_TEXELS = {
 	lumenShape = 128,
-	lumenFrost = 128,
-	lumenRim = 128,
-	lumenRimSmall = 128,
+	cardShape = 128,
 	lumenOutline = 128,
+	ringLine2 = 128,
+	ringLine3 = 128,
+	ringLine4 = 128,
+	ringLine5 = 128,
+	ringLine6 = 128,
 	chamferTile = 128,
 	shadow = 128,
 	lumenShadow = 128,
@@ -66,7 +66,7 @@ local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
 
 Widgets.defaults = {
 	panelOpacity = SURFACE_ALPHA,
-	shadows = true,
+	shadows = false,
 	sounds = true,
 	tooltipScale = 1,
 }
@@ -573,12 +573,12 @@ function Widgets.Inset(frame, radius, gap)
 end
 
 local SHAPES = {
-	panel = { radius = "radius", frost = true, grain = true, shadow = true },
-	card = { radius = "radius", frost = true, grain = true, shadow = true },
-	window = { radius = "radius", frost = true, grain = true, shadow = true, gilt = true },
-	rail = { radius = "radius", frost = true, grain = true, shadow = true, gilt = true },
-	tile = { radius = "radiusTile", fill = "buttonFill" },
-	socket = { radius = "radiusTile", fill = "buttonFill" },
+	panel = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
+	card = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
+	window = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
+	rail = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
+	tile = { radius = "radiusTile", lines = 3, line = "socketEdge", fill = "buttonFill" },
+	socket = { radius = "radiusTile", lines = 3, line = "socketEdge", fill = "buttonFill" },
 	bar = { pill = true },
 }
 
@@ -604,16 +604,9 @@ local function Unbiased(texture)
 	return texture
 end
 
-local SOFT = { lumenShadow = true, lumenFrost = true, shadow = true }
+local SOFT = { lumenShadow = true, shadow = true }
 local RUN_PIECES = { 2, 4, 6, 8 }
-local RUN_SIDE = { [2] = "top", [4] = "side", [6] = "side", [8] = "side" }
-
-local function RimShares()
-	local _, _, _, full = Tokens.Color("rim")
-	local _, _, _, soft = Tokens.Color("rimSoft")
-	return { lumenRim = soft / full, lumenRimSmall = soft / full, lumenOutline = 1 }
-end
-local RIM_SHARE = RimShares()
+local RUNS = { lumenOutline = true, ringLine2 = true, ringLine3 = true, ringLine4 = true, ringLine5 = true, ringLine6 = true }
 
 local function SliceCoords(texture, piece, f)
 	local col, row = (piece - 1) % 3, floor((piece - 1) / 3)
@@ -637,15 +630,12 @@ end
 local function PaintSlice(p, name)
 	local path, texels = Tokens.Texture(name)
 	local f = texels / TEXELS[name]
-	local soft = RIM_SHARE[name]
-	local r, g, b = Tokens.Color("white")
 	p.texture = name
-	p.runs = soft ~= nil
+	p.runs = RUNS[name] == true
 	for piece = 1, 9 do
-		local side = soft and RUN_SIDE[piece]
-		if side then
+		if p.runs and piece % 2 == 0 then
 			Widgets.Crisp(p[piece])
-			p[piece]:SetColorTexture(r, g, b, side == "top" and 1 or soft)
+			p[piece]:SetColorTexture(Tokens.Color("white"))
 		else
 			p[piece]:SetTexture(path)
 			SliceCoords(p[piece], piece, f)
@@ -770,12 +760,15 @@ end
 local Chrome = {}
 Chrome.__index = Chrome
 
-local function NewGilt(owner)
-	local path = Tokens.Texture("gilt")
-	local tl = NewTexture(owner, "BORDER", SUBLEVEL_GILT, path)
-	local br = NewTexture(owner, "BORDER", SUBLEVEL_GILT, path)
-	br:SetTexCoord(1, 0, 1, 0)
-	return { tl, br }
+local function NewTicks(owner)
+	local ticks = {}
+	for i = 1, 6 do
+		ticks[i] = NewTexture(owner, "BORDER", SUBLEVEL_GILT)
+		if i % 3 ~= 1 then
+			Widgets.Crisp(ticks[i])
+		end
+	end
+	return ticks
 end
 
 function Widgets.Chrome(owner, opts)
@@ -797,26 +790,19 @@ function Widgets.Chrome(owner, opts)
 		fillColor = { 0, 0, 0, 0 },
 		ownFill = false,
 		proc = false,
+		visible = true,
+		ticksShown = false,
 	}, Chrome)
 	if shape.pill then
 		c.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
 		c.rim = NewSlice(owner, "lumenOutline", "BORDER", SUBLEVEL_RIM)
 	else
 		c.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
-		c.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
-		if shape.frost then
-			c.frost = NewSlice(owner, "lumenFrost", "BACKGROUND", SUBLEVEL_FROST)
-		end
-		if opts.grain ~= false and shape.grain then
-			local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
-			noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
-			noise:SetHorizTile(true)
-			noise:SetVertTile(true)
-			c.noise = noise
-		end
-		c.rim = NewSlice(owner, "lumenRim", "BORDER", SUBLEVEL_RIM)
-		if shape.gilt and opts.gilt ~= false then
-			c.gilt = NewGilt(owner)
+		c.fill = NewSlice(owner, shape.card and "cardShape" or "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
+		c.rim = NewSlice(owner, "ringLine" .. RING_MAX, "BORDER", SUBLEVEL_RIM)
+		c.line = NewSlice(owner, "ringLine" .. RING_MAX, "BORDER", SUBLEVEL_LINE)
+		if shape.card and opts.gilt ~= false then
+			c.gilt = NewTicks(owner)
 		end
 	end
 	if type(owner.HookScript) == "function" then
@@ -841,6 +827,23 @@ function Chrome:Radius()
 	if self.shape.pill then
 		return short and short / 2 or Tokens.Size("radiusTile")
 	end
+	local radius
+	if self.radius then
+		radius = self.radius
+	elseif self.share and short then
+		radius = short * self.share
+	else
+		radius = self.shape.lines * Widgets.Border(self.owner)
+	end
+	return short and min(radius, short / 2) or radius
+end
+Chrome.Chamfer = Chrome.Radius
+
+function Chrome:PadRadius()
+	local short = ShortSide(self.owner)
+	if self.shape.pill then
+		return short and short / 2 or Tokens.Size("radiusTile")
+	end
 	if self.radius then
 		return short and min(self.radius, short / 2) or self.radius
 	end
@@ -853,18 +856,25 @@ function Chrome:Radius()
 	end
 	return min(cap, short / 2)
 end
-Chrome.Chamfer = Chrome.Radius
 
 function Chrome:Inset(gap)
-	return Widgets.Inset(self.owner, self:Radius(), gap)
+	return Widgets.Inset(self.owner, self:PadRadius(), gap)
 end
 
 function Widgets.WindowInset(frame)
 	return Widgets.Inset(frame, Tokens.Size("radius"), "gapMedium")
 end
 
+function Chrome:TicksWanted()
+	if not self.gilt or self.radius or self.share then
+		return false
+	end
+	local short = ShortSide(self.owner)
+	return short == nil or short >= 2 * Widgets.Snap(self.owner, Tokens.Size("tick"))
+end
+
 function Chrome:OnSizeChanged()
-	if self:Radius() ~= self.laidRadius then
+	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
 	end
 end
@@ -876,6 +886,42 @@ function Chrome:LayoutPill()
 	Widgets.LayoutSlice(self.rim, self.owner, radius, 0)
 end
 
+local function PickRing(slice, corner, line)
+	local lines = Widgets.Clamp(floor(corner / line + 0.5), RING_MIN, RING_MAX)
+	local name = "ringLine" .. lines
+	if slice.texture ~= name then
+		PaintSlice(slice, name)
+	end
+end
+
+function Chrome:LayoutTicks(corner, line, f)
+	local ticks, owner = self.gilt, self.owner
+	self.ticksShown = self:TicksWanted()
+	local path, texels = Tokens.Texture(self.rim.texture)
+	local share = texels / TEXELS[self.rim.texture]
+	local leg = max(0, SnapIn(Tokens.Size("tick"), f) - line - corner)
+	local arcTL, topLeg, leftLeg, arcBR, bottomLeg, rightLeg = ticks[1], ticks[2], ticks[3], ticks[4], ticks[5], ticks[6]
+	for i = 1, #ticks do
+		ticks[i]:ClearAllPoints()
+	end
+	arcTL:SetTexture(path)
+	SliceCoords(arcTL, 1, share)
+	arcBR:SetTexture(path)
+	SliceCoords(arcBR, 9, share)
+	arcTL:SetSize(corner, corner)
+	arcBR:SetSize(corner, corner)
+	arcTL:SetPoint("TOPLEFT", owner, "TOPLEFT", line, -line)
+	arcBR:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -line, line)
+	topLeg:SetSize(leg, line)
+	topLeg:SetPoint("TOPLEFT", arcTL, "TOPRIGHT")
+	leftLeg:SetSize(line, leg)
+	leftLeg:SetPoint("TOPLEFT", arcTL, "BOTTOMLEFT")
+	bottomLeg:SetSize(leg, line)
+	bottomLeg:SetPoint("BOTTOMRIGHT", arcBR, "BOTTOMLEFT")
+	rightLeg:SetSize(line, leg)
+	rightLeg:SetPoint("BOTTOMRIGHT", arcBR, "TOPRIGHT")
+end
+
 function Chrome:Layout()
 	if self.shape.pill then
 		self:LayoutPill()
@@ -883,32 +929,20 @@ function Chrome:Layout()
 	end
 	local owner = self.owner
 	local f = Widgets.ScaleFactor(owner)
+	local line = Scale.Border() / f
 	local radius = self:Radius()
 	self.laidRadius = radius
-	Widgets.LayoutSlice(self.fill, owner, radius, 0)
-	if self.frost then
-		Widgets.LayoutSlice(self.frost, owner, radius, 0)
-	end
-	self:PickRim()
-	Widgets.LayoutSlice(self.rim, owner, radius, 0)
+	local corner = SnapIn(radius, f)
+	local inner = max(line, corner - line)
+	PickRing(self.line, corner, line)
+	Widgets.LayoutSlice(self.line, owner, corner, 0)
+	Widgets.LayoutSlice(self.fill, owner, inner, -line)
+	PickRing(self.rim, inner, line)
+	Widgets.LayoutSlice(self.rim, owner, inner, -line)
 	local reach = Tokens.Size("shadow")
 	Widgets.LayoutSlice(self.shadow, owner, 2 * reach, SnapIn(reach, f))
-	if self.noise then
-		local inset = SnapIn(radius * GRAIN_CLEAR, f)
-		self.noise:ClearAllPoints()
-		self.noise:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
-		self.noise:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
-	end
 	if self.gilt then
-		local size = SnapIn(Tokens.Size("gilt") * radius / Tokens.Size("radius"), f)
-		local outset = SnapIn(GILT_OUTSET, f)
-		local tl, br = self.gilt[1], self.gilt[2]
-		tl:ClearAllPoints()
-		br:ClearAllPoints()
-		tl:SetSize(size, size)
-		br:SetSize(size, size)
-		tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outset, outset)
-		br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outset, -outset)
+		self:LayoutTicks(inner, line, f)
 	end
 end
 
@@ -924,28 +958,25 @@ function Chrome:Paint()
 		end
 	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
-	if self.frost then
-		Widgets.ColorSlice(self.frost, Tokens.Color("glass"))
-	end
 	if self.shadow then
-		Widgets.ShowSlice(self.shadow, self.shadowOn and Widgets.Setting("shadows"))
+		Widgets.ShowSlice(self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 		Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
 	end
-	if self.noise then
-		self.noise:SetVertexColor(Widgets.Rgba("white", NOISE_ALPHA))
-	end
 	if self.gilt then
+		Widgets.ShowSlice(self.gilt, self.visible and self.ticksShown)
 		Widgets.ColorSlice(self.gilt, Tokens.Color("gilt"))
 	end
 	self:PaintEdge()
 end
 
 function Chrome:PaintEdge()
-	if self.proc then
-		Widgets.ColorSlice(self.rim, Tokens.Color("giltLit"))
+	local e = self.edge
+	if self.line then
+		Widgets.ColorSlice(self.line, Tokens.Color(self.proc and "giltLit" or self.shape.line))
+	elseif self.proc then
+		Widgets.ColorSlice(self.rim, Tokens.Color("gilt"))
 		return
 	end
-	local e = self.edge
 	Widgets.ColorSlice(self.rim, e[1], e[2], e[3], e[4])
 end
 
@@ -957,6 +988,7 @@ function Chrome:Restyle()
 		ns.Combat.Queue(function()
 			self.layoutQueued = false
 			self:Layout()
+			self:Paint()
 		end)
 	end
 	self:Paint()
@@ -993,25 +1025,10 @@ function Chrome:SetEdgeRGBA(r, g, b, a)
 	self:PaintEdge()
 end
 
-function Chrome:PickRim()
-	local name = "lumenRim"
-	if self.proc then
-		name = "lumenOutline"
-	elseif (self.laidRadius or self:Radius()) < SMALL_RIM_BELOW then
-		name = "lumenRimSmall"
-	end
-	if self.rim.texture ~= name then
-		PaintSlice(self.rim, name)
-	end
-end
-
 function Chrome:SetProc(on)
 	on = on and true or false
 	if self.proc ~= on then
 		self.proc = on
-		if not self.shape.pill then
-			self:PickRim()
-		end
 		self:PaintEdge()
 	end
 end
@@ -1030,19 +1047,17 @@ function Chrome:SetShadow(on)
 end
 
 function Chrome:SetShown(shown)
+	self.visible = shown and true or false
 	Widgets.ShowSlice(self.fill, shown)
 	Widgets.ShowSlice(self.rim, shown)
-	if self.frost then
-		Widgets.ShowSlice(self.frost, shown)
+	if self.line then
+		Widgets.ShowSlice(self.line, shown)
 	end
 	if self.gilt then
-		Widgets.ShowSlice(self.gilt, shown)
-	end
-	if self.noise then
-		self.noise:SetShown(shown)
+		Widgets.ShowSlice(self.gilt, self.visible and self.ticksShown)
 	end
 	if self.shadow then
-		Widgets.ShowSlice(self.shadow, shown and self.shadowOn and Widgets.Setting("shadows"))
+		Widgets.ShowSlice(self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 end
 

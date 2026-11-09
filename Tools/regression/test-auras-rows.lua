@@ -76,8 +76,8 @@ check(buffs.tracked == "cdm", "buffs the Cooldown Manager tracks show there only
 
 -- Two bare elements: no card parts on either host, the debuff row its own live element, both at the footprint.
 check(desc and desc.card == nil and desc.dock == nil and ddesc.dock == nil and ddesc.docked == nil, "no card, no dock")
-for _, name in ipairs({ "lumenRim", "lumenFrost", "lumenShadow", "gilt", "gem" }) do
-	check(#textures(desc.host, (Tokens.Texture(name))) == 0, "the buff host draws no " .. name .. ": no glass, no rim, no gem")
+for _, name in ipairs({ "cardShape", "ringLine6", "lumenShadow", "gem" }) do
+	check(#textures(desc.host, (Tokens.Texture(name))) == 0, "the buff host draws no " .. name .. ": no card fill, no ring, no gilt, no gem")
 end
 local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
 check(b and d, "both elements register with Layout")
@@ -93,8 +93,9 @@ check(element.short == K.L["Auras"], "the setup preview names the block Auras (s
 -- Beside the minimap's left edge, as the owner asked: top-aligned with the map, 16 left of it, growing towards the
 -- screen's centre; the debuffs a gap under the buffs.
 local map = Layouts.Element("minimap.main")
-check(b.position.anchor == "TOPRIGHT" and b.position.x == -(28 + map.width + 16) and b.position.y == -28, "the buffs stand 16 left of the minimap, top-aligned with it, got " .. tostring(b.position.x) .. ", " .. tostring(b.position.y))
-check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and d.position.y == -(28 + 88 + 16), "the debuffs hang 16 under the buffs, got " .. tostring(d.position.y))
+local margin = Tokens.Size("screenMargin")
+check(b.position.anchor == "TOPRIGHT" and b.position.x == -(margin + map.width + 16) and b.position.y == -margin, "the buffs stand 16 left of the minimap, top-aligned with it, got " .. tostring(b.position.x) .. ", " .. tostring(b.position.y))
+check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and d.position.y == -(margin + 88 + 16), "the debuffs hang 16 under the buffs, got " .. tostring(d.position.y))
 for _, name in ipairs(Layouts.Names()) do
 	for _, entry in ipairs(Layouts.Settings(name)) do
 		check(entry.module ~= "Auras", name .. " writes no Auras setting: the rows are the same in every layout")

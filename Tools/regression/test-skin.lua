@@ -108,7 +108,7 @@ do
 	local snap = B.snapshot()
 	local panel = K.Skin.Backdrop(frame, { inset = 4 })
 	assert(panel and panel:GetParent() == frame and panel:GetFrameLevel() == 9, "behind the frame")
-	assert(panel.chrome and #panel.chrome.fill == 9 and panel.chrome.shadow[1]:IsShown(), "panel chrome with a shadow")
+	assert(panel.chrome and #panel.chrome.fill == 9 and panel.chrome.shadowOn and not panel.chrome.shadow[1]:IsShown(), "panel chrome whose shadow waits for the Panel shadows setting, off by default as the owner's picture casts none")
 	local p = panel._points[1]
 	local inset = K.Widgets.Snap(panel, 4)
 	assert(p[1] == "TOPLEFT" and p[2] == frame and W.Near(p[4], inset) and W.Near(p[5], -inset), "inset from the frame, in whole pixels of its scale")
@@ -390,7 +390,7 @@ do
 	local panel = K.Skin.Window(window)
 	assert(nine:GetAlpha() == 0 and window.Bg:GetAlpha() == 0 and portrait:GetAlpha() == 0 and insetNine:GetAlpha() == 0, "the window's art is stripped")
 	assert(panel and panel:GetParent() == window and panel.chrome, "a KstyleUI panel behind it")
-	assert(panel.chrome.shapeName == "window" and panel.chrome.shadow[1]:IsShown(), "the window grade: four lines, 10-unit chamfers and a shadow")
+	assert(panel.chrome.shapeName == "window" and panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "the window grade: the picture's card with its gilt ticks")
 	assert(W.LastCall(window.TitleContainer.TitleText, "SetFont")[1] == (K.Tokens.Font("heading")), "the title in the heading font")
 	assert(K.Skin.IsSkinned(window.CloseButton, "CloseButton"), "the close button")
 	assert(K.Skin.Window(window) == panel, "a second call does nothing new")

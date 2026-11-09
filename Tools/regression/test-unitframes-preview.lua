@@ -128,11 +128,11 @@ assert(preview.auraCount > 0 and preview.auraIcons.target[1]:IsShown(), "switchi
 local bevels = 0
 for _, region in ipairs(W.Regions(preview.auraIcons.target[1], "Texture")) do
 	local set = W.LastCall(region, "SetTexture")
-	if set and set[1] == (K.Tokens.Texture("lumenRimSmall")) then
+	if set and (set[1] == (K.Tokens.Texture("ringLine3")) or set[1] == (K.Tokens.Texture("ringLine2"))) then
 		bevels = bevels + 1
 	end
 end
-assert(bevels == 5, "the sample aura icons wear the live aura tile: the socket's rim, its four corners and centre from the texture")
+assert(bevels == 10, "the sample aura icons wear the live aura tile: the socket's line and rim, each ring's four corners and centre from its texture")
 K.Options.Write("UnitFrames", "target.auraPosition", "RIGHT")
 K.Options.Write("UnitFrames", "target.auraGrowth", "LEFT_DOWN")
 settle()

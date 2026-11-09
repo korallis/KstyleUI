@@ -22,12 +22,12 @@
 --             "<subject> & <subject>" in byte order. A text drawn over a texture, and a texture on the text's own
 --             frame, are the design. A text's glyphs are measured as the page draws them: the glyph table's width
 --             set by its justification inside its rect, one line high, or its wrapped lines when it wraps.
--- A card is a frame that owns Lumen frost glass: the panel, card, window and rail shapes of Widgets.Chrome (tiles,
--- sockets and bars carry no frost). The glass is the union of the card's LumenShape slices, as drawn. A card's
+-- A card is a frame that owns a card fill (CardShape): the panel, card, window and rail shapes of Widgets.Chrome (tiles,
+-- sockets and bars fill with LumenShape). The glass is the union of the card's fill slices, as drawn. A card's
 -- content is everything drawn under the frame the glass clothes: the card frame itself, or, for a backdrop (a glass
 -- frame with no text and no frames of its own, as Skin.Backdrop makes), its target or parent. Text whose centre
--- sits on a card's glass is that card's content too, wherever it hangs in the frame tree. Shadows, glows and gilt
--- corners bleed past the glass by design and are never content; an item the page draws through a clip rect is
+-- sits on a card's glass is that card's content too, wherever it hangs in the frame tree. Shadows and glows bleed past
+-- the glass by design and are never content; an item the page draws through a clip rect is
 -- checked as clipped. A text inside a nested card is held to the innermost card.
 --
 -- The rect arithmetic is Tools/regression/geometry.lua's (Geometry.Outside); the rects are the scene's own, so the
@@ -45,7 +45,7 @@ Guard.ALLOW = "Tools/render/guard_allow.tsv"
 Guard.OWNERS = { R1 = true, R2 = true, R3 = true, R4a = true, R4b = true, R5 = true, R6 = true, R7 = true, S1 = true, S2 = true, S3 = true, S4 = true, S5 = true, S6 = true, design = true }
 Guard.KINDS = { ellipsis = true, outside = true, clipped = true, overlap = true }
 
-local DECOR = { "LumenShadow", "Shadow.png", "Glow.png", "LumenGilt", "Noise.png" }
+local DECOR = { "LumenShadow", "Shadow.png", "Glow.png", "Noise.png" }
 
 local function isDecor(item)
 	local file = item.file or item.path
@@ -169,14 +169,15 @@ end
 -- card's arched top).
 function Guard.Cards(scene)
 	local byFrame, order = {}, {}
-	local frost = {}
+	local isCard = {}
 	for _, item in ipairs(scene.items) do
 		local owner = item.object and item.object._parent
 		if owner and item.kind == "texture" then
 			local file = fileOf(item)
-			if file:find("LumenFrost", 1, true) then
-				frost[owner] = true
-			elseif file:find("LumenShape", 1, true) or file:find("LensMask", 1, true) then
+			if file:find("CardShape", 1, true) then
+				isCard[owner] = true
+			end
+			if file:find("CardShape", 1, true) or file:find("LumenShape", 1, true) or file:find("LensMask", 1, true) then
 				if not byFrame[owner] then
 					byFrame[owner] = { frame = owner }
 					order[#order + 1] = owner
@@ -187,7 +188,7 @@ function Guard.Cards(scene)
 	end
 	local cards = {}
 	for _, frame in ipairs(order) do
-		if frost[frame] then
+		if isCard[frame] then
 			local card = byFrame[frame]
 			card.scope = frame
 			if isBackdrop(frame) then
@@ -360,7 +361,7 @@ local function crossing(a, b)
 end
 
 -- Hides(item) -> whether a texture can hide a text under it: a solid colour, an icon (a file ID, or a file from an
--- Icons folder) or a kit fill slice (LumenShape), at an effective alpha of at least COVER_ALPHA. Any other art
+-- Icons folder) or a kit fill slice (LumenShape, CardShape), at an effective alpha of at least COVER_ALPHA. Any other art
 -- (rims, outlines, bar glass, gradients) carries its own transparency the guard cannot read, so it is not judged.
 function Guard.Hides(item)
 	if item.kind ~= "texture" or item.masks and #item.masks > 0 then
@@ -369,7 +370,7 @@ function Guard.Hides(item)
 	local file = fileOf(item)
 	local solid = item.color ~= nil and file == ""
 	local icon = item.fileID ~= nil or file:lower():find("icons[/\\]") ~= nil
-	local fill = file:find("LumenShape", 1, true) ~= nil
+	local fill = file:find("LumenShape", 1, true) ~= nil or file:find("CardShape", 1, true) ~= nil
 	if not (solid or icon or fill) then
 		return false
 	end

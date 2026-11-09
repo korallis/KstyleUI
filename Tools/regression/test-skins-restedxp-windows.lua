@@ -79,7 +79,7 @@ do
 	assert(Glass(K, f), "the guide window sits on one KstyleUI glass")
 	local glass = K.Skin.Parts(f).backdrop
 	assert(glass.chrome.shapeName == "window", "window-grade glass, as the HUD's chat and tracker")
-	assert(glass.chrome.gilt == nil, "the story card wears no gilt corner tips: a thin rim and nothing else (owner, 2026-11-09)")
+	assert(glass.chrome.gilt ~= nil, "the story card wears gilt L-ticks: the owner's picture of 2026-11-09 reverses #205's thin rim and nothing else")
 	assert(glass.target == card, "the glass follows the card frame, not RestedXP's window")
 	assert(glass:GetFrameLevel() < f.GuideName:GetFrameLevel() and glass:GetFrameLevel() <= f:GetFrameLevel(), "under every RestedXP part of the window")
 	assert(not K.Skin.IsSkinned(f.GuideName, "Backdrop") and not K.Skin.IsSkinned(f.BottomFrame, "Backdrop") and not K.Skin.IsSkinned(f.Footer, "Backdrop"), "the header, the list and the footer draw no glass of their own: one card, not three")

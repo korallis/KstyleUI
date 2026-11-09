@@ -86,7 +86,7 @@ for _, element in ipairs(ELEMENTS) do
 end
 
 local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
-local MARGIN, RAIL, GAP, TIGHT = 28, 318, 16, 4
+local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
 local NEAR = ns.Tokens.Size("gapLarge")
 local BAND = MARGIN + RAIL + GAP
 local ENDS = GridSize("actionbars.bar1") / 2 + NEAR + GridSize("actionbars.pet") / 2

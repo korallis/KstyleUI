@@ -1,4 +1,4 @@
--- test-legibility.lua: text on the Lumen glass stays readable over bright scenery, small text is a readable sans, Cinzel only sets heads of 12 units and up, and pale fills keep a dark edge.
+-- test-legibility.lua: text on the card stays readable over bright scenery, small text is a readable sans, Cinzel only sets heads of 12 units and up, and pale fills keep a dark edge.
 local W = dofile("Tools/regression/widget_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
@@ -32,27 +32,11 @@ local function rgb(name)
 	return { r, g, b }, a
 end
 
--- The frost's vertical stops come from the generator that bakes LumenFrost.png: top band, middle start, middle end, bottom.
-local stops = {}
-do
-	local handle = assert(io.open("Tools/media/make_media.py", "r"))
-	local source = handle:read("*a")
-	handle:close()
-	local list = assert(source:match("\nFROST_STOPS = %(([^)]+)%)"), "make_media.py defines FROST_STOPS")
-	for value in list:gmatch("[%d%.]+") do
-		stops[#stops + 1] = tonumber(value)
-	end
-	assert(#stops == 4, "four frost stops")
-end
-
--- A card as Chrome paints it: the scenery, the surface at the panel opacity setting, the frost at its band, the grain.
-local NOISE_ALPHA = 0.035
-local function card(scenery, band)
+-- A card as Chrome paints it: the scenery under the surface at the panel opacity setting. The owner's picture of
+-- 2026-11-09 has no frost and no grain, so the card is one even tint from top to bottom.
+local function card(scenery)
 	local surface = rgb("surface")
-	local glass, glassAlpha = rgb("glass")
-	local c = over(surface, Widgets.Setting("panelOpacity"), scenery)
-	c = over(glass, glassAlpha * band, c)
-	return over({ 1, 1, 1 }, NOISE_ALPHA, c)
+	return over(surface, Widgets.Setting("panelOpacity"), scenery)
 end
 
 -- Bright scenery a card sits over in play: a white sky, a pale sky, sand and snow.
@@ -62,10 +46,10 @@ local BRIGHT = {
 	sand = { 0.91, 0.84, 0.66 },
 	snow = { 0.96, 0.96, 0.97 },
 }
-local function worst(colorName, band)
+local function worst(colorName)
 	local low, where = math.huge, nil
 	for name, scenery in pairs(BRIGHT) do
-		local ratio = contrast(rgb(colorName), card(scenery, band))
+		local ratio = contrast(rgb(colorName), card(scenery))
 		if ratio < low then
 			low, where = ratio, name
 		end
@@ -73,17 +57,15 @@ local function worst(colorName, band)
 	return low, where
 end
 
--- Body text sits in the card's middle band; heads and caps in the top band, the frost's lightest.
-local middle, top = stops[2], stops[1]
+-- Body text, emphasised and secondary text, and a gilt section head, each anywhere on the card.
 for _, check in ipairs({
-	{ "text", middle, 4.5, "body text" },
-	{ "textEmphasis", middle, 6, "emphasised text, a clear step above body text" },
-	{ "muted", middle, 3, "secondary text" },
-	{ "giltLit", top, 4.5, "a gilt section head" },
-	{ "textEmphasis", top, 4.5, "a title in the top band" },
+	{ "text", 4.5, "body text" },
+	{ "textEmphasis", 6, "emphasised text, a clear step above body text" },
+	{ "muted", 3, "secondary text" },
+	{ "giltLit", 4.5, "a gilt section head" },
 }) do
-	local ratio, where = worst(check[1], check[2])
-	assert(ratio >= check[3], string.format("%s (%s) reads at %.2f:1 over %s scenery; it needs %.1f:1", check[4], check[1], ratio, where, check[3]))
+	local ratio, where = worst(check[1])
+	assert(ratio >= check[2], string.format("%s (%s) reads at %.2f:1 over %s scenery; it needs %.1f:1", check[3], check[1], ratio, where, check[2]))
 end
 
 -- Fonts: small text is Alegreya Sans, Cinzel SemiBold only sets heads of 12 units and up, the tracked Regular caps role sets the picture's 10-unit headings (its letters are spaced and its capitals fill the height), and nothing falls under 10 units.
@@ -127,7 +109,7 @@ do
 	bar:SetBarColor(1, 1, 1)
 	local edge = assert(bar.keyline, "a bar with a track draws a keyline around it")
 	local r, g, b, a = W.Color(edge)
-	local glassBehind = card(BRIGHT.white, middle)
+	local glassBehind = card(BRIGHT.white)
 	local ring = over({ r, g, b }, a, glassBehind)
 	assert(contrast({ 1, 1, 1 }, ring) >= 3, string.format("a white fill against its keyline reads at %.2f:1; it needs 3:1", contrast({ 1, 1, 1 }, ring)))
 	local outer, inner = Geometry.Rect(edge, root), Geometry.Rect(bar, root)
