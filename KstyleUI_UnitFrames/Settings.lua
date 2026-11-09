@@ -163,7 +163,7 @@ Settings.defaults = {
 	target = Kind(true, {
 		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
 		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, auraSpacing = 4,
-	}, 14, 13, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 18, 15, 10, 13 }),
+	}, 14, 10, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 18, 15, 10, 13 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
@@ -427,7 +427,9 @@ function Settings.Snapshot(kind)
 	for _, element in ipairs(Settings.TEXTS) do
 		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale() }
 	end
-	local s = { fonts = fonts, form = Settings.Form(kind) }
+	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
+	local form = Settings.Form(kind)
+	local s = { fonts = fonts, form = form, inlineCast = form == "column" and kind ~= "player" }
 	for key in pairs(Settings.defaults[kind]) do
 		if key ~= "fonts" then
 			s[key] = Settings.Value(kind, key)

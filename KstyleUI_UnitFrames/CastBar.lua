@@ -373,18 +373,21 @@ local function LayoutCaption(cb, width, height)
 	cb.panel:SetAllPoints(frame)
 	ShowLock(cb)
 	Style.Flat(cb.bar, true)
-	local barH = CAPTION_BAR[mode]
+	local size = Settings.FontSize(cb.kind, "cast")
+	local rowH = size + TEXT_EXTRA
+	local gap = CAPTION_GAP[mode]
+	local spare = height - gap - rowH
+	local labelOn = spare >= BAR_MIN
+	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height)
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
 	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
 	bar:SetSparkShown(true)
-	local size = Settings.FontSize(cb.kind, "cast")
-	local rowH = size + TEXT_EXTRA
-	local timerOn = Settings.Value(cb.kind, "castbarTimer")
+	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
 	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[mode] * size), math.floor(width / 2)) or 0
-	local y = Snap(cb, barH + CAPTION_GAP[mode])
+	local y = Snap(cb, barH + gap)
 	local point = above and "BOTTOM" or "TOP"
 	local offset = above and y or -y
 	for _, text in ipairs({ cb.text, cb.timer }) do
@@ -395,7 +398,7 @@ local function LayoutCaption(cb, width, height)
 	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", 0, offset)
 	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
 	cb.text:SetJustifyH("LEFT")
-	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
+	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
 	cb.timer:SetPoint(point .. "RIGHT", frame, point .. "RIGHT", 0, offset)
 	cb.timer:SetWidth(Snap(cb, timerW))
 	cb.timer:SetJustifyH("RIGHT")
@@ -529,7 +532,7 @@ function CastBars.Restyle(cb)
 	cb.label:SetTextColor(Lumen.Color("muted"))
 	cb.lock:SetTextColor(Tokens.Color("hostile"))
 	if cb.mode then
-		cb.text:SetTextColor(Lumen.Color("goldLit"))
+		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
 		cb.timer:SetTextColor(Tokens.Color("textEmphasis"))
 	elseif cb.line then
 		cb.text:SetTextColor(Lumen.Color("cast"))

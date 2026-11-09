@@ -24,6 +24,12 @@ do
 		e._game.bindings.ACTIONBUTTON8 = { "8" }
 	end })
 	AB.Enable(env, K)
+	local schema = K.Options.Get("ActionBars")
+	for _, row in ipairs(schema) do
+		if row.key == "bar1.size" or row.key == "bar1.spacing" or row.key == "bar2.size" or row.key == "bar2.spacing" then
+			assert(row.step == 0.1, "the size and gap sliders can represent the fractional reference defaults")
+		end
+	end
 	for _, key in ipairs({ "bar1", "bar2" }) do
 		local cfg = ns.Config(key)
 		assert(W.Near(cfg.size, 36.7) and W.Near(cfg.spacing, 4.6), key .. " uses the measured 36.7-unit tiles and 41.3-unit pitch")

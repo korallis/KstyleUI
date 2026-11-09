@@ -38,8 +38,8 @@ local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSm
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
 
 local ELEMENTS = {
-	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = COLUMN, height = 80, reserve = { 582.5, 80, -45.75 } },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = COLUMN, height = 100.5, reserve = { 721.4, 100.5, 115.2 } },
+	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = COLUMN, height = 80, reserve = { 586.5, 80, -47.75 } },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = COLUMN, height = 100.5, reserve = { 737.4, 100.5, 123.2 } },
 	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
 	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], short = L["Focus"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
@@ -150,7 +150,7 @@ local DPS = {
 	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 54 },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 95.3 },
-	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = ns.Tokens.Size("screenMargin"), y = 428 },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = ns.Tokens.Size("screenMargin"), y = 464 },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = BAR1_Y },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = BAR1_Y },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 },
@@ -649,10 +649,10 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user)
 	local pixelScale = physicalHeight / rootHeight
 	local rects = {}
 	for i = 1, #ELEMENTS + 1 do
-		local key, width, height, position
+		local key, width, height, position, offsetX
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
-			width, height = Layouts.Footprint(name, key)
+			width, height, offsetX = Layouts.Footprint(name, key)
 			position = layout[key]
 		else
 			position = Layouts.Slot(name, rootHeight)
@@ -664,7 +664,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user)
 		local w = math.max(1, math.floor(width * pixelScale + 0.5))
 		local h = math.max(1, math.floor(height * pixelScale + 0.5))
 		local point = OFFSETS[position.anchor] or OFFSETS.CENTER
-		local left = math.floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5)
+		local left = math.floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
 		local bottom = math.floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
 		local right, top = left + w, bottom + h
 		if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then

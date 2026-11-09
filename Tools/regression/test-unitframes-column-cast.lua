@@ -37,6 +37,10 @@ assert(element.mode == "above" and element.geometry.caption == "above", "the lab
 assert(U.Shown(env, element.text) == "LIGHTNING BOLT", "the spell is in capitals: " .. U.Shown(env, element.text))
 assert(not tostring(W.LastCall(element.text, "SetText")[1]):find("\226\128\137"), "with no thin space, Cinzel has none")
 assert(element.text:GetFont() == Tokens.Font("heading"), "in the heading face")
+local _, castSize, castFlags = ns.Settings.Font("player", "cast")
+local ref = K.Widgets.FontString(K.Scale.Root(), "OVERLAY")
+K.Widgets.ApplyFont(ref, Tokens.Font("heading"), castSize, castFlags)
+assert(W.LastCall(element.text, "SetFont")[2] == W.LastCall(ref, "SetFont")[2], "the caption's size goes through Widgets.ApplyFont, so it snaps to whole pixels like every other text")
 W.Tick(env, 0.1)
 assert(U.Shown(env, element.timer) == "1.2 / 2.5", "elapsed over total, no unit: " .. U.Shown(env, element.timer))
 local timer = W.LastCall(element.timer, "SetFormattedText")
@@ -108,3 +112,64 @@ assert(CastBars.ElementLive("player") == true and element.mode == nil, "a plate 
 K.Options.Write("UnitFrames", "player.style", "lumen")
 assert(CastBars.ElementLive("player") == false and CastBars.Inline("player")[1].mode == nil, "the older Lumen style keeps its cast line inside the frame")
 noErrors("styles")
+
+-- A column target keeps its inline cast whichever side its portrait is on; the separate element stays off.
+K.Options.Write("UnitFrames", "player.style", "column")
+settle()
+do
+	K.Options.Write("UnitFrames", "target.portraitSide", "LEFT")
+	settle()
+	local snapshot = ns.Settings.Snapshot("target")
+	assert(snapshot.inlineCast == true and snapshot.form == "column", "the column target's snapshot carries the inline cast contract")
+	assert(ns.Settings.Snapshot("player").inlineCast == false, "the player's cast bar is its own element")
+	local size = Layouts.Element("unitframes.target")
+	local frame = ns.Geometry.Frame(snapshot, size.width, size.height, 1)
+	assert(not frame.mirror and frame.cast, "a target with its portrait on the left still has its inline cast")
+	assert(CastBars.ElementLive("target") == false, "and no second element")
+	U.SetUnit(env, "target", { name = "Shadowgale Poacher", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true,
+		cast = { name = "Shadow Bolt", texture = 136197, start = 1000, finish = 3800, spellID = 686 } })
+	env._time = 3
+	env.SetTarget(true)
+	assert(target.frame:IsShown() and target.mode == "below", "the inline cast shows with the portrait on the left")
+	U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 1, healthMax = 2, reaction = 2 })
+	env.SetTarget(true)
+	K.Options.Write("UnitFrames", "target.portraitSide", "RIGHT")
+	settle()
+	noErrors("left portrait")
+end
+
+-- The target's cast room follows its cast font; a cast line given less height than it needs drops its label before it overflows.
+do
+	local size = Layouts.Element("unitframes.target")
+	local function room()
+		return ns.Geometry.Frame(ns.Settings.Snapshot("target"), size.width, size.height, 1).cast.h
+	end
+	assert(near(room(), 7 + 4.5 + 10 + 3, 0.01), "a 10-unit cast font takes the picture's 24.5: " .. room())
+	K.Options.Write("UnitFrames", "target.fonts.cast.size", 16)
+	assert(near(room(), 7 + 4.5 + 16 + 3, 0.01), "a 16-unit cast font takes 30.5: " .. room())
+	K.Options.Write("UnitFrames", "target.fonts.cast.size", 10)
+
+	for _, fontSize in ipairs({ 10, 12, 20 }) do
+		K.Options.Write("UnitFrames", "player.fonts.cast.size", fontSize)
+		for _, height in ipairs({ 6, 9, 12, 18, 24.5, 30, 40 }) do
+			for _, mode in ipairs({ "above", "below" }) do
+				local cb = mode == "above" and element or target
+				CastBars.Layout(cb, 347, height)
+				local where = mode .. " font " .. fontSize .. " height " .. height
+				local _, barH = cb.bar:GetSize()
+				local extent = barH
+				if cb.text:IsShown() then
+					local _, _, _, _, offset = cb.text:GetPoint(1)
+					local _, rowH = cb.text:GetSize()
+					extent = math.abs(offset) + rowH
+				end
+				assert(extent <= height + 0.6, where .. ": the bar and its label stand inside the frame, reaching " .. extent)
+				assert(barH >= math.min(3, height) - 0.01 and barH <= (mode == "above" and 9 or 7) + 0.6, where .. ": the bar keeps a sane height " .. barH)
+				assert(cb.text:IsShown() == cb.timer:IsShown(), where .. ": the label and its time go together")
+			end
+		end
+	end
+	K.Options.Write("UnitFrames", "player.fonts.cast.size", 12)
+	settle()
+	noErrors("cast room")
+end

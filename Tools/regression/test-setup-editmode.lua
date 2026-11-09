@@ -34,6 +34,11 @@ local function near(a, b)
 	return type(a) == "number" and math.abs(a - b) < 0.6
 end
 
+local function NativeIconSize(k)
+	local percent = math.max(50, math.min(200, math.floor(27.6 * k / 40 * 10 + 0.5) * 10))
+	return 40 * percent / 100 / k
+end
+
 -- A new KstyleUI layout, copied from the active preset, with the tracker in the story slot and the meter on its card
 
 do
@@ -82,7 +87,7 @@ end
 -- and BuffBarCooldownViewer, so Apply places those viewers in the layout's tracked buff slots. The icons hang from the
 -- slot's bottom right above a 14-unit timer band and grow left, beside the player portrait (LEE-20); the bars use
 -- their independent slot's bottom left. Their size comes from Edit Mode's IconSize, chosen so the whole row fits
--- between the slot and the next element, never under 50% and never over KstyleUI's own buff size.
+-- in the actual clear space, never under 50% and at most the legal size nearest the 27.6-unit picture target.
 
 local function Overlaps(a, b)
 	return a[1] < b[3] - 0.5 and b[1] < a[3] - 0.5 and a[2] < b[4] - 0.5 and b[2] < a[4] - 0.5
@@ -121,36 +126,42 @@ end
 
 for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	for _, screen in ipairs({ OWNER, {} }) do
-		local state = { saved = {}, active = 1 }
-		local env, K = Boot(state, screen)
-		K.Setup.EditMode.CountTracked(function(group)
-			return ({ buffs = 5, bars = 2 })[group]
-		end)
-		assert(K.Setup.Apply({ layout = name, modules = {} }))
-		local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 5, 2)
-		local where = name .. " at " .. tostring(screen.width or 1920)
-		local l, b, r = Slot(K, name, "cooldowns.buffs")
-		assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, (b + 14) * k), where .. ": LEE-20 the buff icons hang from the slot's right edge above the timer band")
-		assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.LEFT, where .. ": in one row, the first buff beside the cluster")
-		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
-		local size = (iconBox[4] - iconBox[2])
-		local cap = math.max(27.6, 20 / k)
-		assert(size <= cap + 0.01 and Setting(icon, ICON_SIZE) >= 0, where .. ": LEE-20 a native buff icon stays below 27.6 or the engine's minimum quantized size, got " .. size)
-		assert(Setting(icon, EditModeFake.ICON_PADDING) == 7 and near(iconBox[3] - iconBox[1], 5 * size + 4 * 3 / k), where .. ": LEE-20 the native icons have a three-UIParent-unit gap")
-		if screen == OWNER then
-			assert(math.abs(size - 23.75) < 0.01 and Setting(icon, ICON_SIZE) == 0, where .. ": LEE-20 native 50% is the largest step below the 27.6-unit reference at the shipped scale, got " .. size)
+		for _, count in ipairs({ 5, 6 }) do
+			local state = { saved = {}, active = 1 }
+			local env, K = Boot(state, screen)
+			K.Setup.EditMode.CountTracked(function(group)
+				return ({ buffs = count, bars = 2 })[group]
+			end)
+			assert(K.Setup.Apply({ layout = name, modules = {} }))
+			local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, count, 2)
+			local where = name .. " at " .. tostring(screen.width or 1920) .. " with " .. count .. " icons"
+			local l, b, r = Slot(K, name, "cooldowns.buffs")
+			assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, (b + 14) * k), where .. ": LEE-20 the buff icons hang from the slot's right edge above the timer band")
+			assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.RIGHT, where .. ": the right-aligned row preserves the configured left-to-right order")
+			assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
+			local size = (iconBox[4] - iconBox[2])
+			assert(size <= NativeIconSize(k) + 0.01 and Setting(icon, ICON_SIZE) >= 0, where .. ": LEE-20 a native buff icon is no larger than the nearest legal step, got " .. size)
+			assert(Setting(icon, EditModeFake.ICON_PADDING) == 7 and near(iconBox[3] - iconBox[1], count * size + (count - 1) * 3 / k), where .. ": LEE-20 the native icons have a three-UIParent-unit gap")
+			if screen == OWNER then
+				assert(math.abs(size - 28.5) < 0.01 and Setting(icon, ICON_SIZE) == 1, where .. ": LEE-20 native 60% is nearest the 27.6-unit reference at the shipped scale, got " .. size)
+				if count == 6 then
+					assert(math.abs(iconBox[3] - iconBox[1] - 188.8125) < 0.01 and math.abs(l - iconBox[1] - 6.2125) < 0.01, where .. ": the quantized native row extends into clear space left of the renderer holder")
+				end
+			end
+			assert(near(iconBox[3], r), where .. ": the native row keeps the reference's portrait-side edge")
+			local player = { Slot(K, name, "unitframes.player") }
+			local portraitLeft = player[3] - K.Setup.Layouts.Element("unitframes.player").width - 91.5
+			assert(near(portraitLeft - iconBox[3], 14.5) and iconBox[2] >= player[2] and iconBox[4] <= player[4], where .. ": LEE-20 the buffs fit beside the visible external player portrait")
+			assert(not Overlaps(iconBox, player), where .. ": the buffs also clear the portrait's full pixel-snapping reserve")
+			local bl, bb, br = Slot(K, name, "cooldowns.bars")
+			assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": LEE-20 the bars use their independent slot above the buff icons")
+			assert(math.abs(barBox[1] - bl) <= 0.5 and math.abs(barBox[3] - br) <= 1.5, where .. ": LEE-20 the native bars span their own 243-unit slot, not the icon row")
+			assert(#Collisions(K, name, iconBox) == 0, where .. ": the icons touch nothing: " .. table.concat(Collisions(K, name, iconBox), ", "))
+			assert(#Collisions(K, name, barBox) == 0, where .. ": the bars touch nothing: " .. table.concat(Collisions(K, name, barBox), ", "))
+			assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing to tell the player")
+			assert(Find(Named(state, "KstyleUI " .. name), VIEWER, 1).anchorInfo.offsetY == 230, where .. ": the essential viewer keeps the copied layout's place")
+			assert(#env._errors == 0, tostring(env._errors[1]))
 		end
-		assert(near(iconBox[3], r) and iconBox[1] >= l - 0.5, where .. ": five buffs fit inside the slot")
-		local player = { Slot(K, name, "unitframes.player") }
-		assert(near(player[1] - iconBox[3], 14.5) and iconBox[2] >= player[2] and iconBox[4] <= player[4], where .. ": LEE-20 the buffs fit beside the external player portrait reserve")
-		local bl, bb, br = Slot(K, name, "cooldowns.bars")
-		assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": LEE-20 the bars use their independent slot above the buff icons")
-		assert(math.abs(barBox[1] - bl) <= 0.5 and math.abs(barBox[3] - br) <= 1.5, where .. ": LEE-20 the native bars span their own 243-unit slot, not the icon row")
-		assert(#Collisions(K, name, iconBox) == 0, where .. ": the icons touch nothing: " .. table.concat(Collisions(K, name, iconBox), ", "))
-		assert(#Collisions(K, name, barBox) == 0, where .. ": the bars touch nothing: " .. table.concat(Collisions(K, name, barBox), ", "))
-		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing to tell the player")
-		assert(Find(Named(state, "KstyleUI " .. name), VIEWER, 1).anchorInfo.offsetY == 230, where .. ": the essential viewer keeps the copied layout's place")
-		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end
 
@@ -208,7 +219,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
 		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
-		assert(thick >= 20 / k - 0.5 and thick <= math.max(27.6, 20 / k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the reference cap or that minimum, got " .. thick)
+		assert(thick >= 20 / k - 0.5 and thick <= NativeIconSize(k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the nearest reference step, got " .. thick)
 		assert((barBox[4] - barBox[2] - 5 * 2) / 6 >= 15 - 0.5, where .. ": a bar is at least Edit Mode's 50%")
 		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
 		assert(#env._errors == 0, tostring(env._errors[1]))
@@ -296,7 +307,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 						local items = math.max(2, counts[group])
 						local item = group == "bars" and (box[4] - box[2] - (items - 1) * 2) / items or math.min(box[3] - box[1], box[4] - box[2])
 						assert(item >= (group == "bars" and 15 or 20) / k - 0.5, where .. ": a " .. group .. " item is at least Edit Mode's 50%")
-						assert(group == "bars" or item <= math.max(27.6, 20 / k) + 0.01, where .. ": LEE-20 native buff icons stay within the reference size cap or the engine's minimum")
+						assert(group == "bars" or item <= NativeIconSize(k) + 0.01, where .. ": LEE-20 native buff icons stay within the nearest legal reference step")
 						placedAt[group] = math.max(placedAt[group] or 0, counts[group])
 					end
 				end

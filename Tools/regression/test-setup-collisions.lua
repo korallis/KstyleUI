@@ -41,18 +41,18 @@ local function PhysicalRects(name, width, height, user)
 	local rw = width / k
 	local positions = Layouts.Get(name, rh)
 	local rects, keys = {}, {}
-	local function add(key, w, h, position)
+	local function add(key, w, h, position, offsetX)
 		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5
 		local fy = position.anchor:find("BOTTOM") and 0 or position.anchor:find("TOP") and 1 or 0.5
 		w, h = math.max(1, math.floor(w * k + 0.5)) / k, math.max(1, math.floor(h * k + 0.5)) / k
-		local l, b = rw * fx + position.x - w * fx, rh * fy + position.y - h * fy
+		local l, b = rw * fx + position.x + (offsetX or 0) - w * fx, rh * fy + position.y - h * fy
 		l, b = math.floor(l * k + 0.5), math.floor(b * k + 0.5)
 		rects[key] = { l, b, l + math.floor(w * k + 0.5), b + math.floor(h * k + 0.5) }
 		keys[#keys + 1] = key
 	end
 	for _, element in ipairs(Layouts.ELEMENTS) do
-		local w, h = Layouts.Footprint(name, element.key)
-		add(element.key, w, h, positions[element.key])
+		local w, h, offsetX = Layouts.Footprint(name, element.key)
+		add(element.key, w, h, positions[element.key], offsetX)
 	end
 	local slot = Layouts.Slot(name, rh)
 	add("story", slot.width, slot.height, slot)

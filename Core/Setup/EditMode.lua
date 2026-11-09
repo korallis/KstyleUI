@@ -216,11 +216,17 @@ end
 
 local function Search(view, spots, n, k, others, rw, rh, least)
 	for _, spot in ipairs(spots) do
-		local minimum = (spot.width and view.height or view.width) * VIEWER_SIZE_MIN / 100 / k
+		local base = spot.width and view.height or view.width
+		local minimum = base * VIEWER_SIZE_MIN / 100 / k
+		local cap = max(view.cap, minimum)
+		if not spot.width then
+			local step = floor((view.cap * k / base * 100 - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP + 0.5)
+			cap = base * Clamp(VIEWER_SIZE_MIN + step * VIEWER_SIZE_STEP, VIEWER_SIZE_MIN, VIEWER_SIZE_MAX) / 100 / k
+		end
 		for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
 			local scale = step / 100
 			local thick = (spot.width and view.height or view.width) * scale / k
-			if thick <= max(view.cap, minimum) + 0.01 and thick >= least - 0.01 then
+			if thick <= cap + 0.01 and thick >= least - 0.01 then
 				for _, gap in ipairs(spot.gaps) do
 					local rect = Try(view, spot, n, scale, gap, k, others, rw, rh)
 					if rect then
@@ -281,7 +287,7 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 		settings[setting.Orientation] = spot.across and orientation.Horizontal or orientation.Vertical
 	end
 	if not bars and IsTable(direction) and setting.IconDirection ~= nil then
-		settings[setting.IconDirection] = spot.across and direction.Left or direction.Right
+		settings[setting.IconDirection] = direction.Right
 	end
 	if bars and setting.BarWidthScale ~= nil then
 		local width = floor(Clamp((rect and rect.r - rect.l or spot.width) * k / (view.width * percent / 100) * 100, BAR_WIDTH_MIN, BAR_WIDTH_MAX) + 0.5)

@@ -42,8 +42,8 @@ end
 
 -- LEE-20: the owner's picture wins over the earlier Lumen sigil and spare-bar stack.
 local REFERENCE = {
-	["unitframes.player"] = { 491, 80, 0, 138, 582.5, -45.75 },
-	["unitframes.target"] = { 491, 100.5, 0, 219.5, 721.4, 115.2 },
+	["unitframes.player"] = { 491, 80, 0, 138, 586.5, -47.75 },
+	["unitframes.target"] = { 491, 100.5, 0, 219.5, 737.4, 123.2 },
 	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 },
 	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 },
 	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 },
@@ -116,9 +116,9 @@ do
 	assert(same(l, 10) and same(b, 535) and same(r, 110) and same(t, 585), "LEFT centres vertically")
 	l, b = Layouts.Rect(probe, { anchor = "BOTTOM", x = -100, y = 5 }, 1000, 1080)
 	assert(same(l, 350) and same(b, 5), "BOTTOM centres horizontally")
-	probe.offsetX = -45.75
+	probe.offsetX = -47.75
 	l, b, r, t = Layouts.Rect(probe, { anchor = "BOTTOM", x = 0, y = 138 }, 1000, 1080)
-	assert(same(l, 404.25) and same(r, 504.25) and same(b, 138) and same(t, 188), "LEE-20 Rect shifts the reserve, not the registered bar-column anchor")
+	assert(same(l, 402.25) and same(r, 502.25) and same(b, 138) and same(t, 188), "LEE-20 Rect shifts the reserve, not the registered bar-column anchor")
 end
 
 -- Every layout: complete, valid, on screen and apart on every reference screen ---------------------------
@@ -363,7 +363,8 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(same(r.left, MARGIN) and same(r.bottom, 428) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above chat")
+				assert(same(r.left, K.Tokens.Size("screenMargin")) and same(r.bottom, 464) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above the loot feed")
+				assert(same(r.bottom - feed.top, 16), label .. ": bar 3 keeps a 16-unit gap above the loot feed's full reserve")
 				assert(r.right <= width * 0.3 or r.left >= width * 0.7, label .. ": LEE-20 bar 3 stays outside the central 40% band")
 			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
@@ -395,12 +396,12 @@ for _, name in ipairs(names) do
 		assert(same(xp.bottom, 36.5) and same(bar1.bottom - xp.top, 9.5), label .. ": LEE-20 the XP line sits at 36.5, 9.5 under bar 1")
 		local playerBar = { Layouts.Rect(Layouts.Element("unitframes.player"), layout["unitframes.player"], width, HEIGHT) }
 		assert(same(playerBar[1], bar1.left) and same(playerBar[3], bar1.right), label .. ": LEE-20 the player's bars, not its external portrait reserve, span bar 1")
-		assert(same(vitals.left, playerBar[1] - 91.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait")
+		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
 		local resource = rect("unitframes.resource")
 		assert(same(resource.bottom, 320.6) and same(essential.bottom - resource.top, 0.7), label .. ": LEE-20 the class resource sits directly over the target, under the cooldowns")
 		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
-		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9) and same(vitals.left - buffs.right, 14.5), label .. ": LEE-20 the tracked buffs sit 14.5 left of the player portrait reserve")
+		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")
 		assert(same(bars.x - mid, -480) and same(bars.bottom, 340), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
 		local swing = rect("meters.swing")
 		assert(swing.bottom - essential.top >= 4 and swing.bottom - essential.top <= 8, label .. ": the swing line sits on the essential cooldowns, part of the hands, not a stray bar")
@@ -418,7 +419,7 @@ for _, name in ipairs(names) do
 		local target, tot = rect("unitframes.target"), rect("unitframes.targettarget")
 		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
 		assert(same(target.bottom - vitals.top, 1.5) and same(target.top, 320), label .. ": LEE-20 the target sits 1.5 over the player, below the cooldown row")
-		assert(same(target.left, playerBar[1]) and same(target.right, playerBar[3] + 230.4), label .. ": LEE-20 the target reserve extends 230.4 right of its aligned bars for portrait and debuffs")
+		assert(same(target.left, playerBar[1]) and same(target.right, playerBar[3] + 246.4), label .. ": LEE-20 the target reserve extends 230.4 right for portrait and debuffs plus a 16-unit pixel-rounding buffer")
 		assert(same(focus.x - mid, -357) and focus.top == 540, label .. ": the optional focus card keeps its original slot above the centre column")
 		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= CLUSTER_GAP and focusTarget.bottom >= block + 4, label .. ": the focus target sits under the focus card, off the hands")
 		assert(same(tot.x - mid, 317) and tot.top == 540, label .. ": the optional target of target keeps its original slot opposite the focus")
@@ -578,8 +579,8 @@ local FOOTPRINTS = {
 	["cooldowns.utility"] = { 4 * 38 + 3 * 3, 38 },
 	["cooldowns.buffs"] = { 182.6, 41.6 },
 	["cooldowns.bars"] = { 6 * 38 + 5 * 3, 2 * 20 + 3 },
-	["unitframes.player"] = { 582.5, 80 },
-	["unitframes.target"] = { 721.4, 100.5 },
+	["unitframes.player"] = { 586.5, 80 },
+	["unitframes.target"] = { 737.4, 100.5 },
 	["unitframes.boss"] = { 318, 334 },
 	["unitframes.targettarget"] = { 120, 22 },
 	["unitframes.pet"] = { 120, 22 },
@@ -616,7 +617,7 @@ end
 -- layout writes on Apply (the Tank meters).
 do
 	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves.
-	local RESERVES = { ["unitframes.player"] = { 582.5, 80, -45.75 }, ["unitframes.target"] = { 721.4, 100.5, 115.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
+	local RESERVES = { ["unitframes.player"] = { 586.5, 80, -47.75 }, ["unitframes.target"] = { 737.4, 100.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]

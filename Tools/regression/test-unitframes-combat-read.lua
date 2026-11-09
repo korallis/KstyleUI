@@ -32,9 +32,9 @@ end
 -- Cast text and lines: readable minimums, the name no longer drowns the cast ------------------------------------
 
 local defaults = Settings.defaults
-assert(defaults.target.fonts.cast.size >= 13, "the sigil's cast text is at least 13, got " .. defaults.target.fonts.cast.size)
+assert(Settings.Snapshot("target").fonts.cast.size >= 13, "the sigil's cast text is at least 13, got " .. Settings.Snapshot("target").fonts.cast.size)
 assert(defaults.boss.fonts.cast.size >= 12 and defaults.focus.fonts.cast.size >= 12, "the card cast text is at least 12")
-assert(Settings.Snapshot("target").fonts.name.size / defaults.target.fonts.cast.size <= 1.35, "the sigil's name is at most a third larger than its cast")
+assert(Settings.Snapshot("target").fonts.name.size / Settings.Snapshot("target").fonts.cast.size <= 1.35, "the sigil's name is at most a third larger than its cast")
 local target = Layouts.Element("unitframes.target")
 local sigil = Geometry.Frame(Settings.Snapshot("target"), target.width, target.height, 1)
 assert(sigil.cast and sigil.cast.h >= 16, "the sigil keeps a bold 16-unit cast line")

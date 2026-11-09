@@ -238,6 +238,9 @@ local function NameBottom(view, g, rect)
 		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect)
 		view.name:SetJustifyH("LEFT")
 	end
+	if view.nameBound and g.nameRoom then
+		view.name:SetWidth(Snap(view, g.nameRoom))
+	end
 end
 
 local function LumenTexts(view, g)

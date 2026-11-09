@@ -120,6 +120,15 @@ local ap, arel, arp, ax, ay = target.auras.host:GetPoint(1)
 assert(ap == "TOPLEFT" and arel == target.button and arp == "TOPLEFT" and near(ax, 599) and near(ay, -14.5, 0.5), "your debuffs sit right of the portrait")
 local tinset = W.LastCall(target.button, "SetHitRectInsets")
 assert(tinset and near(tinset[1], 0) and near(tinset[2], -(505 + 77.5 - 491)), "the target's portrait takes clicks too")
+for _, hp in ipairs({ 3980, 3120, 400 }) do
+	env._units.player.health = hp
+	env.FireEvent("UNIT_HEALTH", "player")
+	U.SetUnit(env, "target", { name = "Shadowgale Poacher", level = 12, health = hp > 1000 and 50 or 5, healthMax = 100, reaction = 2, creature = "Humanoid", canAttack = true, power = 40, powerMax = 100 })
+	env.SetTarget(true)
+	assert(not player.ringGlow:IsShown() and not target.ringGlow:IsShown(), "no light glow outside either column portrait, at rest or hurt (" .. hp .. ")")
+end
+env._units.player.health = 3120
+env.FireEvent("UNIT_HEALTH", "player")
 noErrors("live column")
 
 local uf = Frames.Get("player")
@@ -131,6 +140,45 @@ env.SetCombat(false)
 env.RunTimers()
 assert(#W.Calls(player.button, "SetHitRectInsets") == before + 1, "the queued layout runs when combat ends")
 noErrors("combat")
+
+-- A name needs room: with none, neither it nor its caption draws, and a name wider than its room is bounded, secret or not.
+do
+	for _, width in ipairs({ 40, 120, 200 }) do
+		local g = Geometry.Frame(Settings.Snapshot("target"), width, 100.5, 1)
+		assert((g.name == nil) == (g.caption == nil), width .. ": the name and its caption go together")
+		if g.name then
+			assert(g.nameRoom >= 2 * 18 and g.name.w > 0, width .. ": a name that draws has room: " .. g.nameRoom)
+		end
+	end
+	local g120 = Geometry.Frame(Settings.Snapshot("target"), 120, 100.5, 1)
+	assert(g120.name == nil and g120.caption == nil and g120.nameRoom == nil, "a 120-unit target has no room for its name over the value")
+	local g491 = Geometry.Frame(Settings.Snapshot("target"), 491, 100.5, 1)
+	assert(g491.name and g491.caption and g491.nameRoom > 100, "the full frame keeps both")
+	Frames.Relayout(Frames.Get("target"))
+	env.RunTimers()
+	ns.Style.Layout(target, Settings.Snapshot("target"), 120, 100.5)
+	assert(not target.name:IsShown() and not target.caption:IsShown(), "with no room neither region draws")
+	ns.Style.Layout(target, Settings.Snapshot("target"), 491, 100.5)
+	assert(target.name:IsShown(), "and both return with room")
+
+	U.SetUnit(env, "target", { name = "Shadowgale Poacher of the Endless Wastes and Beyond", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })
+	env.SetTarget(true)
+	env._textWidth = function(text) return 9999 end
+	Frames.Relayout(Frames.Get("target"))
+	env.RunTimers()
+	assert(target.name:GetWidth() > 0 and near(target.name:GetWidth(), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "a name wider than its room is bounded to it: " .. target.name:GetWidth())
+	env._textWidth = function(text, _, size) return #text * size * 0.5 end
+	U.SetUnit(env, "target", { name = "Poacher", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })
+	env.SetTarget(true)
+	assert(target.name:GetWidth() == 0, "a short name sizes itself, so the caption hugs it")
+	U.SetUnit(env, "target", { name = "Poacher", secretName = true, level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })
+	env.SetTarget(true)
+	assert(near(target.name:GetWidth(), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "a secret name is always bounded to its room: " .. target.name:GetWidth())
+	Frames.Relayout(Frames.Get("target"))
+	env.RunTimers()
+	assert(near(target.name:GetWidth(), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "and stays bounded through a relayout")
+	noErrors("name room")
+end
 
 local older, _, nsOlder = U.New({ lumen = true })
 assert(nsOlder.Settings.Form("player") == "vitals" and nsOlder.Settings.Form("target") == "sigil", "a profile that keeps Lumen draws the vitals line and the sigil")

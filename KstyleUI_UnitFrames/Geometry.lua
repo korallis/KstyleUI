@@ -450,7 +450,7 @@ end
 local COLUMN = {
 	ring = 77.5, ringGap = 14, disc = 0.28, discAlong = 0.3535,
 	health = 12, gap = 4, nameGap = 12, bottom = 7.5,
-	castBar = 7, castGap = 7, labelGap = 4.5, label = 13,
+	castBar = 7, castGap = 7, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
 }
 Geometry.COLUMN = COLUMN
@@ -460,8 +460,7 @@ local function Clamp(rect, height)
 	rect.h = max(0, min(rect.h, height - rect.y))
 end
 
-local function ColumnBars(out, s, width, height, cast, nameH)
-	local castH = COLUMN.castBar + COLUMN.labelGap + COLUMN.label
+local function ColumnBars(out, s, width, height, cast, nameH, castH)
 	local bottom = height - COLUMN.bottom
 	out.cast = nil
 	if cast then
@@ -504,6 +503,9 @@ local function ColumnTexts(out, s, width, scale, right)
 		return
 	end
 	local room = max(0, width - valueW - captionW)
+	if room < COLUMN.nameMin * nameSize then
+		return
+	end
 	out.nameAuto, out.nameRoom = true, room
 	out.name = Above(right and width - room or 0, room, rowBottom, nameSize)
 	out.caption = Above(right and width - room or 0, captionW, rowBottom, captionSize)
@@ -529,10 +531,11 @@ local function ColumnFrame(out, s, width, height, scale)
 	local right = s.portraitSide == "RIGHT"
 	out.mirror = right
 	local nameH = s.name and TextH(Size(s, "name", scale)) or 0
-	local wantCast = right and s.castbar == true
+	local wantCast = s.inlineCast == true and s.castbar == true
+	local castH = COLUMN.castBar + COLUMN.labelGap + Size(s, "cast", scale) + COLUMN.labelExtra
 	local fitted
 	for _, try in ipairs({ { wantCast, nameH }, { false, nameH }, { false, 0 } }) do
-		fitted = ColumnBars(out, s, width, height, try[1], try[2]) >= 0
+		fitted = ColumnBars(out, s, width, height, try[1], try[2], castH) >= 0
 		if fitted then
 			break
 		end

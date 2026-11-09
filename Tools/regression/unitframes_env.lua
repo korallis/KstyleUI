@@ -672,7 +672,7 @@ function U.Older(kind)
 		return {
 			castbarCaps = false, castbarIcon = true, healthColor = "reaction", healthOrientation = "RIGHT", powerOrientation = "RIGHT",
 			healthTexture = GLASS, powerTexture = GLASS, auraSize = 28, auraColumns = 14, auraSpacing = 2, auraPosition = "CENTER",
-			fonts = { name = { size = 17 } },
+			fonts = { name = { size = 17 }, cast = { size = 13 } },
 		}
 	end
 	return {}

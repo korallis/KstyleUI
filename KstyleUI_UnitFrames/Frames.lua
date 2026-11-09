@@ -500,6 +500,25 @@ local function Slots(uf, w, h)
 	return { { x = 0, y = 0, w = w, h = h } }
 end
 
+local function Extent(uf)
+	local view = uf.views[1]
+	local g, button = view.geometry, view.button
+	local Snap = K.Widgets.Snap
+	local p = g.portrait
+	local width = Snap(button, g.panel.w)
+	local left, right = 0, 0
+	if p then
+		left = math.max(0, -Snap(button, p.x))
+		right = math.max(0, Snap(button, p.x) + Snap(button, p.w) - width)
+	end
+	if g.aura and uf.s.auras and uf.s.auraPosition == "SIDE" then
+		local host = view.auras and view.auras.host or button
+		local row = ns.Auras.Footprint(uf.kind, host)
+		right = math.max(right, Snap(host, g.aura.x) + row - width)
+	end
+	return left, right
+end
+
 local function Keep(uf)
 	local Layout = K.Layout
 	if uf.s.form ~= "column" or uf.keeping or not (Layout and Layout.Rect and Layout.Get and Layout.Set and Layout.RootSize) then
@@ -511,7 +530,7 @@ local function Keep(uf)
 	if not (left and saved and type(saved.x) == "number") then
 		return
 	end
-	local reachLeft, reachRight = Geometry.Reach(uf.s)
+	local reachLeft, reachRight = Extent(uf)
 	local rootW = Layout.RootSize()
 	local shift = 0
 	if left - reachLeft < 0 then

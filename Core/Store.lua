@@ -199,8 +199,8 @@ Store.migrations[10] = function(data)
 			player = { style = "lumen", healthColor = "class", castbarColor = "class", castbarCaps = false, powerHeight = 5 },
 			target = { style = "lumen", healthColor = "reaction", castbarCaps = false, castbarIcon = true, healthOrientation = "RIGHT", powerOrientation = "RIGHT", auraSpacing = 2, auraSize = 28, auraColumns = 14, auraPosition = "CENTER" },
 		},
-		ActionBars = { bar1 = { size = 38, spacing = 3 }, bar2 = { size = 38, spacing = 3, showEmpty = false } },
-		Cooldowns = { essential = { size = 38, spacing = 3, timerSize = 13, readyGlow = true }, buffs = { size = 38, spacing = 3, growth = "center", timerSize = 12, countSize = 10 } },
+		ActionBars = { bar1 = { size = 38, spacing = 3 }, bar2 = { enabled = false, size = 38, spacing = 3, showEmpty = false } },
+		Cooldowns = { essential = { size = 38, spacing = 3, timerSize = 13, countSize = 11, readyGlow = true }, buffs = { size = 38, spacing = 3, growth = "center", timerSize = 12, countSize = 10 } },
 		DataBars = { xp = { text = "percentRested", border = true } },
 	}
 	for _, profile in pairs(data.profiles) do
@@ -224,6 +224,9 @@ Store.migrations[10] = function(data)
 							if group == "target" and type(fonts.health) == "table" and fonts.health.size == 12 then
 								fonts.health.size = nil
 							end
+							if group == "target" and type(fonts.cast) == "table" and fonts.cast.size == 13 then
+								fonts.cast.size = nil
+							end
 						end
 					end
 					for key, value in pairs(fields) do
@@ -235,6 +238,10 @@ Store.migrations[10] = function(data)
 			end
 		end
 		local bars = type(profile) == "table" and profile.DataBars
+		local cooldowns = type(profile) == "table" and profile.Cooldowns
+		if type(cooldowns) == "table" and cooldowns.accent == "class" then
+			cooldowns.accent = nil
+		end
 		local xp = type(bars) == "table" and bars.xp
 		local color = type(xp) == "table" and xp.restedColor
 		local r, g, b = ns.Tokens.Color("rare")

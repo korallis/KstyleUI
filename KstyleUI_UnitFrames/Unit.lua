@@ -215,7 +215,7 @@ end
 
 function Unit.Glow(view, unit)
 	local glow = view.ringGlow
-	if (view.form ~= "vitals" and view.form ~= "column") or not (view.geometry and view.geometry.portrait) then
+	if view.form ~= "vitals" or not (view.geometry and view.geometry.portrait) then
 		glow:Hide()
 		return
 	end
@@ -334,6 +334,14 @@ local function SetFont(text, path, size, flags)
 	end
 end
 
+local function BoundName(view, bound)
+	local g = view.geometry
+	view.nameBound = bound
+	if g and g.nameAuto and g.nameRoom then
+		view.name:SetWidth(bound and K.Widgets.Snap(view.name, g.nameRoom) or 0)
+	end
+end
+
 local function SetName(view, name)
 	local text = view.name
 	local path, full, flags = ns.Settings.Font(view.kind, "name")
@@ -341,19 +349,23 @@ local function SetName(view, name)
 	if IsSecret(name) then
 		view.plainName = nil
 		text:SetText(name)
+		BoundName(view, true)
 		return
 	end
 	view.plainName = name
 	text:SetText(view.s.nameCaps and Unit.Tracked(name, path) or name)
 	local bodyPath, bodySize = Tokens.Font("body")
 	if not Number(full) then
+		BoundName(view, true)
 		return
 	end
 	local width, room = K.Widgets.TextWidth(text), view.geometry and view.geometry.nameRoom or text:GetWidth()
 	if Number(width) and Number(room) and room > 0 and width > room then
 		SetFont(text, bodyPath, math.min(bodySize, full), flags)
 		text:SetText(name)
+		width = K.Widgets.TextWidth(text)
 	end
+	BoundName(view, not (Number(width) and Number(room) and width <= room))
 end
 
 function Unit.Refit(view)

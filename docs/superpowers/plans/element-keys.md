@@ -23,8 +23,8 @@ Footprints are width x height in root units. The centre column follows the owner
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
-| `unitframes.player` | UnitFrames | Player frame | 491 x 80 (the layouts keep 582.5 x 80, offsetX -45.75) | LEE-20: the bar column is centred at x 0, bottom 138, 6 over bar 2; the portrait stands outside its left edge, inside the reserve's extra 91.5 units. Name and class sit over flat health and power bars; the player cast is separate |
-| `unitframes.target` | UnitFrames | Target frame | 491 x 100.5 (the layouts keep 721.4 x 100.5, offsetX 115.2) | LEE-20: the bar column shares the player's centre and width, bottom 219.5, 1.5 above the player; the portrait and your debuffs sit outside its right edge, inside the reserve's extra 230.4 units. Reversed health and power bars and an inline target cast replace the sigil |
+| `unitframes.player` | UnitFrames | Player frame | 491 x 80 (the layouts keep 586.5 x 80, offsetX -47.75) | LEE-20: the bar column is centred at x 0, bottom 138, 6 over bar 2; the portrait stands 91.5 outside its left edge, with another 4 units reserved for pixel snapping. Name and class sit over flat health and power bars; the player cast is separate |
+| `unitframes.target` | UnitFrames | Target frame | 491 x 100.5 (the layouts keep 737.4 x 100.5, offsetX 123.2) | LEE-20: the bar column shares the player's centre and width, bottom 219.5, 1.5 above the player; the portrait and four debuff slots extend 230.4 outside its right edge, with another 16 units reserved for accumulated pixel rounding at 720 pixels and Interface size 0.6. Reversed health and power bars and an inline target cast replace the sigil |
 | `unitframes.targettarget` | UnitFrames | Target of target | 120 x 22 | The unchanged optional pill row at x 317, bottom 518. Tank: the threat card stands under it |
 | `unitframes.focus` | UnitFrames | Focus frame | 200 x 90 (the layouts keep 200 x 112) | The unchanged optional focus card at x -357, bottom 428, with its debuffs above the card inside the 112-unit reserve |
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 22 | A pill row 4 units under the focus card, left-aligned |
@@ -37,7 +37,7 @@ Footprints are width x height in root units. The centre column follows the owner
 | `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames, in the party card's place over the cluster |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 491 x 36.7 | LEE-20: 12 square tiles of 36.7 units with 4.6-unit gaps, centred at bottom 54; enabled with empty tiles shown |
 | `actionbars.bar2` | ActionBars | Action bar 2 | 491 x 36.7 | LEE-20: enabled with empty tiles shown, centred at bottom 95.3, 4.6 over bar 1 |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 489 x 38 | LEE-20: off by default, its unchanged-size row now has a BOTTOMLEFT slot at x 28, bottom 428, above chat and outside the central 40% band |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 489 x 38 | LEE-20: off by default, its unchanged-size row has a BOTTOMLEFT slot at screenMargin (28), bottom 464, 16 over the loot feed's full reserve and outside the central 40% band |
 | `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | Off in Lumen. A side bar: a column of twelve on the right edge of the play field, a rail gap left of the right rail, centred on the screen's height |
 | `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | Off in Lumen. A side bar: a column of twelve 3 units left of bar 4 |
 | `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | Off in Lumen. A column of twelve 3 units left of bar 5; the boss column stands a rail gap left of it |
