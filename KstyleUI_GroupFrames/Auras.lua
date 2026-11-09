@@ -455,23 +455,36 @@ local function NewBuffContainer(f)
 	return container
 end
 
+local function HealIcons(f, k)
+	local size, spacing = BuffSizes(f, k)
+	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
+	local a = Settings.current.auras
+	local side, count = Geometry.HealIcons(f.width or k.width, f.parts.health, {
+		inset = inset, gap = Widgets.Snap(f, Tokens.Size("gapSmall")), size = size, spacing = spacing, count = k.buffCount,
+		debuffs = a.enabled, debuffPosition = k.auraPosition, debuffSize = Widgets.Snap(f, k.auraSize),
+		debuffColumns = k.auraColumns, debuffRows = k.auraRows, debuffCount = Count(k), dispelCount = DispelCount(k),
+	})
+	return side, count, size, spacing, inset
+end
+Auras.HealIcons = HealIcons
+
 local function ConfigureBuffs(f)
 	local container = f.buffs
 	local k = Settings.current[f.kind]
-	local size = BuffSizes(f, k)
-	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
+	local side, count, size, _, inset = HealIcons(f, k)
+	local corner = "TOP" .. side
 	container:ClearAllPoints()
-	container:SetPoint("TOPRIGHT", f.health, "RIGHT", -inset, Widgets.Snap(f, size / 2))
+	container:SetPoint(corner, f.health, side, side == "RIGHT" and -inset or inset, Widgets.Snap(f, size / 2))
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
 		container:SetFlowLayoutAxis(axis.Horizontal)
-		container:SetFlowLayoutAnchorPoint("TOPRIGHT")
-		container:SetFlowLayoutGrowthDirection(direction.Left, direction.Down)
+		container:SetFlowLayoutAnchorPoint(corner)
+		container:SetFlowLayoutGrowthDirection(side == "RIGHT" and direction.Left or direction.Right, direction.Down)
 	end
 	container:SetAuraGroupLayout(BUFFS, BuffLayout(f, k))
-	container:SetAuraGroupMaxFrameCount(BUFFS, k.buffCount)
-	container:SetAuraGroupEnabled(BUFFS, Settings.current.buffs.enabled)
+	container:SetAuraGroupMaxFrameCount(BUFFS, math.max(1, count))
+	container:SetAuraGroupEnabled(BUFFS, Settings.current.buffs.enabled and count > 0)
 	Restyle(f)
 end
 
@@ -663,11 +676,13 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
-	local buffSize, buffSpacing = BuffSizes(f, k)
+	local side, fit, buffSize, buffSpacing = HealIcons(f, k)
+	f.sampleBuffFit = fit
+	local step = side == "RIGHT" and -1 or 1
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:ClearAllPoints()
 		icon:SetSize(buffSize, buffSize)
-		icon:SetPoint("RIGHT", f.health, "RIGHT", -inset - (i - 1) * (buffSize + buffSpacing), 0)
+		icon:SetPoint(side, f.health, side, step * (inset + (i - 1) * (buffSize + buffSpacing)), 0)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
@@ -690,7 +705,7 @@ local function PaintSample(f, sample)
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
 	end
-	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, k.buffCount) or 0
+	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)
 	end

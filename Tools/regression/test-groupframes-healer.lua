@@ -85,6 +85,79 @@ local marker = find(scene, f.marker)
 assert(marker, "the marker draws")
 assert(marker.rect[2] >= tile[2] - 0.01 and marker.rect[2] + marker.rect[4] <= tile[2] + tile[4] + 0.01, "the marker stays inside the tile's height")
 
+K.Options.Write("GroupFrames", "raid.buffCount", 2)
+env.RunTimers()
+-- Everything at once on a default raid tile: the leader, the skull, the role icon, the missing health, a full debuff
+-- strip and your heals. Nothing overlaps, so no indicator hides another.
+do
+	local m = env._member("raid1")
+	m.leader, m.role = true, "HEALER"
+	ns.Unit.Refresh(f)
+	ns.Style.Apply(f)
+	scene = Scene.Build(env)
+	local tileRect = { Scene.Rect(env, f) }
+	local rects = {}
+	for _, key in ipairs({ "leader", "marker", "role", "healthText", "name" }) do
+		local item = find(scene, f[key])
+		assert(item, "the " .. key .. " draws")
+		rects[key] = item.rect
+	end
+	local k = ns.Settings.current.raid
+	local debuffs, heals = f.auras._groups, f.buffs._groups.buffs
+	local cells = k.auraColumns * k.auraRows
+	local columns = math.min(k.auraColumns, math.min(k.auraCount, cells) + math.min(k.auraDispelCount, cells))
+	local dsize, dsp = debuffs.debuffs.layout.elementWidth, debuffs.debuffs.layout.elementSpacing
+	local inset = K.Widgets.Snap(f, K.Tokens.Size("gapTiny"))
+	local dwidth = columns * dsize + (columns - 1) * dsp
+	rects.debuffs = { tileRect[1] + inset, tileRect[2] + tileRect[4] - inset - dsize, dwidth, dsize }
+	local bx, by, bw, bh = Scene.Rect(env, f.health)
+	local n, hsize, hsp = heals.maxFrameCount, heals.layout.elementWidth, heals.layout.elementSpacing
+	local hp = f.buffs._points[1]
+	assert(hp[1] == "TOPRIGHT" and hp[3] == "RIGHT", "your heals hang from the bar's right end")
+	local hx, hy = bx + bw + hp[4], by + bh / 2 - hp[5]
+	eq(n, 2, "the count setting of two stands")
+	local hwidth = n * hsize + (n - 1) * hsp
+	rects.heals = { hx - hwidth, hy, hwidth, hsize }
+	local names = { "leader", "marker", "role", "healthText", "name", "debuffs", "heals" }
+	for i = 1, #names do
+		local r = rects[names[i]]
+		assert(r[1] >= tileRect[1] - 0.01 and r[1] + r[3] <= tileRect[1] + tileRect[3] + 0.01, "the " .. names[i] .. " stays within the tile's width")
+		for j = i + 1, #names do
+			assert(not intersects(r, rects[names[j]]), "the " .. names[i] .. " and the " .. names[j] .. " do not overlap")
+		end
+	end
+	K.Options.Write("GroupFrames", "raid.buffCount", 3)
+	env.RunTimers()
+	eq(heals.maxFrameCount, 3, "three heals fit beside the default two-column debuff strip")
+	K.Options.Write("GroupFrames", "raid.auraColumns", 3)
+	env.RunTimers()
+	eq(heals.maxFrameCount, 2, "a three-column strip leaves room for two")
+	K.Options.Write("GroupFrames", "raid.auraColumns", 2)
+	env.RunTimers()
+	m.leader, m.marker = false, nil
+	ns.Unit.Refresh(f)
+end
+
+-- A dead or offline member's state reads on the grey bar, so the name keeps the whole row; alive again, the missing
+-- health returns to the row.
+do
+	local m = env._member("raid1")
+	m.dead, m.health = true, 0
+	env.FireEvent("UNIT_HEALTH", "raid1")
+	eq(f.healthText:GetText(), "Dead", "the frame says Dead")
+	local hp = f.healthText._points[1]
+	assert(hp[1] == "CENTER" and #f.healthText._points == 1, "centred on the bar")
+	local np = f.name._points
+	assert(#np == 1 and np[1][1] == "TOPLEFT" and f.name:GetWidth() > 30, "the name keeps the row: " .. tostring(f.name:GetWidth()))
+	scene = Scene.Build(env)
+	local dead, barRect = find(scene, f.healthText), { Scene.Rect(env, f.health) }
+	assert(dead and intersects(dead.rect, barRect) and not intersects(dead.rect, find(scene, f.name).rect), "on the bar, clear of the name")
+	m.dead, m.health = false, 70
+	env.FireEvent("UNIT_HEALTH", "raid1")
+	eq(f.healthText._points[1][1], "TOPRIGHT", "alive, the missing health is back at the row's end")
+	eq(f.name._points[2][1], "RIGHT", "and the name ends before it")
+end
+
 -- The shield line: the whole shield, unclamped, along the bar's foot, so a shield shows at full health.
 eq(env.Reveal(W.LastCall(f.shield, "SetValue")[1]), 40, "the line carries UnitGetTotalAbsorbs, a secret passed straight to the bar")
 eq(env.Reveal(W.LastCall(f.shield, "SetMinMaxValues")[2]), 100, "spanning the health maximum")

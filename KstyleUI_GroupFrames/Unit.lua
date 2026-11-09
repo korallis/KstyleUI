@@ -88,7 +88,10 @@ local function Status(f)
 			status = (not IsSecret(ghost) and ghost == true) and "ghost" or "dead"
 		end
 	end
-	f.status = status
+	if f.status ~= status then
+		f.status = status
+		Style.PlaceRowEnd(f)
+	end
 end
 
 local function HealthText(f)

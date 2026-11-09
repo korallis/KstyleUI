@@ -144,15 +144,18 @@ end
 local function Marker(f)
 	if not Settings.current.icons.marker or not GetRaidTargetIndex then
 		f.marker:Hide()
+		Style.SetMarked(f, false)
 		return
 	end
 	local index = GetRaidTargetIndex(f.unit)
 	if type(index) ~= "number" then
 		f.marker:Hide()
+		Style.SetMarked(f, false)
 		return
 	end
 	f.marker:SetSpriteSheetCell(index, MARKER_ROWS, MARKER_COLUMNS)
 	f.marker:Show()
+	Style.SetMarked(f, true)
 end
 
 local READY_ATLAS = {
@@ -263,8 +266,10 @@ local function PaintSample(f, sample)
 	if icons.marker and sample.marker then
 		f.marker:SetSpriteSheetCell(sample.marker, MARKER_ROWS, MARKER_COLUMNS)
 		f.marker:Show()
+		Style.SetMarked(f, true)
 	else
 		f.marker:Hide()
+		Style.SetMarked(f, false)
 	end
 	f.ready:Hide()
 	local threat = Settings.current.threat.enabled and sample.threat

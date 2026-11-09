@@ -182,10 +182,12 @@ do
 	assert(b.health.width >= 1 and b.health.height >= 1, "a tiny frame still has a bar of at least one unit")
 end
 
--- The status icons keep out of the texts: the role icon at the top right; with the name above the bar, the leader
--- over the portrait's corner (or, with no portrait, on the bar's left end) and the marker inside the frame, in the
--- room between the name row and the bar or on the bar, never on the edge between two frames; with the name on the
--- bar, the leader on the top-left corner and the marker centred on the top edge, ending at the name row.
+-- The status icons keep out of the texts: the role icon at the top right and the leader on the top-left corner
+-- (over the portrait's corner when there is one); with the name above the bar, the marker sits inside the frame,
+-- in the room between the name row and the bar when it fits there, else in the name row before the role icon, and
+-- the row's text ends before it while it shows (markedRight), so it never sits on the edge between two frames or on
+-- the bar where the debuffs and your heals go; with the name on the bar, the marker centres on the top edge,
+-- ending at the name row.
 -- A name row ends before the role icon, and a health text on the bar narrows to the span between the icons only
 -- when its line reaches up into the band.
 do
@@ -194,7 +196,8 @@ do
 	eq(b.icons.size, 14, "the party icons keep their size")
 	rect(b.icons.role, 214, 2, 14, 14, "party role icon")
 	rect(b.icons.leader, 0, -2, 14, 14, "party leader icon over the portrait corner")
-	rect(b.icons.marker, 131, 20.5, 14, 14, "party marker inside the frame, centred on the bar under the name row")
+	rect(b.icons.marker, 198, 3.5, 14, 14, "party marker in the name row, before the role icon")
+	eq(b.healthText.markedRight, 196, "a marked row's text ends a gap before the marker")
 	rect(b.name, 50, 4, 162, 13, "the party name row ends a gap before the role icon")
 	eq(b.healthText.right, 212, "the party health text ends with the name row")
 	eq(b.healthText.top, 4, "on the name row")
@@ -204,19 +207,25 @@ do
 	eq(b.healthText.right, 226, "and the health text ends at the bar")
 
 	b = Geo.Button(120, 46, { portrait = false, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
-	rect(b.icons.leader, 4, 23.5, 14, 14, "without a portrait the leader icon sits on the bar's left end, inside the frame")
-	rect(b.name, 4, 4, 98, 13, "so the name row keeps the whole width up to the role icon")
-	rect(b.icons.marker, 53, 23.5, 14, 14, "and the marker centres on the bar")
+	rect(b.icons.leader, 2, -2, 14, 14, "without a portrait the leader icon sits on the top left corner, a gap in")
+	rect(b.name, 18, 4, 84, 13, "and the name row runs from it to the role icon")
+	rect(b.icons.marker, 88, 3.5, 14, 14, "the marker in the name row, off the bar")
 
 	b = Geo.Button(278, 40, { portrait = true, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true, pill = 6, pillRise = 2 })
 	rect(b.health, 44, 28, 230, 6, "a pill row draws the bar as a 6-unit pill two units off the row's foot")
-	rect(b.icons.marker, 152, 24, 14, 14, "the marker sits on the pill, wholly inside the 40-unit row")
+	rect(b.icons.marker, 246, 3.5, 14, 14, "the marker sits in the name row, wholly inside the 40-unit row")
+
+	b = Geo.Button(278, 46, { portrait = true, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true, pill = 6, pillRise = 2 })
+	rect(b.icons.marker, 155, 18.5, 14, 14, "a taller row has room for the marker between the name and the pill")
+	eq(b.healthText.markedRight, b.healthText.right, "so the row's text keeps its length")
 
 	b = Geo.Button(77, 40, { portrait = false, power = false, nameAbove = true, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
 	eq(b.nameInside, false, "a 77 by 40 raid tile puts the name above the bar")
-	rect(b.name, 4, 4, 57, 12, "the raid name row runs to the role icon")
+	rect(b.name, 16, 4, 45, 12, "the raid name row runs from the leader icon to the role icon")
 	rect(b.health, 4, 18, 69, 18, "and the bar fills the rest, clear of the name")
 	eq(b.healthText.right, 61, "the missing health ends the name row, before the role icon")
+	rect(b.icons.marker, 49, 4, 12, 12, "a raid marker sits in the name row, off the bar")
+	eq(b.healthText.markedRight, 47, "and the missing health moves before it")
 
 	b = Geo.Button(72, 40, { portrait = false, power = false, nameAbove = false, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
 	rect(b.icons.role, 58, 2, 12, 12, "raid role icon")
@@ -291,6 +300,33 @@ do
 	local wide3, tall3 = Geo.PartyCard(s, 20, 3)
 	eq(wide3, 3 * 278 + 2 * 8 + 40, "growing sideways, the card narrows instead")
 	eq(tall3, 40 + 20 + 20 + 8 + 20, "and keeps one row's height")
+end
+
+-- Your heals go to the bar's end away from the debuffs, and only as many as fit beside the debuff strip.
+do
+	local raid = { left = 4, top = 18, width = 64, height = 18 }
+	local a = { inset = 2, gap = 4, size = 10, spacing = 1, count = 3, debuffs = true, debuffPosition = "BOTTOMLEFT", debuffSize = 12, debuffColumns = 2, debuffRows = 1, debuffCount = 2, dispelCount = 1 }
+	local side, count = Geo.HealIcons(72, raid, a)
+	eq(side, "RIGHT", "debuffs at the bottom left put your heals at the bar's right end")
+	eq(count, 3, "three 10-unit heals fit beside two 12-unit debuff columns on a 72-unit tile")
+	a.debuffColumns = 3
+	count = select(2, Geo.HealIcons(72, raid, a))
+	eq(count, 2, "beside three debuff columns only two fit")
+	local strip = 2 + 3 * 12 + 2 + 4
+	assert(raid.left + raid.width - 2 - Geo.AuraLine(count, 10, 1) >= strip, "and the two end before the debuff strip")
+	a.debuffPosition = "BOTTOMRIGHT"
+	side = Geo.HealIcons(72, raid, a)
+	eq(side, "LEFT", "debuffs at the bottom right put your heals at the bar's left end")
+	a.debuffPosition, a.debuffColumns = "OUTSIDE_RIGHT", 3
+	side, count = Geo.HealIcons(72, raid, a)
+	eq(side, "RIGHT", "debuffs outside the frame leave the bar to your heals")
+	eq(count, 3, "all three")
+	a.debuffPosition, a.debuffs = "BOTTOMLEFT", false
+	count = select(2, Geo.HealIcons(72, raid, a))
+	eq(count, 3, "with debuffs off, nothing is reserved")
+	a.debuffs, a.count, a.size = true, 6, 24
+	count = select(2, Geo.HealIcons(72, raid, a))
+	eq(count, 0, "icons too big to fit beside the strip show none rather than cover it")
 end
 
 print("groupframes geometry ok")

@@ -60,6 +60,8 @@ end
 
 local function Paint(f, sample)
 	local cfg = Settings.current
+	f.status = (sample.offline and "offline") or (sample.dead and "dead") or nil
+	Style.PlaceRowEnd(f)
 	local cr, cg, cb = Theme.ClassColor(sample.class)
 	f.health:SetBarRange(0, 1)
 	f.health:SetBarValue(sample.health)

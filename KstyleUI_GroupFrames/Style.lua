@@ -176,15 +176,7 @@ local function LayoutTexts(f, k, parts)
 		local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
 		name:SetJustifyH("LEFT")
 		name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
-		healthText:SetJustifyH("RIGHT")
 		healthText:SetWidth(0)
-		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, spot.right), top)
-		if showHealth then
-			name:SetWidth(0)
-			name:SetPoint("RIGHT", healthText, "LEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
-		else
-			name:SetWidth(math.max(1, Widgets.Snap(f, rect.width)))
-		end
 		return
 	end
 	local rect = parts.health
@@ -273,6 +265,57 @@ local function health_orientation(cfg)
 	return cfg.health.orientation ~= "VERTICAL"
 end
 
+function Style.PlaceRowEnd(f)
+	local parts = f.parts
+	if not parts or parts.nameInside then
+		return
+	end
+	local k = Settings.current[f.kind]
+	local spot, rect = parts.healthText, parts.name
+	local right = f.marked and spot.markedRight or spot.right
+	local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
+	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
+	local inRow = k.healthText ~= "NONE" and not f.status
+	local name, healthText, classLine = f.name, f.healthText, f.classLine
+	healthText:ClearAllPoints()
+	if inRow then
+		healthText:SetJustifyH("RIGHT")
+		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, right), top)
+	else
+		local bar = parts.health
+		healthText:SetJustifyH("CENTER")
+		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, bar.left + bar.width / 2), -Widgets.Snap(f, bar.top + bar.height / 2))
+	end
+	local captioned = k.classLine == true
+	if captioned then
+		classLine:ClearAllPoints()
+		if inRow then
+			classLine:SetPoint("TOPRIGHT", healthText, "TOPLEFT", -gap, 0)
+		else
+			classLine:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, right), top)
+		end
+	end
+	name:ClearAllPoints()
+	name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
+	if captioned then
+		name:SetWidth(0)
+		name:SetPoint("RIGHT", classLine, "LEFT", -gap, 0)
+	elseif inRow then
+		name:SetWidth(0)
+		name:SetPoint("RIGHT", healthText, "LEFT", -gap, 0)
+	else
+		name:SetWidth(math.max(1, Widgets.Snap(f, right - rect.left)))
+	end
+end
+
+function Style.SetMarked(f, marked)
+	marked = marked and true or false
+	if f.marked ~= marked then
+		f.marked = marked
+		Style.PlaceRowEnd(f)
+	end
+end
+
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
@@ -308,17 +351,11 @@ function Style.Apply(f, width, height)
 	classLine:ClearAllPoints()
 	classLine:SetShown(k.classLine == true and not parts.nameInside)
 	if k.classLine and not parts.nameInside then
-		local rect = parts.name
 		SetFont(classLine, cfg.text.healthFont, Tokens.Size("caption"), cfg.text.healthOutline)
 		classLine:SetTextColor(Tokens.Color(CLASS_LINE_COLOR))
-		if k.healthText ~= "NONE" then
-			classLine:SetPoint("TOPRIGHT", f.healthText, "TOPLEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
-		else
-			classLine:SetPoint("TOPRIGHT", f, "TOPRIGHT", -Widgets.Snap(f, width - rect.left - rect.width), -Widgets.Snap(f, rect.top))
-		end
-		classLine:SetHeight(Widgets.Snap(f, rect.height))
-		f.name:SetPoint("RIGHT", classLine, "LEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
+		classLine:SetHeight(Widgets.Snap(f, parts.name.height))
 	end
+	Style.PlaceRowEnd(f)
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
 	f.tileless = f.kind == "party" and k.roleRing == true
 	if not f.chromeHooked then

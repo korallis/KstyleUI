@@ -195,28 +195,29 @@ local function Indicators(out, w, h, o, pad, gap)
 	out.icons = icons
 	local health = out.health
 	icons.role = Rect(w - gap - size, gap, size, size)
-	if out.nameInside then
-		icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
-		icons.marker = Rect((w - size) / 2, min(-size / 2, pad - size), size, size)
-	else
-		local nameBottom = out.name.top + out.name.height
-		if out.portrait then
-			icons.leader = Rect(0, -gap, size, size)
-		else
-			icons.leader = Rect(health.left, max(nameBottom, Centred(health.height, health.top, size)), size, size)
-		end
-		local room = health.top - nameBottom
-		local top = room >= size and Centred(room, nameBottom, size) or max(nameBottom, Centred(health.height, health.top, size))
-		icons.marker = Rect(Centred(health.width, health.left, size), min(top, h - size), size, size)
-	end
+	icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
 	local textLeft, textRight = health.left, health.left + health.width
-	if o.leader and not out.portrait and out.nameInside then
+	if o.leader and not out.portrait then
 		textLeft = max(textLeft, icons.leader.left + size + gap)
 	end
 	if o.role then
 		textRight = min(textRight, icons.role.left - gap)
 	end
 	textRight = max(textRight, textLeft + MIN_PART)
+	local markedRight = textRight
+	if out.nameInside then
+		icons.marker = Rect((w - size) / 2, min(-size / 2, pad - size), size, size)
+	else
+		local nameBottom = out.name.top + out.name.height
+		local room = health.top - nameBottom
+		if room >= size then
+			icons.marker = Rect(Centred(health.width, health.left, size), Centred(room, nameBottom, size), size, size)
+		else
+			icons.marker = Rect(textRight - size, Centred(out.name.height, out.name.top, size), size, size)
+			markedRight = max(textLeft + MIN_PART, textRight - size - gap)
+			out.markerInRow = true
+		end
+	end
 	if out.nameInside then
 		local centre = health.top + health.height / 2
 		if centre < gap + size then
@@ -226,7 +227,7 @@ local function Indicators(out, w, h, o, pad, gap)
 		end
 	else
 		out.name = Rect(textLeft, out.name.top, textRight - textLeft, out.name.height)
-		out.healthText = { right = textRight, top = out.name.top }
+		out.healthText = { right = textRight, markedRight = markedRight, top = out.name.top }
 	end
 end
 
@@ -293,4 +294,25 @@ end
 
 function Geometry.AuraLine(columns, size, spacing)
 	return Line(columns, size, spacing)
+end
+
+function Geometry.HealIcons(w, health, a)
+	local side, limit = "RIGHT", health.width - 2 * a.inset
+	local position = a.debuffPosition
+	if a.debuffs and AURA_INSIDE[position] and position:find("^BOTTOM") then
+		local cells = a.debuffColumns * a.debuffRows
+		local columns = min(a.debuffColumns, min(a.debuffCount, cells) + min(a.dispelCount, cells))
+		local strip = a.inset + Line(columns, a.debuffSize, a.spacing) + a.gap
+		if position:find("LEFT$") then
+			limit = health.left + health.width - a.inset - strip
+		else
+			side = "LEFT"
+			limit = w - strip - health.left - a.inset
+		end
+	end
+	local count = a.count
+	while count > 0 and Line(count, a.size, a.spacing) > limit do
+		count = count - 1
+	end
+	return side, count
 end
