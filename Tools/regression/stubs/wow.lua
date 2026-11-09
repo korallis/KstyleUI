@@ -205,11 +205,18 @@ function Object:GetStringWidth()
 	end
 	return width
 end
+-- A wrapping string with a line cap (SetMaxLines) is truncated when its text needs more lines than the cap,
+-- estimated from its width in whole lines, as the game ends the last line in "...".
 function Object:IsTruncated()
 	local width, own = measured(self), self:GetWidth()
 	local wrap = self._state.WordWrap
-	if not width or type(own) ~= "number" or own <= 0 or not wrap or wrap[1] ~= false then
+	if not width or type(own) ~= "number" or own <= 0 then
 		return false
+	end
+	if wrap and wrap[1] ~= false then
+		local cap = self._state.MaxLines
+		cap = cap and cap[1]
+		return type(cap) == "number" and cap > 0 and math.ceil(width / own - 0.01) > cap
 	end
 	return width > own + 0.01
 end
@@ -301,17 +308,33 @@ function Object:GetPoint(i)
 		return unpack(p, 1, p.n)
 	end
 end
--- GetLeft, GetRight, GetTop, GetBottom and GetCenter resolve the object's anchors down to its environment's
--- UIParent (Tools/regression/geometry.lua), in the root's units, and answer nil for an object the anchors
--- cannot place, as the game answers before a frame's rect is valid.
-local Geometry
+-- GetLeft, GetRight, GetTop, GetBottom and GetCenter resolve the object's anchors and scales down to its
+-- environment's UIParent with the renderer's solver (Tools/render/scene.lua, Scene.Rect) and answer in the
+-- object's own scaled units, as the game does (an edge times the object's effective scale is its screen
+-- position), or nil for an object the anchors cannot place, as the game answers before a frame's rect is valid.
+-- The solver caches every rect it resolves; the environment keeps one until a call that can move or resize
+-- anything (any method that is not a Get, Is, Has or Can) bumps env._generation, so a walk over many regions
+-- between layout changes resolves each ancestor once.
+local Scene
+local SCREEN_UNITS, UI_HEIGHT = 1080, 768
 local function placed(self)
-	local root = self._env and self._env.UIParent
-	if not root then
+	local env = self._env
+	if not (env and env.UIParent and env.GetPhysicalScreenSize) then
 		return nil
 	end
-	Geometry = Geometry or dofile(here .. "../geometry.lua")
-	return (Geometry.Rect(self, root))
+	Scene = Scene or dofile(here .. "../../render/scene.lua")
+	local cache = env._rectSolver
+	if not cache or cache.generation ~= env._generation or cache.textWidth ~= env._textWidth then
+		cache = { generation = env._generation, textWidth = env._textWidth, solver = Scene.RectSolver(env) }
+		env._rectSolver = cache
+	end
+	local x, y, w, h = Scene.RectIn(cache.solver, self)
+	if not x then
+		return nil
+	end
+	local eff = self:GetEffectiveScale()
+	local k = UI_HEIGHT / SCREEN_UNITS / (type(eff) == "number" and eff > 0 and eff or 1)
+	return { left = x * k, right = (x + w) * k, top = (SCREEN_UNITS - y) * k, bottom = (SCREEN_UNITS - y - h) * k }
 end
 function Object:GetLeft() local r = placed(self) return r and r.left end
 function Object:GetRight() local r = placed(self) return r and r.right end
@@ -408,7 +431,7 @@ local ObjectMeta = {}
 
 local function newObject(env, objectType, name, parent)
 	return setmetatable({
-		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {},
+		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
 		_kids = {}, _regions = {}, _enabled = true,
 	}, ObjectMeta)
@@ -652,6 +675,13 @@ local function quietMethod(key)
 	return fn
 end
 
+-- A reader never moves anything, so it keeps the rect cache (placed) warm; every other method may.
+local READERS = setmetatable({}, { __index = function(t, key)
+	local reader = key:match("^Get") ~= nil or key:match("^Is") ~= nil or key:match("^Has") ~= nil or key:match("^Can") ~= nil
+	t[key] = reader
+	return reader
+end })
+
 -- Any other key reads as nil, as on a real frame.
 ObjectMeta.__index = function(object, key)
 	if not METHODS[key] then
@@ -665,7 +695,17 @@ ObjectMeta.__index = function(object, key)
 		if self._denied == true and key ~= "CanBeAccessedInContext" then
 			error("Attempt to access a restricted object with " .. key, 2)
 		end
-		self._calls[#self._calls + 1] = { method = key, args = pack(...) }
+		local call = { method = key, args = pack(...) }
+		self._calls[#self._calls + 1] = call
+		if key == "SetAlpha" or key == "SetAlphaFromBoolean" then
+			self._lastAlpha = call
+		end
+		if not READERS[key] then
+			local env = self._env
+			if env then
+				env._generation = (env._generation or 0) + 1
+			end
+		end
 		return impl(self, ...)
 	end
 end

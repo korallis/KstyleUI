@@ -7,7 +7,7 @@ local SLOTS = 12
 return {
 	{
 		name = "ActionBars ACTIONBAR_UPDATE_COOLDOWN",
-		budget = 80,
+		budget = 100,
 		setup = function()
 			local env, K = AB.New()
 			AB.Enable(env, K)

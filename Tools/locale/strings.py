@@ -213,6 +213,9 @@ def problems(root=ROOT):
         out.append("%s is stale; run %s" % ((OUT_DIR / "Locales.xml").as_posix(), SYNC))
     for code in LOCALES:
         table = source(code, root)
+        if (root / "Tools" / "locale" / (code + ".json")).exists():
+            for key in sorted(known - set(table)):
+                out.append("%s lacks %s; every shipped table covers every key of the English base" % (code, json.dumps(key, ensure_ascii=False)))
         for key, text in sorted(table.items()):
             name = "%s %s" % (code, json.dumps(key, ensure_ascii=False))
             if key not in known:

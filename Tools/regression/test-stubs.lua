@@ -379,4 +379,30 @@ do
 	assert(e.CreateFrame("Frame"):GetRect() == nil, "no size, no rect")
 end
 
+-- GetLeft, GetRight, GetTop, GetBottom and GetCenter answer in the region's own scaled units, as the game does:
+-- a frame's edge times its effective scale is the screen position, so a frame at scale 2 reads half the root's
+-- numbers for the same spot (Blizzard_SharedTalentFrame.lua: cursorX - self:GetLeft() * scale).
+do
+	local e = Stubs.NewEnv({ width = 1920, height = 1080 })
+	local root = e.UIParent
+	local holder = e.CreateFrame("Frame", nil, root)
+	holder:SetSize(100, 50)
+	holder:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", 200, 100)
+	assert(holder:GetLeft() == 200 and holder:GetBottom() == 100 and holder:GetRight() == 300 and holder:GetTop() == 150, "a frame at the root's scale reads root units")
+	local box = e.CreateFrame("Frame", nil, holder)
+	box:SetSize(100, 50)
+	box:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", 0, 0)
+	box:SetScale(2)
+	assert(box:GetLeft() == 100 and box:GetBottom() == 50, "a frame at scale 2 on the same spot reads half the root's numbers: " .. tostring(box:GetLeft()) .. ", " .. tostring(box:GetBottom()))
+	assert(box:GetRight() == 200 and box:GetTop() == 100, "and its size in its own units: " .. tostring(box:GetRight()) .. ", " .. tostring(box:GetTop()))
+	local cx, cy = box:GetCenter()
+	assert(cx == 150 and cy == 75, "the centre too: " .. tostring(cx) .. ", " .. tostring(cy))
+	assert(box:GetLeft() * box:GetEffectiveScale() == holder:GetLeft() * holder:GetEffectiveScale(), "edge times effective scale is the screen position")
+	local child = e.CreateFrame("Frame", nil, box)
+	child:SetSize(10, 10)
+	child:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", 5, 5)
+	assert(child:GetLeft() == 105 and child:GetBottom() == 55, "a child shares its parent's scale and reads in it: " .. tostring(child:GetLeft()))
+	assert(child:GetRight() == 115 and child:GetTop() == 65, "its size reads in that scale too")
+end
+
 print("stubs ok")

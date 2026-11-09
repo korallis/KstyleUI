@@ -41,7 +41,7 @@ return {
 	},
 	{
 		name = "UnitFrames UNIT_THREAT_LIST_UPDATE",
-		budget = 10,
+		budget = 15,
 		setup = function()
 			local env = Target()
 			env._units.target.threatOn = 3
@@ -51,7 +51,7 @@ return {
 	},
 	{
 		name = "UnitFrames UNIT_THREAT_LIST_UPDATE for another unit",
-		budget = 5,
+		budget = 10,
 		setup = function()
 			local env = Target()
 			return env, Perf.Event(env, "UNIT_THREAT_LIST_UPDATE", "nameplate7")

@@ -65,8 +65,9 @@ function Common.ForceScreen(env)
 	end
 	env.UIParent._scale = uiScale
 	env.UIParent._width, env.UIParent._height = 768 * width / height / uiScale, 768 / uiScale
-	-- RENDER_LOCALE (deDE, frFR, esES, zhCN, ...) renders the scene as a client of that locale sees it.
-	local locale = os.getenv("RENDER_LOCALE")
+	-- RENDER_LOCALE (deDE, frFR, esES, zhCN, ...) renders the scene as a client of that locale sees it; a test
+	-- that builds several locales in one process sets the global RENDER_LOCALE instead, as it sets RENDER_SCENE_LIB.
+	local locale = rawget(_G, "RENDER_LOCALE") or os.getenv("RENDER_LOCALE")
 	if locale and locale ~= "" then
 		env.GetLocale = function()
 			return locale

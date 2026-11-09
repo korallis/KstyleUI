@@ -145,7 +145,7 @@ Size, position, opacity, strata and the shown rule come from Layout's element ro
 
 | Indicator | Source | Where |
 | --- | --- | --- |
-| Raid marker | `GetRaidTargetIndex`, always secret, straight to `SetSpriteSheetCell` on `UI-RaidTargetingIcons` | Centred on the portrait's top edge, or the glass's |
+| Raid marker | `GetRaidTargetIndex`, always secret, straight to `SetSpriteSheetCell` on `UI-RaidTargetingIcons` | Centred on the portrait's top edge, or the glass's; where that spot would cross the name (the sigil, a card), it sits at the name's left instead and the name's lane shortens by the marker and a 4-unit gap (`Geometry.Marker`), centred on the sigil |
 | Leader | `UnitIsGroupLeader`; a secret answer goes to `SetAlphaFromBoolean` | The status icon row on the glass's top edge, running from the end away from the portrait |
 | Role | `UnitGroupRolesAssigned`, the `roleicon-tiny-*` atlases | The same row |
 | PvP | `UnitIsPVPFreeForAll`, `UnitIsPVP` and `UnitFactionGroup`, Camelot's `UI-HUD-UnitFrame-SmallCircle-*` atlases | The same row |

@@ -23,7 +23,11 @@ local WIDGETS = { x = 604, y = 724 }
 local ENTRY = { x = 1190, y = 724, w = 465, h = 330 }
 
 local SAMPLE_FONT = "SourceSans3Semibold"
-local SEARCH_QUERY = "cast bar"
+-- The scene navigates by string keys (K.L[...]), so it builds and checks the same window in every shipped locale
+-- (RENDER_LOCALE); the search query is the locale's own words for "cast bar".
+local function T(K, key)
+	return K.L[key]
+end
 
 -- The settings addon loads on demand, as C_AddOns.LoadAddOn loads it in the game.
 local function loadsOptions(env)
@@ -163,9 +167,9 @@ return Common.Run(function()
 	for _, section in ipairs(state.sections) do
 		sections[#sections + 1] = section.label
 	end
-	assert(sections[1] == "Unit Frames" and sections[2] == "Customise" and sections[3] == "Target: frame", "the page's sections start with the module, the picker and the frame: " .. table.concat(sections, "|"))
+	assert(sections[1] == T(K, "Unit Frames") and sections[2] == T(K, "Customise") and sections[3] == T(K, "Target") .. ": " .. T(K, "frame"), "the page's sections start with the module, the picker and the frame: " .. table.concat(sections, "|"))
 	local hover = {}
-	local hovered = railRow(ns, "Target: cast bar")
+	local hovered = railRow(ns, T(K, "Target") .. ": " .. T(K, "cast bar"))
 	W.Enter(hovered)
 	hover[hovered] = true
 	Gallery.Ticks(W, env, 40)
@@ -220,10 +224,11 @@ return Common.Run(function()
 		place(K2, SEARCH, true)
 		settle(env2)
 		local parts2 = ns2.Window.Parts()
-		parts2.search:SetText(SEARCH_QUERY)
+		local query = T(K2, "cast bar")
+		parts2.search:SetText(query)
 		parts2.search:GetScript("OnTextChanged")(parts2.search, true)
 		settle(env2)
-		assert(ns2.Window.State().query == SEARCH_QUERY, "the search query is set")
+		assert(ns2.Window.State().query == query, "the search query is set")
 		assert(parts2.clear:IsShown(), "the clear glyph shows while searching")
 		local hits = {}
 		for _, item in ipairs(ns2.Window.State().items) do
@@ -262,7 +267,7 @@ return Common.Run(function()
 		place(K4, APPEARANCE, true)
 		settle(env4)
 		local list = O.Labels(ns4.Window.State().items)
-		assert(list[1] == "Accent" and list[2] == "Accent colour", "General starts with the Appearance rows: " .. table.concat(list, "|"))
+		assert(list[1] == T(K4, "Accent") and list[2] == T(K4, "Accent colour"), "General starts with the Appearance rows: " .. table.concat(list, "|"))
 		frames:Add(env4, ns4.Window.Frame(), {
 			name = "options_appearance", title = "General page: Appearance", grade = "window", reference = "chat",
 			caption = "The General page at its top: the core's Appearance schema (Accent colour dropdown, Font, Text size, Interface size and Motion) with the kit sample in the preview pane following them." .. SCALE_NOTE,
@@ -277,12 +282,12 @@ return Common.Run(function()
 		local env5, K5, ns5 = build("General", false)
 		place(K5, WIDGETS, true)
 		settle(env5)
-		scrollTo(ns5, "Tooltip size")
+		scrollTo(ns5, T(K5, "Tooltip size"))
 		settle(env5)
 		local list = O.Labels(ns5.Window.State().items)
 		local found = false
 		for _, label in ipairs(list) do
-			found = found or label == "Panel opacity"
+			found = found or label == T(K5, "Panel opacity")
 		end
 		assert(found, "General lists the Widgets rows: " .. table.concat(list, "|"))
 		frames:Add(env5, ns5.Window.Frame(), {

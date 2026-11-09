@@ -135,9 +135,18 @@ if [ -z "$chrome" ] || [ ! -x "$chrome" ]; then
 	echo "no Chrome found; set CHROME. The page is at $page" >&2
 	exit 1
 fi
-"$chrome" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
+# Headless Chrome sometimes dies on teardown after it has written the PNG ("Teardown watchdog expired"); the
+# screenshot is whole, so only a missing or empty PNG is a failure.
+rm -f "$out"
+if ! "$chrome" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
 	--force-device-scale-factor=1 --window-size="$width,$height" --virtual-time-budget=30000 \
-	--screenshot="$out" "file://$root/$page" >/dev/null 2>&1
+	--screenshot="$out" "file://$root/$page" >/dev/null 2>&1; then
+	if [ ! -s "$out" ]; then
+		echo "Chrome wrote no screenshot for $scene" >&2
+		exit 1
+	fi
+	echo "note: Chrome exited with an error after writing $out; the screenshot is kept" >&2
+fi
 # A second pass dumps the DOM to surface any JavaScript error the page recorded and every text it truncated.
 # The page sets its title to "rendered" when it has drawn every item; without that the page's truncations are
 # unknown, so the guard fails closed (except in --report).

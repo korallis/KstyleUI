@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Model = ns.Model
-local format, floor, max = string.format, math.floor, math.max
+local format, floor, max, min = string.format, math.floor, math.max, math.min
 
 local Rows = {}
 ns.Rows = Rows
@@ -18,6 +18,9 @@ local MARK_WIDTH = 2
 local MARK_HEIGHT = 12
 local RULE_ALPHA = 1
 local BYTE = 255
+local DROPDOWNS = { dropdown = true, font = true, texture = true }
+local DROPDOWN_CHEVRON = 8
+local DROPDOWN_CHROME = 3 * Tokens.Size("gapMedium") + DROPDOWN_CHEVRON + 1
 
 local function Snap(frame, units)
 	return Widgets.Snap(frame, units)
@@ -103,7 +106,7 @@ function MAKERS.slider(row)
 end
 
 local function Dropdown(row, maker)
-	return maker(row, {
+	local control = maker(row, {
 		width = Rows.CONTROL_WIDTH,
 		unknownLabel = function(value)
 			return tostring(value)
@@ -112,6 +115,10 @@ local function Dropdown(row, maker)
 			Apply(row, value, control)
 		end,
 	})
+	Rows.FullLabel(control, control.text, function(self)
+		return self.text:GetText()
+	end)
+	return control
 end
 
 function MAKERS.dropdown(row)
@@ -316,36 +323,81 @@ local function ControlHeight(control)
 	return height
 end
 
-local function PlaceText(row, control, width)
+local function Truncated(text)
+	local cut = text.IsTruncated and text:IsTruncated()
+	return cut == true and not Widgets.IsSecret(cut)
+end
+
+local function SelectedLabel(item)
+	local value = Value(item)
+	if value == nil or Widgets.IsSecret(value) then
+		return nil
+	end
+	local options = item.options
+	if type(options) == "function" then
+		local ok, list = pcall(options)
+		options = ok and type(list) == "table" and list or nil
+	end
+	for _, option in ipairs(type(options) == "table" and options or {}) do
+		if option.value == value then
+			return option.label
+		end
+	end
+	return tostring(value)
+end
+
+local function ControlWidth(row, item, control, full)
+	local width = Snap(row, Rows.CONTROL_WIDTH)
+	if not control or not DROPDOWNS[item.kind] or not item.options then
+		return width
+	end
+	Widgets.SetText(row.gauge, SelectedLabel(item) or "")
+	local needed = Widgets.TextWidth(row.gauge, 0) + Snap(row, DROPDOWN_CHROME)
+	width = max(width, min(Snap(row, full), Snap(row, needed)))
+	if control.opts.width ~= width then
+		control.opts.width = width
+		control:Restyle()
+	end
+	return width
+end
+
+local function PlaceText(row, item, control, width)
 	local gap, tiny = Gap(row), Snap(row, Tokens.Size("gapTiny"))
-	local reserve = control and Snap(row, Rows.CONTROL_WIDTH) + gap or 0
-	local column = width - 2 * gap - reserve
-	local stacked = control ~= nil and column < Rows.MIN_TEXT_WIDTH
-	local helpWidth = stacked and width - 2 * gap or column
+	local full = width - 2 * gap
+	local reserve = control and ControlWidth(row, item, control, full) + gap or 0
+	local column = full - reserve
+	local stacked = control ~= nil and Widgets.TextWidth(row.label, 0) > column
+	local banded = control ~= nil and not stacked and column < Rows.MIN_TEXT_WIDTH
+	local labelWidth = stacked and full or column
+	local helpWidth = (stacked or banded) and full or column
 	local labelHeight = Widgets.LineHeight(row.label)
-	row.label:SetWidth(max(1, column))
+	local controlHeight = control and ControlHeight(control) or 0
+	row.label:SetWidth(max(1, labelWidth))
 	local helpHeight = Widgets.WrappedHeight(row.help, max(1, helpWidth))
-	local textHeight = labelHeight + (helpHeight > 0 and tiny + helpHeight or 0)
-	local band = stacked and max(labelHeight, ControlHeight(control)) or 0
-	local blockHeight = stacked and band + (helpHeight > 0 and tiny + helpHeight or 0) or max(textHeight, control and ControlHeight(control) or 0)
+	local helpBlock = helpHeight > 0 and tiny + helpHeight or 0
+	local band = stacked and labelHeight + tiny + controlHeight or banded and max(labelHeight, controlHeight) or 0
+	local blockHeight = (stacked or banded) and band + helpBlock or max(labelHeight + helpBlock, controlHeight)
 	local height = Snap(row, max(Rows.HEIGHT, blockHeight + 2 * gap))
-	local top = Snap(row, (height - (stacked and blockHeight or textHeight)) / 2)
-	local labelTop = stacked and top + Snap(row, (band - labelHeight) / 2) or top
-	local helpTop = stacked and top + band + tiny or top + labelHeight + tiny
+	local top = Snap(row, (height - ((stacked or banded) and blockHeight or labelHeight + helpBlock)) / 2)
+	local labelTop = banded and top + Snap(row, (band - labelHeight) / 2) or top
+	local helpTop = (stacked or banded) and top + band + tiny or top + labelHeight + tiny
 	row.label:ClearAllPoints()
 	row.help:ClearAllPoints()
 	row.label:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -labelTop)
-	row.label:SetPoint("RIGHT", row, "RIGHT", -(gap + reserve), 0)
+	row.label:SetPoint("RIGHT", row, "RIGHT", -(gap + (stacked and 0 or reserve)), 0)
 	row.help:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -helpTop)
-	row.help:SetPoint("RIGHT", row, "RIGHT", stacked and -gap or -(gap + reserve), 0)
+	row.help:SetPoint("RIGHT", row, "RIGHT", -(gap + ((stacked or banded) and 0 or reserve)), 0)
 	if control then
 		control:ClearAllPoints()
 		if stacked then
-			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - ControlHeight(control)) / 2)))
+			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + labelHeight + tiny))
+		elseif banded then
+			control:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -(top + Snap(row, (band - controlHeight) / 2)))
 		else
 			control:SetPoint("RIGHT", row, "TOPRIGHT", -gap, -height / 2)
 		end
 	end
+	row:EnableMouse(Truncated(row.label))
 	return height
 end
 
@@ -411,7 +463,7 @@ local function Layout(row, item, width)
 	local control = Control(row, kind)
 	Widgets.SetText(row.label, item.label)
 	Widgets.SetText(row.help, item.help or "")
-	return PlaceText(row, control, width), control
+	return PlaceText(row, item, control, width), control
 end
 
 local function RowWidth(list)
@@ -469,6 +521,35 @@ function Rows.Restyle(row)
 	end
 end
 
+local function ShowFull(frame)
+	local full = frame.fullText and frame.fullText(frame)
+	if full == nil or Widgets.IsSecret(full) then
+		return
+	end
+	local tip = Widgets.Tooltip()
+	tip:SetOwner(frame, "ANCHOR_TOP")
+	tip:AddLine(full, nil, nil, nil, true)
+	tip:Show()
+end
+
+local function HideFull(frame)
+	local tip = Widgets.Tooltip()
+	if tip:IsOwned(frame) then
+		tip:Hide()
+	end
+end
+
+function Rows.FullLabel(frame, text, fullText)
+	frame.fullText = function(self)
+		if not Truncated(text) then
+			return nil
+		end
+		return fullText(self)
+	end
+	frame:HookScript("OnEnter", ShowFull)
+	frame:HookScript("OnLeave", HideFull)
+end
+
 function Rows.Create(list)
 	local row = CreateFrame("Frame", nil, list.view)
 	row.list = list
@@ -476,6 +557,11 @@ function Rows.Create(list)
 	row.label = Widgets.Text(row, "body", "textEmphasis")
 	row.label:SetJustifyH("LEFT")
 	row.label:SetWordWrap(false)
+	row.gauge = Widgets.Text(row, "body", "text")
+	row.gauge:Hide()
+	Rows.FullLabel(row, row.label, function(self)
+		return self.item and self.item.label
+	end)
 	row.help = Widgets.Text(row, "body", "text")
 	row.help:SetJustifyH("LEFT")
 	row.help:SetJustifyV("TOP")

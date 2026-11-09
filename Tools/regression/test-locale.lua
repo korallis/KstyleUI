@@ -62,6 +62,52 @@ for code, words in pairs(WORDS) do
 	end
 end
 
+-- Every shipped table holds every key of the English base, so no string falls back to English by omission on a
+-- shipped client (round 5, Muse #4: the tables held 2027 to 2031 of 2042 keys).
+local function baseKeys()
+	local handle = assert(io.open("Tools/locale/enUS.json", "rb"), "the English base exists")
+	local json = handle:read("*a")
+	handle:close()
+	local keys = {}
+	local function utf8(code)
+		if code < 0x80 then
+			return string.char(code)
+		elseif code < 0x800 then
+			return string.char(0xC0 + math.floor(code / 0x40), 0x80 + code % 0x40)
+		end
+		return string.char(0xE0 + math.floor(code / 0x1000), 0x80 + math.floor(code / 0x40) % 0x40, 0x80 + code % 0x40)
+	end
+	local ESCAPES = { n = "\n", t = "\t", r = "\r", ["\""] = "\"", ["\\"] = "\\", ["/"] = "/" }
+	for line in json:gmatch("[^\n]+") do
+		local body = line:match('^%s*"(.*)",?%s*$')
+		if body then
+			body = body:gsub("\\u(%x%x%x%x)", function(hex)
+				return utf8(tonumber(hex, 16))
+			end):gsub("\\(.)", ESCAPES)
+			keys[#keys + 1] = body
+		end
+	end
+	assert(#keys > 1000, "the base lists the keys, got " .. #keys)
+	return keys
+end
+do
+	local keys = baseKeys()
+	for _, code in ipairs({ "deDE", "frFR", "esES", "zhCN" }) do
+		local _, K = Boot(code)
+		local missing, count = {}, 0
+		for _, key in ipairs(keys) do
+			if rawget(K.L, key) == nil then
+				missing[#missing + 1] = key
+			end
+		end
+		for _ in pairs(K.L) do
+			count = count + 1
+		end
+		assert(#missing == 0, code .. " lacks " .. #missing .. " of the base's " .. #keys .. " keys, such as " .. tostring(missing[1]))
+		assert(count == #keys, code .. " holds " .. count .. " strings against the base's " .. #keys)
+	end
+end
+
 -- The settings rule that help is one sentence under 100 characters binds the English text; a translation of it may run longer.
 do
 	local _, K = Boot("deDE")

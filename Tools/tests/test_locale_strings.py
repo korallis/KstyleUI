@@ -33,11 +33,12 @@ class RepositoryTablesTest(unittest.TestCase):
             text.decode("ascii")
             self.assertEqual(strings.parse(text.decode("ascii")), strings.source(code, REPO), code)
 
-    def test_each_locale_covers_the_base(self):
-        base = strings.base(REPO)
+    def test_each_locale_covers_the_base_exactly(self):
+        base = set(strings.base(REPO))
         for code in strings.LOCALES:
-            have = strings.source(code, REPO)
-            self.assertGreaterEqual(len(have) / len(base), 0.99, code)
+            have = set(strings.source(code, REPO))
+            self.assertEqual(sorted(base - have), [], code + " lacks keys")
+            self.assertEqual(sorted(have - base), [], code + " has keys the base lacks")
 
     def test_the_core_toc_loads_every_locale_after_locale_lua(self):
         files = [Path(p).resolve().relative_to(REPO).as_posix() for p in strings.toc_files(REPO)]
@@ -94,6 +95,13 @@ class ProblemsTest(unittest.TestCase):
         self.lua('local L = {}\nprint(L["Hello"], L["On: "])\n')
         self.assertTrue(any("no code uses" in p for p in strings.problems(self.root)))
 
+    def test_a_table_missing_a_base_key_fails(self):
+        self.translate("deDE", {"Hello": "Hallo", "Level %d": "Stufe %d"})
+        found = strings.problems(self.root)
+        self.assertTrue(any(p.startswith('deDE lacks "On: "') for p in found), found)
+        self.translate("deDE", {"Hello": "Hallo", "Level %d": "Stufe %d", "On: ": "An: "})
+        self.assertFalse(any("lacks" in p for p in strings.problems(self.root)))
+
     def test_a_changed_format_specifier_fails(self):
         self.translate("deDE", {"Level %d": "Stufe %s"})
         self.assertTrue(any("format specifiers" in p for p in strings.problems(self.root)))
@@ -109,7 +117,7 @@ class ProblemsTest(unittest.TestCase):
         self.assertTrue(any("小" in p and "Cinzel" in p for p in found), found)
 
     def test_chinese_glyphs_are_the_game_fonts_job(self):
-        self.translate("zhCN", {"Hello": "你好"})
+        self.translate("zhCN", {"Hello": "你好", "Level %d": "等级 %d", "On: ": "开: "})
         self.assertEqual(strings.problems(self.root), [])
 
     def test_a_hand_edited_lua_table_is_stale(self):

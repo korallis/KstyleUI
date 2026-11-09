@@ -15,6 +15,7 @@ local WINDOW_KEY = "Options.Window"
 local SMALL_W, SMALL_H, SMALL_SCALE = 880, 520, 0.65
 local MAIN = { x = 16, y = 16 }
 local NAMEPLATES = { x = 1083, y = 16 }
+-- The Debuffs section, looked up by its string key so the scene builds in every shipped locale (RENDER_LOCALE).
 local JUMP_TO = "Debuffs"
 local MIN_ROWS = 60
 
@@ -121,11 +122,12 @@ return Common.Run(function()
 		local env, K, ns = Open(G.New, "GroupFrames", MAIN)
 		mainEnv, mainK = env, K
 		local parts = ns.Window.Parts()
-		W.Click(railRow(ns, JUMP_TO))
+		local jumpTo = K.L[JUMP_TO]
+		W.Click(railRow(ns, jumpTo))
 		settle(env)
 		local state = ns.Window.State()
 		local _, index = O.Find(state.items, function(item)
-			return item.kind == "header" and item.label == JUMP_TO
+			return item.kind == "header" and item.label == jumpTo
 		end)
 		assert(index and state.section == index, "the Debuffs section is current after the jump")
 		local first
@@ -135,7 +137,7 @@ return Common.Run(function()
 			end
 		end
 		assert(first == index, "the Debuffs header is the first row on screen")
-		assert(railRow(ns, JUMP_TO).mark:IsShown(), "the rail marks the Debuffs section")
+		assert(railRow(ns, jumpTo).mark:IsShown(), "the rail marks the Debuffs section")
 		frames:Add(env, ns.Window.Frame(), {
 			name = "options_groupframes", title = "Party and Raid page", grade = "window", reference = "chat",
 			caption = "The settings window on the real Party and Raid page after a click on Debuffs in the rail: the rail lists the page's sixteen sections (Blizzard frames, Party frames, Raid frames, Health bar, Power bar, Text, Status icons, Debuffs, Debuff priority, Indicators, Your heals over time, Automatic layout, Click casting, Incoming heals and absorbs, Range and highlight, Positions and sizes) with Debuffs marked, the rows start at the Debuffs header (Debuff icons, Which debuffs, Duration swipe, Dispel highlight, Highlight debuffs) and run on into Debuff priority, and the live preview shows the module's sample party and raid frames.",

@@ -54,8 +54,8 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |
 | `secret_lint.lua` | Finds unsafe uses of secret values and any use of the combat log. |
 | `color_lint.lua` | Finds colour literals, which belong only in `Core/Tokens.lua`. `test-tokens.lua` runs it. |
-| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `test-perf.lua` runs it. |
-| `perf/` | The combat paths `test-perf.lua` measures, one file per addon folder. |
+| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `perf_runner.lua` runs it for `test-perf.lua` and `test-perf-frames.lua`. |
+| `perf/` | The combat paths `test-perf.lua` and `test-perf-frames.lua` measure, one file per addon folder, split between them by `perf_runner.lua`. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
 ## Taint scan
@@ -160,13 +160,17 @@ The lint follows locals within a file. It does not follow values through functio
 
 ## Performance budget
 
-`test-perf.lua` measures every combat path registered in `perf/`. A path fails when:
+`test-perf.lua` and `test-perf-frames.lua` measure every combat path registered in `perf/`. A path fails when:
 
 - Its average time per call is over its budget.
 - It allocates memory on an addon line. The spec allows no allocation in a combat path.
 - It reports an error while it runs.
 
-`measure.lua` calls the path 10 times to fill caches, then runs 3 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round. When the rounds allocate, it runs 1,000 more calls under a debug hook that charges each allocation to the line that ran it, so a line that allocates only on some calls is found too. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that a stub or a fake allocates, such as a duration object from `UnitCastingDuration`, never fails it. A line that allocates less often than once in 1,000 calls can escape the trace. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
+`measure.lua` calls the path 10 times to fill caches, then runs 5 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round, so a round that another process slowed does not set it. When the rounds allocate, it runs 1,000 more calls under a debug hook that charges each allocation to the line that ran it, so a line that allocates only on some calls is found too; the hook costs about fifty times a plain call, which is most of a perf test's time. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that a stub or a fake allocates, such as a duration object from `UnitCastingDuration`, never fails it. A line that allocates less often than once in 1,000 calls can escape the trace. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
+
+The paths run as two test files so each stays well inside its 20 s budget while run-all runs 18 files at once: `test-perf.lua` measures the core, action bar, combat text, cooldown, group frame and meter files, and `test-perf-frames.lua` the nameplate and unit frame files. `perf_runner.lua` holds the two lists (`GROUPS`) and fails both files when a `perf/` file sits in neither, or in both.
+
+A path that fails on time alone (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average, so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
 
 Before it measures, the test enters combat with `env.SetCombat(true)` and switches the stubs to quiet mode with `env.SetQuiet(true)`. In quiet mode:
 
@@ -204,7 +208,7 @@ return {
 - `name` is unique across `perf/`. Start it with the module.
 - `budget` is the time per call in microseconds. `lua5.1 Tools/regression/test-perf.lua` prints each path's time. Set the budget near 10 times the time Lua 5.1 prints. Use at least 10.
 - `setup` builds a stub environment and returns it with the function to measure. It runs once.
-- `calls`, optional, sets the calls per round. The default is 1,000.
+- `calls`, optional, sets the calls per round and the trace. The default is 1,000.
 
 `Perf.Event(env, event, ...)` returns a function that runs the `OnEvent` script of each frame registered for the event, with the arguments given, as the game dispatches it. It finds the frames on its first call and raises if no frame is registered. A path that runs on a timer, such as the threat meter's update, fires its event and then calls `env.RunTimers()`.
 

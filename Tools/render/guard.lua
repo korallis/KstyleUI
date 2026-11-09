@@ -2,7 +2,7 @@
 -- piece of content that reaches past the glass card it belongs to, so a shipped render cannot clip or spill unseen.
 --
 --   local Guard = dofile("Tools/render/guard.lua")
---   local findings = Guard.Check(scene)                     -- { kind, subject, card, detail, key }, sorted
+--   local findings = Guard.Check(scene)                     -- { kind, subject, card, detail, key, object }, sorted
 --   local allow = Guard.LoadAllow()                         -- Tools/render/guard_allow.tsv
 --   local fresh, allowed, stale = Guard.Sort(findings, allow, "hud_lumen_questing")
 --
@@ -404,7 +404,7 @@ function Guard.Check(scene)
 			return
 		end
 		seen[key] = true
-		findings[#findings + 1] = { kind = kind, subject = subject, card = card and keyPath(card.frame), detail = detail, key = key }
+		findings[#findings + 1] = { kind = kind, subject = subject, card = card and keyPath(card.frame), detail = detail, key = key, object = item.object }
 	end
 	local cards = Guard.Cards(scene)
 	local texts, drawn = {}, {}

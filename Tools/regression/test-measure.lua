@@ -51,10 +51,12 @@ local function near(a, b)
 	return math.abs(a - b) < 1e-9
 end
 
--- A call that allocates nothing measures zero, and the result says how many calls ran.
+-- A call that allocates nothing measures zero, and the result says how many calls and rounds ran.
 do
 	local r = Measure.Run(addon.Nothing)
 	assert(r.calls == 1000, "1,000 calls by default, got " .. tostring(r.calls))
+	assert(r.rounds == 5, "five timed rounds, the fastest counts, got " .. tostring(r.rounds))
+	assert(r.traced == 0, "nothing allocated, so no trace ran")
 	assert(near(r.kb, 0), "nothing allocated, got " .. r.kb .. " KB per call")
 	assert(near(r.addonKb, 0) and #r.sites == 0, "no addon allocation")
 	assert(type(r.time) == "number" and r.time >= 0, "a time per call in seconds")
@@ -103,6 +105,7 @@ end
 -- An allocation every 100th call is still the addon's: the trace covers as many calls as a round.
 do
 	local r = Measure.Run(addon.Sometimes)
+	assert(r.traced == 1000, "the trace runs a whole round of calls, got " .. tostring(r.traced))
 	assert(r.addonKb > 0 and r.sites[1] and r.sites[1].where == "KstyleUI_Fake/Hot.lua:29", "a table every 100th call belongs to line 29, got " .. tostring(r.sites[1] and r.sites[1].where))
 	assert(#Measure.Check({ name = "Fake Sometimes", budget = 1000, run = addon.Sometimes }) == 1, "and Check fails it")
 end
@@ -114,8 +117,8 @@ do
 		while os.clock() - start < 0.0002 do
 		end
 	end
-	local r = Measure.Run(spin, { calls = 20 })
-	assert(r.calls == 20, "opts.calls sets the count")
+	local r = Measure.Run(spin, { calls = 20, rounds = 2 })
+	assert(r.calls == 20 and r.rounds == 2, "opts.calls and opts.rounds set the counts")
 	assert(r.time >= 0.0002, "the time is per call, got " .. r.time)
 end
 

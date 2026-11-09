@@ -4,16 +4,19 @@
 --   local r = Measure.Run(fn, { calls = 1000 })
 --   local problems, r = Measure.Check({ name = "UnitFrames UNIT_HEALTH", budget = 60, run = fn })
 --
--- Run calls fn 10 times to warm caches, then 3 rounds of opts.calls calls (1,000 by default) with the
--- collector stopped. It returns:
+-- Run calls fn 10 times to warm caches, then opts.rounds rounds (5 by default) of opts.calls calls (1,000
+-- by default) with the collector stopped. The fastest round counts, so a round another process slowed
+-- does not set the time. It returns:
 --   calls    the calls per round
+--   rounds   the rounds run
 --   time     CPU seconds per call in the fastest round
 --   kb       KB allocated per call by all code, stubs included
 --   addonKb  KB allocated per call on addon lines
 --   sites    the addon lines that allocate, most bytes first: { { where = "Core/X.lua:12", bytes = n } }
 --   traced   the calls run under the debug hook: 0, or opts.calls when kb is above 0
 -- When kb is above 0, Run runs opts.calls more calls under a debug hook that charges each allocation to
--- the line that ran it, so a line that allocates only now and then is found too. Memory a C function
+-- the line that ran it, so a line that allocates only now and then is found too (the hook costs about
+-- fifty times a plain call, which is most of a perf test's time). Memory a C function
 -- allocates is charged to the Lua line that called it. An addon line is one in a file outside Tools/,
 -- so the stubs' own allocations are counted in kb only. In quiet mode the stubs allocate almost
 -- nothing, so most paths that allocate nothing skip the trace.
@@ -33,7 +36,7 @@ local Measure = {}
 
 local DEFAULT_CALLS = 1000
 local WARMUP_CALLS = 10
-local ROUNDS = 3
+local ROUNDS = 5
 local TRACE_WARMUP_CALLS = 2
 local SHOWN_SITES = 5
 
@@ -118,9 +121,9 @@ local function Sites(charged, calls)
 	return list, totalKb / calls
 end
 
-local function Rounds(fn, calls)
+local function Rounds(fn, calls, rounds)
 	local best, allocated = math.huge, 0
-	for _ = 1, ROUNDS do
+	for _ = 1, rounds do
 		local before = count("count")
 		local start = clock()
 		Loop(fn, calls)
@@ -130,7 +133,7 @@ local function Rounds(fn, calls)
 			best = elapsed
 		end
 	end
-	return best / calls, allocated / (ROUNDS * calls)
+	return best / calls, allocated / (rounds * calls)
 end
 
 local function Charge(fn, calls)
@@ -141,13 +144,15 @@ end
 function Measure.Run(fn, opts)
 	opts = opts or {}
 	local calls = opts.calls or DEFAULT_CALLS
+	local rounds = opts.rounds or ROUNDS
+	local traceCalls = calls
 	Loop(fn, WARMUP_CALLS)
 	count("collect")
 	count("stop")
-	local ok, time, kb = pcall(Rounds, fn, calls)
+	local ok, time, kb = pcall(Rounds, fn, calls, rounds)
 	local charged
 	if ok and kb > 0 then
-		ok, charged = pcall(Charge, fn, calls)
+		ok, charged = pcall(Charge, fn, traceCalls)
 		if not ok then
 			time = charged
 		end
@@ -159,14 +164,14 @@ function Measure.Run(fn, opts)
 	end
 	local sites, addonKb = {}, 0
 	if charged then
-		sites, addonKb = Sites(charged, calls)
+		sites, addonKb = Sites(charged, traceCalls)
 	end
-	return { calls = calls, time = time, kb = kb, addonKb = addonKb, sites = sites, traced = charged and calls or 0 }
+	return { calls = calls, rounds = rounds, time = time, kb = kb, addonKb = addonKb, sites = sites, traced = charged and traceCalls or 0 }
 end
 
 function Measure.Check(entry)
 	local problems = {}
-	local r = Measure.Run(entry.run, { calls = entry.calls })
+	local r = Measure.Run(entry.run, { calls = entry.calls, rounds = entry.rounds })
 	local us = r.time * 1e6
 	if us > entry.budget then
 		problems[#problems + 1] = string.format("%s: %.1f us per call, over its budget %g us", entry.name, us, entry.budget)

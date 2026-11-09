@@ -21,7 +21,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 
 ## Locale
 
-`Core/Locale.lua` loads right after `Init.lua`, then `Core/Locales/Locales.xml` loads one generated table per shipped language. Only the client's own table runs; the others return on their first line. Test: `Tools/regression/test-locale.lua`.
+`Core/Locale.lua` loads right after `Init.lua`, then `Core/Locales/Locales.xml` loads one generated table per shipped language. Only the client's own table runs; the others return on their first line. Every shipped table holds every key of the English base (`Tools/locale/enUS.json`), so no string falls back to English on a shipped locale by omission: `python3 Tools/locale/strings.py check` and `Tools/regression/test-locale.lua` both fail on a missing key. The tables are machine-translated and not yet reviewed by native speakers; `docs/RELEASE_NOTES.md` says so until they are. Test: `Tools/regression/test-locale.lua`.
 
 | Name | Behaviour |
 | --- | --- |
@@ -31,7 +31,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 | `Locale.Add(strings)` | Stores a `{ [English] = text }` table. Generated files call it; nothing else should. |
 | `Locale.IsTranslation(text) -> bool` | True for a string a table stored. `Options.Register` holds English help under 100 characters and lets a longer translation through. |
 | `Locale.Font(path) -> path` | The game's own font in place of a KstyleUI face that lacks the client's script: every face on `zhCN`, `zhTW` and `koKR`, Cinzel on `ruRU`. Other paths, another addon's fonts included, come back unchanged. `Tokens.Font` and `Tokens.FontPath` call it, so every role follows. |
-| `Locale.Upper(text) -> text` | `text:upper()` that also capitalises Latin-1 letters, `œ` and `ÿ`, which plain `upper` leaves lowercase. Use it for every uppercase role. |
+| `Locale.Upper(text) -> text` | `text:upper()` that also capitalises Latin-1 letters, `œ` and `ÿ`, which plain `upper` leaves lowercase. Reachable from every module as `KstyleUI.Locale.Upper`. `Widgets.SetText` applies it for the uppercase roles, so a module calls it itself only where it uppercases a string by hand (a `string.upper` on a name, a caption built with `format`). |
 | `Locale.SPACED` | False when the game font stands in for every face: Chinese and Korean text is never letter-spaced with thin spaces. |
 
 ## Callbacks

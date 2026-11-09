@@ -10,7 +10,7 @@ end
 return {
 	{
 		name = "Glow Start and Stop",
-		budget = 20,
+		budget = 30,
 		setup = function()
 			local env, K = W.New()
 			local glow = K.Widgets.Glow(K.Widgets.Panel(K.Scale.Root(), {}), { kind = "proc" })

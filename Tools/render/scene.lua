@@ -328,22 +328,33 @@ end
 
 -- findOwnAlpha(node) -> the alpha the node's last SetAlpha or SetAlphaFromBoolean gave it. SetAlphaFromBoolean picks
 -- the on or off alpha from a boolean the addon may not read, so the secret is revealed here, as the engine would.
-local function findOwnAlpha(node)
+-- The stubs keep that last call in node._lastAlpha (false while there has been none), so a node with a long call
+-- log is not scanned on every build; a node without the field is scanned.
+local function lastAlphaCall(node)
+	local last = node._lastAlpha
+	if last ~= nil then
+		return last or nil
+	end
 	local calls = node._calls
 	for i = #(calls or {}), 1, -1 do
 		local call = calls[i]
-		if call.method == "SetAlpha" then
-			break
-		elseif call.method == "SetAlphaFromBoolean" then
-			local value = reveal(node._env, call.args[1])
-			if type(value) == "boolean" then
-				local on, off = call.args[2], call.args[3]
-				if value then
-					return type(on) == "number" and on or 1
-				end
-				return type(off) == "number" and off or 0
+		if call.method == "SetAlpha" or call.method == "SetAlphaFromBoolean" then
+			return call
+		end
+	end
+	return nil
+end
+
+local function findOwnAlpha(node)
+	local call = lastAlphaCall(node)
+	if call and call.method == "SetAlphaFromBoolean" then
+		local value = reveal(node._env, call.args[1])
+		if type(value) == "boolean" then
+			local on, off = call.args[2], call.args[3]
+			if value then
+				return type(on) == "number" and on or 1
 			end
-			break
+			return type(off) == "number" and off or 0
 		end
 	end
 	local own = node._state.Alpha
@@ -1466,21 +1477,33 @@ function Scene.Font(env, region)
 	return path, size, flags
 end
 
--- Rect(env, object) -> x, y, width, height in screen units for one frame or region, or nil when its anchors
--- do not resolve. Scenes use it to size stand-ins the way the game would.
-function Scene.Rect(env, object)
+-- RectSolver(env) -> a solver on the owner's screen and UIParent that RectIn resolves objects with. It caches
+-- each rect it resolves, so a caller that reads many rects between layout changes (the stubs' GetLeft and
+-- friends) makes one and keeps it until an anchor, size, scale or text changes.
+function Scene.RectSolver(env)
 	local solver = newSolver(env, {}, function() end)
 	local width, height = env.GetPhysicalScreenSize()
 	local uiParent = env.UIParent
 	local parentScale = type(uiParent._scale) == "number" and uiParent._scale or 1
 	solver.screen = { 0, 0, UI_HEIGHT * width / height, UI_HEIGHT }
 	solver.rects[uiParent] = { 0, 0, uiParent._width * parentScale, uiParent._height * parentScale }
+	return solver
+end
+
+-- RectIn(solver, object) -> x, y, width, height in screen units, or nil when the anchors do not resolve.
+function Scene.RectIn(solver, object)
 	local rect = solver:rect(object)
 	if not rect then
 		return nil
 	end
 	local k = SCREEN_UNITS / UI_HEIGHT
 	return rect[1] * k, (UI_HEIGHT - rect[4]) * k, (rect[3] - rect[1]) * k, (rect[4] - rect[2]) * k
+end
+
+-- Rect(env, object) -> x, y, width, height in screen units for one frame or region, or nil when its anchors
+-- do not resolve. Scenes use it to size stand-ins the way the game would.
+function Scene.Rect(env, object)
+	return Scene.RectIn(Scene.RectSolver(env), object)
 end
 
 -- Merge(scenes) -> one scene whose items are every scene's items in order, for modules drawn in separate environments.

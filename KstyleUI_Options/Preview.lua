@@ -13,6 +13,9 @@ local SAMPLE_BAR = 0.7
 local SAMPLE_SLIDER = 68
 local LOGO_SIZE = 64
 local LOGO_ALPHA = 0.35
+Preview.MAX_SCALE = 1.25
+Preview.SCALE_STEP = 0.01
+Preview.MIN_GAIN = 0.05
 
 function Preview.Sample(parent)
 	local frame = CreateFrame("Frame", nil, parent)
@@ -56,19 +59,117 @@ local function Known(value)
 	return type(value) == "number" and not (issecretvalue and issecretvalue(value)) and value > 0
 end
 
-local function Fit(pane, frame)
-	if not frame.sized then
+local function Edge(value)
+	if type(value) ~= "number" or (issecretvalue and issecretvalue(value)) then
+		return nil
+	end
+	return value
+end
+
+local DECOR = { "Glow", "Shadow", "Gilt", "Noise" }
+
+local function IsDecor(region)
+	if region.GetObjectType and region:GetObjectType() ~= "Texture" or not region.GetTexture then
+		return false
+	end
+	local file = region:GetTexture()
+	if type(file) ~= "string" or (issecretvalue and issecretvalue(file)) then
+		return false
+	end
+	for _, name in ipairs(DECOR) do
+		if file:find(name, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+local function Extent(frame, holder)
+	local left, right, top, bottom
+	local function take(object)
+		local eff = Edge(object:GetEffectiveScale())
+		local l, r, t, b = Edge(object:GetLeft()), Edge(object:GetRight()), Edge(object:GetTop()), Edge(object:GetBottom())
+		if not (eff and l and r and t and b) or eff <= 0 then
+			return
+		end
+		l, r, t, b = l * eff, r * eff, t * eff, b * eff
+		left, right = math.min(left or l, l), math.max(right or r, r)
+		top, bottom = math.max(top or t, t), math.min(bottom or b, b)
+	end
+	local function walk(object)
+		for _, region in ipairs({ object:GetRegions() }) do
+			if region:IsShown() and not IsDecor(region) then
+				take(region)
+			end
+		end
+		for _, child in ipairs({ object:GetChildren() }) do
+			if child:IsShown() then
+				walk(child)
+			end
+		end
+	end
+	walk(frame)
+	local eff = Edge(holder:GetEffectiveScale())
+	if not left or not eff or eff <= 0 then
+		return nil
+	end
+	return (right - left) / eff, (top - bottom) / eff
+end
+
+local Fit
+
+function Fit(pane, frame)
+	local roomW, roomH = pane.holder:GetWidth(), pane.holder:GetHeight()
+	if not (Known(roomW) and Known(roomH)) then
 		return
 	end
-	local roomW, roomH = pane.holder:GetWidth(), pane.holder:GetHeight()
-	local width, height = frame:GetWidth(), frame:GetHeight()
 	local scale = 1
-	if Known(roomW) and Known(roomH) and Known(width) and Known(height) then
-		scale = math.min(1, roomW / width, roomH / height)
+	if frame.sized then
+		local width, height = frame:GetWidth(), frame:GetHeight()
+		if Known(width) and Known(height) then
+			scale = math.min(Preview.MAX_SCALE, roomW / width, roomH / height)
+		end
+		frame:SetScale(scale)
+		frame:ClearAllPoints()
+		frame:SetPoint("CENTER", pane.holder, "CENTER", 0, 0)
+		return
+	end
+	local own = frame:GetScale()
+	local width, height = Extent(frame, pane.holder)
+	if not (Known(width) and Known(height) and Known(own)) then
+		if not pane.refit and C_Timer and C_Timer.After then
+			pane.refit = true
+			C_Timer.After(0, function()
+				if pane.current == frame and frame:IsShown() then
+					Fit(pane, frame)
+				end
+			end)
+		end
+		return
+	end
+	scale = math.max(1, math.min(Preview.MAX_SCALE, roomW * own / width, roomH * own / height))
+	local key = roomW .. "x" .. roomH
+	if frame.selfFits == key then
+		scale = 1
+	end
+	if math.abs(scale - own) <= Preview.SCALE_STEP then
+		return
 	end
 	frame:SetScale(scale)
-	frame:ClearAllPoints()
-	frame:SetPoint("CENTER", pane.holder, "CENTER", 0, 0)
+	if frame.Refresh then
+		K.Call(frame.Refresh, frame)
+	end
+	if scale <= own then
+		return
+	end
+	local grown = Extent(frame, pane.holder)
+	if Known(grown) and grown < width * (1 + Preview.MIN_GAIN) then
+		frame.selfFits = key
+		frame:SetScale(1)
+		if frame.Refresh then
+			K.Call(frame.Refresh, frame)
+		end
+	end
 end
 
 local function Anchor(pane, frame)
@@ -139,6 +240,7 @@ function Preview.Show(pane, page)
 	frame:Show()
 	pane.current = frame
 	pane.module = page and page.module
+	pane.refit = nil
 	RefreshCurrent(pane)
 end
 
@@ -173,6 +275,7 @@ function Preview.Create(parent)
 		local width, height = self:GetWidth(), self:GetHeight()
 		if Known(width) and Known(height) then
 			local line = Widgets.LineHeight(self.caption)
+			Widgets.Size(self.caption, math.max(1, width - 2 * pad), line)
 			local top = pad + line + gap + Widgets.Border(self) + gap
 			Widgets.Size(self.holder, math.max(1, width - 2 * pad), math.max(1, height - top - pad))
 			RefreshCurrent(self)

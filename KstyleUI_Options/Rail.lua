@@ -13,6 +13,7 @@ local BAR_WIDTH = 2
 local MARK_WIDTH = 2
 local MARK_HEIGHT = 10
 local SECTION_INSET = 12
+local MAX_LINES = 2
 local WASH_ALPHA = 0.18
 local HOVER_ALPHA = 0.05
 
@@ -71,15 +72,46 @@ local function Paint(row)
 	row.hover:SetVertexColor(Widgets.Rgba("white", HOVER_ALPHA * (row.hoverT or 0)))
 end
 
-local function Place(row, section)
-	local list = row.rail
+local function Column(list, section)
 	local inset = Widgets.Snap(list, Tokens.Size("gapLarge"))
 	if section then
 		inset = inset + Widgets.Snap(list, SECTION_INSET)
 	end
+	local trail = Widgets.Snap(list, Tokens.Size("gapSmall"))
+	local width = list.GetViewWidth and list:GetViewWidth()
+	if type(width) ~= "number" or Widgets.IsSecret(width) or width <= 0 then
+		width = nil
+	end
+	return inset, trail, width and math.max(1, width - inset - trail) or nil
+end
+
+local function Lines(list, entry)
+	local _, _, column = Column(list, IsSection(entry))
+	if not column then
+		return 1
+	end
+	Widgets.SetText(list.gauge, entry.label)
+	if Widgets.TextWidth(list.gauge, 0) > column then
+		return MAX_LINES
+	end
+	return 1
+end
+
+local function Place(row, entry)
+	local list = row.rail
+	local section = IsSection(entry)
+	local inset, trail, column = Column(list, section)
+	local lines = Lines(list, entry)
 	row.label:ClearAllPoints()
 	row.label:SetPoint("LEFT", row, "LEFT", inset, 0)
-	row.label:SetPoint("RIGHT", row, "RIGHT", -Widgets.Snap(list, Tokens.Size("gapSmall")), 0)
+	row.label:SetPoint("RIGHT", row, "RIGHT", -trail, 0)
+	if column then
+		row.label:SetWidth(column)
+	end
+	row.label:SetWordWrap(lines > 1)
+	if row.label.SetMaxLines then
+		row.label:SetMaxLines(lines)
+	end
 	row.mark:ClearAllPoints()
 	row.mark:SetPoint("RIGHT", row.label, "LEFT", -Widgets.Snap(list, Tokens.Size("gapSmall")), 0)
 	Widgets.Size(row.mark, MARK_WIDTH, MARK_HEIGHT)
@@ -103,7 +135,6 @@ local function CreateRow(list)
 	row.label = Widgets.Text(row, "body", "text")
 	row.label:SetJustifyH("LEFT")
 	row.label:SetWordWrap(false)
-	Place(row, false)
 	row.Paint = Paint
 	row.onClick = function(self)
 		local entry = self.entry
@@ -119,22 +150,26 @@ local function CreateRow(list)
 		end
 	end
 	Widgets.HookPointer(row)
+	ns.Rows.FullLabel(row, row.label, function(self)
+		return self.entry and self.entry.label
+	end)
 	return row
 end
 
 local function UpdateRow(row, entry)
 	row.entry = entry
 	row.page = not IsSection(entry) and entry or nil
-	Place(row, IsSection(entry))
+	Place(row, entry)
 	Widgets.SetText(row.label, entry.label)
 	Paint(row)
 end
 
-local function HeightOf(entry)
-	if IsSection(entry) then
-		return Rail.SECTION_HEIGHT
+local function HeightOf(entry, _, list)
+	local height = IsSection(entry) and Rail.SECTION_HEIGHT or Rail.ROW_HEIGHT
+	if not (list and list.gauge) then
+		return height
 	end
-	return Rail.ROW_HEIGHT
+	return height + (Lines(list, entry) - 1) * Widgets.LineHeight(list.gauge)
 end
 
 function Rail.Entries(pages, selected, sections)
@@ -168,6 +203,8 @@ function Rail.Create(parent, onSelect, onSection)
 		createRow = CreateRow,
 		updateRow = UpdateRow,
 	})
+	rail.gauge = Widgets.Text(rail, "body", "text")
+	rail.gauge:Hide()
 	rail.onSelect = onSelect
 	rail.onSection = onSection
 	rail.SetPages = function(self, pages, sections, keepOffset)
