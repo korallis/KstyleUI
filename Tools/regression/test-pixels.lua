@@ -303,14 +303,14 @@ end
 -- effective scale, so both land on whole pixels.
 local OWNER_SIZES = { 16 / 19, 1 }
 for _, screen in ipairs(OWNER_SCREENS) do
-for _, size in ipairs(OWNER_SIZES) do
+for _, hudSize in ipairs(OWNER_SIZES) do
 	local env, ns = NewScale(screen[1], screen[2], OWNER_UI_SCALE)
 	env.FireEvent("PLAYER_LOGIN")
-	assert(ns.Scale.SetUserScale(size) == true, "the size is accepted")
+	assert(ns.Scale.SetUserScale(hudSize) == true, "the size is accepted")
 	local ppu = perUnit(env, ns)
 	local W, Scale = ns.Widgets, ns.Scale
-	local where = label(screen, OWNER_UI_SCALE, size)
-	assert(math.abs(ppu - screen.perUnit * size) < 0.001, where .. ": " .. ppu .. " px per unit")
+	local where = label(screen, OWNER_UI_SCALE, hudSize)
+	assert(math.abs(ppu - screen.perUnit * hudSize) < 0.001, where .. ": " .. ppu .. " px per unit")
 	local border = Scale.Border() * ppu
 	for _, frameScale in ipairs(FRAME_SCALES) do
 		for _, shape in ipairs({ "panel", "window", "tile", "socket", "bar" }) do

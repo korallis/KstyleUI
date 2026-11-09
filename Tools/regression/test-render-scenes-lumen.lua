@@ -56,7 +56,7 @@ for _, scene in ipairs({ questing, combat }) do
 		seen[card.name] = card
 		assert(math.abs(card.left - slot.left) <= 0.5, scene.state .. ": " .. card.name .. "'s glass starts on the rail's left edge, got " .. card.left)
 		-- Owner pass 1 ("the chat box is too thin"): chat runs 372 wide from the same left edge; the rail itself is M3's.
-		local want = card.name == "chat" and 372 or slot.width
+		local want = card.name == "chat" and slot.width * 372 / 318 or slot.width
 		assert(math.abs(card.width - want) <= 1, scene.state .. ": " .. card.name .. "'s glass is " .. want .. " wide, got " .. card.width)
 		local below = rail[i + 1]
 		if below then

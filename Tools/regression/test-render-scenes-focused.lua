@@ -137,9 +137,9 @@ for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT", "TRADE" }) do
 	assert(chatTexts[want], "the chat scene shows the " .. want .. " tab")
 end
 assert(plus == 1, "the plus glyph is drawn once, got " .. plus)
--- At the shipped Interface size (16 / 19) the card is that much shorter while Blizzard's chat font keeps its size, so
--- four of the five lines fit.
-assert(lines == 4, "four timestamped lines, got " .. lines)
+-- At the shipped Interface size (16 / 19) the card is that much shorter, and the chat's text and line spacing follow
+-- the size as every KstyleUI text does (owner pass 1, M6), so all five lines still fit.
+assert(lines == 5, "five timestamped lines, got " .. lines)
 
 -- The unit frames with the design file's octagon portraits, at the design's sections.
 local design = check("unitframes_design", dofile("Tools/render/scenes/unitframes_design.lua")())
