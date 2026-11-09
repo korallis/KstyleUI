@@ -93,7 +93,8 @@ assert(rightAligned["24s"] and rightAligned["12s"], "the buff bars' countdowns d
 assert(fills >= 2, "the buff bars draw their fills")
 
 -- The focused scenes. The nameplate scene puts the plate on a base the game scaled to 0.58, as the owner's Mac
--- does, and the plate still draws its 175 by 12 bar (the target sigil's height) in root units.
+-- does, and the plate still draws its 175 by 12 bar (the target sigil's height) in root units: at the shipped
+-- Interface size (16 / 19) that is 16 / 19 of it in screen units.
 local plate = check("nameplate", dofile("Tools/render/scenes/nameplate.lua")())
 local fill
 for _, item in ipairs(plate.items) do
@@ -102,7 +103,8 @@ for _, item in ipairs(plate.items) do
 	end
 end
 assert(fill, "the plate's health fill is drawn")
-assert(math.abs(fill.rect[3] - 175 * 864 / 1540) < 1 and math.abs(fill.rect[4] - 12) < 1, "the bar is 175 by 12 screen units on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
+local SIZE = 16 / 19
+assert(math.abs(fill.rect[3] - 175 * SIZE * 864 / 1540) < 1 and math.abs(fill.rect[4] - 12 * SIZE) < 1, "the bar is 175 by 12 root units on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
 local databars = check("databars", dofile("Tools/render/scenes/databars.lua")())
 local seen = {}
 for _, item in ipairs(databars.items) do
@@ -136,7 +138,9 @@ for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT" }) do
 end
 assert(not chatTexts["TRADE"], "the fourth tab waits in the dock's overflow, clear of the glyphs")
 assert(plus == 1, "the plus glyph is drawn once, got " .. plus)
-assert(lines == 5, "five timestamped lines, got " .. lines)
+-- At the shipped Interface size (16 / 19) the card is that much shorter while Blizzard's chat font keeps its size, so
+-- four of the five lines fit.
+assert(lines == 4, "four timestamped lines, got " .. lines)
 
 -- The unit frames with the design file's octagon portraits, at the design's sections.
 local design = check("unitframes_design", dofile("Tools/render/scenes/unitframes_design.lua")())

@@ -726,12 +726,16 @@ end
 
 local Stubs = {}
 
--- Stubs.NewEnv(opts) -> env. opts: width, height (physical pixels, default 1920x1080), uiScale (1).
+-- Stubs.NewEnv(opts) -> env. opts: width, height (physical pixels, default 1920x1080), uiScale (1), and size, the
+-- Appearance page's Interface size the addon starts at: 1 by default, so a unit is a whole number of pixels and a
+-- test can measure exact unit sizes; "default" keeps the size KstyleUI ships (Scale.DEFAULT_USER_SCALE). Load
+-- applies it (load_files.lua).
 function Stubs.NewEnv(opts)
 	opts = opts or {}
 	local width, height, uiScale = opts.width or 1920, opts.height or 1080, opts.uiScale or 1
 	local env = setmetatable({}, { __index = _G })
 	env._G = env
+	env._size = opts.size == nil and 1 or opts.size
 	env._combat = false
 	env._frames = {}
 	local timers = {}

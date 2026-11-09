@@ -5,7 +5,6 @@
 -- at its default position.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
-local SCREEN_H = 1080
 local PREVIEW_W, PREVIEW_H = 256, 240
 local BAG_ICONS = { [31] = 133634, [32] = 133635, [33] = 133636 }
 local BACKPACK, KEYRING = 133633, 134237
@@ -18,9 +17,10 @@ local function at(frame, x, y, w, h)
 	end
 end
 
--- Layout-registered frames move through Layout: a BOTTOMLEFT anchor whose y is measured up from the bottom.
+-- Layout-registered frames move through Layout: a BOTTOMLEFT anchor whose y is measured up from the root's bottom.
 local function layout(K, key, x, top, width, height)
-	local values = { anchor = "BOTTOMLEFT", x = x, y = SCREEN_H - top - height }
+	local _, rootHeight = K.Layout.RootSize()
+	local values = { anchor = "BOTTOMLEFT", x = x, y = rootHeight - top - height }
 	if width then
 		values.width, values.height = width, height
 	end

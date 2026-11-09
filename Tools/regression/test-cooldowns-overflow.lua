@@ -88,7 +88,7 @@ assert(near(chipRect.right, holder.left - cfg.spacing) and near(chipRect.top, fi
 assert(near(chipRect.right - chipRect.left, cfg.size), "and a whole socket wide")
 assert(near(holder.left - chipRect.left, cfg.size + cfg.spacing), "so the row grows by exactly one socket")
 local bw, bh = buffs.holder:GetSize()
-assert(bw == 195 and bh == 30, "the holder keeps its 195 by 30 footprint")
+assert(bw == 243 and bh == 38, "the holder keeps its 243 by 38 footprint")
 
 -- Hovering the chip lists the hidden buffs, in order, with their time left -----------------------------------------
 do
@@ -161,7 +161,7 @@ assert(near(top.top, barsHolder.top), "the first bar heads the stack, as the moc
 assert(near(barChipRect.bottom, barsHolder.top + bars.cfg.spacing) and near(barChipRect.left, top.left) and near(barChipRect.right, top.right), "the chip is one more bar slot on top of the stack, one gap away")
 assert(barChip.chrome.ownFill and barChip.chrome.fillColor[4] == 1, "an opaque tile")
 local rw, rh = bars.holder:GetSize()
-assert(rw == 195 and rh == 43, "the bars keep their 195 by 43 footprint")
+assert(rw == 243 and rh == 43, "the bars keep their 243 by 43 footprint")
 do
 	local tip = env.GameTooltip
 	barChip:GetScript("OnEnter")(barChip)

@@ -229,7 +229,7 @@ local function ApplyRootScale(root, userScale)
 end
 ```
 
-The core reapplies the scale on `PLAYER_LOGIN`, `UI_SCALE_CHANGED` and `DISPLAY_SIZE_CHANGED`. `userScale` is the size slider, from 0.75 to 1.50.
+The core reapplies the scale on `PLAYER_LOGIN`, `UI_SCALE_CHANGED` and `DISPLAY_SIZE_CHANGED`. `userScale` is the size slider, from 0.6 to 1.50. It starts at 16 / 19 (`Scale.DEFAULT_USER_SCALE`; owner pass 1, 2026-11-09: the HUD read too big at 1), so the root is 1080 / (16 / 19) = 1282.5 units tall and the 38-unit action button is 32 `UIParent` units at WoW's default UI scale of 768 / 1080: Blizzard's 40-unit Cooldown Manager icon at Edit Mode's 80% step. The Lumen layouts are drawn on that 1282.5-unit canvas (`Setup.Layouts.HEIGHT`).
 
 One physical pixel is `1080 / physicalHeight` units at a user scale of 1. The core snaps sizes and offsets to whole physical pixels and draws every border with a whole number of physical pixels:
 

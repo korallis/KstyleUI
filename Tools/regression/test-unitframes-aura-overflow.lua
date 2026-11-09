@@ -80,8 +80,8 @@ assert(bosses[1].auras.container._groups.debuffs.max == 4, "four on each boss ca
 -- Every aura row stays inside the footprint the DPS layout keeps for its frame, at its full rows by columns ------
 do
 	local Layouts = K.Setup.Layouts
-	local layout = Layouts.Get("DPS")
 	local rw, rh = root:GetWidth(), root:GetHeight()
+	local layout = Layouts.Get("DPS", rh)
 	local function footprint(key)
 		local w, h = Layouts.Footprint("DPS", key)
 		local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[key], rw, rh)

@@ -25,7 +25,8 @@ local function Boot(state, screen)
 	return env, K
 end
 
-local OWNER = { width = 2383, height = 1540, uiScale = 768 / 1080 }
+-- The owner's client at the Interface size KstyleUI ships; the other screens run at size 1, so both canvases are covered.
+local OWNER = { width = 2383, height = 1540, uiScale = 768 / 1080, size = "default" }
 
 local Find, Setting, Named = EditModeFake.Find, EditModeFake.Setting, EditModeFake.Named
 
@@ -83,7 +84,7 @@ end
 local function Collisions(K, name, box)
 	local rw, rh = K.Layout.RootSize()
 	local hits = {}
-	for key, position in pairs(K.Setup.Layouts.Get(name)) do
+	for key, position in pairs(K.Setup.Layouts.Get(name, rh)) do
 		if not key:find("^cooldowns%.") and K.Setup.Layouts.Shown(name, key) ~= false then
 			local w, h = K.Setup.Layouts.Footprint(name, key)
 			if w then
@@ -100,7 +101,7 @@ end
 local function Slot(K, name, key)
 	local rw, rh = K.Layout.RootSize()
 	local w, h = K.Setup.Layouts.Footprint(name, key)
-	return K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name)[key], rw, rh)
+	return K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name, rh)[key], rw, rh)
 end
 
 local function Viewers(K, env, state, name, icons, bars)
@@ -126,7 +127,12 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.LEFT, where .. ": in one row, the first buff beside the cluster")
 		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
 		local size = (iconBox[4] - iconBox[2])
-		assert(size <= 30 + 0.5 and Setting(icon, ICON_SIZE) >= 0, where .. ": a buff icon is no larger than KstyleUI's 30-unit buff, got " .. size)
+		assert(size <= 38 + 0.5 and Setting(icon, ICON_SIZE) >= 0, where .. ": a buff icon is no larger than the 38-unit action button, got " .. size)
+		if screen == OWNER then
+			-- Owner pass 1 (2026-11-09): the Cooldown Manager matches the action buttons. At WoW's default UI scale and the
+			-- shipped size, Edit Mode's 80% step makes Blizzard's 40-unit icon 32 UIParent units: the button's 38.
+			assert(math.abs(size - 38) < 0.01 and Setting(icon, ICON_SIZE) == 3, where .. ": the buff icons are exactly the action button's 38 units at Edit Mode's 80%, got " .. size)
+		end
 		assert(near(iconBox[3], r) and iconBox[1] >= l - 0.5, where .. ": five buffs fit inside the slot")
 		local _, bb, br = Slot(K, name, "cooldowns.bars")
 		assert(bar.anchorInfo.point == "BOTTOMRIGHT" and near(bar.anchorInfo.offsetX, br * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": the bars stand on the bar slot's bottom right, over the icons")
@@ -149,7 +155,7 @@ end
 -- the screen, and nothing is printed, on every preset, at every supported aspect and the owner's screen.
 
 local SCREENS = {
-	{ label = "the owner's 2383 x 1540", width = 2383, height = 1540, uiScale = 768 / 1080 },
+	{ label = "the owner's 2383 x 1540", width = 2383, height = 1540, uiScale = 768 / 1080, size = "default" },
 	{ label = "2383 x 1540 at UI scale 1", width = 2383, height = 1540, uiScale = 1 },
 	{ label = "16:9", width = 1920, height = 1080 },
 	{ label = "16:9 at UI scale 0.64", width = 1920, height = 1080, uiScale = 0.64 },
@@ -158,7 +164,7 @@ local SCREENS = {
 }
 
 local function Screen(screen)
-	return { width = screen.width, height = screen.height, uiScale = screen.uiScale }
+	return { width = screen.width, height = screen.height, uiScale = screen.uiScale, size = screen.size }
 end
 
 local function Everything(K, name, box)
@@ -166,7 +172,7 @@ local function Everything(K, name, box)
 	local rw, rh = K.Layout.RootSize()
 	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
 		local w, h = K.Setup.Layouts.Footprint(name, key)
-		if Overlaps(box, { K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name)[key], rw, rh) }) then
+		if Overlaps(box, { K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name, rh)[key], rw, rh) }) then
 			hits[#hits + 1] = key
 		end
 	end
@@ -194,7 +200,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
 		assert(not K.Setup.EditMode.Last().notes[1], where .. ": the setup summary has no step either")
 		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
-		assert(thick >= 20 - 0.5 and thick <= 30 + 0.5, where .. ": a buff icon is between Edit Mode's 50% and KstyleUI's 30-unit buff, got " .. thick)
+		assert(thick >= 20 - 0.5 and thick <= 38 + 0.5, where .. ": a buff icon is between Edit Mode's 50% and the 38-unit action button, got " .. thick)
 		assert((barBox[4] - barBox[2] - 5 * 2) / 6 >= 15 - 0.5, where .. ": a bar is at least Edit Mode's 50%")
 		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
 		assert(#env._errors == 0, tostring(env._errors[1]))
@@ -208,7 +214,7 @@ end
 -- byte for byte, and the summary names the counts with the Cooldown Manager and Edit Mode as the way out.
 
 local function Story(K, name)
-	local slot = K.Setup.Layouts.Slot(name)
+	local slot = K.Setup.Layouts.Slot(name, select(2, K.Layout.RootSize()))
 	return { slot.x, slot.y, slot.x + slot.width, slot.y + slot.height }
 end
 

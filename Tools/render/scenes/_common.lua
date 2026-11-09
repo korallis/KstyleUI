@@ -71,7 +71,7 @@ function Common.IconDirs()
 end
 
 function Common.ScreenOpts(extra)
-	local opts = { width = Common.SCREEN.width, height = Common.SCREEN.height, uiScale = Common.SCREEN.uiScale }
+	local opts = { width = Common.SCREEN.width, height = Common.SCREEN.height, uiScale = Common.SCREEN.uiScale, size = "default" }
 	for k, v in pairs(extra or {}) do
 		opts[k] = v
 	end
@@ -82,6 +82,8 @@ end
 -- from the loader's setup hook, after Stubs.NewEnv has made UIParent and before the addon loads.
 function Common.ForceScreen(env)
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
+	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
+	env._size = false
 	env.GetPhysicalScreenSize = function()
 		return width, height
 	end

@@ -64,16 +64,18 @@ Lumen.BOSS = {
 }
 
 -- Preset(layout) -> the layout's module settings as saved sections ({ [module] = { nested } }) and its story slot
--- in screen units ({ left, top, width, height }, y down from the top), from the addon's own Setup.Layouts.
+-- in screen units ({ left, top, width, height }, y down from the top), from the addon's own Setup.Layouts. The scenes
+-- render at the Interface size KstyleUI ships, where the root is Layouts.HEIGHT units tall on the screen's 1080.
 function Lumen.Preset(layout)
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
 	local settings = Hud.PresetSettings(layout)
-	local slot = Layouts.Slot(layout)
-	local width = HEIGHT * Common.SCREEN.width / Common.SCREEN.height
-	local l, _, r, t = Layouts.Rect(slot, slot, width, HEIGHT)
-	return settings, { left = l, top = HEIGHT - t, width = r - l, height = slot.height }, slot, Layouts.Sizes(layout)
+	local rootHeight = Layouts.HEIGHT
+	local slot = Layouts.Slot(layout, rootHeight)
+	local k = HEIGHT / rootHeight
+	local l, _, r, t = Layouts.Rect(slot, slot, rootHeight * Common.SCREEN.width / Common.SCREEN.height, rootHeight)
+	return settings, { left = l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = slot.height * k }, slot, Layouts.Sizes(layout)
 end
 
 -- Rail(built, R) -> the glass of every card on the left rail, top to bottom: { name, left, top, width, height } in

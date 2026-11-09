@@ -62,7 +62,8 @@ do
 	assert(bar1.header:GetAttribute("actionpage") == 1 and ns.bars.bar2.header:GetAttribute("actionpage") == 6, "bar 2 shows page 6")
 	assert(near(ns.bars.pet.holder:GetWidth(), 162) and near(ns.bars.pet.holder:GetHeight(), 63), "the pet bar is two rows of five, the footprint the layouts plan for it")
 	local bar2 = ns.bars.bar2
-	assert(near(bar2.holder:GetWidth(), 38) and near(bar2.holder:GetHeight(), 489), "bar 2 is a column of twelve, as the layouts place it at the right edge")
+	assert(near(bar2.holder:GetWidth(), 489) and near(bar2.holder:GetHeight(), 38), "bar 2 is a row of twelve, as the layouts stack it over bar 1")
+	assert(ns.defaults.bar3.rows == 1 and ns.defaults.bar4.rows == 12 and ns.defaults.bar5.rows == 12, "bar 3 is a row too; bars 4 and 5 are columns, as the layouts stand them on the right edge")
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
 
@@ -211,7 +212,7 @@ do
 	assert(near(bar1.buttons[1]:GetWidth(), 40) and near(bar1.holder:GetWidth(), 3 * 40 + 2 * 6))
 	K.Options.Write("ActionBars", "bar3.enabled", true)
 	local bar3 = ns.bars.bar3
-	assert(bar3 and near(bar3.holder:GetWidth(), 38) and near(bar3.holder:GetHeight(), 489), "bar 3 is a column of 12")
+	assert(bar3 and near(bar3.holder:GetWidth(), 489) and near(bar3.holder:GetHeight(), 38), "bar 3 is a row of 12, its slot over bar 2")
 	assert(bar3.header:GetAttribute("actionpage") == 5)
 	assert(K.Layout.Live("actionbars.bar3"), "a bar switched on has a mover in Layout Mode")
 	K.Options.Write("ActionBars", "bar3.enabled", false)

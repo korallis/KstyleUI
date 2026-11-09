@@ -1,12 +1,12 @@
--- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10 and 21:9 on the 1080-unit canvas with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live Blessings card at 0 to 40 buffs beside 12 debuffs fits the height its preset reserves.
+-- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10, 21:9 and the owner's 2383 x 1540 on the canvas the shipped Interface size gives (Layouts.HEIGHT), every bar 1 to 6 placed, with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live Blessings card at 0 to 40 buffs beside 12 debuffs fits the height its preset reserves.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New()
 CoreEnv.Boot(env)
 local Layouts = K.Setup.Layouts
 
-local HEIGHT = 1080
-local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 } }
+local HEIGHT = Layouts.HEIGHT
+local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 }, { "the owner's 2383 x 1540", 2383 / 1540 } }
 
 -- Pairs that never show together or sit inside each other on purpose; everything else must stay apart.
 local function apart(name, a, c)

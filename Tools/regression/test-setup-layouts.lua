@@ -24,10 +24,10 @@ local ANCHORS = {
 }
 -- Party and raid frames never show together, so they may share space.
 local EXCLUSIVE = { ["groupframes.party"] = "groupframes.raid", ["groupframes.raid"] = "groupframes.party" }
-local SPARE = { ["actionbars.bar3"] = true, ["actionbars.bar4"] = true, ["actionbars.bar5"] = true, ["actionbars.bar6"] = true }
--- 16:9 at three sizes, a MacBook, 16:10 and 21:9: the root is 1080 units tall on each.
-local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 }, { 2560, 1600 }, { 3440, 1440 } }
-local HEIGHT = 1080
+-- 16:9 at three sizes, a MacBook, the owner's 2383 x 1540, 16:10 and 21:9: at the Interface size KstyleUI ships
+-- (16 / 19) the root is Layouts.HEIGHT (1282.5) units tall on each.
+local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 }, { 2383, 1540 }, { 2560, 1600 }, { 3440, 1440 } }
+local HEIGHT = Layouts.HEIGHT
 
 local function set(list)
 	local out = {}
@@ -129,7 +129,7 @@ for _, name in ipairs(names) do
 		local rects = {}
 		for _, key in ipairs(KEYS) do
 			local l, b, r, t = Layouts.Rect(Size(name, key), layout[key], width, HEIGHT)
-			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, key, l, b, r, t, width, HEIGHT))
+			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %.1f)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
 		-- A docked element sits inside its host card; a threat card a layout switches off waits on the damage card's place.
@@ -140,19 +140,16 @@ for _, name in ipairs(names) do
 			local threat = a == "meters.threat" and c or (c == "meters.threat" and a)
 			return threat == "meters.damage" and Layouts.Shown(name, "meters.threat") == false
 		end
-		-- Bars 3 to 6 are off in every layout. Below 16:10 there is no room for four 489-unit columns beside the boss
-		-- column and the Healer's group frames, so there a player who turns one on places it; test-setup-collisions.lua
-		-- holds them apart at 16:9, 16:10 and 21:9.
-		local narrow = width / HEIGHT < 1.6 - 1e-6
+		-- Bars 2 to 6 are off in every layout, but each keeps a free slot on every screen, the owner's narrow 1.547 one
+		-- included (owner pass 1, 2026-11-09: "not much room for adding more action bars").
 		for i = 1, #KEYS do
 			for j = i + 1, #KEYS do
 				local a, c = KEYS[i], KEYS[j]
-				local spare = narrow and (SPARE[a] or SPARE[c])
-				if EXCLUSIVE[a] ~= c and not spare and not shares(a, c) and overlap(rects[a], rects[c]) then
+				if EXCLUSIVE[a] ~= c and not shares(a, c) and overlap(rects[a], rects[c]) then
 					error(label .. ": " .. a .. " overlaps " .. c)
 				end
 				local ra, rc = rects[a], rects[c]
-				if not spare and (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
+				if (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
 					error(label .. ": " .. a .. " comes within 2 units of " .. c)
 				end
 			end
@@ -191,10 +188,11 @@ local HANDS = set({
 })
 -- The combat cluster on the hands: the sigil, the focus and its target, the target of target, and in Tank the threat card.
 local CLUSTER = set({ "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget" })
--- What a player turns on stacks over the cluster: bar 2, then the plate cast bars (Healer: bar 2 at the top, the casts stay).
+-- What a player turns on over the cluster: the plate cast bars.
 local EXTRAS = set({ "unitframes.castbar.player", "unitframes.castbar.target" })
--- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster to the top.
-local CLEAR = { half = 260, bottom = 574, top = 1080 - 28 }
+-- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster (the plate
+-- cast bars, 664 now that the hands keep bars 2 and 3 a slot each) to the top.
+local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
 -- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer half, never past it.
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
@@ -332,7 +330,7 @@ for _, name in ipairs(names) do
 		end
 		assert(xp.bottom - 34 >= 14 and xp.bottom - 34 <= 20, label .. ": the XP line sits 34 units up with room for its caption under it")
 		assert(bar1.bottom - xp.top == 12, label .. ": bar 1 sits 12 over the XP line, as the mockup")
-		assert(vitals.bottom - bar1.top == 12, label .. ": the vitals line sits 12 over bar 1, as the mockup")
+		assert(vitals.bottom - bar1.top == 2 * (38 + 3) + 12, label .. ": the vitals line sits 12 over the two bar slots kept over bar 1")
 		assert(math.abs(vitals.w - bar1.w) <= 2, label .. ": the vitals line spans bar 1")
 		local resource = rect("unitframes.resource")
 		assert(resource.bottom >= vitals.top and essential.bottom >= resource.top, label .. ": the class resource sits between the vitals and the cooldowns")
@@ -374,10 +372,10 @@ for _, name in ipairs(names) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
 		end
 
-		-- What a player turns on: bar 2 is a column of twelve beside bars 3 to 6, never over the character (round 5,
-		-- Opus #2: it once stood across the screen's centre over the sigil): DPS and Tank stand it a rail gap in from the
-		-- left rail, bars 3 to 6 beside it; Healer stands it under bar 3 at the right. The plate cast bars keep their place over the cluster,
-		-- Layouts.SIGIL_CLEAR and one bar's room over the sigil cap (round 4, Opus #6).
+		-- What a player turns on (owner pass 1, 2026-11-09): bars 2 and 3 are rows of twelve stacked over bar 1, under
+		-- the vitals line, as Blizzard stacks its bottom bars; bars 4, 5 and 6 are columns on the right edge of the play
+		-- field, a rail gap left of the right rail, in every layout. The plate cast bars keep their place over the
+		-- cluster, Layouts.SIGIL_CLEAR and one bar's room over the sigil cap (round 4, Opus #6).
 		local SIGIL = Layouts.SIGIL_CLEAR
 		assert(type(SIGIL) == "number" and SIGIL >= 16, "Layouts names the gap a bar keeps over the sigil cap")
 		local bar2, targetCast = rect("actionbars.bar2"), rect("unitframes.castbar.target")
@@ -392,22 +390,29 @@ for _, name in ipairs(names) do
 		end
 		assert(cast.bottom - clusterTop == SIGIL + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster")
 		local bar3 = rect("actionbars.bar3")
-		assert(bar2.w == bar3.w and bar2.h == bar3.h, label .. ": bar 2 is a column like bars 3 to 6")
+		assert(bar2.w == bar1.w and bar3.w == bar1.w and bar2.h == bar1.h and bar3.h == bar1.h, label .. ": bars 2 and 3 are rows like bar 1")
+		assert(bar2.left == bar1.left and bar2.bottom - bar1.top == 3 and bar3.left == bar1.left and bar3.bottom - bar2.top == 3, label .. ": bars 2 and 3 stack over bar 1 at the bar pitch")
+		assert(vitals.bottom - bar3.top == 12, label .. ": the vitals line sits 12 over bar 3's slot")
+		local right = width - BAND
+		for i, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
+			local bar = rect(key)
+			assert(math.abs(bar.w - bar1.h) < 1e-6 and math.abs(bar.h - bar1.w) < 1e-6, label .. ": " .. key .. " is a column of twelve")
+			assert(math.abs(bar.right - right) < 1e-6 and math.abs(bar.y - HEIGHT / 2) < 1e-6, label .. ": " .. key .. " stands on the right edge of the play field, centred on the screen")
+			right = bar.left - 3
+			assert(i < 3 or bar.left >= mid + CLEAR.half, label .. ": the side bars stay out of the clear centre")
+		end
 		if healer then
-			assert(bar2.left == bar3.left and bar3.bottom - bar2.top == 16, label .. ": bar 2 stands a rail gap under bar 3")
 			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
 				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
 			end
-		else
-			assert(bar2.top == bar3.top and bar2.left == BAND and rect("actionbars.bar5").left - bar2.right == 3, label .. ": bar 2 is the column nearest the left rail, bars 3 to 6 beside it")
 		end
 
-		-- The boss column stands on the centre's right edge in DPS and Tank, 16 in from the right rail, its foot a rail
-		-- gap over your combat text, which rises right of the cluster. It grows up from that foot, so a single boss sits
+		-- The boss column stands on the centre's right edge in DPS and Tank, a rail gap left of the side bars' slots, its
+		-- foot a rail gap over your combat text, which rises right of the cluster. It grows up from that foot, so a single boss sits
 		-- by the cluster rather than alone at the top of the screen (round 6, Grok #4); five fill the column upward.
 		local boss, text = rect("unitframes.boss"), rect("combattext.player")
 		if not healer then
-			assert(math.abs(boss.right - (width - BAND)) < 1e-6, label .. ": the boss column stands on the right edge of the centre, 16 in from the right rail")
+			assert(math.abs(boss.right - (rect("actionbars.bar6").left - 16)) < 1e-6, label .. ": the boss column stands on the right edge of the centre, a rail gap left of the side bars")
 			assert(boss.bottom - text.top == 16, label .. ": the boss column's foot stands a rail gap over your combat text, got " .. (boss.bottom - text.top))
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false
@@ -491,14 +496,15 @@ do
 	assert(Layouts.Shown("Raid", "actionbars.bar1") == nil and Layouts.Settings("Raid") == nil and Layouts.Slot("Raid") == nil and Layouts.Sizes("Raid") == nil, "an unknown layout gives nil")
 end
 
--- The HUD reads at one scale, the 38-unit action button (the owner's ruling of 2026-11-08). The essential icons step up
--- one notch from it and the utility icons are the button's size. The Lumen vitals line is no frame: a 62-unit ring with
--- a name and two lines, at most two buttons tall. The compact frames stay compact.
+-- The HUD reads at one scale, the 38-unit action button (the owner's ruling of 2026-11-08). Every Cooldown Manager row
+-- is the button's size (owner pass 1, 2026-11-09: CDM icons bigger than the buttons read as a mistake). The Lumen
+-- vitals line is no frame: a 62-unit ring with a name and two lines, at most two buttons tall. The compact frames stay
+-- compact.
 do
 	local button = Layouts.Element("actionbars.bar1").height
-	assert(Layouts.Element("cooldowns.utility").height == button, "the utility icons are the action button's size")
-	local essential = Layouts.Element("cooldowns.essential").height
-	assert(essential > button and essential <= button * 1.2, "the essential icons are one notch larger than the action buttons, not half again")
+	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs" }) do
+		assert(Layouts.Element(key).height == button, key .. " is the action button's size")
+	end
 	-- S2 moved the player's cast line into the vitals line, 4 units over two buttons; the cast bar element stays off.
 	assert(select(2, Layouts.Footprint("DPS", "unitframes.player")) <= 2 * button + 4, "the vitals line, its cast line inside, stands no taller than two action buttons and that line")
 	for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
@@ -509,8 +515,8 @@ end
 -- Footprints: the 38-unit module for the hands and what S2 to S4 shipped for the frames and the rail cards -----------
 local FOOTPRINTS = {
 	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
-	["actionbars.bar2"] = { 38, 12 * 38 + 11 * 3 },
-	["actionbars.bar3"] = { 38, 12 * 38 + 11 * 3 },
+	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
+	["actionbars.bar3"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
@@ -520,10 +526,10 @@ local FOOTPRINTS = {
 	-- the sigil spans the vitals line at 490 with a bolder cast line (84) and keeps two rows of 24-unit debuff sockets
 	-- under it (84 + 2 + 24 + 2 + 24, round 2 aura overflow);
 	-- the focus is a 200 by 90 card beside it with its debuffs over it (90 + 22).
-	["cooldowns.essential"] = { 6 * 44 + 5 * 6, 44 },
-	["cooldowns.utility"] = { 4 * 38 + 3 * 6, 38 },
-	["cooldowns.buffs"] = { 6 * 30 + 5 * 3, 30 },
-	["cooldowns.bars"] = { 195, 2 * 20 + 3 },
+	["cooldowns.essential"] = { 6 * 38 + 5 * 3, 38 },
+	["cooldowns.utility"] = { 4 * 38 + 3 * 3, 38 },
+	["cooldowns.buffs"] = { 6 * 38 + 5 * 3, 38 },
+	["cooldowns.bars"] = { 6 * 38 + 5 * 3, 2 * 20 + 3 },
 	["unitframes.player"] = { 490, 80 },
 	["unitframes.target"] = { 490, 136 },
 	["unitframes.boss"] = { 318, 334 },

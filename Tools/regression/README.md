@@ -8,6 +8,10 @@ bash Tools/regression/run-all.sh
 
 To see a failing test's full output, run that test alone, for example `lua5.1 Tools/regression/test-taint-scan.lua`.
 
+## Interface size in tests
+
+`Stubs.NewEnv` takes a `size` option: the Appearance page's Interface size the addon starts at. It is 1 by default, so a root unit is a whole number of pixels on the stub screens and a module test can measure exact unit sizes; `load_files.lua` applies it once `Core/Appearance.lua` registers its defaults. Pass `size = "default"` to test the size KstyleUI ships (`Scale.DEFAULT_USER_SCALE`, 16 / 19), as `test-hud-scale.lua`, `test-appearance.lua` and the owner's screen in the setup tests do. The render scenes always use the shipped size (`Common.ForceScreen`). The Lumen layouts are drawn on the shipped canvas (`Setup.Layouts.HEIGHT`) whatever the size.
+
 ## Interpreter
 
 CI runs the tests with Lua 5.1 on Ubuntu. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:

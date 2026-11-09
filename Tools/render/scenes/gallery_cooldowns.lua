@@ -10,7 +10,6 @@ local Scene = Common.Scene
 local I = Hud.ICONS
 
 local NOW = 10
-local SCREEN_H = 1080
 local PREVIEW_W, PREVIEW_H = 256, 350
 
 -- The mirror's tracked buffs: cooldown ID, spell ID, icon, name, { total, left } and an optional stack text.
@@ -53,7 +52,8 @@ end
 -- Layout-registered holders move through Layout, as the player would move them: a BOTTOMLEFT anchor whose
 -- y is measured up from the bottom, so top is the screen-unit y of the frame's top edge.
 local function layout(K, key, x, top, height)
-	assert(K.Layout.Update(key, { anchor = "BOTTOMLEFT", x = x, y = SCREEN_H - top - height }))
+	local _, rootHeight = K.Layout.RootSize()
+	assert(K.Layout.Update(key, { anchor = "BOTTOMLEFT", x = x, y = rootHeight - top - height }))
 end
 
 -- Mirror() -> scene, env, K: the mirror path's buff icons, buff bars and the options preview.

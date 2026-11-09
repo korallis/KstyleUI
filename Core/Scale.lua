@@ -9,11 +9,13 @@ local floor, max, min = math.floor, math.max, math.min
 local REFERENCE_HEIGHT = 1080
 local UI_HEIGHT = 768
 local REFERENCE_SCALE = UI_HEIGHT / REFERENCE_HEIGHT
-local MIN_USER_SCALE, MAX_USER_SCALE = 0.75, 1.5
+local MIN_USER_SCALE, MAX_USER_SCALE = 0.6, 1.5
+local DEFAULT_USER_SCALE = 16 / 19
 Scale.MIN_USER_SCALE, Scale.MAX_USER_SCALE = MIN_USER_SCALE, MAX_USER_SCALE
+Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
 
 local state = {
-	user = 1,
+	user = DEFAULT_USER_SCALE,
 	pixel = 1,
 	borderPixels = 1,
 	applied = {},

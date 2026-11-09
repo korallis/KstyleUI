@@ -12,7 +12,7 @@ local UPPER, MARGIN = 0.35, 28
 
 local SCREENS = {
 	{ name = "default" },
-	{ name = "the owner's Mac", width = 2383, height = 1540, uiScale = 768 / 1080 },
+	{ name = "the owner's Mac", width = 2383, height = 1540, uiScale = 768 / 1080, size = "default" },
 	{ name = "21:9", width = 3440, height = 1440, uiScale = 0.8 },
 	{ name = "1080p", width = 1920, height = 1080, uiScale = 1 },
 }
@@ -60,7 +60,7 @@ for _, screen in ipairs(SCREENS) do
 		local Layouts = K.Setup.Layouts
 		local function Box(key)
 			local w, h = Layouts.Footprint(name, key)
-			local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(name)[key], rw, rh)
+			local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(name, rh)[key], rw, rh)
 			return { l = l, b = b, r = r, t = t }
 		end
 		local sigil = Box("unitframes.target")
@@ -79,7 +79,7 @@ for _, screen in ipairs(SCREENS) do
 		if free then
 			assert(math.abs((lane.l + lane.r) / 2 - rw / 2) < 0.6, where .. ": the centre is free, so the warnings are centred")
 		end
-		local slot = Layouts.Slot(name)
+		local slot = Layouts.Slot(name, rh)
 		local sl, sb, sr, st = Layouts.Rect(slot, slot, rw, rh)
 		assert(not Overlap(lane, { l = sl, b = sb, r = sr, t = st }), where .. ": the warnings clear the story slot")
 		for key in pairs(Layouts.Get(name)) do
@@ -114,7 +114,7 @@ for _, screen in ipairs(SCREENS) do
 			for key in pairs(Layouts.Get(name)) do
 				if Layouts.Shown(name, key) ~= false then
 					local w, h = Layouts.Footprint(name, key)
-					local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(name)[key], rw, rh)
+					local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(name, rh)[key], rw, rh)
 					assert(not Overlap(lane, { l = l, b = b, r = r, t = t }), where .. ": Blizzard's full width clears " .. key)
 				end
 			end

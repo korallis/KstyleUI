@@ -123,7 +123,9 @@ for _, triple in ipairs({ { scenes[#scenes], "Vanquisher", "Item Level" }, { Too
 	local scene, name = triple[1], triple[2]
 	local title, caption, second = textItem(scene, name), textItem(scene, "Uncommon"), textItem(scene, triple[3])
 	local line = title.font.size * 1.2
-	assert(math.abs(second.rect[2] - (title.rect[2] + title.rect[4] + 0.5)) < 0.01, name .. ": the next line follows the title at the skin's half-unit spacing")
+	-- Half a root unit is 16 / 19 of that in screen units at the shipped Interface size.
+	local spacing = second.rect[2] - (title.rect[2] + title.rect[4])
+	assert(math.abs(spacing - 0.5 * 16 / 19) < 0.01, name .. ": the next line follows the title at the skin's half-unit spacing, got " .. spacing)
 	assert(title.rect[4] >= 2 * line - 0.01, name .. ": the title is two lines tall")
 	assert(caption.rect[2] >= title.rect[2] + line - 0.01, name .. ": the caption sits on the title's second line")
 	assert(second.rect[2] >= title.rect[2] + title.rect[4] - 0.01, name .. ": the next line sits under the title's second line")
