@@ -93,7 +93,7 @@ end
 -- A player who applied Healer before the wider card keeps Healer's 318: the panel takes the remembered layout's
 -- footprint, so a chat with no saved width never grows into the tracked buff icons Healer stands beside it.
 do
-	local env, K, ns = C.New()
+	local env, K = C.New()
 	K.Options.Write("Layout", "preset", "Healer")
 	C.Enable(env, K)
 	local settings = K.Layout.Get("chat.main")
