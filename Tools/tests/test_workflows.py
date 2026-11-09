@@ -43,7 +43,7 @@ def title_passes(title):
 
 class WorkflowsTest(unittest.TestCase):
     def test_has_the_planned_workflows(self):
-        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-title.yml", "release.yml"])
+        self.assertEqual([p.name for p in workflows()], ["checks.yml", "pr-rules.yml", "pr-title.yml", "release.yml"])
 
     def test_every_action_is_pinned_by_full_sha_with_its_version(self):
         uses = [(path.name, m) for path in workflows() for m in USES.finditer(path.read_text(encoding="utf-8"))]
@@ -110,17 +110,65 @@ class WorkflowsTest(unittest.TestCase):
         self.assertNotIn("gh release upload", check)
         self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
 
-    def test_checks_has_the_four_jobs(self):
+    def test_checks_has_the_suite_jobs_and_one_verdict(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertEqual(jobs, ["pre-commit", "tests", "package", "pr-rules"])
+        self.assertEqual(jobs, ["pre-commit", "lua", "python", "package", "verdict"])
+        verdict = text.split("\n  verdict:\n", 1)[1]
+        self.assertIn("needs: [pre-commit, lua, python, package]", verdict)
+        self.assertIn("if: ${{ !cancelled() }}", verdict, "the verdict must report even when a job failed")
+
+    def test_checks_runs_on_pull_request_opening_and_pushes_never_on_edits_or_labels(self):
+        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+        on = text.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+        self.assertRegex(on, r"pull_request:\s*\n\s+types: \[opened, synchronize, reopened\]")
+        self.assertRegex(on, r"push:\s*\n\s+branches: \[staging\]")
+        for event in ("edited", "labeled", "unlabeled"):
+            self.assertNotIn(event, on)
+        self.assertRegex(text, r"cancel-in-progress: \$\{\{ github.event_name == 'pull_request' \}\}")
+
+    def test_pr_rules_runs_on_edits_and_labels_and_nothing_else_does(self):
+        text = (WORKFLOWS / "pr-rules.yml").read_text(encoding="utf-8")
+        self.assertRegex(text, r"types: \[opened, synchronize, reopened, edited, labeled, unlabeled\]")
+        self.assertEqual(re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1]), ["pr-rules"])
+        self.assertIn("check-pr.sh", text)
+        self.assertNotIn("check-pr.sh", (WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+
+    def test_pr_title_ignores_edits_that_leave_the_title_alone(self):
+        text = (WORKFLOWS / "pr-title.yml").read_text(encoding="utf-8")
+        self.assertIn("TITLE_CHANGED: ${{ github.event.changes.title != null }}", text)
+        self.assertIn("types: [opened, edited, synchronize, reopened]", text)
+
+    def test_every_step_after_the_scope_decision_waits_for_it(self):
+        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+        for area in ("lua", "python", "package"):
+            job = text.split("\n  {0}:\n".format(area), 1)[1].split("\n\n  ", 1)[0]
+            self.assertIn("python3 Tools/hooks/ci_scope.py {0}".format(area), job)
+            steps = re.split(r"(?m)^      - ", job)[1:]
+            deciding = [i for i, step in enumerate(steps) if "ci_scope.py" in step]
+            self.assertEqual(len(deciding), 1, area)
+            for step in steps[deciding[0] + 1:]:
+                self.assertIn("if: steps.scope.outputs.run == 'true'", step, area)
+
+    def test_the_lua_matrix_matches_the_shard_count_the_runner_gets(self):
+        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+        job = text.split("\n  lua:\n", 1)[1].split("\n\n  ", 1)[0]
+        shards = re.search(r"shard: \[([\d, ]+)\]", job).group(1).split(", ")
+        self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
+        self.assertIn('--shard "$SHARD/{0}"'.format(len(shards)), job)
+        self.assertIn("lua ${{ matrix.shard }}/" + str(len(shards)), job)
+
+    def test_the_downloaded_luacheck_is_pinned_by_hash(self):
+        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+        self.assertRegex(text, r"luacheck/releases/download/v1\.2\.0/luacheck")
+        self.assertRegex(text, r"[0-9a-f]{64}  luacheck\" \| sha256sum -c -")
 
     def test_pr_text_reaches_scripts_only_through_env(self):
         text_fields = re.compile(r"github\.(event\.pull_request\.(body|title|labels|head)|head_ref|base_ref)")
         for path in workflows():
             for line in path.read_text(encoding="utf-8").splitlines():
                 if "${{" in line and text_fields.search(line):
-                    self.assertRegex(line, r"^\s+[A-Z_]+: \$\{\{", f"{path.name}: {line.strip()}")
+                    self.assertRegex(line, r"^\s*([A-Z_]+|run-name): \"?\$\{\{", f"{path.name}: {line.strip()}")
 
     def test_title_pattern_accepts_type_scope_summary(self):
         for title in ("ci(repo): add CI workflows", "feat: add the minimap", "fix(unit-frames): keep the bar", "revert(core): undo"):
@@ -143,7 +191,7 @@ class WorkflowsTest(unittest.TestCase):
             "## Summary", "## Changelog", "## In-game checks", "addonCombatRestrictionsForced",
             "addonEncounterRestrictionsForced", "addonMapRestrictionsForced", "addonChatRestrictionsForced",
             "taintLog", "python3 Tools/dev/crlf.py", "pre-commit run --all-files", "bash Tools/regression/run-all.sh",
-            "python3 -m unittest discover -s Tools/tests", "/codex:review", "no changelog",
+            "run-all.sh --affected origin/staging", "/codex:review", "no changelog",
         ):
             self.assertIn(needle, text)
         self.assertNotIn("cr review", text, "KstyleUI does not use CodeRabbit")

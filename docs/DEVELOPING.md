@@ -28,14 +28,33 @@ To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install
 
 ## Checks
 
-Run these from the repository root before every push. All of them must pass; `AGENTS.md` explains each one.
+Run these from the repository root before every push, one at a time, and read each exit code. All of them must pass; `AGENTS.md` explains each one.
 
 ```bash
 python3 Tools/dev/crlf.py
 pre-commit run --all-files
-bash Tools/regression/run-all.sh
-python3 -m unittest discover -s Tools/tests
+luacheck .
+python3 Tools/hooks/check_toc.py
+bash Tools/regression/run-all.sh --affected origin/staging
 ```
+
+The last command runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why. CI runs everything, so the Mac does not repeat it. On 2026-11-10 the owner asked for the pipeline to stop duplicating tests (`AGENTS.md` quotes him), which replaced the earlier rule of a full local `run-all.sh` and Python suite before every push. Run the Python suite (`python3 -m unittest discover -s Tools/tests`) yourself only when your diff touches `Tools/`, `Media/`, `.github/` or a locale string.
+
+### What CI runs
+
+| Workflow | When | Checks |
+| --- | --- | --- |
+| `checks` | A pull request opens, gets a new commit or reopens; every push to `staging`; a manual run | `pre-commit`, `lua 1/4` to `lua 4/4`, `python`, `package`, and `verdict`, which succeeds only when the other five did |
+| `pr-rules` | A pull request opens, gets a new commit or reopens, and when its body, base or a label changes (a title edit ends with a success without checking) | `pr-rules`: the changelog line and the release markers |
+| `pr-title` | A pull request opens, gets a new commit or reopens, and when it is edited (a body edit ends with a success without checking) | `title`: the title reads `type(scope): summary` |
+
+A pull request is green when `verdict`, `pr-rules` and `title` are green; `gh pr checks <number>` lists all ten checks.
+
+- **No rerun for edits.** Editing the body or a label runs `pr-rules` only. The suites run for a commit, and a new push cancels the run still going for the old one.
+- **Skipped work still reports.** Every job of `checks` ends with a success on every pull request. A job whose files did not change prints one line that says why and succeeds: a pull request that touches only `docs/`, `research_notes/`, `reports/` and Markdown outside the addon folders skips the Lua tests, the Python tests and the package build. `Tools/hooks/ci_scope.py` decides, and `Tools/tests/test_ci_scope.py` lists what counts. A change to the pipeline's own files, to a document a test reads, or to anything it does not know runs the job.
+- **Shards.** The 242 Lua test files split into four jobs by recorded time (`Tools/regression/weights.json`), each on its own runner with the same 80 s and 4096 MB budgets and the same Lua 5.1.
+- **Staging.** Every push to `staging` runs all of it, with nothing skipped, on the merged result: two green pull requests can still fail together, and this is where that shows. The run is titled `staging: <the merge commit's message>`; a red one is `gh run list --workflow checks --branch staging --event push`.
+- **Tools pinned.** Actions are pinned by commit hash. `luacheck` 1.2.0 is the release binary checked against its SHA-256, and `pre-commit` 4.7.0 keeps its hook environments in the Actions cache.
 
 ## Add or change a translation
 

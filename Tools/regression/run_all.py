@@ -1,9 +1,11 @@
 """Run every Tools/regression/test-*.lua in parallel under CI's interpreter, with a time and memory budget per file.
 
 run-all.sh starts this from the repository root. Tools/regression/README.md describes the interpreter
-choice, the budgets and the output.
+choice, the budgets, the output, --shard (one slice of the files, for CI) and --affected (only the files a change can reach).
 """
 
+import argparse
+import json
 import os
 import shlex
 import shutil
@@ -16,6 +18,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import affected
+
+HERE = Path(__file__).resolve().parent
+
 # Measured on 2026-11-09: CI's ubuntu-24.04 runner (4 CPUs, 16 GB) runs a test about 4 times slower
 # under lua5.1 than an Apple M5 Max runs it under Lua 5.1.5 or luajit -joff. The slowest file then
 # took 9.8 s and the largest peaked at 2.8 GB.
@@ -25,6 +31,7 @@ MEMORY_BUDGET_MB = 4096
 STOP_AFTER = 3
 TAIL_LINES = 5
 SLOWEST = 5
+AFFECTED_LINES = 40
 
 LUA51_HELP = "Install Lua 5.1 with bash Tools/dev/install-lua51.sh, or set LUA."
 SLOW_FIX = "Make the test cheaper; CI runs Lua 5.1, about {0} times slower than this Mac.".format(CI_SLOWDOWN)
@@ -76,11 +83,11 @@ class Children:
         self.groups = set()
         self.stopping = False
 
-    def start(self, args, out):
+    def start(self, args, out, env=None):
         with self.lock:
             if self.stopping:
                 raise KeyboardInterrupt
-            child = subprocess.Popen(args, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
+            child = subprocess.Popen(args, stdout=out, stderr=subprocess.STDOUT, start_new_session=True, env=env)
             self.groups.add(child.pid)
             return child
 
@@ -101,10 +108,13 @@ class Children:
 CHILDREN = Children()
 
 
-def run_one(command, path, log, limit):
+def run_one(command, path, log, limit, trace=None):
     start = time.monotonic()
+    env = None
+    if trace:
+        env = dict(os.environ, LUA_INIT="@" + str(HERE / "trace.lua"), KSTYLEUI_TRACE=trace)
     with open(log, "wb") as out:
-        child = CHILDREN.start(command + [path], out)
+        child = CHILDREN.start(command + [path], out, env)
     stopped = []
 
     def stop():
@@ -139,28 +149,117 @@ def problems(name, result, seconds, megabytes):
     return lines
 
 
-def main():
+def load_weights():
+    try:
+        data = json.loads((HERE / "weights.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {name: float(seconds) for name, seconds in data.items()}
+
+
+def weigh(tests, weights):
+    """Return {test path: expected seconds}; a file with no weight gets the median of the others."""
+    known = sorted(weights.values())
+    default = known[len(known) // 2] if known else 1.0
+    return {test: weights.get(Path(test).name, default) for test in tests}
+
+
+def shard(tests, index, count, weights):
+    """Return the tests of slice index (1-based) of count: heaviest first, each to the lightest slice so far."""
+    weight = weigh(tests, weights)
+    loads, slices = [0.0] * count, [[] for _ in range(count)]
+    for test in sorted(tests, key=lambda test: (-weight[test], test)):
+        lightest = loads.index(min(loads))
+        loads[lightest] += weight[test]
+        slices[lightest].append(test)
+    return sorted(slices[index - 1])
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(prog="run-all.sh", description="Run the Lua regression tests.")
+    parser.add_argument("--shard", metavar="I/N", help="run slice I of N (1-based); CI splits the files across jobs this way")
+    parser.add_argument("--affected", metavar="BASE", nargs="?", const="origin/staging",
+                        help="run only the files that load something changed against BASE (default origin/staging)")
+    parser.add_argument("--write-weights", action="store_true",
+                        help="run every file and write Tools/regression/weights.json, the times --shard balances by")
+    args = parser.parse_args(argv)
+    args.slice = None
+    if args.shard:
+        try:
+            index, count = (int(part) for part in args.shard.split("/"))
+        except ValueError:
+            index = count = 0
+        if not 1 <= index <= count:
+            parser.error("--shard takes I/N with 1 <= I <= N, for example 2/4")
+        args.slice = (index, count)
+    if args.write_weights and (args.shard or args.affected):
+        parser.error("--write-weights needs every file: do not combine it with --shard or --affected")
+    return args
+
+
+def plan_affected(tests, base):
+    """Return (tests to run, lines to print) for --affected."""
+    try:
+        merge_base, changes = affected.changed_files(base)
+    except (OSError, RuntimeError) as error:
+        return tests, ["affected: cannot compare with {0} ({1}); running every test file".format(base, error)]
+    chosen, notes = affected.select(tests, changes, affected.load_cache(affected.cache_path()))
+    lines = ["affected: {0} files changed against {1} (merge base {2})".format(len(changes), base, merge_base[:9])]
+    lines += ["affected: " + note for note in notes]
+    run = [test for test in tests if test in chosen]
+    lines.append("affected: running {0} of {1} test files; the other {2} load nothing that changed".format(
+        len(run), len(tests), len(tests) - len(run)))
+    reasons = [Path(test).stem + ": " + chosen[test] for test in run]
+    lines += ["  " + reason for reason in reasons[:AFFECTED_LINES]]
+    if len(reasons) > AFFECTED_LINES:
+        lines.append("  and {0} more".format(len(reasons) - AFFECTED_LINES))
+    return run, lines
+
+
+def jobs_for(args):
+    explicit = os.environ.get("JOBS")
+    if explicit:
+        return int(explicit)
+    cpus = os.cpu_count() or 2
+    return max(2, cpus // 3) if args.affected else cpus
+
+
+def main(argv):
+    args = parse_args(argv)
     command, label = interpreter()
     if command is None:
         print(label)
         return 2
-    tests = sorted(str(path) for path in Path("Tools/regression").glob("test-*.lua"))
-    if not tests:
+    every = sorted(str(path) for path in Path("Tools/regression").glob("test-*.lua"))
+    if not every:
         print("no tests found in Tools/regression")
         return 1
     seconds, megabytes = budgets()
-    jobs = int(os.environ.get("JOBS") or os.cpu_count() or 2)
+    jobs = jobs_for(args)
     print(label)
     print("budget {0} s and {1:.0f} MB per test file".format(fmt(seconds), megabytes), flush=True)
 
+    tests, weights = every, load_weights()
+    if args.slice:
+        tests = shard(tests, *args.slice, weights)
+        print("shard {0}/{1}: {2} of {3} test files".format(*args.slice, len(tests), len(every)))
+    if args.affected:
+        tests, lines = plan_affected(tests, args.affected)
+        print("\n".join(lines), flush=True)
+    expected = weigh(tests, weights)
+    order = sorted(tests, key=lambda test: -expected[test])
+
     start = time.monotonic()
+    records = {}
     with tempfile.TemporaryDirectory() as logs:
         def task(path):
-            return run_one(command, path, os.path.join(logs, Path(path).stem + ".out"), seconds * STOP_AFTER)
+            stem = Path(path).stem
+            trace = os.path.join(logs, stem + ".trace") if args.affected else None
+            return run_one(command, path, os.path.join(logs, stem + ".out"), seconds * STOP_AFTER, trace)
 
         pool = ThreadPoolExecutor(max_workers=jobs)
         try:
-            results = dict(zip(tests, pool.map(task, tests)))
+            results = dict(zip(order, pool.map(task, order)))
         except BaseException:
             # Ctrl-C or SIGTERM: the tests are in their own groups and get no signal, so kill them.
             CHILDREN.stop_all()
@@ -173,6 +272,12 @@ def main():
         for path in tests:
             name, result = Path(path).stem, results[path]
             lines = problems(name, result, seconds, megabytes)
+            if args.affected and result["ok"]:
+                try:
+                    with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
+                        records[path] = affected.record_from_trace(trace.read(), os.getcwd())
+                except OSError:
+                    pass
             if result["ok"] and not lines:
                 passed += 1
                 continue
@@ -186,13 +291,27 @@ def main():
             for line in lines:
                 print(line)
 
+    if records:
+        try:
+            affected.save_cache(affected.cache_path(), records)
+        except OSError as error:
+            print("affected: could not save what the tests load to {0}: {1}".format(affected.cache_path(), error))
+
     print("slowest:")
     ranked = sorted(tests, key=lambda path: results[path]["seconds"], reverse=True)
     for path in ranked[:SLOWEST]:
         print("  {0:6.1f} s {1:6.0f} MB  {2}".format(results[path]["seconds"], results[path]["mb"], Path(path).stem))
     total = sum(result["seconds"] for result in results.values())
     print("total {0:.1f} s of test time in {1:.1f} s, {2} at a time".format(total, wall, jobs))
-    print("passed {0}, failed {1}".format(passed, failed))
+    if args.write_weights and failed == 0:
+        measured = {Path(path).name: round(results[path]["seconds"], 1) for path in tests}
+        (HERE / "weights.json").write_text(json.dumps(measured, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        print("wrote {0} weights to {1}".format(len(measured), HERE / "weights.json"))
+    summary = "passed {0}, failed {1}".format(passed, failed)
+    if args.affected:
+        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not, and CI runs them all)".format(
+            len(tests), len(every), len(every) - len(tests))
+    print(summary)
     return 0 if failed == 0 else 1
 
 
@@ -203,6 +322,6 @@ def terminated(signum, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, terminated)
     try:
-        sys.exit(main())
+        sys.exit(main(sys.argv[1:]))
     except KeyboardInterrupt:
         sys.exit(130)

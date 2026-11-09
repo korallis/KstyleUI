@@ -22,20 +22,21 @@ git -C ~/KstyleUI worktree add -b <type>/<scope>-<slug> ~/KstyleUI.worktrees/<ty
 
 ## Commands
 
-Run these from the repository root before every push. All of them must pass.
+Run these from the repository root before every push, one at a time, and read the exit code of each. All of them must pass.
 
 ```bash
 python3 Tools/dev/crlf.py
 pre-commit run --all-files
-bash Tools/regression/run-all.sh
-python3 -m unittest discover -s Tools/tests
+luacheck .
+python3 Tools/hooks/check_toc.py
+bash Tools/regression/run-all.sh --affected origin/staging
 ```
 
-`bash Tools/regression/run-all.sh` runs the tests as CI does: under Lua 5.1, or `luajit -joff` when Lua 5.1 is missing. Its first line names the interpreter. Install Lua 5.1 once with `bash Tools/dev/install-lua51.sh`. Each test file must stay within 20 s and 4096 MB, or `run-all.sh` fails it. `LUA=luajit` is fast mode, for quick iteration only: its compiler hides slow tests, so it never counts as the pre-push run. `Tools/regression/README.md` explains the budgets and how to set a `test-perf` budget.
+CI runs everything, once: every Lua test file, the Python suite (`python3 -m unittest discover -s Tools/tests`) and the package check, on each pull request and again on every push to `staging`. On 2026-11-10 the owner asked for the pipeline to stop repeating tests ("you may want to change the CI/CD pipeline based on if we do tests here so we are not duplicating tests etc."). So the 2026-11-07 rule that every pull request is checked locally with the full Lua and Python suites before a push is replaced by the commands above: lint, and only the Lua tests the change can reach. Do not run the full suite for a push. Run the Python suite yourself only when your diff touches `Tools/`, `Media/`, `.github/` or a locale string; CI runs it for every code change.
+
+`bash Tools/regression/run-all.sh --affected origin/staging` runs the test files that load a file your change touched, plus the source guards that scan the whole tree, and prints what it chose and why. A file loaded by half the test files or more, a stub, an env file or the runner itself runs every file. The first run on a machine has no record of what each file loads, so it runs every file once and keeps the record in `~/.cache/kstyleui/regression-deps.json` for every worktree. Its last line says how many files ran and that CI runs the rest. It uses a third of the CPUs, so two threads can run it at once; a full run takes all of them and misses time budgets when others run. `bash Tools/regression/run-all.sh` with no argument is the full suite, as CI runs it: use it to reproduce a CI failure or when the owner asks. It runs under Lua 5.1, or `luajit -joff` when Lua 5.1 is missing. Its first line names the interpreter. Install Lua 5.1 once with `bash Tools/dev/install-lua51.sh`. Each test file must stay within 20 s and 4096 MB, or `run-all.sh` fails it. `LUA=luajit` is fast mode, for quick iteration only: its compiler hides slow tests. `Tools/regression/README.md` explains the modes, the budgets and how to set a `test-perf` budget.
 
 `pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install` in a worktree: every worktree shares `.git/hooks` with `~/KstyleUI`, so it would install hooks into the owner's checkout and into branches that have no `.pre-commit-config.yaml`. To check a commit message, run `pre-commit run --hook-stage commit-msg --commit-msg-filename <file>`.
-
-Phase 0 adds these tools one task at a time. Until a task adds a command's file, skip that command.
 
 `python3 Tools/hooks/check_toc.py` reports each file a TOC or an XML include lists that is missing, or whose letter case differs from the file on disk. Linux CI cannot find a file whose case differs, even when macOS can.
 
@@ -91,7 +92,7 @@ Add one line for each mistake that happened twice: what went wrong and the rule 
 - Editing an addon file with Python's `read_text` and `write_text` turned its CRLF endings into LF twice in one task, and a fix-up commit shipped the LF file. Run `python3 Tools/dev/crlf.py` and `pre-commit run --all-files` before every commit, fix-ups included.
 - Three modules (Minimap, UnitFrames, Skins) set text on a raw `CreateFontString` before styling it. The game raised "Font not set" and stopped two modules from loading. Make font strings with `K.Widgets.FontString(parent, layer)`. `test-fontstrings.lua` fails on a raw call, and the stub raises the game's error.
 - Three secure overlays (Minimap, Reload, DataBars) anchored to the button they cover. The minimap's zone button sits on a font string, so the game raised "Cannot anchor protected frames to regions" on every hover. Place a secure overlay with `K.Widgets.Cover(overlay, visual)`. The stub raises the game's error when a protected frame's anchors lead to a region.
-- Piping `run-all.sh` or a test into `tail` hid two failures, and a failing branch was pushed twice in one task. Before a push, read the exit code of every check (`run-all.sh` must end with "failed 0"), never the tail of piped output.
-- LuaJIT's compiler ran a new test in 0.5 s on the Mac. Under Lua 5.1 it took 53 s and peaked at 10 GB, and CI's tests job passed its 15-minute limit. A `test-perf` budget set from LuaJIT times also failed on CI (51.9 us against 40 us). Run `bash Tools/regression/run-all.sh` with no `LUA` before a push. It runs Lua 5.1 or `luajit -joff` and fails any test file over 20 s or 4096 MB. `test-perf` fails any budget below 5 times the Lua 5.1 time.
+- Piping `run-all.sh` or a test into `tail` hid two failures, and a failing branch was pushed twice in one task. Before a push, read the exit code of every check (`run-all.sh --affected` ends with `passed N, failed 0` and then says how many files ran), never the tail of piped output.
+- LuaJIT's compiler ran a new test in 0.5 s on the Mac. Under Lua 5.1 it took 53 s and peaked at 10 GB, and CI's tests job passed its 15-minute limit. A `test-perf` budget set from LuaJIT times also failed on CI (51.9 us against 40 us). Run `run-all.sh` with no `LUA`: it runs Lua 5.1 or `luajit -joff` and fails any test file over 20 s or 4096 MB. Never run it with `LUA=luajit` to decide a push. `test-perf` fails any budget below 5 times the Lua 5.1 time.
 - Cinzel has no thin-space glyph, so the game draws a box for one. UnitFrames hit it first, then the Skins section caps and the kit tooltip titles shipped "Q□U□E□S□T□S" to the first in-game test, which the renderer could not show. Insert tracking thin spaces only through `KstyleUI.Locale.CanTrack(fontPath)`; `test-thin-space.lua` fails on a Cinzel heading that carries one.
 - A badge on an engine aura button read its own `IsShown()` in a restyle. On Forever, visibility inside a secure aura button is a secret, and the boolean test raised 30 errors in the first in-game test. Never read state back from regions inside engine aura buttons; keep the wanted state yourself. `test-unitframes-auras.lua` makes those reads raise.
