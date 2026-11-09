@@ -68,6 +68,10 @@ for _, option in ipairs(Format.BAR_TEXTS) do
 	listed = listed or option.value == "levelRested"
 end
 eq(listed, true, "the caption is a text choice")
+-- The XP caption without the level: the portrait's badge already shows it (owner, 2026-11-09: one fact, one place).
+eq(Format.BarText("percentRested", 37000, 50000, "Level 8", "XP", 5000), "74%" .. DOT .. "rested 10%", "percent and rested, no level")
+eq(Format.BarText("percentRested", 37000, 50000, "Level 8", "XP", 0), "74%", "no rested part without rested XP")
+eq(Format.BarText("percentRested", 37000, 50000, "Level 8"), "74%", "or when the source has none")
 eq(Format.BarText("shortPercent", 12345, 50000, "Level 38", "XP"), "XP 24%", "short name and percent: the mockup's XP 32% caption")
 eq(Format.BarText("shortPercent", 12345, 50000, "Stormwind"), "Stormwind 24%", "a bar without a short name uses its label")
 eq(Format.BarText("bogus", 12345, 50000, "x"), nil, "an unknown style shows nothing")
@@ -77,7 +81,7 @@ for _, option in ipairs(Format.BAR_TEXTS) do
 	styles[#styles + 1] = option.value
 	assert(type(option.label) == "string" and option.label ~= "", option.value .. " has a label for the settings window")
 end
-eq(table.concat(styles, ","), "none,percent,value,valuePercent,short,remaining,label,labelPercent,labelValue,shortPercent,levelRested", "every bar text style is offered")
+eq(table.concat(styles, ","), "none,percent,value,valuePercent,short,remaining,label,labelPercent,labelValue,shortPercent,levelRested,percentRested", "every bar text style is offered")
 
 -- Money ---------------------------------------------------------------------------------------------
 

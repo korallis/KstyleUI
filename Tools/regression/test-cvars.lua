@@ -1,4 +1,4 @@
--- test-cvars.lua: at login the core puts back the player's own value of each CVar that KstyleUI_CombatText or KstyleUI_Chat hid, on a character where that module is off, from the memory the module keeps in KstyleUIDB.account.
+-- test-cvars.lua: at login the core puts back the player's own value of each CVar that KstyleUI_CombatText, KstyleUI_Chat or KstyleUI_Meters set, on a character where that module is off, from the memory the module keeps in KstyleUIDB.account.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local C = dofile("Tools/regression/chat_env.lua")
 
@@ -204,6 +204,26 @@ Case("with the real Chat module switched off on another character, the character
 	Variables(env)
 	assert(env._cvars[STAMPS] == "%I:%M ", "the player's format is back: " .. tostring(env._cvars[STAMPS]))
 	assert(env.KstyleUIDB.account.chatTimestamps[K.Store.CharacterKey()] == nil, "the memory is cleared")
+	NoErrors(env)
+end)
+
+Case("on a character whose Meters module is off, Blizzard's damage meter CVar goes back to the player's value", function()
+	local env = Start({
+		saved = Saved({ damageMeterCVars = { ["*"] = { damageMeterEnabled = { original = "0", written = "1" } } } }),
+		cvars = { damageMeterEnabled = "1" },
+	})
+	assert(env._cvars.damageMeterEnabled == "0", "the player's value is back")
+	assert(next(Memory(env, "damageMeterCVars", "*")) == nil, "the memory is cleared")
+	NoErrors(env)
+end)
+
+Case("with Meters running, the damage meter CVar stays as KstyleUI set it", function()
+	local env = Start({
+		running = { "Meters" },
+		saved = Saved({ damageMeterCVars = { ["*"] = { damageMeterEnabled = { original = "0", written = "1" } } } }, { Meters = { enabled = true } }),
+		cvars = { damageMeterEnabled = "1" },
+	})
+	assert(env._cvars.damageMeterEnabled == "1" and #env._cvarWrites == 0, "nothing is written")
 	NoErrors(env)
 end)
 

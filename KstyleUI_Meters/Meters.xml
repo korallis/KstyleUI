@@ -6,6 +6,7 @@
 	<Script file="Swing.lua"/>
 	<Script file="Threat.lua"/>
 	<Script file="DamageSkin.lua"/>
+	<Script file="DamageCVar.lua"/>
 	<Script file="Damage.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Meters.lua"/>

@@ -622,6 +622,7 @@ end
 
 local function Window(self)
 	ns.DamageSkin.Deactivate()
+	ns.DamageCVar.Want(false)
 	self.holder:Show()
 	for _, event in ipairs(EVENTS) do
 		ns.Watch(self, event)
@@ -659,6 +660,7 @@ function Damage:Apply()
 	self.list.panel:Hide()
 	self.holder:Hide()
 	SkinVisibility()
+	ns.DamageCVar.Want(true)
 	ns.DamageSkin.Activate()
 end
 
@@ -673,4 +675,5 @@ function Damage:Stop()
 	self.holder:Hide()
 	RestoreBlizzard()
 	ns.DamageSkin.Deactivate()
+	ns.DamageCVar.Want(false)
 end

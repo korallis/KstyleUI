@@ -1140,6 +1140,7 @@ ns.Locale.Add({
 	["Paused"] = "En pause",
 	["Pending invites: %d"] = "Invitations en attente : %d",
 	["Percent"] = "Pourcentage",
+	["Percent and rested"] = "Pourcentage et repos",
 	["Percentage"] = "Pourcentage",
 	["Pet"] = "Familier",
 	["Pet bar"] = "Barre du familier",
