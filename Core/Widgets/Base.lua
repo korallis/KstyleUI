@@ -465,8 +465,8 @@ end
 
 local PILL_CAP = 0.25
 
-function Widgets.Pill(box, layer, sublevel, name)
-	local path = Tokens.Texture(name or "pill")
+function Widgets.Pill(box, layer, sublevel)
+	local path = Tokens.Texture("pill")
 	local left = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
 	local middle = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
 	local right = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
@@ -520,9 +520,8 @@ function Widgets.Chrome(owner, opts)
 		proc = false,
 	}, Chrome)
 	if shape.pill then
-		c.track = Widgets.Pill(owner, "BACKGROUND", SUBLEVEL_FILL)
-		c.rim = Widgets.Pill(owner, "BORDER", SUBLEVEL_RIM, "pillRim")
-		c.fill = c.track
+		c.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
+		c.rim = NewSlice(owner, "lumenOutline", "BORDER", SUBLEVEL_RIM)
 	else
 		c.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
 		c.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
@@ -561,7 +560,7 @@ end
 function Chrome:Radius()
 	local short = ShortSide(self.owner)
 	if self.shape.pill then
-		return short and short / 2 or 0
+		return short and short / 2 or Tokens.Size("radiusTile")
 	end
 	if self.radius then
 		return short and min(self.radius, short / 2) or self.radius
@@ -594,10 +593,8 @@ end
 function Chrome:LayoutPill()
 	local radius = self:Radius()
 	self.laidRadius = radius
-	if radius > 0 then
-		Widgets.LayoutPill(self.track, 2 * radius)
-		Widgets.LayoutPill(self.rim, 2 * radius)
-	end
+	Widgets.LayoutSlice(self.fill, self.owner, radius, 0)
+	Widgets.LayoutSlice(self.rim, self.owner, radius, 0)
 end
 
 function Chrome:Layout()

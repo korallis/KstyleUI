@@ -97,30 +97,59 @@ do
 	assert(a < 1, "the crystal is translucent")
 end
 
--- Bars: a pill track, its round caps the bar's half height.
+-- Bars: a pill track, its corners half the bar's short side, so it is a capsule lying down or standing up.
 do
 	local frame, chrome, textures = Build("bar", 200, 10)
-	assert(Shown(textures, "Pill.png") and Shown(textures, "PillRim.png"), "a bar is a pill track with a faint rim")
+	assert(Shown(textures, "LumenShape.png") and Shown(textures, "LumenOutline.png"), "a bar is a pill track with a faint even rim")
 	assert(not Shown(textures, "LumenFrost.png") and not Shown(textures, "LumenGilt.png") and not Shown(textures, "LumenShadow.png"), "no frost, gilt or shadow on a bar")
-	assert(W.Near(chrome.track[1]:GetWidth(), frame:GetHeight() / 2), "the caps are half the height")
+	assert(W.Near(chrome:Radius(), 5) and W.Near(chrome.fill[1]:GetWidth(), Widgets.Snap(frame, 5)), "the corners are half the height")
+	frame:SetSize(10, 120)
+	assert(W.Near(chrome:Radius(), 5) and W.Near(chrome.rim[1]:GetHeight(), Widgets.Snap(frame, 5)), "and half the width when the bar stands up")
 end
 
 -- The status bar's fill: rounded at both ends by cap masks, with a top sheen and a glow of its own colour.
+local function capOf(fill, name)
+	for i = 1, fill:GetNumMaskTextures() do
+		local mask = fill:GetMaskTexture(i)
+		if file(W.LastCall(mask, "SetTexture")[1]) == name then
+			return mask
+		end
+	end
+end
 do
 	local bar = Widgets.StatusBar(root, { width = 200, height = 12, border = true, min = 0, max = 1, value = 0.5 })
 	assert(bar.chrome.shapeName == "bar", "a bordered status bar wears the bar grade")
+	local trackHeight = bar.borderFrame:GetHeight()
+	assert(trackHeight > 12 and W.Near(bar.chrome.fill[1]:GetWidth(), Widgets.Snap(bar.borderFrame, trackHeight / 2)), "the track's corners are half its height once the border is placed, got " .. tostring(bar.chrome.fill[1]:GetWidth()))
 	local fill = bar:GetStatusBarTexture()
 	assert(fill:GetNumMaskTextures() == 2, "two cap masks round the fill's ends")
-	local masks = {}
-	for i = 1, 2 do
-		masks[file(W.LastCall(fill:GetMaskTexture(i), "SetTexture")[1])] = fill:GetMaskTexture(i)
-	end
-	assert(masks["PillCapLeft.png"] and masks["PillCapRight.png"], "a left and a right cap")
-	assert(W.LastCall(masks["PillCapRight.png"], "SetTexture")[2] == "CLAMPTOWHITE", "outside its square a cap mask lets the fill show")
-	assert(masks["PillCapRight.png"]._points[1][2] == fill, "the right cap rides the fill's moving end")
+	local left, right = capOf(fill, "PillCapLeft.png"), capOf(fill, "PillCapRight.png")
+	assert(left and right, "a left and a right cap")
+	assert(W.LastCall(right, "SetTexture")[2] == "CLAMPTOWHITE", "outside its square a cap mask lets the fill show")
+	assert(right._points[1][2] == fill and left._points[1][2] == bar, "the right cap rides the fill's moving end, the left sits at the start")
 	assert(bar.sheenTop and file(W.LastCall(bar.sheenTop, "SetTexture")[1]) == "BarSheen.png", "a top sheen over the fill")
 	bar:SetStatusBarColor(0.2, 0.8, 0.4, 1)
 	assert(W.SameRGB(bar.glow[1], 0.2, 0.8, 0.4), "the glow takes the fill's own colour")
+
+	-- A module that reverses the fill later gets the caps swapped: the moving end is then the left one.
+	bar:SetReverseFill(true)
+	assert(left._points[1][2] == fill and right._points[1][2] == bar, "a reversed fill rounds its moving left end")
+	bar:SetReverseFill(false)
+	assert(right._points[1][2] == fill and left._points[1][2] == bar, "and back")
+
+	-- A bar resized by its caller (DataBars anchors its track to a 4-unit line) keeps round, not stretched, ends.
+	bar:SetSize(200, 4)
+	assert(W.Near(left:GetWidth(), Widgets.Snap(bar, 4)) and W.Near(right:GetWidth(), Widgets.Snap(bar, 4)), "the caps follow the new height")
+
+	-- A bar turned on end drops the horizontal caps, sheen and glow; turned back, it gets them again.
+	bar:SetOrientation("VERTICAL")
+	assert(fill:GetNumMaskTextures() == 0 and not bar.sheenTop:IsShown() and not bar.glow[1]:IsShown(), "a vertical fill is not masked by horizontal caps")
+	bar:SetOrientation("HORIZONTAL")
+	assert(fill:GetNumMaskTextures() == 2 and bar.sheenTop:IsShown() and bar.glow[1]:IsShown(), "a horizontal fill is rounded again")
+end
+do
+	local tall = Widgets.StatusBar(root, { orientation = "VERTICAL", width = 8, height = 120, border = true })
+	assert(tall.chrome.shapeName == "bar" and tall:GetStatusBarTexture():GetNumMaskTextures() == 0, "a vertical bar starts with the capsule track and no horizontal caps")
 end
 
 -- Fonts: Lumen by default, Source Sans still selectable.

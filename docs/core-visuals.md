@@ -99,7 +99,7 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
 | `gilt`, `gem` | `LumenGilt.png`, `LumenGem.png` | | The filament tip (mirror it for the opposite corner) and the section cap gem, its facets shaded in the colour channels |
-| `pillRim`, `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar track's rim (three-sliced like `pill`), the fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
+| `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask for the minimap lens |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right |
 | `iconMask`, `portraitMask` | `SocketMask.png`, 128x128 | | Every square icon and the square portrait, rounded 8 units on 44 |
@@ -109,7 +109,7 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 | `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |
 | `glyphChevron`, `glyphClose` | `GlyphChevron.png`, `GlyphClose.png`, 32x32 | | |
 
-`dot` and `pill` are the knobs and tracks of toggles and sliders, and `pill` is the bar grade's track. Each round cap of the pill is a quarter of its width, so a widget three-slices it at any length. `glyphChevron` and `glyphClose` are line glyphs for dropdowns, scroll steppers and close buttons; flip the chevron's texture coordinates to point it up.
+`dot` and `pill` are the knobs and tracks of toggles and sliders. Each round cap of the pill is a quarter of its width, so a widget three-slices it at any length. `glyphChevron` and `glyphClose` are line glyphs for dropdowns, scroll steppers and close buttons; flip the chevron's texture coordinates to point it up.
 
 Shapes are white with their coverage in alpha: tint them with `SetVertexColor`. Between its margins a sliced texture has the same column everywhere, and the same row everywhere except where it holds a vertical gradient (`lumenFrost`), so it stretches cleanly as nine `SetTexCoord` pieces. Draw a corner piece at `Scale.Snap(radius)` so it covers whole pixels. The new textures need a full client restart the first time.
 

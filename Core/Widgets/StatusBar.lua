@@ -178,61 +178,105 @@ function Bar:Restyle()
 		self.borderFrame:ClearAllPoints()
 		self.borderFrame:SetPoint("TOPLEFT", self, "TOPLEFT", -outset, outset)
 		self.borderFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", outset, -outset)
+		self.chrome:OnSizeChanged()
 	end
 	if self.caps then
-		local side = Widgets.Snap(self, height)
-		for _, mask in ipairs(self.caps) do
-			mask:SetWidth(side)
-		end
+		self:SizeCaps(height)
 		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self)
 	end
 	self:Paint()
 end
 
-local function CapMask(bar, name, point, region)
+local function CapMask(bar, name)
 	local mask = bar:CreateMaskTexture()
 	mask:SetTexture((Tokens.Texture(name)), CAP_WRAP, CAP_WRAP)
-	mask:SetPoint("TOP" .. point, region, "TOP" .. point)
-	mask:SetPoint("BOTTOM" .. point, region, "BOTTOM" .. point)
 	return mask
 end
 
-local function Mask(texture, a, b)
-	texture:AddMaskTexture(a)
-	texture:AddMaskTexture(b)
+local function Pin(mask, side, region)
+	mask:ClearAllPoints()
+	mask:SetPoint("TOP" .. side, region, "TOP" .. side)
+	mask:SetPoint("BOTTOM" .. side, region, "BOTTOM" .. side)
 end
 
-local function PillFill(bar, reverse)
+local function Masks(texture, a, b, on)
+	if on then
+		texture:AddMaskTexture(a)
+		texture:AddMaskTexture(b)
+	else
+		texture:RemoveMaskTexture(a)
+		texture:RemoveMaskTexture(b)
+	end
+end
+
+function Bar:SizeCaps(height)
+	if type(height) ~= "number" or Widgets.IsSecret(height) or height <= 0 then
+		return
+	end
+	local side = Widgets.Snap(self, height)
+	for _, mask in ipairs(self.caps) do
+		mask:SetWidth(side)
+	end
+end
+
+function Bar:PlaceCaps()
+	local reverse = self:GetReverseFill()
+	reverse = not Widgets.IsSecret(reverse) and reverse == true
+	local fill, caps = self:GetStatusBarTexture(), self.caps
+	Pin(caps[1], "LEFT", reverse and fill or self)
+	Pin(caps[2], "RIGHT", reverse and self or fill)
+end
+
+function Bar:ShowPill(on)
+	if self.pillOn == on then
+		return
+	end
+	self.pillOn = on
+	local caps = self.caps
+	Masks(self:GetStatusBarTexture(), caps[1], caps[2], on)
+	Masks(self.sheenTop, caps[1], caps[2], on)
+	if self.background then
+		Masks(self.background, caps[3], caps[4], on)
+	end
+	self.sheenTop:SetShown(on)
+	Widgets.ShowSlice(self.glow, on)
+end
+
+local function PillFill(bar)
 	local fill = bar:GetStatusBarTexture()
-	local left = CapMask(bar, "pillCapLeft", "LEFT", reverse and fill or bar)
-	local right = CapMask(bar, "pillCapRight", "RIGHT", reverse and bar or fill)
-	local fixedLeft = reverse and CapMask(bar, "pillCapLeft", "LEFT", bar) or left
-	local fixedRight = reverse and right or CapMask(bar, "pillCapRight", "RIGHT", bar)
-	bar.caps = { left, right }
-	if fixedLeft ~= left then
-		bar.caps[#bar.caps + 1] = fixedLeft
-	end
-	if fixedRight ~= right then
-		bar.caps[#bar.caps + 1] = fixedRight
-	end
-	Mask(fill, left, right)
-	if bar.background then
-		Mask(bar.background, fixedLeft, fixedRight)
-	end
+	bar.caps = {
+		CapMask(bar, "pillCapLeft"), CapMask(bar, "pillCapRight"), CapMask(bar, "pillCapLeft"), CapMask(bar, "pillCapRight"),
+	}
+	Pin(bar.caps[3], "LEFT", bar)
+	Pin(bar.caps[4], "RIGHT", bar)
+	bar:PlaceCaps()
 	local sheen = bar:CreateTexture(nil, "ARTWORK", nil, SHEEN_TOP_SUBLEVEL)
 	sheen:SetTexture((Tokens.Texture("barSheen")))
 	sheen:SetAllPoints(fill)
-	Mask(sheen, left, right)
 	bar.sheenTop = sheen
 	bar.glow = Widgets.NineSlice(bar, "shadow", "BACKGROUND", 1)
 	for _, piece in ipairs(bar.glow) do
 		piece:SetAlpha(GLOW_ALPHA)
 	end
-	local setColor = bar.SetStatusBarColor
+	bar.pillOn = false
+	bar:ShowPill(not bar.vertical)
+	local setColor, setReverse, setOrientation = bar.SetStatusBarColor, bar.SetReverseFill, bar.SetOrientation
 	bar.SetStatusBarColor = function(self, r, g, b, a)
 		setColor(self, r, g, b, a)
 		Widgets.ColorSlice(self.glow, r, g, b, a)
 	end
+	bar.SetReverseFill = function(self, ...)
+		setReverse(self, ...)
+		self:PlaceCaps()
+	end
+	bar.SetOrientation = function(self, orientation, ...)
+		setOrientation(self, orientation, ...)
+		self.vertical = orientation == "VERTICAL"
+		self:ShowPill(not self.vertical)
+	end
+	bar:HookScript("OnSizeChanged", function(self, _, height)
+		self:SizeCaps(height)
+	end)
 end
 
 function Widgets.StatusBar(parent, opts)
@@ -264,9 +308,7 @@ function Widgets.StatusBar(parent, opts)
 		frame:SetFrameLevel(math.max(0, bar:GetFrameLevel() - 1))
 		bar.borderFrame = frame
 		bar.chrome = Widgets.Chrome(frame, { shape = "bar", fill = "surface", shadow = false, edge = opts.edge or "edgeBar" })
-		if not bar.vertical then
-			PillFill(bar, opts.reverse == true)
-		end
+		PillFill(bar)
 	end
 	if opts.spark then
 		local spark = bar:CreateTexture(nil, "OVERLAY")

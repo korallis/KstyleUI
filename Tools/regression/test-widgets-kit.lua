@@ -239,18 +239,19 @@ do
 	end, "shape must be panel, card, window, rail, tile, socket or bar")
 end
 
--- The bar grade: a pill track, its caps half the bar's height, and a faint rim in the edge token.
+-- The bar grade: a capsule track, its corners half the bar's short side, and a faint even rim in the edge token.
 do
 	local env, K = W.New()
 	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
 	frame:SetSize(180, 18)
 	local c = K.Widgets.Chrome(frame, { shape = "bar", fill = "surface", shadow = false })
 	local er, eg, eb, ea = K.Tokens.Color("edgeBar")
-	assert(#c.track == 3 and #c.rim == 3, "a three-sliced pill for the track and its rim")
+	assert(#c.fill == 9 and #c.rim == 9, "a nine-sliced capsule for the track and its rim")
+	assert(W.LastCall(c.rim[1], "SetTexture")[1] == K.Tokens.Texture("lumenOutline"), "the rim is even all round")
 	assert(W.SameColor(c.rim[1], er, eg, eb, ea) and W.SameColor(c.rim[2], er, eg, eb, ea), "the rim takes the bar's edge token")
 	K.Callbacks.Fire("ThemeChanged")
 	assert(W.SameColor(c.rim[3], er, eg, eb, ea), "and keeps it through a restyle")
-	assert(W.Near(c:Radius(), 9) and W.Near(c.track[1]:GetWidth(), 9) and W.Near(c.rim[3]:GetWidth(), 9), "an 18-unit bar's caps are 9 units")
+	assert(W.Near(c:Radius(), 9) and W.Near(c.fill[1]:GetWidth(), 9) and W.Near(c.rim[9]:GetWidth(), 9), "an 18-unit bar's corners are 9 units")
 	assert(c.shadow == nil and c.frost == nil and c.gilt == nil, "no shadow, frost or gilt on a bar")
 end
 

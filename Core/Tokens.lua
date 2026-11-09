@@ -167,7 +167,6 @@ local TEXTURES = {
 	lumenShadow = { file = "Textures\\LumenShadow.png", slice = 56, density = 2 },
 	gilt = { file = "Textures\\LumenGilt.png" },
 	gem = { file = "Textures\\LumenGem.png" },
-	pillRim = { file = "Textures\\PillRim.png" },
 	pillCapLeft = { file = "Textures\\PillCapLeft.png" },
 	pillCapRight = { file = "Textures\\PillCapRight.png" },
 	barSheen = { file = "Textures\\BarSheen.png" },

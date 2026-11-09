@@ -212,7 +212,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 
 -- Textures: each names a file on disk, and sliced ones say how big a corner piece draws.
 for _, name in ipairs({
-	"lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "chamferTile", "gilt", "gem", "pillRim", "pillCapLeft",
+	"lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "chamferTile", "gilt", "gem", "pillCapLeft",
 	"pillCapRight", "barSheen", "lensMask", "ruleFade", "iconMask", "portraitMask", "shadow", "glow", "divider", "noise", "ring", "ringBevel",
 	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
