@@ -50,7 +50,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | `copyButton` | `true` | The copy glyph beside the plus at the right end of the tab row |
 | `editBox` | `typing` | `typing` shows the edit box only while the player types; `always` keeps the game's resting box under the messages at Blizzard's alpha and leaves it room. In the game's Classic chat style Blizzard hides the resting box itself, so `always` only keeps the room. |
 | `buttons` | `false` | Shows Blizzard's chat menu and channel buttons beside the chat |
-| `font` | Source Sans 3 Regular | Messages, tabs and the edit box; the regular face matches the mockup's lighter chat text. A font the game cannot load falls back to the body font and logs once. |
+| `font` | Alegreya Sans (the Lumen body face) | Messages, tabs and the edit box, in the face every other body text uses; Source Sans 3 and the other bundled faces stay in the list. A player who never chose a font moves with the default; a chosen font is kept. A font the game cannot load falls back to the body font and logs once. |
 | `fontSize` | 14 | 8 to 24, messages and the edit box, the mockup's size. A size picked from the game's tab menu becomes this setting. |
 | `lineSpacing` | 4 | 0 to 10 units between lines; 4 gives the mockup's pitch at size 14 |
 | `fontOutline` | `none` | `none` (the soft text shadow), `OUTLINE` or `THICKOUTLINE` |

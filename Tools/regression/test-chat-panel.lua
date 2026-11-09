@@ -377,7 +377,13 @@ do
 	local env, K = C.New()
 	C.Enable(env, K)
 	local path = K.Store.Module("Chat").font
-	assert(path == K.Tokens.FontPath("SourceSans3Regular"), "messages default to the regular face, the mockup's lighter chat text: " .. tostring(path))
+	local body = K.Tokens.Font("body")
+	assert(path == K.Tokens.FontPath("AlegreyaSansRegular") and path == body, "messages default to the Lumen body face, the one face every other body text uses (Fable #5, Opus #4): " .. tostring(path))
+	local faces = {}
+	for _, face in ipairs(K.Tokens.MediaList("font")) do
+		faces[face.key] = true
+	end
+	assert(faces.SourceSans3Regular, "Source Sans 3 stays a choice in the font row")
 	local args = lastCall(env.ChatFrame1, "SetFont")
 	assert(args and args[1] == path and args[2] == 14 and args[3] == "", "messages in the chat font at 14, the mockup's size")
 	assert(K.Store.Module("Chat").tabFontSize == 13, "tab names at 13: the mockup's cap height and label widths at 1.348 px per unit")
