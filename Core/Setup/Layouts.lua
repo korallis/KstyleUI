@@ -20,7 +20,7 @@ local ELEMENTS = {
 	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 272, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
-	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], width = 318, height = 240 },
+	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], width = 318, height = 324 },
 	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], width = 318, height = 427 },
 	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], width = 489, height = 38 },
 	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], width = 489, height = 38 },
@@ -34,18 +34,18 @@ local ELEMENTS = {
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = 170, height = 38 },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 195, height = 30 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = 195, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 360, height = 102, lumen = { 318, 110, "S4" } },
-	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 360, height = 51, lumen = { 318, 48, "S4" } },
-	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 259, height = 221, lumen = { 318, 318, "S4" } },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 318, height = 364 },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 318, height = 177 },
+	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 318, height = 326 },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 318, height = 300 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
-	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], width = 318, height = 46 },
+	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], width = 318, height = 118 },
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
-	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], width = 318, height = 140 },
-	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], width = 318, height = 104 },
+	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], width = 318, height = 190 },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], width = 318, height = 144 },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
 	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
@@ -60,13 +60,14 @@ local DPS = {
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
-	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -362 },
-	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -480 },
-	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -544 },
-	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -680 },
-	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -836 },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -370 },
+	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -484 },
+	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
+	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -699 },
+	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -699 },
+	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
-	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = 72 },
+	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN + 44 },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 52 },
 	["databars.rep"] = { anchor = "BOTTOM", x = -ENDS, y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
@@ -93,19 +94,39 @@ local DPS = {
 	["actionbars.bar6"] = { anchor = "TOPLEFT", x = BAND + 41, y = -MARGIN },
 	["actionbars.bar3"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
 	["actionbars.bar4"] = { anchor = "TOPRIGHT", x = -(BAND + 41), y = -MARGIN },
-	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -BAND, y = 147 },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -BAND, y = 191 },
 }
 
-local CHANGES = { DPS = {}, Tank = {}, Healer = {} }
+local CHANGES = {
+	DPS = {},
+	Tank = {
+		["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -813 },
+	},
+	Healer = {},
+}
 
 local SIZES = {
-	DPS = {},
-	Tank = {},
-	Healer = {
-		["groupframes.party"] = { RAIL, 300 },
-		["groupframes.raid"] = { RAIL, 487 },
+	DPS = {
+		["meters.damage"] = { RAIL, 190 },
+		["meters.threat"] = { RAIL, 144 },
 	},
+	Tank = {
+		["meters.damage"] = { RAIL, 98 },
+		["meters.threat"] = { RAIL, 98 },
+	},
+	Healer = {
+		["groupframes.party"] = { RAIL, 354 },
+		["groupframes.raid"] = { RAIL, 487 },
+		["meters.damage"] = { RAIL, 190 },
+		["meters.threat"] = { RAIL, 144 },
+	},
+}
+local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true }
+
+local DOCKS = {
+	["auras.debuffs"] = "auras.buffs",
+	["databars.micro"] = "databars.strip",
+	["databars.bags"] = "databars.strip",
 }
 
 local SWITCHES = {
@@ -120,7 +141,10 @@ local SWITCHES = {
 	{ key = "meters.threat", module = "Meters", setting = "threat.shown" },
 }
 
-local BARS_OFF = { "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }
+local BARS_OFF = {
+	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6",
+	"unitframes.castbar.player", "unitframes.castbar.target",
+}
 local OFF = {
 	DPS = { "meters.threat" },
 	Tank = {},
@@ -131,6 +155,9 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar1.rows", value = 1 },
 	{ module = "ActionBars", key = "pet.rows", value = 2 },
 	{ module = "ActionBars", key = "stance.rows", value = 2 },
+	{ module = "Auras", key = "buffs.rows", value = 1 },
+	{ module = "Auras", key = "card.docked", value = true },
+	{ module = "DataBars", key = "strip.menus", value = true },
 	{ module = "GroupFrames", key = "party.spacing", value = 8 },
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
 	{ module = "GroupFrames", key = "raid.width", value = 77 },
@@ -138,16 +165,16 @@ local SHARED_SETTINGS = {
 local ROWS = {
 	DPS = { party = 40, raid = 40 },
 	Tank = { party = 40, raid = 40 },
-	Healer = { party = 52, raid = 46 },
+	Healer = { party = 46, raid = 46 },
 }
 
-local STORY_BOTTOM = MARGIN + 364 + GAP
+local STORY_BOTTOM = MARGIN + 300 + GAP
 
 local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
 	DPS = L["Lumen Rails: party and chat on the left rail, the map, buffs, boss and damage meter on the right, your hands in the centre."],
-	Tank = L["The DPS rails with the threat meter under the damage meter."],
+	Tank = L["The DPS rails with the threat meter under a shorter damage meter."],
 	Healer = L["The DPS rails with larger party and raid frames on the left rail."],
 }
 
@@ -245,11 +272,28 @@ function Layouts.Footprint(name, key)
 	if not element or not layouts[name] then
 		return nil
 	end
-	local size = SIZES[name][key] or element.lumen or element.reserve
+	local size = SIZES[name][key] or element.reserve
 	if size then
 		return size[1], size[2]
 	end
 	return element.width, element.height
+end
+
+function Layouts.Sizes(name)
+	if not layouts[name] then
+		return nil
+	end
+	local out = {}
+	for key, size in pairs(SIZES[name]) do
+		if APPLIED[key] then
+			out[key] = { width = size[1], height = size[2] }
+		end
+	end
+	return out
+end
+
+function Layouts.Dock(key)
+	return DOCKS[key]
 end
 
 function Layouts.Reserves()
@@ -258,17 +302,6 @@ function Layouts.Reserves()
 		local reserve = element.reserve
 		if reserve then
 			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2] }
-		end
-	end
-	return out
-end
-
-function Layouts.Pending()
-	local out = {}
-	for _, element in ipairs(ELEMENTS) do
-		local lumen = element.lumen
-		if lumen then
-			out[#out + 1] = { key = element.key, width = lumen[1], height = lumen[2], slice = lumen[3] }
 		end
 	end
 	return out

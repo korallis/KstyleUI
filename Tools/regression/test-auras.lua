@@ -110,11 +110,10 @@ do
 	check(b and d, "both elements register with Layout under the element keys")
 	check(b.opts.label == "Buffs" and d.opts.label == "Debuffs", "labels come from Setup.Layouts")
 	check(b.opts.module == "Auras" and b.opts.scalable == true and not b.opts.resizable, "the elements scale in Layout Mode")
-	-- Forever's Edit Mode preset pins the objective tracker 275 units under the screen's top, 38 under the minimap's
-	-- 221-unit frame (Blizzard_EditMode/Mainline/EditModePresetLayouts.lua), so the rows stand beside the minimap:
-	-- 12 units left of its 259-unit element, top-aligned with it, the debuffs 8 units under the buffs.
-	check(b.position.anchor == "TOPRIGHT" and b.position.x == -287 and b.position.y == -16, "buffs stand beside the minimap, 12 units left of its element and top-aligned with it")
-	check(d.position.anchor == "TOPRIGHT" and d.position.x == -287 and d.position.y == -126, "debuffs hang 8 units under the buffs' two rows")
+	-- Lumen Rails: the Blessings card sits on the right rail, on the 28-unit margin, 16 units under the 326-unit lens
+	-- card; the docked debuff row's own element waits at the card's foot, where it stays when the player undocks it.
+	check(b.position.anchor == "TOPRIGHT" and b.position.x == -28 and b.position.y == -370, "buffs sit on the right rail, under the lens card")
+	check(d.position.anchor == "TOPRIGHT" and d.position.x == -28 and d.position.y == -484, "debuffs wait at the Blessings card's foot")
 	-- The buff element is the whole Blessings card: the rail's 318 wide, with the cap, two rows of six, the hairline
 	-- and the docked debuff row (test-auras-card.lua has the card's maths).
 	local w, h = size(b.frame)

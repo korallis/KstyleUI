@@ -241,6 +241,18 @@ do
 	assert(updates["unitframes.player"] and updates["unitframes.player"].x == K.Setup.Layouts.Get("DPS")["unitframes.player"].x, "a registered element moves at once through Layout.Update")
 	assert(stored["unitframes.player"] == nil, "Layout stores what it applies itself")
 	assert(K.Setup.Apply({ layout = "Raid", modules = {} }) == false, "an unknown layout is refused")
+	-- Tank sizes the meters with the positions: two damage rows over two threat rows, so the right rail fits.
+	updates = {}
+	K.Layout.Get = function(key)
+		if key == "meters.damage" then
+			return { anchor = "CENTER", x = 0, y = 0 }
+		end
+	end
+	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
+	assert(updates["meters.damage"] and updates["meters.damage"].height == 98 and updates["meters.damage"].width == 318, "a registered meter takes the layout's size through Layout.Update")
+	assert(stored["meters.threat"].height == 98 and stored["meters.threat"].y == K.Setup.Layouts.Get("Tank")["meters.threat"].y, "a meter that has not registered keeps the size for the reload")
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	assert(updates["chat.main"] == nil and stored["meters.threat"].height == 144, "DPS puts the meters back to their footprints")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -256,8 +268,10 @@ do
 		},
 		Meters = { threat = { shown = true } },
 		GroupFrames = { party = { height = 46, spacing = 10 }, raid = { height = 40, width = 72, groupsPerRow = 8 } },
+		Auras = { buffs = { rows = 2 }, card = { docked = false } },
+		DataBars = { strip = { menus = false } },
 	}
-	local env, K = Boot({ modules = { "ActionBars", "Meters", "GroupFrames", "Chat" }, defaults = defaults })
+	local env, K = Boot({ modules = { "ActionBars", "Meters", "GroupFrames", "Chat", "Auras", "DataBars" }, defaults = defaults })
 	assert(K.Layout.Setting("preset") == "DPS", "a profile that never applied a layout has the DPS one")
 	assert(K.Setup.Apply({ layout = "Healer", modules = { ActionBars = true, Meters = true, GroupFrames = true, Chat = true } }))
 	local bars = K.Store.Module("ActionBars")
@@ -268,7 +282,9 @@ do
 	assert(bars.pet.rows == 2 and bars.stance.rows == 2, "Apply folds the pet and stance sockets into two rows")
 	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
 	local group = K.Store.Module("GroupFrames")
-	assert(group.party.height == 52 and group.party.spacing == 8 and group.raid.height == 46 and group.raid.groupsPerRow == 4 and group.raid.width == 77, "Healer writes larger party and raid frames, four groups a row")
+	assert(K.Store.Module("Auras").buffs.rows == 1 and K.Store.Module("Auras").card.docked == true, "Apply writes one buff row in the Blessings card, the debuffs docked")
+	assert(K.Store.Module("DataBars").strip.menus == true, "Apply docks the menu and the bags in the readout card")
+	assert(group.party.height == 46 and group.party.spacing == 8 and group.raid.height == 46 and group.raid.groupsPerRow == 4 and group.raid.width == 77, "Healer writes larger party and raid frames, four groups a row")
 	assert(K.Layout.Setting("preset") == "Healer", "Apply remembers the layout for Layout Mode's story slot")
 	assert(K.Setup.Apply({ layout = "Tank", modules = { ActionBars = true, Meters = true, GroupFrames = true } }))
 	assert(K.Store.Module("Meters").threat.shown == true and K.Store.Module("GroupFrames").party.height == 40, "Tank shows the threat card and puts the party back to 40")

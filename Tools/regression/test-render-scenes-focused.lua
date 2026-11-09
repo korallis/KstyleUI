@@ -12,30 +12,33 @@ for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "sm
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 
--- The aura rows beside the minimap never reach the objective tracker, which Forever's Edit Mode preset pins 275
--- units under the screen's top: at the full two rows of eight buffs and three debuffs every tile's bottom sits
--- above the tracker's caption, and the rows stay beside the minimap, not under it.
+-- Lumen Rails: the Blessings hang under the lens card on the right rail, and the player moves the objective tracker
+-- into the left rail's story slot (the setup's hint), so at the full two rows of eight buffs and three debuffs every
+-- tile sits under the lens's zone line and clear of the tracker, on the far side of the screen.
 do
 	local Hud = L.Hud
-	local scene = check("auras_tracker", Hud.Build({ layout = "DPS", modules = { "minimap", "auras", "tracker" }, buffs = 16, debuffs = 3 }))
-	local tiles, questsTop, minimapLeft = {}, nil, nil
+	local Lumen = dofile("Tools/render/scenes/_lumen.lua")
+	local _, slot = Lumen.Preset("DPS")
+	local scene = check("auras_tracker", Hud.Build({ layout = "DPS", modules = { "minimap", "auras", "tracker" }, buffs = 16, debuffs = 3, trackerAt = { slot.left + 36, slot.top } }))
+	local tiles, quests, zone = {}, nil, nil
 	for _, item in ipairs(scene.items) do
 		local text = item.kind == "text" and item.text and (item.text:gsub("\226\128\137", ""))
 		if text == "QUESTS" then
-			questsTop = item.rect[2]
+			quests = item.rect
 		end
 		if text == "RIVERGLADES" then
-			minimapLeft = item.rect[1]
+			zone = item.rect
 		end
 		if item.kind == "texture" and item.fileID and item.rect[3] < 40 then
 			tiles[#tiles + 1] = item.rect
 		end
 	end
-	assert(questsTop and minimapLeft, "the scene shows the tracker's caption and the minimap's zone")
+	assert(quests and zone, "the scene shows the tracker's caption and the minimap's zone")
 	assert(#tiles == 19, "sixteen buff tiles and three debuff tiles draw, got " .. #tiles)
+	assert(quests[1] >= slot.left and quests[1] + quests[3] <= slot.left + slot.width and quests[2] >= slot.top, "the tracker's caption sits in the story slot")
 	for _, rect in ipairs(tiles) do
-		assert(rect[2] + rect[4] < questsTop, "every aura tile ends above the tracker's caption")
-		assert(rect[1] + rect[3] <= minimapLeft, "every aura tile sits left of the minimap")
+		assert(rect[2] >= zone[2] + zone[4], "every aura tile sits under the lens's zone line")
+		assert(rect[1] > slot.left + slot.width, "every aura tile stays clear of the story slot")
 	end
 end
 

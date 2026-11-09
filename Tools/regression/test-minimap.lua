@@ -51,7 +51,7 @@ local element = K.Layout.Element("minimap.main")
 assert(element.label == K.Setup.Layouts.Element("minimap.main").label, "the mover plate uses the setup's label")
 assert(element.module == "Minimap", "Layout knows the element belongs to the Minimap module")
 assert(element.opts.resizable and element.opts.aspect, "the minimap resizes in Layout Mode and keeps its proportions")
-assert(holder:GetWidth() == 259 and holder:GetHeight() == 221, "the element fills its footprint at the 1080 reference")
+assert(holder:GetWidth() == 318 and holder:GetHeight() == 326, "the element fills the Lumen lens card's footprint at the 1080 reference")
 
 local minimap = env.Minimap
 local face = Map(ns)

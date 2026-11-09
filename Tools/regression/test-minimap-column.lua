@@ -112,8 +112,9 @@ local holder = face.holder
 M.Resize(holder, 140, 120)
 assert(face.mapArea:GetWidth() <= 120 - Format.HEAD - Format.FOOT + 0.5 and face.mapArea:GetWidth() > 0, "a small element shrinks the lens between head and foot, got " .. tostring(face.mapArea:GetWidth()))
 assert(not zoom:IsShown(), "when the lens is too small for the slider, the slider hides")
-M.Resize(holder, 259, 221)
-assert(zoom:IsShown(), "and comes back with the room")
+local footprint = K.Setup.Layouts.Element("minimap.main")
+M.Resize(holder, footprint.width, footprint.height)
+assert(zoom:IsShown(), "and comes back with the room at the footprint")
 
 K.Options.Write("Minimap", "column.tracking", false)
 assert(not buttons.tracking:IsShown(), "each button can be turned off")

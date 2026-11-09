@@ -130,10 +130,18 @@ for _, name in ipairs(names) do
 			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
+		-- A docked element sits inside its host card; a threat card a layout switches off waits on the damage card's place.
+		local function shares(a, c)
+			if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
+				return true
+			end
+			local threat = a == "meters.threat" and c or (c == "meters.threat" and a)
+			return threat == "meters.damage" and Layouts.Shown(name, "meters.threat") == false
+		end
 		for i = 1, #KEYS do
 			for j = i + 1, #KEYS do
 				local a, c = KEYS[i], KEYS[j]
-				if EXCLUSIVE[a] ~= c and overlap(rects[a], rects[c]) then
+				if EXCLUSIVE[a] ~= c and not shares(a, c) and overlap(rects[a], rects[c]) then
 					error(label .. ": " .. a .. " overlaps " .. c)
 				end
 				local ra, rc = rects[a], rects[c]
@@ -153,8 +161,8 @@ end
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
 local LEFT_RAIL = { "groupframes.party", "groupframes.raid", "chat.main" }
-local RIGHT_STACK = { { "minimap.main" }, { "auras.buffs", "auras.debuffs" }, { "unitframes.boss" }, { "meters.damage" }, { "meters.threat" } }
-local FOOT = { "databars.micro", "databars.strip" }
+local RIGHT_STACK = { "minimap.main", "auras.buffs", "unitframes.boss", "meters.damage", "meters.threat" }
+local DOCKED = { ["auras.debuffs"] = "auras.buffs", ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
 local HANDS = set({
 	"databars.xp", "databars.rep", "databars.honor", "actionbars.bar1", "actionbars.bar2", "actionbars.pet", "actionbars.stance",
 	"unitframes.player", "unitframes.pet", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs",
@@ -167,7 +175,7 @@ local CLEAR = { half = 260, bottom = 390, top = 880 }
 -- zone's edge"): on a 1671-unit screen it reaches into the zone's outer half, never past it.
 local EDGE = set({ "unitframes.focus", "unitframes.focustarget" })
 local RAIL_KEYS = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
-	"unitframes.boss", "meters.damage", "meters.threat", "databars.strip", "databars.micro" })
+	"unitframes.boss", "meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags" })
 
 for _, name in ipairs(names) do
 	local layout = Layouts.Get(name)
@@ -188,41 +196,38 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the 28 margin")
 		end
-		for _, group in ipairs(RIGHT_STACK) do
-			for _, key in ipairs(group) do
-				local r = rect(key)
-				assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail, 318 wide on the 28 margin")
-			end
-		end
-		for _, key in ipairs(FOOT) do
+		for _, key in ipairs(RIGHT_STACK) do
 			local r = rect(key)
-			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail's foot")
+			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail, 318 wide on the 28 margin")
+		end
+		local strip = rect("databars.strip")
+		assert(math.abs(strip.right - (width - MARGIN)) < 1e-6 and strip.w == RAIL and strip.bottom == MARGIN, label .. ": the readout and menu card sits on the right rail's foot")
+		-- Docked: the debuff row in the Blessings card, the menu and the bag bar in the readout card. Each sits inside its
+		-- host, where it stays when the player undocks it.
+		for key, host in pairs(DOCKED) do
+			assert(Layouts.Dock(key) == host, key .. " docks into " .. host)
+			local r, h = rect(key), rect(host)
+			assert(r.left >= h.left and r.right <= h.right + 1e-6 and r.bottom >= h.bottom and r.top <= h.top, label .. ": " .. key .. " sits inside " .. host)
 		end
 		local party, raid, chat = rect("groupframes.party"), rect("groupframes.raid"), rect("chat.main")
 		assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
 		assert(chat.bottom == MARGIN, label .. ": chat sits at the left rail's foot")
 
-		-- The right rail, top to bottom: lens, Blessings, boss, damage, threat; 16 to 22 units between cards.
+		-- The right rail, top to bottom: lens, Blessings, boss, damage, threat (Tank); 16 to 22 units between cards.
 		local top = HEIGHT - MARGIN
-		for i, group in ipairs(RIGHT_STACK) do
-			local head, tail = rect(group[1]), rect(group[#group])
-			if i == 1 then
-				assert(head.top == top, label .. ": the lens card heads the right rail")
-			else
-				local gap = top - head.top
-				assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. group[1] .. " sits 16 to 22 under the card above it, got " .. gap)
+		for i, key in ipairs(RIGHT_STACK) do
+			if Layouts.Shown(name, key) ~= false then
+				local r = rect(key)
+				if i == 1 then
+					assert(r.top == top, label .. ": the lens card heads the right rail")
+				else
+					local gap = top - r.top
+					assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. key .. " sits 16 to 22 under the card above it, got " .. gap)
+				end
+				top = r.bottom
 			end
-			for k = 2, #group do
-				local gap = rect(group[k - 1]).bottom - rect(group[k]).top
-				assert(gap >= 0 and gap <= 8, label .. ": " .. group[k] .. " belongs to the card above it")
-			end
-			top = tail.bottom
 		end
-		local micro, strip = rect("databars.micro"), rect("databars.strip")
-		assert(micro.bottom == MARGIN and strip.bottom == micro.top, label .. ": the readout over the menu is one card at the right rail's foot")
-		local foot = (top - strip.top)
-		assert(foot >= CARD_GAP_MIN, label .. ": the readout and menu card clears the threat card")
-		assert(rect("minimap.main").w == rect("minimap.main").h, label .. ": the lens card is square")
+		assert(top - strip.top >= CARD_GAP_MIN, label .. ": the readout and menu card clears the card above it")
 
 		-- The story slot: the space between the party card and chat, where the player drops the guide and the tracker.
 		local slot = Layouts.Slot(name)
@@ -296,8 +301,9 @@ for _, name in ipairs(names) do
 		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= 4, label .. ": the focus target sits under the focus card")
 	end
 
-	-- Bars 2 to 6 are off in Lumen; bar 1 and the socket rows are on. The threat card shows in Tank only.
-	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
+	-- Bars 2 to 6 are off in Lumen; bar 1 and the socket rows are on. The threat card shows in Tank only. The cast bar
+	-- elements are off: S2's vitals line and sigil carry their cast lines.
+	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "unitframes.castbar.player", "unitframes.castbar.target" }) do
 		assert(Layouts.Shown(name, key) == false, name .. " switches " .. key .. " off")
 	end
 	for _, key in ipairs({ "actionbars.bar1", "actionbars.pet", "actionbars.stance", "unitframes.player", "unitframes.target", "minimap.main", "chat.main" }) do
@@ -315,6 +321,15 @@ for _, name in ipairs(names) do
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
 	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
+	assert(settings["Auras.buffs.rows"] == 1 and settings["Auras.card.docked"] == true, name .. " writes one row of buffs in the Blessings card, the debuffs docked")
+	assert(settings["DataBars.strip.menus"] == true, name .. " docks the menu and the bags in the readout card")
+	-- Apply sizes the meters: six damage rows, or in Tank two damage rows over two threat rows, so the rail fits.
+	local sizes = Layouts.Sizes(name)
+	for key, size in pairs(sizes) do
+		local w, h = Layouts.Footprint(name, key)
+		assert(size.width == w and size.height == h, name .. " writes " .. key .. " at its footprint")
+	end
+	assert(sizes["meters.damage"].height == (name == "Tank" and 98 or 190), name .. ": the damage card's rows")
 	assert(settings["GroupFrames.raid.groupsPerRow"] == 4, name .. " folds the raid into four groups a row, for the rail")
 	local raidW = 4 * settings["GroupFrames.raid.width"] + 3 * 3
 	assert(raidW <= RAIL and raidW >= RAIL - 4, name .. ": four raid groups fill the rail's 318, got " .. raidW)
@@ -335,7 +350,7 @@ do
 	assert(party <= h("Healer", "groupframes.party"), "the Healer party fits its card, got " .. party)
 	local raid = 2 * (5 * healer["GroupFrames.raid.height"] + 4 * 3) + 3
 	assert(raid <= h("Healer", "groupframes.raid"), "the Healer raid fits its card, got " .. raid)
-	assert(Layouts.Shown("Raid", "actionbars.bar1") == nil and Layouts.Settings("Raid") == nil and Layouts.Slot("Raid") == nil, "an unknown layout gives nil")
+	assert(Layouts.Shown("Raid", "actionbars.bar1") == nil and Layouts.Settings("Raid") == nil and Layouts.Slot("Raid") == nil and Layouts.Sizes("Raid") == nil, "an unknown layout gives nil")
 end
 
 -- The HUD reads at one scale, the 38-unit action button (the owner's ruling of 2026-11-08). The essential icons step up
@@ -353,8 +368,7 @@ do
 	end
 end
 
--- Footprints: the 38-unit module for the hands, the Lumen plan for the rails' cards and the centre's two lines -----
--- (handoff/lumen/task_s6.md: vitals 490x76, sigil 640x110, boss card 318x120, every rail card 318 wide).
+-- Footprints: the 38-unit module for the hands and what S2 to S4 shipped for the frames and the rail cards -----------
 local FOOTPRINTS = {
 	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
@@ -379,15 +393,18 @@ local FOOTPRINTS = {
 	["unitframes.focus"] = { 318, 120 },
 	["unitframes.castbar.player"] = { 272, 30 },
 	["unitframes.castbar.target"] = { 220, 24 },
-	["minimap.main"] = { 318, 318 },
-	["auras.buffs"] = { 318, 110 },
-	["auras.debuffs"] = { 318, 48 },
-	["meters.damage"] = { 318, 140 },
-	["meters.threat"] = { 318, 104 },
-	["databars.strip"] = { 318, 46 },
+	-- S4 (#157): the lens card, the Blessings card at one buff row with the debuff row docked, six damage rows, four
+	-- threat rows, the readout with the menu docked (at 318 the bag bar wraps under the micro menu: 118 holds both
+	-- rows, with 3 units for the owner's pixel snapping), the party card. Chat is a 318-unit card at the left rail's foot.
+	["minimap.main"] = { 318, 326 },
+	["auras.buffs"] = { 318, 177 },
+	["auras.debuffs"] = { 318, 63 },
+	["meters.damage"] = { 318, 190 },
+	["meters.threat"] = { 318, 144 },
+	["databars.strip"] = { 318, 118 },
 	["databars.micro"] = { 318, 44 },
-	["chat.main"] = { 318, 364 },
-	["groupframes.party"] = { 318, 240 },
+	["chat.main"] = { 318, 300 },
+	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
 	["databars.xp"] = { 489, 4 },
 	["databars.rep"] = { 162, 5 },
@@ -398,25 +415,9 @@ for key, size in pairs(FOOTPRINTS) do
 	assert(w == size[1] and h == size[2], key .. " is " .. size[1] .. " x " .. size[2] .. " in Lumen, got " .. w .. " x " .. h)
 end
 
--- A Lumen footprint whose module still builds the staging size is a plan the layouts reserve room for, named with the
--- slice that builds it (handoff/lumen/SHAPE.md). Each module builds its element at its footprint (Element), and the
--- layouts place every element by its Lumen footprint (Footprint), so nothing overlaps once the slices land.
+-- Every element builds at its footprint (Element) and the layouts place it there, except a reserve and the sizes a
+-- layout writes on Apply (the Tank meters).
 do
-	local PENDING = {
-		["auras.buffs"] = "S4", ["auras.debuffs"] = "S4", ["minimap.main"] = "S4",
-	}
-	local listed = {}
-	for _, entry in ipairs(Layouts.Pending()) do
-		listed[entry.key] = true
-		assert(PENDING[entry.key] == entry.slice, entry.key .. " waits for " .. tostring(PENDING[entry.key]) .. ", got " .. tostring(entry.slice))
-		local w, h = Layouts.Footprint("DPS", entry.key)
-		assert(w == entry.width and h == entry.height, entry.key .. ": the layouts place it by its Lumen footprint")
-		local e = Layouts.Element(entry.key)
-		assert(e.width ~= w or e.height ~= h, entry.key .. " still builds at the staging size, so it is pending")
-	end
-	for key in pairs(PENDING) do
-		assert(listed[key], key .. " is listed as pending")
-	end
 	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
 	-- hang under its 80-unit frame, so the layouts keep 126 from its top; the boss element holds five 120-unit cards,
 	-- and the right rail keeps one card's room under the Blessings, so a second boss card reaches over the damage card.
@@ -434,9 +435,9 @@ do
 	assert(target.width == 640 and target.height == 80 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
 	assert(boss.width == 318 and boss.height == 5 * 120 + 4 * 10, "the boss element holds five 120-unit cards 10 apart")
 	for _, element in ipairs(Layouts.ELEMENTS) do
-		if not PENDING[element.key] and not RESERVES[element.key] then
+		if not RESERVES[element.key] then
 			local w, h = Layouts.Footprint("DPS", element.key)
-			assert(element.width == w and element.height == h, element.key .. " builds at its Lumen footprint")
+			assert(element.width == w and element.height == h, element.key .. " builds at its DPS footprint")
 		end
 	end
 end

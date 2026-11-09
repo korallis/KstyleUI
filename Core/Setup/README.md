@@ -33,7 +33,7 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
 2. For each element key, the layout's `{ anchor, x, y }`:
    - An element that Layout has registered (`Layout.Get(key)` is not `nil`) moves at once through `Layout.Update(key, position, "setup")`.
    - Every other element, and any that `Layout.Update` refuses, is written into the profile's layout table (`Store.Layout()[key]`). Other fields, such as a size or a shown rule, stay as they are. The modules place these elements after the reload.
-3. For each `{ module, key, value }` in `Layouts.Settings(layout)` whose module loaded and has that setting, `Options.Write(module, key, value)`: bars 2 to 6 off and bar 1 one row, the pet and stance sockets in two rows of five, the threat card on in Tank only, the raid in four groups a row at 77 units wide, and the party and raid row heights (Healer's are larger). Settings of a module that did not load are skipped and counted.
+3. For each `{ module, key, value }` in `Layouts.Settings(layout)` whose module loaded and has that setting, `Options.Write(module, key, value)`: bars 2 to 6 off and bar 1 one row, the pet and stance sockets in two rows of five, the threat card on in Tank only, one row of buffs in the Blessings card with the debuffs docked, the menu and bags docked in the readout card, the raid in four groups a row at 77 units wide, and the party and raid row heights (Healer's are larger). The positions carry `Layouts.Sizes(layout)` too: the meters' heights. Settings of a module that did not load are skipped and counted.
 4. `Options.Write("Layout", "preset", layout)`, so Layout Mode outlines that layout's story slot.
 5. It turns `setupSeen` on and logs the layout, the counts and the modules switched on and off to the devlog.
 
@@ -63,16 +63,18 @@ It returns `false` for an unknown layout, or before the saved data loads.
 DPS, Tank and Healer place every element on the Lumen Rails: two 318-unit rails on a 28-unit margin, the hands at the bottom centre and the target sigil at the top. `test-setup-layouts.lua` holds the rules.
 
 - **Left rail:** the party card (the raid card in a raid) at the top, chat at the foot, and between them the story slot for the RestedXP guide and the quest tracker, which KstyleUI cannot move. The setup's cards and Layout Mode outline the slot.
-- **Right rail:** the lens card, the Blessings (buffs, then debuffs 8 units under), the boss card, the damage card, the threat card (Tank only), and the readout over the menu at the foot. Cards sit 16 to 22 units apart.
+- **Right rail:** the lens card, the Blessings card (one row of buffs, the debuffs docked under them), room for one boss card, the damage card, the threat card (Tank only, under a two-row damage card), and the readout card with the menu docked under it at the foot. Cards sit 16 to 22 units apart.
 - **Centre:** the XP line 52 units up with its caption under it on the 34-unit margin, bar 1 12 units over it, the vitals line 12 over bar 1, the class resource, the essential cooldowns with the utility row and the tracked buffs beside them, the cast bar and the swing timer, then bar 2's place. The pet and stance sockets sit beside bar 1's ends, with the reputation and honour lines under them on the XP line's baseline. The sigil sits 40 units under the top with its cast bar and the target of target under it. The focus card sits at mid-left, beside the left rail. The world between, 520 units wide, stays clear.
 - **Healer** uses the same columns with larger party and raid frames. **Tank** adds the threat card.
 
 | Function | Behaviour |
 | --- | --- |
-| `Footprint(name, key) -> width, height` | The size the layout places the element by: the layout's own size (Healer's group frames), else the Lumen size a slice is still building (`Pending`), else the element's footprint |
+| `Footprint(name, key) -> width, height` | The size the layout places the element by: the layout's own size (Healer's group frames, Tank's meters), else the element's reserve (`Reserves`), else its footprint |
 | `Shown(name, key) -> boolean` | Whether the layout switches the element on |
 | `Settings(name) -> { { module, key, value }, ... }` | The module settings Apply writes |
 | `Slot(name) -> { key, anchor, x, y, width, height, raid, label, hint, raidHint }` | The story slot, as a position with a size. `raid` is how far the raid card, taller than the party card, reaches down into the slot in a raid; a 1080-unit rail has no room to keep them apart. |
-| `Pending() -> { { key, width, height, slice }, ... }` | Elements whose module still builds the staging size; the layouts already reserve their Lumen size. When the named slice lands, the element's footprint becomes that size. |
+| `Sizes(name) -> { [key] = { width, height } }` | The sizes Apply writes through Layout with the positions: the meters' heights (six damage rows, or in Tank two damage rows over two threat rows) |
+| `Dock(key) -> hostKey` | The card a docked element sits in: the debuff row in the Blessings card, the micro menu and the bag bar in the readout card. Not live while docked; its position is inside the host, where it stays when the player undocks it |
+| `Reserves() -> { { key, width, height }, ... }` | The room the layouts keep for an element whose frame is another size: the sigil's 126 (its debuff sockets hang under its 80-unit frame) and the boss card's 120 (the rail has room for one of the five) |
 
 Saved layouts stay as they are until the player applies a layout again. A profile that never stored a position gets the Lumen DPS position from `Layouts.Default`.

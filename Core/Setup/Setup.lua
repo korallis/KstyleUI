@@ -70,6 +70,10 @@ end
 
 local function writeLayout(name)
 	local positions = Layouts.Get(name)
+	for key, size in pairs(Layouts.Sizes(name)) do
+		local position = positions[key]
+		position.width, position.height = size.width, size.height
+	end
 	local stored = ns.Store.Layout()
 	local Layout = ns.Layout
 	local live = Layout and type(Layout.Get) == "function" and type(Layout.Update) == "function"
@@ -92,6 +96,9 @@ local function writeLayout(name)
 				stored[key] = entry
 			end
 			entry.anchor, entry.x, entry.y = position.anchor, position.x, position.y
+			if position.width then
+				entry.width, entry.height = position.width, position.height
+			end
 			saved = saved + 1
 		end
 	end

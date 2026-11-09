@@ -74,7 +74,7 @@ function Lumen.Preset(layout)
 	local slot = Layouts.Slot(layout)
 	local width = HEIGHT * Common.SCREEN.width / Common.SCREEN.height
 	local l, _, r, t = Layouts.Rect(slot, slot, width, HEIGHT)
-	return settings, { left = l, top = HEIGHT - t, width = r - l, height = slot.height }, slot, Layouts.Pending()
+	return settings, { left = l, top = HEIGHT - t, width = r - l, height = slot.height }, slot, Layouts.Sizes(layout)
 end
 
 local function bottomOf(env, frame)
@@ -85,7 +85,7 @@ end
 function Lumen.Build(state, opts)
 	opts = opts or {}
 	local layout = opts.layout or "DPS"
-	local settings, slot, _, pending = Lumen.Preset(layout)
+	local settings, slot, _, sizes = Lumen.Preset(layout)
 	local _, spec = Hud.Class(opts)
 	local damage = {}
 	for i, row in ipairs(Lumen.DAMAGE[state]) do
@@ -108,9 +108,9 @@ function Lumen.Build(state, opts)
 	end
 	base.guideList = GUIDE_LIST
 	base.menus = true
-	base.planned = {}
-	for _, entry in ipairs(pending) do
-		base.planned[entry.key] = { entry.width, entry.height }
+	base.sizes = {}
+	for key, size in pairs(sizes) do
+		base.sizes[key] = { size.width, size.height }
 	end
 	local scenes, log = {}, {}
 	base.guideAt = { slot.left + GUIDE_INSET, slot.top + SLOT_GAP }

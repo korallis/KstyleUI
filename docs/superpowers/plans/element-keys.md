@@ -19,7 +19,7 @@ The first-run setup writes the DPS, Tank or Healer position of each key into the
 
 ## Keys
 
-Footprints are width x height in units at the 1080 reference. A footprint with a Lumen size in brackets is the size the module builds today; the layouts already place the element by the Lumen size (`Setup.Layouts.Footprint`), which the named Lumen slice builds (`Setup.Layouts.Pending()` lists them). When that slice lands, the element's width and height in `Core/Setup/Layouts.lua` become the Lumen size and the bracket goes. A footprint followed by the room the layouts keep is a reserve (`Setup.Layouts.Reserves()`): the element's frame is its footprint, and the layouts place it by the reserve.
+Footprints are width x height in units at the 1080 reference. A footprint followed by the room the layouts keep is a reserve (`Setup.Layouts.Reserves()`): the element's frame is its footprint, and the layouts place it by the reserve.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
@@ -33,7 +33,7 @@ Footprints are width x height in units at the 1080 reference. A footprint with a
 | `unitframes.castbar.player` | UnitFrames | Player cast bar | 272 x 30 | Off under the Lumen style, whose cast line is inside the vitals line. Placed over the essential cooldowns for the classic plate |
 | `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 24 | Off under the Lumen style, whose cast line is on the sigil. Placed 8 units under the sigil's sockets for the classic plate |
 | `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, centred between the vitals line and the essential cooldowns |
-| `groupframes.party` | GroupFrames | Party frames | 318 x 240 | The party card at the head of the left rail: five 40-unit rows with 8-unit gaps, the mockup's pitch. Healer: 318 x 300, five 52-unit rows |
+| `groupframes.party` | GroupFrames | Party frames | 318 x 324 | S4's party card at the head of the left rail: a Party cap, five 40-unit rows with 8-unit gaps (role ring, name, class line, class pill). Healer: 318 x 354, five 46-unit rows |
 | `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row, 12 units over the XP line |
 | `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | Off in Lumen. Placed at the top of the hands, over the swing timer, for a player who turns it on |
@@ -47,18 +47,18 @@ Footprints are width x height in units at the 1080 reference. A footprint with a
 | `cooldowns.utility` | Cooldowns | Utility cooldowns | 170 x 38 | 4 icons of 38 units (the action button's size) with 6-unit gaps, 16 units right of the essential row, bottom-aligned |
 | `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, 16 units left of the essential row, bottom-aligned |
 | `cooldowns.bars` | Cooldowns | Tracked buff bars | 195 x 43 | Two 195 by 20 bars, 8 units over the tracked buff icons |
-| `auras.buffs` | Auras | Buffs | 360 x 102 (Lumen: 318 x 110, S4) | The Blessings card on the right rail, 16 units under the lens card |
-| `auras.debuffs` | Auras | Debuffs | 360 x 51 (Lumen: 318 x 48, S4) | One row under the Blessings, 8 units below, part of the same card |
-| `minimap.main` | Minimap | Minimap | 259 x 221 (Lumen: 318 x 318, S4) | The lens card at the head of the right rail, on the 28-unit margin: a round map in a rounded-top card with the zone and clock in its foot |
-| `chat.main` | Chat | Chat | 318 x 364 | The chat card at the left rail's foot, on the 28-unit margin |
+| `auras.buffs` | Auras | Buffs | 318 x 177 | S4's Blessings card on the right rail, 16 units under the lens card: a cap, one row of six buffs with timers (the layouts write one row), a hairline and the debuff row docked under it. Two buff rows make it 318 x 240 |
+| `auras.debuffs` | Auras | Debuffs | 318 x 63 | Docked in the Blessings card and not live there. Placed at the card's foot, where it stays when the player undocks it |
+| `minimap.main` | Minimap | Minimap | 318 x 326 | S4's lens card at the head of the right rail, on the 28-unit margin: a round lens in a card with the gilt N, the zone and the clock in its foot |
+| `chat.main` | Chat | Chat | 318 x 300 | The chat card at the left rail's foot, on the 28-unit margin, short enough to leave the story slot its room |
 | `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
 | `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
 | `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |
-| `databars.strip` | DataBars | Data strip | 318 x 46 | The readout line: FPS, latency, gold, durability and time, the top of the readout and menu card at the right rail's foot |
-| `databars.micro` | DataBars | Micro menu | 318 x 44 | The menu row, the foot of the readout and menu card, on the 28-unit margin |
-| `databars.bags` | DataBars | Bag bar | 212 x 32 | Beside the right rail's foot, 16 units left of it, over the stance sockets |
-| `meters.damage` | Meters | Damage meter | 318 x 140 | The damage card on the right rail, 16 units under the boss card; it stays lit in combat |
-| `meters.threat` | Meters | Threat meter | 318 x 104 | Under the damage card. Shown in Tank only |
+| `databars.strip` | DataBars | Data strip | 318 x 118 | S4's readout card at the right rail's foot: the readout line, with the micro menu docked under it and the bag bar wrapped under that, which 318 units need, and 3 units for pixel snapping (a card a hair short drops the rows under it) |
+| `databars.micro` | DataBars | Micro menu | 318 x 44 | Docked in the readout card and not live there. Placed at the card's foot |
+| `databars.bags` | DataBars | Bag bar | 212 x 32 | Docked in the readout card and not live there. Placed in the card, over the micro menu's place |
+| `meters.damage` | Meters | Damage meter | 318 x 190 | S4's damage card on the right rail, 16 units under the boss card's room: six rows. Tank: 318 x 98, two rows, which Apply writes |
+| `meters.threat` | Meters | Threat meter | 318 x 144 | Shown in Tank only, under the damage card, at 318 x 98 (two rows), which Apply writes. Off elsewhere, on the damage card's place |
 | `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar over the player cast bar |
 | `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, right of the clear centre |
 | `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, beside the right rail, over the bag bar |

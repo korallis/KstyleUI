@@ -43,6 +43,19 @@ do
 	assert(find(questing, "GENERAL").rect[2] >= slot.top + slot.height, "the chat's tabs sit under the slot")
 end
 
+-- The rails keep their 28-unit margin: nothing on either rail draws past the screen's bottom margin (the readout
+-- card's docked menu rows fall under the card when it is a hair short of their height).
+for _, scene in ipairs({ questing, combat }) do
+	local width = scene.screen.width
+	for _, item in ipairs(scene.items) do
+		local r = item.rect
+		local shadow = item.file and item.file:find("Shadow", 1, true)
+		if r and not shadow and (item.alpha or 1) > 0 and (r[1] >= width - 346 or r[1] + r[3] <= 346) then
+			assert(r[2] + r[4] <= 1080 - 28 + 0.5, scene.state .. ": a " .. item.kind .. " on a rail reaches past the bottom margin: " .. table.concat(r, ", "))
+		end
+	end
+end
+
 -- Out of combat: no target, a party of three, the last fight's three rows, every card at full alpha.
 do
 	assert(not find(questing, "BLOODTALON MATRIARCH") and not find(questing, "RIVERGLADE CROCOLISK"), "no target out of combat")

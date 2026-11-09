@@ -130,19 +130,19 @@ local function tick(env, seconds)
 end
 Hud.Tick = tick
 
--- build(env, opts, extra) -> the scene, with icon IDs resolved as the installed pack shows them. opts.planned
--- ({ [key] = { w, h } }) resizes a free-sized element to a footprint its module will build, to preview the layout.
+-- build(env, opts, extra) -> the scene, with icon IDs resolved as the installed pack shows them. opts.sizes
+-- ({ [key] = { w, h } }) resizes a free-sized element as Layout > Apply does for the layout (the Tank meters).
 -- With opts.combat the environment enters combat first and runs half a second, so the combat calm has faded the
 -- slow cards.
 local function build(env, opts, extra)
 	local K = env.KstyleUI
 	local previewed = {}
-	for key, size in pairs(opts.planned or {}) do
+	for key, size in pairs(opts.sizes or {}) do
 		local el = K and K.Layout and K.Layout.Element and K.Layout.Element(key)
 		if el and el.opts.resizable and not el.opts.aspect then
 			K.Layout.Update(key, { width = size[1], height = size[2] })
 			env.RunTimers()
-			previewed[#previewed + 1] = key .. " at its planned " .. size[1] .. " by " .. size[2]
+			previewed[#previewed + 1] = key .. " at " .. size[1] .. " by " .. size[2]
 		end
 	end
 	table.sort(previewed)
@@ -157,7 +157,7 @@ local function build(env, opts, extra)
 	end
 	local scene = Scene.Build(env, sceneOpts)
 	for _, line in ipairs(previewed) do
-		scene.log[#scene.log + 1] = "previews " .. line .. ", the Lumen footprint its slice builds"
+		scene.log[#scene.log + 1] = "sizes " .. line .. ", as Layout > Apply writes it for the layout"
 	end
 	return scene
 end

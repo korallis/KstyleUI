@@ -72,10 +72,10 @@ do
 	-- all-white strip of ingame-18 read as one flat sentence.
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
-	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, the footprint saved layouts already hold. Its values
-	-- read at the HUD's bar size, 12, each under a smaller caption in a fixed cell: no separators by default.
-	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
-	eq(ns.Strip.view.chrome:Chamfer(), math.min(14, 43 / 2), "the strip's corners round 14 units, the card radius, never more than half its height")
+	-- The Lumen readout card on the right rail's foot: 318 x 118, the readout line with the menu rows docked under it.
+	-- Its values read at the HUD's bar size, 12, in fixed cells: no separators by default.
+	eq(got.width .. "x" .. got.height, "318x118", "the strip takes the Lumen readout card's size")
+	eq(ns.Strip.view.chrome:Chamfer(), math.min(14, 118 / 2), "the strip's corners round 14 units, the card radius, never more than half its height")
 	local s = ns.Settings().strip
 	eq(s.fontSize, 12, "the strip reads at 12 by default")
 	eq(s.spacing, 16, "16 units of room inside each cell")
@@ -89,7 +89,10 @@ do
 	local vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
 	eq(lp .. ">" .. tostring(lrel == item(ns, "fps").value) .. ">" .. lrp, "LEFT>true>RIGHT", "the inline unit follows its value on one line")
 	eq(vp .. ">" .. tostring(vrel == item(ns, "fps").button) .. ">" .. vrp, "CENTER>true>CENTER", "the value sits on the cell's centre line")
-	-- The full labels still stack: a caption over the value.
+	-- The full labels still stack: a caption over the value, on the 492 by 43 strip they were drawn for (the readout
+	-- card's 318 drops captions that cannot fit their cells).
+	assert(K.Layout.Update("databars.strip", { width = 492, height = 43 }))
+	env.RunTimers()
 	K.Options.Write("DataBars", "strip.labels", "full")
 	lp, lrel, lrp = item(ns, "fps").label:GetPoint(1)
 	vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
@@ -222,7 +225,7 @@ do
 
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	local layout = K.Layout.Get("databars.strip")
-	assert(layout.width < 492 and layout.height > 43, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
+	assert(layout.width < 318 and layout.height > 118, "a column strip turns narrower and taller: " .. layout.width .. "x" .. layout.height)
 	local first, second = item(ns, "fps").button, item(ns, "latency").button
 	local _, _, _, x1, y1 = first:GetPoint(1)
 	local _, _, _, _, y2 = second:GetPoint(1)
@@ -233,14 +236,14 @@ do
 	assert(math.abs(layout.height - K.Widgets.Snap(ns.Strip.view.frame, rows * 13 * 1.8 + 2 * inset)) < 1.01, "the column is its rows plus one inset above and below, got " .. layout.height)
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "492x43", "a row strip returns to its footprint")
+	eq(layout.width .. "x" .. layout.height, "318x118", "a row strip returns to its footprint")
 	for i = 2, 5 do
 		Options.Write("DataBars", "strip.slot" .. i, "none")
 	end
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "492x43", "a one-item column also returns to the row footprint")
+	eq(layout.width .. "x" .. layout.height, "318x118", "a one-item column also returns to the row footprint")
 	noErrors(env, K)
 end
 
@@ -279,6 +282,10 @@ end
 do
 	local env, K, ns, game = D.New()
 	local Options = K.Options
+	-- The cells and captions below are measured at the 492 by 43 strip they were drawn for; the Lumen readout card is
+	-- 318 by 118.
+	assert(K.Layout.Update("databars.strip", { width = 492, height = 43 }))
+	env.RunTimers()
 	local before = Cells(ns)
 	assert(Inside(ns), "every cell sits inside the glass")
 	local _, goldWidth = Cell(ns, "gold")

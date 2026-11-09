@@ -30,6 +30,10 @@ local env, K, ns = D.New({
 })
 K.Modules.Enable("DataBars")
 env.RunTimers()
+-- The Lumen layouts give the readout card 318 by 118; these checks start from the 492 by 43 strip line they were drawn
+-- on, where the card grows upward for the menu row, and come to a full-height card below.
+assert(K.Layout.Update("databars.strip", { width = 492, height = 43 }))
+env.RunTimers()
 local Options = K.Options
 
 -- Inline units: the value reads first, the unit follows on the same line in the muted text grey.
