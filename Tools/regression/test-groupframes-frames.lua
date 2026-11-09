@@ -149,6 +149,11 @@ party[1].class = "PRIEST"
 env.FireEvent("UNIT_NAME_UPDATE", "party1")
 eq(content("party1").name:GetText(), "Vexen", "a name update reaches the frame")
 
+-- Memory (carry, round 3): the checks from here on read state, not the call log, so the stubs stop recording
+-- calls (the documented perf mode). Under Lua 5.1 the log of eight raid headers' re-applies peaked near 3.8 GB.
+-- The roster burst below reads health calls, so it turns the log back on for its own frame.
+env.SetQuiet(true)
+
 -- Raid: the party header hides, eight group headers fill in.
 G.SetRoster(env, "raid", G.Members(12, function(i, m)
 	m.role = i == 7 and "TANK" or (i == 3 and "HEALER" or "DAMAGER")
@@ -249,6 +254,7 @@ local function paints(frame)
 	end
 	return n
 end
+env.SetQuiet(false)
 local first = Button.Content(children(Headers.raid[1])[1])
 local painted = paints(first)
 env.FireEvent("GROUP_ROSTER_UPDATE")

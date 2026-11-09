@@ -285,8 +285,8 @@ function Slots.Placements(f)
 				taken[#taken + 1] = spot
 				local hs, vs = Share(point)
 				place.size, place.fits = size, true
-				place.x = Widgets.Snap(f, spot.left + hs * size - hs * w)
-				place.y = -Widgets.Snap(f, spot.top + vs * size - vs * h)
+				place.x = spot.left + hs * size - hs * w
+				place.y = -(spot.top + vs * size - vs * h)
 			end
 		end
 		out[i] = place

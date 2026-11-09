@@ -1,6 +1,6 @@
 -- gallery_groupframes.lua: the group frames in a representative state, each cropped as one frame of the gallery:
 -- a five-player party on the secure party header (the player first; a tank leader with aggro, incoming heals and
--- two debuffs; a healer; a dead shaman; a mage with the skull marker), a close crop of the tank's frame, a raid of
+-- two debuffs; a healer; a dead shaman; a mage with the star marker), a close crop of the tank's frame, a raid of
 -- twenty in four groups on the raid headers (in a second environment, since a roster is a party or a raid), with
 -- the missing health, your heals over time, a shield, a debuff and a Magic dispel highlight as a healer sees them,
 -- and the options page's live preview with its sample party and raid frames.
@@ -16,7 +16,7 @@ local PARTY = {
 	{ name = "Thaldren", class = "WARRIOR", health = 30100, maxHealth = MAX, power = 35, maxPower = 100, powerType = "RAGE", role = "TANK", leader = true, threat = 3, incoming = 5000, absorb = 2500, healAbsorb = 6200 },
 	{ name = "Sylaen", class = "DRUID", health = 36400, maxHealth = MAX, power = 80, maxPower = 100, role = "HEALER" },
 	{ name = "Kragar", class = "SHAMAN", health = 0, maxHealth = MAX, power = 0, maxPower = 100, dead = true, role = "DAMAGER" },
-	{ name = "Lunara", class = "MAGE", health = 26800, maxHealth = MAX, power = 90, maxPower = 100, role = "DAMAGER", marker = 8 },
+	{ name = "Lunara", class = "MAGE", health = 26800, maxHealth = MAX, power = 90, maxPower = 100, role = "DAMAGER", marker = 1 },
 }
 -- The role and leader icons are Blizzard atlases and the raid marker a cell of Blizzard's marker sheet, drawn from
 -- the texture cache Tools/render/atlas.py builds (a grey box, and a log line, when the cache lacks them).
@@ -245,13 +245,13 @@ return Common.Run(function()
 	local tiles = { tank.auraClip, tank.auraClip }
 	frames:Add(env, tank, {
 		name = "groupframes_unit", title = "Party unit", grade = "panel", reference = "nameplate",
-		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, a heal absorb eating back from the fill's end in red, an external defensive indicator, five of your heals with a + for the two the bar cannot hold, the threat glow, and eight debuffs of which the three cells to its right show the dispellable one (washed in the Magic colour) and the two boss debuffs, with a + for the rest; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
+		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, a heal absorb eating back from the fill's end in red, an external defensive indicator on the bar, five of your heals in their lane after the pill with a + for the two it cannot hold, the threat glow, and eight debuffs of which the six cells to its right show the dispellable one (washed in the Magic colour), the two boss debuffs and three others, with a + for the rest; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow as the mockup's nameplate frame; the aura tiles are the button grade as the mockup's buff icons, with the class accent rim.",
 		rect = Gallery.Union(env, { tank, tiles[1], tiles[2] }),
 	})
 	frames:Add(env, ns.Headers.holders.party, {
 		name = "groupframes_party", title = "Party frames", grade = "panel", reference = "nameplate",
-		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro, eight debuffs (three shown, a + for the rest, all inside the card), five heals and a heal absorb, a healer, a dead shaman reading Dead with a dimmed name, and a mage with the skull marker on the frame's top edge; each member's role icon and the tank's leader crown are Blizzard atlases and the skull a cell of Blizzard's marker sheet, all from the texture cache.",
+		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro, eight debuffs (six shown in two rows, a + for the rest in the colour of the first hidden category, all inside the card), five heals in their lane after the health pill with a + for the two that do not fit, the external defensive on the bar, a heal absorb, a healer, a dead shaman reading Dead with a dimmed name, and a mage with the star marker in the name row (a skull there read as a second dead state); each member's role icon and the tank's leader crown are Blizzard atlases and the star a cell of Blizzard's marker sheet, all from the texture cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow on each tile as the mockup's nameplate frame.",
 		rect = Gallery.Union(env, { ns.Headers.holders.party, tiles[1], tiles[2] }),
 	})
