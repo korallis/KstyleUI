@@ -31,7 +31,7 @@ Selling junk is one feature, in Bags: **Sell junk by itself** on the Bags page, 
 
 - Never loot, repair, accept or turn in anything the game asks the player to confirm: a PvP quest, a reward choice, a turn-in that costs money, a bind-on-pickup item.
 - Never compare a secret. Every value the helpers test goes through `ns.True` or `ns.Number`, which treat a secret as "no".
-- The camera CVar is written only out of combat, through `KstyleUI.Combat.Queue`. The player's value is kept per character in the account table `qolCamera`, as `{ original, written }`. Turning the helper or the module off puts it back when the CVar still holds what KstyleUI wrote; `Core/CVars.lua` does the same at login on a character whose QoL module is off.
+- The camera CVar is written only out of combat, through `KstyleUI.Combat.Queue`, and only once the character's CVars have loaded (`VARIABLES_LOADED`, or `KstyleUI.CVars.Loaded()` when the module starts later). Before that the CVar can read a stand-in value, and taking it as the player's would lose their own. The player's value is kept per character in the account table `qolCamera`, as `{ original, written }`. Turning the helper or the module off puts it back when the CVar still holds what KstyleUI wrote; `Core/CVars.lua` does the same at login on a character whose QoL module is off.
 - At load the module only registers itself. It registers events only in `Enable`, and installs no hooks and no frames.
 
 ## Not built

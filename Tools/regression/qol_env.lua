@@ -202,6 +202,8 @@ end
 
 -- New(opts) -> env, KstyleUI, the module's addon table. opts: the widget_env options (saved, width,
 -- height and so on); opts.setup(env) runs after the stand-ins are installed and before any file loads.
+-- VARIABLES_LOADED fires after the files load, as the game sends it once the character's CVars are in;
+-- opts.variables = false holds it back so a test can fire it later.
 function Q.New(opts)
 	opts = opts or {}
 	local wanted = {}
@@ -216,6 +218,10 @@ function Q.New(opts)
 	end
 	local env, K = W.New(wanted)
 	Load(Q.Files(), env)
+	if opts.variables ~= false and opts.boot ~= false then
+		env.FireEvent("VARIABLES_LOADED")
+		env.RunTimers()
+	end
 	return env, K, env._addons.KstyleUI_QoL
 end
 

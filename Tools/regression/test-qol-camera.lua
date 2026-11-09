@@ -82,6 +82,39 @@ do
 	assert(env._cvars[CVAR] == "1.500000", "a value the player set later is kept")
 end
 
+-- Login: the character's CVars arrive with VARIABLES_LOADED, which can come after the module starts. Until then
+-- the CVar holds a stand-in value, so nothing is written and the player's remembered value is kept.
+do
+	local env, K = Q.New({ variables = false, setup = function(env)
+		env._cvars[CVAR] = "1.9"
+	end })
+	local key = K.Store.CharacterKey()
+	K.Store.Account().qolCamera = { [key] = { original = "1.2", written = "2.000000" } }
+	Q.Enable(env, K)
+	assert(Writes(env) == "", "nothing is written before the character's CVars load, got " .. Writes(env))
+	assert(K.Store.Account().qolCamera[key].original == "1.2", "the remembered value is kept before the CVars load")
+	env._cvars[CVAR] = "2.000000"
+	env.FireEvent("VARIABLES_LOADED")
+	env.RunTimers()
+	assert(K.Store.Account().qolCamera[key].original == "1.2", "the remembered value survives the load")
+	Q.Disable(env, K)
+	assert(tonumber(env._cvars[CVAR]) == 1.2, "turning the module off puts the player's own value back, got " .. tostring(env._cvars[CVAR]))
+end
+
+-- Turning it off before the CVars load keeps the record for later, when the value can be compared.
+do
+	local env, K = Q.New({ variables = false })
+	local key = K.Store.CharacterKey()
+	K.Store.Account().qolCamera = { [key] = { original = "1.2", written = "2.000000" } }
+	Q.Enable(env, K)
+	Q.Write(env, K, "maxCamera", false)
+	assert(K.Store.Account().qolCamera[key] ~= nil, "the record waits for the CVars to load")
+	env._cvars[CVAR] = "2.000000"
+	env.FireEvent("VARIABLES_LOADED")
+	env.RunTimers()
+	assert(tonumber(env._cvars[CVAR]) == 1.2, "then the player's value comes back")
+end
+
 -- The login sweep puts the value back on a character whose QoL module is off, as it does for Chat's timestamps.
 do
 	local cvars = assert(io.open("Core/CVars.lua", "rb")):read("*a")

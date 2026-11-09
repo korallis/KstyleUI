@@ -1,4 +1,4 @@
--- CVars.lua: once per login, after the modules start and the character's CVars load, puts back the player's own value of each CVar a module hid and still holds KstyleUI's value, when that module is off on this character.
+-- CVars.lua: whether the character's CVars have loaded (Loaded), and once per login, after the modules start and the character's CVars load, puts back the player's own value of each CVar a module hid and still holds KstyleUI's value, when that module is off on this character.
 local _, ns = ...
 
 local OWNER, SHARED = "CVars", "*"
@@ -11,6 +11,12 @@ local MEMORIES = {
 
 local seen = {}
 local logged = {}
+
+ns.CVars = {}
+
+function ns.CVars.Loaded()
+	return seen.VARIABLES_LOADED == true
+end
 
 local function LogOnce(key, message)
 	if not logged[key] then

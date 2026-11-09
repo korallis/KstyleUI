@@ -1,4 +1,4 @@
--- Camera.lua: max camera distance, which writes Forever's own slider maximum to cameraDistanceMaxZoomFactor out of combat and keeps the player's value per character, so turning it off, or the core's login sweep with the module off, puts that value back.
+-- Camera.lua: max camera distance, which writes Forever's own slider maximum to cameraDistanceMaxZoomFactor out of combat and only once the character's CVars have loaded, and keeps the player's value per character, so turning it off, or the core's login sweep with the module off, puts that value back.
 local _, ns = ...
 
 local K = ns.K
@@ -89,8 +89,17 @@ local function Restore()
 	all[key] = nil
 end
 
+local variablesLoaded = false
+
+local function Loaded()
+	return variablesLoaded or (K.CVars ~= nil and K.CVars.Loaded())
+end
+
 local function Sync()
 	K.Combat.Queue(function()
+		if not Loaded() then
+			return
+		end
 		if ns.running and ns.Get("maxCamera") then
 			Apply()
 		else
@@ -101,7 +110,12 @@ end
 
 ns.AddPart({
 	name = "camera",
-	events = { VARIABLES_LOADED = Sync },
+	events = {
+		VARIABLES_LOADED = function()
+			variablesLoaded = true
+			Sync()
+		end,
+	},
 	Start = Sync,
 	Stop = Sync,
 	Setting = function(key)
