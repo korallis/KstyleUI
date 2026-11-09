@@ -74,7 +74,7 @@ do
 	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, the footprint saved layouts already hold. Its values
 	-- read at the HUD's bar size, 12, each under a smaller caption in a fixed cell: no separators by default.
 	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
-	eq(ns.Strip.view.chrome:Chamfer(), math.min(12, 0.3 * 43), "the strip's ends cut 30% of its height, the shared rule (the mockup cuts its 30-unit strip 11)")
+	eq(ns.Strip.view.chrome:Chamfer(), math.min(14, 43 / 2), "the strip's corners round 14 units, the card radius, never more than half its height")
 	local s = ns.Settings().strip
 	eq(s.fontSize, 12, "the strip reads at 12 by default")
 	eq(s.spacing, 16, "16 units of room inside each cell")

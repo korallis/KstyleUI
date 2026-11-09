@@ -28,21 +28,43 @@ from typing import Callable, Optional
 ROOT = Path(__file__).resolve().parents[2]
 SUPERSAMPLE = 4
 DRAWN = "2026-11-07"
+LUMEN_DRAWN = "2026-11-09"
 
-# Chamfers and bevels are drawn at 4 texels per root unit, so an 8-unit chamfer is 32 texels. The
-# shadow is soft, so 2 texels per unit is enough.
+# Rounded corners are drawn at 4 texels per root unit, so the 14-unit radius is 56 texels. The shadow is
+# soft, so 2 texels per unit is enough.
 TEXELS_PER_UNIT = 4
 SHADOW_TEXELS_PER_UNIT = 2
-PANEL_CHAMFER, TILE_CHAMFER, WINDOW_CHAMFER = 8, 3.5, 12  # root units, measured from the design file
-# The bevel lines are drawn in code: straight pieces are solid textures, and each corner maps the
-# opaque row of Line.png (row 1 of 4) onto the chamfer's diagonal, so a line is one border thick on
-# every screen whatever the chamfer measures in pixels.
-LINE_BAND = (0.25, 0.5)
 SHADOW_REACH = 6  # root units the shadow reaches past the panel edge
 GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bottom
-ICON_SIZE = 34  # root units: an action button at the 1080 reference
-PORTRAIT_CHAMFER = 0.15  # share of the portrait's side, measured on the design file (10 units on 68)
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
+# Lumen glass, from the mockup's .lg rule (~/.local/share/kstyleui-handoff/arena2/parent/index.html), drawn on a
+# 1080-unit board, so one CSS pixel is one root unit. Cards, rails and windows round their corners 14 units; sockets
+# and small tiles 8. The rim is the mockup's 1 px edge, 0.75 units here (3 texels), so it reads as one pixel on the
+# owner's 1.426 px-per-unit screen; it is full strength along the top and at the rim-soft share (18 of 55) on the
+# sides and bottom, easing between them around the top corners.
+LUMEN_RADIUS, LUMEN_TILE_RADIUS = 14, 8
+RIM_TEXELS = 3
+RIM_SOFT = 0.18 / 0.55
+# The frost: the mockup's gradient from glass-hi (22%) at the top through glass (13%) at 40% to 10% at the bottom,
+# as a share of the top, in the three bands a nine-slice stretches: the top corner rows, the stretched middle and
+# the bottom corner rows.
+FROST_STOPS = (1.0, 0.75, 0.5, 0.45)
+# The gilt filament: the mockup's 18-unit L of a 1.5-unit gold line rounded 14 units, set 1 unit outside the card's
+# corner. The texture covers 20 units from that outside corner at 6.4 texels per unit; the legs fade over their
+# last 3 units so the filament ends in a tip.
+GILT_UNITS, GILT_SIZE, GILT_ARM, GILT_LINE, GILT_FADE = 20, 128, 18, 1.5, 3
+# The gem: the mockup's 7-unit square turned 45 degrees, its four facets lit from the top left, in a 6-unit halo.
+GEM_UNITS, GEM_SIZE, GEM_SIDE, GEM_HALO = 16, 64, 7, 6
+GEM_FACETS = (1.0, 0.78, 0.62, 0.45)  # top-left, top-right, bottom-left, bottom-right facet levels
+GEM_HALO_ALPHA = 0.5
+# The icon in a socket: the mockup's 44-unit icon rounded 8 units, as a share of the side (masks stretch).
+ICON_RADIUS_SHARE = 8 / 44
+# The card's shadow: the mockup's soft drop shadow under a rounded card, reaching 14 units and dropping 3, from a
+# shape rounded 6 units and blurred with a 3.5-unit Gaussian. The tighter shape and blur keep the corner's falloff
+# inside the corner pieces, so the stretched edges stay even. As a CSS box shadow, it is never drawn under the card:
+# the card's own 14-unit rounded shape is cut out, so translucent glass shows the world through it, not its shadow.
+LUMEN_SHADOW_REACH, LUMEN_SHADOW_DROP, LUMEN_SHADOW_RADIUS, LUMEN_SHADOW_BLUR = 14, 3, 6, 3.5
+SHEEN_REACH = 0.55  # the bar sheen fades from the top to nothing 55% of the way down, as the mockup's .bar i
 # The minimap's mask. The map fills KstyleUI_Minimap's frame to just inside its bevel line: on the mockup's 221-unit
 # frame with its 12-unit chamfer the map sits 2 units in (the dark line, the light line and the fade row), so the
 # mask cuts 8 of the map's 217 units. The game stretches the mask over the map, so the cut is a share of the side;
@@ -61,14 +83,19 @@ GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units 
 
 
 # Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner and
-# draws at the chamfer's size in units, snapped to whole pixels. Between the margins every row and
-# column is the same, so stretching the edges and centre distorts nothing.
+# draws at the corner radius in units, snapped to whole pixels. Between the margins every column is the
+# same, and so is every row except in LumenFrost, whose rows hold its vertical gradient, so stretching the
+# edges and centre distorts nothing.
 SLICE = {
-    "ChamferPanel": int(PANEL_CHAMFER * TEXELS_PER_UNIT),
-    "ChamferTile": int(TILE_CHAMFER * TEXELS_PER_UNIT),
-    "ChamferWindow": int(WINDOW_CHAMFER * TEXELS_PER_UNIT),
+    "LumenShape": LUMEN_RADIUS * TEXELS_PER_UNIT,
+    "LumenFrost": LUMEN_RADIUS * TEXELS_PER_UNIT,
+    "LumenRim": LUMEN_RADIUS * TEXELS_PER_UNIT,
+    "LumenRimSmall": LUMEN_TILE_RADIUS * TEXELS_PER_UNIT,
+    "LumenOutline": LUMEN_TILE_RADIUS * TEXELS_PER_UNIT,
     "Shadow": 2 * SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
+    "LumenShadow": 2 * LUMEN_SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
 }
+VERTICAL_GRADIENT = {"LumenFrost"}
 
 # The logo's colours, in sRGB. They match the design tokens surface, textEmphasis and the kit's
 # hunter accent in docs/design/mockups/05_kit_hunter.jpg. The logo is a fixed asset: the game
@@ -351,10 +378,179 @@ def draw_chamfer(size, legs):
     return white(sample_spans(size, size, shape_spans(chamfered_rect(size, size, legs))))
 
 
-def draw_line(size):
-    """One opaque row, LINE_BAND of the height, between clear rows, so CLAMP sampling outside the band is clear."""
-    lo, hi = LINE_BAND
-    return white([1.0 if lo <= (y + 0.5) / size < hi else 0.0 for y in range(size) for _ in range(size)])
+def rounded_spans(x0, y0, x1, y1, radius):
+    """Spans of a rectangle with each corner rounded to `radius`."""
+    def spans(y):
+        if y < y0 or y > y1:
+            return []
+        dy = max(0.0, y0 + radius - y, y - (y1 - radius))
+        if dy > radius:
+            return []
+        dx = radius - math.sqrt(max(0.0, radius * radius - dy * dy))
+        return [(x0 + dx, x1 - dx)]
+
+    return spans
+
+
+def ring_spans(outer, inner):
+    """Spans inside `outer` and outside `inner`, each a spans(y) function of a convex shape."""
+    eps = 1e-9
+
+    def spans(y):
+        a = outer(y)
+        if not a:
+            return []
+        b = inner(y)
+        if not b:
+            return a
+        (al, ar), (bl, br) = a[0], b[0]
+        out = []
+        if bl > al:
+            out.append((al, bl - eps))
+        if br < ar:
+            out.append((br + eps, ar))
+        return out
+
+    return spans
+
+
+def draw_rounded(size, radius):
+    return white(sample_spans(size, size, rounded_spans(0, 0, size, size, radius)))
+
+
+def frost_level(y, size, margin):
+    """The frost's alpha share on row y: falling through the top corner rows, the middle and the bottom rows."""
+    top, upper, lower, bottom = FROST_STOPS
+    if y <= margin:
+        return top + (upper - top) * y / margin
+    if y >= size - margin:
+        return lower + (bottom - lower) * (y - (size - margin)) / margin
+    return upper + (lower - upper) * (y - margin) / (size - 2 * margin)
+
+
+def draw_frost(size, radius):
+    """The rounded shape with the frost gradient in its alpha. Columns between the margins are the same."""
+    coverage = sample_spans(size, size, rounded_spans(0, 0, size, size, radius))
+    levels = sample_rows(size, size, lambda y: frost_level(y, size, radius))
+    return white([c * v for c, v in zip(coverage, levels)])
+
+
+def rim_level(y, radius, soft=RIM_SOFT):
+    """Full strength on the top edge, easing to `soft` where the top corners meet the sides."""
+    return soft + (1 - soft) * (1 - smoothstep(0, radius, y))
+
+
+def draw_rim(size, radius, line=RIM_TEXELS, soft=RIM_SOFT):
+    """A line `line` texels wide just inside the rounded shape's edge, brighter along the top unless `soft` is 1."""
+    outer = rounded_spans(0, 0, size, size, radius)
+    inner = rounded_spans(line, line, size - line, size - line, radius - line)
+    coverage = sample_spans(size, size, ring_spans(outer, inner))
+    levels = sample_rows(size, size, lambda y: rim_level(y, radius, soft))
+    return white([c * v for c, v in zip(coverage, levels)])
+
+
+def draw_gilt(size):
+    """The gilt filament for the top left corner: a quarter circle and two legs that fade to a tip.
+
+    The texture's top left is one unit outside the card's corner, as the mockup sets its filament.
+    """
+    per = size / GILT_UNITS
+    radius, line, arm, fade = LUMEN_RADIUS * per, GILT_LINE * per, GILT_ARM * per, GILT_FADE * per
+
+    def fn(x, y):
+        if x < radius and y < radius:
+            d = math.hypot(radius - x, radius - y)
+            return 1.0 if radius - line <= d <= radius else 0.0
+        if y < line and radius <= x <= arm:
+            return 1.0 - smoothstep(arm - fade, arm, x)
+        if x < line and radius <= y <= arm:
+            return 1.0 - smoothstep(arm - fade, arm, y)
+        return 0.0
+
+    return white(sample(size, size, fn))
+
+
+def draw_gem(size):
+    """A square turned 45 degrees with four facets lit from the top left, in a soft halo."""
+    per = size / GEM_UNITS
+    c = size / 2
+    reach = GEM_SIDE * per / math.sqrt(2)
+    halo = GEM_HALO * per
+    tl, tr, bl, br = GEM_FACETS
+
+    def inside(x, y):
+        return abs(x - c) + abs(y - c) <= reach
+
+    def level(x, y):
+        if not inside(x, y):
+            return 1.0
+        dx, dy = x - c, y - c
+        if dx <= 0 and dy <= 0:
+            return tl
+        if dx > 0 and dy <= 0:
+            return tr
+        if dx <= 0:
+            return bl
+        return br
+
+    def alpha(x, y):
+        d = abs(x - c) + abs(y - c) - reach
+        if d <= 0:
+            return 1.0
+        if d >= halo:
+            return 0.0
+        return GEM_HALO_ALPHA * (1 - d / halo) ** 2
+
+    return shaded(sample(size, size, level), sample(size, size, alpha))
+
+
+def draw_pill_rim(width, height, line):
+    """The capsule's edge, `line` texels wide. Every column between the caps is the same."""
+    radius = height / 2 - 1
+    cy = height / 2
+    left, right = PILL_CAP, width - PILL_CAP
+
+    def fn(x, y):
+        cx = min(max(x, left), right)
+        return 1.0 if radius - line <= math.hypot(x - cx, y - cy) <= radius else 0.0
+
+    return white(sample(width, height, fn))
+
+
+def draw_cap_mask(size, side):
+    """A mask that rounds one end of a bar fill: a half disc on `side` and solid on the other half."""
+    c = size / 2
+
+    def fn(x, y):
+        if (side == "left" and x >= c) or (side == "right" and x <= c):
+            return 1.0
+        return 1.0 if math.hypot(x - c, y - c) <= c else 0.0
+
+    return white(sample(size, size, fn))
+
+
+def draw_sheen(width, height):
+    """White fading from the top row to nothing SHEEN_REACH of the way down."""
+    return white(sample_rows(width, height, lambda y: 1 - smoothstep(0, SHEEN_REACH, y / height)))
+
+
+def draw_disc(size):
+    """A filled disc that touches the texture's edges, for a round mask."""
+    c = size / 2
+
+    def spans(y):
+        dy = abs(y - c)
+        if dy > c:
+            return []
+        dx = math.sqrt(c * c - dy * dy)
+        return [(c - dx, c + dx)]
+
+    return white(sample_spans(size, size, spans))
+
+
+def draw_rule(width, height):
+    """A line that fades out from its left end to its right."""
+    return white(sample_columns(width, height, lambda x: 1 - smoothstep(0, 1, x / width)))
 
 
 def draw_shadow(size):
@@ -372,6 +568,42 @@ def draw_shadow(size):
     peak = max(axis)
     axis = [v / peak for v in axis]
     return white([axis[px] * axis[py] for py in range(size) for px in range(size)])
+
+
+def gaussian_blur(values, size, sigma):
+    """A separable Gaussian blur of a size x size grid, clamping at the edges."""
+    reach = int(3 * sigma) + 1
+    kernel = [math.exp(-(i * i) / (2 * sigma * sigma)) for i in range(-reach, reach + 1)]
+    total = sum(kernel)
+    kernel = [k / total for k in kernel]
+    rows = []
+    for y in range(size):
+        row = values[y * size : (y + 1) * size]
+        rows.append([sum(kernel[j] * row[min(size - 1, max(0, x + j - reach))] for j in range(len(kernel))) for x in range(size)])
+    out = [0.0] * (size * size)
+    for x in range(size):
+        column = [rows[y][x] for y in range(size)]
+        for y in range(size):
+            out[y * size + x] = sum(kernel[j] * column[min(size - 1, max(0, y + j - reach))] for j in range(len(kernel)))
+    return out
+
+
+def draw_lumen_shadow(size):
+    """A blurred rounded shape dropped LUMEN_SHADOW_DROP units, with the card itself cut out.
+
+    The card's edges sit in the middle of each corner piece, LUMEN_SHADOW_REACH units in from the texture's edge.
+    """
+    per = SHADOW_TEXELS_PER_UNIT
+    edge = SLICE["LumenShadow"] / 2
+    radius, drop = LUMEN_RADIUS * per, LUMEN_SHADOW_DROP * per
+    blob = LUMEN_SHADOW_RADIUS * per
+    sigma = LUMEN_SHADOW_BLUR * per
+    lo, hi = edge, size - edge
+    dropped = sample_spans(size, size, rounded_spans(lo, lo + drop, hi, hi + drop, blob))
+    blurred = gaussian_blur(dropped, size, sigma)
+    peak = blurred[(size // 2) * size + size // 2]
+    card = sample_spans(size, size, rounded_spans(lo, lo, hi, hi, radius))
+    return white([min(1.0, v / peak) * (1 - c) for v, c in zip(blurred, card)])
 
 
 def draw_glow(size):
@@ -566,6 +798,7 @@ class Asset:
     about: str
     settings: str = "4x4 supersampled"
     slice: Optional[int] = None
+    drawn: str = DRAWN
 
     @property
     def name(self):
@@ -573,26 +806,55 @@ class Asset:
 
 
 def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
-    return Asset(f"Media/Textures/{name}.png", width, height, draw, about, settings, SLICE.get(name))
+    drawn = LUMEN_DRAWN if name in LUMEN_ASSETS else DRAWN
+    return Asset(f"Media/Textures/{name}.png", width, height, draw, about, settings, SLICE.get(name), drawn)
+
+
+LUMEN_ASSETS = {
+    "LumenShape", "LumenFrost", "LumenRim", "LumenRimSmall", "LumenOutline", "LumenGilt", "LumenGem", "PillRim", "PillCapLeft",
+    "PillCapRight", "BarSheen", "LensMask", "SocketMask", "RuleFade", "LumenShadow",
+}
 
 
 ASSETS = [
-    _texture("ChamferPanel", 128, 128, lambda: draw_chamfer(128, SLICE["ChamferPanel"]),
-             "Panel shape with 8-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
-    _texture("ChamferTile", 32, 32, lambda: draw_chamfer(32, SLICE["ChamferTile"]),
-             "Tile and button shape with 3.5-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
-    _texture("ChamferWindow", 128, 128, lambda: draw_chamfer(128, SLICE["ChamferWindow"]),
-             "Window shape with 12-unit chamfers at 4 texels per unit. Nine-slice fill or mask."),
-    _texture("Line", 4, 4, lambda: draw_line(4),
-             "Line strip for the bevel corners: one opaque row (rows 1 of 4) between clear rows, mapped onto each chamfer's diagonal.",
-             "solid"),
-    _texture("ChamferIconMask", 128, 128, lambda: draw_chamfer(128, 128 * 3 / ICON_SIZE),
-             "Square mask for icons and portraits: a 3-unit chamfer on a 34-unit square."),
-    _texture("ChamferPortraitMask", 128, 128, lambda: draw_chamfer(128, 128 * PORTRAIT_CHAMFER),
-             "Square mask for the unit frames' chamfered portrait: the cut is 15% of the side, the design file's 10 units on 68."),
+    _texture("LumenShape", 128, 128, lambda: draw_rounded(128, SLICE["LumenShape"]),
+             "Lumen card shape: a square with 14-unit round corners at 4 texels per unit. Nine-slice fill for the deep tint, the socket body and the dispel tint, or a mask."),
+    _texture("LumenFrost", 128, 128, lambda: draw_frost(128, SLICE["LumenFrost"]),
+             "Lumen frost: the card shape with the mockup's vertical frost gradient baked into its alpha, falling from full at the top to 75% where the top corners end, 50% where the bottom corners start and 45% at the bottom. Nine-slice; tinted with the glass token.",
+             "4x4 supersampled; columns between the margins match, rows hold the gradient"),
+    _texture("LumenRim", 128, 128, lambda: draw_rim(128, SLICE["LumenRim"]),
+             "Lumen rim for 14-unit corners: a 0.75-unit line just inside the card's edge, full strength along the top, 33% on the sides and bottom (the mockup's 18% rim-soft under its 55% top light), easing around the top corners. Nine-slice."),
+    _texture("LumenRimSmall", 128, 128, lambda: draw_rim(128, SLICE["LumenRimSmall"]),
+             "Lumen rim for 8-unit corners (sockets and small tiles): the same 0.75-unit line and top light on the smaller radius. Nine-slice."),
+    _texture("LumenOutline", 128, 128, lambda: draw_rim(128, SLICE["LumenOutline"], soft=1.0),
+             "Even outline for 8-unit corners: the rim's 0.75-unit line at one strength all round, for highlight rings such as the group frames' target ring. Nine-slice."),
+    _texture("LumenGilt", GILT_SIZE, GILT_SIZE, lambda: draw_gilt(GILT_SIZE),
+             "Gilt filament for a window or rail's top left corner, mirrored for the bottom right: a 1.5-unit line on the 14-unit radius with 18-unit legs that fade to a tip over their last 3 units. Covers 20 units from one unit outside the corner."),
+    _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
+             "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",
+             "4x4 supersampled, shading in the colour channels"),
+    _texture("PillRim", 64, 32, lambda: draw_pill_rim(64, 32, 3),
+             f"The edge of Pill.png, 3 texels wide, for the bar track's faint rim. Each round cap is {PILL_CAP} texels wide, so a widget three-slices it."),
+    _texture("PillCapLeft", 32, 32, lambda: draw_cap_mask(32, "left"),
+             "Mask that rounds a bar fill's left end: a half disc on the left, solid on the right. Placed over the fill's first square with CLAMPTOWHITE, so the rest of the fill shows."),
+    _texture("PillCapRight", 32, 32, lambda: draw_cap_mask(32, "right"),
+             "Mask that rounds a bar fill's moving right end: PillCapLeft mirrored, anchored to the fill's edge."),
+    _texture("BarSheen", 8, 32, lambda: draw_sheen(8, 32),
+             "The bar fill's top sheen: white from the top row fading to nothing 55% of the way down, the mockup's .bar i highlight. Tinted white at 35% over the fill.",
+             "4x supersampled gradient"),
+    _texture("LensMask", 512, 512, lambda: draw_disc(512),
+             "Round mask for the minimap lens: a disc touching the texture's edges."),
+    _texture("SocketMask", 128, 128, lambda: draw_rounded(128, 128 * ICON_RADIUS_SHARE),
+             "Icon mask for sockets, portraits and every square icon: corners rounded 8 units on a 44-unit icon (18% of the side)."),
+    _texture("RuleFade", 256, 4, lambda: draw_rule(256, 4),
+             "Section cap rule: a line that fades from full at its left end to nothing at its right.",
+             "smoothstep fade, 4x supersampled"),
     _texture("Shadow", 128, 128, lambda: draw_shadow(128),
              "Nine-slice shadow falloff. Corner pieces are 12 units, centred on the panel's corners; the shadow reaches 6 units out.",
              "analytic Gaussian blur of a box, 4x supersampled"),
+    _texture("LumenShadow", 128, 128, lambda: draw_lumen_shadow(128),
+             "The Lumen card's drop shadow: a shape rounded 6 units, dropped 3 units and blurred to reach 14, with the card's own 14-unit rounded shape cut out, as a CSS box shadow, so it never darkens the glass above it. Corner pieces are 28 units, centred on the card's corners.",
+             "separable Gaussian blur (sigma 3.5 units) of the 4x4 supersampled shape at 2 texels per unit"),
     _texture("Glow", 128, 128, lambda: draw_glow(128), "Soft radial glow for procs, hover and selection.",
              "Gaussian falloff to zero at the edge, 4x4 supersampled"),
     _texture("Divider", 256, 4, lambda: draw_divider(256, 4), "Divider line that fades out over 40% of its length at each end.",
@@ -634,7 +896,7 @@ def provenance_table():
         slice_note = f"; slice margins {asset.slice} texels" if asset.slice else ""
         lines.append(
             f"| `{asset.path}` | {asset.width}x{asset.height} | {asset.about} | "
-            f"`Tools/media/make_media.py`, procedural, no model | {asset.settings}{slice_note} | {DRAWN} |"
+            f"`Tools/media/make_media.py`, procedural, no model | {asset.settings}{slice_note} | {asset.drawn} |"
         )
     return "\n".join(lines)
 

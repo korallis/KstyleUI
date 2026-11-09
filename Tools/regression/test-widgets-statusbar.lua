@@ -107,10 +107,10 @@ do
 	local reversed = K.Widgets.StatusBar(K.Scale.Root(), { reverse = true, spark = true })
 	assert(W.LastCall(reversed, "SetReverseFill")[1] == true and reversed.spark._points[1][3] == "LEFT", "a reversed spark rides the left edge")
 	local plain = K.Widgets.StatusBar(K.Scale.Root(), { background = false, border = true })
-	assert(plain.background == nil and plain.chrome, "no background, and a chamfered border when asked")
-	assert(plain.chrome.fillName == "surface" and W.SameColor(plain.chrome.inner[7], K.Tokens.Color("edgeBar")), "the border is the mockup's bar grade: glass with the faint bar edge")
+	assert(plain.background == nil and plain.chrome, "no background, and a pill track when asked")
+	assert(plain.chrome.shapeName == "bar" and plain.chrome.fillName == "surface" and W.SameColor(plain.chrome.rim[1], K.Tokens.Color("edgeBar")), "the border is the bar grade: a pill track with the faint bar edge")
 	local lined = K.Widgets.StatusBar(K.Scale.Root(), { background = false, border = true, edge = "edgeInner" })
-	assert(W.SameColor(lined.chrome.inner[7], K.Tokens.Color("edgeInner")), "a bar may ask for the panel edge instead")
+	assert(W.SameColor(lined.chrome.rim[1], K.Tokens.Color("edgeInner")), "a bar may ask for the panel edge instead")
 end
 
 -- Combat paths recolour and retexture bars on every cast and unit event, so the setters allocate nothing.

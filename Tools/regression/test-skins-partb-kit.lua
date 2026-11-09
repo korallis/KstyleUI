@@ -51,7 +51,7 @@ end
 
 -- EdgeIs(chrome, r, g, b) is true when the chrome's inner hairline is that colour.
 local function EdgeIs(chrome, r, g, b)
-	local er, eg, eb = chrome.inner[1]:GetVertexColor()
+	local er, eg, eb = chrome.rim[1]:GetVertexColor()
 	return Near3(er, eg, eb, r, g, b)
 end
 
@@ -87,7 +87,7 @@ do
 	assert(item.rim:GetParent() == button, "the rim is KstyleUI's own child frame")
 	assert(item.rim.color == nil, "no quality, no ring")
 	assert(W.SameColor(item.rim.chrome.fill[5], K.Tokens.Color("buttonFill")), "the rim's tile is the near-black button body every square icon shares")
-	assert(W.SameRGB(item.rim.chrome.inner[1], K.Tokens.Color("edgeInner")), "with the plain hairline until a quality colours it")
+	assert(W.SameRGB(item.rim.chrome.rim[1], K.Tokens.Color("edgeInner")), "with the plain hairline until a quality colours it")
 
 	local r, g, b = 0.64, 0.21, 0.93
 	button.IconBorder:SetVertexColor(r, g, b)

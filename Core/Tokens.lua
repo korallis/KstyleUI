@@ -9,27 +9,39 @@ local FONTS_DIR = MEDIA .. "Fonts\\"
 local TEXTURES_DIR = MEDIA .. "Textures\\"
 
 local COLORS = {
-	surface = { "151a20", 0.97 },
-	raised = { "1c1c1c", 1 },
-	edgeOuter = { "000000", 0.8 },
-	edgeInner = { "ffffff", 0.28 },
-	edgeFaint = { "ffffff", 0.08 },
-	edgeBar = { "ffffff", 0.16 },
-	buttonFill = { "101214", 1 },
-	text = { "ababab", 1 },
-	textEmphasis = { "ffffff", 1 },
+	glass = { "e1f0fa", 0.22 },
+	deep = { "0c141e", 0.62 },
+	rim = { "d6eeff", 0.55 },
+	rimSoft = { "d6eeff", 0.18 },
+	giltLit = { "f3dca4", 1 },
+	gilt = { "d9b46a", 1 },
+	giltDim = { "8a6c34", 1 },
+	muted = { "a9b6c2", 1 },
+	dim = { "6f7d8a", 1 },
+	friend = { "62d58d", 1 },
+	magic = { "5aa9ff", 1 },
+	quest = { "f6d27a", 1 },
+	surface = { "0c141e", 0.62 },
+	raised = { "1a2633", 0.85 },
+	edgeOuter = { "000000", 0.5 },
+	edgeInner = { "d6eeff", 0.55 },
+	edgeFaint = { "d6eeff", 0.08 },
+	edgeBar = { "d6eeff", 0.14 },
+	buttonFill = { "0a1018", 0.7 },
+	text = { "a9b6c2", 1 },
+	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
-	textDisabled = { "666666", 1 },
+	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
-	hostile = { "e5534b", 1 },
+	hostile = { "e2524f", 1 },
 	healthHostile = { "e03b3f", 1 },
 	neutral = { "e8c14f", 1 },
-	friendly = { "5fcf72", 1 },
+	friendly = { "62d58d", 1 },
 	accentDefault = { "aad372", 1 },
-	shadow = { "000000", 0.6 },
-	textShadow = { "000000", 0.8 },
-	track = { "000000", 0.45 },
+	shadow = { "000000", 0.45 },
+	textShadow = { "000000", 0.85 },
+	track = { "05090e", 0.7 },
 	white = { "ffffff", 1 },
 	black = { "000000", 1 },
 	schoolPhysical = { "d8c3a0", 1 },
@@ -42,12 +54,15 @@ local COLORS = {
 }
 
 local SIZES = {
-	chamferPanel = 12,
-	chamferTile = 6,
-	chamferWindow = 12,
-	shadow = 10,
-	shadowOffset = 2,
-	buttonBezel = 3,
+	radius = 14,
+	radiusTile = 8,
+	chamferPanel = 14,
+	chamferTile = 8,
+	chamferWindow = 14,
+	shadow = 14,
+	shadowOffset = 3,
+	gilt = 20,
+	gem = 16,
 	actionButton = 34,
 	actionGap = 3,
 	cooldownEssential = 40,
@@ -57,12 +72,12 @@ local SIZES = {
 	portrait = 46,
 	buffBarWidth = 180,
 	buffBarHeight = 18,
-	display = 24,
+	display = 22,
 	heading = 16,
-	body = 11,
+	body = 12,
 	caption = 9,
-	number = 11,
-	world = 12,
+	number = 12,
+	world = 13,
 	textShadowOffset = 0.6,
 	pressOffset = 1,
 	panelRise = 16,
@@ -72,48 +87,68 @@ local SIZES = {
 	gapMedium = 8,
 	gapLarge = 12,
 	gapHuge = 16,
+	gapXLarge = 20,
+	gapXXLarge = 28,
+	railWidth = 318,
+	railPadding = 20,
+	sectionGap = 22,
+	rowGap = 12,
+	socketGap = 8,
+	screenMargin = 28,
 	rowHeight = 24,
 }
 
 local SHARES = {
-	chamfer = 0.3,
-	chamferIcon = 0.12,
+	radiusSocket = 11 / 52,
 }
 
 local DURATIONS = {
-	hover = 0.15,
+	hover = 0.12,
+	combatIn = 0.24,
+	combatOut = 0.6,
+	combatOutDelay = 3,
 	panelOpen = 0.25,
 	panelRise = 0.4,
 	panelClose = 0.15,
 	listStagger = 0.05,
 	castSheen = 0.6,
-	procPulse = 1.2,
+	procPulse = 0.7,
 	fade = 0.2,
 }
 
 local EASINGS = {
-	hover = "outQuart",
+	hover = "outQuad",
+	combatIn = "outCubic",
+	combatOut = "inOutSine",
 	panelOpen = "outSine",
 	panelRise = "outBack",
 	panelClose = "outQuad",
 	fade = "outQuad",
 }
 
+local FONT_SETS = {
+	{ key = "Lumen", label = "Lumen: Cinzel and Alegreya Sans", path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
+}
 local FONT_FACES = {
+	{ key = "CinzelSemiBold", label = "Cinzel SemiBold", path = FONTS_DIR .. "Cinzel-SemiBold.ttf" },
+	{ key = "AlegreyaSansRegular", label = "Alegreya Sans", path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
+	{ key = "AlegreyaSansMedium", label = "Alegreya Sans Medium", path = FONTS_DIR .. "AlegreyaSansTabular-Medium.ttf" },
+	{ key = "AlegreyaSansBold", label = "Alegreya Sans Bold", path = FONTS_DIR .. "AlegreyaSansTabular-Bold.ttf" },
 	{ key = "SourceSans3Semibold", label = "Source Sans 3 Semibold", path = FONTS_DIR .. "SourceSans3-Semibold.ttf" },
 	{ key = "SourceSans3Regular", label = "Source Sans 3", path = FONTS_DIR .. "SourceSans3-Regular.ttf" },
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
 }
-local DEFAULT_FACE = "SourceSans3Semibold"
+local DEFAULT_FACE = "Lumen"
+local FALLBACK_FACE = "SourceSans3Semibold"
 local NUMBER_FACE = "SourceSans3Semibold"
 
 local FONT_ROLES = {
-	display = { face = "ui", flags = "", tracking = -0.5 },
-	heading = { face = "ui", flags = "", tracking = -0.3 },
-	body = { face = "ui", flags = "", tracking = 0 },
-	caption = { face = "ui", flags = "", tracking = 1.5, upper = true },
-	number = { face = "number", flags = "", tracking = 0 },
-	world = { face = "ui", flags = "OUTLINE", tracking = 0 },
+	display = { lumen = "CinzelSemiBold", flags = "", tracking = 0.6 },
+	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
+	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
+	caption = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
+	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
+	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
 
 local STATUSBARS = {
@@ -123,12 +158,23 @@ local STATUSBARS = {
 }
 
 local TEXTURES = {
-	chamferPanel = { file = "Textures\\ChamferPanel.png", slice = 32, density = 4 },
-	chamferTile = { file = "Textures\\ChamferTile.png", slice = 14, density = 4 },
-	chamferWindow = { file = "Textures\\ChamferWindow.png", slice = 48, density = 4 },
-	line = { file = "Textures\\Line.png" },
-	iconMask = { file = "Textures\\ChamferIconMask.png" },
-	portraitMask = { file = "Textures\\ChamferPortraitMask.png" },
+	lumenShape = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
+	lumenFrost = { file = "Textures\\LumenFrost.png", slice = 56, density = 4 },
+	lumenRim = { file = "Textures\\LumenRim.png", slice = 56, density = 4 },
+	lumenRimSmall = { file = "Textures\\LumenRimSmall.png", slice = 32, density = 4 },
+	lumenOutline = { file = "Textures\\LumenOutline.png", slice = 32, density = 4 },
+	chamferTile = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
+	lumenShadow = { file = "Textures\\LumenShadow.png", slice = 56, density = 2 },
+	gilt = { file = "Textures\\LumenGilt.png" },
+	gem = { file = "Textures\\LumenGem.png" },
+	pillRim = { file = "Textures\\PillRim.png" },
+	pillCapLeft = { file = "Textures\\PillCapLeft.png" },
+	pillCapRight = { file = "Textures\\PillCapRight.png" },
+	barSheen = { file = "Textures\\BarSheen.png" },
+	lensMask = { file = "Textures\\LensMask.png" },
+	ruleFade = { file = "Textures\\RuleFade.png" },
+	iconMask = { file = "Textures\\SocketMask.png" },
+	portraitMask = { file = "Textures\\SocketMask.png" },
 	shadow = { file = "Textures\\Shadow.png", slice = 24, density = 2 },
 	glow = { file = "Textures\\Glow.png" },
 	divider = { file = "Textures\\Divider.png" },
@@ -211,8 +257,10 @@ function Tokens.Easing(name)
 end
 
 local FACE_PATH = {}
-for _, face in ipairs(FONT_FACES) do
-	FACE_PATH[face.key] = face.path
+for _, list in ipairs({ FONT_SETS, FONT_FACES }) do
+	for _, face in ipairs(list) do
+		FACE_PATH[face.key] = face.path
+	end
 end
 
 function Tokens.FontPath(key)
@@ -225,9 +273,11 @@ function Tokens.Font(role)
 		unknown("Font", role)
 	end
 	local theme = ns.Theme
-	local key = NUMBER_FACE
-	if spec.face == "ui" then
-		key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
+	local key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
+	if key == DEFAULT_FACE then
+		key = spec.lumen
+	elseif spec.number then
+		key = NUMBER_FACE
 	end
 	local path = FACE_PATH[key]
 	if not path and theme and theme.IsFontPath and theme.IsFontPath(key) then
@@ -237,7 +287,7 @@ function Tokens.Font(role)
 	if role ~= "world" and theme and theme.FontScale then
 		size = size * theme.FontScale()
 	end
-	return path or FACE_PATH[DEFAULT_FACE], size, spec.flags
+	return path or FACE_PATH[FALLBACK_FACE], size, spec.flags
 end
 
 function Tokens.TextStyle(role)
@@ -249,7 +299,7 @@ function Tokens.TextStyle(role)
 end
 
 function Tokens.MediaList(kind)
-	local source = (kind == "font" and FONT_FACES) or (kind == "statusbar" and STATUSBARS)
+	local source = (kind == "font" and FONT_FACES) or (kind == "fontSet" and FONT_SETS) or (kind == "statusbar" and STATUSBARS)
 	if not source then
 		unknown("MediaList", kind)
 	end

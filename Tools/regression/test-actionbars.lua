@@ -177,7 +177,7 @@ do
 	assert(backing and not backing:IsShown(), "bar 1 has no strip by default: the Lumen sockets float")
 	K.Options.Write("ActionBars", "bar1.backing", true)
 	assert(backing:IsShown() and backing:GetParent() == bar1.header, "switched on, bar 1's strip sits on its header, so it fades with the bar")
-	assert(backing.chrome and backing.chrome.fillName == "buttonFill" and near(backing.chrome:Chamfer(), 6), "the strip is the mockup's opaque button body, its ends cut by the shared rule: the tile cap, 6 units on a 40-unit strip")
+	assert(backing.chrome and backing.chrome.fillName == "buttonFill" and near(backing.chrome:Chamfer(), 8), "the strip is the button body, its ends rounded by the shared rule: the tile radius, 8 units on a 40-unit strip")
 	local p1, p2 = backing._points[1], backing._points[2]
 	assert(p1[1] == "TOPLEFT" and p1[2] == bar1.header and near(p1[4], -3) and near(p1[5], 3), "the strip starts 3 units outside the buttons' top left, the mockup's 3 units above the buttons")
 	assert(p2[1] == "BOTTOMRIGHT" and p2[2] == bar1.header and near(p2[4], 3) and near(p2[5], -3), "and ends 3 units outside their bottom right")

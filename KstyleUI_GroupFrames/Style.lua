@@ -1,4 +1,4 @@
--- Style.lua: builds a group frame's look on any frame and lays it out from the settings: glass tile, portrait, bars, texts and the chamfered highlight rings.
+-- Style.lua: builds a group frame's look on any frame and lays it out from the settings: glass tile, portrait, bars, texts and the rounded highlight rings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -32,16 +32,16 @@ function Style.Ring(owner, layer, sublevel)
 	layer, sublevel = layer or "OVERLAY", sublevel or 0
 	local ring = {}
 	for i = 1, RING_LINES do
-		ring[i] = Widgets.Line(owner, layer, sublevel)
+		ring[i] = Widgets.NineSlice(owner, "lumenOutline", layer, sublevel)
 	end
 	return ring
 end
 
-function Style.LayoutRing(ring, owner, chamfer)
+function Style.LayoutRing(ring, owner, radius)
 	local border = Widgets.Border(owner)
-	chamfer = chamfer or Tokens.Size("chamferTile")
+	radius = radius or Tokens.Size("radiusTile")
 	for i, line in ipairs(ring) do
-		Widgets.LayoutLine(line, owner, chamfer, border * (i - 1))
+		Widgets.LayoutSlice(line, owner, radius, -border * (i - 1))
 	end
 end
 

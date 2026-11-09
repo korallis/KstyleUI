@@ -12,6 +12,10 @@ local SPARK_ALPHA = 0.8
 local SHEEN_WIDTH = 28
 local SHEEN_ALPHA = 0.35
 local BORDER_LINES = 2
+local SHEEN_TOP_ALPHA = 0.35
+local SHEEN_TOP_SUBLEVEL = 7
+local GLOW_REACH, GLOW_ALPHA = 4, 0.5
+local CAP_WRAP = "CLAMPTOWHITE"
 
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -74,6 +78,9 @@ function Bar:Paint()
 	end
 	if self.sheen then
 		self.sheen:SetVertexColor(Widgets.Rgba("textHover", SHEEN_ALPHA))
+	end
+	if self.sheenTop then
+		self.sheenTop:SetVertexColor(Widgets.Rgba("white", SHEEN_TOP_ALPHA))
 	end
 end
 
@@ -172,7 +179,60 @@ function Bar:Restyle()
 		self.borderFrame:SetPoint("TOPLEFT", self, "TOPLEFT", -outset, outset)
 		self.borderFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", outset, -outset)
 	end
+	if self.caps then
+		local side = Widgets.Snap(self, height)
+		for _, mask in ipairs(self.caps) do
+			mask:SetWidth(side)
+		end
+		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self)
+	end
 	self:Paint()
+end
+
+local function CapMask(bar, name, point, region)
+	local mask = bar:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture(name)), CAP_WRAP, CAP_WRAP)
+	mask:SetPoint("TOP" .. point, region, "TOP" .. point)
+	mask:SetPoint("BOTTOM" .. point, region, "BOTTOM" .. point)
+	return mask
+end
+
+local function Mask(texture, a, b)
+	texture:AddMaskTexture(a)
+	texture:AddMaskTexture(b)
+end
+
+local function PillFill(bar, reverse)
+	local fill = bar:GetStatusBarTexture()
+	local left = CapMask(bar, "pillCapLeft", "LEFT", reverse and fill or bar)
+	local right = CapMask(bar, "pillCapRight", "RIGHT", reverse and bar or fill)
+	local fixedLeft = reverse and CapMask(bar, "pillCapLeft", "LEFT", bar) or left
+	local fixedRight = reverse and right or CapMask(bar, "pillCapRight", "RIGHT", bar)
+	bar.caps = { left, right }
+	if fixedLeft ~= left then
+		bar.caps[#bar.caps + 1] = fixedLeft
+	end
+	if fixedRight ~= right then
+		bar.caps[#bar.caps + 1] = fixedRight
+	end
+	Mask(fill, left, right)
+	if bar.background then
+		Mask(bar.background, fixedLeft, fixedRight)
+	end
+	local sheen = bar:CreateTexture(nil, "ARTWORK", nil, SHEEN_TOP_SUBLEVEL)
+	sheen:SetTexture((Tokens.Texture("barSheen")))
+	sheen:SetAllPoints(fill)
+	Mask(sheen, left, right)
+	bar.sheenTop = sheen
+	bar.glow = Widgets.NineSlice(bar, "shadow", "BACKGROUND", 1)
+	for _, piece in ipairs(bar.glow) do
+		piece:SetAlpha(GLOW_ALPHA)
+	end
+	local setColor = bar.SetStatusBarColor
+	bar.SetStatusBarColor = function(self, r, g, b, a)
+		setColor(self, r, g, b, a)
+		Widgets.ColorSlice(self.glow, r, g, b, a)
+	end
 end
 
 function Widgets.StatusBar(parent, opts)
@@ -203,7 +263,10 @@ function Widgets.StatusBar(parent, opts)
 		local frame = CreateFrame("Frame", nil, bar)
 		frame:SetFrameLevel(math.max(0, bar:GetFrameLevel() - 1))
 		bar.borderFrame = frame
-		bar.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "surface", shadow = false, edge = opts.edge or "edgeBar" })
+		bar.chrome = Widgets.Chrome(frame, { shape = "bar", fill = "surface", shadow = false, edge = opts.edge or "edgeBar" })
+		if not bar.vertical then
+			PillFill(bar, opts.reverse == true)
+		end
 	end
 	if opts.spark then
 		local spark = bar:CreateTexture(nil, "OVERLAY")

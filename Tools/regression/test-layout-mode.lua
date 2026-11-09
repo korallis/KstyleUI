@@ -289,7 +289,8 @@ do
 	Drag(env, K, Layout.Mode.Handle("SCALE"), 1010, 490, 1060, 440)
 	env.RunTimers()
 	assert(near(Layout.Get("Test.Panel").scale, 1.5))
-	assert(near(panel.chrome.outer[5]:GetHeight(), Scale.Border() / 1.5), "the bevel is redrawn for the new scale")
+	local radius = panel.chrome:Radius()
+	assert(near(panel.chrome.rim[1]:GetWidth(), Scale.Snap(radius * 1.5) / 1.5), "the rounded corners are redrawn in whole pixels for the new scale")
 	Layout.Exit(true)
 end
 
@@ -430,7 +431,7 @@ do
 	local active = body("selected")
 	assert(rest < hover and hover < active, "the body deepens from rest to hover to selected")
 	local er, eg, eb = K.Tokens.Color("accent")
-	local r, g, b = plate.chrome.inner[5]:GetVertexColor()
+	local r, g, b = plate.chrome.rim[5]:GetVertexColor()
 	assert(near(r, er) and near(g, eg) and near(b, eb), "the plate's edge is the accent")
 	Layout.Exit(true)
 	assert(#env._errors == 0, tostring(env._errors[1]))

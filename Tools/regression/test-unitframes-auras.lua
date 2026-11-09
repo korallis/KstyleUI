@@ -37,8 +37,8 @@ assert(aura.SetIcon[1]:GetParent() ~= button, "the art sits on a child frame of 
 local w, h = button:GetSize()
 assert(w == 20 and h == 20, "buttons take the aura size: " .. tostring(w))
 
--- Each button wears the kit's icon tile: a raised chamfered fill whose corner stays 3 units at any icon size,
--- the double bevel hairline, the icon two borders in, and a swipe in the icon's chamfered shape.
+-- Each button wears the kit's socket: a rounded fill whose corner is the socket share of the icon,
+-- the socket's rim, the icon two borders in, and a swipe in the icon's rounded shape.
 local Tokens = K.Tokens
 local function tilePaths(skin)
 	local paths = {}
@@ -90,19 +90,19 @@ do
 	assert(body and not raised, "the tile's body is the near-black button fill, not a raised tile")
 	assert(rim, "its hairline rests on the accent lifted 15% toward white, as an action button")
 end
-assert((paths[(Tokens.Texture("chamferTile"))] or 0) >= 9, "the tile has a chamfered fill")
-assert(paths[(Tokens.Texture("line"))] == 8, "the tile has the kit's two bevel lines, four diagonal corners each")
+assert((paths[(Tokens.Texture("lumenShape"))] or 0) >= 9, "the tile has a rounded fill")
+assert(paths[(Tokens.Texture("lumenRimSmall"))] == 9, "the tile has the socket's rim, nine pieces")
 assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
 local corners = cornerSizes(skin)
-assert(#corners >= 4, "the chamfer corners are sized")
-local want = K.Scale.Snap(20 * Tokens.Share("chamferIcon"))
+assert(#corners >= 4, "the rounded corners are sized")
+local want = K.Scale.Snap(20 * Tokens.Share("radiusSocket"))
 for _, size in ipairs(corners) do
-	assert(size[1] == want and size[2] == want, "each chamfer corner is the icon share, 12% of a 20-unit icon: " .. tostring(size[1]))
+	assert(size[1] == want and size[2] == want, "each corner is the socket share of a 20-unit icon: " .. tostring(size[1]))
 end
 local _, iconRel, _, ix, iy = aura.SetIcon[1]:GetPoint(1)
 assert(iconRel == skin and ix == 2 * K.Scale.Border() and iy == -2 * K.Scale.Border(), "the icon sits two borders in")
 local cooldown = aura.SetDurationCooldown[1]
-assert(W.LastCall(cooldown, "SetSwipeTexture")[1] == (Tokens.Texture("iconMask")), "the swipe has the icon's chamfered shape")
+assert(W.LastCall(cooldown, "SetSwipeTexture")[1] == (Tokens.Texture("iconMask")), "the swipe has the icon's rounded shape")
 assert(aura.dispelOptions and aura.dispelOptions.style == env.Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset, "the engine tints the tile's own dispel border")
 
 -- Layout: element size, capacity, line length and growth.
@@ -151,9 +151,9 @@ env.SetCombat(true)
 env.SetCombat(false)
 local nw = button:GetSize()
 assert(nw == 26, "the buttons take the new size once auras are readable again")
-want = K.Scale.Snap(26 * Tokens.Share("chamferIcon"))
+want = K.Scale.Snap(26 * Tokens.Share("radiusSocket"))
 for _, size in ipairs(cornerSizes(skin)) do
-	assert(size[1] == want and size[2] == want, "the chamfer corner follows the icon to 26 units: " .. tostring(size[1]))
+	assert(size[1] == want and size[2] == want, "the rounded corner follows the icon to 26 units: " .. tostring(size[1]))
 end
 noErrors("after the gate")
 

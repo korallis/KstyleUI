@@ -103,8 +103,8 @@ for _, piece in ipairs({ 1, 2, 3, 4, 6 }) do
 	assert(not plate.slice[piece]:IsShown(), "the plate's top row and side pieces are hidden: its top corners are square")
 end
 assert(plate.slice[7]:IsShown() and plate.slice[9]:IsShown() and plate.slice[5]:IsShown(), "the body and the bottom row draw")
-assert(W.Near(plate.slice[7]:GetWidth(), 11) and W.Near(plate.slice[7]:GetHeight(), 18), "the lower corners are chamfered 11 in and 18 up, the design's steep cut")
-assert(plate.slice[7].texture == "chamferPanel" or plate.slice.texture == "chamferPanel", "the chamfer comes from the panel texture")
+assert(W.Near(plate.slice[7]:GetWidth(), 11) and W.Near(plate.slice[7]:GetHeight(), 18), "the lower corners reach 11 in and 18 up")
+assert(plate.slice.texture == "lumenShape", "and are rounded from the Lumen shape, not cut")
 local _, compassSize = face.compass:GetFont()
 assert(W.Near(compassSize, 16 * K.Theme.FontScale()), "the N reads at the heading size: " .. tostring(compassSize))
 
@@ -323,7 +323,7 @@ assert(not face.chrome.shadow[5]:IsShown(), "the shadow's centre stays hidden af
 
 -- The accent hairline -----------------------------------------------------------------------------
 
-local inner = face.chrome.inner[5]
+local inner = face.chrome.rim[5]
 assert(W.SameRGB(inner, K.Theme.Accent()), "the hairline follows the class colour")
 K.Options.Write("Minimap", "accent.source", "custom")
 K.Options.Write("Minimap", "accent.color", { r = 1, g = 0, b = 0 })

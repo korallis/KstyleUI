@@ -72,7 +72,7 @@ for _, spec in ipairs(Skins.Windows.LIST) do
 	local name = "gallery_skins_" .. spec.key
 	local items = assert(galleryItems[name], name .. " is one of the gallery scenes")
 	assert(Skins.WINDOWS[spec.key], spec.key .. " has a gallery entry")
-	local grade = spec.key == "lootrolls" and "ChamferPanel" or "ChamferWindow"
+	local grade = spec.key == "lootrolls" and "LumenFrost" or "LumenGilt"
 	local drawn = false
 	for _, item in ipairs(items) do
 		if item.kind == "texture" and item.file and item.file:find(grade, 1, true) then

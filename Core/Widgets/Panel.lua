@@ -138,7 +138,7 @@ function Widgets.Panel(parent, opts)
 		bar:SetPoint("TOPLEFT", panel, "TOPLEFT")
 		bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT")
 		panel.titleBar = bar
-		panel.titleText = Widgets.Text(panel, "body", "textEmphasis")
+		panel.titleText = Widgets.Text(panel, "heading", "textEmphasis")
 		panel.titleText:SetJustifyH("LEFT")
 		panel.titleText:SetWordWrap(false)
 		panel:SetTitle(opts.title or "")

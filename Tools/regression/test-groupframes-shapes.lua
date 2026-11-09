@@ -1,4 +1,4 @@
--- test-groupframes-shapes.lua: everything drawn on a group frame keeps the kit's 3.5-unit chamfered tile. The target highlight, the threat glow and the dispel highlight use the kit's chamfer, bevel and shadow textures, never a square colour box; debuff icons are the kit's chamfered icon tiles, masked and sized in whole pixels; and their chrome waits while aura data is secret.
+-- test-groupframes-shapes.lua: everything drawn on a group frame keeps the kit's rounded tile. The target highlight, the threat glow and the dispel highlight use the kit's rounded shape, outline and shadow textures, never a square colour box; debuff icons are the kit's rounded sockets, masked and sized in whole pixels; and their chrome waits while aura data is secret.
 local G = dofile("Tools/regression/group_env.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 
@@ -58,7 +58,7 @@ end
 
 -- Every textured piece is one of the named kit textures. A flat colour piece may only be a straight
 -- line one border thick along the owner's edge, ending where the kit's diagonal corner pieces begin,
--- as the kit's chrome draws its bevel edges, so no square corner sticks out past the chamfer.
+-- so no square corner sticks out past the rounded corners.
 -- Returns the count per texture and the number of straight lines.
 local function kitOnly(K, list, names, owner, what)
 	assert(#list > 0, what .. " draws something")
@@ -76,7 +76,7 @@ local function kitOnly(K, list, names, owner, what)
 			end
 		else
 			local name = allowed[asset(texture)]
-			assert(name, what .. ": " .. tostring(asset(texture)) .. " is not one of the kit's chamfer textures")
+			assert(name, what .. ": " .. tostring(asset(texture)) .. " is not one of the kit's textures")
 			counts[name] = (counts[name] or 0) + 1
 		end
 	end
@@ -105,10 +105,10 @@ end
 env.FireEvent("PLAYER_TARGET_CHANGED")
 local shown = healer.target._state.AlphaFromBoolean
 assert(shown and env.issecretvalue(shown[1]), "the target highlight follows the secret target flag")
-local counts, lines = kitOnly(K, textures(healer.target), { "line" }, healer.target, "the target highlight")
-eq(counts.line, 8, "the target highlight has two bevel lines' diagonal corners, two lines thick like the old outline")
-eq(lines, 8, "with four straight sides to each line")
-whole(K.Widgets.Border(healer.target), "a side's thickness")
+local counts, lines = kitOnly(K, textures(healer.target), { "lumenOutline" }, healer.target, "the target highlight")
+eq(counts.lumenOutline, 18, "the target highlight is two rounded outlines, nine pieces each, two lines thick like the old outline")
+eq(lines, 0, "with no straight pieces of its own")
+whole(K.Widgets.Border(healer.target), "a line's step")
 local ar, ag, ab = ns.Style.Accent()
 for _, texture in ipairs(textures(healer.target)) do
 	local r, g, b, a = color(texture)
@@ -116,7 +116,7 @@ for _, texture in ipairs(textures(healer.target)) do
 end
 local corner = textures(healer.target)[1]
 local cw = corner:GetSize()
-eq(cw, (healer.chrome.outer[1]:GetSize()), "the ring's corners are the size of the tile's own bevel corners")
+eq(cw, (healer.chrome.rim[1]:GetSize()), "the ring's corners are the tile's own radius")
 eq(corner._points[1][1], "TOPLEFT", "the first corner sits at the top left")
 eq(corner._points[1][4], 0, "inside the frame, flush with its edge")
 
@@ -137,33 +137,33 @@ local r, g, b = color(textures(tank.threat)[1])
 local nr, ng, nb = K.Tokens.Color("neutral")
 assert(near(r, nr) and near(g, ng) and near(b, nb), "status 1 recolours the glow in the neutral token")
 
--- The dispel highlight: a chamfered wash and the tile bevel lines, all coloured by the engine.
+-- The dispel highlight: a rounded wash and the tile's rounded outlines, all coloured by the engine.
 local slot = tank.auras._slots.dispel.frame
 local registered = {}
 for _, entry in ipairs(slot._aura.dispel) do
 	registered[#registered + 1] = entry.texture
 end
-counts, lines = kitOnly(K, registered, { "chamferTile", "line" }, slot, "the dispel highlight")
-eq(counts.chamferTile, 9, "the wash is the chamfered tile")
-eq(counts.line, 8, "the border has two bevel lines' diagonal corners")
-eq(lines, 8, "and their straight sides")
+counts, lines = kitOnly(K, registered, { "chamferTile", "lumenOutline" }, slot, "the dispel highlight")
+eq(counts.chamferTile, 9, "the wash is the rounded tile shape")
+eq(counts.lumenOutline, 18, "the border is two rounded outlines")
+eq(lines, 0, "with no straight pieces")
 for _, texture in ipairs(registered) do
 	if asset(texture) == (K.Tokens.Texture("chamferTile")) then
 		eq(texture:GetAlpha(), 0.16, "the wash is faint")
 	end
 end
-kitOnly(K, textures(slot), { "chamferTile", "line" }, slot, "everything on the dispel slot")
+kitOnly(K, textures(slot), { "chamferTile", "lumenOutline" }, slot, "everything on the dispel slot")
 
--- Debuff icons: the kit's chamfered icon tile, the icon two borders in and masked, the swipe masked.
+-- Debuff icons: the kit's rounded socket, the icon two borders in and masked, the swipe masked.
 local group = tank.auras._groups.debuffs
 local button = group.frames[1]
 local mask = K.Tokens.Texture("iconMask")
 local icon = button._aura.icon
 eq(icon:GetNumMaskTextures(), 1, "the icon is masked")
-eq(asset(icon:GetMaskTexture(1)), mask, "by the kit's chamfered icon mask")
+eq(asset(icon:GetMaskTexture(1)), mask, "by the kit's rounded icon mask")
 local swipe = button._aura.cooldown._state.SwipeTexture
 eq(swipe and swipe[1], mask, "the duration swipe uses the same mask")
-local tile = kitPaths(K, { "chamferTile", "line" })
+local tile = kitPaths(K, { "lumenShape", "lumenRimSmall" })
 local seen = {}
 for _, texture in ipairs(textures(button)) do
 	local name = tile[asset(texture)]
@@ -171,14 +171,14 @@ for _, texture in ipairs(textures(button)) do
 		seen[name] = (seen[name] or 0) + 1
 	end
 end
-assert((seen.chamferTile or 0) >= 9, "each icon sits on a chamfered tile")
-assert((seen.line or 0) >= 8, "with the kit's two-line bevel edge")
+assert((seen.lumenShape or 0) >= 9, "each icon sits on a rounded socket")
+assert((seen.lumenRimSmall or 0) >= 9, "with the socket's rim")
 local dispel = {}
 for _, entry in ipairs(button._aura.dispel) do
 	dispel[#dispel + 1] = entry.texture
 end
 counts = kitOnly(K, dispel, { "chamferTile" }, button, "the icon's debuff type border")
-eq(counts.chamferTile, 9, "the debuff type colour fills a chamfered tile behind the icon")
+eq(counts.chamferTile, 9, "the debuff type colour fills a rounded tile behind the icon")
 
 -- Sizes in whole pixels at 1440p, where a unit is 1.33 pixels.
 local bw, bh = button:GetSize()
@@ -228,8 +228,8 @@ local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 parent:SetSize(300, 420)
 local preview = K.Options.Preview("GroupFrames")(parent)
 local sample = preview.partyFrames[2]
-kitOnly(K, textures(sample.target), { "line" }, sample.target, "a sample's target highlight")
-kitOnly(K, textures(sample.sampleDispel), { "chamferTile", "line" }, sample.sampleDispel, "a sample's dispel highlight")
+kitOnly(K, textures(sample.target), { "lumenOutline" }, sample.target, "a sample's target highlight")
+kitOnly(K, textures(sample.sampleDispel), { "chamferTile", "lumenOutline" }, sample.sampleDispel, "a sample's dispel highlight")
 kitOnly(K, textures(preview.partyFrames[1].threat), { "shadow" }, preview.partyFrames[1].threat, "a sample's threat glow")
 local sampleIcon = preview.partyFrames[1].sampleAuras[1]
 eq(asset(sampleIcon.art:GetMaskTexture(1)), mask, "sample debuff icons are masked like the real ones")

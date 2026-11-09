@@ -78,7 +78,8 @@ end
 local function PaintPlate(plate)
 	local active = selected == plate.key
 	local fill = active and FILL_SELECTED or (plate.hover and FILL_HOVER or FILL_REST)
-	plate.chrome:SetFill("buttonFill", fill)
+	local r, g, b = Tokens.Color("buttonFill")
+	plate.chrome:SetFillRGBA(r, g, b, fill)
 	plate.chrome:SetEdgeRGBA(Widgets.Rgba("accent", (active or plate.hover) and EDGE_ACTIVE or EDGE_REST))
 	Widgets.SetText(plate.info, active and Describe(plate.key) or "")
 end

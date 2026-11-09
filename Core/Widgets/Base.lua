@@ -12,22 +12,22 @@ local FALLBACK_FONT = "GameFontHighlight"
 local NOISE_ALPHA = 0.035
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
-local SUBLEVEL_SHADOW, SUBLEVEL_BEZEL, SUBLEVEL_FILL, SUBLEVEL_NOISE = -8, -7, -6, -5
-local LINE_SUBLEVELS = { outer = -2, inner = -1, fade = -3, plate = -4 }
-local BEVEL = { top = 1.4, bottom = 1.1, side = 1, cut = 1.6 }
-local FADE = 0.65
-local PLATE_ALPHA = 1.25
-local EDGE_ROWS = 3
+local SUBLEVEL_SHADOW, SUBLEVEL_FILL, SUBLEVEL_FROST, SUBLEVEL_NOISE = -8, -7, -6, -5
+local SUBLEVEL_RIM, SUBLEVEL_GILT = -2, -1
 local INSET_GAP = "gapSmall"
-local LINE_BAND_START, LINE_BAND_SIZE = 0.25, 0.25
-local LINE_COLUMN = 0.5
-local SQRT2 = math.sqrt(2)
+local GRAIN_CLEAR = 1 - math.sqrt(2) / 2
+local SMALL_RIM_BELOW = 11
+local GILT_OUTSET = 1
 
 Widgets.TEXTURE_TEXELS = {
-	chamferPanel = 128,
-	chamferTile = 32,
-	chamferWindow = 128,
+	lumenShape = 128,
+	lumenFrost = 128,
+	lumenRim = 128,
+	lumenRimSmall = 128,
+	lumenOutline = 128,
+	chamferTile = 128,
 	shadow = 128,
+	lumenShadow = 128,
 }
 local TEXELS = Widgets.TEXTURE_TEXELS
 
@@ -362,22 +362,19 @@ function Widgets.Size(frame, width, height)
 	frame:SetSize(SnapIn(width, f), SnapIn(height, f))
 end
 
-function Widgets.Inset(frame, chamfer, gap)
+function Widgets.Inset(frame, radius, gap)
 	local f = frame and Widgets.ScaleFactor(frame) or 1
-	return SnapIn(chamfer / 2 + EDGE_ROWS * Scale.Border() / f + Tokens.Size(gap or INSET_GAP), f)
+	return SnapIn(radius / 2 + Scale.Border() / f + Tokens.Size(gap or INSET_GAP), f)
 end
 
-local LINES = {
-	{ key = "outer", color = "edgeOuter", borders = 0 },
-	{ key = "inner", borders = 1, edge = true },
-	{ key = "fade", borders = 2, edge = true, scale = FADE },
-}
-local ICON_LINES = { LINES[1], LINES[2] }
-
 local SHAPES = {
-	panel = { fill = "chamferPanel", chamfer = "chamferPanel", edgeColor = "edgeInner", shadow = true, grain = true },
-	tile = { fill = "chamferTile", chamfer = "chamferTile", edgeColor = "edgeInner" },
-	window = { fill = "chamferWindow", chamfer = "chamferWindow", edgeColor = "edgeInner", shadow = true, grain = true },
+	panel = { radius = "radius", frost = true, grain = true, shadow = true },
+	card = { radius = "radius", frost = true, grain = true, shadow = true },
+	window = { radius = "radius", frost = true, grain = true, shadow = true, gilt = true },
+	rail = { radius = "radius", frost = true, grain = true, shadow = true, gilt = true },
+	tile = { radius = "radiusTile", fill = "buttonFill" },
+	socket = { radius = "radiusTile", fill = "buttonFill" },
+	bar = { pill = true },
 }
 
 Widgets.RING_INSET = 8 / 128
@@ -401,14 +398,22 @@ local function NewTexture(owner, layer, sublevel, path)
 	return texture
 end
 
-local function NewSlice(owner, name, layer, sublevel)
+local function PaintSlice(p, name)
 	local path, texels = Tokens.Texture(name)
 	local f = texels / TEXELS[name]
-	local p = { texture = name }
+	p.texture = name
 	for piece = 1, 9 do
-		p[piece] = NewTexture(owner, layer, sublevel, path)
+		p[piece]:SetTexture(path)
 		SliceCoords(p[piece], piece, f)
 	end
+end
+
+local function NewSlice(owner, name, layer, sublevel)
+	local p = {}
+	for piece = 1, 9 do
+		p[piece] = owner:CreateTexture(nil, layer, nil, sublevel)
+	end
+	PaintSlice(p, name)
 	p[2]:SetPoint("TOPLEFT", p[1], "TOPRIGHT")
 	p[2]:SetPoint("BOTTOMRIGHT", p[3], "BOTTOMLEFT")
 	p[4]:SetPoint("TOPLEFT", p[1], "BOTTOMLEFT")
@@ -441,8 +446,8 @@ function Widgets.NineSlice(owner, name, layer, sublevel)
 	return NewSlice(owner, name, layer or "BACKGROUND", sublevel or 0)
 end
 
-function Widgets.LayoutSlice(slice, owner, corner, outset, drop)
-	local f = Widgets.ScaleFactor(owner)
+function Widgets.LayoutSlice(slice, owner, corner, outset, drop, scaleFrame)
+	local f = Widgets.ScaleFactor(scaleFrame or owner)
 	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f))
 end
 
@@ -458,26 +463,10 @@ function Widgets.ShowSlice(slice, shown)
 	end
 end
 
-function Widgets.ColorLine(line, r, g, b, a, factors)
-	if not factors then
-		Widgets.ColorSlice(line, r, g, b, a)
-		return
-	end
-	local cut = min(1, a * factors.cut)
-	for i = 1, 4 do
-		line[i]:SetVertexColor(r, g, b, cut)
-	end
-	line[5]:SetVertexColor(r, g, b, min(1, a * factors.top))
-	line[6]:SetVertexColor(r, g, b, min(1, a * factors.bottom))
-	local side = min(1, a * factors.side)
-	line[7]:SetVertexColor(r, g, b, side)
-	line[8]:SetVertexColor(r, g, b, side)
-end
-
 local PILL_CAP = 0.25
 
-function Widgets.Pill(box, layer, sublevel)
-	local path = Tokens.Texture("pill")
+function Widgets.Pill(box, layer, sublevel, name)
+	local path = Tokens.Texture(name or "pill")
 	local left = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
 	local middle = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
 	local right = NewTexture(box, layer or "ARTWORK", sublevel or 0, path)
@@ -499,106 +488,58 @@ function Widgets.LayoutPill(pill, height)
 	pill[3]:SetWidth(cap)
 end
 
-function Widgets.Line(owner, layer, sublevel)
-	local path = Tokens.Texture("line")
-	local parts = {}
-	for i = 1, 4 do
-		local diagonal = owner:CreateTexture(nil, layer or "BORDER", nil, sublevel or 0)
-		diagonal:SetTexture(path, "CLAMP", "CLAMP")
-		parts[i] = diagonal
-	end
-	for i = 5, 8 do
-		parts[i] = NewTexture(owner, layer or "BORDER", sublevel or 0)
-	end
-	return parts
-end
-
-local CORNER_SUMS = { { 0, 1, 1, 2 }, { 1, 2, 0, 1 }, { 1, 0, 2, 1 }, { 2, 1, 1, 0 } }
-
-local function MapDiagonal(texture, sums, square, outerSum, thick)
-	local scale = LINE_BAND_SIZE / (thick * SQRT2)
-	local function T(k)
-		return LINE_BAND_START + (k * square - outerSum) * scale
-	end
-	texture:SetTexCoord(LINE_COLUMN, T(sums[1]), LINE_COLUMN, T(sums[2]), LINE_COLUMN, T(sums[3]), LINE_COLUMN, T(sums[4]))
-end
-
-function Widgets.LayoutLine(line, owner, chamfer, at)
-	local f = Widgets.ScaleFactor(owner)
-	local thick = Scale.Border() / f
-	local outerSum = SnapIn(chamfer, f) - at * (2 - SQRT2)
-	local square = SnapIn(outerSum + thick * (SQRT2 - 1), f)
-	local tl, tr, bl, br, top, bottom, left, right = line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8]
-	for i = 1, 8 do
-		line[i]:ClearAllPoints()
-	end
-	for i = 1, 4 do
-		line[i]:SetSize(square, square)
-		MapDiagonal(line[i], CORNER_SUMS[i], square, outerSum, thick)
-	end
-	tl:SetPoint("TOPLEFT", owner, "TOPLEFT", at, -at)
-	tr:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -at, -at)
-	bl:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", at, at)
-	br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -at, at)
-	local reach = at + square
-	top:SetPoint("TOPLEFT", owner, "TOPLEFT", reach, -at)
-	top:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -reach, -at)
-	top:SetHeight(thick)
-	bottom:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", reach, at)
-	bottom:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -reach, at)
-	bottom:SetHeight(thick)
-	left:SetPoint("TOPLEFT", owner, "TOPLEFT", at, -reach)
-	left:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", at, reach)
-	left:SetWidth(thick)
-	right:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -at, -reach)
-	right:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -at, reach)
-	right:SetWidth(thick)
-end
-
 local Chrome = {}
 Chrome.__index = Chrome
+
+local function NewGilt(owner)
+	local path = Tokens.Texture("gilt")
+	local tl = NewTexture(owner, "BORDER", SUBLEVEL_GILT, path)
+	local br = NewTexture(owner, "BORDER", SUBLEVEL_GILT, path)
+	br:SetTexCoord(1, 0, 1, 0)
+	return { tl, br }
+end
 
 function Widgets.Chrome(owner, opts)
 	opts = opts or {}
 	local shapeName = opts.shape or "panel"
 	local shape = SHAPES[shapeName]
 	if not shape then
-		error("KstyleUI.Widgets.Chrome: shape must be panel, tile or window, got " .. tostring(shapeName), 2)
+		error("KstyleUI.Widgets.Chrome: shape must be panel, card, window, rail, tile, socket or bar, got " .. tostring(shapeName), 2)
 	end
 	local c = setmetatable({
 		owner = owner,
 		shape = shape,
 		shapeName = shapeName,
-		chamfer = opts.chamfer,
+		radius = opts.radius or opts.chamfer,
 		share = opts.share,
-		lines = opts.fade == false and ICON_LINES or LINES,
-		bevel = opts.bevel or BEVEL,
-		bezelUnits = opts.bezel,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
-		fillName = opts.fill or "surface",
-		edge = { Widgets.Rgba(opts.edge or shape.edgeColor) },
+		fillName = opts.fill or shape.fill or "surface",
+		edge = { Widgets.Rgba(opts.edge or (shape.pill and "edgeBar") or "edgeInner") },
 		fillColor = { 0, 0, 0, 0 },
 		ownFill = false,
-		outerColor = { 0, 0, 0, 0 },
-		ownOuter = false,
+		proc = false,
 	}, Chrome)
-	c.shadow = NewSlice(owner, "shadow", "BACKGROUND", SUBLEVEL_SHADOW)
-	if opts.bezel then
-		c.bezel = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_BEZEL)
-	end
-	c.fill = NewSlice(owner, shape.fill, "BACKGROUND", SUBLEVEL_FILL)
-	if opts.grain ~= false and shape.grain then
-		local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
-		noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
-		noise:SetHorizTile(true)
-		noise:SetVertTile(true)
-		c.noise = noise
-	end
-	for _, spec in ipairs(c.lines) do
-		c[spec.key] = Widgets.Line(owner, "BORDER", LINE_SUBLEVELS[spec.key])
-	end
-	if opts.bezel then
-		c.plate = Widgets.Line(owner, "BORDER", LINE_SUBLEVELS.plate)
+	if shape.pill then
+		c.track = Widgets.Pill(owner, "BACKGROUND", SUBLEVEL_FILL)
+		c.rim = Widgets.Pill(owner, "BORDER", SUBLEVEL_RIM, "pillRim")
+		c.fill = c.track
+	else
+		c.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
+		c.fill = NewSlice(owner, "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
+		if shape.frost then
+			c.frost = NewSlice(owner, "lumenFrost", "BACKGROUND", SUBLEVEL_FROST)
+		end
+		if opts.grain ~= false and shape.grain then
+			local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
+			noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
+			noise:SetHorizTile(true)
+			noise:SetVertTile(true)
+			c.noise = noise
+		end
+		c.rim = NewSlice(owner, "lumenRim", "BORDER", SUBLEVEL_RIM)
+		if shape.gilt and opts.gilt ~= false then
+			c.gilt = NewGilt(owner)
+		end
 	end
 	if type(owner.HookScript) == "function" then
 		owner:HookScript("OnSizeChanged", function()
@@ -617,58 +558,81 @@ local function ShortSide(owner)
 	return min(w, h)
 end
 
-function Chrome:Chamfer()
-	if self.chamfer then
-		return self.chamfer
-	end
-	local cap = Tokens.Size(self.shape.chamfer)
+function Chrome:Radius()
 	local short = ShortSide(self.owner)
+	if self.shape.pill then
+		return short and short / 2 or 0
+	end
+	if self.radius then
+		return short and min(self.radius, short / 2) or self.radius
+	end
+	local cap = Tokens.Size(self.shape.radius)
 	if not short then
 		return cap
 	end
 	if self.share then
-		return short * self.share
+		return min(short / 2, short * self.share)
 	end
-	return min(cap, short * Tokens.Share("chamfer"))
+	return min(cap, short / 2)
 end
+Chrome.Chamfer = Chrome.Radius
 
 function Chrome:Inset(gap)
-	return Widgets.Inset(self.owner, self:Chamfer(), gap)
+	return Widgets.Inset(self.owner, self:Radius(), gap)
 end
 
 function Widgets.WindowInset(frame)
-	return Widgets.Inset(frame, Tokens.Size("chamferWindow"), "gapMedium")
+	return Widgets.Inset(frame, Tokens.Size("radius"), "gapMedium")
 end
 
 function Chrome:OnSizeChanged()
-	if self.chamfer == nil and self:Chamfer() ~= self.laidChamfer then
+	if self:Radius() ~= self.laidRadius then
 		self:Restyle()
 	end
 end
 
+function Chrome:LayoutPill()
+	local radius = self:Radius()
+	self.laidRadius = radius
+	if radius > 0 then
+		Widgets.LayoutPill(self.track, 2 * radius)
+		Widgets.LayoutPill(self.rim, 2 * radius)
+	end
+end
+
 function Chrome:Layout()
+	if self.shape.pill then
+		self:LayoutPill()
+		return
+	end
 	local owner = self.owner
 	local f = Widgets.ScaleFactor(owner)
-	local chamfer = self:Chamfer()
-	self.laidChamfer = chamfer
-	Widgets.LayoutSlice(self.fill, owner, chamfer, 0)
-	local outset = 0
-	if self.bezel then
-		outset = SnapIn(self.bezelUnits, f)
-		Widgets.LayoutSlice(self.bezel, owner, chamfer + self.bezelUnits * (2 - SQRT2), outset)
-		Widgets.LayoutLine(self.plate, owner, chamfer, -outset)
+	local radius = self:Radius()
+	self.laidRadius = radius
+	Widgets.LayoutSlice(self.fill, owner, radius, 0)
+	if self.frost then
+		Widgets.LayoutSlice(self.frost, owner, radius, 0)
 	end
+	self:PickRim()
+	Widgets.LayoutSlice(self.rim, owner, radius, 0)
 	local reach = Tokens.Size("shadow")
-	Widgets.LayoutSlice(self.shadow, owner, 2 * reach, SnapIn(reach, f) + outset, Tokens.Size("shadowOffset"))
-	local border = Scale.Border() / f
-	for _, spec in ipairs(self.lines) do
-		Widgets.LayoutLine(self[spec.key], owner, chamfer, spec.borders * border)
-	end
+	Widgets.LayoutSlice(self.shadow, owner, 2 * reach, SnapIn(reach, f))
 	if self.noise then
-		local inset = SnapIn(chamfer, f)
+		local inset = SnapIn(radius * GRAIN_CLEAR, f)
 		self.noise:ClearAllPoints()
 		self.noise:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
 		self.noise:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
+	end
+	if self.gilt then
+		local size = SnapIn(Tokens.Size("gilt") * radius / Tokens.Size("radius"), f)
+		local outset = SnapIn(GILT_OUTSET, f)
+		local tl, br = self.gilt[1], self.gilt[2]
+		tl:ClearAllPoints()
+		br:ClearAllPoints()
+		tl:SetSize(size, size)
+		br:SetSize(size, size)
+		tl:SetPoint("TOPLEFT", owner, "TOPLEFT", -outset, outset)
+		br:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", outset, -outset)
 	end
 end
 
@@ -684,43 +648,29 @@ function Chrome:Paint()
 		end
 	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
-	if self.bezel then
-		Widgets.ColorSlice(self.bezel, Tokens.Color("buttonFill"))
+	if self.frost then
+		Widgets.ColorSlice(self.frost, Tokens.Color("glass"))
 	end
-	local shadowShown = self.shadowOn and Widgets.Setting("shadows")
-	Widgets.ShowSlice(self.shadow, shadowShown)
-	Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
+	if self.shadow then
+		Widgets.ShowSlice(self.shadow, self.shadowOn and Widgets.Setting("shadows"))
+		Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
+	end
 	if self.noise then
 		self.noise:SetVertexColor(Widgets.Rgba("white", NOISE_ALPHA))
 	end
+	if self.gilt then
+		Widgets.ColorSlice(self.gilt, Tokens.Color("gilt"))
+	end
 	self:PaintEdge()
-	if self.ownOuter then
-		local o = self.outerColor
-		Widgets.ColorSlice(self.outer, o[1], o[2], o[3], o[4])
-	else
-		Widgets.ColorSlice(self.outer, Tokens.Color(LINES[1].color))
-	end
-	if self.plate then
-		local pr, pg, pb, pa = Tokens.Color("edgeInner")
-		Widgets.ColorLine(self.plate, pr, pg, pb, pa * PLATE_ALPHA, BEVEL)
-	end
 end
 
 function Chrome:PaintEdge()
+	if self.proc then
+		Widgets.ColorSlice(self.rim, Tokens.Color("giltLit"))
+		return
+	end
 	local e = self.edge
-	for _, spec in ipairs(self.lines) do
-		if spec.edge then
-			Widgets.ColorLine(self[spec.key], e[1], e[2], e[3], e[4] * (spec.scale or 1), self.bevel)
-		end
-	end
-end
-
-local function ShapeColor(chrome, key)
-	for _, spec in ipairs(chrome.lines) do
-		if spec.key == key then
-			return Tokens.Color(spec.color)
-		end
-	end
+	Widgets.ColorSlice(self.rim, e[1], e[2], e[3], e[4])
 end
 
 function Chrome:Restyle()
@@ -767,28 +717,36 @@ function Chrome:SetEdgeRGBA(r, g, b, a)
 	self:PaintEdge()
 end
 
-function Chrome:SetOuterRGBA(r, g, b, a)
-	local o = self.outerColor
-	o[1], o[2], o[3], o[4] = r, g, b, a
-	self.ownOuter = true
-	Widgets.ColorSlice(self.outer, r, g, b, a)
-end
-
-function Chrome:SetOuter(name, alphaScale)
-	if name then
-		self:SetOuterRGBA(Widgets.Rgba(name, alphaScale))
-	else
-		self.ownOuter = false
-		Widgets.ColorSlice(self.outer, ShapeColor(self, "outer"))
+function Chrome:PickRim()
+	local name = "lumenRim"
+	if self.proc then
+		name = "lumenOutline"
+	elseif (self.laidRadius or self:Radius()) < SMALL_RIM_BELOW then
+		name = "lumenRimSmall"
+	end
+	if self.rim.texture ~= name then
+		PaintSlice(self.rim, name)
 	end
 end
 
-function Chrome:SetChamfer(units)
-	if self.chamfer ~= units then
-		self.chamfer = units
+function Chrome:SetProc(on)
+	on = on and true or false
+	if self.proc ~= on then
+		self.proc = on
+		if not self.shape.pill then
+			self:PickRim()
+		end
+		self:PaintEdge()
+	end
+end
+
+function Chrome:SetRadius(units)
+	if self.radius ~= units then
+		self.radius = units
 		self:Restyle()
 	end
 end
+Chrome.SetChamfer = Chrome.SetRadius
 
 function Chrome:SetShadow(on)
 	self.shadowOn = on and true or false
@@ -797,19 +755,19 @@ end
 
 function Chrome:SetShown(shown)
 	Widgets.ShowSlice(self.fill, shown)
-	if self.bezel then
-		Widgets.ShowSlice(self.bezel, shown)
+	Widgets.ShowSlice(self.rim, shown)
+	if self.frost then
+		Widgets.ShowSlice(self.frost, shown)
 	end
-	for _, spec in ipairs(self.lines) do
-		Widgets.ShowSlice(self[spec.key], shown)
-	end
-	if self.plate then
-		Widgets.ShowSlice(self.plate, shown)
+	if self.gilt then
+		Widgets.ShowSlice(self.gilt, shown)
 	end
 	if self.noise then
 		self.noise:SetShown(shown)
 	end
-	Widgets.ShowSlice(self.shadow, shown and self.shadowOn and Widgets.Setting("shadows"))
+	if self.shadow then
+		Widgets.ShowSlice(self.shadow, shown and self.shadowOn and Widgets.Setting("shadows"))
+	end
 end
 
 local function SetHover(widget, t)

@@ -106,7 +106,7 @@ do
 	local font = K.Options.Row("Appearance", "font")
 	assert(type(font.options) == "function", "the font list is built when it opens")
 	local faces = font.options()
-	assert(faces[1].value == "SourceSans3Semibold" and faces[3].value == "InterSemiBold", "the bundled faces come first")
+	assert(faces[1].value == "Lumen" and faces[2].value == "CinzelSemiBold" and faces[6].value == "SourceSans3Semibold" and faces[8].value == "InterSemiBold", "the Lumen set, then the bundled faces, come first")
 	assert(faces[#faces].value == SHARED_FONT and faces[#faces].label == "Handwriting", "LibSharedMedia fonts follow")
 
 	K.Options.Write("Appearance", "motion", "reduced")
@@ -127,7 +127,7 @@ do
 	CoreEnv.Boot(env)
 	assert(K.Motion.Level() == "full" and K.Appearance.Get("motion") == "full", "an unknown motion level falls back to full")
 	assert(K.Theme.FontScale() == 1.3 and K.Appearance.Get("fontScale") == 1.3, "a text size out of range is clamped")
-	assert(K.Theme.FontFace() == "SourceSans3Semibold", "an unknown face falls back")
+	assert(K.Theme.FontFace() == "Lumen", "an unknown face falls back to the default set")
 
 	saved = { version = 1, profiles = { Default = { Appearance = { motion = "off", font = SHARED_FONT } } } }
 	env, K = CoreEnv.New({ saved = saved })

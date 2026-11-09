@@ -2,7 +2,7 @@
 
 A complete UI overhaul for **World of Warcraft: Forever** (TOC `16001`, game type `camelot`).
 It aims for the polish of Narcissus, WaypointUI and DialogueUI: modern, elegant and animated,
-with one art direction across every window: near-black smoked glass, chamfered corners, a live
+with one art direction across every window: frosted Lumen glass, rounded corners, a live
 class-colour accent, crisp type and eased motion.
 
 KstyleUI targets the Forever client only.

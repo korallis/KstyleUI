@@ -73,7 +73,7 @@ do
 	local _, relative, relPoint = number.frame:GetPoint(1)
 	assert(relative == K.Layout.Element("combattext.player").frame and relPoint == "BOTTOM", "the number starts at the bottom of the player's field")
 	local path, size, flags = LastCall(number.text, "SetFont")
-	assert(path == K.Tokens.FontPath("SourceSans3Semibold") and size == 18 and flags == "OUTLINE", "the number uses the default font, size and outline")
+	assert(path == (K.Tokens.Font("number")) and size == 18 and flags == "OUTLINE", "the number uses the default font, size and outline")
 	assert(env._errors[1] == nil, tostring(env._errors[1]))
 end
 
@@ -288,7 +288,7 @@ do
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
 	local shown = Shown(ns)
 	local path = LastCall(shown[#shown].text, "SetFont")
-	assert(path == K.Tokens.FontPath("SourceSans3Semibold"), "a font that does not load falls back to the number font, got " .. tostring(path))
+	assert(path == (K.Tokens.Font("number")), "a font that does not load falls back to the number font, got " .. tostring(path))
 	assert(env._errors[1] == nil, tostring(env._errors[1]))
 end
 

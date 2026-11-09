@@ -996,8 +996,11 @@ function Scene.Build(env, opts)
 		for _, mask in ipairs(region._masks) do
 			local rect = solver:rect(mask)
 			if rect then
-				local path = state(mask, "Texture")
-				out[#out + 1] = { rect = toScreen(rect), file = resolve(path), path = type(path) == "string" and path or nil }
+				local path, wrapH = state(mask, "Texture")
+				out[#out + 1] = {
+					rect = toScreen(rect), file = resolve(path), path = type(path) == "string" and path or nil,
+					clampWhite = wrapH == "CLAMPTOWHITE" or nil,
+				}
 			else
 				logLine("mask unresolved: " .. describe(region))
 			end

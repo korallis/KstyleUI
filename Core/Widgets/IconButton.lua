@@ -1,4 +1,4 @@
--- IconButton.lua: the chamfered square icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares.
+-- IconButton.lua: the rounded socket icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -14,9 +14,6 @@ local COOLING_BRIGHTNESS = 0.4
 local SWIPE_ALPHA = 0.65
 local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA, HOVER_WASH = 10, 0.3, 0.2
 local PROC_HALO_ALPHA = 0.1
-local RIM_HALO = 0.45
-local RIM_SIDE = 0.65
-local ICON_BEVEL = { top = 1, bottom = 1, side = RIM_SIDE, cut = 1 }
 local COUNTDOWN_RISE = 0.25
 local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
 local ICON_INSET_LINES = 3
@@ -58,11 +55,9 @@ local function PaintRim(chrome)
 		r, g, b, a = c[1], c[2], c[3], c[4]
 	else
 		chrome:SetEdge("edgeInner")
-		chrome:SetOuter()
 		return
 	end
 	chrome:SetEdgeRGBA(r, g, b, a)
-	chrome:SetOuterRGBA(r, g, b, a * RIM_HALO)
 end
 
 local function SetRim(chrome, r, g, b, a)
@@ -92,10 +87,10 @@ end
 
 function Widgets.IconChrome(owner, opts)
 	opts = opts or {}
-	local share = Tokens.Share("chamferIcon")
+	local share = Tokens.Share("radiusSocket")
 	local chrome = Widgets.Chrome(owner, {
-		shape = "tile", fill = "buttonFill", shadow = opts.bezel ~= nil, bezel = opts.bezel,
-		chamfer = opts.size and opts.size * share or nil, share = share, fade = false, bevel = ICON_BEVEL,
+		shape = "socket", fill = "buttonFill", shadow = opts.shadow == true,
+		radius = opts.size and opts.size * share or nil, share = share,
 	})
 	chrome.rimColor = { 0, 0, 0, 0 }
 	chrome.rimSet, chrome.rimAccent = false, false
@@ -202,9 +197,6 @@ function IconButton:SetAccent(r, g, b)
 		self.accent = nil
 	end
 	ColorGlow(self, self.hoverGlow)
-	if self.procGlow then
-		ColorGlow(self, self.procGlow)
-	end
 	self:Paint()
 end
 
@@ -291,11 +283,10 @@ end
 
 function IconButton:SetProc(on)
 	self.proc = on and true or false
+	self.chrome:SetProc(self.proc)
 	if self.proc and not self.procGlow then
 		self.procGlow = Widgets.Glow(self, { kind = "proc", alpha = PROC_HALO_ALPHA })
-		if self.accent then
-			ColorGlow(self, self.procGlow)
-		end
+		self.procGlow:SetColorRGB(Tokens.Color("giltLit"))
 	end
 	if self.procGlow then
 		if self.proc then
@@ -318,6 +309,9 @@ function IconButton:SetSelected(on)
 end
 
 function IconButton:SetHotkey(text)
+	if type(text) == "string" and not Widgets.IsSecret(text) then
+		text = text:upper()
+	end
 	Widgets.SetText(self.hotkey, text)
 end
 
@@ -329,7 +323,7 @@ function IconButton:Restyle()
 	if Widgets.MayMove(self) then
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
-		self.chrome:SetChamfer(size * Tokens.Share("chamferIcon"))
+		self.chrome:SetRadius(size * Tokens.Share("radiusSocket"))
 		self.placedOffset = nil
 		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()
@@ -386,7 +380,7 @@ function Widgets.IconButton(parent, opts)
 	button.usable = true
 	button.tint = { 1, 1, 1 }
 	local size = opts.size or Tokens.Size("actionButton")
-	button.chrome = Widgets.IconChrome(button, { size = size, bezel = Tokens.Size("buttonBezel") })
+	button.chrome = Widgets.IconChrome(button, { size = size, shadow = true })
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	if opts.crop ~= false then
@@ -423,7 +417,7 @@ function Widgets.IconButton(parent, opts)
 	overlay:SetAllPoints(button)
 	overlay:SetFrameLevel(cooldown:GetFrameLevel() + OVERLAY_LEVEL)
 	button.overlay = overlay
-	button.hotkey = Widgets.Text(overlay, "caption", "textEmphasis")
+	button.hotkey = Widgets.Text(overlay, "number", "textEmphasis")
 	button.count = Widgets.Text(overlay, "number", "textEmphasis")
 	Widgets.HookPointer(button)
 	if opts.icon then

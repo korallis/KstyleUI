@@ -110,17 +110,10 @@ do
 		assert(width == texels and height == texels, name .. " is " .. width .. "x" .. height .. ", the kit slices it as " .. texels)
 		names[name] = true
 	end
-	for _, name in ipairs({ "chamferPanel", "chamferTile", "chamferWindow", "shadow" }) do
+	for _, name in ipairs({ "lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "lumenShadow", "shadow" }) do
 		assert(names[name], name .. " is a sliced texture")
 	end
-end
-
--- The geometry of one bevel line on a chamfered rectangle: the straight pieces are one border thick, and each
--- corner piece is the square that holds the diagonal band between the straight pieces.
-local SQRT2 = math.sqrt(2)
-local function cornerSquare(K, chamfer, at)
-	local border = K.Scale.Border()
-	return K.Scale.Snap(K.Scale.Snap(chamfer) - at * (2 - SQRT2) + border * (SQRT2 - 1))
+	assert(not names.chamferPanel and not names.chamferWindow, "the chamfer slices are retired")
 end
 
 local function chrome(env, K, shape, width, height)
@@ -129,210 +122,161 @@ local function chrome(env, K, shape, width, height)
 	return frame, K.Widgets.Chrome(frame, { shape = shape, fill = "surface", shadow = true })
 end
 
--- The alpha of a line piece against its base colour's alpha.
-local function alphaOf(piece)
-	return select(4, piece:GetVertexColor())
-end
-
--- Corner cuts follow the mockup: 30% of a backdrop's shorter side, capped per shape (panel 12, tile 6, window 12),
--- so the cast bar, the data strip and the nameplate frame cut deep while a chat window stays at 12. A frame with no
--- size yet takes the cap. Icon buttons cut 12% of their side, as the mockup's cluster and action buttons do.
+-- Corners are rounded, never cut. Cards, panels, windows and rails round 14 units, tiles and sockets 8, and no corner
+-- is more than half the shorter side, so a short strip becomes a pill. A frame with no size yet takes the cap. Icon
+-- sockets round 11/52 of their side, the mockup's 52-unit socket.
 do
 	local env, K = W.New()
 	local Scale, Tokens = K.Scale, K.Tokens
-	assert(W.Near(Tokens.Share("chamfer"), 0.3) and W.Near(Tokens.Share("chamferIcon"), 0.12), "the cut shares are tokens")
+	assert(W.Near(Tokens.Share("radiusSocket"), 11 / 52), "the socket share is a token")
 	W.Raises(function()
 		Tokens.Share("nope")
 	end, "unknown name")
-	assert(Tokens.Size("chamferPanel") == 12 and Tokens.Size("chamferTile") == 6 and Tokens.Size("chamferWindow") == 12, "the caps")
+	assert(Tokens.Size("radius") == 14 and Tokens.Size("radiusTile") == 8, "the caps")
 	local cases = {
-		{ "panel", 200, 100, 12 }, { "panel", 300, 30, 9 }, { "panel", 200, 20, 6 },
-		{ "window", 400, 200, 12 }, { "window", 200, 30, 9 },
-		{ "tile", 200, 100, 6 }, { "tile", 180, 18, 5.4 }, { "tile", 200, 10, 3 },
+		{ "panel", 200, 100, 14 }, { "panel", 300, 30, 14 }, { "panel", 200, 20, 10 },
+		{ "window", 400, 200, 14 }, { "window", 200, 24, 12 }, { "card", 200, 100, 14 }, { "rail", 318, 600, 14 },
+		{ "tile", 200, 100, 8 }, { "tile", 180, 18, 8 }, { "tile", 200, 10, 5 }, { "socket", 38, 38, 8 },
 	}
 	for _, case in ipairs(cases) do
 		local shape, w, h, want = case[1], case[2], case[3], case[4]
 		local _, c = chrome(env, K, shape, w, h)
-		assert(W.Near(c:Chamfer(), want), shape .. " " .. w .. "x" .. h .. ": the cut is " .. tostring(c:Chamfer()) .. ", the mockup's rule says " .. want)
-		assert(W.Near(c.fill[1]:GetWidth(), Scale.Snap(want)), shape .. " " .. w .. "x" .. h .. ": the fill corner is the cut, snapped")
+		assert(W.Near(c:Radius(), want), shape .. " " .. w .. "x" .. h .. ": the radius is " .. tostring(c:Radius()) .. ", want " .. want)
+		assert(c.Chamfer == c.Radius, "Chamfer is the radius for older callers")
+		assert(W.Near(c.fill[1]:GetWidth(), Scale.Snap(want)), shape .. " " .. w .. "x" .. h .. ": the fill corner is the radius, snapped")
+		assert(W.Near(c.rim[1]:GetWidth(), Scale.Snap(want)), shape .. " " .. w .. "x" .. h .. ": and so is the rim's")
 	end
 	local frame, c = chrome(env, K, "tile", 200, 100)
 	frame:SetSize(200, 10)
-	assert(W.Near(c:Chamfer(), 3) and W.Near(c.fill[1]:GetWidth(), Scale.Snap(3)), "a size change re-cuts the corners through OnSizeChanged, got " .. tostring(c:Chamfer()))
+	assert(W.Near(c:Radius(), 5) and W.Near(c.fill[1]:GetWidth(), Scale.Snap(5)), "a size change re-rounds the corners through OnSizeChanged, got " .. tostring(c:Radius()))
 	local bare = env.CreateFrame("Frame", nil, Scale.Root())
 	local bc = K.Widgets.Chrome(bare, { shape = "panel" })
-	assert(W.Near(bc:Chamfer(), 12), "a frame with no size takes the shape's cap")
+	assert(W.Near(bc:Radius(), 14), "a frame with no size takes the shape's cap")
 	local eframe, explicit = chrome(env, K, "panel", 200, 100)
-	explicit:SetChamfer(4)
-	assert(W.Near(explicit:Chamfer(), 4), "an explicit chamfer still wins")
-	eframe:SetSize(200, 10)
-	assert(W.Near(explicit:Chamfer(), 4), "and a size change leaves it pinned")
+	explicit:SetRadius(4)
+	assert(W.Near(explicit:Radius(), 4), "an explicit radius still wins")
+	eframe:SetSize(200, 6)
+	assert(W.Near(explicit:Radius(), 3), "but never more than half the short side")
 	explicit:SetChamfer(nil)
-	assert(W.Near(explicit:Chamfer(), 3) and W.Near(explicit.fill[1]:GetWidth(), Scale.Snap(3)), "unpinning it returns to the computed cut, laid out at once")
+	assert(W.Near(explicit:Radius(), 3) and W.Near(explicit.fill[1]:GetWidth(), Scale.Snap(3)), "SetChamfer is SetRadius; unpinning returns to the computed radius, laid out at once")
 	local icon = env.CreateFrame("Frame", nil, Scale.Root())
-	icon:SetSize(34, 34)
+	icon:SetSize(52, 52)
 	local ic = K.Widgets.IconChrome(icon)
-	assert(W.Near(ic:Chamfer(), 34 * 0.12), "an icon tile cuts 12% of its side, got " .. tostring(ic:Chamfer()))
-	icon:SetSize(50, 50)
-	assert(W.Near(ic:Chamfer(), 6), "and follows a size change")
-	local big = env.CreateFrame("Frame", nil, Scale.Root())
-	big:SetSize(70, 70)
-	assert(W.Near(K.Widgets.IconChrome(big):Chamfer(), 8.4), "the icon share has no cap: a 70-unit cluster button cuts 8.4")
+	assert(W.Near(ic:Radius(), 11), "a 52-unit socket rounds 11, got " .. tostring(ic:Radius()))
+	icon:SetSize(38, 38)
+	assert(W.Near(ic:Radius(), 38 * 11 / 52), "and follows a size change")
 end
 
--- Chrome: a nine-sliced shadow and fill, and the mockup's bevelled edge: the dark edgeOuter line on the edge, the light
--- line one border inside it, lit on the top and on the cut facets (1.4 and 1.6 times its alpha), plain on the sides
--- and 1.1 on the bottom, and a fading second row at 65% of it one border further in. The shadow reaches 10 units out
--- and drops 2 units, as the mockup's panels cast it.
+-- Chrome: the Lumen card. A nine-sliced shadow reaching 14 units with its 3-unit drop baked in and the card cut out of
+-- it, so the glass never darkens over its own shadow, the deep tint in the rounded shape, the
+-- frost slice tinted glass, the grain inside the arcs, and the rim slice tinted with the edge colour (its texture holds
+-- the bright top). Panels and cards have no gilt.
 do
 	local env, K = W.New()
 	local Scale, Tokens = K.Scale, K.Tokens
 	local _, c = chrome(env, K, "panel")
-	assert(#c.fill == 9 and #c.shadow == 9, "nine pieces each for the fill and the shadow")
-	assert(#c.outer == 8 and #c.inner == 8 and #c.fade == 8, "four corners and four lines for each bevel line")
-	assert(c.plate == nil, "no plate line without a bezel")
+	assert(#c.fill == 9 and #c.shadow == 9 and #c.frost == 9 and #c.rim == 9, "nine pieces each for the shadow, fill, frost and rim")
+	assert(c.gilt == nil, "a panel has no gilt")
 	local tl = c.fill[1]
 	local coords = W.LastCall(tl, "SetTexCoord")
-	assert(coords[1] == 0 and W.Near(coords[2], 32 / 128) and coords[3] == 0 and W.Near(coords[4], 32 / 128), "the corner piece is the texture's 32-texel corner")
+	assert(coords[1] == 0 and W.Near(coords[2], 56 / 128) and coords[3] == 0 and W.Near(coords[4], 56 / 128), "the corner piece is the texture's 56-texel corner")
 	local w, h = tl:GetSize()
-	assert(W.Near(w, Scale.Snap(12)) and W.Near(h, Scale.Snap(12)), "a 200x100 panel's fill corner is the 12-unit cap")
-	assert(c.shapeName == "panel" and c.dark == nil and c.hairline == nil, "a panel has the bevel edge and no hairline: the mockup's glass")
+	assert(W.Near(w, Scale.Snap(14)) and W.Near(h, Scale.Snap(14)), "a 200x100 panel's fill corner is the 14-unit radius")
 	local r, g, b, a = Tokens.Color("surface")
-	assert(W.SameColor(c.fill[5], r, g, b, a), "the fill is the surface colour at the panel opacity")
-	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")) and W.SameColor(c.outer[1], Tokens.Color("edgeOuter")), "the outer line is edgeOuter all round")
+	assert(W.SameColor(c.fill[5], r, g, b, a), "the fill is the deep tint at the panel opacity")
+	assert(W.SameColor(c.frost[5], Tokens.Color("glass")) and W.SameColor(c.frost[1], Tokens.Color("glass")), "the frost is the glass tint")
 	local er, eg, eb, ea = Tokens.Color("edgeInner")
-	assert(W.SameColor(c.inner[7], er, eg, eb, ea) and W.SameColor(c.inner[8], er, eg, eb, ea), "the light line's sides are edgeInner")
-	assert(W.SameColor(c.inner[5], er, eg, eb, ea * 1.4), "its top is lit: 1.4 times the alpha, the mockup's bright top edge")
-	assert(W.SameColor(c.inner[6], er, eg, eb, ea * 1.1), "its bottom is 1.1 times")
-	for i = 1, 4 do
-		assert(W.SameColor(c.inner[i], er, eg, eb, ea * 1.6), "each cut facet is lit 1.6 times: the mockup's bright chamfers")
+	for i = 1, 9 do
+		assert(W.SameColor(c.rim[i], er, eg, eb, ea), "the rim is edgeInner on every piece; its texture lights the top")
 	end
-	assert(W.SameColor(c.fade[7], er, eg, eb, ea * 0.65) and W.SameColor(c.fade[5], er, eg, eb, ea * 1.4 * 0.65) and W.SameColor(c.fade[1], er, eg, eb, ea * 1.6 * 0.65), "the fade row is 65% of the light line, side by side: the mockup's second row reads 0.4 to 0.8 of its first")
-	local function inset(line)
-		return -line[5]._points[1][5]
-	end
-	local border = Scale.Border()
-	assert(W.Near(inset(c.outer), 0) and W.Near(inset(c.inner), border) and W.Near(inset(c.fade), 2 * border), "the dark line on the edge, the light line inside it, the fade row inside that")
-	assert(W.Near(c.inner[5]:GetHeight(), border) and W.Near(c.fade[5]:GetHeight(), border), "one border thick")
-	local chamfer = c:Chamfer()
-	for _, pair in ipairs({ { c.outer, 0 }, { c.inner, border }, { c.fade, 2 * border } }) do
-		local line, at = pair[1], pair[2]
-		local square = cornerSquare(K, chamfer, at)
-		for i = 1, 4 do
-			assert(W.Near(line[i]:GetWidth(), square) and W.Near(line[i]:GetHeight(), square), "each corner piece is the diagonal's square: " .. square)
-			assert(W.LastCall(line[i], "SetTexture")[1] == Tokens.Texture("line"), "drawn from the line strip texture")
-			assert(#W.LastCall(line[i], "SetTexCoord") == 8, "mapped onto the diagonal with eight texture coordinates")
-		end
-		assert(W.Near(line[5]._points[1][4], at + square), "the straight top line starts where the corner square ends")
-		assert(W.Near(line[5]:GetHeight(), border), "and is one border thick")
-	end
+	local grain = c.noise._points[1]
+	assert(W.Near(grain[4], Scale.Snap(14 * (1 - math.sqrt(2) / 2))), "the grain stays inside the round corners")
 	c:SetShown(false)
-	assert(not c.inner[1]:IsShown() and not c.inner[5]:IsShown() and not c.fade[5]:IsShown(), "SetShown hides the lines with the rest")
+	assert(not c.rim[1]:IsShown() and not c.frost[5]:IsShown() and not c.fill[5]:IsShown(), "SetShown hides every layer")
 	c:SetShown(true)
-	assert(c.fade[5]:IsShown(), "and shows them again")
-	local reach, drop = Scale.Snap(Tokens.Size("shadow")), Scale.Snap(Tokens.Size("shadowOffset"))
+	assert(c.rim[5]:IsShown() and c.frost[5]:IsShown(), "and shows them again")
+	local reach = Scale.Snap(Tokens.Size("shadow"))
 	local shadowCorner = c.shadow[1]
-	assert(W.Near(shadowCorner:GetWidth(), Scale.Snap(2 * Tokens.Size("shadow"))), "the shadow's corner piece is twice the reach: 10 units of reach each way")
+	assert(W.LastCall(shadowCorner, "SetTexture")[1] == Tokens.Texture("lumenShadow"), "the shadow is the Lumen card shadow, with the card cut out")
+	assert(W.Near(shadowCorner:GetWidth(), Scale.Snap(2 * Tokens.Size("shadow"))), "the shadow's corner piece is twice the reach")
 	local point = shadowCorner._points[1]
-	assert(W.Near(point[4], -reach) and W.Near(point[5], reach - drop), "the shadow corner is centred on the panel's corner and drops 2 units")
+	assert(W.Near(point[4], -reach) and W.Near(point[5], reach), "the shadow corner is centred on the panel's corner, its drop baked into the texture")
 	local bottom = c.shadow[7]._points[1]
-	assert(W.Near(bottom[4], -reach) and W.Near(bottom[5], -reach - drop), "the bottom corners drop too, so the shadow reads below the panel")
+	assert(W.Near(bottom[4], -reach) and W.Near(bottom[5], -reach), "so the bottom corners line up with the card's cut-out")
 	c:SetEdge("accent")
 	local ar, ag, ab = Tokens.Color("accent")
-	assert(W.SameColor(c.inner[7], ar, ag, ab, 1) and W.SameColor(c.inner[5], ar, ag, ab, 1), "SetEdge recolours the light line; an opaque edge stays opaque on its lit sides")
-	assert(W.SameColor(c.fade[7], ar, ag, ab, 0.65), "and the fade row follows at 65%")
-	c:SetOuterRGBA(0.1, 0.2, 0.3, 0.4)
-	assert(W.SameColor(c.outer[5], 0.1, 0.2, 0.3, 0.4) and W.SameColor(c.outer[1], 0.1, 0.2, 0.3, 0.4), "SetOuterRGBA recolours the outer line")
+	assert(W.SameColor(c.rim[1], ar, ag, ab, 1) and W.SameColor(c.rim[5], ar, ag, ab, 1), "SetEdge recolours the rim")
 	K.Callbacks.Fire("ThemeChanged")
-	assert(W.SameColor(c.outer[5], 0.1, 0.2, 0.3, 0.4), "and the colour survives a restyle")
-	c:SetOuter()
-	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")), "SetOuter with no token returns to the shape's line")
+	assert(W.SameColor(c.rim[5], ar, ag, ab, 1), "and the colour survives a restyle")
 end
 
--- ColorLine paints one bevel line with per-side factors, allocating nothing.
-do
-	local env, K = W.New()
-	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
-	local line = K.Widgets.Line(frame, "BORDER", 0)
-	K.Widgets.ColorLine(line, 1, 1, 1, 0.5, { top = 1.4, bottom = 1.1, side = 1, cut = 1.6 })
-	assert(W.Near(alphaOf(line[5]), 0.7) and W.Near(alphaOf(line[6]), 0.55) and W.Near(alphaOf(line[7]), 0.5) and W.Near(alphaOf(line[8]), 0.5), "top, bottom and sides")
-	for i = 1, 4 do
-		assert(W.Near(alphaOf(line[i]), 0.8), "the corners are the cut facets")
-	end
-	K.Widgets.ColorLine(line, 1, 1, 1, 0.9, { top = 1.4, bottom = 1.1, side = 1, cut = 1.6 })
-	assert(W.Near(alphaOf(line[5]), 1) and W.Near(alphaOf(line[1]), 1), "a factor never pushes the alpha past 1")
-	K.Widgets.ColorLine(line, 0.2, 0.3, 0.4, 0.5)
-	assert(W.SameColor(line[5], 0.2, 0.3, 0.4, 0.5) and W.SameColor(line[1], 0.2, 0.3, 0.4, 0.5), "without factors every piece takes the colour")
-end
-
--- The window grade: the mockup's chat, tracker and strip wear the same bevelled edge as every panel, with a 12-unit
--- chamfer and a shadow. The design file's five-line window edge is gone.
+-- The window and rail grades: the same card with gilt filament tips on the top left and bottom right corners, set one
+-- unit outside the corner and 20 units square at the 14-unit radius, the bottom right one mirrored.
 do
 	local env, K = W.New()
 	local Scale, Tokens = K.Scale, K.Tokens
-	local _, c = chrome(env, K, "window")
-	local border = Scale.Border()
-	local function inset(line)
-		return -line[5]._points[1][5]
+	for _, shape in ipairs({ "window", "rail" }) do
+		local frame, c = chrome(env, K, shape)
+		assert(c.shapeName == shape, "the chrome knows its shape")
+		assert(W.Near(c.fill[1]:GetWidth(), Scale.Snap(14)), shape .. ": rounded 14 units")
+		assert(c.gilt and #c.gilt == 2, shape .. ": two gilt tips")
+		local tl, br = c.gilt[1], c.gilt[2]
+		assert(W.Near(tl:GetWidth(), Scale.Snap(Tokens.Size("gilt"))), "each tip covers 20 units")
+		local p1, p2 = tl._points[1], br._points[1]
+		assert(p1[1] == "TOPLEFT" and p1[2] == frame and W.Near(p1[4], -Scale.Snap(1)) and W.Near(p1[5], Scale.Snap(1)), "the first tip sits a unit outside the top left corner")
+		assert(p2[1] == "BOTTOMRIGHT" and p2[2] == frame and W.Near(p2[4], Scale.Snap(1)) and W.Near(p2[5], -Scale.Snap(1)), "the second a unit outside the bottom right")
+		local coords = W.LastCall(br, "SetTexCoord")
+		assert(coords[1] == 1 and coords[2] == 0 and coords[3] == 1 and coords[4] == 0, "the bottom right tip is the top left one mirrored")
+		assert(W.SameRGB(tl, Tokens.Color("gilt")) and W.SameRGB(br, Tokens.Color("gilt")), "the tips are gilt")
+		assert(c.shadow[1]:IsShown(), shape .. "s cast a shadow")
 	end
-	assert(c.shapeName == "window", "the chrome knows its shape")
-	assert(W.Near(c.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("chamferWindow"))), "a window's chamfer is 12 units, in units on every screen")
-	assert(W.SameColor(c.outer[5], Tokens.Color("edgeOuter")) and W.Near(inset(c.outer), 0), "the dark line on the edge")
-	local er, eg, eb, ea = Tokens.Color("edgeInner")
-	assert(W.SameColor(c.inner[7], er, eg, eb, ea) and W.Near(inset(c.inner), border), "the light line a border in, as on every panel")
-	assert(#c.fade == 8 and W.Near(inset(c.fade), 2 * border), "the fade row inside it")
-	assert(c.dark == nil and c.hairline == nil, "no further lines: the mockup's windows are the same glass as its panels")
-	assert(W.Near(c.outer[1]:GetWidth(), cornerSquare(K, Tokens.Size("chamferWindow"), 0)), "the edge line's corner square")
-	for _, line in ipairs({ c.outer, c.inner, c.fade }) do
-		assert(W.Near(line[5]:GetHeight(), border), "every line is one border thick")
-	end
-	assert(c.shadow[1]:IsShown(), "windows cast a shadow")
-	c:SetEdge("accent")
-	assert(W.SameColor(c.inner[7], Tokens.Color("accent")), "SetEdge recolours the light line")
+	local frame = env.CreateFrame("Frame", nil, Scale.Root())
+	frame:SetSize(200, 40)
+	local small = K.Widgets.Chrome(frame, { shape = "window", gilt = false })
+	assert(small.gilt == nil, "a window can leave its gilt off")
 	W.Raises(function()
 		K.Widgets.Chrome(env.CreateFrame("Frame", nil, Scale.Root()), { shape = "disc" })
-	end, "shape must be panel, tile or window")
+	end, "shape must be panel, card, window, rail, tile, socket or bar")
 end
 
--- A bar's edge: the mockup draws its bars with a fainter line, so a chrome takes an edge token, lit the same way.
+-- The bar grade: a pill track, its caps half the bar's height, and a faint rim in the edge token.
 do
 	local env, K = W.New()
 	local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
 	frame:SetSize(180, 18)
-	local c = K.Widgets.Chrome(frame, { shape = "tile", edge = "edgeBar", shadow = false })
+	local c = K.Widgets.Chrome(frame, { shape = "bar", fill = "surface", shadow = false })
 	local er, eg, eb, ea = K.Tokens.Color("edgeBar")
-	assert(W.SameColor(c.inner[7], er, eg, eb, ea) and W.SameColor(c.inner[5], er, eg, eb, ea * 1.4), "the light line takes the edge token, lit on top")
+	assert(#c.track == 3 and #c.rim == 3, "a three-sliced pill for the track and its rim")
+	assert(W.SameColor(c.rim[1], er, eg, eb, ea) and W.SameColor(c.rim[2], er, eg, eb, ea), "the rim takes the bar's edge token")
 	K.Callbacks.Fire("ThemeChanged")
-	assert(W.SameColor(c.inner[7], er, eg, eb, ea), "and keeps it through a restyle")
-	assert(W.Near(c:Chamfer(), 5.4), "a 18-unit bar cuts 5.4: the mockup's buff bars")
+	assert(W.SameColor(c.rim[3], er, eg, eb, ea), "and keeps it through a restyle")
+	assert(W.Near(c:Radius(), 9) and W.Near(c.track[1]:GetWidth(), 9) and W.Near(c.rim[3]:GetWidth(), 9), "an 18-unit bar's caps are 9 units")
+	assert(c.shadow == nil and c.frost == nil and c.gilt == nil, "no shadow, frost or gilt on a bar")
 end
 
--- An icon chrome: the button grade's body with the rim lit on its top, bottom and cuts and shaded on its sides (0.65),
--- no fade row, and with a bezel a light plate line on the plate's outer edge, 1.25 times edgeInner.
+-- An icon chrome: the socket grade. The dark crystal body, the rim on the small radius, no frost and no gilt, a rim
+-- the button colours, and the gold rim only while a proc is up.
 do
 	local env, K = W.New()
 	local Scale, Tokens = K.Scale, K.Tokens
 	local frame = env.CreateFrame("Frame", nil, Scale.Root())
-	frame:SetSize(34, 34)
-	local c = K.Widgets.IconChrome(frame, { bezel = 3 })
-	assert(c.fade == nil, "an icon tile draws no fade row: its rim and halo are its two lines")
-	assert(c.plate and #c.plate == 8, "a bezelled icon draws the plate's own light line")
-	assert(W.Near(-c.plate[5]._points[1][5], -Scale.Snap(3)), "on the plate's outer edge, 3 units outside the rim")
-	local er, eg, eb, ea = Tokens.Color("edgeInner")
-	assert(W.SameColor(c.plate[7], er, eg, eb, ea * 1.25) and W.SameColor(c.plate[5], er, eg, eb, ea * 1.25 * 1.4) and W.SameColor(c.plate[1], er, eg, eb, ea * 1.25 * 1.6), "the plate line is edgeInner at 1.25, lit like a panel's edge: the mockup's bright plate outline")
+	frame:SetSize(38, 38)
+	local c = K.Widgets.IconChrome(frame)
+	assert(c.shapeName == "socket" and c.frost == nil and c.gilt == nil, "a socket: no frost, no gilt")
+	assert(W.LastCall(c.rim[1], "SetTexture")[1] == Tokens.Texture("lumenRimSmall"), "its rim is drawn for the small radius")
+	assert(W.SameColor(c.fill[5], Tokens.Color("buttonFill")), "on the dark crystal body")
 	c:SetRim(0.5, 0.6, 0.7, 1)
-	assert(W.SameColor(c.inner[5], 0.5, 0.6, 0.7, 1) and W.SameColor(c.inner[6], 0.5, 0.6, 0.7, 1) and W.SameColor(c.inner[1], 0.5, 0.6, 0.7, 1), "the rim is full on the top, the bottom and the cuts")
-	assert(W.SameColor(c.inner[7], 0.5, 0.6, 0.7, 0.65) and W.SameColor(c.inner[8], 0.5, 0.6, 0.7, 0.65), "and shaded on the sides, the mockup's lit-from-above rim")
-	assert(W.SameColor(c.outer[5], 0.5, 0.6, 0.7, 0.45), "the halo is uniform")
-	c:SetShown(false)
-	assert(not c.plate[5]:IsShown(), "SetShown hides the plate line")
-	c:SetShown(true)
-	assert(c.plate[5]:IsShown())
-	local plain = K.Widgets.IconChrome(env.CreateFrame("Frame", nil, Scale.Root()))
-	assert(plain.plate == nil, "no bezel, no plate line")
+	assert(W.SameColor(c.rim[5], 0.5, 0.6, 0.7, 1) and W.SameColor(c.rim[1], 0.5, 0.6, 0.7, 1), "SetRim colours the rim")
+	c:SetProc(true)
+	assert(W.SameRGB(c.rim[1], Tokens.Color("giltLit")), "a proc lights it gold")
+	c:SetRim(0.1, 0.1, 0.1, 1)
+	assert(W.SameRGB(c.rim[1], Tokens.Color("giltLit")), "and the gold holds while the proc is up")
+	c:SetProc(false)
+	assert(W.SameColor(c.rim[1], 0.1, 0.1, 0.1, 1), "then the rim the button set returns")
+	assert(not pcall(Tokens.Size, "buttonBezel"), "sockets have no bezel plate")
 end
 
--- Review Focus 2: a move to a 1440p screen redraws the lines as whole pixels.
+-- A move to a 1440p screen redraws the corners in whole pixels of the same units.
 do
 	local env, K = W.New()
 	env._physical = { 2560, 1440 }
@@ -340,22 +284,15 @@ do
 		return env._physical[1], env._physical[2]
 	end
 	local frame, c = chrome(env, K, "tile")
-	local _, _, textureUnits = K.Tokens.Texture("chamferTile")
-	assert(W.Near(textureUnits, 3.5), "the tile texture's corner is drawn at 3.5 units; the chrome stretches it to the cut")
-	local rim = K.Widgets.NineSlice(frame, "chamferTile", "BORDER", 0)
-	K.Widgets.LayoutSlice(rim, frame, c:Chamfer(), 0)
-	assert(W.Near(c.outer[5]:GetHeight(), 1), "one unit at 1080p before the move")
-	assert(W.Near(c:Chamfer(), 6), "a 200x100 tile cuts the tile cap, 6 units")
-	assert(W.Near(c.fill[1]:GetWidth(), 6) and W.Near(rim[1]:GetWidth(), 6), "a tile's 6-unit chamfer is 6 pixels at 1080p")
+	local rim = K.Widgets.NineSlice(frame, "lumenOutline", "BORDER", 0)
+	K.Widgets.LayoutSlice(rim, frame, c:Radius(), 0)
+	assert(W.Near(c:Radius(), 8), "a 200x100 tile rounds the tile cap, 8 units")
+	assert(W.Near(c.fill[1]:GetWidth(), 8) and W.Near(rim[1]:GetWidth(), 8), "8 pixels at 1080p")
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
-	K.Widgets.LayoutSlice(rim, frame, c:Chamfer(), 0)
-	local border = K.Scale.Border()
-	assert(W.Near(border, 0.75), "the border is one 1440p pixel")
-	assert(W.Near(c.outer[5]:GetHeight(), border), "the line is redrawn one pixel thick")
-	assert(W.Near(c.fill[1]:GetWidth(), K.Scale.Snap(6)) and W.Near(c.fill[1]:GetWidth(), 8 * border), "a tile's chamfer is still 6 units: eight 1440p pixels, not six borders")
-	assert(W.Near(c.outer[1]:GetWidth(), cornerSquare(K, 6, 0)), "the edge line's corner square follows the chamfer in units")
-	assert(W.Near(c.inner[5]:GetHeight(), border) and W.Near(c.fade[5]:GetHeight(), border), "the tile's light line and fade row are redrawn too")
-	assert(W.Near(rim[1]:GetWidth(), c.fill[1]:GetWidth()), "a chamfer slice laid out with the chrome's cut lines up with the chrome")
+	K.Widgets.LayoutSlice(rim, frame, c:Radius(), 0)
+	assert(W.Near(K.Scale.Border(), 0.75), "the border is one 1440p pixel")
+	assert(W.Near(c.fill[1]:GetWidth(), K.Scale.Snap(8)) and W.Near(c.rim[1]:GetWidth(), K.Scale.Snap(8)), "the corners are still 8 units, snapped to 1440p pixels")
+	assert(W.Near(rim[1]:GetWidth(), c.fill[1]:GetWidth()), "a slice laid out with the chrome's radius lines up with the chrome")
 end
 
 -- Bag slots and unit frames recolour chrome on game events, in combat too, so the colour setters allocate nothing.
@@ -364,7 +301,7 @@ do
 	local env, K = W.New()
 	local _, c = chrome(env, K, "tile")
 	local function noop() end
-	for _, list in ipairs({ c.fill, c.shadow, c.outer, c.inner, c.fade }) do
+	for _, list in ipairs({ c.fill, c.shadow, c.rim }) do
 		for _, piece in ipairs(list) do
 			piece.SetVertexColor, piece.SetShown = noop, noop
 		end

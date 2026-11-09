@@ -135,7 +135,7 @@ function Face.New(holder, opts)
 	face.clockHit:SetAllPoints(face.clock)
 
 	local plate = CreateFrame("Frame", nil, overlay)
-	plate.slice = Widgets.NineSlice(plate, "chamferPanel", "BACKGROUND", 0)
+	plate.slice = Widgets.NineSlice(plate, "lumenShape", "BACKGROUND", 0)
 	for _, piece in ipairs(PLATE_HIDDEN) do
 		plate.slice[piece]:Hide()
 	end

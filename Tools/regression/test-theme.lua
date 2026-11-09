@@ -279,7 +279,7 @@ end
 -- The UI font face.
 do
 	local _, ns, fired = NewTheme()
-	assert(ns.Theme.FontFace() == "SourceSans3Semibold", "Source Sans 3 Semibold is the default face")
+	assert(ns.Theme.FontFace() == "Lumen", "the Lumen set is the default face")
 	assert(ns.Theme.SetFontFace("InterSemiBold") == true, "Inter is a valid face")
 	assert(events(fired) == "ThemeChanged", "a new face fires ThemeChanged")
 	assert(ns.Tokens.Font("body"):match("Inter%-SemiBold%.ttf$"), "body text uses the chosen face")

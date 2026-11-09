@@ -37,6 +37,11 @@ function Ease.outQuad(t)
 	return 1 - u * u
 end
 
+function Ease.outCubic(t)
+	local u = 1 - Clamp(t)
+	return 1 - u * u * u
+end
+
 function Ease.outQuart(t)
 	local u = 1 - Clamp(t)
 	return 1 - u * u * u * u

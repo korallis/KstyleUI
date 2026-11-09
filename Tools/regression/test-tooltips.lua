@@ -89,7 +89,7 @@ do
 	path, size = Font(env.GameTooltipText)
 	assert(path == face and Near(size, 11 * scale), "body lines at 11 units")
 	path, size = Font(env.GameTooltipTextSmall)
-	assert(path == face and Near(size, 9 * scale), "small lines at 9 units")
+	assert(path == (K.Tokens.Font("caption")) and Near(size, 9 * scale), "small lines at 9 units in the caption role's face")
 	local ox, oy = env.GameTooltipText:GetShadowOffset()
 	local offset = K.Tokens.Size("textShadowOffset")
 	assert(Near(ox, offset) and Near(oy, -offset), "text without an outline gets KstyleUI's soft shadow")

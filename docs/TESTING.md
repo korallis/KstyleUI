@@ -260,7 +260,7 @@ Work through the modules in any order. Every module has the same three checks at
 
 ### Tooltips
 
-- [ ] Hover a bag item, an action button and a creature: dark chamfered glass with no Blizzard border. Green, blue and purple items glow in their quality colour.
+- [ ] Hover a bag item, an action button and a creature: frosted Lumen glass with rounded corners and no Blizzard border. Green, blue and purple items glow in their quality colour.
 - [ ] Players show their class colour and `<Guild>`; a unit targeting you shows `Target  You`. A health bar sits under unit tooltips and works in combat.
 - [ ] Turn on Item ID, Spell ID and Icon ID: they show.
 - [ ] Set the position to the mouse cursor: world tooltips follow it. Back on the anchor, drag the Tooltip anchor in Layout Mode: tooltips follow it. The anchor's rows on the Elements page are only position and scale.

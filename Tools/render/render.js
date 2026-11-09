@@ -264,7 +264,20 @@
 			}
 			const r = snapRect(mask.rect, ppu);
 			ctx.globalCompositeOperation = "destination-in";
-			ctx.drawImage(img, r.x - offset.x, r.y - offset.y, r.w, r.h);
+			if (mask.clampWhite) {
+				// CLAMPTOWHITE: outside its rect the mask is opaque, so only the mask's own rect cuts the layer.
+				const full = document.createElement("canvas");
+				full.width = layer.width;
+				full.height = layer.height;
+				const fctx = full.getContext("2d");
+				fctx.fillStyle = "#fff";
+				fctx.fillRect(0, 0, full.width, full.height);
+				fctx.clearRect(r.x - offset.x, r.y - offset.y, r.w, r.h);
+				fctx.drawImage(img, r.x - offset.x, r.y - offset.y, r.w, r.h);
+				ctx.drawImage(full, 0, 0);
+			} else {
+				ctx.drawImage(img, r.x - offset.x, r.y - offset.y, r.w, r.h);
+			}
 			ctx.globalCompositeOperation = "source-over";
 		}
 	}

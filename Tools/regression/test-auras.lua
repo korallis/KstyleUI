@@ -429,8 +429,8 @@ do
 	preview:Refresh()
 	K.Widgets.RestyleAll()
 	local edge = preview.buffs[1].button.chrome.edge
-	local nr, ng, nb = K.Tokens.Color("edgeInner")
-	check(near(edge[1], nr) and near(edge[2], ng) and near(edge[3], nb), "sample buffs keep the neutral grey rim the mockup's buff row wears, whatever the accent")
+	local nr, ng, nb = K.Widgets.MixTokens("edgeInner", 1, "textHover", 1, 0.15)
+	check(near(edge[1], nr) and near(edge[2], ng) and near(edge[3], nb), "sample buffs keep the neutral rim (the rim light, lifted as every icon rim) whatever the accent")
 	edge = preview.debuffs[1].button.chrome.edge
 	local hr, hg, hb = K.Widgets.MixTokens("hostile", 1, "textHover", 1, 0.15)
 	check(near(edge[1], hr) and near(edge[2], hg) and near(edge[3], hb), "sample debuffs draw theirs in the hostile colour")

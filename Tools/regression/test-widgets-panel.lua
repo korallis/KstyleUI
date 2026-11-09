@@ -13,7 +13,7 @@ do
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
 	assert(W.Near(panel:GetWidth(), Scale.Snap(300.3)) and W.Near(panel:GetHeight(), Scale.Snap(180)), "the size is snapped to whole pixels")
 	assert(panel.chrome and #panel.chrome.fill == 9 and panel.chrome.shadow[1]:IsShown(), "panel chrome with a shadow")
-	assert(W.Near(panel.chrome.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("chamferPanel"))), "8-unit chamfers")
+	assert(W.Near(panel.chrome.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("radius"))), "14-unit rounded corners")
 	assert(panel.chrome.shapeName == "panel", "a plain panel is the small-panel grade")
 	local content = panel.content
 	assert(content and content:GetParent() == panel, "a content frame")
@@ -36,9 +36,11 @@ do
 	})
 	local Tokens = K.Tokens
 	assert(panel.titleText:GetText() == "PANEL TITLE", "the title is upper case")
-	assert(W.LastCall(panel.titleText, "SetFont")[2] == Tokens.Size("body"), "the title is body text, as the design's PANEL TITLE")
+	local font = W.LastCall(panel.titleText, "SetFont")
+	assert(font[1] == (Tokens.Font("heading")) and font[2] == Tokens.Size("heading"), "the title is a heading, in Cinzel: Lumen's window titles")
 	assert(panel.chrome.shapeName == "window", "a titled panel is a window: the design's window-grade edge")
-	assert(W.Near(panel.chrome.fill[1]:GetWidth(), K.Scale.Snap(Tokens.Size("chamferWindow"))), "10-unit chamfers")
+	assert(W.Near(panel.chrome.fill[1]:GetWidth(), K.Scale.Snap(Tokens.Size("radius"))), "14-unit rounded corners")
+	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "and the window's gilt tips")
 	assert(panel.divider == nil, "no line under the title, as the kit's glass panel")
 	for _, region in ipairs(W.Regions(panel, "Texture")) do
 		assert(region:GetTexture() ~= Tokens.Texture("divider"), "no divider texture on the panel")

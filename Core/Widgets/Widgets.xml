@@ -15,6 +15,7 @@
 	<Script file="Dropdown.lua"/>
 	<Script file="MediaPicker.lua"/>
 	<Script file="StatusBar.lua"/>
+	<Script file="SectionCap.lua"/>
 	<Script file="Reload.lua"/>
 	<Script file="Dialog.lua"/>
 </Ui>

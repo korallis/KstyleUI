@@ -25,7 +25,7 @@ do
 	local _, K = CoreEnv.New({ setup = setup() })
 	local defaults = K.Store.Defaults("Appearance")
 	assert(defaults, "Appearance registers its defaults with Store")
-	assert(defaults.accentSource == "class" and defaults.font == "SourceSans3Semibold" and defaults.uiScale == 1 and defaults.motion == "full", "the defaults are class colour, Source Sans 3, size 1 and full motion")
+	assert(defaults.accentSource == "class" and defaults.font == "Lumen" and defaults.uiScale == 1 and defaults.motion == "full", "the defaults are class colour, the Lumen fonts, size 1 and full motion")
 	local r, g, b = K.Tokens.Color("accentDefault")
 	assert(near(defaults.accentColor.r, r) and near(defaults.accentColor.g, g) and near(defaults.accentColor.b, b), "the custom colour defaults to the kit's accent")
 	local schema = K.Options.Get("Appearance")
@@ -38,7 +38,7 @@ do
 	local colour = K.Options.Row("Appearance", "accentColor")
 	assert(colour.showWhen({ accentSource = "custom" }) and not colour.showWhen({ accentSource = "class" }), "the colour row shows only for a custom accent")
 	local faces = K.Options.Row("Appearance", "font").options()
-	assert(#faces == 3 and faces[1].value == "SourceSans3Semibold", "the font row offers the three bundled faces")
+	assert(#faces == 8 and faces[1].value == "Lumen" and faces[6].value == "SourceSans3Semibold", "the font row offers the Lumen set and the seven bundled faces")
 	assert(K.Appearance.Get("uiScale") == 1, "Get answers with the default before the saved settings load")
 end
 
@@ -89,7 +89,7 @@ do
 	CoreEnv.Boot(env)
 	assert(K.Scale.UserScale() == 1 and K.Appearance.Get("uiScale") == 1, "a broken size falls back to 1")
 	assert(K.Theme.AccentSource() == "class" and K.Appearance.Get("accentSource") == "class", "an unknown accent source falls back to class")
-	assert(K.Theme.FontFace() == "SourceSans3Semibold", "an unknown face falls back to Source Sans 3")
+	assert(K.Theme.FontFace() == "Lumen", "an unknown face falls back to the Lumen set")
 	local r = K.Theme.CustomAccent()
 	assert(r <= 1, "an out-of-range colour falls back to the default")
 	assert(K.Motion.ReducedMotion() == false, "a broken motion setting falls back to full motion")
@@ -136,7 +136,7 @@ do
 		names[c.key] = true
 		assert(c.path:match("^Interface\\AddOns\\KstyleUI\\Media\\"), "media paths are KstyleUI's own")
 	end
-	assert(counts.font == 3 and counts.statusbar == 3, "three fonts and three bars, registered once")
+	assert(counts.font == 7 and counts.statusbar == 3, "seven fonts and three bars, registered once; the Lumen set is not a font")
 	assert(names["KstyleUI Glass"] and names["KstyleUI Source Sans 3 Semibold"], "names read well in other addons' lists")
 
 	local without = CoreEnv.New({ setup = setup() })

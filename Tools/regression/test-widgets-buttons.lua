@@ -1,7 +1,7 @@
 -- test-widgets-buttons.lua: the text button, the close button, the icon button's states and the tab strip.
 local W = dofile("Tools/regression/widget_env.lua")
 
--- Button: a chamfered tile on the button body; hover brightens the hairline to the accent and the text to white; press moves the text down.
+-- Button: a rounded tile on the button body; hover brightens the hairline to the accent and the text to white; press moves the text down.
 do
 	local env, K = W.New()
 	local Tokens, Scale = K.Tokens, K.Scale
@@ -13,17 +13,17 @@ do
 		end,
 	})
 	assert(button:GetObjectType() == "Button" and button.chrome and #button.chrome.fill == 9)
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Scale.Snap(button.chrome:Chamfer())) and W.Near(button.chrome:Chamfer(), math.min(6, 0.3 * button:GetHeight())), "a tile: the shared cut, 30% of its height up to 6")
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Scale.Snap(button.chrome:Radius())) and W.Near(button.chrome:Radius(), math.min(8, button:GetHeight() / 2)), "a tile: rounded 8 units, or half its height when shorter")
 	assert(button.chrome.shadow[1]:IsShown() == false, "buttons cast no shadow")
 	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("buttonFill")), "the button grade's body, the mockup's one dark tone")
 	assert(button.label:GetText() == "Accept")
-	assert(W.SameColor(button.chrome.inner[7], Tokens.Color("edgeInner")), "the hairline rests at edgeInner (its side piece; the top is lit)")
+	assert(W.SameColor(button.chrome.rim[7], Tokens.Color("edgeInner")), "the hairline rests at edgeInner (its side piece; the top is lit)")
 	assert(W.SameColor({ GetVertexColor = function()
 		return button.label:GetTextColor()
 	end }, Tokens.Color("text")), "the text rests at the text colour")
 	W.Enter(button)
 	W.Settle(env)
-	assert(W.SameColor(button.chrome.inner[5], Tokens.Color("accent")), "hover brightens the hairline to the accent")
+	assert(W.SameColor(button.chrome.rim[5], Tokens.Color("accent")), "hover brightens the hairline to the accent")
 	assert(W.SameColor({ GetVertexColor = function()
 		return button.label:GetTextColor()
 	end }, Tokens.Color("textHover")), "hover moves the text to textHover")
@@ -38,7 +38,7 @@ do
 	assert(#clicks == 1 and clicks[1][1] == button and clicks[1][2] == "LeftButton", "a click runs onClick with the button")
 	W.Leave(button)
 	W.Settle(env)
-	assert(W.SameColor(button.chrome.inner[7], Tokens.Color("edgeInner")), "leaving rests the hairline")
+	assert(W.SameColor(button.chrome.rim[7], Tokens.Color("edgeInner")), "leaving rests the hairline")
 	button:Disable()
 	assert(W.SameColor({ GetVertexColor = function()
 		return button.label:GetTextColor()
@@ -55,11 +55,11 @@ do
 	local _, K = W.New()
 	local button = K.Widgets.Button(K.Scale.Root(), { text = "Apply", primary = true, width = 120, height = 28 })
 	local r, g, b = K.Tokens.Color("accent")
-	assert(W.SameColor(button.chrome.inner[5], r, g, b), "a primary button rests on the accent")
+	assert(W.SameColor(button.chrome.rim[5], r, g, b), "a primary button rests on the accent")
 	assert(W.Near(button:GetWidth(), K.Scale.Snap(120)))
 	K.Theme.SetCustomAccent(0.9, 0.1, 0.1)
 	K.Theme.SetAccentSource("custom")
-	assert(W.SameColor(button.chrome.inner[5], 0.9, 0.1, 0.1), "and follows the new accent")
+	assert(W.SameColor(button.chrome.rim[5], 0.9, 0.1, 0.1), "and follows the new accent")
 end
 
 -- A button on a secure template keeps the template's OnClick: the kit only hooks scripts.
@@ -97,21 +97,21 @@ local function iconButton(opts, envOpts)
 	return env, K, K.Widgets.IconButton(K.Scale.Root(), opts or {})
 end
 
--- IconButton: a 34-unit chamfered square, the icon masked to the chamfer, the hairline on the accent.
+-- IconButton: a 34-unit rounded socket, the icon masked to its rounded corners, the hairline on the accent.
 do
 	local env, K, button = iconButton({ icon = 135489 })
 	local Tokens, Scale = K.Tokens, K.Scale
 	assert(W.Near(button:GetWidth(), Scale.Snap(Tokens.Size("actionButton"))), "an action-button-sized square by default")
 	assert(W.LastCall(button.icon, "SetTexture")[1] == 135489, "the icon")
-	assert(#W.Calls(button.icon, "AddMaskTexture") == 1, "the icon is masked to the chamfer")
+	assert(#W.Calls(button.icon, "AddMaskTexture") == 1, "the icon is masked to the socket's rounded corners")
 	local r, g, b = Tokens.Color("accent")
 	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("buttonFill")), "the body is the design's near-black button fill, not a raised tile")
 	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
-	assert(W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "at rest: the accent lifted 15% toward white, as the design's normal button")
-	assert(W.SameColor(button.chrome.outer[5], rr, rg, rb, 0.45) and W.SameColor(button.chrome.outer[1], rr, rg, rb, 0.45), "the outer line is the rim's soft halo at 45%, so the rim reads as the design's soft 1.5-unit line")
+	assert(W.SameColor(button.chrome.rim[5], rr, rg, rb, 1), "at rest: the accent lifted 15% toward white, as the design's normal button")
+	assert(button.chrome.outer == nil, "the socket's rim is its one line: no halo line outside it")
 	W.Enter(button)
 	W.Settle(env)
-	local hr, hg, hb, ha = button.chrome.inner[5]:GetVertexColor()
+	local hr, hg, hb, ha = button.chrome.rim[5]:GetVertexColor()
 	local wr, wg, wb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.25)
 	assert(ha == 1 and W.Near(hr, wr) and W.Near(hg, wg) and W.Near(hb, wb), "hover: the accent lifted 25% toward white")
 	assert(hr >= r and hg >= g and hb >= b, "hover: a brighter accent hairline")
@@ -125,8 +125,8 @@ do
 	local ir = button.icon:GetVertexColor()
 	assert(W.Near(ir, 0.55), "pressed: the icon dims to 55%")
 	assert(W.LastCall(button.icon, "SetDesaturated")[1] == true, "pressed: the icon is desaturated, as the design's pressed button")
-	local _, _, _, pa = button.chrome.inner[5]:GetVertexColor()
-	assert(W.SameRGB(button.chrome.inner[5], Tokens.Color("text")) and pa >= 0.75, "pressed: a light grey hairline")
+	local _, _, _, pa = button.chrome.rim[5]:GetVertexColor()
+	assert(W.SameRGB(button.chrome.rim[5], Tokens.Color("text")) and pa >= 0.75, "pressed: a light grey hairline")
 	assert(W.SameColor(button.chrome.fill[5], K.Widgets.MixTokens("buttonFill", 1, "raised", 1, 0.75)), "pressed: the body lifts three quarters of the way to the raised grey, as the design's pressed button")
 	W.Up(button)
 	W.Leave(button)
@@ -159,15 +159,13 @@ do
 	assert(logged, "the refusal says to use a duration object")
 	cd:Show()
 	cd:GetScript("OnShow")(cd)
-	local _, _, _, ca = button.chrome.inner[5]:GetVertexColor()
-	assert(W.SameRGB(button.chrome.inner[5], K.Tokens.Color("text")) and W.Near(ca, 0.62), "a running cooldown greys the hairline to text at 62%")
+	local _, _, _, ca = button.chrome.rim[5]:GetVertexColor()
+	assert(W.SameRGB(button.chrome.rim[5], K.Tokens.Color("text")) and W.Near(ca, 0.62), "a running cooldown greys the hairline to text at 62%")
 	assert(W.SameColor(button.chrome.fill[5], K.Widgets.MixTokens("buttonFill", 1, "raised", 1, 0.75)), "and lifts the body three quarters of the way to the raised grey, as the design's cooldown button")
-	local tr, tg, tb = K.Tokens.Color("text")
-	assert(W.SameColor(button.chrome.outer[5], tr, tg, tb, 0.62 * 0.45), "and its halo with it")
 	assert(W.Near(button.icon:GetVertexColor(), 0.4), "and dims the icon to 40%")
 	cd:GetScript("OnHide")(cd)
 	local r, g, b = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
-	assert(W.SameColor(button.chrome.inner[5], r, g, b), "the accent returns when it ends")
+	assert(W.SameColor(button.chrome.rim[5], r, g, b), "the accent returns when it ends")
 	assert(button.icon:GetVertexColor() == 1, "and the icon is bright again")
 	local object = {}
 	button:SetCooldownFromDuration(object)
@@ -184,15 +182,16 @@ do
 	assert(button.procGlow and button.procGlow:IsPlaying(), "the proc glow plays")
 	assert(W.Near(button.procGlow.alpha, 0.1), "its outer halo is a whisper: the design's proc glows inside the rim, not around it")
 	assert(button.procGlow.core and button.procGlow.spark, "the inner radial glow and the star")
-	local r, g, b = K.Tokens.Color("accent")
-	assert(W.SameColor(button.chrome.inner[5], r, g, b, 1), "a proc lights the hairline fully")
+	local r, g, b = K.Tokens.Color("giltLit")
+	assert(W.SameColor(button.chrome.rim[5], r, g, b, 1), "a proc lights the rim gold, the one gold a socket wears")
+	assert(W.SameRGB(button.procGlow.core, r, g, b), "and its glow is gold too")
 	assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("buttonFill")), "on the near-black body")
 	button:SetProc(false)
 	assert(not button.procGlow:IsPlaying(), "and stops")
 	button:SetUsable(false)
 	assert(W.LastCall(button.icon, "SetDesaturated")[1] == true, "an unusable icon is desaturated")
 	assert(W.Near(button.icon:GetVertexColor(), 0.45), "at 45% brightness")
-	assert(W.SameColor(button.chrome.inner[5], K.Tokens.Color("textDisabled")), "with a solid grey hairline")
+	assert(W.SameColor(button.chrome.rim[5], K.Tokens.Color("textDisabled")), "with a solid grey hairline")
 	assert(W.SameColor(button.chrome.fill[5], K.Widgets.MixTokens("buttonFill", 1, "raised", 1, 0.75)), "the body lifts three quarters of the way to the raised grey, as the design's disabled button")
 	button:SetUsable(true)
 	assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("buttonFill")), "usable again: the near-black body")
@@ -201,7 +200,8 @@ do
 	assert(W.LastCall(button.icon, "SetDesaturated")[1] == true, "a disabled button looks unusable")
 	button:Enable()
 	button:SetSelected(true)
-	assert(W.SameColor(button.chrome.inner[5], r, g, b, 1), "a selected button keeps the full accent")
+	local ar, ag, ab = K.Tokens.Color("accent")
+	assert(W.SameColor(button.chrome.rim[5], ar, ag, ab, 1), "a selected button keeps the full accent")
 end
 
 -- The global cooldown alone never dims an icon or greys its rim: the swipe runs, the button stays ready.
@@ -214,16 +214,16 @@ do
 	cd:Show()
 	cd:GetScript("OnShow")(cd)
 	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
-	assert(W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "the rim stays on the accent during the GCD")
+	assert(W.SameColor(button.chrome.rim[5], rr, rg, rb, 1), "the rim stays on the accent during the GCD")
 	assert(button.icon:GetVertexColor() == 1, "and the icon stays bright")
 	button:SetCooldownFromDuration({})
-	assert(W.SameRGB(button.chrome.inner[5], K.Tokens.Color("text")) and W.Near(button.icon:GetVertexColor(), 0.4), "a real cooldown set while the frame shows dims at once")
+	assert(W.SameRGB(button.chrome.rim[5], K.Tokens.Color("text")) and W.Near(button.icon:GetVertexColor(), 0.4), "a real cooldown set while the frame shows dims at once")
 	button:SetCooldownFromDuration(gcd, true)
 	assert(button.icon:GetVertexColor() == 1, "back to the GCD alone: bright again")
 	cd:GetScript("OnHide")(cd)
 	assert(button:SetCooldown(100, 1.5, true) == true)
 	cd:GetScript("OnShow")(cd)
-	assert(button.icon:GetVertexColor() == 1 and W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "SetCooldown takes the flag too")
+	assert(button.icon:GetVertexColor() == 1 and W.SameColor(button.chrome.rim[5], rr, rg, rb, 1), "SetCooldown takes the flag too")
 	button:ClearCooldown()
 	cd:GetScript("OnHide")(cd)
 	button:SetCooldown(100, 8)
@@ -273,7 +273,7 @@ do
 	cd:GetScript("OnShow")(cd)
 	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
 	assert(button.cooling == true, "the kit still notes that the frame shows")
-	assert(button.icon:GetVertexColor() == 1 and W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "but a frame driven directly leaves the button bright on the accent")
+	assert(button.icon:GetVertexColor() == 1 and W.SameColor(button.chrome.rim[5], rr, rg, rb, 1), "but a frame driven directly leaves the button bright on the accent")
 	button:SetCooldownFromDuration({})
 	assert(W.Near(button.icon:GetVertexColor(), 0.4), "a real cooldown through the setter dims")
 	button:ClearCooldown()
@@ -294,40 +294,32 @@ do
 	assert(W.Near(big.icon._points[1][4], math.max(3 * K.Scale.Border(), K.Scale.Snap(34 * 0.11))), "a normal button's icon sits 11% of the side in, the mockup's dark band, and never less than three borders")
 end
 
--- The mockup's button sits on a dark bezel: the body colour reaches 3 units outside the rim, a shadow falls beyond
--- it, and a press lifts the body but never the bezel.
+-- Lumen's socket has no bezel plate: the button is the socket, casting the soft shadow; a press lifts the body only.
 do
 	local env, K, button = iconButton({ icon = 135489 })
 	local Tokens, Scale = K.Tokens, K.Scale
 	local chrome = button.chrome
-	assert(chrome.bezel and #chrome.bezel == 9, "the bezel is a nine-sliced tile")
-	assert(W.SameColor(chrome.bezel[5], Tokens.Color("buttonFill")), "in the button body colour")
-	local bezel = Scale.Snap(Tokens.Size("buttonBezel"))
-	local p = chrome.bezel[1]._points[1]
-	assert(p[1] == "TOPLEFT" and W.Near(p[4], -bezel) and W.Near(p[5], bezel), "reaching 3 units outside the button")
-	local _, sub = chrome.bezel[5]:GetDrawLayer()
-	local _, fillSub = chrome.fill[5]:GetDrawLayer()
-	assert(sub < fillSub, "under the fill")
-	assert(chrome.shadow[1]:IsShown(), "a button casts the panel shadow")
+	assert(chrome.bezel == nil and chrome.plate == nil, "no bezel and no plate line")
+	assert(chrome.shadow[1]:IsShown(), "a button casts the soft shadow")
 	local sp = chrome.shadow[1]._points[1]
-	assert(W.Near(sp[4], -(Scale.Snap(Tokens.Size("shadow")) + bezel)), "the shadow starts at the bezel's edge, got " .. tostring(sp[4]))
+	assert(W.Near(sp[4], -Scale.Snap(Tokens.Size("shadow"))), "from its own edge, got " .. tostring(sp[4]))
 	W.Down(button)
 	W.Settle(env)
-	assert(W.SameColor(chrome.bezel[5], Tokens.Color("buttonFill")), "pressed, the bezel keeps the body colour while the fill lifts")
+	assert(not W.SameColor(chrome.fill[5], Tokens.Color("buttonFill")), "pressed, the body lifts")
 	W.Up(button)
 	local plain = K.Widgets.IconChrome(env.CreateFrame("Frame", nil, Scale.Root()))
-	assert(plain.bezel == nil and not plain.shadow[1]:IsShown(), "an icon tile with no bezel option has none and no shadow: aura tiles, bag slots and skin rims")
+	assert(plain.bezel == nil and not plain.shadow[1]:IsShown(), "an icon tile with no shadow option casts none: aura tiles, bag slots and skin rims")
 end
 
--- The button's chamfer is a share of its size, the design's 11% cut, so the ratio holds at 34 and at 38 units.
+-- The socket's radius is a share of its size, the mockup's 11 units on 52, so the ratio holds at 34 and at 38 units.
 do
 	local _, K, button = iconButton({ size = 34 })
 	local Snap = K.Scale.Snap
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.12 * 34)), "a 34-unit button cuts 12% of its side, 4.08 units: the mockup's action and cluster buttons")
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(34 * 11 / 52)), "a 34-unit button rounds 11/52 of its side")
 	button.opts.size = 38
 	button:Restyle()
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(0.12 * 38)), "a 38-unit button cuts 4.56 units")
-	assert(W.Near(button.chrome.outer[5]:GetHeight(), K.Scale.Border()), "the rim stays one border")
+	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(38 * 11 / 52)), "a 38-unit button rounds 8 units")
+	assert(W.Near(button.chrome.rim[1]:GetWidth(), button.chrome.fill[1]:GetWidth()), "the rim's corners follow")
 end
 
 -- A button that changes size restyles its glows too, so the proc's inner glow keeps its 60% radius (a micro-menu size change).
@@ -489,16 +481,15 @@ do
 	local Widgets = K.Widgets
 	assert(Widgets.SECONDARY_RIM == 1, "the secondary rim is at full strength by default")
 	local rr, rg, rb = Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
-	assert(W.SameColor(button.chrome.inner[5], rr, rg, rb, 1), "a plain icon button rests on the full accent rim at the default")
+	assert(W.SameColor(button.chrome.rim[5], rr, rg, rb, 1), "a plain icon button rests on the full accent rim at the default")
 	local primary = Widgets.IconButton(K.Scale.Root(), { primary = true })
 	Widgets.SECONDARY_RIM = 0.5
 	button:Paint()
 	primary:Paint()
 	local er, eg, eb, ea = Widgets.Rgba("edgeInner")
 	local tr, tg, tb, ta = Widgets.Mix(er, eg, eb, ea, rr, rg, rb, 1, 0.5)
-	assert(W.SameColor(button.chrome.inner[5], tr, tg, tb, ta), "at half strength a secondary rim sits halfway from the plain hairline to the accent rim")
-	assert(W.SameColor(button.chrome.outer[5], tr, tg, tb, ta * 0.45), "with its halo at 45% of that")
-	assert(W.SameColor(primary.chrome.inner[5], rr, rg, rb, 1), "a primary button keeps the full accent rim")
+	assert(W.SameColor(button.chrome.rim[5], tr, tg, tb, ta), "at half strength a secondary rim sits halfway from the plain hairline to the accent rim")
+	assert(W.SameColor(primary.chrome.rim[5], rr, rg, rb, 1), "a primary button keeps the full accent rim")
 	local ir, ig, ib, ia = Widgets.IconRim()
 	assert(W.Near(ir, rr) and W.Near(ig, rg) and W.Near(ib, rb) and ia == 1, "IconRim() is the full rim: the theme accent lifted 15% toward white")
 	ir, ig, ib, ia = Widgets.IconRim(nil, nil, nil, 0.5)
@@ -511,25 +502,25 @@ do
 end
 
 -- IconChrome: the one chrome every square icon shares: the near-black button body on a tile with no shadow,
--- a rim setter that paints the hairline and its 45% halo, and an accent rim that follows the theme.
+-- a rim setter that paints the rim, and an accent rim that follows the theme.
 do
 	local env, K = W.New()
 	local Widgets = K.Widgets
 	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
 	owner:SetSize(20, 20)
 	local chrome = Widgets.IconChrome(owner)
-	assert(chrome.shapeName == "tile" and chrome.shadowOn == false, "a tile with no shadow")
+	assert(chrome.shapeName == "socket" and chrome.shadowOn == false, "a socket with no shadow")
 	assert(W.SameColor(chrome.fill[5], K.Tokens.Color("buttonFill")), "the near-black button body")
-	assert(W.Near(chrome:Chamfer(), 20 * 0.12), "without a size the cut is 12% of the owner's side, the icon share")
+	assert(W.Near(chrome:Radius(), 20 * 11 / 52), "without a size the radius is 11/52 of the owner's side, the socket share")
 	local sized = Widgets.IconChrome(owner, { size = 40 })
-	assert(W.Near(sized:Chamfer(), 40 * 0.12), "a size gives 12% of that size")
+	assert(W.Near(sized:Radius(), 40 * 11 / 52), "a size gives 11/52 of that size")
 	chrome:SetRim(0.2, 0.4, 0.6, 1)
-	assert(W.SameColor(chrome.inner[5], 0.2, 0.4, 0.6, 1) and W.SameColor(chrome.outer[5], 0.2, 0.4, 0.6, 0.45), "SetRim paints the hairline and its halo")
+	assert(W.SameColor(chrome.rim[5], 0.2, 0.4, 0.6, 1) and W.SameColor(chrome.rim[1], 0.2, 0.4, 0.6, 1), "SetRim paints the rim")
 	chrome:Restyle()
-	assert(W.SameColor(chrome.inner[5], 0.2, 0.4, 0.6, 1) and W.SameColor(chrome.outer[5], 0.2, 0.4, 0.6, 0.45), "a restyle keeps a set rim")
+	assert(W.SameColor(chrome.rim[5], 0.2, 0.4, 0.6, 1), "a restyle keeps a set rim")
 	chrome:SetRimAccent()
 	local rr, rg, rb = Widgets.IconRim()
-	assert(W.SameColor(chrome.inner[5], rr, rg, rb, 1), "SetRimAccent() rests on the lifted theme accent")
+	assert(W.SameColor(chrome.rim[5], rr, rg, rb, 1), "SetRimAccent() rests on the lifted theme accent")
 	env.UnitClass = function()
 		return "Warrior", "WARRIOR", 1
 	end
@@ -537,9 +528,9 @@ do
 	K.Theme.SetCustomAccent(0.6, 0.3, 0.1)
 	K.Widgets.RestyleAll()
 	rr, rg, rb = Widgets.IconRim()
-	assert(W.SameColor(chrome.inner[5], rr, rg, rb, 1), "and follows a theme change through the restyle")
+	assert(W.SameColor(chrome.rim[5], rr, rg, rb, 1), "and follows a theme change through the restyle")
 	chrome:SetRimAccent(0.1, 0.2, 0.3)
 	rr, rg, rb = Widgets.IconRim(0.1, 0.2, 0.3)
-	assert(W.SameColor(chrome.inner[5], rr, rg, rb, 1), "SetRimAccent(r, g, b) lifts a module's own accent")
+	assert(W.SameColor(chrome.rim[5], rr, rg, rb, 1), "SetRimAccent(r, g, b) lifts a module's own accent")
 	assert(#env._errors == 0)
 end

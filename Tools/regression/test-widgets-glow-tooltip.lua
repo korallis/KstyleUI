@@ -148,7 +148,7 @@ do
 	assert(W.Near(divider:GetWidth(), tip:GetWidth() - 2 * pad), "the divider spans the panel inside its padding, fading at both ends")
 	local icon = tip.icon
 	assert(W.LastCall(icon.texture, "SetTexture")[1] == 135489 and icon:IsShown(), "the icon")
-	assert(icon.chrome and icon.chrome.shape.fill == "chamferTile", "on the kit's chamfered tile")
+	assert(icon.chrome and icon.chrome.shapeName == "tile" and icon.chrome.frost == nil, "on the kit's rounded tile")
 	assert(W.Near(icon:GetWidth(), Widgets.Snap(tip, 50)) and W.Near(icon:GetHeight(), icon:GetWidth()), "50 units square")
 	local ip = icon._points[1]
 	assert(ip[1] == "TOPLEFT" and ip[2] == tip and W.Near(ip[4], Widgets.Snap(tip, 9.5)) and W.Near(ip[5], -Widgets.Snap(tip, 9.5)), "9.5 units inside the top left corner")
@@ -159,7 +159,7 @@ do
 	local tp = tip.used[1].left._points[1]
 	assert(W.Near(tp[4], Widgets.Snap(tip, 9.5 + 50 + 11)), "the text column starts 11 units right of the icon")
 	local y3, y4 = tip.used[3].left._points[1][5], tip.used[4].left._points[1][5]
-	assert(W.Near(y3 - y4, Widgets.TextHeight(tip.used[3].left, 11 * 1.2) + 0.5), "body lines are pitched half a unit apart, the design's 13.5 units")
+	assert(W.Near(y3 - y4, Widgets.TextHeight(tip.used[3].left, Tokens.Size("body") * 1.2) + 0.5), "body lines are pitched half a unit apart")
 	assert(tip:GetHeight() > 0 and tip:GetWidth() >= Widgets.TOOLTIP_MIN_WIDTH, "the tooltip has a size")
 	local p = tip._points[1]
 	assert(p[1] == "LEFT" and p[2] == owner and p[3] == "RIGHT", "ANCHOR_RIGHT puts it right of the owner")
@@ -227,8 +227,6 @@ do
 	assert(tip.used[1].left:GetText() == Tracked("BUILT") and tip.used[2].left:GetText() == "By a function", "a builder adds a tracked title and a line")
 	K.Options.Write("Widgets", "tooltipScale", 1.25)
 	assert(W.LastCall(tip, "SetScale")[1] == 1.25, "the size setting scales the tooltip")
-	local line = tip.chrome.outer[5]:GetHeight() * 1.25
-	assert(W.Near(line, K.Scale.Border()), "a scaled tooltip's lines stay whole pixels, got " .. line)
 	local corner = tip.chrome.fill[1]:GetWidth() * 1.25 / K.Scale.Pixel(1)
 	assert(W.Near(corner, math.floor(corner + 0.5)), "and its corners, got " .. corner .. " px")
 	local button = Widgets.Button(K.Scale.Root(), { text = "Hi", tooltip = "A button" })

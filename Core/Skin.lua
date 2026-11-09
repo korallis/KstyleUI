@@ -584,7 +584,7 @@ local function CheckBox(check)
 	box:SetFrameLevel(check:GetFrameLevel() + LEVEL_ABOVE)
 	box.chrome = W().Chrome(box, { shape = "tile", fill = "buttonFill", shadow = false })
 	local mark = box:CreateTexture(nil, "OVERLAY")
-	mark:SetTexture((Tokens.Texture("chamferTile")))
+	mark:SetTexture((Tokens.Texture("iconMask")))
 	mark:SetPoint("CENTER", box, "CENTER")
 	parts.box, parts.mark = box, mark
 	parts.Paint, parts.Layout, parts.Restyle = PaintCheck, LayoutCheck, Restyle

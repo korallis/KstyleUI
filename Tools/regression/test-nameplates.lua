@@ -13,7 +13,7 @@ local function barColor(bar)
 end
 
 local function edgeColor(bar)
-	local r, g, b = bar.chrome.inner[1]:GetVertexColor()
+	local r, g, b = bar.chrome.rim[1]:GetVertexColor()
 	return r, g, b
 end
 
@@ -400,10 +400,10 @@ do
 	assert(N.Same(plate.health:GetWidth(), 175) and N.Same(plate.health:GetHeight(), 18), "the bar takes the default size")
 	local disc = plate.level
 	assert(N.Same(disc:GetWidth(), 34) and N.Same(disc:GetHeight(), 34), "the level disc is 34 units across")
-	assert(disc.chrome.shape.fill == "chamferPanel" and N.Same(disc.chrome:Chamfer(), 10.5), "an octagon: the panel fill with a 10.5-unit chamfer")
+	assert(disc.chrome.shapeName == "panel" and N.Same(disc.chrome:Radius(), 10.5), "the panel with its corners rounded 10.5 units, where the octagon cut them")
 	assert(disc.chrome.shadowOn == false and disc.chrome.noise == nil, "no shadow, no grain")
 	local r, g, b = barColor(plate.health)
-	assert(SameColor(r, g, b, disc.chrome.inner[1]:GetVertexColor()), "its rim takes the bar's colour")
+	assert(SameColor(r, g, b, disc.chrome.rim[1]:GetVertexColor()), "its rim takes the bar's colour")
 	local point, relative, relativePoint, x = disc:GetPoint(1)
 	assert(point == "RIGHT" and relative == plate.health and relativePoint == "LEFT", "it sits on the bar's left end")
 	assert(x >= 0.5 and x <= 1.5, "overlapping the bar's frame by one unit, got " .. tostring(x))

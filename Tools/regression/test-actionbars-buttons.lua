@@ -42,14 +42,14 @@ do
 	b.cooldown:Show()
 	b.cooldown:GetScript("OnShow")(b.cooldown)
 	local rr, rg, rb = K.Widgets.MixTokens("accent", 1, "textHover", 1, 0.15)
-	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "the icon stays bright and the rim on the accent during the GCD")
+	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.rim[5], rr, rg, rb, 1), "the icon stays bright and the rim on the accent during the GCD")
 	gcd = false
 	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
-	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.inner[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
+	assert(W.Near(b.icon:GetVertexColor(), 0.4) and W.SameRGB(b.chrome.rim[5], K.Tokens.Color("text")), "a real cooldown dims the icon and greys the rim")
 	-- Forever trusts isOnGCD only in response to SPELL_UPDATE_COOLDOWN, so that event refreshes the classification too.
 	gcd = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "the spell cooldown event re-reads isOnGCD and brightens a GCD-only button")
+	assert(b.icon:GetVertexColor() == 1 and W.SameColor(b.chrome.rim[5], rr, rg, rb, 1), "the spell cooldown event re-reads isOnGCD and brightens a GCD-only button")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
@@ -483,6 +483,6 @@ do
 	K.Widgets.SECONDARY_RIM = 0.5
 	b:Paint()
 	local rr, rg, rb = K.Widgets.IconRim()
-	assert(W.SameColor(b.chrome.inner[5], rr, rg, rb, 1), "its rim keeps the full accent at any secondary strength")
+	assert(W.SameColor(b.chrome.rim[5], rr, rg, rb, 1), "its rim keeps the full accent at any secondary strength")
 	K.Widgets.SECONDARY_RIM = 1
 end

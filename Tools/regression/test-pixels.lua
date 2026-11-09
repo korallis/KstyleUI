@@ -1,4 +1,4 @@
--- test-pixels.lua: KstyleUI_Root is 1080 units tall, and borders, lines and chamfer slices are whole physical pixels on every screen.
+-- test-pixels.lua: KstyleUI_Root is 1080 units tall, and borders, lines and the rounded corner slices are whole physical pixels on every screen.
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
@@ -65,20 +65,19 @@ local function label(screen, uiScale, user)
 end
 
 local SIZE_NAMES = {
-	"chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
+	"radius", "radiusTile", "gilt", "gem", "chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow",
 }
-local SLICED = { "chamferPanel", "chamferTile", "chamferWindow", "shadow" }
--- Chamfers are 30% of the shorter side up to the shape's cap, snapped to whole pixels; every bevel line is one border thick, its straight pieces
--- solid and its corner pieces a diagonal band mapped from the line strip. Frame scales: a frame on the root, and a
--- tooltip-sized frame.
+local SLICED = { "lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "shadow" }
+-- Corners are rounded to the shape's radius, at most half the shorter side, snapped to whole pixels; the fill, frost and
+-- rim corner pieces are the same whole-pixel square, and the gilt tips sit a whole pixel offset. Frame scales: a frame
+-- on the root, and a tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
-local SQRT2 = math.sqrt(2)
 
 local function chromes(env, ns, frameScale)
 	local out = {}
-	for _, shape in ipairs({ "panel", "tile", "window" }) do
+	for _, shape in ipairs({ "panel", "tile", "window", "socket" }) do
 		local frame = env.CreateFrame("Frame", nil, ns.Scale.Root())
 		frame:SetScale(frameScale)
 		frame:SetSize(200, 100)
@@ -92,37 +91,24 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local px = ppu * frameScale
 	local border = ns.Scale.Border() * ppu
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	local lines = { c.outer, c.inner, c.fade }
-	assert(c.hairline == nil and c.dark == nil, where .. ": every shape draws the mockup's bevel: the light line over the dark one and its fade row, nothing further in")
-	local chamferPx = c.fill[1]:GetWidth() * px
+	local radiusPx = c.fill[1]:GetWidth() * px
 	local ow, oh = c.owner:GetSize()
-	local wantPx = math.min(Tokens.Size(c.shape.chamfer), Tokens.Share("chamfer") * math.min(ow, oh)) * px
-	assert(whole(chamferPx) and math.abs(chamferPx - wantPx) <= 0.5 + 1e-6, where .. ": the chamfer is " .. chamferPx .. " px, the nearest whole pixel to " .. wantPx)
-	for i = 1, 9, 2 do
-		if i ~= 5 then
-			assert(math.abs(c.fill[i]:GetWidth() * px - chamferPx) < 1e-6, where .. ": every fill corner is the chamfer")
-		end
-	end
-	for _, line in ipairs(lines) do
-		local atPx = -line[5]._points[1][5] * px
-		assert(whole(atPx), where .. ": the straight line sits a whole number of pixels in")
-		assert(math.abs(line[5]:GetHeight() * px - border) < 1e-6, where .. ": the straight line is one border")
-		local square = chamferPx - atPx * (2 - SQRT2) + border * (SQRT2 - 1)
-		for i = 1, 4 do
-			local w, h = line[i]:GetSize()
-			local cornerPx = w * px
-			assert(whole(cornerPx) and math.abs(h * px - cornerPx) < 1e-6, where .. ": a corner piece is a whole-pixel square, got " .. cornerPx)
-			assert(math.abs(cornerPx - square) <= 0.5 + 1e-6, where .. ": the corner square holds the diagonal band: " .. cornerPx .. " px for " .. square)
-			local coords
-			for _, call in ipairs(line[i]._calls) do
-				if call.method == "SetTexCoord" then
-					coords = call.args
-				end
+	local wantPx = math.min(Tokens.Size(c.shape.radius), math.min(ow, oh) / 2) * px
+	assert(whole(radiusPx) and math.abs(radiusPx - wantPx) <= 0.5 + 1e-6, where .. ": the radius is " .. radiusPx .. " px, the nearest whole pixel to " .. wantPx)
+	for _, slice in ipairs({ c.fill, c.rim, c.frost }) do
+		for i = 1, 9, 2 do
+			if i ~= 5 then
+				local w, h = slice[i]:GetSize()
+				assert(math.abs(w * px - radiusPx) < 1e-6 and math.abs(h * px - radiusPx) < 1e-6, where .. ": every corner piece is the radius square")
 			end
-			assert(coords and #coords == 8, where .. ": the diagonal is mapped with eight coordinates")
 		end
-		assert(math.abs(line[5]._points[1][4] * px - (atPx + line[1]:GetWidth() * px)) < 1e-6, where .. ": the straight line starts at the corner square's end")
 	end
+	if c.gilt then
+		local p = c.gilt[1]._points[1]
+		assert(whole(p[4] * px) and whole(p[5] * px), where .. ": the gilt tip sits a whole number of pixels out")
+		assert(whole(c.gilt[1]:GetWidth() * px), where .. ": and is a whole number of pixels")
+	end
+	assert(border >= 1 - 1e-6, where .. ": the border is at least a pixel")
 end
 
 -- Every screen, UI scale and size: the root is 1080 / size units tall, and every snapped value is

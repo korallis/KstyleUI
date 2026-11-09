@@ -12,7 +12,7 @@ do
 		login = false,
 	})
 	seen = env.DAMAGE_TEXT_FONT
-	assert(seen == K.Tokens.FontPath("SourceSans3Semibold"), "the switched-on module sets DAMAGE_TEXT_FONT at load, got " .. tostring(seen))
+	assert(seen == (K.Tokens.Font("number")), "the switched-on module sets DAMAGE_TEXT_FONT at load, got " .. tostring(seen))
 	assert(not K.Modules.IsRunning("CombatText"), "setting the font starts nothing before login")
 	CT.CoreEnv.Login(env)
 	env.RunTimers()
@@ -52,7 +52,7 @@ end
 
 do
 	local env, K = CT.New({ saved = CT.Saved({ enabled = true, worldFace = "Interface\\Icons\\Spell.blp" }) })
-	assert(env.DAMAGE_TEXT_FONT == K.Tokens.FontPath("SourceSans3Semibold"), "a saved world font that is not a font file uses the default")
+	assert(env.DAMAGE_TEXT_FONT == (K.Tokens.Font("number")), "a saved world font that is not a font file uses the default")
 end
 
 -- The setting's help text says the change waits for the next login -------------------------------

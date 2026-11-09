@@ -109,8 +109,11 @@ end
 
 local function FaceOptions()
 	local out, seen = {}, {}
-	for i, face in ipairs(Tokens.MediaList("font")) do
-		out[i] = { value = face.key, label = face.label }
+	for _, set in ipairs(Tokens.MediaList("fontSet")) do
+		out[#out + 1] = { value = set.key, label = set.label }
+	end
+	for _, face in ipairs(Tokens.MediaList("font")) do
+		out[#out + 1] = { value = face.key, label = face.label }
 		seen[PathKey(face.path)] = true
 	end
 	local media = ns.Widgets and ns.Widgets.MediaOptions

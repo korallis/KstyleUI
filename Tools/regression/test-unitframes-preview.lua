@@ -63,20 +63,20 @@ do
 	assert(not (math.abs(pr - cr) < 1e-6 and math.abs(pg - cg) < 1e-6 and math.abs(pb - cb) < 1e-6), "and not the class colour")
 end
 assert(view.geometry.glass.x < view.geometry.portrait.x + view.geometry.portrait.w, "the sample's glass runs under its portrait")
-assert(view.ring:IsShown() and not view.portraitChrome.inner[1]:IsShown(), "the sample portrait is round by default, as the owner's mockup draws it")
-assert(view.badgeChrome.inner[1]:IsShown(), "with the octagon level badge on the ring")
+assert(view.ring:IsShown() and not view.portraitChrome.rim[1]:IsShown(), "the sample portrait is round by default, as the owner's mockup draws it")
+assert(view.badgeChrome.rim[1]:IsShown(), "with the octagon level badge on the ring")
 K.Options.Write("UnitFrames", "player.portraitShape", "chamfered")
 settle()
-assert(view.portraitChrome.inner[1]:IsShown() and not view.ring:IsShown(), "the design file's chamfered octagon is the other choice")
-assert(env._unmasked[view.portrait] == true, "the sample asks for the square portrait the chamfer masks")
-assert(view.badgeChrome.inner[1]:IsShown(), "the sample's level badge is the octagon there too")
+assert(view.portraitChrome.rim[1]:IsShown() and not view.ring:IsShown(), "the square portrait is the other choice")
+assert(env._unmasked[view.portrait] == true, "the sample asks for the square portrait the rounded mask masks")
+assert(view.badgeChrome.rim[1]:IsShown(), "the sample's level badge is the octagon there too")
 local cast = preview.casts.player
 assert(cast and cast.frame:IsShown() and U.Shown(env, cast.text) == "Frostbolt", "the player sample shows a cast bar under the frame, its spell as the game writes it")
 assert(cast.geometry and cast.geometry.icon == nil and cast.geometry.panel.x == 0, "the sample player cast bar has no icon, as on the mockup")
 K.Options.Write("UnitFrames", "player.portraitShape", "round")
 settle()
-assert(view.ring:IsShown() and not view.portraitChrome.inner[1]:IsShown(), "a round portrait shows in the preview")
-assert(view.badgeChrome.inner[1]:IsShown(), "with the octagon badge on its ring")
+assert(view.ring:IsShown() and not view.portraitChrome.rim[1]:IsShown(), "a round portrait shows in the preview")
+assert(view.badgeChrome.rim[1]:IsShown(), "with the octagon badge on its ring")
 K.Options.Write("UnitFrames", "player.portraitShape", "chamfered")
 settle()
 for _, frame in ipairs(env._frames) do
@@ -128,11 +128,11 @@ assert(preview.auraCount > 0 and preview.auraIcons.target[1]:IsShown(), "switchi
 local bevels = 0
 for _, region in ipairs(W.Regions(preview.auraIcons.target[1], "Texture")) do
 	local set = W.LastCall(region, "SetTexture")
-	if set and set[1] == (K.Tokens.Texture("line")) then
+	if set and set[1] == (K.Tokens.Texture("lumenRimSmall")) then
 		bevels = bevels + 1
 	end
 end
-assert(bevels == 8, "the sample aura icons wear the live aura tile: two lines of four diagonal corners")
+assert(bevels == 9, "the sample aura icons wear the live aura tile: the socket's nine-piece rim")
 K.Options.Write("UnitFrames", "target.auraPosition", "RIGHT")
 K.Options.Write("UnitFrames", "target.auraGrowth", "LEFT_DOWN")
 settle()
