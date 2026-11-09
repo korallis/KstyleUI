@@ -130,7 +130,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(near(iconBox[3], r) and iconBox[1] >= l - 0.5, where .. ": five buffs fit inside the slot")
 		local bl, bb, br = Slot(K, name, "cooldowns.bars")
 		assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": the bars stand on the bar slot's bottom left")
-		assert(barBox[3] <= br + 0.5, where .. ": a bar is no wider than the slot")
+		assert(barBox[3] <= br + 0.5 and barBox[3] >= br - 3, where .. ": a bar spans the slot's width, whatever bar width the copied layout had, got " .. (barBox[3] - barBox[1]) .. " of " .. (br - bl))
 		assert(#Collisions(K, name, iconBox) == 0, where .. ": the icons touch nothing: " .. table.concat(Collisions(K, name, iconBox), ", "))
 		assert(#Collisions(K, name, barBox) == 0, where .. ": the bars touch nothing: " .. table.concat(Collisions(K, name, barBox), ", "))
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing to tell the player")

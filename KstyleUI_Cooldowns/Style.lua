@@ -223,16 +223,25 @@ function Style.EntryName(entry)
 	return K.L["A tracked buff"]
 end
 
+local function Method(duration)
+	return duration.GetRemainingDuration
+end
+
 local function TimeLeft(entry)
 	local id = entry.auraID
 	if not (id and ns.Auras) then
 		return nil
 	end
 	local duration = ns.Auras.Duration(entry.auraUnit, id)
-	if type(duration) ~= "table" or ns.IsSecret(duration) or type(duration.GetRemainingDuration) ~= "function" then
+	local kind = type(duration)
+	if ns.IsSecret(duration) or (kind ~= "userdata" and kind ~= "table") then
 		return nil
 	end
-	local ok, left = pcall(duration.GetRemainingDuration, duration)
+	local found, method = pcall(Method, duration)
+	if not found or type(method) ~= "function" then
+		return nil
+	end
+	local ok, left = pcall(method, duration)
 	if not ok or ns.IsSecret(left) or type(left) ~= "number" or left ~= left or left <= 0 then
 		return nil
 	end

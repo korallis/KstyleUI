@@ -14,10 +14,11 @@ local TRACKER_HEIGHT_MIN, TRACKER_HEIGHT_STEP, TRACKER_HEIGHT_STEPS = 400, 10, 6
 local METER_WIDTH_MIN, METER_WIDTH_MAX = 200, 600
 local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
+local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS = 2, 2
 local VIEWERS = {
 	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, gap = 8, fallback = 6 },
-	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, gap = 2, fallback = 2 },
+	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, gap = 2, fallback = 2, tallest = 24 },
 }
 
 EditMode.TRACKER_LEFT = 16
@@ -143,9 +144,9 @@ local function Fit(view, slot, room, n, k, bars)
 	local percent = VIEWER_SIZE_MIN
 	for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
 		local scale = step / 100
-		local across = bars and view.width * scale or view.height * scale
-		local limit = bars and (slot.r - slot.l) or (slot.t - slot.b)
-		if across <= limit * k and Length(view, scale, n, bars) <= room * k then
+		local tall = view.height * scale <= (bars and view.tallest or (slot.t - slot.b)) * k
+		local narrow = not bars or view.width * BAR_WIDTH_MIN / 100 * scale <= (slot.r - slot.l) * k
+		if tall and narrow and Length(view, scale, n, bars) <= room * k then
 			return step, true
 		end
 	end
@@ -183,6 +184,10 @@ local function Viewer(name, group, k, rw, rh, others, notes)
 	end
 	if not bars and IsTable(direction) and setting.IconDirection ~= nil then
 		settings[setting.IconDirection] = direction.Left
+	end
+	if bars and setting.BarWidthScale ~= nil then
+		local width = floor(Clamp((slot.r - slot.l) * k / (view.width * percent / 100) * 100, BAR_WIDTH_MIN, BAR_WIDTH_MAX))
+		settings[setting.BarWidthScale] = width - BAR_WIDTH_MIN
 	end
 	local label = bars and "Blizzard's tracked buff bars" or "Blizzard's tracked buff icons"
 	local x = bars and slot.l or slot.r

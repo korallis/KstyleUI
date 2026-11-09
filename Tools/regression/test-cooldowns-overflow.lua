@@ -38,12 +38,14 @@ local cdm = env._cdm
 local function activate(spell, instance, left)
 	cdm.auras[spell] = { auraInstanceID = instance }
 	if left then
-		cdm.auraDurations[instance] = {
-			kind = "aura",
+		-- Forever's duration objects are userdata (LuaDurationObjectAPIDocumentation.lua, ObjectType "Userdata").
+		local duration = newproxy(true)
+		getmetatable(duration).__index = {
 			GetRemainingDuration = function()
 				return left
 			end,
 		}
+		cdm.auraDurations[instance] = duration
 	end
 end
 for i = 1, 10 do

@@ -15,6 +15,7 @@ local EditModeFake = {}
 EditModeFake.TRACKER, EditModeFake.METER, EditModeFake.CHAT, EditModeFake.VIEWER = 12, 23, 8, 20
 EditModeFake.BUFF_ICON, EditModeFake.BUFF_BAR = 3, 4
 EditModeFake.ORIENTATION, EditModeFake.ICON_DIRECTION, EditModeFake.ICON_SIZE, EditModeFake.ICON_PADDING = 0, 2, 3, 4
+EditModeFake.BAR_WIDTH = 11
 EditModeFake.HORIZONTAL, EditModeFake.VERTICAL, EditModeFake.LEFT, EditModeFake.RIGHT = 0, 1, 0, 1
 EditModeFake.HEIGHT, EditModeFake.FRAME_WIDTH, EditModeFake.FRAME_HEIGHT = 0, 3, 4
 EditModeFake.PRESET, EditModeFake.ACCOUNT, EditModeFake.CHARACTER = 0, 1, 2
@@ -44,7 +45,8 @@ local function System(system, x, y, settings, index)
 end
 
 -- Viewer(index, orientation, direction) -> a Cooldown Manager viewer as the Modern preset stores it: 100% icons
--- (IconSize 5), padding 5, at the bottom of the screen.
+-- (IconSize 5), padding 5, at the bottom of the screen; the bars keep the preset's BarWidthScale of 100, which Edit
+-- Mode reads as 150% (ConvertValueDefault: the stored value plus the slider's 50 minimum).
 local function Viewer(index, orientation, direction, y)
 	local entry = System(F.VIEWER, 0, y, {
 		{ setting = F.ORIENTATION, value = orientation },
@@ -53,6 +55,9 @@ local function Viewer(index, orientation, direction, y)
 		{ setting = F.ICON_SIZE, value = 5 },
 		{ setting = F.ICON_PADDING, value = 5 },
 	}, index)
+	if index == F.BUFF_BAR then
+		entry.settings[#entry.settings + 1] = { setting = F.BAR_WIDTH, value = 100 }
+	end
 	entry.anchorInfo = { point = "BOTTOM", relativeTo = "UIParent", relativePoint = "BOTTOM", offsetX = 0, offsetY = y }
 	return entry
 end
@@ -79,7 +84,7 @@ function F.Install(env, state)
 		env.Enum.EditModeSystem.CooldownViewer = F.VIEWER
 	end
 	env.Enum.EditModeCooldownViewerSystemIndices = { Essential = 1, Utility = 2, BuffIcon = F.BUFF_ICON, BuffBar = F.BUFF_BAR }
-	env.Enum.EditModeCooldownViewerSetting = { Orientation = F.ORIENTATION, IconLimit = 1, IconDirection = F.ICON_DIRECTION, IconSize = F.ICON_SIZE, IconPadding = F.ICON_PADDING }
+	env.Enum.EditModeCooldownViewerSetting = { Orientation = F.ORIENTATION, IconLimit = 1, IconDirection = F.ICON_DIRECTION, IconSize = F.ICON_SIZE, IconPadding = F.ICON_PADDING, BarWidthScale = F.BAR_WIDTH }
 	env.Enum.CooldownViewerOrientation = { Horizontal = F.HORIZONTAL, Vertical = F.VERTICAL }
 	env.Enum.CooldownViewerIconDirection = { Left = F.LEFT, Right = F.RIGHT }
 	env.Enum.EditModeLayoutType = { Preset = F.PRESET, Account = F.ACCOUNT, Character = F.CHARACTER }
@@ -132,15 +137,16 @@ end
 -- ViewerRect(entry, count, k, bars) -> left, bottom, right, top in KstyleUI root units: the box Blizzard's buff icon
 -- (or bar) viewer fills with count items under this Edit Mode entry, as CooldownViewerMixin:RefreshLayout lays it
 -- out at 1.60.1: one row (or column) of every tracked item, hidden ones keeping their slot, at least two; each item
--- 40 by 40 (bars 220 by 30) scaled by IconSize% (stored as (percent - 50) / 10), pitched by IconPadding less 4
--- (bars 2); k is root units to UIParent units, and the anchor is the entry's point on UIParent's bottom left.
+-- 40 by 40 (bars 220 by 30, their width times BarWidthScale%, stored as percent - 50) scaled by IconSize% (stored as
+-- (percent - 50) / 10), pitched by IconPadding less 4 (bars 2); k is root units to UIParent units, and the anchor is
+-- the entry's point on UIParent's bottom left.
 function F.ViewerRect(entry, count, k, bars)
 	local scale = (F.Setting(entry, F.ICON_SIZE) * 10 + 50) / 100
 	local pad = F.Setting(entry, F.ICON_PADDING) - (bars and 2 or 4)
 	local n = math.max(2, count)
 	local w, h
 	if bars then
-		w, h = 220 * scale, n * 30 * scale + (n - 1) * pad
+		w, h = 220 * (F.Setting(entry, F.BAR_WIDTH) + 50) / 100 * scale, n * 30 * scale + (n - 1) * pad
 	else
 		w, h = n * 40 * scale + (n - 1) * pad, 40 * scale
 	end

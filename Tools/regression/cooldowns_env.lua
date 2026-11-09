@@ -468,7 +468,8 @@ end
 -- Mode entry Layout > Apply wrote (Tools/regression/editmode_fake.lua), from Blizzard_CooldownViewer at 1.60.1:
 -- RefreshLayout acquires one item per tracked cooldown (at least two) and GridLayoutFrame puts them in one row, or
 -- for bars one column (GetStride is the item count); each item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
--- left and a 19-unit bar after a 2-unit gap) scaled by IconSize%, stored as (percent - 50) / 10; items pitch by
+-- left and a 19-unit bar after a 2-unit gap, the width times BarWidthScale%, stored as percent - 50) scaled by
+-- IconSize%, stored as (percent - 50) / 10; items pitch by
 -- IconPadding less 4 (bars 2); a horizontal row with IconDirection Left starts at the right; hidden (inactive) items
 -- keep their slot (includeAsLayoutChildWhenHidden); the viewer hangs from the entry's anchor on UIParent; each item
 -- goes through OnAcquireItemFrame after its scale is set, as RefreshLayout acquires it. items: one
@@ -491,7 +492,7 @@ function C.Native(env, name, entry, items, format)
 	while #viewer._items < n do
 		C.Item(env, viewer, #viewer._items + 1)
 	end
-	local w, h = bars and 220 or 40, bars and 30 or 40
+	local w, h = bars and 220 * (setting(11) + 50) / 100 or 40, bars and 30 or 40
 	local leftward = not bars and setting(2) == 0
 	local across = n * (bars and h or w) * scale + (n - 1) * pad
 	local a = entry.anchorInfo
