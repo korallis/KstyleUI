@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Inventory, Bank, Blizzard, Junk = ns.Settings, ns.Inventory, ns.Bank, ns.Blizzard, ns.Junk
+local Settings, Inventory, Bank, Blizzard, Junk, Alts = ns.Settings, ns.Inventory, ns.Bank, ns.Blizzard, ns.Junk, ns.Alts
 local MODULE = Settings.MODULE
 
 local function Dispatch(event, ...)
@@ -41,11 +41,13 @@ local function Engage()
 	Inventory.Enable()
 	Bank.Enable()
 	Junk.Enable()
+	Alts.Enable()
 end
 
 local function Disengage()
 	if engaged then
 		engaged = false
+		Alts.Disable()
 		Junk.Disable()
 		Bank.Disable()
 		Inventory.Disable()

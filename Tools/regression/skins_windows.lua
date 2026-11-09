@@ -28,6 +28,8 @@ Windows.ICONS = ICONS
 local TITLE_HEIGHT = 24
 local CLOSE = 24
 local BUTTON_HEIGHT = 22
+local MODE_TAB = 40
+local MODE_TAB_ICONS = { 5, 8, 16, 18, 25, 24 }
 local ROW_HEIGHT = 20
 
 -- Layout ----------------------------------------------------------------------------------------------
@@ -274,14 +276,32 @@ local function CharacterWindow(env, B, x, y)
 	f.RightPaneHost = B.frame("Frame", f)
 	Fill(f.RightPaneHost, f, 341, TITLE_HEIGHT, 0, 0)
 	f.RightPaneHost.StoneBg = B.texture(f.RightPaneHost)
+	-- The mode tabs hang off the window's right edge (CharacterFrame.xml:568: TOPLEFT at the frame's
+	-- TOPRIGHT, y -30), stacked 2 apart as CharacterFrameMixin:UpdateTabLayout stacks them.
 	f.ModeTabs = B.frame("Frame", f)
+	f.ModeTabs:SetSize(64, 384)
+	Anchor(f.ModeTabs, f, "TOPLEFT", "TOPRIGHT", 0, -30)
 	f.ModeTabs.Tabs = {}
-	for i = 1, 6 do
-		local tab = SideTab(B, f.ModeTabs, ICONS[i])
-		Anchor(tab, f, "TOPLEFT", -36, -(TITLE_HEIGHT + 8 + (i - 1) * 38))
+	for i, icon in ipairs(MODE_TAB_ICONS) do
+		local tab = SideTab(B, f.ModeTabs, ICONS[icon])
+		tab:SetSize(MODE_TAB, MODE_TAB)
 		tab:SetChecked(i == 1)
 		f.ModeTabs.Tabs[i] = tab
 	end
+	function f.UpdateTabLayout()
+		local previous
+		for _, tab in ipairs(f.ModeTabs.Tabs) do
+			if tab:IsShown() then
+				if previous then
+					Anchor(tab, previous, "TOPLEFT", "BOTTOMLEFT", 0, -2)
+				else
+					Anchor(tab, f.ModeTabs, "TOPLEFT", 0, 0)
+				end
+				previous = tab
+			end
+		end
+	end
+	f.UpdateTabLayout()
 	f.RightPaneToggleButton = B.frame("Button", f)
 	Anchor(f.RightPaneToggleButton, f, "TOPRIGHT", -30, -2)
 	f.RightPaneToggleButton:SetSize(CLOSE, CLOSE)
@@ -377,7 +397,7 @@ function build.character(env, B)
 	Stat("Armor", "1,842")
 	Stat("Block", "17%")
 	Stack(rows, stats.ScrollBox, 0, 2)
-	return f, { bounds = { f, f.ModeTabs.Tabs[1] } }
+	return f, { bounds = { f, f.ModeTabs.Tabs[6] } }
 end
 
 -- RepBar(B, parent, w) -> a ColoredProgressBarTemplate bar: a background, a masked Fill, a Text.
@@ -464,7 +484,7 @@ function build.reputation(env, B)
 	end
 	detail.ViewRenownButton = Button(B, detail, "View Renown", 120)
 	Anchor(detail.ViewRenownButton, detail, "BOTTOMRIGHT", -16, 16)
-	return f, { bounds = { f, f.ModeTabs.Tabs[1] } }
+	return f, { bounds = { f, f.ModeTabs.Tabs[6] } }
 end
 
 -- Tabs(B, parent, labels, icons) -> a TabSystemTemplate with text tabs or, with icons, Forever's icon-only tabs.

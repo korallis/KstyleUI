@@ -25,6 +25,9 @@ local TOKEN_CHECKS = { "InactiveCheckbox", "BackpackCheckbox" }
 local WEAK = { __mode = "k" }
 local slots = setmetatable({}, WEAK)
 local rows = setmetatable({}, WEAK)
+local rails = setmetatable({}, WEAK)
+local RAIL_OUTSET = "gapSmall"
+local LEVEL_BELOW = 1
 
 local function Log(message)
 	K.DevTest.Log("Skins", KEY .. ": " .. message)
@@ -118,6 +121,50 @@ local function SkinToggle(frame)
 	Point()
 end
 
+local function PlaceRail(rail)
+	local first, last
+	for _, tab in ipairs(rail.tabs) do
+		local shown = tab:IsShown()
+		if not IsSecret(shown) and shown == true then
+			first = first or tab
+			last = tab
+		end
+	end
+	rail:ClearAllPoints()
+	if not first then
+		rail:Hide()
+		return
+	end
+	local outset = K.Widgets.Snap(rail, Tokens.Size(RAIL_OUTSET))
+	rail:SetPoint("TOPLEFT", first, "TOPLEFT", -outset, outset)
+	rail:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", outset, -outset)
+	rail:Show()
+end
+
+local function SkinRail(frame, modes)
+	local holder = frame.ModeTabs
+	if rails[frame] then
+		return
+	end
+	local rail = CreateFrame("Frame", nil, holder)
+	rail.tabs = modes
+	rail:SetFrameLevel(math.max(0, modes[1]:GetFrameLevel() - LEVEL_BELOW))
+	Skin.Backdrop(rail, { shape = "rail", fill = "surface", shadow = true })
+	rails[frame] = rail
+	PlaceRail(rail)
+	if type(frame.UpdateTabLayout) == "function" then
+		hooksecurefunc(frame, "UpdateTabLayout", function()
+			PlaceRail(rail)
+		end)
+	else
+		Log("UpdateTabLayout is missing; the tab rail spans the tabs shown at skin time")
+	end
+end
+
+function ns.CharacterRail(frame)
+	return rails[frame]
+end
+
 local function SkinWindow(frame)
 	Skin.Window(frame, { tabs = false })
 	local title = type(frame.TitleContainer) == "table" and frame.TitleContainer.TitleText
@@ -131,10 +178,11 @@ local function SkinWindow(frame)
 		end
 	end
 	local modes = type(frame.ModeTabs) == "table" and frame.ModeTabs.Tabs
-	if type(modes) == "table" then
+	if type(modes) == "table" and type(modes[1]) == "table" then
 		for _, tab in ipairs(modes) do
 			Parts.SideTab(tab)
 		end
+		SkinRail(frame, modes)
 	else
 		Log("the side tabs are missing; they keep Blizzard's look")
 	end

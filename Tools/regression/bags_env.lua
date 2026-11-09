@@ -355,6 +355,30 @@ function B.Game(env, opts)
 	env.GameTooltip_Hide = function()
 		env.GameTooltip:Hide()
 	end
+	-- Item tooltips: TooltipDataProcessor's post-calls and the lines a tooltip shows, for the alt counts.
+	env._postCalls = {}
+	env.Enum.TooltipDataType = { Item = 0, Spell = 1, Unit = 2 }
+	env.TooltipDataProcessor = {
+		AllTypes = "ALL",
+		AddTooltipPostCall = function(kind, fn)
+			assert(kind ~= nil and type(fn) == "function", "AddTooltipPostCall(type, fn)")
+			env._postCalls[kind] = env._postCalls[kind] or {}
+			table.insert(env._postCalls[kind], fn)
+		end,
+	}
+	env.GameTooltip._lines = {}
+	rawset(env.GameTooltip, "AddLine", function(self, text, r, g, b)
+		self._lines[#self._lines + 1] = { text, nil, r, g, b }
+	end)
+	rawset(env.GameTooltip, "AddDoubleLine", function(self, left, right, lr, lg, lb, rr, rg, rb)
+		self._lines[#self._lines + 1] = { left, right, lr, lg, lb, rr, rg, rb }
+	end)
+	rawset(env.GameTooltip, "NumLines", function(self)
+		return #self._lines
+	end)
+	rawset(env.GameTooltip, "ClearLines", function(self)
+		self._lines = {}
+	end)
 
 	env.GetMoney = function()
 		return env._money
@@ -553,7 +577,7 @@ end
 -- New(opts) -> env, KstyleUI, ns. opts: the B.Game options, plus
 --   enable   false to leave the module off
 --   setup    function(env) that runs after the fake game is installed
---   saved    KstyleUIDB as the game loads it; width, height, uiScale  the screen, as CoreEnv.New takes them
+--   saved    KstyleUIDB as the game loads it; width, height, uiScale  the screen; player, realm  the character, as CoreEnv.New takes them
 function B.New(opts)
 	opts = opts or {}
 	local env, K = W.New({
@@ -562,6 +586,8 @@ function B.New(opts)
 		width = opts.width,
 		height = opts.height,
 		uiScale = opts.uiScale,
+		player = opts.player,
+		realm = opts.realm,
 		setup = function(env)
 			B.Game(env, opts)
 			if opts.setup then
@@ -586,6 +612,20 @@ function B.Put(env, bag, slot, item)
 	env._index(item)
 	env.FireEvent("BAG_UPDATE", bag)
 	env.FireEvent("BAG_UPDATE_DELAYED")
+end
+
+-- ItemTooltip(env, itemID) -> the lines the registered post-calls add to GameTooltip for an item, as
+-- { left, right, ... } rows, after a fresh SetOwner.
+function B.ItemTooltip(env, itemID)
+	local tooltip = env.GameTooltip
+	tooltip:ClearLines()
+	local data = { type = env.Enum.TooltipDataType.Item, id = itemID }
+	for _, kind in ipairs({ "ALL", data.type }) do
+		for _, fn in ipairs(env._postCalls[kind] or {}) do
+			fn(tooltip, data)
+		end
+	end
+	return tooltip._lines
 end
 
 -- Shown(frame) is true when the frame and every parent are shown.

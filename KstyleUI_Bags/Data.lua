@@ -7,6 +7,7 @@ ns.Data = Data
 local floor, ceil, max, min = math.floor, math.ceil, math.max, math.min
 local lower, find, match = string.lower, string.find, string.match
 
+local NONE = {}
 local FALLBACK_BAG_SLOTS = 4
 local FALLBACK_REAGENT_SLOTS = 1
 local KEYRING_FALLBACK = -1
@@ -222,7 +223,7 @@ Data.CATEGORIES = {
 	{ key = "empty", label = L["Empty"] },
 }
 
-function Data.Category(record)
+function Data.BuiltinCategory(record)
 	if record.empty then
 		return "empty"
 	end
@@ -231,6 +232,37 @@ function Data.Category(record)
 	end
 	local class = ItemClass(record)
 	return class and CLASS_CATEGORY[class] or "other"
+end
+
+local function Custom()
+	local settings = ns.Settings
+	return settings and type(settings.Custom) == "function" and settings.Custom() or nil
+end
+
+function Data.Categories()
+	local custom = Custom()
+	if not custom or #custom == 0 then
+		return Data.CATEGORIES
+	end
+	local list = {}
+	for _, category in ipairs(custom) do
+		list[#list + 1] = category
+	end
+	for _, category in ipairs(Data.CATEGORIES) do
+		list[#list + 1] = category
+	end
+	return list
+end
+
+function Data.Category(record)
+	if not record.empty then
+		for _, category in ipairs(Custom() or NONE) do
+			if Data.Matches(record, category.rule) then
+				return category.key
+			end
+		end
+	end
+	return Data.BuiltinCategory(record)
 end
 
 function Data.Query(text)
@@ -250,6 +282,245 @@ local function Contains(text, query)
 	return text ~= nil and find(lower(text), query, 1, true) ~= nil
 end
 
+local function TypeMatches(record, query)
+	local item = C_Item
+	if item and type(item.GetItemInfoInstant) == "function" and record.itemID then
+		local _, itemType, subType = item.GetItemInfoInstant(record.itemID)
+		return Contains(itemType, query) or Contains(subType, query)
+	end
+	return false
+end
+
+local function NameMatches(record, query)
+	if Contains(record.name, query) then
+		return true
+	end
+	local item = C_Item
+	if not record.name and item and type(item.GetItemInfo) == "function" and record.link then
+		return Contains((item.GetItemInfo(record.link)), query)
+	end
+	return false
+end
+
+local QUALITY_NAMES = { poor = 0, common = 1, uncommon = 2, rare = 3, epic = 4, legendary = 5 }
+local CATEGORY_WORDS = {
+	equipment = "equipment", gear = "equipment", consumable = "consumables", consumables = "consumables",
+	trade = "tradeGoods", tradegoods = "tradeGoods", reagent = "tradeGoods", reagents = "tradeGoods",
+	quest = "quest", other = "other",
+}
+local KEYWORDS = {
+	junk = function(record)
+		return record.junk == true
+	end,
+	new = function(record)
+		return record.isNew == true
+	end,
+	bound = function(record)
+		return record.bound == true
+	end,
+	unbound = function(record)
+		return record.bound ~= true
+	end,
+}
+local LEVEL_PREFIX = { ["ilvl"] = true, ["#"] = true }
+local COMPARE = {
+	[">"] = function(level, low)
+		return level > low
+	end,
+	[">="] = function(level, low)
+		return level >= low
+	end,
+	["<"] = function(level, low)
+		return level < low
+	end,
+	["<="] = function(level, low)
+		return level <= low
+	end,
+	["="] = function(level, low, high)
+		return level >= low and level <= high
+	end,
+}
+
+local function LevelTerm(text)
+	local prefix, rest = match(text, "^(ilvl)%s*(.*)$")
+	if not prefix then
+		prefix, rest = match(text, "^(#)%s*(.*)$")
+	end
+	if not prefix or not LEVEL_PREFIX[prefix] then
+		return nil
+	end
+	local op, body = match(rest, "^([<>]=?)%s*(.*)$")
+	if not op then
+		op, body = "=", match(rest, "^[:=]?%s*(.*)$")
+	end
+	local low, high = match(body, "^(%d+)%s*%-%s*(%d+)$")
+	low = tonumber(low or match(body, "^(%d+)$"))
+	if not low then
+		return nil
+	end
+	high = tonumber(high) or low
+	local compare = COMPARE[op]
+	return function(record)
+		local level = Data.ItemLevel(record)
+		return level ~= nil and compare(level, low, high)
+	end
+end
+
+local function Term(text)
+	local word = match(text, "^%S+$") and text or nil
+	if word and KEYWORDS[word] then
+		return KEYWORDS[word]
+	end
+	if word and QUALITY_NAMES[word] then
+		local quality = QUALITY_NAMES[word]
+		return function(record)
+			return Plain(record.quality, "number") == quality
+		end
+	end
+	if word and CATEGORY_WORDS[word] then
+		local category = CATEGORY_WORDS[word]
+		return function(record)
+			return Data.BuiltinCategory(record) == category
+		end
+	end
+	local level = LevelTerm(text)
+	if level then
+		return level
+	end
+	local field, body = match(text, "^(%a+):%s*(.+)$")
+	if field == "type" or field == "t" then
+		return function(record)
+			return TypeMatches(record, body)
+		end
+	elseif field == "name" or field == "n" then
+		return function(record)
+			return NameMatches(record, body)
+		end
+	end
+	return function(record)
+		return NameMatches(record, text) or TypeMatches(record, text)
+	end
+end
+
+local OPERATORS = { ["&"] = true, ["|"] = true, ["!"] = true, ["("] = true, [")"] = true }
+
+local function Tokens(text)
+	local out, i, n = {}, 1, #text
+	while i <= n do
+		local char = text:sub(i, i)
+		if OPERATORS[char] then
+			out[#out + 1] = char
+			i = i + 1
+		elseif find(char, "%s") then
+			i = i + 1
+		else
+			local j = i
+			while j <= n and not OPERATORS[text:sub(j, j)] do
+				j = j + 1
+			end
+			out[#out + 1] = { text = match(text:sub(i, j - 1), "^%s*(.-)%s*$") }
+			i = j
+		end
+	end
+	return out
+end
+
+local function Nothing()
+	return false
+end
+
+local Parse
+
+local function ParseAtom(tokens, state)
+	local token = tokens[state.i]
+	if token == nil or token == ")" or token == "&" or token == "|" then
+		return nil
+	end
+	state.i = state.i + 1
+	if token == "!" then
+		local inner = ParseAtom(tokens, state)
+		if not inner then
+			return nil
+		end
+		return function(record)
+			return not inner(record)
+		end
+	end
+	if token == "(" then
+		local inner = Parse(tokens, state)
+		if tokens[state.i] == ")" then
+			state.i = state.i + 1
+		end
+		return inner
+	end
+	if token.text == "" then
+		return nil
+	end
+	return Term(token.text)
+end
+
+local function ParseAnd(tokens, state)
+	local left = ParseAtom(tokens, state)
+	while tokens[state.i] == "&" do
+		state.i = state.i + 1
+		local right = ParseAtom(tokens, state)
+		if left and right then
+			local a, b = left, right
+			left = function(record)
+				return a(record) and b(record)
+			end
+		else
+			left = left or right
+		end
+	end
+	return left
+end
+
+Parse = function(tokens, state)
+	local left = ParseAnd(tokens, state)
+	while tokens[state.i] == "|" do
+		state.i = state.i + 1
+		local right = ParseAnd(tokens, state)
+		if left and right then
+			local a, b = left, right
+			left = function(record)
+				return a(record) or b(record)
+			end
+		else
+			left = left or right
+		end
+	end
+	return left
+end
+
+local compiled = {}
+
+function Data.Compile(query)
+	query = Plain(query, "string")
+	if not query then
+		return nil
+	end
+	local fn = compiled[query]
+	if not fn then
+		local tokens = Tokens(query)
+		local state = { i = 1 }
+		fn = Parse(tokens, state)
+		while fn and tokens[state.i] do
+			state.i = state.i + 1
+			local more = Parse(tokens, state)
+			if more then
+				local a, b = fn, more
+				fn = function(record)
+					return a(record) and b(record)
+				end
+			end
+		end
+		fn = fn or Nothing
+		compiled[query] = fn
+	end
+	return fn
+end
+
 function Data.Matches(record, query)
 	if not query then
 		return true
@@ -257,20 +528,7 @@ function Data.Matches(record, query)
 	if record.empty then
 		return false
 	end
-	if Contains(record.name, query) then
-		return true
-	end
-	local item = C_Item
-	if item and type(item.GetItemInfoInstant) == "function" and record.itemID then
-		local _, itemType, subType = item.GetItemInfoInstant(record.itemID)
-		if Contains(itemType, query) or Contains(subType, query) then
-			return true
-		end
-	end
-	if not record.name and item and type(item.GetItemInfo) == "function" and record.link then
-		return Contains((item.GetItemInfo(record.link)), query)
-	end
-	return false
+	return Data.Compile(query)(record) == true
 end
 
 function Data.FreeSlots(bags)

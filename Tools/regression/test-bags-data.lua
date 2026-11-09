@@ -162,6 +162,59 @@ do
 	assert(not Data.Matches(empty, "heal"), "an empty slot never matches a search")
 end
 
+-- Search grammar: & | ! ( ), keywords, type: and item level ranges ------------------------------
+
+do
+	local env, _, Data = New({
+		bags = {
+			[0] = {
+				size = 8,
+				items = {
+					[1] = Item("sword"), [2] = Item("potion"), [3] = Item("helm", { bound = true }), [4] = Item("junk"),
+					[5] = Item("cloth"), [6] = Item("ring"), [7] = Item("hearth"),
+				},
+			},
+		},
+	})
+	env._new["0:2"] = true
+	local function Slot(i)
+		return Data.Read(0, i, {})
+	end
+	local sword, potion, helm, junk, cloth, ring, hearth, empty = Slot(1), Slot(2), Slot(3), Slot(4), Slot(5), Slot(6), Slot(7), Slot(8)
+	local function M(record, text)
+		return Data.Matches(record, Data.Query(text)) == true
+	end
+	assert(M(sword, "sword & weapon") and not M(sword, "sword & potion"), "& needs both sides")
+	assert(M(sword, "sword | potion") and M(potion, "sword | potion") and not M(cloth, "sword | potion"), "| needs one side")
+	assert(M(potion, "!sword") and not M(sword, "!sword"), "! negates a term")
+	assert(not M(empty, "!sword"), "an empty slot never matches, even a negated search")
+	assert(M(cloth, "!(sword | potion)") and not M(potion, "!(sword | potion)"), "brackets group")
+	assert(M(sword, "weapon | armor & !leather") and M(ring, "weapon | armor & !leather") and not M(helm, "weapon | armor & !leather"), "& binds tighter than |")
+	assert(M(potion, "  heal  &  potion "), "spaces around operators are ignored")
+	assert(M(potion, "minor heal"), "a phrase with a space is one term, as before")
+	assert(M(sword, "sword &") and M(sword, "| sword") and M(sword, "(sword"), "an unfinished expression still matches what it can")
+	assert(M(junk, "junk") and not M(hearth, "junk"), "junk is a keyword for a poor item that sells")
+	assert(M(potion, "new") and not M(sword, "new"), "new matches an item the game marks new")
+	assert(M(helm, "bound") and not M(sword, "bound") and M(sword, "unbound") and not M(helm, "unbound"), "bound and unbound read the bind state")
+	assert(M(sword, "equipment") and M(ring, "gear") and not M(potion, "equipment"), "equipment and gear are the equipment category")
+	assert(M(potion, "consumable") and M(cloth, "trade") and M(cloth, "reagent") and M(hearth, "other"), "the other categories are keywords too")
+	assert(M(ring, "rare") and M(helm, "epic") and M(sword, "uncommon") and M(potion, "common") and M(junk, "poor") and not M(sword, "rare"), "quality names match the quality")
+	assert(M(sword, "type:weapon") and M(sword, "type:one-handed") and not M(sword, "type:worn"), "type: searches the type and subtype only")
+	assert(M(sword, "name:worn") and not M(sword, "name:weapon"), "name: searches the name only")
+	assert(M(helm, "ilvl>30") and not M(ring, "ilvl>30") and M(ring, "ilvl>=30"), "ilvl> and ilvl>= compare the item level")
+	assert(M(sword, "ilvl<30") and M(ring, "ilvl<=30") and not M(helm, "ilvl<30"), "ilvl< and ilvl<= compare the item level")
+	assert(M(ring, "ilvl=30") and M(ring, "ilvl:30") and not M(sword, "ilvl=30"), "ilvl= and ilvl: match one level")
+	assert(M(ring, "ilvl:12-30") and M(sword, "ilvl:12-30") and not M(helm, "ilvl:12-30"), "ilvl:a-b is a range")
+	assert(M(helm, "#>60") and M(ring, "#12-30") and M(sword, "#12"), "# is short for ilvl")
+	assert(not M(potion, "ilvl>0") and not M(potion, "ilvl<999"), "an item without a level never matches a level search")
+	assert(M(helm, "armor & ilvl>60 & epic & bound"), "keywords combine")
+	assert(M(potion, "!!potion") and not M(sword, "!!potion"), "double negation cancels")
+	assert(not M(sword, "&") and not M(sword, "!") and not M(sword, "()"), "an expression with no term matches nothing")
+	local compiled = Data.Compile(Data.Query("sword | potion"))
+	assert(type(compiled) == "function" and Data.Compile(Data.Query("sword | potion")) == compiled, "a compiled search is cached by its text")
+	assert(Data.Compile(nil) == nil, "no search compiles to nothing")
+end
+
 -- Free slots ------------------------------------------------------------------------------------
 
 do
@@ -212,6 +265,35 @@ do
 	local secret = Data.Read(0, 2, {})
 	secret.itemID = env.Secret(1000)
 	assert(Data.Category(secret) == "other", "a secret item ID is other")
+end
+
+-- Custom categories: named search rules that sort before the built-in categories ---------------
+
+do
+	local _, K, Data = New({
+		bags = {
+			[0] = { size = 4, items = { [1] = Item("potion"), [2] = Item("sword"), [3] = Item("hearth") } },
+		},
+	})
+	local function Category(slot)
+		return Data.Category(Data.Read(0, slot, {}))
+	end
+	local list = Data.Categories()
+	assert(#list == #Data.CATEGORIES and list[1].key == "equipment", "with no custom category the list is the built-in one")
+	assert(K.Options.Write("Bags", "custom1.name", "Travel") ~= false and K.Options.Write("Bags", "custom1.rule", "hearth | potion") ~= false, "custom category rows write")
+	list = Data.Categories()
+	assert(#list == #Data.CATEGORIES + 1 and list[1].key == "custom1" and list[1].label == "Travel" and list[2].key == "equipment", "a custom category comes first, with its name as the label")
+	assert(Category(1) == "custom1" and Category(3) == "custom1", "items the rule matches land in the custom category")
+	assert(Category(2) == "equipment" and Category(4) == "empty", "other items keep their built-in category")
+	K.Options.Write("Bags", "custom2.name", "Blades")
+	assert(#Data.Categories() == #Data.CATEGORIES + 1, "a custom category without a rule is not listed")
+	K.Options.Write("Bags", "custom2.rule", "sword")
+	assert(#Data.Categories() == #Data.CATEGORIES + 2 and Data.Categories()[2].key == "custom2", "custom categories keep their slot order")
+	assert(Category(2) == "custom2", "the rule claims the sword")
+	K.Options.Write("Bags", "custom1.rule", "")
+	assert(Category(1) == "consumables" and Category(3) == "other", "clearing a rule returns its items to the built-in categories")
+	K.Options.Write("Bags", "custom2.rule", "&")
+	assert(Category(2) == "equipment", "a rule that matches nothing claims nothing")
 end
 
 print("bags data ok")

@@ -1,6 +1,6 @@
 # KstyleUI_Bags
 
-Combined bags and bank, keyring, search, sort, quality borders and selling junk.
+Combined bags and bank in Lumen sections, keyring, a search grammar, custom categories, other characters' counts in tooltips, sort, quality borders and selling junk.
 
 | Field | Value |
 | --- | --- |
@@ -29,24 +29,31 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | --- | --- |
 | `Init.lua` | The addon table, `ns.On(event, fn)` (the module's event list) and `ns.Log(message)` (devlog lines under `Bags`) |
 | `Locale.lua` | `ns.L`, the core's locale table |
-| `Data.lua` | `ns.Data`: the bags that exist, what a slot holds, junk, item levels, item categories, search matches, free slots and grid maths. No frames. |
+| `Data.lua` | `ns.Data`: the bags that exist, what a slot holds, junk, item levels, item categories (built-in and custom), the search grammar and its matches, free slots and grid maths. No frames. |
 | `Settings.lua` | `ns.Settings`: the defaults, the settings page and checked reads |
 | `Slot.lua` | `ns.Slot`: one item slot, Blizzard's `ContainerFrameItemButtonTemplate` dressed as a KstyleUI tile |
-| `Window.lua` | `ns.Window`: a glass panel with search, sort, slot grids per section or per item category under Lumen section caps, and a footer |
+| `Window.lua` | `ns.Window`: a glass panel with search, sort, slot grids per section or per item category under Lumen section caps in one height-bounded scrolling viewport, and a footer |
 | `Blizzard.lua` | `ns.Blizzard`: the secure hooks on Blizzard's bag functions and the hiding of Blizzard's bag frames |
 | `Junk.lua` | `ns.Junk`: selling junk at a merchant |
 | `Inventory.lua` | `ns.Inventory`: the bag window |
 | `Bank.lua` | `ns.Bank`: the bank window |
+| `Alts.lua` | `ns.Alts`: each character's item counts, scanned into KstyleUI's account data and shown in item tooltips |
 | `Preview.lua` | The settings window's live preview |
 | `Module.lua` | Registers the module, its settings page and preview, its events and callbacks, and its `/kstyle test` check; follows the interface style |
 
-Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua`, `test-bags-junk.lua` and `test-bags-gamepad.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
+Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags-hooks.lua`, `test-bags-bank.lua`, `test-bags-junk.lua`, `test-bags-alts.lua` and `test-bags-gamepad.lua`, which load the module through `Tools/regression/bags_env.lua`, a fake inventory with Blizzard's open and close functions.
 
 ## The bag window
 
 One glass window holds the backpack, the four bags and the reagent bag, and the keyring in its own section under them. The title bar has the close button; Escape closes the window too. Under the title sit the search field and the Sort button. The footer shows the free bag slots (the keyring does not count) and the player's money, through `GetMoneyString`, or as `123g 45s 67c` on a client without it.
 
-With `layout` at `categories` (the default), the bag slots sort into sections by item type, each under a Lumen section cap (`Widgets.SectionCap`: gem, tracked caption, gilt rule and the count of slots in it): Equipment (weapons and armour), Consumables, Trade goods (trade goods, gems, reagents, enhancements, recipes and glyphs), Quest, Other, Junk (a poor item with a sell value, whatever its class) and Empty (every free slot, so there is always somewhere to drop an item). `Data.CATEGORIES` holds the order and labels, `Data.Category(record)` places a slot from `C_Item.GetItemInfoInstant`'s class, or in Other when the class is missing or secret. A section with nothing in it is never built. Each section is a grid of the window's columns; every slot's item button keeps a parent frame that carries its bag's ID, under the section's grid, so Blizzard's `GetBagID` still reads the right bag, and a slot whose item changes category moves to its new section's bag frame on the next refresh, out of combat (`Widgets.MayMove`; in combat the move waits for `Combat.Queue`). The row limit (`rows`) applies to the one grid only: sections show every row. With `layout` at `grid`, every bag slot sits in one grid, as before.
+With `layout` at `categories` (the default), the bag slots sort into sections by item type, each under a Lumen section cap (`Widgets.SectionCap`: gem, tracked caption, gilt rule and the count of slots in it): Equipment (weapons and armour), Consumables, Trade goods (trade goods, gems, reagents, enhancements, recipes and glyphs), Quest, Other, Junk (a poor item with a sell value, whatever its class) and Empty. `Data.CATEGORIES` holds the built-in order and labels; `Data.Categories()` puts the custom categories (below) in front of them. `Data.Category(record)` tries each custom rule first, then places a slot from `C_Item.GetItemInfoInstant`'s class, or in Other when the class is missing or secret. A section with nothing in it is never built. Each section is a grid of the window's columns; every slot's item button keeps a parent frame that carries its bag's ID, under the section's grid, so Blizzard's `GetBagID` still reads the right bag, and a slot whose item changes category moves to its new section's bag frame on the next refresh, out of combat (`Widgets.MayMove`; in combat the move waits for `Combat.Queue`). With `layout` at `grid`, every bag slot sits in one grid.
+
+**Empty slots.** With `emptySlots` at `packed` (the default), the Empty section shows one empty slot per bag, so there is always somewhere to drop an item into each bag, and its cap counts every free slot; the other empty slots' buttons stay hidden. `all` shows every empty slot.
+
+**The viewport.** The sections stack inside one clipping viewport (`win.viewport` holding `win.stack`), with the search row above it and the footer below it, so both stay reachable however many sections there are. The viewport's height is the stack's height, bounded by `rows` when it is above 0 (that many slot rows plus one cap) and always by the screen: the root frame's height in the window's own units, less the window's chrome and a 48-unit margin (`SCREEN_MARGIN`). The mouse wheel over the viewport scrolls the stack one slot row at a time and stops at both ends. The one grid of the `grid` layout is bounded the same way: `rows` caps its visible rows, the screen caps them again, and it scrolls when it shows fewer rows than it has. `test-bags-window.lua` reproduces a 100-slot, four-column, two-row inventory on a 1080 screen and fails if the window is ever taller than the screen. The window is always at least `columns` slots wide in the category layout, so sections do not change its width as counts change.
+
+**Custom categories.** Up to three custom categories (`custom1` to `custom3`, each a name and a rule) come before the built-in sections, in their slot order. A rule is a search (the grammar below); an item the rule matches lands in that section. A category without a name or without a rule is not listed; a rule that matches nothing claims nothing. Renaming a category renames its cap on the next refresh.
 
 | Element key | Label | Default position | Layout |
 | --- | --- | --- | --- |
@@ -64,7 +71,7 @@ Each slot shows:
 - A dimmed icon for an item that does not match the search, and a grey icon while an item is locked.
 - The item's cooldown, as a chamfered swipe.
 
-Search matches the item's name, type and subtype as plain text. Sort asks the game to sort the bags with `C_Container.SortBags`, after `C_Container.SetSortBagsRightToLeft` sets the chosen direction. In combat the sort waits for `Combat.Queue` and says so in chat.
+Search is a small grammar, compiled once per text by `Data.Compile` and matched by `Data.Matches`. A plain term matches part of the item's name, type or subtype, as before; spaces inside a term are literal, so `minor heal` is one phrase. `&` needs both sides, `|` needs either, `!` negates, and brackets group: `weapon | armor & !leather`. `&` binds tighter than `|`. An unfinished expression (`sword &`, `(sword`) matches what it can; an expression with no term matches nothing. Keywords, when a term is exactly the word: `junk`, `new`, `bound`, `unbound`; the quality names `poor` to `legendary`; the category words `equipment`, `gear`, `consumable(s)`, `trade`, `tradegoods`, `reagent(s)`, `quest` and `other` (the built-in category, before any custom rule). `type:` or `t:` searches the type and subtype only, `name:` or `n:` the name only. `ilvl>30`, `ilvl>=30`, `ilvl<40`, `ilvl<=40`, `ilvl=35`, `ilvl:35` and `ilvl:30-40` compare the item level of weapons and armour (`#` is short for `ilvl`: `#>30`, `#30-40`); an item without a level never matches a level search. An empty slot never matches any search. Sort asks the game to sort the bags with `C_Container.SortBags`, after `C_Container.SetSortBagsRightToLeft` sets the chosen direction. In combat the sort waits for `Combat.Queue` and says so in chat.
 
 ## Selling junk
 
@@ -84,7 +91,8 @@ A second glass window shows the bank while the player visits a banker. It is bui
 | --- | --- | --- | --- |
 | `bags.bank` | Bank window | `TOPLEFT`, x 60, y -110: where Blizzard's bank opens | Scalable. Its size follows the slot settings and Bank columns. |
 
-- **Bank types.** The grid holds every purchased tab of the chosen bank type, from `C_Bank.FetchPurchasedBankTabIDs`. When the player can view both the character bank and the Warband bank (`C_Bank.CanViewBank`), tabs above the search field switch between them.
+- **Sections.** The bank's slots sort into the same sections as the bags, under the same caps, with the same search, custom categories, packed empty slots and viewport; with `layout` at `grid` the bank is one grid too.
+- **Bank types.** The sections hold every purchased tab of the chosen bank type, from `C_Bank.FetchPurchasedBankTabIDs`. When the player can view both the character bank and the Warband bank (`C_Bank.CanViewBank`), tabs above the search field switch between them.
 - **Bank bags.** On Forever a bank type's tabs after the first are bank bag slots that hold bags (`C_Bank.ShouldUsePlayerBagsInBank`). A row of small slots under the search field shows each bought bank bag slot of the chosen bank type with its bag. Clicking or dragging picks the bag up or puts one in, with `C_Container.PickupContainerItem` on `Enum.BagIndex.Characterbanktab` or `Accountbanktab`, out of combat only. The tooltip is `GameTooltip:SetBagItem`.
 - **Late item data.** `GET_ITEM_INFO_RECEIVED` refreshes an open window 0.2 seconds later, once however many arrive, so item levels and searches catch up with items the client had not cached. `BAG_UPDATE_COOLDOWN` updates both windows' cooldowns.
 - **Buy tab.** The Buy tab button is Blizzard's `BankPanelPurchaseButtonScriptTemplate`, the template Blizzard provides for addons, with the `overrideBankType` attribute set to the chosen bank type. Its click runs Blizzard's own confirmation. It shows while `C_Bank.CanPurchaseBankTab` is true, which includes a new character's free first tab.
@@ -99,6 +107,13 @@ The window opens on `BANKFRAME_OPENED`, and on `PLAYER_INTERACTION_MANAGER_FRAME
 - Turning the module on during a visit leaves Blizzard's bank for that visit and hides it when the visit ends.
 - Turning the module off during a visit ends the visit and gives Blizzard its bank back when `BANKFRAME_CLOSED` arrives.
 - With Replace bank off, Blizzard's bank stays. A change to Replace bank takes effect after `/reload`, and the module asks for one.
+
+## Other characters' counts
+
+`Alts.lua` keeps each character's item counts in KstyleUI's own saved data, `KstyleUIDB.account.inventory` (never another addon's): `{ version = 1, characters = { ["Realm-Name"] = { name, realm, class, seen, bags = { [itemID] = count }, bank = { [itemID] = count } } }, warband = { [itemID] = count } }`. Only plain numbers go in: a secret item ID or stack count is skipped (`Data.Read` turns secrets into nil).
+
+- **Scanning.** At `Enable` the character is recorded with its name, realm and class token and its bags are counted (the keyring is not). `BAG_UPDATE_DELAYED` and `BAG_CONTAINER_UPDATE` count the bags again half a second later, once however many arrive; `PLAYER_LOGOUT` and `Disable` count them one last time. The bank is counted on `BANKFRAME_OPENED` and on `BANK_TABS_CHANGED`, `PLAYERBANKSLOTS_CHANGED` and `PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED` during a visit, through `Bank.Tabs(kind)`: the character bank into the character's `bank`, the Warband bank into the account's `warband`. A character not seen for 60 days is dropped at `Enable`, which keeps the table small.
+- **Tooltips.** `TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, ...)` adds one double line per character that holds the item (name in its class colour; `12 in bags, 5 in bank`), this character first with its bank count only, then the others by name, then `Warband bank`. At most eight lines; the rest fold into `n more characters` with their total. The item ID is `data.id`, or `C_Item.GetItemInfoInstant` on `data.hyperlink`; a secret ID adds nothing. Without `TooltipDataProcessor` the counts still scan and the devlog says the lines are unavailable. `altCounts` turns the lines off.
 
 ## Opening and closing
 
@@ -133,8 +148,9 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | --- | --- | --- |
 | `enabled` | `false` | toggle |
 | `layout` | `categories` | dropdown: sections by item type, or one grid |
+| `emptySlots` | `packed` | dropdown: one empty slot per bag in the Empty section, or every empty slot |
 | `columns` | 10 | slider, 4 to 24 |
-| `rows` | 0 | slider, 0 to 20: the rows shown before the grid scrolls with the mouse wheel; 0 shows every row |
+| `rows` | 0 | slider, 0 to 20: the rows shown before the grid or the sections' viewport scrolls with the mouse wheel; 0 fits the screen |
 | `slotSize` | 34 (`actionButton`) | slider, 24 to 48 |
 | `spacing` | 4 (`gapSmall`) | slider, 0 to 12 |
 | `growth` | `RIGHT_DOWN` | dropdown: right then down, left then down, right then up, left then up |
@@ -155,6 +171,8 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | `bankColumns` | 14 | slider, 4 to 24 |
 | `bankOpensBags` | `true` | toggle |
 | `autoSellJunk` | `false` | toggle: sell junk when a merchant opens |
+| `altCounts` | `true` | toggle: other characters' counts in item tooltips |
+| `custom1.name`, `custom1.rule` | `""`, `""` | text rows, up to 60 letters; `custom2` and `custom3` the same |
 
 Position, scale, opacity, strata and the shown rule come from Layout, on the Elements page and in Layout Mode. The preview shows eight sample slots drawn by `Slot.lua` with the current settings; it makes no Blizzard item buttons.
 

@@ -249,7 +249,7 @@ do
 	assert(#trade.order == 1 and Has(trade, 1, 1), "the cloth is trade goods")
 	assert(#other.order == 1 and Has(other, 0, 5), "the hearthstone is other")
 	assert(#junk.order == 1 and Has(junk, 0, 4), "the fang is junk")
-	assert(#empty.order == 24 - 7, "every empty bag slot sits in the empty group, got " .. tostring(#empty.order))
+	assert(#empty.order == 2 and empty.total == 24 - 7, "the empty group lists one slot per bag and counts every free slot, got " .. tostring(#empty.order) .. "/" .. tostring(empty.total))
 	assert(not Has(empty, -1, 2) and #win.sections[2].order == 4, "the keyring keeps its own section")
 	assert(quest == nil, "a category nothing has fallen into is never built")
 	assert(equipment.view:IsShown() and equipment.cap:IsShown(), "a category with items shows its grid and its cap")
@@ -268,11 +268,12 @@ do
 	assert(sword.button:GetParent():GetID() == 0 and sword.button:GetParent():GetParent() == equipment.grid, "a sorted slot's parent carries its bag ID under its category's grid")
 	local ring = Inventory.Slot(1, 8)
 	assert(ring.button:GetParent():GetID() == 1 and ring.button:GetParent():GetParent() == equipment.grid, "a slot from another bag sits in the same category under a frame with its own bag ID")
-	-- A row limit applies to the one big grid only; categories show every row.
+	-- A row limit bounds the sections' viewport; it never hides a sorted slot.
 	Set(K, "rows", 1)
-	for _, slot in ipairs(empty.order) do
+	for _, slot in ipairs(equipment.order) do
 		assert(slot.button:IsShown(), "a row limit never hides a sorted slot")
 	end
+	assert(win.viewport:IsShown() and win.viewport:GetHeight() < win.stack:GetHeight(), "the sections scroll in their viewport instead")
 	Set(K, "rows", 0)
 	-- Items that change category move with the next refresh.
 	B.Put(env, 0, 1, nil)
@@ -289,6 +290,136 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- The window never outgrows the screen: categories share one scrolling viewport -----------------------
+
+do
+	local names = { "potion", "sword", "cloth", "junk", "hearth", "ring", "key" }
+	local bags = {}
+	for bag = 0, 4 do
+		bags[bag] = { size = 20, items = {} }
+		for i = 1, 20 do
+			bags[bag].items[i] = Item(names[(i + bag) % #names + 1])
+		end
+	end
+	bags[-1] = { size = 32, items = {} }
+	local env, K, ns = B.New({ bags = bags, height = 1080 })
+	Open(env)
+	local win = ns.Inventory.window
+	local panel, root = win.panel, K.Scale.Root()
+	local function Fits(label)
+		local height, screen = panel:GetHeight(), root:GetHeight()
+		assert(height <= screen, label .. ": the window is " .. tostring(height) .. " tall on a " .. tostring(screen) .. " screen")
+		local footerBottom = -win.money._points[1][5]
+		assert(footerBottom < height, label .. ": the footer sits inside the window")
+	end
+	Set(K, "rows", 2)
+	for _, columns in ipairs({ 10, 6, 4 }) do
+		Set(K, "columns", columns)
+		Fits("categories, " .. columns .. " columns, 2 rows")
+	end
+	Set(K, "rows", 0)
+	Fits("categories, 4 columns, every row")
+	local viewport = win.viewport
+	assert(viewport and viewport:IsShown() and viewport:GetHeight() < win.stack:GetHeight(), "the sections stack inside a viewport shorter than the stack")
+	assert(W.LastCall(viewport, "SetClipsChildren")[1] == true, "the viewport clips")
+	local before = win.stack._points[1][5]
+	viewport:GetScript("OnMouseWheel")(viewport, -1)
+	assert(win.stack._points[1][5] > before, "the wheel scrolls the stack up")
+	for _ = 1, 200 do
+		viewport:GetScript("OnMouseWheel")(viewport, -1)
+	end
+	local maxOffset = win.stack:GetHeight() - viewport:GetHeight()
+	assert(math.abs(win.stack._points[1][5] - maxOffset) < 1, "the scroll stops at the end of the stack")
+	for _ = 1, 400 do
+		viewport:GetScript("OnMouseWheel")(viewport, 1)
+	end
+	assert(win.stack._points[1][5] == 0, "and at the top")
+	assert(win.search:IsShown() and win.search:GetParent() ~= win.stack and win.money:GetParent() ~= win.stack, "search and footer stay outside the viewport")
+	Set(K, "layout", "grid")
+	Fits("grid, 4 columns, every row")
+	Set(K, "layout", "categories")
+	-- A keyring under the sections shares the budget with them, at a large slot size and a doubled window scale.
+	for i = 1, 32 do
+		B.Put(env, -1, i, Item("key"))
+	end
+	Set(K, "slotSize", 48)
+	Set(K, "spacing", 12)
+	K.Layout.Update("bags.inventory", { scale = 2 })
+	env.RunTimers()
+	W.Settle(env)
+	local screenUnits = win:ScreenHeight()
+	assert(panel:GetHeight() <= screenUnits, "categories with a 32-key keyring at scale 2: the window is " .. tostring(panel:GetHeight()) .. " tall on a " .. tostring(screenUnits) .. " unit screen")
+	assert(win.sections[2].visibleRows >= 1 and win.sections[2].view:IsShown(), "the keyring keeps at least one row")
+	Set(K, "layout", "grid")
+	assert(panel:GetHeight() <= win:ScreenHeight(), "grid with the keyring at scale 2 fits too")
+	assert(win.sections[2].visibleRows >= 2, "the keyring is not starved of rows the grid did not need, got " .. tostring(win.sections[2].visibleRows))
+	Set(K, "layout", "categories")
+	K.Layout.Update("bags.inventory", { scale = 1 })
+	Set(K, "slotSize", 34)
+	Set(K, "spacing", 4)
+	env.RunTimers()
+	W.Settle(env)
+	Set(K, "rows", 2)
+	local step = ns.Settings.Get("slotSize") + ns.Settings.Get("spacing")
+	assert(viewport:GetHeight() <= 2 * step + 40, "Rows shown bounds the viewport in the category layout, got " .. tostring(viewport:GetHeight()))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Empty slots pack into one slot per bag, the cap carries the free count ----------------------------
+
+do
+	local env, K, ns = B.New({ bags = Bags() })
+	Open(env)
+	local win = ns.Inventory.window
+	local empty = win.sections[1].groups.empty
+	assert(#empty.order == 2, "one empty slot per bag shows: the backpack's and bag 1's, got " .. tostring(#empty.order))
+	assert(empty.cap.count:GetText() == "17", "the cap counts every free slot, got " .. tostring(empty.cap.count:GetText()))
+	local shown = 0
+	for bag = 0, 1 do
+		for slot = 1, 16 do
+			local s = ns.Inventory.Slot(bag, slot)
+			if s and s.state.empty and s.button:IsShown() then
+				shown = shown + 1
+			end
+		end
+	end
+	assert(shown == 2, "the other empty slots' buttons hide, got " .. shown .. " shown")
+	local row = K.Options.Row("Bags", "emptySlots")
+	assert(row and row.type == "dropdown", "Empty slots has a dropdown")
+	Set(K, "emptySlots", "all")
+	assert(#empty.order == 17, "showing every empty slot lists them all")
+	Set(K, "emptySlots", "packed")
+	assert(#empty.order == 2, "and packing them again")
+	Set(K, "layout", "grid")
+	assert(#win.sections[1].order == 24, "the grid layout shows every slot whatever the packing")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Custom categories: a named rule gets its own section ahead of the built-in ones -----------------
+
+do
+	local env, K, ns = B.New({ bags = Bags() })
+	Open(env)
+	local win = ns.Inventory.window
+	local groups = win.sections[1].groups
+	assert(groups.custom1 == nil, "no custom section without a rule")
+	Set(K, "custom1.name", "Travel")
+	Set(K, "custom1.rule", "hearth | potion")
+	local travel = groups.custom1
+	assert(travel and #travel.order == 2 and travel.view:IsShown() and travel.cap:IsShown(), "the custom section holds the hearthstone and the potion")
+	assert(travel.cap.label:GetText():find("TRAVEL", 1, true), "the cap carries the custom name, got " .. tostring(travel.cap.label:GetText()))
+	assert(groups.consumables.view:IsShown() == false and groups.other.view:IsShown() == false, "the items left their built-in sections")
+	local function Top(group)
+		return -group.cap._points[1][5]
+	end
+	assert(Top(travel) < Top(groups.equipment), "the custom section sits above equipment")
+	Set(K, "custom1.name", "Going home")
+	assert(travel.cap.label:GetText():find("GOING HOME", 1, true), "renaming the category renames its cap")
+	Set(K, "custom1.rule", "")
+	assert(not travel.view:IsShown() and groups.consumables.view:IsShown(), "clearing the rule hides the section and returns its items")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Search ------------------------------------------------------------------------------------------
 
 do
@@ -301,6 +432,11 @@ do
 	local potion, sword = Inventory.Slot(0, 1), Inventory.Slot(0, 2)
 	assert(W.LastCall(potion.icon, "SetAlpha")[1] == 1, "a match stays bright")
 	assert(W.LastCall(sword.icon, "SetAlpha")[1] < 1, "other items dim")
+	search:SetText("armor | !potion")
+	search:GetScript("OnTextChanged")(search, true)
+	local helm, hearth = Inventory.Slot(0, 3), Inventory.Slot(0, 5)
+	assert(W.LastCall(helm.icon, "SetAlpha")[1] == 1 and W.LastCall(hearth.icon, "SetAlpha")[1] == 1, "the window searches with the grammar")
+	assert(W.LastCall(potion.icon, "SetAlpha")[1] < 1, "and dims what the expression excludes")
 	search:SetText("")
 	search:GetScript("OnTextChanged")(search, true)
 	assert(W.LastCall(sword.icon, "SetAlpha")[1] == 1, "clearing the search brightens everything")

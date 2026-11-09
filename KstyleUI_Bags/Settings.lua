@@ -32,6 +32,7 @@ Settings.LIMITS = {
 Settings.defaults = {
 	enabled = false,
 	layout = "categories",
+	emptySlots = "packed",
 	columns = 10,
 	slotSize = Tokens.Size("actionButton"),
 	spacing = Tokens.Size("gapSmall"),
@@ -54,7 +55,14 @@ Settings.defaults = {
 	bankOpensBags = true,
 	replaceBank = true,
 	autoSellJunk = false,
+	altCounts = true,
+	custom1 = { name = "", rule = "" },
+	custom2 = { name = "", rule = "" },
+	custom3 = { name = "", rule = "" },
 }
+
+Settings.CUSTOM = { "custom1", "custom2", "custom3" }
+local CUSTOM_LETTERS = 60
 
 local GROWTH_OPTIONS = {
 	{ value = "RIGHT_DOWN", label = L["Right, then down"] },
@@ -83,6 +91,10 @@ local LAYOUT_OPTIONS = {
 	{ value = "categories", label = L["Sections by item type"] },
 	{ value = "grid", label = L["One grid"] },
 }
+local EMPTY_OPTIONS = {
+	{ value = "packed", label = L["One slot per bag"] },
+	{ value = "all", label = L["Every empty slot"] },
+}
 local SORT_OPTIONS = {
 	{ value = "LEFT", label = L["Left to right"] },
 	{ value = "RIGHT", label = L["Right to left"] },
@@ -98,6 +110,7 @@ end
 
 local CHOICES = {
 	layout = Choices(LAYOUT_OPTIONS),
+	emptySlots = Choices(EMPTY_OPTIONS),
 	growth = Choices(GROWTH_OPTIONS),
 	qualityMin = Choices(QUALITY_OPTIONS),
 	fontOutline = Choices(OUTLINE_OPTIONS),
@@ -126,11 +139,15 @@ Settings.schema = {
 		options = LAYOUT_OPTIONS, disableWhen = isOff,
 	},
 	{
+		type = "dropdown", key = "emptySlots", label = L["Empty slots"], help = L["In sections, show one empty slot per bag to drop onto, or every empty slot."],
+		options = EMPTY_OPTIONS, disableWhen = isOff,
+	},
+	{
 		type = "slider", key = "columns", label = L["Columns"], help = L["How many slots sit in each row of the bag window."],
 		min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,
 	},
 	{
-		type = "slider", key = "rows", label = L["Rows shown"], help = L["How many rows show before the grid scrolls; 0 shows every row."],
+		type = "slider", key = "rows", label = L["Rows shown"], help = L["How many rows show before the grid or the sections scroll; 0 fits the screen."],
 		min = 0, max = ROWS_MAX, step = 1, disableWhen = isOff,
 	},
 	{
@@ -145,6 +162,7 @@ Settings.schema = {
 		type = "dropdown", key = "growth", label = L["Growth"], help = L["The way the grid fills from its first slot."],
 		options = GROWTH_OPTIONS, disableWhen = isOff,
 	},
+	{ type = "header", label = L["Custom categories"] },
 	{ type = "header", label = L["Slot text"] },
 	{ type = "toggle", key = "showCount", label = L["Stack counts"], help = L["Show how many items are in each stack."], disableWhen = isOff },
 	{ type = "toggle", key = "showItemLevel", label = L["Item levels"], help = L["Show the item level of weapons and armour."], disableWhen = isOff },
@@ -170,6 +188,11 @@ Settings.schema = {
 	{
 		type = "toggle", key = "autoSellJunk", label = L["Sell junk by itself"],
 		help = L["Sell grey items as soon as you open a merchant, out of combat only."], disableWhen = isOff,
+	},
+	{ type = "header", label = L["Other characters"] },
+	{
+		type = "toggle", key = "altCounts", label = L["Counts in tooltips"],
+		help = L["Show how many of an item your other characters hold, from the bags and bank KstyleUI last saw."], disableWhen = isOff,
 	},
 	{ type = "header", label = L["Accent"] },
 	{
@@ -197,8 +220,45 @@ Settings.schema = {
 	},
 }
 
+do
+	local at
+	for i, row in ipairs(Settings.schema) do
+		if row.type == "header" and row.label == L["Custom categories"] then
+			at = i
+		end
+	end
+	local CUSTOM_LABELS = { L["Category 1"], L["Category 2"], L["Category 3"] }
+	for i = #Settings.CUSTOM, 1, -1 do
+		local key = Settings.CUSTOM[i]
+		table.insert(Settings.schema, at + 1, {
+			type = "text", key = key .. ".rule", label = L["Rule"], maxLetters = CUSTOM_LETTERS,
+			help = L["Items this search matches fill the section: & both, | either, ! not, type:, ilvl>30, junk, bound."],
+			disableWhen = isOff,
+		})
+		table.insert(Settings.schema, at + 1, {
+			type = "text", key = key .. ".name", label = CUSTOM_LABELS[i], maxLetters = CUSTOM_LETTERS,
+			help = L["The section's name. A named category with a rule sorts before the built-in sections."],
+			disableWhen = isOff,
+		})
+	end
+end
+
 local function Plain(value, kind)
 	return ns.Data.Plain(value, kind)
+end
+
+function Settings.Custom()
+	local all = Settings.All()
+	local list = {}
+	for _, key in ipairs(Settings.CUSTOM) do
+		local entry = all[key]
+		local name = type(entry) == "table" and Plain(entry.name, "string") or nil
+		local rule = type(entry) == "table" and ns.Data.Query(entry.rule) or nil
+		if name and name ~= "" and rule then
+			list[#list + 1] = { key = key, label = name, rule = rule }
+		end
+	end
+	return list
 end
 
 function Settings.All()

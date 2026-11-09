@@ -72,6 +72,7 @@ local function Character(env, B)
 		return p.collapsed
 	end
 	function f.UpdateRightPaneToggleButton() end
+	function f.UpdateTabLayout() end
 
 	p.qualities = {}
 	env.GetInventoryItemQuality = function(unit, id)
@@ -219,6 +220,27 @@ do
 	assert(W.Near(r, ar) and W.Near(g, ag) and W.Near(b, ab), "the selected side tab wears an accent rim")
 	tab:SetChecked(false)
 	assert(RimColor(ns, tab) == nil, "an unselected side tab has no rim")
+	-- The mode tabs stand on a glass rail that spans the shown tabs, so they read as the window's own tab column.
+	local rail = ns.CharacterRail(f)
+	assert(rail and K.Skin.IsSkinned(rail, "Backdrop"), "the mode tabs get a glass rail")
+	assert(rail:GetParent() == f.ModeTabs, "under the tabs' own frame")
+	assert(rail:GetFrameLevel() < f.ModeTabs.Tabs[1]:GetFrameLevel(), "behind the tabs")
+	local function Anchors(frame)
+		local out = {}
+		for _, point in ipairs(frame._points) do
+			out[point[1]] = point[2]
+		end
+		return out
+	end
+	local anchors = Anchors(rail)
+	assert(anchors.TOPLEFT == f.ModeTabs.Tabs[1] and anchors.BOTTOMRIGHT == f.ModeTabs.Tabs[3], "the rail runs from the first shown tab to the last")
+	f.ModeTabs.Tabs[3]:SetShown(false)
+	f:UpdateTabLayout()
+	anchors = Anchors(rail)
+	assert(anchors.BOTTOMRIGHT == f.ModeTabs.Tabs[2], "a hidden tab shortens the rail")
+	f.ModeTabs.Tabs[3]:SetShown(true)
+	f:UpdateTabLayout()
+	assert(Anchors(rail).BOTTOMRIGHT == f.ModeTabs.Tabs[3], "and a shown one lengthens it again")
 	local sidebar = env.PaperDollSidebarTab1
 	sidebar:SetChecked(true)
 	assert(RimColor(ns, sidebar) ~= nil and Alpha(sidebar.Icon) == 1, "the paper doll's sidebar tabs follow their check state")

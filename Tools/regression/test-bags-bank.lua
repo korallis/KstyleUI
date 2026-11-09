@@ -152,6 +152,41 @@ do
 	assert(not buy:IsShown(), "Buy hides when no tab is left to buy")
 end
 
+-- Categories: the bank sorts into the same Lumen sections as the bags -------------------------------
+
+do
+	local env, K, ns = New({ bankTabs = { [BANK.Character] = { 6, 7 }, [BANK.Account] = { 15 } } })
+	local Bank = ns.Bank
+	env.SetBank(true)
+	Run(env)
+	local win = Bank.window
+	local section = win.sections[1]
+	local groups = section.groups
+	assert(type(groups) == "table", "the bank section holds category groups")
+	local function Has(group, bag, slot)
+		for _, s in ipairs(group.order) do
+			if s.bag == bag and s.id == slot then
+				return true
+			end
+		end
+		return false
+	end
+	assert(groups.equipment and #groups.equipment.order == 1 and Has(groups.equipment, 6, 2), "the helm is equipment")
+	assert(groups.tradeGoods and Has(groups.tradeGoods, 6, 1) and groups.consumables and Has(groups.consumables, 7, 3), "cloth is trade goods and the potion a consumable")
+	assert(groups.empty and groups.equipment.cap:IsShown() and groups.equipment.cap.label:GetText():find("EQUIPMENT", 1, true), "sections wear the Lumen caps")
+	assert(not section.view:IsShown(), "the one bank grid hides while sections show")
+	win.tabs:Select(BANK.Account)
+	Run(env)
+	assert(Has(groups.equipment, 15, 1) and not Has(groups.equipment, 6, 2), "the Warband bank sorts into the same sections")
+	assert(Bank.Slot(15, 1).button:IsVisible() and not Bank.Slot(6, 2).button:IsVisible(), "the character bank's slots hide when the Warband bank shows, even in a section both fill")
+	win.search:SetText("band & !weapon")
+	win.search:GetScript("OnTextChanged")(win.search, true)
+	assert(W.LastCall(Bank.Slot(15, 1).icon, "SetAlpha")[1] == 1, "the bank search uses the grammar")
+	Set(K, "layout", "grid")
+	assert(section.view:IsShown() and not groups.equipment.view:IsShown(), "the grid layout applies to the bank too")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Bank bags ----------------------------------------------------------------------------------------
 
 do

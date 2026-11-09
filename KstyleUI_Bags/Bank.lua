@@ -1,4 +1,4 @@
--- Bank.lua: the bank window: each bank type's purchased tabs in one grid, its bank bags, Sort, Buy and Deposit, opened and closed with the bank.
+-- Bank.lua: the bank window: each bank type's purchased tabs in the same sections as the bags, its bank bags, Sort, Buy and Deposit, opened and closed with the bank.
 local _, ns = ...
 
 local K = KstyleUI
@@ -111,6 +111,22 @@ local function TabBags(kind)
 		end
 	end
 	return list
+end
+
+function Bank.Types()
+	return Types()
+end
+
+function Bank.CanView(kind)
+	return CanView(kind)
+end
+
+function Bank.Tabs(kind)
+	return TabBags(kind)
+end
+
+function Bank.IsAtBank()
+	return atBank
 end
 
 local function SelectedBags()
@@ -311,7 +327,7 @@ function Bank.Build()
 		title = L["Bank"],
 		position = Bank.POSITION,
 		columns = "bankColumns",
-		sections = { { bags = SelectedBags, free = true } },
+		sections = { { bags = SelectedBags, free = true, categories = true } },
 		sort = Bank.Sort,
 		onClosed = Closed,
 		above = Above,
