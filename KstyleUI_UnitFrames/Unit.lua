@@ -65,7 +65,21 @@ local function ReactionColor(unit)
 	return Unit.ReactionColor(UnitReaction(unit, "player"))
 end
 
+local function HudColor(unit)
+	local reaction = UnitReaction and UnitReaction(unit, "player")
+	if not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX then
+		return ns.Lumen.Color("hudTargetHealth")
+	end
+	if unit == "player" then
+		return ns.Lumen.Color("hudPlayerHealth")
+	end
+	return Theme.ReactionColor(reaction)
+end
+
 local function UnitColor(unit, source)
+	if source == "hud" then
+		return HudColor(unit)
+	end
 	if source == "class" and UnitIsPlayer(unit) then
 		local file = ClassFile(unit)
 		if HasClass(file) then
@@ -201,7 +215,7 @@ end
 
 function Unit.Glow(view, unit)
 	local glow = view.ringGlow
-	if view.form ~= "vitals" or not (view.geometry and view.geometry.portrait) then
+	if (view.form ~= "vitals" and view.form ~= "column") or not (view.geometry and view.geometry.portrait) then
 		glow:Hide()
 		return
 	end
@@ -216,7 +230,9 @@ function Unit.Glow(view, unit)
 end
 
 local function LumenHealth(view, unit, form, format)
-	if form == "vitals" then
+	if form == "column" and view.geometry.mirror then
+		Format.Health(view.healthText, unit, Format.Main(format))
+	elseif form == "vitals" or form == "column" then
 		local main, split = format, false
 		if format == "both" or format == "currentMax" then
 			main, split = "current", true
@@ -333,7 +349,7 @@ local function SetName(view, name)
 	if not Number(full) then
 		return
 	end
-	local width, room = K.Widgets.TextWidth(text), text:GetWidth()
+	local width, room = K.Widgets.TextWidth(text), view.geometry and view.geometry.nameRoom or text:GetWidth()
 	if Number(width) and Number(room) and room > 0 and width > room then
 		SetFont(text, bodyPath, math.min(bodySize, full), flags)
 		text:SetText(name)
@@ -456,6 +472,18 @@ function Unit.Caption(view, unit)
 		else
 			text:SetText("")
 		end
+	elseif form == "column" then
+		local label
+		if view.geometry and view.geometry.mirror then
+			label = UnitCreatureType and UnitCreatureType(unit)
+		else
+			label = (UnitClass(unit))
+		end
+		if Shows(label) then
+			text:SetText(label)
+		else
+			text:SetText("")
+		end
 	elseif form == "sigil" then
 		LevelLine(text, unit, false)
 	elseif form == "card" then
@@ -468,7 +496,7 @@ function Unit.Level(view, unit)
 	local text = view.levelText
 	if view.form and view.form ~= "plate" then
 		Unit.Caption(view, unit)
-		if view.form == "vitals" and view.s.level then
+		if (view.form == "vitals" or view.form == "column") and view.s.level then
 			text:SetText(UnitLevel(unit))
 			text:SetTextColor(Tokens.Color("textEmphasis"))
 		end

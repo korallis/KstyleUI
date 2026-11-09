@@ -2,7 +2,7 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New()
+local env, K, ns = U.New({ lumen = true })
 local Settings, Geometry, Frames, CastBars = ns.Settings, ns.Geometry, ns.Frames, ns.CastBars
 local Tokens = K.Tokens
 

@@ -136,22 +136,22 @@ do
 	assert(not b.selected)
 end
 
--- Empty buttons: quiet sockets by default that light through the shared hover motion; hidden by alpha when
+-- Empty buttons: visible tiles by default that light through the shared hover motion; hidden by alpha when
 -- switched off; every slot shows in full while an action is dragged; an occupied slot is always in full.
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 2)
-	assert(W.Near(b:GetAlpha(), 0.35), "an empty slot recedes to a quiet socket at the Lumen 35%, got " .. tostring(b:GetAlpha()))
+	assert(b:GetAlpha() == 1, "an empty slot keeps its tile at full opacity")
 	K.Widgets.Hover(b, true)
 	AB.W.Settle(env)
 	assert(b:GetAlpha() == 1, "hovering a quiet slot lights it in full, got " .. tostring(b:GetAlpha()))
 	K.Widgets.Hover(b, false)
 	AB.W.Settle(env)
-	assert(W.Near(b:GetAlpha(), 0.35), "leaving it lets it recede again, got " .. tostring(b:GetAlpha()))
+	assert(b:GetAlpha() == 1, "leaving an empty slot keeps the tile visible")
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(b:GetAlpha() == 1, "dragging an action shows every empty slot in full")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
-	assert(W.Near(b:GetAlpha(), 0.35), "the drag ends and the slot recedes")
+	assert(b:GetAlpha() == 1, "the drag ends and the empty tile stays visible")
 	AB.Slot(env, 2, { texture = 136048, type = "spell", id = 5 })
 	assert(b:GetAlpha() == 1, "an occupied slot is in full")
 	K.Widgets.Hover(b, true)
@@ -165,7 +165,7 @@ end
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 5)
-	assert(W.LastCall(b, "SetAlpha")[1] < 0.5, "empty tiles recede by default")
+	assert(W.LastCall(b, "SetAlpha")[1] == 1, "empty tiles remain visible by default")
 	K.Options.Write("ActionBars", "bar1.showEmpty", false)
 	assert(W.LastCall(b, "SetAlpha")[1] == 0, "hidden empty buttons fade to nothing, which works in combat")
 	env.FireEvent("ACTIONBAR_SHOWGRID")

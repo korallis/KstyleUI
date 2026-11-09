@@ -45,7 +45,7 @@ assert(W.Near(edge[1], rr) and W.Near(edge[2], rg) and W.Near(edge[3], rb) and W
 -- The rim comes from the shared icon chrome (Widgets.IconChrome), the helper every square icon button uses.
 assert(type(backdrop.chrome.SetRimAccent) == "function" and backdrop.chrome.rimAccent == true, "the restyled icon's chrome is the shared icon chrome, resting on IconRim")
 local formatter = W.LastCall(item.Cooldown, "SetCountdownFormatter")
-assert(formatter and type(formatter[1]) == "table" and formatter[1]:Format(4) == "4s", "the restyled icon's countdown reads 4s")
+assert(formatter and formatter[1] == nil, "the restyled essential icon uses native unitless seconds")
 
 -- Bar items: the bar takes the texture and colour from the settings; its background and pip are hushed.
 local bars = env._viewers.BuffBarCooldownViewer
@@ -99,7 +99,7 @@ do
 	-- against that scale, so a 50% icon's timer still reads at KstyleUI's own size.
 	FontSize(K3, buffItem.Cooldown:GetCountdownFontString(), ns3.Settings.current.buffs.timerSize / 0.5, "a half-size icon's timer keeps its size on screen")
 	local socket = K3.Skin.Parts(buffItem).backdrop
-	assert(socket.inset == -6, "and its Lumen socket stands 3 units out on screen (an inset of -3 / 0.5), got " .. tostring(socket.inset))
+	assert(socket.inset == 0, "the square border stays inside the engine icon's footprint")
 	local barItem = env3._viewers.BuffBarCooldownViewer._items[1]
 	FontSize(K3, barItem.Bar.Name, ns3.Settings.current.bars.nameSize / 0.7, "a 70% bar's name keeps its size on screen")
 	assert(K3.Skin.IsSkinned(env3._viewers.BuffBarCooldownViewer._items[1].Bar, "Backdrop"), "the buff bars are restyled")

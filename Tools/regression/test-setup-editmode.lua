@@ -80,8 +80,8 @@ end
 
 -- The tracked buff viewers: on Forever the Cooldowns module's automatic path restyles Blizzard's own BuffIconCooldownViewer
 -- and BuffBarCooldownViewer, so Apply places those viewers in the layout's tracked buff slots. The icons hang from the
--- slot's bottom right and grow left, away from the combat cluster; the bars stand on the slot's bottom left and grow
--- up. Their size comes from Edit Mode's IconSize, chosen so the whole row (every tracked item keeps a slot) fits
+-- slot's bottom right above a 14-unit timer band and grow left, beside the player portrait (LEE-20); the bars use
+-- their independent slot's bottom left. Their size comes from Edit Mode's IconSize, chosen so the whole row fits
 -- between the slot and the next element, never under 50% and never over KstyleUI's own buff size.
 
 local function Overlaps(a, b)
@@ -93,9 +93,9 @@ local function Collisions(K, name, box)
 	local hits = {}
 	for key, position in pairs(K.Setup.Layouts.Get(name, rh)) do
 		if not key:find("^cooldowns%.") and K.Setup.Layouts.Shown(name, key) ~= false then
-			local w, h = K.Setup.Layouts.Footprint(name, key)
+			local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
 			if w then
-				local l, b, r, t = K.Setup.Layouts.Rect({ width = w, height = h }, position, rw, rh)
+				local l, b, r, t = K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)
 				if Overlaps(box, { l, b, r, t }) then
 					hits[#hits + 1] = key
 				end
@@ -107,8 +107,8 @@ end
 
 local function Slot(K, name, key)
 	local rw, rh = K.Layout.RootSize()
-	local w, h = K.Setup.Layouts.Footprint(name, key)
-	return K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name, rh)[key], rw, rh)
+	local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
+	return K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Get(name, rh)[key], rw, rh)
 end
 
 local function Viewers(K, env, state, name, icons, bars)
@@ -130,22 +130,22 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 5, 2)
 		local where = name .. " at " .. tostring(screen.width or 1920)
 		local l, b, r = Slot(K, name, "cooldowns.buffs")
-		assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, b * k), where .. ": the buff icons hang from the slot's bottom right")
+		assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, (b + 14) * k), where .. ": LEE-20 the buff icons hang from the slot's right edge above the timer band")
 		assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.LEFT, where .. ": in one row, the first buff beside the cluster")
 		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
 		local size = (iconBox[4] - iconBox[2])
-		assert(size <= 38 + 0.5 and Setting(icon, ICON_SIZE) >= 0, where .. ": a buff icon is no larger than the 38-unit action button, got " .. size)
+		local cap = math.max(27.6, 20 / k)
+		assert(size <= cap + 0.01 and Setting(icon, ICON_SIZE) >= 0, where .. ": LEE-20 a native buff icon stays below 27.6 or the engine's minimum quantized size, got " .. size)
+		assert(Setting(icon, EditModeFake.ICON_PADDING) == 7 and near(iconBox[3] - iconBox[1], 5 * size + 4 * 3 / k), where .. ": LEE-20 the native icons have a three-UIParent-unit gap")
 		if screen == OWNER then
-			-- Owner pass 1 (2026-11-09): the Cooldown Manager matches the action buttons. At WoW's default UI scale and the
-			-- shipped size, Edit Mode's 80% step makes Blizzard's 40-unit icon 32 UIParent units: the button's 38.
-			assert(math.abs(size - 38) < 0.01 and Setting(icon, ICON_SIZE) == 3, where .. ": the buff icons are exactly the action button's 38 units at Edit Mode's 80%, got " .. size)
+			assert(math.abs(size - 23.75) < 0.01 and Setting(icon, ICON_SIZE) == 0, where .. ": LEE-20 native 50% is the largest step below the 27.6-unit reference at the shipped scale, got " .. size)
 		end
 		assert(near(iconBox[3], r) and iconBox[1] >= l - 0.5, where .. ": five buffs fit inside the slot")
-		local _, bb, br = Slot(K, name, "cooldowns.bars")
-		assert(bar.anchorInfo.point == "BOTTOMRIGHT" and near(bar.anchorInfo.offsetX, br * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": the bars stand on the bar slot's bottom right, over the icons")
-		-- One block (round 4, Fable #5: the bars once started 22 units left of the icon row under them): a bar is as
-		-- wide as the icon row, whatever bar width the copied layout had, so both share one left and one right edge.
-		assert(math.abs(barBox[1] - iconBox[1]) <= 1.5 and math.abs(barBox[3] - iconBox[3]) <= 0.5, string.format("%s: the bars (%.1f-%.1f) and the icons (%.1f-%.1f) share their edges", where, barBox[1], barBox[3], iconBox[1], iconBox[3]))
+		local player = { Slot(K, name, "unitframes.player") }
+		assert(near(player[1] - iconBox[3], 14.5) and iconBox[2] >= player[2] and iconBox[4] <= player[4], where .. ": LEE-20 the buffs fit beside the external player portrait reserve")
+		local bl, bb, br = Slot(K, name, "cooldowns.bars")
+		assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": LEE-20 the bars use their independent slot above the buff icons")
+		assert(math.abs(barBox[1] - bl) <= 0.5 and math.abs(barBox[3] - br) <= 1.5, where .. ": LEE-20 the native bars span their own 243-unit slot, not the icon row")
 		assert(#Collisions(K, name, iconBox) == 0, where .. ": the icons touch nothing: " .. table.concat(Collisions(K, name, iconBox), ", "))
 		assert(#Collisions(K, name, barBox) == 0, where .. ": the bars touch nothing: " .. table.concat(Collisions(K, name, barBox), ", "))
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing to tell the player")
@@ -197,17 +197,18 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			return ({ buffs = 16, bars = 6 })[group]
 		end)
 		assert(K.Setup.Apply({ layout = name, modules = {} }))
-		local icon, bar, iconBox, barBox = Viewers(K, env, state, name, 16, 6)
 		local where = name .. " at " .. screen.label .. " with 16 icons and 6 bars"
+		local note = K.Setup.EditMode.Last().notes[1]
+		assert(not note, where .. ": the setup summary has no step: " .. (note and (note.group .. " fits " .. note.fits .. " of " .. note.count) or ""))
+		local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 16, 6)
 		local hits = Everything(K, name, iconBox)
 		assert(#hits == 0, string.format("%s: the icons (%.1f,%.1f-%.1f,%.1f) touch %s", where, iconBox[1], iconBox[2], iconBox[3], iconBox[4], table.concat(hits, ", ")))
 		hits = Everything(K, name, barBox)
 		assert(#hits == 0, string.format("%s: the bars (%.1f,%.1f-%.1f,%.1f) touch %s", where, barBox[1], barBox[2], barBox[3], barBox[4], table.concat(hits, ", ")))
 		assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
-		assert(not K.Setup.EditMode.Last().notes[1], where .. ": the setup summary has no step either")
 		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
-		assert(thick >= 20 - 0.5 and thick <= 38 + 0.5, where .. ": a buff icon is between Edit Mode's 50% and the 38-unit action button, got " .. thick)
+		assert(thick >= 20 / k - 0.5 and thick <= math.max(27.6, 20 / k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the reference cap or that minimum, got " .. thick)
 		assert((barBox[4] - barBox[2] - 5 * 2) / 6 >= 15 - 0.5, where .. ": a bar is at least Edit Mode's 50%")
 		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
 		assert(#env._errors == 0, tostring(env._errors[1]))
@@ -295,6 +296,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 						local items = math.max(2, counts[group])
 						local item = group == "bars" and (box[4] - box[2] - (items - 1) * 2) / items or math.min(box[3] - box[1], box[4] - box[2])
 						assert(item >= (group == "bars" and 15 or 20) / k - 0.5, where .. ": a " .. group .. " item is at least Edit Mode's 50%")
+						assert(group == "bars" or item <= math.max(27.6, 20 / k) + 0.01, where .. ": LEE-20 native buff icons stay within the reference size cap or the engine's minimum")
 						placedAt[group] = math.max(placedAt[group] or 0, counts[group])
 					end
 				end
@@ -325,9 +327,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Bar 2 is on by default and Apply switches it off; a player may turn it back on. Where the viewers have other room
--- (DPS and Tank at 16 icons and 6 bars, on every screen), they keep bar 2's column free; at 12 bars on the owner's
--- screen nothing else holds them, and the all-or-nothing sweep above holds them clear of every frame that is on.
+-- LEE-20 keeps bar 2 enabled, so both native viewers must leave its column clear on every screen.
 for _, name in ipairs({ "DPS", "Tank" }) do
 	for _, screen in ipairs(SCREENS) do
 		for _, bars in ipairs({ 6 }) do

@@ -9,12 +9,12 @@ local floor, min, max = math.floor, math.min, math.max
 local Bars = {}
 ns.Bars = Bars
 
-Bars.TOKENS = { gilt = "gilt", muted = "muted", cool = "rare" }
+Bars.TOKENS = { gilt = "gilt", muted = "muted", cool = "hudRested" }
 local GILT_DIM, GILT_LIT = 0.4, 0.45
 
 local MAX_SEGMENTS = 20
 local HIT_PAD = 4
-local TEXT_GAP = 2
+local TEXT_GAP, XP_TEXT_GAP = 2, 6
 local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
@@ -149,7 +149,7 @@ end
 
 local function PlaceText(view, position)
 	local p = TEXT_POINTS[position] or TEXT_POINTS.CENTER
-	local gap = Widgets.Snap(view.holder, TEXT_GAP)
+	local gap = Widgets.Snap(view.holder, view.def.id == "xp" and position == "BOTTOM" and XP_TEXT_GAP or TEXT_GAP)
 	view.text:ClearAllPoints()
 	view.text:SetPoint(p[1], view.holder, p[2], p[3] * gap, p[4] * gap)
 end
@@ -157,7 +157,8 @@ end
 local function PlacePlate(view, s)
 	local plate, text = view.plate, view.text
 	local onLine = (TEXT_POINTS[s.textPosition] or TEXT_POINTS.CENTER) == TEXT_POINTS.CENTER and s.orientation ~= "VERTICAL"
-	Widgets.TextColor(text, onLine and "textEmphasis" or Bars.TOKENS.muted)
+	local captionColor = view.def.id == "xp" and "text" or Bars.TOKENS.muted
+	Widgets.TextColor(text, onLine and "textEmphasis" or captionColor)
 	onLine = onLine and text:IsShown()
 	plate:SetShown(onLine)
 	if not onLine then
@@ -228,6 +229,14 @@ local function Style(view, s)
 	track:SetReverseFill(s.reverse == true)
 	if track.borderFrame then
 		track.borderFrame:SetShown(s.border ~= false)
+	end
+	if view.def.id == "xp" then
+		fill.borderFrame:Hide()
+		for _, bar in ipairs({ fill, track }) do
+			bar:SizeCaps(bar:GetHeight())
+			bar.sheenTop:Hide()
+			Widgets.ShowSlice(bar.glow, false)
+		end
 	end
 	if orientation == "VERTICAL" then
 		view.holder:SetHitRectInsets(-HIT_PAD, -HIT_PAD, 0, 0)
@@ -317,7 +326,7 @@ function Bars.NewView(parent, def)
 	view.content = content
 	local track = Widgets.StatusBar(content, { background = "track", border = true, min = 0, max = 1, value = 0 })
 	track:SetAllPoints(content)
-	local fill = Widgets.StatusBar(content, { background = false, min = 0, max = 1, value = 0 })
+	local fill = Widgets.StatusBar(content, { background = false, border = def.id == "xp", min = 0, max = 1, value = 0 })
 	fill:SetAllPoints(content)
 	fill:SetFrameLevel(track:GetFrameLevel() + 1)
 	local overlay = CreateFrame("Frame", nil, content)

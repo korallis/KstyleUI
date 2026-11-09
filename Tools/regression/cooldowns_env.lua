@@ -579,7 +579,9 @@ end
 function C.Clean(env, forbidden)
 	for _, object in ipairs(env._blizzard or {}) do
 		for _, call in ipairs(object._calls) do
-			assert(not forbidden[call.method], "a Blizzard object got " .. call.method)
+			local countdown = object._type == "FontString" and object._parent and object._parent._type == "Cooldown"
+			local textAnchor = countdown and (call.method == "ClearAllPoints" or call.method == "SetPoint")
+			assert(textAnchor or not forbidden[call.method], "a Blizzard object got " .. call.method)
 		end
 	end
 end

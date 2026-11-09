@@ -18,6 +18,8 @@ local RECIPES = {
 	cast = { "neutral", "white", 0.28 },
 	muted = { "text", "rare", 0.1 },
 	deep = { "buttonFill", "black", 0.2 },
+	hudPlayerHealth = { "magic", "black", 0.25 },
+	hudTargetHealth = { "healthHostile", "black", 0.15 },
 }
 
 local ROLES = {

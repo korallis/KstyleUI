@@ -25,10 +25,42 @@ local ANCHORS = {
 }
 -- Party and raid frames never show together, so they may share space.
 local EXCLUSIVE = { ["groupframes.party"] = "groupframes.raid", ["groupframes.raid"] = "groupframes.party" }
+local PICTURE_GAPS = {
+	["unitframes.player/unitframes.target"] = 1.5,
+	["unitframes.target/unitframes.resource"] = 0.6,
+	["unitframes.castbar.player/meters.swing"] = 1,
+	["unitframes.resource/cooldowns.essential"] = 0.7,
+}
 -- 16:9 at three sizes, a MacBook, the owner's 2383 x 1540, 16:10 and 21:9: at the Interface size KstyleUI ships
 -- (16 / 19) the root is Layouts.HEIGHT (1282.5) units tall on each.
 local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }, { 3456, 2234 }, { 2383, 1540 }, { 2560, 1600 }, { 3440, 1440 } }
 local HEIGHT = Layouts.HEIGHT
+
+local function same(a, b)
+	return math.abs(a - b) < 1e-6
+end
+
+-- LEE-20: the owner's picture wins over the earlier Lumen sigil and spare-bar stack.
+local REFERENCE = {
+	["unitframes.player"] = { 491, 80, 0, 138, 582.5, -45.75 },
+	["unitframes.target"] = { 491, 100.5, 0, 219.5, 721.4, 115.2 },
+	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 },
+	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 },
+	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 },
+	["actionbars.bar1"] = { 491, 36.7, 0, 54 },
+	["actionbars.bar2"] = { 491, 36.7, 0, 95.3 },
+	["databars.xp"] = { 491, 8, 0, 36.5 },
+}
+for _, name in ipairs(Layouts.Names()) do
+	for key, want in pairs(REFERENCE) do
+		local element, position = Layouts.Element(key), Layouts.Get(name)[key]
+		local label = "LEE-20 " .. name .. " " .. key
+		assert(same(element.width, want[1]) and same(element.height, want[2]), label .. " matches the picture's frame dimensions")
+		assert(position.anchor == "BOTTOM" and same(position.x, want[3]) and same(position.y, want[4]), label .. " matches the picture's bar-column position")
+		local w, h, offsetX = Layouts.Footprint(name, key)
+		assert(same(w, want[5] or want[1]) and same(h, want[2]) and same(offsetX or 0, want[6] or 0), label .. " reserves the external portrait and auras without recentering the bars")
+	end
+end
 
 local function set(list)
 	local out = {}
@@ -72,9 +104,6 @@ end
 
 -- Rect: an anchor and offsets on a root of a given width ------------------------------------------------
 
-local function same(a, b)
-	return math.abs(a - b) < 1e-6
-end
 do
 	local probe = { key = "probe", width = 100, height = 50 }
 	local l, b, r, t = Layouts.Rect(probe, { anchor = "CENTER", x = 0, y = 0 }, 1920, 1080)
@@ -87,6 +116,9 @@ do
 	assert(same(l, 10) and same(b, 535) and same(r, 110) and same(t, 585), "LEFT centres vertically")
 	l, b = Layouts.Rect(probe, { anchor = "BOTTOM", x = -100, y = 5 }, 1000, 1080)
 	assert(same(l, 350) and same(b, 5), "BOTTOM centres horizontally")
+	probe.offsetX = -45.75
+	l, b, r, t = Layouts.Rect(probe, { anchor = "BOTTOM", x = 0, y = 138 }, 1000, 1080)
+	assert(same(l, 404.25) and same(r, 504.25) and same(b, 138) and same(t, 188), "LEE-20 Rect shifts the reserve, not the registered bar-column anchor")
 end
 
 -- Every layout: complete, valid, on screen and apart on every reference screen ---------------------------
@@ -100,8 +132,8 @@ end
 
 -- Size(name, key) -> the footprint the layout plans for: the element's, or the layout's own where it differs.
 local function Size(name, key)
-	local w, h = Layouts.Footprint(name, key)
-	return { width = w, height = h }
+	local w, h, offsetX = Layouts.Footprint(name, key)
+	return { width = w, height = h, offsetX = offsetX }
 end
 
 for _, name in ipairs(names) do
@@ -141,7 +173,7 @@ for _, name in ipairs(names) do
 			local threat = a == "meters.threat" and c or (c == "meters.threat" and a)
 			return threat == "meters.damage" and Layouts.Shown(name, "meters.threat") == false
 		end
-		-- Bars 2 to 6 are off in every layout, but each keeps a free slot on every screen, the owner's narrow 1.547 one
+		-- Bars 3 to 6 are off in every layout, but each keeps a free slot on every screen, the owner's narrow 1.547 one
 		-- included (owner pass 1, 2026-11-09: "not much room for adding more action bars").
 		for i = 1, #KEYS do
 			for j = i + 1, #KEYS do
@@ -150,7 +182,10 @@ for _, name in ipairs(names) do
 					error(label .. ": " .. a .. " overlaps " .. c)
 				end
 				local ra, rc = rects[a], rects[c]
-				if (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
+				local pictureGap = PICTURE_GAPS[a .. "/" .. c]
+				if pictureGap then
+					assert(same(math.max(rc[2] - ra[4], ra[2] - rc[4]), pictureGap), label .. ": LEE-20 " .. a .. " and " .. c .. " keep the picture's exact " .. pictureGap .. "-unit gap")
+				elseif (a:find("^unitframes%.") or c:find("^unitframes%.")) and overlap({ ra[1] - 2, ra[2] - 2, ra[3] + 2, ra[4] + 2 }, rc) then
 					error(label .. ": " .. a .. " comes within 2 units of " .. c)
 				end
 			end
@@ -161,9 +196,8 @@ end
 -- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
 -- Two 318-unit rails on the screen margin (17 units, the owner's picture of 2026-11-09) hold everything slow: in DPS and Tank the left rail the party and chat, the
 -- right rail the map with the aura rows, the story slot, the damage card and the readout and menu. The
--- centre holds one combat cluster at the bottom: the hands, and right on them the target sigil, with the focus on its
--- left and the target of target on its right (in Tank the threat card under it), so you, your target, its target and
--- your focus read in one glance (round 2: Muse #1, Opus's eye travel). The boss column heads the centre's right edge,
+-- centre follows the LEE-20 picture: two action rows, the player and target bar columns, cooldowns and player cast.
+-- Optional focus, target-of-target and Tank threat cards retain their upper slots. The boss column heads the centre's right edge,
 -- 16 units in from the right rail. The world above the cluster stays clear. Healer stands the party and raid on the
 -- cluster's left half, clear of the cast bars, heads the left rail with the boss column and keeps the right rail's
 -- damage card under the aura rows, as DPS does (round 3: the buffs at 40 and 12 debuffs left no room for the boss
@@ -201,12 +235,12 @@ local HANDS = set({
 	"unitframes.player", "unitframes.pet", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs",
 	"cooldowns.bars", "meters.swing",
 })
--- The combat cluster on the hands: the sigil, the focus and its target, the target of target, and in Tank the threat card.
+-- The target and optional focus/target-of-target slots remain below the clear world column.
 local CLUSTER = set({ "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget" })
--- What a player turns on over the cluster: the plate cast bars.
+-- Both player and optional target cast bars remain below the clear world column.
 local EXTRAS = set({ "unitframes.castbar.player", "unitframes.castbar.target" })
 -- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster (the plate
--- cast bars, 664 now that the hands keep bars 2 and 3 a slot each) to the top.
+-- target cast bar's retained top, 664) to the top.
 local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
 -- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer half, never past it.
 local EDGE_RIGHT = set({ "unitframes.boss" })
@@ -218,11 +252,10 @@ local RAIL_KEYS = {
 	Healer = set({ "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
 		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
 }
--- Healer: the party and raid stand on the cluster's left half, their right edge 16 units left of the player's cast bar
--- (152 off the centre line) and their foot 16 over the cluster's top; the character's column (centre +- 100) stays clear.
+-- Healer retains the group frames' upper-left slots, 152 off centre; the character's column stays clear.
 local HEALER = { right = 152, gap = 16, character = 100 }
--- The cluster's sizes: the sigil spans the vitals line; the cards beside it sit 12 out from it.
-local NEAR, CLUSTER_GAP = 12, 4
+-- The optional focus target and Tank threat card retain their four-unit gaps.
+local CLUSTER_GAP = 4
 local GROUP = set({ "groupframes.party", "groupframes.raid" })
 
 for _, name in ipairs(names) do
@@ -329,7 +362,10 @@ for _, name in ipairs(names) do
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
-			if not onRail then
+			if key == "actionbars.bar3" then
+				assert(same(r.left, MARGIN) and same(r.bottom, 428) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above chat")
+				assert(r.right <= width * 0.3 or r.left >= width * 0.7, label .. ": LEE-20 bar 3 stays outside the central 40% band")
+			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
 			end
 			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
@@ -350,47 +386,43 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns with the swing line on them.
+		-- LEE-20: the central bars share a 491-unit column; portraits reserve space outside that column.
 		local xp, bar1, vitals = rect("databars.xp"), rect("actionbars.bar1"), rect("unitframes.player")
 		local essential, utility, cast = rect("cooldowns.essential"), rect("cooldowns.utility"), rect("unitframes.castbar.player")
-		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing", "unitframes.target" }) do
+		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
-		assert(xp.bottom - 34 >= 14 and xp.bottom - 34 <= 20, label .. ": the XP line sits 34 units up with room for its caption under it")
-		assert(bar1.bottom - xp.top == 12, label .. ": bar 1 sits 12 over the XP line, as the mockup")
-		assert(vitals.bottom - bar1.top == 2 * (38 + 3) + 12, label .. ": the vitals line sits 12 over the two bar slots kept over bar 1")
-		assert(math.abs(vitals.w - bar1.w) <= 2, label .. ": the vitals line spans bar 1")
+		assert(same(xp.bottom, 36.5) and same(bar1.bottom - xp.top, 9.5), label .. ": LEE-20 the XP line sits at 36.5, 9.5 under bar 1")
+		local playerBar = { Layouts.Rect(Layouts.Element("unitframes.player"), layout["unitframes.player"], width, HEIGHT) }
+		assert(same(playerBar[1], bar1.left) and same(playerBar[3], bar1.right), label .. ": LEE-20 the player's bars, not its external portrait reserve, span bar 1")
+		assert(same(vitals.left, playerBar[1] - 91.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait")
 		local resource = rect("unitframes.resource")
-		assert(resource.bottom >= vitals.top and essential.bottom >= resource.top, label .. ": the class resource sits between the vitals and the cooldowns")
-		assert(essential.bottom - vitals.top <= 40, label .. ": the essential cooldowns sit just over the vitals")
-		assert(utility.bottom == essential.bottom and utility.left - essential.right == 16, label .. ": the utility cooldowns sit beside the essential ones")
+		assert(same(resource.bottom, 320.6) and same(essential.bottom - resource.top, 0.7), label .. ": LEE-20 the class resource sits directly over the target, under the cooldowns")
+		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
-		assert(buffs.bottom == essential.bottom and essential.left - buffs.right >= 16, label .. ": the tracked buff icons sit beside the essential cooldowns' other end")
-		assert(bars.bottom >= buffs.top + 4 and bars.left == buffs.left, label .. ": the tracked buff bars sit over the icons")
+		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9) and same(vitals.left - buffs.right, 14.5), label .. ": LEE-20 the tracked buffs sit 14.5 left of the player portrait reserve")
+		assert(same(bars.x - mid, -480) and same(bars.bottom, 340), label .. ": LEE-20 the optional tracked buff bars keep a separate slot above the icons")
 		local swing = rect("meters.swing")
 		assert(swing.bottom - essential.top >= 4 and swing.bottom - essential.top <= 8, label .. ": the swing line sits on the essential cooldowns, part of the hands, not a stray bar")
 		local block = math.max(swing.top, bars.top, essential.top, utility.top)
 		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
-		assert(petBar.right == bar1.left - 12 and petBar.bottom == bar1.bottom, label .. ": the pet sockets sit beside bar 1's left end")
-		assert(stance.left == bar1.right + 12 and stance.bottom == bar1.bottom, label .. ": the stance sockets sit beside bar 1's right end")
+		assert(same(petBar.x - mid, -337.5) and petBar.bottom == 68, label .. ": the optional pet sockets keep their original slot beside the centre bars")
+		assert(same(stance.x - mid, 337.5) and stance.bottom == 68, label .. ": the optional stance sockets keep their original slot beside the centre bars")
 		local rep, honor = rect("databars.rep"), rect("databars.honor")
-		assert(rep.bottom == xp.bottom and rep.left == petBar.left and rep.right == petBar.right, label .. ": the reputation line runs under the pet sockets on the XP line's baseline")
-		assert(honor.bottom == xp.bottom and honor.left == stance.left and honor.right == stance.right, label .. ": the honour line runs under the stance sockets on the XP line's baseline")
+		assert(rep.bottom == 52 and rep.left == petBar.left and rep.right == petBar.right, label .. ": the reputation line keeps its baseline under the pet sockets")
+		assert(honor.bottom == 52 and honor.left == stance.left and honor.right == stance.right, label .. ": the honour line keeps its baseline under the stance sockets")
 		local pet = rect("unitframes.pet")
-		assert(pet.right == vitals.left - 12 and pet.top == vitals.top, label .. ": the pet frame sits beside the vitals line's ring, top-aligned")
+		assert(same(pet.x - mid, -317) and pet.bottom == 258 and pet.w == 120 and pet.h == 22, label .. ": the optional pet frame keeps its original compact slot")
 
-		-- The combat cluster, in every layout: the sigil right on the hands block and as wide as the vitals line, so your
-		-- target reads straight over you; the focus card on its left with the focus target under it; the target of target
-		-- on its right, top-aligned. In Tank the threat card stands under the target of target.
-		local sigil, tot = rect("unitframes.target"), rect("unitframes.targettarget")
+		-- LEE-20 places the target over the player; optional compact frames keep their previous slots.
+		local target, tot = rect("unitframes.target"), rect("unitframes.targettarget")
 		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
-		assert(sigil.bottom >= block + 4 and sigil.bottom - block <= 16, label .. ": the sigil sits right on the hands block (" .. (sigil.bottom - block) .. " over)")
-		assert(sigil.w == vitals.w, label .. ": the sigil spans the vitals line, one column")
-		assert(sigil.top - vitals.top <= 260, label .. ": your target reads within 260 units of you, not a screen away")
-		assert(sigil.left - focus.right == NEAR and focus.top == sigil.top, label .. ": the focus card sits 12 left of the sigil, top-aligned")
+		assert(same(target.bottom - vitals.top, 1.5) and same(target.top, 320), label .. ": LEE-20 the target sits 1.5 over the player, below the cooldown row")
+		assert(same(target.left, playerBar[1]) and same(target.right, playerBar[3] + 230.4), label .. ": LEE-20 the target reserve extends 230.4 right of its aligned bars for portrait and debuffs")
+		assert(same(focus.x - mid, -357) and focus.top == 540, label .. ": the optional focus card keeps its original slot above the centre column")
 		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= CLUSTER_GAP and focusTarget.bottom >= block + 4, label .. ": the focus target sits under the focus card, off the hands")
-		assert(tot.left - sigil.right == NEAR and tot.top == sigil.top, label .. ": the target of target sits 12 right of the sigil, top-aligned")
-		local clusterTop = sigil.top
+		assert(same(tot.x - mid, 317) and tot.top == 540, label .. ": the optional target of target keeps its original slot opposite the focus")
+		local clusterTop = 540
 		if name == "Tank" then
 			local threat = rect("meters.threat")
 			assert(threat.left == tot.left and tot.bottom - threat.top == CLUSTER_GAP and threat.bottom >= block + 4, label .. ": the threat card stands under the target of target")
@@ -400,31 +432,30 @@ for _, name in ipairs(names) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
 		end
 
-		-- What a player turns on (owner pass 1, 2026-11-09): bars 2 and 3 are rows of twelve stacked over bar 1, under
-		-- the vitals line, as Blizzard stacks its bottom bars; bars 4, 5 and 6 are columns on the right edge of the play
-		-- field, a rail gap left of the right rail, in every layout. The plate cast bars keep their place over the
-		-- cluster, Layouts.SIGIL_CLEAR and one bar's room over the sigil cap (round 4, Opus #6).
+		-- LEE-20 keeps bar 2 over bar 1 and parks bar 3 above chat; the side columns stay unchanged.
 		local SIGIL = Layouts.SIGIL_CLEAR
-		assert(type(SIGIL) == "number" and SIGIL >= 16, "Layouts names the gap a bar keeps over the sigil cap")
+		assert(type(SIGIL) == "number" and SIGIL >= 16, "Layouts retains the optional upper-slot clearance")
 		local bar2, targetCast = rect("actionbars.bar2"), rect("unitframes.castbar.target")
-		local target = rect("unitframes.target")
 		for _, key in ipairs(KEYS) do
 			if key:find("^actionbars%.") or key:find("^unitframes%.castbar%.") or key:find("^cooldowns%.") or key == "meters.swing" then
 				local bar = rect(key)
 				if bar.left < target.right and target.left < bar.right and bar.bottom >= target.top - 1e-6 then
-					assert(bar.bottom - target.top >= SIGIL - 1e-6, label .. ": " .. key .. " keeps " .. SIGIL .. " over the target's sigil cap, got " .. (bar.bottom - target.top))
+					if key == "cooldowns.essential" or key == "cooldowns.utility" then
+						assert(same(bar.bottom - target.top, 15.3), label .. ": LEE-20 " .. key .. " keeps the picture's exact 15.3-unit gap over the target")
+					else
+						assert(bar.bottom - target.top >= SIGIL - 1e-6, label .. ": " .. key .. " keeps " .. SIGIL .. " over the target, got " .. (bar.bottom - target.top))
+					end
 				end
 			end
 		end
-		assert(cast.bottom - clusterTop == SIGIL + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster")
+		assert(same(cast.bottom - swing.top, 1) and same(targetCast.bottom, 640), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its slot")
 		local bar3 = rect("actionbars.bar3")
-		assert(bar2.w == bar1.w and bar3.w == bar1.w and bar2.h == bar1.h and bar3.h == bar1.h, label .. ": bars 2 and 3 are rows like bar 1")
-		assert(bar2.left == bar1.left and bar2.bottom - bar1.top == 3 and bar3.left == bar1.left and bar3.bottom - bar2.top == 3, label .. ": bars 2 and 3 stack over bar 1 at the bar pitch")
-		assert(vitals.bottom - bar3.top == 12, label .. ": the vitals line sits 12 over bar 3's slot")
+		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
+		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, 4.6) and same(vitals.bottom - bar2.top, 6), label .. ": LEE-20 bars 1 and 2 stack at the picture's 4.6 gap, 6 under the player")
 		local right = width - BAND
 		for i, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
 			local bar = rect(key)
-			assert(math.abs(bar.w - bar1.h) < 1e-6 and math.abs(bar.h - bar1.w) < 1e-6, label .. ": " .. key .. " is a column of twelve")
+			assert(same(bar.w, 38) and same(bar.h, 489), label .. ": " .. key .. " keeps its original column of twelve")
 			assert(math.abs(bar.right - right) < 1e-6 and math.abs(bar.y - HEIGHT / 2) < 1e-6, label .. ": " .. key .. " stands on the right edge of the play field, centred on the screen")
 			right = bar.left - 3
 			assert(i < 3 or bar.left >= mid + CLEAR.half, label .. ": the side bars stay out of the clear centre")
@@ -456,12 +487,11 @@ for _, name in ipairs(names) do
 		assert(text.left >= utility.right or text.bottom >= utility.top, label .. ": your combat text stays off the utility cooldowns")
 	end
 
-	-- Bars 2 to 6 are off in Lumen; bar 1 and the socket rows are on. The threat card shows in Tank only. The cast bar
-	-- elements are off: S2's vitals line and sigil carry their cast lines.
-	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "unitframes.castbar.player", "unitframes.castbar.target" }) do
+	-- LEE-20 keeps both central action rows and the separate player cast bar on; optional slots remain available.
+	for _, key in ipairs({ "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "unitframes.castbar.target" }) do
 		assert(Layouts.Shown(name, key) == false, name .. " switches " .. key .. " off")
 	end
-	for _, key in ipairs({ "actionbars.bar1", "actionbars.pet", "actionbars.stance", "unitframes.player", "unitframes.target", "minimap.main", "chat.main" }) do
+	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "unitframes.castbar.player", "actionbars.pet", "actionbars.stance", "unitframes.player", "unitframes.target", "minimap.main", "chat.main" }) do
 		assert(Layouts.Shown(name, key) == true, name .. " keeps " .. key .. " on")
 	end
 	assert(Layouts.Shown(name, "meters.threat") == (name == "Tank"), name .. ": the threat card shows in Tank only")
@@ -470,18 +500,16 @@ for _, name in ipairs(names) do
 		assert(K.Features.modules[entry.module] ~= nil and type(entry.key) == "string" and entry.value ~= nil, name .. " writes a module's setting")
 		settings[entry.module .. "." .. entry.key] = entry.value
 	end
-	for i = 2, 6 do
+	for i = 3, 6 do
 		assert(settings["ActionBars.bar" .. i .. ".enabled"] == false, name .. " writes bar " .. i .. " off")
 	end
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
+	assert(settings["ActionBars.bar2.enabled"] == true and settings["ActionBars.bar2.rows"] == 1, name .. ": LEE-20 writes bar 2 on, one row")
 	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
 	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
 	assert(settings["UnitFrames.boss.auraPosition"] == (name == "Healer" and "RIGHT" or "LEFT"), name .. " hangs the boss debuffs towards the centre")
-	-- Bar 1 keeps its empty sockets as quiet 35% sockets (first in-game test, 2026-11-09: at level 10 bar 1 showed
-	-- slots 1-3 and 11-12 with a wide hole between them, which read as broken; round 3's hidden sockets are undone).
-	-- The other bars are off in Lumen and still hide theirs. A spell on the cursor shows every socket to drop it on.
-	assert(settings["ActionBars.bar1.showEmpty"] == true, name .. " shows bar 1's empty sockets, quiet, so the bar reads as one row")
-	for i = 2, 6 do
+	assert(settings["ActionBars.bar1.showEmpty"] == true and settings["ActionBars.bar2.showEmpty"] == true, name .. ": LEE-20 shows both central bars' empty tiles")
+	for i = 3, 6 do
 		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
 	end
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
@@ -523,48 +551,41 @@ do
 	assert(Layouts.Shown("Raid", "actionbars.bar1") == nil and Layouts.Settings("Raid") == nil and Layouts.Slot("Raid") == nil and Layouts.Sizes("Raid") == nil, "an unknown layout gives nil")
 end
 
--- The HUD reads at one scale, the 38-unit action button (the owner's ruling of 2026-11-08). Every Cooldown Manager row
--- is the button's size (owner pass 1, 2026-11-09: CDM icons bigger than the buttons read as a mistake). The Lumen
--- vitals line is no frame: a 62-unit ring with a name and two lines, at most two buttons tall. The compact frames stay
--- compact.
+-- LEE-20 supersedes the common 38-unit size: essential icons match the 36.7 action tiles,
+-- tracked buffs include their timer row, and unchanged utility icons retain their optional 38-unit slot.
 do
 	local button = Layouts.Element("actionbars.bar1").height
-	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs" }) do
-		assert(Layouts.Element(key).height == button, key .. " is the action button's size")
-	end
-	-- S2 moved the player's cast line into the vitals line, 4 units over two buttons; the cast bar element stays off.
-	assert(select(2, Layouts.Footprint("DPS", "unitframes.player")) <= 2 * button + 4, "the vitals line, its cast line inside, stands no taller than two action buttons and that line")
+	assert(same(button, 36.7) and same(Layouts.Element("cooldowns.essential").height, button), "LEE-20 essential icons match the action tiles")
+	assert(same(Layouts.Element("cooldowns.utility").height, 38) and same(Layouts.Element("cooldowns.buffs").height, 41.6), "LEE-20 utility keeps its size and tracked buffs include timers")
+	assert(same(select(2, Layouts.Footprint("DPS", "unitframes.player")), 80), "LEE-20 the player frame remains 80 tall with its cast in a separate element")
 	for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
 		assert(Layouts.Element(key).height < 36, key .. " stays a compact frame")
 	end
 end
 
--- Footprints: the 38-unit module for the hands and what S2 to S4 shipped for the frames and the rail cards -----------
+-- Footprints: LEE-20 centre dimensions and unchanged optional frames and rail cards. ----------------------------
 local FOOTPRINTS = {
-	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
-	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
+	["actionbars.bar1"] = { 491, 36.7 },
+	["actionbars.bar2"] = { 491, 36.7 },
 	["actionbars.bar3"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
-	-- S2 (#153): the vitals line holds its cast line (80) and the small frames are 120 by 22 pill rows. Round 2 (Q2):
-	-- the sigil spans the vitals line at 490 with a bolder cast line (84) and keeps two rows of 24-unit debuff sockets
-	-- under it (84 + 2 + 24 + 2 + 24, round 2 aura overflow);
-	-- the focus is a 200 by 90 card beside it with its debuffs over it (90 + 22).
-	["cooldowns.essential"] = { 6 * 38 + 5 * 3, 38 },
+	-- LEE-20 reserves external portraits and target debuffs; the optional focus retains its 22-unit aura reserve.
+	["cooldowns.essential"] = { 243.2, 36.7 },
 	["cooldowns.utility"] = { 4 * 38 + 3 * 3, 38 },
-	["cooldowns.buffs"] = { 6 * 38 + 5 * 3, 38 },
+	["cooldowns.buffs"] = { 182.6, 41.6 },
 	["cooldowns.bars"] = { 6 * 38 + 5 * 3, 2 * 20 + 3 },
-	["unitframes.player"] = { 490, 80 },
-	["unitframes.target"] = { 490, 136 },
+	["unitframes.player"] = { 582.5, 80 },
+	["unitframes.target"] = { 721.4, 100.5 },
 	["unitframes.boss"] = { 318, 334 },
 	["unitframes.targettarget"] = { 120, 22 },
 	["unitframes.pet"] = { 120, 22 },
 	["unitframes.focustarget"] = { 120, 22 },
 	["unitframes.focus"] = { 200, 112 },
-	["unitframes.castbar.player"] = { 272, 30 },
+	["unitframes.castbar.player"] = { 347, 30 },
 	["unitframes.castbar.target"] = { 220, 24 },
 	-- S4 (#157): six damage rows, four threat rows, the readout with the menu docked (at 318 the bag bar wraps under
 	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is the
@@ -582,35 +603,32 @@ local FOOTPRINTS = {
 	["chat.main"] = { 393, 200 },
 	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
-	["databars.xp"] = { 489, 4 },
+	["databars.xp"] = { 491, 8 },
 	["databars.rep"] = { 162, 5 },
 	["databars.honor"] = { 162, 5 },
 }
 for key, size in pairs(FOOTPRINTS) do
 	local w, h = Layouts.Footprint("DPS", key)
-	assert(w == size[1] and h == size[2], key .. " is " .. size[1] .. " x " .. size[2] .. " in Lumen, got " .. w .. " x " .. h)
+	assert(same(w, size[1]) and same(h, size[2]), key .. " is " .. size[1] .. " x " .. size[2] .. " in Lumen, got " .. w .. " x " .. h)
 end
 
 -- Every element builds at its footprint (Element) and the layouts place it there, except a reserve and the sizes a
 -- layout writes on Apply (the Tank meters).
 do
-	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
-	-- hang under its 84-unit frame in two rows, so the layouts keep 136 from its top; the focus card's debuffs sit over its 90-unit
-	-- frame, so the layouts keep 112 from its foot; the boss column holds five compact cards and the layouts keep its
-	-- full height plus the debuffs hanging to its left, 318 in all; the readout card is one 42-unit line until the player
-	-- shows the micro menu and bag rows, and the layouts keep the 118 both rows take.
-	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
+	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves.
+	local RESERVES = { ["unitframes.player"] = { 582.5, 80, -45.75 }, ["unitframes.target"] = { 721.4, 100.5, 115.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
 		assert(want and want[1] == entry.width and want[2] == entry.height, entry.key .. " reserves " .. entry.width .. " x " .. entry.height)
+		assert(entry.offsetX == want[3], entry.key .. " reserves its asymmetric portrait offset")
 		reserved[entry.key] = true
 	end
 	for key in pairs(RESERVES) do
 		assert(reserved[key], key .. " has its reserve")
 	end
 	local target, boss, focus = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss"), Layouts.Element("unitframes.focus")
-	assert(target.width == 490 and target.height == 84 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
+	assert(target.width == 491 and target.height == 100.5 and Layouts.Get("DPS")["unitframes.target"].anchor == "BOTTOM", "LEE-20 the target's bar column anchors its portrait and aura reserve from the bottom")
 	assert(focus.width == 200 and focus.height == 90 and Layouts.Get("DPS")["unitframes.focus"].anchor == "BOTTOM", "the focus card's frame foots its reserve, so its debuffs sit inside it")
 	assert(boss.width == 222 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart, 222 wide beside a row of four 22-unit debuffs")
 	for _, element in ipairs(Layouts.ELEMENTS) do

@@ -24,7 +24,7 @@ local function fmt(r)
 	return string.format("(%.1f,%.1f-%.1f,%.1f)", r.left, r.bottom, r.right, r.top)
 end
 
-local env, K, ns = U.New()
+local env, K, ns = U.New({ lumen = true })
 local Frames, Overflow, Settings = ns.Frames, ns.Overflow, ns.Settings
 local root = K.Scale.Root()
 
@@ -87,7 +87,7 @@ do
 		local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[key], rw, rh)
 		return { left = l, bottom = b, right = r, top = t }
 	end
-	local checks = { { target, "unitframes.target" }, { focus, "unitframes.focus" } }
+	local checks = { { focus, "unitframes.focus" } }
 	for i = 1, 5 do
 		checks[#checks + 1] = { bosses[i], "unitframes.boss" }
 	end

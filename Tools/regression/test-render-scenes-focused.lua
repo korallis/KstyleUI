@@ -112,10 +112,10 @@ for _, item in ipairs(databars.items) do
 		seen[item.text] = true
 	end
 end
-for _, want in ipairs({ "32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
+for _, want in ipairs({ "Level 38 \194\183 32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
 	assert(seen[want], "the data bars scene shows " .. want)
 end
-assert(not seen["Level 38 \194\183 32%"], "the XP caption leaves the level to the portrait's badge (owner, 2026-11-09)")
+assert(not seen["32%"], "the XP caption includes the level under LEE-20; this fixture has no rested XP")
 assert(not seen["14:32"], "the readout leaves the clock to the minimap card, as the Lumen mockup does (round 4, Fable #5)")
 
 -- The chat scene shows the mockup's four tabs on Blizzard's dock, the plus glyph and five lines.

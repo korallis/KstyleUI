@@ -58,6 +58,8 @@ Settings.FORMS = {
 
 Settings.CAP_LABELS = { focus = L["Focus"], boss = L["Boss"] }
 
+Settings.COLUMN = { player = true, target = true }
+
 Settings.CASTBAR = { player = true, target = true, focus = true, boss = true }
 Settings.CAST_ELEMENTS = { player = "unitframes.castbar.player", target = "unitframes.castbar.target" }
 Settings.AURAS = { player = true, target = true, focus = true, boss = true }
@@ -68,6 +70,13 @@ local function Color(token)
 end
 
 local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
+local FLAT_TEXTURE
+for _, item in ipairs(Tokens.MediaList("statusbar")) do
+	if item.key == "Flat" then
+		FLAT_TEXTURE = item.path
+	end
+end
+FLAT_TEXTURE = FLAT_TEXTURE or BAR_TEXTURE
 
 local function TextStyle(size)
 	return { font = THEME_FONT, size = size, outline = "NONE" }
@@ -147,8 +156,14 @@ Settings.defaults = {
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	edit = "player",
-	player = Kind(true, { combat = true, resting = true, castbarIcon = false, castbarCaps = false, powerHeight = 5 }, 20, 12, { on = false, size = 22, position = "BELOW" }, { 17, 15, 10, 12 }),
-	target = Kind(true, { portraitSide = "RIGHT", healthColor = "reaction", castbarColor = "gold", castbarCaps = false }, 14, 13, { on = true, size = 28, columns = 14, rows = 1, position = "CENTER" }, { 17, 12, 10, 13 }),
+	player = Kind(true, {
+		style = "column", combat = true, resting = true, castbarIcon = false, castbarCaps = true, castbarColor = "gold",
+		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE,
+	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 18, 15, 10, 12 }),
+	target = Kind(true, {
+		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
+		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, auraSpacing = 4,
+	}, 14, 13, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 18, 15, 10, 13 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
@@ -182,11 +197,12 @@ local function Options(list)
 end
 
 Settings.CHOICES = {
-	style = Options({ { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
+	style = Options({ { "column", L["Column"] }, { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
+	styleLumen = Options({ { "lumen", L["Lumen"] }, { "plate", L["Classic plate"] } }),
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
-	healthColor = Options({ { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
+	healthColor = Options({ { "hud", L["KstyleUI colours"] }, { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	powerColor = Options({ { "power", L["Power type"] }, { "class", L["Class, or reaction for NPCs"] }, { "reaction", L["Reaction"] }, { "custom", L["Custom colour"] } }),
 	orientation = Options({ { "RIGHT", L["Left to right"] }, { "LEFT", L["Right to left"] }, { "UP", L["Bottom to top"] }, { "DOWN", L["Top to bottom"] } }),
 	text = Options({
@@ -200,7 +216,7 @@ Settings.CHOICES = {
 	auraFilter = Options({ { "mine", L["Your debuffs"] }, { "debuffs", L["All debuffs"] }, { "buffs", L["Buffs"] }, { "both", L["Debuffs and buffs"] } }),
 	auraGrowth = Options({ { "RIGHT_DOWN", L["Right, then down"] }, { "RIGHT_UP", L["Right, then up"] }, { "LEFT_DOWN", L["Left, then down"] }, { "LEFT_UP", L["Left, then up"] } }),
 	growth = Options({ { "DOWN", L["Downward"] }, { "UP", L["Upward"] } }),
-	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
+	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] }, { "SIDE", L["Right of the portrait"] } }),
 }
 local CHOICES = Settings.CHOICES
 
@@ -396,8 +412,12 @@ function Settings.Accent()
 end
 
 function Settings.Form(kind)
-	if Settings.Value(kind, "style") == "plate" then
+	local style = Settings.Value(kind, "style")
+	if style == "plate" then
 		return "plate"
+	end
+	if style == "column" and Settings.COLUMN[kind] then
+		return "column"
 	end
 	return Settings.FORMS[kind]
 end
@@ -691,6 +711,7 @@ ResourceRows = function(schema)
 end
 
 local STYLE_HELP = {
+	column = L["Column: full-width bars, portrait outside. Lumen: the older style. Classic: the glass plate."],
 	vitals = L["Lumen: one line with a gilt portrait ring. Classic: the glass plate."],
 	sigil = L["Lumen: a centred sigil with gems and your debuffs. Classic: the glass plate."],
 	card = L["Lumen: a glass card with a section cap. Classic: the glass plate."],
@@ -708,7 +729,7 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "style", label = L["Style"],
-		help = STYLE_HELP[Settings.FORMS[kind]], options = CHOICES.style,
+		help = STYLE_HELP[Settings.COLUMN[kind] and "column" or Settings.FORMS[kind]], options = Settings.COLUMN[kind] and CHOICES.style or CHOICES.styleLumen,
 	})
 	if kind == "boss" then
 		schema[#schema + 1] = Row(kind, {

@@ -447,7 +447,125 @@ local function PillRow(out, s, width, height, scale)
 	end
 end
 
-local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow }
+local COLUMN = {
+	ring = 77.5, ringGap = 14, disc = 0.28, discAlong = 0.3535,
+	health = 12, gap = 4, nameGap = 12, bottom = 7.5,
+	castBar = 7, castGap = 7, labelGap = 4.5, label = 13,
+	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
+}
+Geometry.COLUMN = COLUMN
+
+local function Clamp(rect, height)
+	rect.y = max(0, min(rect.y, height))
+	rect.h = max(0, min(rect.h, height - rect.y))
+end
+
+local function ColumnBars(out, s, width, height, cast, nameH)
+	local castH = COLUMN.castBar + COLUMN.labelGap + COLUMN.label
+	local bottom = height - COLUMN.bottom
+	out.cast = nil
+	if cast then
+		out.cast = Rect(0, height - castH, width, castH)
+		bottom = out.cast.y - COLUMN.castGap
+	end
+	local powerH = PowerHeight(s, max(0, bottom - COLUMN.health - COLUMN.gap))
+	out.power = nil
+	if powerH > 0 then
+		out.power = Rect(0, bottom - powerH, width, powerH)
+		bottom = bottom - powerH - COLUMN.gap
+	end
+	out.health = Rect(0, bottom - COLUMN.health, width, COLUMN.health)
+	return out.health.y - COLUMN.nameGap - nameH
+end
+
+local function ColumnTexts(out, s, width, scale, right)
+	local nameSize, valueSize, captionSize = Size(s, "name", scale), Size(s, "health", scale), Size(s, "level", scale)
+	local rowBottom = out.health.y - COLUMN.nameGap
+	local main, split = ValueFormats(s.healthText)
+	local captionW = ceil(COLUMN.captionEm * captionSize)
+	local valueW = 0
+	if right then
+		main = Format.Main(s.healthText)
+		local pctW = main ~= "none" and Column(main, valueSize, width) or 0
+		if pctW > 0 then
+			out.healthText = Above(0, pctW, rowBottom, valueSize)
+			valueW = pctW + TEXT_GAP
+		end
+	elseif main ~= "none" then
+		local subW = split and Format.ColumnWidth("current", captionSize) or 0
+		local curW = Format.ColumnWidth(main, valueSize)
+		if split then
+			out.healthSub = Above(width - subW, subW, rowBottom, captionSize)
+		end
+		out.healthText = Above(width - subW - curW, curW, rowBottom, valueSize)
+		valueW = subW + curW + TEXT_GAP
+	end
+	if not s.name then
+		return
+	end
+	local room = max(0, width - valueW - captionW)
+	out.nameAuto, out.nameRoom = true, room
+	out.name = Above(right and width - room or 0, room, rowBottom, nameSize)
+	out.caption = Above(right and width - room or 0, captionW, rowBottom, captionSize)
+end
+
+local function ColumnPortrait(out, s, width, height, right)
+	if not s.portrait then
+		return
+	end
+	local size = min(COLUMN.ring, height)
+	local x = right and width + COLUMN.ringGap or -(size + COLUMN.ringGap)
+	out.portrait = Rect(x, right and 0 or height - size, size, size)
+	if not s.level then
+		return
+	end
+	local disc = max(BADGE_MIN, ceil(size * COLUMN.disc))
+	local along = COLUMN.discAlong * size
+	local cx, cy = x + size / 2, out.portrait.y + size / 2
+	out.badge = Rect((right and cx - along or cx + along) - disc / 2, cy + along - disc / 2, disc, disc)
+end
+
+local function ColumnFrame(out, s, width, height, scale)
+	local right = s.portraitSide == "RIGHT"
+	out.mirror = right
+	local nameH = s.name and TextH(Size(s, "name", scale)) or 0
+	local wantCast = right and s.castbar == true
+	local fitted
+	for _, try in ipairs({ { wantCast, nameH }, { false, nameH }, { false, 0 } }) do
+		fitted = ColumnBars(out, s, width, height, try[1], try[2]) >= 0
+		if fitted then
+			break
+		end
+	end
+	for _, key in ipairs({ "health", "power", "cast" }) do
+		if out[key] then
+			Clamp(out[key], height)
+		end
+	end
+	ColumnTexts(out, s, width, scale, right)
+	ColumnPortrait(out, s, width, height, right)
+	if right and s.auras then
+		local x = width + (out.portrait and COLUMN.ringGap + out.portrait.w + COLUMN.auraGap or COLUMN.auraBare)
+		out.aura = Rect(x, COLUMN.auraTop, 0, 0)
+	end
+end
+
+function Geometry.Reach(s)
+	if s.form ~= "column" then
+		return 0, 0
+	end
+	local ring = s.portrait and COLUMN.ring + COLUMN.ringGap or 0
+	if s.portraitSide ~= "RIGHT" then
+		return ring, 0
+	end
+	local aura = 0
+	if s.auras and s.auraPosition == "SIDE" then
+		aura = (s.portrait and COLUMN.auraGap or COLUMN.auraBare) + s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing
+	end
+	return 0, ring + aura
+end
+
+local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow, column = ColumnFrame }
 
 local MARKER_EXTRA, MARKER_GAP = 4, 4
 Geometry.MARKER_EXTRA, Geometry.MARKER_GAP = MARKER_EXTRA, MARKER_GAP

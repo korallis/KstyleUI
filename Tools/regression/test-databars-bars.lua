@@ -99,13 +99,13 @@ do
 	K.Options.Write("DataBars", "xp.segments", 0)
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
-	eq(xp.text:GetText(), "24% \194\183 rested 16%", "the default caption is the percent and the rested share; the portrait's badge shows the level")
+	eq(xp.text:GetText(), "Level 38 \194\183 24% \194\183 rested 16%", "the reference caption restores the level under LEE-20")
 	local cp, crel, crelp = xp.text:GetPoint(1)
 	eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOP>true>BOTTOM", "the caption is centred under the line")
 	eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")
-	local mr, mg, mb = K.Tokens.Color(ns.Bars.TOKENS.muted)
+	local mr, mg, mb = K.Tokens.Color("text")
 	local tr, tg, tb = xp.text:GetTextColor()
-	assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the caption is muted text")
+	assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the XP caption uses the reference's grey-white body text")
 	-- The fill is a gilt filament: a gradient from dim gilt to lit gilt over the fill; the rested reach is cool.
 	local gradient = xp.fill:GetStatusBarTexture()._state.Gradient
 	assert(gradient and gradient[1] == "HORIZONTAL", "the fill carries a horizontal gradient")
@@ -294,10 +294,11 @@ do
 	Options.Write("DataBars", "xp.orientation", "VERTICAL")
 	eq(xp.fill:GetOrientation(), "VERTICAL", "the bar can stand upright")
 	local size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "4x489", "an upright bar swaps its width and height: the Lumen XP line is 489 by 4")
+	local footprint = K.Setup.Layouts.Element("databars.xp")
+	eq(size.width .. "x" .. size.height, footprint.height .. "x" .. footprint.width, "an upright bar swaps its footprint's width and height")
 	Options.Write("DataBars", "xp.orientation", "HORIZONTAL")
 	size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "489x4", "and swaps back")
+	eq(size.width .. "x" .. size.height, footprint.width .. "x" .. footprint.height, "and swaps back")
 
 	Options.Write("DataBars", "xp.textHover", true)
 	eq(xp.text:IsShown(), false, "with the hover setting the text waits for the pointer")

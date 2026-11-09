@@ -5,17 +5,22 @@ local Hud, Classes, check, collect = L.Hud, L.Classes, L.check, L.collect
 local near, sameColour, setB = L.near, L.sameColour, L.setB
 
 -- Round 6 (Fable): a class page shows what a player sees after Layout > Apply, so the whole-HUD scene takes the
--- layout's preset settings when it names none: bar 2, which every preset switches off, stays off.
+-- layout's preset settings when it names none: bars 1 and 2 are on, matching the owner's reference.
 do
-	local opts = Hud.Options({ layout = "DPS", class = "MAGE" })
-	local bars = opts.settings and opts.settings.ActionBars
-	assert(bars and bars.bar2 and bars.bar2.enabled == false, "the class HUD applies the DPS preset: bar 2 off")
-	assert(bars.bar1.enabled == true, "and bar 1 on")
-	local own = Hud.Options({ layout = "DPS", settings = { ActionBars = { bar2 = { enabled = true } } } })
-	assert(own.settings.ActionBars.bar2.enabled == true, "a scene's own settings win")
+	for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
+		local opts = Hud.Options({ layout = layout, class = "MAGE" })
+		local bars = opts.settings and opts.settings.ActionBars
+		assert(bars and bars.bar2 and bars.bar2.enabled == true, "the class HUD applies the " .. layout .. " preset: bar 2 on")
+		assert(bars.bar1.enabled == true, "and bar 1 on")
+		for i = 3, 6 do
+			assert(bars["bar" .. i].enabled == false, layout .. " keeps bar " .. i .. " off")
+		end
+	end
+	local own = Hud.Options({ layout = "DPS", settings = { ActionBars = { bar2 = { enabled = false } } } })
+	assert(own.settings.ActionBars.bar2.enabled == false, "a scene's explicit bar 2 opt-out wins")
 end
 
--- Every class: the player's health fill wears the class colour, the power fill reads the class's power at its
+-- Every class: the player's health fill uses the reference's fixed blue, the power fill reads the class's power at its
 -- fraction, the cast bar names the class's cast (none for the rogue), the bars, the cluster, the buff bars and
 -- the buff row show that class's spells from set B, the warrior and the druid get a stance bar, the hunter and
 -- the warlock a pet frame and a pet bar, the rogue combo points.
@@ -24,6 +29,7 @@ for _, class in ipairs(Classes.ORDER) do
 	local spec = Classes[class]
 	local tag = "hud." .. class
 	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class })))
+	local healthColour = { Hud.envs[uf].KstyleUI.Tokens.Color("hudPlayerHealth") }
 	-- The player frame paints its power bar in the power type's colour (the owner's ruling of 2026-11-08: mana
 	-- blue, rage red, energy yellow, PowerBarColor lifted by Theme.Brighten, so every channel is at least the
 	-- game's and the brightest channel stays the brightest), never the class colour; the power type shows as the
@@ -50,7 +56,7 @@ for _, class in ipairs(Classes.ORDER) do
 	local health, power, petHealth = false, false, false
 	for _, item in ipairs(uf.items) do
 		if item.kind == "texture" and item.bar then
-			if near(item.fraction, 2750 / 3350) and sameColour(item.vertex, spec.colour) then
+			if near(item.fraction, 2750 / 3350) and sameColour(item.vertex, healthColour) then
 				health = true
 			end
 			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and brightened(item.vertex, powerColour) and not sameColour(item.vertex, spec.colour) then
@@ -61,14 +67,14 @@ for _, class in ipairs(Classes.ORDER) do
 			end
 		end
 	end
-	assert(health, tag .. ": the player's health fill wears the class colour")
+	assert(health, tag .. ": the player's health fill uses hudPlayerHealth at the player's health fraction")
 	assert(power, tag .. ": the power fill reads " .. spec.power.token .. " at " .. spec.power.value .. "/" .. spec.power.max .. " in the power type's colour")
 	local ufTexts = collect(uf)
 	assert(ufTexts[spec.name:upper()], tag .. ": the player's name reads " .. spec.name:upper())
 	if spec.cast then
-		assert(ufTexts[spec.cast[1]], tag .. ": the cast bar reads " .. spec.cast[1])
+		assert(ufTexts[spec.cast[1]:upper()], tag .. ": the cast bar reads " .. spec.cast[1]:upper())
 	else
-		assert(not ufTexts["Slam"] and not ufTexts["0.8"], tag .. ": no player cast bar")
+		assert(not ufTexts["SLAM"] and not ufTexts["Slam"] and not ufTexts["0.8"], tag .. ": no player cast bar")
 	end
 	if spec.pet then
 		-- A pet name too wide in capitals drops to the body face in mixed case before it truncates (round 4: Opus #6).

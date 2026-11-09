@@ -236,8 +236,8 @@ for _, name in ipairs(Layouts.Names()) do
 		local label = name .. " at " .. aspect[1]
 		local rects, keys = {}, {}
 		for _, element in ipairs(Layouts.ELEMENTS) do
-			local w, h = Layouts.Footprint(name, element.key)
-			local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[element.key], width, HEIGHT)
+			local w, h, offsetX = Layouts.Footprint(name, element.key)
+			local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[element.key], width, HEIGHT)
 			assert(l >= -1e-6 and b >= -1e-6 and r <= width + 1e-6 and t <= HEIGHT + 1e-6,
 				string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, element.key, l, b, r, t, width, HEIGHT))
 			rects[element.key] = { l, b, r, t }
@@ -366,8 +366,8 @@ do
 					for _, element in ipairs(Layouts.ELEMENTS) do
 						local other = element.key
 						if other ~= key and apart(name, key, other) then
-							local w, h = Layouts.Footprint(name, other)
-							local r = { Layouts.Rect({ width = w, height = h }, layout[other], width, HEIGHT) }
+							local w, h, offsetX = Layouts.Footprint(name, other)
+							local r = { Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[other], width, HEIGHT) }
 							assert(not overlap(own, r), string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f) overlaps %s (%.0f,%.0f-%.0f,%.0f)",
 								state, aspect[1], key, own[1], own[2], own[3], own[4], other, r[1], r[2], r[3], r[4]))
 						end

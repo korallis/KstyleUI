@@ -51,18 +51,20 @@ do
 		assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, key .. " starts at the v3 position")
 	end
 	local bar1 = ns.bars.bar1
-	assert(near(bar1.holder:GetWidth(), 489) and near(bar1.holder:GetHeight(), 38), "bar 1 is 12 buttons of 38 with 3-unit gaps, as the mockup measures")
+	local size = K.Widgets.Snap(bar1.header, 36.7)
+	local width = K.Widgets.Snap(bar1.header, 11 * 41.3) + size
+	assert(near(bar1.holder:GetWidth(), width) and near(bar1.holder:GetHeight(), size), "bar 1 encloses twelve reference tiles at the measured 41.3-unit pitch")
 	local button = bar1.buttons[3]
-	assert(near(button:GetWidth(), 38), "38-unit buttons")
+	assert(near(button:GetWidth(), size), "36.7-unit buttons snap to physical pixels")
 	local point, relative, _, x, y = button:GetPoint(1)
-	assert(point == "TOPLEFT" and relative == bar1.header and near(x, 82) and near(y, 0), "the third button sits two steps right")
+	assert(point == "TOPLEFT" and relative == bar1.header and near(x, K.Widgets.Snap(bar1.header, 82.6)) and near(y, 0), "the third button sits two measured steps right")
 	assert(button._template == "SecureActionButtonTemplate", "buttons are KstyleUI's own secure action buttons")
 	assert(button:GetName() == "KstyleUI_ActionBar1Button3")
 	assert(button:GetAttribute("type") == "action" and button:GetAttribute("useparent-actionpage") == true and button:GetID() == 3)
 	assert(bar1.header:GetAttribute("actionpage") == 1 and ns.bars.bar2.header:GetAttribute("actionpage") == 6, "bar 2 shows page 6")
 	assert(near(ns.bars.pet.holder:GetWidth(), 162) and near(ns.bars.pet.holder:GetHeight(), 63), "the pet bar is two rows of five, the footprint the layouts plan for it")
 	local bar2 = ns.bars.bar2
-	assert(near(bar2.holder:GetWidth(), 489) and near(bar2.holder:GetHeight(), 38), "bar 2 is a row of twelve, as the layouts stack it over bar 1")
+	assert(near(bar2.holder:GetWidth(), width) and near(bar2.holder:GetHeight(), size), "bar 2 uses the same measured row as bar 1")
 	assert(ns.defaults.bar3.rows == 1 and ns.defaults.bar4.rows == 12 and ns.defaults.bar5.rows == 12, "bar 3 is a row too; bars 4 and 5 are columns, as the layouts stand them on the right edge")
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
@@ -203,10 +205,11 @@ do
 	K.Options.Write("ActionBars", "bar1.buttons", 6)
 	assert(#env._blocked == 0, "a layout change in combat waits: " .. table.concat(env._blocked, ", "))
 	env.SetCombat(false)
-	assert(near(bar1.holder:GetWidth(), 6 * 38 + 5 * 3), "six buttons wide")
+	local size = K.Widgets.Snap(bar1.header, 36.7)
+	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 5 * 41.3) + size), "six measured tiles wide")
 	assert(bar1.buttons[6]:IsShown() and not bar1.buttons[7]:IsShown(), "buttons past the count hide")
 	K.Options.Write("ActionBars", "bar1.rows", 2)
-	assert(near(bar1.holder:GetWidth(), 3 * 38 + 2 * 3) and near(bar1.holder:GetHeight(), 2 * 38 + 3), "two rows of three")
+	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 2 * 41.3) + size) and near(bar1.holder:GetHeight(), K.Widgets.Snap(bar1.header, 41.3) + size), "two rows of three reference tiles")
 	K.Options.Write("ActionBars", "bar1.size", 40)
 	K.Options.Write("ActionBars", "bar1.spacing", 6)
 	assert(near(bar1.buttons[1]:GetWidth(), 40) and near(bar1.holder:GetWidth(), 3 * 40 + 2 * 6))

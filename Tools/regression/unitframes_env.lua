@@ -439,12 +439,20 @@ function U.Install(env)
 	end
 	local function duration(u, info)
 		local d = { start = info.start / 1000, finish = info.finish / 1000 }
-		function d:GetRemainingDuration()
-			local left = math.max(0, self.finish - env._time)
+		local function seconds(value)
 			if u.secretCast then
-				return env.Secret(left)
+				return env.Secret(value)
 			end
-			return left
+			return value
+		end
+		function d:GetRemainingDuration()
+			return seconds(math.max(0, self.finish - env._time))
+		end
+		function d:GetElapsedDuration()
+			return seconds(math.max(0, env._time - self.start))
+		end
+		function d:GetTotalDuration()
+			return seconds(self.finish - self.start)
 		end
 		if u.secretDuration then
 			return env.Secret(d)
@@ -640,7 +648,35 @@ end
 --   before   function(env, K) that runs after the saved data loads and before the module loads
 --   login    false to stop before PLAYER_LOGIN
 --   plate    true to save every frame's style as the classic plate, for the tests that pin the plate
+--   lumen    true to save the player's and target's style as the older Lumen vitals line and sigil
 U.KINDS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss" }
+
+-- DbVersion() -> the saved-data version the core runs at, read from Core/Store.lua. A profile saved at the current
+-- version skips the migrations, so the older styles' saved settings stay as they are written.
+function U.DbVersion()
+	local file = assert(io.open("Core/Store.lua", "r"))
+	local source = file:read("*a")
+	file:close()
+	return tonumber(assert(source:match("Store%.DB_VERSION = (%d+)")))
+end
+
+-- Older(kind) -> the player's and target's settings before the column style became their default: the glass-texture
+-- bars, class and reaction colours, the sigil's centred sockets, the plain cast lines. The classic plate and Lumen
+-- tests pin these so they keep exercising the styles the column style left selectable.
+local GLASS = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\BarGlass.png"
+function U.Older(kind)
+	if kind == "player" then
+		return { castbarCaps = false, castbarColor = "class", powerHeight = 5, healthColor = "class", healthTexture = GLASS, powerTexture = GLASS, fonts = { name = { size = 17 } } }
+	end
+	if kind == "target" then
+		return {
+			castbarCaps = false, castbarIcon = true, healthColor = "reaction", healthOrientation = "RIGHT", powerOrientation = "RIGHT",
+			healthTexture = GLASS, powerTexture = GLASS, auraSize = 28, auraColumns = 14, auraSpacing = 2, auraPosition = "CENTER",
+			fonts = { name = { size = 17 } },
+		}
+	end
+	return {}
+end
 
 function U.New(opts)
 	opts = opts or {}
@@ -651,18 +687,24 @@ function U.New(opts)
 			setup(env)
 		end
 	end
-	if opts.enabled ~= false or opts.plate then
+	local older = opts.plate or opts.lumen
+	if opts.enabled ~= false or older then
 		opts.saved = opts.saved or {
-			version = 2,
+			version = older and U.DbVersion() or 2,
 			profiles = { Default = { UnitFrames = { enabled = opts.enabled ~= false } } },
 			characters = {},
 		}
 	end
-	if opts.plate then
+	if older then
 		local module = opts.saved.profiles.Default.UnitFrames
 		for _, kind in ipairs(U.KINDS) do
 			module[kind] = module[kind] or {}
-			module[kind].style = "plate"
+			for key, value in pairs(U.Older(kind)) do
+				if module[kind][key] == nil then
+					module[kind][key] = value
+				end
+			end
+			module[kind].style = opts.plate and "plate" or "lumen"
 		end
 	end
 	opts.boot = false

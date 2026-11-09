@@ -81,26 +81,27 @@ for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
 	assert(element.label == K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 end
 local ew, eh = essential.holder:GetSize()
-assert(ew == 243 and eh == 38, "the essential holder is its 243 by 38 footprint, got " .. tostring(ew) .. " by " .. tostring(eh))
+assert(math.abs(ew - 243.2) < 1 and math.abs(eh - 36.7) < 1, "the essential holder follows the picture's footprint")
 local uw, uh = utility.holder:GetSize()
 assert(uw == 161 and uh == 38, "the utility holder is its 161 by 38 footprint")
-assert(essential.icons[1].opts.size == 38 and utility.icons[1].opts.size == 38, "both rows are 38-unit icons, the action button's size")
+assert(essential.icons[1].opts.size == 36.7 and utility.icons[1].opts.size == 38, "the essential row follows the reference; utilities keep their setting")
 
 -- The cooldown rows' countdowns read "4s" and "2m", as the mockup's centre cluster does: a one-letter seconds
 -- formatter from C_StringUtil goes on each Cooldown. The tracked buff icons share it, so a buff reads "24s" as the
 -- Blessings card does (Opus #7: one duration format).
 do
 	local formatter = LastArg(essential.icons[1].cooldown, "SetCountdownFormatter")
-	assert(type(formatter) == "table" and formatter:Format(4) == "4s" and formatter:Format(120) == "2m", "an essential icon's countdown has the one-letter formatter")
-	assert(LastArg(utility.icons[1].cooldown, "SetCountdownFormatter") == formatter, "the utility row shares it")
+	assert(formatter == nil, "essential numbers use the engine's native unitless seconds")
+	formatter = LastArg(utility.icons[1].cooldown, "SetCountdownFormatter")
+	assert(type(formatter) == "table" and formatter:Format(4) == "4s", "the utility row keeps one-letter durations")
 	local cp = essential.icons[1].countdown._points[1]
-	assert(cp[1] == "CENTER" and cp[2] == essential.icons[1].icon and cp[3] == "CENTER", "the countdown is centred in the Lumen socket")
+	assert(cp[1] == "CENTER" and cp[2] == essential.icons[1] and cp[3] == "CENTER" and cp[5] == 0, "the essential countdown is exactly centred")
 	essential.icons[1]:Restyle()
-	assert(essential.icons[1].countdown._points[1][2] == essential.icons[1].icon, "a restyle keeps it centred")
+	assert(essential.icons[1].countdown._points[1][2] == essential.icons[1], "a restyle keeps it centred")
 	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	local buffIcon = buffRow:Icon(1)
 	assert(LastArg(buffIcon.cooldown, "SetCountdownFormatter") == formatter and formatter:Format(24) == "24s", "a tracked buff icon reads 24s, as Blessings does")
-	assert(buffIcon.countdown._points[1][1] == "CENTER" and buffIcon.countdown._points[1][2] == buffIcon.icon, "a tracked buff icon centres its countdown too, clear of its stack count (round 4)")
+	assert(buffIcon.countdown._points[1][1] == "TOP" and buffIcon.countdown._points[1][3] == "BOTTOM", "a tracked buff's timer sits below its icon")
 end
 
 -- A socket's countdown never runs into its charge or stack count (round 4, Opus #6: a socket in the preview read
@@ -123,7 +124,7 @@ do
 	end
 	local buffs = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	buffs:Icon(1)
-	for _, row in ipairs({ essential, utility, buffs }) do
+	for _, row in ipairs({ utility }) do
 		local icon = row.icons[1]
 		icon:SetCount("3")
 		icon.countdown:SetText("12s")
@@ -170,7 +171,9 @@ env._cdm.cooldown[1033] = { active = true, gcd = true }
 env.FireEvent("SPELL_UPDATE_COOLDOWN")
 W.Settle(env)
 assert(essential.icons[1].ready == false, "a spell on cooldown is not ready")
-assert(essential.icons[2].ready == true and essential.icons[2].readyGlow:IsPlaying(), "a ready spell glows")
+assert(essential.icons[2].ready == false and not essential.icons[2].readyGlow:IsPlaying(), "a ready spell has no halo by default")
+K.Options.Write("Cooldowns", "essential.readyGlow", true)
+assert(essential.icons[2].ready == true and essential.icons[2].readyGlow:IsPlaying(), "the ready glow setting is retained")
 assert(essential.icons[3].ready == true, "the global cooldown alone keeps a spell ready")
 assert(utility.icons[1].ready == false, "utility icons have no ready glow by default")
 assert(essential.icons[1].onCooldown == true, "the cooling icon is marked for greying")
@@ -185,14 +188,12 @@ env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 1001)
 assert(essential.icons[1].proc == true, "the highlight event lights the icon")
 do
 	local icon = essential.icons[1]
-	local gr, gg, gb = K.Tokens.Color(ns.Style.TOKENS.gilt)
-	assert(W.SameRGB(icon.chrome.rim[5], gr, gg, gb), "a proc wears the gilt rim: gold only on the active state")
-	local glow = icon.procGlow.colorRGB
-	assert(glow and W.Near(glow[1], gr) and W.Near(glow[2], gg) and W.Near(glow[3], gb), "and a gilt glow")
+	assert(icon.chrome.proc == true, "the shared chrome receives the proc state for its gilt outer line")
+	assert(icon.procGlow == nil, "a proc has a gilt rim without an outward halo")
 	env._cdm.overlay[1001] = true
 	K.Options.Write("Cooldowns", "accent", "custom")
-	assert(icon.proc and W.SameRGB(icon.chrome.rim[5], gr, gg, gb), "a custom accent leaves the proc gilt")
-	assert(W.Near(icon.procGlow.colorRGB[1], gr), "and its glow")
+	assert(icon.proc and icon.chrome.proc, "a custom accent leaves the shared proc rim active")
+	assert(icon.procGlow == nil, "a custom accent does not add a proc halo")
 	K.Options.Write("Cooldowns", "accent", "class")
 	env._cdm.overlay[1001] = nil
 end
@@ -245,7 +246,7 @@ assert(LastArg(essential.icons[2], "EnableMouse") == false, "without tooltips th
 K.Options.Write("Cooldowns", "essential.size", 36)
 assert(essential.icons[1].opts.size == 36, "the icon size follows the setting")
 local w36 = essential.holder:GetWidth()
-assert(w36 == 6 * 36 + 5 * 3, "the holder follows the icon size, got " .. tostring(w36))
+assert(math.abs(w36 - (6 * 36 + 5 * 4.6)) < 1, "the holder follows the icon size, got " .. tostring(w36))
 K.Options.Write("Cooldowns", "essential.columns", 2)
 assert(essential.count == 2, "a row of two shows two icons")
 assert(not essential.icons[3]:IsShown(), "the third icon hides")

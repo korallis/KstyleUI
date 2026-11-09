@@ -180,6 +180,70 @@ Store.migrations[9] = function(data)
 	end
 end
 
+Store.migrations[10] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	if not (layouts and layouts.UpgradeCentre) then
+		return
+	end
+	for name, layout in pairs(data.layouts) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local appearance = type(profile.Appearance) == "table" and profile.Appearance or {}
+		local size = appearance.uiScale
+		if type(size) ~= "number" or size ~= size or size <= 0 then
+			size = ns.Appearance.defaults.uiScale
+		end
+		layouts.UpgradeCentre(layout, 1080 / size)
+	end
+	local defaults = {
+		UnitFrames = {
+			player = { style = "lumen", healthColor = "class", castbarColor = "class", castbarCaps = false, powerHeight = 5 },
+			target = { style = "lumen", healthColor = "reaction", castbarCaps = false, castbarIcon = true, healthOrientation = "RIGHT", powerOrientation = "RIGHT", auraSpacing = 2, auraSize = 28, auraColumns = 14, auraPosition = "CENTER" },
+		},
+		ActionBars = { bar1 = { size = 38, spacing = 3 }, bar2 = { size = 38, spacing = 3, showEmpty = false } },
+		Cooldowns = { essential = { size = 38, spacing = 3, timerSize = 13, readyGlow = true }, buffs = { size = 38, spacing = 3, growth = "center", timerSize = 12, countSize = 10 } },
+		DataBars = { xp = { text = "percentRested", border = true } },
+	}
+	for _, profile in pairs(data.profiles) do
+		for module, groups in pairs(defaults) do
+			local section = type(profile) == "table" and profile[module]
+			for group, fields in pairs(type(section) == "table" and groups or {}) do
+				local values = section[group]
+				if type(values) == "table" and (module ~= "UnitFrames" or values.style == nil or values.style == "lumen") then
+					if module == "UnitFrames" then
+						local texture = ns.Tokens.MediaList("statusbar")[1].path
+						for _, key in ipairs({ "healthTexture", "powerTexture" }) do
+							if values[key] == texture then
+								values[key] = nil
+							end
+						end
+						local fonts = values.fonts
+						if type(fonts) == "table" then
+							if type(fonts.name) == "table" and fonts.name.size == 17 then
+								fonts.name.size = nil
+							end
+							if group == "target" and type(fonts.health) == "table" and fonts.health.size == 12 then
+								fonts.health.size = nil
+							end
+						end
+					end
+					for key, value in pairs(fields) do
+						if values[key] == value then
+							values[key] = nil
+						end
+					end
+				end
+			end
+		end
+		local bars = type(profile) == "table" and profile.DataBars
+		local xp = type(bars) == "table" and bars.xp
+		local color = type(xp) == "table" and xp.restedColor
+		local r, g, b = ns.Tokens.Color("rare")
+		if type(color) == "table" and color.r == r and color.g == g and color.b == b and color.a == 0.5 then
+			xp.restedColor = nil
+		end
+	end
+end
+
 local PREFIX = "KSUI1:"
 local LUA_MAGIC = "KSL1:"
 local KIND = "KstyleUI profile"

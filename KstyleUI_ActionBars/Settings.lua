@@ -13,7 +13,7 @@ local PAGING_LETTERS = 255
 local ON_BY_DEFAULT = { bar1 = true, bar2 = true, pet = true, stance = true }
 
 ns.TEXTS = {
-	{ key = "hotkey", role = "caption", label = L["Keybind text"] },
+	{ key = "hotkey", role = "number", label = L["Keybind text"] },
 	{ key = "count", role = "number", label = L["Count text"] },
 	{ key = "macro", role = "caption", label = L["Macro name text"] },
 	{ key = "cooldown", role = "number", label = L["Cooldown numbers"] },
@@ -34,7 +34,7 @@ local function BarDefaults(def)
 		orientation = "HORIZONTAL",
 		growth = grid.growth or "RIGHTDOWN",
 		size = grid.size,
-		spacing = Tokens.Size("actionGap"),
+		spacing = grid.spacing or Tokens.Size("actionGap"),
 		fade = false,
 		fadeAlpha = 0,
 		hotkey = true,
