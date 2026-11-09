@@ -1,4 +1,4 @@
--- Chrome.lua: KstyleUI's one glass card, buttons, scroll bars, ring checks, edit boxes, accent titles and the Lumen cap on every RestedXP Guides window: the guide reads as one card (the cap with the guide's name and step above the active steps, the route's caption row, the folded list and the footer, with the quests docked under it when the story rail holds both), applied as RestedXP makes or first shows each window, and on RestedXP's menus only while RestedXP shows them.
+-- Chrome.lua: KstyleUI's one glass card, buttons, scroll bars, ring checks, edit boxes, accent titles and the Lumen cap on every RestedXP Guides window: the guide reads as one card (the cap with the guide's name and step above the active steps, the route's caption row when the guide's name runs to two lines (RestedXP's appended guide group and its version footer are hushed: the cap already names the guide), the folded list and the footer's cog, with the quests docked under it when the story rail holds both), applied as RestedXP makes or first shows each window, and on RestedXP's menus only while RestedXP shows them.
 local _, ns = ...
 
 local K = KstyleUI
@@ -31,7 +31,7 @@ local LIST_LEFT, LIST_RIGHT, RXP_LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
 local FOOTER_RISE, FOOTER_CLEAR = 6, "gapSmall"
 local CAP_ROW, CAP_AIR, CAP_LEFT, CAP_RIGHT = 16, "gapSmall", RXP_MARGIN, RXP_MARGIN
-local META_ROW, META_LEFT = 18, "gapSmall"
+local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
 
@@ -134,7 +134,7 @@ local function Glass(frame, opts)
 	if opts.tile then
 		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = inset })
 	end
-	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target })
+	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt })
 end
 
 function Chrome.Reach(frame)
@@ -285,13 +285,6 @@ local function Title(text)
 	end
 end
 
-local function Caption(text, colorName)
-	if IsTable(text) and type(text.SetFont) == "function" then
-		Style.Text(text, "caption")
-		Widgets.TextColor(text, colorName or "text")
-	end
-end
-
 local function Rehush(text)
 	local entry = hushed[text]
 	if entry and not entry.busy then
@@ -372,11 +365,18 @@ local function FitHead(path)
 	cap:SetTitle(path.titleValue)
 	cap:SetTrail(Trail(path.frame))
 	local meta, value = path.meta, path.metaValue
+	local shown = value ~= "" and not path.metaHushed
 	meta:SetText(value)
-	meta:SetShown(value ~= "")
+	meta:SetShown(shown)
 	path.capHeight = CAP_ROW + 2 * Tokens.Size(CAP_AIR)
-	path.height = META_ROW
+	path.height = shown and META_ROW or Tokens.Size(META_CLOSED)
+	path.header:SetHeight(Widgets.Snap(path.header, path.height))
 	PlaceHead(path)
+end
+
+local function Subgroup()
+	local guide = IsTable(state.rxp) and state.rxp.currentGuide
+	return IsTable(guide) and PlainText(guide.subgroup) or ""
 end
 
 local function SetHeading(path, value)
@@ -384,6 +384,8 @@ local function SetHeading(path, value)
 	local first, rest = value:match("^([^\n]*)\n?(.*)$")
 	path.titleValue = (first or value):gsub("^%s+", ""):gsub("%s+$", "")
 	path.metaValue = (rest or ""):gsub("%s*\n%s*", " "):gsub("^%s+", ""):gsub("%s+$", "")
+	local subgroup = Subgroup()
+	path.metaHushed = subgroup ~= "" and path.metaValue == subgroup
 	FitHead(path)
 end
 
@@ -394,7 +396,7 @@ local function RestylePath(path)
 	cap.row:SetPoint("TOPLEFT", path.holder, "TOPLEFT", 0, -air)
 	cap.row:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT", 0, -air)
 	cap.row:SetHeight(Widgets.Snap(cap.row, CAP_ROW))
-	header:SetHeight(Widgets.Snap(header, META_ROW))
+	header:SetHeight(Widgets.Snap(header, path.height))
 	Style.Text(meta, "caption", "text")
 	meta:ClearAllPoints()
 	meta:SetPoint("LEFT", header, "LEFT", Widgets.Snap(meta, Tokens.Size(META_LEFT)), 0)
@@ -605,7 +607,7 @@ local function GuideWindow(rxp)
 	if name then
 		Skin.Strip(name, { children = RXP_ART })
 	end
-	local glass = path and Glass(f, { reach = true, target = path.card })
+	local glass = path and Glass(f, { reach = true, target = path.card, gilt = false })
 	if path then
 		path.OnHead = function()
 			if state.guide then
@@ -623,7 +625,9 @@ local function GuideWindow(rxp)
 	local footer = Find(f, "Footer")
 	if footer then
 		Skin.Strip(footer, { children = RXP_ART })
-		Caption(footer.text)
+		if IsTable(footer.text) and type(footer.text.SetAlpha) == "function" then
+			HushText(footer.text)
+		end
 	end
 	local bar = IsTable(f.ScrollFrame) and f.ScrollFrame.ScrollBar or Find(f, "ScrollFrame.ScrollBar")
 	ScrollBar(bar)

@@ -70,6 +70,9 @@ function Skins.Add(def)
 	if def.defaults and def.defaults.enabled ~= nil then
 		Fail(key .. ": enabled is the window's switch, which the registry adds; leave it out of defaults")
 	end
+	if def.live ~= nil and type(def.live) ~= "boolean" then
+		Fail(key .. ": live is true for a skin whose OnSwitch undoes it at once, so turning it off needs no reload")
+	end
 	if def.rows ~= nil and (type(def.rows) ~= "table" or type(def.defaults) ~= "table") then
 		Fail(key .. ": rows must be a list of settings rows, with defaults for their keys")
 	end
@@ -291,6 +294,9 @@ local function OnSetting(_, module, key, value)
 		Arm(def)
 	elseif applied[def.key] then
 		Switch(def, false)
+		if def.live then
+			return
+		end
 		K.Widgets.ReloadPrompt(string.format(L["%s keeps its KstyleUI look until you reload."], def.label))
 	end
 end
@@ -298,7 +304,7 @@ end
 local function PromptSwitchedOff()
 	local labels = {}
 	for _, def in ipairs(order) do
-		if applied[def.key] and not Skins.IsOn(def.key) then
+		if applied[def.key] and not def.live and not Skins.IsOn(def.key) then
 			labels[#labels + 1] = def.label
 		end
 	end

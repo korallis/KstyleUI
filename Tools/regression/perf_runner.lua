@@ -20,6 +20,7 @@ local ATTEMPTS = 3
 local GROUPS = {
 	core = { "Core.lua", "KstyleUI_ActionBars.lua", "KstyleUI_CombatText.lua", "KstyleUI_Cooldowns.lua", "KstyleUI_GroupFrames.lua", "KstyleUI_Meters.lua" },
 	frames = { "KstyleUI_Nameplates.lua", "KstyleUI_UnitFrames.lua" },
+	skins = { "KstyleUI_Skins.lua" },
 }
 
 local DIR = "Tools/regression/perf"

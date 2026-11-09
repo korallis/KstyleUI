@@ -268,7 +268,7 @@ local function Backdrop(frame, opts)
 	if opts.icon then
 		panel.chrome = W().IconChrome(panel, {})
 	else
-		panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow, edge = opts.edge })
+		panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow, edge = opts.edge, gilt = opts.gilt })
 	end
 	W().Track(panel)
 	parts.backdrop = panel

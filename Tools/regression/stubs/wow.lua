@@ -293,14 +293,6 @@ function Object:SetAllPoints(relative)
 end
 -- GetRect reads frame._rect { left, bottom, width, height } when a test sets it, otherwise a rect of the
 -- frame's size at the origin, or nothing for a frame with no size.
-function Object:GetRect()
-	if self._rect then
-		return unpack(self._rect, 1, 4)
-	end
-	if type(self._width) == "number" and type(self._height) == "number" then
-		return 0, 0, self._width, self._height
-	end
-end
 function Object:GetNumPoints() return #self._points end
 function Object:GetPoint(i)
 	local p = self._points[i or 1]
@@ -335,6 +327,26 @@ local function placed(self)
 	local eff = self:GetEffectiveScale()
 	local k = UI_HEIGHT / SCREEN_UNITS / (type(eff) == "number" and eff > 0 and eff or 1)
 	return { left = x * k, right = (x + w) * k, top = (SCREEN_UNITS - y) * k, bottom = (SCREEN_UNITS - y - h) * k }
+end
+-- GetRect reads frame._rect { left, bottom, width, height } when a test sets it, otherwise a rect of the object's
+-- size at the origin, or nothing for an object with no size. In an environment with _resolveRects set, an anchored
+-- object answers from the same solver as GetLeft instead, and nil when its anchors cannot place it (a loop, a target
+-- with no rect, one point and no size), as the game does: Edit Mode's GetScaledSelectionSides then does arithmetic
+-- on nil. The solver is slow, so only the tests that hold a frame's rect turn it on.
+function Object:GetRect()
+	if self._rect then
+		return unpack(self._rect, 1, 4)
+	end
+	if #self._points > 0 and self._env and self._env._resolveRects and self._env.GetPhysicalScreenSize then
+		local r = placed(self)
+		if not r then
+			return nil
+		end
+		return r.left, r.bottom, r.right - r.left, r.top - r.bottom
+	end
+	if type(self._width) == "number" and type(self._height) == "number" then
+		return 0, 0, self._width, self._height
+	end
 end
 function Object:GetLeft() local r = placed(self) return r and r.left end
 function Object:GetRight() local r = placed(self) return r and r.right end

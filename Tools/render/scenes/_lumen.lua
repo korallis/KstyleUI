@@ -24,11 +24,16 @@ local Lumen = {}
 
 local HEIGHT = 1080
 
--- The mockup's questing board: the quests the tracker lists, and the party around the player.
+-- The mockup's questing board: the seven quests the player tracks, of which the quest card shows three and scrolls
+-- to the rest, with Forever's level on each title; and the party around the player.
 Lumen.QUESTS = {
-	{ title = "Threat from Below", objectives = { "Ready for turn-in" }, questID = 201, superTracked = true },
-	{ title = "Break a Few Eggs", objectives = { "Taillasher Egg 0/3" }, questID = 202 },
-	{ title = "Encroachment", objectives = { "Bloodtalon Scythemaw 0/16" }, questID = 203 },
+	{ title = "Threat from Below", level = 7, objectives = { "Ready for turn-in" }, complete = true, questID = 201, superTracked = true },
+	{ title = "Break a Few Eggs", level = 8, objectives = { "Taillasher Egg 0/3" }, questID = 202 },
+	{ title = "Encroachment", level = 9, objectives = { "Bloodtalon Scythemaw 0/16" }, questID = 203 },
+	{ title = "The Admiral's Orders", level = 8, objectives = { "Speak to Admiral Proudmoore 0/1" }, questID = 204 },
+	{ title = "Dark Storms", level = 9, objectives = { "Burning Blade Medallion 0/1" }, questID = 205 },
+	{ title = "Thazz'ril's Pick", level = 7, objectives = { "Thazz'ril's Pick 0/1" }, questID = 206 },
+	{ title = "Carry Your Weight", level = 9, objectives = { "Canvas Scraps 2/8", "Kul Tiras Sailor slain 3/10" }, questID = 207 },
 }
 Lumen.PARTY = {
 	questing = { { "Leduc", "PALADIN", 92, "HEALER" }, { "Trolly", "PRIEST", 100, "DAMAGER" } },
@@ -91,8 +96,12 @@ function Lumen.Rail(built, R)
 	local parts = R.K.Skin.Parts(f)
 	add("guide", R.env, parts and parts.backdrop)
 	local env = Hud.envs[tracker.scene]
-	parts = env.KstyleUI.Skin.Parts(tracker.extra)
-	add("quests", env, parts and parts.backdrop)
+	if tracker.ns.Quests.Active() then
+		add("quests", env, tracker.ns.Quests.Parts().glass)
+	else
+		parts = env.KstyleUI.Skin.Parts(tracker.extra)
+		add("quests", env, parts and parts.backdrop)
+	end
 	add("chat", Hud.envs[chat.scene], chat.ns.Panel.Glass())
 	table.sort(out, function(a, b)
 		return a.top < b.top
@@ -151,7 +160,9 @@ function Lumen.Build(state, opts)
 	if base.trackerDocked then
 		local tracker = built.tracker
 		local env = Hud.envs[tracker.scene]
-		local fit = tracker.ns.Tracker.Fit()
+		local card = tracker.ns.Quests.Fit()
+		base.dockCard = card ~= nil
+		local fit = card or tracker.ns.Tracker.Fit()
 		local _, top, _, height = Scene.Rect(env, fit)
 		base.dockBottom = top and (HEIGHT - (top + height)) or nil
 		base.dockTop = top and (HEIGHT - top) or nil

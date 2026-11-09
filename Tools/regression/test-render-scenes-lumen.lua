@@ -39,8 +39,9 @@ do
 			what .. " sits in the story slot, got " .. table.concat(r, ", "))
 	end
 	inside(assert(find(questing, "QUESTS"), "the tracker's caption draws"), "the tracker's caption")
-	inside(assert(find(questing, "Encroachment"), "the third quest draws"), "the third quest")
-	inside(assert(find(questing, "RestedXP Guides v4.11.35"), "the guide's footer draws"), "the guide's footer")
+	inside(assert(find(questing, "[9] Encroachment"), "the third quest draws, with Forever's level"), "the third quest")
+	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
+	inside(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), "the guide's active step")
 	assert(find(questing, "GENERAL").rect[2] >= slot.top + slot.height, "the chat's tabs sit under the slot")
 end
 
@@ -68,7 +69,7 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(guide.top >= slot.top - 0.5, scene.state .. ": the guide's card starts inside the story slot, got " .. guide.top .. " for " .. slot.top)
 	local quests = assert(find(scene, "QUESTS"), scene.state .. ": the QUESTS cap draws")
 	local last = assert(find(scene, "Bloodtalon Scythemaw"), scene.state .. ": the last quest line draws")
-	for _, item in ipairs({ quests, last, find(scene, "6-10 DUROTAR"), find(scene, "RestedXP Guides v4.11.35") }) do
+	for _, item in ipairs({ quests, last, find(scene, "6-10 DUROTAR"), find(scene, "Step 34") }) do
 		assert(item, scene.state .. ": a rail text draws")
 		local r = item.rect
 		assert(r[2] >= guide.top and r[2] + r[4] <= guide.top + guide.height + 0.5, scene.state .. ": '" .. plain(item.text) .. "' lies inside the guide's card, got " .. r[2] .. " to " .. (r[2] + r[4]) .. " for " .. guide.top .. " to " .. (guide.top + guide.height))
@@ -114,7 +115,7 @@ do
 		assert(near(item.alpha, 0.75), text .. " is read mid-pull and dims only to 75% in combat, got " .. tostring(item.alpha))
 	end
 	-- Round 5 (Muse 6e): the story card, objective lines over bright scenery, rests at 90%, above the chat card.
-	for _, text in ipairs({ "QUESTS", "RestedXP Guides v4.11.35" }) do
+	for _, text in ipairs({ "QUESTS", "6-10 DUROTAR" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 0.9), text .. " is on the story card and dims only to 90% in combat, got " .. tostring(item.alpha))
 	end
