@@ -151,6 +151,33 @@ A.W.Leave(more)
 env.RunTimers()
 check(not more:IsShown(), "leaving the list closes it")
 
+-- Thirteen debuffs: the rows show twelve of them, and the count says so, whichever group holds the thirteenth.
+fill(slots.HELPFUL, 8)
+fill(slots.HARMFUL, 13)
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(cap.frame.count:GetText() == "+1", "a debuff past the rows counts: " .. tostring(cap.frame.count:GetText()))
+state(40)
+
+-- Dispellable first switches off and on without a reload: the dispellable group stands down and the rest takes
+-- every debuff, then both come back with their filters.
+K.Options.Write("Auras", "debuffs.dispelFirst", false)
+env.RunTimers()
+check(dispel.enabled == false and rest.enabled == true, "off: the dispellable group stands down")
+check(rest.candidateFilters == nil, "and the rest group admits every debuff")
+K.Options.Write("Auras", "debuffs.dispelFirst", true)
+env.RunTimers()
+check(dispel.enabled == true and rest.candidateFilters and rest.candidateFilters.excludeDispelTypes, "on: both groups and their filters return")
+
+-- The full list follows the settings: a new timer size reaches its groups' layout and buttons.
+K.Options.Write("Auras", "timer.size", 16)
+env.RunTimers()
+local fullLayout = full._groups.buffs.layout
+check(fullLayout.elementHeight > fullGroup.layout.elementWidth, "the full list's tiles grow for the larger timer: " .. tostring(fullLayout.elementHeight))
+check(near(fullLayout.elementHeight, Model.MORE.iconSize + Model.TimerArea(Model.Timer(K.Store.Module("Auras"))), 1), "to the compact tile plus the new timer area")
+K.Options.Write("Auras", "timer.size", 12)
+env.RunTimers()
+
 -- In combat the counts are secret: the card keeps the count it last knew, and never hides.
 env._aurasSecret = true
 env.SetCombat(true)

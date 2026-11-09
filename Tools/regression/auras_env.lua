@@ -243,6 +243,10 @@ local function installContainer(env, container)
 		assert(type(enabled) == "boolean", "enabled must be a boolean.")
 		required(self, key).enabled = enabled
 	end
+	function container.SetAuraGroupCandidateFilters(self, key, candidates)
+		assert(candidates == nil or type(candidates) == "table", "candidateFilters must be a table or nil.")
+		required(self, key).candidateFilters = candidates
+	end
 	function container.SetAuraGroupFilterString(self, key, filter)
 		assert(validFilter(filter), "invalid filter string " .. tostring(filter))
 		required(self, key).filter = filter

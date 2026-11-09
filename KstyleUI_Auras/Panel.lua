@@ -284,10 +284,14 @@ local function GroupLayout(ctx)
 end
 
 local function Keys(desc)
-	if desc.name == "debuffs" and desc.ctx.group.dispelFirst then
+	if desc.name == "debuffs" then
 		return { DISPEL_GROUP, REST_GROUP }
 	end
 	return { desc.name }
+end
+
+local function Active(desc, key)
+	return key ~= DISPEL_GROUP or desc.ctx.group.dispelFirst == true
 end
 
 local function DispelSet()
@@ -356,11 +360,29 @@ local function ActiveEnchants(desc)
 	return n
 end
 
+local function ApplyGroups(desc, container, ctx, capacity)
+	local method, direction = SortEnums(ctx.group)
+	for _, key in ipairs(desc.keys) do
+		container:SetAuraGroupLayout(key, GroupLayout(ctx))
+		if method ~= nil and direction ~= nil then
+			container:SetAuraGroupSortMethod(key, method, direction)
+		end
+		container:SetAuraGroupMaxFrameCount(key, capacity)
+		if #desc.keys > 1 then
+			container:SetAuraGroupEnabled(key, Active(desc, key))
+			if type(container.SetAuraGroupCandidateFilters) == "function" then
+				container:SetAuraGroupCandidateFilters(key, Candidates(desc, key))
+			end
+		end
+	end
+end
+
 local function UpdateCapacity(desc)
 	local capacity = Model.Capacity(desc.ctx.group, ActiveEnchants(desc))
 	for _, key in ipairs(desc.keys) do
 		desc.container:SetAuraGroupMaxFrameCount(key, capacity)
 	end
+	return capacity
 end
 
 local function Init(desc, button)
@@ -639,14 +661,7 @@ local function ApplyContainer(desc)
 	container:ClearAllPoints()
 	local edge = Model.ContainerAnchor(ctx.group.growth)
 	container:SetPoint(edge, desc.content, edge, 0, 0)
-	local method, direction = SortEnums(ctx.group)
-	for _, key in ipairs(desc.keys) do
-		container:SetAuraGroupLayout(key, GroupLayout(ctx))
-		if method ~= nil and direction ~= nil then
-			container:SetAuraGroupSortMethod(key, method, direction)
-		end
-	end
-	UpdateCapacity(desc)
+	ApplyGroups(desc, container, ctx, Model.Capacity(ctx.group, ActiveEnchants(desc)))
 	local slots = EnchantSlots(desc)
 	for i, enchant in ipairs(desc.enchants) do
 		container:SetItemEnchantmentEnabled(enchant.slot, i <= slots)
@@ -737,6 +752,7 @@ local function MoreGroup(desc, name)
 	local directions = AnchorUtil.FlowDirection
 	container:SetFlowLayoutAnchorPoint("TOPLEFT")
 	container:SetFlowLayoutGrowthDirection(directions.Right, directions.Down)
+	ApplyGroups(entry, container, entry.ctx, Model.MORE[name])
 	container:SetFlowLayoutMaximumLineSize(entry.ctx.lineSize)
 	return entry
 end
@@ -771,7 +787,7 @@ local function LayoutMore(desc)
 	rule:Hide()
 	for _, name in ipairs(Model.GROUPS) do
 		local entry = card.moreGroups[name]
-		local shown = math.min(counts[name] or 0, Model.MORE[name])
+		local shown = entry and math.min(counts[name] or 0, Model.MORE[name] * #entry.keys) or 0
 		if entry and shown > 0 then
 			local ctx = entry.ctx
 			local columns = math.min(shown, ctx.group.columns)
@@ -803,6 +819,25 @@ local function LayoutMore(desc)
 	more:ClearAllPoints()
 	more:SetPoint("TOPRIGHT", desc.host, "TOPLEFT", -Widgets.Snap(more, MORE_GAP), 0)
 	card.moreChrome:SetEdge("edgeInner")
+end
+
+local function ApplyMore(desc)
+	local card = desc.card
+	if not (card and card.moreGroups) then
+		return
+	end
+	for name, entry in pairs(card.moreGroups) do
+		local source = groups[name]
+		if source and not source.failed then
+			entry.ctx = MoreContext(source, card.more)
+			ApplyGroups(entry, entry.container, entry.ctx, Model.MORE[name])
+			entry.container:SetFlowLayoutMaximumLineSize(entry.ctx.lineSize)
+			RestyleButtons(entry)
+		end
+	end
+	if card.more:IsShown() then
+		LayoutMore(desc)
+	end
 end
 
 function Panel.OpenMore(desc)
@@ -882,10 +917,13 @@ function Fit(unknown)
 		empty = buffs == 0 and enchants == 0 and (not docked or debuffs == 0)
 		local over = math.max(0, buffs - Model.Capacity(desc.ctx.group, enchants))
 		if docked and other and not other.failed then
-			over = over + math.max(0, debuffs - Model.Capacity(other.ctx.group, 0) * #other.keys)
+			over = over + math.max(0, debuffs - Model.Capacity(other.ctx.group, 0))
 		end
 		card.counts = { buffs = buffs, debuffs = debuffs }
 		SetMore(desc, over)
+		if card.more and card.more:IsShown() then
+			LayoutMore(desc)
+		end
 	end
 	if card.band == band and card.empty == empty then
 		return
@@ -926,6 +964,10 @@ local function Apply(desc, relayout)
 	if desc.card then
 		desc.card.band, desc.card.empty = nil, nil
 		Fit()
+	end
+	local card = groups[CARD_GROUP] and groups[CARD_GROUP].card
+	if card and card.moreGroups and card.moreGroups[desc.name] then
+		ApplyMore(groups[CARD_GROUP])
 	end
 end
 
