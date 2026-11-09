@@ -10,6 +10,7 @@ local KEY = "encounterWarnings"
 local FRAME = "RaidWarningFrame"
 local TEXT_HEIGHT = 20
 local ROLE = "world"
+local abs = math.abs
 local PAD_X, PAD_Y = "gapLarge", "gapMedium"
 
 local Encounter = {}
@@ -44,16 +45,20 @@ local function Face(text)
 	Style.ApplyFont(text, ROLE, TEXT_HEIGHT)
 end
 
+local function Fill(text)
+	local width = Plain(text:GetWidth())
+	if width and abs(width - lane) > 0.5 then
+		text:SetWidth(lane)
+	end
+end
+
 local function StyleText(text)
 	if styled[text] then
 		return
 	end
 	styled[text] = true
 	Face(text)
-	local width = Plain(text:GetWidth())
-	if width and width > lane + 0.5 then
-		text:SetWidth(lane)
-	end
+	Fill(text)
 end
 
 local function Fit()
@@ -104,6 +109,7 @@ local function Restyle(self)
 	self:SetWidth(lane + 2 * padX)
 	for text in pairs(styled) do
 		Face(text)
+		Fill(text)
 	end
 	Fit()
 end
@@ -121,6 +127,7 @@ local function Apply()
 	plate.Restyle = Restyle
 	plate:Hide()
 	Widgets.Track(plate)
+	Style.Track(plate)
 	hooksecurefunc(frame, "UpdateLayout", Fit)
 	frame:HookScript("OnUpdate", Fade)
 	Restyle(plate)

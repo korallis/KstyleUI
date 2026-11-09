@@ -105,6 +105,27 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A scale change resizes the lane and every string the pool already made; a change to the skins' shared text settings
+-- reaches the warnings already on screen.
+do
+	local env, K, ns, frame = New()
+	frame:AddMessage(SCREAM, Warnings.BOSS, 6, Warnings.BOSS_EMOTE)
+	local text = Warnings.Strings(frame)[1]
+	local before = frame:GetWidth()
+	K.Scale.Root():SetScale(0.5)
+	K.Widgets.RestyleAll()
+	local lane = K.Setup.EditMode.WARNING_LANE / K.Widgets.ScaleFactor(frame)
+	assert(math.abs(lane - before) > 20, "the scale change moves the lane: " .. before .. " to " .. lane)
+	Near(frame:GetWidth(), lane, "the lane follows the scale")
+	Near(text:GetWidth(), lane, "a string the pool made before the change follows the lane")
+	local plate = Plate(ns)
+	assert(plate:GetWidth() > text:GetWidth(), "the string stays inside the glass")
+	K.Options.Write("Skins", "text.outline", "outline")
+	local _, _, flags = text:GetFont()
+	assert(flags == select(3, ns.Style.Font("world")) and flags ~= "", "the shared outline setting reaches a warning on screen: " .. tostring(flags))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Off: Blizzard's frame is left alone.
 do
 	local _, _, ns, frame = New({ off = true })

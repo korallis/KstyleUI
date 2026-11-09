@@ -16,7 +16,9 @@ local SCREENS = {
 	{ name = "1080p", width = 1920, height = 1080, uiScale = 1 },
 }
 
-local function Boot(state, screen)
+-- Boot(state, screen, width): width is RaidWarningFrame's width in UIParent's units, a function of the root factor k:
+-- the skin's lane by default (the skin narrows the frame when the module starts, before Apply), nil for Blizzard's 800.
+local function Boot(state, screen, width)
 	local opts = { boot = false, setup = function(env)
 		Install(env, state)
 	end }
@@ -27,6 +29,10 @@ local function Boot(state, screen)
 	end
 	local env, K = W.New(opts)
 	CoreEnv.Boot(env)
+	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
+	local frame = env.CreateFrame("Frame", "RaidWarningFrame", env.UIParent)
+	env.RaidWarningFrame = frame
+	frame:SetSize(width and width(k) or K.Setup.EditMode.WARNING_LANE * k, HEIGHT)
 	return env, K
 end
 
@@ -71,6 +77,36 @@ for _, screen in ipairs(SCREENS) do
 			end
 		end
 		assert(lane.b - sigil.t <= SIGHTLINE, where .. ": the warnings are in the cluster's sightline, " .. math.floor(lane.b - sigil.t) .. " units over the target")
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+end
+
+-- With the skin off the frame keeps Blizzard's 800 units: Apply reserves that width, so it either finds a band that
+-- clears everything at 800 or leaves the warnings where the copied layout had them.
+for _, screen in ipairs(SCREENS) do
+	for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
+		local state = { saved = { { layoutName = "Mine", layoutType = ACCOUNT, systems = Modern().systems } }, active = 1 }
+		local env, K = Boot(state, screen, function()
+			return 800
+		end)
+		assert(K.Setup.Apply({ layout = name, modules = {} }))
+		local where = name .. " on " .. screen.name .. ", unskinned"
+		local entry = Find(Named(state, "KstyleUI " .. name), RAID_WARNING)
+		if not entry.isInDefaultPosition then
+			local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
+			local rw, rh = K.Layout.RootSize()
+			local a = entry.anchorInfo
+			local lane = { l = (a.offsetX - 400) / k, r = (a.offsetX + 400) / k, t = a.offsetY / k }
+			lane.b = lane.t - HEIGHT / k
+			local Layouts = K.Setup.Layouts
+			for key in pairs(Layouts.Get(name)) do
+				if Layouts.Shown(name, key) ~= false then
+					local w, h = Layouts.Footprint(name, key)
+					local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(name)[key], rw, rh)
+					assert(not Overlap(lane, { l = l, b = b, r = r, t = t }), where .. ": Blizzard's full width clears " .. key)
+				end
+			end
+		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end

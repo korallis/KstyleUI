@@ -16,7 +16,7 @@ local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 4
-local WARNING_HEIGHT = 100
+local WARNING_WIDTH, WARNING_HEIGHT = 800, 100
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
 	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 30, floor = 24 },
@@ -290,7 +290,9 @@ local function Warning(name, k, rw, rh, others, chosen)
 	if system == nil or not (sigil and left and right) then
 		return nil
 	end
-	local clear, half, height = Layouts.SIGIL_CLEAR, EditMode.WARNING_LANE / 2, WARNING_HEIGHT / k
+	local frame = RaidWarningFrame
+	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
+	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	local rects, xs = {}, { rw / 2 }
 	local slot = Layouts.Slot(name)
 	if slot then

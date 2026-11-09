@@ -1218,6 +1218,10 @@ function Hud.EditModeLayout(layout, guide, counts)
 		end,
 	}))
 	CoreEnv.Boot(env)
+	-- RaidWarningFrame as the encounter warnings skin leaves it at login, narrowed to the lane, so Apply reserves that width.
+	local warnings = env.CreateFrame("Frame", "RaidWarningFrame", env.UIParent)
+	env.RaidWarningFrame = warnings
+	warnings:SetSize(K.Setup.EditMode.WARNING_LANE * K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale(), 100)
 	if counts then
 		K.Setup.EditMode.CountTracked(function(group)
 			return counts[group]
