@@ -23,8 +23,9 @@ Party()
 M.Enable(env, K)
 local Threat = ns.Threat
 local list = Threat.list
--- The default footprint fits three rows inside the content inset; this test lists up to five.
-assert(K.Layout.Update("meters.threat", { height = 140 }))
+-- The default footprint fits three rows inside the content inset; this test lists up to five Lumen rows (a text
+-- line over a 4-unit pill each) under the section cap.
+assert(K.Layout.Update("meters.threat", { height = 150 }))
 env.RunTimers()
 env.FireEvent("PLAYER_TARGET_CHANGED")
 env.RunTimers()

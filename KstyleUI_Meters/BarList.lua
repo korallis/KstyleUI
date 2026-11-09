@@ -1,4 +1,4 @@
--- BarList.lua: the glass meter panel the damage and threat meters share: a title over a rule, a column heading, and full-width rows that carry a name, a value and a share on a dimmed fill with a class-colour edge.
+-- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside, and full-width rows that carry a name, a value and a share over a 4-unit glowing class pill.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,15 +8,19 @@ local max, min, floor = math.max, math.min, math.floor
 
 local VALUE_EMS = 3.4
 local PERCENT_EMS = 2.6
-local MARK_WIDTH = 24
-local MARK_HEIGHT = 2
 local FILL_ALPHA = 0.5
-local EDGE_HEIGHT = 2
+local PILL_HEIGHT = 4
+local PILL_GAP = 3
+local PILL_GLOW_OUTSET = 3
+local PILL_GLOW_ALPHA = 0.35
 local TEXT_AIR = 2
+local CAP_GAP = "gapMedium"
 
 local BarList = {}
 ns.BarList = BarList
 ns.FILL_ALPHA = FILL_ALPHA
+BarList.PILL_HEIGHT = PILL_HEIGHT
+BarList.PILL_GAP = PILL_GAP
 
 local List = {}
 
@@ -35,7 +39,8 @@ end
 local function NewRow(list)
 	local section = list.section
 	local width = list.barWidth or Tokens.Size("buffBarWidth")
-	local bar = Widgets.StatusBar(list.panel, {
+	local frame = CreateFrame("Frame", nil, list.panel)
+	local bar = Widgets.StatusBar(frame, {
 		texture = ns.Get(section .. ".texture"),
 		background = "buttonFill",
 		smooth = true,
@@ -43,24 +48,18 @@ local function NewRow(list)
 		max = 1,
 		value = 0,
 		width = width,
-		height = ns.Get(section .. ".rowHeight"),
+		height = PILL_HEIGHT,
 	})
-	local edge = Widgets.StatusBar(bar, {
-		texture = ns.Get(section .. ".texture"),
-		background = false,
-		smooth = true,
-		min = 0,
-		max = 1,
-		value = 0,
-		width = width,
-		height = EDGE_HEIGHT,
-	})
+	local glow = frame:CreateTexture(nil, "ARTWORK", nil, -1)
+	glow:SetTexture((Tokens.Texture("pill")))
+	glow:SetBlendMode("ADD")
 	local row = {
+		frame = frame,
 		bar = bar,
-		edge = edge,
-		name = Text(edge, "LEFT"),
-		value = Text(edge, "RIGHT"),
-		percent = Text(edge, "RIGHT"),
+		glow = glow,
+		name = Text(frame, "LEFT"),
+		value = Text(frame, "RIGHT"),
+		percent = Text(frame, "RIGHT"),
 	}
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
 	row.value:SetTextColor(Tokens.Color("textEmphasis"))
@@ -80,7 +79,7 @@ end
 function List:MinRow()
 	local section = self.section
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
-	local text = em + 2 * Widgets.Snap(self.panel, EDGE_HEIGHT) + TEXT_AIR
+	local text = em + TEXT_AIR + PILL_GAP + PILL_HEIGHT
 	return Widgets.Snap(self.panel, max(ns.Get(section .. ".rowHeight"), text))
 end
 
@@ -93,15 +92,15 @@ function List:Top()
 	if not ns.Get(self.section .. ".title") then
 		return pad
 	end
-	return pad + ns.Get(self.section .. ".titleSize") * K.Theme.FontScale() + Tokens.Size("gapMedium")
+	return pad + Widgets.SECTION_CAP_HEIGHT + Tokens.Size(CAP_GAP)
 end
 
 local function Recolor(list, row)
 	local r, g, b = ns.BarColor(list.section, row.class, row.reaction)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
-		row.bar:SetBarColor(r, g, b, FILL_ALPHA)
-		row.edge:SetBarColor(r, g, b)
+		row.bar:SetBarColor(r, g, b, 1)
+		row.glow:SetVertexColor(r, g, b, PILL_GLOW_ALPHA)
 	end
 end
 
@@ -113,46 +112,50 @@ local function StyleRow(list, row)
 	local texture, reverse = ns.Get(section .. ".texture"), ns.Get(section .. ".fill") == "right"
 	row.bar:SetBarTexture(texture)
 	row.bar:SetReverseFill(reverse)
-	row.edge:SetBarTexture(texture)
-	row.edge:SetReverseFill(reverse)
 end
 
 local function PlaceRow(list, row, i)
 	local rowHeight = list.rowHeight
 	local spacing = Spacing(list)
 	local pad, gap = list.pad, list.gap
-	local y = Widgets.Snap(list.panel, list:Top()) + (i - 1) * (rowHeight + spacing)
-	local bar, edge = row.bar, row.edge
+	local panel = list.panel
+	local y = Widgets.Snap(panel, list:Top()) + (i - 1) * (rowHeight + spacing)
+	local frame, bar, glow = row.frame, row.bar, row.glow
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", pad, -y)
+	frame:SetSize(max(1, list.barWidth), rowHeight)
+	local pill = Widgets.Snap(panel, PILL_HEIGHT)
 	bar.opts.width = max(1, list.barWidth)
-	bar.opts.height = rowHeight
+	bar.opts.height = pill
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", list.panel, "TOPLEFT", pad, -y)
-	edge.opts.width = max(1, list.barWidth)
-	edge.opts.height = Widgets.Snap(list.panel, EDGE_HEIGHT)
-	edge:Restyle()
-	edge:ClearAllPoints()
-	edge:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT")
-	edge:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT")
+	bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+	local outset = Widgets.Snap(panel, PILL_GLOW_OUTSET)
+	local fill = bar:GetStatusBarTexture()
+	glow:ClearAllPoints()
+	glow:SetPoint("TOPLEFT", fill, "TOPLEFT", -outset, outset)
+	glow:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", outset, -outset)
+	local line = rowHeight - pill - Widgets.Snap(panel, PILL_GAP)
 	row.percent:ClearAllPoints()
-	row.percent:SetPoint("RIGHT", bar, "RIGHT", -gap, 0)
-	row.percent:SetWidth(list.percentWidth)
+	row.percent:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+	row.percent:SetSize(list.percentWidth, line)
 	row.value:ClearAllPoints()
 	if list.percentWidth > 0 then
 		row.value:SetPoint("RIGHT", row.percent, "LEFT", -gap, 0)
 	else
-		row.value:SetPoint("RIGHT", bar, "RIGHT", -gap, 0)
+		row.value:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 	end
-	row.value:SetWidth(list.valueWidth)
+	row.value:SetSize(list.valueWidth, line)
 	row.value:SetShown(list.valueWidth > 0)
 	row.percent:SetShown(list.percentWidth > 0)
 	local stop = list.valueWidth > 0 and row.value or list.percentWidth > 0 and row.percent or nil
 	row.name:ClearAllPoints()
-	row.name:SetPoint("LEFT", bar, "LEFT", gap, 0)
+	row.name:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+	row.name:SetHeight(line)
 	if stop then
 		row.name:SetPoint("RIGHT", stop, "LEFT", -gap, 0)
 	else
-		row.name:SetPoint("RIGHT", bar, "RIGHT", -gap, 0)
+		row.name:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
 	end
 end
 
@@ -177,24 +180,12 @@ function List:Restyle()
 	self.barWidth = Widgets.Snap(self.panel, width - 2 * self.pad)
 
 	local titled = ns.Get(section .. ".title")
-	self.title:SetShown(titled)
-	self.column:SetShown(titled)
-	self.mark:SetShown(titled)
-	self.rule:SetShown(titled)
-	ns.ApplyFont(self.title, section, "titleSize")
-	ns.ApplyFont(self.column, section, "titleSize")
-	self.title:ClearAllPoints()
-	self.title:SetPoint("TOPLEFT", self.panel, "TOPLEFT", self.pad, -self.pad)
-	self.column:ClearAllPoints()
-	self.column:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -self.pad)
-	self.mark:ClearAllPoints()
-	self.mark:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 0, -Widgets.Snap(self.panel, Tokens.Size("gapTiny")))
-	Widgets.Size(self.mark, MARK_WIDTH, MARK_HEIGHT)
-	self.mark:SetVertexColor(ns.Accent())
-	self.rule:ClearAllPoints()
-	self.rule:SetPoint("LEFT", self.mark, "LEFT")
-	self.rule:SetSize(self.barWidth, Widgets.Border(self.panel))
-	Widgets.Tint(self.rule, "edgeInner")
+	local cap = self.cap
+	cap.frame:SetShown(titled)
+	cap.frame:ClearAllPoints()
+	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", self.pad, -self.pad)
+	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -self.pad)
+	cap:Restyle()
 	ns.ApplyFont(self.note, section)
 
 	self.rowHeight = FillHeight(self)
@@ -204,9 +195,7 @@ function List:Restyle()
 		StyleRow(self, row)
 		PlaceRow(self, row, i)
 		if i > capacity then
-			row.bar:Hide()
-			row.value:Hide()
-			row.percent:Hide()
+			row.frame:Hide()
 		end
 	end
 	self.capacity = capacity
@@ -238,11 +227,9 @@ end
 
 function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText)
 	local row = self:Row(i)
-	row.bar:Show()
+	row.frame:Show()
 	row.bar:SetBarRange(0, maxValue)
 	row.bar:SetBarValue(value)
-	row.edge:SetBarRange(0, maxValue)
-	row.edge:SetBarValue(value)
 	row.name:SetText(name)
 	row.value:SetText(valueText)
 	row.percent:SetText(percentText)
@@ -254,10 +241,7 @@ end
 
 function List:Finish(count, note)
 	for i = count + 1, #self.rows do
-		local row = self.rows[i]
-		row.bar:Hide()
-		row.value:Hide()
-		row.percent:Hide()
+		self.rows[i].frame:Hide()
 	end
 	self.count = count
 	if note then
@@ -270,17 +254,11 @@ function List:Finish(count, note)
 end
 
 function List:SetTitle(text)
-	if not Logic.IsSecret(text) and type(text) == "string" then
-		text = text:upper()
-	end
-	self.title:SetText(text)
+	self.cap:SetTitle(text)
 end
 
 function List:SetColumn(text)
-	if not Logic.IsSecret(text) and type(text) == "string" then
-		text = text:upper()
-	end
-	self.column:SetText(text)
+	self.cap:SetAside(text)
 end
 
 function List:Paint()
@@ -293,7 +271,6 @@ function List:Paint()
 	else
 		chrome:SetEdge("edgeInner")
 	end
-	self.mark:SetVertexColor(ns.Accent())
 	for i = 1, #self.rows do
 		Recolor(self, self.rows[i])
 	end
@@ -330,14 +307,8 @@ function BarList.New(parent, section, opts)
 	panel:SetPoint("TOPRIGHT", holder, "TOPRIGHT")
 	panel:SetHeight(opts.height)
 	list.panel = panel
-	list.title = Text(panel, "LEFT")
-	list.title:SetTextColor(Tokens.Color("textEmphasis"))
-	list.column = Text(panel, "RIGHT")
-	list.column:SetTextColor(Tokens.Color("text"))
-	list.rule = panel:CreateTexture(nil, "ARTWORK")
-	list.rule:SetTexture((Tokens.Texture("divider")))
-	list.mark = panel:CreateTexture(nil, "ARTWORK", nil, 1)
-	list.mark:SetTexture((Tokens.Texture("divider")))
+	list.cap = Widgets.SectionCap(panel, {})
+	list.title, list.column = list.cap.title, list.cap.aside
 	list.note = Text(panel, "CENTER")
 	list.note:SetTextColor(Tokens.Color("textDisabled"))
 	list.note:SetPoint("CENTER", panel, "CENTER", 0, -floor(Tokens.Size("gapMedium") / 2))

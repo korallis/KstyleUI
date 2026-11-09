@@ -35,56 +35,61 @@ assert(blizzard:GetParent() ~= env.UIParent, "Blizzard's meter is hidden through
 assert(K.Safe.IsHidden(blizzard), "Safe holds Blizzard's meter")
 assert(M.Calls(blizzard, "Hide") == 0 and M.Calls(blizzard, "SetScript") == 0, "Blizzard's meter is never hidden or scripted directly")
 
--- Each row's track is the near-black button body, as the unit frames' tracks inside their glass, not the kit's translucent track.
+-- Each row's pill track is the near-black button body, as the unit frames' tracks inside their glass.
 do
 	local fr, fg, fb = K.Tokens.Color("buttonFill")
 	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the buttonFill body")
 end
 
--- The title, the rows and the values sit one content inset inside the glass, the rule every text panel follows,
--- so nothing sits under a corner cut or on the light line.
+-- The Lumen card: a section cap (gem, tracked title, fading rule, muted aside) one content inset inside the glass,
+-- then rows of name, value and share with a 4-unit class pill under each, all inside the inset.
 do
 	local inset = list.panel.chrome:Inset()
 	assert(M.W.Near(list.pad, inset), "the meter's padding is the chrome's content inset, got " .. tostring(list.pad) .. " for " .. tostring(inset))
-	local title = { list.title:GetPoint(1) }
-	assert(title[1] == "TOPLEFT" and M.W.Near(title[4], inset) and M.W.Near(title[5], -inset), "the title starts one inset from the top left")
-	local column = { list.column:GetPoint(1) }
-	assert(column[1] == "TOPRIGHT" and M.W.Near(column[4], -inset), "the column heading ends one inset from the right")
+	local cap = list.cap
+	assert(cap and cap.gem and cap.title and cap.rule and cap.aside, "the header is the shared section cap")
+	assert(list.title == cap.title and list.column == cap.aside, "the title and the column heading are the cap's title and aside")
+	local capPoint = { cap.frame:GetPoint(1) }
+	assert(capPoint[1] == "TOPLEFT" and M.W.Near(capPoint[4], inset) and M.W.Near(capPoint[5], -inset), "the cap starts one inset from the top left")
+	local capRight = { cap.frame:GetPoint(2) }
+	assert(capRight[1] == "TOPRIGHT" and M.W.Near(capRight[4], -inset), "the cap spans the content width to one inset from the right")
+	assert(M.W.Near(list:Top(), inset + K.Widgets.SECTION_CAP_HEIGHT + K.Tokens.Size("gapMedium")), "the rows start under the cap and a gap")
 	local row = list.rows[1]
-	local bar = { row.bar:GetPoint(1) }
-	assert(bar[1] == "TOPLEFT" and M.W.Near(bar[4], inset), "each bar starts one inset from the left")
-	-- A row is one bar across the content width that carries its name, value and share, as a player reads a
-	-- meter row; the numbers no longer hang outside a short bar.
-	assert(M.W.Near(row.bar:GetWidth(), list.holder:GetWidth() - 2 * inset), "the bar spans the content width: " .. tostring(row.bar:GetWidth()))
+	local frame = { row.frame:GetPoint(1) }
+	assert(frame[1] == "TOPLEFT" and M.W.Near(frame[4], inset), "each row starts one inset from the left")
+	assert(M.W.Near(row.frame:GetWidth(), list.holder:GetWidth() - 2 * inset), "the row spans the content width: " .. tostring(row.frame:GetWidth()))
 	local percent = { row.percent:GetPoint(1) }
-	assert(percent[2] == row.bar and percent[3] == "RIGHT" and M.W.Near(percent[4], -list.gap), "the share sits a gap inside the bar's right end")
+	assert(percent[2] == row.frame and percent[3] == "TOPRIGHT" and M.W.Near(percent[4], 0), "the share sits at the row's right end")
 	local value = { row.value:GetPoint(1) }
 	assert(value[2] == row.percent and value[3] == "LEFT", "the value sits left of the share")
 	local name = { row.name:GetPoint(2) }
 	assert(name[1] == "RIGHT" and name[2] == row.value and name[3] == "LEFT", "the name stops before the value, so a long name never runs under it")
+	-- The pill: a 4-unit status bar along the row's foot, full width, so a secret amount can still drive it.
+	local pill = { row.bar:GetPoint(1) }
+	assert(pill[1] == "BOTTOMLEFT" and pill[2] == row.frame and M.W.Near(row.bar:GetHeight(), ns.BarList.PILL_HEIGHT), "the class pill runs along the row's foot, " .. ns.BarList.PILL_HEIGHT .. " tall: " .. tostring(row.bar:GetHeight()))
+	assert(ns.BarList.PILL_HEIGHT == 4, "a 4-unit pill")
+	assert(M.W.Near(row.bar:GetWidth(), row.frame:GetWidth()), "the pill spans the row")
+	assert(row.edge == nil, "no separate edge line: the pill is the colour")
+	assert(row.glow and row.glow:GetBlendMode() == "ADD", "a soft glow lies under the pill")
+	local glow = { row.glow:GetPoint(1) }
+	assert(glow[2] == row.bar:GetStatusBarTexture(), "the glow follows the pill's fill, so a secret value moves it too")
 	-- The rows fill the column to one inset above the bottom: no dead band under the last row.
 	local capacity = list:Capacity()
-	local height, spacing = row.bar:GetHeight(), ns.Get("damage.spacing")
+	local height, spacing = row.frame:GetHeight(), ns.Get("damage.spacing")
 	local room = list.holder:GetHeight() - list:Top() - inset
 	assert(height >= ns.Get("damage.rowHeight"), "a row is never shorter than the set height")
+	assert(height >= ns.Get("damage.fontSize") * K.Theme.FontScale() + ns.BarList.PILL_HEIGHT + ns.BarList.PILL_GAP, "a row is never shorter than its text, the gap and the pill")
 	assert(capacity * (height + spacing) - spacing <= room + 0.01 and room - (capacity * (height + spacing) - spacing) < capacity, "the rows fill the column to within a pixel per row: " .. tostring(height) .. " x " .. capacity .. " in " .. tostring(room))
-	-- The header: a faint rule across the content width under the title, the accent mark on it at the left.
-	assert(list.rule and list.rule:IsShown(), "a rule underlines the header")
-	assert(M.W.Near(list.rule:GetWidth(), list.holder:GetWidth() - 2 * inset), "the rule spans the content width")
-	local rule, mark = { list.rule:GetPoint(1) }, { list.mark:GetPoint(1) }
-	assert(rule[2] == list.mark or (rule[2] == list.panel and mark[2] == list.title), "the mark sits on the rule")
 end
 
--- Readable fills: the class colour fills the row dimmed under the text, and a full-strength edge of the same
--- length runs along the row's foot, so the colour still names the class and white text reads on any class.
+-- Readable fills: the class colour fills the pill at full strength under the text line, and the glow is the same
+-- colour, softer; white text reads above it on any class.
 do
 	local row = list.rows[1]
 	local fill = M.Last(row.bar, "SetStatusBarColor")
-	assert(fill and fill[4] and fill[4] < 0.7 and fill[4] >= 0.4, "the fill is the class colour dimmed under the text: " .. tostring(fill and fill[4]))
-	assert(row.edge, "each row has an edge in the class colour")
-	local edge = M.Last(row.edge, "SetStatusBarColor")
-	assert(edge and (edge[4] == nil or edge[4] == 1) and edge[1] == fill[1] and edge[2] == fill[2] and edge[3] == fill[3], "the edge is the same colour at full strength")
-	assert(row.edge:GetHeight() <= 2 and row.edge:GetHeight() > 0, "the edge is a thin line")
+	assert(fill and (fill[4] == nil or fill[4] == 1), "the pill is the class colour at full strength: " .. tostring(fill and fill[4]))
+	local gr, gg, gb, ga = row.glow:GetVertexColor()
+	assert(M.W.Near(gr, fill[1]) and M.W.Near(gg, fill[2]) and M.W.Near(gb, fill[3]) and ga < 0.6 and ga > 0, "the glow is the same colour, softer")
 end
 
 -- Rows mirror the current session.
@@ -96,7 +101,6 @@ assert(Text(list.rows[1].percent) == "57%", "the share of the total shows")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 2840, "bars run to the session's top amount")
 assert(M.Last(list.rows[2].bar, "SetValue")[1] == 2160, "each bar shows its source's amount")
-assert(M.Last(list.rows[2].edge, "SetValue")[1] == 2160 and M.Last(list.rows[1].edge, "SetMinMaxValues")[2] == 2840, "each edge runs as far as its bar")
 assert(Text(list.title) == "DAMAGE DONE", "the title names the meter")
 
 -- Session updates refresh the rows once per burst.
@@ -142,7 +146,6 @@ env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 4)
 env.RunTimers()
 assert(#env._errors == 0, "secret meter values raise no error: " .. tostring(env._errors[1]))
 assert(M.Last(list.rows[1].bar, "SetValue")[1] == secretTotal, "the secret amount goes straight to the bar")
-assert(M.Last(list.rows[1].edge, "SetValue")[1] == secretTotal, "and straight to the edge")
 assert(env.issecretvalue(Text(list.rows[1].name)), "the secret name passes through whole")
 assert(env.issecretvalue(Text(list.rows[1].value)), "the secret amount is abbreviated by the game")
 assert(Text(list.rows[1].percent) == "", "no percentage from secret values")

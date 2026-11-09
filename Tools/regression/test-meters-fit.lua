@@ -22,8 +22,8 @@ end
 -- Where the last shown row (or, with none, the first row's room) ends, measured down from the panel's top.
 local function RowsBottom(list)
 	local row = list.rows[math.max(1, list.count)]
-	local y = select(5, row.bar:GetPoint(1))
-	return -y + row.bar:GetHeight()
+	local y = select(5, row.frame:GetPoint(1))
+	return -y + row.frame:GetHeight()
 end
 
 local function Unused(list)
@@ -62,7 +62,7 @@ assert(same[2] == title[2] and W.Near(same[4], title[4]) and W.Near(same[5], tit
 -- A shrinking session gives the room back.
 Show(env, 2)
 assert(list.count == 2 and math.abs(Unused(list)) <= 1, "two rows after a full list: no dead band, got " .. tostring(Unused(list)))
-assert(not list.rows[3].bar:IsShown(), "rows past the session hide")
+assert(not list.rows[3].frame:IsShown(), "rows past the session hide")
 assert(TopAnchored(list), "still hung from the top")
 
 -- No source: one row of room for the note, which sits inside the glass.
@@ -78,15 +78,15 @@ assert(list.capacity == 0, "a 40-unit holder holds no row")
 assert(list.panel:GetHeight() <= list.holder:GetHeight() + 0.01, "the glass stays inside a short holder: " .. tostring(list.panel:GetHeight()))
 list.holder:SetHeight(fullHeight)
 
--- A large font on a short row: the row grows to hold its text clear of the class edge, and capacity counts the
--- rows at the height they are drawn.
+-- A large font on a short row: the row grows to hold its text line clear of the class pill, and capacity counts
+-- the rows at the height they are drawn.
 M.Write(env, K, "damage.fontSize", 20)
 M.Write(env, K, "damage.rowHeight", 10)
 Show(env, 12)
 local row = list.rows[1]
 local _, size = row.name:GetFont()
-local bar, edge = row.bar:GetHeight(), row.edge:GetHeight()
-assert((bar - size) / 2 >= edge, "a " .. tostring(size) .. " font sits clear of the edge in a " .. tostring(bar) .. "-unit row")
+local bar, pill = row.frame:GetHeight(), row.bar:GetHeight()
+assert(bar - pill - ns.BarList.PILL_GAP >= size, "a " .. tostring(size) .. " font sits clear of the pill in a " .. tostring(bar) .. "-unit row")
 local spacing = K.Widgets.Snap(list.panel, ns.Get("damage.spacing"))
 local room = list.holder:GetHeight() - K.Widgets.Snap(list.panel, list:Top()) - list.pad
 assert(list.capacity * (bar + spacing) - spacing <= room + 0.01, "the rows counted fit at their drawn height: " .. list.capacity .. " x " .. tostring(bar) .. " in " .. tostring(room))
@@ -106,7 +106,7 @@ do
 		hi.holder:SetHeight(height)
 		Show(hiEnv, 30)
 		local pixel = hiK.Scale.Pixel(1) / hiK.Widgets.ScaleFactor(hi.panel)
-		assert(hi.rows[1].bar:GetHeight() >= hi:MinRow() - 0.01, height .. ": a row is never shorter than its minimum, got " .. tostring(hi.rows[1].bar:GetHeight()) .. " for " .. hi:MinRow())
+		assert(hi.rows[1].frame:GetHeight() >= hi:MinRow() - 0.01, height .. ": a row is never shorter than its minimum, got " .. tostring(hi.rows[1].frame:GetHeight()) .. " for " .. hi:MinRow())
 		assert(Unused(hi) >= -0.01 and Unused(hi) < hi.capacity * pixel + 0.01, height .. ": a full list leaves under a pixel per row, got " .. tostring(Unused(hi)))
 	end
 end
