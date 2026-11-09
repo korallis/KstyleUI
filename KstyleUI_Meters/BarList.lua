@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Logic = ns.Logic
-local max, floor = math.max, math.floor
+local max, min, floor = math.max, math.min, math.floor
 
 local VALUE_EMS = 3.4
 local PERCENT_EMS = 2.6
@@ -12,6 +12,7 @@ local MARK_WIDTH = 24
 local MARK_HEIGHT = 2
 local FILL_ALPHA = 0.5
 local EDGE_HEIGHT = 2
+local TEXT_AIR = 2
 
 local BarList = {}
 ns.BarList = BarList
@@ -67,10 +68,24 @@ local function NewRow(list)
 	return row
 end
 
-function List:Capacity()
+local function Spacing(list)
+	return Widgets.Snap(list.panel, ns.Get(list.section .. ".spacing"))
+end
+
+local function Room(list)
+	local _, height = Size(list.holder, list.width, list.height)
+	return height - Widgets.Snap(list.panel, list:Top()) - list.pad
+end
+
+function List:MinRow()
 	local section = self.section
-	local _, height = Size(self.holder, self.width, self.height)
-	return Logic.FitRows(height - self:Top() - self.pad, ns.Get(section .. ".rowHeight"), ns.Get(section .. ".spacing"))
+	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
+	local text = em + 2 * Widgets.Snap(self.panel, EDGE_HEIGHT) + TEXT_AIR
+	return Widgets.Snap(self.panel, max(ns.Get(section .. ".rowHeight"), text))
+end
+
+function List:Capacity()
+	return Logic.FitRows(Room(self), self:MinRow(), Spacing(self))
 end
 
 function List:Top()
@@ -103,9 +118,8 @@ local function StyleRow(list, row)
 end
 
 local function PlaceRow(list, row, i)
-	local section = list.section
 	local rowHeight = list.rowHeight
-	local spacing = Widgets.Snap(list.panel, ns.Get(section .. ".spacing"))
+	local spacing = Spacing(list)
 	local pad, gap = list.pad, list.gap
 	local y = Widgets.Snap(list.panel, list:Top()) + (i - 1) * (rowHeight + spacing)
 	local bar, edge = row.bar, row.edge
@@ -143,11 +157,7 @@ local function PlaceRow(list, row, i)
 end
 
 local function FillHeight(list)
-	local section = list.section
-	local _, height = Size(list.holder, list.width, list.height)
-	local spacing = Widgets.Snap(list.panel, ns.Get(section .. ".spacing"))
-	local room = height - list:Top() - list.pad
-	local fill = Logic.FillRows(room, ns.Get(section .. ".rowHeight"), spacing)
+	local fill = Logic.FillRows(Room(list), list:MinRow(), Spacing(list))
 	local snapped = Widgets.Snap(list.panel, fill)
 	if snapped > fill then
 		snapped = snapped - Widgets.Border(list.panel)
@@ -200,7 +210,19 @@ function List:Restyle()
 		end
 	end
 	self.capacity = capacity
+	self:Fit()
 	self:Paint()
+end
+
+function List:Fit()
+	local _, holderHeight = Size(self.holder, self.width, self.height)
+	local capacity, count = self.capacity or 0, self.count or 0
+	local height = holderHeight
+	if capacity < 1 or count < capacity then
+		local rows, spacing = max(1, min(count, capacity)), Spacing(self)
+		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
+	end
+	self.panel:SetHeight(max(1, min(height, holderHeight)))
 end
 
 function List:Row(i)
@@ -244,6 +266,7 @@ function List:Finish(count, note)
 	else
 		self.note:Hide()
 	end
+	self:Fit()
 end
 
 function List:SetTitle(text)
@@ -303,7 +326,9 @@ function BarList.New(parent, section, opts)
 	holder:SetSize(opts.width, opts.height)
 	list.holder = holder
 	local panel = Widgets.Panel(holder, {})
-	panel:SetAllPoints(holder)
+	panel:SetPoint("TOPLEFT", holder, "TOPLEFT")
+	panel:SetPoint("TOPRIGHT", holder, "TOPRIGHT")
+	panel:SetHeight(opts.height)
 	list.panel = panel
 	list.title = Text(panel, "LEFT")
 	list.title:SetTextColor(Tokens.Color("textEmphasis"))
