@@ -118,6 +118,7 @@ local function Enable()
 	end
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ThemeChanged", MODULE, ApplyAll)
+	K.Callbacks.Register("ScaleChanged", MODULE, ApplyAll)
 	K.Callbacks.Register("ProfileChanged", MODULE, ApplyAll)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 end

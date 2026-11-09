@@ -12,6 +12,13 @@ local function Alpha(texture)
 	return texture:GetAlpha()
 end
 
+local function FontSize(K, text, size, message)
+	local font = W.LastCall(text, "SetFont")
+	assert(font and font[2] == K.Widgets.FontSize(text, size * K.Theme.FontScale()), message)
+	local pixels = font[2] * K.Widgets.ScaleFactor(text) / K.Scale.Pixel(1)
+	assert(math.abs(pixels - math.floor(pixels + 0.5)) < 1e-6, message .. " lands on whole pixels")
+end
+
 local env, K, ns = C.New({ setup = C.Game })
 K.Options.Write("Cooldowns", "path", "reskin")
 C.Enable(env, K)
@@ -23,8 +30,7 @@ assert(Alpha(item.Icon) == 1, "the icon stays")
 assert(Alpha(item.Overlay) == 0, "Blizzard's icon overlay is hushed")
 assert(K.Skin.IsSkinned(item, "Backdrop"), "the item has a KstyleUI backdrop")
 assert(W.LastCall(item.Icon, "SetTexCoord"), "the icon is cropped")
-local font = W.LastCall(item.Cooldown:GetCountdownFontString(), "SetFont")
-assert(font and font[2] == ns.Settings.current.essential.timerSize, "the countdown takes the timer size")
+FontSize(K, item.Cooldown:GetCountdownFontString(), ns.Settings.current.essential.timerSize, "the countdown takes the snapped timer size")
 assert(W.LastCall(item.ChargeCount.Current, "SetFont"), "the charge count is restyled")
 
 -- The restyled icon has the action buttons' dark body and rim: buttonFill, and the accent lifted 15% toward white.
@@ -91,13 +97,11 @@ do
 	assert(buffFormatter and buffFormatter[1]:Format(24) == "24s", "Blizzard's tracked buff icons read 24s too, as Blessings does")
 	-- Edit Mode's IconSize scales each Blizzard item (CooldownViewerMixin:OnAcquireItemFrame); the restyled text is set
 	-- against that scale, so a 50% icon's timer still reads at KstyleUI's own size.
-	local timer = W.LastCall(buffItem.Cooldown:GetCountdownFontString(), "SetFont")
-	assert(W.Near(timer[2], ns3.Settings.current.buffs.timerSize / 0.5), "a half-size icon's timer is set at twice the size, got " .. tostring(timer[2]))
+	FontSize(K3, buffItem.Cooldown:GetCountdownFontString(), ns3.Settings.current.buffs.timerSize / 0.5, "a half-size icon's timer keeps its size on screen")
 	local socket = K3.Skin.Parts(buffItem).backdrop
 	assert(socket.inset == -6, "and its Lumen socket stands 3 units out on screen (an inset of -3 / 0.5), got " .. tostring(socket.inset))
 	local barItem = env3._viewers.BuffBarCooldownViewer._items[1]
-	local name = W.LastCall(barItem.Bar.Name, "SetFont")
-	assert(W.Near(name[2], ns3.Settings.current.bars.nameSize / 0.7), "a 70% bar's name keeps its size on screen, got " .. tostring(name[2]))
+	FontSize(K3, barItem.Bar.Name, ns3.Settings.current.bars.nameSize / 0.7, "a 70% bar's name keeps its size on screen")
 	assert(K3.Skin.IsSkinned(env3._viewers.BuffBarCooldownViewer._items[1].Bar, "Backdrop"), "the buff bars are restyled")
 	assert(not K3.Skin.IsSkinned(env3._viewers.EssentialCooldownViewer._items[1], "Backdrop"), "the mirrored essential viewer is left alone")
 	C.Clean(env3, FORBIDDEN)

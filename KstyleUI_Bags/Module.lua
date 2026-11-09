@@ -86,6 +86,7 @@ local function Enable()
 	end)
 	K.Callbacks.Register("ProfileChanged", MODULE, SettingsChanged)
 	K.Callbacks.Register("ThemeChanged", MODULE, Restyle)
+	K.Callbacks.Register("ScaleChanged", MODULE, Restyle)
 	K.Callbacks.Register("LayoutChanged", MODULE, function(_, key)
 		local window = (key == Inventory.KEY and Inventory.window) or (key == Bank.KEY and Bank.window)
 		if window then

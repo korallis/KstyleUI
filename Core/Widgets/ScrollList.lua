@@ -39,7 +39,7 @@ local function Measure(self)
 		self.tops, self.shortest = nil, nil
 		return
 	end
-	local tops, width, fallback = self.tops or {}, self:GetViewWidth(), RowHeight(self)
+	local tops, width, fallback = self.tops or {}, self:GetViewWidth(), Widgets.Snap(self, RowHeight(self))
 	local y, shortest = 0, nil
 	for i, item in ipairs(self.items) do
 		tops[i] = y

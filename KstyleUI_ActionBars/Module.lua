@@ -77,6 +77,10 @@ local function ApplyAll()
 			Build(def)
 		end
 	end
+	if ns.flyout and ns.flyout.frame then
+		local frame = ns.flyout.frame
+		frame:SetAttribute("gap", K.Widgets.Snap(frame, K.Tokens.Size("actionGap")))
+	end
 	ns.ApplyBindings()
 	ns.Vehicle.Update()
 end

@@ -24,6 +24,12 @@ return function(files, env)
 		local chunk = assert(loadfile(path))
 		setfenv(chunk, env)
 		chunk(addon, env._addons[addon])
+		if path == "Core/Setup/Layouts.lua" and not env._fitScale then
+			local ns = env._addons[addon]
+			ns.Setup.Layouts.ScaleLimit = function()
+				return ns.Scale.MAX_USER_SCALE
+			end
+		end
 		if path == "Core/Appearance.lua" then
 			PinSize(env, env._addons[addon])
 		end

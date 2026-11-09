@@ -287,7 +287,7 @@ local function PlaceFooter(glass, line)
 	glass.footerLine = line
 	local inset = Widgets.Snap(glass, FOOTER_INSET)
 	footer:ClearAllPoints()
-	footer:SetPoint("BOTTOMLEFT", line, "TOPLEFT", inset - TEXT_MARGIN - (glass.padded or 0), Widgets.Snap(glass, DIVIDER_GAP))
+	footer:SetPoint("BOTTOMLEFT", line, "TOPLEFT", Widgets.Snap(footer, inset - TEXT_MARGIN - (glass.padded or 0)), Widgets.Snap(footer, DIVIDER_GAP))
 	footer:SetPoint("RIGHT", glass, "RIGHT", -inset, 0)
 	footer:SetHeight(Widgets.Border(glass))
 	footer:SetVertexColor(Widgets.Rgba("edgeFaint"))
@@ -412,6 +412,15 @@ local function ShowsLevel(tooltip)
 	return false
 end
 
+local function CaptionFont(label)
+	Style.StyleFont(label, "small")
+	local path, size, flags = label:GetFont()
+	local _, titleSize = Style.FontSpec("title")
+	if Logic.IsNumber(size) and size > titleSize then
+		Widgets.ApplyFont(label, path, titleSize, flags)
+	end
+end
+
 function Style.Title(tooltip, quality, level)
 	local glass = Style.Glass(tooltip)
 	local title = glass and Style.Line(tooltip, "left", 1)
@@ -436,12 +445,7 @@ function Style.Title(tooltip, quality, level)
 		title:SetTextColor(Theme.QualityColor(quality))
 	end
 	local label = glass.caption
-	Style.StyleFont(label, "small")
-	local path, size, flags = label:GetFont()
-	local _, titleSize = Style.FontSpec("title")
-	if Logic.IsNumber(size) and size > titleSize then
-		label:SetFont(path, titleSize, flags)
-	end
+	CaptionFont(label)
 	label:SetText(caption)
 	Widgets.TextColor(label, "text")
 	label:ClearAllPoints()
@@ -542,15 +546,24 @@ function Style.FontSpec(role)
 	return path, size, Logic.Flags(Settings.Get(role .. ".outline"))
 end
 
-function Style.StyleFont(object, role)
+function Style.StyleFont(object, role, scaleFrame)
 	local path, size, flags = Style.FontSpec(role)
-	if object:SetFont(path, size, flags) == false then
+	if not scaleFrame then
+		if not Widgets.ApplyFont(object, path, size, flags) then
+			local fallback = Tokens.Font(KIT_ROLES[role])
+			Widgets.ApplyFont(object, fallback, size, flags)
+			Settings.LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; tooltips use KstyleUI's font")
+		end
+		return
+	end
+	local snapped = Widgets.FontSize(scaleFrame, size)
+	if object:SetFont(path, snapped, flags) == false then
 		local fallback = Tokens.Font(KIT_ROLES[role])
-		object:SetFont(fallback, size, flags)
+		object:SetFont(fallback, snapped, flags)
 		Settings.LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; tooltips use KstyleUI's font")
 	end
 	if flags == "" then
-		local offset = Tokens.Size("textShadowOffset")
+		local offset = Widgets.Border(scaleFrame)
 		object:SetShadowColor(Tokens.Color("textShadow"))
 		object:SetShadowOffset(offset, -offset)
 	else
@@ -565,9 +578,15 @@ function Style.ApplyFonts()
 			if not savedFonts[name] then
 				savedFonts[name] = { font = { object:GetFont() }, offset = { object:GetShadowOffset() }, color = { object:GetShadowColor() } }
 			end
-			Style.StyleFont(object, role)
+			Style.StyleFont(object, role, skinned[1])
 		else
 			Settings.LogOnce("fontobject:" .. name, name .. " is missing on this client; its lines keep Blizzard's font")
+		end
+	end
+	for _, tooltip in ipairs(skinned) do
+		local glass = Style.Glass(tooltip)
+		if glass then
+			CaptionFont(glass.caption)
 		end
 	end
 end

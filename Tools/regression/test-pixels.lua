@@ -12,9 +12,14 @@ end
 
 -- The spec's four screens, with the border each gets at a user scale of 1.
 local SCREENS = {
+	{ 1280, 720, border = 1, perUnit = 720 / 1080 },
+	{ 1366, 768, border = 1, perUnit = 768 / 1080 },
 	{ 1920, 1080, border = 1, perUnit = 1.00 },
 	{ 2560, 1440, border = 1, perUnit = 1.33 },
+	{ 3440, 1440, border = 1, perUnit = 1440 / 1080 },
+	{ 5120, 1440, border = 1, perUnit = 1440 / 1080 },
 	{ 3840, 2160, border = 2, perUnit = 2.00 },
+	{ 2383, 1540, border = 1, perUnit = 1540 / 1080 },
 	{ 3456, 2234, border = 2, perUnit = 2.07 },
 }
 -- UIParent effective scales: the UI Scale slider's ends, a fractional value, and PixelUtil's 768/1440.
@@ -196,6 +201,10 @@ do
 	assert(math.abs(Scale.Pixel(1) - 0.5) < 1e-9, "on 4K one pixel is half a unit")
 	env.RunTimers()
 	assert(count(fired, "ScaleChanged") == before + 1, "the next-frame recheck fires nothing when nothing moved")
+	env._physical[1] = 5120
+	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	assert(count(fired, "ScaleChanged") == before + 2, "a width-only change restyles wrapping and default layouts too")
+	before = before + 1
 
 	-- The UI scale changes: the root compensates and stays 1080 units tall.
 	env.UIParent:SetScale(0.8)
@@ -273,6 +282,9 @@ do
 	env._physical = {}
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	assert(math.abs(ns.Scale.Pixel(1) - 1) < 1e-9, "a missing screen size falls back to 1080 lines")
+	env.GetPhysicalScreenSize = nil
+	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	assert(math.abs(ns.Scale.Pixel(1) - 1) < 1e-9, "a missing API falls back without calling nil")
 end
 
 -- Owner pass 1 (M6, crispness): at the owner's 2383 x 1540 screen with UI scale 768 / 1080 (1.426 px per unit) and at
@@ -280,7 +292,7 @@ end
 -- pixels, and so is every text size and text shadow. The rim's straight runs are solid lines one border thick: the
 -- texture's 3-texel line is 0.75 px at 1080p and 1.07 px on the owner's screen, so it lands between pixels. Scaled
 -- art (the body and the rim's corners) samples with no texel snapping; the bar's lines snap to the pixel grid.
-local OWNER_SCREENS = { { 2383, 1540, perUnit = 1.426 }, { 1920, 1080, perUnit = 1.0 } }
+local OWNER_SCREENS = SCREENS
 local OWNER_UI_SCALE = 768 / 1080
 
 local function edgePx(region, axis)
@@ -301,7 +313,7 @@ end
 
 -- M3 (#208) ships an Interface size of 16 / 19; 1.0 is the old default. Pixels per unit come from the root's
 -- effective scale, so both land on whole pixels.
-local OWNER_SIZES = { 16 / 19, 1 }
+local OWNER_SIZES = { 0.6, 16 / 19, 1, 1.5 }
 for _, screen in ipairs(OWNER_SCREENS) do
 for _, hudSize in ipairs(OWNER_SIZES) do
 	local env, ns = NewScale(screen[1], screen[2], OWNER_UI_SCALE)
@@ -310,7 +322,7 @@ for _, hudSize in ipairs(OWNER_SIZES) do
 	local ppu = perUnit(env, ns)
 	local W, Scale = ns.Widgets, ns.Scale
 	local where = label(screen, OWNER_UI_SCALE, hudSize)
-	assert(math.abs(ppu - screen.perUnit * hudSize) < 0.001, where .. ": " .. ppu .. " px per unit")
+	assert(math.abs(ppu - screen[2] / 1080 * hudSize) < 0.001, where .. ": " .. ppu .. " px per unit")
 	local border = Scale.Border() * ppu
 	for _, frameScale in ipairs(FRAME_SCALES) do
 		for _, shape in ipairs({ "panel", "window", "tile", "socket", "bar" }) do
@@ -328,9 +340,12 @@ for _, hudSize in ipairs(OWNER_SIZES) do
 				end
 			end
 			for _, slice in ipairs({ c.fill, c.rim }) do
-				for _, piece in ipairs(slice) do
+				for index, piece in ipairs(slice) do
 					local bias = piece._state.TexelSnappingBias
 					assert(bias and bias[1] == 0, at .. ": the body and rim sample their art with no texel snapping")
+					local snap = piece._state.SnapToPixelGrid
+					local line = slice == c.rim and (index == 2 or index == 4 or index == 6 or index == 8)
+					assert(snap and snap[1] == line, at .. ": solid rim runs snap, sampled artwork does not re-snap its texels")
 				end
 			end
 		end

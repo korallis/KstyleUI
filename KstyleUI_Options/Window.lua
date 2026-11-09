@@ -353,6 +353,7 @@ local function Build()
 		Preview.Refresh(preview, module)
 		ns.Changed()
 	end)
+	K.Callbacks.Register("ScaleChanged", OWNER, ns.Changed)
 	K.Callbacks.Register("ProfileChanged", OWNER, function()
 		if win:IsShown() then
 			ReloadPages()

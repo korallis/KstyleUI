@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens = K.Tokens
+local Tokens, Widgets = K.Tokens, K.Widgets
 local Settings = ns.Settings
 
 local Style = {}
@@ -32,15 +32,9 @@ function Style.Text(text, role, prefix, size)
 	local outline = Settings.Get(prefix .. ".outline")
 	local scaled = (size or Settings.Get(prefix .. ".size")) * K.Theme.FontScale()
 	local path = font ~= "" and font or rolePath
-	if text:SetFont(path, scaled, outline) == false and text:SetFont(rolePath, scaled, outline) == false then
+	if not Widgets.ApplyFont(text, path, scaled, outline) and not Widgets.ApplyFont(text, rolePath, scaled, outline) then
 		text:SetFontObject(FALLBACK_FONT)
-	end
-	if outline == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
+		Widgets.TextShadow(text, outline)
 	end
 	return scaled
 end

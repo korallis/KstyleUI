@@ -87,16 +87,10 @@ end
 
 local function ApplyFont(text)
 	local path, size, flags = Settings.Font()
-	if text:SetFont(path, size, flags) == false then
+	if not Widgets.ApplyFont(text, path, size, flags) then
 		text:SetFontObject(FALLBACK_FONT)
+		Widgets.TextShadow(text, flags)
 		ns.Log("the slot font " .. tostring(path) .. " did not load; slot text uses " .. FALLBACK_FONT)
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
 	end
 end
 

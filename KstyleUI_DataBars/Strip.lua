@@ -336,12 +336,12 @@ local function PlaceInline(item, s)
 		labelWidth, unitGap = 0, 0
 	end
 	item.value:ClearAllPoints()
-	item.value:SetPoint("CENTER", button, "CENTER", -(labelWidth + unitGap) / 2, 0)
-	item.value:SetWidth(max(1, valueWidth + 2))
+	item.value:SetPoint("CENTER", button, "CENTER", Widgets.Snap(item.value, -(labelWidth + unitGap) / 2), 0)
+	item.value:SetWidth(Widgets.Snap(item.value, max(1, valueWidth + 2)))
 	item.value:SetJustifyH("RIGHT")
 	item.label:ClearAllPoints()
 	item.label:SetPoint("LEFT", item.value, "RIGHT", unitGap, 0)
-	item.label:SetWidth(max(1, labelWidth + 2))
+	item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 	item.label:SetJustifyH("LEFT")
 end
 
@@ -416,7 +416,7 @@ local function PlaceItems(view, s)
 			else
 				item.value:SetPoint("CENTER", button, "CENTER")
 			end
-			item.value:SetWidth(max(inner, TextWidth(item.value, s.fontSize) + 2))
+			item.value:SetWidth(Widgets.Snap(item.value, max(inner, TextWidth(item.value, s.fontSize) + 2)))
 			item.value:SetJustifyH("CENTER")
 		end
 		separator:ClearAllPoints()
@@ -439,7 +439,7 @@ local function SetValues(view, s, values, timedOnly)
 				PlaceInline(item, s)
 			elseif item.inner == nil and s.orientation ~= "VERTICAL" then
 				local w = item.value:GetWidth()
-				item.value:SetWidth(max(IsNumber(w) and w or 1, TextWidth(item.value, s.fontSize) + 2))
+				item.value:SetWidth(Widgets.Snap(item.value, max(IsNumber(w) and w or 1, TextWidth(item.value, s.fontSize) + 2)))
 			end
 		end
 	end

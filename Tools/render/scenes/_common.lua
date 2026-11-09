@@ -12,13 +12,41 @@ Common.Scene = dofile("Tools/render/scene.lua")
 -- The owner's Mac: the game renders 2383 by 1540, so one screen unit is 1540 / 1080 = 1.426 pixels. The UI
 -- scale is WoW's default, 768 / 1080, so UIParent is 1080 units tall too and Blizzard's frames share the
 -- root's units.
--- A scene that draws another screen sets the global RENDER_SCREEN ({ width, height, uiScale }) while it builds, and
--- every Common the scene's modules loaded reads it (scenes/hud_reference.lua: the owner's full screen).
+--
+-- RENDER_SCREEN picks another screen: "1920x1080", or "3840x2160@0.65" to name UIParent's scale too (the default
+-- is WoW's, 768 / 1080). RENDER_SIZE is the Interface size (a number; the size KstyleUI ships when unset). A test
+-- that builds several screens in one process sets the globals RENDER_SCREEN ({ width, height, uiScale, size })
+-- before it loads the scene scripts, as it sets RENDER_SCENE_LIB.
 Common.DEFAULT_SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
+do
+	local picked = rawget(_G, "RENDER_SCREEN")
+	if type(picked) ~= "table" then
+		local spec = os.getenv("RENDER_SCREEN")
+		if spec and spec ~= "" then
+			local w, h, s = spec:match("^(%d+)x(%d+)@?([%d%.]*)$")
+			assert(w, "RENDER_SCREEN must be WIDTHxHEIGHT or WIDTHxHEIGHT@UISCALE, not " .. spec)
+			picked = { width = tonumber(w), height = tonumber(h), uiScale = tonumber(s) }
+		end
+		local size = tonumber(os.getenv("RENDER_SIZE") or "")
+		if size then
+			picked = picked or {}
+			picked.size = size
+		end
+	end
+	if type(picked) == "table" then
+		Common.DEFAULT_SCREEN = {
+			width = picked.width or Common.DEFAULT_SCREEN.width, height = picked.height or Common.DEFAULT_SCREEN.height,
+			uiScale = picked.uiScale or Common.DEFAULT_SCREEN.uiScale, size = picked.size,
+		}
+	end
+end
 Common.SCREEN = setmetatable({}, {
 	__index = function(_, key)
-		local screen = rawget(_G, "RENDER_SCREEN") or Common.DEFAULT_SCREEN
-		return screen[key]
+		local screen = rawget(_G, "RENDER_SCREEN")
+		if type(screen) == "table" and screen[key] ~= nil then
+			return screen[key]
+		end
+		return Common.DEFAULT_SCREEN[key]
 	end,
 })
 
@@ -79,7 +107,7 @@ function Common.IconDirs()
 end
 
 function Common.ScreenOpts(extra)
-	local opts = { width = Common.SCREEN.width, height = Common.SCREEN.height, uiScale = Common.SCREEN.uiScale, size = "default" }
+	local opts = { width = Common.SCREEN.width, height = Common.SCREEN.height, uiScale = Common.SCREEN.uiScale, size = Common.SCREEN.size or "default" }
 	for k, v in pairs(extra or {}) do
 		opts[k] = v
 	end
@@ -91,7 +119,8 @@ end
 function Common.ForceScreen(env)
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
-	env._size = false
+	env._size = Common.SCREEN.size or false
+	env._fitScale = true
 	env.GetPhysicalScreenSize = function()
 		return width, height
 	end

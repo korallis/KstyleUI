@@ -53,7 +53,9 @@ assert(Text(frame.damage.title) == "HEALING PER SECOND", "the sample follows the
 K.Options.Write("Meters", "damage.fontSize", 14)
 frame:Refresh()
 local font = M.Last(frame.damage.rows[1].name, "SetFont")
-assert(font[2] == 14 * K.Theme.FontScale(), "the text size reaches the rows")
+assert(font[2] == K.Widgets.FontSize(frame.damage.rows[1].name, 14 * K.Theme.FontScale()), "the requested text size reaches the rows on the physical pixel grid")
+local textPixels = font[2] * frame.damage.rows[1].name:GetEffectiveScale() * select(2, env.GetPhysicalScreenSize()) / 768
+assert(math.abs(textPixels - math.floor(textPixels + 0.5)) < 1e-6, "the preview font size is whole physical pixels")
 K.Options.Write("Meters", "damage.outline", "OUTLINE")
 frame:Refresh()
 font = M.Last(frame.damage.rows[1].name, "SetFont")

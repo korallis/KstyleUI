@@ -257,7 +257,7 @@ end
 function Plate:LayoutName()
 	local name, health = self.name, self.health
 	name:ClearAllPoints()
-	name:SetWidth(ns.state.width)
+	name:SetWidth(Widgets.Snap(name, ns.state.width))
 	if self.nameOnly then
 		name:SetJustifyH("CENTER")
 		name:SetPoint("CENTER", self, "CENTER")

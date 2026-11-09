@@ -16,6 +16,8 @@ Scale.DEFAULT_USER_SCALE = DEFAULT_USER_SCALE
 
 local state = {
 	user = DEFAULT_USER_SCALE,
+	maximum = MAX_USER_SCALE,
+	effectiveUser = DEFAULT_USER_SCALE,
 	pixel = 1,
 	borderPixels = 1,
 	applied = {},
@@ -40,19 +42,22 @@ local function IsPositive(v)
 	if issecretvalue and issecretvalue(v) then
 		return false
 	end
-	return type(v) == "number" and v == v and v > 0
+	return type(v) == "number" and v == v and v > 0 and v < math.huge
 end
 
 local root = CreateFrame("Frame", "KstyleUI_Root", UIParent)
 root:SetAllPoints(UIParent)
 
-local function PhysicalHeight()
-	local _, height = GetPhysicalScreenSize()
+local function PhysicalSize()
+	local width, height
+	if type(GetPhysicalScreenSize) == "function" then
+		width, height = GetPhysicalScreenSize()
+	end
 	if IsPositive(height) then
-		return height
+		return IsPositive(width) and width or 0, height
 	end
 	Log("GetPhysicalScreenSize gave no usable height; using " .. REFERENCE_HEIGHT)
-	return REFERENCE_HEIGHT
+	return 0, REFERENCE_HEIGHT
 end
 
 local function ParentScale()
@@ -63,17 +68,31 @@ local function ParentScale()
 	return 1
 end
 
+local function Limit(width, height)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	if not (layouts and layouts.ScaleLimit) then
+		return MAX_USER_SCALE
+	end
+	local store = ns.Store
+	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
+	return layouts.ScaleLimit(width, height, preset)
+end
+
 local function Apply()
-	local height, parent, user = PhysicalHeight(), ParentScale(), state.user
+	local width, height = PhysicalSize()
+	local parent, user = ParentScale(), state.user
+	local maximum = Limit(width, height)
+	local effectiveUser = min(user, maximum)
 	local last = state.applied
-	if last[1] == height and last[2] == parent and last[3] == user then
+	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum then
 		return
 	end
-	root:SetScale(REFERENCE_SCALE / parent * user)
-	last[1], last[2], last[3] = height, parent, user
+	root:SetScale(REFERENCE_SCALE / parent * effectiveUser)
+	state.maximum, state.effectiveUser = maximum, effectiveUser
+	last[1], last[2], last[3], last[4], last[5] = height, parent, user, width, maximum
 	local effective = root:GetEffectiveScale()
 	if not IsPositive(effective) then
-		effective = REFERENCE_SCALE * user
+		effective = REFERENCE_SCALE * effectiveUser
 	end
 	state.pixel = UI_HEIGHT / (height * effective)
 	state.borderPixels = max(1, floor(1 / state.pixel + 0.5))
@@ -144,6 +163,14 @@ function Scale.UserScale()
 	return state.user
 end
 
+function Scale.AppliedUserScale()
+	return state.effectiveUser
+end
+
+function Scale.MaxUserScale()
+	return state.maximum
+end
+
 function Scale.SetUserScale(size)
 	if not IsPositive(size) then
 		return false
@@ -155,5 +182,14 @@ function Scale.SetUserScale(size)
 	end
 	return true
 end
+
+ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
+	if module == "Layout" and key == "preset" then
+		Request("the layout preset")
+	end
+end)
+ns.Callbacks.Register("ProfileChanged", "Scale", function()
+	Request("the profile")
+end)
 
 Apply()

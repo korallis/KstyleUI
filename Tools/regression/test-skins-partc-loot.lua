@@ -1,5 +1,12 @@
 -- test-skins-partc-loot.lua: the loot window and group loot roll skins restyle Forever's LootFrame and GroupLootFrame1 to 4, with quality rims, without touching Blizzard's frames.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local W = S.W
 
 local QUALITY_COMMON, QUALITY_EPIC = 1, 4
@@ -306,7 +313,7 @@ do
 	K.Options.Write("Skins", "bars.customColor", { r = 0.3, g = 0.6, b = 0.9 })
 	frame:Refresh()
 	local _, size = roll.name:GetFont()
-	assert(W.Near(size, select(2, K.Tokens.Font("body")) * 1.2), "Refresh applies the text size")
+	assert(FontSize(K, roll.name, size, select(2, K.Tokens.Font("body")) * 1.2), "Refresh applies the text size")
 	local color = W.LastCall(roll.bar, "SetStatusBarColor")
 	assert(W.Near(color[1], 0.3) and W.Near(color[2], 0.6) and W.Near(color[3], 0.9), "and the bar colour")
 	assert(#env._errors == 0, tostring(env._errors[1]))
