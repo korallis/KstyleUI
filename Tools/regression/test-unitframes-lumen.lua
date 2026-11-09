@@ -308,10 +308,10 @@ local tcol = tinline.bar.colorRGBA
 assert(near(tcol[1], gr2) and near(tcol[2], gg2) and near(tcol[3], gb2), "the target's cast line is gold")
 assert(U.Shown(env, tinline.text) == "Terrifying Screech", "the spell's name")
 assert(tinline.text:GetWidth() == 0, "on a wide line the name takes its own width, so the bar follows it")
-CastBars.Layout(tinline, 132, 12)
+CastBars.Layout(tinline, 180, 16)
 local capped = tinline.text:GetWidth()
-assert(capped > 0 and capped < 132 - 40, "on a narrow line the name is cut to leave the bar its room: " .. tostring(capped))
-CastBars.Layout(tinline, 384, 12)
+assert(capped > 0 and capped < 180 - 40, "on a narrow line the name is cut to leave the bar its room: " .. tostring(capped))
+CastBars.Layout(tinline, 294, 16)
 env._units.target.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "target", "Cast-1", 5000)
 settle()

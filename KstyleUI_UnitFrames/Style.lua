@@ -31,6 +31,9 @@ local CAPTION_GAP = 10
 local RULE_GAP = 8
 local RULE_ALPHA = 0.55
 local VALUE_GAP = 3
+local SCRIM_SUBLEVEL = -8
+local SCRIM_PAD_X, SCRIM_PAD_Y = 36, 22
+local SCRIM_ALPHA = 0.5
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -83,6 +86,9 @@ function Style.New(parent, kind)
 	local panel = CreateFrame("Frame", nil, parent)
 	panel:SetFrameLevel(base + 1)
 	view.panel = panel
+	view.scrim = panel:CreateTexture(nil, "BACKGROUND", nil, SCRIM_SUBLEVEL)
+	view.scrim:SetTexture((Tokens.Texture("glow")))
+	view.scrim:Hide()
 	view.chrome = Widgets.Chrome(panel, { shape = GlassShape(kind), fill = "surface", shadow = true })
 
 	view.health = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
@@ -314,9 +320,24 @@ local function LumenTexts(view, g)
 	PlaceGem(view, view.gemRight, g.gemRight)
 end
 
+local function PlaceScrim(view, g)
+	local scrim = view.scrim
+	if g.form ~= "sigil" then
+		scrim:Hide()
+		return
+	end
+	local r, gg, b = Tokens.Color("black")
+	scrim:SetVertexColor(r, gg, b, SCRIM_ALPHA)
+	scrim:ClearAllPoints()
+	scrim:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, g.glass.x + g.glass.w / 2), -Snap(view, g.glass.y + g.glass.h / 2))
+	scrim:SetSize(Snap(view, g.glass.w + 2 * SCRIM_PAD_X), Snap(view, g.glass.h + 2 * SCRIM_PAD_Y))
+	scrim:Show()
+end
+
 local function LayoutLumen(view, g, s)
 	view.panel:SetShown(true)
 	Place(view, view.panel, g.glass)
+	PlaceScrim(view, g)
 	view.chrome:Restyle()
 	view.chrome:SetShadow(g.chrome)
 	view.chrome:SetShown(g.chrome)
@@ -358,6 +379,7 @@ local function LayoutLumen(view, g, s)
 end
 
 local function HideLumen(view)
+	view.scrim:Hide()
 	view.disc:Hide()
 	view.ringGlow:Hide()
 	view.caption:Hide()

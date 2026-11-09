@@ -51,10 +51,10 @@ for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
 	assert(defaults[kind].powerText == "none", kind .. ": no power numbers, as on the kit sheet; power shows as the thin bar alone")
 end
 -- The Lumen mockup's type (arena2/parent/index.html, one unit per pixel): the vitals name 17 over a 15-unit value
--- and a 12-unit level disc; the sigil's name 20 over its 13-unit level line; the cards' name 16, percentage 14 and
--- 12-unit cap; the pill rows 12. The boss column's compact cards are 258 wide, so their name and percentage are 13:
--- a long boss name in the heading face still fits beside its percentage.
-for kind, sizes in pairs({ player = { 17, 15, 10, 12 }, target = { 20, 12, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
+-- and a 12-unit level disc; the sigil's name 17 over its 13-unit level line (round 2, Astra #4: the mockup's 20 drowned
+-- the cast); the cards' name 16, percentage 14 and 12-unit cap; the pill rows 12. The boss column's compact cards are
+-- 258 wide, so their name and percentage are 13: a long boss name in the heading face still fits beside its percentage.
+for kind, sizes in pairs({ player = { 17, 15, 10, 12 }, target = { 17, 12, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
@@ -83,7 +83,7 @@ assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 2,
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")
 end
-assert(defaults.player.fonts.cast.size == 12 and defaults.target.fonts.cast.size == 10, "the cast text is 12 on the 30-unit player bar and 10 on the 24-unit target bar, the frames' name size and one step down")
+assert(defaults.player.fonts.cast.size == 12 and defaults.target.fonts.cast.size == 13, "the cast text is 12 on the player's line and 13 on the sigil's bold cast line (round 2, Astra #4)")
 assert(defaults.focus.castbarHeight == 16, "the focus cast bar is 16 units under its 60-unit frame")
 assert(defaults.targettarget.portrait == false and defaults.pet.portrait == false, "the small frames have no portrait by default")
 assert(defaults.hideBlizzard == true, "Blizzard's frames are hidden by default")

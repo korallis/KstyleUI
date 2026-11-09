@@ -112,9 +112,9 @@ assert(c._groups.debuffs.max == 8, "one row of eight")
 assert(c._line == 8 * 20 + 7 * 2, "the line holds eight icons")
 assert(c._anchor == "TOPLEFT" and c._growth[1] == env.AnchorUtil.FlowDirection.Right and c._growth[2] == env.AnchorUtil.FlowDirection.Down, "growing right, then down")
 
--- The aura row sits right of the focus frame.
+-- The aura row sits over the focus card, inside the 112 the layouts keep beside the sigil (round 2, Q2).
 local point, rel, relPoint = focus.auras.host:GetPoint(1)
-assert(point == "TOPLEFT" and rel == focus.button and relPoint == "TOPRIGHT", "focus auras sit right of the frame")
+assert(point == "BOTTOMLEFT" and rel == focus.button and relPoint == "TOPLEFT", "focus auras sit over the frame")
 
 -- Settings: filter, rows, columns, spacing and growth reach the container at once.
 K.Options.Write("UnitFrames", "focus.auraFilter", "both")

@@ -46,7 +46,7 @@ Lumen.DAMAGE = {
 	},
 }
 Lumen.BOSS = {
-	name = "Bloodtalon Matriarch", level = 10, classification = "elite", health = 3720, healthMax = 6000,
+	name = "Bloodtalon Matriarch", level = 38, classification = "elite", health = 3720, healthMax = 6000,
 	power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, threatOn = 3,
 	cast = { name = "Terrifying Screech", texture = 136184, start = 9000, finish = 12500, spellID = 4321 },
 }

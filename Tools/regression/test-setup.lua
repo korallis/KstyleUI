@@ -241,19 +241,19 @@ do
 	assert(updates["unitframes.player"] and updates["unitframes.player"].x == K.Setup.Layouts.Get("DPS")["unitframes.player"].x, "a registered element moves at once through Layout.Update")
 	assert(stored["unitframes.player"] == nil, "Layout stores what it applies itself")
 	assert(K.Setup.Apply({ layout = "Raid", modules = {} }) == false, "an unknown layout is refused")
-	-- Tank sizes the meters with the positions: four threat rows over two damage rows, so the right rail fits.
+	-- Tank sizes the meters with the positions: the threat card at the combat cluster's side, 200 by 112.
 	updates = {}
 	K.Layout.Get = function(key)
-		if key == "meters.damage" then
+		if key == "meters.threat" then
 			return { anchor = "CENTER", x = 0, y = 0 }
 		end
 	end
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
-	assert(updates["meters.damage"] and updates["meters.damage"].height == 98 and updates["meters.damage"].width == 318, "a registered meter takes the layout's size through Layout.Update")
-	assert(stored["meters.threat"].height == 144 and stored["meters.threat"].y == K.Setup.Layouts.Get("Tank")["meters.threat"].y, "a meter that has not registered keeps the size for the reload")
+	assert(updates["meters.threat"] and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 200, "a registered meter takes the layout's size through Layout.Update")
+	assert(stored["meters.damage"].height == 190 and stored["meters.damage"].y == K.Setup.Layouts.Get("Tank")["meters.damage"].y, "a meter that has not registered keeps the size for the reload")
 	updates = {}
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	assert(updates["chat.main"] == nil and updates["meters.damage"].height == 190 and stored["meters.threat"].height == 144, "DPS puts the meters back to their footprints")
+	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 144 and updates["meters.threat"].width == 318 and stored["meters.damage"].height == 190, "DPS puts the meters back to their footprints")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

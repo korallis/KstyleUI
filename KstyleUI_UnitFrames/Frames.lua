@@ -1,4 +1,4 @@
--- Frames.lua: the secure unit buttons for each frame, their Layout elements, unit watches and events.
+-- Frames.lua: the secure unit buttons for each frame, their Layout elements, unit watches and events; the boss you target folds its card to a Targeted chip, and a card with no cast hugs its pill.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,7 @@ local BOSS_COUNT, BOSS_GAP = Geometry.BOSS_COUNT, Geometry.BOSS_GAP
 local CAST_GAP = { focus = 4, boss = 2 }
 local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
-local MARK_LEVEL, MARK_GAP = 9, 6
+local CHIP_LEVEL, CHIP_GAP, CHIP_HEIGHT, CHIP_PAD, CHIP_EM = 9, 6, 20, 10, 0.62
 
 local FULL_LIMITS = { minWidth = 120, minHeight = 24, maxWidth = 640, maxHeight = 160 }
 local SMALL_LIMITS = { minWidth = 60, minHeight = 14, maxWidth = 400, maxHeight = 120 }
@@ -202,41 +202,54 @@ local function OnButtonHide(button)
 	ns.Auras.Sync(button.view)
 end
 
-local function NewMark(button)
-	local mark = CreateFrame("Frame", nil, button)
-	mark:SetFrameLevel(button:GetFrameLevel() + MARK_LEVEL)
-	mark.gem = ns.Lumen.Gem(mark)
-	mark.text = K.Widgets.FontString(mark, "OVERLAY")
-	mark.text:SetJustifyH("LEFT")
-	mark.text:SetJustifyV("MIDDLE")
-	mark.text:SetText(K.L["Targeted"])
-	mark:Hide()
-	return mark
+local function NewChip(button)
+	local chip = CreateFrame("Frame", nil, button)
+	chip:SetFrameLevel(button:GetFrameLevel() + CHIP_LEVEL)
+	chip.chrome = K.Widgets.Chrome(chip, { shape = "tile", fill = "surface", shadow = false })
+	chip.gem = ns.Lumen.Gem(chip)
+	chip.text = K.Widgets.FontString(chip, "OVERLAY")
+	chip.text:SetJustifyH("LEFT")
+	chip.text:SetJustifyV("MIDDLE")
+	chip.text:SetText(K.L["Targeted"])
+	chip:Hide()
+	return chip
 end
 
 local function SigilCasts()
 	return running and Settings.Value("target", "enabled") and Settings.Value("target", "castbar") and true or false
 end
 
+local function AuraContainer(view)
+	local a = view.auras
+	return a and a.container
+end
+
 local function MarkTarget(view)
-	local mark, mute = view.targetMark, view.castMute
-	if not mark then
+	local chip, body = view.chip, view.body
+	if not chip then
 		return
 	end
 	local same = false
 	if SigilCasts() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
 	end
+	local auras = AuraContainer(view)
 	if issecretvalue and issecretvalue(same) then
-		mark:SetShown(view.markRoom == true)
-		mark:SetAlphaFromBoolean(same, 1, 0)
-		mute:SetAlphaFromBoolean(same, 0, 1)
+		chip:Show()
+		chip:SetAlphaFromBoolean(same, 1, 0)
+		body:SetAlphaFromBoolean(same, 0, 1)
+		if auras then
+			auras:SetAlphaFromBoolean(same, 0, 1)
+		end
 		return
 	end
 	same = same == true
-	mark:SetAlpha(1)
-	mark:SetShown(same and view.markRoom == true)
-	mute:SetAlpha(same and 0 or 1)
+	chip:SetAlpha(1)
+	chip:SetShown(same)
+	body:SetAlpha(same and 0 or 1)
+	if auras then
+		auras:SetAlpha(same and 0 or 1)
+	end
 end
 
 function Frames.MarkTargets()
@@ -249,29 +262,34 @@ function Frames.MarkTargets()
 	end
 end
 
-local function PlaceMark(view, rect)
-	local mark = view.targetMark
-	view.markRoom = rect ~= nil
-	if not rect then
-		mark:Hide()
+local function PlaceChip(view, width)
+	local chip, button, Snap = view.chip, view.button, K.Widgets.Snap
+	chip:ClearAllPoints()
+	chip:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0)
+	local gem = ns.Geometry.GEM
+	chip.gem:ClearAllPoints()
+	chip.gem:SetPoint("LEFT", chip, "LEFT", Snap(button, CHIP_PAD), 0)
+	chip.gem:SetSize(Snap(button, gem), Snap(button, gem))
+	chip.text:ClearAllPoints()
+	chip.text:SetPoint("LEFT", chip.gem, "RIGHT", Snap(button, CHIP_GAP), 0)
+	chip.text:SetHeight(Snap(button, CHIP_HEIGHT))
+	local path, size, flags = Settings.Font(view.kind, "cast")
+	if chip.text:SetFont(path, size, flags) == false then
+		chip.text:SetFont((K.Tokens.Font("body")), size, flags)
+	end
+	chip.text:SetTextColor(ns.Lumen.Color("goldLit"))
+	local textW = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
+	chip:SetSize(Snap(button, math.min(width, 2 * CHIP_PAD + gem + CHIP_GAP + textW)), Snap(button, CHIP_HEIGHT))
+end
+
+local function FitCard(view)
+	local g = view.geometry
+	if not (g and g.form == "card" and g.rest and g.cast) then
 		return
 	end
-	local button, Snap = view.button, K.Widgets.Snap
-	mark:ClearAllPoints()
-	mark:SetPoint("TOPLEFT", button, "TOPLEFT", Snap(button, rect.x), -Snap(button, rect.y))
-	mark:SetSize(Snap(button, rect.w), Snap(button, rect.h))
-	local gem = ns.Geometry.GEM
-	mark.gem:ClearAllPoints()
-	mark.gem:SetPoint("LEFT", mark, "LEFT", 0, 0)
-	mark.gem:SetSize(Snap(button, gem), Snap(button, gem))
-	mark.text:ClearAllPoints()
-	mark.text:SetPoint("LEFT", mark.gem, "RIGHT", Snap(button, MARK_GAP), 0)
-	mark.text:SetHeight(Snap(button, rect.h))
-	local path, size, flags = Settings.Font(view.kind, "cast")
-	if mark.text:SetFont(path, size, flags) == false then
-		mark.text:SetFont((K.Tokens.Font("body")), size, flags)
-	end
-	mark.text:SetTextColor(ns.Lumen.Color("goldLit"))
+	local cb = view.castbar
+	local open = cb ~= nil and cb.active == true
+	view.panel:SetHeight(K.Widgets.Snap(view.parent, open and g.glass.h or g.rest))
 end
 
 local function NewView(uf, unit)
@@ -283,18 +301,24 @@ local function NewView(uf, unit)
 	button.unit = unit
 	button:HookScript("OnEnter", OnEnter)
 	button:HookScript("OnLeave", OnLeave)
-	local view = Style.New(button, uf.kind)
-	view.button, view.unit, view.uf = button, unit, uf
+	local body
+	if uf.kind == "boss" then
+		body = CreateFrame("Frame", nil, button)
+		body:SetAllPoints(button)
+	end
+	local view = Style.New(body or button, uf.kind)
+	view.button, view.unit, view.uf, view.body = button, unit, uf, body
 	button.view = view
 	button:HookScript("OnShow", OnButtonShow)
 	button:HookScript("OnHide", OnButtonHide)
-	if uf.kind == "boss" then
-		view.castMute = CreateFrame("Frame", nil, button)
-		view.castMute:SetAllPoints(button)
-		view.targetMark = NewMark(button)
+	if body then
+		view.chip = NewChip(button)
 	end
 	if Settings.CASTBAR[uf.kind] then
-		ns.CastBars.Attach(view)
+		local cb = ns.CastBars.Attach(view)
+		cb.notify = function()
+			FitCard(view)
+		end
 	end
 	return view
 end
@@ -426,8 +450,9 @@ function Frames.Relayout(uf)
 			cb.noRoom = true
 			cb.frame:Hide()
 		end
-		if view.targetMark then
-			PlaceMark(view, g.cast)
+		FitCard(view)
+		if view.chip then
+			PlaceChip(view, slot.w)
 			MarkTarget(view)
 		end
 	end

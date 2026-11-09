@@ -11,9 +11,9 @@ local L = ns.L
 
 local ELEMENTS = {
 	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], width = 490, height = 80 },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 640, height = 80, reserve = { 640, 126 } },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 490, height = 84, reserve = { 490, 130 } },
 	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
-	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 318, height = 120 },
+	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
 	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
 	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], width = 258, height = 334, reserve = { 318, 334 } },
@@ -51,12 +51,19 @@ local ELEMENTS = {
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
 }
 
-local MARGIN, RAIL, GAP, NEAR = 28, 318, 16, 12
+local HEIGHT = 1080
+local MARGIN, RAIL, GAP, NEAR, TIGHT = 28, 318, 16, 12, 4
 local BAND = MARGIN + RAIL + GAP
 local ENDS = 489 / 2 + NEAR + 162 / 2
 local BAR = 38 + 3
-local BOSS_TOP = 174 + 22 + GAP
-local HEALER_X, HEALER_Y = -(116 + RAIL / 2), 400
+local HANDS_TOP = 264 + 43
+local CLUSTER_TOP = HANDS_TOP + 13 + 130
+local SIDE = 490 / 2 + NEAR
+local FOCUS_X = -(SIDE + 200 / 2)
+local TOT_X = SIDE + 120 / 2
+local STACK = CLUSTER_TOP + 8
+local HEALER_X, HEALER_Y = -(116 + RAIL / 2), CLUSTER_TOP + GAP
+local TIP_Y = MARGIN + 118 + 8
 
 local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
@@ -65,7 +72,6 @@ local DPS = {
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -370 },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -484 },
-	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -BAND, y = -BOSS_TOP },
 	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
 	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
@@ -85,35 +91,37 @@ local DPS = {
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -260.5, y = 226 },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = -260.5, y = 264 },
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 276 },
-	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 312 },
-	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = 358 },
-	["unitframes.target"] = { anchor = "TOP", x = 0, y = -40 },
-	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -174 },
-	["unitframes.targettarget"] = { anchor = "TOP", x = 260, y = -174 },
-	["unitframes.focus"] = { anchor = "LEFT", x = BAND, y = -40 },
-	["unitframes.focustarget"] = { anchor = "LEFT", x = BAND, y = -119 },
-	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = 300 },
+	["unitframes.target"] = { anchor = "TOP", x = 0, y = -(HEIGHT - CLUSTER_TOP) },
+	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
+	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
+	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = STACK },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 },
+	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
+	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
+	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
 	["actionbars.bar5"] = { anchor = "TOPLEFT", x = BAND, y = -MARGIN },
 	["actionbars.bar6"] = { anchor = "TOPLEFT", x = BAND + BAR, y = -MARGIN },
 	["actionbars.bar3"] = { anchor = "TOPLEFT", x = BAND + 2 * BAR, y = -MARGIN },
 	["actionbars.bar4"] = { anchor = "TOPLEFT", x = BAND + 3 * BAR, y = -MARGIN },
-	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = TIP_Y },
 }
 
 local CHANGES = {
 	DPS = {},
 	Tank = {
-		["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
-		["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -(563 + 144 + GAP) },
+		["meters.threat"] = { anchor = "BOTTOM", x = SIDE + 200 / 2, y = CLUSTER_TOP - 22 - TIGHT - 112 },
 	},
 	Healer = {
 		["groupframes.party"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
 		["groupframes.raid"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
 		["meters.damage"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 		["meters.threat"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
-		["unitframes.focus"] = { anchor = "TOPLEFT", x = MARGIN, y = -(MARGIN + 190 + GAP) },
-		["unitframes.focustarget"] = { anchor = "TOPLEFT", x = MARGIN, y = -(MARGIN + 190 + GAP + 120 + 4) },
 		["unitframes.boss"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
+		["combattext.player"] = { anchor = "BOTTOM", x = 100 + 160 / 2, y = CLUSTER_TOP + GAP },
+		["actionbars.bar2"] = { anchor = "TOP", x = 0, y = -MARGIN },
+		["unitframes.castbar.player"] = { anchor = "TOP", x = 0, y = -(MARGIN + 38 + 8) },
+		["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(MARGIN + 38 + 8 + 30 + 8) },
 		["actionbars.bar3"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
 		["actionbars.bar4"] = { anchor = "TOPRIGHT", x = -(BAND + BAR), y = -MARGIN },
 		["actionbars.bar5"] = { anchor = "TOPRIGHT", x = -(BAND + 2 * BAR), y = -MARGIN },
@@ -127,8 +135,8 @@ local SIZES = {
 		["meters.threat"] = { RAIL, 144 },
 	},
 	Tank = {
-		["meters.damage"] = { RAIL, 98 },
-		["meters.threat"] = { RAIL, 144 },
+		["meters.damage"] = { RAIL, 190 },
+		["meters.threat"] = { 200, 112 },
 	},
 	Healer = {
 		["groupframes.party"] = { RAIL, 354 },
@@ -138,10 +146,6 @@ local SIZES = {
 	},
 }
 local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true }
-
-local COVERS = {
-	["tooltips.anchor"] = "databars.strip",
-}
 
 local DOCKS = {
 	["auras.debuffs"] = "auras.buffs",
@@ -197,14 +201,14 @@ local ROWS = {
 }
 
 local STORY_BOTTOM = MARGIN + 260 + GAP
-local HEAD = { DPS = "groupframes.party", Tank = "groupframes.party", Healer = "unitframes.focustarget" }
+local HEAD = { DPS = "groupframes.party", Tank = "groupframes.party", Healer = "meters.damage" }
 
 local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
-	DPS = L["Lumen Rails: party and chat on the left rail, the map, buffs and damage meter on the right, the boss cards beside the target at the top, your hands in the centre."],
-	Tank = L["The DPS rails with a four-row threat meter first under the buffs and a two-row damage meter under it."],
-	Healer = L["Larger party and raid frames beside your hands, dispellable debuffs first; the damage meter and focus head the left rail, the boss cards sit on the right rail."],
+	DPS = L["Lumen Rails: party and chat on the left rail, the map, buffs and damage meter on the right; your target, its target and your focus sit right over your hands."],
+	Tank = L["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."],
+	Healer = L["Larger party and raid frames over the combat cluster, dispellable debuffs first; the damage meter heads the left rail, the boss cards sit on the right rail."],
 }
 
 local OFFSETS = {
@@ -329,10 +333,6 @@ end
 
 function Layouts.Dock(key)
 	return DOCKS[key]
-end
-
-function Layouts.Covers(key)
-	return COVERS[key]
 end
 
 function Layouts.Reserves()

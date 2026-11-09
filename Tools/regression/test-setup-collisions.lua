@@ -1,4 +1,4 @@
--- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10 and 21:9 on the 1080-unit canvas with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), and the boss column's footprint covers its cards and their aura room from the live unit frames.
+-- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10 and 21:9 on the 1080-unit canvas with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), and the boss column's footprint covers its cards and their aura room from the live unit frames.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New()
@@ -15,14 +15,6 @@ local function apart(name, a, c)
 		return false
 	end
 	if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
-		return false
-	end
-	-- An element that covers a card covers what docks in it too: the tooltip anchor lies over the readout and its menus.
-	local function covers(x, y)
-		local host = Layouts.Covers(x)
-		return host ~= nil and (host == y or Layouts.Dock(y) == host)
-	end
-	if covers(a, c) or covers(c, a) then
 		return false
 	end
 	if pair["meters.threat"] and pair["meters.damage"] and Layouts.Shown(name, "meters.threat") == false then
@@ -60,6 +52,13 @@ for _, name in ipairs(Layouts.Names()) do
 				string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, element.key, l, b, r, t, width, HEIGHT))
 			rects[element.key] = { l, b, r, t }
 			keys[#keys + 1] = element.key
+		end
+		-- The tooltip anchor overlaps nothing at all: no card, no dock, no bar a player may turn on.
+		local tip = rects["tooltips.anchor"]
+		for _, key in ipairs(keys) do
+			if key ~= "tooltips.anchor" then
+				assert(not overlap(tip, rects[key]), string.format("%s: the tooltip anchor (%.0f,%.0f-%.0f,%.0f) lies on %s", label, tip[1], tip[2], tip[3], tip[4], key))
+			end
 		end
 		for i = 1, #keys do
 			for j = i + 1, #keys do

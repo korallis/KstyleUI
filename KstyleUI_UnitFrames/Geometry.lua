@@ -245,13 +245,13 @@ local function Compact(out, s, scale, left, right, height)
 end
 
 local V = { ring = 62, ringGap = 16 / 62, disc = 22 / 62, discOut = 4 / 62, health = 12, pillGap = 4, nameGap = 7, captionMin = 300 }
-local CAST_LINE, CAST_GAP = 12, 6
+local CAST_LINE, CAST_GAP, BOLD_LINE = 12, 6, 16
 local GEM, GEM_GAP = 7, 14
 local SIGIL = { line = 1, bar = 8, cast = 8, castShare = 0.6 }
-local CARD = { padX = 18, top = 16, bottom = 14, capGap = 10, nameGap = 6, health = 10, powerGap = 3, powerMax = 6, castGap = 10, gemGap = 8, compact = 90 }
+local CARD = { padX = 18, top = 16, bottom = 14, capGap = 10, nameGap = 6, health = 10, powerGap = 3, powerMax = 6, castGap = 10, gemGap = 8, compact = 84 }
 local ROW = { pill = 6, gap = 1, power = 3 }
 
-Geometry.CAST_LINE, Geometry.GEM = CAST_LINE, GEM
+Geometry.CAST_LINE, Geometry.BOLD_LINE, Geometry.GEM = CAST_LINE, BOLD_LINE, GEM
 
 local function TextH(size)
 	return size + NAME_EXTRA
@@ -326,7 +326,7 @@ local function Sigil(out, s, width, height, scale)
 	local nameH = s.name and TextH(Size(s, "name", scale)) or 0
 	local captionH = s.level and TextH(Size(s, "level", scale)) or 0
 	local healthH = min(V.health, height)
-	local castH = s.castbar and CAST_LINE or 0
+	local castH = s.castbar and BOLD_LINE or 0
 	local barGap, castGap = SIGIL.bar, castH > 0 and SIGIL.cast or 0
 	local text = nameH + (nameH > 0 and SIGIL.line or 0) + captionH
 	local over = text + barGap + healthH + castGap + castH - height
@@ -367,7 +367,7 @@ local function Card(out, s, width, height, scale)
 		capH = 0
 	end
 	local powerH = s.power and min(s.powerHeight or 0, CARD.powerMax) or 0
-	local castH = s.castbar and CAST_LINE or 0
+	local castH = s.castbar and BOLD_LINE or 0
 	local gaps = { CARD.top, capH > 0 and CARD.capGap or 0, CARD.nameGap, powerH > 0 and CARD.powerGap or 0, castH > 0 and CARD.castGap or 0, CARD.bottom }
 	local fixed = capH + rowH + healthH + powerH + castH
 	local sum = 0
@@ -376,7 +376,7 @@ local function Card(out, s, width, height, scale)
 	end
 	if fixed + sum > height and castH > 0 and fixed > height - 2 then
 		castH, gaps[5] = 0, 0
-		fixed = fixed - CAST_LINE
+		fixed = fixed - BOLD_LINE
 	end
 	if fixed > height then
 		fixed, capH, gaps[2] = fixed - capH, 0, 0
@@ -420,6 +420,7 @@ local function Card(out, s, width, height, scale)
 		y = y + powerH
 	end
 	if castH > 0 then
+		out.rest = min(height, y + gap(6))
 		y = y + gap(5)
 		out.cast = Rect(padX, y, colW, castH)
 	end

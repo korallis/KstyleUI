@@ -236,6 +236,36 @@ local modules = {}
 -- started its own cast time earlier.
 local CAST_END = 10800
 
+-- The boss's debuffs as sockets under the sigil, as the mockup's combat board draws them: the fake engine's buttons
+-- placed where the AuraContainer would, centred, with their timers.
+local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s" } }
+
+local function sigilSockets(env, K, ns, view)
+	local a = view.auras
+	local group = a and a.container and a.container._groups and a.container._groups.debuffs
+	if not (group and group.buttons) then
+		return "the sigil's debuff sockets: no aura engine stand-in"
+	end
+	local Widgets = K.Widgets
+	local size, spacing = Widgets.Snap(a.host, ns.Settings.Value("target", "auraSize")), Widgets.Snap(a.host, ns.Settings.Value("target", "auraSpacing"))
+	local count = math.min(#group.buttons, #SIGIL_DEBUFFS)
+	a.container:SetSize(count * size + (count - 1) * spacing, size)
+	for i = 1, count do
+		local button = group.buttons[i]
+		for _, entry in ipairs(a.buttons) do
+			if entry.button == button then
+				button:ClearAllPoints()
+				button:SetPoint("TOPLEFT", a.container, "TOPLEFT", (i - 1) * (size + spacing), 0)
+				button:SetSize(size, size)
+				entry.icon:SetTexture(env.Secret(SIGIL_DEBUFFS[i][1]))
+				Widgets.SetText(entry.timer, SIGIL_DEBUFFS[i][2])
+				Widgets.SetText(entry.count, SIGIL_DEBUFFS[i][3] or "")
+			end
+		end
+	end
+	return "the sigil's debuff sockets: " .. count .. " of yours on the boss"
+end
+
 function modules.unitframes(opts)
 	local U = dofile("Tools/regression/unitframes_env.lua")
 	local class, spec = Hud.Class(opts)
@@ -265,8 +295,10 @@ function modules.unitframes(opts)
 			env._units.player = player
 			env._units.target = target
 			env._units.pet = pet
-			-- The boss you target is one unit under both tokens, as in the game, so the boss card marks it.
+			-- The boss you target is one unit under both tokens, as in the game, so the boss card marks it. In a fight
+			-- the boss targets you, so the target of target shows beside the sigil.
 			env._units.boss1 = opts.boss and opts.target == opts.boss and target or opts.boss
+			env._units.targettarget = opts.boss and target and player or nil
 			env._comboPoints = spec.combo or 0
 			env.UnitClass = function(token)
 				local u = env._units[token]
@@ -283,6 +315,7 @@ function modules.unitframes(opts)
 	end
 	if target then
 		env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", target.cast.spellID)
+		env.FireEvent("UNIT_TARGET", "target")
 	end
 	if opts.boss then
 		env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
@@ -306,6 +339,9 @@ function modules.unitframes(opts)
 		notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
 	end
 	table.sort(notes)
+	if opts.boss and target then
+		notes[#notes + 1] = sigilSockets(env, K, ns, ns.Frames.Get("target").views[1])
+	end
 	local scene = build(env, opts, { time = env._time })
 	for _, note in ipairs(notes) do
 		scene.log[#scene.log + 1] = note

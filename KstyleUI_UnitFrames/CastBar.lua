@@ -28,6 +28,7 @@ local TIMER_FORMAT = "%.1fs"
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
 local LINE_BAR = 4
+local LINE_BAR_SHARE = 0.375
 local LINE_LABEL_GAP = 5
 local LINE_BAR_GAP = 8
 local LINE_BAR_MIN = 24
@@ -128,8 +129,15 @@ local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
 
+local function Notify(cb)
+	if cb.notify then
+		cb.notify(cb.active == true)
+	end
+end
+
 local function Hide(cb, instant)
 	cb.active = false
+	Notify(cb)
 	cb.token = (cb.token or 0) + 1
 	StopTimer(cb)
 	cb.duration = nil
@@ -171,6 +179,9 @@ local function New(parent, kind, unit)
 	cb.timer = NewText(over, "RIGHT")
 	cb.label = NewText(over, "LEFT")
 	cb.label:SetText(L["Casting"])
+	cb.lock = NewText(over, "LEFT")
+	cb.lock:SetText(L["Locked"])
+	cb.lock:Hide()
 	return cb
 end
 
@@ -252,6 +263,26 @@ local function Anchor(cb, region, point, relative, relPoint, x)
 	region:SetPoint(point, relative, relPoint, Snap(cb, x), 0)
 end
 
+local function ShowLock(cb)
+	local label, lock, value = cb.label, cb.lock, cb.locked
+	if not cb.line then
+		label:Hide()
+		lock:Hide()
+		return
+	end
+	if issecretvalue(value) then
+		label:Show()
+		lock:Show()
+		label:SetAlphaFromBoolean(value, 0, 1)
+		lock:SetAlphaFromBoolean(value, 1, 0)
+		return
+	end
+	label:SetAlpha(1)
+	lock:SetAlpha(1)
+	label:SetShown(value ~= true)
+	lock:SetShown(value == true)
+end
+
 local function LayoutLine(cb, width, height)
 	cb.geometry = { line = true }
 	cb.iconFrame:Hide()
@@ -264,7 +295,10 @@ local function LayoutLine(cb, width, height)
 	Anchor(cb, cb.label, "LEFT", frame, "LEFT", 0)
 	cb.label:SetHeight(h)
 	cb.label:SetWidth(0)
-	cb.label:Show()
+	Anchor(cb, cb.lock, "LEFT", frame, "LEFT", 0)
+	cb.lock:SetHeight(h)
+	cb.lock:SetWidth(0)
+	ShowLock(cb)
 	Anchor(cb, cb.text, "LEFT", cb.label, "RIGHT", LINE_LABEL_GAP)
 	cb.text:SetHeight(h)
 	cb.text:SetWidth(0)
@@ -272,7 +306,12 @@ local function LayoutLine(cb, width, height)
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	local size = Settings.FontSize(cb.kind, "cast")
 	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * size), math.floor(width / 3)) or 0
-	local room = width - math.ceil(LINE_LABEL_EM * size) - LINE_LABEL_GAP - LINE_BAR_GAP - LINE_BAR_MIN - (timerOn and timerW + LINE_LABEL_GAP or 0)
+	local room = width - math.ceil(LINE_LABEL_EM * size) - LINE_LABEL_GAP - LINE_BAR_GAP - LINE_BAR_MIN
+	if timerOn and room - timerW - LINE_LABEL_GAP < LINE_NAME_EM * size then
+		timerOn, timerW = false, 0
+	elseif timerOn then
+		room = room - timerW - LINE_LABEL_GAP
+	end
 	if room < LINE_NAME_EM * size then
 		cb.text:SetWidth(Snap(cb, math.max(0, room)))
 	end
@@ -281,7 +320,7 @@ local function LayoutLine(cb, width, height)
 	cb.timer:SetJustifyH("RIGHT")
 	cb.timer:SetShown(timerOn)
 	local bar = cb.bar
-	bar.opts.width, bar.opts.height = width, math.min(LINE_BAR, height)
+	bar.opts.width, bar.opts.height = width, math.min(height, math.max(LINE_BAR, math.floor(height * LINE_BAR_SHARE)))
 	bar:Restyle()
 	bar:ClearAllPoints()
 	bar:SetPoint("LEFT", cb.text:IsShown() and cb.text or cb.label, "RIGHT", Snap(cb, LINE_BAR_GAP), 0)
@@ -299,7 +338,7 @@ function CastBars.Layout(cb, width, height)
 		LayoutLine(cb, width, height)
 		return
 	end
-	cb.label:Hide()
+	ShowLock(cb)
 	cb.chrome:SetShadow(true)
 	cb.chrome:SetShown(true)
 	cb.bar:SetSparkShown(true)
@@ -411,7 +450,9 @@ function CastBars.Restyle(cb)
 	StyleText(cb.text, path, size, flags)
 	StyleText(cb.timer, path, size, flags)
 	StyleText(cb.label, path, size, flags)
+	StyleText(cb.lock, path, size, flags)
 	cb.label:SetTextColor(Lumen.Color("muted"))
+	cb.lock:SetTextColor(Tokens.Color("hostile"))
 	if cb.line then
 		cb.text:SetTextColor(Lumen.Color("cast"))
 		cb.timer:SetTextColor(Lumen.Color("muted"))
@@ -444,7 +485,7 @@ local function ColorObjects(cb, r, g, b)
 	return c.locked, c.normal
 end
 
-local function Locked(cb, notInterruptible)
+local function Tint(cb, notInterruptible)
 	if issecretvalue(notInterruptible) then
 		local texture = cb.bar:GetStatusBarTexture()
 		if texture and texture.SetVertexColorFromBoolean then
@@ -462,6 +503,15 @@ local function Locked(cb, notInterruptible)
 	else
 		Paint(cb, BarColor(cb))
 	end
+end
+
+local function Locked(cb, notInterruptible)
+	if not issecretvalue(notInterruptible) then
+		notInterruptible = notInterruptible == true
+	end
+	cb.locked = notInterruptible
+	Tint(cb, notInterruptible)
+	ShowLock(cb)
 end
 
 local function Icon(cb, texture)
@@ -536,6 +586,7 @@ local function Start(cb, channel)
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
 	Motion.FadeIn(cb.frame, Tokens.Duration("fade"))
+	Notify(cb)
 	CastBars.SetName(cb, text)
 	Icon(cb, texture)
 	if not cb.styled then
@@ -567,6 +618,8 @@ local function Finish(cb, message)
 	cb.active = false
 	StopTimer(cb)
 	cb.duration = nil
+	cb.locked = false
+	ShowLock(cb)
 	CastBars.SetName(cb, message)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(1)
@@ -735,7 +788,7 @@ end
 
 function CastBars.Attach(view)
 	local kind = view.kind
-	local cb = New(view.castMute or view.button, kind, view.unit)
+	local cb = New(view.body or view.button, kind, view.unit)
 	cb.attached = true
 	view.castbar = cb
 	local list = bars

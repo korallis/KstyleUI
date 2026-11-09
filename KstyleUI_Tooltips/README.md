@@ -80,7 +80,7 @@ The bar is horizontal under the tooltip or vertical beside its right edge, with 
 
 ## Anchor
 
-`Anchor.lua` builds an empty 180 by 24 frame on `KstyleUI_Root` and registers it with Layout as `tooltips.anchor`, scalable, at the DPS position from `Setup.Layouts`: above the threat meter at the right. Its mover plate shows in Layout Mode; it draws nothing otherwise.
+`Anchor.lua` builds an empty 180 by 24 frame on `KstyleUI_Root` and registers it with Layout as `tooltips.anchor`, scalable, at the DPS position from `Setup.Layouts`: 8 units over the readout card's right corner, on no card, so a tooltip grows up the right rail and never covers the readout or the menu you hover. Its mover plate shows in Layout Mode; it draws nothing otherwise.
 
 - **Tooltip anchor** (the default): the hook on `GameTooltip_SetDefaultAnchor` moves `GameTooltip` to the anchor's corner nearest the screen corner, so a tooltip at the bottom right grows up and to the left. Only tooltips Blizzard puts at its default place move; a tooltip a button anchors to itself stays there.
 - **Mouse cursor**: the hook calls `SetOwner(parent, "ANCHOR_CURSOR_RIGHT", cursorX, cursorY)`.

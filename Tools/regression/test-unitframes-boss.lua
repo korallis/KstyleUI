@@ -1,4 +1,4 @@
--- test-unitframes-boss.lua: the boss column holds five compact cards that keep the name, the pill and the cast line, inside the footprint the layouts reserve with the cards' aura room; the boss you target shows a Targeted mark in place of its cast line, because the sigil already carries that cast. A secret unit comparison goes through SetAlphaFromBoolean.
+-- test-unitframes-boss.lua: the boss column holds five compact cards that keep the name, the pill and the cast line, inside the footprint the layouts reserve with the cards' aura room; the boss you target folds its card to a slim Targeted chip, because the sigil already carries its name, health and cast (round 2: Grok #2, Muse #1). A secret unit comparison goes through SetAlphaFromBoolean.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -58,50 +58,49 @@ for i, view in ipairs(uf.views) do
 end
 noErrors("column")
 
--- Targeted: the boss you target shows the mark, and its cast line steps back for the sigil's -----------------------
+-- Targeted: the boss you target folds its card to the chip; the sigil carries the full read -------------------------
 
 local b1, b2 = uf.views[1], uf.views[2]
-assert(b1.targetMark and b1.castMute, "each card has a Targeted mark and a holder for its cast line")
-assert(b1.castbar.frame:GetParent() == b1.castMute, "the cast line lives in that holder")
+assert(b1.chip and b1.body, "each card has a Targeted chip and a body holding everything the card draws")
+assert(b1.castbar.frame:GetParent() == b1.body and b1.panel:GetParent() == b1.body, "the cast line and the glass live in that body")
 
 local function shown(region)
 	return region:IsShown() and region:GetAlpha() > 0.5
 end
 local function muted(view)
-	return view.castMute:GetAlpha() < 0.5
+	return view.body:GetAlpha() < 0.5
 end
 
 env._units.target = env._units.boss1
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(shown(b1.targetMark) and muted(b1), "boss1 is the target: Targeted shows and its cast line steps back")
-assert(not shown(b2.targetMark) and not muted(b2), "boss2 keeps its own cast line")
-assert(U.Shown(env, b1.targetMark.text) == K.L["Targeted"], "the mark reads Targeted")
-local tg = b1.geometry.cast
-local _, _, _, mx, my = b1.targetMark:GetPoint(1)
-assert(near(mx, tg.x, 1) and near(-my, tg.y, 1), "the mark takes the cast line's place")
+assert(shown(b1.chip) and muted(b1), "boss1 is the target: its card folds to the Targeted chip")
+assert(not shown(b2.chip) and not muted(b2), "boss2 keeps its card")
+assert(U.Shown(env, b1.chip.text) == K.L["Targeted"], "the chip reads Targeted")
+local _, _, _, mx, my = b1.chip:GetPoint(1)
+assert(near(mx, 0, 1) and near(my, 0, 1), "the chip sits at the card's top left")
 
 env._units.boss1.cast = { name = "Terrifying Screech", texture = 132127, start = 1000, finish = 3500, spellID = 5000 }
 env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", 5000)
-assert(b1.castbar.frame:IsShown() and muted(b1), "a cast on the targeted boss stays with the sigil: the card's line is not drawn")
+assert(b1.castbar.frame:IsShown() and muted(b1), "a cast on the targeted boss stays with the sigil: the card's body is not drawn")
 env._units.boss1.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "boss1", "Cast-1", 5000)
 
 env._units.target = env._units.boss2
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(not shown(b1.targetMark) and not muted(b1), "boss1 gets its cast line back when you target another")
-assert(shown(b2.targetMark) and muted(b2), "boss2 is now the target")
+assert(not shown(b1.chip) and not muted(b1), "boss1 gets its card back when you target another")
+assert(shown(b2.chip) and muted(b2), "boss2 is now the target")
 
 env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 for i, view in ipairs(uf.views) do
-	assert(not shown(view.targetMark) and not muted(view), "boss" .. i .. ": no target, no mark")
+	assert(not shown(view.chip) and not muted(view), "boss" .. i .. ": no target, no chip")
 end
 noErrors("targeted")
 
 -- A boss that turns into the target without a target change (a new encounter unit) is marked too ------------------
 env._units.target = env._units.boss3
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-assert(shown(uf.views[3].targetMark), "a refresh of the boss units marks the target")
+assert(shown(uf.views[3].chip), "a refresh of the boss units marks the target")
 env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 
@@ -109,39 +108,39 @@ env.FireEvent("PLAYER_TARGET_CHANGED")
 env._secretCompare = true
 env._units.target = env._units.boss1
 env.FireEvent("PLAYER_TARGET_CHANGED")
-local mark = W.LastCall(b1.targetMark, "SetAlphaFromBoolean")
-local mute = W.LastCall(b1.castMute, "SetAlphaFromBoolean")
-assert(mark and env.issecretvalue(mark[1]) and mark[2] == 1 and mark[3] == 0, "a secret answer shows the mark through SetAlphaFromBoolean")
-assert(mute and env.issecretvalue(mute[1]) and mute[2] == 0 and mute[3] == 1, "and steps the cast line back the same way")
+local mark = W.LastCall(b1.chip, "SetAlphaFromBoolean")
+local mute = W.LastCall(b1.body, "SetAlphaFromBoolean")
+assert(mark and env.issecretvalue(mark[1]) and mark[2] == 1 and mark[3] == 0, "a secret answer shows the chip through SetAlphaFromBoolean")
+assert(mute and env.issecretvalue(mute[1]) and mute[2] == 0 and mute[3] == 1, "and steps the card back the same way")
 assert(env.Reveal(mark[1]) == true, "the secret answer is boss1")
-assert(b1.targetMark:IsShown(), "the mark is shown so its alpha decides")
+assert(b1.chip:IsShown(), "the chip is shown so its alpha decides")
 env._secretCompare = false
 env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 noErrors("secret")
 
--- The card steps back only for a sigil that shows the cast: with the target's cast line or frame off, the boss card
--- keeps its own cast line and shows no mark, so the cast never disappears from the screen.
+-- The card folds only for a sigil that shows the cast: with the target's cast line or frame off, the boss card keeps
+-- its own read and shows no chip, so the cast never disappears from the screen.
 env._units.target = env._units.boss1
 K.Options.Write("UnitFrames", "target.castbar", false)
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(not shown(b1.targetMark) and not muted(b1), "no target cast line: the boss card keeps its own")
+assert(not shown(b1.chip) and not muted(b1), "no target cast line: the boss card keeps its own")
 K.Options.Write("UnitFrames", "target.castbar", true)
-assert(shown(b1.targetMark) and muted(b1), "the target's cast line back on: the card steps back again at once")
+assert(shown(b1.chip) and muted(b1), "the target's cast line back on: the card folds again at once")
 K.Options.Write("UnitFrames", "target.enabled", false)
 env.RunTimers()
-assert(not shown(b1.targetMark) and not muted(b1), "no target frame: the boss card keeps its own cast line")
+assert(not shown(b1.chip) and not muted(b1), "no target frame: the boss card keeps its own read")
 K.Options.Write("UnitFrames", "target.enabled", true)
 env.RunTimers()
 env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 noErrors("no sigil cast")
 
--- No combat lockdown is needed: the mark and the holder are plain frames, so the swap runs mid-pull ---------------
+-- No combat lockdown is needed: the chip and the body are plain frames, so the swap runs mid-pull -----------------
 env.SetCombat(true)
 env._units.target = env._units.boss2
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(shown(b2.targetMark) and muted(b2), "the swap happens in combat")
+assert(shown(b2.chip) and muted(b2), "the swap happens in combat")
 env.SetCombat(false)
 noErrors("combat")
 

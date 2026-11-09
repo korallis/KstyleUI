@@ -123,8 +123,8 @@ end
 
 local FOOTPRINTS = {
 	{ "unitframes.player", 60, 80, 490, 80 },
-	{ "unitframes.target", 600, 70, 640, 80 },
-	{ "unitframes.focus", 60, 250, 318, 120 },
+	{ "unitframes.target", 600, 70, 490, 84 },
+	{ "unitframes.focus", 60, 250, 200, 90 },
 	{ "unitframes.focustarget", 60, 400, 120, 22 },
 	{ "unitframes.targettarget", 220, 400, 120, 22 },
 	{ "unitframes.pet", 380, 400, 120, 22 },
@@ -217,7 +217,7 @@ return Common.Run(function()
 	end
 	frames:Add(env, target.button, {
 		name = "unitframes_sigil", title = "Target sigil", grade = "bar", reference = "target",
-		caption = "The target's sigil at 640 units: the name centred in the heading face, the level line (Level 38 elite and the creature type), the 12-unit hostile pill between two gems, the gold cast line centred under it, and your three debuffs as sockets centred under the sigil, each rimmed in the class colour with its timer underneath.",
+		caption = "The target's sigil at 490 units, as wide as the vitals line it sits over: the name centred in the heading face over a soft dark scrim, the level line (Level 38 elite and the creature type), the 12-unit hostile pill between two gems, the bold gold cast line centred under it (13-unit text, Locked in red when it cannot be interrupted), and your three debuffs as sockets centred under the sigil, each rimmed in the class colour with its timer underneath.",
 		match = "The Lumen mockup's combat board: name 20, level line 13, gem 7 then 14 units to the pill, debuff sockets with timers under them. The gems are the rotated icon mask in gilt until S1's gem texture lands.",
 		rect = Gallery.Union(env, sigilParts),
 		pad = 10,
@@ -227,7 +227,7 @@ return Common.Run(function()
 	assert(focus.button:IsShown() and focus.geometry.form == "card" and focus.castbar.active, "the focus card shows and casts")
 	frames:Add(env, focus.button, {
 		name = "unitframes_focus", title = "Focus card", grade = "panel", reference = "player",
-		caption = "The focus card at 318 by 120: the section cap (gem, FOCUS, a gilt rule, the level at its right), the name with the percentage on its row, the 10-unit hostile pill and the gold cast line inside the card.",
+		caption = "The focus card at 200 by 90, beside the sigil in the combat cluster: the section cap (gem, FOCUS, a gilt rule, the level at its right), the name with the percentage on its row, the 10-unit hostile pill and the bold gold cast line inside the card, its debuffs in a row over it.",
 		match = "The Lumen mockup's boss card language on today's glass: S1 turns the chamfered panel into the frost card with rounded corners.",
 	})
 
@@ -240,10 +240,10 @@ return Common.Run(function()
 		shown[i] = boss.views[i].button
 	end
 	assert(boss.views[1].castbar.active, "boss1 casts")
-	assert(boss.views[2].targetMark:IsShown(), "boss2, your target, is marked")
+	assert(boss.views[2].chip:IsShown() and boss.views[2].body:GetAlpha() < 0.5, "boss2, your target, folds to its Targeted chip")
 	frames:Add(env, boss.holder, {
 		name = "unitframes_boss", title = "Boss cards", grade = "panel", reference = "target",
-		caption = "The boss column at 258 by 334: five compact cards 6 apart, each the name and percentage, a hostile pill and the cast line, no cap; Magmatus casts Whirlwind on its gold cast line and has aggro on the player; the Bloodtalon Matriarch is your target, so its card says Targeted where its cast line would be, as the sigil already shows that cast.",
+		caption = "The boss column at 258 by 334: five compact cards 6 apart, each the name and percentage, a hostile pill and the cast line, no cap; Magmatus casts Whirlwind on its gold cast line and has aggro on the player; the Bloodtalon Matriarch is your target, so its card folds to a slim Targeted chip, as the sigil already shows its name, health and cast; the cards with no cast hug their pill.",
 		match = "The Lumen mockup's boss card (combat board, right rail): cap 13, name 16 with 62% at its right, a 10-unit pill, then Casting and the spell in gold over a thin line.",
 		rect = Gallery.Union(env, shown),
 	})

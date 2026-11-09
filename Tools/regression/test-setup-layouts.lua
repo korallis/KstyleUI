@@ -132,14 +132,9 @@ for _, name in ipairs(names) do
 			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
-		-- A docked element sits inside its host card; the tooltip anchor lies over the readout card and what docks in it; a
-		-- threat card a layout switches off waits on the damage card's place.
-		local function covers(x, y)
-			local host = Layouts.Covers(x)
-			return host ~= nil and (host == y or Layouts.Dock(y) == host)
-		end
+		-- A docked element sits inside its host card; a threat card a layout switches off waits on the damage card's place.
 		local function shares(a, c)
-			if Layouts.Dock(a) == c or Layouts.Dock(c) == a or covers(a, c) or covers(c, a) then
+			if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
 				return true
 			end
 			local threat = a == "meters.threat" and c or (c == "meters.threat" and a)
@@ -167,47 +162,52 @@ end
 
 -- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
 -- Two 318-unit rails on a 28-unit margin hold everything slow: in DPS and Tank the left rail the party and chat with
--- the story slot between them, the right rail the lens, the Blessings, the meters and the readout and menu. The centre
--- holds the hands at the bottom and the enemy at the top: the target sigil, and beside it, 16 units in from the right
--- rail, the boss column, so all five boss cards fit clear of the meters. The world between stays clear. Healer brings
--- the party and raid beside the hands, puts the damage card and the focus at the head of the left rail and the boss
--- column on the right rail.
+-- the story slot between them, the right rail the lens, the Blessings, the damage card and the readout and menu. The
+-- centre holds one combat cluster at the bottom: the hands, and right on them the target sigil, with the focus on its
+-- left and the target of target on its right (in Tank the threat card under it), so you, your target, its target and
+-- your focus read in one glance (round 2: Muse #1, Opus's eye travel). The boss column heads the centre's right edge,
+-- 16 units in from the right rail. The world above the cluster stays clear. Healer stands the party and raid on the
+-- cluster's left half, puts the damage card at the head of the left rail and the boss column on the right rail.
 
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
 local LEFT_RAIL = {
 	DPS = { "groupframes.party", "groupframes.raid", "chat.main" },
 	Tank = { "groupframes.party", "groupframes.raid", "chat.main" },
-	Healer = { "meters.damage", "unitframes.focus", "chat.main" },
+	Healer = { "meters.damage", "chat.main" },
 }
 local RIGHT_STACK = {
 	DPS = { "minimap.main", "auras.buffs", "meters.damage" },
-	Tank = { "minimap.main", "auras.buffs", "meters.threat", "meters.damage" },
+	Tank = { "minimap.main", "auras.buffs", "meters.damage" },
 	Healer = { "minimap.main", "auras.buffs", "unitframes.boss" },
 }
 local DOCKED = { ["auras.debuffs"] = "auras.buffs", ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
 local HANDS = set({
-	"databars.xp", "databars.rep", "databars.honor", "actionbars.bar1", "actionbars.bar2", "actionbars.pet", "actionbars.stance",
+	"databars.xp", "databars.rep", "databars.honor", "actionbars.bar1", "actionbars.pet", "actionbars.stance",
 	"unitframes.player", "unitframes.pet", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs",
-	"cooldowns.bars", "unitframes.castbar.player", "meters.swing",
+	"cooldowns.bars", "meters.swing",
 })
-local SIGIL = set({ "unitframes.target", "unitframes.castbar.target", "unitframes.targettarget" })
--- The mockup's "world, kept clear" (system board): the centre 520 units wide, from the hands' top to the sigil's foot.
-local CLEAR = { half = 260, bottom = 390, top = 880 }
--- Cards at the clear centre's edge (the brief: "inside the centre clear zone's edge"): on a 16:10 screen they reach
--- into the zone's outer half, never past it. The focus card on the left; the boss column on the right.
-local EDGE_LEFT = set({ "unitframes.focus", "unitframes.focustarget" })
+-- The combat cluster on the hands: the sigil, the focus and its target, the target of target, and in Tank the threat card.
+local CLUSTER = set({ "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget" })
+-- What a player turns on stacks over the cluster in DPS and Tank: bar 2, then the plate cast bars (Healer: at the top).
+local EXTRAS = set({ "actionbars.bar2", "unitframes.castbar.player", "unitframes.castbar.target" })
+-- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster to the top.
+local CLEAR = { half = 260, bottom = 574, top = 1080 - 28 }
+-- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer half, never past it.
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
 	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
-	Healer = set({ "chat.main", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss", "unitframes.focus",
-		"unitframes.focustarget", "meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
+		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+	Healer = set({ "chat.main", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
+		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
 }
-RAIL_KEYS.Tank = RAIL_KEYS.DPS
--- Healer: the party and raid sit beside the hands, left of centre, their right edge 116 units off the centre line and
--- their foot 400 up, just over the hands' top; the character's column (centre +- 100) stays clear.
-local HEALER = { right = 116, bottom = 400, character = 100 }
+-- Healer: the party and raid stand on the cluster's left half, their right edge 116 units off the centre line and their
+-- foot 16 over the cluster's top; the character's column (centre +- 100) stays clear.
+local HEALER = { right = 116, gap = 16, character = 100 }
+-- The cluster's sizes: the sigil spans the vitals line; the cards beside it sit 12 out from it.
+local NEAR, CLUSTER_GAP = 12, 4
 local GROUP = set({ "groupframes.party", "groupframes.raid" })
 
 for _, name in ipairs(names) do
@@ -243,11 +243,10 @@ for _, name in ipairs(names) do
 			local r, h = rect(key), rect(host)
 			assert(r.left >= h.left and r.right <= h.right + 1e-6 and r.bottom >= h.bottom and r.top <= h.top, label .. ": " .. key .. " sits inside " .. host)
 		end
-		-- The tooltip anchor lies on the readout card at the right rail's foot: fixed tooltips cover the idle readout and
-		-- grow up the rail, never over the hands, the combat text or the boss column.
+		-- The tooltip anchor sits just over the readout card's right corner, on no card (round 2: Fable R2-7): a tooltip
+		-- grows up the rail from it, so hovering the micro menu never covers the menu or the readout you are reading.
 		local tip = rect("tooltips.anchor")
-		assert(Layouts.Covers("tooltips.anchor") == "databars.strip", "the tooltip anchor covers the readout card")
-		assert(math.abs(tip.right - strip.right) < 1e-6 and tip.bottom == strip.bottom and tip.left >= strip.left, label .. ": the tooltip anchor sits in the readout card's corner")
+		assert(math.abs(tip.right - strip.right) < 1e-6 and tip.bottom - strip.top == 8, label .. ": the tooltip anchor sits 8 over the readout card's right corner")
 		local chat = rect("chat.main")
 		assert(chat.bottom == MARGIN, label .. ": chat sits at the left rail's foot")
 
@@ -265,16 +264,12 @@ for _, name in ipairs(names) do
 		end
 		assert(top - strip.top >= CARD_GAP_MIN, label .. ": the readout and menu card clears the card above it")
 
-		-- The left rail's head: the party and raid card, or in Healer the damage card with the focus under it.
+		-- The left rail's head: the party and raid card, or in Healer the damage card.
 		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
 		local head
 		if healer then
-			local damage, focus = rect("meters.damage"), rect("unitframes.focus")
-			assert(damage.top == HEIGHT - MARGIN, label .. ": the damage card heads the left rail")
-			assert(damage.bottom - focus.top == 16, label .. ": the focus card sits 16 under it")
-			local ft = rect("unitframes.focustarget")
-			assert(ft.left == MARGIN and focus.bottom - ft.top >= 4, label .. ": the focus target sits under the focus card")
-			head = ft
+			head = rect("meters.damage")
+			assert(head.top == HEIGHT - MARGIN, label .. ": the damage card heads the left rail")
 		else
 			assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
 			head = party
@@ -288,15 +283,15 @@ for _, name in ipairs(names) do
 		assert(s[2] - chat.top >= CARD_GAP_MIN and head.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the rail's head and chat, 16 from each")
 		assert(s[4] - s[2] >= 280, label .. ": the story slot has room for the guide and the quests")
 		if healer then
-			assert(slot.raid == 0, label .. ": in Healer the raid card is beside the hands and covers none of the slot")
+			assert(slot.raid == 0, label .. ": in Healer the raid card stands on the cluster and covers none of the slot")
 		else
 			-- In a raid the taller raid card takes the slot's top: the slot says how far, and Layout Mode marks the line.
 			assert(slot.raid == raid.h - party.h and slot.raid > 0 and slot.raid < s[4] - s[2] and slot.raidHint, label .. ": the story slot names the part the raid card covers")
 			assert(party.bottom - slot.raid == raid.bottom, label .. ": the raid card ends that far into the slot")
 		end
 
-		-- Nothing but the rails' own cards enters a rail column; nothing but the hands, the sigil and (in Healer) the group
-		-- frames crosses the clear centre; the edge cards stay in its outer half.
+		-- Nothing but the rails' own cards enters a rail column; nothing but (in Healer) the group frames crosses the clear
+		-- centre over the cluster; the boss column stays in its outer half.
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
@@ -307,27 +302,25 @@ for _, name in ipairs(names) do
 			if healer and GROUP[key] then
 				assert(r.right <= mid - HEALER.right + 1e-6 and r.right <= mid - HEALER.character, label .. ": " .. key .. " stays left of the character's column")
 				assert(r.left >= BAND, label .. ": " .. key .. " stays off the left rail")
-				assert(r.bottom == HEALER.bottom, label .. ": " .. key .. " stands just over the hands")
-			elseif EDGE_LEFT[key] and not onRail then
-				assert(r.right <= mid - CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
+			elseif healer and key == "combattext.player" then
+				-- Healer mirrors the group frames: your combat text rises just right of the character's column.
+				assert(r.left >= mid + HEALER.character and r.right <= mid + CLEAR.half, label .. ": your combat text rises right of the character's column")
+			elseif healer and EXTRAS[key] then
+				assert(r.bottom >= HEIGHT / 2, label .. ": " .. key .. " waits at the top centre, over the group frames")
 			elseif EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
 			end
-			if HANDS[key] and math.abs(r.x - mid) < CLEAR.half then
+			if (HANDS[key] or CLUSTER[key] or EXTRAS[key]) and not (healer and EXTRAS[key]) then
 				assert(r.top <= CLEAR.bottom, label .. ": " .. key .. " sits under the clear centre with the hands")
-			end
-			if SIGIL[key] then
-				assert(r.bottom >= CLEAR.top, label .. ": " .. key .. " sits over the clear centre with the sigil")
 			end
 		end
 
-		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns with the swing line on
-		-- them, then bar 2 and the plate's cast bar for a player who turns them on.
+		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns with the swing line on them.
 		local xp, bar1, vitals = rect("databars.xp"), rect("actionbars.bar1"), rect("unitframes.player")
 		local essential, utility, cast = rect("cooldowns.essential"), rect("cooldowns.utility"), rect("unitframes.castbar.player")
-		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "meters.swing" }) do
+		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "unitframes.castbar.target", "meters.swing", "unitframes.target" }) do
 			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
 		end
 		assert(xp.bottom - 34 >= 14 and xp.bottom - 34 <= 20, label .. ": the XP line sits 34 units up with room for its caption under it")
@@ -341,11 +334,9 @@ for _, name in ipairs(names) do
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
 		assert(buffs.bottom == essential.bottom and essential.left - buffs.right >= 16, label .. ": the tracked buff icons sit beside the essential cooldowns' other end")
 		assert(bars.bottom >= buffs.top + 4 and bars.left == buffs.left, label .. ": the tracked buff bars sit over the icons")
-		local bar2, swing = rect("actionbars.bar2"), rect("meters.swing")
+		local swing = rect("meters.swing")
 		assert(swing.bottom - essential.top >= 4 and swing.bottom - essential.top <= 8, label .. ": the swing line sits on the essential cooldowns, part of the hands, not a stray bar")
 		local block = math.max(swing.top, bars.top, essential.top, utility.top)
-		assert(bar2.bottom >= block and bar2.bottom - block <= 8, label .. ": bar 2 sits on the hands block, not floating over it (" .. (bar2.bottom - block) .. " over)")
-		assert(cast.bottom >= bar2.top, label .. ": the plate's cast bar waits over bar 2")
 		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
 		assert(petBar.right == bar1.left - 12 and petBar.bottom == bar1.bottom, label .. ": the pet sockets sit beside bar 1's left end")
 		assert(stance.left == bar1.right + 12 and stance.bottom == bar1.bottom, label .. ": the stance sockets sit beside bar 1's right end")
@@ -355,28 +346,49 @@ for _, name in ipairs(names) do
 		local pet = rect("unitframes.pet")
 		assert(pet.right == vitals.left - 12 and pet.top == vitals.top, label .. ": the pet frame sits beside the vitals line's ring, top-aligned")
 
-		-- The sigil near the top centre; the target's cast bar under it and the target of target under its right end.
-		local sigil, targetCast, tot = rect("unitframes.target"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
-		assert(centred(sigil) and sigil.top == HEIGHT - 40, label .. ": the sigil sits 40 under the top, centred")
-		assert(centred(targetCast) and sigil.bottom - targetCast.top == 8, label .. ": the target cast bar hangs under the sigil")
-		assert(tot.right == sigil.right and tot.top == targetCast.top, label .. ": the target of target sits under the sigil's right end")
+		-- The combat cluster, in every layout: the sigil right on the hands block and as wide as the vitals line, so your
+		-- target reads straight over you; the focus card on its left with the focus target under it; the target of target
+		-- on its right, top-aligned. In Tank the threat card stands under the target of target.
+		local sigil, tot = rect("unitframes.target"), rect("unitframes.targettarget")
+		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
+		assert(sigil.bottom >= block + 4 and sigil.bottom - block <= 16, label .. ": the sigil sits right on the hands block (" .. (sigil.bottom - block) .. " over)")
+		assert(sigil.w == vitals.w, label .. ": the sigil spans the vitals line, one column")
+		assert(sigil.top - vitals.top <= 260, label .. ": your target reads within 260 units of you, not a screen away")
+		assert(sigil.left - focus.right == NEAR and focus.top == sigil.top, label .. ": the focus card sits 12 left of the sigil, top-aligned")
+		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= CLUSTER_GAP and focusTarget.bottom >= block + 4, label .. ": the focus target sits under the focus card, off the hands")
+		assert(tot.left - sigil.right == NEAR and tot.top == sigil.top, label .. ": the target of target sits 12 right of the sigil, top-aligned")
+		local clusterTop = sigil.top
+		if name == "Tank" then
+			local threat = rect("meters.threat")
+			assert(threat.left == tot.left and tot.bottom - threat.top == CLUSTER_GAP and threat.bottom >= block + 4, label .. ": the threat card stands under the target of target")
+			assert(threat.top <= clusterTop, label .. ": the threat card stays inside the cluster")
+		end
+		for _, key in ipairs({ "unitframes.focus", "unitframes.focustarget", "unitframes.targettarget", "unitframes.target" }) do
+			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
+		end
 
-		-- The enemy at the top: in DPS and Tank the boss column sits 16 in from the right rail, 16 under the target of
-		-- target, and all five cards end above your combat text.
+		-- What a player turns on: in DPS and Tank bar 2 stands 8 over the cluster and the plate cast bars over it; in
+		-- Healer, whose group frames stand on the cluster, they wait at the top centre.
+		local bar2, targetCast = rect("actionbars.bar2"), rect("unitframes.castbar.target")
+		if healer then
+			assert(bar2.top == HEIGHT - MARGIN and bar2.bottom - cast.top == 8 and cast.bottom - targetCast.top == 8, label .. ": bar 2 and the plate cast bars wait at the top centre")
+			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
+				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
+			end
+		else
+			assert(bar2.bottom - clusterTop == 8 and cast.bottom - bar2.top == 8 and targetCast.bottom - cast.top == 8, label .. ": bar 2 and the plate cast bars stack over the cluster")
+		end
+
+		-- The boss column heads the centre's right edge in DPS and Tank, 16 in from the right rail; your combat text
+		-- rises right of the cluster under it.
 		local boss, text = rect("unitframes.boss"), rect("combattext.player")
 		if not healer then
-			assert(math.abs(boss.right - (width - BAND)) < 1e-6, label .. ": the boss column sits 16 units in from the right rail")
-			assert(tot.bottom - boss.top == 16, label .. ": the boss column hangs 16 under the target of target")
+			assert(math.abs(boss.right - (width - BAND)) < 1e-6 and boss.top == HEIGHT - MARGIN, label .. ": the boss column heads the right edge of the centre, 16 in from the right rail")
 			assert(boss.bottom - text.top >= 16, label .. ": your combat text rises under the boss column")
+			assert(text.left >= mid + CLEAR.half, label .. ": your combat text rises beside the clear centre")
 		end
+		assert(text.bottom - clusterTop >= 16, label .. ": your combat text rises over the cluster")
 		assert(text.left >= utility.right or text.bottom >= utility.top, label .. ": your combat text stays off the utility cooldowns")
-
-		-- The focus card at mid-left, at the clear centre's edge; its target under it. In Healer they head the left rail.
-		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
-		if not healer then
-			assert(focus.left == BAND and focus.y > HEIGHT / 3 and focus.y < HEIGHT * 2 / 3, label .. ": the focus card sits mid-left, beside the left rail")
-			assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= 4, label .. ": the focus target sits under the focus card")
-		end
 	end
 
 	-- Bars 2 to 6 are off in Lumen; bar 1 and the socket rows are on. The threat card shows in Tank only. The cast bar
@@ -407,7 +419,7 @@ for _, name in ipairs(names) do
 		local w, h = Layouts.Footprint(name, key)
 		assert(size.width == w and size.height == h, name .. " writes " .. key .. " at its footprint")
 	end
-	assert(sizes["meters.damage"].height == (name == "Tank" and 98 or 190), name .. ": the damage card's rows")
+	assert(sizes["meters.damage"].height == 190, name .. ": six damage rows")
 	assert(settings["GroupFrames.raid.groupsPerRow"] == 4, name .. " folds the raid into four groups a row, for the rail")
 	local raidW = 4 * settings["GroupFrames.raid.width"] + 3 * 3
 	assert(raidW <= RAIL and raidW >= RAIL - 4, name .. ": four raid groups fill the rail's 318, got " .. raidW)
@@ -419,7 +431,8 @@ do
 	assert(h("Healer", "groupframes.party") > h("DPS", "groupframes.party") and h("Healer", "groupframes.raid") > h("DPS", "groupframes.raid"), "Healer gets larger party and raid frames")
 	local healerParty, dpsParty = Layouts.Get("Healer")["groupframes.party"], Layouts.Get("DPS")["groupframes.party"]
 	assert(healerParty.anchor ~= dpsParty.anchor or healerParty.x ~= dpsParty.x, "Healer moves the party and raid: it is not the DPS layout with taller rows")
-	assert(h("Tank", "meters.threat") > h("Tank", "meters.damage"), "Tank gives the threat card more rows than the damage card")
+	local threatW, threatH = Layouts.Footprint("Tank", "meters.threat")
+	assert(threatW == 200 and threatH == 112, "Tank sizes the threat card to the cluster's side, 200 by 112, got " .. threatW .. " x " .. threatH)
 	local hs = {}
 	for _, entry in ipairs(Layouts.Settings("Healer")) do hs[entry.module .. "." .. entry.key] = entry.value end
 	assert(hs["GroupFrames.party.auraDispelCount"] == 2 and hs["GroupFrames.raid.auraDispelCount"] == 2, "Healer shows up to two dispellable debuffs first on every frame")
@@ -462,19 +475,20 @@ local FOOTPRINTS = {
 	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
-	-- S2 (#153): the vitals line holds its cast line (80), the sigil keeps its debuff sockets under it (80 + 46), the
-	-- boss and focus are 318 by 120 cards, and the small frames 120 by 22 pill rows.
+	-- S2 (#153): the vitals line holds its cast line (80) and the small frames are 120 by 22 pill rows. Round 2 (Q2):
+	-- the sigil spans the vitals line at 490 with a bolder cast line (84) and keeps its debuff sockets under it (84 + 46);
+	-- the focus is a 200 by 90 card beside it with its debuffs over it (90 + 22).
 	["cooldowns.essential"] = { 6 * 44 + 5 * 6, 44 },
 	["cooldowns.utility"] = { 4 * 38 + 3 * 6, 38 },
 	["cooldowns.buffs"] = { 6 * 30 + 5 * 3, 30 },
 	["cooldowns.bars"] = { 195, 2 * 20 + 3 },
 	["unitframes.player"] = { 490, 80 },
-	["unitframes.target"] = { 640, 126 },
+	["unitframes.target"] = { 490, 130 },
 	["unitframes.boss"] = { 318, 334 },
 	["unitframes.targettarget"] = { 120, 22 },
 	["unitframes.pet"] = { 120, 22 },
 	["unitframes.focustarget"] = { 120, 22 },
-	["unitframes.focus"] = { 318, 120 },
+	["unitframes.focus"] = { 200, 112 },
 	["unitframes.castbar.player"] = { 272, 30 },
 	["unitframes.castbar.target"] = { 220, 24 },
 	-- S4 (#157): the lens card, the Blessings card at one buff row with the debuff row docked, six damage rows, four
@@ -503,9 +517,10 @@ end
 -- layout writes on Apply (the Tank meters).
 do
 	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
-	-- hang under its 80-unit frame, so the layouts keep 126 from its top; the boss column holds five compact cards and
-	-- the layouts keep its full height plus the debuffs hanging to its left, 318 in all.
-	local RESERVES = { ["unitframes.target"] = { 640, 126 }, ["unitframes.boss"] = { 318, 334 } }
+	-- hang under its 84-unit frame, so the layouts keep 130 from its top; the focus card's debuffs sit over its 90-unit
+	-- frame, so the layouts keep 112 from its foot; the boss column holds five compact cards and the layouts keep its
+	-- full height plus the debuffs hanging to its left, 318 in all.
+	local RESERVES = { ["unitframes.target"] = { 490, 130 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -515,8 +530,9 @@ do
 	for key in pairs(RESERVES) do
 		assert(reserved[key], key .. " has its reserve")
 	end
-	local target, boss = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss")
-	assert(target.width == 640 and target.height == 80 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
+	local target, boss, focus = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss"), Layouts.Element("unitframes.focus")
+	assert(target.width == 490 and target.height == 84 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
+	assert(focus.width == 200 and focus.height == 90 and Layouts.Get("DPS")["unitframes.focus"].anchor == "BOTTOM", "the focus card's frame foots its reserve, so its debuffs sit inside it")
 	assert(boss.width == 258 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart")
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not RESERVES[element.key] then
