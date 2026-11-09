@@ -105,6 +105,8 @@ end
 
 -- Shared(env, opts) gives every environment the game's class colours (RAID_CLASS_COLORS, which Theme reads for
 -- the accent), the scene's class as UnitClass("player") gives it, and the owner's screen.
+Hud.Saved = saved
+
 local function shared(env, opts)
 	Common.ForceScreen(env)
 	local class, spec = Hud.Class(opts)
@@ -1093,7 +1095,7 @@ function modules.meters(opts)
 			for i, row in ipairs(rows) do
 				total = total + row[3]
 				sources[i] = {
-					name = row[1], classFilename = row[2], totalAmount = row[3], amountPerSecond = row[3] / 60,
+					name = row[1], classFilename = row[2], totalAmount = row[3], amountPerSecond = row[3] / 60, sourceGUID = "Player-" .. tostring(row[1]),
 					sourceDisplayType = 1, isLocalPlayer = i == 1, deathRecapID = 0, deathTimeSeconds = 0,
 				}
 			end
@@ -1124,7 +1126,25 @@ function modules.meters(opts)
 		env.SetTime(now + 1.1)
 	end
 	M.Tick(env)
+	-- opts.meterHover ({ spellID, name, icon, amount }, highest first): the pointer rests on the player's row, so its
+	-- tooltip lists the player's top three spells of the fight, as the game reads them out of combat.
+	if opts.meterHover and rows[1] then
+		local spells, total = {}, 0
+		for i, s in ipairs(opts.meterHover) do
+			env._spells[s[1]] = { name = s[2], icon = s[3] }
+			spells[i] = { spellID = s[1], totalAmount = s[4], amountPerSecond = s[4] / 60, creatureName = "" }
+			total = total + s[4]
+		end
+		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = total }
+		local row = ns.Damage.list.rows[1].frame
+		row._scripts.OnEnter(row)
+		env.RunTimers()
+		tick(env, 0.3)
+	end
 	local scene = build(env, opts)
+	if opts.meterHover then
+		scene.log[#scene.log + 1] = "the pointer rests on the player's row of the damage meter: its tooltip lists the top three spells"
+	end
 	return finish(env, K, scene, "meters"), ns
 end
 

@@ -11,9 +11,12 @@
 -- questing: out of combat with no target, three quests and the guide in the story slot, a party of three, the last
 -- fight's meter. The guide's step list is folded on the rail, by RestedXP's own rule, so the rail reads path, quests.
 -- combat: in combat with a party of five, the boss card, and the boss as the target, casting; the combat calm has
--- faded the slow cards (chat, the lens, the readout and menu, the XP line, the guide and the tracker) to 30%.
+-- faded the slow cards (chat, the lens, the readout and menu, the XP line, the guide and the tracker) to 30%; the boss
+-- emote that announces the cast shows on the encounter warnings lane above the target (_encounter.lua).
+-- questing: the pointer rests on the player's meter row, so the card shows the last fight's top three spells.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
+local Encounter = dofile("Tools/render/scenes/_encounter.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Scene = Common.Scene
 
@@ -40,6 +43,14 @@ Lumen.DAMAGE = {
 		{ nil, "WARRIOR", 14600 }, { "Khont", "ROGUE", 9800 }, { "Mira", "MAGE", 8700 },
 		{ "Trolly", "PRIEST", 2100 }, { "Leduc", "PALADIN", 1300 },
 	},
+}
+-- The player's spells in the last fight, which the questing board's meter hover lists (its top three): a warrior's
+-- 18,000 damage, as Lumen.DAMAGE.questing gives the player.
+Lumen.SPELLS = {
+	{ 12294, "Mortal Strike", 132355, 7900 },
+	{ 1464, "Slam", 132340, 5200 },
+	{ 1680, "Whirlwind", 132369, 3100 },
+	{ 772, "Rend", 132155, 1800 },
 }
 Lumen.BOSS = {
 	name = "Bloodtalon Matriarch", level = 38, classification = "elite", health = 3720, healthMax = 6000,
@@ -125,6 +136,7 @@ function Lumen.Build(state, opts)
 		base.target = Lumen.BOSS
 	else
 		base.target = false
+		base.meterHover = Lumen.SPELLS
 	end
 	base.menus = true
 	base.sizes = {}
@@ -158,6 +170,9 @@ function Lumen.Build(state, opts)
 	end
 	local guide, R = Hud.Module("restedxp", base)
 	table.insert(scenes, 1, guide)
+	if state == "combat" then
+		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))
+	end
 	local merged = Scene.Merge(scenes)
 	merged.rail = Lumen.Rail(built, R)
 	merged.slot = slot

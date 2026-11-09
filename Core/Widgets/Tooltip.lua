@@ -343,6 +343,7 @@ function Widgets.Tooltip()
 end
 
 local attached = setmetatable({}, { __mode = "k" })
+local anchors = setmetatable({}, { __mode = "k" })
 
 local function ShowAttached(frame)
 	local content = attached[frame]
@@ -350,7 +351,11 @@ local function ShowAttached(frame)
 		return
 	end
 	local t = Widgets.Tooltip()
-	t:SetOwner(frame, "ANCHOR_RIGHT")
+	local anchor = anchors[frame]
+	if type(anchor) == "function" then
+		anchor = anchor(frame)
+	end
+	t:SetOwner(frame, anchor or "ANCHOR_RIGHT")
 	if type(content) == "function" then
 		ns.Call(content, t, frame)
 	else
@@ -365,9 +370,10 @@ local function HideAttached(frame)
 	end
 end
 
-function Widgets.AttachTooltip(frame, content)
+function Widgets.AttachTooltip(frame, content, anchor)
 	local first = attached[frame] == nil
 	attached[frame] = content
+	anchors[frame] = anchor
 	if first then
 		frame:HookScript("OnEnter", ShowAttached)
 		frame:HookScript("OnLeave", HideAttached)

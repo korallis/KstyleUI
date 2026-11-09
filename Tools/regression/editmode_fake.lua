@@ -13,6 +13,7 @@
 local EditModeFake = {}
 
 EditModeFake.TRACKER, EditModeFake.METER, EditModeFake.CHAT, EditModeFake.VIEWER = 12, 23, 8, 20
+EditModeFake.RAID_WARNING = 24
 EditModeFake.BUFF_ICON, EditModeFake.BUFF_BAR = 3, 4
 EditModeFake.ORIENTATION, EditModeFake.ICON_DIRECTION, EditModeFake.ICON_SIZE, EditModeFake.ICON_PADDING = 0, 2, 3, 4
 EditModeFake.BAR_WIDTH = 11
@@ -62,6 +63,14 @@ local function Viewer(index, orientation, direction, y)
 	return entry
 end
 
+-- Warning() -> RaidWarningFrame's system as the preset stores it (Mainline/EditModePresetLayouts.lua:1002): no
+-- settings, its TOP 182 units under the screen's top.
+local function Warning()
+	local entry = System(F.RAID_WARNING, 0, -182)
+	entry.anchorInfo = { point = "TOP", relativeTo = "UIParent", relativePoint = "TOP", offsetX = 0, offsetY = -182 }
+	return entry
+end
+
 -- Modern() -> the Modern preset's systems this fake models, at Forever's preset places.
 function F.Modern()
 	return {
@@ -73,13 +82,14 @@ function F.Modern()
 			Viewer(1, F.HORIZONTAL, F.RIGHT, 230),
 			Viewer(F.BUFF_ICON, F.HORIZONTAL, F.RIGHT, 370),
 			Viewer(F.BUFF_BAR, F.VERTICAL, F.LEFT, 400),
+			Warning(),
 		},
 	}
 end
 
 function F.Install(env, state)
 	env.Enum = env.Enum or {}
-	env.Enum.EditModeSystem = { ObjectiveTracker = F.TRACKER, DamageMeter = F.METER, ChatFrame = F.CHAT }
+	env.Enum.EditModeSystem = { ObjectiveTracker = F.TRACKER, DamageMeter = F.METER, ChatFrame = F.CHAT, RaidWarning = F.RAID_WARNING }
 	if not state.noViewers then
 		env.Enum.EditModeSystem.CooldownViewer = F.VIEWER
 	end

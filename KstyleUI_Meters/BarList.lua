@@ -27,6 +27,20 @@ BarList.PILL_GAP = PILL_GAP
 
 local List = {}
 
+local function Plain(value)
+	return type(value) == "number" and not (issecretvalue and issecretvalue(value)) and value == value
+end
+
+local function Inward(frame)
+	local x, root = frame:GetCenter(), K.Scale.Root()
+	local middle = root:GetCenter()
+	local own, scale = frame:GetEffectiveScale(), root:GetEffectiveScale()
+	if Plain(x) and Plain(middle) and Plain(own) and Plain(scale) and x * own > middle * scale then
+		return "ANCHOR_LEFT"
+	end
+	return "ANCHOR_RIGHT"
+end
+
 local function Size(frame, fallbackWidth, fallbackHeight)
 	local w, h = frame:GetWidth(), frame:GetHeight()
 	return Logic.Plain(w) or fallbackWidth, Logic.Plain(h) or fallbackHeight
@@ -74,9 +88,9 @@ local function NewRow(list, index)
 	if list.rowTooltip then
 		Widgets.AttachTooltip(frame, function(tip)
 			list.rowTooltip(tip, list, row.index)
-		end)
+		end, Inward)
 	elseif list.tooltip then
-		Widgets.AttachTooltip(frame, list.tooltip)
+		Widgets.AttachTooltip(frame, list.tooltip, Inward)
 	end
 	if list.rowSplits then
 		local more = frame:CreateTexture(nil, "OVERLAY")
@@ -490,7 +504,7 @@ function BarList.New(parent, section, opts)
 		end)
 	end
 	if opts.tooltip then
-		Widgets.AttachTooltip(panel, opts.tooltip)
+		Widgets.AttachTooltip(panel, opts.tooltip, Inward)
 	end
 	if opts.onSwitch then
 		local switch = CreateFrame("Frame", nil, panel)
@@ -502,7 +516,7 @@ function BarList.New(parent, section, opts)
 		end)
 		if opts.switchTooltip then
 			list.switchTooltip = opts.switchTooltip
-			Widgets.AttachTooltip(switch, opts.switchTooltip)
+			Widgets.AttachTooltip(switch, opts.switchTooltip, Inward)
 		end
 		list.switch = switch
 	end

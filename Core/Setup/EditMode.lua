@@ -16,6 +16,7 @@ local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 4
+local WARNING_HEIGHT = 100
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
 	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 30, floor = 24 },
@@ -25,8 +26,9 @@ local TRACKED = { ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
 
 EditMode.TRACKER_LEFT = 16
 EditMode.TRACKER_TOP = 34
+EditMode.WARNING_LANE = 580
 
-local floor, max, min = math.floor, math.max, math.min
+local abs, floor, max, min = math.abs, math.floor, math.max, math.min
 local counter
 
 local function log(message)
@@ -269,6 +271,57 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = spot.right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = x * k, y = spot.y * k, settings = settings }
 end
 
+local function Rise(lane, rects, clear, height)
+	local moved = true
+	while moved do
+		moved, lane.t = false, lane.b + height
+		for _, o in ipairs(rects) do
+			if lane.l < o.r and o.l < lane.r and lane.b < o.t and o.b < lane.t then
+				lane.b, lane.t, moved = o.t + clear, o.t + clear + height, true
+			end
+		end
+	end
+	return lane
+end
+
+local function Warning(name, k, rw, rh, others, chosen)
+	local system, sigil = Enum.EditModeSystem.RaidWarning, Box(name, "unitframes.target", rw, rh)
+	local left, right = Box(name, "chat.main", rw, rh), Box(name, "minimap.main", rw, rh)
+	if system == nil or not (sigil and left and right) then
+		return nil
+	end
+	local clear, half, height = Layouts.SIGIL_CLEAR, EditMode.WARNING_LANE / 2, WARNING_HEIGHT / k
+	local rects, xs = {}, { rw / 2 }
+	local slot = Layouts.Slot(name)
+	if slot then
+		local l, b, r, t = Layouts.Rect(slot, slot, rw, rh)
+		rects[1] = { l = l, b = b, r = r, t = t }
+	end
+	for _, rect in ipairs(others) do
+		rects[#rects + 1] = rect
+	end
+	for _, pick in pairs(chosen) do
+		rects[#rects + 1] = pick.rect
+	end
+	for _, o in ipairs(rects) do
+		xs[#xs + 1], xs[#xs + 2] = o.r + clear + half, o.l - clear - half
+	end
+	local best
+	for _, x in ipairs(xs) do
+		if x - half >= left.r + clear and x + half <= right.l - clear then
+			local lane = Rise({ l = x - half, r = x + half, b = sigil.t + clear, x = x }, rects, clear, height)
+			if lane.t <= rh and (not best or lane.b < best.b or (lane.b == best.b and abs(x - rw / 2) < abs(best.x - rw / 2))) then
+				best = lane
+			end
+		end
+	end
+	if not best then
+		log("Edit Mode: no free band above the target holds the raid warnings; they stay where Edit Mode puts them")
+		return nil
+	end
+	return { label = "the raid and boss warnings", system = system, point = "TOP", x = best.x * k, y = best.t * k, settings = {} }
+end
+
 local function Places(name, story, notes)
 	local enum, k = Enum, Factor()
 	local places = {}
@@ -294,17 +347,18 @@ local function Places(name, story, notes)
 		end
 		places[#places + 1] = { label = "Blizzard's damage meter", system = meterSystem, x = l * k, y = t * k, settings = settings }
 	end
+	local rw, rh = Setup.RootSize()
+	local chosen = {}
 	if enum.EditModeSystem.CooldownViewer ~= nil then
-		local rw, rh = Setup.RootSize()
 		local others, boxes = Others(name, rw, rh), {}
 		for key in pairs(Layouts.Get(name)) do
 			boxes[key] = Box(name, key, rw, rh)
 		end
-		local chosen = {}
 		for _, group in ipairs({ "buffs", "bars" }) do
 			places[#places + 1] = Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 		end
 	end
+	places[#places + 1] = Warning(name, k, rw, rh, Others(name, rw, rh), chosen)
 	return places
 end
 
