@@ -390,19 +390,6 @@ local function Plain(value)
 	return type(value) == "number" and not Widgets.IsSecret(value)
 end
 
-local function Redraw(minimap)
-	local getZoom, setZoom, getLevels = minimap.GetZoom, minimap.SetZoom, minimap.GetZoomLevels
-	if type(getZoom) ~= "function" or type(setZoom) ~= "function" or type(getLevels) ~= "function" then
-		return
-	end
-	local zoom, levels = getZoom(minimap), getLevels(minimap)
-	if not (Plain(zoom) and Plain(levels)) or levels < 2 then
-		return
-	end
-	setZoom(minimap, zoom < levels - 1 and zoom + 1 or zoom - 1)
-	setZoom(minimap, zoom)
-end
-
 local function FitLater()
 	QueueOnce("fit", Fit)
 end
@@ -423,10 +410,6 @@ function Fit()
 	minimap:ClearAllPoints()
 	minimap:SetPoint("CENTER", face.mapArea, "CENTER")
 	minimap:SetSize(width, height)
-	if Map.fitWidth ~= width or Map.fitHeight ~= height then
-		Map.fitWidth, Map.fitHeight = width, height
-		Redraw(minimap)
-	end
 end
 
 local function OnEditModeExit()
@@ -509,7 +492,6 @@ function Release()
 	if not (minimap and original) then
 		return
 	end
-	Map.fitWidth, Map.fitHeight = nil, nil
 	minimap:SetParent(original.parent)
 	minimap:ClearAllPoints()
 	for _, point in ipairs(original.points) do

@@ -60,8 +60,8 @@ local mw, mh = face.mapArea:GetSize()
 assert(mw == mh, "the minimap stays square")
 -- The engine draws the terrain at the size the Minimap was given with SetSize, from the frame's bottom left
 -- corner; anchors alone leave Blizzard's 198 render in a 217 square (ingame-18: a dark band on the right and the
--- top). So the map takes an explicit size equal to the square, one CENTER point on it, and a zoom nudge that
--- makes the engine draw again at the new size and lands on the zoom it had.
+-- top). So the map takes an explicit size equal to the square and one CENTER point on it. Fitting never touches
+-- the zoom: nothing in Forever's source shows the engine needs a zoom change to draw at a new size.
 local function Fits(what)
 	local size = W.LastCall(minimap, "SetSize")
 	local sw, sh = face.mapArea:GetSize()
@@ -70,7 +70,7 @@ local function Fits(what)
 	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the map square")
 end
 Fits("adopted")
-assert(env._zoom == 2 and env._zoomCalls >= 2, "the render refresh lands on the zoom the player had")
+assert(env._zoom == 2 and (env._zoomCalls or 0) == 0, "fitting the map leaves the player's zoom alone: " .. tostring(env._zoomCalls) .. " zoom calls")
 -- The map fills the frame to just inside its bevel line: 2 units in on the mockup's 221 frame (the dark line, the
 -- light line and the fade row are three borders), where it used to sit a whole 4-unit gap in. The frame's chamfer
 -- is a share of its side, so the mask texture's fixed cut lines up with the frame's line at every size.
