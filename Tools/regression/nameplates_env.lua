@@ -258,6 +258,24 @@ function N.Install(env, opts)
 		return env._spellIDs[identifier]
 	end
 
+	-- The player's debuffs on a unit, as GetAuraSlots counts them: unit.debuffCount slots, up to maxSlots,
+	-- after a continuation token. While auras are secret the call raises, as RequiresUnitAuraAccess does.
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras._calls = env.C_UnitAuras._calls or {}
+	function env.C_UnitAuras.GetAuraSlots(token, filter, maxSlots)
+		env.C_UnitAuras._calls[#env.C_UnitAuras._calls + 1] = { method = "GetAuraSlots", args = { token, filter, maxSlots } }
+		if env._aurasSecret then
+			error("Usage: GetAuraSlots requires unit aura access")
+		end
+		local u = unit(token)
+		local count = math.min(u and u.debuffCount or 0, maxSlots or math.huge)
+		local slots = {}
+		for i = 1, count do
+			slots[i] = i
+		end
+		return nil, unpack(slots)
+	end
+
 	env.Enum = env.Enum or {}
 	env.Enum.PowerType = env.Enum.PowerType or { Mana = 0, Rage = 1, Energy = 3 }
 	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
@@ -510,9 +528,11 @@ function N.Debuffs(env, token, count)
 	local plate = env._addons.KstyleUI_Nameplates.Plates.Get(token)
 	local container = assert(plate and plate.auras, "no debuff container on " .. token)
 	local A = dofile("Tools/regression/auras_env.lua")
+	env._units[token].debuffCount = count
 	for key in pairs(container._groups) do
 		A.Assign(env, container, key, count)
 	end
+	env.FireEvent("UNIT_AURA", token)
 end
 
 -- Cast(env, token, cast) starts a cast or channel on a unit and fires its start event.

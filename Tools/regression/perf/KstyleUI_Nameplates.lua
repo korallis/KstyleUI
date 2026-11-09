@@ -59,6 +59,15 @@ return {
 		end,
 	},
 	{
+		name = "Nameplates UNIT_AURA with eight debuffs",
+		budget = 20,
+		setup = function()
+			local env = Plate()
+			N.Debuffs(env, "nameplate1", 8)
+			return env, Perf.Event(env, "UNIT_AURA", "nameplate1")
+		end,
+	},
+	{
 		name = "Nameplates QUEST_LOG_UPDATE with a plate",
 		budget = 20,
 		setup = function()

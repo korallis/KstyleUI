@@ -11,7 +11,6 @@ local Auras = {}
 ns.Auras = Auras
 
 local GROUP = "debuffs"
-local TALLY = "tally"
 local OVERFLOW_MAX = 16
 local TEMPLATE = "CustomAuraContainerTemplate"
 local GAP = Tokens.Size("gapTiny")
@@ -27,7 +26,6 @@ local SAMPLE_ICONS = { 136118, 135817, 132155 }
 
 local available = true
 local parts = setmetatable({}, { __mode = "k" })
-local plateOf = setmetatable({}, { __mode = "k" })
 local pending = setmetatable({}, { __mode = "k" })
 local waitingChromes = setmetatable({}, { __mode = "k" })
 local flushScheduled = false
@@ -47,7 +45,7 @@ local function Grid(frame)
 	local spacing = Widgets.Snap(frame, Settings.Get("debuffs.spacing"))
 	return size, spacing, Settings.Get("debuffs.columns"), Settings.Get("debuffs.rows")
 end
-Auras.GROUP, Auras.TALLY, Auras.OVERFLOW_MAX, Auras.Grid = GROUP, TALLY, OVERFLOW_MAX, Grid
+Auras.GROUP, Auras.OVERFLOW_MAX, Auras.Grid = GROUP, OVERFLOW_MAX, Grid
 
 local ORDERS = {
 	important = { "ImportantOnly", "Normal" },
@@ -179,56 +177,11 @@ local function BuildButton(button)
 	button:SetDurationText(time)
 end
 
-local UpdateOverflow
-
-local function ScheduleOverflow(plate)
-	if plate.overflowQueued or not plate.overflowTimer then
-		return
-	end
-	if C_Timer and C_Timer.After then
-		plate.overflowQueued = true
-		C_Timer.After(0, plate.overflowTimer)
-	else
-		UpdateOverflow(plate)
-	end
-end
-
-local function OnProbeShow(probe)
-	local plate = probe.plate
-	plate[probe.counter] = plate[probe.counter] + 1
-	ScheduleOverflow(plate)
-end
-
-local function OnProbeHide(probe)
-	local plate = probe.plate
-	plate[probe.counter] = plate[probe.counter] - 1
-	ScheduleOverflow(plate)
-end
-
-local function AddProbe(button, counter)
-	local plate = plateOf[button:GetParent()]
-	if not plate then
-		LogOnce("aura-probe", "an aura button's container belongs to no plate; its debuffs are not counted")
-		return
-	end
-	local probe = CreateFrame("Frame", nil, button)
-	probe:SetAllPoints(button)
-	probe.plate, probe.counter = plate, counter
-	probe:HookScript("OnShow", OnProbeShow)
-	probe:HookScript("OnHide", OnProbeHide)
-end
-
 local function InitButton(button)
 	local ok, err = pcall(BuildButton, button)
 	if not ok then
 		LogOnce("aura-button", "building an aura button failed: " .. tostring(err))
 	end
-	AddProbe(button, "auraShown")
-end
-
-local function InitTally(button)
-	pcall(button.EnableMouse, button, false)
-	AddProbe(button, "auraTotal")
 end
 
 local function GroupOptions(plate)
@@ -242,34 +195,52 @@ local function GroupOptions(plate)
 	return options
 end
 
-local TALLY_LAYOUT = { elementWidth = 1, elementHeight = 1, elementSpacing = 0, lineSpacing = 0, groupSpacing = 0, groupLineSpacing = 0, forceNewLine = true }
-
-local function TallyOptions(plate)
-	local _, _, columns, rows = Grid(plate)
-	local options = {
-		maxFrameCount = columns * rows + OVERFLOW_MAX,
-		initializeFrame = InitTally,
-		layout = TALLY_LAYOUT,
-	}
-	options.sortMethod, options.sortDirection = SortOptions()
-	return options
+local function SlotCount(ok, token, ...)
+	if not ok then
+		LogOnce("aura-slots-refused", "GetAuraSlots refused the count: " .. tostring(token))
+		return nil
+	end
+	if IsSecret(token) then
+		LogOnce("aura-slots-secret", "GetAuraSlots answered with a secret; the overflow chip hides")
+		return nil
+	end
+	return select("#", ...)
 end
 
-function UpdateOverflow(plate)
-	plate.overflowQueued = false
+local function CountAuras(plate)
+	local api = C_UnitAuras
+	if not (api and type(api.GetAuraSlots) == "function") then
+		LogOnce("aura-slots", "C_UnitAuras.GetAuraSlots is missing; plates show no overflow count")
+		return nil
+	end
+	if AurasSecret() then
+		LogOnce("aura-count-secret", "aura data is secret, so the game refuses a count; the overflow chip hides until it is open again")
+		return nil
+	end
+	local _, _, columns, rows = Grid(plate)
+	return SlotCount(pcall(api.GetAuraSlots, plate.unit, Filter(), columns * rows + OVERFLOW_MAX))
+end
+
+local function UpdateOverflow(plate)
 	local chip = plate.auraChip
 	if not chip then
 		return
 	end
-	local shown, total = math.max(0, plate.auraShown), math.max(0, plate.auraTotal)
-	local over = math.min(OVERFLOW_MAX, total - shown)
-	if over > 0 and plate.unit and plate.auras and plate.auras:IsShown() then
+	local count = plate.unit and plate.auras and plate.auras:IsShown() and CountAuras(plate)
+	if not count then
+		chip:Hide()
+		return
+	end
+	local _, _, columns, rows = Grid(plate)
+	local over = math.min(OVERFLOW_MAX, count - columns * rows)
+	if over > 0 then
 		chip.text:SetFormattedText("+%d", over)
 		chip:Show()
 	else
 		chip:Hide()
 	end
 end
+Auras.UpdateOverflow = UpdateOverflow
 
 local function Bind(plate, unit)
 	local container = plate.auras
@@ -307,17 +278,12 @@ local function NewContainer(plate)
 	if type(container.SetEditModePreviewEnabled) == "function" then
 		pcall(container.SetEditModePreviewEnabled, container, false)
 	end
-	plateOf[container] = plate
 	local added, err = pcall(container.AddAuraGroup, container, GROUP, Filter(), GroupOptions(plate))
 	if not added then
 		container:Hide()
 		available = false
 		LogOnce("aura-group", "the debuff group could not be added: " .. tostring(err))
 		return nil
-	end
-	local tallied, why = pcall(container.AddAuraGroup, container, TALLY, Filter(), TallyOptions(plate))
-	if not tallied then
-		LogOnce("aura-tally", "the tally group could not be added, so plates show no overflow count: " .. tostring(why))
 	end
 	K.DevTest.Log(Settings.MODULE, "nameplate debuffs run on the AuraContainer engine")
 	return container
@@ -402,14 +368,14 @@ end
 
 local LayoutChip
 
-local function Anchor(plate, frame, anchor)
+local function Anchor(plate, frame, anchor, dx)
 	local left = anchor:find("LEFT$") ~= nil
 	local health = plate.health
 	frame:ClearAllPoints()
 	if anchor:find("^BOTTOM") then
-		frame:SetPoint(anchor, health, left and "TOPLEFT" or "TOPRIGHT", 0, Widgets.Snap(plate, RoomAbove(plate)))
+		frame:SetPoint(anchor, health, left and "TOPLEFT" or "TOPRIGHT", dx or 0, Widgets.Snap(plate, RoomAbove(plate)))
 	else
-		frame:SetPoint(anchor, health, left and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, -Widgets.Snap(plate, RoomBelow(plate)))
+		frame:SetPoint(anchor, health, left and "BOTTOMLEFT" or "BOTTOMRIGHT", dx or 0, -Widgets.Snap(plate, RoomBelow(plate)))
 	end
 end
 
@@ -440,10 +406,6 @@ local function BuildChip(plate)
 	text:SetJustifyH("CENTER")
 	chip.text = text
 	plate.auraChip = chip
-	plate.auraShown, plate.auraTotal = 0, 0
-	plate.overflowTimer = function()
-		UpdateOverflow(plate)
-	end
 end
 
 function LayoutChip(plate, anchor, size, spacing, columns)
@@ -452,9 +414,8 @@ function LayoutChip(plate, anchor, size, spacing, columns)
 		return
 	end
 	Widgets.Size(chip, size, size)
-	chip:ClearAllPoints()
 	local sign = Settings.Get("debuffs.growthX") == "LEFT" and -1 or 1
-	chip:SetPoint(anchor, plate.auras, anchor, sign * (Logic.AuraLineSize(columns, size, spacing) + spacing), 0)
+	Anchor(plate, chip, anchor, sign * (Logic.AuraLineSize(columns, size, spacing) + spacing))
 	LayoutTile(chip.tile)
 	StyleText(chip.text)
 	chip.text:SetTextColor(Tokens.Color("textEmphasis"))
@@ -481,13 +442,6 @@ local function LayoutContainer(plate)
 	local method, order = SortOptions()
 	if method ~= nil then
 		container:SetAuraGroupSortMethod(GROUP, method, order)
-	end
-	if container:HasAuraGroup(TALLY) then
-		container:SetAuraGroupMaxFrameCount(TALLY, columns * rows + OVERFLOW_MAX)
-		container:SetAuraGroupFilterString(TALLY, Filter())
-		if method ~= nil then
-			container:SetAuraGroupSortMethod(TALLY, method, order)
-		end
 	end
 	Anchor(plate, container, anchor)
 	LayoutChip(plate, anchor, size, spacing, columns)
@@ -525,8 +479,12 @@ local function BuildSamples(plate)
 	end
 end
 
-local Component = {}
+local Component = { events = {} }
 ns.Components[#ns.Components + 1] = Component
+
+Component.events.UNIT_AURA = function(plate)
+	UpdateOverflow(plate)
+end
 
 function Component.Build(plate)
 	if plate.sample then
