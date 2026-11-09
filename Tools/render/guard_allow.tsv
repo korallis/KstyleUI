@@ -19,11 +19,8 @@ R2	gallery_setup	ellipsis	One row of ability sockets	a setup layout card's descr
 R2	gallery_layout	outside	Story rail	Layout Mode's story rail label sits past its slot card
 R2	gallery_layout	outside	Apply places the quest tracker here	the story slot hint sits past its slot card
 R2	gallery_layout	outside	In a raid, the raid frames cover	the raid line label sits past its slot card
-R4b	gallery_widgets	ellipsis	VANQUISHER'S BLADE	the item tooltip title truncates by about one unit
 R4b	gallery_skins_character	outside	CharacterFrame.ModeTabs.	the character sheet's mode tab column hangs outside the window glass (D11; Fable #3, Muse #1)
 R4b	gallery_skins_reputation	outside	CharacterFrame.ModeTabs.	the character sheet's mode tab column hangs outside the window glass (D11)
-R4b	gallery_skins_reputation	outside	The capital of the Horde	the reputation description runs past the window glass (Opus #1)
-R4b	gallery_skins_mail	outside	Here is the hide you rolled on	the mail body runs past the letter's glass (Opus #1)
 R4b	gallery_skins_mail	outside	Inbox	the bottom tabs hang below the window glass
 R4b	gallery_skins_mail	outside	Send Mail	the bottom tabs hang below the window glass
 R4b	gallery_skins_mail	outside	MailFrame	the bottom tabs hang below the window glass
