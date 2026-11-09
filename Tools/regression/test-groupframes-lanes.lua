@@ -211,4 +211,28 @@ do
 	eq(#renv._errors, 0, tostring(renv._errors[1]))
 end
 
+-- Codex review, round 3: at fractional pixel scales (1200, 1440 and 1600 lines tall) whole-pixel snapping must not
+-- squeeze the default indicators off a raid tile.
+for _, height in ipairs({ 1200, 1440, 1600 }) do
+	local renv, RK, rns = G.New({ width = height * 16 / 9, height = height })
+	G.SetRoster(renv, "raid", G.Members(10))
+	assert(RK.Modules.Enable("GroupFrames"))
+	renv.RunTimers()
+	local f = content(rns, rns.Headers.raid[1], "raid1")
+	local placed = Indicators(renv, rns, f, "raid at " .. height)
+	local n = 0
+	for _ in pairs(placed) do
+		n = n + 1
+	end
+	eq(n, 3, "raid at " .. height .. ": the three default indicators stay on")
+	-- A shrunk indicator styles its count at the size it is drawn, so the count stays inside the icon.
+	local plan = rns.Slots.Placements(f)
+	local slot = f.indicators._slots.indicator1.frame
+	rns.Auras.StyleIcon(slot)
+	local parts = rns.Auras.Parts(slot)
+	local _, fontSize = parts.count:GetFont()
+	assert(fontSize <= plan[1].size, "raid at " .. height .. ": the count's " .. tostring(fontSize) .. " fits the " .. plan[1].size .. "-unit icon")
+	eq(#renv._errors, 0, tostring(renv._errors[1]))
+end
+
 print("groupframes lanes ok")

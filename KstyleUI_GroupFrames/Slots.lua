@@ -86,11 +86,11 @@ end
 
 local function Size(f, i)
 	return function()
-		return Slots.Size(f, Settings.current[Key(i)].size)
+		return Slots.Placements(f)[i].size
 	end
 end
 
-local MIN_SIZE = 8
+local MIN_SIZE = 7
 local NAME_LINE_EXTRA = 2
 local CACHE_LIMIT = 32
 local cache, cached = {}, 0
@@ -274,11 +274,12 @@ function Slots.Placements(f)
 		local place = { point = point, x = 0, y = 0, size = wanted, fits = false }
 		if CATEGORIES[slot.category] then
 			local size, spot = wanted, nil
-			local floor = math.min(wanted, Widgets.Snap(f, MIN_SIZE))
+			local floor, step = math.min(wanted, MIN_SIZE), Widgets.Snap(f, 1)
+			step = step > 0 and step or 1
 			while size >= floor and not spot do
 				spot = Find(field, taken, point, size, gap)
 				if not spot then
-					size = size - 1
+					size = size - step
 				end
 			end
 			if spot then

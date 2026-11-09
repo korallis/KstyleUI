@@ -105,7 +105,7 @@ local function Check(e, K, ns, f, what)
 	end
 	-- The dispel mark draws above the marks of every category the player ranks below dispellable debuffs.
 	local order = ns.Auras.Order()
-	local level = more.window:GetFrameLevel()
+	local level = more.face:GetFrameLevel()
 	for key, rank in pairs(order) do
 		local parts = ns.Auras.Parts(groups[key].frames[1])
 		local markLevel = parts.mark:GetParent():GetFrameLevel()
@@ -128,6 +128,12 @@ assert(K.Modules.Enable("GroupFrames"))
 env.RunTimers()
 local tank = content(ns, ns.Headers.party, "party1")
 Check(env, K, ns, tank, "party")
+
+-- Codex review, round 3: with boss debuffs ranked just above dispellable ones, the dispel badge still draws below the
+-- boss mark, and above the dispel row's own.
+Batch(env, K, { { "auras.priority1", "BOSS" }, { "auras.priority2", "DISPEL" } })
+Check(env, K, ns, tank, "party, boss first")
+Batch(env, K, { { "auras.priority1", "DISPEL" }, { "auras.priority2", "BOSS" } })
 
 -- Owner, round 3: a healer's preset shows two dispellable debuffs first; the ghost follows the count.
 Batch(env, K, { { "party.auraDispelCount", 2 } })
