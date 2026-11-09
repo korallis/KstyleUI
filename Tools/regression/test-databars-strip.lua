@@ -59,11 +59,11 @@ do
 	local default, got = K.Setup.Layouts.Default("databars.strip"), K.Layout.Get("databars.strip")
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
 	eq(shown(ns), "fps,latency,gold,durability,time", "the default order")
-	eq(item(ns, "fps").label:GetText(), "FPS:", "fps label")
+	eq(item(ns, "fps").label:GetText(), "Frame rate", "fps caption")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
 	eq(item(ns, "latency").value:GetText(), "34 ms", "home latency by default")
 	eq(item(ns, "gold").value:GetText(), "143g 82s 17c", "gold")
-	eq(item(ns, "durability").label:GetText(), "Durability:", "durability label")
+	eq(item(ns, "durability").label:GetText(), "Durability", "durability caption")
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
 	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a high frame rate reads in the accent, the class colour the mockup's green stands for")
@@ -71,22 +71,23 @@ do
 	-- all-white strip of ingame-18 read as one flat sentence.
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
-	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers. Its text reads at the HUD's bar size, 12 (13 read
-	-- oversized in game), and a small square in the class accent sits 16 units from each item where the
-	-- mockup's grey pipes were: the strip's one ornament, in the colour every rim and fill shares, snapped to
-	-- whole pixels (a turned 4-unit square blurs at the owner's 1.2 pixels per unit).
+	-- The mockup's strip: 492 x 43 with 10.5-unit chamfers, the footprint saved layouts already hold. Its values
+	-- read at the HUD's bar size, 12, each under a smaller caption in a fixed cell: no separators by default.
 	eq(got.width .. "x" .. got.height, "492x43", "the strip takes the mockup's size")
 	eq(ns.Strip.view.chrome:Chamfer(), math.min(12, 0.3 * 43), "the strip's ends cut 30% of its height, the shared rule (the mockup cuts its 30-unit strip 11)")
 	local s = ns.Settings().strip
 	eq(s.fontSize, 12, "the strip reads at 12 by default")
-	eq(s.spacing, 16, "16 units each side of a separator")
-	local separator = item(ns, "latency").separator
-	assert(separator:GetHeight() >= 3 and separator:GetHeight() <= 5 and near(separator:GetWidth(), separator:GetHeight()), "a separator is a small square, got " .. tostring(separator:GetWidth()) .. "x" .. tostring(separator:GetHeight()))
-	local sr, sg, sb = separator:GetVertexColor()
-	local ar, ag, ab = K.Theme.Accent()
-	assert(near(sr, ar) and near(sg, ag) and near(sb, ab), "a separator is the class accent")
-	local _, sy = select(4, separator:GetPoint(1))
-	assert(near(sy, 0), "and sits on the strip's centre line")
+	eq(s.spacing, 16, "16 units of room inside each cell")
+	eq(s.separators, false, "no separators by default")
+	for _, id in ipairs(ns.Strip.order) do
+		eq(item(ns, id).separator:IsShown(), false, id .. " has no separator by default")
+	end
+	local _, labelSize = item(ns, "fps").label:GetFont()
+	assert(labelSize < select(2, item(ns, "fps").value:GetFont()), "the caption is smaller than its value")
+	local lp, lrel, lrp = item(ns, "fps").label:GetPoint(1)
+	local vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
+	eq(lp .. ">" .. tostring(lrel == item(ns, "fps").button) .. ">" .. lrp, "BOTTOM>true>CENTER", "the caption sits over the centre line")
+	eq(vp .. ">" .. tostring(vrel == item(ns, "fps").button) .. ">" .. vrp, "TOP>true>CENTER", "the value under it")
 	noErrors(env, K)
 end
 
@@ -143,8 +144,8 @@ do
 	Options.Write("DataBars", "strip.slot2", "latency")
 
 	Options.Write("DataBars", "strip.labels", "short")
-	eq(item(ns, "durability").label:GetText(), "DUR:", "short labels")
-	eq(item(ns, "latency").label:GetText(), "MS:", "short latency label")
+	eq(item(ns, "durability").label:GetText(), "DUR", "short captions")
+	eq(item(ns, "latency").label:GetText(), "MS", "short latency caption")
 	eq(item(ns, "latency").value:GetText(), "34", "short latency drops the unit")
 	Options.Write("DataBars", "strip.labels", "none")
 	eq(item(ns, "fps").label:IsShown(), false, "no labels")
@@ -188,6 +189,13 @@ do
 
 	Options.Write("DataBars", "strip.backdrop", false)
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), false, "the glass can be turned off")
+	Options.Write("DataBars", "strip.separators", true)
+	eq(item(ns, "fps").separator:IsShown(), false, "the first cell has no separator")
+	local separator = item(ns, "latency").separator
+	eq(separator:IsShown(), true, "a separator can be turned on between cells")
+	assert(near(separator:GetWidth(), K.Widgets.Border(ns.Strip.view.frame)), "a separator is a hairline")
+	local sp, srel, srp = separator:GetPoint(1)
+	eq(sp .. ">" .. tostring(srel == item(ns, "latency").button) .. ">" .. srp, "LEFT>true>LEFT", "on the cell's left edge")
 	Options.Write("DataBars", "strip.separators", false)
 	for _, id in ipairs(ns.Strip.order) do
 		eq(item(ns, id).separator:IsShown(), false, id .. "'s separator hides")
@@ -225,6 +233,97 @@ do
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
 	eq(layout.width .. "x" .. layout.height, "492x43", "a one-item column also returns to the row footprint")
+	noErrors(env, K)
+end
+
+-- Fixed cells: a value never moves a cell; large money, large fonts and narrow holders stay inside the glass -
+
+local function Cell(ns, id)
+	local button = item(ns, id).button
+	return select(4, button:GetPoint(1)), button:GetWidth()
+end
+
+local function Cells(ns)
+	local out = {}
+	for _, id in ipairs(ns.Strip.order) do
+		local x, w = Cell(ns, id)
+		out[#out + 1] = string.format("%.2f+%.2f", x, w)
+	end
+	return table.concat(out, ",")
+end
+
+local function Inside(ns)
+	local frame = ns.Strip.view.frame
+	local pad = ns.Strip.view.chrome:Inset()
+	for _, id in ipairs(ns.Strip.order) do
+		local x, w = Cell(ns, id)
+		if x < pad - 0.01 or x + w > frame:GetWidth() - pad + 0.01 then
+			return false, id
+		end
+		local it = item(ns, id)
+		if it.value:GetWidth() > w + 0.01 or it.label:GetWidth() > w + 0.01 then
+			return false, id .. " text"
+		end
+	end
+	return true
+end
+
+do
+	local env, K, ns, game = D.New()
+	local Options = K.Options
+	local before = Cells(ns)
+	assert(Inside(ns), "every cell sits inside the glass")
+	local _, goldWidth = Cell(ns, "gold")
+	local _, fpsWidth = Cell(ns, "fps")
+	assert(goldWidth > fpsWidth, "gold has the widest cell: " .. goldWidth .. " for " .. fpsWidth)
+	game.fps, game.latencyHome = 9, 9999
+	env.RunTickers()
+	eq(Cells(ns), before, "a value that narrows moves no cell")
+	game.fps = 1444
+	game.money = 99999999999
+	env.FireEvent("PLAYER_MONEY")
+	env.RunTickers()
+	eq(Cells(ns), before, "a value that widens moves no cell")
+	local ok, what = Inside(ns)
+	assert(ok, "large money stays inside its cell: " .. tostring(what))
+	W.Enter(item(ns, "gold").button)
+	assert(tooltipText(K):find("Gold=9,999,999g 99s 99c", 1, true), "the tooltip carries the whole amount: " .. tooltipText(K))
+	W.Leave(item(ns, "gold").button)
+
+	-- A large font: the caption and the value no longer fit the strip's height, so the captions step aside and the
+	-- values sit on the centre line.
+	Options.Write("DataBars", "strip.fontSize", 22)
+	eq(item(ns, "fps").label:IsShown(), false, "a 22 font drops the captions")
+	local vp, _, vrp = item(ns, "fps").value:GetPoint(1)
+	eq(vp .. ">" .. vrp, "CENTER>CENTER", "and centres the values")
+	eq(Cells(ns), before, "a font change moves no cell")
+	ok, what = Inside(ns)
+	assert(ok, "a large font stays inside its cell: " .. tostring(what))
+	Options.Write("DataBars", "strip.fontSize", 12)
+	eq(item(ns, "fps").label:IsShown(), true, "the captions come back at 12")
+
+	-- A narrow saved holder: the cells share what there is, a caption that cannot fit its cell drops them all,
+	-- and every value stays inside its cell (the tooltip carries the whole value).
+	K.Layout.Update("databars.strip", { width = 220, height = 43 })
+	ok, what = Inside(ns)
+	assert(ok, "a narrow strip keeps its cells inside the glass: " .. tostring(what))
+	eq(item(ns, "durability").label:IsShown(), false, "a narrow strip drops captions that cannot fit")
+	K.Layout.Update("databars.strip", { width = 492, height = 43 })
+	eq(item(ns, "durability").label:IsShown(), true, "and shows them again at the footprint")
+	eq(Cells(ns), before, "the footprint gives the same cells back")
+
+	-- A column: a caption at the left of each row, its value at the right.
+	Options.Write("DataBars", "strip.orientation", "VERTICAL")
+	local lp, _, lrp = item(ns, "gold").label:GetPoint(1)
+	vp, _, vrp = item(ns, "gold").value:GetPoint(1)
+	eq(lp .. ">" .. lrp .. "|" .. vp .. ">" .. vrp, "LEFT>LEFT|RIGHT>RIGHT", "a column row has its caption left and its value right")
+	local frame = ns.Strip.view.frame
+	local pad = ns.Strip.view.chrome:Inset()
+	for _, id in ipairs(ns.Strip.order) do
+		local button = item(ns, id).button
+		assert(button:GetWidth() <= frame:GetWidth() - 2 * pad + 0.01, id .. " fits the column")
+		eq(item(ns, id).separator:IsShown(), false, id .. " has no separator in a column")
+	end
 	noErrors(env, K)
 end
 
@@ -360,7 +459,7 @@ do
 	local sample = assert(frame.strip, "the preview shows a strip")
 	K.Options.Write("DataBars", "strip.labels", "short")
 	frame:Refresh()
-	eq(sample.items.durability.label:GetText(), "DUR:", "the preview strip follows the labels setting")
+	eq(sample.items.durability.label:GetText(), "DUR", "the preview strip follows the labels setting")
 	K.Options.Write("DataBars", "strip.labels", "full")
 	frame:Refresh()
 	local width = sample.frame:GetWidth() * sample.frame:GetScale()

@@ -15,7 +15,13 @@ local SLOTS = 5
 local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
-local SEPARATOR_SIZE = 4
+local SEPARATOR_SHARE = 0.4
+local SEPARATOR_ALPHA = 0.35
+local CAPTION_DROP = 2
+local STACK_GAP = 1
+local EDGE_BORDERS = 3
+local CELL_EMS = 4
+local MIN_GAP = 2
 local CHAR_WIDTH_SHARE = 0.45
 local VERTICAL_WIDTH = 160
 local ROW_ASPECT = 3
@@ -28,12 +34,14 @@ Strip.ITEMS = { "fps", "latency", "gold", "durability", "time" }
 Strip.SLOTS = SLOTS
 
 local LABELS = {
-	fps = { full = L["FPS:"], short = L["FPS:"] },
-	latency = { full = "", short = L["MS:"] },
-	gold = { full = "", short = "" },
-	durability = { full = L["Durability:"], short = L["DUR:"] },
-	time = { full = "", short = "" },
+	fps = { full = L["Frame rate"], short = L["FPS"] },
+	latency = { full = L["Latency"], short = L["MS"] },
+	gold = { full = L["Gold"], short = "" },
+	durability = { full = L["Durability"], short = L["DUR"] },
+	time = { full = L["Time"], short = "" },
 }
+
+local CELL_WEIGHT = { fps = 0.8, latency = 1, gold = 1.6, durability = 1, time = 0.8 }
 
 local TITLES = {
 	fps = L["Frame rate"], latency = L["Latency"], gold = L["Gold"], durability = L["Durability"], time = L["Time"],
@@ -228,68 +236,103 @@ local function Pad(frame)
 	return Widgets.Inset(frame, Tokens.Size("chamferPanel"))
 end
 
-local function PlaceItems(view, s, force)
+local function CaptionSize(s)
+	return max(Tokens.Size("caption"), s.fontSize - CAPTION_DROP)
+end
+
+local function Weight(order)
+	local total = 0
+	for _, id in ipairs(order) do
+		total = total + CELL_WEIGHT[id]
+	end
+	return total
+end
+
+local function PlaceColumn(view, s, w, h, pad)
 	local frame = view.frame
-	local w, h = Size(frame)
-	local gap = Widgets.Snap(frame, s.spacing)
+	local rowHeight = Widgets.Snap(frame, s.fontSize * ROW_SHARE)
 	local labelGap = Widgets.Snap(frame, LABEL_GAP)
-	local vertical = s.orientation == "VERTICAL"
-	local fontSize = s.fontSize
-	local total, changed = 0, force == true
+	local top = max(pad, (h - #view.order * rowHeight) / 2)
 	for i, id in ipairs(view.order) do
 		local item = view.items[id]
-		local labelWidth = item.label:IsShown() and TextWidth(item.label, fontSize) or 0
-		local valueWidth = TextWidth(item.value, fontSize)
-		local width = Widgets.Snap(frame, labelWidth + (labelWidth > 0 and labelGap or 0) + valueWidth)
-		changed = changed or width ~= item.width or labelWidth ~= item.labelWidth
-		item.labelWidth, item.width = labelWidth, width
-		if vertical then
-			total = total + Widgets.Snap(frame, fontSize * ROW_SHARE)
-		else
-			total = total + item.width + (i > 1 and 2 * gap + Widgets.Snap(frame, SEPARATOR_SIZE) or 0)
+		local button = item.button
+		button:ClearAllPoints()
+		button:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -Widgets.Snap(frame, top + (i - 1) * rowHeight))
+		button:SetSize(max(1, w - 2 * pad), rowHeight)
+		item.label:SetShown(item.caption ~= "")
+		local labelWidth = item.caption ~= "" and TextWidth(item.label, CaptionSize(s)) or 0
+		item.label:ClearAllPoints()
+		item.label:SetPoint("LEFT", button, "LEFT")
+		item.label:SetWidth(max(1, labelWidth))
+		item.label:SetJustifyH("LEFT")
+		item.value:ClearAllPoints()
+		item.value:SetPoint("RIGHT", button, "RIGHT")
+		item.value:SetWidth(max(1, w - 2 * pad - labelWidth - (labelWidth > 0 and labelGap or 0)))
+		item.value:SetJustifyH("RIGHT")
+		item.separator:Hide()
+	end
+end
+
+local function Captioned(view, s, h, cells, gap)
+	local frame = view.frame
+	if s.labels == "none" or CaptionSize(s) + s.fontSize + 2 * STACK_GAP > h - 2 * EDGE_BORDERS * Widgets.Border(frame) then
+		return false
+	end
+	for i, id in ipairs(view.order) do
+		local item = view.items[id]
+		if item.caption ~= "" and TextWidth(item.label, CaptionSize(s)) > cells[i] - gap then
+			return false
 		end
 	end
-	view.contentWidth = total
-	if not changed then
+	return true
+end
+
+local function PlaceItems(view, s)
+	local frame = view.frame
+	local w, h = Size(frame)
+	local pad = Pad(frame)
+	local order = view.order
+	local total = Weight(order)
+	view.contentWidth = Widgets.Snap(frame, total * CELL_EMS * s.fontSize)
+	if s.orientation == "VERTICAL" then
+		PlaceColumn(view, s, w, h, pad)
 		return
 	end
-	local rowHeight = Widgets.Snap(frame, fontSize * ROW_SHARE)
-	local x = Widgets.Snap(frame, max(0, (w - total) / 2))
-	local y = -Widgets.Snap(frame, max(0, (h - total) / 2))
-	for i, id in ipairs(view.order) do
+	local unit = total > 0 and max(0, w - 2 * pad) / total or 0
+	local gap = Widgets.Snap(frame, max(MIN_GAP, s.spacing))
+	local lefts, cells, used = {}, {}, 0
+	for i, id in ipairs(order) do
+		local x = Widgets.Snap(frame, pad + used * unit)
+		used = used + CELL_WEIGHT[id]
+		lefts[i], cells[i] = x, max(1, Widgets.Snap(frame, pad + used * unit) - x)
+	end
+	local captioned = Captioned(view, s, h, cells, gap)
+	local stack = Widgets.Snap(frame, STACK_GAP)
+	for i, id in ipairs(order) do
 		local item = view.items[id]
 		local button, separator = item.button, item.separator
 		button:ClearAllPoints()
-		separator:ClearAllPoints()
-		if vertical then
-			button:SetPoint("TOPLEFT", frame, "TOPLEFT", Pad(frame), y)
-			button:SetSize(max(1, item.width), rowHeight)
-			separator:SetShown(false)
-			y = y - rowHeight
-		else
-			if i > 1 then
-				local mark = Widgets.Snap(frame, SEPARATOR_SIZE)
-				x = x + gap
-				separator:SetPoint("LEFT", frame, "LEFT", x, 0)
-				separator:SetSize(mark, mark)
-				separator:SetVertexColor(ns.Accent())
-				separator:SetShown(s.separators ~= false)
-				x = x + mark + gap
-			else
-				separator:SetShown(false)
-			end
-			button:SetPoint("LEFT", frame, "LEFT", x, 0)
-			button:SetSize(max(1, item.width), max(1, h))
-			x = x + item.width
-		end
+		button:SetPoint("LEFT", frame, "LEFT", lefts[i], 0)
+		button:SetSize(cells[i], max(1, h))
+		local inner = max(1, cells[i] - gap)
+		item.label:SetShown(captioned and item.caption ~= "")
 		item.label:ClearAllPoints()
+		item.label:SetPoint("BOTTOM", button, "CENTER", 0, stack)
+		item.label:SetWidth(inner)
+		item.label:SetJustifyH("CENTER")
 		item.value:ClearAllPoints()
-		item.label:SetPoint("LEFT", button, "LEFT", 0, 0)
-		if item.labelWidth > 0 then
-			item.value:SetPoint("LEFT", item.label, "RIGHT", labelGap, 0)
+		if captioned then
+			item.value:SetPoint("TOP", button, "CENTER", 0, -stack)
 		else
-			item.value:SetPoint("LEFT", button, "LEFT", 0, 0)
+			item.value:SetPoint("CENTER", button, "CENTER")
 		end
+		item.value:SetWidth(inner)
+		item.value:SetJustifyH("CENTER")
+		separator:ClearAllPoints()
+		separator:SetPoint("LEFT", button, "LEFT")
+		separator:SetSize(Widgets.Border(frame), Widgets.Snap(frame, h * SEPARATOR_SHARE))
+		separator:SetVertexColor(Widgets.Rgba("text", SEPARATOR_ALPHA))
+		separator:SetShown(i > 1 and s.separators == true)
 	end
 end
 
@@ -324,16 +367,18 @@ function Strip.Paint(view, s, values)
 			ns.Click.Release(item)
 			item.separator:Hide()
 		else
-			Font.Apply(item.label, s.font, s.fontSize, s.outline)
+			Font.Apply(item.label, s.font, CaptionSize(s), s.outline)
 			Font.Apply(item.value, s.font, s.fontSize, s.outline)
 			local label = s.labels ~= "none" and LABELS[id][s.labels] or ""
+			item.caption = label
 			item.label:SetText(label)
-			item.label:SetShown(label ~= "")
+			item.label:SetWordWrap(false)
+			item.value:SetWordWrap(false)
 			PaintItem(item)
 		end
 	end
 	SetValues(view, s, values)
-	PlaceItems(view, s, true)
+	PlaceItems(view, s)
 end
 
 local function Read(view, s, timedOnly)
@@ -480,7 +525,6 @@ function Strip.Update(timedOnly)
 	local s = ns.Settings().strip
 	timedOnly = timedOnly == true
 	SetValues(view, s, Read(view, s, timedOnly), timedOnly)
-	PlaceItems(view, s, false)
 end
 
 function Strip.Tick()

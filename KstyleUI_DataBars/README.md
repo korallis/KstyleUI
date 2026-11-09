@@ -76,7 +76,9 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 
 ## Data strip
 
-`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each a label in the text grey and a value in white (or graded) on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it. A small square in the class accent, 4 units and snapped to whole pixels, sits on the centre line between items: the strip's one ornament, in the colour the rims and fills share.
+`databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each in its own fixed cell: a caption in the text grey, 2 points smaller than the value (never below the `caption` size), over a value in white (or graded), on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it.
+
+The cells share the width inside one content inset by weight: frame rate 0.8, latency 1, gold 1.6, durability 1, time 0.8. At the footprint that is 72, 90, 144, 90 and 72 units. A cell depends only on the strip's size and the items shown, never on a value, so a frame rate that falls from 144 to 9, or gold that grows, moves nothing. A value wider than its cell is cut short, and its tooltip carries the whole value. The readable minimum is 4 ems of the value size per unit of weight, about 250 units for five items at 12; the settings preview scales its sample strip down below that. The captions step aside, and the values sit on the centre line, when the caption and value together are taller than the strip inside its edge lines (a large font) or when any caption is wider than its cell (a narrow strip). No separators by default; turned on, a separator is a hairline at a cell's left edge, 40% of the strip's height, in the text grey at 35%. In a column each row has its caption at the left and its value at the right.
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |
@@ -95,11 +97,11 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 | Key | Default | Row |
 | --- | --- | --- |
 | `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. |
-| `strip.labels` | `full` | `full` (FPS:, Durability:), `short` (FPS:, MS:, DUR:, as in the dungeon mockup) or `none` |
+| `strip.labels` | `full` | `full` captions (Frame rate, Latency, Gold, Durability, Time), `short` (FPS, MS, DUR, as in the dungeon mockup) or `none` |
 | `strip.valueColor` | `highlight` | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
 | `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |
-| `strip.backdrop`, `strip.separators` | `true`, `true` | The glass panel and the lines between items |
-| `strip.spacing` | 16 | 0 to 32 units each side of a separator |
+| `strip.backdrop`, `strip.separators` | `true`, `false` | The glass panel and the lines between cells |
+| `strip.spacing` | 16 | 0 to 32 units of room inside each cell, split between its sides (at least 2) |
 | `strip.orientation` | `HORIZONTAL` | A row, or a column. A change resizes the element through `Layout.Update`. |
 | `strip.font`, `strip.fontSize`, `strip.outline` | interface font, 12, `NONE` | As for the bars' text. 12 is the HUD's bar text, the unit frames' size; 13 read oversized in game. |
 | `strip.money` | `full` | `full`, `gold` or `icons` |
