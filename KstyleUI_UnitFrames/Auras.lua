@@ -1,4 +1,4 @@
--- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip, each timer under its tile or in a corner badge, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
+-- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip that also covers the last tile's timer lane, each timer under its tile or in a corner badge, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -456,7 +456,7 @@ local function ApplyOverflow(view, filter, want)
 			local on = want and filter[key] ~= nil
 			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs)
 			Overflow.Apply(chip, {
-				enabled = on, filter = filter[key], cap = Capacity(view), cell = cell,
+				enabled = on, filter = filter[key], cap = Capacity(view), cell = cell, foot = Snap(view, TimerRoom(view.kind)),
 				rel = a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
 			})
 		end

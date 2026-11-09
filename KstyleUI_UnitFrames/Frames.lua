@@ -1,4 +1,4 @@
--- Frames.lua: the secure unit buttons for each frame, their Layout elements, unit watches and events; the boss you target folds its card to a Targeted chip on the column's rail edge, which out of combat is all of the card that takes clicks, and a card with no cast hugs its pill.
+-- Frames.lua: the secure unit buttons for each frame, their Layout elements, unit watches and events; the boss you target folds its card to a Targeted chip in the resting card's place and glass, which out of combat is all of the card that takes clicks, and a card with no cast hugs its pill.
 local _, ns = ...
 
 local K = KstyleUI
@@ -205,10 +205,10 @@ local function OnButtonHide(button)
 	ns.Auras.Sync(button.view)
 end
 
-local function NewChip(button)
+local function NewChip(button, shape)
 	local chip = CreateFrame("Frame", nil, button)
 	chip:SetFrameLevel(button:GetFrameLevel() + CHIP_LEVEL)
-	chip.chrome = K.Widgets.Chrome(chip, { shape = "tile", fill = "surface", shadow = false })
+	chip.chrome = K.Widgets.Chrome(chip, { shape = shape, fill = "surface", shadow = false })
 	chip.gem = ns.Lumen.Gem(chip)
 	chip.name = K.Widgets.FontString(chip, "OVERLAY")
 	chip.name:SetJustifyH("LEFT")
@@ -353,7 +353,8 @@ local function PlaceChip(view, width)
 	local chip, button, Snap = view.chip, view.button, K.Widgets.Snap
 	chip:ClearAllPoints()
 	chip:SetPoint("TOPRIGHT", button, "TOPRIGHT", 0, 0)
-	chip:SetSize(Snap(button, width), Snap(button, CHIP_HEIGHT))
+	local g = view.geometry
+	chip:SetSize(Snap(button, width), Snap(button, g and (g.rest or g.glass.h) or CHIP_HEIGHT))
 	local gem = ns.Geometry.GEM
 	chip.gem:ClearAllPoints()
 	chip.gem:SetPoint("LEFT", chip, "LEFT", Snap(button, CHIP_PAD), 0)
@@ -405,7 +406,7 @@ local function NewView(uf, unit)
 	button:HookScript("OnShow", OnButtonShow)
 	button:HookScript("OnHide", OnButtonHide)
 	if body then
-		view.chip = NewChip(button)
+		view.chip = NewChip(button, view.chrome.shapeName)
 	end
 	if Settings.CASTBAR[uf.kind] then
 		local cb = ns.CastBars.Attach(view)

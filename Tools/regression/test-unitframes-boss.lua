@@ -60,7 +60,7 @@ noErrors("column")
 
 -- Targeted: the boss you target folds its card to the chip; the sigil carries the full read -------------------------
 
-local b1, b2 = uf.views[1], uf.views[2]
+local b1, b2, b3 = uf.views[1], uf.views[2], uf.views[3]
 assert(b1.chip and b1.body, "each card has a Targeted chip and a body holding everything the card draws")
 assert(b1.castbar.frame:GetParent() == b1.body and b1.panel:GetParent() == b1.body, "the cast line and the glass live in that body")
 
@@ -89,6 +89,21 @@ end
 -- standing and with the rail beside the column instead of floating over the world (round 3: Muse #2, Grok #3).
 local point, rel, relPoint, mx, my = b1.chip:GetPoint(1)
 assert(point == "TOPRIGHT" and rel == b1.button and relPoint == "TOPRIGHT" and near(mx, 0, 1) and near(my, 0, 1), "the chip sits at the card's top right, the column's rail edge: " .. tostring(point))
+-- Round 5 (Fable #5, Grok #3): a 20-unit chip at the top of the slot left a hole the height of a card under it, and
+-- with one boss the chip floated alone. The folded card keeps the resting card's place: the chip is as tall as a
+-- standing card with no cast and wears the card's glass, with its name and Targeted on its middle line.
+do
+	local _, restH = b2.panel:GetSize()
+	local _, chipH = b1.chip:GetSize()
+	assert(not b2.castbar.active and near(chipH, restH, 0.5), "the folded card is as tall as a resting card: " .. chipH .. " of " .. restH)
+	assert(b1.chip.chrome.shapeName == b2.chrome.shapeName, "and wears the card's glass, not a tile's: " .. tostring(b1.chip.chrome.shapeName))
+	for _, part in ipairs({ b1.chip.name, b1.chip.text }) do
+		local p = part:GetPoint(1)
+		assert(p == "LEFT" or p == "RIGHT", "the chip's text sits on its middle line: " .. tostring(p))
+	end
+	local gp, grel, grp = b1.chip.gem:GetPoint(1)
+	assert(gp == "LEFT" and grel == b1.chip and grp == "LEFT", "and so does its gem")
+end
 -- Out of combat the folded card takes clicks only on its chip: the rest of its invisible slot lets them through.
 local bw, bh = b1.button:GetSize()
 local cw, ch = b1.chip:GetSize()
@@ -197,6 +212,20 @@ env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(shown(b2.chip) and muted(b2), "the swap happens in combat")
 l, r, t, b = b2.button:GetHitRectInsets()
 assert(l == 0 and r == 0 and t == 0 and b == 0, "in combat no hit rect changes")
+-- Round 5 (Muse #7): the hit rect is protected in combat, and restricted code has no UnitIsUnit to shrink it from
+-- (Blizzard_RestrictedAddOnEnvironment/RestrictedEnvironment.lua), so a mid-pull swap cannot shrink it. Instead the
+-- folded card draws where a resting card draws: in combat it takes clicks over exactly the slot a standing card with
+-- no cast takes them over, its glass covering the same part, so no full card's worth of invisible rect is left.
+do
+	local slotW, slotH = b2.button:GetSize()
+	local standW, standH = b3.button:GetSize()
+	local _, chipH = b2.chip:GetSize()
+	local _, restH = b3.panel:GetSize()
+	assert(near(slotW, standW) and near(slotH, standH), "the folded slot is a standing card's slot")
+	assert(near(chipH, restH, 0.5), "and its glass covers what a resting card's covers: " .. chipH .. " of " .. restH)
+	local sl, sr, st, sb = b3.button:GetHitRectInsets()
+	assert((sl or 0) == 0 and (sr or 0) == 0 and (st or 0) == 0 and (sb or 0) == 0, "a standing card takes clicks over its whole slot too")
+end
 env.SetCombat(false)
 assert(select(4, b2.button:GetHitRectInsets()) > 0, "after combat the folded card shrinks to its chip again")
 noErrors("combat")

@@ -67,11 +67,95 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The settings preview spaces its sample plates so no plate's debuffs run into another plate ---------------
+-- Each timer has its own lane under its tile ----------------------------------------------------------------
+-- Round 5 (Fable #3): the timers drew on the icon art, and the row's bottom edge sat about 4 px from the next
+-- plate's name. The timer now sits in a lane under its tile, as the sigil's does; the lane counts in the row's
+-- line spacing and in the plate's extent, so the stacking footprint holds it.
 
 local function intersects(a, b)
 	return a[1] < b[1] + b[3] and b[1] < a[1] + a[3] and a[2] < b[2] + b[4] and b[2] < a[2] + a[4]
 end
+
+do
+	local function rect(env, object)
+		if object._type == "FontString" then
+			-- The page sizes a one-point text by its drawn words, as the game does.
+			local path, fontSize = Scene.Font(env, object)
+			object._naturalW = Scene.TextWidth(object:GetText() or "", fontSize, path)
+			object._naturalH = fontSize * 1.2
+			object._naturalSideW, object._naturalSideH = "center", "top"
+		end
+		local r = { Scene.Rect(env, object) }
+		assert(r[1], "the region resolves")
+		return r
+	end
+	-- Place(container, group, n, columns) lays the first n buttons out as the engine's flow layout does: wrapped at the
+	-- columns, each row a line of elementHeight plus the layout's lineSpacing from the container's anchor corner.
+	local function Place(container, group, n, columns)
+		local layout, flow = group.layout, container._flow
+		local size, spacing, line = layout.elementWidth, layout.elementSpacing, layout.lineSpacing
+		local corner, dx, dy = flow.anchor or "TOPLEFT", flow.horizontal or 1, flow.vertical or -1
+		local rows, across = math.ceil(n / columns), math.min(n, columns)
+		container:SetSize(across * size + (across - 1) * spacing, rows * size + (rows - 1) * line)
+		local out = {}
+		for i = 1, n do
+			local button = group.frames[i]
+			local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
+			button:ClearAllPoints()
+			button:SetSize(size, size)
+			button:SetPoint(corner, container, corner, dx * col * (size + spacing), dy * row * (size + line))
+			out[i] = button
+		end
+		return out
+	end
+	local function Check(write, label)
+		local env, K, ns = N.New()
+		for key, value in pairs(write) do
+			K.Options.Write("Nameplates", key, value)
+		end
+		env.WorldFrame:SetPoint("TOPLEFT")
+		env.WorldFrame:SetPoint("BOTTOMRIGHT")
+		local base = N.Add(env, "nameplate1")
+		base:ClearAllPoints()
+		base:SetPoint("BOTTOM", env.WorldFrame, "BOTTOMLEFT", 400, 300)
+		local plate = ns.Plates.Get("nameplate1")
+		local columns, rows = ns.Settings.Get("debuffs.columns"), ns.Settings.Get("debuffs.rows")
+		local n = columns * rows
+		N.Debuffs(env, "nameplate1", n)
+		local buttons = Place(plate.auras, plate.auras._groups.debuffs, n, columns)
+		local health = rect(env, plate.health)
+		local above, below = ns.Auras.Extent(plate)
+		local reach = { health[1] - 100, health[2] - above, health[3] + 200, above + health[4] + below }
+		local tiles, timers = {}, {}
+		for i, button in ipairs(buttons) do
+			local timer = button._aura.timer
+			timer:SetText((3 + i) .. "s")
+			assert(timer:IsVisible(), label .. ": tile " .. i .. "'s timer shows")
+			tiles[i], timers[i] = rect(env, button), rect(env, timer)
+		end
+		for i = 1, n do
+			for j = 1, n do
+				assert(not intersects(timers[i], tiles[j]), string.format("%s: tile %d's timer is off tile %d's art", label, i, j))
+			end
+			for _, part in ipairs({ "name", "health", "level" }) do
+				local object = plate[part]
+				if object and object:IsVisible() then
+					assert(not intersects(timers[i], rect(env, object)), label .. ": tile " .. i .. "'s timer clears the plate's " .. part)
+				end
+			end
+			local t = timers[i]
+			assert(t[2] >= reach[2] - 0.01 and t[2] + t[4] <= reach[2] + reach[4] + 0.01,
+				string.format("%s: tile %d's timer lane is inside the plate's extent (%.1f-%.1f in %.1f-%.1f)", label, i, t[2], t[2] + t[4], reach[2], reach[2] + reach[4]))
+		end
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+	Check({}, "the defaults")
+	Check({ ["debuffs.rows"] = 2 }, "two rows")
+	Check({ ["debuffs.growthY"] = "DOWN" }, "growing down")
+	Check({ ["debuffs.rows"] = 2, ["debuffs.growthY"] = "DOWN", ["debuffs.size"] = 32 }, "two rows of 32 growing down")
+end
+
+-- The settings preview spaces its sample plates so no plate's debuffs run into another plate ---------------
 
 local PANE_HEIGHT = 500
 

@@ -194,6 +194,99 @@ do
 end
 noErrors("chip")
 
+-- The sigil's chip owns its socket's timer lane --------------------------------------------------------------------
+-- Round 5 (Astra #2, Opus #3): the sigil's timers sit in a lane under each tile, outside the cell, so a chip that
+-- covered only the cell left the covered aura's "44s" under "+11", as if the count had a duration. Past the cap, no
+-- visible timer may sit within one cell below the chip; at the cap and below, every timer shows.
+do
+	local Scene = dofile("Tools/render/scene.lua")
+	local function box(object)
+		if object._type == "FontString" then
+			-- The page sizes a one-point text by its drawn words, as the game does.
+			local path, fontSize = Scene.Font(env, object)
+			object._naturalW = Scene.TextWidth(object:GetText() or "", fontSize, path)
+			object._naturalH = fontSize * 1.2
+			object._naturalSideW, object._naturalSideH = "center", "top"
+		end
+		local x, y, w, h = Scene.Rect(env, object)
+		assert(x, "the region resolves")
+		return { left = x, right = x + w, top = y, bottom = y + h }
+	end
+	local function hits(r, s)
+		return r.left < s.right - EPS and s.left < r.right - EPS and r.top < s.bottom - EPS and s.top < r.bottom - EPS
+	end
+	local function within(r, s)
+		return r.left >= s.left - EPS and r.right <= s.right + EPS and r.top >= s.top - EPS and r.bottom <= s.bottom + EPS
+	end
+	local a = target.auras
+	local c, chip = a.container, a.overflow.debuffs
+	local cap = c._groups.debuffs.max
+	assert(Settings.Value("target", "auraTimer") == true and cap == 14, "the sigil keeps its timers, fourteen sockets")
+	local size = K.Widgets.Snap(a.host, Settings.Value("target", "auraSize"))
+	local spacing = c._groups.debuffs.layout.elementSpacing
+	local byButton = {}
+	for _, entry in ipairs(a.buttons) do
+		byButton[entry.button] = entry
+	end
+	local function Lay(n)
+		local shown = math.min(n, cap)
+		local buttons = c:_Acquire("debuffs", cap)
+		for _, entry in ipairs(a.buttons) do
+			byButton[entry.button] = entry
+		end
+		c:SetSize(math.max(1, shown * size + (shown - 1) * spacing), size)
+		for i, button in ipairs(buttons) do
+			button:ClearAllPoints()
+			button:SetSize(size, size)
+			button:SetPoint("TOPLEFT", c, "TOPLEFT", (i - 1) * (size + spacing), 0)
+			button:SetShown(i <= shown)
+			K.Widgets.SetText(byButton[button].timer, (2 + i * 3) .. "s")
+		end
+		chip.ghost:SetSize(1, math.max(1, n * chip.pitch))
+		return buttons, shown
+	end
+	for _, n in ipairs({ cap - 1, cap, cap + 1, 16, 24 }) do
+		local buttons, shown = Lay(n)
+		local win = box(chip.window)
+		local strip = box(chip.strip)
+		local face = strip.bottom >= win.bottom - EPS and strip.top <= win.top + EPS
+		local timers = 0
+		local cell = { left = win.left, right = win.left + size, top = win.top, bottom = win.top + size }
+		local below = { left = cell.left, right = cell.right, top = cell.bottom, bottom = cell.bottom + size }
+		local cover = face and box(chip.face) or nil
+		for i = 1, shown do
+			local timer = byButton[buttons[i]].timer
+			assert(timer:IsVisible(), n .. " debuffs: socket " .. i .. "'s timer shows")
+			local r = box(timer)
+			local hidden = cover ~= nil and within(r, cover)
+			if not hidden then
+				timers = timers + 1
+				if face then
+					assert(not hits(r, below), n .. " debuffs: socket " .. i .. "'s timer shows under the chip")
+				end
+			end
+		end
+		if n <= cap then
+			assert(not face, n .. " debuffs fit: no chip")
+			assert(timers == shown, n .. " debuffs fit: all " .. shown .. " timers show, got " .. timers)
+		else
+			assert(face, n .. " debuffs: the chip shows")
+			assert(timers == cap - 1, n .. " debuffs: the " .. (cap - 1) .. " uncovered sockets keep their timers, got " .. timers)
+			local shownLabels = 0
+			for i, label in ipairs(chip.labels) do
+				if hits(box(label), win) then
+					shownLabels = shownLabels + 1
+					assert(chip.texts[i]:GetText() == "+" .. (n - cap + 1), n .. " debuffs read +" .. (n - cap + 1) .. ", got " .. tostring(chip.texts[i]:GetText()))
+					assert(within(box(label), win), "the count stays inside the chip")
+				end
+			end
+			assert(shownLabels == 1, n .. " debuffs: one count shows, got " .. shownLabels)
+		end
+	end
+	Lay(0)
+end
+noErrors("chip lane")
+
 -- Debuffs and buffs: the buffs' last row ends on the container's far edge, wherever the debuffs stopped -----------
 do
 	K.Options.Write("UnitFrames", "focus.auraFilter", "both")

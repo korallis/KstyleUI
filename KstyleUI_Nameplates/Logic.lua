@@ -204,12 +204,12 @@ function Logic.AuraLineSize(columns, size, spacing)
 	return columns * size + (columns - 1) * spacing
 end
 
-function Logic.AuraOffset(index, columns, size, spacing, growthX, growthY)
+function Logic.AuraOffset(index, columns, size, spacing, growthX, growthY, lane)
 	local x = GROWTH_X[growthX] or GROWTH_X.RIGHT
 	local y = GROWTH_Y[growthY] or GROWTH_Y.UP
 	local slot = index - 1
 	local column = slot % columns
 	local row = (slot - column) / columns
 	local step = size + spacing
-	return column * step * x[3], row * step * y[3]
+	return column * step * x[3], row * (step + (lane or 0)) * y[3]
 end

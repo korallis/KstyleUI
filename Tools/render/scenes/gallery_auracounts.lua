@@ -96,7 +96,7 @@ local function Lay(env, K, ns, view, n)
 	end
 	local chip = a.overflow and a.overflow.debuffs
 	if chip then
-		chip.ghost:SetSize(1, math.max(1, n * chip.window:GetWidth() * ns.Overflow.PITCH))
+		chip.ghost:SetSize(1, math.max(1, n * chip.pitch))
 	end
 	return shown, cap
 end

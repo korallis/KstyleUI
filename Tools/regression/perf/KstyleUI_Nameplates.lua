@@ -79,6 +79,55 @@ return {
 		end,
 	},
 	{
+		-- Forty plates, each with its debuff container and the overflow chip's hidden counting container (round 5:
+		-- Fable #4). The engine's own layout pass sizes those containers and moves the chips by anchors with no addon
+		-- Lua, so the stub cannot time it; this times what does run across the forty: a target swap's fan-out. Lua 5.1
+		-- takes 144 us here; 2000 is 14 times that, room for the CI runner's 4 times. A hundred calls a round keep
+		-- the file inside its time and memory budget.
+		name = "Nameplates PLAYER_TARGET_CHANGED over forty plates with their overflow ghosts",
+		budget = 2000,
+		calls = 100,
+		setup = function()
+			local env = N.New()
+			local cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }
+			for i = 1, 40 do
+				N.Add(env, "nameplate" .. i)
+				N.Debuffs(env, "nameplate" .. i, 8)
+				if i % 4 == 0 then
+					env._units["nameplate" .. i].cast = cast
+					env.FireEvent("UNIT_SPELLCAST_START", "nameplate" .. i)
+				end
+			end
+			N.Target(env, "nameplate40")
+			local fire = Perf.Event(env, "PLAYER_TARGET_CHANGED")
+			local flip = false
+			return env, function()
+				flip = not flip
+				env._targetUnit = flip and "nameplate1" or "nameplate40"
+				fire()
+			end
+		end,
+	},
+	{
+		-- A pull recycles plates: the game hands a base with its containers to a new unit, and the plate binds its
+		-- debuff container and the chip's counting container to it, among forty plates. Lua 5.1 takes 27 us here.
+		name = "Nameplates NAME_PLATE_UNIT_ADDED recycling a plate among forty",
+		budget = 400,
+		calls = 200,
+		setup = function()
+			local env = N.New()
+			for i = 1, 40 do
+				N.Add(env, "nameplate" .. i)
+				N.Debuffs(env, "nameplate" .. i, 8)
+			end
+			local add, remove = Perf.Event(env, "NAME_PLATE_UNIT_ADDED", "nameplate40"), Perf.Event(env, "NAME_PLATE_UNIT_REMOVED", "nameplate40")
+			return env, function()
+				remove()
+				add()
+			end
+		end,
+	},
+	{
 		name = "Nameplates QUEST_LOG_UPDATE with a plate",
 		budget = 20,
 		setup = function()

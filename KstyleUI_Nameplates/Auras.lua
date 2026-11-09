@@ -1,4 +1,4 @@
--- Auras.lua: the plate's debuffs: the player's harmful auras on the unit, found, sorted and shown by the AuraContainer engine, with a "+N" chip after the row that the engine's own layout counts, so it stays true in combat.
+-- Auras.lua: the plate's debuffs: the player's harmful auras on the unit, found, sorted and shown by the AuraContainer engine, each timer in its own lane under its tile (counted in the row's spacing and the plate's extent), with a "+N" chip after the row that the engine's own layout counts, so it stays true in combat.
 local _, ns = ...
 
 local K = KstyleUI
@@ -26,6 +26,7 @@ local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUT
 local COUNT_STEP, COUNT_MIN = 3, 9
 local COUNT_OUT_X, COUNT_OUT_Y = 1, 2
 local BADGE_PAD, BADGE_ALPHA = 1, 0.62
+local TIMER_GAP, TIMER_EXTRA = 1, 3
 local SAMPLE_ICONS = { 136118, 135817, 132155 }
 
 local available = true
@@ -51,6 +52,15 @@ local function Grid(frame)
 end
 Auras.GROUP, Auras.OVERFLOW_MAX, Auras.Grid = GROUP, OVERFLOW_MAX, Grid
 
+local function Lane(frame)
+	if not Settings.Get("debuffs.showTime") then
+		return 0
+	end
+	local lane = TIMER_GAP + Settings.Get("debuffs.textSize") + TIMER_EXTRA
+	return frame and Widgets.Snap(frame, lane) or lane
+end
+Auras.Lane = Lane
+
 local ORDERS = {
 	important = { "ImportantOnly", "Normal" },
 	longest = { "ExpirationOnly", "Reverse" },
@@ -74,7 +84,7 @@ end
 
 local function GroupLayout(plate)
 	local size, spacing = Grid(plate)
-	return { elementSpacing = spacing, lineSpacing = spacing, elementWidth = size, elementHeight = size }
+	return { elementSpacing = spacing, lineSpacing = spacing + Lane(plate), elementWidth = size, elementHeight = size }
 end
 
 local function Filter()
@@ -141,6 +151,8 @@ local function StyleButton(button)
 	LayoutTile(p)
 	StyleText(p.count, math.max(COUNT_MIN, Settings.Get("debuffs.textSize") - COUNT_STEP))
 	StyleText(p.time)
+	p.time:ClearAllPoints()
+	p.time:SetPoint("TOP", p.timeHolder, "BOTTOM", 0, -Widgets.Snap(p.skin, TIMER_GAP))
 	p.countHolder:SetShown(Settings.Get("debuffs.showCount"))
 	p.timeHolder:SetShown(Settings.Get("debuffs.showTime"))
 end
@@ -175,7 +187,6 @@ local function BuildButton(button)
 	local timeHolder = CreateFrame("Frame", nil, textFrame)
 	timeHolder:SetAllPoints(textFrame)
 	local time = Widgets.FontString(timeHolder, "OVERLAY")
-	time:SetPoint("BOTTOM", timeHolder, "BOTTOM", 0, 0)
 	time:SetJustifyH("CENTER")
 	tile.count, tile.time, tile.countHolder, tile.timeHolder = count, time, countHolder, timeHolder
 	parts[button] = tile
@@ -343,7 +354,7 @@ local LayoutChip
 local function AnchorTo(plate, anchor)
 	local left = anchor:find("LEFT$") ~= nil
 	if anchor:find("^BOTTOM") then
-		return left and "TOPLEFT" or "TOPRIGHT", Widgets.Snap(plate, RoomAbove(plate))
+		return left and "TOPLEFT" or "TOPRIGHT", Widgets.Snap(plate, RoomAbove(plate)) + Lane(plate)
 	end
 	return left and "BOTTOMLEFT" or "BOTTOMRIGHT", -Widgets.Snap(plate, RoomBelow(plate))
 end
@@ -363,7 +374,7 @@ function Auras.Extent(plate, rowsCap)
 	if rowsCap then
 		rows = math.min(rows, rowsCap)
 	end
-	local block = rows * size + (rows - 1) * spacing
+	local block = rows * (size + Lane(plate)) + (rows - 1) * spacing
 	if Settings.Get("debuffs.growthY") == "DOWN" then
 		return above, below + block
 	end
@@ -436,7 +447,7 @@ local function LayoutSamples(plate)
 	local shown = Shows(plate)
 	for i, icon in ipairs(icons) do
 		Widgets.Size(icon, size, size)
-		local x, y = Logic.AuraOffset(i, columns, size, spacing, Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"))
+		local x, y = Logic.AuraOffset(i, columns, size, spacing, Settings.Get("debuffs.growthX"), Settings.Get("debuffs.growthY"), Lane(plate))
 		icon:ClearAllPoints()
 		icon:SetPoint(anchor, holder, anchor, x, y)
 		icon:SetShown(shown and i <= columns * rows)

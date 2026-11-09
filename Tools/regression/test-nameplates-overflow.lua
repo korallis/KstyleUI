@@ -145,8 +145,11 @@ do
 	K.Options.Write("Nameplates", "debuffs.rows", 2)
 	local _, two = env._plateSize[1], env._plateSize[2]
 	local size, spacing = ns.Auras.Grid(ns.Preview.samplePlate)
+	-- Each row brings its timer lane (round 5: Fable #3), so the pitch is the tile, its lane and the spacing.
+	local lane = ns.Auras.Lane(ns.Preview.samplePlate)
 	local ratio = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
-	assert(two > one and two - one <= math.ceil((size + spacing) * ratio) + 1, "a second row adds a tile pitch to the footprint, got " .. tostring(two - one))
+	local pitch = (size + lane + spacing) * ratio
+	assert(two > one and two - one >= math.floor(pitch) and two - one <= math.ceil(pitch) + 1, "a second row adds a tile pitch and its timer lane to the footprint, got " .. tostring(two - one))
 end
 
 print("nameplates overflow ok")

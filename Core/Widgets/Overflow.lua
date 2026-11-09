@@ -1,4 +1,4 @@
--- Overflow.lua: the "+N" count for a capped aura row, shown and counted by hidden AuraContainers' own flow layout through anchors alone, so no aura count is ever read, compared or summed, and the count stays true while aura data is secret.
+-- Overflow.lua: the "+N" count for a capped aura row, shown and counted by hidden AuraContainers' own flow layout through anchors alone, so no aura count is ever read, compared or summed, and the count stays true while aura data is secret; a row whose timers sit under the tiles gives the chip that lane too (foot), so the covered aura's timer never reads as the count's.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
@@ -119,6 +119,10 @@ local function StyleLabel(label, size)
 	label:SetJustifyV("MIDDLE")
 end
 
+local function Tall(o)
+	return o.cell + (o.foot or 0)
+end
+
 local function ApplyGroups(chip, o)
 	local on = o.enabled == true
 	local specs = o.groups or Specs(o.filter)
@@ -135,7 +139,7 @@ local function ApplyGroups(chip, o)
 				end
 			end
 			ghost:SetAuraGroupMaxFrameCount(GROUP, ghost == pair.b and cap or cap + pair.labels)
-			ghost:SetAuraGroupLayout(GROUP, Layout(o.cell))
+			ghost:SetAuraGroupLayout(GROUP, Layout(Tall(o)))
 			ghost:SetEnabled(on)
 		end
 	end
@@ -164,24 +168,24 @@ function Overflow.Apply(chip, o)
 	if o.enabled ~= true then
 		return
 	end
-	local cell = o.cell
+	local cell, tall = o.cell, Tall(o)
 	local width = o.width or cell
-	local pitch = cell * Overflow.PITCH
+	local pitch = tall * Overflow.PITCH
 	chip.pitch, chip.cap = pitch, o.cap
 	window:ClearAllPoints()
 	window:SetPoint(o.point or "TOPLEFT", o.rel, o.relPoint, o.x, o.y)
-	window:SetSize(width, cell)
+	window:SetSize(width, tall)
 	window:SetFrameLevel(o.level)
 	local base, at = Chain(chip, window)
 	local lift = #chip.pairs == 1 and (o.groups and o.groups[1].cap or o.cap) * pitch or 0
 	strip:ClearAllPoints()
-	strip:SetPoint("BOTTOMLEFT", base, at, 0, lift + cell / 2)
-	strip:SetPoint("TOPRIGHT", base, at, width, lift + chip.count * pitch + cell)
+	strip:SetPoint("BOTTOMLEFT", base, at, 0, lift + tall / 2)
+	strip:SetPoint("TOPRIGHT", base, at, width, lift + chip.count * pitch + tall)
 	local face = chip.face
 	if face then
 		face:ClearAllPoints()
 		face:SetPoint("TOPLEFT", window, "TOPLEFT", 0, 0)
-		face:SetSize(width, cell)
+		face:SetSize(width, tall)
 		chip.chrome:Restyle()
 		local r, g, b = Tokens.Color("buttonFill")
 		chip.chrome:SetFillRGBA(r, g, b, 1)
