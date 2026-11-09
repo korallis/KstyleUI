@@ -310,8 +310,17 @@ function Style.Apply(f, width, height)
 		f.name:SetPoint("RIGHT", classLine, "LEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
 	end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
+	f.tileless = f.kind == "party" and k.roleRing == true
+	if not f.chromeHooked then
+		f.chromeHooked = true
+		local restyle = f.chrome.Restyle
+		f.chrome.Restyle = function(chrome)
+			restyle(chrome)
+			chrome:SetShown(not f.tileless)
+		end
+	end
+	f.chrome:SetShadow(not f.tileless)
 	f.chrome:Restyle()
-	f.chrome:SetShown(not (f.kind == "party" and k.roleRing))
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)
 	end
