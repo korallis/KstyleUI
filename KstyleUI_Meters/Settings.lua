@@ -308,7 +308,7 @@ for _, slot in ipairs({
 end
 schema[#schema + 1] = {
 	type = "toggle", key = "swing.hideIdle", label = L["Hide when idle"], disableWhen = Off("swing"),
-	help = L["Hides the bars out of combat while no swing is running."],
+	help = L["Hides the bars while no swing is running, in combat too."],
 }
 schema[#schema + 1] = {
 	type = "toggle", key = "swing.range", label = L["Dim out of range"], disableWhen = Off("swing"),

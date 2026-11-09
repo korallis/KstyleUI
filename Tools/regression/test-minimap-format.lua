@@ -76,19 +76,21 @@ check(Format.ZoomAt(0.5, nil), nil, "no zoom levels, no level")
 local function near(a, b, what)
 	assert(math.abs(a - b) < 1e-6, what .. ": want " .. tostring(b) .. ", got " .. tostring(a))
 end
-check(Format.HEAD, 24, "the head band, for the north mark")
+-- The card is the lens plus its foot: the lens sits a rim inside the card's top and sides, as the mockup's
+-- round map nearly fills its glass, and the foot carries the zone and the clock under it. No head band: the
+-- north mark sits on the lens's top edge.
+check(Format.RIM, 6, "the rim between the card's edge and the lens")
 check(Format.FOOT, 34, "the foot band, for the zone and the clock")
-local left, top, lens = Format.Lens(318, 326, 14, 24, 34)
-near(lens, 326 - 24 - 34, "on the Lumen card the lens is limited by the height: the room between head and foot")
+local left, top, lens = Format.Lens(318, 326, 6, 34)
+near(lens, 326 - 6 - 34, "on the Lumen card the lens is limited by the height: the room between the rim and the foot")
 near(left, (318 - lens) / 2, "and centred across the card")
-near(top, 24, "hanging under the head")
-local narrowLeft, _, narrowLens = Format.Lens(200, 400, 14, 24, 34)
-near(narrowLens, 200 - 2 * 14, "a narrow card limits the lens by its width inside the inset")
-near(narrowLeft, 14, "so the lens starts at the inset")
-local _, _, tinyLens = Format.Lens(50, 50, 14, 24, 34)
-near(tinyLens, 0, "a card too small for head and foot has no lens, never a negative one")
-local _, _, oldLens = Format.Lens(259, 221, 14, 24, 34)
-near(oldLens, 221 - 58, "the old 259 by 221 footprint keeps a 163 lens until the layout slice resizes it")
+near(top, 6, "a rim under the card's top")
+local narrowLeft, narrowTop, narrowLens = Format.Lens(200, 400, 6, 34)
+near(narrowLens, 200 - 2 * 6, "a narrow card limits the lens by its width inside the rim")
+near(narrowLeft, 6, "so the lens starts at the rim")
+near(narrowTop, 6 + (400 - 6 - 34 - narrowLens) / 2, "and sits in the middle of the room over the foot")
+local _, _, tinyLens = Format.Lens(30, 30, 6, 34)
+near(tinyLens, 0, "a card too small for the rim and the foot has no lens, never a negative one")
 
 -- Rim buttons: each button's centre sits on the lens circle, spaced one button and one gap apart along the
 -- arc, starting on the upper right (or upper left) and going down, or from the lower end and going up.

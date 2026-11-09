@@ -366,6 +366,7 @@ function D.New(opts)
 		boot = false,
 		saved = opts.saved,
 		setup = function(env)
+			env._textWidth = D.TextWidth
 			game = D.Game(env, opts.game)
 			if opts.blizzard ~= false then
 				D.Blizzard(env)
@@ -383,6 +384,50 @@ function D.New(opts)
 		K.Modules.Enable("DataBars")
 	end
 	return env, K, env._addons[FOLDER], game
+end
+
+-- Metrics ---------------------------------------------------------------------------------------
+
+-- The stub font strings have no glyph metrics of their own. New installs D.TextWidth as the environment's
+-- env._textWidth, so GetUnboundedStringWidth answers each string's width from the kit fonts' real advances
+-- (Tools/render/glyphs.lua, the table the renderer draws with) and IsTruncated fires for a string drawn
+-- narrower than its text, as they do in the game.
+local GLYPHS
+local GLYPH_EM = { upper = 0.60, lower = 0.48, digit = 0.52, space = 0.22, other = 0.30 }
+
+local function glyphTable(fontPath)
+	if GLYPHS == nil then
+		local ok, table_ = pcall(dofile, "Tools/render/glyphs.lua")
+		GLYPHS = ok and type(table_) == "table" and table_ or {}
+	end
+	if type(fontPath) ~= "string" then
+		return nil
+	end
+	local name = fontPath:gsub("\\", "/"):match("([^/]+)$") or fontPath
+	return GLYPHS[(name:gsub("%.[^.]+$", ""))]
+end
+
+-- TextWidth(text, fontPath, size) -> the text's width in units, from the font's glyph advances.
+function D.TextWidth(text, fontPath, size)
+	local glyphs, em = glyphTable(fontPath), 0
+	for i = 1, #text do
+		local c = text:byte(i)
+		local ch = text:sub(i, i)
+		if glyphs and glyphs[c] then
+			em = em + glyphs[c]
+		elseif ch == " " then
+			em = em + GLYPH_EM.space
+		elseif ch:match("%u") then
+			em = em + GLYPH_EM.upper
+		elseif ch:match("%l") then
+			em = em + GLYPH_EM.lower
+		elseif ch:match("%d") then
+			em = em + GLYPH_EM.digit
+		else
+			em = em + GLYPH_EM.other
+		end
+	end
+	return em * size
 end
 
 return D

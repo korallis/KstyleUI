@@ -14,7 +14,8 @@ local TEMPLATE = "CustomAuraContainerTemplate"
 local UNIT = "player"
 local HOST_LEVEL = 2
 local REST_EDGE_ALPHA = 0.5
-local GATE_EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_ENABLED" }
+local GATE_EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "PLAYER_ENTERING_WORLD" }
+local AURA_EVENT = "UNIT_AURA"
 local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYER_ENTERING_WORLD" }
 local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
@@ -110,12 +111,7 @@ local function Listen(event, fn)
 end
 
 local function StopWaiting()
-	if waiting then
-		waiting = false
-		for _, event in ipairs(GATE_EVENTS) do
-			pcall(K.Events.Unregister, MODULE, event)
-		end
-	end
+	waiting = false
 end
 
 local function RestyleButtons(desc)
@@ -146,8 +142,13 @@ function Panel.Flush()
 	end
 end
 
-local function OnGateEvent()
-	C_Timer.After(0, Panel.Flush)
+local Fit
+
+local function OnGateEvent(event)
+	if waiting then
+		C_Timer.After(0, Panel.Flush)
+	end
+	Fit(event == "PLAYER_REGEN_DISABLED")
 end
 
 function Panel.Wait()
@@ -157,9 +158,6 @@ function Panel.Wait()
 	end
 	waiting = true
 	Log("restyling the aura buttons waits until aura data is no longer secret")
-	for _, event in ipairs(GATE_EVENTS) do
-		Listen(event, OnGateEvent)
-	end
 end
 
 local function Formatter(timerFormat)
@@ -349,9 +347,17 @@ local function Source(desc)
 	return desc.holder, desc.holder
 end
 
+local function Empty(desc)
+	local card = groups[CARD_GROUP]
+	if desc.docked then
+		desc = card
+	end
+	return desc == card and desc.card ~= nil and desc.card.empty == true
+end
+
 local function ShowHost(desc)
 	local source = Source(desc)
-	desc.host:SetShown(source:IsShown() and not gamepad)
+	desc.host:SetShown(source:IsShown() and not gamepad and not Empty(desc))
 end
 
 local function LayoutFrame(parent)
@@ -419,7 +425,8 @@ end
 local function LayoutCard(desc, docked)
 	local host, card, ctx = desc.host, desc.card, desc.ctx
 	local other = groups[DOCKED_GROUP]
-	local debuffs = docked and other and not other.failed and other.dock ~= nil and { width = other.ctx.footWidth, height = other.ctx.footHeight } or nil
+	local docking = docked and other and not other.failed and other.dock ~= nil
+	local debuffs = docking and card.band ~= false and { width = other.ctx.footWidth, height = other.ctx.footHeight } or nil
 	local pad, gap = Model.CARD_PAD, Model.CARD_GAP
 	local shape = Model.Card({ width = ctx.footWidth, height = ctx.footHeight }, debuffs, pad, gap)
 	desc.shape = shape
@@ -455,6 +462,12 @@ local function LayoutCard(desc, docked)
 		rule:Hide()
 		tail:SetPoint("TOPLEFT", fit, "TOPLEFT", 0, 0)
 		tail:SetPoint("BOTTOMRIGHT", fit, "BOTTOMRIGHT", 0, 0)
+		if docking then
+			local dock = other.dock
+			dock:ClearAllPoints()
+			dock:SetPoint("TOPLEFT", fit, "BOTTOMLEFT", 0, 0)
+			dock:SetSize(other.ctx.footWidth, other.ctx.footHeight)
+		end
 	end
 	edge:ClearAllPoints()
 	edge:SetPoint("TOPRIGHT", holder, "TOPRIGHT", 0, 0)
@@ -601,6 +614,59 @@ local function ApplyContainer(desc)
 	end
 end
 
+local function Present(filter)
+	if not Panel.Open() then
+		return nil
+	end
+	local api = C_UnitAuras
+	if not (api and type(api.GetAuraSlots) == "function") then
+		LogOnce("slots", "C_UnitAuras.GetAuraSlots is missing; the card keeps its full footprint")
+		return nil
+	end
+	local ok, token, first = pcall(api.GetAuraSlots, UNIT, filter, 1)
+	if not ok or IsSecret(token) then
+		return nil
+	end
+	if issecretvalue(first) then
+		return nil
+	end
+	return first ~= nil
+end
+
+function Fit(unknown)
+	local desc = groups[CARD_GROUP]
+	if not (running and desc and not desc.failed and desc.card) then
+		return
+	end
+	local card = desc.card
+	local buffs, debuffs
+	if not unknown then
+		buffs, debuffs = Present(Model.FILTERS.buffs), Present(Model.FILTERS.debuffs)
+	end
+	local known = buffs ~= nil and debuffs ~= nil
+	local docked = Docked()
+	local band, empty = card.band ~= false, false
+	if known then
+		band = debuffs == true
+		empty = not buffs and ActiveEnchants(desc) == 0 and (not docked or debuffs == false)
+	end
+	if card.band == band and card.empty == empty then
+		return
+	end
+	card.band, card.empty = band, empty
+	LayoutCard(desc, docked)
+	local other = groups[DOCKED_GROUP]
+	if other and not other.failed then
+		ShowHost(other)
+	end
+end
+
+local function OnAura(_, unit)
+	if unit == UNIT then
+		Fit()
+	end
+end
+
 local function Apply(desc, relayout)
 	desc.ctx = Context(desc)
 	local ctx, holder = desc.ctx, desc.holder
@@ -622,6 +688,10 @@ local function Apply(desc, relayout)
 		K.Layout.Restore(Model.KEYS[desc.name])
 	end
 	RestyleButtons(desc)
+	if desc.card then
+		desc.card.band, desc.card.empty = nil, nil
+		Fit()
+	end
 end
 
 local function ApplyAll(relayout)
@@ -733,6 +803,13 @@ function Panel.Enable()
 		Listen(event, OnEnchant)
 	end
 	Listen(INPUT_EVENT, OnTransition)
+	for _, event in ipairs(GATE_EVENTS) do
+		Listen(event, OnGateEvent)
+	end
+	local ok, err = pcall(K.Events.RegisterUnit, MODULE, AURA_EVENT, OnAura, UNIT)
+	if not ok then
+		LogOnce("event:" .. AURA_EVENT, "could not listen for " .. AURA_EVENT .. ": " .. tostring(err))
+	end
 	for _, name in ipairs(CALLBACKS) do
 		K.Callbacks.Register(name, MODULE, HANDLERS[name])
 	end

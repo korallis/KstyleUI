@@ -65,6 +65,11 @@ function Common.ForceScreen(env)
 	end
 	env.UIParent._scale = uiScale
 	env.UIParent._width, env.UIParent._height = 768 * width / height / uiScale, 768 / uiScale
+	-- Font strings measure their text as the page draws it (the kit fonts' glyph advances), so a module
+	-- that sizes to GetUnboundedStringWidth lays out in the render as it does in the game.
+	env._textWidth = function(text, fontPath, size)
+		return Common.Scene.TextWidth(text, size, fontPath)
+	end
 end
 
 -- Errors(env, K) -> the first error the stubs or KstyleUI caught, or nil.

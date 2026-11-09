@@ -1,6 +1,6 @@
 # KstyleUI_Minimap
 
-Square minimap, chamfered frame, zone and clock strip inside its bottom edge, zoom slider, side button column, addon-button drawer and coordinates.
+The Lumen minimap: a round lens on a frost card that is the lens plus its foot, the zone and clock in the foot, the north mark on the lens's top edge, a zoom slider, rim buttons round the lens, an addon-button drawer and coordinates.
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@ Square minimap, chamfered frame, zone and clock strip inside its bottom edge, zo
 | Approach | Reskin |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Minimap.toc` lists `Minimap.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Layout element | `minimap.main`: resizable, keeps its proportions, 259 by 221 units at the 1080 reference, the leveling mockup's minimap: a 221 chamfered frame holding a 217 map square 2 units inside its bevel line, clipped to the frame's cut corners, with the 30-unit footer over the square's bottom edge, and the 34-unit button column 4 units left of the frame |
+| Layout element | `minimap.main`: resizable, 318 by 326 units at the 1080 reference (`Core/Setup/Layouts.lua`), the Lumen mockup's minimap card: one rounded frost card whose round lens sits 6 units (`Format.RIM`) inside the card's top and sides, as large as the width or the room over the 34-unit foot (`Format.FOOT`) allows, so the default card holds a 286 lens with the zone and clock in the foot under it. The card has no head band: the glass round the lens is a rim, not a slab |
 | Tests | `Tools/regression/test-minimap.lua` (the module against stand-ins for Forever's minimap frames, built by `Tools/regression/minimap_env.lua`), `test-minimap-column.lua` (the button column and the secure overlay), `test-minimap-drawer.lua` (the addon drawer against a LibDBIcon stand-in), `test-minimap-format.lua` (the pure helpers) and `Tools/tests/test_make_minimap_glyphs.py` (the glyph sheet) |
 | Media | `Media/Glyphs.png`, drawn by `Tools/media/make_minimap_glyphs.py`; its row is in `Media/PROVENANCE.md` |
 
@@ -30,11 +30,11 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the zoom slider's share and level, the column's footprint, the map square's place in the element, and the drawer's direction, grid and size |
+| `Format.lua` | Pure helpers: coordinate and clock text, zone colour tokens, wheel zoom steps, the zoom slider's share and level, the lens's place in its card (`Format.Lens`), the rim buttons' arc, and the drawer's direction, grid and size |
 | `Settings.lua` | Defaults, the settings page rows and `Settings.Get(key)`, which gives the default for a saved value the row does not allow |
 | `Style.lua` | The accent (class or custom colour) and each text's font, size and outline |
 | `Data.lua` | Reads from the game: zone and PvP type, local and realm time, coordinates, map rotation, game rules, mail, calendar invites, the queue and tracking. Each read checks the API exists and that the value is not secret. |
-| `Face.lua` | The visible frame, shared by the live map and the preview: the chamfered square, the strip, the north mark, the zoom slider and the coordinates |
+| `Face.lua` | The visible card, shared by the live map and the preview: the frost card, the round lens and its mask, the foot, the north mark on its crystal disc, the zoom slider and the coordinates |
 | `SecureClick.lua` | One shared secure button that clicks Blizzard's own calendar, clock, world map and queue buttons for KstyleUI's buttons |
 | `Column.lua` | The button column: tracking, mail, calendar, group finder status and the drawer button, built from `Widgets.IconButton` with the glyph sheet |
 | `Drawer.lua` | The addon drawer: LibDBIcon buttons in a glass flyout, and the addon compartment's list |
@@ -49,27 +49,29 @@ Forever loads `Blizzard_Minimap` with its `Camelot/` overrides: `MinimapCluster`
 When the module starts it:
 
 1. Builds `KstyleUI_Minimap` on `KstyleUI_Root` and registers it as `minimap.main`.
-2. Moves `Minimap` into the frame's map square: `SetParent`, then `SetAllPoints` on the square, so later resizes never touch Blizzard's frame. It waits for Edit Mode to close, and for combat to end if the frame is ever protected.
-3. Sets the chamfered square mask (`Tokens.Texture("minimapMask")`, `Media/Textures/MinimapMask.png`) and sets the arch, quest and task blob rings to 0, since their round rings do not fit a square map. A hook on `MinimapCluster.UpdateMinimapConfig`, which Camelot runs when `rotateMinimap` changes (`Blizzard_Minimap/Camelot/Minimap.lua`, `MinimapClusterMixin:UpdateMinimapConfig` calls `minimap:SetMaskTexture(data.mask)` with Blizzard's round `ui-hud-minimap-frame-generic-mask`), puts KstyleUI's mask back.
+2. Moves `Minimap` into the card's lens square: `SetParent`, then one `CENTER` point and the lens's size, so later resizes never touch Blizzard's frame beyond that. It waits for Edit Mode to close, and for combat to end if the frame is ever protected.
+3. Sets the round lens mask (`Widgets.LumenTexture("lensMask")`, `Media/Textures/LensMask.png`) and leaves the arch, quest and task blob rings at their full scale, since the lens is round. A hook on `MinimapCluster.UpdateMinimapConfig`, which Camelot runs when `rotateMinimap` changes (`Blizzard_Minimap/Camelot/Minimap.lua`, `MinimapClusterMixin:UpdateMinimapConfig` calls `minimap:SetMaskTexture(data.mask)` with Blizzard's round `ui-hud-minimap-frame-generic-mask`), puts KstyleUI's mask back.
 4. Hides `MinimapCluster`, `MinimapBackdrop`, `Minimap.ZoomIn`, `Minimap.ZoomOut` and `Minimap.ZoomHitArea` through `KstyleUI.Safe.HideBlizzard`. Hiding the cluster hides the header, tracking, mail indicator, calendar, clock, compartment, day and night orb and Blizzard's coordinates with it.
-5. Sets the global `GetMinimapShape` to return `"SQUARE"`, which minimap button libraries read to place buttons on the edge.
-6. Masks `HybridMinimap.CircleMask` square when `Blizzard_HybridMinimap` loads.
+5. Sets the global `GetMinimapShape` to return `"ROUND"`, which minimap button libraries read to place buttons on the edge.
+6. Gives `HybridMinimap.CircleMask` the same lens mask when `Blizzard_HybridMinimap` loads.
 
 Turning it off puts `Minimap` back in its container with its saved points, size, level and Blizzard's mask, brings the hidden frames back, withdraws `GetMinimapShape` and asks for a reload.
 
-### The map's clip
+### The card and the lens
 
-`Minimap:SetMaskTexture` takes a file (`MinimapFrameAPIDocumentation.lua`: one `TextureAsset` argument), which the game stretches over the frame, so the map's cut is a fixed share of its side. The frame and the mask are built from three numbers in `Format.lua`: the mockup's 221 frame, its 12-unit chamfer and a 2-unit map inset (the dark line, the light line and the fade row are three borders on the owner's screen). The mask cuts 8 of the map's 217 units; the frame's chamfer is a share of its side (`Format.FrameChamfer`, 12 at 221) rather than the window cap, and the inset grows with the frame (`Format.MapInset`, 2 at 221, 4.3 at 480), so at every size the mask's cut meets the frame's cut and the terrain never shows past the line. The footer's fill and line draw through the same mask (a `MaskTexture` over the map square, `face.mask`), so its corners end at the frame's cuts; the preview's drawn terrain and grain do too. `Tools/media/make_media.py` draws the mask from the same three numbers, and `Tools/tests/test_make_media.py` fails when `Format.lua` and the script disagree.
+`Minimap:SetMaskTexture` takes a file (`MinimapFrameAPIDocumentation.lua`: one `TextureAsset` argument), which the game stretches over the frame, so the round lens mask makes a circle of any size. `Format.Lens(width, height, rim, foot)` places the lens in the card: the largest circle that fits inside the rim at the sides and between the rim at the top and the foot at the bottom, centred across the card and, when the width limits it, in the middle of the room over the foot. On the 318 by 326 card that is a 286 lens 16 units in from each side and 6 under the top. The foot keeps its height whatever the card's size; with the zone and the clock both off, the foot is a rim too. The preview's drawn terrain uses the same mask (`face.mask`, a `MaskTexture` over the lens square).
+
+The 198-in-217 size defect the owner met live (the map rendering at its `SetSize` size, not its anchors) is why `Fit` sizes `Minimap` as well as anchoring it.
 
 ### Zoom
 
-A frame with only the mouse wheel enabled covers the map square, so clicks and pings still reach `Minimap`, and the wheel works in the square's corners, outside Blizzard's round hit area. It steps `Minimap:SetZoom` one level within `GetZoomLevels()`. With **Zoom back out** on, the map returns to zoom 0 after the delay; a newer zoom restarts the wait.
+A frame with only the mouse wheel enabled covers the lens square, so clicks and pings still reach `Minimap`, and the wheel works right up to the lens's edge, outside Blizzard's round hit area. It steps `Minimap:SetZoom` one level within `GetZoomLevels()`. With **Zoom back out** on, the map returns to zoom 0 after the delay; a newer zoom restarts the wait.
 
-The zoom slider is the mockup's thin line inside the map's right edge: a 2 by 52 track, 11 units in from the frame's edge, standing 8 units above the footer, with an accent fill that grows from the bottom as the map zooms in. A 12-unit-wide frame of KstyleUI's own takes the mouse: a click or a drag on it reads the cursor's height on the track and sets the nearest level with `Minimap:SetZoom`, through the same path as the wheel, so **Zoom back out** applies. The fill follows every zoom: KstyleUI's own calls refresh it, a `hooksecurefunc` on `Minimap.SetZoom` catches Blizzard's zoom buttons, the gamepad stick and the zoom-back-out timer, and `MINIMAP_UPDATE_ZOOM` (which Forever's `MinimapMixin` registers for the engine's own zoom changes) refreshes it as well, so the slider never guesses. With the column inside the frame, the slider takes the strip's free end (the bottom while the buttons grow down, the top while they grow up) and hides when the buttons leave it less than its 60 units. `Minimap` is not a protected frame and `SetZoom` is an ordinary method (`MinimapFrameAPIDocumentation.lua` flags it only as `SecretArguments = "AllowedWhenUntainted"`), so the slider works in combat and never touches Blizzard's `ZoomIn`, `ZoomOut` or `ZoomHitArea`, which stay hidden.
+The zoom slider is the mockup's thin line inside the lens's left edge: a 2 by 52 track, 11 units in from the lens's edge, on its centre line, with an accent fill that grows from the bottom as the map zooms in. A 12-unit-wide frame of KstyleUI's own takes the mouse: a click or a drag on it reads the cursor's height on the track and sets the nearest level with `Minimap:SetZoom`, through the same path as the wheel, so **Zoom back out** applies. The fill follows every zoom: KstyleUI's own calls refresh it, a `hooksecurefunc` on `Minimap.SetZoom` catches Blizzard's zoom buttons, the gamepad stick and the zoom-back-out timer, and `MINIMAP_UPDATE_ZOOM` (which Forever's `MinimapMixin` registers for the engine's own zoom changes) refreshes it as well, so the slider never guesses. It hides when the lens is too small for it. `Minimap` is not a protected frame and `SetZoom` is an ordinary method (`MinimapFrameAPIDocumentation.lua` flags it only as `SecretArguments = "AllowedWhenUntainted"`), so the slider works in combat and never touches Blizzard's `ZoomIn`, `ZoomOut` or `ZoomHitArea`, which stay hidden.
 
-### The strip
+### The foot
 
-The strip sits inside the map's bottom edge, 30 units tall from the frame's edge, its corners cut by the map's mask: the zone name on the left in capitals, 16 units in, the clock on the right, 18 units in, with a hairline between them. It hides when neither shows. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
+The foot is the card's bottom 34 units, under the lens, inside the card's inset: the zone name on the left in capitals in the heading face, the clock on the right in the number face, on the card's own glass with no plate or divider of their own. It hides when neither shows, and the lens takes the room. Hovering the zone lists the zone, subzone and PvP status; hovering the clock shows local and realm time, in the kit's tooltip.
 
 | Clock format | Text |
 | --- | --- |
@@ -83,11 +85,11 @@ The clock ticks once a second through `C_Timer.NewTicker`, only while the module
 
 Coordinates come from `C_Map.GetBestMapForUnit("player")` and `C_Map.GetPlayerMapPosition`. They update on zone changes, and every 0.2 s only while the player moves (`PLAYER_STARTED_MOVING` to `PLAYER_STOPPED_MOVING`, and `PLAYER_CONTROL_LOST` to `PLAYER_CONTROL_GAINED` for flight paths). No position, as in instances, or a secret one hides them.
 
-The north mark is a heading-size N on a dark plate flush under the map's top edge, 44 by 23 units with the design's steep lower chamfers (11 units in, 18 up: the panel texture's bottom corner pieces stretched taller than wide, with the top row hidden so the top corners stay square). It shows while `rotateMinimap` is off. A secret rotation hides it rather than guess.
+The north mark is a gilt heading-size N on a 22-unit crystal disc (`Format.COMPASS_PLATE`, the rim buttons' dark disc and light ring) centred on the lens's top edge, half over the glass and half over the map, so it reads over any terrain. It shows while `rotateMinimap` is off. A secret rotation hides it rather than guess. Coordinates at the top of the lens drop below the disc.
 
-### The button column
+### The rim buttons
 
-By default the column is the leveling mockup's: round 30-unit buttons at a 37-unit pitch, each a dark disc with a light ring and a 16-unit glyph, down a dark chamfered plate (kit glass with the faint inner edge) 4 units left of the frame. The plate is one button and 2 units each side wide, starts 4 units below the frame's top and wraps the shown buttons with 4 units above and below, so it shrinks as buttons hide. Growing up, it hangs from the frame's bottom corner instead. The column can sit on the right, or inside the map's right edge as the design file draws it: a 24-unit band of the footer's glass from the frame's top to the footer, with bare glyphs down it (set the button size to 16 and the spacing to 9 for the design's 25-unit pitch). Beside the map, the map square leaves room for the plate and its gap, so a larger button size shrinks the map rather than pushing the column outside the Layout element. Inside, the frame stays the square at the element's right and the column's room on the left stays empty, so the strip and the zoom slider keep lying over the map's right edge. Only the buttons that apply show, and the rest close up.
+The buttons sit on the lens's rim, as the mockup draws them: round 22-unit crystal discs (a dark disc with a light ring and a glyph) along an arc that starts 52 degrees up from the lens's horizontal (`Format.ARC_START`) on the chosen side and steps one button and one spacing round the circle (`Format.Arc`), from the top down or from the bottom up. Only the buttons that apply show, and the rest close up.
 
 | Button | Shows | Click |
 | --- | --- | --- |
@@ -124,8 +126,8 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | Key | Default | Row |
 | --- | --- | --- |
 | `accent.source`, `accent.color` | `class`, the kit's accent | Hairline colour: class or custom colour |
-| `column.side`, `column.growth` | `left`, `down` | Beside the map on the left, as the mockup draws it, on the right, or inside the map's right edge as the design file draws it; and whether the column starts at the top or the bottom |
-| `column.size`, `column.spacing` | 30, 7 | Button size and the gap between buttons |
+| `column.side`, `column.growth` | `right`, `down` | The rim buttons on the lens's right or left side, and whether they start at the top or the bottom |
+| `column.size`, `column.spacing` | 22, 7 | Button size and the gap between buttons |
 | `column.tracking`, `column.mail`, `column.calendar`, `column.queue`, `column.drawer` | on | Each button |
 | `drawer.behaviour`, `drawer.direction` | `click`, `auto` | Open on click, on mouseover or always; which way it opens |
 | `drawer.size`, `drawer.spacing`, `drawer.columns` | 24, 4, 6 | The drawer's icon size, gap and icons per row |
@@ -140,7 +142,7 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 ## Why
 
 - **Hosting `Minimap` instead of replacing it.** The spec has Layout Mode replace a Blizzard frame that needs a new place with a KstyleUI frame. The minimap renderer cannot be replaced: an addon cannot make a second `Minimap`. So the module hosts the one Blizzard gives it, which is not protected, and moves only that frame. The calls are listed with this reason in `Tools/regression/taint_allow/KstyleUI_Minimap.lua`. Everything else in the cluster is hidden through `Safe`, never moved.
-- **`SetAllPoints` rather than `SetSize`.** Anchoring `Minimap` to the map square once means Layout Mode's resizing, a profile change or a rescale never calls a method on Blizzard's frame again.
+- **One `CENTER` point and a size.** `Minimap` renders at its `SetSize` size, not at its anchors (seen live: a 198 map inside a 217 lens), so `Fit` centres it on the lens square and sizes it to the lens on every resize, and nothing else about Blizzard's frame changes.
 - **Hiding the whole cluster.** Forever's 1.60.1 reskinned the minimap header and moved its children, and Camelot and Edit Mode both re-anchor them (`SetHeaderUnderneath`). Hiding the cluster as one frame survives those changes; KstyleUI draws its own zone, clock and buttons instead of restyling Blizzard's.
 - **The panel's centre is clear.** The map covers the fill's centre, the shadow's centre and the grain, and `HybridMinimap` draws in the `BACKGROUND` strata, under KstyleUI's `LOW` frame, so any of them would darken it. The chrome's `Paint` is wrapped on this one panel so a restyle never brings them back.
 - **A wheel-only catcher.** Blizzard's `Minimap` takes the wheel only inside its round hit area. A frame with just `EnableMouseWheel` covers the whole square without stealing clicks, motion or pings.
@@ -149,5 +151,6 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 - **Third-party buttons are moved, Blizzard's are not.** The drawer reparents LibDBIcon buttons, which other addons own, and lists in the allow-list that `button:SetParent` touches only them.
 - **A KstyleUI tracking menu.** Blizzard's menu sets settings-backed filters through `MinimapUtil` and the Settings system. Calling that from addon code would taint the Settings system, so KstyleUI's menu calls `C_Minimap.SetTracking` directly. The Options panel's trivial-quest checkbox may lag until its next refresh.
 - **A secure overlay instead of calling Blizzard.** `ToggleCalendar`, `ToggleWorldMap` and the queue eye's handler load or show Blizzard windows. Called from addon code they run tainted; clicked through a secure button they run as Blizzard's own. The overlay is one module file, not a kit component, because it is input plumbing with no look of its own.
-- **The column is a column.** It holds at most four status buttons, so it has a side, an order, a size and a spacing but no rows or columns; the addon drawer is the icon grid.
+- **The rim buttons are an arc, not a column.** They hold at most four status buttons, so they have a side, an order, a size and a spacing but no rows or columns; the addon drawer is the icon grid.
+- **The card is the lens plus its foot.** The judges read the first Lumen card as a round lens in a square slab: a 24-unit head band and a 20-unit inset left dark glass round the circle. The card now hugs the lens at a 6-unit rim and keeps only the foot, and the north mark rides the lens's edge instead of a head.
 - **Coordinates update only while moving.** The spec allows `OnUpdate` only while something moves. Movement events start and stop it, so a player standing still costs nothing.

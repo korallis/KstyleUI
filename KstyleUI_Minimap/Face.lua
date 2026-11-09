@@ -1,4 +1,4 @@
--- Face.lua: the minimap's Lumen card: the frost card, the round lens and its mask, the gilt north mark in the head, the zone and clock foot, the zoom slider and the coordinates.
+-- Face.lua: the minimap's Lumen card: the frost card that is the lens plus its foot, the round lens and its mask, the gilt north mark on a crystal disc at the lens's top, the zone and clock foot, the zoom slider and the coordinates.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,7 +9,7 @@ local Face = {}
 Face.__index = Face
 ns.Face = Face
 
-local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_WHEEL = 1, 2, 110, 112
+local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_COMPASS, LEVEL_WHEEL = 1, 2, 110, 111, 112
 local GAP = Tokens.Size("gapSmall")
 local COMPASS_ROLE = "heading"
 local ZONE_ROLE = "heading"
@@ -106,8 +106,13 @@ function Face.New(holder, opts)
 	face.clockHit = CreateFrame("Button", nil, strip)
 	face.clockHit:SetAllPoints(face.clock)
 
-	face.compass = NewText(box)
+	local plate = CreateFrame("Frame", nil, holder)
+	Level(plate, holder, LEVEL_COMPASS)
+	plate.crystal = Widgets.CrystalDisc(plate)
+	face.compassPlate = plate
+	face.compass = NewText(plate)
 	face.compass:SetText(L["N"])
+	face.compass:SetPoint("CENTER", plate, "CENTER")
 
 	local zoom = CreateFrame("Frame", nil, overlay)
 	zoom.face = face
@@ -160,7 +165,9 @@ end
 
 function Face:SetRotating(rotating)
 	self.rotating = rotating == true
-	self.compass:SetShown(Settings.Get("compass") and not self.rotating)
+	local shown = Settings.Get("compass") and not self.rotating
+	self.compass:SetShown(shown)
+	self.compassPlate:SetShown(shown)
 end
 
 function Face:PaintZoom()
@@ -207,6 +214,7 @@ function Face:Paint()
 	self.clock:SetTextColor(Style.Color("textEmphasis"))
 	self.coords:SetTextColor(Style.Color("textEmphasis"))
 	self.compass:SetTextColor(Widgets.LumenColor("gilt"))
+	self.compassPlate.crystal:Restyle()
 
 	local zoneShown, clockShown = Settings.Get("zone.shown"), Settings.Get("clock.shown")
 	self.zone:SetShown(zoneShown)
@@ -227,8 +235,8 @@ function Face:Layout()
 	end
 	local pad = self.chrome:Inset()
 	local footed = Settings.Get("zone.shown") or Settings.Get("clock.shown")
-	local foot = footed and Format.FOOT or pad
-	local left, top, lens = Format.Lens(width, height, pad, Format.HEAD, foot)
+	local foot = footed and Format.FOOT or Format.RIM
+	local left, top, lens = Format.Lens(width, height, Format.RIM, foot)
 	left, top, lens = Snap(box, left), Snap(box, top), Snap(box, lens)
 	self.pad, self.mapLeft, self.mapSize = pad, left, lens
 	local area = self.mapArea
@@ -238,7 +246,7 @@ function Face:Layout()
 
 	local strip = self.strip
 	strip:ClearAllPoints()
-	strip:SetPoint("TOPLEFT", area, "BOTTOMLEFT", Snap(box, pad - left), 0)
+	strip:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", Snap(box, pad), 0)
 	strip:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -Snap(box, pad), 0)
 	strip:SetHeight(Snap(box, foot))
 	local clock, zone = self.clock, self.zone
@@ -252,9 +260,10 @@ function Face:Layout()
 		zone:SetPoint("RIGHT", strip, "RIGHT", 0, 0)
 	end
 
-	local compass = self.compass
-	compass:ClearAllPoints()
-	compass:SetPoint("TOP", box, "TOP", 0, -Snap(box, (Format.HEAD - (self.compassSize or 0)) / 2))
+	local plate = self.compassPlate
+	plate:ClearAllPoints()
+	plate:SetPoint("CENTER", area, "TOP", 0, 0)
+	plate:SetSize(Snap(area, Format.COMPASS_PLATE), Snap(area, Format.COMPASS_PLATE))
 
 	self:PlaceSlider()
 
@@ -266,8 +275,9 @@ function Face:Layout()
 		coordsFrame:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, rise)
 		coordsFrame:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, rise)
 	else
-		coordsFrame:SetPoint("TOPLEFT", area, "TOPLEFT", 0, -rise)
-		coordsFrame:SetPoint("TOPRIGHT", area, "TOPRIGHT", 0, -rise)
+		local drop = rise + (plate:IsShown() and Snap(area, Format.COMPASS_PLATE / 2) or 0)
+		coordsFrame:SetPoint("TOPLEFT", area, "TOPLEFT", 0, -drop)
+		coordsFrame:SetPoint("TOPRIGHT", area, "TOPRIGHT", 0, -drop)
 	end
 end
 

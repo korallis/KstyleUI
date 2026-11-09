@@ -151,7 +151,8 @@ local CHANNELS = {
 }
 
 -- Say(env, frame, event, text, opts) runs one chat event through the filters into the frame, as
--- ChatFrameMixin:MessageEventHandler does. opts: sender, guid, channel ("1. General - Zone").
+-- ChatFrameMixin:MessageEventHandler does. opts: sender, guid, channel ("1. General - Zone"), color
+-- ({ r, g, b }, the chat type's colour the game passes to AddMessage; white when absent).
 -- Returns false when a filter discarded the line.
 function C.Say(env, frame, event, text, opts)
 	opts = opts or {}
@@ -187,7 +188,8 @@ function C.Say(env, frame, event, text, opts)
 	if type(stamp) == "string" and stamp ~= "none" then
 		line = os.date(stamp, env.time()) .. line
 	end
-	frame:AddMessage(line, 1, 1, 1, 7, 1, 1, event, args, function() end)
+	local color = opts.color or { 1, 1, 1 }
+	frame:AddMessage(line, color[1], color[2], color[3], 7, 1, 1, event, args, function() end)
 	return true
 end
 

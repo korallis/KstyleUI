@@ -33,17 +33,19 @@ end
 -- Idle out of combat: nothing shows.
 assert(not Swing.content:IsShown(), "the bars hide out of combat while no swing runs")
 
--- In combat the main hand shows; there is no off-hand weapon.
+-- Idle in combat: still nothing. A caster in a fight, or a warrior before the first swing, has no empty track
+-- over the cooldown rows; the bars come with the first PLAYER_SWING.
 env.SetCombat(true)
 env.RunTimers()
-assert(Swing.content:IsShown(), "the bars show in combat")
+assert(not Swing.content:IsShown(), "the bars stay hidden in combat until a swing runs")
+
+-- A swing shows the main hand (there is no off-hand weapon) and fills the bar over its duration.
+env.SetTime(100)
+env.FireEvent("PLAYER_SWING", 2, MAIN)
+assert(Swing.content:IsShown(), "a swing shows the bars")
 assert(main:IsShown(), "the main-hand bar shows")
 assert(not off:IsShown(), "no off-hand weapon, no off-hand bar")
 assert(not ranged:IsShown(), "no ranged weapon, no ranged bar")
-
--- A swing fills the bar over its duration, then clears it.
-env.SetTime(100)
-env.FireEvent("PLAYER_SWING", 2, MAIN)
 assert(Swing.driver:GetScript("OnUpdate"), "a running swing drives an OnUpdate")
 env.SetTime(101)
 M.Tick(env)
@@ -51,7 +53,26 @@ assert(M.Last(main, "SetValue")[1] == 0.5, "halfway through the swing the bar is
 env.SetTime(102.5)
 M.Tick(env)
 assert(M.Last(main, "SetValue")[1] == 0, "a finished swing clears the bar")
+-- The next swing's PLAYER_SWING lands a frame or two after the last one ends, so the cleared bar lingers for
+-- a moment rather than blink between swings, then hides.
+assert(Swing.content:IsShown(), "a just-finished swing keeps its bar for a moment")
+assert(Swing.driver:GetScript("OnUpdate"), "the OnUpdate runs on through the linger")
+env.SetTime(102.5 + Swing.LINGER + 0.1)
+M.Tick(env)
+assert(not Swing.content:IsShown(), "with no new swing the bars hide after the linger")
 assert(Swing.driver:GetScript("OnUpdate") == nil, "the OnUpdate stops when no swing runs")
+-- Back-to-back swings never blink: a new swing inside the linger keeps the bar up.
+env.SetTime(150)
+env.FireEvent("PLAYER_SWING", 2, MAIN)
+env.SetTime(152.1)
+M.Tick(env)
+env.FireEvent("PLAYER_SWING", 2, MAIN)
+assert(Swing.content:IsShown() and main:IsShown(), "the second swing keeps the bar up")
+env.SetTime(154.2)
+M.Tick(env)
+env.SetTime(154.2 + Swing.LINGER + 0.1)
+M.Tick(env)
+assert(not Swing.content:IsShown(), "and the bars hide once the swings stop")
 
 -- The time text, when switched on.
 M.Write(env, K, "swing.time", true)

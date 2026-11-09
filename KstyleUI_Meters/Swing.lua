@@ -7,6 +7,7 @@ local Logic = ns.Logic
 
 local KEY = "meters.swing"
 local OUT_OF_RANGE_ALPHA = 0.4
+local LINGER = 1.5
 local LIMITS = { minWidth = 40, maxWidth = 800, minHeight = 2, maxHeight = 64 }
 local EVENTS = {
 	"PLAYER_SWING", "PLAYER_SWING_RANGE_UPDATE", "PLAYER_TARGET_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
@@ -26,7 +27,8 @@ for _, slot in ipairs(SLOTS) do
 	SLOT[slot.type] = slot
 end
 
-local Swing = { section = "swing", key = KEY, bars = {}, state = {}, weapons = {}, combat = false, count = 0, dirty = true }
+local Swing = { section = "swing", key = KEY, bars = {}, state = {}, weapons = {}, count = 0, dirty = true }
+Swing.LINGER = LINGER
 ns.Swing = Swing
 
 local WEAK = { __mode = "k" }
@@ -122,10 +124,21 @@ local function Visible(slot)
 	return Swing.weapons[slot.type] == true or st.running or st.engine
 end
 
-local function AnyRunning()
+local function Now()
+	if type(GetTime) == "function" then
+		return Logic.Plain(GetTime())
+	end
+	return nil
+end
+
+local function Lingering(st, now)
+	return st.idleAt ~= nil and now ~= nil and now - st.idleAt < LINGER
+end
+
+local function AnyRunning(now)
 	for _, slot in ipairs(SLOTS) do
 		local st = Swing.state[slot.type]
-		if st.running then
+		if st.running or st.engine or Lingering(st, now) then
 			return true
 		end
 	end
@@ -195,15 +208,16 @@ local function Refresh()
 	Arrange()
 	local shown = ns.Get("swing.shown") and Swing.count > 0
 	if shown and ns.Get("swing.hideIdle") then
-		shown = Swing.combat or AnyRunning()
+		shown = AnyRunning(Now())
 	end
 	Swing.content:SetShown(shown)
 	PaintRange()
 end
 
-local function Clear(slot)
+local function Clear(slot, linger)
 	local st, bar = Swing.state[slot.type], Swing.bars[slot.type]
 	st.running, st.engine = false, false
+	st.idleAt = linger and Now() or nil
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(0)
 	bar.time:SetText("")
@@ -218,7 +232,8 @@ local function OnUpdate()
 		if st.running then
 			local fraction, left, done = Logic.SwingProgress(st.start, st.duration, now)
 			if not fraction or done then
-				Clear(slot)
+				Clear(slot, true)
+				any = any or Lingering(st, now)
 			else
 				local bar = Swing.bars[slot.type]
 				bar:SetValue(fraction)
@@ -227,6 +242,8 @@ local function OnUpdate()
 				end
 				any = true
 			end
+		elseif Lingering(st, now) then
+			any = true
 		end
 	end
 	if not any then
@@ -262,7 +279,7 @@ local function OnSwing(duration, swingType)
 		return
 	end
 	local st = Swing.state[slot.type]
-	st.outOfRange = false
+	st.outOfRange, st.idleAt = false, nil
 	if Logic.IsSecret(duration) then
 		StartEngine(slot, duration)
 		Refresh()
@@ -341,10 +358,8 @@ function Swing:OnEvent(event, ...)
 		CheckRange()
 		PaintRange()
 	elseif event == "PLAYER_REGEN_DISABLED" then
-		self.combat = true
 		Refresh()
 	elseif event == "PLAYER_REGEN_ENABLED" then
-		self.combat = false
 		for _, slot in ipairs(SLOTS) do
 			if self.state[slot.type].engine then
 				Clear(slot)
@@ -450,7 +465,6 @@ function Swing:Apply()
 		ns.Watch(self, event)
 	end
 	EnableRangeChecks()
-	self.combat = InCombatLockdown() == true
 	for _, slot in ipairs(SLOTS) do
 		if not Enabled(slot) and self.state[slot.type].running then
 			Clear(slot)

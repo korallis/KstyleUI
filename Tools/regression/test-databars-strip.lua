@@ -263,7 +263,7 @@ local function Cells(ns)
 	return table.concat(out, ",")
 end
 
-local function Inside(ns)
+local function Inside(ns, cellsOnly)
 	local frame = ns.Strip.view.frame
 	local pad = ns.Strip.view.chrome:Inset()
 	for _, id in ipairs(ns.Strip.order) do
@@ -272,7 +272,7 @@ local function Inside(ns)
 			return false, id
 		end
 		local it = item(ns, id)
-		if it.value:GetWidth() > w + 0.01 or it.label:GetWidth() > w + 0.01 then
+		if not cellsOnly and (it.value:GetWidth() > w + 0.01 or it.label:GetWidth() > w + 0.01) then
 			return false, id .. " text"
 		end
 	end
@@ -313,8 +313,10 @@ do
 	local vp, _, vrp = item(ns, "fps").value:GetPoint(1)
 	eq(vp .. ">" .. vrp, "CENTER>CENTER", "and centres the values")
 	eq(Cells(ns), before, "a font change moves no cell")
-	ok, what = Inside(ns)
-	assert(ok, "a large font stays inside its cell: " .. tostring(what))
+	-- A 22 font cannot fit "9,999,999g 99s 99c" in gold's cell. The value is never cut to "9,999,9...": a number
+	-- cut short reads as a smaller number, so the text keeps its width and the cells stay put.
+	assert(not item(ns, "gold").value:IsTruncated(), "a large font never cuts a value")
+	assert(item(ns, "gold").value:GetWidth() >= item(ns, "gold").value:GetUnboundedStringWidth(), "the value is as wide as its text")
 	Options.Write("DataBars", "strip.fontSize", 12)
 	Options.Write("DataBars", "strip.labels", "inline")
 	eq(item(ns, "fps").label:IsShown(), true, "the captions come back at 12")
@@ -331,10 +333,13 @@ do
 	ns.Strip.Refresh()
 
 	-- A narrow saved holder: the cells share what there is, a caption that cannot fit its cell drops them all,
-	-- and every value stays inside its cell (the tooltip carries the whole value).
+	-- and every value draws whole; "9999 ms" overruns its 34-unit cell by a few units rather than read "9999 ...".
 	K.Layout.Update("databars.strip", { width = 220, height = 43 })
-	ok, what = Inside(ns)
+	ok, what = Inside(ns, true)
 	assert(ok, "a narrow strip keeps its cells inside the glass: " .. tostring(what))
+	for _, id in ipairs(ns.Strip.order) do
+		assert(not item(ns, id).value:IsTruncated(), id .. "'s value is never cut on a narrow strip")
+	end
 	eq(item(ns, "durability").label:IsShown(), false, "a narrow strip drops captions that cannot fit")
 	K.Layout.Update("databars.strip", { width = 492, height = 43 })
 	eq(item(ns, "durability").label:IsShown(), true, "and shows them again at the footprint")
@@ -540,6 +545,78 @@ do
 	assert(K.Layout.Update("databars.strip", { width = 318, height = 90 }))
 	env.RunTimers()
 	eq(view.frame:GetHeight(), 90, "free menus leave the card's height to the player")
+	noErrors(env, K)
+end
+
+-- No value is ever cut: on the 318 readout card the inline caption gives way first ----------------------
+-- The judges read "34 ..." and "9... armour" on the readout and "14:..." for the clock. With the kit fonts' real
+-- glyph widths on the strings (D.New installs them), every value draws whole at the Lumen card's 318 units, and a
+-- caption that does not fit beside its value steps down to its short form or goes, never the value. The game
+-- answers IsTruncated for a string drawn narrower than its text; the stub answers it from the same widths.
+
+do
+	local env, K, ns = D.New({
+		setup = function(e)
+			D.Menus(e)
+		end,
+	})
+	env.RunTimers()
+	assert(K.Layout.Update("databars.strip", { width = 318, height = 118 }))
+	env.RunTimers()
+	ns.Strip.Refresh()
+	local function whole(what)
+		for _, id in ipairs(ns.Strip.order) do
+			local it = item(ns, id)
+			assert(it.value:IsShown(), id .. " shows its value " .. what)
+			assert(not it.value:IsTruncated(), string.format("%s's value %q is cut %s: drawn %s wide for %s of text", id,
+				tostring(it.value:GetText()), what, tostring(it.value:GetWidth()), tostring(it.value:GetUnboundedStringWidth())))
+			local pair = it.value:GetUnboundedStringWidth()
+			if it.label:IsShown() then
+				assert(not it.label:IsTruncated(), string.format("%s's caption %q is cut %s; a caption that does not fit shortens or goes",
+					id, tostring(it.label:GetText()), what))
+				pair = pair + ns.Strip.UNIT_GAP + it.label:GetUnboundedStringWidth()
+			end
+			assert(pair <= it.button:GetWidth() + 0.01, string.format("%s's value and caption (%s wide) spill out of their %s cell %s, over the next cell's text",
+				id, tostring(pair), tostring(it.button:GetWidth()), what))
+		end
+	end
+	whole("at 318 with the default values")
+	eq(item(ns, "latency").value:GetText(), "34", "the latency value reads whole")
+	eq(item(ns, "durability").value:GetText(), "96%", "the durability value reads whole")
+	eq(item(ns, "time").value:GetText(), "14:32", "the clock reads whole")
+	-- The widest live values the strip meets: four-digit latency, three-digit fps, full gold, 100% durability.
+	local game = env._game
+	game.fps, game.latencyHome, game.latencyWorld, game.money = 999.4, 1234, 1234, 99999999
+	game.durability[1] = { 100, 100 }
+	env.RunTickers()
+	env.FireEvent("PLAYER_MONEY")
+	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
+	whole("at 318 with the widest values")
+	eq(item(ns, "latency").value:GetText(), "1234", "a four-digit latency reads whole")
+	-- A value and its caption never overlap: the caption starts where the value ends.
+	for _, id in ipairs(ns.Strip.order) do
+		local it = item(ns, id)
+		if it.label:IsShown() then
+			local point, rel = it.label:GetPoint(1)
+			eq(point .. ">" .. tostring(rel == it.value), "LEFT>true", id .. "'s caption hangs off its value")
+			assert(it.value:GetWidth() >= it.value:GetUnboundedStringWidth() - 0.01, id .. "'s value is as wide as its text")
+		end
+	end
+	-- The short labels fit the same card whole too.
+	K.Options.Write("DataBars", "strip.labels", "short")
+	whole("at 318 with short labels")
+	K.Options.Write("DataBars", "strip.labels", "inline")
+	-- The interface text scale at its 1.3 limit: the values still draw whole, and a caption that cannot keep
+	-- up steps down to its short form ("100% DUR") or goes, so the next cell's text is never overprinted.
+	K.Theme.SetFontScale(1.3)
+	ns.Strip.Refresh()
+	whole("at 318 and text scale 1.3")
+	eq(item(ns, "gold").value:GetText(), "9,999g", "money too wide for its cell in full compacts to gold; the tooltip keeps the whole amount")
+	W.Enter(item(ns, "gold").button)
+	assert(tooltipText(K):find("Gold=9,999g 99s 99c", 1, true), "the tooltip carries the whole amount: " .. tooltipText(K))
+	W.Leave(item(ns, "gold").button)
+	K.Theme.SetFontScale(1)
+	ns.Strip.Refresh()
 	noErrors(env, K)
 end
 

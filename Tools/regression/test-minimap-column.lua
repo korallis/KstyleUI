@@ -110,7 +110,7 @@ local zp, zrel, zrelp, zx = zoom.track:GetPoint(1)
 assert(zoom:IsShown() and zp == "LEFT" and zrel == face.mapArea and zrelp == "LEFT" and W.Near(zx, 11), "the slider stands inside the lens's left edge whatever the buttons do")
 local holder = face.holder
 M.Resize(holder, 140, 120)
-assert(face.mapArea:GetWidth() <= 120 - Format.HEAD - Format.FOOT + 0.5 and face.mapArea:GetWidth() > 0, "a small element shrinks the lens between head and foot, got " .. tostring(face.mapArea:GetWidth()))
+assert(face.mapArea:GetWidth() <= 120 - Format.RIM - Format.FOOT + 0.5 and face.mapArea:GetWidth() > 0, "a small element shrinks the lens between the rim and the foot, got " .. tostring(face.mapArea:GetWidth()))
 assert(not zoom:IsShown(), "when the lens is too small for the slider, the slider hides")
 local footprint = K.Setup.Layouts.Element("minimap.main")
 M.Resize(holder, footprint.width, footprint.height)

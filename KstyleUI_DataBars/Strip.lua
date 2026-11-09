@@ -22,7 +22,7 @@ local STACK_GAP = 1
 local EDGE_BORDERS = 3
 local CELL_EMS = 4
 local MIN_GAP = 2
-local CHAR_WIDTH_SHARE = 0.45
+local CHAR_WIDTH_SHARE = 0.6
 local VERTICAL_WIDTH = 160
 local ROW_ASPECT = 3
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 40, 16, 1600, 800
@@ -46,7 +46,7 @@ local LINE = 43
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
 
-local CELL_WEIGHT = { fps = 0.8, latency = 1, gold = 1.6, durability = 1, time = 0.8 }
+local CELL_WEIGHT = { fps = 0.8, latency = 0.9, gold = 1.4, durability = 1.25, time = 0.85 }
 
 local TITLES = {
 	fps = L["Frame rate"], latency = L["Latency"], gold = L["Gold"], durability = L["Durability"], time = L["Time"],
@@ -299,15 +299,41 @@ local function Captioned(view, s, h, cells, gap)
 	return true
 end
 
+local function InlineForms(id)
+	local labels = LABELS[id]
+	return { labels.inline, labels.short, "" }
+end
+
+local function FitCaption(item, s, valueWidth, unitGap)
+	local label = item.label
+	local room = (item.cell or item.inner or 1) - 2 * MIN_GAP
+	for _, form in ipairs(InlineForms(item.id)) do
+		if form == "" then
+			return form, 0
+		end
+		label:SetText(form)
+		local width = TextWidth(label, CaptionSize(s))
+		if valueWidth + unitGap + width <= room then
+			return form, width
+		end
+	end
+	return "", 0
+end
+
 local function PlaceInline(item, s)
 	local frame, button = item.view.frame, item.button
-	local inner = item.inner or 1
 	local unitGap = Widgets.Snap(frame, UNIT_GAP)
-	local labelWidth = TextWidth(item.label, CaptionSize(s))
 	local valueWidth = TextWidth(item.value, s.fontSize)
+	local caption, labelWidth = FitCaption(item, s, valueWidth, unitGap)
+	item.caption = caption
+	item.label:SetText(caption)
+	item.label:SetShown(caption ~= "")
+	if caption == "" then
+		labelWidth, unitGap = 0, 0
+	end
 	item.value:ClearAllPoints()
 	item.value:SetPoint("CENTER", button, "CENTER", -(labelWidth + unitGap) / 2, 0)
-	item.value:SetWidth(max(1, min(inner, valueWidth + 2)))
+	item.value:SetWidth(max(1, valueWidth + 2))
 	item.value:SetJustifyH("RIGHT")
 	item.label:ClearAllPoints()
 	item.label:SetPoint("LEFT", item.value, "RIGHT", unitGap, 0)
@@ -326,6 +352,9 @@ local function PlaceItems(view, s)
 	local total = Weight(order)
 	view.contentWidth = Widgets.Snap(frame, total * CELL_EMS * s.fontSize)
 	if s.orientation == "VERTICAL" then
+		for _, id in ipairs(order) do
+			view.items[id].cell = nil
+		end
 		PlaceColumn(view, s, w, h, pad)
 		return
 	end
@@ -346,10 +375,11 @@ local function PlaceItems(view, s)
 		button:SetPoint("TOPLEFT", frame, "TOPLEFT", lefts[i], 0)
 		button:SetSize(cells[i], max(1, h))
 		local inner = max(1, cells[i] - gap)
-		local inline = s.labels == "inline" and item.caption ~= ""
+		local inline = s.labels == "inline" and LABELS[id].inline ~= ""
 		item.label:SetShown((captioned or inline) and item.caption ~= "")
 		item.label:ClearAllPoints()
 		item.value:ClearAllPoints()
+		item.cell = cells[i]
 		if inline then
 			item.inner = inner
 			PlaceInline(item, s)
@@ -363,7 +393,7 @@ local function PlaceItems(view, s)
 			else
 				item.value:SetPoint("CENTER", button, "CENTER")
 			end
-			item.value:SetWidth(inner)
+			item.value:SetWidth(max(inner, TextWidth(item.value, s.fontSize) + 2))
 			item.value:SetJustifyH("CENTER")
 		end
 		separator:ClearAllPoints()
@@ -374,15 +404,33 @@ local function PlaceItems(view, s)
 	end
 end
 
+local function CompactGold(item, s)
+	if item.id ~= "gold" or s.money ~= "full" or not item.cell then
+		return
+	end
+	local room = item.cell - 2 * MIN_GAP
+	if TextWidth(item.value, s.fontSize) <= room then
+		return
+	end
+	local money = Money()
+	if money then
+		item.value:SetText(Format.Money(money, "gold"))
+	end
+end
+
 local function SetValues(view, s, values, timedOnly)
 	for _, id in ipairs(view.order) do
 		if not timedOnly or TIMED[id] then
 			local item, value = view.items[id], values[id]
 			local text, grade = value and value[1], value and value[2]
 			item.value:SetText(text or L["--"])
+			CompactGold(item, s)
 			ValueColor(item, s, grade or nil)
 			if item.inner and s.labels == "inline" then
 				PlaceInline(item, s)
+			elseif item.inner == nil and s.orientation ~= "VERTICAL" then
+				local w = item.value:GetWidth()
+				item.value:SetWidth(max(IsNumber(w) and w or 1, TextWidth(item.value, s.fontSize) + 2))
 			end
 		end
 	end

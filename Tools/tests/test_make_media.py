@@ -396,8 +396,9 @@ class DrawingTest(unittest.TestCase):
         self.assertNotIn("minimapMask", face + game, "nothing in the module asks for the chamfered mask")
         fmt = (ROOT / "KstyleUI_Minimap" / "Format.lua").read_text(encoding="ascii")
         self.assertIsNone(re.search(r"local FRAME_CHAMFER\s*=", fmt), "Format.lua no longer places by a frame chamfer")
-        self.assertIsNotNone(re.search(r"local HEAD\s*=\s*\d+", fmt), "Format.lua names the card's head band")
+        self.assertIsNotNone(re.search(r"local RIM\s*=\s*\d+", fmt), "Format.lua names the rim between the card and the lens")
         self.assertIsNotNone(re.search(r"local FOOT\s*=\s*\d+", fmt), "and its foot band")
+        self.assertIsNone(re.search(r"local HEAD\s*=", fmt), "the card has no head band: the north mark rides the lens")
 
     def test_logo_is_a_chamfered_diamond(self):
         for name, size in (("Logo64.png", 64), ("Logo256.png", 256)):

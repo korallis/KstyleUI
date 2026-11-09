@@ -8,8 +8,9 @@ local ceil, floor, format, max, min = math.ceil, math.floor, string.format, math
 
 local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
-local HEAD = 24
+local RIM = 6
 local FOOT = 34
+local COMPASS_PLATE = 22
 local ARC_START = math.rad(52)
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
@@ -31,13 +32,14 @@ local function IsNumber(value)
 end
 
 Format.IsNumber = IsNumber
-Format.HEAD = HEAD
+Format.RIM = RIM
 Format.FOOT = FOOT
+Format.COMPASS_PLATE = COMPASS_PLATE
 Format.ARC_START = ARC_START
 
-function Format.Lens(width, height, inset, head, foot)
-	local lens = max(0, min(width - 2 * inset, height - head - foot))
-	return (width - lens) / 2, head, lens
+function Format.Lens(width, height, rim, foot)
+	local lens = max(0, min(width - 2 * rim, height - rim - foot))
+	return (width - lens) / 2, rim + max(0, height - rim - foot - lens) / 2, lens
 end
 
 function Format.ArcStep(size, spacing, radius)

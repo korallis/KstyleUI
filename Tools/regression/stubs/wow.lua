@@ -173,6 +173,41 @@ end
 function Object:GetWidth() return spanned(self, "w") or self._width end
 function Object:GetHeight() return spanned(self, "h") or self._height end
 function Object:GetSize() return self:GetWidth(), self:GetHeight() end
+
+-- A font string's text metrics. The stub has none, so GetUnboundedStringWidth answers nil and IsTruncated
+-- false, unless the environment installs env._textWidth(text, fontPath, size) -> width (the renderer's
+-- glyph measure, or a test's); then a string answers its text's width in its font, and IsTruncated is true
+-- when the string is narrower than its text, as the game answers for a string with word wrap off.
+local function measured(self)
+	local stored = self._state.UnboundedStringWidth
+	if stored then
+		return stored[1]
+	end
+	local measure = self._env and self._env._textWidth
+	local text = self._state.Text
+	if type(measure) ~= "function" or not text or type(text[1]) ~= "string" then
+		return nil
+	end
+	local font = self._state.Font
+	local size = font and font[2]
+	return measure(text[1], font and font[1], type(size) == "number" and size or 12)
+end
+function Object:GetUnboundedStringWidth() return measured(self) end
+function Object:GetStringWidth()
+	local width, own = measured(self), self:GetWidth()
+	if width and type(own) == "number" and own > 0 then
+		return math.min(width, own)
+	end
+	return width
+end
+function Object:IsTruncated()
+	local width, own = measured(self), self:GetWidth()
+	local wrap = self._state.WordWrap
+	if not width or type(own) ~= "number" or own <= 0 or not wrap or wrap[1] ~= false then
+		return false
+	end
+	return width > own + 0.01
+end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
 -- An object's own scale times its parent's effective scale, unless it ignores its parent's scale.

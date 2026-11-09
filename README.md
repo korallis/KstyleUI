@@ -28,7 +28,7 @@ and a module that is off costs nothing: no frames, no events and no hooks.
 | Auras | Your buffs and debuffs under the minimap |
 | Nameplates | A KstyleUI plate on each nameplate, with health, cast bar, threat colour and your debuffs |
 | Combat Text | Damage and heal numbers on KstyleUI's frames and plates, and KstyleUI's font for the game's own numbers |
-| Minimap | A square minimap with the zone and clock inside its bottom edge, a button column and an addon-button drawer |
+| Minimap | A round lens on a frost card with the zone and clock in its foot, rim buttons and an addon-button drawer |
 | Chat | Glass chat panels, tabs with an accent underline, timestamps, short channel names, clickable links, class-coloured names, a copy window, and a plus glyph in the tab row that opens the chat settings |
 | Bags | Combined bags and bank with the keyring, search, sorting, quality borders and junk selling |
 | Tooltips | Glass tooltips with quality and class colours, a health bar, optional IDs and cursor anchoring |

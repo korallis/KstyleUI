@@ -503,9 +503,15 @@ function modules.cooldowns(opts)
 end
 
 
--- Chat: the glass panel with five lines in the general tab ---------------------------------------------------
+-- Chat: the glass panel with the general tab's lines, as a session fills it: the login lines, guild and party
+-- talk, then the loot, experience and zone lines of the mockup ---------------------------------------------------
 
+local SYSTEM = { 1, 1, 0 }
 local CHAT_LINES = {
+	{ "CHAT_MSG_SYSTEM", "Welcome to World of Warcraft: Forever.", SYSTEM },
+	{ "CHAT_MSG_SYSTEM", "Leduc has come online.", SYSTEM },
+	{ "CHAT_MSG_GUILD", "Raid at 8 tonight, bring flasks.", { sender = "Thargor", guid = "Player-1-0002", color = { 0.25, 1, 0.25 } } },
+	{ "CHAT_MSG_PARTY", "ready when you are", { sender = "Leduc", guid = "Player-1-0003", color = { 0.67, 0.67, 1 } } },
 	{ "CHAT_MSG_LOOT", "You receive loot: |cff1eff00|Hitem:4232::::::::38:::::|h[Crocolisk Hide]|h|r x2." },
 	{ "CHAT_MSG_COMBAT_XP_GAIN", "You gain 168 experience." },
 	{ "CHAT_MSG_LOOT", "You receive loot: |cffffffff|Hitem:4304::::::::38:::::|h[Rugged Hide]|h|r." },
@@ -550,14 +556,16 @@ function modules.chat(opts)
 		return text
 	end
 	for _, line in ipairs(CHAT_LINES) do
-		if line[1] == "CHAT_MSG_CHANNEL" then
+		if type(line[3]) == "table" and line[3].sender then
 			env._now = env._now + 60
 			C.Say(env, chat, line[1], line[2], line[3])
 		else
-			-- The game formats system lines itself; loot is green and experience is blue.
+			-- The game formats system lines itself: system yellow, loot green and experience blue.
 			local r, g, b = 0, 0.67, 0
 			if line[1] == "CHAT_MSG_COMBAT_XP_GAIN" then
 				r, g, b = 0.44, 0.44, 1
+			elseif line[3] then
+				r, g, b = line[3][1], line[3][2], line[3][3]
 			end
 			chat:AddMessage(stamped(line[2]), r, g, b, 7, 1, 1, line[1])
 		end
@@ -647,8 +655,15 @@ end
 
 -- Data bars: the experience bar and the data strip ----------------------------------------------------------
 
+-- The bag bar's icons and the character button's portrait, as gallery_databars draws them: the engine
+-- binds both itself, so the scene gives the stub the bags the player wears and the mockup's portrait.
+local BAG_ICONS = { [31] = 133634, [32] = 133635, [33] = 133636, [34] = 133637 }
+local BACKPACK, KEYRING = 133633, 134237
+
 function modules.databars(opts)
 	local D = dofile("Tools/regression/databars_env.lua")
+	local portraitNote
+	local class = Hud.Class(opts)
 	local env, K, ns = D.New({
 		saved = saved(opts, "DataBars"),
 		-- No watched faction: the mockup shows no reputation bar under the action bars.
@@ -657,13 +672,25 @@ function modules.databars(opts)
 			shared(env, opts)
 			Common.ForceScreen(env)
 			if opts.menus then
-				D.Menus(env, {})
+				D.Menus(env, {
+					bags = BAG_ICONS, backpack = BACKPACK, keyring = KEYRING,
+					portrait = function(texture)
+						local name = "portrait-player.png"
+						if Common.StandIn("portrait-player-" .. class:lower() .. ".png") then
+							name = "portrait-player-" .. class:lower() .. ".png"
+						end
+						portraitNote = standIn(texture, name, 0.33, 0.28, 0.22, "the character button's portrait")
+					end,
+				})
 			end
 		end,
 	})
 	env.RunTimers()
 	D.W.Settle(env)
 	local scene = build(env, opts)
+	if portraitNote then
+		scene.log[#scene.log + 1] = portraitNote
+	end
 	return finish(env, K, scene, "databars"), ns
 end
 
@@ -743,21 +770,34 @@ function modules.auras(opts)
 		end
 	end
 	local settings = K.Store.Module("Auras")
+	local buffRow = Hud.BuffRow(spec, opts.buffs or #spec.buffRow)
 	local buffs, group = A.Container(env, "HELPFUL")
 	if buffs then
 		local columns = ns.Model.Group(settings, "buffs").columns
-		Hud.PlaceAuras(buffs, group, fillAuras(env, A, buffs, "buffs", group, Hud.BuffRow(spec, opts.buffs or #spec.buffRow)), columns)
+		Hud.PlaceAuras(buffs, group, fillAuras(env, A, buffs, "buffs", group, buffRow), columns)
 	end
 	-- The engine sizes an empty container to nothing, and the card's glass follows it, so the debuff
 	-- container is laid out even with no debuffs.
 	local debuffs, harmful = A.Container(env, "HARMFUL")
+	local entries = {}
+	for i = 1, opts.debuffs or 0 do
+		entries[i] = DEBUFF_ROW[(i - 1) % #DEBUFF_ROW + 1]
+	end
 	if debuffs then
-		local entries = {}
-		for i = 1, opts.debuffs or 0 do
-			entries[i] = DEBUFF_ROW[(i - 1) % #DEBUFF_ROW + 1]
-		end
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
 	end
+	-- The card asks the game whether the player has any buff or debuff (C_UnitAuras.GetAuraSlots, readable out
+	-- of combat) to drop the debuff band when there are no debuffs; the stub answers from the rows laid out.
+	local counts = { HELPFUL = #buffRow, HARMFUL = #entries }
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras.GetAuraSlots = function(_, filter, maxSlots)
+		local out = {}
+		for i = 1, math.min(counts[filter] or 0, maxSlots or math.huge) do
+			out[i] = i
+		end
+		return nil, unpack(out)
+	end
+	env.FireEvent("UNIT_AURA", "player")
 	A.W.Settle(env)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "the buffs are laid out by the scene as the AuraContainer engine would; the game binds each icon (as a secret, so the tiles show Blizzard's art) and timer itself"
@@ -1017,6 +1057,13 @@ function modules.meters(opts)
 	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 	env.FireEvent("PLAYER_TARGET_CHANGED")
 	env.RunTimers()
+	-- In combat the player is swinging: the main hand 1.1 s into a 2.6 s swing, so the swing timer reads
+	-- mid-swing. Out of combat, or between swings, the timer hides.
+	if opts.combat then
+		local now = env.GetTime()
+		env.FireEvent("PLAYER_SWING", 2.6, M.SWING.MainHand)
+		env.SetTime(now + 1.1)
+	end
 	M.Tick(env)
 	local scene = build(env, opts)
 	return finish(env, K, scene, "meters"), ns

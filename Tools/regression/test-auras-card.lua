@@ -131,5 +131,81 @@ local hw, hh = desc.holder:GetSize()
 check(near(hw, expect.width, 0.5) and near(hh, expect.height, 0.5), "the Layout holder keeps the reserved footprint, so the mover plate stays put")
 check(near(one.left, rect(desc.holder).left, 0.5) and near(one.right, rect(desc.holder).right, 0.5), "the card keeps the rail width")
 
+-- The card is as tall as the rows it holds, and gone when it holds none. The engine's sizes are secret, so
+-- the card asks the game whether the player has any buff or debuff (C_UnitAuras.GetAuraSlots, readable while
+-- auras are not secret) and refits on UNIT_AURA: with no debuffs the hairline and its gaps go, so the card
+-- ends one padding under the buffs; with nothing at all the card hides, leaving the Layout element in place.
+-- In combat, when the answer is secret, the card shows (so a buff gained in combat is never hidden) and keeps
+-- the band it last knew: a debuff gained then lands under the buffs, and the hairline returns after combat.
+local slots = { HELPFUL = { 1, 2, 3 }, HARMFUL = {} }
+env.C_UnitAuras = {
+	GetAuraSlots = function(unit, filter, maxSlots)
+		check(unit == "player", "the card counts the player's auras")
+		local list = slots[filter] or {}
+		local out, n = {}, math.min(#list, maxSlots or #list)
+		for i = 1, n do
+			out[i] = list[i]
+		end
+		return nil, unpack(out)
+	end,
+}
+hostile:SetSize(0, 0)
+container:SetSize(278, 51)
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+local noDebuffs = rect(desc.host)
+check(desc.host:IsShown(), "buffs alone keep the card")
+check(not desc.card.rule:IsShown(), "no debuffs, no hairline")
+check(near(noDebuffs.bottom, rect(container).bottom - 20, 0.5), "with no debuffs the card ends one padding under the buffs, no dead band: " .. tostring(noDebuffs.bottom - (rect(container).bottom - 20)))
+slots.HARMFUL = { 7 }
+hostile:SetSize(278, 51)
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(desc.card.rule:IsShown(), "a debuff brings the hairline back")
+check(near(rect(desc.host).bottom, rect(hostile).bottom - 20, 0.5), "and the card ends under the debuff row again")
+slots.HELPFUL, slots.HARMFUL = {}, {}
+container:SetSize(0, 0)
+hostile:SetSize(0, 0)
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(not desc.host:IsShown(), "with no auras at all the card hides")
+check(desc.holder:IsShown() and near(select(2, desc.holder:GetSize()), expect.height, 0.5), "the Layout element stays, at its footprint, for the mover plate")
+slots.HELPFUL = { 1 }
+container:SetSize(38, 51)
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(desc.host:IsShown(), "the first buff brings the card back")
+-- Secret auras: the answer is unknown, so the card shows with its band, whatever it last knew.
+slots.HELPFUL, slots.HARMFUL = {}, {}
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(not desc.host:IsShown(), "empty again")
+env._aurasSecret = true
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(desc.host:IsShown(), "while auras are secret the card shows: a buff gained in combat is never hidden")
+check(not desc.card.rule:IsShown(), "and keeps the band it last knew: no debuffs, no hairline")
+env._aurasSecret = false
+env.FireEvent("PLAYER_REGEN_ENABLED")
+env.RunTimers()
+check(not desc.host:IsShown(), "out of combat the card reads the auras again and hides when empty")
+-- PLAYER_REGEN_DISABLED fires before the lockdown and before auras turn secret, so the card shows on that event
+-- itself rather than trust an answer about to go stale.
+env.SetCombat(true)
+env.RunTimers()
+check(desc.host:IsShown(), "entering combat shows the card at once")
+env.SetCombat(false)
+env.RunTimers()
+check(not desc.host:IsShown(), "and leaving it reads the auras again")
+slots.HARMFUL = { 3 }
+env.FireEvent("UNIT_AURA", "player")
+env.RunTimers()
+check(desc.host:IsShown() and desc.card.rule:IsShown(), "a debuff alone shows the card with its band")
+env.SetCombat(true)
+env.RunTimers()
+check(desc.card.rule:IsShown(), "and combat keeps that band too")
+env.SetCombat(false)
+env.RunTimers()
+
 check(#env._errors == 0, tostring(env._errors[1]))
 print("auras card ok")
