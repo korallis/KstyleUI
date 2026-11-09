@@ -1,6 +1,6 @@
 # KstyleUI_DataBars
 
-XP, reputation and honour bars, micro menu, bag bar, and a data strip with FPS, latency, gold, durability and time.
+XP, reputation and honour bars, micro menu, bag bar, and a data strip with FPS, latency, gold and durability; its fifth slot can show the time, which by default the minimap card's foot shows, as the Lumen mockup does.
 
 | Field | Value |
 | --- | --- |
@@ -78,7 +78,7 @@ Layout gives each bar its shown rule, position, size, opacity and strata.
 
 `databars.strip` is one resizable glass panel registered with Layout at its footprint, 492 x 43 with 10.5-unit chamfers (the composition mockup's strip at 1.348 px per unit), bottom right. It holds up to five items, each in its own fixed cell: a caption in the text grey, 2 points smaller than the value (never below the `caption` size), over a value in white (or graded), on a button that lights under the pointer and shows a KstyleUI tooltip, so the values lead when the player scans it.
 
-The cells share the width inside one content inset by weight: frame rate 0.8, latency 1, gold 1.6, durability 1, time 0.8. At the footprint that is about 72, 89, 144, 89 and 72 units. A cell depends only on the strip's size and the items shown, never on a value, so a frame rate that falls from 144 to 9, or gold that grows, moves nothing. A value wider than its cell is cut short, and its tooltip carries the whole value. The readable minimum is 4 ems of the value size per unit of weight, about 250 units for five items at 12; the settings preview scales its sample strip down below that. The captions step aside, and the values sit on the centre line, when the caption and value together are taller than the strip inside its edge lines (a large font) or when any caption is wider than its cell (a narrow strip). No separators by default; turned on, a separator is a hairline at a cell's left edge, 40% of the strip's height, in the text grey at 35%. In a column each row has its caption at the left and its value at the right.
+The cells share the width inside one content inset by weight (`CELL_WEIGHT` in `Strip.lua`): frame rate 0.8, latency 0.9, gold 1.4, durability 1.25, time 0.85. A cell depends only on the strip's size and the items shown, never on a value, so a frame rate that falls from 144 to 9, or gold that grows, moves nothing. A value wider than its cell is cut short, and its tooltip carries the whole value. The readable minimum is 4 ems of the value size per unit of weight, about 250 units for five items at 12; the settings preview scales its sample strip down below that. The captions step aside, and the values sit on the centre line, when the caption and value together are taller than the strip inside its edge lines (a large font) or when any caption is wider than its cell (a narrow strip). No separators by default; turned on, a separator is a hairline at a cell's left edge, 40% of the strip's height, in the text grey at 35%. In a column each row has its caption at the left and its value at the right.
 
 | Item | Value | Colour when graded | Updates | Left click | Right click |
 | --- | --- | --- | --- | --- | --- |
@@ -96,7 +96,7 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 
 | Key | Default | Row |
 | --- | --- | --- |
-| `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. |
+| `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `none` | What each place shows, or `none`. An item in two places shows once, at the first. The clock (`time`) is off by default because the minimap card shows it. |
 | `strip.labels` | `inline` | `inline` units after each value (179 fps, 34 ms, 96% armour, as the Lumen mockup's readout), `full` captions over the values (Frame rate, Latency, Gold, Durability, Time), `short` (FPS, MS, DUR, as in the dungeon mockup) or `none` |
 | `strip.valueColor` | `highlight` | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
 | `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |

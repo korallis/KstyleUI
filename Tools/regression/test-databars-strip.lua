@@ -48,7 +48,8 @@ local function tooltipText(K)
 	return (table.concat(lines, "|"):gsub("\226\128\137", ""))
 end
 
--- Registered with Layout; the five items in the mockup's order ---------------------------------------
+-- Registered with Layout; four items in the Lumen mockup's order, the clock left to the minimap card's foot (round 4,
+-- Fable #5: the time once showed twice, on the minimap and on the readout); the fifth slot takes the clock on request
 
 do
 	local env, K, ns = D.New()
@@ -58,7 +59,10 @@ do
 	eq(el.label, K.Setup.Layouts.Element("databars.strip").label, "the setup's label")
 	local default, got = K.Setup.Layouts.Default("databars.strip"), K.Layout.Get("databars.strip")
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
-	eq(shown(ns), "fps,latency,gold,durability,time", "the default order")
+	eq(shown(ns), "fps,latency,gold,durability", "the default order, with no clock")
+	eq(ns.defaults.strip.slot5, "none", "the fifth slot starts empty")
+	K.Options.Write("DataBars", "strip.slot5", "time")
+	eq(shown(ns), "fps,latency,gold,durability,time", "the fifth slot takes the clock")
 	eq(item(ns, "fps").label:GetText(), "fps", "fps unit, inline by default")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
 	eq(item(ns, "latency").value:GetText(), "34", "home latency by default, its unit inline")
@@ -106,6 +110,7 @@ end
 
 do
 	local env, K, ns, game = D.New()
+	K.Options.Write("DataBars", "strip.slot5", "time")
 	eq(env.LiveTickers(), 1, "one ticker runs while the strip shows a timed item")
 	game.fps, game.latencyHome = 25.4, 320
 	game.localTime.hour, game.localTime.min = 15, 1
@@ -146,6 +151,7 @@ end
 do
 	local env, K, ns = D.New()
 	local Options = K.Options
+	Options.Write("DataBars", "strip.slot5", "time")
 	Options.Write("DataBars", "strip.slot2", "none")
 	eq(shown(ns), "fps,gold,durability,time", "an empty slot drops its item")
 	Options.Write("DataBars", "strip.slot1", "time")
@@ -364,6 +370,7 @@ end
 
 do
 	local env, K, ns = D.New()
+	K.Options.Write("DataBars", "strip.slot5", "time")
 	local opened
 	K.Options.Open = function(page)
 		opened = page
@@ -383,6 +390,7 @@ end
 
 do
 	local env, K, ns = D.New()
+	K.Options.Write("DataBars", "strip.slot5", "time")
 	local gold = item(ns, "gold").button
 	W.Enter(gold)
 	local proxy = assert(ns.Click.proxy, "hovering gold readies the secure proxy")
@@ -557,7 +565,7 @@ do
 	noErrors(env, K)
 end
 
--- No value is ever cut: on the 318 readout card the inline caption gives way first ----------------------
+-- No value is ever cut: on the 318 readout card the inline caption gives way first, with all five items shown ------
 -- The judges read "34 ..." and "9... armour" on the readout and "14:..." for the clock. With the kit fonts' real
 -- glyph widths on the strings (D.New installs them), every value draws whole at the Lumen card's 318 units, and a
 -- caption that does not fit beside its value steps down to its short form or goes, never the value. The game
@@ -570,6 +578,7 @@ do
 		end,
 	})
 	env.RunTimers()
+	K.Options.Write("DataBars", "strip.slot5", "time")
 	assert(K.Layout.Update("databars.strip", { width = 318, height = 118 }))
 	env.RunTimers()
 	ns.Strip.Refresh()

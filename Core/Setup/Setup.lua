@@ -1,4 +1,4 @@
--- Setup.lua: the first-run setup's choices, Apply (positions, the layout's module settings and the layout's name), and when the setup window opens.
+-- Setup.lua: the first-run setup's choices, Apply (positions, the layout's module settings, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -13,7 +13,7 @@ local STORY_GAP = 16
 
 local PICKER = {
 	{ name = "UnitFrames", label = L["Unit frames"], note = L["Player, target, focus, pet and boss frames."] },
-	{ name = "ActionBars", label = L["Action bars"], note = L["One row of ability sockets under your vitals, with keybinds and procs."] },
+	{ name = "ActionBars", label = L["Action bars"], note = L["Your ability sockets, keybinds and proc glows."] },
 	{ name = "Cooldowns", label = L["Cooldown Manager"], note = L["Blizzard's cooldown tracker, over your vitals."] },
 	{ name = "GroupFrames", label = L["Group frames"], note = L["Party and raid frames with roles and range fade."] },
 	{ name = "Auras", label = L["Buffs and debuffs"], note = L["Your buffs and debuffs on the right rail, under the map."] },
@@ -175,10 +175,28 @@ function Setup.Story(name, guide)
 	return out
 end
 
+local function EditModeChanged()
+	if type(Setup.EditModeChanged) == "function" then
+		ns.Call(Setup.EditModeChanged)
+	end
+end
+
 local function WriteEditMode(name)
+	Setup.EditMode.Waiting(name)
 	ns.Combat.Queue(function()
 		Setup.EditMode.Write(name, Setup.Story(name, GuideLoaded()))
+		EditModeChanged()
 	end)
+end
+
+function Setup.RetryEditMode()
+	local name = Setup.EditMode.Last().name or Setup.Choice().layout
+	if not Layouts.Get(name) then
+		return false
+	end
+	WriteEditMode(name)
+	EditModeChanged()
+	return true
 end
 
 function Setup.Apply(picked)

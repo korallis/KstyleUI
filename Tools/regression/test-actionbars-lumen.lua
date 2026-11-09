@@ -80,6 +80,20 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- The timer reads "4s", never a bare "4" (round 4, Opus #6: a socket's centred "4" read as a stack count): the
+-- kit's one-letter seconds formatter goes on every action button's cooldown, as on the cooldown rows.
+do
+	local C = dofile("Tools/regression/cooldowns_env.lua")
+	local env, _, ns = new({ setup = C.StringUtil })
+	AB.Slot(env, 3, { texture = 1, type = "spell", id = 1, cooldown = { name = "cd" } })
+	local b = AB.Button(ns, "bar1", 3)
+	local call = W.LastCall(b.cooldown, "SetCountdownFormatter")
+	local formatter = call and call[1]
+	assert(type(formatter) == "table" and formatter:Format(4) == "4s" and formatter:Format(120) == "2m", "the action timer reads 4s and 2m")
+	assert(W.LastCall(AB.Button(ns, "bar1", 1).cooldown, "SetCountdownFormatter")[1] == formatter, "every socket shares one formatter")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- A proc: a gilt rim and a soft glow inside the socket whose alpha breathes at 0.7 seconds; nothing past the socket.
 do
 	local env, K, ns = new()

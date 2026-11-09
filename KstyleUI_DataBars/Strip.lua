@@ -31,6 +31,7 @@ local MS_GOOD, MS_OK = 150, 300
 local DURABILITY_GOOD, DURABILITY_OK = 50, 25
 
 Strip.ITEMS = { "fps", "latency", "gold", "durability", "time" }
+Strip.DEFAULT_SLOTS = { "fps", "latency", "gold", "durability", "none" }
 Strip.SLOTS = SLOTS
 
 local LABELS = {

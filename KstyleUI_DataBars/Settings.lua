@@ -78,7 +78,7 @@ defaults.strip = {
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
 }
-for i, id in ipairs(Strip.ITEMS) do
+for i, id in ipairs(Strip.DEFAULT_SLOTS) do
 	defaults.strip["slot" .. i] = id
 end
 defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }

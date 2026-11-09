@@ -1,4 +1,4 @@
--- Socket.lua: the Lumen socket states the action buttons add to the kit's icon button: a quiet rim, the keybind at the top left, a centred timer, a gilt breathing proc, cool no-resource and red out-of-range tints, and quiet empty sockets.
+-- Socket.lua: the Lumen socket states the action buttons add to the kit's icon button: a quiet rim, the keybind at the top left, a centred timer that reads 4s as the cooldown rows do, a gilt breathing proc, cool no-resource and red out-of-range tints, and quiet empty sockets.
 local _, ns = ...
 
 local K = KstyleUI
@@ -23,6 +23,44 @@ local GLOW_ALPHA = 0.55
 local GLOW_LEVEL = 1
 
 Socket.inCombat = false
+
+local formatter
+
+local function Formatter()
+	if formatter ~= nil then
+		return formatter or nil
+	end
+	formatter = false
+	local util, E = C_StringUtil, Enum
+	if not (util and type(util.CreateSecondsFormatter) == "function" and E and E.SecondsFormatterAbbreviation and E.SecondsFormatterRounding and E.SecondsFormatterInterval) then
+		return nil
+	end
+	local ok, made = pcall(function()
+		local f = util.CreateSecondsFormatter()
+		f:SetDefaultAbbreviation(E.SecondsFormatterAbbreviation.OneLetter)
+		f:SetRounding(E.SecondsFormatterRounding.Truncate)
+		f:SetCanRoundUpLastUnit(true)
+		f:SetMinInterval(E.SecondsFormatterInterval.Seconds)
+		f:SetDesiredUnitCount(1)
+		if E.SecondsFormatterIntervalWhitespace and E.SecondsFormatterIntervalWhitespace.Strip ~= nil then
+			f:SetStripIntervalWhitespace(E.SecondsFormatterIntervalWhitespace.Strip)
+		end
+		return f
+	end)
+	formatter = ok and made or false
+	return formatter or nil
+end
+
+local function Countdown(b)
+	local cooldown = b.cooldown
+	if b.kCountdown or type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
+		return
+	end
+	local f = Formatter()
+	if f and pcall(cooldown.SetCountdownFormatter, cooldown, f) then
+		b.kCountdown = true
+	end
+end
 
 function Socket.EmptyAlpha()
 	return Socket.inCombat and EMPTY_COMBAT or EMPTY_REST
@@ -64,6 +102,7 @@ local function AfterPaint(b)
 end
 
 function Socket.Place(b)
+	Countdown(b)
 	if not Widgets.MayMove(b) then
 		return
 	end

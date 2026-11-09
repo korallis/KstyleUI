@@ -1,4 +1,4 @@
--- Mode.lua: Layout Mode's screen: mover plates, resize and scale handles, snapping guides, the grid, the story slot's outline, keyboard nudges and the toolbar.
+-- Mode.lua: Layout Mode's screen: mover plates, resize and scale handles, snapping guides, the grid, the story slot's outline with its guidance on glass cards that hide under a mover plate, keyboard nudges and the toolbar.
 local _, ns = ...
 
 local Layout = ns.Layout
@@ -23,6 +23,7 @@ local EDGE_REST, EDGE_ACTIVE = 0.55, 1
 local GRID_LINE_ALPHA, GRID_CENTRE_ALPHA = 0.07, 0.45
 local GUIDE_ALPHA = 0.9
 local SLOT_FILL, SLOT_EDGE = 0.06, 0.6
+local HELP_LEADING, HINT_LINES, RAID_LINES = 1.3, 2, 1
 local NUDGE_SMALL, NUDGE_BIG = 1, 10
 local EPSILON = 1e-4
 local ARROWS = { LEFT = { -1, 0 }, RIGHT = { 1, 0 }, UP = { 0, 1 }, DOWN = { 0, -1 } }
@@ -516,6 +517,13 @@ local function DrawGrid()
 	grid:Show()
 end
 
+local function HelpCard(parent)
+	local card = CreateFrame("Frame", nil, parent)
+	card:EnableMouse(false)
+	card.chrome = Widgets.Chrome(card, { shape = "card", shadow = false })
+	return card
+end
+
 local function BuildSlot()
 	slot = CreateFrame("Frame", nil, overlay)
 	slot:SetFrameLevel(overlay:GetFrameLevel())
@@ -527,13 +535,47 @@ local function BuildSlot()
 		slot.edges[i] = slot:CreateTexture(nil, "BORDER")
 	end
 	slot.raidLine = slot:CreateTexture(nil, "BORDER")
-	slot.raidText = Widgets.Text(slot, "caption", "text")
+	slot.help = HelpCard(slot)
+	slot.raidHelp = HelpCard(slot)
+	slot.raidText = Widgets.Text(slot.raidHelp, "caption", "text")
 	slot.raidText:SetJustifyH("LEFT")
-	slot.label = Widgets.Text(slot, "heading", "textEmphasis")
-	slot.hint = Widgets.Text(slot, "caption", "text")
+	slot.raidText:SetWordWrap(true)
+	slot.label = Widgets.Text(slot.help, "heading", "textEmphasis")
+	slot.label:SetJustifyH("LEFT")
+	slot.hint = Widgets.Text(slot.help, "caption", "text")
 	slot.hint:SetJustifyH("LEFT")
 	slot.hint:SetWordWrap(true)
 	slot:Hide()
+end
+
+local function Covered(l, b, r, t)
+	for key, plate in pairs(plates) do
+		if plate:IsShown() then
+			local pl, pb, w, h = Layout.Rect(key)
+			if pl then
+				local cx, cy = pl + w / 2, pb + h / 2
+				local hw, hh = max(PLATE_MIN, w) / 2, max(PLATE_MIN, h) / 2
+				if l < cx + hw and cx - hw < r and b < cy + hh and cy - hh < t then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+local function FillHelp(card, texts, width, pad)
+	local height, y = pad, -pad
+	for i, entry in ipairs(texts) do
+		local text, lines = entry[1], entry[2]
+		text:ClearAllPoints()
+		text:SetPoint("TOPLEFT", card, "TOPLEFT", pad, y)
+		text:SetWidth(max(1, width - pad * 2))
+		local tall = Widgets.TextHeight(text, Tokens.Size(entry[3]) * HELP_LEADING * lines)
+		local step = tall + (i < #texts and Widgets.Snap(card, Tokens.Size("gapSmall")) or 0)
+		height, y = height + step, y - step
+	end
+	return Widgets.Snap(card, height + pad)
 end
 
 local function PlaceSlot()
@@ -549,6 +591,7 @@ local function PlaceSlot()
 	local l, b, r, t = Layouts.Rect(want, want, rw, rh)
 	local line = Scale.Border()
 	local pad = Widgets.Snap(slot, Tokens.Size("gapLarge"))
+	local inner = Widgets.Snap(slot, Tokens.Size("gapMedium"))
 	slot:ClearAllPoints()
 	slot:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", l, b)
 	slot:SetSize(r - l, t - b)
@@ -570,26 +613,33 @@ local function PlaceSlot()
 	right:SetPoint("TOPRIGHT")
 	right:SetPoint("BOTTOMRIGHT")
 	right:SetWidth(line)
-	slot.label:ClearAllPoints()
-	slot.label:SetPoint("TOPLEFT", slot, "TOPLEFT", pad, -pad)
+	local width = r - l - pad * 2
 	Widgets.SetText(slot.label, want.label)
-	slot.hint:ClearAllPoints()
-	slot.hint:SetPoint("TOPLEFT", slot.label, "BOTTOMLEFT", 0, -Widgets.Snap(slot, Tokens.Size("gapSmall")))
-	slot.hint:SetWidth(max(1, r - l - pad * 2))
 	slot.hint:SetText(want.hint)
+	local help = slot.help
+	local tall = FillHelp(help, { { slot.label, 1, "heading" }, { slot.hint, HINT_LINES, "caption" } }, width, inner)
+	help:ClearAllPoints()
+	help:SetPoint("TOPLEFT", slot, "TOPLEFT", pad, -pad)
+	help:SetSize(width, tall)
+	help:SetShown(not Covered(l + pad, t - pad - tall, r - pad, t - pad))
 	local raid = (want.raid or 0) > 0 and want.raid < t - b
 	slot.raidLine:SetShown(raid)
-	slot.raidText:SetShown(raid)
+	slot.raidHelp:Hide()
 	if raid then
 		slot.raidLine:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE / 2))
 		slot.raidLine:ClearAllPoints()
 		slot.raidLine:SetPoint("TOPLEFT", slot, "TOPLEFT", 0, -want.raid)
 		slot.raidLine:SetPoint("TOPRIGHT", slot, "TOPRIGHT", 0, -want.raid)
 		slot.raidLine:SetHeight(line)
-		slot.raidText:ClearAllPoints()
-		slot.raidText:SetPoint("BOTTOMLEFT", slot.raidLine, "TOPLEFT", pad, Widgets.Snap(slot, Tokens.Size("gapTiny")))
-		slot.raidText:SetWidth(max(1, r - l - pad * 2))
 		slot.raidText:SetText(want.raidHint)
+		local card = slot.raidHelp
+		local cardTall = FillHelp(card, { { slot.raidText, RAID_LINES, "caption" } }, width, inner)
+		local gapTiny = Widgets.Snap(slot, Tokens.Size("gapTiny"))
+		card:ClearAllPoints()
+		card:SetPoint("TOPLEFT", slot.raidLine, "BOTTOMLEFT", pad, -gapTiny)
+		card:SetSize(width, cardTall)
+		local base = t - want.raid - gapTiny
+		card:SetShown(not Covered(l + pad, base - cardTall, r - pad, base))
 	end
 	slot:Show()
 end
@@ -759,6 +809,7 @@ end
 function Mode.Changed(key)
 	if overlay and Layout.IsActive() and not (drag and drag.key == key) then
 		RefreshPlate(key)
+		PlaceSlot()
 		if key == selected then
 			local plate = plates[key]
 			if plate and plate:IsShown() then
@@ -773,6 +824,7 @@ end
 function Mode.Added(key)
 	if overlay and Layout.IsActive() then
 		RefreshPlate(key)
+		PlaceSlot()
 	end
 end
 

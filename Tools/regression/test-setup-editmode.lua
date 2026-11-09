@@ -128,9 +128,11 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		local size = (iconBox[4] - iconBox[2])
 		assert(size <= 30 + 0.5 and Setting(icon, ICON_SIZE) >= 0, where .. ": a buff icon is no larger than KstyleUI's 30-unit buff, got " .. size)
 		assert(near(iconBox[3], r) and iconBox[1] >= l - 0.5, where .. ": five buffs fit inside the slot")
-		local bl, bb, br = Slot(K, name, "cooldowns.bars")
-		assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": the bars stand on the bar slot's bottom left")
-		assert(barBox[3] <= br + 0.5 and barBox[3] >= br - 3, where .. ": a bar spans the slot's width, whatever bar width the copied layout had, got " .. (barBox[3] - barBox[1]) .. " of " .. (br - bl))
+		local _, bb, br = Slot(K, name, "cooldowns.bars")
+		assert(bar.anchorInfo.point == "BOTTOMRIGHT" and near(bar.anchorInfo.offsetX, br * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": the bars stand on the bar slot's bottom right, over the icons")
+		-- One block (round 4, Fable #5: the bars once started 22 units left of the icon row under them): a bar is as
+		-- wide as the icon row, whatever bar width the copied layout had, so both share one left and one right edge.
+		assert(math.abs(barBox[1] - iconBox[1]) <= 1.5 and math.abs(barBox[3] - iconBox[3]) <= 0.5, string.format("%s: the bars (%.1f-%.1f) and the icons (%.1f-%.1f) share their edges", where, barBox[1], barBox[3], iconBox[1], iconBox[3]))
 		assert(#Collisions(K, name, iconBox) == 0, where .. ": the icons touch nothing: " .. table.concat(Collisions(K, name, iconBox), ", "))
 		assert(#Collisions(K, name, barBox) == 0, where .. ": the bars touch nothing: " .. table.concat(Collisions(K, name, barBox), ", "))
 		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing to tell the player")
@@ -139,25 +141,83 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 end
 
--- Sixteen tracked buffs and six tracked bars: the icons shrink to fit beside the action bars where they can; what
--- cannot fit at 50% gets one precise setup step naming the counts.
+-- Sixteen tracked buffs and six tracked bars (round 4, Astra #1: the icons once crossed chat and the bars the focus
+-- and target frames, with a printed step in place of a layout). The left wing holds about eleven icons and two
+-- bars, so Apply picks a denser arrangement from the counts before it saves: the icons stand in one column beside
+-- the cluster, the bars stack under the target of target where Tank keeps its threat meter, or over the focus
+-- frame in Tank. The whole assembled layout must touch nothing, every tracked item keeps its slot, nothing leaves
+-- the screen, and nothing is printed, on every preset, at every supported aspect and the owner's screen.
+
+local SCREENS = {
+	{ label = "the owner's 2383 x 1540", width = 2383, height = 1540, uiScale = 768 / 1080 },
+	{ label = "2383 x 1540 at UI scale 1", width = 2383, height = 1540, uiScale = 1 },
+	{ label = "16:9", width = 1920, height = 1080 },
+	{ label = "16:9 at UI scale 0.64", width = 1920, height = 1080, uiScale = 0.64 },
+	{ label = "16:10", width = 1920, height = 1200 },
+	{ label = "21:9", width = 2560, height = 1080 },
+}
+
+local function Screen(screen)
+	return { width = screen.width, height = screen.height, uiScale = screen.uiScale }
+end
+
+local function Everything(K, name, box)
+	local hits = Collisions(K, name, box)
+	local rw, rh = K.Layout.RootSize()
+	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
+		local w, h = K.Setup.Layouts.Footprint(name, key)
+		if Overlaps(box, { K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name)[key], rw, rh) }) then
+			hits[#hits + 1] = key
+		end
+	end
+	if box[1] < -0.5 or box[2] < -0.5 or box[3] > rw + 0.5 or box[4] > rh + 0.5 then
+		hits[#hits + 1] = "the screen edge"
+	end
+	return hits
+end
+
+for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
+	for _, screen in ipairs(SCREENS) do
+		local state = { saved = {}, active = 1 }
+		local env, K = Boot(state, Screen(screen))
+		K.Setup.EditMode.CountTracked(function(group)
+			return ({ buffs = 16, bars = 6 })[group]
+		end)
+		assert(K.Setup.Apply({ layout = name, modules = {} }))
+		local icon, bar, iconBox, barBox = Viewers(K, env, state, name, 16, 6)
+		local where = name .. " at " .. screen.label .. " with 16 icons and 6 bars"
+		local hits = Everything(K, name, iconBox)
+		assert(#hits == 0, string.format("%s: the icons (%.1f,%.1f-%.1f,%.1f) touch %s", where, iconBox[1], iconBox[2], iconBox[3], iconBox[4], table.concat(hits, ", ")))
+		hits = Everything(K, name, barBox)
+		assert(#hits == 0, string.format("%s: the bars (%.1f,%.1f-%.1f,%.1f) touch %s", where, barBox[1], barBox[2], barBox[3], barBox[4], table.concat(hits, ", ")))
+		assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
+		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
+		assert(not K.Setup.EditMode.Last().notes[1], where .. ": the setup summary has no step either")
+		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
+		assert(thick >= 20 - 0.5 and thick <= 30 + 0.5, where .. ": a buff icon is between Edit Mode's 50% and KstyleUI's 30-unit buff, got " .. thick)
+		assert((barBox[4] - barBox[2] - 5 * 2) / 6 >= 15 - 0.5, where .. ": a bar is at least Edit Mode's 50%")
+		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+end
+
+-- Past what any arrangement holds, Apply still places every item it can at the smallest size, the setup summary
+-- names the counts and offers the Cooldown Manager, and the printed line says the same.
 
 do
 	local state = { saved = {}, active = 1 }
 	local env, K = Boot(state, OWNER)
 	K.Setup.EditMode.CountTracked(function(group)
-		return ({ buffs = 16, bars = 6 })[group]
+		return ({ buffs = 60, bars = 40 })[group]
 	end)
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	local icon, bar, iconBox, barBox = Viewers(K, env, state, "DPS", 16, 6)
-	local fitIcons = #Collisions(K, "DPS", iconBox) == 0
-	local iconLine = CoreEnv.Printed(env, "16 tracked buffs")
-	assert(fitIcons or iconLine, "sixteen buffs either fit or the player is told")
-	assert(fitIcons or Setting(icon, ICON_SIZE) == 0, "a row that cannot fit takes Edit Mode's smallest size")
-	local barLine = CoreEnv.Printed(env, "6 tracked bars")
-	assert(barLine and barLine:find("Cooldown Manager", 1, true), "six bars do not fit under the focus frame, and the step says where to change it: " .. tostring(barLine))
-	assert(Setting(bar, ICON_SIZE) == 0, "the bars take the smallest size")
-	assert(#Collisions(K, "DPS", barBox) > 0, "the step is printed because they really collide")
+	local icon, bar = Viewers(K, env, state, "DPS", 60, 40)
+	local notes = K.Setup.EditMode.Last().notes
+	assert(#notes == 2 and notes[1].group == "buffs" and notes[1].count == 60 and notes[1].fits < 60, "the summary gets the buff count and how many fit")
+	assert(notes[2].group == "bars" and notes[2].count == 40 and notes[2].fits < 40, "and the bar count")
+	assert(Setting(icon, ICON_SIZE) == 0 and Setting(bar, ICON_SIZE) == 0, "both take Edit Mode's smallest size")
+	local line = CoreEnv.Printed(env, "60 tracked buffs")
+	assert(line and line:find("Cooldown Manager", 1, true), "the printed line says where to change it: " .. tostring(line))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

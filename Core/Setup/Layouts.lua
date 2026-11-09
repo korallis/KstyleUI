@@ -10,44 +10,44 @@ Setup.Layouts = Layouts
 local L = ns.L
 
 local ELEMENTS = {
-	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], width = 490, height = 80 },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 490, height = 84, reserve = { 490, 136 } },
+	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = 490, height = 80 },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = 490, height = 84, reserve = { 490, 136 } },
 	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
-	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 200, height = 90, reserve = { 200, 112 } },
+	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], short = L["Focus"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
 	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
-	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], width = 222, height = 334, reserve = { 318, 334 } },
+	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], short = L["Boss"], width = 222, height = 334, reserve = { 318, 334 } },
 	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 272, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
-	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], width = 318, height = 324 },
-	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], width = 318, height = 427 },
-	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], width = 489, height = 38 },
-	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], width = 489, height = 38 },
+	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = 318, height = 324 },
+	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], short = L["Raid"], width = 318, height = 427 },
+	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], short = L["Bar 1"], width = 489, height = 38 },
+	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], short = L["Bar 2"], width = 489, height = 38 },
 	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], width = 38, height = 489 },
 	{ key = "actionbars.bar4", module = "ActionBars", label = L["Action bar 4"], width = 38, height = 489 },
 	{ key = "actionbars.bar5", module = "ActionBars", label = L["Action bar 5"], width = 38, height = 489 },
 	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], width = 38, height = 489 },
 	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], width = 162, height = 63 },
 	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], width = 162, height = 63 },
-	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], width = 294, height = 44 },
+	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = 294, height = 44 },
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = 170, height = 38 },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 195, height = 30 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = 195, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 318, height = 177, reserve = { 318, 230 } },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Buffs"], width = 318, height = 177, reserve = { 318, 230 } },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
-	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 318, height = 346 },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 318, height = 260 },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 318, height = 346 },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 318, height = 260 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
-	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], width = 318, height = 118 },
+	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = 318, height = 118 },
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
-	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], width = 318, height = 190 },
-	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], width = 318, height = 144 },
+	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = 318, height = 190 },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = 318, height = 144 },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
-	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], width = 160, height = 180 },
+	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
 }
 
@@ -61,7 +61,8 @@ local CLUSTER_TOP = HANDS_TOP + 7 + 136
 local SIDE = 490 / 2 + NEAR
 local FOCUS_X = -(SIDE + 200 / 2)
 local TOT_X = SIDE + 120 / 2
-local STACK = CLUSTER_TOP + 8
+local SIGIL_CLEAR = GAP
+local STACK = CLUSTER_TOP + SIGIL_CLEAR
 local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TIP_Y = MARGIN + 118 + 8
@@ -279,12 +280,13 @@ for _, name in ipairs(NAMES) do
 		width = RAIL, height = headBottom - GAP - STORY_BOTTOM,
 		raid = raid,
 		label = L["Story rail"],
-		hint = L["Apply places the quest tracker here; if Edit Mode refuses, move it here yourself. Drag the RestedXP guide here."],
-		raidHint = raid > 0 and L["In a raid, the raid frames cover the slot down to this line."] or nil,
+		hint = L["Apply places the quest tracker here through Edit Mode. Drag the RestedXP guide here."],
+		raidHint = raid > 0 and L["In a raid, the raid frames cover the slot down to the line above."] or nil,
 	}
 end
 
 Layouts.ELEMENTS = ELEMENTS
+Layouts.SIGIL_CLEAR = SIGIL_CLEAR
 
 function Layouts.Names()
 	local out = {}

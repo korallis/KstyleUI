@@ -402,6 +402,8 @@ function modules.actionbars(opts)
 			for i, form in ipairs(spec.forms or {}) do
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
 			end
+			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
+			dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
 			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows.
 			if spec.pet then
 				env._game.petExists = true
@@ -1213,8 +1215,8 @@ function Hud.StoryTracker(layout, guide)
 end
 
 -- NativeViewers(env, C, layout, items, shift) lays Blizzard's tracked buff icon and bar viewers out where Apply's
--- Edit Mode write puts them for this many tracked buffs and bars (C.Native); shift(iconEntry) -> dx, dy moves both,
--- for a gallery column. Returns the two Edit Mode entries and what Apply told the player.
+-- Edit Mode write puts them for this many tracked buffs and bars (C.Native); shift(entry, group, placed) -> dx, dy
+-- moves each viewer for a gallery column, the icons first, placed holding the entries already moved. Returns the two Edit Mode entries and what Apply told the player.
 function Hud.NativeViewers(env, C, layout, items, shift)
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local written, printed = Hud.EditModeLayout(layout, false, { buffs = #items.buffs, bars = #items.bars })
@@ -1223,12 +1225,13 @@ function Hud.NativeViewers(env, C, layout, items, shift)
 	local function format(seconds)
 		return formatter:Format(seconds)
 	end
-	local out, dx, dy = {}, 0, 0
-	if shift then
-		dx, dy = shift(EditModeFake.Find(written, EditModeFake.VIEWER, EditModeFake.BUFF_ICON))
-	end
+	local out = {}
 	for _, view in ipairs({ { "buffs", EditModeFake.BUFF_ICON, "BuffIconCooldownViewer" }, { "bars", EditModeFake.BUFF_BAR, "BuffBarCooldownViewer" } }) do
 		local entry = EditModeFake.Copy(EditModeFake.Find(written, EditModeFake.VIEWER, view[2]))
+		local dx, dy = 0, 0
+		if shift then
+			dx, dy = shift(entry, view[1], out)
+		end
 		entry.anchorInfo.offsetX = entry.anchorInfo.offsetX + dx
 		entry.anchorInfo.offsetY = entry.anchorInfo.offsetY + dy
 		C.Native(env, view[3], entry, items[view[1]], format)

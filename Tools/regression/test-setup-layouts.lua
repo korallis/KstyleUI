@@ -280,9 +280,10 @@ for _, name in ipairs(names) do
 		-- The story slot: the space between the left rail's head and chat, where the player drops the guide and the tracker.
 		local slot = Layouts.Slot(name)
 		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
-		-- Apply places the quest tracker itself, so the hint names Apply and keeps the manual move for when Edit Mode
-		-- refuses (round 3: Opus #4, the carry list).
-		assert(slot.hint:find("Apply places the quest tracker here", 1, true) and slot.hint:find("Edit Mode refuses", 1, true), name .. ": the slot hint says Apply places the tracker: " .. slot.hint)
+		-- Apply places the quest tracker itself, so the hint names Apply and Edit Mode (round 3: Opus #4, the carry
+		-- list); a refusal gets Try again on the setup summary, so the hint gives no manual move (round 4, Muse #4).
+		assert(slot.hint:find("Apply places the quest tracker here", 1, true) and slot.hint:find("Edit Mode", 1, true), name .. ": the slot hint says Apply places the tracker: " .. slot.hint)
+		assert(not slot.hint:find("yourself", 1, true), name .. ": and gives no drag instruction")
 		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
 		assert(s[1] == MARGIN and s[3] - s[1] == RAIL, label .. ": the story slot is on the left rail's column")
 		assert(s[2] - chat.top >= CARD_GAP_MIN and head.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the rail's head and chat, 16 from each")
@@ -373,18 +374,30 @@ for _, name in ipairs(names) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
 		end
 
-		-- What a player turns on: bar 2 stands 8 over the cluster and the plate cast bars over it, in every layout at the
-		-- same place; in Healer, whose group frames stand on the cluster's left, bar 2 alone waits at the top centre and
-		-- the cast bars keep their place in the cluster (round 3, Muse #2).
+		-- What a player turns on: bar 2 stands Layouts.SIGIL_CLEAR (16) over the cluster, clear of the target's sigil
+		-- cap (round 4, Opus #6: at 8 it crowded the target's name in the class renders), and the plate cast bars over
+		-- it, in every layout at the same place; in Healer, whose group frames stand on the cluster's left, bar 2 alone
+		-- waits at the top centre and the cast bars keep their place in the cluster (round 3, Muse #2).
+		local SIGIL = Layouts.SIGIL_CLEAR
+		assert(type(SIGIL) == "number" and SIGIL >= 16, "Layouts names the gap a bar keeps over the sigil cap")
 		local bar2, targetCast = rect("actionbars.bar2"), rect("unitframes.castbar.target")
+		local target = rect("unitframes.target")
+		for _, key in ipairs(KEYS) do
+			if key:find("^actionbars%.") or key:find("^unitframes%.castbar%.") or key:find("^cooldowns%.") or key == "meters.swing" then
+				local bar = rect(key)
+				if bar.left < target.right and target.left < bar.right and bar.bottom >= target.top - 1e-6 then
+					assert(bar.bottom - target.top >= SIGIL - 1e-6, label .. ": " .. key .. " keeps " .. SIGIL .. " over the target's sigil cap, got " .. (bar.bottom - target.top))
+				end
+			end
+		end
 		if healer then
 			assert(bar2.top == HEIGHT - MARGIN, label .. ": bar 2 waits at the top centre")
-			assert(cast.bottom - clusterTop == 8 + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster, where DPS keeps them")
+			assert(cast.bottom - clusterTop == SIGIL + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster, where DPS keeps them")
 			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
 				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
 			end
 		else
-			assert(bar2.bottom - clusterTop == 8 and cast.bottom - bar2.top == 8 and targetCast.bottom - cast.top == 8, label .. ": bar 2 and the plate cast bars stack over the cluster")
+			assert(bar2.bottom - clusterTop == SIGIL and cast.bottom - bar2.top == 8 and targetCast.bottom - cast.top == 8, label .. ": bar 2 and the plate cast bars stack over the cluster")
 		end
 
 		-- The boss column heads the centre's right edge in DPS and Tank, 16 in from the right rail; your combat text

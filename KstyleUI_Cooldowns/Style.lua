@@ -9,6 +9,8 @@ ns.Style = Style
 
 Style.TOKENS = { gilt = "giltLit" }
 
+local COUNT_INSET, COUNT_CLEAR = 3, 1
+
 Style.CHIP_LEVEL = 6
 Style.CHIP_TEXT = 2
 
@@ -169,14 +171,27 @@ local function AfterPaint(icon)
 	end
 end
 
+local function FontSize(text, fallback)
+	local _, size = text:GetFont()
+	if type(size) ~= "number" or ns.IsSecret(size) then
+		return fallback
+	end
+	return size
+end
+
 local function Centre(icon)
 	local countdown = icon.countdown
 	if countdown and Widgets.MayMove(icon) then
+		local size = icon.opts.size or Tokens.Size("actionButton")
+		local band = COUNT_INSET + FontSize(icon.count, 0)
+		local lift = math.max(0, band + COUNT_CLEAR - (size - FontSize(countdown, 0)) / 2)
 		countdown:ClearAllPoints()
-		countdown:SetPoint("CENTER", icon.icon, "CENTER")
+		countdown:SetPoint("CENTER", icon.icon, "CENTER", 0, Widgets.Snap(icon, lift))
 		countdown:SetJustifyH("CENTER")
 	end
 end
+
+Style.Centre = Centre
 
 local function ShowTooltip(icon)
 	local entry = icon.entry

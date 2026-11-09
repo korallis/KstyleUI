@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, four steps built from the widget kit: welcome, layout, modules and summary; each layout card draws the real footprints, its role elements brighter than the shared ones.
+-- Window.lua: the first-run setup window, four steps built from the widget kit: welcome, layout, modules and summary; the layout step's preview draws the picked or hovered layout's real footprints, named where a name fits and its role elements brighter than the shared ones, and the summary says what Edit Mode did, with Try again.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -13,14 +13,15 @@ local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
 local LOGO_SIZE = 128
 local TEXT_WIDTH = 520
-local CARD_HEIGHT = 224
-local PREVIEW_WIDTH, PREVIEW_HEIGHT = 208, 117
+local CARD_HEIGHT = 120
 local REFERENCE_WIDTH, REFERENCE_HEIGHT = 1920, 1080
+local LABEL_ROOM = 4
+local PREVIEW_FALLBACK, LEGEND_WIDTH = 260, 240
+local SUMMARY_PREVIEW = 352
 local ROW_HEIGHT = 44
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
-local ELEMENT_ALPHA, ELEMENT_SELECTED_ALPHA = 0.25, 0.4
-local ROLE_ALPHA, ROLE_SELECTED_ALPHA = 0.75, 1
+local ELEMENT_ALPHA, ROLE_ALPHA = 0.22, 0.5
 local SLOT_FILL, SLOT_EDGE = 0.08, 0.7
 local CARD_HOVER_EDGE = 0.6
 local WINDOW_KEY = "setup.window"
@@ -33,6 +34,38 @@ local step, reached, applied, open = 0, 1, false, false
 
 local function gap(name)
 	return Widgets.Snap(panel, Tokens.Size(name))
+end
+
+local function EditModeText()
+	local EditMode = Setup.EditMode
+	local last = EditMode and EditMode.Last()
+	if not applied or not last or last.state == "none" then
+		return nil
+	end
+	if last.state == "waiting" then
+		return string.format(L["Edit Mode: %s is written when combat ends."], last.layout)
+	elseif last.state == "failed" then
+		return string.format(L["Edit Mode did not take %s. %s"], last.layout, last.why)
+	end
+	local lines = { string.format(L["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."], last.layout) }
+	for _, note in ipairs(last.notes) do
+		lines[#lines + 1] = EditMode.Note(note)
+	end
+	return table.concat(lines, "\n")
+end
+
+local function Manager()
+	local settings = CooldownViewerSettings
+	return type(settings) == "table" and type(settings.ShowUIPanel) == "function" and settings or nil
+end
+
+local function RefreshEditMode()
+	local text = EditModeText()
+	local last = Setup.EditMode and Setup.EditMode.Last()
+	panel.editMode:SetShown(text ~= nil)
+	panel.editMode:SetText(text or "")
+	panel.retry:SetShown(text ~= nil and last.state == "failed")
+	panel.manager:SetShown(text ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
 end
 
 local function Refresh()
@@ -52,6 +85,9 @@ local function Refresh()
 			card.glow:Stop()
 		end
 	end
+	if not panel.preview.hovered then
+		panel.preview:Draw(choice.layout)
+	end
 	if step == STEPS then
 		local on, off = {}, {}
 		for _, entry in ipairs(Setup.PICKER) do
@@ -64,11 +100,13 @@ local function Refresh()
 			.. "\n\n" .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"])
 			.. "\n\n" .. L["Off: "] .. (#off > 0 and table.concat(off, ", ") or L["none"])
 		panel.summary:SetText(text)
+		panel.summaryPreview:Draw(choice.layout)
 		Widgets.SetText(panel.summaryTitle, applied and L["Applied"] or L["Ready to apply"])
 		panel.summaryHelp:SetText(applied
 			and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."]
 			or L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."])
 	end
+	RefreshEditMode()
 end
 
 local function Changed()
@@ -146,66 +184,15 @@ function Card:Paint()
 	end
 	local emphasis = self.selected and 1 or hover
 	self.title:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, emphasis))
-	for _, rect in ipairs(self.rects) do
-		local color, alpha
-		if rect.role then
-			color, alpha = self.selected and "accent" or "textEmphasis", self.selected and ROLE_SELECTED_ALPHA or ROLE_ALPHA
-		else
-			color, alpha = self.selected and "accent" or "text", self.selected and ELEMENT_SELECTED_ALPHA or ELEMENT_ALPHA
-		end
-		rect:SetColorTexture(Widgets.Rgba(color, alpha))
-	end
-	self.slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
-	for _, edge in ipairs(self.slot.edges) do
-		edge:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE))
-	end
-end
-
-local function PlaceSlot(card, s, line)
-	local want = Layouts.Slot(card.layout)
-	local l, b, r, t = Layouts.Rect(want, want, REFERENCE_WIDTH, REFERENCE_HEIGHT)
-	local slot = card.slot
-	slot:ClearAllPoints()
-	slot:SetPoint("BOTTOMLEFT", card.screen, "BOTTOMLEFT", Widgets.Snap(card, l * s), Widgets.Snap(card, b * s))
-	slot:SetSize(Widgets.Snap(card, (r - l) * s), Widgets.Snap(card, (t - b) * s))
-	local top, bottom, left, right = slot.edges[1], slot.edges[2], slot.edges[3], slot.edges[4]
-	top:SetPoint("TOPLEFT")
-	top:SetPoint("TOPRIGHT")
-	top:SetHeight(line)
-	bottom:SetPoint("BOTTOMLEFT")
-	bottom:SetPoint("BOTTOMRIGHT")
-	bottom:SetHeight(line)
-	left:SetPoint("TOPLEFT")
-	left:SetPoint("BOTTOMLEFT")
-	left:SetWidth(line)
-	right:SetPoint("TOPRIGHT")
-	right:SetPoint("BOTTOMRIGHT")
-	right:SetWidth(line)
 end
 
 function Card:Restyle()
 	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
-	self.screen:ClearAllPoints()
-	self.screen:SetPoint("TOP", self, "TOP", 0, -pad)
-	Widgets.Size(self.screen, PREVIEW_WIDTH, PREVIEW_HEIGHT)
-	local s = PREVIEW_WIDTH / REFERENCE_WIDTH
-	local line = Widgets.Border(self)
-	local positions = Layouts.Get(self.layout)
-	for _, rect in ipairs(self.rects) do
-		local key = rect.element.key
-		local w, h = Layouts.Footprint(self.layout, key)
-		local l, b, r, t = Layouts.Rect({ width = w, height = h }, positions[key], REFERENCE_WIDTH, REFERENCE_HEIGHT)
-		rect:SetShown(Layouts.Shown(self.layout, key) ~= false)
-		rect:ClearAllPoints()
-		rect:SetPoint("BOTTOMLEFT", self.screen, "BOTTOMLEFT", Widgets.Snap(self, l * s), Widgets.Snap(self, b * s))
-		rect:SetSize(max(line, Widgets.Snap(self, (r - l) * s)), max(line, Widgets.Snap(self, (t - b) * s)))
-	end
-	PlaceSlot(self, s, line)
 	self.title:ClearAllPoints()
-	self.title:SetPoint("TOPLEFT", self.screen, "BOTTOMLEFT", 0, -pad)
+	self.title:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
 	self.note:ClearAllPoints()
 	self.note:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 0, -Widgets.Snap(self, Tokens.Size("gapSmall")))
-	self.note:SetWidth(Widgets.Snap(self, PREVIEW_WIDTH))
+	self.note:SetWidth(max(1, self:GetWidth() - pad * 2))
 	self:Paint()
 end
 
@@ -232,6 +219,109 @@ local function Roles()
 	return roles
 end
 
+local Preview = {}
+
+local function PlaceSlot(preview, s, line)
+	local want = Layouts.Slot(preview.layout)
+	local l, b, r, t = Layouts.Rect(want, want, REFERENCE_WIDTH, REFERENCE_HEIGHT)
+	local slot = preview.slot
+	slot:ClearAllPoints()
+	slot:SetPoint("BOTTOMLEFT", preview, "BOTTOMLEFT", Widgets.Snap(preview, l * s), Widgets.Snap(preview, b * s))
+	slot:SetSize(Widgets.Snap(preview, (r - l) * s), Widgets.Snap(preview, (t - b) * s))
+	slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
+	local top, bottom, left, right = slot.edges[1], slot.edges[2], slot.edges[3], slot.edges[4]
+	for _, edge in ipairs(slot.edges) do
+		edge:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE))
+		edge:ClearAllPoints()
+	end
+	top:SetPoint("TOPLEFT")
+	top:SetPoint("TOPRIGHT")
+	top:SetHeight(line)
+	bottom:SetPoint("BOTTOMLEFT")
+	bottom:SetPoint("BOTTOMRIGHT")
+	bottom:SetHeight(line)
+	left:SetPoint("TOPLEFT")
+	left:SetPoint("BOTTOMLEFT")
+	left:SetWidth(line)
+	right:SetPoint("TOPRIGHT")
+	right:SetPoint("BOTTOMRIGHT")
+	right:SetWidth(line)
+	slot:Show()
+end
+
+local function Name(rect, width, height)
+	local label, element = rect.label, rect.element
+	label:ClearAllPoints()
+	label:SetPoint("CENTER", rect, "CENTER", 0, 0)
+	if Layouts.Dock(element.key) or Tokens.Size("caption") > height - LABEL_ROOM then
+		label:Hide()
+		return
+	end
+	for _, text in ipairs({ element.label, element.short }) do
+		Widgets.SetText(label, text)
+		if Widgets.TextWidth(label, width) <= width - LABEL_ROOM then
+			label:Show()
+			return
+		end
+	end
+	label:Hide()
+end
+
+function Preview:Draw(name)
+	self.layout = name
+	self:Fit()
+	local s = self:GetWidth() / REFERENCE_WIDTH
+	local line = Widgets.Border(self)
+	local positions = Layouts.Get(name)
+	for _, rect in ipairs(self.rects) do
+		local key = rect.element.key
+		local w, h = Layouts.Footprint(name, key)
+		local l, b, r, t = Layouts.Rect({ width = w, height = h }, positions[key], REFERENCE_WIDTH, REFERENCE_HEIGHT)
+		local shown = Layouts.Shown(name, key) ~= false
+		local width, height = max(line, Widgets.Snap(self, (r - l) * s)), max(line, Widgets.Snap(self, (t - b) * s))
+		rect:SetShown(shown)
+		rect:ClearAllPoints()
+		rect:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", Widgets.Snap(self, l * s), Widgets.Snap(self, b * s))
+		rect:SetSize(width, height)
+		if rect.role then
+			rect:SetColorTexture(Widgets.Rgba("accent", ROLE_ALPHA))
+		else
+			rect:SetColorTexture(Widgets.Rgba("text", ELEMENT_ALPHA))
+		end
+		if shown then
+			Name(rect, width, height)
+		else
+			rect.label:Hide()
+		end
+	end
+	PlaceSlot(self, s, line)
+end
+
+local function NewPreview(page)
+	local preview = CreateFrame("Frame", nil, page)
+	for k, fn in pairs(Preview) do
+		preview[k] = fn
+	end
+	preview.chrome = Widgets.Chrome(preview, { shape = "tile", fill = "surface", shadow = true })
+	preview.slot = CreateFrame("Frame", nil, preview)
+	preview.slot.fill = preview.slot:CreateTexture(nil, "BACKGROUND")
+	preview.slot.fill:SetAllPoints(preview.slot)
+	preview.slot.edges = {}
+	for i = 1, 4 do
+		preview.slot.edges[i] = preview.slot:CreateTexture(nil, "BORDER")
+	end
+	preview.rects = {}
+	for _, element in ipairs(Layouts.ELEMENTS) do
+		if not SKIP_IN_PREVIEW[element.key] then
+			local rect = preview:CreateTexture(nil, "ARTWORK")
+			rect.element, rect.isElement, rect.role = element, true, Roles()[element.key] == true
+			rect.label = Widgets.Text(preview, "caption", "textEmphasis", "OVERLAY")
+			preview.rects[#preview.rects + 1] = rect
+		end
+	end
+	return preview
+end
+
 local function NewCard(page, name, width)
 	local card = CreateFrame("Button", nil, page)
 	for k, fn in pairs(Card) do
@@ -241,50 +331,66 @@ local function NewCard(page, name, width)
 	Widgets.Size(card, width, CARD_HEIGHT)
 	card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
 	card.glow = Widgets.Glow(card, { kind = "selection" })
-	card.screen = CreateFrame("Frame", nil, card)
-	card.screenChrome = Widgets.Chrome(card.screen, { shape = "tile", fill = "surface", shadow = true })
-	card.slot = CreateFrame("Frame", nil, card.screen)
-	card.slot.fill = card.slot:CreateTexture(nil, "BACKGROUND")
-	card.slot.fill:SetAllPoints(card.slot)
-	card.slot.edges = {}
-	for i = 1, 4 do
-		card.slot.edges[i] = card.slot:CreateTexture(nil, "BORDER")
-	end
-	card.rects = {}
-	for _, element in ipairs(Layouts.ELEMENTS) do
-		if not SKIP_IN_PREVIEW[element.key] then
-			local rect = card.screen:CreateTexture(nil, "ARTWORK")
-			rect.element, rect.isElement, rect.role = element, true, Roles()[element.key] == true
-			card.rects[#card.rects + 1] = rect
-		end
-	end
 	card.title = Widgets.Text(card, "heading", "textEmphasis")
 	card.title:SetText(Layouts.Label(name))
-	card.note = Paragraph(card, "body", "text", PREVIEW_WIDTH)
+	card.note = Paragraph(card, "body", "text", width)
 	card.note:SetText(Layouts.Note(name))
 	card.onClick = function()
 		Setup.Choice().layout = name
 		Changed()
 	end
 	Widgets.HookPointer(card)
+	card:HookScript("OnEnter", function()
+		panel.preview.hovered = true
+		panel.preview:Draw(name)
+	end)
+	card:HookScript("OnLeave", function()
+		panel.preview.hovered = false
+		panel.preview:Draw(Setup.Choice().layout)
+	end)
 	card:Restyle()
 	return Widgets.Track(card)
+end
+
+function Preview:Fit()
+	if self.size then
+		Widgets.Size(self, self.size[1], self.size[2])
+		return
+	end
+	local page, width = self.page, self.pageWidth
+	local spacing = gap("gapLarge")
+	local top = Widgets.Snap(page, CARD_HEIGHT) + spacing
+	local height = page:GetHeight()
+	if type(height) ~= "number" or height <= top then
+		height = top + PREVIEW_FALLBACK
+	end
+	local previewHeight = Widgets.Snap(page, height - top)
+	local previewWidth = Widgets.Snap(page, min(width - spacing - LEGEND_WIDTH, previewHeight * REFERENCE_WIDTH / REFERENCE_HEIGHT))
+	previewHeight = Widgets.Snap(page, previewWidth * REFERENCE_HEIGHT / REFERENCE_WIDTH)
+	self:ClearAllPoints()
+	self:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -top)
+	Widgets.Size(self, previewWidth, previewHeight)
+	panel.layoutHint:SetWidth(width - previewWidth - spacing)
 end
 
 local function BuildLayouts(page, width)
 	local names = Layouts.Names()
 	local spacing = gap("gapLarge")
-	local cardWidth = Widgets.Snap(page, (width - spacing * (#names - 1)) / #names)
+	local cardWidth = math.floor((width - spacing * (#names - 1)) / #names)
 	panel.cards = {}
 	for i, name in ipairs(names) do
 		local card = NewCard(page, name, cardWidth)
 		card:SetPoint("TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.cards[name] = card
 	end
-	local hint = Paragraph(page, "body", "text", width)
-	hint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, CARD_HEIGHT) + gap("gapLarge")))
-	hint:SetText(L["The bright blocks are what changes with the role. The outlined space on the left rail is the Story rail: Apply places the quest tracker there; if Edit Mode refuses, move it there yourself. Drag the RestedXP guide there. In a raid, the raid frames take its top."]
-		.. "\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
+	local preview = NewPreview(page)
+	preview.page, preview.pageWidth = page, width
+	panel.preview = preview
+	local hint = Paragraph(page, "body", "text", width / 2)
+	hint:SetPoint("TOPLEFT", preview, "TOPRIGHT", spacing, 0)
+	hint:SetText(L["The bright blocks change with the role. The outlined space on the left rail is the Story rail: Apply places the quest tracker there through Edit Mode. Drag the RestedXP guide there. In a raid, the raid frames take its top."]
+		.. "\n\n" .. L["Point at a layout to preview it."]
+		.. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	panel.layoutHint = hint
 end
 
@@ -336,9 +442,36 @@ local function BuildSummary(page, width)
 	title:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
 	local summary = Paragraph(page, "body", "textEmphasis", width)
 	summary:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -gap("gapLarge"))
-	local help = Paragraph(page, "body", "text", width)
-	help:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, gap("gapMedium"))
-	panel.summaryTitle, panel.summary, panel.summaryHelp = title, summary, help
+	local preview = NewPreview(page)
+	preview.size = { SUMMARY_PREVIEW, Widgets.Snap(page, SUMMARY_PREVIEW * REFERENCE_HEIGHT / REFERENCE_WIDTH) }
+	preview:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
+	local column = width - SUMMARY_PREVIEW - gap("gapLarge")
+	local editMode = Paragraph(page, "body", "text", column)
+	editMode:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -gap("gapHuge"))
+	editMode:Hide()
+	local retry = Widgets.Button(page, {
+		text = L["Try again"],
+		onClick = function()
+			Setup.RetryEditMode()
+		end,
+	})
+	retry:SetPoint("TOPLEFT", editMode, "BOTTOMLEFT", 0, -gap("gapMedium"))
+	retry:Hide()
+	local manager = Widgets.Button(page, {
+		text = L["Open the Cooldown Manager"],
+		onClick = function()
+			local settings = Manager()
+			if settings and not InCombatLockdown() then
+				settings:ShowUIPanel()
+			end
+		end,
+	})
+	manager:SetPoint("TOPLEFT", editMode, "BOTTOMLEFT", 0, -gap("gapMedium"))
+	manager:Hide()
+	local help = Paragraph(page, "body", "text", column)
+	help:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
+	panel.summaryTitle, panel.summary, panel.summaryHelp, panel.summaryPreview = title, summary, help, preview
+	panel.editMode, panel.retry, panel.manager = editMode, retry, manager
 end
 
 local function SyncChoice()
@@ -430,6 +563,11 @@ local function Build()
 	panel.later = Widgets.Button(content, { text = L["Later"], onClick = function() panel:Close() end })
 	panel.later:SetPoint("RIGHT", panel.reload, "LEFT", -gap("gapSmall"), 0)
 	Setup.window = panel
+	Setup.EditModeChanged = function()
+		if panel:IsShown() then
+			Refresh()
+		end
+	end
 end
 
 function Setup.ShowWindow()

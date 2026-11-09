@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers in their slots (sized to fit, with a setup step when they cannot), saves the layouts and activates that one, out of combat.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers where the tracked counts fit (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target or over the focus frame), saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -15,11 +15,13 @@ local METER_WIDTH_MIN, METER_WIDTH_MAX = 200, 600
 local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
-local VIEWER_CLEAR, VIEWER_MIN_ITEMS = 2, 2
+local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 4
+local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
-	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, gap = 8, fallback = 6 },
-	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, gap = 2, fallback = 2, tallest = 24 },
+	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 30, floor = 24 },
+	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, fallback = 2, cap = 24, floor = 18 },
 }
+local TRACKED = { ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
 
 EditMode.TRACKER_LEFT = 16
 EditMode.TRACKER_TOP = 34
@@ -108,90 +110,163 @@ end
 local function Others(name, rw, rh)
 	local out = {}
 	for key in pairs(Layouts.Get(name)) do
-		if not key:find("^cooldowns%.") and Layouts.Shown(name, key) ~= false then
+		if not TRACKED[key] and Layouts.Shown(name, key) ~= false then
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
 	end
 	return out
 end
 
-local function RowRoom(slot, others)
-	local edge = 0
+local function Clear(rect, others, rw, rh)
+	if rect.l < 0 or rect.b < 0 or rect.r > rw or rect.t > rh then
+		return false
+	end
 	for _, o in ipairs(others) do
-		if o.r <= slot.r and o.b < slot.t and slot.b < o.t then
-			edge = max(edge, o.r)
+		if rect.l < o.r + VIEWER_CLEAR and o.l - VIEWER_CLEAR < rect.r and rect.b < o.t + VIEWER_CLEAR and o.b - VIEWER_CLEAR < rect.t then
+			return false, o
 		end
 	end
-	return slot.r - edge - VIEWER_CLEAR
+	return true
 end
 
-local function StackRoom(slot, others, rh)
-	local edge = rh
-	for _, o in ipairs(others) do
-		if o.b >= slot.b and o.l < slot.r and slot.l < o.r then
-			edge = min(edge, o.b)
+local function Shape(spot, length, thick)
+	local l = spot.right and spot.x - (spot.across and length or thick) or spot.x
+	local w, h = thick, length
+	if spot.across then
+		w, h = length, thick
+	end
+	return { l = l, b = spot.y, r = l + w, t = spot.y + h }
+end
+
+local function Spots(group, boxes, icons)
+	local slot, focus = boxes[VIEWERS[group].key], boxes["unitframes.focus"]
+	if group == "buffs" then
+		local list = { { x = slot.r, y = slot.b, right = true, across = true, gaps = { 8 } } }
+		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
+		local edges, rail = {}, boxes["meters.damage"]
+		edges[#edges + 1] = focus and focus.l
+		edges[#edges + 1] = rail and rail.l
+		for _, edge in ipairs(edges) do
+			list[#list + 1] = { x = edge - VIEWER_CLEAR, y = slot.b, right = true, slide = true, gaps = DENSE_GAPS }
+			list[#list + 1] = { x = edge - VIEWER_CLEAR, y = low, right = true, slide = true, gaps = DENSE_GAPS }
+		end
+		return list
+	end
+	local width = slot.r - slot.l
+	local list = { { x = slot.l, y = slot.b, width = width, gaps = { 2 } } }
+	if icons and icons.spot.across then
+		list[1] = { x = icons.rect.r, y = slot.b, right = true, width = icons.rect.r - icons.rect.l, gaps = { 2 } }
+	end
+	local tot, utility = boxes["unitframes.targettarget"], boxes["cooldowns.utility"]
+	if tot and utility then
+		list[#list + 1] = { x = tot.l, y = utility.t + VIEWER_CLEAR, width = width, gaps = { 2 } }
+	end
+	if focus then
+		list[#list + 1] = { x = focus.l, y = focus.t + FOCUS_CLEAR, width = width, gaps = { 2 } }
+	end
+	return list
+end
+
+local function Try(view, spot, n, scale, gap, k, others, rw, rh)
+	local item = (spot.width and view.height or view.width) * scale / k
+	local length = n * item + (n - 1) * gap / k
+	local thick = item
+	if spot.width then
+		local base = view.width * scale / k
+		thick = Clamp(spot.width, base * BAR_WIDTH_MIN / 100, base * BAR_WIDTH_MAX / 100)
+	end
+	local rect = Shape(spot, length, thick)
+	for _ = 1, SLIDES do
+		local ok, hit = Clear(rect, others, rw, rh)
+		if ok then
+			return rect
+		end
+		if not (spot.slide and hit and hit.l < rect.r and hit.l > rect.l - item) then
+			return nil
+		end
+		local shift = rect.r - (hit.l - VIEWER_CLEAR)
+		rect.l, rect.r = rect.l - shift, rect.r - shift
+	end
+end
+
+local function Search(view, spots, n, k, others, rw, rh, least)
+	for _, spot in ipairs(spots) do
+		for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
+			local scale = step / 100
+			local thick = (spot.width and view.height or view.width) * scale / k
+			if thick <= view.cap + 0.01 and thick >= least - 0.01 then
+				for _, gap in ipairs(spot.gaps) do
+					local rect = Try(view, spot, n, scale, gap, k, others, rw, rh)
+					if rect then
+						return spot, step, gap, rect
+					end
+				end
+			end
 		end
 	end
-	return edge - slot.b - VIEWER_CLEAR
 end
 
-local function Length(view, scale, n, bars)
-	local item = (bars and view.height or view.width) * scale
-	return n * item + (n - 1) * view.gap
-end
-
-local function Fit(view, slot, room, n, k, bars)
-	local percent = VIEWER_SIZE_MIN
-	for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
-		local scale = step / 100
-		local tall = view.height * scale <= (bars and view.tallest or (slot.t - slot.b)) * k
-		local narrow = not bars or view.width * BAR_WIDTH_MIN / 100 * scale <= (slot.r - slot.l) * k
-		if tall and narrow and Length(view, scale, n, bars) <= room * k then
-			return step, true
+local function Most(view, spots, n, k, others, rw, rh)
+	local best, most, rect = spots[1], 0, nil
+	local scale = VIEWER_SIZE_MIN / 100
+	for _, spot in ipairs(spots) do
+		local gap = spot.gaps[#spot.gaps]
+		for m = n - 1, most + 1, -1 do
+			local fit = Try(view, spot, m, scale, gap, k, others, rw, rh)
+			if fit then
+				best, most, rect = spot, m, fit
+				break
+			end
 		end
 	end
-	local scale = percent / 100
-	local item = (bars and view.height or view.width) * scale
-	local fits = floor((room * k + view.gap) / (item + view.gap))
-	return percent, false, max(0, fits)
+	return best, most, rect
 end
 
-local function Viewer(name, group, k, rw, rh, others, notes)
+local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 	local enum = Enum
 	local indices, setting = enum.EditModeCooldownViewerSystemIndices, enum.EditModeCooldownViewerSetting
 	local view = VIEWERS[group]
-	local slot = Box(name, view.key, rw, rh)
-	if not (slot and IsTable(indices) and IsTable(setting) and indices[view.index] ~= nil) then
+	if not (boxes[view.key] and IsTable(indices) and IsTable(setting) and indices[view.index] ~= nil) then
 		return nil
 	end
 	local bars = group == "bars"
 	local n = max(VIEWER_MIN_ITEMS, EditMode.Tracked(group))
-	local room = bars and StackRoom(slot, others, rh) or RowRoom(slot, others)
-	local percent, fits, most = Fit(view, slot, room, n, k, bars)
-	if not fits then
+	local spots = Spots(group, boxes, chosen.buffs)
+	local spot, percent, gap, rect = Search(view, spots, n, k, others, rw, rh, view.floor)
+	if not spot then
+		spot, percent, gap, rect = Search(view, spots, n, k, others, rw, rh, 0)
+	end
+	if not spot then
+		local most
+		spot, most, rect = Most(view, spots, n, k, others, rw, rh)
+		percent, gap = VIEWER_SIZE_MIN, spot.gaps[#spot.gaps]
 		notes[#notes + 1] = { group = group, count = n, fits = most }
+	end
+	if rect then
+		others[#others + 1] = rect
+		chosen[group] = { spot = spot, rect = rect }
 	end
 	local settings = {}
 	if setting.IconSize ~= nil then
 		settings[setting.IconSize] = (percent - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP
 	end
 	if setting.IconPadding ~= nil then
-		settings[setting.IconPadding] = view.offset + view.gap
+		settings[setting.IconPadding] = view.offset + gap
 	end
 	local orientation, direction = enum.CooldownViewerOrientation, enum.CooldownViewerIconDirection
 	if not bars and IsTable(orientation) and setting.Orientation ~= nil then
-		settings[setting.Orientation] = orientation.Horizontal
+		settings[setting.Orientation] = spot.across and orientation.Horizontal or orientation.Vertical
 	end
 	if not bars and IsTable(direction) and setting.IconDirection ~= nil then
-		settings[setting.IconDirection] = direction.Left
+		settings[setting.IconDirection] = spot.across and direction.Left or direction.Right
 	end
 	if bars and setting.BarWidthScale ~= nil then
-		local width = floor(Clamp((slot.r - slot.l) * k / (view.width * percent / 100) * 100, BAR_WIDTH_MIN, BAR_WIDTH_MAX))
+		local width = floor(Clamp((rect and rect.r - rect.l or spot.width) * k / (view.width * percent / 100) * 100, BAR_WIDTH_MIN, BAR_WIDTH_MAX) + 0.5)
 		settings[setting.BarWidthScale] = width - BAR_WIDTH_MIN
 	end
 	local label = bars and "Blizzard's tracked buff bars" or "Blizzard's tracked buff icons"
-	local x = bars and slot.l or slot.r
-	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = bars and "BOTTOMLEFT" or "BOTTOMRIGHT", x = x * k, y = slot.b * k, settings = settings }
+	local x = rect and (spot.right and rect.r or rect.l) or spot.x
+	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = spot.right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = x * k, y = spot.y * k, settings = settings }
 end
 
 local function Places(name, story, notes)
@@ -221,9 +296,13 @@ local function Places(name, story, notes)
 	end
 	if enum.EditModeSystem.CooldownViewer ~= nil then
 		local rw, rh = Setup.RootSize()
-		local others = Others(name, rw, rh)
+		local others, boxes = Others(name, rw, rh), {}
+		for key in pairs(Layouts.Get(name)) do
+			boxes[key] = Box(name, key, rw, rh)
+		end
+		local chosen = {}
 		for _, group in ipairs({ "buffs", "bars" }) do
-			places[#places + 1] = Viewer(name, group, k, rw, rh, others, notes)
+			places[#places + 1] = Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 		end
 	end
 	return places
@@ -289,17 +368,17 @@ local function Target(all, presets, layoutName, active)
 	end
 	local limit = MaxLayouts()
 	if limit and accounts >= limit then
-		return nil, "every one of the " .. limit .. " account layouts is taken"
+		return nil, "every one of the " .. limit .. " account layouts is taken", L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(limit)
 	end
 	if Fn(C_EditMode, "IsValidLayoutName") then
 		local ok, valid = pcall(C_EditMode.IsValidLayoutName, layoutName)
 		if not ok or valid ~= true then
-			return nil, "Edit Mode refused the name " .. layoutName
+			return nil, "Edit Mode refused the name " .. layoutName, L["Edit Mode refused the layout's name."]
 		end
 	end
 	local base = all[active]
 	if not IsTable(base) or not IsTable(base.systems) then
-		return nil, "the active Edit Mode layout could not be read"
+		return nil, "the active Edit Mode layout could not be read", L["Edit Mode's active layout could not be read."]
 	end
 	local layout = Copy(base)
 	layout.layoutName, layout.layoutType, layout.layoutIndex = layoutName, types.Account, nil
@@ -309,35 +388,50 @@ local function Target(all, presets, layoutName, active)
 end
 
 local NOTE = {
-	buffs = L["%d tracked buffs don't fit beside your action bars; %d do. In the Cooldown Manager, untrack some or show them as bars."],
-	bars = L["%d tracked bars don't fit in their slot; %d do. In the Cooldown Manager, untrack some or show them as icons."],
+	buffs = L["%d tracked buffs don't fit around your action bars; %d do. In the Cooldown Manager, untrack the ones you can spare."],
+	bars = L["%d tracked bars don't fit around your action bars; %d do. In the Cooldown Manager, untrack the ones you can spare."],
 }
+
+local last = { state = "none", notes = {} }
+
+function EditMode.Note(note)
+	return NOTE[note.group]:format(note.count, note.fits)
+end
+
+function EditMode.Last()
+	return last
+end
+
+function EditMode.Waiting(name)
+	last = { state = "waiting", name = name, layout = PREFIX .. name, notes = {} }
+end
 
 local function Tell(notes)
 	for _, note in ipairs(notes) do
-		local line = NOTE[note.group]:format(note.count, note.fits)
+		local line = EditMode.Note(note)
 		log("Edit Mode: " .. line)
 		ns.Print(line)
 	end
 end
 
-local function Fail(reason)
+local function Fail(name, reason, why)
 	log("Edit Mode: " .. reason .. "; the quest tracker keeps the story hint")
-	ns.Print(L["Move the quest tracker into the story rail in Edit Mode."])
+	ns.Print(L["Edit Mode did not take the KstyleUI layout. Open /kstyle setup and press Try again on its summary."])
+	last = { state = "failed", name = name, layout = PREFIX .. name, reason = reason, why = why or L["Edit Mode could not save the layout."], notes = {} }
 	return false
 end
 
 function EditMode.Write(name, story)
 	if not EditMode.Available() then
-		return Fail("C_EditMode is missing on this client")
+		return Fail(name, "C_EditMode is missing on this client", L["This client has no Edit Mode layouts."])
 	end
 	local ok, info = pcall(C_EditMode.GetLayouts)
 	if not ok or not IsTable(info) or not IsTable(info.layouts) then
-		return Fail("C_EditMode.GetLayouts gave nothing usable")
+		return Fail(name, "C_EditMode.GetLayouts gave nothing usable", L["Edit Mode's layouts could not be read."])
 	end
 	local copied, presetList = pcall(EditModePresetLayoutManager.GetCopyOfPresetLayouts, EditModePresetLayoutManager)
 	if not copied or not IsTable(presetList) then
-		return Fail("the preset layouts could not be read")
+		return Fail(name, "the preset layouts could not be read", L["Edit Mode's layouts could not be read."])
 	end
 	local all, presets = {}, #presetList
 	for i, layout in ipairs(presetList) do
@@ -348,9 +442,9 @@ function EditMode.Write(name, story)
 	end
 	local active = type(info.activeLayout) == "number" and info.activeLayout or 1
 	local layoutName = PREFIX .. name
-	local index, reason = Target(all, presets, layoutName, active)
+	local index, reason, why = Target(all, presets, layoutName, active)
 	if not index then
-		return Fail(reason)
+		return Fail(name, reason, why)
 	end
 	local placed, notes = {}, {}
 	for _, place in ipairs(Places(name, story, notes)) do
@@ -360,13 +454,14 @@ function EditMode.Write(name, story)
 	end
 	local saved, err = pcall(C_EditMode.SaveLayouts, { layouts = all, activeLayout = index })
 	if not saved then
-		return Fail("C_EditMode.SaveLayouts failed (" .. tostring(err) .. ")")
+		return Fail(name, "C_EditMode.SaveLayouts failed (" .. tostring(err) .. ")")
 	end
-	local activated, why = pcall(C_EditMode.SetActiveLayout, index)
+	local activated, refusal = pcall(C_EditMode.SetActiveLayout, index)
 	if not activated then
-		log("Edit Mode: SetActiveLayout failed (" .. tostring(why) .. "); pick " .. layoutName .. " in Edit Mode")
+		log("Edit Mode: SetActiveLayout failed (" .. tostring(refusal) .. "); pick " .. layoutName .. " in Edit Mode")
 	end
 	log("Edit Mode: wrote " .. layoutName .. " with " .. (#placed > 0 and table.concat(placed, ", ") or "nothing") .. " placed, and made it active")
+	last = { state = "written", name = name, layout = layoutName, active = activated, notes = notes }
 	Tell(notes)
 	return true
 end

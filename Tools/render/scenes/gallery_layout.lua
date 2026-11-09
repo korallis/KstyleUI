@@ -2,12 +2,15 @@
 -- four plates of different sizes over glass stand-ins: the player frame's plate selected with its eight resize
 -- handles, the target's under the mouse, the buffs and the chat at rest. The second holds a drag in progress: a
 -- scalable minimap stand-in dragged onto the screen centre with the grid on, so both snap guides show and the
--- plate carries its scale handle. The overlay and the grid are full-screen containers, so the frames crop regions.
+-- plate carries its scale handle. The first environment's plates stand right of the DPS story slot, which shows its
+-- guidance cards; the second hides its slot so the two do not draw twice. The overlay and the grid are full-screen
+-- containers, so the frames crop regions.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Scene = Common.Scene
 
 local GRID_CROP_W, GRID_CROP_H = 420, 320
+local PLATES_X, STORY_CROP_H = 420, 250
 
 -- StandIn(env, K, key, label, x, y, w, h, opts) -> a glass panel the size of a HUD element, registered with
 -- Layout at its top left (screen units), as a module's frame would be.
@@ -67,10 +70,10 @@ return Common.Run(function()
 	-- Environment 1: the toolbar, and plates at rest, under the mouse and selected.
 	local env, K = NewEnv(W)
 	local Layout, Mode = K.Layout, K.Layout.Mode
-	StandIn(env, K, "gallery.chat", "Chat", 60, 170, 360, 180, { resizable = true })
-	StandIn(env, K, "gallery.player", "Player", 60, 380, 220, 60, { resizable = true, minWidth = 120, minHeight = 30 })
-	StandIn(env, K, "gallery.target", "Target", 320, 380, 220, 60, { resizable = true })
-	StandIn(env, K, "gallery.buffs", "Buffs", 60, 460, 300, 36, { scalable = true })
+	StandIn(env, K, "gallery.chat", "Chat", PLATES_X, 170, 360, 180, { resizable = true })
+	StandIn(env, K, "gallery.player", "Player", PLATES_X, 380, 220, 60, { resizable = true, minWidth = 120, minHeight = 30 })
+	StandIn(env, K, "gallery.target", "Target", PLATES_X + 260, 380, 220, 60, { resizable = true })
+	StandIn(env, K, "gallery.buffs", "Buffs", PLATES_X, 460, 300, 36, { scalable = true })
 	assert(Layout.Enter(), "Layout Mode opens")
 	local toolbar = Mode.Toolbar()
 	LayOutToolbar(env, K, toolbar)
@@ -102,6 +105,18 @@ return Common.Run(function()
 		caption = "The selected Player plate close up: eight 8-unit resize handles on its corners and edges, each a white square with a one-border dark rim, in the accent, on the plate's translucent button body with the accent edge.",
 		match = "The plate's body and line as the mockup's data strip pill at a translucent alpha; the handles are affordances drawn as flat tinted textures by design, not backdrops.",
 	})
+	-- The DPS layout's story slot on the left rail, clear of the plates: its label and hint on their own glass card at
+	-- its top, the raid line's note on another under the line. A plate over either card hides it (test-setup.lua).
+	local slot = Mode.Slot()
+	assert(slot:IsShown() and slot.help:IsShown() and slot.raidHelp:IsShown(), "the story slot shows its guidance")
+	local sx, sy, sw = Scene.Rect(env, slot)
+	assert(sx, "the story slot resolves")
+	frames:Add(env, nil, {
+		name = "layout_story", title = "Story slot guidance", grade = "panel", reference = "tracker", pad = 0,
+		rect = { x = sx - 10, y = sy - 10, w = sw + 20, h = STORY_CROP_H },
+		caption = "The DPS layout's story slot in Layout Mode: the accent outline, the Story rail title and the hint on a glass card at the slot's top, and the raid line with its note on a second card under it. Either card hides while a mover plate covers it, so no plate's label is ever written over.",
+		match = "The cards are the panel glass without its shadow on the slot's faint accent fill; the outline and the raid line are flat one-border accent lines by design.",
+	})
 	scenes[#scenes + 1] = Gallery.Build(env)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 
@@ -115,6 +130,7 @@ return Common.Run(function()
 	assert(Layout2.Enter(), "Layout Mode opens")
 	K2.Options.Write("Layout", "grid", true)
 	Mode2.Toolbar():Hide()
+	Mode2.Slot():Hide()
 	local plate = Mode2.Plate("gallery.minimap")
 	-- Press at the plate's centre (root units from the bottom left), then move it so its centre lands within the
 	-- snap distance of the screen centre: both guides show and the frame snaps onto them.

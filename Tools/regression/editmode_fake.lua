@@ -136,7 +136,8 @@ end
 
 -- ViewerRect(entry, count, k, bars) -> left, bottom, right, top in KstyleUI root units: the box Blizzard's buff icon
 -- (or bar) viewer fills with count items under this Edit Mode entry, as CooldownViewerMixin:RefreshLayout lays it
--- out at 1.60.1: one row (or column) of every tracked item, hidden ones keeping their slot, at least two; each item
+-- out at 1.60.1: one row of every tracked item (one column when its Orientation is Vertical; bars always stack in
+-- one column), hidden ones keeping their slot, at least two; each item
 -- 40 by 40 (bars 220 by 30, their width times BarWidthScale%, stored as percent - 50) scaled by IconSize% (stored as
 -- (percent - 50) / 10), pitched by IconPadding less 4 (bars 2); k is root units to UIParent units, and the anchor is
 -- the entry's point on UIParent's bottom left.
@@ -147,6 +148,8 @@ function F.ViewerRect(entry, count, k, bars)
 	local w, h
 	if bars then
 		w, h = 220 * (F.Setting(entry, F.BAR_WIDTH) + 50) / 100 * scale, n * 30 * scale + (n - 1) * pad
+	elseif F.Setting(entry, F.ORIENTATION) == F.VERTICAL then
+		w, h = 40 * scale, n * 40 * scale + (n - 1) * pad
 	else
 		w, h = n * 40 * scale + (n - 1) * pad, 40 * scale
 	end

@@ -63,7 +63,7 @@ local defaults = ns.Settings.defaults
 assert(defaults.essential.size == 44 and defaults.essential.spacing == 6, "essential icons are 44 units with 6-unit gaps: one notch up from the 38-unit action button, the owner's in-game scale of 2026-11-08")
 assert(defaults.utility.size == 38 and defaults.utility.spacing == 6 and defaults.utility.columns == 4, "a row of four 38-unit utility icons, the action button's size, with 6-unit gaps")
 assert(defaults.essential.timerSize == 15 and defaults.essential.countSize == 12, "the essential countdown is 15 on 44 units, the action bars' 13 on 38 scaled up")
-assert(defaults.utility.timerSize == 13 and defaults.utility.countSize == 11, "the utility countdown is the action bars' 13 and its count the kit's 11")
+assert(defaults.utility.timerSize == 11 and defaults.utility.countSize == 11, "the utility countdown takes the small duration size, 11, as its count does, so a charged socket never reads \"12s3\" (round 4, Opus #6)")
 assert(defaults.essential.spacing == 6 and defaults.essential.columns == 6, "six essential icons per row with 6-unit gaps")
 assert(defaults.bars.width == 195 and defaults.bars.height == 20 and defaults.bars.count == 2, "two bars of 195 by 20 units: the mockup's two bars at the owner's in-game scale")
 assert(defaults.path == "auto", "the path is automatic by default")

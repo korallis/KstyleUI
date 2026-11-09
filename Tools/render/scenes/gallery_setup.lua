@@ -84,8 +84,8 @@ return Common.Run(function()
 	end)
 	add(env, K, panel, hover, {
 		name = "setup_layouts", title = "Setup: layouts", grade = "window", reference = "chat",
-		caption = "The layout step: three cards on the button body, each with a 16:9 screen preview on a glass tile drawing the layout's element footprints; DPS is picked with the accent edge and glow, Tank is under the mouse with its edge lit part way.",
-		match = "The window is the chat panel's glass; the cards are the button body #101214 with the one-border light line, as the mockup's data strip; each screen preview is the glass fill with the two lines and shadow at the 3.5-unit tile chamfer, as the mockup's level badges.",
+		caption = "The layout step: three role cards on the button body over one large 16:9 preview drawing the hovered layout's real footprints, each block named where its name fits and the role blocks in the accent; DPS is picked with the accent edge and glow, Tank is under the mouse, so the preview shows Tank's threat card in the cluster. The legend beside it names the story rail.",
+		match = "The window is the chat panel's glass; the cards are the button body #101214 with the one-border light line, as the mockup's data strip; the preview is the glass fill with the two lines and shadow at the tile chamfer, as the mockup's level badges.",
 	})
 
 	-- Step 3: the module toggles, every module on but the window skins.
@@ -98,12 +98,21 @@ return Common.Run(function()
 		match = "Window grade as the mockup's chat panel; the toggles' pill tracks are the bar grade's surface fill and the text buttons the button body.",
 	})
 
-	-- Step 4: the summary, ready to apply.
-	env, K, panel, hover = Step(W, 4, 880, 560)
+	-- Step 4: the summary after Apply, when Edit Mode refused the layout because every account slot was taken.
+	env, K, panel, hover = Step(W, 4, 880, 560, function(stepEnv, _, stepPanel)
+		local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+		local full = {}
+		for i = 1, 5 do
+			full[i] = { layoutName = "Mine " .. i, layoutType = EditModeFake.ACCOUNT, systems = EditModeFake.Modern().systems }
+		end
+		EditModeFake.Install(stepEnv, { saved = full, active = 3, max = 5 })
+		W.Click(stepPanel.apply)
+		W.Settle(stepEnv)
+	end)
 	add(env, K, panel, hover, {
 		name = "setup_summary", title = "Setup: summary", grade = "window", reference = "chat",
-		caption = "The summary step: the layout, the modules that will be on and off, the help line and Back with the primary Apply button.",
-		match = "Window grade as the mockup's chat panel: fill, two-line edge, 12-unit chamfer and drop shadow.",
+		caption = "The summary step after Apply: the layout and the modules on and off, a preview of the layout Apply built, what Edit Mode did (here it refused, every account layout being taken, with the reason and a one-click Try again), the reload help, Later and the primary Reload button.",
+		match = "Window grade as the mockup's chat panel: fill, two-line edge, 12-unit chamfer and drop shadow; the preview is the glass fill at the tile chamfer, as on the layout step.",
 	})
 
 	return frames:Finish(Scene.Merge(scenes), lastEnv, lastK, "gallery setup")

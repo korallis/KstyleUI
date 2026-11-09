@@ -83,7 +83,40 @@ do
 	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	local buffIcon = buffRow:Icon(1)
 	assert(LastArg(buffIcon.cooldown, "SetCountdownFormatter") == formatter and formatter:Format(24) == "24s", "a tracked buff icon reads 24s, as Blessings does")
-	assert(buffIcon.countdown._points[1][1] == "CENTER", "a tracked buff icon keeps its countdown centred low")
+	assert(buffIcon.countdown._points[1][1] == "CENTER" and buffIcon.countdown._points[1][2] == buffIcon.icon, "a tracked buff icon centres its countdown too, clear of its stack count (round 4)")
+end
+
+-- A socket's countdown never runs into its charge or stack count (round 4, Opus #6: a socket in the preview read
+-- "12s3"): the utility row takes the small duration size, and the centred countdown rises just clear of the count's
+-- corner band in every row, the tracked buffs' included.
+do
+	assert(ns.Settings.defaults.utility.timerSize <= 11, "the utility row's countdown takes the small duration size")
+	local function box(text, size, icon)
+		local p = text._points[1]
+		local _, height = text:GetFont()
+		local width = env._textWidth and env._textWidth(text:GetText(), nil, height) or (#text:GetText() * height * 0.55)
+		local cx, cy
+		if p[1] == "CENTER" then
+			assert(p[3] == "CENTER" or p[3] == "BOTTOM", "a countdown hangs from its socket's centre or foot")
+			cx, cy = size / 2 + p[4], (p[3] == "BOTTOM" and 0 or size / 2) + p[5]
+			return { cx - width / 2, cy - height / 2, cx + width / 2, cy + height / 2 }
+		end
+		assert(p[1] == "BOTTOMRIGHT" and p[3] == "BOTTOMRIGHT", "the count sits in the bottom right corner")
+		return { size + p[4] - width, p[5], size + p[4], p[5] + height }
+	end
+	local buffs = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
+	buffs:Icon(1)
+	for _, row in ipairs({ essential, utility, buffs }) do
+		local icon = row.icons[1]
+		icon:SetCount("3")
+		icon.countdown:SetText("12s")
+		local size = icon.opts.size
+		local a, b = box(icon.countdown, size, icon), box(icon.count, size, icon)
+		local apart = a[3] <= b[1] - 1 or a[2] >= b[4] + 1
+		assert(apart, string.format("%s: the countdown (%.1f,%.1f-%.1f,%.1f) clears the count (%.1f,%.1f-%.1f,%.1f)", row.group, a[1], a[2], a[3], a[4], b[1], b[2], b[3], b[4]))
+		assert(a[1] >= 0 and a[3] <= size and a[4] <= size, row.group .. ": and stays on the socket")
+		icon:SetCount(nil)
+	end
 end
 
 -- Each icon's cooldown comes from the API's duration object, the global cooldown left out by default.

@@ -9,6 +9,7 @@
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
+local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 local Scene = Common.Scene
 
 local NOW = 10
@@ -218,8 +219,21 @@ local function Cooldowns(load, k, frames, path)
 	local told = {}
 	if not mirror then
 		local _
-		_, told = Hud.NativeViewers(env, C, "DPS", items, function(entry)
-			return x + 500 - entry.anchorInfo.offsetX, (SCREEN_H - 900) - entry.anchorInfo.offsetY
+		-- The crop sets the viewers side by side: the icons at the column's foot, the bars 8 over a row of them,
+		-- flush with its right edge, or 8 left of a column of them, on its foot. Past what the row beside the hands holds, Apply stands the icons in a column beside the
+		-- cluster and the bars under the target of target, too far apart for one crop.
+		_, told = Hud.NativeViewers(env, C, "DPS", items, function(entry, group, placed)
+			local a = entry.anchorInfo
+			if group == "buffs" or not placed.buffs then
+				return x + 500 - a.offsetX, (SCREEN_H - 900) - a.offsetY
+			end
+			local l, b, r, t = EditModeFake.ViewerRect(placed.buffs, load.buffs, 1)
+			local bl, _, br = EditModeFake.ViewerRect(entry, load.bars, 1, true)
+			local width = br - bl
+			if t - b > r - l then
+				return l - 8 - (a.point:find("RIGHT") and 0 or width) - a.offsetX, b - a.offsetY
+			end
+			return r - (a.point:find("RIGHT") and 0 or width) - a.offsetX, t + 8 - a.offsetY
 		end)
 	end
 	C.Enable(env, K)
@@ -258,9 +272,9 @@ local function Cooldowns(load, k, frames, path)
 		local icons, barViewer = env._viewers.BuffIconCooldownViewer, env._viewers.BuffBarCooldownViewer
 		frames:Add(env, icons, {
 			name = "auracounts_buffs_" .. load.key, title = "Tracked buffs, " .. load.label, grade = "button", reference = "bufficons",
-			caption = string.format("%d tracked buffs and %d tracked bars on Forever's automatic path: Blizzard's own viewers, restyled, where Layout > Apply placed them in Edit Mode. The icons grow left from the slot, away from the cluster, and the bars stand on theirs. %s", load.buffs, load.bars,
+			caption = string.format("%d tracked buffs and %d tracked bars on Forever's automatic path: Blizzard's own viewers, restyled, at the size Layout > Apply gave them in Edit Mode. A few grow left from the slot beside the hands under bars as wide as their row; past what that row holds, the icons stand in a column beside the cluster and the bars under the target of target. The crop sets them side by side. %s", load.buffs, load.bars,
 				#told > 0 and ("Apply told the player: " .. table.concat(told, " ")) or "Every tracked buff fits beside the action bars."),
-			match = "The size Edit Mode gets fits the whole row in the room beside the action bars, or the player gets one step naming the counts.",
+			match = "The size and place Edit Mode gets fit every tracked item clear of every other element, or the setup summary names the counts.",
 			rect = Gallery.Union(env, { icons, barViewer }),
 			pad = 10,
 		})

@@ -179,26 +179,102 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Layout step: three cards with previews; a click picks one ---------------------------------------------
+-- Layout step: three role cards over one large preview of the picked layout; a click picks one, a hover previews it
+
+local function Measured(env)
+	env._textWidth = function(text, _, size)
+		return #text * size * 0.5
+	end
+end
 
 do
 	local env, K = Boot()
+	Measured(env)
 	local panel = Open(env, K)
 	K.Setup.Go(2)
 	W.Settle(env)
-	local cards = panel.cards
+	local cards, preview = panel.cards, panel.preview
 	assert(cards.DPS and cards.Tank and cards.Healer, "a card per layout")
 	assert(K.Setup.Choice().layout == "DPS" and cards.DPS.selected, "DPS is picked by default")
+	assert(preview and preview.layout == "DPS", "the preview shows the picked layout")
 	local rects = 0
-	for _, region in ipairs(W.Regions(cards.Healer.screen, "Texture")) do
-		if region.isElement then
+	for _, rect in ipairs(preview.rects) do
+		if rect:IsShown() then
 			rects = rects + 1
 		end
 	end
-	assert(rects >= 30, "each card draws its layout's elements in a preview, got " .. rects)
+	assert(rects >= 30, "the preview draws the layout's elements at their real footprints, got " .. rects)
 	W.Click(cards.Healer)
 	W.Settle(env)
 	assert(K.Setup.Choice().layout == "Healer" and cards.Healer.selected and not cards.DPS.selected, "a click picks the layout")
+	assert(preview.layout == "Healer", "and the preview follows")
+	W.Enter(cards.Tank)
+	assert(preview.layout == "Tank", "hovering a card previews its layout")
+	W.Leave(cards.Tank)
+	assert(preview.layout == "Healer", "and leaving it shows the picked one again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The preview names its elements (round 4, Muse #4, Fable #5: DPS and Tank once read the same from abstract blocks):
+-- a block whose label fits carries it, its short name when the full one does not fit, and no label when neither
+-- does, so no label is ever cut or spills; Tank's threat card is named, and DPS draws none.
+
+do
+	local env, K = Boot()
+	Measured(env)
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	local preview = panel.preview
+	local root = K.Scale.Root()
+	local function labels()
+		local out = {}
+		for _, rect in ipairs(preview.rects) do
+			local label = rect.label
+			if rect:IsShown() and label:IsShown() then
+				local text = label:GetText()
+				out[rect.element.key] = text
+				local box = assert(Geometry.Rect(rect, root))
+				local width = env._textWidth(text, nil, select(2, label:GetFont()) or 12)
+				assert(width <= box.right - box.left + 0.5, rect.element.key .. "'s label '" .. text .. "' fits its block")
+				assert(not label:IsTruncated(), rect.element.key .. "'s label is whole")
+			end
+		end
+		return out
+	end
+	local dps = labels()
+	for _, key in ipairs({ "unitframes.target", "chat.main", "minimap.main", "groupframes.party", "meters.damage" }) do
+		assert(dps[key], "DPS names " .. key)
+	end
+	assert(not dps["meters.threat"], "DPS draws no threat card")
+	W.Click(panel.cards.Tank)
+	W.Settle(env)
+	local tank = labels()
+	assert(tank["meters.threat"], "Tank names its threat card")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The step fills its page: the preview and its legend reach down to the buttons, and nothing leaves the page
+
+do
+	local env, K = Boot()
+	Measured(env)
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	local root = K.Scale.Root()
+	local page = assert(Geometry.Rect(panel.pages[2], root))
+	local lowest = math.huge
+	for _, object in ipairs({ panel.preview, panel.cards.DPS, panel.cards.Tank, panel.cards.Healer }) do
+		local box = assert(Geometry.Rect(object, root))
+		assert(Geometry.Outside(box, page) < 0.5, "everything on the layout step stays on its page")
+		lowest = math.min(lowest, box.bottom)
+	end
+	local preview = assert(Geometry.Rect(panel.preview, root))
+	local p = panel.layoutHint._points[1]
+	assert(p[2] == panel.preview and p[3] == "TOPRIGHT", "the legend stands beside the preview")
+	assert(preview.right + p[4] + panel.layoutHint:GetWidth() <= page.right + 0.5, "and ends at the page's right edge")
+	assert(lowest - page.bottom <= K.Tokens.Size("gapLarge") * 2, "the step has no empty lower half: its content ends " .. (lowest - page.bottom) .. " units above the page bottom")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -350,28 +426,31 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The layout cards draw the story slot, and leave out what the layout switches off -----------------------------
+-- The preview draws the story slot, and leaves out what the layout switches off ------------------------------
 
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
 	K.Setup.Go(2)
 	W.Settle(env)
+	local preview = panel.preview
 	for _, name in ipairs(K.Setup.Layouts.Names()) do
-		local card = panel.cards[name]
-		assert(card.slot and card.slot:IsShown(), name .. "'s card outlines the story slot")
+		W.Click(panel.cards[name])
+		W.Settle(env)
+		assert(preview.slot and preview.slot:IsShown(), name .. "'s preview outlines the story slot")
 		assert(panel.layoutHint:GetText():find("Story rail", 1, true) and panel.layoutHint:GetText():find("Edit Mode", 1, true), "the step names the Story rail and says what goes there")
 		assert(panel.layoutHint:GetText():find("Apply places the quest tracker there", 1, true), "and that Apply places the tracker itself (round 3, Opus #4)")
-		for _, rect in ipairs(card.rects) do
-			assert(K.Setup.Layouts.Shown(name, rect.element.key) ~= false or not rect:IsShown(), name .. "'s card hides " .. rect.element.key .. ", which the layout switches off")
+		assert(not panel.layoutHint:GetText():find("yourself", 1, true), "with no drag instruction: a refusal gets Try again on the summary (round 4, Muse #4)")
+		for _, rect in ipairs(preview.rects) do
+			assert(K.Setup.Layouts.Shown(name, rect.element.key) ~= false or not rect:IsShown(), name .. "'s preview hides " .. rect.element.key .. ", which the layout switches off")
 		end
 	end
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The cards tell the roles apart: each draws the real footprints, and the elements whose place or presence differs
--- between the layouts (the group frames, the meters, the boss column, your combat text) stand out brighter than the
--- shared hands and rails, so Tank's threat card and Healer's group frames read at a glance (round 3, Muse #6).
+-- The preview tells the roles apart: each block is the real footprint, and the elements whose place or presence
+-- differs between the layouts (the group frames, the meters, the boss column, your combat text) stand out brighter
+-- than the shared hands and rails, so Tank's threat card and Healer's group frames read at a glance (round 3, Muse #6).
 do
 	local env, K = Boot()
 	local panel = Open(env, K)
@@ -384,9 +463,10 @@ do
 	end
 	local roles = {}
 	for _, name in ipairs(Layouts.Names()) do
-		local card = panel.cards[name]
+		W.Click(panel.cards[name])
+		W.Settle(env)
 		local role, shared = 0, 1
-		for _, rect in ipairs(card.rects) do
+		for _, rect in ipairs(panel.preview.rects) do
 			if rect:IsShown() then
 				if rect.role then
 					role = math.max(role, alpha(rect))
@@ -398,8 +478,8 @@ do
 		end
 		assert(role > 0 and role >= shared + 0.25, name .. "'s role elements stand out from the shared ones: " .. role .. " over " .. shared)
 	end
-	assert(roles.DPS:find("groupframes.party", 1, true) and roles.Tank:find("meters.threat", 1, true) and not roles.DPS:find("meters.threat", 1, true), "Tank's card shows its threat card as a role element; DPS's does not")
-	assert(roles.Healer:find("groupframes.party", 1, true), "Healer's card marks its group frames")
+	assert(roles.DPS:find("groupframes.party", 1, true) and roles.Tank:find("meters.threat", 1, true) and not roles.DPS:find("meters.threat", 1, true), "Tank's preview shows its threat card as a role element; DPS's does not")
+	assert(roles.Healer:find("groupframes.party", 1, true), "Healer's preview marks its group frames")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -432,10 +512,41 @@ do
 	local _, hb, _, ht = K.Setup.Layouts.Rect(want, want, rw, rh)
 	got = assert(Geometry.Rect(slot, K.Scale.Root()))
 	assert(math.abs(got.top - ht) < 1 and math.abs(got.bottom - hb) < 1, "Layout Mode follows the Healer slot")
-	assert(not slot.raidLine:IsShown() and not slot.raidText:IsShown(), "and draws no raid line there")
+	assert(not slot.raidLine:IsShown() and not slot.raidHelp:IsShown(), "and draws no raid line there")
 	K.Layout.Exit(true)
 	W.Settle(env)
 	assert(not slot:IsShown(), "and hides with Layout Mode")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Layout Mode keeps the story slot's guidance readable (round 4, Astra #2: its title and help sat under a mover plate):
+-- the label and the hint stand on their own glass card, and the raid line's text on its own, each shown only while no
+-- mover plate covers it, so a plate's label is never written over and the guidance never hides half under a plate.
+
+do
+	local env, K = Boot()
+	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
+	assert(K.Layout.Enter())
+	W.Settle(env)
+	local slot = K.Layout.Mode.Slot()
+	local root = K.Scale.Root()
+	assert(slot.help and slot.help:IsShown() and slot.help.chrome.shapeName == "card", "the guidance stands on a glass card")
+	assert(slot.label:GetParent() == slot.help and slot.hint:GetParent() == slot.help, "with the label and the hint on it")
+	assert(slot.raidHelp and slot.raidHelp:IsShown() and slot.raidText:GetParent() == slot.raidHelp, "the raid line's text has its own card")
+	local help = assert(Geometry.Rect(slot.help, root))
+	local frame = K.Widgets.Panel(root, { width = 160, height = 40, shape = "panel" })
+	K.Layout.Register(frame, "test.box", { anchor = "BOTTOMLEFT", x = help.left + 10, y = help.bottom + 4 }, { label = "Box" })
+	W.Settle(env)
+	assert(not slot.help:IsShown(), "a mover plate over the guidance hides it")
+	assert(slot:IsShown(), "and the slot's outline stays")
+	local raid = assert(Geometry.Rect(slot.raidHelp, root))
+	assert(K.Layout.Update("test.box", { anchor = "BOTTOMLEFT", x = raid.left + 10, y = raid.bottom }))
+	W.Settle(env)
+	assert(slot.help:IsShown(), "moving the plate away shows the guidance again")
+	assert(not slot.raidHelp:IsShown(), "and the raid line's text hides under the plate now over it")
+	assert(K.Layout.Update("test.box", { anchor = "BOTTOMLEFT", x = 900, y = 600 }))
+	W.Settle(env)
+	assert(slot.help:IsShown() and slot.raidHelp:IsShown(), "with nothing over the slot both show")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -473,7 +584,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Each card is the button grade; its screen preview is a glass panel at the tile chamfer with the shadow ----
+-- Each card is the button grade; the preview is a glass panel at the tile chamfer with the shadow --------------
 
 do
 	local env, K = Boot()
@@ -485,11 +596,68 @@ do
 	local r, g, b = card.chrome.fill[5]:GetVertexColor()
 	assert(W.Near(r, br) and W.Near(g, bg) and W.Near(b, bb), "the card body is the button grade's tone")
 	assert(card.chrome.shapeName == "tile" and not card.chrome.shadow[5]:IsShown(), "a tile without a shadow")
+	local preview = panel.preview
 	local sr, sg, sb = K.Tokens.Color("surface")
-	r, g, b = card.screenChrome.fill[5]:GetVertexColor()
-	assert(W.Near(r, sr) and W.Near(g, sg) and W.Near(b, sb), "the screen preview is filled surface")
-	assert(card.screenChrome.shapeName == "tile", "at the tile chamfer")
-	assert(card.screenChrome.shadow[5]:IsShown(), "with the glass panel's drop shadow")
+	r, g, b = preview.chrome.fill[5]:GetVertexColor()
+	assert(W.Near(r, sr) and W.Near(g, sg) and W.Near(b, sb), "the preview is filled surface")
+	assert(preview.chrome.shapeName == "tile", "at the tile chamfer")
+	assert(preview.chrome.shadow[5]:IsShown(), "with the glass panel's drop shadow")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The summary says what Edit Mode did after Apply. When Edit Mode refuses the layout it says why and offers Try
+-- again, one click, never a drag instruction (round 4, Muse #4); when tracked buffs overflow every arrangement, it
+-- names the counts and opens the Cooldown Manager.
+
+do
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	W.Settle(env)
+	assert(not panel.editMode:IsShown() and not panel.retry:IsShown(), "before Apply the summary says nothing about Edit Mode")
+	assert(panel.summaryPreview:IsShown() and panel.summaryPreview.layout == "DPS", "the summary previews the layout Apply builds")
+	W.Click(panel.apply)
+	W.Settle(env)
+	assert(panel.editMode:IsShown() and panel.editMode:GetText():find("Edit Mode", 1, true), "a refusal is on the summary: " .. tostring(panel.editMode:GetText()))
+	assert(not panel.editMode:GetText():find("yourself", 1, true) and not panel.editMode:GetText():find("drag", 1, true), "with no drag instruction")
+	assert(panel.retry:IsShown() and panel.retry.label:GetText() == "Try again", "and a Try again button")
+	local state = { saved = {}, active = 1 }
+	EditModeFake.Install(env, state)
+	W.Click(panel.retry)
+	W.Settle(env)
+	assert(state.saves == 1 and EditModeFake.Named(state, "KstyleUI DPS"), "Try again writes the layout")
+	assert(not panel.retry:IsShown(), "and the button goes once it took")
+	assert(panel.editMode:GetText():find("KstyleUI DPS", 1, true), "the summary names the active layout: " .. panel.editMode:GetText())
+	assert(not panel.manager:IsShown(), "no Cooldown Manager button while everything fits")
+	K.Setup.EditMode.CountTracked(function(group)
+		return ({ buffs = 60, bars = 40 })[group]
+	end)
+	local opened = 0
+	env.CooldownViewerSettings = { ShowUIPanel = function() opened = opened + 1 end }
+	K.Setup.RetryEditMode()
+	W.Settle(env)
+	assert(panel.editMode:GetText():find("60 tracked buffs", 1, true) and panel.editMode:GetText():find("40 tracked bars", 1, true), "the summary names both counts: " .. panel.editMode:GetText())
+	assert(panel.manager:IsShown(), "and offers the Cooldown Manager")
+	W.Click(panel.manager)
+	assert(opened == 1, "which opens Blizzard's Cooldown Manager settings")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	local env, K = Boot()
+	local state = { saved = {}, active = 1 }
+	EditModeFake.Install(env, state)
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	env.SetCombat(true)
+	W.Click(panel.apply)
+	W.Settle(env)
+	assert(panel.editMode:GetText():find("combat", 1, true), "in combat the summary says the Edit Mode write waits for combat to end")
+	env.SetCombat(false)
+	W.Settle(env)
+	assert(state.saves == 1 and panel.editMode:GetText():find("KstyleUI DPS", 1, true), "and updates when it lands")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
