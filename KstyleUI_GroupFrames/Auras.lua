@@ -259,13 +259,17 @@ local function StyleIcon(button)
 	end
 	local k = Settings.current[f.kind]
 	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or Sizes(f, k))
-	Widgets.Size(button, size, size)
-	p.restyleChrome(p.chrome)
+	local border = Widgets.Border(p.skin)
+	if p.styledSize ~= size or p.styledBorder ~= border then
+		Widgets.Size(button, size, size)
+		p.restyleChrome(p.chrome)
+		local inset = PlaceIcon(p)
+		Widgets.LayoutSlice(p.dispel, p.skin, p.chrome:Chamfer(), 0)
+		p.count:ClearAllPoints()
+		p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
+		p.styledSize, p.styledBorder = size, border
+	end
 	p.chrome:SetRimAccent(Style.Accent())
-	local inset = PlaceIcon(p)
-	Widgets.LayoutSlice(p.dispel, p.skin, p.chrome:Chamfer(), 0)
-	p.count:ClearAllPoints()
-	p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 	local text = Settings.current.text
 	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
@@ -359,10 +363,13 @@ local function DispelStyle()
 	return enum and enum.PreserveAsset
 end
 
-local function GateChrome(chrome, f)
+local function GateChrome(chrome, f, p)
 	local restyle = chrome.Restyle
 	chrome.Restyle = function(self)
 		if AurasSecret() then
+			if p then
+				p.styledSize = nil
+			end
 			if f then
 				Defer(f)
 			end
@@ -386,7 +393,7 @@ local function BuildIcon(button)
 	local p = NewTile(button)
 	p.owner = f
 	p.buff = buffHolders[holder] == true
-	p.restyleChrome = GateChrome(p.chrome, f)
+	p.restyleChrome = GateChrome(p.chrome, f, p)
 	p.dispel = Widgets.NineSlice(p.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
 	Widgets.ShowSlice(p.dispel, false)
 	local cooldown = CreateFrame("Cooldown", nil, p.skin)
