@@ -100,6 +100,11 @@ local function boot(withLayout)
 			end
 			K.Modules.Register(Module("Minimap", { defaults = trackingDefaults }))
 			K.Options.Register("Minimap", minimap)
+			K.Modules.Register(Module("Chat", { defaults = { history = true } }))
+			K.Options.Register("Chat", {
+				{ type = "header", label = "Chat", showWhen = function() return false end },
+				{ type = "toggle", key = "history", label = "Keep history", help = "Keeps the chat log across reloads." },
+			})
 		end,
 	})
 end
@@ -212,7 +217,7 @@ do
 	assert(element.opts.minWidth < element.opts.maxWidth and element.opts.minHeight < element.opts.maxHeight)
 
 	local pages = railPages(ns)
-	assert(table.concat(pages, "|") == "General|Elements|Unit Frames|Minimap|Profiles|About", "rail pages: " .. table.concat(pages, "|"))
+	assert(table.concat(pages, "|") == "General|Elements|Unit Frames|Minimap|Chat|Profiles|About", "rail pages: " .. table.concat(pages, "|"))
 	assert(ns.Window.State().page == "General", "the window opens on General")
 end
 
@@ -265,6 +270,12 @@ do
 	assert(list[1] == "Minimap" and list[2] == "Enable Minimap" and list[3] == "Zone text", "a schema that opens with a header named after its module shares that header with the enable switch: " .. table.concat(list, "|"))
 	sections = railSections(ns)
 	assert(table.concat(sections, "|") == "Clock|Tracking", "the rail lists the page's sections without repeating the page's own name: " .. table.concat(sections, "|"))
+	K.Options.Open("Chat")
+	settle(env)
+	list = labels(ns)
+	assert(table.concat(list, "|") == "Chat|Enable Chat", "a first header with a showWhen keeps its section's visibility boundary instead of merging: " .. table.concat(list, "|"))
+	K.Options.Open("Minimap")
+	settle(env)
 	assert(ns.Window.State().section == 1, "the page opens at its top, on its first section")
 
 	W.Click(railRow(ns, "Tracking", true))

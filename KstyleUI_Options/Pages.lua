@@ -428,6 +428,7 @@ end
 local function SharesTitle(schema, label)
 	local first = type(schema) == "table" and schema[1]
 	return type(first) == "table" and first.type == "header" and (first.level or 1) == 1
+		and first.showWhen == nil and first.disableWhen == nil
 		and type(first.label) == "string" and lower(first.label) == lower(tostring(label))
 end
 
