@@ -313,8 +313,8 @@ local function Number(value)
 end
 
 local function SetFont(text, path, size, flags)
-	if text:SetFont(path, size, flags) == false then
-		text:SetFont((Tokens.Font("body")), size, flags)
+	if not K.Widgets.ApplyFont(text, path, size, flags) then
+		K.Widgets.ApplyFont(text, (Tokens.Font("body")), size, flags)
 	end
 end
 

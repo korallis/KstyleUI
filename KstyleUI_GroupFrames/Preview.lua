@@ -160,11 +160,6 @@ local function Layout(preview)
 	local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
 	local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
 	PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
-	for i, f in ipairs(preview.partyFrames) do
-		f:SetShown(i <= count)
-		Style.Apply(f, partyGeo.memberWidth, party.height)
-		Paint(f, f.sample)
-	end
 	local gw, gh
 	if Geometry.IsVertical(raid.growth) then
 		gw, gh = raid.width, Geometry.Line(GROUP_SIZE, raid.height, raid.spacing)
@@ -186,10 +181,6 @@ local function Layout(preview)
 		local ox, oy = Geometry.Offset(Geometry.Perpendicular(raid.growth, raid.groupGrowth), (g - 1) * ((groupsWide and gw or gh) + raid.groupSpacing))
 		PlaceRun(frames, preview.raid, raid, raid.growth, GROUP_SIZE, ox, oy, corner)
 	end
-	for _, f in ipairs(preview.raidFrames) do
-		Style.Apply(f, raid.width, raid.height)
-		Paint(f, f.sample)
-	end
 	preview.canvas:SetSize(pw, ph)
 	preview.raidCanvas:SetSize(rw, rh)
 	local availW, availH = preview.fitW or preview:GetWidth(), preview.fitH or preview:GetHeight()
@@ -207,6 +198,15 @@ local function Layout(preview)
 	preview.raidCanvas:SetScale(raidScale)
 	preview.raidCanvas:ClearAllPoints()
 	preview.raidCanvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -raidTop / raidScale)
+	for i, f in ipairs(preview.partyFrames) do
+		f:SetShown(i <= count)
+		Style.Apply(f, partyGeo.memberWidth, party.height)
+		Paint(f, f.sample)
+	end
+	for _, f in ipairs(preview.raidFrames) do
+		Style.Apply(f, raid.width, raid.height)
+		Paint(f, f.sample)
+	end
 	local height = raidTop + rh * raidScale
 	preview.clickCast:ClearAllPoints()
 	preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(height + SECTION_GAP))

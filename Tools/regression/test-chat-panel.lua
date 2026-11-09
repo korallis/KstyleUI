@@ -45,7 +45,12 @@ do
 	local settings = K.Layout.Get("chat.main")
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
-	assert(near(settings.width, 318) and near(settings.height, 260), "the Lumen chat card's 318 by 260 footprint, at the left rail's foot")
+	assert(near(settings.width, 372) and near(settings.height, 260), "the Lumen chat card's 372 by 260 footprint, at the left rail's foot")
+	-- Owner pass 1: "the chat box is too thin". Blizzard's 430-unit window holds 24 em of its 18-unit text; the card's
+	-- message column, between its glass inset and the dock's button column, holds at least 21 em of the 14-unit default.
+	local g = ns.Panel.Geometry(env.ChatFrame1)
+	local column = settings.width - g.left - g.right
+	assert(column / ns.defaults.fontSize >= 21, "the message column holds 21 em of default text, got " .. column / ns.defaults.fontSize)
 	local holder, glass = ns.Panel.Holder(), ns.Panel.Glass()
 	assert(holder and holder:IsShown(), "the panel shows")
 	assert(glass:GetParent() == holder and glass:GetFrameStrata() == "BACKGROUND", "the glass sits behind the chat")
@@ -384,24 +389,30 @@ do
 		faces[face.key] = true
 	end
 	assert(faces.SourceSans3Regular, "Source Sans 3 stays a choice in the font row")
+	-- Sizes land on whole physical pixels (owner pass 1, M6): the setting, snapped in the window's own scale.
+	local function sized(object, n)
+		return K.Widgets.FontSize(object, n)
+	end
 	local args = lastCall(env.ChatFrame1, "SetFont")
-	assert(args and args[1] == path and args[2] == 14 and args[3] == "", "messages in the chat font at 14, the mockup's size")
+	assert(args and args[1] == path and near(args[2], sized(env.ChatFrame1, 14)) and args[3] == "", "messages in the chat font at 14, the mockup's size")
+	local px = args[2] * env.ChatFrame1:GetEffectiveScale() * 1080 / 768
+	assert(math.abs(px - math.floor(px + 0.5)) < 1e-6, "on whole pixels, got " .. px)
 	assert(K.Store.Module("Chat").tabFontSize == 13, "tab names at 13: the mockup's cap height and label widths at 1.348 px per unit")
 	K.Options.Write("Chat", "fontSize", 15)
 	K.Options.Write("Chat", "fontOutline", "OUTLINE")
 	args = lastCall(env.ChatFrame2, "SetFont")
-	assert(args[2] == 15 and args[3] == "OUTLINE", "a size and outline change reaches every window")
+	assert(near(args[2], sized(env.ChatFrame2, 15)) and args[3] == "OUTLINE", "a size and outline change reaches every window")
 	args = lastCall(env.ChatFrame1.editBox, "SetFont")
-	assert(args and args[2] == 15, "the edit box follows")
+	assert(args and near(args[2], sized(env.ChatFrame1.editBox, 15)), "the edit box follows")
 	args = lastCall(env.ChatFrame1Tab.Text, "SetFont")
-	assert(args and args[2] == K.Store.Module("Chat").tabFontSize, "tabs use the tab size")
+	assert(args and near(args[2], sized(env.ChatFrame1Tab.Text, K.Store.Module("Chat").tabFontSize)), "tabs use the tab size")
 	env.FCF_SetChatWindowFontSize(nil, env.ChatFrame1, 18)
 	assert(K.Store.Module("Chat").fontSize == 18, "a size picked from the game's tab menu becomes the setting")
-	assert(lastCall(env.ChatFrame2, "SetFont")[2] == 18, "and reaches every window")
+	assert(near(lastCall(env.ChatFrame2, "SetFont")[2], sized(env.ChatFrame2, 18)), "and reaches every window")
 	env.FireEvent("UPDATE_CHAT_WINDOWS")
 	env.ChatFrame1:SetFont(path, 14, "")
 	env.RunTimers()
-	assert(lastCall(env.ChatFrame1, "SetFont")[2] == 18, "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
+	assert(near(lastCall(env.ChatFrame1, "SetFont")[2], sized(env.ChatFrame1, 18)), "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
 	assert(lastCall(env.ChatFrame1, "SetSpacing")[1] == 4, "4 units between lines, the mockup's pitch at 14")
 	K.Options.Write("Chat", "lineSpacing", 0)
 	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == 0, "line spacing reaches every window")

@@ -275,4 +275,87 @@ do
 	assert(math.abs(ns.Scale.Pixel(1) - 1) < 1e-9, "a missing screen size falls back to 1080 lines")
 end
 
+-- Owner pass 1 (M6, crispness): at the owner's 2383 x 1540 screen with UI scale 768 / 1080 (1.426 px per unit) and at
+-- 1080p with the same UI scale (1 px per unit), every Lumen rim, border and bar edge is a whole number of physical
+-- pixels, and so is every text size and text shadow. The rim's straight runs are solid lines one border thick: the
+-- texture's 3-texel line is 0.75 px at 1080p and 1.07 px on the owner's screen, so it lands between pixels.
+local OWNER_SCREENS = { { 2383, 1540, perUnit = 1.426 }, { 1920, 1080, perUnit = 1.0 } }
+local OWNER_UI_SCALE = 768 / 1080
+
+local function edgePx(region, axis)
+	local a, b
+	if axis == "h" then
+		a, b = region:GetTop(), region:GetBottom()
+	else
+		a, b = region:GetRight(), region:GetLeft()
+	end
+	assert(type(a) == "number" and type(b) == "number", "the region is placed")
+	return (a - b) * region:GetEffectiveScale() * region._env._physical[2] / UI_HEIGHT
+end
+
+local function snapped(region)
+	local snap, bias = region._state.SnapToPixelGrid, region._state.TexelSnappingBias
+	return snap and snap[1] == true and bias and bias[1] == 0
+end
+
+for _, screen in ipairs(OWNER_SCREENS) do
+	local env, ns = NewScale(screen[1], screen[2], OWNER_UI_SCALE)
+	env.FireEvent("PLAYER_LOGIN")
+	local ppu = perUnit(env, ns)
+	local W, Scale = ns.Widgets, ns.Scale
+	local where = label(screen, OWNER_UI_SCALE)
+	assert(math.abs(ppu - screen.perUnit) < 0.001, where .. ": " .. ppu .. " px per unit")
+	local border = Scale.Border() * ppu
+	for _, frameScale in ipairs(FRAME_SCALES) do
+		for _, shape in ipairs({ "panel", "window", "tile", "socket", "bar" }) do
+			local frame = env.CreateFrame("Frame", nil, Scale.Root())
+			frame:SetScale(frameScale)
+			frame:SetPoint("BOTTOMLEFT", Scale.Root(), "BOTTOMLEFT", 100, 100)
+			frame:SetSize(200, 60)
+			local c = W.Chrome(frame, { shape = shape })
+			local at = where .. ", " .. shape .. " at frame scale " .. frameScale
+			for piece, axis in pairs({ [2] = "h", [8] = "h", [4] = "w", [6] = "w" }) do
+				local edge = c.rim[piece]
+				local px = edgePx(edge, axis)
+				if px > 1e-6 then
+					assert(math.abs(px - border) < 1e-6, at .. ": rim run " .. piece .. " is one border, " .. border .. " px, thick, got " .. px)
+				end
+			end
+			for _, slice in ipairs({ c.fill, c.rim, c.frost or {}, c.shadow or {} }) do
+				for _, piece in ipairs(slice) do
+					assert(snapped(piece), at .. ": every chrome piece snaps to the pixel grid with no texel bias")
+				end
+			end
+		end
+
+		-- The flat bars: the keyline is one border out, and the fill carries a lit top line one border tall.
+		local holder = env.CreateFrame("Frame", nil, Scale.Root())
+		holder:SetScale(frameScale)
+		holder:SetPoint("BOTTOMLEFT", Scale.Root(), "BOTTOMLEFT", 100, 300)
+		holder:SetSize(300, 40)
+		local bar = W.StatusBar(holder, { width = 220, height = 13, background = "track", min = 0, max = 1, value = 1 })
+		bar:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
+		local at = where .. ", a flat bar at frame scale " .. frameScale
+		assert(bar.lit and snapped(bar.lit) and snapped(bar.keyline), at .. ": the bar has a lit top line, and both lines snap to the grid")
+		local litPx = bar.lit:GetHeight() * bar.lit:GetEffectiveScale() * screen[2] / UI_HEIGHT
+		assert(math.abs(litPx - border) < 1e-6, at .. ": the lit line is one border tall, got " .. litPx)
+		local fill = bar:GetStatusBarTexture()
+		assert(select(2, bar.lit:GetPoint(1)) == fill, at .. ": the lit line rides the fill")
+		local h = bar:GetHeight() * bar:GetEffectiveScale() * screen[2] / UI_HEIGHT
+		assert(whole(h), at .. ": the bar is a whole number of pixels tall, got " .. h)
+
+		-- Text: every role's size and its shadow land on whole pixels.
+		for _, role in ipairs({ "display", "heading", "body", "title", "caption", "number" }) do
+			local text = W.Text(holder, role)
+			local _, size = text:GetFont()
+			local k = text:GetParent():GetEffectiveScale() * screen[2] / UI_HEIGHT
+			local tat = at .. ", " .. role .. " text"
+			assert(whole(size * k), tat .. ": the size is whole pixels, got " .. size * k)
+			assert(math.abs(size * k - ns.Tokens.Size(role) * k) <= 0.5 + 1e-6, tat .. ": within half a pixel of the token")
+			local x, y = text:GetShadowOffset()
+			assert(math.abs(x * k - border) < 1e-6 and math.abs(-y * k - border) < 1e-6, tat .. ": the shadow sits one border down and right, got " .. x * k)
+		end
+	end
+end
+
 print("pixels ok")

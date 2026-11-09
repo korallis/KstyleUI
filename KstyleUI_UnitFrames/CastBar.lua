@@ -415,15 +415,8 @@ local function Paint(cb, r, g, b, a)
 end
 
 local function StyleText(text, path, size, flags)
-	if text:SetFont(path, size, flags) == false then
-		text:SetFont((Tokens.Font("body")), size, flags)
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
+	if not Widgets.ApplyFont(text, path, size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("body")), size, flags)
 	end
 end
 

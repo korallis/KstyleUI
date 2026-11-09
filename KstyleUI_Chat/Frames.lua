@@ -97,14 +97,7 @@ function Frames.ApplyFont(object, path, size, flags)
 	if type(object) ~= "table" or type(object.SetFont) ~= "function" then
 		return
 	end
-	object:SetFont(path, size, flags)
-	if flags == "" then
-		object:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		object:SetShadowOffset(offset, -offset)
-	else
-		object:SetShadowOffset(0, 0)
-	end
+	Widgets.ApplyFont(object, path, size, flags)
 end
 
 local function TabOf(frame)

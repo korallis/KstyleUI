@@ -52,6 +52,7 @@ local env, K, ns = O.New({
 			frame.fill = frame:CreateTexture(nil, "ARTWORK")
 			frame.fill:SetAllPoints(frame)
 			frame.fill:SetColorTexture(0, 1, 0, 1)
+			frame.chrome = K.Widgets.Chrome(frame, { shape = "panel" })
 			builds.cooldowns = (builds.cooldowns or 0) + 1
 			return frame
 		end
@@ -103,6 +104,10 @@ assert(current and current.fill and builds.cooldowns == 1, "the Cooldowns previe
 local scale = current:GetScale()
 assert(type(scale) == "number" and scale < 1 and scale > 0, "a preview wider than the holder is scaled down: " .. tostring(scale))
 assert(math.abs(scale - math.min(holderW / WIDE, holderH / TALL)) < 0.001, "the scale fits both the width and the height: " .. tostring(scale))
+-- The kit's crisp lines are laid out for the scale they draw at (owner pass 1, M6): after the fit the glass rim's
+-- straight run is one border of the scaled preview thick, not of the unscaled one, so it never drops under a pixel.
+local run = select(5, current.chrome.rim[2]:GetPoint(2))
+assert(math.abs(-run - K.Widgets.Border(current)) < 1e-6, "the rim run is one border of the fitted scale thick, got " .. -run .. " for " .. K.Widgets.Border(current))
 local shown = rect(current)
 inside(shown, rect(pane), "the scaled preview")
 local hold = rect(holder)

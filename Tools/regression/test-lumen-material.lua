@@ -84,10 +84,13 @@ for _, shape in ipairs({ "tile", "socket" }) do
 	assert(not (W.Near(rr, lr) and W.Near(rg, lg) and W.Near(rb, lb)), shape .. ": the rim is not gold at rest")
 	chrome:SetProc(true)
 	assert(W.SameRGB(chrome.rim[1], lr, lg, lb) and W.SameRGB(chrome.rim[5], lr, lg, lb), shape .. ": a proc lights the rim gold")
-	assert(file(W.LastCall(chrome.rim[4], "SetTexture")[1]) == "LumenOutline.png", shape .. ": all the way round, not only along the top")
+	-- The rim's straight runs are solid lines one border thick (owner pass 1, M6): the side run is the run's alpha.
+	assert(file(W.LastCall(chrome.rim[1], "SetTexture")[1]) == "LumenOutline.png", shape .. ": the outline's corners")
+	assert(W.LastCall(chrome.rim[4], "SetColorTexture")[4] == 1, shape .. ": all the way round, not only along the top")
 	chrome:SetProc(false)
 	assert(W.SameRGB(chrome.rim[1], rr, rg, rb), shape .. ": the gold leaves with the proc")
-	assert(file(W.LastCall(chrome.rim[4], "SetTexture")[1]) == "LumenRimSmall.png", shape .. ": and the rim is lit from the top again")
+	assert(file(W.LastCall(chrome.rim[1], "SetTexture")[1]) == "LumenRimSmall.png", shape .. ": and the rim's corners are the small rim again")
+	assert(W.LastCall(chrome.rim[4], "SetColorTexture")[4] < 1 and W.LastCall(chrome.rim[2], "SetColorTexture")[4] == 1, shape .. ": lit from the top again")
 	assert(frame ~= nil)
 end
 do

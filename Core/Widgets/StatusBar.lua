@@ -18,6 +18,10 @@ local GLOW_REACH, GLOW_ALPHA = 4, 0.5
 local CAP_WRAP = "CLAMPTOWHITE"
 local KEYLINE = "edgeOuter"
 local KEYLINE_SUBLEVEL = -1
+local LIT_ALPHA = 0.3
+local LIT_SUBLEVEL = 6
+local SHADE_ALPHA = 0.28
+local SHADE_SUBLEVEL = 5
 
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -42,6 +46,16 @@ local function Interpolation()
 end
 
 local Bar = {}
+
+local function Shade(texture)
+	if type(texture.SetGradient) ~= "function" or type(CreateColor) ~= "function" then
+		texture:Hide()
+		Widgets.LogOnce("bar-shade", "Texture:SetGradient or CreateColor is missing; bars draw without their shade")
+		return
+	end
+	local r, g, b = Tokens.Color("black")
+	texture:SetGradient("VERTICAL", CreateColor(r, g, b, SHADE_ALPHA), CreateColor(r, g, b, 0))
+end
 
 function Bar:SetBarValue(value)
 	local interpolation = self.smooth and Interpolation()
@@ -84,6 +98,9 @@ function Bar:Paint()
 	if self.sheenTop then
 		self.sheenTop:SetVertexColor(Widgets.Rgba("white", SHEEN_TOP_ALPHA))
 	end
+	if self.lit then
+		self.lit:SetVertexColor(Widgets.Rgba("white", LIT_ALPHA))
+	end
 end
 
 function Bar:SetBarColor(...)
@@ -119,6 +136,24 @@ function Bar:SetBarTexture(key)
 	self:SetStatusBarTexture(path)
 	if self.background then
 		self.background:SetTexture(path)
+	end
+end
+
+function Bar:PlaceLit()
+	local lit, fill = self.lit, self:GetStatusBarTexture()
+	if lit.fill ~= fill then
+		lit.fill = fill
+		lit:ClearAllPoints()
+		lit:SetPoint("TOPLEFT", fill, "TOPLEFT")
+		lit:SetPoint("TOPRIGHT", fill, "TOPRIGHT")
+		self.shade:ClearAllPoints()
+		self.shade:SetPoint("TOPLEFT", fill, "TOPLEFT")
+		self.shade:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")
+	end
+	local height = Widgets.Border(self)
+	if lit.height ~= height then
+		lit.height = height
+		lit:SetHeight(height)
 	end
 end
 
@@ -189,6 +224,9 @@ function Bar:Restyle()
 		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -px, px)
 		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px, -px)
 		Widgets.Tint(self.keyline, KEYLINE)
+	end
+	if self.lit then
+		self:PlaceLit()
 	end
 	if self.borderFrame then
 		local outset = Widgets.Border(self) * BORDER_LINES
@@ -319,8 +357,13 @@ function Widgets.StatusBar(parent, opts)
 		bar.background = bar:CreateTexture(nil, "BACKGROUND")
 		bar.background:SetAllPoints(bar)
 		if not opts.border then
-			bar.keyline = bar:CreateTexture(nil, "BACKGROUND", nil, KEYLINE_SUBLEVEL)
+			bar.keyline = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, KEYLINE_SUBLEVEL))
 			bar.keyline:SetColorTexture(Tokens.Color("white"))
+			bar.lit = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, LIT_SUBLEVEL))
+			bar.lit:SetColorTexture(Tokens.Color("white"))
+			bar.shade = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, SHADE_SUBLEVEL))
+			bar.shade:SetColorTexture(Tokens.Color("white"))
+			Shade(bar.shade)
 		end
 	end
 	bar:SetBarTexture(opts.texture)

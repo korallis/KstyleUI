@@ -139,7 +139,7 @@ do
 	local _, K = W.New()
 	local bar = K.Widgets.StatusBar(K.Scale.Root(), { spark = true, sheen = true })
 	local function noop() end
-	for _, region in ipairs({ bar, bar.background, bar.spark, bar.sheen }) do
+	for _, region in ipairs({ bar, bar.background, bar.spark, bar.sheen, bar.lit }) do
 		region.SetVertexColor, region.SetTexture = noop, noop
 	end
 	bar.SetStatusBarColor, bar.SetStatusBarTexture = noop, noop
@@ -206,6 +206,32 @@ do
 	bar:SetBarTexture(nil)
 	assert(W.LastCall(bar, "SetStatusBarTexture")[1] == K.Tokens.Texture("barGlass"), "nil returns to the Glass default")
 	assert(W.LastCall(bar.background, "SetTexture")[1] == K.Tokens.Texture("barGlass"), "and the background follows")
+end
+
+-- Owner pass 1 (M6, "two similar flat blues"): a flat bar reads as a lit, shaded object. A lit line one border tall
+-- rides the fill's top and a shade darkens the fill toward its foot, so a health bar over a power bar of a similar
+-- hue separates by tone at their shared edge while each keeps its own colour.
+do
+	local _, K = W.New({ setup = function(e)
+		e.CreateColor = function(r, g, b, a)
+			return { r = r, g = g, b = b, a = a, GetRGBA = function(c) return c.r, c.g, c.b, c.a end }
+		end
+	end })
+	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 13, background = "track" })
+	local fill = bar:GetStatusBarTexture()
+	assert(bar.lit and select(2, bar.lit:GetPoint(1)) == fill, "the lit line rides the fill")
+	assert(bar.shade, "the fill carries a shade")
+	local a, b = { bar.shade:GetPoint(1) }, { bar.shade:GetPoint(2) }
+	assert(a[2] == fill and b[2] == fill, "the shade covers the fill, so it follows the value")
+	local g = bar.shade._state.Gradient
+	assert(g and g[1] == "VERTICAL", "a vertical gradient")
+	local foot, top = g[2], g[3]
+	assert(foot.r == 0 and foot.g == 0 and foot.b == 0 and foot.a > 0 and foot.a <= 0.4, "dark at the foot, never heavier than 40%")
+	assert(top.a == 0, "clear at the top, under the lit line")
+	local plain = K.Widgets.StatusBar(K.Scale.Root(), { background = false })
+	assert(not plain.shade and not plain.lit, "an overlay bar with no track (prediction, absorbs) adds no edge or shade")
+	local pill = K.Widgets.StatusBar(K.Scale.Root(), { border = true })
+	assert(not pill.shade and not pill.lit, "a pill bar keeps its own sheen")
 end
 
 print("widgets status bar ok")

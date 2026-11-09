@@ -118,6 +118,11 @@ end
 
 local Fit
 
+local function Rescale(frame, scale)
+	frame:SetScale(scale)
+	Widgets.RestyleUnder({ [frame] = true })
+end
+
 function Fit(pane, frame)
 	local roomW, roomH = pane.holder:GetWidth(), pane.holder:GetHeight()
 	if not (Known(roomW) and Known(roomH)) then
@@ -129,7 +134,7 @@ function Fit(pane, frame)
 		if Known(width) and Known(height) then
 			scale = math.min(Preview.MAX_SCALE, roomW / width, roomH / height)
 		end
-		frame:SetScale(scale)
+		Rescale(frame, scale)
 		frame:ClearAllPoints()
 		frame:SetPoint("CENTER", pane.holder, "CENTER", 0, 0)
 		return
@@ -155,7 +160,7 @@ function Fit(pane, frame)
 	if math.abs(scale - own) <= Preview.SCALE_STEP then
 		return
 	end
-	frame:SetScale(scale)
+	Rescale(frame, scale)
 	if frame.Refresh then
 		K.Call(frame.Refresh, frame)
 	end
@@ -165,7 +170,7 @@ function Fit(pane, frame)
 	local grown = Extent(frame, pane.holder)
 	if Known(grown) and grown < width * (1 + Preview.MIN_GAIN) then
 		frame.selfFits = key
-		frame:SetScale(1)
+		Rescale(frame, 1)
 		if frame.Refresh then
 			K.Call(frame.Refresh, frame)
 		end

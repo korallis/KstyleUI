@@ -197,20 +197,57 @@ end
 
 local textRole = setmetatable({}, { __mode = "k" })
 
+local function TextFrame(text)
+	if type(text.GetEffectiveScale) == "function" then
+		return text
+	end
+	return nil
+end
+
+local function TextFactor(text)
+	local frame = TextFrame(text)
+	return frame and Widgets.ScaleFactor(frame) or 1
+end
+
+local function SnapSize(size, f)
+	local px = Scale.Pixel(1) / f
+	return max(px, floor(size / px + 0.5) * px)
+end
+
+local function Shadow(text, flags, f)
+	if flags ~= "" then
+		text:SetShadowOffset(0, 0)
+		return
+	end
+	local offset = Scale.Border() / f
+	text:SetShadowColor(Tokens.Color("textShadow"))
+	text:SetShadowOffset(offset, -offset)
+end
+
+function Widgets.FontSize(text, size)
+	return SnapSize(size, TextFactor(text))
+end
+
+function Widgets.TextShadow(text, flags)
+	Shadow(text, flags or "", TextFactor(text))
+end
+
+function Widgets.ApplyFont(text, path, size, flags)
+	flags = flags or ""
+	local f = TextFactor(text)
+	local ok = text:SetFont(path, SnapSize(size, f), flags) ~= false
+	Shadow(text, flags, f)
+	return ok
+end
+
 function Widgets.StyleText(text, role)
 	role = role or textRole[text] or "body"
 	textRole[text] = role
 	local path, size, flags = Tokens.Font(role)
-	if text:SetFont(path, size, flags) == false then
+	if not Widgets.ApplyFont(text, path, size, flags) then
 		text:SetFontObject(FALLBACK_FONT)
+		Widgets.TextShadow(text, flags)
 		Widgets.LogOnce("font:" .. path, "the font " .. path .. " did not load; text uses " .. FALLBACK_FONT)
-	end
-	if flags ~= "" then
-		text:SetShadowOffset(0, 0)
-	else
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
 	end
 end
 
@@ -410,6 +447,26 @@ local SHAPES = {
 
 Widgets.RING_INSET = 8 / 128
 
+function Widgets.Crisp(texture)
+	if type(texture.SetSnapToPixelGrid) == "function" then
+		texture:SetSnapToPixelGrid(true)
+	end
+	if type(texture.SetTexelSnappingBias) == "function" then
+		texture:SetTexelSnappingBias(0)
+	end
+	return texture
+end
+
+local RUN_PIECES = { 2, 4, 6, 8 }
+local RUN_SIDE = { [2] = "top", [4] = "side", [6] = "side", [8] = "side" }
+
+local function RimShares()
+	local _, _, _, full = Tokens.Color("rim")
+	local _, _, _, soft = Tokens.Color("rimSoft")
+	return { lumenRim = soft / full, lumenRimSmall = soft / full, lumenOutline = 1 }
+end
+local RIM_SHARE = RimShares()
+
 local function SliceCoords(texture, piece, f)
 	local col, row = (piece - 1) % 3, floor((piece - 1) / 3)
 	local x0 = (col == 0 and 0) or (col == 1 and f) or (1 - f)
@@ -420,7 +477,7 @@ local function SliceCoords(texture, piece, f)
 end
 
 local function NewTexture(owner, layer, sublevel, path)
-	local texture = owner:CreateTexture(nil, layer, nil, sublevel)
+	local texture = Widgets.Crisp(owner:CreateTexture(nil, layer, nil, sublevel))
 	if path then
 		texture:SetTexture(path)
 	else
@@ -432,29 +489,61 @@ end
 local function PaintSlice(p, name)
 	local path, texels = Tokens.Texture(name)
 	local f = texels / TEXELS[name]
+	local soft = RIM_SHARE[name]
+	local r, g, b = Tokens.Color("white")
 	p.texture = name
+	p.runs = soft ~= nil
 	for piece = 1, 9 do
-		p[piece]:SetTexture(path)
-		SliceCoords(p[piece], piece, f)
+		local side = soft and RUN_SIDE[piece]
+		if side then
+			p[piece]:SetColorTexture(r, g, b, side == "top" and 1 or soft)
+		else
+			p[piece]:SetTexture(path)
+			SliceCoords(p[piece], piece, f)
+		end
 	end
+end
+
+local function AnchorRuns(p, thickness)
+	thickness = thickness or false
+	if p.runThickness == thickness then
+		return
+	end
+	p.runThickness = thickness
+	local run = p
+	for _, piece in ipairs(RUN_PIECES) do
+		run[piece]:ClearAllPoints()
+	end
+	if not thickness then
+		run[2]:SetPoint("TOPLEFT", p[1], "TOPRIGHT")
+		run[2]:SetPoint("BOTTOMRIGHT", p[3], "BOTTOMLEFT")
+		run[4]:SetPoint("TOPLEFT", p[1], "BOTTOMLEFT")
+		run[4]:SetPoint("BOTTOMRIGHT", p[7], "TOPRIGHT")
+		run[6]:SetPoint("TOPLEFT", p[3], "BOTTOMLEFT")
+		run[6]:SetPoint("BOTTOMRIGHT", p[9], "TOPRIGHT")
+		run[8]:SetPoint("TOPLEFT", p[7], "TOPRIGHT")
+		run[8]:SetPoint("BOTTOMRIGHT", p[9], "BOTTOMLEFT")
+		return
+	end
+	run[2]:SetPoint("TOPLEFT", p[1], "TOPRIGHT")
+	run[2]:SetPoint("BOTTOMRIGHT", p[3], "TOPLEFT", 0, -thickness)
+	run[4]:SetPoint("TOPLEFT", p[1], "BOTTOMLEFT")
+	run[4]:SetPoint("BOTTOMRIGHT", p[7], "TOPLEFT", thickness, 0)
+	run[6]:SetPoint("TOPLEFT", p[3], "BOTTOMRIGHT", -thickness, 0)
+	run[6]:SetPoint("BOTTOMRIGHT", p[9], "TOPRIGHT")
+	run[8]:SetPoint("TOPLEFT", p[7], "BOTTOMRIGHT", 0, thickness)
+	run[8]:SetPoint("BOTTOMRIGHT", p[9], "BOTTOMLEFT")
 end
 
 local function NewSlice(owner, name, layer, sublevel)
 	local p = {}
 	for piece = 1, 9 do
-		p[piece] = owner:CreateTexture(nil, layer, nil, sublevel)
+		p[piece] = Widgets.Crisp(owner:CreateTexture(nil, layer, nil, sublevel))
 	end
 	PaintSlice(p, name)
-	p[2]:SetPoint("TOPLEFT", p[1], "TOPRIGHT")
-	p[2]:SetPoint("BOTTOMRIGHT", p[3], "BOTTOMLEFT")
-	p[4]:SetPoint("TOPLEFT", p[1], "BOTTOMLEFT")
-	p[4]:SetPoint("BOTTOMRIGHT", p[7], "TOPRIGHT")
+	AnchorRuns(p, nil)
 	p[5]:SetPoint("TOPLEFT", p[1], "BOTTOMRIGHT")
 	p[5]:SetPoint("BOTTOMRIGHT", p[9], "TOPLEFT")
-	p[6]:SetPoint("TOPLEFT", p[3], "BOTTOMLEFT")
-	p[6]:SetPoint("BOTTOMRIGHT", p[9], "TOPRIGHT")
-	p[8]:SetPoint("TOPLEFT", p[7], "TOPRIGHT")
-	p[8]:SetPoint("BOTTOMRIGHT", p[9], "BOTTOMLEFT")
 	return p
 end
 
@@ -482,6 +571,7 @@ function Widgets.LayoutSlice(slice, owner, corner, outset, drop, scaleFrame, out
 	local f = Widgets.ScaleFactor(scaleFrame or owner)
 	local across = outsetX and SnapIn(outsetX, f)
 	PlaceCorners(owner, slice[1], slice[3], slice[7], slice[9], SnapIn(corner, f), SnapIn(outset or 0, f), SnapIn(drop or 0, f), across)
+	AnchorRuns(slice, slice.runs and Scale.Border() / f or nil)
 end
 
 function Widgets.ColorSlice(slice, r, g, b, a)
@@ -562,7 +652,7 @@ function Widgets.Chrome(owner, opts)
 			c.frost = NewSlice(owner, "lumenFrost", "BACKGROUND", SUBLEVEL_FROST)
 		end
 		if opts.grain ~= false and shape.grain then
-			local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
+			local noise = Widgets.Crisp(owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE))
 			noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
 			noise:SetHorizTile(true)
 			noise:SetVertTile(true)

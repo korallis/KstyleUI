@@ -46,7 +46,7 @@ do
 end
 
 -- One left rail (round 2, Fable; round 3, Grok and Muse): the party card, the guide's card and chat share one
--- left edge and one width, the layout's 318-unit rail on the 28-unit margin; no card overlaps the next. Apply put
+-- left edge, the party and guide cards the layout's 318-unit rail on the 28-unit margin, chat 372; no card overlaps the next. Apply put
 -- the quests under the guide, so the quests dock into the guide's card: one glass from the guide's cap to the
 -- quests' foot, the tracker's own glass hidden, and both caps (the guide's name, QUESTS) inside it.
 for _, scene in ipairs({ questing, combat }) do
@@ -55,7 +55,9 @@ for _, scene in ipairs({ questing, combat }) do
 	for i, card in ipairs(rail) do
 		seen[card.name] = card
 		assert(math.abs(card.left - slot.left) <= 0.5, scene.state .. ": " .. card.name .. "'s glass starts on the rail's left edge, got " .. card.left)
-		assert(math.abs(card.width - slot.width) <= 1, scene.state .. ": " .. card.name .. "'s glass is the rail's width, got " .. card.width)
+		-- Owner pass 1 ("the chat box is too thin"): chat runs 372 wide from the same left edge; the rail itself is M3's.
+		local want = card.name == "chat" and 372 or slot.width
+		assert(math.abs(card.width - want) <= 1, scene.state .. ": " .. card.name .. "'s glass is " .. want .. " wide, got " .. card.width)
 		local below = rail[i + 1]
 		if below then
 			assert(below.top >= card.top + card.height - 0.5, scene.state .. ": " .. below.name .. " starts under " .. card.name .. ", got " .. below.top .. " for " .. (card.top + card.height))
