@@ -1,4 +1,4 @@
--- test-skins-text-fit.lua: skinned window texts read LEFT and sit inside their pane (the reputation description, the mail body, the trainer's skill bar label and rank), and the character sheet's mode tabs dock to the window on one rail.
+-- test-skins-text-fit.lua: skinned window texts read LEFT and sit inside their pane (the reputation description, the mail body, the trainer's skill bar label and rank), and the character sheet's mode tabs stand inside the window's glass.
 local S = dofile("Tools/regression/skins_env.lua")
 local Windows = dofile("Tools/regression/skins_windows.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -122,22 +122,18 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Character: the mode tabs stand on one rail docked to the window's edge, their icons quiet until chosen ----
+-- Character: the mode tabs stand in a gutter of the window's glass, their icons quiet until chosen ----------
 
 do
 	local env, K, ns = Open("character")
 	local root = env.UIParent
 	local f = env.CharacterFrame
-	local rail = ns.CharacterRail(f)
-	assert(rail and rail.clip, "the tabs' rail is clipped at the window's edge")
-	local window, clip, railRect = Rect(f, root), Rect(rail.clip, root), Rect(rail, root)
-	assert(W.Near(clip.left, window.right), "the rail starts at the window's right edge: " .. clip.left .. " vs " .. window.right)
-	assert(railRect.left < window.right, "the rail's own left edge runs under the window, so the clip cuts its left corners away")
+	local glass = Rect(K.Skin.Parts(f).backdrop, root)
+	local window = Rect(f, root)
+	assert(glass.right > window.right, "the window's glass grows past its right edge for the tabs: " .. glass.right .. " vs " .. window.right)
 	for i, tab in ipairs(f.ModeTabs.Tabs) do
-		Inside(Rect(tab, root), clip, "mode tab " .. i .. " sits on the rail")
+		Inside(Rect(tab, root), glass, "mode tab " .. i .. " sits inside the glass")
 	end
-	local chrome = K.Skin.Parts(rail).backdrop.chrome
-	assert(chrome.shadowOn ~= true, "the rail casts no shadow of its own onto the window")
 	for i, tab in ipairs(f.ModeTabs.Tabs) do
 		local alpha = tab.Icon:GetAlpha()
 		if i == 1 then

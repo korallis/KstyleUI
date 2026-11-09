@@ -296,6 +296,34 @@ function Object:GetPoint(i)
 		return unpack(p, 1, p.n)
 	end
 end
+-- GetLeft, GetRight, GetTop, GetBottom and GetCenter resolve the object's anchors down to its environment's
+-- UIParent (Tools/regression/geometry.lua), in the root's units, and answer nil for an object the anchors
+-- cannot place, as the game answers before a frame's rect is valid.
+local Geometry
+local function placed(self)
+	local root = self._env and self._env.UIParent
+	if not root then
+		return nil
+	end
+	Geometry = Geometry or dofile(here .. "../geometry.lua")
+	return (Geometry.Rect(self, root))
+end
+function Object:GetLeft() local r = placed(self) return r and r.left end
+function Object:GetRight() local r = placed(self) return r and r.right end
+function Object:GetTop() local r = placed(self) return r and r.top end
+function Object:GetBottom() local r = placed(self) return r and r.bottom end
+function Object:GetCenter()
+	local r = placed(self)
+	if r then
+		return (r.left + r.right) / 2, (r.bottom + r.top) / 2
+	end
+end
+-- AdjustPointsOffset moves every anchor's offsets by dx, dy, as the game does.
+function Object:AdjustPointsOffset(dx, dy)
+	for _, p in ipairs(self._points) do
+		p[4], p[5] = (p[4] or 0) + (dx or 0), (p[5] or 0) + (dy or 0)
+	end
+end
 
 function Object:SetScript(name, fn) self._scripts[name] = fn end
 function Object:GetScript(name) return self._scripts[name] end

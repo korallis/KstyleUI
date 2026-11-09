@@ -213,17 +213,29 @@ do
 	assert(passed and passed[1] == health, "the secret reaches KstyleUI's bar untouched")
 	blizzard:SetValue(0.75)
 	assert(W.LastCall(bar, "SetValue")[1] == 0.75, "plain values pass too")
+	-- The bar docks inside the tooltip's glass: it hangs from the tooltip's bottom corners, inside, and the
+	-- tooltip grows by the bar's height and a gap through its bottom padding, so the lines keep clear of it.
 	local p1 = { bar:GetPoint(1) }
-	assert(p1[1] == "TOPLEFT" and p1[2] == tip and p1[3] == "BOTTOMLEFT", "under the tooltip")
+	local p2 = { bar:GetPoint(2) }
+	assert(p1[1] == "BOTTOMLEFT" and p1[2] == tip and p1[3] == "BOTTOMLEFT" and p1[4] > 0 and p1[5] > 0, "inside the tooltip's bottom left corner")
+	assert(p2[1] == "BOTTOMRIGHT" and p2[2] == tip and p2[3] == "BOTTOMRIGHT" and p2[4] < 0 and p2[5] == p1[5], "and its bottom right")
+	local size = K.Options.Read("Tooltips", "bar.size")
+	local _, padBottom = tip:GetPadding()
+	assert(padBottom == size + ns.Health.GAP, "the tooltip grows by the bar and a gap: " .. tostring(padBottom))
+	assert(bar.opts.height == size, "the bar is as tall as its setting")
 	T.BlizzardShow(blizzard, false)
 	assert(not bar:IsShown(), "and hides with it")
+	assert(select(2, tip:GetPadding()) == 0, "with the bar hidden the tooltip gives the room back")
 
 	K.Options.Write("Tooltips", "bar.orientation", "VERTICAL")
 	K.Options.Write("Tooltips", "bar.reverse", true)
 	K.Options.Write("Tooltips", "bar.size", 10)
 	assert(W.LastCall(bar, "SetOrientation")[1] == "VERTICAL" and W.LastCall(bar, "SetReverseFill")[1] == true, "orientation and fill direction apply")
+	T.BlizzardShow(blizzard, true)
 	p1 = { bar:GetPoint(1) }
-	assert(p1[1] == "TOPLEFT" and p1[2] == tip and p1[3] == "TOPRIGHT", "a vertical bar stands beside the tooltip")
+	assert(p1[1] == "TOPRIGHT" and p1[2] == tip and p1[3] == "TOPRIGHT" and p1[4] < 0, "a vertical bar stands inside the tooltip's right edge")
+	assert((tip:GetPadding()) == 10 + ns.Health.GAP and select(2, tip:GetPadding()) == 0, "and the tooltip grows to the right instead")
+	T.BlizzardShow(blizzard, false)
 	local texture = "Interface\\AddOns\\SharedMedia\\Statusbar\\Smooth.tga"
 	K.Options.Write("Tooltips", "bar.texture", texture)
 	assert(bar:GetStatusBarTexture():GetTexture() == texture, "the texture setting applies")

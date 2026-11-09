@@ -16,7 +16,7 @@ local SAMPLE_GAP = 24
 local LINE_GAP = 2
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
-local BAR_GAP = 4
+local BAR_EDGE = 8
 local FRIENDLY = 5
 
 local ITEM = {
@@ -139,7 +139,8 @@ local function LayoutSample(glass)
 	elseif glass.spec[2] and glass.spec[2].key == "guildLine" then
 		glass.rows[2].left:SetText(Logic.GuildText(L["Kstyle"]))
 	end
-	Widgets.Size(glass, SAMPLE_WIDTH + (glass.indent or 0), y - gap + pad)
+	local reserve = glass.reserve or {}
+	Widgets.Size(glass, SAMPLE_WIDTH + (glass.indent or 0) + (reserve.right or 0), y - gap + pad + (reserve.bottom or 0))
 	local divider = glass.divider
 	divider:ClearAllPoints()
 	divider:SetPoint("TOPLEFT", glass.rows[glass.spec.header or 1].left, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
@@ -169,10 +170,22 @@ local function BarColor()
 	return ClassColor()
 end
 
+local function BarReserve()
+	if not Settings.Get("healthBar") then
+		return {}
+	end
+	local room = Settings.Get("bar.size") + ns.Health.GAP
+	if Settings.Get("bar.orientation") == "VERTICAL" then
+		return { right = room }
+	end
+	return { bottom = room }
+end
+
 local function LayoutBar(frame)
 	local bar, unit = frame.bar, frame.unit
 	local size = Settings.Get("bar.size")
-	local gap = Widgets.Snap(unit, BAR_GAP)
+	local edge = Widgets.Snap(unit, BAR_EDGE)
+	local side = Widgets.Snap(unit, Tokens.Size("gapMedium"))
 	local vertical = Settings.Get("bar.orientation") == "VERTICAL"
 	bar:SetOrientation(vertical and "VERTICAL" or "HORIZONTAL")
 	bar:SetReverseFill(Settings.Get("bar.reverse"))
@@ -181,12 +194,12 @@ local function LayoutBar(frame)
 	bar:ClearAllPoints()
 	if vertical then
 		bar.opts.width = size
-		bar:SetPoint("TOPLEFT", unit, "TOPRIGHT", gap, 0)
-		bar:SetPoint("BOTTOMLEFT", unit, "BOTTOMRIGHT", gap, 0)
+		bar:SetPoint("TOPRIGHT", unit, "TOPRIGHT", -edge, -side)
+		bar:SetPoint("BOTTOMRIGHT", unit, "BOTTOMRIGHT", -edge, side)
 	else
 		bar.opts.height = size
-		bar:SetPoint("TOPLEFT", unit, "BOTTOMLEFT", 0, -gap)
-		bar:SetPoint("TOPRIGHT", unit, "BOTTOMRIGHT", 0, -gap)
+		bar:SetPoint("BOTTOMLEFT", unit, "BOTTOMLEFT", side, edge)
+		bar:SetPoint("BOTTOMRIGHT", unit, "BOTTOMRIGHT", -side, edge)
 	end
 	bar:Restyle()
 	bar:SetShown(Settings.Get("healthBar"))
@@ -203,6 +216,7 @@ end
 local function Refresh(frame)
 	frame.item.indent = Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0
 	LayoutSample(frame.item)
+	frame.unit.reserve = BarReserve()
 	LayoutSample(frame.unit)
 	local qr, qg, qb = Theme.QualityColor(SAMPLE_QUALITY)
 	Edge(frame.item, Settings.Get("qualityEdge"), qr, qg, qb)

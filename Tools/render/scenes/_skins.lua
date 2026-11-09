@@ -113,9 +113,24 @@ function Skins.Scene(key)
 			portraitNote = "the player portrait is a flat stand-in; run Tools/render/standins.py for the mockup's crop"
 		end
 	end
+	-- A texture the game paints map terrain on (the world map's canvas) gets the mockup's terrain crop when
+	-- standins.py has cut it, else stays the builder's flat field.
+	local mapNote
+	for _, texture in ipairs(parts.maps or {}) do
+		local file = Common.StandIn("minimap.png")
+		if file then
+			texture:SetTexture(file)
+			mapNote = "the map canvas is the mockup's terrain crop (" .. file .. "); the game draws its own map"
+		else
+			mapNote = "the map canvas is a flat stand-in; run Tools/render/standins.py for the mockup's terrain"
+		end
+	end
 	local scene = Gallery.Build(env)
 	if portraitNote then
 		scene.log[#scene.log + 1] = portraitNote
+	end
+	if mapNote then
+		scene.log[#scene.log + 1] = mapNote
 	end
 	for _, skin in ipairs(spec.skins) do
 		if not ns.Skins.IsApplied(skin) then

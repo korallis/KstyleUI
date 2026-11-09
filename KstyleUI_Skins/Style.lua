@@ -164,6 +164,14 @@ function Style.Text(text, role, colorName)
 	return text
 end
 
+function Style.Title(text, colorName)
+	Style.Text(text, "heading", colorName or "textEmphasis")
+	if type(text.SetWordWrap) == "function" then
+		text:SetWordWrap(false)
+	end
+	return text
+end
+
 local HTML_TYPES = { "P", "H1", "H2", "H3" }
 local htmls = setmetatable({}, WEAK)
 

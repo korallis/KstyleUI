@@ -132,9 +132,11 @@ local function unit(T, env, tip, token, list, health)
 	lines(tip, list)
 	T.BlizzardShow(tip, true)
 	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Unit, guid = info.guid, healthGUID = info.guid })
-	Tooltip.Layout(env, tip)
+	-- The bar shows before the layout: its room is bottom padding, and the game sizes a tooltip from its
+	-- padding whenever that changes.
 	T.BlizzardShow(tip.StatusBar, true)
 	tip.StatusBar:SetValue(health)
+	Tooltip.Layout(env, tip)
 end
 
 local function settle(T, env)

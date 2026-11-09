@@ -14,35 +14,4 @@ design	*	outside	=N	the minimap's north coin is set on the lens rim
 design	gallery_chat	outside	ChatFrame4EditBox.	Blizzard anchors an undocked window's edit box under the window
 design	gallery_chat	outside	=/s Anyone for the croc hunt?	the edit box text, on the edit box under the undocked window
 design	gallery_meters	outside	DamageMeterSessionWindow1.MinimizeContainer.	Blizzard opens the spell breakdown window beside the session window
-R4b	gallery_skins_character	outside	CharacterFrame.ModeTabs.	the character sheet's mode tab column hangs outside the window glass (D11; Fable #3, Muse #1)
-R4b	gallery_skins_reputation	outside	CharacterFrame.ModeTabs.	the character sheet's mode tab column hangs outside the window glass (D11)
-R4b	gallery_skins_mail	outside	Inbox	the bottom tabs hang below the window glass
-R4b	gallery_skins_mail	outside	Send Mail	the bottom tabs hang below the window glass
-R4b	gallery_skins_mail	outside	MailFrame	the bottom tabs hang below the window glass
-R4b	gallery_skins_friends	outside	Friends	the bottom tabs hang below the window glass
-R4b	gallery_skins_friends	outside	Raid	the bottom tabs hang below the window glass
-R4b	gallery_skins_friends	outside	Who	the bottom tabs hang below the window glass
-R4b	gallery_skins_merchant	outside	Merchant	the bottom tabs hang below the window glass
-R4b	gallery_skins_merchant	outside	Buyback	the bottom tabs hang below the window glass
-R4b	gallery_skins_communities	outside	CommunitiesFrame.	the side tab column hangs outside the window glass
-R4b	gallery_skins_communities	outside	Warsong Outriders	the guild title plate sits past the window glass
-R4b	gallery_skins_spellbook	outside	PlayerSpellsFrame.SpellBookFrame.CategoryTabSystem.	the side tab column hangs outside the window glass
-R4b	gallery_skins_professions	outside	ProfessionsFrame.	the side tab column hangs outside the window glass
-R4b	gallery_skins_legacy	outside	LegacySystemFrame.	the side tab column hangs outside the window glass
-R4b	gallery_skins_gamemenu	outside	Game Menu	the title plate sits past the window glass
-R4b	gallery_skins_groupfinder	outside	Browse Groups	the title plate sits past the window glass
-R4b	gallery_skins_trainer	outside	Grezz Ragefist	the title plate sits past the window glass
-R4b	gallery_skins_worldmap	outside	QuestMapFrame.	the quest log beside the map sits past the map's glass
-R4b	gallery_skins_worldmap	outside	QuestScrollFrame.	the quest log's list, search box and scroll bar sit past the map's glass
-R4b	gallery_skins_worldmap	outside	Durotar	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	Plainstrider Menace	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	Riverglade Crocolisks	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	Search quests	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	Supplies for the Crossroads	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	The Barrens	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	The Lost Patrol	the quest log's rows sit past the map's glass
-R4b	gallery_skins_worldmap	outside	Thunder Ridge Harpies	the quest log's rows sit past the map's glass
-R4b	gallery_tooltips	outside	GameTooltip.	the tooltip's unit bar reaches 10 units past the tooltip glass
-R4b	gallery_tooltips	outside	KstyleUI_Root.?.?.unit.	the unit tooltip's bar reaches 10 units past its glass
-R4b	gallery_tooltips	outside	of any healing by 50%	a tooltip line reaches 3 units past the tooltip glass
 design	gallery_auras_counts	outside	=KstyleUI_Root.?.? glass	the Blessings full-list flyout opens beside the card that holds it

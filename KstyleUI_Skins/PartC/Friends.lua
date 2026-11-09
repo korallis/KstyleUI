@@ -174,7 +174,7 @@ local function Apply()
 	Kit.Window(frame)
 	local title = _G.FriendsFrameTitleText
 	if type(title) == "table" then
-		Style.Text(title, "heading", "textEmphasis")
+		Style.Title(title)
 	end
 	TabHeader(frame)
 	local list = Kit.Frame(KEY, "FriendsListFrame")

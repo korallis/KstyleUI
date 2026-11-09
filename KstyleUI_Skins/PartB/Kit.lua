@@ -1,4 +1,4 @@
--- Kit.lua: part B's helpers on KstyleUI.Skin and the module's Style and Parts: item rims, dropdowns, side tabs, arrows, rows, skill bars and titles.
+-- Kit.lua: part B's helpers on KstyleUI.Skin and the module's Style and Parts: item rims, dropdowns, side tabs, arrows, rows, skill bars, one-line titles and windows whose glass docks their bottom tabs.
 local _, ns = ...
 
 local K = KstyleUI
@@ -647,25 +647,44 @@ local function Rows(scrollBox, skinRow)
 	return side.partBRows
 end
 
-local function Window(frame, opts)
-	opts = opts or {}
-	local panel = K.Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false })
+local function WindowTabs(frame)
+	local list = {}
+	if type(frame.Tabs) == "table" then
+		for _, tab in ipairs(frame.Tabs) do
+			list[#list + 1] = tab
+		end
+	elseif type(frame.numTabs) == "number" and type(frame.GetName) == "function" and frame:GetName() then
+		for i = 1, frame.numTabs do
+			list[#list + 1] = _G[frame:GetName() .. "Tab" .. i]
+		end
+	end
+	return list
+end
+
+Kit.WindowTabs = WindowTabs
+
+function Kit.Title(frame)
 	local container = frame.TitleContainer
 	local title = type(container) == "table" and container.TitleText or nil
 	if not title and type(frame.GetTitleText) == "function" then
 		title = frame:GetTitleText()
 	end
 	if type(title) == "table" and type(title.SetFont) == "function" then
-		ns.Style.Text(title, "heading", "textEmphasis")
+		return ns.Style.Title(title)
 	end
-	if type(frame.Tabs) == "table" then
-		for _, tab in ipairs(frame.Tabs) do
-			Kit.Accent(tab)
-		end
-	elseif type(frame.numTabs) == "number" and type(frame.GetName) == "function" and frame:GetName() then
-		for i = 1, frame.numTabs do
-			Kit.Accent(_G[frame:GetName() .. "Tab" .. i])
-		end
+	return nil
+end
+
+local function Window(frame, opts)
+	opts = opts or {}
+	local panel = K.Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false })
+	local title = Kit.Title(frame)
+	local tabs = WindowTabs(frame)
+	for _, tab in ipairs(tabs) do
+		Kit.Accent(tab)
+	end
+	if opts.tabs ~= false and #tabs > 0 then
+		ns.Parts.Dock(frame, tabs, { title = title })
 	end
 	return panel
 end

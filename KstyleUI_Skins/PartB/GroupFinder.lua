@@ -87,6 +87,12 @@ local function Who(frame)
 	end
 end
 
+local function Dock(page, tabs)
+	if type(page) == "table" and K.Skin.Parts(page) and K.Skin.Parts(page).backdrop then
+		ns.Parts.Dock(page, tabs, { title = Kit.Title(page) })
+	end
+end
+
 local function Apply()
 	local parent = LFGParentFrame
 	if not Kit.Have(parent, "LFGParentFrame") then
@@ -101,6 +107,13 @@ local function Apply()
 	Listing(LFGListingFrame)
 	Browse(LFGBrowseFrame)
 	Who(LFGWhoListFrame)
+	local tabs = {}
+	Each(function(tab)
+		tabs[#tabs + 1] = tab
+	end, parent.Tab1, parent.Tab2, parent.Tab3, parent.ListingTab, parent.BrowsingTab, parent.WhoListingTab)
+	Each(function(page)
+		Dock(page, tabs)
+	end, LFGListingFrame, LFGBrowseFrame, LFGWhoListFrame)
 	return true
 end
 

@@ -221,35 +221,15 @@ do
 	assert(Alpha(tab.Icon) == 1, "and its icon at full")
 	tab:SetChecked(false)
 	assert(RimColor(ns, tab) == nil, "an unselected side tab has no rim")
-	-- The mode tabs stand on one glass rail docked to the window's right edge: a clip frame starts at that edge
-	-- and spans the shown tabs, and the rail inside it runs on under the window, so the clip cuts its left
-	-- corners away and the rail reads as the window's own tab column, not a second panel beside it.
-	local rail = ns.CharacterRail(f)
-	assert(rail and K.Skin.IsSkinned(rail, "Backdrop"), "the mode tabs get a glass rail")
-	local clip = rail.clip
-	assert(clip and rail:GetParent() == clip and clip:GetParent() == f.ModeTabs, "inside a clip under the tabs' own frame")
-	assert(clip:GetFrameLevel() < f.ModeTabs.Tabs[1]:GetFrameLevel(), "behind the tabs")
-	assert(W.LastCall(clip, "SetClipsChildren")[1] == true, "the clip clips")
-	assert(K.Skin.Parts(rail).backdrop.chrome.shadowOn ~= true, "the rail casts no shadow onto the window")
-	local function Anchors(frame)
-		local out = {}
-		for _, point in ipairs(frame._points) do
-			out[point[1]] = point[2]
-		end
-		return out
-	end
-	local anchors = Anchors(clip)
-	assert(anchors.LEFT == f, "the clip starts at the window")
-	assert(anchors.TOP == f.ModeTabs.Tabs[1] and anchors.BOTTOM == f.ModeTabs.Tabs[3] and anchors.RIGHT == f.ModeTabs.Tabs[3], "and spans the first shown tab to the last")
-	local railPoints = Anchors(rail)
-	assert(railPoints.TOPLEFT == clip and rail._points[1][4] < 0, "the rail hangs off the clip's left, under the window")
-	f.ModeTabs.Tabs[3]:SetShown(false)
-	f:UpdateTabLayout()
-	anchors = Anchors(clip)
-	assert(anchors.BOTTOM == f.ModeTabs.Tabs[2], "a hidden tab shortens the rail")
-	f.ModeTabs.Tabs[3]:SetShown(true)
-	f:UpdateTabLayout()
-	assert(Anchors(clip).BOTTOM == f.ModeTabs.Tabs[3], "and a shown one lengthens it again")
+	-- The mode tabs stand in a gutter of the window's own glass: the one docked-tab treatment every skinned
+	-- window shares (Parts.Dock; test-skins-dock.lua measures the geometry). No second panel hangs beside
+	-- the window, and no rail of its own is left (#177's ns.CharacterRail is gone).
+	assert(ns.CharacterRail == nil, "the mode tabs have no rail of their own")
+	local dock = ns.Parts.DockOf(f)
+	assert(dock and dock.panel == K.Skin.Parts(f).backdrop, "the window's own glass docks the mode tabs")
+	assert(#dock.frames == #f.ModeTabs.Tabs, "every mode tab is docked")
+	assert(K.Skin.Parts(f.ModeTabs) == nil, "the tabs' holder gets no glass")
+	assert(next(dock.seams) == nil, "this fixture has no geometry, so the dock waits for a rect before it draws a seam")
 	local sidebar = env.PaperDollSidebarTab1
 	sidebar:SetChecked(true)
 	assert(RimColor(ns, sidebar) ~= nil and Alpha(sidebar.Icon) == 1, "the paper doll's sidebar tabs follow their check state")

@@ -71,36 +71,64 @@ local function UseParentLevel(glass, tooltip)
 	Settings.LogOnce("level", "Frame:SetUsingParentLevel is missing; the glass sits one level below each tooltip")
 end
 
+local function Base(current, added)
+	if current >= added then
+		return current - added
+	end
+	return current
+end
+
 local function Pad(tooltip, glass, left)
 	local right, bottom, _, top
 	if type(tooltip.GetPadding) == "function" and type(tooltip.SetPadding) == "function" then
 		right, bottom, _, top = tooltip:GetPadding()
 	end
 	if not (Logic.IsNumber(right) and Logic.IsNumber(bottom)) then
-		Settings.LogOnce("padding", "a tooltip's padding was missing or secret; it shows no icon")
+		Settings.LogOnce("padding", "a tooltip's padding was missing or secret; it shows no icon and docks no bar")
 		return false
 	end
+	local added = glass.added or { right = 0, bottom = 0 }
+	local reserve = glass.reserve or { right = 0, bottom = 0 }
 	glass.padding = true
-	tooltip:SetPadding(right, bottom, left, Logic.IsNumber(top) and top or 0)
+	tooltip:SetPadding(Base(right, added.right) + reserve.right, Base(bottom, added.bottom) + reserve.bottom, left, Logic.IsNumber(top) and top or 0)
 	glass.padding = false
 	glass.padded = left > 0 and left or nil
+	glass.added = { right = reserve.right, bottom = reserve.bottom }
 	return true
+end
+
+local function Reserved(glass)
+	local reserve = glass.reserve
+	return reserve ~= nil and (reserve.right > 0 or reserve.bottom > 0)
 end
 
 local function HideIcon(tooltip, glass)
 	if glass.icon then
 		glass.icon:Hide()
 	end
-	if glass.padded and not Pad(tooltip, glass, 0) then
+	if (glass.padded or Reserved(glass)) and not Pad(tooltip, glass, 0) then
 		glass.padded = nil
 	end
 end
 
 local function Repad(tooltip)
 	local glass = Style.Glass(tooltip)
-	if glass and glass.padded and not glass.padding and not Pad(tooltip, glass, glass.padded) then
+	if not glass or glass.padding then
+		return
+	end
+	glass.added = nil
+	if (glass.padded or Reserved(glass)) and not Pad(tooltip, glass, glass.padded or 0) then
 		HideIcon(tooltip, glass)
 	end
+end
+
+function Style.Reserve(tooltip, right, bottom)
+	local glass = Style.Glass(tooltip)
+	if not glass then
+		return false
+	end
+	glass.reserve = { right = right or 0, bottom = bottom or 0 }
+	return Pad(tooltip, glass, glass.padded or 0)
 end
 
 local function Reset(tooltip)

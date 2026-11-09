@@ -76,7 +76,12 @@ local function Apply()
 	end
 	Kit.Window(frame, { tabs = false })
 	SizeButtons(frame)
-	Kit.Each(KEY, frame, TABS, Parts.SideTab)
+	local tabs = {}
+	Kit.Each(KEY, frame, TABS, function(tab)
+		Parts.SideTab(tab)
+		tabs[#tabs + 1] = tab
+	end)
+	Kit.Dock(frame, tabs)
 	Kit.Each(KEY, frame, DROPDOWNS, Parts.Dropdown)
 	Kit.Each(KEY, frame, BUTTONS, Kit.Button)
 	Kit.Each(KEY, frame, INSETS, function(inset)

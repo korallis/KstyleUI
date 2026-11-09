@@ -76,7 +76,7 @@ Every value from the game is checked with `issecretvalue` before it is compared.
 
 Blizzard's `GameTooltip.StatusBar` keeps working: its own post-call starts and stops its watch on the unit, and its `OnUpdate` sets its value. The module hides its art by alpha, hooks its `SetValue` with `hooksecurefunc`, and passes each value straight to a KstyleUI `StatusBar` on the glass, so a secret health percentage reaches the engine untouched and Lua never reads it. The KstyleUI bar shows and hides with Blizzard's through `HookScript`.
 
-The bar is horizontal under the tooltip or vertical beside its right edge, with the texture, colour source, fill direction and thickness from the settings, a `track` background and a tile border on the button grade.
+The bar docks inside the tooltip's glass: horizontal along the bottom edge (8 units up, 10 in from each side, level with the text margin) or vertical inside the right edge, with the texture, colour source, fill direction and thickness from the settings, a `track` background and a tile border on the button grade. The tooltip makes room for it through its padding: `Style.Reserve(tooltip, right, bottom)` adds the bar's thickness plus a 4-unit gap (`Health.GAP`) to the bottom (or right) padding while Blizzard's bar is shown, on top of whatever padding Blizzard set, and takes it back when the bar hides. Because the padding is part of the tooltip's own rect, screen-edge clamping and the anchor corner account for the bar. When a tooltip's padding reads as missing or secret, the bar hangs outside the glass as before, below or beside it.
 
 ## Anchor
 

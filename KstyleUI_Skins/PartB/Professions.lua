@@ -16,12 +16,18 @@ local GEAR_SLOTS = {
 local CARDS = { "PrimaryProfession1", "PrimaryProfession2", "SecondaryProfession1", "SecondaryProfession2", "SecondaryProfession3" }
 
 local function Tabs(frame)
-	Kit.SideTab(frame.ProfessionsOverviewTab)
+	local side = {}
+	if Kit.SideTab(frame.ProfessionsOverviewTab) then
+		side[#side + 1] = frame.ProfessionsOverviewTab
+	end
 	if type(frame.rightProfessionTabs) == "table" then
 		for _, tab in ipairs(frame.rightProfessionTabs) do
-			Kit.SideTab(tab)
+			if Kit.SideTab(tab) then
+				side[#side + 1] = tab
+			end
 		end
 	end
+	ns.Parts.Dock(frame, side, { title = Kit.Title(frame) })
 	local system = frame.TabSystem
 	if type(system) == "table" and type(system.tabs) == "table" then
 		for _, tab in ipairs(system.tabs) do

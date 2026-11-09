@@ -8,7 +8,7 @@
 --
 -- Every builder returns the window frame and a parts table: parts.show lists the frames to show (default the
 -- window), parts.bounds the frames the gallery crop covers (default the window), parts.portraits the textures the
--- game paints with SetPortraitTexture (none by default). Sizes come from Forever's
+-- game paints with SetPortraitTexture (none by default), parts.maps the textures the game paints map terrain on. Sizes come from Forever's
 -- source (Interface/AddOns in Gethe/wow-ui-source, branch forever): CharacterFrameConstants.lua:4,
 -- Blizzard_PlayerSpellsFrame.lua:8, Blizzard_WorldMap.lua:104, QuestMapFrame.xml:427, Blizzard_LFGVanilla_ParentFrame.xml:23,
 -- Blizzard_LFGVanilla_Browse.xml:125, MailFrame.xml:12, MerchantFrame.xml:4 and :89, Blizzard_ProfessionsFrame.xml:5,
@@ -104,10 +104,16 @@ local function Window(B, name, parent, w, h, title, opts)
 	B.texture(f.NineSlice)
 	f.Bg = B.texture(f, "BACKGROUND")
 	f.Bg:SetAllPoints(f)
+	-- The title (SharedUIPanelTemplates.xml:600): a 20-unit container from 58 to -24 across the top, its text
+	-- hung from the container's top, spanning its width, word wrap off.
 	f.TitleContainer = B.frame("Frame", f)
-	At(f.TitleContainer, f, 0, 0, w, TITLE_HEIGHT)
+	At(f.TitleContainer, f, 58, 1, w - 58 - 24, TITLE_HEIGHT - 4)
 	f.TitleContainer.TitleText = B.text(f.TitleContainer)
-	Text(f.TitleContainer.TitleText, title, "CENTER", f.TitleContainer)
+	Text(f.TitleContainer.TitleText, title, "TOP", f.TitleContainer, "TOP", 0, -5)
+	f.TitleContainer.TitleText:SetPoint("LEFT", f.TitleContainer, "LEFT", 0, 0)
+	f.TitleContainer.TitleText:SetPoint("RIGHT", f.TitleContainer, "RIGHT", 0, 0)
+	f.TitleContainer.TitleText:SetWordWrap(false)
+	f.TitleContainer.TitleText:SetJustifyH("CENTER")
 	f.PortraitContainer = B.frame("Frame", f)
 	At(f.PortraitContainer, f, -6, -6, 60, 60)
 	f.PortraitContainer.portrait = B.texture(f.PortraitContainer)
@@ -673,11 +679,15 @@ function build.talents(env, B)
 	currency.CurrentAmountContainer = B.frame("Frame", currency)
 	At(currency.CurrentAmountContainer, currency, 0, 0, 40, 26)
 	currency.CurrentAmountContainer.CurrencyAmount = Text(B.text(currency.CurrentAmountContainer), "3", "LEFT", currency.CurrentAmountContainer, "LEFT", 0, 0)
-	-- Blizzard's talent nodes keep their own art; the scene stands them in as a dark grid.
+	-- Blizzard's talent nodes keep their own art; the scene stands each in as a spell icon on a dark plate, so
+	-- the skin can be judged around a filled tree.
 	for row = 0, 3 do
 		for column = 0, 4 do
-			local node = Colour(B, talents, "ARTWORK", 0.06, 0.07, 0.08, 0.9)
+			local plate = Colour(B, talents, "ARTWORK", 0.06, 0.07, 0.08, 0.9)
+			At(plate, talents, 88 + column * 130, 78 + row * 100, 44, 44)
+			local node = B.frame("Frame", talents)
 			At(node, talents, 90 + column * 130, 80 + row * 100, 40, 40)
+			node.Icon = Icon(B, node, ICONS[(row * 5 + column) % #ICONS + 1])
 		end
 	end
 	return f, {}
@@ -691,7 +701,9 @@ function build.worldmap(env, B)
 	map:SetFrameLevel(5)
 	map.ScrollContainer = B.frame("ScrollFrame", map)
 	Fill(map.ScrollContainer, map, 0, TITLE_HEIGHT + 20, 0, 0)
-	Colour(B, map.ScrollContainer, "BACKGROUND", 0.23, 0.29, 0.19):SetAllPoints(map.ScrollContainer)
+	-- The map canvas: a flat field here; the gallery paints the mockup's terrain on it when standins.py has cut it.
+	local canvas = Colour(B, map.ScrollContainer, "BACKGROUND", 0.23, 0.29, 0.19)
+	canvas:SetAllPoints(map.ScrollContainer)
 	local border = B.frame("Frame", map)
 	map.BorderFrame = border
 	border:SetAllPoints(map)
@@ -794,7 +806,7 @@ function build.worldmap(env, B)
 	end
 	details.ScrollFrame = B.frame("ScrollFrame", details)
 	details.ScrollFrame.ScrollBar = ScrollBar(B, details.ScrollFrame)
-	return map, { show = { map, log }, bounds = { map, log } }
+	return map, { show = { map, log }, bounds = { map, log }, maps = { canvas } }
 end
 
 -- The game menu (Shared/GameMenuFrame.xml:7): a header and pooled buttons.
@@ -805,10 +817,16 @@ function build.gamemenu(env, B)
 	menu.Border = B.frame("Frame", menu)
 	menu.Border:SetAllPoints(menu)
 	B.texture(menu.Border)
+	-- The header plate (DialogTemplates.xml:11, DialogHeaderTemplate): 39 tall, hung 11 above the frame's top,
+	-- its text 13 under the plate's top, so the text's top sits 2 inside the frame.
 	menu.Header = B.frame("Frame", menu)
-	At(menu.Header, menu, 0, -10, 220, 30)
+	Anchor(menu.Header, menu, "TOP", 0, 11)
+	menu.Header:SetSize(200, 39)
 	B.texture(menu.Header)
-	menu.Header.Text = Text(B.text(menu.Header), "Game Menu", "CENTER", menu.Header)
+	menu.Header.Text = Text(B.text(menu.Header), "Game Menu", "TOP", menu.Header, "TOP", 0, -13)
+	function menu.Header.Setup(self, text)
+		self.Text:SetText(text)
+	end
 	local buttons = {}
 	for i, label in ipairs({ "Options", "Support", "Macros", "AddOns", "Edit Mode", "Logout", "Exit Game", "Return to Game" }) do
 		local button = Button(B, menu, label, 180, 28)
@@ -1531,9 +1549,13 @@ function build.legacy(env, B)
 	Anchor(bar, track, "TOP", 0, -90)
 	bar.ProgressBarFrame = B.texture(bar, "OVERLAY")
 	bar.Text = Text(B.text(bar), "6,400 / 10,000 to the next reward", "CENTER", bar)
+	-- Blizzard's reward cards keep their own art; each stands in as a dark card with the reward's icon on it.
 	for i = 1, 5 do
 		local card = Colour(B, track, "ARTWORK", 0.08, 0.09, 0.1, 0.9)
 		At(card, track, 40 + (i - 1) * 172, 140, 150, 220)
+		local art = B.frame("Frame", track)
+		At(art, track, 40 + (i - 1) * 172 + 27, 140 + 40, 96, 96)
+		art.Icon = Icon(B, art, ICONS[13 + i])
 		Text(B.text(track), ({ "Tabard of the Legacy", "Riding Crocolisk", "Title: Enduring", "Bag of Relics", "Heirloom Chest" })[i], "TOP", track, "TOP", -400 + (i - 1) * 172, -370)
 	end
 	local challenges = B.frame("Frame", f)

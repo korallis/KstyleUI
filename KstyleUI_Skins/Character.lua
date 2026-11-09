@@ -1,4 +1,4 @@
--- Character.lua: the character sheet skin: the window and its side tabs, quality-rimmed equipment slots, the stats, reputation and currency.
+-- Character.lua: the character sheet skin: the window whose glass docks its side tabs in a gutter, quality-rimmed equipment slots, the stats, reputation and currency.
 local _, ns = ...
 
 local K = KstyleUI
@@ -25,10 +25,6 @@ local TOKEN_CHECKS = { "InactiveCheckbox", "BackpackCheckbox" }
 local WEAK = { __mode = "k" }
 local slots = setmetatable({}, WEAK)
 local rows = setmetatable({}, WEAK)
-local rails = setmetatable({}, WEAK)
-local RAIL_OUTSET = "gapSmall"
-local RAIL_DOCK = "radius"
-local LEVEL_BELOW = 1
 
 local function Log(message)
 	K.DevTest.Log("Skins", KEY .. ": " .. message)
@@ -122,67 +118,11 @@ local function SkinToggle(frame)
 	Point()
 end
 
-local function PlaceRail(rail)
-	local first, last
-	for _, tab in ipairs(rail.tabs) do
-		local shown = tab:IsShown()
-		if not IsSecret(shown) and shown == true then
-			first = first or tab
-			last = tab
-		end
-	end
-	local clip = rail.clip
-	clip:ClearAllPoints()
-	rail:ClearAllPoints()
-	if not first then
-		clip:Hide()
-		return
-	end
-	local outset = K.Widgets.Snap(rail, Tokens.Size(RAIL_OUTSET))
-	local dock = K.Widgets.Snap(rail, Tokens.Size(RAIL_DOCK))
-	clip:SetPoint("TOP", first, "TOP", 0, outset)
-	clip:SetPoint("BOTTOM", last, "BOTTOM", 0, -outset)
-	clip:SetPoint("LEFT", rail.window, "RIGHT", 0, 0)
-	clip:SetPoint("RIGHT", last, "RIGHT", outset, 0)
-	rail:SetPoint("TOPLEFT", clip, "TOPLEFT", -dock, 0)
-	rail:SetPoint("BOTTOMRIGHT", clip, "BOTTOMRIGHT", 0, 0)
-	clip:Show()
-end
-
-local function SkinRail(frame, modes)
-	local holder = frame.ModeTabs
-	if rails[frame] then
-		return
-	end
-	local clip = CreateFrame("Frame", nil, holder)
-	clip:SetClipsChildren(true)
-	clip:SetFrameLevel(math.max(0, modes[1]:GetFrameLevel() - LEVEL_BELOW))
-	local rail = CreateFrame("Frame", nil, clip)
-	rail.tabs = modes
-	rail.clip = clip
-	rail.window = frame
-	rail:SetFrameLevel(clip:GetFrameLevel())
-	Skin.Backdrop(rail, { shape = "rail", fill = "surface", shadow = false })
-	rails[frame] = rail
-	PlaceRail(rail)
-	if type(frame.UpdateTabLayout) == "function" then
-		hooksecurefunc(frame, "UpdateTabLayout", function()
-			PlaceRail(rail)
-		end)
-	else
-		Log("UpdateTabLayout is missing; the tab rail spans the tabs shown at skin time")
-	end
-end
-
-function ns.CharacterRail(frame)
-	return rails[frame]
-end
-
 local function SkinWindow(frame)
 	Skin.Window(frame, { tabs = false })
 	local title = type(frame.TitleContainer) == "table" and frame.TitleContainer.TitleText
 	if title then
-		Style.Text(title, "heading")
+		Style.Title(title)
 	end
 	for _, pane in ipairs({ frame.LeftPaneHost, frame.RightPaneHost }) do
 		if type(pane) == "table" then
@@ -195,7 +135,10 @@ local function SkinWindow(frame)
 		for _, tab in ipairs(modes) do
 			Parts.SideTab(tab)
 		end
-		SkinRail(frame, modes)
+		if type(frame.UpdateTabLayout) ~= "function" then
+			Log("UpdateTabLayout is missing; the tab gutter spans the tabs shown at skin time")
+		end
+		Parts.Dock(frame, modes, { title = title or nil, relayout = "UpdateTabLayout" })
 	else
 		Log("the side tabs are missing; they keep Blizzard's look")
 	end

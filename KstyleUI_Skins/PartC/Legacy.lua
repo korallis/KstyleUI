@@ -55,6 +55,7 @@ local function Apply()
 		for _, tab in ipairs(frame.Tabs) do
 			Parts.SideTab(tab)
 		end
+		Kit.Dock(frame, frame.Tabs)
 	else
 		Kit.Log(KEY, "the side tabs are missing; they keep Blizzard's look")
 	end

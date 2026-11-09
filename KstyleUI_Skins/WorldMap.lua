@@ -1,4 +1,4 @@
--- WorldMap.lua: the world map and quest log skins: the map window's chrome, and the quest list and details beside the map.
+-- WorldMap.lua: the world map and quest log skins: the map window's chrome, whose glass docks the quest log beside the map, and the quest list and details on it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -22,12 +22,13 @@ local function ApplyMap()
 	local map = _G[FRAME]
 	local border = map.BorderFrame
 	Skin.Backdrop(map, { shape = "window", fill = "surface", shadow = true })
+	local title
 	if type(border) == "table" then
 		Skin.Strip(border, { children = BORDER_ART })
 		Skin.CloseButton(border.CloseButton)
-		local title = type(border.TitleContainer) == "table" and border.TitleContainer.TitleText
+		title = type(border.TitleContainer) == "table" and border.TitleContainer.TitleText or nil
 		if title then
-			Style.Text(title, "heading", "textEmphasis")
+			Style.Title(title)
 		end
 		local maxMin = border.MaximizeMinimizeFrame
 		if type(maxMin) == "table" then
@@ -43,6 +44,12 @@ local function ApplyMap()
 		Skin.Backdrop(nav, { shape = "tile", fill = "surface", shadow = false })
 	else
 		Log("worldMap", "NavBar is missing; skipped")
+	end
+	local log = _G.QuestMapFrame
+	if type(log) == "table" then
+		Parts.Dock(map, { log }, { title = title })
+	else
+		Log("worldMap", "QuestMapFrame is missing; the map's glass stops at the map")
 	end
 end
 
@@ -95,6 +102,7 @@ local function ApplyQuestLog()
 			if type(scroll.BorderFrame) == "table" then
 				Skin.Strip(scroll.BorderFrame)
 			end
+			Skin.Backdrop(scroll, { shape = "tile", fill = "surface", shadow = false })
 		end
 		local details = quests.DetailsFrame
 		if type(details) == "table" then
@@ -116,7 +124,7 @@ local function ApplyQuestLog()
 			end
 		end
 	end
-	Skin.Backdrop(log, { shape = "tile", fill = "surface", shadow = false })
+	Skin.Strip(log)
 	if type(QuestLogQuests_Update) == "function" then
 		hooksecurefunc("QuestLogQuests_Update", QuestRows)
 	else

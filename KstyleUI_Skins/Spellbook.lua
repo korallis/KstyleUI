@@ -29,7 +29,7 @@ local function Window(frame)
 	Skin.Window(frame, { tabs = false })
 	local title = type(frame.TitleContainer) == "table" and frame.TitleContainer.TitleText
 	if title then
-		Style.Text(title, "heading")
+		Style.Title(title)
 	end
 	local maxMin = frame.MaximizeMinimizeButton or frame.MaxMinButtonFrame
 	if type(maxMin) == "table" then
@@ -49,13 +49,21 @@ local function Tab(tab)
 	end
 end
 
-local function TabSystem(system)
+local function TabSystem(system, window)
 	if type(system) ~= "table" or type(system.tabs) ~= "table" then
 		return
 	end
 	local function Each(self)
+		local side = {}
 		for _, tab in ipairs(self.tabs) do
 			Tab(tab)
+			if type(tab) == "table" and tab.tabIcon ~= nil then
+				side[#side + 1] = tab
+			end
+		end
+		if window and #side > 0 then
+			local title = type(window.TitleContainer) == "table" and window.TitleContainer.TitleText or nil
+			Parts.Dock(window, side, { title = title })
 		end
 	end
 	Each(system)
@@ -160,7 +168,7 @@ local function ApplySpellbook()
 	for _, key in ipairs(BOOK_ART) do
 		Parts.Hush(book[key])
 	end
-	TabSystem(book.CategoryTabSystem)
+	TabSystem(book.CategoryTabSystem, frame)
 	Skin.EditBox(book.SearchBox)
 	Parts.Glyph(book.SettingsDropdown, "glyphChevron")
 	SkinPages(book.PagedSpellsFrame)

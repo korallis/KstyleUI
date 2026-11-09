@@ -207,7 +207,9 @@ do
 	assert(ns.Skins.IsApplied("questLog"), "the quest log is skinned on its first show")
 	local scroll = map.scroll
 	assert(Alpha(scroll.Background) == 0 and Alpha(scroll.Edge) == 0 and Alpha(map.logBorder) == 0, "the quest list's art goes")
-	assert(K.Skin.Parts(map.log).backdrop.chrome.fillName == "surface", "the quest log is a glass tile, as every list body")
+	assert(K.Skin.Parts(map.log) == nil or K.Skin.Parts(map.log).backdrop == nil, "the quest log has no glass of its own: it docks inside the map's")
+	assert(K.Skin.Parts(scroll).backdrop.chrome.fillName == "surface", "the quest list body is a glass tile, as every list body")
+	assert(ns.Parts.DockOf(m), "the map docks the quest log inside its glass (test-skins-dock.lua measures it)")
 	assert(K.Skin.IsSkinned(scroll.ScrollBar, "ScrollBar") and K.Skin.IsSkinned(scroll.SearchBox, "EditBox"))
 	assert(FontPath(map.header.ButtonText) == Style.Font("body") and FontPath(map.title.Text) == Style.Font("body"), "headers and quest titles use the skin font")
 	map.titles[#map.titles + 1] = map.lateTitle

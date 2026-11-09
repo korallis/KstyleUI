@@ -1,4 +1,4 @@
--- Health.lua: GameTooltip's unit health on a KstyleUI status bar, fed by Blizzard's own bar so secret values pass through untouched.
+-- Health.lua: GameTooltip's unit health on a KstyleUI status bar docked inside the tooltip's glass, fed by Blizzard's own bar so secret values pass through untouched; the tooltip grows by the bar through its padding.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,10 +9,14 @@ local Health = {}
 ns.Health = Health
 
 local BAR_GAP = 4
-local BAR_INSET = 2
+local BAR_EDGE = 8
+local BAR_SIDE = 10
 local LENGTH = 100
 
+Health.GAP = BAR_GAP
+
 local bar, owner, source
+local docked = false
 
 function Health.Bar()
 	return bar
@@ -22,20 +26,46 @@ local function Wanted()
 	return ns.active == true and Settings.Get("healthBar") and source ~= nil and source:IsShown()
 end
 
+local function Vertical()
+	return Settings.Get("bar.orientation") == "VERTICAL"
+end
+
+local function Reserve()
+	local size = Settings.Get("bar.size")
+	local room = Wanted() and size + BAR_GAP or 0
+	if Vertical() then
+		docked = Style.Reserve(owner, room, 0)
+	else
+		docked = Style.Reserve(owner, 0, room)
+	end
+	return docked
+end
+
 local function Place()
 	local gap = Widgets.Snap(bar, BAR_GAP)
-	local inset = Widgets.Snap(bar, BAR_INSET)
+	local edge = Widgets.Snap(bar, BAR_EDGE)
+	local side = Widgets.Snap(bar, BAR_SIDE)
 	local size = Settings.Get("bar.size")
 	local opts = bar.opts
 	bar:ClearAllPoints()
-	if Settings.Get("bar.orientation") == "VERTICAL" then
+	if Vertical() then
 		opts.width, opts.height = size, LENGTH
-		bar:SetPoint("TOPLEFT", owner, "TOPRIGHT", gap, -inset)
-		bar:SetPoint("BOTTOMLEFT", owner, "BOTTOMRIGHT", gap, inset)
+		if docked then
+			bar:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -edge, -side)
+			bar:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -edge, side)
+		else
+			bar:SetPoint("TOPLEFT", owner, "TOPRIGHT", gap, -gap)
+			bar:SetPoint("BOTTOMLEFT", owner, "BOTTOMRIGHT", gap, gap)
+		end
 	else
 		opts.width, opts.height = LENGTH, size
-		bar:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", inset, -gap)
-		bar:SetPoint("TOPRIGHT", owner, "BOTTOMRIGHT", -inset, -gap)
+		if docked then
+			bar:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", side, edge)
+			bar:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -side, edge)
+		else
+			bar:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", gap, -gap)
+			bar:SetPoint("TOPRIGHT", owner, "BOTTOMRIGHT", -gap, -gap)
+		end
 	end
 end
 
@@ -46,6 +76,7 @@ function Health.Restyle()
 	bar:SetOrientation(Settings.Get("bar.orientation"))
 	bar:SetReverseFill(Settings.Get("bar.reverse"))
 	bar:SetBarTexture(Settings.Get("bar.texture"))
+	Reserve()
 	Place()
 	bar:Restyle()
 	bar:SetShown(Wanted())
@@ -65,6 +96,11 @@ end
 
 local function Sync()
 	if bar then
+		local was = docked
+		Reserve()
+		if docked ~= was then
+			Place()
+		end
 		bar:SetShown(Wanted())
 	end
 end
@@ -105,5 +141,6 @@ end
 function Health.Hide()
 	if bar then
 		bar:Hide()
+		Reserve()
 	end
 end

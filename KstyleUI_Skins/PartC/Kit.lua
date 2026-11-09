@@ -1,4 +1,4 @@
--- Kit.lua: part C's helpers: missing-part logs, quality-rimmed item buttons, accent washes and highlights, mirrored bars, tri-state checks and preview samples.
+-- Kit.lua: part C's helpers: missing-part logs, quality-rimmed item buttons, accent washes and highlights, mirrored bars, tri-state checks, windows that dock their tabs inside the glass, and preview samples.
 local _, ns = ...
 
 local K = KstyleUI
@@ -132,20 +132,18 @@ Kit.Tab = Accented(Skin.Tab)
 function Kit.Window(frame, opts)
 	opts = opts or {}
 	local panel = Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false })
-	local container = frame.TitleContainer
-	local title = type(container) == "table" and container.TitleText or nil
-	if not title and type(frame.GetTitleText) == "function" then
-		title = frame:GetTitleText()
-	end
-	if type(title) == "table" and type(title.SetFont) == "function" then
-		Style.Text(title, "heading", "textEmphasis")
-	end
+	local title = PartB.Title(frame)
 	if opts.tabs ~= false and type(frame.Tabs) == "table" then
 		for _, tab in ipairs(frame.Tabs) do
 			Kit.Accent(tab)
 		end
+		Parts.Dock(frame, frame.Tabs, { title = title })
 	end
 	return panel
+end
+
+function Kit.Dock(frame, tabs)
+	return Parts.Dock(frame, tabs, { title = PartB.Title(frame) })
 end
 
 function Kit.Crop(icon)

@@ -49,6 +49,9 @@ local function line(tip, index)
 		left = tip:CreateFontString(nil, "ARTWORK", "GameTooltipText")
 		local right = tip:CreateFontString(nil, "ARTWORK", "GameTooltipText")
 		left._standIn, right._standIn = true, true
+		-- A line AddLine adds without the wrap flag never wraps in the game; the renderer sizes it one line tall.
+		left:SetWordWrap(false)
+		right:SetWordWrap(false)
 		tip._left[index], tip._right[index] = left, right
 		tip._made[#tip._made + 1] = left
 		tip._made[#tip._made + 1] = right
