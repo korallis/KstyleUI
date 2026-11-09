@@ -90,6 +90,17 @@ do
 	assert(select(2, env.ChatFrame1:GetPoint(1)) == holder, "back in the panel when Edit Mode closes")
 end
 
+-- A player who applied Healer before the wider card keeps Healer's 318: the panel takes the remembered layout's
+-- footprint, so a chat with no saved width never grows into the tracked buff icons Healer stands beside it.
+do
+	local env, K, ns = C.New()
+	K.Options.Write("Layout", "preset", "Healer")
+	C.Enable(env, K)
+	local settings = K.Layout.Get("chat.main")
+	assert(near(settings.width, 318) and near(settings.height, 260), "Healer's chat is 318 by 260, got " .. tostring(settings.width))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- The insets follow the scale: on a 1440p screen the chat window's own units are smaller.
 do
 	local env, K, ns = C.New({ width = 2560, height = 1440, uiScale = 0.75 })
