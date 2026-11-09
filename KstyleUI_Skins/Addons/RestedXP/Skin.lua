@@ -34,9 +34,9 @@ ns.Skins.Add({
 		end
 		RestedXP.Rail.Switch(on and ns.Skins.Setting("restedXP", "rail") == true)
 	end,
-	OnSetting = function(_, field, value)
-		if field == "rail" then
-			RestedXP.Rail.Switch(value == true)
+	OnSetting = function(_, field)
+		if field == nil or field == "rail" then
+			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
 		end
 	end,
 })

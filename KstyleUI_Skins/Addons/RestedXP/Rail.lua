@@ -195,9 +195,7 @@ local function Hook(f)
 	end
 	state.hooked = true
 	local function Check()
-		C_Timer.After(0, function()
-			Moved(f)
-		end)
+		Moved(f)
 	end
 	for _, part in ipairs({ f, f.CurrentStepFrame, f.GuideName, f.Footer }) do
 		if IsTable(part) and type(part.HookScript) == "function" then

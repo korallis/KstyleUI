@@ -156,6 +156,43 @@ do
 	Clean(env, K, rxp)
 end
 
+-- A resize ends in RestedXP's own OnMouseUp, which calls SetStep and so queues a placement before KstyleUI's hook
+-- runs: the hook checks at once, so the player's size wins and the rail turns off (round 2, Codex review).
+
+do
+	local env, K, ns, rxp = Boot()
+	local f = rxp.RXPFrame
+	env.RunTimers()
+	assert(ns.RestedXP.Rail.Placed())
+	local point = { f:GetPoint(1) }
+	f:SetSize(300, 200)
+	rxp.SetStep(1)
+	f:GetScript("OnMouseUp")(f, "LeftButton")
+	env.RunTimers()
+	assert(ns.Skins.Setting("restedXP", "rail") == false, "a resize turns the rail off")
+	assert(f:GetWidth() == 300 and f:GetHeight() == 200, "and the player's size stays, got " .. f:GetWidth() .. " by " .. f:GetHeight())
+	assert(select(5, f:GetPoint(1)) == point[5], "where it was")
+	Clean(env, K, rxp)
+end
+
+-- A profile switch refreshes every setting at once (OnSetting with no field): a profile with the rail off gives the
+-- guide back its own place, and one with the rail on places it again.
+
+do
+	local env, K, ns, rxp = Boot()
+	local f = rxp.RXPFrame
+	env.RunTimers()
+	K.Store.Module("Skins").restedXP = { rail = false }
+	ns.Skins.Get("restedXP").OnSetting(ns.Skins.Get("restedXP"), nil)
+	env.RunTimers()
+	assert(select(1, f:GetPoint(1)) == "LEFT" and f:GetWidth() == 235, "a profile with the rail off restores RestedXP's own place and size")
+	K.Store.Module("Skins").restedXP = { rail = true }
+	ns.Skins.Get("restedXP").OnSetting(ns.Skins.Get("restedXP"), nil)
+	env.RunTimers()
+	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and ns.RestedXP.Rail.Placed(), "a profile with the rail on places it again")
+	Clean(env, K, rxp)
+end
+
 -- The head measures its rows: the route goes in the cap's trail when it fits, the cap drops its THE PATH wording
 -- when only the route fits, and the route takes its own caption row under the zone heading when neither fits.
 
