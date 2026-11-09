@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local L = K.L
 local Model = ns.Model
-local format, floor = string.format, math.floor
+local format, floor, lower = string.format, math.floor, string.lower
 
 local Pages = {}
 ns.Pages = Pages
@@ -425,13 +425,21 @@ local function HasKey(schema, key)
 	return false
 end
 
+local function SharesTitle(schema, label)
+	local first = type(schema) == "table" and schema[1]
+	return type(first) == "table" and first.type == "header" and (first.level or 1) == 1
+		and type(first.label) == "string" and lower(first.label) == lower(tostring(label))
+end
+
 local function ModuleItems(page)
 	local module = page.module
 	local items = {}
 	local schema = K.Options.Get(module)
 	local defaults = K.Store.Defaults(module)
+	local titled = false
 	if K.Features.modules[module] ~= nil and defaults and not HasKey(schema, "enabled") then
 		local label = Pages.ModuleLabel(module)
+		titled = SharesTitle(schema, label)
 		items[#items + 1] = { kind = "header", level = 1, label = label, page = page.id }
 		items[#items + 1] = {
 			kind = "toggle", label = format(L["Enable %s"], label), help = L["Turns this module on or off."],
@@ -445,7 +453,11 @@ local function ModuleItems(page)
 		}
 	end
 	if schema then
-		Append(items, Model.SchemaItems(module, schema, page.id))
+		local rows = Model.SchemaItems(module, schema, page.id)
+		if titled then
+			table.remove(rows, 1)
+		end
+		Append(items, rows)
 	end
 	ElementSection(items, module, page.id)
 	return items

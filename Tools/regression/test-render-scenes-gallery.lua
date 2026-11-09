@@ -16,6 +16,11 @@ do
 end
 assert(#galleryScenes >= 1, "at least one gallery scene")
 local galleryItems, galleryNames = {}, {}
+-- Only the widget and skins checks below read a scene's items; keeping every scene's would hold most of the
+-- heap live, so the collector could not reclaim the finished scenes and the test would peak over its 4096 MB.
+local function keepsItems(name)
+	return name == "gallery_widgets" or name:match("^gallery_skins_") ~= nil
+end
 for _, name in ipairs(galleryScenes) do
 	local build = dofile("Tools/render/scenes/" .. name .. ".lua")
 	assert(type(build) == "function", name .. ".lua returns its builder")
@@ -32,7 +37,9 @@ for _, name in ipairs(galleryScenes) do
 		assert(r[3] > 0 and r[4] > 0, name .. ": " .. frame.name .. " has a size")
 		assert(r[1] >= -1 and r[2] >= -1 and r[1] + r[3] <= scene.screen.width + 1 and r[2] + r[4] <= scene.screen.height + 1, name .. ": " .. frame.name .. " sits on the screen")
 	end
-	galleryItems[name] = scene.items
+	if keepsItems(name) then
+		galleryItems[name] = scene.items
+	end
 	galleryNames[name] = scene.frames[1].name
 end
 

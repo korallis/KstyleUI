@@ -37,7 +37,30 @@ local function Note(text)
 	return { { kind = "note", label = text } }
 end
 
-local function Render(keepOffset)
+local function FirstRow()
+	local first
+	for _, row in ipairs(content.rows) do
+		local index = row.index
+		if index and row:IsShown() and (first == nil or index < first) then
+			first = index
+		end
+	end
+	return first
+end
+
+local function TrackSection()
+	local first = FirstRow()
+	local current
+	for _, section in ipairs(state.sections or {}) do
+		if first and section.index <= first then
+			current = section.index
+		end
+	end
+	state.section = current
+	rail:SetCurrent(current)
+end
+
+local function Render(keepOffset, reselect)
 	if not win then
 		return
 	end
@@ -55,7 +78,24 @@ local function Render(keepOffset)
 		end
 	end
 	state.items = items
+	state.sections = state.query and {} or Model.Sections(items)
 	content:SetData(items, keepOffset)
+	if reselect then
+		rail:Select(state.query and "" or state.page, state.sections)
+	else
+		rail:SetPages(state.pages, state.sections, true)
+	end
+	TrackSection()
+end
+
+local function JumpTo(entry)
+	if state.query or type(entry) ~= "table" or type(entry.index) ~= "number" then
+		return
+	end
+	if entry.index < 1 or entry.index > #state.items then
+		return
+	end
+	content:ScrollToIndex(entry.index, false, "TOP")
 end
 
 function Window.Refresh()
@@ -91,10 +131,9 @@ local function Select(id)
 		search:SetText("")
 		clear:Hide()
 	end
-	rail:Select(page.id)
 	resetButton:SetEnabled(page.reset ~= nil)
 	Preview.Show(preview, page)
-	Render(false)
+	Render(false, true)
 end
 
 local function SetQuery(text)
@@ -107,13 +146,12 @@ local function SetQuery(text)
 		return
 	end
 	state.query = query
-	rail:Select(query and "" or state.page)
-	Render(false)
+	Render(false, true)
 end
 
 local function ReloadPages()
 	state.pages = Pages.List()
-	rail:SetData(state.pages, true)
+	rail:SetPages(state.pages, nil, true)
 	rail:Select(state.query and "" or state.page)
 end
 
@@ -278,7 +316,7 @@ local function Build()
 	end)
 	clear:Hide()
 
-	rail = Rail.Create(win, Select)
+	rail = Rail.Create(win, Select, JumpTo)
 	win.split = win:CreateTexture(nil, "ARTWORK")
 	win.split:SetColorTexture(Tokens.Color("white"))
 	content = Widgets.ScrollList(win, {
@@ -287,6 +325,11 @@ local function Build()
 		createRow = Rows.Create,
 		updateRow = Rows.Update,
 	})
+	local setOffset = content.SetOffset
+	content.SetOffset = function(self, offset)
+		setOffset(self, offset)
+		TrackSection()
+	end
 	preview = Preview.Create(win)
 	layoutButton = Widgets.Button(win, { text = L["Layout Mode"], primary = true, onClick = EnterLayout })
 	resetButton = Widgets.Button(win, { text = L["Reset"], onClick = AskReset })

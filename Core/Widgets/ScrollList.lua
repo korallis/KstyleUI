@@ -243,12 +243,14 @@ function List:ScrollTo(offset, instant)
 	end
 end
 
-function List:ScrollToIndex(index, instant)
+function List:ScrollToIndex(index, instant, align)
 	local rowHeight = ItemHeight(self, index)
 	local top = ItemTop(self, index)
 	local view = ViewHeight(self)
 	local offset = self.target or self.offset
-	if top < offset then
+	if align == "TOP" then
+		self:ScrollTo(top, instant)
+	elseif top < offset then
 		self:ScrollTo(top, instant)
 	elseif top + rowHeight > offset + view then
 		self:ScrollTo(top + rowHeight - view, instant)

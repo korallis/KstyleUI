@@ -113,6 +113,16 @@ function Model.Visible(items, searching)
 	return out
 end
 
+function Model.Sections(items)
+	local out = {}
+	for i, item in ipairs(items) do
+		if Level(item) == 1 then
+			out[#out + 1] = { label = item.label, index = i }
+		end
+	end
+	return out
+end
+
 function Model.Terms(query)
 	local terms = {}
 	if type(query) == "string" then

@@ -87,6 +87,26 @@ do
 	assert(#Model.Visible({}) == 0)
 end
 
+-- Sections: the level-1 headers of a visible list, with where each starts -------------------------
+
+do
+	local items = {
+		{ kind = "header", label = "Unit Frames" },
+		{ kind = "toggle", label = "Enable" },
+		{ kind = "header", label = "Player: frame" },
+		{ kind = "toggle", label = "Portrait" },
+		{ kind = "header", label = "Player frame", level = 2 },
+		{ kind = "slider", label = "X offset" },
+		{ kind = "header", label = "Player: cast bar", level = 1 },
+		{ kind = "note", label = "A note" },
+	}
+	local sections = Model.Sections(items)
+	same(Labels(sections), { "Unit Frames", "Player: frame", "Player: cast bar" }, "Sections lists the level-1 headers only")
+	assert(sections[1].index == 1 and sections[2].index == 3 and sections[3].index == 7, "each section knows the index of its header row")
+	assert(#Model.Sections({}) == 0 and #Model.Sections({ { kind = "toggle", label = "Loose" } }) == 0, "no headers, no sections")
+	assert(#items == 8 and items[1].index == nil, "Sections leaves the input list alone")
+end
+
 -- Search terms and matching --------------------------------------------------------------------
 
 do

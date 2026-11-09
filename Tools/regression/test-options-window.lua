@@ -86,9 +86,58 @@ local function boot(withLayout)
 				return frame
 			end
 			K.Options.Register("UnitFrames", schema)
-			K.Modules.Register(Module("Minimap", { defaults = {} }))
+			local minimap = {
+				{ type = "header", label = "Minimap" },
+				{ type = "toggle", key = "zoneText", label = "Zone text", help = "Show the zone name under the map." },
+				{ type = "header", label = "Clock" },
+				{ type = "toggle", key = "clock", label = "Clock", help = "Show the time under the map." },
+				{ type = "header", label = "Tracking" },
+			}
+			local trackingDefaults = { zoneText = true, clock = true }
+			for i = 1, 14 do
+				trackingDefaults["track" .. i] = true
+				minimap[#minimap + 1] = { type = "toggle", key = "track" .. i, label = "Tracking " .. i, help = "Show this kind of tracking on the map." }
+			end
+			K.Modules.Register(Module("Minimap", { defaults = trackingDefaults }))
+			K.Options.Register("Minimap", minimap)
 		end,
 	})
+end
+
+local function railPages(ns)
+	local out = {}
+	for _, entry in ipairs(ns.Window.Parts().rail:GetData()) do
+		if not entry.section then
+			out[#out + 1] = entry.label
+		end
+	end
+	return out
+end
+
+local function railSections(ns)
+	local out = {}
+	for _, entry in ipairs(ns.Window.Parts().rail:GetData()) do
+		if entry.section then
+			out[#out + 1] = entry.label
+		end
+	end
+	return out
+end
+
+local function railRow(ns, label, section)
+	local rail = ns.Window.Parts().rail
+	for i, entry in ipairs(rail:GetData()) do
+		if entry.label == label and (entry.section == true) == (section == true) then
+			rail:ScrollToIndex(i, true)
+			for _, row in ipairs(rail.rows) do
+				if row.index == i and row:IsShown() then
+					return row
+				end
+			end
+			error("rail row " .. label .. " is not on screen")
+		end
+	end
+	error("no rail row labelled " .. label)
 end
 
 local function settle(env)
@@ -162,9 +211,75 @@ do
 	assert(element.opts.resizable and element.opts.scalable and element.opts.module == "Options", "the window is resizable and scalable")
 	assert(element.opts.minWidth < element.opts.maxWidth and element.opts.minHeight < element.opts.maxHeight)
 
-	local pages = O.Labels(ns.Window.Parts().rail:GetData())
+	local pages = railPages(ns)
 	assert(table.concat(pages, "|") == "General|Elements|Unit Frames|Minimap|Profiles|About", "rail pages: " .. table.concat(pages, "|"))
 	assert(ns.Window.State().page == "General", "the window opens on General")
+end
+
+-- The rail lists the open page's sections under it, and a click jumps the rows to that section ----------
+
+do
+	local parts = ns.Window.Parts()
+	local sections = railSections(ns)
+	assert(sections[1] == "Accent" and has(sections, "Glass"), "General's level-1 headers sit under it in the rail: " .. table.concat(sections, "|"))
+	local entries = O.Labels(parts.rail:GetData())
+	assert(entries[1] == "General" and entries[2] == "Accent" and entries[#sections + 2] == "Elements", "the sections follow their page and the next page follows them: " .. table.concat(entries, "|"))
+	assert(ns.Window.State().section == 1, "the first section is current while the rows sit at their top")
+
+	local function firstRow()
+		local first
+		for _, row in ipairs(parts.content.rows) do
+			if row:IsShown() and row.index and (first == nil or row.index < first) then
+				first = row.index
+			end
+		end
+		return first
+	end
+	local function headerIndex(label)
+		local _, index = O.Find(ns.Window.State().items, function(item) return item.kind == "header" and item.label == label end)
+		return index
+	end
+
+	local glass = railRow(ns, "Glass", true)
+	assert(glass:GetHeight() < railRow(ns, "General"):GetHeight(), "a section row is shorter than a page row")
+	W.Click(glass)
+	settle(env)
+	assert(parts.content:GetOffset() == parts.content:GetMaxOffset() and parts.content:GetOffset() > 0, "General is too short to put Glass at the top, so the click scrolls to the end")
+	assert(ns.Window.State().page == "General", "a section click keeps the page")
+	local index = headerIndex("Glass")
+	assert(firstRow() < index and ns.Window.State().section < index, "the current section is the one the first row on screen belongs to, not the one clicked")
+
+	parts.content:ScrollTo(0, true)
+	settle(env)
+	assert(ns.Window.State().section == 1, "scrolling back to the top makes the first section current again")
+
+	parts.search:SetText("size")
+	parts.search:GetScript("OnTextChanged")(parts.search, true)
+	assert(#railSections(ns) == 0, "no page is selected while searching, so the rail lists no sections")
+	W.Click(parts.clear)
+	assert(#railSections(ns) > 0, "the sections come back with the page")
+
+	K.Options.Open("Minimap")
+	settle(env)
+	local list = labels(ns)
+	assert(list[1] == "Minimap" and list[2] == "Enable Minimap" and list[3] == "Zone text", "a schema that opens with a header named after its module shares that header with the enable switch: " .. table.concat(list, "|"))
+	sections = railSections(ns)
+	assert(table.concat(sections, "|") == "Clock|Tracking", "the rail lists the page's sections without repeating the page's own name: " .. table.concat(sections, "|"))
+	assert(ns.Window.State().section == 1, "the page opens at its top, on its first section")
+
+	W.Click(railRow(ns, "Tracking", true))
+	settle(env)
+	index = headerIndex("Tracking")
+	assert(firstRow() == index, "clicking a section scrolls the rows so its header is the first on screen, got row " .. tostring(firstRow()) .. " for header " .. tostring(index))
+	assert(ns.Window.State().section == index, "the clicked section is current")
+	assert(railRow(ns, "Tracking", true).mark:IsShown() and not railRow(ns, "Clock", true).mark:IsShown(), "the current section wears the accent mark, the others do not")
+
+	parts.content:Scroll(1)
+	settle(env)
+	assert(firstRow() == index - 3 and firstRow() < headerIndex("Clock") and ns.Window.State().section == 1,
+		"one wheel step up (three rows) lands above the Clock header, so the first section is current again: row " .. tostring(firstRow()) .. ", section " .. tostring(ns.Window.State().section))
+	K.Options.Open("General")
+	settle(env)
 end
 
 -- General: the core's appearance and widget settings ---------------------------------------------

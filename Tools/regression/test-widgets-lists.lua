@@ -182,6 +182,12 @@ do
 	list:ScrollToIndex(2, true)
 	W.Settle(env)
 	assert(list:GetOffset() == 24, "scrolling up to row 2 brings its top to the view's top, got " .. list:GetOffset())
+	list:ScrollToIndex(4, true, "TOP")
+	W.Settle(env)
+	assert(list:GetOffset() == 108, "TOP puts the row's top at the view's top even when the row is already in view, got " .. list:GetOffset())
+	list:ScrollToIndex(8, true, "TOP")
+	W.Settle(env)
+	assert(list:GetOffset() == 208, "TOP on the last row stops at the end of the content, got " .. list:GetOffset())
 	local before = #asked
 	list:SetSize(160, 120)
 	list:GetScript("OnSizeChanged")(list, 160, 120)

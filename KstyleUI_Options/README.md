@@ -38,7 +38,7 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 | Part | What it is |
 | --- | --- |
 | Header | The logo, the spaced title, the search field with its clear button, and the close button. The header is the drag handle. |
-| Rail | `Rail.lua`: a `ScrollList` of pages. The selected page has an accent bar and an accent wash that fades to the right. |
+| Rail | `Rail.lua`: a `ScrollList` of pages, and under the open page its sections. The selected page has an accent bar and an accent wash that fades to the right. A section row is shorter (26 units) and indented; the section whose header is on screen, or last scrolled past, carries a 2-unit accent tick. Clicking a section scrolls the rows so its header sits at the top. The rail lists no sections while a search is on. |
 | Rows | A `ScrollList` of 48-unit rows (`Rows.lua`). Each row is a header, a note, or a label with help text and one kit control on the right, 220 units wide. |
 | Preview | `Preview.lua`: a `buttonFill` tile captioned "Live preview". |
 | Footer | **Layout Mode** (primary) and **Reset** under the preview. |
@@ -51,7 +51,7 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 | --- | --- |
 | General | The schemas of the core's `Appearance` section and, when it is registered, the `Widgets` section, in that order. The preview is a kit sample (status bar, switch, slider, button) that follows accent, font, size and motion changes. |
 | Elements | The `Layout` section's schema (grid and snapping) when Layout registers one, then every element from `Layout.Elements()`, grouped under its module. |
-| One per module | Each module in `Options.List()` or `Modules.List()`, except `Options` and the General sections, in the spec's module order and then by name. A module's page starts with an **Enable** switch unless its schema has an `enabled` row, then its schema rows, then **Positions and sizes** for its own elements. |
+| One per module | Each module in `Options.List()` or `Modules.List()`, except `Options` and the General sections, in the spec's module order and then by name. A module's page starts with a header named after the module and an **Enable** switch unless its schema has an `enabled` row, then its schema rows, then **Positions and sizes** for its own elements. A schema whose first row is a level-1 header with the module's own name (`Unit frames` under `Unit Frames`) shares that header with the switch instead of repeating it. |
 | Profiles | Active profile, new, copy from, rename, delete, reset, export, import, and every known character's profile. |
 | About | Version, commands, the smoke checks and first-run setup buttons, and credits. |
 
@@ -92,6 +92,8 @@ A schema may carry `preview = function(parent) -> frame` (see `Options.Preview` 
 ## Why
 
 - **Rows are data first.** `Model.lua` turns schemas, elements and profile actions into plain item tables before anything is drawn. Visibility, section pruning and search are pure functions over those tables, so `test-options-model.lua` checks them without frames, and the window draws whatever list it is given.
+- **Sections come from the rows.** `Model.Sections(items)` lists the level-1 headers of the visible rows with their indices, and `Rail.Entries(pages, selected, sections)` weaves them under the selected page, dropping one that repeats the page's name. Both are pure, so the tests check them without a window. The window tracks the current section from the first row on screen each time the rows scroll, and a section click asks the rows for `ScrollToIndex(index, false, "TOP")`. A page too short to put a header at the top scrolls as far as it can, and the mark stays on the section the first row belongs to.
+- **The gallery shows the real pages.** `gallery_options.lua` loads KstyleUI_UnitFrames as the game loads it, so `kstyle_options_window.png` is the Unit Frames page from the module's own schema (over 90 settings for the picked frame), and `gallery_options_modules.lua` does the same for Party and Raid, Nameplates, Action Bars and Cooldowns. Before this, the gallery drew a seven-row stand-in schema, and reviewers took it for the real page.
 - **One row height.** The rows use the kit's virtualised `ScrollList`, which needs a fixed row height. 48 units fits a label, a help line and the tallest control (the slider with its readout and range). Only the rows on screen exist, and each row makes a control kind the first time it needs one.
 - **Refresh after any change.** A setting can change another row's `showWhen`, and a profile action changes the profile list, so every change queues one refresh on the next frame. The refresh rebuilds the visible list and keeps the scroll position.
 - **Profile pickers.** Copy and Delete are dropdowns whose first entry is a "Choose a profile" placeholder; choosing a profile asks for confirmation. A dropdown cannot hold no value, so the placeholder is a real option that does nothing.
