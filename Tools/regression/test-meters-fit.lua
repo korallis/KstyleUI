@@ -39,7 +39,8 @@ local function TopAnchored(list)
 	return a[1] == "TOPLEFT" and a[2] == holder and a[3] == "TOPLEFT" and b[1] == "TOPRIGHT" and b[2] == holder and b[3] == "TOPRIGHT"
 end
 
-local env, K, ns = M.New()
+-- In a group: the damage meter shows only in a group by default (test-meters-drill.lua).
+local env, K, ns = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 env._session = Session(1)
 M.Enable(env, K)
 local list = ns.Damage.list
@@ -97,7 +98,7 @@ assert(#env._errors == 0 and K.ErrorCount() == 0, "fitting raises no errors")
 -- On a high-density screen a border is several pixels: a row rounded up gives back one pixel, not a border, so it
 -- never falls below its minimum and a full list leaves less than a pixel per row.
 do
-	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234 })
+	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234, game = function(e) e._group = { raid = false, size = 2 } end })
 	hiEnv._session = Session(30)
 	M.Enable(hiEnv, hiK)
 	local hi = hiNs.Damage.list

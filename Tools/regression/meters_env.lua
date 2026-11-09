@@ -12,6 +12,10 @@
 --   env._speeds = { main, off, ranged }                   UnitAttackSpeed("player")
 --   env._inRange[swingType]                               C_SwingTimer.IsTargetWithinSwingRange
 --   env._session                                          C_DamageMeter.GetCombatSessionFromType
+--   env._sessions[id]                                     C_DamageMeter.GetCombatSessionFromID
+--   env._available = { { sessionID, name, durationSeconds } }   C_DamageMeter.GetAvailableCombatSessions
+--   env._sources[guid or creatureID]                      C_DamageMeter.GetCombatSessionSource{FromType,FromID}
+--   env._spells[id] = { name, icon }                      C_Spell.GetSpellName, C_Spell.GetSpellTexture
 local W = dofile("Tools/regression/widget_env.lua")
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 local Load = dofile("Tools/regression/load_files.lua")
@@ -71,6 +75,10 @@ function M.Game(env, opts)
 	env._rangeChecks = {}
 	env._combatFlag = false
 	env._session = { combatSources = {}, maxAmount = 0, totalAmount = 0 }
+	env._sessions = {}
+	env._available = {}
+	env._sources = {}
+	env._spells = {}
 
 	env.UnitExists = function(unit)
 		local u = env._units[unit]
@@ -136,7 +144,28 @@ function M.Game(env, opts)
 				env._lastSession = { sessionType, meterType }
 				return env._session
 			end,
+			GetCombatSessionFromID = function(sessionID, meterType)
+				assert(not env.issecretvalue(sessionID), "a secret argument reached GetCombatSessionFromID")
+				env._lastSessionID = { sessionID, meterType }
+				return env._sessions[sessionID] or { combatSources = {}, maxAmount = 0, totalAmount = 0 }
+			end,
+			GetAvailableCombatSessions = function()
+				return env._available
+			end,
 		}
+		-- The source calls refuse secret arguments from addon code (SecretArguments = "AllowedWhenUntainted").
+		local function Source(kind, session, meterType, guid, creatureID)
+			assert(not env.issecretvalue(guid) and not env.issecretvalue(creatureID), "a secret argument reached a source call")
+			env._lastSource = { kind, session, meterType, guid, creatureID }
+			local source = env._sources[guid or creatureID or false]
+			return source or { combatSpells = {}, maxAmount = 0, totalAmount = 0 }
+		end
+		env.C_DamageMeter.GetCombatSessionSourceFromType = function(sessionType, meterType, guid, creatureID)
+			return Source("type", sessionType, meterType, guid, creatureID)
+		end
+		env.C_DamageMeter.GetCombatSessionSourceFromID = function(sessionID, meterType, guid, creatureID)
+			return Source("id", sessionID, meterType, guid, creatureID)
+		end
 	end
 	-- C_Secrets.HasSecretRestrictions: true on a client whose tagged APIs return secrets in combat, as the live
 	-- Forever client's do (DamageMeterDocumentation: SecretWhenInCombat). opts.restricted sets it.
@@ -154,6 +183,15 @@ function M.Game(env, opts)
 			return env.Secret("~" .. tostring(env.Reveal(n)))
 		end
 		return "~" .. tostring(n)
+	end
+	env.C_Spell = env.C_Spell or {}
+	env.C_Spell.GetSpellName = function(id)
+		local spell = env._spells[id]
+		return spell and spell.name
+	end
+	env.C_Spell.GetSpellTexture = function(id)
+		local spell = env._spells[id]
+		return spell and spell.icon
 	end
 	env.RAID_CLASS_COLORS = nil
 	env.LOCALIZED_CLASS_NAMES_MALE = { WARRIOR = "Warrior", MAGE = "Mage", PRIEST = "Priest", ROGUE = "Rogue", HUNTER = "Hunter" }

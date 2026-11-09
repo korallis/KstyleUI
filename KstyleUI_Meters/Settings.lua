@@ -58,7 +58,7 @@ ns.defaults = {
 	accentColor = Rgb("accentDefault"),
 	damage = Merge(Bars("left"), Text(ROW_TEXT), {
 		shown = true,
-		group = false,
+		group = true,
 		mode = "auto",
 		meter = "DamageDone",
 		session = "Current",
@@ -110,6 +110,7 @@ ns.METER_TYPES = {
 }
 ns.SESSIONS = {
 	{ value = "Current", label = L["Current fight"] },
+	{ value = "Previous", label = L["Previous fight"] },
 	{ value = "Overall", label = L["Overall"] },
 }
 
@@ -149,7 +150,18 @@ local function Is(path, value)
 end
 
 local function WindowStyle(settings)
-	return not Is("damage.mode", "skin")(settings)
+	local node = settings.damage
+	local mode = type(node) == "table" and node.mode or nil
+	return ns.ResolveMode(mode) == "window"
+end
+
+local function StyleOptions()
+	local auto = ns.ResolveMode("auto") == "window" and L["Automatic: KstyleUI window"] or L["Automatic: Blizzard's, restyled"]
+	return {
+		{ value = "auto", label = auto },
+		{ value = "window", label = L["KstyleUI window"] },
+		{ value = "skin", label = L["Restyle Blizzard's window"] },
+	}
 end
 
 local function Off(section)
@@ -231,12 +243,8 @@ local schema = {
 	{ type = "toggle", key = "damage.shown", label = L["Show the damage meter"], help = L["Shows the Damage Meter in KstyleUI's style."] },
 	{
 		type = "dropdown", key = "damage.mode", label = L["Style"], disableWhen = Off("damage"),
-		help = L["Whichever reads in combat on this client, KstyleUI's own window, or Blizzard's restyled."],
-		options = {
-			{ value = "auto", label = L["Readable in combat"] },
-			{ value = "window", label = L["KstyleUI window"] },
-			{ value = "skin", label = L["Restyle Blizzard's window"] },
-		},
+		help = L["Automatic picks once, at login, the window that shows numbers in combat on this client."],
+		options = StyleOptions,
 	},
 	{
 		type = "dropdown", key = "damage.meter", label = L["Show"], disableWhen = Off("damage"), showWhen = WindowStyle,
@@ -244,11 +252,11 @@ local schema = {
 	},
 	{
 		type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["The current fight or every fight since the last reset. Right-click the title to switch."], options = ns.SESSIONS,
+		help = L["The current fight, the one before it, or every fight. Right-click the meter to switch."], options = ns.SESSIONS,
 	},
 	{
-		type = "toggle", key = "damage.group", label = L["Only in a group"], disableWhen = Off("damage"), showWhen = WindowStyle,
-		help = L["Hides the window while you play alone."],
+		type = "toggle", key = "damage.group", label = L["Only in a group"], disableWhen = Off("damage"),
+		help = L["Hides the damage meter while you play alone, in either style."],
 	},
 	{
 		type = "toggle", key = "damage.percent", label = L["Show percentages"], disableWhen = Off("damage"), showWhen = WindowStyle,

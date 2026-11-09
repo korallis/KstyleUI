@@ -1,4 +1,4 @@
--- Damage.lua: the damage meter: KstyleUI's own window over C_DamageMeter in place of Blizzard's, or Blizzard's window restyled when the data cannot be read.
+-- Damage.lua: the damage meter: KstyleUI's own window over C_DamageMeter, with fight segments and a per-source spell list, in place of Blizzard's, or Blizzard's window restyled when the data cannot be read in combat.
 local _, ns = ...
 
 local K = KstyleUI
@@ -13,12 +13,18 @@ local EVENTS = {
 	"DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED", "DAMAGE_METER_RESET",
 	"GROUP_ROSTER_UPDATE", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
 }
-local SESSION_COLUMNS = { Current = L["Current"], Overall = L["Overall"] }
+local SKIN_EVENTS = { "GROUP_ROSTER_UPDATE", "PLAYER_ENTERING_WORLD" }
+local SESSION_COLUMNS = { Current = L["Current"], Previous = L["Previous fight"], Overall = L["Overall"] }
+local SESSION_ORDER = { "Current", "Previous", "Overall" }
+local PREVIOUS_SHORT = L["Previous"]
 
-local Damage = { section = "damage", key = KEY, combat = false }
+local Damage = { section = "damage", key = KEY, combat = false, view = 1, filled = 0 }
 ns.Damage = Damage
 
 local IsSecret = Logic.IsSecret
+local drill = { active = false }
+local slots = {}
+local autoMode
 
 local function HideBlizzard()
 	local meter = _G.DamageMeter
@@ -41,6 +47,11 @@ local function Api()
 	return meter ~= nil and type(meter.GetCombatSessionFromType) == "function"
 end
 
+local function SourceApi()
+	local meter = C_DamageMeter
+	return meter ~= nil and type(meter.GetCombatSessionSourceFromType) == "function" and type(meter.GetCombatSessionSourceFromID) == "function"
+end
+
 function Damage.Restricted()
 	local secrets = C_Secrets
 	if type(secrets) ~= "table" or type(secrets.HasSecretRestrictions) ~= "function" then
@@ -50,15 +61,25 @@ function Damage.Restricted()
 	return ok and not IsSecret(restricted) and restricted == true
 end
 
-function Damage.Mode()
-	local mode = ns.Get("damage.mode")
+function Damage.AutoMode()
+	if autoMode == nil then
+		autoMode = Damage.Restricted() and "skin" or "window"
+	end
+	return autoMode
+end
+
+function ns.ResolveMode(mode)
 	if not Api() then
 		return "skin"
 	end
-	if mode == "auto" then
-		return Damage.Restricted() and "skin" or "window"
+	if mode == "auto" or mode == nil then
+		return Damage.AutoMode()
 	end
 	return mode
+end
+
+function Damage.Mode()
+	return ns.ResolveMode(ns.Get("damage.mode"))
 end
 
 local function Info()
@@ -84,14 +105,19 @@ local function Readable(t)
 	return true
 end
 
+local function PlainString(value)
+	if IsSecret(value) or type(value) ~= "string" or value == "" then
+		return nil
+	end
+	return value
+end
+
+local function Alone()
+	return ns.Get("damage.group") and IsInGroup() ~= true
+end
+
 local function Visible()
-	if not ns.Get("damage.shown") or Damage.Mode() ~= "window" then
-		return false
-	end
-	if ns.Get("damage.group") then
-		return IsInGroup() == true
-	end
-	return true
+	return ns.Get("damage.shown") and Damage.Mode() == "window" and not Alone()
 end
 
 local function DeathText(source)
@@ -108,10 +134,91 @@ end
 
 local function Hidden(list)
 	ns.LogOnce("damageHidden", "C_DamageMeter data is hidden from addons right now; the window waits for it")
+	if Damage.filled == Damage.view and (list.count or 0) > 0 then
+		list:SetColumn(L["Paused"])
+		return
+	end
 	list:Finish(0, L["Hidden in combat"])
 end
 
-local function Fill(list, info, session)
+local function SessionID(session)
+	if not Readable(session) then
+		return nil
+	end
+	return Logic.Plain(session.sessionID)
+end
+
+local function PreviousFight()
+	local meter = C_DamageMeter
+	if type(meter.GetAvailableCombatSessions) ~= "function" or type(meter.GetCombatSessionFromID) ~= "function" then
+		ns.LogOnce("noSessionList", "C_DamageMeter cannot list past fights on this client; the previous fight stays empty")
+		return nil
+	end
+	local ok, sessions = pcall(meter.GetAvailableCombatSessions)
+	if not ok or not Readable(sessions) then
+		return nil
+	end
+	local current = Damage.currentID
+	if current == nil then
+		for i = 1, #sessions do
+			local id = SessionID(sessions[i])
+			if id and (current == nil or id > current) then
+				current = id
+			end
+		end
+	end
+	local best, name
+	for i = 1, #sessions do
+		local id = SessionID(sessions[i])
+		if id and current and id < current and (best == nil or id > best) then
+			best, name = id, sessions[i].name
+		end
+	end
+	return best, PlainString(name)
+end
+
+local function Fight()
+	local session = ns.Get("damage.session")
+	if session == "Previous" then
+		local id, name = PreviousFight()
+		return nil, id, name or SESSION_COLUMNS.Previous, PREVIOUS_SHORT
+	end
+	local types = Enum and Enum.DamageMeterSessionType
+	return types and types[session], nil, SESSION_COLUMNS[session] or "", nil
+end
+
+local function Back()
+	if not drill.active then
+		return
+	end
+	drill.active = false
+	Damage.view = Damage.view + 1
+	if Damage.list then
+		Damage.list:SetIcons(false)
+	end
+end
+
+local function Slot(i)
+	local slot = slots[i]
+	if not slot then
+		slot = {}
+		slots[i] = slot
+	end
+	return slot
+end
+
+local function Remember(i, source, reaction, deaths)
+	local slot = Slot(i)
+	local guid = source.sourceGUID
+	slot.guid = PlainString(guid)
+	slot.creature = Logic.Plain(source.sourceCreatureID)
+	slot.name = PlainString(source.name)
+	slot.class = source.classFilename
+	slot.reaction = reaction
+	slot.ok = not deaths and slot.name ~= nil and (slot.guid ~= nil or slot.creature ~= nil)
+end
+
+local function FillSources(list, info, session)
 	local sources = session.combatSources
 	if not Readable(sources) then
 		Hidden(list)
@@ -133,6 +240,7 @@ local function Fill(list, info, session)
 		count = i
 		local display = source.sourceDisplayType
 		local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
+		Remember(i, source, reaction, info.deaths)
 		local amount = source.totalAmount
 		if not Present(amount) then
 			amount = 0
@@ -149,6 +257,83 @@ local function Fill(list, info, session)
 			list:SetRow(i, source.name, source.classFilename, reaction, amount, maxAmount, valueText, percentText)
 		end
 	end
+	Damage.filled = Damage.view
+	list:Finish(count, count == 0 and L["No data yet"] or nil)
+end
+
+local function SpellCall(api, spellID)
+	local spells = C_Spell
+	if type(spells) ~= "table" or type(spells[api]) ~= "function" then
+		return nil
+	end
+	local ok, value = pcall(spells[api], spellID)
+	if ok then
+		return value
+	end
+	return nil
+end
+
+local function SpellName(spell)
+	local name = SpellCall("GetSpellName", spell.spellID)
+	if name == nil then
+		local id = Logic.Plain(spell.spellID)
+		name = id and string.format("%s %d", L["Spell"], id) or ""
+	end
+	if IsSecret(name) then
+		return name
+	end
+	local creature = PlainString(spell.creatureName)
+	if creature and creature ~= drill.name then
+		return string.format("%s (%s)", name, creature)
+	end
+	return name
+end
+
+local function SourceData(meterType, sessionType, sessionID)
+	local meter = C_DamageMeter
+	if sessionID then
+		return pcall(meter.GetCombatSessionSourceFromID, sessionID, meterType, drill.guid, drill.creature)
+	end
+	return pcall(meter.GetCombatSessionSourceFromType, sessionType, meterType, drill.guid, drill.creature)
+end
+
+local function FillSpells(list, info, meterType, sessionType, sessionID)
+	local ok, source = SourceData(meterType, sessionType, sessionID)
+	if not ok then
+		ns.LogOnce("damageSourceError", "C_DamageMeter's source call failed: " .. tostring(source))
+		list:Finish(0, L["No data yet"])
+		return
+	end
+	if not Readable(source) or not Readable(source.combatSpells) then
+		Hidden(list)
+		return
+	end
+	local spells = source.combatSpells
+	local maxAmount, total = source.maxAmount, source.totalAmount
+	if not Present(maxAmount) then
+		maxAmount = 1
+	end
+	local percent = ns.Get("damage.percent")
+	local count = 0
+	for i = 1, list.capacity or 0 do
+		local spell = spells[i]
+		if not Readable(spell) then
+			break
+		end
+		count = i
+		local amount = spell.totalAmount
+		if not Present(amount) then
+			amount = 0
+		end
+		local shown = spell.totalAmount
+		if info.perSecond then
+			shown = spell.amountPerSecond
+		end
+		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
+		local icon = SpellCall("GetSpellTexture", spell.spellID)
+		list:SetRow(i, SpellName(spell), drill.class, drill.reaction, amount, maxAmount, Logic.Abbreviate(shown), percentText, icon)
+	end
+	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
 end
 
@@ -164,18 +349,32 @@ local function Refresh()
 		return
 	end
 	local info = Info()
-	local enum = Enum or {}
-	local meterTypes, sessionTypes = enum.DamageMeterType, enum.DamageMeterSessionType
+	local meterTypes = Enum and Enum.DamageMeterType
 	local meterType = meterTypes and meterTypes[info.value]
-	local sessionType = sessionTypes and sessionTypes[ns.Get("damage.session")]
-	if meterType == nil or sessionType == nil then
+	if meterType == nil or not (Enum and Enum.DamageMeterSessionType) then
 		ns.LogOnce("damageEnum", "the Damage Meter enums are missing; the window stays empty")
 		list:Finish(0, L["No data yet"])
 		return
 	end
-	local ok, session = pcall(C_DamageMeter.GetCombatSessionFromType, sessionType, meterType)
+	local sessionType, sessionID, label, short = Fight()
+	list:SetTitle(drill.active and drill.name or info.label)
+	list:SetColumn(label, short)
+	if sessionType == nil and sessionID == nil then
+		list:Finish(0, L["No earlier fight yet"])
+		return
+	end
+	if drill.active then
+		FillSpells(list, info, meterType, sessionType, sessionID)
+		return
+	end
+	local ok, session
+	if sessionID then
+		ok, session = pcall(C_DamageMeter.GetCombatSessionFromID, sessionID, meterType)
+	else
+		ok, session = pcall(C_DamageMeter.GetCombatSessionFromType, sessionType, meterType)
+	end
 	if not ok then
-		ns.LogOnce("damageError", "C_DamageMeter.GetCombatSessionFromType failed: " .. tostring(session))
+		ns.LogOnce("damageError", "C_DamageMeter's session call failed: " .. tostring(session))
 		list:Finish(0, L["No data yet"])
 		return
 	end
@@ -183,7 +382,7 @@ local function Refresh()
 		Hidden(list)
 		return
 	end
-	Fill(list, info, session)
+	FillSources(list, info, session)
 end
 
 local function Schedule()
@@ -194,24 +393,85 @@ local function Schedule()
 	C_Timer.After(UPDATE_DELAY, Refresh)
 end
 
-function Damage:OnEvent(event)
+local function SkinVisibility()
+	if Alone() then
+		HideBlizzard()
+	else
+		RestoreBlizzard()
+	end
+end
+
+function Damage:OnEvent(event, meterType, sessionID)
+	if Damage.Mode() ~= "window" then
+		SkinVisibility()
+		return
+	end
 	if event == "PLAYER_REGEN_DISABLED" then
 		self.combat = true
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		self.combat = false
+	elseif event == "DAMAGE_METER_RESET" then
+		self.currentID = nil
+		Back()
+	elseif event == "DAMAGE_METER_COMBAT_SESSION_UPDATED" then
+		local id = Logic.Plain(sessionID)
+		if id and id > 0 then
+			self.currentID = id
+		end
 	end
 	Schedule()
 end
 
+local function OnRowClick(list, i, button)
+	if drill.active then
+		Back()
+		Refresh()
+		return
+	end
+	local slot = slots[i]
+	if button ~= "LeftButton" or not slot or not slot.ok or i > (list.count or 0) or not SourceApi() then
+		return
+	end
+	drill.active = true
+	drill.guid, drill.creature, drill.name = slot.guid, slot.creature, slot.name
+	drill.class, drill.reaction = slot.class, slot.reaction
+	Damage.view = Damage.view + 1
+	list:SetIcons(true)
+	Refresh()
+end
+
+local function NextSession()
+	local session = ns.Get("damage.session")
+	for i, value in ipairs(SESSION_ORDER) do
+		if value == session then
+			return SESSION_ORDER[i % #SESSION_ORDER + 1]
+		end
+	end
+	return SESSION_ORDER[1]
+end
+
 local function OnClick(_, button)
+	if drill.active then
+		Back()
+		Refresh()
+		return
+	end
 	if button == "RightButton" then
-		local session = ns.Get("damage.session") == "Current" and "Overall" or "Current"
-		K.Options.Write(ns.MODULE, "damage.session", session)
+		K.Options.Write(ns.MODULE, "damage.session", NextSession())
 		return
 	end
 	local _, index = Info()
 	local nextType = ns.METER_TYPES[index % #ns.METER_TYPES + 1]
 	K.Options.Write(ns.MODULE, "damage.meter", nextType.value)
+end
+
+local function Tooltip(tip)
+	if drill.active then
+		tip:AddLine(L["Click to go back to every source."])
+		return
+	end
+	tip:AddLine(L["Click a name for its spells. Click the title for the next meter."])
+	tip:AddLine(L["Right-click for the next fight: current, previous or overall."])
 end
 
 local function Columns()
@@ -222,7 +482,7 @@ local function Build()
 	local width, height = ns.Footprint(KEY)
 	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
 		width = width or 260, height = height or 174, columns = Columns, onClick = OnClick,
-		tooltip = L["Click to change what the meter shows. Right-click for the current fight or overall."],
+		onRowClick = OnRowClick, tooltip = Tooltip,
 	})
 	Damage.holder = Damage.list.holder
 	ns.Place(Damage.holder, KEY, LIMITS)
@@ -242,6 +502,19 @@ function Damage:Start()
 	self:Apply()
 end
 
+local function Track(self)
+	local meter, session = ns.Get("damage.meter"), ns.Get("damage.session")
+	if meter ~= self.meter then
+		self.meter = meter
+		Back()
+		self.view = self.view + 1
+	end
+	if session ~= self.session then
+		self.session = session
+		self.view = self.view + 1
+	end
+end
+
 local function Window(self)
 	ns.DamageSkin.Deactivate()
 	self.holder:Show()
@@ -249,9 +522,7 @@ local function Window(self)
 		ns.Watch(self, event)
 	end
 	HideBlizzard()
-	local info = Info()
-	self.list:SetTitle(info.label)
-	self.list:SetColumn(SESSION_COLUMNS[ns.Get("damage.session")] or "")
+	Track(self)
 	self.list:Restyle()
 	self.combat = InCombatLockdown() == true
 	Refresh()
@@ -275,9 +546,13 @@ function Damage:Apply()
 			or "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
 	end
 	ns.UnwatchAll(self)
+	for _, event in ipairs(SKIN_EVENTS) do
+		ns.Watch(self, event)
+	end
+	Back()
 	self.list.panel:Hide()
 	self.holder:Hide()
-	RestoreBlizzard()
+	SkinVisibility()
 	ns.DamageSkin.Activate()
 end
 
@@ -286,6 +561,7 @@ function Damage:Stop()
 		return
 	end
 	ns.UnwatchAll(self)
+	Back()
 	self.list.panel:Hide()
 	self.holder:Hide()
 	RestoreBlizzard()

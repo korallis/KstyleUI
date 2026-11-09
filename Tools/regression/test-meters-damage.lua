@@ -2,7 +2,8 @@
 local M = dofile("Tools/regression/meters_env.lua")
 local CoreEnv = M.CoreEnv
 
-local env, K, ns = M.New()
+-- In a group: the damage meter shows only in a group by default, in either style.
+local env, K, ns = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 local S = env.Secret
 
 local function Text(fontString)
@@ -165,6 +166,9 @@ assert(Damage.Mode() == "window", "readable tables keep KstyleUI's window")
 
 -- Group only hides the window while alone.
 M.Write(env, K, "damage.group", true)
+env._group = { raid = false, size = 0 }
+env.FireEvent("GROUP_ROSTER_UPDATE")
+env.RunTimers()
 assert(not list.panel:IsShown(), "the window hides while alone")
 env._group = { raid = false, size = 2 }
 env.FireEvent("GROUP_ROSTER_UPDATE")
@@ -192,8 +196,9 @@ env.RunTimers()
 env._locked[env._session] = true
 env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 4)
 env.RunTimers()
-assert(list.note:IsShown(), "hidden data shows a note")
-assert(Text(list.note) == "Hidden in combat", "the note says why")
+-- The rows read before the pull stay, and the column says the list is paused (test-meters-drill.lua).
+assert(list.count > 0 and not list.note:IsShown(), "hidden data keeps the rows read last")
+assert(Text(list.column) == "Paused", "the column says why")
 assert(K.Safe.IsHidden(blizzard), "Blizzard's meter stays hidden during combat")
 env.SetCombat(false)
 env._locked[env._session] = nil
@@ -225,7 +230,7 @@ assert(nsR.Damage.Mode() == "window" and nsR.Damage.holder:IsShown(), "the playe
 assert(#envR._errors == 0, "no Lua error: " .. tostring(envR._errors[1]))
 
 -- Without C_DamageMeter the module restyles Blizzard's window from the start.
-local env2, K2, ns2 = M.New({ noMeter = true })
+local env2, K2, ns2 = M.New({ noMeter = true, game = function(e) e._group = { raid = false, size = 2 } end })
 M.Enable(env2, K2)
 assert(ns2.Damage.Mode() == "skin", "no C_DamageMeter, no window")
 assert(not ns2.Damage.holder:IsShown(), "the window stays hidden")
@@ -234,7 +239,7 @@ assert(M.Logged(env2, "C_DamageMeter is missing"), "the path is logged")
 assert(#env2._errors == 0, "no Lua error: " .. tostring(env2._errors[1]))
 
 -- The restyle style by choice.
-local env3, K3, ns3 = M.New()
+local env3, K3, ns3 = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 M.Enable(env3, K3)
 M.Write(env3, K3, "damage.mode", "skin")
 assert(not ns3.Damage.holder:IsShown(), "the restyle style hides KstyleUI's window")

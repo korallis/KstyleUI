@@ -1,4 +1,4 @@
--- test-meters-skin.lua: the restyle style reskins Blizzard's Damage Meter windows through hooks and the core's Skin helpers, without scripts, hides, reparenting or new fields on Blizzard's frames.
+-- test-meters-skin.lua: the restyle style reskins Blizzard's Damage Meter windows and their spell breakdown windows through hooks and the core's Skin helpers, without scripts, hides, reparenting or new fields on Blizzard's frames.
 local M = dofile("Tools/regression/meters_env.lua")
 local CoreEnv = M.CoreEnv
 
@@ -41,6 +41,32 @@ local function Window(env, owner, index)
 	local box = Track(env.CreateFrame("Frame", nil, container))
 	window.entries = { Entry(env, box, "WARRIOR", 1), Entry(env, box, "", 2) }
 	window.own = Entry(env, container, "HUNTER", 1)
+	-- The spell breakdown window Blizzard opens on a click (DamageMeterSourceWindowTemplate).
+	local source = Track(env.CreateFrame("Frame", nil, container))
+	source.Background = Track(source:CreateTexture(nil, "BACKGROUND"))
+	local spellBox = Track(env.CreateFrame("Frame", nil, source))
+	local spellScroll = Track(env.CreateFrame("Frame", nil, source))
+	local close = Track(env.CreateFrame("Button", nil, source))
+	source.entries = { Entry(env, spellBox, "WARRIOR", 1) }
+	function spellBox.ForEachFrame(_, fn)
+		for _, entry in ipairs(source.entries) do
+			fn(entry, {})
+		end
+	end
+	function source.GetScrollBox()
+		return spellBox
+	end
+	function source.GetScrollBar()
+		return spellScroll
+	end
+	function source.GetCloseButton()
+		return close
+	end
+	function source.Refresh() end
+	function window.GetSourceWindow()
+		return source
+	end
+	window.source = source
 	function box.ForEachFrame(_, fn)
 		for _, entry in ipairs(window.entries) do
 			fn(entry, {})
@@ -80,8 +106,10 @@ end
 
 local HOOKED = { SetAlpha = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
 
+-- In a group, so the group-only default (on in both styles) leaves Blizzard's window where Edit Mode put it.
 local env, K, ns = M.New({
 	game = function(env)
+		env._group = { raid = false, size = 2 }
 		local owner = Track(env.DamageMeter)
 		owner.windows = { Window(env, owner, 1) }
 		function owner.GetSessionWindow(self, index)
@@ -202,6 +230,28 @@ assert(typeColour and typeColour[1] == gr and typeColour[2] == gg and typeColour
 local mr, mg, mb = K.Tokens.Color("muted")
 local timerColour = M.Last(window.SessionTimer, "SetTextColor")
 assert(timerColour and timerColour[1] == mr and timerColour[2] == mg and timerColour[3] == mb, "the timer is muted, as the own meter's aside")
+
+-- The spell breakdown window wears the same glass, and its spell rows the same pills.
+do
+	local source = window.source
+	assert(source.Background:GetAlpha() == 0, "the spell window's art is hushed")
+	local glass
+	for _, child in ipairs(source._kids) do
+		if child.chrome then
+			glass = child
+		end
+	end
+	assert(glass and glass.chrome.shapeName == "panel", "the spell window wears the glass panel")
+	local spellPill = Pill(source.entries[1])
+	assert(spellPill and spellPill.backgroundName == "buttonFill", "a spell row gets the own meter's pill")
+	local sr, sg, sb = K.Theme.ClassColor("WARRIOR")
+	local c = spellPill.colorRGBA
+	assert(c[1] == sr and c[2] == sg and c[3] == sb, "a spell row takes its source's class colour")
+	local later = Entry(env, source, "WARRIOR", 1)
+	source.entries[#source.entries + 1] = later
+	source:Refresh()
+	assert(Pill(later), "a spell row shown later is restyled when Blizzard refreshes the window")
+end
 
 -- Rows the scroll box acquires later are restyled when Blizzard initialises them.
 local late = Entry(env, window, "MAGE", 1)

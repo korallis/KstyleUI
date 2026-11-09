@@ -1,4 +1,4 @@
--- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside, and full-width rows that carry a name, a value and a share over a 4-unit glowing class pill.
+-- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside, and full-width rows that carry an optional icon, a name, a value and a share over a 4-unit glowing class pill.
 local _, ns = ...
 
 local K = KstyleUI
@@ -14,6 +14,8 @@ local PILL_GAP = 3
 local PILL_GLOW_OUTSET = 3
 local PILL_GLOW_ALPHA = 0.35
 local TEXT_AIR = 2
+local ICON_CROP = 0.08
+local CAP_RESERVE = 44
 local CAP_GAP = "gapMedium"
 
 local BarList = {}
@@ -36,7 +38,7 @@ local function Text(parent, justify)
 	return text
 end
 
-local function NewRow(list)
+local function NewRow(list, index)
 	local section = list.section
 	local width = list.barWidth or Tokens.Size("buffBarWidth")
 	local frame = CreateFrame("Frame", nil, list.panel)
@@ -53,14 +55,28 @@ local function NewRow(list)
 	local glow = frame:CreateTexture(nil, "ARTWORK", nil, -1)
 	glow:SetTexture((Tokens.Texture("pill")))
 	glow:SetBlendMode("ADD")
+	local icon = frame:CreateTexture(nil, "ARTWORK")
+	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
+	icon:Hide()
 	local row = {
+		index = index,
 		frame = frame,
 		bar = bar,
 		glow = glow,
+		icon = icon,
 		name = Text(frame, "LEFT"),
 		value = Text(frame, "RIGHT"),
 		percent = Text(frame, "RIGHT"),
 	}
+	if list.onRowClick then
+		frame:EnableMouse(true)
+		frame:SetScript("OnMouseUp", function(_, button)
+			list.onRowClick(list, row.index, button)
+		end)
+	end
+	if list.tooltip then
+		Widgets.AttachTooltip(frame, list.tooltip)
+	end
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
 	row.value:SetTextColor(Tokens.Color("textEmphasis"))
 	row.percent:SetTextColor(Tokens.Color("text"))
@@ -150,7 +166,15 @@ local function PlaceRow(list, row, i)
 	row.percent:SetShown(list.percentWidth > 0)
 	local stop = list.valueWidth > 0 and row.value or list.percentWidth > 0 and row.percent or nil
 	row.name:ClearAllPoints()
-	row.name:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+	row.icon:ClearAllPoints()
+	if list.icons then
+		row.icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+		row.icon:SetSize(line, line)
+		row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", gap, 0)
+	else
+		row.icon:Hide()
+		row.name:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+	end
 	row.name:SetHeight(line)
 	if stop then
 		row.name:SetPoint("RIGHT", stop, "LEFT", -gap, 0)
@@ -217,7 +241,7 @@ end
 function List:Row(i)
 	local row = self.rows[i]
 	if not row then
-		row = NewRow(self)
+		row = NewRow(self, i)
 		self.rows[i] = row
 		StyleRow(self, row)
 		PlaceRow(self, row, i)
@@ -225,8 +249,12 @@ function List:Row(i)
 	return row
 end
 
-function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText)
+function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText, icon)
 	local row = self:Row(i)
+	if self.icons then
+		row.icon:SetTexture(icon)
+		row.icon:SetShown(Logic.IsSecret(icon) or icon ~= nil)
+	end
 	row.frame:Show()
 	row.bar:SetBarRange(0, maxValue)
 	row.bar:SetBarValue(value)
@@ -253,12 +281,38 @@ function List:Finish(count, note)
 	self:Fit()
 end
 
+function List:SetIcons(shown)
+	shown = shown == true
+	if self.icons == shown then
+		return
+	end
+	self.icons = shown
+	for i = 1, #self.rows do
+		PlaceRow(self, self.rows[i], i)
+	end
+end
+
 function List:SetTitle(text)
 	self.cap:SetTitle(text)
 end
 
-function List:SetColumn(text)
+local function TextWidth(text)
+	local width = Logic.Plain(text:GetStringWidth())
+	if width and width > 0 then
+		return width
+	end
+	return nil
+end
+
+function List:SetColumn(text, short)
 	self.cap:SetAside(text)
+	if short == nil or short == text or not ns.Get(self.section .. ".title") then
+		return
+	end
+	local title, aside = TextWidth(self.title), TextWidth(self.column)
+	if title and aside and title + aside > (self.barWidth or 0) - CAP_RESERVE then
+		self.cap:SetAside(short)
+	end
 end
 
 function List:Paint()
@@ -297,6 +351,9 @@ function BarList.New(parent, section, opts)
 	list.section = section
 	list.width, list.height = opts.width, opts.height
 	list.columns = opts.columns
+	list.onRowClick = opts.onRowClick
+	list.tooltip = opts.tooltip
+	list.icons = false
 	list.rows = {}
 	list.count = 0
 	local holder = CreateFrame("Frame", nil, parent)

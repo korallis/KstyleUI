@@ -1,4 +1,4 @@
--- DamageSkin.lua: restyles Blizzard's Damage Meter windows in place as the own meter's BarList rows: Blizzard's fill hushed, a glowing class pill at each row's foot, the header in the cap's type, through the core's Skin helpers and hooks.
+-- DamageSkin.lua: restyles Blizzard's Damage Meter windows and their spell breakdown windows in place as the own meter's BarList rows: Blizzard's fill hushed, a glowing class pill at each row's foot, the header in the cap's type, through the core's Skin helpers and hooks.
 local _, ns = ...
 
 local K = KstyleUI
@@ -16,6 +16,7 @@ ns.DamageSkin = DamageSkin
 
 local WEAK = { __mode = "k" }
 local windows = setmetatable({}, WEAK)
+local sources = setmetatable({}, WEAK)
 local entries = setmetatable({}, WEAK)
 local pills = setmetatable({}, WEAK)
 local generation = 1
@@ -178,6 +179,52 @@ local function RestyleWindow(window)
 	end
 end
 
+local function RestyleSource(source)
+	if not DamageSkin.active or type(source) ~= "table" then
+		return
+	end
+	local box = type(source.GetScrollBox) == "function" and source:GetScrollBox()
+	if type(box) == "table" and type(box.ForEachFrame) == "function" then
+		box:ForEachFrame(StyleEntry)
+	end
+end
+
+local function SourceWindow(window)
+	if type(window.GetSourceWindow) ~= "function" then
+		return nil
+	end
+	local ok, source = pcall(window.GetSourceWindow, window)
+	if ok and type(source) == "table" then
+		return source
+	end
+	return nil
+end
+
+local function StyleSource(window)
+	local source = SourceWindow(window)
+	if source == nil then
+		ns.LogOnce("noSourceWindow", "a Damage Meter window has no spell breakdown window on this client; only the sources are restyled")
+		return
+	end
+	if not sources[source] then
+		sources[source] = true
+		K.Skin.Strip(source)
+		K.Skin.Backdrop(source, { shape = "panel" })
+		local scroll = type(source.GetScrollBar) == "function" and source:GetScrollBar()
+		if scroll then
+			K.Skin.ScrollBar(scroll)
+		end
+		local close = type(source.GetCloseButton) == "function" and source:GetCloseButton()
+		if close then
+			K.Skin.CloseButton(close)
+		end
+		if type(source.Refresh) == "function" then
+			hooksecurefunc(source, "Refresh", RestyleSource)
+		end
+	end
+	RestyleSource(source)
+end
+
 local function OnInitEntry(_, entry)
 	StyleEntry(entry)
 end
@@ -200,6 +247,7 @@ local function StyleWindow(window)
 		if type(window.InitEntry) == "function" then
 			hooksecurefunc(window, "InitEntry", OnInitEntry)
 		end
+		StyleSource(window)
 	end
 	RestyleWindow(window)
 end
@@ -227,6 +275,9 @@ function DamageSkin.Restyle()
 	generation = generation + 1
 	for window in pairs(windows) do
 		RestyleWindow(window)
+	end
+	for source in pairs(sources) do
+		RestyleSource(source)
 	end
 	for entry in pairs(entries) do
 		StyleEntry(entry)

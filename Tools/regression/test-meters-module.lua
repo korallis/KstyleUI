@@ -2,7 +2,8 @@
 local M = dofile("Tools/regression/meters_env.lua")
 local CoreEnv = M.CoreEnv
 
-local env, K, ns = M.New()
+-- In a group: the damage meter shows only in a group by default (test-meters-drill.lua).
+local env, K, ns = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 
 -- Off in code, free while off.
 local listed = false

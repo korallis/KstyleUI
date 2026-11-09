@@ -1,7 +1,8 @@
 -- gallery_meters.lua: every frame KstyleUI_Meters draws, each cropped as one frame of the gallery: the damage
--- meter window with eight class-coloured rows, the threat meter with a party of five and the tank on top, the
+-- meter window with eight class-coloured rows, the same window opened on one source's spells and on the previous
+-- fight, the threat meter with a party of five and the tank on top, the
 -- swing timer's two bars mid-swing, the Meters page's live preview, and Blizzard's Damage Meter window restyled
--- in place (a second environment, since the restyle style hides KstyleUI's own window). The meter stand-ins
+-- in place with its spell breakdown window (a second environment, since the restyle style hides KstyleUI's own window). The meter stand-ins
 -- (meters_env.lua) hold a damage session, the party's threat and the swing speeds; Blizzard's window is a fake
 -- with no layout of its own, so this scene places its header texts and rows.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -31,6 +32,18 @@ local PARTY = {
 	{ "party4", "Sylaen", "PRIEST", { false, 0, 41, 36, 510000 } },
 }
 local FIGHT_SECONDS = 100
+-- Kragar's spells in the fight, highest first: spell ID, name, icon file ID, amount. They add up to his total.
+local SPELLS = {
+	{ 12294, "Mortal Strike", 132355, 92400 },
+	{ 1680, "Whirlwind", 132369, 61800 },
+	{ 1464, "Slam", 132340, 48300 },
+	{ 5308, "Execute", 135358, 39100 },
+	{ 772, "Rend", 132155, 24600 },
+	{ 78, "Heroic Strike", 132282, 18000 },
+}
+-- The fight before this one, which the game still holds: a shorter trash pull.
+local PREVIOUS = { id = 11, name = "Riverglade Crocolisk", sources = { { "Kragar", "WARRIOR", 61400 }, { "Valerin", "WARRIOR", 52800 }, { "Sylaen", "PRIEST", 40100 }, { "Thargor", "ROGUE", 33900 } } }
+local CURRENT_ID = 12
 
 local function abbreviate(n)
 	if type(n) ~= "number" then
@@ -66,16 +79,39 @@ local function setup(env)
 	env._speeds = { 2.6, 1.8, nil }
 end
 
-local function session()
+local function session(list)
+	list = list or SOURCES
 	local sources, total = {}, 0
-	for i, s in ipairs(SOURCES) do
+	for i, s in ipairs(list) do
 		total = total + s[3]
 		sources[i] = {
 			name = s[1], classFilename = s[2], totalAmount = s[3], amountPerSecond = s[3] / FIGHT_SECONDS,
-			sourceDisplayType = 1, isLocalPlayer = s[1] == "Valerin", deathRecapID = 0, deathTimeSeconds = 0,
+			sourceGUID = "Player-" .. s[1], sourceDisplayType = 1, isLocalPlayer = s[1] == "Valerin", deathRecapID = 0, deathTimeSeconds = 0,
 		}
 	end
-	return { combatSources = sources, maxAmount = SOURCES[1][3], totalAmount = total, durationSeconds = FIGHT_SECONDS }
+	return { combatSources = sources, maxAmount = list[1][3], totalAmount = total, durationSeconds = FIGHT_SECONDS }
+end
+
+local function combatSpells()
+	local out = {}
+	for i, spell in ipairs(SPELLS) do
+		out[i] = {
+			spellID = spell[1], totalAmount = spell[4], amountPerSecond = spell[4] / FIGHT_SECONDS, creatureName = "",
+			overkillAmount = 0, isAvoidable = false, isDeadly = false,
+			combatSpellDetails = { unitName = "", unitClassFilename = "", classification = "", isPet = false, isMob = false, amount = 0, specIconID = 0 },
+		}
+	end
+	return out
+end
+
+-- spells(env) gives the stand-ins Kragar's spell breakdown, the spells' names and icons, and the previous fight.
+local function spells(env)
+	for _, spell in ipairs(SPELLS) do
+		env._spells[spell[1]] = { name = spell[2], icon = spell[3] }
+	end
+	env._sources["Player-Kragar"] = { combatSpells = combatSpells(), maxAmount = SPELLS[1][4], totalAmount = SOURCES[1][3] }
+	env._available = { { sessionID = PREVIOUS.id, name = PREVIOUS.name, durationSeconds = 41 }, { sessionID = CURRENT_ID, name = "" } }
+	env._sessions[PREVIOUS.id] = session(PREVIOUS.sources)
 end
 
 local function party(env)
@@ -114,6 +150,7 @@ local function live(frames)
 		setup = function(env)
 			setup(env)
 			env._session = session()
+			spells(env)
 			party(env)
 		end,
 	}))
@@ -134,6 +171,7 @@ local function live(frames)
 		caption = "KstyleUI's damage meter window (BarList on Widgets.Panel): DAMAGE DONE and the CURRENT column over eight class-coloured rows with names, values and shares, on the glass panel grade; each row's track is the buttonFill body, as the unit frames' tracks.",
 		match = "Surface fill, dark outer and light inner line, drop shadow and the 8-unit panel chamfer as the mockup's unit frame glass; the mockup has no meter, so the rows are KstyleUI's own.",
 	})
+
 
 	-- The threat meter: the tank on top, the player second.
 	move(K, "meters.threat", 60, 330, 260, 150)
@@ -176,6 +214,60 @@ local function live(frames)
 	return env, K
 end
 
+-- One damage meter window in another state, each in its own environment at its own place on the screen ---------
+
+local function variant(frames, x, y, prepare, entry)
+	local M = dofile("Tools/regression/meters_env.lua")
+	local env, K, ns = M.New(Common.ScreenOpts({
+		saved = Gallery.Saved({ "Meters" }),
+		setup = function(env)
+			setup(env)
+			env._session = session()
+			spells(env)
+			party(env)
+		end,
+	}))
+	if not K.Modules.IsRunning("Meters") then
+		K.Modules.Enable("Meters")
+	end
+	env.RunTimers()
+	M.Write(env, K, "threat.shown", false)
+	M.Write(env, K, "swing.shown", false)
+	env.FireEvent("GROUP_ROSTER_UPDATE")
+	move(K, "meters.damage", x, y, 260, 200)
+	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
+	env.RunTimers()
+	prepare(env, K, ns, M)
+	frames:Add(env, ns.Damage.holder, entry)
+	Gallery.Ticks(M.W, env, 20)
+	return env, K
+end
+
+-- The window after a click on Kragar: his spells, each with its icon, amount and share of his total.
+local function drilled(frames)
+	return variant(frames, 860, 80, function(env, _, ns)
+		local row = ns.Damage.list.rows[1].frame
+		row._scripts.OnMouseUp(row, "LeftButton")
+		env.RunTimers()
+	end, {
+		name = "meters_damage_spells", title = "Damage meter: one source's spells", grade = "panel", reference = "player",
+		caption = "The damage meter after a click on Kragar: the title names him and his six spells list from C_DamageMeter.GetCombatSessionSourceFromType, each with its icon, amount and share of his damage, on his class pill. A click anywhere goes back to every source.",
+		match = "The same glass and rows as the source list; the icons sit on the text line, inside the content inset.",
+	})
+end
+
+-- The previous fight: a right-click on the title steps from the current fight to the one before it.
+local function previous(frames)
+	return variant(frames, 1160, 80, function(env, K, _, M)
+		env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, CURRENT_ID)
+		M.Write(env, K, "damage.session", "Previous")
+	end, {
+		name = "meters_damage_previous", title = "Damage meter: previous fight", grade = "panel", reference = "player",
+		caption = "The damage meter on the previous fight, read by its session ID (GetCombatSessionFromID): the column names the fight the game recorded, Riverglade Crocolisk, over its four sources.",
+		match = "The same glass and rows; the glass hangs from the top and ends under the last row, so four rows leave no empty slab.",
+	})
+end
+
 -- Blizzard's Damage Meter window, restyled in place -------------------------------------------------------------
 
 local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 260, 180
@@ -186,7 +278,11 @@ local function skin(frames)
 	local window
 	local env, K, ns = M.New(Common.ScreenOpts({
 		saved = Gallery.Saved({ "Meters" }),
-		setup = setup,
+		setup = function(env)
+			setup(env)
+			-- In a party: the damage meter shows only in a group by default, Blizzard's restyled window too.
+			env._group = { raid = false, size = 4 }
+		end,
 		game = function(env)
 			local owner = env.DamageMeter
 			window = env.CreateFrame("Frame", "DamageMeterSessionWindow1", owner)
@@ -235,6 +331,43 @@ local function skin(frames)
 					entry:UpdateStatusBarColor()
 				end
 			end
+			-- The spell breakdown window Blizzard opens beside the session window on a click.
+			local source = env.CreateFrame("Frame", nil, container)
+			source.Background = source:CreateTexture(nil, "BACKGROUND")
+			local spellBox = env.CreateFrame("Frame", nil, source)
+			local spellScroll = env.CreateFrame("Frame", nil, source)
+			source.entries = {}
+			for i, spell in ipairs(SPELLS) do
+				local entry = env.CreateFrame("Button", nil, spellBox)
+				local bar = env.CreateFrame("StatusBar", nil, entry)
+				bar:SetStatusBarTexture("blizzard-bar")
+				bar.Background = bar:CreateTexture(nil, "BACKGROUND")
+				bar.Name = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+				bar.Value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+				entry.StatusBar = bar
+				entry.classFilename = "WARRIOR"
+				entry.spell = spell
+				entry.UpdateStatusBarColor = function(self)
+					self.StatusBar:GetStatusBarTexture():SetVertexColor(1, 0, 0)
+				end
+				source.entries[i] = entry
+			end
+			function spellBox.ForEachFrame(_, fn)
+				for _, entry in ipairs(source.entries) do
+					fn(entry, {})
+				end
+			end
+			function source.GetScrollBox()
+				return spellBox
+			end
+			function source.GetScrollBar()
+				return spellScroll
+			end
+			function source.Refresh() end
+			function window.GetSourceWindow()
+				return source
+			end
+			window.source, source.box, source.scroll = source, spellBox, spellScroll
 			window.container, window.scroll, window.box = container, scroll, box
 			owner.windows = { window }
 			function owner.GetSessionWindow(self, index)
@@ -280,8 +413,38 @@ local function skin(frames)
 		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
 		bar.Value:SetText(abbreviate(s[3]))
 	end
+	-- Blizzard anchors the spell window to the session window's side with more room; the scene puts it right.
+	local source = window.source
+	source:ClearAllPoints()
+	source:SetPoint("TOPLEFT", window, "TOPRIGHT", SKIN_GAP * 3, 0)
+	source:SetSize(SKIN_W, SKIN_HEADER + #SPELLS * (SKIN_ROW + SKIN_GAP) + SKIN_PAD)
+	source.scroll:SetPoint("TOPRIGHT", source, "TOPRIGHT", -SKIN_PAD / 2, -SKIN_PAD)
+	source.scroll:SetSize(SKIN_PAD / 2, #SPELLS * (SKIN_ROW + SKIN_GAP))
+	source.box:SetPoint("TOPLEFT", source, "TOPLEFT", SKIN_PAD, -SKIN_PAD)
+	source.box:SetPoint("BOTTOMRIGHT", source, "BOTTOMRIGHT", -2 * SKIN_PAD, SKIN_PAD)
+	for i, entry in ipairs(source.entries) do
+		local spell = entry.spell
+		entry:SetPoint("TOPLEFT", source.box, "TOPLEFT", 0, -(i - 1) * (SKIN_ROW + SKIN_GAP))
+		entry:SetPoint("RIGHT", source.box, "RIGHT", 0, 0)
+		entry:SetHeight(SKIN_ROW)
+		local bar = entry.StatusBar
+		bar:SetAllPoints(entry)
+		bar:SetMinMaxValues(0, SPELLS[1][4])
+		bar:SetValue(spell[4])
+		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
+		bar.Name:SetText(spell[2])
+		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
+		bar.Value:SetText(abbreviate(spell[4]))
+	end
+	source:Show()
 	window:Refresh()
+	source:Refresh()
 	env.RunTimers()
+	frames:Add(env, source, {
+		name = "meters_damage_skin_spells", title = "Blizzard's spell breakdown, restyled", grade = "panel", reference = "player",
+		caption = "The spell breakdown window Blizzard's Damage Meter opens on a click (DamageMeterSourceWindow), restyled with the session window: its art stripped, KstyleUI glass behind it, and each spell row on the own meter's 4-unit class pill in the meter's font.",
+		match = "The same panel grade and pill rows as the restyled session window beside it.",
+	})
 	frames:Add(env, window, {
 		name = "meters_damage_skin", title = "Blizzard's Damage Meter, restyled", grade = "panel", reference = "player",
 		caption = "Blizzard's Damage Meter session window restyled in place (DamageSkin): the header art stripped, KstyleUI glass behind the window, and each row's bar on a buttonFill tile with the meter's texture, font and class colour.",
@@ -295,7 +458,9 @@ return Common.Run(function()
 	local frames = Gallery.Frames()
 	local env1, K1 = live(frames)
 	local env2, K2 = skin(frames)
-	local scene = Scene.Merge({ Gallery.Build(env1), Gallery.Build(env2) })
+	local env3 = drilled(frames)
+	local env4 = previous(frames)
+	local scene = Scene.Merge({ Gallery.Build(env1), Gallery.Build(env2), Gallery.Build(env3), Gallery.Build(env4) })
 	scene.log[#scene.log + 1] = "the restyled Blizzard window is a fake laid out by the scene; the game lays out its own Damage Meter"
 	local err = Common.Errors(env2, K2)
 	if err then
