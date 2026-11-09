@@ -251,17 +251,19 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The kit's type: the title is body-size upper case, the rarity a caption, lines pitched half a unit apart
--- (the design's 13.5-unit pitch for 11-unit lines) --
+-- The kit's type: the title is in the heading face (Lumen's Cinzel), the rarity a caption, lines pitched half a
+-- unit apart (the design's 13.5-unit pitch for 11-unit lines); the glass is a Lumen window card --
 
 do
 	local env, K, ns = Enabled()
-	assert(ns.Style.KIT_ROLES.title == "body" and ns.Style.KIT_ROLES.small == "caption", "the title takes the body role, the rarity the caption role")
+	assert(ns.Style.KIT_ROLES.title == "heading" and ns.Style.KIT_ROLES.small == "caption", "the title takes the heading role, the rarity the caption role")
 	for name in pairs(T.TOOLTIPS) do
 		assert(env[name]._lineSpacing == 0.5, name .. ": lines sit half a unit apart")
 	end
 	assert(ns.Settings.Get("iconSize") == 50, "the icon tile is the design's 50 units")
-	assert(ns.Style.Glass(env.GameTooltip).chrome:Chamfer() == K.Tokens.Size("chamferPanel"), "the glass keeps the kit's panel chamfer")
+	local chrome = ns.Style.Glass(env.GameTooltip).chrome
+	assert(chrome.shapeName == "window", "the glass is the window grade, the Lumen card with gilt tips")
+	assert(chrome:Chamfer() == K.Tokens.Size("chamferWindow"), "at the window cut")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -281,16 +283,23 @@ do
 	tip:AddLine("Crafting Reagent", 0.4, 0.7, 1)
 	tip:AddLine("+5 Agility", 1, 1, 1)
 	tip:AddLine("Durability 100 / 100", 1, 1, 1)
+	tip:AddLine("+12 Armor", 0.1, 1, 0.1)
+	tip:AddLine("-3 Stamina", 1, 0.1, 0.1)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "by default the panel keeps the kit's faint hairline")
 	K.Options.Write("Tooltips", "qualityEdge", true)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(SameEdge(glass, K.Theme.QualityColor(3)), "a rare item lights the edge in the rare colour")
-	assert(glass.divider:IsShown(), "an item with stats shows the accent rule")
+	assert(glass.divider:IsShown(), "an item with stats shows the gilt rule")
 	local _, relative = glass.divider:GetPoint(1)
-	assert(relative == tip:GetLeftLine(4), "the rule sits under the last base line, above the first stat")
-	assert(Near(glass.divider:GetWidth(), K.Widgets.Snap(glass, 56)), "and runs 56 units")
-	assert(W.SameColor(glass.divider, K.Theme.Accent()), "the divider follows the class colour")
+	assert(relative == tip:GetLeftLine(1), "the rule sits under the header, the title and its caption line, as the mockup draws it")
+	local rpoint2, rrelative2 = glass.divider:GetPoint(2)
+	assert(rpoint2 == "RIGHT" and rrelative2 == glass, "and runs to the panel's right edge")
+	assert(W.LastCall(glass.divider, "SetTexture")[1] == K.Tokens.Texture("divider"), "the kit's divider texture, which fades at both ends")
+	assert(W.SameColor(glass.divider, ns.Style.Gilt()), "the rule under the header is gilt")
+	local gr, gg, gb = ns.Style.Gilt()
+	local nr, ng, nb = K.Tokens.Color(ns.Style.GILT_FALLBACK)
+	assert(Near(gr, nr) and Near(gg, ng) and Near(gb, nb), "without S1's gilt token the rule falls back to the shipped token Style names")
 	assert(glass.footer:IsShown(), "a durability line gets the faint divider before it")
 	local fpoint, frelative, frelativePoint, fx = glass.footer:GetPoint(1)
 	assert(fpoint == "BOTTOMLEFT" and frelative == tip:GetLeftLine(6) and frelativePoint == "TOPLEFT", "the footer divider sits above the durability line")
@@ -311,9 +320,15 @@ do
 	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "stat lines take the accent")
 	r, g, b = tip:GetLeftLine(4):GetTextColor()
 	assert(Near(r, 0.4) and Near(g, 0.7) and Near(b, 1), "coloured lines keep their colour")
+	r, g, b = tip:GetLeftLine(7):GetTextColor()
+	local fr, fg, fb = K.Tokens.Color("friendly")
+	assert(Near(r, fr) and Near(g, fg) and Near(b, fb), "Blizzard's green comparison line softens to friend green, not the accent")
+	r, g, b = tip:GetLeftLine(8):GetTextColor()
+	local hr, hg, hb = K.Tokens.Color("hostile")
+	assert(Near(r, hr) and Near(g, hg) and Near(b, hb), "and its red one to the hostile red")
 
 	ns.Style.ApplyScale(1.2)
-	assert(select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(4) and Near(glass.divider:GetWidth(), K.Widgets.Snap(glass, 56)), "a rescale keeps the rule under the base lines at 56 units")
+	assert(select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(1) and Near(glass.divider:GetHeight(), K.Widgets.Border(glass)), "a rescale keeps the rule under the header, one border thick")
 	assert(glass.footer:IsShown() and select(2, glass.footer:GetPoint(1)) == tip:GetLeftLine(6) and Near(glass.footer:GetHeight(), K.Widgets.Border(glass)), "and redraws the footer divider one border thick")
 	ns.Style.ApplyScale(1)
 
@@ -324,7 +339,7 @@ do
 	tip:AddLine(env.Secret("Durability 100 / 100"), 1, 1, 1)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(#env._errors == 0, "secret lines never reach a comparison: " .. tostring(env._errors[1]))
-	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(2), "a secret line is skipped; the rule still sits above the stats")
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(1), "a secret line is skipped; the rule still sits under the header")
 	assert(not glass.footer:IsShown(), "a secret durability line gets no footer divider")
 
 	tip:ClearLines()
@@ -337,7 +352,7 @@ do
 	tip:AddLine("Crafting Reagent", 0.4, 0.7, 1)
 	T.PostCall(env, tip, { type = Item, id = 2589 })
 	assert(SameEdge(glass, K.Tokens.Color("edgeInner")), "a common item keeps the glass edge")
-	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip.TextLeft1, "an item without stats keeps the rule under its title")
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip.TextLeft1, "an item without stats has the rule under its title too")
 	assert(not glass.footer:IsShown(), "and shows no footer divider")
 
 	tip:ClearLines()
@@ -386,7 +401,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Accent: the divider follows the class colour or a custom colour ------------------------------------
+-- Accent: the rule stays gilt whatever the accent, which colours the You target and spell icon rims ---------
 
 do
 	local env, K, ns = Enabled()
@@ -397,7 +412,9 @@ do
 	tip:AddLine("Title", 1, 1, 1)
 	tip:AddLine("Line", 1, 1, 1)
 	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Spell, id = 133 })
-	assert(W.SameColor(glass.divider, 0.2, 0.4, 0.6), "a custom accent colours the divider")
+	assert(W.SameColor(glass.divider, ns.Style.Gilt()), "a custom accent leaves the gilt rule alone")
+	local ar, ag, ab = ns.Settings.Accent()
+	assert(Near(ar, 0.2) and Near(ag, 0.4) and Near(ab, 0.6), "and still reaches Settings.Accent for the parts that use it")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -415,7 +432,7 @@ do
 	frame:Refresh()
 	_, size = frame.title:GetFont()
 	assert(Near(size, 20 * K.Theme.FontScale()), "a size change shows in the sample")
-	assert(frame.title:GetText() == "RANGER'S LONG BOW" and frame.caption:GetText() == "RARE", "the sample name in capitals over its rarity caption")
+	assert(frame.title:GetText() == "Ranger's Long Bow" and frame.caption:GetText() == "Item level 38 \194\183 Rare", "the sample name in title case, the heading face carrying its own capitals, over its item level and rarity caption")
 	assert(select(2, frame.icon:GetPoint(1)) == frame.glass, "the sample icon sits inside the sample panel")
 	assert(type(W.LastCall(frame.icon.texture, "SetTexture")[1]) == "number", "the sample icon is a file ID through the icon service, as Style.Icon paints a real tooltip's icon")
 	assert(SameEdge(frame.glass, K.Tokens.Color("edgeInner")), "the sample keeps the kit's faint hairline")

@@ -115,9 +115,9 @@ local function textItem(scene, prefix)
 	end
 	error("no text " .. prefix)
 end
-for _, triple in ipairs({ { scenes[#scenes], "VANQUISHER", "Item Level" }, { Tooltip.Build(), "RANGER", "Level 38" } }) do
+for _, triple in ipairs({ { scenes[#scenes], "Vanquisher", "Item Level" }, { Tooltip.Build(), "Ranger", "Level 38" } }) do
 	local scene, name = triple[1], triple[2]
-	local title, caption, second = textItem(scene, name), textItem(scene, "UNCOMMON"), textItem(scene, triple[3])
+	local title, caption, second = textItem(scene, name), textItem(scene, "Uncommon"), textItem(scene, triple[3])
 	local line = title.font.size * 1.2
 	assert(math.abs(second.rect[2] - (title.rect[2] + title.rect[4] + 0.5)) < 0.01, name .. ": the next line follows the title at the skin's half-unit spacing")
 	assert(title.rect[4] >= 2 * line - 0.01, name .. ": the title is two lines tall")

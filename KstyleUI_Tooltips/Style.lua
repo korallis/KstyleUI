@@ -1,10 +1,10 @@
--- Style.lua: the glass panel, edge, accent rule and footer divider on each restyled tooltip, the tooltip fonts, line spacing and the tooltip scale.
+-- Style.lua: the Lumen window card, edge, gilt rule and footer hairline on each restyled tooltip, the tooltip fonts, the item caption, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
 local _, ns = ...
 
 local K = KstyleUI
 local Tokens, Widgets, Theme, Skin, Safe = K.Tokens, K.Widgets, K.Theme, K.Skin, K.Safe
 local Logic, Settings = ns.Logic, ns.Settings
-local max, min = math.max, math.min
+local max, min, abs = math.max, math.min, math.abs
 
 local Style = {}
 ns.Style = Style
@@ -21,25 +21,35 @@ Style.NAMES = {
 
 local NO_ICON = { EmbeddedItemTooltip = true }
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
-local KIT_ROLES = { title = "body", body = "body", small = "caption" }
+local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
+local GILT, GILT_FALLBACK = "gilt", "neutral"
+Style.GILT_FALLBACK = GILT_FALLBACK
 local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
 local ICON_INSET = 9.5
 local TEXT_MARGIN = 10
 local TEXT_GAP = 11
 local LINE_SPACING = 0.5
-local RULE_LENGTH = 56
 local FOOTER_INSET = 13
 local ICON_LEVEL = 2
 local ICON_CROP = 0.07
 local BORDER_LINES = 2
 local SPELL_EDGE_ALPHA = 0.5
 local PLAIN_EDGE_ALPHA = 0.35
+local COLOR_TOLERANCE = 0.02
 
 local skinned = {}
 local savedFonts = {}
 local savedScales = setmetatable({}, { __mode = "k" })
+
+function Style.Gilt()
+	local ok, r, g, b = pcall(Tokens.Color, GILT)
+	if ok then
+		return r, g, b
+	end
+	return Tokens.Color(GILT_FALLBACK)
+end
 
 function Style.Glass(tooltip)
 	if type(tooltip) ~= "table" then
@@ -132,7 +142,7 @@ function Style.Skin(tooltip, name)
 	local glass = CreateFrame("Frame", nil, tooltip)
 	UseParentLevel(glass, tooltip)
 	glass:SetAllPoints(tooltip)
-	glass.chrome = Widgets.Chrome(glass, { shape = "panel", fill = "surface", shadow = type(tooltip.CompareHeader) ~= "table" })
+	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface", shadow = type(tooltip.CompareHeader) ~= "table" })
 	local divider = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
 	divider:SetTexture((Tokens.Texture("divider")))
 	divider:Hide()
@@ -198,7 +208,7 @@ local function Palette()
 		return palette
 	end
 	local colors = {}
-	for _, pair in ipairs({ { NORMAL_FONT_COLOR, "text" }, { HIGHLIGHT_FONT_COLOR, "text" } }) do
+	for _, pair in ipairs({ { NORMAL_FONT_COLOR, "text" }, { HIGHLIGHT_FONT_COLOR, "text" }, { GREEN_FONT_COLOR, "friendly" }, { RED_FONT_COLOR, "hostile" } }) do
 		local color = pair[1]
 		if type(color) == "table" and type(color.GetRGB) == "function" then
 			local r, g, b = color:GetRGB()
@@ -232,25 +242,15 @@ function Style.Soften(tooltip, from, colors)
 	end
 end
 
-local function PlaceRule(glass, line, short)
+local function PlaceRule(glass, line)
 	local divider = glass.divider
-	local r, g, b = Settings.Accent()
-	glass.ruleLine, glass.ruleShort = line, short
+	glass.ruleLine = line
 	divider:ClearAllPoints()
 	divider:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
-	if short then
-		divider:SetWidth(Widgets.Snap(glass, RULE_LENGTH))
-	else
-		divider:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, Tokens.Size("gapMedium")), 0)
-	end
+	divider:SetPoint("RIGHT", glass, "RIGHT", -Widgets.Snap(glass, Tokens.Size("gapMedium")), 0)
 	divider:SetHeight(Widgets.Border(glass))
-	divider:SetVertexColor(r, g, b)
-	if short and type(divider.SetGradient) == "function" and type(CreateColor) == "function" then
-		divider:SetColorTexture(Tokens.Color("white"))
-		divider:SetGradient("HORIZONTAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
-	else
-		divider:SetTexture((Tokens.Texture("divider")))
-	end
+	divider:SetTexture((Tokens.Texture("divider")))
+	divider:SetVertexColor(Style.Gilt())
 	divider:Show()
 end
 
@@ -272,7 +272,7 @@ local function PlaceDivider(glass, tooltip)
 		glass.divider:Hide()
 		return
 	end
-	PlaceRule(glass, title, false)
+	PlaceRule(glass, title)
 end
 
 local function Sections(tooltip, count)
@@ -366,27 +366,36 @@ function Style.Icon(tooltip, fileID, quality, spell)
 	icon:Show()
 end
 
-local ownFonts
-
-local function OwnFont(path)
-	if not ownFonts then
-		ownFonts = {}
-		for _, face in ipairs(Tokens.MediaList("font")) do
-			ownFonts[face.path] = true
-		end
+local function Muted(line, tr, tg, tb)
+	local r, g, b = line:GetTextColor()
+	if not (Logic.IsNumber(r) and Logic.IsNumber(g) and Logic.IsNumber(b)) then
+		return false
 	end
-	return ownFonts[path] == true
+	return abs(r - tr) < COLOR_TOLERANCE and abs(g - tg) < COLOR_TOLERANCE and abs(b - tb) < COLOR_TOLERANCE
 end
 
-function Style.Title(tooltip, quality)
+local function ShowsLevel(tooltip)
+	for i = 2, Style.NumLines(tooltip) do
+		local line = Style.Line(tooltip, "left", i)
+		if type(line) == "table" and Logic.IsLevelLine(line:GetText()) then
+			return true
+		end
+	end
+	return false
+end
+
+function Style.Title(tooltip, quality, level)
 	local glass = Style.Glass(tooltip)
 	local title = glass and Style.Line(tooltip, "left", 1)
 	if type(title) ~= "table" then
 		return
 	end
-	local caption = Logic.IsNumber(quality) and _G["ITEM_QUALITY" .. quality .. "_DESC"] or nil
-	caption = type(caption) == "string" and caption or nil
-	local text = Logic.TitleText(title:GetText(), caption ~= nil, OwnFont((Style.FontSpec("title"))))
+	local rarity = Logic.IsNumber(quality) and _G["ITEM_QUALITY" .. quality .. "_DESC"] or nil
+	if level ~= nil and ShowsLevel(tooltip) then
+		level = nil
+	end
+	local caption = Logic.Caption(level, type(rarity) == "string" and rarity or nil)
+	local text = Logic.TitleText(title:GetText(), caption ~= nil)
 	if not text then
 		Settings.LogOnce("title", "a tooltip title was secret or held escape codes; it keeps Blizzard's text")
 		return
@@ -395,10 +404,8 @@ function Style.Title(tooltip, quality)
 	if not caption then
 		return
 	end
-	local r, g, b = Tokens.Color("text")
 	if Logic.EdgeQuality(quality) then
-		r, g, b = Theme.QualityColor(quality)
-		title:SetTextColor(r, g, b)
+		title:SetTextColor(Theme.QualityColor(quality))
 	end
 	local label = glass.caption
 	Style.StyleFont(label, "small")
@@ -407,9 +414,8 @@ function Style.Title(tooltip, quality)
 	if Logic.IsNumber(size) and size > titleSize then
 		label:SetFont(path, titleSize, flags)
 	end
-	local upper = Logic.Upper(caption)
-	label:SetText(OwnFont(path) and Logic.Tracked(upper) or upper)
-	label:SetTextColor(r, g, b)
+	label:SetText(caption)
+	Widgets.TextColor(label, "text")
 	label:ClearAllPoints()
 	label:SetPoint("BOTTOMLEFT", title, "BOTTOMLEFT", 0, 0)
 	label:Show()
@@ -478,9 +484,10 @@ function Style.Lines(tooltip, item)
 	end
 	if stats and Settings.Get("softColors") then
 		local r, g, b = Settings.Accent()
+		local tr, tg, tb = Tokens.Color("text")
 		for i = stats, (footer or count + 1) - 1 do
 			local line = Style.Line(tooltip, "left", i)
-			if type(line) == "table" and Logic.IsStat(line:GetText()) then
+			if type(line) == "table" and Logic.IsStat(line:GetText()) and Muted(line, tr, tg, tb) then
 				line:SetTextColor(r, g, b)
 			end
 		end
@@ -490,11 +497,7 @@ function Style.Lines(tooltip, item)
 		glass.divider:Hide()
 		return
 	end
-	if stats and stats > 1 then
-		PlaceRule(glass, Style.Line(tooltip, "left", stats - 1), true)
-	else
-		PlaceDivider(glass, tooltip)
-	end
+	PlaceDivider(glass, tooltip)
 	if footer and footer > 1 then
 		PlaceFooter(glass, Style.Line(tooltip, "left", footer))
 	end
@@ -576,7 +579,7 @@ function Style.ApplyScale(elementScale)
 		if glass then
 			glass.chrome:Restyle()
 			if glass.divider:IsShown() and glass.ruleLine then
-				PlaceRule(glass, glass.ruleLine, glass.ruleShort)
+				PlaceRule(glass, glass.ruleLine)
 			end
 			if glass.footer:IsShown() and glass.footerLine then
 				PlaceFooter(glass, glass.footerLine)

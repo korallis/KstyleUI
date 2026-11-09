@@ -51,12 +51,23 @@ local function AddID(tooltip, label, id)
 	end
 end
 
+local function ItemLevel(data)
+	local info = data.hyperlink
+	if Logic.IsSecret(info) or info == nil then
+		info = data.id
+	end
+	if Logic.IsSecret(info) or info == nil then
+		return nil
+	end
+	return Call(C_Item, "GetDetailedItemLevelInfo", info)
+end
+
 local function Item(tooltip, data)
 	local quality = ItemQuality(data)
 	if Settings.Get("qualityEdge") and Logic.EdgeQuality(quality) then
 		Style.SetEdge(tooltip, K.Theme.QualityColor(quality))
 	end
-	Style.Title(tooltip, quality)
+	Style.Title(tooltip, quality, ItemLevel(data))
 	local id = data.id
 	if not Logic.IsNumber(id) then
 		return

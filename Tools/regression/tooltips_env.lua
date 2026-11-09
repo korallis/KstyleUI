@@ -202,6 +202,7 @@ function T.Blizzard(env)
 	env.NORMAL_FONT_COLOR = color(1, 0.82, 0)
 	env.HIGHLIGHT_FONT_COLOR = color(1, 1, 1)
 	env.GREEN_FONT_COLOR = color(0.1, 1, 0.1)
+	env.RED_FONT_COLOR = color(1, 0.1, 0.1)
 	env.CreateColor = function(r, g, b, a)
 		local c = color(r, g, b)
 		c.a = a
@@ -250,6 +251,12 @@ function T.Blizzard(env)
 		GetItemIconByID = function(info)
 			local item = env._items[info]
 			return item and item.icon
+		end,
+		GetDetailedItemLevelInfo = function(info)
+			local item = env._items[info]
+			if item and item.level then
+				return item.level, false, item.level
+			end
 		end,
 	}
 end

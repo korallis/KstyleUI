@@ -143,7 +143,8 @@ for _, want in ipairs({ "VALERIN", "FROST HOWLER", "78%", "56%", "FROST BITE", "
 end
 
 -- The RestedXP windows the fake builds, skinned, laid out as RestedXP lays them out in the game: the step
--- frames, the guide window and the v2 window show as glass, with the step plate, the guide name and footer texts.
+-- frames, the guide window and the v2 window show as glass, with the step plate, the Lumen cap, the guide name
+-- as the zone heading with its group as the cap's trail, and the footer texts.
 local rested = check("restedxp", RestedXP())
 local restedTexts = {}
 for _, item in ipairs(rested.items) do
@@ -151,9 +152,15 @@ for _, item in ipairs(rested.items) do
 		restedTexts[item.text] = true
 	end
 end
-for _, want in ipairs({ "Step 35", "RestedXP Guides v4.11.35", "6-10 Durotar\nSpeedrun Guide 1-22", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
+for _, want in ipairs({ "Step 35", "RestedXP Guides v4.11.35", "6-10 Durotar", "Speedrun Guide 1-22", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
 	assert(restedTexts[want], "the RestedXP scene shows " .. want)
 end
+local capShown = false
+for text in pairs(restedTexts) do
+	capShown = capShown or text:gsub("\226\128\137", "") == "THE PATH"
+end
+assert(capShown, "the guide window's header carries THE PATH")
+assert(not restedTexts["6-10 Durotar\nSpeedrun Guide 1-22"], "RestedXP's own two-line title is hushed, not drawn")
 -- RestedXP's own geometry is kept, so the render shows how close its content sits to the skin's glass: a
 -- step's check button 6 units in from the step frame, the guide name's left edge 29 in, the list's scroll bar 20
 -- before the list's right edge.

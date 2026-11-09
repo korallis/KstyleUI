@@ -4,7 +4,8 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, UpdateVisuals = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true }
+local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
 	opts = opts or {}
@@ -69,13 +70,38 @@ do
 	assert(Hushed(f.BottomFrame), "RestedXP's backdrop under the list goes")
 	assert(Alpha(f.GuideName.bg) == 0 and Alpha(f.GuideName._pieces[1]) == 0, "the header's banner and backdrop go")
 	assert(Alpha(f.GuideName.icon) == 1 and Alpha(f.GuideName.classIcon) == 1, "the logo and class icon stay")
-	assert(f.GuideName.text:GetFont() == (ns.Style.Font("heading")), "the guide's title is in the kit's heading face")
-	assert(select(2, f.GuideName.text:GetFont()) == select(2, ns.Style.Font("body")), "at body size: RestedXP's guide names run to two lines inside a 35-unit header")
-	assert(Colored(f.GuideName.text, K.Tokens.Color("textEmphasis")), "in the emphasised text colour, as every window title")
+	-- The header carries the Lumen cap and the zone heading: RestedXP's own title is hushed and a KstyleUI heading
+	-- in the heading face mirrors it under a "The Path" section cap, both inside RestedXP's 35-unit header, since
+	-- the active steps stack right above it.
+	local path = ns.RestedXP.Chrome.Path(f)
+	assert(path and path.cap and path.heading, "a Lumen cap and a zone heading sit on the header")
+	assert(Alpha(f.GuideName.text) == 0, "RestedXP's own title is hushed")
+	f.GuideName.text:SetAlpha(1)
+	assert(Alpha(f.GuideName.text) == 0, "and stays hushed when RestedXP shows it again")
+	assert((tostring(path.cap.title:GetText()):gsub(THIN_SPACE, "")) == K.L["The Path"]:upper(), "the cap reads THE PATH")
+	local gr, gg, gb = ns.Lumen.Color("gilt")
+	assert(Colored(path.cap.title, gr, gg, gb), "in gilt")
+	assert(path.heading:GetText() == (f.GuideName.text:GetText() or ""), "the heading mirrors the guide's name")
+	assert(path.heading:GetFont() == (ns.Style.Font("heading")), "in the kit's heading face")
+	assert(select(2, path.heading:GetFont()) == select(2, ns.Style.Font("heading")), "at the heading size, the mockup's zone heading")
+	assert(Colored(path.heading, K.Tokens.Color("textEmphasis")), "in the emphasised text colour, as every window title")
+	assert(W.LastCall(path.heading, "SetWordWrap")[1] == false, "on one line, so a long guide name trims instead of spilling out of the header")
+	f.GuideName.text:SetText("Durotar, 6 to 10")
+	assert(path.heading:GetText() == "Durotar, 6 to 10", "a guide change follows RestedXP's title")
+	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
+	assert(path.heading:GetText() == "6-10 Durotar", "a title with the guide's group on a second line keeps the first line as the heading")
+	assert(path.cap.trail:GetText() == "Speedrun Guide 1-22", "and the group becomes the cap's trail, where the mockup puts the step")
+	f.GuideName.text:SetText("Durotar, 6 to 10")
+	assert(path.cap.trail:GetText() == "", "a one-line title clears the trail")
+	local capTop = path.cap.row._points[1]
+	assert(capTop[1] == "TOPLEFT" and capTop[2] == f.GuideName, "the cap row hangs from the header's top")
+	local headingTop = path.heading._points[1]
+	assert(headingTop[1] == "TOPLEFT" and headingTop[2] == path.cap.row and headingTop[3] == "BOTTOMLEFT", "the heading sits under the cap row")
+	assert(W.Near(headingTop[4], 0) and W.Near(capTop[4], K.Widgets.Snap(path.cap.row, 46)), "both start right of RestedXP's 42-unit logo and the class icon at its foot")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
-	local titleSize, bodySize = (select(2, f.GuideName.text:GetFont())), (select(2, ns.Style.Font("body")))
-	assert(W.Near(titleSize, bodySize) and bodySize > 15, "a text size change reaches the guide's title, got " .. tostring(titleSize) .. " for " .. tostring(bodySize))
+	local titleSize, headingSize = (select(2, path.heading:GetFont())), (select(2, ns.Style.Font("heading")))
+	assert(W.Near(titleSize, headingSize) and headingSize > 20, "a text size change reaches the zone heading, got " .. tostring(titleSize) .. " for " .. tostring(headingSize))
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
 	assert(K.Skin.IsSkinned(f.Footer, "Backdrop") and Alpha(f.Footer.bg) == 0, "the footer is a KstyleUI tile")
@@ -128,15 +154,17 @@ do
 		assert(K.Skin.IsSkinned(step.number, "Backdrop") and Hushed(step.number), "its number badge is a tile")
 		assert(K.Skin.Parts(step.number).backdrop.chrome.fillName == "surface", "on the glass surface")
 		assert(select(2, step.number.text:GetFont()) == select(2, K.Tokens.Font("caption")), "its number is a caption")
-		assert(K.Skin.IsSkinned(step.elements[1].button, "CheckBox"), "its check buttons are KstyleUI check boxes")
+		local ring = ns.Lumen.RingOf(step.elements[1].button)
+		assert(ring and ring.box:IsShown(), "its check buttons are Lumen ring checks")
+		assert(not K.Skin.IsSkinned(step.elements[1].button, "CheckBox"), "not the square kit box")
 	end
 
 	local list, menuArt = rxp.menuLists[1], env.L_DropDownList1MenuBackdrop
 	rxp:ShowMenu()
 	assert(Glass(K, list) or (ns.RestedXP.Chrome.MenuPanel(list) and ns.RestedXP.Chrome.MenuPanel(list):IsShown()), "RestedXP's guide menu sits on glass")
 	assert(menuArt:GetAlpha() == 0, "the menu library's backdrop is hidden while RestedXP's menu shows")
-	local path = env.L_DropDownList1Button1NormalText:GetFont()
-	assert(path == (ns.Style.Font("body")), "menu rows use KstyleUI's font")
+	local menuFont = env.L_DropDownList1Button1NormalText:GetFont()
+	assert(menuFont == (ns.Style.Font("body")), "menu rows use KstyleUI's font")
 	rxp.fake.open(rxp.menuLists[2])
 	assert(env.L_DropDownList2MenuBackdrop:GetAlpha() == 0, "a submenu of RestedXP's menu is dressed too")
 	rxp.fake.close(list)

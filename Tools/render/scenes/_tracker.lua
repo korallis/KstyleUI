@@ -131,6 +131,7 @@ local function Block(B, module, quest)
 	block.poiQuestID = quest.questID
 	block.poiIsComplete = false
 	block.lines = {}
+	block.usedLines = block.lines
 	local anchor, height = block.HeaderText, LINE_HEIGHT
 	for _, objective in ipairs(quest.objectives) do
 		local line = B.frame("Frame", block)

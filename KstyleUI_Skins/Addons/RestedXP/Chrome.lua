@@ -1,9 +1,9 @@
--- Chrome.lua: KstyleUI's glass, buttons, scroll bars, check boxes, edit boxes and accent titles on every RestedXP Guides window, applied as RestedXP makes or first shows each one, and on RestedXP's menus only while RestedXP shows them.
+-- Chrome.lua: KstyleUI's glass, buttons, scroll bars, ring checks, edit boxes, accent titles and the Lumen cap and zone heading on every RestedXP Guides window, applied as RestedXP makes or first shows each one, and on RestedXP's menus only while RestedXP shows them.
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, Tokens, Widgets = K.Skin, K.Tokens, K.Widgets
-local Style, Parts, Skins, Kit = ns.Style, ns.Parts, ns.Skins, ns.PartC
+local Skin, Tokens, Widgets, L = K.Skin, K.Tokens, K.Widgets, K.L
+local Style, Parts, Skins, Kit, Lumen = ns.Style, ns.Parts, ns.Skins, ns.PartC, ns.Lumen
 
 local RestedXP = ns.RestedXP
 local LogOnce = RestedXP.LogOnce
@@ -28,10 +28,12 @@ local GUTTER_GAP = "gapSmall"
 local HEADER_OVERLAP = 9
 local LIST_LEFT, LIST_RIGHT, LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
+local TITLE_LEFT, TITLE_RIGHT, CAP_ROW, CAP_Y = 46, 4, 16, -1
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
-local guideTitles = setmetatable({}, WEAK)
+local paths = setmetatable({}, WEAK)
+local hushed = setmetatable({}, WEAK)
 local readable = setmetatable({}, WEAK)
 local extended = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
@@ -225,16 +227,84 @@ local function Caption(text, colorName)
 	end
 end
 
-local function PaintGuideTitle(text)
-	Style.ApplyFont(text, "heading", (select(2, Style.Font("body"))))
-	Widgets.TextColor(text, "textEmphasis")
+local function Rehush(text)
+	local entry = hushed[text]
+	if entry and not entry.busy then
+		entry.busy = true
+		text:SetAlpha(0)
+		entry.busy = false
+	end
 end
 
-local function GuideTitle(text)
-	if IsTable(text) and type(text.SetFont) == "function" then
-		guideTitles[text] = true
-		PaintGuideTitle(text)
+local function HushText(text)
+	if hushed[text] then
+		return
 	end
+	hushed[text] = { busy = false }
+	text:SetAlpha(0)
+	hooksecurefunc(text, "SetAlpha", Rehush)
+end
+
+local function PlainText(value)
+	if Widgets.IsSecret(value) or type(value) ~= "string" then
+		return ""
+	end
+	return value
+end
+
+local function SetHeading(path, value)
+	value = PlainText(value)
+	local first, rest = value:match("^([^\n]*)\n?(.*)$")
+	path.heading:SetText(first or value)
+	rest = (rest or ""):gsub("%s*\n%s*", " "):gsub("^%s+", ""):gsub("%s+$", "")
+	path.cap:SetTrail(rest ~= "" and rest or nil)
+end
+
+local function RestylePath(path)
+	local holder, cap, heading = path.holder, path.cap, path.heading
+	cap.row:ClearAllPoints()
+	cap.row:SetPoint("TOPLEFT", path.header, "TOPLEFT", Widgets.Snap(cap.row, TITLE_LEFT), 0)
+	cap.row:SetPoint("TOPRIGHT", path.header, "TOPRIGHT", -Widgets.Snap(cap.row, TITLE_RIGHT), 0)
+	cap.row:SetHeight(Widgets.Snap(cap.row, CAP_ROW))
+	Style.Text(heading, "heading", "textEmphasis")
+	heading:ClearAllPoints()
+	heading:SetPoint("TOPLEFT", cap.row, "BOTTOMLEFT", 0, 0)
+	heading:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -Widgets.Snap(cap.row, TITLE_RIGHT), 0)
+	heading:SetJustifyH("LEFT")
+	heading:SetJustifyV("MIDDLE")
+	heading:SetWordWrap(false)
+end
+
+local function Path(header)
+	local text = IsTable(header) and header.text
+	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetAlpha) ~= "function" then
+		return nil
+	end
+	local path = paths[header]
+	if path then
+		return path
+	end
+	HushText(text)
+	local holder = CreateFrame("Frame", nil, header)
+	holder:SetAllPoints(header)
+	holder:SetFrameLevel(header:GetFrameLevel() + 1)
+	local cap = Lumen.SectionCap(holder, { y = CAP_Y })
+	cap:SetTitle(L["The Path"])
+	local heading = Widgets.FontString(holder, "OVERLAY")
+	path = { header = header, holder = holder, cap = cap, heading = heading, Restyle = RestylePath }
+	SetHeading(path, text:GetText())
+	hooksecurefunc(text, "SetText", function(_, value)
+		SetHeading(path, value)
+	end)
+	RestylePath(path)
+	Style.Track(path)
+	Widgets.Track(path)
+	paths[header] = path
+	return path
+end
+
+function Chrome.Path(f)
+	return IsTable(f) and paths[f.GuideName] or nil
 end
 
 local function Button(button)
@@ -276,9 +346,6 @@ local function Restyle()
 	for text in pairs(titles) do
 		PaintTitle(text)
 	end
-	for text in pairs(guideTitles) do
-		PaintGuideTitle(text)
-	end
 	for _, list in pairs(dress.tinted) do
 		for text in pairs(list) do
 			PaintTitle(text)
@@ -316,8 +383,8 @@ local function StepFrames(f)
 					changed = Readable(element.text, "body") or changed
 				end
 				local check = IsTable(element) and element.button
-				if IsTable(check) and not Skin.IsSkinned(check, "CheckBox") then
-					Kit.CheckBox(check)
+				if IsTable(check) and type(check.GetChecked) == "function" and not Lumen.RingOf(check) then
+					Lumen.RingCheck(check)
 				end
 			end
 		end
@@ -390,7 +457,7 @@ local function GuideWindow(rxp)
 			end
 		end
 		Glass(name, { keep = keep, reach = true })
-		GuideTitle(name.text)
+		Path(name)
 	end
 	local list = Find(f, "BottomFrame")
 	Glass(list, { reach = true })

@@ -1,4 +1,4 @@
--- test-skins-tracker.lua: the objective tracker skin keeps the skin font, with the interface's fallback, on every tracker text, draws one caption header with accent discs and accent titles over Blizzard's blocks, and its glass panel follows the tracker's content.
+-- test-skins-tracker.lua: the objective tracker skin keeps the skin font, with the interface's fallback, on every tracker text, draws one Lumen section cap (gem, tracked title, fading rule, quest count) with accent discs and quest-gold titles over Blizzard's blocks, moves each objective's count to the line's right, and its glass panel follows the tracker's content.
 local S = dofile("Tools/regression/skins_env.lua")
 local Near = S.W.Near
 
@@ -109,9 +109,11 @@ local function POIButton(B, block)
 	return button
 end
 
--- Block(B, module, title, quest) -> a stand-in ObjectiveTrackerQuestPOIBlockTemplate: the title font string Blizzard
--- colours in SetHeader and UpdateHighlight (Blizzard_ObjectiveTrackerBlock.lua), and a POI button when quest is set.
-local function Block(B, module, title, quest)
+-- Block(B, module, title, quest, objectives) -> a stand-in ObjectiveTrackerQuestPOIBlockTemplate: the title font
+-- string Blizzard colours in SetHeader and UpdateHighlight (Blizzard_ObjectiveTrackerBlock.lua), a POI button when
+-- quest is set, and one pooled line per objective text, kept in usedLines and re-set on every layout as
+-- AddObjective does.
+local function Block(B, module, title, quest, objectives)
 	local block = B.frame("Frame", module)
 	block.HeaderText = B.text(block)
 	block.HeaderText:SetPoint("TOPLEFT")
@@ -119,10 +121,23 @@ local function Block(B, module, title, quest)
 	block.isHighlighted = false
 	block.poiQuestID = quest
 	block.poiIsComplete = false
+	block.objectives = objectives or {}
+	block.usedLines = {}
+	for key, text in ipairs(block.objectives) do
+		local line = B.frame("Frame", block)
+		line.Text, line.Dash = B.text(line), B.text(line)
+		line.Text:SetPoint("TOPLEFT")
+		line.Text:SetPoint("RIGHT")
+		line.Text:SetText(text)
+		block.usedLines[key] = line
+	end
 	function block.SetHeader(self, text)
 		self.HeaderText:SetText(text)
 		self.HeaderText:SetTextColor(BLIZZARD_GOLD.r, BLIZZARD_GOLD.g, BLIZZARD_GOLD.b)
 		self.HeaderText.colorStyle = BLIZZARD_GOLD
+		for key, line in pairs(self.usedLines) do
+			line.Text:SetText(self.objectives[key])
+		end
 	end
 	function block.UpdateHighlight(self)
 		local c = self.isHighlighted and { r = 1, g = 1, b = 1 } or BLIZZARD_GOLD
@@ -152,7 +167,10 @@ local function Tracker(env, B, unloadable)
 	tracker.Header.Text:SetText("All Objectives")
 	Collapsible(B, tracker.Header)
 	for i, def in ipairs({
-		{ height = 120, name = "Quests", quests = { { "Riverglade Crocolisks", 101 }, { "The Lost Patrol", 102 } } },
+		{ height = 120, name = "Quests", quests = {
+			{ "Riverglade Crocolisks", 101, { "0/4 Riverglade Crocolisk Hide", "Speak with Sergeant Hale" } },
+			{ "The Lost Patrol", 102, { "Lost Patrol Found: 1/3" } },
+		} },
 		{ height = 60, name = "Achievements", quests = { { "Explore Riverglades" } } },
 	}) do
 		local module = B.frame("Frame", tracker)
@@ -164,7 +182,7 @@ local function Tracker(env, B, unloadable)
 		module.usedProgressBars, module.usedTimerBars = {}, {}
 		module.blocks = {}
 		for _, quest in ipairs(def.quests) do
-			module.blocks[#module.blocks + 1] = Block(B, module, quest[1], quest[2])
+			module.blocks[#module.blocks + 1] = Block(B, module, quest[1], quest[2], quest[3])
 		end
 		module.firstBlock = nil
 		local progress, timer = Holder(B, module, true), Holder(B, module, false)
@@ -268,7 +286,7 @@ end
 -- (questFindGroupButtonSettings.offsetX = 5) reaches 5 right of the tracker.
 local PANEL_LEFT, PANEL_TOP, PANEL_BOTTOM = 16, 4, 8
 local FIND_GROUP_REACH = 5
-local DISC_UNITS, CAPTION_SIZE = 18, 12.5
+local DISC_UNITS = 18
 
 -- The glass panel hugs the tracker's content through every Blizzard layout -------------------------------
 
@@ -360,7 +378,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- One caption header, accent discs and accent titles over Blizzard's blocks ------------------------------
+-- One Lumen section cap, accent discs and quest-gold titles over Blizzard's blocks -----------------------
 
 do
 	local B, snap, p
@@ -372,14 +390,16 @@ do
 			snap = B.snapshot()
 		end,
 	})
-	local Style = ns.Style
+	local Style, Lumen = ns.Style, ns.Lumen
 	K.Modules.Enable("Skins")
 	assert(ns.Skins.IsApplied("tracker"))
 	local tracker, quests = p.tracker, p.modules[1]
 	local ar, ag, ab = Style.Accent()
+	local gr, gg, gb = Lumen.Color("gilt")
+	local qr, qg, qb = Lumen.Color("questGold")
 
-	-- Blizzard's two headers become one: its "All Objectives" and "Quests" texts are hushed, and a KstyleUI
-	-- caption with an accent chevron and a 1-unit rule takes the quest module's header row.
+	-- Blizzard's two headers become one: its "All Objectives" and "Quests" texts are hushed, and a Lumen section
+	-- cap (a gilt gem, a tracked title, a rule fading toward the quest count) takes the quest module's header row.
 	assert(tracker.Header.Text:GetAlpha() == 0, "Blizzard's All Objectives text is hushed")
 	assert(quests.Header.Text:GetAlpha() == 0, "Blizzard's Quests text is hushed; the caption is KstyleUI's")
 	tracker.Header.Text:SetAlpha(1)
@@ -387,44 +407,89 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(caption:GetText():find(THIN_SPACE, 1, true), "the caption's letters are tracked")
-	assert(FontPath(caption) == Style.Font("caption") and Near((select(2, caption:GetFont())), CAPTION_SIZE), "in the caption face at the mockup's size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("caption") and Near((select(2, caption:GetFont())), Lumen.CAP_SIZE), "in the caption face at the mockup's cap size, got " .. tostring((select(2, caption:GetFont()))))
+	local cr, cg, cb = caption:GetTextColor()
+	assert(Near(cr, gr) and Near(cg, gg) and Near(cb, gb), "the caption is gilt")
 	assert(row:IsShown(), "the quest caption shows while the tracker is expanded")
-	local chevron = Region(env, K, quests.Header, "Texture", "glyphChevron")
-	assert(chevron and chevron:GetParent() == row, "an accent chevron sits on the caption row")
-	assert(S.W.SameRGB(chevron, ar, ag, ab), "in the accent")
-	assert(Near(S.W.LastCall(chevron, "SetRotation")[1], -math.pi / 2), "pointing left, as the mockup draws it")
-	local chevronPoint = { chevron:GetPoint(1) }
+	local gem = Region(env, K, quests.Header, "Texture", Lumen.TEXTURES.gem)
+	assert(gem and gem:GetParent() == row, "a gem leads the caption row")
+	assert(S.W.SameRGB(gem, gr, gg, gb), "in gilt")
+	assert(not Region(env, K, quests.Header, "Texture", "glyphChevron"), "no chevron on the caption row any more; the gem is the mark")
+	local gemPoint = { gem:GetPoint(1) }
 	local captionPoint = { caption:GetPoint(1) }
-	assert(chevronPoint[1] == "LEFT" and captionPoint[1] == "LEFT" and captionPoint[4] > chevronPoint[4], "the chevron leads the caption from the left")
-	-- The panel starts PANEL_LEFT left of the header, so the chevron's left edge sits one content inset (the
-	-- rule every text panel follows: half the window cut, the edge band and gapSmall) inside the glass, clear of
-	-- the top-left cut, and the caption follows it after a gapSmall.
+	assert(gemPoint[1] == "LEFT" and captionPoint[1] == "LEFT" and captionPoint[2] == gem and captionPoint[3] == "RIGHT", "the gem leads the caption from the left")
+	-- The panel starts PANEL_LEFT left of the header, so the gem's left edge sits one content inset (the rule
+	-- every text panel follows: half the window cut, the edge band and gapSmall) inside the glass, clear of the
+	-- top-left cut, and the caption follows it after a gapSmall.
 	local inset = K.Widgets.Inset(row, K.Tokens.Size("chamferWindow"))
-	assert(Near(chevronPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT), K.Scale.Pixel()), "the chevron's left edge is one content inset inside the glass, got " .. tostring(chevronPoint[4]) .. " for " .. tostring(inset - PANEL_LEFT))
-	assert(Near(captionPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT + 19 + K.Tokens.Size("gapSmall")), K.Scale.Pixel()), "the caption starts a gapSmall after the 19-unit chevron, got " .. tostring(captionPoint[4]))
+	assert(Near(gemPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT), K.Scale.Pixel()), "the gem's left edge is one content inset inside the glass, got " .. tostring(gemPoint[4]) .. " for " .. tostring(inset - PANEL_LEFT))
+	assert(Near(captionPoint[4], K.Widgets.Snap(row, K.Tokens.Size("gapSmall")), K.Scale.Pixel()), "the caption starts a gapSmall after the gem, got " .. tostring(captionPoint[4]))
 	local rule = Region(env, K, quests.Header, "Texture", "divider")
-	assert(rule and Near(rule:GetHeight(), K.Widgets.Snap(rule, 1)), "a 1-unit rule closes the header row")
+	assert(rule and rule:GetParent() == row and Near(rule:GetHeight(), K.Widgets.Border(rule)), "a hairline rule runs on the caption row")
+	local ruleLeft = { rule:GetPoint(1) }
+	assert(ruleLeft[2] == caption and ruleLeft[3] == "RIGHT", "from the end of the title")
+	local count = Region(env, K, quests.Header, "FontString")
+	for _, frame in ipairs(Children(env, quests.Header)) do
+		for _, region in ipairs({ frame:GetRegions() }) do
+			if region:GetObjectType() == "FontString" and region ~= caption then
+				count = region
+			end
+		end
+	end
+	assert(count and Plain(count) == tostring(#quests.blocks), "the cap counts the module's blocks, got " .. tostring(count and Plain(count)))
+	assert(FontPath(count) == Style.Font("number"), "in the number face")
+	local countPoint = { count:GetPoint(1) }
+	assert(countPoint[1] == "RIGHT" and countPoint[2] == row and countPoint[4] < 0, "right-aligned before the collapse button")
 	local allCaption, allRow = Caption(env, tracker.Header, "OBJECTIVES")
 	assert(allCaption and not allRow:IsShown(), "the tracker's own header keeps an OBJECTIVES caption for the collapsed tracker, hidden while expanded")
 	local allChevron = Chevron(env, K, tracker.Header.MinimizeButton)
 	assert(allChevron and not allChevron:IsShown(), "the collapse-all chevron hides with it")
-	local allRule = Region(env, K, tracker.Header, "Texture", "divider")
-	assert(allRule and not allRule:IsShown(), "and so does its rule, which would otherwise float above the panel")
 	tracker:SetCollapsed(true)
-	assert(allRow:IsShown() and allChevron:IsShown() and allRule:IsShown(), "collapsed, the OBJECTIVES caption, its chevron and its rule show in the panel")
+	assert(allRow:IsShown() and allChevron:IsShown(), "collapsed, the OBJECTIVES cap and its chevron show in the panel")
 	tracker:SetCollapsed(false)
-	assert(not allRow:IsShown() and not allChevron:IsShown() and not allRule:IsShown(), "expanded again, they hide")
-	local right
-	for i = 1, caption:GetNumPoints() do
-		right = right or (caption:GetPoint(i) == "RIGHT" and { caption:GetPoint(i) })
-	end
-	assert(right and right[2] == row and right[4] < 0, "the caption ends before the collapse button, so a long scenario name cannot run under it")
+	assert(not allRow:IsShown() and not allChevron:IsShown(), "expanded again, they hide")
+	assert(caption:GetNumPoints() == 1, "the caption sizes to its text, so the rule starts where the title ends")
 	assert(S.W.LastCall(caption, "SetWordWrap")[1] == false, "on one line")
 	quests:SetHeader("Tracked quests")
 	assert(Plain(caption) == "TRACKED QUESTS", "a header Blizzard renames follows, upper case")
 	quests.Header.Text:SetText("The Deadmines")
 	assert(Plain(caption) == "THE DEADMINES", "a header Blizzard writes directly, as the scenario module does, follows too")
 	assert(quests.Header.Text:GetAlpha() == 0, "and stays hushed")
+
+	-- Each objective line keeps its words and moves its count to the line's right, in the number face, muted.
+	local function CountOf(line)
+		for _, frame in ipairs(Children(env, line)) do
+			for _, region in ipairs({ frame:GetRegions() }) do
+				if region:GetObjectType() == "FontString" then
+					return region
+				end
+			end
+		end
+	end
+	local crocolisks, patrol = quests.blocks[1], quests.blocks[2]
+	local hide, speak, found = crocolisks.usedLines[1], crocolisks.usedLines[2], patrol.usedLines[1]
+	assert(hide.Text:GetText() == "Riverglade Crocolisk Hide", "a leading count leaves the line's words, got " .. tostring(hide.Text:GetText()))
+	local hideCount = CountOf(hide)
+	assert(hideCount and Plain(hideCount) == "0/4", "and shows as a KstyleUI count on the line, got " .. tostring(hideCount and Plain(hideCount)))
+	assert(FontPath(hideCount) == Style.Font("number"), "in the number face")
+	local hidePoint = { hideCount:GetPoint(1) }
+	assert(hidePoint[1] == "TOPRIGHT" and hidePoint[2] == hide.Text and hidePoint[3] == "TOPRIGHT", "right-aligned to the line's text edge")
+	local tr, tg, tb = hideCount:GetTextColor()
+	local mr, mg, mb = K.Tokens.Color("text")
+	assert(Near(tr, mr) and Near(tg, mg) and Near(tb, mb), "muted")
+	assert(found.Text:GetText() == "Lost Patrol Found", "a trailing count after a colon leaves the words, got " .. tostring(found.Text:GetText()))
+	assert(Plain(CountOf(found)) == "1/3", "and shows at the right")
+	assert(speak.Text:GetText() == "Speak with Sergeant Hale", "a line with no count keeps its text")
+	assert(not CountOf(speak) or not CountOf(speak):IsShown(), "and shows no count")
+	crocolisks.objectives[1] = "2/4 Riverglade Crocolisk Hide"
+	p.layout(tracker)
+	assert(hide.Text:GetText() == "Riverglade Crocolisk Hide" and Plain(hideCount) == "2/4", "a relayout with progress updates the count")
+	K.Options.Write("Skins", "tracker.counts", false)
+	assert(hide.Text:GetText() == "2/4 Riverglade Crocolisk Hide" and not hideCount:IsShown(), "the counts switch gives the line Blizzard's text back at once")
+	p.layout(tracker)
+	assert(hide.Text:GetText() == "2/4 Riverglade Crocolisk Hide" and not hideCount:IsShown(), "and leaves it alone on the next layout")
+	K.Options.Write("Skins", "tracker.counts", true)
+	assert(hide.Text:GetText() == "Riverglade Crocolisk Hide" and hideCount:IsShown(), "switched back on, the count moves right again")
 
 	-- Each quest's POI button loses Blizzard's 32-unit art and gets a 13-unit accent disc with a dark numeral in
 	-- the block's order; the super-tracked quest and the hovered button show a ring.
@@ -470,23 +535,23 @@ do
 	first.poiButton:GetScript("OnLeave")(first.poiButton)
 	assert(not hoverRing:IsShown(), "and leaving hides it")
 
-	-- Titles take the accent, brighter under the mouse; the setting restores Blizzard's colours.
+	-- Titles take quest gold, brighter under the mouse; the setting restores Blizzard's colours.
 	local function TitleColor(block)
 		return block.HeaderText:GetTextColor()
 	end
 	local r, g, b = TitleColor(first)
-	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "quest titles take the accent after Blizzard colours them")
+	assert(Near(r, qr) and Near(g, qg) and Near(b, qb), "quest titles take quest gold after Blizzard colours them")
 	first.isHighlighted = true
 	first:UpdateHighlight()
 	local hr, hg, hb = TitleColor(first)
-	assert(hr >= ar and hg >= ag and hb >= ab and (hr + hg + hb) > (ar + ag + ab), "under the mouse the title brightens from the accent")
+	assert(hr >= qr and hg >= qg and hb >= qb and (hr + hg + hb) > (qr + qg + qb), "under the mouse the title brightens from quest gold")
 	first.isHighlighted = false
 	first:UpdateHighlight()
 	r, g, b = TitleColor(first)
-	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "and returns to the accent")
+	assert(Near(r, qr) and Near(g, qg) and Near(b, qb), "and returns to quest gold")
 	local achievement = p.modules[2].blocks[1]
 	r, g, b = TitleColor(achievement)
-	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "every module's titles take the accent")
+	assert(Near(r, qr) and Near(g, qg) and Near(b, qb), "every module's titles take quest gold")
 	K.Options.Write("Skins", "tracker.titles", false)
 	r, g, b = TitleColor(first)
 	assert(Near(r, BLIZZARD_GOLD.r) and Near(g, BLIZZARD_GOLD.g) and Near(b, BLIZZARD_GOLD.b), "the titles switch restores Blizzard's colour at once")
@@ -495,7 +560,7 @@ do
 	assert(Near(r, BLIZZARD_GOLD.r) and Near(g, BLIZZARD_GOLD.g) and Near(b, BLIZZARD_GOLD.b), "and leaves Blizzard's colour alone on the next layout")
 	K.Options.Write("Skins", "tracker.titles", true)
 	r, g, b = TitleColor(first)
-	assert(Near(r, ar) and Near(g, ag) and Near(b, ab), "switched back on, the accent returns")
+	assert(Near(r, qr) and Near(g, qg) and Near(b, qb), "switched back on, quest gold returns")
 	B.check(snap, HOOKED)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

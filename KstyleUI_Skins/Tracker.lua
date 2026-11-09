@@ -1,20 +1,18 @@
--- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content, one caption header per module with an accent chevron and rule, accent POI discs numbered in order, accent quest titles, the skin font and KstyleUI progress and timer bars.
+-- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content, one Lumen section cap per module (gem, tracked title, fading rule, quest count), accent POI discs numbered in order, quest-gold titles, objective counts moved to the line's right, the skin font and KstyleUI progress and timer bars.
 local _, ns = ...
 
 local K = KstyleUI
 local Skin, L, Tokens, Widgets = K.Skin, K.L, K.Tokens, K.Widgets
-local Style, Parts, Skins = ns.Style, ns.Parts, ns.Skins
+local Style, Parts, Skins, Lumen = ns.Style, ns.Parts, ns.Skins, ns.Lumen
 
 local KEY = "tracker"
 local LINE_DEFAULT, HEADER_EXTRA = 12, 2
 local PANEL_LEFT, PANEL_TOP, PANEL_BOTTOM = 16, -4, -8
-local LINE_ALPHA, LINE_UNITS, LINE_INSET = 0.5, 1, -2
-local CHEVRON_UNITS, CAPTION_Y, CAPTION_SIZE, CAPTION_RIGHT = 19, 2, 12.5, 24
-local QUARTER_TURN = math.pi / 2
+local CAPTION_Y, CAPTION_RIGHT = 2, 24
 local DISC_UNITS, RING_UNITS, NUMERAL_SIZE = 18, 24, 11
 local RING_ALPHA, HOVER_RING_ALPHA, HOVER_MIX = 0.9, 0.45, 0.15
-local THIN_SPACE = "\226\128\137"
-local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
+local COUNT_LEAD = "^(%d+%s*/%s*%d+)%s+(.-)%s*$"
+local COUNT_TRAIL = "^(.-)%s*:?%s+(%d+%s*/%s*%d+)%s*$"
 
 local WEAK = { __mode = "k" }
 local done = setmetatable({}, WEAK)
@@ -22,9 +20,10 @@ local hushedTexts = setmetatable({}, WEAK)
 local captions = setmetatable({}, WEAK)
 local discs = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
+local counts = setmetatable({}, WEAK)
 local fonts = {}
 local panel, fit, fitTop, fitBottom
-local allRow, allGlyph, allLine
+local allCap, allGlyph
 local hasContents = false
 local rehushing = false
 
@@ -107,49 +106,17 @@ local function HushText(text)
 	hooksecurefunc(text, "SetAlpha", Rehush)
 end
 
-local function Tracked(value)
-	local path = Style.Font("caption")
-	if type(path) ~= "string" or not path:find("KstyleUI", 1, true) then
-		return value
-	end
-	return (value:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1))
-end
-
-local function SetCaption(state, value)
-	state.value = PlainText(value)
-	state.text:SetText(Tracked(state.value:upper()))
-end
-
-local function RestyleCaption(state)
-	Style.Text(state.text, "caption", "textEmphasis")
-	Style.ApplyFont(state.text, "caption", CAPTION_SIZE * Style.Setting("text", "size"))
-	local left = Widgets.Inset(state.row, Tokens.Size("chamferWindow")) - PANEL_LEFT
-	state.text:ClearAllPoints()
-	state.text:SetPoint("LEFT", state.row, "LEFT", Widgets.Snap(state.row, left + CHEVRON_UNITS + Tokens.Size("gapSmall")), Widgets.Snap(state.row, CAPTION_Y))
-	state.text:SetPoint("RIGHT", state.row, "RIGHT", -Widgets.Snap(state.row, CAPTION_RIGHT), Widgets.Snap(state.row, CAPTION_Y))
-	state.text:SetJustifyH("LEFT")
-	state.text:SetWordWrap(false)
-	Widgets.Size(state.chevron, CHEVRON_UNITS, CHEVRON_UNITS)
-	state.chevron:ClearAllPoints()
-	state.chevron:SetPoint("LEFT", state.row, "LEFT", Widgets.Snap(state.row, left), Widgets.Snap(state.row, CAPTION_Y))
-	Style.TintAccent(state.chevron)
-	SetCaption(state, state.value)
+local function CapLeft(row)
+	return Widgets.Inset(row, Tokens.Size("chamferWindow")) - PANEL_LEFT
 end
 
 local function CaptionRow(header, value)
-	local row = CreateFrame("Frame", nil, header)
-	row:SetAllPoints(header)
-	row:SetFrameLevel(header:GetFrameLevel() + 1)
-	local chevron = row:CreateTexture(nil, "OVERLAY")
-	chevron:SetTexture((Tokens.Texture("glyphChevron")))
-	chevron:SetRotation(-QUARTER_TURN)
-	local state = { row = row, chevron = chevron, text = Widgets.FontString(row, "OVERLAY"), value = "", Restyle = RestyleCaption }
-	RestyleCaption(state)
-	SetCaption(state, value)
-	Style.Track(state)
-	Widgets.Track(state)
-	captions[header] = state
-	return state
+	local cap = Lumen.SectionCap(header, { left = CapLeft, right = CAPTION_RIGHT, y = CAPTION_Y })
+	cap.row:SetAllPoints(header)
+	cap.row:SetFrameLevel(header:GetFrameLevel() + 1)
+	cap:SetTitle(value)
+	captions[header] = cap
+	return cap
 end
 
 local function Header(header, value)
@@ -168,13 +135,12 @@ local function Header(header, value)
 	if follows then
 		value = PlainText(text:GetText())
 	end
-	local state = CaptionRow(header, value or "")
+	local cap = CaptionRow(header, value or "")
 	if follows then
 		hooksecurefunc(text, "SetText", function(_, newValue)
-			SetCaption(state, newValue)
+			cap:SetTitle(PlainText(newValue))
 		end)
 	end
-	local line = Parts.AccentLine(header, { alpha = LINE_ALPHA, units = LINE_UNITS, inset = LINE_INSET })
 	local chevron = Parts.Glyph(header.MinimizeButton, "glyphChevron", { flip = true })
 	if chevron and type(header.SetCollapsed) == "function" then
 		local function Point(_, collapsed)
@@ -184,11 +150,11 @@ local function Header(header, value)
 		local owner = header:GetParent()
 		Point(nil, owner and type(owner.IsCollapsed) == "function" and owner:IsCollapsed() == true)
 	end
-	return state, chevron, line
+	return cap, chevron
 end
 
 local function TitleColor(block)
-	local r, g, b = Style.Accent()
+	local r, g, b = Lumen.Color("questGold")
 	if block.isHighlighted == true then
 		r, g, b = Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, HOVER_MIX)
 	end
@@ -278,13 +244,98 @@ local function Disc(button)
 	return state
 end
 
+local function Split(text)
+	local count, words = text:match(COUNT_LEAD)
+	if count then
+		return words, count
+	end
+	words, count = text:match(COUNT_TRAIL)
+	if count then
+		return words, count
+	end
+	return nil
+end
+
+local function RestyleCount(state)
+	local _, size = state.text:GetFont()
+	Style.ApplyFont(state.label, "number", PlainSize(size) or LINE_DEFAULT)
+	Widgets.TextColor(state.label, "text")
+	state.label:ClearAllPoints()
+	state.label:SetPoint("TOPRIGHT", state.text, "TOPRIGHT", 0, 0)
+	state.label:SetJustifyH("RIGHT")
+end
+
+local function CountState(line)
+	local state = counts[line]
+	if state then
+		return state
+	end
+	local holder = CreateFrame("Frame", nil, line)
+	holder:SetAllPoints(line)
+	holder:SetFrameLevel(line:GetFrameLevel() + 1)
+	state = { line = line, text = line.Text, label = Widgets.FontString(holder, "OVERLAY"), Restyle = RestyleCount }
+	RestyleCount(state)
+	Style.Track(state)
+	Widgets.Track(state)
+	counts[line] = state
+	return state
+end
+
+local function PaintCount(state)
+	local text = state.text
+	if not Skins.Setting(KEY, "counts") then
+		if state.full and text:GetText() == state.words then
+			text:SetText(state.full)
+		end
+		state.full, state.words = nil, nil
+		state.label:SetText("")
+		state.label:Hide()
+		return
+	end
+	local current = PlainText(text:GetText())
+	if state.full and current == state.words then
+		return
+	end
+	local words, count = Split(current)
+	if not words or words == "" then
+		state.full, state.words = nil, nil
+		state.label:SetText("")
+		state.label:Hide()
+		return
+	end
+	state.full, state.words = current, words
+	text:SetText(words)
+	state.label:SetText(count)
+	state.label:Show()
+end
+
+local function Lines(block)
+	local lines = block.usedLines
+	if type(lines) ~= "table" then
+		return
+	end
+	for _, line in pairs(lines) do
+		if type(line) == "table" and type(line.Text) == "table" and type(line.Text.GetText) == "function" then
+			PaintCount(CountState(line))
+		end
+	end
+end
+
+local function PaintCounts()
+	for _, state in pairs(counts) do
+		PaintCount(state)
+	end
+end
+
 local function Blocks(module)
-	local index = 0
+	local index, total = 0, 0
 	local block, seen = module.firstBlock, {}
 	while type(block) == "table" and not seen[block] do
 		seen[block] = true
+		total = total + 1
 		WatchTitle(block)
 		PaintTitle(block)
+		Lines(block)
 		local button = block.poiButton
 		if type(button) == "table" and type(button.HookScript) == "function" then
 			index = index + 1
@@ -293,6 +344,10 @@ local function Blocks(module)
 			PaintDisc(state)
 		end
 		block = block.nextBlock
+	end
+	local cap = captions[module.Header]
+	if cap then
+		cap:SetTrail(total > 0 and total or nil)
 	end
 end
 
@@ -391,14 +446,11 @@ local function LeadingHeader(tracker)
 end
 
 local function PaintAll(collapsed)
-	if allRow then
-		allRow.row:SetShown(collapsed)
+	if allCap then
+		allCap:SetShown(collapsed)
 	end
 	if allGlyph then
 		allGlyph:SetShown(collapsed)
-	end
-	if allLine then
-		allLine:SetShown(collapsed)
 	end
 end
 
@@ -444,7 +496,7 @@ local function Apply()
 	local tracker = _G.ObjectiveTrackerFrame
 	Skin.Strip(tracker, { children = { "NineSlice" } })
 	fit = CreateFrame("Frame", nil, tracker)
-	allRow, allGlyph, allLine = Header(tracker.Header, L["Objectives"])
+	allCap, allGlyph = Header(tracker.Header, L["Objectives"])
 	Fit(tracker)
 	if type(tracker.NineSlice) ~= "table" then
 		Log("NineSlice is missing; the panel covers the whole tracker")
@@ -482,6 +534,9 @@ local function OnSetting(_, field)
 	if field == nil or field == "titles" then
 		PaintTitles()
 	end
+	if field == nil or field == "counts" then
+		PaintCounts()
+	end
 end
 
 Skins.Add({
@@ -490,7 +545,7 @@ Skins.Add({
 	help = L["Restyles the quest and objective tracker beside the minimap."],
 	addon = "Blizzard_ObjectiveTracker",
 	frame = "ObjectiveTrackerFrame",
-	defaults = { panel = true, font = true, titles = true },
+	defaults = { panel = true, font = true, titles = true, counts = true },
 	rows = {
 		{
 			type = "toggle", key = "panel", label = L["Glass panel"],
@@ -501,8 +556,12 @@ Skins.Add({
 			help = L["Uses the skin's font for tracker text. Turning it off needs a reload."],
 		},
 		{
-			type = "toggle", key = "titles", label = L["Accent titles"],
-			help = L["Colours quest titles with the accent instead of Blizzard's quest colours."],
+			type = "toggle", key = "titles", label = L["Gold titles"],
+			help = L["Colours quest titles in quest gold instead of Blizzard's quest colours."],
+		},
+		{
+			type = "toggle", key = "counts", label = L["Counts on the right"],
+			help = L["Moves each objective's count, such as 0/4, to the right of its line."],
 		},
 	},
 	Apply = Apply,

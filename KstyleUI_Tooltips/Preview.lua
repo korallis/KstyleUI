@@ -21,8 +21,8 @@ local FRIENDLY = 5
 
 local ITEM = {
 	header = 2,
-	{ left = L["Ranger's Long Bow"], role = "title", color = "quality", upper = true },
-	{ left = L["Rare"], role = "small", color = "quality", upper = true },
+	{ left = L["Ranger's Long Bow"], role = "title", color = "quality" },
+	{ left = Logic.Caption(38, L["Rare"]), role = "small", color = "text" },
 	{ left = L["Binds when equipped"], color = "highlight" },
 	{ left = L["Two-Hand"], right = L["Bow"], color = "highlight" },
 	{ left = L["142 - 198 Damage"], right = L["Speed 1.80"], color = "highlight" },
@@ -33,7 +33,7 @@ local ITEM = {
 }
 
 local UNIT = {
-	{ left = L["Valerin"], role = "title", color = "class", upper = true },
+	{ left = L["Valerin"], role = "title", color = "class" },
 	{ left = "", color = "guild", key = "guildLine" },
 	{ left = L["Level 60 Hunter (Player)"], color = "highlight" },
 	{ left = L["Target"], right = L["You"], color = "text", rightColor = "accent", key = "targetLine" },
@@ -88,7 +88,7 @@ local function Sample(frame, spec)
 	for i, line in ipairs(spec) do
 		local row = { left = Widgets.FontString(glass, "OVERLAY") }
 		row.left:SetJustifyH("LEFT")
-		row.left:SetText(line.upper and Logic.Upper(line.left) or line.left)
+		row.left:SetText(line.left)
 		if line.right then
 			row.right = Widgets.FontString(glass, "OVERLAY")
 			row.right:SetJustifyH("RIGHT")
@@ -145,7 +145,7 @@ local function LayoutSample(glass)
 	divider:SetPoint("TOPLEFT", glass.rows[glass.spec.header or 1].left, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))
 	divider:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
 	divider:SetHeight(Widgets.Border(glass))
-	divider:SetVertexColor(Settings.Accent())
+	divider:SetVertexColor(Style.Gilt())
 	divider:SetShown(Settings.Get("divider") and shown >= 2)
 	glass.chrome:Restyle()
 end

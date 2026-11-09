@@ -11,7 +11,8 @@ local CLOSE_GLYPH = 10
 local CHEVRON_SIZE = 8
 local UNDERLINE_UNITS = 2
 local TRACK_UNITS = 2
-local THUMB_UNITS = 4
+local THUMB_UNITS = 6
+local CAP_COORDS = { { 0, 1, 0, 0.5 }, { 0, 1, 0.5, 1 } }
 local THUMB_ALPHA = 0.45
 local CHECK_BOX = 16
 local CHECK_MARK = 8
@@ -418,7 +419,11 @@ local function PaintScroll(parts)
 		Widgets.Tint(parts.track, "track")
 	end
 	if parts.thumb then
-		parts.thumb:SetVertexColor(Widgets.MixTokens("text", THUMB_ALPHA, "accent", 1, parts.hoverT or 0))
+		local r, g, b, a = Widgets.MixTokens("text", THUMB_ALPHA, "accent", 1, parts.hoverT or 0)
+		parts.thumb:SetVertexColor(r, g, b, a)
+		for _, cap in ipairs(parts.thumbCaps) do
+			cap:SetVertexColor(r, g, b, a)
+		end
 	end
 	if parts.back then
 		Widgets.Tint(parts.back, "text")
@@ -434,7 +439,17 @@ local function LayoutScroll(parts)
 		parts.track:SetWidth(Widgets.Snap(parts.track, TRACK_UNITS))
 	end
 	if parts.thumb then
-		parts.thumb:SetWidth(Widgets.Snap(parts.thumb, THUMB_UNITS))
+		local width = Widgets.Snap(parts.thumb, THUMB_UNITS)
+		local cap = width / 2
+		parts.thumb:SetWidth(width)
+		parts.thumb:ClearAllPoints()
+		parts.thumb:SetPoint("TOP", parts.thumbOwner, "TOP", 0, -cap)
+		parts.thumb:SetPoint("BOTTOM", parts.thumbOwner, "BOTTOM", 0, cap)
+		for i, capTexture in ipairs(parts.thumbCaps) do
+			capTexture:SetSize(width, cap)
+			capTexture:ClearAllPoints()
+			capTexture:SetPoint(i == 1 and "TOP" or "BOTTOM", parts.thumbOwner, i == 1 and "TOP" or "BOTTOM")
+		end
 	end
 	if parts.back then
 		Widgets.Size(parts.back, CHEVRON_SIZE, CHEVRON_SIZE)
@@ -486,6 +501,14 @@ local function ScrollBar(bar)
 		parts.thumb:SetColorTexture(Tokens.Color("white"))
 		parts.thumb:SetPoint("TOP", thumb, "TOP")
 		parts.thumb:SetPoint("BOTTOM", thumb, "BOTTOM")
+		parts.thumbOwner = thumb
+		parts.thumbCaps = {}
+		for i = 1, 2 do
+			local cap = thumbLayer:CreateTexture(nil, "OVERLAY")
+			cap:SetTexture((Tokens.Texture("dot")))
+			cap:SetTexCoord(CAP_COORDS[i][1], CAP_COORDS[i][2], CAP_COORDS[i][3], CAP_COORDS[i][4])
+			parts.thumbCaps[i] = cap
+		end
 		if type(thumb.HookScript) == "function" then
 			thumb:HookScript("OnEnter", function()
 				W().Hover(parts, true)

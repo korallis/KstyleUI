@@ -299,12 +299,6 @@ end
 -- right of it, the name in tracked capitals in its rarity colour and a rarity caption under it -------
 
 local TEXT_INSET = 10
-local THIN = "\226\128\137"
-
--- Tracked(text): the text with a thin space between its letters, as the kit tracks titles and captions.
-local function Tracked(text)
-	return (text:gsub("([\1-\127\194-\244][\128-\191]*)", "%1" .. THIN):sub(1, -#THIN - 1))
-end
 
 local function Show(env, tip, kind, id, lines)
 	tip:SetOwner(env.UIParent, "ANCHOR_NONE")
@@ -318,7 +312,7 @@ do
 	local env, K, ns, snap = Enabled({ setup = Units })
 	local tip = env.GameTooltip
 	local glass = ns.Style.Glass(tip)
-	env._items[19019] = { quality = 3, icon = 135349 }
+	env._items[19019] = { quality = 3, icon = 135349, level = 60 }
 	env._items[2589] = { quality = 1, icon = 132889 }
 	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 0, 0.44, 0.87 }, { "Two-Hand", 1, 1, 1 }, { "+24 Agility", 0.1, 1, 0.1 } })
 	local icon, title, caption = glass.icon, tip:GetLeftLine(1), glass.caption
@@ -343,27 +337,29 @@ do
 	assert(SameRGB(hr, hg, hb, K.Tokens.Color("rare")) and Near(ha, 0.45), "with the rim's 45% halo outside it, as an action button")
 	local glow = icon.glow
 	assert(glow.holder:IsShown() and SameRGB(glow.colorRGB[1], glow.colorRGB[2], glow.colorRGB[3], K.Tokens.Color("rare")), "and it glows in it")
-	assert(title:GetText() == Tracked("RANGER'S LONG BOW") .. "\n ", "the name in tracked capitals, with a line kept for the caption")
+	assert(title:GetText() == "Ranger's Long Bow\n ", "the name in title case, as the heading face sets its own capitals, with a line kept for the caption")
 	assert(Colored(title, K.Tokens.Color("rare")), "in the kit's rare colour")
-	assert(caption:IsShown() and caption:GetText() == Tracked("RARE") and Colored(caption, K.Tokens.Color("rare")), "the rarity word as a tracked caption")
+	assert(caption:IsShown() and caption:GetText() == "Item level 60 \194\183 Rare" and Colored(caption, K.Tokens.Color("text")), "the item level and rarity as a muted caption")
 	point, relative, relativePoint = caption:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and relative == title and relativePoint == "BOTTOMLEFT", "on the title's second line")
 	assert(select(2, caption:GetFont()) == select(2, ns.Style.FontSpec("small")), "in the small line size")
-	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(2), "the accent rule runs under the base lines, above the stats")
+	assert(glass.divider:IsShown() and select(2, glass.divider:GetPoint(1)) == tip:GetLeftLine(1), "the gilt rule runs under the header")
 	e = glass.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Tokens.Color("edgeInner")), "the panel keeps its faint hairline")
 
+	Show(env, tip, Item, 19019, { { "Ranger's Long Bow", 0, 0.44, 0.87 }, { "Item Level 60", 1, 0.82, 0 }, { "Two-Hand", 1, 1, 1 } })
+	assert(caption:GetText() == "Rare", "when Blizzard's tooltip already carries an Item Level line, the caption reads the rarity alone, so the level never shows twice")
 	Show(env, tip, Item, 2589, { { "Linen Cloth", 1, 1, 1 }, { "Crafting Reagent", 0.4, 0.7, 1 } })
-	assert(caption:GetText() == Tracked("COMMON") and Colored(caption, K.Tokens.Color("text")), "a common item's caption is body grey")
+	assert(caption:GetText() == "Common" and Colored(caption, K.Tokens.Color("text")), "a common item with no item level reads its rarity alone, body grey")
 	assert(not glow.holder:IsShown(), "and its icon does not glow")
 
 	ShowUnit(env, tip, "mouseover", { "Valerin", "Kstyle" })
 	assert(not icon:IsShown() and not caption:IsShown(), "a unit after the item shows no icon and no caption")
 	assert(select(3, tip:GetPadding()) == 0, "and gives Blizzard's lines their place back")
-	assert(tip:GetLeftLine(1):GetText() == Tracked("VALERIN"), "unit names read in tracked capitals")
+	assert(tip:GetLeftLine(1):GetText() == "Valerin", "unit names keep their case; the heading face carries the capitals")
 
 	Show(env, tip, Spell, 133, { { "Fireball", 1, 1, 1 }, { "Hurls a fiery ball.", 1, 0.82, 0 } })
-	assert(icon:IsShown() and not caption:IsShown() and tip:GetLeftLine(1):GetText() == Tracked("FIREBALL"), "a spell: its icon and capitals, no caption")
+	assert(icon:IsShown() and not caption:IsShown() and tip:GetLeftLine(1):GetText() == "Fireball", "a spell: its icon and name, no caption")
 	e = icon.chrome.edge
 	assert(SameRGB(e[1], e[2], e[3], K.Theme.Accent()) and not glow.holder:IsShown(), "its border rests on the accent, unlit")
 	tip:GetLeftLine(1)._state.StringHeight, tip:GetLeftLine(2)._state.StringHeight = { n = 1, 14 }, { n = 1, 14 }

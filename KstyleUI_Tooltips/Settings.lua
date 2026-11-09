@@ -128,7 +128,7 @@ local LOOK = {
 	},
 	{
 		type = "toggle", key = "divider", label = L["Title divider"],
-		help = L["Draws an accent line under the tooltip's title."],
+		help = L["Draws a gilt line under the tooltip's title."],
 	},
 	{
 		type = "toggle", key = "softColors", label = L["Soft line colours"],
@@ -136,7 +136,7 @@ local LOOK = {
 	},
 	{
 		type = "dropdown", key = "accentSource", label = L["Accent colour"],
-		help = L["The colour of the title divider and the You target: your class colour or one you pick."],
+		help = L["The colour of the You target and spell icon rims: your class colour or one you pick."],
 		options = {
 			{ value = "class", label = L["Class colour"] },
 			{ value = "custom", label = L["Custom colour"] },

@@ -1,4 +1,4 @@
--- Logic.lua: the module's pure rules: the fixed anchor's corner, font flags, quality edges, softened line colours, an item's stat and footer lines and the tooltip scale.
+-- Logic.lua: the module's pure rules: the fixed anchor's corner, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text and the tooltip scale.
 local _, ns = ...
 
 local Logic = {}
@@ -13,9 +13,11 @@ local FLAGS = { OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local STAT = "^%+%d"
 local FOOTER_GLOBALS = { "DURABILITY_TEMPLATE", "ITEM_MIN_LEVEL" }
 local FOOTER_DEFAULTS = { "Durability %d / %d", "Requires Level %d" }
+local LEVEL_GLOBAL, LEVEL_DEFAULT = "ITEM_LEVEL", "Item Level %d"
 local THIN_SPACE = "\226\128\137"
-local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
+local MIDDLE_DOT = " \194\183 "
 local RESERVED = "\n "
+local LEVEL_FORMAT = "Item level %d"
 
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
@@ -77,6 +79,19 @@ local function FooterPatterns()
 	return footerPatterns
 end
 
+local levelPattern
+
+function Logic.IsLevelLine(text)
+	if IsSecret(text) or type(text) ~= "string" then
+		return false
+	end
+	if not levelPattern then
+		local template = rawget(_G, LEVEL_GLOBAL)
+		levelPattern = Pattern(type(template) == "string" and template or LEVEL_DEFAULT)
+	end
+	return text:find(levelPattern) ~= nil
+end
+
 function Logic.IsStat(text)
 	return not IsSecret(text) and type(text) == "string" and text:find(STAT) ~= nil
 end
@@ -122,27 +137,23 @@ function Logic.GuildText(guild, rank)
 	return format("<%s>", guild)
 end
 
-function Logic.Upper(text)
-	return text:find("[\128-\255]") and text or text:upper()
-end
-
-function Logic.Tracked(text)
-	local plain = text:gsub(THIN_SPACE, "")
-	local spaced = plain:gsub(CODEPOINT, "%1" .. THIN_SPACE)
-	return spaced:sub(1, -#THIN_SPACE - 1)
-end
-
-function Logic.TitleText(text, reserve, track)
+function Logic.TitleText(text, reserve)
 	if IsSecret(text) or type(text) ~= "string" or text == "" or text:find("|", 1, true) then
 		return nil
 	end
 	local plain = text:gsub(RESERVED .. "$", "")
 	plain = plain:gsub(THIN_SPACE, "")
-	local upper = Logic.Upper(plain)
-	if track then
-		upper = Logic.Tracked(upper)
+	return reserve and plain .. RESERVED or plain
+end
+
+function Logic.Caption(level, rarity)
+	if type(rarity) ~= "string" or rarity == "" then
+		return nil
 	end
-	return reserve and upper .. RESERVED or upper
+	if IsNumber(level) and level > 0 then
+		return format(LEVEL_FORMAT, floor(level)) .. MIDDLE_DOT .. rarity
+	end
+	return rarity
 end
 
 function Logic.IDText(id)

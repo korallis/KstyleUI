@@ -242,7 +242,7 @@ do
 	B.check(snap)
 end
 
--- ScrollBar: the track and thumb art go; a thin track, an accent-on-hover thumb and chevron steppers come.
+-- ScrollBar: the track and thumb art go; a thin track, an accent-on-hover pill thumb and chevron steppers come.
 do
 	local env, K = W.New()
 	local B = Blizzard(env)
@@ -263,12 +263,28 @@ do
 	assert(thumbArt:GetAlpha() == 0 and trim:GetAlpha() == 0, "the thumb and the trim bar's background art are stripped")
 	local parts = K.Skin.Parts(bar)
 	assert(parts.thumb and parts.thumb._points[1][2] == bar.Thumb, "KstyleUI's thumb follows Blizzard's")
+	-- The thumb is a pill: a bar between two half-dot caps as wide as the bar, so it reads as Lumen's rounded
+	-- filament, not a square stick.
+	local caps = parts.thumbCaps
+	assert(type(caps) == "table" and caps[1] and caps[2], "the thumb has two round caps")
+	local width = parts.thumb:GetWidth()
+	for i, cap in ipairs(caps) do
+		assert(W.LastCall(cap, "SetTexture")[1] == K.Tokens.Texture("dot"), "each cap is half of the kit's dot")
+		assert(W.Near(cap:GetWidth(), width) and W.Near(cap:GetHeight(), width / 2), "a cap is as wide as the thumb and half as tall, got " .. tostring(cap:GetWidth()) .. " by " .. tostring(cap:GetHeight()))
+		local coords = W.LastCall(cap, "SetTexCoord")
+		assert(coords and coords[3] == (i == 1 and 0 or 0.5) and coords[4] == (i == 1 and 0.5 or 1), "the top cap shows the dot's upper half, the bottom cap its lower half")
+		local point = cap._points[1]
+		assert(point[2] == bar.Thumb and point[1] == (i == 1 and "TOP" or "BOTTOM"), "the caps sit at the ends of Blizzard's thumb")
+	end
+	local top, bottom = parts.thumb._points[1], parts.thumb._points[2]
+	assert(W.Near(top[5], -width / 2) and W.Near(bottom[5], width / 2), "the bar between them stops where the caps start")
 	assert(parts.track and W.SameColor(parts.track, K.Tokens.Color("track")))
 	assert(parts.back and W.LastCall(parts.back, "SetTexCoord")[3] == 1, "the back stepper's chevron points up")
 	assert(parts.forward and W.LastCall(parts.forward, "SetTexture")[1] == K.Tokens.Texture("glyphChevron"))
 	W.Enter(bar.Thumb)
 	W.Settle(env)
 	assert(W.SameRGB(parts.thumb, K.Tokens.Color("accent")), "the thumb lights under the mouse")
+	assert(W.SameRGB(caps[1], K.Tokens.Color("accent")) and W.SameRGB(caps[2], K.Tokens.Color("accent")), "and its caps with it")
 	bar.Thumb._kstyleAllowHide, bar.Track._kstyleAllowHide = true, true
 	bar.Thumb:Hide()
 	assert(not parts.thumb:IsVisible(), "KstyleUI's thumb hides with Blizzard's")
