@@ -1,12 +1,39 @@
 # Regression tests
 
-`run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), and report in file order; a test must write only to its own temporary paths. On the Mac, run it with LuaJIT:
+`run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), and report in file order; a test must write only to its own temporary paths. `run-all.sh` starts `run_all.py`, which does the work.
 
 ```bash
-LUA=luajit bash Tools/regression/run-all.sh
+bash Tools/regression/run-all.sh
 ```
 
-To see a failing test's full output, run that test alone, for example `luajit Tools/regression/test-taint-scan.lua`.
+To see a failing test's full output, run that test alone, for example `lua5.1 Tools/regression/test-taint-scan.lua`.
+
+## Interpreter
+
+CI runs the tests with Lua 5.1 on Ubuntu. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
+
+1. `lua5.1` on the `PATH`. This is what CI runs.
+2. `~/.local/bin/lua5.1`. `bash Tools/dev/install-lua51.sh` builds Lua 5.1.5 there; Homebrew has no Lua 5.1.
+3. `luajit -joff`, LuaJIT with its compiler off. Its speed is within 10% of Lua 5.1's on this suite. It is not the same interpreter: it accepts `goto`, and `test-widgets-statusbar` fails its allocation check in about one run in ten under it.
+
+`LUA=luajit bash Tools/regression/run-all.sh` is fast mode, for quick iteration only. LuaJIT's compiler runs some tests 100 times faster than Lua 5.1. A test that took 0.5 s in fast mode took 53 s under Lua 5.1 and pushed CI past its 15-minute limit. Fast mode times do not predict CI, so run without `LUA` before a push.
+
+## Time and memory budget
+
+Each test file has a budget. `run-all.sh` fails a file that goes over it and names the fix:
+
+```text
+FAIL test-groupframes-depth: took 57.4 s, over the 20 s budget. Make the test cheaper; CI runs Lua 5.1, about 4 times slower than this Mac.
+FAIL test-groupframes-depth: peaked at 10028 MB, over the 4096 MB budget. Make the test use less memory; CI runs 4 test files at once on 16 GB.
+```
+
+- **Time.** The budget is 20 s of wall time under Lua 5.1 on the Mac. CI's runner is about 4 times slower, so when `CI=true` the budget is 80 s. On 2026-11-09 the slowest file took 9.8 s here.
+- **Memory.** The budget is 4096 MB of peak resident memory. CI runs 4 files at once on a 16 GB runner, and a file over the budget can push the runner into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
+- **Stop.** A file still running at 3 times the time budget is stopped and fails.
+
+After the results, `run-all.sh` prints the five slowest files with their time and peak memory, then the total test time, the wall time and the number of jobs. The last line is always `passed N, failed M`. `TEST_TIME_BUDGET` (seconds) and `TEST_MEMORY_BUDGET` (MB) change the budgets for the runner's own tests in `Tools/tests/test_run_all.py`. CI never sets them.
+
+When a file goes over a budget, make it cheaper: build fewer frames, run fewer rounds, or split it into two files. Never raise the budget to make a file pass.
 
 ## Files
 
@@ -14,6 +41,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 
 | File | What it does |
 | --- | --- |
+| `run_all.py` | Runs the test files for `run-all.sh`: picks the interpreter, runs the files in parallel and checks each one's time and memory budget. |
 | `toc_files.lua` | Lists the files the game loads, in load order, from the TOCs and their XML includes. |
 | `load_files.lua` | Runs addon files in a stub environment with the addon's `...` arguments. |
 | `stubs/wow.lua` | A stub WoW API for offline tests. Extend it additively. |
@@ -174,7 +202,7 @@ return {
 ```
 
 - `name` is unique across `perf/`. Start it with the module.
-- `budget` is the time per call in microseconds. `luajit Tools/regression/test-perf.lua` prints each path's time. Set the budget near 15 times the time LuaJIT prints, which is about 10 times the time Lua 5.1 prints, so that a slower CI runner passes and a path that loops over every frame fails. Use at least 10.
+- `budget` is the time per call in microseconds. `lua5.1 Tools/regression/test-perf.lua` prints each path's time. Set the budget near 10 times the time Lua 5.1 prints. Use at least 10.
 - `setup` builds a stub environment and returns it with the function to measure. It runs once.
 - `calls`, optional, sets the calls per round. The default is 1,000.
 
@@ -187,3 +215,16 @@ StatusBar SetBarColor: allocates 152 bytes per call: Core/Widgets/StatusBar.lua:
 ```
 
 Fix the line: reuse a table that the object owns, or pass values as arguments. A table built once at load time is not a per-call allocation.
+
+### Calibrate a budget
+
+A budget is set on the Mac and must also pass on CI, so it follows one rule: **set it near 10 times the time Lua 5.1 takes on the Mac.** The test fails a budget below 5 times that time and prints the value to use:
+
+```text
+Nameplates interrupt readiness flipping under three casts: budget 40 us is 2.8 times the 14.2 us Lua 5.1 takes here, and CI runs about 4 times slower; set it near 142 us (10 times)
+```
+
+- CI's runner takes about 4 times as long per call. On 2026-11-09 that path took 13 us under Lua 5.1 on the Mac and 51.9 us on CI, over its 40 us budget.
+- 10 times leaves CI 2.5 times its usual time. The shared runner varies, and other test files run beside `test-perf`.
+- LuaJIT's interpreter runs a path about 1.5 times faster than Lua 5.1, so under LuaJIT the test scales the time up by 1.5 before the check.
+- On CI (`CI=true`) the test skips this check. There the budget itself is the check.

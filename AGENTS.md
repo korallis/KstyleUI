@@ -27,9 +27,11 @@ Run these from the repository root before every push. All of them must pass.
 ```bash
 python3 Tools/dev/crlf.py
 pre-commit run --all-files
-LUA=luajit bash Tools/regression/run-all.sh
+bash Tools/regression/run-all.sh
 python3 -m unittest discover -s Tools/tests
 ```
+
+`bash Tools/regression/run-all.sh` runs the tests as CI does: under Lua 5.1, or `luajit -joff` when Lua 5.1 is missing. Its first line names the interpreter. Install Lua 5.1 once with `bash Tools/dev/install-lua51.sh`. Each test file must stay within 20 s and 4096 MB, or `run-all.sh` fails it. `LUA=luajit` is fast mode, for quick iteration only: its compiler hides slow tests, so it never counts as the pre-push run. `Tools/regression/README.md` explains the budgets and how to set a `test-perf` budget.
 
 `pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install` in a worktree: every worktree shares `.git/hooks` with `~/KstyleUI`, so it would install hooks into the owner's checkout and into branches that have no `.pre-commit-config.yaml`. To check a commit message, run `pre-commit run --hook-stage commit-msg --commit-msg-filename <file>`.
 
@@ -90,3 +92,4 @@ Add one line for each mistake that happened twice: what went wrong and the rule 
 - Three modules (Minimap, UnitFrames, Skins) set text on a raw `CreateFontString` before styling it. The game raised "Font not set" and stopped two modules from loading. Make font strings with `K.Widgets.FontString(parent, layer)`. `test-fontstrings.lua` fails on a raw call, and the stub raises the game's error.
 - Three secure overlays (Minimap, Reload, DataBars) anchored to the button they cover. The minimap's zone button sits on a font string, so the game raised "Cannot anchor protected frames to regions" on every hover. Place a secure overlay with `K.Widgets.Cover(overlay, visual)`. The stub raises the game's error when a protected frame's anchors lead to a region.
 - Piping `run-all.sh` or a test into `tail` hid two failures, and a failing branch was pushed twice in one task. Before a push, read the exit code of every check (`run-all.sh` must end with "failed 0"), never the tail of piped output.
+- LuaJIT's compiler ran a new test in 0.5 s on the Mac. Under Lua 5.1 it took 53 s and peaked at 10 GB, and CI's tests job passed its 15-minute limit. A `test-perf` budget set from LuaJIT times also failed on CI (51.9 us against 40 us). Run `bash Tools/regression/run-all.sh` with no `LUA` before a push. It runs Lua 5.1 or `luajit -joff` and fails any test file over 20 s or 4096 MB. `test-perf` fails any budget below 5 times the Lua 5.1 time.

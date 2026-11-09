@@ -23,6 +23,6 @@ A change to a TOC "## Version" line or to CODE_BUILD also needs the "release" la
 
 - [ ] `python3 Tools/dev/crlf.py`
 - [ ] `pre-commit run --all-files`
-- [ ] `LUA=luajit bash Tools/regression/run-all.sh`
+- [ ] `bash Tools/regression/run-all.sh` (no `LUA`: it runs CI's Lua 5.1)
 - [ ] `python3 -m unittest discover -s Tools/tests`
 - [ ] `/codex:review`: one cross-family review

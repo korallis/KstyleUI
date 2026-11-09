@@ -62,7 +62,7 @@ return {
 	},
 	{
 		name = "Nameplates UNIT_AURA with eight debuffs",
-		budget = 20,
+		budget = 45,
 		setup = function()
 			local env = Plate()
 			N.Debuffs(env, "nameplate1", 8)

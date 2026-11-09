@@ -111,8 +111,29 @@ local function EntryProblem(file, i, entry, seen)
 	end
 end
 
+-- CI's runner takes about 4 times as long per call as Lua 5.1 on the Mac, so a budget is set near 10 times
+-- the Lua 5.1 time measured here and fails below 5 times. LuaJIT's interpreter runs about 1.5 times faster
+-- than Lua 5.1, so its time is scaled up first. CI skips this check: there the budget itself is the check.
+local TARGET_HEADROOM, MIN_HEADROOM, LUAJIT_SPEEDUP = 10, 5, 1.5
+
+-- HeadroomProblem(name, budget, us, jitted) -> why a budget is too tight to pass on CI, or nil.
+local function HeadroomProblem(name, budget, us, jitted)
+	local lua51 = jitted and us * LUAJIT_SPEEDUP or us
+	if budget >= MIN_HEADROOM * lua51 then
+		return nil
+	end
+	return string.format("%s: budget %g us is %.1f times the %.3g us Lua 5.1 takes here, and CI runs about 4 times slower; set it near %.3g us (%d times)",
+		name, budget, budget / lua51, lua51, TARGET_HEADROOM * lua51, TARGET_HEADROOM)
+end
+
 -- The checks on the registry itself.
 do
+	assert(HeadroomProblem("X", 100, 10, false) == nil, "a budget 10 times the Lua 5.1 time passes")
+	assert(HeadroomProblem("X", 50, 10, false) == nil, "a budget 5 times the Lua 5.1 time passes")
+	local tight = HeadroomProblem("X", 40, 13, false)
+	assert(tight and tight:find("^X: budget 40 us is 3.1 times") and tight:find("set it near 130 us", 1, true), "the PR #167 budget, 3 times the Lua 5.1 time, fails and names the fix: " .. tostring(tight))
+	assert(HeadroomProblem("X", 40, 9.66, true), "LuaJIT's interpreter is faster than Lua 5.1, so its time is scaled before the check")
+	assert(HeadroomProblem("X", 100, 10, true) == nil, "a roomy budget passes under LuaJIT too")
 	assert(AreaProblem("Core.lua") == nil and AreaProblem("KstyleUI_UnitFrames.lua") == nil, "real areas pass")
 	assert(AreaProblem("KstyleUI_Nowhere.lua"), "an area with no addon folder fails")
 	assert(AreaProblem("notes.txt"), "a file that is not Lua fails")
@@ -144,6 +165,7 @@ end
 assert(#paths > 0, "no combat paths are registered in " .. DIR)
 
 -- Measure each path.
+local onCI, jitted = os.getenv("CI") == "true", rawget(_G, "jit") ~= nil
 local failures = {}
 local function Fail(message)
 	failures[#failures + 1] = message
@@ -168,6 +190,10 @@ for _, entry in ipairs(paths) do
 			print(string.format("%-40s %7.2f us of %4g   %5.0f B/call on addon lines   %6.0f B/call in all", entry.name, r.time * 1e6, entry.budget, r.addonKb * 1024, r.kb * 1024))
 			for _, problem in ipairs(problems) do
 				Fail(problem)
+			end
+			local tight = not onCI and HeadroomProblem(entry.name, entry.budget, r.time * 1e6, jitted)
+			if tight then
+				Fail(tight)
 			end
 			if #env._errors > errors then
 				Fail(entry.name .. ": reported an error: " .. tostring(env._errors[errors + 1]))
