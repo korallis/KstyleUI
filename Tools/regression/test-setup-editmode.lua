@@ -55,6 +55,13 @@ do
 	local place = K.Setup.EditMode.TrackerPlace(story.tracker)
 	assert(near(a.offsetX, place.x * k) and near(a.offsetY, place.y * k), "at the story slot, in UIParent's units")
 	assert(near(place.x - K.Setup.EditMode.TRACKER_LEFT, story.tracker.left) and near(place.y - K.Setup.EditMode.TRACKER_TOP, story.tracker.top), "so the tracker's glass starts at the slot's top left")
+	do
+		local rw, rh = K.Layout.RootSize()
+		local mw, mh = K.Setup.Layouts.Footprint("DPS", "minimap.main")
+		local _, mapBottom = K.Setup.Layouts.Rect({ width = mw, height = mh }, K.Setup.Layouts.Get("DPS", rh)["minimap.main"], rw, rh)
+		assert(near(story.tracker.right, rw - 28) and story.tracker.left > rw / 2, "the slot, and so the tracker, is on the right rail")
+		assert(story.tracker.top < mapBottom, "under the map, where a tracker sits in the classic UI")
+	end
 	assert(tracker.isInDefaultPosition == false, "and is no longer in its default position")
 	assert(Setting(tracker, HEIGHT) == 0, "the tracker takes Edit Mode's lowest height, so a long list stays off chat")
 	assert(Setting(tracker, 1) == 0, "its other settings are the copied layout's")
@@ -214,8 +221,9 @@ end
 -- byte for byte, and the summary names the counts with the Cooldown Manager and Edit Mode as the way out.
 
 local function Story(K, name)
-	local slot = K.Setup.Layouts.Slot(name, select(2, K.Layout.RootSize()))
-	return { slot.x, slot.y, slot.x + slot.width, slot.y + slot.height }
+	local rw, rh = K.Layout.RootSize()
+	local slot = K.Setup.Layouts.Slot(name, rh)
+	return { K.Setup.Layouts.Rect(slot, slot, rw, rh) }
 end
 
 local function Same(a, b)

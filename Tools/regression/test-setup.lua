@@ -544,13 +544,10 @@ do
 	local l, b, r, t = K.Setup.Layouts.Rect(want, want, rw, rh)
 	local got = assert(Geometry.Rect(slot, K.Scale.Root()))
 	assert(math.abs(got.left - l) < 1 and math.abs(got.bottom - b) < 1 and math.abs(got.right - r) < 1 and math.abs(got.top - t) < 1, "at the Tank slot")
+	assert(math.abs(got.right - (rw - 28)) < 1 and got.left > rw / 2, "on the right rail, under the map")
 	assert(not slot:IsMouseEnabled(), "the outline never takes the mouse from the frames the player drops on it")
-	local line = assert(Geometry.Rect(slot.raidLine, K.Scale.Root()))
-	assert(slot.raidLine:IsShown() and math.abs(line.top - (t - want.raid)) < 1, "a line marks how far the raid frames reach into the slot")
-	assert(slot.raidText:GetText():find("raid", 1, true), "and says so")
 	K.Layout.Exit(true)
 	W.Settle(env)
-	-- Healer brings the raid beside the hands: its slot runs from the focus target to chat with no raid line.
 	assert(K.Setup.Apply({ layout = "Healer", modules = {} }))
 	assert(K.Layout.Enter())
 	W.Settle(env)
@@ -558,7 +555,6 @@ do
 	local _, hb, _, ht = K.Setup.Layouts.Rect(want, want, rw, rh)
 	got = assert(Geometry.Rect(slot, K.Scale.Root()))
 	assert(math.abs(got.top - ht) < 1 and math.abs(got.bottom - hb) < 1, "Layout Mode follows the Healer slot")
-	assert(not slot.raidLine:IsShown() and not slot.raidHelp:IsShown(), "and draws no raid line there")
 	K.Layout.Exit(true)
 	W.Settle(env)
 	assert(not slot:IsShown(), "and hides with Layout Mode")
@@ -566,8 +562,8 @@ do
 end
 
 -- Layout Mode keeps the story slot's guidance readable (round 4, Astra #2: its title and help sat under a mover plate):
--- the label and the hint stand on their own glass card, and the raid line's text on its own, each shown only while no
--- mover plate covers it, so a plate's label is never written over and the guidance never hides half under a plate.
+-- the label and the hint stand on their own glass card, shown only while no mover plate covers it, so a plate's label
+-- is never written over and the guidance never hides half under a plate.
 
 do
 	local env, K = Boot()
@@ -578,21 +574,15 @@ do
 	local root = K.Scale.Root()
 	assert(slot.help and slot.help:IsShown() and slot.help.chrome.shapeName == "card", "the guidance stands on a glass card")
 	assert(slot.label:GetParent() == slot.help and slot.hint:GetParent() == slot.help, "with the label and the hint on it")
-	assert(slot.raidHelp and slot.raidHelp:IsShown() and slot.raidText:GetParent() == slot.raidHelp, "the raid line's text has its own card")
 	local help = assert(Geometry.Rect(slot.help, root))
 	local frame = K.Widgets.Panel(root, { width = 160, height = 40, shape = "panel" })
 	K.Layout.Register(frame, "test.box", { anchor = "BOTTOMLEFT", x = help.left + 10, y = help.bottom + 4 }, { label = "Box" })
 	W.Settle(env)
 	assert(not slot.help:IsShown(), "a mover plate over the guidance hides it")
 	assert(slot:IsShown(), "and the slot's outline stays")
-	local raid = assert(Geometry.Rect(slot.raidHelp, root))
-	assert(K.Layout.Update("test.box", { anchor = "BOTTOMLEFT", x = raid.left + 10, y = raid.bottom }))
-	W.Settle(env)
-	assert(slot.help:IsShown(), "moving the plate away shows the guidance again")
-	assert(not slot.raidHelp:IsShown(), "and the raid line's text hides under the plate now over it")
 	assert(K.Layout.Update("test.box", { anchor = "BOTTOMLEFT", x = 900, y = 600 }))
 	W.Settle(env)
-	assert(slot.help:IsShown() and slot.raidHelp:IsShown(), "with nothing over the slot both show")
+	assert(slot.help:IsShown(), "moving the plate away shows the guidance again")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

@@ -110,6 +110,15 @@ local function Box(name, key, rw, rh)
 	return { l = l, b = b, r = r, t = t }
 end
 
+local function StoryBox(name, rw, rh)
+	local slot = Layouts.Slot(name, rh)
+	if not slot then
+		return nil
+	end
+	local l, b, r, t = Layouts.Rect(slot, slot, rw, rh)
+	return { l = l, b = b, r = r, t = t }
+end
+
 local function Others(name, rw, rh)
 	local out = {}
 	for key in pairs(Layouts.Get(name)) do
@@ -117,10 +126,7 @@ local function Others(name, rw, rh)
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
 	end
-	local slot = Layouts.Slot(name, rh)
-	if slot then
-		out[#out + 1] = { l = slot.x, b = slot.y, r = slot.x + slot.width, t = slot.y + slot.height }
-	end
+	out[#out + 1] = StoryBox(name, rw, rh)
 	return out
 end
 
@@ -297,12 +303,9 @@ end
 local function Warning(name, k, rw, rh, others, chosen)
 	local system, sigil = Enum.EditModeSystem.RaidWarning, Box(name, "unitframes.target", rw, rh)
 	local rects, xs = {}, { rw / 2 }
-	local slot = Layouts.Slot(name, rh)
-	if slot then
-		local l, b, r, t = Layouts.Rect(slot, slot, rw, rh)
-		rects[1] = { l = l, b = b, r = r, t = t }
-	end
-	local left, right = rects[1] or Box(name, "chat.main", rw, rh), Box(name, "minimap.main", rw, rh)
+	local story = StoryBox(name, rw, rh)
+	rects[1] = story
+	local left, right = Box(name, "chat.main", rw, rh), story or Box(name, "minimap.main", rw, rh)
 	if system == nil or not (sigil and left and right) then
 		return nil
 	end

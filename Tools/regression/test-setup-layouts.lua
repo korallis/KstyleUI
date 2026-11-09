@@ -158,8 +158,8 @@ for _, name in ipairs(names) do
 end
 
 -- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
--- Two 318-unit rails on a 28-unit margin hold everything slow: in DPS and Tank the left rail the party and chat with
--- the story slot between them, the right rail the lens, the aura rows, the damage card and the readout and menu. The
+-- Two 318-unit rails on a 28-unit margin hold everything slow: in DPS and Tank the left rail the party and chat, the
+-- right rail the map with the aura rows, the story slot, the damage card and the readout and menu. The
 -- centre holds one combat cluster at the bottom: the hands, and right on them the target sigil, with the focus on its
 -- left and the target of target on its right (in Tank the threat card under it), so you, your target, its target and
 -- your focus read in one glance (round 2: Muse #1, Opus's eye travel). The boss column heads the centre's right edge,
@@ -169,7 +169,7 @@ end
 -- column on the right rail; Muse #2: the cast bars stay in the cluster).
 
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
-local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
+local CARD_GAP_MIN = 16
 local LEFT_RAIL = {
 	DPS = { "groupframes.party", "groupframes.raid" },
 	Tank = { "groupframes.party", "groupframes.raid" },
@@ -181,11 +181,18 @@ local LEFT_RAIL = {
 -- Healer keeps the 318 rail width: on that screen its tracked buff icons stand in the gap between the chat and the
 -- focus card (test-setup-editmode.lua's 16 icons and 12 bars), so Healer writes 318 when it is applied.
 local CHAT_WIDTH = { DPS = 372, Tank = 372, Healer = 318 }
+-- The right rail (owner, 2026-11-09: "The quest tracker can go back to the right side for better alignment"): the map
+-- heads it with the aura rows beside it; the story slot (the quest card, under the RestedXP guide when it is loaded)
+-- hangs 16 under the lower of the two, where a tracker sits in the classic UI, so the quests read right under the map.
+-- The damage card stands on the readout card at the rail's foot, 16 over it, and the tooltip anchor 8 over the damage
+-- card: a tooltip grows up over the story slot's foot, never over the damage meter you read in combat. The story slot
+-- ends 16 over the tooltip anchor.
 local RIGHT_STACK = {
 	DPS = { "minimap.main", "meters.damage" },
 	Tank = { "minimap.main", "meters.damage" },
 	Healer = { "minimap.main", "meters.damage" },
 }
+local STORY_RAIL_MIN = 560
 -- The aura rows (owner pass 1): two 282 x 88 blocks beside the map's left edge, top-aligned with it, the debuffs 16
 -- under the buffs, growing left; they are not part of the rail's stack.
 local AURA_ROWS = { "auras.buffs", "auras.debuffs" }
@@ -261,10 +268,11 @@ for _, name in ipairs(names) do
 			local r, h = rect(key), rect(host)
 			assert(r.left >= h.left and r.right <= h.right + 1e-6 and r.bottom >= h.bottom and r.top <= h.top, label .. ": " .. key .. " sits inside " .. host)
 		end
-		-- The tooltip anchor sits just over the readout card's right corner, on no card (round 2: Fable R2-7): a tooltip
-		-- grows up the rail from it, so hovering the micro menu never covers the menu or the readout you are reading.
-		local tip = rect("tooltips.anchor")
-		assert(math.abs(tip.right - strip.right) < 1e-6 and tip.bottom - strip.top == 8, label .. ": the tooltip anchor sits 8 over the readout card's right corner")
+		-- The tooltip anchor sits just over the damage card's right corner, on no card (round 2: Fable R2-7): a tooltip
+		-- grows up the rail from it, so hovering the micro menu never covers the menu, the readout or the damage meter.
+		local tip, meter = rect("tooltips.anchor"), rect("meters.damage")
+		assert(math.abs(tip.right - meter.right) < 1e-6 and tip.bottom - meter.top == 8, label .. ": the tooltip anchor sits 8 over the damage card's right corner")
+		assert(meter.bottom - strip.top == 16, label .. ": the damage card stands 16 over the readout card at the rail's foot, got " .. (meter.bottom - strip.top))
 		local chat = rect("chat.main")
 		assert(chat.bottom == MARGIN and chat.left == MARGIN and chat.w == CHAT_WIDTH[name], label .. ": chat sits at the left rail's foot, " .. CHAT_WIDTH[name] .. " wide, got " .. chat.w)
 		for _, key in ipairs(KEYS) do
@@ -274,26 +282,26 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The right rail, top to bottom, 16 to 22 units between cards. The aura rows beside the map reach into the rail's
-		-- column (282 wide against a 160 map) and lower than the map, so the card under the map clears them too.
-		local top = HEIGHT - MARGIN
-		for i, key in ipairs(RIGHT_STACK[name]) do
+		-- The right rail, top to bottom: the map with the aura rows beside it, the story slot, the tooltip anchor, the
+		-- damage card, the readout. The aura rows reach into the rail's column (282 wide against a 160 map) and lower
+		-- than the map, so the story slot clears them too.
+		local map = rect("minimap.main")
+		assert(map.top == HEIGHT - MARGIN, label .. ": the square map heads the right rail")
+		local rows = rect(AURA_ROWS[2])
+		local over = math.min(map.bottom, rows.bottom)
+		local slot = Layouts.Slot(name)
+		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
+		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
+		local story = { left = s[1], bottom = s[2], right = s[3], top = s[4] }
+		assert(math.abs(story.right - (width - MARGIN)) < 1e-6 and math.abs(story.right - story.left - RAIL) < 1e-6, label .. ": the story slot is on the right rail's column, 318 wide")
+		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the map and the aura rows, got " .. (over - story.top))
+		assert(math.abs(story.bottom - tip.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot ends 16 over the tooltip anchor, got " .. (story.bottom - tip.top))
+		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and the quests, got " .. (story.top - story.bottom))
+		for _, key in ipairs(KEYS) do
 			local r = rect(key)
-			if i == 1 then
-				assert(r.top == top, label .. ": the square map heads the right rail")
-			else
-				local gap = top - r.top
-				assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. key .. " sits 16 to 22 under the card above it, got " .. gap)
-			end
-			top = r.bottom
-			if key == "minimap.main" then
-				local rows = rect(AURA_ROWS[2])
-				if rows.right > width - MARGIN - RAIL then
-					top = math.min(top, rows.bottom)
-				end
-			end
+			assert(not (r.left < story.right and story.left < r.right and r.bottom < story.top and story.bottom < r.top),
+				label .. ": " .. key .. " stays off the story slot")
 		end
-		assert(top - strip.top >= CARD_GAP_MIN, label .. ": the readout and menu card clears the card above it")
 
 		-- The left rail's head: the party and raid card, or in Healer the boss column.
 		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
@@ -306,24 +314,13 @@ for _, name in ipairs(names) do
 			head = party
 		end
 
-		-- The story slot: the space between the left rail's head and chat, where the player drops the guide and the tracker.
-		local slot = Layouts.Slot(name)
-		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
+		-- The left rail holds only its head and chat, on one left edge (the story slot moved to the right rail).
+		assert(head.left == chat.left, label .. ": the left rail's head and chat share the left edge")
 		-- Apply places the quest tracker itself, so the hint names Apply and Edit Mode (round 3: Opus #4, the carry
 		-- list); a refusal gets Try again on the setup summary, so the hint gives no manual move (round 4, Muse #4).
 		assert(slot.hint:find("Apply places the quest tracker here", 1, true) and slot.hint:find("Edit Mode", 1, true), name .. ": the slot hint says Apply places the tracker: " .. slot.hint)
 		assert(not slot.hint:find("yourself", 1, true), name .. ": and gives no drag instruction")
-		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
-		assert(s[1] == MARGIN and s[3] - s[1] == RAIL, label .. ": the story slot is on the left rail's column")
-		assert(s[2] - chat.top >= CARD_GAP_MIN and head.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the rail's head and chat, 16 from each")
-		assert(s[4] - s[2] >= 280, label .. ": the story slot has room for the guide and the quests")
-		if healer then
-			assert(slot.raid == 0, label .. ": in Healer the raid card stands on the cluster and covers none of the slot")
-		else
-			-- In a raid the taller raid card takes the slot's top: the slot says how far, and Layout Mode marks the line.
-			assert(slot.raid == raid.h - party.h and slot.raid > 0 and slot.raid < s[4] - s[2] and slot.raidHint, label .. ": the story slot names the part the raid card covers")
-			assert(party.bottom - slot.raid == raid.bottom, label .. ": the raid card ends that far into the slot")
-		end
+		assert(slot.raid == nil and slot.raidHint == nil, label .. ": no raid card reaches the right rail's story slot")
 
 		-- Nothing but the rails' own cards enters a rail column; nothing but (in Healer) the group frames crosses the clear
 		-- centre over the cluster; the boss column stays in its outer half.

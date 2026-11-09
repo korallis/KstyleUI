@@ -23,7 +23,7 @@ local EDGE_REST, EDGE_ACTIVE = 0.55, 1
 local GRID_LINE_ALPHA, GRID_CENTRE_ALPHA = 0.07, 0.45
 local GUIDE_ALPHA = 0.9
 local SLOT_FILL, SLOT_EDGE = 0.06, 0.6
-local HELP_LEADING, HINT_LINES, RAID_LINES = 1.3, 2, 1
+local HELP_LEADING, HINT_LINES = 1.3, 2
 local NUDGE_SMALL, NUDGE_BIG = 1, 10
 local EPSILON = 1e-4
 local ARROWS = { LEFT = { -1, 0 }, RIGHT = { 1, 0 }, UP = { 0, 1 }, DOWN = { 0, -1 } }
@@ -534,12 +534,7 @@ local function BuildSlot()
 	for i = 1, 4 do
 		slot.edges[i] = slot:CreateTexture(nil, "BORDER")
 	end
-	slot.raidLine = slot:CreateTexture(nil, "BORDER")
 	slot.help = HelpCard(slot)
-	slot.raidHelp = HelpCard(slot)
-	slot.raidText = Widgets.Text(slot.raidHelp, "caption", "text")
-	slot.raidText:SetJustifyH("LEFT")
-	slot.raidText:SetWordWrap(true)
 	slot.label = Widgets.Text(slot.help, "heading", "textEmphasis")
 	slot.label:SetJustifyH("LEFT")
 	slot.hint = Widgets.Text(slot.help, "caption", "text")
@@ -622,25 +617,6 @@ local function PlaceSlot()
 	help:SetPoint("TOPLEFT", slot, "TOPLEFT", pad, -pad)
 	help:SetSize(width, tall)
 	help:SetShown(not Covered(l + pad, t - pad - tall, r - pad, t - pad))
-	local raid = (want.raid or 0) > 0 and want.raid < t - b
-	slot.raidLine:SetShown(raid)
-	slot.raidHelp:Hide()
-	if raid then
-		slot.raidLine:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE / 2))
-		slot.raidLine:ClearAllPoints()
-		slot.raidLine:SetPoint("TOPLEFT", slot, "TOPLEFT", 0, -want.raid)
-		slot.raidLine:SetPoint("TOPRIGHT", slot, "TOPRIGHT", 0, -want.raid)
-		slot.raidLine:SetHeight(line)
-		slot.raidText:SetText(want.raidHint)
-		local card = slot.raidHelp
-		local cardTall = FillHelp(card, { { slot.raidText, RAID_LINES, "caption" } }, width, inner)
-		local gapTiny = Widgets.Snap(slot, Tokens.Size("gapTiny"))
-		card:ClearAllPoints()
-		card:SetPoint("TOPLEFT", slot.raidLine, "BOTTOMLEFT", pad, -gapTiny)
-		card:SetSize(width, cardTall)
-		local base = t - want.raid - gapTiny
-		card:SetShown(not Covered(l + pad, base - cardTall, r - pad, base))
-	end
 	slot:Show()
 end
 

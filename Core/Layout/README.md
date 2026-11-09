@@ -8,7 +8,7 @@
 | `History.lua` | `Layout.History`: the undo and redo stacks |
 | `Rules.lua` | `Layout.Rules`: the shown rules, as Lua tests and as state-driver macro options |
 | `Layout.lua` | The registry, per-profile settings, applying, sessions, undo, and Layout Mode's own settings page |
-| `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the story slot's outline, the keyboard and the toolbar. The story slot's label and hint stand on their own glass card at its top, and the raid line's note on another under the line; each card hides while a mover plate covers any of it, so a plate's label is never written over and the guidance never hides half under a plate. |
+| `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the story slot's outline, the keyboard and the toolbar. The story slot's label and hint stand on their own glass card at its top; the card hides while a mover plate covers any of it, so a plate's label is never written over and the guidance never hides half under a plate. |
 | `Calm.lua` | `Layout.Calm`: the combat calm, which rests the idle lines at 30%, the readout card at a legible 65%, dims the cards you read to 75% and the story card (tracker and guide) only to 90% in combat |
 
 Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook), `test-layout-mode.lua` (the screen, driven like a player) and `test-layout-calm.lua` (the combat calm).
@@ -146,7 +146,7 @@ A resizable element's width and height snap so that size times scale is a whole 
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |
 | Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. |
-| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the left rail between the party card and chat. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. A fainter line marks how far the raid card reaches into the slot in a raid, with a caption that says so. The outline takes no mouse. `Mode.Slot()` returns it. |
+| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the right rail under the map and the aura rows. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. The outline takes no mouse. `Mode.Slot()` returns it. |
 
 | Input | Effect |
 | --- | --- |

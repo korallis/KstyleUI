@@ -1,8 +1,8 @@
--- Font.lua: the font, size and outline a player picks for a data bar's text, with the soft shadow when there is no outline.
+-- Font.lua: the font, size and outline a player picks for a data bar's text, set on whole pixels with the soft shadow when there is no outline (Widgets.ApplyFont).
 local _, ns = ...
 
 local K, L = ns.K, ns.L
-local Tokens, Theme = K.Tokens, K.Theme
+local Tokens, Theme, Widgets = K.Tokens, K.Theme, K.Widgets
 
 local Font = {}
 ns.Font = Font
@@ -38,15 +38,9 @@ function Font.Apply(text, face, size, outline)
 	if not ns.IsNumber(size) or size <= 0 then
 		size = Tokens.Size("body")
 	end
-	if text:SetFont(path, size * Theme.FontScale(), flags) == false then
+	if not Widgets.ApplyFont(text, path, size * Theme.FontScale(), flags) then
 		text:SetFontObject(FALLBACK)
+		Widgets.TextShadow(text, flags)
 		ns.LogOnce("font:" .. path, "the font " .. path .. " did not load; the text uses " .. FALLBACK)
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
 	end
 end

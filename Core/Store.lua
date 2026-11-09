@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 8
+Store.DB_VERSION = 9
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -140,6 +140,22 @@ Store.migrations[8] = function(data)
 			local debuffs = auras.debuffs
 			if type(debuffs) == "table" then
 				debuffs.dispelFirst = nil
+			end
+		end
+	end
+end
+
+local RAIL_CARDS = { "meters.damage", "meters.threat" }
+local RAIL_CARD_V8 = { anchor = "TOPRIGHT", x = -28, y = -236 }
+
+Store.migrations[9] = function(data)
+	for _, layout in pairs(data.layouts) do
+		for _, key in ipairs(type(layout) == "table" and RAIL_CARDS or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" and entry.anchor == nil and (entry.x ~= nil or entry.y ~= nil) then
+				entry.anchor = RAIL_CARD_V8.anchor
+				entry.x = entry.x == nil and RAIL_CARD_V8.x or entry.x
+				entry.y = entry.y == nil and RAIL_CARD_V8.y or entry.y
 			end
 		end
 	end

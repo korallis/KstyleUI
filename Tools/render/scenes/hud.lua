@@ -919,6 +919,11 @@ function modules.tracker(opts)
 	if opts.trackerDocked then
 		if card then
 			ns.Quests.Dock(true)
+			if opts.cardUnder then
+				-- The guide's foot, as the rail reports it in the game (Rail.Place -> Quests.Under).
+				ns.Quests.Under(opts.cardUnder)
+				S.W.Settle(env)
+			end
 		else
 			ns.Tracker.Dock(true)
 		end
@@ -1220,6 +1225,16 @@ function modules.restedxp(opts)
 		local unit = env.UIParent:GetHeight() / 1080
 		fit:SetSize(1, math.max(1, (opts.dockTop or opts.dockBottom + 1) - opts.dockBottom) * unit)
 		fit:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 0, opts.dockBottom * unit)
+		local quests = R.ns.Quests
+		local under = quests and quests.Under
+		if quests then
+			quests.Under = function(top)
+				R.under = top
+				if under then
+					under(top)
+				end
+			end
+		end
 		R.ns.RestedXP.Rail.DockTo(fit, opts.dockCard)
 		R.env.RunTimers()
 		R.log[#R.log + 1] = "restedxp: the quests dock into the guide's card; its glass runs to the tracker glass's foot and its footer hugs the quests' cap"

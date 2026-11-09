@@ -100,7 +100,8 @@ local function Place()
 		Log("the layout has no story slot; the card keeps its last place")
 		return
 	end
-	Card.Place(K.Scale.Root(), band.left, band.top, band.right - band.left, band.top - band.bottom)
+	local top = state.under and math.max(band.top, state.under) or band.top
+	Card.Place(K.Scale.Root(), band.left, top, band.right - band.left, top - band.bottom)
 end
 
 local function Flush()
@@ -288,6 +289,36 @@ function Quests.Dock(on)
 	if state.built then
 		Card.SetDocked(on == true and state.active)
 	end
+end
+
+local Reflow
+
+local function ReflowLater()
+	state.reflowing = false
+	Reflow()
+end
+
+function Reflow()
+	if not state.active then
+		return
+	end
+	if Card.Locked() then
+		if not state.reflowing then
+			state.reflowing = true
+			K.Combat.Queue(ReflowLater)
+		end
+		return
+	end
+	Place()
+	Card.Render()
+end
+
+function Quests.Under(top)
+	if state.under == top then
+		return
+	end
+	state.under = top
+	Reflow()
 end
 
 function Quests.Docked()

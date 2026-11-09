@@ -1,5 +1,5 @@
 -- test-render-scenes-lumen.lua: the Lumen Rails HUD scenes build both states of the mockup boards: out of combat the
--- guide and the tracker fit the story slot as one card, where Apply puts them, on one left rail with the other cards, and every card is lit; in combat the idle cards rest at 30%, the cards you
+-- guide and the tracker fit the right rail's story slot as one card, where Apply puts them, the party card and chat share the left rail's edge, and every card is lit; in combat the idle cards rest at 30%, the cards you
 -- read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local check = L.check
@@ -31,7 +31,8 @@ local combat = L.guard("hud_lumen_combat", check("hud_lumen_combat", Lumen.Build
 L.globs()
 local slot = questing.slot
 
--- The story slot holds the guide and the tracker, as the player places them; chat sits under it.
+-- The story slot holds the guide and the tracker, as the player places them, on the right rail under the map and the
+-- aura rows and over the damage meter (owner, 2026-11-09: "The quest tracker can go back to the right side").
 do
 	local function inside(item, what)
 		local r = item.rect
@@ -42,32 +43,26 @@ do
 	inside(assert(find(questing, "[9] Encroachment"), "the third quest draws, with Forever's level"), "the third quest")
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
 	inside(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), "the guide's active step")
-	assert(find(questing, "GENERAL").rect[2] >= slot.top + slot.height, "the chat's tabs sit under the slot")
+	assert(find(questing, "DAMAGE DONE").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
 end
 
--- One left rail (round 2, Fable; round 3, Grok and Muse): the party card, the guide's card and chat share one
--- left edge, the party and guide cards the layout's 318-unit rail on the 28-unit margin, chat 372; no card overlaps the next. Apply put
--- the quests under the guide, so the quests dock into the guide's card: one glass from the guide's cap to the
--- quests' foot, the tracker's own glass hidden, and both caps (the guide's name, QUESTS) inside it.
+-- Two rails. The left holds the party card and chat on one left edge, the party card 318 wide, chat 372 (owner pass 1,
+-- "the chat box is too thin"), the party over chat. The right rail's story slot holds the guide's card: one glass from
+-- the guide's cap to the quests' foot (Apply put the quests under the guide, so they dock into it), the tracker's own
+-- glass hidden, and both caps (the guide's name, QUESTS) inside it, on the right rail's edge and width.
 for _, scene in ipairs({ questing, combat }) do
-	local rail = scene.rail
 	local seen = {}
-	for i, card in ipairs(rail) do
+	for _, card in ipairs(scene.rail) do
 		seen[card.name] = card
-		assert(math.abs(card.left - slot.left) <= 0.5, scene.state .. ": " .. card.name .. "'s glass starts on the rail's left edge, got " .. card.left)
-		-- Owner pass 1 ("the chat box is too thin"): chat runs 372 wide from the same left edge; the rail itself is M3's.
-		local want = card.name == "chat" and slot.width * 372 / 318 or slot.width
-		assert(math.abs(card.width - want) <= 1, scene.state .. ": " .. card.name .. "'s glass is " .. want .. " wide, got " .. card.width)
-		local below = rail[i + 1]
-		if below then
-			assert(below.top >= card.top + card.height - 0.5, scene.state .. ": " .. below.name .. " starts under " .. card.name .. ", got " .. below.top .. " for " .. (card.top + card.height))
-		end
 	end
-	for _, name in ipairs({ "party", "guide", "chat" }) do
-		assert(seen[name], scene.state .. ": the rail shows " .. name)
-	end
+	local party, chat, guide = seen.party, seen.chat, seen.guide
+	assert(party and chat and guide, scene.state .. ": the rails show the party, chat and the guide")
+	assert(math.abs(party.left - chat.left) <= 0.5, scene.state .. ": the party card and chat share the left edge, got " .. party.left .. " and " .. chat.left)
+	assert(party.left < slot.left / 2, scene.state .. ": on the left rail")
+	assert(math.abs(chat.width - party.width * 372 / 318) <= 1, scene.state .. ": chat is 372 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
+	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party card")
 	assert(not seen.quests, scene.state .. ": the tracker's own glass yields to the guide's card")
-	local guide = seen.guide
+	assert(math.abs(guide.left - slot.left) <= 0.5 and math.abs(guide.width - slot.width) <= 1, scene.state .. ": the guide's card is on the right rail's edge and width, got " .. guide.left .. " by " .. guide.width)
 	assert(guide.top >= slot.top - 0.5, scene.state .. ": the guide's card starts inside the story slot, got " .. guide.top .. " for " .. slot.top)
 	local quests = assert(find(scene, "QUESTS"), scene.state .. ": the QUESTS cap draws")
 	local last = assert(find(scene, "Bloodtalon Scythemaw"), scene.state .. ": the last quest line draws")
