@@ -12,6 +12,9 @@
 --   env._modified[action] = true                   IsModifiedClick
 --   env._modifiers.shift / .ctrl / .alt            IsShiftKeyDown, IsControlKeyDown, IsAltKeyDown
 --   env._repair = { can, cost, money, inGuild, guild, withdraw, bank }
+--   env._items[id] = { icon, quality, cached }     C_Item.GetItemInfoInstant, GetItemIconByID, GetItemQualityByID; cached = false
+--                                                   leaves the quality unknown until env._items[id].cached = true and ITEM_DATA_LOAD_RESULT
+--   env.Release()                                  C_Timer.After with a delay waits for it; a zero delay runs with RunTimers
 --   env._quest = { autoAccept, pvp, completable, choices, money, fromMap, areaTrigger,
 --                  active, available, gossipActive, gossipAvailable }
 local W = dofile("Tools/regression/widget_env.lua")
@@ -72,6 +75,63 @@ function Q.Game(env)
 	env.SetTime = function(t)
 		env._time = t
 	end
+
+	env._held = {}
+	local after = env.C_Timer.After
+	env.C_Timer.After = function(delay, fn)
+		if delay > 0 then
+			env._held[#env._held + 1] = fn
+			return
+		end
+		after(delay, fn)
+	end
+	function env.Release()
+		local held = env._held
+		env._held = {}
+		for _, fn in ipairs(held) do
+			fn()
+		end
+		env.RunTimers()
+	end
+
+	env._items = {}
+	env.C_Item = env.C_Item or {}
+	env.C_Item.GetItemInfoInstant = function(id)
+		local item = env._items[id]
+		if not item then
+			return nil
+		end
+		return id, "Armor", "Leather", "INVTYPE_CHEST", item.icon, 4, 2
+	end
+	env.C_Item.GetItemIconByID = function(id)
+		local item = env._items[id]
+		return item and item.icon or nil
+	end
+	env.C_Item.GetItemQualityByID = function(id)
+		local item = env._items[id]
+		if not item or item.cached == false then
+			return nil
+		end
+		return item.quality
+	end
+	env.C_Item.RequestLoadItemDataByID = Recorder(env, "RequestLoadItemDataByID")
+
+	-- The client's own GlobalStrings table, build 1.60.1.70862 (enUS), for the loot lines the feed reads.
+	env.LOOT_ITEM_SELF = "You receive loot: %s"
+	env.LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d"
+	env.LOOT_ITEM_PUSHED_SELF = "You receive item: %s"
+	env.LOOT_ITEM_PUSHED_SELF_MULTIPLE = "You receive item: %sx%d"
+	env.LOOT_ITEM_CREATED_SELF = "You create: %s."
+	env.LOOT_ITEM_CREATED_SELF_MULTIPLE = "You create: %sx%d."
+	env.LOOT_ITEM_BONUS_ROLL_SELF = "You receive bonus loot: %s"
+	env.LOOT_ITEM_BONUS_ROLL_SELF_MULTIPLE = "You receive bonus loot: %sx%d"
+	env.LOOT_ITEM = "%s receives loot: %s."
+	env.YOU_LOOT_MONEY = "You loot %s"
+	env.YOU_LOOT_MONEY_GUILD = "You loot %s (%s deposited to guild bank)"
+	env.LOOT_MONEY_SPLIT = "Your share of the loot is %s."
+	env.GOLD_AMOUNT = "%d Gold"
+	env.SILVER_AMOUNT = "%d Silver"
+	env.COPPER_AMOUNT = "%d Copper"
 
 	env._loot = {}
 	env.GetNumLootItems = function()

@@ -179,6 +179,8 @@ function Lumen.Build(state, opts)
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
+	else
+		names[#names + 1] = "lootfeed"
 	end
 	names = opts.modules or names
 	local built, at = {}, {}

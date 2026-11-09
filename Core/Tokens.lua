@@ -51,6 +51,9 @@ local COLORS = {
 	schoolFrost = { "6fd6ff", 1 },
 	schoolShadow = { "9d7bff", 1 },
 	schoolArcane = { "e07bff", 1 },
+	coinGold = { "f0c75e", 1 },
+	coinSilver = { "c3ccd6", 1 },
+	coinCopper = { "d68a5c", 1 },
 }
 
 local SIZES = {
@@ -97,6 +100,8 @@ local SIZES = {
 	socketGap = 8,
 	screenMargin = 28,
 	rowHeight = 24,
+	lootTile = 24,
+	lootText = 14,
 }
 
 local SHARES = {
@@ -115,6 +120,7 @@ local DURATIONS = {
 	castSheen = 0.6,
 	procPulse = 0.7,
 	fade = 0.2,
+	lootHold = 6,
 }
 
 local EASINGS = {
