@@ -1036,6 +1036,8 @@ ns.Locale.Add({
 	["No data yet"] = "Noch keine Daten",
 	["No earlier fight yet"] = "Noch kein fr\195\188herer Kampf",
 	["No element has registered with Layout Mode yet."] = "Noch hat sich kein Element beim Layoutmodus angemeldet.",
+	["No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off."] = "Kein Platz f\195\188r diesen Anzeiger auf den Gruppenrahmen in ihrer Gr\195\182\195\159e: Macht die Gruppenrahmen h\195\182her, gebt ihm eine kleinere Gr\195\182\195\159e oder schaltet einen anderen Anzeiger aus.",
+	["No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off."] = "Kein Platz f\195\188r diesen Anzeiger auf den Schlachtzugsfenstern in ihrer Gr\195\182\195\159e: Macht die Schlachtzugsfenster breiter oder h\195\182her, gebt ihm eine kleinere Gr\195\182\195\159e oder schaltet einen anderen Anzeiger aus.",
 	["No settings match \"%s\"."] = "Keine Option passt zu \226\128\158%s\226\128\156.",
 	["No spells bound yet."] = "Noch keine Zauber belegt.",
 	["No target"] = "Kein Ziel",

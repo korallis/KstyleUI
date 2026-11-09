@@ -63,19 +63,21 @@ local function Check(e, K, ns, f, what)
 		local wr, wg, wb = Tokens.Color(token)
 		assert(W.Near(r, wr) and W.Near(g, wg) and W.Near(b, wb), what .. ": " .. label .. " in the " .. token .. " colour")
 	end
-	-- Fable R3 aura table, Muse #4, Grok #5: the mark says which category the hidden debuffs start with. The flow runs
-	-- in the player's priority order, so the first hidden debuff's category is the worst one hidden.
+	-- Round 6 (Grok #2): the row's hidden debuffs are counted by the "+N" chip on its last cell, whose engine
+	-- container holds the same four groups as the row (test-groupframes-raid-status.lua reads the count). It replaced
+	-- the bare "+" each icon carried in its category's colour (Fable R3, Muse #4, Grok #5), which said there were more
+	-- but not how many; no debuff icon carries that mark now.
 	local groups = f.auras._groups
-	local want = { boss = "hostile", important = "neutral", dispels = "rare", debuffs = "textEmphasis" }
-	for key, token in pairs(want) do
+	for _, key in ipairs({ "boss", "important", "dispels", "debuffs" }) do
 		local group = groups[key]
 		A.Assign(e, f.auras, key, group.maxFrameCount)
 		for i = 1, group.maxFrameCount do
 			local parts = ns.Auras.Parts(group.frames[i])
 			ns.Auras.StyleIcon(group.frames[i])
-			eq(parts.mark:GetText(), "+", what .. ": " .. key .. " carries the mark")
-			color(parts.mark, token, key .. "'s mark")
+			eq(parts.mark:GetText(), "", what .. ": " .. key .. " carries no bare mark")
 		end
+		local ghost = f.debuffChip.ghost._groups[key]
+		eq(ghost.filter, group.filter, what .. ": the chip counts " .. key .. " with the row's filter")
 	end
 	-- Astra R3 #3B: the dispel category caps at the dispel count, so the engine gives it one more frame in a hidden
 	-- container; that frame exists only while more dispellable debuffs are up, and its anchor raises the "+".
@@ -103,18 +105,11 @@ local function Check(e, K, ns, f, what)
 			inside({ Scene.Rect(e, face) }, window, what .. ": the raised mark fills its window")
 		end
 	end
-	-- The dispel mark draws above the marks of every category the player ranks below dispellable debuffs.
-	local order = ns.Auras.Order()
-	local level = more.face:GetFrameLevel()
-	for key, rank in pairs(order) do
-		local parts = ns.Auras.Parts(groups[key].frames[1])
-		local markLevel = parts.mark:GetParent():GetFrameLevel()
-		if rank > order.dispels then
-			assert(level > markLevel, what .. ": the dispel mark draws above " .. key .. "'s")
-		elseif rank < order.dispels then
-			assert(level < markLevel, what .. ": " .. key .. "'s mark draws above the dispel mark")
-		end
-	end
+	-- The dispel mark draws above the debuff icons' text and above the count chip.
+	local level = more.window:GetFrameLevel()
+	assert(level > f.debuffChip.window:GetFrameLevel(), what .. ": the dispel mark draws above the count chip")
+	local parts = ns.Auras.Parts(groups.debuffs.frames[1])
+	assert(level > parts.textFrame:GetFrameLevel(), what .. ": and above the icons' text")
 	return k
 end
 

@@ -1,4 +1,4 @@
--- Overflow.lua: the "+N" count for a capped aura row, shown and counted by hidden AuraContainers' own flow layout through anchors alone, so no aura count is ever read, compared or summed, and the count stays true while aura data is secret; a row whose timers sit under the tiles gives the chip that lane too (foot), so the covered aura's timer never reads as the count's.
+-- Overflow.lua: the "+N" count for a capped aura row, shown and counted by hidden AuraContainers' own flow layout through anchors alone (a row of several aura groups is counted by one container holding the same groups), so no aura count is ever read, compared or summed, and the count stays true while aura data is secret; a row whose timers sit under the tiles gives the chip that lane too (foot), so the covered aura's timer never reads as the count's.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
@@ -13,6 +13,7 @@ local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 local GROUP = "count"
 local TEXT_SHARE = 0.42
 local TEXT_MIN = 8
+local OPEN = 100000
 
 local function Mute(button)
 	if type(button.EnableMouse) == "function" then
@@ -45,12 +46,14 @@ local function Ghost(parent, unit, spec, max, up)
 		return nil, tostring(ok and "no " .. TEMPLATE or ghost)
 	end
 	ghost:SetUnit(unit)
-	local added, err = pcall(ghost.AddAuraGroup, ghost, GROUP, spec.filter, {
-		maxFrameCount = max,
-		layout = Layout(1),
-		initializeFrame = Mute,
-		candidateFilters = spec.candidates,
-	})
+	local added, err = pcall(function()
+		if spec.policy then
+			ghost:SetAuraProcessingPolicy(spec.policy, spec.policyOptions)
+		end
+		for _, sub in ipairs(spec.groups or { { key = GROUP, filter = spec.filter, candidates = spec.candidates, cap = max } }) do
+			ghost:AddAuraGroup(sub.key, sub.filter, { maxFrameCount = sub.cap, layout = Layout(1), initializeFrame = Mute, candidateFilters = sub.candidates })
+		end
+	end)
 	if not added then
 		return nil, tostring(err)
 	end
@@ -106,6 +109,13 @@ function Overflow.New(host, unit, groups, cap, opts)
 		text:SetAllPoints(frame)
 		chip.labels[i], chip.texts[i] = frame, text
 	end
+	if opts.saturate then
+		chip.sat = LayoutFrame(window)
+		chip.sat:SetClipsChildren(true)
+		chip.satLabel = LayoutFrame(chip.sat)
+		chip.satText = Widgets.FontString(chip.satLabel, "OVERLAY")
+		chip.satText:SetAllPoints(chip.satLabel)
+	end
 	return chip
 end
 
@@ -129,17 +139,23 @@ local function ApplyGroups(chip, o)
 	for g, pair in ipairs(chip.pairs) do
 		local spec = specs[g] or {}
 		local cap = spec.cap or o.cap
-		local wanted = on and spec.filter ~= nil and spec.off ~= true
+		local wanted = on and (spec.filter ~= nil or spec.groups ~= nil) and spec.off ~= true
 		for _, ghost in ipairs({ pair.a, pair.b }) do
-			ghost:SetAuraGroupEnabled(GROUP, wanted)
-			if wanted then
-				ghost:SetAuraGroupFilterString(GROUP, spec.filter)
-				if type(ghost.SetAuraGroupCandidateFilters) == "function" then
-					ghost:SetAuraGroupCandidateFilters(GROUP, spec.candidates)
-				end
+			if spec.policy then
+				ghost:SetAuraProcessingPolicy(spec.policy, spec.policyOptions)
 			end
-			ghost:SetAuraGroupMaxFrameCount(GROUP, ghost == pair.b and cap or cap + pair.labels)
-			ghost:SetAuraGroupLayout(GROUP, Layout(Tall(o)))
+			for _, sub in ipairs(spec.groups or { { key = GROUP, filter = spec.filter, candidates = spec.candidates } }) do
+				local key, live = sub.key, wanted and sub.off ~= true
+				ghost:SetAuraGroupEnabled(key, live)
+				if live then
+					ghost:SetAuraGroupFilterString(key, sub.filter)
+					if type(ghost.SetAuraGroupCandidateFilters) == "function" then
+						ghost:SetAuraGroupCandidateFilters(key, sub.candidates)
+					end
+				end
+				ghost:SetAuraGroupMaxFrameCount(key, sub.cap or (ghost == pair.b and cap or cap + pair.labels))
+				ghost:SetAuraGroupLayout(key, Layout(Tall(o)))
+			end
 			ghost:SetEnabled(on)
 		end
 	end
@@ -180,7 +196,7 @@ function Overflow.Apply(chip, o)
 	local lift = #chip.pairs == 1 and (o.groups and o.groups[1].cap or o.cap) * pitch or 0
 	strip:ClearAllPoints()
 	strip:SetPoint("BOTTOMLEFT", base, at, 0, lift + tall / 2)
-	strip:SetPoint("TOPRIGHT", base, at, width, lift + chip.count * pitch + tall)
+	strip:SetPoint("TOPRIGHT", base, at, width, chip.sat and OPEN or lift + chip.count * pitch + tall)
 	local face = chip.face
 	if face then
 		face:ClearAllPoints()
@@ -191,9 +207,25 @@ function Overflow.Apply(chip, o)
 		chip.chrome:SetFillRGBA(r, g, b, 1)
 		chip.chrome:SetRimAccent(o.accent and o.accent())
 	end
-	local size = math.max(TEXT_MIN, math.floor(cell * TEXT_SHARE + 0.5))
+	local size = o.textSize or math.max(TEXT_MIN, math.floor(cell * TEXT_SHARE + 0.5))
 	local level = (face or strip):GetFrameLevel() + 2
 	local shift = o.after and 0 or 1
+	local sat = chip.sat
+	if sat then
+		sat:ClearAllPoints()
+		sat:SetPoint("BOTTOMLEFT", base, at, 0, lift + (chip.count + 1) * pitch - tall)
+		sat:SetPoint("TOPRIGHT", base, at, width, OPEN)
+		local label = chip.satLabel
+		label:ClearAllPoints()
+		label:SetAllPoints(window)
+		label:SetFrameLevel(level)
+		if o.style then
+			o.style(chip.satText)
+		else
+			StyleLabel(chip.satText, size)
+		end
+		Widgets.SetText(chip.satText, (chip.count + shift + 1) .. "+")
+	end
 	for i, label in ipairs(chip.labels) do
 		local top = lift + i * pitch
 		label:ClearAllPoints()

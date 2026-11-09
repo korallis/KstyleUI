@@ -72,9 +72,18 @@ local function Clear(env, f, what)
 	local auras = Auras(env, f)
 	assert(#auras > 0, what .. ": the frame shows auras to check")
 	local overlay = f.parts and f.parts.overlay
+	-- Round 6 (Astra #2): a raid tile's helpful indicators (external and big defensives) may overlay the bar only in its
+	-- status lane, the corner over the role icon and the marker, clear of the name, the missing health and the debuffs.
+	local lane = overlay and f.parts.lane
+	if lane then
+		local fx, fy = Scene.Rect(env, f)
+		lane = { fx + lane.left, fy + lane.top, lane.width, lane.height }
+	end
 	for _, aura in ipairs(auras) do
 		assert(aura[2][1], what .. ": " .. aura[1] .. " resolves")
-		if not (overlay and aura[3]) then
+		local inLane = lane and aura[1]:find("^indicator") and aura[2][1] >= lane[1] - 0.01 and aura[2][2] >= lane[2] - 0.01
+			and aura[2][1] + aura[2][3] <= lane[1] + lane[3] + 0.01 and aura[2][2] + aura[2][4] <= lane[2] + lane[4] + 0.01
+		if not (overlay and aura[3]) and not inLane then
 			assert(not intersects(aura[2], bar), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the health bar " .. describe(bar))
 		end
 	end
@@ -254,7 +263,13 @@ do
 					if icon:IsShown() then
 						local r = { Scene.Rect(env, icon) }
 						local harmful = which == 1 or (which == 3 and not ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category))
-						if not (overlay and harmful) then
+						local lane = overlay and which == 3 and f.parts.lane
+						if lane then
+							local fx, fy = Scene.Rect(env, f)
+							lane = r[1] >= fx + lane.left - 0.01 and r[2] >= fy + lane.top - 0.01
+								and r[1] + r[3] <= fx + lane.left + lane.width + 0.01 and r[2] + r[4] <= fy + lane.top + lane.height + 0.01
+						end
+						if not (overlay and harmful) and not lane then
 							assert(not intersects(r, bar), "preview " .. f.kind .. " " .. f.sample.name .. ": sample aura " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
 						end
 						checked = checked + 1

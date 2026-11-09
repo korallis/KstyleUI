@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Unit, Frames = ns.Settings, ns.Unit, ns.Frames
+local Settings, Unit, Frames, Geometry = ns.Settings, ns.Unit, ns.Frames, ns.Geometry
 
 local AutoLayout = { state = { bracket = "MEDIUM", healer = false } }
 ns.AutoLayout = AutoLayout
@@ -12,6 +12,7 @@ local LARGE_SCALE = 0.85
 local HEALER_DISPELS = 2
 local HEALER_HEALS = 3
 local MIN_HEIGHT = 16
+local NAME_LINE_EXTRA = 2
 local queued = false
 
 function AutoLayout.Bracket(members)
@@ -33,7 +34,9 @@ function AutoLayout.Overlay(cfg, state)
 	end
 	if auto.size and state.bracket == "LARGE" then
 		local raid = cfg.raid
-		raid.height = math.max(MIN_HEIGHT, math.floor(raid.height * LARGE_SCALE + 0.5))
+		local base = Settings.defaults.raid
+		local lanes = Geometry.LaneHeight((raid.nameSize or base.nameSize) + NAME_LINE_EXTRA, (raid.healthTextSize or base.healthTextSize) + NAME_LINE_EXTRA)
+		raid.height = math.min(raid.height, math.max(MIN_HEIGHT, lanes, math.floor(raid.height * LARGE_SCALE + 0.5)))
 		raid.power = false
 	end
 	return cfg

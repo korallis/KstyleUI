@@ -193,6 +193,9 @@ end
 
 local function installContainer(env, container)
 	container._groups, container._buttons, container._enchants, container._flow = {}, {}, {}, {}
+	-- The engine lays an empty flow container out at its one-unit floor (AnchorUtil.ApplyFlowLayout), so an overflow
+	-- chip's counting container never reads as a count before a test or a scene plays its layout pass.
+	container:SetSize(1, 1)
 	container._order = {}
 	function container.SetUnit(self, unit)
 		assert(type(unit) == "string")

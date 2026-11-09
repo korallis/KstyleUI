@@ -1029,6 +1029,8 @@
 	"No data yet",
 	"No earlier fight yet",
 	"No element has registered with Layout Mode yet.",
+	"No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off.",
+	"No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off.",
 	"No settings match \"%s\".",
 	"No spells bound yet.",
 	"No target",

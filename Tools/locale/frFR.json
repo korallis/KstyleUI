@@ -1029,6 +1029,8 @@
 	"No data yet": "Pas encore de données",
 	"No earlier fight yet": "Pas encore de combat précédent",
 	"No element has registered with Layout Mode yet.": "Aucun élément ne s'est encore inscrit auprès du mode Disposition.",
+	"No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off.": "Pas de place pour cet indicateur sur les cadres de groupe à leur taille : agrandissez la hauteur des cadres de groupe, donnez-lui une taille plus petite ou désactivez un autre indicateur.",
+	"No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off.": "Pas de place pour cet indicateur sur les fenêtres de raid à leur taille : élargissez ou agrandissez les fenêtres de raid, donnez-lui une taille plus petite ou désactivez un autre indicateur.",
 	"No settings match \"%s\".": "Aucun réglage ne correspond à « %s ».",
 	"No spells bound yet.": "Aucun sort associé pour l'instant.",
 	"No target": "Pas de cible",

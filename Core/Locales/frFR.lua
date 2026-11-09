@@ -1036,6 +1036,8 @@ ns.Locale.Add({
 	["No data yet"] = "Pas encore de donn\195\169es",
 	["No earlier fight yet"] = "Pas encore de combat pr\195\169c\195\169dent",
 	["No element has registered with Layout Mode yet."] = "Aucun \195\169l\195\169ment ne s'est encore inscrit aupr\195\168s du mode Disposition.",
+	["No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off."] = "Pas de place pour cet indicateur sur les cadres de groupe \195\160 leur taille : agrandissez la hauteur des cadres de groupe, donnez-lui une taille plus petite ou d\195\169sactivez un autre indicateur.",
+	["No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off."] = "Pas de place pour cet indicateur sur les fen\195\170tres de raid \195\160 leur taille : \195\169largissez ou agrandissez les fen\195\170tres de raid, donnez-lui une taille plus petite ou d\195\169sactivez un autre indicateur.",
 	["No settings match \"%s\"."] = "Aucun r\195\169glage ne correspond \195\160 \194\171 %s \194\187.",
 	["No spells bound yet."] = "Aucun sort associ\195\169 pour l'instant.",
 	["No target"] = "Pas de cible",

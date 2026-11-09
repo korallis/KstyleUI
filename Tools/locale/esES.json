@@ -1029,6 +1029,8 @@
 	"No data yet": "Aún no hay datos",
 	"No earlier fight yet": "Aún no hay un combate anterior",
 	"No element has registered with Layout Mode yet.": "Todavía no se ha registrado ningún elemento en el modo diseño.",
+	"No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off.": "No hay espacio para este indicador en los marcos de grupo con su tamaño: haz más altos los marcos de grupo, dale un tamaño menor o desactiva otro indicador.",
+	"No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off.": "No hay espacio para este indicador en los marcos de banda con su tamaño: haz más anchos o más altos los marcos de banda, dale un tamaño menor o desactiva otro indicador.",
 	"No settings match \"%s\".": "Ningún ajuste coincide con «%s».",
 	"No spells bound yet.": "Aún no hay hechizos asignados.",
 	"No target": "Sin objetivo",

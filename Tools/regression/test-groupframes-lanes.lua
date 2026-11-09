@@ -63,10 +63,15 @@ local function Part(e, f, rect)
 end
 
 -- The rects every indicator must leave alone: the name row, the portrait, the debuff block and your heals.
-local function Reserved(e, f)
+local function Reserved(e, f, ns)
 	local parts, out = f.parts, {}
-	if not parts.nameInside then
+	if parts.overlay then
 		out.name = Part(e, f, parts.name)
+	elseif not parts.nameInside then
+		-- Round 6 (Opus): the name lane's last line of slack under the glyphs is free, so a party indicator may sit
+		-- one unit under the name text and reach a legible 12 units between the name and the pill.
+		local name = parts.name
+		out.name = Part(e, f, { left = name.left, top = name.top, width = name.width, height = math.min(name.height, ns.Settings.current[f.kind].nameSize + 1) })
 	end
 	if parts.portrait then
 		out.portrait = Part(e, f, parts.portrait)
@@ -90,7 +95,7 @@ end
 
 local function Indicators(e, ns, f, what)
 	local tile = { Scene.Rect(e, f) }
-	local reserved = Reserved(e, f)
+	local reserved = Reserved(e, f, ns)
 	local placed, plan = {}, ns.Slots.Placements(f)
 	for i = 1, 6 do
 		local slot = f.indicators._slots["indicator" .. i]
@@ -101,12 +106,24 @@ local function Indicators(e, ns, f, what)
 			local r = { Scene.Rect(e, slot.frame) }
 			inside(r, tile, what .. ": indicator " .. i .. " inside the tile")
 			for name, rect in pairs(reserved) do
-				assert(not intersects(r, rect), what .. ": indicator " .. i .. " " .. describe(r) .. " clear of the " .. name .. " " .. describe(rect))
+				-- Round 6 (Astra #2): a harmful indicator may take the boss slot's spot, under it, on purpose.
+				if not (name == "boss" and place.under) then
+					assert(not intersects(r, rect), what .. ": indicator " .. i .. " " .. describe(r) .. " clear of the " .. name .. " " .. describe(rect))
+				end
+			end
+			if place.under then
+				assert(not ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category), what .. ": only a harmful indicator sits under the boss slot")
+				assert(slot.frame:GetFrameLevel() < f.highlights:GetAuraSlotFrame("boss"):GetFrameLevel(), what .. ": and the boss slot draws over it")
 			end
 			-- Rank R5: a helpful indicator never paints on a raid tile's bar; a harmful one may, as the debuffs do.
+			-- Round 6 (Astra #2): except in the bar's status lane, the corner over the role icon and the marker.
 			if f.parts.overlay and ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category) then
 				local bar = { Scene.Rect(e, f.health) }
-				assert(not intersects(r, bar), what .. ": helpful indicator " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
+				local lane = f.parts.lane and Part(e, f, f.parts.lane)
+				local within = lane and r[1] >= lane[1] - 0.01 and r[2] >= lane[2] - 0.01 and r[1] + r[3] <= lane[1] + lane[3] + 0.01 and r[2] + r[4] <= lane[2] + lane[4] + 0.01
+				if not within then
+					assert(not intersects(r, bar), what .. ": helpful indicator " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
+				end
 			end
 			for j, other in pairs(placed) do
 				assert(not intersects(r, other), what .. ": indicators " .. j .. " and " .. i .. " apart " .. describe(other) .. " " .. describe(r))
@@ -205,9 +222,12 @@ do
 		settings[#settings + 1] = { "indicator" .. i .. ".size", 14 }
 	end
 	Batch(env, K, settings)
-	-- A helpful indicator finds no room off a raid tile's bar, so it turns off rather than paint on the fill; a harmful
-	-- one, crowd control, may sit on the bar as the debuffs do.
-	eq(ns.Slots.Placements(sample)[1].fits, false, "preview: a helpful indicator turns off on a raid tile")
+	-- A helpful indicator never paints on the fill outside the status lane (round 6, Astra #2): the first two take the
+	-- lane, the others find no room off the bar and turn off; a harmful one, crowd control, may sit on the bar as the
+	-- debuffs do.
+	local helpful = ns.Slots.Placements(sample)
+	eq(helpful[1].fits and helpful[2].fits, true, "preview: two helpful indicators take the raid tile's status lane")
+	eq(helpful[3].fits, false, "preview: a third helpful indicator turns off rather than paint on the fill")
 	for i = 1, 6 do
 		settings[(i - 1) * 3 + 1] = { "indicator" .. i .. ".category", "CROWD_CONTROL" }
 	end
@@ -234,8 +254,9 @@ do
 	Batch(env, K, { { "raid.width", 72 }, { "raid.height", 40 } })
 end
 
--- Raid: a 72 by 40 tile is full, so the default indicators turn off rather than cover anything; a larger tile places
--- them, a harmful one on the bar, a helpful one never.
+-- Raid: round 6 (Astra #2) gave a 72 by 40 tile a status lane over its role icon and marker, so its three default
+-- indicators are on, the two defensives in the lane and crowd control under the boss slot; a larger tile places them
+-- too, a harmful one on the bar, a helpful one only in the lane.
 do
 	local renv, RK, rns = G.New()
 	G.SetRoster(renv, "raid", G.Members(5))
@@ -246,9 +267,13 @@ do
 	assert(not intersects(heals, Part(renv, f, f.parts.name)), "raid: your heals stay off the name row")
 	assert(not intersects(heals, { Scene.Rect(renv, f.auraClip) }), "raid: and off the debuffs")
 	local placed = Indicators(renv, rns, f, "raid 72 by 40")
-	eq(next(placed), nil, "raid 72 by 40: the full tile turns its default indicators off")
+	local n = 0
+	for _ in pairs(placed) do
+		n = n + 1
+	end
+	eq(n, 3, "raid 72 by 40: the three default indicators are on")
 	Batch(renv, RK, { { "raid.width", BIG.width }, { "raid.height", BIG.height } })
-	Sweep(renv, RK, rns, f, "raid " .. BIG.width .. " by " .. BIG.height, 1, "CROWD_CONTROL")
+	Sweep(renv, RK, rns, f, "raid " .. BIG.width .. " by " .. BIG.height, 3, "CROWD_CONTROL")
 	eq(#renv._errors, 0, tostring(renv._errors[1]))
 end
 
@@ -267,7 +292,7 @@ for _, height in ipairs({ 1440, 1600 }) do
 	for _ in pairs(placed) do
 		n = n + 1
 	end
-	eq(n, 1, "raid at " .. height .. ": the default indicator that fits at scale 1 stays on")
+	eq(n, 3, "raid at " .. height .. ": the default indicators that fit at scale 1 stay on")
 	-- A shrunk indicator styles its count at the size it is drawn, so the count stays inside the icon.
 	local plan = rns.Slots.Placements(f)
 	local slot = f.indicators._slots.indicator1.frame

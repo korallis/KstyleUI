@@ -1029,6 +1029,8 @@
 	"No data yet": "暂无数据",
 	"No earlier fight yet": "尚无更早的战斗",
 	"No element has registered with Layout Mode yet.": "尚无元素注册到布局模式。",
+	"No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off.": "小队框体在当前大小下放不下这个指示器：请调高小队框体，调小它的大小，或关闭另一个指示器。",
+	"No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off.": "团队框体在当前大小下放不下这个指示器：请调宽或调高团队框体，调小它的大小，或关闭另一个指示器。",
 	"No settings match \"%s\".": "没有与“%s”匹配的设置。",
 	"No spells bound yet.": "尚未绑定法术。",
 	"No target": "没有目标",

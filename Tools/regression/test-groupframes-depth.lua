@@ -137,8 +137,10 @@ do
 	assert(shown(sample.sampleSlots) >= 1, "an indicator")
 	local many = preview.raidFrames[3]
 	eq(many.sample.name, "Orrin", "the raid sample with nine debuffs, third of the four true-scale tiles")
-	eq(shown(many.sampleAuras), many.sampleCells, "shows only the cells that fit")
-	assert(many.sampleMark:IsShown() and many.sampleMark:GetText() == "+", "and the + mark for the rest")
+	-- Round 6 (Grok #2): past the cells, the last cell holds the "+N" chip the live tiles show, so nine debuffs on
+	-- four cells read three icons and "+6" (the bare "+" said there were more but not how many).
+	eq(shown(many.sampleAuras), many.sampleCells - 1, "shows the cells that fit, but the last")
+	assert(many.sampleChip:IsShown() and many.sampleChip.text:GetText() == "+" .. (9 - many.sampleCells + 1), "and the +N chip for the rest: " .. tostring(many.sampleChip.text:GetText()))
 end
 
 -- Muse #4, Astra #1, Grok: click casting from the settings page. The panel lists the game's Click Casting bindings,
@@ -427,8 +429,15 @@ do
 	eq(A.Bracket(30), "LARGE", "thirty is large")
 	local cfg = { auto = { size = true, role = true }, party = { height = 40, auraDispelCount = 1, buffCount = 2 }, raid = { height = 40, power = true, auraDispelCount = 1, buffCount = 3 } }
 	A.Overlay(cfg, { bracket = "LARGE", healer = true })
-	eq(cfg.raid.height, 34, "large raids: 85% height")
+	-- Round 6 (Astra #2): 85% height, but never below the 40 units the status lane, the name and the missing health
+	-- need (Geometry.LaneHeight), so a 40-unit tile keeps its height and a 46-unit Healer tile drops to 40, not 39.
+	eq(cfg.raid.height, 40, "large raids: a 40-unit tile keeps the height its lanes need")
 	eq(cfg.raid.power, false, "and no power bars")
+	for _, case in ipairs({ { 46, 40 }, { 60, 51 }, { 30, 30 } }) do
+		local tall = { auto = { size = true, role = false }, party = cfg.party, raid = { height = case[1], power = false, auraDispelCount = 1, buffCount = 3 } }
+		A.Overlay(tall, { bracket = "LARGE", healer = false })
+		eq(tall.raid.height, case[2], "large raids: " .. case[1] .. " units tall")
+	end
 	eq(cfg.party.auraDispelCount, 2, "a healer sees two dispellable debuffs first")
 	eq(cfg.party.buffCount, 3, "and three of their heals")
 end
@@ -503,21 +512,21 @@ local function ManyAuras(e, k8, nsx, f, box, what)
 	assert(#placed > block.cells, what .. ": more debuffs than cells reach the engine")
 	local clipRect = { Scene.Rect(e, f.auraClip) }
 	inside(clipRect, box, what .. ": the debuff block")
+	-- Round 6 (Grok #2): the row's bare "+" marks gave way to the "+N" chip on the last cell, counted by its own
+	-- engine container (test-groupframes-raid-status.lua reads the count), so no debuff icon carries a mark.
 	for i, button in ipairs(placed) do
 		local parts = Auras.Parts(button)
 		local icon = { Scene.Rect(e, parts.icon) }
-		local back = { Scene.Rect(e, parts.markBack) }
-		eq(parts.mark:GetText(), "+", what .. ": each icon carries the + mark")
+		assert(not parts.mark:IsShown() and parts.mark:GetText() == "", what .. ": a debuff icon carries no bare + mark")
 		if i <= block.cells then
 			inside(icon, clipRect, what .. ": shown debuff " .. i)
-			assert(not intersects(back, clipRect), what .. ": a shown debuff raises no mark (" .. i .. ")")
 		else
 			assert(not intersects(icon, clipRect), what .. ": debuff " .. i .. " past the cells is clipped")
 		end
-		if i == block.cells + 1 then
-			inside(back, clipRect, what .. ": the first hidden debuff raises the + mark on the last cell")
-		end
 	end
+	local chip = f.debuffChip
+	assert(chip and chip.window:IsShown(), what .. ": the row carries the +N chip")
+	inside({ Scene.Rect(e, chip.window) }, clipRect, what .. ": the chip sits on the debuff block")
 	eq(placed[1]:GetParent(), f.auras, what .. ": the first cell holds the top category")
 	eq(placed[1], f.auras._groups[order[1]].frames[1], what .. ": " .. order[1] .. " first")
 	-- Your heals: more than fit, clipped along the bar with the same mark.
@@ -576,22 +585,25 @@ eq(#env._errors, 0, tostring(env._errors[1]))
 
 -- The raid environment: the size switch out of combat, then many auras on a raid tile and the owner's extreme
 -- debuff settings.
+-- Round 6 (Astra #2): compact tiles stop at the 40 units their lanes need, so the switch is checked on the Healer
+-- preset's 46-unit tiles, which drop to 40.
 do
-	local renv, RK, rns = G.New()
+	local renv, RK, rns = G.New({ saved = { version = 2, profiles = { Default = { GroupFrames = { raid = { height = 46 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} } })
 	G.SetRoster(renv, "raid", G.Members(20))
 	assert(RK.Modules.Enable("GroupFrames"))
 	renv.RunTimers()
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 40, "twenty members keep the set height")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 46, "twenty members keep the set height")
 	renv.SetCombat(true)
 	G.SetRoster(renv, "raid", G.Members(30))
 	renv.RunTimers()
 	eq(#renv._blocked, 0, "a roster change in combat touches nothing protected: " .. tostring(renv._blocked[1]))
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 40, "and the size waits for combat to end")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 46, "and the size waits for combat to end")
 	renv.SetCombat(false)
 	renv.RunTimers()
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 34, "thirty members get compact frames after combat")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 40, "thirty members get compact frames after combat")
 	Batch(renv, RK, { { "auto.size", false } })
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 40, "the switch can be turned off")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 46, "the switch can be turned off")
+	Batch(renv, RK, { { "raid.height", 40 } })
 	local f = content(rns, rns.Headers.raid[1], "raid1")
 	ManyAuras(renv, RK, rns, f, { Scene.Rect(renv, f) }, "raid")
 	-- The owner's extreme settings: ten debuffs in four rows of large icons still fit the tile.

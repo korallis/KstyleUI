@@ -232,6 +232,11 @@ local function KindRows(schema, kind, label)
 	add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], 1, 6, 1))
 end
 
+local MISFITS = {
+	{ "party", L["No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off."] },
+	{ "raid", L["No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off."] },
+}
+
 local function BuildSchema()
 	local schema = {}
 	local function add(row)
@@ -286,6 +291,12 @@ local function BuildSchema()
 		schema[#schema].showWhen = on
 		add(Toggle(p .. "mine", L["Only yours"], L["Shows only auras you cast."], { showWhen = on }))
 		add({ type = "text", key = p .. "spells", label = L["Spell IDs"], help = L["Buff spell IDs, separated by commas, such as 774, 139."], maxLetters = 120, showWhen = Is(p .. "category", "SPELLS") })
+		for _, misfit in ipairs(MISFITS) do
+			local kind = misfit[1]
+			add({ type = "note", label = misfit[2], showWhen = function()
+				return ns.Slots ~= nil and ns.Slots.Misfit(kind, i) == true
+			end })
+		end
 	end
 	add({ type = "header", label = L["Your heals over time"] })
 	add(Toggle("buffs.enabled", L["Your heals over time"], L["Shows your own heals over time and shields beside or under the health bar, never on it."]))

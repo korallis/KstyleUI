@@ -751,7 +751,10 @@ function Stubs.NewEnv(opts)
 	end
 
 	function env.FireEvent(event, ...)
-		local frames = { unpack(env._frames) }
+		local frames = {}
+		for i = 1, #env._frames do
+			frames[i] = env._frames[i]
+		end
 		for _, frame in ipairs(frames) do
 			local registered = frame._events[event]
 			local wanted = registered == true

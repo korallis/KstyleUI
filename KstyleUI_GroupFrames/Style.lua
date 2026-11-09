@@ -22,7 +22,7 @@ local TRACK = "buttonFill"
 local ROLE_RING = 24
 local ROLE_LETTERS = { TANK = "T", HEALER = "H", DAMAGER = "D" }
 local PILL_HEIGHT = 6
-local PILL_RISE = 2
+local PILL_RISE = 0
 local CLASS_LINE_COLOR = "text"
 local BOSS_SLOT = 16
 local NAME_STEPS = 2
@@ -470,6 +470,7 @@ function Style.Apply(f, width, height)
 		healSpacing = Widgets.Snap(f, k.auraSpacing),
 		overlay = overlay,
 		boss = overlay and cfg.auras.enabled and BOSS_SLOT or nil,
+		laneSize = overlay and math.max(Geometry.LEGIBLE, Widgets.Snap(f, k.auraSize)) or nil,
 		nameMin = nameMin,
 		healthLine = k.healthTextSize + NAME_LINE_EXTRA,
 		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),

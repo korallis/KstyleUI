@@ -1036,6 +1036,8 @@ ns.Locale.Add({
 	["No data yet"] = "A\195\186n no hay datos",
 	["No earlier fight yet"] = "A\195\186n no hay un combate anterior",
 	["No element has registered with Layout Mode yet."] = "Todav\195\173a no se ha registrado ning\195\186n elemento en el modo dise\195\177o.",
+	["No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off."] = "No hay espacio para este indicador en los marcos de grupo con su tama\195\177o: haz m\195\161s altos los marcos de grupo, dale un tama\195\177o menor o desactiva otro indicador.",
+	["No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off."] = "No hay espacio para este indicador en los marcos de banda con su tama\195\177o: haz m\195\161s anchos o m\195\161s altos los marcos de banda, dale un tama\195\177o menor o desactiva otro indicador.",
 	["No settings match \"%s\"."] = "Ning\195\186n ajuste coincide con \194\171%s\194\187.",
 	["No spells bound yet."] = "A\195\186n no hay hechizos asignados.",
 	["No target"] = "Sin objetivo",

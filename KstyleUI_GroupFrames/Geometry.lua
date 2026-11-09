@@ -228,8 +228,12 @@ local MIN_BAR = 6
 local INSET = Tokens.Size("gapTiny")
 local BAR_GAP = 1
 local BLOCK_SHARE = 0.45
+local LEGIBLE = 12
+local LANE_SLOTS = 2
 Geometry.MIN_ICON = MIN_ICON
 Geometry.INSET = INSET
+Geometry.LEGIBLE = LEGIBLE
+Geometry.LANE_SLOTS = LANE_SLOTS
 local Overlay
 local NAME_EM = 5.6
 
@@ -521,9 +525,9 @@ function Overlay(w, h, o)
 	icons.leader = Rect(cornerLeft and bar.left or bar.left + bar.width - badge, bar.top, badge, badge)
 	icons.marker = Rect(o.role and edge + step or edge, bar.top + BAR_GAP, size, size)
 	local line = o.healthLine or size
-	local lane = { left = spanLeft + BAR_GAP, right = (out.boss and out.boss.left or spanRight) - BAR_GAP }
+	local lane = { left = spanLeft + BAR_GAP, right = (out.boss and out.boss.left or spanRight) - INSET }
 	if not cornerLeft then
-		lane = { left = (out.boss and out.boss.left + out.boss.width or spanLeft) + BAR_GAP, right = spanRight - BAR_GAP }
+		lane = { left = (out.boss and out.boss.left + out.boss.width or spanLeft) + INSET, right = spanRight - BAR_GAP }
 	end
 	local laneTop = bar.top + bar.height - line
 	if (o.role or o.marker) and laneTop < icons.role.top + size then
@@ -538,10 +542,23 @@ function Overlay(w, h, o)
 		overlay = true, left = lane.left, right = max(lane.left + MIN_PART, lane.right), top = max(bar.top, laneTop), height = line,
 		center = bar.left + bar.width / 2, middle = bar.top + bar.height / 2, justify = cornerLeft and "LEFT" or "RIGHT",
 	}
+	local near = cornerLeft and bar.left or (out.boss and out.boss.left + out.boss.width or spanLeft) + BAR_GAP
+	local far = cornerLeft and (out.boss and out.boss.left or spanRight) - BAR_GAP or bar.left + bar.width
+	local laneSize = Whole(min(o.laneSize or LEGIBLE, out.healthText.top - BAR_GAP - bar.top, (far - near - (LANE_SLOTS - 1) * BAR_GAP) / LANE_SLOTS), o.pixel)
+	if laneSize >= MIN_ICON then
+		local span = Line(LANE_SLOTS, laneSize, BAR_GAP)
+		out.lane = Rect(cornerLeft and near or far - span, bar.top, span, laneSize)
+		out.lane.size, out.lane.count, out.lane.step, out.lane.fromRight = laneSize, LANE_SLOTS, laneSize + BAR_GAP, not cornerLeft
+		out.lane.legible = laneSize > LEGIBLE - (o.pixel or 0) - 1e-6
+	end
 	local nameMin = o.nameMin or nameHeight
 	local right = HealsOnName(out, o, left, left + width, NAME_EM * nameMin, gap)
 	out.name = Rect(left, top, right - left, nameHeight)
 	return out
+end
+
+function Geometry.LaneHeight(nameHeight, healthLine, powerHeight)
+	return BAR_GAP + nameHeight + BAR_GAP + LEGIBLE + BAR_GAP + healthLine + INSET + (powerHeight and powerHeight > 0 and powerHeight + BAR_GAP or 0)
 end
 
 local AURA_INSIDE = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }

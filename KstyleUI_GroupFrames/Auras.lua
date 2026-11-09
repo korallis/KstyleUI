@@ -52,6 +52,11 @@ local MARK_LIFT = 2
 local MORE = "dispelMore"
 local MORE_PITCH = 2
 local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
+local CHIP_LABELS = 12
+local CHIP_LEVEL = TEXT_ABOVE + 1
+local CHIP_TEXT_MIN = 7
+local CHIP_TEXT_SHARE = 0.5
+local CHIP_TEXT_WIDE = 1.6
 
 local available = true
 local buffsAvailable = true
@@ -318,7 +323,13 @@ local function StyleIcon(button)
 	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 	if p.mark and not p.size then
-		Auras.PlaceMark(p, button, f, k)
+		if p.buff or not f.debuffChip then
+			Auras.PlaceMark(p, button, f, k)
+		else
+			p.mark:SetText("")
+			p.mark:Hide()
+			p.markBack:Hide()
+		end
 	end
 end
 
@@ -593,6 +604,12 @@ local function SetUnit(f, unit)
 			Style.LogOnce("dispelMoreUnit", "the dispel overflow ghost refused a unit: " .. tostring(moreErr))
 		end
 	end
+	if f.debuffChip then
+		local set, chipErr = pcall(Widgets.Overflow.SetUnit, f.debuffChip, unit)
+		if not set then
+			Style.LogOnce("debuffChipUnit", "the debuff count chip refused a unit: " .. tostring(chipErr))
+		end
+	end
 	if ok then
 		f.aurasUnit = unit
 	else
@@ -728,6 +745,54 @@ local function ConfigureDispelGhost(f, k, a, block, filter)
 	more.text:SetText(MARK)
 end
 
+local function LastCell(f, k, block)
+	local step = block.size + block.spacing
+	local col, row = math.max(0, block.columns - 1), math.max(0, block.rows - 1)
+	local x = k.auraGrowth == "LEFT" and block.left + block.width - block.size - col * step or block.left + col * step
+	local y = k.auraWrap == "UP" and block.top + block.height - block.size - row * step or block.top + row * step
+	return x, y
+end
+Auras.LastCell = LastCell
+
+local function ChipSpec(k, filter, cells)
+	local policy, types = Processing()
+	local dispels = DispelCount(k) > 0 and math.max(1, math.min(DispelCount(k), cells)) or 0
+	local more = CHIP_LABELS + 1
+	local groups = {}
+	for _, key in ipairs(GROUPS) do
+		groups[#groups + 1] = {
+			key = key, filter = filter, candidates = Candidates(key, types, k),
+			cap = key == DISPELS and math.max(1, dispels) or cells + more, off = key == DISPELS and dispels == 0,
+		}
+	end
+	return { groups = groups, policy = policy, policyOptions = PolicyOptions(), cap = cells }
+end
+
+local function NewChip(f, k, filter)
+	local Overflow = Widgets.Overflow
+	local cells = math.max(1, Block(f, k).cells)
+	local chip, why = Overflow.New(f, NONE, { ChipSpec(k, filter, cells) }, cells, { labels = CHIP_LABELS, saturate = true })
+	if not chip then
+		Style.LogOnce("debuffChip", "the debuff count chip has no counting container (" .. tostring(why) .. "); a full debuff row shows no +N")
+	end
+	return chip
+end
+
+local function ConfigureChip(f, k, a, block, filter)
+	local chip = f.debuffChip
+	if not chip then
+		return
+	end
+	local on = a.enabled and block.cells > 0
+	local x, y = LastCell(f, k, block)
+	local spec = ChipSpec(k, filter, math.max(1, block.cells))
+	Widgets.Overflow.Apply(chip, {
+		enabled = on, groups = { spec }, cap = spec.cap, cell = block.size, width = block.size,
+		point = "TOPLEFT", rel = f, relPoint = "TOPLEFT", x = Widgets.Snap(f, x), y = -Widgets.Snap(f, y),
+		level = f.auras:GetFrameLevel() + CHIP_LEVEL, textSize = math.max(CHIP_TEXT_MIN, math.floor(math.min(block.size * CHIP_TEXT_SHARE, block.size / CHIP_TEXT_WIDE))),
+	})
+end
+
 local function NewContainer(f)
 	local clip = CreateFrame("Frame", nil, f)
 	clip:SetClipsChildren(true)
@@ -801,6 +866,7 @@ local function NewContainer(f)
 	end
 	if f.processed then
 		f.dispelMore = NewDispelGhost(f, FILTERS[a.filter] or FILTERS.ALL)
+		f.debuffChip = NewChip(f, k, FILTERS[a.filter] or FILTERS.ALL)
 	end
 	Style.LogOnce("auraEngine", "group frame debuffs run on the AuraContainer engine")
 	return container
@@ -953,7 +1019,7 @@ local function Configure(f)
 			container:SetAuraGroupFilterString(key, filter)
 			container:SetAuraGroupMaxFrameCount(key, GroupCount(f, k, key))
 		end
-		container:SetAuraGroupEnabled(BOSS, a.enabled and not Auras.BossOn(f))
+		container:SetAuraGroupEnabled(BOSS, a.enabled)
 		container:SetAuraGroupEnabled(IMPORTANT, a.enabled)
 		container:SetAuraGroupEnabled(DISPELS, a.enabled and dispels > 0)
 	end
@@ -974,6 +1040,7 @@ local function Configure(f)
 	end
 	container:SetAuraGroupEnabled(GROUP, a.enabled)
 	ConfigureDispelGhost(f, k, a, block, filter)
+	ConfigureChip(f, k, a, block, filter)
 	if f.dispelSlot then
 		highlights:SetAuraSlotFilterString(SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
 		highlights:SetAuraSlotEnabled(SLOT, a.dispelHighlight)
@@ -1016,6 +1083,10 @@ local function Bind(f)
 			end
 			if f.dispelMore then
 				f.dispelMore.window:Hide()
+			end
+			if f.debuffChip then
+				f.debuffChip.window:Hide()
+				Widgets.Overflow.Enable(f.debuffChip, false)
 			end
 		end
 		return
@@ -1115,10 +1186,12 @@ local function BuildSamples(f)
 	boss.tile.icon:SetTexture(SAMPLE_BOSS_ICON)
 	boss:SetFrameLevel(holder:GetFrameLevel() + #SAMPLE_ICONS + 1)
 	f.sampleBoss = boss
-	local markLayer = CreateFrame("Frame", nil, holder)
-	markLayer:SetAllPoints(holder)
-	markLayer:SetFrameLevel(holder:GetFrameLevel() + #SAMPLE_ICONS + 1)
-	f.sampleMark = Widgets.FontString(markLayer, "OVERLAY")
+	local chip = CreateFrame("Frame", nil, holder)
+	chip:SetFrameLevel(holder:GetFrameLevel() + #SAMPLE_ICONS + 1)
+	chip.chrome = Widgets.IconChrome(chip)
+	chip.text = Widgets.FontString(chip, "OVERLAY")
+	chip.text:SetPoint("CENTER", chip, "CENTER", 0, 0)
+	f.sampleChip = chip
 	f.sampleDispel = CreateFrame("Frame", nil, holder)
 	f.sampleDispel:SetAllPoints(f)
 	f.sampleDispelWash, f.sampleDispelRing = NewDispel(f.sampleDispel)
@@ -1147,6 +1220,15 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
+	local chip = f.sampleChip
+	local last = f.sampleAuras[math.max(1, block.cells)]
+	chip:ClearAllPoints()
+	chip:SetAllPoints(last)
+	chip.chrome:Restyle()
+	local r, g, b = Tokens.Color("buttonFill")
+	chip.chrome:SetFillRGBA(r, g, b, 1)
+	Style.SetFont(chip.text, Settings.current.text.healthFont, math.max(8, math.floor(size * 0.42 + 0.5)), "")
+	chip.text:SetTextColor(Tokens.Color("textEmphasis"))
 	local side, fit, buffSize, buffSpacing, _, _, row = HealIcons(f, k)
 	f.sampleBuffFit = fit
 	for i, icon in ipairs(f.sampleBuffs) do
@@ -1187,20 +1269,17 @@ Style.appliers[#Style.appliers + 1] = Applied
 
 local function PaintSample(f, sample)
 	local k, a = Settings.current[f.kind], Settings.current.auras
-	local cells = f.sampleCells or Count(k)
-	local shown = a.enabled and math.min(sample.debuffs or 0, cells, #f.sampleAuras) or 0
+	local cells = math.min(f.sampleCells or Count(k), #f.sampleAuras)
+	local debuffs = a.enabled and (sample.debuffs or 0) or 0
+	local more = cells > 0 and debuffs > cells
+	local shown = more and cells - 1 or math.min(debuffs, cells)
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
 	end
-	local more = a.enabled and shown > 0 and (sample.debuffs or 0) > shown
-	f.sampleMark:ClearAllPoints()
 	if more then
-		f.sampleMark:SetPoint("TOPRIGHT", f.sampleAuras[shown], "TOPRIGHT", 0, 0)
-		Style.SetFont(f.sampleMark, Settings.current.text.healthFont, math.max(6, math.floor(Sizes(f, k) * MARK_SHARE + 0.5)), "OUTLINE")
-		f.sampleMark:SetTextColor(Tokens.Color("textEmphasis"))
-		f.sampleMark:SetText(MARK)
+		Widgets.SetText(f.sampleChip.text, MARK .. (debuffs - shown))
 	end
-	f.sampleMark:SetShown(more)
+	f.sampleChip:SetShown(more)
 	f.sampleBoss:SetShown(a.enabled and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
 	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do

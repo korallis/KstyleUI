@@ -121,13 +121,14 @@ local function checkRow(module, row, defaults)
 		return "is not a table"
 	end
 	local rowType = row.type
-	if rowType ~= "header" and not VALUE_TYPES[rowType] then
+	local plain = rowType == "header" or rowType == "note"
+	if not plain and not VALUE_TYPES[rowType] then
 		return "unknown type " .. tostring(rowType)
 	end
 	for field in pairs(row) do
-		if rowType == "header" then
+		if plain then
 			if field == "key" then
-				return "a header row takes no key"
+				return "a " .. rowType .. " row takes no key"
 			elseif not HEADER_FIELDS[field] then
 				return "unknown field " .. tostring(field)
 			end
@@ -149,7 +150,7 @@ local function checkRow(module, row, defaults)
 			return problem
 		end
 	end
-	if rowType == "header" then
+	if plain then
 		return nil
 	end
 	local parts = splitKey(row.key)
@@ -227,7 +228,7 @@ function Options.Register(module, schema)
 	local byKey = {}
 	for i, row in ipairs(schema) do
 		local problem = checkRow(module, row, defaults)
-		if not problem and row.type ~= "header" then
+		if not problem and row.type ~= "header" and row.type ~= "note" then
 			if byKey[row.key] then
 				problem = "the key " .. row.key .. " appears twice"
 			else

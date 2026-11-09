@@ -1029,6 +1029,8 @@
 	"No data yet": "Noch keine Daten",
 	"No earlier fight yet": "Noch kein früherer Kampf",
 	"No element has registered with Layout Mode yet.": "Noch hat sich kein Element beim Layoutmodus angemeldet.",
+	"No room for this indicator on party frames at their size: make party frames taller, give it a smaller size, or turn another indicator off.": "Kein Platz für diesen Anzeiger auf den Gruppenrahmen in ihrer Größe: Macht die Gruppenrahmen höher, gebt ihm eine kleinere Größe oder schaltet einen anderen Anzeiger aus.",
+	"No room for this indicator on raid frames at their size: make raid frames wider or taller, give it a smaller size, or turn another indicator off.": "Kein Platz für diesen Anzeiger auf den Schlachtzugsfenstern in ihrer Größe: Macht die Schlachtzugsfenster breiter oder höher, gebt ihm eine kleinere Größe oder schaltet einen anderen Anzeiger aus.",
 	"No settings match \"%s\".": "Keine Option passt zu „%s“.",
 	"No spells bound yet.": "Noch keine Zauber belegt.",
 	"No target": "Kein Ziel",
