@@ -1,14 +1,15 @@
 -- _lumen.lua: the Lumen Rails HUD in the two states the mockup boards draw (handoff/arena2/parent: hud-questing.png
 -- and hud-combat.png), on top of hud.lua. Every module renders where the Lumen layout puts it, with the module
 -- settings Layout > Apply writes for the layout (Setup.Layouts.Settings): bar 1 alone, the pet and stance sockets in
--- two rows, the threat card in Tank only. The player's own placements stand in for what KstyleUI cannot move: the
--- RestedXP guide and the quest tracker sit in the layout's story slot (Setup.Layouts.Slot), as the setup asks.
+-- two rows, the threat card in Tank only. The story slot (Setup.Layouts.Slot) holds what Apply places there: the
+-- RestedXP guide where the skin's story rail puts it, and the quest tracker at the anchor Apply writes into the
+-- "KstyleUI <layout>" Edit Mode layout (Hud.StoryTracker), with RestedXP loaded, so the tracker takes the lower half.
 --
 --   local Lumen = dofile("Tools/render/scenes/_lumen.lua")
 --   local scene = Lumen.Build("questing")     -- or "combat"; Lumen.Build(state, { layout = "Tank" })
 --
 -- questing: out of combat with no target, three quests and the guide in the story slot, a party of three, the last
--- fight's meter. The guide's list is resized shorter, as a player does with RestedXP's grabber, so both fit the slot.
+-- fight's meter. The guide's step list is folded on the rail, by RestedXP's own rule, so the rail reads path, quests.
 -- combat: in combat with a party of five, the boss card, and the boss as the target, casting; the combat calm has
 -- faded the slow cards (chat, the lens, the readout and menu, the XP line, the guide and the tracker) to 30%.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -19,11 +20,6 @@ local Scene = Common.Scene
 local Lumen = {}
 
 local HEIGHT = 1080
-local GUIDE_INSET = 25
-local TRACKER_INSET = 36
-local TRACKER_HEADER = 34
-local SLOT_GAP = 12
-local GUIDE_LIST = 84
 
 -- The mockup's questing board: the quests the tracker lists, and the party around the player.
 Lumen.QUESTS = {
@@ -77,21 +73,39 @@ function Lumen.Preset(layout)
 	return settings, { left = l, top = HEIGHT - t, width = r - l, height = slot.height }, slot, Layouts.Sizes(layout)
 end
 
-local function glassBottom(scene)
-	local bottom = -math.huge
-	for _, item in ipairs(scene.items) do
-		local r = item.rect
-		local shadow = item.file and item.file:find("Shadow", 1, true)
-		if r and not shadow and (item.alpha or 1) > 0 then
-			bottom = math.max(bottom, r[2] + r[4])
+-- Rail(built, R) -> the glass of every card on the left rail, top to bottom: { name, left, top, width, height } in
+-- screen units, from the frames each module drew (the party card, RestedXP's steps, head and footer, the quests,
+-- chat), so a test can hold them to one left edge and one width.
+function Lumen.Rail(built, R)
+	local out = {}
+	local function add(name, env, frame)
+		if env and frame and frame:IsShown() then
+			local x, y, w, h = Scene.Rect(env, frame)
+			if x then
+				out[#out + 1] = { name = name, left = x, top = y, width = w, height = h }
+			end
 		end
 	end
-	return bottom
-end
-
-local function bottomOf(env, frame)
-	local _, top, _, h = Scene.Rect(env, frame)
-	return top and h and top + h
+	local group, chat, tracker = built.groupframes, built.chat, built.tracker
+	local cards = group and group.ns.Headers and group.ns.Headers.cards
+	add("party", Hud.envs[group.scene], cards and cards.party and cards.party.frame)
+	local f = R.rxp.RXPFrame
+	for i, step in ipairs(f.CurrentStepFrame.framePool) do
+		local parts = R.K.Skin.Parts(step)
+		add("step " .. i, R.env, step:IsShown() and parts and parts.backdrop)
+	end
+	for name, frame in pairs({ path = f.GuideName, footer = f.Footer }) do
+		local parts = R.K.Skin.Parts(frame)
+		add(name, R.env, parts and parts.backdrop)
+	end
+	local env = Hud.envs[tracker.scene]
+	local parts = env.KstyleUI.Skin.Parts(tracker.extra)
+	add("quests", env, parts and parts.backdrop)
+	add("chat", Hud.envs[chat.scene], chat.ns.Panel.Glass())
+	table.sort(out, function(a, b)
+		return a.top < b.top
+	end)
+	return out
 end
 
 function Lumen.Build(state, opts)
@@ -118,39 +132,33 @@ function Lumen.Build(state, opts)
 	else
 		base.target = false
 	end
-	base.guideList = GUIDE_LIST
 	base.menus = true
 	base.sizes = {}
 	for key, size in pairs(sizes) do
 		base.sizes[key] = { size.width, size.height }
 	end
 	local scenes, log = {}, {}
-	base.guideAt = { slot.left + GUIDE_INSET, slot.top + SLOT_GAP }
 	local guide, R = Hud.Module("restedxp", base)
 	scenes[#scenes + 1] = guide
-	local guideBottom = bottomOf(R.env, R.rxp.RXPFrame) or (slot.top + slot.height / 2)
-	base.trackerAt = { slot.left + TRACKER_INSET, guideBottom + SLOT_GAP - TRACKER_HEADER }
-	-- A player drops the quest card so its glass ends inside the slot, clear of chat: lift it by what it overruns.
-	local tracker = Hud.Module("tracker", base)
-	local over = glassBottom(tracker) - (slot.top + slot.height)
-	if over > 0 then
-		base.trackerAt[2] = base.trackerAt[2] - over
-		log[#log + 1] = string.format("lumen: the quest card's glass lifted %.1f units to end in the story slot", over)
-	end
+	base.trackerAnchor = Hud.StoryTracker(layout, true)
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
 	end
+	local built = {}
 	for _, name in ipairs(names) do
-		scenes[#scenes + 1] = (Hud.Module(name, base))
+		local scene, ns, extra = Hud.Module(name, base)
+		scenes[#scenes + 1] = scene
+		built[name] = { scene = scene, ns = ns, extra = extra }
 	end
 	local merged = Scene.Merge(scenes)
+	merged.rail = Lumen.Rail(built, R)
 	merged.slot = slot
 	merged.state = state
 	merged.layout = layout
 	merged.log[#merged.log + 1] = "lumen: the " .. layout .. " layout " .. (state == "combat" and "in combat, the combat calm on" or "out of combat")
-		.. "; the guide and the tracker sit in the story slot (" .. math.floor(slot.left) .. ", " .. math.floor(slot.top) .. ", "
-		.. math.floor(slot.width) .. " by " .. math.floor(slot.height) .. "), where the setup asks the player to put them"
+		.. "; the story slot (" .. math.floor(slot.left) .. ", " .. math.floor(slot.top) .. ", " .. math.floor(slot.width) .. " by "
+		.. math.floor(slot.height) .. ") holds the guide where the skin's rail puts it and the tracker at Apply's Edit Mode anchor"
 	for _, line in ipairs(log) do
 		merged.log[#merged.log + 1] = line
 	end

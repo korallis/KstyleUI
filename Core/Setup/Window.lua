@@ -128,7 +128,10 @@ local function BuildWelcome(page)
 	local list = Paragraph(page, "body", "textEmphasis", TEXT_WIDTH)
 	list:SetPoint("TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
 	list:SetText(L["1. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["2. Choose the modules you want."] .. "\n" .. L["3. Apply, then reload."])
-	panel.welcomeTitle = title
+	local note = Paragraph(page, "body", "text", TEXT_WIDTH)
+	note:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
+	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on. Keep my UI leaves the game's own interface as it is."])
+	panel.welcomeTitle, panel.welcomeNote = title, note
 end
 
 local Card = {}
@@ -373,7 +376,13 @@ local function Build()
 	BuildSummary(panel.pages[4], width)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
 	panel.back:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
-	panel.skip = Widgets.Button(content, { text = L["Skip setup"], onClick = function() panel:Close() end })
+	panel.skip = Widgets.Button(content, {
+		text = L["Keep my UI"],
+		onClick = function()
+			Setup.Keep()
+			panel:Close()
+		end,
+	})
 	panel.skip:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.next = Widgets.Button(content, { text = L["Next"], primary = true, onClick = function() Setup.Go(step + 1) end })
 	panel.next:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
@@ -405,6 +414,7 @@ function Setup.ShowWindow()
 		panel.pages[i]:Hide()
 	end
 	step = 0
+	panel.welcomeNote:SetShown(Setup.IsFirstRun())
 	SyncChoice()
 	Setup.Go(1)
 	if not open or not panel:IsShown() then

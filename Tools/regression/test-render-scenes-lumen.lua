@@ -1,5 +1,5 @@
 -- test-render-scenes-lumen.lua: the Lumen Rails HUD scenes build both states of the mockup boards: out of combat the
--- guide and the tracker fit the story slot and every card is lit; in combat the idle cards rest at 30%, the cards you
+-- guide and the tracker fit the story slot, where Apply puts them, on one left rail with the other cards, and every card is lit; in combat the idle cards rest at 30%, the cards you
 -- read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local check = L.check
@@ -41,6 +41,29 @@ do
 	inside(assert(find(questing, "Encroachment"), "the third quest draws"), "the third quest")
 	inside(assert(find(questing, "RestedXP Guides v4.11.35"), "the guide's footer draws"), "the guide's footer")
 	assert(find(questing, "GENERAL").rect[2] >= slot.top + slot.height, "the chat's tabs sit under the slot")
+end
+
+-- One left rail (round 2, Fable): the party card, RestedXP's steps, head and footer, the quests and chat share one
+-- left edge and one width, the layout's 318-unit rail on the 28-unit margin; no card overlaps the next; the guide's
+-- footer sits one rail gap above the quests.
+for _, scene in ipairs({ questing, combat }) do
+	local rail = scene.rail
+	local seen = {}
+	for i, card in ipairs(rail) do
+		seen[card.name] = card
+		assert(math.abs(card.left - slot.left) <= 0.5, scene.state .. ": " .. card.name .. "'s glass starts on the rail's left edge, got " .. card.left)
+		assert(math.abs(card.width - slot.width) <= 1, scene.state .. ": " .. card.name .. "'s glass is the rail's width, got " .. card.width)
+		local below = rail[i + 1]
+		if below then
+			assert(below.top >= card.top + card.height - 0.5, scene.state .. ": " .. below.name .. " starts under " .. card.name .. ", got " .. below.top .. " for " .. (card.top + card.height))
+		end
+	end
+	for _, name in ipairs({ "party", "step 1", "path", "footer", "quests", "chat" }) do
+		assert(seen[name], scene.state .. ": the rail shows " .. name)
+	end
+	local gap = seen.quests.top - (seen.footer.top + seen.footer.height)
+	assert(math.abs(gap - 16) <= 1, scene.state .. ": the guide ends one rail gap above the quests, got " .. gap)
+	assert(seen["step 1"].top >= slot.top - 0.5, scene.state .. ": the guide starts inside the story slot")
 end
 
 -- The rails keep their 28-unit margin: nothing on either rail draws past the screen's bottom margin (the readout

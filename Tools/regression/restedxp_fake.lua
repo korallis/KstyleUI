@@ -370,8 +370,27 @@ local function V1Window(m, rxp)
 	f.ScrollChild.framePool = {}
 	f.CurrentStepFrame = m.frame("Frame", f)
 	f.CurrentStepFrame.framePool = {}
+	f.CurrentStepFrame.anchor = "TOP"
 	f.MenuFrame = m.frame("Frame", nil, "RXPG_MenuFrame", "UIDropDownMenuTemplate")
 	m.frame("Button", f, "RXPFrameCogwheel")
+	-- RestedXP's own anchors (GuideWindow.lua 466-476, 1405-1428, 1508): a 235 by 125 window left of centre, the
+	-- list inset 3 at the top and sides and 14 at the bottom, the 35-unit header hanging 9 into the list's top, the
+	-- active steps stacked 2 above the header, and the 20-unit footer on the window's foot.
+	f:SetSize(235, 125)
+	f:SetPoint("LEFT", m.env.UIParent, "LEFT", 0, 35)
+	f.BottomFrame:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
+	f.BottomFrame:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 14)
+	name:SetPoint("BOTTOMLEFT", f.BottomFrame, "TOPLEFT", 0, -9)
+	name:SetPoint("BOTTOMRIGHT", f.BottomFrame, "TOPRIGHT", 0, -9)
+	name:SetHeight(35)
+	f.CurrentStepFrame:SetPoint("BOTTOMLEFT", name, "TOPLEFT", 0, 2)
+	f.CurrentStepFrame:SetPoint("BOTTOMRIGHT", name, "TOPRIGHT", 0, 2)
+	f.CurrentStepFrame:SetHeight(25)
+	footer:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 3, 0)
+	footer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 0)
+	footer:SetHeight(20)
+	scroll:SetPoint("TOPLEFT", f.BottomFrame, "TOPLEFT", 5, -5)
+	scroll:SetPoint("BOTTOMRIGHT", f.BottomFrame, "BOTTOMRIGHT", -20, 7)
 	function f.UpdateVisuals(self)
 		for _, part in ipairs({ self.BottomFrame, self.GuideName, self.Footer }) do
 			part:ClearBackdrop()
@@ -402,12 +421,15 @@ local function V1Window(m, rxp)
 			end
 		end
 	end
-	function f.BottomFrame.UpdateFrame()
+	-- UpdateFrame also hides the list when the window leaves it under 30 units, as RestedXP does (GuideWindow.lua 2363).
+	f.BottomFrame.UpdateFrame = m.trust(function()
 		rxp.measured.rows = rxp.measured.rows + 1
 		for _, row in ipairs(f.ScrollChild.framePool) do
 			row:SetHeight(LineHeight(row.text) + 8)
 		end
-	end
+		local height = f:GetHeight() - 3 - 14
+		f.BottomFrame:SetShown(height >= 30)
+	end)
 	-- RestedXP caps its list's scroll at the child's height plus 10, less the list's, after every SetValue
 	-- (GuideWindow.lua:1528): a range that assumes its own 5-unit top and 7-unit bottom inset.
 	m.env.hooksecurefunc(scroll.ScrollBar, "SetValue", function(self)
@@ -440,6 +462,28 @@ local function V1Window(m, rxp)
 			end
 		end
 		f.CurrentStepFrame.UpdateText()
+		-- Each step is its elements plus 18 tall, stacked 5 apart from the top of CurrentStepFrame (1262-1395).
+		local total = 0
+		for i, step in ipairs(pool) do
+			local height = 18
+			for _, element in ipairs(step.elements) do
+				height = height + element:GetHeight()
+			end
+			step:ClearAllPoints()
+			if i == 1 then
+				step:SetPoint("TOPLEFT", f.CurrentStepFrame, "TOPLEFT", 0, 0)
+				step:SetPoint("TOPRIGHT", f.CurrentStepFrame, "TOPRIGHT", 0, 0)
+			else
+				step:SetPoint("TOPLEFT", pool[i - 1], "BOTTOMLEFT", 0, -5)
+				step:SetPoint("TOPRIGHT", pool[i - 1], "BOTTOMRIGHT", 0, -5)
+			end
+			step:SetHeight(height)
+			step:SetShown(i <= (count or 1))
+			if i <= (count or 1) then
+				total = total + height + 5
+			end
+		end
+		f.CurrentStepFrame:SetHeight(math.max(0, total - 5))
 	end)
 	-- Step list rows: RestedXP draws them flat in the theme's bottomFrameBG colour, each with its text and a
 	-- number at its bottom right. m.rows(count) makes more as the guide list grows.

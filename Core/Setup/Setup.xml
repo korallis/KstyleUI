@@ -1,5 +1,6 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Layouts.lua"/>
+	<Script file="EditMode.lua"/>
 	<Script file="Setup.lua"/>
 	<Script file="Window.lua"/>
 </Ui>

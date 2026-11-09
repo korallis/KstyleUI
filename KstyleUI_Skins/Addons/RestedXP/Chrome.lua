@@ -26,9 +26,13 @@ local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
 local RXP_MARGIN = 4
 local GUTTER_GAP = "gapSmall"
 local HEADER_OVERLAP = 9
-local LIST_LEFT, LIST_RIGHT, LIST_BOTTOM = 5, 20, 7
+local LIST_LEFT, LIST_RIGHT, RXP_LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
+local FOOTER_RISE, FOOTER_CLEAR = 6, "gapSmall"
 local LOGO_REACH, TITLE_GAP, TITLE_RIGHT, CAP_ROW, CAP_Y = 45, "gapMedium", 4, 16, -1
+local HEAD_HEIGHT, LOGO_SIZE, HEAD_ABOVE_LIST = 35, 42, 26
+local META_GAP, HEAD_FOOT, LOGO_AIR = "gapTiny", "gapSmall", "gapTiny"
+local GEM_ROOM = 24
 local STEP_AIR, FADE_HEIGHT = "gapSmall", "gapXLarge"
 
 local WEAK = { __mode = "k" }
@@ -130,7 +134,11 @@ local function Glass(frame, opts)
 	if opts.tile then
 		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = inset })
 	end
-	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset })
+	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target })
+end
+
+function Chrome.Reach(frame)
+	return Widgets.Inset(frame, Tokens.Size("chamferWindow")) - RXP_MARGIN
 end
 
 local function Tile(frame, reach)
@@ -310,16 +318,64 @@ local function PlainText(value)
 	return value
 end
 
+local function LineOf(text)
+	local line = Widgets.LineHeight(text)
+	return line
+end
+
+local function Trimmed(text)
+	local full = Widgets.TextWidth(text)
+	local width = text:GetWidth()
+	return full ~= nil and Plain(width) and width + 0.5 < full
+end
+
+local function FitHead(path)
+	local cap, meta, value = path.cap, path.meta, path.metaValue
+	cap:SetTitle(L["The Path"])
+	cap:SetTrail(value ~= "" and value or nil)
+	meta:SetText("")
+	meta:Hide()
+	path.narrow, path.metaRow = false, false
+	if value ~= "" and Trimmed(cap.title) then
+		path.narrow = true
+		cap:SetTitle("")
+		local row, trail = cap.row:GetWidth(), Widgets.TextWidth(cap.trail)
+		if Plain(row) and trail and trail + Widgets.Snap(cap.row, GEM_ROOM) > row then
+			cap:SetTrail(nil)
+			cap:SetTitle(L["The Path"])
+			meta:SetText(value)
+			meta:Show()
+			path.metaRow = true
+		end
+	end
+	local height = CAP_ROW + LineOf(path.heading) + Tokens.Size(HEAD_FOOT)
+	if path.metaRow then
+		height = height + Tokens.Size(META_GAP) + LineOf(meta)
+	end
+	local over = (LOGO_SIZE - HEAD_HEIGHT) / 2
+	path.over = over
+	path.height = math.max(height, HEAD_HEIGHT + over + Tokens.Size(LOGO_AIR))
+	local holder = path.holder
+	holder:ClearAllPoints()
+	holder:SetPoint("TOPLEFT", path.header, "TOPLEFT", 0, Widgets.Snap(holder, over))
+	holder:SetPoint("TOPRIGHT", path.header, "TOPRIGHT", 0, Widgets.Snap(holder, over))
+	holder:SetHeight(Widgets.Snap(holder, over + path.height))
+	if path.OnHead then
+		path.OnHead(path)
+	end
+end
+
 local function SetHeading(path, value)
 	value = PlainText(value)
 	local first, rest = value:match("^([^\n]*)\n?(.*)$")
 	path.heading:SetText(first or value)
 	rest = (rest or ""):gsub("%s*\n%s*", " "):gsub("^%s+", ""):gsub("%s+$", "")
-	path.cap:SetTrail(rest ~= "" and rest or nil)
+	path.metaValue = rest
+	FitHead(path)
 end
 
 local function RestylePath(path)
-	local holder, cap, heading = path.holder, path.cap, path.heading
+	local cap, heading, meta = path.cap, path.heading, path.meta
 	cap.row:ClearAllPoints()
 	cap.row:SetPoint("TOPLEFT", path.header, "TOPLEFT", Widgets.Snap(cap.row, LOGO_REACH + Tokens.Size(TITLE_GAP)), 0)
 	cap.row:SetPoint("TOPRIGHT", path.header, "TOPRIGHT", -Widgets.Snap(cap.row, TITLE_RIGHT), 0)
@@ -327,10 +383,18 @@ local function RestylePath(path)
 	Style.Text(heading, "heading", "textEmphasis")
 	heading:ClearAllPoints()
 	heading:SetPoint("TOPLEFT", cap.row, "BOTTOMLEFT", 0, 0)
-	heading:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -Widgets.Snap(cap.row, TITLE_RIGHT), 0)
+	heading:SetPoint("TOPRIGHT", cap.row, "BOTTOMRIGHT", 0, 0)
+	heading:SetHeight(Widgets.Snap(heading, LineOf(heading)))
 	heading:SetJustifyH("LEFT")
 	heading:SetJustifyV("MIDDLE")
 	heading:SetWordWrap(false)
+	Style.Text(meta, "caption", "text")
+	meta:ClearAllPoints()
+	meta:SetPoint("TOPLEFT", heading, "BOTTOMLEFT", 0, -Widgets.Snap(meta, Tokens.Size(META_GAP)))
+	meta:SetPoint("TOPRIGHT", heading, "BOTTOMRIGHT", 0, -Widgets.Snap(meta, Tokens.Size(META_GAP)))
+	meta:SetJustifyH("LEFT")
+	meta:SetWordWrap(false)
+	FitHead(path)
 end
 
 local function Path(header)
@@ -349,12 +413,16 @@ local function Path(header)
 	local cap = Lumen.SectionCap(holder, { y = CAP_Y })
 	cap:SetTitle(L["The Path"])
 	local heading = Widgets.FontString(holder, "OVERLAY")
-	path = { header = header, holder = holder, cap = cap, heading = heading, Restyle = RestylePath }
+	local meta = Widgets.FontString(holder, "OVERLAY")
+	path = { header = header, holder = holder, cap = cap, heading = heading, meta = meta, metaValue = "", Restyle = RestylePath }
+	RestylePath(path)
 	SetHeading(path, text:GetText())
 	hooksecurefunc(text, "SetText", function(_, value)
 		SetHeading(path, value)
 	end)
-	RestylePath(path)
+	cap.row:HookScript("OnSizeChanged", function()
+		FitHead(path)
+	end)
 	Style.Track(path)
 	Widgets.Track(path)
 	paths[header] = path
@@ -467,10 +535,12 @@ local function PlaceGuideScroll(f)
 		if not Active() then
 			return
 		end
-		local top = HEADER_OVERLAP + Widgets.Inset(scroll, Tokens.Size("chamferWindow"))
+			local path = paths[f.GuideName]
+		local below = path and path.height and path.height - HEAD_ABOVE_LIST or 0
+		local top = math.max(HEADER_OVERLAP, below) + Widgets.Inset(scroll, Tokens.Size("chamferWindow"))
 		scroll:ClearAllPoints()
 		scroll:SetPoint("TOPLEFT", list, "TOPLEFT", LIST_LEFT, -Widgets.Snap(scroll, top))
-		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -LIST_RIGHT, LIST_BOTTOM)
+		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -LIST_RIGHT, Widgets.Snap(scroll, FOOTER_RISE + Tokens.Size(FOOTER_CLEAR)))
 	end)
 end
 
@@ -485,7 +555,7 @@ local function ExtendScroll(f)
 	if not (Plain(low) and Plain(high) and Plain(listHeight) and Plain(viewHeight)) or high == extended[bar] then
 		return
 	end
-	local taken = listHeight - RXP_LIST_TOP - LIST_BOTTOM - viewHeight
+	local taken = listHeight - RXP_LIST_TOP - RXP_LIST_BOTTOM - viewHeight
 	if taken <= 0 then
 		return
 	end
@@ -510,8 +580,18 @@ local function GuideWindow(rxp)
 				keep[name[key]] = true
 			end
 		end
-		Glass(name, { keep = keep, reach = true })
-		Path(name)
+		local path = Path(name)
+		Glass(name, { keep = keep, reach = true, target = path and path.holder })
+		if path then
+			path.OnHead = function()
+				if state.guide then
+					PlaceGuideScroll(state.guide)
+				end
+				if Chrome.OnHead then
+					Chrome.OnHead(state.guide)
+				end
+			end
+		end
 	end
 	local list = Find(f, "BottomFrame")
 	Glass(list, { reach = true })

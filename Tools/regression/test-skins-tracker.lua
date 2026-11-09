@@ -288,6 +288,36 @@ local PANEL_LEFT, PANEL_TOP, PANEL_BOTTOM = 16, 4, 8
 local FIND_GROUP_REACH = 5
 local DISC_UNITS = 18
 
+-- At the owner's interface scale (768 / 1080, where UIParent's units are KstyleUI's), the glass takes the story
+-- rail's width, so the quest card shares one edge and one width with every left-rail card (round 2, Fable).
+
+do
+	local B, snap, p
+	local env, K = S.New({
+		width = 2383, height = 1540, uiScale = 768 / 1080,
+		before = function(env)
+			B = S.Blizzard(env)
+			p = Tracker(env, B)
+			p.tracker:SetSize(260, 600)
+			snap = B.snapshot()
+		end,
+	})
+	K.Modules.Enable("Skins")
+	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
+	local tracker = p.tracker
+	local panel = K.Skin.Parts(tracker).backdrop
+	local _, _, leftX = Edge(panel, "LEFT", snap)
+	local right, _, rightX = Edge(panel, "RIGHT", snap)
+	assert(right == tracker, "the panel's right edge still hangs from the tracker")
+	local scale = K.Widgets.ScaleFactor(tracker)
+	local story = K.Setup.Story("DPS", false).story
+	local glass = (tracker:GetWidth() - leftX + rightX) * scale
+	assert(Near(glass, story.right - story.left, 0.6), "the glass is the story rail's width, got " .. tostring(glass))
+	assert(Near(leftX, -K.Widgets.Snap(panel, PANEL_LEFT), K.Scale.Pixel()), "and still starts 16 left of the tracker, where Apply's Edit Mode anchor puts the rail's edge")
+	assert(K.Setup.EditMode.TRACKER_LEFT == PANEL_LEFT, "Apply and the skin agree on that inset")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- The glass panel hugs the tracker's content through every Blizzard layout -------------------------------
 
 do

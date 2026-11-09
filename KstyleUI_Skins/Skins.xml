@@ -38,6 +38,7 @@
 	<!-- Other addons: skins for windows that other addons make. Add their files below this line. -->
 	<Script file="Addons\RestedXP\Theme.lua"/>
 	<Script file="Addons\RestedXP\Chrome.lua"/>
+	<Script file="Addons\RestedXP\Rail.lua"/>
 	<Script file="Addons\RestedXP\Skin.lua"/>
 	<!-- End of other addons. -->
 

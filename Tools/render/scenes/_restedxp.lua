@@ -5,7 +5,11 @@
 -- scenes/gallery_restedxp.lua.
 --
 --   local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
---   local R = RestedXP.Build()        -- R.env, R.K, R.rxp, R.windows (name -> frame list) and R.log lines
+--   local R = RestedXP.Build()        -- R.env, R.K, R.ns, R.rxp, R.windows (name -> frame list) and R.log lines
+--
+-- With RestedXP.PRESET set to a layout name, the skin's story rail places the guide window for that layout, as it
+-- does in the game, and folds its step list; without it the window sits at RestedXP.LEFT and RestedXP.TOP, the
+-- gallery's spot, with its list at RestedXP.LIST_HEIGHT and the rail switched off.
 --
 -- RestedXP's v1 geometry, in units (its frames are parented to UIParent at the root's scale):
 --   The guide window RXPFrame is 235 by 125 by default; the owner's reads 268 wide. BottomFrame (the step list)
@@ -18,8 +22,8 @@
 --   row starts 2 in and 3 down, its text 5 below its top and its two-digit number at its bottom right.
 --   The footer's text runs from x 40 to 16 before the right edge; the 18-unit cog sits 1 in from the left and the
 --   16-unit resize grabber 1 in from the right, 3 up.
---   The active steps stack above the header, their bottom 2 above its top, 5 apart: each step frame is as wide as
---   the header, its "Step N" plate 17 tall at (7, 5) over its top edge, its first element 10 below its top, each
+--   The active steps stack above the header, their bottom 2 above its top, 5 apart, anchored to CurrentStepFrame as
+--   RestedXP anchors them (restedxp_fake.lua), so they follow the window: each step frame is as wide as the header, its "Step N" plate 17 tall at (7, 5) over its top edge, its first element 10 below its top, each
 --   element's 12-unit check button at (6, -1) and its text from the button's right plus 11 to 5 before the frame's
 --   right edge; an element is its text's height times 1.1 plus 1 tall, the frame the elements plus 18.
 --   RestedXP writes the step text in the theme's font at its guide font size plus 2, the list rows at the guide
@@ -97,9 +101,10 @@ local function font(fs, path, size)
 	fs:SetFont(path, size, "")
 end
 
--- Steps(R) lays the active steps out above the header as RestedXP does and returns the stack's height.
-local function Steps(R, path)
-	local f, env = R.rxp.RXPFrame, R.env
+-- Steps(R, path, width) lays the active steps out above the header as RestedXP does, each as wide as the header,
+-- and returns the stack's height.
+local function Steps(R, path, width)
+	local f = R.rxp.RXPFrame
 	local steps = f.CurrentStepFrame
 	local requested = GUIDE_FONT + 2
 	local total = 0
@@ -111,9 +116,9 @@ local function Steps(R, path)
 			local element = step.elements[e]
 			font(element.text, path, requested)
 			local _, size = element.text:GetFont()
-			local textWidth = WIDTH - 6 - 12 - 11 - 5
+			local textWidth = width - 6 - 12 - 11 - 5
 			local h = math.ceil(height(value, size, path, textWidth) * 1.1) + 1
-			at(element, step, 0, 10 + y, WIDTH, h)
+			at(element, step, 0, 10 + y, width, h)
 			at(element.button, element, 6, 1, 12, 12)
 			element.text:SetJustifyH("LEFT")
 			element.text:SetJustifyV("MIDDLE")
@@ -124,7 +129,12 @@ local function Steps(R, path)
 			frameHeight = frameHeight + h
 		end
 		frameHeight = math.ceil(frameHeight + 18)
-		at(step, env.UIParent, RestedXP.LEFT, RestedXP.TOP + total, WIDTH, frameHeight)
+		step:ClearAllPoints()
+		local above = steps.framePool[i - 1]
+		step:SetPoint("TOPLEFT", above or steps, above and "BOTTOMLEFT" or "TOPLEFT", 0, above and -5 or 0)
+		step:SetPoint("TOPRIGHT", above or steps, above and "BOTTOMRIGHT" or "TOPRIGHT", 0, above and -5 or 0)
+		step:SetHeight(frameHeight)
+		step:Show()
 		font(step.number.text, path, GUIDE_FONT)
 		text(step.number.text, spec.title, "CENTER", step.number, "CENTER", 2, 1)
 		local plateWidth = Scene.TextWidth(spec.title, GUIDE_FONT, path) + 10
@@ -132,21 +142,26 @@ local function Steps(R, path)
 		step.number:SetAlpha(spec.title == "" and 0 or 1)
 		total = total + frameHeight + 5
 	end
-	at(steps, env.UIParent, RestedXP.LEFT, RestedXP.TOP, WIDTH, total - 5)
+	steps:SetHeight(total - 5)
 	return total - 5
 end
 
--- Guide(R, top) lays the guide window out with its header's top at `top`: header, step list, footer.
+-- Guide(R, path, top) lays the guide window out: in the gallery with its header's top at `top`, header, step list
+-- and footer; on the rail the skin has placed and sized the window, so only its contents are laid out.
 local function Guide(R, path, top)
 	local f, env = R.rxp.RXPFrame, R.env
-	local frameTop = top + HEADER_HEIGHT - HEADER_OVERLAP - SIDE
+	local rail = RestedXP.PRESET ~= nil
 	local LIST_HEIGHT = RestedXP.LIST_HEIGHT
-	local frameHeight = LIST_HEIGHT + SIDE + FOOTER_RISE
-	at(f, env.UIParent, RestedXP.LEFT, frameTop, WIDTH, frameHeight)
-	local inner = WIDTH - 2 * SIDE
-	at(f.GuideName, f, SIDE, SIDE + HEADER_OVERLAP - HEADER_HEIGHT, inner, HEADER_HEIGHT)
-	at(f.BottomFrame, f, SIDE, SIDE, inner, LIST_HEIGHT)
-	at(f.Footer, f, SIDE, frameHeight - FOOTER_HEIGHT, inner, FOOTER_HEIGHT)
+	local frameWidth = rail and f:GetWidth() or WIDTH
+	local frameHeight = rail and f:GetHeight() or (LIST_HEIGHT + SIDE + FOOTER_RISE)
+	local inner = frameWidth - 2 * SIDE
+	if not rail then
+		local frameTop = top + HEADER_HEIGHT - HEADER_OVERLAP - SIDE
+		at(f, env.UIParent, RestedXP.LEFT, frameTop, WIDTH, frameHeight)
+		at(f.GuideName, f, SIDE, SIDE + HEADER_OVERLAP - HEADER_HEIGHT, inner, HEADER_HEIGHT)
+		at(f.BottomFrame, f, SIDE, SIDE, inner, LIST_HEIGHT)
+		at(f.Footer, f, SIDE, frameHeight - FOOTER_HEIGHT, inner, FOOTER_HEIGHT)
+	end
 	local name = f.GuideName
 	name.text:SetJustifyH("CENTER")
 	name.text:SetJustifyV("MIDDLE")
@@ -176,6 +191,9 @@ local function Guide(R, path, top)
 	footer.icon:SetSize(16, 16)
 	footer.icon.Normal:SetAllPoints(footer.icon)
 	footer.icon.Normal:SetTexture(GLYPH_TEXTURE)
+	if rail then
+		return top + frameHeight
+	end
 	local bottom = f.BottomFrame
 	local scrollWidth, scrollHeight = inner - 5 - 20, RestedXP.LIST_HEIGHT - 5 - 7
 	at(f.ScrollFrame, bottom, 5, 5, scrollWidth, scrollHeight)
@@ -189,7 +207,7 @@ local function Guide(R, path, top)
 	bar.ThumbTexture:SetSize(SCROLLBAR, 24)
 	bar.ScrollUpButton.Normal:SetAllPoints(bar.ScrollUpButton)
 	bar.ScrollDownButton.Normal:SetAllPoints(bar.ScrollDownButton)
-	local childWidth = WIDTH - 35
+	local childWidth = frameWidth - 35
 	at(f.ScrollChild, f.ScrollFrame, 0, 0, childWidth, scrollHeight)
 	R.rxp.fake.rows(#RestedXP.ROWS)
 	local y = 3
@@ -215,7 +233,7 @@ local function Guide(R, path, top)
 		text(row.number.text, number, "CENTER", row.number, "CENTER", 0, 0)
 		y = y + h + 3
 	end
-	return frameTop + frameHeight
+	return top + HEADER_HEIGHT - HEADER_OVERLAP - SIDE + frameHeight
 end
 
 -- Others(R, x) lays the v2 guide window, the active item frame and the guide configurator out right of the
@@ -232,14 +250,16 @@ local function Others(R, x, itemsTop)
 		button.icon:SetAllPoints(button)
 		button.icon:SetTexture(134400 + i)
 	end
-	local v2 = rxp.v2.state.guideWindow
-	local v2Height = 400
-	at(v2.frame, env.UIParent, x, RestedXP.TOP, WIDTH, v2Height)
-	at(v2.upperFrame, v2.frame, 0, 0, WIDTH, 70)
-	at(v2.guideStepsFrame, v2.frame, 0, 76, WIDTH, v2Height - 76)
-	text(v2.title, "6-10 Durotar", "LEFT", v2.upperFrame, "LEFT", 16, 0)
-	at(v2.closebutton, v2.upperFrame, WIDTH - 28, 8, 20, 20)
-	at(v2.guideSteps.scroll.scrollbar, v2.guideStepsFrame, WIDTH - 16, 6, 10, 200)
+	local v2 = rxp.v2.state and rxp.v2.state.guideWindow
+	if v2 then
+		local v2Height = 400
+		at(v2.frame, env.UIParent, x, RestedXP.TOP, WIDTH, v2Height)
+		at(v2.upperFrame, v2.frame, 0, 0, WIDTH, 70)
+		at(v2.guideStepsFrame, v2.frame, 0, 76, WIDTH, v2Height - 76)
+		text(v2.title, "6-10 Durotar", "LEFT", v2.upperFrame, "LEFT", 16, 0)
+		at(v2.closebutton, v2.upperFrame, WIDTH - 28, 8, 20, 20)
+		at(v2.guideSteps.scroll.scrollbar, v2.guideStepsFrame, WIDTH - 16, 6, 10, 200)
+	end
 	local configurator = rxp.ui.v2.configurator.ui
 	local x3 = x + WIDTH + GAP
 	at(configurator.frame, env.UIParent, x3, RestedXP.TOP, 320, 240)
@@ -256,10 +276,11 @@ function RestedXP.Build()
 	local S = dofile("Tools/regression/skins_env.lua")
 	local Fake = dofile("Tools/regression/restedxp_fake.lua")
 	local R = {}
-	local env, K = S.New(Common.ScreenOpts({
+	local rail = RestedXP.PRESET ~= nil
+	local env, K, ns = S.New(Common.ScreenOpts({
 		saved = {
 			version = 2,
-			profiles = { Default = { Skins = { enabled = true } } },
+			profiles = { Default = { Skins = { enabled = true, restedXP = { rail = rail } }, Layout = rail and { preset = RestedXP.PRESET } or nil } },
 			characters = {},
 			layouts = {},
 			account = { setupSeen = true },
@@ -267,10 +288,10 @@ function RestedXP.Build()
 		},
 		setup = function(env)
 			Common.ForceScreen(env)
-			R.rxp = Fake.Install(env, { v2 = true, activeTheme = "DarkMode" })
+			R.rxp = Fake.Install(env, { v2 = not rail, activeTheme = "DarkMode" })
 		end,
 	}))
-	R.env, R.K, R.S = env, K, S
+	R.env, R.K, R.S, R.ns = env, K, S, ns
 	K.Modules.Enable("Skins")
 	local rxp = R.rxp
 	local counts = {}
@@ -285,18 +306,24 @@ function RestedXP.Build()
 	S.W.Settle(env)
 
 	local path = rxp.font or (K.Tokens.Font("body"))
-	local stack = Steps(R, path)
+	local f = rxp.RXPFrame
+	if not rail then
+		f:SetWidth(WIDTH)
+	end
+	local stack = Steps(R, path, f:GetWidth() - 2 * SIDE)
 	local guideBottom = Guide(R, path, RestedXP.TOP + stack + 2)
 	rxp.RXPFrame:UpdateVisuals()
+	if rail then
+		ns.RestedXP.Rail.Place()
+	end
 	Others(R, RestedXP.LEFT + WIDTH + GAP, guideBottom)
 	S.W.Settle(env)
 
-	local f = rxp.RXPFrame
 	R.windows = {
 		steps = f.CurrentStepFrame.framePool,
 		guide = { f, f.GuideName },
 		items = { rxp.activeItemFrame, rxp.activeItemFrame.title },
-		v2 = { rxp.v2.state.guideWindow.frame },
+		v2 = { rxp.v2.state and rxp.v2.state.guideWindow.frame or nil },
 		configurator = { rxp.ui.v2.configurator.ui.frame },
 	}
 	R.log = {

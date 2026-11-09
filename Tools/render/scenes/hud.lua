@@ -21,6 +21,8 @@ local Classes = dofile("Tools/render/scenes/_classes.lua")
 
 local Hud = {}
 Hud.Classes = Classes
+-- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
+Hud.envs = setmetatable({}, { __mode = "k" })
 
 -- Class(opts) -> the scene's class token and its _classes.lua entry.
 function Hud.Class(opts)
@@ -163,6 +165,7 @@ local function build(env, opts, extra)
 end
 
 local function finish(env, K, scene, what)
+	Hud.envs[scene] = env
 	local err = Common.Errors(env, K)
 	if err then
 		scene.log[#scene.log + 1] = what .. " error: " .. err
@@ -777,9 +780,10 @@ function modules.tracker(opts)
 		end,
 		before = function(env)
 			tracker = Tracker.StandIn(env, S.Blizzard(env), opts.quests or Tracker.QUESTS)
-			if opts.trackerAt then
+			local a = opts.trackerAnchor
+			if a then
 				tracker:ClearAllPoints()
-				tracker:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", opts.trackerAt[1], -opts.trackerAt[2])
+				tracker:SetPoint(a.point, env.UIParent, a.relativePoint, a.offsetX, a.offsetY)
 			end
 		end,
 	})
@@ -791,7 +795,7 @@ function modules.tracker(opts)
 	S.W.Settle(env)
 	-- Blizzard's objective text is yellow for titles and white for lines, under the tracker's fonts.
 	local scene = build(env, opts)
-	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAt and ", here where the player moved it: the story slot" or "")
+	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset")
 	return finish(env, K, scene, "tracker"), ns, tracker
 end
 
@@ -1018,15 +1022,12 @@ function modules.meters(opts)
 	return finish(env, K, scene, "meters"), ns
 end
 
--- RestedXP: the guide window and its active step, skinned, where the player dragged it: opts.guideAt is its top
--- left in screen units. RestedXP's other windows stay closed.
+-- RestedXP: the guide window and its active step, skinned, where the skin's story rail puts it for opts.layout.
+-- RestedXP's other windows stay closed.
 
 function modules.restedxp(opts)
 	local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
-	if opts.guideAt then
-		RestedXP.LEFT, RestedXP.TOP = opts.guideAt[1], opts.guideAt[2]
-	end
-	RestedXP.LIST_HEIGHT = opts.guideList or RestedXP.LIST_HEIGHT
+	RestedXP.PRESET = opts.layout
 	local first = RestedXP.STEPS[1]
 	RestedXP.STEPS = { { title = first.title, elements = { first.elements[1], first.elements[2] } } }
 	local R = RestedXP.Build()
@@ -1039,7 +1040,7 @@ function modules.restedxp(opts)
 	for _, line in ipairs(R.log) do
 		scene.log[#scene.log + 1] = line
 	end
-	scene.log[#scene.log + 1] = "restedxp: the guide is where the player dragged it, RestedXP's own drag, its list resized to " .. RestedXP.LIST_HEIGHT .. " units with RestedXP's grabber"
+	scene.log[#scene.log + 1] = "restedxp: the guide is where the skin's story rail puts it for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule"
 	return finish(R.env, R.K, scene, "restedxp"), R
 end
 
@@ -1058,27 +1059,37 @@ function Hud.Module(name, opts)
 	return builder(opts or {})
 end
 
--- StoryTracker(layout) -> the tracker's top left in screen units when the player has moved it to the layout's story
--- slot, as the setup asks: KstyleUI never moves Blizzard's tracker, so a HUD render shows the arrangement the player
--- makes, not Blizzard's default spot under the minimap, which the right rail's cards hold.
-function Hud.StoryTracker(layout)
+-- StoryTracker(layout, guide) -> the objective tracker's Edit Mode anchor after Layout > Apply: the addon's own
+-- Setup.Apply runs against Forever's Edit Mode API (Tools/regression/editmode_fake.lua) on the owner's screen, and
+-- this returns the anchorInfo it saved in the "KstyleUI <layout>" layout, which Edit Mode hands to the tracker's
+-- SetPoint. guide says RestedXP is loaded, so the tracker takes the slot's lower half.
+function Hud.StoryTracker(layout, guide)
 	local CoreEnv = dofile("Tools/regression/core_env.lua")
-	local env, K = CoreEnv.New()
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	local state = { saved = {}, active = 1 }
+	local env, K = CoreEnv.New(Common.ScreenOpts({
+		setup = function(env)
+			Common.ForceScreen(env)
+			EditModeFake.Install(env, state)
+			env.C_AddOns = env.C_AddOns or {}
+			env.C_AddOns.IsAddOnLoaded = function(name)
+				return guide == true and name == "RXPGuides"
+			end
+		end,
+	}))
 	CoreEnv.Boot(env)
-	local Layouts = K.Setup.Layouts
-	local slot = Layouts.Slot(layout)
-	if not slot then
+	if not K.Setup.Apply({ layout = layout, modules = {} }) then
 		return nil
 	end
-	local width = 1080 * Common.SCREEN.width / Common.SCREEN.height
-	local l, _, _, t = Layouts.Rect(slot, slot, width, 1080)
-	return { l + 36, 1080 - t + 12 - 34 }
+	local written = EditModeFake.Named(state, "KstyleUI " .. layout)
+	local entry = written and EditModeFake.Find(written, EditModeFake.TRACKER)
+	return entry and entry.anchorInfo
 end
 
 function Hud.Build(opts)
 	opts = opts or {}
-	if opts.layout and opts.trackerAt == nil then
-		opts.trackerAt = Hud.StoryTracker(opts.layout)
+	if opts.layout and opts.trackerAnchor == nil then
+		opts.trackerAnchor = Hud.StoryTracker(opts.layout, false)
 	end
 	local scenes = {}
 	for _, name in ipairs(opts.modules or Hud.Order()) do

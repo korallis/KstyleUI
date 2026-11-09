@@ -1,4 +1,4 @@
--- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content, one Lumen section cap per module (gem, tracked title, fading rule, quest count), accent POI discs numbered in order, quest-gold titles, objective counts moved to the line's right, the skin font and KstyleUI progress and timer bars.
+-- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content at the story rail's width, one Lumen section cap per module (gem, tracked title, fading rule, quest count), accent POI discs numbered in order, quest-gold titles, objective counts moved to the line's right, the skin font and KstyleUI progress and timer bars.
 local _, ns = ...
 
 local K = KstyleUI
@@ -8,6 +8,7 @@ local Style, Parts, Skins, Lumen = ns.Style, ns.Parts, ns.Skins, ns.Lumen
 local KEY = "tracker"
 local LINE_DEFAULT, HEADER_EXTRA = 12, 2
 local PANEL_LEFT, PANEL_TOP, PANEL_BOTTOM = 16, -4, -8
+local RAIL_FALLBACK, DEFAULT_PRESET = 318, "DPS"
 local CAPTION_Y, CAPTION_RIGHT = 2, 24
 local DISC_UNITS, RING_UNITS, NUMERAL_SIZE = 18, 24, 11
 local RING_ALPHA, HOVER_RING_ALPHA, HOVER_MIX = 0.9, 0.45, 0.15
@@ -467,6 +468,30 @@ local function PaintAll(collapsed)
 	end
 end
 
+local function RailWidth()
+	local Setup, Layout = K.Setup, K.Layout
+	local preset = Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
+	local story = Setup and type(Setup.Story) == "function" and Setup.Story(preset, false)
+	return story and story.story.right - story.story.left or RAIL_FALLBACK
+end
+
+local function Extra(tracker)
+	local width = PlainSize(tracker:GetWidth())
+	if not width then
+		return 0
+	end
+	local rail = RailWidth() / Widgets.ScaleFactor(tracker)
+	return math.max(0, rail - PANEL_LEFT - width - Widgets.WindowInset(tracker))
+end
+
+local function Width(tracker)
+	if not fit then
+		return
+	end
+	fit:SetPoint("LEFT", tracker, "LEFT", -Widgets.Snap(fit, PANEL_LEFT), 0)
+	fit:SetPoint("RIGHT", tracker, "RIGHT", Widgets.Snap(fit, Extra(tracker)), 0)
+end
+
 local function Fit(tracker)
 	local shows = ShowsContent(tracker)
 	local top, bottom = tracker, tracker.NineSlice
@@ -485,8 +510,7 @@ local function Fit(tracker)
 	fitTop, fitBottom = top, bottom
 	fit:ClearAllPoints()
 	fit:SetPoint("TOP", top, "TOP")
-	fit:SetPoint("LEFT", tracker, "LEFT", -Widgets.Snap(fit, PANEL_LEFT), 0)
-	fit:SetPoint("RIGHT", tracker, "RIGHT")
+	Width(tracker)
 	fit:SetPoint("BOTTOM", bottom, "BOTTOM")
 end
 
@@ -503,6 +527,10 @@ end
 local restyler = { Restyle = function()
 	PaintFonts()
 	PaintTitles()
+	local tracker = _G.ObjectiveTrackerFrame
+	if type(tracker) == "table" then
+		Width(tracker)
+	end
 end }
 
 local function Apply()

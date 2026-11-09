@@ -8,6 +8,8 @@ local L = ns.L
 local OWNER = "Setup"
 local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
+local GUIDE_ADDON = "RXPGuides"
+local STORY_GAP = 16
 
 local PICKER = {
 	{ name = "UnitFrames", label = L["Unit frames"], note = L["Player, target, focus, pet and boss frames."] },
@@ -27,6 +29,7 @@ local PICKER = {
 }
 
 local choice
+local firstRun, kept = false, false
 
 Setup.PICKER = PICKER
 
@@ -133,6 +136,51 @@ local function writeSettings(name)
 	return written, skipped
 end
 
+local function GuideLoaded()
+	local addons = C_AddOns
+	if type(addons) ~= "table" or type(addons.IsAddOnLoaded) ~= "function" then
+		return false
+	end
+	local ok, loaded = pcall(addons.IsAddOnLoaded, GUIDE_ADDON)
+	return ok and loaded == true
+end
+
+Setup.GuideLoaded = GuideLoaded
+
+function Setup.RootSize()
+	local Layout = ns.Layout
+	if Layout and type(Layout.RootSize) == "function" then
+		return Layout.RootSize()
+	end
+	local root = ns.Scale.Root()
+	return root:GetWidth(), root:GetHeight()
+end
+
+function Setup.Story(name, guide)
+	local slot = Layouts.Slot(name)
+	if not slot then
+		return nil
+	end
+	local rw, rh = Setup.RootSize()
+	local left, bottom, right, top = Layouts.Rect(slot, slot, rw, rh)
+	local story = { left = left, bottom = bottom, right = right, top = top }
+	local out = { story = story }
+	if guide then
+		local share = math.floor((top - bottom - STORY_GAP) / 2)
+		out.guide = { left = left, right = right, top = top, bottom = top - share }
+		out.tracker = { left = left, right = right, top = top - share - STORY_GAP, bottom = bottom }
+	else
+		out.tracker = { left = left, right = right, top = top, bottom = bottom }
+	end
+	return out
+end
+
+local function WriteEditMode(name)
+	ns.Combat.Queue(function()
+		Setup.EditMode.Write(name, Setup.Story(name, GuideLoaded()))
+	end)
+end
+
 function Setup.Apply(picked)
 	local Store = ns.Store
 	if not Store.IsLoaded() then
@@ -156,6 +204,7 @@ function Setup.Apply(picked)
 	end
 	local moved, saved = writeLayout(picked.layout)
 	local written, skipped = writeSettings(picked.layout)
+	WriteEditMode(picked.layout)
 	Setup.MarkSeen()
 	log("applied layout " .. picked.layout .. ": " .. moved .. " elements moved now, " .. saved .. " saved for the reload, "
 		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; on: "
@@ -163,11 +212,12 @@ function Setup.Apply(picked)
 	return true
 end
 
-function Setup.Open()
+function Setup.Open(first)
 	if not ns.Store.IsLoaded() then
 		ns.Print(L["KstyleUI has not loaded its saved settings yet."])
 		return false
 	end
+	firstRun, kept = first == true, false
 	choice = Setup.NewChoice()
 	local show = Setup.ShowWindow
 	if type(show) ~= "function" then
@@ -178,8 +228,26 @@ function Setup.Open()
 	return true
 end
 
+function Setup.IsFirstRun()
+	return firstRun
+end
+
+function Setup.Keep()
+	kept = true
+end
+
 function Setup.Closed(applied)
+	local defaults = firstRun and not applied and not kept
+	firstRun, kept = false, false
 	Setup.MarkSeen()
+	if defaults then
+		local picked = Setup.Choice()
+		if Setup.Apply(picked) then
+			log("the first-run setup closed without Apply: applied " .. picked.layout .. " with the modules it had on")
+			ns.Print(string.format(L["KstyleUI applied the %s layout. Type /reload to finish, or /kstyle setup to change it."], Layouts.Label(picked.layout)))
+			return
+		end
+	end
 	if not applied then
 		ns.Print(L["You can run the setup again at any time with /kstyle setup."])
 	end
@@ -194,7 +262,7 @@ ns.Events.Register(OWNER, "PLAYER_LOGIN", function()
 	log("first login on this account: the setup opens")
 	C_Timer.After(OPEN_DELAY, function()
 		if not Store.Account().setupSeen and not (Setup.IsShown and Setup.IsShown()) then
-			Setup.Open()
+			Setup.Open(true)
 		end
 	end)
 end)

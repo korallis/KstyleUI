@@ -61,6 +61,63 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- First run: closing the setup without Apply applies the picked layout (DPS) with every loaded module, so a skipped
+-- wizard never leaves an empty screen; Keep my UI is the opt-out; a later /kstyle setup closes with no change.
+
+local function Login(opts)
+	local env, K = Boot(opts)
+	env.RunTimers()
+	W.Settle(env)
+	return env, K, K.Setup.window
+end
+
+do
+	local env, K, panel = Login()
+	assert(panel and panel:IsShown(), "the first-run setup opens")
+	assert(panel.welcomeNote and panel.welcomeNote:IsShown() and panel.welcomeNote:GetText():find("DPS", 1, true), "the welcome step says closing uses the DPS layout")
+	assert(panel.skip.label:GetText() == "Keep my UI", "the welcome step's left button is the opt-out")
+	panel:Close()
+	W.Settle(env)
+	for _, name in ipairs(MODULES) do
+		assert(K.Modules.IsEnabled(name), "closing the first-run setup switches " .. name .. " on")
+	end
+	assert(K.Layout.Setting("preset") == "DPS", "and applies the DPS layout")
+	assert(K.Store.Layout()["chat.main"] and K.Store.Layout()["chat.main"].x == K.Setup.Layouts.Get("DPS")["chat.main"].x, "with its positions")
+	assert(Seen(K), "and marks the setup seen")
+	assert(CoreEnv.Printed(env, "DPS") and CoreEnv.Printed(env, "/kstyle setup"), "the player is told what was applied and how to change it")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local env, K, panel = Login()
+	W.Click(panel.skip)
+	W.Settle(env)
+	assert(not panel:IsShown() and Seen(K), "Keep my UI closes the setup and marks it seen")
+	for _, name in ipairs(MODULES) do
+		assert(not K.Modules.IsEnabled(name), "Keep my UI leaves " .. name .. " off")
+	end
+	assert(next(K.Store.Layout()) == nil, "and moves nothing")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local env, K, panel = Login()
+	K.Setup.Go(2)
+	W.Click(panel.cards.Healer)
+	W.Key(panel, "ESCAPE")
+	W.Settle(env)
+	assert(K.Layout.Setting("preset") == "Healer", "Escape on the first run applies the layout the player had picked")
+	env.SlashCmdList.KSTYLE("setup")
+	W.Settle(env)
+	K.Setup.Go(2)
+	W.Click(panel.cards.Tank)
+	panel:Close()
+	W.Settle(env)
+	assert(K.Layout.Setting("preset") == "Healer", "closing a later setup changes nothing")
+	assert(not panel.welcomeNote:IsShown(), "and a later setup does not promise a layout on close")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 do
 	local env, K = Boot({ saved = { version = 1, account = { setupSeen = true } } })
 	env.RunTimers()

@@ -12,14 +12,14 @@ for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "sm
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 
--- Lumen Rails: the Blessings hang under the lens card on the right rail, and the player moves the objective tracker
--- into the left rail's story slot (the setup's hint), so at the full two rows of eight buffs and three debuffs every
+-- Lumen Rails: the Blessings hang under the lens card on the right rail, and Layout > Apply's Edit Mode layout puts
+-- the objective tracker in the left rail's story slot, so at the full two rows of eight buffs and three debuffs every
 -- tile sits under the lens's zone line and clear of the tracker, on the far side of the screen.
 do
 	local Hud = L.Hud
 	local Lumen = dofile("Tools/render/scenes/_lumen.lua")
 	local _, slot = Lumen.Preset("DPS")
-	local scene = check("auras_tracker", Hud.Build({ layout = "DPS", modules = { "minimap", "auras", "tracker" }, buffs = 16, debuffs = 3, trackerAt = { slot.left + 36, slot.top } }))
+	local scene = check("auras_tracker", Hud.Build({ layout = "DPS", modules = { "minimap", "auras", "tracker" }, buffs = 16, debuffs = 3 }))
 	local tiles, quests, zone = {}, nil, nil
 	for _, item in ipairs(scene.items) do
 		local text = item.kind == "text" and item.text and (item.text:gsub("\226\128\137", ""))

@@ -35,7 +35,7 @@ local function Step(W, step, x, y, prepare)
 		K.Modules.Register(CoreEnv.Module(name))
 	end
 	CoreEnv.Boot(env)
-	assert(K.Setup.Open(), "the setup opens")
+	assert(K.Setup.Open(true), "the setup opens as on the first login")
 	W.Settle(env)
 	assert(K.Setup.Go(step), "the setup moves to step " .. step)
 	W.Settle(env)
@@ -72,7 +72,7 @@ return Common.Run(function()
 	local env, K, panel, hover = Step(W, 1, 60, 30)
 	add(env, K, panel, hover, {
 		name = "setup_welcome", title = "Setup: welcome", grade = "window", reference = "chat",
-		caption = "The first-run setup on its welcome step: a titled glass window with the four-step tab strip on the button body, the logo, the welcome text, Skip setup and the primary Next button.",
+		caption = "The first-run setup on its welcome step: a titled glass window with the four-step tab strip on the button body, the logo, the welcome text, the note that closing applies the DPS layout, the Keep my UI opt-out and the primary Next button.",
 		match = "Window grade as the mockup's chat panel: the surface fill, the dark outer and light inner lines, the 12-unit chamfer and the drop shadow; the tab strip inside is the button body.",
 	})
 
