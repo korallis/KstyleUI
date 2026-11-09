@@ -1,8 +1,8 @@
--- Chrome.lua: KstyleUI's glass, buttons, scroll bars, ring checks, edit boxes, accent titles and the Lumen cap and zone heading on every RestedXP Guides window, applied as RestedXP makes or first shows each one, and on RestedXP's menus only while RestedXP shows them.
+-- Chrome.lua: KstyleUI's one glass card, buttons, scroll bars, ring checks, edit boxes, accent titles and the Lumen cap on every RestedXP Guides window: the guide reads as one card (the cap with the guide's name and step above the active steps, the route's caption row, the folded list and the footer, with the quests docked under it when the story rail holds both), applied as RestedXP makes or first shows each window, and on RestedXP's menus only while RestedXP shows them.
 local _, ns = ...
 
 local K = KstyleUI
-local Skin, Tokens, Widgets, L = K.Skin, K.Tokens, K.Widgets, K.L
+local Skin, Tokens, Widgets = K.Skin, K.Tokens, K.Widgets
 local Style, Parts, Skins, Kit, Lumen = ns.Style, ns.Parts, ns.Skins, ns.PartC, ns.Lumen
 
 local RestedXP = ns.RestedXP
@@ -29,11 +29,9 @@ local HEADER_OVERLAP = 9
 local LIST_LEFT, LIST_RIGHT, RXP_LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
 local FOOTER_RISE, FOOTER_CLEAR = 6, "gapSmall"
-local LOGO_REACH, TITLE_GAP, TITLE_RIGHT, CAP_ROW, CAP_Y = 45, "gapMedium", 4, 16, -1
-local HEAD_HEIGHT, LOGO_SIZE, HEAD_ABOVE_LIST = 35, 42, 26
-local META_GAP, HEAD_FOOT, LOGO_AIR = "gapTiny", "gapSmall", "gapTiny"
-local GEM_ROOM = 24
-local STEP_AIR, FADE_HEIGHT = "gapSmall", "gapXLarge"
+local CAP_ROW, CAP_AIR, CAP_LEFT, CAP_RIGHT = 16, "gapSmall", RXP_MARGIN, RXP_MARGIN
+local META_ROW, META_LEFT = 18, "gapSmall"
+local FADE_HEIGHT = "gapXLarge"
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
@@ -156,8 +154,7 @@ local function LayoutGutter(gutter)
 	Widgets.Tint(line, "edgeFaint")
 end
 
-local function Gutter(list, bar)
-	local glass = Panel(list)
+local function Gutter(glass, list, bar)
 	if not glass or gutters[list] or not IsTable(bar) or type(bar.GetObjectType) ~= "function" then
 		return
 	end
@@ -318,86 +315,95 @@ local function PlainText(value)
 	return value
 end
 
-local function LineOf(text)
-	local line = Widgets.LineHeight(text)
-	return line
-end
-
-local function Trimmed(text)
-	local full = Widgets.TextWidth(text)
-	local width = text:GetWidth()
-	return full ~= nil and Plain(width) and width + 0.5 < full
-end
-
-local function FitHead(path)
-	local cap, meta, value = path.cap, path.meta, path.metaValue
-	cap:SetTitle(L["The Path"])
-	cap:SetTrail(value ~= "" and value or nil)
-	meta:SetText("")
-	meta:Hide()
-	path.narrow, path.metaRow = false, false
-	if value ~= "" and Trimmed(cap.title) then
-		path.narrow = true
-		cap:SetTitle("")
-		local row, trail = cap.row:GetWidth(), Widgets.TextWidth(cap.trail)
-		if Plain(row) and trail and trail + Widgets.Snap(cap.row, GEM_ROOM) > row then
-			cap:SetTrail(nil)
-			cap:SetTitle(L["The Path"])
-			meta:SetText(value)
-			meta:Show()
-			path.metaRow = true
+local function Trail(f)
+	local steps = IsTable(f) and f.CurrentStepFrame
+	local pool = IsTable(steps) and steps.framePool
+	if not IsTable(pool) or not steps:IsShown() then
+		return ""
+	end
+	for _, step in ipairs(pool) do
+		local plate = IsTable(step) and step.number
+		if IsTable(plate) and IsTable(plate.text) and step:IsShown() and not Widgets.IsSecret(step:GetAlpha()) and step:GetAlpha() > 0 then
+			local value = PlainText(plate.text:GetText())
+			if value ~= "" then
+				return value
+			end
 		end
 	end
-	local height = CAP_ROW + LineOf(path.heading) + Tokens.Size(HEAD_FOOT)
-	if path.metaRow then
-		height = height + Tokens.Size(META_GAP) + LineOf(meta)
-	end
-	local over = (LOGO_SIZE - HEAD_HEIGHT) / 2
-	path.over = over
-	path.height = math.max(height, HEAD_HEIGHT + over + Tokens.Size(LOGO_AIR))
-	local holder = path.holder
+	return ""
+end
+
+local function StepsAbove(f)
+	local steps = IsTable(f) and f.CurrentStepFrame
+	return IsTable(steps) and steps:IsShown() and steps.anchor ~= "BOTTOM" and steps or nil
+end
+
+local function StepsBelow(f)
+	local steps = IsTable(f) and f.CurrentStepFrame
+	return IsTable(steps) and steps:IsShown() and steps.anchor == "BOTTOM" and steps or nil
+end
+
+local function PlaceCard(path)
+	local f, card = path.frame, path.card
+	local bottom = path.dock or StepsBelow(f) or f
+	card:ClearAllPoints()
+	card:SetPoint("TOPLEFT", path.holder, "TOPLEFT")
+	card:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT")
+	card:SetPoint("BOTTOM", bottom, "BOTTOM", 0, path.dock and -Widgets.Snap(card, path.dockBottom or 0) or 0)
+end
+
+local function PlaceHead(path)
+	local f, holder, header = path.frame, path.holder, path.header
+	local anchor = StepsAbove(f) or header
 	holder:ClearAllPoints()
-	holder:SetPoint("TOPLEFT", path.header, "TOPLEFT", 0, Widgets.Snap(holder, over))
-	holder:SetPoint("TOPRIGHT", path.header, "TOPRIGHT", 0, Widgets.Snap(holder, over))
-	holder:SetHeight(Widgets.Snap(holder, over + path.height))
+	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, 0)
+	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, 0)
+	holder:SetHeight(Widgets.Snap(holder, path.capHeight))
+	PlaceCard(path)
 	if path.OnHead then
 		path.OnHead(path)
 	end
 end
 
+local function FitHead(path)
+	local cap = path.cap
+	cap:SetTitle(path.titleValue)
+	cap:SetTrail(Trail(path.frame))
+	local meta, value = path.meta, path.metaValue
+	meta:SetText(value)
+	meta:SetShown(value ~= "")
+	path.capHeight = CAP_ROW + 2 * Tokens.Size(CAP_AIR)
+	path.height = META_ROW
+	PlaceHead(path)
+end
+
 local function SetHeading(path, value)
 	value = PlainText(value)
 	local first, rest = value:match("^([^\n]*)\n?(.*)$")
-	path.heading:SetText(first or value)
-	rest = (rest or ""):gsub("%s*\n%s*", " "):gsub("^%s+", ""):gsub("%s+$", "")
-	path.metaValue = rest
+	path.titleValue = (first or value):gsub("^%s+", ""):gsub("%s+$", "")
+	path.metaValue = (rest or ""):gsub("%s*\n%s*", " "):gsub("^%s+", ""):gsub("%s+$", "")
 	FitHead(path)
 end
 
 local function RestylePath(path)
-	local cap, heading, meta = path.cap, path.heading, path.meta
+	local cap, meta, header = path.cap, path.meta, path.header
+	local air = Widgets.Snap(cap.row, Tokens.Size(CAP_AIR))
 	cap.row:ClearAllPoints()
-	cap.row:SetPoint("TOPLEFT", path.header, "TOPLEFT", Widgets.Snap(cap.row, LOGO_REACH + Tokens.Size(TITLE_GAP)), 0)
-	cap.row:SetPoint("TOPRIGHT", path.header, "TOPRIGHT", -Widgets.Snap(cap.row, TITLE_RIGHT), 0)
+	cap.row:SetPoint("TOPLEFT", path.holder, "TOPLEFT", 0, -air)
+	cap.row:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT", 0, -air)
 	cap.row:SetHeight(Widgets.Snap(cap.row, CAP_ROW))
-	Style.Text(heading, "heading", "textEmphasis")
-	heading:ClearAllPoints()
-	heading:SetPoint("TOPLEFT", cap.row, "BOTTOMLEFT", 0, 0)
-	heading:SetPoint("TOPRIGHT", cap.row, "BOTTOMRIGHT", 0, 0)
-	heading:SetHeight(Widgets.Snap(heading, LineOf(heading)))
-	heading:SetJustifyH("LEFT")
-	heading:SetJustifyV("MIDDLE")
-	heading:SetWordWrap(false)
+	header:SetHeight(Widgets.Snap(header, META_ROW))
 	Style.Text(meta, "caption", "text")
 	meta:ClearAllPoints()
-	meta:SetPoint("TOPLEFT", heading, "BOTTOMLEFT", 0, -Widgets.Snap(meta, Tokens.Size(META_GAP)))
-	meta:SetPoint("TOPRIGHT", heading, "BOTTOMRIGHT", 0, -Widgets.Snap(meta, Tokens.Size(META_GAP)))
+	meta:SetPoint("LEFT", header, "LEFT", Widgets.Snap(meta, Tokens.Size(META_LEFT)), 0)
+	meta:SetPoint("RIGHT", header, "RIGHT", -Widgets.Snap(meta, Tokens.Size(META_LEFT)), 0)
 	meta:SetJustifyH("LEFT")
 	meta:SetWordWrap(false)
 	FitHead(path)
 end
 
-local function Path(header)
+local function Path(f)
+	local header = IsTable(f) and f.GuideName
 	local text = IsTable(header) and header.text
 	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetAlpha) ~= "function" then
 		return nil
@@ -407,21 +413,16 @@ local function Path(header)
 		return path
 	end
 	HushText(text)
-	local holder = CreateFrame("Frame", nil, header)
-	holder:SetAllPoints(header)
+	local holder = CreateFrame("Frame", nil, f)
 	holder:SetFrameLevel(header:GetFrameLevel() + 1)
-	local cap = Lumen.SectionCap(holder, { y = CAP_Y })
-	cap:SetTitle(L["The Path"])
-	local heading = Widgets.FontString(holder, "OVERLAY")
-	local meta = Widgets.FontString(holder, "OVERLAY")
-	path = { header = header, holder = holder, cap = cap, heading = heading, meta = meta, metaValue = "", Restyle = RestylePath }
+	local card = CreateFrame("Frame", nil, f)
+	local cap = Lumen.SectionCap(holder, { left = CAP_LEFT, right = CAP_RIGHT })
+	local meta = Widgets.FontString(header, "OVERLAY")
+	path = { frame = f, header = header, holder = holder, card = card, cap = cap, meta = meta, titleValue = "", metaValue = "", capHeight = CAP_ROW, height = META_ROW, headerHeight = header:GetHeight(), Restyle = RestylePath }
 	RestylePath(path)
 	SetHeading(path, text:GetText())
 	hooksecurefunc(text, "SetText", function(_, value)
 		SetHeading(path, value)
-	end)
-	cap.row:HookScript("OnSizeChanged", function()
-		FitHead(path)
 	end)
 	Style.Track(path)
 	Widgets.Track(path)
@@ -431,6 +432,29 @@ end
 
 function Chrome.Path(f)
 	return IsTable(f) and paths[f.GuideName] or nil
+end
+
+function Chrome.Card(f)
+	local path = Chrome.Path(f)
+	return path and path.card or nil
+end
+
+function Chrome.Dock(f, target, bottom)
+	local path = Chrome.Path(f)
+	if not path then
+		return false
+	end
+	path.dock = IsTable(target) and target or nil
+	path.dockBottom = bottom
+	PlaceCard(path)
+	return path.dock ~= nil
+end
+
+function Chrome.Refit(f)
+	local path = Chrome.Path(f)
+	if path then
+		FitHead(path)
+	end
 end
 
 local function Button(button)
@@ -495,14 +519,17 @@ local function StepFrames(f)
 	local changed = false
 	for _, step in pairs(pool) do
 		if IsTable(step) then
-			if not Skin.IsSkinned(step, "Backdrop") then
-				Glass(step, { reach = true, air = STEP_AIR })
+			if not done[step] then
+				done[step] = true
+				Skin.Strip(step, { children = RXP_ART })
 			end
-			if IsTable(step.number) then
-				if not Skin.IsSkinned(step.number, "Backdrop") then
-					Tile(step.number)
+			local plate = step.number
+			if IsTable(plate) and not done[plate] then
+				done[plate] = true
+				Skin.Strip(plate, { children = RXP_ART })
+				if IsTable(plate.text) then
+					HushText(plate.text)
 				end
-				Caption(step.number.text)
 			end
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
 				if IsTable(element) then
@@ -522,6 +549,7 @@ local function NewSteps(f)
 	if StepFrames(f) then
 		Measure(f, true, false)
 	end
+	Chrome.Refit(f)
 end
 
 local function PlaceGuideScroll(f)
@@ -535,9 +563,7 @@ local function PlaceGuideScroll(f)
 		if not Active() then
 			return
 		end
-			local path = paths[f.GuideName]
-		local below = path and path.height and path.height - HEAD_ABOVE_LIST or 0
-		local top = math.max(HEADER_OVERLAP, below) + Widgets.Inset(scroll, Tokens.Size("chamferWindow"))
+		local top = HEADER_OVERLAP + Widgets.Inset(scroll, Tokens.Size("chamferWindow"))
 		scroll:ClearAllPoints()
 		scroll:SetPoint("TOPLEFT", list, "TOPLEFT", LIST_LEFT, -Widgets.Snap(scroll, top))
 		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -LIST_RIGHT, Widgets.Snap(scroll, FOOTER_RISE + Tokens.Size(FOOTER_CLEAR)))
@@ -573,43 +599,41 @@ local function GuideWindow(rxp)
 		return
 	end
 	local name = Find(f, "GuideName")
+	local path = name and Path(f)
 	if name then
-		local keep = {}
-		for _, key in ipairs({ "icon", "classIcon" }) do
-			if IsTexture(name[key]) then
-				keep[name[key]] = true
+		Skin.Strip(name, { children = RXP_ART })
+	end
+	local glass = path and Glass(f, { reach = true, target = path.card })
+	if path then
+		path.OnHead = function()
+			if state.guide then
+				PlaceGuideScroll(state.guide)
 			end
-		end
-		local path = Path(name)
-		Glass(name, { keep = keep, reach = true, target = path and path.holder })
-		if path then
-			path.OnHead = function()
-				if state.guide then
-					PlaceGuideScroll(state.guide)
-				end
-				if Chrome.OnHead then
-					Chrome.OnHead(state.guide)
-				end
+			if Chrome.OnHead then
+				Chrome.OnHead(state.guide)
 			end
 		end
 	end
 	local list = Find(f, "BottomFrame")
-	Glass(list, { reach = true })
+	if list then
+		Skin.Strip(list, { children = RXP_ART })
+	end
 	local footer = Find(f, "Footer")
-	Tile(footer, true)
 	if footer then
+		Skin.Strip(footer, { children = RXP_ART })
 		Caption(footer.text)
 	end
 	local bar = IsTable(f.ScrollFrame) and f.ScrollFrame.ScrollBar or Find(f, "ScrollFrame.ScrollBar")
 	ScrollBar(bar)
-	if list then
-		Gutter(list, bar)
+	if list and glass then
+		Gutter(glass, list, bar)
 		Fade(list, f.ScrollFrame, bar)
 	end
 	state.guide = f
 	PlaceGuideScroll(f)
 	Hook(f, "UpdateVisuals", "RXPFrame.UpdateVisuals", function()
 		PlaceGuideScroll(f)
+		Chrome.Refit(f)
 	end)
 	if IsTable(f.ScrollFrame) and IsTable(f.ScrollFrame.ScrollBar) then
 		Hook(f.ScrollFrame.ScrollBar, "SetValue", "RXPFrame.ScrollBar.SetValue", function()
@@ -934,6 +958,23 @@ local function Tracker(rxp)
 	Hook(tracker, "RenderSplitsBackground", "tracker.RenderSplitsBackground", Refresh)
 end
 
+local function Label(text, role, colorName)
+	if IsTable(text) and type(text.SetFont) == "function" then
+		Style.Text(text, role, colorName)
+	end
+end
+
+local function KitButton(button)
+	Button(button)
+	if IsTable(button) and type(button.GetFontString) == "function" then
+		Label(button:GetFontString(), "body", "textEmphasis")
+	end
+	local wash = IsTable(button) and button.configuratorBackground
+	if IsTexture(wash) then
+		HushText(wash)
+	end
+end
+
 local function Configurator(configurator)
 	local ui = configurator.ui
 	if not IsTable(ui) or not IsTable(ui.frame) then
@@ -942,9 +983,14 @@ local function Configurator(configurator)
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
 		Glass(ui.frame)
 	end
+	Label(ui.titletext, "heading")
 	Title(ui.titletext)
 	for _, key in ipairs(CONFIGURATOR_BUTTONS) do
-		Button(ui[key])
+		KitButton(ui[key])
+	end
+	local pane = IsTable(ui.scrollContainer) and ui.scrollContainer.frame
+	if IsTable(pane) and type(pane.GetRegions) == "function" and not Skin.IsSkinned(pane, "Backdrop") then
+		Skin.Backdrop(pane, { shape = "tile", fill = "surface", shadow = false })
 	end
 	ScrollBar(IsTable(ui.scrollContainer) and ui.scrollContainer.scrollbar or nil)
 end

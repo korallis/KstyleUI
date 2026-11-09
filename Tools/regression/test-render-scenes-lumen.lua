@@ -1,5 +1,5 @@
 -- test-render-scenes-lumen.lua: the Lumen Rails HUD scenes build both states of the mockup boards: out of combat the
--- guide and the tracker fit the story slot, where Apply puts them, on one left rail with the other cards, and every card is lit; in combat the idle cards rest at 30%, the cards you
+-- guide and the tracker fit the story slot as one card, where Apply puts them, on one left rail with the other cards, and every card is lit; in combat the idle cards rest at 30%, the cards you
 -- read (chat, map, tracker, guide) dim only to 75%, and the focus cards stay lit.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local check = L.check
@@ -43,9 +43,10 @@ do
 	assert(find(questing, "GENERAL").rect[2] >= slot.top + slot.height, "the chat's tabs sit under the slot")
 end
 
--- One left rail (round 2, Fable): the party card, RestedXP's steps, head and footer, the quests and chat share one
--- left edge and one width, the layout's 318-unit rail on the 28-unit margin; no card overlaps the next; the guide's
--- footer sits one rail gap above the quests.
+-- One left rail (round 2, Fable; round 3, Grok and Muse): the party card, the guide's card and chat share one
+-- left edge and one width, the layout's 318-unit rail on the 28-unit margin; no card overlaps the next. Apply put
+-- the quests under the guide, so the quests dock into the guide's card: one glass from the guide's cap to the
+-- quests' foot, the tracker's own glass hidden, and both caps (the guide's name, QUESTS) inside it.
 for _, scene in ipairs({ questing, combat }) do
 	local rail = scene.rail
 	local seen = {}
@@ -58,12 +59,20 @@ for _, scene in ipairs({ questing, combat }) do
 			assert(below.top >= card.top + card.height - 0.5, scene.state .. ": " .. below.name .. " starts under " .. card.name .. ", got " .. below.top .. " for " .. (card.top + card.height))
 		end
 	end
-	for _, name in ipairs({ "party", "step 1", "path", "footer", "quests", "chat" }) do
+	for _, name in ipairs({ "party", "guide", "chat" }) do
 		assert(seen[name], scene.state .. ": the rail shows " .. name)
 	end
-	local gap = seen.quests.top - (seen.footer.top + seen.footer.height)
-	assert(math.abs(gap - 16) <= 1, scene.state .. ": the guide ends one rail gap above the quests, got " .. gap)
-	assert(seen["step 1"].top >= slot.top - 0.5, scene.state .. ": the guide starts inside the story slot")
+	assert(not seen.quests, scene.state .. ": the tracker's own glass yields to the guide's card")
+	local guide = seen.guide
+	assert(guide.top >= slot.top - 0.5, scene.state .. ": the guide's card starts inside the story slot, got " .. guide.top .. " for " .. slot.top)
+	local quests = assert(find(scene, "QUESTS"), scene.state .. ": the QUESTS cap draws")
+	local last = assert(find(scene, "Bloodtalon Scythemaw"), scene.state .. ": the last quest line draws")
+	for _, item in ipairs({ quests, last, find(scene, "6-10 DUROTAR"), find(scene, "RestedXP Guides v4.11.35") }) do
+		assert(item, scene.state .. ": a rail text draws")
+		local r = item.rect
+		assert(r[2] >= guide.top and r[2] + r[4] <= guide.top + guide.height + 0.5, scene.state .. ": '" .. plain(item.text) .. "' lies inside the guide's card, got " .. r[2] .. " to " .. (r[2] + r[4]) .. " for " .. guide.top .. " to " .. (guide.top + guide.height))
+	end
+	assert(guide.top + guide.height <= slot.top + slot.height + 0.5, scene.state .. ": the card ends inside the story slot, got " .. (guide.top + guide.height) .. " for " .. (slot.top + slot.height))
 end
 
 -- The rails keep their 28-unit margin: nothing on either rail draws past the screen's bottom margin (the readout

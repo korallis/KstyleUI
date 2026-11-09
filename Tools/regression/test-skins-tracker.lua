@@ -642,4 +642,51 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- No cap title truncates at the story rail's width: measured with the kit fonts' real glyph advances (the
+-- renderer's table, thin spaces included), the tracked Cinzel title of every module header the game can show
+-- fits its row with room for the gem, the gaps, the count and the collapse button, so it takes its natural width
+-- and IsTruncated is false. A render that read "QUES..." came from measuring the thin spaces at half their width.
+do
+	local Scene = dofile("Tools/render/scene.lua")
+	local StandIn = dofile("Tools/render/scenes/_tracker.lua")
+	local module
+	local env, K, ns = S.New({
+		width = 2383, height = 1540, uiScale = 768 / 1080,
+		setup = function(env)
+			env._textWidth = function(text, fontPath, size)
+				return Scene.TextWidth(text, size, fontPath)
+			end
+		end,
+		before = function(env)
+			local _
+			_, module = StandIn.StandIn(env, S.Blizzard(env), StandIn.QUESTS)
+		end,
+	})
+	K.Modules.Enable("Skins")
+	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
+	local Lumen = ns.Lumen
+	assert((Lumen.Tracked("AB")):find(THIN_SPACE, 1, true), "the test needs the kit face, so the title is tracked with thin spaces")
+	local cap = Caption(env, module.Header, "QUESTS")
+	assert(cap, "the Quests cap draws")
+	local thin = K.Widgets.TextWidth(cap) - Scene.TextWidth("QUESTS", Lumen.CAP_SIZE, (cap:GetFont()))
+	assert(thin > 5 * 0.15 * Lumen.CAP_SIZE, "the measure counts the five thin spaces at Cinzel's real advance (0.2 em), not a stand-in, got " .. tostring(thin))
+	local header = module.Header
+	for _, name in ipairs({ "Quests", "Campaign", "Achievements", "World Quests", "Scenario" }) do
+		header.Text:SetText(name)
+		assert(Plain(cap) == name:upper(), "the cap follows the header text, got " .. Plain(cap))
+		assert(not cap:IsTruncated(), name .. " is truncated at the story rail's width")
+		assert(cap:GetWidth() == 0 or cap:GetWidth() >= K.Widgets.TextWidth(cap) - 0.01, name .. " is clamped below its text width: " .. tostring(cap:GetWidth()) .. " for " .. tostring(K.Widgets.TextWidth(cap)))
+	end
+	-- The title is clamped only when the row is truly narrower than it: a 90-unit header leaves no room for
+	-- "Achievements", so it ellipsises instead of running under the count.
+	header:SetWidth(90)
+	header.Text:SetText("Achievements")
+	assert(cap:GetWidth() > 0 and cap:GetWidth() < K.Widgets.TextWidth(cap), "on a 90-unit row the title is clamped to the room, got " .. tostring(cap:GetWidth()))
+	assert(cap:IsTruncated(), "and reads as truncated")
+	header:SetWidth(260)
+	header.Text:SetText("Quests")
+	assert(not cap:IsTruncated() and cap:GetWidth() == 0, "back at the rail's width the title takes its natural width again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("skins tracker ok")

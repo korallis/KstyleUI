@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in the layout's story rail: its glass on the rail's left edge and width, its footer one rail gap above the quests with its head and active steps stacked up from there, its step list folded by RestedXP's own rule so the rail reads the path and then the quests; re-placed after each step and on entering the world, out of combat, and never in RestedXP's saved settings.
+-- Rail.lua: puts RestedXP's guide window in the layout's story rail: its card on the rail's left edge and width, its footer one rail gap above the quests with its cap and active steps stacked up from there, its step list folded by RestedXP's own rule; when Apply's Edit Mode layout holds the quests under it, the card reaches down to the quests and the tracker's own glass yields, so the rail reads as one card; re-placed after each step, on entering the world and after an Edit Mode change, out of combat, and never in RestedXP's saved settings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,15 +12,16 @@ RestedXP.Rail = Rail
 
 local MODULE = "Skins"
 local KEY = "restedXP"
-local FIELD = "rail"
+local FIELD, DOCK = "rail", "dock"
 local OWNER = "Skins.RestedXP.Rail"
 local DEFAULT_PRESET = "DPS"
 local SIDE, FOOTER, HEAD_HEIGHT, HEADER_OVERLAP, STEP_GAP = 3, 20, 35, 9, 2
 local MIN_HEIGHT, LIST_SHOWN = 28, 30
 local FOOT_GAP = "gapSmall"
 local MOVED = 1
+local SLOT_TOLERANCE = 2
 
-local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false }
+local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false, docked = false }
 
 local function Log(message)
 	K.DevTest.Log(MODULE, "restedXP rail: " .. message)
@@ -36,6 +37,10 @@ end
 
 local function On()
 	return K.Modules.IsRunning(MODULE) and ns.Skins.IsOn(KEY) and ns.Skins.Setting(KEY, FIELD) == true
+end
+
+local function Docks()
+	return ns.Skins.Setting(KEY, DOCK) == true
 end
 
 local function Frame()
@@ -54,10 +59,14 @@ local function Frame()
 	return f
 end
 
-function Rail.Band()
+function Rail.Story()
 	local Layout, Setup = K.Layout, K.Setup
 	local preset = Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
-	local story = Setup and type(Setup.Story) == "function" and Setup.Story(preset, true)
+	return Setup and type(Setup.Story) == "function" and Setup.Story(preset, true) or nil
+end
+
+function Rail.Band()
+	local story = Rail.Story()
 	return story and story.guide or nil
 end
 
@@ -75,7 +84,8 @@ end
 local function StepsAbove(f)
 	local steps = f.CurrentStepFrame
 	if not steps:IsShown() or steps.anchor == "BOTTOM" then
-		return 0, steps:IsShown() and steps:GetHeight() or 0
+		local height = steps:IsShown() and steps:GetHeight() or 0
+		return 0, Plain(height) and height or 0
 	end
 	local height = steps:GetHeight()
 	if not Plain(height) or height <= 0 then
@@ -91,13 +101,62 @@ local function Refresh(f)
 	end
 end
 
+local function Fit()
+	local Tracker = ns.Tracker
+	local fit = Tracker and type(Tracker.Fit) == "function" and Tracker.Fit() or nil
+	local tracker = IsTable(fit) and fit:GetParent() or nil
+	if not IsTable(tracker) or not ns.Skins.IsOn("tracker") or ns.Skins.Setting("tracker", "panel") ~= true then
+		return nil
+	end
+	return fit, tracker
+end
+
+local function InSlot(tracker, band)
+	local EditMode = K.Setup and K.Setup.EditMode
+	if not (EditMode and type(EditMode.TrackerPlace) == "function") or not tracker:IsShown() then
+		return false
+	end
+	local point, relative, relativePoint, x, y = tracker:GetPoint(1)
+	if point ~= "TOPLEFT" or relativePoint ~= "BOTTOMLEFT" or relative ~= UIParent or not (Plain(x) and Plain(y)) then
+		return false
+	end
+	local place = EditMode.TrackerPlace(band)
+	local scale = Widgets.ScaleFactor(tracker)
+	return math.abs(x - place.x / scale) <= SLOT_TOLERANCE and math.abs(y - place.y / scale) <= SLOT_TOLERANCE
+end
+
+local function Dock(f, story)
+	local Tracker = ns.Tracker
+	local fit, tracker = Fit()
+	local docked = fit ~= nil and Docks() and story ~= nil and story.tracker ~= nil and InSlot(tracker, story.tracker)
+	local inset = docked and type(Tracker.Inset) == "function" and Tracker.Inset() or nil
+	RestedXP.Chrome.Dock(f, docked and fit or nil, inset and -inset.bottom or nil)
+	if Tracker and type(Tracker.Dock) == "function" then
+		Tracker.Dock(docked)
+	end
+	state.docked = docked
+	return docked
+end
+
+function Rail.Undock()
+	local Tracker = ns.Tracker
+	if state.rxp and IsTable(state.rxp.RXPFrame) then
+		RestedXP.Chrome.Dock(state.rxp.RXPFrame, nil)
+	end
+	if Tracker and type(Tracker.Dock) == "function" then
+		Tracker.Dock(false)
+	end
+	state.docked = false
+end
+
 function Rail.Place()
 	state.queued = false
 	if not On() then
 		return false
 	end
 	local f = Frame()
-	local band = Rail.Band()
+	local story = Rail.Story()
+	local band = story and story.guide
 	if not f or not band then
 		return false
 	end
@@ -105,9 +164,8 @@ function Rail.Place()
 	local scale = Widgets.ScaleFactor(f)
 	local reach = RestedXP.Chrome.Reach(f.GuideName)
 	local head = path and path.height or HEAD_HEIGHT
-	local over = path and path.over or 0
 	local above, below = StepsAbove(f)
-	local headTop = HEAD_HEIGHT - HEADER_OVERLAP - SIDE
+	local headTop = head - HEADER_OVERLAP - SIDE
 	local width = (band.right - band.left) / scale + 2 * SIDE - 2 * reach
 	local left = band.left / scale - SIDE + reach
 	local height = math.max(MIN_HEIGHT, head - headTop + FOOTER + Widgets.Snap(f, Tokens.Size(FOOT_GAP)))
@@ -121,10 +179,12 @@ function Rail.Place()
 	if height - SIDE - (FOOTER - 6) >= LIST_SHOWN then
 		LogOnce("rail list", "the guide's head is tall enough that RestedXP keeps a sliver of its step list")
 	end
-	local stackTop = (top + headTop + (above > 0 and above or over)) * scale
+	local cap = path and path.capHeight or 0
+	local stackTop = (top + headTop + above + cap) * scale
 	if stackTop > band.top + 0.5 then
 		Log(string.format("the guide's steps reach %.0f units above its half of the story rail", stackTop - band.top))
 	end
+	Dock(f, story)
 	return true
 end
 
@@ -144,6 +204,7 @@ local function Restore()
 	local f = Frame()
 	local original = state.original
 	state.placed = nil
+	Rail.Undock()
 	if not f or not original then
 		return
 	end
@@ -207,6 +268,7 @@ local function Hook(f)
 		hooksecurefunc(rxp, "SetStep", Schedule)
 	end
 	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Schedule)
+	K.Events.Register(OWNER, "EDIT_MODE_LAYOUTS_UPDATED", Schedule)
 end
 
 function Rail.Start(rxp)
@@ -234,4 +296,8 @@ end
 
 function Rail.Placed()
 	return state.placed
+end
+
+function Rail.Docked()
+	return state.docked == true
 end

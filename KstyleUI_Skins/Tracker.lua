@@ -1,4 +1,4 @@
--- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content at the story rail's width, one Lumen section cap per module (gem, tracked title, fading rule, quest count), accent POI discs numbered in order, quest-gold titles, objective counts moved to the line's right, the skin font and KstyleUI progress and timer bars.
+-- Tracker.lua: the objective tracker skin: a glass panel that follows the tracked content at the story rail's width and yields to the RestedXP guide's card when the story rail docks the quests under it, one Lumen section cap per module (gem, tracked title at its natural width, fading rule, quest count), accent POI discs numbered in order, quest-gold titles, objective counts moved to the line's right, the skin font and KstyleUI progress and timer bars.
 local _, ns = ...
 
 local K = KstyleUI
@@ -27,6 +27,10 @@ local panel, fit, fitTop, fitBottom
 local allCap, allGlyph
 local hasContents = false
 local rehushing = false
+local docked = false
+
+local Tracker = {}
+ns.Tracker = Tracker
 
 local function Log(message)
 	K.DevTest.Log("Skins", KEY .. ": " .. message)
@@ -520,8 +524,25 @@ end
 
 local function PaintPanel()
 	if panel then
-		panel:SetShown(Skins.Setting(KEY, "panel") == true)
+		panel:SetShown(Skins.Setting(KEY, "panel") == true and not docked)
 	end
+end
+
+function Tracker.Fit()
+	return fit
+end
+
+function Tracker.Inset()
+	return { left = PANEL_LEFT, top = PANEL_TOP, bottom = PANEL_BOTTOM }
+end
+
+function Tracker.Docked()
+	return docked
+end
+
+function Tracker.Dock(on)
+	docked = on == true
+	PaintPanel()
 end
 
 local restyler = { Restyle = function()
@@ -563,6 +584,10 @@ local function Apply()
 	WatchFont("ObjectiveTrackerHeaderFont", "heading", LINE_DEFAULT + HEADER_EXTRA)
 	PaintFonts()
 	Style.Track(restyler)
+	local rail = ns.RestedXP and ns.RestedXP.Rail
+	if rail and type(rail.Schedule) == "function" then
+		rail.Schedule()
+	end
 end
 
 local function OnSetting(_, field)

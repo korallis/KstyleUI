@@ -1,4 +1,4 @@
--- test-skins-restedxp-windows.lua: the RestedXP skin puts KstyleUI's chrome on every RestedXP window as RestedXP makes it, through KstyleUI's skin kit, without writing onto RestedXP's frames.
+-- test-skins-restedxp-windows.lua: the RestedXP skin puts KstyleUI's chrome on every RestedXP window as RestedXP makes it, through KstyleUI's skin kit, without writing onto RestedXP's frames: the guide as one card with one cap, and the other windows on their own glass.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
@@ -59,56 +59,64 @@ local function Clean(env, rxp)
 	assert(not failed, tostring(failed))
 end
 
--- The v1 guide window, its active steps and its guide menu ---------------------------------------------------
+-- The v1 guide window as one card: the cap over the steps, the route's row, the folded list, the footer -------
 
 do
 	local env, K, ns, rxp = Boot()
 	local f = rxp.RXPFrame
 	assert(ns.Skins.IsApplied("restedXP"))
-	assert(Glass(K, f.GuideName) and Glass(K, f.BottomFrame), "the header and the step list sit on KstyleUI glass")
-	assert(K.Skin.Parts(f.BottomFrame).backdrop.chrome.shapeName == "window" and K.Skin.Parts(f.GuideName).backdrop.chrome.shapeName == "window", "window-grade glass, as the HUD's chat and tracker")
-	assert(Hushed(f.BottomFrame), "RestedXP's backdrop under the list goes")
-	assert(Alpha(f.GuideName.bg) == 0 and Alpha(f.GuideName._pieces[1]) == 0, "the header's banner and backdrop go")
-	assert(Alpha(f.GuideName.icon) == 1 and Alpha(f.GuideName.classIcon) == 1, "the logo and class icon stay")
-	-- The header carries the Lumen cap and the zone heading: RestedXP's own title is hushed and a KstyleUI heading
-	-- in the heading face mirrors it under a "The Path" section cap, both inside RestedXP's 35-unit header, since
-	-- the active steps stack right above it.
 	local path = ns.RestedXP.Chrome.Path(f)
-	assert(path and path.cap and path.heading, "a Lumen cap and a zone heading sit on the header")
+	assert(path and path.cap and path.card and path.holder, "a Lumen cap, a cap holder and the card frame belong to the guide")
+	local card = ns.RestedXP.Chrome.Card(f)
+	assert(card == path.card, "Chrome.Card names the card frame")
+	assert(Glass(K, f), "the guide window sits on one KstyleUI glass")
+	local glass = K.Skin.Parts(f).backdrop
+	assert(glass.chrome.shapeName == "window", "window-grade glass, as the HUD's chat and tracker")
+	assert(glass.target == card, "the glass follows the card frame, not RestedXP's window")
+	assert(glass:GetFrameLevel() < f.GuideName:GetFrameLevel() and glass:GetFrameLevel() <= f:GetFrameLevel(), "under every RestedXP part of the window")
+	assert(not K.Skin.IsSkinned(f.GuideName, "Backdrop") and not K.Skin.IsSkinned(f.BottomFrame, "Backdrop") and not K.Skin.IsSkinned(f.Footer, "Backdrop"), "the header, the list and the footer draw no glass of their own: one card, not three")
+	assert(Hushed(f.BottomFrame) and Hushed(f.Footer), "RestedXP's backdrops under the list and the footer go")
+	assert(Alpha(f.GuideName.bg) == 0 and Alpha(f.GuideName._pieces[1]) == 0, "the header's banner and backdrop go")
+	assert(Alpha(f.GuideName.icon) == 0 and Alpha(f.GuideName.classIcon) == 0, "the logo and the class icon go too: the card has one header, the cap")
+	-- The cap holder sits above the header (above the active steps once there are any), the card's top: the cap
+	-- reads the guide's name as its title and the current step as its trail, one header language with the quests.
 	assert(Alpha(f.GuideName.text) == 0, "RestedXP's own title is hushed")
 	f.GuideName.text:SetAlpha(1)
 	assert(Alpha(f.GuideName.text) == 0, "and stays hushed when RestedXP shows it again")
-	assert((tostring(path.cap.title:GetText()):gsub(THIN_SPACE, "")) == K.L["The Path"]:upper(), "the cap reads THE PATH")
+	local function Title()
+		return (tostring(path.cap.title:GetText()):gsub(THIN_SPACE, ""))
+	end
+	assert(Title() == (f.GuideName.text:GetText() or ""):match("^[^\n]*"):upper(), "the cap's title is the guide's name, tracked in capitals, got " .. Title())
 	local gr, gg, gb = ns.Lumen.Color("gilt")
 	assert(Colored(path.cap.title, gr, gg, gb), "in gilt")
-	assert(path.heading:GetText() == (f.GuideName.text:GetText() or ""), "the heading mirrors the guide's name")
-	assert(path.heading:GetFont() == (ns.Style.Font("heading")), "in the kit's heading face")
-	assert(select(2, path.heading:GetFont()) == select(2, ns.Style.Font("heading")), "at the heading size, the mockup's zone heading")
-	assert(Colored(path.heading, K.Tokens.Color("textEmphasis")), "in the emphasised text colour, as every window title")
-	assert(W.LastCall(path.heading, "SetWordWrap")[1] == false, "on one line, so a long guide name trims instead of spilling out of the header")
+	assert(path.cap.title:GetFont() == (ns.Style.Font("title")), "in the title face, as the Quests cap")
+	assert(path.cap.trail:GetText() == "", "with no active step there is no trail")
 	f.GuideName.text:SetText("Durotar, 6 to 10")
-	assert(path.heading:GetText() == "Durotar, 6 to 10", "a guide change follows RestedXP's title")
+	assert(Title() == "DUROTAR, 6 TO 10", "a guide change follows RestedXP's title")
+	assert(not path.meta:IsShown(), "a one-line title shows no route row")
 	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
-	assert(path.heading:GetText() == "6-10 Durotar", "a title with the guide's group on a second line keeps the first line as the heading")
-	assert(path.cap.trail:GetText() == "Speedrun Guide 1-22", "and the group becomes the cap's trail, where the mockup puts the step")
-	f.GuideName.text:SetText("Durotar, 6 to 10")
-	assert(path.cap.trail:GetText() == "", "a one-line title clears the trail")
+	assert(Title() == "6-10 DUROTAR", "a title with the guide's route on a second line keeps the first line as the cap")
+	assert(path.meta:IsShown() and path.meta:GetText() == "Speedrun Guide 1-22", "and the route becomes a caption row in RestedXP's header band")
+	assert(select(2, path.meta:GetFont()) == select(2, ns.Style.Font("caption")) and Colored(path.meta, K.Tokens.Color("text")), "a caption in the body grey, as the footer")
+	local holderBottom = path.holder._points[1]
+	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.CurrentStepFrame and holderBottom[3] == "TOPLEFT", "the cap holder stands on RestedXP's active step frame, which RestedXP shows from the start")
+	rxp.fake.close(f.CurrentStepFrame)
+	ns.RestedXP.Chrome.Refit(f)
+	holderBottom = path.holder._points[1]
+	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.GuideName and holderBottom[3] == "TOPLEFT", "with the step frame hidden (a guide with no active step) the cap holder stands on the header's top")
+	rxp.fake.open(f.CurrentStepFrame)
+	ns.RestedXP.Chrome.Refit(f)
 	local capTop = path.cap.row._points[1]
-	assert(capTop[1] == "TOPLEFT" and capTop[2] == f.GuideName, "the cap row hangs from the header's top")
-	local headingTop = path.heading._points[1]
-	assert(headingTop[1] == "TOPLEFT" and headingTop[2] == path.cap.row and headingTop[3] == "BOTTOMLEFT", "the heading sits under the cap row")
-	-- RestedXP's 42-unit logo is centred 16 in, and the 24-unit class icon at its foot reaches 45 units in; the cap
-	-- and the heading start a gapMedium right of that, so the heading never touches the class icon (round 1, Opus and Astra).
-	local clear = K.Widgets.Snap(path.cap.row, 45 + K.Tokens.Size("gapMedium"))
-	assert(W.Near(headingTop[4], 0) and W.Near(capTop[4], clear), "both start a gapMedium right of RestedXP's logo and the class icon at its foot, got " .. tostring(capTop[4]))
+	assert(capTop[1] == "TOPLEFT" and capTop[2] == path.holder, "the cap row hangs from the holder")
+	local cardTop, cardBottom = card._points[1], card._points[3]
+	assert(cardTop[1] == "TOPLEFT" and cardTop[2] == path.holder and cardBottom[1] == "BOTTOM" and cardBottom[2] == f, "the card runs from the cap holder's top to RestedXP's window bottom, the footer")
+	assert(W.Near(f.GuideName:GetHeight(), K.Widgets.Snap(f.GuideName, 18)), "RestedXP's 35-unit header band shrinks to the route's caption row, since the cap left it, got " .. tostring(f.GuideName:GetHeight()))
+	assert(path.height == 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
-	local titleSize, headingSize = (select(2, path.heading:GetFont())), (select(2, ns.Style.Font("heading")))
-	assert(W.Near(titleSize, headingSize) and headingSize > 20, "a text size change reaches the zone heading, got " .. tostring(titleSize) .. " for " .. tostring(headingSize))
+	assert(W.Near(select(2, path.cap.title:GetFont()), ns.Lumen.CAP_SIZE * 1.5), "a text size change reaches the cap")
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
-	assert(K.Skin.IsSkinned(f.Footer, "Backdrop") and Alpha(f.Footer.bg) == 0, "the footer is a KstyleUI tile")
-	assert(K.Skin.Parts(f.Footer).backdrop.chrome.fillName == "surface", "on the same glass surface as the windows")
 	assert(select(2, f.Footer.text:GetFont()) == select(2, K.Tokens.Font("caption")) and Colored(f.Footer.text, K.Tokens.Color("text")), "the footer line is a caption in the body grey")
 	assert(K.Skin.IsSkinned(f.ScrollFrame.ScrollBar, "ScrollBar"), "the step list's scroll bar is KstyleUI's")
 	f:UpdateVisuals()
@@ -119,20 +127,17 @@ do
 	-- RestedXP's text cannot move, so the glass grows outward instead: RestedXP keeps its content 4 units from
 	-- its frames' sides (a step's check box, the list's rows, the footer's cog), and the glass reaches one content
 	-- inset (the rule every text panel follows, at the window cut) past that on the left and the right, so every
-	-- check box and line clears the corner cuts and the light line. Top and bottom stay: the steps stack 5 apart.
+	-- check box and line clears the corner cuts and the light line. Top and bottom stay the card's.
 	local reach = K.Widgets.Inset(f.GuideName, K.Tokens.Size("chamferWindow")) - 4
 	assert(reach > 6, "the glass reaches more than 6 units past RestedXP's frames, got " .. tostring(reach))
-	local function Reaches(frame, what)
-		local glass = K.Skin.Parts(frame).backdrop
-		local tl, br = glass._points[1], glass._points[2]
-		assert(tl[1] == "TOPLEFT" and br[1] == "BOTTOMRIGHT", what .. ": the glass hangs from both corners")
-		local snapped = K.Widgets.Snap(glass, reach)
-		assert(W.Near(tl[4], -snapped) and W.Near(br[4], snapped), what .. ": the glass reaches " .. reach .. " past both sides, got " .. tostring(tl[4]) .. " and " .. tostring(br[4]))
-		assert(W.Near(tl[5], 0) and W.Near(br[5], 0), what .. ": the glass keeps RestedXP's top and bottom")
-	end
-	Reaches(f.GuideName, "the header")
-	Reaches(f.BottomFrame, "the step list")
-	Reaches(f.Footer, "the footer")
+	local tl, br = glass._points[1], glass._points[2]
+	assert(tl[1] == "TOPLEFT" and tl[2] == card and br[1] == "BOTTOMRIGHT" and br[2] == card, "the glass hangs from both corners of the card")
+	local snapped = K.Widgets.Snap(glass, reach)
+	assert(W.Near(tl[4], -snapped) and W.Near(br[4], snapped), "the glass reaches " .. reach .. " past both sides, got " .. tostring(tl[4]) .. " and " .. tostring(br[4]))
+	assert(W.Near(tl[5], 0) and W.Near(br[5], 0), "the glass keeps the card's top and bottom")
+	-- The cap's gem sits where the Quests cap's does: one content inset in from the glass edge.
+	local gem = path.cap.gem._points[1]
+	assert(W.Near(gem[4], K.Widgets.Snap(path.cap.row, 4)), "the gem sits 4 in from RestedXP's inner edge, one content inset from the glass, got " .. tostring(gem[4]))
 
 	-- The step list's view ends wherever RestedXP's frame height lands, mid-row more often than not, so a fade on
 	-- KstyleUI's own frame softens the cut line while there is more to scroll, and lifts at the end (round 1, Fable and Opus).
@@ -164,7 +169,7 @@ do
 	-- of the bar, on KstyleUI's own glass frame.
 	local gutter = ns.RestedXP.Chrome.Gutter(f.BottomFrame)
 	assert(gutter and gutter:IsShown(), "a gutter line beside the step list's scroll bar")
-	assert(gutter:GetParent() == K.Skin.Parts(f.BottomFrame).backdrop, "drawn on KstyleUI's glass, not on RestedXP's frame")
+	assert(gutter:GetParent() == glass, "drawn on KstyleUI's glass, not on RestedXP's frame")
 	assert(W.SameColor(gutter, K.Tokens.Color("edgeFaint")), "as faint as the kit's dividers")
 	assert(W.Near(gutter:GetWidth(), K.Widgets.Border(gutter)), "one border wide")
 	local points = {}
@@ -175,25 +180,37 @@ do
 	local right = points.RIGHT
 	assert(right and right[2] == f.ScrollFrame.ScrollBar and right[3] == "LEFT" and W.Near(right[4], -K.Widgets.Snap(gutter, K.Tokens.Size("gapSmall") / 2)), "half a gapSmall left of the bar")
 
+	-- The active steps are rows inside the card, not cards of their own: no glass, the Step plate hushed (the cap's
+	-- trail carries the step), KstyleUI ring checks on each element.
 	assert(#f.CurrentStepFrame.framePool == 0)
 	rxp.SetStep(2)
+	assert(#f.CurrentStepFrame.framePool == 2)
 	for _, step in ipairs(f.CurrentStepFrame.framePool) do
-		assert(Glass(K, step) and Hushed(step), "each active step frame is skinned as RestedXP makes it")
-		-- The steps stack with their bottom 2 above the header's top, so two window glasses would touch; the step's
-		-- glass stops a gapSmall short of RestedXP's bottom to leave air above the guide's head (round 1, Opus and Astra).
-		local glass = K.Skin.Parts(step).backdrop
-		local tl, br = glass._points[1], glass._points[2]
-		local snapped = K.Widgets.Snap(glass, reach)
-		assert(W.Near(tl[4], -snapped) and W.Near(br[4], snapped), "an active step: the glass reaches past both sides")
-		assert(W.Near(tl[5], 0), "an active step: the glass keeps RestedXP's top")
-		assert(W.Near(br[5], K.Widgets.Snap(glass, K.Tokens.Size("gapSmall"))), "an active step: the glass stops a gapSmall above RestedXP's bottom, got " .. tostring(br[5]))
-		assert(K.Skin.IsSkinned(step.number, "Backdrop") and Hushed(step.number), "its number badge is a tile")
-		assert(K.Skin.Parts(step.number).backdrop.chrome.fillName == "surface", "on the glass surface")
-		assert(select(2, step.number.text:GetFont()) == select(2, K.Tokens.Font("caption")), "its number is a caption")
+		assert(not K.Skin.IsSkinned(step, "Backdrop") and Hushed(step), "an active step draws no glass of its own; RestedXP's backdrop goes")
+		assert(not K.Skin.IsSkinned(step.number, "Backdrop") and Hushed(step.number), "its Step plate draws nothing")
+		assert(Alpha(step.number.text) == 0, "and its text is hushed: the cap's trail reads the step")
+		step.number.text:SetAlpha(1)
+		assert(Alpha(step.number.text) == 0, "even when RestedXP shows it again")
 		local ring = ns.Lumen.RingOf(step.elements[1].button)
 		assert(ring and ring.box:IsShown(), "its check buttons are Lumen ring checks")
 		assert(not K.Skin.IsSkinned(step.elements[1].button, "CheckBox"), "not the square kit box")
 	end
+	assert(path.cap.trail:GetText() == f.CurrentStepFrame.framePool[1].number.text:GetText(), "the cap's trail is the first shown step's plate text, as RestedXP wrote it: " .. tostring(path.cap.trail:GetText()))
+	holderBottom = path.holder._points[1]
+	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.CurrentStepFrame and holderBottom[3] == "TOPLEFT", "with steps above the header the cap holder stands on the steps")
+	assert(W.Near(holderBottom[5], 0), "right on them: RestedXP's step frame keeps 10 units of air above its first line")
+	rxp.fake.trust(function()
+		f.CurrentStepFrame.anchor = "BOTTOM"
+	end)()
+	rxp.SetStep(2)
+	holderBottom = path.holder._points[1]
+	assert(holderBottom[2] == f.GuideName, "with RestedXP's steps anchored under the window the cap stands on the header again")
+	assert(card._points[3][2] == f.CurrentStepFrame, "and the card runs down to the steps")
+	rxp.fake.trust(function()
+		f.CurrentStepFrame.anchor = "TOP"
+	end)()
+	rxp.SetStep(2)
+	assert(card._points[3][2] == f, "back on top, the card ends at the footer")
 
 	local list, menuArt = rxp.menuLists[1], env.L_DropDownList1MenuBackdrop
 	rxp:ShowMenu()
@@ -313,12 +330,23 @@ do
 	local ui = configurator.ui
 	assert(Glass(K, ui.frame) and Alpha(ui.frame.rxpBackground.configuratorHeader) == 0, "the guide configurator is skinned when it is made")
 	assert(Accented(ns, ui.titletext), "its title takes the accent")
-	configurator:UpdateTheme()
-	assert(Accented(ns, ui.titletext), "and keeps it when RestedXP redraws the configurator")
-	for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
-		local button = ui[key]
-		assert(K.Skin.IsSkinned(button, "Button") and Alpha(button.configuratorBackground) == 0 and Alpha(button.rxpBorder.textures[1]) == 0, key .. " is a KstyleUI button")
+	-- The title and the buttons use the kit's text roles (round 3, Opus): the title in the heading face at its
+	-- size, each button label in the body role in the emphasised text, and RestedXP's own flat button wash hushed;
+	-- RestedXP's UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
+	local function Roles()
+		assert(ui.titletext:GetFont() == (ns.Style.Font("heading")) and select(2, ui.titletext:GetFont()) == select(2, ns.Style.Font("heading")), "the title is in the kit's heading role, got " .. tostring(ui.titletext:GetFont()) .. " " .. tostring(select(2, ui.titletext:GetFont())))
+		assert(Accented(ns, ui.titletext), "in the accent")
+		for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
+			local button = ui[key]
+			assert(K.Skin.IsSkinned(button, "Button") and Alpha(button.configuratorBackground) == 0 and Alpha(button.rxpBorder.textures[1]) == 0, key .. " is a KstyleUI button")
+			local label = button:GetFontString()
+			assert(label:GetFont() == (ns.Style.Font("body")) and select(2, label:GetFont()) == select(2, ns.Style.Font("body")), key .. "'s label is in the body role, got " .. tostring(select(2, label:GetFont())))
+			assert(Colored(label, K.Tokens.Color("textEmphasis")), key .. "'s label is the emphasised text")
+		end
 	end
+	Roles()
+	configurator:UpdateTheme()
+	Roles()
 	assert(K.Skin.IsSkinned(ui.scrollContainer.scrollbar, "ScrollBar"))
 
 	rxp.guideImporter:Open()
@@ -378,17 +406,18 @@ do
 	local env, K, _, rxp = Boot({ skip = { targeting = true, tracker = true } })
 	assert(S.Logged(env, "restedXP: targeting is missing"), "a missing part is logged")
 	assert(S.Logged(env, "restedXP: tracker is missing"))
-	assert(Glass(K, rxp.RXPFrame.GuideName), "the rest still skins")
+	assert(Glass(K, rxp.RXPFrame), "the rest still skins")
 	Clean(env, rxp)
 end
 
 -- Switched off: windows RestedXP makes later keep RestedXP's look ---------------------------------------------------
 
 do
-	local env, K, _, rxp = Boot()
+	local env, K, ns, rxp = Boot()
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	rxp.SetStep(1)
-	assert(not K.Skin.IsSkinned(rxp.RXPFrame.CurrentStepFrame.framePool[1], "Backdrop"), "nothing new is skinned while the switch is off")
+	local step = rxp.RXPFrame.CurrentStepFrame.framePool[1]
+	assert(not ns.Lumen.RingOf(step.elements[1].button) and step.number.text:GetAlpha() == 1, "nothing new is skinned while the switch is off")
 	K.Modules.Disable("Skins")
 	rxp.tracker:CreateLevelSplits()
 	assert(not K.Skin.IsSkinned(rxp.tracker.levelSplits, "Backdrop"), "or while the module is off")
@@ -398,11 +427,11 @@ do
 	K.Options.Write("Skins", "restedXP.enabled", true)
 	env.RunTimers()
 	assert(K.Skin.IsSkinned(rxp.tracker.levelSplits, "Backdrop"), "switching on again skins what RestedXP made meanwhile")
-	assert(K.Skin.IsSkinned(rxp.RXPFrame.CurrentStepFrame.framePool[1], "Backdrop"))
+	assert(ns.Lumen.RingOf(step.elements[1].button) and step.number.text:GetAlpha() == 0)
 	K.Modules.Disable("Skins")
 	rxp.SetStep(2)
 	K.Modules.Enable("Skins")
-	assert(K.Skin.IsSkinned(rxp.RXPFrame.CurrentStepFrame.framePool[2], "Backdrop"), "and so does turning the module on again")
+	assert(ns.Lumen.RingOf(rxp.RXPFrame.CurrentStepFrame.framePool[2].elements[1].button), "and so does turning the module on again")
 	Clean(env, rxp)
 end
 

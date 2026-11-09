@@ -1,4 +1,4 @@
--- Theme.lua: the KstyleUI theme for RestedXP Guides, built from KstyleUI's tokens and accent, registered through RestedXP's theme API, made RestedXP's active theme while the RestedXP switch is on, and the player's own theme given back when it turns off.
+-- Theme.lua: the KstyleUI theme for RestedXP Guides, built from KstyleUI's tokens and accent, registered through RestedXP's theme API so RestedXP's own theme list offers it, and drawn while the RestedXP switch is on by taking over RestedXP's run-time active theme after each LoadActiveTheme: RestedXP's saved settings, its activeTheme included, are never written.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,7 +15,6 @@ local MODULE = "Skins"
 local ADDON = "RXPGuides"
 local NAME = "KstyleUI"
 local MEMORY = "restedXPTheme"
-local DEFAULT_THEME = "RXP Blue"
 local BASE_V1, DARK_V1, BASE_V2 = "RXP Blue", "DarkMode", "RXP Blue V2"
 local FLAT = "Interface\\Buttons\\WHITE8X8"
 local V2_VERSION = 2
@@ -258,40 +257,44 @@ local function Profile(rxp)
 	return type(profile) == "table" and profile or nil
 end
 
-local function ProfileKey(rxp)
-	local settings = rxp.settings
-	if type(settings.GetSettingsDB) == "function" then
-		local ok, name = pcall(settings.GetSettingsDB)
-		if ok and IsText(name) then
-			return name
+local function Backdrops(rxp, v1)
+	local f = rxp.RXPFrame
+	local backdrop = type(f) == "table" and f.backdrop
+	if type(backdrop) ~= "table" then
+		return
+	end
+	if type(v1.bgTextures) == "table" then
+		local defaults = type(f.defaultBackground) == "table" and f.defaultBackground or {}
+		for name, piece in pairs(backdrop) do
+			if type(piece) == "table" then
+				piece.bgFile = v1.bgTextures[name] or defaults[name]
+			end
 		end
 	end
-	return "default"
+	if type(v1.edges) == "table" then
+		for name, texture in pairs(v1.edges) do
+			local piece = backdrop[name]
+			if type(piece) == "table" then
+				piece.edgeFile = texture
+			end
+		end
+	end
 end
 
-local function Memory(rxp, create)
-	if not K.Store.IsLoaded() then
-		return nil
+local function Override(rxp)
+	local v1 = state.v1
+	if not state.want or not v1 or rxp.activeTheme == v1 then
+		return false
 	end
-	local account = K.Store.Account()
-	local all = account[MEMORY]
-	if type(all) ~= "table" then
-		if not create then
-			return nil
-		end
-		all = {}
-		account[MEMORY] = all
-	end
-	local key = ProfileKey(rxp)
-	local memory = all[key]
-	if type(memory) ~= "table" then
-		if not create then
-			return nil
-		end
-		memory = {}
-		all[key] = memory
-	end
-	return memory, all, key
+	rxp.activeTheme = v1
+	rxp.colors = v1
+	rxp.font = v1.font
+	Backdrops(rxp, v1)
+	return true
+end
+
+function Theme.Active(rxp)
+	return state.want and state.v1 ~= nil and rxp.activeTheme == state.v1
 end
 
 local function Redraw(rxp, startup)
@@ -310,48 +313,6 @@ local function Redraw(rxp, startup)
 	LogOnce("live", "RestedXP's live theme reload is off, so RestedXP shows a theme change after /reload")
 end
 
-local function Activate(rxp)
-	if not Theme.Register(rxp) then
-		return false
-	end
-	local profile = Profile(rxp)
-	if not profile then
-		return false
-	end
-	local current = profile.activeTheme
-	local memory = Memory(rxp, true)
-	if current ~= NAME then
-		if memory then
-			memory.original = IsText(current) and current or nil
-			memory.written = NAME
-		end
-		profile.activeTheme = NAME
-		return true
-	end
-	if memory and memory.written == nil then
-		memory.written = NAME
-	end
-	return false
-end
-
-local function Restore(rxp)
-	local profile = Profile(rxp)
-	local memory, all, key = Memory(rxp, false)
-	local changed = false
-	if profile and profile.activeTheme == NAME then
-		local original = memory and memory.original
-		if not IsText(original) or original == NAME then
-			original = DEFAULT_THEME
-		end
-		profile.activeTheme = original
-		changed = true
-	end
-	if all then
-		all[key] = nil
-	end
-	return changed
-end
-
 local function Sync()
 	state.queued = false
 	local startup = state.startup
@@ -360,18 +321,19 @@ local function Sync()
 	if not rxp then
 		return
 	end
-	local profile = Profile(rxp)
-	local saved = profile and profile.activeTheme == NAME
-	local changed
+	local drawn = rxp.activeTheme ~= nil
 	if state.want then
-		changed = Activate(rxp)
-	else
-		changed = Restore(rxp)
-	end
-	if startup and saved and state.want and rxp.activeTheme ~= state.v1 then
-		Redraw(rxp, true)
-	elseif changed then
+		if not Theme.Register(rxp) then
+			return
+		end
+		if drawn and rxp.activeTheme ~= state.v1 then
+			Redraw(rxp, startup)
+		end
+	elseif drawn and state.v1 and rxp.activeTheme == state.v1 then
 		Redraw(rxp, false)
+		if rxp.activeTheme == state.v1 and Method(rxp, "LoadActiveTheme") then
+			Try("LoadActiveTheme", rxp.LoadActiveTheme, rxp)
+		end
 	end
 end
 
@@ -391,8 +353,7 @@ local function Restyle()
 		return
 	end
 	local _, _, changed = Theme.Build(rxp)
-	local profile = Profile(rxp)
-	if not changed or not profile or profile.activeTheme ~= NAME or state.redrawing then
+	if not changed or not Theme.Active(rxp) or state.redrawing then
 		return
 	end
 	state.redrawing = true
@@ -406,12 +367,23 @@ end
 
 local tracker = { Restyle = Restyle }
 
-local function HookProfiles(rxp)
-	if state.hooked or not Method(rxp.settings, "RefreshProfile") then
+local function HookTheme(rxp)
+	if state.hooked then
 		return
 	end
 	state.hooked = true
-	hooksecurefunc(rxp.settings, "RefreshProfile", Schedule)
+	hooksecurefunc(rxp, "LoadActiveTheme", function()
+		Override(rxp)
+	end)
+	if Method(rxp.settings, "RefreshProfile") then
+		hooksecurefunc(rxp.settings, "RefreshProfile", Schedule)
+	end
+end
+
+local function Forget()
+	if K.Store.IsLoaded() then
+		K.Store.Account()[MEMORY] = nil
+	end
 end
 
 function Theme.Start(rxp)
@@ -420,9 +392,10 @@ function Theme.Start(rxp)
 	if not Theme.Register(rxp) then
 		return false
 	end
+	Forget()
 	Style.Track(tracker)
 	Widgets.Track(tracker)
-	HookProfiles(rxp)
+	HookTheme(rxp)
 	K.Combat.Queue(Sync)
 	return true
 end

@@ -1,4 +1,4 @@
--- test-skins-restedxp-rail.lua: the RestedXP guide takes the story rail's top half on the rail's edge and width, its steps above a head that holds the logo and both text rows, its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, and never writes RestedXP's settings.
+-- test-skins-restedxp-rail.lua: the RestedXP guide takes the story rail's top half on the rail's edge and width as one card (cap, steps, route row, footer), its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, docks the quests into its card when Apply placed them under it, and never writes RestedXP's settings.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -42,8 +42,9 @@ local function Clean(env, K, rxp)
 	assert(profile.framePositions == nil and profile.frameSizes == nil and profile.frameHeight == nil, "RestedXP's saved settings are never written")
 end
 
--- The guide sits in the top half of the DPS story rail: every glass on the rail's left edge and width, the footer
--- on the half's foot (one rail gap above the quests), the head over it, the steps over the head, the list folded.
+-- The guide sits in the top half of the DPS story rail as one card: its glass on the rail's left edge and width,
+-- the footer on the half's foot (one rail gap above the quests), the route row and the steps over it, the cap on
+-- top of the card, the list folded.
 
 do
 	local env, K, ns, rxp = Boot()
@@ -54,26 +55,24 @@ do
 	assert(band and ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
 	local point = { f:GetPoint(1) }
 	assert(point[1] == "TOPLEFT" and point[2] == env.UIParent and point[3] == "BOTTOMLEFT", "from the screen's bottom left, so a UI scale change keeps it")
-	local head = Rect(K, Glass(K, f.GuideName))
-	local footer = Rect(K, Glass(K, f.Footer))
-	local steps = {}
-	for i, step in ipairs(f.CurrentStepFrame.framePool) do
-		steps[i] = Rect(K, Glass(K, step))
-	end
-	for what, r in pairs({ head = head, footer = footer, step1 = steps[1], step2 = steps[2] }) do
-		assert(near(r.left, band.left) and near(r.right, band.right), what .. "'s glass shares the rail's left edge and width, got " .. r.left .. " to " .. r.right .. " for " .. band.left .. " to " .. band.right)
-	end
-	assert(near(footer.bottom, band.bottom), "the footer sits on the half's foot, one rail gap above the quests")
-	assert(steps[2].bottom >= head.top, "the last step's glass ends above the head's glass")
-	assert(head.bottom >= footer.top - 0.5, "the head's glass ends above the footer, so no line overprints it")
-	assert(Rect(K, f.CurrentStepFrame).top <= band.top + 0.5, "two steps fit inside the half")
-	assert(not f.BottomFrame:IsShown(), "RestedXP folds its step list in the rail, so the rail reads the path, then the quests")
-	-- The head holds RestedXP's 42-unit logo, which hangs 3.5 above and below its 35-unit header.
+	local card = Rect(K, Glass(K, f))
+	assert(near(card.left, band.left) and near(card.right, band.right), "the card's glass shares the rail's left edge and width, got " .. card.left .. " to " .. card.right .. " for " .. band.left .. " to " .. band.right)
+	assert(near(card.bottom, band.bottom), "the card's foot, RestedXP's footer, sits on the half's foot, one rail gap above the quests")
 	local path = ns.RestedXP.Chrome.Path(f)
+	local cap = Rect(K, path.cap.row)
+	local steps = Rect(K, f.CurrentStepFrame)
 	local name = Rect(K, f.GuideName)
-	local center = (name.top + name.bottom) / 2
-	assert(head.top >= center + 21 - 0.5 and head.bottom <= center - 21 + 0.5, "the head's glass holds the whole logo")
-	assert(path.height >= 16 + 2, "and the cap row and the zone heading")
+	local footer = Rect(K, f.Footer)
+	assert(near(card.top, Rect(K, path.holder).top), "the card starts at the cap holder's top")
+	assert(cap.top <= card.top and cap.bottom >= steps.top, "the cap sits inside the card's top, above the steps")
+	assert(steps.bottom >= name.top - 0.5, "the steps end above the route row")
+	assert(name.bottom >= footer.top - 0.5 or name.bottom >= footer.top - 9.5, "the route row ends above the footer")
+	assert(card.top <= band.top + 0.5, "the cap and two steps fit inside the half, got " .. card.top .. " for " .. band.top)
+	assert(not f.BottomFrame:IsShown(), "RestedXP folds its step list in the rail, so the rail reads the path, then the quests")
+	for _, step in ipairs(f.CurrentStepFrame.framePool) do
+		assert(not K.Skin.IsSkinned(step, "Backdrop"), "the steps are rows in the card, not cards of their own")
+	end
+	assert(path.capHeight >= 16 + 2 * K.Tokens.Size("gapSmall") - 0.01, "the cap holder is the cap row plus its air")
 	Clean(env, K, rxp)
 end
 
@@ -88,8 +87,8 @@ do
 	local band = K.Setup.Story("DPS", true).guide
 	rxp.SetStep(3, 2)
 	env.RunTimers()
-	assert(near(Rect(K, Glass(K, f.Footer)).bottom, band.bottom), "more steps keep the footer one gap above the quests")
-	assert(Rect(K, f.CurrentStepFrame).bottom > Rect(K, f.GuideName).top, "and stack over the head")
+	assert(near(Rect(K, Glass(K, f)).bottom, band.bottom), "more steps keep the footer one gap above the quests")
+	assert(Rect(K, f.CurrentStepFrame).bottom > Rect(K, f.GuideName).top, "and stack over the route row")
 	f:ClearAllPoints()
 	f:SetPoint("LEFT", env.UIParent, "LEFT", 0, 35)
 	env.SetCombat(true)
@@ -98,7 +97,7 @@ do
 	assert(select(1, f:GetPoint(1)) == "LEFT", "nothing moves in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and near(Rect(K, Glass(K, f.Footer)).bottom, band.bottom), "after combat, entering the world's re-place runs")
+	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and near(Rect(K, Glass(K, f)).bottom, band.bottom), "after combat, entering the world's re-place runs")
 	assert(ns.RestedXP.Rail.Placed(), "and the guide is placed")
 	Clean(env, K, rxp)
 end
@@ -193,38 +192,132 @@ do
 	Clean(env, K, rxp)
 end
 
--- The head measures its rows: the route goes in the cap's trail when it fits, the cap drops its THE PATH wording
--- when only the route fits, and the route takes its own caption row under the zone heading when neither fits.
+-- The cap measures its row: the guide's name takes its natural width while the row has room for it, the step
+-- and the rule; on a row too narrow for it, it is clamped to the room and ellipsises, never the step.
 
 do
 	local env, K, ns, rxp = Boot()
 	local f = rxp.RXPFrame
 	K.Options.Write("Skins", "restedXP.rail", false)
 	env.RunTimers()
+	rxp.SetStep(1)
 	local path = ns.RestedXP.Chrome.Path(f)
 	path.cap.title.GetUnboundedStringWidth = function() return 90 end
-	path.cap.trail.GetUnboundedStringWidth = function(self) return self:GetText() ~= "" and 110 or 0 end
+	path.cap.trail.GetUnboundedStringWidth = function(self) return self:GetText() ~= "" and 40 or 0 end
 	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
 	local function At(width)
 		path.cap.row:SetWidth(width)
-		path:Restyle()
+		path.cap:Fit()
 	end
 	At(400)
-	local wide = path.height
-	assert(path.cap.trail:GetText() == "Speedrun Guide 1-22" and not path.narrow and not path.meta:IsShown(), "wide: the route rides in the cap's trail")
-	At(190)
-	assert(path.narrow and path.cap.title:GetText() == "" and path.cap.trail:GetText() == "Speedrun Guide 1-22", "narrow: the cap drops THE PATH and keeps the route")
-	At(110)
-	assert(path.meta:IsShown() and path.meta:GetText() == "Speedrun Guide 1-22" and path.cap.trail:GetText() == "", "narrower: the route takes its own row")
-	assert(path.cap.title:GetText() ~= "", "and the cap reads THE PATH again")
-	assert(path.height > wide, "the head grows by the route's row, measured, so nothing crowds")
-	local metaTop = path.meta._points[1]
-	assert(metaTop[2] == path.heading and metaTop[3] == "BOTTOMLEFT", "under the zone heading")
+	assert(path.cap.trail:GetText() == "Step 1" and path.cap.title:GetWidth() == 0, "wide: the step rides in the cap's trail and the name takes its natural width")
+	assert(path.meta:IsShown() and path.meta:GetText() == "Speedrun Guide 1-22", "the route has its own caption row")
+	At(120)
+	assert(path.cap.title:GetWidth() > 0 and path.cap.title:GetWidth() < 90, "narrow: the name is clamped to the room before the step, got " .. tostring(path.cap.title:GetWidth()))
+	assert(path.cap.trail:GetText() == "Step 1", "and the step stays whole")
 	local _, relative, _, _, top = f.ScrollFrame:GetPoint(1)
-	assert(relative == f.BottomFrame and -top >= path.height - 26, "the list's view starts under the taller head, got " .. tostring(top))
+	assert(relative == f.BottomFrame and -top >= 9, "the list's view starts under RestedXP's header overlap, got " .. tostring(top))
 	local bottom = select(5, f.ScrollFrame:GetPoint(2))
 	local clear = K.Widgets.Snap(f.ScrollFrame, 6 + K.Tokens.Size("gapSmall"))
 	assert(math.abs(bottom - clear) < 0.01, "and ends a gap above the footer, which covers the list's last 6 units, so no row overprints it, got " .. tostring(bottom))
+	Clean(env, K, rxp)
+end
+
+-- Docking the quests (round 3, Grok and Muse: one story rail): when Apply's Edit Mode layout holds the tracker
+-- under the guide, the guide's card runs down to the tracker glass's foot and the tracker's own glass yields, so
+-- the rail reads as one card with two caps; a tracker the player moved keeps its own glass; the setting turns
+-- it off; an Edit Mode change re-checks.
+
+local function TrackerStandIn(env, B)
+	local StandIn = dofile("Tools/render/scenes/_tracker.lua")
+	return StandIn.StandIn(env, B, StandIn.QUESTS)
+end
+
+local function BootWithTracker(place)
+	local rxp, tracker
+	local env, K, ns = S.New({
+		setup = function(env)
+			rxp = Fake.Install(env, {})
+		end,
+		before = function(env, K)
+			tracker = TrackerStandIn(env, S.Blizzard(env))
+			if place then
+				local story = K.Setup.Story("DPS", true)
+				local at = K.Setup.EditMode.TrackerPlace(story.tracker)
+				local scale = K.Widgets.ScaleFactor(tracker)
+				tracker:ClearAllPoints()
+				tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", at.x / scale + (place.dx or 0), at.y / scale + (place.dy or 0))
+			end
+		end,
+	})
+	K.Modules.Enable("Skins")
+	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
+	env.RunTimers()
+	return env, K, ns, rxp, tracker
+end
+
+do
+	local env, K, ns, rxp, tracker = BootWithTracker({})
+	local f = rxp.RXPFrame
+	assert(ns.Skins.IsApplied("tracker") and ns.RestedXP.Rail.Placed(), "both skins are on and the guide is placed")
+	assert(ns.RestedXP.Rail.Docked() and ns.Tracker.Docked(), "with the tracker at Apply's anchor the quests dock into the guide's card")
+	local trackerGlass = K.Skin.Parts(tracker).backdrop
+	assert(trackerGlass and not trackerGlass:IsShown(), "the tracker's own glass yields")
+	local card = ns.RestedXP.Chrome.Card(f)
+	local bottom = card._points[3]
+	assert(bottom[1] == "BOTTOM" and bottom[2] == ns.Tracker.Fit(), "the card's foot follows the tracker skin's fit frame")
+	assert(near(bottom[5], -K.Widgets.Snap(card, 8), 0.01), "down to where the tracker's glass ended, 8 under the fit, got " .. tostring(bottom[5]))
+	local glass = Rect(K, Glass(K, f))
+	local quests = Rect(K, ns.Tracker.Fit())
+	assert(glass.bottom <= quests.bottom + 0.5, "one glass from the cap to the quests' foot")
+	-- The setting turns it off: two cards again.
+	K.Options.Write("Skins", "restedXP.dock", false)
+	env.RunTimers()
+	assert(not ns.RestedXP.Rail.Docked() and not ns.Tracker.Docked() and trackerGlass:IsShown(), "with the setting off the tracker keeps its own glass")
+	assert(card._points[3][2] == f, "and the card ends at the footer")
+	K.Options.Write("Skins", "restedXP.dock", true)
+	env.RunTimers()
+	assert(ns.RestedXP.Rail.Docked() and not trackerGlass:IsShown(), "on again, docked again")
+	-- The tracker's glass setting off means nothing to dock to.
+	K.Options.Write("Skins", "tracker.panel", false)
+	env.RunTimers()
+	ns.RestedXP.Rail.Place()
+	assert(not ns.RestedXP.Rail.Docked(), "with the tracker's glass off there is no dock")
+	K.Options.Write("Skins", "tracker.panel", true)
+	env.RunTimers()
+	ns.RestedXP.Rail.Place()
+	assert(ns.RestedXP.Rail.Docked())
+	-- The player moves the tracker in Edit Mode: the layouts update, and the guide lets it keep its own glass.
+	tracker:ClearAllPoints()
+	tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", 600, 500)
+	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
+	env.RunTimers()
+	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "a tracker moved out of the slot undocks")
+	-- The rail off undocks too.
+	tracker:ClearAllPoints()
+	local story = K.Setup.Story("DPS", true)
+	local at = K.Setup.EditMode.TrackerPlace(story.tracker)
+	local scale = K.Widgets.ScaleFactor(tracker)
+	tracker:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", at.x / scale, at.y / scale)
+	env.FireEvent("EDIT_MODE_LAYOUTS_UPDATED")
+	env.RunTimers()
+	assert(ns.RestedXP.Rail.Docked(), "back in the slot, docked")
+	K.Options.Write("Skins", "restedXP.rail", false)
+	env.RunTimers()
+	assert(not ns.RestedXP.Rail.Docked() and trackerGlass:IsShown(), "the rail off gives the tracker its glass back")
+	Clean(env, K, rxp)
+end
+
+do
+	local env, K, ns, rxp, tracker = BootWithTracker({ dx = 40 })
+	assert(ns.RestedXP.Rail.Placed() and not ns.RestedXP.Rail.Docked(), "a tracker 40 units off Apply's anchor is the player's: no dock")
+	assert(K.Skin.Parts(tracker).backdrop:IsShown(), "it keeps its own glass")
+	Clean(env, K, rxp)
+end
+
+do
+	local env, K, ns, rxp = BootWithTracker(nil)
+	assert(ns.RestedXP.Rail.Placed() and not ns.RestedXP.Rail.Docked(), "a tracker at Forever's preset, top right, does not dock")
 	Clean(env, K, rxp)
 end
 

@@ -1,4 +1,4 @@
--- Skin.lua: the RestedXP switch: once RestedXP Guides has loaded it makes the KstyleUI theme RestedXP's active theme, restyles RestedXP's windows as they appear, and puts the guide in the layout's story rail.
+-- Skin.lua: the RestedXP switch: once RestedXP Guides has loaded it draws RestedXP's guide in the KstyleUI theme without touching RestedXP's settings, restyles RestedXP's windows as they appear, puts the guide in the layout's story rail and docks the quests under it as one card.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,11 +10,15 @@ ns.Skins.Add({
 	label = L["RestedXP"],
 	help = L["Gives RestedXP Guides the KstyleUI theme and restyles its windows."],
 	addon = "RXPGuides",
-	defaults = { rail = true },
+	defaults = { rail = true, dock = true },
 	rows = {
 		{
 			type = "toggle", key = "rail", label = L["Story rail"],
 			help = L["Places the guide in the layout's story rail, above the quests. Drag it away to keep your spot."],
+		},
+		{
+			type = "toggle", key = "dock", label = L["One card with the quests"],
+			help = L["Runs the guide's glass down over the quest tracker when Apply put the tracker under the guide."],
 		},
 	},
 	Apply = function()
@@ -37,6 +41,13 @@ ns.Skins.Add({
 	OnSetting = function(_, field)
 		if field == nil or field == "rail" then
 			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
+		end
+		if field == "dock" then
+			if ns.Skins.Setting("restedXP", "dock") == true then
+				RestedXP.Rail.Schedule()
+			else
+				RestedXP.Rail.Undock()
+			end
 		end
 	end,
 })

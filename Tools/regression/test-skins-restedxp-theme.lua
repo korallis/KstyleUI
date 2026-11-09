@@ -1,4 +1,4 @@
--- test-skins-restedxp-theme.lua: the RestedXP skin registers a KstyleUI theme with RestedXP, makes it the active theme while its switch is on, keeps it in step with the accent and font, and gives the player's own theme back when it turns off.
+-- test-skins-restedxp-theme.lua: the RestedXP skin registers a KstyleUI theme with RestedXP, draws it by taking over RestedXP's run-time active theme while its switch is on, keeps it in step with the accent and font, leaves the player's own theme in place when it turns off, and never writes RestedXP's saved settings.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
@@ -21,11 +21,6 @@ local function Boot(opts)
 	K.Modules.Enable("Skins")
 	env.RunTimers()
 	return env, K, ns, rxp
-end
-
-local function Memory(K, rxp)
-	local all = K.Store.Account().restedXPTheme
-	return type(all) == "table" and all[rxp.settings.GetSettingsDB()] or nil
 end
 
 -- The theme: KstyleUI's surfaces, text and accent, in RestedXP's v1 and v2 theme fields --------------------
@@ -72,28 +67,41 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Activation: the switch makes the theme RestedXP's active theme and remembers the player's own --------------
+-- Activation: the switch takes over RestedXP's run-time active theme after each LoadActiveTheme, and never writes
+-- RestedXP's saved activeTheme (the owner's rule: never write another addon's saved settings) ---------------------
+
+local function Drawn(rxp)
+	return rxp.activeTheme == rxp.themes[NAME] and rxp.colors == rxp.themes[NAME] and rxp.font == rxp.themes[NAME].font
+end
 
 do
 	local env, K, ns, rxp = Boot({ v2 = true, activeTheme = "DarkMode" })
 	assert(ns.Skins.IsApplied("restedXP"), "the skin applies once RestedXP has loaded")
-	assert(rxp.settings.profile.activeTheme == NAME, "the KstyleUI theme is active")
+	assert(rxp.settings.profile.activeTheme == "DarkMode", "RestedXP's saved activeTheme is never written")
+	assert(Drawn(rxp), "RestedXP draws from the KstyleUI theme: its active theme, colours and font are KstyleUI's at run time")
 	assert(rxp.reloads >= 1, "RestedXP redraws with it")
-	assert(rxp.v2:GetTheme() == rxp.v2.themes[NAME], "the v2 window resolves the KstyleUI theme")
-	local memory = Memory(K, rxp)
-	assert(memory and memory.original == "DarkMode", "the player's own theme is remembered, per RestedXP profile")
+	assert(ns.RestedXP.Theme.Active(rxp), "and the skin knows it is on")
+	assert(K.Store.Account().restedXPTheme == nil, "nothing is remembered: there is nothing to give back")
+	rxp:LoadActiveTheme()
+	assert(Drawn(rxp), "every LoadActiveTheme RestedXP runs ends on the KstyleUI theme")
+	assert(rxp.settings.profile.activeTheme == "DarkMode")
 	local reloads = rxp.reloads
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "DarkMode", "switching it off gives the player's theme back")
+	assert(rxp.activeTheme == rxp.themes.DarkMode and rxp.font == rxp.themes.DarkMode.font, "switching it off leaves RestedXP on the player's own theme")
 	assert(rxp.reloads > reloads, "and RestedXP redraws")
+	rxp:LoadActiveTheme()
+	assert(rxp.activeTheme == rxp.themes.DarkMode, "and stays there")
 	K.Options.Write("Skins", "restedXP.enabled", true)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == NAME, "switching it on again makes it active again")
+	assert(Drawn(rxp), "switching it on again draws it again")
 	rxp.settings.profile.activeTheme = "RXP Green"
+	rxp:LoadActiveTheme()
+	assert(Drawn(rxp), "a theme the player picks in RestedXP while the switch is on shows once the switch is off")
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "RXP Green", "a theme the player picked since is kept: only KstyleUI's own is undone")
+	assert(rxp.activeTheme == rxp.themes["RXP Green"], "which it now does")
+	assert(rxp.settings.profile.activeTheme == "RXP Green", "and the saved choice was never touched")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -105,24 +113,25 @@ do
 		end,
 	})
 	K.Modules.Enable("Skins")
-	assert(rxp.settings.profile.activeTheme == NAME and rxp.reloads == 1, "at login the theme is active and drawn at once, not a frame later")
+	assert(Drawn(rxp) and rxp.reloads == 1, "at login the theme is drawn at once, not a frame later")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 do
 	local env, K, _, rxp = Boot({ activeTheme = "RXP Green" })
-	assert(rxp.settings.profile.activeTheme == NAME, "the v1 window gets the theme too")
+	assert(Drawn(rxp), "the v1 window gets the theme too")
 	K.Modules.Disable("Skins")
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "RXP Green", "turning the Skins module off restores the player's theme")
+	assert(rxp.activeTheme == rxp.themes["RXP Green"], "turning the Skins module off leaves RestedXP on the player's theme")
 	K.Modules.Enable("Skins")
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == NAME, "turning it on again activates the theme again")
+	assert(Drawn(rxp), "turning it on again draws the theme again")
 	K.Store.Module("Skins").restedXP.enabled = false
 	K.Store.CopyProfile(K.Store.ProfileName(), "No RestedXP")
 	K.Store.SetProfile("No RestedXP")
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "RXP Green", "a KstyleUI profile with the switch off restores it")
+	assert(rxp.activeTheme == rxp.themes["RXP Green"], "a KstyleUI profile with the switch off leaves RestedXP's theme alone")
+	assert(rxp.settings.profile.activeTheme == "RXP Green", "and RestedXP's setting was never written")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -130,35 +139,37 @@ do
 	local env, K, _, rxp = Boot({ activeTheme = "DarkMode" })
 	rxp.SwitchProfile("Shared", { activeTheme = "RXP Green", enableThemeLiveReload = true })
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == NAME, "a RestedXP profile change keeps the theme active")
-	assert(Memory(K, rxp).original == "RXP Green", "each RestedXP profile remembers its own theme")
+	assert(Drawn(rxp), "a RestedXP profile change keeps the theme drawn")
+	assert(rxp.settings.profile.activeTheme == "RXP Green", "the new profile's own setting stays as it was")
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "RXP Green")
-	assert(#env._errors == 0, tostring(env._errors[1]))
-end
-
-do
-	local env, K, _, rxp = Boot({ activeTheme = "DarkMode" })
-	local first = rxp.settings.profile
-	rxp.SwitchProfile("Second", { activeTheme = "RXP Green", enableThemeLiveReload = true })
-	env.RunTimers()
-	K.Options.Write("Skins", "restedXP.enabled", false)
-	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "RXP Green", "switching off restores the profile RestedXP shows")
-	rxp.SwitchProfile("Tester - Realm", first)
-	env.RunTimers()
-	assert(first.activeTheme == "DarkMode", "and a profile the player returns to while it is off gets its own theme back too")
+	assert(rxp.activeTheme == rxp.themes["RXP Green"])
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 do
 	local env, K, _, rxp = Boot({ activeTheme = NAME })
-	assert(rxp.settings.profile.activeTheme == NAME)
-	assert(rxp.activeTheme == rxp.themes[NAME], "a theme saved from an earlier session, which RestedXP could not find at its start-up, is drawn once registered")
+	assert(rxp.settings.profile.activeTheme == NAME, "a profile that still names the theme from an older KstyleUI, or because the player picked it in RestedXP's list")
+	assert(Drawn(rxp), "draws it")
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "RXP Blue", "with no theme remembered, RestedXP's default comes back")
+	assert(rxp.settings.profile.activeTheme == NAME, "the setting is theirs: it is not rewritten")
+	assert(rxp.activeTheme == rxp.themes[NAME], "and RestedXP keeps drawing the theme it names, which stays registered")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local rxp
+	local env, K = S.New({
+		setup = function(env)
+			rxp = Fake.Install(env, { activeTheme = "DarkMode" })
+		end,
+		saved = { version = 2, profiles = { Default = {} }, characters = {}, layouts = {}, account = { setupSeen = true, restedXPTheme = { ["Tester - Realm"] = { original = "RXP Green", written = NAME } } }, devlog = {} },
+	})
+	K.Modules.Enable("Skins")
+	env.RunTimers()
+	assert(K.Store.Account().restedXPTheme == nil, "the memory an older KstyleUI kept of RestedXP's theme is dropped: nothing is written back")
+	assert(rxp.settings.profile.activeTheme == "DarkMode")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -192,25 +203,19 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- RestedXP's live theme reload off: the theme is still written, and RestedXP draws it --------------------------
+-- RestedXP's live theme reload off: the theme still takes over, and RestedXP draws it at its next draw ---------
 
 do
 	local env, K, _, rxp = Boot({ liveReload = false, activeTheme = "DarkMode" })
-	assert(rxp.settings.profile.activeTheme == NAME, "the theme is still made active")
-	assert(rxp.reloads == 0 and rxp.renders == 0, "but RestedXP draws it after /reload, as with any theme change while its live reload is off")
-	assert(S.Logged(env, "live theme reload is off"), "the devlog says why")
+	assert(rxp.renders == 1 and rxp.lastRender == "themeReload" and rxp.arrows == 1, "RestedXP had drawn before the skin applied, so the skin asks for the one draw the theme needs")
+	assert(Drawn(rxp), "and RestedXP shows it")
+	assert(rxp.reloads == 0, "RestedXP's live reload stays off")
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "DarkMode", "switching off still gives the player's theme back")
-	assert(rxp.renders == 0)
-	assert(#env._errors == 0, tostring(env._errors[1]))
-end
-
-do
-	local env, _, _, rxp = Boot({ liveReload = false, activeTheme = NAME })
-	assert(rxp.reloads == 0, "RestedXP's live reload stays off")
-	assert(rxp.renders == 1 and rxp.lastRender == "themeReload" and rxp.arrows == 1, "after /reload, the start-up draw RestedXP could not do with the theme is done once")
-	assert(rxp.activeTheme == rxp.themes[NAME], "so the windows show it from login")
+	assert(rxp.settings.profile.activeTheme == "DarkMode", "switching off never touched the setting")
+	assert(rxp.activeTheme == rxp.themes.DarkMode, "RestedXP is back on its own theme in state; its frames show it after /reload, as with any theme change while its live reload is off")
+	assert(S.Logged(env, "live theme reload is off"), "the devlog says why")
+	assert(rxp.renders == 1)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -222,10 +227,10 @@ do
 	local reloads = rxp.reloads
 	K.Options.Write("Skins", "restedXP.enabled", false)
 	env.RunTimers()
-	assert(rxp.reloads == reloads and rxp.settings.profile.activeTheme == NAME, "nothing changes in combat")
+	assert(rxp.reloads == reloads and Drawn(rxp), "nothing changes in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(rxp.settings.profile.activeTheme == "DarkMode", "the restore runs when combat ends")
+	assert(rxp.activeTheme == rxp.themes.DarkMode, "the player's theme comes back when combat ends")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

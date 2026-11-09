@@ -1,6 +1,6 @@
 -- gallery_restedxp.lua: every RestedXP Guides window KstyleUI_Skins restyles, each cropped as one frame of the
--- gallery, laid out as RestedXP lays them out in the game (scenes/_restedxp.lua): the active step frames, the
--- guide window with its header, step list and footer, the active item frame, the v2 guide window and the guide
+-- gallery, laid out as RestedXP lays them out in the game (scenes/_restedxp.lua): the guide as one card (cap,
+-- active steps, route, step list and footer), the active item frame, the v2 guide window and the guide
 -- configurator. Window-grade glass throughout, compared against the mockup's chat and tracker glass.
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
@@ -14,15 +14,10 @@ return Common.Run(function()
 		spec.name, spec.rect = name, Gallery.Union(env, list)
 		frames:Add(env, list[1], spec)
 	end
-	add("restedxp_steps", R.windows.steps, {
-		title = "RestedXP active steps", grade = "window", reference = "tracker",
-		caption = "RestedXP's active step frames: window glass grown outward so the check boxes and text sit one content inset inside it; the Step plate a tile; KstyleUI check boxes.",
-		match = "Window grade as the tracker's glass; the content inset keeps every check box and line clear of the corner cuts and the light line.",
-	})
 	add("restedxp_guide", R.windows.guide, {
-		title = "RestedXP guide window", grade = "window", reference = "chat",
-		caption = "RestedXP's guide window: the header with the logo and the guide's name, the step list with its scroll bar in its own gutter, the footer tile with the cog and the resize grabber.",
-		match = "Window grade as the chat panel; the glass reaches one content inset past RestedXP's text on both sides, the scroll bar sits in a gutter behind a faint line.",
+		title = "RestedXP guide card", grade = "window", reference = "tracker",
+		caption = "RestedXP's guide as one card: the Lumen cap with the guide's name and the current step, the active steps as rows with KstyleUI ring checks, the route's caption, the step list with its scroll bar in its own gutter, and the footer with the cog and the resize grabber.",
+		match = "Window grade as the tracker's glass, one cap language with the quests; the glass reaches one content inset past RestedXP's text on both sides, the scroll bar sits in a gutter behind a faint line.",
 	})
 	add("restedxp_items", R.windows.items, {
 		title = "RestedXP active items", grade = "window", reference = "chat",

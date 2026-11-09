@@ -149,6 +149,7 @@ local function NewAddon(opts)
 		local name = rxp.settings.profile.activeTheme
 		local chosen = v2:IsGuideWindowEnabled() and v2.themes[name]
 		rxp.activeTheme = rxp.themes[chosen and chosen.name or name] or rxp.themes["RXP Blue"]
+		rxp.colors = rxp.activeTheme
 		rxp.font = rxp.activeTheme.font
 		return rxp.activeTheme
 	end
@@ -444,6 +445,8 @@ local function V1Window(m, rxp)
 				step = Backdrop(m, m.frame("Frame", f.CurrentStepFrame))
 				step.number = Backdrop(m, m.frame("Frame", step))
 				m.text(step.number, "text")
+				local plateFont, plateSize = GuideFont()
+				step.number.text:SetFont(plateFont, plateSize, "")
 				step.elements = {}
 				local wanted = type(elements) == "table" and elements[i] or elements or 1
 				for e = 1, wanted do
@@ -462,10 +465,13 @@ local function V1Window(m, rxp)
 			end
 		end
 		f.CurrentStepFrame.UpdateText()
-		-- Each step is its elements plus 18 tall, stacked 5 apart from the top of CurrentStepFrame (1262-1395).
+		-- Each step is its elements plus 18 tall, stacked 5 apart from the top of CurrentStepFrame (1262-1395); its
+		-- plate reads "Step N" (1275), as RestedXP writes it.
 		local total = 0
 		for i, step in ipairs(pool) do
 			local height = 18
+			step.number.text:SetText(string.format("Step %d", i))
+			step.number:SetAlpha(1)
 			for _, element in ipairs(step.elements) do
 				height = height + element:GetHeight()
 			end
@@ -634,6 +640,7 @@ local function RxpButton(m, parent)
 	local button = RxpBackdrop(m, m.frame("Button", parent))
 	m.texture(button, "BACKGROUND", "configuratorBackground")
 	button.text = m.text(button)
+	button:SetFontString(button.text)
 	return button
 end
 
@@ -654,10 +661,22 @@ local function V2Windows(m, rxp)
 		self.ui = widget
 		m.seal()
 	end)
-	-- UpdateTheme redraws the configurator from the theme; RestedXP draws its title in a fixed gold.
+	-- UpdateTheme redraws the configurator from the theme, as RestedXP's GuideConfigurator.lua does: the title in
+	-- the theme font at the guide size plus 2 in a fixed gold, each button's label in the theme font and text
+	-- colour, and its own flat background texture coloured from the theme.
 	configurator.UpdateTheme = m.trust(function(self)
-		if self.ui then
-			self.ui.titletext:SetTextColor(1, 0.82, 0)
+		local widget = self.ui
+		if not widget then
+			return
+		end
+		widget.titletext:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 11, "")
+		widget.titletext:SetTextColor(1, 0.82, 0)
+		for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
+			local button = widget[key]
+			button.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
+			button.text:SetTextColor(1, 1, 1)
+			button.configuratorBackground:SetColorTexture(0.1, 0.1, 0.2, 1)
+			button.configuratorBackground:SetAlpha(1)
 		end
 	end)
 	function configurator.Open(self)

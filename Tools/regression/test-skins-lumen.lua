@@ -131,7 +131,16 @@ do
 	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken), "a 400-unit title on a 300-unit row is cut to the room before the trail, got " .. tostring(W.LastCall(title, "SetWidth")[1]))
 	title._state.UnboundedStringWidth = { n = 1, 50 }
 	cap:SetTitle("Quests")
-	assert(Near(W.LastCall(title, "SetWidth")[1], 50), "a short title keeps its measured width")
+	assert(W.LastCall(title, "SetWidth")[1] == 0, "a title the row has room for takes its natural width: the client draws its own string rect, so a measuring gap (Cinzel's thin spaces) can never truncate it, got " .. tostring(W.LastCall(title, "SetWidth")[1]))
+	assert(not title:IsTruncated(), "and is not truncated")
+	title._state.UnboundedStringWidth = { n = 1, 300 - taken }
+	cap:SetTitle("Quests")
+	assert(W.LastCall(title, "SetWidth")[1] == 0, "a title that exactly fills the room still takes its natural width")
+	title._state.UnboundedStringWidth = { n = 1, 300 - taken + 1 }
+	cap:SetTitle("Quests")
+	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken), "one unit over the room, the title is clamped to the room and ellipsises")
+	title._state.UnboundedStringWidth = { n = 1, 50 }
+	cap:SetTitle("Quests")
 	parent:SetSize(120, 24)
 	local onSize = cap.row:GetScript("OnSizeChanged")
 	assert(onSize, "the row refits on a size change")

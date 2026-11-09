@@ -148,27 +148,20 @@ for _, want in ipairs({ "VALERIN", "FROST HOWLER", "78%", "56%", "FROST BITE", "
 	assert(designTexts[want], "the design scene shows " .. want)
 end
 
--- The RestedXP windows the fake builds, skinned, laid out as RestedXP lays them out in the game: the step
--- frames, the guide window and the v2 window show as glass, with the step plate, the Lumen cap, the guide name
--- as the zone heading with its group as the cap's trail, and the footer texts.
+-- The RestedXP windows the fake builds, skinned, laid out as RestedXP lays them out in the game: the guide as
+-- one card (the Lumen cap reading the guide's name with the current step as its trail, the steps as rows, the
+-- route as a caption row, the list and the footer) and the v2 window on glass.
 local rested = check("restedxp", RestedXP())
 local restedTexts = {}
 for _, item in ipairs(rested.items) do
 	if item.kind == "text" then
-		restedTexts[item.text] = true
+		restedTexts[(item.text:gsub("\226\128\137", ""))] = true
 	end
 end
-for _, want in ipairs({ "Step 35", "RestedXP Guides v4.11.35", "6-10 Durotar", "Speedrun Guide 1-22", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
+for _, want in ipairs({ "Step 34", "6-10 DUROTAR", "RestedXP Guides v4.11.35", "Speedrun Guide 1-22", "0/1 Raider's Bow", "Move toward the second floor of the keep" }) do
 	assert(restedTexts[want], "the RestedXP scene shows " .. want)
 end
-local capShown = false
-for text in pairs(restedTexts) do
-	capShown = capShown or text:gsub("\226\128\137", "") == "THE PATH"
-end
--- The render measures text with the kit fonts' real widths (Common.ForceScreen installs env._textWidth), so the
--- head reads as the game draws it: at RestedXP's 268-unit guide the tracked THE PATH and "Speedrun Guide 1-22"
--- do not both fit beside the gem, and FitHead's narrow form keeps the group name alone.
-assert(capShown or restedTexts["Speedrun Guide 1-22"], "the guide window's header carries THE PATH, or its group alone where both do not fit")
+assert(not restedTexts["Step 35"], "the Step plates are hushed: the cap's trail carries the first shown step")
 assert(not restedTexts["6-10 Durotar\nSpeedrun Guide 1-22"], "RestedXP's own two-line title is hushed, not drawn")
 -- RestedXP's own geometry is kept, so the render shows how close its content sits to the skin's glass: a
 -- step's check button 6 units in from the step frame, the guide name's left edge 29 in, the list's scroll bar 20

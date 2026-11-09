@@ -90,16 +90,10 @@ function Lumen.Rail(built, R)
 	local cards = group and group.ns.Headers and group.ns.Headers.cards
 	add("party", Hud.envs[group.scene], cards and cards.party and cards.party.frame)
 	local f = R.rxp.RXPFrame
-	for i, step in ipairs(f.CurrentStepFrame.framePool) do
-		local parts = R.K.Skin.Parts(step)
-		add("step " .. i, R.env, step:IsShown() and parts and parts.backdrop)
-	end
-	for name, frame in pairs({ path = f.GuideName, footer = f.Footer }) do
-		local parts = R.K.Skin.Parts(frame)
-		add(name, R.env, parts and parts.backdrop)
-	end
+	local parts = R.K.Skin.Parts(f)
+	add("guide", R.env, parts and parts.backdrop)
 	local env = Hud.envs[tracker.scene]
-	local parts = env.KstyleUI.Skin.Parts(tracker.extra)
+	parts = env.KstyleUI.Skin.Parts(tracker.extra)
 	add("quests", env, parts and parts.backdrop)
 	add("chat", Hud.envs[chat.scene], chat.ns.Panel.Glass())
 	table.sort(out, function(a, b)
@@ -138,9 +132,12 @@ function Lumen.Build(state, opts)
 		base.sizes[key] = { size.width, size.height }
 	end
 	local scenes, log = {}, {}
-	local guide, R = Hud.Module("restedxp", base)
-	scenes[#scenes + 1] = guide
 	base.trackerAnchor = Hud.StoryTracker(layout, true)
+	-- Apply placed the tracker under the guide, so the skin docks the quests into the guide's card: the guide's
+	-- glass runs down to the quests' foot and the tracker's own glass yields (Rail.Place does this in the game
+	-- from the tracker's Edit Mode anchor; the two modules render in separate environments, so the restedxp
+	-- module docks to a stand-in at the tracker glass's foot).
+	base.trackerDocked = base.trackerAnchor ~= nil
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
@@ -151,6 +148,16 @@ function Lumen.Build(state, opts)
 		scenes[#scenes + 1] = scene
 		built[name] = { scene = scene, ns = ns, extra = extra }
 	end
+	if base.trackerDocked then
+		local tracker = built.tracker
+		local env = Hud.envs[tracker.scene]
+		local fit = tracker.ns.Tracker.Fit()
+		local inset = tracker.ns.Tracker.Inset()
+		local _, top, _, height = Scene.Rect(env, fit)
+		base.dockBottom = top and (HEIGHT - (top + height) + inset.bottom) or nil
+	end
+	local guide, R = Hud.Module("restedxp", base)
+	table.insert(scenes, 1, guide)
 	local merged = Scene.Merge(scenes)
 	merged.rail = Lumen.Rail(built, R)
 	merged.slot = slot

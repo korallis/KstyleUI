@@ -868,9 +868,14 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
+	-- With the RestedXP guide docked over it (the skin's one story card), the tracker's own glass yields to the
+	-- guide's, which the restedxp module draws down to the tracker's foot.
+	if opts.trackerDocked then
+		ns.Tracker.Dock(true)
+	end
 	-- Blizzard's objective text is yellow for titles and white for lines, under the tracker's fonts.
 	local scene = build(env, opts)
-	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset")
+	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset") .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
 	return finish(env, K, scene, "tracker"), ns, tracker
 end
 
@@ -1134,6 +1139,15 @@ function modules.restedxp(opts)
 		for _, frame in ipairs(R.windows[name]) do
 			frame:Hide()
 		end
+	end
+	if opts.dockBottom then
+		-- The quests' glass foot, in screen units up from the bottom: the guide's card docks to a stand-in there.
+		local env, K = R.env, R.K
+		local foot = env.CreateFrame("Frame", nil, env.UIParent)
+		foot:SetSize(1, 1)
+		foot:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 0, opts.dockBottom / K.Widgets.ScaleFactor(foot))
+		R.ns.RestedXP.Chrome.Dock(R.rxp.RXPFrame, foot, 0)
+		R.log[#R.log + 1] = "restedxp: the quests dock into the guide's card; its glass runs to the tracker glass's foot"
 	end
 	local scene = build(R.env, opts)
 	for _, line in ipairs(R.log) do

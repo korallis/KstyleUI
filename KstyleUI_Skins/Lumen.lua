@@ -117,7 +117,12 @@ function Cap:Fit()
 	end
 	local trailWidth = Widgets.TextWidth(self.trail, 0)
 	local taken = Units(opts.left, row) + GEM_UNITS + Tokens.Size(GEM_GAP) + 2 * Tokens.Size(RULE_GAP) + trailWidth + Units(opts.right, row)
-	self.title:SetWidth(math.max(0, math.min(titleWidth, rowWidth - taken)))
+	local room = rowWidth - taken
+	if titleWidth <= room then
+		self.title:SetWidth(0)
+		return
+	end
+	self.title:SetWidth(math.max(0, room))
 end
 
 function Cap:SetTitle(value)

@@ -321,7 +321,7 @@ function RestedXP.Build()
 
 	R.windows = {
 		steps = f.CurrentStepFrame.framePool,
-		guide = { f, f.GuideName },
+		guide = { ns.RestedXP.Chrome.Card(f) or f },
 		items = { rxp.activeItemFrame, rxp.activeItemFrame.title },
 		v2 = { rxp.v2.state and rxp.v2.state.guideWindow.frame or nil },
 		configurator = { rxp.ui.v2.configurator.ui.frame },
