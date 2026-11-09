@@ -30,6 +30,9 @@ local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
 local LINE_BAR = 4
 local LINE_LABEL_GAP = 5
 local LINE_BAR_GAP = 8
+local LINE_BAR_MIN = 24
+local LINE_LABEL_EM = 4.2
+local LINE_NAME_EM = 12
 local ORIENTATION = Style.ORIENTATION
 
 local EVENTS = {
@@ -267,7 +270,12 @@ local function LayoutLine(cb, width, height)
 	cb.text:SetWidth(0)
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
-	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * Settings.FontSize(cb.kind, "cast")), math.floor(width / 3)) or 0
+	local size = Settings.FontSize(cb.kind, "cast")
+	local timerW = timerOn and math.min(math.ceil(TIMER_COLUMN * size), math.floor(width / 3)) or 0
+	local room = width - math.ceil(LINE_LABEL_EM * size) - LINE_LABEL_GAP - LINE_BAR_GAP - LINE_BAR_MIN - (timerOn and timerW + LINE_LABEL_GAP or 0)
+	if room < LINE_NAME_EM * size then
+		cb.text:SetWidth(Snap(cb, math.max(0, room)))
+	end
 	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0)
 	cb.timer:SetSize(Snap(cb, timerW), h)
 	cb.timer:SetJustifyH("RIGHT")
@@ -631,7 +639,7 @@ local function Enabled(cb)
 		return not plate and Settings.Value(kind, "enabled")
 	end
 	if Settings.CAST_ELEMENTS[kind] then
-		return plate
+		return plate or not Settings.Value(kind, "enabled")
 	end
 	return Settings.Value(kind, "enabled")
 end

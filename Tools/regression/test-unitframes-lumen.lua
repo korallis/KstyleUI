@@ -147,6 +147,15 @@ assert(c.power == nil, "no power pill unless it is on")
 assert(c.cast and c.cast.y > c.health.y + c.health.h and near(c.cast.x, c.health.x) and near(c.cast.w, c.health.w), "the cast line under the pill, as wide")
 assert(c.cast.y + c.cast.h <= 120 - 10, "the card keeps its bottom padding")
 assert(c.portrait == nil and c.badge == nil, "the card has no portrait")
+for _, h in ipairs({ 24, 40, 60, 80, 100 }) do
+	local short = Geometry.Frame(lumen("card", { power = true, powerHeight = 4 }), 318, h, 1)
+	for key, part in pairs(short) do
+		if type(part) == "table" and part.w then
+			inside(part, 318, h, "a " .. h .. "-unit card's " .. key)
+		end
+	end
+	assert(short.health and short.health.h > 0, "a " .. h .. "-unit card keeps its pill")
+end
 local cp = Geometry.Frame(lumen("card", { power = true, powerHeight = 4 }), 318, 120, 1)
 assert(cp.power and cp.power.y > cp.health.y + cp.health.h and near(cp.power.h, 4), "with power on, a thin power pill under the health pill")
 
@@ -270,8 +279,13 @@ assert(near(tc[1], hr) and near(tc[2], hg) and near(tc[3], hb), "a hostile targe
 U.SetUnit(env, "target", { name = "Wolf", level = 9, health = 50, healthMax = 100, reaction = 2, canAttack = true, secretCreature = true, creature = "Beast" })
 env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(U.Shown(env, target.caption) == "Level 9 \194\183 Beast", "a secret creature type still shows, through the setter: " .. U.Shown(env, target.caption))
-U.SetUnit(env, "target", { name = "Bloodtalon Matriarch", level = 10, classification = "elite", creature = "Beast", health = 620, healthMax = 1000, power = 0, powerMax = 0, reaction = 2, canAttack = true })
+U.SetUnit(env, "target", { name = "Bloodtalon Matriarch", level = 10, classification = "elite", creature = "Beast", health = 620, healthMax = 1000, power = 50, powerMax = 100, reaction = 2, canAttack = true })
+K.Options.Write("UnitFrames", "target.style", "plate")
 env.FireEvent("PLAYER_TARGET_CHANGED")
+assert(target.power:IsShown(), "the plate shows a mana user's power bar")
+K.Options.Write("UnitFrames", "target.style", "lumen")
+env.FireEvent("UNIT_POWER_UPDATE", "target")
+assert(not target.power:IsShown(), "back on the sigil, power updates never bring the plate's power bar back")
 
 assert(Settings.Value("target", "auras") and Settings.Value("target", "auraFilter") == "mine" and Settings.Value("target", "auraPosition") == "CENTER", "your debuffs ride on the sigil, centred")
 local a = target.auras
@@ -293,6 +307,11 @@ local gr2, gg2, gb2 = ns.Lumen.Color("cast")
 local tcol = tinline.bar.colorRGBA
 assert(near(tcol[1], gr2) and near(tcol[2], gg2) and near(tcol[3], gb2), "the target's cast line is gold")
 assert(U.Shown(env, tinline.text) == "Terrifying Screech", "the spell's name")
+assert(tinline.text:GetWidth() == 0, "on a wide line the name takes its own width, so the bar follows it")
+CastBars.Layout(tinline, 132, 12)
+local capped = tinline.text:GetWidth()
+assert(capped > 0 and capped < 132 - 40, "on a narrow line the name is cut to leave the bar its room: " .. tostring(capped))
+CastBars.Layout(tinline, 384, 12)
 env._units.target.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "target", "Cast-1", 5000)
 settle()
@@ -351,6 +370,19 @@ K.Options.Write("UnitFrames", "player.style", "lumen")
 settle()
 assert(player.geometry.form == "vitals" and not ns.CastBars.ElementLive("player"), "and back to the vitals line")
 noErrors("plate")
+
+-- A Lumen player frame switched off still leaves a cast bar: the classic element takes over.
+K.Options.Write("UnitFrames", "player.enabled", false)
+assert(ns.CastBars.ElementLive("player"), "with the vitals line off, the classic cast bar element runs")
+K.Options.Write("UnitFrames", "player.enabled", true)
+assert(not ns.CastBars.ElementLive("player"), "and steps back when the vitals line returns")
+
+-- Centred sockets with more than one row leave room for each row's timers.
+K.Options.Write("UnitFrames", "target.auraRows", 2)
+local layout = target.auras.container._groups.debuffs.layout
+assert(layout.lineSpacing > layout.elementSpacing + 8, "the rows sit apart by the timer's height: " .. layout.lineSpacing)
+K.Options.Write("UnitFrames", "target.auraRows", 1)
+noErrors("fallbacks")
 
 -- No colour curve API: the glow stays off and the devlog says so once.
 do

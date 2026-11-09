@@ -134,6 +134,14 @@ local function Centred(kind)
 	return position ~= nil and position.centred == true
 end
 
+local function TimerRoom(kind)
+	if not (Centred(kind) and Settings.Value(kind, "auraTimer")) then
+		return 0
+	end
+	local _, fontSize = Settings.Font(kind, "aura")
+	return TIMER_BELOW_GAP + fontSize + TIMER_ROOM_EXTRA
+end
+
 function Auras.PlaceTimer(timer, skin, kind)
 	timer:ClearAllPoints()
 	if Centred(kind) then
@@ -274,7 +282,7 @@ local function GroupLayout(view, key)
 		elementWidth = size,
 		elementHeight = size,
 		elementSpacing = spacing,
-		lineSpacing = spacing,
+		lineSpacing = spacing + Snap(view, TimerRoom(view.kind)),
 		forceNewLine = key == "buffs" and Value(view, "auraFilter") == "both",
 	}
 end
@@ -392,13 +400,13 @@ function Auras.Footprint(kind, frame)
 	local rows = Settings.Value(kind, "auraRows") * groups
 	local line = columns * size + (columns - 1) * spacing
 	local growth = GROWTH[Settings.Value(kind, "auraGrowth")] or GROWTH.RIGHT_DOWN
-	local height = rows * size + (rows - 1) * spacing
+	local timerRoom = TimerRoom(kind)
+	if frame then
+		timerRoom = Widgets.Snap(frame, timerRoom)
+	end
+	local height = rows * (size + timerRoom) + (rows - 1) * spacing
 	if Centred(kind) then
 		growth = GROWTH.RIGHT_DOWN
-		if Settings.Value(kind, "auraTimer") then
-			local _, fontSize = Settings.Font(kind, "aura")
-			height = height + TIMER_BELOW_GAP + fontSize + TIMER_ROOM_EXTRA
-		end
 	end
 	return math.max(1, line), math.max(1, height), growth[1], line, growth
 end

@@ -284,15 +284,20 @@ local function LumenTexts(view, g)
 		view.healthText:SetJustifyH("RIGHT")
 		view.healthSub:Hide()
 		local cap = g.cap
-		Centre(view, view.capLabel, "LEFT", parent, "TOPLEFT", g.capLabel.x, cap)
-		Centre(view, view.caption, "RIGHT", parent, "TOPLEFT", cap.x + cap.w, cap)
-		view.caption:SetJustifyH("RIGHT")
-		local rule = view.capRule
-		rule:ClearAllPoints()
-		rule:SetPoint("LEFT", view.capLabel, "RIGHT", Snap(view, RULE_GAP), 0)
-		rule:SetPoint("RIGHT", view.caption, "LEFT", -Snap(view, RULE_GAP), 0)
-		rule:SetHeight(Widgets.Border(parent))
-		rule:Show()
+		if cap then
+			Centre(view, view.capLabel, "LEFT", parent, "TOPLEFT", g.capLabel.x, cap)
+			Centre(view, view.caption, "RIGHT", parent, "TOPLEFT", cap.x + cap.w, cap)
+			view.caption:SetJustifyH("RIGHT")
+			local rule = view.capRule
+			rule:ClearAllPoints()
+			rule:SetPoint("LEFT", view.capLabel, "RIGHT", Snap(view, RULE_GAP), 0)
+			rule:SetPoint("RIGHT", view.caption, "LEFT", -Snap(view, RULE_GAP), 0)
+			rule:SetHeight(Widgets.Border(parent))
+			rule:Show()
+		else
+			view.capLabel:Hide()
+			view.caption:Hide()
+		end
 	else
 		PlaceText(view, view.name, g.name)
 		PlaceText(view, view.healthText, g.healthText)

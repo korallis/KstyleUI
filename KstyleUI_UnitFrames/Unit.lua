@@ -257,6 +257,11 @@ function Unit.Power(view, unit, instant)
 		return
 	end
 	local bar = view.power
+	if view.geometry and not view.geometry.power then
+		bar:Hide()
+		view.powerText:SetText("")
+		return
+	end
 	local max = UnitPowerMax(unit)
 	local empty = false
 	if issecretvalue ~= nil and not issecretvalue(max) then
@@ -387,14 +392,23 @@ end
 Unit.LevelText = LevelText
 
 local function LevelLine(text, unit, short)
-	local creature = not short and UnitCreatureType and UnitCreatureType(unit) or nil
+	local creature
+	if not short and UnitCreatureType then
+		creature = UnitCreatureType(unit)
+	end
 	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short)
 end
 
 function Unit.Caption(view, unit)
 	local form, text = view.form, view.caption
 	if form == "vitals" then
-		local name = unit == "player" and (StanceName() or SpecName()) or nil
+		local name
+		if unit == "player" then
+			name = StanceName()
+			if not Shows(name) then
+				name = SpecName()
+			end
+		end
 		if Shows(name) then
 			text:SetText(name)
 		else

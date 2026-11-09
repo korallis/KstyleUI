@@ -375,28 +375,40 @@ local function Card(out, s, width, height, scale)
 		castH, gaps[5] = 0, 0
 		fixed = fixed - CAST_LINE
 	end
+	if fixed > height then
+		fixed, capH, gaps[2] = fixed - capH, 0, 0
+	end
+	if fixed > height then
+		fixed, rowH, gaps[3] = fixed - rowH, 0, 0
+	end
+	if fixed > height then
+		fixed, powerH, gaps[4] = fixed - powerH, 0, 0
+	end
+	healthH = max(0, min(healthH, height))
 	local t = 1
 	if fixed + sum > height and sum > 0 then
-		t = max(0, (height - fixed) / sum)
+		t = max(0, (height - min(fixed, height)) / sum)
 	end
 	local function gap(i)
 		return gaps[i] * t
 	end
 	local y = gap(1)
-	out.cap = Rect(padX, y, colW, capH)
-	out.capGem = Rect(padX, y + capH / 2 - GEM / 2, GEM, GEM)
-	out.capLabel = Rect(padX + GEM + CARD.gemGap, y, floor(colW / 2), capH)
-	out.caption = Rect(padX + floor(colW / 2), y, colW - floor(colW / 2), capH)
+	if capH > 0 then
+		out.cap = Rect(padX, y, colW, capH)
+		out.capGem = Rect(padX, y + capH / 2 - GEM / 2, GEM, GEM)
+		out.capLabel = Rect(padX + GEM + CARD.gemGap, y, floor(colW / 2), capH)
+		out.caption = Rect(padX + floor(colW / 2), y, colW - floor(colW / 2), capH)
+	end
 	y = y + capH + gap(2)
 	local main = Format.Main(s.healthText)
 	local pctW = main ~= "none" and Column(main, valueSize, colW) or 0
-	if pctW > 0 then
+	if rowH > 0 and pctW > 0 then
 		out.healthText = Rect(padX + colW - pctW, y, pctW, rowH)
 	end
-	if s.name then
+	if rowH > 0 and s.name then
 		out.name = Rect(padX, y, max(0, colW - pctW - (pctW > 0 and TEXT_GAP or 0)), rowH)
 	end
-	y = y + rowH + gap(3)
+	y = min(y + rowH + gap(3), height - healthH)
 	out.health = Rect(padX, y, colW, healthH)
 	y = y + healthH
 	if powerH > 0 then
