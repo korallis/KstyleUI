@@ -31,6 +31,23 @@ local function Spells(row)
 	return table.concat(out, ",")
 end
 
+do
+	local e, k, n = New({ setup = function(game)
+		game._cdm.cooldown[1001] = { active = true, gcd = true }
+	end })
+	C.Enable(e, k)
+	local icon = Row(n, "essential").icons[1]
+	assert(icon.onCooldown == true and icon.ready == false, "initial refresh must not trust isOnGCD")
+	e.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(icon.onCooldown == false and icon.ready == true, "cooldown event may trust isOnGCD")
+	icon.cooldown:GetScript("OnCooldownDone")(icon.cooldown)
+	assert(icon.onCooldown == true and icon.ready == false, "cooldown completion must not trust isOnGCD")
+	e.FireEvent("SPELL_UPDATE_COOLDOWN")
+	e.FireEvent("SPELLS_CHANGED")
+	e.RunTimers()
+	assert(icon.onCooldown == true and icon.ready == false, "a deferred rebuild must not trust isOnGCD")
+end
+
 -- Off by default, and nothing runs until Enable.
 do
 	local env, K, ns = New()

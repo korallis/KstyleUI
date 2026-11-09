@@ -12,50 +12,14 @@ local KEYS = { "maxDistance", "verticalDistance", "stacking", "selectedScale", "
 local applied = {}
 local queued = false
 
-local function Api(name)
-	local api = C_CVar
-	if api and type(api[name]) == "function" then
-		return api[name]
-	end
-	local global = _G[name]
-	if type(global) == "function" then
-		return global
-	end
-	return nil
-end
-
-local function Exists(name)
-	local get = Api("GetCVar")
-	if not get then
-		return false
-	end
-	local ok, value = pcall(get, name)
-	return ok and value ~= nil
-end
-
-CVars.Exists = Exists
+CVars.Exists = K.CVars.Exists
 
 local function Set(name, value)
-	local set = Api("SetCVar")
-	if not set then
-		LogOnce("cvar-set", "SetCVar is missing; nameplate CVars are left alone")
-		return false
-	end
-	local ok, done = pcall(set, name, value)
-	if not ok or done == false then
+	if not K.CVars.Set(name, value) then
 		LogOnce("cvar-fail:" .. name, "the game refused CVar " .. name)
 		return false
 	end
 	return true
-end
-
-local function SetBit(name, index, value)
-	local set = Api("SetCVarBitfield")
-	if not set then
-		return false
-	end
-	local ok, done = pcall(set, name, index, value)
-	return ok and done ~= false
 end
 
 local function Apply()
@@ -66,15 +30,15 @@ local function Apply()
 	for _, entry in ipairs(Logic.CVarPlan(values)) do
 		local name = entry.name
 		if entry.fallback then
-			if not Exists(entry.fallback) and Exists(name) and Set(name, entry.value) then
+			if not K.CVars.Exists(entry.fallback) and K.CVars.Exists(name) and Set(name, entry.value) then
 				applied[name] = true
 			end
-		elseif not Exists(name) then
+		elseif not K.CVars.Exists(name) then
 			if name ~= Logic.STACKING_CVAR then
 				LogOnce("cvar-missing:" .. name, "CVar " .. name .. " is missing on this client; skipped")
 			end
 		elseif entry.index then
-			if SetBit(name, entry.index, entry.value) then
+			if K.CVars.SetBitfield(name, entry.index, entry.value) then
 				applied[name] = true
 			end
 		elseif Set(name, entry.value) then
@@ -85,10 +49,9 @@ local function Apply()
 end
 
 local function Restore()
-	local default = Api("GetCVarDefault")
 	for name in pairs(applied) do
 		applied[name] = nil
-		local value = default and default(name)
+		local value = K.CVars.Default(name)
 		if type(value) == "string" then
 			Set(name, value)
 		else

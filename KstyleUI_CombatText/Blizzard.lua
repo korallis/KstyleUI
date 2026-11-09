@@ -48,15 +48,14 @@ local function Call(name, ...)
 end
 
 local function Get(name)
-	local ok, value = Call("GetCVar", name)
-	return ok and IsText(value) and value or nil
+	return K.CVars.Get(name)
 end
 
 local function Set(name, value)
 	state.writing = true
-	local ok, done = Call("SetCVar", name, value)
+	local done = K.CVars.Set(name, value)
 	state.writing = false
-	return ok and done ~= false and Get(name) == value
+	return done and Get(name) == value
 end
 
 local function PerCharacter(cvar)
@@ -119,7 +118,12 @@ local function Restore(cvar)
 	if not memory then
 		return
 	end
-	local held = memory.written ~= nil and IsText(memory.original) and memory.original ~= memory.written and Get(cvar.name) == memory.written
+	local valid = memory.written ~= nil and IsText(memory.original) and memory.original ~= memory.written
+	local current = valid and Get(cvar.name)
+	if valid and current == nil then
+		return
+	end
+	local held = valid and current == memory.written
 	if not held or Set(cvar.name, memory.original) then
 		saved[cvar.name] = nil
 	else
@@ -163,7 +167,7 @@ end
 
 local function OnCVar(_, name, value)
 	local cvar = IsText(name) and BY_NAME[name:lower()]
-	if not cvar or state.writing or not Hides(cvar) or not IsText(value) or value == HIDDEN or not Api("SetCVar") then
+	if not cvar or state.writing or not Hides(cvar) or not IsText(value) or value == HIDDEN then
 		return
 	end
 	if not PanelShown() then

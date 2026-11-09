@@ -103,15 +103,22 @@ function Logic.InterruptSpell(class, known)
 	return nil
 end
 
-function Logic.InterruptReady(info)
+function Logic.InterruptReady(info, fromCooldownEvent)
 	if IsSecret(info) or type(info) ~= "table" then
 		return nil
 	end
-	local active, gcd = info.isActive, info.isOnGCD
-	if IsSecret(active) or type(active) ~= "boolean" or IsSecret(gcd) then
+	local active = info.isActive
+	if IsSecret(active) or type(active) ~= "boolean" then
 		return nil
 	end
-	return not active or gcd == true
+	if not active or fromCooldownEvent ~= true then
+		return not active
+	end
+	local gcd = info.isOnGCD
+	if IsSecret(gcd) then
+		return nil
+	end
+	return gcd == true
 end
 
 function Logic.Footprint(width, height, above, below, scale)

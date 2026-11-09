@@ -19,6 +19,10 @@ local function WithCVar(value)
 			GetCVar = function(name)
 				return env._cvars[name]
 			end,
+			GetCVarInfo = function(name)
+				local current = env._cvars[name]
+				if current then return current, "0", false, false, false, false, false end
+			end,
 			SetCVar = function(name, v)
 				assert(not env.InCombatLockdown(), "a CVar write in combat: " .. tostring(name))
 				env._cvarWrites[#env._cvarWrites + 1] = { name = name, value = v }

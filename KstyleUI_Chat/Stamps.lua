@@ -34,27 +34,14 @@ local function IsText(v)
 end
 
 local function Get()
-	local get = C_CVar and C_CVar.GetCVar
-	if type(get) ~= "function" then
-		return nil
-	end
-	local ok, value = pcall(get, CVAR)
-	if ok and IsText(value) then
-		return value
-	end
-	return nil
+	return K.CVars.Get(CVAR)
 end
 
 local function Set(value)
-	local set = C_CVar and C_CVar.SetCVar
-	if type(set) ~= "function" then
-		LogOnce("set-missing", "C_CVar.SetCVar is missing; KstyleUI adds chat timestamps itself")
-		return false
-	end
 	state.writing = true
-	local ok, done = pcall(set, CVAR, value)
+	local done = K.CVars.Set(CVAR, value)
 	state.writing = false
-	return ok and done ~= false and Get() == value
+	return done and Get() == value
 end
 
 function Stamps.Value(fmt, colour)
@@ -158,8 +145,15 @@ end
 local function Restore()
 	local memory, all, key = Memory(false)
 	if memory then
-		if memory.written ~= nil and IsText(memory.original) and Get() == memory.written then
-			Set(memory.original)
+		local valid = memory.written ~= nil and IsText(memory.original)
+		local current = valid and Get()
+		if valid and current == nil then
+			state.written, state.draws = nil, nil
+			return
+		end
+		if valid and current == memory.written and not Set(memory.original) then
+			state.written, state.draws = nil, nil
+			return
 		end
 		all[key] = nil
 	end
@@ -205,9 +199,6 @@ local function OnCVar(_, name, value)
 	end
 	state.draws = nil
 	if state.writing or not state.active or not IsText(value) or value == state.written then
-		return
-	end
-	if type(C_CVar and C_CVar.SetCVar) ~= "function" then
 		return
 	end
 	local fmt = PanelShown() and Adopt(value)

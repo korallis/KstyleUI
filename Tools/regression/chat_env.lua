@@ -277,6 +277,10 @@ function C.Install(env, opts)
 		GetCVar = function(name)
 			return env._cvars[name]
 		end,
+		GetCVarInfo = function(name)
+			local value = env._cvars[name]
+			if value then return value, "none", false, false, false, false, false end
+		end,
 	}
 	-- SetCVar stores the value and fires CVAR_UPDATE inside the call, as the client does.
 	-- env._cvarFilter(name, value) -> stored value lets a test model a client that changes or refuses a value.

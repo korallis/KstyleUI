@@ -69,14 +69,14 @@ local function Repaint()
 	ns.Cast.RepaintAll()
 end
 
-function Interrupt.Update()
+function Interrupt.Update(fromCooldownEvent)
 	local ready = true
 	local spell = Interrupt.spell
 	local api = C_Spell
 	if spell and api and type(api.GetSpellCooldown) == "function" then
 		local ok, info = pcall(api.GetSpellCooldown, spell)
 		if ok then
-			local state = Logic.InterruptReady(info)
+			local state = Logic.InterruptReady(info, fromCooldownEvent == true)
 			if state == false then
 				ready = false
 			elseif state == nil then
@@ -96,7 +96,7 @@ end
 
 local function OnCooldown()
 	if Interrupt.running then
-		Interrupt.Update()
+		Interrupt.Update(true)
 	end
 end
 
