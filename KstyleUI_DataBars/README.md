@@ -49,14 +49,14 @@ Each part file adds a part with `ns.AddPart({ Enable, Disable, Setting, Refresh 
 | `databars.rep` | Reputation | While a faction is watched | `C_Reputation.GetWatchedFactionData`, with paragon, renown (`C_MajorFactions.GetMajorFactionData`) and friendship (`C_GossipInfo.GetFriendshipReputation`) progress |
 | `databars.honor` | Honour | In battlegrounds and world PvP, or always | Forever's PvP rank points (`C_MajorFactions.GetMajorFactionProgressionInfo(2800)`), else `UnitHonor` and `UnitHonorMax` |
 
-Each element is a holder frame registered with Layout as resizable, at its footprint from `Setup.Layouts`. The holder never hides itself: a bar with nothing to show hides its `content` child, so Layout Mode still shows its plate. Inside the content a track bar draws the background, the frame and the rested overlay, and a fill bar draws progress above it. A gain eases the fill over `fade` with `Motion.Tween`; a new level, a new faction or a new range jumps at once. The text and the KstyleUI tooltip show on hover; the holder's hit area reaches 4 units past the thin bar. Text on a sideways bar's line sits in a small plate of glass (the tile grade with the bar's faint edge) a medium gap wider than the label each side, as the mockup's XP 32% sits in a gap in its line, so the label never collides with the fill; text placed off the line needs no plate.
+Each element is a holder frame registered with Layout as resizable, at its footprint from `Setup.Layouts`. The holder never hides itself: a bar with nothing to show hides its `content` child, so Layout Mode still shows its plate. Inside the content a track bar draws the background, the frame and the rested overlay, and a fill bar draws progress above it. A gain eases the fill over `fade` with `Motion.Tween`; a new level, a new faction or a new range jumps at once. The text and the KstyleUI tooltip show on hover; the holder's hit area reaches 4 units past the thin bar. The experience bar is a gilt filament by default: its fill is white with a horizontal gradient from dim gilt to lit gilt (`Bars.GiltStops`, the `gilt` token mixed 40% toward black and 45% toward white; `Bars.TOKENS` holds the fallback names until S1's gilt tokens land), the rested reach is the `cool` token at half alpha, and its caption, "Level 8 · 74% · rested 10%" (`levelRested`), sits centred under the line in muted text (`Bars.TOKENS.muted`). Text placed off the line is muted; text on the line is white. Text on a sideways bar's line sits in a small plate of glass (the tile grade with the bar's faint edge) a medium gap wider than the label each side, as the mockup's XP 32% sits in a gap in its line, so the label never collides with the fill; text placed off the line needs no plate.
 
 ### Settings
 
 | Key | Default | Row |
 | --- | --- | --- |
 | `fadeBlizzard` | `true` | Fade Blizzard's status tracking bars |
-| `<bar>.colorSource` | `class` for XP, `reaction` for reputation, `custom` for honour | Class colour, reaction colour (reputation only) or custom colour |
+| `<bar>.colorSource` | `gilt` for XP, `reaction` for reputation, `custom` for honour | Gilt filament (XP only), class colour, reaction colour (reputation only) or custom colour |
 | `<bar>.color` | `accentDefault`, `friendly`, `epic` | The custom colour |
 | `<bar>.texture` | Glass | Any status bar texture, LibSharedMedia's included |
 | `<bar>.orientation` | `HORIZONTAL` | `HORIZONTAL` or `VERTICAL`. A change swaps the element's width and height through `Layout.Update`. |
@@ -65,12 +65,12 @@ Each element is a holder frame registered with Layout as resizable, at its footp
 | `<bar>.border` | `true` | The chamfered frame around the bar |
 | `xp.rested`, `xp.restedColor` | `true`, `rare` at 50% | The rested overlay and its colour |
 | `honor.show` | `pvp` | `pvp` or `always` |
-| `<bar>.text` | `shortPercent` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent` |
+| `<bar>.text` | `levelRested` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent`, `levelRested` (the level, the percent and the rested share, joined by middle dots; the rested part only while there is rested experience) |
 | `<bar>.textHover` | `false` for XP, `true` for the others | Show the text only under the pointer |
-| `<bar>.textPosition` | `CENTER` | On, above, below, left or right of the bar |
+| `<bar>.textPosition` | `BOTTOM` for XP, `CENTER` for the others | On, above, below, left or right of the bar. On the line, the label keeps its glass plate. |
 | `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font |
 | `<bar>.fontSize` | 12 for experience (the mockup's "XP 32%"), 9 (the `caption` size) for the others | 6 to 24, times the Appearance page's text size |
-| `<bar>.outline` | `OUTLINE` | `NONE` (a soft shadow), `OUTLINE` or `THICKOUTLINE` |
+| `<bar>.outline` | `NONE` for XP, `OUTLINE` for the others | `NONE` (a soft shadow), `OUTLINE` or `THICKOUTLINE` |
 
 Layout gives each bar its shown rule, position, size, opacity and strata.
 

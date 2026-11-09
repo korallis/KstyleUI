@@ -26,8 +26,10 @@ do
 end
 
 -- The global cooldown alone never dims an icon or greys its rim: the module reads isOnGCD and tells the button.
+-- The interface accent makes the rim's resting colour distinct from the cooldown grey.
 do
 	local env, K, ns = new()
+	K.Options.Write("ActionBars", "accent", "theme")
 	local cooldown = { name = "cd" }
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1, cooldown = cooldown })
 	local gcd = true
@@ -125,17 +127,17 @@ end
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 2)
-	assert(W.Near(b:GetAlpha(), 0.24), "an empty slot recedes to a quiet socket, got " .. tostring(b:GetAlpha()))
+	assert(W.Near(b:GetAlpha(), 0.35), "an empty slot recedes to a quiet socket at the Lumen 35%, got " .. tostring(b:GetAlpha()))
 	K.Widgets.Hover(b, true)
 	AB.W.Settle(env)
 	assert(b:GetAlpha() == 1, "hovering a quiet slot lights it in full, got " .. tostring(b:GetAlpha()))
 	K.Widgets.Hover(b, false)
 	AB.W.Settle(env)
-	assert(W.Near(b:GetAlpha(), 0.24), "leaving it lets it recede again, got " .. tostring(b:GetAlpha()))
+	assert(W.Near(b:GetAlpha(), 0.35), "leaving it lets it recede again, got " .. tostring(b:GetAlpha()))
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(b:GetAlpha() == 1, "dragging an action shows every empty slot in full")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
-	assert(W.Near(b:GetAlpha(), 0.24), "the drag ends and the slot recedes")
+	assert(W.Near(b:GetAlpha(), 0.35), "the drag ends and the slot recedes")
 	AB.Slot(env, 2, { texture = 136048, type = "spell", id = 5 })
 	assert(b:GetAlpha() == 1, "an occupied slot is in full")
 	K.Widgets.Hover(b, true)
@@ -471,9 +473,11 @@ end
 
 print("action bar buttons ok")
 
--- Action buttons are primary icon buttons: their rim keeps the full accent whatever Widgets.SECONDARY_RIM says.
+-- Action buttons are primary icon buttons: with an accent rim chosen, their rim keeps the full accent whatever
+-- Widgets.SECONDARY_RIM says.
 do
 	local _, K, ns = new()
+	K.Options.Write("ActionBars", "accent", "theme")
 	local b = AB.Button(ns, "bar1", 1)
 	assert(b.opts.primary == true, "an action button is a primary icon button")
 	K.Widgets.SECONDARY_RIM = 0.5

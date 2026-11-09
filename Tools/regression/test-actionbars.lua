@@ -167,14 +167,16 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
--- The mockup draws a dark glass strip behind each action bar row, 4 units beyond the buttons with 6-unit
--- chamfers; bars 1 and 2 have it on, the pet and stance bars off, and a toggle switches it.
+-- The v3 mockup drew a dark glass strip behind each action bar row, 3 units beyond the buttons with 6-unit
+-- chamfers. Lumen's sockets float with no strip, so every bar starts without one; the toggle still draws it.
 do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
 	local bar1, pet = ns.bars.bar1, ns.bars.pet
 	local backing = bar1.backing
-	assert(backing and backing:IsShown() and backing:GetParent() == bar1.header, "bar 1 has a backing strip on its header, so it fades with the bar")
+	assert(backing and not backing:IsShown(), "bar 1 has no strip by default: the Lumen sockets float")
+	K.Options.Write("ActionBars", "bar1.backing", true)
+	assert(backing:IsShown() and backing:GetParent() == bar1.header, "switched on, bar 1's strip sits on its header, so it fades with the bar")
 	assert(backing.chrome and backing.chrome.fillName == "buttonFill" and near(backing.chrome:Chamfer(), 6), "the strip is the mockup's opaque button body, its ends cut by the shared rule: the tile cap, 6 units on a 40-unit strip")
 	local p1, p2 = backing._points[1], backing._points[2]
 	assert(p1[1] == "TOPLEFT" and p1[2] == bar1.header and near(p1[4], -3) and near(p1[5], 3), "the strip starts 3 units outside the buttons' top left, the mockup's 3 units above the buttons")

@@ -12,6 +12,7 @@ local COPPER_PER_GOLD = 10000
 local HOURS_HALF_DAY = 12
 local SHORT_STEPS = { { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } }
 local SHORT_DECIMAL_BELOW = 100
+local DOT = " \194\183 "
 
 Format.BAR_TEXTS = {
 	{ value = "none", label = L["No text"] },
@@ -24,6 +25,7 @@ Format.BAR_TEXTS = {
 	{ value = "labelPercent", label = L["Name and percent"] },
 	{ value = "labelValue", label = L["Name and value"] },
 	{ value = "shortPercent", label = L["Short name and percent"] },
+	{ value = "levelRested", label = L["Level, percent and rested"] },
 }
 
 local function Whole(n)
@@ -120,14 +122,24 @@ local BAR_TEXT = {
 	shortPercent = function(current, max, label, short)
 		return Joined(short or label, Format.Percent(current, max) .. "%")
 	end,
+	levelRested = function(current, max, label, _, rested)
+		local text = Format.Percent(current, max) .. "%"
+		if label and label ~= "" then
+			text = label .. DOT .. text
+		end
+		if type(rested) == "number" and rested > 0 then
+			text = text .. DOT .. format(L["rested %d%%"], Format.Percent(rested, max))
+		end
+		return text
+	end,
 }
 
-function Format.BarText(style, current, max, label, short)
+function Format.BarText(style, current, max, label, short, rested)
 	local fn = BAR_TEXT[style]
 	if not fn then
 		return nil
 	end
-	return fn(current, max, label, short)
+	return fn(current, max, label, short, rested)
 end
 
 local function Coins(copper)

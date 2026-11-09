@@ -32,7 +32,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Data.lua` | The entries each group shows, read from `C_CooldownViewer` and the player's Blizzard layout |
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
 | `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows, tooltips, and `Style.Countdown(cooldown)`: one `C_StringUtil` seconds formatter (one letter, whitespace stripped, the last unit rounded up: `4s`, `2m`) set on a cooldown row's `Cooldown` through `SetCountdownFormatter`, so the numbers read as the mockup's; without the API the engine's plain numbers stay, and the devlog says so |
-| `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows take `countdownCorner`, so the countdown hangs in the icon's top right corner as the mockup draws "4s"; the tracked buff icons keep the kit's centred countdown |
+| `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows centre the countdown on the icon, as the Lumen sockets do (`Style.Decorate(icon, true)`); the tracked buff icons keep the kit's countdown, centred low |
 | `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown that reads "24s" through `Style.Countdown` |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
@@ -77,7 +77,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.desaturate` | `false` | Grey an icon while its spell is on a real cooldown. Off by default: the composition mockup keeps a cooling icon in colour under its swipe |
 | `<cooldowns>.usable` | `true` | Dim an icon while its spell cannot be cast |
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
-| `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell |
+| `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell, with the rim and the glow in the `gilt` token (`Style.TOKENS`, `neutral` until S1's gilt lands) whatever the accent: gold only on the active state |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
 | `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |

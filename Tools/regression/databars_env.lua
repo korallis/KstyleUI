@@ -63,6 +63,9 @@ function D.Game(env, overrides)
 	end
 	env._game = game
 
+	function env.CreateColor(r, g, b, a)
+		return { r = r, g = g, b = b, a = a }
+	end
 	function env.UnitLevel(unit)
 		return unit == "player" and game.level or 0
 	end

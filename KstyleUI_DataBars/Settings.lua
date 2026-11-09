@@ -62,11 +62,13 @@ local defaults = ns.defaults
 defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
-defaults.xp = BarDefaults("class", "accentDefault", "shortPercent")
+defaults.xp = BarDefaults("gilt", "accentDefault", "levelRested")
 defaults.xp.textHover = false
+defaults.xp.textPosition = "BOTTOM"
+defaults.xp.outline = "NONE"
 defaults.xp.fontSize = XP_FONT_SIZE
 defaults.xp.rested = true
-defaults.xp.restedColor = Rgb("rare", RESTED_ALPHA)
+defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
@@ -83,6 +85,11 @@ defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, ro
 defaults.bags = { enabled = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true }
 
 local SOURCES_PLAIN = {
+	{ value = "class", label = L["Class colour"] },
+	{ value = "custom", label = L["Custom colour"] },
+}
+local SOURCES_XP = {
+	{ value = "gilt", label = L["Gilt filament"] },
 	{ value = "class", label = L["Class colour"] },
 	{ value = "custom", label = L["Custom colour"] },
 }
@@ -168,7 +175,7 @@ ns.AddRows({
 		return settings.accentSource == "custom"
 	end },
 })
-ns.AddRows(BarRows("xp", L["Experience bar"], SOURCES_PLAIN))
+ns.AddRows(BarRows("xp", L["Experience bar"], SOURCES_XP))
 ns.AddRows(BarRows("rep", L["Reputation bar"], SOURCES_REACTION))
 ns.AddRows(BarRows("honor", L["Honour bar"], SOURCES_PLAIN))
 

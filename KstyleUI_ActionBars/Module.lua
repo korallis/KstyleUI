@@ -210,6 +210,11 @@ local function OnGrid(event)
 	end
 end
 
+local function OnCombat(event)
+	ns.Socket.SetCombat(event == "PLAYER_REGEN_DISABLED")
+	EachButton(ns.Button.UpdateAlpha)
+end
+
 local function OnCooldown()
 	ForActions(ns.Button.UpdateCooldown)
 end
@@ -304,6 +309,8 @@ local EVENTS = {
 	UPDATE_BINDINGS = function()
 		ns.ApplyBindings()
 	end,
+	PLAYER_REGEN_DISABLED = OnCombat,
+	PLAYER_REGEN_ENABLED = OnCombat,
 	ACTIONBAR_SHOWGRID = OnGrid,
 	ACTIONBAR_HIDEGRID = OnGrid,
 	PET_BAR_SHOWGRID = OnGrid,
@@ -334,6 +341,7 @@ local function Enable()
 	ns.running = true
 	ns.class = select(2, UnitClass("player"))
 	ns.gamepad = ns.IsGamepad()
+	ns.Socket.SetCombat(InCombatLockdown())
 	if not (C_ActionBar and type(C_ActionBar.HasAction) == "function" and type(C_ActionBar.GetActionTexture) == "function") then
 		ns.enabling = false
 		error("C_ActionBar is missing on this client; the action bars cannot run")

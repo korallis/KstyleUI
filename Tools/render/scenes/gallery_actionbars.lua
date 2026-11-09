@@ -1,6 +1,6 @@
 -- gallery_actionbars.lua: KstyleUI_ActionBars' frames in a filled state, each cropped as one frame of the gallery:
--- bar 1 paged to the vehicle bar with the leave button beside it, the flyout open above a bar 2 button, a close
--- crop of a bar's backing strip, the pet bar with autocast marks, the stance bar with Battle stance selected,
+-- bar 1 paged to the vehicle bar with the leave button beside it as floating Lumen sockets, the flyout open above a
+-- bar 2 button, a close crop of bar 2's backing strip (an option, off by default), the pet bar with autocast marks, the stance bar with Battle stance selected,
 -- bar 3 as the vertical column without a backing strip, and the settings window's live preview.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
@@ -25,7 +25,7 @@ end
 return Common.Run(function()
 	local AB = dofile("Tools/regression/actionbars_env.lua")
 	local saved = Gallery.Saved({
-		ActionBars = { bar3 = { enabled = true } },
+		ActionBars = { bar3 = { enabled = true }, bar2 = { backing = true } },
 	})
 	local env, K, ns = AB.New({
 		class = "WARRIOR",
@@ -145,9 +145,9 @@ return Common.Run(function()
 	local leave = ns.leaveButton
 	frames:Add(env, bar1.holder, {
 		name = "actionbars_vehicle", title = "Vehicle bar and leave button", grade = "button", reference = "actionbars",
-		caption = "Bar 1 paged to the vehicle bar (Bar.lua, page 12 of the state driver) on its backing strip, with Vehicle.lua's leave button beside it: a primary IconButton showing the close glyph.",
-		match = "Buttons wear the mockup's body, bezel, class-colour rim and shadow; the leave button is the same IconButton with a glyph instead of an icon. The backing strip is the mockup's opaque #101214 band with the light edge line (see actionbars_bar_backing).",
-		rect = Gallery.Union(env, { bar1.backing, leave }),
+		caption = "Bar 1 paged to the vehicle bar (Bar.lua, page 12 of the state driver) as floating Lumen sockets with no strip: quiet rims, keybinds at the top left, the six empty slots as quiet sockets at 35%, and Vehicle.lua's leave button beside it.",
+		match = "The Lumen mockup's ability row: dark sockets with a faint rim, no band behind them, empty sockets at 35%. The socket body and the icon's 8-unit radius arrive with S1's material; until then the body is the kit's chamfered tile.",
+		rect = Gallery.Union(env, { bar1.holder, leave }),
 	})
 	frames:Add(env, flyout.frame, {
 		name = "actionbars_flyout", title = "Spell flyout", grade = "button", reference = "actionbars",
@@ -155,10 +155,10 @@ return Common.Run(function()
 		match = "Each flyout button matches the mockup's action buttons (body #101214, bezel, rim, shadow); the mockup has no open flyout, and the frame has no backing of its own.",
 		rect = Gallery.Union(env, { flyout.frame, owner }),
 	})
-	local bx, by, _, bh = Scene.Rect(env, bar1.backing)
-	frames:Add(env, bar1.backing, {
+	local bx, by, _, bh = Scene.Rect(env, bar2.backing)
+	frames:Add(env, bar2.backing, {
 		name = "actionbars_bar_backing", title = "Bar backing strip", grade = "button", reference = "actionbars",
-		caption = "A close crop of the left end of bar 1's backing strip (Bar.lua:52): the button grade's opaque buttonFill body as a tile chrome with 10-unit chamfered ends, 3 units beyond the buttons, the two-line edge and no shadow.",
+		caption = "A close crop of the left end of bar 2's backing strip, switched on in the profile (Lumen bars start without one): the button grade's opaque buttonFill body as a tile chrome with chamfered ends, 3 units beyond the buttons, the two-line edge and no shadow.",
 		match = "Fill, reach and ends as the theme spec measured on the mockup's strip: opaque #101214, 3 units above and below the buttons, 10-unit ends, the light edge line; the mockup's line is a little brighter at the ends (lum 94) than the kit's edgeInner over this body.",
 		rect = { x = bx, y = by, w = 130, h = bh },
 		pad = 10,
@@ -182,8 +182,8 @@ return Common.Run(function()
 	})
 	frames:Add(env, parent, {
 		name = "actionbars_preview", title = "Action bars preview", grade = "button", reference = "actionbars",
-		caption = "Preview.lua in the settings window: plain primary IconButtons for the bar being edited, with a proc glow, a cooldown swipe, out-of-range and no-power tints and a stack count.",
-		match = "Buttons as the mockup's action buttons: body, bezel, class-colour rim and shadow; the states are the kit's own.",
+		caption = "Preview.lua in the settings window: the bar's Lumen sockets with every state: a gilt proc rim with its breathing glow (1), a stack count (2), a centred cooldown timer (3), the red out-of-range tint and keybind (4) and the cool, desaturated no-resource tint (5).",
+		match = "The Lumen close-up board's state row: ready, cooldown, proc in gilt, out of range in red, no rage in a cool grey-blue.",
 	})
 
 	local scene = Gallery.Build(env, { time = env._time })

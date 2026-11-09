@@ -9,6 +9,9 @@ local floor, min, max = math.floor, math.min, math.max
 local Bars = {}
 ns.Bars = Bars
 
+Bars.TOKENS = { gilt = "neutral", muted = "text", cool = "rare" }
+local GILT_DIM, GILT_LIT = 0.4, 0.45
+
 local MAX_SEGMENTS = 20
 local HIT_PAD = 4
 local TEXT_GAP = 2
@@ -60,10 +63,41 @@ local function SetFill(bar, value)
 	bar:SetValue(value)
 end
 
+function Bars.GiltStops()
+	local r, g, b = Tokens.Color(Bars.TOKENS.gilt)
+	local kr, kg, kb, ka = Tokens.Color("black")
+	local wr, wg, wb, wa = Tokens.Color("white")
+	local dr, dg, db = Widgets.Mix(r, g, b, 1, kr, kg, kb, ka, GILT_DIM)
+	local lr, lg, lb = Widgets.Mix(r, g, b, 1, wr, wg, wb, wa, GILT_LIT)
+	return dr, dg, db, lr, lg, lb
+end
+
+local function Gradient(fill, gilt)
+	local texture = fill:GetStatusBarTexture()
+	if not (texture and type(texture.SetGradient) == "function" and type(CreateColor) == "function") then
+		return
+	end
+	if gilt then
+		local dr, dg, db, lr, lg, lb = Bars.GiltStops()
+		texture:SetGradient("HORIZONTAL", CreateColor(dr, dg, db, 1), CreateColor(lr, lg, lb, 1))
+	elseif fill.kGilt then
+		local wr, wg, wb, wa = Tokens.Color("white")
+		texture:SetGradient("HORIZONTAL", CreateColor(wr, wg, wb, wa), CreateColor(wr, wg, wb, wa))
+	end
+	fill.kGilt = gilt
+end
+
 local function Color(view, s, info)
 	local fill = view.fill
 	local source = s.colorSource
-	if source == "class" then
+	local gilt = source == "gilt"
+	if not gilt then
+		Gradient(fill, false)
+	end
+	if gilt then
+		fill:SetBarColor(Tokens.Color("white"))
+		Gradient(fill, true)
+	elseif source == "class" then
 		fill:SetColorToken("accent")
 	elseif source == "reaction" then
 		local kind = info and info.kind
@@ -122,7 +156,9 @@ end
 
 local function PlacePlate(view, s)
 	local plate, text = view.plate, view.text
-	local onLine = text:IsShown() and (TEXT_POINTS[s.textPosition] or TEXT_POINTS.CENTER) == TEXT_POINTS.CENTER and s.orientation ~= "VERTICAL"
+	local onLine = (TEXT_POINTS[s.textPosition] or TEXT_POINTS.CENTER) == TEXT_POINTS.CENTER and s.orientation ~= "VERTICAL"
+	Widgets.TextColor(text, onLine and "textEmphasis" or Bars.TOKENS.muted)
+	onLine = onLine and text:IsShown()
 	plate:SetShown(onLine)
 	if not onLine then
 		return
@@ -146,7 +182,7 @@ local function TextFor(s, info)
 	if info.capped then
 		return info.label
 	end
-	return Format.BarText(s.text, info.current, info.max, info.label, info.short)
+	return Format.BarText(s.text, info.current, info.max, info.label, info.short, info.rested)
 end
 
 local function UpdateText(view, s, info)

@@ -44,7 +44,7 @@ end
 function Row:Icon(index)
 	local icon = self.icons[index]
 	if not icon then
-		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size, countdownCorner = ns.Settings.COOLDOWN_GROUPS[self.group] == true }))
+		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size }), ns.Settings.COOLDOWN_GROUPS[self.group] == true)
 		self.icons[index] = icon
 		self:StyleIcon(icon)
 	end

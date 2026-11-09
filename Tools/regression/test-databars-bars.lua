@@ -98,8 +98,31 @@ do
 	eq(shownTicks, 9, "ten segments draw nine ticks")
 	K.Options.Write("DataBars", "xp.segments", 0)
 
-	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the mockup's XP 32% does")
-	eq(xp.text:GetText(), "XP 24%", "the default caption is the short name and the percent")
+	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
+	eq(xp.text:GetText(), "Level 38 \194\183 24% \194\183 rested 16%", "the default caption is the level, the percent and the rested share")
+	local cp, crel, crelp = xp.text:GetPoint(1)
+	eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOP>true>BOTTOM", "the caption is centred under the line")
+	eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")
+	local mr, mg, mb = K.Tokens.Color(ns.Bars.TOKENS.muted)
+	local tr, tg, tb = xp.text:GetTextColor()
+	assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the caption is muted text")
+	-- The fill is a gilt filament: a gradient from dim gilt to lit gilt over the fill; the rested reach is cool.
+	local gradient = xp.fill:GetStatusBarTexture()._state.Gradient
+	assert(gradient and gradient[1] == "HORIZONTAL", "the fill carries a horizontal gradient")
+	local dim, lit = gradient[2], gradient[3]
+	local dr, dg, db = ns.Bars.GiltStops()
+	assert(near(dim.r, dr) and near(dim.g, dg) and near(dim.b, db), "it starts in dim gilt")
+	assert(lit.r > dim.r and lit.g > dim.g and lit.b > dim.b, "and ends in lit gilt")
+	local rested = K.Options.Read("DataBars", "xp.restedColor")
+	local cr, cg, cb = K.Tokens.Color(ns.Bars.TOKENS.cool)
+	assert(near(rested.r, cr) and near(rested.g, cg) and near(rested.b, cb), "the rested segment is the cool token")
+	-- A player who chose a label on the line keeps #151's plate.
+	K.Options.Write("DataBars", "xp.textPosition", "CENTER")
+	K.Options.Write("DataBars", "xp.text", "shortPercent")
+	eq(xp.text:GetText(), "XP 24%", "the short name and the percent")
+	local er, eg, eb = K.Tokens.Color("textEmphasis")
+	tr, tg, tb = xp.text:GetTextColor()
+	assert(near(tr, er) and near(tg, eg) and near(tb, eb), "a label on the line reads in full white")
 	W.Enter(xp.holder)
 	eq(xp.text:IsShown(), true, "hovering keeps the caption")
 	local _, labelSize = xp.text:GetFont()
@@ -230,7 +253,11 @@ do
 	local xp = view(ns, "xp")
 	local Options = K.Options
 
-	assert(sameColor(xp.fill, K.Theme.Accent()), "the experience bar follows the class colour by default")
+	eq(Options.Read("DataBars", "xp.colorSource"), "gilt", "the experience bar is a gilt filament by default")
+	Options.Write("DataBars", "xp.colorSource", "class")
+	assert(sameColor(xp.fill, K.Theme.Accent()), "the class colour is still a choice")
+	local white = xp.fill:GetStatusBarTexture()._state.Gradient
+	assert(white and near(white[2].r, 1) and near(white[3].b, 1), "and leaves no gilt gradient on the fill")
 	Options.Write("DataBars", "xp.color", { r = 1, g = 0, b = 0 })
 	Options.Write("DataBars", "xp.colorSource", "custom")
 	assert(sameColor(xp.fill, 1, 0, 0), "a custom colour fills the bar")
@@ -427,7 +454,9 @@ do
 	K.Options.Write("DataBars", "xp.colorSource", "custom")
 	K.Store.SetProfile("Second")
 	K.Modules.Enable("DataBars")
-	assert(sameColor(view(ns, "xp").fill, K.Theme.Accent()), "a fresh profile repaints with its own settings")
+	local fill = view(ns, "xp").fill
+	local dr = ns.Bars.GiltStops()
+	assert(sameColor(fill, K.Tokens.Color("white")) and near(fill:GetStatusBarTexture()._state.Gradient[2].r, dr), "a fresh profile repaints with its own settings: the default gilt filament")
 	noErrors(env, K)
 end
 

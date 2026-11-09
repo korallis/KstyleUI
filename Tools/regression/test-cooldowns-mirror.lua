@@ -75,7 +75,10 @@ do
 	local formatter = LastArg(essential.icons[1].cooldown, "SetCountdownFormatter")
 	assert(type(formatter) == "table" and formatter:Format(4) == "4s" and formatter:Format(120) == "2m", "an essential icon's countdown has the one-letter formatter")
 	assert(LastArg(utility.icons[1].cooldown, "SetCountdownFormatter") == formatter, "the utility row shares it")
-	assert(essential.icons[1].countdown._points[1][1] == "TOPRIGHT", "the countdown sits in the icon's top right corner")
+	local cp = essential.icons[1].countdown._points[1]
+	assert(cp[1] == "CENTER" and cp[2] == essential.icons[1].icon and cp[3] == "CENTER", "the countdown is centred in the Lumen socket")
+	essential.icons[1]:Restyle()
+	assert(essential.icons[1].countdown._points[1][2] == essential.icons[1].icon, "a restyle keeps it centred")
 	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	local buffIcon = buffRow:Icon(1)
 	assert(W.LastCall(buffIcon.cooldown, "SetCountdownFormatter") == nil, "the tracked buff icons keep the engine's numbers")
@@ -129,6 +132,19 @@ assert(essential.icons[1].ready == true, "a finished cooldown makes the spell re
 -- Proc glow follows Blizzard's highlight events, and a secret spell ID re-checks every icon.
 env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 1001)
 assert(essential.icons[1].proc == true, "the highlight event lights the icon")
+do
+	local icon = essential.icons[1]
+	local gr, gg, gb = K.Tokens.Color(ns.Style.TOKENS.gilt)
+	assert(W.SameRGB(icon.chrome.inner[5], gr, gg, gb), "a proc wears the gilt rim: gold only on the active state")
+	local glow = icon.procGlow.colorRGB
+	assert(glow and W.Near(glow[1], gr) and W.Near(glow[2], gg) and W.Near(glow[3], gb), "and a gilt glow")
+	env._cdm.overlay[1001] = true
+	K.Options.Write("Cooldowns", "accent", "custom")
+	assert(icon.proc and W.SameRGB(icon.chrome.inner[5], gr, gg, gb), "a custom accent leaves the proc gilt")
+	assert(W.Near(icon.procGlow.colorRGB[1], gr), "and its glow")
+	K.Options.Write("Cooldowns", "accent", "class")
+	env._cdm.overlay[1001] = nil
+end
 env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 1001)
 assert(essential.icons[1].proc == false, "the hide event clears it")
 env._cdm.overlay[2002] = true

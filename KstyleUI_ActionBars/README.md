@@ -31,6 +31,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Init.lua` | The addon table the files share |
 | `Data.lua` | The bar table and the pure parts: `GridSize`, `Cell`, `Slot`, `PagingDriver`, `PAGE_SNIPPET`, `ShortKey`, `FontFlags` |
 | `Settings.lua` | The defaults and the settings schema |
+| `Socket.lua` | The Lumen socket states on top of the kit's `IconButton` (see [Lumen sockets](#lumen-sockets)) and the one table of Lumen tokens it reads |
 | `Button.lua` | One button: the kit's `IconButton` on `SecureActionButtonTemplate`, and every visual update |
 | `Flyout.lua` | KstyleUI's own secure spell flyout |
 | `Bar.lua` | One bar: a Layout holder, a secure state header, the button grid, paging and the mouseover fade |
@@ -77,15 +78,31 @@ Each button is `KstyleUI.Widgets.IconButton` built on `SecureActionButtonTemplat
 | Charges | The kit's charge cooldown with `GetActionChargeDuration` while `GetActionCharges().isActive`, only for actions whose `maxCharges` is above 1 |
 | Count | `C_ActionBar.GetActionDisplayCount`, passed to the text untouched |
 | Macro name | `C_ActionBar.GetActionText` when `UsesActionText` |
-| Proc glow | `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW` and `HIDE` for spells and spell macros, and `C_SpellActivationOverlay.IsSpellOverlayed` on each update |
-| Usable and power | `ACTION_USABLE_CHANGED`, and `IsUsableAction` on each update. Unusable greys the button; lacking power tints it with the power colour. |
-| Range | `C_ActionBar.EnableActionRangeCheck` for each slot with an action on a shown button of a shown bar, released when the slot, the bar or the module goes, and `ACTION_RANGE_CHECK_UPDATE`. A target change also polls `IsActionInRange`. Out of range tints with the range colour. |
+| Proc glow | `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW` and `HIDE` for spells and spell macros, and `C_SpellActivationOverlay.IsSpellOverlayed` on each update. The socket shows it as a gilt rim and a glow inside the icon (see [Lumen sockets](#lumen-sockets)). |
+| Usable and power | `ACTION_USABLE_CHANGED`, and `IsUsableAction` on each update. Unusable greys the button; lacking power desaturates the icon, tints it with the power colour (the cool token by default) and dims it to 70%. |
+| Range | `C_ActionBar.EnableActionRangeCheck` for each slot with an action on a shown button of a shown bar, released when the slot, the bar or the module goes, and `ACTION_RANGE_CHECK_UPDATE`. A target change also polls `IsActionInRange`. Out of range tints the icon and the keybind text with the range colour. |
 | Selected | `IsCurrentAction` or `IsAutoRepeatAction` |
-| Empty | An empty slot is a quiet socket at alpha 0.24 that rises to full alpha with the shared hover motion (`hoverT`) under the pointer, or alpha 0 when **Show empty buttons** is off, even under the pointer. Every empty slot is at full alpha while the cursor holds an action (`ACTIONBAR_SHOWGRID`), so every drop target shows. Occupied and stance buttons are always at full alpha. Only alpha changes, so the secure button keeps its size and place in combat. |
+| Empty | An empty slot is a quiet socket at alpha 0.35 (0.12 between `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED`) that rises to full alpha with the shared hover motion (`hoverT`) under the pointer, or alpha 0 when **Show empty buttons** is off, even under the pointer. Every empty slot is at full alpha while the cursor holds an action (`ACTIONBAR_SHOWGRID`), so every drop target shows. Occupied and stance buttons are always at full alpha. Only alpha changes, so the secure button keeps its size and place in combat. |
 
 A secret value is never compared: a secret flag counts as its safe default (usable, in range, not selected), and a secret count or text goes to the font string untouched. A slot the client does not have, such as page 13 on a client with fewer slots, is found once with `pcall(C_ActionBar.HasAction, slot)` and logged, and its button stays empty.
 
 Drag and drop works out of combat only. With **Lock Action Bars** on (`lockActionBars`), dragging needs the pick-up modifier, as Blizzard's bars do. `PickupAction`, `PlaceAction` and `PickupPetAction` never run in combat.
+
+## Lumen sockets
+
+`Socket.Decorate` wraps each action button's `Paint` and `Restyle`, and the preview's buttons, so the kit's icon button wears the Lumen socket states. The socket's body, its rim light and the icon's 8-unit radius come from the kit's material (`Widgets.Chrome`, `iconMask`), which slice S1 turns Lumen; this file adds only what is particular to an ability.
+
+| State | Socket |
+| --- | --- |
+| Rest | With **Accent** on **Quiet rim** (the default), the rim is the `quietRim` token, lifting halfway to `textHover` with the hover motion. Gold is kept for the proc. The other accents keep the kit's accent rim. |
+| Keybind and count | The keybind sits 3 units in from the top left, left-justified; the count stays at the bottom right. |
+| Cooldown | The kit's radial swipe, with the countdown centred on the icon. |
+| Proc | A rim in the `gilt` token and an additive glow texture laid over the icon and masked to it, so nothing reaches past the socket. Its alpha breathes between 1 and 0.45 at 0.7 seconds a breath (a `BOUNCE` animation); with reduced motion it holds still. The kit's proc glow, whose halo reaches past the button, is not used. |
+| Out of range | The range colour on the icon and on the keybind text. |
+| No resource | Desaturated, the power colour (the `cool` token), dimmed to 70%. |
+| Empty | 35% at rest, 12% in combat, full under the pointer and while an action is dragged. Only alpha changes. |
+
+`Socket.TOKENS` names the three Lumen tokens the sockets read: `gilt` (`neutral` until S1's gilt token lands), `quietRim` (`edgeInner`) and `cool` (`rare`). They change in that one table.
 
 ## Paging
 
@@ -135,12 +152,12 @@ The page starts with **Bar to edit**, a picker that shows one bar's rows at a ti
 | Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. |
 | Fill order, Growth | Along rows or down columns first; right or left, then down or up |
 | Button size, Spacing | 16 to 64 and 0 to 16 units. 38 and 3 for the action bars, 30 and 3 for the pet and stance bars. |
-| Show empty buttons, Backing strip, Fade until hovered, Faded opacity | On, on for bars 1 and 2 (off for the other bars), off, 0. The backing strip is the mockup's band behind each bar row, measured in the theme spec: the opaque `buttonFill` body with the panel's light edge line, 10-unit chamfered ends, 3 units beyond the buttons on every side, a child of the bar's header so it fades with the bar |
+| Show empty buttons, Backing strip, Fade until hovered, Faded opacity | On, off, off, 0. Lumen's sockets float with no band behind them; the backing strip is the v3 mockup's band behind each bar row, measured in the theme spec: the opaque `buttonFill` body with the panel's light edge line, 10-unit chamfered ends, 3 units beyond the buttons on every side, a child of the bar's header so it fades with the bar |
 | Keybind text, Count text, Macro names, Cooldown numbers | On, on, off, on |
 | Paging (bar 1) | Stances and forms, Stealth, Possess and vehicles, Page keys: all on |
 | Custom paging (action bars) | Empty |
 
-Shared rows: the font, size and outline of each of the four texts (the size is multiplied by the Appearance page's text size), the accent (the interface accent, the class colour or a custom colour), the out-of-range and not-enough-power colours, and when tooltips show. Position, scale, opacity in and out of combat, strata and the shown rule come from Layout, on the same page under **Positions and sizes**.
+Shared rows: the font, size and outline of each of the four texts (the size is multiplied by the Appearance page's text size), the accent (the quiet rim, the default, or the interface accent, the class colour or a custom colour), the out-of-range and not-enough-power colours, and when tooltips show. Position, scale, opacity in and out of combat, strata and the shown rule come from Layout, on the same page under **Positions and sizes**.
 
 ## Why
 

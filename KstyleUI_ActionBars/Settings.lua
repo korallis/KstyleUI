@@ -41,7 +41,7 @@ local function BarDefaults(def)
 		fadeAlpha = 0,
 		hotkey = true,
 		cooldown = true,
-		backing = action and ON_BY_DEFAULT[def.key] == true,
+		backing = false,
 	}
 	if def.kind ~= "stance" then
 		out.showEmpty = true
@@ -62,10 +62,10 @@ end
 
 local defaults = {
 	editBar = "bar1",
-	accent = "theme",
+	accent = "quiet",
 	accentColor = Color("accentDefault"),
 	rangeColor = Color("hostile"),
-	powerColor = Color("rare"),
+	powerColor = Color(ns.Socket.TOKENS.cool),
 	tooltips = "always",
 	ranks = "ask",
 	text = {
@@ -207,6 +207,7 @@ function ns.Schema()
 		{
 			type = "dropdown", key = "accent", label = L["Accent"], help = L["The colour of the button edges and proc glows."],
 			options = {
+				{ value = "quiet", label = L["Quiet rim"] },
 				{ value = "theme", label = L["Interface accent"] },
 				{ value = "class", label = L["Class colour"] },
 				{ value = "custom", label = L["Custom colour"] },

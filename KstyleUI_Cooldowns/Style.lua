@@ -7,6 +7,8 @@ local Tokens, Widgets = K.Tokens, K.Widgets
 local Style = {}
 ns.Style = Style
 
+Style.TOKENS = { gilt = "neutral" }
+
 function Style.FontPath(choice, role)
 	if choice == "kit" or type(choice) ~= "string" then
 		return (Tokens.Font(role or "number"))
@@ -97,11 +99,33 @@ function Style.Accent(icon)
 	end
 end
 
+local function Gilt(icon, r, g, b)
+	local glow = icon.procGlow
+	local own = glow and glow.colorRGB
+	if glow and not (own and own[1] == r and own[2] == g and own[3] == b) then
+		glow:SetColorRGB(r, g, b)
+	end
+end
+
 local function AfterPaint(icon)
 	local usable = icon.usable and icon:IsEnabled() ~= false
 	if usable and icon.greyWhileCooling and icon.onCooldown then
 		local tint = icon.tint
 		Widgets.ShadeIcon(icon.icon, tint[1], tint[2], tint[3], true)
+	end
+	local r, g, b = Tokens.Color(Style.TOKENS.gilt)
+	Gilt(icon, r, g, b)
+	if usable and icon.proc then
+		icon.chrome:SetRim(r, g, b, 1)
+	end
+end
+
+local function Centre(icon)
+	local countdown = icon.countdown
+	if countdown and Widgets.MayMove(icon) then
+		countdown:ClearAllPoints()
+		countdown:SetPoint("CENTER", icon.icon, "CENTER")
+		countdown:SetJustifyH("CENTER")
 	end
 end
 
@@ -127,11 +151,19 @@ local function HideTooltip(icon)
 	end
 end
 
-function Style.Decorate(icon)
+function Style.Decorate(icon, centred)
 	local paint = icon.Paint
 	icon.Paint = function(self)
 		paint(self)
 		AfterPaint(self)
+	end
+	if centred then
+		local restyle = icon.Restyle
+		icon.Restyle = function(self)
+			restyle(self)
+			Centre(self)
+		end
+		Centre(icon)
 	end
 	icon.readyGlow = Widgets.Glow(icon, { kind = "selection" })
 	Style.Tooltips(icon)

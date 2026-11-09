@@ -64,6 +64,8 @@ function Preview:Refresh()
 	procButton:SetProc(true)
 	local range, power = ns.Config("rangeColor"), ns.Config("powerColor")
 	rangeButton:SetTint(range.r, range.g, range.b)
+	ns.Socket.Tint(rangeButton, "rangeColor")
+	powerButton.lacksPower = true
 	powerButton:SetTint(power.r, power.g, power.b)
 	local cooldown = self.buttons[3]
 	if type(GetTime) == "function" then
@@ -80,7 +82,7 @@ function ns.Preview(parent)
 	frame:SetPoint("CENTER", parent, "CENTER")
 	frame.buttons = {}
 	for i = 1, ns.BAR.bar1.max do
-		local button = Widgets.IconButton(frame, { size = ns.Config("bar1").size, silent = true, primary = true })
+		local button = ns.Socket.Decorate(Widgets.IconButton(frame, { size = ns.Config("bar1").size, silent = true, primary = true }))
 		button.macroText = Widgets.Text(button.overlay, "caption", "textEmphasis")
 		button.macroText:SetPoint("BOTTOM", button, "BOTTOM", 0, Widgets.Snap(button, 2))
 		frame.buttons[i] = button

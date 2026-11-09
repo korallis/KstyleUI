@@ -58,6 +58,16 @@ eq(Format.BarText("label", 12345, 50000, "Level 38"), "Level 38", "label")
 eq(Format.BarText("labelPercent", 12345, 50000, "Stormwind"), "Stormwind 24%", "label and percent")
 eq(Format.BarText("labelValue", 12345, 50000, "Stormwind"), "Stormwind 12,345 / 50,000", "label and value")
 eq(Format.BarText("labelPercent", 12345, 50000, nil), "24%", "a missing label leaves the percent")
+-- The Lumen XP caption: "Level 8 \194\183 74% \194\183 rested 10%", the rested part only while there is rested XP.
+local DOT = " \194\183 "
+eq(Format.BarText("levelRested", 37000, 50000, "Level 8", "XP", 5000), "Level 8" .. DOT .. "74%" .. DOT .. "rested 10%", "level, percent and rested")
+eq(Format.BarText("levelRested", 37000, 50000, "Level 8", "XP", 0), "Level 8" .. DOT .. "74%", "no rested part without rested XP")
+eq(Format.BarText("levelRested", 37000, 50000, "Level 8"), "Level 8" .. DOT .. "74%", "or when the source has none")
+local listed = false
+for _, option in ipairs(Format.BAR_TEXTS) do
+	listed = listed or option.value == "levelRested"
+end
+eq(listed, true, "the caption is a text choice")
 eq(Format.BarText("shortPercent", 12345, 50000, "Level 38", "XP"), "XP 24%", "short name and percent: the mockup's XP 32% caption")
 eq(Format.BarText("shortPercent", 12345, 50000, "Stormwind"), "Stormwind 24%", "a bar without a short name uses its label")
 eq(Format.BarText("bogus", 12345, 50000, "x"), nil, "an unknown style shows nothing")
@@ -67,7 +77,7 @@ for _, option in ipairs(Format.BAR_TEXTS) do
 	styles[#styles + 1] = option.value
 	assert(type(option.label) == "string" and option.label ~= "", option.value .. " has a label for the settings window")
 end
-eq(table.concat(styles, ","), "none,percent,value,valuePercent,short,remaining,label,labelPercent,labelValue,shortPercent", "every bar text style is offered")
+eq(table.concat(styles, ","), "none,percent,value,valuePercent,short,remaining,label,labelPercent,labelValue,shortPercent,levelRested", "every bar text style is offered")
 
 -- Money ---------------------------------------------------------------------------------------------
 
