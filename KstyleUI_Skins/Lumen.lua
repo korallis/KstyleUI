@@ -9,6 +9,7 @@ local Lumen = {}
 ns.Lumen = Lumen
 
 local FALLBACKS = { gilt = "neutral", questGold = "neutral", rimLight = "edgeInner" }
+local S1_NAMES = { questGold = "quest", rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
 local TEXTURES = { gem = "chamferTile", checkRing = "ringBevel", gemFill = "dot" }
 local GEM_UNITS, GEM_TURN = 7, math.pi / 4
@@ -37,7 +38,7 @@ local function PlainSize(value)
 end
 
 function Lumen.Color(name)
-	local ok, r, g, b, a = pcall(Tokens.Color, name)
+	local ok, r, g, b, a = pcall(Tokens.Color, S1_NAMES[name] or name)
 	if ok then
 		return r, g, b, a
 	end

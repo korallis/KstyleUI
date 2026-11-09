@@ -411,7 +411,7 @@ do
 	local cr, cg, cb = caption:GetTextColor()
 	assert(Near(cr, gr) and Near(cg, gg) and Near(cb, gb), "the caption is gilt")
 	assert(row:IsShown(), "the quest caption shows while the tracker is expanded")
-	local gem = Region(env, K, quests.Header, "Texture", Lumen.TEXTURES.gem)
+	local gem = Region(env, K, quests.Header, "Texture", (pcall(K.Tokens.Texture, "gem")) and "gem" or Lumen.TEXTURES.gem)
 	assert(gem and gem:GetParent() == row, "a gem leads the caption row")
 	assert(S.W.SameRGB(gem, gr, gg, gb), "in gilt")
 	assert(not Region(env, K, quests.Header, "Texture", "glyphChevron"), "no chevron on the caption row any more; the gem is the mark")

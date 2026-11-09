@@ -30,8 +30,25 @@ do
 	local Lumen = ns.Lumen
 	assert(type(Lumen) == "table", "the skins share ns.Lumen")
 	local r, g, b, a = Lumen.Color("gilt")
-	local nr, ng, nb, na = K.Tokens.Color(Lumen.FALLBACKS.gilt)
-	assert(Near(r, nr) and Near(g, ng) and Near(b, nb) and Near(a, na), "without S1's gilt token, gilt falls back to the shipped token it names")
+	local tr, tg, tb, ta = K.Tokens.Color("gilt")
+	assert(Near(r, tr) and Near(g, tg) and Near(b, tb) and Near(a, ta), "with S1's gilt token, Lumen reads it")
+	local wr, wg, wb = Lumen.Color("questGold")
+	local xr, xg, xb = K.Tokens.Color("quest")
+	assert(Near(wr, xr) and Near(wg, xg) and Near(wb, xb), "quest gold is S1's quest token")
+	local fellBack = pcall(function()
+		local real = K.Tokens.Color
+		K.Tokens.Color = function(name)
+			if name == "gilt" then
+				error("unknown name gilt")
+			end
+			return real(name)
+		end
+		local fr, fg, fb, fa = Lumen.Color("gilt")
+		K.Tokens.Color = real
+		local nr, ng, nb, na = real(Lumen.FALLBACKS.gilt)
+		assert(Near(fr, nr) and Near(fg, ng) and Near(fb, nb) and Near(fa, na), "without S1's gilt token, gilt falls back to the shipped token it names")
+	end)
+	assert(fellBack, "the fallback still works")
 	local qr, qg, qb = Lumen.Color("questGold")
 	assert(qr > 0.8 and qg > 0.7 and qb < 0.7, "quest gold reads as a warm gold, got " .. qr .. " " .. qg .. " " .. qb)
 	assert(not pcall(Lumen.Color, "noSuchColor"), "a name neither S1 nor the fallback table knows is an error, as Tokens.Color is")
