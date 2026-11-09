@@ -174,6 +174,26 @@ env.SetCombat(true)
 env.SetCombat(false)
 noErrors("theme gate")
 
+-- Regions inside an engine aura button read their visibility back as a secret on Forever, so a restyle must never test a badge's IsShown.
+do
+	local badges = 0
+	for _, view in ipairs({ focus, boss, Frames.Get("target").views[1] }) do
+		for _, entry in ipairs(view.auras and view.auras.buttons or {}) do
+			if entry.badge then
+				badges = badges + 1
+				entry.badge.IsShown = function()
+					error("attempt to perform boolean test on a secret boolean value", 2)
+				end
+			end
+		end
+	end
+	assert(badges > 0, "the frames dressed aura buttons with timer badges")
+	K.Widgets.RestyleAll()
+	env.SetCombat(true)
+	env.SetCombat(false)
+	noErrors("a restyle never reads a secret badge visibility")
+end
+
 -- A container built later takes the frame's current strata.
 assert(K.Layout.Set("unitframes.target", "strata", "HIGH"))
 -- Switching target auras on builds their container on demand.

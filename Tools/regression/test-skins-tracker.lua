@@ -436,7 +436,7 @@ do
 	assert(tracker.Header.Text:GetAlpha() == 0, "a Blizzard alpha change keeps the text hushed")
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
-	assert(caption:GetText():find(THIN_SPACE, 1, true), "the caption's letters are tracked")
+	assert(not caption:GetText():find(THIN_SPACE, 1, true), "the caption carries no thin space, which Cinzel cannot draw")
 	assert(FontPath(caption) == Style.Font("title") and Near((select(2, caption:GetFont())), Lumen.CAP_SIZE), "in the title face at the mockup's cap size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
 	assert(Near(cr, gr) and Near(cg, gg) and Near(cb, gb), "the caption is gilt")
@@ -665,11 +665,11 @@ do
 	K.Modules.Enable("Skins")
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	local Lumen = ns.Lumen
-	assert((Lumen.Tracked("AB")):find(THIN_SPACE, 1, true), "the test needs the kit face, so the title is tracked with thin spaces")
+	assert(not (Lumen.Tracked("AB")):find(THIN_SPACE, 1, true), "the Cinzel title takes no thin spaces, which the game draws as boxes")
 	local cap = Caption(env, module.Header, "QUESTS")
 	assert(cap, "the Quests cap draws")
-	local thin = K.Widgets.TextWidth(cap) - Scene.TextWidth("QUESTS", Lumen.CAP_SIZE, (cap:GetFont()))
-	assert(thin > 5 * 0.15 * Lumen.CAP_SIZE, "the measure counts the five thin spaces at Cinzel's real advance (0.2 em), not a stand-in, got " .. tostring(thin))
+	local extra = K.Widgets.TextWidth(cap) - Scene.TextWidth("QUESTS", Lumen.CAP_SIZE, (cap:GetFont()))
+	assert(math.abs(extra) < 0.5, "the measure is the plain capitals' width, got " .. tostring(extra) .. " extra")
 	local header = module.Header
 	for _, name in ipairs({ "Quests", "Campaign", "Achievements", "World Quests", "Scenario" }) do
 		header.Text:SetText(name)

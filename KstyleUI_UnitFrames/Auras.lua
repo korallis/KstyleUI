@@ -220,7 +220,7 @@ local function StyleButton(view, entry)
 	StyleText(entry.timer, view)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge)
 	entry.timer:SetShown(Value(view, "auraTimer"))
-	entry.badge:SetShown(entry.badge:IsShown() and Value(view, "auraTimer") == true)
+	entry.badge:SetShown(not TimerBelow(view.kind) and Value(view, "auraTimer") == true)
 end
 
 local function Flush()
