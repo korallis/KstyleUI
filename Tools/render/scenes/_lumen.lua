@@ -134,9 +134,9 @@ function Lumen.Build(state, opts)
 	local scenes, log = {}, {}
 	base.trackerAnchor = Hud.StoryTracker(layout, true)
 	-- Apply placed the tracker under the guide, so the skin docks the quests into the guide's card: the guide's
-	-- glass runs down to the quests' foot and the tracker's own glass yields (Rail.Place does this in the game
-	-- from the tracker's Edit Mode anchor; the two modules render in separate environments, so the restedxp
-	-- module docks to a stand-in at the tracker glass's foot).
+	-- glass runs down to the quests' foot, its footer hugs the quests' cap and the tracker's own glass yields
+	-- (Rail.Place does this in the game from the tracker's Edit Mode anchor; the two modules render in separate
+	-- environments, so the restedxp module docks to a stand-in for the tracker skin's fit frame).
 	base.trackerDocked = base.trackerAnchor ~= nil
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
@@ -152,9 +152,9 @@ function Lumen.Build(state, opts)
 		local tracker = built.tracker
 		local env = Hud.envs[tracker.scene]
 		local fit = tracker.ns.Tracker.Fit()
-		local inset = tracker.ns.Tracker.Inset()
 		local _, top, _, height = Scene.Rect(env, fit)
-		base.dockBottom = top and (HEIGHT - (top + height) + inset.bottom) or nil
+		base.dockBottom = top and (HEIGHT - (top + height)) or nil
+		base.dockTop = top and (HEIGHT - top) or nil
 	end
 	local guide, R = Hud.Module("restedxp", base)
 	table.insert(scenes, 1, guide)

@@ -270,11 +270,21 @@ do
 	local glass = Rect(K, Glass(K, f))
 	local quests = Rect(K, ns.Tracker.Fit())
 	assert(glass.bottom <= quests.bottom + 0.5, "one glass from the cap to the quests' foot")
-	-- The setting turns it off: two cards again.
+	-- Docked, the guide hugs the quests (round 4, Muse #3): its footer sits one small gap above the tracker band's
+	-- top, where the QUESTS cap starts (Apply anchors the tracker frame 34 units higher, for Blizzard's hidden
+	-- container header), instead of on the guide band's foot a story gap higher, so the card has no hollow band
+	-- between the guide's footer and the quests' cap.
+	local story = K.Setup.Story("DPS", true)
+	local guideFoot = Rect(K, f).bottom
+	local capTop = story.tracker.top
+	assert(near(guideFoot, capTop + K.Tokens.Size("gapSmall"), 1), "docked, the guide's foot sits one small gap above the quests' cap, got " .. guideFoot .. " for a cap at " .. capTop)
+	assert(guideFoot < story.guide.bottom - 4, "lower than the guide band's foot, got " .. guideFoot .. " for " .. story.guide.bottom)
+	-- The setting turns it off: two cards again, and the guide back on its band's foot.
 	K.Options.Write("Skins", "restedXP.dock", false)
 	env.RunTimers()
 	assert(not ns.RestedXP.Rail.Docked() and not ns.Tracker.Docked() and trackerGlass:IsShown(), "with the setting off the tracker keeps its own glass")
 	assert(card._points[3][2] == f, "and the card ends at the footer")
+	assert(near(Rect(K, f).bottom, story.guide.bottom), "undocked, the guide's foot is the band's foot again")
 	K.Options.Write("Skins", "restedXP.dock", true)
 	env.RunTimers()
 	assert(ns.RestedXP.Rail.Docked() and not trackerGlass:IsShown(), "on again, docked again")

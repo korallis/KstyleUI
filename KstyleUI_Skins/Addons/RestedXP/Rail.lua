@@ -102,6 +102,9 @@ local function Refresh(f)
 end
 
 local function Fit()
+	if state.standIn then
+		return state.standIn, state.standIn
+	end
 	local Tracker = ns.Tracker
 	local fit = Tracker and type(Tracker.Fit) == "function" and Tracker.Fit() or nil
 	local tracker = IsTable(fit) and fit:GetParent() or nil
@@ -125,10 +128,20 @@ local function InSlot(tracker, band)
 	return math.abs(x - place.x / scale) <= SLOT_TOLERANCE and math.abs(y - place.y / scale) <= SLOT_TOLERANCE
 end
 
+local function WillDock(f, story)
+	local fit, tracker = Fit()
+	if fit == nil or not Docks() or not f:IsShown() or story == nil or story.tracker == nil then
+		return false, nil
+	end
+	if state.standIn then
+		return true, fit
+	end
+	return InSlot(tracker, story.tracker), fit
+end
+
 local function Dock(f, story)
 	local Tracker = ns.Tracker
-	local fit, tracker = Fit()
-	local docked = fit ~= nil and Docks() and f:IsShown() and story ~= nil and story.tracker ~= nil and InSlot(tracker, story.tracker)
+	local docked, fit = WillDock(f, story)
 	local inset = docked and type(Tracker.Inset) == "function" and Tracker.Inset() or nil
 	RestedXP.Chrome.Dock(f, docked and fit or nil, inset and -inset.bottom or nil)
 	if Tracker and type(Tracker.Dock) == "function" then
@@ -138,6 +151,26 @@ local function Dock(f, story)
 	return docked
 end
 
+-- Foot(f, story, scale) -> where the guide's foot sits, in the guide's units up from the screen's bottom: the guide
+-- band's foot; or, when the quests dock into the card, one small gap above the tracker band's top, where the QUESTS
+-- cap starts, so the card holds no hollow band between the guide's footer and the quests.
+local function Foot(f, story, scale)
+	local band = story.guide
+	local foot = band.bottom / scale
+	if WillDock(f, story) then
+		foot = math.min(foot, (story.tracker.top + Tokens.Size(FOOT_GAP)) / scale)
+	end
+	return foot
+end
+
+-- DockTo(frame) docks the quests into the guide's card against a stand-in for the tracker skin's fit frame (its
+-- top the quests' cap, its bottom their foot), for a scene or a test that draws the tracker elsewhere; nil
+-- undoes it. The game never calls it: Place finds the tracker's fit itself.
+function Rail.DockTo(frame)
+	state.standIn = IsTable(frame) and frame or nil
+	return Rail.Place()
+end
+
 function Rail.Undock()
 	local Tracker = ns.Tracker
 	if state.rxp and IsTable(state.rxp.RXPFrame) then
@@ -145,6 +178,10 @@ function Rail.Undock()
 	end
 	if Tracker and type(Tracker.Dock) == "function" then
 		Tracker.Dock(false)
+	end
+	-- The guide's foot hugs the quests only while they dock, so an undocked guide goes back to its band's foot.
+	if state.docked then
+		Rail.Schedule()
 	end
 	state.docked = false
 end
@@ -169,7 +206,7 @@ function Rail.Place()
 	local width = (band.right - band.left) / scale + 2 * SIDE - 2 * reach
 	local left = band.left / scale - SIDE + reach
 	local height = math.max(MIN_HEIGHT, head - headTop + FOOTER + Widgets.Snap(f, Tokens.Size(FOOT_GAP)))
-	local top = band.bottom / scale + below + height
+	local top = Foot(f, story, scale) + below + height
 	Remember(f)
 	f:ClearAllPoints()
 	f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
