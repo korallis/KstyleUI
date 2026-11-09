@@ -60,6 +60,25 @@ assert(cp and cp[2] == cap and cp[3] == "RIGHT", "the count sits at the right en
 cap:SetCount(nil)
 assert(not cap.count:IsShown() and point(cap.rule, "RIGHT")[2] == cap, "clearing the count gives the rule back its length")
 
+-- A count drawn by another frame: the cap measures its text on a ruler that is never shown and reserves that
+-- width, so the rule stops short of it while the cap's own count stays hidden and empty.
+local ruled = cap.ruler
+assert(ruled and not ruled:IsShown(), "the ruler is hidden")
+local width = cap:MeasureCount("+00")
+assert(type(width) == "number" and width >= 0, "the ruler measures the count's text")
+assert(ruled:GetText() == "" and not ruled:IsShown(), "and keeps no text after measuring")
+cap:SetReserve(30)
+rr = point(cap.rule, "RIGHT")
+assert(rr[2] == cap and rr[3] == "RIGHT" and W.Near(rr[4], -(30 + Widgets.Snap(cap, 10))), "the rule stops a gap short of the reserved width")
+assert(not cap.count:IsShown() and (cap.count:GetText() == nil or cap.count:GetText() == ""), "the cap's own count stays hidden and empty")
+cap:Restyle()
+assert(W.Near(point(cap.rule, "RIGHT")[4], -(30 + Widgets.Snap(cap, 10))) and not cap.count:IsShown(), "a restyle keeps the reserve and the hidden count")
+cap:SetCount(3)
+assert(cap.count:IsShown() and point(cap.rule, "RIGHT")[2] == cap.count, "a count of its own wins over the reserve")
+cap:SetCount(nil)
+cap:SetReserve(nil)
+assert(point(cap.rule, "RIGHT")[2] == cap and W.Near(point(cap.rule, "RIGHT")[4] or 0, 0), "clearing the reserve gives the rule back its length")
+
 -- A secret count reaches the font string untouched.
 local secret = env.Secret and env.Secret(12)
 if secret then

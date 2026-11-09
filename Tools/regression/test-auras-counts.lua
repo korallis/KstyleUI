@@ -126,7 +126,8 @@ for _, n in ipairs({ 0, 8, 24, 40 }) do
 	else
 		check(count() == nil, n .. " buffs: no count when every buff shows: " .. tostring(count()))
 	end
-	check(cap.frame.count:GetAlpha() == 0, "the cap's own count only keeps the rule clear of the engine's labels")
+	local own = cap.frame.count
+	check(not own:IsShown() and (own:GetText() == nil or own:GetText() == ""), n .. " buffs: the cap's own count stays hidden and empty; the engine's labels carry the count")
 	local window, capRect = rect(counter.window), rect(cap.frame)
 	check(near(window.right, capRect.right) and window.left > (capRect.left + capRect.right) / 2, n .. " buffs: the count sits at the cap's right end, clear of the title")
 end

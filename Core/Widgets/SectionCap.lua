@@ -1,4 +1,4 @@
--- SectionCap.lua: the rail section cap, a gilt gem, a tracked Cinzel head, a gilt rule that fades out to the right and an optional count at the right end.
+-- SectionCap.lua: the rail section cap, a gilt gem, a tracked Cinzel head, a gilt rule that fades out to the right and an optional count at the right end, or a reserved width there for a count drawn by another frame, measured on a ruler that is never shown.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -18,6 +18,8 @@ local function Placed(self)
 	self.rule:SetPoint("LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP), 0)
 	if count then
 		self.rule:SetPoint("RIGHT", self.count, "LEFT", -Widgets.Snap(self, GEM_GAP), 0)
+	elseif self.reserve then
+		self.rule:SetPoint("RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, GEM_GAP)), 0)
 	else
 		self.rule:SetPoint("RIGHT", self, "RIGHT")
 	end
@@ -32,6 +34,23 @@ function Cap:SetCount(value)
 	self.counted = value ~= nil
 	Widgets.SetText(self.count, value)
 	Placed(self)
+end
+
+function Cap:SetReserve(width)
+	self.reserve = type(width) == "number" and width > 0 and width or nil
+	Placed(self)
+end
+
+function Cap:MeasureCount(value)
+	local ruler = self.ruler
+	local font, size, flags = self.count:GetFont()
+	if font then
+		ruler:SetFont(font, size, flags)
+	end
+	Widgets.SetText(ruler, value)
+	local width = Widgets.TextWidth(ruler, 0)
+	ruler:SetText("")
+	return width
 end
 
 function Cap:Paint()
@@ -72,6 +91,8 @@ function Widgets.SectionCap(parent, opts)
 	cap.label = Widgets.Text(cap, "title", "giltLit")
 	cap.count = Widgets.Text(cap, "number", "muted")
 	cap.count:SetJustifyH("RIGHT")
+	cap.ruler = Widgets.Text(cap, "number", "muted")
+	cap.ruler:Hide()
 	cap:Restyle()
 	if opts.text then
 		cap:SetText(opts.text)
