@@ -19,7 +19,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 - Windows handle Escape with their own key handler, not `UISpecialFrames`.
 - The addon is load-on-demand: the core loads it the first time the player opens the settings window, so it costs nothing before then.
 - Every element it shows registers with `KstyleUI.Layout.Register`, and every setting is declared through `KstyleUI.Options.Register`, so the player can resize and customise everything from the settings window.
-- UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `Options.xml`.
+- UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations live in the core string tables; see Languages in the repository README.
 - Build mode: check that an API exists before calling it, check `issecretvalue` before any comparison, fall back to a safer path when the preferred one is unavailable, and log the path taken with `KstyleUI.DevTest.Log`.
 
 ## How it opens

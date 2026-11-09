@@ -266,7 +266,7 @@ for _, list in ipairs({ FONT_SETS, FONT_FACES }) do
 end
 
 function Tokens.FontPath(key)
-	return FACE_PATH[key]
+	return ns.Locale.Font(FACE_PATH[key])
 end
 
 function Tokens.Font(role)
@@ -289,7 +289,7 @@ function Tokens.Font(role)
 	if role ~= "world" and theme and theme.FontScale then
 		size = math.max(MIN_TEXT, size * theme.FontScale())
 	end
-	return path or FACE_PATH[FALLBACK_FACE], size, spec.flags
+	return ns.Locale.Font(path or FACE_PATH[FALLBACK_FACE]), size, spec.flags
 end
 
 function Tokens.TextStyle(role)

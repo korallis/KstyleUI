@@ -44,7 +44,7 @@ function Panel:SetTitle(text)
 	if Widgets.IsSecret(text) or type(text) ~= "string" then
 		Widgets.SetText(self.titleText, text)
 	else
-		self.titleText:SetText(text:upper())
+		self.titleText:SetText(ns.Locale.Upper(text))
 	end
 end
 

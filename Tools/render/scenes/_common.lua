@@ -65,6 +65,13 @@ function Common.ForceScreen(env)
 	end
 	env.UIParent._scale = uiScale
 	env.UIParent._width, env.UIParent._height = 768 * width / height / uiScale, 768 / uiScale
+	-- RENDER_LOCALE (deDE, frFR, esES, zhCN, ...) renders the scene as a client of that locale sees it.
+	local locale = os.getenv("RENDER_LOCALE")
+	if locale and locale ~= "" then
+		env.GetLocale = function()
+			return locale
+		end
+	end
 	-- Font strings measure their text as the page draws it (the kit fonts' glyph advances, escapes such as
 	-- colour codes and links skipped, as the game skips them), so a module that sizes to GetUnboundedStringWidth
 	-- lays out in the render as it does in the game.

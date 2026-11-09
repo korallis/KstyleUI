@@ -19,6 +19,21 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 | `KstyleUI.ErrorCount() -> number` | Errors that `Call` caught since login. `/kstyle test` fails when it is above 0. |
 | `KstyleUI.Print(message)` | Prints `KstyleUI: <message>` to chat. |
 
+## Locale
+
+`Core/Locale.lua` loads right after `Init.lua`, then `Core/Locales/Locales.xml` loads one generated table per shipped language. Only the client's own table runs; the others return on their first line. Test: `Tools/regression/test-locale.lua`.
+
+| Name | Behaviour |
+| --- | --- |
+| `KstyleUI.L[key] -> text` | The client's string for an English key, or the key itself when no table has it. Reading never stores anything. |
+| `Locale.CLIENT` | `GetLocale()`, or `enUS` on a client without it. |
+| `Locale.Uses(code) -> bool` | True for the client's locale, and for `esES` on an `esMX` client, which shares the Spanish table. |
+| `Locale.Add(strings)` | Stores a `{ [English] = text }` table. Generated files call it; nothing else should. |
+| `Locale.IsTranslation(text) -> bool` | True for a string a table stored. `Options.Register` holds English help under 100 characters and lets a longer translation through. |
+| `Locale.Font(path) -> path` | The game's own font in place of a KstyleUI face that lacks the client's script: every face on `zhCN`, `zhTW` and `koKR`, Cinzel on `ruRU`. Other paths, another addon's fonts included, come back unchanged. `Tokens.Font` and `Tokens.FontPath` call it, so every role follows. |
+| `Locale.Upper(text) -> text` | `text:upper()` that also capitalises Latin-1 letters, `œ` and `ÿ`, which plain `upper` leaves lowercase. Use it for every uppercase role. |
+| `Locale.SPACED` | False when the game font stands in for every face: Chinese and Korean text is never letter-spaced with thin spaces. |
+
 ## Callbacks
 
 | Function | Behaviour |

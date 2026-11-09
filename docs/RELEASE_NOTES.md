@@ -15,6 +15,7 @@ KstyleUI replaces or restyles the whole World of Warcraft: Forever interface in 
 - **Element settings.** Every element also gets rows in the settings window: when it shows (always, in combat, out of combat, with a target, on mouseover or never), its anchor and offsets, its size or scale, its opacity in and out of combat, and its strata.
 - **Profiles.** Per-character profiles that store only what differs from the defaults. Export a profile as one string and import it back; a truncated, foreign or hostile string is refused with a reason before anything changes.
 - **First-run setup.** On an account's first login, four steps pick a DPS, Tank or Healer layout and the modules to switch on, then reload through a secure button. `/kstyle setup` runs it again.
+- **Languages.** English, German, French, Spanish (also on Latin American clients) and Simplified Chinese, in WoW's own terms for each language. Chinese, Taiwanese and Korean clients draw KstyleUI's text in the game's own font, and Russian clients get the game's Cyrillic font in place of Cinzel. Capitals keep their accents.
 - **Smoke checks.** `/kstyle test` checks that every module you switched on is running, that no Lua error was caught, that the APIs KstyleUI needs exist, and that a profile export round-trips. The results and every fallback KstyleUI takes are kept in a devlog in the saved variables.
 
 ### Added: the modules

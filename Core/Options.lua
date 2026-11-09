@@ -159,7 +159,7 @@ local function checkRow(module, row, defaults)
 	if type(row.help) ~= "string" or row.help == "" then
 		return "needs help: one short sentence"
 	end
-	if #row.help >= MAX_HELP then
+	if #row.help >= MAX_HELP and not ns.Locale.IsTranslation(row.help) then
 		return "help must be under 100 characters"
 	end
 	local default = lookup(defaults, parts)

@@ -18,7 +18,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 - Nothing the module does to Blizzard's frames outlasts `Disable`: the status bars get their alpha and mouse back, and `Safe.RestoreBlizzard` returns the micro menu and the bag bar. Turning the module off needs no reload.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.
 - Every element it shows registers with `KstyleUI.Layout.Register`, and every setting is declared through `KstyleUI.Options.Register`, so the player can resize and customise everything from the settings window.
-- UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations go in `Locale.lua` in this folder, loaded by `DataBars.xml`.
+- UI comes from `KstyleUI.Widgets`, colours from `KstyleUI.Tokens` and strings from `KstyleUI.L`. Translations live in the core string tables; see Languages in the repository README.
 - Build mode: check that an API exists before calling it, check `issecretvalue` before any comparison, fall back to a safer path when the preferred one is unavailable, and log the path taken with `KstyleUI.DevTest.Log`.
 
 ## Files

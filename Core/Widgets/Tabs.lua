@@ -38,7 +38,7 @@ local function SetLabel(tab, label)
 	if Widgets.IsSecret(label) or type(label) ~= "string" then
 		Widgets.SetText(tab.label, label)
 	else
-		tab.label:SetText(label:upper())
+		tab.label:SetText(ns.Locale.Upper(label))
 	end
 end
 

@@ -41,7 +41,10 @@ local function Tracked(text)
 	if Widgets.IsSecret(text) or type(text) ~= "string" or text:find("|", 1, true) then
 		return text
 	end
-	local spaced = text:upper():gsub(CODEPOINT, "%1" .. THIN_SPACE)
+	if not ns.Locale.SPACED then
+		return ns.Locale.Upper(text)
+	end
+	local spaced = ns.Locale.Upper(text):gsub(CODEPOINT, "%1" .. THIN_SPACE)
 	return spaced:sub(1, -#THIN_SPACE - 1)
 end
 

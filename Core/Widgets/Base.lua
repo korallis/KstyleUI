@@ -313,7 +313,7 @@ function Widgets.SetText(text, value)
 	end
 	local _, upper = Tokens.TextStyle(textRole[text] or "body")
 	if upper and type(value) == "string" then
-		value = value:upper()
+		value = ns.Locale.Upper(value)
 	end
 	text:SetText(value)
 end
