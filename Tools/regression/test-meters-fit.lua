@@ -93,4 +93,22 @@ assert(list.capacity * (bar + spacing) - spacing <= room + 0.01, "the rows count
 assert(list.capacity == 0 or RowsBottom(list) <= list.panel:GetHeight() - list.pad + 0.01, "the last row ends inside the glass")
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, "fitting raises no errors")
+
+-- On a high-density screen a border is several pixels: a row rounded up gives back one pixel, not a border, so it
+-- never falls below its minimum and a full list leaves less than a pixel per row.
+do
+	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234 })
+	hiEnv._session = Session(30)
+	M.Enable(hiEnv, hiK)
+	local hi = hiNs.Damage.list
+	assert(hiK.Scale.Border() > hiK.Scale.Pixel(1) * 1.5, "this screen draws a border several pixels wide")
+	for _, height in ipairs({ 385, 300, 211, 130 }) do
+		hi.holder:SetHeight(height)
+		Show(hiEnv, 30)
+		local pixel = hiK.Scale.Pixel(1) / hiK.Widgets.ScaleFactor(hi.panel)
+		assert(hi.rows[1].bar:GetHeight() >= hi:MinRow() - 0.01, height .. ": a row is never shorter than its minimum, got " .. tostring(hi.rows[1].bar:GetHeight()) .. " for " .. hi:MinRow())
+		assert(Unused(hi) >= -0.01 and Unused(hi) < hi.capacity * pixel + 0.01, height .. ": a full list leaves under a pixel per row, got " .. tostring(Unused(hi)))
+	end
+end
+
 print("meters fit: passed")

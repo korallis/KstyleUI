@@ -301,6 +301,17 @@ do
 	assert(ok, "a large font stays inside its cell: " .. tostring(what))
 	Options.Write("DataBars", "strip.fontSize", 12)
 	eq(item(ns, "fps").label:IsShown(), true, "the captions come back at 12")
+	-- The interface text scale enlarges both: a 17 font fits at scale 1, and not at 1.3.
+	Options.Write("DataBars", "strip.labels", "short")
+	Options.Write("DataBars", "strip.fontSize", 17)
+	eq(item(ns, "fps").label:IsShown(), true, "a 17 font keeps short captions at scale 1")
+	K.Theme.SetFontScale(1.3)
+	ns.Strip.Refresh()
+	eq(item(ns, "fps").label:IsShown(), false, "a 17 font at 1.3 drops them: the stack is taller than the strip")
+	K.Theme.SetFontScale(1)
+	Options.Write("DataBars", "strip.fontSize", 12)
+	Options.Write("DataBars", "strip.labels", "full")
+	ns.Strip.Refresh()
 
 	-- A narrow saved holder: the cells share what there is, a caption that cannot fit its cell drops them all,
 	-- and every value stays inside its cell (the tooltip carries the whole value).

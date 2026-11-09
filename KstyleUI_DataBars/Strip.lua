@@ -275,12 +275,14 @@ end
 
 local function Captioned(view, s, h, cells, gap)
 	local frame = view.frame
-	if s.labels == "none" or CaptionSize(s) + s.fontSize + 2 * STACK_GAP > h - 2 * EDGE_BORDERS * Widgets.Border(frame) then
+	local scale = K.Theme.FontScale()
+	local caption, value = CaptionSize(s) * scale, s.fontSize * scale
+	if s.labels == "none" or caption + value + 2 * STACK_GAP > h - 2 * EDGE_BORDERS * Widgets.Border(frame) then
 		return false
 	end
 	for i, id in ipairs(view.order) do
 		local item = view.items[id]
-		if item.caption ~= "" and TextWidth(item.label, CaptionSize(s)) > cells[i] - gap then
+		if item.caption ~= "" and TextWidth(item.label, caption) > cells[i] - gap then
 			return false
 		end
 	end

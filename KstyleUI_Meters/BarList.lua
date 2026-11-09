@@ -160,7 +160,7 @@ local function FillHeight(list)
 	local fill = Logic.FillRows(Room(list), list:MinRow(), Spacing(list))
 	local snapped = Widgets.Snap(list.panel, fill)
 	if snapped > fill then
-		snapped = snapped - Widgets.Border(list.panel)
+		snapped = snapped - K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel)
 	end
 	return max(1, snapped)
 end

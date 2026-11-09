@@ -79,4 +79,25 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a queued viewport raises no errors")
 end
 
+-- RestedXP caps the list's scroll for its own 12 units of inset; the units the header reserve takes come back, so
+-- the last line still scrolls into view, and RestedXP's range is extended once, not again on every scroll.
+do
+	local env, K, rxp = Boot()
+	local f = rxp.RXPFrame
+	local bar = f.ScrollFrame.ScrollBar
+	f.BottomFrame:SetSize(300, 200)
+	f.ScrollChild:SetHeight(500)
+	bar:SetValue(0)
+	local rxpMax = math.floor(500 + 10) - 200
+	local taken = 200 - 5 - 7 - f.ScrollFrame:GetHeight()
+	assert(taken > 0, "the header reserve takes room from the view")
+	local _, max = bar:GetMinMaxValues()
+	assert(W.Near(max, rxpMax + taken), "the scroll reaches the list's end: " .. tostring(max) .. " for " .. (rxpMax + taken))
+	bar:SetValue(40)
+	bar:SetValue(80)
+	local _, again = bar:GetMinMaxValues()
+	assert(W.Near(again, max), "scrolling does not grow the range, got " .. tostring(again))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "the scroll range raises no errors")
+end
+
 print("restedxp readability: passed")

@@ -27,11 +27,13 @@ local RXP_MARGIN = 4
 local GUTTER_GAP = "gapSmall"
 local HEADER_OVERLAP = 9
 local LIST_LEFT, LIST_RIGHT, LIST_BOTTOM = 5, 20, 7
+local RXP_LIST_TOP = 5
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
 local guideTitles = setmetatable({}, WEAK)
 local readable = setmetatable({}, WEAK)
+local extended = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
@@ -347,6 +349,33 @@ local function PlaceGuideScroll(f)
 	end)
 end
 
+local function Plain(value)
+	return type(value) == "number" and not Widgets.IsSecret(value)
+end
+
+local function ExtendScroll(f)
+	local scroll, list = f.ScrollFrame, f.BottomFrame
+	local bar = IsTable(scroll) and scroll.ScrollBar
+	if not IsTable(bar) or type(bar.GetMinMaxValues) ~= "function" or not IsTable(list) then
+		return
+	end
+	local low, high = bar:GetMinMaxValues()
+	local listHeight, viewHeight = list:GetHeight(), scroll:GetHeight()
+	if not (Plain(low) and Plain(high) and Plain(listHeight) and Plain(viewHeight)) or high == extended[bar] then
+		return
+	end
+	local taken = listHeight - RXP_LIST_TOP - LIST_BOTTOM - viewHeight
+	if taken <= 0 then
+		return
+	end
+	extended[bar] = high + taken
+	bar:SetMinMaxValues(low, high + taken)
+	local value, down = bar:GetValue(), bar.ScrollDownButton
+	if Plain(value) and value < high + taken and IsTable(down) and type(down.Enable) == "function" then
+		down:Enable()
+	end
+end
+
 local function GuideWindow(rxp)
 	local f = Find(rxp, "RXPFrame")
 	if not f then
@@ -380,6 +409,11 @@ local function GuideWindow(rxp)
 	Hook(f, "UpdateVisuals", "RXPFrame.UpdateVisuals", function()
 		PlaceGuideScroll(f)
 	end)
+	if IsTable(f.ScrollFrame) and IsTable(f.ScrollFrame.ScrollBar) then
+		Hook(f.ScrollFrame.ScrollBar, "SetValue", "RXPFrame.ScrollBar.SetValue", function()
+			ExtendScroll(f)
+		end)
+	end
 	NewSteps(f)
 	GuideRows(f)
 	Hook(rxp, "SetStep", "SetStep", function()

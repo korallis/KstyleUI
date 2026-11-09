@@ -189,7 +189,7 @@ local GUARDED = { "SetScript", "Hide", "SetParent" }
 
 local function Maker(env)
 	local made, sealed = {}, {}
-	local m = { made = made, depth = 1, violations = {} }
+	local m = { env = env, made = made, depth = 1, violations = {} }
 	-- trust(fn) runs fn as RestedXP's own code, which may call SetScript, Hide and SetParent on its objects.
 	function m.trust(fn)
 		return function(...)
@@ -408,6 +408,12 @@ local function V1Window(m, rxp)
 			row:SetHeight(LineHeight(row.text) + 8)
 		end
 	end
+	-- RestedXP caps its list's scroll at the child's height plus 10, less the list's, after every SetValue
+	-- (GuideWindow.lua:1528): a range that assumes its own 5-unit top and 7-unit bottom inset.
+	m.env.hooksecurefunc(scroll.ScrollBar, "SetValue", function(self)
+		local range = math.floor(f.ScrollChild:GetHeight() + 10) - f.BottomFrame:GetHeight()
+		self:SetMinMaxValues(0, math.max(0, range))
+	end)
 	rxp.SetStep = m.trust(function(count, elements)
 		local pool = f.CurrentStepFrame.framePool
 		for i = 1, count or 1 do
