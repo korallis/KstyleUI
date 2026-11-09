@@ -29,9 +29,9 @@ if tip and tip.AddTitle then
 	end
 end
 
-local tracked = Tokens.Font("caps")
-assert(Locale.TrackMode(tracked) == "face" and Locale.CanTrack(tracked) == true, "the tracked face is spaced by its own advances")
-assert(Locale.TrackMode(cinzel) == nil and Locale.TrackMode(tracked) ~= "space", "no Cinzel file is ever spaced with thin spaces")
+local capsFace = Tokens.Font("caps")
+assert(Locale.TrackMode(capsFace) == "face" and Locale.CanTrack(capsFace) == true, "the tracked face is spaced by its own advances")
+assert(Locale.TrackMode(cinzel) == nil and Locale.TrackMode(capsFace) ~= "space", "no Cinzel file is ever spaced with thin spaces")
 assert(not ns.Lumen.Tracked("QUESTS"):find(THIN_SPACE, 1, true), "the caps cap carries no thin space")
 
 local files = { "Core/Widgets/Tooltip.lua", "KstyleUI_Skins/Lumen.lua", "KstyleUI_UnitFrames/Unit.lua" }

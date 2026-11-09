@@ -38,6 +38,8 @@ assert(Locale.TrackMode(semibold) == nil and Locale.CanTrack(semibold) == false,
 assert(Locale.TrackMode(Tokens.FontPath("AlegreyaSansRegular")) == "space", "Alegreya is spaced with thin spaces")
 
 local text = Widgets.Text(root, "caps", "capsGold")
+local px = Scale.Pixel(1) / Widgets.ScaleFactor(text)
+Widgets.ApplyFont(text, path, 100 * px, "")
 Widgets.SetText(text, "Skyborne")
 assert(text:GetText() == "SKYBORNE" and not text:GetText():find(THIN_SPACE, 1, true), "capitals, no thin space")
 local pad = Widgets.TrackPad(text)
@@ -46,7 +48,7 @@ assert(pad > 0 and math.abs(pad - 0.07 * fontSize) < 1e-6, "the pad after the la
 local natural = Scene.TextWidth("SKYBORNE", fontSize, (text:GetFont()))
 assert(math.abs(Widgets.TextWidth(text) - (natural - pad)) < 1e-6, "the measure stops at the last letter's ink")
 
-local px = Scale.Pixel(1) / Widgets.ScaleFactor(text)
+assert(pad >= 6 * px, "the pad is several pixels wide here, so a missing shift cannot hide inside the rounding")
 local function Placed(region, point)
 	for _, anchor in ipairs(region._points) do
 		if anchor[1] == point then
@@ -57,8 +59,8 @@ end
 local function Moved(point, set)
 	return (Placed(text, point) or 1e9) - set
 end
-local function Near(a, b)
-	return math.abs(a - b) <= px
+local function Near(value, expected)
+	return math.abs(value - expected) <= px
 end
 
 text:ClearAllPoints()
@@ -95,12 +97,13 @@ text:ClearAllPoints()
 text:SetPoint("CENTER", root, "CENTER", 0, 0)
 Widgets.ApplyFont(text, Tokens.FontPath("AlegreyaSansRegular"), 12, "")
 assert(Widgets.TrackPad(text) == 0 and Near(Moved("CENTER", 0), 0), "an untracked face leaves the anchor where it was set")
-Widgets.ApplyFont(text, path, 24, "")
+Widgets.ApplyFont(text, path, 200 * px, "")
 assert(Near(Moved("CENTER", 0), 0.07 * select(2, text:GetFont()) / 2), "a bigger size means a bigger pad")
+assert(Widgets.TrackPad(text) > pad * 1.9, "the pad follows the size")
 
 local own = Widgets.FontString(root, "OVERLAY")
 own:SetPoint("RIGHT", root, "RIGHT", 0, 0)
-own:SetFont(path, 12, "")
+own:SetFont(path, 100 * px, "")
 Widgets.SyncTracking(own)
 assert(Widgets.TrackPad(own) > 0 and Near(Placed(own, "RIGHT"), Widgets.TrackPad(own)), "SyncTracking reads whatever font a text has been given")
 
