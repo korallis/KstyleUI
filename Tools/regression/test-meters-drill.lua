@@ -288,8 +288,9 @@ env.RunTimers()
 assert(not tostring(Text(list.column)):upper():find("PAUSED", 1, true), "out of combat the column names the fight again")
 M.Write(env, K, "damage.meter", "DamageDone")
 
--- Group only is the default: alone, the window hides.
-assert(ns.Get("damage.group") == true, "the damage meter shows only in a group by default")
+-- Group only is off by default (owner, 2026-11-09: the meter shows solo too; test-meters-solo.lua). Switched on, alone, the window hides.
+assert(ns.Get("damage.group") == false, "the damage meter shows alone by default")
+M.Write(env, K, "damage.group", true)
 env._group = { raid = false, size = 0 }
 env.FireEvent("GROUP_ROSTER_UPDATE")
 env.RunTimers()
@@ -329,6 +330,8 @@ assert(autoHere and autoHere:find("KstyleUI", 1, true), "auto names KstyleUI's w
 assert(Row(ns.schema, "damage.meter").showWhen(settings), "window-only settings show when auto picked the window")
 
 -- Group only holds Blizzard's restyled window too: hidden alone, back in a group, back when switched off.
+assert(not KR.Safe.IsHidden(blizzard), "by default Blizzard's restyled window shows alone")
+M.Write(envR, KR, "damage.group", true)
 assert(KR.Safe.IsHidden(blizzard), "alone, Blizzard's restyled window is held hidden")
 envR._group = { raid = false, size = 3 }
 envR.FireEvent("GROUP_ROSTER_UPDATE")

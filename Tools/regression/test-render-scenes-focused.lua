@@ -93,7 +93,7 @@ assert(rightAligned["24s"] and rightAligned["12s"], "the buff bars' countdowns d
 assert(fills >= 2, "the buff bars draw their fills")
 
 -- The focused scenes. The nameplate scene puts the plate on a base the game scaled to 0.58, as the owner's Mac
--- does, and the plate still draws its 175 by 18 bar in root units.
+-- does, and the plate still draws its 175 by 12 bar (the target sigil's height) in root units.
 local plate = check("nameplate", dofile("Tools/render/scenes/nameplate.lua")())
 local fill
 for _, item in ipairs(plate.items) do
@@ -102,7 +102,7 @@ for _, item in ipairs(plate.items) do
 	end
 end
 assert(fill, "the plate's health fill is drawn")
-assert(math.abs(fill.rect[3] - 175 * 864 / 1540) < 1 and math.abs(fill.rect[4] - 18) < 1, "the bar is 175 by 18 screen units on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
+assert(math.abs(fill.rect[3] - 175 * 864 / 1540) < 1 and math.abs(fill.rect[4] - 12) < 1, "the bar is 175 by 12 screen units on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
 local databars = check("databars", dofile("Tools/render/scenes/databars.lua")())
 local seen = {}
 for _, item in ipairs(databars.items) do
@@ -110,9 +110,10 @@ for _, item in ipairs(databars.items) do
 		seen[item.text] = true
 	end
 end
-for _, want in ipairs({ "Level 38 \194\183 32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
+for _, want in ipairs({ "32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
 	assert(seen[want], "the data bars scene shows " .. want)
 end
+assert(not seen["Level 38 \194\183 32%"], "the XP caption leaves the level to the portrait's badge (owner, 2026-11-09)")
 assert(not seen["14:32"], "the readout leaves the clock to the minimap card, as the Lumen mockup does (round 4, Fable #5)")
 
 -- The chat scene shows the mockup's four tabs on Blizzard's dock, the plus glyph and five lines.

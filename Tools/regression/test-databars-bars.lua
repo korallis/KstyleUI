@@ -99,7 +99,7 @@ do
 	K.Options.Write("DataBars", "xp.segments", 0)
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
-	eq(xp.text:GetText(), "Level 38 \194\183 24% \194\183 rested 16%", "the default caption is the level, the percent and the rested share")
+	eq(xp.text:GetText(), "24% \194\183 rested 16%", "the default caption is the percent and the rested share; the portrait's badge shows the level")
 	local cp, crel, crelp = xp.text:GetPoint(1)
 	eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOP>true>BOTTOM", "the caption is centred under the line")
 	eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")

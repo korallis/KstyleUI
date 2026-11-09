@@ -5,6 +5,7 @@ local OWNER, SHARED = "CVars", "*"
 local MEMORIES = {
 	{ module = "CombatText", key = "combatTextCVars" },
 	{ module = "Chat", key = "chatTimestamps", cvar = "showTimestamps" },
+	{ module = "Meters", key = "damageMeterCVars" },
 }
 
 local seen = {}

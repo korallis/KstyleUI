@@ -395,16 +395,16 @@ do
 	assert(env.issecretvalue(text) and env.Reveal(text) == "abbr:40", "the value format abbreviates UnitHealth")
 end
 
--- Size: the mockup's plate (mockup-leveling-warrior-2574.png, 1.348 px per unit): a 175 x 18 bar in its two-border
--- frame (179 x 22 outside), a 34-unit octagonal level disc with a 10.5-unit chamfer, rimmed in the bar's colour and
+-- Size: the mockup's plate (mockup-leveling-warrior-2574.png, 1.348 px per unit), 175 units wide; the bar is 12 tall,
+-- the target sigil's health bar (owner, 2026-11-09; test-nameplates-height.lua), in its two-border frame, a 34-unit octagonal level disc with a 10.5-unit chamfer, rimmed in the bar's colour and
 -- overlapping the bar's left end, the name in its own case at 14 above, the level in white at 16, no health text ----
 
 do
 	local env, K, ns = N.New()
-	assert(ns.Plate.DEFAULT_WIDTH == 175 and ns.Plate.DEFAULT_HEIGHT == 18, "the health bar is 175 x 18 inside its two-border frame: 179 x 22 outside")
+	assert(ns.Plate.DEFAULT_WIDTH == 175 and ns.Plate.DEFAULT_HEIGHT == 12, "the health bar is 175 x 12, the sigil's height, inside its two-border frame")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(N.Same(plate.health:GetWidth(), 175) and N.Same(plate.health:GetHeight(), 18), "the bar takes the default size")
+	assert(N.Same(plate.health:GetWidth(), 175) and N.Same(plate.health:GetHeight(), 12), "the bar takes the default size")
 	local disc = plate.level
 	assert(N.Same(disc:GetWidth(), 34) and N.Same(disc:GetHeight(), 34), "the level disc is 34 units across")
 	assert(disc.chrome.shapeName == "panel" and N.Same(disc.chrome:Radius(), 10.5), "the panel with its corners rounded 10.5 units, where the octagon cut them")

@@ -26,6 +26,7 @@ Format.BAR_TEXTS = {
 	{ value = "labelValue", label = L["Name and value"] },
 	{ value = "shortPercent", label = L["Short name and percent"] },
 	{ value = "levelRested", label = L["Level, percent and rested"] },
+	{ value = "percentRested", label = L["Percent and rested"] },
 }
 
 local function Whole(n)
@@ -96,6 +97,13 @@ local function Joined(label, text)
 	return text
 end
 
+local function Rested(rested, max)
+	if type(rested) == "number" and rested > 0 then
+		return DOT .. format(L["rested %d%%"], Format.Percent(rested, max))
+	end
+	return ""
+end
+
 local BAR_TEXT = {
 	percent = function(current, max)
 		return Format.Percent(current, max) .. "%"
@@ -127,10 +135,10 @@ local BAR_TEXT = {
 		if label and label ~= "" then
 			text = label .. DOT .. text
 		end
-		if type(rested) == "number" and rested > 0 then
-			text = text .. DOT .. format(L["rested %d%%"], Format.Percent(rested, max))
-		end
-		return text
+		return text .. Rested(rested, max)
+	end,
+	percentRested = function(current, max, _, _, rested)
+		return Format.Percent(current, max) .. "%" .. Rested(rested, max)
 	end,
 }
 

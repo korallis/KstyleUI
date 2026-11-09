@@ -32,7 +32,7 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 175, 18
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 175, 12
 
 local GAP = Tokens.Size("gapTiny")
 local BADGE_GAP = Tokens.Size("gapSmall")
