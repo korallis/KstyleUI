@@ -1,17 +1,25 @@
 # guard_allow.tsv: findings the render guard (Tools/render/guard.lua) lets pass, one per line, tab-separated:
-# owner scope, scene glob, kind (ellipsis or outside), subject (its start, or = and the whole subject), reason.
-# The owner is the round-3 fix scope that owns the defect (rank/FIX_R3_SCOPES.md: R1 to R7); the PR that fixes it
-# deletes its lines, and shoot.sh --strict fails on a line that no longer matches. "design" marks a deliberate
-# straddle the guard cannot tell from a spill (a tab or a coin set on a card's edge); it is not a defect.
-R4a	hud_*	ellipsis	QUESTS	the tracker's Quests cap truncates in the story rail (Opus #2, Fable #3, Muse #1)
+# owner scope, scene glob, kind (ellipsis, outside, clipped or overlap), subject (its start, or = and the whole
+# subject), reason. The owner is the fix scope that owns the defect (round 3: rank/FIX_R3_SCOPES.md, R1 to R7;
+# round 4: rank/FIX_R4_SCOPES.md, S1 to S6); the PR that fixes it deletes its lines. shoot.sh --strict fails on a
+# line naming one scene that no longer matches, and a full gallery or class run fails on a glob line that matched
+# nothing in any of its scenes. "design" marks a deliberate straddle the guard cannot tell from a spill (a tab or
+# a coin set on a card's edge, a stand-in label under a mover plate); it is not a defect.
 R4a	gallery_restedxp	outside	Active items	RestedXP item frame title sits 22 units past its glass
 R4a	restedxp	outside	Active items	RestedXP item frame title sits 22 units past its glass
 R4a	gallery_restedxp	outside	RXPItemFrame_title.	RestedXP item frame title plate sits 16 units past its glass
 R4a	restedxp	outside	RXPItemFrame_title.	RestedXP item frame title plate sits 16 units past its glass
-design	*	outside	RXPFrame.CurrentStepFrame.?.number.	the step number tab is set on the step card's top edge
-design	*	outside	Step 3	the step number tab is set on the step card's top edge
 design	*	outside	=N	the minimap's north coin is set on the lens rim
 design	gallery_chat	outside	ChatFrame4EditBox.	Blizzard anchors an undocked window's edit box under the window
 design	gallery_chat	outside	=/s Anyone for the croc hunt?	the edit box text, on the edit box under the undocked window
 design	gallery_meters	outside	DamageMeterSessionWindow1.MinimizeContainer.	Blizzard opens the spell breakdown window beside the session window
+S3	gallery_options	ellipsis	Frostbolt	the unit frame preview's cast label truncates at the pane's width (Opus #1)
+S4	gallery_layout	overlap	Apply places the quest tracker here	the story slot hint runs under the Player mover plate and its labels (Astra #2)
+S4	gallery_layout	overlap	In a raid, the raid frames cover	the raid line label runs under the Buffs mover plate (Astra #2)
+S4	gallery_layout	overlap	KstyleUI_Root.?.? LumenShape.png & Story rail	the story rail title runs under the Player mover plate (Astra #2)
+design	gallery_layout	overlap	BUFFS & Buffs	a glass stand-in's centred label sits under the mover plate's title; the element a plate covers has no such label
+design	gallery_layout	overlap	CHAT & Chat	a glass stand-in's centred label sits under the mover plate's title
+design	gallery_layout	overlap	MINIMAP & Minimap	a glass stand-in's centred label sits under the mover plate's title
+design	gallery_layout	overlap	PLAYER & Player	a glass stand-in's centred label sits under the mover plate's title
+design	gallery_layout	overlap	TARGET & Target	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_auras_counts	outside	=KstyleUI_Root.?.? glass	the Blessings full-list flyout opens beside the card that holds it

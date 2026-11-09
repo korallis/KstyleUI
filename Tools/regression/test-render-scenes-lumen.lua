@@ -28,6 +28,7 @@ end
 
 local questing = L.guard("hud_lumen_questing", check("hud_lumen_questing", Lumen.Build("questing")))
 local combat = L.guard("hud_lumen_combat", check("hud_lumen_combat", Lumen.Build("combat")))
+L.globs()
 local slot = questing.slot
 
 -- The story slot holds the guide and the tracker, as the player places them; chat sits under it.

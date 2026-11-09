@@ -6,13 +6,22 @@
 --   local allow = Guard.LoadAllow()                         -- Tools/render/guard_allow.tsv
 --   local fresh, allowed, stale = Guard.Sort(findings, allow, "hud_lumen_questing")
 --
--- Two kinds of finding:
+-- Four kinds of finding:
 --   ellipsis  a text that may not wrap (WordWrap off) and is wider than its rect, measured with the same glyph
 --             table and the same 0.5-pixel slack the page uses before it truncates (render.js truncateRuns);
 --   outside   a drawn text or texture that belongs to a card and reaches more than SLACK units past its glass, and
 --             does not sit wholly on any other glass either (a popout list hangs under the card that opened it);
 --             and a card inside another card's content whose glass reaches past that card's glass (a tab column
---             hung off a window's edge), named "<key path> glass".
+--             hung off a window's edge), named "<key path> glass";
+--   clipped   a text whose rect reaches more than SLACK units past the nearest frame that clips its children, so
+--             the player reads a fragment ("ing Frostbolt"). A scroll view (a ScrollFrame, or a clipping frame that
+--             takes the mouse wheel, or whose parent does) cuts its rows by design and is never a finding;
+--   overlap   two texts whose glyphs cross by more than OVERLAP units on both axes, or a text whose glyphs an
+--             opaque texture (effective alpha at least COVER_ALPHA) from another frame draws over, drawn after the
+--             text; both inside one card, or both in one top-level element when no card holds them, named
+--             "<subject> & <subject>" in byte order. A text drawn over a texture, and a texture on the text's own
+--             frame, are the design. A text's glyphs are measured as the page draws them: the glyph table's width
+--             set by its justification inside its rect, one line high, or its wrapped lines when it wraps.
 -- A card is a frame that owns Lumen frost glass: the panel, card, window and rail shapes of Widgets.Chrome (tiles,
 -- sockets and bars carry no frost). The glass is the union of the card's LumenShape slices, as drawn. A card's
 -- content is everything drawn under the frame the glass clothes: the card frame itself, or, for a backdrop (a glass
@@ -29,9 +38,12 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 local Guard = {}
 
 Guard.SLACK = 1
+Guard.OVERLAP = 2
+Guard.COVER_ALPHA = 0.5
 Guard.ppu = tonumber(os.getenv and os.getenv("RENDER_PPU") or nil) or 1.426
 Guard.ALLOW = "Tools/render/guard_allow.tsv"
-Guard.OWNERS = { R1 = true, R2 = true, R3 = true, R4a = true, R4b = true, R5 = true, R6 = true, R7 = true, design = true }
+Guard.OWNERS = { R1 = true, R2 = true, R3 = true, R4a = true, R4b = true, R5 = true, R6 = true, R7 = true, S1 = true, S2 = true, S3 = true, S4 = true, S5 = true, S6 = true, design = true }
+Guard.KINDS = { ellipsis = true, outside = true, clipped = true, overlap = true }
 
 local DECOR = { "LumenShadow", "Shadow.png", "Glow.png", "LumenGilt", "Noise.png" }
 
@@ -278,12 +290,110 @@ function Guard.Holder(cards, inner)
 	return best
 end
 
+local LINE = 1.2
+local BASELINE = 0.78
+local CAP = 0.72
+local DESCENDER = 0.22
+Guard.HIDDEN = 0.9
+Guard.CROSS = 0.35
+
+-- Ink(item) -> the rect a text's glyphs fill, as the page draws them (render.js drawText): the glyph table's
+-- width set inside the rect by justifyH (the rect's width when the text wraps), and the lines' glyph boxes set by
+-- justifyV, or at the side a natural-height text grows from. A natural-width text never wraps; a text with a
+-- width wraps by the page's rule. Each line's glyphs run from CAP em above the baseline (BASELINE em under the
+-- line's top, plus half the leading) to the baseline, or DESCENDER em below it when the text has descenders.
+-- The second return is one line's glyph height, which the crossing rule scales.
+function Guard.Ink(item)
+	local rect = intersect(item.rect, item.clip)
+	local plain = Scene.PlainText(item.text)
+	local size = item.font and item.font.size or 12
+	local path = item.font and item.font.path
+	local need = Scene.TextWidth(plain, size, path)
+	local lines
+	if item.natural and item.natural.width then
+		local _, breaks = plain:gsub("\n", "")
+		lines = breaks + 1
+	elseif item.wordWrap ~= false and rect[3] > 0 then
+		lines = Scene.WrappedLines(plain, size, path, rect[3])
+	else
+		local _, breaks = plain:gsub("\n", "")
+		lines = breaks + 1
+	end
+	local lh = size * LINE
+	local block = lines * lh
+	local top = rect[2]
+	if block < rect[4] then
+		local side = item.grow or (item.justifyV == "MIDDLE" and "middle") or (item.justifyV == "BOTTOM" and "bottom") or "top"
+		if side == "middle" then
+			top = rect[2] + (rect[4] - block) / 2
+		elseif side == "bottom" then
+			top = rect[2] + rect[4] - block
+		end
+	end
+	local descends = plain:find("[gjpqy,;]") ~= nil
+	local glyph = (CAP + (descends and DESCENDER or 0)) * size
+	-- A trailing blank line (a tooltip's name line ends in "\n ") takes room but draws no glyphs.
+	local _, blank = plain:gsub("\n%s*$", "")
+	local inked = math.max(1, lines - blank)
+	local first = top + BASELINE * size + (lh - size) / 2 - CAP * size
+	local last = top + (inked - 1) * lh + BASELINE * size + (lh - size) / 2 + (descends and DESCENDER or 0) * size
+	local w = lines > 1 and rect[3] or math.min(need, rect[3])
+	local x = rect[1]
+	if item.justifyH == "CENTER" then
+		x = rect[1] + (rect[3] - w) / 2
+	elseif item.justifyH == "RIGHT" then
+		x = rect[1] + rect[3] - w
+	end
+	local y0, y1 = math.max(first, rect[2]), math.min(last, rect[2] + rect[4])
+	return { x, y0, w, math.max(0, y1 - y0) }, glyph
+end
+
+local function crossing(a, b)
+	local w = math.min(a[1] + a[3], b[1] + b[3]) - math.max(a[1], b[1])
+	local h = math.min(a[2] + a[4], b[2] + b[4]) - math.max(a[2], b[2])
+	return w, h
+end
+
+-- Hides(item) -> whether a texture can hide a text under it: a solid colour, an icon (a file ID, or a file from an
+-- Icons folder) or a kit fill slice (LumenShape), at an effective alpha of at least COVER_ALPHA. Any other art
+-- (rims, outlines, bar glass, gradients) carries its own transparency the guard cannot read, so it is not judged.
+function Guard.Hides(item)
+	if item.kind ~= "texture" or item.masks and #item.masks > 0 then
+		return false
+	end
+	local file = fileOf(item)
+	local solid = item.color ~= nil and file == ""
+	local icon = item.fileID ~= nil or file:lower():find("icons[/\\]", 1, true) ~= nil
+	local fill = file:find("LumenShape", 1, true) ~= nil
+	if not (solid or icon or fill) then
+		return false
+	end
+	local alpha = item.alpha or 1
+	if item.color then
+		alpha = alpha * (item.color[4] or 1)
+	end
+	if item.vertex then
+		alpha = alpha * (item.vertex[4] or 1)
+	end
+	return alpha >= Guard.COVER_ALPHA
+end
+
+-- Top(object) -> the top-level element an object hangs in: its ancestor whose parent is a root (UIParent or an
+-- unparented frame), or the object's root itself.
+local function top(object)
+	local node = object
+	while node and node._parent and node._parent._parent do
+		node = node._parent
+	end
+	return node
+end
+
 -- Check(scene) -> every finding in the scene, sorted by key. The scene must still carry its stub objects (call it
 -- before the scene is written as JSON, or on a scene a test built).
 function Guard.Check(scene)
 	local findings, seen = {}, {}
-	local function add(kind, item, card, detail)
-		local subject = subjectOf(item)
+	local function add(kind, item, card, detail, subject)
+		subject = subject or subjectOf(item)
 		local key = kind .. "|" .. subject
 		if seen[key] then
 			return
@@ -292,6 +402,7 @@ function Guard.Check(scene)
 		findings[#findings + 1] = { kind = kind, subject = subject, card = card and keyPath(card.frame), detail = detail, key = key }
 	end
 	local cards = Guard.Cards(scene)
+	local texts, drawn = {}, {}
 	for _, inner in ipairs(cards) do
 		local outer = Guard.Holder(cards, inner)
 		if outer then
@@ -320,6 +431,83 @@ function Guard.Check(scene)
 					local past = Geometry.Outside(bounds(rect), bounds(card.glass))
 					if past > Guard.SLACK then
 						add("outside", item, card, string.format("%.1f units past its card's glass", past))
+					end
+				end
+				if item.kind == "text" then
+					local ink, glyph = Guard.Ink(item)
+					if item.clip and not item.scroll then
+						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV })
+						local cut = Geometry.Outside(bounds(whole), bounds(item.clip))
+						if cut > Guard.SLACK then
+							add("clipped", item, card, string.format("%.1f units past the frame that clips it", cut))
+						end
+					end
+					if ink[3] > 0 and ink[4] > 0 then
+						texts[#texts + 1] = { item = item, ink = ink, glyph = glyph, group = card or top(object), card = card, at = #drawn + 1 }
+					end
+				elseif Guard.Hides(item) then
+					-- A card's own glass belongs to no card, but hides what sits on it: it is grouped with its card.
+					local own = card
+					if not own then
+						for _, each in ipairs(cards) do
+							if each.frame == object._parent then
+								own = each
+								break
+							end
+						end
+					end
+					drawn[#drawn + 1] = { item = item, rect = rect, group = own or top(object) }
+				end
+			end
+		end
+	end
+	-- A text under a covering texture another frame draws after it: hidden when the texture covers HIDDEN of its
+	-- glyphs (a chip set over the tile it replaces), a finding when part of the text shows. Hidden texts take no part
+	-- in the crossing check. Two texts cross when their glyph boxes share more than OVERLAP units across and more
+	-- than CROSS of the smaller glyph height down, so a tangent kiss between lines is not a finding.
+	for _, text in ipairs(texts) do
+		local ink = text.ink
+		local area = ink[3] * ink[4]
+		local covered = {}
+		for i = text.at, #drawn do
+			local cover = drawn[i]
+			local frame = cover.item.object._parent
+			if cover.group == text.group and frame ~= text.item.object._parent then
+				local w, h = crossing(ink, cover.rect)
+				if w > 0 and h > 0 then
+					-- A glass drawn as slices hides a text slice by slice: the slices one frame draws add up.
+					covered[frame] = (covered[frame] or 0) + w * h
+					if covered[frame] >= Guard.HIDDEN * area then
+						text.hidden = true
+						break
+					elseif w > Guard.OVERLAP and h > math.max(Guard.OVERLAP, Guard.CROSS * text.glyph) then
+						text.cover = text.cover or { cover = cover, w = w, h = h }
+					end
+				end
+			end
+		end
+	end
+	for i, text in ipairs(texts) do
+		if not text.hidden then
+			if text.cover then
+				local a, b = subjectOf(text.item), subjectOf(text.cover.cover.item)
+				if b < a then
+					a, b = b, a
+				end
+				add("overlap", text.item, text.card, string.format("the texture covers the text by %.1f x %.1f units", text.cover.w, text.cover.h), a .. " & " .. b)
+			end
+			for j = i + 1, #texts do
+				local other = texts[j]
+				if not other.hidden and other.group == text.group then
+					local w, h = crossing(text.ink, other.ink)
+					if w > Guard.OVERLAP and h > math.max(Guard.OVERLAP, Guard.CROSS * math.min(text.glyph, other.glyph)) then
+						local a, b = subjectOf(text.item), subjectOf(other.item)
+						if a ~= b then
+							if b < a then
+								a, b = b, a
+							end
+							add("overlap", other.item, text.card, string.format("the texts cross by %.1f x %.1f units", w, h), a .. " & " .. b)
+						end
 					end
 				end
 			end
@@ -352,7 +540,7 @@ function Guard.LoadAllow(path)
 			local owner, scene, kind, match, reason = line:match("^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
 			assert(owner, path .. ":" .. n .. ": owner, scene, kind, subject and reason, tab-separated")
 			assert(Guard.OWNERS[owner], path .. ":" .. n .. ": unknown owner scope " .. owner)
-			assert(kind == "ellipsis" or kind == "outside", path .. ":" .. n .. ": kind is ellipsis or outside")
+			assert(Guard.KINDS[kind], path .. ":" .. n .. ": kind is ellipsis, outside, clipped or overlap")
 			entries[#entries + 1] = { owner = owner, scene = scene, pattern = glob(scene), kind = kind, match = match, reason = reason, line = n }
 		end
 	end
@@ -397,6 +585,37 @@ function Guard.Sort(findings, allow, sceneName)
 		end
 	end
 	return fresh, allowed, stale
+end
+
+-- Stale(allow, runs) -> the glob entries a run proved stale: runs is { { scene = name, findings = findings }, ... },
+-- every scene of one render run (a gallery, the class renders, the regression sweep); an entry whose glob matched
+-- at least one of those scenes and covered no finding in any of them is stale (fixed: delete the line). A glob
+-- that matched no scene of the run is not judged, since the run never drew what it allows.
+function Guard.Stale(allow, runs)
+	local stale = {}
+	for _, entry in ipairs(allow) do
+		if entry.scene:find("*", 1, true) then
+			local matched, used = false, false
+			for _, run in ipairs(runs) do
+				if run.scene:match(entry.pattern) then
+					matched = true
+					for _, finding in ipairs(run.findings) do
+						if entry.kind == finding.kind and Guard.Covers(entry.match, finding.subject) then
+							used = true
+							break
+						end
+					end
+				end
+				if used then
+					break
+				end
+			end
+			if matched and not used then
+				stale[#stale + 1] = entry
+			end
+		end
+	end
+	return stale
 end
 
 -- Lines(fresh, allowed, stale, mode) -> the report lines and whether the run fails. mode is "report" (list all,
@@ -475,15 +694,48 @@ function Guard.Verdict(sceneName, rawPath, mode, paged)
 	return Guard.Lines(fresh, allowed, stale, mode)
 end
 
+-- GlobLines(stale) -> the report lines for the glob entries a run proved stale.
+function Guard.GlobLines(stale)
+	local lines = {}
+	for _, e in ipairs(stale) do
+		lines[#lines + 1] = "guard: stale allowlist line " .. e.line .. " (" .. e.owner .. "): " .. e.kind .. " " .. e.match .. " (" .. e.scene .. ") matched nothing in any scene of this run; delete it"
+	end
+	return lines
+end
+
+-- Globs(rawPaths, mode) -> lines, fails: the glob lines judged by a run's raw sidecars (out/<scene>.guard.tsv, the
+-- scene named by the file); fails in strict mode when any is stale.
+function Guard.Globs(rawPaths, mode)
+	local runs = {}
+	for _, path in ipairs(rawPaths) do
+		local scene = path:match("([^/\\]+)%.guard%.tsv$")
+		if scene then
+			runs[#runs + 1] = { scene = scene, findings = Guard.ReadRaw(path) }
+		end
+	end
+	local stale = Guard.Stale(Guard.LoadAllow(), runs)
+	return Guard.GlobLines(stale), mode == "strict" and #stale > 0
+end
+
 -- As a script: lua Tools/render/guard.lua <scene> <raw.tsv> [report|default|strict] [json-only]; exit 3 when the
--- scene fails.
+-- scene fails. Or, after a run of several scenes: lua Tools/render/guard.lua --globs <mode> <raw.tsv>...; exit 3
+-- in strict mode when a glob line matched nothing in any scene of the run.
 if arg and arg[0] and arg[0]:match("guard%.lua$") and arg[1] then
-	local lines, fails = Guard.Verdict(arg[1], arg[2], arg[3] or "default", arg[4] ~= "json-only")
+	local lines, fails
+	if arg[1] == "--globs" then
+		local paths = {}
+		for i = 3, #arg do
+			paths[#paths + 1] = arg[i]
+		end
+		lines, fails = Guard.Globs(paths, arg[2] or "default")
+	else
+		lines, fails = Guard.Verdict(arg[1], arg[2], arg[3] or "default", arg[4] ~= "json-only")
+	end
 	for _, line in ipairs(lines) do
 		io.stderr:write(line, "\n")
 	end
 	if fails then
-		io.stderr:write("guard: ", arg[1], " fails the render guard (Tools/render/README.md, Render guard)\n")
+		io.stderr:write("guard: ", arg[1] == "--globs" and "the run" or arg[1], " fails the render guard (Tools/render/README.md, Render guard)\n")
 		os.exit(3)
 	end
 end

@@ -83,6 +83,15 @@ def render(class_name, ppu):
     subprocess.run(["bash", "Tools/render/shoot.sh", scene_name(class_name), "--backdrop", "--ppu", str(ppu)], check=True)
 
 
+def globs(names):
+    """After a full run, judge the allowlist's glob lines by every class scene's guard sidecar; raises in strict mode on a stale one."""
+    raws = [os.path.join(RENDERS, scene_name(name) + ".guard.tsv") for name in names]
+    raws = [raw for raw in raws if os.path.exists(raw)]
+    mode = os.environ.get("RENDER_GUARD", "default")
+    lua = os.environ.get("LUA", "luajit")
+    subprocess.run([lua, "Tools/render/guard.lua", "--globs", mode, *raws], check=True)
+
+
 def cut(png, class_name, out_dir, box, ppu):
     """Copy the full render to out_dir as <class>.png and crop the frames box as <class>_frames.png.
 
@@ -155,6 +164,8 @@ def main(argv=None):
         full, frames = cut(png, name, args.out, FRAMES_BOX, args.ppu)
         entries.append(manifest_entry(scene, os.path.basename(full), os.path.basename(frames), notes.get(name.upper())))
         print("%s: %s, %s" % (name, full, frames))
+    if not args.classes:
+        globs(names)
     path = os.path.join(args.out, "manifest.json")
     if args.classes and os.path.exists(path):
         entries = merged(path, entries, set(names))

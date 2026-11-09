@@ -88,6 +88,7 @@ content:SetSize(200, 100)
 content:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 100, -400)
 local backdrop = env.CreateFrame("Frame", nil, content)
 backdrop:SetAllPoints(content)
+backdrop:SetFrameLevel(0)
 glass(backdrop)
 text(content, "Spills past the backdrop", 200, true):SetPoint("TOPLEFT", content, "TOPLEFT", 60, -60)
 local holder = env.CreateFrame("Frame", nil, UIParent)
@@ -134,12 +135,118 @@ lens:SetPoint("BOTTOM", arch, "BOTTOM", 0, 10)
 arch.lens = lens
 icon(lens, 0, 0):SetSize(80, 80)
 
+-- Clipping: a holder that clips its children cuts a label that runs past its edge to a fragment the player reads as
+-- cut ("ing Frostbolt"), which is a finding; a label inside the holder is not; and a scroll view (a ScrollFrame, or
+-- a clipping frame that takes the mouse wheel, or whose parent does) cuts its rows by design.
+local clipbox = env.CreateFrame("Frame", "GuardClip", UIParent)
+clipbox:SetSize(100, 60)
+clipbox:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 100, -600)
+clipbox:SetClipsChildren(true)
+local function child(parent)
+	local kid = env.CreateFrame("Frame", nil, parent)
+	kid:SetAllPoints(parent)
+	return kid
+end
+local preview = child(clipbox)
+clipbox.preview = preview
+text(preview, "Casting Frostbolt", 150, false):SetPoint("LEFT", preview, "LEFT", -60, 10)
+text(preview, "Inside", 60, false):SetPoint("BOTTOMLEFT", preview, "BOTTOMLEFT", 2, 2)
+local scroller = env.CreateFrame("ScrollFrame", "GuardScroll", UIParent)
+scroller:SetSize(100, 60)
+scroller:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 300, -600)
+scroller:SetClipsChildren(true)
+scroller.row = child(scroller)
+text(scroller.row, "A row half scrolled away", 150, false):SetPoint("LEFT", scroller.row, "LEFT", -60, 10)
+local wheel = env.CreateFrame("Frame", "GuardWheel", UIParent)
+wheel:SetSize(100, 60)
+wheel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 500, -600)
+wheel:EnableMouseWheel(true)
+local view = child(wheel)
+view:SetClipsChildren(true)
+wheel.view = view
+view.row = child(view)
+text(view.row, "A list row half in view", 150, false):SetPoint("LEFT", view.row, "LEFT", -60, 10)
+
+-- Overlap: two texts whose glyphs cross on one tile ("12s" and "3"), and a text covered by an opaque texture a
+-- later-drawn sibling frame owns (a tile over a help paragraph) are findings. A text on its own frame's fill, a
+-- faint wash over a text, two texts with a gap between them, and a text drawn over a texture are not.
+local tile2 = env.CreateFrame("Frame", "GuardTile", UIParent)
+tile2:SetSize(40, 40)
+tile2:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 100, -700)
+local fill = tile2:CreateTexture(nil, "BACKGROUND")
+fill:SetAllPoints(tile2)
+fill:SetColorTexture(0.1, 0.1, 0.1, 1)
+text(tile2, "12s", 30, false):SetPoint("BOTTOMLEFT", tile2, "BOTTOMLEFT", 2, 2)
+text(tile2, "3", 12, false):SetPoint("BOTTOMLEFT", tile2, "BOTTOMLEFT", 14, 2)
+local help = env.CreateFrame("Frame", "GuardHelp", UIParent)
+help:SetSize(200, 80)
+help:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 300, -700)
+text(help, "Drop a spell below, then click it", 200, true):SetPoint("TOPLEFT", help, "TOPLEFT", 0, -40)
+local cover = env.CreateFrame("Frame", nil, help)
+cover:SetSize(60, 30)
+cover:SetPoint("TOPLEFT", help, "TOPLEFT", 10, -30)
+help.cover = cover
+local plate = cover:CreateTexture(nil, "ARTWORK")
+plate:SetAllPoints(cover)
+plate:SetColorTexture(0.2, 0.3, 0.4, 1)
+local faint = env.CreateFrame("Frame", nil, help)
+faint:SetSize(60, 30)
+faint:SetPoint("TOPLEFT", help, "TOPLEFT", 120, -30)
+help.faint = faint
+local wash = faint:CreateTexture(nil, "ARTWORK")
+wash:SetAllPoints(faint)
+wash:SetColorTexture(0, 0, 0, 0.2)
+local pair = env.CreateFrame("Frame", "GuardPair", UIParent)
+pair:SetSize(200, 30)
+pair:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 600, -700)
+local left = text(pair, "Thaldren", 60, false)
+left:SetPoint("LEFT", pair, "LEFT", 0, 0)
+left:SetJustifyH("LEFT")
+local right = text(pair, "-11k", 40, false)
+right:SetPoint("LEFT", left, "RIGHT", 2, 0)
+right:SetJustifyH("LEFT")
+local under = env.CreateFrame("Frame", nil, pair)
+under:SetSize(200, 30)
+under:SetPoint("TOPLEFT", pair, "TOPLEFT", 0, 0)
+under:SetFrameLevel(0)
+pair.under = under
+local bed = under:CreateTexture(nil, "ARTWORK")
+bed:SetAllPoints(under)
+bed:SetColorTexture(0.5, 0.5, 0.5, 1)
+
 local scene = Scene.Build(env, {})
 local findings = Guard.Check(scene)
 local by = {}
 for _, f in ipairs(findings) do
 	by[f.kind .. "|" .. f.subject] = f
 end
+
+local cutText = by["clipped|Casting Frostbolt"]
+assert(cutText and cutText.detail:find("past", 1, true), "a label cut by the holder that clips it is a clipped finding: " .. tostring(cutText and cutText.detail))
+assert(not by["clipped|Inside"], "a label inside its clipping holder is not clipped")
+assert(not by["clipped|A row half scrolled away"], "a ScrollFrame cuts its rows by design")
+assert(not by["clipped|A list row half in view"], "a clipping view whose frame takes the mouse wheel is a scroll list")
+
+assert(by["overlap|12s & 3"], "two texts whose glyphs cross on one tile overlap: " .. table.concat((function()
+	local subjects = {}
+	for _, f in ipairs(findings) do
+		if f.kind == "overlap" then
+			subjects[#subjects + 1] = f.subject
+		end
+	end
+	return subjects
+end)(), "; "))
+local covered = by["overlap|Drop a spell below, then click it & GuardHelp.cover.?"]
+assert(covered and covered.detail:find("covers", 1, true), "a text under an opaque texture another frame draws later is an overlap")
+assert(not by["overlap|Drop a spell below, then click it & GuardHelp.faint.?"], "a faint wash over a text is not an overlap")
+assert(not by["overlap|-11k & Thaldren"] and not by["overlap|Thaldren & -11k"], "two texts with a gap between them do not overlap")
+local textOverTexture = false
+for _, f in ipairs(findings) do
+	if f.kind == "overlap" and (f.subject:find("GuardTile", 1, true) or f.subject:find("GuardPair.under", 1, true)) then
+		textOverTexture = true
+	end
+end
+assert(not textOverTexture, "a text drawn over a texture, on its own frame or a frame below, is the design")
 
 assert(not by["ellipsis|Fits"], "a text that fits its rect is not truncated")
 local cut = by["ellipsis|A label far too long for its narrow rect"]
@@ -180,16 +287,34 @@ handle:write("R4b\tgallery_window\toutside\tGuardWindow.column\tthe column is R4
 handle:write("design\t*\toutside\t=Spills past\tdeliberate\n")
 handle:write("R2\tgallery_window\tellipsis\tGone\tfixed already\n")
 handle:write("R2\tgallery_*\tellipsis\tAlso gone\tglob lines span scenes\n")
+handle:write("S3\tgallery_*\tclipped\tCasting\tthe cast label is S3's\n")
+handle:write("S2\thud_*\toverlap\t12s\tno HUD scene draws this\n")
 handle:close()
 local allow = Guard.LoadAllow(path)
-assert(#allow == 4, "comments and blank lines are skipped")
+assert(#allow == 6, "comments and blank lines are skipped; clipped and overlap are kinds, S1 to S6 are owners")
 assert(Guard.Covers("=N", "N") and not Guard.Covers("=N", "Night"), "= matches the whole subject")
 assert(Guard.Covers("Step 3", "Step 34") and not Guard.Covers("Step 3", "A Step 34"), "a subject matches from its start")
 
 local fresh, allowed, stale = Guard.Sort(findings, allow, "gallery_window")
-assert(#allowed == 1 and allowed[1].entry.owner == "R4b", "the R4b line covers the column")
-assert(#fresh == 5, "the ellipsis, the tab card, the sub-panel spill, the big card and the backdrop spill stay fresh (=Spills past is not the whole subject)")
-assert(#stale == 1 and stale[1].match == "Gone", "a line naming this scene that matched nothing is stale; a glob line is not")
+local owners = {}
+for _, f in ipairs(allowed) do
+	owners[f.entry.owner] = f.kind
+end
+assert(#allowed == 2 and owners.R4b == "outside" and owners.S3 == "clipped", "the R4b line covers the column and the S3 glob line covers the cut cast label")
+assert(#fresh == 7, "the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill and the two overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
+assert(#stale == 1 and stale[1].match == "Gone", "a line naming this scene that matched nothing is stale; a glob line is not judged by one scene")
+
+-- A glob line is judged by the run: stale when it matched a scene of the run and covered nothing in any of them.
+local runs = { { scene = "gallery_window", findings = findings }, { scene = "gallery_other", findings = {} } }
+local staleGlobs = Guard.Stale(allow, runs)
+local staleBy = {}
+for _, entry in ipairs(staleGlobs) do
+	staleBy[entry.match] = true
+end
+assert(staleBy["Also gone"], "a glob line that matched scenes of the run and covered nothing is stale")
+assert(staleBy["=Spills past"], "a * line that covers nothing in the run is stale")
+assert(not staleBy["12s"], "a glob that matched no scene of the run is not judged")
+assert(not staleBy["Casting"] and not staleBy["GuardWindow.column"] and not staleBy["Gone"], "lines that covered a finding, and lines naming one scene, are not in the glob verdict")
 
 local lines, fails = Guard.Lines(fresh, allowed, stale, "report")
 local _

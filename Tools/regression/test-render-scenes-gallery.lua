@@ -42,6 +42,7 @@ for _, name in ipairs(galleryScenes) do
 	end
 	galleryNames[name] = scene.frames[1].name
 end
+L.globs()
 
 -- The widget gallery: the renderer draws an edit box's own text and a text area's log (an edit box inside a scroll
 -- frame, hung from the frame's corner), and clips a scroll list's rows to its view, so a row scrolled out of

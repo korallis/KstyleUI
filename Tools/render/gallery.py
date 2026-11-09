@@ -100,6 +100,15 @@ def render(scene, ppu):
     subprocess.run(["bash", "Tools/render/shoot.sh", scene, "--backdrop", "--ppu", str(ppu)], check=True)
 
 
+def globs(scenes):
+    """After a full run, judge the allowlist's glob lines by every scene's guard sidecar; raises in strict mode on a stale one."""
+    raws = [os.path.join(RENDERS, scene + ".guard.tsv") for scene in scenes]
+    raws = [raw for raw in raws if os.path.exists(raw)]
+    mode = os.environ.get("RENDER_GUARD", "default")
+    lua = os.environ.get("LUA", "luajit")
+    subprocess.run([lua, "Tools/render/guard.lua", "--globs", mode, *raws], check=True)
+
+
 def references(mockup, refs_dir, ppu, keys):
     """Write ref_<key>.png for each key from the mockup at the render's density; returns key -> path."""
     pillow()
@@ -180,6 +189,8 @@ def main(argv=None):
         frames = frames_of(os.path.join(RENDERS, scene + ".json"))
         per_scene[scene] = frames
         keys.update(frame["reference"] for frame in frames)
+    if not args.scenes:
+        globs(names)
     missing = [key for key in keys if key not in REFERENCE_BOXES]
     if missing:
         sys.exit("no mockup box for the reference(s) " + ", ".join(sorted(missing)))

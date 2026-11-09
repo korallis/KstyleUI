@@ -52,9 +52,34 @@ local function Placeholder(pane)
 	return frame
 end
 
-local function Anchor(frame, holder)
-	if frame:GetNumPoints() == 0 then
-		frame:SetAllPoints(holder)
+local function Known(value)
+	return type(value) == "number" and not (issecretvalue and issecretvalue(value)) and value > 0
+end
+
+local function Fit(pane, frame)
+	if not frame.sized then
+		return
+	end
+	local roomW, roomH = pane.holder:GetWidth(), pane.holder:GetHeight()
+	local width, height = frame:GetWidth(), frame:GetHeight()
+	local scale = 1
+	if Known(roomW) and Known(roomH) and Known(width) and Known(height) then
+		scale = math.min(1, roomW / width, roomH / height)
+	end
+	frame:SetScale(scale)
+	frame:ClearAllPoints()
+	frame:SetPoint("CENTER", pane.holder, "CENTER", 0, 0)
+end
+
+local function Anchor(pane, frame)
+	if frame:GetNumPoints() > 0 then
+		return
+	end
+	frame.sized = Known(frame:GetWidth()) and Known(frame:GetHeight()) or nil
+	if frame.sized then
+		Fit(pane, frame)
+	else
+		frame:SetAllPoints(pane.holder)
 	end
 end
 
@@ -65,13 +90,24 @@ local function Build(pane, id, builder)
 	end
 	local ok, frame = K.Call(builder, pane.holder)
 	if ok and type(frame) == "table" and type(frame.GetObjectType) == "function" then
-		Anchor(frame, pane.holder)
+		Anchor(pane, frame)
 		pane.built[id] = frame
 		return frame
 	end
 	Model.Log("the preview for " .. tostring(id) .. " did not return a frame")
 	pane.built[id] = false
 	return nil
+end
+
+local function RefreshCurrent(pane)
+	local frame = pane.current
+	if not frame or frame == pane.placeholder then
+		return
+	end
+	if frame.Refresh then
+		K.Call(frame.Refresh, frame)
+	end
+	Fit(pane, frame)
 end
 
 function Preview.Show(pane, page)
@@ -103,15 +139,12 @@ function Preview.Show(pane, page)
 	frame:Show()
 	pane.current = frame
 	pane.module = page and page.module
-	if frame.Refresh then
-		K.Call(frame.Refresh, frame)
-	end
+	RefreshCurrent(pane)
 end
 
 function Preview.Refresh(pane, module)
-	local frame = pane.current
-	if frame and frame.Refresh and (module == nil or module == pane.module) then
-		K.Call(frame.Refresh, frame)
+	if module == nil or module == pane.module then
+		RefreshCurrent(pane)
 	end
 end
 
@@ -137,7 +170,15 @@ function Preview.Create(parent)
 		Widgets.Tint(self.rule, "accent")
 		self.holder:ClearAllPoints()
 		self.holder:SetPoint("TOPLEFT", self.rule, "BOTTOMLEFT", 0, -gap)
-		self.holder:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -pad, pad)
+		local width, height = self:GetWidth(), self:GetHeight()
+		if Known(width) and Known(height) then
+			local line = Widgets.LineHeight(self.caption)
+			local top = pad + line + gap + Widgets.Border(self) + gap
+			Widgets.Size(self.holder, math.max(1, width - 2 * pad), math.max(1, height - top - pad))
+			RefreshCurrent(self)
+		else
+			self.holder:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -pad, pad)
+		end
 	end
 	pane:Layout()
 	local restyle = pane.Restyle

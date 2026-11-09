@@ -34,12 +34,24 @@ end
 -- guard(name, scene) -> scene. Fails when the render guard (Tools/render/guard.lua) finds a text the scene step
 -- measures as truncated, or content past its glass card, that Tools/render/guard_allow.tsv does not cover. The
 -- page's own truncations need Chrome and are checked by shoot.sh, not here.
+M.runs = {}
+
 function M.guard(name, scene)
 	local Guard = dofile("Tools/render/guard.lua")
-	local fresh = Guard.Sort(Guard.Check(scene), Guard.LoadAllow(), name)
+	local findings = Guard.Check(scene)
+	M.runs[#M.runs + 1] = { scene = name, findings = findings }
+	local fresh = Guard.Sort(findings, Guard.LoadAllow(), name)
 	local lines = Guard.Lines(fresh, {}, {}, "default")
 	assert(#fresh == 0, name .. " fails the render guard:\n" .. table.concat(lines, "\n"))
 	return scene
+end
+
+-- globs() -> fails when an allowlist glob line matched a scene this test guarded and covered nothing in any of them
+-- (Guard.Stale): a fixed defect leaves the list. Call it after every scene of a test has gone through guard().
+function M.globs()
+	local Guard = dofile("Tools/render/guard.lua")
+	local stale = Guard.Stale(Guard.LoadAllow(), M.runs)
+	assert(#stale == 0, "stale allowlist glob lines:\n" .. table.concat(Guard.GlobLines(stale), "\n"))
 end
 
 -- collect(scene) -> texts, files: the plain words the scene draws (names carry a thin space between their
