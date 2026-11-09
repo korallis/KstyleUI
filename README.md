@@ -6,7 +6,7 @@
 
 <p align="center"><a href="https://github.com/korallis/KstyleUI/releases">Releases</a>&nbsp;&nbsp;&nbsp;<a href="https://gist.githack.com/korallis/4061c2bddaede3a2d45fb91c39c3cbe9/raw/index.html">Product page</a>&nbsp;&nbsp;&nbsp;<a href="https://gist.githack.com/korallis/4061c2bddaede3a2d45fb91c39c3cbe9/raw/gallery.html">Every frame and feature</a>&nbsp;&nbsp;&nbsp;<a href="#get-started">Get started</a></p>
 
-<p align="center"><img src="docs/media/readme/hero.jpg" width="100%" alt="The KstyleUI DPS layout while questing: party frames, quests and chat on the left, the minimap, Blessings card and damage meter on the right, vitals, bars and cooldowns at the bottom centre"></p>
+<p align="center"><img src="docs/media/readme/hero.jpg" width="100%" alt="The KstyleUI DPS layout while questing: party frames, quests and chat on the left, the minimap, aura rows and damage meter on the right, vitals, bars and cooldowns at the bottom centre"></p>
 
 <p align="center"><sub>The DPS layout while questing. Every image on this page is rendered from the addon's own code. The code holds 464 features, 355 of them functional.</sub></p>
 
@@ -64,11 +64,11 @@ Nameplates show your debuffs through the engine with an honest +N chip, and colo
 
 ### The rest of the screen, in the same hand
 
-<p align="center"><img src="docs/media/readme/merit_rail.jpg" width="520" alt="The right rail while questing: the minimap, the Blessings card and the damage meter"></p>
+<p align="center"><img src="docs/media/readme/merit_rail.jpg" width="520" alt="The right rail while questing: the minimap, the aura rows and the damage meter"></p>
 
-<p align="center"><sub>The right rail while questing: the minimap, the Blessings card and the damage meter.</sub></p>
+<p align="center"><sub>The right rail while questing: the minimap, the aura rows and the damage meter.</sub></p>
 
-The minimap is a small square with a thin rim: the zone name along its top edge, the clock along its bottom edge, and the tracking, calendar and zoom controls and the addon drawer only while your pointer is over it. Your buffs live in a Blessings card beside it, with a +N count on the cap and a right-click to cancel. The damage meter reads from the game's own meter data with a Now, Last, All switch and a spell breakdown on click.
+The minimap is a small square with a thin rim: the zone name along its top edge, the clock along its bottom edge, and the tracking, calendar and zoom controls and the addon drawer only while your pointer is over it. Your buffs and debuffs are plain icon rows under it: a thin rim, the time left under each icon, stack counts on a corner badge, a +N on the last icon when the rows are full, and a right-click to cancel. A buff the Cooldown Manager already tracks shows there only. The damage meter reads from the game's own meter data with a Now, Last, All switch and a spell breakdown on click.
 
 Bags sort into sections with a search that understands <code>&amp;</code>, <code>|</code>, <code>!</code> and <code>ilvl&gt;30</code>. Chat sits on a glass card, tooltips become glass cards, and experience is a gilt filament with its rested overlay.
 
@@ -86,7 +86,7 @@ KstyleUI is one core addon and one addon per module. Every module is off until y
 <td width="50%" valign="top"><img src="docs/media/readme/tile_cooldowns.jpg" alt="Cooldowns"><br><b>Cooldowns</b><br><sub>Blizzard's Cooldown Manager mirrored as KstyleUI icons and bars, each movable.</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/media/readme/tile_auras.jpg" alt="Blessings card"><br><b>Blessings card</b><br><sub>Your buffs and debuffs in one card, drawn by the game's secure aura engine.</sub></td>
+<td width="50%" valign="top"><img src="docs/media/readme/tile_auras.jpg" alt="Aura rows"><br><b>Aura rows</b><br><sub>Your buffs and debuffs as plain icon rows, drawn by the game's secure aura engine.</sub></td>
 <td width="50%" valign="top"><img src="docs/media/readme/tile_nameplates.jpg" alt="Nameplates"><br><b>Nameplates</b><br><sub>Health, level, your debuffs and a cast bar that says when you can interrupt.</sub></td>
 </tr>
 <tr>
@@ -115,7 +115,7 @@ Every element KstyleUI shows can be moved, resized or scaled in Layout Mode and 
 | Group Frames | Party and raid frames up to 40, with class colours, roles, range fade, incoming heals, absorbs, debuffs and the dispel highlight |
 | Action Bars | Secure action bars with stance, stealth, form and possess paging, pet and stance bars, keybind text, cooldowns, proc glows, range and usability shading, fade on mouseover, and a dialog that puts a newly learned spell rank on the bars |
 | Cooldowns | Blizzard's Cooldown Manager in KstyleUI's style: essential and utility rows in the HUD band, tracked buff icons and bars |
-| Auras | Your buffs and debuffs under the minimap |
+| Auras | Your buffs and debuffs as plain icon rows under the minimap |
 | Nameplates | A KstyleUI plate on each nameplate, with health, cast bar, threat colour and your debuffs |
 | Combat Text | Damage and heal numbers on KstyleUI's frames and plates, and KstyleUI's font for the game's own numbers |
 | Minimap | A small square map in a thin rim, the zone and clock inside it, buttons and an addon-button drawer that show on hover |

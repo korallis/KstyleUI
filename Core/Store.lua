@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 7
+Store.DB_VERSION = 8
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -125,6 +125,23 @@ Store.migrations[7] = function(data)
 			size = ns.Appearance.defaults.uiScale
 		end
 		layouts.Upgrade(layout, section.preset or "DPS", 1080 / size)
+	end
+end
+
+Store.migrations[8] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local auras = type(profile) == "table" and profile.Auras
+		if type(auras) == "table" then
+			auras.card = nil
+			local buffs = auras.buffs
+			if type(buffs) == "table" and buffs.rows == 1 then
+				buffs.rows = nil
+			end
+			local debuffs = auras.debuffs
+			if type(debuffs) == "table" then
+				debuffs.dispelFirst = nil
+			end
+		end
 	end
 end
 

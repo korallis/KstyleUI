@@ -57,8 +57,8 @@ local ELEMENTS = {
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = UTILITY, height = BUTTON },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = TRACKED, height = BUTTON },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Blessings"], width = 318, height = 177, reserve = { 318, 230 } },
-	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = 282, height = 88 },
+	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 282, height = 88 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 372, height = 260 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
@@ -109,16 +109,26 @@ local TEXT_TOP = CLUSTER_TOP + GAP + 180
 local SIDE_BARS = 3 * BAR - PITCH
 local BOSS_X = -(BAND + SIDE_BARS + GAP)
 local TIP_Y = MARGIN + 118 + 8
-local BLESSINGS_TOP, BLESSINGS = MARGIN + 160 + GAP, 230
-local METER_TOP = BLESSINGS_TOP + BLESSINGS + GAP
+local function ElementSize(key)
+	for _, element in ipairs(ELEMENTS) do
+		if element.key == key then
+			return element.width, element.height
+		end
+	end
+end
+local MAP_W, MAP_H = ElementSize("minimap.main")
+local _, AURA_ROW = ElementSize("auras.buffs")
+local AURAS_X = MARGIN + MAP_W + GAP
+local AURAS_BOTTOM = MARGIN + 2 * AURA_ROW + GAP
+local METER_TOP = math.max(MARGIN + MAP_H, AURAS_BOTTOM) + GAP
 
 local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
-	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -BLESSINGS_TOP },
-	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -(BLESSINGS_TOP + 177 - 63) },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -MARGIN },
+	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(MARGIN + AURA_ROW + GAP) },
 	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -METER_TOP },
 	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -METER_TOP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
@@ -187,7 +197,6 @@ local SIZES = {
 local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true, ["chat.main"] = true }
 
 local DOCKS = {
-	["auras.debuffs"] = "auras.buffs",
 	["databars.micro"] = "databars.strip",
 	["databars.bags"] = "databars.strip",
 }
@@ -221,8 +230,6 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar4.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar6.showEmpty", value = false },
-	{ module = "Auras", key = "buffs.rows", value = 1 },
-	{ module = "Auras", key = "card.docked", value = true },
 	{ module = "DataBars", key = "strip.menus", value = true },
 	{ module = "GroupFrames", key = "party.spacing", value = 8 },
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },

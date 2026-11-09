@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 7, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 8, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,10 +219,31 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 7, "version 2 data migrates through 3 to 6 to the current 7")
+	check(menv.KstyleUIDB.version == 8, "version 2 data migrates through 3 to 7 to the current 8")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
+-- Migration 8 (owner pass 1, 2026-11-09): the Blessings card is gone, so its card section, the one-row buffs the Lumen
+-- setup wrote for it and the debuffs' dispellable-first split leave every profile; a player's own other rows stay.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 7, profiles = {
+			Default = { Auras = { card = { docked = true }, buffs = { rows = 1, columns = 6 }, debuffs = { dispelFirst = false, rows = 3 } } },
+			Alt = { Auras = { buffs = { rows = 3 } } },
+			Bare = { UnitFrames = { enabled = true } },
+		} },
+	})
+	CoreEnv.Boot(menv)
+	local auras = menv.KstyleUIDB.profiles.Default.Auras
+	check(menv.KstyleUIDB.version == 8, "version 7 data migrates to 8")
+	check(auras.card == nil, "the card section is gone")
+	check(auras.buffs.rows == nil and auras.buffs.columns == 6, "the setup's one buff row goes; the player's columns stay")
+	check(auras.debuffs.dispelFirst == nil and auras.debuffs.rows == 3, "the dispellable-first split goes; the player's debuff rows stay")
+	check(menv.KstyleUIDB.profiles.Alt.Auras.buffs.rows == 3, "a player's own three rows stay")
+	check(menv.KstyleUIDB.profiles.Bare.UnitFrames.enabled == true, "a profile without Auras is untouched")
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 

@@ -1,15 +1,16 @@
--- gallery_auras.lua: every tile KstyleUI_Auras draws, each cropped as one frame of the gallery: the buff panel
--- with a weapon enchantment and eight buffs over two rows (timers, two stack counts, one long duration), the
--- debuff row with its five dispel-type rims, a close crop of three buff tiles, and the Auras page's live preview.
--- The fake AuraContainer engine lays out no buttons and binds no icon, timer or dispel colour, so this scene
--- fills the buttons and places them as the engine's flow layout would, the way scenes/hud.lua does.
+-- gallery_auras.lua: every tile KstyleUI_Auras draws, each cropped as one frame of the gallery: the buff rows with
+-- a weapon enchantment and eight buffs over two rows of eight (timers in the body face, two stack badges, one long
+-- duration), the debuff rows with their five dispel-type plates, a close crop of three buff tiles, and the Auras
+-- page's live preview. The fake AuraContainer engine lays out no buttons and binds no icon, timer or dispel colour,
+-- so this scene fills the buttons and places them as the engine's flow layout would, the way scenes/hud.lua does.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local I = Hud.ICONS
 
 local BUFFS_X, BUFFS_Y = 60, 80
-local PREVIEW_X, PREVIEW_Y, PREVIEW_W, PREVIEW_H = 400, 80, 248, 300
+local DEBUFFS_Y = BUFFS_Y + 88 + 16
+local PREVIEW_X, PREVIEW_Y, PREVIEW_W, PREVIEW_H = 400, 80, 300, 300
 local TILE_PAD = 4
 
 -- The enchantment first (the module places enchantments before the aura groups), then the buffs by time left.
@@ -47,7 +48,8 @@ local function move(K, key, x, y)
 end
 
 -- fill(env, button, icon, timer, count) binds what the engine would: the icon's texture, as a secret the way
--- Forever's engine writes it (so the watched tile keeps the game's art), and the timer and count texts.
+-- Forever's engine writes it (so the watched tile keeps the game's art), the timer text, and the stack count with
+-- its badge shown, as the engine shows the application bar from two applications.
 local function fill(env, button, icon, timer, count)
 	local aura = button._aura
 	if aura.icon then
@@ -59,15 +61,12 @@ local function fill(env, button, icon, timer, count)
 	if aura.count then
 		aura.count:SetText(count or "")
 	end
+	if aura.bar then
+		aura.bar:SetShown(count ~= nil)
+	end
 end
 
--- place(container, group, buttons, columns) lays the buttons out as the container's flow layout would, from the
--- corner the module anchors the container at, and sizes the container to the rows it holds (Hud.PlaceAuras).
-local function place(container, group, buttons, columns)
-	Hud.PlaceAuras(container, group, buttons, columns)
-end
-
--- dispel(env, Widgets, button, kind) paints the debuff's nine-piece rim in the dispel type's colour, as the
+-- dispel(env, Widgets, button, kind) paints the debuff's nine-piece plate in the dispel type's colour, as the
 -- engine's PreserveAsset style does with the pieces the module handed it.
 local function dispel(env, Widgets, button, kind)
 	local color = env["DEBUFF_TYPE_" .. kind .. "_COLOR"]
@@ -94,9 +93,9 @@ return Common.Run(function()
 		end
 	end
 
-	-- The Blessings card: the main-hand enchantment, then eight buffs over two rows of six, and the debuff row
-	-- docked under the hairline.
+	-- The buff rows: the main-hand enchantment, then eight buffs, over two rows of eight growing left.
 	move(K, "auras.buffs", BUFFS_X, BUFFS_Y)
+	move(K, "auras.debuffs", BUFFS_X, DEBUFFS_Y)
 	local buffs, buffGroup = A.Container(env, "HELPFUL")
 	assert(buffs, "the buff container")
 	local tiles = {}
@@ -110,14 +109,15 @@ return Common.Run(function()
 		fill(env, button, buff[1], buff[2], buff[3])
 		tiles[#tiles + 1] = button
 	end
-	place(buffs, buffGroup, tiles, 6)
+	Hud.PlaceAuras(buffs, buffGroup, tiles, 8)
+	A.Counters(ns, { #BUFFS, 0, #DEBUFFS })
 	frames:Add(env, K.Layout.Element("auras.buffs").frame, {
-		name = "auras_buffs", title = "Blessings card", grade = "panel", reference = "bufficons",
-		caption = "The Blessings card (Panel.lua): a panel-grade card with a gem and tracked Blessings cap, a weapon enchantment tile first, then eight buffs by time left over two rows of six, timers under the icons, stack counts on two; under a hairline the debuff row docks in the same card. Each tile is the button grade's buttonFill body with the neutral edgeInner rim at the rest alpha.",
-		match = "Body #101214, a one-border neutral grey rim and the 3.5-unit tile chamfer as the mockup's buff icons; the mockup's rim is a shade lighter, and KstyleUI's tiles have no shadow where the mockup's show a faint one.",
+		name = "auras_buffs", title = "Buff rows", grade = "button", reference = "bufficons",
+		caption = "The buff rows (Panel.lua): no card, cap or gem; a weapon enchantment tile first, then eight buffs by time left over two rows of eight growing left from the element's right edge, each a 30-unit icon in a thin rim with its timer under it in the body face and a stack count on a corner badge on two.",
+		match = "Body-free tiles: the icon under the socket mask one border inside a half-strength edgeInner rim, as the mockup's quiet buff icons; no shadow, no bezel.",
 	})
 
-	-- The debuff row, docked in the card: five debuffs, each rim in its dispel type's colour.
+	-- The debuff rows: five debuffs, each plate in its dispel type's colour, on their own element under the buffs.
 	local debuffs, debuffGroup = A.Container(env, "HARMFUL")
 	assert(debuffs, "the debuff container")
 	local harmful = {}
@@ -127,22 +127,22 @@ return Common.Run(function()
 		dispel(env, Widgets, button, debuff[3])
 		harmful[#harmful + 1] = button
 	end
-	place(debuffs, debuffGroup, harmful, 6)
-	frames:Add(env, ns.Panel.Group("debuffs").dock, {
-		name = "auras_debuffs", title = "Debuffs", grade = "button", reference = "bufficons",
-		caption = "The debuff row docked in the Blessings card: five debuffs on the same buttonFill tiles, the hostile rim at the rest alpha under a nine-piece dispel rim the engine colours magic, curse, poison, disease and none (red), timers under the icons and a stack count on the first.",
-		match = "Body and tile chamfer as the mockup's buff icons; the rims are the dispel colours, not the mockup's neutral grey, since the mockup shows no debuffs.",
+	Hud.PlaceAuras(debuffs, debuffGroup, harmful, 8)
+	frames:Add(env, K.Layout.Element("auras.debuffs").frame, {
+		name = "auras_debuffs", title = "Debuff rows", grade = "button", reference = "bufficons",
+		caption = "The debuff rows, their own element 16 under the buffs: five debuffs on the same bare tiles, the hostile rim under a nine-piece plate the engine colours magic, curse, poison, disease and none (red), timers under the icons and a stack badge on the first.",
+		match = "Tiles as the buff rows; the rims are the dispel colours, not the mockup's neutral grey, since the mockup shows no debuffs.",
 	})
 
-	-- The Auras page's live preview: sample buffs and debuffs on the kit's icon buttons.
+	-- The Auras page's live preview: sample buffs and debuffs on the module's own tiles.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	at(parent, PREVIEW_X, PREVIEW_Y, PREVIEW_W, PREVIEW_H)
 	local preview = K.Options.Preview("Auras")(parent)
 	preview:Refresh()
 	frames:Add(env, parent, {
 		name = "auras_preview", title = "Auras preview", grade = "button", reference = "bufficons",
-		caption = "The Auras page's live preview: six sample buffs and three sample debuffs on Widgets.IconButton with the settings' sizes and timers, the buffs' rim neutral and the debuffs' hostile with dispel rims.",
-		match = "Body and rim as the mockup's buff icons; unlike the live aura tiles, the kit's IconButton adds the 3-unit buttonFill bezel and the drop shadow the mockup's action buttons have.",
+		caption = "The Auras page's live preview: six sample buffs and three sample debuffs on the module's own plain tiles with the settings' sizes, timers and badges, the buffs' rim neutral and the debuffs' hostile under dispel plates.",
+		match = "The same tiles the rows draw, so the preview shows what a setting does.",
 	})
 
 	A.W.Settle(env)
@@ -151,11 +151,11 @@ return Common.Run(function()
 	assert(closeup, "the first three buff tiles resolve")
 	frames:Add(env, tiles[1], {
 		name = "auras_tile", title = "Buff tiles, close", grade = "button", reference = "bufficons", pad = TILE_PAD, rect = closeup,
-		caption = "Three buff tiles close up: the buttonFill body, the icon two borders in under the chamfer mask, the neutral edgeInner rim at half alpha with its dark outer line, and the timer under each.",
-		match = "Body #101214 and a neutral rim as the mockup's buff icons (rim lum 50 to 80); KstyleUI's rim is edgeInner at 50%, the inner band two borders instead of the mockup's 2 to 4 px.",
+		caption = "Three buff tiles close up: the icon one border inside the half-strength edgeInner rim, the socket chamfer, the timer under each in the body face with a soft shadow, and one stack count on its dark corner badge.",
+		match = "A neutral rim as the mockup's buff icons (rim lum 50 to 80), one border wide; no body, no inner band.",
 	})
 
 	local scene = Gallery.Build(env)
-	scene.log[#scene.log + 1] = "the aura buttons are laid out and filled by the scene as the AuraContainer engine would; the game binds each icon (as a secret, so the tiles show Blizzard's art), timer and dispel colour itself"
+	scene.log[#scene.log + 1] = "the aura buttons are laid out and filled by the scene as the AuraContainer engine would; the game binds each icon (as a secret, so the tiles show Blizzard's art), timer, badge and dispel colour itself"
 	return frames:Finish(scene, env, K, "gallery auras")
 end)

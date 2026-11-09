@@ -2,6 +2,7 @@
 	<Script file="Init.lua"/>
 	<Script file="Model.lua"/>
 	<Script file="Button.lua"/>
+	<Script file="Tracked.lua"/>
 	<Script file="Panel.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

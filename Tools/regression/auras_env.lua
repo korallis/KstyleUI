@@ -147,6 +147,16 @@ local function newButton(env, container)
 		guard("ClearApplicationCount")
 		aura.count = nil
 	end
+	function button.SetApplicationBar(_, bar, options)
+		guard("SetApplicationBar")
+		element(bar, "StatusBar")
+		assert(options == nil or type(options) == "table", "options must be a table or nil.")
+		aura.bar, aura.barOptions = bar, options or {}
+	end
+	function button.ClearApplicationBar()
+		guard("ClearApplicationBar")
+		aura.bar, aura.barOptions = nil, nil
+	end
 	function button.AddDispelTypeTexture(_, texture, options)
 		guard("AddDispelTypeTexture")
 		element(texture, "Texture")
@@ -376,6 +386,39 @@ function A.Engine(env, opts)
 			return env._aurasSecret == true
 		end,
 	}
+	-- The Cooldown Manager's tracked buffs: env._tracked[cooldownID] = { spellID, overrideSpellID, linkedSpellIDs },
+	-- read through C_CooldownViewer as the game answers them; env._cvars.cooldownViewerEnabled switches the viewer.
+	env._tracked = {}
+	env._cdmAvailable = true
+	env._cvars = env._cvars or {}
+	env._cvars.cooldownViewerEnabled = "1"
+	env.Enum.CooldownViewerCategory = env.Enum.CooldownViewerCategory or { Essential = 0, Utility = 1, TrackedBuff = 2, TrackedBar = 3 }
+	env.C_CooldownViewer = {
+		GetCooldownViewerCategorySet = function(category, allowUnlearned)
+			local ids = {}
+			for id, def in pairs(env._tracked) do
+				if (def.category or env.Enum.CooldownViewerCategory.TrackedBuff) == category and (allowUnlearned or def.isKnown ~= false) then
+					ids[#ids + 1] = id
+				end
+			end
+			table.sort(ids)
+			return ids
+		end,
+		GetCooldownViewerCooldownInfo = function(id)
+			local def = env._tracked[id]
+			if not def then
+				return nil
+			end
+			return { cooldownID = id, spellID = def.spellID, overrideSpellID = def.overrideSpellID, linkedSpellIDs = def.linkedSpellIDs or {}, selfAura = true, hasAura = true }
+		end,
+		IsCooldownViewerAvailable = function()
+			return env._cdmAvailable ~= false, env._cdmAvailable ~= false and "" or "not yet"
+		end,
+	}
+	env.C_CVar = env.C_CVar or {}
+	env.C_CVar.GetCVarBool = env.C_CVar.GetCVarBool or function(name)
+		return env._cvars[name] == "1"
+	end
 	env.C_PaperDollInfo = {
 		GetTemporaryEnchantmentInfo = function(slot)
 			return env._enchants[slot]
@@ -549,15 +592,16 @@ function A.Ghosts(chip, counts)
 	end
 end
 
--- Counters(ns, counts) lays out the Blessings card's counting containers, its cap's and its full list's, for counts
--- auras in each group (buffs, dispellable debuffs, the rest), as the engine's layout pass would.
+-- Counters(ns, counts) lays out the rows' counting containers, the buff row's and the debuff row's, for counts auras
+-- in each group (buffs, dispellable debuffs, the rest), as the engine's layout pass would. A debuff row counts one
+-- group, so the two debuff counts add up.
 function A.Counters(ns, counts)
-	local desc = ns.Panel.Group("buffs")
-	local card = desc and desc.card
-	for _, chip in ipairs({ card and card.counter or false, card and card.moreCounter or false }) do
-		if chip then
-			A.Ghosts(chip, counts)
-		end
+	local buffs, debuffs = ns.Panel.Group("buffs"), ns.Panel.Group("debuffs")
+	if buffs and buffs.chip then
+		A.Ghosts(buffs.chip, { counts[1] or 0 })
+	end
+	if debuffs and debuffs.chip then
+		A.Ghosts(debuffs.chip, { (counts[2] or 0) + (counts[3] or 0) })
 	end
 end
 
@@ -573,9 +617,10 @@ function A.Chip(chip)
 	local eps = 1e-3
 	local strip = Geometry.Rect(chip.strip, root)
 	local face = strip ~= nil and strip.bottom <= win.bottom + eps and strip.top >= win.top - eps
+	-- A label is cell tall and top-aligned in the window; with a timer lane (foot) the window runs on under it.
 	for i, label in ipairs(chip.labels) do
 		local r = Geometry.Rect(label, root)
-		if r and math.abs(r.top - win.top) < eps and math.abs(r.bottom - win.bottom) < eps then
+		if r and math.abs(r.top - win.top) < eps and r.bottom >= win.bottom - eps then
 			return chip.texts[i]:GetText(), face
 		end
 	end
