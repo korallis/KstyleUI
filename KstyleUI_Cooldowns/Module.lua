@@ -1,4 +1,4 @@
--- Module.lua: registers the Cooldowns module, its settings page and its smoke check; nothing runs until Enable.
+-- Module.lua: registers the Cooldowns module, its settings page, its smoke check and the tracked counts Apply's Edit Mode write sizes Blizzard's viewers by; nothing runs until Enable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -27,5 +27,8 @@ end
 
 ns.definition = { name = ns.MODULE, defaults = Settings.defaults, Enable = Enable, Disable = Disable, reskin = true }
 K.Modules.Register(ns.definition)
+if K.Setup and K.Setup.EditMode and K.Setup.EditMode.CountTracked then
+	K.Setup.EditMode.CountTracked(ns.Data.Count)
+end
 Settings.schema.preview = ns.Preview.Build
 K.Options.Register(ns.MODULE, Settings.schema)

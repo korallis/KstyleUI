@@ -5,7 +5,7 @@
 | File | What it holds |
 | --- | --- |
 | `Layouts.lua` | `Setup.Layouts`: the element keys and the Lumen DPS, Tank and Healer layouts: positions, footprints, the module settings each writes and the story slot. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
-| `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot and Blizzard's damage meter on the damage card |
+| `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and Blizzard's tracked buff icon and bar viewers in their slots |
 | `Setup.lua` | The choices, `Apply`, the story slot's split, the first run, and when the window opens |
 | `Window.lua` | The window, built from the widget kit |
 
@@ -45,13 +45,14 @@ It returns `false` for an unknown layout, or before the saved data loads.
 
 ## Edit Mode
 
-KstyleUI never calls `SetPoint` on Blizzard's objective tracker or damage meter. Apply writes their places into an Edit Mode layout instead, through the API `Blizzard_APIDocumentationGenerated/EditModeManagerDocumentation.lua` documents on Forever 1.60.1, and Edit Mode moves them:
+KstyleUI never calls `SetPoint` on Blizzard's objective tracker, damage meter or Cooldown Manager viewers. Apply writes their places into an Edit Mode layout instead, through the API `Blizzard_APIDocumentationGenerated/EditModeManagerDocumentation.lua` documents on Forever 1.60.1, and Edit Mode moves them:
 
 1. `C_EditMode.GetLayouts()` returns the saved layouts; `EditModePresetLayoutManager:GetCopyOfPresetLayouts()` the presets, which come first in the index Edit Mode counts with (`Blizzard_EditMode/Shared/EditModeManager.lua`, `UpdateLayoutInfo`).
 2. The writer finds the account layout named `KstyleUI <layout>`, or makes one: a copy of the active layout, so every other system keeps the player's place, inserted after the last account layout as `MakeNewLayout` does. `IsValidLayoutName` must approve the name, and a full set of account layouts (`Constants.EditModeConsts.EditModeMaxLayoutsPerType`) is never overwritten.
 3. In that layout, the `ObjectiveTracker` system hangs its `TOPLEFT` from `UIParent`'s `BOTTOMLEFT`, 16 units right of the story slot's edge and 34 above its top (`TRACKER_LEFT`, `TRACKER_TOP`), so the tracker skin's glass, which starts 16 left of the tracker and 34 under its top, lands on the slot. Its Height setting takes Edit Mode's lowest value (400), so a long quest list stays off chat. With RestedXP loaded, the tracker takes the slot's lower half and the guide the upper half (`Story`).
 4. The `DamageMeter` system sits on the layout's damage card at the card's size (`FrameWidth` and `FrameHeight`, stored less their 200 and 120 minimums, clamped to Edit Mode's 600 and 400), so the meter's Blizzard skin mode, used on restricted clients, sits where the Lumen card would.
-5. `C_EditMode.SaveLayouts` saves the presets and the saved layouts together, and `C_EditMode.SetActiveLayout` activates the KstyleUI layout.
+5. The `CooldownViewer` system's `BuffIcon` and `BuffBar` entries (`Enum.EditModeCooldownViewerSystemIndices` 3 and 4) are Blizzard's tracked buff viewers, which the Cooldowns module restyles on Forever's automatic path. The icons hang their `BOTTOMRIGHT` from the `cooldowns.buffs` slot's bottom right, in one horizontal row with `IconDirection` Left, so the row grows away from the combat cluster and the first buff sits beside it; the bars stand their `BOTTOMLEFT` on the `cooldowns.bars` slot and grow up. Blizzard's viewer gives every tracked item a slot (`includeAsLayoutChildWhenHidden`), at least two, each 40 by 40 (a bar 220 by 30) scaled by `IconSize`, so the writer knows the row's length: it takes the largest `IconSize` (stored as (percent - 50) / 10) at which the whole row fits between the slot and the nearest layout element beside it (above it for the bars), no taller than the slot (no wider for the bars). `IconPadding` leaves 8 units between icons for their Lumen sockets (2 between bars), plus the 4 (2) Blizzard subtracts. The tracked counts come from the Cooldowns module (`EditMode.CountTracked(fn)`; `EditMode.Tracked(group)` reads them, six icons and two bars without the module). When even 50 % cannot fit, the writer uses 50 % and prints one step: how many are tracked, how many fit, and that the Cooldown Manager is where to untrack some.
+6. `C_EditMode.SaveLayouts` saves the presets and the saved layouts together, and `C_EditMode.SetActiveLayout` activates the KstyleUI layout.
 
 Offsets are in `UIParent`'s units: root units times the root's effective scale over `UIParent`'s. Every call is protected by `pcall`; a missing `C_EditMode`, a refused name, a full set of layouts or a failed save logs the reason and prints the story hint, so the player moves the tracker in Edit Mode as before.
 
@@ -63,7 +64,7 @@ Offsets are in `UIParent`'s units: root units times the root's effective scale o
 | `IsFirstRun()`, `Keep()` | Whether the open window is the first run; `Keep` makes its close change nothing (the **Keep my UI** button) |
 | `Story(name, guide) -> { story, guide, tracker }` | The layout's story slot in root units (`left`, `right`, `bottom`, `top`), and the parts of it the guide and the tracker take: with `guide`, the guide the upper half and the tracker the lower half one rail gap (16) under it; without, the tracker the whole slot |
 | `GuideLoaded()`, `RootSize()` | Whether RestedXP Guides is loaded; the root's size, through Layout when it is there |
-| `EditMode.Write(name, story) -> boolean`, `EditMode.Available()` | See [Edit Mode](#edit-mode) |
+| `EditMode.Write(name, story) -> boolean`, `EditMode.Available()`, `EditMode.CountTracked(fn)`, `EditMode.Tracked(group) -> number` | See [Edit Mode](#edit-mode) |
 | `Apply(choice) -> boolean` | See above |
 | `Choice()`, `NewChoice()` | The window's current choice, and a fresh one: DPS and every available module on |
 | `Available(name) -> boolean` | The module's addon loaded and registered. |

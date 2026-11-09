@@ -1,8 +1,9 @@
 -- gallery_auracounts.lua: the aura rows at three loads, side by side, each cropped as one frame of the gallery:
 -- low (3), medium (10) and high (24 on the sigil, 16 on the focus and boss cards, 16 tracked buffs, 6 tracked bars).
 -- The sigil's debuffs wrap to a second row of ten, then the last socket reads "+N"; the focus card's single row and the
--- boss card's two rows of three do the same; the tracked buff icons cap at six and the bars at two, the last of each
--- reading the rest. The fake engine lays out nothing, so this scene places the engine's buttons as its flow layout
+-- boss card's two rows of three do the same; the KstyleUI tracked buff icons cap at six and the bars at two, a chip
+-- reading the rest beside them, and Blizzard's own viewers (the automatic path on Forever) where Layout > Apply put
+-- them in Edit Mode. The fake engine lays out nothing, so this scene places the engine's buttons as its flow layout
 -- would (sorted, wrapped at the columns, from the container's corner) and sizes the hidden counting container the way
 -- its one-element-per-line layout does; the chip shows and reads by anchors alone, as in the game.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -167,26 +168,37 @@ local function layout(K, key, x, top, height)
 	assert(K.Layout.Update(key, { anchor = "BOTTOMLEFT", x = x, y = SCREEN_H - top - height }))
 end
 
--- Cooldowns(load, k, frames) -> scene: the mirror's tracked buff icons and bars at one load.
-local function Cooldowns(load, k, frames)
+local BAR_NAMES = { "Battle Shout", "Enrage", "Blood Fury", "Shield Block", "Bloodrage", "Recklessness" }
+
+-- Cooldowns(load, k, frames, path) -> scene: the tracked buff icons and bars at one load. path "auto" is what a player
+-- on Forever gets: aura data can turn secret in combat, so the module restyles Blizzard's own viewers, which Layout >
+-- Apply placed and sized in Edit Mode for this many tracked buffs and bars (Hud.NativeViewers); "mirror" is the
+-- KstyleUI icons the player can pick instead, capped at six sockets and two bars with a +N chip beside them.
+local function Cooldowns(load, k, frames, path)
 	local C = dofile("Tools/regression/cooldowns_env.lua")
-	local cooldowns, textures = {}, {}
+	local cooldowns, textures, items = {}, {}, { buffs = {}, bars = {} }
+	local function left(spell)
+		return 3 + (spell % 17)
+	end
 	for i = 1, load.buffs do
 		cooldowns[500 + i] = { spellID = 5000 + i, category = C.CATEGORY.TrackedBuff, selfAura = true, hasAura = true }
 		textures[5000 + i] = icon(i)
+		items.buffs[i] = { id = 500 + i, icon = icon(i), name = "Spell " .. (5000 + i), left = left(5000 + i), total = 30 }
 	end
 	for i = 1, load.bars do
 		cooldowns[600 + i] = { spellID = 6000 + i, category = C.CATEGORY.TrackedBar, selfAura = true, hasAura = true }
 		textures[6000 + i] = icon(i + 40)
+		items.bars[i] = { id = 600 + i, icon = icon(i + 40), name = BAR_NAMES[i], left = left(6000 + i), total = 30 }
 	end
+	local mirror = path == "mirror"
 	local env, K, ns = C.New({
-		saved = Gallery.Saved({ Cooldowns = { path = "mirror" } }),
+		saved = Gallery.Saved({ Cooldowns = mirror and { path = "mirror" } or {} }),
 		cooldowns = cooldowns,
 		setup = function(env)
 			Gallery.Setup(env)
 			C.Game(env)
 			env.C_Spell.GetSpellName = function(spell)
-				return spell > 6000 and ({ "Battle Shout", "Enrage", "Blood Fury", "Shield Block", "Bloodrage", "Recklessness" })[spell - 6000] or ("Spell " .. spell)
+				return spell > 6000 and BAR_NAMES[spell - 6000] or ("Spell " .. spell)
 			end
 			for spell, texture in pairs(textures) do
 				env._cdm.textures[spell] = texture
@@ -198,34 +210,64 @@ local function Cooldowns(load, k, frames)
 	local instance = 900
 	for spell in pairs(textures) do
 		instance = instance + 1
-		local total, left = 30, 3 + (spell % 17)
+		local total = 30
 		cdm.auras[spell] = { auraInstanceID = instance }
-		cdm.auraDurations[instance] = { kind = "aura", start = NOW - (total - left), finish = NOW + left, remaining = left, total = total }
+		cdm.auraDurations[instance] = { kind = "aura", start = NOW - (total - left(spell)), finish = NOW + left(spell), remaining = left(spell), total = total }
+	end
+	local x = LEFT + (k - 1) * COLUMN
+	local told = {}
+	if not mirror then
+		local _
+		_, told = Hud.NativeViewers(env, C, "DPS", items, function(entry)
+			return x + 500 - entry.anchorInfo.offsetX, (SCREEN_H - 900) - entry.anchorInfo.offsetY
+		end)
 	end
 	C.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = true })
 	env.RunTimers()
 	local buffs, bars = ns.Mirror.Row("buffs"), ns.Mirror.Row("bars")
-	local x = LEFT + (k - 1) * COLUMN
-	local _, barsH = bars.holder:GetSize()
-	local _, buffsH = buffs.holder:GetSize()
-	layout(K, "cooldowns.bars", x, 640, barsH)
-	layout(K, "cooldowns.buffs", x, 640 + barsH + 8, buffsH)
 	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
 		layout(K, key, x + 230, 640, 44)
 	end
 	hide(K, { "cooldowns.essential", "cooldowns.utility" })
-	frames:Add(env, buffs.holder, {
-		name = "auracounts_buffs_" .. load.key, title = "Tracked buffs, " .. load.label, grade = "button", reference = "bufficons",
-		caption = string.format("%d tracked buffs active, %d tracked bars: the icon row keeps its six sockets in its 195 by 30 footprint and the last reads +N; the bars keep two and the second reads +N more.", load.buffs, load.bars),
-		match = "The tracked buff row and bars never grow toward the essential cooldowns beside them.",
-		rect = Gallery.Union(env, { buffs.holder, bars.holder }),
-		pad = 10,
-	})
-	local scene = Gallery.Build(env, { time = NOW })
-	scene.log[#scene.log + 1] = string.format("tracked buffs: %d active, %d shown%s; bars: %d active, %d shown", load.buffs, buffs.count,
-		buffs.chip and buffs.chip:IsShown() and (", " .. buffs.chip.text:GetText() .. " on the last") or "", load.bars, bars.count)
+	local scene
+	if mirror then
+		local _, barsH = bars.holder:GetSize()
+		local _, buffsH = buffs.holder:GetSize()
+		layout(K, "cooldowns.bars", x + 40, 640, barsH)
+		layout(K, "cooldowns.buffs", x + 40, 640 + barsH + 8, buffsH)
+		local shown = { buffs.holder, bars.holder }
+		for _, chip in ipairs({ buffs.chip, bars.chip }) do
+			if chip and chip:IsShown() then
+				shown[#shown + 1] = chip
+			end
+		end
+		frames:Add(env, buffs.holder, {
+			name = "auracounts_buffs_" .. load.key .. "_mirror", title = "Tracked buffs as KstyleUI icons, " .. load.label, grade = "button", reference = "bufficons",
+			caption = string.format("%d tracked buffs and %d tracked bars on the KstyleUI icons path: all six sockets show a buff and a +N chip stands one socket to the left, away from the cluster; both bars show and a +N more bar stands on top. Point at a chip to list the rest with their time left.", load.buffs, load.bars),
+			match = "Every socket and bar stays readable; the chips grow the group by one socket on its open side.",
+			rect = Gallery.Union(env, shown),
+			pad = 10,
+		})
+		scene = Gallery.Build(env, { time = NOW })
+		scene.log[#scene.log + 1] = string.format("tracked buffs (KstyleUI icons): %d active, %d shown%s; bars: %d active, %d shown%s", load.buffs, buffs.count,
+			buffs.chip and buffs.chip:IsShown() and (", " .. buffs.chip.text:GetText() .. " beside them") or "", load.bars, bars.count,
+			bars.chip and bars.chip:IsShown() and (", " .. bars.chip.text:GetText() .. " on top") or "")
+	else
+		local icons, barViewer = env._viewers.BuffIconCooldownViewer, env._viewers.BuffBarCooldownViewer
+		frames:Add(env, icons, {
+			name = "auracounts_buffs_" .. load.key, title = "Tracked buffs, " .. load.label, grade = "button", reference = "bufficons",
+			caption = string.format("%d tracked buffs and %d tracked bars on Forever's automatic path: Blizzard's own viewers, restyled, where Layout > Apply placed them in Edit Mode. The icons grow left from the slot, away from the cluster, and the bars stand on theirs. %s", load.buffs, load.bars,
+				#told > 0 and ("Apply told the player: " .. table.concat(told, " ")) or "Every tracked buff fits beside the action bars."),
+			match = "The size Edit Mode gets fits the whole row in the room beside the action bars, or the player gets one step naming the counts.",
+			rect = Gallery.Union(env, { icons, barViewer }),
+			pad = 10,
+		})
+		scene = Gallery.Build(env, { time = NOW })
+		scene.log[#scene.log + 1] = string.format("tracked buffs (automatic, %s): %d icons and %d bars in Blizzard's viewers%s", ns.Mirror.Report(), load.buffs, load.bars,
+			#told > 0 and ("; Apply: " .. table.concat(told, " ")) or "")
+	end
 	local err = Common.Errors(env, K)
 	if err then
 		scene.log[#scene.log + 1] = "error: " .. err
@@ -238,7 +280,8 @@ return Common.Run(function()
 	local scenes = {}
 	for k, load in ipairs(LOADS) do
 		scenes[#scenes + 1] = Frames(load, k, frames)
-		scenes[#scenes + 1] = Cooldowns(load, k, frames)
+		scenes[#scenes + 1] = Cooldowns(load, k, frames, "auto")
+		scenes[#scenes + 1] = Cooldowns(load, k, frames, "mirror")
 	end
 	local scene = Scene.Merge(scenes)
 	scene.frames = {}

@@ -460,7 +460,7 @@ function modules.cooldowns(opts)
 		end
 	end
 	local env, K, ns = C.New({
-		saved = saved(opts, "Cooldowns", { path = "mirror" }),
+		saved = saved(opts, "Cooldowns"),
 		cooldowns = cooldowns,
 		setup = function(env)
 			shared(env, opts)
@@ -491,6 +491,16 @@ function modules.cooldowns(opts)
 			cdm.overlay[spell] = true
 		end
 	end
+	-- The automatic path, as on Forever: the cooldown rows mirror, while aura data that can turn secret in combat
+	-- sends the tracked buffs to Blizzard's own viewers, restyled, where Apply's Edit Mode write placed them.
+	local items = { buffs = {}, bars = {} }
+	for _, entry in ipairs(entries) do
+		local list = items[entry.group]
+		if list then
+			list[#list + 1] = { id = entry.id, icon = entry.icon, name = entry.name, left = entry.state[2], total = entry.state[1] }
+		end
+	end
+	local _, told = Hud.NativeViewers(env, C, opts.layout or "DPS", items)
 	C.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	for _, spell in ipairs(procs) do
@@ -499,6 +509,7 @@ function modules.cooldowns(opts)
 	env.RunTimers()
 	C.W.Settle(env)
 	local scene = build(env, opts, { time = env._time })
+	scene.log[#scene.log + 1] = "cooldowns: " .. ns.Mirror.Report() .. "; Blizzard's tracked buff viewers at Apply's Edit Mode anchors" .. (#told > 0 and (", and Apply said: " .. table.concat(told, " ")) or "")
 	return finish(env, K, scene, "cooldowns"), ns
 end
 
@@ -1106,11 +1117,12 @@ function Hud.Module(name, opts)
 	return builder(opts or {})
 end
 
--- StoryTracker(layout, guide) -> the objective tracker's Edit Mode anchor after Layout > Apply: the addon's own
--- Setup.Apply runs against Forever's Edit Mode API (Tools/regression/editmode_fake.lua) on the owner's screen, and
--- this returns the anchorInfo it saved in the "KstyleUI <layout>" layout, which Edit Mode hands to the tracker's
--- SetPoint. guide says RestedXP is loaded, so the tracker takes the slot's lower half.
-function Hud.StoryTracker(layout, guide)
+-- EditModeLayout(layout, guide, counts) -> the "KstyleUI <layout>" Edit Mode layout Layout > Apply writes: the
+-- addon's own Setup.Apply runs against Forever's Edit Mode API (Tools/regression/editmode_fake.lua) on the owner's
+-- screen, where a UIParent unit is a root unit. guide says RestedXP is loaded, so the tracker takes the slot's lower
+-- half; counts ({ buffs, bars }) are the tracked cooldowns the Cooldowns module would report, which size Blizzard's
+-- tracked buff viewers.
+function Hud.EditModeLayout(layout, guide, counts)
 	local CoreEnv = dofile("Tools/regression/core_env.lua")
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local state = { saved = {}, active = 1 }
@@ -1125,12 +1137,49 @@ function Hud.StoryTracker(layout, guide)
 		end,
 	}))
 	CoreEnv.Boot(env)
+	if counts then
+		K.Setup.EditMode.CountTracked(function(group)
+			return counts[group]
+		end)
+	end
 	if not K.Setup.Apply({ layout = layout, modules = {} }) then
 		return nil
 	end
-	local written = EditModeFake.Named(state, "KstyleUI " .. layout)
+	return EditModeFake.Named(state, "KstyleUI " .. layout), env._printed
+end
+
+-- StoryTracker(layout, guide) -> the objective tracker's Edit Mode anchor after Layout > Apply, which Edit Mode hands
+-- to the tracker's SetPoint.
+function Hud.StoryTracker(layout, guide)
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	local written = Hud.EditModeLayout(layout, guide)
 	local entry = written and EditModeFake.Find(written, EditModeFake.TRACKER)
 	return entry and entry.anchorInfo
+end
+
+-- NativeViewers(env, C, layout, items, shift) lays Blizzard's tracked buff icon and bar viewers out where Apply's
+-- Edit Mode write puts them for this many tracked buffs and bars (C.Native); shift(iconEntry) -> dx, dy moves both,
+-- for a gallery column. Returns the two Edit Mode entries and what Apply told the player.
+function Hud.NativeViewers(env, C, layout, items, shift)
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	local written, printed = Hud.EditModeLayout(layout, false, { buffs = #items.buffs, bars = #items.bars })
+	assert(written, "Apply wrote no Edit Mode layout")
+	local formatter = env.C_StringUtil.CreateSecondsFormatter()
+	local function format(seconds)
+		return formatter:Format(seconds)
+	end
+	local out, dx, dy = {}, 0, 0
+	if shift then
+		dx, dy = shift(EditModeFake.Find(written, EditModeFake.VIEWER, EditModeFake.BUFF_ICON))
+	end
+	for _, view in ipairs({ { "buffs", EditModeFake.BUFF_ICON, "BuffIconCooldownViewer" }, { "bars", EditModeFake.BUFF_BAR, "BuffBarCooldownViewer" } }) do
+		local entry = EditModeFake.Copy(EditModeFake.Find(written, EditModeFake.VIEWER, view[2]))
+		entry.anchorInfo.offsetX = entry.anchorInfo.offsetX + dx
+		entry.anchorInfo.offsetY = entry.anchorInfo.offsetY + dy
+		C.Native(env, view[3], entry, items[view[1]], format)
+		out[view[1]] = entry
+	end
+	return out, printed or {}
 end
 
 function Hud.Build(opts)

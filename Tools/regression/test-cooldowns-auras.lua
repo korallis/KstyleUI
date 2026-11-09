@@ -90,7 +90,8 @@ assert(buffs.count == 1 and buffs.icons[1].entry.spellID == 3002, "the ended buf
 -- Show inactive keeps every tracked buff, the inactive ones dimmed.
 K.Options.Write("Cooldowns", "buffs.inactive", true)
 assert(buffs.count == 2, "inactive buffs stay with the setting on")
-assert(buffs.icons[1].usable == false and buffs.icons[2].usable == true, "the inactive buff is dimmed")
+assert(buffs.icons[1].entry.spellID == 3002 and buffs.icons[1].usable == true, "the active buff comes first")
+assert(buffs.icons[2].entry.spellID == 3001 and buffs.icons[2].usable == false, "the inactive one follows it, dimmed")
 K.Options.Write("Cooldowns", "buffs.inactive", false)
 
 -- While aura data is secret nothing is read: the last state stays.

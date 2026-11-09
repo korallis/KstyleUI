@@ -464,6 +464,90 @@ function C.Viewers(env)
 	end
 end
 
+-- Native(env, name, entry, items, format) lays Blizzard's tracked buff viewer out as the game would under the Edit
+-- Mode entry Layout > Apply wrote (Tools/regression/editmode_fake.lua), from Blizzard_CooldownViewer at 1.60.1:
+-- RefreshLayout acquires one item per tracked cooldown (at least two) and GridLayoutFrame puts them in one row, or
+-- for bars one column (GetStride is the item count); each item is 40 by 40 (a bar 220 by 30, its 30-unit icon on the
+-- left and a 19-unit bar after a 2-unit gap) scaled by IconSize%, stored as (percent - 50) / 10; items pitch by
+-- IconPadding less 4 (bars 2); a horizontal row with IconDirection Left starts at the right; hidden (inactive) items
+-- keep their slot (includeAsLayoutChildWhenHidden); the viewer hangs from the entry's anchor on UIParent; each item
+-- goes through OnAcquireItemFrame after its scale is set, as RefreshLayout acquires it. items: one
+-- { id, icon, name, left, total } per tracked cooldown, active when left is set; format(seconds) is the countdown
+-- text the engine draws through the countdown formatter. The game's own calls are made through the stub's fields so
+-- the forbidden-call checks see only what the module does.
+function C.Native(env, name, entry, items, format)
+	local viewer = env._viewers[name]
+	local bars = viewer._bars
+	local function setting(id)
+		for _, saved in ipairs(entry.settings) do
+			if saved.setting == id then
+				return saved.value
+			end
+		end
+	end
+	local scale = (setting(3) * 10 + 50) / 100
+	local pad = setting(4) - (bars and 2 or 4)
+	local n = math.max(2, #items)
+	while #viewer._items < n do
+		C.Item(env, viewer, #viewer._items + 1)
+	end
+	local w, h = bars and 220 or 40, bars and 30 or 40
+	local leftward = not bars and setting(2) == 0
+	local across = n * (bars and h or w) * scale + (n - 1) * pad
+	local a = entry.anchorInfo
+	viewer._points, viewer._width, viewer._height = {}, bars and w * scale or across, bars and across or h * scale
+	viewer._points[1] = { a.point, env.UIParent, a.relativePoint, a.offsetX, a.offsetY, n = 5 }
+	for i, item in ipairs(viewer._items) do
+		local it = items[i]
+		item._scale = scale
+		item._width, item._height = w, h
+		local step = (i - 1) * ((bars and h or w) * scale + pad)
+		local x, y = 0, 0
+		if bars then
+			y = -step
+		elseif leftward then
+			x = across - w * scale - step
+		else
+			x = step
+		end
+		item._points = { { "TOPLEFT", viewer, "TOPLEFT", x / scale, y / scale, n = 5 } }
+		item._shown = i <= n and it ~= nil and it.left ~= nil
+		if it then
+			item.GetCooldownID = function()
+				return it.id
+			end
+		end
+		local text = it and it.left and format(it.left) or nil
+		if bars then
+			local icon, bar = item.Icon, item.Bar
+			icon._width, icon._height = 30, 30
+			icon._points = { { "LEFT", item, "LEFT", 0, 0, n = 5 } }
+			icon.Icon._points = { { "TOPLEFT", icon, "TOPLEFT", 0, 0, n = 5 }, { "BOTTOMRIGHT", icon, "BOTTOMRIGHT", 0, 0, n = 5 } }
+			icon.Icon._state.Texture = { it and it.icon, n = 1 }
+			bar._height = 19
+			bar._points = { { "LEFT", icon, "RIGHT", 2, 0, n = 5 }, { "RIGHT", item, "RIGHT", 0, 0, n = 5 } }
+			bar.Name._points = { { "TOPLEFT", bar, "TOPLEFT", 5, 0, n = 5 }, { "BOTTOMRIGHT", bar, "BOTTOMRIGHT", -25, 0, n = 5 } }
+			bar.Name._state.Text = { it and it.name, n = 1 }
+			bar.Name._state.JustifyH = { "LEFT", n = 1 }
+			bar.Duration._points = { { "RIGHT", bar, "RIGHT", -8, 0, n = 5 } }
+			bar.Duration._state.Text = { text, n = 1 }
+			bar._state.MinMaxValues = { 0, it and it.total or 1, n = 2 }
+			bar._state.Value = { it and it.left or 0, n = 1 }
+		else
+			item.Icon._points = { { "TOPLEFT", item, "TOPLEFT", 0, 0, n = 5 }, { "BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0, n = 5 } }
+			item.Icon._state.Texture = { it and it.icon, n = 1 }
+			item.Cooldown._points = { { "TOPLEFT", item, "TOPLEFT", 0, 0, n = 5 }, { "BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0, n = 5 } }
+			local countdown = item.Cooldown:GetCountdownFontString()
+			countdown._points = { { "CENTER", item.Cooldown, "CENTER", 0, 0, n = 5 } }
+			countdown._state.Text = { text, n = 1 }
+		end
+		if i <= n then
+			viewer:OnAcquireItemFrame(item)
+		end
+	end
+	return viewer
+end
+
 -- Clean(env, forbidden) fails when a Blizzard object got a call named in the forbidden set.
 function C.Clean(env, forbidden)
 	for _, object in ipairs(env._blizzard or {}) do
@@ -473,14 +557,29 @@ function C.Clean(env, forbidden)
 	end
 end
 
--- A GameTooltip stand-in that records its owner, spell and visibility.
+-- A GameTooltip stand-in that records its owner, spell, lines (tip.lines, { left, right } each) and visibility.
 function C.Tooltip(env)
 	local tip = { shown = false }
 	function tip.SetOwner(self, owner, anchor)
 		self.owner, self.anchor = owner, anchor
+		self.lines = {}
 	end
 	function tip.SetSpellByID(self, spell)
 		self.spell = spell
+	end
+	function tip.SetText(self, text)
+		self.lines = { { left = text } }
+	end
+	function tip.AddLine(self, text)
+		self.lines = self.lines or {}
+		self.lines[#self.lines + 1] = { left = text }
+	end
+	function tip.AddDoubleLine(self, left, right)
+		self.lines = self.lines or {}
+		self.lines[#self.lines + 1] = { left = left, right = right }
+	end
+	function tip.ClearLines(self)
+		self.lines = {}
 	end
 	function tip.Show(self)
 		self.shown = true

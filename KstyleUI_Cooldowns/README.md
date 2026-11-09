@@ -32,8 +32,8 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Data.lua` | The entries each group shows, read from `C_CooldownViewer` and the player's Blizzard layout |
 | `Settings.lua` | The defaults, the settings page and clean reads of the saved values |
 | `Style.lua` | Fonts, the accent (through `IconButton:SetAccent` and `Glow:SetColorRGB`), glows, tooltips, and `Style.Countdown(cooldown)`: one `C_StringUtil` seconds formatter (one letter, whitespace stripped, the last unit rounded up: `4s`, `2m`) set on a cooldown row's `Cooldown` through `SetCountdownFormatter`, so the numbers read as the mockup's; without the API the engine's plain numbers stay, and the devlog says so |
-| `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows centre the countdown on the icon, as the Lumen sockets do (`Style.Decorate(icon, true)`); the tracked buff icons keep the kit's countdown, centred low |
-| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown that reads "24s" through `Style.Countdown` |
+| `Row.lua` | A holder of `Widgets.IconButton` icons placed on the grid. The essential and utility rows centre the countdown on the icon, as the Lumen sockets do (`Style.Decorate(icon, true)`); the tracked buff icons keep the kit's countdown, centred low. Every row's countdown reads "24s" and "2m" through `Style.Countdown`, the same format as the Blessings card. Past a full tracked buff row, a `+N` chip stands one socket to its left, away from the combat cluster |
+| `Bars.lua` | A holder of tracked buff bars: a glass tile with the icon on a dark button tile, the name, a subtle `Widgets.StatusBar` fill and a right-aligned countdown that reads "24s" through `Style.Countdown`. Past a full stack, a `+N more` bar stands one slot on top, clear of the buff row under it |
 | `Viewers.lua` | Blizzard's four viewers: faded while KstyleUI mirrors them, watched while they are restyled |
 | `Auras.lua` | Finds the aura a tracked buff follows and reads its duration object and stack text, never secret data |
 | `Path.lua` | Which path each group takes: the mirror, the reskin or off |
@@ -42,7 +42,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |
 
-Tests: `Tools/regression/test-cooldowns-overflow.lua` (many tracked buffs and bars stay in their footprints with their chips), `test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.
+Tests: `Tools/regression/test-cooldowns-overflow.lua` (many tracked buffs and bars keep every socket readable, with a chip beside them that lists the rest, active buffs first), `test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.
 
 ## Elements
 
@@ -69,7 +69,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `nameFont`, `nameOutline` | `"kit"`, `"none"` | The buff bars' name font and outline |
 | `<icons>.size` | 44 for essential, 38 for utility, 30 for tracked buffs | Icon size, 16 to 64 |
 | `<icons>.spacing` | 6 for essential and utility, 3 for tracked buffs | Gap between icons, 0 to 12 |
-| `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown, and on the tracked buff row the last socket reads `+N` for them (an opaque chip, the covered buff counted) |
+| `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown. On the tracked buff row every socket shows a buff and a `+N` chip one socket to the left of the full row counts the rest; pointing at it lists them with their time left |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
 | `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 15, 13 or 12; 12, 11 or 10 | The countdown numbers and the count: the action bars' 13-unit cooldown numbers on the 38-unit utility icons, scaled up on the essentials |
@@ -79,7 +79,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell, with the rim and the glow in the `gilt` token (`Style.TOKENS`, `neutral` until S1's gilt lands) whatever the accent: gold only on the active state |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, the last bar's slot reads `+N more` |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, a `+N more` bar one slot above the stack counts the rest, and pointing at it lists them |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |
@@ -105,6 +105,8 @@ If a mirror call raises an error, in combat or out, or a category set cannot be 
 
 ## How the mirror works
 
+The tracked buffs follow one priority: active buffs first, in the order the player set in the Cooldown Manager, then, with Show inactive on, the inactive ones in the same order. Past the grid they gather in the chip.
+
 1. `Data.Collect` lists a group's entries. When Blizzard's settings provider has clean display data, it follows the player's own Cooldown Manager layout: its order and the categories the player moved cooldowns into. Otherwise it uses `GetCooldownViewerCategorySet(category, false)` minus the cooldowns Blizzard hides by default. A provider that is dirty is never read: a group that already follows the player's layout keeps it, a group that has nothing yet shows the defaults, and either retries once a second, up to ten times, until the data is clean.
 2. Each icon shows the spell's file ID through `SetTexture`; the icon pack replaces the file the client loads for it. A cooldown icon's sweep is `C_Spell.GetSpellCooldownDuration(spell, ignoreGCD)` passed to `Cooldown:SetCooldownFromDurationObject`. A charge spell shows its charge count (secret or not, through `SetText`) and its recharge through `IconButton:SetChargeCooldownFromDuration` with `GetSpellChargeDuration`.
 3. `SPELL_UPDATE_COOLDOWN`, `SPELL_UPDATE_CHARGES`, `SPELL_UPDATE_USABLE`, `SPELL_UPDATE_ICON`, the spell-activation glow events and `COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED` refresh the cooldown icons. `SPELLS_CHANGED`, `PLAYER_ENTERING_WORLD`, the Cooldown Manager's data events and EventRegistry's `CooldownViewerSettings.OnDataChanged` rebuild the lists on the next frame.
@@ -119,8 +121,9 @@ If a mirror call raises an error, in combat or out, or a category set cannot be 
 
 - Icon items: `Skin.Strip` hushes Blizzard's icon overlay and keeps the icon and the out-of-range shade; the icon is cropped; `Skin.Backdrop` puts the action buttons' dark body (`buttonFill`) two units outside the icon, with their rim: the accent lifted 15 % toward white, and a faint halo outside it; the countdown, charge and stack texts take the module's fonts, sizes and outlines.
 - Bar items: the bar's background and pip are hushed, the fill takes the bar texture and colour settings at the bars' fill alpha, the bar gets a glass tile and its icon a dark button tile, and the name and duration texts take the module's fonts. Blizzard's template places the name and the duration, so the restyled bar keeps its text positions.
-- Blizzard's Edit Mode keeps the viewers' positions, sizes, padding, visibility and timer switches. Move them with Edit Mode; Layout Mode moves only KstyleUI's own frames.
-- Blizzard's viewer lays out every tracked buff itself, wrapping at Edit Mode's icon limit, so the `+N` chips are the mirror's: on this path the overflow is Edit Mode's to bound.
+- Blizzard's Edit Mode keeps the viewers' positions, sizes, padding, visibility and timer switches. Layout > Apply writes the tracked buff icon and bar viewers into the KstyleUI Edit Mode layout, in the `cooldowns.buffs` and `cooldowns.bars` slots (`Core/Setup/README.md`, Edit Mode); after that, move them with Edit Mode. Layout Mode moves only KstyleUI's own frames.
+- Edit Mode's IconSize scales each item (`CooldownViewerMixin:OnAcquireItemFrame` calls `SetScale`), so the restyle sets every text size and socket outset against the item's scale: a 50 % icon's countdown reads at the module's timer size and its socket stands 3 units out on screen.
+- Blizzard's viewer lays out every tracked buff itself in one row (bars in one column), an inactive one keeping its slot, so the `+N` chips are the mirror's. On this path Apply bounds the row instead: it sizes the viewers to fit beside the action bars and prints one step naming the counts when they cannot fit. `Data.Count(group)` gives Apply the tracked counts, through `Setup.EditMode.CountTracked`.
 - When Blizzard's Cooldown Manager is switched off (`cooldownViewerEnabled`), the restyled viewers show nothing, so the module prints one line saying where to turn it on.
 
 ## Why

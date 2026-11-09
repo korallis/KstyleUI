@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot and Blizzard's damage meter on the damage card, saves the layouts and activates that one, out of combat.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and its tracked buff icon and bar viewers in their slots (sized to fit, with a setup step when they cannot), saves the layouts and activates that one, out of combat.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -13,11 +13,18 @@ local PREFIX = "KstyleUI "
 local TRACKER_HEIGHT_MIN, TRACKER_HEIGHT_STEP, TRACKER_HEIGHT_STEPS = 400, 10, 60
 local METER_WIDTH_MIN, METER_WIDTH_MAX = 200, 600
 local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
+local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
+local VIEWER_CLEAR, VIEWER_MIN_ITEMS = 2, 2
+local VIEWERS = {
+	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, gap = 8, fallback = 6 },
+	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, gap = 2, fallback = 2 },
+}
 
 EditMode.TRACKER_LEFT = 16
 EditMode.TRACKER_TOP = 34
 
 local floor, max, min = math.floor, math.max, math.min
+local counter
 
 local function log(message)
 	ns.DevTest.Log(OWNER, message)
@@ -73,7 +80,116 @@ local function Clamp(value, low, high)
 	return max(low, min(high, value))
 end
 
-local function Places(name, story)
+function EditMode.CountTracked(fn)
+	counter = type(fn) == "function" and fn or nil
+end
+
+function EditMode.Tracked(group)
+	if counter then
+		local ok, n = pcall(counter, group)
+		if ok and Plain(n) then
+			return floor(n)
+		end
+	end
+	return VIEWERS[group].fallback
+end
+
+local function Box(name, key, rw, rh)
+	local position = Layouts.Get(name)[key]
+	local w, h = Layouts.Footprint(name, key)
+	if not (position and w) then
+		return nil
+	end
+	local l, b, r, t = Layouts.Rect({ width = w, height = h }, position, rw, rh)
+	return { l = l, b = b, r = r, t = t }
+end
+
+local function Others(name, rw, rh)
+	local out = {}
+	for key in pairs(Layouts.Get(name)) do
+		if not key:find("^cooldowns%.") and Layouts.Shown(name, key) ~= false then
+			out[#out + 1] = Box(name, key, rw, rh)
+		end
+	end
+	return out
+end
+
+local function RowRoom(slot, others)
+	local edge = 0
+	for _, o in ipairs(others) do
+		if o.r <= slot.r and o.b < slot.t and slot.b < o.t then
+			edge = max(edge, o.r)
+		end
+	end
+	return slot.r - edge - VIEWER_CLEAR
+end
+
+local function StackRoom(slot, others, rh)
+	local edge = rh
+	for _, o in ipairs(others) do
+		if o.b >= slot.b and o.l < slot.r and slot.l < o.r then
+			edge = min(edge, o.b)
+		end
+	end
+	return edge - slot.b - VIEWER_CLEAR
+end
+
+local function Length(view, scale, n, bars)
+	local item = (bars and view.height or view.width) * scale
+	return n * item + (n - 1) * view.gap
+end
+
+local function Fit(view, slot, room, n, k, bars)
+	local percent = VIEWER_SIZE_MIN
+	for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
+		local scale = step / 100
+		local across = bars and view.width * scale or view.height * scale
+		local limit = bars and (slot.r - slot.l) or (slot.t - slot.b)
+		if across <= limit * k and Length(view, scale, n, bars) <= room * k then
+			return step, true
+		end
+	end
+	local scale = percent / 100
+	local item = (bars and view.height or view.width) * scale
+	local fits = floor((room * k + view.gap) / (item + view.gap))
+	return percent, false, max(0, fits)
+end
+
+local function Viewer(name, group, k, rw, rh, others, notes)
+	local enum = Enum
+	local indices, setting = enum.EditModeCooldownViewerSystemIndices, enum.EditModeCooldownViewerSetting
+	local view = VIEWERS[group]
+	local slot = Box(name, view.key, rw, rh)
+	if not (slot and IsTable(indices) and IsTable(setting) and indices[view.index] ~= nil) then
+		return nil
+	end
+	local bars = group == "bars"
+	local n = max(VIEWER_MIN_ITEMS, EditMode.Tracked(group))
+	local room = bars and StackRoom(slot, others, rh) or RowRoom(slot, others)
+	local percent, fits, most = Fit(view, slot, room, n, k, bars)
+	if not fits then
+		notes[#notes + 1] = { group = group, count = n, fits = most }
+	end
+	local settings = {}
+	if setting.IconSize ~= nil then
+		settings[setting.IconSize] = (percent - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP
+	end
+	if setting.IconPadding ~= nil then
+		settings[setting.IconPadding] = view.offset + view.gap
+	end
+	local orientation, direction = enum.CooldownViewerOrientation, enum.CooldownViewerIconDirection
+	if not bars and IsTable(orientation) and setting.Orientation ~= nil then
+		settings[setting.Orientation] = orientation.Horizontal
+	end
+	if not bars and IsTable(direction) and setting.IconDirection ~= nil then
+		settings[setting.IconDirection] = direction.Left
+	end
+	local label = bars and "Blizzard's tracked buff bars" or "Blizzard's tracked buff icons"
+	local x = bars and slot.l or slot.r
+	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = bars and "BOTTOMLEFT" or "BOTTOMRIGHT", x = x * k, y = slot.b * k, settings = settings }
+end
+
+local function Places(name, story, notes)
 	local enum, k = Enum, Factor()
 	local places = {}
 	local tracker = EditMode.TrackerPlace(story.tracker)
@@ -98,13 +214,24 @@ local function Places(name, story)
 		end
 		places[#places + 1] = { label = "Blizzard's damage meter", system = meterSystem, x = l * k, y = t * k, settings = settings }
 	end
+	if enum.EditModeSystem.CooldownViewer ~= nil then
+		local rw, rh = Setup.RootSize()
+		local others = Others(name, rw, rh)
+		for _, group in ipairs({ "buffs", "bars" }) do
+			places[#places + 1] = Viewer(name, group, k, rw, rh, others, notes)
+		end
+	end
 	return places
 end
 
-local function FindSystem(layout, system)
+local function FindSystem(layout, system, index)
 	for _, entry in ipairs(IsTable(layout.systems) and layout.systems or {}) do
-		if IsTable(entry) and entry.system == system and (entry.systemIndex == nil or entry.systemIndex == 1) then
-			return entry
+		if IsTable(entry) and entry.system == system then
+			if index ~= nil and entry.systemIndex == index then
+				return entry
+			elseif index == nil and (entry.systemIndex == nil or entry.systemIndex == 1) then
+				return entry
+			end
 		end
 	end
 end
@@ -123,12 +250,12 @@ local function SetSetting(entry, setting, value)
 end
 
 local function Place(layout, place)
-	local entry = FindSystem(layout, place.system)
+	local entry = FindSystem(layout, place.system, place.index)
 	if not entry then
 		log("Edit Mode: the layout has no " .. place.label .. " system; it stays where Edit Mode puts it")
 		return false
 	end
-	entry.anchorInfo = { point = "TOPLEFT", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = place.x, offsetY = place.y }
+	entry.anchorInfo = { point = place.point or "TOPLEFT", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = place.x, offsetY = place.y }
 	entry.anchorInfo2 = nil
 	entry.isInDefaultPosition = false
 	for setting, value in pairs(place.settings) do
@@ -176,6 +303,19 @@ local function Target(all, presets, layoutName, active)
 	return index
 end
 
+local NOTE = {
+	buffs = L["%d tracked buffs don't fit beside your action bars; %d do. In the Cooldown Manager, untrack some or show them as bars."],
+	bars = L["%d tracked bars don't fit in their slot; %d do. In the Cooldown Manager, untrack some or show them as icons."],
+}
+
+local function Tell(notes)
+	for _, note in ipairs(notes) do
+		local line = NOTE[note.group]:format(note.count, note.fits)
+		log("Edit Mode: " .. line)
+		ns.Print(line)
+	end
+end
+
 local function Fail(reason)
 	log("Edit Mode: " .. reason .. "; the quest tracker keeps the story hint")
 	ns.Print(L["Move the quest tracker into the story rail in Edit Mode."])
@@ -207,8 +347,8 @@ function EditMode.Write(name, story)
 	if not index then
 		return Fail(reason)
 	end
-	local placed = {}
-	for _, place in ipairs(Places(name, story)) do
+	local placed, notes = {}, {}
+	for _, place in ipairs(Places(name, story, notes)) do
 		if Place(all[index], place) then
 			placed[#placed + 1] = place.label
 		end
@@ -221,6 +361,7 @@ function EditMode.Write(name, story)
 	if not activated then
 		log("Edit Mode: SetActiveLayout failed (" .. tostring(why) .. "); pick " .. layoutName .. " in Edit Mode")
 	end
-	log("Edit Mode: wrote " .. layoutName .. " with " .. (#placed > 0 and table.concat(placed, " and ") or "nothing") .. " placed, and made it active")
+	log("Edit Mode: wrote " .. layoutName .. " with " .. (#placed > 0 and table.concat(placed, ", ") or "nothing") .. " placed, and made it active")
+	Tell(notes)
 	return true
 end

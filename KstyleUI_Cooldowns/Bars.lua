@@ -1,4 +1,4 @@
--- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown; past the last bar, that bar's slot reads "+N more".
+-- Bars.lua: a holder of KstyleUI tracked buff bars: a glass tile with the icon on a dark button tile, the buff's name, a subtle fill driven by a duration object and a right-aligned countdown; past the last bar, a "+N more" bar one slot above the full stack, clear of the buff row under it, lists the rest on hover.
 local _, ns = ...
 
 local K = KstyleUI
@@ -152,17 +152,18 @@ function BarRow:Overflow(hidden)
 	end
 	if not chip then
 		chip = Style.Chip(self.content, false)
+		Style.Inspect(chip, self, K.L["%d more tracked bars"])
 		self.chip = chip
 	end
 	local cfg = self.cfg
-	Style.ShowChip(chip, self.bars[self.count], cfg.width, cfg.height, K.L["+%d more"]:format(hidden), cfg.nameSize)
+	Style.ShowChip(chip, self.content, "UP", cfg.spacing, cfg.width, cfg.height, K.L["+%d more"]:format(hidden), cfg.nameSize)
 end
 
 function BarRow:SetCount(count)
 	self.requested = count
 	local hidden = 0
 	if count > self.cfg.count then
-		hidden = count - self.cfg.count + 1
+		hidden = count - self.cfg.count
 		count = self.cfg.count
 	end
 	for i = 1, count do

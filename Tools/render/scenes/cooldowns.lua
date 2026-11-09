@@ -112,6 +112,8 @@ local function Reskin()
 end
 
 return Common.Run(function()
-	local mirror = Hud.Module("cooldowns")
+	-- The HUD runs the automatic path, which restyles Blizzard's tracked buff viewers on Forever; this scene shows
+	-- the KstyleUI icons path beside its own restyled viewers, so it picks the mirror.
+	local mirror = Hud.Module("cooldowns", { settings = { Cooldowns = { path = "mirror" } } })
 	return Scene.Merge({ mirror, Reskin() })
 end)

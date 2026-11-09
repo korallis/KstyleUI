@@ -1,4 +1,4 @@
--- Reskin.lua: the fallback path: Blizzard's own Cooldown Manager items restyled in place with the Skin helpers.
+-- Reskin.lua: Blizzard's own Cooldown Manager items restyled in place with the Skin helpers, their text set against the item scale Edit Mode's IconSize gives them.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,8 +9,9 @@ local Reskin = {}
 ns.Reskin = Reskin
 
 local ICON_CROP = 0.07
-local ICON_OUTSET = 2
+local ICON_OUTSET = 3
 local BAR_OUTSET = 1
+local BAR_ICON_OUTSET = 2
 local CVAR = "cooldownViewerEnabled"
 
 local active = {}
@@ -44,48 +45,64 @@ local function Text(text, font, size, outline, role)
 	end
 end
 
+local function ItemScale(item)
+	local ok, scale = pcall(item.GetScale, item)
+	if ok and type(scale) == "number" and not ns.IsSecret(scale) and scale > 0 then
+		return scale
+	end
+	return 1
+end
+
+local function Outset(backdrop, outset)
+	if backdrop and backdrop.inset ~= -outset then
+		backdrop.inset = -outset
+		backdrop:Restyle()
+	end
+	return backdrop
+end
+
 local function SkinIcon(group, item)
 	local cfg, current = Settings.current[group], Settings.current
+	local scale = ItemScale(item)
 	local icon = item.Icon
 	if IsTexture(icon) then
 		Skin.Strip(item, { keep = Keep(icon, item.OutOfRange) })
 		Crop(icon)
 	end
-	local backdrop = Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET })
+	local backdrop = Outset(Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
 	if backdrop and backdrop.chrome and backdrop.chrome.SetRimAccent then
 		local r, g, b = Settings.Accent()
 		backdrop.chrome:SetRimAccent(r, g, b)
 	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
-		Text(cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
-		if Settings.COOLDOWN_GROUPS[group] then
-			Style.Countdown(cooldown)
-		end
+		Text(cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize / scale, current.timerOutline)
+		Style.Countdown(cooldown)
 	end
 	local charges = item.ChargeCount
-	Text(type(charges) == "table" and charges.Current, current.countFont, cfg.countSize, current.countOutline)
+	Text(type(charges) == "table" and charges.Current, current.countFont, cfg.countSize / scale, current.countOutline)
 	local applications = item.Applications
-	Text(type(applications) == "table" and applications.Applications, current.countFont, cfg.countSize, current.countOutline)
+	Text(type(applications) == "table" and applications.Applications, current.countFont, cfg.countSize / scale, current.countOutline)
 end
 
 local function SkinBar(item)
 	local cfg, current = Settings.current.bars, Settings.current
+	local scale = ItemScale(item)
 	local bar = item.Bar
 	if type(bar) == "table" and type(bar.GetStatusBarTexture) == "function" then
 		Skin.Strip(bar, { keep = Keep(bar:GetStatusBarTexture()) })
 		bar:SetStatusBarTexture(cfg.texture)
 		bar:SetStatusBarColor(Settings.BarColor())
-		Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", inset = -BAR_OUTSET })
-		Text(bar.Name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
-		Text(bar.Duration, current.timerFont, cfg.timerSize, current.timerOutline)
+		Outset(Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", inset = -BAR_OUTSET / scale }), BAR_OUTSET / scale)
+		Text(bar.Name, current.nameFont, cfg.nameSize / scale, current.nameOutline, "body")
+		Text(bar.Duration, current.timerFont, cfg.timerSize / scale, current.timerOutline)
 	end
 	local frame = item.Icon
 	if type(frame) == "table" and IsTexture(frame.Icon) then
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
 		Crop(frame.Icon)
-		Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_OUTSET })
-		Text(frame.Applications, current.countFont, cfg.countSize, current.countOutline)
+		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_ICON_OUTSET / scale }), BAR_ICON_OUTSET / scale)
+		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline)
 	end
 end
 

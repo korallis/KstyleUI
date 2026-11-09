@@ -188,6 +188,14 @@ function Data.Collect(group, out)
 	return out, why or "defaults"
 end
 
+function Data.Count(group)
+	local list, source = Data.Collect(group, {})
+	if source == "none" or source == "secret" then
+		return nil
+	end
+	return #list
+end
+
 function Data.SetOverride(baseSpellID, overrideSpellID)
 	local base = Number(baseSpellID)
 	local entry = base and byBase[base]

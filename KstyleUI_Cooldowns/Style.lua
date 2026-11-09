@@ -1,4 +1,4 @@
--- Style.lua: the fonts, accent tints, glows, tooltips and the "+N" overflow chip the Cooldowns icons and bars share.
+-- Style.lua: the fonts, accent tints, glows, tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
 local _, ns = ...
 
 local K = KstyleUI
@@ -28,11 +28,19 @@ function Style.Chip(parent, icon)
 	return chip
 end
 
-function Style.ShowChip(chip, over, width, height, text, size)
+local BESIDE = {
+	LEFT = { "TOPRIGHT", "TOPLEFT", -1, 0 },
+	LEFTBOTTOM = { "BOTTOMRIGHT", "BOTTOMLEFT", -1, 0 },
+	UP = { "BOTTOMLEFT", "TOPLEFT", 0, 1 },
+}
+
+function Style.ShowChip(chip, holder, side, gap, width, height, text, size)
 	Widgets.Size(chip, width, height)
-	chip:SetFrameLevel(over:GetFrameLevel() + Style.CHIP_LEVEL)
+	chip:SetFrameLevel(holder:GetFrameLevel() + Style.CHIP_LEVEL)
 	chip:ClearAllPoints()
-	chip:SetPoint("TOPLEFT", over, "TOPLEFT", 0, 0)
+	local place = BESIDE[side]
+	local step = Widgets.Snap(chip, gap)
+	chip:SetPoint(place[1], holder, place[2], place[3] * step, place[4] * step)
 	chip.chrome:Restyle()
 	local r, g, b = Tokens.Color(chip.fill)
 	chip.chrome:SetFillRGBA(r, g, b, 1)
@@ -46,6 +54,7 @@ function Style.ShowChip(chip, over, width, height, text, size)
 	local current = ns.Settings.current
 	Style.Font(chip.text, current.countFont, size, current.countOutline)
 	Widgets.SetText(chip.text, text)
+	Style.Mouse(chip, current.tooltips)
 	chip:Show()
 end
 
@@ -189,6 +198,74 @@ local function HideTooltip(icon)
 	if tip and type(tip.IsOwned) == "function" and tip:IsOwned(icon) then
 		tip:Hide()
 	end
+end
+
+function Style.Seconds(seconds)
+	local f = Formatter()
+	if f then
+		local ok, text = pcall(f.Format, f, seconds)
+		if ok and type(text) == "string" then
+			return text
+		end
+	end
+	return string.format("%ds", math.ceil(seconds))
+end
+
+function Style.EntryName(entry)
+	local api = C_Spell
+	local spell = entry and (entry.spell or entry.spellID)
+	if spell and api and api.GetSpellName then
+		local ok, name = pcall(api.GetSpellName, spell)
+		if ok and type(name) == "string" and not ns.IsSecret(name) then
+			return name
+		end
+	end
+	return K.L["A tracked buff"]
+end
+
+local function TimeLeft(entry)
+	local id = entry.auraID
+	if not (id and ns.Auras) then
+		return nil
+	end
+	local duration = ns.Auras.Duration(entry.auraUnit, id)
+	if type(duration) ~= "table" or ns.IsSecret(duration) or type(duration.GetRemainingDuration) ~= "function" then
+		return nil
+	end
+	local ok, left = pcall(duration.GetRemainingDuration, duration)
+	if not ok or ns.IsSecret(left) or type(left) ~= "number" or left ~= left or left <= 0 then
+		return nil
+	end
+	return Style.Seconds(left)
+end
+
+local function ShowHidden(chip)
+	local row, tip = chip.row, GameTooltip
+	if not (ns.Settings.current.tooltips and row and tip) then
+		return
+	end
+	local entries = row.entries or {}
+	local first, last = row.count + 1, row.requested or #entries
+	tip:SetOwner(chip, "ANCHOR_TOP")
+	tip:AddLine(chip.title:format(last - row.count))
+	for i = first, last do
+		local entry = entries[i]
+		if entry then
+			local left = TimeLeft(entry)
+			if left and type(tip.AddDoubleLine) == "function" then
+				tip:AddDoubleLine(Style.EntryName(entry), left)
+			else
+				tip:AddLine(Style.EntryName(entry))
+			end
+		end
+	end
+	tip:Show()
+end
+
+function Style.Inspect(chip, row, title)
+	chip.row, chip.title = row, title
+	chip:HookScript("OnEnter", ShowHidden)
+	chip:HookScript("OnLeave", HideTooltip)
 end
 
 function Style.Decorate(icon, centred)

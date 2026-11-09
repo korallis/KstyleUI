@@ -334,12 +334,19 @@ local function AssignAuras(row, list)
 	for i = #out, 1, -1 do
 		out[i] = nil
 	end
-	local keepInactive = row.cfg.inactive
 	for _, entry in ipairs(list) do
-		if entry.auraID or keepInactive then
+		if entry.auraID then
 			out[#out + 1] = entry
 		end
 	end
+	if row.cfg.inactive then
+		for _, entry in ipairs(list) do
+			if not entry.auraID then
+				out[#out + 1] = entry
+			end
+		end
+	end
+	row.entries = out
 	local count = row:SetCount(#out)
 	for i = 1, count do
 		if not Live(row.group) then

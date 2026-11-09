@@ -88,4 +88,14 @@ do
 	assert(#list == 0 and source == "secret", "a secret set collects nothing, got " .. tostring(source))
 end
 
+-- Apply's Edit Mode write sizes Blizzard's tracked buff viewers by how many items each holds: the module hands it
+-- the tracked counts it reads, and nothing while the set is unreadable.
+do
+	local env, K, ns = C.New()
+	assert(K.Setup.EditMode.Tracked("buffs") == 2 and K.Setup.EditMode.Tracked("bars") == 2, "the writer counts the two tracked buffs and two bars")
+	env._cdm.secretSet = true
+	local list = ns.Data.Collect("buffs", {})
+	assert(#list == 0 and K.Setup.EditMode.Tracked("buffs") == 6, "a secret set gives no count; the writer falls back to KstyleUI's six sockets")
+end
+
 print("cooldowns data ok")

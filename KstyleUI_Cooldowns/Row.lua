@@ -1,4 +1,4 @@
--- Row.lua: a holder of KstyleUI icon buttons placed on the grid, shared by the cooldown rows and the preview; past the grid, the tracked buffs' last socket carries a "+N" chip.
+-- Row.lua: a holder of KstyleUI icon buttons placed on the grid, shared by the cooldown rows and the preview; past the grid, a "+N" chip one socket left of the tracked buffs' full row, away from the combat cluster, lists the rest on hover.
 local _, ns = ...
 
 local K = KstyleUI
@@ -33,9 +33,7 @@ function Row:StyleIcon(icon)
 	end
 	icon.cooldown:SetHideCountdownNumbers(not cfg.timer)
 	icon.cooldown:SetReverse(self.group == "buffs")
-	if ns.Settings.COOLDOWN_GROUPS[self.group] then
-		Style.Countdown(icon.cooldown)
-	end
+	Style.Countdown(icon.cooldown)
 	icon.greyWhileCooling = cfg.desaturate
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
@@ -73,10 +71,12 @@ function Row:Overflow(hidden)
 	end
 	if not chip then
 		chip = Style.Chip(self.content, true)
+		Style.Inspect(chip, self, K.L["%d more tracked buffs"])
 		self.chip = chip
 	end
 	local cfg = self.cfg
-	Style.ShowChip(chip, self.icons[self.count], cfg.size, cfg.size, "+" .. hidden, cfg.countSize + Style.CHIP_TEXT)
+	local side = cfg.wrap == "down" and "LEFTBOTTOM" or "LEFT"
+	Style.ShowChip(chip, self.content, side, cfg.spacing, cfg.size, cfg.size, "+" .. hidden, cfg.countSize + Style.CHIP_TEXT)
 end
 
 function Row:SetCount(count)
@@ -84,7 +84,7 @@ function Row:SetCount(count)
 	local capacity = Grid.Capacity(self.cfg)
 	local hidden = 0
 	if count > capacity then
-		hidden = count - capacity + 1
+		hidden = count - capacity
 		count = capacity
 	end
 	for i = 1, count do

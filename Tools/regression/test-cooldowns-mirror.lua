@@ -70,7 +70,8 @@ assert(uw == 170 and uh == 38, "the utility holder is its 170 by 38 footprint")
 assert(essential.icons[1].opts.size == 44 and utility.icons[1].opts.size == 38, "icons are 44 and 38 units")
 
 -- The cooldown rows' countdowns read "4s" and "2m", as the mockup's centre cluster does: a one-letter seconds
--- formatter from C_StringUtil goes on each Cooldown; the tracked buff icons keep the engine's numbers.
+-- formatter from C_StringUtil goes on each Cooldown. The tracked buff icons share it, so a buff reads "24s" as the
+-- Blessings card does (Opus #7: one duration format).
 do
 	local formatter = LastArg(essential.icons[1].cooldown, "SetCountdownFormatter")
 	assert(type(formatter) == "table" and formatter:Format(4) == "4s" and formatter:Format(120) == "2m", "an essential icon's countdown has the one-letter formatter")
@@ -81,7 +82,7 @@ do
 	assert(essential.icons[1].countdown._points[1][2] == essential.icons[1].icon, "a restyle keeps it centred")
 	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	local buffIcon = buffRow:Icon(1)
-	assert(W.LastCall(buffIcon.cooldown, "SetCountdownFormatter") == nil, "the tracked buff icons keep the engine's numbers")
+	assert(LastArg(buffIcon.cooldown, "SetCountdownFormatter") == formatter and formatter:Format(24) == "24s", "a tracked buff icon reads 24s, as Blessings does")
 	assert(buffIcon.countdown._points[1][1] == "CENTER", "a tracked buff icon keeps its countdown centred low")
 end
 

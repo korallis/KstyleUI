@@ -76,11 +76,28 @@ assert(essential:GetAlpha() == 1, "the reskin path never fades Blizzard's viewer
 
 -- Automatic: the tracked buff viewers are restyled while the cooldown rows mirror.
 do
-	local env3, K3 = C.New({ setup = C.Game })
+	local env3, K3, ns3 = C.New({
+		setup = function(e)
+			C.Game(e)
+			e._viewers.BuffIconCooldownViewer._items[1]._scale = 0.5
+			e._viewers.BuffBarCooldownViewer._items[1]._scale = 0.7
+		end,
+	})
 	C.Enable(env3, K3)
 	local buffItem = env3._viewers.BuffIconCooldownViewer._items[1]
 	assert(K3.Skin.IsSkinned(buffItem, "Backdrop"), "the buff icon viewer is restyled on the automatic path")
 	assert(W.LastCall(buffItem.Applications.Applications, "SetFont"), "buff stack counts take the count font")
+	local buffFormatter = W.LastCall(buffItem.Cooldown, "SetCountdownFormatter")
+	assert(buffFormatter and buffFormatter[1]:Format(24) == "24s", "Blizzard's tracked buff icons read 24s too, as Blessings does")
+	-- Edit Mode's IconSize scales each Blizzard item (CooldownViewerMixin:OnAcquireItemFrame); the restyled text is set
+	-- against that scale, so a 50% icon's timer still reads at KstyleUI's own size.
+	local timer = W.LastCall(buffItem.Cooldown:GetCountdownFontString(), "SetFont")
+	assert(W.Near(timer[2], ns3.Settings.current.buffs.timerSize / 0.5), "a half-size icon's timer is set at twice the size, got " .. tostring(timer[2]))
+	local socket = K3.Skin.Parts(buffItem).backdrop
+	assert(socket.inset == -6, "and its Lumen socket stands 3 units out on screen (an inset of -3 / 0.5), got " .. tostring(socket.inset))
+	local barItem = env3._viewers.BuffBarCooldownViewer._items[1]
+	local name = W.LastCall(barItem.Bar.Name, "SetFont")
+	assert(W.Near(name[2], ns3.Settings.current.bars.nameSize / 0.7), "a 70% bar's name keeps its size on screen, got " .. tostring(name[2]))
 	assert(K3.Skin.IsSkinned(env3._viewers.BuffBarCooldownViewer._items[1].Bar, "Backdrop"), "the buff bars are restyled")
 	assert(not K3.Skin.IsSkinned(env3._viewers.EssentialCooldownViewer._items[1], "Backdrop"), "the mirrored essential viewer is left alone")
 	C.Clean(env3, FORBIDDEN)
