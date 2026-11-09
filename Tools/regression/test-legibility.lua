@@ -86,9 +86,9 @@ for _, check in ipairs({
 	assert(ratio >= check[3], string.format("%s (%s) reads at %.2f:1 over %s scenery; it needs %.1f:1", check[4], check[1], ratio, where, check[3]))
 end
 
--- Fonts: small text is Alegreya Sans, Cinzel only sets heads of 12 units and up, and nothing falls under 10 units.
+-- Fonts: small text is Alegreya Sans, Cinzel SemiBold only sets heads of 12 units and up, the tracked Regular caps role sets the picture's 10-unit headings (its letters are spaced and its capitals fill the height), and nothing falls under 10 units.
 local CINZEL = "Cinzel-SemiBold.ttf"
-local ROLES = { "display", "heading", "title", "body", "caption", "number" }
+local ROLES = { "display", "heading", "title", "caps", "body", "caption", "number" }
 local function face(role)
 	return file((Tokens.Font(role)))
 end
@@ -100,6 +100,7 @@ assert(size("caption") >= 11, "captions are at least 11 units; got " .. tostring
 assert(face("title") == CINZEL and size("title") >= 12, "section heads have their own Cinzel role of 12 units or more")
 local _, upper = Tokens.TextStyle("title")
 assert(upper == true, "section heads are Cinzel capitals")
+assert(face("caps") == "CinzelTracked-Regular.ttf" and size("caps") >= 10, "the tracked caps role is Cinzel Regular at 10 units or more")
 for _, role in ipairs(ROLES) do
 	if face(role) == CINZEL then
 		assert(size(role) >= 12, "the " .. role .. " role sets Cinzel at " .. size(role) .. " units; Cinzel needs 12 or more")
@@ -112,7 +113,7 @@ end
 assert(Theme.SetFontScale(1))
 local cap = Widgets.SectionCap(root, { text = "Blessings" })
 local capPath, capSize = cap.label:GetFont()
-assert(file(capPath) == "CinzelTracked-Regular.ttf" and capSize >= 12, "a rail card's section cap is a tracked Cinzel head of 12 units or more")
+assert(file(capPath) == "CinzelTracked-Regular.ttf" and capSize >= 10, "a rail card's section cap is a tracked Cinzel head of 10 units or more")
 assert(Widgets.SECTION_CAP_HEIGHT >= size("title"), "the rail's section cap height fits its head")
 
 -- A text shadow strong enough to lift text off busy glass: at least a whole unit, nearly opaque.

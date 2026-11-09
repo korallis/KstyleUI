@@ -80,7 +80,7 @@ local SIZES = {
 	heading = 16,
 	body = 12,
 	title = 12,
-	caps = 12,
+	caps = 10,
 	caption = 11,
 	number = 12,
 	world = 13,
@@ -148,7 +148,7 @@ local FONT_FACES = {
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
 }
 local ROLE_FACES = {
-	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.15 },
+	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.07 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"

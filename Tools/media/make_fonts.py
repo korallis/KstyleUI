@@ -14,8 +14,11 @@ at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
 The game has no letter-spacing call (FontString has SetSpacing, which is line spacing, and nothing else spaces
 letters), and Cinzel has no thin-space glyph to space them with. CinzelTracked-Regular.ttf is Cinzel pinned at
 weight 400 with TRACKING_EM of its em added to the advance of every glyph that has one, so the client draws
-letter-spaced capitals from the font itself. The outlines, the left side bearings and the kerning are Cinzel's;
-only hmtx, hhea.advanceWidthMax, OS/2.xAvgCharWidth and the names change. The tracking falls after the last
+letter-spaced capitals from the font itself. TRACKING_EM is what a fit of the owner's picture gives (0.07 em at its 10-unit
+headings, see Media/PROVENANCE.md). Cinzel draws lowercase letters as small capitals; the character map
+here points each lowercase letter at its capital, so a name the code cannot uppercase (a secret value) still reads in
+capitals. The outlines, the left side bearings and the kerning are Cinzel's; only hmtx, hhea.advanceWidthMax,
+OS/2.xAvgCharWidth, the character map and the names change. The tracking falls after the last
 glyph too, which Widgets.ApplyFont takes back for centred and right-aligned text. Cinzel's licence names no
 Reserved Font Name; the family is renamed Cinzel Tracked all the same so the file is not mistaken for Cinzel.
 
@@ -38,7 +41,7 @@ TABULAR_SUFFIX = ".tf"
 ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_REGULAR_WEIGHT = 400
-TRACKING_EM = 0.15
+TRACKING_EM = 0.07
 TRACKED_FAMILY = "Cinzel Tracked"
 
 
@@ -78,11 +81,18 @@ def make_tracked(src, out):
         advance, lsb = hmtx[glyph]
         if advance > 0:
             hmtx[glyph] = (advance + track, lsb)
+    for subtable in font["cmap"].tables:
+        if not subtable.isUnicode():
+            continue
+        for code in list(subtable.cmap):
+            upper = chr(code).upper()
+            if chr(code).islower() and len(upper) == 1 and ord(upper) in subtable.cmap:
+                subtable.cmap[code] = subtable.cmap[ord(upper)]
     font["hhea"].advanceWidthMax = max(advance for advance, _ in hmtx.metrics.values())
     font["OS/2"].recalcAvgCharWidth(font)
     set_names(font, TRACKED_FAMILY, "Regular", TRACKED_FAMILY, "CinzelTracked-Regular")
     name = font["name"]
-    note = f"Cinzel Regular with {track} units of tracking added to every advance by KstyleUI Tools/media/make_fonts.py"
+    note = f"Cinzel Regular with {track} units of tracking added to every advance and lowercase drawn as capitals, by KstyleUI Tools/media/make_fonts.py"
     name.setName(note, 10, 3, 1, 0x409)
     name.setName(note, 10, 1, 0, 0)
     font["OS/2"].usWeightClass = CINZEL_REGULAR_WEIGHT

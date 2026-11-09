@@ -73,14 +73,16 @@ class FontFilesTest(unittest.TestCase):
         self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 600)
 
     def test_tracked_cinzel_is_regular_with_wider_advances(self):
-        # Cinzel Regular's own advances (Cinzel[wght].ttf at weight 400, in 1000 units) and the 150 the script adds.
+        # Cinzel Regular's own advances (Cinzel[wght].ttf at weight 400, in 1000 units) and the 70 the script adds.
         data = (FONTS / "CinzelTracked-Regular.ttf").read_bytes()
         self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 400)
         self.assertEqual(struct.unpack(">H", table(data, "head")[18:20])[0], 1000)
         regular = {"S": 475, "K": 657, "Y": 661, "B": 586, "O": 838, "R": 677, "N": 841, "E": 577}
         for letter, base in regular.items():
-            self.assertEqual(advance(data, glyph_index(data, ord(letter))), base + 150, f"{letter} is Cinzel Regular's advance plus 150")
-        self.assertGreater(advance(data, glyph_index(data, ord(" "))), 150, "the space carries the tracking too")
+            self.assertEqual(advance(data, glyph_index(data, ord(letter))), base + 70, f"{letter} is Cinzel Regular's advance plus 70")
+        self.assertGreater(advance(data, glyph_index(data, ord(" "))), 70, "the space carries the tracking too")
+        self.assertEqual(glyph_index(data, ord("a")), glyph_index(data, ord("A")), "lowercase is drawn as the capital, so a name Lua cannot uppercase still reads in capitals")
+        self.assertEqual(glyph_index(data, 0xE9), glyph_index(data, 0xC9), "accented lowercase too")
 
     def test_tracked_cinzel_has_no_thin_space_to_misuse(self):
         for name in ("CinzelTracked-Regular.ttf", "Cinzel-SemiBold.ttf"):

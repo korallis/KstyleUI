@@ -13,7 +13,7 @@ local S1_NAMES = { questGold = "quest", rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
 local TEXTURES = { gem = "chamferTile", checkRing = "ringBevel", gemFill = "dot" }
 local GEM_UNITS, GEM_TURN = 7, math.pi / 4
-local CAP_SIZE, RULE_ALPHA = 12, 0.55
+local CAP_SIZE, RULE_ALPHA = 10, 0.55
 local GEM_GAP, RULE_GAP = "gapSmall", "gapMedium"
 local RING_UNITS, RING_FILL, RING_LEVEL = 14, 8, 2
 local THIN_SPACE = "\226\128\137"
