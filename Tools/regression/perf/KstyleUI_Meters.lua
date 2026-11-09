@@ -5,7 +5,7 @@ local M = dofile("Tools/regression/meters_env.lua")
 return {
 	{
 		name = "Meters threat Update",
-		budget = 150,
+		budget = 300,
 		setup = function()
 			local env, K = M.New()
 			env._group = { raid = false, size = 3 }

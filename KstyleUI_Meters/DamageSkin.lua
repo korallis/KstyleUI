@@ -1,4 +1,4 @@
--- DamageSkin.lua: restyles Blizzard's Damage Meter windows and their spell breakdown windows in place as the own meter's BarList rows: Blizzard's fill hushed, a glowing class pill at each row's foot, the header in the cap's type, through the core's Skin helpers and hooks.
+-- DamageSkin.lua: restyles Blizzard's Damage Meter windows and their spell breakdown windows in place as the own meter's BarList rows: Blizzard's fill hushed, a flat class pill at each row's foot, the header in the cap's type, through the core's Skin helpers and hooks.
 local _, ns = ...
 
 local K = KstyleUI
@@ -7,8 +7,6 @@ local Logic = ns.Logic
 
 local MAX_WINDOWS = 3
 local WINDOW_NAME = "DamageMeterSessionWindow"
-local PILL_GLOW_OUTSET = 3
-local PILL_GLOW_ALPHA = 0.35
 local LEVEL_ABOVE = 1
 
 local DamageSkin = { active = false, applied = false }
@@ -54,23 +52,17 @@ local function Recolor(entry)
 	if pill.r ~= r or pill.g ~= g or pill.b ~= b then
 		pill.r, pill.g, pill.b = r, g, b
 		pill.bar:SetBarColor(r, g, b, 1)
-		pill.glow:SetVertexColor(r, g, b, PILL_GLOW_ALPHA)
 	end
 end
 
 local function PlacePill(pill)
-	local bar, glow, source = pill.bar, pill.glow, pill.source
+	local bar, source = pill.bar, pill.source
 	local height = Widgets.Snap(bar, ns.BarList.PILL_HEIGHT)
 	bar.opts.height = height
 	bar:Restyle()
 	bar:ClearAllPoints()
 	bar:SetPoint("BOTTOMLEFT", source, "BOTTOMLEFT")
 	bar:SetPoint("BOTTOMRIGHT", source, "BOTTOMRIGHT")
-	local outset = Widgets.Snap(bar, PILL_GLOW_OUTSET)
-	local fill = bar:GetStatusBarTexture()
-	glow:ClearAllPoints()
-	glow:SetPoint("TOPLEFT", fill, "TOPLEFT", -outset, outset)
-	glow:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", outset, -outset)
 end
 
 local function StylePill(pill)
@@ -94,10 +86,7 @@ local function NewPill(entry, source)
 		width = Tokens.Size("buffBarWidth"),
 		height = ns.BarList.PILL_HEIGHT,
 	})
-	local glow = holder:CreateTexture(nil, "ARTWORK", nil, -1)
-	glow:SetTexture((Tokens.Texture("pill")))
-	glow:SetBlendMode("ADD")
-	local pill = { entry = entry, source = source, holder = holder, bar = bar, glow = glow, Restyle = PlacePill }
+	local pill = { entry = entry, source = source, holder = holder, bar = bar, Restyle = PlacePill }
 	local low, high = source:GetMinMaxValues()
 	if Present(low) and Present(high) then
 		bar:SetBarRange(low, high)

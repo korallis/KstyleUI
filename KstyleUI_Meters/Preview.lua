@@ -61,7 +61,8 @@ local function FillDamage(list)
 		end
 	end
 	list:SetTitle(info.label)
-	list:SetColumn(ns.Get("damage.session") == "Overall" and L["Overall"] or L["Current"])
+	local session = ns.Get("damage.session")
+	list:SetColumn(session == "Overall" and L["All"] or session == "Previous" and L["Last"] or L["Now"])
 end
 
 local function FillThreat(list)

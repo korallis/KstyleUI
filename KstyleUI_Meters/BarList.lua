@@ -1,4 +1,4 @@
--- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside, and full-width rows that carry an optional icon, a name, a value and a share over a 4-unit glowing class pill.
+-- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside or a fight switch, and full-width rows that carry an optional icon, a name, a value and a share over a flat 4-unit class pill.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,12 +11,11 @@ local PERCENT_EMS = 2.6
 local FILL_ALPHA = 0.5
 local PILL_HEIGHT = 4
 local PILL_GAP = 3
-local PILL_GLOW_OUTSET = 3
-local PILL_GLOW_ALPHA = 0.35
 local TEXT_AIR = 2
 local ICON_CROP = 0.08
 local CAP_RESERVE = 44
 local CAP_GAP = "gapMedium"
+local SWITCH_GAP = "  "
 
 local BarList = {}
 ns.BarList = BarList
@@ -52,9 +51,6 @@ local function NewRow(list, index)
 		width = width,
 		height = PILL_HEIGHT,
 	})
-	local glow = frame:CreateTexture(nil, "ARTWORK", nil, -1)
-	glow:SetTexture((Tokens.Texture("pill")))
-	glow:SetBlendMode("ADD")
 	local icon = frame:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	icon:Hide()
@@ -62,7 +58,6 @@ local function NewRow(list, index)
 		index = index,
 		frame = frame,
 		bar = bar,
-		glow = glow,
 		icon = icon,
 		name = Text(frame, "LEFT"),
 		value = Text(frame, "RIGHT"),
@@ -116,7 +111,6 @@ local function Recolor(list, row)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)
-		row.glow:SetVertexColor(r, g, b, PILL_GLOW_ALPHA)
 	end
 end
 
@@ -136,7 +130,7 @@ local function PlaceRow(list, row, i)
 	local pad, gap = list.pad, list.gap
 	local panel = list.panel
 	local y = Widgets.Snap(panel, list:Top()) + (i - 1) * (rowHeight + spacing)
-	local frame, bar, glow = row.frame, row.bar, row.glow
+	local frame, bar = row.frame, row.bar
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", pad, -y)
 	frame:SetSize(max(1, list.barWidth), rowHeight)
@@ -146,11 +140,6 @@ local function PlaceRow(list, row, i)
 	bar:Restyle()
 	bar:ClearAllPoints()
 	bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
-	local outset = Widgets.Snap(panel, PILL_GLOW_OUTSET)
-	local fill = bar:GetStatusBarTexture()
-	glow:ClearAllPoints()
-	glow:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, outset)
-	glow:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, -outset)
 	local line = rowHeight - pill - Widgets.Snap(panel, PILL_GAP)
 	row.percent:ClearAllPoints()
 	row.percent:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
@@ -315,6 +304,50 @@ function List:SetColumn(text, short)
 	end
 end
 
+local function Hex(name)
+	local r, g, b = Widgets.Rgba(name)
+	return string.format("|cff%02x%02x%02x", floor(r * 255 + 0.5), floor(g * 255 + 0.5), floor(b * 255 + 0.5))
+end
+
+local function SwitchText(words, selected, only)
+	local parts = {}
+	for i, word in ipairs(words) do
+		if not only or i == selected then
+			parts[#parts + 1] = Hex(i == selected and "giltLit" or "muted") .. word .. "|r"
+		end
+	end
+	return table.concat(parts, SWITCH_GAP)
+end
+
+local function Fits(list)
+	local title, aside = TextWidth(list.title), TextWidth(list.column)
+	return not (title and aside and title + aside > (list.barWidth or 0) - CAP_RESERVE)
+end
+
+function List:SetSwitch(words, selected, short)
+	local switch = self.switch
+	if not switch then
+		return
+	end
+	switch:SetShown(ns.Get(self.section .. ".title"))
+	self.cap:SetAside(SwitchText(words, selected))
+	if Fits(self) or not ns.Get(self.section .. ".title") then
+		return
+	end
+	if short and short[selected] then
+		local narrow = {}
+		for i, word in ipairs(words) do
+			narrow[i] = short[i] or word
+		end
+		self.cap:SetAside(SwitchText(narrow, selected))
+		if Fits(self) then
+			return
+		end
+		words = narrow
+	end
+	self.cap:SetAside(SwitchText(words, selected, true))
+end
+
 function List:Paint()
 	local level = self.warning or Logic.NO_WARNING
 	local chrome = self.panel.chrome
@@ -378,6 +411,20 @@ function BarList.New(parent, section, opts)
 	end
 	if opts.tooltip then
 		Widgets.AttachTooltip(panel, opts.tooltip)
+	end
+	if opts.onSwitch then
+		local switch = CreateFrame("Frame", nil, panel)
+		switch:SetFrameLevel(panel:GetFrameLevel() + 2)
+		switch:SetAllPoints(list.column)
+		switch:EnableMouse(true)
+		switch:SetScript("OnMouseUp", function(_, button)
+			opts.onSwitch(list, button)
+		end)
+		if opts.switchTooltip then
+			list.switchTooltip = opts.switchTooltip
+			Widgets.AttachTooltip(switch, opts.switchTooltip)
+		end
+		list.switch = switch
 	end
 	holder:HookScript("OnSizeChanged", function()
 		list:Restyle()

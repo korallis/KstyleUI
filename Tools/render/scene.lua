@@ -484,6 +484,8 @@ local function plainText(text)
 	return table.concat(out)
 end
 
+Scene.PlainText = plainText
+
 -- WrappedLines(text, size, fontPath, width) -> how many lines a word-wrapping text takes in a width, by the
 -- page's rule: words fill a line while they fit, a word that fits nowhere takes a line of its own, and an
 -- explicit break starts a new line.

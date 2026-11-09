@@ -1,6 +1,6 @@
 # KstyleUI_Chat
 
-Chat panels, tabs with an accent underline, an edit box that shows while typing, copy chat, clickable links and class-coloured names.
+Chat panels, tabs with a gilt underline, an edit box that shows while typing, copy chat, chat history across sessions, clickable links and class-coloured names.
 
 | Field | Value |
 | --- | --- |
@@ -32,19 +32,20 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Windows.lua` | Finds Blizzard's chat windows, including whisper windows the game opens later, and hands each to the parts once |
 | `Stamps.lua` | Chat timestamps through the game's `showTimestamps` setting, and the player's own value back when the module turns off |
 | `Messages.lua` | The message pipeline and the dialog that copies a clicked link |
+| `History.lua` | Keeps each window's last lines across sessions and puts them back once when the chat starts |
 | `Panel.lua` | The glass panel: the `chat.main` Layout element that holds Blizzard's main chat window |
 | `Frames.lua` | Restyles every chat window in place: art, tabs, edit box, scroll bar, fonts and buttons |
 | `Copy.lua` | The copy-chat window, its Copy button action and the tab menu's Copy chat entry |
 | `Preview.lua` | The live preview on the settings window's Chat page |
 | `Module.lua` | Registers the module and its settings page, and starts and stops the parts |
 
-Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline), `test-chat-stamps.lua` (timestamps through the game's setting), `test-cvars.lua` (the core's restore at login) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
+Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-messages.lua` (the pipeline), `test-chat-stamps.lua` (timestamps through the game's setting), `test-cvars.lua` (the core's restore at login) and `test-chat-panel.lua` (the panel and the window skins) and `test-chat-copy.lua` (the copy window, its button and menu entry, and the preview) and `test-chat-history.lua` (history across sessions), against stand-ins for Blizzard's chat in `Tools/regression/chat_env.lua`.
 
 ## Settings
 
 | Key | Default | Row |
 | --- | --- | --- |
-| `panelOpacity` | the `surface` token's alpha, 0.97 | The glass behind the chat, 0 to 1. The text stays fully visible. |
+| `panelOpacity` | the `surface` token's alpha, 0.88 | The glass behind the chat, 0 to 1. The text stays fully visible. |
 | `shadow` | `true` | The panel's soft shadow |
 | `copyButton` | `true` | The copy glyph beside the plus at the right end of the tab row |
 | `editBox` | `typing` | `typing` shows the edit box only while the player types; `always` keeps the game's resting box under the messages at Blizzard's alpha and leaves it room. In the game's Classic chat style Blizzard hides the resting box itself, so `always` only keeps the room. |
@@ -54,7 +55,8 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | `lineSpacing` | 4 | 0 to 10 units between lines; 4 gives the mockup's pitch at size 14 |
 | `fontOutline` | `none` | `none` (the soft text shadow), `OUTLINE` or `THICKOUTLINE` |
 | `fade`, `fadeTime` | `true`, 120 | Old lines fade after this many seconds, 10 to 600 |
-| `tabStyle` | `underline` | `underline` (the accent underline), `filled` (a `buttonFill` tile behind the selected tab) or `minimal` (bright text only) |
+| `history`, `historyLines` | `true`, 100 | Each window's newest lines come back after a reload or relog, 10 to 500 per window. See [History](#history). Turning it off forgets this character's lines. |
+| `tabStyle` | `underline` | `underline` (the gilt underline), `filled` (a `buttonFill` tile behind the selected tab, its edge in the accent) or `minimal` (bright text only) |
 | `tabCase` | `upper` | Tab names in capitals or as typed |
 | `tabFontSize` | 13 | 8 to 16; the mockup's tab labels measure 13 at 1.348 px per unit |
 | `accentSource`, `accentColor` | `class`, the default accent | Links and the chat's highlights follow the class colour or a custom colour |
@@ -75,6 +77,15 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | Class-coloured names | A sender-name filter through `ChatFrameUtil.AddSenderNameFilter` colours the name from `GetPlayerInfoByGUID` with `Theme.ClassColor`, brightened by `Theme.Brighten`. A name the game already coloured is left alone. |
 | Timestamps | `Stamps.lua` writes the `timestamp` and `timestampColor` settings into the game's `showTimestamps` CVar as `\|cffRRGGBB[%H:%M]\|r `. Blizzard's chat puts that in front of each chat message as it builds the line (`TimeUtil.BetterDate`), so the module rewrites no line for its timestamp. See [Timestamps](#timestamps). |
 | Short channel names | A `hooksecurefunc` post-hook on each chat window's `AddMessage` computes the decorated line and swaps it in through the window's own `TransformMessages`, only when the line changes. The combat log is skipped. |
+
+## History
+
+`History.lua` keeps each chat window's newest lines in KstyleUI's own saved variables (`KstyleUIDB.account.chatHistory.characters[<character>][<window name>]`), so a reload or a relog starts with the chat the player left. Each line is saved as the player saw it: `Messages.lua` hands it the finished line (short channel names and timestamps applied) from its `AddMessage` post-hook, with the line's colour. A saved line is plain text and three colour numbers.
+
+- Never kept: a secret line, a line with a Battle.net name (`|K`, which the game encodes per session), and the combat log.
+- Bounded: `historyLines` per window (default 100, 10 to 500); the oldest line goes first. Lowering the setting trims what is saved.
+- Restored once per UI load, when the chat module starts: each window gets its lines back, oldest first, through its own `AddMessage`, then one muted line, "Chat from your last session". `Messages.lua` leaves restored lines as they are, and they are not saved twice.
+- Off: `history = false` keeps and restores nothing, and turning it off forgets this character's lines.
 
 ## Timestamps
 
@@ -102,7 +113,7 @@ Blizzard's `ChatFrame1` is anchored inside the holder by two points, so it follo
 
 | Part | Where, in root units at the 1080 reference |
 | --- | --- |
-| Tabs | The tabs sit inside the glass, in a 32-unit row as the mockup draws them. A faint divider closes the row where Blizzard's dock meets the window, and the selected tab's underline lies on it: one unit in the accent (the class colour), across the tab's full width, with a 5-unit accent glow fading upward from it. Blizzard centres the tab text 14 units above its window, so the labels sit 21 units below the panel's top. |
+| Tabs | The tabs sit inside the glass, in a 32-unit row as the mockup draws them. A faint divider closes the row where Blizzard's dock meets the window, and the selected tab's underline lies on it: one unit in Lumen's gilt, across the tab's full width, with a 5-unit gilt glow fading upward from it. Blizzard centres the tab text 14 units above its window, so the labels sit 21 units below the panel's top. |
 | Glyphs | At the row's right end, level with the tab labels: a plus, the close glyph turned an eighth of a turn, centred 22 units in from the right edge, which opens the chat's settings page; and a copy glyph, two outlined squares drawn from the kit's white texture, one button and a tiny gap to its left, which opens the copy window. Both are 8 units across in the accent (white on hover) with 20-unit hit areas. |
 | Messages | 16 units in from the left and up from the bottom, as the mockup, below the tab row, and in from the right by whichever is wider: 16 plus the scroll bar's column, or the glyphs' room. Blizzard's dock ends 2 chat units past the window and its 16-unit overflow button sits at that end, so the window stops where the button clears the last glyph's hit area: 56 units with the copy glyph, 352 units of room for the mockup's lines. |
 | Edit box | Blizzard keeps it under the window. With `editBox` at `typing` the panel keeps no room for it, so the box hangs under the panel while the player types; when the chat window's units are larger than the root's or the panel sits low, the bottom inset grows until the box's tile clears the screen's edge by `gapTiny`, and a `LayoutChanged` callback places the window again when the panel moves. With `always` the panel keeps the room: the tile is 22 units tall and 6 units above the panel's bottom. |
@@ -118,7 +129,7 @@ The panel's visibility and opacity carry over to Blizzard's chat: hooks on the h
 | Part | How |
 | --- | --- |
 | Art | `Skin.Strip` on the window and its button column; Blizzard's border textures stay at alpha 0 |
-| Tabs | `Skin.Tab`, keeping the new-message glow. A hook on `FCFTab_UpdateColors` tells each tab whether it is selected. The underline and the filled tile take the module accent. |
+| Tabs | `Skin.Tab`, keeping the new-message glow. A hook on `FCFTab_UpdateColors` tells each tab whether it is selected. The underline and its glow are gilt; the filled tile's edge takes the module accent. |
 | Tab names | Upper-cased with the tab's own `SetText`; the typed name is kept in `Safe.Side(tab)` so the normal case can come back. A secret name, such as a whisper window's, is left alone. A hook on `FCF_SetWindowName` handles renames. |
 | Edit box | `Skin.EditBox`: a raised tile whose hairline lights in the module accent while it has focus |
 | Scroll bar | `Skin.ScrollBar`, and a chevron on the jump-to-bottom button, which keeps its flash |

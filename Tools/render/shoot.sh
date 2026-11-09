@@ -3,6 +3,7 @@
 #
 #   Tools/render/shoot.sh <scene> [--ppu 1.426] [--out Tools/render/out/<scene>.png] [--json-only]
 #                                [--class WARRIOR] [--backdrop [PNG]] [--backdrop-alpha 1] [--no-standins]
+#                                [--report | --strict]
 #
 # <scene> is a file in Tools/render/scenes/ without .lua. The scene JSON lands in Tools/render/out/<scene>.json,
 # the page in Tools/render/out/<scene>.html and the PNG next to them. LUA (default luajit) runs the scene.
@@ -17,13 +18,19 @@
 # mockup's scenery with its UI blurred away, at --backdrop-alpha. Before the scene runs, standins.py refreshes
 # the portraits, the minimap and the backdrop from the handoff mockup when it is there; --no-standins skips
 # that, and a missing mockup is not an error.
+#
+# The render guard (Tools/render/guard.lua) then lists every text the page truncated to "..." and every piece of
+# content that reaches past its glass card, minus Tools/render/guard_allow.tsv. By default a finding the allowlist
+# does not cover fails the run (exit 3, after the PNG is written); --report lists every finding and never fails;
+# --strict also fails on an allowlist line that matched nothing, so a fixed defect leaves the list. RENDER_GUARD
+# (report, default or strict) sets the mode for callers such as gallery.py and classes.py.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"
 
 scene=${1:-}
 if [ -z "$scene" ]; then
-	echo "usage: Tools/render/shoot.sh <scene> [--ppu N] [--out file.png] [--json-only] [--class CLASS] [--backdrop [PNG]] [--backdrop-alpha N] [--no-standins]" >&2
+	echo "usage: Tools/render/shoot.sh <scene> [--ppu N] [--out file.png] [--json-only] [--class CLASS] [--backdrop [PNG]] [--backdrop-alpha N] [--no-standins] [--report | --strict]" >&2
 	exit 2
 fi
 shift
@@ -34,6 +41,7 @@ class=""
 backdrop=""
 backdrop_alpha=1
 standins=1
+guard=${RENDER_GUARD:-default}
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--ppu) ppu=$2; shift 2 ;;
@@ -48,6 +56,8 @@ while [ $# -gt 0 ]; do
 			fi ;;
 		--backdrop-alpha) backdrop_alpha=$2; shift 2 ;;
 		--no-standins) standins=0; shift ;;
+		--report) guard=report; shift ;;
+		--strict) guard=strict; shift ;;
 		*) echo "unknown option $1" >&2; exit 2 ;;
 	esac
 done
@@ -69,7 +79,9 @@ outdir="Tools/render/out"
 mkdir -p "$outdir"
 json="$outdir/$scene.json"
 lua=${LUA:-luajit}
-"$lua" "$script" "$json"
+raw="$outdir/$scene.guard.tsv"
+rm -f "$raw"
+RENDER_PPU=$ppu "$lua" "$script" "$json"
 if [ ! -s "$json" ]; then
 	echo "the scene wrote no JSON" >&2
 	exit 1
@@ -82,7 +94,11 @@ print(f"{len(scene['items'])} drawables; skipped hidden {skipped.get('hidden', 0
 for line in scene.get("log", []):
     print("  log: " + line)
 PY
+verdict() {
+	"$lua" Tools/render/guard.lua "$scene" "$raw" "$guard" "$@"
+}
 if [ "$json_only" = 1 ]; then
+	verdict json-only
 	exit 0
 fi
 
@@ -122,11 +138,38 @@ fi
 "$chrome" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
 	--force-device-scale-factor=1 --window-size="$width,$height" --virtual-time-budget=30000 \
 	--screenshot="$out" "file://$root/$page" >/dev/null 2>&1
-# A second pass dumps the DOM to surface any JavaScript error the page recorded.
-if "$chrome" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=30000 \
-	--dump-dom "file://$root/$page" 2>/dev/null | grep -q 'id="render-errors"'; then
-	echo "the page reported JavaScript errors:" >&2
-	"$chrome" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=30000 \
-		--dump-dom "file://$root/$page" 2>/dev/null | sed -n 's/.*<div id="render-errors">\(.*\)<\/div>.*/\1/p' >&2
+# A second pass dumps the DOM to surface any JavaScript error the page recorded and every text it truncated.
+# The page sets its title to "rendered" when it has drawn every item; without that the page's truncations are
+# unknown, so the guard fails closed (except in --report).
+dom=$(mktemp)
+paged=1
+if ! "$chrome" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=30000 \
+	--dump-dom "file://$root/$page" 2>/dev/null > "$dom" || ! grep -q '<title>rendered</title>' "$dom"; then
+	paged=0
+	echo "guard: the page did not finish drawing, so the texts it truncated are unknown" >&2
 fi
+if grep -q 'id="render-errors"' "$dom"; then
+	echo "the page reported JavaScript errors:" >&2
+	sed -n 's/.*<div id="render-errors">\(.*\)<\/div>.*/\1/p' "$dom" >&2
+fi
+python3 - "$dom" "$raw" <<'PY'
+import html, json, re, sys
+text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+match = re.search(r'<div id="render-truncated"[^>]*>(.*?)</div>', text, re.S)
+if match:
+    with open(sys.argv[2], "a", encoding="utf-8") as raw:
+        for t in json.loads(html.unescape(match.group(1))):
+            subject = re.sub(r"[\t\r\n]", " ", t["text"])
+            raw.write(f"ellipsis\t{subject}\tthe page truncates it: needs {t['need']:.1f} units, has {t['has']:.1f}\t\n")
+PY
+rm -f "$dom"
 echo "wrote $out (${width}x${height} px at $ppu px/unit)"
+if [ "$paged" = 1 ]; then
+	verdict
+else
+	verdict json-only || true
+	if [ "$guard" != report ]; then
+		echo "guard: $scene fails the render guard: the page step did not complete" >&2
+		exit 3
+	fi
+fi

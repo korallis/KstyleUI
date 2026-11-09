@@ -145,8 +145,8 @@ assert(backdrop, "a KstyleUI backdrop is a child of the window")
 assert(backdrop.chrome.shapeName == "panel" and backdrop.chrome.fillName == "surface", "the window wears the glass panel, as KstyleUI's own meter window does")
 
 -- Each row wears the own meter's row: Blizzard's full-height fill is hushed, and a 4-unit KstyleUI pill on a
--- buttonFill track sits at the row's foot with the glowing class colour, as BarList draws its rows.
--- The pill and its glow live on a KstyleUI holder frame one level above Blizzard's bar.
+-- buttonFill track sits at the row's foot in the class colour, a flat capsule as BarList draws its rows.
+-- The pill lives on a KstyleUI holder frame one level above Blizzard's bar.
 local function Holder(entry)
 	for _, child in ipairs(entry.StatusBar._kids) do
 		for _, inner in ipairs(child._kids) do
@@ -191,8 +191,7 @@ for _, call in ipairs(pill._calls) do
 end
 assert(points.BOTTOMLEFT == entry.StatusBar and points.BOTTOMRIGHT == entry.StatusBar, "the pill runs along the row's foot")
 local glow = Glow(entry)
-assert(glow, "a pill glow draws behind the pill")
-assert(M.Last(glow, "SetBlendMode")[1] == "ADD", "the glow is additive, as the own meter's")
+assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
 assert(M.Last(entry.StatusBar.Name, "SetFont"), "names take KstyleUI's font")
 assert(M.Last(entry.StatusBar.Value, "SetFont"), "values take KstyleUI's font")
 
@@ -205,14 +204,12 @@ local secret = env.Secret(99)
 entry.StatusBar:SetValue(secret)
 assert(M.Last(pill, "SetValue")[1] == secret, "a secret value reaches the pill untouched")
 
--- Colours: the class colour on the pill at full alpha and on the glow at the own meter's glow alpha.
+-- Colours: the class colour on the pill at full alpha.
 local r, g, b = K.Theme.ClassColor("WARRIOR")
 window:Refresh()
 local colour = pill.colorRGBA
 assert(colour[1] == r and colour[2] == g and colour[3] == b, "after Blizzard colours the bar, the class colour wins on the pill")
 assert(colour[4] == 1, "the pill is the class colour at full alpha, as BarList's rows: " .. tostring(colour[4]))
-local glowColour = M.Last(glow, "SetVertexColor")
-assert(glowColour[1] == r and glowColour[2] == g and glowColour[3] == b and glowColour[4] < 0.5, "the glow is the class colour, faint")
 entry:UpdateStatusBarColor()
 colour = pill.colorRGBA
 assert(colour[1] == r and colour[2] == g and colour[3] == b, "a colour update outside a refresh keeps the class colour")

@@ -21,7 +21,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `panelOpacity` | the `surface` token's alpha, 0.97, the opacity measured on the mockup's panels | slider, 0.5 to 1 in steps of 0.01 | The alpha of every `surface` fill |
+| `panelOpacity` | the `surface` token's alpha, 0.88, Lumen's frost glass | slider, 0.5 to 1 in steps of 0.01 | The alpha of every `surface` fill |
 | `shadows` | `true` | toggle | Shows the shadow of panels, windows and tooltips |
 | `sounds` | `true` | toggle | Plays the kit's click and open sounds |
 | `tooltipScale` | `1` | slider, 0.75 to 1.5 in steps of 0.05 | The scale of `Widgets.Tooltip()` |

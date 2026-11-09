@@ -19,7 +19,7 @@ local galleryItems, galleryNames = {}, {}
 for _, name in ipairs(galleryScenes) do
 	local build = dofile("Tools/render/scenes/" .. name .. ".lua")
 	assert(type(build) == "function", name .. ".lua returns its builder")
-	local scene = check(name, build())
+	local scene = L.guard(name, check(name, build()))
 	assert(type(scene.frames) == "table" and #scene.frames > 0, name .. " lists the frames to crop")
 	local seenNames = {}
 	for _, frame in ipairs(scene.frames) do

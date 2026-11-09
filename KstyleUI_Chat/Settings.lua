@@ -14,6 +14,8 @@ local FONT_MIN, FONT_MAX = 8, 24
 local TAB_FONT_MIN, TAB_FONT_MAX = 8, 16
 local FADE_MIN, FADE_MAX, FADE_STEP = 10, 600, 10
 local SPACING_MIN, SPACING_MAX = 0, 10
+local HISTORY_MIN, HISTORY_MAX, HISTORY_STEP = 10, 500, 10
+ns.HISTORY_MAX = HISTORY_MAX
 ns.FONT_MIN, ns.FONT_MAX = FONT_MIN, FONT_MAX
 ns.SPACING_MIN, ns.SPACING_MAX = SPACING_MIN, SPACING_MAX
 
@@ -36,6 +38,8 @@ local defaults = {
 	fontOutline = "none",
 	fade = true,
 	fadeTime = 120,
+	history = true,
+	historyLines = 100,
 	tabStyle = "underline",
 	tabCase = "upper",
 	tabFontSize = 13,
@@ -102,6 +106,10 @@ local ABBREVIATION_LABELS = {
 
 local function Fades(s)
 	return s.fade == true
+end
+
+local function Keeps(s)
+	return s.history == true
 end
 
 local function IsShort(s)
@@ -177,6 +185,15 @@ function ns.Schema()
 			type = "slider", key = "fadeTime", label = L["Fade after"],
 			help = L["Seconds a line stays before it fades."],
 			min = FADE_MIN, max = FADE_MAX, step = FADE_STEP, showWhen = Fades,
+		},
+		{
+			type = "toggle", key = "history", label = L["Keep chat across sessions"],
+			help = L["Each window's last lines come back after a reload or relog. Turning this off forgets them."],
+		},
+		{
+			type = "slider", key = "historyLines", label = L["Lines kept per window"],
+			help = L["How many of each window's newest lines come back. The combat log is never kept."],
+			min = HISTORY_MIN, max = HISTORY_MAX, step = HISTORY_STEP, showWhen = Keeps,
 		},
 		{ type = "header", label = L["Tabs"] },
 		{

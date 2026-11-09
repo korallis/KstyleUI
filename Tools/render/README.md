@@ -55,6 +55,26 @@ A texture the game names by file path (`SetTexture("Interface\\TargetingFrame\\U
 
 To look at a scene in a browser instead, open `Tools/render/out/<scene>.html` with Chrome started as `--allow-file-access-from-files`, or `render.html?scene=out/<scene>.json&ppu=1.426`.
 
+## Render guard
+
+Every `shoot.sh` run checks what it drew, so a shipped render never clips or spills unseen (`guard.lua`):
+
+- **ellipsis**: a text that may not wrap and is wider than its rect. The page reports each text it truncated to "..." (`render.js`, read from the page's DOM after the screenshot), the authority, since it measures the real glyphs; the scene step estimates the same from `glyphs.lua` with the page's half-pixel slack at the render's density (`RENDER_PPU`, which `shoot.sh` sets from `--ppu`), so the regression tests catch it without Chrome. When the page does not finish drawing (its title never reads "rendered"), its truncations are unknown and the run fails, except with `--report`.
+- **outside**: content that reaches past its glass card. A card is a frame that owns Lumen frost glass (the panel, card, window and rail shapes; tiles, sockets and bars have none); its glass is its fill as drawn, plus any lens disc on the card itself (the minimap card's arched top). Its content is everything drawn under the frame the glass clothes (the card itself, or the target or parent a backdrop covers to within 24 units); a drawn item belongs to the card whose content root is deepest, and a text no card holds belongs to the smallest glass its centre sits on. An item that reaches more than 1 unit past its card's glass is a spill, unless it sits wholly on the glass of a card that does not hold its card (a popout list hung in the tree under the card that opened it); the glass of a card that holds it excuses nothing, so a label spilled out of a panel onto the window around it is still a spill. A card inside another card's content whose glass reaches past that card's glass is a spill too (`<key path> glass`, a tab column hung off a window), whichever card is bigger. Shadows, glows, gilt corners and grain bleed by design and are never content; an item the page draws through a clip rect is checked as clipped. The arithmetic is `Tools/regression/geometry.lua`'s.
+
+A texture is named by where it hangs (`CharacterFrame.ModeTabs.?.Icon 136224.png`: the fields that hold each frame from the nearest named one, `?` where no field names it), a text by its plain words.
+
+`Tools/render/guard_allow.tsv` lists the findings that pass, one per line, tab-separated: the owner (the round's fix scope that owns the defect, `R1` to `R7`, or `design` for a deliberate straddle such as a tab set on a card's edge), a scene glob, the kind, the subject's start (or `=` and the whole subject) and the reason. The PR that fixes a defect deletes its line.
+
+```bash
+Tools/render/shoot.sh gallery_skins_character --backdrop             # fails (exit 3, after the PNG) on a finding the allowlist does not cover
+Tools/render/shoot.sh gallery_skins_character --backdrop --report    # lists every finding, allowlisted ones with their owner, and never fails
+Tools/render/shoot.sh hud_lumen_questing --backdrop --strict         # also fails on an allowlist line for this scene that matched nothing
+RENDER_GUARD=strict python3 Tools/render/gallery.py                  # the mode for every shoot.sh that gallery.py and classes.py run
+```
+
+Use `--strict` (or `RENDER_GUARD=strict`) for a publish run, such as the handoff's `run_s7.sh`: nothing unlisted ships, and a fixed defect leaves the list in the same PR. A stale line is judged only for a line that names one scene; a glob line spans scenes. The scene step writes its findings to `out/<scene>.guard.tsv`, the page step adds its truncations, and `lua Tools/render/guard.lua <scene> <tsv> <mode>` gives the verdict. `test-render-scenes-gallery.lua` and `test-render-scenes-lumen.lua` run the scene step on every gallery scene and both Lumen states, and `test-render-guard.lua` covers the rules, the allowlist and the modes.
+
 ## Lumen Rails
 
 ```bash

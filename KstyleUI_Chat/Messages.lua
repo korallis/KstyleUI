@@ -1,4 +1,4 @@
--- Messages.lua: the chat's message pipeline: links and class-coloured names through Blizzard's chat filters, short channel names on each new line (and KstyleUI's own timestamps when the game cannot draw them, see Stamps.lua), and the dialog that copies a clicked link.
+-- Messages.lua: the chat's message pipeline: links and class-coloured names through Blizzard's chat filters, short channel names on each new line (and KstyleUI's own timestamps when the game cannot draw them, see Stamps.lua), each finished line handed to History.lua, and the dialog that copies a clicked link.
 local _, ns = ...
 
 local K = KstyleUI
@@ -80,8 +80,9 @@ local function NewestSlot(frame)
 	return nil
 end
 
-local function OnAddMessage(frame, message, _, _, _, _, _, _, event)
-	if not state.active or not IsText(message) or Windows.IsCombatLog(frame) then
+local function OnAddMessage(frame, message, r, g, b, _, _, _, event)
+	local history = ns.History
+	if not state.active or not IsText(message) or Windows.IsCombatLog(frame) or (history and history.restoring) then
 		return
 	end
 	local opts = state.opts
@@ -90,6 +91,9 @@ local function OnAddMessage(frame, message, _, _, _, _, _, _, event)
 		opts.timestamp = "none"
 	end
 	local out = Format.Decorate(message, IsText(event) and event or nil, opts)
+	if history then
+		history.Record(frame, out, r, g, b)
+	end
 	if out == message then
 		return
 	end

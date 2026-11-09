@@ -5,6 +5,7 @@
 	<Script file="Windows.lua"/>
 	<Script file="Stamps.lua"/>
 	<Script file="Messages.lua"/>
+	<Script file="History.lua"/>
 	<Script file="Panel.lua"/>
 	<Script file="Frames.lua"/>
 	<Script file="Copy.lua"/>

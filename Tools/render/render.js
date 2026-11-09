@@ -584,7 +584,13 @@
 			return runs.length ? runs : [{ text: line, color: item.color }];
 		});
 		if (item.wordWrap === false && !(item.natural && item.natural.width) && lineRuns.length === 1 && dest.w > 0) {
-			lineRuns[0] = truncateRuns(ctx, lineRuns[0], dest.w);
+			const kept = truncateRuns(ctx, lineRuns[0], dest.w);
+			if (kept !== lineRuns[0]) {
+				// The render guard (guard.lua) reads every text the page truncated from window.RENDER_TRUNCATED.
+				window.RENDER_TRUNCATED = window.RENDER_TRUNCATED || [];
+				window.RENDER_TRUNCATED.push({ text: plain.replace(/\u2009/g, "").replace(/\n/g, " "), need: measured, has: rect[2] });
+			}
+			lineRuns[0] = kept;
 		}
 		const lh = lineHeight * ppu;
 		let align = "left";

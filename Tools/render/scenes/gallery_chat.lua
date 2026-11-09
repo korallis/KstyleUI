@@ -142,6 +142,8 @@ return Common.Run(function()
 	box:SetPoint("TOPLEFT", glass, "BOTTOMLEFT", 0, -EDIT_GAP)
 	box:SetPoint("TOPRIGHT", glass, "BOTTOMRIGHT", 0, -EDIT_GAP)
 	box:SetHeight(EDIT_HEIGHT)
+	-- Blizzard's UpdateHeader (ChatFrameEditBox.lua) insets the text by 15 plus the header and 13 at the right.
+	box:SetTextInsets(15, 13, 0, 0)
 	box:SetText("/s Anyone for the croc hunt?")
 	-- The stub's SetFocus does not make HasFocus answer; the module hides an unfocused box, so the scene answers for the game.
 	box.HasFocus = function()

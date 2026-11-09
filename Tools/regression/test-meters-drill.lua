@@ -135,7 +135,8 @@ do
 	end
 	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 	env.RunTimers()
-	assert(Text(list.column) == "Previous", "a long fight name gives way to the short label: " .. tostring(Text(list.column)))
+	local short = tostring(Text(list.column)):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	assert(short == "Last", "a long fight name gives way to the short label: " .. short)
 	list.title.GetStringWidth, list.column.GetStringWidth = titleWidth, columnWidth
 	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 	env.RunTimers()
@@ -150,7 +151,7 @@ env._available = { { sessionID = 3, name = "" }, { sessionID = 5, name = "" } }
 env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 5)
 env.RunTimers()
 assert(env._lastSessionID[1] == 3, "an unnamed previous fight is still found")
-assert(tostring(Text(list.column)):upper():find("PREVIOUS", 1, true), "an unnamed fight is called the previous fight")
+assert(tostring(Text(list.column)):upper():find("LAST", 1, true), "an unnamed fight is called the last fight")
 env._available = { { sessionID = 5, name = "" } }
 env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 env.RunTimers()

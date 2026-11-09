@@ -64,7 +64,7 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 | `buffs.iconSize`, `debuffs.iconSize` | 38 | slider, 16 to 64 |
 | `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 8, 0 | slider, 0 to 24 |
 | `buffs.rows`, `debuffs.rows` | 2, 2 | slider, 1 to 8: the cap; the rest count as `+N` at the cap |
-| `buffs.columns`, `debuffs.columns` | 8 | slider, 1 to 24 |
+| `buffs.columns`, `debuffs.columns` | 6 | slider, 1 to 24 |
 | `buffs.growth`, `debuffs.growth` | `LEFT_DOWN` | dropdown: left or right, then down or up. The container hangs from the element's corner the rows grow from, so a short row sits flush with the minimap's side |
 | `buffs.sort`, `debuffs.sort` | `time`, `priority` | dropdown: time, name, applied, blizzard, priority |
 | `buffs.reverse`, `debuffs.reverse` | `false` | toggle |

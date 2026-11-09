@@ -26,8 +26,8 @@ local function near(a, b)
 	return type(a) == "number" and math.abs(a - b) < 0.02
 end
 
-local questing = check("hud_lumen_questing", Lumen.Build("questing"))
-local combat = check("hud_lumen_combat", Lumen.Build("combat"))
+local questing = L.guard("hud_lumen_questing", check("hud_lumen_questing", Lumen.Build("questing")))
+local combat = L.guard("hud_lumen_combat", check("hud_lumen_combat", Lumen.Build("combat")))
 local slot = questing.slot
 
 -- The story slot holds the guide and the tracker, as the player places them; chat sits under it.
@@ -112,6 +112,42 @@ do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 1), text .. " stays lit in combat, got " .. tostring(item.alpha))
 	end
+end
+
+-- Chat lines never overprint (round 3, Muse D1): in both states every line drawn on the chat's glass, wrapped loot
+-- lines included, sits on its own row; a row's box may touch the next, never cover it.
+for _, scene in ipairs({ questing, combat }) do
+	local glass
+	for _, card in ipairs(scene.rail) do
+		if card.name == "chat" then
+			glass = card
+		end
+	end
+	assert(glass, scene.state .. ": the rail has the chat card")
+	local rows = {}
+	for _, item in ipairs(scene.items) do
+		local r = item.rect
+		if item.kind == "text" and r[2] >= glass.top + 30 and r[2] + r[4] <= glass.top + glass.height + 0.5
+			and r[1] >= glass.left and r[1] < glass.left + glass.width then
+			rows[#rows + 1] = item
+		end
+	end
+	assert(#rows >= 8, scene.state .. ": the chat draws its lines, got " .. #rows)
+	local wrapped = false
+	for i = 1, #rows do
+		local a = rows[i].rect
+		assert(a[4] >= rows[i].font.size * 1.2 - 0.5, scene.state .. ": a chat row is shorter than its line, so its glyphs reach the next: '" .. rows[i].text .. "'")
+		if rows[i].text:find("x2.", 1, true) == 1 then
+			wrapped = true
+		end
+		for j = i + 1, #rows do
+			local b = rows[j].rect
+			local across = math.min(a[1] + a[3], b[1] + b[3]) - math.max(a[1], b[1])
+			local down = math.min(a[2] + a[4], b[2] + b[4]) - math.max(a[2], b[2])
+			assert(across <= 0 or down <= 0.5, scene.state .. ": chat lines overprint: '" .. rows[i].text .. "' and '" .. rows[j].text .. "'")
+		end
+	end
+	assert(wrapped, scene.state .. ": the loot line wraps onto a row of its own")
 end
 
 print("render scenes lumen ok")

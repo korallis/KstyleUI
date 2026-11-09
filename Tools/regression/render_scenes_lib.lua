@@ -31,6 +31,17 @@ function M.check(name, scene)
 	return scene
 end
 
+-- guard(name, scene) -> scene. Fails when the render guard (Tools/render/guard.lua) finds a text the scene step
+-- measures as truncated, or content past its glass card, that Tools/render/guard_allow.tsv does not cover. The
+-- page's own truncations need Chrome and are checked by shoot.sh, not here.
+function M.guard(name, scene)
+	local Guard = dofile("Tools/render/guard.lua")
+	local fresh = Guard.Sort(Guard.Check(scene), Guard.LoadAllow(), name)
+	local lines = Guard.Lines(fresh, {}, {}, "default")
+	assert(#fresh == 0, name .. " fails the render guard:\n" .. table.concat(lines, "\n"))
+	return scene
+end
+
 -- collect(scene) -> texts, files: the plain words the scene draws (names carry a thin space between their
 -- letters; the check reads the plain word) and the texture files it draws, each as a set.
 function M.collect(scene)

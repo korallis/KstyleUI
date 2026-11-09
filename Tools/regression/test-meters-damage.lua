@@ -71,13 +71,12 @@ do
 	assert(ns.BarList.PILL_HEIGHT == 4, "a 4-unit pill")
 	assert(M.W.Near(row.bar:GetWidth(), row.frame:GetWidth()), "the pill spans the row")
 	assert(row.edge == nil, "no separate edge line: the pill is the colour")
-	assert(row.glow and row.glow:GetBlendMode() == "ADD", "a soft glow lies under the pill")
-	local glow = { row.glow:GetPoint(1) }
-	assert(glow[2] == row.bar:GetStatusBarTexture(), "the glow follows the pill's fill, so a secret value moves it too")
-	-- The glow reaches above and below the pill, never past its ends: a full pill's glow stayed inside the track.
-	local glowEnd = { row.glow:GetPoint(2) }
-	assert(glow[1] == "TOPLEFT" and M.W.Near(glow[4], 0) and glow[5] > 0, "the glow starts where the fill starts, risen above it: " .. tostring(glow[4]))
-	assert(glowEnd[1] == "BOTTOMRIGHT" and M.W.Near(glowEnd[4], 0) and glowEnd[5] < 0, "and ends where the fill ends, dropped below it: " .. tostring(glowEnd[4]))
+	-- The pill is a flat capsule on every meter card: no additive lens glow tapers above, below or past its track.
+	assert(row.glow == nil, "no glow rides on the pill")
+	for _, region in ipairs(row.frame._regions or {}) do
+		local blend = M.Last(region, "SetBlendMode")
+		assert(not (blend and blend[1] == "ADD"), "no additive lens draws on the row")
+	end
 	-- The rows fill the column to one inset above the bottom: no dead band under the last row.
 	local capacity = list:Capacity()
 	local height, spacing = row.frame:GetHeight(), ns.Get("damage.spacing")
@@ -87,14 +86,12 @@ do
 	assert(capacity * (height + spacing) - spacing <= room + 0.01 and room - (capacity * (height + spacing) - spacing) < capacity, "the rows fill the column to within a pixel per row: " .. tostring(height) .. " x " .. capacity .. " in " .. tostring(room))
 end
 
--- Readable fills: the class colour fills the pill at full strength under the text line, and the glow is the same
--- colour, softer; white text reads above it on any class.
+-- Readable fills: the class colour fills the pill at full strength under the text line; white text reads above it
+-- on any class.
 do
 	local row = list.rows[1]
 	local fill = M.Last(row.bar, "SetStatusBarColor")
 	assert(fill and (fill[4] == nil or fill[4] == 1), "the pill is the class colour at full strength: " .. tostring(fill and fill[4]))
-	local gr, gg, gb, ga = row.glow:GetVertexColor()
-	assert(M.W.Near(gr, fill[1]) and M.W.Near(gg, fill[2]) and M.W.Near(gb, fill[3]) and ga < 0.6 and ga > 0, "the glow is the same colour, softer")
 end
 
 -- Rows mirror the current session.

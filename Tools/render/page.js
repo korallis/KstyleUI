@@ -36,6 +36,14 @@
 		note.textContent = errors.join("\n");
 		document.body.appendChild(note);
 	}
+	const truncated = window.RENDER_TRUNCATED || [];
+	if (truncated.length) {
+		const note = document.createElement("div");
+		note.id = "render-truncated";
+		note.textContent = JSON.stringify(truncated);
+		note.style.display = "none";
+		document.body.appendChild(note);
+	}
 	if (status) {
 		const skipped = scene.skipped || {};
 		status.textContent = scene.items.length + " drawables, " + (scene.log || []).length + " log lines, skipped: hidden " +

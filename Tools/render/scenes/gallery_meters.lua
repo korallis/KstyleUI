@@ -168,7 +168,7 @@ local function live(frames)
 	env.RunTimers()
 	frames:Add(env, ns.Damage.holder, {
 		name = "meters_damage", title = "Damage meter", grade = "panel", reference = "player",
-		caption = "KstyleUI's damage meter window (BarList on Widgets.Panel): DAMAGE DONE and the CURRENT column over eight class-coloured rows with names, values and shares, on the glass panel grade; each row's track is the buttonFill body, as the unit frames' tracks.",
+		caption = "KstyleUI's damage meter window (BarList on Widgets.Panel): DAMAGE DONE and the fight switch (Now lit, Last and All muted) over eight class-coloured rows with names, values and shares, on the glass panel grade; each row's flat pill runs on the buttonFill body, as the unit frames' tracks.",
 		match = "Surface fill, dark outer and light inner line, drop shadow and the 8-unit panel chamfer as the mockup's unit frame glass; the mockup has no meter, so the rows are KstyleUI's own.",
 	})
 
@@ -256,14 +256,14 @@ local function drilled(frames)
 	})
 end
 
--- The previous fight: a right-click on the title steps from the current fight to the one before it.
+-- The previous fight: a click on the fight switch steps from the current fight to the one before it.
 local function previous(frames)
 	return variant(frames, 1160, 80, function(env, K, _, M)
 		env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, CURRENT_ID)
 		M.Write(env, K, "damage.session", "Previous")
 	end, {
 		name = "meters_damage_previous", title = "Damage meter: previous fight", grade = "panel", reference = "player",
-		caption = "The damage meter on the previous fight, read by its session ID (GetCombatSessionFromID): the column names the fight the game recorded, Riverglade Crocolisk, over its four sources.",
+		caption = "The damage meter on the previous fight, read by its session ID (GetCombatSessionFromID): the switch lights the fight the game recorded, Riverglade Crocolisk, between Now and All, over its four sources.",
 		match = "The same glass and rows; the glass hangs from the top and ends under the last row, so four rows leave no empty slab.",
 	})
 end

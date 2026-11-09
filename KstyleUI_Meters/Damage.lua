@@ -14,9 +14,8 @@ local EVENTS = {
 	"GROUP_ROSTER_UPDATE", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
 }
 local SKIN_EVENTS = { "GROUP_ROSTER_UPDATE", "PLAYER_ENTERING_WORLD" }
-local SESSION_COLUMNS = { Current = L["Current"], Previous = L["Previous fight"], Overall = L["Overall"] }
 local SESSION_ORDER = { "Current", "Previous", "Overall" }
-local PREVIOUS_SHORT = L["Previous"]
+local SESSION_WORDS = { Current = L["Now"], Previous = L["Last"], Overall = L["All"] }
 
 local Damage = { section = "damage", key = KEY, combat = false, view = 1, filled = 0 }
 ns.Damage = Damage
@@ -181,10 +180,26 @@ local function Fight()
 	local session = ns.Get("damage.session")
 	if session == "Previous" then
 		local id, name = PreviousFight()
-		return nil, id, name or SESSION_COLUMNS.Previous, PREVIOUS_SHORT
+		return nil, id, name
 	end
 	local types = Enum and Enum.DamageMeterSessionType
-	return types and types[session], nil, SESSION_COLUMNS[session] or "", nil
+	return types and types[session], nil, nil
+end
+
+local function Switch(list, name)
+	local session = ns.Get("damage.session")
+	local words, short, selected = {}, {}, 1
+	for i, key in ipairs(SESSION_ORDER) do
+		words[i] = SESSION_WORDS[key]
+		if key == session then
+			selected = i
+		end
+	end
+	if name and session == "Previous" then
+		short[selected] = words[selected]
+		words[selected] = name
+	end
+	list:SetSwitch(words, selected, short)
 end
 
 local function Back()
@@ -356,9 +371,9 @@ local function Refresh()
 		list:Finish(0, L["No data yet"])
 		return
 	end
-	local sessionType, sessionID, label, short = Fight()
+	local sessionType, sessionID, name = Fight()
 	list:SetTitle(drill.active and drill.name or info.label)
-	list:SetColumn(label, short)
+	Switch(list, name)
 	if sessionType == nil and sessionID == nil then
 		list:Finish(0, L["No earlier fight yet"])
 		return
@@ -471,7 +486,23 @@ local function Tooltip(tip)
 		return
 	end
 	tip:AddLine(L["Click a name for its spells. Click the title for the next meter."])
-	tip:AddLine(L["Right-click for the next fight: current, previous or overall."])
+	tip:AddLine(L["Click Now, Last or All for the next fight: this fight, the last fight or every fight."])
+end
+
+local function SwitchTooltip(tip)
+	tip:AddLine(L["Click for the next fight: this fight, the last fight or every fight."])
+	if Damage.list and Api() then
+		local id, name = PreviousFight()
+		if id then
+			tip:AddLine(string.format(L["Last fight: %s"], name or L["Previous fight"]))
+		else
+			tip:AddLine(L["No earlier fight yet"])
+		end
+	end
+end
+
+local function OnSwitch()
+	K.Options.Write(ns.MODULE, "damage.session", NextSession())
 end
 
 local function Columns()
@@ -482,7 +513,7 @@ local function Build()
 	local width, height = ns.Footprint(KEY)
 	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
 		width = width or 260, height = height or 174, columns = Columns, onClick = OnClick,
-		onRowClick = OnRowClick, tooltip = Tooltip,
+		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
 	})
 	Damage.holder = Damage.list.holder
 	ns.Place(Damage.holder, KEY, LIMITS)

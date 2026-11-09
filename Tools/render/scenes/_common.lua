@@ -65,10 +65,11 @@ function Common.ForceScreen(env)
 	end
 	env.UIParent._scale = uiScale
 	env.UIParent._width, env.UIParent._height = 768 * width / height / uiScale, 768 / uiScale
-	-- Font strings measure their text as the page draws it (the kit fonts' glyph advances), so a module
-	-- that sizes to GetUnboundedStringWidth lays out in the render as it does in the game.
+	-- Font strings measure their text as the page draws it (the kit fonts' glyph advances, escapes such as
+	-- colour codes and links skipped, as the game skips them), so a module that sizes to GetUnboundedStringWidth
+	-- lays out in the render as it does in the game.
 	env._textWidth = function(text, fontPath, size)
-		return Common.Scene.TextWidth(text, size, fontPath)
+		return Common.Scene.TextWidth(Common.Scene.PlainText(text), size, fontPath)
 	end
 end
 
@@ -100,7 +101,12 @@ function Common.Run(build)
 		return build
 	end
 	local scene = build()
-	Common.Write(scene, arg and arg[1])
+	local path = arg and arg[1]
+	if path then
+		local Guard = dofile("Tools/render/guard.lua")
+		Guard.WriteRaw(Guard.Check(scene), (path:gsub("%.json$", "")) .. ".guard.tsv")
+	end
+	Common.Write(scene, path)
 	for _, line in ipairs(scene.log or {}) do
 		io.stderr:write("log: " .. line .. "\n")
 	end
