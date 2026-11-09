@@ -249,6 +249,27 @@ do
 		assert(K.Skin.IsSkinned(f.title, "Backdrop") and Hushed(f.title), "its title bar is a tile")
 		assert(Accented(ns, f.title.text), "its title takes the accent")
 	end
+	-- RestedXP hangs the title plate from the frame's top edge (TOPLEFT at 5, 10, 19 tall), so the plate straddled
+	-- the glass (Opus #5, R4a). The card's glass now rises over the plate, so the title sits inside one card.
+	do
+		local Scene = dofile("Tools/render/scene.lua")
+		items:ClearAllPoints()
+		items:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
+		items:SetSize(100, 43)
+		items.title:ClearAllPoints()
+		items.title:SetPoint("TOPLEFT", items, "TOPLEFT", 5, 10)
+		items.title:SetSize(60, 19)
+		rxp.UpdateItemFrame(items, 1)
+		env.RunTimers()
+		local glass = K.Skin.Parts(items).backdrop
+		local gx, gy, gw, gh = Scene.Rect(env, glass)
+		local tx, ty, tw, th = Scene.Rect(env, items.title)
+		assert(gx and tx, "the glass and the title plate resolve")
+		assert(ty >= gy - 0.5 and tx >= gx - 0.5 and tx + tw <= gx + gw + 0.5 and ty + th <= gy + gh + 0.5,
+			string.format("the title plate lies on the card's glass: plate %.1f..%.1f x %.1f..%.1f, glass %.1f..%.1f x %.1f..%.1f", tx, tx + tw, ty, ty + th, gx, gx + gw, gy, gy + gh))
+		local ix, iy, iw, ih = Scene.Rect(env, items)
+		assert(ix and iy + ih <= gy + gh + 0.5 and ix >= gx - 0.5 and ix + iw <= gx + gw + 0.5, "the frame's own rect stays on the glass")
+	end
 	rxp.UpdateItemFrame(items, 2)
 	rxp.targeting:UpdateTargetFrame(2)
 	for _, button in ipairs({ items.buttonList[1], items.buttonList[2], targets.enemyTargetButtons[1] }) do
@@ -329,13 +350,13 @@ do
 	configurator:Open()
 	local ui = configurator.ui
 	assert(Glass(K, ui.frame) and Alpha(ui.frame.rxpBackground.configuratorHeader) == 0, "the guide configurator is skinned when it is made")
-	assert(Accented(ns, ui.titletext), "its title takes the accent")
-	-- The title and the buttons use the kit's text roles (round 3, Opus): the title in the heading face at its
-	-- size, each button label in the body role in the emphasised text, and RestedXP's own flat button wash hushed;
-	-- RestedXP's UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
+	-- The title and the buttons use the kit's text roles: the title in the kit's title role in the emphasised
+	-- text, as the skinned Blizzard windows' titles, not RestedXP's gold or the accent (round 4, Opus #5); each
+	-- button label in the body role in the emphasised text, and RestedXP's own flat button wash hushed; RestedXP's
+	-- UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
 	local function Roles()
-		assert(ui.titletext:GetFont() == (ns.Style.Font("heading")) and select(2, ui.titletext:GetFont()) == select(2, ns.Style.Font("heading")), "the title is in the kit's heading role, got " .. tostring(ui.titletext:GetFont()) .. " " .. tostring(select(2, ui.titletext:GetFont())))
-		assert(Accented(ns, ui.titletext), "in the accent")
+		assert(ui.titletext:GetFont() == (ns.Style.Font("title")) and select(2, ui.titletext:GetFont()) == select(2, ns.Style.Font("title")), "the title is in the kit's title role, got " .. tostring(ui.titletext:GetFont()) .. " " .. tostring(select(2, ui.titletext:GetFont())))
+		assert(Colored(ui.titletext, K.Tokens.Color("textEmphasis")), "in the emphasised text, not the accent")
 		for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
 			local button = ui[key]
 			assert(K.Skin.IsSkinned(button, "Button") and Alpha(button.configuratorBackground) == 0 and Alpha(button.rxpBorder.textures[1]) == 0, key .. " is a KstyleUI button")

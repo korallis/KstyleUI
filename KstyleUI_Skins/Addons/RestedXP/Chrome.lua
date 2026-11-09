@@ -32,6 +32,7 @@ local FOOTER_RISE, FOOTER_CLEAR = 6, "gapSmall"
 local CAP_ROW, CAP_AIR, CAP_LEFT, CAP_RIGHT = 16, "gapSmall", RXP_MARGIN, RXP_MARGIN
 local META_ROW, META_LEFT = 18, "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
+local TITLE_AIR = "gapSmall"
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
@@ -861,14 +862,36 @@ local function IconButtons(list, crop)
 	end
 end
 
+local function TitleRise(f, title)
+	local rise = 0
+	if IsTable(title) and type(title.GetNumPoints) == "function" then
+		for i = 1, title:GetNumPoints() do
+			local _, relative, relativePoint, _, y = title:GetPoint(i)
+			if (relative == f or relative == nil) and type(relativePoint) == "string" and relativePoint:find("TOP", 1, true) and type(y) == "number" and not Widgets.IsSecret(y) then
+				rise = math.max(rise, y)
+			end
+		end
+	end
+	return rise
+end
+
 local function IconFrame(f, hide)
 	local skinned = Skin.IsSkinned(f, "Backdrop")
+	local title = f.title
 	if not skinned then
 		Glass(f)
 	elseif not InCombatLockdown() then
 		Skin.Strip(f, { children = RXP_ART })
 	end
-	local title = f.title
+	-- RestedXP hangs the title plate from the frame's top edge, so the card's glass rises over the plate, and the
+	-- title reads as the card's cap instead of a tab set past its glass.
+	local glass = Panel(f)
+	local rise = TitleRise(f, title)
+	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
+	if glass and (type(glass.inset) == "table" and glass.inset.top or nil) ~= top then
+		glass.inset = top and { top = top } or nil
+		glass:Restyle()
+	end
 	if IsTable(title) then
 		if not Skin.IsSkinned(title, "Backdrop") then
 			Tile(title)
@@ -983,8 +1006,7 @@ local function Configurator(configurator)
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
 		Glass(ui.frame)
 	end
-	Label(ui.titletext, "heading")
-	Title(ui.titletext)
+	Label(ui.titletext, "title", "textEmphasis")
 	for _, key in ipairs(CONFIGURATOR_BUTTONS) do
 		KitButton(ui[key])
 	end

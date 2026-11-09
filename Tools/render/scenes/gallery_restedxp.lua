@@ -21,7 +21,7 @@ return Common.Run(function()
 	})
 	add("restedxp_items", R.windows.items, {
 		title = "RestedXP active items", grade = "window", reference = "chat",
-		caption = "RestedXP's active item frame: window glass, a title tile in the accent, item buttons on KstyleUI rims.",
+		caption = "RestedXP's active item frame: one window glass that rises over the title plate RestedXP hangs from the frame's top edge, the title tile in the accent inside it, item buttons on KstyleUI rims.",
 		match = "Window grade as the chat panel; the buttons as the mockup's action buttons without the bezel.",
 	})
 	add("restedxp_v2", R.windows.v2, {
@@ -31,7 +31,7 @@ return Common.Run(function()
 	})
 	add("restedxp_configurator", R.windows.configurator, {
 		title = "RestedXP guide configurator", grade = "window", reference = "chat",
-		caption = "RestedXP's guide configurator: window glass, the accent title, KstyleUI buttons and scroll bar.",
+		caption = "RestedXP's guide configurator: window glass, the title in the kit's title role, KstyleUI buttons and scroll bar; the pane holds the guide's title, its description and RestedXP's own option rows (image, label, recommendation and check box) in RestedXP's theme colours.",
 		match = "Window grade as the chat panel; buttons as the design kit's dark controls.",
 	})
 	local scene = frames:Finish(Gallery.Build(env), env, K, "gallery restedxp")

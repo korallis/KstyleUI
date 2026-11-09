@@ -236,6 +236,85 @@ local function Guide(R, path, top)
 	return top + HEADER_HEIGHT - HEADER_OVERLAP - SIDE + frameHeight
 end
 
+-- ConfiguratorRows(env, rxp, frame) fills the configurator's pane as RestedXP's GuideConfigurator.lua fills it,
+-- so the window can be judged: the guide's title and description labels, then option rows (its
+-- RXPV2GuideConfiguratorOption widget: a 40-unit image, a label, a recommendation line above it and a check box),
+-- in RestedXP's own theme colours, since the skin leaves RestedXP's AceGUI option rows as they are.
+local CONFIGURATOR_OPTIONS = {
+	{ label = "Skip Deadmines", note = "Recommended", icon = 136169, checked = true },
+	{ label = "Buy the riding skill at 40", note = "", icon = 132261, checked = true },
+	{ label = "Do the Scarlet Monastery chain", note = "Needs a group", icon = 135987, checked = false },
+}
+local OPTION_ROW, OPTION_GAP, OPTION_IMAGE, OPTION_CHECK = 40, 4, 36, 18
+local OPTION_FLOOR = 240 - 44 - 10
+
+local function ConfiguratorRows(env, rxp, frame)
+	local path = rxp.font or "Fonts\\FRIZQT__.TTF"
+	local theme = rxp.v2:GetTheme()
+	local common = theme.backgroundColors.common
+	local left, top, width = 16, 40, 320 - 16 - 28
+	local title = frame:CreateFontString(nil, "OVERLAY")
+	font(title, path, 12)
+	title:SetJustifyH("LEFT")
+	title:SetTextColor(0.9, 0.9, 0.95, 1)
+	at(title, frame, left, top, width, 16)
+	title:SetText("Shadowfang Keep, 18 to 26")
+	local description = frame:CreateFontString(nil, "OVERLAY")
+	font(description, path, 10)
+	description:SetJustifyH("LEFT")
+	description:SetTextColor(0.75, 0.75, 0.82, 1)
+	at(description, frame, left, top + 18, width, 14)
+	description:SetText("Choose what this guide should include.")
+	local y = top + 38
+	for i, option in ipairs(CONFIGURATOR_OPTIONS) do
+		if y + OPTION_ROW > OPTION_FLOOR then
+			break
+		end
+		local row = env.CreateFrame("Button", nil, frame)
+		at(row, frame, left, y, width, OPTION_ROW)
+		local wash = row:CreateTexture(nil, "BACKGROUND")
+		wash:SetAllPoints(row)
+		wash:SetColorTexture(common[1], common[2], common[3], common[4] or 1)
+		local image = row:CreateTexture(nil, "OVERLAY")
+		image:SetSize(OPTION_IMAGE, OPTION_IMAGE)
+		image:SetPoint("LEFT", row, "LEFT", 2, 0)
+		image:SetTexture(option.icon)
+		local label = row:CreateFontString(nil, "OVERLAY")
+		font(label, path, 11)
+		label:SetJustifyH("LEFT")
+		label:SetHeight(16)
+		label:SetPoint("LEFT", image, "RIGHT", 7, 0)
+		label:SetPoint("RIGHT", row, "RIGHT", -(OPTION_CHECK + 12), 0)
+		label:SetTextColor(0.9, 0.9, 0.95, 1)
+		label:SetText(option.label)
+		if option.note ~= "" then
+			local note = row:CreateFontString(nil, "OVERLAY")
+			font(note, path, 9)
+			note:SetJustifyH("LEFT")
+			note:SetTextColor(0.05, 0.75, 1, 1)
+			note:SetPoint("BOTTOMLEFT", label, "TOPLEFT", 0, 2)
+			note:SetSize(width - OPTION_IMAGE - 40, 11)
+			note:SetText(option.note)
+		end
+		local check = env.CreateFrame("Frame", nil, row)
+		check:SetSize(OPTION_CHECK, OPTION_CHECK)
+		check:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+		local box = check:CreateTexture(nil, "BACKGROUND")
+		box:SetAllPoints(check)
+		box:SetColorTexture(0.12, 0.12, 0.2, 1)
+		if option.checked then
+			local fill = check:CreateTexture(nil, "ARTWORK")
+			fill:SetPoint("TOPLEFT", check, "TOPLEFT", 4, -4)
+			fill:SetPoint("BOTTOMRIGHT", check, "BOTTOMRIGHT", -4, 4)
+			fill:SetColorTexture(0.05, 0.75, 1, 1)
+		end
+		y = y + OPTION_ROW + OPTION_GAP
+		if i < #CONFIGURATOR_OPTIONS and y + OPTION_ROW > OPTION_FLOOR then
+			break
+		end
+	end
+end
+
 -- Others(R, x) lays the v2 guide window, the active item frame and the guide configurator out right of the
 -- guide window, as the earlier scene did; RestedXP's own layout of them is not modelled.
 local function Others(R, x, itemsTop)
@@ -243,8 +322,11 @@ local function Others(R, x, itemsTop)
 	local ICON = 32
 	local items = rxp.activeItemFrame
 	at(items, env.UIParent, RestedXP.LEFT, itemsTop + 16, 3 * (ICON + 6) + 10, ICON + 16)
-	at(items.title, items, 0, -16, 90, 16)
+	-- RestedXP hangs the title plate from the frame's top edge: TOPLEFT at (5, 10), 19 tall, as its
+	-- ActiveItemFrame.lua anchors it. The skin raises the card's glass over the plate.
+	at(items.title, items, 5, -10, 90, 19)
 	text(items.title.text, "Active items", "CENTER", items.title)
+	items:UpdateVisuals()
 	for i, button in ipairs(items.buttonList) do
 		at(button, items, 8 + (i - 1) * (ICON + 6), 8, ICON, ICON)
 		button.icon:SetAllPoints(button)
@@ -270,6 +352,7 @@ local function Others(R, x, itemsTop)
 		text(button.text, ({ "Back", "Reset", "Submit" })[i], "CENTER", button)
 	end
 	at(configurator.scrollContainer.scrollbar, configurator.frame, 320 - 20, 50, 10, 140)
+	ConfiguratorRows(env, rxp, configurator.frame)
 end
 
 function RestedXP.Build()
@@ -322,7 +405,7 @@ function RestedXP.Build()
 	R.windows = {
 		steps = f.CurrentStepFrame.framePool,
 		guide = { ns.RestedXP.Chrome.Card(f) or f },
-		items = { rxp.activeItemFrame, rxp.activeItemFrame.title },
+		items = { rxp.activeItemFrame, rxp.activeItemFrame.title, K.Skin.Parts(rxp.activeItemFrame).backdrop },
 		v2 = { rxp.v2.state and rxp.v2.state.guideWindow.frame or nil },
 		configurator = { rxp.ui.v2.configurator.ui.frame },
 	}
