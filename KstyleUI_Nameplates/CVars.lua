@@ -29,11 +29,7 @@ local function Apply()
 	end
 	for _, entry in ipairs(Logic.CVarPlan(values)) do
 		local name = entry.name
-		if entry.fallback then
-			if not K.CVars.Exists(entry.fallback) and K.CVars.Exists(name) and Set(name, entry.value) then
-				applied[name] = true
-			end
-		elseif not K.CVars.Exists(name) then
+		if not K.CVars.Exists(name) then
 			if name ~= Logic.STACKING_CVAR then
 				LogOnce("cvar-missing:" .. name, "CVar " .. name .. " is missing on this client; skipped")
 			end

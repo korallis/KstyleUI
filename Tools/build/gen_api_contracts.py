@@ -509,6 +509,8 @@ def uses_in_call(tokens, call, add, wrappers=None, consts=None, getters=None, al
         operand(EVENT_WRAPPERS[name], "event", ".".join(call.chain[-2:]))
     elif name in CVAR_FIRST_ARG:
         operand(0, "cvar", name)
+    elif len(call.chain) > 1 and call.chain[-2] == "CVars" and name in ("Exists", "Get", "Default", "Set", "SetBitfield"):
+        operand(0, "cvar", ".".join(call.chain[-2:]))
     elif name in CVAR_SECOND_ARG:
         operand(1, "cvar", name)
     elif name in TEMPLATE_CALLS:
@@ -630,11 +632,15 @@ def scan_lua(text, wrappers=None, getters=None, shared_consts=None):
             if text_value is not None and ADDON_SHAPE.match(text_value):
                 add(Use("addon", text_value, line, "string"))
             continue
-        if kind != "name" or previous in gen_globals.FIELD_PREVIOUS:
+        if kind != "name":
             continue
         lowered = value.lower()
+        if previous in gen_globals.FIELD_PREVIOUS and not lowered.endswith(("cvar", "cvars", "event", "events")):
+            continue
         if following == ("op", "=") and i + 2 < count and ("event" in lowered or "cvar" in lowered):
             collect_named(tokens, lines, partner, i, lowered, add, registers_dynamically)
+        if previous in gen_globals.FIELD_PREVIOUS:
+            continue
         if value == "_G" and "_G" not in declared:
             global_use(tokens, lines, partner, i, add, defines, consts)
             continue

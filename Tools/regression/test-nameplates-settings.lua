@@ -54,13 +54,12 @@ do
 	assert(byName.nameplateMaxDistance == "45" and byName.nameplateMaxVerticalDistance == "0")
 	assert(byName.nameplateSelectedScale == "1.25" and byName.nameplateMinScale == "0.8" and byName.nameplateSize == "3")
 	assert(byName["nameplateStackingTypes[1]"] == true and byName["nameplateStackingTypes[2]"] == false)
-	assert(byName.nameplateMotion == "1", "the older stacking CVar is in the plan as a fallback")
+	assert(byName.nameplateMotion == nil, "an unproven legacy CVar is never in the plan")
 	plan = Logic.CVarPlan({ maxDistance = 45, verticalDistance = 0, stacking = "none", selectedScale = 1, minScale = 1, clickSize = 2 })
 	for _, entry in ipairs(plan) do
+		assert(entry.name ~= "nameplateMotion", "no stacking does not introduce a legacy CVar")
 		if entry.name == "nameplateStackingTypes" then
 			assert(entry.value == false, "no stacking clears both bits")
-		elseif entry.name == "nameplateMotion" then
-			assert(entry.value == "0")
 		end
 	end
 end
@@ -197,10 +196,10 @@ end
 do
 	local env, K = N.New({ noBitfield = true, motion = true })
 	K.Options.Write("Nameplates", "cvars.enabled", true)
-	assert(env._cvars.nameplateMotion == "1", "without nameplateStackingTypes, stacking uses nameplateMotion")
+	assert(env._cvars.nameplateMotion == "0", "without nameplateStackingTypes, stacking leaves unproven legacy CVars alone")
 	K.Modules.Disable("Nameplates")
 	env.RunTimers()
-	assert(env._cvars.nameplateMotion == "0", "disabling the module restores the defaults it changed")
+	assert(env._cvars.nameplateMotion == "0", "disabling the module still leaves the legacy CVar unchanged")
 end
 
 do

@@ -366,6 +366,21 @@ class CVarTest(AddonCase):
         results = self.check("GetCVar(name)")
         self.assertEqual([r.status for r in results], ["dynamic"])
 
+    def test_cvar_named_field_assignments_are_checked(self):
+        found = self.problems('Logic.MOTION_CVAR = "missingCVar"\nLogic.STACKING_CVAR = "showTimestamps"')
+        self.assertEqual(len(found), 1)
+        self.assertIn("missingCVar", found[0][1])
+
+    def test_cvar_label_field_is_not_a_registry_name(self):
+        self.assertEqual(self.check('frame.cvarLabel = "STATUS_TEXT_PET"'), [])
+
+    def test_core_cvar_wrapper_literals_are_checked(self):
+        for method in ("Exists", "Get", "Default", "Set", "SetBitfield"):
+            with self.subTest(method=method):
+                found = self.problems('K.CVars.' + method + '("missingCVar", 1, true)')
+                self.assertEqual(len(found), 1)
+                self.assertIn("missingCVar", found[0][1])
+
 
 class EnumTest(AddonCase):
     def test_known_members_pass(self):

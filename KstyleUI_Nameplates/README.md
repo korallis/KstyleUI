@@ -211,7 +211,7 @@ Off by default. With **Manage these settings** on, the module writes these CVars
 | --- | --- | --- |
 | `cvars.maxDistance` | 40 | `nameplateMaxDistance` |
 | `cvars.verticalDistance` | 0 | `nameplateMaxVerticalDistance` (Forever only; 0 turns the check off) |
-| `cvars.stacking` | enemy | `nameplateStackingTypes` bits 1 (enemy) and 2 (friendly), or `nameplateMotion` on a client without the bitfield |
+| `cvars.stacking` | enemy | `nameplateStackingTypes` bits 1 (enemy) and 2 (friendly); without that supported bitfield, stacking is left alone |
 | `cvars.selectedScale` | 1.2 | `nameplateSelectedScale` |
 | `cvars.minScale` | 0.8 | `nameplateMinScale` |
 | `cvars.clickSize` | 2 | `nameplateSize` |

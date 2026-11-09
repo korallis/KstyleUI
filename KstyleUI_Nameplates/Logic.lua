@@ -158,9 +158,9 @@ end
 
 local STACK_ENEMY, STACK_FRIENDLY = 1, 2
 local STACKING = {
-	none = { enemy = false, friendly = false, motion = "0" },
-	enemy = { enemy = true, friendly = false, motion = "1" },
-	all = { enemy = true, friendly = true, motion = "1" },
+	none = { enemy = false, friendly = false },
+	enemy = { enemy = true, friendly = false },
+	all = { enemy = true, friendly = true },
 }
 Logic.STACKING = STACKING
 
@@ -177,7 +177,6 @@ local VALUE_CVARS = {
 }
 
 Logic.STACKING_CVAR = "nameplateStackingTypes"
-Logic.MOTION_CVAR = "nameplateMotion"
 
 function Logic.CVarPlan(cvars)
 	local plan = {}
@@ -187,7 +186,6 @@ function Logic.CVarPlan(cvars)
 	local stacking = STACKING[cvars.stacking] or STACKING.enemy
 	plan[#plan + 1] = { name = Logic.STACKING_CVAR, index = STACK_ENEMY, value = stacking.enemy }
 	plan[#plan + 1] = { name = Logic.STACKING_CVAR, index = STACK_FRIENDLY, value = stacking.friendly }
-	plan[#plan + 1] = { name = Logic.MOTION_CVAR, value = stacking.motion, fallback = Logic.STACKING_CVAR }
 	return plan
 end
 
