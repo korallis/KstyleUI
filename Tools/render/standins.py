@@ -272,16 +272,12 @@ def main(argv=None):
     parser.add_argument("--models", default=None, help="the folder of <class>.png full-body paintings with transparency for the paper doll (default: KSTYLEUI_MODELS, then the handoff folder's scenery/models)")
     parser.add_argument("--quiet", action="store_true", help="say nothing when the mockup is missing")
     args = parser.parse_args(argv)
-    portraits = portraits_path(args.portraits, os.environ)
-    models = models_path(args.models, os.environ)
     if not os.path.exists(args.mockup):
-        # The class portraits and models do not need the mockup; the other stand-ins fall back to flat colours.
-        if pillow():
-            write_portraits(args.out, portraits)
-            write_models(args.out, models)
         if not args.quiet:
             print("no mockup at " + args.mockup + "; the scenes fall back to flat stand-ins", file=sys.stderr)
         return 0
+    portraits = portraits_path(args.portraits, os.environ)
+    models = models_path(args.models, os.environ)
     raw = argv if argv is not None else sys.argv[1:]
     plate = plate_path(raw, os.environ)
     for path in write(args.mockup, args.out, args.width, args.height, plate=plate, portraits=portraits, models=models):

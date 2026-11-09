@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 RENDER = Path(__file__).resolve().parents[1] / "render"
 
@@ -25,13 +26,17 @@ def load(name):
 @unittest.skipUnless(Image, "Pillow is not installed")
 class StandinsTest(unittest.TestCase):
     def setUp(self):
-        self.standins = load("standins")
-        self.assertTrue(self.standins.pillow())
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        env = {key: value for key, value in os.environ.items() if not key.startswith("KSTYLEUI_")}
+        env["HOME"] = str(self.root)
+        patcher = mock.patch.dict(os.environ, env, clear=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.standins = load("standins")
+        self.assertTrue(self.standins.pillow())
 
-    def tearDown(self):
-        self._tmp.cleanup()
 
     def mockup(self):
         """A mockup-sized image: a blue field with a red square where the player portrait is."""
@@ -182,6 +187,24 @@ class StandinsTest(unittest.TestCase):
         self.assertIsNone(fresh.Image, "Pillow is imported only when a mockup is cropped")
         self.assertEqual(fresh.main(["--mockup", str(self.root / "missing.png"), "--quiet"]), 0)
         self.assertIsNone(fresh.Image)
+
+
+class MissingMockupTest(unittest.TestCase):
+    def test_missing_mockup_ignores_even_explicit_assets_without_pillow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            assets = root / "assets"
+            assets.mkdir()
+            (assets / "warrior.png").write_bytes(b"not an image")
+            with mock.patch.dict(os.environ, {"HOME": tmp, "KSTYLEUI_PLATE": str(assets / "warrior.png"),
+                                              "KSTYLEUI_PORTRAITS": str(assets), "KSTYLEUI_MODELS": str(assets)},
+                                 clear=True):
+                standins = load("standins")
+                with mock.patch.object(standins, "pillow", side_effect=AssertionError("Pillow was requested")):
+                    code = standins.main(["--mockup", str(root / "missing.png"), "--out", str(root / "out"),
+                                          "--portraits", str(assets), "--models", str(assets), "--quiet"])
+            self.assertEqual(code, 0)
+            self.assertFalse((root / "out").exists())
 
 
 @unittest.skipUnless(Image, "Pillow is not installed")
