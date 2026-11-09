@@ -1,4 +1,4 @@
--- Frames.lua: restyles Blizzard's chat windows in place: their art, tabs, edit boxes, scroll bars, fonts and buttons.
+-- Frames.lua: restyles Blizzard's chat windows in place: their art, the tabs in caps with a gilt underline on the active one, edit boxes, scroll bars, fonts and buttons.
 local _, ns = ...
 
 local K = KstyleUI
@@ -161,7 +161,7 @@ local function PaintTab(parts)
 	end
 	local style = settings.tabStyle
 	local selected = parts.selected == true
-	local r, g, b = Accent()
+	local r, g, b = Widgets.LumenColor("gilt")
 	local underlined = selected and style == "underline"
 	parts.underline:SetVertexColor(r, g, b, 1)
 	parts.underline:SetShown(underlined)
