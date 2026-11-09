@@ -11,7 +11,7 @@ local function new(opts)
 end
 
 local function rim(b)
-	return b.chrome.inner[5]
+	return b.chrome.rim[5]
 end
 
 local function textRGB(fs, r, g, b)

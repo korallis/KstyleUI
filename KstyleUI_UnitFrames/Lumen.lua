@@ -29,8 +29,10 @@ local ROLES = {
 
 local cache = {}
 
+local TOKEN_NAMES = { gold = "gilt", goldLit = "giltLit", goldDim = "giltDim" }
+
 local function Token(name)
-	local ok, r, g, b = pcall(Tokens.Color, name)
+	local ok, r, g, b = pcall(Tokens.Color, TOKEN_NAMES[name] or name)
 	if ok and type(r) == "number" then
 		return r, g, b
 	end

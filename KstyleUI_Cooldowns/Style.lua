@@ -7,7 +7,7 @@ local Tokens, Widgets = K.Tokens, K.Widgets
 local Style = {}
 ns.Style = Style
 
-Style.TOKENS = { gilt = "neutral" }
+Style.TOKENS = { gilt = "giltLit" }
 
 function Style.FontPath(choice, role)
 	if choice == "kit" or type(choice) ~= "string" then

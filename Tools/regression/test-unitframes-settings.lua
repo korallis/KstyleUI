@@ -209,8 +209,8 @@ K.Store.Module("UnitFrames").resource.manaOrientation = "RIGHT"
 
 -- Font(kind, element) -> path, size, flags. "theme" follows the KstyleUI font; the size follows the text size.
 local path, size, flags = Settings.Font("player", "health")
-local themePath = K.Tokens.Font("body")
-assert(path == themePath, "the theme font follows Appearance's font")
+local themePath = K.Tokens.Font("number")
+assert(path == themePath, "the theme font follows Appearance's font, in the health text's Lumen role")
 assert(size == defaults.player.fonts.health.size, "the size is the setting at a text size of 1")
 assert(flags == "", "no outline by default: text gets the soft shadow")
 K.Store.Module("UnitFrames").player.fonts.health.outline = "OUTLINE"

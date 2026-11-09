@@ -8,7 +8,7 @@ local Socket = {}
 ns.Socket = Socket
 
 Socket.TOKENS = {
-	gilt = "neutral",
+	gilt = "giltLit",
 	quietRim = "edgeInner",
 	cool = "rare",
 }

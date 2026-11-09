@@ -135,12 +135,12 @@ assert(essential.icons[1].proc == true, "the highlight event lights the icon")
 do
 	local icon = essential.icons[1]
 	local gr, gg, gb = K.Tokens.Color(ns.Style.TOKENS.gilt)
-	assert(W.SameRGB(icon.chrome.inner[5], gr, gg, gb), "a proc wears the gilt rim: gold only on the active state")
+	assert(W.SameRGB(icon.chrome.rim[5], gr, gg, gb), "a proc wears the gilt rim: gold only on the active state")
 	local glow = icon.procGlow.colorRGB
 	assert(glow and W.Near(glow[1], gr) and W.Near(glow[2], gg) and W.Near(glow[3], gb), "and a gilt glow")
 	env._cdm.overlay[1001] = true
 	K.Options.Write("Cooldowns", "accent", "custom")
-	assert(icon.proc and W.SameRGB(icon.chrome.inner[5], gr, gg, gb), "a custom accent leaves the proc gilt")
+	assert(icon.proc and W.SameRGB(icon.chrome.rim[5], gr, gg, gb), "a custom accent leaves the proc gilt")
 	assert(W.Near(icon.procGlow.colorRGB[1], gr), "and its glow")
 	K.Options.Write("Cooldowns", "accent", "class")
 	env._cdm.overlay[1001] = nil

@@ -302,7 +302,7 @@ end
 
 function Unit.Tracked(text, fontPath)
 	text = text:upper()
-	if OwnFont(fontPath) then
+	if OwnFont(fontPath) and fontPath ~= Tokens.FontPath("CinzelSemiBold") then
 		text = text:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1)
 	end
 	return text

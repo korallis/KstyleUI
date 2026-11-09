@@ -81,6 +81,8 @@ K.Options.Write("UnitFrames", "player.powerText", "none")
 assert(U.Shown(env, player.name) == "TESTER", "the name in capitals: " .. U.Shown(env, player.name))
 local THIN = "\226\128\137"
 assert(W.LastCall(player.name, "SetText")[1] == "T" .. THIN .. "E" .. THIN .. "S" .. THIN .. "T" .. THIN .. "E" .. THIN .. "R", "the capitals are spaced wide with thin spaces, as the kit sheet tracks them")
+assert(ns.Unit.Tracked("Tester", K.Tokens.FontPath("CinzelSemiBold")) == "TESTER", "Cinzel's capitals carry their own spacing: a Cinzel name gets no thin spaces")
+assert(ns.Unit.Tracked("Tester", K.Tokens.FontPath("SourceSans3Semibold")) == "T" .. THIN .. "E" .. THIN .. "S" .. THIN .. "T" .. THIN .. "E" .. THIN .. "R", "another bundled face keeps them")
 assert(U.Shown(env, player.levelText) == "60", "level: " .. U.Shown(env, player.levelText))
 assert(env._portraits[player.portrait] == "player", "the 2D portrait shows the player")
 assert(U.Bar(env, player.power) == 2000, "power reaches the bar")

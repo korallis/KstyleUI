@@ -9,7 +9,7 @@ local floor, min, max = math.floor, math.min, math.max
 local Bars = {}
 ns.Bars = Bars
 
-Bars.TOKENS = { gilt = "neutral", muted = "text", cool = "rare" }
+Bars.TOKENS = { gilt = "gilt", muted = "muted", cool = "rare" }
 local GILT_DIM, GILT_LIT = 0.4, 0.45
 
 local MAX_SEGMENTS = 20
