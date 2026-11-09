@@ -62,9 +62,11 @@ for kind, key in pairs({ party = "groupframes.party", raid = "groupframes.raid" 
 	eq(el.opts.scalable, true, key .. " is scalable")
 	eq(el.label, K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 end
+-- The party holder is the Lumen card: the rows inside a 20 padding, under a section cap and a gap.
+local pgeo = ns.Geometry.Party(ns.Settings.current.party)
 local pw, ph = Headers.holders.party:GetSize()
-eq(pw, 230, "the party holder is one frame wide")
-eq(ph, 270, "the party holder is five frames tall")
+eq(pw, pgeo.width + 40, "the party holder is one row plus the card's padding wide: 318")
+eq(ph, pgeo.height + 40 + K.Widgets.SECTION_CAP_HEIGHT + 8, "the party holder is five rows, the cap, a gap and the padding tall")
 local rw, rh = Headers.holders.raid:GetSize()
 eq(rw, 597, "the raid holder fills its footprint")
 eq(rh, 212, "the raid holder fills its footprint")
@@ -74,13 +76,13 @@ local header = Headers.party
 same(G.Shown(header), { "player", "party1", "party2", "party3", "party4" }, "party units")
 assert(#children(header) >= 5, "the party header made its five buttons at Enable")
 eq(header._attributes.point, "TOP", "party frames stack downward")
-eq(header._attributes.yOffset, -10, "with 10-unit gaps")
+eq(header._attributes.yOffset, -8, "with 8-unit gaps, the Lumen row gap")
 for g = 1, 8 do
 	assert(#children(Headers.raid[g]) >= 5, "raid group " .. g .. " made its five buttons at Enable, out of combat")
 end
 local w, h = children(header)[1]:GetSize()
-eq(w, 230, "party buttons are 230 wide")
-eq(h, 46, "party buttons are 46 tall")
+eq(w, 278, "party buttons are 278 wide, the 318 card inside its padding")
+eq(h, 40, "party buttons are 40 tall")
 
 local function content(unit)
 	for _, button in ipairs(children(header)) do
@@ -114,6 +116,9 @@ assert(near(color[1], warrior[1]) and near(color[2], warrior[2]) and near(color[
 -- #101214 track), never the kit's translucent black.
 eq(c.health.backgroundName, "buttonFill", "the health track is the button body")
 eq(c.power.backgroundName, "buttonFill", "the power track is the button body")
+-- The Lumen row shows no health number by default; the number's engine formatting is tested with it on.
+K.Options.Write("GroupFrames", "party.healthText", "PERCENT")
+env.RunTimers()
 local formatted = c.healthText._state.FormattedText
 assert(formatted, "the percent text is formatted by the engine")
 eq(formatted[1], "%.0f%%", "percent format")
@@ -252,6 +257,9 @@ eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 -- The level disc on a party portrait is the button body with the edge line the other badges wear: a ring in the
 -- accent, one border outside the disc, so the badge reads on the glass as the unit frames' octagon does.
 do
+	-- With the Lumen role ring on, the portrait and its disc step aside; the portrait look is tested with it off.
+	K.Options.Write("GroupFrames", "party.roleRing", false)
+	env.RunTimers()
 	local p1 = content("party1")
 	assert(p1.badge:IsShown(), "the party frame shows its level disc")
 	local br, bg, bb = p1.badge:GetVertexColor()

@@ -94,6 +94,15 @@ local function Block(growth, count, width, height, spacing)
 	return Line(count, width, spacing), height
 end
 
+local CARD_PAD = 20
+local CARD_GAP = 8
+Geometry.CARD_PAD = CARD_PAD
+Geometry.CARD_GAP = CARD_GAP
+
+function Geometry.Card(geo, cap)
+	return geo.width + 2 * CARD_PAD, geo.height + CARD_PAD + cap + CARD_GAP + CARD_PAD, CARD_PAD, CARD_PAD + cap + CARD_GAP
+end
+
 function Geometry.Party(s)
 	local growth = Clean(s.growth)
 	local count = s.showPlayer == false and PARTY_MAX - 1 or PARTY_MAX

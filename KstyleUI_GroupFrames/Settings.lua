@@ -33,10 +33,10 @@ local NUMBER_FONT = (Tokens.Font("number"))
 Settings.defaults = {
 	blizzard = { party = true, raid = true, manager = true },
 	party = {
-		width = 230, height = 46, spacing = 10, growth = "DOWN",
+		width = 278, height = 40, spacing = 8, growth = "DOWN",
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
-		portrait = true, power = true, powerHeight = 4,
-		textLayout = "ABOVE", nameSize = 11, healthText = "PERCENT", healthTextSize = 11,
+		portrait = true, roleRing = true, classLine = true, power = false, powerHeight = 4,
+		textLayout = "ABOVE", nameSize = 11, healthText = "NONE", healthTextSize = 11,
 		iconSize = 14,
 		auraSize = 20, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -45,7 +45,7 @@ Settings.defaults = {
 		width = 72, height = 40, spacing = 3, growth = "DOWN",
 		groupGrowth = "RIGHT", groupSpacing = 3, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5,
-		power = false, powerHeight = 3,
+		roleRing = false, classLine = false, power = false, powerHeight = 3,
 		textLayout = "INSIDE", nameSize = 10, healthText = "NONE", healthTextSize = 9,
 		iconSize = 12,
 		auraSize = 14, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
@@ -152,6 +152,8 @@ local function KindRows(schema, kind, label)
 	add(Slider(p .. "height", L["Frame height"], L["How tall each frame is."], 16, 120, 1))
 	add(Slider(p .. "spacing", L["Spacing"], L["The gap between frames."], 0, 40, 1))
 	add(Dropdown(p .. "growth", L["Growth"], L["Which way the next frame goes."], GROWTH))
+	add(Toggle(p .. "roleRing", L["Role rings"], L["A ring in the class colour with the role's letter where the portrait would be."]))
+	add(Toggle(p .. "classLine", L["Class and level"], L["A small caption with the member's class and level at the right."]))
 	if kind == "party" then
 		add(Dropdown(p .. "sortBy", L["Sort by"], L["The order of the party frames."], PARTY_SORT))
 		add(Toggle(p .. "showPlayer", L["Show yourself"], L["Includes your own frame with the party."]))

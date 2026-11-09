@@ -14,6 +14,9 @@ local env, K, ns = G.New({
 G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", health = 92, maxHealth = 100 } })
 K.Modules.Enable("GroupFrames")
 env.RunTimers()
+-- The Lumen party row shows no health number by default; this test reads the number's fallback.
+K.Options.Write("GroupFrames", "party.healthText", "PERCENT")
+env.RunTimers()
 eq(#env._errors, 0, "Enable works without UnitHealthPercent: " .. tostring(env._errors[1]))
 assert(K.Modules.IsRunning("GroupFrames"), "GroupFrames runs without UnitHealthPercent")
 

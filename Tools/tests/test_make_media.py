@@ -385,15 +385,19 @@ class DrawingTest(unittest.TestCase):
         px = self.px("MinimapMask.png", 256, 256)
         self.assertEqual(px[:3], (255, 255, 255), "white, so the alpha alone masks")
 
-    def test_minimap_mask_share_matches_the_module(self):
-        # KstyleUI_Minimap/Format.lua places the map with the same three numbers, so the mask's cut meets the
-        # frame's cut; the Lua file must carry the constants the texture was drawn from.
-        text = (ROOT / "KstyleUI_Minimap" / "Format.lua").read_text(encoding="ascii")
-        frame = re.search(r"local FRAME_SIZE\s*=\s*(\d+)", text)
-        chamfer = re.search(r"local FRAME_CHAMFER\s*=\s*(\d+)", text)
-        inset = re.search(r"local MAP_INSET\s*=\s*(\d+)", text)
-        self.assertTrue(frame and chamfer and inset, "Format.lua names FRAME_SIZE, FRAME_CHAMFER and MAP_INSET")
-        self.assertEqual((int(frame.group(1)), int(chamfer.group(1)), int(inset.group(1))), (self.mm.MINIMAP_FRAME, self.mm.MINIMAP_CHAMFER, self.mm.MINIMAP_INSET))
+    def test_minimap_module_wears_the_round_lens_mask(self):
+        # The Lumen minimap is a round lens: the module masks the map with the lens mask the material foundation
+        # names (the kit's round dot until it lands), not the chamfered MinimapMask this script still draws for
+        # the hybrid map's fallback, so the square mask's cut no longer has to meet a frame chamfer in Format.lua.
+        face = (ROOT / "KstyleUI_Minimap" / "Face.lua").read_text(encoding="ascii")
+        game = (ROOT / "KstyleUI_Minimap" / "Map.lua").read_text(encoding="ascii")
+        self.assertIn('LumenTexture("lensMask")', face, "the face's own mask is the lens mask")
+        self.assertIn('LumenTexture("lensMask")', game, "the Minimap frame and the hybrid map wear the lens mask")
+        self.assertNotIn("minimapMask", face + game, "nothing in the module asks for the chamfered mask")
+        fmt = (ROOT / "KstyleUI_Minimap" / "Format.lua").read_text(encoding="ascii")
+        self.assertIsNone(re.search(r"local FRAME_CHAMFER\s*=", fmt), "Format.lua no longer places by a frame chamfer")
+        self.assertIsNotNone(re.search(r"local HEAD\s*=\s*\d+", fmt), "Format.lua names the card's head band")
+        self.assertIsNotNone(re.search(r"local FOOT\s*=\s*\d+", fmt), "and its foot band")
 
     def test_logo_is_a_chamfered_diamond(self):
         for name, size in (("Logo64.png", 64), ("Logo256.png", 256)):

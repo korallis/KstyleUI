@@ -1,4 +1,4 @@
--- Style.lua: builds a group frame's look on any frame and lays it out from the settings: glass tile, portrait, bars, texts and the rounded highlight rings.
+-- Style.lua: builds a group frame's Lumen look on any frame and lays it out from the settings: glass tile, role ring or portrait, class pill, name and class caption, and the rounded highlight rings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -18,6 +18,15 @@ local HOVER_ALPHA = 0.6
 local RING_LINES = 2
 local WASH = "chamferTile"
 local TRACK = "buttonFill"
+local ROLE_RING = 24
+local ROLE_LETTERS = { TANK = "T", HEALER = "H", DAMAGER = "D" }
+local PILL_HEIGHT = 6
+local PILL_RISE = 2
+local CLASS_LINE_COLOR = "text"
+Style.ROLE_RING = ROLE_RING
+Style.ROLE_LETTERS = ROLE_LETTERS
+Style.PILL_HEIGHT = PILL_HEIGHT
+Style.PILL_RISE = PILL_RISE
 
 local logged = {}
 local function LogOnce(key, message)
@@ -90,6 +99,10 @@ function Style.Build(f, kind)
 	f.badgeRing = f.text:CreateTexture(nil, "ARTWORK", nil, 1)
 	f.badgeRing:SetTexture((Tokens.Texture("ringBevel")))
 	f.level = Widgets.FontString(f.text, "OVERLAY")
+	f.roleText = Widgets.FontString(f.text, "OVERLAY")
+	f.classLine = Widgets.FontString(f.text, "OVERLAY")
+	f.classLine:SetWordWrap(false)
+	f.classLine:SetJustifyH("RIGHT")
 	f.name = Widgets.FontString(f.text, "OVERLAY")
 	f.name:SetWordWrap(false)
 	f.healthText = Widgets.FontString(f.text, "OVERLAY")
@@ -185,9 +198,35 @@ local function LayoutTexts(f, k, parts)
 	end
 end
 
-local function LayoutPortrait(f, parts)
+local function LayoutRoleRing(f, rect)
+	local size = Widgets.Snap(f, math.min(ROLE_RING, rect.width - 2 * PORTRAIT_INSET))
+	local ring = f.ring
+	ring:ClearAllPoints()
+	ring:SetSize(size, size)
+	ring:SetPoint("LEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left + PORTRAIT_INSET), -Widgets.Snap(f, rect.top + rect.height / 2))
+	f.roleText:ClearAllPoints()
+	f.roleText:SetPoint("CENTER", ring, "CENTER", 0, 0)
+	SetFont(f.roleText, Settings.current.text.healthFont, Tokens.Size("caption"), "NONE")
+	f.roleText:SetTextColor(Tokens.Color("textEmphasis"))
+	f.portrait:Hide()
+	f.badge:Hide()
+	f.badgeRing:Hide()
+	f.level:Hide()
+	f.ring:Show()
+	f.roleText:Show()
+	f.showPortrait = false
+	f.showRoleRing = true
+end
+
+local function LayoutPortrait(f, parts, k)
 	local rect = parts.portrait
 	local shown = rect ~= nil
+	f.showRoleRing = false
+	f.roleText:Hide()
+	if shown and k.roleRing then
+		LayoutRoleRing(f, rect)
+		return
+	end
 	f.portrait:SetShown(shown)
 	f.ring:SetShown(shown)
 	f.badge:SetShown(shown)
@@ -221,6 +260,10 @@ local function LayoutPortrait(f, parts)
 	f.level:SetTextColor(Tokens.Color("textEmphasis"))
 end
 
+local function health_orientation(cfg)
+	return cfg.health.orientation ~= "VERTICAL"
+end
+
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
@@ -237,6 +280,11 @@ function Style.Apply(f, width, height)
 		leader = cfg.icons.leader,
 		marker = cfg.icons.marker,
 	})
+	if k.pill ~= false and parts.name ~= parts.health and parts.health.height > PILL_HEIGHT and health_orientation(cfg) then
+		local rect = parts.health
+		rect.top = rect.top + rect.height - PILL_HEIGHT - PILL_RISE
+		rect.height = PILL_HEIGHT
+	end
 	f.parts = parts
 	local health = cfg.health
 	f.health:SetBarTexture(health.texture)
@@ -248,10 +296,22 @@ function Style.Apply(f, width, height)
 		f.power:SetBarTexture(health.texture)
 		PlaceBar(f, f.power, parts.power)
 	end
-	LayoutPortrait(f, parts)
+	LayoutPortrait(f, parts, k)
 	LayoutTexts(f, k, parts)
+	local classLine = f.classLine
+	classLine:ClearAllPoints()
+	classLine:SetShown(k.classLine == true and not parts.nameInside)
+	if k.classLine and not parts.nameInside then
+		local rect = parts.name
+		SetFont(classLine, cfg.text.healthFont, Tokens.Size("caption"), cfg.text.healthOutline)
+		classLine:SetTextColor(Tokens.Color(CLASS_LINE_COLOR))
+		classLine:SetPoint("TOPRIGHT", f, "TOPRIGHT", -Widgets.Snap(f, width - rect.left - rect.width), -Widgets.Snap(f, rect.top))
+		classLine:SetHeight(Widgets.Snap(f, rect.height))
+		f.name:SetPoint("RIGHT", classLine, "LEFT", -Widgets.Snap(f, Tokens.Size("gapSmall")), 0)
+	end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
 	f.chrome:Restyle()
+	f.chrome:SetShown(not (f.kind == "party" and k.roleRing))
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)
 	end

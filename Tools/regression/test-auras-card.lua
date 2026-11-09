@@ -72,8 +72,8 @@ local dp = dock._points[1]
 check(dp[1] == "TOPLEFT" and dp[2] == desc.holder and near(dp[4], 20, 0.5) and near(-dp[5], expect.debuffTop, 0.5), "the dock sits inside the card under the hairline: " .. tostring(dp[4]) .. ", " .. tostring(dp[5]))
 local dw, dh = dock:GetSize()
 check(near(dw, 278, 0.5) and near(dh, 51, 0.5), "the dock is the debuff row's own size")
-local hp = ddesc.host._points[1]
-check(hp[2] == dock, "the debuff host follows the dock")
+local hostPoint = ddesc.host._points[1]
+check(hostPoint[2] == dock, "the debuff host follows the dock")
 check(ddesc.host:IsShown(), "and shows while the buff card shows")
 check(desc.card.rule and desc.card.rule:IsShown(), "a hairline parts the buffs from the debuffs")
 local rp = desc.card.rule._points[1]
@@ -86,16 +86,16 @@ env.RunTimers()
 check(env._live["auras.debuffs"] == true, "a free debuff row is live in Layout Mode")
 check(ddesc.docked == false, "and knows it is free")
 check(ddesc.holder:IsShown(), "its holder shows again")
-local hp = ddesc.host._points[1]
-check(hp[2] == ddesc.holder, "and the host follows the holder")
-w, h = b.frame:GetSize()
-check(near(h, alone.height, 0.5), "the card ends under the buff rows: " .. tostring(h))
+local freePoint = ddesc.host._points[1]
+check(freePoint[2] == ddesc.holder, "and the host follows the holder")
+local _, freeHeight = b.frame:GetSize()
+check(near(freeHeight, alone.height, 0.5), "the card ends under the buff rows: " .. tostring(freeHeight))
 check(not desc.card.rule:IsShown(), "no hairline without a debuff row")
 K.Options.Write("Auras", "card.docked", true)
 env.RunTimers()
 check(env._live["auras.debuffs"] == false and ddesc.docked == true and not ddesc.holder:IsShown(), "docking again hides the debuff holder and docks the row")
-w, h = b.frame:GetSize()
-check(near(h, expect.height, 0.5), "and the card grows back")
+local _, backHeight = b.frame:GetSize()
+check(near(backHeight, expect.height, 0.5), "and the card grows back")
 
 check(#env._errors == 0, tostring(env._errors[1]))
 print("auras card ok")

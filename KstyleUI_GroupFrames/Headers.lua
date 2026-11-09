@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Geometry, Style = ns.Geometry, ns.Style
 
-local Headers = { raid = {}, holders = {}, built = false }
+local Headers = { raid = {}, holders = {}, cards = {}, built = false }
 ns.Headers = Headers
 
 local RAID_GROUPS = 8
@@ -65,6 +65,15 @@ function Headers.Build()
 		Headers.holders[kind] = holder
 	end
 	Headers.party = NewHeader(Headers.holders.party, "party")
+	local party = Headers.holders.party
+	local card = CreateFrame("Frame", nil, Headers.party)
+	card:SetAllPoints(party)
+	card:SetFrameLevel(Headers.party:GetFrameLevel())
+	Headers.cards.party = {
+		frame = card,
+		chrome = K.Widgets.Chrome(card, { shape = "panel" }),
+		cap = K.Widgets.SectionCap(card, { title = K.L["Party"] }),
+	}
 	for g = 1, RAID_GROUPS do
 		Headers.raid[g] = NewHeader(Headers.holders.raid, "raid")
 	end
@@ -160,7 +169,15 @@ end
 function Headers.ApplyParty(s)
 	local geo = Geometry.Party(s)
 	local holder, header = Headers.holders.party, Headers.party
-	holder:SetSize(geo.width, geo.height)
+	local card = Headers.cards.party
+	local width, height, left, top = Geometry.Card(geo, K.Widgets.SECTION_CAP_HEIGHT)
+	holder:SetSize(width, height)
+	local cap = card.cap
+	cap.frame:ClearAllPoints()
+	cap.frame:SetPoint("TOPLEFT", holder, "TOPLEFT", left, -Geometry.CARD_PAD)
+	cap.frame:SetPoint("TOPRIGHT", holder, "TOPRIGHT", -left, -Geometry.CARD_PAD)
+	cap:Restyle()
+	geo.left, geo.top = left, top
 	Quiet(header)
 	header:SetAttribute("showRaid", false)
 	header:SetAttribute("showParty", true)
@@ -171,11 +188,25 @@ function Headers.ApplyParty(s)
 	Columns(header, nil, nil, nil, nil)
 	Grow(header, geo)
 	header:ClearAllPoints()
-	header:SetPoint(geo.corner, holder, geo.corner, 0, 0)
+	local x, y = left, -top
+	if geo.corner:find("RIGHT", 1, true) then
+		x = -left
+	end
+	if geo.corner:find("BOTTOM", 1, true) then
+		y = Geometry.CARD_PAD
+	end
+	header:SetPoint(geo.corner, holder, geo.corner, x, y)
 	Resize(header, s.width, s.height)
 	Precreate(header, PARTY_BUTTONS)
 	Driver(header, s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
 	return geo
+end
+
+function Headers.SetPartyCount(count)
+	local card = Headers.cards.party
+	if card then
+		card.cap:SetAside(count and count > 0 and tostring(count) or nil)
+	end
 end
 
 local function RaidHeader(header, holder, s)

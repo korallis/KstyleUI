@@ -19,9 +19,9 @@ eq(K.Modules.IsRunning("GroupFrames"), false, "GroupFrames does not run until it
 -- The footprints from element-keys.md are the defaults.
 local d = K.Store.Defaults("GroupFrames")
 assert(type(d) == "table", "GroupFrames registers its defaults")
-eq(d.party.width, 230, "party width default")
-eq(d.party.height, 46, "party height default")
-eq(d.party.spacing, 10, "party spacing default")
+eq(d.party.width, 278, "party width default: the 318 card inside its 20 padding")
+eq(d.party.height, 40, "party height default: a name line over the class pill")
+eq(d.party.spacing, 8, "party spacing default: the Lumen row gap")
 eq(d.raid.width, 72, "raid width default")
 eq(d.raid.height, 40, "raid height default")
 eq(d.raid.spacing, 3, "raid spacing default")

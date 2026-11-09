@@ -92,6 +92,12 @@ local function Paint(f, sample)
 		f.ring:SetVertexColor(cr, cg, cb)
 		f.portrait:SetTexture((Tokens.Texture("logo")))
 		f.level:SetText(SAMPLE_LEVEL)
+	elseif f.showRoleRing then
+		f.ring:SetVertexColor(cr, cg, cb)
+		f.roleText:SetText(Style.ROLE_LETTERS[sample.role] or "")
+	end
+	if f.classLine:IsShown() then
+		f.classLine:SetText(sample.class .. " " .. SAMPLE_LEVEL)
 	end
 	HealthText(f, sample)
 	local fade = cfg.range.fade and sample.far

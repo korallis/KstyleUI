@@ -144,8 +144,38 @@ local function Colors(f)
 	if Settings.current.text.nameColorSource == "class" then
 		f.name:SetTextColor(cr, cg, cb)
 	end
-	if f.showPortrait then
+	if f.showPortrait or f.showRoleRing then
 		f.ring:SetVertexColor(cr, cg, cb)
+	end
+end
+
+local function RoleLetter(f)
+	if not f.showRoleRing then
+		return
+	end
+	local role = UnitGroupRolesAssigned(f.unit)
+	if IsSecret(role) or type(role) ~= "string" then
+		f.roleText:SetText("")
+		return
+	end
+	f.roleText:SetText(Style.ROLE_LETTERS[role] or "")
+end
+
+local function ClassLine(f)
+	local line = f.classLine
+	if not line:IsShown() then
+		return
+	end
+	local className = UnitClass(f.unit)
+	if IsSecret(className) or type(className) ~= "string" then
+		line:SetText("")
+		return
+	end
+	local level = UnitLevel(f.unit)
+	if IsSecret(level) or type(level) ~= "number" or level <= 0 then
+		line:SetText(className)
+	else
+		line:SetText(className .. " " .. level)
 	end
 end
 
@@ -313,6 +343,8 @@ function Unit.Refresh(f)
 	Power(f)
 	Portrait(f)
 	Level(f)
+	RoleLetter(f)
+	ClassLine(f)
 	Range(f)
 	Target(f)
 	local extra = Unit.extra
@@ -392,6 +424,19 @@ function Unit.ForEach(fn)
 	end
 end
 
+local function PartyCount()
+	local Headers = ns.Headers
+	if not (Headers and Headers.SetPartyCount) then
+		return
+	end
+	local count = type(GetNumGroupMembers) == "function" and GetNumGroupMembers() or nil
+	if IsSecret(count) or type(count) ~= "number" then
+		count = nil
+	end
+	Headers.SetPartyCount(count)
+end
+Unit.PartyCount = PartyCount
+
 function Unit.RefreshAll()
 	for i = 1, #frames do
 		local f = frames[i]
@@ -399,6 +444,7 @@ function Unit.RefreshAll()
 			Unit.Refresh(f)
 		end
 	end
+	PartyCount()
 end
 
 local rosterPending = false

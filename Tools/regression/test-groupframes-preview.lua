@@ -33,10 +33,14 @@ eq(after, events, "the preview registers no events")
 eq(#preview.partyFrames, 3, "three sample party frames")
 eq(#preview.raidFrames, 10, "two sample raid groups")
 eq(preview.partyFrames[1].name:GetText(), "Thaldren", "sample names")
+K.Options.Write("GroupFrames", "party.healthText", "PERCENT")
+preview:Refresh()
 local formatted = preview.partyFrames[1].healthText._state.FormattedText
-eq(formatted and formatted[1], "%d%%", "party samples show percent health by default")
+eq(formatted and formatted[1], "%d%%", "party samples show percent health when the number is on")
+K.Options.Write("GroupFrames", "party.healthText", "NONE")
+preview:Refresh()
 eq(formatted and formatted[2], 92, "the sample's percent")
-eq(preview.partyFrames[1]:GetWidth(), 230, "party samples use the party width")
+eq(preview.partyFrames[1]:GetWidth(), 278, "party samples use the party width")
 eq(preview.raidFrames[1]:GetWidth(), 72, "raid samples use the raid width")
 
 -- Samples show the status icons, the threat border and incoming heals.
