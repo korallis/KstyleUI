@@ -105,17 +105,17 @@ return Common.Run(function()
 		caption = "The selected Player plate close up: eight 8-unit resize handles on its corners and edges, each a white square with a one-border dark rim, in the accent, on the plate's translucent button body with the accent edge.",
 		match = "The plate's body and line as the mockup's data strip pill at a translucent alpha; the handles are affordances drawn as flat tinted textures by design, not backdrops.",
 	})
-	-- The DPS layout's story slot on the left rail, clear of the plates: its label and hint on their own glass card at
-	-- its top, the raid line's note on another under the line. A plate over either card hides it (test-setup.lua).
+	-- The DPS layout's story slot on the right rail, clear of the plates: its label and hint on their own glass card at
+	-- its top. A plate over the card hides it (test-setup.lua).
 	local slot = Mode.Slot()
-	assert(slot:IsShown() and slot.help:IsShown() and slot.raidHelp:IsShown(), "the story slot shows its guidance")
+	assert(slot:IsShown() and slot.help:IsShown(), "the story slot shows its guidance")
 	local sx, sy, sw = Scene.Rect(env, slot)
 	assert(sx, "the story slot resolves")
 	frames:Add(env, nil, {
 		name = "layout_story", title = "Story slot guidance", grade = "panel", reference = "tracker", pad = 0,
 		rect = { x = sx - 10, y = sy - 10, w = sw + 20, h = STORY_CROP_H },
-		caption = "The DPS layout's story slot in Layout Mode: the accent outline, the Story rail title and the hint on a glass card at the slot's top, and the raid line with its note on a second card under it. Either card hides while a mover plate covers it, so no plate's label is ever written over.",
-		match = "The cards are the panel glass without its shadow on the slot's faint accent fill; the outline and the raid line are flat one-border accent lines by design.",
+		caption = "The DPS layout's story slot in Layout Mode, on the right rail under the map: the accent outline, and the Story rail title and the hint on a glass card at the slot's top. The card hides while a mover plate covers it, so no plate's label is ever written over.",
+		match = "The card is the panel glass without its shadow on the slot's faint accent fill; the outline is a flat one-border accent line by design.",
 	})
 	scenes[#scenes + 1] = Gallery.Build(env)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

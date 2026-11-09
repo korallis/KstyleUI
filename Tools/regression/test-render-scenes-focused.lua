@@ -38,7 +38,7 @@ do
 	assert(quests[1] >= slot.left and quests[1] + quests[3] <= slot.left + slot.width and quests[2] >= slot.top, "the tracker's caption sits in the story slot")
 	for _, rect in ipairs(tiles) do
 		assert(rect[1] + rect[3] <= zone[1], "every aura tile sits left of the map's zone line")
-		assert(rect[1] > slot.left + slot.width, "every aura tile stays clear of the story slot")
+		assert(rect[2] + rect[4] <= slot.top + 0.5, "every aura tile stays above the story slot, which hangs under the rows, got " .. (rect[2] + rect[4]) .. " for " .. slot.top)
 	end
 end
 

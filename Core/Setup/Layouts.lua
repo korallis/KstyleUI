@@ -1,4 +1,4 @@
--- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot.
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map.
 local _, ns = ...
 
 local Setup = ns.Setup or {}
@@ -108,7 +108,6 @@ local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TEXT_TOP = CLUSTER_TOP + GAP + 180
 local SIDE_BARS = 3 * BAR - PITCH
 local BOSS_X = -(BAND + SIDE_BARS + GAP)
-local TIP_Y = MARGIN + 118 + 8
 local function ElementSize(key)
 	for _, element in ipairs(ELEMENTS) do
 		if element.key == key then
@@ -120,7 +119,12 @@ local MAP_W, MAP_H = ElementSize("minimap.main")
 local _, AURA_ROW = ElementSize("auras.buffs")
 local AURAS_X = MARGIN + MAP_W + GAP
 local AURAS_BOTTOM = MARGIN + 2 * AURA_ROW + GAP
-local METER_TOP = math.max(MARGIN + MAP_H, AURAS_BOTTOM) + GAP
+local STORY_TOP = math.max(MARGIN + MAP_H, AURAS_BOTTOM) + GAP
+local _, METER_H = ElementSize("meters.damage")
+local _, TIP_H = ElementSize("tooltips.anchor")
+local METER_Y = MARGIN + 118 + GAP
+local TIP_Y = METER_Y + METER_H + 8
+local STORY_BOTTOM = TIP_Y + TIP_H + GAP
 
 local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
@@ -129,8 +133,8 @@ local DPS = {
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -MARGIN },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(MARGIN + AURA_ROW + GAP) },
-	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -METER_TOP },
-	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -METER_TOP },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = METER_Y },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = METER_Y },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN + 44 },
@@ -267,15 +271,13 @@ local ROWS = {
 	Healer = { party = 46, raid = 46 },
 }
 
-local STORY_BOTTOM = MARGIN + 260 + GAP
-local HEAD = { DPS = "groupframes.party", Tank = "groupframes.party", Healer = "unitframes.boss" }
 
 local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
-	DPS = L["Lumen Rails: party and chat on the left rail, the map, buffs and damage meter on the right; your target, its target and your focus sit right over your hands."],
+	DPS = L["Lumen Rails: party and chat on the left rail; the map, buffs, quests and damage meter on the right; your target, its target and your focus sit right over your hands."],
 	Tank = L["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."],
-	Healer = L["Larger party and raid frames beside the combat cluster, dispellable debuffs first; the boss cards head the left rail, the damage meter sits under your buffs."],
+	Healer = L["Larger party and raid frames beside the combat cluster, dispellable debuffs first; the boss cards head the left rail, the quests and the damage meter stand under your buffs."],
 }
 
 local OFFSETS = {
@@ -321,21 +323,12 @@ for _, name in ipairs(NAMES) do
 		list[#list + 1] = { module = entry.module, key = entry.key, value = entry.value }
 	end
 	settings[name] = list
-	local function Height(key)
-		local size = SIZES[name][key]
-		return size and size[2] or byKey[key].height
-	end
-	local head = HEAD[name]
-	local headBottom = HEIGHT + layout[head].y - Height(head)
-	local raid = head == "groupframes.party" and Height("groupframes.raid") - Height("groupframes.party") or 0
 	slots[name] = {
 		key = "story",
-		anchor = "BOTTOMLEFT", x = MARGIN, y = STORY_BOTTOM,
-		width = RAIL, height = headBottom - GAP - STORY_BOTTOM,
-		raid = raid,
+		anchor = "TOPRIGHT", x = -MARGIN, y = -STORY_TOP,
+		width = RAIL, height = HEIGHT - STORY_TOP - STORY_BOTTOM,
 		label = L["Story rail"],
 		hint = L["Apply places the quest tracker here through Edit Mode; Window skins put the RestedXP guide above it."],
-		raidHint = raid > 0 and L["In a raid, the raid frames cover the slot down to the line above."] or nil,
 	}
 end
 

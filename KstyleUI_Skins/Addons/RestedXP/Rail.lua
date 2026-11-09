@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in the layout's story rail: its card on the rail's left edge and width, its footer one rail gap above the quests with its cap and active steps stacked up from there, its step list folded by RestedXP's own rule; when Apply's Edit Mode layout holds the quests under it, the card reaches down to the quests and the tracker's own glass yields, so the rail reads as one card; re-placed after each step, on entering the world and after an Edit Mode change, out of combat, and never in RestedXP's saved settings.
+-- Rail.lua: puts RestedXP's guide window in the layout's story rail: its card on the rail's left edge and width, its footer one rail gap above the quests with its cap and active steps stacked up from there (when the quest card docks under it, the stack starts at the slot's top and the card follows the guide's foot, so the quests read right under the map), its step list folded by RestedXP's own rule; when Apply's Edit Mode layout holds the quests under it, the card reaches down to the quests and the tracker's own glass yields, so the rail reads as one card; re-placed after each step, on entering the world and after an Edit Mode change, out of combat, and never in RestedXP's saved settings.
 local _, ns = ...
 
 local K = KstyleUI
@@ -154,6 +154,13 @@ local function DockCard(on)
 	end
 end
 
+local function CardUnder(top)
+	local Quests = ns.Quests
+	if Quests and type(Quests.Under) == "function" then
+		Quests.Under(top)
+	end
+end
+
 local function Dock(f, story)
 	local Tracker = ns.Tracker
 	local docked, fit, card = WillDock(f, story)
@@ -218,6 +225,14 @@ function Rail.Place()
 	local left = band.left / scale - SIDE + reach
 	local height = math.max(MIN_HEIGHT, head - headTop + FOOTER + Widgets.Snap(f, Tokens.Size(FOOT_GAP)))
 	local top = Foot(f, story, scale) + below + height
+	local cap = path and path.capHeight or 0
+	local docks, _, card = WillDock(f, story)
+	local under
+	if docks and card then
+		top = math.max(top, band.top / scale - headTop - above - cap)
+		under = (top - height - below) * scale - Tokens.Size(FOOT_GAP)
+	end
+	CardUnder(under)
 	Remember(f)
 	f:ClearAllPoints()
 	f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
@@ -227,7 +242,6 @@ function Rail.Place()
 	if height - SIDE - (FOOTER - 6) >= LIST_SHOWN then
 		LogOnce("rail list", "the guide's head is tall enough that RestedXP keeps a sliver of its step list")
 	end
-	local cap = path and path.capHeight or 0
 	local stackTop = (top + headTop + above + cap) * scale
 	if stackTop > band.top + 0.5 then
 		Log(string.format("the guide's steps reach %.0f units above its half of the story rail", stackTop - band.top))

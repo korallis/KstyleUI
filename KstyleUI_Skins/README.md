@@ -372,7 +372,7 @@ These are not restyled:
 
 A missing or renamed part is logged once as `restedXP: <path> is missing in this RestedXP; skipped`, and the rest still applies. A call into RestedXP that fails is logged once and never raises an error.
 
-**The story rail** (`restedXP.rail`, **Story rail**, on by default). The left rail's story slot holds the guide over the quests (`Setup.Story(preset, true)`: the guide the upper half, the tracker the lower half). Out of combat, after the skin applies, after every `SetStep`, on `PLAYER_ENTERING_WORLD`, on `EDIT_MODE_LAYOUTS_UPDATED`, after a head or scale change, `Rail.Place` moves RestedXP's unprotected top-level `RXPFrame` (its steps, header and footer hang from it in RestedXP's own anchors) and sizes it:
+**The story rail** (`restedXP.rail`, **Story rail**, on by default). The right rail's story slot holds the guide over the quests (`Setup.Story(preset, true)`: the guide the upper half, the tracker the lower half). Out of combat, after the skin applies, after every `SetStep`, on `PLAYER_ENTERING_WORLD`, on `EDIT_MODE_LAYOUTS_UPDATED`, after a head or scale change, `Rail.Place` moves RestedXP's unprotected top-level `RXPFrame` (its steps, header and footer hang from it in RestedXP's own anchors) and sizes it:
 
 - its card's glass, which reaches past RestedXP's frames by one content inset less 4 units, sits on the rail's left edge at the rail's width, like every left-rail card;
 - its footer sits on the foot of the guide's half, one rail gap (16) above the quests, and the route row, the active steps and the cap stack up from there, so more steps grow into the free space under the party card, never into the quests;

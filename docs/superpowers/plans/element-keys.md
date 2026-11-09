@@ -50,20 +50,20 @@ Footprints are width x height in units at the 1080 reference. A footprint follow
 | `auras.buffs` | Auras | Buffs | 282 x 88 | Two rows of eight 30-unit icons beside the minimap's left edge, top-aligned with it, growing left then down: a plain tile each (icon in a thin rim, timer under it in the body face, stack count on a corner badge), the last cell a "+N" socket counted by the engine. Buffs the Cooldown Manager tracks are left out by default |
 | `auras.debuffs` | Auras | Debuffs | 282 x 88 | The same rows for debuffs, 16 under the buffs, with the engine's dispel-type plate on each tile; its own live element |
 | `minimap.main` | Minimap | Minimap | 160 x 160 | The square map at the head of the right rail, on the 28-unit margin (owner pass 1): a 156 chamfered square inside a thin rim, the zone band along its top edge and the clock band along its bottom edge; the controls show on hover |
-| `chat.main` | Chat | Chat | 372 x 260 | The chat card at the left rail's foot, on the 28-unit margin, wider than the 318 rail so a line holds about 21 em of 14-unit text, short enough to leave the story slot room for the guide and three quests |
+| `chat.main` | Chat | Chat | 372 x 260 | The chat card at the left rail's foot, on the 28-unit margin, wider than the 318 rail so a line holds about 21 em of 14-unit text; the party card heads the rail on the same left edge |
 | `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
 | `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
 | `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |
 | `databars.strip` | DataBars | Data strip | 318 x 42 (the layouts keep 318 x 118) | S4's readout card at the right rail's foot: by default the readout line alone, 30 units with the card's top padding and 12 under it. The micro menu and the bag bar are hidden by default; turned on, they dock under the line, the bag row wrapped under the micro row at 318, and the card grows up into the 118 units the layouts keep, so a row turned on moves nothing and the tooltip anchor stays clear of it |
 | `databars.micro` | DataBars | Micro menu | 318 x 44 | Docked in the readout card and not live there. Placed at the card's foot |
 | `databars.bags` | DataBars | Bag bar | 212 x 32 | Docked in the readout card and not live there. Placed in the card, over the micro menu's place |
-| `meters.damage` | Meters | Damage meter | 318 x 190 | S4's damage card on the right rail, 16 units under the Blessings: six rows. Healer: at the head of the left rail |
+| `meters.damage` | Meters | Damage meter | 318 x 190 | The damage card at the right rail's foot, 16 units over the readout card, under the story slot: six rows |
 | `meters.threat` | Meters | Threat meter | 318 x 144 | Shown in Tank only: 200 x 112, which Apply writes, in the combat cluster under the target of target. Off elsewhere, on the damage card's place |
 | `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar 6 units over the essential cooldowns, part of the hands |
 | `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, right of the clear centre, 16 units over the combat cluster and under the boss column. Healer: just right of the character's column |
-| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from: 8 units over the readout card's right corner, on no card, so a tooltip grows up the right rail and never covers the readout or the menu you hover |
+| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from: 8 units over the damage card's right corner, on no card, so a tooltip grows up over the story slot's foot and never covers the damage meter, the readout or the menu you hover |
 
-The story slot is not an element. Each layout has one (`Setup.Layouts.Slot(name)`): the left rail's column between the party card (Healer: the damage card) and chat, where the player drags RestedXP's guide and moves Blizzard's quest tracker in Edit Mode. KstyleUI never moves those frames. The setup's previews and Layout Mode draw its outline.
+The story slot is not an element. Each layout has one (`Setup.Layouts.Slot(name)`): the right rail's column under the map and the aura rows, over the tooltip anchor, the damage card and the readout. The quest card and the RestedXP guide's story rail sit there, and Apply places Blizzard's quest tracker there through Edit Mode; KstyleUI never moves Blizzard's tracker with code. The setup's previews and Layout Mode draw its outline.
 
 ## Core windows
 
@@ -86,9 +86,9 @@ These module elements register with Layout, but the layouts do not place them.
 
 | Layout | What it places |
 | --- | --- |
-| DPS | The Lumen Rails: party and chat on the left rail, the lens, the Blessings, the damage card and the readout on the right; one combat cluster on the hands (the target sigil, the focus on its left, the target of target on its right); the boss column at the top of the centre's right edge |
+| DPS | The Lumen Rails: party and chat on the left rail; the square map with the aura rows beside it, the story slot (quests and guide), the damage card and the readout on the right; one combat cluster on the hands (the target sigil, the focus on its left, the target of target on its right); the boss column on the centre's right edge |
 | Tank | The threat card joins the combat cluster under the target of target |
-| Healer | Party and raid frames stand on the cluster's left half; the damage card heads the left rail; the boss column moves to the right rail |
+| Healer | Party and raid frames stand on the cluster's left half; the boss column heads the left rail over chat; the right rail as in DPS |
 
 Party and raid frames never show together, so they may share space. On 4:3 and 5:4 screens the chat panel and the player frame overlap; the player moves one of them in Layout Mode.
 

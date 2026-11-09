@@ -84,15 +84,8 @@ end
 local function StyleFont(text)
 	local flags = OUTLINE_FLAGS[Settings.Get("cast.outline")] or "OUTLINE"
 	local size = Settings.Get("cast.textSize")
-	if text:SetFont(Settings.Get("font"), size, flags) == false then
-		text:SetFont((Tokens.Font("world")), size, flags)
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
+	if not Widgets.ApplyFont(text, Settings.Get("font"), size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 	end
 end
 

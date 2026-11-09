@@ -19,7 +19,7 @@ local PICKER = {
 	{ name = "Auras", label = L["Buffs and debuffs"], note = L["Your buffs and debuffs on the right rail, under the map."] },
 	{ name = "Nameplates", label = L["Nameplates"], note = L["Health, cast bar, threat and debuffs on plates."] },
 	{ name = "CombatText", label = L["Combat text"], note = L["Damage and heal numbers on your frames."] },
-	{ name = "Minimap", label = L["Minimap"], note = L["A round lens map with zone, clock and buttons."] },
+	{ name = "Minimap", label = L["Minimap"], note = L["A small square map with zone and clock."] },
 	{ name = "Chat", label = L["Chat"], note = L["Glass chat with tabs, copy and class colours."] },
 	{ name = "Bags", label = L["Bags"], note = L["One combined bag with search and sorting."] },
 	{ name = "Tooltips", label = L["Tooltips"], note = L["Glass tooltips with quality and class colours."] },

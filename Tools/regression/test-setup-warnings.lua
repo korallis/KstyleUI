@@ -65,9 +65,9 @@ for _, screen in ipairs(SCREENS) do
 		end
 		local sigil = Box("unitframes.target")
 		assert(lane.b > sigil.t, where .. ": the warnings sit above the target, never on it")
-		-- The left rail's column is the story slot's (the chat card at its foot runs wider, owner pass 1).
-		local column = { Layouts.Rect(Layouts.Slot(name), Layouts.Slot(name), rw, rh) }
-		assert(lane.l > column[3] and lane.r < Box("minimap.main").l, where .. ": the warnings stay between the rails")
+		-- The left rail's widest card is the chat card (owner pass 1); the right rail's column is the story slot's.
+		local story = { Layouts.Rect(Layouts.Slot(name, rh), Layouts.Slot(name, rh), rw, rh) }
+		assert(lane.l > Box("chat.main").r and lane.r < story[1], where .. ": the warnings stay between the rails")
 		local centred = { l = rw / 2 - half, r = rw / 2 + half, b = lane.b, t = lane.t }
 		local free = true
 		for key in pairs(Layouts.Get(name)) do

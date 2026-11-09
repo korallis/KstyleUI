@@ -440,6 +440,8 @@ function N.New(opts)
 		saved = opts.saved,
 		width = opts.width,
 		height = opts.height,
+		uiScale = opts.uiScale,
+		size = opts.size,
 		setup = function(env)
 			N.Install(env, opts)
 			if opts.setup then

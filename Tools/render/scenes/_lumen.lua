@@ -78,9 +78,9 @@ function Lumen.Preset(layout)
 	return settings, { left = l * k, top = (rootHeight - t) * k, width = (r - l) * k, height = slot.height * k }, slot, Layouts.Sizes(layout)
 end
 
--- Rail(built, R) -> the glass of every card on the left rail, top to bottom: { name, left, top, width, height } in
--- screen units, from the frames each module drew (the party card, RestedXP's steps, head and footer, the quests,
--- chat), so a test can hold them to one left edge and one width.
+-- Rail(built, R) -> the glass of every rail card, top to bottom: { name, left, top, width, height } in screen units,
+-- from the frames each module drew (the party card and chat on the left rail; RestedXP's steps, head and footer and the
+-- quests in the right rail's story slot), so a test can hold each rail to one edge and one width.
 function Lumen.Rail(built, R)
 	local out = {}
 	local function add(name, env, frame)
@@ -153,13 +153,14 @@ function Lumen.Build(state, opts)
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
 	end
-	local built = {}
+	local built, at = {}, {}
 	for _, name in ipairs(names) do
 		local scene, ns, extra = Hud.Module(name, base)
 		scenes[#scenes + 1] = scene
 		built[name] = { scene = scene, ns = ns, extra = extra }
+		at[name] = #scenes
 	end
-	if base.trackerDocked then
+	local function Dock()
 		local tracker = built.tracker
 		local env = Hud.envs[tracker.scene]
 		local card = tracker.ns.Quests.Fit()
@@ -169,7 +170,21 @@ function Lumen.Build(state, opts)
 		base.dockBottom = top and (HEIGHT - (top + height)) or nil
 		base.dockTop = top and (HEIGHT - top) or nil
 	end
+	if base.trackerDocked then
+		Dock()
+	end
 	local guide, R = Hud.Module("restedxp", base)
+	-- With the quest card docked, the rail starts the guide at the slot's top and the card follows the guide's foot
+	-- (Rail.Place -> Quests.Under); the two render in separate environments, so the card is drawn again at the foot
+	-- the rail reported, and the guide docks to it.
+	if base.dockCard and R.under then
+		base.cardUnder = R.under
+		local scene, ns, extra = Hud.Module("tracker", base)
+		scenes[at.tracker] = scene
+		built.tracker = { scene = scene, ns = ns, extra = extra }
+		Dock()
+		guide, R = Hud.Module("restedxp", base)
+	end
 	table.insert(scenes, 1, guide)
 	if state == "combat" then
 		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))

@@ -73,17 +73,9 @@ ns.LogOnce = LogOnce
 local function StyleFont(text, size, outline)
 	local flags = OUTLINE_FLAGS[outline] or "OUTLINE"
 	local path = Settings.Get("font")
-	if text:SetFont(path, size, flags) == false then
-		local worldPath = Tokens.Font("world")
-		text:SetFont(worldPath, size, flags)
+	if not Widgets.ApplyFont(text, path, size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 		LogOnce("font:" .. path, "the font " .. path .. " did not load; plates use the world font")
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
 	end
 end
 

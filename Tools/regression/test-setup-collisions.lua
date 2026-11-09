@@ -1,4 +1,4 @@
--- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10, 21:9 and the owner's 2383 x 1540 on the canvas the shipped Interface size gives (Layouts.HEIGHT), every bar 1 to 6 placed, with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live aura rows at 0 to 40 buffs beside 12 debuffs fit the footprint their preset plans and overlap nothing.
+-- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects and the right rail's story slot at 16:9, 16:10, 21:9 and the owner's 2383 x 1540 on the canvas the shipped Interface size gives (Layouts.HEIGHT), every bar 1 to 6 placed, with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live aura rows at 0 to 40 buffs beside 12 debuffs fit the footprint their preset plans and overlap nothing.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New()
@@ -27,6 +27,13 @@ local function overlap(r, s)
 	return r[1] < s[3] and s[1] < r[3] and r[2] < s[4] and s[2] < r[4]
 end
 
+-- The story slot (the quest card, under the RestedXP guide when it is loaded) is a card too: on the right rail under the
+-- map and the aura rows, it overlaps no element, and the damage card and the readout stand clear under it.
+local function Story(name, width)
+	local slot = assert(Layouts.Slot(name), name .. " has a story slot")
+	return { Layouts.Rect(slot, slot, width, HEIGHT) }
+end
+
 -- A reserve is room kept around an element, never less than the element ------------------------------------------
 for _, name in ipairs(Layouts.Names()) do
 	for _, element in ipairs(Layouts.ELEMENTS) do
@@ -52,6 +59,14 @@ for _, name in ipairs(Layouts.Names()) do
 				string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, element.key, l, b, r, t, width, HEIGHT))
 			rects[element.key] = { l, b, r, t }
 			keys[#keys + 1] = element.key
+		end
+		rects.story = Story(name, width)
+		keys[#keys + 1] = "story"
+		local story = rects.story
+		assert(story[1] >= -1e-6 and story[2] >= -1e-6 and story[3] <= width + 1e-6 and story[4] <= HEIGHT + 1e-6, label .. ": the story slot is on screen")
+		for _, key in ipairs({ "meters.damage", "databars.strip" }) do
+			local r = rects[key]
+			assert(r[4] <= story[2] - 16 + 1e-6, string.format("%s: %s (top %.0f) stands at least 16 under the story slot (foot %.0f)", label, key, r[4], story[2]))
 		end
 		-- The tooltip anchor overlaps nothing at all: no card, no dock, no bar a player may turn on.
 		local tip = rects["tooltips.anchor"]
@@ -160,6 +175,9 @@ do
 				for _, aspect in ipairs(aspects) do
 					local width = HEIGHT * aspect[2]
 					local own = { Layouts.Rect({ width = cw, height = ch }, layout[key], width, HEIGHT) }
+					local story = Story(name, width)
+					assert(not overlap(own, story), string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f) overlaps the story slot (%.0f,%.0f-%.0f,%.0f)",
+						state, aspect[1], key, own[1], own[2], own[3], own[4], story[1], story[2], story[3], story[4]))
 					for _, element in ipairs(Layouts.ELEMENTS) do
 						local other = element.key
 						if other ~= key and apart(name, key, other) then

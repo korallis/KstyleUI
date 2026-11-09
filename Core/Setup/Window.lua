@@ -502,7 +502,7 @@ local function BuildLayouts(page, width)
 	panel.previewName = shown
 	local hint = Paragraph(page, "body", "text", width / 2)
 	hint:SetPoint("TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
-	hint:SetText(L["The bright blocks change with the role. The outlined space on the left rail is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. In a raid, the raid frames take its top."]
+	hint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
 		.. "\n\n" .. L["Point at a layout to preview it."]
 		.. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	panel.layoutHint = hint

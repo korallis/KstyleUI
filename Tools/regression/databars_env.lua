@@ -365,6 +365,10 @@ function D.New(opts)
 	local env, K = W.New({
 		boot = false,
 		saved = opts.saved,
+		width = opts.width,
+		height = opts.height,
+		uiScale = opts.uiScale,
+		size = opts.size,
 		setup = function(env)
 			env._textWidth = D.TextWidth
 			game = D.Game(env, opts.game)

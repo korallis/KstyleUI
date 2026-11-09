@@ -1,4 +1,4 @@
--- test-skins-questcard.lua: the quest card shows a set number of tracked quests (3 by default, 1 to 8) in the story slot, scrolls to the rest with the wheel, never crosses the chat card at the owner's screen, docks under the RestedXP guide, never changes its item buttons in combat, hands the screen back to Blizzard's tracker for scenarios and when switched off, and keeps the combat path cheap.
+-- test-skins-questcard.lua: the quest card shows a set number of tracked quests (3 by default, 1 to 8) in the right rail's story slot, scrolls to the rest with the wheel, never crosses the map, the aura rows, the damage meter or the readout at the owner's screen, docks under the RestedXP guide, never changes its item buttons in combat, hands the screen back to Blizzard's tracker for scenarios and when switched off, and keeps the combat path cheap.
 local S = dofile("Tools/regression/skins_env.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
 local RestedXP = dofile("Tools/regression/restedxp_fake.lua")
@@ -164,48 +164,63 @@ do
 end
 
 -- The card fits the story slot at the owner's screen (2383 by 1540 at UI scale 768/1080) with fifteen quests of five
--- objectives each, with and without RestedXP: under the full party card, over the chat card, and the guide's card
--- too; three such quests are taller than the guide's half of the slot, so the card shows what fits ------------------
+-- objectives each, with and without RestedXP, in every preset: on the right rail under the map and the aura rows, over
+-- the tooltip anchor, the damage card and the readout, and the guide's card too. With the guide, its card starts at the
+-- slot's top and the quests follow its foot, so the quests read right under the map; the card shows what fits ---------
 
-for _, withGuide in ipairs({ false, true }) do
-	local env, K, ns, _, _, rxp = Boot({ screen = OWNER, quests = Quests.List(15, 5), rxp = withGuide })
-	local Layouts = K.Setup.Layouts
-	local story = K.Setup.Story("DPS", withGuide)
-	local _, partyHeight = Layouts.Footprint("DPS", "groupframes.party")
-	local partyBottom = 1080 - 28 - partyHeight
-	local chat = Layouts.Element("chat.main")
-	local chatTop = 28 + chat.height
-	local card = RootRect(K, ns.Quests.Card())
-	local what = withGuide and "with the guide" or "without the guide"
-	assert(card.top <= partyBottom + 0.5, what .. ": the card starts under the party card, got " .. card.top .. " for " .. partyBottom)
-	assert(card.bottom >= chatTop - 0.5, what .. ": the card ends over the chat card, got " .. card.bottom .. " for " .. chatTop)
-	assert(card.bottom >= story.story.bottom - 0.5 and card.top <= story.story.top + 0.5, what .. ": inside the story slot")
-	assert(math.abs(card.left - story.story.left) <= 0.6 and math.abs(card.right - story.story.right) <= 0.6, what .. ": on the rail's edge and width")
-	assert(#Shown(ns) >= 1, what .. ": at least one quest shows")
-	for _, row in ipairs(ns.Quests.Rows()) do
-		if row:IsShown() then
-			local r = RootRect(K, row)
-			assert(r.bottom >= card.bottom - 0.5, what .. ": every quest shown sits whole inside the card")
+for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+	for _, withGuide in ipairs({ false, true }) do
+		local env, K, ns, _, _, rxp = Boot({ screen = OWNER, quests = Quests.List(15, 5), rxp = withGuide })
+		if preset ~= "DPS" then
+			K.Options.Write("Layout", "preset", preset)
+			env.RunTimers()
 		end
+		local Layouts = K.Setup.Layouts
+		local rw, rh = K.Layout.RootSize()
+		local function Box(key)
+			local w, h = Layouts.Footprint(preset, key)
+			local l, b, r, t = Layouts.Rect({ width = w, height = h }, Layouts.Get(preset, rh)[key], rw, rh)
+			return { left = l, bottom = b, right = r, top = t }
+		end
+		local story = K.Setup.Story(preset, withGuide)
+		local over = math.min(Box("minimap.main").bottom, Box("auras.debuffs").bottom)
+		local under = math.max(Box("tooltips.anchor").top, Box("meters.damage").top, Box("databars.strip").top)
+		local card = RootRect(K, ns.Quests.Card())
+		local what = preset .. (withGuide and " with the guide" or " without the guide")
+		assert(card.top <= over - 16 + 0.5, what .. ": the card starts 16 under the map and the aura rows, got " .. card.top .. " for " .. over)
+		assert(card.bottom >= under + 16 - 0.5, what .. ": the card ends 16 over the tooltip anchor, the damage card and the readout, got " .. card.bottom .. " for " .. under)
+		assert(card.bottom >= story.story.bottom - 0.5 and card.top <= story.story.top + 0.5, what .. ": inside the story slot")
+		assert(math.abs(card.left - story.story.left) <= 0.6 and math.abs(card.right - story.story.right) <= 0.6, what .. ": on the rail's edge and width")
+		assert(math.abs(card.right - (rw - 28)) <= 0.6 and math.abs(card.right - card.left - 318) <= 0.6, what .. ": the right rail's 318, on the 28 margin")
+		assert(#Shown(ns) >= 1, what .. ": at least one quest shows")
+		for _, row in ipairs(ns.Quests.Rows()) do
+			if row:IsShown() then
+				local r = RootRect(K, row)
+				assert(r.bottom >= card.bottom - 0.5, what .. ": every quest shown sits whole inside the card")
+			end
+		end
+		if withGuide then
+			assert(card.top > story.tracker.top + 0.5, what .. ": the quests climb past the tracker's half to the guide's foot, got " .. card.top .. " for " .. story.tracker.top)
+			assert(ns.RestedXP.Rail.Placed(), what .. ": the guide is placed")
+			assert(ns.RestedXP.Rail.Docked(), what .. ": and docks the quest card into its card")
+			local glass = assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass")
+			local g = RootRect(K, glass)
+			assert(g.bottom >= under + 16 - 0.5, what .. ": the guide's glass ends over the damage card too, got " .. g.bottom)
+			assert(math.abs(g.bottom - card.bottom) <= 8.6, what .. ": and runs down to the card's foot, got " .. g.bottom .. " for " .. card.bottom)
+			assert(g.top <= over - 16 + 0.5, what .. ": under the map and the aura rows, got " .. g.top)
+			-- The quests read right under the map (owner, 2026-11-09): the guide's card starts at the slot's top, not
+			-- at the foot of its half, and the quests follow the guide's foot.
+			assert(g.top >= story.story.top - 12, what .. ": the guide's card starts at the slot's top, got " .. g.top .. " for " .. story.story.top)
+			assert(card.top >= story.tracker.top - 0.5, what .. ": the quests start no lower than the tracker's half")
+			assert(g.right <= rw - 28 + 0.6 and g.left >= story.story.left - 0.6, what .. ": on the right rail's column")
+			assert(not ns.Quests.Parts().glass:IsShown(), what .. ": the card's own glass yields to the guide's")
+			assert(card.top <= story.guide.top - 16, what .. ": the card sits under the guide's head, inside the guide's card")
+		else
+			assert(ns.Quests.Parts().glass:IsShown(), what .. ": on its own, the card wears its own glass")
+			assert(ns.Quests.Parts().glass.chrome.gilt == nil, what .. ": with a thin rim and no gilt corner tips: the story card carries no ornament")
+		end
+		Clean(env, K)
 	end
-	if withGuide then
-		assert(#Shown(ns) < 3, "five-objective quests: fewer than three fit the guide's half, got " .. #Shown(ns))
-	end
-	if withGuide then
-		assert(ns.RestedXP.Rail.Placed(), "the guide is placed")
-		assert(ns.RestedXP.Rail.Docked(), "and docks the quest card into its card")
-		local glass = assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass")
-		local g = RootRect(K, glass)
-		assert(g.bottom >= chatTop - 0.5, "the guide's glass ends over the chat card too, got " .. g.bottom)
-		assert(math.abs(g.bottom - card.bottom) <= 8.6, "and runs down to the card's foot, got " .. g.bottom .. " for " .. card.bottom)
-		assert(g.top <= partyBottom + 0.5, "under the party card, got " .. g.top)
-		assert(not ns.Quests.Parts().glass:IsShown(), "the card's own glass yields to the guide's")
-		assert(card.top <= story.tracker.top + 0.5, "the card sits in the tracker's half")
-	else
-		assert(ns.Quests.Parts().glass:IsShown(), "on its own, the card wears its own glass")
-		assert(ns.Quests.Parts().glass.chrome.gilt == nil, "with a thin rim and no gilt corner tips: the story card carries no ornament")
-	end
-	Clean(env, K)
 end
 
 -- Item buttons: a quest's item is a secure item button set out of combat; in combat nothing protected changes on

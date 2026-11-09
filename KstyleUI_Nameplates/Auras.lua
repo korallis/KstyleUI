@@ -98,15 +98,8 @@ end
 local function StyleText(text, size)
 	local flags = OUTLINE_FLAGS[Settings.Get("debuffs.outline")] or "OUTLINE"
 	size = size or Settings.Get("debuffs.textSize")
-	if text:SetFont(Settings.Get("font"), size, flags) == false then
-		text:SetFont((Tokens.Font("world")), size, flags)
-	end
-	if flags == "" then
-		text:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		text:SetShadowOffset(offset, -offset)
-	else
-		text:SetShadowOffset(0, 0)
+	if not Widgets.ApplyFont(text, Settings.Get("font"), size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 	end
 end
 
