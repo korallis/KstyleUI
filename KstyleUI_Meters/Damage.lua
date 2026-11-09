@@ -15,7 +15,7 @@ local EVENTS = {
 }
 local SESSION_COLUMNS = { Current = L["Current"], Overall = L["Overall"] }
 
-local Damage = { section = "damage", key = KEY, fallback = false, unreadable = false, combat = false }
+local Damage = { section = "damage", key = KEY, combat = false }
 ns.Damage = Damage
 
 local IsSecret = Logic.IsSecret
@@ -41,10 +41,22 @@ local function Api()
 	return meter ~= nil and type(meter.GetCombatSessionFromType) == "function"
 end
 
+function Damage.Restricted()
+	local secrets = C_Secrets
+	if type(secrets) ~= "table" or type(secrets.HasSecretRestrictions) ~= "function" then
+		return false
+	end
+	local ok, restricted = pcall(secrets.HasSecretRestrictions)
+	return ok and not IsSecret(restricted) and restricted == true
+end
+
 function Damage.Mode()
 	local mode = ns.Get("damage.mode")
-	if mode == "window" and (Damage.fallback or not Api()) then
+	if not Api() then
 		return "skin"
+	end
+	if mode == "auto" then
+		return Damage.Restricted() and "skin" or "window"
 	end
 	return mode
 end
@@ -95,9 +107,6 @@ local function Present(value)
 end
 
 local function Hidden(list)
-	if Damage.combat then
-		Damage.unreadable = true
-	end
 	ns.LogOnce("damageHidden", "C_DamageMeter data is hidden from addons right now; the window waits for it")
 	list:Finish(0, L["Hidden in combat"])
 end
@@ -185,22 +194,11 @@ local function Schedule()
 	C_Timer.After(UPDATE_DELAY, Refresh)
 end
 
-local function FallBack()
-	Damage.fallback = true
-	ns.Log("C_DamageMeter data stayed hidden in combat; the meter restyles Blizzard's window for this session")
-	K.Print(L["The game hides Damage Meter numbers from addons in combat, so KstyleUI restyles Blizzard's meter instead until you reload."])
-	Damage:Apply()
-end
-
-function Damage:OnEvent(event, ...)
+function Damage:OnEvent(event)
 	if event == "PLAYER_REGEN_DISABLED" then
 		self.combat = true
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		self.combat = false
-		if self.unreadable and not self.fallback then
-			FallBack()
-			return
-		end
 	end
 	Schedule()
 end
@@ -272,8 +270,8 @@ function Damage:Apply()
 		Window(self)
 		return
 	end
-	if ns.Get("damage.mode") == "window" then
-		ns.LogOnce("damageSkinPath", self.fallback and "the damage meter restyles Blizzard's window after hidden data in combat"
+	if ns.Get("damage.mode") ~= "skin" then
+		ns.LogOnce("damageSkinPath", Api() and "C_DamageMeter is secret in combat on this client; the damage meter restyles Blizzard's window, which reads in combat"
 			or "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
 	end
 	ns.UnwatchAll(self)

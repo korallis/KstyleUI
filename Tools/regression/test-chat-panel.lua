@@ -210,6 +210,35 @@ do
 	assert(near(plus:GetAlpha(), 0.4), "the plus fades with the tabs")
 end
 
+-- Blizzard's tab dock spans the chat window's Background (FCFDock_SetPrimary), so its last tab ran under the
+-- copy and plus glyphs. The panel ends the dock a gap left of the glyphs: its right end hangs from a spacer on
+-- the glass, and Blizzard relays the tabs for the narrower dock (overflowing the ones that no longer fit).
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	env.RunTimers()
+	local dock, glass, copy = env.GENERAL_CHAT_DOCK, ns.Panel.Glass(), ns.Panel.CopyButton()
+	local stop = ns.Panel.DockEnd()
+	assert(stop and stop:GetParent() == glass, "a dock-end spacer sits on the glass")
+	local p, rel, relp = dock:GetPoint(2)
+	assert(p == "BOTTOMRIGHT" and rel == stop and relp == "BOTTOMRIGHT", "the dock's right end hangs from the spacer, got " .. tostring(p) .. " on " .. tostring(rel))
+	local sp, srel, srelp, sx = stop:GetPoint(1)
+	assert(sp == "TOPRIGHT" and srel == copy and srelp == "TOPLEFT" and near(sx, -K.Tokens.Size("gapTiny")), "the spacer ends a tiny gap left of the copy glyph")
+	local bp, brel, brelp = stop:GetPoint(2)
+	assert(bp == "BOTTOMLEFT" and brel == env.ChatFrame1.Background and brelp == "TOPLEFT", "and its bottom is the Background's top, where the dock sits")
+	assert(env._dockResized >= 1, "Blizzard relays the tabs for the narrower dock")
+	local resized = env._dockResized
+	K.Options.Write("Chat", "copyButton", false)
+	env.RunTimers()
+	srel = select(2, stop:GetPoint(1))
+	assert(srel == ns.Panel.MenuButton(), "without the copy glyph the dock ends at the plus")
+	assert(env._dockResized > resized, "and the tabs relay again")
+	K.Modules.Disable("Chat")
+	env.RunTimers()
+	p, rel, relp = dock:GetPoint(2)
+	assert(p == "BOTTOMRIGHT" and rel == env.ChatFrame1.Background and relp == "TOPRIGHT", "off, the dock spans the Background again")
+end
+
 -- Layout's shown rule and opacity carry over to Blizzard's chat, and turning the module off restores them.
 do
 	local env, K, ns = C.New()

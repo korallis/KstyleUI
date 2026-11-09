@@ -81,7 +81,7 @@ defaults.strip = {
 for i, id in ipairs(Strip.ITEMS) do
 	defaults.strip["slot" .. i] = id
 end
-defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round" }
+defaults.micro = { enabled = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
 defaults.bags = { enabled = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
 
 local SOURCES_PLAIN = {
@@ -253,6 +253,11 @@ local TINTS = {
 	{ value = "white", label = L["White"] },
 }
 
+local SETS = {
+	{ value = "compact", label = L["The eight you reach for"] },
+	{ value = "full", label = L["Every button"] },
+}
+
 local function MenuRows(id, title, enabledHelp)
 	local function off(settings)
 		return not (settings[id] and settings[id].enabled)
@@ -268,6 +273,7 @@ local function MenuRows(id, title, enabledHelp)
 		{ type = "toggle", key = id .. ".backdrop", label = L["Glass"], help = L["Draws smoked glass behind the buttons."], disableWhen = off },
 	}
 	if id == "micro" then
+		rows[#rows + 1] = { type = "dropdown", key = "micro.set", label = L["Buttons"], help = L["Eight buttons: character, professions, spells, talents, quests, guild, finder, menu. Or all."], options = SETS, disableWhen = off }
 		rows[#rows + 1] = { type = "dropdown", key = "micro.tint", label = L["Icon colour"], help = L["Keeps Blizzard's icon colours, or tints the icons in the accent colour or white."], options = TINTS, disableWhen = off }
 	else
 		rows[#rows + 1] = { type = "toggle", key = "bags.freeSlots", label = L["Free slots"], help = L["Shows on the backpack how many slots are free in all your bags."], disableWhen = off }

@@ -486,3 +486,39 @@ do
 	assert(W.SameColor(b.chrome.rim[5], rr, rg, rb, 1), "its rim keeps the full accent at any secondary strength")
 	K.Widgets.SECONDARY_RIM = 1
 end
+
+-- Hover keybinds: in Blizzard's Quick Keybind mode (QuickKeybindFrame, which Edit Mode and the keybinding
+-- settings open), hovering a KstyleUI button selects its command, so the next key pressed binds that slot, as
+-- hovering one of Blizzard's buttons does. Each button carries its command name and Blizzard's tooltip method,
+-- which the frame calls after each key.
+do
+	local env, _, ns = new()
+	local selected = {}
+	env.QuickKeybindFrame = env.CreateFrame("Frame", "QuickKeybindFrame", env.UIParent)
+	env.QuickKeybindFrame:Hide()
+	function env.QuickKeybindFrame.SetSelected(_, command, button)
+		selected[#selected + 1] = { command, button }
+	end
+	function env.KeybindFrames_InQuickKeybindMode()
+		return env.QuickKeybindFrame:IsShown()
+	end
+	env.QuickKeybindButtonTemplateMixin = {
+		QuickKeybindButtonSetTooltip = function() end,
+	}
+	local b = AB.Button(ns, "bar1", 3)
+	assert(b.commandName == "ACTIONBUTTON3", "a bar 1 button carries its binding command: " .. tostring(b.commandName))
+	assert(AB.Button(ns, "pet", 2).commandName == "BONUSACTIONBUTTON2", "a pet button its own")
+	assert(type(b.QuickKeybindButtonSetTooltip) == "function", "and Blizzard's quick keybind tooltip method")
+	W.Enter(b)
+	assert(#selected == 0, "outside the mode a hover selects nothing")
+	W.Leave(b)
+	env.QuickKeybindFrame:Show()
+	W.Enter(b)
+	assert(#selected == 1 and selected[1][1] == "ACTIONBUTTON3" and selected[1][2] == b, "in the mode a hover selects the button's command")
+	W.Leave(b)
+	assert(#selected == 2 and selected[2][1] == nil and selected[2][2] == nil, "and leaving clears it")
+	assert(ns.KeybindMode() == true, "the module reports the mode")
+	env.QuickKeybindFrame:Hide()
+	assert(ns.KeybindMode() == false, "and its end")
+	assert(#env._errors == 0, AB.Errors(env))
+end

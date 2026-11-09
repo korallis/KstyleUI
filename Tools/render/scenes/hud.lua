@@ -709,10 +709,12 @@ function modules.auras(opts)
 		local columns = ns.Model.Group(settings, "buffs").columns
 		Hud.PlaceAuras(buffs, group, fillAuras(env, A, buffs, "buffs", group, Hud.BuffRow(spec, opts.buffs or #spec.buffRow)), columns)
 	end
+	-- The engine sizes an empty container to nothing, and the card's glass follows it, so the debuff
+	-- container is laid out even with no debuffs.
 	local debuffs, harmful = A.Container(env, "HARMFUL")
-	if debuffs and (opts.debuffs or 0) > 0 then
+	if debuffs then
 		local entries = {}
-		for i = 1, opts.debuffs do
+		for i = 1, opts.debuffs or 0 do
 			entries[i] = DEBUFF_ROW[(i - 1) % #DEBUFF_ROW + 1]
 		end
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)

@@ -512,14 +512,39 @@ local function HideTooltip(b)
 	end
 end
 
+function ns.KeybindMode()
+	return type(KeybindFrames_InQuickKeybindMode) == "function" and KeybindFrames_InQuickKeybindMode() == true
+end
+
+local function SelectKeybind(b, on)
+	local frame = QuickKeybindFrame
+	if not ns.KeybindMode() or type(frame) ~= "table" or type(frame.SetSelected) ~= "function" then
+		return
+	end
+	if on then
+		frame:SetSelected(b.commandName, b)
+	else
+		frame:SetSelected(nil, nil)
+	end
+end
+
 local function OnEnter(b)
 	b.kbar:SetHovered(true)
 	ShowTooltip(b)
+	SelectKeybind(b, true)
 end
 
 local function OnLeave(b)
 	b.kbar:SetHovered(false)
 	HideTooltip(b)
+	SelectKeybind(b, false)
+end
+
+local function QuickKeybindTooltip(b)
+	local mixin = QuickKeybindButtonTemplateMixin
+	if type(mixin) == "table" and type(mixin.QuickKeybindButtonSetTooltip) == "function" then
+		mixin.QuickKeybindButtonSetTooltip(b)
+	end
 end
 
 local function MayPickUp()
@@ -579,6 +604,8 @@ function Button.New(bar, index)
 		primary = true,
 	})
 	b.kbar, b.index, b.kind = bar, index, def.kind
+	b.commandName = def.binding .. index
+	b.QuickKeybindButtonSetTooltip = QuickKeybindTooltip
 	b.hasAction, b.outOfRange, b.lacksPower = false, false, false
 	local paint = b.Paint
 	b.Paint = function(self)

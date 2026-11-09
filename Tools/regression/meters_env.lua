@@ -138,6 +138,13 @@ function M.Game(env, opts)
 			end,
 		}
 	end
+	-- C_Secrets.HasSecretRestrictions: true on a client whose tagged APIs return secrets in combat, as the live
+	-- Forever client's do (DamageMeterDocumentation: SecretWhenInCombat). opts.restricted sets it.
+	env._secretRestrictions = opts.restricted == true
+	env.C_Secrets = env.C_Secrets or {}
+	env.C_Secrets.HasSecretRestrictions = function()
+		return env._secretRestrictions
+	end
 	env._locked = setmetatable({}, { __mode = "k" })
 	env.canaccesstable = function(t)
 		return not env._locked[t]

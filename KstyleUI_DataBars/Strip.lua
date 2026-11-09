@@ -5,7 +5,7 @@ local K, L = ns.K, ns.L
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Format, Font, Sources = ns.Format, ns.Font, ns.Sources
 local Call, IsNumber = Sources.Call, ns.IsNumber
-local floor, max, min, format = math.floor, math.max, math.min, string.format
+local floor, ceil, max, min, abs, format = math.floor, math.ceil, math.max, math.min, math.abs, string.format
 
 local Strip = {}
 ns.Strip = Strip
@@ -43,7 +43,6 @@ local LABELS = {
 local UNIT_GAP = 3
 local MENU_GAP = 6
 local LINE = 43
-local MENU_FIT_MIN = 16
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
 
@@ -425,81 +424,113 @@ function Strip.Paint(view, s, values)
 end
 
 local DOCK = {
-	micro = { "TOPLEFT", "BOTTOMLEFT", 1 },
-	bags = { "TOPRIGHT", "BOTTOMRIGHT", -1 },
+	micro = { "TOPLEFT", "TOPLEFT", 1 },
+	bags = { "TOPRIGHT", "TOPRIGHT", -1 },
 }
+local MENU_MIN = 22
+Strip.MENU_MIN = MENU_MIN
+
+local function DockCount(Menus, id)
+	local shown = #Menus.Shown(id)
+	return shown > 0 and shown or #Menus.All(id)
+end
+
+local function RowsFor(count, tile, spacing, inner)
+	if count == 0 then
+		return 0
+	end
+	local perRow = max(1, floor((inner + spacing) / (tile + spacing)))
+	return ceil(count / perRow)
+end
+
+local function BarHeight(rows, tile, spacing)
+	if rows == 0 then
+		return 0
+	end
+	return rows * tile + (rows - 1) * spacing + 2 * MENU_PAD
+end
+
+function Strip.MenuPlan(inner, counts, sizes, spacing, gap)
+	local total = counts.micro + counts.bags
+	local tile = min(sizes.micro, sizes.bags)
+	local plan = { tile = tile, rows = { micro = 1, bags = 1 }, oneRow = false }
+	if total == 0 then
+		plan.height = 0
+		return plan
+	end
+	local together = counts.micro > 0 and counts.bags > 0 and gap or 0
+	local fit = floor((inner - together - (total - 1) * spacing) / total)
+	if fit >= tile then
+		plan.oneRow = true
+	elseif fit >= MENU_MIN then
+		plan.tile, plan.oneRow = fit, true
+	end
+	if plan.oneRow then
+		plan.height = BarHeight(1, plan.tile, spacing)
+		plan.rows.micro, plan.rows.bags = counts.micro > 0 and 1 or 0, counts.bags > 0 and 1 or 0
+		return plan
+	end
+	plan.rows.micro = RowsFor(counts.micro, tile, spacing, inner)
+	plan.rows.bags = RowsFor(counts.bags, tile, spacing, inner)
+	plan.microHeight = BarHeight(plan.rows.micro, tile, spacing)
+	plan.bagsHeight = BarHeight(plan.rows.bags, tile, spacing)
+	local between = plan.rows.micro > 0 and plan.rows.bags > 0 and gap or 0
+	plan.height = plan.microHeight + between + plan.bagsHeight
+	return plan
+end
+
+local function Near(a, b)
+	return IsNumber(a) and IsNumber(b) and abs(a - b) < 0.5
+end
+
+local function SetHeight(view, height)
+	local layout = K.Layout.Get(KEY)
+	if not layout or view ~= Strip.view or Near(layout.height, height) then
+		return false
+	end
+	return K.Layout.Update(KEY, { width = layout.width, height = height }) == true
+end
 
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
-	local docked = s.menus == true and Menus ~= nil and view == Strip.view
+	local docked = s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
 	view.pad = Pad(frame)
 	local pad, gap = view.pad, Widgets.Snap(frame, MENU_GAP)
-	local rowHeight = 0
-	for id in pairs(DOCK) do
-		local holder = Menus and Menus.Holder(id)
-		if holder and view == Strip.view then
-			if docked then
-				local height = holder:GetHeight()
-				if ns.IsNumber(height) and height > rowHeight then
-					rowHeight = height
-				end
-			else
+	local line = Widgets.Snap(frame, LINE)
+	if not docked then
+		if Menus and view == Strip.view then
+			for id in pairs(DOCK) do
 				Menus.SetDock(id, nil)
 			end
 		end
+		view.line, view.lineTop, view.wrapMenus = nil, nil, nil
+		card:ClearAllPoints()
+		card:SetAllPoints(frame)
+		return
 	end
-	local w, h = Size(frame)
-	local fit
-	if docked then
-		local count = 0
-		for id in pairs(DOCK) do
-			local shown = #Menus.Shown(id)
-			count = count + (shown > 0 and shown or #Menus.All(id))
-		end
-		if count > 0 then
-			local spacing = ns.Settings().micro.spacing
-			fit = floor((w - 2 * pad - Widgets.Snap(frame, MENU_GAP) - (count - 1) * spacing) / count)
-			view.wrapMenus = fit < MENU_FIT_MIN
-			if view.wrapMenus then
-				local most = 0
-				for id in pairs(DOCK) do
-					local shown = #Menus.Shown(id)
-					most = max(most, shown > 0 and shown or #Menus.All(id))
-				end
-				fit = floor((w - 2 * pad - (most - 1) * spacing) / most)
-			end
-			fit = max(MENU_FIT_MIN, fit)
-			rowHeight = min(rowHeight, fit + 2 * MENU_PAD)
-			if view.wrapMenus then
-				rowHeight = 2 * rowHeight + gap
-			end
-		end
-	end
-	local row = docked and rowHeight > 0 and gap + rowHeight + pad or 0
-	local line = Widgets.Snap(frame, LINE)
-	if row > 0 and h - row >= line then
-		line = h - row
-	end
-	view.line = row > 0 and line or nil
-	local extra = row > 0 and max(0, line + row - h) or 0
-	local rowTop = extra > 0 and extra - pad or -gap + h - line
+	local w = Size(frame)
+	local settings = ns.Settings()
+	local plan = Strip.MenuPlan(w - 2 * pad, { micro = DockCount(Menus, "micro"), bags = DockCount(Menus, "bags") },
+		{ micro = settings.micro.size, bags = settings.bags.size }, Widgets.Snap(frame, settings.micro.spacing), gap)
+	view.wrapMenus = not plan.oneRow
+	local rowTop = -(pad + line + gap)
+	local height = pad + line + gap + plan.height + pad
+	view.line = line
+	view.lineTop = nil
 	for id, spec in pairs(DOCK) do
-		local bar = Menus and Menus.Holder(id)
-		if bar and docked then
-			local drop = view.wrapMenus and spec[3] < 0 and (rowHeight - (rowHeight - gap) / 2) or 0
-			Menus.SetDock(id, function(content, width, height)
-				content:ClearAllPoints()
-				content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, rowTop - drop)
-				content:SetSize(width, height)
-			end, frame, fit)
-		end
+		local drop = (not plan.oneRow and id == "bags") and (plan.microHeight + gap) or 0
+		Menus.SetDock(id, function(content, width, contentHeight)
+			content:ClearAllPoints()
+			content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, rowTop - drop)
+			content:SetSize(width, contentHeight)
+		end, frame, plan.tile, plan.rows[id] > 0 and plan.rows[id] or nil)
 	end
-	view.lineTop = extra > 0 and 0 or nil
 	card:ClearAllPoints()
-	card:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, extra)
-	card:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, extra)
-	card:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
+	card:SetAllPoints(frame)
+	if not SetHeight(view, height) and not Near(frame:GetHeight(), height) then
+		frame:SetHeight(height)
+	end
 end
 
 local function Read(view, s, timedOnly)

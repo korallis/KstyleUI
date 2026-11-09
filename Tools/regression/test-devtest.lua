@@ -136,6 +136,18 @@ do
 	slash("setup")
 	assert(calls[3] == "layout" and calls[4] == "setup", "layout and setup reach their services, case-insensitively")
 
+	-- bind opens Blizzard's Quick Keybind mode (hover a KstyleUI button, press a key), out of combat.
+	slash("bind")
+	assert(Printed(env, "keybind"), "bind without Blizzard's Quick Keybind frame says it is unavailable")
+	env.QuickKeybindFrame = env.CreateFrame("Frame", "QuickKeybindFrame", env.UIParent)
+	env.QuickKeybindFrame:Hide()
+	env.SetCombat(true)
+	slash("bind")
+	assert(not env.QuickKeybindFrame:IsShown() and Printed(env, "combat"), "bind in combat waits and says so")
+	env.SetCombat(false)
+	slash("bind")
+	assert(env.QuickKeybindFrame:IsShown(), "bind shows the Quick Keybind frame")
+
 	local before = #env.KstyleUIDB.devlog
 	slash("test")
 	assert(#env.KstyleUIDB.devlog > before, "test runs the smoke checks")

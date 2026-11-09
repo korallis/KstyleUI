@@ -54,6 +54,22 @@ class StandinsTest(unittest.TestCase):
         self.assertEqual(Image.open(out / "portrait-player.png").getpixel((64, 64)), (200, 30, 30))
         self.assertEqual(Image.open(out / "portrait-target.png").getpixel((64, 64)), (20, 40, 200))
 
+    def test_minimap_crop_drops_the_mockup_north_mark(self):
+        # The mockup paints a white N at the top of its map art; the addon draws its own in the card's head, so the
+        # crop covers the mark with the terrain beside it, else every HUD render shows two.
+        image = Image.new("RGB", (2574, 1456), (20, 40, 200))
+        left, top, right, bottom = self.standins.CROPS["minimap.png"]
+        mark = self.standins.NORTH_MARK
+        image.paste((250, 250, 250), (left + mark[0], top + mark[1], left + mark[2], top + mark[3]))
+        path = self.root / "mockup.png"
+        image.save(path)
+        out = self.root / "standins"
+        self.standins.write(str(path), str(out), 2383, 1540)
+        crop = Image.open(out / "minimap.png")
+        for x in range(0, 256, 8):
+            for y in range(0, 40, 4):
+                self.assertEqual(crop.getpixel((x, y)), (20, 40, 200), f"the N survives at {x},{y}")
+
     def test_backdrop_scales_to_the_height_and_crops_the_width_from_the_centre(self):
         image = Image.new("RGB", (400, 200), (10, 10, 10))
         image.paste((250, 250, 250), (0, 0, 100, 200))  # a white band at the left edge

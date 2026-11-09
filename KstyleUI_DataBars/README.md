@@ -117,7 +117,7 @@ Each KstyleUI button is a `Widgets.IconButton` made from `SecureActionButtonTemp
 
 | | Micro menu | Bag bar |
 | --- | --- | --- |
-| Buttons | One per Blizzard micro button that `MicroMenu` holds and shows, in Blizzard's `layoutIndex` order | Key ring, reagent bag, bags 4 to 1 and the backpack, left to right, each while Blizzard shows it |
+| Buttons | One per Blizzard micro button that `MicroMenu` holds and shows, in Blizzard's `layoutIndex` order. The compact set (the default) shows eight: character, professions, spellbook, talents (or Forever's combined spells and talents), quest log, guild, group finder and the game menu; the rest wait under the game menu and their keybinds. The full set shows every button. | Key ring, reagent bag, bags 4 to 1 and the backpack, left to right, each while Blizzard shows it |
 | Icon | Blizzard's glyph atlas from the button's normal texture, on an upright tile 3 wide by 4 tall; the character button shows your portrait | The equipped bag's icon from `GetInventoryItemTexture`, else Blizzard's own icon: the backpack, the key ring or the empty slot |
 | States | Disabled, selected while its window is open (`GetButtonState` is `PUSHED`), and the proc glow while Blizzard's button pulses or has a notification | The backpack counts the free slots in all bags |
 | Tooltip | Blizzard's `tooltipText`, with the level a disabled button opens at | The bag's name and free slots, or how to equip one |
@@ -132,10 +132,13 @@ The bars follow Blizzard's state through `hooksecurefunc` on `UpdateMicroButtons
 | `micro.spacing`, `bags.spacing` | 4 | The gap between buttons, 0 to 12 |
 | `micro.rows`, `bags.rows` | 1 | How many rows the buttons fill |
 | `micro.backdrop`, `bags.backdrop` | `true` | The glass behind the buttons |
+| `micro.set` | `compact` | `compact` (the eight above, at a size that reads) or `full` (every button Blizzard shows) |
 | `micro.tint` | `none` | `none` keeps Blizzard's glyph colours; `accent` and `white` desaturate the glyphs and tint them |
 | `bags.freeSlots` | `true` | The free-slot count on the backpack |
 
 Layout gives each bar its shown rule, position, scale, opacity and strata.
+
+With `strip.menus` on (the Lumen layouts' default) both bars dock in the readout card under the strip's line: the micro menu's row at the left, the bag bar's at the right, on the same line when all the buttons fit at their set size or at 22 units, else the bag row under the micro row, and a bar whose buttons do not fit a row at 22 units wraps into more rows rather than shrinking further (`Strip.MenuPlan`). The card's height follows the rows, and `Layout.Update` writes it, so the Layout Mode plate hugs the glass; free of the menus the strip keeps the player's own height.
 
 ## Why
 

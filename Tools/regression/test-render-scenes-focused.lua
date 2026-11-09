@@ -127,9 +127,12 @@ for _, item in ipairs(chat.items) do
 		plus = plus + 1
 	end
 end
-for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT", "TRADE" }) do
+-- The dock ends before the panel's copy and plus glyphs, so on the 318 rail Blizzard's tab sizing fits three
+-- tabs and folds the fourth into its overflow button, as a narrow Blizzard window does.
+for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT" }) do
 	assert(chatTexts[want], "the chat scene shows the " .. want .. " tab")
 end
+assert(not chatTexts["TRADE"], "the fourth tab waits in the dock's overflow, clear of the glyphs")
 assert(plus == 1, "the plus glyph is drawn once, got " .. plus)
 assert(lines == 5, "five timestamped lines, got " .. lines)
 

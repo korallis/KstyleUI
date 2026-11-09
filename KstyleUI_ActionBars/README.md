@@ -88,6 +88,8 @@ A secret value is never compared: a secret flag counts as its safe default (usab
 
 Drag and drop works out of combat only. With **Lock Action Bars** on (`lockActionBars`), dragging needs the pick-up modifier, as Blizzard's bars do. `PickupAction`, `PlaceAction` and `PickupPetAction` never run in combat.
 
+Hover keybinds go through Blizzard's own Quick Keybind mode (`Blizzard_QuickKeybind`, which Edit Mode's and the keybinding settings' buttons open, and `/kstyle bind` shows out of combat). Each KstyleUI button carries `commandName`, its slot's binding command (`ACTIONBUTTON3`, `BONUSACTIONBUTTON2`), and Blizzard's `QuickKeybindButtonSetTooltip`; while the mode is on, entering a button calls `QuickKeybindFrame:SetSelected(commandName, button)` and leaving clears it, so the next key pressed binds that slot, as it does over Blizzard's buttons, and `UPDATE_BINDINGS` mirrors the new key onto the button.
+
 ## Lumen sockets
 
 `Socket.Decorate` wraps each action button's `Paint` and `Restyle`, and the preview's buttons, so the kit's icon button wears the Lumen socket states. The socket's body, its rim light and the icon's 8-unit radius come from the kit's material (`Widgets.Chrome`, `iconMask`), which slice S1 turns Lumen; this file adds only what is particular to an ability.

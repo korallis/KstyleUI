@@ -16,10 +16,11 @@ assert(ns.Swing.holder == nil and ns.Threat.holder == nil and ns.Damage.holder =
 
 -- Defaults and the settings schema.
 local settings = K.Store.Module("Meters")
-assert(settings.damage.mode == "window", "the damage meter is KstyleUI's own window by default")
+assert(settings.damage.mode == "auto", "the damage meter's style defaults to whichever reads in combat on this client (test-meters-damage.lua)")
 assert(settings.damage.meter == "DamageDone", "the damage meter shows damage done by default")
 assert(settings.threat.warnAt == 80 and settings.threat.dangerAt == 95, "threat warns at 80% and 95%")
 assert(settings.swing.mainHand and settings.swing.offHand and settings.swing.ranged, "every swing bar is on")
+assert(settings.swing.time == true, "the swing bar shows its seconds left by default: a bare bar mid-screen read as an unlabelled stray")
 assert(type(settings.damage.color) == "table" and type(settings.damage.color.r) == "number", "colours are r, g, b tables")
 
 local schema = K.Options.Get("Meters")

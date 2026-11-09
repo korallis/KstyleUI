@@ -45,6 +45,7 @@ local state = {
 	editMode = false,
 	alpha = nil,
 	hooked = false,
+	trimmed = false,
 }
 local logged = {}
 local mirrored = setmetatable({}, { __mode = "k" })
@@ -178,6 +179,50 @@ end
 
 function Panel.MenuButton()
 	return state.glass and state.glass.plus
+end
+
+function Panel.DockEnd()
+	return state.glass and state.glass.dockEnd
+end
+
+local function Dock()
+	local dock, chat = GENERAL_CHAT_DOCK, state.chat
+	if type(dock) ~= "table" or type(dock.SetPoint) ~= "function" or not chat or dock.primary ~= chat or type(chat.Background) ~= "table" then
+		return nil
+	end
+	return dock, chat.Background
+end
+
+local function RelayTabs(dock)
+	if type(FCFDock_OnPrimarySizeChanged) == "function" then
+		FCFDock_OnPrimarySizeChanged(dock)
+	else
+		LogOnce("dock-relay", "FCFDock_OnPrimarySizeChanged is missing; the tabs relay on Blizzard's next update")
+	end
+end
+
+local function TrimDock()
+	local dock, background = Dock()
+	local glass = state.glass
+	if not dock or not glass then
+		return
+	end
+	local stop, last = glass.dockEnd, glass.copy:IsShown() and glass.copy or glass.plus
+	stop:ClearAllPoints()
+	stop:SetPoint("TOPRIGHT", last, "TOPLEFT", -Tokens.Size("gapTiny"), 0)
+	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, 0)
+	dock:SetPoint("BOTTOMRIGHT", stop, "BOTTOMRIGHT", 0, 0)
+	RelayTabs(dock)
+	LogOnce("dock", "the tab dock ends before the panel's glyphs, so Blizzard overflows the tabs that no longer fit")
+end
+
+local function RestoreDock()
+	local dock, background = Dock()
+	if dock and state.trimmed then
+		dock:SetPoint("BOTTOMRIGHT", background, "TOPRIGHT", 0, 0)
+		RelayTabs(dock)
+	end
+	state.trimmed = false
 end
 
 function Panel.Status()
@@ -340,6 +385,8 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	PlaceDivider(g)
+	TrimDock()
+	state.trimmed = true
 	if chat.SetPointBase then
 		LogOnce("place", "the main chat window sits in the panel through Edit Mode's SetPointBase")
 	else
@@ -525,6 +572,7 @@ local function Build()
 	glass.divider:SetTexture((Tokens.Texture("divider")))
 	glass.plus = PlusButton(glass)
 	glass.copy = CopyButton(glass)
+	glass.dockEnd = CreateFrame("Frame", nil, glass)
 	for _, method in ipairs({ "Show", "Hide", "SetShown", "SetAlpha" }) do
 		hooksecurefunc(holder, method, Mirror)
 	end
@@ -547,6 +595,9 @@ local function Watch(chat)
 	end
 	state.hooked = true
 	hooksecurefunc(chat, "SetPoint", Schedule)
+	if type(FCFDock_SetPrimary) == "function" then
+		hooksecurefunc("FCFDock_SetPrimary", Schedule)
+	end
 	local name = chat:GetName()
 	local tab = IsText(name) and _G[name .. "Tab"] or nil
 	if type(tab) == "table" and type(tab.SetAlpha) == "function" then
@@ -604,6 +655,7 @@ function Panel.Stop()
 	K.Callbacks.Unregister(LAYOUT_CHANGED, Panel)
 	state.alpha = nil
 	SetChatAlpha(1)
+	RestoreDock()
 	if state.holder then
 		state.holder:Hide()
 	end

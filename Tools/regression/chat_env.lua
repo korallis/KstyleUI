@@ -418,6 +418,22 @@ function C.Install(env, opts)
 	function env.FCFDock_GetSelectedWindow(dock)
 		return dock.selected
 	end
+	-- FCFDock_SetPrimary anchors the dock to the primary window's Background; FCFDock_OnPrimarySizeChanged
+	-- marks the dock dirty and relays its tabs on the next frame. The stub counts the relays in env._dockResized
+	-- and, when a scene gave C.Dock a measure, lays the tabs out again at the dock's new width.
+	env._dockResized = 0
+	function env.FCFDock_SetPrimary(dock, chatFrame)
+		dock.primary = chatFrame
+		dock:SetPoint("BOTTOMLEFT", chatFrame.Background, "TOPLEFT")
+		dock:SetPoint("BOTTOMRIGHT", chatFrame.Background, "TOPRIGHT")
+	end
+	env.FCFDock_SetPrimary(env.GENERAL_CHAT_DOCK, env.GENERAL_CHAT_DOCK.primary)
+	function env.FCFDock_OnPrimarySizeChanged(dock)
+		env._dockResized = env._dockResized + 1
+		if dock._measure then
+			C.Dock(env, dock._measure)
+		end
+	end
 	function env.FCF_OpenTemporaryWindow()
 		local frame = newChatFrame(env, #env.CHAT_FRAMES + 1)
 		frame.isTemporary = true
@@ -451,27 +467,58 @@ end
 function C.Dock(env, measure)
 	local dock = env.GENERAL_CHAT_DOCK
 	local primary = dock.primary
-	dock:ClearAllPoints()
-	dock:SetPoint("BOTTOMLEFT", primary.Background, "TOPLEFT", 0, 0)
-	dock:SetPoint("BOTTOMRIGHT", primary.Background, "TOPRIGHT", 0, 0)
+	dock._measure = measure
+	if dock:GetNumPoints() == 0 then
+		env.FCFDock_SetPrimary(dock, primary)
+	end
 	dock:SetHeight(26)
-	local previous
+	-- FCFDock_CalculateTabSize: the dynamic tabs share the room right of the static tab, 90 each when they fit,
+	-- else 60 at least with the overflow button taking the ones that do not; the dock's width is resolved from
+	-- its anchors, as the game resolves it.
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	local rect = Geometry.Rect(dock, env.UIParent)
+	local dockWidth = rect and (rect.right - rect.left) or math.huge
+	local statics, dynamics = {}, {}
 	for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
 		local tab = env[frame:GetName() .. "Tab"]
 		local _, size = tab.Text:GetFont()
-		local textWidth = measure(tab.Text:GetText() or "", size or 10)
+		tab._textWidth = measure(tab.Text:GetText() or "", size or 10)
+		if frame == primary then
+			statics[#statics + 1] = tab
+		else
+			dynamics[#dynamics + 1] = tab
+		end
+	end
+	local staticWidth = 0
+	for _, tab in ipairs(statics) do
+		staticWidth = staticWidth + tab._textWidth + 20 + 1
+	end
+	local scroll = dockWidth - staticWidth
+	local tabSize, whole = 90, #dynamics
+	if #dynamics * 90 >= scroll then
+		if math.floor(scroll / 60) <= #dynamics then
+			scroll = scroll - 30 - 5
+		end
+		whole = math.min(math.floor(scroll / 60), #dynamics)
+		tabSize = whole > 0 and scroll / whole or scroll
+	end
+	local previous
+	for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
+		local tab = env[frame:GetName() .. "Tab"]
 		tab:ClearAllPoints()
 		tab:SetParent(dock)
 		if frame == primary then
-			tab.Text:SetWidth(textWidth)
-			tab:SetWidth(textWidth + 20)
+			tab.Text:SetWidth(tab._textWidth)
+			tab:SetWidth(tab._textWidth + 20)
 			tab:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0)
+			tab:Show()
 		else
-			tab.Text:SetWidth(90 - 20)
-			tab:SetWidth(90)
+			tab.Text:SetWidth(math.max(1, tabSize - 20))
+			tab:SetWidth(tabSize)
 			tab:SetPoint("LEFT", previous, "RIGHT", 1, 0)
+			whole = whole - 1
+			tab:SetShown(whole >= 0)
 		end
-		tab:Show()
 		env.FCFTab_UpdateColors(tab, frame == dock.selected)
 		previous = tab
 	end

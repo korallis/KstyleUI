@@ -230,6 +230,8 @@ do
 	local nr, ng, nb = token(K, "neutral")
 	local r, g, b = plate.marker:GetVertexColor()
 	assert(SameColor(nr, ng, nb, r, g, b), "the elite marker is gold")
+	-- The diamond reads in a pull: 12 units across, where 8 drew as a dot in the gallery.
+	assert(plate.marker:GetWidth() >= K.Widgets.Snap(plate, 12) and plate.marker:GetHeight() == plate.marker:GetWidth(), "the marker is a 12-unit diamond, got " .. tostring(plate.marker:GetWidth()))
 
 	N.Add(env, "nameplate2", { classification = "rare" })
 	local rare = ns.Plates.Get("nameplate2")

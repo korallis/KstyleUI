@@ -278,9 +278,15 @@ end
 
 do
 	local env, K, ns = New()
+	-- The compact set by default: the eight a player reaches for, at a size that reads; the rest wait under the
+	-- game menu and their keybinds. The full set shows every button Blizzard shows.
+	eq(ns.Settings().micro.set, "compact", "the compact set by default")
+	eq(Names(ns, "micro"), "CharacterMicroButton,ProfessionMicroButton,SpellbookMicroButton,TalentMicroButton,"
+		.. "QuestLogMicroButton,GuildMicroButton,LFDMicroButton,MainMenuMicroButton", "the compact set, in Blizzard's order")
+	K.Options.Write("DataBars", "micro.set", "full")
 	eq(Names(ns, "micro"), "CharacterMicroButton,ProfessionMicroButton,SpellbookMicroButton,TalentMicroButton,LegacyMicroButton,"
 		.. "QuestLogMicroButton,HousingMicroButton,GuildMicroButton,LFDMicroButton,CollectionsMicroButton,EJMicroButton,"
-		.. "StoreMicroButton,MainMenuMicroButton", "the shown micro buttons, without Help and the buttons Forever never adds")
+		.. "StoreMicroButton,MainMenuMicroButton", "the full set: every shown micro button, without Help and the buttons Forever never adds")
 	for _, button in ipairs(ns.Menus.Shown("micro")) do
 		local target = button:GetAttribute("clickbutton")
 		eq(button._template, "SecureActionButtonTemplate", "a KstyleUI secure action button")
@@ -295,8 +301,10 @@ do
 	eq(Button(ns, "micro", "CharacterMicroButton").icon._portrait, "player", "the character button shows your portrait")
 	local holder = ns.Menus.Holder("micro")
 	local footprint = K.Setup.Layouts.Element("databars.micro")
-	-- Round crystal buttons are square, so twelve 32-unit discs run 392 wide: the Lumen footprint the layout slice
-	-- sets (the old 314 held the 0.75-aspect tiles).
+	-- Docked in the 318 readout card the full set wraps into two rows (test-databars-readout.lua); free, the bar
+	-- runs one row. Round crystal buttons are square, so twelve 32-unit discs run 392 wide: the Lumen footprint the
+	-- layout slice sets (the old 314 held the 0.75-aspect tiles).
+	K.Options.Write("DataBars", "strip.menus", false)
 	assert(holder:GetHeight() <= footprint.height and holder:GetWidth() <= 12 * 32 + 11 * 4 + 2 * 3 + 0.01, string.format("the micro menu fits twelve discs in a row: %sx%s", holder:GetWidth(), holder:GetHeight()))
 	local first, second = ns.Menus.Shown("micro")[1], ns.Menus.Shown("micro")[2]
 	assert(Left(second) > Left(first), "buttons run left to right")
@@ -354,6 +362,9 @@ end
 
 do
 	local env, K, ns = New()
+	-- The full set on a free bar, so Help, Shop and Collections are in play and the bar runs one row.
+	K.Options.Write("DataBars", "micro.set", "full")
+	K.Options.Write("DataBars", "strip.menus", false)
 	local width = ns.Menus.Holder("micro"):GetWidth()
 	env.HelpMicroButton:Show()
 	env.UpdateMicroButtons()
@@ -590,8 +601,9 @@ end
 
 do
 	local env, K, ns = New()
-	-- A free bar, whose buttons take the size setting as it is (a docked bar shrinks them to its card).
+	-- A free bar with the full set, whose buttons take the size setting as it is and which shows Help.
 	K.Options.Write("DataBars", "strip.menus", false)
+	K.Options.Write("DataBars", "micro.set", "full")
 	local frames = { ns.Menus.Holder("micro"), ns.Menus.Content("micro") }
 	for _, button in ipairs(ns.Menus.All("micro")) do
 		frames[#frames + 1] = button

@@ -496,4 +496,51 @@ do
 	noErrors(env, K)
 end
 
+-- The readout card hugs its rows, and its docked buttons stay readable -----------------------------------
+-- The micro menu docks under the readout line in its compact set (eight buttons), the bag bar on its own
+-- row at the right; no docked button shrinks under 22 units, a row that cannot fit wraps instead, and the
+-- card's height follows the rows, in Layout too, so the mover plate and the glass agree.
+
+do
+	local env, K, ns = D.New({ setup = D.Menus })
+	local Strip, Menus = ns.Strip, ns.Menus
+	local view = Strip.view
+	eq(Strip.MENU_MIN, 22, "a docked button is never under 22 units")
+	local micro, bags = Menus.Shown("micro"), Menus.Shown("bags")
+	eq(#micro, 8, "the compact set shows eight micro buttons: " .. #micro)
+	eq(#bags, 6, "and the bag bar its six bags")
+	for _, list in ipairs({ micro, bags }) do
+		for _, button in ipairs(list) do
+			assert(button:GetHeight() >= Strip.MENU_MIN, "a docked button reads at " .. button:GetHeight())
+		end
+	end
+	eq(micro[1]:GetHeight(), ns.Settings().micro.size, "with room to spare the micro buttons take their set size")
+	local pad, gap = view.pad, K.Widgets.Snap(view.frame, 6)
+	local microH, bagsH = Menus.Holder("micro"):GetHeight(), Menus.Holder("bags"):GetHeight()
+	local want = pad + 43 + gap + microH + gap + bagsH + pad
+	local h = view.frame:GetHeight()
+	assert(near(h, want), string.format("the card is the readout line, the micro row and the bag row inside the padding: %s for %s", h, want))
+	eq(K.Layout.Get("databars.strip").height, h, "and Layout holds the same height, so the mover plate hugs too")
+	local _, _, _, _, my = Menus.Content("micro"):GetPoint(1)
+	local _, _, _, _, by = Menus.Content("bags"):GetPoint(1)
+	assert(near(by, my - microH - gap), "the bag row sits under the micro row")
+	-- The full set: fourteen buttons (the stub hides Help, so thirteen show) wrap into two rows rather than shrink under 22.
+	K.Options.Write("DataBars", "micro.set", "full")
+	micro = Menus.Shown("micro")
+	eq(#micro, 13, "the full set shows every micro button Blizzard shows")
+	for _, button in ipairs(micro) do
+		assert(button:GetHeight() >= Strip.MENU_MIN, "a full-set button still reads at " .. button:GetHeight())
+	end
+	assert(Menus.Holder("micro"):GetHeight() > microH, "the full set wraps into a second micro row")
+	assert(view.frame:GetHeight() > h, "and the card grows with it")
+	K.Options.Write("DataBars", "micro.set", "compact")
+	assert(near(view.frame:GetHeight(), h), "back to the compact set the card shrinks again")
+	-- A player's taller card keeps its height only while the menus are free: docked, the rows set it.
+	K.Options.Write("DataBars", "strip.menus", false)
+	assert(K.Layout.Update("databars.strip", { width = 318, height = 90 }))
+	env.RunTimers()
+	eq(view.frame:GetHeight(), 90, "free menus leave the card's height to the player")
+	noErrors(env, K)
+end
+
 print("databars strip ok")

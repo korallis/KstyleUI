@@ -1,4 +1,4 @@
--- Slash.lua: the /kstyle command: settings, Layout Mode, setup, smoke tests and profiles.
+-- Slash.lua: the /kstyle command: settings, Layout Mode, setup, hover keybinds, smoke tests and profiles.
 local _, ns = ...
 
 local L = ns.L
@@ -8,6 +8,7 @@ local USAGE = {
 	"/kstyle - " .. L["open the settings"],
 	"/kstyle layout - " .. L["enter or leave Layout Mode"],
 	"/kstyle setup - " .. L["run the first-run setup again"],
+	"/kstyle bind - " .. L["hover a button and press a key to bind it (Blizzard's Quick Keybind mode)"],
 	"/kstyle test - " .. L["run the smoke checks and write the devlog"],
 	"/kstyle profile - " .. L["list the profiles"],
 	"/kstyle profile use <name> - " .. L["switch this character to a profile, creating it if needed"],
@@ -106,6 +107,18 @@ local COMMANDS = {
 		else
 			ns.Print(L["The first-run setup is not available yet."])
 		end
+	end,
+	bind = function()
+		local frame = QuickKeybindFrame
+		if type(frame) ~= "table" or type(frame.Show) ~= "function" then
+			ns.Print(L["Blizzard's Quick Keybind mode is not available on this client; keybinds are in Options > Keybindings."])
+			return
+		end
+		if InCombatLockdown() then
+			ns.Print(L["Keybinds cannot change in combat; try again after the fight."])
+			return
+		end
+		frame:Show()
 	end,
 	test = function()
 		ns.DevTest.Run()

@@ -54,6 +54,9 @@ CROPS = {
 }
 PORTRAIT_SIZE = 128
 MINIMAP_SIZE = 256
+# The mockup paints a white N at the top of its map art (left, top, right, bottom, relative to the minimap crop).
+# KstyleUI draws its own north mark in the card's head, so the crop covers the mockup's with the terrain under it.
+NORTH_MARK = (118, 0, 142, 16)
 
 # The mockup's UI areas, in its pixels, blurred away in the backdrop so only the scenery stays.
 UI_AREAS = [
@@ -89,6 +92,16 @@ def pillow():
 def square(image, box, size):
     """The box of the image, resampled to a size by size square."""
     return image.crop(box).resize((size, size), Image.LANCZOS)
+
+
+def cover_mark(crop, mark):
+    """The crop with the mark's box covered by the strip of the same size just under it."""
+    left, top, right, bottom = mark
+    height = bottom - top
+    patch = crop.crop((left, bottom, right, bottom + height)).transpose(Image.FLIP_TOP_BOTTOM)
+    out = crop.copy()
+    out.paste(patch, (left, top))
+    return out
 
 
 def centre_square(image):
@@ -177,7 +190,10 @@ def write(mockup, out_dir, width, height, plate=None, portraits=None):
     for name, box in CROPS.items():
         size = MINIMAP_SIZE if name == "minimap.png" else PORTRAIT_SIZE
         path = os.path.join(out_dir, name)
-        square(image, box, size).save(path)
+        if name == "minimap.png":
+            cover_mark(image.crop(box), NORTH_MARK).resize((size, size), Image.LANCZOS).save(path)
+        else:
+            square(image, box, size).save(path)
         written.append(path)
     path = os.path.join(out_dir, "backdrop.png")
     source, used = backdrop_source(image, plate)

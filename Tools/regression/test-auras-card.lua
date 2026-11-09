@@ -59,7 +59,7 @@ check(near(w, expect.width, 0.5) and near(h, expect.height, 0.5), "the buff elem
 local content = desc.content
 check(content and content:GetParent() == desc.host, "the buff rows sit in a content frame on the host")
 local cp = content._points[1]
-check(cp[1] == "TOPLEFT" and cp[2] == desc.host and near(cp[4], 20, 0.5) and near(-cp[5], expect.contentTop, 0.5), "the content starts under the cap: " .. tostring(cp[4]) .. ", " .. tostring(cp[5]))
+check(cp[1] == "TOPLEFT" and cp[2] == desc.holder and near(cp[4], 20, 0.5) and near(-cp[5], expect.contentTop, 0.5), "the content starts under the cap, hung from the Layout holder (the host's bottom follows the content, so the content cannot hang from the host): " .. tostring(cp[4]) .. ", " .. tostring(cp[5]))
 local container = A.Container(env, "HELPFUL")
 local point, rel = container:GetPoint(1)
 check(rel == content, "the container hangs from the content frame, not the host, so the card's padding and cap stay clear: " .. tostring(point))
@@ -69,7 +69,7 @@ check(not ddesc.holder:IsShown(), "the docked holder, which Layout owns, is hidd
 local dock = ddesc.dock
 check(dock and dock:GetParent() == desc.holder, "a dock frame sits on the buff card's holder")
 local dp = dock._points[1]
-check(dp[1] == "TOPLEFT" and dp[2] == desc.holder and near(dp[4], 20, 0.5) and near(-dp[5], expect.debuffTop, 0.5), "the dock sits inside the card under the hairline: " .. tostring(dp[4]) .. ", " .. tostring(dp[5]))
+check(dp[1] == "TOPLEFT" and dp[2] == desc.card.fit and near(dp[4], 0, 0.5) and near(-dp[5], expect.debuffTop - expect.contentTop - 102, 0.5), "the dock hangs under the buff container by a gap, the hairline and a gap: " .. tostring(dp[4]) .. ", " .. tostring(dp[5]))
 local dw, dh = dock:GetSize()
 check(near(dw, 278, 0.5) and near(dh, 51, 0.5), "the dock is the debuff row's own size")
 local hostPoint = ddesc.host._points[1]
@@ -77,7 +77,7 @@ check(hostPoint[2] == dock, "the debuff host follows the dock")
 check(ddesc.host:IsShown(), "and shows while the buff card shows")
 check(desc.card.rule and desc.card.rule:IsShown(), "a hairline parts the buffs from the debuffs")
 local rp = desc.card.rule._points[1]
-check(rp[1] == "TOPLEFT" and near(-rp[5], expect.contentTop + 102 + 8, 0.5), "the hairline sits one gap under the buff rows")
+check(rp[1] == "TOPLEFT" and rp[2] == desc.card.fit and near(-rp[5], 8, 0.5), "the hairline hangs one gap under the buff container")
 check(desc.card.chrome.fill[5]:IsShown(), "the card is a frost card, glass under the rows")
 
 -- Setting the debuff row free: it becomes its own element again, bare, and the card shortens.
@@ -96,6 +96,40 @@ env.RunTimers()
 check(env._live["auras.debuffs"] == false and ddesc.docked == true and not ddesc.holder:IsShown(), "docking again hides the debuff holder and docks the row")
 local _, backHeight = b.frame:GetSize()
 check(near(backHeight, expect.height, 0.5), "and the card grows back")
+
+-- The card hugs its content. The engine sizes each container to the rows it holds (a secret size, written
+-- from secure code), so the glass follows the containers by anchors alone: the hairline and the debuff row
+-- hang from the buff container's bottom, and the card's bottom from the debuff container's. A frame anchored
+-- to a container needs Blizzard's DisableUntrustedLayoutScriptsTemplate, else the engine refuses the anchor.
+local Geometry = dofile("Tools/regression/geometry.lua")
+local root = K.Scale.Root()
+local function rect(object)
+	local r, why = Geometry.Rect(object, root)
+	check(r, tostring(why))
+	return r
+end
+local hostile = A.Container(env, "HARMFUL")
+for _, frame in ipairs({ desc.host, ddesc.host, dock }) do
+	check(frame._template == "DisableUntrustedLayoutScriptsTemplate", "a frame the card anchors to a container carries DisableUntrustedLayoutScriptsTemplate")
+end
+container:SetSize(278, 51)
+hostile:SetSize(278, 51)
+local one = rect(desc.host)
+check(near(rect(container).top, one.top - expect.contentTop, 0.5), "the buff rows start under the cap")
+check(near(rect(desc.card.rule).top, rect(container).bottom - 8, 0.5), "the hairline hangs one gap under the buff container")
+check(near(rect(dock).top, rect(container).bottom - 8 - 1 - 8, 0.5), "the debuff row hangs under the hairline")
+check(near(one.bottom, rect(hostile).bottom - 20, 0.5), "the card ends one padding under the debuff container")
+check(near(one.top - one.bottom, expect.height - 51, 0.5), "one row of buffs where two are reserved: the card is a row shorter than its footprint: " .. tostring(one.top - one.bottom))
+container:SetSize(278, 102)
+local two = rect(desc.host)
+check(near(two.top - two.bottom, expect.height, 0.5), "a second row of buffs grows the card by a row, with no relayout, to the reserved footprint: " .. tostring(two.top - two.bottom))
+check(near(rect(dock).top, rect(container).bottom - 17, 0.5), "and the debuff row moves down with it")
+hostile:SetSize(0, 0)
+local none = rect(desc.host)
+check(near(none.bottom, rect(container).bottom - 17 - 20, 0.5), "with no debuffs the card ends a hairline's band under the buffs")
+local hw, hh = desc.holder:GetSize()
+check(near(hw, expect.width, 0.5) and near(hh, expect.height, 0.5), "the Layout holder keeps the reserved footprint, so the mover plate stays put")
+check(near(one.left, rect(desc.holder).left, 0.5) and near(one.right, rect(desc.holder).right, 0.5), "the card keeps the rail width")
 
 check(#env._errors == 0, tostring(env._errors[1]))
 print("auras card ok")

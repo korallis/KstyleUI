@@ -379,7 +379,11 @@ do
 	check(host:GetNumPoints() == 2, "the host covers the element, got " .. host:GetNumPoints() .. " points")
 	local p1, r1, rp1 = host:GetPoint(1)
 	local p2, r2, rp2 = host:GetPoint(2)
-	check(p1 == "TOPLEFT" and r1 == holder and rp1 == "TOPLEFT" and p2 == "BOTTOMRIGHT" and r2 == holder and rp2 == "BOTTOMRIGHT", "so a Layout move moves the auras")
+	-- The card's bottom follows its content (test-auras-card.lua), through an edge frame whose right edge is the holder's.
+	local edge = r2
+	check(p1 == "TOPLEFT" and r1 == holder and rp1 == "TOPLEFT" and p2 == "BOTTOMRIGHT" and rp2 == "BOTTOMRIGHT" and edge:GetParent() == host, "so a Layout move moves the auras")
+	local ep, er, erp = edge:GetPoint(1)
+	check(ep == "TOPRIGHT" and er == holder and erp == "TOPRIGHT", "the card's edge frame takes the holder's right edge, so the card keeps the element's width")
 	holder:SetScale(1.5)
 	holder:SetAlpha(0.4)
 	holder:SetFrameStrata("HIGH")

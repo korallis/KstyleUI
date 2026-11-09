@@ -20,6 +20,7 @@ local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
 local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
 local EDGE_TOKENS = { buffs = "edgeInner", debuffs = "hostile" }
 local CARD_GROUP, DOCKED_GROUP = "buffs", "debuffs"
+local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 local FALLBACK = {
 	buffs = { position = { anchor = "TOPRIGHT", x = -287, y = -16 }, label = K.L["Buffs"] },
 	debuffs = { position = { anchor = "TOPRIGHT", x = -287, y = -126 }, label = K.L["Debuffs"] },
@@ -353,12 +354,25 @@ local function ShowHost(desc)
 	desc.host:SetShown(source:IsShown() and not gamepad)
 end
 
+local function LayoutFrame(parent)
+	local ok, frame = pcall(CreateFrame, "Frame", nil, parent, LAYOUT_TEMPLATE)
+	if ok and type(frame) == "table" then
+		return frame
+	end
+	LogOnce("layout-template", LAYOUT_TEMPLATE .. " is missing; the card anchors to the engine's containers without it")
+	return CreateFrame("Frame", nil, parent)
+end
+
 local function Follow(desc)
 	local host = desc.host
 	local source, anchor = Source(desc)
 	host:ClearAllPoints()
 	host:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, 0)
-	host:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 0, 0)
+	if desc.card and desc.card.fitted then
+		host:SetPoint("BOTTOMRIGHT", desc.card.edge, "BOTTOMRIGHT", 0, 0)
+	else
+		host:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 0, 0)
+	end
 	host:SetScale(source:GetScale())
 	host:SetAlpha(source:GetAlpha())
 	host:SetFrameStrata(source:GetFrameStrata())
@@ -388,6 +402,9 @@ local function BuildCard(desc)
 		chrome = Widgets.Chrome(host, { shape = "panel" }),
 		cap = Widgets.RailCap(host, { title = L["Blessings"] }),
 		rule = host:CreateTexture(nil, "ARTWORK"),
+		fit = CreateFrame("Frame", nil, host),
+		tail = CreateFrame("Frame", nil, host),
+		edge = CreateFrame("Frame", nil, host),
 	}
 	card.rule:SetColorTexture(Tokens.Color("white"))
 	Widgets.LumenTint(card.rule, "hairline")
@@ -413,24 +430,37 @@ local function LayoutCard(desc, docked)
 	card.cap.frame:SetPoint("TOPLEFT", host, "TOPLEFT", snap(pad), -snap(pad))
 	card.cap.frame:SetPoint("TOPRIGHT", host, "TOPRIGHT", -snap(pad), -snap(pad))
 	card.cap:Restyle()
-	desc.content:ClearAllPoints()
-	desc.content:SetPoint("TOPLEFT", host, "TOPLEFT", snap(pad), -snap(shape.contentTop))
-	desc.content:SetSize(ctx.footWidth, ctx.footHeight)
-	local rule = card.rule
+	local content, holder, container = desc.content, desc.holder, desc.container
+	content:ClearAllPoints()
+	content:SetPoint("TOPLEFT", holder, "TOPLEFT", snap(pad), -snap(shape.contentTop))
+	content:SetSize(ctx.footWidth, ctx.footHeight)
+	local fit, tail, edge, rule = card.fit, card.tail, card.edge, card.rule
+	fit:ClearAllPoints()
+	fit:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
+	fit:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", 0, 0)
 	rule:ClearAllPoints()
+	tail:ClearAllPoints()
 	if debuffs then
-		rule:SetPoint("TOPLEFT", host, "TOPLEFT", snap(pad), -snap(shape.ruleTop))
-		rule:SetPoint("TOPRIGHT", host, "TOPRIGHT", -snap(pad), -snap(shape.ruleTop))
-		rule:SetHeight(Widgets.Border(host))
+		rule:SetPoint("TOPLEFT", fit, "BOTTOMLEFT", 0, -snap(gap))
+		rule:SetSize(shape.width - 2 * snap(pad), Widgets.Border(host))
 		Widgets.LumenTint(rule, "hairline")
 		rule:Show()
 		local dock = other.dock
 		dock:ClearAllPoints()
-		dock:SetPoint("TOPLEFT", desc.holder, "TOPLEFT", snap(pad), -snap(shape.debuffTop))
+		dock:SetPoint("TOPLEFT", fit, "BOTTOMLEFT", 0, -snap(shape.debuffTop - shape.ruleTop + gap))
 		dock:SetSize(other.ctx.footWidth, other.ctx.footHeight)
+		tail:SetPoint("TOPLEFT", dock, "TOPLEFT", 0, 0)
+		tail:SetPoint("BOTTOMRIGHT", other.container, "BOTTOMRIGHT", 0, 0)
 	else
 		rule:Hide()
+		tail:SetPoint("TOPLEFT", fit, "TOPLEFT", 0, 0)
+		tail:SetPoint("BOTTOMRIGHT", fit, "BOTTOMRIGHT", 0, 0)
 	end
+	edge:ClearAllPoints()
+	edge:SetPoint("TOPRIGHT", holder, "TOPRIGHT", 0, 0)
+	edge:SetPoint("BOTTOMLEFT", tail, "BOTTOMLEFT", -snap(pad), -snap(pad))
+	card.fitted = true
+	Follow(desc)
 	return shape.width, shape.height
 end
 
@@ -497,7 +527,7 @@ end
 
 local function Build(name)
 	local root = K.Scale.Root()
-	local host = CreateFrame("Frame", nil, root)
+	local host = LayoutFrame(root)
 	local desc = { name = name, host = host, buttons = {}, enchants = {} }
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, host, TEMPLATE)
 	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
@@ -536,7 +566,7 @@ local function Build(name)
 	elseif name == DOCKED_GROUP then
 		local card = groups[CARD_GROUP]
 		if card and not card.failed then
-			desc.dock = CreateFrame("Frame", nil, card.holder)
+			desc.dock = LayoutFrame(card.holder)
 			Watch(desc, card.holder)
 		end
 	end

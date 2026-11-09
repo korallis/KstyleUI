@@ -7,7 +7,8 @@
 -- The root sits at the origin with its own size. Every other object is placed by its points, the way the
 -- game places it: two points on one axis fix both edges, one point and a size fix the rest. A region with
 -- one point on an axis and no size there has no known extent (the game would draw it at its file's size),
--- so Rect returns nil and says why. Animations are not applied.
+-- so Rect returns nil and says why; a size set to 0 is a known extent, as an empty aura container's is.
+-- Animations are not applied.
 local Geometry = {}
 
 local function Horizontal(point)
@@ -50,7 +51,7 @@ local function Edges(lo, hi, mid, size)
 	if lo and hi then
 		return lo, hi
 	end
-	if type(size) ~= "number" or size <= 0 then
+	if type(size) ~= "number" or size < 0 then
 		return nil
 	end
 	if lo then

@@ -34,9 +34,12 @@ end
 assert(swipes >= 1, "a cooldown swipe is drawn")
 
 -- The chat tabs are laid out as Blizzard's dock lays them, skinned upper case by KstyleUI_Chat.
-for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT", "TRADE" }) do
+-- The dock ends before the panel's copy and plus glyphs, so on the 318 rail Blizzard's tab sizing fits three
+-- tabs and folds the fourth into its overflow button, as a narrow Blizzard window does.
+for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT" }) do
 	assert(texts[want], "the chat shows the " .. want .. " tab")
 end
+assert(not texts["TRADE"], "the fourth tab waits in the dock's overflow, clear of the glyphs")
 
 -- The centre cluster: six essential and four utility cooldown icons, each with its own warrior icon.
 for _, group in ipairs({ "essential", "utility" }) do

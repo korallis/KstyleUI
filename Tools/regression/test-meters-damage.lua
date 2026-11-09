@@ -73,6 +73,10 @@ do
 	assert(row.glow and row.glow:GetBlendMode() == "ADD", "a soft glow lies under the pill")
 	local glow = { row.glow:GetPoint(1) }
 	assert(glow[2] == row.bar:GetStatusBarTexture(), "the glow follows the pill's fill, so a secret value moves it too")
+	-- The glow reaches above and below the pill, never past its ends: a full pill's glow stayed inside the track.
+	local glowEnd = { row.glow:GetPoint(2) }
+	assert(glow[1] == "TOPLEFT" and M.W.Near(glow[4], 0) and glow[5] > 0, "the glow starts where the fill starts, risen above it: " .. tostring(glow[4]))
+	assert(glowEnd[1] == "BOTTOMRIGHT" and M.W.Near(glowEnd[4], 0) and glowEnd[5] < 0, "and ends where the fill ends, dropped below it: " .. tostring(glowEnd[4]))
 	-- The rows fill the column to one inset above the bottom: no dead band under the last row.
 	local capacity = list:Capacity()
 	local height, spacing = row.frame:GetHeight(), ns.Get("damage.spacing")
@@ -177,7 +181,12 @@ M.Write(env, K, "damage.shown", true)
 assert(K.Safe.IsHidden(blizzard), "showing the window hides Blizzard's meter again")
 assert(K.Layout.Live("meters.damage"), "and its element comes back")
 
--- Data that stays hidden in combat makes the meter restyle Blizzard's window from the end of combat.
+-- The style setting defaults to auto: KstyleUI's window where the client lets addons read the data in combat,
+-- Blizzard's window restyled where it does not (C_Secrets.HasSecretRestrictions), decided once at the start.
+-- No mode flips mid-session and nothing is printed: a player who picks the window keeps it, with a note in combat.
+assert(ns.Get("damage.mode") == "auto", "the style defaults to auto")
+assert(Damage.Mode() == "window", "without secret restrictions auto is KstyleUI's window")
+M.Write(env, K, "damage.mode", "window")
 env.SetCombat(true)
 env.RunTimers()
 env._locked[env._session] = true
@@ -187,19 +196,33 @@ assert(list.note:IsShown(), "hidden data shows a note")
 assert(Text(list.note) == "Hidden in combat", "the note says why")
 assert(K.Safe.IsHidden(blizzard), "Blizzard's meter stays hidden during combat")
 env.SetCombat(false)
+env._locked[env._session] = nil
+env.FireEvent("PLAYER_REGEN_ENABLED")
 env.RunTimers()
-assert(Damage.Mode() == "skin", "after combat the meter falls back to Blizzard's window")
-assert(not Damage.holder:IsShown(), "KstyleUI's window hides")
-assert(blizzard:GetParent() == env.UIParent, "Blizzard's meter comes back")
-assert(ns.DamageSkin.active, "Blizzard's meter is restyled")
-assert(CoreEnv.Printed(env, "Damage Meter"), "the player is told once")
-assert(M.Logged(env, "hidden in combat"), "the fallback is logged")
+assert(Damage.Mode() == "window", "after combat the chosen window stays the window")
+assert(Damage.holder:IsShown() and not list.note:IsShown(), "and fills again when the data can be read")
+assert(not CoreEnv.Printed(env, "Damage Meter"), "nothing is printed to chat")
+assert(M.Logged(env, "hidden from addons"), "the hidden spell is logged")
+M.Write(env, K, "damage.mode", "skin")
+assert(Damage.Mode() == "skin" and ns.DamageSkin.active, "Blizzard's window restyled, by choice")
 
 -- Turning the module off after a restyle asks for a reload.
 M.Disable(env, K)
 assert(CoreEnv.Printed(env, "/reload"), "a restyled Blizzard window needs a reload to undo")
 assert(blizzard:GetParent() == env.UIParent, "Blizzard's meter stays on UIParent")
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
+
+-- On a client with secret restrictions auto restyles Blizzard's window from the start, so the meter reads in
+-- combat, and says so once in the log.
+local envR, KR, nsR = M.New({ restricted = true })
+M.Enable(envR, KR)
+assert(nsR.Damage.Mode() == "skin", "secret restrictions: auto is Blizzard's window restyled")
+assert(nsR.DamageSkin.active and not nsR.Damage.holder:IsShown(), "restyled from the start, KstyleUI's window never shows")
+assert(M.Logged(envR, "secret in combat"), "the choice is logged")
+assert(not CoreEnv.Printed(envR, "Damage Meter"), "and not printed")
+M.Write(envR, KR, "damage.mode", "window")
+assert(nsR.Damage.Mode() == "window" and nsR.Damage.holder:IsShown(), "the player may still choose the window")
+assert(#envR._errors == 0, "no Lua error: " .. tostring(envR._errors[1]))
 
 -- Without C_DamageMeter the module restyles Blizzard's window from the start.
 local env2, K2, ns2 = M.New({ noMeter = true })

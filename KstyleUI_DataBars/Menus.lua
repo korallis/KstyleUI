@@ -24,22 +24,22 @@ local GROUPS = {
 		inMenu = true,
 		aspect = MICRO_ASPECT,
 		buttons = {
-			{ name = "CharacterMicroButton", label = L["Character"], portrait = true },
-			{ name = "ProfessionMicroButton", label = L["Professions"] },
-			{ name = "PlayerSpellsMicroButton", label = L["Spells and talents"] },
-			{ name = "SpellbookMicroButton", label = L["Spellbook"] },
-			{ name = "TalentMicroButton", label = L["Talents"] },
+			{ name = "CharacterMicroButton", label = L["Character"], portrait = true, compact = true },
+			{ name = "ProfessionMicroButton", label = L["Professions"], compact = true },
+			{ name = "PlayerSpellsMicroButton", label = L["Spells and talents"], compact = true },
+			{ name = "SpellbookMicroButton", label = L["Spellbook"], compact = true },
+			{ name = "TalentMicroButton", label = L["Talents"], compact = true },
 			{ name = "AchievementMicroButton", label = L["Achievements"] },
 			{ name = "LegacyMicroButton", label = L["Legacy"] },
-			{ name = "QuestLogMicroButton", label = L["Quest log"] },
+			{ name = "QuestLogMicroButton", label = L["Quest log"], compact = true },
 			{ name = "HousingMicroButton", label = L["Housing"] },
-			{ name = "GuildMicroButton", label = L["Guild and communities"] },
-			{ name = "LFDMicroButton", label = L["Group finder"] },
+			{ name = "GuildMicroButton", label = L["Guild and communities"], compact = true },
+			{ name = "LFDMicroButton", label = L["Group finder"], compact = true },
 			{ name = "CollectionsMicroButton", label = L["Collections"] },
 			{ name = "EJMicroButton", label = L["Adventure guide"] },
 			{ name = "HelpMicroButton", label = L["Help"] },
 			{ name = "StoreMicroButton", label = L["Shop"] },
-			{ name = "MainMenuMicroButton", label = L["Game menu"], gameMenu = true },
+			{ name = "MainMenuMicroButton", label = L["Game menu"], gameMenu = true, compact = true },
 		},
 	},
 	bags = {
@@ -131,9 +131,12 @@ function Menus.Grid(count, rows)
 	return cols, ceil(count / cols)
 end
 
-local function Wanted(bar, entry)
+local function Wanted(bar, entry, s)
 	local target = entry.target
 	if bar.group.inMenu and target:GetParent() ~= Frame(bar.group.owner) then
+		return false
+	end
+	if bar.group.inMenu and s.set ~= "full" and not entry.def.compact then
 		return false
 	end
 	return Flag(target:IsShown(), true)
@@ -311,7 +314,7 @@ function Arrange(bar)
 	local holder, content = bar.holder, bar.content
 	local wanted = {}
 	for _, entry in ipairs(bar.entries) do
-		if Wanted(bar, entry) then
+		if Wanted(bar, entry, s) then
 			entry.rank = Rank(entry)
 			wanted[#wanted + 1] = entry
 		end
@@ -323,7 +326,7 @@ function Arrange(bar)
 	local width = s.shape ~= "tile" and height or Widgets.Snap(holder, size * bar.group.aspect)
 	local gap = Widgets.Snap(holder, s.spacing)
 	local pad = Widgets.Snap(holder, PAD)
-	local cols, rows = Menus.Grid(#wanted > 0 and #wanted or #bar.entries, s.rows)
+	local cols, rows = Menus.Grid(#wanted > 0 and #wanted or #bar.entries, bar.dockRows or s.rows)
 	local parts = { width, height, gap, pad, cols }
 	for _, entry in ipairs(list) do
 		parts[#parts + 1] = entry.index
@@ -369,18 +372,18 @@ local function Sync(bar)
 	end
 end
 
-function Menus.SetDock(id, dock, parent, size)
+function Menus.SetDock(id, dock, parent, size, rows)
 	local bar = bars[id]
-	if not bar or (bar.dock == dock and bar.dockParent == parent and bar.dockSize == size) then
+	if not bar or (bar.dock == dock and bar.dockParent == parent and bar.dockSize == size and bar.dockRows == rows) then
 		return
 	end
 	if InCombatLockdown() then
 		K.Combat.Queue(function()
-			Menus.SetDock(id, dock, parent, size)
+			Menus.SetDock(id, dock, parent, size, rows)
 		end)
 		return
 	end
-	bar.dock, bar.dockParent, bar.dockSize = dock, parent, size
+	bar.dock, bar.dockParent, bar.dockSize, bar.dockRows = dock, parent, size, rows
 	local holder, content = bar.holder, bar.content
 	holder:SetShown(dock == nil)
 	content:ClearAllPoints()
