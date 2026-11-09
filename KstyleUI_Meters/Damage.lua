@@ -334,31 +334,34 @@ local function SpellShown(spell, info)
 end
 
 local function RowTooltip(tip, list, i)
-	if drill.active then
+	if drill.active and i <= (list.count or 0) then
 		tip:AddLine(L["Click to go back to every source."])
-		return
+		return true
 	end
+	return false
+end
+
+local function RowSplit(split, list, i)
 	local slot = slots[i]
-	if not slot or not slot.ok or i > (list.count or 0) then
-		return
+	if drill.active or not slot or not slot.ok or i > (list.count or 0) then
+		return false
 	end
-	local r, g, b = ns.BarColor("damage", slot.class, slot.reaction)
-	tip:AddTitle(slot.name, r, g, b)
 	local info, meterType, sessionType, sessionID = Context()
 	if not info or not SourceApi() or (sessionType == nil and sessionID == nil) then
-		tip:AddLine(L["Click for every spell"])
-		return
+		split:SetNote(L["Click for every spell"])
+		return true
 	end
 	local ok, source = SourceData(meterType, sessionType, sessionID, slot.guid, slot.creature)
 	if not ok or not Readable(source) or not Readable(source.combatSpells) then
-		tip:AddLine(L["The spells show after combat."])
-		return
+		split:SetNote(L["The spells show after combat."])
+		return true
 	end
+	local spells = source.combatSpells
 	local total = source.totalAmount
 	local percent = ns.Get("damage.percent")
 	local listed = 0
 	for n = 1, TOOLTIP_SPELLS do
-		local spell = source.combatSpells[n]
+		local spell = spells[n]
 		if not Readable(spell) then
 			break
 		end
@@ -367,12 +370,17 @@ local function RowTooltip(tip, list, i)
 		if percent then
 			right = right .. SWITCH_GAP .. Logic.FormatPercent(Logic.Percent(spell.totalAmount, total))
 		end
-		tip:AddDoubleLine(SpellName(spell, slot.name), right)
+		split:AddLine(SpellName(spell, slot.name), right)
 	end
 	if listed == 0 then
-		tip:AddLine(L["No data yet"])
+		split:SetNote(L["No data yet"])
+		return true
 	end
-	tip:AddLine(L["Click for every spell"])
+	local count = #spells
+	if count > listed then
+		split:SetNote(string.format(L["Click for all %d spells"], count))
+	end
+	return true
 end
 
 local function RowSplits(list, i)
@@ -579,7 +587,7 @@ local function Build()
 	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
 		width = width or 260, height = height or 174, columns = Columns, onClick = OnClick,
 		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
-		rowTooltip = RowTooltip, rowSplits = RowSplits,
+		rowTooltip = RowTooltip, rowSplits = RowSplits, rowSplit = RowSplit,
 	})
 	Damage.holder = Damage.list.holder
 	ns.Place(Damage.holder, KEY, LIMITS)

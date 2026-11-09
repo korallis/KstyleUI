@@ -281,17 +281,35 @@ Windows.LIST = {
 
 local build = {}
 
--- The character window (Camelot/CharacterFrame.xml:403, 631 by 484): side mode tabs, the paper doll's slots in two
--- columns beside the model, the level line, and the stats pane on the right.
+-- The character window (Camelot/CharacterFrame.xml:403, 631 by 484): the left pane 398 wide from 20 under the
+-- window's top (:407), the right pane 233 wide beside it with its 60-unit stone cap and the divider frame on
+-- its left edge (:424 to :456), the mode tabs off the right edge, and the pane toggle. build.character puts
+-- Forever's PaperDollFrame in it; build.reputation the reputation list.
+local LEFT_PANE, RIGHT_PANE, PANE_TOP = 398, 233, 20
+local STONE_CAP = 60
+
 local function CharacterWindow(env, B, x, y)
 	local f = Window(B, "CharacterFrame", nil, 631, 484, "Valerin")
 	At(f, env.UIParent, x, y)
-	f.LeftPaneHost = B.frame("Frame", f)
-	Fill(f.LeftPaneHost, f, 0, TITLE_HEIGHT, 290, 0)
+	f.LeftPaneHost = B.frame("Frame", f, "CharacterFrameLeftPaneHost")
+	f.LeftPaneHost:SetWidth(LEFT_PANE)
+	Anchor(f.LeftPaneHost, f, "TOPLEFT", 0, -PANE_TOP)
+	f.LeftPaneHost:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
 	B.texture(f.LeftPaneHost, "BACKGROUND")
-	f.RightPaneHost = B.frame("Frame", f)
-	Fill(f.RightPaneHost, f, 341, TITLE_HEIGHT, 0, 0)
+	f.RightPaneHost = B.frame("Frame", f, "CharacterFrameRightPaneHost")
+	f.RightPaneHost:SetWidth(RIGHT_PANE)
+	f.RightPaneHost:SetPoint("TOPLEFT", f.LeftPaneHost, "TOPRIGHT", 0, 0)
+	f.RightPaneHost:SetPoint("BOTTOMLEFT", f.LeftPaneHost, "BOTTOMRIGHT", 0, 0)
+	B.texture(f.RightPaneHost, "BACKGROUND")
 	f.RightPaneHost.StoneBg = B.texture(f.RightPaneHost)
+	f.RightPaneHost.StoneBg:SetSize(RIGHT_PANE, STONE_CAP)
+	Anchor(f.RightPaneHost.StoneBg, f.RightPaneHost, "TOPLEFT", 0, 0)
+	env.CharacterFrameRightPaneHostStoneBg = f.RightPaneHost.StoneBg
+	local divider = B.frame("Frame", f.RightPaneHost)
+	divider:SetWidth(11)
+	Anchor(divider, f.RightPaneHost, "TOPLEFT", 0, -1)
+	divider:SetPoint("BOTTOMLEFT", f.RightPaneHost, "BOTTOMLEFT", 0, 0)
+	B.texture(divider, "OVERLAY"):SetAllPoints(divider)
 	-- The mode tabs hang off the window's right edge (CharacterFrame.xml:568: TOPLEFT at the frame's
 	-- TOPRIGHT, y -30), stacked 2 apart as CharacterFrameMixin:UpdateTabLayout stacks them.
 	f.ModeTabs = B.frame("Frame", f)
@@ -333,53 +351,28 @@ local function CharacterWindow(env, B, x, y)
 	return f
 end
 
-function build.character(env, B)
-	local f = CharacterWindow(env, B, 120, 120)
-	local qualities = { 4, 3, 2, 2, 4, 1, 1, 3, 2, 2, 3, 2, 4, 3, 2, 2, 3, 2 }
-	env.GetInventoryItemQuality = function(_, id)
-		return qualities[id]
-	end
-	env.PaperDollItemSlotButton_Update = function() end
-	local slots = {
-		"CharacterHeadSlot", "CharacterNeckSlot", "CharacterShoulderSlot", "CharacterBackSlot", "CharacterChestSlot",
-		"CharacterShirtSlot", "CharacterTabardSlot", "CharacterWristSlot", "CharacterHandsSlot", "CharacterWaistSlot",
-		"CharacterLegsSlot", "CharacterFeetSlot", "CharacterFinger0Slot", "CharacterFinger1Slot", "CharacterTrinket0Slot",
-		"CharacterTrinket1Slot", "CharacterMainHandSlot", "CharacterSecondaryHandSlot",
-	}
-	local doll = B.frame("Frame", f, "PaperDollFrame")
-	doll:SetAllPoints(f.LeftPaneHost)
-	for i, name in ipairs(slots) do
-		local slot = Item(B, doll, ICONS[i], 37, name)
-		slot:SetID(i)
-		slot.NormalTexture = B.texture(slot)
-		slot.BorderFrame = B.frame("Frame", slot)
-		slot.BorderFrame:SetAllPoints(slot)
-		B.texture(slot.BorderFrame, "BACKGROUND")
-		-- PaperDollFrame.xml:781 and :822: the columns start 24 in from the left pane's left edge and 20 from its
-		-- right, 60 under its top, each slot 6 under the one before; the weapons sit in a row under the model.
-		if i <= 8 then
-			At(slot, doll, 24, 40 + (i - 1) * 43)
-		elseif i <= 16 then
-			Anchor(slot, doll, "TOPRIGHT", -20, -(40 + (i - 9) * 43))
-		else
-			At(slot, doll, 128 + (i - 17) * 43, 40 + 8 * 43)
-		end
-	end
-	local scene = B.frame("Frame", doll, "CharacterModelScene")
-	Fill(scene, doll, 70, 40, 70, 60)
-	Colour(B, scene, "BACKGROUND", 0.09, 0.11, 0.12, 0.6):SetAllPoints(scene)
-	doll.TopBackgroundStripHost = B.frame("Frame", doll)
-	At(doll.TopBackgroundStripHost, doll, 0, 0, 341, 12)
-	B.texture(doll.TopBackgroundStripHost)
-	env.CharacterLevelText = Text(B.text(doll), "Level 38 Orc Warrior", "BOTTOM", doll, "BOTTOM", 0, 14)
-	-- The sidebar tabs (Camelot/PaperDollFrame.xml:372 and :405): three 42-unit check buttons in a 233 by 85
-	-- holder centred on the right pane's top, the middle one 5 under the holder's top and the others beside it
-	-- (PaperDollFrame_UpdateSidebarTabLayout without a pet); each icon fills its tab except the portrait and
-	-- the equipment-set icons, which OnLoad sizes 36 by 33 (Camelot/PaperDollFrame.lua:366).
+-- The paper doll's equipment slots in Forever's order, with the Blizzard icon of a level-38 warrior's gear
+-- (Camelot/PaperDollFrame.xml:781 onward anchors them; the set B pack repaints every one of these icons).
+local DOLL_SLOTS = {
+	{ "CharacterHeadSlot", 133127 }, { "CharacterNeckSlot", 133294 }, { "CharacterShoulderSlot", 135054 },
+	{ "CharacterBackSlot", 133763 }, { "CharacterChestSlot", 132739 }, { "CharacterShirtSlot", 135012 },
+	{ "CharacterTabardSlot", 135026 }, { "CharacterWristSlot", 132618 }, { "CharacterHandsSlot", 132963 },
+	{ "CharacterWaistSlot", 132516 }, { "CharacterLegsSlot", 134693 }, { "CharacterFeetSlot", 132587 },
+	{ "CharacterFinger0Slot", 133359 }, { "CharacterFinger1Slot", 133373 }, { "CharacterTrinket0Slot", 134336 },
+	{ "CharacterTrinket1Slot", 133440 }, { "CharacterMainHandSlot", 132400 }, { "CharacterSecondaryHandSlot", 134952 },
+	{ "CharacterRangedSlot", 135496 },
+}
+local SLOT, SLOT_GAP = 37, 6
+local STRIP_HEIGHT = 36
+
+-- The sidebar tabs (Camelot/PaperDollFrame.xml:405): a 233 by 85 holder on the right pane's top, the middle tab
+-- 5 under the holder's top and the others flush beside it, as PaperDollFrame_UpdateSidebarTabLayout anchors
+-- them without a pet (PaperDollFrame.lua:3425); each icon fills its tab except the portrait and the equipment
+-- set icons, which OnLoad sizes 36 by 33 (PaperDollFrame.lua:366).
+local function SidebarTabs(env, B, f)
 	local holder = B.frame("Frame", f, "PaperDollSidebarTabs")
-	holder:SetSize(233, 85)
+	holder:SetSize(RIGHT_PANE, 85)
 	Anchor(holder, f.RightPaneHost, "TOP", 0, -4)
-	local sidebar = {}
 	for i = 1, 3 do
 		local tab = B.frame("CheckButton", holder, "PaperDollSidebarTab" .. i)
 		tab:SetSize(42, 42)
@@ -393,19 +386,32 @@ function build.character(env, B)
 		tab.Icon:SetPoint("CENTER", tab, "CENTER", 0, 0)
 		B.texture(tab, "BORDER")
 		tab:SetChecked(i == 1)
-		sidebar[i] = tab
 	end
-	Anchor(sidebar[2], holder, "TOP", 0, -5)
-	Anchor(sidebar[1], sidebar[2], "RIGHT", "LEFT", 0, 0)
-	Anchor(sidebar[3], sidebar[2], "LEFT", "RIGHT", 0, 0)
+	function env.PaperDollFrame_UpdateSidebarTabLayout()
+		local tab1, tab2, tab3 = env.PaperDollSidebarTab1, env.PaperDollSidebarTab2, env.PaperDollSidebarTab3
+		tab1:ClearAllPoints()
+		tab2:ClearAllPoints()
+		tab3:ClearAllPoints()
+		tab2:SetPoint("TOP", holder, "TOP", 0, -5)
+		tab1:SetPoint("RIGHT", tab2, "LEFT", 0, 0)
+		tab3:SetPoint("LEFT", tab2, "RIGHT", 0, 0)
+	end
+	env.PaperDollFrame_UpdateSidebarTabLayout()
+	return holder
+end
+
+-- The stats pane (CharacterFrame.xml:463): from the stone cap's bottom to the right pane's bottom; its rows
+-- are categories and stats as CharacterStatsPaneScrollBoxMixin lists them.
+local function StatsPane(B, f)
 	local stats = B.frame("Frame", f, "CharacterStatsPaneScrollBox")
-	Fill(stats, f.RightPaneHost, 8, 60, 8, 8)
+	stats:SetPoint("TOPLEFT", f.RightPaneHost.StoneBg, "BOTTOMLEFT", 0, 0)
+	stats:SetPoint("BOTTOMRIGHT", f.RightPaneHost, "BOTTOMRIGHT", 0, 0)
 	stats.Border = B.texture(stats, "BORDER")
 	stats.ScrollBox = ScrollBox(B, stats)
 	stats.ScrollBar = ScrollBar(B, stats)
-	Anchor(stats.ScrollBar, stats, "TOPRIGHT", 0, 0)
+	Anchor(stats.ScrollBar, stats, "TOPRIGHT", -4, -4)
 	stats.ScrollBar:SetHeight(380)
-	Fill(stats.ScrollBox, stats, 0, 0, 14, 0)
+	Fill(stats.ScrollBox, stats, 8, 4, 18, 4)
 	local rows = {}
 	local function Header(title)
 		local row = Row(B, stats.ScrollBox, 24)
@@ -437,7 +443,97 @@ function build.character(env, B)
 	Stat("Armor", "1,842")
 	Stat("Block", "17%")
 	Stack(rows, stats.ScrollBox, 0, 2)
-	return f, { bounds = { f, f.ModeTabs.Tabs[6] }, portraits = f.portraits }
+	return stats
+end
+
+-- Forever's PaperDollFrame (Camelot/PaperDollFrame.xml:403 onward) in the character window: the 36-unit
+-- top strip across the left pane with the level line centred on it (:554 and :571), the model scene from the
+-- strip's bottom to the pane's bottom with its four race paintings and overlay (:602), the equipment columns 24
+-- in from the pane's left and 20 from its right, 60 under its top, 6 apart (:781 and :822), the weapon row
+-- on the pane's bottom, 30 up, the main hand centred 40 left of the pane's centre and the others 6 to its right
+-- (PaperDollFrame.lua:1938, a warrior with a ranged slot and no ammo), the sidebar tabs and the stats pane.
+-- The 3D model itself is a texture in a child frame of the scene (parts.models), which the gallery paints with
+-- the class's full-body stand-in where the game draws the model.
+function build.character(env, B)
+	local f = CharacterWindow(env, B, 120, 120)
+	local qualities = { 4, 3, 2, 2, 4, 1, 1, 3, 2, 2, 3, 2, 4, 3, 2, 2, 3, 2, 2 }
+	env.GetInventoryItemQuality = function(_, id)
+		return qualities[id]
+	end
+	env.PaperDollItemSlotButton_Update = function() end
+	local doll = B.frame("Frame", f, "PaperDollFrame")
+	doll:SetAllPoints(f)
+	local strip = B.frame("Frame", doll)
+	doll.TopBackgroundStripHost = strip
+	strip:SetPoint("TOPLEFT", f.LeftPaneHost, "TOPLEFT", 0, 0)
+	strip:SetPoint("TOPRIGHT", f.LeftPaneHost, "TOPRIGHT", 0, 0)
+	strip:SetHeight(STRIP_HEIGHT)
+	strip.TopBackgroundStrip = B.texture(strip)
+	strip.TopBackgroundStrip:SetAllPoints(strip)
+	strip.TopBackgroundStripBottomEdge = B.texture(strip)
+	strip.TopBackgroundStripBottomEdge:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", 0, 0)
+	strip.TopBackgroundStripBottomEdge:SetPoint("BOTTOMRIGHT", strip, "BOTTOMRIGHT", 0, 0)
+	strip.TopBackgroundStripBottomEdge:SetHeight(4)
+	local info = B.frame("Frame", doll, "PaperDollLevelInfo")
+	info:SetSize(220, 20)
+	Anchor(info, strip, "CENTER", 0, -2)
+	env.CharacterLevelText = Text(B.text(info), "Level 38 Orc Warrior", "CENTER", info)
+	env.CharacterLevelText:SetSize(220, 20)
+	local scene = B.frame("Frame", doll, "CharacterModelScene")
+	doll.CharacterModelScene = scene
+	scene:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, 0)
+	scene:SetPoint("TOPRIGHT", strip, "BOTTOMRIGHT", 0, 0)
+	scene:SetPoint("BOTTOMRIGHT", f.LeftPaneHost, "BOTTOMRIGHT", 0, 0)
+	for _, key in ipairs({ "BackgroundTopLeft", "BackgroundTopRight", "BackgroundBotLeft", "BackgroundBotRight" }) do
+		scene[key] = B.texture(scene, "BACKGROUND")
+	end
+	scene.BackgroundTopLeft:SetPoint("TOPLEFT", scene, "TOPLEFT", 0, 0)
+	scene.BackgroundTopLeft:SetPoint("BOTTOMRIGHT", scene, "BOTTOMRIGHT", -79, 129)
+	scene.BackgroundTopRight:SetWidth(80)
+	scene.BackgroundTopRight:SetPoint("TOPRIGHT", scene, "TOPRIGHT", 0, 0)
+	scene.BackgroundTopRight:SetPoint("BOTTOMRIGHT", scene, "BOTTOMRIGHT", 0, 129)
+	scene.BackgroundBotLeft:SetHeight(130)
+	scene.BackgroundBotLeft:SetPoint("BOTTOMLEFT", scene, "BOTTOMLEFT", 0, 0)
+	scene.BackgroundBotLeft:SetPoint("BOTTOMRIGHT", scene, "BOTTOMRIGHT", -79, 0)
+	scene.BackgroundBotRight:SetSize(80, 130)
+	scene.BackgroundBotRight:SetPoint("BOTTOMRIGHT", scene, "BOTTOMRIGHT", 0, 0)
+	scene.BackgroundOverlay = B.texture(scene, "BORDER")
+	scene.BackgroundOverlay:SetAllPoints(scene)
+	-- The model: the game draws the character here; the stand-in paints a figure from a little under the
+	-- strip down to the weapon row, centred on the scene.
+	local figure = B.frame("Frame", scene)
+	figure:SetPoint("TOPLEFT", scene, "TOPLEFT", 0, -SLOT_GAP)
+	figure:SetPoint("BOTTOMRIGHT", f.LeftPaneHost, "BOTTOMRIGHT", 0, 30 + SLOT + SLOT_GAP)
+	local model = figure:CreateTexture(nil, "ARTWORK")
+	model:SetPoint("TOP", figure, "TOP", 0, 0)
+	model:SetPoint("BOTTOM", figure, "BOTTOM", 0, 0)
+	model:SetWidth(1)
+	local items = B.frame("Frame", doll, "PaperDollItemsFrame")
+	items:SetAllPoints(doll)
+	for i, entry in ipairs(DOLL_SLOTS) do
+		local slot = Item(B, items, entry[2], SLOT, entry[1])
+		slot:SetID(i)
+		slot.NormalTexture = B.texture(slot)
+		slot.BorderFrame = B.frame("Frame", slot)
+		slot.BorderFrame:SetAllPoints(slot)
+		B.texture(slot.BorderFrame, "BACKGROUND")
+		if i == 1 then
+			Anchor(slot, f.LeftPaneHost, "TOPLEFT", 24, -60)
+		elseif i <= 8 then
+			Anchor(slot, env[DOLL_SLOTS[i - 1][1]], "TOPLEFT", "BOTTOMLEFT", 0, -SLOT_GAP)
+		elseif i == 9 then
+			Anchor(slot, f.LeftPaneHost, "TOPRIGHT", -20, -60)
+		elseif i <= 16 then
+			Anchor(slot, env[DOLL_SLOTS[i - 1][1]], "TOPLEFT", "BOTTOMLEFT", 0, -SLOT_GAP)
+		elseif i == 17 then
+			Anchor(slot, f.LeftPaneHost, "BOTTOM", -40, 30)
+		else
+			Anchor(slot, env[DOLL_SLOTS[i - 1][1]], "TOPLEFT", "TOPRIGHT", SLOT_GAP, 0)
+		end
+	end
+	SidebarTabs(env, B, f)
+	StatsPane(B, f)
+	return f, { bounds = { f, f.ModeTabs.Tabs[6] }, portraits = f.portraits, models = { model } }
 end
 
 -- RepBar(B, parent, w) -> a ColoredProgressBarTemplate bar: a background, a masked Fill, a Text.

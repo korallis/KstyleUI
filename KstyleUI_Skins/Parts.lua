@@ -1,4 +1,4 @@
--- Parts.lua: the pieces skins draw on KstyleUI's own child frames: quality rims, accent lines, side tabs, the docked-tab treatment that grows a window's glass around the tabs Blizzard hangs past its edge, dropdowns, list rows and fill bars.
+-- Parts.lua: the pieces skins draw on KstyleUI's own child frames: quality rims, accent lines, side tabs, the docked-tab treatment that grows a window's glass around the tabs Blizzard hangs past its edge (a side column behind a seam hairline, a bottom tab strip inset with none), dropdowns, list rows and fill bars.
 local _, ns = ...
 
 local K = KstyleUI
@@ -19,6 +19,7 @@ local WASH_ALPHA = 0.12
 local MODULE = "Skins"
 
 local DOCK_GAP = "gapMedium"
+local DOCK_GAP_BOTTOM = "gapLarge"
 local DOCK_CORNER = "radius"
 local EDGES = { "LEFT", "RIGHT", "TOP", "BOTTOM" }
 local EDGE_KEY = { LEFT = "left", RIGHT = "right", TOP = "top", BOTTOM = "bottom" }
@@ -301,7 +302,7 @@ local function PlaceSeam(dock, edge, reach, straddle, head)
 		return
 	end
 	local seam = Seam(dock, edge)
-	if reach <= 0 or straddle then
+	if reach <= 0 or straddle or edge == "BOTTOM" then
 		seam:Hide()
 		return
 	end
@@ -348,7 +349,6 @@ local function PlaceDock(dock)
 	if not reach then
 		return false
 	end
-	local gap = Tokens.Size(DOCK_GAP)
 	local panel = dock.panel
 	local inset = panel.inset
 	if type(inset) ~= "table" then
@@ -356,6 +356,7 @@ local function PlaceDock(dock)
 		panel.inset = inset
 	end
 	for _, edge in ipairs(EDGES) do
+		local gap = Tokens.Size(edge == "BOTTOM" and DOCK_GAP_BOTTOM or DOCK_GAP)
 		local past = reach[edge] > 0 and Widgets.Snap(panel, reach[edge] + gap) or 0
 		reach[edge] = past
 		inset[EDGE_KEY[edge]] = dock.base[edge] - past

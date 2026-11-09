@@ -1158,7 +1158,7 @@ function modules.meters(opts)
 	end
 	M.Tick(env)
 	-- opts.meterHover ({ spellID, name, icon, amount }, highest first): the pointer rests on the player's row, so its
-	-- tooltip lists the player's top three spells of the fight, as the game reads them out of combat.
+	-- split opens under the row, inside the card, with the player's top three spells of the fight, as the game reads them out of combat.
 	if opts.meterHover and rows[1] then
 		local spells, total = {}, 0
 		for i, s in ipairs(opts.meterHover) do
@@ -1174,7 +1174,7 @@ function modules.meters(opts)
 	end
 	local scene = build(env, opts)
 	if opts.meterHover then
-		scene.log[#scene.log + 1] = "the pointer rests on the player's row of the damage meter: its tooltip lists the top three spells"
+		scene.log[#scene.log + 1] = "the pointer rests on the player's row of the damage meter: its split lists the top three spells under the row"
 	end
 	return finish(env, K, scene, "meters"), ns
 end

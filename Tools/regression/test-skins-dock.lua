@@ -1,4 +1,4 @@
--- test-skins-dock.lua: one docked-tab treatment for every skinned window: the window's glass grows to wrap the tabs Blizzard hangs past its edge (bottom tabs, side columns, the world map's quest log), a hairline marks the seam unless the tabs straddle the edge, the title re-centres over the glass, and a window title never wraps.
+-- test-skins-dock.lua: one docked-tab treatment for every skinned window: the window's glass grows to wrap the tabs Blizzard hangs past its edge (bottom tabs, side columns, the world map's quest log), a hairline marks a side column's seam unless the tabs straddle the edge, a bottom tab strip is inset with no seam, the title re-centres over the glass, and a window title never wraps.
 local S = dofile("Tools/regression/skins_env.lua")
 local Windows = dofile("Tools/regression/skins_windows.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -109,14 +109,15 @@ do
 	assert(wa > 0.08 and wa < 0.4, "at a wash alpha: " .. tostring(wa))
 	Same(Rect(inbox.wash, root).left, Rect(env.MailFrameTab1, root).left, "the wash fills the tab's segment")
 	Same(Rect(inbox.wash, root).right, Rect(env.MailFrameTab1, root).right, "to its right edge")
+	-- A bottom tab strip is inset in the glass: no hairline runs along the pill's top, and the glass ends a
+	-- large gap under the strip, clear of the chamfer, so the tabs read as a tab bar inside the window rather
+	-- than a strip hung off its edge (Muse, rounds 4 to 6). Side columns keep their seam.
 	local seam = dock.seams.BOTTOM
-	assert(seam and seam:IsShown(), "a hairline marks the seam between the window and its tab band")
-	local seamRect = Rect(seam, root)
-	Same(seamRect.top, window.bottom, "the seam runs along the window's bottom edge")
-	assert(seamRect.left > glass.left and seamRect.right < glass.right, "inset from the glass corners")
-	local er, eg, eb = K.Widgets.Rgba("edgeInner")
-	local r, g, b = seam:GetVertexColor()
-	assert(W.Near(r, er) and W.Near(g, eg) and W.Near(b, eb), "in the inner edge tone")
+	assert(seam == nil or not seam:IsShown(), "no hairline runs along the top of a bottom tab strip")
+	local stripRect = Rect(strip, root)
+	local under = stripRect.bottom - glass.bottom
+	assert(math.abs(under - K.Tokens.Size("gapLarge")) < 0.5, "the glass ends a large gap under the strip, to the pixel: " .. under)
+	assert(stripRect.top <= window.bottom + EPS, "the strip hangs from the window's own bottom edge, where Blizzard put the tabs")
 	-- The open letter beside the inbox has no tabs; its glass is its frame.
 	local letter = env.OpenMailFrame
 	assert(ns.Parts.DockOf(letter) == nil, "a window without tabs has no dock")

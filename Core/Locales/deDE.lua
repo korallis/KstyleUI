@@ -317,6 +317,7 @@ ns.Locale.Add({
 	["Click area size"] = "Gr\195\182\195\159e der Klickfl\195\164che",
 	["Click casting"] = "Klickzauber",
 	["Click casting reminder"] = "Erinnerung an Klickzauber",
+	["Click for all %d spells"] = "Klickt f\195\188r alle %d Zauber",
 	["Click for every spell"] = "Klickt f\195\188r alle Zauber",
 	["Click for the next fight: this fight, the last fight or every fight."] = "Klickt f\195\188r den n\195\164chsten Kampf: diesen Kampf, den letzten Kampf oder alle K\195\164mpfe.",
 	["Click it, then drag a handle to resize it."] = "Klickt es an und zieht dann einen Griff, um die Gr\195\182\195\159e zu \195\164ndern.",

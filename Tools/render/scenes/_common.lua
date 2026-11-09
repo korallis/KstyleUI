@@ -39,6 +39,28 @@ function Common.StandIn(name)
 	return nil
 end
 
+-- ImageAspect(path) -> width / height of a PNG, read from its IHDR chunk, or nil when the file is not a PNG.
+function Common.ImageAspect(path)
+	local file = io.open(path, "rb")
+	if not file then
+		return nil
+	end
+	local head = file:read(24)
+	file:close()
+	if type(head) ~= "string" or #head < 24 or head:sub(1, 8) ~= "\137PNG\r\n\26\n" then
+		return nil
+	end
+	local function u32(at)
+		local a, b, c, d = head:byte(at, at + 3)
+		return ((a * 256 + b) * 256 + c) * 256 + d
+	end
+	local width, height = u32(17), u32(21)
+	if width <= 0 or height <= 0 then
+		return nil
+	end
+	return width / height
+end
+
 -- Icons: one rule for every scene. A numeric icon file ID draws set B's repaint when the pack has it
 -- (Tools/icons/setB/Icons, what a player with the pack installed sees for every icon, the aura tiles
 -- included), else Blizzard's own icon from the extract cache; CI has neither folder and draws a flat box.

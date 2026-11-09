@@ -1,4 +1,4 @@
--- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside or a fight switch, and full-width rows that carry an optional icon, a name, a value and a share over a flat 4-unit class pill.
+-- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside or a fight switch, full-width rows that carry an optional icon, a name, a value and a share over a flat 4-unit class pill, and a split that opens under a hovered row, inside the card.
 local _, ns = ...
 
 local K = KstyleUI
@@ -18,6 +18,8 @@ local ESTIMATE_EM = 0.5
 local CAP_RESERVE = 44
 local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
+local SPLIT_LEVEL = 3
+local SPLIT_LINE_GAP = 2
 
 local BarList = {}
 ns.BarList = BarList
@@ -53,6 +55,8 @@ local function Text(parent, justify)
 	return text
 end
 
+local RowEnter, RowLeave
+
 local function NewRow(list, index)
 	local section = list.section
 	local width = list.barWidth or Tokens.Size("buffBarWidth")
@@ -85,23 +89,18 @@ local function NewRow(list, index)
 			list.onRowClick(list, row.index, button)
 		end)
 	end
-	if list.rowTooltip then
-		Widgets.AttachTooltip(frame, function(tip)
-			list.rowTooltip(tip, list, row.index)
-		end, Inward)
-	elseif list.tooltip then
-		Widgets.AttachTooltip(frame, list.tooltip, Inward)
-	end
 	if list.rowSplits then
 		local more = frame:CreateTexture(nil, "OVERLAY")
 		more:SetTexture((Tokens.Texture("glyphChevron")))
 		more:Hide()
 		row.more = more
+	end
+	if list.rowSplit or list.rowTooltip or list.tooltip then
 		frame:HookScript("OnEnter", function()
-			more:SetShown(list.rowSplits(list, row.index) == true)
+			RowEnter(list, row)
 		end)
 		frame:HookScript("OnLeave", function()
-			more:Hide()
+			RowLeave(list, row)
 		end)
 	end
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
@@ -117,6 +116,219 @@ end
 local function Room(list)
 	local _, height = Size(list.holder, list.width, list.height)
 	return height - Widgets.Snap(list.panel, list:Top()) - list.pad
+end
+
+local Split = {}
+Split.__index = Split
+
+function Split:Clear()
+	self.used = 0
+	for _, line in ipairs(self.lines) do
+		line.frame:Hide()
+	end
+	self.note:Hide()
+end
+
+function Split:AddLine(left, right)
+	local n = self.used + 1
+	local line = self.lines[n]
+	if not line then
+		local frame = CreateFrame("Frame", nil, self.frame)
+		line = { frame = frame, left = Text(frame, "LEFT"), right = Text(frame, "RIGHT") }
+		line.left:SetTextColor(Tokens.Color("text"))
+		line.right:SetTextColor(Tokens.Color("textEmphasis"))
+		self.lines[n] = line
+	end
+	self.used = n
+	Widgets.SetText(line.left, left)
+	Widgets.SetText(line.right, right)
+	line.frame:Show()
+end
+
+function Split:SetNote(text)
+	Widgets.SetText(self.note, text)
+	self.note:Show()
+end
+
+local function NewSplit(list)
+	local frame = CreateFrame("Frame", nil, list.panel)
+	frame:SetFrameLevel(list.panel:GetFrameLevel() + SPLIT_LEVEL)
+	frame:Hide()
+	local split = setmetatable({ frame = frame, lines = {}, used = 0, hidden = {} }, Split)
+	split.chrome = Widgets.Chrome(frame, { shape = "panel", fill = "surface", shadow = true })
+	split.note = Text(frame, "LEFT")
+	split.note:SetTextColor(Tokens.Color("muted"))
+	split.note:Hide()
+	list.split = split
+	return split
+end
+
+local function SplitStyle(list, split)
+	local section = list.section
+	for _, line in ipairs(split.lines) do
+		ns.ApplyFont(line.left, section)
+		ns.ApplyFont(line.right, section)
+	end
+	ns.ApplyFont(split.note, section)
+end
+
+local function PlaceSplit(list, split, row)
+	local panel = list.panel
+	local pad = split.chrome:Inset()
+	local gap = list.gap
+	local em = ns.Get(list.section .. ".fontSize") * K.Theme.FontScale()
+	local line = Widgets.Snap(panel, em + TEXT_AIR)
+	local step = Widgets.Snap(panel, SPLIT_LINE_GAP)
+	local y = pad
+	local frame = split.frame
+	for i = 1, split.used do
+		local entry = split.lines[i]
+		entry.frame:ClearAllPoints()
+		entry.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
+		entry.frame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
+		entry.frame:SetHeight(line)
+		entry.right:ClearAllPoints()
+		entry.right:SetPoint("TOPRIGHT", entry.frame, "TOPRIGHT", 0, 0)
+		entry.right:SetHeight(line)
+		entry.left:ClearAllPoints()
+		entry.left:SetPoint("TOPLEFT", entry.frame, "TOPLEFT", 0, 0)
+		entry.left:SetPoint("RIGHT", entry.right, "LEFT", -gap, 0)
+		entry.left:SetHeight(line)
+		y = y + line + step
+	end
+	if split.note:IsShown() then
+		split.note:ClearAllPoints()
+		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -y)
+		split.note:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pad, -y)
+		split.note:SetHeight(line)
+		y = y + line + step
+	end
+	local height = Widgets.Snap(panel, y - step + pad)
+	local pitch = list.rowHeight + Spacing(list)
+	local covered = 1
+	if pitch > 0 then
+		covered = max(1, math.ceil((height + gap) / pitch))
+		height = covered * pitch - gap
+	end
+	frame:SetHeight(height)
+	local rowBottom, panelBottom = Logic.Plain(row.frame:GetBottom()), Logic.Plain(panel:GetBottom())
+	local holderBottom, panelHeight = Logic.Plain(list.holder:GetBottom()), Logic.Plain(panel:GetHeight())
+	local below = true
+	if rowBottom and panelBottom then
+		local need = rowBottom - gap - height - list.pad
+		if need < panelBottom then
+			if holderBottom and panelHeight and need >= holderBottom then
+				panel:SetHeight(panelHeight + (panelBottom - need))
+				split.grew = true
+			else
+				below = false
+			end
+		end
+	end
+	frame:ClearAllPoints()
+	if below then
+		frame:SetPoint("TOPLEFT", row.frame, "BOTTOMLEFT", 0, -gap)
+		frame:SetPoint("TOPRIGHT", row.frame, "BOTTOMRIGHT", 0, -gap)
+	else
+		frame:SetPoint("BOTTOMLEFT", row.frame, "TOPLEFT", 0, gap)
+		frame:SetPoint("BOTTOMRIGHT", row.frame, "TOPRIGHT", 0, gap)
+	end
+	split.chrome:Restyle()
+	local hidden = split.hidden
+	for n = 1, covered do
+		local other = list.rows[below and row.index + n or row.index - n]
+		if other and other.frame:IsShown() then
+			other.frame:Hide()
+			hidden[#hidden + 1] = other
+		end
+	end
+end
+
+local function Uncover(list, split)
+	local hidden = split.hidden
+	for n = #hidden, 1, -1 do
+		local row = hidden[n]
+		if row.index <= (list.count or 0) then
+			row.frame:Show()
+		end
+		hidden[n] = nil
+	end
+end
+
+local HideSplit
+
+local function ShowSplit(list, row)
+	local split = list.split or NewSplit(list)
+	split:Clear()
+	if list.rowSplit(split, list, row.index) ~= true then
+		split.frame:Hide()
+		return false
+	end
+	SplitStyle(list, split)
+	Uncover(list, split)
+	PlaceSplit(list, split, row)
+	split.row = row
+	split.frame:Show()
+	return true
+end
+
+local function Reopen(list, row)
+	if row.index <= (list.count or 0) and row.index <= (list.capacity or 0) and row.frame:IsShown() then
+		ShowSplit(list, row)
+	else
+		HideSplit(list)
+	end
+end
+
+function HideSplit(list)
+	local split = list.split
+	if split then
+		split.frame:Hide()
+		Uncover(list, split)
+		if split.grew then
+			split.grew = false
+			list:Fit()
+		end
+	end
+end
+
+function RowEnter(list, row)
+	local frame = row.frame
+	local splits = list.rowSplits ~= nil and list.rowSplits(list, row.index) == true
+	if row.more then
+		row.more:SetShown(splits)
+	end
+	if splits and list.rowSplit and ShowSplit(list, row) then
+		return
+	end
+	local content = list.rowTooltip or list.tooltip
+	if not content then
+		return
+	end
+	local tip = Widgets.Tooltip()
+	tip:SetOwner(frame, Inward(frame))
+	local filled
+	if list.rowTooltip then
+		filled = list.rowTooltip(tip, list, row.index)
+	else
+		filled = content(tip, frame)
+	end
+	if filled == false then
+		tip:Hide()
+		return
+	end
+	tip:Show()
+end
+
+function RowLeave(list, row)
+	if row.more then
+		row.more:Hide()
+	end
+	HideSplit(list)
+	local tip = Widgets.Tooltip()
+	if tip:IsOwned(row.frame) then
+		tip:Hide()
+	end
 end
 
 function List:MinRow()
@@ -301,6 +513,8 @@ function List:Restyle()
 	end
 	ns.ApplyFont(self.note, section)
 
+	local open = self.split and self.split.frame:IsShown() and self.split.row or nil
+	HideSplit(self)
 	self.rowHeight = FillHeight(self)
 	local capacity = self:Capacity()
 	for i = 1, #self.rows do
@@ -314,6 +528,9 @@ function List:Restyle()
 	self.capacity = capacity
 	self:Fit()
 	self:Paint()
+	if open then
+		Reopen(self, open)
+	end
 end
 
 function List:Fit()
@@ -369,6 +586,10 @@ function List:Finish(count, note)
 		self.note:Hide()
 	end
 	self:Fit()
+	local split = self.split
+	if split and split.frame:IsShown() and split.row then
+		Reopen(self, split.row)
+	end
 end
 
 function List:SetIcons(shown)
@@ -479,6 +700,7 @@ function BarList.New(parent, section, opts)
 	list.tooltip = opts.tooltip
 	list.rowTooltip = opts.rowTooltip
 	list.rowSplits = opts.rowSplits
+	list.rowSplit = opts.rowSplit
 	list.icons = false
 	list.rows = {}
 	list.count = 0

@@ -317,6 +317,7 @@ ns.Locale.Add({
 	["Click area size"] = "Tama\195\177o del \195\161rea de clic",
 	["Click casting"] = "Lanzamiento con clic",
 	["Click casting reminder"] = "Recordatorio de lanzamiento con clic",
+	["Click for all %d spells"] = "Haz clic para ver los %d hechizos",
 	["Click for every spell"] = "Haz clic para ver todos los hechizos",
 	["Click for the next fight: this fight, the last fight or every fight."] = "Haz clic para el siguiente combate: este combate, el \195\186ltimo o todos los combates.",
 	["Click it, then drag a handle to resize it."] = "Haz clic en \195\169l y luego arrastra un tirador para cambiar su tama\195\177o.",

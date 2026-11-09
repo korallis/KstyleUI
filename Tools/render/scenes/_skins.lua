@@ -8,6 +8,7 @@
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Windows = dofile("Tools/regression/skins_windows.lua")
+local Geometry = dofile("Tools/regression/geometry.lua")
 local S = Windows.S
 
 local Skins = { Windows = Windows, Gallery = Gallery }
@@ -20,7 +21,7 @@ Skins.PAD = 28
 -- buffbars (bar).
 Skins.WINDOWS = {
 	character = { grade = "window", reference = "chat",
-		caption = "CharacterFrame: window glass; equipment slots and side tabs on the button body (IconChrome rims); stat rows on the glass with captions over accent lines.",
+		caption = "CharacterFrame, Forever's paper doll on the window glass: the level line on the top strip, the model standing on the glass (a full-body stand-in where the game draws the 3D model), the equipment columns and weapon row on quality-rimmed button bodies in Blizzard's own anchors, the sidebar tabs spaced by the kit gap over the stats pane; stat rows on the glass with captions over accent lines.",
 		match = "Window chamfer, two-line edge and drop shadow as the chat panel; slot rims as the action buttons' dark body with the quality colour where the mockup has the class colour." },
 	reputation = { grade = "window", reference = "chat",
 		caption = "CharacterFrame, reputation tab: window glass; standing bars in the bar grade (surface fill, faint edgeBar line); the filter dropdown and check boxes on the button body.",
@@ -41,7 +42,7 @@ Skins.WINDOWS = {
 		caption = "LFGParentFrame, browse page: window glass; result rows on surface tiles whose edge lights for the selection; dropdowns, the refresh square and buttons on the button body; the bottom tabs on the button-body strip.",
 		match = "Window grade as the chat panel; rows as the mockup's glass with the one light line; the tab strip as the design kit's tab bar." },
 	mail = { grade = "window", reference = "chat",
-		caption = "MailFrame and OpenMailFrame: window glass; inbox items and attachments on button-body rims by quality; inputs, buttons and the tab strip on the button body. Inbox texts keep Blizzard's font and colour.",
+		caption = "MailFrame and OpenMailFrame: window glass; inbox items and attachments on button-body rims by quality; inputs and buttons on the button body; the Inbox and Send Mail tab strip inset in the glass with a large gap under it and no seam, as every bottom tab strip. Inbox texts keep Blizzard's font and colour.",
 		match = "Window grade as the chat panel; item rims as the mockup's buttons." },
 	merchant = { grade = "window", reference = "chat",
 		caption = "MerchantFrame: window glass; item rows on surface tiles with quality-rimmed icons on the button body; repair buttons, the filter dropdown and page arrows restyled.",
@@ -172,9 +173,31 @@ function Skins.Scene(key)
 			mapNote = "the map canvas is a flat stand-in; run Tools/render/standins.py for the mockup's terrain"
 		end
 	end
+	-- The texture the game draws the 3D model on (the character window's paper doll) gets the class's full-body
+	-- stand-in when standins.py has made it (a PNG with transparency, so the figure stands on the window's
+	-- glass as the model does), sized to the figure's aspect inside the frame the builder gave it; else a
+	-- flat tone the size of a figure.
+	local modelNote
+	for _, texture in ipairs(parts.models or {}) do
+		local file = Common.StandIn("model-player-warrior.png")
+		local rect = Geometry.Rect(texture:GetParent(), env.UIParent)
+		local height = rect and (rect.top - rect.bottom) or 0
+		local aspect = file and Common.ImageAspect(file) or 0.5
+		texture:SetWidth(math.max(1, math.floor(height * aspect + 0.5)))
+		if file then
+			texture:SetTexture(file)
+			modelNote = "the character model is the warrior stand-in (" .. file .. "); the game draws the 3D model"
+		else
+			texture:SetColorTexture(0.33, 0.28, 0.22, 0.5)
+			modelNote = "the character model is a flat stand-in; put a full-body warrior.png in the models folder and run Tools/render/standins.py"
+		end
+	end
 	local scene = Gallery.Build(env)
 	if portraitNote then
 		scene.log[#scene.log + 1] = portraitNote
+	end
+	if modelNote then
+		scene.log[#scene.log + 1] = modelNote
 	end
 	if mapNote then
 		scene.log[#scene.log + 1] = mapNote

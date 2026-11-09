@@ -17,6 +17,10 @@ Tools/render/out/standins/, which git ignores:
                           KSTYLEUI_PORTRAITS, default ~/.local/share/kstyleui-handoff/scenery/portraits/<class>.png,
                           the class lower-cased): the painted head-and-shoulders portrait squared from its centre
                           and resampled to the portrait size, for the HUD scene of that class
+    model-player-<class>.png   one per full-body class painting in the models folder (`--models DIR`, or
+                          KSTYLEUI_MODELS, default ~/.local/share/kstyleui-handoff/scenery/models/<class>.png, a
+                          PNG with transparency around the figure), resampled to the model height with its aspect
+                          kept, for the character window's paper doll where the game draws the 3D model
 
 The scenes use a crop when its file exists and fall back to a flat colour when it does not, so a render
 on a machine without the mockup still works; a class with no portrait in the folder falls back to the orc.
@@ -41,6 +45,10 @@ PLATE = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/clean.png")
 PLATE_ENV = "KSTYLEUI_PLATE"
 PORTRAITS = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/portraits")
 PORTRAITS_ENV = "KSTYLEUI_PORTRAITS"
+MODELS = os.path.expanduser("~/.local/share/kstyleui-handoff/scenery/models")
+MODELS_ENV = "KSTYLEUI_MODELS"
+# The full-body model stand-in is resampled to this height in pixels, with its aspect kept.
+MODEL_HEIGHT = 640
 CLASSES = ("warrior", "paladin", "hunter", "rogue", "priest", "shaman", "mage", "warlock", "druid")
 OUT = "Tools/render/out/standins"
 VENV_PYTHON = os.path.expanduser("~/.local/share/wow-dev/venv/bin/python")
@@ -143,6 +151,33 @@ def portraits_path(flag, environ):
     return flag or environ.get(PORTRAITS_ENV) or PORTRAITS
 
 
+def models_path(argv, environ):
+    """The models folder: --models on the command line, then KSTYLEUI_MODELS, then the handoff folder's."""
+    if "--models" in argv:
+        return argv[argv.index("--models") + 1]
+    return environ.get(MODELS_ENV) or MODELS
+
+
+def write_models(out_dir, models):
+    """Write model-player-<class>.png for each full-body class painting the folder holds, resampled to the model
+    height with its aspect and transparency kept, and remove the file of any class the folder no longer holds, so
+    the paper doll falls back to a flat tone; returns the paths written and sets write_models.used."""
+    os.makedirs(out_dir, exist_ok=True)
+    found = dict(class_portraits(models)) if models else {}
+    written = []
+    for name in CLASSES:
+        path = os.path.join(out_dir, "model-player-%s.png" % name)
+        if name in found:
+            figure = Image.open(found[name]).convert("RGBA")
+            width = max(1, round(figure.width * MODEL_HEIGHT / figure.height))
+            figure.resize((width, MODEL_HEIGHT), Image.LANCZOS).save(path)
+            written.append(path)
+        elif os.path.exists(path):
+            os.remove(path)
+    write_models.used = [name for name in CLASSES if name in found]
+    return written
+
+
 def write_portraits(out_dir, portraits):
     """Write portrait-player-<class>.png for each class portrait the folder holds, squared from its centre at the
     portrait size, and remove the file of any class the folder no longer holds, so a missing portrait falls back
@@ -195,9 +230,10 @@ def plate_path(argv, environ):
     return environ.get(PLATE_ENV) or PLATE
 
 
-def write(mockup, out_dir, width, height, plate=None, portraits=None):
-    """Write every stand-in from the mockup into out_dir, and a portrait-player-<class>.png for each class
-    portrait the portraits folder holds; returns the paths written."""
+def write(mockup, out_dir, width, height, plate=None, portraits=None, models=None):
+    """Write every stand-in from the mockup into out_dir, a portrait-player-<class>.png for each class portrait
+    the portraits folder holds and a model-player-<class>.png for each painting the models folder holds; returns
+    the paths written."""
     if not pillow():
         sys.exit("standins.py needs Pillow: pip install Pillow, or create the wow-dev venv at " + VENV_PYTHON)
     image = Image.open(mockup).convert("RGB")
@@ -222,6 +258,8 @@ def write(mockup, out_dir, width, height, plate=None, portraits=None):
     write.plate_used = used
     written.extend(write_portraits(out_dir, portraits))
     write.portraits_used = write_portraits.used
+    written.extend(write_models(out_dir, models))
+    write.models_used = write_models.used
     return written
 
 
@@ -233,19 +271,22 @@ def main(argv=None):
     parser.add_argument("--height", type=int, default=1540, help="the backdrop's height in pixels")
     parser.add_argument("--plate", default=None, help="the UI-free plate of the scene for the backdrop (default: KSTYLEUI_PLATE, then the handoff folder's clean.png)")
     parser.add_argument("--portraits", default=None, help="the folder of <class>.png portraits (default: KSTYLEUI_PORTRAITS, then the handoff folder's scenery/portraits)")
+    parser.add_argument("--models", default=None, help="the folder of <class>.png full-body paintings with transparency for the paper doll (default: KSTYLEUI_MODELS, then the handoff folder's scenery/models)")
     parser.add_argument("--quiet", action="store_true", help="say nothing when the mockup is missing")
     args = parser.parse_args(argv)
     portraits = portraits_path(args.portraits, os.environ)
+    models = models_path(argv if argv is not None else sys.argv[1:], os.environ)
     if not os.path.exists(args.mockup):
-        # The class portraits do not need the mockup; the other stand-ins fall back to flat colours.
+        # The class portraits and models do not need the mockup; the other stand-ins fall back to flat colours.
         if pillow():
             write_portraits(args.out, portraits)
+            write_models(args.out, models)
         if not args.quiet:
             print("no mockup at " + args.mockup + "; the scenes fall back to flat stand-ins", file=sys.stderr)
         return 0
     raw = argv if argv is not None else sys.argv[1:]
     plate = plate_path(raw, os.environ)
-    for path in write(args.mockup, args.out, args.width, args.height, plate=plate, portraits=portraits):
+    for path in write(args.mockup, args.out, args.width, args.height, plate=plate, portraits=portraits, models=models):
         if not args.quiet:
             print("wrote " + path)
     if not args.quiet:
@@ -257,6 +298,10 @@ def main(argv=None):
             print("class portraits: " + ", ".join(write.portraits_used) + " from " + portraits)
         else:
             print("class portraits: none in " + portraits + "; every class uses the mockup's orc")
+        if write.models_used:
+            print("class models: " + ", ".join(write.models_used) + " from " + models)
+        else:
+            print("class models: none in " + models + "; the paper doll draws a flat tone where the game draws the model")
     return 0
 
 

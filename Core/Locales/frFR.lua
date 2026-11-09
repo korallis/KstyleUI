@@ -317,6 +317,7 @@ ns.Locale.Add({
 	["Click area size"] = "Taille de la zone de clic",
 	["Click casting"] = "Sorts \195\160 la souris",
 	["Click casting reminder"] = "Rappel des sorts \195\160 la souris",
+	["Click for all %d spells"] = "Cliquez pour les %d sorts",
 	["Click for every spell"] = "Cliquez pour tous les sorts",
 	["Click for the next fight: this fight, the last fight or every fight."] = "Cliquez pour le combat suivant : ce combat, le dernier ou tous les combats.",
 	["Click it, then drag a handle to resize it."] = "Cliquez dessus, puis faites glisser une poign\195\169e pour le redimensionner.",

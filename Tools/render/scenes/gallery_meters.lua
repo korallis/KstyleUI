@@ -1,6 +1,6 @@
 -- gallery_meters.lua: every frame KstyleUI_Meters draws, each cropped as one frame of the gallery: the damage
 -- meter window with eight class-coloured rows, the same window opened on one source's spells and on the previous
--- fight, the threat meter with a party of five and the tank on top, the
+-- fight, the same window with the pointer on a row and its split open under it, the threat meter with a party of five and the tank on top, the
 -- swing timer's two bars mid-swing, the Meters page's live preview, and Blizzard's Damage Meter window restyled
 -- in place with its spell breakdown window (a second environment, since the restyle style hides KstyleUI's own window). The meter stand-ins
 -- (meters_env.lua) hold a damage session, the party's threat and the swing speeds; Blizzard's window is a fake
@@ -256,23 +256,24 @@ local function drilled(frames)
 	})
 end
 
--- The window with the pointer on Kragar's row: the row's chevron shows, and his tooltip lists his top three spells
--- with their amounts and shares, then says a click lists them all, so the split is on the card the player sees.
+-- The window with the pointer on Kragar's row: the row's chevron shows, and his split opens under the row, inside
+-- the card, with his top three spells, their amounts and shares, and the count a click lists, as Details! opens
+-- a source's split on the row the pointer is on.
 local function hovered(frames)
-	return variant(frames, 860, 420, function(env, K, ns)
+	return variant(frames, 1160, 420, function(env, _, ns)
 		local row = ns.Damage.list.rows[1].frame
 		row._scripts.OnEnter(row)
 		env.RunTimers()
-		local tip = K.Widgets.Tooltip()
-		frames:Add(env, tip, {
+		local split = ns.Damage.list.split.frame
+		frames:Add(env, split, {
 			name = "meters_damage_split", title = "Damage meter: a source's split on hover", grade = "panel", reference = "player",
-			caption = "The damage meter with the pointer on Kragar's row: a chevron follows his name, and his tooltip lists his top three spells with their amounts and shares of his damage, read the way a click reads them, then says a click lists every spell. The split is on the HUD card, not only in the spell list.",
-			match = "The kit tooltip beside the row; the same glass and rows as the source list.",
-			rect = Gallery.Union(env, { ns.Damage.holder, tip }),
+			caption = "The damage meter with the pointer on Kragar's row: a chevron follows his name, and his split opens under the row, inside the card, spanning the row's width: his top three spells with their amounts and shares of his damage, read the way a click reads them, then the count of spells a click lists (all 6). Near the card's bottom the split opens above the row instead, so it never leaves the window.",
+			match = "The split is a panel-grade glass card on the window's glass, as the kit tooltip; the same rows as the source list.",
+			rect = Gallery.Union(env, { ns.Damage.holder, split }),
 		})
 	end, {
 		name = "meters_damage_hover", title = "Damage meter: hovered row", grade = "panel", reference = "player",
-		caption = "The damage meter card with Kragar's row hovered: the muted chevron after his name says the row opens.",
+		caption = "The damage meter card with Kragar's row hovered: the muted chevron after his name says the row opens, and the split under it lists his top three spells.",
 		match = "The same glass and rows as the source list.",
 	})
 end

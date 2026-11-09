@@ -146,6 +146,31 @@ class StandinsTest(unittest.TestCase):
         self.assertEqual(self.standins.plate_path([], {"KSTYLEUI_PLATE": "/tmp/env.png"}), "/tmp/env.png")
         self.assertEqual(self.standins.plate_path([], {}), self.standins.PLATE)
 
+    def test_model_stand_in_keeps_its_alpha_and_aspect(self):
+        """model-player-<class>.png is the class's full-body painting from the models folder, resampled to the model
+        height with its transparency kept, so the paper doll draws the figure on the window's glass; a class the
+        folder no longer holds loses its file, so the scene falls back to a flat tone."""
+        models = self.root / "models"
+        models.mkdir()
+        figure = Image.new("RGBA", (100, 200), (0, 0, 0, 0))
+        figure.paste((40, 120, 40, 255), (25, 50, 75, 150))
+        figure.save(models / "warrior.png")
+        out = self.root / "standins"
+        written = self.standins.write_models(str(out), str(models))
+        self.assertEqual([os.path.basename(p) for p in written], ["model-player-warrior.png"])
+        model = Image.open(out / "model-player-warrior.png")
+        self.assertEqual(model.mode, "RGBA")
+        self.assertEqual(model.size, (self.standins.MODEL_HEIGHT // 2, self.standins.MODEL_HEIGHT))
+        self.assertEqual(model.getpixel((model.width // 2, model.height // 2)), (40, 120, 40, 255))
+        self.assertEqual(model.getpixel((2, 2))[3], 0, "the air around the figure stays transparent")
+        self.assertEqual(self.standins.write_models.used, ["warrior"])
+        os.remove(models / "warrior.png")
+        self.assertEqual(self.standins.write_models(str(out), str(models)), [])
+        self.assertFalse((out / "model-player-warrior.png").exists(), "a model the folder no longer holds is removed")
+        self.assertEqual(self.standins.models_path(["--models", "/tmp/m"], {}), "/tmp/m")
+        self.assertEqual(self.standins.models_path([], {"KSTYLEUI_MODELS": "/tmp/env"}), "/tmp/env")
+        self.assertTrue(self.standins.models_path([], {}).endswith("scenery/models"))
+
     def test_main_without_a_mockup_is_quiet_and_succeeds(self):
         code = self.standins.main(["--mockup", str(self.root / "missing.png"), "--out", str(self.root / "out"), "--quiet"])
         self.assertEqual(code, 0)

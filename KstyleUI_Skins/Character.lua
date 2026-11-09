@@ -1,4 +1,4 @@
--- Character.lua: the character sheet skin: the window whose glass docks its side tabs in a gutter, quality-rimmed equipment slots, the stats, reputation and currency.
+-- Character.lua: the character sheet skin: the window whose glass docks its side tabs in a gutter, the paper doll on the glass with quality-rimmed equipment slots and sidebar tabs spaced by the kit gap, the stats, reputation and currency.
 local _, ns = ...
 
 local K = KstyleUI
@@ -192,6 +192,22 @@ local function SkinStats()
 	end
 end
 
+local function SpaceSidebar()
+	local tab1, tab2, tab3, tab4 = _G.PaperDollSidebarTab1, _G.PaperDollSidebarTab2, _G.PaperDollSidebarTab3, _G.PaperDollSidebarTab4
+	if type(tab1) ~= "table" or type(tab2) ~= "table" or type(tab3) ~= "table" then
+		return
+	end
+	local gap = K.Widgets.Snap(tab2, Tokens.Size("gapSmall"))
+	tab1:ClearAllPoints()
+	tab1:SetPoint("RIGHT", tab2, "LEFT", -gap, 0)
+	tab3:ClearAllPoints()
+	tab3:SetPoint("LEFT", tab2, "RIGHT", gap, 0)
+	if type(tab4) == "table" then
+		tab4:ClearAllPoints()
+		tab4:SetPoint("LEFT", tab3, "RIGHT", gap, 0)
+	end
+end
+
 local function SkinPaperDoll()
 	local missing = 0
 	for _, name in ipairs(SLOTS) do
@@ -225,6 +241,12 @@ local function SkinPaperDoll()
 		if type(tab) == "table" then
 			Parts.SideTab(tab, { rimTab = true })
 		end
+	end
+	SpaceSidebar()
+	if type(PaperDollFrame_UpdateSidebarTabLayout) == "function" then
+		hooksecurefunc("PaperDollFrame_UpdateSidebarTabLayout", SpaceSidebar)
+	else
+		Log("PaperDollFrame_UpdateSidebarTabLayout is missing; the sidebar tabs keep their gap until Blizzard lays them out again")
 	end
 	SkinStats()
 	return missing

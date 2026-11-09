@@ -16,6 +16,21 @@ function M.setB(icon)
 	return M.SET_B .. icon .. ".png"
 end
 
+-- galleryScenes(keep) -> the names of the gallery scenes (Tools/render/scenes/gallery_*.lua) that keep(name) accepts,
+-- in ls order; the render-scenes tests split them between files so each stays under its memory budget.
+function M.galleryScenes(keep)
+	local names = {}
+	local pipe = assert(io.popen("ls -1 Tools/render/scenes/gallery_*.lua 2>/dev/null"))
+	for line in pipe:lines() do
+		local name = line:match("([^/]+)%.lua$")
+		if name and (keep == nil or keep(name)) then
+			names[#names + 1] = name
+		end
+	end
+	pipe:close()
+	return names
+end
+
 -- check(name, scene) -> scene. Fails on an empty scene, an error line in its log, a screen other than the owner's,
 -- or JSON that is not an object or leaks a table address.
 function M.check(name, scene)
@@ -46,11 +61,23 @@ function M.guard(name, scene)
 	return scene
 end
 
--- globs() -> fails when an allowlist glob line matched a scene this test guarded and covered nothing in any of them
--- (Guard.Stale): a fixed defect leaves the list. Call it after every scene of a test has gone through guard().
-function M.globs()
+-- globs(opts) -> fails when an allowlist glob line matched a scene this test guarded and covered nothing in any of
+-- them (Guard.Stale): a fixed defect leaves the list. Call it after every scene of a test has gone through guard().
+-- opts.partial says the test builds one slice of the gallery, so a line whose glob is every scene (*) is judged by
+-- the slice that holds the scene it covers, not by this one.
+function M.globs(opts)
 	local Guard = dofile("Tools/render/guard.lua")
-	local stale = Guard.Stale(Guard.LoadAllow(), M.runs)
+	local allow = Guard.LoadAllow()
+	if opts and opts.partial then
+		local judged = {}
+		for _, entry in ipairs(allow) do
+			if entry.scene ~= "*" then
+				judged[#judged + 1] = entry
+			end
+		end
+		allow = judged
+	end
+	local stale = Guard.Stale(allow, M.runs)
 	assert(#stale == 0, "stale allowlist glob lines:\n" .. table.concat(Guard.GlobLines(stale), "\n"))
 end
 
