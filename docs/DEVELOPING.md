@@ -45,14 +45,14 @@ The last command runs only the Lua test files that load a file you changed, plus
 | Workflow | When | Checks |
 | --- | --- | --- |
 | `checks` | A pull request opens, gets a new commit or reopens; every push to `staging`; a manual run | `pre-commit`, `lua 1/4` to `lua 4/4`, `python`, `package`, and `verdict`, which succeeds only when the other five did |
-| `pr-rules` | A pull request opens, gets a new commit or reopens, and when its body, base or a label changes (a title edit ends with a success without checking) | `pr-rules`: the changelog line and the release markers |
-| `pr-title` | A pull request opens, gets a new commit or reopens, and when it is edited (a body edit ends with a success without checking) | `title`: the title reads `type(scope): summary` |
+| `pr-rules` | A pull request opens, gets a new commit or reopens, and when it is edited or a label changes | `pr-rules`: the changelog line and the release markers |
+| `pr-title` | A pull request opens, gets a new commit or reopens, and when it is edited | `title`: the title reads `type(scope): summary` |
 
 A pull request is green when `verdict`, `pr-rules` and `title` are green; `gh pr checks <number>` lists all ten checks.
 
-- **No rerun for edits.** Editing the body or a label runs `pr-rules` only. The suites run for a commit, and a new push cancels the run still going for the old one.
+- **No rerun for edits.** A label change runs `pr-rules` only; a body or title edit runs `pr-rules` and `title` (about 10 s each), which check again every time so an edit never turns an earlier failure green. The suites in `checks` run for a commit, and a new push cancels the run still going for the old one.
 - **Skipped work still reports.** Every job of `checks` ends with a success on every pull request. A job whose files did not change prints one line that says why and succeeds: a pull request that touches only `docs/`, `research_notes/`, `reports/` and Markdown outside the addon folders skips the Lua tests, the Python tests and the package build. `Tools/hooks/ci_scope.py` decides, and `Tools/tests/test_ci_scope.py` lists what counts. A change to the pipeline's own files, to a document a test reads, or to anything it does not know runs the job.
-- **Shards.** The 242 Lua test files split into four jobs by recorded time (`Tools/regression/weights.json`), each on its own runner with the same 80 s and 4096 MB budgets and the same Lua 5.1.
+- **Shards.** The Lua test files split into four jobs by recorded time (`Tools/regression/weights.json`), each on its own runner with the same 80 s and 4096 MB budgets and the same Lua 5.1.
 - **Staging.** Every push to `staging` runs all of it, with nothing skipped, on the merged result: two green pull requests can still fail together, and this is where that shows. The run is titled `staging: <the merge commit's message>`; a red one is `gh run list --workflow checks --branch staging --event push`.
 - **Tools pinned.** Actions are pinned by commit hash. `luacheck` 1.2.0 is the release binary checked against its SHA-256, and `pre-commit` 4.7.0 keeps its hook environments in the Actions cache.
 

@@ -84,7 +84,7 @@ def changed_paths():
                                  capture_output=True, text=True, check=True).stdout.split()
         if len(parents) < 3:
             return None
-        diff = subprocess.run(["git", "diff", "--name-only", "-z", parents[1], "HEAD"],
+        diff = subprocess.run(["git", "diff", "--name-only", "--no-renames", "-z", parents[1], "HEAD"],
                               capture_output=True, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         return None

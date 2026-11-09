@@ -93,6 +93,7 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `run_all.py` | Runs the test files for `run-all.sh`: picks the interpreter, picks the files for `--shard` and `--affected`, runs them in parallel and checks each one's time and memory budget. |
 | `affected.py` | Reads `trace.lua`'s record of what a test loads, keeps it in a cache and chooses the files a change can reach. `Tools/tests/test_affected.py` covers it. |
 | `trace.lua` | Records the files a test opens and the commands it runs, for `--affected`. It changes no result a test sees. |
+| `render_locales_lib.lua` | The settings-scene render check for one locale; the four `test-render-scenes-locale-*.lua` files call it so they run in parallel. |
 | `weights.json` | Each test file's time in seconds, which `--shard` balances by. |
 | `toc_files.lua` | Lists the files the game loads, in load order, from the TOCs and their XML includes. |
 | `load_files.lua` | Runs addon files in a stub environment with the addon's `...` arguments. |

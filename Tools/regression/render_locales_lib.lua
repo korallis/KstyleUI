@@ -1,13 +1,11 @@
--- test-render-scenes-locales.lua: the settings scenes build in every shipped locale, navigating by string keys
--- rather than English labels, and the render guard finds no truncated, spilled, clipped or overlapping text on
--- the settings window in any of them: the rail, the rows, their controls, the header and the preview caption, at
--- the window's default size and at its minimum size scaled to 0.65, on the Unit Frames, Party and Raid,
--- Nameplates, Profiles and General pages, in deDE, frFR, esES and zhCN (round 5: Astra #3, U1 and V1). A module's
--- sample content inside the preview holder (creature and spell names) belongs to that module's scenes and is
--- listed here as a note, not a failure.
+-- render_locales_lib.lua: the settings scenes build in one shipped locale, navigating by string keys rather than English labels,
+-- and the render guard finds no truncated, spilled, clipped or overlapping text on the settings window in it: the rail, the
+-- rows, their controls, the header and the preview caption, at the window's default size and at its minimum size scaled to
+-- 0.65, on the Unit Frames, Party and Raid, Nameplates, Profiles and General pages (round 5: Astra #3, U1 and V1). A module's
+-- sample content inside the preview holder (creature and spell names) belongs to that module's scenes and is listed here as
+-- a note, not a failure. The test-render-scenes-locale-*.lua files call it once per locale so they run in parallel.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 
-local LOCALES = { "deDE", "frFR", "esES", "zhCN" }
 local SCENES = { "gallery_options", "gallery_options_modules" }
 local MIN_TRANSLATED = 20
 
@@ -46,7 +44,7 @@ local function translated(scene, code)
 	return n
 end
 
-for _, code in ipairs(LOCALES) do
+return function(code)
 	rawset(_G, "RENDER_LOCALE", code)
 	for _, name in ipairs(SCENES) do
 		local build = dofile("Tools/render/scenes/" .. name .. ".lua")
@@ -72,7 +70,6 @@ for _, code in ipairs(LOCALES) do
 		assert(words >= MIN_TRANSLATED, code .. " " .. name .. " draws the locale's words, found " .. words)
 		collectgarbage("collect")
 	end
+	rawset(_G, "RENDER_LOCALE", nil)
+	print("render scenes locale " .. code .. " ok")
 end
-rawset(_G, "RENDER_LOCALE", nil)
-
-print("render scenes locales ok")

@@ -134,10 +134,12 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("check-pr.sh", text)
         self.assertNotIn("check-pr.sh", (WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
 
-    def test_pr_title_ignores_edits_that_leave_the_title_alone(self):
-        text = (WORKFLOWS / "pr-title.yml").read_text(encoding="utf-8")
-        self.assertIn("TITLE_CHANGED: ${{ github.event.changes.title != null }}", text)
-        self.assertIn("types: [opened, edited, synchronize, reopened]", text)
+    def test_pr_title_and_pr_rules_check_on_every_run_so_none_hides_an_earlier_failure(self):
+        for name in ("pr-title.yml", "pr-rules.yml"):
+            text = (WORKFLOWS / name).read_text(encoding="utf-8")
+            self.assertNotIn("steps.scope", text, name)
+            self.assertNotRegex(text, r"(?m)^\s+if:", name)
+        self.assertIn("types: [opened, edited, synchronize, reopened]", (WORKFLOWS / "pr-title.yml").read_text(encoding="utf-8"))
 
     def test_every_step_after_the_scope_decision_waits_for_it(self):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")

@@ -1,5 +1,4 @@
 # pr-title.yml: the pull request title must read "type(scope): summary" (Conventional Commits).
-# A body or base edit leaves the title alone, so it ends with a success without checking.
 name: pr-title
 
 on:
@@ -21,13 +20,7 @@ jobs:
       - name: Check the title
         env:
           TITLE: ${{ github.event.pull_request.title }}
-          ACTION: ${{ github.event.action }}
-          TITLE_CHANGED: ${{ github.event.changes.title != null }}
         run: |
-          if [ "$ACTION" = edited ] && [ "$TITLE_CHANGED" = false ]; then
-            echo "title: skip: the edit did not change the title; skipping with a success"
-            exit 0
-          fi
           pattern='^(feat|fix|perf|refactor|docs|test|ci|build|chore|revert)(\([a-z0-9-]+\))?: [^[:space:]]'
           if [[ $TITLE =~ $pattern ]]; then
             printf 'title ok: %s\n' "$TITLE"

@@ -143,6 +143,17 @@ class MainTest(unittest.TestCase):
         self.commit("plain", {"docs/a.md": "b\n"})
         self.assertEqual(self.scope("lua")[1], "run=true\n")
 
+    def test_a_rename_into_an_inert_folder_counts_its_source(self):
+        self.git("checkout", "-q", "-b", "pr")
+        self.git("mv", "Core/Init.lua", "docs/Init.md")
+        self.git("commit", "-q", "-m", "move")
+        self.git("checkout", "-q", "staging")
+        self.commit("other", {"unrelated.txt": "x\n"})
+        self.git("merge", "-q", "--no-ff", "-m", "merge", "pr")
+        result, output = self.scope("lua")
+        self.assertEqual(output, "run=true\n")
+        self.assertIn("Core/Init.lua", result.stdout)
+
     def test_a_bad_area_is_a_usage_error(self):
         result, _ = self.scope("bogus")
         self.assertEqual(result.returncode, 2)
