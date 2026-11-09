@@ -55,7 +55,11 @@ local function AfterPaint(b)
 	end
 	if b.lacksPower then
 		local r, g, bl = b.icon:GetVertexColor()
-		Widgets.ShadeIcon(b.icon, r * POWER_DIM, g * POWER_DIM, bl * POWER_DIM, true)
+		if Widgets.IsSecret(r) or Widgets.IsSecret(g) or Widgets.IsSecret(bl) or type(r) ~= "number" then
+			b.icon:SetDesaturated(true)
+		else
+			Widgets.ShadeIcon(b.icon, r * POWER_DIM, g * POWER_DIM, bl * POWER_DIM, true)
+		end
 	end
 end
 

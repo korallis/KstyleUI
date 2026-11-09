@@ -192,9 +192,14 @@ function Button.UpdateUsable(b, usable, noPower)
 		usable, noPower = C_ActionBar.IsUsableAction(b.slot)
 	end
 	usable, noPower = Flag(usable, true), Flag(noPower, false)
+	local lacked = b.lacksPower
 	b.lacksPower = not usable and noPower
 	SetUsable(b, usable or noPower)
+	local key = b.tintKey
 	Button.ApplyTint(b)
+	if lacked ~= b.lacksPower and key == b.tintKey then
+		b:Paint()
+	end
 end
 
 function Button.UpdateRange(b, inRange, checksRange)

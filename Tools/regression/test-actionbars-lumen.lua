@@ -155,6 +155,19 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- Out of range, losing and regaining resource still repaints: the range tint does not hide the resource state.
+do
+	local env, _, ns = new()
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 1 })
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("ACTION_RANGE_CHECK_UPDATE", 1, false, true)
+	env.FireEvent("ACTION_USABLE_CHANGED", { { slot = 1, usable = false, noMana = true } })
+	assert(W.LastCall(b.icon, "SetDesaturated")[1] == true, "losing resource out of range desaturates")
+	env.FireEvent("ACTION_USABLE_CHANGED", { { slot = 1, usable = true, noMana = false } })
+	assert(W.LastCall(b.icon, "SetDesaturated")[1] == false, "regaining it out of range restores the colour")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Empty sockets rest at 35%, recede to 12% in combat, and still light on hover and while an action is dragged.
 do
 	local env, K, ns = new()
