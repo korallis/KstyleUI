@@ -101,7 +101,7 @@ end
 local function Steps(R, path)
 	local f, env = R.rxp.RXPFrame, R.env
 	local steps = f.CurrentStepFrame
-	local size = GUIDE_FONT + 2
+	local requested = GUIDE_FONT + 2
 	local total = 0
 	for i, spec in ipairs(RestedXP.STEPS) do
 		local step = steps.framePool[i]
@@ -109,11 +109,12 @@ local function Steps(R, path)
 		local frameHeight = 0
 		for e, value in ipairs(spec.elements) do
 			local element = step.elements[e]
+			font(element.text, path, requested)
+			local _, size = element.text:GetFont()
 			local textWidth = WIDTH - 6 - 12 - 11 - 5
 			local h = math.ceil(height(value, size, path, textWidth) * 1.1) + 1
 			at(element, step, 0, 10 + y, WIDTH, h)
 			at(element.button, element, 6, 1, 12, 12)
-			font(element.text, path, size)
 			element.text:SetJustifyH("LEFT")
 			element.text:SetJustifyV("MIDDLE")
 			element.text:SetWordWrap(true)
@@ -196,10 +197,11 @@ local function Guide(R, path, top)
 		local number = tostring(spec[1])
 		local numberWidth = Scene.TextWidth(number, GUIDE_FONT - 1, path) + 2
 		local textWidth = childWidth - numberWidth
-		local h = height(spec[2], GUIDE_FONT, path, textWidth) + 8
+		font(row.text, path, GUIDE_FONT)
+		local _, rowSize = row.text:GetFont()
+		local h = height(spec[2], rowSize, path, textWidth) + 8
 		at(row, f.ScrollChild, 2, y, childWidth, h)
 		row:SetAlpha(0.66)
-		font(row.text, path, GUIDE_FONT)
 		row.text:SetJustifyH("LEFT")
 		row.text:SetJustifyV("TOP")
 		row.text:SetWordWrap(true)
@@ -274,6 +276,7 @@ function RestedXP.Build()
 	for i, spec in ipairs(RestedXP.STEPS) do
 		counts[i] = #spec.elements
 	end
+	rxp.fake.rows(#RestedXP.ROWS)
 	rxp.SetStep(#RestedXP.STEPS, counts)
 	rxp.UpdateItemFrame(nil, 3)
 	rxp.ui.v2.configurator:Open()
@@ -283,6 +286,7 @@ function RestedXP.Build()
 	local path = rxp.font or (K.Tokens.Font("body"))
 	local stack = Steps(R, path)
 	local guideBottom = Guide(R, path, RestedXP.TOP + stack + 2)
+	rxp.RXPFrame:UpdateVisuals()
 	Others(R, RestedXP.LEFT + WIDTH + GAP, guideBottom)
 	S.W.Settle(env)
 
