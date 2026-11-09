@@ -721,9 +721,8 @@ local function ApplyCounter(chip, cap, specs)
 		return
 	end
 	local frame = cap.frame
-	frame:SetCount(COUNT_RESERVE)
-	frame.count:SetAlpha(0)
-	local width = math.max(Widgets.Snap(frame, COUNT_WIDTH), Widgets.TextWidth(frame.count, 0))
+	local width = math.max(Widgets.Snap(frame, COUNT_WIDTH), frame:MeasureCount(COUNT_RESERVE))
+	frame:SetReserve(width)
 	Overflow.Apply(chip, {
 		enabled = true, groups = specs, cap = 0, cell = Widgets.Snap(frame, Widgets.SECTION_CAP_HEIGHT), width = width, after = true,
 		point = "RIGHT", rel = frame, relPoint = "RIGHT", x = 0, y = 0, level = frame:GetFrameLevel() + 2, style = CountStyle(frame.count),
