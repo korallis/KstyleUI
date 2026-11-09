@@ -199,7 +199,7 @@ function Drawer:Place(button)
 	if type(icon) == "table" and type(icon.SetPoint) == "function" then
 		icon:ClearAllPoints()
 		icon:SetPoint("CENTER", button, "CENTER")
-		icon:SetSize(size * ICON_FILL, size * ICON_FILL)
+		Widgets.Size(icon, size * ICON_FILL, size * ICON_FILL)
 	end
 	self.placing = false
 end
@@ -221,7 +221,7 @@ function Drawer:Layout()
 	local size = Widgets.Snap(panel, Settings.Get("drawer.size"))
 	local spacing = Widgets.Snap(panel, Settings.Get("drawer.spacing"))
 	local width, height = Format.GridSize(slot, Settings.Get("drawer.columns"), size, spacing, Widgets.Snap(panel, PAD))
-	panel:SetSize(math.max(width, 1), math.max(height, 1))
+	Widgets.Size(panel, math.max(width, Widgets.Border(panel)), math.max(height, Widgets.Border(panel)))
 	local point, relative, xs, ys = Format.DrawerAnchor(direction)
 	local gap = Widgets.Snap(panel, GAP)
 	panel:ClearAllPoints()

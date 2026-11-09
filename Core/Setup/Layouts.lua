@@ -583,3 +583,115 @@ function Layouts.Rect(element, position, rootWidth, rootHeight)
 	local bottom = rootHeight * fy + position.y - element.height * fy
 	return left, bottom, left + element.width, bottom + element.height
 end
+
+local function Positive(value)
+	if issecretvalue and issecretvalue(value) then
+		return false
+	end
+	return type(value) == "number" and value == value and value > 0 and value < math.huge
+end
+
+local function Apart(name, a, b)
+	if (a == "groupframes.party" and b == "groupframes.raid") or (b == "groupframes.party" and a == "groupframes.raid") then
+		return false
+	end
+	if DOCKS[a] == b or DOCKS[b] == a then
+		return false
+	end
+	if (a == "meters.damage" and b == "meters.threat") or (b == "meters.damage" and a == "meters.threat") then
+		return Layouts.Shown(name, "meters.threat") ~= false
+	end
+	return true
+end
+
+function Layouts.Fits(name, physicalWidth, physicalHeight, user)
+	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
+		return false
+	end
+	local rootHeight = 1080 / user
+	local layout = Layouts.Get(name, rootHeight)
+	if not layout then
+		return false
+	end
+	local pixelScale = physicalHeight / rootHeight
+	local rects = {}
+	for i = 1, #ELEMENTS + 1 do
+		local key, width, height, position
+		if i <= #ELEMENTS then
+			key = ELEMENTS[i].key
+			width, height = Layouts.Footprint(name, key)
+			position = layout[key]
+		else
+			position = Layouts.Slot(name, rootHeight)
+			key, width, height = "story", position.width, position.height
+		end
+		if width <= 0 or height <= 0 then
+			return false
+		end
+		local w = math.max(1, math.floor(width * pixelScale + 0.5))
+		local h = math.max(1, math.floor(height * pixelScale + 0.5))
+		local point = OFFSETS[position.anchor] or OFFSETS.CENTER
+		local left = math.floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5)
+		local bottom = math.floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
+		local right, top = left + w, bottom + h
+		if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then
+			return false
+		end
+		for _, rect in ipairs(rects) do
+			if Apart(name, key, rect.key) and left < rect[3] and rect[1] < right and bottom < rect[4] and rect[2] < top then
+				local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
+				if not dockBoundary or math.min(top, rect[4]) - math.max(bottom, rect[2]) > 1 then
+					return false
+				end
+			end
+		end
+		rects[#rects + 1] = { left, bottom, right, top, key = key }
+	end
+	return true
+end
+
+local limits = {}
+
+function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset)
+	local low, high = ns.Scale.DEFAULT_USER_SCALE, ns.Scale.MAX_USER_SCALE
+	if not Positive(physicalWidth) or not Positive(physicalHeight) then
+		return low
+	end
+	preset = layouts[preset] and preset or "DPS"
+	local cached = limits[preset]
+	if cached and cached.width == physicalWidth and cached.height == physicalHeight then
+		return cached.scale
+	end
+	if Layouts.Fits(preset, physicalWidth, physicalHeight, high) then
+		limits[preset] = { width = physicalWidth, height = physicalHeight, scale = high }
+		return high
+	end
+	local span = HEIGHT
+	for _, element in ipairs(ELEMENTS) do
+		local width, height = Layouts.Footprint(preset, element.key)
+		local position = layouts[preset][element.key]
+		span = math.max(span, math.abs(position.x) + width, math.abs(position.y) + height)
+	end
+	local step = 1080 / (physicalHeight * 2 * span)
+	while high > low do
+		local candidate = math.max(low, high - step)
+		if candidate == high then
+			break
+		end
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate) then
+			low = candidate
+			break
+		end
+		high = candidate
+	end
+	for _ = 1, 32 do
+		local candidate = (low + high) / 2
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate) then
+			low = candidate
+		else
+			high = candidate
+		end
+	end
+	limits[preset] = { width = physicalWidth, height = physicalHeight, scale = low }
+	return low
+end

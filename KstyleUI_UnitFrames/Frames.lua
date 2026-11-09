@@ -265,8 +265,8 @@ local function Hit(view, folded)
 end
 
 local function ChipFont(text, path, size, flags)
-	if text:SetFont(path, size, flags) == false then
-		text:SetFont((K.Tokens.Font("body")), size, flags)
+	if not K.Widgets.ApplyFont(text, path, size, flags) then
+		K.Widgets.ApplyFont(text, (K.Tokens.Font("body")), size, flags)
 	end
 end
 
@@ -505,8 +505,8 @@ function Frames.Relayout(uf)
 		local slot = slots[i]
 		local button = view.button
 		button:ClearAllPoints()
-		button:SetPoint("TOPLEFT", uf.holder, "TOPLEFT", slot.x, -slot.y)
-		button:SetSize(slot.w, slot.h)
+		button:SetPoint("TOPLEFT", uf.holder, "TOPLEFT", K.Widgets.Snap(button, slot.x), -K.Widgets.Snap(button, slot.y))
+		K.Widgets.Size(button, slot.w, slot.h)
 		local room = castH > 0 and math.min(castH, math.max(0, slot.h - gap - MIN_FRAME_HEIGHT)) or 0
 		local frameH = room > 0 and slot.h - room - gap or slot.h
 		local before = view.geometry or {}

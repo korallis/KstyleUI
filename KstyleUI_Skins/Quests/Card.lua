@@ -175,6 +175,10 @@ local function RestyleRow(row)
 		Style.ApplyFont(line.count, "number", Size("number", LINE_SCALE))
 	end
 	Widgets.Size(row.socket, SOCKET, SOCKET)
+	local border = Widgets.Border(row.socket)
+	row.icon:ClearAllPoints()
+	row.icon:SetPoint("TOPLEFT", row.socket, "TOPLEFT", border, -border)
+	row.icon:SetPoint("BOTTOMRIGHT", row.socket, "BOTTOMRIGHT", -border, border)
 	PaintTitle(row)
 	PaintDisc(row)
 end
@@ -216,8 +220,6 @@ local function NewRow(index)
 	row.socket = CreateFrame("Frame", nil, row)
 	row.socket.chrome = Widgets.Chrome(row.socket, { shape = "socket" })
 	row.icon = row.socket:CreateTexture(nil, "ARTWORK")
-	row.icon:SetPoint("TOPLEFT", row.socket, "TOPLEFT", 1, -1)
-	row.icon:SetPoint("BOTTOMRIGHT", row.socket, "BOTTOMRIGHT", -1, 1)
 	row.Restyle = RestyleRow
 	RestyleRow(row)
 	Style.Track(row)
@@ -309,9 +311,10 @@ local function Bind(row, entry, position, y, height, right)
 	row.marked = entry.id == Data.super
 	local titleH = TitleHeight()
 	row.disc:ClearAllPoints()
-	row.disc:SetPoint("CENTER", row, "TOPLEFT", Snap(DISC / 2), -titleH / 2)
+	row.disc:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -Snap((titleH - row.disc:GetHeight()) / 2))
 	row.ring:ClearAllPoints()
-	row.ring:SetPoint("CENTER", row.disc, "CENTER")
+	local ringInset = Snap((row.disc:GetWidth() - row.ring:GetWidth()) / 2)
+	row.ring:SetPoint("TOPLEFT", row.disc, "TOPLEFT", ringInset, -ringInset)
 	row.numeral:SetText(position)
 	row.title:ClearAllPoints()
 	row.title:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(GUTTER), 0)
@@ -593,8 +596,8 @@ end
 
 function Card.Place(root, left, top, width, height)
 	card:ClearAllPoints()
-	card:SetPoint("TOPLEFT", root, "BOTTOMLEFT", left, top)
-	card:SetWidth(width)
+	card:SetPoint("TOPLEFT", root, "BOTTOMLEFT", Widgets.Snap(card, left), Widgets.Snap(card, top))
+	card:SetWidth(Widgets.Snap(card, width))
 	maxHeight = height
 end
 

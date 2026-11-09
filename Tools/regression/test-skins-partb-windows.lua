@@ -1,5 +1,12 @@
 -- test-skins-partb-windows.lua: the game menu, group finder, mail, merchant, trainer and professions skins register, wait for their window and restyle it without touching Blizzard's frames.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local W = S.W
 
 local KEYS = { "gameMenu", "groupFinder", "mail", "merchant", "trainer", "professions" }
@@ -386,7 +393,7 @@ do
 	assert(calls.P == "LEFT" and calls.H1 == "LEFT", "every text type of the body reads LEFT")
 	K.Options.Write("Skins", "text.size", 1.5)
 	font = W.LastCall(made.body, "SetFont")
-	assert(font[3] == select(2, ns.Style.Font("body")) and font[3] ~= 12, "a text size change restyles the body too, got " .. tostring(font[3]))
+	assert(FontSize(K, made.body, font[3], select(2, ns.Style.Font("body"))) and font[3] ~= 12, "a text size change restyles the body too, got " .. tostring(font[3]))
 	assert(Skinned(K, made.mail, "Window") and Skinned(K, made.letter, "Window"), "the mailbox and open letters are glass windows")
 	assert(Skinned(K, made.mail, "Tabs"), "the inbox and send tabs are skinned")
 	assert(Hidden(made.inboxBg) and Hidden(made.bar), "the inbox paper and the send form's bars are hidden")

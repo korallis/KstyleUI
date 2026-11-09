@@ -121,17 +121,17 @@ function Style.Font(role)
 end
 
 local function SetFace(object, path, role, size, flags)
-	if object:SetFont(path, size, flags) ~= false then
+	if Widgets.ApplyFont(object, path, size, flags) then
 		return true
 	end
 	local kitPath = Tokens.Font(role)
-	if kitPath ~= path and object:SetFont(kitPath, size, flags) ~= false then
+	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags) then
 		LogFont(path, "skinned text uses the KstyleUI face")
 		return true
 	end
 	local fallback = _G[FALLBACK_FONT]
 	local face = type(fallback) == "table" and type(fallback.GetFont) == "function" and fallback:GetFont()
-	if not IsSecret(face) and type(face) == "string" and object:SetFont(face, size, flags) ~= false then
+	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags) then
 		LogFont(path, "skinned text uses the face of " .. FALLBACK_FONT)
 		return true
 	end
@@ -141,15 +141,7 @@ end
 
 function Style.ApplyFont(object, role, size)
 	local path, roleSize, flags = Style.Font(role)
-	local ok = SetFace(object, path, role, size or roleSize, flags)
-	if flags == "" then
-		object:SetShadowColor(Tokens.Color("textShadow"))
-		local offset = Tokens.Size("textShadowOffset")
-		object:SetShadowOffset(offset, -offset)
-	else
-		object:SetShadowOffset(0, 0)
-	end
-	return ok
+	return SetFace(object, path, role, size or roleSize, flags)
 end
 
 function Style.Text(text, role, colorName)
@@ -180,7 +172,7 @@ local function PaintHtml(state)
 	local path, size, flags = Style.Font(state.role)
 	local r, g, b = Tokens.Color(state.color)
 	for _, kind in ipairs(HTML_TYPES) do
-		html:SetFont(kind, path, size, flags)
+		html:SetFont(kind, path, Widgets.FontSize(html, size), flags)
 		html:SetTextColor(kind, r, g, b)
 		html:SetJustifyH(kind, "LEFT")
 	end

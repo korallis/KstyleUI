@@ -20,6 +20,7 @@ local ARROWS = {
 function Button.PlaceArrow(b, direction)
 	local arrow = b.flyoutArrow
 	local place = ARROWS[direction] or ARROWS.UP
+	Widgets.Size(arrow, ARROW_SIZE, ARROW_SIZE)
 	arrow:ClearAllPoints()
 	arrow:SetPoint("CENTER", b, place[1])
 	arrow:SetRotation(place[2])
@@ -443,18 +444,21 @@ function ns.StyleTextsFor(b, barKey)
 			local path = style.font ~= "" and style.font or rolePath
 			local size = (type(style.size) == "number" and style.size or roleSize) * scale
 			local flags = ns.FontFlags(style.outline)
-			if fs:SetFont(path, size, flags) == false and path ~= rolePath then
-				fs:SetFont(rolePath, size, flags)
+			if not Widgets.ApplyFont(fs, path, size, flags) and path ~= rolePath then
+				Widgets.ApplyFont(fs, rolePath, size, flags)
 				LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; the action bars use the interface font")
 			end
-			if flags == "" then
-				fs:SetShadowColor(Tokens.Color("textShadow"))
-				local offset = Tokens.Size("textShadowOffset")
-				fs:SetShadowOffset(offset, -offset)
-			else
-				fs:SetShadowOffset(0, 0)
-			end
 		end
+	end
+	local inset = Widgets.Snap(b.macroText, TEXT_INSET)
+	b.macroText:ClearAllPoints()
+	b.macroText:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", inset, inset)
+	b.macroText:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -inset, inset)
+	if b.autocast then
+		Widgets.Size(b.autocast, AUTOCAST_SIZE, AUTOCAST_SIZE)
+		local markInset = Widgets.Snap(b.autocast, TEXT_INSET)
+		b.autocast:ClearAllPoints()
+		b.autocast:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", markInset, markInset)
 	end
 	b.hotkey:SetShown(cfg.hotkey == true)
 	b.count:SetShown(cfg.count ~= false)
@@ -640,7 +644,7 @@ function Button.New(bar, index)
 	if def.kind == "action" then
 		local arrow = b.overlay:CreateTexture(nil, "OVERLAY")
 		arrow:SetTexture((Tokens.Texture("glyphChevron")))
-		arrow:SetSize(ARROW_SIZE, ARROW_SIZE)
+		Widgets.Size(arrow, ARROW_SIZE, ARROW_SIZE)
 		Widgets.Tint(arrow, "textEmphasis")
 		arrow:Hide()
 		b.flyoutArrow = arrow
@@ -649,7 +653,7 @@ function Button.New(bar, index)
 	if def.kind == "pet" then
 		local mark = b.overlay:CreateTexture(nil, "OVERLAY")
 		mark:SetTexture((Tokens.Texture("dot")))
-		mark:SetSize(AUTOCAST_SIZE, AUTOCAST_SIZE)
+		Widgets.Size(mark, AUTOCAST_SIZE, AUTOCAST_SIZE)
 		mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", inset, inset)
 		Widgets.Tint(mark, "accent")
 		mark:Hide()

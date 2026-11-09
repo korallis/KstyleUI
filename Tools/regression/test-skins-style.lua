@@ -1,5 +1,12 @@
 -- test-skins-style.lua: skinned text, bars and accents follow the module's font, size, outline, bar and accent settings, and the preview shows them live.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local W = S.W
 
 local function FontOf(text)
@@ -16,7 +23,7 @@ do
 	Style.Text(text, "heading", "textEmphasis")
 	local kitPath, kitSize = K.Tokens.Font("heading")
 	local path, size, flags = FontOf(text)
-	assert(path == kitPath and W.Near(size, kitSize) and flags == "", "the interface font at the role's size, with no outline")
+	assert(path == kitPath and FontSize(K, text, size, kitSize) and flags == "", "the interface font at the role's size, with no outline")
 	local ox, oy = text:GetShadowOffset()
 	assert(ox > 0 and oy < 0, "a soft shadow instead of an outline")
 	assert(W.SameRGB({ GetVertexColor = function() return text:GetTextColor() end }, K.Tokens.Color("textEmphasis")), "the token colour")
@@ -27,7 +34,7 @@ do
 	K.Options.Write("Skins", "text.outline", "outline")
 	path, size, flags = FontOf(text)
 	assert(path == face, "a font change restyles every skinned text, got " .. tostring(path))
-	assert(W.Near(size, kitSize * 1.2), "the size multiplies the role's size")
+	assert(FontSize(K, text, size, kitSize * 1.2), "the size multiplies the role's size")
 	assert(flags == "OUTLINE", "the outline flag")
 	assert(select(1, text:GetShadowOffset()) == 0, "an outline replaces the shadow")
 
@@ -173,18 +180,18 @@ do
 	assert(after:GetFont() ~= nil, "a forbidden string does not stop the strings after it")
 	local bodyPath, bodySize = Style.Font("body")
 	local path, size = label:GetFont()
-	assert(path == bodyPath and W.Near(size, bodySize), "a string with no font of its own takes the body face at the body size")
+	assert(path == bodyPath and FontSize(K, label, size, bodySize), "a string with no font of its own takes the body face at the body size")
 	assert(W.SameRGB({ GetVertexColor = function() return label:GetTextColor() end }, K.Tokens.Color("text")), "Blizzard's default text reads in the text token")
 	path, size = small:GetFont()
-	assert(path == bodyPath and W.Near(size, bodySize), "a smaller string rises to the body size")
+	assert(path == bodyPath and FontSize(K, small, size, bodySize), "a smaller string rises to the body size")
 	assert(W.SameRGB({ GetVertexColor = function() return small:GetTextColor() end }, K.Tokens.Color("text")), "Blizzard's yellow becomes the text token")
 	path, size = large:GetFont()
-	assert(path == bodyPath and W.Near(size, 16), "a larger string keeps its size, got " .. tostring(size))
+	assert(path == bodyPath and FontSize(K, large, size, 16), "a larger string keeps its size, got " .. tostring(size))
 	assert(W.SameRGB({ GetVertexColor = function() return large:GetTextColor() end }, 1, 1, 1), "white text keeps its colour")
 	assert(W.SameRGB({ GetVertexColor = function() return grey:GetTextColor() end }, 0.5, 0.5, 0.5), "grey text keeps its colour")
 	local headingPath, headingSize = Style.Font("heading")
 	path, size = styled:GetFont()
-	assert(path == headingPath and W.Near(size, headingSize), "a string a skin styled is left alone")
+	assert(path == headingPath and FontSize(K, styled, size, headingSize), "a string a skin styled is left alone")
 	path, size = kit:GetFont()
 	assert(path == K.Tokens.FontPath("InterSemiBold") and size == 20, "a string in a kit face is left alone")
 	assert(left:GetFont() == nil, "a skipped subtree is left alone")
@@ -194,7 +201,7 @@ do
 	-- Blizzard setting a font object or its yellow again keeps the skin's face and colour.
 	label:SetFontObject("GameFontNormalSmall")
 	path, size = label:GetFont()
-	assert(path == bodyPath and W.Near(size, bodySize), "after SetFontObject the body face and size return")
+	assert(path == bodyPath and FontSize(K, label, size, bodySize), "after SetFontObject the body face and size return")
 	small:SetTextColor(1, 0.82, 0)
 	assert(W.SameRGB({ GetVertexColor = function() return small:GetTextColor() end }, K.Tokens.Color("text")), "a later yellow is mapped again")
 	small:SetTextColor(0, 1, 0)
@@ -203,9 +210,9 @@ do
 	-- The text size setting rescales swept text, and the face setting refaces it.
 	K.Options.Write("Skins", "text.size", 1.5)
 	size = select(2, small:GetFont())
-	assert(W.Near(size, bodySize * 1.5), "the text size reaches swept text, got " .. tostring(size))
+	assert(FontSize(K, small, size, bodySize * 1.5), "the text size reaches swept text, got " .. tostring(size))
 	size = select(2, large:GetFont())
-	assert(W.Near(size, 16 * 1.5), "the text size multiplies a larger string's own size, got " .. tostring(size))
+	assert(FontSize(K, large, size, 16 * 1.5), "the text size multiplies a larger string's own size, got " .. tostring(size))
 	local face = K.Tokens.FontPath("InterSemiBold")
 	K.Options.Write("Skins", "text.font", face)
 	assert(label:GetFont() == face, "the face setting reaches swept text")

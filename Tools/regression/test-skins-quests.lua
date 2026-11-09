@@ -1,5 +1,12 @@
 -- test-skins-quests.lua: the world map, quest log and objective tracker skins restyle Forever's map window, quest list and tracker without covering the map or touching Blizzard's frames.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local W = S.W
 
 local HOOKED = { GetProgressBar = true, AddModule = true, SetFontObject = true, SetText = true }
@@ -177,14 +184,14 @@ do
 	assert(Alpha(tracker.extra.Header.Background) == 0, "a module added later is skinned too")
 	local lineFont = env.ObjectiveTrackerLineFont
 	local path, size = lineFont:GetFont()
-	assert(path == Style.Font("body") and W.Near(size, 12), "the tracker lines use the skin font at Blizzard's size")
+	assert(path == Style.Font("body") and FontSize(K, lineFont, size, 12), "the tracker lines use the skin font at Blizzard's size")
 	assert(FontPath(env.ObjectiveTrackerHeaderFont) == Style.Font("heading"))
 	lineFont:SetFontObject("ObjectiveTrackerFont16")
 	path, size = lineFont:GetFont()
-	assert(path == Style.Font("body") and W.Near(size, 16), "Edit Mode's text size keeps the skin font, got " .. tostring(size))
+	assert(path == Style.Font("body") and FontSize(K, lineFont, size, 16), "Edit Mode's text size keeps the skin font, got " .. tostring(size))
 	collectgarbage("collect")
 	K.Options.Write("Skins", "text.size", 1.25)
-	assert(W.Near(select(2, lineFont:GetFont()), 20), "the text size setting scales the tracker font")
+	assert(FontSize(K, lineFont, select(2, lineFont:GetFont()), 20), "the text size setting scales the tracker font")
 	K.Options.Write("Skins", "tracker.panel", false)
 	assert(not K.Skin.Parts(t).backdrop:IsShown(), "the panel switch hides the glass panel")
 

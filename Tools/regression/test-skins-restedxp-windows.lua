@@ -1,5 +1,12 @@
 -- test-skins-restedxp-windows.lua: the RestedXP skin puts KstyleUI's chrome on every RestedXP window as RestedXP makes it, through KstyleUI's skin kit, without writing onto RestedXP's frames: the guide as one card with one cap, and the other windows on their own glass.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
@@ -127,7 +134,7 @@ do
 	rxp.currentGuide = { name = "Elwynn Forest\\n1-10 Human" }
 	f.GuideName.text:SetText("Elwynn Forest\n1-10 Human")
 	assert(Title() == "ELWYNN FOREST" and path.meta:IsShown() and path.meta:GetText() == "1-10 Human", "a guide's own two-line name keeps its second line")
-	assert(select(2, path.meta:GetFont()) == select(2, ns.Style.Font("caption")) and Colored(path.meta, K.Tokens.Color("text")), "a caption in the body grey")
+	assert(FontSize(K, path.meta, select(2, path.meta:GetFont()), select(2, ns.Style.Font("caption"))) and Colored(path.meta, K.Tokens.Color("text")), "a caption in the body grey")
 	rxp.currentGuide = { name = "6-10 Durotar", subgroup = "Speedrun Guide 1-22" }
 	f.GuideName.text:SetText("6-10 Durotar\nSpeedrun Guide 1-22")
 	local holderBottom = path.holder._points[1]
@@ -146,7 +153,7 @@ do
 	assert(path.height < 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
-	assert(W.Near(select(2, path.cap.title:GetFont()), ns.Lumen.CAP_SIZE * 1.5), "a text size change reaches the cap")
+	assert(FontSize(K, path.cap.title, select(2, path.cap.title:GetFont()), ns.Lumen.CAP_SIZE * 1.5), "a text size change reaches the cap")
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
 	assert(Alpha(f.Footer.text) == 0, "the footer's version line (RestedXP Guides v4.11.35) is hushed: it tells the player nothing while they play")
@@ -424,13 +431,13 @@ do
 	-- button label in the body role in the emphasised text, and RestedXP's own flat button wash hushed; RestedXP's
 	-- UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
 	local function Roles()
-		assert(ui.titletext:GetFont() == (ns.Style.Font("title")) and select(2, ui.titletext:GetFont()) == select(2, ns.Style.Font("title")), "the title is in the kit's title role, got " .. tostring(ui.titletext:GetFont()) .. " " .. tostring(select(2, ui.titletext:GetFont())))
+		assert(ui.titletext:GetFont() == (ns.Style.Font("title")) and FontSize(K, ui.titletext, select(2, ui.titletext:GetFont()), select(2, ns.Style.Font("title"))), "the title is in the kit's title role, got " .. tostring(ui.titletext:GetFont()) .. " " .. tostring(select(2, ui.titletext:GetFont())))
 		assert(Colored(ui.titletext, K.Tokens.Color("textEmphasis")), "in the emphasised text, not the accent")
 		for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
 			local button = ui[key]
 			assert(K.Skin.IsSkinned(button, "Button") and Alpha(button.configuratorBackground) == 0 and Alpha(button.rxpBorder.textures[1]) == 0, key .. " is a KstyleUI button")
 			local label = button:GetFontString()
-			assert(label:GetFont() == (ns.Style.Font("body")) and select(2, label:GetFont()) == select(2, ns.Style.Font("body")), key .. "'s label is in the body role, got " .. tostring(select(2, label:GetFont())))
+			assert(label:GetFont() == (ns.Style.Font("body")) and FontSize(K, label, select(2, label:GetFont()), select(2, ns.Style.Font("body"))), key .. "'s label is in the body role, got " .. tostring(select(2, label:GetFont())))
 			assert(Colored(label, K.Tokens.Color("textEmphasis")), key .. "'s label is the emphasised text")
 		end
 	end

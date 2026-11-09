@@ -1,5 +1,12 @@
 -- test-restedxp-readability.lua: the guide's text reads at KstyleUI's body size, RestedXP measures it at that size, and its list clears the header.
 local S = dofile("Tools/regression/skins_env.lua")
+
+local function FontSize(K, text, actual, requested)
+	local factor = type(text.GetEffectiveScale) == "function" and K.Widgets.ScaleFactor(text) or 1
+	local pixels = actual * factor / K.Scale.Pixel(1)
+	return math.abs(actual - K.Widgets.FontSize(text, requested)) < 1e-8
+		and math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+end
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
@@ -24,9 +31,9 @@ do
 	local body = select(2, K.Tokens.Font("body"))
 	row.text:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
 	local path, size, flags = row.text:GetFont()
-	assert(path == K.Tokens.Font("body") and W.Near(size, body) and flags == "", "a guide row uses the body face and size after RestedXP sets 7, got " .. tostring(path) .. " " .. tostring(size))
+	assert(path == K.Tokens.Font("body") and FontSize(K, row.text, size, body) and flags == "", "a guide row uses the body face and size after RestedXP sets 7, got " .. tostring(path) .. " " .. tostring(size))
 	row.text:SetFont("Fonts\\FRIZQT__.TTF", 18, "")
-	assert(W.Near(select(2, row.text:GetFont()), 18), "a larger requested font stays larger, got " .. tostring(select(2, row.text:GetFont())))
+	assert(FontSize(K, row.text, select(2, row.text:GetFont()), 18), "a larger requested font stays larger, got " .. tostring(select(2, row.text:GetFont())))
 	assert(rxp.settings.profile.guideFontSize == nil, "RestedXP's saved guideFontSize is never written")
 	local _, relative, _, _, top = f.ScrollFrame:GetPoint(1)
 	assert(relative == f.BottomFrame and top <= -19, "the guide's viewport clears the header and its content inset, got " .. tostring(top))
@@ -43,7 +50,7 @@ do
 	local body = select(2, K.Tokens.Font("body")) * 1.25
 	local element = rxp.RXPFrame.CurrentStepFrame.framePool[2].elements[1]
 	local _, size = element.text:GetFont()
-	assert(W.Near(size, body), "a new step's text takes the scaled body size, got " .. tostring(size))
+	assert(FontSize(K, element.text, size, body), "a new step's text takes the scaled body size, got " .. tostring(size))
 	assert(element:GetHeight() == LineHeight(size), "RestedXP measures a new step at its new font: " .. tostring(element:GetHeight()) .. " for " .. LineHeight(size))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a new step raises no errors")
 end
@@ -57,7 +64,7 @@ do
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
 	local size = select(2, element.text:GetFont())
-	assert(W.Near(size, select(2, K.Tokens.Font("body")) * 1.5), "a text size change reaches the step text, got " .. tostring(size))
+	assert(FontSize(K, element.text, size, select(2, K.Tokens.Font("body")) * 1.5), "a text size change reaches the step text, got " .. tostring(size))
 	assert(element:GetHeight() == LineHeight(size), "after a text size change the step is measured at its new font: " .. tostring(element:GetHeight()) .. " for " .. LineHeight(size))
 	local rowSize = select(2, row.text:GetFont())
 	assert(row:GetHeight() == LineHeight(rowSize) + 8, "after a text size change the list is measured at its new font: " .. tostring(row:GetHeight()))

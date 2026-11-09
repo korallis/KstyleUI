@@ -214,7 +214,7 @@ do
 	local g = ns.Panel.Geometry(env.ChatFrame1)
 	local p, rel, relp, x, y = plus:GetPoint(1)
 	assert(p == "CENTER" and rel == glass and relp == "TOPRIGHT", "the plus sits in the row's right end")
-	assert(near(x, -22) and near(y, -(g.top - 14 * g.k)), "22 units in from the right, level with the tab names, got " .. x .. ", " .. y)
+	assert(near(x, -K.Widgets.Snap(plus, 22)) and near(y, -K.Widgets.Snap(plus, g.top - 14 * g.k)), "22 units in from the right, level with the tab names, on the pixel grid, got " .. x .. ", " .. y)
 	local cp, crel, crelp, cx, cy = copy:GetPoint(1)
 	assert(cp == "CENTER" and crel == glass and crelp == "TOPRIGHT" and near(cx, -(22 + 20 + K.Tokens.Size("gapTiny"))) and near(cy, y), "the copy glyph sits one button and a tiny gap left of the plus, got " .. cx)
 	for _, button in ipairs({ plus, copy }) do

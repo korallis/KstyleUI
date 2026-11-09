@@ -541,6 +541,10 @@ end
 local function fontGiven(self, method, font)
 	if method == "SetFont" then
 		self._font = type(font) == "string" and font ~= ""
+		if rawget(_G, "STUB_FONT_ORIGINS") then
+			local source = debug.getinfo(3, "S").source
+			self._fontFromAddon = source:find("^@Core/") ~= nil or source:find("^@KstyleUI_") ~= nil
+		end
 	else
 		self._font = font ~= nil
 	end
@@ -782,6 +786,11 @@ function Stubs.NewEnv(opts)
 	local env = setmetatable({}, { __index = _G })
 	env._G = env
 	env._size = opts.size == nil and 1 or opts.size
+	env._fitScale = opts.fit == true or opts.size == "default"
+	local made = rawget(_G, "STUB_ENVS")
+	if type(made) == "table" then
+		made[#made + 1] = env
+	end
 	env._combat = false
 	env._frames = {}
 	local timers = {}
