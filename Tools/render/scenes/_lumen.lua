@@ -93,7 +93,9 @@ function Lumen.Rail(built, R)
 	end
 	local group, chat, tracker = built.groupframes, built.chat, built.tracker
 	local cards = group and group.ns.Headers and group.ns.Headers.cards
-	add("party", Hud.envs[group.scene], cards and cards.party and cards.party.frame)
+	if group then
+		add("party", Hud.envs[group.scene], cards and cards.party and cards.party.frame)
+	end
 	local f = R.rxp.RXPFrame
 	local parts = R.K.Skin.Parts(f)
 	add("guide", R.env, parts and parts.backdrop)
@@ -108,6 +110,27 @@ function Lumen.Rail(built, R)
 	table.sort(out, function(a, b)
 		return a.top < b.top
 	end)
+	return out
+end
+
+-- Elements(built) -> every Layout element a running module placed, by key: { module, left, bottom, width, height } in
+-- root units from the root's bottom left, as Layout.Rect gives them, for scenes/_reference.lua's measurements.
+function Lumen.Elements(built)
+	local out = {}
+	for name, b in pairs(built) do
+		local env = b.scene and Hud.envs[b.scene]
+		local K = env and env.KstyleUI
+		if K and K.Layout and K.Layout.Elements then
+			for _, e in ipairs(K.Layout.Elements()) do
+				if e.live and not out[e.key] then
+					local left, bottom, width, height = K.Layout.Rect(e.key)
+					if left then
+						out[e.key] = { module = name, left = left, bottom = bottom, width = width, height = height }
+					end
+				end
+			end
+		end
+	end
 	return out
 end
 
@@ -138,6 +161,10 @@ function Lumen.Build(state, opts)
 		base.playerCast = false
 	end
 	base.menus = true
+	-- opts.state overlays the board's state field by field (scenes/_reference.lua: the owner's picture).
+	for k, v in pairs(opts.state or {}) do
+		base[k] = v
+	end
 	base.sizes = {}
 	for key, size in pairs(sizes) do
 		base.sizes[key] = { size.width, size.height }
@@ -153,6 +180,7 @@ function Lumen.Build(state, opts)
 	if state == "combat" then
 		table.insert(names, 1, "nameplates")
 	end
+	names = opts.modules or names
 	local built, at = {}, {}
 	for _, name in ipairs(names) do
 		local scene, ns, extra = Hud.Module(name, base)
@@ -191,6 +219,9 @@ function Lumen.Build(state, opts)
 	end
 	local merged = Scene.Merge(scenes)
 	merged.rail = Lumen.Rail(built, R)
+	if opts.elements then
+		merged.elements = Lumen.Elements(built)
+	end
 	merged.slot = slot
 	merged.state = state
 	merged.layout = layout

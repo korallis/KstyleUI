@@ -84,6 +84,15 @@ Tools/render/shoot.sh hud_lumen_combat --backdrop        # in combat: a party of
 
 `scenes/_lumen.lua` builds both states of the Lumen mockup boards (`~/.local/share/kstyleui-handoff/arena2/parent/hud-questing.png` and `hud-combat.png`) on `hud.lua`. It reads the DPS layout's module settings, story slot and Apply sizes from the addon's own `Setup.Layouts`. Each module renders with the settings Layout > Apply writes. The story slot holds what Apply places there: the RestedXP guide where the RestedXP skin's story rail puts it (its list folded by RestedXP's own rule), and the tracker at the anchor the addon's own `Setup.Apply` writes into the "KstyleUI <layout>" Edit Mode layout (`Hud.StoryTracker`, run against `Tools/regression/editmode_fake.lua`), so the hero image shows what Apply does, not a hand placement. `Lumen.Rail` reports the glass of every left-rail card for the rail-alignment test. A free-sized element the layout sizes on Apply is sized the same way (`opts.sizes`), and the log says which. With `opts.combat`, each environment enters combat and runs half a second, so the combat calm has faded the slow cards. `Tools/regression/test-render-scenes-lumen.lua` checks the slot, the party sizes and the alphas of both states.
 
+## The owner's reference
+
+```bash
+Tools/render/shoot.sh hud_reference --ppu 2.0685 --backdrop <owner-plate-no-interface.png> --report   # staging in the state of the owner's picture of 2026-11-09
+RENDER_PRESET=1 Tools/render/shoot.sh hud_reference --ppu 2.0685 --backdrop <plate> --report          # the DPS preset's bars only
+```
+
+`scenes/_reference.lua` puts the HUD into the state of the owner's reference picture of 2026-11-09 (the Captain's drive, `handoffs/reference/owner-reference-2026-11-09.png`) on his screen: 3456 by 2234 px at Blizzard's UI scale 768/1080, so at `--ppu 2.0685` the render and the picture share pixels and one crop box works on both. It builds the Lumen questing board in the DPS layout (`Lumen.Build` with `opts.state` and `opts.modules`) with the picture's player, target, casts, auras, zone, clock, quests, guide, chat lines, damage spells, plates, keys and icons, and turns on bars 2, 4 and 5, which the picture shows and the preset leaves off. The screen size is set for the build only: `Common.SCREEN` reads `RENDER_SCREEN` while `Reference.Build` runs, then every other scene draws 2383 by 1540 again. With `opts.elements` the scene writes each element's `Layout.Rect` to `scene.elements`. `Tools/regression/test-render-scenes-reference.lua` checks the screen, the state's texts, the elements and the bars.
+
 ## Gallery
 
 ```bash
