@@ -38,8 +38,10 @@ return {
 		end,
 	},
 	{
+		-- Three bars recolour (one fill call each) plus one cooldown read: 6.5 us here; the CI runner measured
+		-- 5.3 times this path's local time, so 80 is the README's 15x calibration with room for that runner.
 		name = "Nameplates interrupt readiness flipping under three casts",
-		budget = 40,
+		budget = 80,
 		setup = function()
 			local env = N.New({ playerClass = "WARRIOR", known = { [6552] = true } })
 			local cast = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, notInterruptible = false }

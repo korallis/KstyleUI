@@ -121,35 +121,68 @@ local function StopFade(plate)
 	end
 end
 
-local function Paint(plate)
-	local bar = plate.castBar
+local function Fill(plate, r, g, b)
+	if plate.castR == r and plate.castG == g and plate.castB == b then
+		return
+	end
+	plate.castR, plate.castG, plate.castB = r, g, b
+	plate.castBar:SetFillColor(r, g, b)
+end
+
+local function Shade(plate, alpha)
+	if plate.castShade == alpha then
+		return
+	end
+	plate.castShade = alpha
+	plate.castShield:SetAlpha(alpha)
+end
+
+local function Paint(plate, openR, openG, openB)
 	local flag = plate.castFlag
 	if plate.castInterrupted then
-		bar:SetBarColor(Tokens.Color("hostile"))
-		plate.castShield:SetAlpha(0)
+		Fill(plate, Tokens.Color("hostile"))
+		Shade(plate, 0)
 		return
+	end
+	if openR == nil then
+		openR, openG, openB = OpenColor()
 	end
 	if IsSecret(flag) then
 		local normal, shield = ColorObjects()
-		local texture = bar:GetStatusBarTexture()
+		local texture = plate.castBar:GetStatusBarTexture()
 		if normal and texture and texture.SetVertexColorFromBoolean then
+			plate.castR = nil
 			texture:SetVertexColorFromBoolean(flag, shield, normal)
 		else
-			bar:SetBarColor(OpenColor())
+			Fill(plate, openR, openG, openB)
 			LogOnce("cast-flag", "SetVertexColorFromBoolean is missing; secret uninterruptible casts use the normal colour")
 		end
 		if plate.castShield.SetAlphaFromBoolean then
+			plate.castShade = nil
 			plate.castShield:SetAlphaFromBoolean(flag, SHIELD_ALPHA, 0)
 		end
 	elseif flag == true then
-		bar:SetBarColor(ShieldColor())
-		plate.castShield:SetAlpha(SHIELD_ALPHA)
+		Fill(plate, ShieldColor())
+		Shade(plate, SHIELD_ALPHA)
 	else
-		bar:SetBarColor(OpenColor())
-		plate.castShield:SetAlpha(0)
+		Fill(plate, openR, openG, openB)
+		Shade(plate, 0)
 	end
 end
 Cast.Paint = Paint
+
+local openR, openG, openB
+
+local function RepaintOpen(plate)
+	if plate.casting then
+		Paint(plate, openR, openG, openB)
+	end
+end
+
+function Cast.RepaintAll()
+	openR, openG, openB = OpenColor()
+	ns.Plates.Each(RepaintOpen)
+end
 
 local function Info(unit, channel)
 	if channel then

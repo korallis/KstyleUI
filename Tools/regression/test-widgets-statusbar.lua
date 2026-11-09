@@ -64,6 +64,26 @@ do
 	assert(W.SameRGB(color(accent), 0.1, 0.2, 0.3), "a caller's colour stays through a theme change")
 	accent:SetColorToken("accent")
 	assert(W.SameRGB(color(accent), 0.9, 0.9, 0.1), "and SetColorToken returns to a token")
+	-- SetFillColor recolours the fill alone, one widget call, for the combat paths that recolour many bars at once;
+	-- the colour sticks through a theme change and a later Paint, as SetBarColor's does.
+	local sparked = K.Widgets.StatusBar(K.Scale.Root(), { spark = true })
+	local function sparkCalls()
+		local n = 0
+		for _, call in ipairs(sparked.spark._calls) do
+			if call.method == "SetVertexColor" then
+				n = n + 1
+			end
+		end
+		return n
+	end
+	local before = sparkCalls()
+	sparked:SetFillColor(0.3, 0.6, 0.9)
+	assert(W.SameRGB(color(sparked), 0.3, 0.6, 0.9), "SetFillColor colours the fill")
+	assert(sparkCalls() == before, "and leaves the spark alone")
+	K.Theme.SetCustomAccent(0.2, 0.5, 0.9)
+	sparked:Paint()
+	assert(W.SameRGB(color(sparked), 0.3, 0.6, 0.9), "the fill colour is the bar's own from then on")
+	accent:SetColorToken("accent")
 	accent:SetBarTexture("Flat")
 	assert(W.LastCall(accent, "SetStatusBarTexture")[1] == K.Tokens.Texture("barFlat"), "a media key picks a bundled texture")
 	accent:SetBarTexture("Interface\\TargetingFrame\\UI-StatusBar")

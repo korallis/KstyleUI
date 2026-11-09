@@ -94,6 +94,14 @@ function Bar:SetBarColor(...)
 	self:Paint()
 end
 
+function Bar:SetFillColor(r, g, b, a)
+	local c = self.colorRGBA
+	c[1], c[2], c[3], c[4] = r, g, b, a
+	c.n = a ~= nil and 4 or 3
+	self.ownColor = true
+	self:SetStatusBarColor(r, g, b, a)
+end
+
 function Bar:SetColorToken(name)
 	Tokens.Color(name)
 	self.colorName = name

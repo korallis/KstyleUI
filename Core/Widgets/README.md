@@ -380,6 +380,7 @@ Options: `texture` (a key of `Tokens.MediaList("statusbar")`, `Glass` by default
 | `SetBarDuration(durationObject) -> ok` | `SetTimerDuration`, for cast bars driven by a duration object. Returns `false` and logs once when the method is missing. |
 | `SetColorToken(name)` | Colours the fill with a token. An `accent` bar follows the class colour on `ThemeChanged`. |
 | `SetBarColor(r, g, b, a)` | Colours the fill with the caller's values, passed on as they are, so a colour from a curve works. A theme change keeps it. It reuses one table per bar, so it allocates nothing on combat paths. |
+| `SetFillColor(r, g, b, a)` | As `SetBarColor`, but recolours the fill alone in one widget call and leaves the spark and sheen as they are: for a combat path that recolours many bars at once, such as every cast bar when the player's interrupt comes back. |
 | `SetBarTexture(keyOrPath)` | Changes the fill and the background texture. A key is looked up in a table built at load, and a path the bar already has changes nothing, so it allocates nothing on combat paths. |
 | `PlaySheen(loop)`, `StopSheen()` | A light band crosses the bar over `castSheen` (0.6 s) on an AnimationGroup, clipped to the bar, once or on a loop. Reduced motion skips it, and switching it on stops a looping sheen. |
 | `SetSparkShown(shown)` | |

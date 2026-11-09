@@ -65,14 +65,8 @@ function Interrupt.Resolve()
 	Interrupt.Update()
 end
 
-local function RepaintPlate(plate)
-	if plate.casting then
-		ns.Cast.Paint(plate)
-	end
-end
-
 local function Repaint()
-	ns.Plates.Each(RepaintPlate)
+	ns.Cast.RepaintAll()
 end
 
 function Interrupt.Update()
