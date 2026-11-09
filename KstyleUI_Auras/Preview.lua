@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample buffs and debuffs drawn with the kit's icon buttons, laid out as the settings say.
+-- Preview.lua: the settings window's live preview: sample buffs and debuffs on the module's own plain tiles, laid out as the settings say.
 local _, ns = ...
 
 local K = KstyleUI
@@ -23,10 +23,6 @@ local DEBUFFS = {
 	{ icon = 135846, seconds = 4, kind = "NONE" },
 }
 local REST_EDGE_ALPHA = 0.5
-local DISPEL_SUBLEVEL = 7
-local TIMER_GAP = 1
-local TEXT_INSET = 2
-local ICON_INSET_LINES = 2
 
 local function DispelColor(kind)
 	local colors = {
@@ -53,50 +49,36 @@ local function Settings()
 end
 
 local function Sample(canvas, spec, hasDispel)
-	local button = Widgets.IconButton(canvas, { icon = spec.icon, size = Model.defaults.buffs.iconSize })
-	button:EnableMouse(false)
-	local entry = { button = button, spec = spec }
-	entry.timer = Widgets.FontString(button.overlay, "OVERLAY")
-	entry.count = Widgets.FontString(button.overlay, "OVERLAY")
-	if hasDispel then
-		entry.dispel = Widgets.NineSlice(button, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
-	end
+	local button = CreateFrame("Frame", nil, canvas)
+	local entry = Button.Create(button, hasDispel)
+	entry.spec = spec
+	entry.icon:SetTexture(spec.icon)
 	return entry
 end
 
-local function StyleSample(entry, group, timer, count, edge)
-	local button = entry.button
-	button.opts.size = group.iconSize
-	button:Restyle()
-	local inset = Widgets.Border(button) * ICON_INSET_LINES + Widgets.Snap(button, TEXT_INSET)
-	Button.StyleText(entry.timer, timer)
-	Button.StyleText(entry.count, count)
-	entry.timer:ClearAllPoints()
-	entry.count:ClearAllPoints()
-	if timer.position == "inside" then
-		entry.timer:SetPoint("BOTTOM", button, "BOTTOM", 0, inset)
-		entry.count:SetPoint("TOPRIGHT", button, "TOPRIGHT", -inset, -inset)
-	else
-		entry.timer:SetPoint("TOP", button, "BOTTOM", 0, -Widgets.Snap(button, TIMER_GAP))
-		entry.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+local function Context(canvas, group, timer, count, edge)
+	local function snap(units)
+		return Widgets.Snap(canvas, units)
 	end
-	entry.timer:SetText(Model.FormatTime(entry.spec.seconds, timer.format))
-	entry.timer:SetShown(timer.format ~= "none")
+	local ctx = { group = group, timer = timer, count = count, icon = snap(group.iconSize), edge = edge }
+	ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
+	return ctx
+end
+
+local function StyleSample(entry, ctx)
+	Button.Style(entry, ctx)
+	entry.timer:SetText(Model.FormatTime(entry.spec.seconds, ctx.timer.format))
+	entry.timer:SetShown(ctx.timer.format ~= "none")
 	entry.count:SetText(entry.spec.stacks or "")
-	if type(button.SetAccent) == "function" then
-		button:SetAccent(edge[1], edge[2], edge[3])
-	else
-		button.chrome:SetEdgeRGBA(edge[1], edge[2], edge[3], edge[4])
-	end
+	entry.badge:SetShown(entry.spec.stacks ~= nil)
 	if entry.dispel then
-		Widgets.LayoutSlice(entry.dispel, button, button.chrome:Chamfer(), 0)
 		Widgets.ColorSlice(entry.dispel, DispelColor(entry.spec.kind))
-		Widgets.ShowSlice(entry.dispel, group.dispel == true)
+		Widgets.ShowSlice(entry.dispel, ctx.group.dispel == true)
 	end
 end
 
-local function PlaceGroup(box, entries, group, timer)
-	local w, h = Model.ElementSize(group, timer)
+local function PlaceGroup(box, entries, group, ctx)
+	local w, h = ctx.width, ctx.height
 	local shown = min(#entries, group.rows * group.columns)
 	local columns = max(1, min(group.columns, shown))
 	local rows = max(1, ceil(shown / group.columns))
@@ -164,10 +146,11 @@ local function Refresh(frame)
 			edge = { Tokens.Color("edgeInner") }
 		end
 		edge[4] = REST_EDGE_ALPHA
+		local ctx = Context(frame.canvas, group, timer, count, edge)
 		for _, entry in ipairs(entries) do
-			StyleSample(entry, group, timer, count, edge)
+			StyleSample(entry, ctx)
 		end
-		local w, h, horizontal = PlaceGroup(box, entries, group, timer)
+		local w, h, horizontal = PlaceGroup(box, entries, group, ctx)
 		box:ClearAllPoints()
 		if horizontal == "Left" then
 			box:SetPoint("TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)

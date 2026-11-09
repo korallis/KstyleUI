@@ -1,4 +1,4 @@
--- Model.lua: the aura panel's settings, defaults and limits, and the pure maths that turn them into engine options and sizes.
+-- Model.lua: the aura rows' settings, defaults and limits, and the pure maths that turn them into engine options and sizes.
 local _, ns = ...
 
 local K = KstyleUI
@@ -16,6 +16,7 @@ Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL" }
 local TIMER_GAP = 1
 local LINE_SLACK = 0.5
 Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
+Model.LABELS = { buffs = 40, debuffs = 24 }
 
 Model.LIMITS = {
 	iconSize = { min = 16, max = 64, step = 1 },
@@ -29,22 +30,22 @@ Model.LIMITS = {
 local LIMITS = Model.LIMITS
 
 local NUMBER_FONT = (Tokens.Font("number"))
+local BODY_FONT = (Tokens.Font("body"))
 local ar, ag, ab = Tokens.Color("accentDefault")
 
 Model.defaults = {
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {
-		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 2, columns = 6,
-		growth = "RIGHT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
+		iconSize = 30, spacing = 6, rowSpacing = 4, rows = 2, columns = 8,
+		growth = "LEFT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
-		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 2, columns = 6,
-		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true, dispelFirst = true,
+		iconSize = 30, spacing = 6, rowSpacing = 4, rows = 2, columns = 8,
+		growth = "LEFT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	card = { docked = true },
-	timer = { format = "short", position = "below", font = NUMBER_FONT, size = 12, outline = "OUTLINE", expiring = 5 },
-	count = { font = NUMBER_FONT, size = 11, outline = "OUTLINE" },
+	timer = { format = "short", position = "below", font = BODY_FONT, size = 11, outline = "NONE", expiring = 5 },
+	count = { font = NUMBER_FONT, size = 10, outline = "NONE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
 local defaults = Model.defaults
@@ -62,8 +63,10 @@ Model.SORT_OPTIONS = {
 	{ value = "blizzard", label = L["Yours first (Blizzard)"] },
 	{ value = "priority", label = L["Priority (boss, important, yours first)"] },
 }
-Model.DISPEL_TYPES = { "Magic", "Curse", "Poison", "Disease" }
-Model.MORE = { iconSize = 28, spacing = 6, columns = 8, buffs = 48, debuffs = 24 }
+Model.TRACKED_OPTIONS = {
+	{ value = "cdm", label = L["Cooldown Manager only"] },
+	{ value = "both", label = L["Here as well"] },
+}
 Model.TIMER_FORMATS = {
 	{ value = "short", label = L["Short (8m, 24s)"] },
 	{ value = "long", label = L["Long (8m 12s)"] },
@@ -90,6 +93,7 @@ local GROWTH = {
 	RIGHT_DOWN = { "TOPLEFT", "Right", "Down" },
 	RIGHT_UP = { "BOTTOMLEFT", "Right", "Up" },
 }
+local LAST_CELL = { TOPRIGHT = "BOTTOMLEFT", BOTTOMRIGHT = "TOPLEFT", TOPLEFT = "BOTTOMRIGHT", BOTTOMLEFT = "TOPRIGHT" }
 local SORT = { time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default", priority = "UnitFrameDebuff" }
 local FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
@@ -103,6 +107,7 @@ end
 local TIMER_FORMAT_SET = allowed(Model.TIMER_FORMATS)
 local TIMER_POSITION_SET = allowed(Model.TIMER_POSITIONS)
 local ACCENT_SET = allowed(Model.ACCENT_SOURCES)
+local TRACKED_SET = allowed(Model.TRACKED_OPTIONS)
 
 local function number(value, default, limit, whole)
 	if type(value) ~= "number" or value ~= value then
@@ -150,10 +155,10 @@ function Model.Group(settings, name)
 	if base.enchants ~= nil then
 		g.enchants = boolean(s.enchants, base.enchants)
 		g.cancel = boolean(s.cancel, base.cancel)
+		g.tracked = choice(s.tracked, TRACKED_SET, base.tracked)
 	end
 	if base.dispel ~= nil then
 		g.dispel = boolean(s.dispel, base.dispel)
-		g.dispelFirst = boolean(s.dispelFirst, base.dispelFirst)
 	end
 	return g
 end
@@ -204,9 +209,8 @@ function Model.Growth(growth)
 	return entry[1], entry[2], entry[3]
 end
 
-function Model.ContainerAnchor(growth)
-	local anchor = Model.Growth(growth)
-	return (anchor:gsub("RIGHT$", "LEFT"))
+function Model.LastCell(growth)
+	return LAST_CELL[(Model.Growth(growth))]
 end
 
 function Model.Sort(sort, reverse)
@@ -241,34 +245,6 @@ function Model.Footprint(group, timer, snap)
 	snap = snap or same
 	local w, h = Model.ElementSize(group, timer, snap)
 	return group.columns * w + (group.columns - 1) * snap(group.spacing), group.rows * h + (group.rows - 1) * snap(group.rowSpacing)
-end
-
-local CARD_PAD = 20
-local CARD_GAP = 8
-local HAIRLINE = 1
-Model.CARD_PAD = CARD_PAD
-Model.CARD_GAP = CARD_GAP
-
-function Model.Docked(settings)
-	return boolean(section(settings, "card").docked, defaults.card.docked)
-end
-
-function Model.Foot(timer, pad, gap)
-	return max(gap, pad - Model.TimerArea(timer))
-end
-
-function Model.Card(buffs, debuffs, pad, gap)
-	local cap = KstyleUI.Widgets.SECTION_CAP_HEIGHT
-	local card = { width = buffs.width + 2 * pad, contentTop = pad + cap + gap }
-	local bottom = card.contentTop + buffs.height
-	if debuffs then
-		card.width = max(card.width, debuffs.width + 2 * pad)
-		card.ruleTop = bottom + gap
-		card.debuffTop = card.ruleTop + HAIRLINE + gap
-		bottom = card.debuffTop + debuffs.height
-	end
-	card.height = bottom + pad
-	return card
 end
 
 function Model.Capacity(group, enchants)

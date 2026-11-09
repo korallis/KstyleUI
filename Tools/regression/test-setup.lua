@@ -461,7 +461,6 @@ do
 	assert(bars.pet.rows == 2 and bars.stance.rows == 2, "Apply folds the pet and stance sockets into two rows")
 	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
 	local group = K.Store.Module("GroupFrames")
-	assert(K.Store.Module("Auras").buffs.rows == 1 and K.Store.Module("Auras").card.docked == true, "Apply writes one buff row in the Blessings card, the debuffs docked")
 	assert(K.Store.Module("DataBars").strip.menus == true, "Apply docks the menu and the bags in the readout card")
 	assert(group.party.height == 46 and group.party.spacing == 8 and group.raid.height == 46 and group.raid.groupsPerRow == 4 and group.raid.width == 77, "Healer writes larger party and raid frames, four groups a row")
 	assert(K.Layout.Setting("preset") == "Healer", "Apply remembers the layout for Layout Mode's story slot")

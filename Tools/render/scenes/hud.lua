@@ -764,12 +764,12 @@ function modules.databars(opts)
 	return finish(env, K, scene, "databars"), ns
 end
 
--- Auras: the player's buffs beside the minimap, five with their time left ----------------------------------
+-- Auras: the player's buff and debuff rows under the minimap, five buffs with their time left -----------------
 
 -- The engine binds each button's icon and timer itself; the stub does not, so the scene fills the buff buttons
 -- with the class's buff row (_classes.lua), then more of its spells when opts.buffs asks for a longer row, and
 -- lays them out as the container's flow layout would: from the corner the module anchors the container at (the
--- top right, beside the minimap, by default), leftwards, the shortest time left first, wrapping into rows.
+-- element's top right, under the minimap, by default), leftwards, the shortest time left first, wrapping into rows.
 -- opts.debuffs fills that many debuff tiles the same way.
 
 local MORE_TIMERS = { "6m", "42s", "1h", "15m", "28s", "2h", "9m", "51s", "3h", "7m", "33s", "4h" }
@@ -846,8 +846,7 @@ function modules.auras(opts)
 		local columns = ns.Model.Group(settings, "buffs").columns
 		Hud.PlaceAuras(buffs, group, fillAuras(env, A, buffs, "buffs", group, buffRow), columns)
 	end
-	-- The engine sizes an empty container to nothing, and the card's glass follows it, so the debuff
-	-- container is laid out even with no debuffs.
+	-- The engine sizes an empty container to nothing, so the debuff container is laid out even with no debuffs.
 	local debuffs, harmful = A.Container(env, "HARMFUL")
 	local entries = {}
 	for i = 1, opts.debuffs or 0 do
@@ -856,18 +855,7 @@ function modules.auras(opts)
 	if debuffs then
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
 	end
-	-- The card asks the game whether the player has any buff or debuff (C_UnitAuras.GetAuraSlots, readable out
-	-- of combat) to drop the debuff band when there are no debuffs; the stub answers from the rows laid out.
-	local counts = { HELPFUL = #buffRow, HARMFUL = #entries }
-	env.C_UnitAuras = env.C_UnitAuras or {}
-	env.C_UnitAuras.GetAuraSlots = function(_, filter, maxSlots)
-		local out = {}
-		for i = 1, math.min(counts[filter] or 0, maxSlots or math.huge) do
-			out[i] = i
-		end
-		return nil, unpack(out)
-	end
-	env.FireEvent("UNIT_AURA", "player")
+	-- The rows' "+N" cells are counted by the engine's layout; the stub plays that pass for the counts laid out.
 	A.Counters(ns, { #buffRow, 0, #entries })
 	A.W.Settle(env)
 	local scene = build(env, opts)

@@ -197,7 +197,7 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `Calm.FALL`, `Calm.RISE`, `Calm.HOVER` | 0.24 s into the calm, 0.6 s out of it, 0.24 s for a hover |
 | `Calm.DELAY` | 3 s after combat ends before the cards rise |
 
-- **Focus cards never calm:** party and raid, the boss card, the target sigil and every centre hand (unit frames, cast bars, action bars, cooldowns), the Blessings (`auras.*`), and the damage and threat meters. The damage meter stays readable in a pull.
+- **Focus cards never calm:** party and raid, the boss card, the target sigil and every centre hand (unit frames, cast bars, action bars, cooldowns), the aura rows (`auras.*`), and the damage and threat meters. The damage meter stays readable in a pull.
 - **In combat** (`PLAYER_REGEN_DISABLED`), each idle line tweens to 30%, the readout card to 65%, each read card to 75% and the story surfaces to 90% over 0.24 s. **Out of combat** (`PLAYER_REGEN_ENABLED`), the cards wait 3 s, counted on an `OnUpdate` that runs only while it waits, then rise over 0.6 s. A pull during the wait keeps them calm, and the wait starts again when it ends.
 - **Hover:** while calm, a `C_Timer.NewTicker` reads `IsMouseOver` on each calmed card every 0.1 s. A card under the pointer rises to 100% and calms again when the pointer leaves. A secret `IsMouseOver` counts as over, and a frame that denies access counts as not over. The ticker stops with the calm.
 - **Alpha only:** the calm never changes a size, a point, a scale or a shown rule, so it never touches a protected frame's geometry in combat.

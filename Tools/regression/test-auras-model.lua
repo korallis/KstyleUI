@@ -23,15 +23,15 @@ local debuffs = Model.Group(d, "debuffs")
 local timer = Model.Timer(d)
 local bw, bh = Model.Footprint(buffs, timer)
 local dw, dh = Model.Footprint(debuffs, timer)
--- The Lumen tiles: 38-unit icons at a 48 pitch with the 12-unit timer under each, so a row is 51 tall. Six to a
--- row, so a row is 278 wide and the Blessings card round it, padded 20 each side, is the rail's 318: the buffs two
--- rows and the debuffs two, so twelve debuffs stay visible.
-check(buffs.iconSize == 38 and buffs.spacing == 10 and buffs.columns == 6 and timer.size == 12, "38-unit icons, 10-unit gaps, six per row, 12-unit timers")
-check(bw == 278 and bh == 102, "the buff footprint at defaults is 278 x 102, got " .. bw .. " x " .. bh)
-check(dw == 278 and dh == 102, "the debuff footprint at defaults is 278 x 102, got " .. dw .. " x " .. dh)
+-- The plain tiles: 30-unit icons at a 36 pitch with the 11-unit timer under each, so a row is 42 tall. Eight to a
+-- row, so a row is 282 wide, inside the rail's 318: the buffs two rows and the debuffs two, so twelve debuffs stay
+-- visible.
+check(buffs.iconSize == 30 and buffs.spacing == 6 and buffs.columns == 8 and timer.size == 11, "30-unit icons, 6-unit gaps, eight per row, 11-unit timers")
+check(bw == 282 and bh == 88, "the buff footprint at defaults is 282 x 88, got " .. bw .. " x " .. bh)
+check(dw == 282 and dh == 88, "the debuff footprint at defaults is 282 x 88, got " .. dw .. " x " .. dh)
 check(buffs.rows == 2 and debuffs.rows == 2, "two rows of buffs and two of debuffs by default")
-check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both groups read left to right from under the cap's title, so every row, short or wrapped, starts under the header")
-check(Model.ContainerAnchor("RIGHT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("LEFT_DOWN") == "TOPLEFT" and Model.ContainerAnchor("RIGHT_UP") == "BOTTOMLEFT" and Model.ContainerAnchor("LEFT_UP") == "BOTTOMLEFT", "the container hangs from the header's side at the edge the rows grow from, so a short row sits under the cap's title")
+check(buffs.growth == "LEFT_DOWN" and debuffs.growth == "LEFT_DOWN", "both groups grow left from the minimap's edge, then down")
+check(Model.ContainerAnchor == nil, "the container hangs from the corner the rows grow from; no separate anchor rule")
 
 -- Growth: the corner the panel grows from and the engine's direction names.
 local cases = {
@@ -45,7 +45,7 @@ for _, case in ipairs(cases) do
 	check(anchor == case[2] and h == case[3] and v == case[4], "growth " .. case[1] .. " maps to " .. case[2] .. ", got " .. tostring(anchor))
 end
 local anchor = Model.Growth("SIDEWAYS")
-check(anchor == "TOPLEFT", "an unknown growth falls back to the default, right then down")
+check(anchor == "TOPRIGHT", "an unknown growth falls back to the default, left then down")
 
 -- Sort: setting value to the engine's AuraContainerSortMethod and direction names.
 local sorts = {

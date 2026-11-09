@@ -159,14 +159,14 @@ end
 
 -- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
 -- Two 318-unit rails on a 28-unit margin hold everything slow: in DPS and Tank the left rail the party and chat with
--- the story slot between them, the right rail the lens, the Blessings, the damage card and the readout and menu. The
+-- the story slot between them, the right rail the lens, the aura rows, the damage card and the readout and menu. The
 -- centre holds one combat cluster at the bottom: the hands, and right on them the target sigil, with the focus on its
 -- left and the target of target on its right (in Tank the threat card under it), so you, your target, its target and
 -- your focus read in one glance (round 2: Muse #1, Opus's eye travel). The boss column heads the centre's right edge,
 -- 16 units in from the right rail. The world above the cluster stays clear. Healer stands the party and raid on the
 -- cluster's left half, clear of the cast bars, heads the left rail with the boss column and keeps the right rail's
--- damage card under the Blessings, as DPS does (round 3: the Blessings card at 40 buffs and 12 debuffs left no room
--- for the boss column on the right rail; Muse #2: the cast bars stay in the cluster).
+-- damage card under the aura rows, as DPS does (round 3: the buffs at 40 and 12 debuffs left no room for the boss
+-- column on the right rail; Muse #2: the cast bars stay in the cluster).
 
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
@@ -182,11 +182,14 @@ local LEFT_RAIL = {
 -- focus card (test-setup-editmode.lua's 16 icons and 12 bars), so Healer writes 318 when it is applied.
 local CHAT_WIDTH = { DPS = 372, Tank = 372, Healer = 318 }
 local RIGHT_STACK = {
-	DPS = { "minimap.main", "auras.buffs", "meters.damage" },
-	Tank = { "minimap.main", "auras.buffs", "meters.damage" },
-	Healer = { "minimap.main", "auras.buffs", "meters.damage" },
+	DPS = { "minimap.main", "meters.damage" },
+	Tank = { "minimap.main", "meters.damage" },
+	Healer = { "minimap.main", "meters.damage" },
 }
-local DOCKED = { ["auras.debuffs"] = "auras.buffs", ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
+-- The aura rows (owner pass 1): two 282 x 88 blocks beside the map's left edge, top-aligned with it, the debuffs 16
+-- under the buffs, growing left; they are not part of the rail's stack.
+local AURA_ROWS = { "auras.buffs", "auras.debuffs" }
+local DOCKED = { ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
 local HANDS = set({
 	"databars.xp", "databars.rep", "databars.honor", "actionbars.bar1", "actionbars.pet", "actionbars.stance",
 	"unitframes.player", "unitframes.pet", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs",
@@ -238,14 +241,21 @@ for _, name in ipairs(names) do
 		end
 		for _, key in ipairs(RIGHT_STACK[name]) do
 			local r = rect(key)
-			-- Owner pass 1: the minimap is a 160 square at the rail's head, flush with the rail's right edge.
+			-- Owner pass 1: the minimap is a 160 square at the rail's head, flush with the rail's right edge; the aura rows
+			-- are narrower than the rail (eight 30-unit tiles, 282) and sit right-aligned on it.
 			local wantWidth = key == "minimap.main" and 160 or RAIL
 			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == wantWidth, label .. ": " .. key .. " sits on the right rail, " .. wantWidth .. " wide on the 28 margin")
 		end
+		do
+			local map, buffs, debuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
+			assert(math.abs(buffs.right - (map.left - 16)) < 1e-6 and buffs.top == map.top, label .. ": the buff rows stand 16 left of the map, top-aligned with it")
+			assert(buffs.right == debuffs.right and math.abs(buffs.bottom - 16 - debuffs.top) < 1e-6, label .. ": the debuff rows hang 16 under the buffs")
+			assert(buffs.w == 282 and buffs.h == 88 and debuffs.w == 282 and debuffs.h == 88, label .. ": each aura block is 282 x 88")
+		end
 		local strip = rect("databars.strip")
 		assert(math.abs(strip.right - (width - MARGIN)) < 1e-6 and strip.w == RAIL and strip.bottom == MARGIN, label .. ": the readout and menu card sits on the right rail's foot")
-		-- Docked: the debuff row in the Blessings card, the menu and the bag bar in the readout card. Each sits inside its
-		-- host, where it stays when the player undocks it.
+		-- Docked: the menu and the bag bar in the readout card. Each sits inside its host, where it stays when the player
+		-- undocks it.
 		for key, host in pairs(DOCKED) do
 			assert(Layouts.Dock(key) == host, key .. " docks into " .. host)
 			local r, h = rect(key), rect(host)
@@ -264,7 +274,8 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The right rail, top to bottom, 16 to 22 units between cards.
+		-- The right rail, top to bottom, 16 to 22 units between cards. The aura rows beside the map reach into the rail's
+		-- column (282 wide against a 160 map) and lower than the map, so the card under the map clears them too.
 		local top = HEIGHT - MARGIN
 		for i, key in ipairs(RIGHT_STACK[name]) do
 			local r = rect(key)
@@ -275,6 +286,12 @@ for _, name in ipairs(names) do
 				assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. key .. " sits 16 to 22 under the card above it, got " .. gap)
 			end
 			top = r.bottom
+			if key == "minimap.main" then
+				local rows = rect(AURA_ROWS[2])
+				if rows.right > width - MARGIN - RAIL then
+					top = math.min(top, rows.bottom)
+				end
+			end
 		end
 		assert(top - strip.top >= CARD_GAP_MIN, label .. ": the readout and menu card clears the card above it")
 
@@ -469,7 +486,6 @@ for _, name in ipairs(names) do
 		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
 	end
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
-	assert(settings["Auras.buffs.rows"] == 1 and settings["Auras.card.docked"] == true, name .. " writes one row of buffs in the Blessings card, the debuffs docked")
 	assert(settings["DataBars.strip.menus"] == true, name .. " docks the menu and the bags in the readout card")
 	-- Apply sizes the meters: six damage rows, or in Tank two damage rows over two threat rows, so the rail fits.
 	local sizes = Layouts.Sizes(name)
@@ -551,15 +567,15 @@ local FOOTPRINTS = {
 	["unitframes.focus"] = { 200, 112 },
 	["unitframes.castbar.player"] = { 272, 30 },
 	["unitframes.castbar.target"] = { 220, 24 },
-	-- S4 (#157): the lens card, the Blessings card at one buff row with the debuff row docked, six damage rows, four
-	-- threat rows, the readout with the menu docked (at 318 the bag bar wraps under the micro menu: 118 holds both
-	-- rows, with 3 units for the owner's pixel snapping), the party card. Chat is a 372-unit card at the left rail's foot.
+	-- S4 (#157): six damage rows, four threat rows, the readout with the menu docked (at 318 the bag bar wraps under
+	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is a
+	-- 372-unit card at the left rail's foot.
 	-- Owner pass 1: a 160-unit square map, half the lens card, with the zone and clock inside it.
 	["minimap.main"] = { 160, 160 },
-	-- Round 3 (Astra #1B): the Blessings footprint reserves the card at its cap, one buff row over the hairline and two
-	-- docked debuff rows (test-setup-collisions.lua measures the live card against it).
-	["auras.buffs"] = { 318, 230 },
-	["auras.debuffs"] = { 318, 63 },
+	-- Owner pass 1 (2026-11-09): the buffs and debuffs are plain rows of eight 30-unit tiles, two rows each, beside
+	-- the map (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at 0 to 40 buffs).
+	["auras.buffs"] = { 282, 88 },
+	["auras.debuffs"] = { 282, 88 },
 	["meters.damage"] = { 318, 190 },
 	["meters.threat"] = { 318, 144 },
 	["databars.strip"] = { 318, 118 },
@@ -582,10 +598,9 @@ do
 	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
 	-- hang under its 84-unit frame in two rows, so the layouts keep 136 from its top; the focus card's debuffs sit over its 90-unit
 	-- frame, so the layouts keep 112 from its foot; the boss column holds five compact cards and the layouts keep its
-	-- full height plus the debuffs hanging to its left, 318 in all; the Blessings card starts at one buff row and grows
-	-- by its docked debuff rows to 230 at its cap; the readout card is one 42-unit line until the player shows the micro
-	-- menu and bag rows, and the layouts keep the 118 both rows take.
-	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["auras.buffs"] = { 318, 230 }, ["databars.strip"] = { 318, 118 } }
+	-- full height plus the debuffs hanging to its left, 318 in all; the readout card is one 42-unit line until the player
+	-- shows the micro menu and bag rows, and the layouts keep the 118 both rows take.
+	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]

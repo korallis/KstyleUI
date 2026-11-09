@@ -27,7 +27,7 @@ local function groupRows(schema, name)
 		slider(name .. ".iconSize", L["Icon size"], L["How large each icon is, in units at 1080p."], LIMITS.iconSize),
 		slider(name .. ".spacing", L["Spacing"], L["The gap between icons in a row."], LIMITS.spacing),
 		slider(name .. ".rowSpacing", L["Row spacing"], L["The gap between rows."], LIMITS.spacing),
-		slider(name .. ".rows", L["Rows"], L["How many rows of icons show before the rest are left out."], LIMITS.rows),
+		slider(name .. ".rows", L["Rows"], L["How many rows of icons show before the rest count as +N on the last icon."], LIMITS.rows),
 		slider(name .. ".columns", L["Icons per row"], L["How many icons fit in one row before the next row starts."], LIMITS.columns),
 		{
 			type = "dropdown", key = name .. ".growth", label = L["Growth"], options = Model.GROWTH_OPTIONS,
@@ -58,14 +58,18 @@ local function timerHidden(settings)
 end
 
 local schema = {
-	{ type = "header", label = L["Panel"] },
+	{ type = "header", label = L["Rows"] },
 	{
 		type = "toggle", key = "hideBlizzard", label = L["Hide Blizzard's buff frames"],
-		help = L["Hides the default buff and debuff frames while this panel shows your auras."],
+		help = L["Hides the default buff and debuff frames while these rows show your auras."],
 	},
 	{ type = "header", label = L["Buffs"] },
 }
 groupRows(schema, "buffs")
+schema[#schema + 1] = {
+	type = "dropdown", key = "buffs.tracked", label = L["Buffs the Cooldown Manager tracks"], options = Model.TRACKED_OPTIONS,
+	help = L["A buff the Cooldown Manager already tracks is left out of this row, so it shows in one place."],
+}
 schema[#schema + 1] = {
 	type = "toggle", key = "buffs.enchants", label = L["Weapon enchantments"],
 	help = L["Shows temporary weapon enchantments, such as poisons and oils, before your buffs."],
@@ -75,18 +79,10 @@ schema[#schema + 1] = {
 	help = L["Right-clicking a buff or weapon enchantment removes it."],
 }
 schema[#schema + 1] = { type = "header", label = L["Debuffs"] }
-schema[#schema + 1] = {
-	type = "toggle", key = "card.docked", label = L["Debuffs in the Blessings card"],
-	help = L["Keeps the debuff row in the Blessings card under a hairline. Off, it is its own element."],
-}
 groupRows(schema, "debuffs")
 schema[#schema + 1] = {
 	type = "toggle", key = "debuffs.dispel", label = L["Colour by debuff type"],
 	help = L["Borders each debuff in its type's colour: magic, curse, disease, poison or none."],
-}
-schema[#schema + 1] = {
-	type = "toggle", key = "debuffs.dispelFirst", label = L["Dispellable first"],
-	help = L["Puts the debuffs you or your group can dispel before the rest, whatever the sort."],
 }
 
 local rest = {

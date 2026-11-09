@@ -12,9 +12,9 @@ for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "sm
 	assert(type(build) == "function", script .. ".lua returns its builder")
 end
 
--- Lumen Rails: the Blessings hang under the lens card on the right rail, and Layout > Apply's Edit Mode layout puts
--- the objective tracker in the left rail's story slot, so at the full two rows of eight buffs and three debuffs every
--- tile sits under the lens's zone line and clear of the tracker, on the far side of the screen.
+-- Lumen Rails: the aura rows stand beside the minimap's left edge, and Layout > Apply's Edit Mode layout puts the
+-- objective tracker in the left rail's story slot, so at the full two rows of eight buffs and three debuffs every
+-- tile sits left of the map and clear of the tracker, on the far side of the screen.
 do
 	local Hud = L.Hud
 	local Lumen = dofile("Tools/render/scenes/_lumen.lua")
@@ -37,7 +37,7 @@ do
 	assert(#tiles == 19, "sixteen buff tiles and three debuff tiles draw, got " .. #tiles)
 	assert(quests[1] >= slot.left and quests[1] + quests[3] <= slot.left + slot.width and quests[2] >= slot.top, "the tracker's caption sits in the story slot")
 	for _, rect in ipairs(tiles) do
-		assert(rect[2] >= zone[2] + zone[4], "every aura tile sits under the lens's zone line")
+		assert(rect[1] + rect[3] <= zone[1], "every aura tile sits left of the map's zone line")
 		assert(rect[1] > slot.left + slot.width, "every aura tile stays clear of the story slot")
 	end
 end
