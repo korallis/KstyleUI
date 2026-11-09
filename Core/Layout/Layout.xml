@@ -4,4 +4,5 @@
 	<Script file="Rules.lua"/>
 	<Script file="Layout.lua"/>
 	<Script file="Mode.lua"/>
+	<Script file="Calm.lua"/>
 </Ui>

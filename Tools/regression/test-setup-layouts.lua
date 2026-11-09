@@ -1,4 +1,4 @@
--- test-setup-layouts.lua: the DPS, Tank and Healer layouts place every known element key on screen, apart, as the v3 mockups show.
+-- test-setup-layouts.lua: the Lumen DPS, Tank and Healer layouts place every known element key on screen, apart, on two rails around a clear centre, as the Lumen Rails mockup shows.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Raises = CoreEnv.Raises
 
@@ -95,6 +95,12 @@ local function overlap(a, b)
 	return a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4]
 end
 
+-- Size(name, key) -> the footprint the layout plans for: the element's, or the layout's own where it differs.
+local function Size(name, key)
+	local w, h = Layouts.Footprint(name, key)
+	return { width = w, height = h }
+end
+
 for _, name in ipairs(names) do
 	local layout = Layouts.Get(name)
 	assert(type(layout) == "table", name .. " has positions")
@@ -112,13 +118,15 @@ for _, name in ipairs(names) do
 	end
 	for _, key in ipairs(KEYS) do
 		assert(layout[key], name .. " has no position for " .. key)
+		local w, h = Layouts.Footprint(name, key)
+		assert(type(w) == "number" and w > 0 and type(h) == "number" and h > 0, name .. " gives " .. key .. " a footprint")
 	end
 	for _, screen in ipairs(SCREENS) do
 		local width = HEIGHT * screen[1] / screen[2]
 		local label = name .. " at " .. screen[1] .. "x" .. screen[2]
 		local rects = {}
 		for _, key in ipairs(KEYS) do
-			local l, b, r, t = Layouts.Rect(Layouts.Element(key), layout[key], width, HEIGHT)
+			local l, b, r, t = Layouts.Rect(Size(name, key), layout[key], width, HEIGHT)
 			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
@@ -137,119 +145,216 @@ for _, name in ipairs(names) do
 	end
 end
 
--- The HUD follows the v3 mockups ---------------------------------------------------------------------
+-- Lumen Rails (handoff/arena2/parent: index.html, NOTES.md and the two HUD boards) ------------------------
+-- Two 318-unit rails on a 28-unit margin hold everything slow: the left rail the party and chat with the story slot
+-- between them, the right rail the lens, the Blessings, the boss, the meters and the readout and menu. The centre holds
+-- only the hands at the bottom and the target sigil at the top, and the world between them stays clear.
+
+local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
+local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
+local LEFT_RAIL = { "groupframes.party", "groupframes.raid", "chat.main" }
+local RIGHT_STACK = { { "minimap.main" }, { "auras.buffs", "auras.debuffs" }, { "unitframes.boss" }, { "meters.damage" }, { "meters.threat" } }
+local FOOT = { "databars.micro", "databars.strip" }
+local HANDS = set({
+	"databars.xp", "databars.rep", "databars.honor", "actionbars.bar1", "actionbars.bar2", "actionbars.pet", "actionbars.stance",
+	"unitframes.player", "unitframes.pet", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs",
+	"cooldowns.bars", "unitframes.castbar.player", "meters.swing",
+})
+local SIGIL = set({ "unitframes.target", "unitframes.castbar.target", "unitframes.targettarget" })
+-- The mockup's "world, kept clear" (system board): the centre 520 units wide, from the hands' top to the sigil's foot.
+local CLEAR = { half = 260, bottom = 390, top = 880 }
+-- The focus card is a 318-unit card at mid-left, at the clear centre's edge (the brief: "inside the centre clear
+-- zone's edge"): on a 1671-unit screen it reaches into the zone's outer half, never past it.
+local EDGE = set({ "unitframes.focus", "unitframes.focustarget" })
+local RAIL_KEYS = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
+	"unitframes.boss", "meters.damage", "meters.threat", "databars.strip", "databars.micro" })
 
 for _, name in ipairs(names) do
 	local layout = Layouts.Get(name)
-	local width = HEIGHT * 3456 / 2234
-	local function rect(key)
-		local l, b, r, t = Layouts.Rect(Layouts.Element(key), layout[key], width, HEIGHT)
-		return { left = l, bottom = b, right = r, top = t, x = (l + r) / 2, y = (b + t) / 2 }
+	for _, screen in ipairs(SCREENS) do
+		local width = HEIGHT * screen[1] / screen[2]
+		local label = name .. " at " .. screen[1] .. "x" .. screen[2]
+		local mid = width / 2
+		local function rect(key)
+			local l, b, r, t = Layouts.Rect(Size(name, key), layout[key], width, HEIGHT)
+			return { left = l, bottom = b, right = r, top = t, x = (l + r) / 2, y = (b + t) / 2, w = r - l, h = t - b }
+		end
+		local function centred(r)
+			return math.abs(r.x - mid) < 1
+		end
+
+		-- The rails share their columns and width, the same on both sides.
+		for _, key in ipairs(LEFT_RAIL) do
+			local r = rect(key)
+			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the 28 margin")
+		end
+		for _, group in ipairs(RIGHT_STACK) do
+			for _, key in ipairs(group) do
+				local r = rect(key)
+				assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail, 318 wide on the 28 margin")
+			end
+		end
+		for _, key in ipairs(FOOT) do
+			local r = rect(key)
+			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == RAIL, label .. ": " .. key .. " sits on the right rail's foot")
+		end
+		local party, raid, chat = rect("groupframes.party"), rect("groupframes.raid"), rect("chat.main")
+		assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
+		assert(chat.bottom == MARGIN, label .. ": chat sits at the left rail's foot")
+
+		-- The right rail, top to bottom: lens, Blessings, boss, damage, threat; 16 to 22 units between cards.
+		local top = HEIGHT - MARGIN
+		for i, group in ipairs(RIGHT_STACK) do
+			local head, tail = rect(group[1]), rect(group[#group])
+			if i == 1 then
+				assert(head.top == top, label .. ": the lens card heads the right rail")
+			else
+				local gap = top - head.top
+				assert(gap >= CARD_GAP_MIN and gap <= CARD_GAP_MAX, label .. ": " .. group[1] .. " sits 16 to 22 under the card above it, got " .. gap)
+			end
+			for k = 2, #group do
+				local gap = rect(group[k - 1]).bottom - rect(group[k]).top
+				assert(gap >= 0 and gap <= 8, label .. ": " .. group[k] .. " belongs to the card above it")
+			end
+			top = tail.bottom
+		end
+		local micro, strip = rect("databars.micro"), rect("databars.strip")
+		assert(micro.bottom == MARGIN and strip.bottom == micro.top, label .. ": the readout over the menu is one card at the right rail's foot")
+		local foot = (top - strip.top)
+		assert(foot >= CARD_GAP_MIN, label .. ": the readout and menu card clears the threat card")
+		assert(rect("minimap.main").w == rect("minimap.main").h, label .. ": the lens card is square")
+
+		-- The story slot: the space between the party card and chat, where the player drops the guide and the tracker.
+		local slot = Layouts.Slot(name)
+		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
+		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
+		assert(s[1] == MARGIN and s[3] - s[1] == RAIL, label .. ": the story slot is on the left rail's column")
+		assert(s[2] - chat.top >= CARD_GAP_MIN and party.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the party card and chat")
+		assert(s[4] - s[2] >= 280, label .. ": the story slot has room for the guide and the quests")
+		-- In a raid the taller raid card takes the slot's top: the slot says how far, and Layout Mode marks the line.
+		assert(slot.raid == raid.h - party.h and slot.raid > 0 and slot.raid < s[4] - s[2] and slot.raidHint, label .. ": the story slot names the part the raid card covers")
+		assert(party.bottom - slot.raid == raid.bottom, label .. ": the raid card ends that far into the slot")
+
+		-- Nothing but the rails' own cards enters a rail column; nothing but the hands and the sigil crosses the clear centre.
+		for _, key in ipairs(KEYS) do
+			local r = rect(key)
+			if not RAIL_KEYS[key] then
+				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")
+			end
+			local inside = r.left < mid + CLEAR.half and r.right > mid - CLEAR.half and r.bottom < CLEAR.top and r.top > CLEAR.bottom
+			if EDGE[key] then
+				assert(r.right <= mid - CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
+			else
+				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
+			end
+			if HANDS[key] and math.abs(r.x - mid) < CLEAR.half then
+				assert(r.top <= CLEAR.bottom, label .. ": " .. key .. " sits under the clear centre with the hands")
+			end
+			if SIGIL[key] then
+				assert(r.bottom >= CLEAR.top, label .. ": " .. key .. " sits over the clear centre with the sigil")
+			end
+		end
+
+		-- The hands, bottom to top: the XP line, one row of bar 1, the vitals line, the cooldowns, the cast bar.
+		local xp, bar1, vitals = rect("databars.xp"), rect("actionbars.bar1"), rect("unitframes.player")
+		local essential, utility, cast = rect("cooldowns.essential"), rect("cooldowns.utility"), rect("unitframes.castbar.player")
+		for _, key in ipairs({ "databars.xp", "actionbars.bar1", "actionbars.bar2", "unitframes.player", "unitframes.resource", "cooldowns.essential", "unitframes.castbar.player", "meters.swing" }) do
+			assert(centred(rect(key)), label .. ": " .. key .. " is centred")
+		end
+		assert(xp.bottom - 34 >= 14 and xp.bottom - 34 <= 20, label .. ": the XP line sits 34 units up with room for its caption under it")
+		assert(bar1.bottom - xp.top == 12, label .. ": bar 1 sits 12 over the XP line, as the mockup")
+		assert(vitals.bottom - bar1.top == 12, label .. ": the vitals line sits 12 over bar 1, as the mockup")
+		assert(math.abs(vitals.w - bar1.w) <= 2, label .. ": the vitals line spans bar 1")
+		local resource = rect("unitframes.resource")
+		assert(resource.bottom >= vitals.top and essential.bottom >= resource.top, label .. ": the class resource sits between the vitals and the cooldowns")
+		assert(essential.bottom - vitals.top <= 40, label .. ": the essential cooldowns sit just over the vitals")
+		assert(utility.bottom == essential.bottom and utility.left - essential.right == 16, label .. ": the utility cooldowns sit beside the essential ones")
+		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
+		assert(buffs.bottom == essential.bottom and essential.left - buffs.right >= 16, label .. ": the tracked buff icons sit beside the essential cooldowns' other end")
+		assert(bars.bottom >= buffs.top + 4 and bars.left == buffs.left, label .. ": the tracked buff bars sit over the icons")
+		assert(cast.bottom >= essential.top + 8, label .. ": the cast bar sits over the cooldowns")
+		local bar2, swing = rect("actionbars.bar2"), rect("meters.swing")
+		assert(swing.bottom >= cast.top and bar2.bottom >= swing.top, label .. ": bar 2, off in Lumen, waits at the top of the hands")
+		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
+		assert(petBar.right == bar1.left - 12 and petBar.bottom == bar1.bottom, label .. ": the pet sockets sit beside bar 1's left end")
+		assert(stance.left == bar1.right + 12 and stance.bottom == bar1.bottom, label .. ": the stance sockets sit beside bar 1's right end")
+		local rep, honor = rect("databars.rep"), rect("databars.honor")
+		assert(rep.bottom == xp.bottom and rep.left == petBar.left and rep.right == petBar.right, label .. ": the reputation line runs under the pet sockets on the XP line's baseline")
+		assert(honor.bottom == xp.bottom and honor.left == stance.left and honor.right == stance.right, label .. ": the honour line runs under the stance sockets on the XP line's baseline")
+		local pet = rect("unitframes.pet")
+		assert(pet.right == vitals.left - 12 and pet.top == vitals.top, label .. ": the pet frame sits beside the vitals line's ring, top-aligned")
+
+		-- The sigil near the top centre; the target's cast bar under it and the target of target under its right end.
+		local sigil, targetCast, tot = rect("unitframes.target"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
+		assert(centred(sigil) and sigil.top == HEIGHT - 40, label .. ": the sigil sits 40 under the top, centred")
+		assert(centred(targetCast) and sigil.bottom - targetCast.top == 8, label .. ": the target cast bar hangs under the sigil")
+		assert(tot.right == sigil.right and tot.top == targetCast.top, label .. ": the target of target sits under the sigil's right end")
+
+		-- The focus card at mid-left, at the clear centre's edge; its target under it.
+		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
+		assert(focus.left == BAND and focus.y > HEIGHT / 3 and focus.y < HEIGHT * 2 / 3, label .. ": the focus card sits mid-left, beside the left rail")
+		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= 4, label .. ": the focus target sits under the focus card")
 	end
-	local player, target, essential = rect("unitframes.player"), rect("unitframes.target"), rect("cooldowns.essential")
-	local utility, cast, bar1, bar2 = rect("cooldowns.utility"), rect("unitframes.castbar.player"), rect("actionbars.bar1"), rect("actionbars.bar2")
-	local mid = width / 2
-	local function centred(r)
-		return math.abs(r.x - mid) < 1
+
+	-- Bars 2 to 6 are off in Lumen; bar 1 and the socket rows are on. The threat card shows in Tank only.
+	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
+		assert(Layouts.Shown(name, key) == false, name .. " switches " .. key .. " off")
 	end
-	assert(centred(essential) and centred(utility) and centred(cast) and centred(bar1) and centred(bar2), name .. ": the HUD band is centred")
-	assert(bar2.top <= bar1.bottom and bar1.top <= utility.bottom and utility.top <= essential.bottom and essential.top <= cast.bottom, name .. ": two bar rows, then utility, essential and the cast bar above")
-	assert(bar2.bottom < 100, name .. ": the action bars sit low")
-	assert(player.right < essential.left and target.left > essential.right, name .. ": player and target sit either side of the Cooldown Manager")
-	assert(player.bottom == target.bottom and player.top < cast.bottom, name .. ": player and target on one line, below the cast bar")
-	assert(math.abs((mid - player.x) - (target.x - mid)) < 1, name .. ": player and target mirror each other")
-	assert(player.bottom <= essential.bottom and player.top >= essential.top, name .. ": the frames flank the essential row, as in the composition mockup")
-	assert(utility.bottom < player.bottom and utility.top > player.bottom - 60, name .. ": the utility row hangs just below the frames")
-	assert(essential.left - player.right >= 24 and essential.left - player.right <= 40, name .. ": the mockup's 32-unit gap between a frame and the essential row")
-	assert(cast.bottom - player.top >= 4 and cast.bottom - player.top <= 12, name .. ": the cast bar sits a few units above the frames")
-	local xp, swing = rect("databars.xp"), rect("meters.swing")
-	assert(centred(xp) and xp.bottom > bar1.top + 10 and xp.top < utility.bottom - 10, name .. ": the experience bar runs between action bar 1 and the utility row, with room for its caption")
-	assert(xp.left > bar1.left and xp.right < bar1.right, name .. ": the experience bar stays inside the action bars' ends")
-	assert(xp.right <= rect("unitframes.castbar.target").left and xp.left >= rect("cooldowns.bars").right, name .. ": the experience bar ends before the target cast bar and the tracked buff bars")
-	-- The owner's in-game ruling of 2026-11-08: the HUD reads at one scale, the 38-unit action button. The essential
-	-- icons step up one notch from it, the utility icons are the button's size, and the unit frames stand under
-	-- two button pitches tall, so no frame or icon dwarfs the bars.
-	assert(utility.top - utility.bottom == bar1.top - bar1.bottom, name .. ": the utility icons are the action button's size")
-	local essentialH = essential.top - essential.bottom
-	assert(essentialH > bar1.top - bar1.bottom and essentialH <= (bar1.top - bar1.bottom) * 1.2, name .. ": the essential icons are one notch larger than the action buttons, not half again")
-	assert(player.top - player.bottom <= 2 * (bar1.top - bar1.bottom) - 4, name .. ": the player frame stands under two action buttons tall")
-	assert(swing.bottom >= cast.top, name .. ": the swing timer sits above the cast bar")
-	local resource, pet, targetCast, tot = rect("unitframes.resource"), rect("unitframes.pet"), rect("unitframes.castbar.target"), rect("unitframes.targettarget")
-	assert(targetCast.top <= target.bottom and targetCast.left >= target.left and targetCast.right <= target.right, name .. ": the target cast bar sits under its frame")
-	-- The mockup shows neither small frame, and its 195-unit buff bars take the whole row under the player frame,
-	-- so the pet frame sits beside the player frame's portrait end and the target of target beside the target's.
-	assert(pet.right <= player.left - 2 and pet.right >= player.left - 12 and pet.bottom == player.bottom, name .. ": the pet frame sits beside the player frame, bottom-aligned")
-	assert(tot.left >= target.right + 2 and tot.left <= target.right + 12 and tot.bottom == target.bottom, name .. ": the target of target sits beside the target frame, bottom-aligned")
-	assert(resource.bottom >= player.top and resource.left >= player.left and resource.right <= player.right, name .. ": the class resource sits on top of the player frame")
-	assert(math.abs((mid - pet.x) - (tot.x - mid)) < 1 and pet.bottom == tot.bottom, name .. ": the pet frame and the target of target mirror each other")
-	local bars, buffs = rect("cooldowns.bars"), rect("cooldowns.buffs")
-	assert(bars.top <= player.bottom - 4 and bars.top >= player.bottom - 40 and math.abs(bars.right - player.right) <= 4, name .. ": the tracked buff bars hang a few units under the player frame, right-aligned with it, as in the mockup")
-	assert(bars.top >= 225 and bars.top <= 236, name .. ": the bars' top sits 225 to 236 units above the bottom: the mockup's 225, raised to clear the chat panel on the owner's 1671-unit-wide root")
-	assert(buffs.top <= target.bottom and buffs.left >= target.left and buffs.right <= target.right, name .. ": the tracked buff icons hang under the target frame")
-	assert(bar1.bottom - bar2.top >= 6 and bar1.bottom - bar2.top <= 12, name .. ": the two bar rows keep the mockup's 10-unit gap")
-	local minimap, auraBuffs, auraDebuffs = rect("minimap.main"), rect("auras.buffs"), rect("auras.debuffs")
-	assert(minimap.top > HEIGHT - 40 and minimap.right > width - 40, name .. ": the minimap sits top right")
-	-- Forever's Edit Mode preset pins the objective tracker's top 275 units under the screen's top
-	-- (Blizzard_EditMode/Mainline/EditModePresetLayouts.lua, the ObjectiveTracker anchorInfo), 38 units under the
-	-- minimap's frame: no aura row fits there, so the aura rows stand beside the minimap, top-aligned with it, and
-	-- the debuffs under the buffs, all above the tracker's top whatever the buff count.
-	local trackerTop = HEIGHT - 275
-	assert(auraBuffs.right <= minimap.left - 8 and auraBuffs.right >= minimap.left - 16 and math.abs(auraBuffs.top - minimap.top) < 1, name .. ": the buffs stand beside the minimap, top-aligned with it")
-	assert(auraDebuffs.top <= auraBuffs.bottom - 4 and auraDebuffs.right == auraBuffs.right, name .. ": the debuffs hang under the buffs, flush with them")
-	assert(auraDebuffs.bottom > trackerTop and minimap.bottom > trackerTop, name .. ": the aura rows and the minimap clear the tracker's Edit Mode top")
-	local chat, strip = rect("chat.main"), rect("databars.strip")
-	assert(chat.left < 40 and chat.bottom < 40, name .. ": chat sits bottom left")
-	assert(bars.left >= chat.right + 3.5 or bars.bottom >= chat.top + 4, name .. ": the buff bars clear the chat panel by about 4 units on the owner's 1671-unit-wide root")
-	assert(strip.right > width - 40 and strip.bottom < 40, name .. ": the data strip sits bottom right")
-	local micro, bags = rect("databars.micro"), rect("databars.bags")
-	assert(micro.bottom >= strip.top + 4 and bags.bottom >= micro.top + 4, name .. ": the micro menu sits clear above the strip and the bag bar clear above the micro menu")
-	assert(rect("meters.damage").x > mid and rect("meters.threat").x > mid, name .. ": the meters sit right")
+	for _, key in ipairs({ "actionbars.bar1", "actionbars.pet", "actionbars.stance", "unitframes.player", "unitframes.target", "minimap.main", "chat.main" }) do
+		assert(Layouts.Shown(name, key) == true, name .. " keeps " .. key .. " on")
+	end
+	assert(Layouts.Shown(name, "meters.threat") == (name == "Tank"), name .. ": the threat card shows in Tank only")
+	local settings = {}
+	for _, entry in ipairs(Layouts.Settings(name)) do
+		assert(K.Features.modules[entry.module] ~= nil and type(entry.key) == "string" and entry.value ~= nil, name .. " writes a module's setting")
+		settings[entry.module .. "." .. entry.key] = entry.value
+	end
+	for i = 2, 6 do
+		assert(settings["ActionBars.bar" .. i .. ".enabled"] == false, name .. " writes bar " .. i .. " off")
+	end
+	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
+	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
+	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
+	assert(settings["GroupFrames.raid.groupsPerRow"] == 4, name .. " folds the raid into four groups a row, for the rail")
+	local raidW = 4 * settings["GroupFrames.raid.width"] + 3 * 3
+	assert(raidW <= RAIL and raidW >= RAIL - 4, name .. ": four raid groups fill the rail's 318, got " .. raidW)
 end
 do
-	local function x(name, key)
-		local l, _, r = Layouts.Rect(Layouts.Element(key), Layouts.Get(name)[key], 1920, HEIGHT)
-		return (l + r) / 2
+	local function h(name, key)
+		return select(2, Layouts.Footprint(name, key))
 	end
-	assert(x("DPS", "groupframes.party") < 300 and x("Tank", "groupframes.party") < 300, "DPS and Tank keep party frames at the left edge")
-	assert(x("Healer", "groupframes.party") > 300 and math.abs(x("Healer", "groupframes.raid") - 960) < 1, "Healer brings group frames to the centre")
-	assert(x("Tank", "meters.threat") < x("DPS", "meters.threat"), "Tank brings the threat meter in beside the target frame")
+	assert(h("Healer", "groupframes.party") > h("DPS", "groupframes.party") and h("Healer", "groupframes.raid") > h("DPS", "groupframes.raid"), "Healer gets larger party and raid frames on the same column")
+	assert(h("Tank", "groupframes.party") == h("DPS", "groupframes.party"), "Tank keeps the DPS party card")
+	local dps, healer = {}, {}
+	for _, entry in ipairs(Layouts.Settings("DPS")) do dps[entry.module .. "." .. entry.key] = entry.value end
+	for _, entry in ipairs(Layouts.Settings("Healer")) do healer[entry.module .. "." .. entry.key] = entry.value end
+	assert(healer["GroupFrames.party.height"] > dps["GroupFrames.party.height"] and healer["GroupFrames.raid.height"] > dps["GroupFrames.raid.height"], "Healer writes taller party and raid rows")
+	assert(dps["GroupFrames.party.spacing"] == 8 and healer["GroupFrames.party.spacing"] == 8, "the party rows sit 8 apart, the mockup's pitch")
+	local party = 5 * healer["GroupFrames.party.height"] + 4 * healer["GroupFrames.party.spacing"]
+	assert(5 * dps["GroupFrames.party.height"] + 4 * 8 <= h("DPS", "groupframes.party"), "the DPS party fits its card")
+	assert(party <= h("Healer", "groupframes.party"), "the Healer party fits its card, got " .. party)
+	local raid = 2 * (5 * healer["GroupFrames.raid.height"] + 4 * 3) + 3
+	assert(raid <= h("Healer", "groupframes.raid"), "the Healer raid fits its card, got " .. raid)
+	assert(Layouts.Shown("Raid", "actionbars.bar1") == nil and Layouts.Settings("Raid") == nil and Layouts.Slot("Raid") == nil, "an unknown layout gives nil")
 end
 
--- Player and target keep the owner's mockup's proportions (279 by 90) at the height the owner's in-game test of
--- 2026-11-08 asked for: 70 units, under two 38-unit action buttons, where the mockup's 89 dwarfed the bars.
--- The compact frames stay compact.
-for _, key in ipairs({ "unitframes.player", "unitframes.target" }) do
-	local e = Layouts.Element(key)
-	assert(e.height == 70, key .. " is 70 units tall, the owner's in-game scale beside 38-unit action buttons, got " .. e.height)
-	assert(math.abs(e.width / e.height - 279 / 90) < 0.05, key .. " has the owner's mockup's 279 by 90 proportions, got " .. e.width .. " x " .. e.height)
-end
-
-for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
-	assert(Layouts.Element(key).height < 36, key .. " stays a compact frame")
-end
-
--- Footprints follow the owner's design file (kit-spec/SPEC.md) ------------------------------------------
-
+-- The HUD reads at one scale, the 38-unit action button (the owner's ruling of 2026-11-08). The essential icons step up
+-- one notch from it and the utility icons are the button's size. The Lumen vitals line is no frame: a 62-unit ring with
+-- a name and two lines, at most two buttons tall. The compact frames stay compact.
 do
-	local function footprint(key)
-		local element = Layouts.Element(key)
-		return element.width .. "x" .. element.height
+	local button = Layouts.Element("actionbars.bar1").height
+	assert(Layouts.Element("cooldowns.utility").height == button, "the utility icons are the action button's size")
+	local essential = Layouts.Element("cooldowns.essential").height
+	assert(essential > button and essential <= button * 1.2, "the essential icons are one notch larger than the action buttons, not half again")
+	-- S2 moved the player's cast line into the vitals line, 4 units over two buttons; the cast bar element stays off.
+	assert(select(2, Layouts.Footprint("DPS", "unitframes.player")) <= 2 * button + 4, "the vitals line, its cast line inside, stands no taller than two action buttons and that line")
+	for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
+		assert(Layouts.Element(key).height < 36, key .. " stays a compact frame")
 	end
-	assert(footprint("minimap.main") == "259x221", "the minimap is 259 by 221: the mockup's 221 frame with a 34 button column and a 4 gap beside it, got " .. footprint("minimap.main"))
-	assert(footprint("chat.main") == "424x164", "the chat panel is 424 by 164: the mockup's 430 by 164 at 1.348 px per unit, trimmed so the tracked buff bars clear it on the owner's screen, got " .. footprint("chat.main"))
-	assert(footprint("meters.damage") == "208x130", "the damage meter is 208 by 130 for five rows, got " .. footprint("meters.damage"))
-	assert(footprint("meters.threat") == "208x104", "the threat meter is 208 by 104 for four rows, got " .. footprint("meters.threat"))
-	assert(footprint("databars.strip") == "492x43", "the data strip is 492 by 43, as the composition mockup measures, got " .. footprint("databars.strip"))
-	assert(footprint("databars.xp") == "352x4", "the experience bar is 352 by 4: the mockup's 440 line between frames 220 from the centre, scaled with the frames to end inside the target cast bar, got " .. footprint("databars.xp"))
-	local layout = Layouts.Get("DPS")
-	local minimap = layout["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -16 and minimap.y == -16, "the minimap stays 16 in from the top right corner")
 end
 
--- The HUD band keeps the composition mockup's layout (docs/design/mockups/v3/leveling_warrior.jpg) at the owner's
--- in-game scale of 2026-11-08: the 38-unit action button at a 41 pitch is the module. The essential icons are 44
--- (one notch up) at a 50 pitch, the utility icons 38, the player cast bar 272 by 30, the buff bars 20 tall, the aura
--- tiles 38 like the buttons, and the frames 220 by 70. The experience line keeps its 440.
+-- Footprints: the 38-unit module for the hands, the Lumen plan for the rails' cards and the centre's two lines -----
+-- (handoff/lumen/task_s6.md: vitals 490x76, sigil 640x110, boss card 318x120, every rail card 318 wide).
 local FOOTPRINTS = {
 	["actionbars.bar1"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar2"] = { 12 * 38 + 11 * 3, 38 },
@@ -257,25 +362,87 @@ local FOOTPRINTS = {
 	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },
 	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
+	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
+	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
+	-- S2 (#153): the vitals line holds its cast line (80), the sigil keeps its debuff sockets under it (80 + 46), the
+	-- boss and focus are 318 by 120 cards, and the small frames 120 by 22 pill rows.
 	["cooldowns.essential"] = { 6 * 44 + 5 * 6, 44 },
 	["cooldowns.utility"] = { 4 * 38 + 3 * 6, 38 },
 	["cooldowns.buffs"] = { 6 * 30 + 5 * 3, 30 },
 	["cooldowns.bars"] = { 195, 2 * 20 + 3 },
-	["unitframes.player"] = { 220, 70 },
-	["unitframes.target"] = { 220, 70 },
-	["unitframes.targettarget"] = { 88, 22 },
-	["unitframes.pet"] = { 88, 22 },
-	["unitframes.focustarget"] = { 96, 22 },
-	["unitframes.focus"] = { 200, 80 },
+	["unitframes.player"] = { 490, 80 },
+	["unitframes.target"] = { 640, 126 },
+	["unitframes.boss"] = { 318, 120 },
+	["unitframes.targettarget"] = { 120, 22 },
+	["unitframes.pet"] = { 120, 22 },
+	["unitframes.focustarget"] = { 120, 22 },
+	["unitframes.focus"] = { 318, 120 },
 	["unitframes.castbar.player"] = { 272, 30 },
 	["unitframes.castbar.target"] = { 220, 24 },
-	["auras.buffs"] = { 8 * 38 + 7 * 8, 2 * 51 },
-	["auras.debuffs"] = { 8 * 38 + 7 * 8, 51 },
-	["databars.xp"] = { 352, 4 },
+	["minimap.main"] = { 318, 318 },
+	["auras.buffs"] = { 318, 110 },
+	["auras.debuffs"] = { 318, 48 },
+	["meters.damage"] = { 318, 140 },
+	["meters.threat"] = { 318, 104 },
+	["databars.strip"] = { 318, 46 },
+	["databars.micro"] = { 318, 44 },
+	["chat.main"] = { 318, 364 },
+	["groupframes.party"] = { 318, 240 },
+	["groupframes.raid"] = { 318, 427 },
+	["databars.xp"] = { 489, 4 },
+	["databars.rep"] = { 162, 5 },
+	["databars.honor"] = { 162, 5 },
 }
 for key, size in pairs(FOOTPRINTS) do
-	local e = Layouts.Element(key)
-	assert(e.width == size[1] and e.height == size[2], key .. " is " .. size[1] .. " x " .. size[2] .. " as the mockup measures, got " .. e.width .. " x " .. e.height)
+	local w, h = Layouts.Footprint("DPS", key)
+	assert(w == size[1] and h == size[2], key .. " is " .. size[1] .. " x " .. size[2] .. " in Lumen, got " .. w .. " x " .. h)
+end
+
+-- A Lumen footprint whose module still builds the staging size is a plan the layouts reserve room for, named with the
+-- slice that builds it (handoff/lumen/SHAPE.md). Each module builds its element at its footprint (Element), and the
+-- layouts place every element by its Lumen footprint (Footprint), so nothing overlaps once the slices land.
+do
+	local PENDING = {
+		["auras.buffs"] = "S4", ["auras.debuffs"] = "S4", ["minimap.main"] = "S4",
+	}
+	local listed = {}
+	for _, entry in ipairs(Layouts.Pending()) do
+		listed[entry.key] = true
+		assert(PENDING[entry.key] == entry.slice, entry.key .. " waits for " .. tostring(PENDING[entry.key]) .. ", got " .. tostring(entry.slice))
+		local w, h = Layouts.Footprint("DPS", entry.key)
+		assert(w == entry.width and h == entry.height, entry.key .. ": the layouts place it by its Lumen footprint")
+		local e = Layouts.Element(entry.key)
+		assert(e.width ~= w or e.height ~= h, entry.key .. " still builds at the staging size, so it is pending")
+	end
+	for key in pairs(PENDING) do
+		assert(listed[key], key .. " is listed as pending")
+	end
+	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
+	-- hang under its 80-unit frame, so the layouts keep 126 from its top; the boss element holds five 120-unit cards,
+	-- and the right rail keeps one card's room under the Blessings, so a second boss card reaches over the damage card.
+	local RESERVES = { ["unitframes.target"] = { 640, 126 }, ["unitframes.boss"] = { 318, 120 } }
+	local reserved = {}
+	for _, entry in ipairs(Layouts.Reserves()) do
+		local want = RESERVES[entry.key]
+		assert(want and want[1] == entry.width and want[2] == entry.height, entry.key .. " reserves " .. entry.width .. " x " .. entry.height)
+		reserved[entry.key] = true
+	end
+	for key in pairs(RESERVES) do
+		assert(reserved[key], key .. " has its reserve")
+	end
+	local target, boss = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss")
+	assert(target.width == 640 and target.height == 80 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
+	assert(boss.width == 318 and boss.height == 5 * 120 + 4 * 10, "the boss element holds five 120-unit cards 10 apart")
+	for _, element in ipairs(Layouts.ELEMENTS) do
+		if not PENDING[element.key] and not RESERVES[element.key] then
+			local w, h = Layouts.Footprint("DPS", element.key)
+			assert(element.width == w and element.height == h, element.key .. " builds at its Lumen footprint")
+		end
+	end
+end
+do
+	local minimap = Layouts.Get("DPS")["minimap.main"]
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -MARGIN and minimap.y == -MARGIN, "the lens card sits on the 28 margin at the top right")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

@@ -4,7 +4,7 @@
 
 | File | What it holds |
 | --- | --- |
-| `Layouts.lua` | `Setup.Layouts`: the element keys and the DPS, Tank and Healer layouts. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
+| `Layouts.lua` | `Setup.Layouts`: the element keys and the Lumen DPS, Tank and Healer layouts: positions, footprints, the module settings each writes and the story slot. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
 | `Setup.lua` | The choices, `Apply`, and when the window opens |
 | `Window.lua` | The window, built from the widget kit |
 
@@ -21,7 +21,7 @@ Tests: `Tools/regression/test-setup.lua` and `test-setup-layouts.lua`.
 The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows the four steps. A step the player has not reached is disabled, and each page fades in over `fade`.
 
 1. **Welcome.** The logo, a short welcome, the three steps ahead, **Skip setup** and **Next**.
-2. **Layout.** One card per layout on the button grade's body: a 16:9 preview, a glass panel at the tile chamfer with the drop shadow, that draws each element's footprint from `Setup.Layouts`, the layout's name and its one-line note. A click picks the card: an `accent` hairline, a selection glow and an `accent` preview. DPS is picked first.
+2. **Layout.** One card per layout on the button grade's body: a 16:9 preview, a glass panel at the tile chamfer with the drop shadow, that draws each element the layout shows at its Lumen footprint (`Layouts.Footprint`, `Layouts.Shown`) and outlines the story slot in the accent, the layout's name and its one-line note. The line under the cards names the outline, the **Story rail**, and says what goes there. A click picks the card: an `accent` hairline, a selection glow and an `accent` preview. DPS is picked first.
 3. **Modules.** A toggle and a one-line note for each module in `Setup.PICKER`, with **All on** and **All off**. Every module whose addon loaded starts on. A module whose addon did not load is off, disabled and says so. The settings window is not in the list: it loads on demand.
 4. **Summary.** The layout and the modules that will be on and off, then **Apply**. After Apply, the secure **Reload** button and **Later**. Changing a choice afterwards shows **Apply** again.
 
@@ -33,7 +33,9 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
 2. For each element key, the layout's `{ anchor, x, y }`:
    - An element that Layout has registered (`Layout.Get(key)` is not `nil`) moves at once through `Layout.Update(key, position, "setup")`.
    - Every other element, and any that `Layout.Update` refuses, is written into the profile's layout table (`Store.Layout()[key]`). Other fields, such as a size or a shown rule, stay as they are. The modules place these elements after the reload.
-3. It turns `setupSeen` on and logs the layout, the counts and the modules switched on and off to the devlog.
+3. For each `{ module, key, value }` in `Layouts.Settings(layout)` whose module loaded and has that setting, `Options.Write(module, key, value)`: bars 2 to 6 off and bar 1 one row, the pet and stance sockets in two rows of five, the threat card on in Tank only, the raid in four groups a row at 77 units wide, and the party and raid row heights (Healer's are larger). Settings of a module that did not load are skipped and counted.
+4. `Options.Write("Layout", "preset", layout)`, so Layout Mode outlines that layout's story slot.
+5. It turns `setupSeen` on and logs the layout, the counts and the modules switched on and off to the devlog.
 
 It returns `false` for an unknown layout, or before the saved data loads.
 
@@ -55,3 +57,22 @@ It returns `false` for an unknown layout, or before the saved data loads.
 
 - The setup never calls a protected function. Modules start through `Modules`, which queues them in combat. The reload is the kit's secure macro button, because `ReloadUI()` is blocked for addons.
 - Positions for elements that are not registered yet go straight into the profile's layout table. Most modules are switched on by this same Apply and register only after the reload, and the Layout service reads that table when an element registers.
+
+## The Lumen layouts
+
+DPS, Tank and Healer place every element on the Lumen Rails: two 318-unit rails on a 28-unit margin, the hands at the bottom centre and the target sigil at the top. `test-setup-layouts.lua` holds the rules.
+
+- **Left rail:** the party card (the raid card in a raid) at the top, chat at the foot, and between them the story slot for the RestedXP guide and the quest tracker, which KstyleUI cannot move. The setup's cards and Layout Mode outline the slot.
+- **Right rail:** the lens card, the Blessings (buffs, then debuffs 8 units under), the boss card, the damage card, the threat card (Tank only), and the readout over the menu at the foot. Cards sit 16 to 22 units apart.
+- **Centre:** the XP line 52 units up with its caption under it on the 34-unit margin, bar 1 12 units over it, the vitals line 12 over bar 1, the class resource, the essential cooldowns with the utility row and the tracked buffs beside them, the cast bar and the swing timer, then bar 2's place. The pet and stance sockets sit beside bar 1's ends, with the reputation and honour lines under them on the XP line's baseline. The sigil sits 40 units under the top with its cast bar and the target of target under it. The focus card sits at mid-left, beside the left rail. The world between, 520 units wide, stays clear.
+- **Healer** uses the same columns with larger party and raid frames. **Tank** adds the threat card.
+
+| Function | Behaviour |
+| --- | --- |
+| `Footprint(name, key) -> width, height` | The size the layout places the element by: the layout's own size (Healer's group frames), else the Lumen size a slice is still building (`Pending`), else the element's footprint |
+| `Shown(name, key) -> boolean` | Whether the layout switches the element on |
+| `Settings(name) -> { { module, key, value }, ... }` | The module settings Apply writes |
+| `Slot(name) -> { key, anchor, x, y, width, height, raid, label, hint, raidHint }` | The story slot, as a position with a size. `raid` is how far the raid card, taller than the party card, reaches down into the slot in a raid; a 1080-unit rail has no room to keep them apart. |
+| `Pending() -> { { key, width, height, slice }, ... }` | Elements whose module still builds the staging size; the layouts already reserve their Lumen size. When the named slice lands, the element's footprint becomes that size. |
+
+Saved layouts stay as they are until the player applies a layout again. A profile that never stored a position gets the Lumen DPS position from `Layouts.Default`.

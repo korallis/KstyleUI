@@ -1,4 +1,4 @@
--- Mode.lua: Layout Mode's screen: mover plates, resize and scale handles, snapping guides, the grid, keyboard nudges and the toolbar.
+-- Mode.lua: Layout Mode's screen: mover plates, resize and scale handles, snapping guides, the grid, the story slot's outline, keyboard nudges and the toolbar.
 local _, ns = ...
 
 local Layout = ns.Layout
@@ -22,6 +22,7 @@ local FILL_REST, FILL_HOVER, FILL_SELECTED = 0.6, 0.72, 0.85
 local EDGE_REST, EDGE_ACTIVE = 0.55, 1
 local GRID_LINE_ALPHA, GRID_CENTRE_ALPHA = 0.07, 0.45
 local GUIDE_ALPHA = 0.9
+local SLOT_FILL, SLOT_EDGE = 0.06, 0.6
 local NUDGE_SMALL, NUDGE_BIG = 1, 10
 local EPSILON = 1e-4
 local ARROWS = { LEFT = { -1, 0 }, RIGHT = { 1, 0 }, UP = { 0, 1 }, DOWN = { 0, -1 } }
@@ -30,7 +31,7 @@ local HANDLE_POINT = {
 	BOTTOMLEFT = "BOTTOMLEFT", BOTTOM = "BOTTOM", BOTTOMRIGHT = "BOTTOMRIGHT", SCALE = "BOTTOMRIGHT",
 }
 
-local overlay, grid, guideX, guideY, toolbar
+local overlay, grid, guideX, guideY, toolbar, slot
 local plates, handles, gridLines = {}, {}, {}
 local selected, hoveredPlate, drag
 
@@ -515,6 +516,84 @@ local function DrawGrid()
 	grid:Show()
 end
 
+local function BuildSlot()
+	slot = CreateFrame("Frame", nil, overlay)
+	slot:SetFrameLevel(overlay:GetFrameLevel())
+	slot:EnableMouse(false)
+	slot.fill = slot:CreateTexture(nil, "BACKGROUND")
+	slot.fill:SetAllPoints(slot)
+	slot.edges = {}
+	for i = 1, 4 do
+		slot.edges[i] = slot:CreateTexture(nil, "BORDER")
+	end
+	slot.raidLine = slot:CreateTexture(nil, "BORDER")
+	slot.raidText = Widgets.Text(slot, "caption", "text")
+	slot.raidText:SetJustifyH("LEFT")
+	slot.label = Widgets.Text(slot, "heading", "textEmphasis")
+	slot.hint = Widgets.Text(slot, "caption", "text")
+	slot.hint:SetJustifyH("LEFT")
+	slot.hint:SetWordWrap(true)
+	slot:Hide()
+end
+
+local function PlaceSlot()
+	local Layouts = ns.Setup and ns.Setup.Layouts
+	local want = Layouts and Layouts.Slot(Layout.Setting("preset"))
+	if not slot or not want or not Layout.IsActive() then
+		if slot then
+			slot:Hide()
+		end
+		return
+	end
+	local rw, rh = Layout.RootSize()
+	local l, b, r, t = Layouts.Rect(want, want, rw, rh)
+	local line = Scale.Border()
+	local pad = Widgets.Snap(slot, Tokens.Size("gapLarge"))
+	slot:ClearAllPoints()
+	slot:SetPoint("BOTTOMLEFT", overlay, "BOTTOMLEFT", l, b)
+	slot:SetSize(r - l, t - b)
+	slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
+	local top, bottom, left, right = slot.edges[1], slot.edges[2], slot.edges[3], slot.edges[4]
+	for _, edge in ipairs(slot.edges) do
+		edge:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE))
+		edge:ClearAllPoints()
+	end
+	top:SetPoint("TOPLEFT")
+	top:SetPoint("TOPRIGHT")
+	top:SetHeight(line)
+	bottom:SetPoint("BOTTOMLEFT")
+	bottom:SetPoint("BOTTOMRIGHT")
+	bottom:SetHeight(line)
+	left:SetPoint("TOPLEFT")
+	left:SetPoint("BOTTOMLEFT")
+	left:SetWidth(line)
+	right:SetPoint("TOPRIGHT")
+	right:SetPoint("BOTTOMRIGHT")
+	right:SetWidth(line)
+	slot.label:ClearAllPoints()
+	slot.label:SetPoint("TOPLEFT", slot, "TOPLEFT", pad, -pad)
+	Widgets.SetText(slot.label, want.label)
+	slot.hint:ClearAllPoints()
+	slot.hint:SetPoint("TOPLEFT", slot.label, "BOTTOMLEFT", 0, -Widgets.Snap(slot, Tokens.Size("gapSmall")))
+	slot.hint:SetWidth(max(1, r - l - pad * 2))
+	slot.hint:SetText(want.hint)
+	local raid = (want.raid or 0) > 0 and want.raid < t - b
+	slot.raidLine:SetShown(raid)
+	slot.raidText:SetShown(raid)
+	if raid then
+		slot.raidLine:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE / 2))
+		slot.raidLine:ClearAllPoints()
+		slot.raidLine:SetPoint("TOPLEFT", slot, "TOPLEFT", 0, -want.raid)
+		slot.raidLine:SetPoint("TOPRIGHT", slot, "TOPRIGHT", 0, -want.raid)
+		slot.raidLine:SetHeight(line)
+		slot.raidText:ClearAllPoints()
+		slot.raidText:SetPoint("BOTTOMLEFT", slot.raidLine, "TOPLEFT", pad, Widgets.Snap(slot, Tokens.Size("gapTiny")))
+		slot.raidText:SetWidth(max(1, r - l - pad * 2))
+		slot.raidText:SetText(want.raidHint)
+	end
+	slot:Show()
+end
+
 function Mode.HistoryChanged()
 	if toolbar then
 		toolbar.undo:SetEnabled(Layout.CanUndo())
@@ -611,10 +690,12 @@ local function Build()
 		NewHandle(name)
 	end
 	NewHandle("SCALE")
+	BuildSlot()
 	Widgets.Track({
 		Restyle = function()
 			DrawGrid()
 			PlaceHandles()
+			PlaceSlot()
 		end,
 	})
 	BuildToolbar()
@@ -632,6 +713,7 @@ function Mode.Show()
 	toolbar.gridToggle:SetValue(Layout.Setting("grid"), true)
 	toolbar.snapToggle:SetValue(Layout.Setting("snap"), true)
 	DrawGrid()
+	PlaceSlot()
 	Mode.HistoryChanged()
 	toolbar:Open()
 end
@@ -656,6 +738,7 @@ function Mode.Hide()
 	end
 	overlay:Hide()
 	grid:Hide()
+	slot:Hide()
 	toolbar:Hide()
 end
 
@@ -670,6 +753,7 @@ function Mode.Refresh()
 	end
 	DrawGrid()
 	PlaceHandles()
+	PlaceSlot()
 end
 
 function Mode.Changed(key)
@@ -702,6 +786,10 @@ end
 
 function Mode.Toolbar()
 	return toolbar
+end
+
+function Mode.Slot()
+	return slot
 end
 
 function Mode.Grid()

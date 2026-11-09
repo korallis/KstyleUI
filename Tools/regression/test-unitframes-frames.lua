@@ -40,11 +40,22 @@ for kind, key in pairs(ELEMENTS) do
 end
 
 -- Every full frame takes the kit sheet's proportions: about 3.3 times as wide as tall, its portrait as tall as the frame.
+-- The plate was drawn for the classic sizes; the Lumen layouts give these elements the vitals, sigil and card sizes,
+-- so the plate is measured at its own sizes and the elements go back to their footprints after.
+local CLASSIC = { player = { 220, 70 }, target = { 220, 70 }, focus = { 200, 80 }, boss = { 200, 400 } }
+for kind, size in pairs(CLASSIC) do
+	assert(K.Layout.Update(ELEMENTS[kind], { width = size[1], height = size[2] }))
+end
+env.RunTimers()
 for kind, ratio in pairs({ player = 3.15, target = 3.15, focus = 3.33, boss = 3.33 }) do
 	local view = Frames.Get(kind).views[1]
 	local width, frameH = view.button:GetWidth(), view.geometry.portrait.h
 	assert(math.abs(width / frameH - ratio) < 0.1, kind .. " is about " .. ratio .. " times as wide as tall (the mockup's 279 by 90 for the player and target), got " .. width .. " x " .. frameH)
 end
+for kind in pairs(CLASSIC) do
+	K.Layout.Reset(ELEMENTS[kind])
+end
+env.RunTimers()
 
 -- Secure buttons: one per unit, a child of the holder, targeting on left click and the unit menu on right click.
 local function checkButton(view, unit)
@@ -216,7 +227,7 @@ noErrors("settings")
 
 -- Layout resizes the holder; the bars follow.
 local before = player.health.opts.width
-assert(K.Layout.Set("unitframes.player", "width", 320), "Layout takes a new width")
+assert(K.Layout.Set("unitframes.player", "width", K.Layout.Get("unitframes.player").width + 60), "Layout takes a new width")
 assert(player.health.opts.width > before, "a wider frame gets a wider health bar")
 noErrors("resize")
 

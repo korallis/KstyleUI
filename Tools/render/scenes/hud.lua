@@ -70,11 +70,23 @@ Hud.BAR1, Hud.BAR2 = slots(Classes.WARRIOR.bar1), slots(Classes.WARRIOR.bar2)
 
 -- saved(opts, module, settings, more) -> a KstyleUIDB with that module on, and any further modules named in
 -- more on too.
+local function merge(into, from)
+	for k, v in pairs(from or {}) do
+		if type(v) == "table" and type(into[k]) == "table" then
+			merge(into[k], v)
+		elseif type(v) == "table" then
+			into[k] = merge({}, v)
+		else
+			into[k] = v
+		end
+	end
+	return into
+end
+
 local function saved(opts, module, settings, more)
 	local section = { enabled = true }
-	for k, v in pairs(settings or {}) do
-		section[k] = v
-	end
+	merge(section, opts.settings and opts.settings[module])
+	merge(section, settings)
 	local profile = { [module] = section }
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }
@@ -106,13 +118,48 @@ local function shared(env, opts)
 	end
 end
 
--- build(env, opts, extra) -> the scene, with icon IDs resolved as the installed pack shows them.
+local function tick(env, seconds)
+	for _ = 1, math.floor(seconds / 0.016 + 0.5) do
+		for _, frame in ipairs(env._frames) do
+			local update = frame:GetScript("OnUpdate")
+			if update then
+				update(frame, 0.016)
+			end
+		end
+	end
+end
+Hud.Tick = tick
+
+-- build(env, opts, extra) -> the scene, with icon IDs resolved as the installed pack shows them. opts.planned
+-- ({ [key] = { w, h } }) resizes a free-sized element to a footprint its module will build, to preview the layout.
+-- With opts.combat the environment enters combat first and runs half a second, so the combat calm has faded the
+-- slow cards.
 local function build(env, opts, extra)
+	local K = env.KstyleUI
+	local previewed = {}
+	for key, size in pairs(opts.planned or {}) do
+		local el = K and K.Layout and K.Layout.Element and K.Layout.Element(key)
+		if el and el.opts.resizable and not el.opts.aspect then
+			K.Layout.Update(key, { width = size[1], height = size[2] })
+			env.RunTimers()
+			previewed[#previewed + 1] = key .. " at its planned " .. size[1] .. " by " .. size[2]
+		end
+	end
+	table.sort(previewed)
+	if opts.combat and type(env.SetCombat) == "function" and not env._combat then
+		env.SetCombat(true)
+		env.RunTimers()
+		tick(env, 0.5)
+	end
 	local sceneOpts = { iconDirs = Common.IconDirs() }
 	for k, v in pairs(extra or {}) do
 		sceneOpts[k] = v
 	end
-	return Scene.Build(env, sceneOpts)
+	local scene = Scene.Build(env, sceneOpts)
+	for _, line in ipairs(previewed) do
+		scene.log[#scene.log + 1] = "previews " .. line .. ", the Lumen footprint its slice builds"
+	end
+	return scene
 end
 
 local function finish(env, K, scene, what)
@@ -199,7 +246,13 @@ function modules.unitframes(opts)
 	if spec.cast then
 		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = CAST_END - spec.cast[4] * 1000, finish = CAST_END, spellID = spec.cast[3] }
 	end
-	target.cast = { name = "Snap", texture = 132200, start = 9000, finish = 11500, spellID = 999 }
+	for k, v in pairs(type(opts.target) == "table" and opts.target or {}) do
+		target[k] = v
+	end
+	target.cast = target.cast or { name = "Snap", texture = 132200, start = 9000, finish = 11500, spellID = 999 }
+	if opts.target == false then
+		target = nil
+	end
 	local pet
 	if spec.pet then
 		pet = { name = spec.pet.name, level = spec.pet.level, health = spec.pet.health, healthMax = spec.pet.healthMax, power = spec.pet.power, powerMax = spec.pet.powerMax, powerType = spec.pet.powerType, powerToken = spec.pet.powerToken, reaction = 5 }
@@ -212,6 +265,7 @@ function modules.unitframes(opts)
 			env._units.player = player
 			env._units.target = target
 			env._units.pet = pet
+			env._units.boss1 = opts.boss
 			env._comboPoints = spec.combo or 0
 			env.UnitClass = function(token)
 				local u = env._units[token]
@@ -222,11 +276,19 @@ function modules.unitframes(opts)
 		end,
 	}))
 	env._time = 10
-	env.SetTarget(true)
+	env.SetTarget(target ~= nil)
 	if player.cast then
 		env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", player.cast.spellID)
 	end
-	env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 999)
+	if target then
+		env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", target.cast.spellID)
+	end
+	if opts.boss then
+		env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+		if opts.boss.cast then
+			env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", opts.boss.cast.spellID)
+		end
+	end
 	env.RunTimers()
 	-- The cast bars fade in over a tween; run the frames with the clock held, so the bars read as mid-cast.
 	for _ = 1, 40 do
@@ -554,6 +616,9 @@ function modules.databars(opts)
 		setup = function(env)
 			shared(env, opts)
 			Common.ForceScreen(env)
+			if opts.menus then
+				D.Menus(env, {})
+			end
 		end,
 	})
 	env.RunTimers()
@@ -672,7 +737,11 @@ function modules.tracker(opts)
 			shared(env, opts)
 		end,
 		before = function(env)
-			tracker = Tracker.StandIn(env, S.Blizzard(env), Tracker.QUESTS)
+			tracker = Tracker.StandIn(env, S.Blizzard(env), opts.quests or Tracker.QUESTS)
+			if opts.trackerAt then
+				tracker:ClearAllPoints()
+				tracker:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", opts.trackerAt[1], -opts.trackerAt[2])
+			end
 		end,
 	})
 	if not K.Modules.IsRunning("Skins") then
@@ -683,7 +752,7 @@ function modules.tracker(opts)
 	S.W.Settle(env)
 	-- Blizzard's objective text is yellow for titles and white for lines, under the tracker's fonts.
 	local scene = build(env, opts)
-	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one"
+	scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAt and ", here where the player moved it: the story slot" or "")
 	return finish(env, K, scene, "tracker"), ns, tracker
 end
 
@@ -807,6 +876,132 @@ function modules.tooltips(opts)
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "the tooltip's lines are laid out by the scene; the game's GameTooltip sizes and places its own text"
 	return finish(env, K, scene, "tooltips"), ns
+end
+
+-- Group frames: the party on the secure party header. opts.party lists the other members (the player comes first,
+-- as the module shows it), each { name, class, health %, role }; nothing draws without one.
+
+local CLASS_COLORS = {
+	WARRIOR = Common.WARRIOR, MAGE = { 0.25, 0.78, 0.92 }, PRIEST = { 1, 1, 1 }, ROGUE = { 1, 0.96, 0.41 },
+	HUNTER = { 0.67, 0.83, 0.45 }, PALADIN = { 0.96, 0.55, 0.73 }, DRUID = { 1, 0.49, 0.04 }, WARLOCK = { 0.53, 0.53, 0.93 },
+	SHAMAN = { 0, 0.44, 0.87 },
+}
+
+local function classColours(env)
+	env.RAID_CLASS_COLORS = env.RAID_CLASS_COLORS or {}
+	for class, c in pairs(CLASS_COLORS) do
+		env.RAID_CLASS_COLORS[class] = env.RAID_CLASS_COLORS[class] or { r = c[1], g = c[2], b = c[3] }
+	end
+end
+
+function modules.groupframes(opts)
+	local G = dofile("Tools/regression/group_env.lua")
+	local class, spec = Hud.Class(opts)
+	local env, K, ns = G.New(Common.ScreenOpts({
+		saved = saved(opts, "GroupFrames"),
+		setup = function(env)
+			local unitClass = env.UnitClass
+			shared(env, opts)
+			classColours(env)
+			env.UnitClass = unitClass
+		end,
+	}))
+	local members = {}
+	for i, m in ipairs(opts.party or {}) do
+		members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = 60, maxPower = 100, role = m[4], leader = i == 1 }
+	end
+	local player = { name = spec.name, class = class, health = 82, maxHealth = 100, power = 45, maxPower = 100, powerType = spec.power.token, role = opts.role or "DAMAGER" }
+	G.SetRoster(env, #members > 0 and "party" or nil, members, player)
+	if not K.Modules.IsRunning("GroupFrames") then
+		K.Modules.Enable("GroupFrames")
+	end
+	env.RunTimers()
+	tick(env, 1)
+	local scene = build(env, opts)
+	return finish(env, K, scene, "groupframes"), ns
+end
+
+-- Meters: the damage meter over the fight in opts.damage ({ name, class, amount }, highest first), and the threat
+-- meter when the layout shows it.
+
+function modules.meters(opts)
+	local M = dofile("Tools/regression/meters_env.lua")
+	local rows = opts.damage or {}
+	local env, K, ns = M.New(Common.ScreenOpts({
+		saved = saved(opts, "Meters"),
+		setup = function(env)
+			shared(env, opts)
+			classColours(env)
+			env.UnitClass = function(unit)
+				local u = env._units[unit]
+				if u and u.class then
+					return u.class, u.class, 1
+				end
+				return Hud.Class(opts)
+			end
+			env.AbbreviateNumbers = function(n)
+				if type(n) ~= "number" then
+					return tostring(n)
+				elseif n >= 1e3 then
+					return string.format("%.1fK", n / 1e3)
+				end
+				return tostring(math.floor(n + 0.5))
+			end
+			local sources, total = {}, 0
+			for i, row in ipairs(rows) do
+				total = total + row[3]
+				sources[i] = {
+					name = row[1], classFilename = row[2], totalAmount = row[3], amountPerSecond = row[3] / 60,
+					sourceDisplayType = 1, isLocalPlayer = i == 1, deathRecapID = 0, deathTimeSeconds = 0,
+				}
+			end
+			env._session = { combatSources = sources, maxAmount = rows[1] and rows[1][3] or 0, totalAmount = total, durationSeconds = 60 }
+			env._group = { raid = false, size = #rows }
+			env._units.player = { name = rows[1] and rows[1][1] or "Valerin", class = rows[1] and rows[1][2] or "WARRIOR" }
+			env._units.target = { name = opts.target and opts.target.name or TARGET.name, hostile = true }
+			for i, row in ipairs(rows) do
+				local unit = i == 1 and "player" or ("party" .. (i - 1))
+				env._units[unit] = { name = row[1], class = row[2] }
+				env._threat[unit] = { i == 2, i == 2 and 3 or 0, 100 - i * 14, 100 - i * 16, (#rows - i + 1) * 100000 }
+			end
+		end,
+	}))
+	if not K.Modules.IsRunning("Meters") then
+		K.Modules.Enable("Meters")
+	end
+	env.RunTimers()
+	env.FireEvent("GROUP_ROSTER_UPDATE")
+	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	env.RunTimers()
+	M.Tick(env)
+	local scene = build(env, opts)
+	return finish(env, K, scene, "meters"), ns
+end
+
+-- RestedXP: the guide window and its active step, skinned, where the player dragged it: opts.guideAt is its top
+-- left in screen units. RestedXP's other windows stay closed.
+
+function modules.restedxp(opts)
+	local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
+	if opts.guideAt then
+		RestedXP.LEFT, RestedXP.TOP = opts.guideAt[1], opts.guideAt[2]
+	end
+	RestedXP.LIST_HEIGHT = opts.guideList or RestedXP.LIST_HEIGHT
+	local first = RestedXP.STEPS[1]
+	RestedXP.STEPS = { { title = first.title, elements = { first.elements[1], first.elements[2] } } }
+	local R = RestedXP.Build()
+	for _, name in ipairs({ "items", "v2", "configurator" }) do
+		for _, frame in ipairs(R.windows[name]) do
+			frame:Hide()
+		end
+	end
+	local scene = build(R.env, opts)
+	for _, line in ipairs(R.log) do
+		scene.log[#scene.log + 1] = line
+	end
+	scene.log[#scene.log + 1] = "restedxp: the guide is where the player dragged it, RestedXP's own drag, its list resized to " .. RestedXP.LIST_HEIGHT .. " units with RestedXP's grabber"
+	return finish(R.env, R.K, scene, "restedxp"), R
 end
 
 Hud.modules = modules

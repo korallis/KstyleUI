@@ -241,7 +241,7 @@ do
 	K.Options.Write("DataBars", "rep.orientation", "VERTICAL")
 	K.Modules.Enable("DataBars")
 	local size = K.Layout.Get("databars.rep")
-	eq(size.width .. "x" .. size.height, "5x440", "the orientation is reconciled on enable")
+	eq(size.width .. "x" .. size.height, "5x162", "the orientation is reconciled on enable: the 162 by 5 Lumen line, upright")
 	noErrors(env, K)
 end
 
@@ -294,10 +294,10 @@ do
 	Options.Write("DataBars", "xp.orientation", "VERTICAL")
 	eq(xp.fill:GetOrientation(), "VERTICAL", "the bar can stand upright")
 	local size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "4x352", "an upright bar swaps its width and height")
+	eq(size.width .. "x" .. size.height, "4x489", "an upright bar swaps its width and height: the Lumen XP line is 489 by 4")
 	Options.Write("DataBars", "xp.orientation", "HORIZONTAL")
 	size = K.Layout.Get("databars.xp")
-	eq(size.width .. "x" .. size.height, "352x4", "and swaps back")
+	eq(size.width .. "x" .. size.height, "489x4", "and swaps back")
 
 	Options.Write("DataBars", "xp.textHover", true)
 	eq(xp.text:IsShown(), false, "with the hover setting the text waits for the pointer")

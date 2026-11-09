@@ -55,6 +55,15 @@ A texture the game names by file path (`SetTexture("Interface\\TargetingFrame\\U
 
 To look at a scene in a browser instead, open `Tools/render/out/<scene>.html` with Chrome started as `--allow-file-access-from-files`, or `render.html?scene=out/<scene>.json&ppu=1.426`.
 
+## Lumen Rails
+
+```bash
+Tools/render/shoot.sh hud_lumen_questing --backdrop      # out of combat: three quests and the guide in the story slot, a party of three
+Tools/render/shoot.sh hud_lumen_combat --backdrop        # in combat: a party of five, the boss card, the boss targeted and casting, the slow cards calmed
+```
+
+`scenes/_lumen.lua` builds both states of the Lumen mockup boards (`~/.local/share/kstyleui-handoff/arena2/parent/hud-questing.png` and `hud-combat.png`) on `hud.lua`. It reads the DPS layout's module settings, story slot and pending footprints from the addon's own `Setup.Layouts`. Each module renders with the settings Layout > Apply writes. The RestedXP guide (its list resized shorter, as a player does with RestedXP's grabber) and the tracker sit in the story slot, where the setup asks the player to drop them. A free-sized element whose Lumen footprint a slice still builds is previewed at that size (`opts.planned`), and the log says which. With `opts.combat`, each environment enters combat and runs half a second, so the combat calm has faded the slow cards. `Tools/regression/test-render-scenes-lumen.lua` checks the slot, the party sizes and the alphas of both states.
+
 ## Gallery
 
 ```bash

@@ -33,7 +33,7 @@ RestedXP.WIDTH = 268
 RestedXP.LEFT, RestedXP.TOP = 18, 290
 local WIDTH = RestedXP.WIDTH
 local GUIDE_FONT = 7
-local LIST_HEIGHT = 130
+RestedXP.LIST_HEIGHT = 130
 local HEADER_HEIGHT, FOOTER_HEIGHT = 35, 20
 local HEADER_OVERLAP, FOOTER_RISE = 9, 14
 local SIDE = 3
@@ -140,6 +140,7 @@ end
 local function Guide(R, path, top)
 	local f, env = R.rxp.RXPFrame, R.env
 	local frameTop = top + HEADER_HEIGHT - HEADER_OVERLAP - SIDE
+	local LIST_HEIGHT = RestedXP.LIST_HEIGHT
 	local frameHeight = LIST_HEIGHT + SIDE + FOOTER_RISE
 	at(f, env.UIParent, RestedXP.LEFT, frameTop, WIDTH, frameHeight)
 	local inner = WIDTH - 2 * SIDE
@@ -176,7 +177,7 @@ local function Guide(R, path, top)
 	footer.icon.Normal:SetAllPoints(footer.icon)
 	footer.icon.Normal:SetTexture(GLYPH_TEXTURE)
 	local bottom = f.BottomFrame
-	local scrollWidth, scrollHeight = inner - 5 - 20, LIST_HEIGHT - 5 - 7
+	local scrollWidth, scrollHeight = inner - 5 - 20, RestedXP.LIST_HEIGHT - 5 - 7
 	at(f.ScrollFrame, bottom, 5, 5, scrollWidth, scrollHeight)
 	f.ScrollFrame:SetClipsChildren(true)
 	local bar = f.ScrollFrame.ScrollBar

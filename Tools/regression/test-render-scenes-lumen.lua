@@ -1,0 +1,75 @@
+-- test-render-scenes-lumen.lua: the Lumen Rails HUD scenes build both states of the mockup boards: out of combat the
+-- guide and the tracker fit the story slot and every card is lit; in combat the slow cards rest at 30% and the focus
+-- cards stay lit.
+local L = dofile("Tools/regression/render_scenes_lib.lua")
+local check = L.check
+local Lumen = dofile("Tools/render/scenes/_lumen.lua")
+
+for _, script in ipairs({ "hud_lumen_questing", "hud_lumen_combat" }) do
+	assert(type(dofile("Tools/render/scenes/" .. script .. ".lua")) == "function", script .. ".lua returns its builder")
+end
+
+local function plain(text)
+	return (text:gsub("\226\128\137", ""))
+end
+
+-- find(scene, text) -> the first text item that reads text (case kept), or nil.
+local function find(scene, text)
+	for _, item in ipairs(scene.items) do
+		if item.kind == "text" and item.text and plain(item.text) == text then
+			return item
+		end
+	end
+end
+
+local function near(a, b)
+	return type(a) == "number" and math.abs(a - b) < 0.02
+end
+
+local questing = check("hud_lumen_questing", Lumen.Build("questing"))
+local combat = check("hud_lumen_combat", Lumen.Build("combat"))
+local slot = questing.slot
+
+-- The story slot holds the guide and the tracker, as the player places them; chat sits under it.
+do
+	local function inside(item, what)
+		local r = item.rect
+		assert(r[1] >= slot.left and r[1] + r[3] <= slot.left + slot.width and r[2] >= slot.top and r[2] + r[4] <= slot.top + slot.height,
+			what .. " sits in the story slot, got " .. table.concat(r, ", "))
+	end
+	inside(assert(find(questing, "QUESTS"), "the tracker's caption draws"), "the tracker's caption")
+	inside(assert(find(questing, "Encroachment"), "the third quest draws"), "the third quest")
+	inside(assert(find(questing, "RestedXP Guides v4.11.35"), "the guide's footer draws"), "the guide's footer")
+	assert(find(questing, "GENERAL").rect[2] >= slot.top + slot.height, "the chat's tabs sit under the slot")
+end
+
+-- Out of combat: no target, a party of three, the last fight's three rows, every card at full alpha.
+do
+	assert(not find(questing, "BLOODTALON MATRIARCH") and not find(questing, "RIVERGLADE CROCOLISK"), "no target out of combat")
+	for _, name in ipairs({ "Leduc", "Trolly" }) do
+		assert(find(questing, name), "the party shows " .. name)
+	end
+	assert(not find(questing, "Khont"), "a party of three")
+	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "DAMAGE DONE" }) do
+		assert(near(find(questing, text).alpha, 1), text .. " is lit out of combat")
+	end
+end
+
+-- In combat: the boss card and the boss as the target with its cast; the slow cards calm, the focus cards stay lit.
+do
+	for _, name in ipairs({ "Leduc", "Trolly", "Khont", "Mira" }) do
+		assert(find(combat, name), "the party of five shows " .. name)
+	end
+	assert(find(combat, "BLOODTALON MATRIARCH"), "the boss is the target")
+	assert(find(combat, "Terrifying Screech"), "and its cast shows")
+	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "RestedXP Guides v4.11.35" }) do
+		local item = assert(find(combat, text), text .. " draws in combat")
+		assert(near(item.alpha, 0.3), text .. " rests at 30% in combat, got " .. tostring(item.alpha))
+	end
+	for _, text in ipairs({ "Leduc", "DAMAGE DONE", "BLOODTALON MATRIARCH", "VALERIN" }) do
+		local item = assert(find(combat, text), text .. " draws in combat")
+		assert(near(item.alpha, 1), text .. " stays lit in combat, got " .. tostring(item.alpha))
+	end
+end
+
+print("render scenes lumen ok")

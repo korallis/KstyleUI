@@ -12,56 +12,58 @@ The first-run setup writes the DPS, Tank or Healer position of each key into the
 
 - A key is `<module>.<element>` in lower case, where `<module>` is the module's folder name without `KstyleUI_`. Sub-elements add a part: `unitframes.castbar.player`.
 - Pass `KstyleUI.Setup.Layouts.Element(key).label` as `opts.label`, so the mover plate and the settings window use the same name as the setup.
-- Pass `KstyleUI.Setup.Layouts.Default(key)` as the default position. It returns a fresh `{ anchor, x, y }`: the DPS layout's position, so a profile that never ran the setup still gets the v3 layout. It raises an error for a key this page does not list, so a typo fails the module's test.
+- Pass `KstyleUI.Setup.Layouts.Default(key)` as the default position. It returns a fresh `{ anchor, x, y }`: the DPS layout's position, so a profile that never ran the setup still gets the Lumen layout. It raises an error for a key this page does not list, so a typo fails the module's test.
 - Build the element at its footprint, or smaller, at the 1080 reference. The layouts are planned so that no two elements overlap at 1920x1080, 2560x1440, 3840x2160 and 3456x2234 when each element fits its footprint. An element that needs more room changes its footprint here and in `Core/Setup/Layouts.lua` in the same pull request, and `test-setup-layouts.lua` must still pass.
 - The position anchors the element's own point to the same point of `KstyleUI_Root`: `BOTTOM` with `x = -279, y = 113` puts the element's bottom centre 279 units left of the screen's bottom centre and 113 units up. Offsets are root units: the root is 1080 units tall, 1920 units wide at 16:9 and about 1671 units wide on a 3456x2234 Mac.
 - Nameplates sit on Blizzard's plates and have no position key. Their size comes from a Layout Mode sample listed under [Elements outside the layouts](#elements-outside-the-layouts). Combat text numbers on unit, group and nameplate frames ride those frames and have no key either; only the player's own field, `combattext.player`, has one. A module element not listed here, such as a settings window, picks a key in the same form and adds a row in the same pull request. Core windows are listed under [Core windows](#core-windows), outside the layouts.
 
 ## Keys
 
-Footprints are width x height in units at the 1080 reference.
+Footprints are width x height in units at the 1080 reference. A footprint with a Lumen size in brackets is the size the module builds today; the layouts already place the element by the Lumen size (`Setup.Layouts.Footprint`), which the named Lumen slice builds (`Setup.Layouts.Pending()` lists them). When that slice lands, the element's width and height in `Core/Setup/Layouts.lua` become the Lumen size and the bracket goes. A footprint followed by the room the layouts keep is a reserve (`Setup.Layouts.Reserves()`): the element's frame is its footprint, and the layouts place it by the reserve.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
-| `unitframes.player` | UnitFrames | Player frame | 220 x 70 | The owner's mockup's proportions (279 by 90: a round portrait as tall as the frame over one glass panel) at the owner's in-game scale of 2026-11-08, under two 38-unit action buttons tall |
-| `unitframes.target` | UnitFrames | Target frame | 220 x 70 | Mirror of the player frame |
-| `unitframes.targettarget` | UnitFrames | Target of target | 88 x 22 | Beside the target frame's portrait end, 4 units right of it, bottom-aligned; the mockup shows no target of target |
-| `unitframes.focus` | UnitFrames | Focus frame | 200 x 80 | A 200 by 60 frame with its 16-unit cast bar under it |
-| `unitframes.focustarget` | UnitFrames | Focus target | 96 x 22 | Under the focus frame, right-aligned |
-| `unitframes.pet` | UnitFrames | Pet frame | 88 x 22 | Beside the player frame's portrait end, 4 units left of it, bottom-aligned, mirroring the target of target; the mockup shows no pet |
-| `unitframes.boss` | UnitFrames | Boss frames | 200 x 400 | Boss 1 to 5 stacked downward, 72 units each with 10-unit gaps: a 200 by 60 frame and a 10-unit cast bar |
-| `unitframes.castbar.player` | UnitFrames | Player cast bar | 272 x 30 | Above the essential cooldowns and the frames, with the spell name and time over a thin bar |
-| `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 24 | Under the target frame and the tracked buff icons, the frame's width, clear of the experience bar's end |
-| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, on top of the player frame, right-aligned |
-| `groupframes.party` | GroupFrames | Party frames | 230 x 270 | Five 46-unit frames stacked downward with 10-unit gaps |
-| `groupframes.raid` | GroupFrames | Raid frames | 597 x 212 | Eight groups side by side, five 72 by 40 frames each, 3-unit gaps |
-| `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row |
-| `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | The second row, 10 units under bar 1 |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | A column of 12 at the right edge, under the debuff row |
-| `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | A column of 12, left of bar 3 |
-| `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | A column of 12 at the left edge |
-| `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | A column of 12, right of bar 5 |
-| `actionbars.pet` | ActionBars | Pet bar | 327 x 30 | 10 buttons of 30 units in one row, above the player frame |
-| `actionbars.stance` | ActionBars | Stance bar | 327 x 30 | Up to 10 buttons of 30 units, above the pet bar |
-| `cooldowns.essential` | Cooldowns | Essential cooldowns | 294 x 44 | 6 icons of 44 units with 6-unit gaps (one notch up from the 38-unit action button), between the player and target frames |
-| `cooldowns.utility` | Cooldowns | Utility cooldowns | 170 x 38 | 4 icons of 38 units (the action button's size) with 6-unit gaps, under the essential row and the frames |
-| `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, under the target frame |
-| `cooldowns.bars` | Cooldowns | Tracked buff bars | 195 x 43 | Two 195 by 20 bars, 5 units under the player frame, right-aligned with it: the mockup's bars start 225 units above the screen's bottom, ours 235, so they clear the 424-unit chat panel on the owner's 1671-unit-wide root |
-| `auras.buffs` | Auras | Buffs | 360 x 102 | Two rows of eight 38-unit icons with their timers, beside the minimap (12 units left of its element, top-aligned with it), growing left from the minimap so the shortest time left sits next to it; Forever's Edit Mode preset pins the objective tracker 38 units under the minimap, so nothing fits beneath it |
-| `auras.debuffs` | Auras | Debuffs | 360 x 51 | One row of eight, 8 units under the buffs, flush with them |
-| `minimap.main` | Minimap | Minimap | 259 x 221 | The mockup's 221 chamfered frame: a 217 map square 2 units inside its bevel line, clipped to the frame's cut corners, with the 30-unit footer over its bottom, and the 34-unit button column 4 units left of it |
-| `chat.main` | Chat | Chat | 424 x 164 | The panel with its tabs and edit box |
-| `databars.xp` | DataBars | Experience bar | 352 x 4 | Between the utility row and action bar 1, with its XP caption on the line; the mockup's 440 line scaled with the frames so it ends inside the target cast bar |
-| `databars.rep` | DataBars | Reputation bar | 440 x 5 | Under action bar 2 |
-| `databars.honor` | DataBars | Honour bar | 440 x 5 | Under the reputation bar: Forever's PvP rank, or honour |
-| `databars.strip` | DataBars | Data strip | 492 x 43 | FPS, latency, gold, durability and time |
-| `databars.micro` | DataBars | Micro menu | 314 x 32 | One row above the data strip |
-| `databars.bags` | DataBars | Bag bar | 212 x 32 | One row above the micro menu |
-| `meters.damage` | Meters | Damage meter | 208 x 130 | Right side, inside the right-hand bar columns, above the tooltip anchor |
-| `meters.threat` | Meters | Threat meter | 208 x 104 | Above the damage meter |
-| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar above the player cast bar |
-| `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, above your character |
-| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, just above the frames' line and under the damage meter |
+| `unitframes.player` | UnitFrames | Player frame | 490 x 80 | The Lumen vitals line over bar 1: a 62-unit portrait ring with its level disc, the name, a 12-unit health pill, a 5-unit power pill and the cast line inside, as wide as bar 1, 12 units over it |
+| `unitframes.target` | UnitFrames | Target frame | 640 x 80 (the layouts keep 640 x 126) | The Lumen target sigil, centred 40 units under the top: name, level line, a gem-ended health pill and the cast line, with your debuffs as sockets hanging under it, inside the 126 the layouts keep |
+| `unitframes.targettarget` | UnitFrames | Target of target | 120 x 22 | A pill row under the sigil's right end, beside the target cast bar |
+| `unitframes.focus` | UnitFrames | Focus frame | 318 x 120 | The focus card at mid-left, 16 units right of the left rail, at the clear centre's outer edge |
+| `unitframes.focustarget` | UnitFrames | Focus target | 120 x 22 | A pill row under the focus card, left-aligned |
+| `unitframes.pet` | UnitFrames | Pet frame | 120 x 22 | A pill row beside the vitals line's ring, 12 units left of it, top-aligned |
+| `unitframes.boss` | UnitFrames | Boss frames | 318 x 640 (the layouts keep 318 x 120) | Five 318 by 120 boss cards 10 apart on the right rail, under the Blessings. The rail keeps room for the first card only: in a fight with two or more bosses, the second card on reaches over the damage card |
+| `unitframes.castbar.player` | UnitFrames | Player cast bar | 272 x 30 | Off under the Lumen style, whose cast line is inside the vitals line. Placed over the essential cooldowns for the classic plate |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 24 | Off under the Lumen style, whose cast line is on the sigil. Placed 8 units under the sigil's sockets for the classic plate |
+| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, centred between the vitals line and the essential cooldowns |
+| `groupframes.party` | GroupFrames | Party frames | 318 x 240 | The party card at the head of the left rail: five 40-unit rows with 8-unit gaps, the mockup's pitch. Healer: 318 x 300, five 52-unit rows |
+| `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames |
+| `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row, 12 units over the XP line |
+| `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | Off in Lumen. Placed at the top of the hands, over the swing timer, for a player who turns it on |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 38 x 489 | Off in Lumen. A column of 12 at the top of the right side, 16 units left of the right rail |
+| `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | Off in Lumen. A column of 12, left of bar 3 |
+| `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | Off in Lumen. A column of 12 at the top of the left side, 16 units right of the left rail |
+| `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | Off in Lumen. A column of 12, right of bar 5 |
+| `actionbars.pet` | ActionBars | Pet bar | 162 x 63 | Two rows of five 30-unit sockets, 12 units left of bar 1's left end, bottom-aligned with it |
+| `actionbars.stance` | ActionBars | Stance bar | 162 x 63 | Two rows of five 30-unit sockets, 12 units right of bar 1's right end, bottom-aligned with it |
+| `cooldowns.essential` | Cooldowns | Essential cooldowns | 294 x 44 | 6 icons of 44 units with 6-unit gaps (one notch up from the 38-unit action button), centred over the vitals line |
+| `cooldowns.utility` | Cooldowns | Utility cooldowns | 170 x 38 | 4 icons of 38 units (the action button's size) with 6-unit gaps, 16 units right of the essential row, bottom-aligned |
+| `cooldowns.buffs` | Cooldowns | Tracked buff icons | 195 x 30 | 6 icons of 30 units, 16 units left of the essential row, bottom-aligned |
+| `cooldowns.bars` | Cooldowns | Tracked buff bars | 195 x 43 | Two 195 by 20 bars, 8 units over the tracked buff icons |
+| `auras.buffs` | Auras | Buffs | 360 x 102 (Lumen: 318 x 110, S4) | The Blessings card on the right rail, 16 units under the lens card |
+| `auras.debuffs` | Auras | Debuffs | 360 x 51 (Lumen: 318 x 48, S4) | One row under the Blessings, 8 units below, part of the same card |
+| `minimap.main` | Minimap | Minimap | 259 x 221 (Lumen: 318 x 318, S4) | The lens card at the head of the right rail, on the 28-unit margin: a round map in a rounded-top card with the zone and clock in its foot |
+| `chat.main` | Chat | Chat | 318 x 364 | The chat card at the left rail's foot, on the 28-unit margin |
+| `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
+| `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
+| `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |
+| `databars.strip` | DataBars | Data strip | 318 x 46 | The readout line: FPS, latency, gold, durability and time, the top of the readout and menu card at the right rail's foot |
+| `databars.micro` | DataBars | Micro menu | 318 x 44 | The menu row, the foot of the readout and menu card, on the 28-unit margin |
+| `databars.bags` | DataBars | Bag bar | 212 x 32 | Beside the right rail's foot, 16 units left of it, over the stance sockets |
+| `meters.damage` | Meters | Damage meter | 318 x 140 | The damage card on the right rail, 16 units under the boss card; it stays lit in combat |
+| `meters.threat` | Meters | Threat meter | 318 x 104 | Under the damage card. Shown in Tank only |
+| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar over the player cast bar |
+| `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, right of the clear centre |
+| `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from, beside the right rail, over the bag bar |
+
+The story slot is not an element. Each layout has one (`Setup.Layouts.Slot(name)`): the left rail's column between the party card and chat, where the player drags RestedXP's guide and moves Blizzard's quest tracker in Edit Mode. KstyleUI never moves those frames. The setup's previews and Layout Mode draw its outline.
 
 ## Core windows
 

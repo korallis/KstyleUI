@@ -20,6 +20,7 @@ local ROW_HEIGHT = 44
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
 local ELEMENT_ALPHA, ELEMENT_SELECTED_ALPHA = 0.3, 0.75
+local SLOT_FILL, SLOT_EDGE = 0.08, 0.7
 local CARD_HOVER_EDGE = 0.6
 local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
@@ -146,6 +147,32 @@ function Card:Paint()
 	for _, rect in ipairs(self.rects) do
 		rect:SetColorTexture(Widgets.Rgba(color, alpha))
 	end
+	self.slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
+	for _, edge in ipairs(self.slot.edges) do
+		edge:SetColorTexture(Widgets.Rgba("accent", SLOT_EDGE))
+	end
+end
+
+local function PlaceSlot(card, s, line)
+	local want = Layouts.Slot(card.layout)
+	local l, b, r, t = Layouts.Rect(want, want, REFERENCE_WIDTH, REFERENCE_HEIGHT)
+	local slot = card.slot
+	slot:ClearAllPoints()
+	slot:SetPoint("BOTTOMLEFT", card.screen, "BOTTOMLEFT", Widgets.Snap(card, l * s), Widgets.Snap(card, b * s))
+	slot:SetSize(Widgets.Snap(card, (r - l) * s), Widgets.Snap(card, (t - b) * s))
+	local top, bottom, left, right = slot.edges[1], slot.edges[2], slot.edges[3], slot.edges[4]
+	top:SetPoint("TOPLEFT")
+	top:SetPoint("TOPRIGHT")
+	top:SetHeight(line)
+	bottom:SetPoint("BOTTOMLEFT")
+	bottom:SetPoint("BOTTOMRIGHT")
+	bottom:SetHeight(line)
+	left:SetPoint("TOPLEFT")
+	left:SetPoint("BOTTOMLEFT")
+	left:SetWidth(line)
+	right:SetPoint("TOPRIGHT")
+	right:SetPoint("BOTTOMRIGHT")
+	right:SetWidth(line)
 end
 
 function Card:Restyle()
@@ -157,11 +184,15 @@ function Card:Restyle()
 	local line = Widgets.Border(self)
 	local positions = Layouts.Get(self.layout)
 	for _, rect in ipairs(self.rects) do
-		local l, b, r, t = Layouts.Rect(rect.element, positions[rect.element.key], REFERENCE_WIDTH, REFERENCE_HEIGHT)
+		local key = rect.element.key
+		local w, h = Layouts.Footprint(self.layout, key)
+		local l, b, r, t = Layouts.Rect({ width = w, height = h }, positions[key], REFERENCE_WIDTH, REFERENCE_HEIGHT)
+		rect:SetShown(Layouts.Shown(self.layout, key) ~= false)
 		rect:ClearAllPoints()
 		rect:SetPoint("BOTTOMLEFT", self.screen, "BOTTOMLEFT", Widgets.Snap(self, l * s), Widgets.Snap(self, b * s))
 		rect:SetSize(max(line, Widgets.Snap(self, (r - l) * s)), max(line, Widgets.Snap(self, (t - b) * s)))
 	end
+	PlaceSlot(self, s, line)
 	self.title:ClearAllPoints()
 	self.title:SetPoint("TOPLEFT", self.screen, "BOTTOMLEFT", 0, -pad)
 	self.note:ClearAllPoints()
@@ -181,6 +212,13 @@ local function NewCard(page, name, width)
 	card.glow = Widgets.Glow(card, { kind = "selection" })
 	card.screen = CreateFrame("Frame", nil, card)
 	card.screenChrome = Widgets.Chrome(card.screen, { shape = "tile", fill = "surface", shadow = true })
+	card.slot = CreateFrame("Frame", nil, card.screen)
+	card.slot.fill = card.slot:CreateTexture(nil, "BACKGROUND")
+	card.slot.fill:SetAllPoints(card.slot)
+	card.slot.edges = {}
+	for i = 1, 4 do
+		card.slot.edges[i] = card.slot:CreateTexture(nil, "BORDER")
+	end
 	card.rects = {}
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not SKIP_IN_PREVIEW[element.key] then
@@ -214,7 +252,9 @@ local function BuildLayouts(page, width)
 	end
 	local hint = Paragraph(page, "body", "text", width)
 	hint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, CARD_HEIGHT) + gap("gapLarge")))
-	hint:SetText(L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
+	hint:SetText(L["The outlined space on the left rail is the Story rail: drag the RestedXP guide there, and move the quest tracker there in Edit Mode. In a raid, the raid frames take its top."]
+		.. "\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
+	panel.layoutHint = hint
 end
 
 local function SetAll(value)

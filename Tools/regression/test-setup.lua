@@ -1,6 +1,7 @@
 -- test-setup.lua: the first-run setup opens once per account, walks four steps, and Apply switches modules on, writes the layout and offers a reload.
 local W = dofile("Tools/regression/widget_env.lua")
 local CoreEnv = W.CoreEnv
+local Geometry = dofile("Tools/regression/geometry.lua")
 
 local MODULES = { "UnitFrames", "ActionBars", "Cooldowns", "Chat" }
 
@@ -22,7 +23,7 @@ local function Boot(opts)
 		end,
 	})
 	for _, name in ipairs(opts.modules or MODULES) do
-		K.Modules.Register(CoreEnv.Module(name))
+		K.Modules.Register(CoreEnv.Module(name, { defaults = opts.defaults and opts.defaults[name] or {} }))
 	end
 	CoreEnv.Boot(env)
 	return env, K
@@ -240,6 +241,81 @@ do
 	assert(updates["unitframes.player"] and updates["unitframes.player"].x == K.Setup.Layouts.Get("DPS")["unitframes.player"].x, "a registered element moves at once through Layout.Update")
 	assert(stored["unitframes.player"] == nil, "Layout stores what it applies itself")
 	assert(K.Setup.Apply({ layout = "Raid", modules = {} }) == false, "an unknown layout is refused")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Apply writes the Lumen layout's bars, meters and group sizes, and remembers the layout ----------------------
+
+do
+	local function bar(rows)
+		return { enabled = true, rows = rows }
+	end
+	local defaults = {
+		ActionBars = {
+			bar1 = bar(1), bar2 = bar(1), bar3 = bar(12), bar4 = bar(12), bar5 = bar(12), bar6 = bar(12), pet = bar(1), stance = bar(1),
+		},
+		Meters = { threat = { shown = true } },
+		GroupFrames = { party = { height = 46, spacing = 10 }, raid = { height = 40, width = 72, groupsPerRow = 8 } },
+	}
+	local env, K = Boot({ modules = { "ActionBars", "Meters", "GroupFrames", "Chat" }, defaults = defaults })
+	assert(K.Layout.Setting("preset") == "DPS", "a profile that never applied a layout has the DPS one")
+	assert(K.Setup.Apply({ layout = "Healer", modules = { ActionBars = true, Meters = true, GroupFrames = true, Chat = true } }))
+	local bars = K.Store.Module("ActionBars")
+	assert(bars.bar1.enabled == true and bars.bar1.rows == 1, "Apply keeps bar 1 on, one row")
+	for i = 2, 6 do
+		assert(bars["bar" .. i].enabled == false, "Apply switches bar " .. i .. " off")
+	end
+	assert(bars.pet.rows == 2 and bars.stance.rows == 2, "Apply folds the pet and stance sockets into two rows")
+	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
+	local group = K.Store.Module("GroupFrames")
+	assert(group.party.height == 52 and group.party.spacing == 8 and group.raid.height == 46 and group.raid.groupsPerRow == 4 and group.raid.width == 77, "Healer writes larger party and raid frames, four groups a row")
+	assert(K.Layout.Setting("preset") == "Healer", "Apply remembers the layout for Layout Mode's story slot")
+	assert(K.Setup.Apply({ layout = "Tank", modules = { ActionBars = true, Meters = true, GroupFrames = true } }))
+	assert(K.Store.Module("Meters").threat.shown == true and K.Store.Module("GroupFrames").party.height == 40, "Tank shows the threat card and puts the party back to 40")
+	assert(K.Layout.Setting("preset") == "Tank")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The layout cards draw the story slot, and leave out what the layout switches off -----------------------------
+
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	for _, name in ipairs(K.Setup.Layouts.Names()) do
+		local card = panel.cards[name]
+		assert(card.slot and card.slot:IsShown(), name .. "'s card outlines the story slot")
+		assert(panel.layoutHint:GetText():find("Story rail", 1, true) and panel.layoutHint:GetText():find("Edit Mode", 1, true), "the step names the Story rail and says what goes there")
+		for _, rect in ipairs(card.rects) do
+			assert(K.Setup.Layouts.Shown(name, rect.element.key) ~= false or not rect:IsShown(), name .. "'s card hides " .. rect.element.key .. ", which the layout switches off")
+		end
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Layout Mode outlines the story slot of the layout last applied, with a hint ------------------------------------
+
+do
+	local env, K = Boot()
+	assert(K.Setup.Apply({ layout = "Healer", modules = {} }))
+	assert(K.Layout.Enter(), "Layout Mode opens")
+	W.Settle(env)
+	local slot = K.Layout.Mode.Slot()
+	assert(slot and slot:IsShown(), "Layout Mode shows the story slot")
+	assert(slot.label:GetText() == "Story rail" and slot.hint:GetText():find("RestedXP", 1, true) and slot.hint:GetText():find("Edit Mode", 1, true), "labelled, with a one-line hint")
+	local want = K.Setup.Layouts.Slot("Healer")
+	local rw, rh = K.Layout.RootSize()
+	local l, b, r, t = K.Setup.Layouts.Rect(want, want, rw, rh)
+	local got = assert(Geometry.Rect(slot, K.Scale.Root()))
+	assert(math.abs(got.left - l) < 1 and math.abs(got.bottom - b) < 1 and math.abs(got.right - r) < 1 and math.abs(got.top - t) < 1, "at the Healer slot")
+	assert(not slot:IsMouseEnabled(), "the outline never takes the mouse from the frames the player drops on it")
+	local line = assert(Geometry.Rect(slot.raidLine, K.Scale.Root()))
+	assert(slot.raidLine:IsShown() and math.abs(line.top - (t - want.raid)) < 1, "a line marks how far the raid frames reach into the slot")
+	assert(slot.raidText:GetText():find("raid", 1, true), "and says so")
+	K.Layout.Exit(true)
+	W.Settle(env)
+	assert(not slot:IsShown(), "and hides with Layout Mode")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

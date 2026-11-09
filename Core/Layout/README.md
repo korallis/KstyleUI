@@ -8,9 +8,10 @@
 | `History.lua` | `Layout.History`: the undo and redo stacks |
 | `Rules.lua` | `Layout.Rules`: the shown rules, as Lua tests and as state-driver macro options |
 | `Layout.lua` | The registry, per-profile settings, applying, sessions, undo, and Layout Mode's own settings page |
-| `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the keyboard and the toolbar |
+| `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the story slot's outline, the keyboard and the toolbar |
+| `Calm.lua` | `Layout.Calm`: the combat calm, which rests the rails' slow cards at 30% in combat |
 
-Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook) and `test-layout-mode.lua` (the screen, driven like a player).
+Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook), `test-layout-mode.lua` (the screen, driven like a player) and `test-layout-calm.lua` (the combat calm).
 
 ## Registering an element
 
@@ -82,6 +83,7 @@ A saved value that is not allowed, such as from a damaged or hand-edited profile
 | `Toggle()`, `IsActive()` | `/kstyle layout` calls `Toggle`. |
 | `Undo()`, `Redo()`, `CanUndo()`, `CanRedo()` | The history of one Layout Mode session. Changes made outside Layout Mode are not recorded. |
 | `Rect(key) -> left, bottom, width, height` | The element's rect in root units, as applied. |
+| `RefreshAlpha(key, duration) -> boolean` | Applies the element's alpha again over `duration` seconds (0 is instant). The combat calm uses it. `false` for an unknown key. |
 | `Preview(key, left, bottom, width, height, scale)` | Moves the frame without saving, for drags. |
 | `Restore(key)` | Applies the saved settings again, after a preview. |
 | `RootSize() -> width, height` | `KstyleUI_Root`'s size in root units. |
@@ -144,6 +146,7 @@ A resizable element's width and height snap so that size times scale is a whole 
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |
 | Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. |
+| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the left rail between the party card and chat. It shows the slot's label, **Story rail**, and a one-line hint: drag the RestedXP guide there, and move the quest tracker there in Edit Mode. KstyleUI never moves those frames. A fainter line marks how far the raid card reaches into the slot in a raid, with a caption that says so. The outline takes no mouse. `Mode.Slot()` returns it. |
 
 | Input | Effect |
 | --- | --- |
@@ -168,9 +171,31 @@ A drag runs one `OnUpdate` on the overlay and removes it on release. It moves th
 | `gridSize` | 16 | slider, 4 to 64 in steps of 4 |
 | `snap` | `true` | toggle |
 | `snapDistance` | 8 | slider, 2 to 24 |
+| `calm` | `true` | toggle, **Calm the rails in combat**, under a **Combat** header |
+| `preset` | `"DPS"` | none. The layout the first-run setup last applied, which Layout Mode outlines the story slot for |
 
 ## Why
 
 - Layout stores positions against nine anchors in root units, so one layout fits 16:9, 16:10 and the Mac's 3456x2234 screen alike. An element near the right edge stays near the right edge on a wider screen.
 - Layout never moves a Blizzard frame. A Blizzard frame that needs a new place is hidden through `Safe` and replaced by a KstyleUI frame.
 - Layout owns only what an element's settings ask for, so an element at its defaults behaves exactly as its module made it.
+
+## Combat calm
+
+`Calm.lua` rests the rails' slow cards in combat, so the eye stays on the centre and the focus cards. It owns no frame's alpha of its own: for a Layout element it gives Layout's alpha a factor, so Layout stays the one writer.
+
+| Value | |
+| --- | --- |
+| `Calm.CARDS` | The slow cards: `chat.main`, `minimap.main`, `databars.strip`, `databars.micro`, `databars.bags`, `databars.xp`, `databars.rep`, `databars.honor` |
+| `Calm.SURFACES` | The guide and quest skins: `ObjectiveTrackerFrame` and `RXPFrame`, while the Skins module runs |
+| `Calm.ALPHA` | 0.3 |
+| `Calm.FALL`, `Calm.RISE`, `Calm.HOVER` | 0.24 s into the calm, 0.6 s out of it, 0.24 s for a hover |
+| `Calm.DELAY` | 3 s after combat ends before the cards rise |
+
+- **Focus cards never calm:** party and raid, the boss card, the target sigil and every centre hand (unit frames, cast bars, action bars, cooldowns), the Blessings (`auras.*`), and the damage and threat meters. The damage meter stays readable in a pull.
+- **In combat** (`PLAYER_REGEN_DISABLED`), each slow card tweens to 30% over 0.24 s. **Out of combat** (`PLAYER_REGEN_ENABLED`), the cards wait 3 s, counted on an `OnUpdate` that runs only while it waits, then rise over 0.6 s. A pull during the wait keeps them calm, and the wait starts again when it ends.
+- **Hover:** while calm, a `C_Timer.NewTicker` reads `IsMouseOver` on each calmed card every 0.1 s. A card under the pointer rises to 100% and calms again when the pointer leaves. A secret `IsMouseOver` counts as over, and a frame that denies access counts as not over. The ticker stops with the calm.
+- **Alpha only:** the calm never changes a size, a point, a scale or a shown rule, so it never touches a protected frame's geometry in combat.
+- **One owner per frame:** a Layout element calms only while its own opacity is at the defaults (`shown` is not `mouseover`, `alphaCombat` and `alphaIdle` are 1). A player's own opacity or mouseover rule wins. Layout's `ApplyAlpha` multiplies its alpha by `Calm.Level(key)` and does not restart a fade already heading to the same alpha. A surface outside Layout calms only from 100%. When the calm ends it rises only if its alpha is still what the calm set, so a fade another addon starts in the meantime is left alone.
+- **Reduced motion** (`Motion.ReducedMotion()`) makes every calm fade instant; the 3-second wait stays.
+- **The setting** `Layout.calm`, on by default. Turned off in combat, the cards rise at once; turned on in combat, they calm. The calm listens for combat only while the setting is on and a slow card is registered or the Skins module runs.

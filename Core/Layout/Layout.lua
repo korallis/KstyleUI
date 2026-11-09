@@ -66,6 +66,8 @@ Layout.defaults = {
 	gridSize = 16,
 	snap = true,
 	snapDistance = 8,
+	calm = true,
+	preset = "DPS",
 }
 
 Layout.schema = {
@@ -88,6 +90,11 @@ Layout.schema = {
 		help = L["How close an edge comes, in interface units, before it snaps."],
 		min = SNAP_MIN, max = SNAP_MAX, step = SNAP_STEP,
 	},
+	{ type = "header", label = L["Combat"] },
+	{
+		type = "toggle", key = "calm", label = L["Calm the rails in combat"],
+		help = L["In combat, chat, the map, the menus and the XP line fade until you point at them."],
+	},
 }
 
 Store.RegisterDefaults(SECTION, Layout.defaults)
@@ -106,6 +113,11 @@ local SETTING_VALID = {
 	snap = function(v) return type(v) == "boolean" end,
 	gridSize = function(v) return IsFinite(v) and v >= GRID_MIN and v <= GRID_MAX end,
 	snapDistance = function(v) return IsFinite(v) and v >= SNAP_MIN and v <= SNAP_MAX end,
+	calm = function(v) return type(v) == "boolean" end,
+	preset = function(v)
+		local setup = ns.Setup
+		return type(v) == "string" and setup ~= nil and setup.Layouts ~= nil and setup.Layouts.Get(v) ~= nil
+	end,
 }
 
 function Layout.Setting(key)
@@ -506,10 +518,17 @@ local function ApplyVisibility(el)
 	end
 end
 
-local function ApplyAlpha(el, instant)
+local function ApplyAlpha(el, instant, duration)
 	local s = el.settings
 	local alpha = Rules.Alpha(s.shown, state.combat, el.hovered, s.alphaCombat, s.alphaIdle)
+	local calm = Layout.Calm
+	if calm and s.shown ~= "mouseover" and s.alphaCombat == 1 and s.alphaIdle == 1 then
+		alpha = alpha * calm.Level(el.key)
+	end
 	if alpha == 1 and not el.alphaSet then
+		return
+	end
+	if not instant and duration == nil and el.alphaTarget == alpha and Motion.IsPlaying(el.alphaTween) then
 		return
 	end
 	el.alphaSet = true
@@ -518,7 +537,8 @@ local function ApplyAlpha(el, instant)
 	if not IsSecret(from) and type(from) ~= "number" then
 		from = alpha
 	end
-	Motion.Tween(frame, "SetAlpha", from, alpha, instant and 0 or Tokens.Duration("fade"), Tokens.Easing("fade"))
+	el.alphaTarget = alpha
+	el.alphaTween = Motion.Tween(frame, "SetAlpha", from, alpha, instant and 0 or (duration or Tokens.Duration("fade")), Tokens.Easing("fade"))
 end
 
 local function Accessible(frame)
@@ -993,6 +1013,9 @@ function Layout.Register(frame, key, defaultPosition, opts)
 	Resolve(el)
 	UpdateEvents()
 	Apply(el, true)
+	if Layout.Calm then
+		Layout.Calm.Update()
+	end
 	if state.active then
 		Mode("Added", key)
 	end
@@ -1016,6 +1039,15 @@ end
 
 function Layout.Element(key)
 	return elements[key]
+end
+
+function Layout.RefreshAlpha(key, duration)
+	local el = elements[key]
+	if not el then
+		return false
+	end
+	ApplyAlpha(el, duration == 0, duration)
+	return true
 end
 
 function Layout.Live(key)

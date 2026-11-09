@@ -1,4 +1,4 @@
--- Layouts.lua: the element keys modules register with Layout, and the DPS, Tank and Healer layouts the first-run setup writes.
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot.
 local _, ns = ...
 
 local Setup = ns.Setup or {}
@@ -10,110 +10,145 @@ Setup.Layouts = Layouts
 local L = ns.L
 
 local ELEMENTS = {
-	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], width = 220, height = 70 },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 220, height = 70 },
-	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 88, height = 22 },
-	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 200, height = 80 },
-	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 96, height = 22 },
-	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 88, height = 22 },
-	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], width = 200, height = 400 },
+	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], width = 490, height = 80 },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], width = 640, height = 80, reserve = { 640, 126 } },
+	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
+	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 318, height = 120 },
+	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
+	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
+	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], width = 318, height = 640, reserve = { 318, 120 } },
 	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 272, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
-	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], width = 230, height = 270 },
-	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], width = 597, height = 212 },
+	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], width = 318, height = 240 },
+	{ key = "groupframes.raid", module = "GroupFrames", label = L["Raid frames"], width = 318, height = 427 },
 	{ key = "actionbars.bar1", module = "ActionBars", label = L["Action bar 1"], width = 489, height = 38 },
 	{ key = "actionbars.bar2", module = "ActionBars", label = L["Action bar 2"], width = 489, height = 38 },
 	{ key = "actionbars.bar3", module = "ActionBars", label = L["Action bar 3"], width = 38, height = 489 },
 	{ key = "actionbars.bar4", module = "ActionBars", label = L["Action bar 4"], width = 38, height = 489 },
 	{ key = "actionbars.bar5", module = "ActionBars", label = L["Action bar 5"], width = 38, height = 489 },
 	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], width = 38, height = 489 },
-	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], width = 327, height = 30 },
-	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], width = 327, height = 30 },
+	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], width = 162, height = 63 },
+	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], width = 162, height = 63 },
 	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], width = 294, height = 44 },
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = 170, height = 38 },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 195, height = 30 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = 195, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 360, height = 102 },
-	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 360, height = 51 },
-	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 259, height = 221 },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 424, height = 164 },
-	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 352, height = 4 },
-	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 440, height = 5 },
-	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 440, height = 5 },
-	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], width = 492, height = 43 },
-	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 314, height = 32 },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 360, height = 102, lumen = { 318, 110, "S4" } },
+	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 360, height = 51, lumen = { 318, 48, "S4" } },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 259, height = 221, lumen = { 318, 318, "S4" } },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 318, height = 364 },
+	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
+	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
+	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
+	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], width = 318, height = 46 },
+	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
-	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], width = 208, height = 130 },
-	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], width = 208, height = 104 },
+	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], width = 318, height = 140 },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], width = 318, height = 104 },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
 	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
 }
 
+local MARGIN, RAIL, GAP, NEAR = 28, 318, 16, 12
+local BAND = MARGIN + RAIL + GAP
+local ENDS = 489 / 2 + NEAR + 162 / 2
+
 local DPS = {
-	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 59 },
-	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 107 },
-	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 162 },
-	["databars.rep"] = { anchor = "BOTTOM", x = 0, y = 50 },
-	["databars.honor"] = { anchor = "BOTTOM", x = 0, y = 43 },
-	["cooldowns.utility"] = { anchor = "BOTTOM", x = 0, y = 206 },
-	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 257 },
-	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = 318 },
-	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 352 },
-	["unitframes.player"] = { anchor = "BOTTOM", x = -290, y = 240 },
-	["unitframes.target"] = { anchor = "BOTTOM", x = 290, y = 240 },
-	["unitframes.pet"] = { anchor = "BOTTOM", x = -450, y = 240 },
-	["unitframes.resource"] = { anchor = "BOTTOM", x = -290, y = 314 },
-	["unitframes.targettarget"] = { anchor = "BOTTOM", x = 450, y = 240 },
-	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 290, y = 148 },
-	["cooldowns.bars"] = { anchor = "BOTTOM", x = -278, y = 184 },
-	["cooldowns.buffs"] = { anchor = "BOTTOM", x = 302, y = 180 },
-	["unitframes.focus"] = { anchor = "LEFT", x = 300, y = 80 },
-	["unitframes.focustarget"] = { anchor = "LEFT", x = 420, y = 10 },
-	["unitframes.boss"] = { anchor = "TOP", x = 0, y = -24 },
-	["groupframes.party"] = { anchor = "TOPLEFT", x = 16, y = -48 },
-	["groupframes.raid"] = { anchor = "TOPLEFT", x = 16, y = -48 },
-	["chat.main"] = { anchor = "BOTTOMLEFT", x = 16, y = 16 },
-	["actionbars.pet"] = { anchor = "BOTTOM", x = -368, y = 349 },
-	["actionbars.stance"] = { anchor = "BOTTOM", x = -368, y = 383 },
-	["actionbars.bar5"] = { anchor = "LEFT", x = 16, y = -40 },
-	["actionbars.bar6"] = { anchor = "LEFT", x = 57, y = -40 },
-	["actionbars.bar3"] = { anchor = "RIGHT", x = -16, y = -110 },
-	["actionbars.bar4"] = { anchor = "RIGHT", x = -57, y = -110 },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -16, y = -16 },
-	["auras.buffs"] = { anchor = "TOPRIGHT", x = -287, y = -16 },
-	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -287, y = -126 },
-	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -16, y = 16 },
-	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -16, y = 67 },
-	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -16, y = 103 },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -99, y = 363 },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -99, y = 545 },
-	["combattext.player"] = { anchor = "BOTTOM", x = 0, y = 470 },
-	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -99, y = 331 },
+	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
+	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
+	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -362 },
+	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -480 },
+	["unitframes.boss"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -544 },
+	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -680 },
+	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -836 },
+	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
+	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = 72 },
+	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 52 },
+	["databars.rep"] = { anchor = "BOTTOM", x = -ENDS, y = 52 },
+	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 68 },
+	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = 68 },
+	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = 68 },
+	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 118 },
+	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = 176 },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 204 },
+	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 226 },
+	["cooldowns.utility"] = { anchor = "BOTTOM", x = 248, y = 226 },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -260.5, y = 226 },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = -260.5, y = 264 },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = 282 },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 320 },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 340 },
+	["unitframes.target"] = { anchor = "TOP", x = 0, y = -40 },
+	["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -174 },
+	["unitframes.targettarget"] = { anchor = "TOP", x = 260, y = -174 },
+	["unitframes.focus"] = { anchor = "LEFT", x = BAND, y = -40 },
+	["unitframes.focustarget"] = { anchor = "LEFT", x = BAND, y = -119 },
+	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = 360 },
+	["actionbars.bar5"] = { anchor = "TOPLEFT", x = BAND, y = -MARGIN },
+	["actionbars.bar6"] = { anchor = "TOPLEFT", x = BAND + 41, y = -MARGIN },
+	["actionbars.bar3"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
+	["actionbars.bar4"] = { anchor = "TOPRIGHT", x = -(BAND + 41), y = -MARGIN },
+	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -BAND, y = 147 },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -BAND, y = 191 },
 }
 
-local CHANGES = {
+local CHANGES = { DPS = {}, Tank = {}, Healer = {} }
+
+local SIZES = {
 	DPS = {},
-	Tank = {
-		["meters.threat"] = { anchor = "BOTTOM", x = 340, y = 336 },
-	},
+	Tank = {},
 	Healer = {
-		["groupframes.party"] = { anchor = "BOTTOM", x = -368, y = 416 },
-		["groupframes.raid"] = { anchor = "BOTTOM", x = 0, y = 420 },
-		["combattext.player"] = { anchor = "BOTTOM", x = 0, y = 640 },
-		["unitframes.boss"] = { anchor = "TOPLEFT", x = 110, y = -24 },
-		["unitframes.focus"] = { anchor = "LEFT", x = 320, y = 222 },
-		["unitframes.focustarget"] = { anchor = "LEFT", x = 420, y = 160 },
+		["groupframes.party"] = { RAIL, 300 },
+		["groupframes.raid"] = { RAIL, 487 },
 	},
 }
+
+local SWITCHES = {
+	{ key = "actionbars.bar1", module = "ActionBars", setting = "bar1.enabled" },
+	{ key = "actionbars.bar2", module = "ActionBars", setting = "bar2.enabled" },
+	{ key = "actionbars.bar3", module = "ActionBars", setting = "bar3.enabled" },
+	{ key = "actionbars.bar4", module = "ActionBars", setting = "bar4.enabled" },
+	{ key = "actionbars.bar5", module = "ActionBars", setting = "bar5.enabled" },
+	{ key = "actionbars.bar6", module = "ActionBars", setting = "bar6.enabled" },
+	{ key = "actionbars.pet", module = "ActionBars", setting = "pet.enabled" },
+	{ key = "actionbars.stance", module = "ActionBars", setting = "stance.enabled" },
+	{ key = "meters.threat", module = "Meters", setting = "threat.shown" },
+}
+
+local BARS_OFF = { "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }
+local OFF = {
+	DPS = { "meters.threat" },
+	Tank = {},
+	Healer = { "meters.threat" },
+}
+
+local SHARED_SETTINGS = {
+	{ module = "ActionBars", key = "bar1.rows", value = 1 },
+	{ module = "ActionBars", key = "pet.rows", value = 2 },
+	{ module = "ActionBars", key = "stance.rows", value = 2 },
+	{ module = "GroupFrames", key = "party.spacing", value = 8 },
+	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
+	{ module = "GroupFrames", key = "raid.width", value = 77 },
+}
+local ROWS = {
+	DPS = { party = 40, raid = 40 },
+	Tank = { party = 40, raid = 40 },
+	Healer = { party = 52, raid = 46 },
+}
+
+local STORY_BOTTOM = MARGIN + 364 + GAP
 
 local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
-	DPS = L["The compact HUD band, with party frames and meters at the edges."],
-	Tank = L["The DPS layout with the threat meter beside your target frame."],
-	Healer = L["The DPS layout with party and raid frames above your HUD band, and the boss frames at the top left."],
+	DPS = L["Lumen Rails: party and chat on the left rail, the map, buffs, boss and damage meter on the right, your hands in the centre."],
+	Tank = L["The DPS rails with the threat meter under the damage meter."],
+	Healer = L["The DPS rails with larger party and raid frames on the left rail."],
 }
 
 local OFFSETS = {
@@ -131,13 +166,44 @@ local function copy(position)
 	return { anchor = position.anchor, x = position.x, y = position.y }
 end
 
-local layouts = {}
+local layouts, shown, settings, slots = {}, {}, {}, {}
 for _, name in ipairs(NAMES) do
 	local layout = {}
 	for key, position in pairs(DPS) do
 		layout[key] = copy(CHANGES[name][key] or position)
 	end
 	layouts[name] = layout
+	local off = {}
+	for _, key in ipairs(BARS_OFF) do
+		off[key] = true
+	end
+	for _, key in ipairs(OFF[name]) do
+		off[key] = true
+	end
+	shown[name] = off
+	local list = {}
+	for _, switch in ipairs(SWITCHES) do
+		list[#list + 1] = { module = switch.module, key = switch.setting, value = not off[switch.key] }
+	end
+	for _, entry in ipairs(SHARED_SETTINGS) do
+		list[#list + 1] = { module = entry.module, key = entry.key, value = entry.value }
+	end
+	list[#list + 1] = { module = "GroupFrames", key = "party.height", value = ROWS[name].party }
+	list[#list + 1] = { module = "GroupFrames", key = "raid.height", value = ROWS[name].raid }
+	settings[name] = list
+	local party = SIZES[name]["groupframes.party"]
+	local partyHeight = party and party[2] or byKey["groupframes.party"].height
+	local raid = SIZES[name]["groupframes.raid"]
+	local raidHeight = raid and raid[2] or byKey["groupframes.raid"].height
+	slots[name] = {
+		key = "story",
+		anchor = "BOTTOMLEFT", x = MARGIN, y = STORY_BOTTOM,
+		width = RAIL, height = 1080 - MARGIN - partyHeight - GAP - STORY_BOTTOM,
+		raid = raidHeight - partyHeight,
+		label = L["Story rail"],
+		hint = L["Drag the RestedXP guide here, and move the quest tracker here in Edit Mode."],
+		raidHint = L["In a raid, the raid frames cover the slot down to this line."],
+	}
 end
 
 Layouts.ELEMENTS = ELEMENTS
@@ -170,6 +236,72 @@ function Layouts.Get(name)
 	local out = {}
 	for key, position in pairs(layout) do
 		out[key] = copy(position)
+	end
+	return out
+end
+
+function Layouts.Footprint(name, key)
+	local element = byKey[key]
+	if not element or not layouts[name] then
+		return nil
+	end
+	local size = SIZES[name][key] or element.lumen or element.reserve
+	if size then
+		return size[1], size[2]
+	end
+	return element.width, element.height
+end
+
+function Layouts.Reserves()
+	local out = {}
+	for _, element in ipairs(ELEMENTS) do
+		local reserve = element.reserve
+		if reserve then
+			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2] }
+		end
+	end
+	return out
+end
+
+function Layouts.Pending()
+	local out = {}
+	for _, element in ipairs(ELEMENTS) do
+		local lumen = element.lumen
+		if lumen then
+			out[#out + 1] = { key = element.key, width = lumen[1], height = lumen[2], slice = lumen[3] }
+		end
+	end
+	return out
+end
+
+function Layouts.Shown(name, key)
+	local off = shown[name]
+	if not off or not byKey[key] then
+		return nil
+	end
+	return not off[key]
+end
+
+function Layouts.Settings(name)
+	local list = settings[name]
+	if not list then
+		return nil
+	end
+	local out = {}
+	for i, entry in ipairs(list) do
+		out[i] = { module = entry.module, key = entry.key, value = entry.value }
+	end
+	return out
+end
+
+function Layouts.Slot(name)
+	local slot = slots[name]
+	if not slot then
+		return nil
+	end
+	local out = {}
+	for k, v in pairs(slot) do
+		out[k] = v
 	end
 	return out
 end
