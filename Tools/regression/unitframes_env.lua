@@ -480,15 +480,54 @@ function U.Install(env)
 
 	-- A fake AuraContainer engine: CreateFrame("AuraContainer", ..., "CustomAuraContainerTemplate") returns a
 	-- frame with the container's methods. AddAuraGroup makes a batch of aura buttons and runs initializeFrame
-	-- on each, as the engine does; it lays out nothing, so a test or scene sizes the container as the flow layout would. env._auraButtonsSecret makes the buttons refuse SetSize, as
-	-- DenyTaintedAccessWhenAurasAreSecret does while auras are secret.
+	-- on each, as the engine does; it lays out nothing, so a test or scene sizes the container as the flow layout
+	-- would. The buttons refuse SetSize while auras are secret, as DenyTaintedAccessWhenAurasAreSecret does. Once a
+	-- container has a group, the engine gives it the UntrustedLayoutScriptExecution forbidden aspect, and the game
+	-- refuses an anchor onto it from any frame that lacks the aspect (Blizzard_CustomAuraContainer.lua, AddAuraGroup):
+	-- an addon frame opts in with DisableUntrustedLayoutScriptsTemplate, or inherits the aspect from a parent that has
+	-- it when it is created (the aura tiles are children of the engine's buttons). A texture or font string runs no layout
+	-- script, so the stub lets one hang from an opted-in frame, but never straight from a container.
 	env.AnchorUtil = { FlowDirection = { Left = -1, Right = 1, Up = 1, Down = -1 } }
 	env.AuraContainerSortMethod = { Default = 0, UnitFrameDebuff = 2, Expiration = 4 }
 	env.AuraContainerSortDirection = { Normal = 0, Reverse = 1 }
 	env._containers = {}
-	local createFrame = env.CreateFrame
+	local rawCreate = env.CreateFrame
+	local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
+	local function guard(object, region)
+		for _, method in ipairs({ "SetPoint", "SetAllPoints" }) do
+			local original = object[method]
+			object[method] = function(self, ...)
+				local relative = select(method == "SetPoint" and 2 or 1, ...)
+				local refused = type(relative) == "table" and relative._layoutForbidden and not self._layoutForbidden
+				if region then
+					refused = refused and relative._groups ~= nil
+				end
+				if refused then
+					error("Cannot anchor to a frame with the UntrustedLayoutScriptExecution aspect without it", 2)
+				end
+				return original(self, ...)
+			end
+		end
+	end
+	local function createFrame(frameType, name, parent, template)
+		local frame = rawCreate(frameType, name, parent, template)
+		frame._layoutForbidden = (template == LAYOUT_TEMPLATE or (type(parent) == "table" and parent._layoutForbidden)) or nil
+		guard(frame)
+		for _, maker in ipairs({ "CreateTexture", "CreateFontString", "CreateMaskTexture" }) do
+			local make = frame[maker]
+			if make then
+				frame[maker] = function(...)
+					local region = make(...)
+					guard(region, true)
+					return region
+				end
+			end
+		end
+		return frame
+	end
 	local function auraButton(parent)
 		local button = createFrame("Button", nil, parent)
+		button._layoutForbidden = true
 		button._aura = {}
 		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures" }) do
 			button[method] = function(self, ...)
@@ -526,6 +565,7 @@ function U.Install(env)
 			local group = { filter = filter, options = options, enabled = true, layout = options.layout, max = options.maxFrameCount, buttons = {} }
 			self._groups[key] = group
 			self._order[#self._order + 1] = key
+			self._layoutForbidden = true
 			self:_Acquire(key, 3)
 		end
 		-- _Acquire(key, n) makes the group's buttons up to n, as the engine's batched allocator does when more

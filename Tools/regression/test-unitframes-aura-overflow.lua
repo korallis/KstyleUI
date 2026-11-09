@@ -123,11 +123,11 @@ local function Read(chip)
 	local win, strip = rect(chip.window), rect(chip.strip)
 	local face = strip.bottom <= win.bottom + EPS and strip.top >= win.top - EPS
 	local shown = {}
-	for _, label in ipairs(chip.labels) do
+	for i, label in ipairs(chip.labels) do
 		local r = rect(label)
 		if overlap(r, win) then
 			assert(same(r, win), "a label in the window fills it exactly " .. fmt(r) .. " " .. fmt(win))
-			shown[#shown + 1] = label:GetText()
+			shown[#shown + 1] = chip.texts[i]:GetText()
 		end
 	end
 	return face, overlap(strip, win), shown, win
@@ -163,6 +163,12 @@ do
 		assert(mouse and mouse[1] == false, "the counting container's buttons never take the mouse")
 	end
 	assert(chip.ghostHost:GetAlpha() == 0, "the counting container draws nothing")
+	-- Once a container has a group, the engine refuses an anchor onto it from a frame without the
+	-- UntrustedLayoutScriptExecution aspect (Blizzard_CustomAuraContainer.lua), and the stub does too: every frame of
+	-- the chip's chain opts in with DisableUntrustedLayoutScriptsTemplate.
+	for _, frame in ipairs({ chip.window, chip.strip, chip.face, unpack(chip.labels) }) do
+		assert(frame._template == "DisableUntrustedLayoutScriptsTemplate", "a chip frame anchored along the engine's containers carries the layout template")
+	end
 	assert(chip.ghost._unit == "target" and chip.ghost._groups.count.filter == "HARMFUL|PLAYER", "it counts what the row shows")
 	assert(chip.ghost._line == 1, "one element per line, so its height is the count")
 end

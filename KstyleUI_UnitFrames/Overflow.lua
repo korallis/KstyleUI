@@ -10,6 +10,7 @@ ns.Overflow = Overflow
 Overflow.LABELS = 24
 Overflow.PITCH = 2
 local TEMPLATE = "CustomAuraContainerTemplate"
+local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 local GROUP = "count"
 local TEXT_SHARE = 0.42
 local TEXT_MIN = 8
@@ -18,6 +19,14 @@ local function Mute(button)
 	if type(button.EnableMouse) == "function" then
 		pcall(button.EnableMouse, button, false)
 	end
+end
+
+local function LayoutFrame(parent)
+	local ok, frame = pcall(CreateFrame, "Frame", nil, parent, LAYOUT_TEMPLATE)
+	if ok and type(frame) == "table" then
+		return frame
+	end
+	return nil
 end
 
 local function Layout(cell)
@@ -48,18 +57,24 @@ function Overflow.New(host, unit, filter, cap)
 		ghost:SetFlowLayoutGrowthDirection(directions.Right, directions.Down)
 	end
 	ghost:SetFlowLayoutMaximumLineSize(1)
-	local window = CreateFrame("Frame", nil, host)
+	local window = LayoutFrame(host)
+	if not window then
+		ghostHost:Hide()
+		return nil, LAYOUT_TEMPLATE .. " is missing, and only a frame with it may anchor to the engine's containers"
+	end
 	window:SetClipsChildren(true)
-	local strip = CreateFrame("Frame", nil, window)
+	local strip = LayoutFrame(window)
 	strip:SetClipsChildren(true)
-	local face = CreateFrame("Frame", nil, strip)
-	local texts = CreateFrame("Frame", nil, strip)
+	local face = LayoutFrame(strip)
 	local chip = {
-		ghostHost = ghostHost, ghost = ghost, window = window, strip = strip, face = face, texts = texts,
-		chrome = Widgets.IconChrome(face), labels = {},
+		ghostHost = ghostHost, ghost = ghost, window = window, strip = strip, face = face,
+		chrome = Widgets.IconChrome(face), labels = {}, texts = {},
 	}
 	for i = 1, Overflow.LABELS do
-		chip.labels[i] = Widgets.FontString(texts, "OVERLAY")
+		local frame = LayoutFrame(strip)
+		local text = Widgets.FontString(frame, "OVERLAY")
+		text:SetAllPoints(frame)
+		chip.labels[i], chip.texts[i] = frame, text
 	end
 	return chip
 end
@@ -103,19 +118,21 @@ function Overflow.Apply(chip, o)
 	face:ClearAllPoints()
 	face:SetPoint("TOPLEFT", window, "TOPLEFT", 0, 0)
 	face:SetSize(cell, cell)
-	chip.texts:SetFrameLevel(face:GetFrameLevel() + 2)
 	chip.chrome:Restyle()
 	local r, g, b = Tokens.Color("buttonFill")
 	chip.chrome:SetFillRGBA(r, g, b, 1)
 	chip.chrome:SetRimAccent(o.accent())
 	local size = math.max(TEXT_MIN, math.floor(cell * TEXT_SHARE + 0.5))
+	local level = face:GetFrameLevel() + 2
 	for i, label in ipairs(chip.labels) do
 		local top = (o.cap + i) * pitch
 		label:ClearAllPoints()
 		label:SetPoint("TOPLEFT", ghost, "BOTTOMLEFT", 0, top)
 		label:SetPoint("BOTTOMRIGHT", ghost, "BOTTOMLEFT", cell, top - cell)
-		StyleLabel(label, size)
-		Widgets.SetText(label, "+" .. (i + 1))
+		label:SetFrameLevel(level)
+		local text = chip.texts[i]
+		StyleLabel(text, size)
+		Widgets.SetText(text, "+" .. (i + 1))
 	end
 end
 
