@@ -40,7 +40,7 @@ Settings.defaults = {
 		showIcon = true, showName = true, showTime = true, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
-		enabled = true, includePlateOnly = true, size = 26, spacing = 2, columns = 5, rows = 1,
+		enabled = true, includePlateOnly = true, size = 26, spacing = 2, columns = 5, rows = 1, order = "important",
 		growthX = "RIGHT", growthY = "UP", showTime = true, showCount = true, textSize = 12, outline = "OUTLINE",
 	},
 	threat = {
@@ -102,6 +102,12 @@ local STACKING = {
 	{ value = "none", label = L["Overlap"] },
 	{ value = "enemy", label = L["Stack enemy plates"] },
 	{ value = "all", label = L["Stack all plates"] },
+}
+local ORDERS = {
+	{ value = "important", label = L["Important first"] },
+	{ value = "longest", label = L["Most time left first"] },
+	{ value = "expiring", label = L["Soonest to fade first"] },
+	{ value = "default", label = L["The game's order"] },
 }
 local FOOTPRINTS = {
 	{ value = "plate", label = L["KstyleUI's plate"] },
@@ -376,8 +382,13 @@ local rest = {
 	},
 	{
 		type = "slider", key = "debuffs.rows", label = L["Rows"],
-		help = L["Shows up to icons per row times rows debuffs."],
+		help = L["Shows up to icons per row times rows debuffs; a +N chip counts the rest."],
 		min = 1, max = 4, step = 1, disableWhen = Off("debuffs.enabled"),
+	},
+	{
+		type = "dropdown", key = "debuffs.order", label = L["Which debuffs win a tile"],
+		help = L["How the game ranks your debuffs when more than fit. Important: the game's lethal ones."],
+		options = ORDERS, disableWhen = Off("debuffs.enabled"),
 	},
 	{
 		type = "dropdown", key = "debuffs.growthX", label = L["Grow across"],

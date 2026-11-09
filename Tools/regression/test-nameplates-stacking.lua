@@ -34,7 +34,7 @@ do
 	local WIDE, BARE = math.ceil((225 + K.Tokens.Size("gapSmall")) * ratio), math.ceil(209 * ratio)
 	assert(w == WIDE, "the base is as wide as the bar, the level badge and the raid marker's room, got " .. tostring(w))
 	local sample = ns.Preview.samplePlate
-	local above, below = ns.Auras.Extent(sample, 1)
+	local above, below = ns.Auras.Extent(sample)
 	assert(h == math.ceil((above + ns.state.height + below) * ratio), "and as tall as the plate with one row of debuffs, got " .. tostring(h))
 	assert(h > 45 * ratio and h < 120, "a sane height, got " .. tostring(h))
 
@@ -48,10 +48,12 @@ do
 	local _, taller = size(env)
 	assert(taller > h and taller <= h + math.ceil(8 * ratio), "larger debuffs make a taller footprint, got " .. tostring(taller) .. " from " .. tostring(h))
 
-	-- A second row of debuffs does not count, as Blizzard's own layout does not count it.
+	-- Every row of debuffs counts, so a second row never runs into the plate above (the owner's rule).
 	K.Options.Write("Nameplates", "debuffs.rows", 3)
 	local _, rows = size(env)
-	assert(rows == taller, "a second and third row never grow the footprint")
+	assert(rows > taller, "a second and third row grow the footprint, got " .. tostring(rows))
+	K.Options.Write("Nameplates", "debuffs.rows", 1)
+	assert(select(2, size(env)) == taller, "back to one row")
 
 	-- Blizzard's driver sets the size again when its options change; the module puts its own back.
 	env.NamePlateDriverFrame:UpdateNamePlateSize()

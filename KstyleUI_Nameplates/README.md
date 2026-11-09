@@ -8,7 +8,7 @@ A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's 
 | Approach | Replace the visible plate |
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Nameplates.toc` lists `Nameplates.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
-| Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua`, `test-nameplates-cast.lua`, `test-nameplates-auras.lua`, `test-nameplates-types.lua`, `test-nameplates-interrupt.lua`, `test-nameplates-stacking.lua` and `test-nameplates-presets.lua`, through `Tools/regression/nameplates_env.lua`, which uses the fake AuraContainer engine in `auras_env.lua` |
+| Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua`, `test-nameplates-cast.lua`, `test-nameplates-auras.lua`, `test-nameplates-types.lua`, `test-nameplates-interrupt.lua`, `test-nameplates-stacking.lua`, `test-nameplates-presets.lua` and `test-nameplates-overflow.lua`, through `Tools/regression/nameplates_env.lua`, which uses the fake AuraContainer engine in `auras_env.lua` |
 
 ## Rules
 
@@ -101,7 +101,8 @@ The debuffs are a component too. Each plate gets one `CustomAuraContainerTemplat
 | Part | How |
 | --- | --- |
 | Which auras | The filter string `HARMFUL\|PLAYER\|INCLUDE_NAME_PLATE_ONLY`: the player's harmful auras on the unit, including the ones the game marks for nameplates only. A setting drops `INCLUDE_NAME_PLATE_ONLY`. The engine finds, sorts and updates them; Lua never reads aura data, so `C_Secrets.ShouldAurasBeSecret()` never stops it. |
-| How many | `maxFrameCount` is icons per row times rows. |
+| How many | `maxFrameCount` is icons per row times rows. When the player has more debuffs on the unit than tiles, a chip at the end of the first row says `+N`. The count comes from a second group on the same container and filter, `tally`, whose frames are bare 1-unit buttons laid out on their own invisible line, up to the tiles plus `OVERFLOW_MAX` (16). Each button of either group carries a probe frame of KstyleUI's own whose `OnShow` and `OnHide` count it in and out, so no aura is read and no engine button is called while auras are secret; the chip is the tally's count less the tiles'. |
+| Which win a tile | `debuffs.order` sets the engine's sort for both groups: `important` (`ImportantOnly`: the spells the game marks important, `C_Spell.IsSpellImportant`, first), `longest` (`ExpirationOnly` reversed), `expiring` (`Expiration`) or `default`. The engine sorts; Lua never reads a duration. |
 | Layout | The engine's flow layout: horizontal lines `columns` icons long (`SetFlowLayoutMaximumLineSize`), growing right or left and up or down from the matching corner. The container hangs from that corner 4 units (`gapSmall`) above the name, or under the cast bar when rows grow down. |
 | Unit | `SetUnit(unit)` when the plate attaches, `SetUnit("none")` when it detaches or debuffs are off. |
 | Edit Mode | `SetEditModePreviewEnabled(false)`, so Blizzard's Edit Mode never fills plates with sample auras. |
@@ -113,7 +114,7 @@ Icon size and spacing snap to whole physical pixels (`Widgets.Snap` on the plate
 
 The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine. `Auras.Extent(plate)` gives how far a plate reaches above and below its health bar, debuffs included, and the preview spaces its sample plates by the tallest so no plate's debuffs run into the next. The pane clips its children, so when a large grid makes the stack taller than the pane, the preview shows only the plates that fit, at least one, and stacks again when the pane changes size.
 
-The defaults are sized for a pull: 26-unit icons, five to a row (138 units, inside the 175-unit plate), with the time left and the stacks at 12 units, outlined. The owner judged the earlier 18-unit icons and 8-unit text too small to read in game on 2026-11-08. A plate shrunk for distance (`cvars.minScale` 0.8) still draws the icons at about 21 units. A size saved in a profile keeps its value.
+The defaults are sized for a pull: 26-unit icons, five to a row (138 units, inside the 175-unit plate) and the `+N` chip one pitch after the fifth (164 units), with the time left and the stacks at 12 units, outlined. More rows wrap more tiles, and the footprint the game stacks by grows with them (Stacking below), so neither the tiles nor the chip ever meet the name, the cast bar or the next plate. The owner judged the earlier 18-unit icons and 8-unit text too small to read in game on 2026-11-08. A plate shrunk for distance (`cvars.minScale` 0.8) still draws the icons at about 21 units. A size saved in a profile keeps its value.
 
 ### Unit types
 
@@ -150,7 +151,7 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 ## Stacking
 
-The game stacks plates, and decides where a click lands, by one nameplate size (`C_NamePlate.SetNamePlateSize`, which Blizzard's `NamePlateDriverFrame:UpdateNamePlateSize` sets from the style CVars). With **Plate size for the game** on `KstyleUI's plate`, the default, `Stacking.lua` gives the game the plate's own footprint instead (`Stacking.Extent`, then `Logic.Footprint`): the bar, the level badge and the raid marker's room wide; the name, one row of debuffs, the bar and the cast bar tall, and never shorter than the level badge with its diamond; in the base's units (root units times `KstyleUI_Root`'s effective scale over `UIParent`'s, so the player's size setting resizes it through `ScaleChanged`). Stacked plates then clear each other, debuffs and cast bars included; a second row of debuffs does not count, as Blizzard's own layout leaves it out. The API is restricted in combat, so the size goes through `Combat.Queue`; a `hooksecurefunc` on the driver's `UpdateNamePlateSize` notes the size the game just chose and puts the footprint back; and `The game's own size`, or turning the module off, writes back the game's latest size. `gallery_nameplates_pull.lua` renders seven plates at that pitch.
+The game stacks plates, and decides where a click lands, by one nameplate size (`C_NamePlate.SetNamePlateSize`, which Blizzard's `NamePlateDriverFrame:UpdateNamePlateSize` sets from the style CVars). With **Plate size for the game** on `KstyleUI's plate`, the default, `Stacking.lua` gives the game the plate's own footprint instead (`Stacking.Extent`, then `Logic.Footprint`): the bar, the level badge and the raid marker's room wide; the name, every row of debuffs, the bar and the cast bar tall, and never shorter than the level badge with its diamond; in the base's units (root units times `KstyleUI_Root`'s effective scale over `UIParent`'s, so the player's size setting resizes it through `ScaleChanged`). Stacked plates then clear each other, debuffs and cast bars included: Blizzard's own layout leaves a second row of debuffs out and lets it overlap, but the owner's rule is that no debuff ever runs into the next plate, so every configured row counts. The API is restricted in combat, so the size goes through `Combat.Queue`; a `hooksecurefunc` on the driver's `UpdateNamePlateSize` notes the size the game just chose and puts the footprint back; and `The game's own size`, or turning the module off, writes back the game's latest size. `gallery_nameplates_pull.lua` renders seven plates at that pitch.
 
 ## Presets
 
@@ -189,6 +190,7 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 10, thin | toggle, toggle, toggle, slider, dropdown |
 | `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
 | `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 26, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
+| `debuffs.order` | important | dropdown: important, longest, expiring, default |
 | `debuffs.growthX`, `debuffs.growthY` | right, up | dropdown, dropdown |
 | `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 12, thin | toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |

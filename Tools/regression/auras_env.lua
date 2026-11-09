@@ -186,6 +186,7 @@ local function makeButton(env, container, initializeFrame)
 		initializeFrame(button)
 	end
 	button._restricted = true
+	button._shown = false
 	container._buttons[#container._buttons + 1] = button
 	return button
 end
@@ -225,6 +226,9 @@ local function installContainer(env, container)
 		for _ = 1, BATCH do
 			group.frames[#group.frames + 1] = makeButton(env, self, options.initializeFrame)
 		end
+	end
+	function container.HasAuraGroup(self, key)
+		return self._groups[key] ~= nil
 	end
 	function container.GetAuraGroupFrameCount(self, key)
 		local group = self._groups[key]
@@ -473,6 +477,41 @@ function A.Container(env, filter, nth)
 end
 
 -- MakeButton(env, container, initializeFrame) -> a new aura button, made as the engine makes a later batch.
+-- Assign(env, container, key, count) -> the frames shown. Assigns `count` auras to a group as the engine's
+-- frame refresh does: the first min(count, maxFrameCount) frames show and the rest hide, frames are made in
+-- batches as needed, and a frame whose visibility changes runs OnShow or OnHide on itself and on every shown
+-- descendant, as the game does when a parent shows or hides.
+local function fireVisibility(frame, script)
+	local fn = frame._scripts and frame._scripts[script]
+	if fn then
+		fn(frame)
+	end
+	for _, kid in ipairs(frame._kids or {}) do
+		if kid._shown then
+			fireVisibility(kid, script)
+		end
+	end
+end
+
+function A.Assign(env, container, key, count)
+	local group = assert(container._groups[key], "no aura group " .. tostring(key))
+	local want = math.min(count, group.maxFrameCount)
+	while #group.frames < want do
+		for _ = 1, BATCH do
+			group.frames[#group.frames + 1] = makeButton(env, container, env._initializers[key])
+		end
+	end
+	for i, frame in ipairs(group.frames) do
+		local shown = i <= want
+		if frame._shown ~= shown then
+			frame._shown = shown
+			fireVisibility(frame, shown and "OnShow" or "OnHide")
+		end
+	end
+	group.assigned = count
+	return want
+end
+
 function A.MakeButton(env, container, initializeFrame)
 	return makeButton(env, container, initializeFrame)
 end

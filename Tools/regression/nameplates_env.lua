@@ -504,6 +504,17 @@ function N.Remove(env, token)
 	return base
 end
 
+-- Debuffs(env, token, count) assigns `count` of the player's debuffs to the unit's plate, as the engine's
+-- frame refresh does for every group on the plate's container.
+function N.Debuffs(env, token, count)
+	local plate = env._addons.KstyleUI_Nameplates.Plates.Get(token)
+	local container = assert(plate and plate.auras, "no debuff container on " .. token)
+	local A = dofile("Tools/regression/auras_env.lua")
+	for key in pairs(container._groups) do
+		A.Assign(env, container, key, count)
+	end
+end
+
 -- Cast(env, token, cast) starts a cast or channel on a unit and fires its start event.
 function N.Cast(env, token, cast)
 	local copy = {}

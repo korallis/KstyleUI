@@ -10,7 +10,6 @@ local MODULE = Settings.MODULE
 local Stacking = {}
 ns.Stacking = Stacking
 
-local DEBUFF_ROWS = 1
 local MARKER_SIZE, GAP, MARKER_GAP = 12, K.Tokens.Size("gapTiny"), K.Tokens.Size("gapSmall")
 local original
 local applied = { w = nil, h = nil }
@@ -34,7 +33,7 @@ function Stacking.Extent()
 	if not plate then
 		return nil
 	end
-	local above, below = ns.Auras.Extent(plate, DEBUFF_ROWS)
+	local above, below = ns.Auras.Extent(plate)
 	local state = ns.state
 	local width = state.width + ns.Plate.BADGE_SIZE
 	if Settings.Get("level.show") then

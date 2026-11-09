@@ -4,13 +4,15 @@
 -- stacked plates clear each other and still read: the target mid-cast with the player's debuffs, a caster in the
 -- caster colour casting an interruptible spell, a quest mob in the quest colour, a rare in the rare colour, an
 -- elite under a skull casting an uninterruptible spell, and two plain mobs. The warrior's Pummel is ready, so
--- interruptible casts take the accent. The fake AuraContainer engine lays out no buttons, so the scene fills
--- the debuff tiles and places them as the engine's flow layout would (Hud.PlaceAuras).
+-- interruptible casts take the accent. The target carries eight of the player's debuffs: the engine assigns five
+-- tiles (A.Assign stands in for its frame refresh) and the plate's "+3" chip counts the rest. The fake engine lays
+-- out no buttons, so the scene fills the five tiles and places them as the flow layout would (Hud.PlaceAuras).
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 
-local DEBUFFS = { { 132155, "18s", "2" }, { 132316, "9s" }, { 132363, "4s", "5" } }
+local DEBUFFS = { { 132155, "18s", "2" }, { 132316, "9s" }, { 132363, "4s", "5" }, { 136207, "12s" }, { 132302, "7s", "3" } }
+local DEBUFF_COUNT = 8
 local SNAP, SCREECH, HEX = 132200, 136124, 136071
 local PUMMEL = 6552
 local COLUMNS = { 560, 1120 }
@@ -103,6 +105,8 @@ return Common.Run(function()
 	for _ = 1, 20 do
 		N.Tick(env, 0.05)
 	end
+	N.Debuffs(env, "nameplate1", DEBUFF_COUNT)
+	env.RunTimers()
 	local problem = debuffs(env, ns, ns.Plates.Get("nameplate1"))
 	for _ = 1, 10 do
 		N.Tick(env, 0.05)
@@ -115,6 +119,7 @@ return Common.Run(function()
 		list[#list + 1] = plate.level
 		if plate.auras and token == "nameplate1" then
 			list[#list + 1] = plate.auras
+			list[#list + 1] = plate.auraChip
 		end
 		if plate.raid:IsShown() then
 			list[#list + 1] = plate.raid
@@ -123,7 +128,7 @@ return Common.Run(function()
 	frames:Add(env, ns.Plates.Get("nameplate1"), {
 		name = "nameplates_pull", title = "Nameplates: a seven-mob pull, stacked", grade = "panel", reference = "nameplate",
 		rect = Gallery.Union(env, list), pad = 24,
-		caption = "Seven plates stacked at the pitch the module gives the game (the plate's own footprint, Stacking.lua): the target mid-cast with three of the player's debuffs, a caster in the caster colour casting an interruptible spell in the accent (the warrior's Pummel is ready), a quest mob in the quest colour, a rare in the rare colour, an elite under a skull casting an uninterruptible spell in the shield colour, and two plain mobs. No plate runs into the next.",
+		caption = "Seven plates stacked at the pitch the module gives the game (the plate's own footprint, Stacking.lua): the target mid-cast with eight of the player's debuffs, five on tiles and a +3 chip for the rest, a caster in the caster colour casting an interruptible spell in the accent (the warrior's Pummel is ready), a quest mob in the quest colour, a rare in the rare colour, an elite under a skull casting an uninterruptible spell in the shield colour, and two plain mobs. No plate runs into the next.",
 		match = "The mockup's plate bar repeated as a pull: the same track, rim and badge on every plate, the type colours and the interrupt colours the kit's tokens (quest, rare, epic, textDisabled).",
 	})
 	local scene = frames:Finish(Gallery.Build(env, { time = env._time }), env, K, "gallery nameplates pull")
