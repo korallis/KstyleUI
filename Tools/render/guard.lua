@@ -323,7 +323,7 @@ function Guard.Ink(item)
 	local block = lines * lh
 	local top = rect[2]
 	if block < rect[4] then
-		local side = item.grow or (item.justifyV == "MIDDLE" and "middle") or (item.justifyV == "BOTTOM" and "bottom") or "top"
+		local side = item.grow or (item.natural and item.natural.height) or (item.justifyV == "MIDDLE" and "middle") or (item.justifyV == "BOTTOM" and "bottom") or "top"
 		if side == "middle" then
 			top = rect[2] + (rect[4] - block) / 2
 		elseif side == "bottom" then

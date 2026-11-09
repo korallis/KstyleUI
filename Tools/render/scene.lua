@@ -488,14 +488,17 @@ Scene.PlainText = plainText
 
 -- WrappedLines(text, size, fontPath, width) -> how many lines a word-wrapping text takes in a width, by the
 -- page's rule: words fill a line while they fit, a word that fits nowhere takes a line of its own, and an
--- explicit break starts a new line.
+-- explicit break starts a new line. A line fits within WRAP_SLACK of the width, so a text as wide as its own
+-- words (a natural-width text, its width back from a rounded number) stays on one line, as it does in the game.
+local WRAP_SLACK = 0.01
+
 function Scene.WrappedLines(text, size, fontPath, width)
 	local lines = 0
 	for paragraph in (plainText(text) .. "\n"):gmatch("(.-)\n") do
 		local line = nil
 		for word in (paragraph .. " "):gmatch("(.-) ") do
 			local candidate = line and (line .. " " .. word) or word
-			if line and textWidthEm(candidate, fontPath) * size > width then
+			if line and textWidthEm(candidate, fontPath) * size > width + WRAP_SLACK then
 				lines = lines + 1
 				line = word
 			else
@@ -754,7 +757,7 @@ function Solver:solve(object)
 	if wrap and not (lo and hi) then
 		local lines = Scene.WrappedLines(wrap.text, wrap.size, wrap.fontPath, (right - left) / scale)
 		height = wrap.size * LINE_HEIGHT_EM * lines * scale
-		object._wrapped = true
+		object._wrapped = lines > 1
 	end
 	local bottom, top = self:span(ys, height)
 	if not bottom then

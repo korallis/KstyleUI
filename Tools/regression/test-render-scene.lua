@@ -461,6 +461,41 @@ hiddenBySecret:Hide()
 shownBySecret:Hide()
 plainAfter:Hide()
 
+-- A natural-width text (no width of its own) is as wide as its words, so it never wraps: the wrap rule compares its
+-- width with the same float the natural width came from, within a small tolerance, where a strict compare made a
+-- multi-word title wrap at its own width (S1, round 4: four title plates and a tooltip line read as past their glass).
+do
+	local font = "Interface\\AddOns\\KstyleUI\\Media\\Fonts\\Cinzel-SemiBold.ttf"
+	for _, words in ipairs({ "Guide configurator", "Browse Groups", "Grezz Ragefist", "of any healing by 50%", "Spellbook & Talents" }) do
+		for _, size in ipairs({ 9, 11, 12, 14, 16, 22 }) do
+			local need = Scene.TextWidth(words, size, font)
+			assert(Scene.WrappedLines(words, size, font, need) == 1, words .. " at " .. size .. " stays on one line at its own width")
+			local rounded = tonumber(string.format("%.4f", need))
+			assert(Scene.WrappedLines(words, size, font, rounded) == 1, words .. " at " .. size .. " stays on one line at its width rounded to 4 decimals (the JSON round trip)")
+		end
+	end
+	local size = 12
+	local need = Scene.TextWidth("Guide configurator", size, font)
+	assert(Scene.WrappedLines("Guide configurator", size, font, need * 0.9) == 2, "a width a tenth short wraps the two words")
+	local e = env.CreateFrame("Frame", "WrapHost", env.UIParent)
+	e:SetSize(400, 200)
+	e:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 10, -10)
+	local fs = e:CreateFontString(nil, "OVERLAY")
+	fs:SetFont(font, size, "")
+	fs:SetPoint("TOPLEFT", e, "TOPLEFT", 4, -4)
+	fs:SetText("Guide configurator")
+	local built = Scene.Build(env, {})
+	local found
+	for _, item in ipairs(built.items) do
+		if item.kind == "text" and item.text == "Guide configurator" then
+			found = item
+		end
+	end
+	assert(found, "the natural-size text draws")
+	assert(math.abs(found.rect[4] - found.font.size * 1.2) < 0.01, "a natural-size, one-line text is one line tall, got " .. found.rect[4] .. " for a " .. found.font.size .. " font")
+	assert(not found.grow, "and is not marked as wrapped")
+end
+
 -- JSON: the encoder writes the scene without the object references and round-trips a number.
 local json = Scene.ToJSON(scene)
 assert(json:find('"items"', 1, true) and not json:find("table:", 1, true), "JSON has items and no table addresses")
