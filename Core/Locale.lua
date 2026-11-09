@@ -23,6 +23,7 @@ local GAME_FONTS = {
 	ruRU = { path = "Fonts\\FRIZQT___CYR.TTF" },
 }
 local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true }
+local NO_THIN_SPACE = { ["Cinzel-SemiBold.ttf"] = true }
 local OWN_FONTS = "\\KstyleUI\\Media\\Fonts\\"
 local CAPITALS = { ["\197\147"] = "\197\146", ["\195\191"] = "\197\184" }
 
@@ -68,6 +69,17 @@ local function Capital(lead, trail)
 		return lead .. string.char(byte - 32)
 	end
 	return CAPITALS[lead .. trail]
+end
+
+function Locale.CanTrack(path)
+	if not Locale.SPACED then
+		return false
+	end
+	if type(path) ~= "string" then
+		return true
+	end
+	local at = path:find(OWN_FONTS, 1, true)
+	return not (at and NO_THIN_SPACE[path:sub(at + #OWN_FONTS)])
 end
 
 function Locale.Upper(text)

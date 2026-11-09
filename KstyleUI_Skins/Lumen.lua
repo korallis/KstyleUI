@@ -67,7 +67,7 @@ end
 
 function Lumen.Tracked(value)
 	local path = Style.Font("title")
-	if type(path) ~= "string" or not path:find("KstyleUI", 1, true) then
+	if type(path) ~= "string" or not path:find("KstyleUI", 1, true) or not K.Locale.CanTrack(path) then
 		return value
 	end
 	return (value:gsub(CODEPOINT, "%1" .. THIN_SPACE):sub(1, -#THIN_SPACE - 1))

@@ -3,9 +3,9 @@ local W = dofile("Tools/regression/widget_env.lua")
 
 local THIN = "\226\128\137"
 
--- Tracked(text): the text with a thin space between its letters, as the kit tracks tooltip titles and captions.
+-- Tracked(text): the kit's title and caption capitals. They are set in Cinzel, which has no thin-space glyph, so they carry no thin space.
 local function Tracked(text)
-	return (text:gsub("([\1-\127\194-\244][\128-\191]*)", "%1" .. THIN):sub(1, -#THIN - 1))
+	return text
 end
 
 -- A proc glow sits behind its frame, pulses on an AnimationGroup and fades away when stopped.
@@ -127,6 +127,7 @@ do
 		texts[#texts + 1] = line.left:GetText()
 	end
 	assert(texts[1] == Tracked("RANGER'S LONG BOW") and texts[2] == Tracked("UNCOMMON") and texts[3] == "Level 38", "lines in order, the title and caption tracked capitals")
+	assert(not texts[1]:find(THIN, 1, true) and not texts[2]:find(THIN, 1, true), "the Cinzel title and caption carry no thin space, which the game draws as a box")
 	assert(select(2, tip.used[1].left:GetFont()) == select(2, Tokens.Font("body")), "the title is body size")
 	assert(select(2, tip.used[2].left:GetFont()) == select(2, Tokens.Font("caption")), "the caption is caption size")
 	assert(tip.used[4].right:GetText() == "142 - 198" and tip.used[4].right:IsShown(), "a double line")

@@ -202,7 +202,7 @@ for code, spaced in pairs({ deDE = true, zhCN = false }) do
 	tip:AddCaption("Épique")
 	local got = tip.used[1].left:GetText()
 	if spaced then
-		assert(got == "É" .. THIN .. "P" .. THIN .. "I" .. THIN .. "Q" .. THIN .. "U" .. THIN .. "E", code .. ": the caption is tracked capitals, got " .. got)
+		assert(got == "ÉPIQUE" and not got:find(THIN, 1, true), code .. ": the Cinzel caption keeps its accented capitals and carries no thin space, got " .. got)
 	else
 		assert(got == "ÉPIQUE" and not got:find(THIN, 1, true), code .. ": no thin spaces in the game font, got " .. got)
 	end

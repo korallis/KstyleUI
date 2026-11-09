@@ -96,7 +96,7 @@ do
 	assert(gemPoint[1] == "LEFT" and gemPoint[2] == cap.row and Near(gemPoint[4], K.Widgets.Snap(cap.row, 10)), "the gem sits at the row's left inset")
 	local title = cap.title
 	assert(Plain(title) == "QUESTS", "the title is upper case, got " .. Plain(title))
-	assert(title:GetText():find(THIN_SPACE, 1, true), "and tracked when the kit face loads")
+	assert(not title:GetText():find(THIN_SPACE, 1, true), "and carries no thin space, which Cinzel cannot draw")
 	assert((title:GetFont()) == Style.Font("title") and Near((select(2, title:GetFont())), Lumen.CAP_SIZE), "in the title face at the mockup's 13, got " .. tostring((select(2, title:GetFont()))))
 	assert(TextIs(title, gr, gg, gb), "the title is gilt")
 	local titlePoint = { title:GetPoint(1) }
