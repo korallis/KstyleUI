@@ -152,6 +152,23 @@ if b1.auras and b1.auras.container then
 	assert(b1.auras.container:GetAlpha() < 0.5, "the targeted boss's debuffs step back too: the sigil shows them")
 end
 
+-- The boss's auras step back only when the sigil shows the same ones: with the boss cards showing its buffs too and
+-- the sigil only your debuffs, a purgeable buff stays on screen beside the chip.
+K.Options.Write("UnitFrames", "boss.auraFilter", "both")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+assert(b1.body:GetAlpha() < 0.5 and visible(b1.chip), "the card still folds")
+if b1.auras and b1.auras.container then
+	assert(b1.auras.container:GetAlpha() > 0.5, "but the boss's buffs, which the sigil does not show, stay")
+end
+K.Options.Write("UnitFrames", "target.auraFilter", "both")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+if b1.auras and b1.auras.container then
+	assert(b1.auras.container:GetAlpha() < 0.5, "once the sigil shows them too, they step back")
+end
+K.Options.Write("UnitFrames", "target.auraFilter", "mine")
+K.Options.Write("UnitFrames", "boss.auraFilter", "mine")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+
 env._secretCompare = true
 env.FireEvent("PLAYER_TARGET_CHANGED")
 local body, chip = W.LastCall(b1.body, "SetAlphaFromBoolean"), W.LastCall(b1.chip, "SetAlphaFromBoolean")

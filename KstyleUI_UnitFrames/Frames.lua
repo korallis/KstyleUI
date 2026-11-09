@@ -221,7 +221,15 @@ end
 
 local function AuraContainer(view)
 	local a = view.auras
-	return a and a.container
+	if not (a and a.container) then
+		return nil
+	end
+	local filter = Settings.Value("target", "auraFilter")
+	if not Settings.Value("target", "auras") or (filter ~= "both" and filter ~= Settings.Value(view.kind, "auraFilter")) then
+		a.container:SetAlpha(1)
+		return nil
+	end
+	return a.container
 end
 
 local function MarkTarget(view)
