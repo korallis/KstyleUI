@@ -39,7 +39,7 @@ end
 local function EditModeText()
 	local EditMode = Setup.EditMode
 	local last = EditMode and EditMode.Last()
-	if not applied or not last or last.state == "none" then
+	if not last or last.state == "none" or not (applied or last.state == "failed") then
 		return nil
 	end
 	if last.state == "waiting" then
@@ -297,11 +297,18 @@ function Preview:Draw(name)
 	PlaceSlot(self, s, line)
 end
 
+function Preview:Restyle()
+	if self.layout then
+		self:Draw(self.layout)
+	end
+end
+
 local function NewPreview(page)
 	local preview = CreateFrame("Frame", nil, page)
 	for k, fn in pairs(Preview) do
 		preview[k] = fn
 	end
+	Widgets.Track(preview)
 	preview.chrome = Widgets.Chrome(preview, { shape = "tile", fill = "surface", shadow = true })
 	preview.slot = CreateFrame("Frame", nil, preview)
 	preview.slot.fill = preview.slot:CreateTexture(nil, "BACKGROUND")

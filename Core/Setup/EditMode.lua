@@ -460,8 +460,13 @@ function EditMode.Write(name, story)
 	if not activated then
 		log("Edit Mode: SetActiveLayout failed (" .. tostring(refusal) .. "); pick " .. layoutName .. " in Edit Mode")
 	end
+	if not activated then
+		last = { state = "failed", name = name, layout = layoutName, reason = "SetActiveLayout failed", why = L["Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode."], notes = notes }
+		Tell(notes)
+		return true
+	end
 	log("Edit Mode: wrote " .. layoutName .. " with " .. (#placed > 0 and table.concat(placed, ", ") or "nothing") .. " placed, and made it active")
-	last = { state = "written", name = name, layout = layoutName, active = activated, notes = notes }
+	last = { state = "written", name = name, layout = layoutName, notes = notes }
 	Tell(notes)
 	return true
 end

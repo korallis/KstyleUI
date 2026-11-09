@@ -644,6 +644,53 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A refusal outlives the window: an Apply made with the window closed (the first-run close, or a write that waited
+-- for combat) that Edit Mode refused still shows on the summary when the player reopens setup, with Try again, as
+-- the chat line promises. A save that Edit Mode took but did not switch to is a refusal too.
+do
+	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
+	local env, K = Boot()
+	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
+	assert(CoreEnv.Printed(env, "Try again"), "the chat line points at Try again")
+	local panel = Open(env, K)
+	K.Setup.Go(4)
+	W.Settle(env)
+	assert(panel.editMode:IsShown() and panel.editMode:GetText():find("KstyleUI Tank", 1, true), "the reopened summary keeps the refusal")
+	assert(panel.retry:IsShown(), "with Try again")
+	local state = { saved = {}, active = 1 }
+	EditModeFake.Install(env, state)
+	env.C_EditMode.SetActiveLayout = function()
+		error("blocked")
+	end
+	W.Click(panel.retry)
+	W.Settle(env)
+	assert(state.saves == 1 and K.Setup.EditMode.Last().state == "failed", "a layout saved but not switched to is not reported as active")
+	assert(panel.retry:IsShown() and not panel.editMode:GetText():find("is your active layout", 1, true), "the summary offers Try again instead: " .. panel.editMode:GetText())
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Both previews follow the theme: a restyle repaints their blocks in the new accent.
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	local role
+	for _, rect in ipairs(panel.preview.rects) do
+		if rect.role and rect:IsShown() then
+			role = rect
+			break
+		end
+	end
+	local before = W.LastCall(role, "SetColorTexture")
+	K.Options.Write("Appearance", "accentSource", "custom")
+	K.Options.Write("Appearance", "accentColor", { r = 0, g = 1, b = 0 })
+	K.Widgets.RestyleAll()
+	local after = W.LastCall(role, "SetColorTexture")
+	assert(after and before and after ~= before and W.Near(after[1], 0) and W.Near(after[2], 1), "the preview's role blocks take the new accent")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 do
 	local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 	local env, K = Boot()
