@@ -41,7 +41,7 @@ Settings.defaults = {
 		portrait = true, roleRing = true, classLine = true, power = false, powerHeight = 4,
 		textLayout = "ABOVE", nameSize = 11, healthText = "NONE", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
-		auraSize = 20, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 2,
+		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 14, buffCount = 3,
 	},

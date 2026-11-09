@@ -296,11 +296,17 @@ function Geometry.Button(w, h, o)
 		out.name = Rect(left, top, width, nameHeight)
 		local barTop, barHeight = top + nameHeight + gap, rest - nameHeight - gap
 		local pill = o.pill
+		local barWidth = width
 		if pill and barHeight > pill then
 			local rise = o.pillRise or 0
 			barTop, barHeight = barTop + barHeight - pill - rise, pill
+			local lane = o.healLane or 0
+			if lane > 0 and width - lane >= h then
+				barWidth = width - lane
+				out.healLane = { left = left + barWidth, width = lane }
+			end
 		end
-		out.health = Rect(left, barTop, width, barHeight)
+		out.health = Rect(left, barTop, barWidth, barHeight)
 	else
 		out.health = Rect(left, top, width, rest)
 		out.name = out.health

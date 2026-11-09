@@ -374,6 +374,14 @@ function Style.SetMarked(f, marked)
 	end
 end
 
+local function HealLane(f, k, cfg, height)
+	if f.kind ~= "party" or not health_orientation(cfg) or not cfg.buffs.enabled or k.buffCount <= 0 then
+		return nil
+	end
+	local size = math.min(Widgets.Snap(f, k.buffSize), height - 2 * Widgets.Snap(f, Tokens.Size("gapTiny")))
+	return Widgets.Snap(f, Tokens.Size("gapSmall")) + Geometry.Line(k.buffCount, size, Widgets.Snap(f, k.auraSpacing))
+end
+
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
@@ -391,6 +399,7 @@ function Style.Apply(f, width, height)
 		marker = cfg.icons.marker,
 		pill = f.kind == "party" and health_orientation(cfg) and PILL_HEIGHT or nil,
 		pillRise = PILL_RISE,
+		healLane = HealLane(f, k, cfg, height),
 	})
 	f.parts = parts
 	local health = cfg.health

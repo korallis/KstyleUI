@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
-local Settings, Style, Unit, Button, Auras = ns.Settings, ns.Style, ns.Unit, ns.Button, ns.Auras
+local Settings, Geometry, Style, Unit, Button, Auras = ns.Settings, ns.Geometry, ns.Style, ns.Unit, ns.Button, ns.Auras
 
 local Slots = {}
 ns.Slots = Slots
@@ -90,33 +90,211 @@ local function Size(f, i)
 	end
 end
 
-function Slots.Placements(f)
-	local cfg = Settings.current
-	local w = Style.Size(f)
-	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	local gap = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	local out, taken = {}, {}
-	for i = 1, COUNT do
-		local slot = cfg[Key(i)]
-		local point = slot.position
-		local size = Widgets.Snap(f, Slots.Size(f, slot.size))
-		local x = point:find("LEFT$") and inset or (point:find("RIGHT$") and -inset or 0)
-		local y = point:find("^TOP") and -inset or (point:find("^BOTTOM") and inset or 0)
-		if CATEGORIES[slot.category] then
-			local edge = taken[point]
-			if point:find("LEFT$") or point:find("RIGHT$") then
-				local shift = math.min(edge or 0, math.max(0, w - 2 * inset - size))
-				taken[point] = (edge or 0) + size + gap
-				x = x + (point:find("RIGHT$") and -shift or shift)
-			else
-				local centre = edge and edge + gap + size / 2 or 0
-				centre = math.min(centre, math.max(0, w / 2 - inset - size / 2))
-				taken[point] = centre + size / 2
-				x = x + centre
+local MIN_SIZE = 8
+local NAME_LINE_EXTRA = 2
+local CACHE_LIMIT = 32
+local cache, cached = {}, 0
+
+local function Box(left, top, width, height)
+	return { left = left, top = top, right = left + width, bottom = top + height }
+end
+
+local function Overlaps(a, b)
+	return a.left < b.right and b.left < a.right and a.top < b.bottom and b.top < a.bottom
+end
+
+local function Within(r, field)
+	return r.left >= field.left and r.top >= field.top and r.right <= field.right and r.bottom <= field.bottom
+end
+
+local function FromRect(rect)
+	return Box(rect.left, rect.top, rect.width, rect.height)
+end
+
+local function Field(f, w, h)
+	local parts, inset, gap = f.parts, Widgets.Snap(f, Tokens.Size("gapTiny")), Widgets.Snap(f, Tokens.Size("gapTiny"))
+	local field = { left = inset, top = inset, right = w - inset, bottom = h - inset }
+	local blocked = {}
+	if not parts then
+		return field, blocked, gap
+	end
+	if parts.portrait then
+		field.left = math.max(field.left, parts.portrait.left + parts.portrait.width + gap)
+	end
+	local health = parts.health
+	local k = Settings.current[f.kind]
+	if parts.nameInside then
+		local line = k.nameSize + NAME_LINE_EXTRA
+		blocked[#blocked + 1] = Box(health.left, health.top + (health.height - line) / 2, health.width, line)
+	else
+		field.top = math.max(field.top, parts.name.top + parts.name.height + gap)
+	end
+	local icons, shown = parts.icons, Settings.current.icons
+	if icons then
+		for _, name in ipairs({ "role", "leader", "marker" }) do
+			if icons[name] and shown[name] then
+				blocked[#blocked + 1] = FromRect(icons[name])
 			end
 		end
-		out[i] = { point = point, x = x, y = y, size = size }
 	end
+	if Settings.current.auras.enabled then
+		local block = Auras.Block(f, k)
+		local position = block.position
+		if block.cells > 0 and (position == "TOPLEFT" or position == "TOPRIGHT" or position == "BOTTOMLEFT" or position == "BOTTOMRIGHT") then
+			local x = position:find("LEFT$") and block.inset or w - block.inset - block.width
+			local y = position:find("^TOP") and block.inset or h - block.inset - block.height
+			blocked[#blocked + 1] = Box(x, y, block.width, block.height)
+		end
+	end
+	if Settings.current.buffs.enabled then
+		local side, count, size, spacing, inset2, lane = Auras.HealIcons(f, k)
+		if count > 0 then
+			local line = Geometry.Line(count, size, spacing)
+			local x
+			if lane then
+				x = health.left + health.width + lane
+			elseif side == "RIGHT" then
+				x = health.left + health.width - inset2 - line
+			else
+				x = health.left + inset2
+			end
+			blocked[#blocked + 1] = Box(x, health.top + health.height / 2 - size / 2, line, size)
+		end
+	end
+	return field, blocked, gap
+end
+
+local function Preferred(field, point, size)
+	local x, y
+	if point:find("LEFT$") then
+		x = field.left
+	elseif point:find("RIGHT$") then
+		x = field.right - size
+	else
+		x = (field.left + field.right - size) / 2
+	end
+	if point:find("^TOP") then
+		y = field.top
+	elseif point:find("^BOTTOM") then
+		y = field.bottom - size
+	else
+		y = (field.top + field.bottom - size) / 2
+	end
+	return x, y
+end
+
+local function Find(field, blocked, point, size, gap)
+	local px, py = Preferred(field, point, size)
+	local xs, ys = { px, field.left, field.right - size }, { py, field.top, field.bottom - size }
+	for _, b in ipairs(blocked) do
+		xs[#xs + 1], xs[#xs + 2] = b.right + gap, b.left - gap - size
+		ys[#ys + 1], ys[#ys + 2] = b.bottom + gap, b.top - gap - size
+	end
+	local best, bestCost
+	for _, y in ipairs(ys) do
+		for _, x in ipairs(xs) do
+			local cost = math.abs(x - px) + 2 * math.abs(y - py)
+			if not bestCost or cost < bestCost then
+				local r = Box(x, y, size, size)
+				if Within(r, field) then
+					local free = true
+					for _, b in ipairs(blocked) do
+						if Overlaps(r, b) then
+							free = false
+							break
+						end
+					end
+					if free then
+						best, bestCost = r, cost
+					end
+				end
+			end
+		end
+	end
+	return best
+end
+
+local function Share(point)
+	local h = point:find("LEFT$") and 0 or (point:find("RIGHT$") and 1 or 0.5)
+	local v = point:find("^TOP") and 0 or (point:find("^BOTTOM") and 1 or 0.5)
+	return h, v
+end
+
+local function Centredness(point)
+	local n = 0
+	if not (point:find("LEFT$") or point:find("RIGHT$")) then
+		n = n + 1
+	end
+	if not (point:find("^TOP") or point:find("^BOTTOM")) then
+		n = n + 1
+	end
+	return n
+end
+
+local function Key2(f, w, h, field, blocked)
+	local cfg = Settings.current
+	local out = { f.kind, w, h, field.left, field.top, field.right, field.bottom, Widgets.Snap(f, 1) }
+	for _, b in ipairs(blocked) do
+		out[#out + 1] = b.left .. ":" .. b.top .. ":" .. b.right .. ":" .. b.bottom
+	end
+	for i = 1, COUNT do
+		local slot = cfg[Key(i)]
+		out[#out + 1] = (CATEGORIES[slot.category] and "1" or "0") .. slot.position .. slot.size
+	end
+	return table.concat(out, "|")
+end
+
+function Slots.Placements(f)
+	local cfg = Settings.current
+	local w, h = Style.Size(f)
+	local field, blocked, gap = Field(f, w, h)
+	local key = Key2(f, w, h, field, blocked)
+	if cache[key] then
+		return cache[key]
+	end
+	local taken = {}
+	for i, b in ipairs(blocked) do
+		taken[i] = b
+	end
+	local out, order = {}, {}
+	for i = 1, COUNT do
+		order[i] = i
+	end
+	table.sort(order, function(a, b)
+		local ca, cb = Centredness(cfg[Key(a)].position), Centredness(cfg[Key(b)].position)
+		if ca ~= cb then
+			return ca < cb
+		end
+		return a < b
+	end)
+	for _, i in ipairs(order) do
+		local slot = cfg[Key(i)]
+		local point = slot.position
+		local wanted = Widgets.Snap(f, Slots.Size(f, slot.size))
+		local place = { point = point, x = 0, y = 0, size = wanted, fits = false }
+		if CATEGORIES[slot.category] then
+			local size, spot = wanted, nil
+			local floor = math.min(wanted, Widgets.Snap(f, MIN_SIZE))
+			while size >= floor and not spot do
+				spot = Find(field, taken, point, size, gap)
+				if not spot then
+					size = size - 1
+				end
+			end
+			if spot then
+				taken[#taken + 1] = spot
+				local hs, vs = Share(point)
+				place.size, place.fits = size, true
+				place.x = Widgets.Snap(f, spot.left + hs * size - hs * w)
+				place.y = -Widgets.Snap(f, spot.top + vs * size - vs * h)
+			end
+		end
+		out[i] = place
+	end
+	if cached >= CACHE_LIMIT then
+		cache, cached = {}, 0
+	end
+	cache[key], cached = out, cached + 1
 	return out
 end
 
@@ -147,9 +325,10 @@ Auras.restylers[#Auras.restylers + 1] = Restyler
 local function Configure(f)
 	local container = f.indicators
 	local cfg = Settings.current
+	local placements = Slots.Placements(f)
 	for i = 1, COUNT do
 		local key = Key(i)
-		local plan = Slots.Plan(cfg[key])
+		local plan = placements[i].fits and Slots.Plan(cfg[key])
 		if plan then
 			container:SetAuraSlotFilterString(key, plan.filter)
 			container:SetAuraSlotCandidateFilters(key, plan.candidates)
@@ -297,10 +476,11 @@ end
 local function PaintSample(f, sample)
 	local cfg = Settings.current
 	local shows = sample.indicators or {}
+	local placements = Slots.Placements(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local slot = cfg[Key(i)]
 		local category = CATEGORIES[slot.category]
-		local on = category ~= nil and shows[slot.category] == true
+		local on = category ~= nil and shows[slot.category] == true and placements[i].fits
 		if on then
 			icon.tile.icon:SetTexture(category.icon)
 		end

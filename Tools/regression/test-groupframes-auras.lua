@@ -51,10 +51,11 @@ assert(group, "the container has a debuff group")
 eq(group.candidateFilters.processedAuraType, types.Debuff, "boss, priority and other debuffs")
 eq(group.filter, "HARMFUL", "all debuffs by default")
 eq(group.sortMethod, env.AuraContainerSortMethod.UnitFrameDebuff, "boss and priority debuffs first")
--- Three cells show; the engine may fill one more, which falls in the clipped row and raises the "+" mark.
-eq(group.maxFrameCount, 4, "three party debuffs and one for the overflow mark")
+-- Six cells show (Grok R3 #5, Muse #4: three across, two rows); the engine may fill one more, which falls in the
+-- clipped row and raises the "+" mark.
+eq(group.maxFrameCount, 7, "six party debuffs and one for the overflow mark")
 assert(dispels.layoutIndex < group.layoutIndex, "dispellable debuffs come first")
-eq(group.layout.elementWidth, 20, "20-unit party icons")
+eq(group.layout.elementWidth, 18, "18-unit party icons, two rows of them in a 40-unit row")
 eq(group.layout.elementSpacing, 2, "2-unit gaps")
 eq(container._flow.anchor, "TOPLEFT", "party icons grow right and down from the top left")
 eq(container._flow.horizontal, env.AnchorUtil.FlowDirection.Right, "growing right")

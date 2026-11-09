@@ -109,7 +109,11 @@ local hb = f.health._points[1]
 local foot = f:GetHeight() - (-hb[5] + f.health:GetHeight())
 assert(hb[1] == "TOPLEFT" and foot >= ns.Style.PILL_RISE and foot <= ns.Style.PILL_RISE + 4, "the pill runs along the row's foot, inside the row's inner padding: " .. tostring(foot))
 assert(-hb[5] > f.parts.name.top + f.parts.name.height + 4, "with air between the name line and the pill")
-assert(f.health:GetWidth() > f:GetWidth() - 60, "the pill spans the row past the ring: " .. tostring(f.health:GetWidth()))
+-- Grok R3 #1: the row's end is the lane for your heals, so they never sit on the 6-unit pill; pill and lane span the row.
+local lane = f.parts.healLane
+assert(lane and lane.width > 0, "your heals keep a lane at the row's end")
+assert(f.health:GetWidth() + lane.width > f:GetWidth() - 60, "the pill and the lane span the row past the ring: " .. tostring(f.health:GetWidth()))
+assert(f.health:GetWidth() > f:GetWidth() / 2, "the pill still runs most of the row: " .. tostring(f.health:GetWidth()))
 local second = Button("party2")
 eq(second.roleText:GetText(), "D", "a damage dealer's ring reads D")
 

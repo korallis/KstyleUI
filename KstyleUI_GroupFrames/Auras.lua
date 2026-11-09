@@ -813,6 +813,15 @@ end
 local function HealIcons(f, k)
 	local size, spacing = BuffSizes(f, k)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
+	local lane = f.parts and f.parts.healLane
+	if lane then
+		local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
+		local count = k.buffCount
+		while count > 0 and Geometry.Line(count, size, spacing) > lane.width - gap + LINE_SLACK do
+			count = count - 1
+		end
+		return "LEFT", count, size, spacing, inset, gap
+	end
 	local a = Settings.current.auras
 	local side, count = Geometry.HealIcons(f.width or k.width, f.height or k.height, f.parts.health, {
 		inset = inset, gap = Widgets.Snap(f, Tokens.Size("gapSmall")), size = size, spacing = spacing, count = k.buffCount,
@@ -835,8 +844,8 @@ function Auras.HealBlock(f, k)
 	if not Settings.current.buffs.enabled or not f.parts then
 		return 0, "RIGHT"
 	end
-	local side, count, size, spacing, inset = HealIcons(f, k)
-	if count <= 0 then
+	local side, count, size, spacing, inset, lane = HealIcons(f, k)
+	if count <= 0 or lane then
 		return 0, side
 	end
 	return Geometry.Line(count, size, spacing) + inset + Widgets.Snap(f, Tokens.Size("gapSmall")), side
@@ -845,11 +854,15 @@ end
 local function ConfigureBuffs(f)
 	local container = f.buffs
 	local k = Settings.current[f.kind]
-	local side, count, size, spacing, inset = HealIcons(f, k)
+	local side, count, size, spacing, inset, lane = HealIcons(f, k)
 	local corner = "TOP" .. side
 	local clip = f.buffClip
 	clip:ClearAllPoints()
-	clip:SetPoint(corner, f.health, side, side == "RIGHT" and -inset or inset, Widgets.Snap(f, size / 2))
+	if lane then
+		clip:SetPoint(corner, f.health, "RIGHT", lane, Widgets.Snap(f, size / 2))
+	else
+		clip:SetPoint(corner, f.health, side, side == "RIGHT" and -inset or inset, Widgets.Snap(f, size / 2))
+	end
 	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size)
 	container:ClearAllPoints()
 	container:SetPoint(corner, clip, corner, 0, 0)
@@ -1085,13 +1098,17 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
-	local side, fit, buffSize, buffSpacing = HealIcons(f, k)
+	local side, fit, buffSize, buffSpacing, _, lane = HealIcons(f, k)
 	f.sampleBuffFit = fit
 	local step = side == "RIGHT" and -1 or 1
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:ClearAllPoints()
 		icon:SetSize(buffSize, buffSize)
-		icon:SetPoint(side, f.health, side, step * (inset + (i - 1) * (buffSize + buffSpacing)), 0)
+		if lane then
+			icon:SetPoint("LEFT", f.health, "RIGHT", lane + (i - 1) * (buffSize + buffSpacing), 0)
+		else
+			icon:SetPoint(side, f.health, side, step * (inset + (i - 1) * (buffSize + buffSpacing)), 0)
+		end
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
