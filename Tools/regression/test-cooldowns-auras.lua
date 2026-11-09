@@ -37,9 +37,9 @@ for _, key in ipairs({ "cooldowns.buffs", "cooldowns.bars" }) do
 	assert(element and element.opts.scalable and element.module == "Cooldowns", key .. " registers, scalable")
 end
 local bw, bh = buffs.holder:GetSize()
-assert(bw == 195 and bh == 30, "the buff icons fill a 195 by 30 footprint")
+assert(bw == 243 and bh == 38, "the buff icons fill a 243 by 38 footprint: six of the action button's 38 units (owner pass 1, 2026-11-09: the Cooldown Manager icons must not read bigger than the buttons)")
 local rw, rh = bars.holder:GetSize()
-assert(rw == 195 and rh == 43, "two bars of 195 by 20 fill a 195 by 43 footprint, got " .. tostring(rw) .. " by " .. tostring(rh))
+assert(rw == 243 and rh == 43, "two bars of 243 by 20 fill a 243 by 43 footprint, as wide as the icon row, got " .. tostring(rw) .. " by " .. tostring(rh))
 assert(env._viewers.BuffIconCooldownViewer:GetAlpha() == 0 and env._viewers.BuffBarCooldownViewer:GetAlpha() == 0, "Blizzard's buff viewers are faded")
 
 -- Only active buffs show; an icon sweeps backward from its aura's duration object and shows its stacks.

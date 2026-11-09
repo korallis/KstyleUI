@@ -10,11 +10,12 @@ ns.Settings = Settings
 local floor, max, min = math.floor, math.max, math.min
 
 local GAP = Tokens.Size("actionGap")
-local ESSENTIAL_SIZE, ESSENTIAL_GAP = 44, 6
-local UTILITY_SIZE, UTILITY_GAP, UTILITY_COLUMNS = 38, 6, 4
-local ESSENTIAL_TIMER, ESSENTIAL_COUNT = 15, 12
+local Layouts = K.Setup.Layouts
+local BUTTON = Layouts.BUTTON
+local UTILITY_COLUMNS = 4
+local ESSENTIAL_TIMER, ESSENTIAL_COUNT = 13, 11
 local UTILITY_TIMER, UTILITY_COUNT = 11, 11
-local BAR_WIDTH, BAR_HEIGHT = 195, 20
+local BAR_WIDTH, BAR_HEIGHT = Layouts.Element("cooldowns.bars").width, 20
 local BAR_FILL_ALPHA = 0.15
 local GROUPS = { "essential", "utility", "buffs", "bars" }
 local ICON_GROUPS = { "essential", "utility", "buffs" }
@@ -77,7 +78,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 	return out
 end
 
-local essential = IconDefaults(ESSENTIAL_SIZE, ESSENTIAL_TIMER, ESSENTIAL_COUNT, true, ESSENTIAL_GAP)
+local essential = IconDefaults(BUTTON, ESSENTIAL_TIMER, ESSENTIAL_COUNT, true)
 essential.readyGlow = true
 
 Settings.defaults = {
@@ -92,8 +93,8 @@ Settings.defaults = {
 	nameFont = "kit",
 	nameOutline = "none",
 	essential = essential,
-	utility = IconDefaults(UTILITY_SIZE, UTILITY_TIMER, UTILITY_COUNT, true, UTILITY_GAP, UTILITY_COLUMNS),
-	buffs = IconDefaults(Tokens.Size("cooldownUtility"), 12, 10, false),
+	utility = IconDefaults(BUTTON, UTILITY_TIMER, UTILITY_COUNT, true, GAP, UTILITY_COLUMNS),
+	buffs = IconDefaults(BUTTON, 12, 10, false),
 	bars = {
 		width = BAR_WIDTH,
 		height = BAR_HEIGHT,

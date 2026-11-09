@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 6
+Store.DB_VERSION = 7
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -108,6 +108,23 @@ Store.migrations[6] = function(data)
 				entry.width, entry.height = nil, nil
 			end
 		end
+	end
+end
+
+Store.migrations[7] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	if not (layouts and type(layouts.Upgrade) == "function") then
+		return
+	end
+	for name, layout in pairs(data.layouts) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local section = type(profile.Layout) == "table" and profile.Layout or {}
+		local appearance = type(profile.Appearance) == "table" and profile.Appearance or {}
+		local size = appearance.uiScale
+		if type(size) ~= "number" or size ~= size or size <= 0 then
+			size = ns.Appearance.defaults.uiScale
+		end
+		layouts.Upgrade(layout, section.preset or "DPS", 1080 / size)
 	end
 end
 

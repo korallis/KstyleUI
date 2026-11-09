@@ -73,7 +73,8 @@ function Setup.MarkSeen()
 end
 
 local function writeLayout(name)
-	local positions = Layouts.Get(name)
+	local _, rh = Setup.RootSize()
+	local positions = Layouts.Get(name, rh)
 	for key, size in pairs(Layouts.Sizes(name)) do
 		local position = positions[key]
 		position.width, position.height = size.width, size.height
@@ -158,11 +159,11 @@ function Setup.RootSize()
 end
 
 function Setup.Story(name, guide)
-	local slot = Layouts.Slot(name)
+	local rw, rh = Setup.RootSize()
+	local slot = Layouts.Slot(name, rh)
 	if not slot then
 		return nil
 	end
-	local rw, rh = Setup.RootSize()
 	local left, bottom, right, top = Layouts.Rect(slot, slot, rw, rh)
 	local story = { left = left, bottom = bottom, right = right, top = top }
 	local out = { story = story }

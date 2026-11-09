@@ -4,6 +4,18 @@
 -- Runs each file with setfenv(chunk, env) and the varargs the game passes: the addon name and the
 -- addon's private table. Files under a KstyleUI_<Module>/ folder belong to that module's addon; every
 -- other file belongs to KstyleUI. Each addon's private table is kept in env._addons[name].
+-- When env._size is a number (Stubs.NewEnv's size option, 1 unless a test asks for "default"), the Interface size
+-- defaults to it once Core/Appearance.lua registers its defaults, before the saved data loads.
+local function PinSize(env, ns)
+	local size = env._size
+	if type(size) ~= "number" or not (ns.Appearance and ns.Store and ns.Scale) then
+		return
+	end
+	ns.Appearance.defaults.uiScale = size
+	ns.Store.Defaults("Appearance").uiScale = size
+	ns.Scale.SetUserScale(size)
+end
+
 return function(files, env)
 	env._addons = env._addons or {}
 	for _, path in ipairs(files) do
@@ -12,6 +24,9 @@ return function(files, env)
 		local chunk = assert(loadfile(path))
 		setfenv(chunk, env)
 		chunk(addon, env._addons[addon])
+		if path == "Core/Appearance.lua" then
+			PinSize(env, env._addons[addon])
+		end
 	end
 	return env
 end

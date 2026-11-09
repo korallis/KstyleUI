@@ -1,6 +1,6 @@
 # KstyleUI_Cooldowns
 
-Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (44 units), utility cooldowns (38 units, the action button's size), tracked buff icons (30 units) and tracked buff bars (195 by 20 units), placed in the HUD band as the composition mockup lays them out, at the owner's in-game scale of 2026-11-08 (one notch up from the 38-unit action button for the essentials, the button itself for the utilities).
+Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns, utility cooldowns and tracked buff icons, all 38 units, the action button's size, at the bars' 3-unit pitch, and tracked buff bars (243 by 20 units, as wide as the icon row), placed in the HUD band as the composition mockup lays them out. Owner pass 1 (2026-11-09): a Cooldown Manager icon bigger than the action buttons reads as a mistake, so every row takes the button's size from `Setup.Layouts.BUTTON`.
 
 | Field | Value |
 | --- | --- |
@@ -40,7 +40,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Cap.lua` | The restyled tracked buff row stopped at the grid (columns by rows, six by default). Its sockets go to the first active buffs in Blizzard's order: an item takes one when Blizzard shows it (`IsShown`) and its `IsActive` is true, or, when `IsActive` is secret, when it is shown while the viewer's `GetHideWhenInactive` is true (then only active items show); each is read only when it is not secret. So an inactive slot takes none, whether Edit Mode's Hide When Inactive leaves it blank or draws its icon. Blizzard's items never move, so every slot up to the sixth active buff stays as Blizzard draws it (with fewer than six active, up to the grid or the last active buff, whichever is further), and each slot past it fades to alpha 0 and stops taking the mouse. A `+N` chip fills the next slot when that hides active buffs, counting only those and listing their spells on hover. When an item's shown state is secret, or a shown item's activity is secret while Hide When Inactive is off (or unreadable), the module cannot tell which slots hold an active buff, so it caps nothing: the whole row shows and the chip hides. It recounts on the viewer's `Layout` and `SetTooltipsShown` and on each item's `UpdateShownState` (Blizzard calls it whenever an item turns active or inactive), once a frame. Only cosmetic setters touch Blizzard's items, so it runs in combat |
 | `Reskin.lua` | The fallback: Blizzard's items restyled in place with `KstyleUI.Skin`. An icon item's backdrop is the shared icon chrome (`Skin.Backdrop` with `icon = true`, a `Widgets.IconChrome`) resting on `SetRimAccent` with the module's accent, the same rim every KstyleUI icon button wears. The item's icon texture is kept as Blizzard draws it; the icon pack replaces the file the client loads for it |
 | `Mirror.lua` | Runs each group on its path: events, refreshes, Layout registration and the switch to the reskin |
-| `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so the 376-unit essential row is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
+| `Preview.lua` | The settings window's live preview. An icon row wider than the preview pane shows as many columns as fit, so a row of large icons is not clipped; the setting itself keeps its columns. Sample buffs drive their Cooldown frame directly, as the live buff mirror does, so their timers never dim them as a real cooldown would |
 | `Module.lua` | `Modules.Register`, `Options.Register` and the `/kstyle test` check |
 
 Tests: `Tools/regression/test-cooldowns-overflow.lua` (many tracked buffs and bars keep every socket readable, with a chip beside them that lists the rest, active buffs first), `test-cooldowns-grid.lua`, `test-cooldowns-data.lua`, `test-cooldowns-mirror.lua`, `test-cooldowns-auras.lua`, `test-cooldowns-path.lua`, `test-cooldowns-reskin.lua` and `test-cooldowns-settings.lua`, on the fake Cooldown Manager in `Tools/regression/cooldowns_env.lua`.
@@ -49,12 +49,12 @@ Tests: `Tools/regression/test-cooldowns-overflow.lua` (many tracked buffs and ba
 
 | Key | Element | Default | Layout |
 | --- | --- | --- | --- |
-| `cooldowns.essential` | Essential cooldowns | 6 icons of 44 units with 6-unit gaps, 294 by 44, between the player and target frames | Scalable |
-| `cooldowns.utility` | Utility cooldowns | 4 icons of 38 units with 6-unit gaps, 170 by 38, under the essential row | Scalable |
-| `cooldowns.buffs` | Tracked buff icons | 6 icons of 30 units, 195 by 30, under the target frame | Scalable |
-| `cooldowns.bars` | Tracked buff bars | 2 bars of 195 by 20 with a 3-unit gap, 195 by 43, under the player frame, right-aligned with it | Scalable |
+| `cooldowns.essential` | Essential cooldowns | 6 icons of 38 units with 3-unit gaps, 243 by 38, between the player and target frames | Scalable |
+| `cooldowns.utility` | Utility cooldowns | 4 icons of 38 units with 3-unit gaps, 161 by 38, beside the essential row | Scalable |
+| `cooldowns.buffs` | Tracked buff icons | 6 icons of 38 units with 3-unit gaps, 243 by 38, beside the essential row | Scalable |
+| `cooldowns.bars` | Tracked buff bars | 2 bars of 243 by 20 with a 3-unit gap, 243 by 43, over the tracked buff icons | Scalable |
 
-A tracked buff bar follows the composition mockup: a glass tile (`surface`) 195 by 20 units, the mockup's width at 1.348 px per unit and its 24-unit height at the owner's in-game scale (the pet frame moved beside the player frame to free the row; the bars sit 10 units higher than the mockup's so they clear the chat panel on the owner's 1671-unit-wide root), with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
+A tracked buff bar follows the composition mockup: a glass tile (`surface`) 243 by 20 units, as wide as the tracked buff icon row under it, with the tile's neutral edge, the icon on a dark button tile (`buttonFill`) at its left end, the name 10 units right of the icon tile, the countdown right-aligned 10 units from the bar's right end, and the fill, the bar colour at 15 % alpha over the glass, so the text stays readable whatever the time left. `Settings.BarColor()` returns that alpha with the colour, so the reskin fills Blizzard's bars the same way.
 
 A group registers with Layout the first time it takes the mirror path, so a group that only ever restyles Blizzard's viewer adds no mover plate. Each holder is sized to its grid (icons per row by rows, or the bar count), so its footprint does not change with the number of entries. Layout owns the holder; the module shows and hides a child, so the two never fight over one frame. Icon size, bar size, spacing and the grid are module settings rather than Layout sizes, because they decide how many entries fit.
 
@@ -68,19 +68,19 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `timerFont`, `timerOutline` | `"kit"`, `"none"` | The countdown numbers' font, and a soft shadow or an outline |
 | `countFont`, `countOutline` | `"kit"`, `"none"` | The charge and stack counts' font and outline |
 | `nameFont`, `nameOutline` | `"kit"`, `"none"` | The buff bars' name font and outline |
-| `<icons>.size` | 44 for essential, 38 for utility, 30 for tracked buffs | Icon size, 16 to 64 |
-| `<icons>.spacing` | 6 for essential and utility, 3 for tracked buffs | Gap between icons, 0 to 12 |
+| `<icons>.size` | 38, the action button's size, for every row | Icon size, 16 to 64 |
+| `<icons>.spacing` | 3, the action bars' gap | Gap between icons, 0 to 12 |
 | `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown. On the tracked buff row every socket shows a buff and a `+N` chip one socket to the left of the full row counts the rest; pointing at it lists them with their time left |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
-| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 15, 13 or 12; 12, 11 or 10 | The countdown numbers and the count: the action bars' 13-unit cooldown numbers on the 38-unit utility icons, scaled up on the essentials |
+| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 13, 11 or 12; 11, 11 or 10 | The countdown numbers and the count: the action bars' 13-unit cooldown numbers on the essentials, the small duration size on the utilities. The centred countdown rises clear of the count's corner band, its lift rounded up to a whole pixel |
 | `<cooldowns>.gcd` | `false` | Sweep every icon during the global cooldown |
 | `<cooldowns>.desaturate` | `false` | Grey an icon while its spell is on a real cooldown. Off by default: the composition mockup keeps a cooling icon in colour under its swipe |
 | `<cooldowns>.usable` | `true` | Dim an icon while its spell cannot be cast |
 | `<cooldowns>.readyGlow` | on for essential, off for utility | A soft accent glow around a ready spell |
 | `<cooldowns>.procGlow` | `true` | The proc pulse while the game highlights the spell, with the rim and the glow in the `gilt` token (`Style.TOKENS`, `neutral` until S1's gilt lands) whatever the accent: gold only on the active state |
 | `buffs.inactive`, `bars.inactive` | `false` | Keep a tracked buff, dimmed, while it is not active |
-| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 195, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, a `+N` bar one slot above the stack counts the rest, and pointing at it lists them |
+| `bars.width`, `bars.height`, `bars.spacing`, `bars.count` | 243, 20, 3, 2 | Bar size, gap and how many fit; the mockup draws two bars, and a third would reach the experience bar. With more active, a `+N` bar one slot above the stack counts the rest, and pointing at it lists them |
 | `bars.growth` | `"down"` | New bars stack downward, the first bar at the top as the composition mockup lists them, or upward |
 | `bars.texture` | the kit's Glass texture | The fill texture, from the texture picker |
 | `bars.colorSource`, `bars.color` | `"class"` | Class colour, the friendly reaction colour, or a custom colour |

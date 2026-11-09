@@ -20,7 +20,7 @@ Appearance.defaults = {
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	font = Tokens.DEFAULT_FONT_FACE,
 	fontScale = 1,
-	uiScale = 1,
+	uiScale = Scale.DEFAULT_USER_SCALE,
 	motion = "full",
 }
 

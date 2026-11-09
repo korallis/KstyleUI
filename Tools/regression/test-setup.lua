@@ -370,7 +370,8 @@ do
 	assert(not K.Modules.IsEnabled("Chat"), "a module the player turned off stays off")
 	assert(K.Store.Module("Bags").enabled == false, "a module that did not load is not switched on")
 	local stored = K.Store.Layout()
-	local tank = K.Setup.Layouts.Get("Tank")
+	-- Apply places the layout on the live root: the sigil, measured from the bottom, follows the root's height.
+	local tank = K.Setup.Layouts.Get("Tank", select(2, K.Layout.RootSize()))
 	for key, position in pairs(tank) do
 		local entry = stored[key]
 		assert(entry and entry.anchor == position.anchor and entry.x == position.x and entry.y == position.y, "Apply writes " .. key)
@@ -539,8 +540,8 @@ do
 	local slot = K.Layout.Mode.Slot()
 	assert(slot and slot:IsShown(), "Layout Mode shows the story slot")
 	assert(slot.label:GetText() == "Story rail" and slot.hint:GetText():find("RestedXP", 1, true) and slot.hint:GetText():find("Edit Mode", 1, true), "labelled, with a one-line hint")
-	local want = K.Setup.Layouts.Slot("Tank")
 	local rw, rh = K.Layout.RootSize()
+	local want = K.Setup.Layouts.Slot("Tank", rh)
 	local l, b, r, t = K.Setup.Layouts.Rect(want, want, rw, rh)
 	local got = assert(Geometry.Rect(slot, K.Scale.Root()))
 	assert(math.abs(got.left - l) < 1 and math.abs(got.bottom - b) < 1 and math.abs(got.right - r) < 1 and math.abs(got.top - t) < 1, "at the Tank slot")
@@ -554,7 +555,7 @@ do
 	assert(K.Setup.Apply({ layout = "Healer", modules = {} }))
 	assert(K.Layout.Enter())
 	W.Settle(env)
-	want = K.Setup.Layouts.Slot("Healer")
+	want = K.Setup.Layouts.Slot("Healer", rh)
 	local _, hb, _, ht = K.Setup.Layouts.Rect(want, want, rw, rh)
 	got = assert(Geometry.Rect(slot, K.Scale.Root()))
 	assert(math.abs(got.top - ht) < 1 and math.abs(got.bottom - hb) < 1, "Layout Mode follows the Healer slot")

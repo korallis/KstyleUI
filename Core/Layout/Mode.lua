@@ -580,14 +580,14 @@ end
 
 local function PlaceSlot()
 	local Layouts = ns.Setup and ns.Setup.Layouts
-	local want = Layouts and Layouts.Slot(Layout.Setting("preset"))
+	local rw, rh = Layout.RootSize()
+	local want = Layouts and Layouts.Slot(Layout.Setting("preset"), rh)
 	if not slot or not want or not Layout.IsActive() then
 		if slot then
 			slot:Hide()
 		end
 		return
 	end
-	local rw, rh = Layout.RootSize()
 	local l, b, r, t = Layouts.Rect(want, want, rw, rh)
 	local line = Scale.Border()
 	local pad = Widgets.Snap(slot, Tokens.Size("gapLarge"))

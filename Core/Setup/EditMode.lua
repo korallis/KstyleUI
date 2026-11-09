@@ -19,11 +19,11 @@ local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
 local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP = 800, 100, 0.15
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
-	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 30, floor = 24 },
+	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = Layouts.BUTTON, floor = 24 },
 	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, fallback = 2, cap = 24, floor = 18 },
 }
 local TRACKED = { ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
-local SPARE = { "actionbars.bar2" }
+local SPARE = { "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5" }
 
 EditMode.TRACKER_LEFT = 16
 EditMode.TRACKER_TOP = 34
@@ -101,7 +101,7 @@ function EditMode.Tracked(group)
 end
 
 local function Box(name, key, rw, rh)
-	local position = Layouts.Get(name)[key]
+	local position = Layouts.Get(name, rh)[key]
 	local w, h = Layouts.Footprint(name, key)
 	if not (position and w) then
 		return nil
@@ -117,7 +117,7 @@ local function Others(name, rw, rh)
 			out[#out + 1] = Box(name, key, rw, rh)
 		end
 	end
-	local slot = Layouts.Slot(name)
+	local slot = Layouts.Slot(name, rh)
 	if slot then
 		out[#out + 1] = { l = slot.x, b = slot.y, r = slot.x + slot.width, t = slot.y + slot.height }
 	end
@@ -304,7 +304,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	local width = IsTable(frame) and Fn(frame, "GetWidth") and frame:GetWidth()
 	local clear, half, height = Layouts.SIGIL_CLEAR, (Plain(width) and width or WARNING_WIDTH) / k / 2, WARNING_HEIGHT / k
 	local rects, xs = {}, { rw / 2 }
-	local slot = Layouts.Slot(name)
+	local slot = Layouts.Slot(name, rh)
 	if slot then
 		local l, b, r, t = Layouts.Rect(slot, slot, rw, rh)
 		rects[1] = { l = l, b = b, r = r, t = t }

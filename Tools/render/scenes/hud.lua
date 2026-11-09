@@ -1227,11 +1227,11 @@ function modules.restedxp(opts)
 		-- A stand-in for the tracker skin's fit frame: its foot the fit's foot (screen units up from the bottom),
 		-- its top the quests' cap. The rail docks the guide's card to it as it docks to the real fit in
 		-- the game: the glass runs to the quests' foot and the guide's footer hugs the quests' cap.
-		local env, K = R.env, R.K
+		local env = R.env
 		local fit = env.CreateFrame("Frame", nil, env.UIParent)
-		local scale = K.Widgets.ScaleFactor(fit)
-		fit:SetSize(1, math.max(1, (opts.dockTop or opts.dockBottom + 1) - opts.dockBottom) / scale)
-		fit:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 0, opts.dockBottom / scale)
+		local unit = env.UIParent:GetHeight() / 1080
+		fit:SetSize(1, math.max(1, (opts.dockTop or opts.dockBottom + 1) - opts.dockBottom) * unit)
+		fit:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 0, opts.dockBottom * unit)
 		R.ns.RestedXP.Rail.DockTo(fit, opts.dockCard)
 		R.env.RunTimers()
 		R.log[#R.log + 1] = "restedxp: the quests dock into the guide's card; its glass runs to the tracker glass's foot and its footer hugs the quests' cap"

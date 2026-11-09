@@ -193,14 +193,14 @@ The spec's AnimationGroup presets (proc pulse, cast sheen, panel rise) belong to
 | `accentColor` | the kit's accent, from `Tokens.Color("accentDefault")` | colour, shown only for a custom accent | `Theme.SetCustomAccent` |
 | `font` | `"SourceSans3Semibold"` | dropdown: the three bundled faces, then LibSharedMedia's fonts | `Theme.SetFontFace` |
 | `fontScale` | `1` | slider from 0.8 to 1.3 in steps of 0.05 | `Theme.SetFontScale` |
-| `uiScale` | `1` | slider from 0.75 to 1.5 in steps of 0.05 | `Scale.SetUserScale` |
+| `uiScale` | `16 / 19` (`Scale.DEFAULT_USER_SCALE`) | slider from 0.6 to 1.5 in steps of 0.05 | `Scale.SetUserScale` |
 | `motion` | `"full"` | dropdown: full, reduced or off | `Motion.SetLevel` |
 
 The font is a dropdown, not a `font` row, because a bundled face is stored by its key of `Tokens.MediaList("font")`. Its options are a function, built when the list opens: the bundled faces, then each LibSharedMedia font (from `Widgets.MediaOptions("font")`) stored by its path, skipping paths the bundled faces already cover. A profile that names a LibSharedMedia font the importing player does not have fails `Store.Import`'s choice check, as any unknown dropdown value does.
 
 | Function | Behaviour |
 | --- | --- |
-| `Get(key) -> value` | The active profile's value. A value the setting does not allow (an unknown accent source or face, a colour channel outside 0 to 1) gives the default and a devlog line. A size outside 0.75 to 1.5, or a text size outside 0.8 to 1.3, is clamped. Before the saved data loads, the default. An unknown key raises an error. |
+| `Get(key) -> value` | The active profile's value. A value the setting does not allow (an unknown accent source or face, a colour channel outside 0 to 1) gives the default and a devlog line. A size outside 0.6 to 1.5, or a text size outside 0.8 to 1.3, is clamped. Before the saved data loads, the default. An unknown key raises an error. |
 | `Apply()` | Hands every setting to its service. The custom colour goes before the accent source, so switching to a custom accent fires `ThemeChanged` once. |
 | `defaults`, `schema` | The tables registered with `Store` and `Options`. |
 

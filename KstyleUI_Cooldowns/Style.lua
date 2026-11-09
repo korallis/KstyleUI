@@ -185,8 +185,12 @@ local function Centre(icon)
 		local size = icon.opts.size or Tokens.Size("actionButton")
 		local band = COUNT_INSET + FontSize(icon.count, 0)
 		local lift = math.max(0, band + COUNT_CLEAR - (size - FontSize(countdown, 0)) / 2)
+		local snapped = Widgets.Snap(icon, lift)
+		if snapped < lift - 1e-6 then
+			snapped = snapped + K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
+		end
 		countdown:ClearAllPoints()
-		countdown:SetPoint("CENTER", icon.icon, "CENTER", 0, Widgets.Snap(icon, lift))
+		countdown:SetPoint("CENTER", icon.icon, "CENTER", 0, snapped)
 		countdown:SetJustifyH("CENTER")
 	end
 end

@@ -78,14 +78,16 @@ for _, scene in ipairs({ questing, combat }) do
 end
 
 -- The rails keep their 28-unit margin: nothing on either rail draws past the screen's bottom margin (the readout
--- card's docked menu rows fall under the card when it is a hair short of their height).
+-- card's docked menu rows fall under the card when it is a hair short of their height). The scenes render at the
+-- shipped Interface size, so a root unit is 16 / 19 of a screen unit.
+local SIZE = 16 / 19
 for _, scene in ipairs({ questing, combat }) do
 	local width = scene.screen.width
 	for _, item in ipairs(scene.items) do
 		local r = item.rect
 		local shadow = item.file and item.file:find("Shadow", 1, true)
-		if r and not shadow and (item.alpha or 1) > 0 and (r[1] >= width - 346 or r[1] + r[3] <= 346) then
-			assert(r[2] + r[4] <= 1080 - 28 + 0.5, scene.state .. ": a " .. item.kind .. " on a rail reaches past the bottom margin: " .. table.concat(r, ", "))
+		if r and not shadow and (item.alpha or 1) > 0 and (r[1] >= width - 346 * SIZE or r[1] + r[3] <= 346 * SIZE) then
+			assert(r[2] + r[4] <= 1080 - 28 * SIZE + 0.5, scene.state .. ": a " .. item.kind .. " on a rail reaches past the bottom margin: " .. table.concat(r, ", "))
 		end
 	end
 end

@@ -1,4 +1,4 @@
--- test-cooldowns-bars.lua: a tracked buff bar on the mirror path is a glass tile, 195 by 24, with a dark icon tile at its left, the name 10 units in, the countdown right-aligned 10 units from the right end, a subtle fill over the glass, and the first bar at the top.
+-- test-cooldowns-bars.lua: a tracked buff bar on the mirror path is a glass tile, 243 by 24, with a dark icon tile at its left, the name 10 units in, the countdown right-aligned 10 units from the right end, a subtle fill over the glass, and the first bar at the top.
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local W = C.W
 
@@ -33,7 +33,7 @@ local row = ns.Mirror.Row("bars")
 assert(row.count == 2, "two active bars show, got " .. tostring(row.count))
 local holder = row.holder
 local width, height = holder:GetSize()
-assert(width == 195 and height == 43, "two bars of 195 by 20 fill a 195 by 43 footprint, the mockup's two bars at the owner's in-game scale, got " .. tostring(width) .. " by " .. tostring(height))
+assert(width == 243 and height == 43, "two bars of 243 by 20 fill a 243 by 43 footprint, as wide as the tracked buff icon row over them, got " .. tostring(width) .. " by " .. tostring(height))
 
 -- The countdown reads "24s", as the mockup writes it, through the same one-letter formatter as the cooldown rows.
 do

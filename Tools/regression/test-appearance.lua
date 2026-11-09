@@ -22,10 +22,10 @@ end
 
 -- The defaults and the settings page are registered at load, and the page passes Options' checks.
 do
-	local _, K = CoreEnv.New({ setup = setup() })
+	local _, K = CoreEnv.New({ setup = setup(), size = "default" })
 	local defaults = K.Store.Defaults("Appearance")
 	assert(defaults, "Appearance registers its defaults with Store")
-	assert(defaults.accentSource == "class" and defaults.font == "Lumen" and defaults.uiScale == 1 and defaults.motion == "full", "the defaults are class colour, the Lumen fonts, size 1 and full motion")
+	assert(defaults.accentSource == "class" and defaults.font == "Lumen" and defaults.uiScale == 16 / 19 and defaults.motion == "full", "the defaults are class colour, the Lumen fonts, size 16 / 19 (owner pass 1: the HUD read too big at 1) and full motion")
 	local r, g, b = K.Tokens.Color("accentDefault")
 	assert(near(defaults.accentColor.r, r) and near(defaults.accentColor.g, g) and near(defaults.accentColor.b, b), "the custom colour defaults to the kit's accent")
 	local schema = K.Options.Get("Appearance")
@@ -34,12 +34,12 @@ do
 		assert(K.Options.Row("Appearance", key), "the page has a row for " .. key)
 	end
 	local size = K.Options.Row("Appearance", "uiScale")
-	assert(size.type == "slider" and size.min == 0.75 and size.max == 1.5, "the size slider runs from 0.75 to 1.5")
+	assert(size.type == "slider" and size.min == 0.6 and size.max == 1.5, "the size slider runs from 0.6 to 1.5")
 	local colour = K.Options.Row("Appearance", "accentColor")
 	assert(colour.showWhen({ accentSource = "custom" }) and not colour.showWhen({ accentSource = "class" }), "the colour row shows only for a custom accent")
 	local faces = K.Options.Row("Appearance", "font").options()
 	assert(#faces == 8 and faces[1].value == "Lumen" and faces[6].value == "SourceSans3Semibold", "the font row offers the Lumen set and the seven bundled faces")
-	assert(K.Appearance.Get("uiScale") == 1, "Get answers with the default before the saved settings load")
+	assert(K.Appearance.Get("uiScale") == 16 / 19, "Get answers with the default before the saved settings load")
 end
 
 -- Saved settings apply when the saved data loads, before PLAYER_LOGIN builds frames.

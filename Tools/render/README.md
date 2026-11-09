@@ -2,7 +2,7 @@
 
 Draws the UI from the addon's real Lua code, without the game. A scene script boots a stub environment (`Tools/regression/*_env.lua`), drives a module into a state, and `scene.lua` resolves every visible region to a drawable in screen units. `render.js` draws the drawables on a canvas; `shoot.sh` screenshots it with headless Chrome; `compare.py` puts a crop next to the design file, the mockup or an in-game screenshot at the same pixels per unit.
 
-Screen units: the screen is 1080 units tall, x grows right and y grows down from the top left. That is KstyleUI's root unit at user scale 1. The owner's Mac draws 1.426 px per unit (2383 by 1540, UI scale 768 / 1080), the design file 2.0, the mockup 1.348.
+Screen units: the screen is 1080 units tall, x grows right and y grows down from the top left. That is KstyleUI's root unit at user scale 1; the scenes render at the size KstyleUI ships (16 / 19, `Common.ForceScreen`), where a root unit is 16 / 19 of a screen unit. The owner's Mac draws 1.426 px per unit (2383 by 1540, UI scale 768 / 1080), the design file 2.0, the mockup 1.348.
 
 ## Run
 

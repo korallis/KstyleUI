@@ -19,7 +19,8 @@ local SCREENS = {
 }
 -- UIParent effective scales: the UI Scale slider's ends, a fractional value, and PixelUtil's 768/1440.
 local UI_SCALES = { 1, 0.65, 0.71, 1.15, 768 / 1440 }
-local USER_SCALES = { 0.75, 1, 1.25, 1.5 }
+-- 16 / 19 is the size KstyleUI ships (owner pass 1, 2026-11-09); 0.6 is the slider's low end.
+local USER_SCALES = { 0.6, 0.75, 16 / 19, 1, 1.25, 1.5 }
 local UI_HEIGHT = 768 -- the screen is 768 units tall at an effective scale of 1
 
 local function NewScale(width, height, uiScale)
@@ -164,21 +165,21 @@ for _, screen in ipairs(SCREENS) do
 	end
 end
 
--- The size slider runs from 0.75 to 1.5, and only accepts plain numbers.
+-- The size slider runs from 0.6 to 1.5, and only accepts plain numbers.
 do
 	local env, ns, fired = NewScale(1920, 1080, 1)
 	env.FireEvent("PLAYER_LOGIN")
 	local Scale = ns.Scale
 	assert(Scale.UserScale() == 1, "the default size is 1")
 	assert(Scale.SetUserScale(2) == true and Scale.UserScale() == 1.5, "a size above 1.5 is clamped")
-	assert(Scale.SetUserScale(0.5) == true and Scale.UserScale() == 0.75, "a size below 0.75 is clamped")
+	assert(Scale.SetUserScale(0.5) == true and Scale.UserScale() == 0.6, "a size below 0.6 is clamped")
 	local before = #fired
 	for _, bad in ipairs({ "1", 0 / 0, env.Secret(1), nil }) do
 		assert(Scale.SetUserScale(bad) == false, "an invalid size is refused")
 	end
-	assert(Scale.UserScale() == 0.75 and #fired == before, "a refused size changes nothing")
-	assert(Scale.SetUserScale(0.75) == true and #fired == before, "the same size again fires nothing")
-	assert(Scale.MIN_USER_SCALE == 0.75 and Scale.MAX_USER_SCALE == 1.5)
+	assert(Scale.UserScale() == 0.6 and #fired == before, "a refused size changes nothing")
+	assert(Scale.SetUserScale(0.6) == true and #fired == before, "the same size again fires nothing")
+	assert(Scale.MIN_USER_SCALE == 0.6 and Scale.MAX_USER_SCALE == 1.5)
 end
 
 -- Review Focus 2: the game window moves to a monitor with another resolution.

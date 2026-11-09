@@ -60,12 +60,12 @@ assert(keys.accentColor.showWhen({ accent = "custom" }) and not keys.accentColor
 
 -- Defaults match the spec's HUD sizes.
 local defaults = ns.Settings.defaults
-assert(defaults.essential.size == 44 and defaults.essential.spacing == 6, "essential icons are 44 units with 6-unit gaps: one notch up from the 38-unit action button, the owner's in-game scale of 2026-11-08")
-assert(defaults.utility.size == 38 and defaults.utility.spacing == 6 and defaults.utility.columns == 4, "a row of four 38-unit utility icons, the action button's size, with 6-unit gaps")
-assert(defaults.essential.timerSize == 15 and defaults.essential.countSize == 12, "the essential countdown is 15 on 44 units, the action bars' 13 on 38 scaled up")
+assert(defaults.essential.size == 38 and defaults.essential.spacing == 3, "essential icons are the action button's 38 units (owner pass 1, 2026-11-09: the Cooldown Manager icons must not read bigger than the buttons), with the bars' 3-unit gaps")
+assert(defaults.utility.size == 38 and defaults.utility.spacing == 3 and defaults.utility.columns == 4, "a row of four 38-unit utility icons, the action button's size, with the bars' 3-unit gaps")
+assert(defaults.essential.timerSize == 13 and defaults.essential.countSize == 11, "the essential countdown is the action bars' 13 on the same 38 units")
 assert(defaults.utility.timerSize == 11 and defaults.utility.countSize == 11, "the utility countdown takes the small duration size, 11, as its count does, so a charged socket never reads \"12s3\" (round 4, Opus #6)")
-assert(defaults.essential.spacing == 6 and defaults.essential.columns == 6, "six essential icons per row with 6-unit gaps")
-assert(defaults.bars.width == 195 and defaults.bars.height == 20 and defaults.bars.count == 2, "two bars of 195 by 20 units: the mockup's two bars at the owner's in-game scale")
+assert(defaults.essential.spacing == 3 and defaults.essential.columns == 6, "six essential icons per row with the bars' 3-unit gaps")
+assert(defaults.bars.width == 243 and defaults.bars.height == 20 and defaults.bars.count == 2, "two bars of 243 by 20 units, as wide as the tracked buff icon row")
 assert(defaults.path == "auto", "the path is automatic by default")
 assert(defaults.essential.desaturate == false and defaults.utility.desaturate == false, "a cooling icon keeps its colour, as the mockup's centre cluster shows")
 
@@ -117,8 +117,8 @@ do
 	assert(#K.Layout.Elements() == elements, "the preview's sample rows are not Layout elements")
 	assert(frame and frame.Refresh, "the preview returns a frame with Refresh")
 	local essential = frame.rows.essential
-	assert(essential.count == 5 and math.abs(essential.holder:GetWidth() - (5 * 44 + 4 * 6)) < 1, "a 280-unit pane fits five 44-unit essential samples, so the row is not clipped, got " .. tostring(essential.count))
-	assert(frame.rows.utility.count == 4 and math.abs(frame.rows.utility.holder:GetWidth() - (4 * 38 + 3 * 6)) < 1, "the four utility samples fit as they are")
+	assert(essential.count == 6 and math.abs(essential.holder:GetWidth() - (6 * 38 + 5 * 3)) < 1, "a 280-unit pane fits all six 38-unit essential samples, got " .. tostring(essential.count))
+	assert(frame.rows.utility.count == 4 and math.abs(frame.rows.utility.holder:GetWidth() - (4 * 38 + 3 * 3)) < 1, "the four utility samples fit as they are")
 	assert(frame.rows.buffs.count == 3 and frame.rows.bars.count == 2, "the preview shows sample buffs and bars")
 	assert(ns.Settings.current.essential.columns == 6, "fitting the preview leaves the setting itself at six columns")
 	assert(frame.rows.bars.bars[1].name:GetText() == "Rapid Fire", "a sample bar carries a name")
@@ -130,10 +130,11 @@ do
 	local br = buff.icon:GetVertexColor()
 	assert(buff.realCooldown ~= true and (br == nil or br > 0.99), "a sample buff stays bright, as live buffs do: its timer is not a cooldown")
 	assert(essential.icons[1].realCooldown == true, "a sample essential cooldown dims as a real cooldown")
-	K.Options.Write("Cooldowns", "essential.size", 32)
+	K.Options.Write("Cooldowns", "essential.size", 48)
 	frame:Refresh()
-	assert(essential.icons[1].opts.size == 32, "the preview follows the icon size")
-	assert(essential.count == 6 and math.abs(essential.holder:GetWidth() - (6 * 32 + 5 * 6)) < 1, "at 32 units all six samples fit the pane again")
+	assert(essential.icons[1].opts.size == 48, "the preview follows the icon size")
+	assert(essential.count == 5 and math.abs(essential.holder:GetWidth() - (5 * 48 + 4 * 3)) < 1, "at 48 units the pane fits five samples, so the row is not clipped, got " .. tostring(essential.count))
+	assert(ns.Settings.current.essential.columns == 6, "fitting the preview leaves the setting itself at six columns")
 	assert(essential.holder:GetWidth() <= 280, "the preview row fits the pane")
 end
 
