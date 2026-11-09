@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 4
+Store.DB_VERSION = 5
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -58,6 +58,34 @@ Store.migrations[4] = function(data)
 				elseif type(bar) == "table" and bar.shown == nil and bar.enabled ~= false and (free or tunedMenu(bar, defaults)) then
 					bar.shown = true
 				end
+			end
+		end
+	end
+end
+
+local SET_UP_MODULES = {
+	"UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates", "CombatText",
+	"Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins",
+}
+
+local function setUp(profile)
+	for _, name in ipairs(SET_UP_MODULES) do
+		local section = profile[name]
+		if type(section) == "table" and section.enabled == true then
+			return true
+		end
+	end
+	return false
+end
+
+Store.migrations[5] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" and setUp(profile) then
+			local qol = profile.QoL
+			if qol == nil then
+				profile.QoL = { enabled = true }
+			elseif type(qol) == "table" and qol.enabled == nil then
+				qol.enabled = true
 			end
 		end
 	end

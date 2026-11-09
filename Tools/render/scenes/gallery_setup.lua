@@ -8,7 +8,7 @@ local Scene = Common.Scene
 
 local MODULES = {
 	"UnitFrames", "ActionBars", "Cooldowns", "GroupFrames", "Auras", "Nameplates", "CombatText", "Minimap", "Chat",
-	"Bags", "Tooltips", "DataBars", "Meters", "Skins",
+	"Bags", "Tooltips", "DataBars", "Meters", "Skins", "QoL",
 }
 local KEY = "setup.window"
 local SCALE = 0.9

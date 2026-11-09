@@ -14,10 +14,13 @@ local function Bags(junk)
 	return { [0] = { size = 20, items = items }, [1] = { size = 4, items = { [1] = Item("junk") } } }
 end
 
+-- These cases drive the button and Junk.Sell, so they start with selling by itself off, the default before 2026-11-09.
 local function New(opts)
 	opts = opts or {}
 	opts.bags = opts.bags or Bags(opts.junk)
-	return B.New(opts)
+	local env, K, ns = B.New(opts)
+	K.Options.Write("Bags", "autoSellJunk", false)
+	return env, K, ns
 end
 
 local function Run(env)
@@ -53,7 +56,7 @@ do
 		end
 	end
 	assert(found and found.type == "toggle", "the settings page has a toggle for autoSellJunk")
-	assert(K.Store.Defaults("Bags").autoSellJunk == false, "selling junk by itself is off by default")
+	assert(K.Store.Defaults("Bags").autoSellJunk == true, "selling junk by itself is on by default (owner, 2026-11-09)")
 end
 
 -- The Sell junk button ------------------------------------------------------------------------------

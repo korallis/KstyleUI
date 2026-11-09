@@ -1,0 +1,10 @@
+## Interface: 16001
+## AllowLoadGameType: camelot
+## Title: KstyleUI Quality of Life
+## Notes: Faster auto loot, auto repair, quest hand-ins, max camera distance and quiet error text.
+## Author: korallis
+## Version: @project-version@
+## Group: KstyleUI
+## Dependencies: KstyleUI
+
+QoL.xml

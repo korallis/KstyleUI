@@ -124,6 +124,7 @@ Every element KstyleUI shows can be moved, resized or scaled in Layout Mode and 
 | Tooltips | Glass tooltips with quality and class colours, a health bar, optional IDs and cursor anchoring |
 | Data Bars | XP, reputation and honour bars, the micro menu, the bag bar and a data strip with frame rate, latency, gold, durability and time |
 | Meters | A damage meter, a threat meter and a swing timer |
+| QoL | Faster auto loot, auto repair, quest accept and turn-in, the farthest camera and quiet error text |
 | Skins | Blizzard's windows in KstyleUI's style: the character sheet, spellbook, talents, world map, quest log, objective tracker, game menu, group finder, mail, merchant, trainers, professions, social windows, Legacy, loot, popups, ready check and the AddOns list, and the RestedXP Guides addon's windows |
 
 No module compares or does arithmetic on Forever's secret values, every protected change made in combat waits for combat to end, and the action bars, group frames, bags, auras, and the data bars' micro menu and bag bar hand back to Blizzard's in the gamepad interface.

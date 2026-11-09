@@ -1,0 +1,10 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="Init.lua"/>
+	<Script file="Settings.lua"/>
+	<Script file="Loot.lua"/>
+	<Script file="Repair.lua"/>
+	<Script file="Quests.lua"/>
+	<Script file="Camera.lua"/>
+	<Script file="Alerts.lua"/>
+	<Script file="Module.lua"/>
+</Ui>
