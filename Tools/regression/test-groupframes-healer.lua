@@ -111,8 +111,9 @@ do
 	local dwidth = columns * dsize + (columns - 1) * dsp
 	rects.debuffs = { tileRect[1] + inset, tileRect[2] + tileRect[4] - inset - dsize, dwidth, dsize }
 	local bx, by, bw, bh = Scene.Rect(env, f.health)
-	local n, hsize, hsp = heals.maxFrameCount, heals.layout.elementWidth, heals.layout.elementSpacing
-	local hp = f.buffs._points[1]
+	-- One more heal than fits may fill the clipped cell beyond the row, for the overflow mark.
+	local n, hsize, hsp = heals.maxFrameCount - 1, heals.layout.elementWidth, heals.layout.elementSpacing
+	local hp = f.buffClip._points[1]
 	assert(hp[1] == "TOPRIGHT" and hp[3] == "RIGHT", "your heals hang from the bar's right end")
 	local hx, hy = bx + bw + hp[4], by + bh / 2 - hp[5]
 	eq(n, 2, "the count setting of two stands")
@@ -123,15 +124,19 @@ do
 		local r = rects[names[i]]
 		assert(r[1] >= tileRect[1] - 0.01 and r[1] + r[3] <= tileRect[1] + tileRect[3] + 0.01, "the " .. names[i] .. " stays within the tile's width")
 		for j = i + 1, #names do
-			assert(not intersects(r, rects[names[j]]), "the " .. names[i] .. " and the " .. names[j] .. " do not overlap")
+			-- The leader crown is a badge on the role icon's corner on a raid tile (round 2); every other pair stays apart.
+			local badge = (names[i] == "leader" and names[j] == "role") and f.parts.icons.badge
+			if not badge then
+				assert(not intersects(r, rects[names[j]]), "the " .. names[i] .. " and the " .. names[j] .. " do not overlap")
+			end
 		end
 	end
 	K.Options.Write("GroupFrames", "raid.buffCount", 3)
 	env.RunTimers()
-	eq(heals.maxFrameCount, 3, "three heals fit beside the default two-column debuff strip")
+	eq(heals.maxFrameCount - 1, 3, "three heals fit beside the default two-column debuff strip")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 3)
 	env.RunTimers()
-	eq(heals.maxFrameCount, 2, "a three-column strip leaves room for two")
+	eq(heals.maxFrameCount - 1, 2, "a three-column strip leaves room for two")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 2)
 	env.RunTimers()
 	m.leader, m.marker = false, nil
@@ -155,7 +160,10 @@ do
 	m.dead, m.health = false, 70
 	env.FireEvent("UNIT_HEALTH", "raid1")
 	eq(f.healthText._points[1][1], "TOPRIGHT", "alive, the missing health is back at the row's end")
-	eq(f.name._points[2][1], "RIGHT", "and the name ends before it")
+	-- The missing health keeps a fixed reserve, so the name gets a known width that ends a gap before it.
+	assert(f.healthText._width > 0 and f.name:GetWidth() > 0, "the reserve and the name's width are set")
+	scene = Scene.Build(env)
+	assert(not intersects(find(scene, f.name).rect, find(scene, f.healthText).rect), "and the name ends before it")
 end
 
 -- The shield line: the whole shield, unclamped, along the bar's foot, so a shield shows at full health.
@@ -188,10 +196,10 @@ local group = buffs._groups.buffs
 assert(group, "a heals group")
 eq(group.filter, "HELPFUL|PLAYER", "only the buffs you cast")
 eq(group.candidateFilters.processedAuraType, types.Buff, "that Blizzard's raid frames would show")
-eq(group.maxFrameCount, 3, "three at most")
+eq(group.maxFrameCount, 4, "three at most, plus one for the overflow mark")
 assert(W.Near(group.layout.elementWidth, 10, 0.5), "10-unit icons on a raid frame, snapped to whole pixels: " .. tostring(group.layout.elementWidth))
-local bp = buffs._points[1]
-assert(bp[1] == "TOPRIGHT" and bp[2] == f.health and bp[3] == "RIGHT", "anchored to the bar's right end")
+local bp = f.buffClip._points[1]
+assert(bp[1] == "TOPRIGHT" and bp[2] == f.health and bp[3] == "RIGHT", "the clip holding them is anchored to the bar's right end")
 eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Left, "growing left along the bar")
 eq(f.auras._policyOptions.ignoreBuffs, true, "the debuff container still ignores buffs")
 assert(f.ready:GetParent():GetFrameLevel() > buffs:GetFrameLevel() and f.ready:GetParent():GetFrameLevel() > f.auras:GetFrameLevel(), "a ready check's mark draws above your heals and the debuffs")
@@ -201,7 +209,7 @@ assert(W.Near((icon:GetSize()), 10, 0.5), "and is 10 units")
 
 K.Options.Write("GroupFrames", "raid.buffCount", 2)
 env.RunTimers()
-eq(group.maxFrameCount, 2, "the count setting reaches the engine")
+eq(group.maxFrameCount, 3, "the count setting reaches the engine, plus one for the overflow mark")
 K.Options.Write("GroupFrames", "buffs.enabled", false)
 env.RunTimers()
 eq(group.enabled, false, "turning them off disables the group")

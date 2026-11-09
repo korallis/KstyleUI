@@ -81,7 +81,9 @@ for g = 1, 8 do
 	assert(#children(Headers.raid[g]) >= 5, "raid group " .. g .. " made its five buttons at Enable, out of combat")
 end
 local w, h = children(header)[1]:GetSize()
-eq(w, 278, "party buttons are 278 wide, the 318 card inside its padding")
+-- The 278-unit row inside the 318 card keeps a lane for the three outside debuff icons, so they stay on the glass.
+eq(w, 278 - ns.Geometry.AuraLane(ns.Settings.current.party), "party buttons leave the debuff lane inside the 318 card")
+assert(w < 278, "the lane is reserved")
 eq(h, 40, "party buttons are 40 tall")
 
 local function content(unit)
@@ -156,7 +158,10 @@ eq(#Headers.raid, 8, "eight raid headers")
 same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, "group 1")
 same(G.Shown(Headers.raid[3]), { "raid11", "raid12" }, "group 3")
 eq(Headers.raid[2]._points[1][4], 75, "group 2 sits 75 units right of group 1")
-eq(content("raid7").name:GetText(), "Member7", "raid names")
+-- A raid row keeps its name to the room left beside the missing health: every stub member shares "Member", so the
+-- short form keeps the distinct ending rather than seven identical "Memb" prefixes.
+eq(content("raid7").rawName, "Member7", "raid names")
+eq(content("raid7").name:GetText(), "Mem.7", "shortened to the row and kept distinct")
 
 -- Sort by role: one header in role order, the others hidden.
 K.Options.Write("GroupFrames", "raid.sortBy", "ROLE")
@@ -179,7 +184,7 @@ local members = G.Members(6)
 members[6].name = "Latecomer"
 G.SetRoster(env, "raid", members)
 eq(#env._blocked, 0, "a roster change in combat makes no protected call: " .. tostring(env._blocked[1]))
-eq(content("raid6").name:GetText(), "Latecomer", "a roster change in combat updates the name")
+eq(content("raid6").rawName, "Latecomer", "a roster change in combat updates the name")
 env.SetCombat(false)
 eq((children(Headers.raid[1])[1]:GetSize()), 80, "the size applies after combat")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))

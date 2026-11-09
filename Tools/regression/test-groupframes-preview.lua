@@ -5,7 +5,7 @@ local function eq(got, want, what)
 	assert(got == want, what .. ": expected " .. tostring(want) .. ", got " .. tostring(got))
 end
 
-local env, K = G.New()
+local env, K, ns = G.New()
 local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 parent:SetSize(300, 420)
 
@@ -39,8 +39,8 @@ local formatted = preview.partyFrames[1].healthText._state.FormattedText
 eq(formatted and formatted[1], "%d%%", "party samples show percent health when the number is on")
 K.Options.Write("GroupFrames", "party.healthText", "NONE")
 preview:Refresh()
-eq(formatted and formatted[2], 92, "the sample's percent")
-eq(preview.partyFrames[1]:GetWidth(), 278, "party samples use the party width")
+eq(formatted and formatted[2], 72, "the sample's percent (the tank sample is at 72% so its heal absorb shows inside the fill)")
+eq(preview.partyFrames[1]:GetWidth(), 278 - ns.Geometry.AuraLane(ns.Settings.current.party), "party samples use the party width less the debuff lane, as the live frames do")
 eq(preview.raidFrames[1]:GetWidth(), 72, "raid samples use the raid width")
 
 -- Samples show the status icons, the threat border and incoming heals.
@@ -72,7 +72,8 @@ K.Options.Write("GroupFrames", "party.healthText", "CURRENT_MAX")
 preview:Refresh()
 eq(preview.raidFrames[1]:GetWidth(), 90, "the raid width follows the setting")
 formatted = preview.partyFrames[1].healthText._state.FormattedText
-eq(formatted and formatted[1], "%d / %d", "the health text follows the setting")
+-- The samples abbreviate as the live frames do (41.8k / 41.8k), so the format takes strings.
+eq(formatted and formatted[1], "%s / %s", "the health text follows the setting")
 K.Options.Write("GroupFrames", "party.portrait", false)
 preview:Refresh()
 eq(preview.partyFrames[1].portrait:IsShown(), false, "portraits follow the setting")

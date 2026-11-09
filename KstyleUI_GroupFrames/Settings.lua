@@ -17,6 +17,9 @@ end
 
 local HEAL_ALPHA = 0.5
 local ABSORB_ALPHA = 0.45
+local HEAL_ABSORB_ALPHA = 0.7
+local INDICATOR_SLOTS = 6
+Settings.INDICATOR_SLOTS = INDICATOR_SLOTS
 
 local function DefaultTexture()
 	for _, item in ipairs(Tokens.MediaList("statusbar")) do
@@ -36,7 +39,7 @@ Settings.defaults = {
 		width = 278, height = 40, spacing = 8, growth = "DOWN",
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
 		portrait = true, roleRing = true, classLine = true, power = false, powerHeight = 4,
-		textLayout = "ABOVE", nameSize = 11, healthText = "NONE", healthTextSize = 11,
+		textLayout = "ABOVE", nameSize = 11, healthText = "NONE", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 20, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -47,7 +50,7 @@ Settings.defaults = {
 		groupGrowth = "RIGHT", groupSpacing = 3, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5,
 		roleRing = false, classLine = false, power = false, powerHeight = 3,
-		textLayout = "ABOVE", nameSize = 10, healthText = "DEFICIT", healthTextSize = 9,
+		textLayout = "ABOVE", nameSize = 10, healthText = "DEFICIT", healthTextSize = 9, healthTextPlace = "ROW",
 		iconSize = 10,
 		auraSize = 12, auraCount = 2, auraDispelCount = 1, auraColumns = 2, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMLEFT", auraGrowth = "RIGHT", auraWrap = "UP",
@@ -62,12 +65,29 @@ Settings.defaults = {
 	range = { fade = true, alpha = 0.4 },
 	icons = { role = true, leader = true, marker = true, readyCheck = true },
 	threat = { enabled = true },
-	auras = { enabled = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER" },
+	auras = {
+		enabled = true, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
+		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
+	},
 	buffs = { enabled = true },
 	clickCast = { hint = true },
-	prediction = { heals = true, absorbs = true, shield = true, healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA) },
+	prediction = {
+		heals = true, absorbs = true, shield = true, healAbsorbs = true,
+		healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA), healAbsorbColor = Rgb("hostile", HEAL_ABSORB_ALPHA),
+	},
+	auto = { size = true, role = true },
 	accent = { source = "class", color = Rgb("accentDefault") },
 }
+
+local INDICATOR_DEFAULTS = {
+	{ category = "EXTERNAL", position = "CENTER" },
+	{ category = "CROWD_CONTROL", position = "CENTER" },
+	{ category = "BIG_DEFENSIVE", position = "BOTTOMRIGHT" },
+}
+for i = 1, INDICATOR_SLOTS do
+	local preset = INDICATOR_DEFAULTS[i] or {}
+	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14 }
+end
 
 local function Options(list)
 	local out = {}
@@ -85,6 +105,7 @@ local HEALTH_TEXT = Options({
 	{ "NONE", L["None"] }, { "PERCENT", L["Percent"] }, { "CURRENT", L["Current"] }, { "DEFICIT", L["Missing"] },
 	{ "CURRENT_MAX", L["Current and maximum"] }, { "CURRENT_PERCENT", L["Current and percent"] },
 })
+local TEXT_PLACE = Options({ { "ROW", L["Beside the name"] }, { "BAR", L["On the bar"] } })
 local OUTLINE = Options({ { "NONE", L["Soft shadow"] }, { "OUTLINE", L["Thin outline"] }, { "THICKOUTLINE", L["Thick outline"] } })
 local HEALTH_COLOR = Options({ { "class", L["Class colour"] }, { "reaction", L["Reaction colour"] }, { "custom", L["Custom colour"] } })
 local POWER_COLOR = Options({ { "power", L["Power type colour"] }, { "class", L["Class colour"] }, { "custom", L["Custom colour"] } })
@@ -102,6 +123,19 @@ local AURA_FILTER = Options({
 	{ "ALL", L["All debuffs"] }, { "RAID", L["Debuffs Blizzard's raid frames show"] }, { "DISPELLABLE", L["Debuffs you can dispel"] },
 })
 local DISPEL_FILTER = Options({ { "PLAYER", L["Debuffs you can dispel"] }, { "GROUP", L["Debuffs anyone in the group can dispel"] } })
+local PRIORITY = Options({
+	{ "BOSS", L["Boss debuffs"] }, { "IMPORTANT", L["Important debuffs"] }, { "DISPEL", L["Debuffs you can dispel"] }, { "OTHER", L["Other debuffs"] },
+})
+local INDICATOR_CATEGORY = Options({
+	{ "OFF", L["Off"] }, { "EXTERNAL", L["External defensives"] }, { "BIG_DEFENSIVE", L["Big defensives"] },
+	{ "HOTS", L["Your heals over time"] }, { "IMPORTANT", L["Important buffs"] }, { "CROWD_CONTROL", L["Crowd control"] },
+	{ "BOSS", L["Boss debuffs"] }, { "DISPEL", L["Debuffs anyone in the group can dispel"] }, { "SPELLS", L["Buffs you choose by spell ID"] },
+})
+local INDICATOR_POSITION = Options({
+	{ "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] },
+	{ "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] },
+	{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
+})
 
 Settings.OPTIONS = {
 	growth = GROWTH, partySort = PARTY_SORT, raidSort = RAID_SORT, textLayout = TEXT_LAYOUT, healthText = HEALTH_TEXT,
@@ -180,6 +214,10 @@ local function KindRows(schema, kind, label)
 	add(Dropdown(p .. "healthText", L["Health text"], L["What the health text shows."], HEALTH_TEXT))
 	add(Slider(p .. "healthTextSize", L["Health text size"], L["The size of the health text."], 6, 24, 1))
 	schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
+	add(Dropdown(p .. "healthTextPlace", L["Health text place"], L["Beside the name, or on the bar so a narrow frame keeps the whole name."], TEXT_PLACE))
+	schema[#schema].showWhen = function(settings)
+		return IsNot(p .. "healthText", "NONE")(settings) and Is(p .. "textLayout", "ABOVE")(settings)
+	end
 	add(Slider(p .. "iconSize", L["Status icon size"], L["The size of the role, leader, marker and ready-check icons."], 6, 32, 1))
 	add(Slider(p .. "auraSize", L["Debuff icon size"], L["The size of each debuff icon."], 8, 40, 1))
 	add(Slider(p .. "auraCount", L["Debuff count"], L["The most debuffs each frame shows."], 1, 10, 1))
@@ -233,8 +271,27 @@ local function BuildSchema()
 	add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
 	add(Dropdown("auras.dispelFilter", L["Highlight debuffs"], L["Highlights debuffs you can dispel, or ones anyone in the group can."], DISPEL_FILTER))
 	schema[#schema].showWhen = Is("auras.dispelHighlight", true)
+	add({ type = "header", label = L["Debuff priority"] })
+	for i = 1, #PRIORITY do
+		add(Dropdown("auras.priority" .. i, L["Priority"] .. " " .. i, L["Which debuffs take this place in the row; a repeat counts once."], PRIORITY))
+	end
+	add(Toggle("auras.glow", L["Glow on boss and important debuffs"], L["A red glow around a member with a boss or important debuff."]))
+	add({ type = "header", label = L["Indicators"] })
+	for i = 1, INDICATOR_SLOTS do
+		local p = "indicator" .. i .. "."
+		local on = IsNot(p .. "category", "OFF")
+		add(Dropdown(p .. "category", L["Indicator"] .. " " .. i, L["What this indicator shows; slots sharing a place sit side by side."], INDICATOR_CATEGORY))
+		add(Dropdown(p .. "position", L["Place"], L["Where on the frame the indicator sits."], INDICATOR_POSITION, { showWhen = on }))
+		add(Slider(p .. "size", L["Size"], L["The indicator's icon size."], 6, 32, 1))
+		schema[#schema].showWhen = on
+		add(Toggle(p .. "mine", L["Only yours"], L["Shows only auras you cast."], { showWhen = on }))
+		add({ type = "text", key = p .. "spells", label = L["Spell IDs"], help = L["Buff spell IDs, separated by commas, such as 774, 139."], maxLetters = 120, showWhen = Is(p .. "category", "SPELLS") })
+	end
 	add({ type = "header", label = L["Your heals over time"] })
 	add(Toggle("buffs.enabled", L["Your heals over time"], L["Shows your own heals over time and shields at the health bar's right end."]))
+	add({ type = "header", label = L["Automatic layout"] })
+	add(Toggle("auto.size", L["Size by raid size"], L["Shorter raid frames without power bars in raids over 25."]))
+	add(Toggle("auto.role", L["Healer frames when you heal"], L["As a healer, frames show two dispellable debuffs first and three of your heals."]))
 	add({ type = "header", label = L["Click casting"] })
 	add(Toggle("clickCast.hint", L["Click casting reminder"], L["Points the tooltip to the game's Click Casting, which these frames use, until you bind a spell."]))
 	add({ type = "header", label = L["Incoming heals and absorbs"] })
@@ -243,6 +300,8 @@ local function BuildSchema()
 	add(Toggle("prediction.absorbs", L["Absorbs"], L["Shows shields, such as Power Word: Shield, after the health."]))
 	add({ type = "color", key = "prediction.absorbColor", label = L["Absorb colour"], help = L["The colour of shields on the health bar."], hasAlpha = true, showWhen = Is("prediction.absorbs", true) })
 	add(Toggle("prediction.shield", L["Shield line"], L["A thin line under the health bar for the whole shield, seen even at full health."]))
+	add(Toggle("prediction.healAbsorbs", L["Heal absorbs"], L["Marks the health that heal-absorbing debuffs will eat, from the fill's end."]))
+	add({ type = "color", key = "prediction.healAbsorbColor", label = L["Heal absorb colour"], help = L["The colour of heal absorbs on the health bar."], hasAlpha = true, showWhen = Is("prediction.healAbsorbs", true) })
 	add({ type = "header", label = L["Range and highlight"] })
 	add(Toggle("range.fade", L["Fade out of range"], L["Fades members who are too far away to heal."]))
 	add(Slider("range.alpha", L["Out of range opacity"], L["How faint a member out of range looks."], 0.1, 1, 0.05))
@@ -297,6 +356,11 @@ local function Channel(v)
 end
 
 local CHECK = {
+	text = function(row, v)
+		if type(v) == "string" and #v <= (row.maxLetters or #v) then
+			return v
+		end
+	end,
 	slider = function(row, v)
 		if not IsNumber(v) then
 			return nil

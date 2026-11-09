@@ -80,10 +80,20 @@ for _, size in ipairs(SIZES) do
 			assert(item, what .. ": the renderer draws the " .. name)
 			rects[name] = item.rect
 		end
+		-- Without a portrait and with the name above the bar, the leader crown is a deliberate badge on the role
+		-- icon's top-left corner (round 2, to give raid names the row); it stays smaller and inside that corner.
+		local badge = f.parts.icons.badge
+		if badge then
+			local role, leader = rects.role, rects.leader
+			assert(leader[3] < role[3] and leader[1] <= role[1] + 0.01 and leader[2] <= role[2] + 0.01, what .. ": the leader badge sits on the role icon's top-left corner")
+		end
 		for i = 1, #INDICATORS do
 			for j = i + 1, #INDICATORS do
 				local a, b = INDICATORS[i], INDICATORS[j]
-				assert(not intersects(rects[a], rects[b]), what .. ": the " .. a .. " " .. describe(rects[a]) .. " overlaps the " .. b .. " " .. describe(rects[b]))
+				local pair = (a == "role" and b == "leader") or (a == "leader" and b == "role")
+				if not (badge and pair) then
+					assert(not intersects(rects[a], rects[b]), what .. ": the " .. a .. " " .. describe(rects[a]) .. " overlaps the " .. b .. " " .. describe(rects[b]))
+				end
 			end
 		end
 		local frameRect = { Scene.Rect(env, f) }
@@ -100,9 +110,11 @@ end
 do
 	local env, f, ns = frame("party", SIZES[2].party)
 	local Style = ns.Style
-	assert(f.healthText._width and f.healthText._width > 0, "the smallest party frame narrows its health text")
+	local narrowed = f.healthText._width
+	assert(narrowed and narrowed > 0, "the smallest party frame narrows its health text")
 	Style.Apply(f, 230, 46)
-	assert(f.healthText._width == 0, "the default party frame frees the health text's width again, got " .. tostring(f.healthText._width))
+	-- Above the bar the percent keeps a fixed reserve for "100%" (so the name's width is known), never the narrowed width.
+	assert(f.healthText._width ~= narrowed, "the default party frame frees the health text's narrowed width again, got " .. tostring(f.healthText._width))
 	local scene = Scene.Build(env)
 	local text = find(scene, f.healthText)
 	assert(text and text.rect[3] > 10, "and the renderer draws it at its natural width")

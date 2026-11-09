@@ -22,6 +22,8 @@ local issecretvalue = issecretvalue or function()
 	return false
 end
 
+local BADGE_SUBLEVEL = 2
+
 local function Plain(v)
 	return not issecretvalue(v) and type(v) == "number"
 end
@@ -42,7 +44,7 @@ end
 local function Build(f)
 	local layer = f.text
 	f.role = layer:CreateTexture(nil, "OVERLAY")
-	f.leader = layer:CreateTexture(nil, "OVERLAY")
+	f.leader = layer:CreateTexture(nil, "OVERLAY", nil, BADGE_SUBLEVEL)
 	if HasAtlas(LEADER_ATLAS) then
 		f.leader:SetAtlas(LEADER_ATLAS)
 	else
@@ -79,7 +81,7 @@ local function Layout(f, parts, k)
 	local icons = parts.icons
 	local size = Widgets.Snap(f, icons.size)
 	PlaceIcon(f, f.role, icons.role, size)
-	PlaceIcon(f, f.leader, icons.leader, size)
+	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size)
 	PlaceIcon(f, f.marker, icons.marker, size)
 	f.assist:ClearAllPoints()
 	f.assist:SetSize(size, size)

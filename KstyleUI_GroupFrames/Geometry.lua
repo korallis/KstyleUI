@@ -103,12 +103,44 @@ function Geometry.Card(geo, cap)
 	return geo.width + 2 * CARD_PAD, geo.height + CARD_PAD + cap + CARD_GAP + CARD_PAD, CARD_PAD, CARD_PAD + cap + CARD_GAP
 end
 
+local AURA_SIDES = { OUTSIDE_RIGHT = true, OUTSIDE_LEFT = true }
+local LANE_KEEPS = 2
+local SNAP_SLACK = 1
+
+function Geometry.AuraLane(s, gap)
+	if not AURA_SIDES[s.auraPosition] then
+		return 0
+	end
+	gap = gap or Tokens.Size("gapSmall")
+	local columns = max(1, min(s.auraColumns or 1, s.auraCount or 1))
+	local lane = gap + Line(columns, s.auraSize or 0, s.auraSpacing or 0) + columns * SNAP_SLACK
+	if s.width - lane < LANE_KEEPS * (s.height or 0) then
+		return 0
+	end
+	return lane
+end
+
+function Geometry.MemberWidth(s, gap)
+	return max(MIN_PART * 2, s.width - Geometry.AuraLane(s, gap))
+end
+
+local function Members(s, growth, count)
+	local lane = Geometry.AuraLane(s)
+	local memberWidth = s.width - lane
+	local spacing = GROWTH[growth].vertical and s.spacing or s.spacing + lane
+	local w, h = Block(growth, count, memberWidth, s.height, spacing)
+	return w + lane, h, memberWidth, spacing, lane
+end
+
 function Geometry.Party(s)
 	local growth = Clean(s.growth)
 	local count = s.showPlayer == false and PARTY_MAX - 1 or PARTY_MAX
-	local w, h = Block(growth, count, s.width, s.height, s.spacing)
-	local point, x, y = Geometry.Grow(growth, s.spacing)
-	return { width = w, height = h, count = count, corner = Geometry.Corner(growth), point = point, xOffset = x, yOffset = y }
+	local w, h, memberWidth, spacing, lane = Members(s, growth, count)
+	local point, x, y = Geometry.Grow(growth, spacing)
+	return {
+		width = w, height = h, count = count, corner = Geometry.Corner(growth), point = point, xOffset = x, yOffset = y,
+		memberWidth = memberWidth, lane = lane, laneSide = AURA_SIDES[s.auraPosition] and (s.auraPosition == "OUTSIDE_LEFT" and "LEFT" or "RIGHT") or nil,
+	}
 end
 
 function Geometry.PartyShown(s, members)
@@ -127,7 +159,7 @@ end
 
 function Geometry.PartyCard(s, cap, shown)
 	local growth = Clean(s.growth)
-	local w, h = Block(growth, shown, s.width, s.height, s.spacing)
+	local w, h = Members(s, growth, shown)
 	return Geometry.Card({ width = w, height = h }, cap)
 end
 
@@ -183,6 +215,7 @@ local function Rect(left, top, width, height)
 end
 
 local ICONS_ACROSS = 3
+local BADGE_SHARE = 0.7
 
 local function Centred(span, start, size)
 	return start + (span - size) / 2
@@ -194,14 +227,22 @@ local function Indicators(out, w, h, o, pad, gap)
 	local icons = { size = size }
 	out.icons = icons
 	local health = out.health
-	icons.role = Rect(w - gap - size, gap, size, size)
-	icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
 	local textLeft, textRight = health.left, health.left + health.width
-	if o.leader and not out.portrait then
-		textLeft = max(textLeft, icons.leader.left + size + gap)
-	end
-	if o.role then
-		textRight = min(textRight, icons.role.left - gap)
+	if not out.portrait and not out.nameInside and o.role then
+		icons.role = Rect(gap, gap, size, size)
+		local badge = max(MIN_PART, floor(size * BADGE_SHARE))
+		icons.leader = Rect(0, 0, badge, badge)
+		icons.badge = true
+		textLeft = max(textLeft, icons.role.left + size + gap)
+	else
+		icons.role = Rect(w - gap - size, gap, size, size)
+		icons.leader = Rect(out.portrait and 0 or gap, -gap, size, size)
+		if o.leader and not out.portrait then
+			textLeft = max(textLeft, icons.leader.left + size + gap)
+		end
+		if o.role then
+			textRight = min(textRight, icons.role.left - gap)
+		end
 	end
 	textRight = max(textRight, textLeft + MIN_PART)
 	local markedRight = textRight
@@ -292,6 +333,34 @@ function Geometry.AuraAnchor(position, growth, wrap, inset, gap)
 	return point, position, x, y
 end
 
+function Geometry.AuraBlock(s, w, h, size, spacing, inset, lane)
+	local count = max(0, min(s.auraCount or 0, (s.auraColumns or 1) * (s.auraRows or 1)))
+	local position = s.auraPosition
+	local side = AURA_OUTSIDE[position]
+	if side and not (lane and lane > 0) then
+		position = (s.auraWrap == "UP" and "BOTTOM" or "TOP") .. side
+		side = nil
+	elseif not side and not AURA_INSIDE[position] then
+		position = "BOTTOMLEFT"
+	end
+	local width = side and lane or w - 2 * inset
+	local height = side and h or h - 2 * inset
+	size = max(MIN_PART, min(size, floor(min(width, height))))
+	local step = size + spacing
+	local fitColumns = step > 0 and floor((width + spacing) / step) or 0
+	local fitRows = step > 0 and floor((height + spacing) / step) or 0
+	local columns = max(0, min(s.auraColumns or 1, count, fitColumns))
+	local rows = 0
+	if columns > 0 then
+		rows = max(0, min(s.auraRows or 1, ceil(count / columns), fitRows))
+		if rows > 1 and count < columns * rows then
+			rows = max(1, floor(count / columns))
+		end
+	end
+	local cells = columns * rows
+	return { position = position, columns = columns, rows = rows, cells = cells, size = size, width = Line(columns, size, spacing), height = Line(rows, size, spacing) }
+end
+
 function Geometry.AuraLine(columns, size, spacing)
 	return Line(columns, size, spacing)
 end
@@ -326,6 +395,9 @@ function Geometry.HealIcons(w, h, health, a)
 			side = "LEFT"
 			limit = w - strip - health.left - a.inset
 		end
+	end
+	if a.reserve and a.reserve > 0 then
+		limit = min(limit, health.width - 2 * a.inset - a.reserve - a.gap)
 	end
 	local count = a.count
 	while count > 0 and Line(count, a.size, a.spacing) > limit do

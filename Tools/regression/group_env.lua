@@ -190,11 +190,28 @@ local function installRoster(env)
 	function env.SetPortraitTexture(texture, unit)
 		texture._portraitUnit = unit
 	end
-	function env.AbbreviateNumbers(value)
-		if env.issecretvalue(value) then
-			return env.Secret(tostring(env.Reveal(value)))
+	-- AbbreviateNumbers(value, options): with options.breakpointData, the first breakpoint (largest first) the
+	-- value reaches divides it by significandDivisor, keeps whole significand digits and shows fractionDivisor's
+	-- decimals, as LocalizationSharedDocumentation.lua describes ("1234" -> "1.2k", "12345" -> "12k").
+	local function abbreviate(value, options)
+		local points = options and options.breakpointData
+		if type(points) == "table" then
+			for _, point in ipairs(points) do
+				if value >= point.breakpoint then
+					local significand = math.floor(value / point.significandDivisor)
+					local shown = significand / point.fractionDivisor
+					local digits = point.fractionDivisor > 1 and string.format("%.1f", shown) or tostring(math.floor(shown))
+					return digits .. point.abbreviation
+				end
+			end
 		end
 		return tostring(value)
+	end
+	function env.AbbreviateNumbers(value, options)
+		if env.issecretvalue(value) then
+			return env.Secret(abbreviate(env.Reveal(value), options))
+		end
+		return abbreviate(value, options)
 	end
 
 	function env.UnitIsGroupLeader(unit)
@@ -289,6 +306,7 @@ local function installPrediction(env)
 	env.Enum = env.Enum or {}
 	env.Enum.UnitIncomingHealClampMode = { MissingHealth = 0, MaximumHealth = 1 }
 	env.Enum.UnitDamageAbsorbClampMode = { MissingHealth = 0, MissingHealthWithoutIncomingHeals = 1, MaximumHealth = 2 }
+	env.Enum.UnitHealAbsorbClampMode = { CurrentHealth = 0, MaximumHealth = 1 }
 	function env.CreateUnitHealPredictionCalculator()
 		env._calculators = env._calculators + 1
 		local calc = { heals = 0, absorbs = 0, modes = {} }
@@ -304,6 +322,12 @@ local function installPrediction(env)
 		function calc.GetDamageAbsorbs(self)
 			return env.Secret(self.absorbs), env.Secret(false)
 		end
+		function calc.SetHealAbsorbClampMode(self, mode)
+			self.modes.healAbsorb = mode
+		end
+		function calc.GetHealAbsorbs(self)
+			return env.Secret(self.healAbsorbs or 0), env.Secret(false)
+		end
 		return calc
 	end
 	function env.UnitGetDetailedHealPrediction(unit, _, calc)
@@ -311,6 +335,11 @@ local function installPrediction(env)
 		calc.unit = unit
 		calc.heals = m and m.incoming or 0
 		calc.absorbs = m and m.absorb or 0
+		calc.healAbsorbs = m and m.healAbsorb or 0
+	end
+	function env.UnitGetTotalHealAbsorbs(unit)
+		local m = env._member(unit)
+		return env.Secret(m and m.healAbsorb or 0)
 	end
 end
 
@@ -330,13 +359,18 @@ local function installAuras(env, opts)
 			function frame.AddAuraSlot(self, key, filter, options)
 				assert(type(key) == "string" and key ~= "", "slotKey must be a non-empty string.")
 				assert(not self._slots[key], "aura slot '" .. key .. "' already exists with this key.")
-				assert(type(filter) == "string" and filter:find("HARMFUL", 1, true), "invalid filter string " .. tostring(filter))
+				assert(type(filter) == "string" and (filter:find("HARMFUL", 1, true) or filter:find("HELPFUL", 1, true)), "invalid filter string " .. tostring(filter))
 				options = options or {}
 				-- The engine shows a slot's frame only while an aura fills it (CustomAuraButton's SetShown).
 				local button = AurasEnv.MakeButton(env, self, options.initializeFrame)
 				button:Hide()
-				self._slots[key] = { key = key, filter = filter, frame = button, enabled = true, options = options }
+				self._slots[key] = { key = key, filter = filter, frame = button, enabled = true, options = options, candidateFilters = options.candidateFilters }
 				return button
+			end
+			function frame.SetAuraSlotCandidateFilters(self, key, filters)
+				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
+				assert(filters == nil or type(filters) == "table", "candidateFilters must be a table or nil.")
+				self._slots[key].candidateFilters = filters
 			end
 			function frame.SetAuraSlotFilterString(self, key, filter)
 				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
@@ -802,6 +836,30 @@ local function installBlizzard(env)
 	end
 end
 
+-- Font strings measure text as the renderer does (Tools/render/scene.lua's glyph advances), so the name
+-- shortener sees widths close to the client's GetUnboundedStringWidthForText instead of no metrics at all.
+local function installMeasure(env)
+	local Scene = dofile("Tools/render/scene.lua")
+	local function measure(self, text)
+		local path, size = self:GetFont()
+		if type(text) ~= "string" or type(size) ~= "number" then
+			return nil
+		end
+		return Scene.TextWidth(text, size, path)
+	end
+	local create = env.CreateFrame
+	env.CreateFrame = function(...)
+		local frame = create(...)
+		local make = frame.CreateFontString
+		frame.CreateFontString = function(self, ...)
+			local text = make(self, ...)
+			text.GetUnboundedStringWidthForText = measure
+			return text
+		end
+		return frame
+	end
+end
+
 -- New(opts) -> env, KstyleUI, the module's private table. opts: the CoreEnv.New options, plus
 --   boot   false to skip ADDON_LOADED and PLAYER_LOGIN.
 function G.New(opts)
@@ -815,6 +873,7 @@ function G.New(opts)
 		installHeaders(env)
 		installDrivers(env)
 		installBlizzard(env)
+		installMeasure(env)
 		env.InCombatLockdown = function()
 			return env._combat == true
 		end

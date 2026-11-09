@@ -138,7 +138,7 @@ local nr, ng, nb = K.Tokens.Color("neutral")
 assert(near(r, nr) and near(g, ng) and near(b, nb), "status 1 recolours the glow in the neutral token")
 
 -- The dispel highlight: a rounded wash and the tile's rounded outlines, all coloured by the engine.
-local slot = tank.auras._slots.dispel.frame
+local slot = tank.highlights._slots.dispel.frame
 local registered = {}
 for _, entry in ipairs(slot._aura.dispel) do
 	registered[#registered + 1] = entry.texture

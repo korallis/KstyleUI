@@ -23,6 +23,10 @@ local ROLE_LETTERS = { TANK = "T", HEALER = "H", DAMAGER = "D" }
 local PILL_HEIGHT = 6
 local PILL_RISE = 2
 local CLASS_LINE_COLOR = "text"
+local RESERVE = {
+	party = { DEFICIT = { "-88.8k", "-888" }, PERCENT = { "100%" } },
+	raid = { DEFICIT = { "-8.8k", "-88k", "-888" }, PERCENT = { "100%" } },
+}
 Style.ROLE_RING = ROLE_RING
 Style.ROLE_LETTERS = ROLE_LETTERS
 Style.PILL_HEIGHT = PILL_HEIGHT
@@ -151,9 +155,17 @@ function Style.Accent()
 	return Theme.Accent()
 end
 
+function Style.MemberWidth(kind)
+	local k = Settings.current[kind]
+	if kind == "party" then
+		return Geometry.MemberWidth(k)
+	end
+	return k.width
+end
+
 function Style.Size(f)
 	local k = Settings.current[f.kind]
-	return f.width or k.width, f.height or k.height
+	return f.width or Style.MemberWidth(f.kind), f.height or k.height
 end
 
 local function OnBar(outline)
@@ -169,7 +181,7 @@ local function LayoutTexts(f, k, parts)
 	name:ClearAllPoints()
 	healthText:ClearAllPoints()
 	local showHealth = k.healthText ~= "NONE"
-	healthText:SetShown(showHealth)
+	healthText:SetShown(showHealth or f.status ~= nil)
 	local spot = parts.healthText
 	if not inside then
 		local rect = parts.name
@@ -184,7 +196,8 @@ local function LayoutTexts(f, k, parts)
 	local cx = Widgets.Snap(f, rect.left + rect.width / 2)
 	local cy = -Widgets.Snap(f, spot.top)
 	name:SetJustifyH("CENTER")
-	name:SetWidth(math.max(1, Widgets.Snap(f, rect.width - 2 * inset)))
+	f.nameWidth = math.max(1, Widgets.Snap(f, rect.width - 2 * inset))
+	name:SetWidth(f.nameWidth)
 	healthText:SetJustifyH("CENTER")
 	if spot.width then
 		healthText:SetWidth(math.max(1, Widgets.Snap(f, spot.width)))
@@ -265,9 +278,34 @@ local function health_orientation(cfg)
 	return cfg.health.orientation ~= "VERTICAL"
 end
 
+function Style.Reserve(f, k)
+	local samples = RESERVE[f.kind] and RESERVE[f.kind][k.healthText]
+	local Names = ns.Names
+	if not samples or not Names then
+		return nil
+	end
+	local widest = 0
+	for _, sample in ipairs(samples) do
+		widest = math.max(widest, Names.Width(f.healthText, sample, k.healthTextSize))
+	end
+	return Widgets.Snap(f, math.ceil(widest))
+end
+
+local function ApplyName(f)
+	local Names = ns.Names
+	if Names then
+		Names.Apply(f)
+	end
+end
+
 function Style.PlaceRowEnd(f)
 	local parts = f.parts
-	if not parts or parts.nameInside then
+	if not parts then
+		return
+	end
+	if parts.nameInside then
+		f.healthText:SetShown(Settings.current[f.kind].healthText ~= "NONE" or f.status ~= nil)
+		ApplyName(f)
 		return
 	end
 	local k = Settings.current[f.kind]
@@ -275,16 +313,33 @@ function Style.PlaceRowEnd(f)
 	local right = f.marked and spot.markedRight or spot.right
 	local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
 	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
-	local inRow = k.healthText ~= "NONE" and not f.status
+	local shown = k.healthText ~= "NONE"
+	local onBar = shown and not f.status and k.healthTextPlace == "BAR"
+	local inRow = shown and not f.status and not onBar
 	local name, healthText, classLine = f.name, f.healthText, f.classLine
+	local cfg = Settings.current.text
+	SetFont(healthText, cfg.healthFont, k.healthTextSize, inRow and cfg.healthOutline or OnBar(cfg.healthOutline))
+	healthText:SetShown(shown or f.status ~= nil)
 	healthText:ClearAllPoints()
+	local reserve = (inRow or onBar) and Style.Reserve(f, k)
+	healthText:SetWidth(reserve or 0)
+	local bar = parts.health
+	local cy = -Widgets.Snap(f, bar.top + bar.height / 2)
 	if inRow then
 		healthText:SetJustifyH("RIGHT")
 		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, right), top)
-	else
-		local bar = parts.health
+	elseif onBar then
+		local block, side = 0, "RIGHT"
+		if ns.Auras and ns.Auras.HealBlock then
+			block, side = ns.Auras.HealBlock(f, k)
+		end
+		local from = side == "LEFT" and bar.left + block or bar.left
 		healthText:SetJustifyH("CENTER")
-		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, bar.left + bar.width / 2), -Widgets.Snap(f, bar.top + bar.height / 2))
+		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, from + (bar.width - block) / 2), cy)
+		reserve = nil
+	else
+		healthText:SetJustifyH("CENTER")
+		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, bar.left + bar.width / 2), cy)
 	end
 	local captioned = k.classLine == true
 	if captioned then
@@ -297,15 +352,18 @@ function Style.PlaceRowEnd(f)
 	end
 	name:ClearAllPoints()
 	name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
+	f.nameWidth = nil
 	if captioned then
 		name:SetWidth(0)
 		name:SetPoint("RIGHT", classLine, "LEFT", -gap, 0)
-	elseif inRow then
+	elseif inRow and not reserve then
 		name:SetWidth(0)
 		name:SetPoint("RIGHT", healthText, "LEFT", -gap, 0)
 	else
-		name:SetWidth(math.max(1, Widgets.Snap(f, right - rect.left)))
+		f.nameWidth = math.max(1, Widgets.Snap(f, right - rect.left - (reserve and reserve + gap or 0)))
+		name:SetWidth(f.nameWidth)
 	end
+	ApplyName(f)
 end
 
 function Style.SetMarked(f, marked)
@@ -319,7 +377,7 @@ end
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
-	width, height = width or k.width, height or k.height
+	width, height = width or Style.MemberWidth(f.kind), height or k.height
 	f.width, f.height = width, height
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,

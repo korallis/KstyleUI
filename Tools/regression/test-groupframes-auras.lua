@@ -51,15 +51,20 @@ assert(group, "the container has a debuff group")
 eq(group.candidateFilters.processedAuraType, types.Debuff, "boss, priority and other debuffs")
 eq(group.filter, "HARMFUL", "all debuffs by default")
 eq(group.sortMethod, env.AuraContainerSortMethod.UnitFrameDebuff, "boss and priority debuffs first")
-eq(group.maxFrameCount, 3, "three party debuffs")
+-- Three cells show; the engine may fill one more, which falls in the clipped row and raises the "+" mark.
+eq(group.maxFrameCount, 4, "three party debuffs and one for the overflow mark")
 assert(dispels.layoutIndex < group.layoutIndex, "dispellable debuffs come first")
 eq(group.layout.elementWidth, 20, "20-unit party icons")
 eq(group.layout.elementSpacing, 2, "2-unit gaps")
 eq(container._flow.anchor, "TOPLEFT", "party icons grow right and down from the top left")
 eq(container._flow.horizontal, env.AnchorUtil.FlowDirection.Right, "growing right")
 eq(container._flow.vertical, env.AnchorUtil.FlowDirection.Down, "wrapping down")
-eq(container._points[1][1], "TOPLEFT", "the container's top left")
-eq(container._points[1][3], "TOPRIGHT", "sits at the frame's top right, outside it")
+-- The container sits in a clip frame the size of the cells, so extra debuffs never draw past the card.
+local clip = f.auraClip
+eq(container:GetParent(), clip, "the container lives in the clip frame")
+eq(container._points[1][1], "TOPLEFT", "at the clip's top left")
+eq(clip._points[1][1], "TOPLEFT", "the clip's top left")
+eq(clip._points[1][3], "TOPRIGHT", "sits at the frame's top right, outside it, in the card's lane")
 
 -- Each aura button: icon, swipe and stack count bound to the engine, clicks passing through to the unit.
 local button = group.frames[1]
@@ -96,7 +101,7 @@ do
 end
 
 -- The dispel highlight: a slot for debuffs the player can dispel, drawn as a coloured border over the frame.
-local slot = container._slots.dispel
+local slot = f.highlights._slots.dispel
 assert(slot, "the container has a dispel slot")
 eq(slot.filter, "HARMFUL|RAID", "debuffs the player can dispel")
 assert(#slot.frame._aura.dispel >= 4, "the highlight's border lines take the dispel type colour")
@@ -123,7 +128,7 @@ eq(dispels.enabled, true, "dispellable debuff icons come back")
 eq(dispels.maxFrameCount, 2, "two dispellable debuffs")
 K.Options.Write("GroupFrames", "party.auraColumns", 2)
 K.Options.Write("GroupFrames", "party.auraRows", 1)
-eq(group.maxFrameCount, 2, "the count stops at columns times rows")
+eq(group.maxFrameCount, 3, "the count stops at columns times rows, plus one for the overflow mark")
 K.Options.Write("GroupFrames", "auras.dispelFilter", "GROUP")
 eq(slot.filter, "HARMFUL|RAID_PLAYER_DISPELLABLE", "debuffs anyone in the group can dispel")
 K.Options.Write("GroupFrames", "party.auraSize", 24)
@@ -136,7 +141,9 @@ eq(dispels.enabled, false, "dispellable icons too")
 eq(container:IsShown(), true, "the dispel highlight stays while it is on")
 eq(container._unit, "party1", "and keeps following the unit")
 K.Options.Write("GroupFrames", "auras.dispelHighlight", false)
-eq(container:IsShown(), false, "with both off the container hides")
+eq(container:IsShown(), true, "the boss debuff glow still needs the container")
+K.Options.Write("GroupFrames", "auras.glow", false)
+eq(container:IsShown(), false, "with all three off the container hides")
 eq(container._unit, "none", "and stops following the unit")
 K.Options.Write("GroupFrames", "auras.enabled", true)
 K.Options.Write("GroupFrames", "auras.dispelHighlight", true)

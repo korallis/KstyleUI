@@ -192,15 +192,15 @@ function Headers.ApplyParty(s)
 	Columns(header, nil, nil, nil, nil)
 	Grow(header, geo)
 	header:ClearAllPoints()
-	local x, y = left, -top
+	local x, y = left + (geo.laneSide == "LEFT" and geo.lane or 0), -top
 	if geo.corner:find("RIGHT", 1, true) then
-		x = -left
+		x = -(left + (geo.laneSide == "RIGHT" and geo.lane or 0))
 	end
 	if geo.corner:find("BOTTOM", 1, true) then
 		y = Geometry.CARD_PAD
 	end
 	header:SetPoint(geo.corner, holder, geo.corner, x, y)
-	Resize(header, s.width, s.height)
+	Resize(header, geo.memberWidth, s.height)
 	Precreate(header, PARTY_BUTTONS)
 	Driver(header, s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
 	return geo

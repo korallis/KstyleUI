@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample party and raid frames drawn with the same look as the real ones.
+-- Preview.lua: the settings window's live preview: sample party and raid frames drawn with the same look as the real ones, with the click casting panel under them.
 local _, ns = ...
 
 local K = KstyleUI
@@ -13,16 +13,19 @@ local RAID_GROUPS_SHOWN = 2
 local GROUP_SIZE = 5
 local SECTION_GAP = 16
 local SAMPLE_LEVEL = 60
-local SAMPLE_MAX = 4200
+local SAMPLE_MAX = 41800
 local PERCENT = 100
 
 local SAMPLES = {
-	{ name = "Thaldren", class = "WARRIOR", health = 0.92, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3, debuffs = 2, hots = 2 },
-	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1 },
-	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 8, incoming = 0.12 },
+	{
+		name = "Thaldren", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
+		healAbsorb = 0.18, debuffs = 2, hots = 2, indicators = { EXTERNAL = true },
+	},
+	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true } },
+	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 8, incoming = 0.12, healAbsorb = 0.1 },
 	{ name = "Lunara", class = "MAGE", health = 0, power = 0, dead = true },
 	{ name = "Vexen", class = "PRIEST", health = 0.94, power = 0.9 },
-	{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 1, dispel = "Curse", hots = 3 },
+	{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 9, dispel = "Curse", hots = 3, shield = 0.2, healAbsorb = 0.12, indicators = { BIG_DEFENSIVE = true } },
 	{ name = "Kesh", class = "ROGUE", health = 1, power = 1 },
 	{ name = "Maela", class = "HUNTER", health = 0.68, power = 0.7 },
 	{ name = "Durn", class = "WARLOCK", health = 0.81, power = 0.4, offline = true },
@@ -47,14 +50,14 @@ local function HealthText(f, sample)
 	elseif format == "PERCENT" then
 		text:SetFormattedText("%d%%", percent)
 	elseif format == "DEFICIT" then
-		text:SetText("-" .. (SAMPLE_MAX - current))
+		text:SetText("-" .. Unit.Abbreviate(SAMPLE_MAX - current, f.kind))
 		text:SetAlpha(sample.health < 1 and 1 or 0)
 	elseif format == "CURRENT_MAX" then
-		text:SetFormattedText("%d / %d", current, SAMPLE_MAX)
+		text:SetFormattedText("%s / %s", Unit.Abbreviate(current, f.kind), Unit.Abbreviate(SAMPLE_MAX, f.kind))
 	elseif format == "CURRENT_PERCENT" then
-		text:SetFormattedText("%d  %d%%", current, percent)
+		text:SetFormattedText("%s  %d%%", Unit.Abbreviate(current, f.kind), percent)
 	else
-		text:SetText(current)
+		text:SetText(Unit.Abbreviate(current, f.kind))
 	end
 end
 
@@ -87,8 +90,10 @@ local function Paint(f, sample)
 			f.power:SetBarColor(Tokens.Color("rare"))
 		end
 	end
-	f.name:SetText(sample.name)
-	if cfg.text.nameColorSource == "class" then
+	ns.Names.Set(f, sample.name)
+	if f.status then
+		f.name:SetTextColor(Tokens.Color("textDisabled"))
+	elseif cfg.text.nameColorSource == "class" then
 		f.name:SetTextColor(cr, cg, cb)
 	end
 	if f.showPortrait then
@@ -111,24 +116,31 @@ local function Paint(f, sample)
 	end
 end
 
+local SAMPLE_NAMES = {}
+for i, sample in ipairs(SAMPLES) do
+	SAMPLE_NAMES[i] = sample.name
+end
+
 local function Sample(parent, kind, index)
 	local f = CreateFrame("Frame", nil, parent)
 	Style.Build(f, kind)
 	f.sample = SAMPLES[(index - 1) % #SAMPLES + 1]
+	f.others = SAMPLE_NAMES
 	for _, hook in ipairs(ns.Button.built) do
 		hook(f)
 	end
 	return f
 end
 
-local function PlaceRun(frames, holder, s, growth, count, x0, y0, corner)
+local function PlaceRun(frames, holder, s, growth, count, x0, y0, corner, width, spacing)
+	width, spacing = width or s.width, spacing or s.spacing
 	local dx, dy = Geometry.Offset(growth, 1)
-	local stepX = Geometry.IsVertical(growth) and 0 or (s.width + s.spacing)
-	local stepY = Geometry.IsVertical(growth) and (s.height + s.spacing) or 0
+	local stepX = Geometry.IsVertical(growth) and 0 or (width + spacing)
+	local stepY = Geometry.IsVertical(growth) and (s.height + spacing) or 0
 	for i = 1, count do
 		local f = frames[i]
 		f:ClearAllPoints()
-		f:SetSize(s.width, s.height)
+		f:SetSize(width, s.height)
 		f:SetPoint(corner, holder, corner, x0 + dx * stepX * (i - 1), y0 + dy * stepY * (i - 1))
 	end
 end
@@ -143,10 +155,12 @@ local function Layout(preview)
 	preview.party:SetSize(pw, ph)
 	preview.party:ClearAllPoints()
 	preview.party:SetPoint("TOPLEFT", preview.canvas, "TOPLEFT", 0, 0)
-	PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, 0, 0, partyGeo.corner)
+	local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
+	local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
+	PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
 	for i, f in ipairs(preview.partyFrames) do
 		f:SetShown(i <= count)
-		Style.Apply(f, party.width, party.height)
+		Style.Apply(f, partyGeo.memberWidth, party.height)
 		Paint(f, f.sample)
 	end
 	local gw, gh
@@ -180,9 +194,11 @@ local function Layout(preview)
 	local availW, availH = preview:GetWidth(), preview:GetHeight()
 	local scale = 1
 	if type(availW) == "number" and type(availH) == "number" and availW > 0 and availH > 0 and not Unit.IsSecret(availW) then
+		availH = math.max(1, availH - ns.ClickCast.HEIGHT - SECTION_GAP)
 		scale = math.min(1, availW / width, availH / height)
 	end
 	preview.canvas:SetScale(scale)
+	preview.clickCast:Refresh()
 end
 
 function Preview.Build(parent)
@@ -199,6 +215,10 @@ function Preview.Build(parent)
 	for i = 1, RAID_GROUPS_SHOWN * GROUP_SIZE do
 		preview.raidFrames[i] = Sample(preview.raid, "raid", i)
 	end
+	preview.clickCast = ns.ClickCast.Panel(preview)
+	preview.clickCast:SetPoint("BOTTOMLEFT", preview, "BOTTOMLEFT", 0, 0)
+	preview.clickCast:SetPoint("BOTTOMRIGHT", preview, "BOTTOMRIGHT", 0, 0)
+	preview.clickCast:SetHeight(ns.ClickCast.HEIGHT)
 	preview.Refresh = Layout
 	Layout(preview)
 	return preview

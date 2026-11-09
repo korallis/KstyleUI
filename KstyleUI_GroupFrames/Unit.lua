@@ -68,12 +68,54 @@ local function Curves()
 	return percentCurve or nil, fullCurve or nil
 end
 
-local function Abbreviate(value)
+local function Point(breakpoint, abbreviation, significand, fraction)
+	return { breakpoint = breakpoint, abbreviation = abbreviation, significandDivisor = significand, fractionDivisor = fraction, abbreviationIsGlobal = false }
+end
+
+local NUMBER_STYLES = {
+	party = {
+		probe = 12400, expect = "12.4k",
+		points = { Point(10000000, "m", 1000000, 1), Point(1000000, "m", 100000, 10), Point(100000, "k", 1000, 1), Point(1000, "k", 100, 10) },
+	},
+	raid = {
+		probe = 12400, expect = "12k",
+		points = { Point(10000000, "m", 1000000, 1), Point(1000000, "m", 100000, 10), Point(10000, "k", 1000, 1), Point(1000, "k", 100, 10) },
+	},
+}
+local numberOptions = {}
+
+local function NumberOptions(kind)
+	local cached = numberOptions[kind]
+	if cached ~= nil then
+		return cached or nil
+	end
+	numberOptions[kind] = false
+	local style = NUMBER_STYLES[kind]
+	if not (style and AbbreviateNumbers) then
+		return nil
+	end
+	local options = { breakpointData = style.points }
+	local ok, text = pcall(AbbreviateNumbers, style.probe, options)
+	if ok and text == style.expect then
+		numberOptions[kind] = options
+		Style.LogOnce("shortNumbers" .. kind, kind .. " health numbers read like " .. style.expect)
+	else
+		Style.LogOnce("shortNumbersOff" .. kind, "AbbreviateNumbers refused KstyleUI's breakpoints; " .. kind .. " health numbers use the game's abbreviation")
+	end
+	return numberOptions[kind] or nil
+end
+
+local function Abbreviate(value, kind)
 	if AbbreviateNumbers then
+		local options = kind and NumberOptions(kind)
+		if options then
+			return AbbreviateNumbers(value, options)
+		end
 		return AbbreviateNumbers(value)
 	end
 	return value
 end
+Unit.Abbreviate = Abbreviate
 
 local function Status(f)
 	local unit = f.unit
@@ -99,9 +141,11 @@ local function HealthText(f)
 	if f.status then
 		text:SetAlpha(1)
 		text:SetText(STATUS_TEXT[f.status])
+		text:SetShown(true)
 		return
 	end
 	local format = Settings.current[f.kind].healthText
+	text:SetShown(format ~= "NONE")
 	if format == "NONE" then
 		text:SetText("")
 		return
@@ -112,16 +156,16 @@ local function HealthText(f)
 	if format == "PERCENT" and percent then
 		text:SetFormattedText(PERCENT_FORMAT, UnitHealthPercent(unit, true, percent))
 	elseif format == "DEFICIT" then
-		text:SetFormattedText(DEFICIT_FORMAT, Abbreviate(UnitHealthMissing(unit)))
+		text:SetFormattedText(DEFICIT_FORMAT, Abbreviate(UnitHealthMissing(unit), f.kind))
 		if full then
 			text:SetAlpha(UnitHealthPercent(unit, true, full))
 		end
 	elseif format == "CURRENT_MAX" then
-		text:SetFormattedText(CURRENT_MAX_FORMAT, Abbreviate(UnitHealth(unit)), Abbreviate(UnitHealthMax(unit)))
+		text:SetFormattedText(CURRENT_MAX_FORMAT, Abbreviate(UnitHealth(unit), f.kind), Abbreviate(UnitHealthMax(unit), f.kind))
 	elseif format == "CURRENT_PERCENT" and percent then
-		text:SetFormattedText(CURRENT_PERCENT_FORMAT, Abbreviate(UnitHealth(unit)), UnitHealthPercent(unit, true, percent))
+		text:SetFormattedText(CURRENT_PERCENT_FORMAT, Abbreviate(UnitHealth(unit), f.kind), UnitHealthPercent(unit, true, percent))
 	else
-		text:SetText(Abbreviate(UnitHealth(unit)))
+		text:SetText(Abbreviate(UnitHealth(unit), f.kind))
 	end
 end
 
@@ -144,8 +188,16 @@ local function Colors(f)
 		local c = health.color
 		f.health:SetBarColor(c.r, c.g, c.b)
 	end
-	if Settings.current.text.nameColorSource == "class" then
+	local text = Settings.current.text
+	if f.status then
+		f.name:SetTextColor(Tokens.Color("textDisabled"))
+	elseif text.nameColorSource == "class" then
 		f.name:SetTextColor(cr, cg, cb)
+	elseif text.nameColorSource == "custom" then
+		local c = text.nameColor
+		f.name:SetTextColor(c.r, c.g, c.b)
+	else
+		f.name:SetTextColor(Tokens.Color("textEmphasis"))
 	end
 	if f.showPortrait or f.showRoleRing then
 		f.ring:SetVertexColor(cr, cg, cb)
@@ -228,12 +280,7 @@ local function Health(f)
 end
 
 local function Name(f)
-	local name = UnitName(f.unit)
-	if IsSecret(name) or type(name) == "string" then
-		f.name:SetText(name)
-	else
-		f.name:SetText("")
-	end
+	ns.Names.Set(f, UnitName(f.unit))
 end
 
 local function Portrait(f)

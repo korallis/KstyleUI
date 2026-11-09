@@ -10,26 +10,68 @@ local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
 local I = Hud.ICONS
 
-local PLAYER = { name = "Valerin", class = "WARRIOR", health = 82, maxHealth = 100, power = 45, maxPower = 100, powerType = "RAGE", role = "DAMAGER" }
+local MAX = 41800
+local PLAYER = { name = "Valerin", class = "WARRIOR", health = 34300, maxHealth = MAX, power = 45, maxPower = 100, powerType = "RAGE", role = "DAMAGER" }
 local PARTY = {
-	{ name = "Thaldren", class = "WARRIOR", health = 92, maxHealth = 100, power = 35, maxPower = 100, powerType = "RAGE", role = "TANK", leader = true, threat = 3, incoming = 12, absorb = 6 },
-	{ name = "Sylaen", class = "DRUID", health = 87, maxHealth = 100, power = 80, maxPower = 100, role = "HEALER" },
-	{ name = "Kragar", class = "SHAMAN", health = 0, maxHealth = 100, power = 0, maxPower = 100, dead = true, role = "DAMAGER" },
-	{ name = "Lunara", class = "MAGE", health = 64, maxHealth = 100, power = 90, maxPower = 100, role = "DAMAGER", marker = 8 },
+	{ name = "Thaldren", class = "WARRIOR", health = 30100, maxHealth = MAX, power = 35, maxPower = 100, powerType = "RAGE", role = "TANK", leader = true, threat = 3, incoming = 5000, absorb = 2500, healAbsorb = 6200 },
+	{ name = "Sylaen", class = "DRUID", health = 36400, maxHealth = MAX, power = 80, maxPower = 100, role = "HEALER" },
+	{ name = "Kragar", class = "SHAMAN", health = 0, maxHealth = MAX, power = 0, maxPower = 100, dead = true, role = "DAMAGER" },
+	{ name = "Lunara", class = "MAGE", health = 26800, maxHealth = MAX, power = 90, maxPower = 100, role = "DAMAGER", marker = 8 },
 }
 -- The role and leader icons are Blizzard atlases and the raid marker a cell of Blizzard's marker sheet, drawn from
 -- the texture cache Tools/render/atlas.py builds (a grey box, and a log line, when the cache lacks them).
 local ICONS = {}
 local DEBUFF_ICONS = { I.rend, I.sunderArmor }
 local MAGIC = "rare"
-local RENEW, SHIELD, PAIN, POLYMORPH = 135953, 135940, 136207, 136071
+local RENEW, SHIELD, PAIN, POLYMORPH, EXTERNAL = 135953, 135940, 136207, 136071, 135936
 local RAID_NAMES = {
 	"Thaldren", "Sylaen", "Brakka", "Ysra", "Orrin", "Kesh", "Maela", "Durn", "Lunara", "Vexen",
 	"Garrok", "Ilyra", "Tovan", "Kragar", "Seluna", "Harn", "Zuli", "Morwen", "Rask", "Elowen",
 }
--- Your heals over time on five members, a debuff on two, and a Magic debuff you can dispel on one.
-local RAID_HOTS = { [1] = { RENEW, SHIELD }, [2] = { RENEW }, [6] = { SHIELD }, [11] = { RENEW, SHIELD }, [17] = { RENEW } }
-local RAID_DEBUFFS = { [4] = PAIN, [12] = POLYMORPH }
+-- Your heals over time on five members (five on the first tank, more than fit), debuffs on two (six on Ysra:
+-- a dispellable one, a boss one and four others, more than her two cells), and a Magic debuff you can dispel on one.
+local RAID_HOTS = { [1] = { RENEW, SHIELD, RENEW, SHIELD, RENEW }, [2] = { RENEW }, [6] = { SHIELD }, [11] = { RENEW, SHIELD }, [17] = { RENEW } }
+local RAID_DEBUFFS = {
+	[4] = { dispels = { POLYMORPH }, boss = { PAIN }, debuffs = { PAIN, POLYMORPH, PAIN, POLYMORPH } },
+	[12] = { debuffs = { POLYMORPH } },
+}
+
+-- Flow(env, ns, f, container, entries, size, columns): places the fake engine's shown buttons as the engine's flow
+-- layout would: groups in their priority order (layoutIndex), each up to its maxFrameCount, wrapping at the column
+-- count from the container's anchor, and sizes the container to its content as OnLayoutComplete does. Buttons past
+-- the cells fall in the clip frame's hidden row; the first of them raises the "+" mark on the last cell.
+local function Flow(env, ns, f, container, entries, size, columns)
+	local flow = container._flow
+	local point = flow.anchor or "TOPLEFT"
+	local gx = flow.horizontal == env.AnchorUtil.FlowDirection.Left and -1 or 1
+	local gy = flow.vertical == env.AnchorUtil.FlowDirection.Down and -1 or 1
+	local spacing = container._groups[next(entries)].layout.elementSpacing or 0
+	local step = size + spacing
+	local keys = {}
+	for key in pairs(entries) do
+		keys[#keys + 1] = key
+	end
+	table.sort(keys, function(a, b)
+		return (container._groups[a].layout.layoutIndex or 0) < (container._groups[b].layout.layoutIndex or 0)
+	end)
+	local index = 0
+	for _, key in ipairs(keys) do
+		local group = container._groups[key]
+		for i, icon in ipairs(entries[key]) do
+			if i > group.maxFrameCount then
+				break
+			end
+			local button = group.frames[i]
+			local col, row = index % columns, math.floor(index / columns)
+			button:ClearAllPoints()
+			button:SetPoint(point, container, point, gx * col * step, gy * row * step)
+			button._aura.icon:SetTexture(env.Secret(icon))
+			button:Show()
+			index = index + 1
+		end
+	end
+	container:SetSize(math.max(1, math.min(index, columns)) * step, math.max(1, math.ceil(index / columns)) * step)
+end
 local RAID_DISPEL = 12
 
 local function move(K, key, x, y)
@@ -83,9 +125,13 @@ local function raid(frames, x, y)
 	local env, K, ns = newEnv(G)
 	local members = G.Members(20, function(i, m)
 		m.name = RAID_NAMES[i]
-		m.health = 100 - (i * 7) % 45
+		m.maxHealth = MAX
+		m.health = math.floor(MAX * (100 - (i * 7) % 45) / 100)
 		if i == 1 or i == 11 then
-			m.absorb = 30
+			m.absorb = math.floor(MAX * 0.3)
+		end
+		if i == 4 then
+			m.healAbsorb = math.floor(MAX * 0.15)
 		end
 		m.role = i % 5 == 1 and "TANK" or (i % 5 == 2 and "HEALER" or "DAMAGER")
 		if i == 1 then
@@ -114,33 +160,21 @@ local function raid(frames, x, y)
 	assert(#shown == 20, "twenty raid frames show, got " .. #shown)
 	-- The engine lays its aura buttons out in the game; the scene places the fake engine's buttons where the
 	-- containers would: your heals from the bar's right end leftward, debuffs from the tile's bottom left.
-	local Widgets, Tokens = K.Widgets, K.Tokens
+	local Tokens = K.Tokens
 	local k = ns.Settings.current.raid
-	local function place(container, group, icons, corner, step)
-		local buttons = container._groups[group].frames
-		for i, icon in ipairs(icons) do
-			local button = buttons[i]
-			button:ClearAllPoints()
-			button:SetPoint(corner, container, corner, step * (i - 1), 0)
-			button._aura.icon:SetTexture(env.Secret(icon))
-			button:Show()
-		end
-	end
 	for _, header in ipairs(ns.Headers.raid) do
 		for unit, f in pairs(contents(ns, header)) do
 			local i = tonumber(unit:match("%d+"))
 			if RAID_HOTS[i] and f.buffs then
-				local size = Widgets.Snap(f, k.buffSize)
-				f.buffs:SetSize(size, size)
-				place(f.buffs, "buffs", RAID_HOTS[i], "TOPRIGHT", -(size + Widgets.Snap(f, k.auraSpacing)))
+				local _, count, size = ns.Auras.HealIcons(f, k)
+				Flow(env, ns, f, f.buffs, { buffs = RAID_HOTS[i] }, size, math.max(1, count))
 			end
 			if RAID_DEBUFFS[i] and f.auras then
-				local size = Widgets.Snap(f, k.auraSize)
-				f.auras:SetSize(size, size)
-				place(f.auras, "debuffs", { RAID_DEBUFFS[i] }, "BOTTOMLEFT", size)
+				local block = ns.Auras.Block(f, k)
+				Flow(env, ns, f, f.auras, RAID_DEBUFFS[i], block.size, math.max(1, block.columns))
 			end
-			if i == RAID_DISPEL and f.auras then
-				local slot = f.auras:GetAuraSlotFrame("dispel")
+			if i == RAID_DISPEL and f.highlights then
+				local slot = f.highlights:GetAuraSlotFrame("dispel")
 				local r, g, b = Tokens.Color(MAGIC)
 				for _, entry in ipairs(slot._aura.dispel) do
 					entry.texture:SetVertexColor(r, g, b, 1)
@@ -179,53 +213,57 @@ return Common.Run(function()
 		assert(party[unit], unit .. " has a frame")
 	end
 
-	-- The tank's debuffs: the engine lays its buttons out in the game; the scene places the fake engine's two
-	-- debuff buttons where the AuraContainer would, with an icon each, a count, and the Magic dispel rim on one.
+	-- The tank carries eight debuffs: a Magic one you can dispel, two boss debuffs and five others. The scene flows
+	-- them as the engine would (dispellable, boss, the rest), so the three cells show the dispellable one and the two
+	-- boss debuffs, and the rest fall in the clip frame's hidden row with a "+" on the last cell.
 	local tank = party.party1
 	local container = tank.auras
 	assert(container, "party1 has a debuff container")
 	local k = ns.Settings.current.party
-	local size, spacing = Widgets.Snap(tank, k.auraSize), Widgets.Snap(tank, k.auraSpacing)
-	container:SetSize(ns.Geometry.AuraLine(k.auraColumns, size, spacing), size)
-	local tiles = {}
-	for i, icon in ipairs(DEBUFF_ICONS) do
-		local button = container._groups.debuffs.frames[i]
-		assert(button, "the engine made debuff button " .. i)
-		button:ClearAllPoints()
-		button:SetPoint("TOPLEFT", container, "TOPLEFT", (i - 1) * (size + spacing), 0)
-		button:SetSize(size, size)
-		button._aura.icon:SetTexture(env.Secret(icon))
-		Widgets.SetText(button._aura.count, i == 1 and "2" or "")
-		if i == 2 then
-			local r, g, b = Tokens.Color(MAGIC)
-			for _, entry in ipairs(button._aura.dispel) do
-				entry.texture:SetVertexColor(r, g, b, 1)
-				entry.texture:Show()
-			end
-		end
-		tiles[i] = button
+	local block = ns.Auras.Block(tank, k)
+	Flow(env, ns, tank, container, {
+		dispels = { DEBUFF_ICONS[2] },
+		boss = { I.rend, PAIN },
+		debuffs = { I.sunderArmor, POLYMORPH, PAIN, I.rend, POLYMORPH },
+	}, block.size, math.max(1, block.columns))
+	local dispel = container._groups.dispels.frames[1]
+	Widgets.SetText(container._groups.boss.frames[1]._aura.count, "2")
+	local r, g, b = Tokens.Color(MAGIC)
+	for _, entry in ipairs(dispel._aura.dispel) do
+		entry.texture:SetVertexColor(r, g, b, 1)
+		entry.texture:Show()
 	end
+	-- Five of your heals on the tank, two more than the bar holds.
+	local _, healCount, healSize = ns.Auras.HealIcons(tank, k)
+	Flow(env, ns, tank, tank.buffs, { buffs = { RENEW, SHIELD, RENEW, SHIELD, RENEW } }, healSize, math.max(1, healCount))
+	-- The tank's external defensive in indicator slot 1, where the engine would show it at the frame's centre.
+	local external = tank.indicators and tank.indicators:GetAuraSlotFrame("indicator1")
+	if external then
+		external._aura.icon:SetTexture(env.Secret(EXTERNAL))
+		external:Show()
+	end
+	local tiles = { tank.auraClip, tank.auraClip }
 	frames:Add(env, tank, {
 		name = "groupframes_unit", title = "Party unit", grade = "panel", reference = "nameplate",
-		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, the rage bar under it, the threat glow, and two debuff tiles to its right, one washed in the Magic dispel colour; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
+		caption = "One party frame close up, the tank Thaldren: a 230 by 46 glass tile with the round portrait and level disc, the name above the warrior-coloured health fill on its buttonFill track, incoming heals and an absorb after the fill, a heal absorb eating back from the fill's end in red, an external defensive indicator, five of your heals with a + for the two the bar cannot hold, the threat glow, and eight debuffs of which the three cells to its right show the dispellable one (washed in the Magic colour) and the two boss debuffs, with a + for the rest; the tank's role icon and leader crown are Blizzard atlases from the atlas cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow as the mockup's nameplate frame; the aura tiles are the button grade as the mockup's buff icons, with the class accent rim.",
 		rect = Gallery.Union(env, { tank, tiles[1], tiles[2] }),
 	})
 	frames:Add(env, ns.Headers.holders.party, {
 		name = "groupframes_party", title = "Party frames", grade = "panel", reference = "nameplate",
-		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro and two debuffs, a healer, a dead shaman in grey and a mage with the skull marker on the frame's top edge; each member's role icon and the tank's leader crown are Blizzard atlases and the skull a cell of Blizzard's marker sheet, all from the texture cache.",
+		caption = "The five-player party on the secure party header, the player first: glass tiles with portraits, class-coloured health on buttonFill tracks and power bars, the tank with aggro, eight debuffs (three shown, a + for the rest, all inside the card), five heals and a heal absorb, a healer, a dead shaman reading Dead with a dimmed name, and a mage with the skull marker on the frame's top edge; each member's role icon and the tank's leader crown are Blizzard atlases and the skull a cell of Blizzard's marker sheet, all from the texture cache.",
 		match = "Glass fill, two-line edge, 3.5-unit chamfer and drop shadow on each tile as the mockup's nameplate frame.",
 		rect = Gallery.Union(env, { ns.Headers.holders.party, tiles[1], tiles[2] }),
 	})
 
 	-- The options page's live preview: three sample party frames and two sample raid groups.
 	local pane = env.CreateFrame("Frame", nil, root)
-	at(pane, 460, 90, 300, 420)
+	at(pane, 460, 90, 280, 500)
 	local preview = K.Options.Preview("GroupFrames")(pane)
 	assert(#preview.partyFrames == 3 and #preview.raidFrames == 10, "the preview builds its samples")
-	frames:Add(env, preview.canvas, {
+	frames:Add(env, preview, {
 		name = "groupframes_preview", title = "Group frames preview", grade = "panel", reference = "nameplate",
-		caption = "Preview.lua, the options page's live preview: three sample party frames (a tank with aggro, two debuff tiles and an absorb; a healer with the Magic dispel highlight; a targeted shaman with the target ring) over two sample raid groups of five, including a dead mage and an offline warlock.",
+		caption = "Preview.lua, the options page's live preview at the settings window's default size: three sample party frames (a tank with aggro carrying two debuffs, two of your heals, a shield line, a heal absorb and an external defensive indicator at once; a healer with the Magic dispel highlight and a crowd control indicator; a targeted shaman) over two sample raid groups of five with a dead mage and an offline warlock, and under them the click casting panel: the game's Click Casting bindings, a slot to drop a spell on and a button to the game's own window.",
 		match = "Party tiles on the glass with the two-line edge, 3.5-unit chamfer and shadow, raid tiles without the shadow, as the live frames; the dispel highlight washes a tile in the debuff colour.",
 	})
 

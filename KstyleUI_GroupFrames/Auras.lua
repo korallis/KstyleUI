@@ -1,4 +1,4 @@
--- Auras.lua: a few debuff icons and the dispellable debuff highlight on each group frame, found, sorted and drawn by the AuraContainer engine.
+-- Auras.lua: debuff icons in the player's priority order, the dispellable debuff highlight and the boss debuff glow on each group frame, found, sorted and drawn by the AuraContainer engine.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,7 +10,21 @@ ns.Auras = Auras
 
 local GROUP = "debuffs"
 local DISPELS = "dispels"
-local GROUPS = { DISPELS, GROUP }
+local BOSS = "boss"
+local IMPORTANT = "important"
+local GROUPS = { BOSS, IMPORTANT, DISPELS, GROUP }
+local CATEGORY_GROUP = { BOSS = BOSS, IMPORTANT = IMPORTANT, DISPEL = DISPELS, OTHER = GROUP }
+local CATEGORY_ORDER = { "BOSS", "IMPORTANT", "DISPEL", "OTHER" }
+local OVERFLOW = 1
+local TEXT_ABOVE = 8
+local MARK = "+"
+local MARK_SHARE = 0.55
+local MARK_MIN = 7
+local MARK_BACK_ALPHA = 0.75
+local MARK_BACK_SUBLEVEL = 5
+local MARK_SUBLEVEL = 6
+local GLOWS = { glowBoss = { isBossAura = true }, glowImportant = { isPriorityAura = true } }
+local GLOW_FILTER = "HARMFUL"
 local SLOT = "dispel"
 local TEMPLATE = "CustomAuraContainerTemplate"
 local NONE = "none"
@@ -27,7 +41,6 @@ local DISPEL_SUBLEVEL = 7
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
 local SAMPLE_ICONS = { 136207, 135848, 136139 }
-local SAMPLE_COUNT = 2
 local BUFFS = "buffs"
 local BUFF_FILTER = "HELPFUL|PLAYER"
 local SAMPLE_BUFF_ICONS = { 136081, 135953, 135940 }
@@ -60,14 +73,82 @@ local function DispelCount(k)
 	return math.min(k.auraDispelCount, k.auraColumns * k.auraRows)
 end
 
-local LAYOUT_INDEX = { [DISPELS] = 1, [GROUP] = 2 }
+local function Order()
+	local a = Settings.current.auras
+	local index, seen, n = {}, {}, 0
+	local function take(category)
+		local key = CATEGORY_GROUP[category]
+		if key and not seen[key] then
+			seen[key] = true
+			n = n + 1
+			index[key] = n
+		end
+	end
+	local listed = {}
+	for i = 1, #CATEGORY_ORDER do
+		listed[a["priority" .. i]] = true
+	end
+	local function missing()
+		for i = 1, #CATEGORY_ORDER do
+			local category = CATEGORY_ORDER[i]
+			if not listed[category] and not seen[CATEGORY_GROUP[category]] then
+				return category
+			end
+		end
+	end
+	for i = 1, #CATEGORY_ORDER do
+		local category = a["priority" .. i]
+		if seen[CATEGORY_GROUP[category]] then
+			category = missing()
+		end
+		if category then
+			take(category)
+		end
+	end
+	for i = 1, #CATEGORY_ORDER do
+		take(CATEGORY_ORDER[i])
+	end
+	return index
+end
+Auras.Order = Order
+
+local function Block(f, k)
+	local w, h = Style.Size(f)
+	local size, spacing = Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
+	local inset, gap = Widgets.Snap(f, Tokens.Size("gapTiny")), Widgets.Snap(f, Tokens.Size("gapSmall"))
+	local lane = f.kind == "party" and Geometry.AuraLane(k) or 0
+	local block = Geometry.AuraBlock(k, w, h, size, spacing, inset, lane > 0 and lane - gap or 0)
+	block.spacing, block.inset, block.gap = spacing, inset, gap
+	return block
+end
+Auras.Block = Block
+
+local function GroupCount(f, k, key)
+	local cells = f and Block(f, k).cells or Count(k)
+	if key == DISPELS then
+		return math.max(1, math.min(DispelCount(k), cells))
+	end
+	return cells + OVERFLOW
+end
+
+local function Candidates(key, types)
+	if key == BOSS then
+		return { isBossAura = true }
+	elseif key == IMPORTANT then
+		return { isBossAura = false, isPriorityAura = true }
+	end
+	local processed = key == DISPELS and types.Dispel or types.Debuff
+	return { processedAuraType = processed, isBossAura = false, isPriorityAura = false }
+end
 
 local function Sizes(f, k)
-	return Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
+	return Auras.Block(f, k).size, Widgets.Snap(f, k.auraSpacing)
 end
 
 local function BuffSizes(f, k)
-	return Widgets.Snap(f, k.buffSize), Widgets.Snap(f, k.auraSpacing)
+	local _, h = Style.Size(f)
+	local room = math.max(1, h - 2 * Widgets.Snap(f, Tokens.Size("gapTiny")))
+	return math.min(Widgets.Snap(f, k.buffSize), room), Widgets.Snap(f, k.auraSpacing)
 end
 
 local function BuffLayout(f, k)
@@ -83,7 +164,7 @@ local function GroupLayout(f, k, key)
 	local size, spacing = Sizes(f, k)
 	return {
 		elementSpacing = spacing, lineSpacing = spacing, elementWidth = size, elementHeight = size,
-		layoutIndex = LAYOUT_INDEX[key or GROUP],
+		layoutIndex = Order()[key or GROUP],
 	}
 end
 
@@ -146,7 +227,7 @@ local function Flush()
 	end
 	for f in pairs(pending) do
 		pending[f] = nil
-		if f.auras or f.buffs then
+		if f.auras or f.buffs or f.indicators then
 			RestyleNow(f)
 		end
 	end
@@ -177,7 +258,7 @@ local function StyleIcon(button)
 		return
 	end
 	local k = Settings.current[f.kind]
-	local size = p.buff and k.buffSize or k.auraSize
+	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or Sizes(f, k))
 	Widgets.Size(button, size, size)
 	p.restyleChrome(p.chrome)
 	p.chrome:SetRimAccent(Style.Accent())
@@ -188,6 +269,33 @@ local function StyleIcon(button)
 	local text = Settings.current.text
 	Style.SetFont(p.count, text.healthFont, math.max(6, math.floor(size * COUNT_SHARE + 0.5)), "OUTLINE")
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
+	if p.mark and not p.size then
+		Auras.PlaceMark(p, button, f, k)
+	end
+end
+
+function Auras.PlaceMark(p, button, f, k)
+	local columns, rows, size, spacing, gx, gy
+	if p.buff then
+		local side, count, buffSize, buffSpacing = Auras.HealIcons(f, k)
+		columns, rows, size, spacing = math.max(1, count), 1, buffSize, buffSpacing
+		gx, gy = side == "RIGHT" and -1 or 1, -1
+	else
+		local block = Block(f, k)
+		columns, rows, size, spacing = math.max(1, block.columns), math.max(1, block.rows), block.size, block.spacing
+		gx, gy = k.auraGrowth == "LEFT" and -1 or 1, k.auraWrap == "DOWN" and -1 or 1
+	end
+	local step = size + spacing
+	local mark, back = p.mark, p.markBack
+	local badge = Widgets.Snap(f, math.max(MARK_MIN, size * MARK_SHARE))
+	back:ClearAllPoints()
+	back:SetSize(badge, badge)
+	back:SetPoint("TOPRIGHT", button, "TOPRIGHT", (columns - 1) * step * gx, -rows * step * gy)
+	Style.SetFont(mark, Settings.current.text.healthFont, math.max(MARK_MIN, math.floor(badge + 0.5)), "OUTLINE")
+	mark:SetTextColor(Tokens.Color("textEmphasis"))
+	mark:SetText(MARK)
+	mark:ClearAllPoints()
+	mark:SetPoint("CENTER", back, "CENTER", 0, 0)
 end
 
 local function StyleGroup(container, key)
@@ -201,10 +309,18 @@ local function StyleGroup(container, key)
 	return true
 end
 
+Auras.restylers = {}
+
 function RestyleNow(f)
 	local container = f.auras
 	if f.buffs then
 		StyleGroup(f.buffs, BUFFS)
+	end
+	for i = 1, #Auras.restylers do
+		local ok, err = pcall(Auras.restylers[i], f)
+		if not ok then
+			Style.LogOnce("auraRestyler", "restyling a group frame aura part failed: " .. tostring(err))
+		end
 	end
 	if not container then
 		return
@@ -212,6 +328,12 @@ function RestyleNow(f)
 	for _, key in ipairs(GROUPS) do
 		if not StyleGroup(container, key) then
 			return
+		end
+	end
+	for _, entry in ipairs(f.debuffGlows or {}) do
+		local ok, err = pcall(entry.restyle, entry.glow)
+		if not ok then
+			Style.LogOnce("glowStyle", "restyling the debuff glow failed: " .. tostring(err))
 		end
 	end
 	if f.dispelWash then
@@ -229,6 +351,8 @@ local function Restyle(f)
 	end
 	RestyleNow(f)
 end
+Auras.Restyle = Restyle
+Auras.StyleIcon = StyleIcon
 
 local function DispelStyle()
 	local enum = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
@@ -274,9 +398,13 @@ local function BuildIcon(button)
 	cooldown:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
 	local textFrame = CreateFrame("Frame", nil, p.skin)
 	textFrame:SetAllPoints(p.skin)
-	textFrame:SetFrameLevel(cooldown:GetFrameLevel() + 1)
+	textFrame:SetFrameLevel(button:GetFrameLevel() + TEXT_ABOVE)
 	local count = Widgets.FontString(textFrame, "OVERLAY")
 	count:SetJustifyH("RIGHT")
+	p.markBack = textFrame:CreateTexture(nil, "OVERLAY", nil, MARK_BACK_SUBLEVEL)
+	p.markBack:SetColorTexture(Widgets.Rgba("black", MARK_BACK_ALPHA))
+	p.mark = Widgets.FontString(textFrame, "OVERLAY")
+	p.mark:SetDrawLayer("OVERLAY", MARK_SUBLEVEL)
 	p.cooldown, p.count = cooldown, count
 	parts[button] = p
 	StyleIcon(button)
@@ -297,6 +425,46 @@ local function InitIcon(button)
 	if not ok then
 		Style.LogOnce("auraButton", "building a debuff icon failed: " .. tostring(err))
 	end
+end
+
+function Auras.Dress(button, owner, size)
+	owners[button:GetParent()] = owner
+	local ok, err = pcall(BuildIcon, button)
+	if not ok then
+		Style.LogOnce("auraButton", "building an indicator icon failed: " .. tostring(err))
+		return
+	end
+	local p = parts[button]
+	p.size = size
+	if p.mark then
+		p.mark:SetText("")
+		p.mark:Hide()
+		p.markBack:Hide()
+		p.mark, p.markBack = nil, nil
+	end
+	return p
+end
+function Auras.Parts(button)
+	return parts[button]
+end
+Auras.NewTile = NewTile
+Auras.PlaceIcon = PlaceIcon
+Auras.TEMPLATE = TEMPLATE
+Auras.CONTAINER_LEVEL = CONTAINER_LEVEL
+
+function Auras.BuildGlow(slot, f)
+	pcall(slot.EnableMouse, slot, false)
+	slot:ClearAllPoints()
+	slot:SetAllPoints(f)
+	local anchor = CreateFrame("Frame", nil, slot)
+	anchor:SetAllPoints(f)
+	local glow = Widgets.Glow(anchor, { kind = "selection", color = "hostile", spread = Tokens.Size(f.kind == "party" and "gapMedium" or "gapSmall") })
+	glow.holder:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
+	local restyle = GateChrome(glow, f)
+	glow:SetIntensity(1)
+	f.debuffGlows = f.debuffGlows or {}
+	f.debuffGlows[#f.debuffGlows + 1] = { glow = glow, restyle = restyle }
+	return glow
 end
 
 local function BuildDispel(slot, f)
@@ -320,16 +488,15 @@ local function BuildDispel(slot, f)
 	end
 end
 
-local function GroupOptions(f, k, key, processedType)
-	local count = key == DISPELS and math.max(1, DispelCount(k)) or Count(k)
-	local options = { maxFrameCount = count, initializeFrame = InitIcon, layout = GroupLayout(f, k, key) }
+local function GroupOptions(f, k, key, types)
+	local options = { maxFrameCount = GroupCount(f, k, key), initializeFrame = InitIcon, layout = GroupLayout(f, k, key) }
 	local methods, directions = AuraContainerSortMethod, AuraContainerSortDirection
 	if methods and directions then
-		options.sortMethod = processedType and methods.UnitFrameDebuff or methods.Default
+		options.sortMethod = types and methods.UnitFrameDebuff or methods.Default
 		options.sortDirection = directions.Normal
 	end
-	if processedType then
-		options.candidateFilters = { processedAuraType = processedType }
+	if types then
+		options.candidateFilters = Candidates(key, types)
 	end
 	return options
 end
@@ -338,8 +505,9 @@ local function AddGroups(container, f, k, filter)
 	local policy, types = Processing()
 	if policy and type(container.SetAuraProcessingPolicy) == "function" then
 		container:SetAuraProcessingPolicy(policy, PolicyOptions())
-		container:AddAuraGroup(DISPELS, filter, GroupOptions(f, k, DISPELS, types.Dispel))
-		container:AddAuraGroup(GROUP, filter, GroupOptions(f, k, GROUP, types.Debuff))
+		for _, key in ipairs(GROUPS) do
+			container:AddAuraGroup(key, filter, GroupOptions(f, k, key, types))
+		end
 		return true
 	end
 	Style.LogOnce("auraPolicy", "the aura processing policy is missing; group frames show debuffs in the default order")
@@ -353,6 +521,12 @@ local function SetUnit(f, unit)
 		return
 	end
 	local ok, err = pcall(container.SetUnit, container, unit)
+	if f.highlights then
+		local lit, litErr = pcall(f.highlights.SetUnit, f.highlights, unit)
+		if not lit then
+			Style.LogOnce("highlightUnit", "a highlight container refused a unit: " .. tostring(litErr))
+		end
+	end
 	if ok then
 		f.aurasUnit = unit
 	else
@@ -373,8 +547,26 @@ local function SetBuffUnit(f, unit)
 	end
 end
 
-local function NewContainer(f)
+local function NewHighlights(f)
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, f, TEMPLATE)
+	if not ok or type(container) ~= "table" or type(container.AddAuraSlot) ~= "function" then
+		Style.LogOnce("dispelSlotMissing", "AddAuraSlot is missing; group frames show no dispel highlight or debuff glow")
+		return nil
+	end
+	owners[container] = f
+	container:SetFrameLevel(f:GetFrameLevel() + CONTAINER_LEVEL)
+	if type(container.SetEditModePreviewEnabled) == "function" then
+		pcall(container.SetEditModePreviewEnabled, container, false)
+	end
+	return container
+end
+
+local function NewContainer(f)
+	local clip = CreateFrame("Frame", nil, f)
+	clip:SetClipsChildren(true)
+	clip:SetFrameLevel(f:GetFrameLevel() + CONTAINER_LEVEL)
+	f.auraClip = clip
+	local ok, container = pcall(CreateFrame, "AuraContainer", nil, clip, TEMPLATE)
 	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
 		available = false
 		Style.LogOnce("auraMissing", "the AuraContainer engine (" .. TEMPLATE .. ") is unavailable, so group frames show no debuffs: " .. tostring(container))
@@ -395,8 +587,27 @@ local function NewContainer(f)
 		Style.LogOnce("auraGroup", "the debuff group could not be added: " .. tostring(err))
 		return nil
 	end
-	if type(container.AddAuraSlot) == "function" then
-		local slotted, slotErr = pcall(container.AddAuraSlot, container, SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER, {
+	local highlights = NewHighlights(f)
+	f.highlights = highlights
+	if highlights then
+		f.glowSlots = {}
+		for key, candidates in pairs(GLOWS) do
+			local made, glowErr = pcall(highlights.AddAuraSlot, highlights, key, GLOW_FILTER, {
+				candidateFilters = candidates,
+				initializeFrame = function(slot)
+					local built, buildErr = pcall(Auras.BuildGlow, slot, f)
+					if not built then
+						Style.LogOnce("glowBuild", "building the debuff glow failed: " .. tostring(buildErr))
+					end
+				end,
+			})
+			if made then
+				f.glowSlots[key] = true
+			else
+				Style.LogOnce("glowSlot", "the debuff glow slot could not be added: " .. tostring(glowErr))
+			end
+		end
+		local slotted, slotErr = pcall(highlights.AddAuraSlot, highlights, SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER, {
 			initializeFrame = function(slot)
 				local built, buildErr = pcall(BuildDispel, slot, f)
 				if not built then
@@ -408,15 +619,17 @@ local function NewContainer(f)
 		if not slotted then
 			Style.LogOnce("dispelSlot", "the dispel highlight slot could not be added: " .. tostring(slotErr))
 		end
-	else
-		Style.LogOnce("dispelSlotMissing", "AddAuraSlot is missing; group frames show no dispel highlight")
 	end
 	Style.LogOnce("auraEngine", "group frame debuffs run on the AuraContainer engine")
 	return container
 end
 
 local function NewBuffContainer(f)
-	local ok, container = pcall(CreateFrame, "AuraContainer", nil, f, TEMPLATE)
+	local clip = CreateFrame("Frame", nil, f)
+	clip:SetClipsChildren(true)
+	clip:SetFrameLevel(f:GetFrameLevel() + CONTAINER_LEVEL)
+	f.buffClip = clip
+	local ok, container = pcall(CreateFrame, "AuraContainer", nil, clip, TEMPLATE)
 	if not ok or type(container) ~= "table" or type(container.AddAuraGroup) ~= "function" then
 		buffsAvailable = false
 		Style.LogOnce("buffMissing", "the AuraContainer engine (" .. TEMPLATE .. ") is unavailable, so group frames show none of your heals over time: " .. tostring(container))
@@ -463,27 +676,51 @@ local function HealIcons(f, k)
 		inset = inset, gap = Widgets.Snap(f, Tokens.Size("gapSmall")), size = size, spacing = spacing, count = k.buffCount,
 		debuffs = a.enabled, debuffPosition = k.auraPosition, debuffSize = Widgets.Snap(f, k.auraSize),
 		debuffColumns = k.auraColumns, debuffRows = k.auraRows, debuffCount = Count(k), dispelCount = DispelCount(k),
+		reserve = Auras.BarTextReserve(f, k),
 	})
 	return side, count, size, spacing, inset
 end
 Auras.HealIcons = HealIcons
 
+function Auras.BarTextReserve(f, k)
+	if k.healthText == "NONE" or k.healthTextPlace ~= "BAR" or k.textLayout ~= "ABOVE" or not f.parts or f.parts.nameInside then
+		return nil
+	end
+	return Style.Reserve(f, k)
+end
+
+function Auras.HealBlock(f, k)
+	if not Settings.current.buffs.enabled or not f.parts then
+		return 0, "RIGHT"
+	end
+	local side, count, size, spacing, inset = HealIcons(f, k)
+	if count <= 0 then
+		return 0, side
+	end
+	return Geometry.Line(count, size, spacing) + inset + Widgets.Snap(f, Tokens.Size("gapSmall")), side
+end
+
 local function ConfigureBuffs(f)
 	local container = f.buffs
 	local k = Settings.current[f.kind]
-	local side, count, size, _, inset = HealIcons(f, k)
+	local side, count, size, spacing, inset = HealIcons(f, k)
 	local corner = "TOP" .. side
+	local clip = f.buffClip
+	clip:ClearAllPoints()
+	clip:SetPoint(corner, f.health, side, side == "RIGHT" and -inset or inset, Widgets.Snap(f, size / 2))
+	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size)
 	container:ClearAllPoints()
-	container:SetPoint(corner, f.health, side, side == "RIGHT" and -inset or inset, Widgets.Snap(f, size / 2))
+	container:SetPoint(corner, clip, corner, 0, 0)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
 		container:SetFlowLayoutAxis(axis.Horizontal)
 		container:SetFlowLayoutAnchorPoint(corner)
 		container:SetFlowLayoutGrowthDirection(side == "RIGHT" and direction.Left or direction.Right, direction.Down)
+		container:SetFlowLayoutMaximumLineSize(Geometry.Line(math.max(1, count), size, spacing) + LINE_SLACK)
 	end
 	container:SetAuraGroupLayout(BUFFS, BuffLayout(f, k))
-	container:SetAuraGroupMaxFrameCount(BUFFS, math.max(1, count))
+	container:SetAuraGroupMaxFrameCount(BUFFS, math.max(1, count) + OVERFLOW)
 	container:SetAuraGroupEnabled(BUFFS, Settings.current.buffs.enabled and count > 0)
 	Restyle(f)
 end
@@ -492,18 +729,22 @@ local function Configure(f)
 	local container = f.auras
 	local k, a = Settings.current[f.kind], Settings.current.auras
 	local size, spacing = Sizes(f, k)
-	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
-	local point, rel, x, y = Geometry.AuraAnchor(k.auraPosition, k.auraGrowth, k.auraWrap, inset, gap)
+	local block = Block(f, k)
+	local point, rel, x, y = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, block.inset, block.gap)
+	local clip = f.auraClip
+	clip:ClearAllPoints()
+	clip:SetPoint(point, f, rel, x, y)
+	clip:SetSize(math.max(1, block.width), math.max(1, block.height))
+	clip:SetShown(block.cells > 0)
 	container:ClearAllPoints()
-	container:SetPoint(point, f, rel, x, y)
+	container:SetPoint(point, clip, point, 0, 0)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
 		container:SetFlowLayoutAxis(axis.Horizontal)
 		container:SetFlowLayoutAnchorPoint(point)
 		container:SetFlowLayoutGrowthDirection(k.auraGrowth == "LEFT" and direction.Left or direction.Right, k.auraWrap == "DOWN" and direction.Down or direction.Up)
-		container:SetFlowLayoutMaximumLineSize(Geometry.AuraLine(k.auraColumns, size, spacing) + LINE_SLACK)
+		container:SetFlowLayoutMaximumLineSize(Geometry.AuraLine(math.max(1, block.columns), size, spacing) + LINE_SLACK)
 	else
 		Style.LogOnce("auraAnchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
 	end
@@ -511,20 +752,26 @@ local function Configure(f)
 	if f.processed then
 		container:SetAuraProcessingPolicy(Processing(), PolicyOptions())
 		local dispels = DispelCount(k)
-		container:SetAuraGroupLayout(DISPELS, GroupLayout(f, k, DISPELS))
-		container:SetAuraGroupFilterString(DISPELS, filter)
-		if dispels > 0 then
-			container:SetAuraGroupMaxFrameCount(DISPELS, dispels)
+		for _, key in ipairs({ BOSS, IMPORTANT, DISPELS }) do
+			container:SetAuraGroupLayout(key, GroupLayout(f, k, key))
+			container:SetAuraGroupFilterString(key, filter)
+			container:SetAuraGroupMaxFrameCount(key, GroupCount(f, k, key))
 		end
+		container:SetAuraGroupEnabled(BOSS, a.enabled)
+		container:SetAuraGroupEnabled(IMPORTANT, a.enabled)
 		container:SetAuraGroupEnabled(DISPELS, a.enabled and dispels > 0)
 	end
+	local highlights = f.highlights
+	for key in pairs(f.glowSlots or {}) do
+		highlights:SetAuraSlotEnabled(key, a.glow)
+	end
 	container:SetAuraGroupLayout(GROUP, GroupLayout(f, k, GROUP))
-	container:SetAuraGroupMaxFrameCount(GROUP, Count(k))
+	container:SetAuraGroupMaxFrameCount(GROUP, GroupCount(f, k, GROUP))
 	container:SetAuraGroupFilterString(GROUP, filter)
 	container:SetAuraGroupEnabled(GROUP, a.enabled)
 	if f.dispelSlot then
-		container:SetAuraSlotFilterString(SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
-		container:SetAuraSlotEnabled(SLOT, a.dispelHighlight)
+		highlights:SetAuraSlotFilterString(SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
+		highlights:SetAuraSlotEnabled(SLOT, a.dispelHighlight)
 	end
 	Restyle(f)
 end
@@ -554,11 +801,14 @@ local function Bind(f)
 		return
 	end
 	local a = Settings.current.auras
-	local on = (a.enabled or a.dispelHighlight) and available and Unit.running
+	local on = (a.enabled or a.dispelHighlight or a.glow) and available and Unit.running
 	if not on then
 		if f.auras then
 			SetUnit(f, NONE)
 			f.auras:Hide()
+			if f.highlights then
+				f.highlights:Hide()
+			end
 		end
 		return
 	end
@@ -583,6 +833,9 @@ local function Bind(f)
 		Layout(f)
 	end
 	f.auras:Show()
+	if f.highlights then
+		f.highlights:Show()
+	end
 	SetUnit(f, f.unit or NONE)
 end
 Auras.Bind = Bind
@@ -649,6 +902,10 @@ local function BuildSamples(f)
 		icon.tile, icon.art = tile, tile.icon
 		f.sampleBuffs[i] = icon
 	end
+	local markLayer = CreateFrame("Frame", nil, holder)
+	markLayer:SetAllPoints(holder)
+	markLayer:SetFrameLevel(holder:GetFrameLevel() + #SAMPLE_ICONS + 1)
+	f.sampleMark = Widgets.FontString(markLayer, "OVERLAY")
 	f.sampleDispel = CreateFrame("Frame", nil, holder)
 	f.sampleDispel:SetAllPoints(f)
 	f.sampleDispelWash, f.sampleDispelRing = NewDispel(f.sampleDispel)
@@ -657,10 +914,12 @@ Button.built[#Button.built + 1] = BuildSamples
 
 local function LayoutSamples(f, k)
 	local holder = f.sampleAuraHolder
-	local size, spacing = Sizes(f, k)
-	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
-	local point, rel, x, y = Geometry.AuraAnchor(k.auraPosition, k.auraGrowth, k.auraWrap, inset, gap)
+	local block = Block(f, k)
+	local size, spacing = block.size, block.spacing
+	local inset = block.inset
+	local columns = math.max(1, block.columns)
+	f.sampleCells = block.cells
+	local point, rel, x, y = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, inset, block.gap)
 	holder:ClearAllPoints()
 	holder:SetPoint(point, f, rel, x, y)
 	holder:SetSize(size, size)
@@ -668,7 +927,7 @@ local function LayoutSamples(f, k)
 	local dy = k.auraWrap == "DOWN" and -1 or 1
 	for i, icon in ipairs(f.sampleAuras) do
 		local index = i - 1
-		local col, row = index % k.auraColumns, math.floor(index / k.auraColumns)
+		local col, row = index % columns, math.floor(index / columns)
 		icon:ClearAllPoints()
 		icon:SetSize(size, size)
 		icon:SetPoint(point, holder, point, dx * col * (size + spacing), dy * row * (size + spacing))
@@ -701,10 +960,20 @@ Style.appliers[#Style.appliers + 1] = Applied
 
 local function PaintSample(f, sample)
 	local k, a = Settings.current[f.kind], Settings.current.auras
-	local shown = a.enabled and math.min(sample.debuffs or 0, Count(k), SAMPLE_COUNT) or 0
+	local cells = f.sampleCells or Count(k)
+	local shown = a.enabled and math.min(sample.debuffs or 0, cells, #f.sampleAuras) or 0
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
 	end
+	local more = a.enabled and shown > 0 and (sample.debuffs or 0) > shown
+	f.sampleMark:ClearAllPoints()
+	if more then
+		f.sampleMark:SetPoint("TOPRIGHT", f.sampleAuras[shown], "TOPRIGHT", 0, 0)
+		Style.SetFont(f.sampleMark, Settings.current.text.healthFont, math.max(6, math.floor(Sizes(f, k) * MARK_SHARE + 0.5)), "OUTLINE")
+		f.sampleMark:SetTextColor(Tokens.Color("textEmphasis"))
+		f.sampleMark:SetText(MARK)
+	end
+	f.sampleMark:SetShown(more)
 	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)

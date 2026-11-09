@@ -1,4 +1,4 @@
--- Prediction.lua: incoming heals and absorbs drawn after the health fill, from the heal prediction calculator, values passed straight to the bars.
+-- Prediction.lua: incoming heals and absorbs after the health fill and heal absorbs back from its end, from the heal prediction calculator, values passed straight to the bars.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,6 +21,7 @@ local function Build(f)
 	f.heals = Widgets.StatusBar(f.predict, { background = false, smooth = true })
 	f.absorbs = Widgets.StatusBar(f.predict, { background = false, smooth = true })
 	f.shield = Widgets.StatusBar(f.predict, { background = false, smooth = true })
+	f.healAbsorbs = Widgets.StatusBar(f.predict, { background = false, smooth = true, reverse = true })
 end
 Button.built[#Button.built + 1] = Build
 
@@ -37,6 +38,10 @@ local function Configure(calc)
 	if modes and calc.SetDamageAbsorbClampMode then
 		local withHeals = Settings.current.prediction.heals
 		calc:SetDamageAbsorbClampMode(withHeals and modes.MissingHealth or modes.MissingHealthWithoutIncomingHeals or modes.MissingHealth)
+	end
+	local healAbsorb = enum and enum.UnitHealAbsorbClampMode
+	if healAbsorb and calc.SetHealAbsorbClampMode then
+		calc:SetHealAbsorbClampMode(healAbsorb.CurrentHealth)
 	end
 end
 
@@ -73,6 +78,23 @@ local function Layout(f, parts)
 	end
 	Paint(f.heals, cfg.prediction.healColor)
 	Paint(f.absorbs, cfg.prediction.absorbColor)
+	local eaten = f.healAbsorbs
+	eaten:SetOrientation(cfg.health.orientation)
+	eaten:SetReverseFill(true)
+	eaten:SetBarTexture(cfg.health.texture)
+	eaten.opts.width, eaten.opts.height = rect.width, rect.height
+	eaten:Restyle()
+	eaten:ClearAllPoints()
+	if vertical then
+		eaten:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
+	else
+		eaten:SetPoint("TOPRIGHT", fill, "TOPRIGHT", 0, 0)
+	end
+	Paint(eaten, cfg.prediction.healAbsorbColor)
+	eaten:SetShown(cfg.prediction.healAbsorbs)
+	if not cfg.prediction.healAbsorbs then
+		eaten:SetValue(0)
+	end
 	local shield = f.shield
 	local line = Widgets.Border(f) * SHIELD_LINES
 	shield:SetOrientation("HORIZONTAL")
@@ -95,6 +117,14 @@ local function Layout(f, parts)
 end
 Style.appliers[#Style.appliers + 1] = Layout
 
+local function TotalHealAbsorbs(unit)
+	if type(UnitGetTotalHealAbsorbs) == "function" then
+		return UnitGetTotalHealAbsorbs(unit)
+	end
+	Style.LogOnce("noHealAbsorbs", "UnitGetTotalHealAbsorbs is missing; heal absorbs stay hidden")
+	return 0
+end
+
 local function Values(f)
 	local unit = f.unit
 	if type(CreateUnitHealPredictionCalculator) == "function" and type(UnitGetDetailedHealPrediction) == "function" then
@@ -102,9 +132,16 @@ local function Values(f)
 		UnitGetDetailedHealPrediction(unit, HEALER, calc)
 		local heals = calc:GetIncomingHeals()
 		local absorbs = calc:GetDamageAbsorbs()
-		return heals, absorbs
+		local eaten
+		if type(calc.GetHealAbsorbs) == "function" then
+			eaten = calc:GetHealAbsorbs()
+		else
+			Style.LogOnce("calcHealAbsorbs", "the heal prediction calculator has no GetHealAbsorbs; heal absorbs read UnitGetTotalHealAbsorbs")
+			eaten = TotalHealAbsorbs(unit)
+		end
+		return heals, absorbs, eaten
 	end
-	Style.LogOnce("noCalculator", "CreateUnitHealPredictionCalculator is missing; heals and absorbs read UnitGetIncomingHeals and UnitGetTotalAbsorbs")
+	Style.LogOnce("noCalculator", "CreateUnitHealPredictionCalculator is missing; heals and absorbs read UnitGetIncomingHeals, UnitGetTotalAbsorbs and UnitGetTotalHealAbsorbs")
 	local heals, absorbs = 0, 0
 	if type(UnitGetIncomingHeals) == "function" then
 		heals = UnitGetIncomingHeals(unit)
@@ -112,7 +149,7 @@ local function Values(f)
 	if type(UnitGetTotalAbsorbs) == "function" then
 		absorbs = UnitGetTotalAbsorbs(unit)
 	end
-	return heals, absorbs
+	return heals, absorbs, TotalHealAbsorbs(unit)
 end
 
 local function Shield(f)
@@ -132,17 +169,24 @@ end
 local function Update(f)
 	local cfg = Settings.current.prediction
 	Shield(f)
-	if not cfg.heals and not cfg.absorbs then
+	if not cfg.heals and not cfg.absorbs and not cfg.healAbsorbs then
 		return
 	end
-	local heals, absorbs = Values(f)
+	local heals, absorbs, eaten = Values(f)
 	if type(heals) == "nil" then
 		heals = 0
 	end
 	if type(absorbs) == "nil" then
 		absorbs = 0
 	end
+	if type(eaten) == "nil" then
+		eaten = 0
+	end
 	local unit = f.unit
+	if cfg.healAbsorbs then
+		f.healAbsorbs:SetBarRange(0, UnitHealthMax(unit))
+		f.healAbsorbs:SetBarValue(eaten)
+	end
 	if cfg.heals then
 		f.heals:SetBarRange(0, UnitHealthMax(unit))
 		f.heals:SetBarValue(heals)
@@ -162,6 +206,8 @@ local function PaintSample(f, sample)
 	f.absorbs:SetBarValue(cfg.absorbs and sample.absorb or 0)
 	f.shield:SetBarRange(0, 1)
 	f.shield:SetBarValue(cfg.shield and (sample.shield or sample.absorb) or 0)
+	f.healAbsorbs:SetBarRange(0, 1)
+	f.healAbsorbs:SetBarValue(cfg.healAbsorbs and sample.healAbsorb or 0)
 end
 Style.painters[#Style.painters + 1] = PaintSample
 

@@ -207,9 +207,12 @@ do
 	eq(b.healthText.right, 226, "and the health text ends at the bar")
 
 	b = Geo.Button(120, 46, { portrait = false, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true })
-	rect(b.icons.leader, 2, -2, 14, 14, "without a portrait the leader icon sits on the top left corner, a gap in")
-	rect(b.name, 18, 4, 84, 13, "and the name row runs from it to the role icon")
-	rect(b.icons.marker, 88, 3.5, 14, 14, "the marker in the name row, off the bar")
+	-- Round 2: without a portrait the role icon leads the name row and the leader crown is a badge on its corner, so
+	-- the name gains the role icon's width at the row's end (raid names truncated to four letters before).
+	rect(b.icons.role, 2, 2, 14, 14, "without a portrait the role icon leads the name row, a gap in")
+	rect(b.icons.leader, 0, 0, 9, 9, "the leader crown is a badge on the role icon's corner")
+	rect(b.name, 18, 4, 98, 13, "and the name row runs from the role icon to the frame's end")
+	rect(b.icons.marker, 102, 3.5, 14, 14, "the marker in the name row, off the bar")
 
 	b = Geo.Button(278, 40, { portrait = true, power = false, nameAbove = true, nameHeight = 13, iconSize = 14, role = true, leader = true, marker = true, pill = 6, pillRise = 2 })
 	rect(b.health, 44, 28, 230, 6, "a pill row draws the bar as a 6-unit pill two units off the row's foot")
@@ -221,11 +224,11 @@ do
 
 	b = Geo.Button(77, 40, { portrait = false, power = false, nameAbove = true, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
 	eq(b.nameInside, false, "a 77 by 40 raid tile puts the name above the bar")
-	rect(b.name, 16, 4, 45, 12, "the raid name row runs from the leader icon to the role icon")
+	rect(b.name, 16, 4, 57, 12, "the raid name row runs from the role icon at its start to the tile's end")
 	rect(b.health, 4, 18, 69, 18, "and the bar fills the rest, clear of the name")
-	eq(b.healthText.right, 61, "the missing health ends the name row, before the role icon")
-	rect(b.icons.marker, 49, 4, 12, 12, "a raid marker sits in the name row, off the bar")
-	eq(b.healthText.markedRight, 47, "and the missing health moves before it")
+	eq(b.healthText.right, 73, "the missing health ends the name row at the tile's padding")
+	rect(b.icons.marker, 61, 4, 12, 12, "a raid marker sits in the name row, off the bar")
+	eq(b.healthText.markedRight, 59, "and the missing health moves before it")
 
 	b = Geo.Button(72, 40, { portrait = false, power = false, nameAbove = false, nameHeight = 12, iconSize = 12, role = true, leader = true, marker = true })
 	rect(b.icons.role, 58, 2, 12, 12, "raid role icon")

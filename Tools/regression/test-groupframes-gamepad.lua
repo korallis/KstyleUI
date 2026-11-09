@@ -106,7 +106,7 @@ do
 	switch(env, false)
 	blizzardHidden(env, K, true, "back to keyboard and mouse")
 	oursShown(env, ns, true, "back to keyboard and mouse")
-	eq(ns.Headers.party._attributes["kstyle-width"], 200, "the width set while standing down applies")
+	eq(ns.Headers.party._attributes["kstyle-width"], 200 - ns.Geometry.AuraLane(ns.Settings.current.party), "the width set while standing down applies, less the debuff lane")
 	assert(next(f._events) ~= nil, "unit events come back")
 	eq(f.auras._unit, "party1", "and the debuffs follow party1 again")
 	eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
