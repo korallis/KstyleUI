@@ -457,6 +457,14 @@ function Widgets.Crisp(texture)
 	return texture
 end
 
+local function Unbiased(texture)
+	if type(texture.SetTexelSnappingBias) == "function" then
+		texture:SetTexelSnappingBias(0)
+	end
+	return texture
+end
+
+local SOFT = { lumenShadow = true, lumenFrost = true, shadow = true }
 local RUN_PIECES = { 2, 4, 6, 8 }
 local RUN_SIDE = { [2] = "top", [4] = "side", [6] = "side", [8] = "side" }
 
@@ -477,7 +485,7 @@ local function SliceCoords(texture, piece, f)
 end
 
 local function NewTexture(owner, layer, sublevel, path)
-	local texture = Widgets.Crisp(owner:CreateTexture(nil, layer, nil, sublevel))
+	local texture = Unbiased(owner:CreateTexture(nil, layer, nil, sublevel))
 	if path then
 		texture:SetTexture(path)
 	else
@@ -509,10 +517,13 @@ local function AnchorRuns(p, thickness)
 	if p.runThickness == thickness then
 		return
 	end
+	local placed = p.runThickness ~= nil
 	p.runThickness = thickness
 	local run = p
-	for _, piece in ipairs(RUN_PIECES) do
-		run[piece]:ClearAllPoints()
+	if placed then
+		for _, piece in ipairs(RUN_PIECES) do
+			run[piece]:ClearAllPoints()
+		end
 	end
 	if not thickness then
 		run[2]:SetPoint("TOPLEFT", p[1], "TOPRIGHT")
@@ -537,11 +548,15 @@ end
 
 local function NewSlice(owner, name, layer, sublevel)
 	local p = {}
+	local soft = SOFT[name]
 	for piece = 1, 9 do
-		p[piece] = Widgets.Crisp(owner:CreateTexture(nil, layer, nil, sublevel))
+		local texture = owner:CreateTexture(nil, layer, nil, sublevel)
+		p[piece] = soft and texture or Unbiased(texture)
 	end
 	PaintSlice(p, name)
-	AnchorRuns(p, nil)
+	if not p.runs then
+		AnchorRuns(p, nil)
+	end
 	p[5]:SetPoint("TOPLEFT", p[1], "BOTTOMRIGHT")
 	p[5]:SetPoint("BOTTOMRIGHT", p[9], "TOPLEFT")
 	return p
@@ -652,7 +667,7 @@ function Widgets.Chrome(owner, opts)
 			c.frost = NewSlice(owner, "lumenFrost", "BACKGROUND", SUBLEVEL_FROST)
 		end
 		if opts.grain ~= false and shape.grain then
-			local noise = Widgets.Crisp(owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE))
+			local noise = owner:CreateTexture(nil, "BACKGROUND", nil, SUBLEVEL_NOISE)
 			noise:SetTexture((Tokens.Texture("noise")), "REPEAT", "REPEAT")
 			noise:SetHorizTile(true)
 			noise:SetVertTile(true)

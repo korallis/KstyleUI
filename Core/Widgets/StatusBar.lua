@@ -361,7 +361,7 @@ function Widgets.StatusBar(parent, opts)
 			bar.keyline:SetColorTexture(Tokens.Color("white"))
 			bar.lit = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, LIT_SUBLEVEL))
 			bar.lit:SetColorTexture(Tokens.Color("white"))
-			bar.shade = Widgets.Crisp(bar:CreateTexture(nil, "ARTWORK", nil, SHADE_SUBLEVEL))
+			bar.shade = bar:CreateTexture(nil, "ARTWORK", nil, SHADE_SUBLEVEL)
 			bar.shade:SetColorTexture(Tokens.Color("white"))
 			Shade(bar.shade)
 		end

@@ -278,7 +278,8 @@ end
 -- Owner pass 1 (M6, crispness): at the owner's 2383 x 1540 screen with UI scale 768 / 1080 (1.426 px per unit) and at
 -- 1080p with the same UI scale (1 px per unit), every Lumen rim, border and bar edge is a whole number of physical
 -- pixels, and so is every text size and text shadow. The rim's straight runs are solid lines one border thick: the
--- texture's 3-texel line is 0.75 px at 1080p and 1.07 px on the owner's screen, so it lands between pixels.
+-- texture's 3-texel line is 0.75 px at 1080p and 1.07 px on the owner's screen, so it lands between pixels. Scaled
+-- art (the body and the rim's corners) samples with no texel snapping; the bar's lines snap to the pixel grid.
 local OWNER_SCREENS = { { 2383, 1540, perUnit = 1.426 }, { 1920, 1080, perUnit = 1.0 } }
 local OWNER_UI_SCALE = 768 / 1080
 
@@ -321,9 +322,10 @@ for _, screen in ipairs(OWNER_SCREENS) do
 					assert(math.abs(px - border) < 1e-6, at .. ": rim run " .. piece .. " is one border, " .. border .. " px, thick, got " .. px)
 				end
 			end
-			for _, slice in ipairs({ c.fill, c.rim, c.frost or {}, c.shadow or {} }) do
+			for _, slice in ipairs({ c.fill, c.rim }) do
 				for _, piece in ipairs(slice) do
-					assert(snapped(piece), at .. ": every chrome piece snaps to the pixel grid with no texel bias")
+					local bias = piece._state.TexelSnappingBias
+					assert(bias and bias[1] == 0, at .. ": the body and rim sample their art with no texel snapping")
 				end
 			end
 		end
