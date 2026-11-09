@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -57,6 +57,27 @@ end
 local function Colored(text, r, g, b)
 	local cr, cg, cb = text:GetTextColor()
 	return W.Near(cr, r) and W.Near(cg, g) and W.Near(cb, b)
+end
+
+local newFailures = {}
+local function NewCheck(ok, message)
+	if not ok then
+		newFailures[#newFailures + 1] = message
+		print("NEW WINDOW CHECK FAILED: " .. message)
+	end
+	return ok
+end
+
+local function Proxy(K, source, kind)
+	for _, child in ipairs({ source:GetChildren() }) do
+		if K.Skin.IsSkinned(child, kind) then return child end
+	end
+end
+
+local function Replacement(text)
+	for _, child in ipairs({ text:GetParent():GetChildren() }) do
+		if child.label and child.label:GetText() == text:GetText() then return child.label end
+	end
 end
 
 local function Clean(env, rxp)
@@ -356,15 +377,49 @@ do
 	assert(K.Skin.IsSkinned(close, "Button"), "its close button is a KstyleUI button")
 	assert(K.Skin.IsSkinned(report.scrollContainer.scrollbar, "ScrollBar"), "its scroll bar is KstyleUI's")
 	assert(K.Skin.IsSkinned(report.levelButton.frame, "Button"), "its level button is a KstyleUI button")
+	local inspect = env.CreateFrame("Frame", "InspectFrame", env.UIParent)
+	rxp.tracker:CreateGui(inspect, "Another player")
+	local other = rxp.tracker.ui.InspectFrame
+	assert(other and env.RESTEDXP_TRACKER_SUMMARY_WINDOW == other.frame, "CreateGui keys each report by its attachment's name")
+	NewCheck(Glass(K, other.frame), "reports created after startup sit on glass")
+	NewCheck(K.Skin.IsSkinned(other.scrollContainer.scrollbar, "ScrollBar"), "inspection report scroll bars are skinned")
+	local heading, data = Replacement(other.reachedContainer.label.label), Replacement(other.reachedContainer.data.label)
+	NewCheck(heading and data and heading:GetFont() == (ns.Style.Font("heading")) and data:GetFont() == (ns.Style.Font("body")), "report headings and data use kit faces")
+	assert(other.scrollContainer.scrollbar:GetParent() == other.scrollContainer.scrollframe, "AceGUI's scroll bar belongs to its scroll frame")
 
 	assert(rxp.tracker.levelSplits == nil)
 	rxp.tracker:CreateLevelSplits()
 	local splits = rxp.tracker.levelSplits
 	assert(Glass(K, splits) and Hushed(splits), "level splits are skinned when RestedXP makes them")
 	assert(not K.Skin.IsSkinned(splits.title, "Backdrop") and Colored(ns.RestedXP.Chrome.Caption(splits.title.text), K.Tokens.Color("capsGold")), "its title is a caption on the card's glass, as the icon frames'")
+	assert(splits:GetParent() == env.UIParent and splits.title.splitsMenuFrame:GetName() == "RXPG_SplitsMenuFrame")
+	for _, key in ipairs({ "history", "current", "total" }) do
+		NewCheck(splits[key].label:GetFont() == (ns.Style.Font("body")), "splits " .. key .. " uses the kit body face")
+	end
+	NewCheck(K.Skin.IsSkinned(splits.title.cog, "Button"), "splits cog is a kit button")
 	rxp.settings.profile.hideSplitsBackground = true
 	rxp.tracker:RenderSplitsBackground()
 	assert(not Glass(K, splits), "the splits' hide-background setting hides the glass")
+	Clean(env, rxp)
+end
+
+do
+	local rxp
+	local env, K = S.New({ setup = function(environment)
+		rxp = Fake.Install(environment, { windows = false })
+		rxp.settings.profile.enableTracker = false
+		Fake.Windows(environment, rxp)
+	end })
+	K.Modules.Enable("Skins")
+	env.RunTimers()
+	assert(next(rxp.tracker.ui) == nil, "the disabled tracker makes no startup character report")
+	K.Options.Write("Skins", "restedXP.enabled", false)
+	local attachment = env.CreateFrame("Frame", "LaterCharacterFrame", env.UIParent)
+	rxp.tracker:CreateGui(attachment, "Tester")
+	assert(not Glass(K, rxp.tracker.ui.LaterCharacterFrame.frame), "CreateGui hooks do nothing while the skin is off")
+	K.Options.Write("Skins", "restedXP.enabled", true)
+	env.RunTimers()
+	NewCheck(Glass(K, rxp.tracker.ui.LaterCharacterFrame.frame), "enabling the skin reaches every report created while off")
 	Clean(env, rxp)
 end
 
@@ -404,9 +459,25 @@ do
 		end
 	end
 	Roles()
+	NewCheck(ui.description:GetFont() == (ns.Style.Font("body")), "configurator description uses the body face")
+	local closeCount, headerCount = 0, 0
+	for _, child in ipairs({ ui.frame:GetChildren() }) do
+		if child:GetObjectType() == "Button" and child:GetNormalTexture() then
+			if tostring(child:GetNormalTexture():GetTexture()):find("rxp%-btn%-close") then
+				if K.Skin.IsSkinned(child, "CloseButton") then closeCount = closeCount + 1 end
+			elseif K.Skin.IsSkinned(child, "Button") then headerCount = headerCount + 1 end
+		end
+	end
+	NewCheck(closeCount == 1, "configurator anonymous close button is skinned")
+	NewCheck(headerCount == 3, "configurator settings import and help buttons are skinned")
 	configurator:UpdateTheme()
 	Roles()
 	assert(K.Skin.IsSkinned(ui.scrollContainer.scrollbar, "ScrollBar"))
+	local intro = ui.scrollContainer.children[1]
+	local introTitle, introDescription = Replacement(intro.titleLabel.label), Replacement(intro.descriptionLabel.label)
+	NewCheck(introTitle and introDescription and introTitle:GetFont() == (ns.Style.Font("body")) and introDescription:GetFont() == (ns.Style.Font("body")), "configurator page intro labels use kit faces")
+	rxp.fake.close(intro.titleLabel.frame)
+	if introTitle then NewCheck(intro.titleLabel.label:GetAlpha() == 1 and not introTitle:GetParent():IsShown(), "released configurator labels return their own font and visibility") end
 	-- The option rows (RXPV2GuideConfiguratorOption widgets, some inside padding containers): each row sits on
 	-- a surface tile, its check is the kit's Lumen ring (gilt fill while checked) in place of RestedXP's cyan
 	-- square, its label is in the body role, and its "Recommended" line takes the accent role, not RestedXP's
@@ -435,6 +506,13 @@ do
 		end
 	end
 	Rows()
+	K.Options.Write("Skins", "restedXP.enabled", false)
+	options[1]:SetChecked(false)
+	NewCheck(ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "option hooks do not repaint while the skin is off")
+	K.Options.Write("Skins", "restedXP.enabled", true)
+	env.RunTimers()
+	NewCheck(not ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "reenabling resynchronizes existing configurator option rings")
+	options[1]:SetChecked(true)
 	assert(options[1].checked and options[1].recommendation:IsShown() and not options[3].checked, "the fake's first option is checked and recommended, the third unchecked")
 	options[1]:SetChecked(false)
 	assert(not ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "unchecking the option empties the ring")
@@ -455,9 +533,30 @@ do
 	assert(Accented(ns, widgets.import.title))
 	assert(K.Skin.IsSkinned(widgets.importButton.frame, "Button") and K.Skin.IsSkinned(widgets.deleteButton.frame, "Button"))
 	assert(K.Skin.IsSkinned(widgets.importBox.editBox, "EditBox") and Alpha(widgets.importBox.background.rxpBackground.textures[1]) == 0, "the import box is a KstyleUI edit box")
+	for _, key in ipairs({ "importLabel", "guidesLabel", "progressLabel", "progressText", "history" }) do
+		NewCheck(widgets[key]:GetFont() == (ns.Style.Font("caption")), "importer " .. key .. " uses the caption face")
+	end
+	NewCheck(widgets.import.description:GetFont() == (ns.Style.Font("body")), "importer description uses the body face")
+	NewCheck(Proxy(K, widgets.currentGuides.frame, "EditBox") ~= nil and widgets.currentGuides.text:GetAlpha() == 0, "importer dropdown is temporarily dressed")
+	rxp.fake.close(widgets.import.frame)
+	local dropdownPanel = Proxy(K, widgets.currentGuides.frame, "EditBox")
+	if dropdownPanel then NewCheck(not dropdownPanel:IsShown() and widgets.currentGuides.text:GetAlpha() == 1, "importer returns shared dropdown chrome on hide") end
+	rxp.fake.open(widgets.import.frame)
+	NewCheck(dropdownPanel and dropdownPanel:IsShown() and widgets.currentGuides.text:GetAlpha() == 0, "importer redresses the shared dropdown on show")
+	NewCheck(Accented(ns, { GetTextColor = function() return widgets.progress:GetStatusBarColor() end }), "importer progress uses the accent")
+	widgets.import:UpdateSubTheme()
+	NewCheck(widgets.import.title:GetFont() == (ns.Style.Font("heading")) and Accented(ns, widgets.import.title), "importer theme redraw preserves heading treatment")
+	NewCheck(widgets.import.frame.importerBody:GetAlpha() == 0 and widgets.import.frame.importerHeader:GetAlpha() == 0, "importer body and header stay hushed after redraw")
 	for _, key in ipairs({ "purgeConfirmation", "deleteConfirmation" }) do
 		local popup = widgets[key]
 		assert(Glass(K, popup.frame) and K.Skin.IsSkinned(popup.buttons[1], "Button"), key .. " is a KstyleUI dialog")
+		assert(popup.frame.rxpBackground, "OnAcquire applies the popup's RestedXP backdrop after its bare constructor")
+		NewCheck(popup.title:GetFont() == (ns.Style.Font("heading")) and popup.message:GetFont() == (ns.Style.Font("body")), key .. " title and message use kit faces")
+		popup:Show()
+		NewCheck(popup.title:GetFont() == (ns.Style.Font("heading")) and Accented(ns, popup.title) and popup.message:GetFont() == (ns.Style.Font("body")), key .. " theme redraw on show preserves kit faces and accent")
+		local closes = 0
+		for _, child in ipairs({ popup.frame:GetChildren() }) do if K.Skin.IsSkinned(child, "CloseButton") then closes = closes + 1 end end
+		NewCheck(closes == 1, key .. " anonymous close button is skinned")
 	end
 	Clean(env, rxp)
 end
@@ -466,25 +565,55 @@ end
 
 do
 	local env, K, ns, rxp = Boot()
-	local frame = rxp.pooledFrame
-	local title = frame.obj.titletext
-	for _, open in ipairs({ rxp.comms.OpenBugReport, rxp.comms.OpenBrandedExport }) do
-		open()
+	local previous
+	for _, key in ipairs({ "OpenBugReport", "OpenBrandedExport" }) do
+		if key == "OpenBugReport" then rxp.comms.OpenBugReport({ arg1 = 12 })
+		else rxp.comms.OpenBrandedExport("Test export", "Copy this text", "Export content", 480, 240, function() end) end
+		local frame = key == "OpenBugReport" and env.RESTEDXP_BUG_REPORT_WINDOW or env.RESTEDXP_BRANDED_EXPORT
+		local title = frame.obj.titletext
+		if previous then assert(previous ~= frame, "feedback does not release its AceGUI frame on close") end
+		previous = frame
 		local panel = ns.RestedXP.Chrome.DressPanel(frame)
 		assert(panel and panel:IsShown(), "RestedXP's dialog sits on glass while RestedXP shows it")
 		assert(Alpha(frame._pieces[1]) == 0 and Alpha(frame.obj.titlebg) == 0, "its backdrop and title art are hidden")
 		assert(Accented(ns, title), "its title takes the accent")
+		local replacement = Replacement(title)
+		NewCheck(replacement and replacement:GetFont() == (ns.Style.Font("heading")), key .. " title uses the heading face while leased")
+		local child = frame.obj.children[1]
+		local edit = child.type == "ScrollFrame" and child.children[1] or child
+		assert(edit.type == "MultiLineEditBox" and edit.editBox:GetParent() == edit.scrollFrame)
+		local oldFont = "Fonts\\ARIALN.TTF"
+		NewCheck(edit.editBox:GetFont() == (ns.Style.Font("body")), key .. " edit text uses the body face while leased")
+		NewCheck(Proxy(K, edit.editBox, "EditBox") ~= nil and Proxy(K, edit.button, "Button") ~= nil and Proxy(K, edit.scrollBar, "ScrollBar") ~= nil, key .. " edit box accept button and scroll bar use temporary kit chrome")
+		local label = Replacement(edit.label)
+		NewCheck(label and label:GetFont() == (ns.Style.Font("body")), key .. " edit label uses the body face while leased")
 		rxp.fake.close(frame)
 		assert(not panel:IsShown() and Alpha(frame._pieces[1]) == 1 and Alpha(frame.obj.titlebg) == 1, "closing it gives the shared frame its own look back")
 		local r, g, b = title:GetTextColor()
 		assert(W.Near(r, 1) and W.Near(g, 0.82) and W.Near(b, 0), "and its title colour")
+		NewCheck(edit.editBox:GetFont() == oldFont, key .. " edit font is returned on hide")
+		NewCheck(edit.label:GetAlpha() == 1 and edit.scrollBar:GetThumbTexture():GetAlpha() == 1 and edit.button.Left:GetAlpha() == 1, key .. " original label button and thumb art are returned on hide")
+		local proxy = Proxy(K, edit.editBox, "EditBox")
+		if proxy then NewCheck(not proxy:IsShown(), key .. " temporary controls hide on release") end
+		K.Options.Write("Skins", "text.size", 1.2)
+		env.RunTimers()
+		NewCheck(edit.editBox:GetFont() == oldFont, key .. " released edit font stays untouched by later skin restyles")
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
 	end
+	local frame = env.RESTEDXP_BRANDED_EXPORT
 	assert(not K.Skin.IsSkinned(frame, "Backdrop"), "the shared frame is never skinned for good")
 	rxp.fake.open(frame)
 	assert(Alpha(frame._pieces[1]) == 1, "another addon showing the frame sees its own look")
 	frame._pieces[1]:SetAlpha(0.5)
 	rxp.fake.close(frame)
 	assert(Alpha(frame._pieces[1]) == 0.5, "and KstyleUI leaves it alone when that addon hides it")
+	local export = frame
+	rxp.comms.OpenBrandedExport("Again", "Still editable", "Content", nil, nil, function() end)
+	assert(env.RESTEDXP_BRANDED_EXPORT == export, "AceGUI reuses the frame released by the export box")
+	local edit = export.obj.children[1]
+	NewCheck(Proxy(K, edit.editBox, "EditBox") and Proxy(K, edit.editBox, "EditBox"):IsShown(), "a pooled edit widget is redressed on RestedXP reuse")
+	rxp.fake.close(export)
 	Clean(env, rxp)
 end
 
@@ -492,9 +621,11 @@ end
 
 do
 	local env, K, _, rxp = Boot()
-	local button = rxp.CreateCleanupButton()
+	assert(rxp.CreateCleanupButton == nil and rxp.cleanupBtn == nil, "the real cleanup constructor is local and runs after the event")
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	env.RunTimers()
+	local button = rxp.cleanupBtn
+	assert(button and button:GetParent() == env.QuestMapFrame.DetailsFrame and env.RXPQuestLogCleanupButton == button, "cleanup uses the quest detail parent and real global name")
 	assert(K.Skin.IsSkinned(button, "Button"), "the quest log clean-up button is a KstyleUI button")
 	Clean(env, rxp)
 end
@@ -534,4 +665,5 @@ do
 	Clean(env, rxp)
 end
 
+assert(#newFailures == 0, table.concat(newFailures, "\n"))
 print("skins restedxp windows ok")
