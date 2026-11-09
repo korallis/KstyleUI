@@ -52,8 +52,8 @@ Settings.defaults = {
 		roleRing = false, classLine = false, power = false, powerHeight = 3,
 		textLayout = "ABOVE", nameSize = 10, healthText = "DEFICIT", healthTextSize = 9, healthTextPlace = "ROW",
 		iconSize = 10,
-		auraSize = 12, auraCount = 2, auraDispelCount = 1, auraColumns = 2, auraRows = 1, auraSpacing = 1,
-		auraPosition = "BOTTOMLEFT", auraGrowth = "RIGHT", auraWrap = "UP",
+		auraSize = 10, auraCount = 4, auraDispelCount = 1, auraColumns = 2, auraRows = 2, auraSpacing = 1,
+		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 10, buffCount = 3,
 	},
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
@@ -288,7 +288,7 @@ local function BuildSchema()
 		add({ type = "text", key = p .. "spells", label = L["Spell IDs"], help = L["Buff spell IDs, separated by commas, such as 774, 139."], maxLetters = 120, showWhen = Is(p .. "category", "SPELLS") })
 	end
 	add({ type = "header", label = L["Your heals over time"] })
-	add(Toggle("buffs.enabled", L["Your heals over time"], L["Shows your own heals over time and shields at the health bar's right end."]))
+	add(Toggle("buffs.enabled", L["Your heals over time"], L["Shows your own heals over time and shields beside or under the health bar, never on it."]))
 	add({ type = "header", label = L["Automatic layout"] })
 	add(Toggle("auto.size", L["Size by raid size"], L["Shorter raid frames without power bars in raids over 25."]))
 	add(Toggle("auto.role", L["Healer frames when you heal"], L["As a healer, frames show two dispellable debuffs first and three of your heals."]))

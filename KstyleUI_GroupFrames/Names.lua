@@ -1,4 +1,4 @@
--- Names.lua: shortens a member's name to the width its row gives it, without an ellipsis, keeping it distinct from the other members' names.
+-- Names.lua: shortens a member's name to the width its row gives it, ending in an ellipsis, keeping it distinct from the other members' names.
 local _, ns = ...
 
 local Unit = ns.Unit
@@ -7,7 +7,7 @@ local Names = {}
 ns.Names = Names
 
 local CHAR = "[%z\1-\127\194-\244][\128-\191]*"
-local JOIN = "."
+local ELLIPSIS = "..."
 local MAX_TAIL = 3
 local EM = 0.55
 
@@ -63,28 +63,28 @@ function Names.Short(name, fits, others)
 	end
 	local chars = Chars(name)
 	local n = #chars - 1
-	while n > 1 and not fits(Prefix(chars, n)) do
+	while n > 1 and not fits(Prefix(chars, n) .. ELLIPSIS) do
 		n = n - 1
 	end
-	local short = Prefix(chars, n)
-	if not Clashes(short, "", name, others) then
-		return short
+	local head = Prefix(chars, n)
+	if not Clashes(head, "", name, others) then
+		return head .. ELLIPSIS
 	end
 	for tail = 1, MAX_TAIL do
-		local head = n - tail - 1
+		local keep = n - tail
 		local last = Tail(chars, tail)
-		while head >= 1 and not fits(Prefix(chars, head) .. JOIN .. last) do
-			head = head - 1
+		while keep >= 1 and not fits(Prefix(chars, keep) .. ELLIPSIS .. last) do
+			keep = keep - 1
 		end
-		if head < 1 then
+		if keep < 1 then
 			break
 		end
-		local first = Prefix(chars, head)
+		local first = Prefix(chars, keep)
 		if not Clashes(first, last, name, others) then
-			return first .. JOIN .. last
+			return first .. ELLIPSIS .. last
 		end
 	end
-	return short
+	return head .. ELLIPSIS
 end
 
 local function Others(f)

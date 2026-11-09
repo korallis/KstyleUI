@@ -1,4 +1,4 @@
--- Indicators.lua: role, leader, raid marker and ready-check icons and the threat glow on each group frame, secret-safe.
+-- Indicators.lua: role, leader, raid marker and ready-check icons and the threat glow round each group frame's edge, secret-safe.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,7 +15,8 @@ local MARKER_ROWS, MARKER_COLUMNS = 4, 4
 local READY_HOLD = 6
 local READY_SHARE = 1.6
 local READY_LEVEL = 10
-local THREAT_SPREAD = { party = "gapMedium", raid = "gapSmall" }
+local THREAT_SPREAD = { party = "gapSmall", raid = "gapSmall" }
+local CENTRE_PIECE = 5
 local ROLE_OPTIONS = { displayRoleIcon = true, displayRaidRoleIcon = true }
 
 local issecretvalue = issecretvalue or function()
@@ -65,6 +66,7 @@ local function Build(f)
 	f.threat:SetAllPoints(f)
 	f.threat:SetFrameLevel(f:GetFrameLevel())
 	f.threatGlow = Widgets.Glow(f.threat, { kind = "selection", spread = Tokens.Size(THREAT_SPREAD[f.kind] or "gapSmall") })
+	f.threatGlow.slice[CENTRE_PIECE]:Hide()
 	f.threatGlow:SetIntensity(1)
 	f.threat:Hide()
 	f.roleElements = { roleIcon = f.role, unit = nil, optionTable = ROLE_OPTIONS }

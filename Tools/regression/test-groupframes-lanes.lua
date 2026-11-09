@@ -98,14 +98,15 @@ end
 
 local POSITIONS = { "TOPLEFT", "TOP", "TOPRIGHT", "LEFT", "CENTER", "RIGHT", "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT" }
 
-local function Sweep(e, K, ns, f, what)
-	-- The defaults: all three default indicators fit and keep apart.
+local function Sweep(e, K, ns, f, what, onByDefault)
+	-- The defaults: the default indicators that fit keep apart. Round 4 (Grok #1): no indicator sits on the bar, so a
+	-- 72 by 40 raid tile, whose bar, debuff block and heal row fill the space under the name, keeps one.
 	local placed = Indicators(e, ns, f, what .. ", defaults")
 	local n = 0
 	for _ in pairs(placed) do
 		n = n + 1
 	end
-	eq(n, 3, what .. ": the three default indicators are all on")
+	eq(n, onByDefault, what .. ": the default indicators that fit are on")
 	-- Astra R3 #3A: six indicators at one place, at the default size and the largest. (A smaller size only finds room
 	-- more easily; the fractional-scale block below covers the shrink floor.)
 	for _, size in ipairs({ 14, 32 }) do
@@ -161,7 +162,7 @@ do
 	local _, count = ns.Auras.HealIcons(tank, ns.Settings.current.party)
 	eq(count, ns.Settings.current.party.buffCount, "party: every heal you may show has room")
 end
-Sweep(env, K, ns, tank, "party")
+Sweep(env, K, ns, tank, "party", 3)
 eq(#env._errors, 0, tostring(env._errors[1]))
 
 -- The preview draws the same places: a slot that does not fit is not drawn there either.
@@ -208,7 +209,7 @@ do
 	local heals = { Scene.Rect(renv, f.buffClip) }
 	assert(not intersects(heals, Part(renv, f, f.parts.name)), "raid: your heals stay off the name row")
 	assert(not intersects(heals, { Scene.Rect(renv, f.auraClip) }), "raid: and off the debuffs")
-	Sweep(renv, RK, rns, f, "raid")
+	Sweep(renv, RK, rns, f, "raid", 1)
 	eq(#renv._errors, 0, tostring(renv._errors[1]))
 end
 
@@ -227,7 +228,7 @@ for _, height in ipairs({ 1440, 1600 }) do
 	for _ in pairs(placed) do
 		n = n + 1
 	end
-	eq(n, 3, "raid at " .. height .. ": the three default indicators stay on")
+	eq(n, 1, "raid at " .. height .. ": the default indicator that fits at scale 1 stays on")
 	-- A shrunk indicator styles its count at the size it is drawn, so the count stays inside the icon.
 	local plan = rns.Slots.Placements(f)
 	local slot = f.indicators._slots.indicator1.frame

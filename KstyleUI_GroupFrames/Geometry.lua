@@ -13,6 +13,7 @@ local RAID_GROUPS = 8
 local GROUP_SIZE = 5
 local RAID_MAX = 40
 local MIN_PART = 1
+Geometry.PAD = Tokens.Size("gapSmall")
 
 local GROWTH = {
 	DOWN = { point = "TOP", x = 0, y = -1, vertical = true, column = "TOP" },
@@ -214,6 +215,7 @@ local function Rect(left, top, width, height)
 	return { left = left, top = top, width = max(MIN_PART, width), height = max(MIN_PART, height) }
 end
 
+local AURA_INSIDE_LANES = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }
 local ICONS_ACROSS = 3
 local BADGE_SHARE = 0.7
 
@@ -227,7 +229,8 @@ local function Indicators(out, w, h, o, pad, gap)
 	local icons = { size = size }
 	out.icons = icons
 	local health = out.health
-	local textLeft, textRight = health.left, health.left + health.width
+	local row = (out.nameInside or out.healLane) and health or out.name
+	local textLeft, textRight = row.left, row.left + row.width
 	if not out.portrait and not out.nameInside and o.role then
 		icons.role = Rect(gap, gap, size, size)
 		local badge = max(MIN_PART, floor(size * BADGE_SHARE))
@@ -272,6 +275,69 @@ local function Indicators(out, w, h, o, pad, gap)
 	end
 end
 
+local MIN_ICON = 8
+local MIN_BAR = 6
+Geometry.MIN_ICON = MIN_ICON
+
+local function InsideBlock(a, aw, ah, laneGap)
+	local count = max(0, min(a.count or 0, (a.columns or 1) * (a.rows or 1)))
+	if count <= 0 then
+		return nil
+	end
+	local spacing = a.spacing or 0
+	local rows = max(1, min(a.rows or 1, count))
+	local size = a.size
+	while rows >= 1 do
+		size = floor(min(a.size, (ah - (rows - 1) * spacing) / rows))
+		if size >= MIN_ICON or rows == 1 then
+			break
+		end
+		rows = rows - 1
+	end
+	if size < MIN_PART then
+		return nil
+	end
+	local columns = min(a.columns or 1, ceil(count / rows))
+	while columns > 0 and aw - Line(columns, size, spacing) - laneGap < aw / 2 do
+		columns = columns - 1
+	end
+	if columns <= 0 then
+		return nil
+	end
+	rows = min(rows, ceil(count / columns))
+	if rows > 1 and count < columns * rows then
+		rows = max(1, floor(count / columns))
+	end
+	return { columns = columns, rows = rows, cells = columns * rows, size = size, width = Line(columns, size, spacing), height = Line(rows, size, spacing) }
+end
+
+local function Lanes(out, area, o, gap, laneGap)
+	local aw, ah = area.right - area.left, area.bottom - area.top
+	local a = o.aura
+	local block = a and AURA_INSIDE_LANES[a.position] and InsideBlock(a, aw, ah, laneGap)
+	local barLeft, barRight = area.left, area.right
+	if block then
+		local x = a.position:find("LEFT$") and area.left or area.right - block.width
+		local y = a.position:find("^TOP") and area.top or area.bottom - block.height
+		block.left, block.top, block.position = x, y, a.position
+		if a.position:find("LEFT$") then
+			barLeft = x + block.width + laneGap
+		else
+			barRight = x - laneGap
+		end
+		out.block = block
+	end
+	local barHeight = ah
+	if o.healRow then
+		local size = floor(min(o.healRow, (ah - gap) / 2))
+		if size >= MIN_ICON and ah - size - gap >= MIN_BAR then
+			barHeight = ah - size - gap
+			out.healRow = Rect(barLeft, area.top + barHeight + gap, barRight - barLeft, size)
+		end
+	end
+	out.health = Rect(barLeft, area.top, barRight - barLeft, barHeight)
+end
+
 function Geometry.Button(w, h, o)
 	local pad, gap = Tokens.Size("gapSmall"), Tokens.Size("gapTiny")
 	local out = { nameInside = true }
@@ -291,24 +357,31 @@ function Geometry.Button(w, h, o)
 		end
 	end
 	local nameHeight = o.nameHeight or 0
+	local areaTop, areaHeight = top, rest
 	if o.nameAbove and rest - nameHeight - gap >= MIN_PART * 2 then
 		out.nameInside = false
 		out.name = Rect(left, top, width, nameHeight)
-		local barTop, barHeight = top + nameHeight + gap, rest - nameHeight - gap
-		local pill = o.pill
+		areaTop, areaHeight = top + nameHeight + gap, rest - nameHeight - gap
+	end
+	local inside = o.aura and AURA_INSIDE_LANES[o.aura.position]
+	local pill = o.pill
+	if not inside and not o.healRow and pill and not out.nameInside and areaHeight > pill then
+		local rise = o.pillRise or 0
+		local barTop, barHeight = areaTop + areaHeight - pill - rise, pill
 		local barWidth = width
-		if pill and barHeight > pill then
-			local rise = o.pillRise or 0
-			barTop, barHeight = barTop + barHeight - pill - rise, pill
-			local lane = o.healLane or 0
-			if lane > 0 and width - lane >= h then
-				barWidth = width - lane
-				out.healLane = { left = left + barWidth, width = lane }
-			end
+		local lane = o.healLane or 0
+		if lane > 0 and width - lane >= h then
+			barWidth = width - lane
+			out.healLane = { left = left + barWidth, width = lane }
 		end
 		out.health = Rect(left, barTop, barWidth, barHeight)
+	elseif inside or o.healRow then
+		local bottom = out.power and areaTop + areaHeight or h - gap
+		Lanes(out, { left = left, right = left + width, top = areaTop, bottom = bottom }, o, gap, pad)
 	else
-		out.health = Rect(left, top, width, rest)
+		out.health = Rect(left, areaTop, width, areaHeight)
+	end
+	if out.nameInside then
 		out.name = out.health
 	end
 	if o.iconSize then
@@ -337,6 +410,20 @@ function Geometry.AuraAnchor(position, growth, wrap, inset, gap)
 	local x = position:find("LEFT$") and inset or -inset
 	local y = position:find("^TOP") and -inset or inset
 	return point, position, x, y
+end
+
+function Geometry.AuraPlace(s, lane)
+	local side = AURA_OUTSIDE[s.auraPosition]
+	if side then
+		if lane and lane > 0 then
+			return s.auraPosition, true
+		end
+		return (s.auraWrap == "UP" and "BOTTOM" or "TOP") .. side, false
+	end
+	if AURA_INSIDE[s.auraPosition] then
+		return s.auraPosition, false
+	end
+	return "BOTTOMLEFT", false
 end
 
 function Geometry.AuraBlock(s, w, h, size, spacing, inset, lane)
@@ -369,45 +456,4 @@ end
 
 function Geometry.AuraLine(columns, size, spacing)
 	return Line(columns, size, spacing)
-end
-
-local function DebuffsReach(h, health, a)
-	local cells = a.debuffColumns * a.debuffRows
-	local total = min(a.debuffCount, cells) + min(a.dispelCount, cells)
-	if total <= 0 then
-		return nil
-	end
-	local columns = min(a.debuffColumns, total)
-	local block = Line(ceil(total / columns), a.debuffSize, a.spacing)
-	local top = a.inset
-	if a.debuffPosition:find("^BOTTOM") then
-		top = h - a.inset - block
-	end
-	local centre = health.top + health.height / 2
-	if top < centre + a.size / 2 and centre - a.size / 2 < top + block then
-		return columns
-	end
-end
-
-function Geometry.HealIcons(w, h, health, a)
-	local side, limit = "RIGHT", health.width - 2 * a.inset
-	local position = a.debuffPosition
-	local columns = a.debuffs and AURA_INSIDE[position] and DebuffsReach(h, health, a)
-	if columns then
-		local strip = a.inset + Line(columns, a.debuffSize, a.spacing) + a.gap
-		if position:find("LEFT$") then
-			limit = health.left + health.width - a.inset - strip
-		else
-			side = "LEFT"
-			limit = w - strip - health.left - a.inset
-		end
-	end
-	if a.reserve and a.reserve > 0 then
-		limit = min(limit, health.width - 2 * a.inset - a.reserve - a.gap)
-	end
-	local count = a.count
-	while count > 0 and Line(count, a.size, a.spacing) > limit do
-		count = count - 1
-	end
-	return side, count
 end

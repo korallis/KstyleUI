@@ -298,6 +298,15 @@ local function ApplyName(f)
 	end
 end
 
+function Style.StatusWidth(f, size)
+	local Names, Unit = ns.Names, ns.Unit
+	local text = f.status and Unit and Unit.STATUS_TEXT and Unit.STATUS_TEXT[f.status]
+	if not text or not Names then
+		return nil
+	end
+	return Widgets.Snap(f, math.ceil(Names.Width(f.healthText, text, size)))
+end
+
 function Style.PlaceRowEnd(f)
 	local parts = f.parts
 	if not parts then
@@ -314,34 +323,31 @@ function Style.PlaceRowEnd(f)
 	local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
 	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local shown = k.healthText ~= "NONE"
-	local onBar = shown and not f.status and k.healthTextPlace == "BAR"
-	local inRow = shown and not f.status and not onBar
+	local status = f.status ~= nil
+	local onBar = shown and not status and k.healthTextPlace == "BAR"
+	local inRow = status or (shown and not onBar)
 	local name, healthText, classLine = f.name, f.healthText, f.classLine
 	local cfg = Settings.current.text
 	SetFont(healthText, cfg.healthFont, k.healthTextSize, inRow and cfg.healthOutline or OnBar(cfg.healthOutline))
-	healthText:SetShown(shown or f.status ~= nil)
+	healthText:SetShown(shown or status)
 	healthText:ClearAllPoints()
 	local reserve = (inRow or onBar) and Style.Reserve(f, k)
+	if status then
+		reserve = math.max(reserve or 0, Style.StatusWidth(f, k.healthTextSize) or 0)
+	end
 	healthText:SetWidth(reserve or 0)
 	local bar = parts.health
 	local cy = -Widgets.Snap(f, bar.top + bar.height / 2)
 	if inRow then
 		healthText:SetJustifyH("RIGHT")
 		healthText:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, right), top)
-	elseif onBar then
-		local block, side = 0, "RIGHT"
-		if ns.Auras and ns.Auras.HealBlock then
-			block, side = ns.Auras.HealBlock(f, k)
-		end
-		local from = side == "LEFT" and bar.left + block or bar.left
-		healthText:SetJustifyH("CENTER")
-		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, from + (bar.width - block) / 2), cy)
-		reserve = nil
 	else
 		healthText:SetJustifyH("CENTER")
 		healthText:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, bar.left + bar.width / 2), cy)
+		reserve = nil
 	end
-	local captioned = k.classLine == true
+	local captioned = k.classLine == true and not status
+	classLine:SetShown(captioned)
 	if captioned then
 		classLine:ClearAllPoints()
 		if inRow then
@@ -387,6 +393,13 @@ function Style.Apply(f, width, height)
 	local k = cfg[f.kind]
 	width, height = width or Style.MemberWidth(f.kind), height or k.height
 	f.width, f.height = width, height
+	local lane = HealLane(f, k, cfg, height)
+	local place, outside = Geometry.AuraPlace(k, f.kind == "party" and Geometry.AuraLane(k) or 0)
+	local aura = cfg.auras.enabled and not outside and {
+		position = place, count = math.max(1, math.min(k.auraCount, k.auraColumns * k.auraRows)), columns = k.auraColumns, rows = k.auraRows,
+		size = Widgets.Snap(f, k.auraSize), spacing = Widgets.Snap(f, k.auraSpacing),
+	} or nil
+	local healRow = cfg.buffs.enabled and k.buffCount > 0 and (aura or not lane) and Widgets.Snap(f, k.buffSize) or nil
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,
 		power = k.power,
@@ -399,7 +412,9 @@ function Style.Apply(f, width, height)
 		marker = cfg.icons.marker,
 		pill = f.kind == "party" and health_orientation(cfg) and PILL_HEIGHT or nil,
 		pillRise = PILL_RISE,
-		healLane = HealLane(f, k, cfg, height),
+		healLane = lane,
+		aura = aura,
+		healRow = healRow,
 	})
 	f.parts = parts
 	local health = cfg.health
@@ -433,7 +448,7 @@ function Style.Apply(f, width, height)
 			chrome:SetShown(not f.tileless)
 		end
 	end
-	f.chrome:SetShadow(not f.tileless)
+	f.chrome:SetShadow(f.kind == "party" and not f.tileless)
 	f.chrome:Restyle()
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)

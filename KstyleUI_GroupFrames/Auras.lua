@@ -40,7 +40,7 @@ local ICON_INSET_LINES = 2
 local DISPEL_SUBLEVEL = 7
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
-local SAMPLE_ICONS = { 136207, 135848, 136139 }
+local SAMPLE_ICONS = { 136207, 135848, 136139, 136071, 135894, 136207, 135848, 136139, 136071, 135894 }
 local BUFFS = "buffs"
 local BUFF_FILTER = "HELPFUL|PLAYER"
 local SAMPLE_BUFF_ICONS = { 136081, 135953, 135940 }
@@ -131,11 +131,31 @@ local function Block(f, k)
 	local size, spacing = Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
 	local inset, gap = Widgets.Snap(f, Tokens.Size("gapTiny")), Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local lane = f.kind == "party" and Geometry.AuraLane(k) or 0
-	local block = Geometry.AuraBlock(k, w, h, size, spacing, inset, lane > 0 and lane - gap or 0)
+	local place, outside = Geometry.AuraPlace(k, lane)
+	if not outside then
+		local b = f.parts and f.parts.block
+		if not b then
+			return { position = place, columns = 0, rows = 0, cells = 0, size = size, width = 0, height = 0, left = 0, top = 0, spacing = spacing, inset = inset, gap = gap }
+		end
+		return {
+			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
+			left = b.left, top = b.top, spacing = spacing, inset = inset, gap = gap,
+		}
+	end
+	local block = Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap)
 	block.spacing, block.inset, block.gap = spacing, inset, gap
+	block.left = place == "OUTSIDE_LEFT" and -gap - block.width or w + gap
+	block.top = k.auraWrap == "UP" and h - block.height or 0
 	return block
 end
 Auras.Block = Block
+
+local function Anchor(f, block, k)
+	local point = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, block.inset, block.gap)
+	local px = point:find("RIGHT$") and block.left + block.width or block.left
+	local py = point:find("^BOTTOM") and block.top + block.height or block.top
+	return point, Widgets.Snap(f, px), -Widgets.Snap(f, py)
+end
 
 local function GroupCount(f, k, key)
 	local cells = f and Block(f, k).cells or Count(k)
@@ -165,6 +185,10 @@ end
 local function BuffSizes(f, k)
 	local _, h = Style.Size(f)
 	local room = math.max(1, h - 2 * Widgets.Snap(f, Tokens.Size("gapTiny")))
+	local row = f.parts and f.parts.healRow
+	if row then
+		room = math.min(room, row.height)
+	end
 	return math.min(Widgets.Snap(f, k.buffSize), room), Widgets.Snap(f, k.auraSpacing)
 end
 
@@ -814,7 +838,8 @@ end
 local function HealIcons(f, k)
 	local size, spacing = BuffSizes(f, k)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	local lane = f.parts and f.parts.healLane
+	local layout = f.parts
+	local lane = layout and layout.healLane
 	if lane then
 		local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
 		local count = k.buffCount
@@ -823,46 +848,31 @@ local function HealIcons(f, k)
 		end
 		return "LEFT", count, size, spacing, inset, gap
 	end
-	local a = Settings.current.auras
-	local side, count = Geometry.HealIcons(f.width or k.width, f.height or k.height, f.parts.health, {
-		inset = inset, gap = Widgets.Snap(f, Tokens.Size("gapSmall")), size = size, spacing = spacing, count = k.buffCount,
-		debuffs = a.enabled, debuffPosition = k.auraPosition, debuffSize = Widgets.Snap(f, k.auraSize),
-		debuffColumns = k.auraColumns, debuffRows = k.auraRows, debuffCount = Count(k), dispelCount = DispelCount(k),
-		reserve = Auras.BarTextReserve(f, k),
-	})
-	return side, count, size, spacing, inset
+	local row = layout and layout.healRow
+	if not row then
+		return "LEFT", 0, size, spacing, inset
+	end
+	local count = k.buffCount
+	while count > 0 and Geometry.Line(count, size, spacing) > row.width + LINE_SLACK do
+		count = count - 1
+	end
+	return "LEFT", count, size, spacing, inset, nil, row
 end
 Auras.HealIcons = HealIcons
-
-function Auras.BarTextReserve(f, k)
-	if k.healthText == "NONE" or k.healthTextPlace ~= "BAR" or k.textLayout ~= "ABOVE" or not f.parts or f.parts.nameInside then
-		return nil
-	end
-	return Style.Reserve(f, k)
-end
-
-function Auras.HealBlock(f, k)
-	if not Settings.current.buffs.enabled or not f.parts then
-		return 0, "RIGHT"
-	end
-	local side, count, size, spacing, inset, lane = HealIcons(f, k)
-	if count <= 0 or lane then
-		return 0, side
-	end
-	return Geometry.Line(count, size, spacing) + inset + Widgets.Snap(f, Tokens.Size("gapSmall")), side
-end
 
 local function ConfigureBuffs(f)
 	local container = f.buffs
 	local k = Settings.current[f.kind]
-	local side, count, size, spacing, inset, lane = HealIcons(f, k)
+	local side, count, size, spacing, _, lane, row = HealIcons(f, k)
 	local corner = "TOP" .. side
 	local clip = f.buffClip
 	clip:ClearAllPoints()
 	if lane then
 		clip:SetPoint(corner, f.health, "RIGHT", lane, Widgets.Snap(f, size / 2))
+	elseif row then
+		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, row.left), -Widgets.Snap(f, row.top))
 	else
-		clip:SetPoint(corner, f.health, side, side == "RIGHT" and -inset or inset, Widgets.Snap(f, size / 2))
+		clip:SetPoint(corner, f, corner, 0, 0)
 	end
 	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size)
 	container:ClearAllPoints()
@@ -886,10 +896,10 @@ local function Configure(f)
 	local k, a = Settings.current[f.kind], Settings.current.auras
 	local size, spacing = Sizes(f, k)
 	local block = Block(f, k)
-	local point, rel, x, y = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, block.inset, block.gap)
+	local point, x, y = Anchor(f, block, k)
 	local clip = f.auraClip
 	clip:ClearAllPoints()
-	clip:SetPoint(point, f, rel, x, y)
+	clip:SetPoint(point, f, "TOPLEFT", x, y)
 	clip:SetSize(math.max(1, block.width), math.max(1, block.height))
 	clip:SetShown(block.cells > 0)
 	container:ClearAllPoints()
@@ -1080,12 +1090,11 @@ local function LayoutSamples(f, k)
 	local holder = f.sampleAuraHolder
 	local block = Block(f, k)
 	local size, spacing = block.size, block.spacing
-	local inset = block.inset
 	local columns = math.max(1, block.columns)
 	f.sampleCells = block.cells
-	local point, rel, x, y = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, inset, block.gap)
+	local point, x, y = Anchor(f, block, k)
 	holder:ClearAllPoints()
-	holder:SetPoint(point, f, rel, x, y)
+	holder:SetPoint(point, f, "TOPLEFT", x, y)
 	holder:SetSize(size, size)
 	local dx = k.auraGrowth == "LEFT" and -1 or 1
 	local dy = k.auraWrap == "DOWN" and -1 or 1
@@ -1099,16 +1108,18 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
-	local side, fit, buffSize, buffSpacing, _, lane = HealIcons(f, k)
+	local _, fit, buffSize, buffSpacing, _, lane, row = HealIcons(f, k)
 	f.sampleBuffFit = fit
-	local step = side == "RIGHT" and -1 or 1
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:ClearAllPoints()
 		icon:SetSize(buffSize, buffSize)
+		local along = (i - 1) * (buffSize + buffSpacing)
 		if lane then
-			icon:SetPoint("LEFT", f.health, "RIGHT", lane + (i - 1) * (buffSize + buffSpacing), 0)
+			icon:SetPoint("LEFT", f.health, "RIGHT", lane + along, 0)
+		elseif row then
+			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, row.left + along), -Widgets.Snap(f, row.top))
 		else
-			icon:SetPoint(side, f.health, side, step * (inset + (i - 1) * (buffSize + buffSpacing)), 0)
+			icon:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
 		end
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())

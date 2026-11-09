@@ -21,6 +21,7 @@ local UNIT_EVENTS = {
 Unit.EVENTS = UNIT_EVENTS
 
 local STATUS_TEXT = { offline = L["Offline"], dead = L["Dead"], ghost = L["Ghost"] }
+Unit.STATUS_TEXT = STATUS_TEXT
 
 local frames = {}
 Unit.frames = frames

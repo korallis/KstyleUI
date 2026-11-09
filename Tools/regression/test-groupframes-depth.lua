@@ -225,14 +225,14 @@ do
 	eq(ns.Geometry.AuraLane({ width = 60, height = 40, auraPosition = "OUTSIDE_RIGHT", auraColumns = 3, auraCount = 3, auraSize = 20, auraSpacing = 2 }), 0, "a narrow frame keeps its width")
 end
 
--- Muse #3: one dead state. Party frames show no health text by default, yet a dead member reads "Dead" on the bar,
--- with the name dimmed, exactly as a raid frame does.
+-- Muse #3: one dead state. Party frames show no health text by default, yet a dead member reads "Dead", with the
+-- name dimmed, exactly as a raid frame does. Muse R4 #2: the label sits at the end of the name row, never on the bar.
 do
 	local dead = content(ns, ns.Headers.party, "party3")
 	eq(ns.Settings.current.party.healthText, "NONE", "party frames show no health text")
 	assert(dead.healthText:IsShown(), "the dead member's label shows anyway")
 	eq(dead.healthText:GetText(), "Dead", "and says Dead")
-	eq(dead.healthText._points[1][1], "CENTER", "centred on the bar")
+	eq(dead.healthText._points[1][1], "TOPRIGHT", "at the end of the name row, off the bar")
 	local dr, dg, db = K.Tokens.Color("textDisabled")
 	local nr, ng, nb = dead.name:GetTextColor()
 	assert(W.Near(nr, dr) and W.Near(ng, dg) and W.Near(nb, db), "the name dims")
@@ -283,9 +283,10 @@ do
 	eq(#bare._errors, 0, tostring(bare._errors[1]))
 end
 
--- Muse #4, Opus #7: a name that does not fit loses letters, never to an ellipsis, and stays distinct from the
--- other members' names; a secret name goes to the engine untouched. Codex review, round 2: the distinct form is
--- measured whole, so it never reaches the engine's ellipsis.
+-- Muse #4, Opus #7: a name that does not fit is shortened and stays distinct from the other members' names; a
+-- secret name goes to the engine untouched. Codex review, round 2: the distinct form is measured whole, so it never
+-- reaches the engine's own ellipsis. Muse R4 #2, Fable R4 D6: the shortened name ends in an ellipsis, so "Thaldre"
+-- never reads as a whole name.
 do
 	local Names = ns.Names
 	local function chars(n)
@@ -294,13 +295,13 @@ do
 		end
 	end
 	eq(Names.Short("Kesh", chars(6), {}), "Kesh", "a name that fits stays whole")
-	eq(Names.Short("Thaldren", chars(6), { "Kesh", "Morwen" }), "Thaldr", "a unique name keeps the letters that fit, no ellipsis")
+	eq(Names.Short("Thaldren", chars(6), { "Kesh", "Morwen" }), "Tha...", "a unique name keeps the letters that fit and an ellipsis")
 	local a = Names.Short("Shadowstrike", chars(7), { "Shadowstrider" })
 	local b = Names.Short("Shadowstrider", chars(7), { "Shadowstrike" })
 	assert(a ~= b, "two names with one long prefix stay apart: " .. a .. " and " .. b)
 	assert(#a <= 7 and #b <= 7, "and still fit")
-	eq(a, "Shado.e", "the first keeps its ending")
-	eq(b, "Shado.r", "and so does the second")
+	eq(a, "Sha...e", "the first keeps its ending")
+	eq(b, "Sha...r", "and so does the second")
 	local function width(n)
 		return function(text)
 			local w = 0

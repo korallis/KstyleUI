@@ -68,7 +68,10 @@ assert(name and deficit and bar.rect[1] and tile[1], "the renderer resolves the 
 assert(not intersects(name.rect, bar.rect), "the name is off the class fill")
 assert(not intersects(deficit.rect, bar.rect), "and so is the missing health")
 assert(not intersects(name.rect, deficit.rect), "the name ends before the missing health")
-assert(bar.rect[4] >= 16, "the bar is a solid band, at least 16 units tall: " .. tostring(bar.rect[4]))
+-- Round 4 (Grok #1, Muse #2): the bar shares the tile with a 2x2 debuff block and your heals' row, so it is a band
+-- of at least 8 units over half the lane's width rather than the 16-unit slab the auras used to paint on.
+assert(bar.rect[4] >= 8, "the bar is a solid band, at least 8 units tall: " .. tostring(bar.rect[4]))
+assert(bar.rect[3] >= (tile[3] - 2 * ns.Geometry.PAD) / 2, "and at least half the lane wide: " .. tostring(bar.rect[3]))
 for _, item in ipairs({ name, deficit, bar }) do
 	local r = item.rect
 	assert(r[1] >= tile[1] - 0.01 and r[1] + r[3] <= tile[1] + tile[3] + 0.01 and r[2] >= tile[2] - 0.01 and r[2] + r[4] <= tile[2] + tile[4] + 0.01, "inside the tile")
@@ -102,24 +105,15 @@ do
 		assert(item, "the " .. key .. " draws")
 		rects[key] = item.rect
 	end
-	local k = ns.Settings.current.raid
-	local debuffs, heals = f.auras._groups, f.buffs._groups.buffs
-	local cells = k.auraColumns * k.auraRows
-	local columns = math.min(k.auraColumns, math.min(k.auraCount, cells) + math.min(k.auraDispelCount, cells))
-	local dsize, dsp = debuffs.debuffs.layout.elementWidth, debuffs.debuffs.layout.elementSpacing
-	local inset = K.Widgets.Snap(f, K.Tokens.Size("gapTiny"))
-	local dwidth = columns * dsize + (columns - 1) * dsp
-	rects.debuffs = { tileRect[1] + inset, tileRect[2] + tileRect[4] - inset - dsize, dwidth, dsize }
-	local bx, by, bw, bh = Scene.Rect(env, f.health)
+	local heals = f.buffs._groups.buffs
+	-- Round 4: the debuff block and your heals' row are clip frames, so their rects bound everything they draw.
+	rects.debuffs = { Scene.Rect(env, f.auraClip) }
+	rects.heals = { Scene.Rect(env, f.buffClip) }
+	rects.bar = { Scene.Rect(env, f.health) }
 	-- One more heal than fits may fill the clipped cell beyond the row, for the overflow mark.
-	local n, hsize, hsp = heals.maxFrameCount - 1, heals.layout.elementWidth, heals.layout.elementSpacing
-	local hp = f.buffClip._points[1]
-	assert(hp[1] == "TOPRIGHT" and hp[3] == "RIGHT", "your heals hang from the bar's right end")
-	local hx, hy = bx + bw + hp[4], by + bh / 2 - hp[5]
-	eq(n, 2, "the count setting of two stands")
-	local hwidth = n * hsize + (n - 1) * hsp
-	rects.heals = { hx - hwidth, hy, hwidth, hsize }
-	local names = { "leader", "marker", "role", "healthText", "name", "debuffs", "heals" }
+	eq(heals.maxFrameCount - 1, 2, "the count setting of two stands")
+	assert(rects.heals[2] >= rects.bar[2] + rects.bar[4] - 0.01, "your heals sit in their row under the bar")
+	local names = { "leader", "marker", "role", "healthText", "name", "debuffs", "heals", "bar" }
 	for i = 1, #names do
 		local r = rects[names[i]]
 		assert(r[1] >= tileRect[1] - 0.01 and r[1] + r[3] <= tileRect[1] + tileRect[3] + 0.01, "the " .. names[i] .. " stays within the tile's width")
@@ -133,30 +127,29 @@ do
 	end
 	K.Options.Write("GroupFrames", "raid.buffCount", 3)
 	env.RunTimers()
-	eq(heals.maxFrameCount - 1, 3, "three heals fit beside the default two-column debuff strip")
+	eq(heals.maxFrameCount - 1, 3, "three heals fit under the bar beside the default two-column debuff block")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 3)
 	env.RunTimers()
-	eq(heals.maxFrameCount - 1, 2, "a three-column strip leaves room for two")
+	eq(ns.Auras.Block(f, ns.Settings.current.raid).columns, 2, "a third debuff column would take more than half the lane, so the block keeps two")
+	eq(heals.maxFrameCount - 1, 3, "and your three heals keep their row")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 2)
 	env.RunTimers()
 	m.leader, m.marker = false, nil
 	ns.Unit.Refresh(f)
 end
 
--- A dead or offline member's state reads on the grey bar, so the name keeps the whole row; alive again, the missing
--- health returns to the row.
+-- A dead or offline member's state reads at the row's end, in the missing health's lane (Muse R4 #2: never drawn on
+-- the bar); the name ends before it. Alive again, the missing health returns to the same lane.
 do
 	local m = env._member("raid1")
 	m.dead, m.health = true, 0
 	env.FireEvent("UNIT_HEALTH", "raid1")
 	eq(f.healthText:GetText(), "Dead", "the frame says Dead")
 	local hp = f.healthText._points[1]
-	assert(hp[1] == "CENTER" and #f.healthText._points == 1, "centred on the bar")
-	local np = f.name._points
-	assert(#np == 1 and np[1][1] == "TOPLEFT" and f.name:GetWidth() > 30, "the name keeps the row: " .. tostring(f.name:GetWidth()))
+	assert(hp[1] == "TOPRIGHT" and #f.healthText._points == 1, "at the row's end")
 	scene = Scene.Build(env)
 	local dead, barRect = find(scene, f.healthText), { Scene.Rect(env, f.health) }
-	assert(dead and intersects(dead.rect, barRect) and not intersects(dead.rect, find(scene, f.name).rect), "on the bar, clear of the name")
+	assert(dead and not intersects(dead.rect, barRect) and not intersects(dead.rect, find(scene, f.name).rect), "off the bar, clear of the name")
 	m.dead, m.health = false, 70
 	env.FireEvent("UNIT_HEALTH", "raid1")
 	eq(f.healthText._points[1][1], "TOPRIGHT", "alive, the missing health is back at the row's end")
@@ -183,7 +176,7 @@ K.Options.Write("GroupFrames", "prediction.shield", true)
 env.RunTimers()
 
 -- Your heals over time: a second engine container on the frame, Blizzard's unit frame processing keeping the
--- buffs you cast that raid frames show, at the bar's right end.
+-- buffs you cast that raid frames show, in their own row under the bar.
 local buffs = f.buffs
 assert(buffs and buffs ~= f.auras, "the frame has its own container for your heals")
 eq(buffs:GetObjectType(), "AuraContainer", "on the AuraContainer engine")
@@ -197,15 +190,19 @@ assert(group, "a heals group")
 eq(group.filter, "HELPFUL|PLAYER", "only the buffs you cast")
 eq(group.candidateFilters.processedAuraType, types.Buff, "that Blizzard's raid frames would show")
 eq(group.maxFrameCount, 4, "three at most, plus one for the overflow mark")
-assert(W.Near(group.layout.elementWidth, 10, 0.5), "10-unit icons on a raid frame, snapped to whole pixels: " .. tostring(group.layout.elementWidth))
-local bp = f.buffClip._points[1]
-assert(bp[1] == "TOPRIGHT" and bp[2] == f.health and bp[3] == "RIGHT", "the clip holding them is anchored to the bar's right end")
-eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Left, "growing left along the bar")
+local row = f.parts.healRow
+assert(W.Near(group.layout.elementWidth, row.height, 0.5), "icons as tall as the heal row, snapped to whole pixels: " .. tostring(group.layout.elementWidth))
+do
+	local cx, cy = Scene.Rect(env, f.buffClip)
+	local fx, fy = Scene.Rect(env, f)
+	assert(W.Near(cx - fx, row.left, 0.6) and W.Near(cy - fy, row.top, 0.6), "the clip holding them starts the heal row under the bar")
+end
+eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Right, "growing right along the row")
 eq(f.auras._policyOptions.ignoreBuffs, true, "the debuff container still ignores buffs")
 assert(f.ready:GetParent():GetFrameLevel() > buffs:GetFrameLevel() and f.ready:GetParent():GetFrameLevel() > f.auras:GetFrameLevel(), "a ready check's mark draws above your heals and the debuffs")
 local icon = group.frames[1]
 assert(icon._aura.icon and icon._aura.cooldown, "each heal icon has its icon and duration swipe bound")
-assert(W.Near((icon:GetSize()), 10, 0.5), "and is 10 units")
+assert(W.Near((icon:GetSize()), row.height, 0.5), "and is the row's height")
 
 K.Options.Write("GroupFrames", "raid.buffCount", 2)
 env.RunTimers()

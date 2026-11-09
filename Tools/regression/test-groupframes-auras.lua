@@ -64,8 +64,14 @@ eq(container._flow.vertical, env.AnchorUtil.FlowDirection.Down, "wrapping down")
 local clip = f.auraClip
 eq(container:GetParent(), clip, "the container lives in the clip frame")
 eq(container._points[1][1], "TOPLEFT", "at the clip's top left")
-eq(clip._points[1][1], "TOPLEFT", "the clip's top left")
-eq(clip._points[1][3], "TOPRIGHT", "sits at the frame's top right, outside it, in the card's lane")
+do
+	-- Round 4: the clip anchors by its own rect in the frame, so check where it lands, not which points name it.
+	local Scene = dofile("Tools/render/scene.lua")
+	local fx, fy, fw = Scene.Rect(env, f)
+	local cx, cy = Scene.Rect(env, clip)
+	local gap = K.Widgets.Snap(f, K.Tokens.Size("gapSmall"))
+	assert(math.abs(cx - (fx + fw + gap)) < 0.6 and math.abs(cy - fy) < 0.6, "the clip sits at the frame's top right, outside it, in the card's lane: " .. cx .. ", " .. cy)
+end
 
 -- Each aura button: icon, swipe and stack count bound to the engine, clicks passing through to the unit.
 local button = group.frames[1]

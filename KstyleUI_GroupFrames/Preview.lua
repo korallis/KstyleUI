@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample party and raid frames drawn with the same look as the real ones, with the click casting panel under them.
+-- Preview.lua: the settings window's live preview: sample party and raid frames drawn with the same look as the real ones, stacked over the click casting panel and scaled to fit the pane whenever its size resolves or changes.
 local _, ns = ...
 
 local K = KstyleUI
@@ -22,7 +22,7 @@ local SAMPLES = {
 		healAbsorb = 0.18, debuffs = 2, hots = 2, indicators = { EXTERNAL = true },
 	},
 	{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true } },
-	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 8, incoming = 0.12, healAbsorb = 0.1 },
+	{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1 },
 	{ name = "Lunara", class = "MAGE", health = 0, power = 0, dead = true },
 	{ name = "Vexen", class = "PRIEST", health = 0.94, power = 0.9 },
 	{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 9, dispel = "Curse", hots = 3, shield = 0.2, healAbsorb = 0.12, indicators = { BIG_DEFENSIVE = true } },
@@ -191,13 +191,20 @@ local function Layout(preview)
 	local width = math.max(pw, rw)
 	local height = ph + SECTION_GAP + rh
 	preview.canvas:SetSize(width, height)
-	local availW, availH = preview:GetWidth(), preview:GetHeight()
+	local availW, availH = preview.fitW or preview:GetWidth(), preview.fitH or preview:GetHeight()
 	local scale = 1
+	local top = Tokens.Size("gapTiny")
 	if type(availW) == "number" and type(availH) == "number" and availW > 0 and availH > 0 and not Unit.IsSecret(availW) then
-		availH = math.max(1, availH - ns.ClickCast.HEIGHT - SECTION_GAP)
+		availH = math.max(1, availH - top - ns.ClickCast.HEIGHT - SECTION_GAP)
 		scale = math.min(1, availW / width, availH / height)
 	end
 	preview.canvas:SetScale(scale)
+	preview.canvas:ClearAllPoints()
+	preview.canvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -top / scale)
+	preview.clickCast:ClearAllPoints()
+	preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(top + height * scale + SECTION_GAP))
+	preview.clickCast:SetPoint("RIGHT", preview, "RIGHT", 0, 0)
+	preview.clickCast:SetHeight(ns.ClickCast.HEIGHT)
 	preview.clickCast:Refresh()
 end
 
@@ -205,7 +212,6 @@ function Preview.Build(parent)
 	local preview = CreateFrame("Frame", nil, parent)
 	preview:SetAllPoints(parent)
 	preview.canvas = CreateFrame("Frame", nil, preview)
-	preview.canvas:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, 0)
 	preview.party = CreateFrame("Frame", nil, preview.canvas)
 	preview.raid = CreateFrame("Frame", nil, preview.canvas)
 	preview.partyFrames, preview.raidFrames = {}, {}
@@ -216,10 +222,13 @@ function Preview.Build(parent)
 		preview.raidFrames[i] = Sample(preview.raid, "raid", i)
 	end
 	preview.clickCast = ns.ClickCast.Panel(preview)
-	preview.clickCast:SetPoint("BOTTOMLEFT", preview, "BOTTOMLEFT", 0, 0)
-	preview.clickCast:SetPoint("BOTTOMRIGHT", preview, "BOTTOMRIGHT", 0, 0)
-	preview.clickCast:SetHeight(ns.ClickCast.HEIGHT)
 	preview.Refresh = Layout
+	preview:SetScript("OnSizeChanged", function(self, w, h)
+		if self.fitW ~= w or self.fitH ~= h then
+			self.fitW, self.fitH = w, h
+			Layout(self)
+		end
+	end)
 	Layout(preview)
 	return preview
 end

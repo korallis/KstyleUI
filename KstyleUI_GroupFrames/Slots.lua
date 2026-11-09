@@ -123,11 +123,12 @@ local function Field(f, w, h)
 	end
 	local health = parts.health
 	local k = Settings.current[f.kind]
+	blocked[#blocked + 1] = FromRect(health)
 	if parts.nameInside then
 		local line = k.nameSize + NAME_LINE_EXTRA
 		blocked[#blocked + 1] = Box(health.left, health.top + (health.height - line) / 2, health.width, line)
 	else
-		field.top = math.max(field.top, parts.name.top + parts.name.height + gap)
+		blocked[#blocked + 1] = FromRect(parts.name)
 	end
 	local icons, shown = parts.icons, Settings.current.icons
 	if icons then
@@ -139,26 +140,19 @@ local function Field(f, w, h)
 	end
 	if Settings.current.auras.enabled then
 		local block = Auras.Block(f, k)
-		local position = block.position
-		if block.cells > 0 and (position == "TOPLEFT" or position == "TOPRIGHT" or position == "BOTTOMLEFT" or position == "BOTTOMRIGHT") then
-			local x = position:find("LEFT$") and block.inset or w - block.inset - block.width
-			local y = position:find("^TOP") and block.inset or h - block.inset - block.height
-			blocked[#blocked + 1] = Box(x, y, block.width, block.height)
+		if block.cells > 0 and block.left then
+			blocked[#blocked + 1] = Box(block.left, block.top, block.width, block.height)
 		end
 	end
 	if Settings.current.buffs.enabled then
-		local side, count, size, spacing, inset2, lane = Auras.HealIcons(f, k)
+		local _, count, size, spacing, _, lane, row = Auras.HealIcons(f, k)
 		if count > 0 then
 			local line = Geometry.Line(count, size, spacing)
-			local x
 			if lane then
-				x = health.left + health.width + lane
-			elseif side == "RIGHT" then
-				x = health.left + health.width - inset2 - line
-			else
-				x = health.left + inset2
+				blocked[#blocked + 1] = Box(health.left + health.width + lane, health.top + health.height / 2 - size / 2, line, size)
+			elseif row then
+				blocked[#blocked + 1] = Box(row.left, row.top, line, size)
 			end
-			blocked[#blocked + 1] = Box(x, health.top + health.height / 2 - size / 2, line, size)
 		end
 	end
 	return field, blocked, gap
