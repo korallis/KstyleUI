@@ -25,8 +25,20 @@ Hud.Classes = Classes
 Hud.envs = setmetatable({}, { __mode = "k" })
 
 -- Class(opts) -> the scene's class token and its _classes.lua entry.
+-- opts.spec overlays the class's entry field by field (a fixture's own name, bars and buffs).
 function Hud.Class(opts)
-	return Classes.Get(opts and opts.class)
+	local class, spec = Classes.Get(opts and opts.class)
+	if not (opts and type(opts.spec) == "table") then
+		return class, spec
+	end
+	local out = {}
+	for k, v in pairs(spec) do
+		out[k] = v
+	end
+	for k, v in pairs(opts.spec) do
+		out[k] = v
+	end
+	return class, out
 end
 
 local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, classification = "normal", creature = "Beast" }
@@ -34,11 +46,15 @@ local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, health
 -- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
 function Hud.Player(opts)
 	local class, spec = Hud.Class(opts)
-	return {
+	local player = {
 		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
 		power = spec.power.value, powerMax = spec.power.max, powerType = spec.power.type, powerToken = spec.power.token,
 		isPlayer = true, reaction = 5,
 	}
+	for k, v in pairs(type(opts) == "table" and type(opts.player) == "table" and opts.player or {}) do
+		player[k] = v
+	end
+	return player
 end
 
 -- Slots(list) -> the icons of a bar's spells by slot, left to right (a short list leaves the last slots empty).
@@ -268,7 +284,8 @@ local CAST_END = 10800
 -- placed where the AuraContainer would, centred, with their timers.
 local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s" } }
 
-local function sigilSockets(env, K, ns, view)
+local function sigilSockets(env, K, ns, view, list)
+	list = list or SIGIL_DEBUFFS
 	local a = view.auras
 	local group = a and a.container and a.container._groups and a.container._groups.debuffs
 	if not (group and group.buttons) then
@@ -276,7 +293,7 @@ local function sigilSockets(env, K, ns, view)
 	end
 	local Widgets = K.Widgets
 	local size, spacing = Widgets.Snap(a.host, ns.Settings.Value("target", "auraSize")), Widgets.Snap(a.host, ns.Settings.Value("target", "auraSpacing"))
-	local count = math.min(#group.buttons, #SIGIL_DEBUFFS)
+	local count = math.min(#group.buttons, #list)
 	a.container:SetSize(count * size + (count - 1) * spacing, size)
 	for i = 1, count do
 		local button = group.buttons[i]
@@ -285,13 +302,13 @@ local function sigilSockets(env, K, ns, view)
 				button:ClearAllPoints()
 				button:SetPoint("TOPLEFT", a.container, "TOPLEFT", (i - 1) * (size + spacing), 0)
 				button:SetSize(size, size)
-				entry.icon:SetTexture(env.Secret(SIGIL_DEBUFFS[i][1]))
-				Widgets.SetText(entry.timer, SIGIL_DEBUFFS[i][2])
-				Widgets.SetText(entry.count, SIGIL_DEBUFFS[i][3] or "")
+				entry.icon:SetTexture(env.Secret(list[i][1]))
+				Widgets.SetText(entry.timer, list[i][2])
+				Widgets.SetText(entry.count, list[i][3] or "")
 			end
 		end
 	end
-	return "the sigil's debuff sockets: " .. count .. " of yours on the boss"
+	return "the sigil's debuff sockets: " .. count .. " of yours on the " .. (list == SIGIL_DEBUFFS and "boss" or "target")
 end
 
 function modules.unitframes(opts)
@@ -302,8 +319,10 @@ function modules.unitframes(opts)
 		target[k] = v
 	end
 	-- opts.playerCast == false: the player casts nothing (the questing HUD is out of combat; round 6, Opus).
+	-- opts.castLeft: the seconds the player's cast has left at the scene's clock (0.8 when absent).
+	local castEnd = opts.castLeft and (10000 + opts.castLeft * 1000) or CAST_END
 	if spec.cast and opts.playerCast ~= false then
-		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = CAST_END - spec.cast[4] * 1000, finish = CAST_END, spellID = spec.cast[3] }
+		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = castEnd - spec.cast[4] * 1000, finish = castEnd, spellID = spec.cast[3] }
 	end
 	for k, v in pairs(type(opts.target) == "table" and opts.target or {}) do
 		target[k] = v
@@ -368,8 +387,9 @@ function modules.unitframes(opts)
 		notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
 	end
 	table.sort(notes)
-	if opts.boss and target then
-		notes[#notes + 1] = sigilSockets(env, K, ns, ns.Frames.Get("target").views[1])
+	-- opts.targetAuras ({ icon, "time", "count" } each): your debuffs on a target that is no boss, in the same sockets.
+	if (opts.boss or opts.targetAuras) and target then
+		notes[#notes + 1] = sigilSockets(env, K, ns, ns.Frames.Get("target").views[1], opts.targetAuras)
 	end
 	local scene = build(env, opts, { time = env._time })
 	for _, note in ipairs(notes) do
@@ -392,8 +412,8 @@ function modules.actionbars(opts)
 		saved = saved(opts, "ActionBars"),
 		setup = function(env)
 			shared(env, opts)
-			local keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=" }
-			local keys2 = { "Q", "W", "E", "R", "T", "Y", "V", "I", "O", "P", "L", "1" }
+			local keys = opts.keys or { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=" }
+			local keys2 = opts.keys2 or { "Q", "W", "E", "R", "T", "Y", "V", "I", "O", "P", "L", "1" }
 			for i = 1, 12 do
 				env._game.bindings["ACTIONBUTTON" .. i] = { keys[i] }
 				env._game.bindings["MULTIACTIONBAR1BUTTON" .. i] = { keys2[i] }
@@ -437,25 +457,37 @@ function modules.actionbars(opts)
 			env._game.slots[60 + i] = { texture = bar2[i], type = "spell", id = 2000 + i }
 		end
 	end
+	-- opts.slots ({ [action slot] = icon }) fills further slots: the right-hand columns are bars 4 and 5, slots 25 to 48.
+	for slot, icon in pairs(opts.slots or {}) do
+		env._game.slots[slot] = { texture = icon, type = "spell", id = 3000 + slot }
+	end
 	-- States: slot 3 on an 8 s cooldown with 4 s left, slot 7 procs, slot 6 disabled, slot 2 pressed (for the
-	-- warrior: Charge, Overpower, Execute and Slam).
-	env._game.slots[3].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
-	env._game.procs[1007] = true
-	env._game.slots[6].usable = false
-	env._game.slots[12] = nil
+	-- warrior: Charge, Overpower, Execute and Slam). opts.barStates == false leaves every button at rest.
+	local states = opts.barStates ~= false
+	if states then
+		env._game.slots[3].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
+		env._game.procs[1007] = true
+		env._game.slots[6].usable = false
+		env._game.slots[12] = nil
+	end
 	for i = 1, 12 do
 		env.FireEvent("ACTIONBAR_SLOT_CHANGED", i)
 		env.FireEvent("ACTIONBAR_SLOT_CHANGED", 60 + i)
 	end
+	for slot in pairs(opts.slots or {}) do
+		env.FireEvent("ACTIONBAR_SLOT_CHANGED", slot)
+	end
 	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
-	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 1007)
-	env.FireEvent("ACTION_USABLE_CHANGED", { { slot = 6, usable = false, noMana = false } })
-	local pressed = AB.Button(ns, "bar1", 2)
-	AB.W.Down(pressed)
-	-- The game runs a cooldown frame's OnShow when its swipe starts; the stub leaves that to the scene.
-	local charging = AB.Button(ns, "bar1", 3)
-	charging.cooldown:Show()
-	charging.cooldown:GetScript("OnShow")(charging.cooldown)
+	if states then
+		env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 1007)
+		env.FireEvent("ACTION_USABLE_CHANGED", { { slot = 6, usable = false, noMana = false } })
+		local pressed = AB.Button(ns, "bar1", 2)
+		AB.W.Down(pressed)
+		-- The game runs a cooldown frame's OnShow when its swipe starts; the stub leaves that to the scene.
+		local charging = AB.Button(ns, "bar1", 3)
+		charging.cooldown:Show()
+		charging.cooldown:GetScript("OnShow")(charging.cooldown)
+	end
 	env.RunTimers()
 	AB.W.Settle(env)
 	local scene = build(env, opts, { time = env._time })
@@ -593,18 +625,21 @@ local CHAT_LINES = {
 -- does; KstyleUI_Chat then skins each tab: upper case, the kit font, an accent underline on the selected one.
 local CHAT_TABS = { "General", "Combat", "Loot", "Trade" }
 
+-- opts.chatLines and opts.chatTabs replace the session's lines and the docked windows' names; opts.chatClock
+-- ({ year, month, day, hour, min }) is the time the first line is stamped with.
 function modules.chat(opts)
 	local C = dofile("Tools/regression/chat_env.lua")
+	local lines, tabs = opts.chatLines or CHAT_LINES, opts.chatTabs or CHAT_TABS
 	local env, K, ns = C.New({
 		width = Common.SCREEN.width,
 		height = Common.SCREEN.height,
 		saved = saved(opts, "Chat"),
-		install = { frames = #CHAT_TABS },
+		install = { frames = #tabs },
 		setup = function(env)
 			shared(env, opts)
-			env._now = os.time({ year = 2026, month = 11, day = 7, hour = 14, min = 31, sec = 0 })
+			env._now = os.time(opts.chatClock or { year = 2026, month = 11, day = 7, hour = 14, min = 31, sec = 0 })
 			local dock = env.GENERAL_CHAT_DOCK
-			for i, name in ipairs(CHAT_TABS) do
+			for i, name in ipairs(tabs) do
 				local frame = env["ChatFrame" .. i]
 				env["ChatFrame" .. i .. "Tab"]:SetText(name)
 				if not frame.isDocked then
@@ -625,7 +660,7 @@ function modules.chat(opts)
 		end
 		return text
 	end
-	for _, line in ipairs(CHAT_LINES) do
+	for _, line in ipairs(lines) do
 		if type(line[3]) == "table" and line[3].sender then
 			env._now = env._now + 60
 			C.Say(env, chat, line[1], line[2], line[3])
@@ -705,13 +740,19 @@ end
 
 function modules.minimap(opts)
 	local M = dofile("Tools/regression/minimap_env.lua")
+	-- opts.zone, opts.clock ({ hour, minute, realmHour, realmMinute }) and opts.position ({ x, y }, 0 to 1) are the
+	-- zone, the clock and the player's map position the module reads.
 	local env, K, ns = M.New({
 		enabled = true,
-		zone = "Riverglades",
+		zone = opts.zone or "Riverglades",
+		position = opts.position,
 		setup = function(env)
 			shared(env, opts)
 			Common.ForceScreen(env)
-			env._clock = { hour = 14, minute = 32, realmHour = 9, realmMinute = 5 }
+			env._clock = opts.clock or { hour = 14, minute = 32, realmHour = 9, realmMinute = 5 }
+			for name, value in pairs(opts.cvars or {}) do
+				env._cvars[name] = value
+			end
 		end,
 	})
 	M.Settle(env)
@@ -737,7 +778,8 @@ function modules.databars(opts)
 	local env, K, ns = D.New({
 		saved = saved(opts, "DataBars"),
 		-- No watched faction: the mockup shows no reputation bar under the action bars.
-		game = { xp = 16000, xpMax = 50000, rested = 6000, level = 38, faction = false },
+		-- opts.game overlays the experience, level, frame rate, latency and money the module reads.
+		game = merge({ xp = 16000, xpMax = 50000, rested = 6000, level = 38, faction = false }, opts.game),
 		setup = function(env)
 			shared(env, opts)
 			Common.ForceScreen(env)
@@ -840,7 +882,8 @@ function modules.auras(opts)
 		end
 	end
 	local settings = K.Store.Module("Auras")
-	local buffRow = Hud.BuffRow(spec, opts.buffs or #spec.buffRow)
+	-- opts.buffRow and opts.debuffRow ({ "Name", icon, "time" } each) replace the class's row and the warrior's debuffs.
+	local buffRow = opts.buffRow or Hud.BuffRow(spec, opts.buffs or #spec.buffRow)
 	local buffs, group = A.Container(env, "HELPFUL")
 	if buffs then
 		local columns = ns.Model.Group(settings, "buffs").columns
@@ -851,6 +894,9 @@ function modules.auras(opts)
 	local entries = {}
 	for i = 1, opts.debuffs or 0 do
 		entries[i] = DEBUFF_ROW[(i - 1) % #DEBUFF_ROW + 1]
+	end
+	if opts.debuffRow then
+		entries = opts.debuffRow
 	end
 	if debuffs then
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
@@ -983,31 +1029,46 @@ function modules.nameplates(opts)
 	env._now = 10
 	local class = Hud.Class(opts)
 	Hud.PlateCasts(env, K, ns, class)
-	local target = type(opts.target) == "table" and opts.target or TARGET
-	local cast = target.cast or { name = "Snap", texture = 132200 }
-	local base = N.Add(env, "nameplate1", { name = target.name, health = target.health, maxHealth = target.healthMax, level = target.level, classification = target.classification, reaction = 2, canAttack = true })
 	local k = 768 / 1080
-	base:ClearAllPoints()
-	base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", PLATE_X * k, (1080 - PLATE_Y) * k)
-	local add = N.Add(env, "nameplate2", ADD.unit)
-	add:ClearAllPoints()
-	add:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", ADD.x * k, (1080 - ADD.y) * k)
-	N.Target(env, "nameplate1")
-	N.Cast(env, "nameplate1", { name = cast.name, text = cast.name, texture = cast.texture, notInterruptible = false })
-	N.Cast(env, "nameplate2", ADD.cast)
+	local combatText = K.Modules.IsRunning("CombatText")
+	-- opts.plates ({ unit = { name, level, health, maxHealth, ... }, x, y, target, cast = { name, texture, share } },
+	-- in screen units) replaces the crocolisk, the oracle and the combat numbers with the plates a fixture lists.
+	local plates = opts.plates
+	if not plates then
+		local target = type(opts.target) == "table" and opts.target or TARGET
+		local cast = target.cast or { name = "Snap", texture = 132200 }
+		plates = {
+			{ unit = { name = target.name, health = target.health, maxHealth = target.healthMax, level = target.level, classification = target.classification, reaction = 2, canAttack = true }, x = PLATE_X, y = PLATE_Y, target = true, cast = { name = cast.name, text = cast.name, texture = cast.texture, notInterruptible = false, share = 0.55 } },
+			{ unit = ADD.unit, x = ADD.x, y = ADD.y, cast = { name = ADD.cast.name, text = ADD.cast.text, texture = ADD.cast.texture, notInterruptible = ADD.cast.notInterruptible, share = 0.4 } },
+		}
+	end
+	for i, plate in ipairs(plates) do
+		local base = N.Add(env, "nameplate" .. i, plate.unit)
+		base:ClearAllPoints()
+		base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", plate.x * k, (1080 - plate.y) * k)
+		if plate.target then
+			N.Target(env, "nameplate" .. i)
+		end
+		if plate.cast then
+			N.Cast(env, "nameplate" .. i, { name = plate.cast.name, text = plate.cast.text or plate.cast.name, texture = plate.cast.texture, notInterruptible = plate.cast.notInterruptible == true })
+		end
+	end
 	for _ = 1, 20 do
 		N.Tick(env, 0.05)
 	end
-	Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
-	Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+	for i, plate in ipairs(plates) do
+		if plate.cast then
+			Hud.FillCast(ns.Plates.Get("nameplate" .. i), plate.cast.share or 0.5)
+		end
+	end
+	local base = env._bases.nameplate1
 	-- The heal on the player shows in KstyleUI's own field above the character; the numbers sit at
 	-- the start of their travel, since the stub runs no animations.
-	local combatText = K.Modules.IsRunning("CombatText")
-	if combatText then
+	if combatText and not opts.plates then
 		CT.Hit(env, "player", "HEAL", "", 168, 2)
 	end
 	local font = env.DAMAGE_TEXT_FONT
-	for _, number in ipairs(WORLD_NUMBERS) do
+	for _, number in ipairs(opts.plates and {} or WORLD_NUMBERS) do
 		local text = env.WorldFrame:CreateFontString(nil, "OVERLAY")
 		if type(font) == "string" then
 			text:SetFont(font, number[2], "OUTLINE")
@@ -1017,8 +1078,12 @@ function modules.nameplates(opts)
 		text:SetText(number[1])
 	end
 	local scene = build(env, opts, { time = env._time })
-	scene.log[#scene.log + 1] = "the world numbers over the target are stand-ins in DAMAGE_TEXT_FONT; the game draws and sizes them itself"
-	scene.log[#scene.log + 1] = "nameplates: the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); the " .. ADD.unit.name .. " casts " .. ADD.cast.name .. " with the " .. class:lower() .. "'s interrupt ready, so its bar takes the accent; cast fills stand in for the engine's timer"
+	if opts.plates then
+		scene.log[#scene.log + 1] = "nameplates: " .. #opts.plates .. " plates where the scene puts them; the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); cast fills stand in for the engine's timer"
+	else
+		scene.log[#scene.log + 1] = "the world numbers over the target are stand-ins in DAMAGE_TEXT_FONT; the game draws and sizes them itself"
+		scene.log[#scene.log + 1] = "nameplates: the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); the " .. ADD.unit.name .. " casts " .. ADD.cast.name .. " with the " .. class:lower() .. "'s interrupt ready, so its bar takes the accent; cast fills stand in for the engine's timer"
+	end
 	if not combatText then
 		scene.log[#scene.log + 1] = "error: CombatText did not start"
 	end
@@ -1195,9 +1260,29 @@ function modules.meters(opts)
 		env.RunTimers()
 		tick(env, 0.3)
 	end
+	-- opts.meterSpells (the same shape): the player clicked their own row, so the card lists every spell of theirs.
+	if opts.meterSpells and rows[1] then
+		local spells, total = {}, 0
+		for i, s in ipairs(opts.meterSpells) do
+			env._spells[s[1]] = { name = s[2], icon = s[3] }
+			spells[i] = { spellID = s[1], totalAmount = s[4], amountPerSecond = s[4] / 60, creatureName = "" }
+			total = total + s[4]
+		end
+		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = total }
+		local row = ns.Damage.list.rows[1].frame
+		local click = row:GetScript("OnClick") or row:GetScript("OnMouseUp")
+		if click then
+			click(row, "LeftButton")
+		end
+		env.RunTimers()
+		tick(env, 0.3)
+	end
 	local scene = build(env, opts)
 	if opts.meterHover then
 		scene.log[#scene.log + 1] = "the pointer rests on the player's row of the damage meter: its split lists the top three spells under the row"
+	end
+	if opts.meterSpells then
+		scene.log[#scene.log + 1] = "the player clicked their own row of the damage meter: the card lists their spells"
 	end
 	return finish(env, K, scene, "meters"), ns
 end
@@ -1210,6 +1295,12 @@ function modules.restedxp(opts)
 	RestedXP.PRESET = opts.layout
 	local first = RestedXP.STEPS[1]
 	RestedXP.STEPS = { { title = first.title, elements = { first.elements[1], first.elements[2] } } }
+	-- opts.guide ({ title, steps, rows }) replaces the guide's name, its active steps and its step list.
+	if type(opts.guide) == "table" then
+		RestedXP.TITLE = opts.guide.title or RestedXP.TITLE
+		RestedXP.STEPS = opts.guide.steps or RestedXP.STEPS
+		RestedXP.ROWS = opts.guide.rows or RestedXP.ROWS
+	end
 	local R = RestedXP.Build()
 	for _, name in ipairs({ "items", "v2", "configurator" }) do
 		for _, frame in ipairs(R.windows[name]) do
