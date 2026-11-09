@@ -612,6 +612,13 @@ do
 	ns.Strip.Refresh()
 	whole("at 318 and text scale 1.3")
 	eq(item(ns, "gold").value:GetText(), "9,999g", "money too wide for its cell in full compacts to gold; the tooltip keeps the whole amount")
+	-- A resize compacts against the new cells, not the last layout's: wide, the full string returns; narrow, it compacts.
+	assert(K.Layout.Update("databars.strip", { width = 600, height = 118 }))
+	env.RunTimers()
+	eq(item(ns, "gold").value:GetText(), "9,999g 99s 99c", "a wide card gives the full money string back")
+	assert(K.Layout.Update("databars.strip", { width = 318, height = 118 }))
+	env.RunTimers()
+	eq(item(ns, "gold").value:GetText(), "9,999g", "and the narrow card compacts it again, against its own cells")
 	W.Enter(item(ns, "gold").button)
 	assert(tooltipText(K):find("Gold=9,999g 99s 99c", 1, true), "the tooltip carries the whole amount: " .. tooltipText(K))
 	W.Leave(item(ns, "gold").button)

@@ -341,6 +341,24 @@ local function PlaceInline(item, s)
 	item.label:SetJustifyH("LEFT")
 end
 
+local function CompactGold(item, s)
+	if item.id ~= "gold" or s.money ~= "full" or not item.cell then
+		return
+	end
+	local full = item.view.values[item.id]
+	if full and full[1] then
+		item.value:SetText(full[1])
+	end
+	local room = item.cell - 2 * MIN_GAP
+	if TextWidth(item.value, s.fontSize) <= room then
+		return
+	end
+	local money = Money()
+	if money then
+		item.value:SetText(Format.Money(money, "gold"))
+	end
+end
+
 local function PlaceItems(view, s)
 	local frame = view.frame
 	local w, h = Size(frame)
@@ -380,6 +398,7 @@ local function PlaceItems(view, s)
 		item.label:ClearAllPoints()
 		item.value:ClearAllPoints()
 		item.cell = cells[i]
+		CompactGold(item, s)
 		if inline then
 			item.inner = inner
 			PlaceInline(item, s)
@@ -401,20 +420,6 @@ local function PlaceItems(view, s)
 		separator:SetSize(Widgets.Border(frame), Widgets.Snap(frame, h * SEPARATOR_SHARE))
 		separator:SetVertexColor(Widgets.Rgba("text", SEPARATOR_ALPHA))
 		separator:SetShown(i > 1 and s.separators == true)
-	end
-end
-
-local function CompactGold(item, s)
-	if item.id ~= "gold" or s.money ~= "full" or not item.cell then
-		return
-	end
-	local room = item.cell - 2 * MIN_GAP
-	if TextWidth(item.value, s.fontSize) <= room then
-		return
-	end
-	local money = Money()
-	if money then
-		item.value:SetText(Format.Money(money, "gold"))
 	end
 end
 

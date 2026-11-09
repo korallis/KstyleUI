@@ -22,7 +22,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
-`Auras.xml` loads the files in this order. Tests: `Tools/regression/test-auras-model.lua` (the pure model), `test-auras.lua` (the module against a fake AuraContainer engine in `Tools/regression/auras_env.lua`) and `test-auras-gamepad.lua` (the gamepad interface).
+`Auras.xml` loads the files in this order. Tests: `Tools/regression/test-auras-model.lua` (the pure model), `test-auras.lua` (the module against a fake AuraContainer engine in `Tools/regression/auras_env.lua`), `test-auras-card.lua` (the card's shape), `test-auras-counts.lua` (0, 8, 24 and 40 buffs beside 12 debuffs: the card stays in its column and on screen, the `+N` count and the full list) and `test-auras-gamepad.lua` (the gamepad interface). The gallery scene `Tools/render/scenes/gallery_auras_counts.lua` renders those four counts.
 
 | File | What it holds |
 | --- | --- |
@@ -49,8 +49,10 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 - **Timers** use the engine's duration text binding. `short` is the engine's default formatter (`24s`, `8m`, `2h`); `long` and `decimal` are `C_StringUtil` seconds formatters with two units, or tenths under 3 seconds. A step colour curve turns the timer `hostile` under the warning time.
 - **Debuff type** colours a chamfered underlay behind each debuff icon through `AddDispelTypeTexture` with the `PreserveAsset` style, so the engine applies Blizzard's dispel colour and hides it on buffs. A debuff with no type gets the "None" colour.
 - **Right-click cancel** is `SetCancelAuraButtons("RightButtonUp")` on buffs and weapon enchantments. The engine's secure `OnClick` cancels the aura, so it works in combat.
-- **Sorting** maps to `AuraContainerSortMethod`: time left (`ExpirationOnly`), name (`NameOnly`), order applied (`AuraInstanceIDOnly`) or Blizzard's (`Default`), each normal or reversed.
+- **Sorting** maps to `AuraContainerSortMethod`: time left (`ExpirationOnly`), name (`NameOnly`), order applied (`AuraInstanceIDOnly`), Blizzard's (`Default`) or priority (`UnitFrameDebuff`: boss debuffs, then important ones, then yours first, as Blizzard's unit frames order them), each normal or reversed. Debuffs sort by priority by default.
+- **Dispellable first.** The debuff container runs two engine groups: `dispel`, whose `candidateFilters.includeDispelTypes` admits Magic, Curse, Poison and Disease, then `debuffs`, which excludes them. The flow layout lays the groups out in order with one spacing, so dispellable debuffs lead the rows whatever the sort. **Dispellable first** off runs one group.
 - **Weapon enchantments** share the buff rows. An active enchantment takes one buff's place (`WEAPON_ENCHANT_CHANGED`, `WEAPON_SLOT_CHANGED`), so the panel never grows past its rows.
+- **Many auras.** The rows are the cap: two rows of six buffs and two rows of six debuffs by default (`rows` up to 8). The engine shows the first `rows x columns` of each group by the sort, and the card grows by whole rows as they fill, by anchors, never past the cap. Out of combat the card counts the player's auras through `C_UnitAuras.GetAuraSlots` (paged, 40 slots a call) and refits on `UNIT_AURA`: with no debuffs the hairline band goes, with no buffs over the debuffs it goes too, with no auras at all the card hides (the Layout element stays for the mover plate), and the buffs and debuffs the rows cannot show read as a `+N` count at the cap's right. Hovering the count opens the full list: a glass flyout left of the card, toward the screen's centre and clamped to it, holding a second pair of engine containers at a 28-unit tile, eight to a row, up to 48 buffs and 24 debuffs, which closes half a second after the pointer leaves both. The flyout's containers are the engine's too, so the list is right in combat. While auras are secret the counts cannot be read: on `PLAYER_REGEN_DISABLED` the card shows at once (a buff gained in combat is never hidden) and keeps the shape and count it last knew; `PLAYER_REGEN_ENABLED` and `ADDON_RESTRICTION_STATE_CHANGED` count again.
 - **Blizzard's `BuffFrame` and `DebuffFrame`** are hidden through `Safe.HideBlizzard` while the panel that replaces each one is built, and come back through `Safe.RestoreBlizzard` when the module turns off, the player turns **Hide Blizzard's buff frames** off, or the gamepad interface is on.
 - **Gamepad interface.** While `InputUtil.IsGamepadUIEnabled()` is true, Blizzard's `BuffFrame` and `DebuffFrame` stay on screen and KstyleUI's two panels hide, so the player sees one set of buffs. `INPUT_DEVICE_INTERFACE_TRANSITION` swaps them back and forth through `KstyleUI.Combat.Queue`, so a switch in combat lands when combat ends.
 
@@ -61,14 +63,15 @@ Each icon is the kit's chamfered tile with the icon masked inside it. The timer 
 | `hideBlizzard` | `true` | toggle |
 | `buffs.iconSize`, `debuffs.iconSize` | 38 | slider, 16 to 64 |
 | `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 8, 0 | slider, 0 to 24 |
-| `buffs.rows`, `debuffs.rows` | 2, 1 | slider, 1 to 8 |
+| `buffs.rows`, `debuffs.rows` | 2, 2 | slider, 1 to 8: the cap; the rest count as `+N` at the cap |
 | `buffs.columns`, `debuffs.columns` | 8 | slider, 1 to 24 |
 | `buffs.growth`, `debuffs.growth` | `LEFT_DOWN` | dropdown: left or right, then down or up. The container hangs from the element's corner the rows grow from, so a short row sits flush with the minimap's side |
-| `buffs.sort`, `debuffs.sort` | `time` | dropdown: time, name, applied, blizzard |
+| `buffs.sort`, `debuffs.sort` | `time`, `priority` | dropdown: time, name, applied, blizzard, priority |
 | `buffs.reverse`, `debuffs.reverse` | `false` | toggle |
 | `buffs.enchants` | `true` | toggle: weapon enchantments |
 | `buffs.cancel` | `true` | toggle: right-click cancels |
 | `debuffs.dispel` | `true` | toggle: colour by debuff type |
+| `debuffs.dispelFirst` | `true` | toggle: dispellable debuffs before the rest |
 | `timer.format` | `short` | dropdown: short, long, decimal, none |
 | `timer.position` | `below` | dropdown: under the icon, on the icon |
 | `timer.font`, `count.font` | the `number` font | font |

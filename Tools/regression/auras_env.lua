@@ -210,8 +210,13 @@ local function installContainer(env, container)
 		checkCount(maxFrameCount)
 		checkLayout(options.layout)
 		assert(options.initializeFrame == nil or type(options.initializeFrame) == "function", "initializeFrame must be a function or nil.")
+		local candidates = options.candidateFilters
+		assert(candidates == nil or type(candidates) == "table", "candidateFilters must be a table or nil.")
+		for _, field in ipairs({ "includeDispelTypes", "excludeDispelTypes", "includeSpellIDs", "excludeSpellIDs" }) do
+			assert(candidates == nil or candidates[field] == nil or type(candidates[field]) == "table", field .. " must be a table or nil")
+		end
 		local group = {
-			key = key, filter = filter, enabled = true, maxFrameCount = maxFrameCount,
+			key = key, filter = filter, enabled = true, maxFrameCount = maxFrameCount, candidateFilters = candidates,
 			sortMethod = sortMethod, sortDirection = sortDirection, layout = options.layout, frames = {},
 		}
 		self._groups[key] = group
@@ -445,11 +450,19 @@ function A.New(opts)
 end
 
 -- Container(env, filter) -> the fake container whose aura group uses filter, or nil.
-function A.Container(env, filter)
+-- Container(env, filter, nth) -> the nth container (the first by default) with a group on the filter, and that
+-- group: the first group in the order the module added them.
+function A.Container(env, filter, nth)
+	local seen = 0
 	for _, container in ipairs(env._containers) do
-		for _, group in pairs(container._groups) do
+		for _, key in ipairs(container._order) do
+			local group = container._groups[key]
 			if group.filter == filter then
-				return container, group
+				seen = seen + 1
+				if seen == (nth or 1) then
+					return container, group
+				end
+				break
 			end
 		end
 	end

@@ -84,6 +84,10 @@ schema[#schema + 1] = {
 	type = "toggle", key = "debuffs.dispel", label = L["Colour by debuff type"],
 	help = L["Borders each debuff in its type's colour: magic, curse, disease, poison or none."],
 }
+schema[#schema + 1] = {
+	type = "toggle", key = "debuffs.dispelFirst", label = L["Dispellable first"],
+	help = L["Puts the debuffs you or your group can dispel before the rest, whatever the sort."],
+}
 
 local rest = {
 	{ type = "header", label = L["Timers"] },

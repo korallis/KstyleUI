@@ -99,7 +99,7 @@ do
 		end
 		check(body, "each aura button sits on the near-black button body every square icon shares")
 	end
-	check(bg.maxFrameCount == 12 and dg.maxFrameCount == 6, "2 rows of 6 buffs and 1 row of 6 debuffs")
+	check(bg.maxFrameCount == 12 and dg.maxFrameCount == 12, "2 rows of 6 buffs and 2 rows of 6 debuffs")
 	check(bg.sortMethod == env.AuraContainerSortMethod.ExpirationOnly and bg.sortDirection == env.AuraContainerSortDirection.Normal, "buffs sort by time left")
 	check(bg.layout.elementWidth == 38 and bg.layout.elementHeight == 51, "each buff is a 38-unit icon with its 12-unit timer under it")
 	check(bg.layout.elementSpacing == 10 and bg.layout.lineSpacing == 0, "10-unit gaps between icons")
@@ -120,7 +120,7 @@ do
 	check(near(w, 318), "the buff element is the 318 card, got " .. tostring(w) .. " x " .. tostring(h))
 	check(h > 102 + 51, "and taller than both rows, for the cap, the padding and the hairline: " .. tostring(h))
 	w, h = size(d.frame)
-	check(near(w, 278) and near(h, 51), "the debuff element is its row, 278 x 51")
+	check(near(w, 278) and near(h, 102), "the debuff element is its two rows, 278 x 102")
 	check(not isAncestor(b.frame, buffs), "the Layout element is not an ancestor of the container, so Layout never touches an aura button")
 	local host = buffs:GetParent()
 	local point, rel, relPoint = buffs:GetPoint(1)
@@ -171,7 +171,7 @@ do
 	local bw, bh = groupButtons(bg)[1]:GetSize()
 	check(near(bw, 32) and near(bh, 45), "and the buttons")
 	local w, h = size(b.frame)
-	local card = ns.Model.Card({ width = 6 * 32 + 5 * 10, height = 2 * 45 }, { width = 6 * 38 + 5 * 10, height = 51 }, ns.Model.CARD_PAD, ns.Model.CARD_GAP)
+	local card = ns.Model.Card({ width = 6 * 32 + 5 * 10, height = 2 * 45 }, { width = 6 * 38 + 5 * 10, height = 102 }, ns.Model.CARD_PAD, ns.Model.CARD_GAP)
 	check(near(w, card.width) and near(h, card.height), "and the card round it: the wider debuff row sets the width, got " .. tostring(w) .. " x " .. tostring(h) .. " for " .. card.width .. " x " .. card.height)
 
 	K.Options.Write("Auras", "buffs.sort", "name")

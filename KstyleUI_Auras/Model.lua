@@ -44,8 +44,8 @@ Model.defaults = {
 		growth = "LEFT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true,
 	},
 	debuffs = {
-		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 1, columns = 6,
-		growth = "LEFT_DOWN", sort = "time", reverse = false, dispel = true,
+		iconSize = 38, spacing = 10, rowSpacing = 0, rows = 2, columns = 6,
+		growth = "LEFT_DOWN", sort = "priority", reverse = false, dispel = true, dispelFirst = true,
 	},
 	card = { docked = true },
 	timer = { format = "short", position = "below", font = NUMBER_FONT, size = 12, outline = "OUTLINE", expiring = 5 },
@@ -65,7 +65,10 @@ Model.SORT_OPTIONS = {
 	{ value = "name", label = L["Name"] },
 	{ value = "applied", label = L["Order applied"] },
 	{ value = "blizzard", label = L["Yours first (Blizzard)"] },
+	{ value = "priority", label = L["Priority (boss, important, yours first)"] },
 }
+Model.DISPEL_TYPES = { "Magic", "Curse", "Poison", "Disease" }
+Model.MORE = { iconSize = 28, spacing = 6, columns = 8, buffs = 48, debuffs = 24 }
 Model.TIMER_FORMATS = {
 	{ value = "short", label = L["Short (8m, 24s)"] },
 	{ value = "long", label = L["Long (8m 12s)"] },
@@ -92,7 +95,7 @@ local GROWTH = {
 	RIGHT_DOWN = { "TOPLEFT", "Right", "Down" },
 	RIGHT_UP = { "BOTTOMLEFT", "Right", "Up" },
 }
-local SORT = { time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default" }
+local SORT = { time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default", priority = "UnitFrameDebuff" }
 local FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
 local function allowed(options)
@@ -155,6 +158,7 @@ function Model.Group(settings, name)
 	end
 	if base.dispel ~= nil then
 		g.dispel = boolean(s.dispel, base.dispel)
+		g.dispelFirst = boolean(s.dispelFirst, base.dispelFirst)
 	end
 	return g
 end
