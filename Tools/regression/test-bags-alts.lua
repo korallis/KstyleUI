@@ -154,4 +154,83 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Browsing: the scan keeps what each item is, and the bag window's picker shows a saved character read-only -----
+
+do
+	local env, K, ns = B.New({ bags = Bags(), bank = Bank(), bankTabs = { [BANK.Character] = { 6 }, [BANK.Account] = { 15 } }, player = "Valerin", realm = "Lordaeron" })
+	local Alts = ns.Alts
+	local saved = K.Store.Account().inventory
+	local me = saved.characters["Lordaeron-Valerin"]
+	assert(saved.version == Alts.VERSION and Alts.VERSION >= 2, "the store carries the version that added the item catalogue")
+	local potion = me.items and me.items[POTION]
+	assert(type(potion) == "table" and potion.icon == 134829 and potion.quality == 1 and potion.cat == "consumables" and potion.name == "Minor Healing Potion", "the scan keeps each item's icon, quality, category and name")
+	assert(me.free == 24 - 4 and me.total == 24, "and the bags' free and total slots, got " .. tostring(me.free) .. "/" .. tostring(me.total))
+	assert(type(me.money) == "number", "and the character's money")
+	B.Put(env, 0, 2, nil)
+	Run(env)
+	assert(me.items[SWORD] == nil, "an item that leaves the bags leaves the catalogue")
+	env.SetBank(true)
+	Run(env)
+	assert(me.items[1001] and me.items[1001].cat == "equipment", "the bank's items join the catalogue")
+	assert(me.bankFree == 24 - 2 and me.bankTotal == 24, "with the bank's free and total slots")
+	env.SetBank(false)
+	Run(env)
+
+	-- A character an earlier session saved.
+	saved.characters["Lordaeron-Thargor"] = {
+		name = "Thargor", realm = "Lordaeron", class = "WARRIOR", seen = me.seen,
+		bags = { [POTION] = 4, [SWORD] = 1 }, bank = { [CLOTH] = 40 },
+		items = {
+			[POTION] = { icon = 134829, quality = 1, cat = "consumables", name = "Minor Healing Potion" },
+			[SWORD] = { icon = 135274, quality = 2, cat = "equipment", name = "Worn Shortsword" },
+			[CLOTH] = { icon = 132905, quality = 1, cat = "tradeGoods", name = "Silk Cloth" },
+		},
+		free = 10, total = 24, bankFree = 20, bankTotal = 24, money = 12345,
+	}
+	local list = Alts.Characters()
+	assert(#list == 2 and list[1].own and list[1].key == "Lordaeron-Valerin" and list[2].name == "Thargor" and list[2].class == "WARRIOR", "the characters list this one first, then the others by name")
+	local view = Alts.View("Lordaeron-Thargor")
+	assert(view and #view.bags == 2 and #view.bank == 1, "a view lists the bags' items and the bank's")
+	assert(view.bags[1].id == SWORD and view.bags[2].id == POTION, "in the categories' order: equipment before consumables")
+	assert(view.bags[2].count == 4 and view.bank[1].count == 40, "with their counts")
+	assert(Alts.View("Nobody") == nil, "an unknown key has no view")
+
+	env.ToggleAllBags()
+	Run(env)
+	local win = ns.Inventory.window
+	assert(win.picker and win.picker:IsShown(), "the bag window offers a character picker once another character is saved")
+	assert(win.picker:GetValue() == "Lordaeron-Valerin", "set to this character")
+	assert(win.picker:SetValue("Lordaeron-Thargor"), "Thargor is one of its options")
+	Run(env)
+	local remote = win.remote
+	assert(remote and remote.frame:IsShown(), "picking Thargor shows the saved view")
+	assert(not win.viewport:IsShown(), "and puts the live sections away")
+	assert(#remote.tiles == 3, "one tile per saved item, got " .. tostring(#remote.tiles))
+	local tile = remote.tiles[2]
+	assert(tile.count:GetText() == "4" and tile.icon:GetTexture() == 134829, "a tile wears the item's icon and count")
+	assert(tile.button._template == nil, "the tiles are plain buttons, never Blizzard's item buttons: nothing can be picked up")
+	local caps = {}
+	for _, group in ipairs(remote.groups) do
+		if group.frame:IsShown() then
+			caps[#caps + 1] = group.cap.label:GetText()
+		end
+	end
+	assert(#caps == 3 and caps[1]:find("EQUIPMENT", 1, true) and caps[2]:find("CONSUMABLES", 1, true) and caps[3]:find("BANK", 1, true), "the view keeps the Lumen caps: the bags' categories, then the bank, got " .. table.concat(caps, ","))
+	assert(win.free:GetText():find("10/24", 1, true), "the footer shows the saved character's free slots, got " .. tostring(win.free:GetText()))
+	assert(win.money:GetText() == ns.Window.MoneyText(12345), "and their money")
+	W.Enter(tile.button)
+	assert(B.Count(env, "GameTooltip:SetItemByID") == 1 and B.Calls(env, "GameTooltip:SetItemByID")[1][1] == POTION, "a tile shows the item's tooltip by ID")
+	W.Leave(tile.button)
+	assert(win.panel:GetWidth() >= win.search:GetWidth(), "the window still hugs its controls")
+	win.picker:SetValue("Lordaeron-Valerin")
+	Run(env)
+	assert(not remote.frame:IsShown() and win.viewport:IsShown(), "picking this character brings the live bags back")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+
+	local env2, _, ns2 = B.New({ bags = Bags(), player = "Valerin", realm = "Lordaeron" })
+	env2.ToggleAllBags()
+	Run(env2)
+	assert(ns2.Inventory.window.picker == nil or not ns2.Inventory.window.picker:IsShown(), "with no other character saved, the window offers no picker")
+end
+
 print("bags alts ok")

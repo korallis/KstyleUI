@@ -5,6 +5,10 @@ local K = KstyleUI
 local L = K.L
 local Kit = ns.PartBKit
 
+local function IsSecret(value)
+	return issecretvalue ~= nil and issecretvalue(value) == true
+end
+
 local function Texture(button, getter)
 	if type(button[getter]) == "function" then
 		return button[getter](button)
@@ -60,6 +64,23 @@ local function TrainButtonHover()
 	end
 end
 
+local function SkillLine()
+	if type(GetTrainerServiceSkillLine) ~= "function" or type(GetNumTrainerServices) ~= "function" then
+		return L["Skill"]
+	end
+	local count = GetNumTrainerServices()
+	if IsSecret(count) or type(count) ~= "number" then
+		return L["Skill"]
+	end
+	for index = 1, count do
+		local line = GetTrainerServiceSkillLine(index)
+		if not IsSecret(line) and type(line) == "string" and line ~= "" then
+			return line
+		end
+	end
+	return L["Skill"]
+end
+
 local function Row(row)
 	if row.icon ~= nil then
 		SkillRow(row)
@@ -74,7 +95,14 @@ local function Apply()
 		return false
 	end
 	Kit.Window(frame)
-	Kit.Bar(ClassTrainerStatusBar)
+	local bar = Kit.Bar(ClassTrainerStatusBar, { accent = true, label = SkillLine() })
+	if bar and type(ClassTrainerFrame_Update) == "function" then
+		hooksecurefunc("ClassTrainerFrame_Update", function()
+			bar:SetLabel(SkillLine())
+		end)
+	elseif bar then
+		Kit.LogOnce("trainer.update", "ClassTrainerFrame_Update is missing; the skill bar's label is set at skin time only")
+	end
 	Kit.Dropdown(frame.FilterDropdown)
 	Kit.Button(frame.TrainButton)
 	Kit.ScrollBar(frame.ScrollBar)

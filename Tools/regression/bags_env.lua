@@ -147,6 +147,20 @@ function B.Game(env, opts)
 			local c = container(bag)
 			return c and c.size or 0
 		end,
+		-- numFreeSlots, bagFamily: 0 for a regular bag; a fixture sets family for a quiver or a soul bag.
+		GetContainerNumFreeSlots = function(bag)
+			local c = container(bag)
+			if not c then
+				return 0, 0
+			end
+			local free = 0
+			for slot = 1, c.size or 0 do
+				if not (c.items and c.items[slot]) then
+					free = free + 1
+				end
+			end
+			return free, c.family or 0
+		end,
 		GetContainerItemInfo = function(bag, slot)
 			local it = item(bag, slot)
 			if not it then
@@ -347,6 +361,10 @@ function B.Game(env, opts)
 	env.GameTooltip = env.CreateFrame("GameTooltip", "GameTooltip", env.UIParent)
 	rawset(env.GameTooltip, "SetOwner", function(_, owner)
 		record(env, "GameTooltip:SetOwner", owner)
+	end)
+	rawset(env.GameTooltip, "SetItemByID", function(_, id)
+		record(env, "GameTooltip:SetItemByID", id)
+		return true
 	end)
 	rawset(env.GameTooltip, "SetBagItem", function(_, bag, slot)
 		record(env, "GameTooltip:SetBagItem", bag, slot)

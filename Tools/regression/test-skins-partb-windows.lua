@@ -370,8 +370,20 @@ do
 		local letter = P.Window(B, "OpenMailFrame")
 		P.Item(B, letter, "OpenMailAttachmentButton1")
 		P.Button(B, letter, "OpenMailReplyButton")
-		return { mail = mail, inboxBg = inboxBg, mailItem = mailItem, cod = cod, bar = bar, coin = coin, money = money, letter = letter }
+		-- The letter's body is a SimpleHTML (MailFrame.xml:1010): its font, colour and justification calls name the
+		-- text type first.
+		local body = B.frame("SimpleHTML", letter, "OpenMailBodyText")
+		return { mail = mail, inboxBg = inboxBg, mailItem = mailItem, cod = cod, bar = bar, coin = coin, money = money, letter = letter, body = body }
 	end)
+	local font = W.LastCall(made.body, "SetFont")
+	assert(font and font[1] == "H3" and font[2] == ns.Style.Font("body"), "the body's SetFont names the text type, then the body face: " .. tostring(font and font[1]))
+	local calls = {}
+	for _, call in ipairs(made.body._calls) do
+		if call.method == "SetJustifyH" then
+			calls[call.args[1]] = call.args[2]
+		end
+	end
+	assert(calls.P == "LEFT" and calls.H1 == "LEFT", "every text type of the body reads LEFT")
 	assert(Skinned(K, made.mail, "Window") and Skinned(K, made.letter, "Window"), "the mailbox and open letters are glass windows")
 	assert(Skinned(K, made.mail, "Tabs"), "the inbox and send tabs are skinned")
 	assert(Hidden(made.inboxBg) and Hidden(made.bar), "the inbox paper and the send form's bars are hidden")
@@ -447,11 +459,28 @@ do
 		env.ClassTrainerFrame_SetTrainButtonEnabled = function()
 			train._scripts.OnEnter, train._scripts.OnLeave = nil, nil
 		end
+		env.ClassTrainerFrame_Update = function() end
 		return { trainer = trainer, bar = bar, barArt = barArt, skill = skill, category = category, train = train }
 	end)
 	assert(Skinned(K, made.trainer, "Window"))
 	assert(Hidden(made.barArt) and not Hidden(made.bar:GetStatusBarTexture()), "the skill bar keeps its fill and loses its frame")
 	assert(W.LastCall(made.bar:GetStatusBarTexture(), "SetTexture")[1] == ns.Style.BarTexture(), "the skill bar takes the module's bar texture")
+	-- A client without the trainer skill-line API, or one that answers nothing, labels the bar "Skill"; Blizzard's
+	-- list update refreshes the label from the first service's skill line.
+	local bar = K.Safe.Side(made.bar).partBBar
+	assert(bar and bar.label and bar.label:GetText() == "Skill", "the bar's label falls back to Skill, got " .. tostring(bar.label:GetText()))
+	env.GetNumTrainerServices = function()
+		return 1
+	end
+	env.GetTrainerServiceSkillLine = function()
+		return "Blacksmithing"
+	end
+	env.ClassTrainerFrame_Update()
+	assert(bar.label:GetText() == "Blacksmithing", "the update hook relabels the bar, got " .. tostring(bar.label:GetText()))
+	local ar, ag, ab = ns.Style.Accent()
+	local er, eg, eb = ns.Style.BarColor(ar, ag, ab, 1)
+	local r, g, b = made.bar:GetStatusBarColor()
+	assert(W.Near(r, er) and W.Near(g, eg) and W.Near(b, eb), "the skill bar fills with the accent")
 	assert(Hidden(made.skill.selectedTex) and not Hidden(made.skill.icon) and K.Safe.Side(made.skill).partBSelect, "skill rows become tiles that light when selected")
 	assert(Hidden(made.category.LeftPiece) and made.category.Label:GetFont() == (ns.Style.Font("body")), "category rows lose the header art")
 	assert(Skinned(K, made.trainer.TrainButton, "Button"))

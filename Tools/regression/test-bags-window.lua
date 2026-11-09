@@ -249,7 +249,7 @@ do
 	assert(#trade.order == 1 and Has(trade, 1, 1), "the cloth is trade goods")
 	assert(#other.order == 1 and Has(other, 0, 5), "the hearthstone is other")
 	assert(#junk.order == 1 and Has(junk, 0, 4), "the fang is junk")
-	assert(#empty.order == 2 and empty.total == 24 - 7, "the empty group lists one slot per bag and counts every free slot, got " .. tostring(#empty.order) .. "/" .. tostring(empty.total))
+	assert(#empty.order == 1 and empty.total == 24 - 7, "the empty group lists one slot per bag family and counts every free slot, got " .. tostring(#empty.order) .. "/" .. tostring(empty.total))
 	assert(not Has(empty, -1, 2) and #win.sections[2].order == 4, "the keyring keeps its own section")
 	assert(quest == nil, "a category nothing has fallen into is never built")
 	assert(equipment.view:IsShown() and equipment.cap:IsShown(), "a category with items shows its grid and its cap")
@@ -365,15 +365,18 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Empty slots pack into one slot per bag, the cap carries the free count ----------------------------
+-- Empty slots pack into one stacked tile per bag family, the tile and the cap carry the free count --------
 
 do
 	local env, K, ns = B.New({ bags = Bags() })
 	Open(env)
 	local win = ns.Inventory.window
 	local empty = win.sections[1].groups.empty
-	assert(#empty.order == 2, "one empty slot per bag shows: the backpack's and bag 1's, got " .. tostring(#empty.order))
+	assert(#empty.order == 1, "the regular bags' free slots show as one tile, got " .. tostring(#empty.order))
 	assert(empty.cap.count:GetText() == "17", "the cap counts every free slot, got " .. tostring(empty.cap.count:GetText()))
+	local tile = empty.order[1]
+	assert(tile.count:IsShown() and tile.count:GetText() == "17", "the tile wears the free count as a stack, got " .. tostring(tile.count:GetText()))
+	assert(tile.state.empty, "and stays an empty slot to drop onto")
 	local shown = 0
 	for bag = 0, 1 do
 		for slot = 1, 16 do
@@ -383,15 +386,67 @@ do
 			end
 		end
 	end
-	assert(shown == 2, "the other empty slots' buttons hide, got " .. shown .. " shown")
+	assert(shown == 1, "the other empty slots' buttons hide, got " .. shown .. " shown")
+	-- A special bag (a quiver, a soul bag) takes only its own kind, so its free slots are a tile of their own.
+	env._bags[1].family = 1
+	env.FireEvent("BAG_UPDATE", 1)
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	env.RunTimers()
+	W.Settle(env)
+	assert(#empty.order == 2, "a bag of another family gets its own tile, got " .. tostring(#empty.order))
+	local counts = {}
+	for _, slot in ipairs(empty.order) do
+		counts[#counts + 1] = slot.count:GetText()
+	end
+	table.sort(counts)
+	assert(counts[1] == "11" and counts[2] == "6", "each tile counts its family's free slots, got " .. table.concat(counts, ","))
+	env._bags[1].family = nil
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	env.RunTimers()
+	W.Settle(env)
+	assert(#empty.order == 1)
 	local row = K.Options.Row("Bags", "emptySlots")
 	assert(row and row.type == "dropdown", "Empty slots has a dropdown")
 	Set(K, "emptySlots", "all")
 	assert(#empty.order == 17, "showing every empty slot lists them all")
+	assert(not empty.order[1].count:IsShown(), "and each one is plain")
 	Set(K, "emptySlots", "packed")
-	assert(#empty.order == 2, "and packing them again")
+	assert(#empty.order == 1, "and packing them again")
 	Set(K, "layout", "grid")
 	assert(#win.sections[1].order == 24, "the grid layout shows every slot whatever the packing")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The window hugs its content: as wide as its widest row, never the column setting's full width ----------
+
+do
+	local env, K, ns = B.New({ bags = Bags() })
+	Open(env)
+	local win = ns.Inventory.window
+	local panel = win.panel
+	local Data = ns.Data
+	local size, spacing = ns.Settings.Get("slotSize"), ns.Settings.Get("spacing")
+	local pad = K.Widgets.WindowInset(panel)
+	local full = Data.Size(ns.Settings.Get("columns"), 1, size, spacing) + 2 * pad
+	assert(panel:GetWidth() < full, "with rows of three items at most, the window is narrower than ten columns: " .. panel:GetWidth() .. " vs " .. full)
+	local hugged = panel:GetWidth()
+	assert(win.search:GetWidth() >= 100, "and the search field keeps room to type: " .. tostring(win.search:GetWidth()))
+	-- Seven cloth stacks make a seven-wide trade goods row; the window grows to fit it and no further.
+	for slot = 2, 7 do
+		B.Put(env, 1, slot, Item("cloth", { count = slot }))
+	end
+	env.RunTimers()
+	W.Settle(env)
+	local seven = Data.Size(7, 1, size, spacing) + 2 * pad
+	assert(panel:GetWidth() == seven, "a seven-wide row widens the window to seven columns: " .. panel:GetWidth() .. " vs " .. seven)
+	assert(panel:GetWidth() > hugged)
+	assert(#win.sections[1].groups.tradeGoods.order == 7 and win.sections[1].groups.tradeGoods.cols == 7, "the row is seven wide")
+	-- The column setting still caps a row: at six columns the seven stacks wrap and the window narrows with them,
+	-- down to the width its search box and buttons need.
+	Set(K, "columns", 6)
+	local six = Data.Size(6, 1, size, spacing) + 2 * pad
+	assert(panel:GetWidth() == math.max(six, hugged), "six columns wrap the row and the window hugs again: " .. panel:GetWidth() .. " vs " .. six .. " or " .. hugged)
+	assert(win.sections[1].groups.tradeGoods.cols == 6)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

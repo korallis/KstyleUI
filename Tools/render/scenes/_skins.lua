@@ -99,7 +99,24 @@ function Skins.Scene(key)
 	end
 	env.RunTimers()
 	S.W.Settle(env)
+	-- A texture the game paints with SetPortraitTexture (the character window's first mode tab) gets the
+	-- mockup's player portrait when standins.py has cut it, else a flat tone.
+	local portraits = parts.portraits or {}
+	local portraitNote
+	for _, texture in ipairs(portraits) do
+		local file = Common.StandIn("portrait-player-warrior.png") or Common.StandIn("portrait-player.png")
+		if file then
+			texture:SetTexture(file)
+			portraitNote = "the player portrait is a crop of the mockup (" .. file .. "); the game draws it itself"
+		else
+			texture:SetColorTexture(0.33, 0.28, 0.22, 1)
+			portraitNote = "the player portrait is a flat stand-in; run Tools/render/standins.py for the mockup's crop"
+		end
+	end
 	local scene = Gallery.Build(env)
+	if portraitNote then
+		scene.log[#scene.log + 1] = portraitNote
+	end
 	for _, skin in ipairs(spec.skins) do
 		if not ns.Skins.IsApplied(skin) then
 			scene.log[#scene.log + 1] = "error: the " .. skin .. " skin did not apply to " .. key

@@ -164,6 +164,19 @@ function Style.Text(text, role, colorName)
 	return text
 end
 
+local HTML_TYPES = { "P", "H1", "H2", "H3" }
+
+function Style.Html(html, role, colorName)
+	local path, size, flags = Style.Font(role or "body")
+	local r, g, b = Tokens.Color(colorName or "text")
+	for _, kind in ipairs(HTML_TYPES) do
+		html:SetFont(kind, path, size, flags)
+		html:SetTextColor(kind, r, g, b)
+		html:SetJustifyH(kind, "LEFT")
+	end
+	return html
+end
+
 function Style.Accent()
 	local source = Style.Setting("accent", "source")
 	if source == "custom" then
@@ -221,6 +234,11 @@ function Style.BarColor(r, g, b, a)
 end
 
 local function SetColor(bar, state)
+	if state.accent then
+		local r, g, b = Style.Accent()
+		bar:SetStatusBarColor(Style.BarColor(r, g, b, 1))
+		return
+	end
 	bar:SetStatusBarColor(Style.BarColor(state.r, state.g, state.b, state.a))
 end
 
@@ -233,7 +251,7 @@ local function PaintBar(bar, state)
 	end
 end
 
-function Style.StatusBar(bar)
+function Style.StatusBar(bar, opts)
 	local state = bars[bar]
 	if not state then
 		state = {}
@@ -248,6 +266,9 @@ function Style.StatusBar(bar)
 			state.r, state.g, state.b, state.a = r, g, b, a
 			PaintBar(self, state)
 		end)
+	end
+	if type(opts) == "table" and opts.accent ~= nil then
+		state.accent = opts.accent == true
 	end
 	bar:SetStatusBarTexture(Style.BarTexture())
 	bar:SetReverseFill(Style.ReverseFill())

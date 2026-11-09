@@ -76,6 +76,18 @@ local function SendForm(frame)
 	Kit.Button(SendMailMailButton)
 end
 
+local function Body(body)
+	if type(body) ~= "table" or type(body.SetFont) ~= "function" or type(body.GetObjectType) ~= "function" then
+		return
+	end
+	if body:GetObjectType() == "SimpleHTML" then
+		ns.Style.Html(body, "body", "textEmphasis")
+		return
+	end
+	Kit.Text(body, "body", "textEmphasis")
+	body:SetJustifyH("LEFT")
+end
+
 local function Letter(frame)
 	if not Kit.Have(frame, "OpenMailFrame") then
 		return
@@ -89,9 +101,7 @@ local function Letter(frame)
 	Kit.Button(OpenMailCancelButton)
 	Kit.Button(OpenMailDeleteButton)
 	Kit.Button(OpenMailReplyButton)
-	if type(OpenMailBodyText) == "table" and type(OpenMailBodyText.SetFont) == "function" then
-		Kit.Text(OpenMailBodyText, "body", "textEmphasis")
-	end
+	Body(OpenMailBodyText)
 	ns.Style.Sweep(frame, { onShow = true })
 end
 

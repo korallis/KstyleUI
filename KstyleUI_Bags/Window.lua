@@ -196,25 +196,35 @@ function Window:Sort(section)
 	end
 	if not Grouped(section) then
 		for _, slot in ipairs(section.order) do
+			slot.packed = nil
 			self:Adopt(section, slot)
 		end
 		return
 	end
 	local categories = Data.Categories()
 	local packed = Settings.Get("emptySlots") == "packed"
-	local shownEmpty = {}
+	local families, stacks = {}, {}
 	for _, slot in ipairs(section.order) do
 		local record = Data.Read(slot.bag, slot.id, slot.record)
 		local key = Data.Category(record)
 		local group = self:Group(section, key, categories)
 		group.total = group.total + 1
-		if key == "empty" and packed and shownEmpty[slot.bag] then
+		local family = key == "empty" and packed and (families[slot.bag] or Data.BagFamily(slot.bag)) or nil
+		if family then
+			families[slot.bag] = family
+		end
+		local stack = family and stacks[family]
+		if stack then
+			stack.packed = stack.packed + 1
 			if Widgets.MayMove(slot.button) then
 				slot.button:Hide()
 			end
 		else
-			if key == "empty" then
-				shownEmpty[slot.bag] = true
+			if family then
+				stacks[family] = slot
+				slot.packed = 1
+			else
+				slot.packed = nil
 			end
 			group.order[#group.order + 1] = slot
 			self:Adopt(group, slot)
@@ -374,6 +384,19 @@ function Window:Layout(force)
 	local panels = self:Panels()
 	local step = size + spacing
 	local capBlock = Snap(self, Widgets.SECTION_CAP_HEIGHT) + Snap(self, Tokens.Size("gapSmall"))
+	local remote = self.remoteData
+	if remote then
+		for _, section in ipairs(panels) do
+			section.view:Hide()
+			if section.cap then
+				section.cap:Hide()
+			end
+		end
+		panels = {}
+		contentWidth = max(contentWidth, (Data.Size(ns.Remote.Columns(remote, columns), 1, size, spacing)))
+	elseif self.remote then
+		self.remote:Hide()
+	end
 	for _, section in ipairs(panels) do
 		local count = #section.order
 		section.cols, section.rows = Data.Grid(count, columns)
@@ -381,9 +404,6 @@ function Window:Layout(force)
 		section.visibleRows = limit > 0 and min(section.rows, limit) or section.rows
 		section.width = Data.Size(section.cols, section.visibleRows, size, spacing)
 		contentWidth = max(contentWidth, section.width)
-		if section.group then
-			contentWidth = max(contentWidth, (Data.Size(columns, 1, size, spacing)))
-		end
 	end
 	local content = panel.content
 	local _, _, _, _, offsetY = content:GetPoint(1)
@@ -427,7 +447,12 @@ function Window:Layout(force)
 	end
 	local placedStack = false
 	local used = 0
-	for _, section in ipairs(self.sections) do
+	if remote then
+		self.remote = self.remote or ns.Remote.New(self)
+		self.geometry.columns = columns
+		top = self.remote:Layout(remote, content, top, contentWidth, self.geometry, capBlock, gap)
+	end
+	for _, section in ipairs(remote and {} or self.sections) do
 		if Grouped(section) then
 			if not placedStack then
 				placedStack = true
@@ -586,7 +611,7 @@ end
 function Window:UpdateSlot(slot)
 	local record = Data.Read(slot.bag, slot.id, slot.record)
 	local level = not record.empty and Settings.Get("showItemLevel") and Data.ItemLevel(record) or nil
-	Slot.Update(slot, record, level, Data.Matches(record, self.query))
+	Slot.Update(slot, record, level, Data.Matches(record, self.query), slot.packed)
 	local container = C_Container
 	if not record.empty and container and container.GetContainerItemCooldown then
 		Slot.SetCooldown(slot, container.GetContainerItemCooldown(slot.bag, slot.id))
@@ -618,6 +643,16 @@ function Window:UpdateCooldowns()
 end
 
 function Window:UpdateFooter()
+	local remote = self.remoteData
+	if remote then
+		if remote.free and remote.total then
+			Widgets.SetText(self.free, string.format(L["%d/%d free"], remote.free, remote.total))
+		else
+			Widgets.SetText(self.free, remote.name)
+		end
+		self.money:SetText(remote.money and Window.MoneyText(remote.money) or "")
+		return
+	end
 	local free, total = 0, 0
 	for _, section in ipairs(self.sections) do
 		if section.spec.free then
@@ -713,6 +748,29 @@ function Window:SetQuery(text)
 			Slot.SetMatch(slot, Data.Matches(slot.record, query))
 		end
 	end
+	if self.remote then
+		self.remote:SetQuery(query)
+	end
+end
+
+function Window:Browse(key)
+	local data = nil
+	if key ~= nil then
+		data = ns.Alts and type(ns.Alts.View) == "function" and ns.Alts.View(key) or nil
+		if not data then
+			ns.Log("no saved items for " .. tostring(key) .. "; the window keeps showing this character's bags")
+			return false
+		end
+	end
+	self.remoteData = data
+	if self.open then
+		self:Refresh()
+	end
+	return true
+end
+
+function Window:Browsing()
+	return self.remoteData ~= nil and self.remoteData.key or nil
 end
 
 function Window:Open()

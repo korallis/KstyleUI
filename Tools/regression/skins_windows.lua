@@ -7,7 +7,8 @@
 --   Windows.LIST                                          -- every window in gallery order, with its skin's addon
 --
 -- Every builder returns the window frame and a parts table: parts.show lists the frames to show (default the
--- window), parts.bounds the frames the gallery crop covers (default the window). Sizes come from Forever's
+-- window), parts.bounds the frames the gallery crop covers (default the window), parts.portraits the textures the
+-- game paints with SetPortraitTexture (none by default). Sizes come from Forever's
 -- source (Interface/AddOns in Gethe/wow-ui-source, branch forever): CharacterFrameConstants.lua:4,
 -- Blizzard_PlayerSpellsFrame.lua:8, Blizzard_WorldMap.lua:104, QuestMapFrame.xml:427, Blizzard_LFGVanilla_ParentFrame.xml:23,
 -- Blizzard_LFGVanilla_Browse.xml:125, MailFrame.xml:12, MerchantFrame.xml:4 and :89, Blizzard_ProfessionsFrame.xml:5,
@@ -29,7 +30,16 @@ local TITLE_HEIGHT = 24
 local CLOSE = 24
 local BUTTON_HEIGHT = 22
 local MODE_TAB = 40
-local MODE_TAB_ICONS = { 5, 8, 16, 18, 25, 24 }
+-- The character window's mode tabs (Camelot/CharacterFrame.lua:58 CHARACTER_MODE_TAB_ICONS): the first wears the
+-- player's portrait, the PvP tab the faction's honour icon.
+local MODE_TAB_ICONS = {
+	false,
+	"Interface\\ICONS\\INV_SideTab_Reputation2_c60",
+	"Interface\\ICONS\\Ability_Racial_JackofAllTrades",
+	"Interface\\ICONS\\INV_SideTab_Honor_Horde_c60",
+	"Interface\\ICONS\\INV_SideTab_Currency_c60",
+	"Interface\\ICONS\\INV_SideTab_Stats_c60",
+}
 local ROW_HEIGHT = 20
 
 -- Layout ----------------------------------------------------------------------------------------------
@@ -282,11 +292,15 @@ local function CharacterWindow(env, B, x, y)
 	f.ModeTabs:SetSize(64, 384)
 	Anchor(f.ModeTabs, f, "TOPLEFT", "TOPRIGHT", 0, -30)
 	f.ModeTabs.Tabs = {}
+	f.portraits = {}
 	for i, icon in ipairs(MODE_TAB_ICONS) do
-		local tab = SideTab(B, f.ModeTabs, ICONS[icon])
+		local tab = SideTab(B, f.ModeTabs, icon or nil)
 		tab:SetSize(MODE_TAB, MODE_TAB)
 		tab:SetChecked(i == 1)
 		f.ModeTabs.Tabs[i] = tab
+		if not icon then
+			f.portraits[#f.portraits + 1] = tab.Icon
+		end
 	end
 	function f.UpdateTabLayout()
 		local previous
@@ -335,16 +349,18 @@ function build.character(env, B)
 		slot.BorderFrame = B.frame("Frame", slot)
 		slot.BorderFrame:SetAllPoints(slot)
 		B.texture(slot.BorderFrame, "BACKGROUND")
+		-- PaperDollFrame.xml:781 and :822: the columns start 24 in from the left pane's left edge and 20 from its
+		-- right, 60 under its top, each slot 6 under the one before; the weapons sit in a row under the model.
 		if i <= 8 then
-			At(slot, doll, 10, 12 + (i - 1) * 41)
+			At(slot, doll, 24, 40 + (i - 1) * 43)
 		elseif i <= 16 then
-			Anchor(slot, doll, "TOPRIGHT", -10, -(12 + (i - 9) * 41))
+			Anchor(slot, doll, "TOPRIGHT", -20, -(40 + (i - 9) * 43))
 		else
-			At(slot, doll, 120 + (i - 17) * 45, 12 + 8 * 41)
+			At(slot, doll, 128 + (i - 17) * 43, 40 + 8 * 43)
 		end
 	end
 	local scene = B.frame("Frame", doll, "CharacterModelScene")
-	Fill(scene, doll, 56, 12, 56, 60)
+	Fill(scene, doll, 70, 40, 70, 60)
 	Colour(B, scene, "BACKGROUND", 0.09, 0.11, 0.12, 0.6):SetAllPoints(scene)
 	doll.TopBackgroundStripHost = B.frame("Frame", doll)
 	At(doll.TopBackgroundStripHost, doll, 0, 0, 341, 12)
@@ -397,7 +413,7 @@ function build.character(env, B)
 	Stat("Armor", "1,842")
 	Stat("Block", "17%")
 	Stack(rows, stats.ScrollBox, 0, 2)
-	return f, { bounds = { f, f.ModeTabs.Tabs[6] } }
+	return f, { bounds = { f, f.ModeTabs.Tabs[6] }, portraits = f.portraits }
 end
 
 -- RepBar(B, parent, w) -> a ColoredProgressBarTemplate bar: a background, a masked Fill, a Text.
@@ -472,10 +488,27 @@ function build.reputation(env, B)
 	detail.EmptyText:Hide()
 	detail.Divider = B.texture(detail, "BORDER")
 	At(detail.Divider, detail, 16, 60, 250, 2)
+	-- CharacterFrame.xml:352: the description is a ScrollingFontTemplate under the divider, from the pane's left
+	-- edge to 14 short of its right, its scroll bar 4 to its right; the font string inside is LEFT-justified.
+	detail.Description = B.frame("Frame", detail)
+	detail.Description:SetPoint("TOP", detail.Divider, "BOTTOM", 0, -6)
+	detail.Description:SetPoint("LEFT", detail, "LEFT", 16, 0)
+	detail.Description:SetPoint("RIGHT", detail, "RIGHT", -30, 0)
+	detail.Description:SetHeight(120)
+	detail.Description.ScrollBox = B.frame("Frame", detail.Description)
+	detail.Description.ScrollBox:SetAllPoints(detail.Description)
+	detail.Description.ScrollBox.FontStringContainer = B.frame("Frame", detail.Description.ScrollBox)
+	detail.Description.ScrollBox.FontStringContainer:SetAllPoints(detail.Description.ScrollBox)
+	local description = B.text(detail.Description.ScrollBox.FontStringContainer)
+	detail.Description.ScrollBox.FontStringContainer.FontString = description
+	description:SetPoint("TOPLEFT", detail.Description.ScrollBox.FontStringContainer, "TOPLEFT", 0, 0)
+	description:SetPoint("TOPRIGHT", detail.Description.ScrollBox.FontStringContainer, "TOPRIGHT", 0, 0)
+	description:SetHeight(40)
+	description:SetText("The capital of the Horde, home of the orcs and their allies. Thrall rules here from Grommash Hold.")
+	description:Show()
 	detail.DescriptionScrollBar = ScrollBar(B, detail)
-	Anchor(detail.DescriptionScrollBar, detail, "TOPRIGHT", -10, -70)
-	detail.DescriptionScrollBar:SetHeight(120)
-	Text(B.text(detail), "The capital of the Horde, home of the orcs and their\nallies. Thrall rules here from Grommash Hold.", "TOPLEFT", detail, "TOPLEFT", 16, -72)
+	detail.DescriptionScrollBar:SetPoint("TOPLEFT", detail.Description, "TOPRIGHT", 4, -1)
+	detail.DescriptionScrollBar:SetPoint("BOTTOMLEFT", detail.Description, "BOTTOMRIGHT", 4, 1)
 	detail.StandingBar = RepBar(B, detail, 240, 0.62, "14,200 / 21,000")
 	At(detail.StandingBar, detail, 16, 210)
 	for i, key in ipairs({ "AtWarCheckbox", "MakeInactiveCheckbox", "WatchFactionCheckbox" }) do
@@ -484,7 +517,7 @@ function build.reputation(env, B)
 	end
 	detail.ViewRenownButton = Button(B, detail, "View Renown", 120)
 	Anchor(detail.ViewRenownButton, detail, "BOTTOMRIGHT", -16, 16)
-	return f, { bounds = { f, f.ModeTabs.Tabs[6] } }
+	return f, { bounds = { f, f.ModeTabs.Tabs[6] }, portraits = f.portraits }
 end
 
 -- Tabs(B, parent, labels, icons) -> a TabSystemTemplate with text tabs or, with icons, Forever's icon-only tabs.
@@ -935,7 +968,12 @@ function build.mail(env, B)
 	Anchor(scroll.ScrollBar, scroll, "TOPRIGHT", -2, -4)
 	scroll.ScrollBar:SetHeight(200)
 	Text(B.text(scroll), "Subject: Loot from the raid", "TOPLEFT", scroll, "TOPLEFT", 10, -10)
-	env.OpenMailBodyText = Text(B.text(scroll), "Here is the hide you rolled on. Good fight\nlast night, see you at the Crossroads.\n\n- Thargor", "TOPLEFT", scroll, "TOPLEFT", 10, -36)
+	-- MailFrame.xml:1010: the body is 276 wide from 10 in; in the game it is a SimpleHTML, here a font string the
+	-- renderer can draw.
+	local body = Text(B.text(scroll), "Here is the hide you rolled on. Good fight last night, see you at the Crossroads.\n\n- Thargor", "TOPLEFT", scroll, "TOPLEFT", 10, -36)
+	body:SetWidth(276)
+	body:SetHeight(60)
+	env.OpenMailBodyText = body
 	local letterButton = Item(B, letter, ICONS[20], 37, "OpenMailLetterButton")
 	Anchor(letterButton, letter.Inset, "BOTTOMLEFT", 10, 10)
 	local moneyButton = Item(B, letter, ICONS[21], 37, "OpenMailMoneyButton")
@@ -1110,10 +1148,18 @@ end
 function build.trainer(env, B)
 	local trainer = Window(B, "ClassTrainerFrame", nil, 338, 424, "Grezz Ragefist", { inset = { top = 90, bottom = 60 } })
 	At(trainer, env.UIParent, 120, 120)
-	local bar = StatusBar(B, trainer, 300, 14, 0.62)
+	-- Blizzard_TrainerUI.xml:167: the skill bar reads "rank / max" (Blizzard_TrainerUI.lua:565); the skill line's
+	-- name comes from GetTrainerServiceSkillLine.
+	local bar = StatusBar(B, trainer, 300, 18, 0.62)
 	env.ClassTrainerStatusBar = bar
 	Anchor(bar, trainer, "TOP", 0, -36)
-	bar.rankText = Text(B.text(bar), "Two-Handed Swords 186 / 300", "CENTER", bar)
+	bar.rankText = Text(B.text(bar), "186 / 300", "CENTER", bar)
+	env.GetNumTrainerServices = function()
+		return 4
+	end
+	env.GetTrainerServiceSkillLine = function()
+		return "Two-Handed Swords"
+	end
 	trainer.FilterDropdown = Dropdown(B, trainer, "Available", 100)
 	Anchor(trainer.FilterDropdown, trainer, "TOPRIGHT", -12, -60)
 	Text(B.text(trainer), "Warrior Trainer", "TOPLEFT", trainer, "TOPLEFT", 60, -60)

@@ -157,7 +157,7 @@ do
 	first:SetTabSelected(false)
 	assert(ns.Parts.RimOf(categories.tabs[2]).rim[1]:IsShown() and not ns.Parts.RimOf(first).rim[1]:IsShown(), "the rim follows the selection")
 	categories:AddTab()
-	assert(Alpha(categories.spare.Icon) == 1 and ns.Parts.RimOf(categories.spare), "a category added later is skinned too")
+	assert(Alpha(categories.spare.Icon) > 0 and Alpha(categories.spare.Icon) < 1 and ns.Parts.RimOf(categories.spare), "a category added later is skinned too, its icon quiet until chosen")
 	assert(K.Skin.IsSkinned(p.talents.TabSystem.tabs[1], "Tab"), "text tabs get the accent underline")
 	assert(K.Skin.IsSkinned(book.SearchBox, "EditBox"), "the search box is restyled")
 	assert(Alpha(book.SettingsDropdown.Icon) == 0, "the yellow filter arrow gives way to a KstyleUI chevron")

@@ -27,6 +27,7 @@ local slots = setmetatable({}, WEAK)
 local rows = setmetatable({}, WEAK)
 local rails = setmetatable({}, WEAK)
 local RAIL_OUTSET = "gapSmall"
+local RAIL_DOCK = "radius"
 local LEVEL_BELOW = 1
 
 local function Log(message)
@@ -130,15 +131,22 @@ local function PlaceRail(rail)
 			last = tab
 		end
 	end
+	local clip = rail.clip
+	clip:ClearAllPoints()
 	rail:ClearAllPoints()
 	if not first then
-		rail:Hide()
+		clip:Hide()
 		return
 	end
 	local outset = K.Widgets.Snap(rail, Tokens.Size(RAIL_OUTSET))
-	rail:SetPoint("TOPLEFT", first, "TOPLEFT", -outset, outset)
-	rail:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", outset, -outset)
-	rail:Show()
+	local dock = K.Widgets.Snap(rail, Tokens.Size(RAIL_DOCK))
+	clip:SetPoint("TOP", first, "TOP", 0, outset)
+	clip:SetPoint("BOTTOM", last, "BOTTOM", 0, -outset)
+	clip:SetPoint("LEFT", rail.window, "RIGHT", 0, 0)
+	clip:SetPoint("RIGHT", last, "RIGHT", outset, 0)
+	rail:SetPoint("TOPLEFT", clip, "TOPLEFT", -dock, 0)
+	rail:SetPoint("BOTTOMRIGHT", clip, "BOTTOMRIGHT", 0, 0)
+	clip:Show()
 end
 
 local function SkinRail(frame, modes)
@@ -146,10 +154,15 @@ local function SkinRail(frame, modes)
 	if rails[frame] then
 		return
 	end
-	local rail = CreateFrame("Frame", nil, holder)
+	local clip = CreateFrame("Frame", nil, holder)
+	clip:SetClipsChildren(true)
+	clip:SetFrameLevel(math.max(0, modes[1]:GetFrameLevel() - LEVEL_BELOW))
+	local rail = CreateFrame("Frame", nil, clip)
 	rail.tabs = modes
-	rail:SetFrameLevel(math.max(0, modes[1]:GetFrameLevel() - LEVEL_BELOW))
-	Skin.Backdrop(rail, { shape = "rail", fill = "surface", shadow = true })
+	rail.clip = clip
+	rail.window = frame
+	rail:SetFrameLevel(clip:GetFrameLevel())
+	Skin.Backdrop(rail, { shape = "rail", fill = "surface", shadow = false })
 	rails[frame] = rail
 	PlaceRail(rail)
 	if type(frame.UpdateTabLayout) == "function" then
@@ -274,6 +287,17 @@ local function SkinPaperDoll()
 	return missing
 end
 
+local function DescriptionText(pane)
+	local description = pane.Description
+	local box = type(description) == "table" and description.ScrollBox
+	local container = type(box) == "table" and box.FontStringContainer
+	local text = type(container) == "table" and container.FontString
+	if type(text) == "table" and type(text.SetJustifyH) == "function" then
+		return text
+	end
+	return nil
+end
+
 local function DetailPane(pane, checks)
 	if type(pane) ~= "table" then
 		return
@@ -289,6 +313,11 @@ local function DetailPane(pane, checks)
 	end
 	Parts.Divider(pane, pane.Divider)
 	Skin.ScrollBar(pane.DescriptionScrollBar)
+	local description = DescriptionText(pane)
+	if description then
+		Style.Text(description, "body", "text")
+		description:SetJustifyH("LEFT")
+	end
 	if pane.StandingBar then
 		Parts.FillBar(pane.StandingBar)
 	end

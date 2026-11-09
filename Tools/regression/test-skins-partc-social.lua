@@ -300,7 +300,7 @@ do
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(f.Bg) == 0 and Alpha(p.tabard) == 0, "a glass panel replaces the window art and the tabard")
 	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"))
 	assert(Alpha(f.MaximizeMinimizeFrame.MaximizeButton.Art) == 0, "the size buttons become chevrons")
-	assert(ns.Parts.RimOf(f.RosterTab) and Alpha(f.RosterTab.Icon) == 1 and Alpha(f.RosterTab.Art) == 0, "the side tabs keep their icons on a rim")
+	assert(ns.Parts.RimOf(f.RosterTab) and Alpha(f.RosterTab.Icon) > 0 and Alpha(f.RosterTab.Art) == 0, "the side tabs keep their icons on a rim")
 	assert(S.Logged(env, "GuildPreferredPlaySettingsTab is missing"), "a tab this client lacks is logged")
 	assert(K.Skin.IsSkinned(f.StreamDropdown, "Backdrop") and K.Skin.IsSkinned(f.CommunitiesListDropdown, "Backdrop"), "the dropdowns wear raised tiles")
 	local list = f.CommunitiesList

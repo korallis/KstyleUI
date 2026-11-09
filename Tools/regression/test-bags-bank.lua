@@ -267,13 +267,19 @@ end
 -- Columns, combat, Disable -------------------------------------------------------------------------
 
 do
-	local env, K, ns = New()
+	-- The bank window hugs its widest row: twelve cloth stacks in one tab make a twelve-wide trade goods row, and
+	-- the column setting narrows the window only once it wraps that row.
+	local bank = BankContents()
+	for slot = 3, 14 do
+		bank[6].items[slot] = Item("cloth", { count = slot })
+	end
+	local env, K, ns = New({ bank = bank })
 	local Bank = ns.Bank
 	env.SetBank(true)
 	Run(env)
 	local wide = Bank.window.panel:GetWidth()
 	Set(K, "bankColumns", 8)
-	assert(Bank.window.panel:GetWidth() < wide, "bank columns narrow the bank window")
+	assert(Bank.window.panel:GetWidth() < wide, "bank columns narrow the bank window once they wrap its widest row")
 	Set(K, "replaceBank", false)
 	assert(B.W.CoreEnv.Printed(env, "reload"), "changing Replace bank asks for a reload")
 	K.Modules.Disable("Bags")

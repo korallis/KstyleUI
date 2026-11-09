@@ -1,4 +1,4 @@
--- Alts.lua: each character's item counts, scanned from the bags and the bank into KstyleUI's own account data, and the other characters' counts in item tooltips.
+-- Alts.lua: each character's items, scanned from the bags and the bank into KstyleUI's own account data: the counts other characters' tooltips show, and the catalogue the bag window browses read-only.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,7 +10,7 @@ local Alts = {}
 ns.Alts = Alts
 
 Alts.SECTION = "inventory"
-Alts.VERSION = 1
+Alts.VERSION = 2
 Alts.FORGET_AFTER = 60 * 24 * 60 * 60
 Alts.MAX_LINES = 8
 local SCAN_DELAY = 0.5
@@ -82,22 +82,58 @@ local function Me(saved)
 	if type(character.bank) ~= "table" then
 		character.bank = {}
 	end
+	if type(character.items) ~= "table" then
+		character.items = {}
+	end
 	myKey = key
 	return character
 end
 
-local function Count(bags, into)
+local function Describe(items, id, record)
+	if type(items) ~= "table" then
+		return
+	end
+	local entry = items[id]
+	if type(entry) ~= "table" then
+		entry = {}
+		items[id] = entry
+	end
+	entry.icon = Plain(record.icon, "number") or entry.icon
+	entry.quality = Plain(record.quality, "number") or entry.quality
+	entry.name = Plain(record.name, "string") or entry.name
+	entry.cat = Plain(Data.Category(record), "string") or entry.cat
+end
+
+local function Count(bags, into, items)
 	for key in pairs(into) do
 		into[key] = nil
 	end
 	local probe = {}
+	local free, total = 0, 0
 	for _, bag in ipairs(bags) do
 		for slot = 1, Data.NumSlots(bag) do
+			total = total + 1
 			local record = Data.Read(bag, slot, probe)
 			local id, count = record.itemID, record.count
-			if not record.empty and id and count then
+			if record.empty then
+				free = free + 1
+			elseif id and count then
 				into[id] = (into[id] or 0) + max(1, count)
+				Describe(items, id, record)
 			end
+		end
+	end
+	return free, total
+end
+
+local function Forget(character)
+	local items = character.items
+	if type(items) ~= "table" then
+		return
+	end
+	for id in pairs(items) do
+		if not character.bags[id] and not character.bank[id] then
+			items[id] = nil
 		end
 	end
 end
@@ -106,7 +142,9 @@ function Alts.ScanBags()
 	if not me then
 		return
 	end
-	Count(Data.HeldBags(), me.bags)
+	me.free, me.total = Count(Data.HeldBags(), me.bags, me.items)
+	me.money = type(GetMoney) == "function" and Plain(GetMoney(), "number") or me.money
+	Forget(me)
 	me.seen = Now()
 end
 
@@ -117,11 +155,12 @@ function Alts.ScanBank()
 	end
 	local character, account = bank.Types()
 	if bank.CanView(character) then
-		Count(bank.Tabs(character), me.bank)
+		me.bankFree, me.bankTotal = Count(bank.Tabs(character), me.bank, me.items)
 	end
 	if bank.CanView(account) then
 		Count(bank.Tabs(account), store.warband)
 	end
+	Forget(me)
 	me.seen = Now()
 end
 
@@ -173,6 +212,64 @@ local function Counts(character, id, own)
 		parts[#parts + 1] = format(L["%d in bank"], bank)
 	end
 	return table.concat(parts, ", "), bags + bank
+end
+
+function Alts.Characters()
+	local list = {}
+	if not store then
+		return list
+	end
+	for key, character in pairs(store.characters) do
+		if type(character) == "table" then
+			list[#list + 1] = { key = key, name = character.name or key, realm = character.realm, class = character.class, own = key == myKey }
+		end
+	end
+	sort(list, function(a, b)
+		if a.own ~= b.own then
+			return a.own
+		end
+		return tostring(a.name) < tostring(b.name)
+	end)
+	return list
+end
+
+local function Entries(counts, items, rank)
+	local list = {}
+	for id, count in pairs(counts) do
+		local entry = type(items) == "table" and items[id] or nil
+		if type(entry) == "table" and Plain(count, "number") then
+			list[#list + 1] = { id = id, count = count, icon = entry.icon, quality = entry.quality, name = entry.name, cat = entry.cat, rank = rank[entry.cat] or rank.other or 0 }
+		end
+	end
+	sort(list, function(a, b)
+		if a.rank ~= b.rank then
+			return a.rank < b.rank
+		end
+		if tostring(a.name) ~= tostring(b.name) then
+			return tostring(a.name) < tostring(b.name)
+		end
+		return a.id < b.id
+	end)
+	return list
+end
+
+function Alts.View(key)
+	local character = store and type(key) == "string" and store.characters[key] or nil
+	if type(character) ~= "table" then
+		return nil
+	end
+	local rank = {}
+	for index, category in ipairs(Data.Categories()) do
+		rank[category.key] = index
+	end
+	return {
+		key = key, name = character.name or key, class = character.class, own = key == myKey,
+		bags = Entries(character.bags or {}, character.items, rank),
+		bank = Entries(character.bank or {}, character.items, rank),
+		free = Plain(character.free, "number"), total = Plain(character.total, "number"),
+		bankFree = Plain(character.bankFree, "number"), bankTotal = Plain(character.bankTotal, "number"),
+		money = Plain(character.money, "number"),
+	}
 end
 
 function Alts.Lines(id)

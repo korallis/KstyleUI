@@ -12,6 +12,7 @@ Inventory.KEY = "bags.inventory"
 Inventory.POSITION = { anchor = "BOTTOMRIGHT", x = -16, y = 134 }
 
 local NONE = {}
+local PICKER_WIDTH = 132
 
 local open = false
 local heldBags
@@ -56,8 +57,39 @@ local function Closed()
 	Blizzard.Release()
 end
 
+local function Characters()
+	local alts = ns.Alts
+	if not alts or type(alts.Characters) ~= "function" then
+		return NONE
+	end
+	return alts.Characters()
+end
+
+local function PickerOptions()
+	local options = {}
+	for _, character in ipairs(Characters()) do
+		options[#options + 1] = { value = character.key, label = character.own and L["This character"] or character.name }
+	end
+	return options
+end
+
+local function OwnKey()
+	for _, character in ipairs(Characters()) do
+		if character.own then
+			return character.key
+		end
+	end
+	return nil
+end
+
 local function Refreshed(win)
 	win.junkButton:SetShown(Junk.AtMerchant() and Junk.Count() > 0)
+	local picker = win.picker
+	if picker then
+		local characters = Characters()
+		picker:SetShown(#characters > 1)
+		picker:SetValue(win:Browsing() or OwnKey(), true)
+	end
 end
 
 function Inventory.Build()
@@ -85,6 +117,20 @@ function Inventory.Build()
 		end,
 	}))
 	win.junkButton:Hide()
+	win.picker = win:AddButton(Widgets.Dropdown(win.panel, {
+		width = PICKER_WIDTH,
+		height = K.Tokens.Size("rowHeight") + K.Tokens.Size("gapSmall"),
+		options = PickerOptions,
+		tooltip = L["Browse another character's saved bags and bank, read-only."],
+		onChange = function(value)
+			if value == OwnKey() then
+				win:Browse(nil)
+			elseif not win:Browse(value) then
+				win.picker:SetValue(OwnKey(), true)
+			end
+		end,
+	}))
+	win.picker:Hide()
 	return win
 end
 

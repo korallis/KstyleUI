@@ -14,6 +14,7 @@ local LINE_UNITS = 2
 local BAR_UNITS = 10
 local GLYPH_UNITS = 10
 local HOVER_ALPHA = 0.5
+local TAB_IDLE_ALPHA = 0.6
 local WASH_ALPHA = 0.12
 local MODULE = "Skins"
 
@@ -167,6 +168,9 @@ local function PaintTab(state)
 	else
 		state.rim:SetRimColor(nil)
 	end
+	if state.icon then
+		state.icon:SetAlpha((checked or state.hover) and 1 or TAB_IDLE_ALPHA)
+	end
 end
 
 function Parts.SideTab(tab)
@@ -188,6 +192,7 @@ function Parts.SideTab(tab)
 	local native = type(tab.IsObjectType) == "function" and tab:IsObjectType("CheckButton") and type(tab.GetChecked) == "function"
 	local state = { tab = tab, checked = wasChecked, hover = false, native = native }
 	state.rim = Parts.Rim(tab, { target = IsTexture(icon) and icon or tab, outset = Tokens.Size("gapTiny") })
+	state.icon = IsTexture(icon) and icon or nil
 	state.Restyle = PaintTab
 	tabs[tab] = state
 	for _, method in ipairs({ "SetChecked", "SetTabSelected" }) do

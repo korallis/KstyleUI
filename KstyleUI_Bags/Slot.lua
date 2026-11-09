@@ -207,7 +207,7 @@ local function SetGlow(slot, on)
 	end
 end
 
-function Slot.Update(slot, record, level, match)
+function Slot.Update(slot, record, level, match, packed)
 	local state = slot.state
 	local empty = record.empty == true
 	state.empty = empty
@@ -218,7 +218,10 @@ function Slot.Update(slot, record, level, match)
 	state.coloured = not empty and Settings.Get("showQuality") and quality ~= nil and quality >= Settings.Get("qualityMin")
 	slot.icon:SetTexture(not empty and record.icon or nil)
 	local count = record.count
-	if not empty and Settings.Get("showCount") and count and count > 1 then
+	if empty and type(packed) == "number" and packed > 1 then
+		slot.count:SetText(tostring(packed))
+		slot.count:Show()
+	elseif not empty and Settings.Get("showCount") and count and count > 1 then
 		slot.count:SetText(tostring(count))
 		slot.count:Show()
 	else

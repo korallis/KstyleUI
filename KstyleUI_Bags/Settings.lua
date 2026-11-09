@@ -92,7 +92,7 @@ local LAYOUT_OPTIONS = {
 	{ value = "grid", label = L["One grid"] },
 }
 local EMPTY_OPTIONS = {
-	{ value = "packed", label = L["One slot per bag"] },
+	{ value = "packed", label = L["One stacked tile per bag kind"] },
 	{ value = "all", label = L["Every empty slot"] },
 }
 local SORT_OPTIONS = {
@@ -139,7 +139,7 @@ Settings.schema = {
 		options = LAYOUT_OPTIONS, disableWhen = isOff,
 	},
 	{
-		type = "dropdown", key = "emptySlots", label = L["Empty slots"], help = L["In sections, show one empty slot per bag to drop onto, or every empty slot."],
+		type = "dropdown", key = "emptySlots", label = L["Empty slots"], help = L["In sections, show each bag kind's free slots as one counted tile, or every empty slot."],
 		options = EMPTY_OPTIONS, disableWhen = isOff,
 	},
 	{

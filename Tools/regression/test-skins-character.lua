@@ -213,18 +213,24 @@ do
 	assert(RimColor(ns, f.ModeTabs.Tabs[1]) ~= nil, "the tab Blizzard had selected before the skin keeps its selection")
 	local tab = f.ModeTabs.Tabs[2]
 	assert(Alpha(tab.Background) == 0 and Alpha(tab.SelectedTexture) == 0 and Alpha(tab.HighlightTexture) == 0, "side tab art is stripped")
-	assert(Alpha(tab.Icon) == 1, "the side tab keeps its icon")
+	assert(Alpha(tab.Icon) > 0 and Alpha(tab.Icon) < 1, "an unchosen side tab keeps its icon, quiet")
 	tab:SetChecked(true)
 	local ar, ag, ab = Style.Accent()
 	local r, g, b = RimColor(ns, tab)
 	assert(W.Near(r, ar) and W.Near(g, ag) and W.Near(b, ab), "the selected side tab wears an accent rim")
+	assert(Alpha(tab.Icon) == 1, "and its icon at full")
 	tab:SetChecked(false)
 	assert(RimColor(ns, tab) == nil, "an unselected side tab has no rim")
-	-- The mode tabs stand on a glass rail that spans the shown tabs, so they read as the window's own tab column.
+	-- The mode tabs stand on one glass rail docked to the window's right edge: a clip frame starts at that edge
+	-- and spans the shown tabs, and the rail inside it runs on under the window, so the clip cuts its left
+	-- corners away and the rail reads as the window's own tab column, not a second panel beside it.
 	local rail = ns.CharacterRail(f)
 	assert(rail and K.Skin.IsSkinned(rail, "Backdrop"), "the mode tabs get a glass rail")
-	assert(rail:GetParent() == f.ModeTabs, "under the tabs' own frame")
-	assert(rail:GetFrameLevel() < f.ModeTabs.Tabs[1]:GetFrameLevel(), "behind the tabs")
+	local clip = rail.clip
+	assert(clip and rail:GetParent() == clip and clip:GetParent() == f.ModeTabs, "inside a clip under the tabs' own frame")
+	assert(clip:GetFrameLevel() < f.ModeTabs.Tabs[1]:GetFrameLevel(), "behind the tabs")
+	assert(W.LastCall(clip, "SetClipsChildren")[1] == true, "the clip clips")
+	assert(K.Skin.Parts(rail).backdrop.chrome.shadowOn ~= true, "the rail casts no shadow onto the window")
 	local function Anchors(frame)
 		local out = {}
 		for _, point in ipairs(frame._points) do
@@ -232,15 +238,18 @@ do
 		end
 		return out
 	end
-	local anchors = Anchors(rail)
-	assert(anchors.TOPLEFT == f.ModeTabs.Tabs[1] and anchors.BOTTOMRIGHT == f.ModeTabs.Tabs[3], "the rail runs from the first shown tab to the last")
+	local anchors = Anchors(clip)
+	assert(anchors.LEFT == f, "the clip starts at the window")
+	assert(anchors.TOP == f.ModeTabs.Tabs[1] and anchors.BOTTOM == f.ModeTabs.Tabs[3] and anchors.RIGHT == f.ModeTabs.Tabs[3], "and spans the first shown tab to the last")
+	local railPoints = Anchors(rail)
+	assert(railPoints.TOPLEFT == clip and rail._points[1][4] < 0, "the rail hangs off the clip's left, under the window")
 	f.ModeTabs.Tabs[3]:SetShown(false)
 	f:UpdateTabLayout()
-	anchors = Anchors(rail)
-	assert(anchors.BOTTOMRIGHT == f.ModeTabs.Tabs[2], "a hidden tab shortens the rail")
+	anchors = Anchors(clip)
+	assert(anchors.BOTTOM == f.ModeTabs.Tabs[2], "a hidden tab shortens the rail")
 	f.ModeTabs.Tabs[3]:SetShown(true)
 	f:UpdateTabLayout()
-	assert(Anchors(rail).BOTTOMRIGHT == f.ModeTabs.Tabs[3], "and a shown one lengthens it again")
+	assert(Anchors(clip).BOTTOM == f.ModeTabs.Tabs[3], "and a shown one lengthens it again")
 	local sidebar = env.PaperDollSidebarTab1
 	sidebar:SetChecked(true)
 	assert(RimColor(ns, sidebar) ~= nil and Alpha(sidebar.Icon) == 1, "the paper doll's sidebar tabs follow their check state")

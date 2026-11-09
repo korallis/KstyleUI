@@ -194,13 +194,17 @@ do
 	local snap = B.snapshot()
 	kit.SideTab(frame)
 	local rim = ns.Parts.RimOf(frame)
-	assert(frame.Background:GetAlpha() == 0 and frame.Icon:GetAlpha() == 1, "the tab art goes, the icon stays")
+	-- An unchosen tab's icon is quiet (0.6), so a column of tabs reads as tabs and not as a row of items; the
+	-- chosen tab's icon is full.
+	local idle = frame.Icon:GetAlpha()
+	assert(frame.Background:GetAlpha() == 0 and idle > 0 and idle < 1, "the tab art goes, the icon stays, quiet until chosen")
 	assert(rim and rim.color == nil, "an unselected tab has no ring")
 	frame:SetChecked(true)
 	local ar, ag, ab = ns.Style.Accent()
 	assert(rim.color and Near3(rim.color[1], rim.color[2], rim.color[3], ar, ag, ab), "the selected tab rings in the accent")
+	assert(frame.Icon:GetAlpha() == 1, "and its icon comes up to full")
 	frame:SetChecked(false)
-	assert(rim.color == nil)
+	assert(rim.color == nil and frame.Icon:GetAlpha() == idle)
 	Check(B, snap)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

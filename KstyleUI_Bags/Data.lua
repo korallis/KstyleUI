@@ -531,6 +531,14 @@ function Data.Matches(record, query)
 	return Data.Compile(query)(record) == true
 end
 
+function Data.BagFamily(bag)
+	if C_Container and type(C_Container.GetContainerNumFreeSlots) == "function" then
+		local _, family = C_Container.GetContainerNumFreeSlots(bag)
+		return Plain(family, "number") or 0
+	end
+	return 0
+end
+
 function Data.FreeSlots(bags)
 	local free, total = 0, 0
 	local probe = {}

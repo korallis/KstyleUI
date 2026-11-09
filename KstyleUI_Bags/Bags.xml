@@ -5,6 +5,7 @@
 	<Script file="Settings.lua"/>
 	<Script file="Slot.lua"/>
 	<Script file="Window.lua"/>
+	<Script file="Remote.lua"/>
 	<Script file="Blizzard.lua"/>
 	<Script file="Junk.lua"/>
 	<Script file="Inventory.lua"/>
