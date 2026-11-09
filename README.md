@@ -8,7 +8,7 @@
 
 <p align="center"><img src="docs/media/readme/hero.jpg" width="100%" alt="The KstyleUI DPS layout while questing: party frames, quests and chat on the left, the minimap, Blessings card and damage meter on the right, vitals, bars and cooldowns at the bottom centre"></p>
 
-<p align="center"><sub>The DPS layout at 1080p while questing. Every image on this page is rendered from the addon's own code. The code holds 464 features, 355 of them functional.</sub></p>
+<p align="center"><sub>The DPS layout while questing. Every image on this page is rendered from the addon's own code. The code holds 464 features, 355 of them functional.</sub></p>
 
 ## Why KstyleUI
 
