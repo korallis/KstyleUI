@@ -128,7 +128,8 @@ local function Hint()
 	if ok and on == false then
 		hinted = true
 		ns.Log("Blizzard's Cooldown Manager is switched off, so the restyled viewers show nothing")
-		K.Print(K.L["Turn on the Cooldown Manager in Options > Gameplay > Combat to see the restyled cooldowns."])
+		local path = K.Locale.Path(GAMEMENU_OPTIONS, "Options", SETTING_GROUP_GAMEPLAY, "Gameplay", ADVANCED_OPTIONS_LABEL, "Advanced Options")
+		K.Print(K.L["Turn on the Cooldown Manager in %s to see the restyled cooldowns."]:format(path))
 	end
 end
 

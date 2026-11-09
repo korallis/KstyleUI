@@ -179,7 +179,7 @@ Work through the modules in any order. Every module has the same three checks at
 
 ### Cooldowns
 
-- [ ] Turn on Blizzard's Cooldown Manager (Options > Gameplay > Combat). The essential row appears above the action bars with the utility row under it, and Blizzard's essential and utility viewers disappear.
+- [ ] Turn on Blizzard's Cooldown Manager (Options > Gameplay > Advanced Options). The essential row appears above the action bars with the utility row under it, and Blizzard's essential and utility viewers disappear.
 - [ ] Cast spells with cooldowns in the open world and in a dungeon boss fight: icons sweep and count down, grey while cooling, glow when ready, show charges and pulse on procs.
 - [ ] Reorder cooldowns in Blizzard's Cooldown Manager settings: the KstyleUI rows follow within about a second.
 - [ ] Hover a KstyleUI icon: its spell tooltip shows. Hovering where Blizzard's viewer used to be shows nothing.

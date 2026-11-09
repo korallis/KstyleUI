@@ -73,3 +73,16 @@ end
 function Locale.Upper(text)
 	return (text:upper():gsub("([\195\197])([\128-\191])", Capital))
 end
+
+function Locale.Path(...)
+	local parts = {}
+	for i = 1, select("#", ...), 2 do
+		local name, english = select(i, ...)
+		if type(name) == "string" and name ~= "" then
+			parts[#parts + 1] = name
+		else
+			parts[#parts + 1] = english
+		end
+	end
+	return table.concat(parts, " > ")
+end

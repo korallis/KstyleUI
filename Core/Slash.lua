@@ -111,7 +111,8 @@ local COMMANDS = {
 	bind = function()
 		local frame = QuickKeybindFrame
 		if type(frame) ~= "table" or type(frame.Show) ~= "function" then
-			ns.Print(L["Blizzard's Quick Keybind mode is not available on this client; keybinds are in Options > Keybindings."])
+			local path = ns.Locale.Path(GAMEMENU_OPTIONS, "Options", SETTING_GROUP_GAMEPLAY, "Gameplay", SETTINGS_KEYBINDINGS_LABEL, "Keybindings")
+			ns.Print(format(L["Blizzard's Quick Keybind mode is not available on this client; keybinds are in %s."], path))
 			return
 		end
 		if InCombatLockdown() then

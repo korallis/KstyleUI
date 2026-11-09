@@ -59,7 +59,8 @@ local function ClickHint(tooltip)
 		return
 	end
 	local r, g, b = Tokens.Color("text")
-	tooltip:AddLine(L["Bind spells to clicks on these frames in Options, Keybindings, Click Casting."], r, g, b, true)
+	local path = K.Locale.Path(GAMEMENU_OPTIONS, "Options", SETTING_GROUP_GAMEPLAY, "Gameplay", SETTINGS_KEYBINDINGS_LABEL, "Keybindings", CLICK_BIND_MODE, "Click Casting")
+	tooltip:AddLine(L["Bind spells to clicks on these frames in %s."]:format(path), r, g, b, true)
 end
 
 local function OnEnter(button)
