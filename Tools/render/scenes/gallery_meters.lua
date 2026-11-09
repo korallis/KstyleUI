@@ -256,6 +256,27 @@ local function drilled(frames)
 	})
 end
 
+-- The window with the pointer on Kragar's row: the row's chevron shows, and his tooltip lists his top three spells
+-- with their amounts and shares, then says a click lists them all, so the split is on the card the player sees.
+local function hovered(frames)
+	return variant(frames, 860, 420, function(env, K, ns)
+		local row = ns.Damage.list.rows[1].frame
+		row._scripts.OnEnter(row)
+		env.RunTimers()
+		local tip = K.Widgets.Tooltip()
+		frames:Add(env, tip, {
+			name = "meters_damage_split", title = "Damage meter: a source's split on hover", grade = "panel", reference = "player",
+			caption = "The damage meter with the pointer on Kragar's row: a chevron follows his name, and his tooltip lists his top three spells with their amounts and shares of his damage, read the way a click reads them, then says a click lists every spell. The split is on the HUD card, not only in the spell list.",
+			match = "The kit tooltip beside the row; the same glass and rows as the source list.",
+			rect = Gallery.Union(env, { ns.Damage.holder, tip }),
+		})
+	end, {
+		name = "meters_damage_hover", title = "Damage meter: hovered row", grade = "panel", reference = "player",
+		caption = "The damage meter card with Kragar's row hovered: the muted chevron after his name says the row opens.",
+		match = "The same glass and rows as the source list.",
+	})
+end
+
 -- The previous fight: a click on the fight switch steps from the current fight to the one before it.
 local function previous(frames)
 	return variant(frames, 1160, 80, function(env, K, _, M)
@@ -460,7 +481,8 @@ return Common.Run(function()
 	local env2, K2 = skin(frames)
 	local env3 = drilled(frames)
 	local env4 = previous(frames)
-	local scene = Scene.Merge({ Gallery.Build(env1), Gallery.Build(env2), Gallery.Build(env3), Gallery.Build(env4) })
+	local env5 = hovered(frames)
+	local scene = Scene.Merge({ Gallery.Build(env1), Gallery.Build(env2), Gallery.Build(env3), Gallery.Build(env4), Gallery.Build(env5) })
 	scene.log[#scene.log + 1] = "the restyled Blizzard window is a fake laid out by the scene; the game lays out its own Damage Meter"
 	local err = Common.Errors(env2, K2)
 	if err then

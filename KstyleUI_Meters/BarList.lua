@@ -13,6 +13,7 @@ local PILL_HEIGHT = 4
 local PILL_GAP = 3
 local TEXT_AIR = 2
 local ICON_CROP = 0.08
+local MORE_GLYPH = 10
 local CAP_RESERVE = 44
 local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
@@ -69,8 +70,24 @@ local function NewRow(list, index)
 			list.onRowClick(list, row.index, button)
 		end)
 	end
-	if list.tooltip then
+	if list.rowTooltip then
+		Widgets.AttachTooltip(frame, function(tip)
+			list.rowTooltip(tip, list, row.index)
+		end)
+	elseif list.tooltip then
 		Widgets.AttachTooltip(frame, list.tooltip)
+	end
+	if list.rowSplits then
+		local more = frame:CreateTexture(nil, "OVERLAY")
+		more:SetTexture((Tokens.Texture("glyphChevron")))
+		more:Hide()
+		row.more = more
+		frame:HookScript("OnEnter", function()
+			more:SetShown(list.rowSplits(list, row.index) == true)
+		end)
+		frame:HookScript("OnLeave", function()
+			more:Hide()
+		end)
 	end
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
 	row.value:SetTextColor(Tokens.Color("textEmphasis"))
@@ -169,6 +186,13 @@ local function PlaceRow(list, row, i)
 		row.name:SetPoint("RIGHT", stop, "LEFT", -gap, 0)
 	else
 		row.name:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+	end
+	if row.more then
+		local glyph = Widgets.Snap(panel, MORE_GLYPH)
+		row.more:ClearAllPoints()
+		row.more:SetSize(glyph, glyph)
+		row.more:SetPoint("LEFT", row.name, "LEFT", Widgets.TextWidth(row.name, 0) + gap, 0)
+		Widgets.Tint(row.more, "muted")
 	end
 end
 
@@ -386,6 +410,8 @@ function BarList.New(parent, section, opts)
 	list.columns = opts.columns
 	list.onRowClick = opts.onRowClick
 	list.tooltip = opts.tooltip
+	list.rowTooltip = opts.rowTooltip
+	list.rowSplits = opts.rowSplits
 	list.icons = false
 	list.rows = {}
 	list.count = 0

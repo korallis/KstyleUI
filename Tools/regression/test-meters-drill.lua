@@ -54,6 +54,44 @@ local Damage = ns.Damage
 local list = Damage.list
 assert(list.panel:IsShown() and list.count == 3, "three sources show in a group")
 
+-- Hovering a source row shows its spell split on the card the player sees (Grok #5): the top spells with their
+-- amount and share, read the same way a click reads them, then the line that says a click lists them all. The row
+-- shows its chevron while hovered, so the split is discoverable without a click.
+do
+	local function tipTexts()
+		local tip = K.Widgets.Tooltip()
+		local out = {}
+		for _, line in ipairs(tip.used) do
+			local left = M.Last(line.left, "SetText")
+			local right = M.Last(line.right, "SetText")
+			out[#out + 1] = (tostring(left and left[1]):gsub("\226\128\137", "")) .. (right and right[1] and right[1] ~= "" and (" | " .. tostring(right[1])) or "")
+		end
+		return out
+	end
+	local row = list.rows[1]
+	assert(row.more and not row.more:IsShown(), "a source row carries a chevron that rests hidden")
+	row.frame._scripts.OnEnter(row.frame)
+	env.RunTimers()
+	assert(row.more:IsShown(), "the chevron shows while the row is hovered")
+	local lines = tipTexts()
+	local joined = table.concat(lines, "\n")
+	assert(joined:upper():find("KRAGAR", 1, true), "the row tooltip is titled with the source: " .. joined)
+	assert(joined:find("Mortal Strike | ~1800", 1, true) or joined:find("Mortal Strike", 1, true) and joined:find("~1800", 1, true), "the top spell shows with its amount: " .. joined)
+	assert(joined:find("60%", 1, true), "the spell's share of the source shows: " .. joined)
+	assert(joined:find("Bite (Wolf)", 1, true), "the pet's spell names the pet: " .. joined)
+	assert(joined:find("Click for every spell", 1, true), "the tooltip ends by saying a click lists every spell: " .. joined)
+	assert(env._lastSource and env._lastSource[4] == "Player-1", "the hover read the source by its GUID, as a click does")
+	row.frame._scripts.OnLeave(row.frame)
+	env.RunTimers()
+	assert(not row.more:IsShown(), "the chevron hides when the pointer leaves")
+	-- A death row and a row with nothing to split say so without listing spells.
+	M.Write(env, K, "damage.meter", "Deaths")
+	list.rows[1].frame._scripts.OnEnter(list.rows[1].frame)
+	assert(not list.rows[1].more:IsShown(), "a death row has no spells, so no chevron")
+	list.rows[1].frame._scripts.OnLeave(list.rows[1].frame)
+	M.Write(env, K, "damage.meter", "DamageDone")
+end
+
 -- A click on a source lists that source's spells, read with GetCombatSessionSourceFromType for the fight shown.
 Click(list.rows[1].frame)
 env.RunTimers()

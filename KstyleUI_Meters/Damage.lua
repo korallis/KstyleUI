@@ -22,6 +22,8 @@ ns.Damage = Damage
 
 local IsSecret = Logic.IsSecret
 local drill = { active = false }
+local TOOLTIP_SPELLS = 3
+local SWITCH_GAP = "  "
 local slots = {}
 local autoMode
 
@@ -288,7 +290,7 @@ local function SpellCall(api, spellID)
 	return nil
 end
 
-local function SpellName(spell)
+local function SpellName(spell, sourceName)
 	local name = SpellCall("GetSpellName", spell.spellID)
 	if IsSecret(name) then
 		return name
@@ -298,22 +300,91 @@ local function SpellName(spell)
 		name = id and string.format("%s %d", L["Spell"], id) or ""
 	end
 	local creature = PlainString(spell.creatureName)
-	if creature and creature ~= drill.name then
+	if creature and creature ~= sourceName then
 		return string.format("%s (%s)", name, creature)
 	end
 	return name
 end
 
-local function SourceData(meterType, sessionType, sessionID)
+local function SourceData(meterType, sessionType, sessionID, guid, creature)
 	local meter = C_DamageMeter
 	if sessionID then
-		return pcall(meter.GetCombatSessionSourceFromID, sessionID, meterType, drill.guid, drill.creature)
+		return pcall(meter.GetCombatSessionSourceFromID, sessionID, meterType, guid, creature)
 	end
-	return pcall(meter.GetCombatSessionSourceFromType, sessionType, meterType, drill.guid, drill.creature)
+	return pcall(meter.GetCombatSessionSourceFromType, sessionType, meterType, guid, creature)
+end
+
+local function Context()
+	local info = Info()
+	local meterTypes = Enum and Enum.DamageMeterType
+	local meterType = meterTypes and meterTypes[info.value]
+	if meterType == nil or not (Enum and Enum.DamageMeterSessionType) then
+		return nil
+	end
+	local sessionType, sessionID, name = Fight()
+	return info, meterType, sessionType, sessionID, name
+end
+
+local function SpellShown(spell, info)
+	local shown = spell.totalAmount
+	if info.perSecond then
+		shown = spell.amountPerSecond
+	end
+	return shown
+end
+
+local function RowTooltip(tip, list, i)
+	if drill.active then
+		tip:AddLine(L["Click to go back to every source."])
+		return
+	end
+	local slot = slots[i]
+	if not slot or not slot.ok or i > (list.count or 0) then
+		return
+	end
+	local r, g, b = ns.BarColor("damage", slot.class, slot.reaction)
+	tip:AddTitle(slot.name, r, g, b)
+	local info, meterType, sessionType, sessionID = Context()
+	if not info or not SourceApi() or (sessionType == nil and sessionID == nil) then
+		tip:AddLine(L["Click for every spell"])
+		return
+	end
+	local ok, source = SourceData(meterType, sessionType, sessionID, slot.guid, slot.creature)
+	if not ok or not Readable(source) or not Readable(source.combatSpells) then
+		tip:AddLine(L["The spells show after combat."])
+		return
+	end
+	local total = source.totalAmount
+	local percent = ns.Get("damage.percent")
+	local listed = 0
+	for n = 1, TOOLTIP_SPELLS do
+		local spell = source.combatSpells[n]
+		if not Readable(spell) then
+			break
+		end
+		listed = n
+		local right = Logic.Abbreviate(SpellShown(spell, info))
+		if percent then
+			right = right .. SWITCH_GAP .. Logic.FormatPercent(Logic.Percent(spell.totalAmount, total))
+		end
+		tip:AddDoubleLine(SpellName(spell, slot.name), right)
+	end
+	if listed == 0 then
+		tip:AddLine(L["No data yet"])
+	end
+	tip:AddLine(L["Click for every spell"])
+end
+
+local function RowSplits(list, i)
+	if drill.active then
+		return false
+	end
+	local slot = slots[i]
+	return slot ~= nil and slot.ok == true and i <= (list.count or 0) and SourceApi() ~= nil
 end
 
 local function FillSpells(list, info, meterType, sessionType, sessionID)
-	local ok, source = SourceData(meterType, sessionType, sessionID)
+	local ok, source = SourceData(meterType, sessionType, sessionID, drill.guid, drill.creature)
 	if not ok then
 		ns.LogOnce("damageSourceError", "C_DamageMeter's source call failed: " .. tostring(source))
 		list:Finish(0, L["No data yet"])
@@ -340,13 +411,10 @@ local function FillSpells(list, info, meterType, sessionType, sessionID)
 		if not Present(amount) then
 			amount = 0
 		end
-		local shown = spell.totalAmount
-		if info.perSecond then
-			shown = spell.amountPerSecond
-		end
+		local shown = SpellShown(spell, info)
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
 		local icon = SpellCall("GetSpellTexture", spell.spellID)
-		list:SetRow(i, SpellName(spell), drill.class, drill.reaction, amount, maxAmount, Logic.Abbreviate(shown), percentText, icon)
+		list:SetRow(i, SpellName(spell, drill.name), drill.class, drill.reaction, amount, maxAmount, Logic.Abbreviate(shown), percentText, icon)
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
@@ -363,15 +431,12 @@ local function Refresh()
 	if not visible then
 		return
 	end
-	local info = Info()
-	local meterTypes = Enum and Enum.DamageMeterType
-	local meterType = meterTypes and meterTypes[info.value]
-	if meterType == nil or not (Enum and Enum.DamageMeterSessionType) then
+	local info, meterType, sessionType, sessionID, name = Context()
+	if not info then
 		ns.LogOnce("damageEnum", "the Damage Meter enums are missing; the window stays empty")
 		list:Finish(0, L["No data yet"])
 		return
 	end
-	local sessionType, sessionID, name = Fight()
 	list:SetTitle(drill.active and drill.name or info.label)
 	Switch(list, name)
 	if sessionType == nil and sessionID == nil then
@@ -514,6 +579,7 @@ local function Build()
 	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
 		width = width or 260, height = height or 174, columns = Columns, onClick = OnClick,
 		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
+		rowTooltip = RowTooltip, rowSplits = RowSplits,
 	})
 	Damage.holder = Damage.list.holder
 	ns.Place(Damage.holder, KEY, LIMITS)
