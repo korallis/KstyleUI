@@ -439,9 +439,14 @@ function C.Item(env, viewer, id)
 		item.Applications.Applications = FontString(env, item.Applications)
 	end
 	item:SetMouseMotionEnabled(true)
-	-- UpdateShownState shows an item while it is active (item._active), as CooldownViewerItemMixin does through SetShown.
+	-- UpdateShownState shows an item while it is active (item._active), or always while the viewer's Edit Mode Hide
+	-- When Inactive is off (viewer._hideWhenInactive == false), as CooldownViewerItemMixin:ShouldBeShown does through
+	-- SetShown. IsActive is the mixin's plain getter of the same state.
 	item.UpdateShownState = function(self)
-		self._shown = self._active ~= false
+		self._shown = self._active ~= false or viewer._hideWhenInactive == false
+	end
+	item.IsActive = function(self)
+		return self._active ~= false
 	end
 	viewer._items[#viewer._items + 1] = item
 	item.layoutIndex = #viewer._items
@@ -462,6 +467,9 @@ function C.Viewers(env)
 		viewer.SetTooltipsShown = function(self, shown)
 			self.tooltipsShown = shown
 		end
+		viewer.GetHideWhenInactive = function(self)
+			return self._hideWhenInactive ~= false
+		end
 		viewer.Layout = function() end
 		for i = 1, 2 do
 			C.Item(env, viewer, i)
@@ -478,7 +486,8 @@ end
 -- left and a 19-unit bar after a 2-unit gap, the width times BarWidthScale%, stored as percent - 50) scaled by
 -- IconSize%, stored as (percent - 50) / 10; items pitch by
 -- IconPadding less 4 (bars 2); a horizontal row with IconDirection Left starts at the right; hidden (inactive) items
--- keep their slot (includeAsLayoutChildWhenHidden); the viewer hangs from the entry's anchor on UIParent; each item
+-- keep their slot (includeAsLayoutChildWhenHidden), and with viewer._hideWhenInactive == false every item shows,
+-- active or not; the viewer hangs from the entry's anchor on UIParent; each item
 -- goes through OnAcquireItemFrame after its scale is set, as RefreshLayout acquires it. items: one
 -- { id, icon, name, left, total } per tracked cooldown, active when left is set; format(seconds) is the countdown
 -- text the engine draws through the countdown formatter. The game's own calls are made through the stub's fields so
@@ -525,9 +534,12 @@ function C.Native(env, name, entry, items, format)
 		item._points = { { "TOPLEFT", viewer, "TOPLEFT", x / scale, y / scale, n = 5 } }
 		item.layoutIndex = i
 		item._active = i <= n and it ~= nil and it.left ~= nil
-		item._shown = item._active
+		item._shown = item._active or (i <= n and viewer._hideWhenInactive == false)
 		if it then
 			item.GetCooldownID = function()
+				return it.id
+			end
+			item.GetSpellID = function()
 				return it.id
 			end
 		end

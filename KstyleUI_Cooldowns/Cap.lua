@@ -1,4 +1,4 @@
--- Cap.lua: Blizzard's restyled tracked buff icon row stopped at the module's grid: items in slots past it fade to alpha 0 and stop taking the mouse, and a "+N" chip in the next slot counts the shown ones, from IsShown only when it is not secret ("+" alone when it is).
+-- Cap.lua: Blizzard's restyled tracked buff icon row stopped at the module's grid: its sockets go to the first active buffs in Blizzard's order (shown by Blizzard and IsActive true, or shown while the viewer hides inactive items when IsActive is secret; each read only when not secret), an inactive slot taking none; items past the last of them fade to alpha 0 and stop taking the mouse, and a "+N" chip in the next slot counts and lists the active ones it hides. A secret shown state, or a shown item whose activity nothing readable tells, leaves the whole row uncapped.
 local _, ns = ...
 
 local K = KstyleUI
@@ -70,6 +70,43 @@ local function Shown(item)
 	return shown == true
 end
 
+local function Active(item)
+	if type(item.IsActive) ~= "function" then
+		return nil
+	end
+	local ok, on = pcall(item.IsActive, item)
+	if not ok or ns.IsSecret(on) then
+		return nil
+	end
+	return on == true
+end
+
+local function Hides(viewer)
+	if type(viewer.GetHideWhenInactive) ~= "function" then
+		return nil
+	end
+	local ok, hides = pcall(viewer.GetHideWhenInactive, viewer)
+	if not ok or ns.IsSecret(hides) or type(hides) ~= "boolean" then
+		return nil
+	end
+	return hides
+end
+
+local function Live(item, hides)
+	local shown = Shown(item)
+	if not shown then
+		return shown
+	end
+	local on = Active(item)
+	if on ~= nil then
+		return on
+	end
+	if hides then
+		return true
+	end
+	return nil
+end
+
 local function SpellName(item)
 	if type(item.GetSpellID) ~= "function" then
 		return nil
@@ -91,16 +128,12 @@ local function ShowTooltip(self)
 		return
 	end
 	tip:SetOwner(self, "ANCHOR_TOP")
-	if self.count then
-		tip:AddLine(K.L["%d more tracked buffs"]:format(self.count))
-		for _, item in ipairs(self.folded or {}) do
-			local name = SpellName(item)
-			if name then
-				tip:AddLine(name)
-			end
+	tip:AddLine(K.L["%d more tracked buffs"]:format(self.count or 0))
+	for _, item in ipairs(self.folded or {}) do
+		local name = SpellName(item)
+		if name then
+			tip:AddLine(name)
 		end
-	else
-		tip:AddLine(K.L["Cooldown Manager"])
 	end
 	tip:Show()
 end
@@ -114,7 +147,7 @@ local function Chip(viewer)
 	return chip
 end
 
-local function Place(viewer, slot, count, folded)
+local function Place(viewer, slot, folded)
 	local c = Chip(viewer)
 	local cfg = Settings.current.buffs
 	local scale = slot:GetScale()
@@ -124,12 +157,12 @@ local function Place(viewer, slot, count, folded)
 	local w, h = slot:GetSize()
 	w = (type(w) == "number" and not ns.IsSecret(w)) and w * scale or cfg.size
 	h = (type(h) == "number" and not ns.IsSecret(h)) and h * scale or cfg.size
-	Style.ShowChip(c, viewer, "LEFT", 0, w, h, count and ("+" .. count) or "+", cfg.countSize + Style.CHIP_TEXT)
+	Style.ShowChip(c, viewer, "LEFT", 0, w, h, "+" .. #folded, cfg.countSize + Style.CHIP_TEXT)
 	c:ClearAllPoints()
 	c:SetAllPoints(slot)
 	c:SetFrameLevel(slot:GetFrameLevel() + Style.CHIP_LEVEL)
 	Style.Mouse(c, Tips(viewer))
-	c.count, c.folded = count, folded
+	c.count, c.folded = #folded, folded
 end
 
 function Cap.Size()
@@ -147,7 +180,24 @@ function Cap.Refresh()
 		return
 	end
 	local items = Items(viewer)
-	if not active then
+	local size = Cap.Size()
+	local hides = Hides(viewer)
+	local capped, live, seen, last, edge = active, {}, 0, 0, nil
+	for i, item in ipairs(capped and items or {}) do
+		local state = Live(item, hides)
+		if state == nil then
+			capped = false
+			break
+		end
+		live[i] = state
+		if state then
+			seen, last = seen + 1, i
+			if seen == size then
+				edge = i
+			end
+		end
+	end
+	if not capped then
 		for _, item in ipairs(items) do
 			Release(item, viewer)
 		end
@@ -156,28 +206,20 @@ function Cap.Refresh()
 		end
 		return
 	end
-	local size = Cap.Size()
-	local count, known, slot, folded = 0, true, nil, {}
-	for _, item in ipairs(items) do
-		local index = Index(item)
-		if index <= size then
+	edge = edge or math.max(size, last)
+	local folded = {}
+	for i, item in ipairs(items) do
+		if i <= edge then
 			Release(item, viewer)
 		else
 			Fold(item)
-			if index == size + 1 then
-				slot = item
-			end
-			local shown = Shown(item)
-			if shown == nil then
-				known = false
-			elseif shown then
-				count = count + 1
+			if live[i] then
 				folded[#folded + 1] = item
 			end
 		end
 	end
-	if slot and (not known or count > 0) then
-		Place(viewer, slot, known and count or nil, folded)
+	if #folded > 0 then
+		Place(viewer, items[edge + 1], folded)
 	elseif chip then
 		chip:Hide()
 	end
