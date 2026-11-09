@@ -88,7 +88,7 @@ do
 			assert(got == default, "Lumen restores " .. key .. ", got " .. tostring(got))
 		end
 	end
-	assert(ns.Settings.Get("name.size") == 14, "Lumen puts the hand-changed name size back too")
+	assert(ns.Settings.Get("name.size") == 12, "Lumen puts the hand-changed name size back too")
 	assert(ns.Settings.Get("preset") == "lumen", "and reads as Lumen")
 
 	K.Options.Write("Nameplates", "preset", "tank")

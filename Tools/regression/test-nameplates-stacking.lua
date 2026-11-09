@@ -24,6 +24,7 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "level.show", true)
 	assert(#env._plateSizeWrites >= 1, "enabling the module sets the game's nameplate size")
 	-- The base's units are UIParent's times the plate's factor; the plate draws in root units. The stub's root
 	-- is 0.711 of UIParent, so the footprint is 0.711 of the plate's root units; in the game, at a UI scale of
@@ -31,10 +32,10 @@ do
 	local ratio = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local w, h = size(env)
 	-- 175 bar + 34 badge + a 16-unit raid marker and its gap.
-	local WIDE, BARE = math.ceil((225 + K.Tokens.Size("gapSmall")) * ratio), math.ceil(209 * ratio)
+	local WIDE, BARE = math.ceil((204 + K.Tokens.Size("gapSmall")) * ratio), math.ceil(188 * ratio)
 	assert(w == WIDE, "the base is as wide as the bar, the level badge and the raid marker's room, got " .. tostring(w))
 	local sample = ns.Preview.samplePlate
-	local above, below = ns.Auras.Extent(sample)
+	local _, above, _, below = ns.Stacking.Extent()
 	assert(h == math.ceil((above + ns.state.height + below) * ratio), "and as tall as the plate with one row of debuffs, got " .. tostring(h))
 	assert(h > 45 * ratio and h < 120, "a sane height, got " .. tostring(h))
 
@@ -45,7 +46,8 @@ do
 	assert(#env._plateSizeWrites == writes, "no write in combat: the API is restricted then")
 	env.SetCombat(false)
 	assert(#env._plateSizeWrites == writes + 1, "the write runs when combat ends")
-	local _, taller = size(env)
+	local auraWidth, taller = size(env)
+	assert(auraWidth > WIDE, "a wide aura row and its overflow chip grow the horizontal footprint too")
 	assert(taller > h and taller <= h + math.ceil(8 * ratio), "larger debuffs make a taller footprint, got " .. tostring(taller) .. " from " .. tostring(h))
 
 	-- Every row of debuffs counts, so a second row never runs into the plate above (the owner's rule).
@@ -58,7 +60,7 @@ do
 	-- Blizzard's driver sets the size again when its options change; the module puts its own back.
 	env.NamePlateDriverFrame:UpdateNamePlateSize()
 	w, h = size(env)
-	assert(w == WIDE and h == taller, "after the driver's own update the footprint is back")
+	assert(w == auraWidth and h == taller, "after the driver's own update the whole resized footprint is back")
 
 	-- With the name, the cast bar and the debuffs off, the footprint is still never shorter than the level
 	-- badge and its diamond, and the raid marker's room counts toward the width.
@@ -104,7 +106,7 @@ do
 	assert(w == 110 and h == 45, "Disable gives the game its size back")
 	K.Modules.Enable("Nameplates")
 	env.RunTimers()
-	assert(size(env) == WIDE, "Enable applies the footprint again")
+	assert(size(env) == auraWidth, "Enable applies the resized footprint again")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

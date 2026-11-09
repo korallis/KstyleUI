@@ -17,8 +17,7 @@ local TEMPLATE = "CustomAuraContainerTemplate"
 local GAP = Tokens.Size("gapTiny")
 local NAME_GAP = Tokens.Size("gapSmall")
 local ICON_CROP = 0.07
-local ICON_INSET_LINES = 2
-local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
+local ICON_INSET_LINES = 1
 local SWIPE_ALPHA = 0.65
 local LINE_SLACK = 0.5
 local RETRY_DELAY = 1
@@ -32,7 +31,6 @@ local SAMPLE_ICONS = { 136118, 135817, 132155 }
 local available = true
 local parts = setmetatable({}, { __mode = "k" })
 local pending = setmetatable({}, { __mode = "k" })
-local waitingChromes = setmetatable({}, { __mode = "k" })
 local flushScheduled = false
 local ScheduleFlush
 
@@ -106,36 +104,20 @@ end
 local function NewTile(owner)
 	local skin = CreateFrame("Frame", nil, owner)
 	skin:SetAllPoints(owner)
-	local chrome = Widgets.IconChrome(skin)
+	local border = Widgets.Crisp(skin:CreateTexture(nil, "BACKGROUND"))
+	border:SetAllPoints(skin)
+	border:SetColorTexture(Tokens.Color("black"))
 	local icon = skin:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	local mask = skin:CreateMaskTexture()
-	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
-	mask:SetAllPoints(icon)
-	icon:AddMaskTexture(mask)
-	return { skin = skin, chrome = chrome, restyleChrome = chrome.Restyle, icon = icon }
+	return { skin = skin, icon = icon }
 end
 
 local function LayoutTile(tile)
 	local skin, icon = tile.skin, tile.icon
-	tile.restyleChrome(tile.chrome)
-	tile.chrome:SetRimAccent()
-	local inset = Widgets.Border(skin) * ICON_INSET_LINES
+	local inset = K.Scale.Pixel(1) / Widgets.ScaleFactor(skin) * ICON_INSET_LINES
 	icon:ClearAllPoints()
 	icon:SetPoint("TOPLEFT", skin, "TOPLEFT", inset, -inset)
 	icon:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
-end
-
-local function GateChrome(tile)
-	local restyle = tile.restyleChrome
-	tile.chrome.Restyle = function(chrome)
-		if AurasSecret() then
-			waitingChromes[chrome] = restyle
-			ScheduleFlush()
-			return
-		end
-		restyle(chrome)
-	end
 end
 
 local function StyleButton(button)
@@ -161,11 +143,10 @@ local function BuildButton(button)
 		LogOnce("aura-mouse", "aura buttons refused EnableMouse(false); debuff icons may catch clicks")
 	end
 	local tile = NewTile(button)
-	GateChrome(tile)
 	local icon = tile.icon
 	local cooldown = CreateFrame("Cooldown", nil, tile.skin)
 	cooldown:SetAllPoints(icon)
-	cooldown:SetSwipeTexture((Tokens.Texture("iconMask")))
+	cooldown:SetSwipeTexture((Tokens.Texture("barFlat")))
 	cooldown:SetDrawEdge(false)
 	cooldown:SetReverse(true)
 	cooldown:SetHideCountdownNumbers(true)
@@ -294,13 +275,6 @@ local function Flush()
 		pending[plate] = nil
 		if plate.auras then
 			LayoutContainer(plate)
-		end
-	end
-	for chrome, restyle in pairs(waitingChromes) do
-		waitingChromes[chrome] = nil
-		local ok, err = pcall(restyle, chrome)
-		if not ok then
-			LogOnce("aura-chrome", "restyling a debuff tile failed: " .. tostring(err))
 		end
 	end
 end

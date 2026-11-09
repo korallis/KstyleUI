@@ -1,6 +1,6 @@
 # KstyleUI_Nameplates
 
-A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's debuffs, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style. Enemy plates colour quest mobs, rares, elites and casters by type, cast bars colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
+A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's debuffs, threat colour, target and focus highlights, raid, elite and rare markers, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
 | Field | Value |
 | --- | --- |
@@ -9,6 +9,14 @@ A KstyleUI plate on each nameplate: health, name, level, cast bar, the player's 
 | Loads | With the core addon, switched off until the player turns it on |
 | Files | `KstyleUI_Nameplates.toc` lists `Nameplates.xml`, which loads every Lua file in order, so adding a file never edits the TOC |
 | Tests | `Tools/regression/test-nameplates.lua`, `test-nameplates-settings.lua`, `test-nameplates-cast.lua`, `test-nameplates-auras.lua`, `test-nameplates-types.lua`, `test-nameplates-interrupt.lua`, `test-nameplates-stacking.lua`, `test-nameplates-presets.lua` and `test-nameplates-overflow.lua`, through `Tools/regression/nameplates_env.lua`, which uses the fake AuraContainer engine in `auras_env.lua` |
+
+## Reference ruling (2026-11-09)
+
+The owner ruled “let the picture win its what i want” (LEE-20). This supersedes #204 and #211 for plates: a centred Cinzel cap over a **154 × 12** flat, square red bar, a dark track and a one-physical-pixel dark outline; **no level badge by default**; a **gold target outline, not a glow**, with a **six-unit tan cast bar still visible on the target**. The old badge and target-cast suppression remain settings. Tank, Healer and Compact keep their tactical options but share this geometry and material. Names use the kit heading face today; the separate tracked-cap role comes from KSTY-10, never from inserted thin spaces.
+
+The only core colour addition is `plateHostile` (#c3433d); card material is unchanged. `gilt` supplies cast tan and target gold, and `textEmphasis` supplies the white names. Type recolouring is opt-in so a caster in the reference stays red. Enemy players retain the class-colour setting; threat recolouring remains part of the Tank preset. Debuffs are square icons with a one-pixel dark border and their timers underneath.
+
+Explicit saved widths, heights and positions are preserved, including a width of 175. Layout stores only overrides, so an unset width follows the new 154-unit default. The Layout sample stays centred at its existing position and only shrinks; no position migration is needed to keep it on screen. Existing user settings are not reset; applying the Lumen preset restores the new settings defaults.
 
 ## Rules
 
@@ -59,8 +67,8 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 | --- | --- | --- |
 | Health bar | `UnitHealthMax`, `UnitHealth` | Both go straight to `SetMinMaxValues` and `SetValue`; the engine eases the bar. A new unit on a reused plate snaps to its value. |
 | Health text | `UnitHealthPercent(unit, true, CurveConstants.ScaleTo100)`, `AbbreviateNumbers(UnitHealth(unit))` | `SetFormattedText` takes the secrets. Without the curve the module builds its own, and without the curve API it shows the value. |
-| Name | `UnitName` | In its own case when readable, as the mockup's "Riverglade Crocolisk"; the upper-case setting capitalises it. A secret name reaches `SetText` whole. Players' names take their class colour only when the bar does not already carry it (a reaction or custom bar colour, or a name-only plate); over a class-coloured bar the name reads white, so a pink name never sits on a pink fill. |
-| Level badge | `UnitEffectiveLevel`, else `UnitLevel` | A 34-unit octagon (a 10.5-unit chamfer) rimmed in the bar's colour, overlapping the bar's left end by one unit and drawn over it. The level reads white; `-1` reads `??` in the hostile colour. |
+| Name | `UnitName` | Centred Cinzel caps at 12 units by default; the upper-case switch can preserve a readable name's original case. A secret name reaches `SetText` whole. Class-coloured names are opt-in, and take the class colour only when the bar does not already carry it (a reaction or custom bar colour, or a name-only plate); over a class-coloured bar the name reads white, so a pink name never sits on a pink fill. |
+| Level badge | `UnitEffectiveLevel`, else `UnitLevel` | Off by default. When enabled, a 34-unit badge (a 10.5-unit corner) rimmed in the bar's colour, overlapping the bar's left end by one unit and drawn over it. The level reads white; `-1` reads `??` in the hostile colour. |
 | Elite and rare marker | `UnitClassification` | A diamond (the chamfered icon mask turned 45 degrees) crowning the level badge, centred above it: gold (`neutral`) for elites, red (`hostile`) for world bosses, blue (`rare`) for rares and rare elites. It sits at the bar's left end so it never meets the raid marker at the right. |
 | Raid marker | `GetRaidTargetIndex` | Always secret on Forever. `type(index)` tells nil from a number without reading it, and the index goes to `SetSpriteSheetCell` on Blizzard's raid icon sheet. |
 | Threat | `UnitThreatSituation("player", unit)` | Readable on Forever. A secret status counts as none. See below. |
@@ -68,14 +76,14 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 
 ### Cast bar
 
-The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar: the spell icon (masked to the chamfer), then the bar with the spell's name and the time left.
+The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar as a flat six-unit tan line. The icon, spell name and time left are off by default, and remain settings. `cast.hideOnTarget` is off by default; switching it on suppresses the target plate's cast only while the UnitFrames target cast is enabled.
 
 | Moment | What happens |
 | --- | --- |
-| `UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_CHANNEL_START`, or a plate attaching to a unit that is casting | `UnitCastingInfo` or `UnitChannelInfo` gives the name, icon and `notInterruptible`; `type(name)` tells whether there is a cast without reading a secret. The bar runs from `UnitCastingDuration` or `UnitChannelDuration` through `SetTimerDuration`: casts fill (`ElapsedTime`), channels drain (`RemainingTime`). The name and icon reach `SetText` and `SetTexture` whole. A sheen crosses the bar once. |
-| Time left | An `OnUpdate` on the bar, only while it casts, writes `duration:GetRemainingDuration()` through `SetFormattedText` every 0.1 s. |
+| `UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_CHANNEL_START`, or a plate attaching to a unit that is casting | `UnitCastingInfo` or `UnitChannelInfo` gives the name, icon and `notInterruptible`; `type(name)` tells whether there is a cast without reading a secret. The bar runs from `UnitCastingDuration` or `UnitChannelDuration` through `SetTimerDuration`: casts fill (`ElapsedTime`), channels drain (`RemainingTime`). The name and icon reach `SetText` and `SetTexture` whole. There is no sheen or spark. |
+| Time left | When enabled and the duration object itself is public, an `OnUpdate` on the bar writes `duration:GetRemainingDuration()` through `SetFormattedText` every 0.1 s. An opaque secret duration is passed only to `SetTimerDuration`, never indexed for a textual timer. |
 | `UNIT_SPELLCAST_DELAYED`, `UNIT_SPELLCAST_CHANNEL_UPDATE` | The bar runs again from a fresh duration. |
-| Interruptible or not | A plain flag picks the open colour or the uninterruptible colour, and dims the icon. A secret flag goes to `SetVertexColorFromBoolean` on the bar's texture and `SetAlphaFromBoolean` on the icon's shade, so the engine decides. `UNIT_SPELLCAST_INTERRUPTIBLE` and `UNIT_SPELLCAST_NOT_INTERRUPTIBLE` give a plain flag. The open colour is the cast colour (the accent or a custom colour) while the player's interrupt is ready, and the recharging colour (`cast.waitColor`, `neutral` by default) while it is on cooldown: see Interrupt below. |
+| Interruptible or not | A plain flag picks the open colour or the uninterruptible colour, and dims the icon. A secret flag goes to `SetVertexColorFromBoolean` on the bar's texture and `SetAlphaFromBoolean` on the icon's shade, so the engine decides. `UNIT_SPELLCAST_INTERRUPTIBLE` and `UNIT_SPELLCAST_NOT_INTERRUPTIBLE` give a plain flag. The open colour is the cast colour (the accent or a custom colour) while the player's interrupt is ready, and the recharging colour (`cast.waitColor`, also `gilt` by default) while it is on cooldown: see Interrupt below. |
 | `UNIT_SPELLCAST_STOP`, `_FAILED`, `_CHANNEL_STOP` | The bar fades out over `fade`. |
 | `UNIT_SPELLCAST_INTERRUPTED` | The bar fills, turns `hostile`, says **Interrupted** and fades out over 0.8 s. The `STOP` that follows is ignored. |
 | `UNIT_FLAGS`, `UNIT_FACTION` | These fire often in combat (combat state, stuns, roots, fear), so they rerun only the style, the bar colour and threat. A plate whose kind or name-only state changed refreshes in full, and even then a cast that is already running keeps going: the bar restarts only for a new cast ID, a settings change or a new unit. |
@@ -84,11 +92,13 @@ Without the duration APIs or `SetTimerDuration`, the bar takes the cast's start 
 
 ### Interrupt
 
+The ready/recharging colour distinction is off by default: both use tan (`gilt`) to match the picture. Give `cast.waitColor` a different colour to enable that cue. Uninterruptible casts still use `cast.shieldColor`.
+
 On Forever every cast by a unit other than the player and their pet is secret (`SecretWhenUnitSpellCastRestricted`), so a plate can never match a cast's name or spell ID against a list of important spells. What a plate can know is what the player can do about the cast. The cast bar has three colours:
 
 | State | Colour | How the plate knows |
 | --- | --- | --- |
-| Interruptible, the player's interrupt ready | `cast.color` (the accent) | `C_Spell.GetSpellCooldown(spell).isActive` is false, or `isOnGCD` is true while responding to `SPELL_UPDATE_COOLDOWN`; both fields are `NeverSecret` |
+| Interruptible, the player's interrupt ready | `cast.color` (`gilt`, tan, by default) | `C_Spell.GetSpellCooldown(spell).isActive` is false, or `isOnGCD` is true while responding to `SPELL_UPDATE_COOLDOWN`; both fields are `NeverSecret` |
 | Interruptible, the player's interrupt recharging | `cast.waitColor` | `isActive` is true and a trustworthy GCD-only result is unavailable; `SpellSharedDocumentation.lua` forbids trusting `isOnGCD` outside the cooldown event |
 | Not interruptible | `cast.shieldColor` | the cast's `notInterruptible` flag, plain or through the engine |
 
@@ -106,15 +116,15 @@ The debuffs are a component too. Each plate gets one `CustomAuraContainerTemplat
 | Layout | The engine's flow layout: horizontal lines `columns` icons long (`SetFlowLayoutMaximumLineSize`), growing right or left and up or down from the matching corner. Each row's line spacing holds its timer lane (`Auras.Lane`: a 1-unit gap, the text size and 3 units). The container hangs from that corner 4 units (`gapSmall`) plus the bottom row's timer lane above the name, or under the cast bar when rows grow down. |
 | Unit | `SetUnit(unit)` when the plate attaches, `SetUnit("none")` when it detaches or debuffs are off. |
 | Edit Mode | `SetEditModePreviewEnabled(false)`, so Blizzard's Edit Mode never fills plates with sample auras. |
-| Buttons | `initializeFrame` builds each aura button before the engine restricts it: the kit's icon chrome (`Widgets.IconChrome`: the near-black button body and the accent rim, on a skin frame inside the button), the icon two border lines in and cut to `iconMask`, a cooldown swipe with the same mask, the stack count at the top right and the time left in its own lane under the tile, off the icon's art (round 5, Fable #3), each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
+| Buttons | `initializeFrame` builds each aura button before the engine restricts it: a square black border on an addon skin frame inside the button, the unmasked icon one physical pixel in, a square cooldown swipe, the stack count at the top right and the time left in its own lane under the tile, off the icon's art (round 5, Fable #3), each text on its own holder frame so a switch can hide it. `SetIcon`, `SetDurationCooldown`, `SetApplicationCount` and `SetDurationText` hand them to the engine. |
 
-Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false, and so does a theme change that restyles a button's tile. Otherwise the plate or the tile waits in one shared list, checked again after combat (`Combat.Queue`) or, when auras turn secret before combat starts, once a second, so a restyle never retries itself in a loop. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
+Aura buttons deny tainted access while auras are secret. A setting that changes the buttons (size, text, switches) restyles them only when `C_Secrets.ShouldAurasBeSecret()` is false, including a theme change. The static border has no tracked kit chrome that could read restricted dimensions. Otherwise the plate waits in one shared list, checked again after combat (`Combat.Queue`) or, when auras turn secret before combat starts, once a second, so a restyle never retries itself in a loop. The container's own layout changes at once. Without the engine, or when it refuses the container, plates show no debuffs and the devlog says why; a refusal in combat retries after combat.
 
 Icon size and spacing snap to whole physical pixels (`Widgets.Snap` on the plate) before they go to the group layout, the flow line size and the buttons.
 
 The settings window's preview draws three sample debuff tiles on the same snapped grid, because a preview has no unit for the engine. `Auras.Extent(plate)` gives how far a plate reaches above and below its health bar, debuffs included, and the preview spaces its sample plates by the tallest so no plate's debuffs run into the next. The pane clips its children, so when a large grid makes the stack taller than the pane, the preview shows only the plates that fit, at least one, and stacks again when the pane changes size.
 
-The defaults are sized for a pull: 26-unit icons, five to a row (138 units, inside the 175-unit plate) and the `+N` chip one pitch after the fifth (164 units), with the time left and the stacks at 12 units, outlined, and the time left in a 16-unit lane under each row. More rows wrap more tiles, and the footprint the game stacks by grows with them (Stacking below), so neither the tiles nor the chip ever meet the name, the cast bar or the next plate. The owner judged the earlier 18-unit icons and 8-unit text too small to read in game on 2026-11-08. A plate shrunk for distance (`cvars.minScale` 0.8) still draws the icons at about 21 units. A size saved in a profile keeps its value.
+The defaults are sized for a pull: 26-unit icons, five to a row (138 units, inside the 154-unit plate) and the `+N` chip one pitch after the fifth (164 units), with the time left and the stacks at 12 units, outlined, and the time left in a 16-unit lane under each row. More rows wrap more tiles, and the footprint the game stacks by grows with them (Stacking below), so neither the tiles nor the chip ever meet the name, the cast bar or the next plate. The owner judged the earlier 18-unit icons and 8-unit text too small to read in game on 2026-11-08. A plate shrunk for distance (`cvars.minScale` 0.8) still draws the icons at about 21 units. A size saved in a profile keeps its value.
 
 ### Unit types
 
@@ -122,16 +132,16 @@ An enemy NPC's bar, and the rim of its level badge, take a type colour over the 
 
 | Type | Source | Default |
 | --- | --- | --- |
-| Quest | `C_QuestLog.UnitIsRelatedToActiveQuest(unit)`, else `UnitIsQuestBoss` | on, `quest` |
-| Rare | `UnitClassification` is `rare` or `rareelite` | on, `rare` |
+| Quest | `C_QuestLog.UnitIsRelatedToActiveQuest(unit)`, else `UnitIsQuestBoss` | off, `quest` |
+| Rare | `UnitClassification` is `rare` or `rareelite` | off, `rare` |
 | Elite | `UnitClassification` is `elite` or `worldboss` | off, `neutral`: the gold diamond already marks elites |
-| Caster | `UnitPowerType(unit)` is mana and `UnitPowerMax(unit)` is above 0 | on, `epic` |
+| Caster | `UnitPowerType(unit)` is mana and `UnitPowerMax(unit)` is above 0 | off, `epic` |
 
 Quest first because it says what to kill; rare before elite; caster last because the cast bar says the rest. Players keep their class colour, tapped mobs stay grey, and the health threat display still wins on the bar. Most melee NPCs carry the mana type with no mana, so the maximum decides; it is `SecretWhenUnitPowerMaxRestricted`, and a secret maximum changes nothing: the plate keeps the caster state it learned, and a plate that first meets its unit with a secret maximum shows no caster colour. `UNIT_DISPLAYPOWER` rereads the power type, and `QUEST_LOG_UPDATE` and `UNIT_QUEST_LOG_CHANGED` reread the quest state on every plate.
 
 ### Styles
 
-A unit the player can attack (`UnitCanAttack`) uses the enemy style, any other the friendly style. Each style has its own bar colour source: the class colour for players and the reaction colour for NPCs, the reaction colour for everyone, or a custom colour. A player whose class is secret gets the secret class colour from `Theme.ClassColorForWidget`, passed straight to the bar and the name, and the plate's colour cache is skipped for it so the secret is never compared. A tapped enemy is grey (`textDisabled`). Friendly plates can show just the name.
+An enemy NPC uses `plateHostile` for a readable hostile reaction; secret or missing reactions keep the kit's neutral fallback. A unit the player can attack (`UnitCanAttack`) uses the enemy style, any other the friendly style. Each style has its own bar colour source: the class colour for players and the reaction colour for NPCs, the reaction colour for everyone, or a custom colour. A player whose class is secret gets the secret class colour from `Theme.ClassColorForWidget`, passed straight to the bar and the name, and the plate's colour cache is skipped for it so the secret is never compared. A tapped enemy is grey (`textDisabled`). Friendly plates can show just the name.
 
 ### Threat
 
@@ -172,22 +182,23 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `preset` | lumen | dropdown: lumen, compact, tank, healer, custom |
 | `offsetY` | 0 | slider, -40 to 40 |
 | `shrinkDistant` | off | toggle |
-| `font` | Source Sans 3 Semibold | font |
-| `health.texture`, `health.orientation`, `health.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
-| `enemy.colorSource`, `enemy.color` | class, `hostile` | dropdown, colour |
+| `font` | Alegreya Sans | font: values, debuff timers and optional cast text; names use the kit's heading face |
+| `health.texture`, `health.orientation`, `health.reverse` | Flat, horizontal, off | texture, dropdown, toggle |
+| `enemy.colorSource`, `enemy.color` | class, `plateHostile` | dropdown, colour |
 | `friendly.colorSource`, `friendly.color`, `friendly.nameOnly` | class, `friendly`, off | dropdown, colour, toggle |
-| `types.quest`, `types.questColor` | on, `quest` | toggle, colour |
-| `types.rare`, `types.rareColor` | on, `rare` | toggle, colour |
+| `types.quest`, `types.questColor` | off, `quest` | toggle, colour |
+| `types.rare`, `types.rareColor` | off, `rare` | toggle, colour |
 | `types.elite`, `types.eliteColor` | off, `neutral` | toggle, colour |
-| `types.caster`, `types.casterColor` | on, `epic` | toggle, colour |
-| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 14, thin, off, on | toggle, slider, dropdown, toggle, toggle |
-| `level.show`, `level.size`, `level.outline` | on, 16, thin | toggle, slider, dropdown |
+| `types.caster`, `types.casterColor` | off, `epic` | toggle, colour |
+| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 12, none, on, off | toggle, slider, dropdown, toggle, toggle |
+| `level.show`, `level.size`, `level.outline` | off, 16, thin | toggle, slider, dropdown |
 | `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | off, 9, thin, percent | toggle, slider, dropdown, dropdown |
-| `cast.enabled`, `cast.height` | on, 12 | toggle, slider 6 to 24 |
-| `cast.texture`, `cast.orientation`, `cast.reverse` | Glass, horizontal, off | texture, dropdown, toggle |
-| `cast.colorSource`, `cast.color`, `cast.shieldColor` | accent, `accentDefault`, `textDisabled` | dropdown, colour, colour |
-| `cast.waitColor`, `cast.interruptSpell` | `neutral`, blank | colour, text up to 40 letters |
-| `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | on, on, on, 10, thin | toggle, toggle, toggle, slider, dropdown |
+| `cast.enabled`, `cast.height` | on, 6 | toggle, slider 6 to 24 |
+| `cast.texture`, `cast.orientation`, `cast.reverse` | Flat, horizontal, off | texture, dropdown, toggle |
+| `cast.colorSource`, `cast.color`, `cast.shieldColor` | custom, `gilt`, `textDisabled` | dropdown, colour, colour |
+| `cast.hideOnTarget` | off | toggle: suppress only when the target frame already shows a cast |
+| `cast.waitColor`, `cast.interruptSpell` | `gilt`, blank | colour, text up to 40 letters |
+| `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | off, off, off, 10, thin | toggle, toggle, toggle, slider, dropdown |
 | `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
 | `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 26, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
 | `debuffs.order` | important | dropdown: important, longest, expiring, default |
@@ -195,7 +206,7 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 12, thin | toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |
 | `threat.safe`, `threat.warning`, `threat.danger` | `friendly`, `neutral`, `hostile` | colour |
-| `target.highlight`, `target.colorSource`, `target.color`, `target.dimOthers` | on, accent, `accentDefault`, 1 | toggle, dropdown, colour, slider 0.2 to 1 |
+| `target.highlight`, `target.colorSource`, `target.color`, `target.dimOthers` | on, custom, `gilt`, 1 | toggle, dropdown, colour, slider 0.2 to 1 |
 | `focus.highlight`, `focus.color` | on, `rare` | toggle, colour |
 | `markers.classification`, `markers.raid`, `markers.raidSize` | on, on, 16 | toggle, toggle, slider 8 to 32 |
 | `stacking.footprint` | plate | dropdown: plate, game |
