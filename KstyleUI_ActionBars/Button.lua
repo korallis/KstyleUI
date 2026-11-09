@@ -8,6 +8,7 @@ local Button = {}
 ns.Button = Button
 
 local TEXT_INSET = 2
+local EMPTY_ALPHA = 0.24
 local AUTOCAST_SIZE = 6
 local ARROW_SIZE = 10
 local ARROWS = {
@@ -112,7 +113,11 @@ function Button.UpdateAlpha(b)
 		local cfg = Config(b)
 		shown = cfg.showEmpty == true
 	end
-	b:SetAlpha(shown and 1 or 0)
+	if shown and not b.hasAction and b.kind ~= "stance" and ns.grid == 0 then
+		b:SetAlpha(EMPTY_ALPHA + (1 - EMPTY_ALPHA) * (b.hoverT or 0))
+	else
+		b:SetAlpha(shown and 1 or 0)
+	end
 end
 
 local function CooldownInfo(bar, slot)
@@ -569,6 +574,11 @@ function Button.New(bar, index)
 	})
 	b.kbar, b.index, b.kind = bar, index, def.kind
 	b.hasAction, b.outOfRange, b.lacksPower = false, false, false
+	local paint = b.Paint
+	b.Paint = function(self)
+		paint(self)
+		Button.UpdateAlpha(self)
+	end
 	b:RegisterForClicks("AnyUp", "AnyDown")
 	if def.kind == "action" then
 		b:SetID(index)

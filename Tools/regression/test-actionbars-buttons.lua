@@ -120,17 +120,45 @@ do
 	assert(not b.selected)
 end
 
--- Empty buttons: shown as empty tiles by default; hidden by alpha when switched off, and shown while dragging.
+-- Empty buttons: quiet sockets by default that light through the shared hover motion; hidden by alpha when
+-- switched off; every slot shows in full while an action is dragged; an occupied slot is always in full.
+do
+	local env, K, ns = new()
+	local b = AB.Button(ns, "bar1", 2)
+	assert(W.Near(b:GetAlpha(), 0.24), "an empty slot recedes to a quiet socket, got " .. tostring(b:GetAlpha()))
+	K.Widgets.Hover(b, true)
+	AB.W.Settle(env)
+	assert(b:GetAlpha() == 1, "hovering a quiet slot lights it in full, got " .. tostring(b:GetAlpha()))
+	K.Widgets.Hover(b, false)
+	AB.W.Settle(env)
+	assert(W.Near(b:GetAlpha(), 0.24), "leaving it lets it recede again, got " .. tostring(b:GetAlpha()))
+	env.FireEvent("ACTIONBAR_SHOWGRID")
+	assert(b:GetAlpha() == 1, "dragging an action shows every empty slot in full")
+	env.FireEvent("ACTIONBAR_HIDEGRID")
+	assert(W.Near(b:GetAlpha(), 0.24), "the drag ends and the slot recedes")
+	AB.Slot(env, 2, { texture = 136048, type = "spell", id = 5 })
+	assert(b:GetAlpha() == 1, "an occupied slot is in full")
+	K.Widgets.Hover(b, true)
+	AB.W.Settle(env)
+	K.Widgets.Hover(b, false)
+	AB.W.Settle(env)
+	assert(b:GetAlpha() == 1, "and stays in full after a hover")
+end
+
+-- Empty buttons hidden by the setting stay hidden under the pointer, and show while dragging.
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 5)
-	assert(W.LastCall(b, "SetAlpha")[1] == 1, "empty tiles show by default")
+	assert(W.LastCall(b, "SetAlpha")[1] < 0.5, "empty tiles recede by default")
 	K.Options.Write("ActionBars", "bar1.showEmpty", false)
 	assert(W.LastCall(b, "SetAlpha")[1] == 0, "hidden empty buttons fade to nothing, which works in combat")
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(W.LastCall(b, "SetAlpha")[1] == 1, "a dragged action shows every slot")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
 	assert(W.LastCall(b, "SetAlpha")[1] == 0)
+	K.Widgets.Hover(b, true)
+	AB.W.Settle(env)
+	assert(b:GetAlpha() == 0, "a hidden empty slot stays hidden under the pointer")
 end
 
 -- Drag and drop: out of combat only, and the lock needs the pick-up modifier.

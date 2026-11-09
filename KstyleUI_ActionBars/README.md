@@ -81,7 +81,7 @@ Each button is `KstyleUI.Widgets.IconButton` built on `SecureActionButtonTemplat
 | Usable and power | `ACTION_USABLE_CHANGED`, and `IsUsableAction` on each update. Unusable greys the button; lacking power tints it with the power colour. |
 | Range | `C_ActionBar.EnableActionRangeCheck` for each slot with an action on a shown button of a shown bar, released when the slot, the bar or the module goes, and `ACTION_RANGE_CHECK_UPDATE`. A target change also polls `IsActionInRange`. Out of range tints with the range colour. |
 | Selected | `IsCurrentAction` or `IsAutoRepeatAction` |
-| Empty | An empty slot shows as an empty tile, or at alpha 0 when **Show empty buttons** is off, and at full alpha while the cursor holds an action (`ACTIONBAR_SHOWGRID`) |
+| Empty | An empty slot is a quiet socket at alpha 0.24 that rises to full alpha with the shared hover motion (`hoverT`) under the pointer, or alpha 0 when **Show empty buttons** is off, even under the pointer. Every empty slot is at full alpha while the cursor holds an action (`ACTIONBAR_SHOWGRID`), so every drop target shows. Occupied and stance buttons are always at full alpha. Only alpha changes, so the secure button keeps its size and place in combat. |
 
 A secret value is never compared: a secret flag counts as its safe default (usable, in range, not selected), and a secret count or text goes to the font string untouched. A slot the client does not have, such as page 13 on a client with fewer slots, is found once with `pcall(C_ActionBar.HasAction, slot)` and logged, and its button stays empty.
 
