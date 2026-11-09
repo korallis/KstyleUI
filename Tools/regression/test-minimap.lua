@@ -332,8 +332,8 @@ assert(face.overlay:GetFrameLevel() > 100 and face.wheel:GetFrameLevel() > face.
 
 -- The accent: the card's rim is the Lumen rim light like every rail card; the accent colours the zoom fill ------
 
-local inner = face.chrome.inner[5]
-assert(W.SameRGB(inner, K.Tokens.Color("edgeInner")), "the card's rim is the rim light, not the class colour")
+local inner = face.chrome.rim[5]
+assert(W.SameRGB(inner, K.Tokens.Color("edgeInner")), "the card's rim is the kit's rim, not the class colour")
 assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the zoom fill follows the class colour")
 K.Options.Write("Minimap", "accent.source", "custom")
 K.Options.Write("Minimap", "accent.color", { r = 1, g = 0, b = 0 })

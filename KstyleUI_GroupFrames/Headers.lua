@@ -72,7 +72,7 @@ function Headers.Build()
 	Headers.cards.party = {
 		frame = card,
 		chrome = K.Widgets.Chrome(card, { shape = "panel" }),
-		cap = K.Widgets.SectionCap(card, { title = K.L["Party"] }),
+		cap = K.Widgets.RailCap(card, { title = K.L["Party"] }),
 	}
 	for g = 1, RAID_GROUPS do
 		Headers.raid[g] = NewHeader(Headers.holders.raid, "raid")

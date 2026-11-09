@@ -227,7 +227,7 @@ NoErrors(env, "overlay")
 K.Options.Write("Minimap", "accent.source", "custom")
 K.Options.Write("Minimap", "accent.color", { r = 0, g = 1, b = 0 })
 buttons.tracking:SetSelected(true)
-assert(W.SameRGB(buttons.tracking.chrome.inner[5], 0, 1, 0), "the column's hairlines follow the minimap's accent")
+assert(W.SameRGB(buttons.tracking.chrome.rim[5], 0, 1, 0), "the column's hairlines follow the minimap's accent")
 buttons.tracking:SetSelected(false)
 K.Options.Write("Minimap", "accent.source", "class")
 

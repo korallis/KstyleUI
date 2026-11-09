@@ -1,33 +1,22 @@
--- Rail.lua: the rail cards' shared Lumen pieces: the Lumen colour names with their fallbacks until the material foundation lands, the section cap, the class pill and the crystal disc.
+-- Rail.lua: the rail cards' shared pieces over the Lumen kit: the rail colour and texture names with their fallbacks, the section cap adapter, the class pill and the crystal disc.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
 local max, min = math.max, math.min
 
-local SECTION_CAP_HEIGHT = 20
-local GEM_SIZE = 6
-local GEM_LEAD = 2
-local GEM_GAP = "gapMedium"
-local RULE_GAP = "gapMedium"
-local ASIDE_GAP = "gapMedium"
-local TITLE_ROLE = "caption"
-local ASIDE_ROLE = "body"
-local ASIDE_COLOR = "text"
+local SECTION_CAP_HEIGHT = math.max(Tokens.Size("caption"), Tokens.Size("gapLarge"))
 local PILL_HEIGHT = 4
 local PILL_GLOW_OUTSET = 3
 local PILL_GLOW_ALPHA = 0.35
 local PILL_TRACK = "track"
 local DISC_FILL = "buttonFill"
 local DISC_RING_ALPHA = 2.5
-local QUARTER_TURN = math.pi / 4
 
 local FALLBACK = {
-	gilt = { "neutral", 1 },
-	giltDim = { "neutral", 0.45 },
-	rimLight = { "edgeInner", 1 },
+	rimLight = { "rim", 1 },
+	hairline = { "rimSoft", 1 },
 	glass = { "surface", 1 },
 	crystal = { "buttonFill", 1 },
-	hairline = { "edgeFaint", 1 },
 }
 local TEXTURE_FALLBACK = {
 	lensMask = "dot",
@@ -35,7 +24,6 @@ local TEXTURE_FALLBACK = {
 Widgets.LUMEN_FALLBACK = FALLBACK
 Widgets.LUMEN_TEXTURE_FALLBACK = TEXTURE_FALLBACK
 Widgets.SECTION_CAP_HEIGHT = SECTION_CAP_HEIGHT
-Widgets.GEM_SIZE = GEM_SIZE
 
 local known = {}
 
@@ -89,77 +77,31 @@ local Cap = {}
 Cap.__index = Cap
 
 function Cap:SetTitle(text)
-	self.titleText = text
-	Widgets.SetText(self.title, text)
+	self.frame:SetText(text)
 end
 
 function Cap:SetAside(text)
-	self.asideText = text
-	local aside = self.aside
-	local shown = text ~= nil and text ~= ""
-	Widgets.SetText(aside, text)
-	aside:SetShown(shown)
-	local rule, frame = self.rule, self.frame
-	rule:ClearAllPoints()
-	rule:SetPoint("LEFT", self.title, "RIGHT", Widgets.Snap(frame, Tokens.Size(RULE_GAP)), 0)
-	if shown then
-		rule:SetPoint("RIGHT", aside, "LEFT", -Widgets.Snap(frame, Tokens.Size(ASIDE_GAP)), 0)
-	else
-		rule:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+	if text == "" then
+		text = nil
 	end
-end
-
-function Cap:Layout()
-	local frame, gem, title, aside = self.frame, self.gem, self.title, self.aside
-	frame:SetHeight(Widgets.Snap(frame, SECTION_CAP_HEIGHT))
-	local size = Widgets.Snap(frame, GEM_SIZE)
-	gem:ClearAllPoints()
-	gem:SetSize(size, size)
-	gem:SetPoint("LEFT", frame, "LEFT", Widgets.Snap(frame, GEM_LEAD), 0)
-	title:ClearAllPoints()
-	title:SetPoint("LEFT", gem, "RIGHT", Widgets.Snap(frame, Tokens.Size(GEM_GAP)), 0)
-	aside:ClearAllPoints()
-	aside:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
-	self.rule:SetHeight(Widgets.Border(frame))
-	self:SetAside(self.asideText)
-end
-
-function Cap:Paint()
-	Widgets.StyleText(self.title, TITLE_ROLE)
-	Widgets.StyleText(self.aside, ASIDE_ROLE)
-	self.title:SetTextColor(Widgets.LumenColor("gilt"))
-	self.aside:SetTextColor(Tokens.Color(ASIDE_COLOR))
-	Widgets.LumenTint(self.gem, "gilt")
-	Widgets.LumenTint(self.rule, "rimLight")
+	self.frame:SetCount(text)
 end
 
 function Cap:Restyle()
-	self:Layout()
-	self:Paint()
+	self.frame:Restyle()
 end
 
-function Widgets.SectionCap(parent, opts)
+function Widgets.RailCap(parent, opts)
 	opts = opts or {}
-	local frame = CreateFrame("Frame", nil, parent)
-	local gem = frame:CreateTexture(nil, "ARTWORK", nil, 1)
-	gem:SetColorTexture(Tokens.Color("white"))
-	gem:SetRotation(QUARTER_TURN)
-	local rule = frame:CreateTexture(nil, "ARTWORK")
-	rule:SetTexture((Tokens.Texture("divider")))
+	local frame = Widgets.SectionCap(parent, { text = opts.title or "", count = opts.aside, width = opts.width })
 	local cap = setmetatable({
 		frame = frame,
-		gem = gem,
-		rule = rule,
-		title = Widgets.Text(frame, TITLE_ROLE),
-		aside = Widgets.Text(frame, ASIDE_ROLE, ASIDE_COLOR),
+		gem = frame.gem,
+		rule = frame.rule,
+		title = frame.label,
+		aside = frame.count,
 	}, Cap)
-	cap.title:SetWordWrap(false)
-	cap.aside:SetWordWrap(false)
-	cap.aside:SetJustifyH("RIGHT")
-	cap:SetTitle(opts.title or "")
-	cap:Restyle()
-	cap:SetAside(opts.aside)
-	return Widgets.Track(cap)
+	return cap
 end
 
 local Pill = {}

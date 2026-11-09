@@ -300,6 +300,22 @@ local function Captioned(view, s, h, cells, gap)
 	return true
 end
 
+local function PlaceInline(item, s)
+	local frame, button = item.view.frame, item.button
+	local inner = item.inner or 1
+	local unitGap = Widgets.Snap(frame, UNIT_GAP)
+	local labelWidth = TextWidth(item.label, CaptionSize(s))
+	local valueWidth = TextWidth(item.value, s.fontSize)
+	item.value:ClearAllPoints()
+	item.value:SetPoint("CENTER", button, "CENTER", -(labelWidth + unitGap) / 2, 0)
+	item.value:SetWidth(max(1, min(inner, valueWidth + 2)))
+	item.value:SetJustifyH("RIGHT")
+	item.label:ClearAllPoints()
+	item.label:SetPoint("LEFT", item.value, "RIGHT", unitGap, 0)
+	item.label:SetWidth(max(1, labelWidth + 2))
+	item.label:SetJustifyH("LEFT")
+end
+
 local function PlaceItems(view, s)
 	local frame = view.frame
 	local w, h = Size(frame)
@@ -336,16 +352,10 @@ local function PlaceItems(view, s)
 		item.label:ClearAllPoints()
 		item.value:ClearAllPoints()
 		if inline then
-			local unitGap = Widgets.Snap(frame, UNIT_GAP)
-			local labelWidth = TextWidth(item.label, CaptionSize(s))
-			local valueWidth = TextWidth(item.value, s.fontSize)
-			item.value:SetPoint("CENTER", button, "CENTER", -(labelWidth + unitGap) / 2, 0)
-			item.value:SetWidth(max(1, min(inner, valueWidth + 2)))
-			item.value:SetJustifyH("RIGHT")
-			item.label:SetPoint("LEFT", item.value, "RIGHT", unitGap, 0)
-			item.label:SetWidth(max(1, labelWidth + 2))
-			item.label:SetJustifyH("LEFT")
+			item.inner = inner
+			PlaceInline(item, s)
 		else
+			item.inner = nil
 			item.label:SetPoint("BOTTOM", button, "CENTER", 0, stack)
 			item.label:SetWidth(inner)
 			item.label:SetJustifyH("CENTER")
@@ -372,6 +382,9 @@ local function SetValues(view, s, values, timedOnly)
 			local text, grade = value and value[1], value and value[2]
 			item.value:SetText(text or L["--"])
 			ValueColor(item, s, grade or nil)
+			if item.inner and s.labels == "inline" then
+				PlaceInline(item, s)
+			end
 		end
 	end
 end
@@ -447,8 +460,20 @@ function Strip.DockMenus(view, s)
 		if count > 0 then
 			local spacing = ns.Settings().micro.spacing
 			fit = floor((w - 2 * pad - Widgets.Snap(frame, MENU_GAP) - (count - 1) * spacing) / count)
+			view.wrapMenus = fit < MENU_FIT_MIN
+			if view.wrapMenus then
+				local most = 0
+				for id in pairs(DOCK) do
+					local shown = #Menus.Shown(id)
+					most = max(most, shown > 0 and shown or #Menus.All(id))
+				end
+				fit = floor((w - 2 * pad - (most - 1) * spacing) / most)
+			end
 			fit = max(MENU_FIT_MIN, fit)
 			rowHeight = min(rowHeight, fit + 2 * MENU_PAD)
+			if view.wrapMenus then
+				rowHeight = 2 * rowHeight + gap
+			end
 		end
 	end
 	local row = docked and rowHeight > 0 and gap + rowHeight + pad or 0
@@ -462,9 +487,10 @@ function Strip.DockMenus(view, s)
 	for id, spec in pairs(DOCK) do
 		local bar = Menus and Menus.Holder(id)
 		if bar and docked then
+			local drop = view.wrapMenus and spec[3] < 0 and (rowHeight - (rowHeight - gap) / 2) or 0
 			Menus.SetDock(id, function(content, width, height)
 				content:ClearAllPoints()
-				content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, rowTop)
+				content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, rowTop - drop)
 				content:SetSize(width, height)
 			end, frame, fit)
 		end

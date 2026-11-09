@@ -307,7 +307,7 @@ function BarList.New(parent, section, opts)
 	panel:SetPoint("TOPRIGHT", holder, "TOPRIGHT")
 	panel:SetHeight(opts.height)
 	list.panel = panel
-	list.cap = Widgets.SectionCap(panel, {})
+	list.cap = Widgets.RailCap(panel, {})
 	list.title, list.column = list.cap.title, list.cap.aside
 	list.note = Text(panel, "CENTER")
 	list.note:SetTextColor(Tokens.Color("textDisabled"))

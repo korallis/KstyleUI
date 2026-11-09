@@ -132,3 +132,25 @@ eq(fps.label:GetText(), "fps", "and inline again")
 
 eq(#env._errors, 0, tostring(env._errors[1]))
 print("databars readout ok")
+
+-- A value that grows on a tick widens its inline pair, so digits never clip until the next full refresh.
+do
+	local latency = item(ns, "latency")
+	local before = latency.value:GetWidth()
+	env._game.latencyHome, env._game.latencyWorld = 1234, 1234
+	ns.Strip.Update(true)
+	assert(latency.value:GetText() == "1234", "the tick reads the new latency: " .. tostring(latency.value:GetText()))
+	assert(latency.value:GetWidth() > before, "and the value's width grows with its digits: " .. tostring(latency.value:GetWidth()) .. " from " .. tostring(before))
+end
+
+-- A card too narrow for both bars at the smallest disc wraps the bag bar under the menu row instead of overlapping.
+do
+	K.Layout.Update("databars.strip", { width = 200, height = 43 })
+	env.RunTimers()
+	assert(ns.Strip.view.wrapMenus == true, "a 200-wide card wraps the bars")
+	local microTop, bagsTop = ns.Menus.Content("micro")._points[1][5], ns.Menus.Content("bags")._points[1][5]
+	assert(bagsTop < microTop - 10, "the bag bar sits on a second line under the menu row: " .. tostring(bagsTop) .. " vs " .. tostring(microTop))
+	K.Layout.Update("databars.strip", { width = 492, height = 43 })
+	env.RunTimers()
+	assert(ns.Strip.view.wrapMenus == false, "the wide card shares one row again")
+end

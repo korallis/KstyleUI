@@ -1,4 +1,4 @@
--- test-widgets-rail.lua: the rail cards' shared Lumen pieces: the Lumen colour names with their fallbacks, the section cap (gem, tracked title, fading rule, aside), the class pill and the crystal disc.
+-- test-widgets-rail.lua: the rail cards' shared pieces: the rail colour names with their fallbacks, the section cap adapter over the kit's cap, the class pill and the crystal disc.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local env, K = W.New()
@@ -13,43 +13,34 @@ for name, alias in pairs(Widgets.LUMEN_FALLBACK) do
 	assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and type(a) == "number", name .. " gives r, g, b, a")
 	assert(pcall(Tokens.Color, alias[1]), name .. " falls back to an existing token")
 end
-local gr, gg, gb = Widgets.LumenColor("gilt")
-assert(gr > gb, "gilt is warm: more red than blue")
+local gr0, gg0, gb0 = Widgets.LumenColor("gilt")
+assert(gr0 > gb0, "gilt is warm: more red than blue")
 local r, g, b, a = Widgets.LumenColor("gilt", 0.5)
-assert(W.Near(a, 0.5) and r == gr and g == gg and b == gb, "an alpha scale scales only the alpha")
+assert(W.Near(a, 0.5) and r == gr0 and g == gg0 and b == gb0, "an alpha scale scales only the alpha")
+assert(select(1, Widgets.LumenColor("rimLight")) == select(1, Tokens.Color("rim")), "rimLight reads the kit's rim token")
 assert(not pcall(Widgets.LumenColor, "noSuchLumenName"), "an unknown name is an error, as Tokens.Color is")
 assert(pcall(Widgets.LumenColor, "hostile"), "a plain token name passes straight through")
 
--- The section cap: a gem, a tracked caption title, a rule that fades out, and an optional aside at the right.
+-- The rail cap adapter: a thin wrapper over the kit's SectionCap, so the rail cards keep one call shape.
 local card = env.CreateFrame("Frame", nil, root)
 card:SetSize(318, 120)
-local cap = Widgets.SectionCap(card, { title = "Blessings" })
-assert(type(cap) == "table" and cap.frame and cap.gem and cap.title and cap.rule, "the cap has a frame, a gem, a title and a rule")
+local cap = Widgets.RailCap(card, { title = "Blessings" })
+assert(type(cap) == "table" and cap.frame and cap.gem and cap.title and cap.rule and cap.aside, "the cap has a frame, a gem, a title, a rule and an aside")
 assert(cap.frame:GetParent() == card, "the cap frame sits on the card")
+assert(cap.title == cap.frame.label and cap.aside == cap.frame.count and cap.gem == cap.frame.gem, "its parts are the kit cap's own")
 assert(cap.title:GetText() == "BLESSINGS", "the title is set in tracked caps through the caption role")
-assert(W.Near(cap.frame:GetHeight(), Widgets.SECTION_CAP_HEIGHT), "the cap frame is the shared cap height")
-assert(W.Near(cap.gem:GetWidth(), Widgets.GEM_SIZE) and W.Near(cap.gem:GetHeight(), Widgets.GEM_SIZE), "the gem is the shared gem size")
-local rotation = W.LastCall(cap.gem, "SetRotation")
-assert(rotation and W.Near(rotation[1], math.pi / 4), "the gem is a square turned 45 degrees")
-assert(W.SameRGB(cap.gem, gr, gg, gb), "the gem is gilt")
-assert(W.SameRGB(cap.title, gr, gg, gb) or select(1, cap.title:GetTextColor()) == gr, "the title is gilt")
-local gp = cap.gem._points[1]
-assert(gp[1] == "LEFT" and gp[2] == cap.frame, "the gem leads at the left")
-local tp = cap.title._points[1]
-assert(tp[1] == "LEFT" and tp[2] == cap.gem and tp[3] == "RIGHT", "the title follows the gem")
-local rp = cap.rule._points[1]
-assert(rp[1] == "LEFT" and rp[2] == cap.title and rp[3] == "RIGHT", "the rule starts after the title")
-assert(cap.rule._points[2] and cap.rule._points[2][1] == "RIGHT" and cap.rule._points[2][2] == cap.frame, "and runs to the cap's right edge")
-assert(W.LastCall(cap.rule, "SetTexture")[1] == (Tokens.Texture("divider")), "the rule is the divider texture, which fades out along its length")
-assert(cap.aside == nil or not cap.aside:IsShown() or cap.aside:GetText() == "", "no aside until one is set")
+assert(W.Near(cap.frame:GetHeight(), Widgets.SECTION_CAP_HEIGHT), "the cap frame is the shared cap height: " .. tostring(cap.frame:GetHeight()))
+local gr, gg, gb = Widgets.LumenColor("giltLit")
+assert(W.SameRGB(cap.gem, gr, gg, gb), "the gem is lit gilt")
+assert(not cap.aside:IsShown(), "no aside until one is set")
 cap:SetAside("Last fight")
-assert(cap.aside and cap.aside:GetText() == "Last fight" and cap.aside:IsShown(), "SetAside shows a muted text at the right")
-local ap = cap.aside._points[1]
-assert(ap[1] == "RIGHT" and ap[2] == cap.frame, "the aside hugs the right edge")
-assert(cap.rule._points[2][2] == cap.aside, "the rule now stops before the aside")
+assert(cap.aside:GetText() == "Last fight" and cap.aside:IsShown(), "SetAside shows the kit cap's count text at the right")
+assert(cap.rule._points[2][2] == cap.aside, "the rule stops before the aside")
 cap:SetAside(nil)
 assert(not cap.aside:IsShown(), "clearing the aside hides it")
 assert(cap.rule._points[2][2] == cap.frame, "and the rule runs to the edge again")
+cap:SetAside("")
+assert(not cap.aside:IsShown(), "an empty aside counts as none")
 cap:SetTitle("Damage")
 assert(cap.title:GetText() == "DAMAGE", "SetTitle sets the tracked title")
 cap:Restyle()

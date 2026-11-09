@@ -386,7 +386,7 @@ local function BuildCard(desc)
 	local host = desc.host
 	local card = {
 		chrome = Widgets.Chrome(host, { shape = "panel" }),
-		cap = Widgets.SectionCap(host, { title = L["Blessings"] }),
+		cap = Widgets.RailCap(host, { title = L["Blessings"] }),
 		rule = host:CreateTexture(nil, "ARTWORK"),
 	}
 	card.rule:SetColorTexture(Tokens.Color("white"))
