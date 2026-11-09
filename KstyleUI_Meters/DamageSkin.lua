@@ -41,6 +41,10 @@ local function EntryColor(entry)
 	return ns.BarColor("damage", class, reaction)
 end
 
+local function Present(value)
+	return Logic.IsSecret(value) or value ~= nil
+end
+
 local function Recolor(entry)
 	local pill = pills[entry]
 	if not DamageSkin.active or not pill then
@@ -95,11 +99,11 @@ local function NewPill(entry, source)
 	glow:SetBlendMode("ADD")
 	local pill = { entry = entry, source = source, holder = holder, bar = bar, glow = glow, Restyle = PlacePill }
 	local low, high = source:GetMinMaxValues()
-	if low ~= nil and high ~= nil then
+	if Present(low) and Present(high) then
 		bar:SetBarRange(low, high)
 	end
 	local value = source:GetValue()
-	if value ~= nil then
+	if Present(value) then
 		bar:SetBarValue(value)
 	end
 	hooksecurefunc(source, "SetMinMaxValues", function(_, newLow, newHigh)
@@ -220,6 +224,12 @@ local function StyleSource(window)
 		end
 		if type(source.Refresh) == "function" then
 			hooksecurefunc(source, "Refresh", RestyleSource)
+		end
+		local box = type(source.GetScrollBox) == "function" and source:GetScrollBox()
+		if type(box) == "table" and type(box.Update) == "function" then
+			hooksecurefunc(box, "Update", function()
+				RestyleSource(source)
+			end)
 		end
 	end
 	RestyleSource(source)

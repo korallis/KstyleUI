@@ -156,6 +156,32 @@ env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 env.RunTimers()
 assert(list.count == 0 and list.note:IsShown(), "no earlier fight leaves an empty list with a note")
 
+-- The current fight's ID is forgotten while the window stops listening, so fights missed meanwhile still count.
+M.Write(env, K, "damage.mode", "skin")
+env._available = { { sessionID = 5, name = "" }, { sessionID = 6, name = "" }, { sessionID = 7, name = "" } }
+M.Write(env, K, "damage.mode", "window")
+M.Write(env, K, "damage.session", "Previous")
+env.RunTimers()
+assert(env._lastSessionID[1] == 6, "after missed fights the previous fight is the one before the newest: " .. tostring(env._lastSessionID[1]))
+
+-- A spell whose ID is secret is named by the game, its secret name passed straight to the row.
+M.Write(env, K, "damage.session", "Current")
+env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
+env.RunTimers()
+env._sources["Player-1"] = { combatSpells = { Spell(env.Secret(100), 1800, 18) }, maxAmount = 1800, totalAmount = 1800 }
+local getName = env.C_Spell.GetSpellName
+env.C_Spell.GetSpellName = function(id)
+	return env.Secret("Mortal Strike")
+end
+Click(list.rows[1].frame)
+env.RunTimers()
+assert(env.issecretvalue(Text(list.rows[1].name)), "a secret spell name reaches the row whole")
+assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
+env.C_Spell.GetSpellName = getName
+Click(list.panel)
+env.RunTimers()
+env._available = { { sessionID = 5, name = "" } }
+
 -- A right-click on the title steps through the fights: current, previous, overall, current.
 M.Write(env, K, "damage.session", "Current")
 Click(list.panel, "RightButton")

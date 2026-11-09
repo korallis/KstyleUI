@@ -275,12 +275,12 @@ end
 
 local function SpellName(spell)
 	local name = SpellCall("GetSpellName", spell.spellID)
+	if IsSecret(name) then
+		return name
+	end
 	if name == nil then
 		local id = Logic.Plain(spell.spellID)
 		name = id and string.format("%s %d", L["Spell"], id) or ""
-	end
-	if IsSecret(name) then
-		return name
 	end
 	local creature = PlainString(spell.creatureName)
 	if creature and creature ~= drill.name then
@@ -546,6 +546,7 @@ function Damage:Apply()
 			or "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
 	end
 	ns.UnwatchAll(self)
+	self.currentID = nil
 	for _, event in ipairs(SKIN_EVENTS) do
 		ns.Watch(self, event)
 	end
@@ -561,6 +562,7 @@ function Damage:Stop()
 		return
 	end
 	ns.UnwatchAll(self)
+	self.currentID = nil
 	Back()
 	self.list.panel:Hide()
 	self.holder:Hide()

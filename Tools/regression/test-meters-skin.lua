@@ -63,6 +63,7 @@ local function Window(env, owner, index)
 		return close
 	end
 	function source.Refresh() end
+	function spellBox.Update() end
 	function window.GetSourceWindow()
 		return source
 	end
@@ -104,7 +105,7 @@ local function Snapshot()
 	return keys
 end
 
-local HOOKED = { SetAlpha = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
+local HOOKED = { Update = true, SetAlpha = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
 
 -- In a group, so the group-only default (on in both styles) leaves Blizzard's window where Edit Mode put it.
 local env, K, ns = M.New({
@@ -251,6 +252,17 @@ do
 	source.entries[#source.entries + 1] = later
 	source:Refresh()
 	assert(Pill(later), "a spell row shown later is restyled when Blizzard refreshes the window")
+	local scrolled = Entry(env, source, "WARRIOR", 1)
+	source.entries[#source.entries + 1] = scrolled
+	source:GetScrollBox():Update()
+	assert(Pill(scrolled), "a spell row the scroll box acquires on a scroll is restyled after its update")
+	-- A row first styled in combat reads a secret range and value from Blizzard's bar: they pass straight to the pill.
+	local secretRow = Entry(env, source, "WARRIOR", 1)
+	secretRow.StatusBar:SetMinMaxValues(0, env.Secret(900))
+	secretRow.StatusBar:SetValue(env.Secret(450))
+	source.entries[#source.entries + 1] = secretRow
+	source:Refresh()
+	assert(env.issecretvalue(M.Last(Pill(secretRow), "SetValue")[1]), "a secret value reaches the new pill untouched")
 end
 
 -- Rows the scroll box acquires later are restyled when Blizzard initialises them.
