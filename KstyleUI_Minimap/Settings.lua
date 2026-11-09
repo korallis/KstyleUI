@@ -22,13 +22,12 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "right", size = 22, spacing = 7, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	column = { side = "right", size = 18, spacing = 4, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
-	compass = true,
-	zone = { shown = true, color = "plain", font = "", size = 14, outline = "" },
-	clock = { shown = true, mode = "game", font = "", size = 14, outline = "" },
-	coords = { shown = false, precision = 1, position = "top", font = "", size = 10, outline = "" },
+	zone = { shown = true, color = "plain", font = "", size = 11, outline = "" },
+	clock = { shown = true, mode = "game", font = "", size = 11, outline = "" },
+	coords = { shown = false, precision = 1, font = "", size = 10, outline = "" },
 }
 
 local ACCENT_OPTIONS = {
@@ -36,9 +35,9 @@ local ACCENT_OPTIONS = {
 	{ value = "custom", label = L["Custom colour"] },
 }
 local SIDE_OPTIONS = {
-	{ value = "right", label = L["Right side of the lens"] },
-	{ value = "left", label = L["Left side of the lens"] },
-	{ value = "inside", label = L["Right side of the lens"] },
+	{ value = "right", label = L["Inside the right edge"] },
+	{ value = "left", label = L["Inside the left edge"] },
+	{ value = "inside", label = L["Inside the right edge"] },
 }
 local BEHAVIOUR_OPTIONS = {
 	{ value = "click", label = L["Open on click"] },
@@ -72,10 +71,6 @@ local PRECISION_OPTIONS = {
 	{ value = 0, label = L["Whole numbers (45, 62)"] },
 	{ value = 1, label = L["Tenths (45.3, 62.1)"] },
 	{ value = 2, label = L["Hundredths (45.32, 62.18)"] },
-}
-local POSITION_OPTIONS = {
-	{ value = "top", label = L["Top of the map"] },
-	{ value = "bottom", label = L["Above the strip"] },
 }
 local OUTLINE_OPTIONS = {
 	{ value = "", label = L["None, with a soft shadow"] },
@@ -120,7 +115,7 @@ local schema = {
 	{ type = "header", label = L["Frame"] },
 	{
 		type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
-		help = L["The thin line round the map follows your class colour or your own colour."],
+		help = L["The zoom slider's fill and the active buttons follow your class colour or your own colour."],
 	},
 	{
 		type = "color", key = "accent.color", label = L["Custom colour"], showWhen = Custom,
@@ -129,7 +124,7 @@ local schema = {
 	{ type = "header", label = L["Button column"] },
 	{
 		type = "dropdown", key = "column.side", label = L["Button column side"], options = SIDE_OPTIONS,
-		help = L["Where the small buttons sit: inside the map's right edge, or beside the map."],
+		help = L["Which edge of the map the small buttons line. They show while the pointer is over the map."],
 	},
 	{
 		type = "dropdown", key = "column.growth", label = L["Button order"], options = GROWTH_OPTIONS,
@@ -208,7 +203,7 @@ local schema = {
 	},
 	{
 		type = "toggle", key = "zoom.slider", label = L["Zoom slider"],
-		help = L["A thin slider inside the map's right edge. Click or drag it to zoom."],
+		help = L["A thin slider inside the map's left edge while the pointer is over it. Click or drag it to zoom."],
 	},
 	{
 		type = "toggle", key = "zoom.reset", label = L["Zoom back out"],
@@ -222,14 +217,10 @@ local schema = {
 		end,
 		help = L["Seconds before the map zooms back out."],
 	},
-	{
-		type = "toggle", key = "compass", label = L["North mark"],
-		help = L["Shows N at the top of the map while the map does not rotate."],
-	},
 	{ type = "header", label = L["Zone and clock"] },
 	{
 		type = "toggle", key = "zone.shown", label = L["Zone name"],
-		help = L["Shows the zone name in the card's foot."],
+		help = L["Shows the zone name along the map's top edge."],
 	},
 	{
 		type = "dropdown", key = "zone.color", label = L["Zone colour"], options = ZONE_COLOR_OPTIONS,
@@ -241,7 +232,7 @@ for _, row in ipairs(TextRows("zone", { L["Zone font"], L["Zone text size"], L["
 end
 schema[#schema + 1] = {
 	type = "toggle", key = "clock.shown", label = L["Clock"],
-	help = L["Shows the time on the strip."],
+	help = L["Shows the time along the map's bottom edge."],
 }
 schema[#schema + 1] = {
 	type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
@@ -258,10 +249,6 @@ schema[#schema + 1] = {
 schema[#schema + 1] = {
 	type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,
 	help = L["How many decimals the coordinates show."],
-}
-schema[#schema + 1] = {
-	type = "dropdown", key = "coords.position", label = L["Coordinate position"], options = POSITION_OPTIONS,
-	help = L["Where the coordinates sit on the map."],
 }
 for _, row in ipairs(TextRows("coords", { L["Coordinate font"], L["Coordinate text size"], L["Coordinate outline"] }, L["coordinates"])) do
 	schema[#schema + 1] = row

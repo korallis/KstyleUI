@@ -123,7 +123,10 @@ function Drawer.OpenCompartment(owner)
 		Log("MenuUtil.CreateContextMenu is missing; the addon compartment list cannot open")
 		return
 	end
-	menu.CreateContextMenu(owner, CompartmentMenu)
+	local open = menu.CreateContextMenu(owner, CompartmentMenu)
+	if ns.Map and ns.Map.SetMenu then
+		ns.Map.SetMenu(open)
+	end
 end
 
 function Drawer.New(column, opts)
@@ -432,6 +435,9 @@ function Drawer:Close(instant)
 		self.panel:Hide()
 	else
 		Motion.FadeOut(self.panel, Tokens.Duration("fade"))
+	end
+	if ns.Map and ns.Map.CheckHover then
+		ns.Map.CheckHover()
 	end
 end
 

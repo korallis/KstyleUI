@@ -71,48 +71,52 @@ check(Format.ZoomAt(0.5, 1), 0, "one level is always 0")
 check(Format.ZoomAt(env.Secret(0.5), 6), nil, "a secret share gives no level")
 check(Format.ZoomAt(0.5, nil), nil, "no zoom levels, no level")
 
--- The lens: the largest circle that fits the card's width inside its inset and the room between the head and
--- the foot, centred under the head. Head and foot are fixed card bands.
+-- The square map: it sits INSET units inside the element's rim on every side, and its mask is the chamfered
+-- square make_media.py draws: the cut is a share of the side, so the rim's chamfer grows with the map.
 local function near(a, b, what)
 	assert(math.abs(a - b) < 1e-6, what .. ": want " .. tostring(b) .. ", got " .. tostring(a))
 end
--- The card is the lens plus its foot: the lens sits a rim inside the card's top and sides, as the mockup's
--- round map nearly fills its glass, and the foot carries the zone and the clock under it. No head band: the
--- north mark sits on the lens's top edge.
-check(Format.RIM, 6, "the rim between the card's edge and the lens")
-check(Format.FOOT, 34, "the foot band, for the zone and the clock")
-local left, top, lens = Format.Lens(318, 326, 6, 34)
-near(lens, 326 - 6 - 34, "on the Lumen card the lens is limited by the height: the room between the rim and the foot")
-near(left, (318 - lens) / 2, "and centred across the card")
-near(top, 6, "a rim under the card's top")
-local narrowLeft, narrowTop, narrowLens = Format.Lens(200, 400, 6, 34)
-near(narrowLens, 200 - 2 * 6, "a narrow card limits the lens by its width inside the rim")
-near(narrowLeft, 6, "so the lens starts at the rim")
-near(narrowTop, 6 + (400 - 6 - 34 - narrowLens) / 2, "and sits in the middle of the room over the foot")
-local _, _, tinyLens = Format.Lens(30, 30, 6, 34)
-near(tinyLens, 0, "a card too small for the rim and the foot has no lens, never a negative one")
+check(Format.INSET, 2, "the map sits 2 units inside the element's rim")
+check(Format.BAND, 26, "the zone and clock bands along the map's top and bottom edges")
+near(Format.MASK_SHARE, (12 - 2 * 2) / (221 - 2 * 2), "the mask's cut, as a share of the map's side, from make_media.py's three numbers")
+near(Format.Chamfer(156), 156 * Format.MASK_SHARE, "the rim's chamfer is the mask's cut at the map's size")
+assert(Format.Lens == nil and Format.Arc == nil and Format.ArcStep == nil, "the round lens and its arc are gone")
+assert(Format.RIM == nil and Format.FOOT == nil and Format.COMPASS_PLATE == nil, "and so are the card's bands and the north mark's plate")
 
--- Rim buttons: each button's centre sits on the lens circle, spaced one button and one gap apart along the
--- arc, starting on the upper right (or upper left) and going down, or from the lower end and going up.
-local step = Format.ArcStep(22, 7, 100)
-near(step * 100, 29, "the step along a 100 radius covers one 22 button and a 7 gap")
-local ax, ay = Format.Arc(1, 22, 7, 100, "right", false)
-assert(ax > 0 and ay > 0, "the first button is on the upper right")
-near(math.sqrt(ax * ax + ay * ay), 100, "on the circle")
-local ax2, ay2 = Format.Arc(2, 22, 7, 100, "right", false)
-assert(ax2 > 0 and ay2 < ay, "the second is further round and lower")
-near(math.atan2(ay, ax) - math.atan2(ay2, ax2), step, "one step apart along the arc")
-local lx = Format.Arc(1, 22, 7, 100, "left", false)
-near(lx, -ax, "the left side mirrors the right")
-local upX, upY = Format.Arc(1, 22, 7, 100, "right", true)
-near(upX, ax, "growing up starts at the mirror of the first slot, below the middle")
-near(upY, -ay, "below the middle")
-local ix = Format.Arc(1, 22, 7, 100, "inside", false)
-near(ix, ax, "the old inside strip reads as the right side")
-near(Format.ARC_START, math.rad(52), "the arc starts 52 degrees above the horizontal, where the mockup's first disc sits")
+-- The button column: each button's corner sits inside the map's edge, under the top band, one button and one
+-- gap further down for each slot; growing up starts over the bottom band and climbs.
+local cpoint, cx, cy = Format.Column(1, 18, 4, "right", false, 6, 26)
+assert(cpoint == "TOPRIGHT", "the first button hangs from the map's top right corner: " .. tostring(cpoint))
+near(cx, -6, "6 units inside the right edge")
+near(cy, -26, "under the top band")
+cpoint, cx, cy = Format.Column(3, 18, 4, "right", false, 6, 26)
+assert(cpoint == "TOPRIGHT", "every slot hangs from the same corner")
+near(cx, -6, "at the same inset")
+near(cy, -(26 + 2 * (18 + 4)), "the third slot is two buttons and two gaps further down")
+cpoint, cx, cy = Format.Column(1, 18, 4, "left", false, 6, 26)
+assert(cpoint == "TOPLEFT" and cx == 6 and cy == -26, "the left side mirrors the right")
+cpoint, cx, cy = Format.Column(2, 18, 4, "right", true, 6, 26)
+assert(cpoint == "BOTTOMRIGHT", "growing up hangs from the bottom corner")
+near(cx, -6, "inside the right edge")
+near(cy, 26 + (18 + 4), "the second slot climbs one button and one gap over the bottom band")
+cpoint = Format.Column(1, 18, 4, "inside", false, 6, 26)
+assert(cpoint == "TOPRIGHT", "the old inside strip reads as the right side")
+-- A small map holds fewer buttons between its bands: the slots past the room wrap into the next column inward,
+-- so no button reaches the clock band or leaves the map.
+check(Format.PerColumn(96, 18, 4, 26), 2, "a 96 map holds two 18 buttons between its 26 bands")
+check(Format.PerColumn(156, 18, 4, 26), 4, "the default map holds four in the 104 units between its bands; a fifth wraps")
+check(Format.PerColumn(40, 18, 4, 26), 1, "a map too small for one still places one per column")
+cpoint, cx, cy = Format.Column(3, 18, 4, "right", false, 6, 26, 2)
+assert(cpoint == "TOPRIGHT", "the third of two per column hangs from the same corner")
+near(cx, -(6 + 18 + 4), "one button and one gap further in")
+near(cy, -26, "at the top of its column")
+cpoint, cx, cy = Format.Column(4, 18, 4, "left", true, 6, 26, 2)
+assert(cpoint == "BOTTOMLEFT", "growing up on the left")
+near(cx, 6 + 18 + 4, "the fourth is the second slot of the second column")
+near(cy, 26 + 18 + 4, "one up from the band")
 
 -- The drawer: which way it opens, where each icon sits, and how big the drawer is.
-check(Format.Direction("auto", "right"), "left", "with the rim buttons on the lens's right, where the card meets the screen's edge, the drawer opens inward, over the lens")
+check(Format.Direction("auto", "right"), "left", "with the buttons inside the map's right edge, where the map meets the screen's edge, the drawer opens inward, over the map")
 check(Format.Direction("auto", "left"), "right", "and on the left, to the right")
 check(Format.Direction("auto", "inside"), "left", "the old inside strip reads as the right side")
 check(Format.Direction("up", "left"), "up", "a chosen direction wins")

@@ -701,7 +701,7 @@ function modules.chat(opts)
 	return finish(env, K, scene, "chat"), ns
 end
 
--- Minimap: the square map with the zone strip, the clock and the button column ------------------------------
+-- Minimap: the square map with the zone and clock bands; the hover-only controls stay hidden, as at rest ------
 
 function modules.minimap(opts)
 	local M = dofile("Tools/regression/minimap_env.lua")

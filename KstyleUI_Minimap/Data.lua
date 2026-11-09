@@ -1,4 +1,4 @@
--- Data.lua: what the minimap reads from the game: zone, clock, coordinates and rotation, each guarded for missing APIs and secrets.
+-- Data.lua: what the minimap reads from the game: zone, clock, coordinates, mail, calendar, queue and tracking, each guarded for missing APIs and secrets.
 local _, ns = ...
 
 local K = KstyleUI
@@ -113,14 +113,6 @@ function Data.Coords(precision)
 	end
 	local x, y = position:GetXY()
 	return Format.Coords(x, y, precision)
-end
-
-function Data.Rotating()
-	local on = CVarOn("rotateMinimap")
-	if on == nil then
-		return type(GetCVarBool) == "function"
-	end
-	return on
 end
 
 function Data.RuleActive(name)

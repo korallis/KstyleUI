@@ -64,11 +64,11 @@ Nameplates show your debuffs through the engine with an honest +N chip, and colo
 
 ### The rest of the screen, in the same hand
 
-<p align="center"><img src="docs/media/readme/merit_rail.jpg" width="520" alt="The right rail while questing: the round minimap lens, the Blessings card and the damage meter"></p>
+<p align="center"><img src="docs/media/readme/merit_rail.jpg" width="520" alt="The right rail while questing: the minimap, the Blessings card and the damage meter"></p>
 
-<p align="center"><sub>The right rail while questing: the lens, the Blessings card and the damage meter.</sub></p>
+<p align="center"><sub>The right rail while questing: the minimap, the Blessings card and the damage meter.</sub></p>
 
-The minimap sits in a round lens with an addon drawer. Your buffs live in a Blessings card beside it, with a +N count on the cap and a right-click to cancel. The damage meter reads from the game's own meter data with a Now, Last, All switch and a spell breakdown on click.
+The minimap is a small square with a thin rim: the zone name along its top edge, the clock along its bottom edge, and the tracking, calendar and zoom controls and the addon drawer only while your pointer is over it. Your buffs live in a Blessings card beside it, with a +N count on the cap and a right-click to cancel. The damage meter reads from the game's own meter data with a Now, Last, All switch and a spell breakdown on click.
 
 Bags sort into sections with a search that understands <code>&amp;</code>, <code>|</code>, <code>!</code> and <code>ilvl&gt;30</code>. Chat sits on a glass card, tooltips become glass cards, and experience is a gilt filament with its rested overlay.
 
@@ -90,7 +90,7 @@ KstyleUI is one core addon and one addon per module. Every module is off until y
 <td width="50%" valign="top"><img src="docs/media/readme/tile_nameplates.jpg" alt="Nameplates"><br><b>Nameplates</b><br><sub>Health, level, your debuffs and a cast bar that says when you can interrupt.</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/media/readme/tile_minimap.jpg" alt="Minimap"><br><b>Minimap</b><br><sub>A round lens with the zone and clock in its foot and an addon drawer.</sub></td>
+<td width="50%" valign="top"><img src="docs/media/readme/tile_minimap.jpg" alt="Minimap"><br><b>Minimap</b><br><sub>A small square map with the zone and clock inside it and controls that show on hover.</sub></td>
 <td width="50%" valign="top"><img src="docs/media/readme/tile_chat.jpg" alt="Chat"><br><b>Chat</b><br><sub>Blizzard's chat on a glass card with gilt tabs and a copy window.</sub></td>
 </tr>
 <tr>
@@ -118,7 +118,7 @@ Every element KstyleUI shows can be moved, resized or scaled in Layout Mode and 
 | Auras | Your buffs and debuffs under the minimap |
 | Nameplates | A KstyleUI plate on each nameplate, with health, cast bar, threat colour and your debuffs |
 | Combat Text | Damage and heal numbers on KstyleUI's frames and plates, and KstyleUI's font for the game's own numbers |
-| Minimap | A round lens on a frost card with the zone and clock in its foot, rim buttons and an addon-button drawer |
+| Minimap | A small square map in a thin rim, the zone and clock inside it, buttons and an addon-button drawer that show on hover |
 | Chat | Glass chat panels, tabs with an accent underline, timestamps, short channel names, clickable links, class-coloured names, a copy window, and a plus glyph in the tab row that opens the chat settings |
 | Bags | Combined bags and bank with the keyring, search, sorting, quality borders and junk selling |
 | Tooltips | Glass tooltips with quality and class colours, a health bar, optional IDs and cursor anchoring |

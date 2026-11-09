@@ -208,10 +208,24 @@ function M.Blizzard(env, opts)
 			return env._invites
 		end,
 	}
+	-- Each context menu returns a menu stand-in that Menu.GetManager():IsMenuOpen reports open until a test
+	-- clears menu.open, as Blizzard_Menu's manager keeps a menu in its stack until it closes.
 	env._menus = {}
 	env.MenuUtil = {
 		CreateContextMenu = function(owner, generator)
-			env._menus[#env._menus + 1] = { owner = owner, generator = generator }
+			local menu = { open = true }
+			env._menus[#env._menus + 1] = { owner = owner, generator = generator, menu = menu }
+			return menu
+		end,
+	}
+	local manager = {
+		IsMenuOpen = function(_, menu)
+			return type(menu) == "table" and menu.open == true
+		end,
+	}
+	env.Menu = {
+		GetManager = function()
+			return manager
 		end,
 	}
 end
@@ -372,6 +386,7 @@ end
 
 -- New(opts) -> env, KstyleUI, the module's addon table. opts:
 --   enabled   true saves the Minimap switch on, so PLAYER_LOGIN enables the module
+--   saved     a whole KstyleUIDB to load instead, for migrations
 --   settings  extra Minimap settings for the saved profile
 --   combat    true starts the login in combat
 --   boot      false loads everything without ADDON_LOADED and PLAYER_LOGIN
@@ -379,8 +394,8 @@ end
 --   and the stand-in options: zoom, zoomLevels, zone, subzone, pvp, position
 function M.New(opts)
 	opts = opts or {}
-	local saved
-	if opts.enabled or opts.settings then
+	local saved = opts.saved
+	if not saved and (opts.enabled or opts.settings) then
 		local section = { enabled = opts.enabled == true }
 		for key, value in pairs(opts.settings or {}) do
 			section[key] = value

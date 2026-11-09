@@ -54,7 +54,7 @@ local ELEMENTS = {
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = 195, height = 43 },
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Blessings"], width = 318, height = 177, reserve = { 318, 230 } },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
-	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 318, height = 346 },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 318, height = 260 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
@@ -93,7 +93,7 @@ local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TEXT_TOP = CLUSTER_TOP + GAP + 180
 local TIP_Y = MARGIN + 118 + 8
-local BLESSINGS_TOP, BLESSINGS = MARGIN + 346 + GAP, 230
+local BLESSINGS_TOP, BLESSINGS = MARGIN + 160 + GAP, 230
 local _, COLUMN = GridSize("actionbars.bar3")
 local METER_TOP = BLESSINGS_TOP + BLESSINGS + GAP
 

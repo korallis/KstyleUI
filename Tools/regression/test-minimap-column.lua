@@ -1,4 +1,4 @@
--- test-minimap-column.lua: the minimap's rim buttons: tracking, mail, calendar and queue as crystal discs on the lens's edge, their layout and settings, and the secure overlay that clicks Blizzard's own buttons.
+-- test-minimap-column.lua: the minimap's buttons: tracking, mail, calendar and queue as small crystal discs in a column inside the map's edge, their layout and settings, and the secure overlay that clicks Blizzard's own buttons.
 local M = dofile("Tools/regression/minimap_env.lua")
 local W = M.W
 
@@ -45,80 +45,87 @@ end
 assert(Faded(env.QueueStatusButton), "Blizzard's queue eye is faded out and lets clicks through; the column shows the status")
 assert(not K.Safe.IsHidden(env.QueueStatusButton), "the eye stays shown, because its own menu closes when its owner hides")
 
--- Layout: small round crystal buttons on the lens's edge, down the right side of the circle -----------
+-- Layout: small crystal discs in a column inside the map's right edge, under the zone band -----------
 
 assert(buttons.tracking:GetParent():GetFrameLevel() > face.overlay:GetFrameLevel(), "the buttons sit above the map")
-assert(column.strip == nil and column.plate == nil, "no strip and no plate: the buttons sit on the lens's rim")
+assert(column.strip == nil and column.plate == nil, "no strip and no plate: the buttons sit on the map")
 local Format = ns.Format
-local size, spacing = K.Options.Get and 22 or 22, 7
-assert(W.Near(buttons.tracking:GetWidth(), size), "buttons are small crystal discs, 22 units by default: " .. tostring(buttons.tracking:GetWidth()))
-local radius = face.mapArea:GetWidth() / 2
-local function OnRim(button, slot, side, up)
+local size, spacing = 18, 4
+assert(W.Near(buttons.tracking:GetWidth(), size), "buttons are small crystal discs, 18 units by default: " .. tostring(buttons.tracking:GetWidth()))
+local function InColumn(button, slot, side, up)
 	local point, rel, relPoint = Anchor(button)
-	local x, y = Format.Arc(slot, size, spacing, radius, side, up)
-	assert(point == "CENTER" and rel == face.mapArea and relPoint == "CENTER", button.minimapName .. " is centred on a point of the lens")
-	assert(W.Near(X(button), x, 0.5) and W.Near(Y(button), y, 0.5), button.minimapName .. " sits on the rim at slot " .. slot .. ": " .. tostring(X(button)) .. ", " .. tostring(Y(button)) .. " for " .. tostring(x) .. ", " .. tostring(y))
-	assert(W.Near(math.sqrt(X(button) ^ 2 + Y(button) ^ 2), radius, 0.5), button.minimapName .. "'s centre lies on the circle")
+	local want, x, y = Format.Column(slot, size, spacing, side, up, Format.EDGE, Format.BAND)
+	assert(point == want and rel == face.mapArea and relPoint == want, button.minimapName .. " hangs from the map's " .. want .. " corner: " .. tostring(point))
+	assert(W.Near(X(button), x, 0.5) and W.Near(Y(button), y, 0.5), button.minimapName .. " sits in slot " .. slot .. ": " .. tostring(X(button)) .. ", " .. tostring(Y(button)) .. " for " .. tostring(x) .. ", " .. tostring(y))
 end
-OnRim(buttons.tracking, 1, "right", false)
-OnRim(buttons.calendar, 2, "right", false)
-assert(X(buttons.tracking) > 0 and Y(buttons.tracking) > 0, "the first button sits on the upper right of the rim, as the mockup's discs do")
-assert(Y(buttons.calendar) < Y(buttons.tracking), "the next one is further round, lower")
-local step = Format.ArcStep(size, spacing, radius)
-assert(W.Near(step * radius, size + spacing, 0.01), "the pitch along the arc is one button and one gap")
+InColumn(buttons.tracking, 1, "right", false)
+InColumn(buttons.calendar, 2, "right", false)
+assert(X(buttons.tracking) < 0 and Y(buttons.tracking) <= -Format.BAND, "the first button sits inside the right edge, under the zone band")
+assert(Y(buttons.calendar) < Y(buttons.tracking), "the next one is lower")
+assert(W.Near(Y(buttons.tracking) - Y(buttons.calendar), size + spacing, 0.5), "the pitch down the column is one button and one gap")
 assert(buttons.tracking.disc:IsShown() and buttons.tracking.ring:IsShown(), "each button is a dark disc with a light ring")
 assert(W.SameRGB(buttons.tracking.disc, K.Tokens.Color("buttonFill")), "the disc is the button body")
 assert(select(4, buttons.tracking.ring:GetVertexColor()) > select(4, K.Tokens.Color("edgeInner")), "the ring is brighter than a panel's edge line")
 assert(W.LastCall(buttons.tracking.ring, "SetTexture")[1] == (K.Tokens.Texture("ringBevel")), "the ring is the kit's bevelled ring")
 assert(select(2, buttons.tracking.ring:GetPoint(1)) == buttons.tracking, "the ring fills the button: it is the disc's edge")
 assert(not buttons.tracking.chrome.fill[5]:IsShown(), "not a chamfered tile")
-assert(select(4, buttons.tracking.icon:GetPoint(1)) >= 4, "the glyph sits inside the disc")
+assert(select(4, buttons.tracking.icon:GetPoint(1)) >= 3, "the glyph sits inside the disc")
 
 env._mail.new, env._mail.senders = true, { "Thrall", "Jaina" }
 env.FireEvent("UPDATE_PENDING_MAIL")
 assert(buttons.mail:IsShown(), "new mail shows the mail indicator")
-OnRim(buttons.mail, 2, "right", false)
-OnRim(buttons.calendar, 3, "right", false)
+InColumn(buttons.mail, 2, "right", false)
+InColumn(buttons.calendar, 3, "right", false)
 local tip = M.FakeTooltip()
 Column.Tooltip("mail", tip, buttons.mail)
 assert(tip:Has("Thrall") and tip:Has("Jaina"), "the mail tooltip lists the latest senders")
 
 K.Options.Write("Minimap", "column.growth", "up")
-OnRim(buttons.tracking, 1, "right", true)
-assert(Y(buttons.tracking) < 0, "growing up starts at the lower right of the rim")
+InColumn(buttons.tracking, 1, "right", true)
+assert(Y(buttons.tracking) >= Format.BAND, "growing up starts over the clock band")
 assert(Y(buttons.mail) > Y(buttons.tracking), "and climbs")
 K.Options.Write("Minimap", "column.growth", "down")
 
 K.Options.Write("Minimap", "column.side", "left")
-OnRim(buttons.tracking, 1, "left", false)
-assert(X(buttons.tracking) < 0, "the buttons can sit on the lens's left side")
+InColumn(buttons.tracking, 1, "left", false)
+assert(X(buttons.tracking) > 0, "the buttons can sit inside the map's left edge")
 K.Options.Write("Minimap", "column.side", "inside")
-OnRim(buttons.tracking, 1, "right", false)
-assert(X(buttons.tracking) > 0, "the old inside strip reads as the right side")
+InColumn(buttons.tracking, 1, "right", false)
+assert(X(buttons.tracking) < 0, "the old inside strip reads as the right side")
 K.Options.Write("Minimap", "column.side", "right")
 
 K.Options.Write("Minimap", "column.size", 28)
 K.Options.Write("Minimap", "column.spacing", 2)
 assert(W.Near(buttons.tracking:GetWidth(), 28), "the button size follows the setting")
 size, spacing = 28, 2
-OnRim(buttons.mail, 2, "right", false)
-K.Options.Write("Minimap", "column.size", 22)
-K.Options.Write("Minimap", "column.spacing", 7)
-size, spacing = 22, 7
+InColumn(buttons.mail, 2, "right", false)
+K.Options.Write("Minimap", "column.size", 18)
+K.Options.Write("Minimap", "column.spacing", 4)
+size, spacing = 18, 4
 local zoom = face.zoom
 local zp, zrel, zrelp, zx = zoom.track:GetPoint(1)
-assert(zoom:IsShown() and zp == "LEFT" and zrel == face.mapArea and zrelp == "LEFT" and W.Near(zx, 11), "the slider stands inside the lens's left edge whatever the buttons do")
+assert(zoom:IsShown() and zp == "LEFT" and zrel == face.mapArea and zrelp == "LEFT" and W.Near(zx, 11), "the slider stands inside the map's left edge whatever the buttons do")
 local holder = face.holder
-M.Resize(holder, 140, 120)
-assert(face.mapArea:GetWidth() <= 120 - Format.RIM - Format.FOOT + 0.5 and face.mapArea:GetWidth() > 0, "a small element shrinks the lens between the rim and the foot, got " .. tostring(face.mapArea:GetWidth()))
-assert(not zoom:IsShown(), "when the lens is too small for the slider, the slider hides")
+M.Resize(holder, 100, 100)
+assert(W.Near(face.mapArea:GetWidth(), 100 - 2 * Format.INSET, 0.5), "a small element shrinks the map inside the rim, got " .. tostring(face.mapArea:GetWidth()))
+assert(not zoom:IsShown(), "when the map is too small for the slider, the slider hides")
+-- The 96 map holds two buttons between its bands, so the third wraps into a second column inward and none
+-- reaches the clock band.
+assert(buttons.tracking:IsShown() and buttons.mail:IsShown() and buttons.calendar:IsShown(), "three buttons show")
+local perColumn = Format.PerColumn(96, size, spacing, Format.BAND)
+assert(perColumn == 2, "two per column on the small map: " .. tostring(perColumn))
+local want, wx, wy = Format.Column(3, size, spacing, "right", false, Format.EDGE, Format.BAND, perColumn)
+assert(Anchor(buttons.calendar) == want and W.Near(X(buttons.calendar), wx, 0.5) and W.Near(Y(buttons.calendar), wy, 0.5), "the third button starts a second column inward: " .. tostring(X(buttons.calendar)) .. ", " .. tostring(Y(buttons.calendar)))
+for _, name in ipairs({ "tracking", "mail", "calendar" }) do
+	assert(-Y(buttons[name]) + size <= 96 - Format.BAND + 0.5, name .. " stays above the clock band")
+end
 local footprint = K.Setup.Layouts.Element("minimap.main")
 M.Resize(holder, footprint.width, footprint.height)
 assert(zoom:IsShown(), "and comes back with the room at the footprint")
 
 K.Options.Write("Minimap", "column.tracking", false)
 assert(not buttons.tracking:IsShown(), "each button can be turned off")
-OnRim(buttons.mail, 1, "right", false)
+InColumn(buttons.mail, 1, "right", false)
 K.Options.Write("Minimap", "column.tracking", true)
 
 env._rules[env.Enum.GameRule.IngameTrackingDisabled] = true

@@ -1,8 +1,8 @@
--- Map.lua: the live minimap: KstyleUI's Lumen card round Blizzard's Minimap as a round lens, the Blizzard pieces it hides, wheel and slider zoom and the foot's data.
+-- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's square frame behind the chamfered mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the bands' data.
 local _, ns = ...
 
 local K = KstyleUI
-local L, Widgets = K.L, K.Widgets
+local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
 local Settings, Face, Data, Column, SecureClick, Drawer = ns.Settings, ns.Face, ns.Data, ns.Column, ns.SecureClick, ns.Drawer
 
 local Map = {}
@@ -16,7 +16,8 @@ local BLIZZARD_MASK = "ui-hud-minimap-frame-generic-mask"
 local HYBRID_ADDON = "Blizzard_HybridMinimap"
 local CLOCK_INTERVAL = 1
 local COORDS_INTERVAL = 0.2
-local MIN_HEIGHT, MAX_HEIGHT = 120, 480
+local MIN_SIZE, MAX_SIZE = 100, 320
+local HOVER_GRACE = 0.3
 local PIECE_COUNT = 5
 local BLOB_METHODS = { "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }
 local ZONE_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
@@ -35,17 +36,20 @@ local ticker
 local clockElapsed, coordsElapsed = 0, 0
 local zoomToken = 0
 local moving = false
+local hoverHooked = false
+local graceLeft = 0
+local openMenu
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
 end
 
 local function MaskPath()
-	return (Widgets.LumenTexture("lensMask"))
+	return (Tokens.Texture("minimapMask"))
 end
 
-local function RoundShape()
-	return "ROUND"
+local function SquareShape()
+	return "SQUARE"
 end
 
 local function ApplyMask()
@@ -87,10 +91,6 @@ local function UpdateCoords()
 	Map.face:SetCoords(Data.Coords(Settings.Get("coords.precision")))
 end
 
-local function UpdateCompass()
-	Map.face:SetRotating(Data.Rotating())
-end
-
 local function ClockOnUpdate(_, elapsed)
 	clockElapsed = clockElapsed + elapsed
 	if clockElapsed >= CLOCK_INTERVAL then
@@ -105,7 +105,7 @@ local function StopClock()
 		ticker = nil
 	end
 	if Map.face then
-		Map.face.strip:SetScript("OnUpdate", nil)
+		Map.face.clockBand:SetScript("OnUpdate", nil)
 	end
 end
 
@@ -114,14 +114,14 @@ local function SyncClock()
 		StopClock()
 		return
 	end
-	if ticker or Map.face.strip:GetScript("OnUpdate") then
+	if ticker or Map.face.clockBand:GetScript("OnUpdate") then
 		return
 	end
 	if C_Timer and type(C_Timer.NewTicker) == "function" then
 		ticker = C_Timer.NewTicker(CLOCK_INTERVAL, UpdateClock)
 	else
 		clockElapsed = 0
-		Map.face.strip:SetScript("OnUpdate", ClockOnUpdate)
+		Map.face.clockBand:SetScript("OnUpdate", ClockOnUpdate)
 		Log("C_Timer.NewTicker is missing; the clock counts with OnUpdate")
 	end
 end
@@ -279,6 +279,73 @@ local function RefreshColumn()
 	end
 end
 
+local function Reveal()
+	if running and Map.face then
+		Map.face:SetRevealed(true)
+	end
+end
+
+local function PointerStays()
+	if Map.holder:IsMouseOver() then
+		return true
+	end
+	local drawer = Map.drawer
+	return drawer ~= nil and drawer.open == true and drawer.panel:IsMouseOver()
+end
+
+local function MenuOpen()
+	if openMenu == nil then
+		return false
+	end
+	local manager = Menu and type(Menu.GetManager) == "function" and Menu.GetManager()
+	if not (manager and type(manager.IsMenuOpen) == "function") then
+		openMenu = nil
+		return false
+	end
+	local open = manager:IsMenuOpen(openMenu)
+	if Widgets.IsSecret(open) or open ~= true then
+		openMenu = nil
+		return false
+	end
+	return true
+end
+
+function Map.SetMenu(menu)
+	openMenu = type(menu) == "table" and menu or nil
+end
+
+local function WatchHover(frame, elapsed)
+	if not (running and Map.face) then
+		frame:SetScript("OnUpdate", nil)
+		return
+	end
+	if MenuOpen() then
+		graceLeft = HOVER_GRACE
+		return
+	end
+	if PointerStays() then
+		frame:SetScript("OnUpdate", nil)
+		return
+	end
+	graceLeft = graceLeft - elapsed
+	if graceLeft <= 0 then
+		frame:SetScript("OnUpdate", nil)
+		Map.face:SetRevealed(false)
+	end
+end
+
+function Map.CheckHover()
+	if running and Map.face and Map.face.revealed then
+		graceLeft = HOVER_GRACE
+		Map.face.overlay:SetScript("OnUpdate", WatchHover)
+	end
+end
+
+local function HookHover(frame)
+	frame:HookScript("OnEnter", Reveal)
+	frame:HookScript("OnLeave", Map.CheckHover)
+end
+
 local function CollectButtons()
 	if running and Map.drawer then
 		Map.drawer:Collect()
@@ -301,7 +368,6 @@ function Map.Refresh()
 	UpdateZone()
 	UpdateClock()
 	UpdateCoords()
-	UpdateCompass()
 	UpdateZoom()
 	SyncClock()
 	SyncCoords()
@@ -341,17 +407,22 @@ local function Build()
 	Map.column = Column.New(face)
 	Map.drawer = Drawer.New(Map.column)
 	Map.column.drawer = Map.drawer
+	for _, frame in ipairs({ face.zoneHit, face.clockHit, face.zoom }) do
+		HookHover(frame)
+	end
+	for _, button in pairs(Map.column.buttons) do
+		HookHover(button)
+	end
 	holder:HookScript("OnSizeChanged", Relayout)
-	local aspect = element.width / element.height
 	Widgets.Place(holder, KEY, K.Setup.Layouts.Default(KEY), {
 		label = element.label,
 		module = MODULE,
 		resizable = true,
 		aspect = true,
-		minWidth = MIN_HEIGHT * aspect,
-		minHeight = MIN_HEIGHT,
-		maxWidth = MAX_HEIGHT * aspect,
-		maxHeight = MAX_HEIGHT,
+		minWidth = MIN_SIZE,
+		minHeight = MIN_SIZE,
+		maxWidth = MAX_SIZE,
+		maxHeight = MAX_SIZE,
 	})
 end
 
@@ -457,8 +528,12 @@ function Adopt()
 	minimap:SetFrameLevel(holder:GetFrameLevel() + Face.LEVEL_MAP)
 	ApplyMask()
 	Fit()
-	SetBlobRings(1)
-	Log("Minimap moved into KstyleUI's card with the round lens mask")
+	SetBlobRings(0)
+	if not hoverHooked and type(minimap.HookScript) == "function" then
+		hoverHooked = true
+		HookHover(minimap)
+	end
+	Log("Minimap moved into KstyleUI's square frame with the chamfered mask")
 end
 
 local function BlizzardPieces()
@@ -547,7 +622,6 @@ local function RegisterEvents()
 	end
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", function()
 		onZone()
-		UpdateCompass()
 		CollectButtons()
 	end)
 	for _, event in ipairs(COLUMN_EVENTS) do
@@ -565,11 +639,6 @@ local function RegisterEvents()
 	for _, event in ipairs(MOVE_STOP) do
 		Events.Register(MODULE, event, StopCoords)
 	end
-	Events.Register(MODULE, "CVAR_UPDATE", function(_, name)
-		if name == "rotateMinimap" then
-			UpdateCompass()
-		end
-	end)
 	Events.Register(MODULE, "ADDON_LOADED", function(_, name)
 		if name == HYBRID_ADDON then
 			MaskHybrid()
@@ -608,7 +677,7 @@ function Map.Enable()
 	Adopt()
 	HideBlizzard()
 	HookBlizzard()
-	GetMinimapShape = RoundShape
+	GetMinimapShape = SquareShape
 	RegisterEvents()
 	RegisterCallbacks()
 	SecureClick.SetActive(true)
@@ -639,7 +708,7 @@ function Map.Disable()
 		Map.holder:Hide()
 	end
 	Release()
-	if GetMinimapShape == RoundShape then
+	if GetMinimapShape == SquareShape then
 		GetMinimapShape = nil
 	end
 end
