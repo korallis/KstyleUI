@@ -40,7 +40,8 @@ do
 
 	assert(Logic.InterruptReady({ isActive = false, isOnGCD = false }) == true, "no cooldown running: ready")
 	assert(Logic.InterruptReady({ isActive = true, isOnGCD = false }) == false, "a cooldown running: not ready")
-	assert(Logic.InterruptReady({ isActive = true, isOnGCD = true }) == true, "the global cooldown alone does not count")
+	assert(Logic.InterruptReady({ isActive = true, isOnGCD = true }, true) == true, "the global cooldown alone does not count in SPELL_UPDATE_COOLDOWN")
+	assert(Logic.InterruptReady({ isActive = true, isOnGCD = true }) == false, "outside the cooldown event an active cooldown is not assumed to be only GCD")
 	assert(Logic.InterruptReady({ isActive = env.Secret(true), isOnGCD = false }) == nil, "a secret state decides nothing")
 	assert(Logic.InterruptReady(nil) == nil, "no cooldown info decides nothing")
 	assert(Logic.InterruptReady(env.Secret({ isActive = true })) == nil, "a secret table decides nothing")

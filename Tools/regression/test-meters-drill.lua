@@ -54,6 +54,17 @@ local Damage = ns.Damage
 local list = Damage.list
 assert(list.panel:IsShown() and list.count == 3, "three sources show in a group")
 
+do
+	local get = env.C_DamageMeter.GetCombatSessionSourceFromID
+	env.C_DamageMeter.GetCombatSessionSourceFromID = nil
+	local row = list.rows[1]
+	row.frame._scripts.OnEnter(row.frame)
+	env.RunTimers()
+	assert(not row.more:IsShown(), "missing source APIs do not advertise drill-down")
+	row.frame._scripts.OnLeave(row.frame)
+	env.C_DamageMeter.GetCombatSessionSourceFromID = get
+end
+
 -- Hovering a source row opens its spell split under the row, inside the window, as Details! does (Grok, rounds
 -- 5 and 6): the top three spells with their amount and share, read the same way a click reads them, then a line
 -- that counts the spells a click lists. The row shows its chevron while hovered, so the split is discoverable

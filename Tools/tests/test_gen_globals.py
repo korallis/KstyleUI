@@ -164,6 +164,12 @@ class GenGlobalsTest(unittest.TestCase):
         self.assertNotIn("IsPlayerSpell", collected.read)
         self.assertNotIn("GetSchoolString", collected.read)
 
+    def test_excludes_deprecated_folder_without_blizzard_prefix(self):
+        self.addon("Deprecated_PaperDoll", "Deprecated.lua\n", {"Deprecated.lua": "GetInventorySlotInfo = C_PaperDollInfo.GetInventorySlotInfo\n"})
+        collected = self.collect()
+        self.assertIn("GetInventorySlotInfo", collected.deprecated)
+        self.assertNotIn("GetInventorySlotInfo", collected.read)
+
     def test_output_is_sorted_lua(self):
         self.write_doc("UnitDocumentation.lua", "Unit", "System", ["UnitHealth", "AbbreviateNumbers"])
         self.write_doc("SpellDocumentation.lua", "Spell", "System", ["GetSpellName"], namespace="C_Spell")

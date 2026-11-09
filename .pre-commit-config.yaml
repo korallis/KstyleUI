@@ -78,3 +78,10 @@ repos:
         entry: python3 Tools/hooks/check_toc.py
         files: \.(toc|lua|xml)$
         pass_filenames: false
+
+      - id: forever-api-contracts
+        name: Forever API members and string-name contracts
+        language: system
+        entry: python3 Tools/hooks/check_api_contracts.py
+        files: (\.(toc|lua|xml|py)$|^Tools/data/forever_api_contracts\.json$)
+        pass_filenames: false

@@ -238,8 +238,12 @@ local filter = bg.candidateFilters and bg.candidateFilters.excludeSpellIDs
 check(filter and filter[1001] == nil and filter[1002] == nil and filter[2002] == nil, "a tracked buff the player removed or moved shows in the row")
 check(filter[1004] == true and filter[1006] == true, "the buffs the player's layout tracks are left out, a hidden-by-default one the player added too")
 env._cdmLayout = nil
+env._cdmDirty = true
 A.Trigger(env, "CooldownViewerSettings.OnDataChanged")
-check(bg.candidateFilters.excludeSpellIDs[1001] == true, "without a clean saved layout the default set counts again")
+check(bg.candidateFilters == nil and chip.pairs[1].a._groups.count.candidateFilters == nil, "without a clean layout the row and its count keep every buff")
+env._cdmDirty = false
+A.Trigger(env, "CooldownViewerSettings.OnDataChanged")
+check(bg.candidateFilters.excludeSpellIDs[1001] == true, "a clean effective default layout restores the filter")
 -- The viewer's own visibility: hidden or in-combat-only in Edit Mode, the tracked row is not a place the buff
 -- shows, so the row keeps every buff (codex review).
 env.BuffIconCooldownViewer.visibleSetting = env.Enum.CooldownViewerVisibleSetting.Hidden

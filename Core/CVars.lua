@@ -34,21 +34,81 @@ local function Api(name)
 	return type(fn) == "function" and fn or nil
 end
 
-local function Get(name)
-	local ok, value = pcall(Api("GetCVar"), name)
+local function Info(name)
+	if not IsText(name) then
+		return nil
+	end
+	local fn = Api("GetCVarInfo")
+	if not fn then
+		return nil
+	end
+	local ok, value, default, _, _, locked, secure, readOnly = pcall(fn, name)
+	if not ok or not IsText(value) or not IsText(default) then
+		return nil
+	end
+	if (issecretvalue and (issecretvalue(locked) or issecretvalue(secure) or issecretvalue(readOnly)))
+		or type(locked) ~= "boolean" or type(secure) ~= "boolean" or type(readOnly) ~= "boolean"
+		or locked or secure or readOnly then
+		return nil
+	end
+	return value, default
+end
+
+function ns.CVars.Exists(name)
+	return Info(name) ~= nil
+end
+
+function ns.CVars.Get(name)
+	if Info(name) == nil then
+		return nil
+	end
+	local fn = Api("GetCVar")
+	if not fn then
+		return nil
+	end
+	local ok, value = pcall(fn, name)
 	return ok and IsText(value) and value or nil
 end
 
-local function Set(name, value)
-	local ok, done = pcall(Api("SetCVar"), name, value)
-	return ok and done ~= false and Get(name) == value
+function ns.CVars.Default(name)
+	local _, default = Info(name)
+	return default
+end
+
+function ns.CVars.Set(name, value)
+	if (issecretvalue and issecretvalue(value)) or (type(value) ~= "string" and type(value) ~= "number") or Info(name) == nil then
+		return false
+	end
+	local fn = Api("SetCVar")
+	if not fn then
+		return false
+	end
+	local ok, done = pcall(fn, name, value)
+	return ok and not (issecretvalue and issecretvalue(done)) and done == true
+end
+
+function ns.CVars.SetBitfield(name, index, value)
+	if (issecretvalue and (issecretvalue(index) or issecretvalue(value))) or type(index) ~= "number" or type(value) ~= "boolean" or Info(name) == nil then
+		return false
+	end
+	local fn = Api("SetCVarBitfield")
+	if not fn then
+		return false
+	end
+	local ok, done = pcall(fn, name, index, value)
+	return ok and not (issecretvalue and issecretvalue(done)) and done == true
 end
 
 local function Restore(records, key, name)
 	local record = records[key]
-	local held = IsText(name) and type(record) == "table" and IsText(record.original) and IsText(record.written)
-		and record.original ~= record.written and Get(name) == record.written
-	if held and not Set(name, record.original) then
+	local valid = IsText(name) and type(record) == "table" and IsText(record.original) and IsText(record.written)
+		and record.original ~= record.written
+	local current = valid and ns.CVars.Get(name)
+	if valid and current == nil then
+		return
+	end
+	local held = valid and current == record.written
+	if held and (not ns.CVars.Set(name, record.original) or ns.CVars.Get(name) ~= record.original) then
 		LogOnce("refused:" .. name, "the game refused " .. name .. " back; KstyleUI tries again at the next login")
 		return
 	end
