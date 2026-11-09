@@ -12,7 +12,15 @@ Common.Scene = dofile("Tools/render/scene.lua")
 -- The owner's Mac: the game renders 2383 by 1540, so one screen unit is 1540 / 1080 = 1.426 pixels. The UI
 -- scale is WoW's default, 768 / 1080, so UIParent is 1080 units tall too and Blizzard's frames share the
 -- root's units.
-Common.SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
+-- A scene that draws another screen sets the global RENDER_SCREEN ({ width, height, uiScale }) while it builds, and
+-- every Common the scene's modules loaded reads it (scenes/hud_reference.lua: the owner's full screen).
+Common.DEFAULT_SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
+Common.SCREEN = setmetatable({}, {
+	__index = function(_, key)
+		local screen = rawget(_G, "RENDER_SCREEN") or Common.DEFAULT_SCREEN
+		return screen[key]
+	end,
+})
 
 -- The warrior's class colour, as the game's RAID_CLASS_COLORS gives it.
 Common.WARRIOR = { 0.78, 0.61, 0.43 }

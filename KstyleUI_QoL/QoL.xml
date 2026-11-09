@@ -2,6 +2,8 @@
 	<Script file="Init.lua"/>
 	<Script file="Settings.lua"/>
 	<Script file="Loot.lua"/>
+	<Script file="LootText.lua"/>
+	<Script file="Feed.lua"/>
 	<Script file="Repair.lua"/>
 	<Script file="Quests.lua"/>
 	<Script file="Camera.lua"/>

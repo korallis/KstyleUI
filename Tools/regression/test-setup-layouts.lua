@@ -16,6 +16,7 @@ local KEYS = {
 	"auras.buffs", "auras.debuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.honor",
 	"databars.strip", "databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
 	"combattext.player",
+	"qol.lootfeed",
 	"tooltips.anchor",
 }
 local ANCHORS = {
@@ -171,9 +172,9 @@ end
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN = 16
 local LEFT_RAIL = {
-	DPS = { "groupframes.party", "groupframes.raid" },
-	Tank = { "groupframes.party", "groupframes.raid" },
-	Healer = { "unitframes.boss" },
+	DPS = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
+	Tank = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
+	Healer = { "unitframes.boss", "qol.lootfeed" },
 }
 -- Owner pass 1 (M6, "the chat box is too thin"): the chat card stands on the left rail's column at its foot but runs
 -- 372 wide, past the 318 rail, so its message column holds about 21 em of 14-unit text instead of 17.5. It keeps a
@@ -212,11 +213,11 @@ local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
 -- The boss column at the clear centre's edge: on a 16:10 screen it reaches into the zone's outer half, never past it.
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
-	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
+	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
-	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "minimap.main", "auras.buffs", "auras.debuffs",
+	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
-	Healer = set({ "chat.main", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
+	Healer = set({ "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
 		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
 }
 -- Healer: the party and raid stand on the cluster's left half, their right edge 16 units left of the player's cast bar
@@ -275,6 +276,8 @@ for _, name in ipairs(names) do
 		assert(meter.bottom - strip.top == 16, label .. ": the damage card stands 16 over the readout card at the rail's foot, got " .. (meter.bottom - strip.top))
 		local chat = rect("chat.main")
 		assert(chat.bottom == MARGIN and chat.left == MARGIN and chat.w == CHAT_WIDTH[name], label .. ": chat sits at the left rail's foot, " .. CHAT_WIDTH[name] .. " wide, got " .. chat.w)
+		local feed = rect("qol.lootfeed")
+		assert(feed.left == chat.left and feed.w == RAIL and feed.bottom - chat.top == CARD_GAP_MIN, label .. ": the loot feed stands " .. CARD_GAP_MIN .. " over the chat card on its left edge, got " .. (feed.bottom - chat.top))
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
 			if key ~= "chat.main" and r.bottom < chat.top + CARD_GAP_MIN and r.top > chat.bottom - CARD_GAP_MIN then
@@ -314,7 +317,7 @@ for _, name in ipairs(names) do
 			head = party
 		end
 
-		-- The left rail holds only its head and chat, on one left edge (the story slot moved to the right rail).
+		-- The left rail holds only its head, the loot feed and chat, on one left edge (the story slot moved to the right rail).
 		assert(head.left == chat.left, label .. ": the left rail's head and chat share the left edge")
 		-- Apply places the quest tracker itself, so the hint names Apply and Edit Mode (round 3: Opus #4, the carry
 		-- list); a refusal gets Try again on the setup summary, so the hint gives no manual move (round 4, Muse #4).

@@ -68,6 +68,8 @@ for _, name in ipairs(Layouts.Names()) do
 			local r = rects[key]
 			assert(r[4] <= story[2] - 16 + 1e-6, string.format("%s: %s (top %.0f) stands at least 16 under the story slot (foot %.0f)", label, key, r[4], story[2]))
 		end
+		-- The loot feed stands over the chat card with a card gap between, and over nothing else.
+		assert(rects["qol.lootfeed"][2] - rects["chat.main"][4] >= 16 - 1e-6, label .. ": the loot feed keeps 16 units over the chat card")
 		-- The tooltip anchor overlaps nothing at all: no card, no dock, no bar a player may turn on.
 		local tip = rects["tooltips.anchor"]
 		for _, key in ipairs(keys) do
