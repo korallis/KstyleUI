@@ -165,7 +165,10 @@ local capShown = false
 for text in pairs(restedTexts) do
 	capShown = capShown or text:gsub("\226\128\137", "") == "THE PATH"
 end
-assert(capShown, "the guide window's header carries THE PATH")
+-- The render measures text with the kit fonts' real widths (Common.ForceScreen installs env._textWidth), so the
+-- head reads as the game draws it: at RestedXP's 268-unit guide the tracked THE PATH and "Speedrun Guide 1-22"
+-- do not both fit beside the gem, and FitHead's narrow form keeps the group name alone.
+assert(capShown or restedTexts["Speedrun Guide 1-22"], "the guide window's header carries THE PATH, or its group alone where both do not fit")
 assert(not restedTexts["6-10 Durotar\nSpeedrun Guide 1-22"], "RestedXP's own two-line title is hushed, not drawn")
 -- RestedXP's own geometry is kept, so the render shows how close its content sits to the skin's glass: a
 -- step's check button 6 units in from the step frame, the guide name's left edge 29 in, the list's scroll bar 20
