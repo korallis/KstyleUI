@@ -117,6 +117,18 @@ do
 	env._money = 99
 	env.FireEvent("PLAYER_MONEY")
 	assert(win.money:GetText() == "money:99", "money follows PLAYER_MONEY")
+	local moneyString = env.GetMoneyString
+	env.GetMoneyString = nil
+	env._money = 1234567
+	env.FireEvent("PLAYER_MONEY")
+	assert(win.money:GetText() == "123g 45s 67c", "without GetMoneyString the footer formats gold, silver and copper itself, as the data strip does: " .. tostring(win.money:GetText()))
+	env._money = 4567
+	env.FireEvent("PLAYER_MONEY")
+	assert(win.money:GetText() == "45s 67c", "no gold shows no gold")
+	env._money = 7
+	env.FireEvent("PLAYER_MONEY")
+	assert(win.money:GetText() == "7c", "copper alone")
+	env.GetMoneyString = moneyString
 
 	B.Put(env, 0, 9, Item("ring"))
 	assert(Inventory.Slot(0, 9).level:GetText() == "30", "a bag update refreshes the slot")
@@ -156,6 +168,8 @@ end
 
 do
 	local env, K, ns = B.New({ bags = Bags() })
+	-- The grid geometry below (slot positions, growth, the row limit and the wheel) is the one-grid layout's.
+	Set(K, "layout", "grid")
 	Open(env)
 	local Inventory = ns.Inventory
 	local panel = Inventory.window.panel
@@ -206,6 +220,73 @@ do
 	hovered.hoverT = 1
 	ns.Slot.Paint(hovered)
 	assert(W.SameRGB(hovered.chrome.rim[1], 0.2, 0.4, 0.6), "a hovered slot's edge follows a custom accent")
+end
+
+-- Categories: the default layout sorts items into Lumen sections --------------------------------------------
+
+do
+	local env, K, ns = B.New({ bags = Bags() })
+	local Inventory = ns.Inventory
+	assert(ns.Settings.Get("layout") == "categories", "items sort into categories by default")
+	local row = K.Options.Row("Bags", "layout")
+	assert(row and row.type == "dropdown", "the layout has a dropdown")
+	Open(env)
+	local win = Inventory.window
+	local section = win.sections[1]
+	local groups = section.groups
+	assert(type(groups) == "table", "the bags section holds category groups")
+	local function Has(group, bag, slot)
+		for _, s in ipairs(group.order) do
+			if s.bag == bag and s.id == slot then
+				return true
+			end
+		end
+		return false
+	end
+	local equipment, consumables, trade, quest, other, junk, empty = groups.equipment, groups.consumables, groups.tradeGoods, groups.quest, groups.other, groups.junk, groups.empty
+	assert(#equipment.order == 3 and Has(equipment, 0, 2) and Has(equipment, 0, 3) and Has(equipment, 1, 8), "the sword, helm and ring are equipment")
+	assert(#consumables.order == 1 and Has(consumables, 0, 1), "the potion is a consumable")
+	assert(#trade.order == 1 and Has(trade, 1, 1), "the cloth is trade goods")
+	assert(#other.order == 1 and Has(other, 0, 5), "the hearthstone is other")
+	assert(#junk.order == 1 and Has(junk, 0, 4), "the fang is junk")
+	assert(#empty.order == 24 - 7, "every empty bag slot sits in the empty group, got " .. tostring(#empty.order))
+	assert(not Has(empty, -1, 2) and #win.sections[2].order == 4, "the keyring keeps its own section")
+	assert(quest == nil, "a category nothing has fallen into is never built")
+	assert(equipment.view:IsShown() and equipment.cap:IsShown(), "a category with items shows its grid and its cap")
+	assert(not section.view:IsShown(), "the one big grid hides while categories show")
+	assert(equipment.cap.label:GetText():upper() == equipment.cap.label:GetText() and equipment.cap.label:GetText():find("EQUIPMENT", 1, true), "the cap carries the category's name, as a tracked caption, got " .. tostring(equipment.cap.label:GetText()))
+	assert(equipment.cap.count:GetText() == "3", "and the count of items in it")
+	assert(equipment.cap.gem and equipment.cap.rule, "the cap is the Lumen section cap: gem and rule")
+	-- Sections stack in the categories' order down the window.
+	local function Top(group)
+		local point = group.cap._points[1]
+		return -point[5]
+	end
+	assert(Top(equipment) < Top(consumables) and Top(consumables) < Top(trade) and Top(trade) < Top(other) and Top(other) < Top(junk) and Top(junk) < Top(empty), "equipment, consumables, trade goods, other, junk, then the empty slots")
+	-- Blizzard's item button still reads its bag from its parent: the parent frame under a group's grid carries the bag's ID.
+	local sword = Inventory.Slot(0, 2)
+	assert(sword.button:GetParent():GetID() == 0 and sword.button:GetParent():GetParent() == equipment.grid, "a sorted slot's parent carries its bag ID under its category's grid")
+	local ring = Inventory.Slot(1, 8)
+	assert(ring.button:GetParent():GetID() == 1 and ring.button:GetParent():GetParent() == equipment.grid, "a slot from another bag sits in the same category under a frame with its own bag ID")
+	-- A row limit applies to the one big grid only; categories show every row.
+	Set(K, "rows", 1)
+	for _, slot in ipairs(empty.order) do
+		assert(slot.button:IsShown(), "a row limit never hides a sorted slot")
+	end
+	Set(K, "rows", 0)
+	-- Items that change category move with the next refresh.
+	B.Put(env, 0, 1, nil)
+	env.RunTimers()
+	assert(#consumables.order == 0 and not consumables.view:IsShown(), "an emptied slot leaves its category")
+	assert(Has(empty, 0, 1) and Inventory.Slot(0, 1).button:GetParent():GetParent() == empty.grid, "and joins the empty group")
+	-- Back to one grid.
+	Set(K, "layout", "grid")
+	assert(section.view:IsShown() and not equipment.view:IsShown() and not equipment.cap:IsShown(), "the grid layout shows the one grid and hides the categories")
+	assert(sword.button:GetParent():GetParent() == section.grid and sword.button:GetParent():GetID() == 0, "slots return to the grid's bag frames")
+	assert(#section.order == 24, "the grid holds every bag slot")
+	Set(K, "layout", "categories")
+	assert(not section.view:IsShown() and equipment.view:IsShown(), "and categories come back")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- Search ------------------------------------------------------------------------------------------

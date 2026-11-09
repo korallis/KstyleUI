@@ -131,6 +131,7 @@ Skins.Add({
 	help = L["Restyles the world map's frame, title bar, buttons and navigation bar."],
 	addon = ADDON,
 	frame = FRAME,
+	sweepSkip = { "ScrollContainer" },
 	Apply = ApplyMap,
 })
 
@@ -139,5 +140,6 @@ Skins.Add({
 	label = L["Quest log"],
 	help = L["Restyles the quest list and quest details beside the world map."],
 	frame = "QuestMapFrame",
+	sweepSkip = { "DetailsFrame" },
 	Apply = ApplyQuestLog,
 })

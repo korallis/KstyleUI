@@ -31,6 +31,7 @@ Settings.LIMITS = {
 
 Settings.defaults = {
 	enabled = false,
+	layout = "categories",
 	columns = 10,
 	slotSize = Tokens.Size("actionButton"),
 	spacing = Tokens.Size("gapSmall"),
@@ -78,6 +79,10 @@ local ACCENT_OPTIONS = {
 	{ value = "class", label = L["Class colour"] },
 	{ value = "custom", label = L["Custom colour"] },
 }
+local LAYOUT_OPTIONS = {
+	{ value = "categories", label = L["Sections by item type"] },
+	{ value = "grid", label = L["One grid"] },
+}
 local SORT_OPTIONS = {
 	{ value = "LEFT", label = L["Left to right"] },
 	{ value = "RIGHT", label = L["Right to left"] },
@@ -92,6 +97,7 @@ local function Choices(list)
 end
 
 local CHOICES = {
+	layout = Choices(LAYOUT_OPTIONS),
 	growth = Choices(GROWTH_OPTIONS),
 	qualityMin = Choices(QUALITY_OPTIONS),
 	fontOutline = Choices(OUTLINE_OPTIONS),
@@ -115,6 +121,10 @@ Settings.schema = {
 	{ type = "header", label = L["Bags"] },
 	{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
 	{ type = "header", label = L["Slots"] },
+	{
+		type = "dropdown", key = "layout", label = L["Layout"], help = L["Sort items into sections by type, or show one grid."],
+		options = LAYOUT_OPTIONS, disableWhen = isOff,
+	},
 	{
 		type = "slider", key = "columns", label = L["Columns"], help = L["How many slots sit in each row of the bag window."],
 		min = COLUMNS_MIN, max = COLUMNS_MAX, step = 1, disableWhen = isOff,

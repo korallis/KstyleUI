@@ -89,6 +89,10 @@ local function Letter(frame)
 	Kit.Button(OpenMailCancelButton)
 	Kit.Button(OpenMailDeleteButton)
 	Kit.Button(OpenMailReplyButton)
+	if type(OpenMailBodyText) == "table" and type(OpenMailBodyText.SetFont) == "function" then
+		Kit.Text(OpenMailBodyText, "body", "textEmphasis")
+	end
+	ns.Style.Sweep(frame, { onShow = true })
 end
 
 local function Apply()

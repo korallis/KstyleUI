@@ -4,7 +4,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -97,7 +97,10 @@ do
 	assert(capTop[1] == "TOPLEFT" and capTop[2] == f.GuideName, "the cap row hangs from the header's top")
 	local headingTop = path.heading._points[1]
 	assert(headingTop[1] == "TOPLEFT" and headingTop[2] == path.cap.row and headingTop[3] == "BOTTOMLEFT", "the heading sits under the cap row")
-	assert(W.Near(headingTop[4], 0) and W.Near(capTop[4], K.Widgets.Snap(path.cap.row, 46)), "both start right of RestedXP's 42-unit logo and the class icon at its foot")
+	-- RestedXP's 42-unit logo is centred 16 in, and the 24-unit class icon at its foot reaches 45 units in; the cap
+	-- and the heading start a gapMedium right of that, so the heading never touches the class icon (round 1, Opus and Astra).
+	local clear = K.Widgets.Snap(path.cap.row, 45 + K.Tokens.Size("gapMedium"))
+	assert(W.Near(headingTop[4], 0) and W.Near(capTop[4], clear), "both start a gapMedium right of RestedXP's logo and the class icon at its foot, got " .. tostring(capTop[4]))
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
 	local titleSize, headingSize = (select(2, path.heading:GetFont())), (select(2, ns.Style.Font("heading")))
@@ -131,6 +134,32 @@ do
 	Reaches(f.BottomFrame, "the step list")
 	Reaches(f.Footer, "the footer")
 
+	-- The step list's view ends wherever RestedXP's frame height lands, mid-row more often than not, so a fade on
+	-- KstyleUI's own frame softens the cut line while there is more to scroll, and lifts at the end (round 1, Fable and Opus).
+	local fade = ns.RestedXP.Chrome.Fade(f.BottomFrame)
+	assert(fade, "a fade sits over the foot of the step list")
+	assert(fade:GetParent() ~= f.BottomFrame and fade:GetParent() ~= f.ScrollFrame, "drawn on KstyleUI's own frame, not on RestedXP's")
+	assert(fade:GetParent():GetFrameLevel() > f.ScrollFrame:GetFrameLevel(), "above the scroll view, so it covers the rows")
+	local fadePoints = {}
+	for _, p in ipairs(fade._points) do
+		fadePoints[p[1]] = p
+	end
+	assert(fadePoints.BOTTOMLEFT and fadePoints.BOTTOMLEFT[2] == f.ScrollFrame and fadePoints.BOTTOMRIGHT and fadePoints.BOTTOMRIGHT[2] == f.ScrollFrame, "along the view's foot")
+	assert(W.Near(fade:GetHeight(), K.Widgets.Snap(fade, K.Tokens.Size("gapXLarge"))), "a gapXLarge tall")
+	local bar = f.ScrollFrame.ScrollBar
+	f.ScrollChild:SetHeight(200)
+	f.BottomFrame:SetHeight(130)
+	bar:SetValue(0)
+	local _, high = bar:GetMinMaxValues()
+	assert(high and high >= 80, "RestedXP's range cap, plus the header reserve the skin adds back, leaves scroll room: " .. tostring(high))
+	assert(fade:IsShown(), "shown while rows wait below the view")
+	bar:SetValue(high)
+	assert(not fade:IsShown(), "hidden at the end of the list, where the last row is whole")
+	bar:SetValue(20)
+	assert(fade:IsShown(), "and back while scrolled up")
+	bar:SetValue(env.Secret(5))
+	assert(fade:IsShown(), "a secret scroll value leaves the fade as it was")
+
 	-- The scroll bar sits in its own gutter: a faint line, one border wide, runs the list's height a gap left
 	-- of the bar, on KstyleUI's own glass frame.
 	local gutter = ns.RestedXP.Chrome.Gutter(f.BottomFrame)
@@ -150,7 +179,14 @@ do
 	rxp.SetStep(2)
 	for _, step in ipairs(f.CurrentStepFrame.framePool) do
 		assert(Glass(K, step) and Hushed(step), "each active step frame is skinned as RestedXP makes it")
-		Reaches(step, "an active step")
+		-- The steps stack with their bottom 2 above the header's top, so two window glasses would touch; the step's
+		-- glass stops a gapSmall short of RestedXP's bottom to leave air above the guide's head (round 1, Opus and Astra).
+		local glass = K.Skin.Parts(step).backdrop
+		local tl, br = glass._points[1], glass._points[2]
+		local snapped = K.Widgets.Snap(glass, reach)
+		assert(W.Near(tl[4], -snapped) and W.Near(br[4], snapped), "an active step: the glass reaches past both sides")
+		assert(W.Near(tl[5], 0), "an active step: the glass keeps RestedXP's top")
+		assert(W.Near(br[5], K.Widgets.Snap(glass, K.Tokens.Size("gapSmall"))), "an active step: the glass stops a gapSmall above RestedXP's bottom, got " .. tostring(br[5]))
 		assert(K.Skin.IsSkinned(step.number, "Backdrop") and Hushed(step.number), "its number badge is a tile")
 		assert(K.Skin.Parts(step.number).backdrop.chrome.fillName == "surface", "on the glass surface")
 		assert(select(2, step.number.text:GetFont()) == select(2, K.Tokens.Font("caption")), "its number is a caption")

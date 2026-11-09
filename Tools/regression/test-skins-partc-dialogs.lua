@@ -114,7 +114,9 @@ do
 		assert(K.Skin.IsSkinned(gold, "EditBox") and Alpha(gold.Left) == 0 and Alpha(gold.texture) == 1, "the money boxes keep their coin icons")
 		assert(Alpha(f.ItemFrame.NameFrame) == 0 and Alpha(f.ItemFrame.Item.icon) == 1 and Alpha(f.ItemFrame.Item.IconBorder) == 0, "the item frame's art goes, its icon stays")
 		assert(Alpha(f.AlertIcon) == 1, "the alert icon stays")
-		assert(#W.Calls(f.Text, "SetFont") == 0, "popup text keeps the game's scaled font")
+		local bodyPath, bodySize = ns.Style.Font("body")
+		local path, size = f.Text:GetFont()
+		assert(path == bodyPath and size >= bodySize, "popup text takes the skin face at no less than the body size")
 	end
 	local er, eg, eb = K.Theme.Brighten(0.64, 0.21, 0.93)
 	local r, g, b = RimColor(ns, popups[1].ItemFrame.Item)

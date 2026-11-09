@@ -50,6 +50,8 @@ return Common.Run(function()
 		money = 1234567,
 		setup = function(env)
 			Gallery.Setup(env)
+			-- The test env's GetMoneyString is a marker string; the game's formats gold, silver and copper, as the window's own fallback does.
+			env.GetMoneyString = nil
 			env._time = 10
 			env.GetTime = function()
 				return env._time

@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Skin, L = K.Skin, K.L
-local Parts, Skins, Kit = ns.Parts, ns.Skins, ns.PartC
+local Parts, Skins, Kit, Style = ns.Parts, ns.Skins, ns.PartC, ns.Style
 
 local KEY = "popups"
 local POPUP_COUNT = 4
@@ -56,6 +56,7 @@ local function SkinPopup(popup)
 	if type(popup.ItemFrame) == "table" then
 		SkinItem(popup.ItemFrame)
 	end
+	Style.Sweep(popup, { onShow = true })
 end
 
 local function Apply()

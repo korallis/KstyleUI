@@ -12,6 +12,7 @@ local HALF_TURN = math.pi / 2
 local BOOK_ART = { "TopBar", "BookBGHalved", "BookBGLeft", "BookBGRight", "BookCornerFlipbook", "Bookmark" }
 local ITEM_ART = { "Border", "BorderShadow", "TrainableShadow", "TrainableBackplate", "BorderSheen" }
 local TALENT_ART = { "Background", "BackgroundBorder", "DividerHorizontalLeft", "DividerHorizontalRight", "DividerVerticalLeft", "DividerVerticalRight" }
+local TALENT_TREE = { "TalentsFrame.ButtonsParent", "TalentsFrame.SelectionChoiceFrame" }
 
 local WEAK = { __mode = "k" }
 local items = setmetatable({}, WEAK)
@@ -202,6 +203,7 @@ Skins.Add({
 	help = L["Restyles the spellbook: its window, pages, spell icons and search."],
 	addon = ADDON,
 	frame = FRAME,
+	sweepSkip = TALENT_TREE,
 	Apply = ApplySpellbook,
 })
 
@@ -211,5 +213,6 @@ Skins.Add({
 	help = L["Restyles the talent window's frame, search, buttons and point counter."],
 	addon = ADDON,
 	frame = FRAME,
+	sweepSkip = TALENT_TREE,
 	Apply = ApplyTalents,
 })

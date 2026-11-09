@@ -58,6 +58,12 @@ function Skins.Add(def)
 	if type(def.Apply) ~= "function" then
 		Fail(key .. ": needs an Apply function")
 	end
+	if def.sweep ~= nil and def.sweep ~= false then
+		Fail(key .. ": sweep is false to keep Blizzard's fonts, or left out")
+	end
+	if def.sweepSkip ~= nil and type(def.sweepSkip) ~= "table" then
+		Fail(key .. ": sweepSkip must be a list of dotted paths under the window")
+	end
 	if def.defaults ~= nil and type(def.defaults) ~= "table" then
 		Fail(key .. ": defaults must be a table")
 	end
@@ -114,6 +120,35 @@ function Skins.IsApplied(key)
 	return applied[key] == true
 end
 
+local function Resolve(frame, path)
+	local node = frame
+	for key in path:gmatch("[^%.]+") do
+		if type(node) ~= "table" then
+			return nil
+		end
+		node = node[key]
+	end
+	return type(node) == "table" and node or nil
+end
+
+local function Sweep(def)
+	local frame = def.frame and _G[def.frame]
+	if def.sweep == false or type(frame) ~= "table" then
+		return
+	end
+	local skip = {}
+	for _, path in ipairs(def.sweepSkip or {}) do
+		local node = Resolve(frame, path)
+		if node then
+			skip[node] = true
+		else
+			Log(def.key .. ": " .. path .. " is missing on this client; its text is swept with the rest")
+		end
+	end
+	local count = ns.Style.Sweep(frame, { skip = skip, onShow = true })
+	Log(def.key .. ": " .. count .. " Blizzard texts swept into the skin face")
+end
+
 local function Run(def)
 	if applied[def.key] or not running or not Skins.IsOn(def.key) then
 		return
@@ -121,6 +156,7 @@ local function Run(def)
 	applied[def.key] = true
 	switched[def.key] = true
 	if K.Call(def.Apply, def) then
+		K.Call(Sweep, def)
 		Log(def.key .. ": applied")
 	else
 		failed[def.key] = true

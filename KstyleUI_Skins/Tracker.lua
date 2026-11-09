@@ -558,6 +558,7 @@ Skins.Add({
 	help = L["Restyles the quest and objective tracker beside the minimap."],
 	addon = "Blizzard_ObjectiveTracker",
 	frame = "ObjectiveTrackerFrame",
+	sweep = false,
 	defaults = { panel = true, font = true, titles = true, counts = true },
 	rows = {
 		{

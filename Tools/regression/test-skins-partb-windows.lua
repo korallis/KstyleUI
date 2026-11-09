@@ -21,7 +21,7 @@ local FRAMES = {
 }
 
 local HOOKED = {
-	SetAlpha = true, SetVertexColor = true, Show = true, Hide = true, SetShown = true, SetChecked = true,
+	SetAlpha = true, SetVertexColor = true, Show = true, Hide = true, SetShown = true, SetChecked = true, SetFontObject = true, SetTextColor = true,
 	SetNormalTexture = true, SetStatusBarColor = true, SetTabSelected = true, Update = true, InitButtons = true,
 }
 

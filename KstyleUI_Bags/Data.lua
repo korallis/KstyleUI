@@ -196,6 +196,43 @@ function Data.ItemLevel(record)
 	return nil
 end
 
+local L = ns.L
+local CLASS_CONSUMABLE, CLASS_CONTAINER, CLASS_GEM, CLASS_REAGENT, CLASS_TRADEGOODS, CLASS_ENHANCEMENT, CLASS_RECIPE, CLASS_QUEST, CLASS_GLYPH = 0, 1, 3, 5, 7, 8, 9, 12, 16
+local CLASS_CATEGORY = {
+	[CLASS_WEAPON] = "equipment",
+	[CLASS_ARMOR] = "equipment",
+	[CLASS_CONSUMABLE] = "consumables",
+	[CLASS_TRADEGOODS] = "tradeGoods",
+	[CLASS_GEM] = "tradeGoods",
+	[CLASS_REAGENT] = "tradeGoods",
+	[CLASS_ENHANCEMENT] = "tradeGoods",
+	[CLASS_RECIPE] = "tradeGoods",
+	[CLASS_GLYPH] = "tradeGoods",
+	[CLASS_QUEST] = "quest",
+	[CLASS_CONTAINER] = "other",
+}
+
+Data.CATEGORIES = {
+	{ key = "equipment", label = L["Equipment"] },
+	{ key = "consumables", label = L["Consumables"] },
+	{ key = "tradeGoods", label = L["Trade goods"] },
+	{ key = "quest", label = L["Quest"] },
+	{ key = "other", label = L["Other"] },
+	{ key = "junk", label = L["Junk"] },
+	{ key = "empty", label = L["Empty"] },
+}
+
+function Data.Category(record)
+	if record.empty then
+		return "empty"
+	end
+	if record.junk then
+		return "junk"
+	end
+	local class = ItemClass(record)
+	return class and CLASS_CATEGORY[class] or "other"
+end
+
 function Data.Query(text)
 	text = Plain(text, "string")
 	if not text then

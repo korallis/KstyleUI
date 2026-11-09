@@ -89,6 +89,44 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- After Apply, every Blizzard font string under the window is swept, but the paths the skin names and a skin that opts out ----
+
+do
+	local def = Fake("swept", { addon = "Blizzard_Swept", frame = "SweptFrame", sweepSkip = { "Canvas", "Deep.Nodes" } })
+	local plain = Fake("unswept", { addon = "Blizzard_Swept", frame = "UnsweptFrame", sweep = false })
+	local label, canvasLabel, nodeLabel, deepLabel, later, untouched
+	local env, K, ns = S.New({
+		loaded = { Blizzard_Swept = true },
+		before = function(env, _, ns)
+			local B = S.Blizzard(env)
+			local frame = B.frame("Frame", nil, "SweptFrame")
+			label = B.text(frame)
+			frame.Canvas = B.frame("Frame", frame)
+			canvasLabel = B.text(frame.Canvas)
+			frame.Deep = B.frame("Frame", frame)
+			frame.Deep.Nodes = B.frame("Frame", frame.Deep)
+			nodeLabel = B.text(frame.Deep.Nodes)
+			deepLabel = B.text(frame.Deep)
+			local other = B.frame("Frame", nil, "UnsweptFrame")
+			untouched = B.text(other)
+			ns.Skins.Add(def)
+			ns.Skins.Add(plain)
+		end,
+	})
+	K.Modules.Enable("Skins")
+	local bodyPath = ns.Style.Font("body")
+	assert(label:GetFont() == bodyPath, "a string on the window is swept after Apply")
+	assert(deepLabel:GetFont() == bodyPath, "a string on a child frame is swept")
+	assert(canvasLabel:GetFont() == nil, "a string under a skipped path is left alone")
+	assert(nodeLabel:GetFont() == nil, "a string under a nested skipped path is left alone")
+	assert(untouched:GetFont() == nil, "a skin with sweep = false keeps Blizzard's fonts")
+	local frame = env.SweptFrame
+	later = S.Blizzard(env).text(frame)
+	S.Show(frame)
+	assert(later:GetFont() == bodyPath, "a string made later is swept when the window shows again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- A skin with no addon waits only for its window, and one with no frame applies when its addon loads -----
 
 do

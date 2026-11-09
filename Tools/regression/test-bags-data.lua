@@ -172,4 +172,46 @@ do
 	assert(free == 4 and total == 6, "free slots count every empty slot of the listed bags: " .. tostring(free) .. "/" .. tostring(total))
 end
 
+-- Categories ------------------------------------------------------------------------------------
+
+do
+	local env, _, Data = New({
+		bags = {
+			[0] = {
+				size = 9,
+				items = {
+					[1] = Item("potion"), [2] = Item("sword"), [3] = Item("helm"), [4] = Item("junk"), [5] = Item("hearth"),
+					[6] = Item("cloth"), [7] = Item("key"), [8] = Item("greyNoValue"),
+				},
+			},
+		},
+	})
+	local order = {}
+	for i, category in ipairs(Data.CATEGORIES) do
+		order[category.key] = i
+		assert(type(category.key) == "string" and type(category.label) == "string" and category.label ~= "", "each category has a key and a label")
+	end
+	assert(order.equipment and order.consumables and order.tradeGoods and order.quest and order.other and order.junk and order.empty, "the seven categories exist")
+	assert(order.equipment < order.consumables and order.consumables < order.tradeGoods, "equipment, then consumables, then trade goods")
+	assert(order.junk < order.empty and order.other < order.junk, "junk sits before the empty slots, after everything else")
+	local function Category(slot)
+		return Data.Category(Data.Read(0, slot, {}))
+	end
+	assert(Category(1) == "consumables", "a potion is a consumable")
+	assert(Category(2) == "equipment" and Category(3) == "equipment", "weapons and armour are equipment")
+	assert(Category(4) == "junk", "a poor item with a sell value is junk, whatever its class")
+	assert(Category(5) == "other", "the hearthstone is other")
+	assert(Category(6) == "tradeGoods", "cloth is trade goods")
+	assert(Category(7) == "other", "a key outside the keyring is other")
+	assert(Category(8) == "other", "a poor item with no sell value is not junk")
+	assert(Category(9) == "empty", "an empty slot is empty")
+	local info = env.C_Item.GetItemInfoInstant
+	env.C_Item.GetItemInfoInstant = nil
+	assert(Category(2) == "other", "without the item class the item is other, not an error")
+	env.C_Item.GetItemInfoInstant = info
+	local secret = Data.Read(0, 2, {})
+	secret.itemID = env.Secret(1000)
+	assert(Data.Category(secret) == "other", "a secret item ID is other")
+end
+
 print("bags data ok")

@@ -83,7 +83,7 @@ end
 -- Blizzard(env) -> a builder of stand-in Blizzard frames that remembers every object it made, and
 -- check(snapshot, hooked) fails on a field written onto one since the snapshot, other than a method a
 -- hook replaced, or a SetScript, Hide or SetParent call on one since the snapshot.
-local HOOKED = { SetAlpha = true, SetTabSelected = true, SetChecked = true, SetStatusBarColor = true, SetVertexColor = true }
+local HOOKED = { SetAlpha = true, SetTabSelected = true, SetChecked = true, SetStatusBarColor = true, SetVertexColor = true, SetFontObject = true, SetTextColor = true }
 
 local function fields(object)
 	local out = {}

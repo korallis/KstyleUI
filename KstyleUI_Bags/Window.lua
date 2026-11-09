@@ -1,4 +1,4 @@
--- Window.lua: a KstyleUI bag window: a glass panel with search, sort, slot grids per section and a footer with free slots and money.
+-- Window.lua: a KstyleUI bag window: a glass panel with search, sort, slot grids per section or per item category under Lumen section caps, and a footer with free slots and money.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,6 +15,7 @@ local MIN_SEARCH_WIDTH = 120
 local SORT_WIDTH = 64
 local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
+local COPPER_PER_SILVER, SILVER_PER_GOLD = 100, 100
 local STRATA = "MEDIUM"
 local ANCHOR_FRACTIONS = {
 	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 },
@@ -30,19 +31,25 @@ local function Plain(value)
 	return Data.Plain(value, "number")
 end
 
-local function NewSection(win, spec)
+local function NewSection(win, spec, group)
 	local panel = win.panel
 	local view = CreateFrame("Frame", nil, panel)
 	local grid = CreateFrame("Frame", nil, view)
-	local section = { spec = spec, view = view, grid = grid, bagFrames = {}, order = {}, scroll = 0, rows = 0, visibleRows = 0 }
+	local section = { spec = spec, group = group, view = view, grid = grid, bagFrames = {}, order = {}, scroll = 0, rows = 0, visibleRows = 0 }
 	view:SetScript("OnMouseWheel", function(_, delta)
 		win:Scroll(section, delta)
 	end)
 	if spec.caption then
-		section.caption = Widgets.Text(panel, "caption", "text")
-		Widgets.SetText(section.caption, spec.caption)
+		section.cap = Widgets.SectionCap(panel, { text = spec.caption })
+	end
+	if spec.categories then
+		section.groups = {}
 	end
 	return section
+end
+
+local function Grouped(section)
+	return section.groups ~= nil and Settings.Get("layout") == "categories"
 end
 
 function Window.New(spec)
@@ -122,16 +129,92 @@ function Window:BagFrame(section, bag)
 	return frame
 end
 
-function Window:QueueCreate()
+function Window:QueueCreate(reason)
 	if self.createQueued then
 		return
 	end
 	self.createQueued = true
-	ns.Log("item buttons wait for the end of combat: one made in lockdown cannot use items")
+	ns.Log(reason or "item buttons wait for the end of combat: one made in lockdown cannot use items")
 	K.Combat.Queue(function()
 		self.createQueued = false
 		self:Refresh()
 	end)
+end
+
+function Window:Group(section, key)
+	local group = section.groups[key]
+	if not group then
+		local label = key
+		for _, category in ipairs(Data.CATEGORIES) do
+			if category.key == key then
+				label = category.label
+			end
+		end
+		group = NewSection(self, { caption = label, bags = section.spec.bags, free = section.spec.free }, key)
+		section.groups[key] = group
+	end
+	return group
+end
+
+function Window:Adopt(home, slot)
+	local frame = self:BagFrame(home, slot.bag)
+	frame:Show()
+	local button = slot.button
+	if button:GetParent() == frame then
+		return
+	end
+	if Widgets.MayMove(button) then
+		button:SetParent(frame)
+	else
+		self:QueueCreate("sorted slots wait for the end of combat to move between sections")
+	end
+end
+
+function Window:Sort(section)
+	local groups = section.groups
+	for _, group in pairs(groups) do
+		local order = group.order
+		for i = #order, 1, -1 do
+			order[i] = nil
+		end
+	end
+	if not Grouped(section) then
+		for _, slot in ipairs(section.order) do
+			self:Adopt(section, slot)
+		end
+		return
+	end
+	for _, slot in ipairs(section.order) do
+		local record = Data.Read(slot.bag, slot.id, slot.record)
+		local group = self:Group(section, Data.Category(record))
+		group.order[#group.order + 1] = slot
+		self:Adopt(group, slot)
+	end
+end
+
+function Window:Panels()
+	local list = {}
+	for _, section in ipairs(self.sections) do
+		if Grouped(section) then
+			for _, category in ipairs(Data.CATEGORIES) do
+				local group = section.groups[category.key]
+				if group then
+					list[#list + 1] = group
+				end
+			end
+			section.view:Hide()
+			if section.cap then
+				section.cap:Hide()
+			end
+		else
+			for _, group in pairs(section.groups or {}) do
+				group.view:Hide()
+				group.cap:Hide()
+			end
+			list[#list + 1] = section
+		end
+	end
+	return list
 end
 
 function Window:Ensure(section)
@@ -177,6 +260,9 @@ function Window:Ensure(section)
 		if not shownBags[bag] then
 			frame:Hide()
 		end
+	end
+	if section.groups then
+		self:Sort(section)
 	end
 	return order
 end
@@ -235,15 +321,19 @@ function Window:Layout(force)
 	end
 	local contentWidth = max(Snap(self, MIN_CONTENT_WIDTH), Snap(self, MIN_SEARCH_WIDTH) + gap + sortWidth + buttonsWidth)
 	for _, section in ipairs(self.sections) do
-		local count = #section.order
-		section.cols, section.rows = Data.Grid(count, columns)
-		section.visibleRows = rowsLimit > 0 and min(section.rows, rowsLimit) or section.rows
-		section.scroll = min(section.scroll, max(0, section.rows - section.visibleRows))
-		section.width, section.height = Data.Size(section.cols, section.visibleRows, size, spacing)
-		contentWidth = max(contentWidth, section.width)
 		for _, slot in ipairs(section.order) do
 			Slot.Layout(slot, size, force)
 		end
+	end
+	local panels = self:Panels()
+	for _, section in ipairs(panels) do
+		local count = #section.order
+		section.cols, section.rows = Data.Grid(count, columns)
+		local limit = section.group == nil and rowsLimit or 0
+		section.visibleRows = limit > 0 and min(section.rows, limit) or section.rows
+		section.scroll = min(section.scroll, max(0, section.rows - section.visibleRows))
+		section.width, section.height = Data.Size(section.cols, section.visibleRows, size, spacing)
+		contentWidth = max(contentWidth, section.width)
 	end
 	local content = panel.content
 	local top = 0
@@ -271,19 +361,26 @@ function Window:Layout(force)
 	if self.spec.below then
 		top = self.spec.below(self, content, top, contentWidth)
 	end
-	for _, section in ipairs(self.sections) do
+	for _, section in ipairs(panels) do
 		local shown = #section.order > 0
+		local scrolls = section.group == nil and rowsLimit > 0
 		section.view:SetShown(shown)
-		section.view:SetClipsChildren(rowsLimit > 0)
-		section.view:EnableMouseWheel(rowsLimit > 0)
-		if section.caption then
-			section.caption:SetShown(shown)
+		section.view:SetClipsChildren(scrolls)
+		section.view:EnableMouseWheel(scrolls)
+		if section.cap then
+			section.cap:SetShown(shown)
 		end
 		if shown then
-			if section.caption then
-				section.caption:ClearAllPoints()
-				section.caption:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
-				top = top + Snap(self, Widgets.TextHeight(section.caption, Tokens.Size("caption"))) + Snap(self, Tokens.Size("gapSmall"))
+			if section.cap then
+				local cap = section.cap
+				cap.opts.width = contentWidth
+				cap:Restyle()
+				if section.group then
+					cap:SetCount(tostring(#section.order))
+				end
+				cap:ClearAllPoints()
+				cap:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
+				top = top + Snap(self, Widgets.SECTION_CAP_HEIGHT) + Snap(self, Tokens.Size("gapSmall"))
 			end
 			section.view:ClearAllPoints()
 			section.view:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
@@ -385,8 +482,24 @@ function Window:UpdateMoney()
 	if type(GetMoneyString) == "function" then
 		self.money:SetText(GetMoneyString(money, true))
 	else
-		self.money:SetText(tostring(money))
+		self.money:SetText(Window.MoneyText(money))
 	end
+end
+
+function Window.MoneyText(copper)
+	copper = max(0, floor(copper))
+	local gold = floor(copper / (COPPER_PER_SILVER * SILVER_PER_GOLD))
+	local silver = floor(copper / COPPER_PER_SILVER) % SILVER_PER_GOLD
+	local rest = copper % COPPER_PER_SILVER
+	local parts = {}
+	if gold > 0 then
+		parts[#parts + 1] = string.format(L["%dg"], gold)
+	end
+	if gold > 0 or silver > 0 then
+		parts[#parts + 1] = string.format(L["%ds"], silver)
+	end
+	parts[#parts + 1] = string.format(L["%dc"], rest)
+	return table.concat(parts, " ")
 end
 
 function Window:Refresh(force)

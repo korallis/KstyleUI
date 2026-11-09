@@ -260,9 +260,161 @@ function Style.Track(object)
 	return object
 end
 
+local SWEEP_DEPTH = 10
+local SWEEP_ROLE = "body"
+local YELLOW_MIN_R, YELLOW_MIN_G, YELLOW_MAX_G, YELLOW_MAX_B = 0.9, 0.7, 0.95, 0.25
+local SWEEP_COLOR = "text"
+local swept = setmetatable({}, WEAK)
+
+local function IsFontString(region)
+	return type(region) == "table" and type(region.GetObjectType) == "function" and region:GetObjectType() == "FontString"
+end
+
+local kitFaces
+
+local function IsKitFace(path)
+	if type(path) ~= "string" then
+		return false
+	end
+	if not kitFaces then
+		kitFaces = {}
+		for _, kind in ipairs({ "font", "fontSet" }) do
+			for _, face in ipairs(Tokens.MediaList(kind)) do
+				kitFaces[face.path] = true
+			end
+		end
+	end
+	return kitFaces[path] == true or path == Style.Setting("text", "font")
+end
+
+local function IsBlizzardYellow(r, g, b)
+	return IsUnit(r) and IsUnit(g) and IsUnit(b) and r >= YELLOW_MIN_R and g >= YELLOW_MIN_G and g <= YELLOW_MAX_G and b <= YELLOW_MAX_B
+end
+
+local function PaintSwept(text, entry)
+	if entry.busy then
+		return
+	end
+	entry.busy = true
+	local _, minimum = Style.Font(SWEEP_ROLE)
+	local size = entry.size and entry.size * Style.Setting("text", "size") or nil
+	if size == nil or size < minimum then
+		size = minimum
+	end
+	local ok, err = pcall(Style.ApplyFont, text, SWEEP_ROLE, size)
+	if ok and err == false then
+		pcall(text.SetFontObject, text, FALLBACK_FONT)
+	elseif not ok then
+		Log("a swept text could not take the skin face: " .. tostring(err))
+	end
+	entry.busy = false
+end
+
+local function RecolorSwept(text, entry, r, g, b)
+	if entry.busy then
+		return
+	end
+	if r == nil or IsBlizzardYellow(r, g, b) then
+		entry.busy = true
+		pcall(Widgets.TextColor, text, SWEEP_COLOR)
+		entry.busy = false
+	end
+end
+
+local function OnSweptFontObject(text)
+	local entry = swept[text]
+	if entry and not entry.busy then
+		PaintSwept(text, entry)
+		local r, g, b = text:GetTextColor()
+		RecolorSwept(text, entry, r, g, b)
+	end
+end
+
+local function OnSweptColor(text, r, g, b)
+	local entry = swept[text]
+	if entry then
+		RecolorSwept(text, entry, r, g, b)
+	end
+end
+
+local function SweepText(text)
+	if swept[text] or roles[text] then
+		return false
+	end
+	local path, size = text:GetFont()
+	if IsSecret(path) or IsKitFace(path) then
+		return false
+	end
+	if IsSecret(size) or type(size) ~= "number" then
+		size = nil
+	end
+	local entry = { size = size }
+	swept[text] = entry
+	PaintSwept(text, entry)
+	local r, g, b = text:GetTextColor()
+	RecolorSwept(text, entry, r, g, b)
+	hooksecurefunc(text, "SetFontObject", OnSweptFontObject)
+	hooksecurefunc(text, "SetTextColor", OnSweptColor)
+	return true
+end
+
+local function Forbidden(frame)
+	return type(frame.IsForbidden) == "function" and frame:IsForbidden() == true
+end
+
+local function SweepFrame(frame, skip, depth)
+	if depth > SWEEP_DEPTH or (skip and skip[frame]) or Forbidden(frame) then
+		return 0
+	end
+	local count = 0
+	if type(frame.GetRegions) == "function" then
+		for _, region in ipairs({ frame:GetRegions() }) do
+			if IsFontString(region) and SweepText(region) then
+				count = count + 1
+			end
+		end
+	end
+	if type(frame.GetChildren) == "function" then
+		for _, child in ipairs({ frame:GetChildren() }) do
+			if type(child) == "table" then
+				count = count + SweepFrame(child, skip, depth + 1)
+			end
+		end
+	end
+	return count
+end
+
+function Style.Sweep(frame, opts)
+	if type(frame) ~= "table" then
+		return 0
+	end
+	opts = opts or {}
+	local ok, count = pcall(SweepFrame, frame, opts.skip, 1)
+	if not ok then
+		Log("a text sweep stopped: " .. tostring(count))
+		return 0
+	end
+	if opts.onShow and type(frame.HookScript) == "function" and not swept[frame] then
+		swept[frame] = { skip = opts.skip }
+		frame:HookScript("OnShow", function(shown)
+			Style.Sweep(shown, { skip = swept[shown] and swept[shown].skip })
+		end)
+	end
+	return count
+end
+
+function Style.IsSwept(text)
+	return swept[text] ~= nil
+end
+
 function Style.RestyleAll()
 	for text in pairs(roles) do
 		K.Call(Style.Text, text)
+	end
+	for text, entry in pairs(swept) do
+		if IsFontString(text) then
+			K.Call(PaintSwept, text, entry)
+		end
 	end
 	for bar in pairs(bars) do
 		K.Call(Style.StatusBar, bar)

@@ -70,7 +70,7 @@ function Inventory.Build()
 		title = L["Bags"],
 		position = Inventory.POSITION,
 		sections = {
-			{ bags = HeldBags, free = true },
+			{ bags = HeldBags, free = true, categories = true },
 			{ bags = KeyringBags, caption = L["Keyring"] },
 		},
 		sort = Inventory.Sort,

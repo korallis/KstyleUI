@@ -28,10 +28,12 @@ local GUTTER_GAP = "gapSmall"
 local HEADER_OVERLAP = 9
 local LIST_LEFT, LIST_RIGHT, LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
-local TITLE_LEFT, TITLE_RIGHT, CAP_ROW, CAP_Y = 46, 4, 16, -1
+local LOGO_REACH, TITLE_GAP, TITLE_RIGHT, CAP_ROW, CAP_Y = 45, "gapMedium", 4, 16, -1
+local STEP_AIR, FADE_HEIGHT = "gapSmall", "gapXLarge"
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
+local fades = setmetatable({}, WEAK)
 local paths = setmetatable({}, WEAK)
 local hushed = setmetatable({}, WEAK)
 local readable = setmetatable({}, WEAK)
@@ -59,6 +61,10 @@ end
 
 local function IsTable(value)
 	return type(value) == "table"
+end
+
+local function Plain(value)
+	return type(value) == "number" and not Widgets.IsSecret(value)
 end
 
 local function IsTexture(region)
@@ -118,6 +124,9 @@ local function Glass(frame, opts)
 	opts = opts or {}
 	Skin.Strip(frame, { keep = opts.keep, children = RXP_ART })
 	local inset = opts.reach and Reach(frame) or nil
+	if inset and opts.air then
+		inset.bottom = Tokens.Size(opts.air)
+	end
 	if opts.tile then
 		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = inset })
 	end
@@ -154,6 +163,55 @@ end
 
 function Chrome.Gutter(list)
 	return gutters[list]
+end
+
+local function PaintFade(fade)
+	local texture = fade.texture
+	local r, g, b, a = Widgets.Rgba("surface")
+	if type(texture.SetGradient) == "function" and type(CreateColor) == "function" then
+		texture:SetColorTexture(Tokens.Color("white"))
+		texture:SetGradient("VERTICAL", CreateColor(r, g, b, a), CreateColor(r, g, b, 0))
+	else
+		texture:SetColorTexture(r, g, b, a / 2)
+	end
+	texture:SetHeight(Widgets.Snap(texture, Tokens.Size(FADE_HEIGHT)))
+end
+
+local function PlaceFade(fade)
+	local bar = fade.bar
+	local value = bar:GetValue()
+	local _, high = bar:GetMinMaxValues()
+	if not (Plain(value) and Plain(high)) then
+		return
+	end
+	fade.texture:SetShown(value < high)
+end
+
+local function Fade(list, scroll, bar)
+	if fades[list] or not IsTable(scroll) or not IsTable(bar) or type(bar.GetMinMaxValues) ~= "function" then
+		return
+	end
+	local holder = CreateFrame("Frame", nil, list)
+	holder:SetAllPoints(scroll)
+	holder:SetFrameLevel(scroll:GetFrameLevel() + 2)
+	local texture = holder:CreateTexture(nil, "OVERLAY")
+	texture:SetPoint("BOTTOMLEFT", scroll, "BOTTOMLEFT")
+	texture:SetPoint("BOTTOMRIGHT", scroll, "BOTTOMRIGHT")
+	local fade = { texture = texture, holder = holder, bar = bar, Restyle = PaintFade }
+	PaintFade(fade)
+	PlaceFade(fade)
+	Hook(bar, "SetValue", "RXPFrame.ScrollBar.SetValue.fade", function()
+		PlaceFade(fade)
+	end)
+	Hook(bar, "SetMinMaxValues", "RXPFrame.ScrollBar.SetMinMaxValues.fade", function()
+		PlaceFade(fade)
+	end)
+	Widgets.Track(fade)
+	fades[list] = texture
+end
+
+function Chrome.Fade(list)
+	return fades[list]
 end
 
 local function PaintReadable(text, entry)
@@ -263,7 +321,7 @@ end
 local function RestylePath(path)
 	local holder, cap, heading = path.holder, path.cap, path.heading
 	cap.row:ClearAllPoints()
-	cap.row:SetPoint("TOPLEFT", path.header, "TOPLEFT", Widgets.Snap(cap.row, TITLE_LEFT), 0)
+	cap.row:SetPoint("TOPLEFT", path.header, "TOPLEFT", Widgets.Snap(cap.row, LOGO_REACH + Tokens.Size(TITLE_GAP)), 0)
 	cap.row:SetPoint("TOPRIGHT", path.header, "TOPRIGHT", -Widgets.Snap(cap.row, TITLE_RIGHT), 0)
 	cap.row:SetHeight(Widgets.Snap(cap.row, CAP_ROW))
 	Style.Text(heading, "heading", "textEmphasis")
@@ -370,7 +428,7 @@ local function StepFrames(f)
 	for _, step in pairs(pool) do
 		if IsTable(step) then
 			if not Skin.IsSkinned(step, "Backdrop") then
-				Glass(step, { reach = true })
+				Glass(step, { reach = true, air = STEP_AIR })
 			end
 			if IsTable(step.number) then
 				if not Skin.IsSkinned(step.number, "Backdrop") then
@@ -414,10 +472,6 @@ local function PlaceGuideScroll(f)
 		scroll:SetPoint("TOPLEFT", list, "TOPLEFT", LIST_LEFT, -Widgets.Snap(scroll, top))
 		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -LIST_RIGHT, LIST_BOTTOM)
 	end)
-end
-
-local function Plain(value)
-	return type(value) == "number" and not Widgets.IsSecret(value)
 end
 
 local function ExtendScroll(f)
@@ -470,6 +524,7 @@ local function GuideWindow(rxp)
 	ScrollBar(bar)
 	if list then
 		Gutter(list, bar)
+		Fade(list, f.ScrollFrame, bar)
 	end
 	state.guide = f
 	PlaceGuideScroll(f)

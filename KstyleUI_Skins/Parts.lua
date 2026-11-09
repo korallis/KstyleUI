@@ -325,6 +325,7 @@ function Parts.EachRow(scrollBox, fn)
 	end
 	local function Each(frame, elementData)
 		K.Call(fn, frame, elementData)
+		ns.Style.Sweep(frame)
 	end
 	scrollBox:ForEachFrame(Each)
 	local util = ScrollUtil

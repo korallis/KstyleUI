@@ -40,12 +40,13 @@ local function SkinRoll(frame)
 	Skin.Strip(frame, { children = { "NineSlice", "Bg" } })
 	Skin.Backdrop(frame, { shape = "panel", fill = "surface", shadow = true })
 	local state = { rim = Kit.Item(frame.IconFrame) }
-	Kit.MirrorBar(frame.Timer, frame, TIMER_WIDTH, TIMER_HEIGHT)
+	Kit.MirrorBar(frame.Timer, frame, TIMER_WIDTH, TIMER_HEIGHT, { accent = true })
 	if frame.Name then
 		Style.Text(frame.Name, "body")
 	end
 	rolls[frame] = state
 	Paint(frame)
+	Style.Sweep(frame, { onShow = true })
 end
 
 local function Apply()

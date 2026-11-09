@@ -7,4 +7,10 @@ return {
 			["_G[?]:Hide"] = 1,
 		},
 	},
+	["KstyleUI_Bags/Window.lua"] = {
+		why = "Adopt moves a slot's item button between KstyleUI's own bag frames when its item changes category. The button is KstyleUI's, made from Blizzard's template out of combat, and both parents are KstyleUI frames that carry the bag's ID, so no Blizzard frame moves and GetBagID still reads the right bag. In combat the move waits for Combat.Queue through Widgets.MayMove.",
+		calls = {
+			["slot.button:SetParent"] = 1,
+		},
+	},
 }

@@ -29,10 +29,10 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | --- | --- |
 | `Init.lua` | The addon table, `ns.On(event, fn)` (the module's event list) and `ns.Log(message)` (devlog lines under `Bags`) |
 | `Locale.lua` | `ns.L`, the core's locale table |
-| `Data.lua` | `ns.Data`: the bags that exist, what a slot holds, junk, item levels, search matches, free slots and grid maths. No frames. |
+| `Data.lua` | `ns.Data`: the bags that exist, what a slot holds, junk, item levels, item categories, search matches, free slots and grid maths. No frames. |
 | `Settings.lua` | `ns.Settings`: the defaults, the settings page and checked reads |
 | `Slot.lua` | `ns.Slot`: one item slot, Blizzard's `ContainerFrameItemButtonTemplate` dressed as a KstyleUI tile |
-| `Window.lua` | `ns.Window`: a glass panel with search, sort, slot grids per section and a footer |
+| `Window.lua` | `ns.Window`: a glass panel with search, sort, slot grids per section or per item category under Lumen section caps, and a footer |
 | `Blizzard.lua` | `ns.Blizzard`: the secure hooks on Blizzard's bag functions and the hiding of Blizzard's bag frames |
 | `Junk.lua` | `ns.Junk`: selling junk at a merchant |
 | `Inventory.lua` | `ns.Inventory`: the bag window |
@@ -44,7 +44,9 @@ Tests: `Tools/regression/test-bags-data.lua`, `test-bags-window.lua`, `test-bags
 
 ## The bag window
 
-One glass window holds the backpack, the four bags and the reagent bag in one grid, and the keyring in a second grid under them. The title bar has the close button; Escape closes the window too. Under the title sit the search field and the Sort button. The footer shows the free bag slots (the keyring does not count) and the player's money.
+One glass window holds the backpack, the four bags and the reagent bag, and the keyring in its own section under them. The title bar has the close button; Escape closes the window too. Under the title sit the search field and the Sort button. The footer shows the free bag slots (the keyring does not count) and the player's money, through `GetMoneyString`, or as `123g 45s 67c` on a client without it.
+
+With `layout` at `categories` (the default), the bag slots sort into sections by item type, each under a Lumen section cap (`Widgets.SectionCap`: gem, tracked caption, gilt rule and the count of slots in it): Equipment (weapons and armour), Consumables, Trade goods (trade goods, gems, reagents, enhancements, recipes and glyphs), Quest, Other, Junk (a poor item with a sell value, whatever its class) and Empty (every free slot, so there is always somewhere to drop an item). `Data.CATEGORIES` holds the order and labels, `Data.Category(record)` places a slot from `C_Item.GetItemInfoInstant`'s class, or in Other when the class is missing or secret. A section with nothing in it is never built. Each section is a grid of the window's columns; every slot's item button keeps a parent frame that carries its bag's ID, under the section's grid, so Blizzard's `GetBagID` still reads the right bag, and a slot whose item changes category moves to its new section's bag frame on the next refresh, out of combat (`Widgets.MayMove`; in combat the move waits for `Combat.Queue`). The row limit (`rows`) applies to the one grid only: sections show every row. With `layout` at `grid`, every bag slot sits in one grid, as before.
 
 | Element key | Label | Default position | Layout |
 | --- | --- | --- | --- |
@@ -130,6 +132,7 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | Key | Default | Row |
 | --- | --- | --- |
 | `enabled` | `false` | toggle |
+| `layout` | `categories` | dropdown: sections by item type, or one grid |
 | `columns` | 10 | slider, 4 to 24 |
 | `rows` | 0 | slider, 0 to 20: the rows shown before the grid scrolls with the mouse wheel; 0 shows every row |
 | `slotSize` | 34 (`actionButton`) | slider, 24 to 48 |

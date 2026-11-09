@@ -350,17 +350,22 @@ local function PaintMirror(state)
 	local bar = state.bar
 	bar:SetBarTexture(Style.BarTexture())
 	bar:SetReverseFill(Style.ReverseFill())
-	bar:SetBarColor(Style.BarColor(state.r, state.g, state.b, state.a))
+	if state.accent then
+		local r, g, b = Style.Accent()
+		bar:SetBarColor(Style.BarColor(r, g, b, 1))
+	else
+		bar:SetBarColor(Style.BarColor(state.r, state.g, state.b, state.a))
+	end
 end
 
-function Kit.MirrorBar(source, parent, width, height)
+function Kit.MirrorBar(source, parent, width, height, opts)
 	if type(source) ~= "table" or type(source.GetMinMaxValues) ~= "function" or type(parent) ~= "table" then
 		return nil
 	end
 	if mirrors[source] then
 		return mirrors[source].bar
 	end
-	local state = { Restyle = PaintMirror }
+	local state = { Restyle = PaintMirror, accent = type(opts) == "table" and opts.accent == true }
 	if type(source.GetStatusBarColor) == "function" then
 		state.r, state.g, state.b, state.a = source:GetStatusBarColor()
 	end
