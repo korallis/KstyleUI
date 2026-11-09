@@ -250,8 +250,8 @@ end
 -- Migration 9 (owner, 2026-11-09: the quest card moves to the right rail): the damage and threat cards now stand on
 -- the readout at the rail's foot, measured from the bottom right. Layout saves only the fields that differ from the
 -- default, so a card the player moved only up or down holds a y and no anchor; read against the new bottom-right
--- default it would leave the screen. Each such entry is completed from the version-8 place (top right, 28 in, 236
--- down), so it stays where the player put it. Full entries, empty ones and the Tank threat card stay as they are.
+-- default it would leave the screen; one moved to another corner holds an anchor and an x but no y. Each partial
+-- entry is completed from the version-8 place (top right, 28 in, 236 down), so it stays where the player put it. Full entries, empty ones and the Tank threat card stay as they are.
 do
 	local menv = CoreEnv.New({
 		saved = { version = 8, profiles = { Default = {}, Tank = { Layout = { preset = "Tank" } } }, layouts = {
@@ -260,7 +260,7 @@ do
 				["meters.threat"] = { x = -60, width = 300 },
 				["tooltips.anchor"] = { y = 500 },
 			},
-			Full = { ["meters.damage"] = { anchor = "BOTTOMLEFT", x = 40, y = 40 } },
+			Full = { ["meters.damage"] = { anchor = "BOTTOMLEFT", x = 40, y = 40 }, ["meters.threat"] = { anchor = "TOPLEFT", x = 28 } },
 			Tank = { ["meters.threat"] = { anchor = "BOTTOM", x = 357, y = 312 }, ["meters.damage"] = { width = 300 } },
 		} },
 	})
@@ -273,6 +273,8 @@ do
 	check(db.layouts.Default["tooltips.anchor"].anchor == nil and db.layouts.Default["tooltips.anchor"].y == 500, "the tooltip anchor kept its corner, so its own y stays as it is")
 	local full = db.layouts.Full["meters.damage"]
 	check(full.anchor == "BOTTOMLEFT" and full.x == 40 and full.y == 40, "a full entry stays")
+	local corner = db.layouts.Full["meters.threat"]
+	check(corner.anchor == "TOPLEFT" and corner.x == 28 and corner.y == -236, "a card moved to another corner keeps the y it had from the old default (codex review)")
 	local tank = db.layouts.Tank
 	check(tank["meters.threat"].anchor == "BOTTOM" and tank["meters.threat"].x == 357, "the Tank threat card stays")
 	check(tank["meters.damage"].anchor == nil and tank["meters.damage"].x == nil and tank["meters.damage"].width == 300, "a saved size alone moves with the new default")

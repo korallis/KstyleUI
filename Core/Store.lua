@@ -152,8 +152,8 @@ Store.migrations[9] = function(data)
 	for _, layout in pairs(data.layouts) do
 		for _, key in ipairs(type(layout) == "table" and RAIL_CARDS or {}) do
 			local entry = layout[key]
-			if type(entry) == "table" and entry.anchor == nil and (entry.x ~= nil or entry.y ~= nil) then
-				entry.anchor = RAIL_CARD_V8.anchor
+			if type(entry) == "table" and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
+				entry.anchor = entry.anchor == nil and RAIL_CARD_V8.anchor or entry.anchor
 				entry.x = entry.x == nil and RAIL_CARD_V8.x or entry.x
 				entry.y = entry.y == nil and RAIL_CARD_V8.y or entry.y
 			end
