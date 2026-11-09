@@ -7,6 +7,7 @@ local Layouts, L = K.Setup.Layouts, ns.L
 local LootText = ns.LootText
 
 local KEY = "qol.lootfeed"
+local STRATA = "BACKGROUND"
 local COIN_ICON = 133784
 local ICON_CROP = 0.07
 local COINS = {
@@ -24,7 +25,7 @@ ns.Feed = Feed
 local holder, backdrop
 
 local function Inset()
-	return Widgets.Inset(backdrop, Tokens.Size("radius"), "gapSmall")
+	return Widgets.WindowInset(backdrop)
 end
 
 local function Active()
@@ -34,6 +35,14 @@ end
 local function SetLive(live)
 	if K.Layout and K.Layout.SetLive then
 		K.Layout.SetLive(KEY, live)
+	end
+end
+
+local function Style(text, role, color)
+	local path, _, flags = Tokens.Font(role)
+	Widgets.ApplyFont(text, path, Tokens.Size("lootText"), flags)
+	if color then
+		text:SetTextColor(Tokens.Color(color))
 	end
 end
 
@@ -140,6 +149,9 @@ end
 local function Arrange(line)
 	local tile, gapSmall, gapMedium = Tokens.Size("lootTile"), Tokens.Size("gapSmall"), Tokens.Size("gapMedium")
 	Widgets.Size(line, holder:GetWidth() - 2 * Inset(), tile)
+	Style(line.plus, "number", "gilt")
+	Style(line.name, "body")
+	Style(line.count, "number", "muted")
 	line.plus:ClearAllPoints()
 	line.plus:SetPoint("LEFT", line, "LEFT", 0, 0)
 	Widgets.Size(line.tile, tile, tile)
@@ -158,16 +170,16 @@ end
 local function NewLine()
 	local line = CreateFrame("Frame", nil, holder)
 	line:SetFrameLevel(backdrop:GetFrameLevel() + 1)
-	line.plus = Widgets.Text(line, "number", "textDisabled")
+	line.plus = Widgets.FontString(line)
 	line.plus:SetText("+")
 	line.tile = CreateFrame("Frame", nil, line)
 	line.tile.chrome = Widgets.IconChrome(line.tile, { size = Tokens.Size("lootTile") })
 	line.icon = line.tile:CreateTexture(nil, "ARTWORK")
 	line.icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
-	line.name = Widgets.Text(line, "body", "text")
+	line.name = Widgets.FontString(line)
 	line.name:SetJustifyH("LEFT")
 	line.name:SetWordWrap(false)
-	line.count = Widgets.Text(line, "number", "muted")
+	line.count = Widgets.FontString(line)
 	line.y, line.width, line.token = 0, 0, 0
 	return line
 end
@@ -302,10 +314,11 @@ local function Build()
 	end
 	local width, height = Layouts.Footprint("DPS", KEY)
 	holder = CreateFrame("Frame", nil, K.Scale.Root())
+	holder:SetFrameStrata(STRATA)
 	Widgets.Size(holder, width, height)
-	backdrop = CreateFrame("Frame", nil, holder)
+	backdrop = Widgets.Panel(holder, { strata = STRATA, shape = "window" })
+	backdrop:SetFixedFrameStrata(true)
 	backdrop:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", 0, 0)
-	backdrop.chrome = Widgets.Chrome(backdrop, { shape = "card" })
 	backdrop:SetAlpha(0)
 	backdrop:Hide()
 	holder.Restyle = function()

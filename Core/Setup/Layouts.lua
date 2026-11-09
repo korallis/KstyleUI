@@ -32,7 +32,7 @@ local function Row(icons)
 end
 local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 
-local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius")
+local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
 
 local ELEMENTS = {

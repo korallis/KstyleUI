@@ -258,6 +258,26 @@ do
 	assert(K.ErrorCount() == 0)
 end
 
+-- The look of the chat card: its window glass with gold corner marks, its body text size, gilt plus marks ---------
+do
+	local env, K, ns = New()
+	Loot(env, "You receive loot: " .. CLOTH .. "x2")
+	local line, backdrop = ns.Feed.lines[1], ns.Feed.Backdrop()
+	assert(backdrop.opts and backdrop.opts.shape == "window" and backdrop.chrome.shapeName == "window" and backdrop.chrome.shape.gilt == true, "the backdrop is the chat card's window panel, gold corner marks included")
+	local path = K.Tokens.Font("body")
+	local want = K.Widgets.FontSize(line.name, K.Tokens.Size("lootText"))
+	for _, text in ipairs({ line.name, line.plus, line.count }) do
+		local _, size = text:GetFont()
+		assert(size == want, "the text is the lootText size " .. want .. ", got " .. tostring(size))
+	end
+	assert(line.name:GetFont() == path, "the name is in the body font the chat uses")
+	assert(K.Tokens.Size("lootText") == 14, "the size is the chat's default body size")
+	local r, g, b = line.plus:GetTextColor()
+	local gr, gg, gb = K.Tokens.Color("gilt")
+	assert(r == gr and g == gg and b == gb, "the plus mark is gilt, as the corner marks")
+	assert(K.ErrorCount() == 0)
+end
+
 -- Geometry: inside the element's footprint, the backdrop hugs the lines, left edges line up -----------------------
 do
 	local env, K, ns = New({ layout = true })

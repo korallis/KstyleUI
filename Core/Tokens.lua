@@ -100,7 +100,8 @@ local SIZES = {
 	socketGap = 8,
 	screenMargin = 28,
 	rowHeight = 24,
-	lootTile = 20,
+	lootTile = 24,
+	lootText = 14,
 }
 
 local SHARES = {
