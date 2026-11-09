@@ -701,6 +701,39 @@ function modules.chat(opts)
 	return finish(env, K, scene, "chat"), ns
 end
 
+-- Loot feed: the lines QoL draws over the chat card for the loot of the mockup's session: a Bug Eye and a Worn Leather
+-- Vest (their links say IQ0 in the game; the item API gives poor and common) and 14 copper -------------------------
+
+local FEED_ITEMS = {
+	{ 7101, "Bug Eye", 133884, 0 },
+	{ 1425, "Worn Leather Vest", 135009, 1 },
+}
+
+function modules.lootfeed(opts)
+	local Q = dofile("Tools/regression/qol_env.lua")
+	local env, K, ns = Q.New({
+		saved = saved(opts, "QoL"),
+		setup = function(env)
+			shared(env, opts)
+		end,
+	})
+	assert(K.Modules.IsRunning("QoL"), "QoL runs from the saved switch")
+	local function say(event, text)
+		env.FireEvent(event, text, "Korallis", "", "", "Korallis", "", 0, 0, "", 0, 1, "Player-1-1", 0)
+		env.RunTimers()
+		Q.W.Settle(env)
+	end
+	for _, item in ipairs(opts.feed or FEED_ITEMS) do
+		env._items[item[1]] = { icon = item[3], quality = item[4] }
+		local link = "|cnIQ0:|Hitem:" .. item[1] .. "::::::::11:1489:::::::::|h[" .. item[2] .. "]|h|r"
+		say("CHAT_MSG_LOOT", "You receive loot: " .. link .. (item[5] and ("x" .. item[5]) or ""))
+	end
+	say("CHAT_MSG_MONEY", "You loot 14 Copper")
+	local scene = build(env, opts)
+	scene.log[#scene.log + 1] = "the feed's lines are the player's own loot, as CHAT_MSG_LOOT and CHAT_MSG_MONEY give it; the game fades each one after its hold"
+	return finish(env, K, scene, "lootfeed"), ns
+end
+
 -- Minimap: the square map with the zone and clock bands; the hover-only controls stay hidden, as at rest ------
 
 function modules.minimap(opts)

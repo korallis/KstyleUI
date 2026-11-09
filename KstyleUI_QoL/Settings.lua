@@ -8,6 +8,7 @@ ns.PAUSE_KEYS = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "Is
 ns.defaults = {
 	enabled = false,
 	fastLoot = true,
+	lootFeed = true,
 	autoRepair = true,
 	guildRepair = false,
 	autoQuests = false,
@@ -51,6 +52,7 @@ ns.schema = {
 	{ type = "toggle", key = "enabled", label = L["KstyleUI quality of life"], help = L["Small helpers for looting, merchants, quests, the camera and error text."] },
 	{ type = "header", label = L["Loot"] },
 	{ type = "toggle", key = "fastLoot", label = L["Faster auto loot"], help = L["When the game auto loots, take every item the moment the window opens."], disableWhen = isOff },
+	{ type = "toggle", key = "lootFeed", label = L["Loot feed"], help = L["Short lines above the chat for what you loot, with icons, quality colours and coin colours."], disableWhen = isOff },
 	{ type = "header", label = L["Merchants"] },
 	{ type = "toggle", key = "autoRepair", label = L["Repair by itself"], help = L["Repair your gear at merchants and print the cost."], disableWhen = isOff },
 	{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = repairOff },

@@ -32,6 +32,9 @@ local function Row(icons)
 end
 local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 
+local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius")
+local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
+
 local ELEMENTS = {
 	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = 490, height = 80 },
 	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = 490, height = 84, reserve = { 490, 136 } },
@@ -61,6 +64,7 @@ local ELEMENTS = {
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 282, height = 88 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 372, height = 260 },
+	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
@@ -116,6 +120,7 @@ local function ElementSize(key)
 	end
 end
 local MAP_W, MAP_H = ElementSize("minimap.main")
+local _, CHAT_H = ElementSize("chat.main")
 local _, AURA_ROW = ElementSize("auras.buffs")
 local AURAS_X = MARGIN + MAP_W + GAP
 local AURAS_BOTTOM = MARGIN + 2 * AURA_ROW + GAP
@@ -130,6 +135,7 @@ local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
+	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -MARGIN },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(MARGIN + AURA_ROW + GAP) },
@@ -333,6 +339,8 @@ for _, name in ipairs(NAMES) do
 end
 
 Layouts.ELEMENTS = ELEMENTS
+Layouts.FEED_LINES = FEED_LINES
+Layouts.FEED_PAD = FEED_PAD
 Layouts.SIGIL_CLEAR = SIGIL_CLEAR
 Layouts.BUTTON = BUTTON
 Layouts.HEIGHT = HEIGHT

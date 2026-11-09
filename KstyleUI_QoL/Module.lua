@@ -44,7 +44,7 @@ K.DevTest.AddCheck("QoL", function()
 		return true, "off"
 	end
 	local on = {}
-	for _, key in ipairs({ "fastLoot", "autoRepair", "guildRepair", "autoQuests", "maxCamera", "quietErrors" }) do
+	for _, key in ipairs({ "fastLoot", "lootFeed", "autoRepair", "guildRepair", "autoQuests", "maxCamera", "quietErrors" }) do
 		if ns.Get(key) then
 			on[#on + 1] = key
 		end
