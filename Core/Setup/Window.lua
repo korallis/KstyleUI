@@ -1,4 +1,4 @@
--- Window.lua: the first-run setup window, four steps built from the widget kit: welcome, layout, modules and summary.
+-- Window.lua: the first-run setup window, four steps built from the widget kit: welcome, layout, modules and summary; each layout card draws the real footprints, its role elements brighter than the shared ones.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -19,7 +19,8 @@ local REFERENCE_WIDTH, REFERENCE_HEIGHT = 1920, 1080
 local ROW_HEIGHT = 44
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
-local ELEMENT_ALPHA, ELEMENT_SELECTED_ALPHA = 0.3, 0.75
+local ELEMENT_ALPHA, ELEMENT_SELECTED_ALPHA = 0.25, 0.4
+local ROLE_ALPHA, ROLE_SELECTED_ALPHA = 0.75, 1
 local SLOT_FILL, SLOT_EDGE = 0.08, 0.7
 local CARD_HOVER_EDGE = 0.6
 local WINDOW_KEY = "setup.window"
@@ -145,9 +146,13 @@ function Card:Paint()
 	end
 	local emphasis = self.selected and 1 or hover
 	self.title:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, emphasis))
-	local color = self.selected and "accent" or "text"
-	local alpha = self.selected and ELEMENT_SELECTED_ALPHA or ELEMENT_ALPHA
 	for _, rect in ipairs(self.rects) do
+		local color, alpha
+		if rect.role then
+			color, alpha = self.selected and "accent" or "textEmphasis", self.selected and ROLE_SELECTED_ALPHA or ROLE_ALPHA
+		else
+			color, alpha = self.selected and "accent" or "text", self.selected and ELEMENT_SELECTED_ALPHA or ELEMENT_ALPHA
+		end
 		rect:SetColorTexture(Widgets.Rgba(color, alpha))
 	end
 	self.slot.fill:SetColorTexture(Widgets.Rgba("accent", SLOT_FILL))
@@ -204,6 +209,29 @@ function Card:Restyle()
 	self:Paint()
 end
 
+local roles
+local function Roles()
+	if roles then
+		return roles
+	end
+	roles = {}
+	local names = Layouts.Names()
+	local first = Layouts.Get(names[1])
+	for _, element in ipairs(Layouts.ELEMENTS) do
+		local key = element.key
+		local a = first[key]
+		for i = 2, #names do
+			local b = Layouts.Get(names[i])[key]
+			local w1, h1 = Layouts.Footprint(names[1], key)
+			local w2, h2 = Layouts.Footprint(names[i], key)
+			if a.anchor ~= b.anchor or a.x ~= b.x or a.y ~= b.y or w1 ~= w2 or h1 ~= h2 or Layouts.Shown(names[1], key) ~= Layouts.Shown(names[i], key) then
+				roles[key] = true
+			end
+		end
+	end
+	return roles
+end
+
 local function NewCard(page, name, width)
 	local card = CreateFrame("Button", nil, page)
 	for k, fn in pairs(Card) do
@@ -226,7 +254,7 @@ local function NewCard(page, name, width)
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not SKIP_IN_PREVIEW[element.key] then
 			local rect = card.screen:CreateTexture(nil, "ARTWORK")
-			rect.element, rect.isElement = element, true
+			rect.element, rect.isElement, rect.role = element, true, Roles()[element.key] == true
 			card.rects[#card.rects + 1] = rect
 		end
 	end
@@ -255,7 +283,7 @@ local function BuildLayouts(page, width)
 	end
 	local hint = Paragraph(page, "body", "text", width)
 	hint:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, CARD_HEIGHT) + gap("gapLarge")))
-	hint:SetText(L["The outlined space on the left rail is the Story rail: drag the RestedXP guide there, and move the quest tracker there in Edit Mode. In a raid, the raid frames take its top."]
+	hint:SetText(L["The bright blocks are what changes with the role. The outlined space on the left rail is the Story rail: Apply places the quest tracker there; if Edit Mode refuses, move it there yourself. Drag the RestedXP guide there. In a raid, the raid frames take its top."]
 		.. "\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	panel.layoutHint = hint
 end

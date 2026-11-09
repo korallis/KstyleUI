@@ -167,19 +167,21 @@ end
 -- left and the target of target on its right (in Tank the threat card under it), so you, your target, its target and
 -- your focus read in one glance (round 2: Muse #1, Opus's eye travel). The boss column heads the centre's right edge,
 -- 16 units in from the right rail. The world above the cluster stays clear. Healer stands the party and raid on the
--- cluster's left half, puts the damage card at the head of the left rail and the boss column on the right rail.
+-- cluster's left half, clear of the cast bars, heads the left rail with the boss column and keeps the right rail's
+-- damage card under the Blessings, as DPS does (round 3: the Blessings card at 40 buffs and 12 debuffs left no room
+-- for the boss column on the right rail; Muse #2: the cast bars stay in the cluster).
 
 local MARGIN, RAIL, BAND = 28, 318, 28 + 318 + 16
 local CARD_GAP_MIN, CARD_GAP_MAX = 16, 22
 local LEFT_RAIL = {
 	DPS = { "groupframes.party", "groupframes.raid", "chat.main" },
 	Tank = { "groupframes.party", "groupframes.raid", "chat.main" },
-	Healer = { "meters.damage", "chat.main" },
+	Healer = { "unitframes.boss", "chat.main" },
 }
 local RIGHT_STACK = {
 	DPS = { "minimap.main", "auras.buffs", "meters.damage" },
 	Tank = { "minimap.main", "auras.buffs", "meters.damage" },
-	Healer = { "minimap.main", "auras.buffs", "unitframes.boss" },
+	Healer = { "minimap.main", "auras.buffs", "meters.damage" },
 }
 local DOCKED = { ["auras.debuffs"] = "auras.buffs", ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
 local HANDS = set({
@@ -189,7 +191,7 @@ local HANDS = set({
 })
 -- The combat cluster on the hands: the sigil, the focus and its target, the target of target, and in Tank the threat card.
 local CLUSTER = set({ "unitframes.target", "unitframes.targettarget", "unitframes.focus", "unitframes.focustarget" })
--- What a player turns on stacks over the cluster in DPS and Tank: bar 2, then the plate cast bars (Healer: at the top).
+-- What a player turns on stacks over the cluster: bar 2, then the plate cast bars (Healer: bar 2 at the top, the casts stay).
 local EXTRAS = set({ "actionbars.bar2", "unitframes.castbar.player", "unitframes.castbar.target" })
 -- The world kept clear (system board): the centre 520 units wide, from the top of what stacks on the cluster to the top.
 local CLEAR = { half = 260, bottom = 574, top = 1080 - 28 }
@@ -203,9 +205,9 @@ local RAIL_KEYS = {
 	Healer = set({ "chat.main", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
 		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
 }
--- Healer: the party and raid stand on the cluster's left half, their right edge 116 units off the centre line and their
--- foot 16 over the cluster's top; the character's column (centre +- 100) stays clear.
-local HEALER = { right = 116, gap = 16, character = 100 }
+-- Healer: the party and raid stand on the cluster's left half, their right edge 16 units left of the player's cast bar
+-- (152 off the centre line) and their foot 16 over the cluster's top; the character's column (centre +- 100) stays clear.
+local HEALER = { right = 152, gap = 16, character = 100 }
 -- The cluster's sizes: the sigil spans the vitals line; the cards beside it sit 12 out from it.
 local NEAR, CLUSTER_GAP = 12, 4
 local GROUP = set({ "groupframes.party", "groupframes.raid" })
@@ -264,12 +266,12 @@ for _, name in ipairs(names) do
 		end
 		assert(top - strip.top >= CARD_GAP_MIN, label .. ": the readout and menu card clears the card above it")
 
-		-- The left rail's head: the party and raid card, or in Healer the damage card.
+		-- The left rail's head: the party and raid card, or in Healer the boss column.
 		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
 		local head
 		if healer then
-			head = rect("meters.damage")
-			assert(head.top == HEIGHT - MARGIN, label .. ": the damage card heads the left rail")
+			head = rect("unitframes.boss")
+			assert(head.top == HEIGHT - MARGIN, label .. ": the boss column heads the left rail")
 		else
 			assert(party.top == HEIGHT - MARGIN and raid.top == HEIGHT - MARGIN, label .. ": the party and raid card heads the left rail")
 			head = party
@@ -278,6 +280,9 @@ for _, name in ipairs(names) do
 		-- The story slot: the space between the left rail's head and chat, where the player drops the guide and the tracker.
 		local slot = Layouts.Slot(name)
 		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
+		-- Apply places the quest tracker itself, so the hint names Apply and keeps the manual move for when Edit Mode
+		-- refuses (round 3: Opus #4, the carry list).
+		assert(slot.hint:find("Apply places the quest tracker here", 1, true) and slot.hint:find("Edit Mode refuses", 1, true), name .. ": the slot hint says Apply places the tracker: " .. slot.hint)
 		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
 		assert(s[1] == MARGIN and s[3] - s[1] == RAIL, label .. ": the story slot is on the left rail's column")
 		assert(s[2] - chat.top >= CARD_GAP_MIN and head.bottom - s[4] >= CARD_GAP_MIN, label .. ": the story slot sits between the rail's head and chat, 16 from each")
@@ -303,16 +308,17 @@ for _, name in ipairs(names) do
 				assert(r.right <= mid - HEALER.right + 1e-6 and r.right <= mid - HEALER.character, label .. ": " .. key .. " stays left of the character's column")
 				assert(r.left >= BAND, label .. ": " .. key .. " stays off the left rail")
 			elseif healer and key == "combattext.player" then
-				-- Healer mirrors the group frames: your combat text rises just right of the character's column.
-				assert(r.left >= mid + HEALER.character and r.right <= mid + CLEAR.half, label .. ": your combat text rises right of the character's column")
-			elseif healer and EXTRAS[key] then
+				-- Healer mirrors the group frames: your combat text rises right of the cast bars as the group frames stand
+				-- left of them, the same 152 off the centre line.
+				assert(math.abs(r.left - (mid + HEALER.right)) < 1e-6, label .. ": your combat text mirrors the group frames right of the cast bars")
+			elseif healer and key == "actionbars.bar2" then
 				assert(r.bottom >= HEIGHT / 2, label .. ": " .. key .. " waits at the top centre, over the group frames")
 			elseif EDGE_RIGHT[key] and not onRail then
 				assert(r.left >= mid + CLEAR.half / 2, label .. ": " .. key .. " stays at the clear centre's outer edge")
 			else
 				assert(not inside, label .. ": " .. key .. " crosses the clear centre")
 			end
-			if (HANDS[key] or CLUSTER[key] or EXTRAS[key]) and not (healer and EXTRAS[key]) then
+			if (HANDS[key] or CLUSTER[key] or EXTRAS[key]) and not (healer and key == "actionbars.bar2") then
 				assert(r.top <= CLEAR.bottom, label .. ": " .. key .. " sits under the clear centre with the hands")
 			end
 		end
@@ -367,11 +373,13 @@ for _, name in ipairs(names) do
 			assert(rect(key).top <= clusterTop, label .. ": " .. key .. " stays inside the cluster")
 		end
 
-		-- What a player turns on: in DPS and Tank bar 2 stands 8 over the cluster and the plate cast bars over it; in
-		-- Healer, whose group frames stand on the cluster, they wait at the top centre.
+		-- What a player turns on: bar 2 stands 8 over the cluster and the plate cast bars over it, in every layout at the
+		-- same place; in Healer, whose group frames stand on the cluster's left, bar 2 alone waits at the top centre and
+		-- the cast bars keep their place in the cluster (round 3, Muse #2).
 		local bar2, targetCast = rect("actionbars.bar2"), rect("unitframes.castbar.target")
 		if healer then
-			assert(bar2.top == HEIGHT - MARGIN and bar2.bottom - cast.top == 8 and cast.bottom - targetCast.top == 8, label .. ": bar 2 and the plate cast bars wait at the top centre")
+			assert(bar2.top == HEIGHT - MARGIN, label .. ": bar 2 waits at the top centre")
+			assert(cast.bottom - clusterTop == 8 + 38 + 8 and targetCast.bottom - cast.top == 8, label .. ": the plate cast bars stay over the cluster, where DPS keeps them")
 			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
 				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
 			end
@@ -410,6 +418,11 @@ for _, name in ipairs(names) do
 	end
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
 	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
+	-- Empty sockets hide in Lumen (round 3, Opus #6): bar 1's twelfth socket read as a dark tile at the row's end. A
+	-- spell on the cursor still shows every socket to drop it on.
+	for i = 1, 6 do
+		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
+	end
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
 	assert(settings["Auras.buffs.rows"] == 1 and settings["Auras.card.docked"] == true, name .. " writes one row of buffs in the Blessings card, the debuffs docked")
 	assert(settings["DataBars.strip.menus"] == true, name .. " docks the menu and the bags in the readout card")
@@ -495,8 +508,11 @@ local FOOTPRINTS = {
 	-- S4 (#157): the lens card, the Blessings card at one buff row with the debuff row docked, six damage rows, four
 	-- threat rows, the readout with the menu docked (at 318 the bag bar wraps under the micro menu: 118 holds both
 	-- rows, with 3 units for the owner's pixel snapping), the party card. Chat is a 318-unit card at the left rail's foot.
-	["minimap.main"] = { 318, 326 },
-	["auras.buffs"] = { 318, 177 },
+	-- Round 3 (Muse #3): the lens card is a 306 lens under its dome, a rim round it, and the 34-unit foot.
+	["minimap.main"] = { 318, 346 },
+	-- Round 3 (Astra #1B): the Blessings footprint reserves the card at its cap, one buff row over the hairline and two
+	-- docked debuff rows (test-setup-collisions.lua measures the live card against it).
+	["auras.buffs"] = { 318, 230 },
 	["auras.debuffs"] = { 318, 63 },
 	["meters.damage"] = { 318, 190 },
 	["meters.threat"] = { 318, 144 },
@@ -520,8 +536,9 @@ do
 	-- A reserve is the room the layouts keep for an element that is not its frame's size: the sigil's debuff sockets
 	-- hang under its 84-unit frame in two rows, so the layouts keep 136 from its top; the focus card's debuffs sit over its 90-unit
 	-- frame, so the layouts keep 112 from its foot; the boss column holds five compact cards and the layouts keep its
-	-- full height plus the debuffs hanging to its left, 318 in all.
-	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 } }
+	-- full height plus the debuffs hanging to its left, 318 in all; the Blessings card starts at one buff row and grows
+	-- by its docked debuff rows to 230 at its cap.
+	local RESERVES = { ["unitframes.target"] = { 490, 136 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["auras.buffs"] = { 318, 230 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -534,7 +551,7 @@ do
 	local target, boss, focus = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss"), Layouts.Element("unitframes.focus")
 	assert(target.width == 490 and target.height == 84 and Layouts.Get("DPS")["unitframes.target"].anchor == "TOP", "the sigil's frame tops its reserve, so its sockets hang inside it")
 	assert(focus.width == 200 and focus.height == 90 and Layouts.Get("DPS")["unitframes.focus"].anchor == "BOTTOM", "the focus card's frame foots its reserve, so its debuffs sit inside it")
-	assert(boss.width == 258 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart")
+	assert(boss.width == 222 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart, 222 wide beside a row of four 22-unit debuffs")
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not RESERVES[element.key] then
 			local w, h = Layouts.Footprint("DPS", element.key)

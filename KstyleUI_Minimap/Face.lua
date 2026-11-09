@@ -1,4 +1,4 @@
--- Face.lua: the minimap's Lumen card: the frost card that is the lens plus its foot, the round lens and its mask, the gilt north mark on a crystal disc at the lens's top, the zone and clock foot, the zoom slider and the coordinates.
+-- Face.lua: the minimap's Lumen card: the lens plus its foot, a glass dome round the lens's top half over a frost foot card, so no square corners of glass show; the round lens and its mask, the gilt north mark on a crystal disc at the lens's top, the zone and clock foot, the zoom slider and the coordinates.
 local _, ns = ...
 
 local K = KstyleUI
@@ -26,6 +26,13 @@ end
 
 local function Snap(frame, units)
 	return Widgets.Snap(frame, units)
+end
+
+local function NewDisc(card, sublevel)
+	local disc = card:CreateTexture(nil, "BORDER", nil, sublevel)
+	disc:SetTexture((Widgets.LumenTexture("lensMask")))
+	disc:SetTexCoord(0, 1, 0, 0.5)
+	return disc
 end
 
 local function NewText(parent)
@@ -78,7 +85,14 @@ function Face.New(holder, opts)
 	Level(box, holder, LEVEL_BOX)
 	box:SetAllPoints(holder)
 	face.box = box
-	face.chrome = Widgets.Chrome(box, { shape = "panel" })
+	local foot = CreateFrame("Frame", nil, box)
+	Level(foot, holder, LEVEL_BOX)
+	face.foot = foot
+	face.chrome = Widgets.Chrome(foot, { shape = "panel" })
+	local dome = CreateFrame("Frame", nil, foot)
+	Level(dome, holder, LEVEL_BOX)
+	dome.edge, dome.fill, dome.frost = NewDisc(foot, 1), NewDisc(foot, 2), NewDisc(foot, 3)
+	face.dome = dome
 
 	local mapArea = CreateFrame("Frame", nil, box)
 	face.mapArea = mapArea
@@ -203,6 +217,11 @@ end
 function Face:Paint()
 	local r, g, b = Style.Accent()
 	self.chrome:SetEdge("edgeInner")
+	local dome = self.dome
+	local sr, sg, sb = Tokens.Color("surface")
+	dome.fill:SetVertexColor(sr, sg, sb, Widgets.Setting("panelOpacity"))
+	dome.frost:SetVertexColor(Tokens.Color("glass"))
+	dome.edge:SetVertexColor(Tokens.Color("edgeInner"))
 	Widgets.Tint(self.zoom.track, "track")
 	self.zoom.fill:SetVertexColor(r, g, b, 1)
 	self.zoom:SetShown(Settings.Get("zoom.slider"))
@@ -244,10 +263,30 @@ function Face:Layout()
 	area:SetPoint("TOPLEFT", box, "TOPLEFT", left, -top)
 	area:SetSize(lens, lens)
 
+	local rim = Snap(box, Format.RIM)
+	local across = lens + 2 * rim
+	local dome = self.dome
+	dome:ClearAllPoints()
+	dome:SetPoint("TOPLEFT", box, "TOPLEFT", left - rim, -(top - rim))
+	dome:SetSize(across, across / 2)
+	local line = Widgets.Border(box)
+	for _, disc in ipairs({ dome.fill, dome.frost }) do
+		disc:ClearAllPoints()
+		disc:SetAllPoints(dome)
+	end
+	dome.edge:ClearAllPoints()
+	dome.edge:SetPoint("BOTTOMLEFT", dome, "BOTTOMLEFT", -line, 0)
+	dome.edge:SetSize(across + 2 * line, across / 2 + line)
+	local card = self.foot
+	card:ClearAllPoints()
+	card:SetPoint("TOPLEFT", box, "TOPLEFT", left - rim, -Snap(box, top + lens / 2 - self.chrome:Radius()))
+	card:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", left - rim, 0)
+	card:SetWidth(across)
+
 	local strip = self.strip
 	strip:ClearAllPoints()
-	strip:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", Snap(box, pad), 0)
-	strip:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -Snap(box, pad), 0)
+	strip:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", Snap(box, pad), 0)
+	strip:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -Snap(box, pad), 0)
 	strip:SetHeight(Snap(box, foot))
 	local clock, zone = self.clock, self.zone
 	clock:ClearAllPoints()

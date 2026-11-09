@@ -1,4 +1,4 @@
--- Unit.lua: fills a unit frame's parts from the unit API, passing health, power and other secret values straight to widget setters.
+-- Unit.lua: fills a unit frame's parts from the unit API, passing health, power and other secret values straight to widget setters; a name too long for its line drops to the body size before it truncates.
 local _, ns = ...
 
 local K = KstyleUI
@@ -280,7 +280,7 @@ end
 function Unit.Name(view, unit)
 	local name = UnitName(unit)
 	if IsSecret(name) then
-		view.name:SetText(name)
+		Unit.SetName(view, name)
 		return
 	end
 	if type(name) ~= "string" then
@@ -308,11 +308,34 @@ function Unit.Tracked(text, fontPath)
 	return text
 end
 
-function Unit.SetName(view, name)
-	if view.s.nameCaps then
-		name = Unit.Tracked(name, (ns.Settings.Font(view.kind, "name")))
+local function Number(value)
+	return not IsSecret(value) and type(value) == "number"
+end
+
+local function SetFont(text, path, size, flags)
+	if text:SetFont(path, size, flags) == false then
+		text:SetFont((Tokens.Font("body")), size, flags)
 	end
-	view.name:SetText(name)
+end
+
+function Unit.SetName(view, name)
+	local text = view.name
+	local path, full, flags = ns.Settings.Font(view.kind, "name")
+	SetFont(text, path, full, flags)
+	if IsSecret(name) then
+		text:SetText(name)
+		return
+	end
+	text:SetText(view.s.nameCaps and Unit.Tracked(name, path) or name)
+	local bodyPath, bodySize = Tokens.Font("body")
+	if not Number(full) or bodySize >= full then
+		return
+	end
+	local width, room = K.Widgets.TextWidth(text), text:GetWidth()
+	if Number(width) and Number(room) and room > 0 and width > room then
+		SetFont(text, bodyPath, bodySize, flags)
+		text:SetText(name)
+	end
 end
 
 local function LevelColor(unit)

@@ -522,9 +522,18 @@ do
 	eq(micro[1]:GetHeight(), ns.Settings().micro.size, "with room to spare the micro buttons take their set size")
 	local pad, gap = view.pad, K.Widgets.Snap(view.frame, 6)
 	local microH, bagsH = Menus.Holder("micro"):GetHeight(), Menus.Holder("bags"):GetHeight()
-	local want = pad + 43 + gap + microH + gap + bagsH + pad
+	-- Round 3 (Opus #6): the readout line holds the card's top padding itself, so the micro row starts a small gap
+	-- under the text instead of a second padding lower (45 px of empty glass in the hero render), and the card fits
+	-- the 118 units the layouts keep for it.
+	eq(Strip.LINE, 30, "the readout line is 30 units with the card's top padding in it")
+	local want = Strip.LINE + gap + microH + gap + bagsH + pad
 	local h = view.frame:GetHeight()
 	assert(near(h, want), string.format("the card is the readout line, the micro row and the bag row inside the padding: %s for %s", h, want))
+	assert(h <= K.Setup.Layouts.Element("databars.strip").height + 0.5, "the docked card fits the footprint the layouts keep: " .. h)
+	-- Fable #3: the micro row and the bag row share the card's right edge, under the right-aligned readout.
+	local mp, _, mrp, mx = Menus.Content("micro"):GetPoint(1)
+	local bp, _, brp, bx = Menus.Content("bags"):GetPoint(1)
+	assert(mp == "TOPRIGHT" and mrp == "TOPRIGHT" and bp == "TOPRIGHT" and brp == "TOPRIGHT" and near(mx, bx), "the micro and bag rows align on the card's right edge: " .. tostring(mp) .. " " .. tostring(mx) .. " / " .. tostring(bx))
 	eq(K.Layout.Get("databars.strip").height, h, "and Layout holds the same height, so the mover plate hugs too")
 	local _, _, _, _, my = Menus.Content("micro"):GetPoint(1)
 	local _, _, _, _, by = Menus.Content("bags"):GetPoint(1)

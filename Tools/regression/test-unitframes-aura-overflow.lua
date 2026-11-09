@@ -69,8 +69,11 @@ end
 assert(Settings.Value("target", "auraRows") == 2 and Settings.Value("target", "auraColumns") == 10 and Settings.Value("target", "auraSize") == 24,
 	"the sigil's debuffs wrap to a second row of ten")
 assert(target.auras.container._groups.debuffs.max == 20, "twenty sockets, then the chip")
-assert(Settings.Value("boss", "auraRows") == 2, "a boss card holds two rows of its debuffs")
-assert(bosses[1].auras.container._groups.debuffs.max == 6, "six on each boss card")
+-- A boss card holds one row of four 22-unit sockets beside it: three of your debuffs and the chip, big enough to
+-- tell which is which, the timer in a corner badge instead of across the icon (round 3: Opus #5, Grok #1).
+assert(Settings.Value("boss", "auraRows") == 1 and Settings.Value("boss", "auraColumns") == 4, "a boss card holds one row of four sockets")
+assert(Settings.Value("boss", "auraSize") >= 20, "each boss socket is at least 20 units, got " .. Settings.Value("boss", "auraSize"))
+assert(bosses[1].auras.container._groups.debuffs.max == 4, "four on each boss card")
 
 -- Every aura row stays inside the footprint the DPS layout keeps for its frame, at its full rows by columns ------
 do
@@ -93,11 +96,21 @@ do
 		assert(inside(host, room), view.unit .. "'s aura rows " .. fmt(host) .. " stay inside " .. key .. "'s footprint " .. fmt(room))
 		assert(not overlap(host, rect(view.button)), view.unit .. "'s aura rows sit beside the frame, not on it")
 	end
-	-- The boss rows hang beside their own card, never into the next one.
+	-- The boss row hangs beside its own card, never into the next one, and never over the card's name or bar.
 	for i = 1, 5 do
 		local host, card = rect(bosses[i].auras.host), rect(bosses[i].button)
-		assert(host.top <= card.top + EPS and host.bottom >= card.bottom - EPS, "boss" .. i .. "'s two rows stay beside its card " .. fmt(host) .. " " .. fmt(card))
+		assert(host.top <= card.top + EPS and host.bottom >= card.bottom - EPS, "boss" .. i .. "'s row stays beside its card " .. fmt(host) .. " " .. fmt(card))
+		assert(host.top - host.bottom < 2 * Settings.Value("boss", "auraSize"), "boss" .. i .. "'s debuffs are one row")
+		for _, part in ipairs({ bosses[i].name, bosses[i].health }) do
+			assert(not overlap(host, rect(part)), "boss" .. i .. "'s debuffs leave its name and bar clear")
+		end
 	end
+	-- The timer is a corner badge on the tile's bottom right, over a dark plate, so most of the icon shows.
+	local entry = bosses[1].auras.buttons[1]
+	assert(entry, "the boss row has aura buttons")
+	local point, rel, relPoint = entry.timer:GetPoint(1)
+	assert(point == "BOTTOMRIGHT" and rel == entry.skin and relPoint == "BOTTOMRIGHT", "the boss timer sits in the tile's bottom right corner: " .. tostring(point))
+	assert(entry.badge and entry.badge:IsShown(), "on a dark badge")
 end
 noErrors("bounds")
 
@@ -219,7 +232,7 @@ do
 	noErrors("no reads")
 	assert(target.auras.overflow.debuffs.ghost._groups.count.max == 16 + Overflow.LABELS, "a new cap reaches the counting container")
 	K.Options.Write("UnitFrames", "target.auraColumns", 10)
-	K.Options.Write("UnitFrames", "boss.auraSize", 18)
+	K.Options.Write("UnitFrames", "boss.auraSize", 22)
 	K.Options.Write("UnitFrames", "focus.auraRows", 1)
 end
 

@@ -1,4 +1,4 @@
--- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10 and 21:9 on the 1080-unit canvas with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), and the boss column's footprint covers its cards and their aura room from the live unit frames.
+-- test-setup-collisions.lua: every preset (DPS, Tank, Healer) resolves to element rects at 16:9, 16:10 and 21:9 on the 1080-unit canvas with nothing off screen and nothing overlapping, each element at the full footprint it draws: a reserve never hides part of its element (the boss stack once reserved one card of five), the tooltip anchor lies on no card (it once covered the readout and the menu you hover), the boss column's footprint covers its cards and their aura room from the live unit frames, and the live Blessings card at 0 to 40 buffs beside 12 debuffs fits the height its preset reserves.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local env, K = CoreEnv.New()
@@ -87,4 +87,94 @@ do
 	assert(#uenv._errors == 0, tostring(uenv._errors[1]))
 end
 
-print("setup collisions ok: " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each")
+-- The assembled right rail at the owner's aura counts: the live Blessings card, at each preset's own Auras settings,
+-- holding 0, 8, 24 and 40 buffs beside 12 debuffs, stays inside the height the layouts reserve for it and overlaps
+-- nothing at any aspect (round 3, Astra #1B: the card once ran 37 to 88 units into the meter or the boss column).
+local blessings = 0
+do
+	local A = dofile("Tools/regression/auras_env.lua")
+	local aenv, AK, ans = A.New({ layout = true })
+	local slots = { HELPFUL = {}, HARMFUL = {} }
+	aenv.C_UnitAuras = {
+		GetAuraSlots = function(_, filter, maxSlots, continuation)
+			local list = slots[filter] or {}
+			local from = (continuation or 0) + 1
+			local out, last = {}, math.min(#list, from + (maxSlots or #list) - 1)
+			for i = from, last do
+				out[#out + 1] = list[i]
+			end
+			return last < #list and last or nil, unpack(out)
+		end,
+	}
+	AK.Modules.Enable("Auras")
+	aenv.RunTimers()
+	local Model, Panel = ans.Model, ans.Panel
+	local helpful, harmful = A.Container(aenv, "HELPFUL"), A.Container(aenv, "HARMFUL")
+	local desc, ddesc = Panel.Group("buffs"), Panel.Group("debuffs")
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	local root = AK.Scale.Root()
+	local function fill(list, n)
+		for i = #list, 1, -1 do
+			list[i] = nil
+		end
+		for i = 1, n do
+			list[i] = i
+		end
+	end
+	local function size(container, group, n)
+		local shown = math.min(n, Model.Capacity(group, 0))
+		local w, h = Model.ElementSize(group, Model.Timer(AK.Store.Module("Auras")))
+		local columns, rows = math.min(shown, group.columns), math.ceil(shown / group.columns)
+		container:SetSize(columns > 0 and columns * w + (columns - 1) * group.spacing or 0, rows * h + math.max(0, rows - 1) * group.rowSpacing)
+	end
+	for _, name in ipairs(Layouts.Names()) do
+		for _, entry in ipairs(Layouts.Settings(name)) do
+			if entry.module == "Auras" then
+				AK.Options.Write("Auras", entry.key, entry.value)
+			end
+		end
+		aenv.RunTimers()
+		local settings = AK.Store.Module("Auras")
+		local buffs, debuffs = Model.Group(settings, "buffs"), Model.Group(settings, "debuffs")
+		local layout = Layouts.Get(name)
+		local fw, fh = Layouts.Footprint(name, "auras.buffs")
+		for _, n in ipairs({ 0, 8, 24, 40 }) do
+			fill(slots.HELPFUL, n)
+			fill(slots.HARMFUL, 12)
+			size(helpful, buffs, n)
+			size(harmful, debuffs, 12)
+			aenv.FireEvent("UNIT_AURA", "player")
+			aenv.RunTimers()
+			-- The card the player sees: the holder, the glass and every row it docks, measured where they draw.
+			local state = string.format("%s, %d buffs and 12 debuffs", name, n)
+			local drawn = Geometry.Rect(desc.holder, root)
+			for _, part in ipairs({ desc.card.edge, helpful, harmful, ddesc.dock }) do
+				local r = Geometry.Rect(part, root)
+				assert(r, state .. ": a card part has no rect")
+				drawn = { left = math.min(drawn.left, r.left), right = math.max(drawn.right, r.right), bottom = math.min(drawn.bottom, r.bottom), top = math.max(drawn.top, r.top) }
+			end
+			local holder = Geometry.Rect(desc.holder, root)
+			assert(math.abs(drawn.top - holder.top) < 0.5 and math.abs(drawn.right - holder.right) < 0.5, state .. ": the card hangs from its holder's top right corner")
+			local cw, ch = drawn.right - drawn.left, drawn.top - drawn.bottom
+			assert(desc.host:IsShown() and ch > 0, state .. ": the Blessings card shows")
+			assert(cw <= fw + 0.5 and ch <= fh + 0.5, string.format("%s: the card (%.0f x %.0f) outgrows the %d x %d the layout reserves", state, cw, ch, fw, fh))
+			for _, aspect in ipairs(ASPECTS) do
+				local width = HEIGHT * aspect[2]
+				local card = { Layouts.Rect({ width = cw, height = ch }, layout["auras.buffs"], width, HEIGHT) }
+				for _, element in ipairs(Layouts.ELEMENTS) do
+					local key = element.key
+					if key ~= "auras.buffs" and apart(name, "auras.buffs", key) then
+						local w, h = Layouts.Footprint(name, key)
+						local other = { Layouts.Rect({ width = w, height = h }, layout[key], width, HEIGHT) }
+						assert(not overlap(card, other), string.format("%s at %s: the Blessings card (%.0f,%.0f-%.0f,%.0f) overlaps %s (%.0f,%.0f-%.0f,%.0f)",
+							state, aspect[1], card[1], card[2], card[3], card[4], key, other[1], other[2], other[3], other[4]))
+					end
+				end
+			end
+			blessings = blessings + 1
+		end
+	end
+	assert(#aenv._errors == 0, tostring(aenv._errors[1]))
+end
+
+print("setup collisions ok: " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each, " .. blessings .. " Blessings states")

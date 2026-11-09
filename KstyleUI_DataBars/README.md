@@ -97,7 +97,7 @@ An XP, reputation or honour event repaints only a bar's values, colour and text.
 | Key | Default | Row |
 | --- | --- | --- |
 | `strip.slot1` to `strip.slot5` | `fps`, `latency`, `gold`, `durability`, `time` | What each place shows, or `none`. An item in two places shows once, at the first. |
-| `strip.labels` | `full` | `full` captions (Frame rate, Latency, Gold, Durability, Time), `short` (FPS, MS, DUR, as in the dungeon mockup) or `none` |
+| `strip.labels` | `inline` | `inline` units after each value (179 fps, 34 ms, 96% armour, as the Lumen mockup's readout), `full` captions over the values (Frame rate, Latency, Gold, Durability, Time), `short` (FPS, MS, DUR, as in the dungeon mockup) or `none` |
 | `strip.valueColor` | `highlight` | `highlight` (the frame rate in the accent colour, the composition mockup's one highlighted value, with fair and poor grades in the neutral and hostile warning colours and every other value white), `threshold` (good, fair, poor in the friendly, neutral and hostile colours), `accent` or `plain` |
 | `strip.accentEdge` | `false` | The panel's inner edge in the accent colour |
 | `strip.backdrop`, `strip.separators` | `true`, `false` | The glass panel and the lines between cells |
@@ -138,7 +138,7 @@ The bars follow Blizzard's state through `hooksecurefunc` on `UpdateMicroButtons
 
 Layout gives each bar its shown rule, position, scale, opacity and strata.
 
-With `strip.menus` on (the Lumen layouts' default) both bars dock in the readout card under the strip's line: the micro menu's row at the left, the bag bar's at the right, on the same line when all the buttons fit at their set size or at 22 units, else the bag row under the micro row, and a bar whose buttons do not fit a row at 22 units wraps into more rows rather than shrinking further (`Strip.MenuPlan`). The card's height follows the rows, and `Layout.Update` writes it, so the Layout Mode plate hugs the glass; free of the menus the strip keeps the player's own height.
+With `strip.menus` on (the Lumen layouts' default) both bars dock in the readout card under the strip's line, which holds the card's top padding itself (`Strip.LINE`, 30 units), so the first row starts a small gap under the text: both rows end on the card's right edge under the right-aligned readout, the micro menu just left of the bags on the same line when all the buttons fit at their set size or at 22 units, else the bag row under the micro row, and a bar whose buttons do not fit a row at 22 units wraps into more rows rather than shrinking further (`Strip.MenuPlan`). The card's height follows the rows, and `Layout.Update` writes it, so the Layout Mode plate hugs the glass; free of the menus the strip keeps the player's own height.
 
 ## Why
 

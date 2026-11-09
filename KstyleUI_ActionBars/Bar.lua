@@ -1,9 +1,9 @@
--- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade.
+-- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width and fills from its foot, so a few forms sit in one row on the bar's baseline.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
-local max, min, floor = math.max, math.min, math.floor
+local max, min, floor, ceil = math.max, math.min, math.floor, math.ceil
 
 local Bar = {}
 Bar.__index = Bar
@@ -184,6 +184,12 @@ function Bar:Layout()
 	self.count = count
 	local size, gap = Widgets.Snap(header, cfg.size), Widgets.Snap(header, cfg.spacing)
 	local width, height = ns.GridSize(count, cfg.rows, size, gap)
+	local cols, used
+	if def.kind == "stance" and (cfg.rows or 1) > 1 then
+		local _, _, full = ns.GridSize(min(def.max, max(1, floor(cfg.buttons or def.max))), cfg.rows, 1, 0)
+		cols, used = full, max(1, ceil(count / full))
+		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
+	end
 	self.holder:SetSize(width, height)
 	local margin = Widgets.Snap(header, BACKING_MARGIN)
 	self.backing:ClearAllPoints()
@@ -193,7 +199,12 @@ function Bar:Layout()
 	for i, b in ipairs(self.buttons) do
 		b.opts.size = cfg.size
 		if i <= count then
-			local col, row = ns.Cell(i, count, cfg.rows, cfg.orientation, cfg.growth)
+			local col, row
+			if cols then
+				col, row = (i - 1) % cols, used - 1 - floor((i - 1) / cols)
+			else
+				col, row = ns.Cell(i, count, cfg.rows, cfg.orientation, cfg.growth)
+			end
 			b:ClearAllPoints()
 			b:SetPoint("TOPLEFT", header, "TOPLEFT", col * (size + gap), -row * (size + gap))
 			b:Restyle()

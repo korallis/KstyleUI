@@ -361,10 +361,45 @@ do
 		local card = panel.cards[name]
 		assert(card.slot and card.slot:IsShown(), name .. "'s card outlines the story slot")
 		assert(panel.layoutHint:GetText():find("Story rail", 1, true) and panel.layoutHint:GetText():find("Edit Mode", 1, true), "the step names the Story rail and says what goes there")
+		assert(panel.layoutHint:GetText():find("Apply places the quest tracker there", 1, true), "and that Apply places the tracker itself (round 3, Opus #4)")
 		for _, rect in ipairs(card.rects) do
 			assert(K.Setup.Layouts.Shown(name, rect.element.key) ~= false or not rect:IsShown(), name .. "'s card hides " .. rect.element.key .. ", which the layout switches off")
 		end
 	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- The cards tell the roles apart: each draws the real footprints, and the elements whose place or presence differs
+-- between the layouts (the group frames, the meters, the boss column, your combat text) stand out brighter than the
+-- shared hands and rails, so Tank's threat card and Healer's group frames read at a glance (round 3, Muse #6).
+do
+	local env, K = Boot()
+	local panel = Open(env, K)
+	K.Setup.Go(2)
+	W.Settle(env)
+	local Layouts = K.Setup.Layouts
+	local function alpha(rect)
+		local call = W.LastCall(rect, "SetColorTexture")
+		return call and call[4] or 0
+	end
+	local roles = {}
+	for _, name in ipairs(Layouts.Names()) do
+		local card = panel.cards[name]
+		local role, shared = 0, 1
+		for _, rect in ipairs(card.rects) do
+			if rect:IsShown() then
+				if rect.role then
+					role = math.max(role, alpha(rect))
+					roles[name] = (roles[name] or "") .. rect.element.key .. ";"
+				else
+					shared = math.min(shared, alpha(rect))
+				end
+			end
+		end
+		assert(role > 0 and role >= shared + 0.25, name .. "'s role elements stand out from the shared ones: " .. role .. " over " .. shared)
+	end
+	assert(roles.DPS:find("groupframes.party", 1, true) and roles.Tank:find("meters.threat", 1, true) and not roles.DPS:find("meters.threat", 1, true), "Tank's card shows its threat card as a role element; DPS's does not")
+	assert(roles.Healer:find("groupframes.party", 1, true), "Healer's card marks its group frames")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

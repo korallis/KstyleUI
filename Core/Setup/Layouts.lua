@@ -16,7 +16,7 @@ local ELEMENTS = {
 	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
 	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
-	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], width = 258, height = 334, reserve = { 318, 334 } },
+	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], width = 222, height = 334, reserve = { 318, 334 } },
 	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 272, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
@@ -34,9 +34,9 @@ local ELEMENTS = {
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = 170, height = 38 },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 195, height = 30 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = 195, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 318, height = 177 },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], width = 318, height = 177, reserve = { 318, 230 } },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 318, height = 63 },
-	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 318, height = 326 },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], width = 318, height = 346 },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], width = 318, height = 260 },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
@@ -62,18 +62,21 @@ local SIDE = 490 / 2 + NEAR
 local FOCUS_X = -(SIDE + 200 / 2)
 local TOT_X = SIDE + 120 / 2
 local STACK = CLUSTER_TOP + 8
-local HEALER_X, HEALER_Y = -(116 + RAIL / 2), CLUSTER_TOP + GAP
+local CAST_HALF = 272 / 2
+local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TIP_Y = MARGIN + 118 + 8
+local BLESSINGS_TOP, BLESSINGS = MARGIN + 346 + GAP, 230
+local METER_TOP = BLESSINGS_TOP + BLESSINGS + GAP
 
 local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
-	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -370 },
-	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -484 },
-	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
-	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -BLESSINGS_TOP },
+	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -(BLESSINGS_TOP + 177 - 63) },
+	["meters.damage"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -METER_TOP },
+	["meters.threat"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -METER_TOP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN + 44 },
@@ -115,13 +118,9 @@ local CHANGES = {
 	Healer = {
 		["groupframes.party"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
 		["groupframes.raid"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
-		["meters.damage"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
-		["meters.threat"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
-		["unitframes.boss"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -563 },
-		["combattext.player"] = { anchor = "BOTTOM", x = 100 + 160 / 2, y = CLUSTER_TOP + GAP },
+		["unitframes.boss"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
+		["combattext.player"] = { anchor = "BOTTOM", x = CAST_HALF + GAP + 160 / 2, y = CLUSTER_TOP + GAP },
 		["actionbars.bar2"] = { anchor = "TOP", x = 0, y = -MARGIN },
-		["unitframes.castbar.player"] = { anchor = "TOP", x = 0, y = -(MARGIN + 38 + 8) },
-		["unitframes.castbar.target"] = { anchor = "TOP", x = 0, y = -(MARGIN + 38 + 8 + 30 + 8) },
 		["actionbars.bar3"] = { anchor = "TOPRIGHT", x = -BAND, y = -MARGIN },
 		["actionbars.bar4"] = { anchor = "TOPRIGHT", x = -(BAND + BAR), y = -MARGIN },
 		["actionbars.bar5"] = { anchor = "TOPRIGHT", x = -(BAND + 2 * BAR), y = -MARGIN },
@@ -179,6 +178,12 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar1.rows", value = 1 },
 	{ module = "ActionBars", key = "pet.rows", value = 2 },
 	{ module = "ActionBars", key = "stance.rows", value = 2 },
+	{ module = "ActionBars", key = "bar1.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar2.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar4.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar6.showEmpty", value = false },
 	{ module = "Auras", key = "buffs.rows", value = 1 },
 	{ module = "Auras", key = "card.docked", value = true },
 	{ module = "DataBars", key = "strip.menus", value = true },
@@ -201,14 +206,14 @@ local ROWS = {
 }
 
 local STORY_BOTTOM = MARGIN + 260 + GAP
-local HEAD = { DPS = "groupframes.party", Tank = "groupframes.party", Healer = "meters.damage" }
+local HEAD = { DPS = "groupframes.party", Tank = "groupframes.party", Healer = "unitframes.boss" }
 
 local NAMES = { "DPS", "Tank", "Healer" }
 local LABELS = { DPS = L["DPS"], Tank = L["Tank"], Healer = L["Healer"] }
 local NOTES = {
 	DPS = L["Lumen Rails: party and chat on the left rail, the map, buffs and damage meter on the right; your target, its target and your focus sit right over your hands."],
 	Tank = L["The DPS layout with the threat meter in the combat cluster, under the target of target, where you read who holds aggro without looking away."],
-	Healer = L["Larger party and raid frames over the combat cluster, dispellable debuffs first; the damage meter heads the left rail, the boss cards sit on the right rail."],
+	Healer = L["Larger party and raid frames beside the combat cluster, dispellable debuffs first; the boss cards head the left rail, the damage meter sits under your buffs."],
 }
 
 local OFFSETS = {
@@ -267,7 +272,7 @@ for _, name in ipairs(NAMES) do
 		width = RAIL, height = headBottom - GAP - STORY_BOTTOM,
 		raid = raid,
 		label = L["Story rail"],
-		hint = L["Drag the RestedXP guide here, and move the quest tracker here in Edit Mode."],
+		hint = L["Apply places the quest tracker here; if Edit Mode refuses, move it here yourself. Drag the RestedXP guide here."],
 		raidHint = raid > 0 and L["In a raid, the raid frames cover the slot down to this line."] or nil,
 	}
 end

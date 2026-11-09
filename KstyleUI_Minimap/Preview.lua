@@ -41,7 +41,8 @@ function Preview.Build(parent)
 	local area = face.mapArea
 	local terrain = area:CreateTexture(nil, "ARTWORK")
 	terrain:SetColorTexture(Tokens.Color("white"))
-	Widgets.Tint(terrain, "buttonFill")
+	local r, g, b = Tokens.Color("buttonFill")
+	terrain:SetVertexColor(r, g, b, 1)
 	terrain:SetAllPoints(area)
 	terrain:AddMaskTexture(face.mask)
 	frame.terrain = terrain

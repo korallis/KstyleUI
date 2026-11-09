@@ -1,7 +1,7 @@
 -- gallery_auracounts.lua: the aura rows at three loads, side by side, each cropped as one frame of the gallery:
 -- low (3), medium (10) and high (24 on the sigil, 16 on the focus and boss cards, 16 tracked buffs, 6 tracked bars).
 -- The sigil's debuffs wrap to a second row of ten, then the last socket reads "+N"; the focus card's single row and the
--- boss card's two rows of three do the same; the KstyleUI tracked buff icons cap at six and the bars at two, a chip
+-- boss card's one row of four do the same; the KstyleUI tracked buff icons cap at six and the bars at two, a chip
 -- reading the rest beside them, and Blizzard's own viewers (the automatic path on Forever) where Layout > Apply put
 -- them in Edit Mode. The fake engine lays out nothing, so this scene places the engine's buttons as its flow layout
 -- would (sorted, wrapped at the columns, from the container's corner) and sizes the hidden counting container the way
@@ -116,7 +116,7 @@ local function Frames(load, k, frames)
 	local x = LEFT + (k - 1) * COLUMN
 	move(K, "unitframes.target", x, 30)
 	move(K, "unitframes.focus", x, 262)
-	move(K, "unitframes.boss", x + 280, 240)
+	move(K, "unitframes.boss", x + 320, 240)
 	hide(K, { "unitframes.player", "unitframes.castbar.player", "unitframes.castbar.target", "unitframes.resource", "unitframes.targettarget", "unitframes.pet", "unitframes.focustarget" })
 	env.SetTarget(true)
 	env.FireEvent("PLAYER_FOCUS_CHANGED")
@@ -148,8 +148,8 @@ local function Frames(load, k, frames)
 	})
 	frames:Add(env, boss.button, {
 		name = "auracounts_boss_" .. load.key, title = "Boss debuffs, " .. load.label, grade = "panel", reference = "target",
-		caption = string.format("A boss card with %d of your debuffs beside it: two rows of three 18-unit sockets growing left, the last reading +N past six.", load.boss),
-		match = "The boss column's 60 units of aura room, two rows inside one 62-unit card.",
+		caption = string.format("A boss card with %d of your debuffs beside it: one row of four 22-unit sockets growing left, each timer in a corner badge, the last reading +N past four.", load.boss),
+		match = "The boss column's 96 units of aura room, one row beside one 62-unit card, clear of its name and bar.",
 		rect = Gallery.Union(env, { boss.button, boss.auras.host }),
 		pad = 10,
 	})

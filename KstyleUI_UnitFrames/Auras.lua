@@ -1,4 +1,4 @@
--- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
+-- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip, each timer under its tile or in a corner badge, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -43,6 +43,7 @@ local SWIPE_ALPHA = 0.65
 local DISPEL_SUBLEVEL = 7
 local TIMER_BELOW_GAP = 1
 local TIMER_ROOM_EXTRA = 3
+local BADGE_PAD, BADGE_ALPHA = 1, 0.62
 local CHIP_LEVEL = 8
 local SORT = "Expiration"
 
@@ -149,12 +150,23 @@ local function TimerRoom(kind)
 	return TIMER_BELOW_GAP + fontSize + TIMER_ROOM_EXTRA
 end
 
-function Auras.PlaceTimer(timer, skin, kind)
+function Auras.PlaceTimer(timer, skin, kind, badge)
 	timer:ClearAllPoints()
-	if TimerBelow(kind) then
+	local below = TimerBelow(kind)
+	if below then
 		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, TIMER_BELOW_GAP))
+		timer:SetJustifyH("CENTER")
 	else
-		timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, COUNT_INSET)
+		timer:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -COUNT_INSET, COUNT_INSET)
+		timer:SetJustifyH("RIGHT")
+	end
+	if badge then
+		local pad = Widgets.Snap(skin, BADGE_PAD)
+		badge:ClearAllPoints()
+		badge:SetPoint("TOPLEFT", timer, "TOPLEFT", -pad, pad)
+		badge:SetPoint("BOTTOMRIGHT", timer, "BOTTOMRIGHT", pad, -pad)
+		badge:SetColorTexture(Widgets.Rgba("black", BADGE_ALPHA))
+		badge:SetShown(not below)
 	end
 end
 
@@ -164,8 +176,9 @@ local function StyleButton(view, entry)
 	Auras.LayoutTile(entry)
 	StyleText(entry.count, view)
 	StyleText(entry.timer, view)
-	Auras.PlaceTimer(entry.timer, entry.skin, view.kind)
+	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge)
 	entry.timer:SetShown(Value(view, "auraTimer"))
+	entry.badge:SetShown(entry.badge:IsShown() and Value(view, "auraTimer") == true)
 end
 
 local function Flush()
@@ -254,6 +267,7 @@ local function Dress(view, key, button)
 	local count = Widgets.FontString(over, "OVERLAY")
 	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
 	local timer = Widgets.FontString(over, "OVERLAY")
+	entry.badge = over:CreateTexture(nil, "BACKGROUND")
 	entry.button, entry.count, entry.timer = button, count, timer
 	if key == "debuffs" then
 		Dispel(entry, button)

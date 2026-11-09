@@ -76,8 +76,17 @@ env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(shown(b1.chip) and muted(b1), "boss1 is the target: its card folds to the Targeted chip")
 assert(not shown(b2.chip) and not muted(b2), "boss2 keeps its card")
 assert(U.Shown(env, b1.chip.text) == K.L["Targeted"], "the chip reads Targeted")
-local _, _, _, mx, my = b1.chip:GetPoint(1)
-assert(near(mx, 0, 1) and near(my, 0, 1), "the chip sits at the card's top left")
+-- The chip holds the column's rail-side edge, at the top of the folded slot, so it lines up with the cards still
+-- standing and with the rail beside the column instead of floating over the world (round 3: Muse #2, Grok #3).
+local point, rel, relPoint, mx, my = b1.chip:GetPoint(1)
+assert(point == "TOPRIGHT" and rel == b1.button and relPoint == "TOPRIGHT" and near(mx, 0, 1) and near(my, 0, 1), "the chip sits at the card's top right, the column's rail edge: " .. tostring(point))
+-- Out of combat the folded card takes clicks only on its chip: the rest of its invisible slot lets them through.
+local bw, bh = b1.button:GetSize()
+local cw, ch = b1.chip:GetSize()
+local l, r, t, b = b1.button:GetHitRectInsets()
+assert(near(l, bw - cw) and near(r, 0) and near(t, 0) and near(b, bh - ch), "the folded card's hit rect shrinks to its chip: " .. tostring(l) .. "," .. tostring(r) .. "," .. tostring(t) .. "," .. tostring(b))
+l, r, t, b = b2.button:GetHitRectInsets()
+assert((l or 0) == 0 and (r or 0) == 0 and (t or 0) == 0 and (b or 0) == 0, "a standing card takes clicks over all of it")
 
 env._units.boss1.cast = { name = "Terrifying Screech", texture = 132127, start = 1000, finish = 3500, spellID = 5000 }
 env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", 5000)
@@ -88,6 +97,8 @@ env.FireEvent("UNIT_SPELLCAST_STOP", "boss1", "Cast-1", 5000)
 env._units.target = env._units.boss2
 env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(not shown(b1.chip) and not muted(b1), "boss1 gets its card back when you target another")
+l, r, t, b = b1.button:GetHitRectInsets()
+assert(l == 0 and r == 0 and t == 0 and b == 0, "and its whole card takes clicks again")
 assert(shown(b2.chip) and muted(b2), "boss2 is now the target")
 
 env._units.target = nil
@@ -119,14 +130,15 @@ env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 noErrors("secret")
 
--- The card folds only for a sigil that shows the cast: with the target's cast line or frame off, the boss card keeps
--- its own read and shows no chip, so the cast never disappears from the screen.
+-- The card folds whenever the sigil shows the boss: the target's cast line is the player's own choice for any target,
+-- so turning it off no longer brings the duplicate card back (round 3, Muse D6). With the target frame off the boss
+-- card keeps its own read.
 env._units.target = env._units.boss1
 K.Options.Write("UnitFrames", "target.castbar", false)
 env.FireEvent("PLAYER_TARGET_CHANGED")
-assert(not shown(b1.chip) and not muted(b1), "no target cast line: the boss card keeps its own")
+assert(shown(b1.chip) and muted(b1), "no target cast line: the sigil still shows the boss, so its card stays folded")
 K.Options.Write("UnitFrames", "target.castbar", true)
-assert(shown(b1.chip) and muted(b1), "the target's cast line back on: the card folds again at once")
+assert(shown(b1.chip) and muted(b1), "the target's cast line back on: the card stays folded")
 K.Options.Write("UnitFrames", "target.enabled", false)
 env.RunTimers()
 assert(not shown(b1.chip) and not muted(b1), "no target frame: the boss card keeps its own read")
@@ -136,12 +148,21 @@ env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 noErrors("no sigil cast")
 
--- No combat lockdown is needed: the chip and the body are plain frames, so the swap runs mid-pull -----------------
+-- No combat lockdown is needed for the fold: the chip and the body are plain frames, so the swap runs mid-pull. The
+-- secure button's hit rect is protected, so it opens to the whole card as combat starts and waits for the end of it.
+env._units.target = env._units.boss1
+env.FireEvent("PLAYER_TARGET_CHANGED")
+assert(select(1, b1.button:GetHitRectInsets()) > 0, "out of combat the folded card clicks on its chip only")
 env.SetCombat(true)
+l, r, t, b = b1.button:GetHitRectInsets()
+assert(l == 0 and r == 0 and t == 0 and b == 0, "combat opens the folded card's whole slot before lockdown")
 env._units.target = env._units.boss2
 env.FireEvent("PLAYER_TARGET_CHANGED")
 assert(shown(b2.chip) and muted(b2), "the swap happens in combat")
+l, r, t, b = b2.button:GetHitRectInsets()
+assert(l == 0 and r == 0 and t == 0 and b == 0, "in combat no hit rect changes")
 env.SetCombat(false)
+assert(select(1, b2.button:GetHitRectInsets()) > 0, "after combat the folded card shrinks to its chip again")
 noErrors("combat")
 
 print("unitframes boss ok")

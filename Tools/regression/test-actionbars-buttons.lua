@@ -311,7 +311,7 @@ end
 
 -- The stance bar: one button per form, cast by spell ID, the active form selected; new forms wait for combat to end.
 do
-	local env, _, ns = new({
+	local env, SK, ns = new({
 		setup = function(e)
 			e._game.forms = {
 				{ texture = 132349, spellID = 2457, isActive = true },
@@ -335,6 +335,28 @@ do
 	env._game.forms[2].spellID = 7376
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	assert(bar.buttons[2]:GetAttribute("spell") == 7376, "a new rank of a form updates the button's spell")
+	-- Folded into two rows (the Lumen layouts), the bar keeps a full row's width and fills from its bottom left: three
+	-- forms make one row on the bar's foot, beside bar 1 and on its baseline, never 2 + 1 (round 3, Fable #3); a sixth
+	-- form starts a second row above the first.
+	SK.Options.Write("ActionBars", "stance.rows", 2)
+	env.RunTimers()
+	local w, h = bar.holder:GetSize()
+	assert(near(w, 5 * 30 + 4 * 3) and near(h, 30), "two rows of five: the bar is a full row wide and one row tall for three forms, got " .. w .. " x " .. h)
+	for i = 1, 3 do
+		local _, _, _, x, y = bar.buttons[i]:GetPoint(1)
+		assert(near(x, (i - 1) * 33) and near(y, 0), "form " .. i .. " sits in the one row, left to right, got " .. x .. ", " .. y)
+	end
+	for i = 4, 6 do
+		env._game.forms[i] = { texture = 132275, spellID = 3000 + i }
+	end
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+	w, h = bar.holder:GetSize()
+	assert(near(w, 5 * 30 + 4 * 3) and near(h, 2 * 30 + 3), "six forms take a second row: " .. w .. " x " .. h)
+	local _, _, _, x1, y1 = bar.buttons[1]:GetPoint(1)
+	local _, _, _, x6, y6 = bar.buttons[6]:GetPoint(1)
+	assert(near(x1, 0) and near(y1, -33) and near(x6, 0) and near(y6, 0), "the first five stay on the foot, the sixth starts the row above")
+	SK.Options.Write("ActionBars", "stance.rows", 1)
+	env.RunTimers()
 	env._game.forms = {}
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	assert(env.Driver(bar.header, "visibility") == "hide", "a class with no forms has no stance bar")

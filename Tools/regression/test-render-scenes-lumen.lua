@@ -103,9 +103,10 @@ do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 0.75), text .. " is read mid-pull and dims only to 75% in combat, got " .. tostring(item.alpha))
 	end
+	-- Round 3 (Muse #3): the readout keeps a legible 65% floor in combat instead of ghosting at 30%.
 	for _, text in ipairs({ "fps", "armour" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
-		assert(near(item.alpha, 0.3), text .. " is on the idle readout and rests at 30% in combat, got " .. tostring(item.alpha))
+		assert(near(item.alpha, 0.65), text .. " is on the readout and rests at a legible 65% in combat, got " .. tostring(item.alpha))
 	end
 	for _, text in ipairs({ "Leduc", "DAMAGE DONE", "BLOODTALON MATRIARCH", "VALERIN" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")

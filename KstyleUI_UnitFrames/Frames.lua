@@ -1,4 +1,4 @@
--- Frames.lua: the secure unit buttons for each frame, their Layout elements, unit watches and events; the boss you target folds its card to a Targeted chip, and a card with no cast hugs its pill.
+-- Frames.lua: the secure unit buttons for each frame, their Layout elements, unit watches and events; the boss you target folds its card to a Targeted chip on the column's rail edge, which out of combat is all of the card that takes clicks, and a card with no cast hugs its pill.
 local _, ns = ...
 
 local K = KstyleUI
@@ -215,8 +215,8 @@ local function NewChip(button)
 	return chip
 end
 
-local function SigilCasts()
-	return running and Settings.Value("target", "enabled") and Settings.Value("target", "castbar") and true or false
+local function Sigil()
+	return running and Settings.Value("target", "enabled") and true or false
 end
 
 local function AuraParts(view)
@@ -235,13 +235,35 @@ local function AuraParts(view)
 	return parts
 end
 
+local function Size(frame)
+	local w, h = frame:GetSize()
+	if (issecretvalue and (issecretvalue(w) or issecretvalue(h))) or type(w) ~= "number" or type(h) ~= "number" then
+		return nil
+	end
+	return w, h
+end
+
+local function Hit(view, folded)
+	if InCombatLockdown() then
+		return
+	end
+	local button = view.button
+	local bw, bh = Size(button)
+	local cw, ch = Size(view.chip)
+	if folded and bw and cw then
+		button:SetHitRectInsets(math.max(0, bw - cw), 0, 0, math.max(0, bh - ch))
+	else
+		button:SetHitRectInsets(0, 0, 0, 0)
+	end
+end
+
 local function MarkTarget(view)
 	local chip, body = view.chip, view.body
 	if not chip then
 		return
 	end
 	local same = false
-	if SigilCasts() and UnitExists(view.unit) then
+	if Sigil() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
 	end
 	local auras = AuraParts(view) or {}
@@ -252,6 +274,7 @@ local function MarkTarget(view)
 		for _, part in ipairs(auras) do
 			part:SetAlphaFromBoolean(same, 0, 1)
 		end
+		Hit(view, false)
 		return
 	end
 	same = same == true
@@ -260,6 +283,16 @@ local function MarkTarget(view)
 	body:SetAlpha(same and 0 or 1)
 	for _, part in ipairs(auras) do
 		part:SetAlpha(same and 0 or 1)
+	end
+	Hit(view, same)
+end
+
+local function OpenHits()
+	local uf = frames.boss
+	if uf then
+		for _, view in ipairs(uf.views) do
+			Hit(view, false)
+		end
 	end
 end
 
@@ -276,7 +309,7 @@ end
 local function PlaceChip(view, width)
 	local chip, button, Snap = view.chip, view.button, K.Widgets.Snap
 	chip:ClearAllPoints()
-	chip:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0)
+	chip:SetPoint("TOPRIGHT", button, "TOPRIGHT", 0, 0)
 	local gem = ns.Geometry.GEM
 	chip.gem:ClearAllPoints()
 	chip.gem:SetPoint("LEFT", chip, "LEFT", Snap(button, CHIP_PAD), 0)
@@ -382,14 +415,6 @@ local function Build(kind)
 	order[#order + 1] = kind
 	Register(uf)
 	return uf
-end
-
-local function Size(frame)
-	local w, h = frame:GetSize()
-	if (issecretvalue and (issecretvalue(w) or issecretvalue(h))) or type(w) ~= "number" or type(h) ~= "number" then
-		return nil
-	end
-	return w, h
 end
 
 local function Protected()
@@ -651,11 +676,14 @@ local function RegisterEvents()
 	end
 	Events.Register(MODULE, "UNIT_THREAT_SITUATION_UPDATE", OnThreat)
 	Events.Register(MODULE, "UNIT_THREAT_LIST_UPDATE", OnThreat)
-	for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
-		Events.Register(MODULE, event, function()
-			OnPlayer(Indicators.Combat)
-		end)
-	end
+	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", function()
+		OnPlayer(Indicators.Combat)
+		OpenHits()
+	end)
+	Events.Register(MODULE, "PLAYER_REGEN_ENABLED", function()
+		OnPlayer(Indicators.Combat)
+		Frames.MarkTargets()
+	end)
 	Events.Register(MODULE, "PLAYER_UPDATE_RESTING", function()
 		OnPlayer(Indicators.Resting)
 	end)

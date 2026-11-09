@@ -42,9 +42,10 @@ local LABELS = {
 }
 local UNIT_GAP = 3
 local MENU_GAP = 6
-local LINE = 43
+local LINE = 30
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
+Strip.LINE = LINE
 
 local CELL_WEIGHT = { fps = 0.8, latency = 0.9, gold = 1.4, durability = 1.25, time = 0.85 }
 
@@ -477,7 +478,7 @@ function Strip.Paint(view, s, values)
 end
 
 local DOCK = {
-	micro = { "TOPLEFT", "TOPLEFT", 1 },
+	micro = { "TOPRIGHT", "TOPRIGHT", -1 },
 	bags = { "TOPRIGHT", "TOPRIGHT", -1 },
 }
 local MENU_MIN = 22
@@ -567,15 +568,19 @@ function Strip.DockMenus(view, s)
 	local plan = Strip.MenuPlan(w - 2 * pad, { micro = DockCount(Menus, "micro"), bags = DockCount(Menus, "bags") },
 		{ micro = settings.micro.size, bags = settings.bags.size }, Widgets.Snap(frame, settings.micro.spacing), gap)
 	view.wrapMenus = not plan.oneRow
-	local rowTop = -(pad + line + gap)
-	local height = pad + line + gap + plan.height + pad
+	local rowTop = -(line + gap)
+	local height = line + gap + plan.height + pad
+	local bagCount = DockCount(Menus, "bags")
+	local spacing = Widgets.Snap(frame, settings.micro.spacing)
+	local beside = plan.oneRow and bagCount > 0 and (bagCount * plan.tile + (bagCount - 1) * spacing + 2 * MENU_PAD + gap) or 0
 	view.line = line
 	view.lineTop = nil
 	for id, spec in pairs(DOCK) do
 		local drop = (not plan.oneRow and id == "bags") and (plan.microHeight + gap) or 0
+		local shift = id == "micro" and beside or 0
 		Menus.SetDock(id, function(content, width, contentHeight)
 			content:ClearAllPoints()
-			content:SetPoint(spec[1], frame, spec[2], spec[3] * pad, rowTop - drop)
+			content:SetPoint(spec[1], frame, spec[2], spec[3] * (pad + shift), rowTop - drop)
 			content:SetSize(width, contentHeight)
 		end, frame, plan.tile, plan.rows[id] > 0 and plan.rows[id] or nil)
 	end

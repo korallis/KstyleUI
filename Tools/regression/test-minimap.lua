@@ -51,7 +51,7 @@ local element = K.Layout.Element("minimap.main")
 assert(element.label == K.Setup.Layouts.Element("minimap.main").label, "the mover plate uses the setup's label")
 assert(element.module == "Minimap", "Layout knows the element belongs to the Minimap module")
 assert(element.opts.resizable and element.opts.aspect, "the minimap resizes in Layout Mode and keeps its proportions")
-assert(holder:GetWidth() == 318 and holder:GetHeight() == 326, "the element fills the Lumen lens card's footprint at the 1080 reference")
+assert(holder:GetWidth() == 318 and holder:GetHeight() == 346, "the element fills the Lumen lens card's footprint at the 1080 reference")
 
 local minimap = env.Minimap
 local face = Map(ns)
@@ -80,6 +80,28 @@ assert(W.Near(face.box:GetWidth(), holder:GetWidth()) and W.Near(face.box:GetHei
 assert(face.chrome.fill[5]:IsShown(), "the card's glass stays under the lens: the frost shows round the circle")
 local pad = face.chrome:Inset()
 local lensLeft, lensTop, lens = Format.Lens(holder:GetWidth(), holder:GetHeight(), Format.RIM, Format.FOOT)
+-- Round 3 (Muse #3): the card is the lens plus its foot, with no square slab corners. On the 318 by 346 footprint
+-- the lens fills the width a rim inside it; over the lens's centre line the glass is a dome, the top half of a disc
+-- one rim wider than the lens, so the card's top corners show the world; the frost card is the foot, from just over
+-- the lens's centre line (its cut corners inside the dome) to the bottom, as wide as the dome.
+assert(W.Near(lens, 318 - 2 * Format.RIM, 0.5), "the lens fills the card's width a rim inside it: " .. tostring(lens))
+local dome, foot = face.dome, face.foot
+assert(dome and foot and face.chrome.owner == foot, "the card is a dome over a foot, the frost card on the foot")
+local across = lens + 2 * Format.RIM
+local dp, drel, drelp, dx, dy = dome:GetPoint(1)
+assert(dp == "TOPLEFT" and drel == face.box and drelp == "TOPLEFT" and W.Near(dx, lensLeft - Format.RIM, 0.5) and W.Near(dy, -(lensTop - Format.RIM), 0.5), "the dome sits a rim round the lens's top")
+assert(W.Near(dome:GetWidth(), across, 0.5) and W.Near(dome:GetHeight(), across / 2, 0.5), "the dome is the top half of a disc a rim wider than the lens")
+for _, disc in ipairs({ dome.fill, dome.frost, dome.edge }) do
+	assert(W.LastCall(disc, "SetTexture")[1] == (K.Widgets.LumenTexture("lensMask")), "each dome layer is the round lens shape")
+	local tc = W.LastCall(disc, "SetTexCoord")
+	assert(tc and tc[1] == 0 and tc[2] == 1 and tc[3] == 0 and W.Near(tc[4], 0.5), "cut to the disc's top half")
+end
+local radius = face.chrome:Radius()
+local fp, frel, _, fx, fy = foot:GetPoint(1)
+assert(fp == "TOPLEFT" and frel == face.box and W.Near(fx, lensLeft - Format.RIM, 0.5) and W.Near(-fy, lensTop + lens / 2 - radius, 0.5), "the foot rises one corner cut over the lens's centre line, so its cut corners sit inside the dome")
+assert(W.Near(foot:GetWidth(), across, 0.5), "and is as wide as the dome")
+local _, _, _, _, fby = foot:GetPoint(2)
+assert(W.Near(fby, 0), "and reaches the card's bottom")
 assert(W.Near(mw, lens, 0.5), "the lens is the largest circle inside the rim and over the foot: " .. tostring(mw) .. " for " .. tostring(lens))
 assert(W.Near(select(4, face.mapArea:GetPoint(1)), lensLeft, 0.5) and W.Near(select(5, face.mapArea:GetPoint(1)), -lensTop, 0.5), "the lens is centred a rim under the top")
 assert(W.Near(lensLeft, (holder:GetWidth() - lens) / 2, 0.5), "Format.Lens centres the lens")
@@ -95,9 +117,9 @@ assert(LastArg(minimap, "SetMaskTexture") == lensMask, "the minimap wears the ro
 assert(face.strip.fill == nil and face.strip.divider == nil, "the foot has no plate and no divider of its own: the card is the surface")
 assert(W.Near(face.strip:GetHeight(), Format.FOOT), "the foot is the card's foot height: " .. tostring(face.strip:GetHeight()))
 local sp, srel, srelp, sx = face.strip:GetPoint(1)
-assert(sp == "BOTTOMLEFT" and srel == face.box and srelp == "BOTTOMLEFT" and W.Near(sx, pad, 0.5), "the foot sits on the card's bottom, from the card's inset")
+assert(sp == "BOTTOMLEFT" and srel == foot and srelp == "BOTTOMLEFT" and W.Near(sx, pad, 0.5), "the foot sits on the card's bottom, from the card's inset")
 local _, stripRel, stripRelPoint, stripX = face.strip:GetPoint(2)
-assert(stripRel == face.box and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -pad), "and reaches the card's inset at the right")
+assert(stripRel == foot and stripRelPoint == "BOTTOMRIGHT" and W.Near(stripX, -pad), "and reaches the card's inset at the right")
 assert(W.Near(select(5, face.strip:GetPoint(1)), 0) and W.Near(lensTop + lens, holder:GetHeight() - Format.FOOT, 0.5), "the lens ends where the foot begins: no band between them")
 assert(select(1, face.zone:GetPoint(1)) == "LEFT" and W.Near(select(4, face.zone:GetPoint(1)), 0), "the zone name starts at the foot's left")
 assert(select(1, face.clock:GetPoint(1)) == "RIGHT" and W.Near(select(4, face.clock:GetPoint(1)), 0), "the clock ends at the foot's right")
@@ -193,11 +215,11 @@ assert(env.GetMinimapShape and env.GetMinimapShape() == "ROUND", "minimap button
 env.MinimapCluster.UpdateMinimapConfig()
 assert(LastArg(minimap, "SetMaskTexture") == lensMask, "a Blizzard minimap refresh keeps the round mask")
 
-M.Resize(holder, 318, 326)
+M.Resize(holder, 318, 346)
 mw, mh = face.mapArea:GetSize()
-local bigLeft, bigTop, bigLens = Format.Lens(318, 326, Format.RIM, Format.FOOT)
-assert(mw == mh and W.Near(mw, bigLens, 0.5), "the Lumen footprint, 318 by 326, gives the mockup's lens: " .. tostring(mw) .. " for " .. tostring(bigLens))
-assert(W.Near(bigLens, 286), "a 286 lens on the 318 by 326 card: the card is the lens, a rim and the foot, got " .. tostring(bigLens))
+local bigLeft, bigTop, bigLens = Format.Lens(318, 346, Format.RIM, Format.FOOT)
+assert(mw == mh and W.Near(mw, bigLens, 0.5), "the Lumen footprint, 318 by 346, gives the mockup's lens: " .. tostring(mw) .. " for " .. tostring(bigLens))
+assert(W.Near(bigLens, 306), "a 306 lens on the 318 by 346 card: the card is the lens, a rim and the foot, got " .. tostring(bigLens))
 assert(W.Near(select(4, face.mapArea:GetPoint(1)), bigLeft, 0.5) and W.Near(select(5, face.mapArea:GetPoint(1)), -bigTop, 0.5), "the lens is centred a rim under the top at the new size")
 Fits("resized")
 M.Resize(holder, 168, 166)
