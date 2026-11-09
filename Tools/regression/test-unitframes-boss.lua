@@ -120,6 +120,23 @@ env._units.target = nil
 env.FireEvent("PLAYER_TARGET_CHANGED")
 noErrors("secret")
 
+-- The card steps back only for a sigil that shows the cast: with the target's cast line or frame off, the boss card
+-- keeps its own cast line and shows no mark, so the cast never disappears from the screen.
+env._units.target = env._units.boss1
+K.Options.Write("UnitFrames", "target.castbar", false)
+env.FireEvent("PLAYER_TARGET_CHANGED")
+assert(not shown(b1.targetMark) and not muted(b1), "no target cast line: the boss card keeps its own")
+K.Options.Write("UnitFrames", "target.castbar", true)
+assert(shown(b1.targetMark) and muted(b1), "the target's cast line back on: the card steps back again at once")
+K.Options.Write("UnitFrames", "target.enabled", false)
+env.RunTimers()
+assert(not shown(b1.targetMark) and not muted(b1), "no target frame: the boss card keeps its own cast line")
+K.Options.Write("UnitFrames", "target.enabled", true)
+env.RunTimers()
+env._units.target = nil
+env.FireEvent("PLAYER_TARGET_CHANGED")
+noErrors("no sigil cast")
+
 -- No combat lockdown is needed: the mark and the holder are plain frames, so the swap runs mid-pull ---------------
 env.SetCombat(true)
 env._units.target = env._units.boss2

@@ -214,13 +214,17 @@ local function NewMark(button)
 	return mark
 end
 
+local function SigilCasts()
+	return running and Settings.Value("target", "enabled") and Settings.Value("target", "castbar") and true or false
+end
+
 local function MarkTarget(view)
 	local mark, mute = view.targetMark, view.castMute
 	if not mark then
 		return
 	end
 	local same = false
-	if UnitExists(view.unit) then
+	if SigilCasts() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
 	end
 	if issecretvalue and issecretvalue(same) then
@@ -520,6 +524,9 @@ local function OnSettingChanged(_, module, key)
 			ns.Blizzard.Apply(running)
 		elseif uf.active then
 			Frames.Restyle(uf)
+		end
+		if kind == "target" then
+			Frames.MarkTargets()
 		end
 		if rest == "style" or rest:find("^castbar") or rest:find("^fonts%.cast") then
 			ns.CastBars.Apply()
