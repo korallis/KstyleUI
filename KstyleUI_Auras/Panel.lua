@@ -687,15 +687,16 @@ local function CountSpecs(docked, buffCap, debuffCap)
 	local group = other and not other.failed and other.ctx.group
 	local first = group and group.dispelFirst == true
 	local dispel = DispelSet()
+	local more = Model.MORE
 	return {
-		{ filter = Model.FILTERS.buffs, cap = buffCap },
-		{ filter = Model.FILTERS.debuffs, candidates = { includeDispelTypes = dispel }, cap = debuffCap, off = not (docked and first) },
-		{ filter = Model.FILTERS.debuffs, candidates = first and { excludeDispelTypes = dispel } or nil, cap = debuffCap, off = not (docked and group) },
+		{ filter = Model.FILTERS.buffs, cap = buffCap, labels = more.buffs },
+		{ filter = Model.FILTERS.debuffs, candidates = { includeDispelTypes = dispel }, cap = debuffCap, labels = more.debuffs, off = not (docked and first) },
+		{ filter = Model.FILTERS.debuffs, candidates = first and { excludeDispelTypes = dispel } or nil, cap = debuffCap, labels = more.debuffs, off = not (docked and group) },
 	}
 end
 
 local function NewCounter(host)
-	local chip, why = Overflow.New(host, UNIT, CountSpecs(true, 0, 0), 0, { face = false, labels = Model.MORE.buffs })
+	local chip, why = Overflow.New(host, UNIT, CountSpecs(true, 0, 0), 0, { face = false })
 	if not chip then
 		LogOnce("counter", "the cap's +N has no counting container (" .. tostring(why) .. "); the full list stays a click away")
 	end
@@ -783,11 +784,11 @@ end
 local function BuildMore(desc)
 	local card, host = desc.card, desc.host
 	local more = LayoutFrame(host)
-	more:SetClampedToScreen(true)
 	more:EnableMouse(true)
 	more:Hide()
 	card.more = more
 	card.moreSheet = LayoutFrame(host)
+	card.moreSheet:SetClampedToScreen(true)
 	card.moreChrome = Widgets.Chrome(more, { shape = "panel" })
 	card.moreCap = Widgets.RailCap(more, { title = L["All auras"] })
 	card.moreSplit = LayoutFrame(more)
@@ -806,6 +807,15 @@ local function BuildMore(desc)
 	end)
 end
 
+local function MoreReach(list, columns, pad, gap, snap)
+	local reach = pad + snap(Widgets.SECTION_CAP_HEIGHT) + gap + gap + gap + pad
+	for name, entry in pairs(list) do
+		local rows = math.ceil(Model.MORE[name] * #entry.keys / columns)
+		reach = reach + rows * entry.ctx.height + math.max(0, rows - 1) * entry.ctx.rowSpacing
+	end
+	return reach
+end
+
 local function LayoutMore(desc)
 	local card = desc.card
 	local more, sheet = card.more, card.moreSheet
@@ -822,6 +832,7 @@ local function LayoutMore(desc)
 	sheet:ClearAllPoints()
 	sheet:SetPoint("TOPRIGHT", desc.host, "TOPLEFT", -snap(MORE_GAP), 0)
 	sheet:SetSize(inner + 2 * pad, 1)
+	sheet:SetClampRectInsets(0, 0, 0, -MoreReach(list, columns, pad, gap, snap))
 	local cap = card.moreCap
 	cap.frame:ClearAllPoints()
 	cap.frame:SetPoint("TOPLEFT", sheet, "TOPLEFT", pad, -pad)

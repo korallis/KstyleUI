@@ -174,6 +174,23 @@ A.Ghosts(moreCounter, { 40, 0, 12 })
 check(A.Chip(moreCounter) == nil, "forty buffs and twelve debuffs all show in the full list: no count")
 A.Ghosts(moreCounter, { Model.MORE.buffs + 4, 0, 12 })
 check(A.Chip(moreCounter) == "+4", "past its own cap the full list counts the rest as the card does: " .. tostring(A.Chip(moreCounter)))
+-- The screen clamp moves the glass and its contents together: the clamped frame is the one they all hang from, and
+-- its clamp rect reaches as far down as the fullest list could.
+local function last(frame, method)
+	local found
+	for _, call in ipairs(frame._calls) do
+		if call.method == method then
+			found = call.args
+		end
+	end
+	return found
+end
+local sheet = desc.card.moreSheet
+check(select(2, more:GetPoint(1)) == sheet and select(2, desc.card.moreCap.frame:GetPoint(1)) == sheet, "the glass and the list's cap hang from one frame")
+check(last(sheet, "SetClampedToScreen") and last(sheet, "SetClampedToScreen")[1] == true, "that frame is the one the screen clamps")
+check(not last(more, "SetClampedToScreen"), "the glass is not clamped on its own, so it never leaves its contents behind")
+local insets = last(sheet, "SetClampRectInsets")
+check(insets and insets[4] < -(tall + 100), "the clamp reaches below the frame by the fullest list's height: " .. tostring(insets and insets[4]))
 flyout = rect(more)
 check(flyout.right <= rect(desc.host).left + 0.5, "the full list opens left of the card, toward the screen's centre")
 check(flyout.left >= screen.left - 0.5 and flyout.bottom >= screen.bottom - 0.5 and flyout.top <= screen.top + 0.5, "and stays on screen")
@@ -198,6 +215,8 @@ state(8, 13, 3)
 check(count() == nil, "three dispellable and ten others fit their groups: nothing is hidden, so no count: " .. tostring(count()))
 state(8, 30, 14)
 check(count() == "+6", "two past the dispellable group and four past the rest: +6, got " .. tostring(count()))
+state(40, 36)
+check(count() == "+52", "twenty-eight buffs and twenty-four debuffs past the rows: the count reaches +52 and never drops out, got " .. tostring(count()))
 state(40)
 
 -- Dispellable first switches off and on without a reload: the dispellable group stands down and the rest takes

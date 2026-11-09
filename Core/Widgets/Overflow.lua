@@ -69,10 +69,11 @@ function Overflow.New(host, unit, groups, cap, opts)
 	local specs = Specs(groups)
 	local ghostHost = CreateFrame("Frame", nil, host)
 	ghostHost:SetAlpha(0)
-	local chain = {}
+	local chain, total = {}, 0
 	for _, spec in ipairs(specs) do
-		local own = spec.cap or cap
-		local a, why = Ghost(ghostHost, unit, spec, own + labels)
+		local own, reach = spec.cap or cap, spec.labels or labels
+		total = total + reach
+		local a, why = Ghost(ghostHost, unit, spec, own + reach)
 		local b
 		if a and #specs > 1 then
 			b, why = Ghost(ghostHost, unit, spec, own, true)
@@ -81,7 +82,7 @@ function Overflow.New(host, unit, groups, cap, opts)
 			ghostHost:Hide()
 			return nil, why
 		end
-		chain[#chain + 1] = { a = a, b = b }
+		chain[#chain + 1] = { a = a, b = b, labels = reach }
 	end
 	local window = LayoutFrame(host)
 	if not window then
@@ -93,13 +94,13 @@ function Overflow.New(host, unit, groups, cap, opts)
 	strip:SetClipsChildren(true)
 	local chip = {
 		ghostHost = ghostHost, ghost = chain[1].a, pairs = chain, window = window, strip = strip,
-		labels = {}, texts = {}, count = labels, pitch = 0,
+		labels = {}, texts = {}, count = total, pitch = 0,
 	}
 	if opts.face ~= false then
 		chip.face = LayoutFrame(strip)
 		chip.chrome = Widgets.IconChrome(chip.face)
 	end
-	for i = 1, labels do
+	for i = 1, total do
 		local frame = LayoutFrame(strip)
 		local text = Widgets.FontString(frame, "OVERLAY")
 		text:SetAllPoints(frame)
@@ -133,7 +134,7 @@ local function ApplyGroups(chip, o)
 					ghost:SetAuraGroupCandidateFilters(GROUP, spec.candidates)
 				end
 			end
-			ghost:SetAuraGroupMaxFrameCount(GROUP, ghost == pair.b and cap or cap + chip.count)
+			ghost:SetAuraGroupMaxFrameCount(GROUP, ghost == pair.b and cap or cap + pair.labels)
 			ghost:SetAuraGroupLayout(GROUP, Layout(o.cell))
 			ghost:SetEnabled(on)
 		end
