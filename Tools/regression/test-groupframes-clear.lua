@@ -119,6 +119,12 @@ do
 	local nameItem = find(scene, dead.name)
 	local path, size = dead.name:GetFont()
 	assert(nameItem and nameItem.rect[3] + 0.01 >= Scene.TextWidth("Kragar", size, path), "party: the dead member's name stays whole beside \"Dead\"")
+	-- Codex review, round 4: risen again, the class caption comes back with its text, not blank.
+	env._member("party2").dead, env._member("party2").health = false, 60
+	env.FireEvent("UNIT_HEALTH", "party2")
+	assert(dead.classLine:IsShown(), "party: risen, the class caption shows again")
+	local caption = dead.classLine:GetText()
+	assert(type(caption) == "string" and caption:find("SHAMAN") ~= nil, "party: and says the class, got " .. tostring(caption))
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
@@ -184,6 +190,38 @@ for _, position in ipairs({ "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT", "TOPRIGHT", 
 		Clear(env, f, kind .. " with debuffs " .. position)
 		eq(#env._errors, 0, tostring(env._errors[1]))
 	end
+end
+
+-- Codex review, round 4: a party frame with the name on the bar has no side lane, so your heals take a row under the
+-- bar instead of vanishing.
+do
+	local env, K, ns = G.New({ saved = saved({ enabled = true, party = { textLayout = "INSIDE" } }) })
+	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 } })
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	local f = content(ns, ns.Headers.party, "party1")
+	local _, heals = ns.Auras.HealIcons(f, ns.Settings.current.party)
+	assert(heals >= 2, "party, name on the bar: your heals keep a place, got " .. heals)
+	Clear(env, f, "party, name on the bar")
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+-- Codex review, round 4: at fractional pixel scales the fitted icon sizes are whole pixels, so the engine lays the
+-- icons out at the size their buttons are drawn and the clips hold them whole.
+for _, screen in ipairs({ { 2560, 1600 }, { 3456, 2234 } }) do
+	local what = "raid at " .. screen[1] .. " by " .. screen[2]
+	local env, K, ns = G.New({ width = screen[1], height = screen[2] })
+	G.SetRoster(env, "raid", G.Members(5))
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	local f = content(ns, ns.Headers.raid[1], "raid1")
+	for _, pair in ipairs({ { "debuffs", f.auras._groups.debuffs, f.auraClip }, { "your heals", f.buffs._groups.buffs, f.buffClip } }) do
+		local group, clip = pair[2], pair[3]
+		local laid, drawn = group.layout.elementWidth, group.frames[1]:GetWidth()
+		assert(math.abs(laid - drawn) < 1e-6, what .. ": " .. pair[1] .. " are laid out at the size they are drawn, " .. laid .. " and " .. drawn)
+		assert(clip:GetHeight() + 1e-6 >= drawn, what .. ": and their clip holds a whole icon")
+	end
+	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
 -- The options preview's sample frames draw the same lanes: no sample aura on a sample bar.

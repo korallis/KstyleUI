@@ -399,7 +399,7 @@ function Style.Apply(f, width, height)
 		position = place, count = math.max(1, math.min(k.auraCount, k.auraColumns * k.auraRows)), columns = k.auraColumns, rows = k.auraRows,
 		size = Widgets.Snap(f, k.auraSize), spacing = Widgets.Snap(f, k.auraSpacing),
 	} or nil
-	local healRow = cfg.buffs.enabled and k.buffCount > 0 and (aura or not lane) and Widgets.Snap(f, k.buffSize) or nil
+	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, k.buffSize) or nil
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,
 		power = k.power,
@@ -415,6 +415,7 @@ function Style.Apply(f, width, height)
 		healLane = lane,
 		aura = aura,
 		healRow = healRow,
+		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),
 	})
 	f.parts = parts
 	local health = cfg.health

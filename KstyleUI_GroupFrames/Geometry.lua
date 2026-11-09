@@ -279,7 +279,14 @@ local MIN_ICON = 8
 local MIN_BAR = 6
 Geometry.MIN_ICON = MIN_ICON
 
-local function InsideBlock(a, aw, ah, laneGap)
+local function Whole(v, px)
+	if px and px > 0 then
+		return floor(v / px + 1e-6) * px
+	end
+	return floor(v)
+end
+
+local function InsideBlock(a, aw, ah, laneGap, px)
 	local count = max(0, min(a.count or 0, (a.columns or 1) * (a.rows or 1)))
 	if count <= 0 then
 		return nil
@@ -288,7 +295,7 @@ local function InsideBlock(a, aw, ah, laneGap)
 	local rows = max(1, min(a.rows or 1, count))
 	local size = a.size
 	while rows >= 1 do
-		size = floor(min(a.size, (ah - (rows - 1) * spacing) / rows))
+		size = Whole(min(a.size, (ah - (rows - 1) * spacing) / rows), px)
 		if size >= MIN_ICON or rows == 1 then
 			break
 		end
@@ -314,7 +321,7 @@ end
 local function Lanes(out, area, o, gap, laneGap)
 	local aw, ah = area.right - area.left, area.bottom - area.top
 	local a = o.aura
-	local block = a and AURA_INSIDE_LANES[a.position] and InsideBlock(a, aw, ah, laneGap)
+	local block = a and AURA_INSIDE_LANES[a.position] and InsideBlock(a, aw, ah, laneGap, o.pixel)
 	local barLeft, barRight = area.left, area.right
 	if block then
 		local x = a.position:find("LEFT$") and area.left or area.right - block.width
@@ -329,7 +336,7 @@ local function Lanes(out, area, o, gap, laneGap)
 	end
 	local barHeight = ah
 	if o.healRow then
-		local size = floor(min(o.healRow, (ah - gap) / 2))
+		local size = Whole(min(o.healRow, (ah - gap) / 2), o.pixel)
 		if size >= MIN_ICON and ah - size - gap >= MIN_BAR then
 			barHeight = ah - size - gap
 			out.healRow = Rect(barLeft, area.top + barHeight + gap, barRight - barLeft, size)
@@ -365,12 +372,14 @@ function Geometry.Button(w, h, o)
 	end
 	local inside = o.aura and AURA_INSIDE_LANES[o.aura.position]
 	local pill = o.pill
-	if not inside and not o.healRow and pill and not out.nameInside and areaHeight > pill then
+	local lane = o.healLane or 0
+	local pilled = not inside and pill and not out.nameInside and areaHeight > pill
+	local laned = pilled and lane > 0 and width - lane >= h
+	if pilled and (laned or not o.healRow) then
 		local rise = o.pillRise or 0
 		local barTop, barHeight = areaTop + areaHeight - pill - rise, pill
 		local barWidth = width
-		local lane = o.healLane or 0
-		if lane > 0 and width - lane >= h then
+		if laned then
 			barWidth = width - lane
 			out.healLane = { left = left + barWidth, width = lane }
 		end

@@ -219,7 +219,7 @@ end
 
 local function ClassLine(f)
 	local line = f.classLine
-	if not line:IsShown() then
+	if Settings.current[f.kind].classLine ~= true then
 		return
 	end
 	local className = UnitClass(f.unit)
