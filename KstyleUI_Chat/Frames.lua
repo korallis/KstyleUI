@@ -291,15 +291,26 @@ local function Backdrop(frame)
 	backdrop.chrome:SetShadow(s.shadow == true)
 end
 
+local function HudSize()
+	local Scale = K.Scale
+	local size = Scale and type(Scale.UserScale) == "function" and Scale.UserScale()
+	if type(size) ~= "number" or size <= 0 then
+		return 1
+	end
+	return size
+end
+
 local function ApplyFrame(frame)
 	local s = state.settings
 	local path, size, flags, tabSize = Frames.Fonts()
+	local hud = HudSize()
+	size, tabSize = size * hud, tabSize * hud
 	Frames.ApplyFont(frame, path, size, flags)
 	if type(frame.SetFading) == "function" then
 		frame:SetFading(s.fade == true)
 	end
 	if type(frame.SetSpacing) == "function" then
-		frame:SetSpacing(Whole(s.lineSpacing, ns.SPACING_MIN, ns.SPACING_MAX, ns.defaults.lineSpacing))
+		frame:SetSpacing(Widgets.Snap(frame, Whole(s.lineSpacing, ns.SPACING_MIN, ns.SPACING_MAX, ns.defaults.lineSpacing) * hud))
 	end
 	if s.fade == true and type(frame.SetTimeVisible) == "function" then
 		frame:SetTimeVisible(Whole(s.fadeTime, 1, math.huge, FADE_DEFAULT))

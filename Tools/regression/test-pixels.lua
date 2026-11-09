@@ -299,13 +299,18 @@ local function snapped(region)
 	return snap and snap[1] == true and bias and bias[1] == 0
 end
 
+-- M3 (#208) ships an Interface size of 16 / 19; 1.0 is the old default. Pixels per unit come from the root's
+-- effective scale, so both land on whole pixels.
+local OWNER_SIZES = { 16 / 19, 1 }
 for _, screen in ipairs(OWNER_SCREENS) do
+for _, size in ipairs(OWNER_SIZES) do
 	local env, ns = NewScale(screen[1], screen[2], OWNER_UI_SCALE)
 	env.FireEvent("PLAYER_LOGIN")
+	assert(ns.Scale.SetUserScale(size) == true, "the size is accepted")
 	local ppu = perUnit(env, ns)
 	local W, Scale = ns.Widgets, ns.Scale
-	local where = label(screen, OWNER_UI_SCALE)
-	assert(math.abs(ppu - screen.perUnit) < 0.001, where .. ": " .. ppu .. " px per unit")
+	local where = label(screen, OWNER_UI_SCALE, size)
+	assert(math.abs(ppu - screen.perUnit * size) < 0.001, where .. ": " .. ppu .. " px per unit")
 	local border = Scale.Border() * ppu
 	for _, frameScale in ipairs(FRAME_SCALES) do
 		for _, shape in ipairs({ "panel", "window", "tile", "socket", "bar" }) do
@@ -358,6 +363,7 @@ for _, screen in ipairs(OWNER_SCREENS) do
 			assert(math.abs(x * k - border) < 1e-6 and math.abs(-y * k - border) < 1e-6, tat .. ": the shadow sits one border down and right, got " .. x * k)
 		end
 	end
+end
 end
 
 print("pixels ok")

@@ -101,6 +101,31 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Blizzard's chat font lives in UIParent's units and never shrinks with KstyleUI's size setting, so at M3's default
+-- size (16 / 19, #208) the card would show two lines fewer and narrower lines. The windows' text, tab names and line
+-- spacing follow the size, as every KstyleUI text does: on the owner's 2383 x 1540 screen at UI scale 768 / 1080 the
+-- card holds 11 whole lines of about 21 em at either size.
+do
+	for _, size in ipairs({ 1, 16 / 19 }) do
+		local env, K, ns = C.New({ width = 2383, height = 1540, uiScale = 768 / 1080 })
+		C.Enable(env, K)
+		assert(K.Scale.SetUserScale(size))
+		env.RunTimers()
+		local chat = env.ChatFrame1
+		local font = lastCall(chat, "SetFont")[2]
+		local spacing = lastCall(chat, "SetSpacing")[1]
+		assert(near(font, K.Widgets.FontSize(chat, ns.defaults.fontSize * size)), "the message size follows the size setting at " .. size .. ", got " .. font)
+		assert(near(lastCall(env.ChatFrame1Tab.Text, "SetFont")[2], K.Widgets.FontSize(env.ChatFrame1Tab.Text, ns.defaults.tabFontSize * size)), "so do the tab names")
+		local g = ns.Panel.Geometry(chat)
+		local el = K.Layout.Get("chat.main")
+		local lines = (el.height - g.top - g.bottom) / g.k / (font + spacing)
+		local em = (el.width - g.left - g.right) / g.k / font
+		assert(math.floor(lines) >= 11, "11 whole lines at size " .. size .. ", got " .. lines)
+		assert(em >= 21, "21 em per line at size " .. size .. ", got " .. em)
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+end
+
 -- The insets follow the scale: on a 1440p screen the chat window's own units are smaller.
 do
 	local env, K, ns = C.New({ width = 2560, height = 1440, uiScale = 0.75 })
@@ -424,7 +449,7 @@ do
 	env.ChatFrame1:SetFont(path, 14, "")
 	env.RunTimers()
 	assert(near(lastCall(env.ChatFrame1, "SetFont")[2], sized(env.ChatFrame1, 18)), "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
-	assert(lastCall(env.ChatFrame1, "SetSpacing")[1] == 4, "4 units between lines, the mockup's pitch at 14")
+	assert(near(lastCall(env.ChatFrame1, "SetSpacing")[1], K.Widgets.Snap(env.ChatFrame1, 4)), "4 units between lines, the mockup's pitch at 14, on whole pixels")
 	K.Options.Write("Chat", "lineSpacing", 0)
 	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == 0, "line spacing reaches every window")
 	K.Options.Write("Chat", "fade", false)
