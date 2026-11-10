@@ -32,10 +32,11 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 154, 12
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 151.56, 13.78
 Plate.NAME_OVERHANG = 20
 Plate.FRAME_GAP = 1.15
 
+local BORDER_PIXELS = 2
 local GAP = Tokens.Size("gapTiny")
 local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")
@@ -88,6 +89,10 @@ local function NewText(parent, justify)
 	return text
 end
 
+local function PixelBorder(bar)
+	return Widgets.Snap(bar, Scale.Pixel(BORDER_PIXELS) / Widgets.ScaleFactor(bar))
+end
+
 function ns.FlatBar(parent, opts)
 	opts.border = false
 	local bar = Widgets.StatusBar(parent, opts)
@@ -97,8 +102,7 @@ function ns.FlatBar(parent, opts)
 	bar.rimGap = 0
 	function bar:SetRimGap(gap)
 		gap = Widgets.Snap(self, gap)
-		local px = gap > 0 and gap or opts.rimWidth and Widgets.Snap(self, opts.rimWidth)
-			or Scale.Pixel(1) / Widgets.ScaleFactor(self)
+		local px = gap > 0 and gap or opts.rimWidth and Widgets.Snap(self, opts.rimWidth) or PixelBorder(self)
 		if self.rimGap == gap and self.rimPixel == px then
 			return
 		end
@@ -117,6 +121,63 @@ function ns.FlatBar(parent, opts)
 		c[1], c[2], c[3], c[4] = r, g, b, a or 1
 		self.keyline:SetVertexColor(c[1], c[2], c[3], c[4])
 	end
+	local function WriteColor(color, r, g, b, a)
+		if type(color.SetRGBA) == "function" then
+			color:SetRGBA(r, g, b, a)
+		else
+			color.r, color.g, color.b, color.a = r, g, b, a
+		end
+		return color
+	end
+	function bar:RampColors()
+		local colors = self.rampColors
+		if colors or type(CreateColor) ~= "function" then
+			return colors
+		end
+		local wr, wg, wb, wa = Tokens.Color("white")
+		colors = {
+			CreateColor(wr, wg, wb, wa),
+			CreateColor(wr, wg, wb, wa),
+			CreateColor(wr, wg, wb, wa),
+		}
+		self.rampColors = colors
+		return colors
+	end
+	function bar:ApplyFillRamp()
+		local source = self.fillSource
+		if not source then
+			return
+		end
+		local r, g, b = source[1], source[2], source[3]
+		local topR, topG, topB, botR, botG, botB = Logic.Ramp(r, g, b)
+		local texture = self:GetStatusBarTexture()
+		local colors = self:RampColors()
+		local canGradient = texture and colors and type(texture.SetGradient) == "function"
+		if not topR or not canGradient then
+			if canGradient and self.fillRamped then
+				texture:SetGradient("VERTICAL", colors[1], colors[1])
+			end
+			self.fillRamped = false
+			if not canGradient and topR then
+				LogOnce("ramp", "Texture:SetGradient or CreateColor is missing; plates draw a flat fill")
+			end
+			self:SetBarColor(r, g, b)
+			return
+		end
+		local wr, wg, wb, wa = Tokens.Color("white")
+		self:SetBarColor(wr, wg, wb, wa)
+		texture:SetGradient("VERTICAL", WriteColor(colors[2], botR, botG, botB, wa), WriteColor(colors[3], topR, topG, topB, wa))
+		self.fillRamped = true
+	end
+	function bar:SetFillRamp(r, g, b)
+		local source = self.fillSource
+		if not source then
+			source = {}
+			self.fillSource = source
+		end
+		source[1], source[2], source[3] = r, g, b
+		self:ApplyFillRamp()
+	end
 	function bar:Restyle()
 		restyle(self)
 		self.lit:Hide()
@@ -124,6 +185,7 @@ function ns.FlatBar(parent, opts)
 		self.rimPixel = nil
 		self:SetRimGap(self.rimGap)
 		self:SetRimColor(unpack(self.rim))
+		self:ApplyFillRamp()
 	end
 	bar:Restyle()
 	return bar
@@ -475,11 +537,11 @@ function Plate:UpdateColor()
 	local last = self.colorKey
 	if IsSecret(r) or IsSecret(g) or IsSecret(b) then
 		last.r, last.g, last.b = nil, nil, nil
-		self.health:SetBarColor(r, g, b)
+		self.health:SetFillRamp(r, g, b)
 		self.level.chrome:SetEdgeRGBA(r, g, b, 1)
 	elseif last.r ~= r or last.g ~= g or last.b ~= b then
 		last.r, last.g, last.b = r, g, b
-		self.health:SetBarColor(r, g, b)
+		self.health:SetFillRamp(r, g, b)
 		self.level.chrome:SetEdgeRGBA(r, g, b, 1)
 	end
 end

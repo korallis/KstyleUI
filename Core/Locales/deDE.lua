@@ -712,6 +712,7 @@ ns.Locale.Add({
 	["Guild funds first"] = "Zuerst Gildengold",
 	["Guild line"] = "Gildenzeile",
 	["Guild rank"] = "Gildenrang",
+	["HUD resized to %.1f%% to keep enabled elements on screen and apart."] = "HUD auf %.1f%% verkleinert, damit aktivierte Elemente auf dem Bildschirm bleiben und sich nicht \195\188berlappen.",
 	["Hands"] = "H\195\164nde",
 	["Hated"] = "Hasserf\195\188llt",
 	["Head"] = "Kopf",

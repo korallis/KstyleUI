@@ -7,9 +7,19 @@ local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local RestedXP = dofile("Tools/render/scenes/restedxp.lua")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design", "auras_tracker" }) do
+for _, script in ipairs({ "hud_dps_mac", "hud_dps_threat", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design", "auras_tracker" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
+end
+
+do
+	local scene = check("hud_dps_threat", dofile("Tools/render/scenes/hud_dps_threat.lua")())
+	local shown = {}
+	for _, item in ipairs(scene.items) do
+		if item.kind == "text" then shown[item.text] = true end
+	end
+	assert(shown.THREAT and shown.DAMAGE, "the DPS scene draws both meter cards")
+	assert(shown["86%"] and shown["72%"] and shown["58%"], "all three compact threat rows draw")
 end
 
 -- Lumen Rails: the aura rows stand beside the minimap's left edge, and Layout > Apply's Edit Mode layout puts the
@@ -93,7 +103,7 @@ assert(rightAligned["24s"] and rightAligned["12s"], "the buff bars' countdowns d
 assert(fills >= 2, "the buff bars draw their fills")
 
 -- The focused scenes. The nameplate scene puts the plate on a base the game scaled to 0.58, as the owner's Mac
--- does, and the plate still draws its 154 by 12 bar (the target sigil's height) in root units: at the shipped
+-- does, and the plate still draws the picture's 151.56 by 13.78 fill in root units: at the shipped
 -- Interface size (16 / 19) that is 16 / 19 of it in screen units.
 local plate = check("nameplate", dofile("Tools/render/scenes/nameplate.lua")())
 local fill
@@ -104,7 +114,7 @@ for _, item in ipairs(plate.items) do
 end
 assert(fill, "the plate's health fill is drawn")
 local SIZE = 16 / 19
-assert(math.abs(fill.rect[3] - 154 * SIZE * 864 / 1540) < 1 and math.abs(fill.rect[4] - 12 * SIZE) < 1, "the bar is 154 by 12 root units on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
+assert(math.abs(fill.rect[3] - 151.56 * SIZE * 864 / 1540) < 1 and math.abs(fill.rect[4] - 13.78 * SIZE) < 1, "the bar is the picture's fill on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
 local databars = check("databars", dofile("Tools/render/scenes/databars.lua")())
 local seen = {}
 for _, item in ipairs(databars.items) do

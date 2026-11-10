@@ -9,15 +9,12 @@ local HEIGHT = Layouts.HEIGHT
 local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 }, { "the owner's 2383 x 1540", 2383 / 1540 } }
 
 -- Pairs that never show together or sit inside each other on purpose; everything else must stay apart.
-local function apart(name, a, c)
+local function apart(a, c)
 	local pair = { [a] = true, [c] = true }
 	if pair["groupframes.party"] and pair["groupframes.raid"] then
 		return false
 	end
 	if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
-		return false
-	end
-	if pair["meters.threat"] and pair["meters.damage"] and Layouts.Shown(name, "meters.threat") == false then
 		return false
 	end
 	return true
@@ -35,7 +32,7 @@ local function Story(name, width)
 end
 
 -- Match live Layout.Place: snap each size first, then align its anchored bottom-left to the pixel grid.
-local function PhysicalRects(name, width, height, user)
+local function PhysicalRects(name, width, height, user, enabled)
 	local rh = 1080 / user
 	local k = height / rh
 	local rw = width / k
@@ -51,16 +48,18 @@ local function PhysicalRects(name, width, height, user)
 		keys[#keys + 1] = key
 	end
 	for _, element in ipairs(Layouts.ELEMENTS) do
-		local w, h, offsetX = Layouts.Footprint(name, element.key)
-		add(element.key, w, h, positions[element.key], offsetX)
+		if (enabled and enabled[element.key] ~= false) or (not enabled and Layouts.Shown(name, element.key) ~= false) then
+			local w, h, offsetX = Layouts.Footprint(name, element.key)
+			add(element.key, w, h, positions[element.key], offsetX)
+		end
 	end
 	local slot = Layouts.Slot(name, rh)
 	add("story", slot.width, slot.height, slot)
 	return rects, keys
 end
 
-local function PhysicalFit(name, width, height, user)
-	local rects, keys = PhysicalRects(name, width, height, user)
+local function PhysicalFit(name, width, height, user, enabled)
+	local rects, keys = PhysicalRects(name, width, height, user, enabled)
 	for i, key in ipairs(keys) do
 		local r = rects[key]
 		if r[1] < 0 or r[2] < 0 or r[3] > width or r[4] > height or r[3] <= r[1] or r[4] <= r[2] then
@@ -69,7 +68,7 @@ local function PhysicalFit(name, width, height, user)
 		for j = i + 1, #keys do
 			local other = keys[j]
 			local s = rects[other]
-			if apart(name, key, other) and overlap(r, s) then
+			if apart(key, other) and overlap(r, s) then
 				local pair = { [key] = true, [other] = true }
 				local sharedDockEdge = pair["databars.micro"] and pair["databars.bags"]
 				if not sharedDockEdge or math.min(r[4], s[4]) - math.max(r[2], s[2]) > 1 then
@@ -86,53 +85,180 @@ local SCREENS = {
 	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
 }
 local REQUESTS = { 0.6, 16 / 19, 1.5 }
-local capped = 0
-for _, screen in ipairs(SCREENS) do
-	local width, height = screen[1], screen[2]
-	local record = { string.format("fit cap %dx%d:", width, height) }
-	for _, name in ipairs(Layouts.Names()) do
-		local cap = Layouts.ScaleLimit(width, height, name)
-		local label = string.format("%s at %dx%d", name, width, height)
-		assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
-		assert(Layouts.Fits(name, width, height, K.Scale.DEFAULT_USER_SCALE), label .. ": the shipped default fits live placement")
-		assert(Layouts.Fits(name, width, height, cap), label .. ": cap fits the snapped footprints")
-		assert(PhysicalFit(name, width, height, cap), label .. ": independent snapped footprint measurement fits")
-		if cap < K.Scale.MAX_USER_SCALE then
-			assert(not Layouts.Fits(name, width, height, cap + 1e-6), label .. ": binary search reaches the fit boundary")
-			for step = 1, 32 do
-				local larger = cap + (K.Scale.MAX_USER_SCALE - cap) * step / 32
-				assert(not PhysicalFit(name, width, height, larger), label .. ": no larger sampled scale fits")
-			end
-		end
-		for _, requested in ipairs(REQUESTS) do
-			local moved = { anchor = "BOTTOMLEFT", x = 91, y = 77, width = 401, height = 263 }
-			local menv, MK = CoreEnv.New({
-				width = width, height = height, fit = true,
-				saved = {
-					version = K.Store.DB_VERSION,
-					account = { setupSeen = true },
-					profiles = { Default = { Appearance = { uiScale = requested }, Layout = { preset = name } } },
-					layouts = { Default = { ["chat.main"] = CoreEnv.DeepCopy(moved) } },
-				},
-			})
-			CoreEnv.Boot(menv)
-			local applied = MK.Scale.AppliedUserScale()
-			local expected = math.min(requested, cap)
-			local where = label .. " requested " .. requested
-			assert(math.abs(MK.Scale.MaxUserScale() - cap) < 1e-9, where .. ": service uses the preset cap")
-			assert(math.abs(applied - expected) < 1e-9, where .. ": service applies the capped size")
-			assert(MK.Scale.UserScale() == requested and MK.Appearance.Get("uiScale") == requested, where .. ": the request remains saved and readable")
-			assert(CoreEnv.DeepEqual(MK.Store.Layout()["chat.main"], moved), where .. ": moved elements are unchanged")
-			assert(math.abs(MK.Scale.Root():GetEffectiveScale() * 1080 / 768 - applied) < 1e-9, where .. ": applied size drives the root")
-			local fits, why = PhysicalFit(name, width, height, applied)
-			assert(fits, where .. ": " .. tostring(why))
-			assert(Layouts.Fits(name, width, height, applied), where .. ": predicate agrees with the independent rects")
-			assert(#menv._errors == 0, tostring(menv._errors[1]))
-			capped = capped + 1
-		end
-		record[#record + 1] = string.format("%s %.9f", name, cap)
+local function Profile(name, requested, bar3, threat)
+	local profile = { Appearance = { uiScale = requested }, Layout = { preset = name } }
+	for _, element in ipairs(Layouts.ELEMENTS) do
+		profile[element.module] = { enabled = true }
 	end
-	print(table.concat(record, " "))
+	for _, entry in ipairs(Layouts.Settings(name)) do
+		local node = profile[entry.module]
+		local parts = {}
+		for part in entry.key:gmatch("[^.]+") do parts[#parts + 1] = part end
+		for i = 1, #parts - 1 do
+			node[parts[i]] = node[parts[i]] or {}
+			node = node[parts[i]]
+		end
+		node[parts[#parts]] = entry.value
+	end
+	profile.UnitFrames.player = { enabled = true, style = "column", castbar = true }
+	profile.UnitFrames.target = { enabled = true, style = "column", castbar = true }
+	profile.ActionBars.bar3.enabled = bar3 == true
+	if threat ~= nil then profile.Meters.threat.shown = threat end
+	return profile
+end
+local capped = 0
+for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threat = true } }) do
+	local bar3, threat = mode.bar3, mode.threat
+	for _, screen in ipairs(SCREENS) do
+		local width, height = screen[1], screen[2]
+		local record = { string.format("fit cap %dx%d bar3=%s threat=%s:", width, height, tostring(bar3), tostring(threat)) }
+		for _, name in ipairs(Layouts.Names()) do
+			local enabled = {}
+			for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown(name, element.key) ~= false end
+			enabled["actionbars.bar3"] = bar3
+			if threat ~= nil then enabled["meters.threat"] = threat end
+			local cap = Layouts.ScaleLimit(width, height, name, enabled)
+			local label = string.format("%s at %dx%d, bar3 %s", name, width, height, tostring(bar3))
+			assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
+			assert(Layouts.Fits(name, width, height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
+			assert(Layouts.Fits(name, width, height, cap, enabled), label .. ": cap fits the snapped footprints")
+			assert(PhysicalFit(name, width, height, cap, enabled), label .. ": independent snapped footprint measurement fits")
+			if cap < K.Scale.MAX_USER_SCALE then
+				assert(not Layouts.Fits(name, width, height, cap + 1e-6, enabled), label .. ": binary search reaches the fit boundary")
+				for step = 1, 32 do
+					local larger = cap + (K.Scale.MAX_USER_SCALE - cap) * step / 32
+					assert(not PhysicalFit(name, width, height, larger, enabled), label .. ": no larger sampled scale fits")
+				end
+			end
+			for _, requested in ipairs(REQUESTS) do
+				local moved = { anchor = "BOTTOMLEFT", x = 91, y = 77, width = 401, height = 263 }
+				local menv, MK = CoreEnv.New({
+					width = width, height = height, fit = true,
+					saved = {
+						version = K.Store.DB_VERSION,
+						account = { setupSeen = true },
+						profiles = { Default = Profile(name, requested, bar3, threat) },
+						layouts = { Default = { ["chat.main"] = CoreEnv.DeepCopy(moved) } },
+					},
+				})
+				CoreEnv.Boot(menv)
+				local applied = MK.Scale.AppliedUserScale()
+				local expected = math.min(requested, cap)
+				local where = label .. " requested " .. requested
+				local active = MK.Setup.Layouts.Enabled(name, MK.Store.Profile())
+				assert(CoreEnv.DeepEqual(active, enabled), where .. ": the profile snapshot matches the independently selected switches")
+				assert(math.abs(MK.Scale.MaxUserScale() - cap) < 1e-9, where .. ": service uses the preset cap")
+				assert(math.abs(applied - expected) < 1e-9, where .. ": service applies the capped size")
+				assert(MK.Scale.UserScale() == requested and MK.Appearance.Get("uiScale") == requested, where .. ": the request remains saved and readable")
+				assert(CoreEnv.DeepEqual(MK.Store.Layout()["chat.main"], moved), where .. ": moved elements are unchanged")
+				assert(math.abs(MK.Scale.Root():GetEffectiveScale() * 1080 / 768 - applied) < 1e-9, where .. ": applied size drives the root")
+				local fits, why = PhysicalFit(name, width, height, applied, enabled)
+				assert(fits, where .. ": " .. tostring(why))
+				assert(Layouts.Fits(name, width, height, applied, enabled), where .. ": predicate agrees with the independent rects")
+				assert(#menv._errors == 0, tostring(menv._errors[1]))
+				capped = capped + 1
+			end
+			local fitsAbove, binding = PhysicalFit(name, width, height, cap + 1e-6, enabled)
+			assert(not fitsAbove, label .. ": the independent model finds the binding at the boundary")
+			record[#record + 1] = string.format("%s %.9f (%s)", name, cap, binding)
+		end
+		print(table.concat(record, " "))
+	end
+end
+
+do
+	assert(Layouts.Fits("DPS", 3456, 2234, 0.868), "disabled bar 3 must not collide with focus at a size above the old cap")
+	local enabled = Layouts.Enabled("DPS")
+	enabled["actionbars.bar3"] = true
+	assert(not Layouts.Fits("DPS", 3456, 2234, 0.868, enabled), "the same bar counts when the player enables it")
+	assert(Layouts.ScaleLimit(3456, 2234, "DPS", enabled) < Layouts.ScaleLimit(3456, 2234, "DPS"), "the cache distinguishes enabled-element sets")
+end
+
+do
+	local profile = Profile("Tank", 1.5)
+	local active = Layouts.Enabled("Tank", profile)
+	assert(active["unitframes.focus"] and active["unitframes.boss"] and active["meters.threat"], "enabled situational frames always count, without querying their current visibility")
+	profile.UnitFrames.focus = { enabled = false }
+	profile.DataBars.micro = { enabled = true, shown = false }
+	profile.QoL.lootFeed = false
+	profile.Meters.enabled = false
+	active = Layouts.Enabled("Tank", profile)
+	assert(not active["unitframes.focus"] and not active["databars.micro"] and not active["qol.lootfeed"], "each explicit element switch is honored")
+	assert(not active["meters.damage"] and not active["meters.threat"] and not active["meters.swing"], "a disabled module excludes all its elements")
+	profile.UnitFrames.target.style = "plate"
+	active = Layouts.Enabled("Tank", profile)
+	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
+end
+
+do
+	local menv, MK = CoreEnv.New({
+		width = 3456, height = 2234, fit = true,
+		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = {
+			Default = Profile("DPS", 1.5), WithBar3 = Profile("DPS", 1.5, true), Small = Profile("DPS", 0.7, true),
+		} },
+	})
+	local defaults = CoreEnv.DeepCopy(Profile("DPS", 1.5).ActionBars)
+	defaults.enabled = nil
+	MK.Modules.Register(CoreEnv.Module("ActionBars", { defaults = defaults }))
+	CoreEnv.Boot(menv)
+	local root = MK.Scale.Root()
+	local setScale, resized = root.SetScale, 0
+	root.SetScale = function(self, value)
+		assert(not menv.InCombatLockdown(), "the clamp must never resize protected descendants during combat")
+		resized = resized + 1
+		return setScale(self, value)
+	end
+	local off = MK.Scale.AppliedUserScale()
+	menv._printed = {}
+	MK.Options.Write("ActionBars", "bar3.enabled", true)
+	local on = MK.Scale.AppliedUserScale()
+	assert(on < off and resized == 1, "enabling a colliding bar recomputes the cap and resizes once")
+	assert(#menv._printed == 1 and CoreEnv.Printed(menv, "to keep enabled elements on screen and apart"), "one line explains the resize")
+	assert(CoreEnv.Printed(menv, string.format("%.1f%%", on * 100)), "the explanation distinguishes the small real change from 86.9 to 86.8 percent")
+	assert(MK.Scale.UserScale() == 1.5 and MK.Appearance.Get("uiScale") == 1.5, "enabling a bar preserves the saved request")
+	MK.Options.Write("ActionBars", "bar3.enabled", true)
+	assert(resized == 1 and #menv._printed == 1, "a duplicate enable neither resizes nor prints")
+	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	assert(math.abs(MK.Scale.AppliedUserScale() - off) < 1e-9, "disabling the bar restores the larger saved size up to its cap")
+	assert(#menv._printed == 1, "growing after a disable needs no warning")
+	menv._printed, resized = {}, 0
+	menv.SetCombat(true)
+	MK.Options.Write("ActionBars", "bar3.enabled", true)
+	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "enabling in combat leaves the root and messages unchanged")
+	menv.FireEvent("PLAYER_REGEN_ENABLED")
+	assert(resized == 0, "a regen event while still locked cannot flush the clamp")
+	menv.SetCombat(false)
+	assert(math.abs(MK.Scale.AppliedUserScale() - on) < 1e-9 and resized == 1 and #menv._printed == 1, "after combat the pending clamp resizes and explains it once")
+	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	menv.SetCombat(true)
+	MK.Options.Write("ActionBars", "bar3.enabled", true)
+	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	menv._printed, resized = {}, 0
+	menv.SetCombat(false)
+	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "an enable reverted during combat causes no resize or stale warning")
+	MK.Options.Write("ActionBars", "bar3.enabled", true)
+	MK.Modules.Disable("ActionBars")
+	assert(MK.Scale.AppliedUserScale() == off, "direct module disable recomputes the active set")
+	menv._printed = {}
+	MK.Modules.Enable("ActionBars")
+	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "direct module enable reapplies the clamp and one explanation")
+	MK.Modules.Disable("ActionBars")
+	menv.SetCombat(true)
+	menv._printed, resized = {}, 0
+	MK.Options.Write("ActionBars", "enabled", true)
+	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "module enable and its clamp both wait for combat")
+	menv.SetCombat(false)
+	assert(MK.Scale.AppliedUserScale() == on and resized == 1 and #menv._printed == 1, "the module-start and scale queues do not duplicate the post-combat clamp")
+	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	menv._printed = {}
+	MK.Store.SetProfile("WithBar3")
+	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "switching to a profile with the bar enabled recomputes the cap")
+	MK.Store.SetProfile("Default")
+	menv._printed = {}
+	MK.Store.SetProfile("Small")
+	assert(MK.Scale.UserScale() == 0.7 and MK.Scale.AppliedUserScale() == 0.7, "profile changes apply the new request before the cap")
+	assert(#menv._printed == 0, "a smaller profile request does not print a stale clamp size or claim an unclamped request was resized to fit")
+	assert(MK.ErrorCount() == 0 and #menv._errors == 0, tostring(menv._errors[1]))
 end
 
 -- Only the shared micro/bags dock edge gets a one-pixel contact allowance, never a general overlap tolerance.
@@ -176,7 +302,7 @@ do
 	local screen = { 2383, 1540 }
 	local menv, MK = CoreEnv.New({
 		width = screen[1], height = screen[2], fit = true,
-		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = { Default = { Appearance = { uiScale = 1.5 }, Layout = { preset = "DPS" } } } },
+		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = { Default = Profile("DPS", 1.5) } },
 		setup = function(e)
 			e.GetPhysicalScreenSize = function() return screen[1], screen[2] end
 		end,
@@ -263,7 +389,7 @@ for _, name in ipairs(Layouts.Names()) do
 		for i = 1, #keys do
 			for j = i + 1, #keys do
 				local a, c = keys[i], keys[j]
-				if apart(name, a, c) and overlap(rects[a], rects[c]) then
+				if apart(a, c) and overlap(rects[a], rects[c]) then
 					local ra, rc = rects[a], rects[c]
 					error(string.format("%s: %s (%.0f,%.0f-%.0f,%.0f) overlaps %s (%.0f,%.0f-%.0f,%.0f)", label, a, ra[1], ra[2], ra[3], ra[4], c, rc[1], rc[2], rc[3], rc[4]))
 				end
@@ -366,7 +492,7 @@ do
 						state, aspect[1], key, own[1], own[2], own[3], own[4], story[1], story[2], story[3], story[4]))
 					for _, element in ipairs(Layouts.ELEMENTS) do
 						local other = element.key
-						if other ~= key and apart(name, key, other) then
+						if other ~= key and apart(key, other) then
 							local w, h, offsetX = Layouts.Footprint(name, other)
 							local r = { Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[other], width, HEIGHT) }
 							assert(not overlap(own, r), string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f) overlaps %s (%.0f,%.0f-%.0f,%.0f)",

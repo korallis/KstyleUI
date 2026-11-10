@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 13
+Store.DB_VERSION = 15
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -325,6 +325,47 @@ Store.migrations[12] = function(data)
 	end
 end
 
+Store.migrations[13] = function(data)
+	local oldWidth, oldHeight = 154, 12
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["nameplates.plate"]
+		if type(entry) == "table" then
+			if entry.width == oldWidth then
+				entry.width = nil
+			end
+			if entry.height == oldHeight then
+				entry.height = nil
+			end
+			if next(entry) == nil then
+				layout["nameplates.plate"] = nil
+			end
+		end
+	end
+end
+
+Store.migrations[14] = function(data)
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local settings = type(profile.Layout) == "table" and profile.Layout or {}
+		local entry = type(layout) == "table" and layout["meters.threat"]
+		if settings.preset ~= "Tank" and type(entry) == "table" then
+			local anchor = entry.anchor or "BOTTOMRIGHT"
+			local x = entry.x == nil and -17 or entry.x
+			local y = entry.y == nil and 17 or entry.y
+			local width = entry.width == nil or near(entry.width, 269)
+			local height = entry.height == nil or near(entry.height, 144)
+			if anchor == "BOTTOMRIGHT" and near(x, -17) and near(y, 17) and width and height then
+				entry.anchor, entry.x, entry.y, entry.width, entry.height = nil, nil, nil, nil, nil
+			elseif entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil or not width or not height then
+				entry.anchor, entry.x, entry.y = anchor, x, y
+			end
+			if next(entry) == nil then
+				layout["meters.threat"] = nil
+			end
+		end
+	end
+end
+
 local RAIL_V12 = {
 	["auras.buffs"] = { "TOPRIGHT", -217, -17, 307, 42 },
 	["auras.debuffs"] = { "TOPRIGHT", -217, -67, 307, 42 },
@@ -344,7 +385,7 @@ local AURA_V12 = { iconSize = 28, spacing = 3 }
 local BAR_V12 = { size = 37, spacing = 4 }
 local RAIL_BARS_V12 = { "bar4", "bar5", "bar6" }
 
-Store.migrations[13] = function(data)
+Store.migrations[15] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
