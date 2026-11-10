@@ -162,8 +162,8 @@ local FONT_FACES = {
 }
 local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
-	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0.02, shadow = { x = 1, y = 1, alpha = 0.5 } },
-	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.055, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.065, shadow = { x = 1, y = 1, alpha = 0.5 } },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"

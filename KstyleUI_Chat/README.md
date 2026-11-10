@@ -58,7 +58,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | `history`, `historyLines` | `true`, 100 | Each window's newest lines come back after a reload or relog, 10 to 500 per window. See [History](#history). Turning it off forgets this character's lines. |
 | `tabStyle` | `plain` | `plain` (the picture: the selected tab gold, the others grey, no fill and no underline; LEE-20), `underline` (the gilt underline), `filled` (a `buttonFill` tile behind the selected tab, its edge in the accent) or `minimal` (bright text only) |
 | `tabCase` | `upper` | Tab names in capitals or as typed |
-| `tabFontSize` | 12 | 8 to 16. The picture's tabs use the names role (Cinzel Names, tracked 0.02 em) at its 10 units; the chat card scales text by 0.82, so 12 draws as 10. The module inserts no thin space. |
+| `tabFontSize` | 12 | 8 to 16. The picture's tabs use the names role (Cinzel Names, no letter tracking and a 0.16 em wider word space) at its 10 units; the chat card scales text by 0.82, so 12 draws as 10. The module inserts no thin space. |
 | `accentSource`, `accentColor` | `class`, the default accent | Links and the chat's highlights follow the class colour or a custom colour |
 | `timestamp` | `none` | `none`, `%H:%M`, `%H:%M:%S`, `%I:%M %p`, `%I:%M:%S %p`, `%I:%M` or `%I:%M:%S`: the game's six formats. Off by default, the picture's choice (LEE-20). A format stamps every line: the game stamps player chat, and KstyleUI stamps the system and loot lines the game leaves bare, so the setting and the chat agree. |
 | `timestampColor` | the `text` token | The colour of the time |
