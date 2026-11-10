@@ -177,7 +177,7 @@ local function CheckStyled(name, menu, env, K, ns, nm, material)
 		end
 	end
 	assert(textures > 9 and fills == 9, what .. ": a nine-piece fill and a rim, got " .. fills .. " of " .. textures)
-	assert(menu.frame._scripts.OnSizeChanged ~= nil, what .. ": the chrome follows the menu's size through a script the pool will clear")
+	assert(menu.frame._scripts.OnSizeChanged ~= nil, what .. ": the chrome follows the menu's size through a script")
 	local body, title = ns.Style.Font("body"), ns.Style.Font("title")
 	local seen = 0
 	for index, row in ipairs(menu.rows) do
@@ -536,7 +536,7 @@ do
 		assert(not region:IsShown(), "and hidden")
 		assert(getmetatable(region) == getmetatable(env.UIParent), "the compositor gave back the original metatable")
 	end
-	assert(next(frame._scripts) == nil, "the menu frame's scripts, including the chrome's size hook, are gone")
+	assert(next(frame._scripts) == nil, "the fixture resets the menu frame's scripts, as it assumes the pool does; the test below does not rely on it")
 	assert(getmetatable(frame) == getmetatable(env.UIParent), "and its metatable is the original")
 
 	local owner = E.Minimap(env).Map.column.buttons.tracking
@@ -781,6 +781,155 @@ do
 	CheckStyled("compartment", again, env, K, ns, nm, "Flat on the reused frame")
 	nm.Close(again)
 	NoErrors(env, "pooled frame")
+end
+
+-- A chrome that outlives its menu is inert: the callbacks it left behind reach no pooled region ----------------------------------
+
+do
+	local env, K, _, nm = E.New({ material = "Slate" })
+	local made, queued, starve = {}, {}, false
+	local chrome, mayMove, queue = K.Widgets.Chrome, K.Widgets.MayMove, K.Combat.Queue
+	K.Widgets.Chrome = function(...)
+		local c = chrome(...)
+		made[#made + 1] = c
+		return c
+	end
+	K.Widgets.MayMove = function(...)
+		return not starve and mayMove(...)
+	end
+	K.Combat.Queue = function(fn)
+		if starve then
+			queued[#queued + 1] = fn
+			return
+		end
+		queue(fn)
+	end
+	starve = true
+	local styled = Open("tracking", env, nm)
+	starve = false
+	assert(#made == 1 and #queued >= 1, "the menu made one chrome and its layout and material work waits in the queue, got " .. #made .. " and " .. #queued)
+	local owned, sizeChanged, frame = made[1], styled.frame._scripts.OnSizeChanged, styled.frame
+	assert(type(sizeChanged) == "function" and not owned.released, "the size callback is captured while the menu is open")
+	local used = {}
+	for _, region in ipairs(Regions(styled)) do
+		used[#used + 1] = region
+	end
+	nm.Close(styled)
+	assert(owned.released == true, "releasing the menu releases its chrome")
+
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
+	local plain = Open("tracking", env, nm)
+	assert(plain.frame == frame, "the pool hands the same menu frame to a native menu")
+	local before, calls, mine = nm.Snapshot(plain), {}, {}
+	for _, region in ipairs(used) do
+		mine[region] = true
+	end
+	for _, region in ipairs(Regions(plain)) do
+		calls[region] = #region._calls
+		mine[region] = true
+	end
+	for region in pairs(mine) do
+		calls[region] = #region._calls
+	end
+	local created = nm.created.Texture
+	for _, call in ipairs({
+		function() sizeChanged(frame, 300, 200) end,
+		function() owned:OnSizeChanged() end,
+		function() owned:Restyle() end,
+		function() owned:PaintMaterial() end,
+	}) do
+		local ok, err = pcall(call)
+		assert(ok, "a released chrome callback must be inert, not raise: " .. tostring(err))
+	end
+	for _, fn in ipairs(queued) do
+		fn()
+	end
+	assert(nm.created.Texture == created, "no texture was made")
+	for region in pairs(mine) do
+		assert(#region._calls == calls[region], "no call reached a pooled region the chrome once owned")
+	end
+	assert(nm.Snapshot(plain) == before, "the native menu on the reused frame is exactly as Blizzard drew it")
+	frame:SetSize(333, 222)
+	for region in pairs(mine) do
+		assert(#region._calls == calls[region], "a resize reaches no region the chrome once owned")
+	end
+	K.Widgets.Chrome, K.Widgets.MayMove, K.Combat.Queue = chrome, mayMove, queue
+	nm.Close(plain)
+	NoErrors(env, "stale chrome")
+end
+
+-- A chrome that cannot be made leaves the native menu alone -------------------------------------------------------------------
+
+do
+	local env, K, ns, nm = E.New({ material = "Slate" })
+	local chrome = K.Widgets.Chrome
+	K.Widgets.Chrome = function()
+		error("no chrome today")
+	end
+	local ok = pcall(OPEN.tracking, env, nm, true)
+	K.Widgets.Chrome = chrome
+	assert(not ok, "the failure surfaces to the engine's callback loop, as an error in an acquired callback does")
+	local menu
+	for _, candidate in pairs(nm.menus) do
+		menu = candidate
+	end
+	assert(menu and #Regions(menu) == 1 and Regions(menu)[1]:IsShown(), "the native background is still there and still shown")
+	assert(Regions(menu)[1]:GetAtlas() == "common-dropdown-bg", "and still Blizzard's")
+	nm.Close(menu)
+
+	local attach, attached, failAt
+	nm.hooks.generated = function(_, frame)
+		attach, attached = frame.AttachTexture, 0
+		rawset(frame, "AttachTexture", function(...)
+			attached = attached + 1
+			if attached == failAt then
+				error("no texture today")
+			end
+			return attach(...)
+		end)
+	end
+	local total
+	K.Widgets.Chrome = function(...)
+		local c = chrome(...)
+		total = attached
+		return c
+	end
+	menu = Open("tracking", env, nm, true)
+	K.Widgets.Chrome = chrome
+	rawset(menu.frame, "AttachTexture", nil)
+	nm.Close(menu)
+	assert(total > 12, "the chrome attaches its textures to the menu frame while it is made, got " .. tostring(total))
+	failAt = total
+	ok = pcall(OPEN.tracking, env, nm, true)
+	nm.hooks.generated = nil
+	assert(not ok and attached == total, "a chrome whose last texture fails while it is made stops there, after " .. tostring(attached) .. " of " .. total)
+	menu = nil
+	for _, candidate in pairs(nm.menus) do
+		menu = candidate
+	end
+	assert(menu and menu.frame._scripts.OnSizeChanged == nil, "no size hook survives a chrome that never finished its first draw")
+	assert(Regions(menu)[1]:IsShown(), "the native background is still shown")
+	rawset(menu.frame, "AttachTexture", nil)
+	nm.Close(menu)
+
+	local mayMove = K.Widgets.MayMove
+	K.Widgets.MayMove = function()
+		error("no layout today")
+	end
+	ok = pcall(OPEN.tracking, env, nm, true)
+	K.Widgets.MayMove = mayMove
+	assert(not ok, "a chrome whose first restyle fails raises")
+	menu = nil
+	for _, candidate in pairs(nm.menus) do
+		menu = candidate
+	end
+	assert(menu and menu.frame._scripts.OnSizeChanged == nil, "no size hook survives a chrome whose first restyle failed")
+	assert(Regions(menu)[1]:IsShown(), "and the native background is still shown")
+	nm.Close(menu)
+
+	local again = Open("tracking", env, nm)
+	CheckStyled("tracking", again, env, K, ns, nm, "Slate after the failures")
+	nm.Close(again)
 end
 
 print("ok")

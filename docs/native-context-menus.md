@@ -52,7 +52,13 @@ The native pipeline supplies the following integration points:
   attachments and resets them through `PoolReset` at lines 4-14.
   `Menu.lua:2181-2195,2522-2527` resets pooled menu state and frees scripts.
   Chrome must therefore never join the persistent widget restyle registry or
-  outlive the acquisition. Release removes the skin's external reference.
+  outlive the acquisition. Release marks it dead before removing the skin's
+  external reference. A surviving extrinsic size hook or queued layout/material
+  callback is inert even if `FreeScripts` does not remove that binding; native
+  hook removal itself remains an in-game check. Initial paint completes before
+  the size hook is installed, and the replacement exists before native textures
+  are hidden, so construction failure cannot hide the original background or
+  leave a partially initialized chrome size hook behind.
 
 The implementation guide's taint guarantee (lines 415-417) covers inserting
 elements without contaminating surrounding handlers. It is not a blanket
@@ -78,6 +84,14 @@ private font objects, not the compositor-forbidden `SetFont`, and never enter
 the kit's persistent font registry. `Menu.lua:1902-1903` exposes `menu:Close()`;
 only acquisitions present in this skin's active set are closed on a setting
 change or combat entry.
+
+The close path reaches `FrameFactory.lua:54-56`, whose pool collection is
+created at lines 4-9. `Blizzard_SharedXMLBase/Pools.lua:861` aliases that factory
+to `CreateSecureFramePoolCollection`; its `Release` at lines 470-479 calls
+`securecallmethod` on each pool. `SecureObjectPoolMixin` uses secure active maps,
+stacks and counters (lines 205-234), and rejects secret objects (265-277).
+This rules out a plain shared-pool write as the reason to avoid the public close
+API. It does not replace the final in-game combat-close/taint check.
 
 After a font-object change, the initializer refits the original description
 label with `SetTextToFit` (`SimpleFontStringAPIDocumentation.lua:709`).

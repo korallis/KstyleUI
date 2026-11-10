@@ -92,7 +92,7 @@ local function Acquire(menu)
 	if #regions < 1 or #regions > 2 then
 		return
 	end
-	local background
+	local background, backgroundAtlas
 	for _, region in ipairs(regions) do
 		if not Writable(region) or type(region.GetAtlas) ~= "function" then
 			return
@@ -105,7 +105,7 @@ local function Acquire(menu)
 			if background then
 				return
 			end
-			background = region
+			background, backgroundAtlas = region, atlas
 		elseif atlas ~= nil then
 			return
 		end
@@ -113,8 +113,7 @@ local function Acquire(menu)
 	if not background then
 		return
 	end
-	local atlas = background:GetAtlas()
-	if (atlas == "common-dropdown-bg" and #regions ~= 1) or (atlas ~= "common-dropdown-bg" and #regions ~= 2) then
+	if (backgroundAtlas == "common-dropdown-bg" and #regions ~= 1) or (backgroundAtlas ~= "common-dropdown-bg" and #regions ~= 2) then
 		return
 	end
 	for _, region in ipairs(regions) do
@@ -134,10 +133,11 @@ local function Acquire(menu)
 			end
 		end
 	end
+	local chrome = Widgets.Chrome(menu, { shape = "card", popup = true })
+	active[menu] = chrome
 	for _, region in ipairs(regions) do
 		region:Hide()
 	end
-	active[menu] = Widgets.Chrome(menu, { shape = "card", popup = true })
 end
 
 local function Modify(owner, root)
@@ -154,6 +154,9 @@ local function Modify(owner, root)
 	end
 	root:AddMenuAcquiredCallback(Acquire)
 	root:AddMenuReleasedCallback(function(menu)
+		if active[menu] then
+			active[menu]:Release()
+		end
 		active[menu] = nil
 	end)
 	MenuUtil.TraverseMenu(root, function(description)

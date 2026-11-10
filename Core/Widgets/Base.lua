@@ -879,12 +879,12 @@ function Widgets.Chrome(owner, opts)
 			Widgets.ColorSlice(c.gilt, Tokens.Color("gilt"))
 		end
 	end
+	c:Restyle()
 	if type(owner.HookScript) == "function" then
 		owner:HookScript("OnSizeChanged", function()
 			c:OnSizeChanged()
 		end)
 	end
-	c:Restyle()
 	if type(owner.AttachTexture) == "function" then
 		return c
 	end
@@ -951,6 +951,9 @@ function Chrome:TicksWanted()
 end
 
 function Chrome:OnSizeChanged()
+	if self.released then
+		return
+	end
 	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
 	else
@@ -1092,6 +1095,9 @@ function Chrome:SyncMaterialFrame()
 end
 
 function Chrome:PaintMaterial()
+	if self.released then
+		return
+	end
 	local material = self:Material()
 	local framed = self.shape.card and material and material.frame
 	self.frameWanted = framed
@@ -1240,17 +1246,26 @@ function Chrome:PaintEdge()
 end
 
 function Chrome:Restyle()
+	if self.released then
+		return
+	end
 	if Widgets.MayMove(self.owner) then
 		self:Layout()
 	elseif not self.layoutQueued then
 		self.layoutQueued = true
 		ns.Combat.Queue(function()
 			self.layoutQueued = false
-			self:Layout()
-			self:Paint()
+			if not self.released then
+				self:Layout()
+				self:Paint()
+			end
 		end)
 	end
 	self:Paint()
+end
+
+function Chrome:Release()
+	self.released = true
 end
 
 local function StoreFill(chrome, r, g, b, a)
