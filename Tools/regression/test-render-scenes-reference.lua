@@ -44,7 +44,10 @@ for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", 
 end
 assert(elements["actionbars.bar2"].bottom > elements["actionbars.bar1"].bottom, "bar 2 stands over bar 1")
 
+L.guard("hud_reference", scene)
 local preset = Reference.Build({ preset = true })
+L.guard("hud_reference preset", preset)
+L.globs()
 assert(not preset.elements["actionbars.bar2"], "with the preset's bars only, bar 2 stays off")
 assert(rawget(_G, "RENDER_SCREEN") == nil, "the preset build gives the global screen back too")
 rawset(_G, "RENDER_SCREEN", { width = 1280, height = 720, size = 0.6 })
