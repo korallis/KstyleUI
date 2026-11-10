@@ -356,7 +356,8 @@ do
 				local fw, fh = Layouts.Footprint(name, key)
 				local cw, ch = holder.right - holder.left, holder.top - holder.bottom
 				assert(rows.left >= holder.left - 0.5 and rows.bottom >= holder.bottom - 0.5, string.format("%s: %s's rows (%.0f x %.0f) run past the element (%.0f x %.0f)", state, key, rows.right - rows.left, rows.top - rows.bottom, cw, ch))
-				assert(cw <= fw + 0.5 and ch <= fh + 0.5, string.format("%s: %s (%.0f x %.0f) outgrows the %d x %d the layout plans", state, key, cw, ch, fw, fh))
+				local sw, sh = Model.Footprint(key == "auras.buffs" and buffs or debuffs, Model.Timer(settings), AK.Scale.Snap)
+				assert(cw <= sw + 0.5 and ch <= sh + 0.5, string.format("%s: %s (%.0f x %.0f) outgrows its %.1f x %.1f snapped footprint (the layout plans %.1f x %.1f)", state, key, cw, ch, sw, sh, fw, fh))
 				for _, aspect in ipairs(aspects) do
 					local width = HEIGHT * aspect[2]
 					local own = { Layouts.Rect({ width = cw, height = ch }, layout[key], width, HEIGHT) }

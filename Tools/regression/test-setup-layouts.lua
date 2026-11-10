@@ -210,19 +210,19 @@ local LEFT_RAIL = {
 	Tank = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
 	Healer = { "unitframes.boss", "qol.lootfeed" },
 }
--- The picture (LEE-20) draws the chat card 393 by 200. DPS and Tank take that width. Healer keeps the 318 rail:
+-- The picture (LEE-20, LEE-69) draws the chat card 393 by 186. DPS and Tank take that width. Healer keeps the 318 rail:
 -- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
 local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
 -- The right rail, as the owner's picture draws it (LEE-20, "let the picture win", 2026-11-09), on the screenMargin
 -- token's margin: the 188 map heads it with its 36-unit caption (zone, coordinates, clock) under it and the aura rows
--- 12 left of it; the 278 story slot hangs 16 under the caption; bars 4 and 5 stand as two 37-unit columns 4 apart, 12
+-- 12 left of it; the 278 story slot hangs 16 under the caption; bars 4 and 5 stand as two 36.7-unit columns 4.6 apart (LEE-69: the centre bars' pitch, 1.4 inside the margin), 12
 -- under the slot; the readout line 10 under them, right-aligned; the 269 x 158 damage card at the foot, 6 under the
 -- readout. Bar 6, off, is a third column beside them, so its slot costs the rail no height. The micro menu, the bag bar
 -- and the tooltip anchor stand left of the columns, off every card.
 local EDGE = K.Tokens.Size("screenMargin")
 local MAP, MAP_CAPTION = 188, 36
-local RIGHT_EDGE = { ["minimap.main"] = 188, ["meters.damage"] = 269, ["databars.strip"] = 278, ["actionbars.bar4"] = 37 }
-local RAIL_COLUMN, RAIL_PITCH = 37, 4
+local RIGHT_EDGE = { ["minimap.main"] = 188, ["meters.damage"] = 269, ["databars.strip"] = 278 }
+local RAIL_COLUMN, RAIL_PITCH, RAIL_INSET = 36.7, 4.6, 1.4
 local STORY_W, STORY_RAIL_MIN = 278, 280
 -- The aura rows: one row of ten 28-unit icons each, 307 x 42, the buffs 12 left of the map and top-aligned with it,
 -- the debuffs 8 under the buffs, right-aligned with them.
@@ -285,17 +285,17 @@ for _, name in ipairs(names) do
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
 		assert(map.top == HEIGHT - EDGE and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail with its 36-unit caption under it")
-		assert(math.abs(auraBuffs.right - (map.left - 12)) < 1e-6 and auraBuffs.top == map.top, label .. ": the buff row stands 12 left of the map, top-aligned with it")
+		assert(math.abs(auraBuffs.right - (map.left - 10.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top - RAIL_INSET)) < 1e-6, label .. ": the buff row stands 10.9 left of the map and 1.4 under its top, as the picture draws it")
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
-		assert(auraBuffs.w == 307 and auraBuffs.h == 42 and auraDebuffs.w == 307 and auraDebuffs.h == 42, label .. ": each aura row is ten 28-unit icons 3 apart, 307 x 42")
+		assert(auraBuffs.w == 306.5 and auraBuffs.h == 41.5 and auraDebuffs.w == 306.5 and auraDebuffs.h == 41.5, label .. ": each aura row is ten 27.5-unit icons 3.5 apart, 306.5 x 41.5")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
 		assert(meter.bottom == EDGE and meter.h == 158, label .. ": the damage card stands at the rail's foot on the margin")
 		assert(math.abs(strip.bottom - meter.top - 6) < 1e-6 and strip.h == 12, label .. ": the readout line stands 6 over the damage card")
 		local columns = { rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6") }
 		for i, bar in ipairs(columns) do
-			assert(bar.w == RAIL_COLUMN and bar.h == 12 * RAIL_COLUMN + 11 * RAIL_PITCH, label .. ": bar " .. (i + 3) .. " is a column of twelve 37-unit slots 4 apart")
+			assert(math.abs(bar.w - RAIL_COLUMN) < 1e-6 and math.abs(bar.h - (12 * RAIL_COLUMN + 11 * RAIL_PITCH)) < 1e-6, label .. ": bar " .. (i + 3) .. " is a column of twelve 36.7-unit slots 4.6 apart")
 			assert(math.abs(bar.bottom - strip.top - 10) < 1e-6, label .. ": bar " .. (i + 3) .. " stands 10 over the readout line")
-			assert(i == 1 or math.abs(columns[i - 1].left - bar.right - RAIL_PITCH) < 1e-6, label .. ": bar " .. (i + 3) .. " stands 4 left of the column before it")
+			assert(i == 1 or math.abs(columns[i - 1].left - bar.right - RAIL_PITCH) < 1e-6, label .. ": bar " .. (i + 3) .. " stands 4.6 left of the column before it")
 		end
 		-- The micro menu and the bag bar no longer dock by default (the picture's readout is a line); their own slots and
 		-- the tooltip anchor stand 16 left of the rail's columns, on no card.
@@ -309,7 +309,7 @@ for _, name in ipairs(names) do
 		assert(micro.bottom == columns[1].bottom and bags.bottom == micro.top and tip.bottom - bags.top == 16, label .. ": the micro menu on the columns' foot, the bags over it, the tooltip anchor 16 over them")
 		local chat = rect("chat.main")
 		local margin = K.Tokens.Size("screenMargin")
-		assert(chat.bottom == margin and chat.left == margin and chat.w == CHAT_WIDTH[name] and chat.h == 200, label .. ": chat sits on the screenMargin token, " .. CHAT_WIDTH[name] .. " by 200, got " .. chat.w .. " by " .. tostring(chat.h))
+		assert(chat.bottom == margin and chat.left == margin and chat.w == CHAT_WIDTH[name] and chat.h == 186, label .. ": chat sits on the screenMargin token, " .. CHAT_WIDTH[name] .. " by 186, got " .. chat.w .. " by " .. tostring(chat.h))
 		local feed = rect("qol.lootfeed")
 		assert(feed.left == chat.left and feed.w == RAIL and feed.bottom - chat.top == CARD_GAP_MIN, label .. ": the loot feed stands " .. CARD_GAP_MIN .. " over the chat card on its left edge, got " .. (feed.bottom - chat.top))
 		for _, key in ipairs(KEYS) do
@@ -563,9 +563,9 @@ local FOOTPRINTS = {
 	["actionbars.bar1"] = { 491, 36.7 },
 	["actionbars.bar2"] = { 491, 36.7 },
 	["actionbars.bar3"] = { 12 * 38 + 11 * 3, 38 },
-	["actionbars.bar4"] = { 37, 12 * 37 + 11 * 4 },
-	["actionbars.bar5"] = { 37, 12 * 37 + 11 * 4 },
-	["actionbars.bar6"] = { 37, 12 * 37 + 11 * 4 },
+	["actionbars.bar4"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
+	["actionbars.bar5"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
+	["actionbars.bar6"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
 	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	-- LEE-20 reserves external portraits and target debuffs; the optional focus retains its 22-unit aura reserve.
@@ -584,18 +584,18 @@ local FOOTPRINTS = {
 	["unitframes.castbar.target"] = { 220, 24 },
 	-- S4 (#157): six damage rows, four threat rows, the readout with the menu docked (at 318 the bag bar wraps under
 	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is the
-	-- picture's 393 by 200 card at the left rail's foot (LEE-20).
+	-- picture's 393 by 186 card at the left rail's foot (LEE-20, LEE-69).
 	-- The owner's picture (LEE-20): a 188 square map with its zone, coordinates and clock in 36 units under it; one
-	-- row of ten 28-unit aura icons each (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at
+	-- row of ten 27.5-unit aura icons each (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at
 	-- 0 to 40 buffs); the 269 x 158 damage card; the readout as one 12-unit line.
 	["minimap.main"] = { 188, 224 },
-	["auras.buffs"] = { 307, 42 },
-	["auras.debuffs"] = { 307, 42 },
+	["auras.buffs"] = { 306.5, 41.5 },
+	["auras.debuffs"] = { 306.5, 41.5 },
 	["meters.damage"] = { 269, 158 },
 	["meters.threat"] = { 269, 144 },
 	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
-	["chat.main"] = { 393, 200 },
+	["chat.main"] = { 393, 186 },
 	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
 	["databars.xp"] = { 491, 8 },

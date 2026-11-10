@@ -45,7 +45,7 @@ do
 	local settings = K.Layout.Get("chat.main")
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
-	assert(near(settings.width, 393) and near(settings.height, 200), "the picture's 393 by 200 card, at the left rail's foot")
+	assert(near(settings.width, 393) and near(settings.height, 186), "the picture's 393 by 186 card, at the left rail's foot")
 	assert(near(settings.x, K.Tokens.Size("screenMargin")) and near(settings.y, K.Tokens.Size("screenMargin")), "anchored to the screenMargin token, not a literal")
 	-- Owner pass 1: "the chat box is too thin". Blizzard's 430-unit window holds 24 em of its 18-unit text; the card's
 	-- message column, between its glass inset and the dock's button column, holds at least 21 em of the 14-unit default.
@@ -97,12 +97,12 @@ do
 	K.Options.Write("Layout", "preset", "Healer")
 	C.Enable(env, K)
 	local settings = K.Layout.Get("chat.main")
-	assert(near(settings.width, 318) and near(settings.height, 200), "Healer keeps the 318 rail so six tracked bars fit, at the picture's 200 height, got " .. tostring(settings.width) .. " by " .. tostring(settings.height))
+	assert(near(settings.width, 318) and near(settings.height, 186), "Healer keeps the 318 rail so six tracked bars fit, at the picture's 186 height, got " .. tostring(settings.width) .. " by " .. tostring(settings.height))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- Blizzard's chat font lives in UIParent's units. The windows' text, tab names and line spacing follow the size, as
--- every KstyleUI text does. The picture's 200-unit card holds six lines at the 14 + 4 pitch, at either size.
+-- every KstyleUI text does. The picture's 186-unit card holds six lines at the 14 + 4 pitch, at either size.
 do
 	for _, size in ipairs({ 1, 16 / 19 }) do
 		local env, K, ns = C.New({ width = 2383, height = 1540, uiScale = 768 / 1080 })
@@ -137,8 +137,8 @@ do
 	assert(near(left, g.left), "the inset in root units matches the geometry")
 end
 
--- The geometry follows the picture: a 48-unit tab row, the first line just under the tabs, and a 42-unit foot so
--- six lines at the 14 + 4 pitch fill the 200-unit card with no empty glass above them. No room for the edit box
+-- The geometry follows the picture: a 34-unit tab row, the first line just under the tabs, and a 42-unit foot so
+-- six lines at the 14 + 4 pitch fill the 186-unit card with no empty glass above them. No room for the edit box
 -- unless the player wants it always shown. The picture has no divider under the tabs.
 do
 	local env, K, ns = C.New()
@@ -146,8 +146,8 @@ do
 	local chat = env.ChatFrame1
 	local snap = K.Scale.Snap
 	local g = ns.Panel.Geometry(chat)
-	assert(near(g.divider, snap(48)), "the tab row is 48 units, the picture's first line just under the labels, got " .. g.divider)
-	assert(near(g.top, snap(48)), "the window starts at the tab row, so six lines have no empty glass above them, got " .. g.top)
+	assert(near(g.divider, snap(34)), "the tab row is 34 units, the picture's first line just under the labels, got " .. g.divider)
+	assert(near(g.top, snap(34)), "the window starts at the tab row, so six lines have no empty glass above them, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
 	assert(near(g.left, snap(12.57)), "messages start 12.57 units inside the card, 26 px on the owner's screen, got " .. g.left)

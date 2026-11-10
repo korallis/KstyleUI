@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 12
+Store.DB_VERSION = 13
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -276,8 +276,8 @@ local function atPlace(entry, place)
 	return place and entry.anchor == place[1] and near(entry.x, place[2]) and near(entry.y, place[3])
 end
 
-local function railEntry(entry, key, now)
-	local old = RAIL_V9[key]
+local function railEntry(entry, key, now, places)
+	local old = places[key]
 	local whole = {
 		anchor = entry.anchor == nil and old[1] or entry.anchor,
 		x = entry.x == nil and old[2] or entry.x,
@@ -308,7 +308,7 @@ Store.migrations[12] = function(data)
 			local entry = layout[key]
 			if type(entry) == "table" and not (key == "meters.threat" and preset == "Tank") then
 				local now = current[key]
-				railEntry(entry, key, now and { now.anchor, now.x, now.y })
+				railEntry(entry, key, now and { now.anchor, now.x, now.y }, RAIL_V9)
 				if next(entry) == nil then
 					layout[key] = nil
 				end
@@ -320,6 +320,70 @@ Store.migrations[12] = function(data)
 		for _, bar in ipairs(type(bars) == "table" and RAIL_BARS or {}) do
 			if type(bars[bar]) == "table" and bars[bar].showEmpty == false then
 				bars[bar].showEmpty = nil
+			end
+		end
+	end
+end
+
+local RAIL_V12 = {
+	["auras.buffs"] = { "TOPRIGHT", -217, -17, 307, 42 },
+	["auras.debuffs"] = { "TOPRIGHT", -217, -67, 307, 42 },
+	["actionbars.bar4"] = { "BOTTOMRIGHT", -17, 203 },
+	["actionbars.bar5"] = { "BOTTOMRIGHT", -58, 203 },
+	["actionbars.bar6"] = { "BOTTOMRIGHT", -99, 203 },
+	["databars.micro"] = { "BOTTOMRIGHT", -152, 203 },
+	["databars.bags"] = { "BOTTOMRIGHT", -152, 247 },
+	["tooltips.anchor"] = { "BOTTOMRIGHT", -152, 295 },
+	["qol.lootfeed"] = { "BOTTOMLEFT", 17, 233 },
+}
+local CHAT_V12 = {
+	{ width = 393, height = 200, toWidth = 393, toHeight = 186 },
+	{ width = 318, height = 200, toWidth = 318, toHeight = 186 },
+}
+local AURA_V12 = { iconSize = 28, spacing = 3 }
+local BAR_V12 = { size = 37, spacing = 4 }
+local RAIL_BARS_V12 = { "bar4", "bar5", "bar6" }
+
+Store.migrations[13] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local section = type(profile.Layout) == "table" and profile.Layout or {}
+		local current = layouts and type(layouts.Get) == "function" and layouts.Get(section.preset or "DPS") or {}
+		for key in pairs(type(layout) == "table" and RAIL_V12 or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" then
+				local now = current[key]
+				railEntry(entry, key, now and { now.anchor, now.x, now.y }, RAIL_V12)
+				if next(entry) == nil then
+					layout[key] = nil
+				end
+			end
+		end
+		local chat = type(layout) == "table" and layout[CHAT_CARD]
+		for _, old in ipairs(type(chat) == "table" and CHAT_V12 or {}) do
+			if chat.width == old.width and chat.height == old.height then
+				chat.width, chat.height = old.toWidth, old.toHeight
+			end
+		end
+	end
+	for _, profile in pairs(data.profiles) do
+		local auras = type(profile) == "table" and profile.Auras
+		local bars = type(profile) == "table" and profile.ActionBars
+		for _, bar in ipairs(type(bars) == "table" and RAIL_BARS_V12 or {}) do
+			local values = bars[bar]
+			for field, old in pairs(type(values) == "table" and BAR_V12 or {}) do
+				if values[field] == old then
+					values[field] = nil
+				end
+			end
+		end
+		for _, group in ipairs(type(auras) == "table" and { "buffs", "debuffs" } or {}) do
+			local values = auras[group]
+			for field, old in pairs(type(values) == "table" and AURA_V12 or {}) do
+				if values[field] == old then
+					values[field] = nil
+				end
 			end
 		end
 	end

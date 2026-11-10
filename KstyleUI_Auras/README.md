@@ -41,10 +41,10 @@ Two rows, each a `CustomAuraContainerTemplate` container on the player and its o
 
 | Element key | Filter | Default place | Default shape |
 | --- | --- | --- | --- |
-| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, 12 left of the minimap element, on the top screen margin (`screenMargin`, 17 units) | One row of up to 10 square icons of 28 units, 3 apart, the first aura at the left, the row ending at the element's right edge, a 12-unit timer under each: 307 by 42 units (28 for the icon and 14 for the timer: 2 of gap and the 12-unit line) |
+| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, 10.9 left of the minimap element, 1.4 units under the top screen margin (`screenMargin`, 17 units): the picture's 20 px and 32 px on its 2234 px screen | One row of up to 10 square icons of 27.5 units, 3.5 apart, the first aura at the left, the row ending at the element's right edge, a 12-unit timer under each: 306.5 by 41.5 units (27.5 for the icon and 14 for the timer: 2 of gap and the 12-unit line) |
 | `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, the same column, 8 under the buffs | the same: 307 by 42 units, its row ending at the same x as the buffs' |
 
-**The picture wins over #209.** #209 shipped "two rows of eight 30-unit icons each, growing left then down". The owner's picture (2026-11-09) draws one row of ten 27.6-unit icons at a 31 pitch in listed order, first at the left, with white timers under them, and on 2026-11-09 he ruled "let the picture win its what i want" (LEE-20). So the defaults are now `rows` 1, `columns` 10, `iconSize` 28, `spacing` 3 and `growth` `RIGHT_DOWN`, the timer 12 units, and every one of them stays a setting (`rows` up to 8, `columns` up to 24): a player who wants two rows, or the row growing left, sets it. A profile that holds its own values keeps them. 28 stands for the picture's 27.6, so the icon and the gap land on whole pixels.
+**The picture wins over #209.** #209 shipped "two rows of eight 30-unit icons each, growing left then down". The owner's picture (2026-11-09) draws one row of ten 48 px icons (27.56 units) at a 54 px pitch (31) in listed order, first at the left, with white timers under them, and on 2026-11-09 he ruled "let the picture win its what i want" (LEE-20). So the defaults are now `rows` 1, `columns` 10, `iconSize` 27.5, `spacing` 3.5 and `growth` `RIGHT_DOWN`, the timer 12 units, and every one of them stays a setting (`rows` up to 8, `columns` up to 24): a player who wants two rows, or the row growing left, sets it. A profile that holds its own values keeps them. 27.5 and 3.5 are the picture's 48 px and 6 px on its 2234 px screen (LEE-69; 28 and 3 drew 49 px tiles); migration 13 clears a saved 28 and 3, so a profile left at the old defaults takes the new ones and a size the player chose stays.
 
 The rows stand beside the minimap's left edge, as the owner asked (2026-11-09) and as Blizzard's and Leatrix's setups do. `Core/Setup/Layouts.lua` computes their place from the minimap element's width, so a different map keeps them beside it. The boss column and the spare bar columns stand lower on the screen's right side (#208), so the corner is free at every aspect.
 
@@ -67,8 +67,8 @@ Each tile is a square icon one border inside a one-pixel dark square plate (`bla
 | Key | Default | Row |
 | --- | --- | --- |
 | `hideBlizzard` | `true` | toggle |
-| `buffs.iconSize`, `debuffs.iconSize` | 28 | slider, 16 to 64 |
-| `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 3, 4 | slider, 0 to 24 |
+| `buffs.iconSize`, `debuffs.iconSize` | 27.5 | slider, 16 to 64 |
+| `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 3.5, 4 | slider, 0 to 24 |
 | `buffs.rows`, `debuffs.rows` | 1, 1 | slider, 1 to 8: the cap; the rest count as `+N` on the last cell |
 | `buffs.columns`, `debuffs.columns` | 10 | slider, 1 to 24 |
 | `buffs.growth`, `debuffs.growth` | `RIGHT_DOWN` | dropdown: right (the first aura at the left) or left (the first at the right), then down or up. The flow starts at the container's corner for that growth; the container always hangs from the element's right edge (top for down, bottom for up), so a short row ends where a full one does |
