@@ -90,7 +90,7 @@ function Frames.Fonts(settings)
 	local flags = OUTLINES[s.fontOutline] or ""
 	local size = Whole(s.fontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.fontSize)
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
-	local tabPath = Tokens.Font("heading")
+	local tabPath = Tokens.Font("caps")
 	return path, size, flags, tabSize, tabPath
 end
 
@@ -180,7 +180,7 @@ local function PaintTab(parts)
 	local text = parts.text
 	if plain and text and type(text.SetTextColor) == "function" then
 		if selected then
-			text:SetTextColor(Tokens.Color("gilt"))
+			text:SetTextColor(Tokens.Color("capsGold"))
 		else
 			text:SetTextColor(Tokens.Color("text"))
 		end
@@ -346,7 +346,13 @@ local function ApplyFrame(frame)
 	local tab = TabOf(frame)
 	if tab then
 		TabCase(tab)
-		Frames.ApplyFont(TabText(tab), tabPath, tabSize, flags)
+		local text = TabText(tab)
+		if type(text) == "table" and type(text.SetFont) == "function" then
+			text:SetFont(tabPath, Widgets.FontSize(text, tabSize), "")
+			if type(text.SetShadowOffset) == "function" then
+				text:SetShadowOffset(0, 0)
+			end
+		end
 		local parts = Skin.Parts(tab)
 		if parts and parts.chatPaint then
 			parts:Paint()
@@ -431,6 +437,18 @@ local function OnWindowName(frame)
 	end
 end
 
+local function Lead(frame)
+	local bg = type(frame) == "table" and frame.Background
+	if type(bg) ~= "table" or type(bg.GetPoint) ~= "function" then
+		return 0
+	end
+	local point, _, _, x = bg:GetPoint(1)
+	if IsSecret(point) or IsSecret(x) or point ~= "TOPLEFT" or type(x) ~= "number" then
+		return 0
+	end
+	return -x
+end
+
 function Frames.FitTabs(dock)
 	local frames = type(dock) == "table" and dock.DOCKED_CHAT_FRAMES
 	if type(frames) ~= "table" then
@@ -439,11 +457,17 @@ function Frames.FitTabs(dock)
 	for _, frame in ipairs(frames) do
 		local tab = TabOf(frame)
 		local text = tab and TabText(tab)
-		if text and type(text.GetStringWidth) == "function" and type(text.SetWidth) == "function" and type(tab.SetWidth) == "function" then
-			local width = text:GetStringWidth()
-			if not IsSecret(width) and type(width) == "number" and width > 0 then
-				text:SetWidth(width)
-				tab:SetWidth(width + Widgets.Snap(tab, 20))
+		if text and type(text.SetPoint) == "function" then
+			text:ClearAllPoints()
+			text:SetPoint("LEFT", tab, "LEFT", Widgets.Snap(text, Lead(frame)), -5)
+			if type(text.SetWidth) == "function" and type(tab.SetWidth) == "function" then
+				text:SetWidth(0)
+				local measure = type(text.GetUnboundedStringWidth) == "function" and text.GetUnboundedStringWidth or text.GetStringWidth
+				local width = type(measure) == "function" and measure(text) or nil
+				if not IsSecret(width) and type(width) == "number" and width > 0 then
+					text:SetWidth(width)
+					tab:SetWidth(width + Widgets.Snap(tab, 20))
+				end
 			end
 		end
 	end
@@ -474,7 +498,14 @@ local function OnFontSize(button, _, size)
 	end
 end
 
+local function OnDockTabs(dock)
+	if state.active then
+		Frames.FitTabs(dock)
+	end
+end
+
 local HOOKS = {
+	{ "FCFDock_UpdateTabs", OnDockTabs, "a tab click puts the names back in Blizzard's fixed width" },
 	{ "FCFTab_UpdateColors", OnTabColors, "the selected tab keeps the game's look until it is clicked" },
 	{ "FCF_SetWindowName", OnWindowName, "renamed tabs keep the case the player typed" },
 	{ "FCF_DockFrame", OnDocking, "docking a window does not update its glass" },

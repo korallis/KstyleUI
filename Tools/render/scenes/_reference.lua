@@ -140,7 +140,7 @@ function Reference.Build(opts)
 			class = "SHAMAN",
 			state = state,
 			elements = true,
-			modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns" },
+			modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" },
 		})
 	end)
 	rawset(_G, "RENDER_SCREEN", previous)

@@ -472,6 +472,23 @@ function C.Install(env, opts)
 	function env.FCF_UnDockFrame(frame)
 		frame.isDocked = nil
 	end
+	function env.FCFDock_UpdateTabs(dock)
+		local frames = type(dock) == "table" and dock.DOCKED_CHAT_FRAMES
+		if type(frames) ~= "table" then
+			return
+		end
+		for _, frame in ipairs(frames) do
+			if frame ~= dock.primary then
+				local tab = env[frame:GetName() .. "Tab"]
+				if type(tab) == "table" and type(tab.SetWidth) == "function" then
+					tab:SetWidth(60)
+					if type(tab.Text) == "table" and type(tab.Text.SetWidth) == "function" then
+						tab.Text:SetWidth(40)
+					end
+				end
+			end
+		end
+	end
 	function env.FCF_SetChatWindowFontSize(_, frame, size)
 		local path, _, flags = frame:GetFont()
 		frame:SetFont(path, size, flags)

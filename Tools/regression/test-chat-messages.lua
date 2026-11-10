@@ -94,6 +94,34 @@ do
 	assert(ns.Messages, "the pipeline is exposed for the other parts")
 end
 
+-- The game's default system yellow is drawn in the picture's soft gold. A colour the player chose is left alone.
+-- A secret text or a secret colour raises if it is read, and the line passes through untouched.
+do
+	local env, K = C.New()
+	C.Enable(env, K)
+	local function close(a, b)
+		return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-4
+	end
+	local sr, sg, sb = K.Tokens.Color("chatSystem")
+	env.ChatFrame1:AddMessage("You have gained 1 talent point.", 1, 1, 0)
+	local yellow = C.Newest(env.ChatFrame1)
+	assert(close(yellow[2], sr) and close(yellow[3], sg) and close(yellow[4], sb), "default system yellow is the picture's gold")
+	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0.2, 0.8, 0.1)
+	local chosen = C.Newest(env.ChatFrame1)
+	assert(close(chosen[2], 0.2) and close(chosen[3], 0.8) and close(chosen[4], 0.1), "a chosen colour is left alone")
+	local secret = env.Secret("Congratulations, you have reached level 11.")
+	local raised = not pcall(string.find, secret, "%[")
+	assert(raised, "the stub raises when a secret line is read")
+	local colour = env.Secret(1)
+	assert(not pcall(function() return colour > 0.99 end), "the stub raises when a secret colour is compared")
+	env.ChatFrame1:AddMessage(secret, 1, 1, 0)
+	assert(env.issecretvalue(C.Last(env.ChatFrame1)), "a secret line is untouched")
+	env.ChatFrame1:AddMessage("You have gained 17 hit points and 30 mana.", colour, colour, colour)
+	local passed = C.Newest(env.ChatFrame1)
+	assert(env.issecretvalue(passed[2]) and env.issecretvalue(passed[3]) and env.issecretvalue(passed[4]), "a secret colour is untouched")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- The combat log keeps its own lines.
 do
 	local env, K = C.New()

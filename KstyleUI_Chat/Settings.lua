@@ -42,7 +42,7 @@ local defaults = {
 	historyLines = 100,
 	tabStyle = "plain",
 	tabCase = "upper",
-	tabFontSize = Tokens.Size("heading"),
+	tabFontSize = Tokens.Size("caps"),
 	accentSource = "class",
 	accentColor = Rgb("accentDefault"),
 	timestamp = "none",
@@ -156,7 +156,7 @@ function ns.Schema()
 		{ type = "header", label = L["Text"] },
 		{
 			type = "font", key = "font", label = L["Font"],
-			help = L["The font of chat messages and the edit box. Tabs use the heading face."],
+			help = L["The font of chat messages and the edit box. Tabs use the caps face."],
 		},
 		{
 			type = "slider", key = "fontSize", label = L["Text size"],
@@ -213,7 +213,7 @@ function ns.Schema()
 		},
 		{
 			type = "slider", key = "tabFontSize", label = L["Tab text size"],
-			help = L["The size of the tab names. The default is the heading size."],
+			help = L["The size of the tab names. The default is the caps size."],
 			min = TAB_FONT_MIN, max = TAB_FONT_MAX, step = 1,
 		},
 		{ type = "header", label = L["Accent"] },

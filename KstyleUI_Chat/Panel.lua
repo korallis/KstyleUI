@@ -21,6 +21,7 @@ local LAYOUT_CHANGED = "LayoutChanged"
 
 local TAB_TEXT_RISE = 14
 local TAB_ROW = 48
+local LINE_INSET = 26 * 1080 / 2234
 local MESSAGE_FOOT = 42
 local BACKGROUND_RISE = 3
 local EDIT_DROP = 2
@@ -132,11 +133,12 @@ function Panel.Geometry(chat)
 	else
 		bottom = max(MESSAGE_FOOT, reach + Tokens.Size("gapTiny") - PanelBottom())
 	end
+	local inset = snap(LINE_INSET)
 	return {
 		k = k,
-		left = snap(Pad()),
+		left = inset,
 		top = snap(TAB_ROW),
-		right = snap(Pad() + ScrollWidth(chat) * k + Tokens.Size("gapSmall")),
+		right = inset,
 		bottom = snap(bottom),
 		divider = snap(TAB_ROW),
 	}
