@@ -60,7 +60,11 @@ function Stacking.Extent()
 			right = math.max(right, extra)
 		end
 	end
-	return state.width + left + right, above, state.height, below
+	local width = state.width + left + right
+	if Settings.Get("name.show") then
+		width = math.max(width, K.Widgets.Snap(plate, state.width + ns.Plate.NAME_OVERHANG * 2))
+	end
+	return width, above, state.height, below
 end
 
 local function Footprint()

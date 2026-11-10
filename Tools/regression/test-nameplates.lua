@@ -8,8 +8,11 @@ local function token(K, name)
 end
 
 local function barColor(bar)
-	local r, g, b = bar:GetStatusBarColor()
-	return r, g, b
+	local source = bar.fillSource
+	if source then
+		return source[1], source[2], source[3]
+	end
+	return bar:GetStatusBarColor()
 end
 
 local function highlighted(K, plate)
@@ -402,16 +405,18 @@ do
 	assert(env.issecretvalue(text) and env.Reveal(text) == "abbr:40", "the value format abbreviates UnitHealth")
 end
 
--- Size: the mockup's plate (mockup-leveling-warrior-2574.png, 1.348 px per unit), 175 units wide; the bar is 12 tall,
--- the target sigil's health bar (owner, 2026-11-09; test-nameplates-height.lua), in its two-border frame, a 34-unit octagonal level disc with a 10.5-unit chamfer, rimmed in the bar's colour and
--- overlapping the bar's left end, the name in its own case at 14 above, the level in white at 16, no health text ----
+-- Size: the owner's 2026-11-09 picture, measured again on 2026-11-10. The fill is 151.56 by 13.78 root units
+-- (264 by 24 physical pixels on the reference panel); the two-pixel border is outside that fill. The old
+-- "same height as the target sigil" rule is reversed by the picture. A 34-unit octagonal level disc with a
+-- 10.5-unit chamfer, rimmed in the bar's colour and overlapping the bar's left end, the name in caps at 12,
+-- the level in white at 16, no health text ----
 
 do
 	local env, K, ns = N.New()
-	assert(ns.Plate.DEFAULT_WIDTH == 154 and ns.Plate.DEFAULT_HEIGHT == 12, "the health bar is 154 x 12, the sigil's height, inside its two-border frame")
+	assert(ns.Plate.DEFAULT_WIDTH == 151.56 and ns.Plate.DEFAULT_HEIGHT == 13.78, "the health bar is the picture's fill, 151.56 by 13.78 root units")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(N.Same(plate.health:GetWidth(), 154) and N.Same(plate.health:GetHeight(), 12), "the bar takes the default size")
+	assert(N.Same(plate.health:GetWidth(), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_WIDTH)) and N.Same(plate.health:GetHeight(), K.Widgets.Snap(plate.health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
 	local disc = plate.level
 	assert(N.Same(disc:GetWidth(), 34) and N.Same(disc:GetHeight(), 34), "the level disc is 34 units across")
 	assert(disc.chrome.shapeName == "panel" and N.Same(disc.chrome:Radius(), 10.5), "the panel with its corners rounded 10.5 units, where the octagon cut them")
@@ -447,7 +452,7 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	assert(N.Same(base:GetEffectiveScale(), 0.58), "the fake base draws at 0.58")
 	assert(N.Same(plate:GetEffectiveScale(), root), "a plate on a base at 0.58 draws at KstyleUI_Root's scale")
-	assert(N.Same(plate:GetWidth() * plate:GetEffectiveScale(), ns.state.width * root), "so its bar is as wide as the same units on the HUD")
+	assert(N.Same(plate:GetWidth() * plate:GetEffectiveScale(), K.Widgets.Snap(plate, ns.state.width) * root), "so its bar is as wide as the same units on the HUD")
 
 	-- The unit walks away: C code shrinks the base per frame with no event.
 	assert(#Calls(base, "SetScale") == 0, "KstyleUI never scales Blizzard's base")
