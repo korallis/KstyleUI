@@ -658,9 +658,12 @@ local function WindowTabs(frame)
 		for _, tab in ipairs(frame.Tabs) do
 			list[#list + 1] = tab
 		end
-	elseif type(frame.numTabs) == "number" and type(frame.GetName) == "function" and frame:GetName() then
-		for i = 1, frame.numTabs do
-			list[#list + 1] = _G[frame:GetName() .. "Tab" .. i]
+	elseif type(frame.numTabs) == "number" and type(frame.GetName) == "function" then
+		local name = frame:GetName()
+		if not IsSecret(name) and type(name) == "string" then
+			for i = 1, frame.numTabs do
+				list[#list + 1] = _G[name .. "Tab" .. i]
+			end
 		end
 	end
 	return list
