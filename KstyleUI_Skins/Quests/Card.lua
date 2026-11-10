@@ -9,7 +9,7 @@ local Card = {}
 ns.QuestCard = Card
 
 local MAX_SHOWN, MAX_LINES, MAX_WRAP = 8, 6, 3
-local GUTTER, DISC, DISC_LEAD, NUMERAL = 25.5, 17.5, 0.5, 10
+local GUTTER, DISC, DISC_LEAD, NUMERAL = 25.5, 16, 1, 10
 local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5.5, 4, 7
 local CAP_ROW, CAP_GAP, HEAD, FOOT = 21, 6.5, 11, 12.5
 local SOCKET, SOCKET_GAP = 20, 4
@@ -83,7 +83,7 @@ local function PaintTitle(row)
 end
 
 local function PaintDisc(row)
-	Style.TintAccent(row.disc)
+	row.disc:SetVertexColor(Tokens.Color("questDisc"))
 end
 
 local function Open(id)
@@ -387,11 +387,16 @@ local function Window(total, n, gap)
 	return best
 end
 
+local function Fits(height, room)
+	local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(card)
+	return Snap(height) <= Snap(room) + pixel + pixel * 1e-6
+end
+
 local function FitFromEnd(total, n, room, gap)
 	local sum, fit = 0, 0
 	for i = total, math.max(1, total - n + 1), -1 do
 		local add = heights[i] + (fit > 0 and gap or 0)
-		if fit > 0 and sum + add > room then
+		if fit > 0 and not Fits(sum + add, room) then
 			break
 		end
 		sum, fit = sum + add, fit + 1
@@ -483,13 +488,22 @@ function Card.Render()
 	local top = docked and 0 or Snap(HEAD)
 	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot()
 	local room = math.max(heights[1], maxHeight - chrome)
+	if not over and not Fits(Window(total, n, gap), room) then
+		over = true
+		right = Snap(BAR_WIDTH + BAR_GAP)
+		rowWidth = (card:GetWidth() or 0) - 2 * inset - right
+		for i = 1, total do
+			heights[i] = Height(Data.Get(i))
+		end
+		room = math.max(heights[1], maxHeight - chrome)
+	end
 	local viewHeight = math.min(Window(total, n, gap), room)
 	local fit = FitFromEnd(total, n, viewHeight, gap)
 	offset = math.max(1, math.min(offset, total - fit + 1))
 	local y, k = 0, 0
 	while k < n and offset + k <= total do
 		local h = heights[offset + k]
-		if k > 0 and y + h > viewHeight then
+		if k > 0 and not Fits(y + h, viewHeight) then
 			break
 		end
 		k = k + 1

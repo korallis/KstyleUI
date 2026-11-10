@@ -101,9 +101,8 @@ do
 	assert(lines == 3, "the first objective takes the picture's three lines in the 278-unit card, got " .. lines)
 	assert(objective.spacing > 0 and math.abs(objective.rect[4] - 3 * row.rect[4]) < 0.01, "and its lines stand a row apart: three rows high, got " .. objective.rect[4] .. " for a row of " .. row.rect[4])
 	local lead = (dot.rect[1] - mark.rect[1]) * ppu
-	assert(lead > 0.5 and lead < 1.5, "a quest's disc stands one pixel in from the caption mark's left edge, as the picture's does, got " .. lead)
-	local solid = (dot.rect[3] * ppu) - 2.4
-	assert(math.abs(solid - 28) <= 1, "the disc's texture is 30 pixels, which its soft edge draws as the picture's 28 solid ones, got " .. dot.rect[3] * ppu)
+	assert(lead > 1.5 and lead < 2.5, "the disc texture starts two pixels in from the caption mark, drawing the picture's core a pixel farther in, got " .. lead)
+	assert(math.abs(dot.rect[3] * ppu - 28) < 0.01, "the disc draws the picture's 28-pixel core, as the acceptance mask measures, got " .. dot.rect[3] * ppu)
 	local tall = (glass[2] - glass[1]) * ppu
 	assert(math.abs(tall - 553) <= 1.5, "the card's glass is the picture's 553 pixels tall, 557 with the rim's shadow, within a pixel, got " .. tall)
 end

@@ -39,6 +39,22 @@ return function(preset, built)
 		end
 	end
 	local seen = L.collect(built)
+	local questCount, firstObjective = 0, nil
+	for _, item in ipairs(built.items) do
+		if item.kind == "text" then
+			for _, title in ipairs({ "[11] Unnerving Silence", "[9] Crab Season", "[11] Aid For The Refugees", "[12] A Grand Adventure" }) do
+				if item.text == title then
+					questCount = questCount + 1
+				end
+			end
+			if item.text:find("Find and speak with Elegael", 1, true) then
+				firstObjective = item
+			end
+		end
+	end
+	assert(questCount == 4, preset .. " draws all four picture quests, got " .. questCount)
+	local Scene = dofile("Tools/render/scene.lua")
+	assert(firstObjective and Scene.WrappedLines(Scene.PlainText(firstObjective.text), firstObjective.font.size, firstObjective.font.path, firstObjective.rect[3]) == 3, preset .. " draws the first objective on three lines")
 	for _, text in ipairs({ "45s", "7s", "9s", "8s", "14s", "Lightning Bolt", "Searing Totem", "203", "Korallis", "Shadowgale Poacher", "[11] Unnerving Silence", "[9] Crab Season", "You receive loot:" }) do
 		local found = false
 		for drawn in pairs(seen) do
