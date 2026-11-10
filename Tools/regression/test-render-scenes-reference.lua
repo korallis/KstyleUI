@@ -125,4 +125,22 @@ rawset(_G, "RENDER_SCREEN", { width = 1920, height = 1080, uiScale = 0.65, size 
 assert(nested.SCREEN.width == 1920 and L.Common.SCREEN.width == 1920 and nested.SCREEN.size == 1.5, "already-loaded scenes follow the next screen and requested size")
 rawset(_G, "RENDER_SCREEN", nil)
 assert(nested.SCREEN.width == 2383 and nested.SCREEN.height == 1540 and nested.SCREEN.size == nil, "a scene loaded during an override does not retain it")
+-- The chat lines stand the picture's 32 physical pixels apart (LEE-86): a line of the game's ScrollingMessageFrame is as tall
+-- as its font (ScrollingMessageFrame.lua 730-735) and stands on the one below plus GetSpacing (595-602), so the scene gives its
+-- lines one em, not 1.2, and the default 4.5-unit spacing makes the picture's pitch on the owner's screen.
+do
+	local ppu = physical.height / scene.screen.height
+	local rows = {}
+	for _, item in ipairs(scene.items) do
+		if item.kind == "text" and item.lineEm == 1 then
+			rows[#rows + 1] = item
+		end
+	end
+	table.sort(rows, function(a, b) return a.rect[2] < b.rect[2] end)
+	assert(#rows >= 6, "the chat draws at least six lines, got " .. #rows)
+	for i = 2, #rows do
+		local pitch = (rows[i].rect[2] - rows[i - 1].rect[2]) * ppu
+		assert(math.abs(pitch - 32) < 1, "chat line " .. i .. " stands " .. pitch .. " px below the one above; the picture's pitch is 32")
+	end
+end
 print("ok test-render-scenes-reference")

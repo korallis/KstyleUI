@@ -56,6 +56,13 @@ local function Whole(v, low, high, fallback)
 	return min(high, max(low, floor(v + 0.5)))
 end
 
+local function Halves(v, low, high, fallback)
+	if IsSecret(v) or type(v) ~= "number" or v ~= v then
+		return fallback
+	end
+	return min(high, max(low, floor(v * 2 + 0.5) / 2))
+end
+
 local function Verify(path)
 	if not IsText(path) or path == "" then
 		return false
@@ -324,7 +331,7 @@ local function ApplyFrame(frame)
 		frame:SetFading(s.fade == true)
 	end
 	if type(frame.SetSpacing) == "function" then
-		frame:SetSpacing(Widgets.Snap(frame, Whole(s.lineSpacing, ns.SPACING_MIN, ns.SPACING_MAX, ns.defaults.lineSpacing) * hud))
+		frame:SetSpacing(Widgets.Snap(frame, Halves(s.lineSpacing, ns.SPACING_MIN, ns.SPACING_MAX, ns.defaults.lineSpacing) * hud))
 	end
 	if s.fade == true and type(frame.SetTimeVisible) == "function" then
 		frame:SetTimeVisible(Whole(s.fadeTime, 1, math.huge, FADE_DEFAULT))
@@ -460,7 +467,7 @@ function Frames.FitTabs(dock)
 		local text = tab and TabText(tab)
 		if text and type(text.SetPoint) == "function" then
 			text:ClearAllPoints()
-			text:SetPoint("LEFT", tab, "LEFT", Widgets.Snap(text, Lead(frame)), -5)
+			text:SetPoint("LEFT", tab, "LEFT", Widgets.Snap(text, Lead(frame)), -7.85)
 			if type(text.SetWidth) == "function" and type(tab.SetWidth) == "function" then
 				text:SetWidth(0)
 				local measure = type(text.GetUnboundedStringWidth) == "function" and text.GetUnboundedStringWidth or text.GetStringWidth
