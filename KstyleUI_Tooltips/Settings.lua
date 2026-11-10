@@ -76,7 +76,7 @@ end
 local function FontOptions()
 	local choices = { { value = FACE, label = L["KstyleUI font"] } }
 	for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
-		if choice.value ~= "" and choice.value ~= FACE and choice.value ~= "kit" then
+		if not K.Theme.FollowsKit(choice.value) then
 			choices[#choices + 1] = choice
 		end
 	end

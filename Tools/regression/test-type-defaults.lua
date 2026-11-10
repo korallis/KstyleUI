@@ -21,8 +21,10 @@ do
 	assert(ns.TextSize(s) == 14 and ns.LineSpacing(s) == 4.5, "Lumen draws the values it had before Folio: 14 and 4.5")
 	assert(size.shown(s.fontSize) == 14 and spacing.shown(s.lineSpacing) == 4.5, "and the sliders follow")
 	assert(K.Tokens.TypeDefault("chatSize") == 14 and K.Tokens.TypeDefault("noteSize") == 12)
+	assert(K.Tokens.TypeDefault("tooltipTitle") == "heading" and K.Tokens.TypeDefault("tooltipName") == "heading", "Lumen's tooltip titles keep the heading role")
 	assert(K.Theme.SetTypeSet("Folio"))
 	assert(K.Tokens.TypeDefault("noteSize") == 10)
+	assert(K.Tokens.TypeDefault("tooltipTitle") == "body" and K.Tokens.TypeDefault("tooltipName") == "names", "Folio's tooltip titles are body, its names the names role")
 	Raises(function() K.Tokens.TypeDefault("nothing") end, "unknown name")
 end
 

@@ -634,14 +634,14 @@ local function Read(key)
 	return default
 end
 
-function Settings.Get(key)
+function Settings.Get(key, role)
 	local value = cache[key]
 	if value == nil then
 		value = Read(key)
 		cache[key] = value
 	end
 	if key == "font" and K.Theme.FollowsKit(value) then
-		return (Tokens.Font("body"))
+		return (Tokens.Font(role or "body"))
 	end
 	return value
 end

@@ -216,8 +216,8 @@ local FONT_ROLES = {
 }
 
 local TYPE_SET_VALUES = {
-	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10 },
-	Lumen = { chatSize = 14, chatSpacing = 4.5, noteSize = 12 },
+	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10, tooltipTitle = "body", tooltipName = "names" },
+	Lumen = { chatSize = 14, chatSpacing = 4.5, noteSize = 12, tooltipTitle = "heading", tooltipName = "heading" },
 }
 
 local ROLE_ORDER = { "display", "heading", "title", "caps", "names", "unit", "body", "prose", "caption", "number", "time", "timer", "world" }

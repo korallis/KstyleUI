@@ -24,8 +24,8 @@ local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
 local function KitRole(role, semantic)
-	if role == "title" and Theme.FontFace() ~= "Lumen" then
-		return semantic or "body"
+	if role == "title" then
+		return Tokens.TypeDefault(semantic == "names" and "tooltipName" or "tooltipTitle")
 	end
 	return KIT_ROLES[role]
 end
@@ -447,7 +447,7 @@ local function TitleFont(tooltip, glass)
 	if not glass.title then
 		return
 	end
-	if glass.titleRole == "names" and Style.FollowsFont("title") and Theme.FontFace() ~= "Lumen"
+	if glass.titleRole == "names" and Style.FollowsFont("title") and KitRole("title", "names") ~= KitRole("title")
 		and type(GameTooltipHeaderText) == "table" and type(glass.title.SetFontObject) == "function" then
 		Style.StyleFont(glass.title, "title", tooltip, "names")
 		glass.titleLine = glass.title
@@ -514,6 +514,13 @@ local function PaintItemBorder(item)
 	frame.chrome:SetEdge("edgeInner")
 end
 
+local function PlaceItemBorder(frame, icon)
+	local outset = Widgets.Border(frame) * BORDER_LINES
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -outset, outset)
+	frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outset, -outset)
+end
+
 function Style.ItemBorder(item)
 	if type(item) ~= "table" then
 		return nil
@@ -535,9 +542,7 @@ function Style.ItemBorder(item)
 	end
 	Skin.Strip(item, { keep = keep })
 	local frame = CreateFrame("Frame", nil, item)
-	local outset = Widgets.Border(frame) * BORDER_LINES
-	frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -outset, outset)
-	frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outset, -outset)
+	PlaceItemBorder(frame, icon)
 	UseParentLevel(frame, item)
 	frame.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "buttonFill", shadow = false })
 	side.tooltipsBorder = frame
@@ -581,8 +586,7 @@ function Style.Lines(tooltip, item)
 end
 
 function Style.FollowsFont(role)
-	local face = Settings.Get(role .. ".font")
-	return Settings.Get("followFont") or face == "" or face == "theme" or face == "kit"
+	return Settings.Get("followFont") or Theme.FollowsKit(Settings.Get(role .. ".font"))
 end
 
 function Style.FontSpec(role, semantic)
@@ -671,6 +675,24 @@ local function EffectiveScale(frame)
 	return frame:GetEffectiveScale()
 end
 
+local function RestyleParts(tooltip)
+	local header = tooltip.CompareHeader
+	if type(header) == "table" then
+		local panel = Skin.Backdrop(header)
+		panel:Restyle()
+		panel.chrome:Restyle()
+		if type(header.Label) == "table" then
+			Widgets.StyleText(header.Label)
+		end
+	end
+	local item = tooltip.ItemTooltip
+	local frame = type(item) == "table" and Safe.Side(item).tooltipsBorder
+	if frame then
+		PlaceItemBorder(frame, item.Icon)
+		frame.chrome:Restyle()
+	end
+end
+
 function Style.ApplyScale(elementScale)
 	local scale = Logic.TooltipScale(EffectiveScale(K.Scale.Root()), EffectiveScale(UIParent), elementScale)
 	for _, tooltip in ipairs(skinned) do
@@ -679,6 +701,7 @@ function Style.ApplyScale(elementScale)
 			savedScales[tooltip] = Logic.IsNumber(own) and own or 1
 		end
 		tooltip:SetScale(scale)
+		RestyleParts(tooltip)
 		local glass = Style.Glass(tooltip)
 		if glass then
 			glass.chrome:Restyle()
