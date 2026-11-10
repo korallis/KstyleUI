@@ -449,7 +449,7 @@ end
 
 local COLUMN = {
 	ring = 70, ringGap = 21.5, disc = 27 / 70, discAlong = 29 / 70,
-	health = 12, gap = 4, nameGap = 12, bottom = 7.5,
+	health = 12, gap = 4, nameGap = 12, nameDrop = 0.24, captionLift = 0.105, bottom = 7.5,
 	castBar = 7, castGap = 7, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
 }
@@ -507,6 +507,7 @@ local function ColumnTexts(out, s, width, scale, right)
 		return
 	end
 	out.nameAuto, out.nameRoom = true, room
+	out.nameDrop, out.captionLift = COLUMN.nameDrop * nameSize, COLUMN.captionLift * nameSize
 	out.name = Above(right and width - room or 0, room, rowBottom, nameSize)
 	out.caption = Above(right and width - room or 0, captionW, rowBottom, captionSize)
 end

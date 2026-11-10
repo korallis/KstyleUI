@@ -84,9 +84,9 @@ Nothing draws inside the map any more: no band, no fade. The zone name, the coor
 
 | Text | Anchor | Face | Size | Colour |
 | --- | --- | --- | --- | --- |
-| Zone name in capitals | left edge + 2 (`Format.CAPTION_X`), caps centred 13.7 under the map (`Format.ZONE_CENTER`), as wide as the map less 2 at each end so a long name truncates | the kit's `names` role (Cinzel Names, Medium weight, 0.02 em of letter-spacing built into the font file, with the kit's soft shadow, the picture's white names; set through `Widgets.ApplyFont`, so the kit gives back the trailing tracking) | 12, which the minimap's scale draws at the role's 10 (21 pixels, 245 px wide for the picture's 241 on the same panel) | the emphasis token, near white: the picture measures #f3f5f8 here, not the gold of the card captions (`capsGold`) |
-| Coordinates | left edge + 2, centred 31.2 under the map (`Format.ROW_CENTER`) | body | 11.5 | the muted token, grey |
-| Clock | right edge - 2, centred 31.2 under the map | number, bold | 12.5 | the emphasis token, white |
+| Zone name in capitals | left edge + 2 (`Format.CAPTION_X`), caps centred 13.7 under the map (`Format.ZONE_CENTER`), as wide as the map less 2 at each end so a long name truncates | the kit's `names` role (Cinzel Names, Medium weight, a 0.16 em wider word space built into the font file, with the kit's soft shadow, the picture's white names; set through `Widgets.ApplyFont`, so the kit gives back the trailing tracking) | 12, which the minimap's scale draws at the role's 10 (21 pixels, 241 px wide for the picture's 240 on the same panel) | the emphasis token, near white: the picture measures #f3f5f8 here, not the gold of the card captions (`capsGold`) |
+| Coordinates | left edge + 2, centred 30 under the map (`Format.ROW_CENTER`) | body | 11.5 | the muted token, grey |
+| Clock | right edge - 2, centred 30 under the map | number, bold | 12.5 | the emphasis token, white |
 
 The caption block ends 36 units under the map (`Format.CAPTION`). Each text is anchored by its centre line, so its vertical place holds whatever face and size the player picks. Hovering the zone lists the zone, subzone and PvP status, and clicking it opens the world map; hovering the clock shows local and realm time, and clicking it opens the clock options, through the same secure overlay as before (`face.zoneHit`, `face.clockHit`).
 

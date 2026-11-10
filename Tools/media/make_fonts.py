@@ -12,11 +12,15 @@ Cinzel ships only as a variable font, and the game loads static TrueType files, 
 at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
 
 The game has no letter-spacing call (FontString has SetSpacing, which is line spacing, and nothing else spaces
-letters), and Cinzel has no thin-space glyph to space them with. CinzelCaps-Medium.ttf and CinzelNames-Medium.ttf are
-Cinzel pinned at weight 500 with a TRACKED entry's em added to the advance of every glyph that has one, so the client
-draws letter-spaced capitals from the font itself. The tracking is what a fit of the owner's picture gives at its
-10-unit headings: 0.065 em for the gold captions (SKYBORNE, QUESTS, DAMAGE) and 0.02 em for the white names
-(zone, unit, spell and nameplate names), see Media/PROVENANCE.md. Cinzel draws lowercase letters as small capitals; the
+letters), and Cinzel has no thin-space glyph to space them with. CinzelCaps-Medium.ttf, CinzelNames-Medium.ttf and
+CinzelUnit-Medium.ttf are Cinzel pinned at weight 500 with a TRACKED entry's em added to the advance of every glyph that
+has one, so the client draws letter-spaced capitals from the font itself. The tracking is what a fit of the owner's
+picture gives: 0.065 em for the gold captions (SKYBORNE, QUESTS, DAMAGE), none for the white names at its 10-unit
+headings (zone, spell, nameplate and chat tab names) and -0.065 em for the player and target names, which the picture
+sets at about 37 px and draws tighter than Cinzel's own advances, see Media/PROVENANCE.md. Each entry also has its own
+word space: an em added to the space glyph's advance on top of the tracking, because the picture's browser sets a wider
+word space than Cinzel's 250 units, and the tracking that fits the letters would otherwise squeeze it (0.18 for the
+captions, 0.16 for the names, 0.25 for the unit names). Cinzel draws lowercase letters as small capitals; the
 character map here points each lowercase letter at its capital, so a name the code cannot uppercase (a secret value)
 still reads in capitals. The outlines, the left side bearings and the kerning are Cinzel's; only hmtx,
 hhea.advanceWidthMax, OS/2.xAvgCharWidth, the character map and the names change. The tracking falls after the last
@@ -46,7 +50,7 @@ TABULAR_SUFFIX = ".tf"
 ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_MEDIUM_WEIGHT = 500
-TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065), ("CinzelNames-Medium", "Cinzel Names", 0.02))
+TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065, 0.18), ("CinzelNames-Medium", "Cinzel Names", 0.0, 0.16), ("CinzelUnit-Medium", "Cinzel Unit", -0.065, 0.25))
 
 
 def set_names(font, family, style, full, postscript, typographic=None):
@@ -74,17 +78,19 @@ def make_cinzel(src, out):
     return path
 
 
-def make_tracked(src, out, stem, family, tracking_em):
+def make_tracked(src, out, stem, family, tracking_em, space_em):
     from fontTools.ttLib import TTFont
     from fontTools.varLib import instancer
 
     font = instancer.instantiateVariableFont(TTFont(src / "Cinzel[wght].ttf", recalcTimestamp=False), {"wght": CINZEL_MEDIUM_WEIGHT}, static=True)
     track = round(tracking_em * font["head"].unitsPerEm)
+    space = round(space_em * font["head"].unitsPerEm)
     hmtx = font["hmtx"]
+    space_glyph = font.getBestCmap()[0x20]
     for glyph in font.getGlyphOrder():
         advance, lsb = hmtx[glyph]
         if advance > 0:
-            hmtx[glyph] = (advance + track, lsb)
+            hmtx[glyph] = (advance + track + (space if glyph == space_glyph else 0), lsb)
     for subtable in font["cmap"].tables:
         if not subtable.isUnicode():
             continue
@@ -96,7 +102,7 @@ def make_tracked(src, out, stem, family, tracking_em):
     font["OS/2"].recalcAvgCharWidth(font)
     set_names(font, family, "Regular", family, stem)
     name = font["name"]
-    note = f"Cinzel Medium with {track} units of tracking added to every advance and lowercase drawn as capitals, by KstyleUI Tools/media/make_fonts.py"
+    note = f"Cinzel Medium with {track} units of tracking added to every advance, {space} more on the space, and lowercase drawn as capitals, by KstyleUI Tools/media/make_fonts.py"
     name.setName(note, 10, 3, 1, 0x409)
     name.setName(note, 10, 1, 0, 0)
     font["OS/2"].usWeightClass = CINZEL_MEDIUM_WEIGHT
@@ -141,8 +147,8 @@ def main(argv):
     args.out.mkdir(parents=True, exist_ok=True)
     if args.only != "alegreya":
         print("wrote", make_cinzel(args.src, args.out))
-        for stem, family, tracking_em in TRACKED:
-            print("wrote", make_tracked(args.src, args.out, stem, family, tracking_em))
+        for stem, family, tracking_em, space_em in TRACKED:
+            print("wrote", make_tracked(args.src, args.out, stem, family, tracking_em, space_em))
     if args.only != "cinzel":
         for style, weight in ALEGREYA:
             print("wrote", make_alegreya(args.src, args.out, style, weight))
