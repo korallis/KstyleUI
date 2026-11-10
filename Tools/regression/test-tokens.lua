@@ -189,7 +189,7 @@ for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, cap
 	assert(type(flags) == "string", "Tokens.Font(" .. role .. ") flags are a string")
 end
 assert(Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "the default body face is Alegreya Sans Tabular")
-assert(Tokens.Font("number"):match("AlegreyaSansTabular%-Bold%.ttf$"), "numbers use its bold, whose digits are tabular")
+assert(Tokens.Font("number"):match("AlegreyaSansTabular%-ExtraBold%.ttf$"), "numbers use its extra bold, whose digits are tabular")
 assert(select(3, Tokens.Font("world")) == "OUTLINE", "text over the 3D world gets a thin outline")
 assert(select(3, Tokens.Font("body")) == "", "UI text uses a shadow, not an outline")
 assert(not pcall(Tokens.Font, "nope"), "an unknown font role is an error")

@@ -133,7 +133,7 @@ class FontFilesTest(unittest.TestCase):
         # The game applies no OpenType features, so the files map the digits to their tabular oldstyle figures: the
         # owner's picture draws Alegreya's default figures (3, 4, 5, 7 and 9 hang below the baseline, 0, 1 and 2 stand
         # at x-height, 6 and 8 reach up), and a number that ticks keeps its width.
-        for name in ("AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
+        for name in ("AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf", "AlegreyaSansTabular-ExtraBold.ttf"):
             data = (FONTS / name).read_bytes()
             widths = {advance(data, glyph_index(data, ord(c))) for c in "0123456789"}
             self.assertEqual(widths, {475}, f"{name} digits share one advance of 475 units, got {sorted(widths)}")
@@ -145,6 +145,15 @@ class FontFilesTest(unittest.TestCase):
                 self.assertLess(box[digit][1], 540, f"{name}: {digit} stands at x-height, an oldstyle figure")
             for digit in "68":
                 self.assertGreater(box[digit][1], 560, f"{name}: {digit} reaches the ascender, an oldstyle figure")
+
+    def test_the_number_face_is_extra_bold(self):
+        # The picture's bold figures are heavier than Bold (LEE-85, Media/PROVENANCE.md): the number role's file is weight 800.
+        data = (FONTS / "AlegreyaSansTabular-ExtraBold.ttf").read_bytes()
+        self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 800)
+        self.assertIn("Extra".encode("utf-16-be"), table(data, "name"))
+        bold = (FONTS / "AlegreyaSansTabular-Bold.ttf").read_bytes()
+        self.assertNotEqual(table(data, "glyf"), table(bold, "glyf"), "Extra Bold draws its own outlines, not Bold's")
+        self.assertEqual(advance(data, glyph_index(data, ord("1"))), advance(bold, glyph_index(bold, ord("1"))), "the figures keep their 475-unit width")
 
     def test_the_lining_build_is_one_switch_away(self):
         spec = importlib.util.spec_from_file_location("make_fonts", ROOT / "Tools" / "media" / "make_fonts.py")
@@ -162,7 +171,7 @@ class FontFilesTest(unittest.TestCase):
         self.assertGreaterEqual(len(named), 8)
         for name in named:
             self.assertTrue((FONTS / name).exists(), f"Tokens names {name}")
-        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
+        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf", "AlegreyaSansTabular-ExtraBold.ttf"):
             self.assertIn(name, named, f"{name} is registered in Tokens")
 
     def test_licence_covers_every_family(self):

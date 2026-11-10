@@ -165,6 +165,7 @@ local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
 	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.065, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "AlegreyaSansExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -180,7 +181,7 @@ local FONT_ROLES = {
 	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
 	unit = { lumen = "CinzelUnit", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
-	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
+	number = { lumen = "AlegreyaSansExtraBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
 
