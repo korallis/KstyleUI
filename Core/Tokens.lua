@@ -15,6 +15,7 @@ local COLORS = {
 	rimSoft = { "d6eeff", 0.18 },
 	giltLit = { "f3dca4", 1 },
 	gilt = { "d9b46a", 1 },
+	capsGold = { "d3b574", 1 },
 	giltDim = { "8a6c34", 1 },
 	muted = { "a9b6c2", 1 },
 	dim = { "6f7d8a", 1 },
@@ -79,6 +80,7 @@ local SIZES = {
 	heading = 16,
 	body = 12,
 	title = 12,
+	caps = 10,
 	caption = 11,
 	number = 12,
 	world = 13,
@@ -145,6 +147,9 @@ local FONT_FACES = {
 	{ key = "SourceSans3Regular", label = "Source Sans 3", path = FONTS_DIR .. "SourceSans3-Regular.ttf" },
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
 }
+local ROLE_FACES = {
+	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.07 },
+}
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
 local NUMBER_FACE = "SourceSans3Semibold"
@@ -155,6 +160,7 @@ local FONT_ROLES = {
 	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
 	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
 	title = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
+	caps = { lumen = "CinzelTracked", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
 	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
@@ -265,9 +271,11 @@ function Tokens.Easing(name)
 end
 
 local FACE_PATH = {}
-for _, list in ipairs({ FONT_SETS, FONT_FACES }) do
+local FACE_TRACKING = {}
+for _, list in ipairs({ FONT_SETS, FONT_FACES, ROLE_FACES }) do
 	for _, face in ipairs(list) do
 		FACE_PATH[face.key] = face.path
+		FACE_TRACKING[face.path] = face.tracking
 	end
 end
 
@@ -298,12 +306,24 @@ function Tokens.Font(role)
 	return ns.Locale.Font(path or FACE_PATH[FALLBACK_FACE]), size, spec.flags
 end
 
+function Tokens.FaceTracking(path)
+	return FACE_TRACKING[path] or 0
+end
+
 function Tokens.TextStyle(role)
 	local spec = FONT_ROLES[role]
 	if not spec then
 		unknown("TextStyle", role)
 	end
 	return spec.tracking, spec.upper == true
+end
+
+function Tokens.RoleFontPaths()
+	local out = {}
+	for i, face in ipairs(ROLE_FACES) do
+		out[i] = ns.Locale.Font(face.path)
+	end
+	return out
 end
 
 function Tokens.MediaList(kind)

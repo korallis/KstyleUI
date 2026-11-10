@@ -73,12 +73,15 @@ Every chrome wears one of Lumen's grades: the card (panel and card), the window 
 | `heading` | Cinzel SemiBold | 16 | `""` | 0.4 | |
 | `body` | Alegreya Sans Tabular | 12 | `""` | 0 | |
 | `caption` | Cinzel SemiBold | 9 | `""` | 1.4 | yes |
+| `caps` | Cinzel Tracked (Regular, spaced) | 10 | `""` | 0 | yes |
 | `number` | Alegreya Sans Tabular Bold | 12 | `""` | 0 | |
 | `world` | Alegreya Sans Tabular Medium | 13 | `"OUTLINE"` | 0 | |
 
 The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: each role takes the face in the table. Any other choice (a key of `MediaList("font")`, such as Source Sans 3 Semibold, or a font file path such as a LibSharedMedia font) sets every role to that face, except `number`, which then uses Source Sans 3 Semibold for its tabular digits. The game applies no OpenType features, so Alegreya Sans's `tnum` and `lnum` cannot be turned on; the bundled Alegreya Sans Tabular files map the digits to the font's own tabular lining figures instead (`Media/PROVENANCE.md`), so numbers keep their width without a fixed-width reservation. The caption role is Cinzel, tracked, for rail section caps; a module that sets dense small text in `caption` reads it in Cinzel until it moves that text to `body` or `number`. Every role but `world` is multiplied by `Theme.FontScale()`, the Appearance page's text size; text over the 3D world keeps its size. UI text takes a soft shadow (`textShadow`, offset `textShadowOffset`) instead of an outline; text over the 3D world takes the thin outline.
 
 `TextStyle(role) -> tracking, uppercase` gives the kit's letter spacing in units. The game has no letter-spacing setter, so widgets treat it as a hint.
+
+`caps` is the picture's heading: Cinzel Regular with the letter spacing in the font file (`Media/Fonts/CinzelTracked-Regular.ttf`, every advance 0.07 em wider), capitals, 10 units (a 21-pixel face on the owner's screen), in `capsGold` (#d3b574) for card captions. The game has no letter-spacing call and Cinzel has no thin space, so the file carries the spacing; `Media/PROVENANCE.md` has the proof from the Forever source and how the 0.07 was measured. The face also draws each lowercase letter as its capital, so a name Lua cannot uppercase (a secret) still reads in capitals. `Tokens.FaceTracking(path) -> em` is 0.07 for that file and 0 for every other path, including the game's own font that stands in for it on `ruRU`, `zhCN`, `zhTW` and `koKR`. The file stays out of `MediaList("font")`, so no picker offers it; `Tokens.RoleFontPaths()` lists it for `Fonts` to request while the game loads. Text set in it leaves a tracking-wide gap after its last letter, which `Widgets.ApplyFont` and `Widgets.SyncTracking` take back (`Widgets/README.md`).
 
 `FontPath(key)` returns a face's file, or `nil` for an unknown key; `FontPath("Lumen")` is the body face. `DEFAULT_FONT_FACE` is `"Lumen"`.
 
