@@ -86,7 +86,7 @@ for _, element in ipairs(ELEMENTS) do
 end
 
 local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
-local MARGIN, RAIL, GAP, TIGHT = 28, 318, 16, 4
+local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
 local NEAR = ns.Tokens.Size("gapLarge")
 local BAND = MARGIN + RAIL + GAP
 local ENDS = GridSize("actionbars.bar1") / 2 + NEAR + GridSize("actionbars.pet") / 2
@@ -516,12 +516,12 @@ local LEGACY = {
 		["groupframes.party"] = { "BOTTOM", -311, 466 },
 		["groupframes.raid"] = { "BOTTOM", -311, 466 },
 		["combattext.player"] = { "BOTTOM", 232, 466 },
-		["unitframes.boss"] = { "TOPLEFT", MARGIN, -MARGIN },
-		["actionbars.bar2"] = { "TOPRIGHT", -BAND, -533 },
-		["actionbars.bar3"] = { "TOPRIGHT", -BAND, -MARGIN },
-		["actionbars.bar4"] = { "TOPRIGHT", -403, -MARGIN },
-		["actionbars.bar5"] = { "TOPRIGHT", -444, -MARGIN },
-		["actionbars.bar6"] = { "TOPRIGHT", -485, -MARGIN },
+		["unitframes.boss"] = { "TOPLEFT", 28, -28 },
+		["actionbars.bar2"] = { "TOPRIGHT", -362, -533 },
+		["actionbars.bar3"] = { "TOPRIGHT", -362, -28 },
+		["actionbars.bar4"] = { "TOPRIGHT", -403, -28 },
+		["actionbars.bar5"] = { "TOPRIGHT", -444, -28 },
+		["actionbars.bar6"] = { "TOPRIGHT", -485, -28 },
 	},
 }
 

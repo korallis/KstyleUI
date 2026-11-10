@@ -138,7 +138,7 @@ for _, texture in ipairs(textures(healer.target)) do
 end
 local corner = textures(healer.target)[1]
 local cw = corner:GetSize()
-eq(cw, (healer.chrome.rim[1]:GetSize()), "the ring's corners are the tile's own radius")
+eq(cw, healer.chrome:Radius(), "the ring's corners are the tile's own radius")
 eq(corner._points[1][1], "TOPLEFT", "the first corner sits at the top left")
 eq(corner._points[1][4], 0, "inside the frame, flush with its edge")
 
@@ -186,7 +186,7 @@ eq(icon:GetNumMaskTextures(), 1, "the icon is masked")
 eq(asset(icon:GetMaskTexture(1)), mask, "by the kit's rounded icon mask")
 local swipe = button._aura.cooldown._state.SwipeTexture
 eq(swipe and swipe[1], mask, "the duration swipe uses the same mask")
-local tile = kitPaths(K, { "lumenShape", "lumenRimSmall" })
+local tile = kitPaths(K, { "lumenShape", "ringLine2", "ringLine3" })
 local seen = {}
 for _, texture in ipairs(textures(button)) do
 	local name = tile[asset(texture)]
@@ -195,7 +195,7 @@ for _, texture in ipairs(textures(button)) do
 	end
 end
 assert((seen.lumenShape or 0) >= 9, "each icon sits on a rounded socket")
-assert((seen.lumenRimSmall or 0) >= 5, "with the socket's rim: its corners and centre from the texture, its runs solid lines")
+assert((seen.ringLine3 or 0) >= 5 and (seen.ringLine2 or 0) >= 5, "with the socket's line and rim, each ring's corners and centre from its texture, its runs solid lines (the owner's picture, 2026-11-09)")
 local dispel = {}
 for _, entry in ipairs(button._aura.dispel) do
 	dispel[#dispel + 1] = entry.texture

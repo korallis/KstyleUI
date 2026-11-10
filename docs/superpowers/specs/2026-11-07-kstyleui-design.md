@@ -181,14 +181,15 @@ Quality and reaction values outside the table come from Blizzard's colour tables
 
 ### Shape
 
-- Panels have 45-degree chamfered corners of 6 units. Tiles and buttons have 3 units.
+- The owner's picture of 2026-11-09 (`handoffs/reference/owner-reference-2026-11-09.png`) sets the material, by his ruling "let the picture win its what i want", over the chamfers and frost glass this section described before. Cards, panels, windows, rails and tooltips are one material: a dark navy fill (`surface`, `#0e1217` at 75%), a faint dark edge line, a muted rim one line inside it, and corners six border lines round, so every line lands on whole physical pixels at every size. Every card carries two gilt L-ticks (`gilt`, `#d3b574`), at the top left and bottom right, `tick` (15) units long; the story card has them too, reversing #205. Tiles, sockets and buttons have a near-black edge line on corners three lines round, over the button fill.
 - HUD sizes at the 1080 reference: action buttons 34 units with 3-unit gaps, essential cooldown icons 40 units, utility cooldown icons 30 units, player and target frames 296 by 89 units (the kit sheet's 469 by 141 proportions), portraits as tall as the frame. Players can resize each in Layout Mode.
-- Every panel edge is a double-line bevel, as `05_kit_hunter.jpg` draws it: `edgeOuter` on the edge, the light `edgeInner` line inside it, then one line of glass and the faint `edgeFaint` hairline. Each line is one physical pixel at 1080p and 1440p, and two at 4K and on the Mac.
-- Panels cast a soft outward shadow of about 12 units, made from one nine-sliced falloff texture whose corner pieces are centred on the panel's corners.
+- Each edge line is one physical pixel thick at 1080p and 1440p, and two at 4K and on the Mac.
+- The picture casts no shadow, so the `shadows` setting is off by default; a player who turns it on gets a soft outward shadow of 14 units.
+- The HUD sits `screenMargin` (17) units in from the screen's edges, the picture's measured margin.
 - Dividers are gradients that fade out at both ends.
 - The KstyleUI signature motif is the chamfered diamond from the logo in `05_kit_hunter.jpg`.
 
-Chamfers come from mask textures, so the same art works at every size.
+Corners come from ring textures drawn for each line count, so the same art works at every size.
 
 ### Type
 

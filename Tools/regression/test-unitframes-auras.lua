@@ -91,14 +91,17 @@ do
 	assert(rim, "its hairline rests on the accent lifted 15% toward white, as an action button")
 end
 assert((paths[(Tokens.Texture("lumenShape"))] or 0) >= 9, "the tile has a rounded fill")
-assert(paths[(Tokens.Texture("lumenRimSmall"))] == 5, "the tile has the socket's rim: four corners and a centre from the texture, the straight runs solid lines")
+assert(paths[(Tokens.Texture("ringLine3"))] == 5 and paths[(Tokens.Texture("ringLine2"))] == 5, "the tile has the socket's line and rim (the owner's picture, 2026-11-09): each ring's four corners and a centre from its texture, the straight runs solid lines")
 assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
 local corners = cornerSizes(skin)
 assert(#corners >= 4, "the rounded corners are sized")
-local want = K.Scale.Snap(20 * Tokens.Share("radiusSocket"))
+local drawn, inner = K.Scale.Snap(3 * K.Scale.Border()), K.Scale.Snap(2 * K.Scale.Border())
+local counts = { [drawn] = 0, [inner] = 0 }
 for _, size in ipairs(corners) do
-	assert(size[1] == want and size[2] == want, "each corner is the socket share of a 20-unit icon: " .. tostring(size[1]))
+	assert(size[1] == size[2] and counts[size[1]], "each corner is the socket grade's three border lines or the fill's two (one line in), with no radius share (the owner's picture, 2026-11-09): " .. tostring(size[1]))
+	counts[size[1]] = counts[size[1]] + 1
 end
+assert(counts[drawn] == 4 and counts[inner] == 4, "four corners of each size")
 local _, iconRel, _, ix, iy = aura.SetIcon[1]:GetPoint(1)
 assert(iconRel == skin and ix == 2 * K.Scale.Border() and iy == -2 * K.Scale.Border(), "the icon sits two borders in")
 local cooldown = aura.SetDurationCooldown[1]
@@ -151,9 +154,8 @@ env.SetCombat(true)
 env.SetCombat(false)
 local nw = button:GetSize()
 assert(nw == 26, "the buttons take the new size once auras are readable again")
-want = K.Scale.Snap(26 * Tokens.Share("radiusSocket"))
 for _, size in ipairs(cornerSizes(skin)) do
-	assert(size[1] == want and size[2] == want, "the rounded corner follows the icon to 26 units: " .. tostring(size[1]))
+	assert(size[1] == drawn or size[1] == inner, "the rounded corner stays the socket grade's border lines at 26 units, it no longer follows the icon (the owner's picture, 2026-11-09): " .. tostring(size[1]))
 end
 noErrors("after the gate")
 

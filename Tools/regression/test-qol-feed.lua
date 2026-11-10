@@ -263,7 +263,7 @@ do
 	local env, K, ns = New()
 	Loot(env, "You receive loot: " .. CLOTH .. "x2")
 	local line, backdrop = ns.Feed.lines[1], ns.Feed.Backdrop()
-	assert(backdrop.opts and backdrop.opts.shape == "window" and backdrop.chrome.shapeName == "window" and backdrop.chrome.shape.gilt == true, "the backdrop is the chat card's window panel, gold corner marks included")
+	assert(backdrop.opts and backdrop.opts.shape == "window" and backdrop.chrome.shapeName == "window" and backdrop.chrome.gilt ~= nil, "the backdrop is the chat card's window panel, gilt L-ticks included")
 	local path = K.Tokens.Font("body")
 	local want = K.Widgets.FontSize(line.name, K.Tokens.Size("lootText"))
 	for _, text in ipairs({ line.name, line.plus, line.count }) do

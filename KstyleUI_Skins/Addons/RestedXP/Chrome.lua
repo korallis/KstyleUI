@@ -607,7 +607,7 @@ local function GuideWindow(rxp)
 	if name then
 		Skin.Strip(name, { children = RXP_ART })
 	end
-	local glass = path and Glass(f, { reach = true, target = path.card, gilt = false })
+	local glass = path and Glass(f, { reach = true, target = path.card })
 	if path then
 		path.OnHead = function()
 			if state.guide then

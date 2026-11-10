@@ -41,7 +41,7 @@ Two rows, each a `CustomAuraContainerTemplate` container on the player and its o
 
 | Element key | Filter | Default place | Default shape |
 | --- | --- | --- | --- |
-| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, 16 left of the minimap element, on the 28-unit top margin | 2 rows of 8 icons of 30 units, 6 apart, 4 between rows, growing left from the map's edge, then down, so the shortest time left sits next to the map: 282 by 88 units |
+| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, 16 left of the minimap element, on the top screen margin (`screenMargin`, 17 units) | 2 rows of 8 icons of 30 units, 6 apart, 4 between rows, growing left from the map's edge, then down, so the shortest time left sits next to the map: 282 by 88 units |
 | `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, the same column, 16 under the buffs | the same: 282 by 88 units |
 
 The rows stand beside the minimap's left edge, as the owner asked (2026-11-09) and as Blizzard's and Leatrix's setups do. `Core/Setup/Layouts.lua` computes their place from the minimap element's width, so a different map keeps them beside it. The boss column and the spare bar columns stand lower on the screen's right side (#208), so the corner is free at every aspect.

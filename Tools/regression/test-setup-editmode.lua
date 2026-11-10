@@ -59,7 +59,7 @@ do
 		local rw, rh = K.Layout.RootSize()
 		local mw, mh = K.Setup.Layouts.Footprint("DPS", "minimap.main")
 		local _, mapBottom = K.Setup.Layouts.Rect({ width = mw, height = mh }, K.Setup.Layouts.Get("DPS", rh)["minimap.main"], rw, rh)
-		assert(near(story.tracker.right, rw - 28) and story.tracker.left > rw / 2, "the slot, and so the tracker, is on the right rail")
+		assert(near(story.tracker.right, rw - K.Tokens.Size("screenMargin")) and story.tracker.left > rw / 2, "the slot, and so the tracker, is on the right rail")
 		assert(story.tracker.top < mapBottom, "under the map, where a tracker sits in the classic UI")
 	end
 	assert(tracker.isInDefaultPosition == false, "and is no longer in its default position")

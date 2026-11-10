@@ -574,7 +574,7 @@ do
 	assert(panel:GetWidth() == 400, "a widget restyle keeps the width Layout owns")
 	assert(Layout.Set("Test.Panel", "scale", 1.25))
 	env.RunTimers()
-	local corner = panel.chrome.rim[1]
+	local corner = panel.chrome.line[1]
 	assert(near(corner:GetWidth(), Scale.Snap(panel.chrome:Radius() * 1.25) / 1.25), "a new scale redraws the rounded corners in whole pixels")
 	Widgets.RestyleAll()
 	assert(panel:GetScale() == 1.25 and panel:GetWidth() == 400, "and a later restyle keeps both")
