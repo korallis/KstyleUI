@@ -157,7 +157,6 @@ local FONT_FACES = {
 	{ key = "AlegreyaSansRegular", label = "Alegreya Sans", path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
 	{ key = "AlegreyaSansMedium", label = "Alegreya Sans Medium", path = FONTS_DIR .. "AlegreyaSansTabular-Medium.ttf" },
 	{ key = "AlegreyaSansBold", label = "Alegreya Sans Bold", path = FONTS_DIR .. "AlegreyaSansTabular-Bold.ttf" },
-	{ key = "AlegreyaSansExtraBold", label = "Alegreya Sans Extra Bold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf" },
 	{ key = "SourceSans3Semibold", label = "Source Sans 3 Semibold", path = FONTS_DIR .. "SourceSans3-Semibold.ttf" },
 	{ key = "SourceSans3Regular", label = "Source Sans 3", path = FONTS_DIR .. "SourceSans3-Regular.ttf" },
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
@@ -166,6 +165,7 @@ local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
 	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.065, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "AlegreyaSansExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"

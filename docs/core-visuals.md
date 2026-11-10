@@ -91,7 +91,7 @@ Three roles carry the picture's letter-spaced Cinzel capitals, each from its own
 
 ### Media lists
 
-`MediaList(kind) -> { { key, label, path }, ... }`, a fresh copy, for `"font"` (Cinzel SemiBold, Alegreya Sans, Alegreya Sans Medium, Alegreya Sans Bold, Alegreya Sans Extra Bold, Source Sans 3 Semibold, Source Sans 3, Inter SemiBold: real faces, which path pickers list and LibSharedMedia registers), `"fontSet"` (Lumen, which only the Appearance face list offers) and `"statusbar"` (Glass, Soft, Flat).
+`MediaList(kind) -> { { key, label, path }, ... }`, a fresh copy, for `"font"` (Cinzel SemiBold, Alegreya Sans, Alegreya Sans Medium, Alegreya Sans Bold, Source Sans 3 Semibold, Source Sans 3, Inter SemiBold: real faces, which path pickers list and LibSharedMedia registers), `"fontSet"` (Lumen, which only the Appearance face list offers) and `"statusbar"` (Glass, Soft, Flat).
 
 ### Textures
 
