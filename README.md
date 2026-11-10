@@ -172,6 +172,7 @@ KstyleUI targets the Forever client only (TOC `16001`, game type `camelot`). It 
 | `/kstyle setup` | Runs the first-run setup again. |
 | `/kstyle bind` | Opens Blizzard's Quick Keybind mode: hover a button and press a key to bind it. |
 | `/kstyle test` | Runs the smoke checks and writes the results to the devlog. Type `/reload` afterwards to save them. |
+| `/kstyle devlog on`, `/kstyle devlog off` | Arms/stops the developer-only [Edit Mode geometry recorder](docs/EDIT_MODE_RECORDER.md) for this session; off after every reload. |
 | `/kstyle profile` | Lists the profiles and marks the one this character uses. |
 | `/kstyle profile use <name>` | Switches this character to a profile, creating it if needed. |
 | `/kstyle profile new <name>` | Creates a profile with the default settings. |
