@@ -6,7 +6,7 @@
 -- what it shows that no code draws is listed in handoffs/reference-diff/DIFF.md, not faked here.
 --
 --   local Reference = dofile("Tools/render/scenes/_reference.lua")
---   local scene = Reference.Build()        -- the DPS layout's preset, with the bars the picture shows switched on
+--   local scene = Reference.Build({ layout = "Tank" }) -- DPS by default; Tank and Healer also apply their presets
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Lumen = dofile("Tools/render/scenes/_lumen.lua")
 
@@ -102,31 +102,11 @@ Reference.STATE = {
 	barStates = false,
 }
 
--- The bars the picture shows that the DPS preset leaves off: bar 2 under bar 1, and bars 4 and 5 as the two columns on
--- the right edge, every slot drawn; and the owner's own profile: one row of buffs.
-Reference.SETTINGS = {
-	ActionBars = {
-		bar2 = { enabled = true, showEmpty = true },
-		bar4 = { enabled = true, showEmpty = true },
-		bar5 = { enabled = true, showEmpty = true },
-	},
-	Auras = { buffs = { rows = 1 } },
-}
-
-local function merge(into, from)
-	for k, v in pairs(from) do
-		if type(v) == "table" and type(into[k]) == "table" then
-			merge(into[k], v)
-		else
-			into[k] = v
-		end
-	end
-	return into
-end
-
--- Build(opts) -> the merged scene on the owner's screen. opts.preset == true draws the DPS preset's bars only.
+-- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer.
 function Reference.Build(opts)
 	opts = opts or {}
+	local layout = opts.layout or "DPS"
+	assert(layout == "DPS" or layout == "Tank" or layout == "Healer", "reference layout must be DPS, Tank or Healer")
 	local previous = rawget(_G, "RENDER_SCREEN")
 	rawset(_G, "RENDER_SCREEN", Reference.SCREEN)
 	local ok, scene = pcall(function()
@@ -134,16 +114,23 @@ function Reference.Build(opts)
 		for k, v in pairs(Reference.STATE) do
 			state[k] = v
 		end
-		local settings = Lumen.Preset("DPS")
-		if not opts.preset then
-			merge(settings, Reference.SETTINGS)
+		local modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" }
+		if layout ~= "DPS" then
+			modules[#modules + 1] = "groupframes"
+			state.party = Lumen.PARTY.questing
+			state.role = layout == "Tank" and "TANK" or "HEALER"
 		end
-		state.settings = settings
+		if layout == "Tank" then
+			state.meterSolo = false
+			state.damage = { Reference.STATE.damage[1], { "Leduc", "PALADIN", 442 }, { "Trolly", "PRIEST", 201 } }
+		end
 		return Lumen.Build("questing", {
 			class = "SHAMAN",
+			layout = layout,
+			applyPreset = true,
 			state = state,
 			elements = true,
-			modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" },
+			modules = modules,
 		})
 	end)
 	rawset(_G, "RENDER_SCREEN", previous)
@@ -151,7 +138,7 @@ function Reference.Build(opts)
 		error(scene, 0)
 	end
 	scene.log[#scene.log + 1] = "reference: the owner's picture of 2026-11-09 on his " .. Reference.SCREEN.width .. " by " .. Reference.SCREEN.height .. " screen"
-		.. (opts.preset and ", the DPS preset's bars only" or ", with bars 2, 4 and 5 on as the picture shows them")
+		.. ", the " .. layout .. " preset through Setup.Apply"
 	return scene
 end
 

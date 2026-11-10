@@ -3,5 +3,5 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 
 return Common.Run(function()
-	return Reference.Build({ preset = os.getenv("RENDER_PRESET") == "1" })
+	return Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS" })
 end)
