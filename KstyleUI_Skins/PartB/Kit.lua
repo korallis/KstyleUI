@@ -671,14 +671,14 @@ end
 
 Kit.WindowTabs = WindowTabs
 
-function Kit.Title(frame)
+function Kit.Title(frame, role)
 	local container = frame.TitleContainer
 	local title = type(container) == "table" and container.TitleText or nil
 	if not title and type(frame.GetTitleText) == "function" then
 		title = frame:GetTitleText()
 	end
 	if type(title) == "table" and type(title.SetFont) == "function" then
-		return ns.Style.Title(title)
+		return ns.Style.Title(title, nil, role)
 	end
 	return nil
 end
@@ -686,7 +686,7 @@ end
 local function Window(frame, opts)
 	opts = opts or {}
 	local panel = K.Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false })
-	local title = Kit.Title(frame)
+	local title = Kit.Title(frame, opts.titleRole)
 	local tabs = WindowTabs(frame)
 	for _, tab in ipairs(tabs) do
 		Kit.Accent(tab)

@@ -1133,7 +1133,7 @@ function build.mail(env, B)
 	B.texture(env.SendMailScrollFrame)
 	env.SendMailScrollFrame.ScrollBar = ScrollBar(B, env.SendMailScrollFrame)
 
-	local letter = Window(B, "OpenMailFrame", nil, 338, 424, "Thargor", { inset = { top = 60, bottom = 30 } })
+	local letter = Window(B, "OpenMailFrame", nil, 338, 424, "Open Mail", { inset = { top = 60, bottom = 30 } })
 	Anchor(letter, mail, "TOPLEFT", "TOPRIGHT", 16, 0)
 	local scroll = B.frame("ScrollFrame", letter, "OpenMailScrollFrame")
 	Fill(scroll, letter.Inset, 6, 6, 6, 60)

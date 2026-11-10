@@ -412,8 +412,11 @@ end
 -- Merchant ---------------------------------------------------------------------------------------------
 
 do
-	local _, K, _, _, made = Run("merchant", function(B)
+	local env, K, ns, _, made = Run("merchant", function(B, env)
 		local merchant = P.Window(B, "MerchantFrame")
+		merchant.selectedTab = 1
+		env.MerchantFrame_UpdateMerchantInfo = function() end
+		env.MerchantFrame_UpdateBuybackInfo = function() end
 		merchant.FilterDropdown = P.Dropdown(B, merchant)
 		local slots = {}
 		for i = 1, 3 do
@@ -453,6 +456,16 @@ do
 	assert(Hidden(made.repair.slot) and not Hidden(made.repair.Icon), "the repair button keeps its icon on a tile")
 	assert(K.Safe.Side(made.prev).partBArrow, "the page buttons get chevrons")
 	assert(Skinned(K, made.merchant.FilterDropdown, "Backdrop"), "the filter is the shared KstyleUI dropdown")
+	local title = made.merchant.TitleContainer.TitleText
+	assert(title:GetFont() == ns.Style.Font("names"), "the merchant title is the NPC's name")
+	made.merchant.selectedTab = 2
+	env.MerchantFrame_UpdateBuybackInfo()
+	assert(title:GetFont() == ns.Style.Font("caps"), "the buyback title is a window caption, not an NPC name")
+	made.merchant.selectedTab = 1
+	env.MerchantFrame_UpdateMerchantInfo()
+	assert(title:GetFont() == ns.Style.Font("names"), "returning to the merchant restores the name role")
+	ns.Style.RestyleAll()
+	assert(title:GetFont() == ns.Style.Font("names"), "the merchant's name role survives restyles")
 end
 
 -- Trainer ----------------------------------------------------------------------------------------------
@@ -488,6 +501,7 @@ do
 		return { trainer = trainer, bar = bar, barArt = barArt, skill = skill, category = category, train = train }
 	end)
 	assert(Skinned(K, made.trainer, "Window"))
+	assert(made.trainer.TitleContainer.TitleText:GetFont() == ns.Style.Font("names"), "the trainer title is the NPC or pet's name")
 	assert(Hidden(made.barArt) and not Hidden(made.bar:GetStatusBarTexture()), "the skill bar keeps its fill and loses its frame")
 	assert(W.LastCall(made.bar:GetStatusBarTexture(), "SetTexture")[1] == ns.Style.BarTexture(), "the skill bar takes the module's bar texture")
 	-- A client without the trainer skill-line API, or one that answers nothing, labels the bar "Skill"; Blizzard's
