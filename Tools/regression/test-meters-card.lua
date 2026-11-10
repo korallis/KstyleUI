@@ -2,7 +2,6 @@
 local M = dofile("Tools/regression/meters_env.lua")
 local W = M.W
 
-local DOT = " \194\183 "
 local SPELLS = {
 	{ 403, "Lightning Bolt", 412, "meterNature" },
 	{ 8050, "Flame Shock", 188, "meterFire" },
@@ -102,12 +101,35 @@ for i, spell in ipairs(SPELLS) do
 	assert(not row.icon:IsShown(), i .. ": no icon")
 	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
 	assert(Text(row.value) == "~" .. spell[3], i .. ": the amount: " .. tostring(Text(row.value)))
-	assert(Text(row.percent) == DOT .. PERCENTS[i], i .. ": the share after the middle dot: " .. tostring(Text(row.percent)))
+	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
+	assert(row.dot and row.dot:IsShown() and Text(row.dot) == "\194\183", i .. ": the middle dot is its own piece")
 	local cr, cg, cb = K.Tokens.Color(spell[4])
 	local br, bg, bb = Color(row.bar)
 	assert(br == cr and bg == cg and bb == cb, i .. ": the bar is the spell's school colour (" .. spell[4] .. ")")
 	local range = M.Last(row.bar, "SetMinMaxValues")
 	assert(range[2] == 412 and M.Last(row.bar, "SetValue")[1] == spell[3], i .. ": the fill is the spell's share of the top spell")
+end
+
+-- The dot is its own piece, with 5 physical pixels of ink each side (LEE-95). A trailing 1 sits closer to the
+-- dot than a trailing 2: the fixed-width figure's side bearing is not part of the gap. The offsets are snapped.
+do
+	local row = list.rows[1]
+	local dot = { row.dot:GetPoint(1) }
+	local value = { row.value:GetPoint(1) }
+	assert(dot[1] == "RIGHT" and dot[2] == row.percent and dot[3] == "LEFT", "the dot sits against the share")
+	assert(value[1] == "RIGHT" and value[2] == row.dot and value[3] == "LEFT", "the amount sits against the dot")
+	local _, size = row.value:GetFont()
+	local x2, y = ns.BarList.JoinOffsets("2", "4", size)
+	local snap = K.Widgets.Snap
+	assert(W.Near(value[4], snap(list.panel, x2)), "a trailing 2 leaves 5 px after its ink, got " .. tostring(value[4]))
+	assert(W.Near(dot[4], snap(list.panel, y)), "the share's first figure leaves 5 px after the dot, got " .. tostring(dot[4]))
+	local x1 = ns.BarList.JoinOffsets("1", "4", size)
+	assert(x1 > x2 + size * 0.05, "a trailing 1, whose ink stops short of the advance, is pulled toward the dot")
+	local pixel = K.Scale.Pixel(1)
+	assert(math.abs(value[4] / pixel - math.floor(value[4] / pixel + 0.5)) < 1e-6, "the amount's gap is whole physical pixels")
+	assert(math.abs(dot[4] / pixel - math.floor(dot[4] / pixel + 0.5)) < 1e-6, "the share's gap is whole physical pixels")
+	local gap = K.Scale.Pixel(5)
+	assert(W.Near(0.022 * size + 0.033 * size - x2, gap), "the offset cancels the number face's side bearings, so the ink gap is 5 px")
 end
 
 -- The text sits inside the fill: the name at the left, the amount and share at the right, the value bold.
@@ -119,6 +141,7 @@ do
 	assert(share[1] == "RIGHT" and share[4] < 0 and share[4] > -12, "the share ends just inside the bar's right edge")
 	assert(M.Last(row.value, "SetFont")[1] == K.Tokens.Font("number"), "the amount is bold")
 	assert(M.Last(row.percent, "SetFont")[1] == K.Tokens.Font("number"), "and so is the share")
+	assert(M.Last(row.dot, "SetFont")[1] == K.Tokens.Font("number"), "and so is the dot")
 	assert(M.Last(row.name, "SetFont")[1] == K.Tokens.Font("body"), "the name is the body face")
 	assert(row.name:GetParent() ~= row.frame and row.name:GetParent():GetFrameLevel() > row.bar:GetFrameLevel(), "the text is drawn above the bar")
 	local nr, ng, nb = K.Tokens.Color("textEmphasis")
@@ -149,7 +172,7 @@ M.Write(env, K, "damage.meter", "DamageDone")
 
 -- The percent switch drops the share and the dot together.
 M.Write(env, K, "damage.percent", false)
-assert(Text(list.rows[1].percent) == "" and not list.rows[1].percent:IsShown(), "no share, no dot")
+assert(Text(list.rows[1].percent) == "" and not list.rows[1].percent:IsShown() and not list.rows[1].dot:IsShown(), "no share, no dot")
 M.Write(env, K, "damage.percent", true)
 
 -- The old default stays a setting: the colour source "class" brings the class colour back on spells.
@@ -252,4 +275,27 @@ do
 end
 
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
+
+-- The 5 px gaps stay whole physical pixels on the nine screens. The offset is Scale.Pixel's, so a screen
+-- only changes the pixel the gap snaps to, not the count of pixels.
+local screens = {
+	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+}
+for _, screen in ipairs(screens) do
+	local envS, KS, nsS = M.New({ width = screen[1], height = screen[2], game = function(e) Fight(e) end })
+	M.Enable(envS, KS)
+	envS.RunTimers()
+	local row = nsS.Damage.list.rows[1]
+	local pixel = KS.Scale.Pixel(1)
+	local valueX = select(4, row.value:GetPoint(1))
+	local dotX = select(4, row.dot:GetPoint(1))
+	local label = screen[1] .. "x" .. screen[2]
+	assert(row.dot:IsShown(), label .. ": the dot shows")
+	assert(math.abs(valueX / pixel - math.floor(valueX / pixel + 0.5)) < 1e-4, label .. ": the amount's gap is whole pixels, got " .. tostring(valueX / pixel))
+	assert(math.abs(dotX / pixel - math.floor(dotX / pixel + 0.5)) < 1e-4, label .. ": the share's gap is whole pixels, got " .. tostring(dotX / pixel))
+	assert(math.abs(valueX - KS.Widgets.Snap(row.frame, -5 * pixel)) < 8 * pixel, label .. ": the gap stays a few pixels, not the old column of slack")
+	assert(#envS._errors == 0, label .. ": " .. tostring(envS._errors[1]))
+end
+
 print("meters card ok")

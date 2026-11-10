@@ -29,23 +29,26 @@ except ImportError:  # pragma: no cover - depends on the machine
 
 
 THIN_SPACE = 0x2009
+MIDDLE_DOT = 0x00B7
 
 
 def advances(path):
-    """The advance of each printable ASCII glyph, and of the thin space the kit tracks capitals with, in em, as {code: em}."""
+    """The advance of each printable ASCII glyph, the thin space, and the middle dot, in em, as {code: em}."""
     font = ImageFont.truetype(path, UNITS)
     out = {code: font.getlength(chr(code)) / UNITS for code in range(32, 127)}
-    # A font without the thin space draws its missing-glyph box; only a real glyph's advance is recorded.
-    thin, missing = font.getlength(chr(THIN_SPACE)), font.getlength(chr(0xFFFE))
-    if thin != missing:
-        out[THIN_SPACE] = thin / UNITS
+    # A font without the glyph draws its missing-glyph box; only a real glyph's advance is recorded.
+    missing = font.getlength(chr(0xFFFE))
+    for code in (THIN_SPACE, MIDDLE_DOT):
+        advance = font.getlength(chr(code))
+        if advance != missing:
+            out[code] = advance / UNITS
     return out
 
 
 def render(fonts):
     """The Lua module text for {name: {code: em}}."""
     lines = [
-        "-- glyphs.lua: the kit fonts' glyph advances in em, by font file name and code point (ASCII, and 8201 for the thin space); Tools/render/gen_glyphs.py writes it.",
+        "-- glyphs.lua: the kit fonts' glyph advances in em, by font file name and code point (ASCII, 183 for the middle dot, and 8201 for the thin space); Tools/render/gen_glyphs.py writes it.",
         "return {",
     ]
     for name in sorted(fonts):
