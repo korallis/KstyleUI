@@ -135,7 +135,7 @@ local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
-	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
+	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + 2 },
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -MARGIN },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(MARGIN + AURA_ROW + GAP) },

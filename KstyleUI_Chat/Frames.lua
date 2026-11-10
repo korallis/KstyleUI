@@ -466,7 +466,7 @@ function Frames.FitTabs(dock)
 				local width = type(measure) == "function" and measure(text) or nil
 				if not IsSecret(width) and type(width) == "number" and width > 0 then
 					text:SetWidth(width)
-					tab:SetWidth(width + Widgets.Snap(tab, 30 * 1080 / 2234 - 1))
+					tab:SetWidth(width + Widgets.Snap(tab, 13.5))
 				end
 			end
 		end

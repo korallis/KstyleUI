@@ -21,7 +21,7 @@ local LAYOUT_CHANGED = "LayoutChanged"
 
 local TAB_TEXT_RISE = 14
 local TAB_ROW = 48
-local LINE_INSET = 26 * 1080 / 2234
+local LINE_INSET = 12.57
 local MESSAGE_FOOT = 42
 local BACKGROUND_RISE = 3
 local EDIT_DROP = 2
