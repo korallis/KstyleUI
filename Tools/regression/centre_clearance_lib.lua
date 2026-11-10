@@ -34,20 +34,19 @@ local function Collect(scene, roots, groups, painted, scale, label)
 		assert(not line:find("error:", 1, true), label .. ": " .. line)
 	end
 	for _, item in ipairs(scene.items) do
-		local object, group = item.object
-		while object do
-			painted[object] = true
-			group, object = group or roots[object], object._parent
-		end
-		if group then
-			local r = item.rect
-			if r[3] > 0 and r[4] > 0 then
-				groups[group] = groups[group] or {}
-				groups[group][#groups[group] + 1] = {
-					x = r[1] / scale, y = r[2] / scale, w = r[3] / scale, h = r[4] / scale,
-					asset = item.text or item.file or item.kind,
-				}
+		local r = item.rect
+		if r[3] > 0 and r[4] > 0 then
+			local object, group = item.object
+			while object do
+				painted[object] = true
+				group, object = group or roots[object], object._parent
 			end
+			assert(group, label .. ": unclaimed drawn asset: " .. (item.text or item.file or item.kind))
+			groups[group] = groups[group] or {}
+			groups[group][#groups[group] + 1] = {
+				x = r[1] / scale, y = r[2] / scale, w = r[3] / scale, h = r[4] / scale,
+				asset = item.text or item.file or item.kind,
+			}
 		end
 	end
 end
