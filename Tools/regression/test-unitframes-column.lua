@@ -183,6 +183,20 @@ do
 	noErrors("name room")
 end
 
+do
+	local function nameY()
+		local _, _, _, _, y = player.name:GetPoint(1)
+		return y
+	end
+	local dropped = nameY()
+	K.Options.Write("UnitFrames", "player.fonts.name.font", Tokens.FontPath("AlegreyaSansBold"))
+	Frames.Relayout(Frames.Get("player"))
+	env.RunTimers()
+	assert(near(nameY() - dropped, player.geometry.nameDrop, 0.6), "a name in another face keeps the layout row: the Cinzel correction does not move it, " .. tostring(dropped) .. " against " .. tostring(nameY()))
+	K.Options.Write("UnitFrames", "player.fonts.name.font", "theme")
+	noErrors("custom name font")
+end
+
 local older, _, nsOlder = U.New({ lumen = true })
 assert(nsOlder.Settings.Form("player") == "vitals" and nsOlder.Settings.Form("target") == "sigil", "a profile that keeps Lumen draws the vitals line and the sigil")
 assert(nsOlder.CastBars.ElementLive("player") == false, "and the player's cast sits inside its frame, not in the element")

@@ -230,12 +230,17 @@ local function Centre(view, text, point, relative, relPoint, x, rect)
 	text:Show()
 end
 
+local function TightName(view)
+	return view.kind ~= nil and Tokens.FaceTracking((Settings.Font(view.kind, "name"))) < 0
+end
+
 local function NameBottom(view, g, rect)
+	local drop = TightName(view) and g.nameDrop or 0
 	if g.mirror then
-		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect, g.nameDrop)
+		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect, drop)
 		view.name:SetJustifyH("RIGHT")
 	else
-		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect, g.nameDrop)
+		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect, drop)
 		view.name:SetJustifyH("LEFT")
 	end
 	if view.nameBound and g.nameRoom then
@@ -259,7 +264,7 @@ local function LumenTexts(view, g)
 		end
 		if g.caption then
 			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), Snap(view, g.captionLift or 0))
+			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), TightName(view) and Snap(view, g.captionLift or 0) or 0)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -285,7 +290,7 @@ local function LumenTexts(view, g)
 		end
 		if g.caption then
 			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), Snap(view, g.captionLift or 0))
+			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), TightName(view) and Snap(view, g.captionLift or 0) or 0)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
