@@ -22,7 +22,8 @@ local LAYOUT_CHANGED = "LayoutChanged"
 local TAB_TEXT_RISE = 14
 local TAB_ROW = 34
 local LINE_INSET = 12.57
-local MESSAGE_FOOT = 42
+local LINE_LEFT = 15.97
+local MESSAGE_FOOT = 45.45
 local BACKGROUND_RISE = 3
 local EDIT_DROP = 2
 local EDIT_HEIGHT = 32
@@ -133,7 +134,7 @@ function Panel.Geometry(chat)
 	else
 		bottom = max(MESSAGE_FOOT, reach + Tokens.Size("gapTiny") - PanelBottom())
 	end
-	local inset = snap(LINE_INSET)
+	local inset, left = snap(LINE_INSET), snap(LINE_LEFT)
 	local top, foot = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2)), snap(bottom)
 	local _, size = chat:GetFont()
 	local gap = Number(type(chat.GetSpacing) == "function" and chat:GetSpacing(), 0)
@@ -150,7 +151,7 @@ function Panel.Geometry(chat)
 	end
 	return {
 		k = k,
-		left = inset,
+		left = left,
 		top = top,
 		right = inset,
 		bottom = foot,

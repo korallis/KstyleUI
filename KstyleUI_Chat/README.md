@@ -52,7 +52,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 | `buttons` | `false` | Shows Blizzard's chat menu and channel buttons beside the chat |
 | `font` | Alegreya Sans (the Lumen body face) | Messages and the edit box, in the face every other body text uses. Tab names use the caps face (tracked Cinzel). Source Sans 3 and the other bundled faces stay in the list. A player who never chose a font moves with the default; a chosen font is kept. A font the game cannot load falls back to the body font and logs once. |
 | `fontSize` | 14 | 8 to 24, messages and the edit box, the mockup's size. A size picked from the game's tab menu becomes this setting. |
-| `lineSpacing` | 4 | 0 to 10 units between lines; 4 gives the mockup's pitch at size 14 |
+| `lineSpacing` | 4.5 | 0 to 10 units between lines in halves; 4.5 at size 14 is the picture's 32 px pitch on the owner's screen (the unit is 1.714 px there, so the gap snaps to 8 px) |
 | `fontOutline` | `none` | `none` (the soft text shadow), `OUTLINE` or `THICKOUTLINE` |
 | `fade`, `fadeTime` | `true`, 120 | Old lines fade after this many seconds, 10 to 600 |
 | `history`, `historyLines` | `true`, 100 | Each window's newest lines come back after a reload or relog, 10 to 500 per window. See [History](#history). Turning it off forgets this character's lines. |
