@@ -28,6 +28,7 @@ local FALLBACK = {
 }
 
 local groups = {}
+local listeners = {}
 local running, pending, waiting, gamepad = false, false, false, false
 local logged = {}
 
@@ -101,12 +102,29 @@ function Panel.Open()
 	return true
 end
 
+local function Dispatch(event, ...)
+	local list = listeners[event]
+	if not list then
+		return
+	end
+	for i = 1, #list do
+		K.Call(list[i], event, ...)
+	end
+end
+
 local function Listen(event, fn)
-	local ok, err = pcall(K.Events.Register, MODULE, event, fn)
+	local list = listeners[event]
+	if list then
+		list[#list + 1] = fn
+		return true
+	end
+	local ok, err = pcall(K.Events.Register, MODULE, event, Dispatch)
 	if not ok then
 		LogOnce("event:" .. event, "could not listen for " .. event .. ": " .. tostring(err))
+		return false
 	end
-	return ok
+	listeners[event] = { fn }
+	return true
 end
 
 local function StopWaiting()
@@ -631,6 +649,7 @@ end
 function Panel.Enable()
 	running = true
 	pending = false
+	listeners = {}
 	SetGamepad(Panel.Gamepad())
 	for _, name in ipairs(Model.GROUPS) do
 		local desc = groups[name]
@@ -651,7 +670,7 @@ function Panel.Enable()
 	for _, event in ipairs(GATE_EVENTS) do
 		Listen(event, OnGateEvent)
 	end
-	Tracked.Listen(OnTracked)
+	Tracked.Listen(OnTracked, Listen)
 	for _, name in ipairs(CALLBACKS) do
 		K.Callbacks.Register(name, MODULE, HANDLERS[name])
 	end

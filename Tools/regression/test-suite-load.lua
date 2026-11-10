@@ -16,6 +16,7 @@ local Load = dofile("Tools/regression/load_files.lua")
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Auras = dofile("Tools/regression/auras_env.lua")
+local EventGuard = dofile("Tools/regression/event_guard.lua")
 
 local CORE = "KstyleUI"
 
@@ -148,6 +149,9 @@ local function Start(saved)
 			local ok, err = pcall(Load, files[addon], env)
 			assert(ok, addon .. " failed to load: " .. tostring(err))
 			env.FireEvent("ADDON_LOADED", addon, false)
+			if addon == CORE then
+				env._eventsReplaced = EventGuard.Install(env.KstyleUI)
+			end
 		end
 	end
 	env.FireEvent("PLAYER_LOGIN")
@@ -162,6 +166,7 @@ local function Clean(env, K, stage)
 		lines[#lines + 1] = "  " .. tostring(err)
 	end
 	assert(#lines == 0 and K.ErrorCount() == 0, stage .. ": " .. math.max(#lines, K.ErrorCount()) .. " Lua errors:\n" .. table.concat(lines, "\n"))
+	EventGuard.Check(env._eventsReplaced, stage)
 end
 
 local function Running(K)
@@ -317,5 +322,6 @@ AllRunning(env, K, "turn every module on again")
 
 env.FireEvent("PLAYER_LOGOUT")
 Clean(env, K, "logout")
+EventGuard.Known(env._eventsReplaced)
 
 print("suite loads: " .. #order .. " addons, " .. #K.Modules.List() .. " modules, " .. #pages .. " settings pages")
