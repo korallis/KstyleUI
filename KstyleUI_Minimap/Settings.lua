@@ -25,7 +25,7 @@ Settings.defaults = {
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = false, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
-	zone = { shown = true, color = "plain", font = "", size = 11.6, outline = "" },
+	zone = { shown = true, color = "plain", font = "", size = 12, outline = "" },
 	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "" },
 	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "" },
 }
