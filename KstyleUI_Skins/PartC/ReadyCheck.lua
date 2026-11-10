@@ -13,7 +13,7 @@ local function Apply()
 	if not dialog then
 		return
 	end
-	Kit.Window(dialog)
+	Kit.Window(dialog, { popup = true })
 	if dialog.Text then
 		Style.Text(dialog.Text, "body", "textEmphasis")
 	end

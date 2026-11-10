@@ -75,6 +75,8 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 ## Chrome
 
+`opts.popup = true` marks an existing floating surface at construction: non-Glass materials paint an opaque fill even on a tile, while a tile retains its small edge dimensions and never receives the card's forged frame/brackets. Flat and Slate apply their material rim tint. The flag is forwarded by Panel and Skin backdrop/window helpers. Glass stays unchanged; ordinary embedded tiles are not opted in. See [Popup surfaces](../../docs/popup-materials.md) for consumers and deliberate exceptions.
+
 The layer and corner recipes below describe the retained Glass treatment. Since the owner's 2026-11-10 choice (LEE-106), card-grade chrome defaults to `ForgedBrackets`: the fill keeps its geometry but uses opaque charcoal, a repeating interior grain and a pixel-density-specific forged frame. Four brackets replace the gilt ticks. `ForgedTicks` keeps the ticks; Flat and Slate keep the legacy borders. Explicit edges and proc rims remain above the forged frame. Deferred or too-small frames keep their legacy border until the forged frame can be placed. [Card materials](../../docs/card-materials.md) covers the five choices, profile inheritance and native checks. This does not alter socket or bar chrome, content insets or typography.
 
 `Chrome(owner, opts) -> chrome` draws a component's material on `owner`'s own layers, the owner's picture of 2026-11-09: baked textures from `Tools/media/make_media.py`, white with their coverage in alpha and tinted with tokens, so nothing is blurred live.

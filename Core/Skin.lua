@@ -268,7 +268,7 @@ local function Backdrop(frame, opts)
 	if opts.icon then
 		panel.chrome = W().IconChrome(panel, {})
 	else
-		panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow, edge = opts.edge, gilt = opts.gilt })
+		panel.chrome = W().Chrome(panel, { shape = opts.shape or "panel", fill = opts.fill or "surface", shadow = opts.shadow, edge = opts.edge, gilt = opts.gilt, popup = opts.popup })
 	end
 	W().Track(panel)
 	parts.backdrop = panel
@@ -671,7 +671,7 @@ local function Window(frame, opts)
 		return parts.backdrop
 	end
 	StripFrame(frame, { children = WINDOW_ART })
-	local panel = Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = opts.inset })
+	local panel = Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = opts.inset, popup = opts.popup })
 	if type(frame.CloseButton) == "table" then
 		CloseButton(frame.CloseButton)
 	end

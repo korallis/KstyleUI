@@ -1159,6 +1159,7 @@ ns.Locale.Add({
 	["Page keys"] = "Touches de page",
 	["Paging"] = "Pagination",
 	["Panel"] = "Panneau",
+	["Panel appearance"] = "Apparence des panneaux",
 	["Panel opacity"] = "Opacit\195\169 des panneaux",
 	["Panel shadow"] = "Ombre du panneau",
 	["Panel shadows"] = "Ombres des panneaux",

@@ -81,7 +81,7 @@ end
 
 local function Sample(frame, spec)
 	local glass = CreateFrame("Frame", nil, frame)
-	glass.chrome = Widgets.Chrome(glass, { shape = "panel", fill = "surface" })
+	glass.chrome = Widgets.Chrome(glass, { shape = "panel", fill = "surface", popup = true })
 	glass.divider = glass:CreateTexture(nil, "BORDER", nil, DIVIDER_SUBLEVEL)
 	glass.divider:SetTexture((Tokens.Texture("divider")))
 	glass.spec, glass.rows = spec, {}

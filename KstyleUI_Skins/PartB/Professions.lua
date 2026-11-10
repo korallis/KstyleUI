@@ -72,7 +72,7 @@ local function CraftingPage(page)
 	end
 	local results = page.MinimizedSearchResults
 	if type(results) == "table" then
-		Kit.Window(results)
+		Kit.Window(results, { popup = true })
 		Kit.ScrollBar(results.ScrollBar)
 	end
 end

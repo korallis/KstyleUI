@@ -125,7 +125,7 @@ Widgets.schema = {
 			{ value = "ForgedBrackets", label = L["Forged iron, brackets"] },
 		},
 	},
-	{ type = "header", label = L["Glass"] },
+	{ type = "header", label = L["Panel appearance"] },
 	{
 		type = "slider", key = "panelOpacity", label = L["Panel opacity"],
 		help = L["How solid the selected material looks. Glass keeps the original smoked-glass opacity."],
@@ -845,6 +845,7 @@ function Widgets.Chrome(owner, opts)
 		radius = opts.radius or opts.chamfer,
 		share = opts.share,
 		materialOn = opts.grain ~= false,
+		popup = opts.popup == true,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or shape.fill or "surface",
 		ownEdge = opts.edge ~= nil and opts.edge ~= "edgeInner",
@@ -1026,7 +1027,7 @@ local function ShowOnce(chrome, key, slice, shown)
 end
 
 function Chrome:Material()
-	if self.shape.card and self.materialOn and not self.radius and not self.share and self.fillName == "surface" then
+	if (self.shape.card or self.popup) and self.materialOn and not self.radius and not self.share and self.fillName == "surface" then
 		if self.ownFill then
 			local r, g, b = Tokens.Color("surface")
 			local c = self.fillColor
@@ -1044,6 +1045,9 @@ function Chrome:Material()
 end
 
 function Chrome:MaterialOpacity()
+	if self.popup then
+		return 1
+	end
 	local alpha = self.ownFill and self.fillColor[4] or Widgets.Setting("panelOpacity")
 	return max(0, alpha / SURFACE_ALPHA)
 end
@@ -1077,7 +1081,7 @@ end
 
 function Chrome:PaintMaterial()
 	local material = self:Material()
-	local framed = material and material.frame
+	local framed = self.shape.card and material and material.frame
 	self.frameWanted = framed
 	self.bracketsWanted = material and material.brackets
 	if not framed then
@@ -1186,7 +1190,7 @@ function Chrome:Paint()
 	local material = self:Material()
 	if material and material.fill then
 		r, g, b, a = Tokens.Color(material.fill)
-		a = min(1, a * self:MaterialOpacity())
+		a = self.popup and 1 or min(1, a * self:MaterialOpacity())
 	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
 	self:PaintMaterial()

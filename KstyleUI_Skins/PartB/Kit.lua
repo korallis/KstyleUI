@@ -685,7 +685,7 @@ end
 
 local function Window(frame, opts)
 	opts = opts or {}
-	local panel = K.Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false })
+	local panel = K.Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false, popup = opts.popup })
 	local title = Kit.Title(frame, opts.titleRole)
 	local tabs = WindowTabs(frame)
 	for _, tab in ipairs(tabs) do

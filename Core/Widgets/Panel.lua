@@ -133,7 +133,7 @@ function Widgets.Panel(parent, opts)
 	end
 	local titled = opts.title or opts.close or opts.movable
 	local shape = opts.shape or (titled and "window" or "panel")
-	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow })
+	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow, popup = opts.popup })
 	panel.content = CreateFrame("Frame", nil, panel)
 	if titled then
 		local bar = CreateFrame("Frame", nil, panel)

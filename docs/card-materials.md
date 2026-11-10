@@ -1,6 +1,6 @@
 # Card materials
 
-Open **Options → General → Card material** to choose the surface of KstyleUI's cards, panels, rails and windows. The dropdown is separate from the existing Glass section's opacity and shadow controls. Selection repaints existing cards immediately through the widget kit's normal setting handler; switching profiles uses its existing profile handler. Neither action needs a reload.
+Open **Options → General → Card material** to choose the surface of KstyleUI's cards, panels, rails and windows. The dropdown is separate from the **Panel appearance** section's opacity and shadow controls. Selection repaints existing cards immediately through the widget kit's normal setting handler; switching profiles uses its existing profile handler. Neither action needs a reload.
 
 | Choice | Surface |
 | --- | --- |
@@ -19,6 +19,8 @@ The saved values are `Glass`, `Flat`, `Slate`, `ForgedTicks` and `ForgedBrackets
 **Panel opacity** retains its existing default of **0.75** and range of **0.50–1.00**. For Glass, the value is the original smoked-glass fill alpha. For another material, 0.75 means its authored opacity; lowering or raising the slider scales that material's fill and grain relative to 0.75, with alpha capped at 1. A denser forged surface can therefore look more solid than Glass at the same slider value. Choosing a material does not change the stored opacity or shadow preference.
 
 The choice applies to the shared card surface, not status bars, action-button tiles or nameplate bars. Custom-radius or proportional-radius chrome, including nameplate badges, and explicit `grain = false` opt-outs keep their authored surface. Explicit state colours and custom fills keep their own treatment. Forged frames and brackets follow the same relative opacity as their surface, including zero opacity. Geometry, text positions and layout remain unchanged.
+
+Floating menus, tooltips and dialogs use an opaque surface under every non-Glass material so content beneath cannot read through them. Their settled opacity does not follow Panel opacity; Glass retains its original transparency. [Popup surfaces](popup-materials.md) lists the affected surfaces and intentional exceptions.
 
 ## Assets
 

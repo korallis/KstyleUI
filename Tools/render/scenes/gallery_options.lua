@@ -292,7 +292,7 @@ return Common.Run(function()
 		assert(found, "General lists the Widgets rows: " .. table.concat(list, "|"))
 		frames:Add(env5, ns5.Window.Frame(), {
 			name = "options_widgets_page", title = "General page: Widgets", grade = "window", reference = "chat",
-			caption = "The General page scrolled to the core's Widgets schema: the Glass section (Panel opacity slider, Panel shadows toggle), Feedback (Interface sounds) and Tooltips (Tooltip size), with the scroll bar's thumb low in its track." .. SCALE_NOTE,
+			caption = "The General page scrolled to the core's Widgets schema: Panel appearance (Panel opacity slider, Panel shadows toggle), Feedback (Interface sounds) and Tooltips (Tooltip size), with the scroll bar's thumb low in its track." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the slider and toggle tracks wear the bar grade's surface fill with a faint line.",
 		})
 		scenes[#scenes + 1] = Gallery.Build(env5)

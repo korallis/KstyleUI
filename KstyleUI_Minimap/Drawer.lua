@@ -145,7 +145,7 @@ function Drawer.New(column, opts)
 	panel:SetFrameStrata("MEDIUM")
 	panel:EnableMouse(true)
 	panel:Hide()
-	drawer.chrome = Widgets.Chrome(panel, { shape = "panel" })
+	drawer.chrome = Widgets.Chrome(panel, { shape = "panel", popup = true })
 	drawer.panel = panel
 	return drawer
 end
