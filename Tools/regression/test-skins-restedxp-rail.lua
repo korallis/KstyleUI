@@ -3,7 +3,7 @@ local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true, SetScale = true }
 
 -- Sized(size) -> saved data at that Interface size. The tests run at the shipped size (16 / 19), as the game does: the
 -- story slot is sized for it, and is far shorter at size 1.

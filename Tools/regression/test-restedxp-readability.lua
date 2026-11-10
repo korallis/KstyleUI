@@ -80,6 +80,24 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a text size change raises no errors")
 end
 
+-- RestedXP's Window Scale setting scales the guide's frame and redraws none of its text (SettingsPanel.lua 2999), and
+-- the sizes are root units, so the skin fits the text and has RestedXP measure it again on that SetScale.
+do
+	local env, K, rxp = Boot()
+	rxp.SetStep(1)
+	local f = rxp.RXPFrame
+	local element = f.CurrentStepFrame.framePool[1].elements[1]
+	local row = f.ScrollChild.framePool[1]
+	local before, rowBefore = select(2, element.text:GetFont()), select(2, row.text:GetFont())
+	f:SetScale(0.5)
+	local size, rowSize = select(2, element.text:GetFont()), select(2, row.text:GetFont())
+	assert(size > before and FontSize(K, element.text, size, Root(K, element.text, STORY)), "in a guide scaled down the step text keeps the quest lines' size in root units, got " .. tostring(size) .. " after " .. tostring(before))
+	assert(element:GetHeight() == LineHeight(size), "and RestedXP measures the step at it: " .. tostring(element:GetHeight()) .. " for " .. LineHeight(size))
+	assert(rowSize > rowBefore and FontSize(K, row.text, rowSize, Root(K, row.text, select(2, K.Tokens.Font("body")))), "the list keeps the body size in root units, got " .. tostring(rowSize) .. " after " .. tostring(rowBefore))
+	assert(row:GetHeight() == LineHeight(rowSize) + 8, "and RestedXP measures the list at it: " .. tostring(row:GetHeight()))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "a window scale change raises no errors")
+end
+
 -- In combat the viewport waits for combat to end.
 do
 	local env, K, rxp = Boot()

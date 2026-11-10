@@ -1809,6 +1809,12 @@ local function V2Windows(m, rxp)
 		m.seal()
 		container:DoLayout()
 	end)
+	-- GuideConfigurator.lua 1461-1462 and 274: the Window Scale setting scales the configurator's frame.
+	configurator.SetScale = m.trust(function(self, scale)
+		if self.ui then
+			self.ui.frame:SetScale(scale)
+		end
+	end)
 	-- UpdateTheme redraws the configurator from the theme, as RestedXP's GuideConfigurator.lua does: the title in
 	-- the theme font at the guide size plus 2 in a fixed gold, each button's label in the theme font and text
 	-- colour, and its own flat background texture coloured from the theme.

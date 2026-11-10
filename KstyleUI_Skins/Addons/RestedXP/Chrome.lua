@@ -1002,6 +1002,7 @@ local function GuideWindow(rxp)
 	end
 	state.guide = f
 	PlaceGuideScroll(f)
+	Hook(f, "SetScale", "RXPFrame.SetScale", Style.RestyleAll)
 	Hook(f, "UpdateVisuals", "RXPFrame.UpdateVisuals", function()
 		PlaceGuideScroll(f)
 		Chrome.Refit(f)
@@ -1041,6 +1042,7 @@ local function GuideWindowV2(rxp)
 	ScrollBar(IsTable(scroll) and scroll.scrollbar or nil)
 	CaptionFor(window.title, nil, true)
 	Readable(window.subtitle, "body", 0)
+	Hook(window.frame, "SetScale", "guideWindow.frame.SetScale", Style.RestyleAll)
 end
 
 local function MenuPrefix()
@@ -1909,6 +1911,7 @@ local function Configurator(configurator)
 		Reflow(container)
 	end)
 	Reflow(container)
+	Hook(ui.frame, "SetScale", "configurator.frame.SetScale", Style.RestyleAll)
 	if IsTable(container) and not done[container] then
 		done[container] = true
 		local fit = CreateFrame("Frame", nil, ui.frame)
