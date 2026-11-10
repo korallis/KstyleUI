@@ -9,9 +9,9 @@ local Card = {}
 ns.QuestCard = Card
 
 local MAX_SHOWN, MAX_LINES, MAX_WRAP = 8, 6, 3
-local GUTTER, DISC, RING, NUMERAL = 18, 14, 20, 9
-local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5, 4, 7
-local CAP_ROW, CAP_GAP, MORE_ROW = 22, 2, 16
+local GUTTER, DISC, DISC_LEAD, NUMERAL = 25.5, 17.5, 0.5, 10
+local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5.5, 4, 7
+local CAP_ROW, CAP_GAP, HEAD, FOOT = 21, 6.5, 11, 12.5
 local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
@@ -19,7 +19,7 @@ local MORE_SCALE = 0.85
 
 local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
-local pitch, rowWidth = 0, 0
+local pitch, lead, rowWidth = 0, 0, 0
 local offset, wanted, maxHeight = 1, 4, 0
 local docked, pending, waiting, active = false, false, false, false
 local pointed = false
@@ -32,6 +32,14 @@ local function TextSize()
 	return Lumen.Size(card, Lumen.TEXT_SIZE)
 end
 
+local function Foot()
+	return Snap(FOOT * math.max(1, Style.Setting("text", "size")))
+end
+
+local function Gutter()
+	return Snap(Lumen.Size(card, GUTTER))
+end
+
 local function TitleHeight()
 	return Snap(TextSize() + TITLE_LEAD)
 end
@@ -41,7 +49,7 @@ local function LineHeight()
 end
 
 local function Inset()
-	return Widgets.Inset(card, Tokens.Size("radius"))
+	return Lumen.Inset(card)
 end
 
 local function Ready()
@@ -76,8 +84,6 @@ end
 
 local function PaintDisc(row)
 	Style.TintAccent(row.disc)
-	Style.TintAccent(row.ring, 0.9)
-	row.ring:SetShown(row.marked == true)
 end
 
 local function Open(id)
@@ -165,10 +171,11 @@ local function OnWheel(_, delta)
 end
 
 local function RestyleRow(row)
-	Widgets.Size(row.disc, DISC, DISC)
-	Widgets.Size(row.ring, RING, RING)
-	Style.ApplyFont(row.numeral, "number", NUMERAL * Style.Setting("text", "size"))
-	Widgets.TextColor(row.numeral, "black")
+	local disc = Lumen.Size(card, DISC)
+	Widgets.Size(row.disc, disc, disc)
+	Style.ApplyFont(row.numeral, "number", Lumen.Size(card, NUMERAL))
+	row.numeral:SetShadowOffset(0, 0)
+	Widgets.TextColor(row.numeral, "white")
 	local size = TextSize()
 	Style.ApplyFont(row.title, "body", size)
 	for _, line in ipairs(row.lines) do
@@ -217,8 +224,6 @@ local function NewRow(index)
 		Peek()
 	end)
 	row.index = index
-	row.ring = row:CreateTexture(nil, "ARTWORK", nil, -1)
-	row.ring:SetTexture((Tokens.Texture("ringBevel")))
 	row.disc = row:CreateTexture(nil, "ARTWORK")
 	row.disc:SetTexture((Tokens.Texture("dot")))
 	row.numeral = Widgets.FontString(row, "OVERLAY")
@@ -256,7 +261,7 @@ local function Span(lines)
 end
 
 local function Room(right, objective)
-	local room = rowWidth - Snap(GUTTER) - right
+	local room = rowWidth - Gutter() - right
 	if objective and objective.count then
 		countRuler:SetText(objective.count)
 		room = room - Widgets.TextWidth(countRuler, 0) - Snap(SOCKET_GAP)
@@ -270,15 +275,16 @@ local function Lines(objective, room)
 	end
 	ruler:SetWidth(room)
 	ruler:SetText(objective.text)
-	local lines = math.floor(Widgets.TextHeight(ruler, pitch) / pitch + 0.5)
+	local lines = math.floor((Widgets.TextHeight(ruler, pitch) + lead) / pitch + 0.5)
 	return math.max(1, math.min(MAX_WRAP, lines))
 end
 
 local function Line(row, i, y, right, text, count, colorName, room, lines)
 	local line = row.lines[i]
 	line.text:ClearAllPoints()
-	line.text:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(GUTTER), -Snap(y))
+	line.text:SetPoint("TOPLEFT", row, "TOPLEFT", Gutter(), -Snap(y))
 	line.text:SetWidth(math.max(room, 1))
+	line.text:SetSpacing(lead)
 	line.text:SetHeight(Snap(lines * pitch))
 	line.text:SetMaxLines(lines)
 	line.count:ClearAllPoints()
@@ -327,16 +333,12 @@ local function Bind(row, entry, position, y, height, right)
 	row.span = height
 	row.questID = entry.id
 	row.item, row.logIndex = entry.item, entry.logIndex
-	row.marked = entry.id == Data.super
 	local titleH = TitleHeight()
 	row.disc:ClearAllPoints()
-	row.disc:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -Snap((titleH - row.disc:GetHeight()) / 2))
-	row.ring:ClearAllPoints()
-	local ringInset = Snap((row.disc:GetWidth() - row.ring:GetWidth()) / 2)
-	row.ring:SetPoint("TOPLEFT", row.disc, "TOPLEFT", ringInset, -ringInset)
+	row.disc:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(Lumen.Size(card, DISC_LEAD)), -Snap((titleH - row.disc:GetHeight()) / 2))
 	row.numeral:SetText(position)
 	row.title:ClearAllPoints()
-	row.title:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(GUTTER), 0)
+	row.title:SetPoint("TOPLEFT", row, "TOPLEFT", Gutter(), 0)
 	row.title:SetHeight(titleH)
 	if entry.item then
 		row.socket:ClearAllPoints()
@@ -478,8 +480,8 @@ function Card.Render()
 	for i = 1, total do
 		heights[i] = Height(Data.Get(i))
 	end
-	local top, bottom = Snap(Tokens.Size("gapSmall")), Snap(Tokens.Size("gapSmall"))
-	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + bottom + (over and Snap(MORE_ROW) or 0)
+	local top = docked and 0 or Snap(HEAD)
+	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot()
 	local room = math.max(heights[1], maxHeight - chrome)
 	local viewHeight = math.min(Window(total, n, gap), room)
 	local fit = FitFromEnd(total, n, viewHeight, gap)
@@ -634,10 +636,16 @@ end
 local function Restyle()
 	Style.ApplyFont(ruler, "body", TextSize())
 	Style.ApplyFont(countRuler, "number", TextSize())
+	ruler:SetSpacing(0)
 	ruler:SetWidth(0)
 	ruler:SetText("Ag")
-	pitch = Widgets.TextHeight(ruler, (Widgets.LineHeight(ruler)))
+	local natural = Widgets.TextHeight(ruler, (Widgets.LineHeight(ruler)))
+	pitch = math.max(LineHeight(), natural)
+	lead = pitch - natural
+	ruler:SetSpacing(lead)
 	Style.ApplyFont(more, "body", TextSize() * MORE_SCALE)
+	more:ClearAllPoints()
+	more:SetPoint("CENTER", view, "BOTTOM", 0, -Foot() / 2)
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
 	track:SetWidth(Snap(BAR_WIDTH))
@@ -681,7 +689,7 @@ function Card.Build(root)
 	countRuler = Widgets.FontString(card, "OVERLAY")
 	countRuler:Hide()
 	more = Widgets.FontString(card, "OVERLAY")
-	more:SetPoint("TOP", view, "BOTTOM", 0, -Snap(CAP_GAP))
+	more:SetPoint("CENTER", view, "BOTTOM", 0, -Foot() / 2)
 	more:SetJustifyH("CENTER")
 	PaintRest()
 	for i = 1, MAX_SHOWN do

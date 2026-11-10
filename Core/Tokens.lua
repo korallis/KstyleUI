@@ -209,6 +209,7 @@ local TEXTURES = {
 	chamferTile = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
 	lumenShadow = { file = "Textures\\LumenShadow.png", slice = 56, density = 2 },
 	gem = { file = "Textures\\LumenGem.png" },
+	diamond = { file = "Textures\\Diamond.png" },
 	pillCapLeft = { file = "Textures\\PillCapLeft.png" },
 	pillCapRight = { file = "Textures\\PillCapRight.png" },
 	barSheen = { file = "Textures\\BarSheen.png" },

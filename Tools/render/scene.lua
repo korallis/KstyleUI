@@ -252,6 +252,13 @@ local function state(object, field)
 	end
 end
 
+-- The units SetSpacing puts between two lines of one text (none above the first line or under the last); 0 when
+-- the text never set a spacing.
+local function spacingOf(region)
+	local spacing = state(region, "Spacing")
+	return type(spacing) == "number" and spacing > 0 and spacing or 0
+end
+
 -- An object's scale times its ancestors', stopping at an object that ignores its parent's scale, as the game does
 -- for a nameplate's plate on a base the engine scales.
 local function effectiveScale(object)
@@ -767,7 +774,7 @@ function Solver:solve(object)
 	end
 	if wrap and not (lo and hi) then
 		local lines = Scene.WrappedLines(wrap.text, wrap.size, wrap.fontPath, (right - left) / scale)
-		height = wrap.size * LINE_HEIGHT_EM * lines * scale
+		height = (wrap.size * LINE_HEIGHT_EM * lines + wrap.spacing * (lines - 1)) * scale
 		object._wrapped = lines > 1
 	end
 	local bottom, top = self:span(ys, height)
@@ -1165,6 +1172,10 @@ function Scene.Build(env, opts)
 		if state(region, "WordWrap") == false then
 			item.wordWrap = false
 		end
+		local spacing = spacingOf(region)
+		if spacing > 0 then
+			item.spacing = round4(spacing * scale * k)
+		end
 		if region._naturalW then
 			item.natural = { width = region._naturalSideW }
 		end
@@ -1429,10 +1440,11 @@ function Scene.Build(env, opts)
 					end
 					if not hasH and not (ys[0] and ys[1]) then
 						local _, breaks = text:gsub("\n", "")
-						region._naturalH = size * LINE_HEIGHT_EM * (breaks + 1)
+						local spacing = spacingOf(region)
+						region._naturalH = size * LINE_HEIGHT_EM * (breaks + 1) + spacing * breaks
 						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
 						if state(region, "WordWrap") ~= false then
-							region._wrapSpec = { text = text, size = size, fontPath = fontPath }
+							region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing }
 						end
 					end
 				end

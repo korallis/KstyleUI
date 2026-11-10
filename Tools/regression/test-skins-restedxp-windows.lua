@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -57,6 +57,42 @@ end
 local function Colored(text, r, g, b)
 	local cr, cg, cb = text:GetTextColor()
 	return W.Near(cr, r) and W.Near(cg, g) and W.Near(cb, b)
+end
+
+-- A window's or a panel's title wears the caps role in the picture's muted gold (the Captain's ruling on type roles
+-- beyond the HUD, 2026-11-10, after handoffs/reference-diff/DIFF-acceptance-1.md found RestedXP's configurator title
+-- on "title" and its report heading on "heading"): a caption of KstyleUI's own stands over RestedXP's hushed title, in
+-- capitals, and RestedXP's own text takes the caption's font so whatever RestedXP lays out from it measures the caption.
+local function Capped(K, ns, text, what)
+	local caption = ns.RestedXP.Chrome.Caption(text)
+	assert(caption, what .. ": the title has a caption of KstyleUI's own")
+	assert(caption:GetFont() == (ns.Style.Font("caps")) and Colored(caption, K.Tokens.Color("capsGold")), what .. ": the caption wears the caps role in the picture's muted gold, got " .. tostring(caption:GetFont()))
+	assert(text:GetAlpha() == 0, what .. ": RestedXP's own title is hushed under it")
+	assert((caption:GetText() or "") == K.Locale.Upper(text:GetText() or ""), what .. ": the caption says RestedXP's words in capitals, got " .. tostring(caption:GetText()))
+	local path, size = caption:GetFont()
+	local own, ownSize = text:GetFont()
+	assert(own == path and ownSize == size, what .. ": RestedXP's text measures as the caption does, got " .. tostring(own) .. " " .. tostring(ownSize))
+end
+
+local newFailures = {}
+local function NewCheck(ok, message)
+	if not ok then
+		newFailures[#newFailures + 1] = message
+		print("NEW WINDOW CHECK FAILED: " .. message)
+	end
+	return ok
+end
+
+local function Proxy(K, source, kind)
+	for _, child in ipairs({ source:GetChildren() }) do
+		if K.Skin.IsSkinned(child, kind) then return child end
+	end
+end
+
+local function Replacement(text)
+	for _, child in ipairs({ text:GetParent():GetChildren() }) do
+		if child.label and child:GetNumPoints() > 0 and select(2, child:GetPoint(1)) == text then return child.label end
+	end
 end
 
 local function Clean(env, rxp)
@@ -149,7 +185,7 @@ do
 	-- its frames' sides (a step's check box, the list's rows, the footer's cog), and the glass reaches one content
 	-- inset (the rule every text panel follows, at the window cut) past that on the left and the right, so every
 	-- check box and line clears the corner cuts and the light line. Top and bottom stay the card's.
-	local reach = K.Widgets.Inset(f.GuideName, K.Tokens.Size("chamferWindow")) - 4
+	local reach = ns.Lumen.Inset(f.GuideName) - 4
 	assert(reach > 6, "the glass reaches more than 6 units past RestedXP's frames, got " .. tostring(reach))
 	local tl, br = glass._points[1], glass._points[2]
 	assert(tl[1] == "TOPLEFT" and tl[2] == card and br[1] == "BOTTOMRIGHT" and br[2] == card, "the glass hangs from both corners of the card")
@@ -248,6 +284,31 @@ do
 	rxp.fake.open(list)
 	assert(menuArt:GetAlpha() == 1, "another addon's menu in the same list keeps its own look")
 	rxp.fake.close(list)
+
+	-- GetName may answer a secret (SimpleFrameScriptObjectAPIDocumentation.lua:107-119, ObjectName). A secret is no
+	-- key into _G: the menu takes its glass and skips only the lookups by name.
+	do
+		local meta = getmetatable(env)
+		local index = meta.__index
+		meta.__index = function(t, key)
+			if env.issecretvalue(key) then
+				error("a secret name was used as a key into _G", 2)
+			end
+			if type(index) == "function" then
+				return index(t, key)
+			end
+			return index[key]
+		end
+		rawset(list, "GetName", function()
+			return env.Secret("L_DropDownList1")
+		end)
+		rxp:ShowMenu()
+		rawset(list, "GetName", nil)
+		meta.__index = index
+		assert(#env._errors == 0 and not S.Logged(env, "secret name"), "a secret menu name is never used as a key: " .. tostring(env._errors[1] or S.Logged(env, "secret name")))
+		assert(ns.RestedXP.Chrome.MenuPanel(list):IsShown() and menuArt:GetAlpha() == 1, "the menu still takes its glass; the art found by name keeps its look")
+		rxp.fake.close(list)
+	end
 	Clean(env, rxp)
 end
 
@@ -274,6 +335,37 @@ do
 		assert(Colored(caption, K.Tokens.Color("capsGold")), "in the picture's muted gold")
 		assert(caption:GetFont() == (ns.Style.Font("caps")) and FontSize(K, caption, select(2, caption:GetFont()), ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(caption:GetParent())), "in the tracked caps role, as the guide's and the quests' captions, never RestedXP's 9")
 		assert(rawget(f.title.text, "SetPoint") == nil, "the caps role's anchor wrapping stays off RestedXP's own font string")
+		local point, on, onPoint, x = caption:GetPoint(1)
+		assert(point == "LEFT" and on == f.title and onPoint == "LEFT" and x == 5, "the caption starts where RestedXP's plate starts its words, 5 in from the plate's left, however wide the plate was when the skin met it, got " .. tostring(point) .. " " .. tostring(x))
+	end
+	-- RestedXP sizes the plate and the frame from its own 9-unit title (Targeting.lua 818, 1112). The caps caption is
+	-- wider, so a frame of three targets was narrower than its caption and the caption left the glass: the glass
+	-- now reaches as far right of the caption as the caption starts from the left.
+	do
+		local Scene = dofile("Tools/render/scene.lua")
+		env._textWidth = function(value, _, size)
+			return #value * size * 0.7
+		end
+		targets:ClearAllPoints()
+		targets:SetPoint("CENTER", env.UIParent, "CENTER", 0, -200)
+		targets:SetSize(91, 43)
+		targets.title:ClearAllPoints()
+		targets.title:SetPoint("TOPLEFT", targets, "TOPLEFT", 5, 8)
+		targets:UpdateVisuals()
+		env.RunTimers()
+		local caption = ns.RestedXP.Chrome.Caption(targets.title.text)
+		local words = K.Widgets.TextWidth(caption, 0)
+		assert(words + 20 > 91, "the caption is wider than the frame in this block, got " .. words)
+		local gx, _, gw = Scene.Rect(env, K.Skin.Parts(targets).backdrop)
+		local tx, _, tw = Scene.Rect(env, targets)
+		local unit = tw / targets:GetWidth()
+		assert(gx and tx and gx <= tx + 0.5 and gx + gw >= tx + (20 + words) * unit - 0.5, string.format("the glass holds the whole caption: glass %.1f..%.1f, caption to %.1f", gx, gx + gw, tx + (10 + words) * unit))
+		targets:SetSize(20 + words + 30, 43)
+		targets:UpdateVisuals()
+		local wx, _, ww = Scene.Rect(env, K.Skin.Parts(targets).backdrop)
+		local nx, _, nw = Scene.Rect(env, targets)
+		assert(math.abs(wx + ww - (nx + nw)) <= 0.5, "a frame wide enough for its caption keeps the glass on its own edge")
+		env._textWidth = nil
 	end
 	-- RestedXP hangs the title plate from the frame's top edge (TOPLEFT at 5, 10, 19 tall), so the plate straddled
 	-- the glass (Opus #5, R4a). The card's glass now rises over the plate, so the title sits inside one card.
@@ -346,7 +438,9 @@ do
 	local env, K, ns, rxp = Boot()
 	local report = rxp.tracker.ui.CharacterFrame
 	assert(Glass(K, report.frame) and Hushed(report.frame), "the leveling report sits on glass")
-	assert(Accented(ns, report.titletext), "its title takes the accent")
+	local reportInset = K.Skin.Parts(report.frame).backdrop.inset
+	assert(type(reportInset) == "table" and reportInset.top == -K.Tokens.Size("gapMedium"), "the glass rises a medium gap over the report: AceGUI hangs the title 2 under the frame's top (AceGUIContainer-Frame.lua 226, 237), so it would touch the rim")
+	Capped(K, ns, report.titletext, "the leveling report")
 	local close
 	for _, child in ipairs({ report.frame:GetChildren() }) do
 		if child.obj == report and child:GetObjectType() == "Button" and child._template == "UIPanelButtonTemplate" then
@@ -356,15 +450,105 @@ do
 	assert(K.Skin.IsSkinned(close, "Button"), "its close button is a KstyleUI button")
 	assert(K.Skin.IsSkinned(report.scrollContainer.scrollbar, "ScrollBar"), "its scroll bar is KstyleUI's")
 	assert(K.Skin.IsSkinned(report.levelButton.frame, "Button"), "its level button is a KstyleUI button")
+	local inspect = env.CreateFrame("Frame", "InspectFrame", env.UIParent)
+	rxp.tracker:CreateGui(inspect, "Another player")
+	local other = rxp.tracker.ui.InspectFrame
+	assert(other and env.RESTEDXP_TRACKER_SUMMARY_WINDOW == other.frame, "CreateGui keys each report by its attachment's name")
+	NewCheck(Glass(K, other.frame), "reports created after startup sit on glass")
+	NewCheck(K.Skin.IsSkinned(other.scrollContainer.scrollbar, "ScrollBar"), "inspection report scroll bars are skinned")
+	local heading, data = Replacement(other.reachedContainer.label.label), Replacement(other.reachedContainer.data.label)
+	NewCheck(heading and data and heading:GetFont() == (ns.Style.Font("caps")) and Colored(heading, K.Tokens.Color("capsGold")) and data:GetFont() == (ns.Style.Font("body")), "report headings wear the caps role in the muted gold and data the body face")
+	NewCheck(heading and heading:GetText() == K.Locale.Upper(other.reachedContainer.label.label:GetText()), "a report heading reads in capitals")
+	-- AceGUI lays the report out from its own labels (a Heading's rules hang 5 units off its label's ends, a Label's
+	-- frame is as tall as its label's string: AceGUIWidget-Heading.lua 29 and 53-60, AceGUIWidget-Label.lua 49-56), so
+	-- while RestedXP shows the report each of its texts takes the font of the label drawn over it.
+	for what, widget in pairs({ heading = other.reachedContainer.label, data = other.reachedContainer.data }) do
+		local over = Replacement(widget.label)
+		local path, size = over:GetFont()
+		local own, ownSize = widget.label:GetFont()
+		NewCheck(own == path and ownSize == size, "the report's own " .. what .. " text measures as the label drawn over it, got " .. tostring(own) .. " " .. tostring(ownSize) .. " for " .. tostring(path) .. " " .. tostring(size))
+	end
+	do
+		-- RestedXP's OnShow callback fills and lays the report out in its own fonts before the skin's hook leases the
+		-- kit's (LevelingTracker.lua 463-467 and 850), so after leasing the skin has AceGUI measure each label again
+		-- (the widget's SetText, AceGUIWidget-Label.lua 98-101) and lay the list out (DoLayout), as UpdateReport does.
+		local row = other.reachedContainer.data
+		local body = (ns.Style.Font("body"))
+		NewCheck(row.measuredFont and row.measuredFont[1] == body and other.scrollContainer.layouts > 0, "after leasing, the report's labels are measured again in the font drawn and the list is laid out, got " .. tostring(row.measuredFont and row.measuredFont[1]))
+		rxp.fake.close(other.frame)
+		local hiddenFont, hiddenSize = row.label:GetFont()
+		NewCheck(hiddenFont == "Fonts\\FRIZQT__.TTF" and hiddenSize == 12 and row.label:GetFontObject() == row.fontObject, "a hidden report's label has RestedXP's font object back, got " .. tostring(hiddenFont) .. " " .. tostring(hiddenSize))
+		row:SetText("In-progress")
+		NewCheck(row.measuredFont[1] == "Fonts\\FRIZQT__.TTF", "RestedXP measures a hidden report in its own font")
+		local layouts = other.scrollContainer.layouts
+		rxp.fake.open(other.frame)
+		NewCheck(row.measuredFont[1] == body and other.scrollContainer.layouts > layouts, "a reopened report is measured and laid out again after the lease, got " .. tostring(row.measuredFont[1]))
+		-- A text size change while the report is open changes the leased fonts, so the rows are measured again then too.
+		local sized = row.measuredFont[2]
+		layouts = other.scrollContainer.layouts
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(row.measuredFont[2] > sized and row.measuredFont[2] == select(2, row.label:GetFont()) and other.scrollContainer.layouts > layouts, "an open report is measured and laid out again when the text size changes, got " .. tostring(row.measuredFont[2]) .. " after " .. tostring(sized))
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
+		heading = Replacement(other.reachedContainer.label.label)
+	end
+	do
+		local point, on, onPoint = heading:GetPoint(1)
+		NewCheck(heading:GetNumPoints() == 1 and point == "CENTER" and on == other.reachedContainer.label.label and onPoint == "CENTER" and W.LastCall(heading, "SetWordWrap")[1] == false, "a heading's caption hangs on one point and never wraps, so a label narrower than its capitals cannot cut it")
+	end
+	assert(other.scrollContainer.scrollbar:GetParent() == other.scrollContainer.scrollframe, "AceGUI's scroll bar belongs to its scroll frame")
 
 	assert(rxp.tracker.levelSplits == nil)
 	rxp.tracker:CreateLevelSplits()
 	local splits = rxp.tracker.levelSplits
 	assert(Glass(K, splits) and Hushed(splits), "level splits are skinned when RestedXP makes them")
 	assert(not K.Skin.IsSkinned(splits.title, "Backdrop") and Colored(ns.RestedXP.Chrome.Caption(splits.title.text), K.Tokens.Color("capsGold")), "its title is a caption on the card's glass, as the icon frames'")
+	assert(splits:GetParent() == env.UIParent and splits.title.splitsMenuFrame:GetName() == "RXPG_SplitsMenuFrame")
+	for _, key in ipairs({ "history", "current", "total" }) do
+		NewCheck(splits[key].label:GetFont() == (ns.Style.Font("body")), "splits " .. key .. " uses the kit body face")
+	end
+	-- RestedXP refreshes the splits once a second and sets its own font back whenever the label's size is not its
+	-- size setting (LevelingTracker.lua 1319-1326), so the kit's face has to come back with every such call, at the
+	-- size RestedXP asks for or the readable floor, whichever is larger.
+	rxp.tracker:UpdateLevelSplits()
+	for _, key in ipairs({ "history", "current", "total" }) do
+		NewCheck(splits[key].label:GetFont() == (ns.Style.Font("body")), "splits " .. key .. " keeps the kit body face through RestedXP's refresh, got " .. tostring(splits[key].label:GetFont()))
+	end
+	rxp.settings.profile.levelSplitsFontSize = 20
+	rxp.tracker:UpdateLevelSplits()
+	for _, key in ipairs({ "history", "current", "total" }) do
+		local path, size = splits[key].label:GetFont()
+		NewCheck(path == (ns.Style.Font("body")) and FontSize(K, splits[key].label, size, 20), "splits " .. key .. " follows RestedXP's size setting in the kit's face, got " .. tostring(path) .. " " .. tostring(size))
+	end
+	rxp.settings.profile.levelSplitsFontSize = 11
+	rxp.tracker:UpdateLevelSplits()
+	NewCheck(K.Skin.IsSkinned(splits.title.cog, "Button"), "splits cog is a kit button")
+	local cogPoint, cogOn, cogOnPoint, cogX, cogY = splits.title.cog:GetPoint(1)
+	assert(cogPoint == "TOPRIGHT" and cogOn == splits and cogOnPoint == "TOPRIGHT" and cogX == -8 and W.Near(cogY, 5.5), "the cog stands at the right end of the title's row, inside the glass and clear of the gilt tick: RestedXP hangs it off the top left corner (LevelingTracker.lua 1057), got " .. tostring(cogPoint) .. " " .. tostring(cogX) .. " " .. tostring(cogY))
 	rxp.settings.profile.hideSplitsBackground = true
 	rxp.tracker:RenderSplitsBackground()
 	assert(not Glass(K, splits), "the splits' hide-background setting hides the glass")
+	Clean(env, rxp)
+end
+
+do
+	local rxp
+	local env, K = S.New({ setup = function(environment)
+		rxp = Fake.Install(environment, { windows = false })
+		rxp.settings.profile.enableTracker = false
+		Fake.Windows(environment, rxp)
+	end })
+	K.Modules.Enable("Skins")
+	env.RunTimers()
+	assert(next(rxp.tracker.ui) == nil, "the disabled tracker makes no startup character report")
+	K.Options.Write("Skins", "restedXP.enabled", false)
+	local attachment = env.CreateFrame("Frame", "LaterCharacterFrame", env.UIParent)
+	rxp.tracker:CreateGui(attachment, "Tester")
+	assert(not Glass(K, rxp.tracker.ui.LaterCharacterFrame.frame), "CreateGui hooks do nothing while the skin is off")
+	K.Options.Write("Skins", "restedXP.enabled", true)
+	env.RunTimers()
+	NewCheck(Glass(K, rxp.tracker.ui.LaterCharacterFrame.frame), "enabling the skin reaches every report created while off")
 	Clean(env, rxp)
 end
 
@@ -388,25 +572,54 @@ do
 	configurator:Open()
 	local ui = configurator.ui
 	assert(Glass(K, ui.frame) and Alpha(ui.frame.rxpBackground.configuratorHeader) == 0, "the guide configurator is skinned when it is made")
-	-- The title and the buttons use the kit's text roles: the title in the kit's title role in the emphasised
-	-- text, as the skinned Blizzard windows' titles, not RestedXP's gold or the accent (round 4, Opus #5); each
-	-- button label in the body role in the emphasised text, and RestedXP's own flat button wash hushed; RestedXP's
-	-- UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
+	assert(K.Skin.Parts(ui.frame).backdrop.inset.top == -K.Tokens.Size("gapMedium"), "its glass rises a medium gap over the window: RestedXP hangs the title 1 under the frame's top (GuideConfigurator.lua 485), where its capitals would touch the rim")
+	-- The title and the buttons use the kit's text roles: the title a caps caption in the picture's muted gold, as
+	-- every window title is since the Captain's ruling of 2026-11-10 (it was the title role in the emphasised text
+	-- before); each button label in the body role in the kit button's own text colour (the kit paints it on every show,
+	-- hover and enable, so a colour of the skin's own lasted only until the first of those), and RestedXP's own flat button wash
+	-- hushed; RestedXP's UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
 	local function Roles()
-		assert(ui.titletext:GetFont() == (ns.Style.Font("title")) and FontSize(K, ui.titletext, select(2, ui.titletext:GetFont()), select(2, ns.Style.Font("title"))), "the title is in the kit's title role, got " .. tostring(ui.titletext:GetFont()) .. " " .. tostring(select(2, ui.titletext:GetFont())))
-		assert(Colored(ui.titletext, K.Tokens.Color("textEmphasis")), "in the emphasised text, not the accent")
+		Capped(K, ns, ui.titletext, "the guide configurator")
 		for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
 			local button = ui[key]
 			assert(K.Skin.IsSkinned(button, "Button") and Alpha(button.configuratorBackground) == 0 and Alpha(button.rxpBorder.textures[1]) == 0, key .. " is a KstyleUI button")
 			local label = button:GetFontString()
 			assert(label:GetFont() == (ns.Style.Font("body")) and FontSize(K, label, select(2, label:GetFont()), select(2, ns.Style.Font("body"))), key .. "'s label is in the body role, got " .. tostring(select(2, label:GetFont())))
-			assert(Colored(label, K.Tokens.Color("textEmphasis")), key .. "'s label is the emphasised text")
+			assert(Colored(label, K.Tokens.Color("text")), key .. "'s label is the kit button's text colour")
 		end
 	end
 	Roles()
+	NewCheck(ui.description:GetFont() == (ns.Style.Font("body")), "configurator description uses the body face")
+	local closeCount, headerCount = 0, 0
+	for _, child in ipairs({ ui.frame:GetChildren() }) do
+		if child:GetObjectType() == "Button" and child:GetNormalTexture() then
+			if tostring(child:GetNormalTexture():GetTexture()):find("rxp%-btn%-close") then
+				if K.Skin.IsSkinned(child, "CloseButton") then closeCount = closeCount + 1 end
+			elseif K.Skin.IsSkinned(child, "Button") then headerCount = headerCount + 1 end
+		end
+	end
+	NewCheck(closeCount == 1, "configurator anonymous close button is skinned")
+	NewCheck(headerCount == 3, "configurator settings import and help buttons are skinned")
 	configurator:UpdateTheme()
 	Roles()
 	assert(K.Skin.IsSkinned(ui.scrollContainer.scrollbar, "ScrollBar"))
+	local intro = ui.scrollContainer.children[1]
+	local introTitle, introDescription = Replacement(intro.titleLabel.label), Replacement(intro.descriptionLabel.label)
+	NewCheck(introTitle and introDescription and introTitle:GetFont() == (ns.Style.Font("body")) and introDescription:GetFont() == (ns.Style.Font("body")), "configurator page intro labels use kit faces")
+	-- RestedXP lays the page out in its own fonts, and AceGUI measures a Label only in SetText, so after leasing the
+	-- skin has each Label measure itself again and the page lay out again, now and on a text size change.
+	do
+		local first = intro.titleLabel
+		NewCheck(first.measuredFont and first.measuredFont[1] == (ns.Style.Font("body")) and ui.scrollContainer.layouts > 0, "configurator intro labels are measured again in the font drawn and the page is laid out, got " .. tostring(first.measuredFont and first.measuredFont[1]))
+		local sized, laid = first.measuredFont and first.measuredFont[2] or math.huge, ui.scrollContainer.layouts
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(first.measuredFont and first.measuredFont[2] > sized and ui.scrollContainer.layouts > laid, "and again when the text size changes while the configurator is open")
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
+	end
+	rxp.fake.close(intro.titleLabel.frame)
+	if introTitle then NewCheck(intro.titleLabel.label:GetAlpha() == 1 and not introTitle:GetParent():IsShown(), "released configurator labels return their own font and visibility") end
 	-- The option rows (RXPV2GuideConfiguratorOption widgets, some inside padding containers): each row sits on
 	-- a surface tile, its check is the kit's Lumen ring (gilt fill while checked) in place of RestedXP's cyan
 	-- square, its label is in the body role, and its "Recommended" line takes the accent role, not RestedXP's
@@ -435,6 +648,13 @@ do
 		end
 	end
 	Rows()
+	K.Options.Write("Skins", "restedXP.enabled", false)
+	options[1]:SetChecked(false)
+	NewCheck(ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "option hooks do not repaint while the skin is off")
+	K.Options.Write("Skins", "restedXP.enabled", true)
+	env.RunTimers()
+	NewCheck(not ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "reenabling resynchronizes existing configurator option rings")
+	options[1]:SetChecked(true)
 	assert(options[1].checked and options[1].recommendation:IsShown() and not options[3].checked, "the fake's first option is checked and recommended, the third unchecked")
 	options[1]:SetChecked(false)
 	assert(not ns.Lumen.RingOf(options[1].checkbg).fill:IsShown(), "unchecking the option empties the ring")
@@ -451,13 +671,63 @@ do
 	rxp.guideImporter:Open()
 	local widgets = rxp.guideImporter.widgets
 	assert(Glass(K, widgets.import.frame) and Hushed(widgets.import.frame), "the guide importer is skinned when it is made")
+	assert(K.Skin.Parts(widgets.import.frame).backdrop.inset.top == -K.Tokens.Size("gapMedium"), "its glass rises a medium gap over the window too: RestedXP hangs the title 4 under the frame's top (GuideImporter.lua 273)")
 	assert(K.Skin.IsSkinned(widgets.import.closebutton, "CloseButton"))
-	assert(Accented(ns, widgets.import.title))
+	local function InCorner(button, owner, what)
+		local point, on, onPoint, x, y = button:GetPoint(1)
+		assert(point == "TOPRIGHT" and on == owner and onPoint == "TOPRIGHT" and x == 0 and y == 0, what .. ": the close button stands in the window's corner, inside the glass; RestedXP hangs it 6 off the corner (GuideImporter.lua 271, Core.lua 200), got " .. tostring(x) .. ", " .. tostring(y))
+	end
+	InCorner(widgets.import.closebutton, widgets.import.frame, "importer")
+	for _, key in ipairs({ "purgeConfirmation", "deleteConfirmation" }) do
+		local found
+		for _, child in ipairs({ widgets[key].frame:GetChildren() }) do
+			if K.Skin.IsSkinned(child, "CloseButton") then
+				found = child
+			end
+		end
+		InCorner(assert(found, key .. " has a kit close button"), widgets[key].frame, key)
+	end
+	Capped(K, ns, widgets.import.title, "the guide importer")
 	assert(K.Skin.IsSkinned(widgets.importButton.frame, "Button") and K.Skin.IsSkinned(widgets.deleteButton.frame, "Button"))
 	assert(K.Skin.IsSkinned(widgets.importBox.editBox, "EditBox") and Alpha(widgets.importBox.background.rxpBackground.textures[1]) == 0, "the import box is a KstyleUI edit box")
+	for _, key in ipairs({ "importLabel", "guidesLabel", "progressLabel", "progressText", "history" }) do
+		NewCheck(widgets[key]:GetFont() == (ns.Style.Font("caption")), "importer " .. key .. " uses the caption face")
+	end
+	NewCheck(widgets.import.description:GetFont() == (ns.Style.Font("body")), "importer description uses the body face")
+	NewCheck(Proxy(K, widgets.currentGuides.frame, "EditBox") ~= nil and widgets.currentGuides.text:GetAlpha() == 0, "importer dropdown is temporarily dressed")
+	rxp.fake.close(widgets.import.frame)
+	local dropdownPanel = Proxy(K, widgets.currentGuides.frame, "EditBox")
+	if dropdownPanel then NewCheck(not dropdownPanel:IsShown() and widgets.currentGuides.text:GetAlpha() == 1, "importer returns shared dropdown chrome on hide") end
+	rxp.fake.open(widgets.import.frame)
+	NewCheck(dropdownPanel and dropdownPanel:IsShown() and widgets.currentGuides.text:GetAlpha() == 0, "importer redresses the shared dropdown on show")
+	-- The kit hushes every region of a button it skins again whenever the button shows (Core/Skin.lua, StripOwn), so
+	-- the arrow drawn over the dropdown's kit button lives on a frame of its own, as the icon controls' does.
+	do
+		local arrow = Proxy(K, widgets.currentGuides.button, "Button")
+		local drawn
+		for _, holder in ipairs(arrow and { arrow:GetChildren() } or {}) do
+			for _, region in ipairs({ holder:GetRegions() }) do
+				if region.GetTexture and tostring(region:GetTexture()):find("scrollbar_down", 1, true) then drawn = region end
+			end
+		end
+		NewCheck(drawn and drawn:GetAlpha() == 1 and drawn:IsShown(), "the importer dropdown's arrow is still drawn over its kit button after the window shows again")
+	end
+	NewCheck(Accented(ns, { GetTextColor = function() return widgets.progress:GetStatusBarColor() end }), "importer progress uses the accent")
+	widgets.import:UpdateSubTheme()
+	Capped(K, ns, widgets.import.title, "the guide importer after RestedXP redraws its theme")
+	NewCheck(widgets.import.frame.importerBody:GetAlpha() == 0 and widgets.import.frame.importerHeader:GetAlpha() == 0, "importer body and header stay hushed after redraw")
 	for _, key in ipairs({ "purgeConfirmation", "deleteConfirmation" }) do
 		local popup = widgets[key]
 		assert(Glass(K, popup.frame) and K.Skin.IsSkinned(popup.buttons[1], "Button"), key .. " is a KstyleUI dialog")
+		assert(popup.frame.rxpBackground, "OnAcquire applies the popup's RestedXP backdrop after its bare constructor")
+		Capped(K, ns, popup.title, key)
+		NewCheck(popup.message:GetFont() == (ns.Style.Font("body")), key .. " message uses the body face")
+		popup:Show()
+		Capped(K, ns, popup.title, key .. " after its theme redraw on show")
+		NewCheck(popup.message:GetFont() == (ns.Style.Font("body")), key .. " theme redraw on show preserves the body face")
+		local closes = 0
+		for _, child in ipairs({ popup.frame:GetChildren() }) do if K.Skin.IsSkinned(child, "CloseButton") then closes = closes + 1 end end
+		NewCheck(closes == 1, key .. " anonymous close button is skinned")
 	end
 	Clean(env, rxp)
 end
@@ -466,25 +736,129 @@ end
 
 do
 	local env, K, ns, rxp = Boot()
-	local frame = rxp.pooledFrame
-	local title = frame.obj.titletext
-	for _, open in ipairs({ rxp.comms.OpenBugReport, rxp.comms.OpenBrandedExport }) do
-		open()
+	local previous
+	for _, key in ipairs({ "OpenBugReport", "OpenBrandedExport" }) do
+		if key == "OpenBugReport" then rxp.comms.OpenBugReport({ arg1 = 12 })
+		else rxp.comms.OpenBrandedExport("Test export", "Copy this text", "Export content", 480, 240, function() end) end
+		local frame = key == "OpenBugReport" and env.RESTEDXP_BUG_REPORT_WINDOW or env.RESTEDXP_BRANDED_EXPORT
+		local title = frame.obj.titletext
+		-- AceGUI makes the title on GameFontNormal (AceGUIContainer-Frame.lua:236), Friz Quadrata at 12.
+		local titleOwn = { "Fonts\\FRIZQT__.TTF", 12 }
+		if previous then assert(previous ~= frame, "feedback does not release its AceGUI frame on close") end
+		previous = frame
 		local panel = ns.RestedXP.Chrome.DressPanel(frame)
 		assert(panel and panel:IsShown(), "RestedXP's dialog sits on glass while RestedXP shows it")
+		local panelPoint, panelOn, _, _, panelY = panel:GetPoint(1)
+		assert(panelPoint == "TOPLEFT" and panelOn == frame and W.Near(panelY, K.Widgets.Snap(panel, K.Tokens.Size("gapMedium"))), "the dialog's glass rises a medium gap over AceGUI's title too, got " .. tostring(panelY))
 		assert(Alpha(frame._pieces[1]) == 0 and Alpha(frame.obj.titlebg) == 0, "its backdrop and title art are hidden")
-		assert(Accented(ns, title), "its title takes the accent")
+		local replacement = Replacement(title)
+		NewCheck(replacement and replacement:GetFont() == (ns.Style.Font("caps")) and Colored(replacement, K.Tokens.Color("capsGold")), key .. " title is a caps caption in the muted gold while leased")
+		NewCheck(replacement and replacement:GetText() == K.Locale.Upper(title:GetText()), key .. " title reads in capitals")
+		local titleFont, titleSize = title:GetFont()
+		NewCheck(replacement and titleFont == (replacement:GetFont()) and titleSize == select(2, replacement:GetFont()), key .. " title's own text measures as its caption while leased")
+		local child = frame.obj.children[1]
+		local edit = child.type == "ScrollFrame" and child.children[1] or child
+		assert(edit.type == "MultiLineEditBox" and edit.editBox:GetParent() == edit.scrollFrame)
+		local oldFont = "Fonts\\ARIALN.TTF"
+		NewCheck(edit.editBox:GetFont() == (ns.Style.Font("body")), key .. " edit text uses the body face while leased")
+		NewCheck(Proxy(K, edit.editBox, "EditBox") ~= nil and Proxy(K, edit.button, "Button") ~= nil and Proxy(K, edit.scrollBar, "ScrollBar") ~= nil, key .. " edit box accept button and scroll bar use temporary kit chrome")
+		local label = Replacement(edit.label)
+		NewCheck(label and label:GetFont() == (ns.Style.Font("body")), key .. " edit label uses the body face while leased")
+		NewCheck(label and edit.label:GetFont() == (label:GetFont()) and select(2, edit.label:GetFont()) == select(2, label:GetFont()), key .. " edit label's own text measures as the label drawn over it while leased")
+		local accept = Replacement(edit.button:GetFontString())
+		NewCheck(accept and accept:GetNumPoints() == 1 and W.LastCall(accept, "SetWordWrap")[1] == false, key .. " accept button's label hangs on one point and never wraps, so the button's own narrower text cannot cut it")
+		NewCheck(edit.button:GetFontString():GetFont() == "Fonts\\FRIZQT__.TTF", key .. " accept button's own text keeps the font its button states give it")
+		-- AceGUI disables Accept until the text is edited (AceGUIWidget-MultiLineEditBox.lua, DisableButton): the kit
+		-- button drawn over it and its label follow, so a button that cannot be pressed does not look as if it can.
+		do
+			local over = Proxy(K, edit.button, "Button")
+			NewCheck(over and over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("text")), key .. " accept button's label is the kit button's text colour while it can be pressed")
+			edit.button:Disable()
+			NewCheck(over and not over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("textDisabled")), key .. " a disabled accept button's kit chrome and label are disabled too")
+			edit.button:Enable()
+			-- AceGUI hides an edit box's label when it is given no words and leaves the old words in it
+			-- (AceGUIWidget-MultiLineEditBox.lua, SetLabel), so the label drawn over it hides and shows with it.
+			local drawn = label and label:GetParent()
+			rxp.fake.trust(edit.label.Hide)(edit.label)
+			NewCheck(drawn and not drawn:IsShown(), key .. " a hidden edit label's replacement hides with it")
+			rxp.fake.trust(edit.label.Show)(edit.label)
+			-- AceGUI makes the label 10 high for its own 10-unit face and hangs the box from the label's bottom
+			-- (AceGUIWidget-MultiLineEditBox.lua 290-294, 313-318). The body face is taller and a long description
+			-- wraps, so while leased the label is as tall as the words drawn over it and the box follows it down.
+			env._textWidth = function(value, _, size) return #value * size * 0.5 end
+			local words = edit.label:GetText()
+			rxp.fake.trust(function()
+				edit.frame:ClearAllPoints()
+				edit.frame:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 40, -40)
+				edit.frame:SetSize(200, 120)
+			end)()
+			rxp.fake.trust(edit.label.SetText)(edit.label, "Copy this text and paste it where the guide's author asked for it")
+			local tall = label and label:GetStringHeight()
+			NewCheck(tall and label:GetNumLines() > 1 and edit.label:GetHeight() == tall and tall > 10, key .. " a wrapped edit label is as tall as the words drawn over it while leased, got " .. tostring(edit.label:GetHeight()) .. " for " .. tostring(tall) .. " in " .. tostring(label and label:GetNumLines()) .. " lines")
+			K.Options.Write("Skins", "text.size", 1.5)
+			env.RunTimers()
+			NewCheck(tall and edit.label:GetHeight() == label:GetStringHeight() and edit.label:GetHeight() > tall, key .. " and grows with the text size while leased")
+			K.Options.Write("Skins", "text.size", 1)
+			env.RunTimers()
+			local wide = edit.label:GetHeight()
+			rxp.fake.trust(function() edit.frame:SetSize(110, 120) end)()
+			local resized = drawn and drawn:GetScript("OnSizeChanged")
+			if resized then resized(drawn) end
+			NewCheck(resized and edit.label:GetHeight() == label:GetStringHeight() and edit.label:GetHeight() > wide, key .. " and refits when the window is made narrower, got " .. tostring(edit.label:GetHeight()) .. " after " .. tostring(wide))
+			rxp.fake.trust(edit.label.SetText)(edit.label, words)
+			env._textWidth = nil
+			NewCheck(drawn and drawn:IsShown(), key .. " and shows with it again")
+			NewCheck(over and over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("text")), key .. " and enabled again with it")
+		end
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(select(2, edit.editBox:GetFont()) == select(2, ns.Style.Font("body")), key .. " edit text follows a text size change while leased, got " .. tostring(select(2, edit.editBox:GetFont())) .. " for " .. tostring(select(2, ns.Style.Font("body"))))
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
 		rxp.fake.close(frame)
 		assert(not panel:IsShown() and Alpha(frame._pieces[1]) == 1 and Alpha(frame.obj.titlebg) == 1, "closing it gives the shared frame its own look back")
 		local r, g, b = title:GetTextColor()
-		assert(W.Near(r, 1) and W.Near(g, 0.82) and W.Near(b, 0), "and its title colour")
+		assert(W.Near(r, 1) and W.Near(g, 0.82) and W.Near(b, 0), "and its title keeps its own colour")
+		NewCheck(title:GetFont() == titleOwn[1] and select(2, title:GetFont()) == titleOwn[2], key .. " title's own font is returned on hide, got " .. tostring(title:GetFont()))
+		NewCheck(edit.editBox:GetFont() == oldFont, key .. " edit font is returned on hide")
+		NewCheck(edit.label:GetFont() == "Fonts\\FRIZQT__.TTF" and select(2, edit.label:GetFont()) == 10, key .. " edit label's own font is returned on hide, got " .. tostring(edit.label:GetFont()) .. " " .. tostring(select(2, edit.label:GetFont())))
+		NewCheck(edit.label:GetAlpha() == 1 and edit.scrollBar:GetThumbTexture():GetAlpha() == 1 and edit.button.Left:GetAlpha() == 1, key .. " original label button and thumb art are returned on hide")
+		NewCheck(edit.label:GetHeight() == 10, key .. " edit label is AceGUI's 10 high again on hide, got " .. tostring(edit.label:GetHeight()))
+		local proxy = Proxy(K, edit.editBox, "EditBox")
+		if proxy then NewCheck(not proxy:IsShown(), key .. " temporary controls hide on release") end
+		K.Options.Write("Skins", "text.size", 1.2)
+		env.RunTimers()
+		NewCheck(edit.editBox:GetFont() == oldFont, key .. " released edit font stays untouched by later skin restyles")
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
 	end
+	local frame = env.RESTEDXP_BRANDED_EXPORT
 	assert(not K.Skin.IsSkinned(frame, "Backdrop"), "the shared frame is never skinned for good")
 	rxp.fake.open(frame)
 	assert(Alpha(frame._pieces[1]) == 1, "another addon showing the frame sees its own look")
 	frame._pieces[1]:SetAlpha(0.5)
 	rxp.fake.close(frame)
 	assert(Alpha(frame._pieces[1]) == 0.5, "and KstyleUI leaves it alone when that addon hides it")
+	local export = frame
+	rxp.comms.OpenBrandedExport("Again", "Still editable", "Content", nil, nil, function() end)
+	assert(env.RESTEDXP_BRANDED_EXPORT == export, "AceGUI reuses the frame released by the export box")
+	local edit = export.obj.children[1]
+	NewCheck(Proxy(K, edit.editBox, "EditBox") and Proxy(K, edit.editBox, "EditBox"):IsShown(), "a pooled edit widget is redressed on RestedXP reuse")
+	rxp.fake.close(export)
+	-- AceGUI can hand a released edit box to another window and reuse this frame with other children. The lease is
+	-- per showing: a widget this frame no longer holds is left alone when RestedXP shows the frame again.
+	do
+		assert(edit.released, "closing the export released its edit box to AceGUI's pool")
+		edit.released = false
+		rxp.comms.OpenBrandedExport("Third", "Other children", "Content", nil, nil, function() end)
+		assert(env.RESTEDXP_BRANDED_EXPORT == export and export.obj.children[1] ~= edit, "the frame comes back with another edit box while the first is in use elsewhere")
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(edit.label:GetFont() == "Fonts\\FRIZQT__.TTF" and select(2, edit.label:GetFont()) == 10 and edit.label:GetHeight() == 10 and edit.label:GetAlpha() == 1, "an edit widget the frame no longer holds is left alone by a later restyle, got " .. tostring(edit.label:GetFont()) .. " " .. tostring(select(2, edit.label:GetFont())))
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
+		rxp.fake.close(export)
+	end
 	Clean(env, rxp)
 end
 
@@ -492,9 +866,11 @@ end
 
 do
 	local env, K, _, rxp = Boot()
-	local button = rxp.CreateCleanupButton()
+	assert(rxp.CreateCleanupButton == nil and rxp.cleanupBtn == nil, "the real cleanup constructor is local and runs after the event")
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	env.RunTimers()
+	local button = rxp.cleanupBtn
+	assert(button and button:GetParent() == env.QuestMapFrame.DetailsFrame and env.RXPQuestLogCleanupButton == button, "cleanup uses the quest detail parent and real global name")
 	assert(K.Skin.IsSkinned(button, "Button"), "the quest log clean-up button is a KstyleUI button")
 	Clean(env, rxp)
 end
@@ -534,4 +910,5 @@ do
 	Clean(env, rxp)
 end
 
+assert(#newFailures == 0, table.concat(newFailures, "\n"))
 print("skins restedxp windows ok")
