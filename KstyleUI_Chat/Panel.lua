@@ -145,7 +145,7 @@ function Panel.Geometry(chat)
 		local room = height - top - foot
 		local lines = floor((room + gap) / pitch + 1e-6)
 		if lines >= 1 then
-			top = snap(top + room - min(room, lines * pitch - floor(gap / 2)))
+			foot = snap(foot + room - min(room, lines * pitch - floor(gap / 2)))
 		end
 	end
 	return {
@@ -708,6 +708,7 @@ function Panel.Start(settings)
 		state.editMode = true
 	end
 	Panel.Place()
+	Schedule()
 	Mirror()
 end
 
