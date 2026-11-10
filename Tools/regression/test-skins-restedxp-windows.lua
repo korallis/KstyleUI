@@ -770,6 +770,26 @@ do
 			rxp.fake.trust(edit.label.Hide)(edit.label)
 			NewCheck(drawn and not drawn:IsShown(), key .. " a hidden edit label's replacement hides with it")
 			rxp.fake.trust(edit.label.Show)(edit.label)
+			-- AceGUI makes the label 10 high for its own 10-unit face and hangs the box from the label's bottom
+			-- (AceGUIWidget-MultiLineEditBox.lua 290-294, 313-318). The body face is taller and a long description
+			-- wraps, so while leased the label is as tall as the words drawn over it and the box follows it down.
+			env._textWidth = function(value, _, size) return #value * size * 0.5 end
+			local words = edit.label:GetText()
+			rxp.fake.trust(function()
+				edit.frame:ClearAllPoints()
+				edit.frame:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 40, -40)
+				edit.frame:SetSize(200, 120)
+			end)()
+			rxp.fake.trust(edit.label.SetText)(edit.label, "Copy this text and paste it where the guide's author asked for it")
+			local tall = label and label:GetStringHeight()
+			NewCheck(tall and label:GetNumLines() > 1 and edit.label:GetHeight() == tall and tall > 10, key .. " a wrapped edit label is as tall as the words drawn over it while leased, got " .. tostring(edit.label:GetHeight()) .. " for " .. tostring(tall) .. " in " .. tostring(label and label:GetNumLines()) .. " lines")
+			K.Options.Write("Skins", "text.size", 1.5)
+			env.RunTimers()
+			NewCheck(tall and edit.label:GetHeight() == label:GetStringHeight() and edit.label:GetHeight() > tall, key .. " and grows with the text size while leased")
+			K.Options.Write("Skins", "text.size", 1)
+			env.RunTimers()
+			rxp.fake.trust(edit.label.SetText)(edit.label, words)
+			env._textWidth = nil
 			NewCheck(drawn and drawn:IsShown(), key .. " and shows with it again")
 			NewCheck(over and over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("text")), key .. " and enabled again with it")
 		end
@@ -786,6 +806,7 @@ do
 		NewCheck(edit.editBox:GetFont() == oldFont, key .. " edit font is returned on hide")
 		NewCheck(edit.label:GetFont() == "Fonts\\FRIZQT__.TTF" and select(2, edit.label:GetFont()) == 10, key .. " edit label's own font is returned on hide, got " .. tostring(edit.label:GetFont()) .. " " .. tostring(select(2, edit.label:GetFont())))
 		NewCheck(edit.label:GetAlpha() == 1 and edit.scrollBar:GetThumbTexture():GetAlpha() == 1 and edit.button.Left:GetAlpha() == 1, key .. " original label button and thumb art are returned on hide")
+		NewCheck(edit.label:GetHeight() == 10, key .. " edit label is AceGUI's 10 high again on hide, got " .. tostring(edit.label:GetHeight()))
 		local proxy = Proxy(K, edit.editBox, "EditBox")
 		if proxy then NewCheck(not proxy:IsShown(), key .. " temporary controls hide on release") end
 		K.Options.Write("Skins", "text.size", 1.2)

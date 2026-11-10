@@ -1233,6 +1233,10 @@ TipWindow = function(step)
 		entry = { holder = holder, caption = Widgets.FontString(holder, "OVERLAY") }
 		entry.caption:SetWordWrap(false)
 		tips[step] = entry
+		holder.Restyle = function()
+			if Active() then Run("tip restyle", TipWindow, step) end
+		end
+		Style.Track(holder)
 	end
 	local glass = Panel(step)
 	if glass then
@@ -1480,7 +1484,7 @@ local temporary = setmetatable({}, WEAK)
 local function Temporary(root)
 	local entry = temporary[root]
 	if not entry then
-		entry = { active = false, controls = {}, fonts = {}, art = {}, dimmed = {} }
+		entry = { active = false, controls = {}, fonts = {}, art = {}, dimmed = {}, heights = {} }
 		temporary[root] = entry
 		root:HookScript("OnHide", function()
 			entry.active = false
@@ -1497,6 +1501,10 @@ local function Temporary(root)
 				end
 			end
 			entry.fonts = {}
+			for text, height in pairs(entry.heights) do
+				text:SetHeight(height)
+			end
+			entry.heights = {}
 		end)
 	end
 	entry.active = true
@@ -1517,6 +1525,21 @@ local function TemporaryText(root, text, role, color, shape)
 	local function Seen()
 		local shown = type(text.IsShown) ~= "function" or text:IsShown()
 		holder:SetShown(Widgets.IsSecret(shown) or shown ~= false)
+	end
+	local function Fit()
+		if shape ~= "fit" or type(text.SetHeight) ~= "function" or type(text.GetHeight) ~= "function" then
+			return
+		end
+		local own = entry.heights[text]
+		if own == nil then
+			own = text:GetHeight()
+			if not Plain(own) then
+				return
+			end
+			entry.heights[text] = own
+		end
+		local needed = holder.label:GetStringHeight()
+		text:SetHeight(Plain(needed) and needed > own and needed or own)
 	end
 	local function Own(given)
 		local path, size, flags = given:GetFont()
@@ -1551,7 +1574,12 @@ local function TemporaryText(root, text, role, color, shape)
 		holder = CreateFrame("Frame", nil, text:GetParent())
 		holder:SetAllPoints(text)
 		local label = Widgets.FontString(holder, "OVERLAY")
-		if shape then
+		if shape == "fit" then
+			label:SetPoint("TOPLEFT", text, "TOPLEFT", 0, 0)
+			label:SetPoint("TOPRIGHT", text, "TOPRIGHT", 0, 0)
+			label:SetJustifyH(text:GetJustifyH())
+			label:SetJustifyV("TOP")
+		elseif shape then
 			local side = text:GetJustifyH()
 			side = (side == "LEFT" or side == "RIGHT") and side or "CENTER"
 			label:SetPoint(side, text, side, 0, 0)
@@ -1564,12 +1592,18 @@ local function TemporaryText(root, text, role, color, shape)
 		holder.label = label
 		holder.busy = false
 		holder.Restyle = function()
-			if Active() and entry.active then Lease() end
+			if Active() and entry.active then
+				Lease()
+				Fit()
+			end
 		end
 		Style.Track(holder)
 		entry.controls[text] = holder
 		hooksecurefunc(text, "SetText", function(_, value)
-			if Active() and entry.active then Word(value) end
+			if Active() and entry.active then
+				Word(value)
+				Fit()
+			end
 		end)
 		for _, method in ipairs({ "Show", "Hide", "SetShown" }) do
 			if type(text[method]) == "function" then
@@ -1583,6 +1617,7 @@ local function TemporaryText(root, text, role, color, shape)
 				hooksecurefunc(text, method, function()
 					if Active() and entry.active and not holder.busy and entry.fonts[text] and Own(text) then
 						Lease()
+						Fit()
 					end
 				end)
 			end
@@ -1592,6 +1627,7 @@ local function TemporaryText(root, text, role, color, shape)
 	Lease()
 	Word(text:GetText())
 	Seen()
+	Fit()
 end
 
 local function TemporaryControl(root, source, kind)
@@ -1925,7 +1961,7 @@ local function DressDialog(global)
 				TemporaryControl(frame, Find(widget, "scrollbar"), "ScrollBar")
 			end
 			if widget.type == "MultiLineEditBox" then
-				TemporaryText(frame, Find(widget, "label"), "body", "text")
+				TemporaryText(frame, Find(widget, "label"), "body", "text", "fit")
 				TemporaryControl(frame, Find(widget, "editBox"), "EditBox")
 				TemporaryControl(frame, Find(widget, "button"), "Button")
 				TemporaryControl(frame, Find(widget, "scrollBar"), "ScrollBar")

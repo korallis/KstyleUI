@@ -1855,7 +1855,11 @@ function Fake.Windows(env, rxp, opts)
 			local label = m.text(frame)
 			-- AceGUIWidget-MultiLineEditBox.lua:289 makes the label on GameFontNormalSmall, Friz Quadrata at 10.
 			label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-			-- AceGUIWidget-MultiLineEditBox.lua:290-292,338-339: defaults read by leased text and the renderer.
+			-- AceGUIWidget-MultiLineEditBox.lua:290-294,338-339: defaults read by leased text and the renderer. The
+			-- label hangs across the frame's top, 10 high, and the scroll bar and box hang from its bottom (313-318).
+			label:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -4)
+			label:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -4)
+			label:SetHeight(10)
 			label:SetJustifyH("LEFT")
 			local button = PanelButton(m, frame, "MultiLineEditBox" .. (#editPool + 1) .. "Button", "Accept")
 			local background = Backdrop(m, m.frame("Frame", frame))
