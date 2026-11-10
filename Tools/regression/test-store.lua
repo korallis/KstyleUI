@@ -286,7 +286,7 @@ end
 -- becomes 393 by 200. A card the player resized stays.
 do
 	local menv = CoreEnv.New({
-		saved = { version = 9, profiles = { Default = {} }, layouts = {
+		saved = { version = 9, profiles = { Default = {}, Healer = { Layout = { preset = "Healer" } } }, layouts = {
 			Default = { ["chat.main"] = { width = 372, height = 260, x = 28 } },
 			Healer = { ["chat.main"] = { width = 318, height = 260 } },
 			Custom = { ["chat.main"] = { width = 400, height = 180 } },
@@ -375,11 +375,22 @@ do
 			WidthOnly = { ["chat.main"] = { width = 400 } },
 			HeightOnly = { ["chat.main"] = { height = 240 } },
 			Moved = { ["chat.main"] = { x = 40 } },
+			TallDps = { ["chat.main"] = { width = 318, height = 200 } },
+			TallSparse = { ["chat.main"] = { width = 318 } },
+			TallHigh = { ["chat.main"] = { width = 393, height = 210 } },
+			TallMoved = { ["chat.main"] = { width = 393, height = 210 }, ["qol.lootfeed"] = { x = 40 } },
 		} },
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
 	check(db.version == 16, "version 12 data migrates to 16")
+	check(db.layouts.TallDps["chat.main"].width == 318 and db.layouts.TallDps["chat.main"].height == 200, "a DPS card the player set to the Healer's old size keeps it")
+	check(db.layouts.TallSparse["chat.main"].width == 318 and db.layouts.TallSparse["chat.main"].height == 200, "a DPS card narrowed to 318 keeps its 200")
+	local tall = db.layouts.TallHigh["qol.lootfeed"]
+	check(tall and tall.anchor == "BOTTOMLEFT" and tall.x == 17 and tall.y == 233, "a card taller than the new default keeps the loot feed where it cleared it")
+	local tallMoved = db.layouts.TallMoved["qol.lootfeed"]
+	check(tallMoved.anchor == "BOTTOMLEFT" and tallMoved.x == 40 and tallMoved.y == 233, "a loot feed the player moved sideways keeps its old height above the taller card")
+	check(db.layouts.Default["qol.lootfeed"] == nil, "a card that takes the new default height lets the feed follow it")
 	local layout = db.layouts.Default
 	check(layout["chat.main"].width == 393 and layout["chat.main"].height == 186, "a card at the old default height takes the picture's 186")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps its rail width and takes 186")

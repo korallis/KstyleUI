@@ -418,29 +418,32 @@ Store.migrations[16] = function(data)
 		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
 		local section = type(profile.Layout) == "table" and profile.Layout or {}
 		local current = layouts and type(layouts.Get) == "function" and layouts.Get(section.preset or "DPS") or {}
+		local taller = false
+		local chat = type(layout) == "table" and layout[CHAT_CARD]
+		if type(chat) == "table" and (chat.width ~= nil or chat.height ~= nil) then
+			local old = CHAT_V12[section.preset == "Healer" and 2 or 1]
+			local width, height = chat.width or old.width, chat.height or old.height
+			chat.width, chat.height = width, height
+			if width == old.width and height == old.height then
+				chat.width, chat.height = old.toWidth, old.toHeight
+			end
+			taller = chat.height > old.toHeight
+		end
 		for key in pairs(type(layout) == "table" and RAIL_V12 or {}) do
 			local entry = layout[key]
-			if type(entry) == "table" then
+			local feed = key == "qol.lootfeed" and taller
+			if feed and entry == nil then
+				entry = {}
+				layout[key] = entry
+			end
+			if type(entry) == "table" and feed then
+				local old = RAIL_V12[key]
+				entry.anchor, entry.x, entry.y = entry.anchor == nil and old[1] or entry.anchor, entry.x == nil and old[2] or entry.x, entry.y == nil and old[3] or entry.y
+			elseif type(entry) == "table" then
 				local now = current[key]
 				railEntry(entry, key, now and { now.anchor, now.x, now.y }, RAIL_V12)
 				if next(entry) == nil then
 					layout[key] = nil
-				end
-			end
-		end
-		local chat = type(layout) == "table" and layout[CHAT_CARD]
-		if type(chat) == "table" and (chat.width ~= nil or chat.height ~= nil) then
-			local width, height = chat.width, chat.height
-			if width == nil then
-				width = section.preset == "Healer" and CHAT_V12[2].width or CHAT_V12[1].width
-			end
-			if height == nil then
-				height = CHAT_V12[1].height
-			end
-			chat.width, chat.height = width, height
-			for _, old in ipairs(CHAT_V12) do
-				if width == old.width and height == old.height then
-					chat.width, chat.height = old.toWidth, old.toHeight
 				end
 			end
 		end
