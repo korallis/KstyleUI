@@ -52,6 +52,7 @@ assert(pg.name and near(pg.name.y + pg.name.h, pg.health.y - 12), "the name stan
 assert(pg.caption and pg.caption.x >= pg.name.x, "the class word follows the name")
 assert(pg.healthText and pg.healthSub and near(pg.healthSub.x + pg.healthSub.w, 491), "the value ends at the bar's right edge")
 assert(near(pg.healthText.y + pg.healthText.h, pg.name.y + pg.name.h, 1), "the value shares the name's baseline")
+assert(near(pg.nameDrop, 0.24 * 22, 0.01) and near(pg.captionLift, 0.105 * 22, 0.01), "the 22-unit name drops 0.24 of its size so its Cinzel baseline stands on the value's, and the class word lifts 0.105 of it to share that baseline")
 assert(pg.cast == nil and pg.aura == nil, "the player's cast bar is its own element and it has no side auras")
 assert(pg.badge and pg.badge.x + pg.badge.w / 2 > pg.portrait.x + pg.portrait.w / 2 and pg.badge.y + pg.badge.h / 2 > pg.portrait.y + pg.portrait.h / 2, "the level disc is on the portrait's lower right")
 

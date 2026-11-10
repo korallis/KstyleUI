@@ -14,7 +14,7 @@ local NORTH = 16
 local CAPTION = 36
 local CAPTION_X = 2
 local ZONE_CENTER = 13.7
-local ROW_CENTER = 31.2
+local ROW_CENTER = 30
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
 local PVP_TOKENS = {

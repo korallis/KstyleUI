@@ -120,7 +120,7 @@ assert(select(1, face.north:GetFont()) == (K.Tokens.Font("heading")), "in the he
 assert(plate:GetFrameLevel() > face.overlay:GetFrameLevel(), "the plate lies over the rim")
 -- The caption under the map: no band and no fade inside the map. The zone name's caps are centred 13.7 units under
 -- the map's bottom edge, 2 units in from its left; the coordinates sit under it at the left and the clock at the
--- right edge less 2, both 31.2 under the map's bottom edge. Nothing draws inside the map.
+-- right edge less 2, both 30 under the map's bottom edge. Nothing draws inside the map.
 assert(face.zoneBand == nil and face.clockBand == nil, "no bands")
 local zp1, zrel1, zrelp1, zx, zy = face.zone:GetPoint(1)
 assert(zp1 == "LEFT" and zrel1 == face.mapArea and zrelp1 == "BOTTOMLEFT" and W.Near(zx, Format.CAPTION_X, 1) and W.Near(zy, -Format.ZONE_CENTER, 1), "the zone name starts 2 units in from the map's left edge, under the map: " .. tostring(zx) .. ", " .. tostring(zy))
