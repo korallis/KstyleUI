@@ -477,9 +477,9 @@ do
 			Quest(405, { { text = "Speak to Ranger Kalanna", finished = false } }),
 		}
 	end
-	-- Five wrapped quests need more room than the picture's story slot has, so this block boots at the smallest
+	-- Five wrapped quests need more room than the picture's story slot has, so this block boots at a small
 	-- Interface size: the root is taller and the slot with it, whatever the layout's slot is.
-	local roomy = { version = 9, profiles = { Default = { Appearance = { uiScale = 0.6 } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local roomy = { version = 9, profiles = { Default = { Appearance = { uiScale = 0.75 } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = Boot({ quests = List(), measure = true, saved = roomy })
 	K.Options.Write("Skins", "quests.shown", 5)
 	env.RunTimers()
@@ -543,7 +543,7 @@ do
 	local huge = Text(rows[4], 1)
 	local cap = W.LastCall(huge, "SetMaxLines")
 	assert(cap and cap[1] == 3, "an objective takes three lines at most")
-	assert(math.abs(High(rows[4], 1) - 3 * one) <= 1.5, "and is three lines high, got " .. High(rows[4], 1) .. " for " .. 3 * one)
+	assert(math.abs(High(rows[4], 1) - 3 * one) <= 0.05 * 3 * one, "and is three lines high, to the pixels each height snaps to, got " .. High(rows[4], 1) .. " for " .. 3 * one)
 
 	for i = 1, 4 do
 		local a, b = RootRect(K, rows[i]), RootRect(K, rows[i + 1])
