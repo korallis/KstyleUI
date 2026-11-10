@@ -263,10 +263,11 @@ do
 		assert(found, spec.key .. ": the window or one of its pages sits on a KstyleUI backdrop")
 		assert(found.chrome.shapeName == grade, spec.key .. ": the " .. grade .. " grade, Lumen's rail with gilt tips when S1 lands, got " .. tostring(found.chrome.shapeName))
 		assert(found.chrome.fillName == "surface", spec.key .. ": on the glass surface")
-		local titlePath = ns.Style.Font("caps")
+		local titleRole = (spec.key == "character" or spec.key == "reputation" or spec.key == "merchant" or spec.key == "trainer") and "names" or "caps"
+		local titlePath = ns.Style.Font(titleRole)
 		local title = type(window.TitleContainer) == "table" and window.TitleContainer.TitleText or nil
 		if title and windowParts and windowParts.kinds.Window then
-			assert((title:GetFont()) == titlePath or ((spec.key == "character" or spec.key == "reputation") and (title:GetFont()) == ns.Style.Font("names")), spec.key .. ": the title is in the gold caps face, Lumen's Cinzel Caps (the character's name in the names face)")
+			assert((title:GetFont()) == titlePath, spec.key .. ": the title uses the " .. titleRole .. " face")
 		end
 		for _, frame in ipairs(env._frames) do
 			local p = K.Skin.Parts(frame)

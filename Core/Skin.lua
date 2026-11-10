@@ -681,7 +681,7 @@ local function Window(frame, opts)
 	end
 	if title and opts.title ~= false then
 		W().CapsSize(title, true)
-		W().TextColor(title, "capsGold")
+		Text(title, "caps", "capsGold")
 	end
 	if opts.tabs ~= false and (type(frame.Tabs) == "table" or type(frame.numTabs) == "number") then
 		Tabs(frame)

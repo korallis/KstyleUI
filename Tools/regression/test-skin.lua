@@ -394,6 +394,14 @@ do
 	assert(W.LastCall(window.TitleContainer.TitleText, "SetFont")[1] == (K.Tokens.Font("caps")), "the title in the gold caps face, as a HUD card caption")
 	assert(K.Skin.IsSkinned(window.CloseButton, "CloseButton"), "the close button")
 	assert(K.Skin.Window(window) == panel, "a second call does nothing new")
+	local title = window.TitleContainer.TitleText
+	for _, scale in ipairs({ 0.8, 1.3 }) do
+		assert(K.Theme.SetFontScale(scale))
+		local requested = math.max(K.Tokens.Size("caps"), K.Widgets.CAPS_SIZE * scale)
+		assert(math.abs(select(2, title:GetFont()) - K.Widgets.FontSize(title, requested)) < 1e-8, "the native title keeps its caption size after a font-scale change")
+	end
+	assert(K.Theme.SetFontFace("InterSemiBold"))
+	assert(title:GetFont() == K.Tokens.Font("caps"), "the native title follows the saved global font face")
 	B.check(snap)
 	assert(#env._errors == 0)
 end
