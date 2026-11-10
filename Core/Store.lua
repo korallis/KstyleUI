@@ -361,9 +361,19 @@ Store.migrations[13] = function(data)
 			end
 		end
 		local chat = type(layout) == "table" and layout[CHAT_CARD]
-		for _, old in ipairs(type(chat) == "table" and CHAT_V12 or {}) do
-			if chat.width == old.width and chat.height == old.height then
-				chat.width, chat.height = old.toWidth, old.toHeight
+		if type(chat) == "table" and (chat.width ~= nil or chat.height ~= nil) then
+			local width, height = chat.width, chat.height
+			if width == nil then
+				width = section.preset == "Healer" and CHAT_V12[2].width or CHAT_V12[1].width
+			end
+			if height == nil then
+				height = CHAT_V12[1].height
+			end
+			chat.width, chat.height = width, height
+			for _, old in ipairs(CHAT_V12) do
+				if width == old.width and height == old.height then
+					chat.width, chat.height = old.toWidth, old.toHeight
+				end
 			end
 		end
 	end

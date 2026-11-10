@@ -372,6 +372,9 @@ do
 			Healer = { ["chat.main"] = { width = 318, height = 200 } },
 			Resized = { ["chat.main"] = { width = 393, height = 240 } },
 			Wide = { ["chat.main"] = { width = 400, height = 200 } },
+			WidthOnly = { ["chat.main"] = { width = 400 } },
+			HeightOnly = { ["chat.main"] = { height = 240 } },
+			Moved = { ["chat.main"] = { x = 40 } },
 		} },
 	})
 	CoreEnv.Boot(menv)
@@ -382,6 +385,9 @@ do
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps its rail width and takes 186")
 	check(db.layouts.Resized["chat.main"].width == 393 and db.layouts.Resized["chat.main"].height == 240, "a card the player made taller keeps its height")
 	check(db.layouts.Wide["chat.main"].width == 400 and db.layouts.Wide["chat.main"].height == 200, "a card the player made wider keeps its size")
+	check(db.layouts.WidthOnly["chat.main"].width == 400 and db.layouts.WidthOnly["chat.main"].height == 200, "a card the player widened, whose height was the default, keeps its 200")
+	check(db.layouts.HeightOnly["chat.main"].width == 393 and db.layouts.HeightOnly["chat.main"].height == 240, "a card the player made taller keeps the default width it had")
+	check(db.layouts.Moved["chat.main"].width == nil and db.layouts.Moved["chat.main"].height == nil and db.layouts.Moved["chat.main"].x == 40, "a card moved but never resized takes the new default size")
 	check(layout["auras.buffs"] == nil, "a buff row at its old place and size follows the new default")
 	local debuffs = layout["auras.debuffs"]
 	check(debuffs.anchor == "TOPRIGHT" and debuffs.x == -400 and debuffs.y == -67, "debuffs moved only sideways keep their place, completed from version 12")

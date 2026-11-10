@@ -19,8 +19,8 @@ Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
 Model.LABELS = { buffs = 40, debuffs = 24 }
 
 Model.LIMITS = {
-	iconSize = { min = 16, max = 64, step = 1 },
-	spacing = { min = 0, max = 24, step = 1 },
+	iconSize = { min = 16, max = 64, step = 0.5 },
+	spacing = { min = 0, max = 24, step = 0.5 },
 	rows = { min = 1, max = 8, step = 1 },
 	columns = { min = 1, max = 24, step = 1 },
 	timerSize = { min = 6, max = 24, step = 1 },

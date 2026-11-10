@@ -26,6 +26,7 @@ local dw, dh = Model.Footprint(debuffs, timer)
 -- The picture's tiles (the owner's ruling of 2026-11-09 over #209): 27.5-unit icons (48 px) at a 31 pitch (54 px), ten in one row, so a
 -- row is 306.5 wide; the 12-unit timer under each takes 14 units of room, so a row is 41.5 tall (LEE-69).
 check(buffs.iconSize == 27.5 and buffs.spacing == 3.5 and buffs.columns == 10 and timer.size == 12, "27.5-unit icons, 3.5-unit gaps, ten per row, 12-unit timers")
+check(buffs.iconSize % Model.LIMITS.iconSize.step == 0 and buffs.spacing % Model.LIMITS.spacing.step == 0, "the sliders step in halves, so the default icon size and gap can be picked again")
 check(Model.TIMER_GAP + timer.size == 14, "the timer's room under the icon is 14 units")
 check(bw == 306.5 and bh == 41.5, "the buff footprint at defaults is 306.5 x 41.5, got " .. bw .. " x " .. bh)
 check(dw == 306.5 and dh == 41.5, "the debuff footprint at defaults is 306.5 x 41.5, got " .. dw .. " x " .. dh)
