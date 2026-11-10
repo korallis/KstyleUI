@@ -139,15 +139,29 @@ function Panel.Geometry(chat)
 	local _, size = chat:GetFont()
 	local gap = Number(type(chat.GetSpacing) == "function" and chat:GetSpacing(), 0)
 	local height = state.holder and state.holder:GetHeight()
+	local spacing
 	if Number(size, 0) > 0 and Number(height, 0) > 0 then
-		local line = size * k
+		local line, room = size * k, height - top - foot
+		local unitLine, unitGap = line, gap * k
+		if state.settings and ns.Frames and ns.Frames.Pitch then
+			local wantSize, wantGap = ns.Frames.Pitch(state.settings)
+			unitLine, unitGap = wantSize * k, wantGap * k
+			gap = Widgets.Snap(chat, wantGap)
+		end
 		gap = gap * k
+		local lines = floor((room + unitGap) / (unitLine + unitGap) + 1e-6)
+		local pixel = Scale.Pixel(1)
+		if lines > 1 and lines * line + (lines - 1) * gap > room + 1e-6 then
+			gap = max(min(gap, pixel), floor((room - lines * line) / (lines - 1) / pixel + 1e-6) * pixel)
+		end
+		if lines >= 1 and lines * line + (lines - 1) * gap > room + 1e-6 then
+			lines = floor((room + gap) / (line + gap) + 1e-6)
+		end
 		local pitch = line + gap
-		local room = height - top - foot
-		local lines = floor((room + gap) / pitch + 1e-6)
 		if lines >= 1 then
 			foot = snap(foot + room - min(room, lines * pitch - floor(gap / 2)))
 		end
+		spacing = gap / k
 	end
 	return {
 		k = k,
@@ -156,6 +170,7 @@ function Panel.Geometry(chat)
 		right = inset,
 		bottom = foot,
 		divider = top,
+		spacing = spacing,
 	}
 end
 
@@ -359,6 +374,12 @@ local function Mirror()
 	SetChatAlpha(alpha)
 end
 
+function Panel.Spacing(frame)
+	if state.active and frame == state.chat then
+		return state.spacing
+	end
+end
+
 function Panel.Sync()
 	state.alpha = nil
 	Mirror()
@@ -400,6 +421,10 @@ function Panel.Place()
 		return false
 	end
 	local g = Panel.Geometry(chat)
+	state.spacing = g.spacing
+	if g.spacing and type(chat.SetSpacing) == "function" and Number(chat:GetSpacing(), 0) ~= g.spacing then
+		chat:SetSpacing(g.spacing)
+	end
 	local clear = chat.ClearAllPointsBase or chat.ClearAllPoints
 	local setPoint = chat.SetPointBase or chat.SetPoint
 	state.placing = true

@@ -324,6 +324,13 @@ local function HudSize()
 	return size
 end
 
+function Frames.Pitch(settings)
+	local s = settings or state.settings
+	local _, size = Frames.Fonts(s)
+	local hud = HudSize()
+	return size * hud, Halves(ns.LineSpacing(s), ns.SPACING_MIN, ns.SPACING_MAX, Tokens.TypeDefault("chatSpacing")) * hud
+end
+
 local function ApplyFrame(frame)
 	local s = state.settings
 	local path, size, flags, tabSize, tabPath = Frames.Fonts()
@@ -334,7 +341,8 @@ local function ApplyFrame(frame)
 		frame:SetFading(s.fade == true)
 	end
 	if type(frame.SetSpacing) == "function" then
-		frame:SetSpacing(Widgets.Snap(frame, Halves(ns.LineSpacing(s), ns.SPACING_MIN, ns.SPACING_MAX, Tokens.TypeDefault("chatSpacing")) * hud))
+		local _, spacing = Frames.Pitch(s)
+		frame:SetSpacing(Panel.Spacing(frame) or Widgets.Snap(frame, spacing))
 	end
 	if s.fade == true and type(frame.SetTimeVisible) == "function" then
 		frame:SetTimeVisible(Whole(s.fadeTime, 1, math.huge, FADE_DEFAULT))

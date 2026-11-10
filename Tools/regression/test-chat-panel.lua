@@ -715,4 +715,38 @@ do
 	assert(select(2, env.ChatFrame1:GetPoint(1)) == ns.Panel.Holder(), "placed after combat")
 end
 
+-- LEE-128: the card holds as many whole lines as its size in units gives, on every screen and in both type sets.
+-- Staging counted lines from the pixel-snapped font and spacing, so at 1280x720 the 186-unit card held five lines,
+-- hid the oldest messages and left the sixth line's room empty under the last one. The spacing now gives up whole
+-- pixels, never below one, so the sixth line fits.
+do
+	local screens = {
+		{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+		{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+	}
+	for _, set in ipairs({ "Folio", "Lumen" }) do
+		for _, screen in ipairs(screens) do
+			local env, K, ns = C.New({ width = screen[1], height = screen[2], uiScale = 768 / 1080 })
+			C.Enable(env, K)
+			assert(K.Theme.SetTypeSet(set))
+			env.RunTimers()
+			local chat = env.ChatFrame1
+			local label = set .. " " .. screen[1] .. "x" .. screen[2]
+			local _, font = chat:GetFont()
+			local gap = chat:GetSpacing()
+			local g = ns.Panel.Geometry(chat)
+			local area = (K.Layout.Get("chat.main").height - g.top - g.bottom) / g.k
+			local pitch = font + gap
+			local lines = math.floor((area + gap) / pitch + 1e-6)
+			local pixel = K.Scale.Pixel(1) / g.k
+			assert(lines == 6, label .. ": the 186-unit card shows six whole lines, got " .. lines .. " at " .. font .. " + " .. gap)
+			assert(area >= 5 * pitch + font - 0.5 * pixel and area <= 6 * pitch + 0.5 * pixel, label .. ": the window ends between two lines, area " .. area)
+			assert(gap >= pixel - 1e-6 and gap <= K.Widgets.Snap(chat, ns.LineSpacing(K.Store.Module("Chat")) * K.Scale.UserScale()) + 1e-6, label .. ": the spacing keeps at least a pixel and never grows, got " .. gap)
+			ns.Frames.Refresh(K.Store.Module("Chat"))
+			assert(chat:GetSpacing() == gap, label .. ": restyling the window keeps the fitted spacing, got " .. chat:GetSpacing() .. " for " .. gap)
+			assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
+		end
+	end
+end
+
 print("chat panel ok")
