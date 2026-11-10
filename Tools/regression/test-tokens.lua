@@ -146,7 +146,7 @@ for name, want in pairs({
 	railWidth = 318, railPadding = 20, sectionGap = 22, rowGap = 12, socketGap = 8, screenMargin = 17, tick = 15,
 	actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
-	buffBarHeight = 18, display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, world = 13, textShadowOffset = 1,
+	buffBarHeight = 18, display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, time = 12, timer = 11, world = 13, textShadowOffset = 1,
 	pressOffset = 1, panelRise = 16, panelOvershoot = 2,
 }) do
 	assert(Tokens.Size(name) == want, "Tokens.Size(" .. name .. ") is " .. tostring(Tokens.Size(name)) .. ", spec says " .. want)
@@ -183,7 +183,7 @@ end
 
 -- Font roles: the default face set is Lumen, Cinzel for heads and section titles and Alegreya Sans Tabular for captions, body text and
 -- numbers; test-lumen-material.lua covers each role's face and the Source Sans choice.
-for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, world = 13 }) do
+for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, time = 12, timer = 11, world = 13 }) do
 	local path, got, flags = Tokens.Font(role)
 	assert(onDisk(path), "Tokens.Font(" .. role .. ") names a missing file: " .. tostring(path))
 	assert(got == size, "Tokens.Font(" .. role .. ") size is " .. tostring(got))
@@ -191,6 +191,8 @@ for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, cap
 end
 assert(Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "the default body face is Alegreya Sans Tabular")
 assert(Tokens.Font("number"):match("AlegreyaSansTabular%-ExtraBold%.ttf$"), "numbers use its extra bold, whose digits are tabular")
+assert(Tokens.Font("time"):match("AlegreyaSansTabular%-Bold%.ttf$"), "the clock and cast times take the bold, which fits the picture better than the extra bold")
+assert(Tokens.Font("timer"):match("AlegreyaSansTabular%-Medium%.ttf$"), "the small timers take the medium, as the picture's do")
 assert(select(3, Tokens.Font("world")) == "OUTLINE", "text over the 3D world gets a thin outline")
 assert(select(3, Tokens.Font("body")) == "", "UI text uses a shadow, not an outline")
 assert(not pcall(Tokens.Font, "nope"), "an unknown font role is an error")

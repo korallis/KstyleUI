@@ -56,7 +56,7 @@ assert(buffs.icons[1]._points[1][4] < buffs.icons[2]._points[1][4], "configured 
 local function below(button)
 	local p = button.countdown._points[1]
 	assert(p[1] == "TOP" and p[3] == "BOTTOM" and p[5] < 0, "tracked buff timers are below the icon")
-	assert(button.countdown:GetFont() == K.Tokens.Font("caption"), "the kit's tracked timers use its lighter caption face")
+	assert(button.countdown:GetFont() == K.Tokens.Font("timer"), "the kit's tracked timers use the timer role, the medium that fits the picture")
 end
 below(buffs.icons[1])
 buffs.icons[1]:Restyle()
@@ -74,6 +74,10 @@ below({ countdown = engine.Cooldown:GetCountdownFontString() })
 assert(K.Skin.Parts(engine).backdrop.inset == 0, "the reskin does not enlarge the engine's square icon footprint")
 
 local utility = env._viewers.UtilityCooldownViewer._items[1].Cooldown:GetCountdownFontString()
+local utilityRow = ns.Row.New(K.Scale.Root(), "utility", ns.Settings.current.utility)
+utilityRow:SetCount(1)
+assert(utilityRow.icons[1].countdown:GetFont() == K.Tokens.Font("timer"), "the utility timers read in the timer role")
+assert(engine.Cooldown:GetCountdownFontString():GetFont() == K.Tokens.Font("timer") and icon.countdown:GetFont() == K.Tokens.Font("number"), "tracked timers take the medium, the essential row keeps the number role")
 assert(#W.Calls(utility, "ClearAllPoints") == 0 and #W.Calls(utility, "SetPoint") == 0, "the reskin leaves utility countdown anchors to the engine")
 
 local Geometry = dofile("Tools/regression/geometry.lua")

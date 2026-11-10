@@ -100,6 +100,8 @@ local SIZES = {
 	unit = 18,
 	caption = 11,
 	number = 12,
+	time = 12,
+	timer = 11,
 	world = 13,
 	textShadowOffset = 1,
 	pressOffset = 1,
@@ -185,6 +187,8 @@ local FONT_ROLES = {
 	unit = { lumen = "CinzelUnit", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
 	number = { lumen = "AlegreyaSansExtraBold", number = true, flags = "", tracking = 0 },
+	time = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
+	timer = { lumen = "AlegreyaSansMedium", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
 
