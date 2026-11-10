@@ -158,11 +158,11 @@ Settings.defaults = {
 	edit = "player",
 	player = Kind(true, {
 		style = "column", combat = true, resting = true, castbarIcon = false, castbarCaps = true, castbarColor = "gold",
-		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE,
+		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 18, 15, 10, 12 }),
 	target = Kind(true, {
 		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
-		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, auraSpacing = 4,
+		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 18, 15, 10, 13 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
@@ -182,6 +182,8 @@ Settings.defaults = {
 		spacing = 3,
 	},
 }
+
+Settings.defaults.target.fonts.aura.size = 12
 
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts

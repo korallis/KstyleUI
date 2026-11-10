@@ -69,12 +69,18 @@ env.KstyleUIDB.profiles.CustomStyle = { UnitFrames = {
 	target = { style = "column", healthColor = "reaction", powerTexture = texture, fonts = { health = { size = 12 }, cast = { size = 13 } } },
 } }
 local customSettings = copy(env.KstyleUIDB.profiles.Custom)
+for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
+	if item.key == "Glass" then
+		customSettings.UnitFrames.player.castbarTexture = item.path
+		customSettings.UnitFrames.target.castbarTexture = item.path
+	end
+end
 local customLumen = copy(env.KstyleUIDB.profiles.CustomLumen)
 local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
 customLumen.UnitFrames.player.style = nil
 CoreEnv.Boot(env)
 local db = env.KstyleUIDB
-assert(db.version == 15 and #env._errors == 0, "version 9 migrates through the chat, centre and rail updates without errors")
+assert(db.version == 16 and #env._errors == 0, "version 9 migrates through the chat, centre and rail updates without errors")
 local now = K.Setup.Layouts.Get("DPS")
 local env10, K10 = CoreEnv.New({ saved = {
 	version = 10,
@@ -85,9 +91,9 @@ local env10, K10 = CoreEnv.New({ saved = {
 	} },
 } })
 CoreEnv.Boot(env10)
-assert(env10.KstyleUIDB.version == 15 and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
+assert(env10.KstyleUIDB.version == 16 and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
 assert(K10.Store.Layout()["unitframes.player"].y == 138, "version 10 receives the new player position")
-assert(K10.Store.Layout()["chat.main"].width == 393 and K10.Store.Layout()["chat.main"].height == 186, "the centre migration preserves the migrated chat dimensions, and version 15 takes the picture's 186 height")
+assert(K10.Store.Layout()["chat.main"].width == 393 and K10.Store.Layout()["chat.main"].height == 186, "the centre migration preserves the migrated chat dimensions, and version 16 takes the picture's 186 height")
 assert(db.layouts.Old["unitframes.resource"].y == 420, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")
 assert(db.layouts.Old["actionbars.bar3"].y == 431.5, "the old spare bar position migrates above both the loot feed and player cast")
 for key in pairs(old) do

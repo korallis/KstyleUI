@@ -96,7 +96,7 @@ do
 	formatter = LastArg(utility.icons[1].cooldown, "SetCountdownFormatter")
 	assert(type(formatter) == "table" and formatter:Format(4) == "4s", "the utility row keeps one-letter durations")
 	local cp = essential.icons[1].countdown._points[1]
-	assert(cp[1] == "CENTER" and cp[2] == essential.icons[1] and cp[3] == "CENTER" and cp[5] == 0, "the essential countdown is exactly centred")
+	assert(cp[1] == "CENTER" and cp[2] == essential.icons[1] and cp[3] == "CENTER" and cp[5] == -K.Widgets.Snap(essential.icons[1], 2), "the essential countdown is optically centred")
 	essential.icons[1]:Restyle()
 	assert(essential.icons[1].countdown._points[1][2] == essential.icons[1], "a restyle keeps it centred")
 	local buffRow = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)

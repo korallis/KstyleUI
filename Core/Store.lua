@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 15
+Store.DB_VERSION = 16
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -366,6 +366,33 @@ Store.migrations[14] = function(data)
 	end
 end
 
+Store.migrations[15] = function(data)
+	local paths = {}
+	for _, item in ipairs(ns.Tokens.MediaList("statusbar")) do
+		paths[item.key] = item.path
+	end
+	for _, profile in pairs(data.profiles) do
+		local units = type(profile) == "table" and profile.UnitFrames
+		for _, kind in ipairs(type(units) == "table" and { "player", "target" } or {}) do
+			local values = units[kind]
+			if type(values) == "table" then
+				if values.style == nil or values.style == "column" then
+					if values.castbarTexture == "Glass" or values.castbarTexture == paths.Glass then
+						values.castbarTexture = paths.Flat
+					end
+				elseif values.castbarTexture == nil then
+					values.castbarTexture = paths.Glass
+				end
+			end
+		end
+		local bars = type(profile) == "table" and profile.DataBars
+		local xp = type(bars) == "table" and bars.xp
+		if type(xp) == "table" and (xp.texture == "Glass" or xp.texture == paths.Glass) then
+			xp.texture = paths.Flat
+		end
+	end
+end
+
 local RAIL_V12 = {
 	["auras.buffs"] = { "TOPRIGHT", -217, -17, 307, 42 },
 	["auras.debuffs"] = { "TOPRIGHT", -217, -67, 307, 42 },
@@ -385,7 +412,7 @@ local AURA_V12 = { iconSize = 28, spacing = 3 }
 local BAR_V12 = { size = 37, spacing = 4 }
 local RAIL_BARS_V12 = { "bar4", "bar5", "bar6" }
 
-Store.migrations[15] = function(data)
+Store.migrations[16] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}

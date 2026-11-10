@@ -63,6 +63,7 @@ defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
 defaults.xp = BarDefaults("gilt", "accentDefault", "levelRested")
+defaults.xp.texture = Texture("Flat")
 defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"

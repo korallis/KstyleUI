@@ -150,11 +150,25 @@ local function tick(env, seconds)
 end
 Hud.Tick = tick
 
+local function applyPreset(env, opts)
+	if not opts.applyPreset or env._renderPreset then
+		return
+	end
+	local K, enabled = env.KstyleUI, {}
+	for _, name in ipairs(K.Modules.List()) do
+		enabled[name] = K.Modules.IsEnabled(name)
+	end
+	assert(K.Setup.Apply({ layout = opts.layout, modules = enabled }), "the scene could not Apply " .. tostring(opts.layout))
+	env._renderPreset = opts.layout
+	env.RunTimers()
+end
+
 -- build(env, opts, extra) -> the scene, with icon IDs resolved as the installed pack shows them. opts.sizes
 -- ({ [key] = { w, h } }) resizes a free-sized element as Layout > Apply does for the layout (the Tank meters).
 -- With opts.combat the environment enters combat first and runs half a second, so the combat calm has faded the
 -- slow cards.
 local function build(env, opts, extra)
+	applyPreset(env, opts)
 	local K = env.KstyleUI
 	local previewed = {}
 	for key, size in pairs(opts.sizes or {}) do
@@ -652,6 +666,7 @@ function modules.chat(opts)
 	if not K.Modules.IsRunning("Chat") then
 		C.Enable(env, K)
 	end
+	applyPreset(env, opts)
 	local chat = env.ChatFrame1
 	local stamp = env._cvars.showTimestamps
 	local function stamped(text)
@@ -680,55 +695,41 @@ function modules.chat(opts)
 	C.Dock(env, Scene.TextWidth)
 	env.RunTimers()
 	C.W.Settle(env)
-	-- The stub ScrollingMessageFrame keeps a history but draws nothing; the scene lays its lines out as the
-	-- game does, newest at the bottom, wrapped to the window in its font, one font string per row, pitched
-	-- by the font and the window's spacing.
+	-- ScrollingMessageFrame.lua: RefreshLayout anchors width-constrained messages bottom-to-top with font spacing;
+	-- InitializeFontString keeps wrapping enabled, and FontStringContainer clips scrolling content (70862).
 	local path, size, flags = chat:GetFont()
 	path, size, flags = path or "Fonts\\ARIALN.TTF", size or 14, flags or ""
 	-- The window's width comes from its anchors in the panel, in its own units.
-	local _, _, screenWidth, screenHeight = Scene.Rect(env, chat)
+	local _, _, screenWidth = Scene.Rect(env, chat)
 	local toOwn = 768 / 1080 / chat:GetEffectiveScale()
 	local width = (screenWidth or 300 * 1080 / 768) * toOwn
-	local height = (screenHeight or 120 * 1080 / 768) * toOwn
 	local entries = C.Entries(chat)
 	local spacing = chat:GetSpacing()
-	local lineHeight = size + (type(spacing) == "number" and spacing or 0)
-	local rows = {}
-	for _, entry in ipairs(entries) do
-		local line = tostring(entry[1])
-		local plainWord = function(word)
-			return (word:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", ""))
-		end
-		local row, rowWidth = "", 0
-		local space = Scene.TextWidth(" ", size, path)
-		for word in line:gmatch("%S+") do
-			local w = Scene.TextWidth(plainWord(word), size, path)
-			if row ~= "" and rowWidth + space + w > width then
-				rows[#rows + 1] = { row, entry }
-				row, rowWidth = "", 0
-			end
-			row = row == "" and word or (row .. " " .. word)
-			rowWidth = rowWidth + (rowWidth > 0 and space or 0) + w
-		end
-		rows[#rows + 1] = { row, entry }
-	end
-	-- Rows that scroll past the window's top are not drawn, as the game clips them.
-	local y = 0
-	for i = #rows, 1, -1 do
-		if y + lineHeight > height then
-			break
-		end
-		local row, entry = rows[i][1], rows[i][2]
-		local text = chat:CreateFontString(nil, "ARTWORK")
+	spacing = type(spacing) == "number" and spacing or 0
+	local container = env.CreateFrame("Frame", nil, chat)
+	chat.FontStringContainer = container
+	container:SetAllPoints(chat)
+	container:SetClipsChildren(true)
+	local content = env.CreateFrame("Frame", nil, container)
+	content:SetAllPoints(container)
+	local previous
+	for i = #entries, 1, -1 do
+		local entry = entries[i]
+		local text = content:CreateFontString(nil, "ARTWORK")
 		text:SetFont(path, size, flags)
 		text:SetJustifyH("LEFT")
-		text:SetWordWrap(false)
-		text:SetPoint("BOTTOMLEFT", chat, "BOTTOMLEFT", 0, y)
-		text:SetPoint("BOTTOMRIGHT", chat, "BOTTOMRIGHT", 0, y)
-		text:SetHeight(lineHeight)
+		text:SetJustifyV("BOTTOM")
+		text:SetWordWrap(true)
+		text:SetNonSpaceWrap(true)
+		text:SetWidth(width)
+		if previous then
+			text:SetPoint("BOTTOMLEFT", previous, "TOPLEFT", 0, spacing)
+		else
+			text:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT")
+		end
 		text:SetTextColor(entry[2] or 1, entry[3] or 1, entry[4] or 1)
-		text:SetText(row)
-		y = y + lineHeight
+		text:SetText(tostring(entry[1]))
+		previous = text
 	end
 	local scene = build(env, opts)
 	scene.log[#scene.log + 1] = "chat lines are laid out by the scene; the game's ScrollingMessageFrame wraps and spaces them itself"
@@ -1340,6 +1341,7 @@ function modules.restedxp(opts)
 		RestedXP.ROWS = opts.guide.rows or RestedXP.ROWS
 	end
 	local R = RestedXP.Build()
+	applyPreset(R.env, opts)
 	for _, name in ipairs({ "items", "v2", "configurator" }) do
 		for _, frame in ipairs(R.windows[name]) do
 			frame:Hide()
