@@ -73,7 +73,7 @@ local function Refresh(self)
 		end
 		x = x + width + gap
 		if plain then
-			tab:SetTextColor(Tokens.Color(i == 1 and "capsGold" or "text"))
+			tab:SetTextColor(Tokens.Color(i == 1 and "capsGold" or "muted"))
 		elseif i == 1 then
 			tab:SetTextColor(Tokens.Color("textEmphasis"))
 		else

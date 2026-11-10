@@ -188,8 +188,7 @@ do
 	assert(math.abs(px - 26) < 0.6, "26 px inside the card, got " .. px)
 	local point, _, _, x = env.ChatFrame1Tab.Text:GetPoint(1)
 	local _, _, _, bgx = env.ChatFrame1.Background:GetPoint(1)
-	local clear = math.max(0, (K.Tokens.Size("tick") + K.Tokens.Size("gapSmall") - g.left) / g.k)
-	assert(point == "LEFT" and math.abs(x - (-bgx + clear)) < 0.5, "the tab name starts clear of the card's tick, got " .. tostring(point) .. " " .. tostring(x))
+	assert(point == "LEFT" and math.abs(x + bgx) < 0.5, "the tab name starts on the lines' column, got " .. tostring(point) .. " " .. tostring(x))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -204,7 +203,7 @@ do
 	tab:SetText("COMBAT")
 	env.FCFDock_UpdateTabs(env.GENERAL_CHAT_DOCK)
 	local width = tab.Text:GetUnboundedStringWidth()
-	assert(type(width) == "number" and near(tab:GetWidth(), width + K.Widgets.Snap(tab, 20)), "the dock update keeps the name's width, got " .. tostring(tab:GetWidth()))
+	assert(type(width) == "number" and near(tab:GetWidth(), width + K.Widgets.Snap(tab, 30 * 1080 / 2234 - 1)), "the dock update keeps the name's width, got " .. tostring(tab:GetWidth()))
 	assert(tab.Text:GetPoint(1) == "LEFT", "the name stays on the line's edge")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	assert(ns.Frames, "frames stay exposed")
@@ -422,8 +421,8 @@ do
 	assert(near(tr, gr) and near(tg, gg) and near(tb, gb), "the selected tab is the picture's caps gold")
 	env.FCFTab_UpdateColors(env.ChatFrame2Tab, false)
 	local ur, ug, ub = env.ChatFrame2Tab.Text:GetTextColor()
-	local mr, mg, mb = K.Tokens.Color("text")
-	assert(near(ur, mr) and near(ug, mg) and near(ub, mb), "the other tab is grey")
+	local mr, mg, mb = K.Tokens.Color("muted")
+	assert(near(ur, mr) and near(ug, mg) and near(ub, mb), "the other tab is the muted grey, dimmer than the chat text")
 	K.Options.Write("Chat", "tabStyle", "underline")
 	assert(parts.underline:IsShown(), "the underline style keeps the gilt line")
 	local line = parts.underline

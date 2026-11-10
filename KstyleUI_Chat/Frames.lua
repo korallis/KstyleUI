@@ -182,7 +182,7 @@ local function PaintTab(parts)
 		if selected then
 			text:SetTextColor(Tokens.Color("capsGold"))
 		else
-			text:SetTextColor(Tokens.Color("text"))
+			text:SetTextColor(Tokens.Color("muted"))
 		end
 	end
 end
@@ -446,12 +446,7 @@ local function Lead(frame)
 			overhang = -x
 		end
 	end
-	local g = Panel.Geometry(frame)
-	local clear = (Tokens.Size("tick") + Tokens.Size("gapSmall") - g.left) / g.k
-	if clear < 0 then
-		clear = 0
-	end
-	return overhang + clear
+	return overhang
 end
 
 function Frames.FitTabs(dock)
@@ -471,7 +466,7 @@ function Frames.FitTabs(dock)
 				local width = type(measure) == "function" and measure(text) or nil
 				if not IsSecret(width) and type(width) == "number" and width > 0 then
 					text:SetWidth(width)
-					tab:SetWidth(width + Widgets.Snap(tab, 20))
+					tab:SetWidth(width + Widgets.Snap(tab, 30 * 1080 / 2234 - 1))
 				end
 			end
 		end

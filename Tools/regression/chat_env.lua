@@ -525,14 +525,15 @@ function C.Dock(env, measure)
 			dynamics[#dynamics + 1] = tab
 		end
 	end
+	local pad = 30 * 1080 / 2234 - 1
 	local staticWidth = 0
 	for _, tab in ipairs(statics) do
-		staticWidth = staticWidth + tab._textWidth + 20 + 1
+		staticWidth = staticWidth + tab._textWidth + pad + 1
 	end
 	local scroll = dockWidth - staticWidth
 	local textSum = 0
 	for _, tab in ipairs(dynamics) do
-		textSum = textSum + tab._textWidth + 20 + 1
+		textSum = textSum + tab._textWidth + pad + 1
 	end
 	local fitText = textSum <= scroll
 	local tabSize, whole = 90, #dynamics
@@ -550,12 +551,12 @@ function C.Dock(env, measure)
 		tab:SetParent(dock)
 		if frame == primary then
 			tab.Text:SetWidth(tab._textWidth)
-			tab:SetWidth(tab._textWidth + 20)
+			tab:SetWidth(tab._textWidth + pad)
 			tab:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0)
 			tab:Show()
 		else
-			local width = fitText and (tab._textWidth + 20) or tabSize
-			tab.Text:SetWidth(math.max(1, width - 20))
+			local width = fitText and (tab._textWidth + pad) or tabSize
+			tab.Text:SetWidth(math.max(1, width - pad))
 			tab:SetWidth(width)
 			tab:SetPoint("LEFT", previous, "RIGHT", 1, 0)
 			whole = whole - 1
