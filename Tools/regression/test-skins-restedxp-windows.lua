@@ -483,6 +483,14 @@ do
 		local layouts = other.scrollContainer.layouts
 		rxp.fake.open(other.frame)
 		NewCheck(row.measuredFont[1] == body and other.scrollContainer.layouts > layouts, "a reopened report is measured and laid out again after the lease, got " .. tostring(row.measuredFont[1]))
+		-- A text size change while the report is open changes the leased fonts, so the rows are measured again then too.
+		local sized = row.measuredFont[2]
+		layouts = other.scrollContainer.layouts
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(row.measuredFont[2] > sized and row.measuredFont[2] == select(2, row.label:GetFont()) and other.scrollContainer.layouts > layouts, "an open report is measured and laid out again when the text size changes, got " .. tostring(row.measuredFont[2]) .. " after " .. tostring(sized))
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
 		heading = Replacement(other.reachedContainer.label.label)
 	end
 	do
@@ -748,6 +756,21 @@ do
 		local accept = Replacement(edit.button:GetFontString())
 		NewCheck(accept and accept:GetNumPoints() == 1 and W.LastCall(accept, "SetWordWrap")[1] == false, key .. " accept button's label hangs on one point and never wraps, so the button's own narrower text cannot cut it")
 		NewCheck(edit.button:GetFontString():GetFont() == "Fonts\\FRIZQT__.TTF", key .. " accept button's own text keeps the font its button states give it")
+		-- AceGUI disables Accept until the text is edited (AceGUIWidget-MultiLineEditBox.lua, DisableButton): the kit
+		-- button drawn over it and its label follow, so a button that cannot be pressed does not look as if it can.
+		do
+			local over = Proxy(K, edit.button, "Button")
+			NewCheck(over and over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("text")), key .. " accept button's label is the kit button's text colour while it can be pressed")
+			edit.button:Disable()
+			NewCheck(over and not over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("textDisabled")), key .. " a disabled accept button's kit chrome and label are disabled too")
+			edit.button:Enable()
+			NewCheck(over and over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("text")), key .. " and enabled again with it")
+		end
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(select(2, edit.editBox:GetFont()) == select(2, ns.Style.Font("body")), key .. " edit text follows a text size change while leased, got " .. tostring(select(2, edit.editBox:GetFont())) .. " for " .. tostring(select(2, ns.Style.Font("body"))))
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
 		rxp.fake.close(frame)
 		assert(not panel:IsShown() and Alpha(frame._pieces[1]) == 1 and Alpha(frame.obj.titlebg) == 1, "closing it gives the shared frame its own look back")
 		local r, g, b = title:GetTextColor()

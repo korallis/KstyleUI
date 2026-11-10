@@ -447,6 +447,15 @@ do
 	fs:SetSpacing(3)
 	assert(fs:GetNumLines() == 3 and fs:GetStringHeight() == 42, "SetSpacing puts its units between each two lines, and none above the first or under the last, got " .. tostring(fs:GetStringHeight()))
 	fs:SetSpacing(0)
+	do
+		-- A string measures in the font it draws in: its own, else its font object's (GetFont's answer).
+		local object = e.CreateFont("KstyleStubInheritedFont")
+		object:SetFont("Fonts\\FRIZQT__.TTF", 20, "")
+		fs:SetFontObject(object)
+		assert(select(2, fs:GetFont()) == 20 and fs:GetUnboundedStringWidth() == 140, "a string with a font object and no font of its own measures in the object's size, got " .. tostring(fs:GetUnboundedStringWidth()))
+		fs:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+		assert(fs:GetUnboundedStringWidth() == 70, "and in its own again after SetFont")
+	end
 	fs:SetWidth(200)
 	assert(fs:GetNumLines() == 1 and fs:GetStringHeight() == 12, "one line where they fit")
 	fs:SetWidth(40)

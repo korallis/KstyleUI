@@ -193,9 +193,8 @@ local function measured(self)
 	if type(measure) ~= "function" or not text or type(text[1]) ~= "string" then
 		return nil
 	end
-	local font = self._state.Font
-	local size = font and font[2]
-	return measure(plainText(text[1]), font and font[1], type(size) == "number" and size or 12)
+	local path, size = Object.GetFont(self)
+	return measure(plainText(text[1]), path, type(size) == "number" and size or 12)
 end
 function Object:GetUnboundedStringWidth() return measured(self) end
 function Object:GetStringWidth()
@@ -257,9 +256,8 @@ local function textLines(self)
 	if type(measure) ~= "function" or not stored or type(stored[1]) ~= "string" then
 		return nil
 	end
-	local font = self._state.Font
-	local size = font and type(font[2]) == "number" and font[2] or 12
-	local path = font and font[1]
+	local path, size = Object.GetFont(self)
+	size = type(size) == "number" and size or 12
 	local width, wrap = self:GetWidth(), self._state.WordWrap
 	if not (type(width) == "number" and width > 0) and #self._points > 1 then
 		width = anchoredWidth(self)

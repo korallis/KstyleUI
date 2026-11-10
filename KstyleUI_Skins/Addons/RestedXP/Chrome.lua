@@ -1378,6 +1378,11 @@ local function Report(tracker, labels)
 				frame:HookScript("OnShow", function()
 					if Active() then Run("report show", Report, tracker, labels) end
 				end)
+				local fit = CreateFrame("Frame", nil, frame)
+				fit.Restyle = function()
+					if Active() and frame:IsShown() then Run("report restyle", Report, tracker, labels) end
+				end
+				Style.Track(fit)
 			end
 		end
 	end
@@ -1475,7 +1480,7 @@ local temporary = setmetatable({}, WEAK)
 local function Temporary(root)
 	local entry = temporary[root]
 	if not entry then
-		entry = { active = false, controls = {}, fonts = {}, art = {} }
+		entry = { active = false, controls = {}, fonts = {}, art = {}, dimmed = {} }
 		temporary[root] = entry
 		root:HookScript("OnHide", function()
 			entry.active = false
@@ -1523,7 +1528,7 @@ local function TemporaryText(root, text, role, color, shape)
 			Style.ApplyFont(label, "caps", Lumen.Size(holder, Lumen.CAP_SIZE))
 			Widgets.TextColor(label, "capsGold")
 		else
-			Label(label, role, color)
+			Label(label, role, entry.dimmed[text] and "textDisabled" or color)
 		end
 		if shape == "button" or type(text.GetFont) ~= "function" or type(text.SetFont) ~= "function" then
 			return
@@ -1643,10 +1648,36 @@ local function TemporaryControl(root, source, kind)
 	for _, region in ipairs(entry.art[source] or {}) do Veil(root, region) end
 	control:Show()
 	if kind == "Button" and type(source.GetFontString) == "function" then
-		TemporaryText(root, source:GetFontString(), "body", "textEmphasis", "button")
+		local text = source:GetFontString()
+		TemporaryText(root, text, "body", "text", "button")
+		if not control.state then
+			control.state = function()
+				if not (Active() and entry.active) then
+					return
+				end
+				local on = type(source.IsEnabled) ~= "function" or source:IsEnabled()
+				local enabled = Widgets.IsSecret(on) or on ~= false
+				if enabled then control:Enable() else control:Disable() end
+				local holder = IsTable(text) and entry.controls[text]
+				if holder then
+					entry.dimmed[text] = not enabled or nil
+					holder.Restyle()
+				end
+			end
+			source:HookScript("OnEnable", control.state)
+			source:HookScript("OnDisable", control.state)
+		end
+		control.state()
 	elseif kind == "EditBox" and type(source.GetFont) == "function" then
 		if not entry.fonts[source] then entry.fonts[source] = { source:GetFont() } end
 		source:SetFont(Style.Font("body"))
+		if not control.face then
+			control.face = CreateFrame("Frame", nil, control)
+			control.face.Restyle = function()
+				if Active() and entry.active and entry.fonts[source] then source:SetFont(Style.Font("body")) end
+			end
+			Style.Track(control.face)
+		end
 	end
 end
 
