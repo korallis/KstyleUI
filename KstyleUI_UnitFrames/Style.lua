@@ -32,7 +32,7 @@ local COLUMN_LEVEL_SCALE = 0.95
 local CAPTION_GAP = 10
 local RULE_GAP = 8
 local RULE_ALPHA = 0.55
-local VALUE_GAP = 3
+local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
 local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 } }
 
@@ -270,6 +270,7 @@ local function LumenTexts(view, g)
 		view[key]:SetJustifyV("MIDDLE")
 	end
 	view.healthText:SetJustifyH("RIGHT")
+	local valueDrop = TightName(view) and g.valueDrop or 0
 	view.powerText:Hide()
 	view.capRule:Hide()
 	if form == "column" and g.mirror then
@@ -289,7 +290,7 @@ local function LumenTexts(view, g)
 			view.caption:Hide()
 		end
 		if g.healthText then
-			Bottom(view, view.healthText, "BOTTOMLEFT", parent, "TOPLEFT", g.healthText.x, g.healthText)
+			Bottom(view, view.healthText, "BOTTOMLEFT", parent, "TOPLEFT", g.healthText.x, g.healthText, valueDrop)
 			view.healthText:SetJustifyH("LEFT")
 		else
 			view.healthText:Hide()
@@ -315,7 +316,7 @@ local function LumenTexts(view, g)
 		end
 		local sub, main = g.healthSub, g.healthText
 		if sub then
-			Bottom(view, view.healthSub, "BOTTOMRIGHT", parent, "TOPLEFT", sub.x + sub.w, sub)
+			Bottom(view, view.healthSub, "BOTTOMRIGHT", parent, "TOPLEFT", sub.x + sub.w, sub, valueDrop)
 		else
 			view.healthSub:Hide()
 		end
@@ -328,7 +329,7 @@ local function LumenTexts(view, g)
 			text:SetJustifyV("BOTTOM")
 			text:Show()
 		elseif main then
-			Bottom(view, view.healthText, "BOTTOMRIGHT", parent, "TOPLEFT", main.x + main.w, main)
+			Bottom(view, view.healthText, "BOTTOMRIGHT", parent, "TOPLEFT", main.x + main.w, main, valueDrop)
 		else
 			view.healthText:Hide()
 		end

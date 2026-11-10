@@ -27,7 +27,7 @@ local function Figure(text, frame, itemScale, size)
 	Integer(actual * K.Widgets.ScaleFactor(text) / K.Scale.Pixel(1), "the font size")
 	local p = text._points[1]
 	assert(p[1] == "CENTER" and p[2] == frame and p[3] == "CENTER" and p[4] == 0, "only the essential text's optical vertical offset changes")
-	assert(W.Near(p[5], -K.Widgets.Snap(frame, 2 / itemScale)), "the figure sits two root units optically lower, compensating native item scale")
+	assert(W.Near(p[5], -K.Widgets.Snap(frame, 1 / itemScale)), "the figure sits one root unit optically lower: Alegreya's oldstyle figures stand lower in the line than lining ones, compensating native item scale")
 	Integer(p[5] * K.Widgets.ScaleFactor(frame) / K.Scale.Pixel(1), "the optical offset")
 end
 

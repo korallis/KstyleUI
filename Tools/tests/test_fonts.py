@@ -60,6 +60,20 @@ def advance(data, glyph):
     return struct.unpack(">H", hmtx[4 * min(glyph, metrics - 1) : 4 * min(glyph, metrics - 1) + 2])[0]
 
 
+def glyph_box(data, glyph):
+    """The glyph's (yMin, yMax) in font units from its glyf header, or None for an empty glyph."""
+    long_loca = struct.unpack(">h", table(data, "head")[50:52])[0]
+    loca, glyf = table(data, "loca"), table(data, "glyf")
+    if long_loca:
+        start, end = struct.unpack(">II", loca[4 * glyph : 4 * glyph + 8])
+    else:
+        start, end = (2 * v for v in struct.unpack(">HH", loca[2 * glyph : 2 * glyph + 4]))
+    if start == end:
+        return None
+    _, _, y_min, _, y_max = struct.unpack(">hhhhh", glyf[start : start + 10])
+    return y_min, y_max
+
+
 class FontFilesTest(unittest.TestCase):
     def test_every_font_is_static_truetype(self):
         files = sorted(FONTS.glob("*.ttf"))
@@ -115,12 +129,29 @@ class FontFilesTest(unittest.TestCase):
                 module.main(["--src", "/nonexistent", "--out", "/nonexistent"])
         self.assertIn("uharfbuzz", str(raised.exception))
 
-    def test_number_faces_have_tabular_lining_digits(self):
-        # The game applies no OpenType features, so the files map the digits to their tabular lining figures.
+    def test_number_faces_have_tabular_oldstyle_digits(self):
+        # The game applies no OpenType features, so the files map the digits to their tabular oldstyle figures: the
+        # owner's picture draws Alegreya's default figures (3, 4, 5, 7 and 9 hang below the baseline, 0, 1 and 2 stand
+        # at x-height, 6 and 8 reach up), and a number that ticks keeps its width.
         for name in ("AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
             data = (FONTS / name).read_bytes()
             widths = {advance(data, glyph_index(data, ord(c))) for c in "0123456789"}
-            self.assertEqual(len(widths), 1, f"{name} digits share one advance, got {sorted(widths)}")
+            self.assertEqual(widths, {475}, f"{name} digits share one advance of 475 units, got {sorted(widths)}")
+            box = {c: glyph_box(data, glyph_index(data, ord(c))) for c in "0123456789"}
+            for digit in "34579":
+                self.assertLess(box[digit][0], -50, f"{name}: {digit} hangs below the baseline, an oldstyle figure")
+            for digit in "012":
+                self.assertGreater(box[digit][0], -30, f"{name}: {digit} stands on the baseline")
+                self.assertLess(box[digit][1], 540, f"{name}: {digit} stands at x-height, an oldstyle figure")
+            for digit in "68":
+                self.assertGreater(box[digit][1], 560, f"{name}: {digit} reaches the ascender, an oldstyle figure")
+
+    def test_the_lining_build_is_one_switch_away(self):
+        spec = importlib.util.spec_from_file_location("make_fonts", ROOT / "Tools" / "media" / "make_fonts.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertEqual(module.FIGURES, "oldstyle")
+        self.assertEqual(module.TABULAR_SUFFIX, {"oldstyle": ".tosf", "lining": ".tf"})
 
     def test_tokens_name_files_that_exist(self):
         text = TOKENS.read_text(encoding="ascii")
