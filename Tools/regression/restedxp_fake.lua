@@ -266,10 +266,16 @@ local function Maker(env)
 			end
 		end
 	end
+	local own = {}
 	function m.add(object)
 		Guard(object)
 		made[#made + 1] = object
+		own[object] = true
 		return object
+	end
+	-- owns(object) says whether RestedXP or a library made the object, and not a skin.
+	function m.owns(object)
+		return own[object] == true
 	end
 	function m.frame(kind, parent, name, template)
 		local f = env.CreateFrame(kind or "Frame", name, parent or env.UIParent, template)
@@ -332,13 +338,21 @@ local function Maker(env)
 			end
 		end
 	end
+	-- The game runs OnShow and OnHide only when a frame's visibility changes: hiding a frame under a hidden parent,
+	-- or showing one, runs neither.
 	function m.open(frame)
+		local seen = frame:IsVisible()
 		m.trust(frame.Show)(frame)
-		Cascade(frame, "OnShow")
+		if not seen and frame:IsVisible() then
+			Cascade(frame, "OnShow")
+		end
 	end
 	function m.close(frame)
+		local seen = frame:IsVisible()
 		m.trust(frame.Hide)(frame)
-		Cascade(frame, "OnHide")
+		if seen then
+			Cascade(frame, "OnHide")
+		end
 	end
 	return m
 end
@@ -1296,35 +1310,124 @@ local function AceFrame(m)
 	return widget
 end
 
-local function AceLabel(m, parent, value)
-	local frame = m.frame("Frame", parent)
-	local label = m.text(frame)
-	-- AceGUIWidget-Label.lua:162 makes the label on GameFontHighlightSmall, Friz Quadrata at 10 (FontStyles.xml 56 and
-	-- 92, Fonts.xml 39-41); a Heading's label is on GameFontNormal (AceGUIWidget-Heading.lua:45), as m.text makes it.
-	label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-	-- AceGUIWidget-Label.lua:78-83 sets these before a skin leases the label's alignment.
-	label:SetJustifyH("LEFT")
-	label:SetJustifyV("TOP")
-	label:SetText(value or "")
-	local widget = { frame = frame, label = label, type = "Label", measures = 0 }
-	-- AceGUIWidget-Label.lua:128-139: the widget's font goes into a Font object of its own, which reaches the label
-	-- through SetFontObject. The label's SetFont is never called.
-	widget.SetFont = m.trust(function(self, font, height, flags)
-		self.fontObject = self.fontObject or m.env.CreateFont()
-		self.fontObject:SetFont(font, height, flags)
-		self.label:SetFontObject(self.fontObject)
-	end)
-	-- AceGUIWidget-Label.lua:98-101 and 20-66: SetText gives the label its words and makes the frame as tall as the
-	-- label's string is in the font it has then.
-	widget.SetText = m.trust(function(self, words)
-		self.label:SetText(words or "")
-		local height = self.label:GetStringHeight()
-		self.frame:SetHeight(height and height > 0 and height or 1)
-		self.measures = self.measures + 1
-		self.measuredFont = { self.label:GetFont() }
-	end)
+-- FontObject(m, name) answers the game's font object of that name: Friz Quadrata at 10 for GameFontHighlightSmall
+-- and at 12 for GameFontNormal (Blizzard_Fonts_Shared FontStyles.xml 50, 56 and 92, Fonts.xml 39-41 and 275-277).
+local FONT_OBJECTS = { GameFontHighlightSmall = 10, GameFontNormal = 12 }
+local function FontObject(m, name)
+	m.fontObjects = m.fontObjects or {}
+	if not m.fontObjects[name] then
+		local object = m.env.CreateFont()
+		object:SetFont("Fonts\\FRIZQT__.TTF", FONT_OBJECTS[name], "")
+		m.fontObjects[name] = object
+	end
+	return m.fontObjects[name]
+end
+
+-- AceLabel(m, parent, value, kind) is AceGUI:Create("Label") or, with kind "Heading", AceGUI:Create("Heading"),
+-- then the caller's AddChild and SetText. AceGUI keeps every released widget in one pool a type, for every addon
+-- that loads the library (AceGUI-3.0.lua, Create and Release), so the widget is a released one when the pool has one:
+-- its OnAcquire makes a Label 200 wide with no words on GameFontHighlightSmall, justified left and top
+-- (AceGUIWidget-Label.lua 71-88), and a Heading 18 high with no words (AceGUIWidget-Heading.lua 21-25). A widget's
+-- own Font object, made at its first SetFont, stays with it through the pool (Label.lua 128-134).
+local function AceLabel(m, parent, value, kind)
+	kind = kind or "Label"
+	m.acePool = m.acePool or {}
+	local widget
+	for _, pooled in ipairs(m.acePool) do
+		if pooled.released and pooled.type == kind then
+			widget = pooled
+			break
+		end
+	end
+	if not widget then
+		local frame = m.frame("Frame")
+		frame:Hide()
+		local label = m.text(frame)
+		widget = { frame = frame, label = label, type = kind, measures = 0 }
+		if kind == "Heading" then
+			-- AceGUIWidget-Heading.lua 45-48: on GameFontNormal, between the frame's TOP and BOTTOM, centred.
+			label:SetFontObject(FontObject(m, "GameFontNormal"))
+			label:SetPoint("TOP", frame, "TOP", 0, 0)
+			label:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
+			label:SetJustifyH("CENTER")
+			widget.SetText = m.trust(function(self, words)
+				self.label:SetText(words or "")
+			end)
+		else
+			-- AceGUIWidget-Label.lua 20-66 (UpdateImageAnchor, no image): the label hangs from the frame's top left
+			-- at the frame's width, and the frame is as tall as the label's string is in the font it has then.
+			local function Measure(self)
+				self.label:ClearAllPoints()
+				self.label:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 0, 0)
+				self.label:SetWidth(self.frame:GetWidth() or 0)
+				local height = self.label:GetStringHeight()
+				self.frame:SetHeight(height and height > 0 and height or 1)
+				self.measures = self.measures + 1
+				self.measuredFont = { self.label:GetFont() }
+			end
+			-- Label.lua 128-139: the widget's font goes into a Font object of its own, which reaches the label through
+			-- SetFontObject. The label's SetFont is never called.
+			widget.SetFont = m.trust(function(self, font, height, flags)
+				self.fontObject = self.fontObject or m.env.CreateFont()
+				self.fontObject:SetFont(font, height, flags)
+				self:SetFontObject(self.fontObject)
+			end)
+			widget.SetFontObject = m.trust(function(self, font)
+				self.label:SetFontObject(font or FontObject(m, "GameFontHighlightSmall"))
+				Measure(self)
+			end)
+			-- Label.lua 98-101 and 94-96: new words and a new width both measure the label again.
+			widget.SetText = m.trust(function(self, words)
+				self.label:SetText(words or "")
+				Measure(self)
+			end)
+			widget.SetWidth = m.trust(function(self, width)
+				self.frame:SetWidth(width)
+				Measure(self)
+			end)
+		end
+		m.acePool[#m.acePool + 1] = widget
+	end
+	widget.released = false
+	m.trust(function()
+		if kind == "Heading" then
+			widget:SetText()
+			widget.frame:SetHeight(18)
+		else
+			widget.frame:SetWidth(200)
+			widget.label:SetText("")
+			widget.label:SetJustifyH("LEFT")
+			widget.label:SetJustifyV("TOP")
+			widget:SetFontObject()
+		end
+		widget.frame:SetParent(parent)
+		widget.frame:Show()
+		widget:SetText(value)
+	end)()
 	return widget
 end
+
+-- AceRelease(m, widget) gives a widget back to AceGUI's pool as AceGUI:Release does (AceGUI-3.0.lua): its frame
+-- hides, its children are released, its points go and UIParent becomes its parent.
+local function AceRelease(m, widget)
+	if widget.released then
+		return
+	end
+	m.close(widget.frame)
+	for _, child in ipairs(widget.children or {}) do
+		AceRelease(m, child)
+	end
+	if widget.children then
+		widget.children = {}
+	end
+	m.trust(function()
+		widget.frame:ClearAllPoints()
+		widget.frame:SetParent(m.env.UIParent)
+	end)()
+	widget.released = true
+end
+
+
 
 local function AceScroll(m, parent, kind)
 	local frame = m.frame("Frame", parent)
@@ -1339,7 +1442,23 @@ local function AceScroll(m, parent, kind)
 		child.frame:SetParent(self.content)
 		self.children[#self.children + 1] = child
 	end)
-	widget.DoLayout = function(self) self.layouts = self.layouts + 1 end
+	-- AceGUI lays a container's full-width children out at its content's width (AceGUI-3.0.lua, the List and Flow
+	-- layouts), and a Label measures itself again at each new width (AceGUIWidget-Label.lua 94-96).
+	widget.DoLayout = m.trust(function(self)
+		self.layouts = self.layouts + 1
+		local width = self.content:GetWidth()
+		local function Widths(owner)
+			for _, child in ipairs(owner.children or {}) do
+				if child.type == "Label" and not child.released then
+					child:SetWidth(width)
+				end
+				Widths(child)
+			end
+		end
+		if type(width) == "number" and width > 0 then
+			Widths(self)
+		end
+	end)
 	return widget
 end
 
@@ -1379,11 +1498,7 @@ local function Tracker(m, rxp, env)
 		scroll:AddChild(top)
 		for _, key in ipairs({ "reached", "speed", "zones", "sources", "teamwork", "extras" }) do
 			local group = key == "zones" and { content = scroll.content, children = {} } or AceGroup(m, scroll.content)
-			group.label = AceLabel(m, group.content, key)
-			group.label.type = "Heading"
-			group.label.label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-			-- AceGUIWidget-Heading.lua:46-48 centres the label between its TOP and BOTTOM points.
-			group.label.label:SetJustifyH("CENTER")
+			group.label = AceLabel(m, group.content, key, "Heading")
 			group.children = { group.label }
 			if key == "sources" or key == "teamwork" then
 				group.data = {}
@@ -1407,6 +1522,20 @@ local function Tracker(m, rxp, env)
 				scroll:AddChild(group)
 			end
 		end
+		-- LevelingTracker.lua 463-467 and 850: showing the report fills its labels and lays the list out, before any
+		-- hook on the frame's OnShow runs.
+		report.frame:SetScript("OnShow", m.trust(function()
+			local function Fill(parent)
+				for _, child in ipairs(parent.children or {}) do
+					if child.type == "Label" then
+						child:SetText(child.label:GetText())
+					end
+					Fill(child)
+				end
+			end
+			Fill(scroll)
+			scroll:DoLayout()
+		end))
 		attachment:HookScript("OnHide", function() m.close(report.frame) end)
 	end)
 	local character = env.CharacterFrame
@@ -1648,11 +1777,21 @@ local function V2Windows(m, rxp)
 	-- does: the rows but the last inside padding containers, then the container lays itself out.
 	configurator.LoadPages = m.trust(function(self)
 		local container = self.ui.scrollContainer
+		-- GuideConfigurator.lua 1210: the page's widgets go back to AceGUI's pool before the next page is made.
+		for _, child in ipairs(container.children) do
+			AceRelease(m, child)
+		end
 		container.children = {}
+		local theme = rxp.v2:GetTheme()
+		local size = rxp.settings.profile.guideFontSize or 9
 		local intro = AceGroup(m, container.content)
 		intro.type = "RXPV2GuideConfiguratorOptionPadding"
+		-- 1185-1200: the page's title and description are Labels in the theme's font, 1 over and 1 under the guide
+		-- font size.
 		intro.titleLabel = AceLabel(m, intro.content, "Guide choices")
+		intro.titleLabel:SetFont(theme.font, size + 1, "")
 		intro.descriptionLabel = AceLabel(m, intro.content, "Choose your route")
+		intro.descriptionLabel:SetFont(theme.font, size - 1, "")
 		intro.children = { intro.titleLabel, intro.descriptionLabel }
 		container.children[1] = intro
 		for i, option in ipairs(Fake.CONFIGURATOR_OPTIONS) do
@@ -1665,6 +1804,8 @@ local function V2Windows(m, rxp)
 				container.children[#container.children + 1] = ConfiguratorOption(m, rxp, container.content, option)
 			end
 		end
+		-- 1258-1261: a dungeon settings page ends in a Heading over its list of dungeons.
+		container.children[#container.children + 1] = AceLabel(m, container.content, "Dungeon List", "Heading")
 		m.seal()
 		container:DoLayout()
 	end)
@@ -1791,15 +1932,66 @@ local function V2Windows(m, rxp)
 		local window = { frame = m.frame("Frame") }
 		window.upperFrame = RxpBackdrop(m, m.frame("Frame", window.frame))
 		window.guideStepsFrame = RxpBackdrop(m, m.frame("Frame", window.frame))
-		window.title = m.text(window.upperFrame)
+		-- UI/V2/Core.lua 1290-1357 and 1080-1107: a 36-unit header one unit inside the upper frame, the name frame over
+		-- all of it, the logo 6 from its left with the class icon on its corner, the settings and guide list buttons at
+		-- its right, and between them the title over the subtitle. Neither text is made from a template: each gets the
+		-- theme's font at the player's guide font size (SettingsPanel.lua 169 and 3011-3019: 9 to 18, 9 unless changed),
+		-- the subtitle 2 larger.
+		local theme = rxp.v2:GetTheme()
+		local size = rxp.settings.profile.guideFontSize or 9
+		window.upperFrame:SetHeight(36)
 		window.header = m.frame("Frame", window.upperFrame)
+		window.header:SetPoint("TOPLEFT", window.upperFrame, "TOPLEFT", 1, -1)
+		window.header:SetPoint("TOPRIGHT", window.upperFrame, "TOPRIGHT", -1, -1)
+		window.header:SetHeight(34)
 		window.banner = m.texture(window.header, "BACKGROUND")
+		window.guideNameFrame = m.frame("Frame", window.header)
+		window.guideNameFrame:SetPoint("TOPLEFT", window.header, "TOPLEFT", 0, 0)
+		window.guideNameFrame:SetPoint("BOTTOMRIGHT", window.header, "BOTTOMRIGHT", 0, 0)
+		local logoFrame = m.frame("Frame", window.header)
+		logoFrame:SetAllPoints(window.header)
+		window.iconLogo = m.texture(logoFrame, "ARTWORK")
+		window.iconLogo:SetPoint("LEFT", window.header, "LEFT", 6, 0)
+		window.iconLogo:SetSize(30, 30)
+		window.iconLogo:SetTexture(theme.guideWindow.logo)
+		window.classIcon = m.texture(logoFrame, "OVERLAY")
+		window.classIcon:SetPoint("BOTTOMRIGHT", window.iconLogo, "BOTTOMRIGHT", 2, 1)
+		window.classIcon:SetSize(17, 17)
+		window.settingsButton = m.frame("Button", window.guideNameFrame)
+		window.settingsButton:SetPoint("RIGHT", window.guideNameFrame, "RIGHT", -16, 0)
+		window.settingsButton:SetSize(21, 21)
+		window.settingsButton:SetNormalTexture(theme.guideWindow.settingsIcon)
+		window.guideSelectButton = m.frame("Button", window.guideNameFrame)
+		window.guideSelectButton:SetPoint("RIGHT", window.settingsButton, "LEFT", -7, 0)
+		window.guideSelectButton:SetSize(21, 21)
+		window.guideSelectButton:SetNormalTexture(theme.guideWindow.guideSelectIcon)
+		window.title = m.add(window.guideNameFrame:CreateFontString(nil, "OVERLAY"))
+		window.title:SetPoint("TOPLEFT", window.guideNameFrame, "TOPLEFT", 42, -6)
+		window.title:SetPoint("TOPRIGHT", window.guideSelectButton, "TOPLEFT", -4, -6)
+		window.title:SetJustifyH("LEFT")
+		window.title:SetFont(theme.font, size, "")
+		window.title:SetTextColor(1, 0.82, 0)
+		window.subtitle = m.add(window.guideNameFrame:CreateFontString(nil, "OVERLAY"))
+		window.subtitle:SetPoint("TOPLEFT", window.title, "BOTTOMLEFT", 0, -2)
+		window.subtitle:SetPoint("TOPRIGHT", window.title, "BOTTOMRIGHT", 0, -2)
+		window.subtitle:SetJustifyH("LEFT")
+		window.subtitle:SetFont(theme.font, size + 2, "")
+		window.subtitle:SetTextColor(unpack(theme.textColor.common))
+		-- Core.lua 737-742: the title is the guide's own title or its group, the subtitle the guide's name under a group.
+		window.title:SetText("Speedrun Guide 1-22")
+		window.subtitle:SetText("6-10 Durotar")
 		window.closebutton = m.frame("Button", window.upperFrame)
 		m.texture(window.closebutton, "ARTWORK", "Art")
 		window.guideSteps = { scroll = { scrollbar = ScrollBar(m, window.guideStepsFrame, "RXPV2ScrollFrame2ScrollBar") } }
-		-- UpdateSubTheme redraws the window from the theme; RestedXP draws the title in a fixed gold.
+		-- UpdateSubTheme redraws the window from the theme (Core.lua 1218-1240): both texts get the theme's font at the
+		-- guide font size again, the title in a fixed gold and the subtitle in the theme's text colour.
 		window.UpdateSubTheme = m.trust(function(self)
+			local now = rxp.v2:GetTheme()
+			local points = rxp.settings.profile.guideFontSize or 9
+			self.title:SetFont(now.font, points, "")
 			self.title:SetTextColor(1, 0.82, 0)
+			self.subtitle:SetFont(now.font, points + 2, "")
+			self.subtitle:SetTextColor(unpack(now.textColor.common))
 		end)
 		window:UpdateSubTheme()
 		rxp.v2.state = { guideWindow = window }
@@ -1880,6 +2072,15 @@ function Fake.Windows(env, rxp, opts)
 	end
 	m.dialogPool = pool
 	m.acquireDialog = m.trust(Acquire)
+	-- What another addon that loads AceGUI does with the shared pool: take an edit box, a Label or a Heading from it,
+	-- and give a widget back.
+	m.acquireEdit = m.trust(Edit)
+	function m.aceLabel(parent, words, kind)
+		return AceLabel(m, parent, words, kind)
+	end
+	function m.aceRelease(widget)
+		AceRelease(m, widget)
+	end
 	rxp.comms.OpenBugReport = m.trust(function(stepNumber)
 		assert(stepNumber ~= rxp.comms, "OpenBugReport is a dot function")
 		local widget = Acquire()

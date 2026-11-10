@@ -34,7 +34,7 @@ local CAP_ROW, CAP_TOP, CAP_FOOT, CAP_LEFT, CAP_RIGHT = 19, 12.5, 6, RXP_MARGIN,
 local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
-local PLATE_PAD, SPLITS_SIDE = 5, 8
+local PLATE_PAD, SPLITS_SIDE, HEAD_RIM = 5, 8, 1
 local TITLE_RISE = "gapMedium"
 local STEP_RISE, STEP_TEXT_TOP, STEP_TEXT_RIGHT, STEP_CHECK_LEFT, STEP_CHECK_TOP = 12, 2, 5, 1, 1
 local RXP_LINE_SHARE, RXP_LINE_PAD = 1.1, 1
@@ -50,7 +50,6 @@ local paths = setmetatable({}, WEAK)
 local hushed = setmetatable({}, WEAK)
 local readable = setmetatable({}, WEAK)
 local extended = setmetatable({}, WEAK)
-local titles = setmetatable({}, WEAK)
 local captions = setmetatable({}, WEAK)
 local worded = setmetatable({}, WEAK)
 local rested = setmetatable({}, WEAK)
@@ -297,17 +296,6 @@ local function GuideRows(f)
 	end
 end
 
-local function PaintTitle(text)
-	text:SetTextColor(Style.Accent())
-end
-
-local function Title(text)
-	if IsTable(text) and type(text.SetTextColor) == "function" then
-		titles[text] = true
-		PaintTitle(text)
-	end
-end
-
 local function Reword(value)
 	value = value:gsub(ICON_ESCAPE, "")
 	return (value:gsub(COLOR_ESCAPE, function(hex)
@@ -413,18 +401,41 @@ local function PlainText(value)
 	return value
 end
 
+local function CaptionRoom(text, own)
+	if type(text.GetStringHeight) ~= "function" or type(text.GetNumPoints) ~= "function" or text:GetNumPoints() == 0 then
+		return nil
+	end
+	local line = text:GetStringHeight()
+	local point, _, _, _, y = text:GetPoint(1)
+	if not Plain(line) or line <= 0 or not Plain(y) or y > 0 or type(point) ~= "string" or Widgets.IsSecret(point) or not point:find("TOP", 1, true) then
+		return nil
+	end
+	return own * (line - y - HEAD_RIM) / line
+end
+
 local function PaintCaption(text, entry)
 	local caption = entry.caption
-	Style.ApplyFont(caption, "caps", Lumen.Size(caption:GetParent(), Lumen.CAP_SIZE))
+	local size = Lumen.Size(caption:GetParent(), Lumen.CAP_SIZE)
+	if entry.own then
+		size = math.max(entry.own, math.min(size, entry.room or size))
+	end
+	Style.ApplyFont(caption, "caps", size)
 	Widgets.TextColor(caption, "capsGold")
 	if entry.busy then
 		return
 	end
-	local path, size, flags = caption:GetFont()
-	if type(path) == "string" and Plain(size) then
+	local path, drawn, flags = caption:GetFont()
+	if type(path) == "string" and Plain(drawn) then
 		entry.busy = true
-		pcall(text.SetFont, text, path, size, flags)
+		pcall(text.SetFont, text, path, entry.own or drawn, flags)
 		entry.busy = false
+	end
+	if entry.own then
+		local room = CaptionRoom(text, entry.own)
+		if room ~= entry.room then
+			entry.room = room
+			PaintCaption(text, entry)
+		end
 	end
 end
 
@@ -439,24 +450,33 @@ local function HangsLeft(title)
 	return x
 end
 
-local function CaptionFor(text, title)
+local function CaptionFor(text, title, sized)
 	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or type(text.GetParent) ~= "function" or captions[text] then
 		return
 	end
 	local holder = CreateFrame("Frame", nil, title or text:GetParent())
 	holder:SetAllPoints(title or text)
 	local caption = Widgets.FontString(holder, "OVERLAY")
-	if title and HangsLeft(title) then
+	local entry = { caption = caption, busy = false }
+	if sized then
+		caption:SetPoint("BOTTOMLEFT", text, "BOTTOMLEFT", 0, 0)
+		caption:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", 0, 0)
+		caption:SetJustifyH("LEFT")
+		local _, own = text:GetFont()
+		entry.own = Plain(own) and own or nil
+	elseif title and HangsLeft(title) then
 		caption:SetPoint("LEFT", title, "LEFT", PLATE_PAD, 0)
 	else
 		caption:SetPoint("CENTER", text, "CENTER", 0, 0)
 	end
 	caption:SetWordWrap(false)
-	local entry = { caption = caption, busy = false }
 	captions[text] = entry
 	HushText(text)
 	Worded(text, K.Locale.Upper)
-	hooksecurefunc(text, "SetFont", function()
+	hooksecurefunc(text, "SetFont", function(_, _, requested)
+		if sized and not entry.busy and Plain(requested) then
+			entry.own = requested
+		end
 		if Active() then
 			PaintCaption(text, entry)
 		end
@@ -467,6 +487,9 @@ local function CaptionFor(text, title)
 	end
 	hooksecurefunc(text, "SetText", function(_, value)
 		word(value)
+		if sized and Active() then
+			PaintCaption(text, entry)
+		end
 	end)
 	word(text:GetText())
 end
@@ -727,9 +750,6 @@ local function Restyle()
 		if state.guide then
 			Measure(state.guide, true, true)
 		end
-	end
-	for text in pairs(titles) do
-		PaintTitle(text)
 	end
 	for text, entry in pairs(captions) do
 		PaintCaption(text, entry)
@@ -1019,10 +1039,8 @@ local function GuideWindowV2(rxp)
 	CloseButton(window.closebutton)
 	local scroll = IsTable(window.guideSteps) and window.guideSteps.scroll
 	ScrollBar(IsTable(scroll) and scroll.scrollbar or nil)
-	Title(window.title)
-	Hook(window, "UpdateSubTheme", "guideWindow.UpdateSubTheme", function()
-		Title(window.title)
-	end)
+	CaptionFor(window.title, nil, true)
+	Readable(window.subtitle, "body", 0)
 end
 
 local function MenuPrefix()
@@ -1495,7 +1513,21 @@ end
 
 local temporary = setmetatable({}, WEAK)
 
+local function OnScreen(frame)
+	while IsTable(frame) and type(frame.IsShown) == "function" do
+		local shown = frame:IsShown()
+		if Widgets.IsSecret(shown) or not shown then
+			return false
+		end
+		frame = type(frame.GetParent) == "function" and frame:GetParent() or nil
+	end
+	return true
+end
+
 local function Temporary(root)
+	if not OnScreen(root) then
+		return nil
+	end
 	local entry = temporary[root]
 	if not entry then
 		entry = { active = false, controls = {}, fonts = {}, art = {}, dimmed = {}, heights = {} }
@@ -1532,6 +1564,9 @@ local function TemporaryText(root, text, role, color, shape)
 		return
 	end
 	local entry = Temporary(root)
+	if not entry then
+		return
+	end
 	local holder = entry.controls[text]
 	local caps = role == "caps"
 	local function Word(value)
@@ -1656,6 +1691,9 @@ local function TemporaryControl(root, source, kind)
 		return
 	end
 	local entry = Temporary(root)
+	if not entry then
+		return
+	end
 	local control = entry.controls[source]
 	if not control then
 		local art = {}
@@ -1881,6 +1919,11 @@ local function Configurator(configurator)
 			end
 		end
 		Style.Track(fit)
+		ui.frame:HookScript("OnShow", function()
+			if Active() then
+				Run("configurator show", fit.Restyle)
+			end
+		end)
 	end
 end
 
@@ -1981,6 +2024,9 @@ local function DressDialog(global)
 	local frame = rawget(_G, global)
 	if not IsTable(frame) or type(frame.GetRegions) ~= "function" then
 		LogOnce("dialog " .. global, global .. " is missing in this RestedXP; the dialog keeps RestedXP's look")
+		return
+	end
+	if not OnScreen(frame) then
 		return
 	end
 	for _, region in ipairs({ frame:GetRegions() }) do
