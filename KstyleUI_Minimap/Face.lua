@@ -11,7 +11,7 @@ ns.Face = Face
 
 local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_REVEAL, LEVEL_WHEEL = 1, 2, 110, 111, 112
 local LEVEL_PLATE = 111
-local ZONE_ROLE = "caps"
+local ZONE_ROLE = "names"
 local NORTH_ROLE = "heading"
 local CLOCK_ROLE = "number"
 local COORDS_ROLE = "body"

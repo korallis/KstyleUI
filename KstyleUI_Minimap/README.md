@@ -84,7 +84,7 @@ Nothing draws inside the map any more: no band, no fade. The zone name, the coor
 
 | Text | Anchor | Face | Size | Colour |
 | --- | --- | --- | --- | --- |
-| Zone name in capitals | left edge + 2 (`Format.CAPTION_X`), caps centred 13.7 under the map (`Format.ZONE_CENTER`), as wide as the map less 2 at each end so a long name truncates | the kit's `caps` role (Cinzel Tracked, the letter-spacing built into the font file, from KSTY-10 and #218; set through `Widgets.ApplyFont`, so the kit gives back the trailing tracking) | 11.6, a little over the role's 10 (`Tokens.Size("caps")`) so the label measures the picture's 140 units wide and 8 high | the emphasis token, near white: the picture measures #f3f5f8 here, not the gold of the card captions (`capsGold`) |
+| Zone name in capitals | left edge + 2 (`Format.CAPTION_X`), caps centred 13.7 under the map (`Format.ZONE_CENTER`), as wide as the map less 2 at each end so a long name truncates | the kit's `names` role (Cinzel Names, Medium weight, 0.02 em of letter-spacing built into the font file, with the kit's soft shadow, the picture's white names; set through `Widgets.ApplyFont`, so the kit gives back the trailing tracking) | 12, which the minimap's scale draws at the role's 10 (21 pixels, 245 px wide for the picture's 241 on the same panel) | the emphasis token, near white: the picture measures #f3f5f8 here, not the gold of the card captions (`capsGold`) |
 | Coordinates | left edge + 2, centred 31.2 under the map (`Format.ROW_CENTER`) | body | 11.5 | the muted token, grey |
 | Clock | right edge - 2, centred 31.2 under the map | number, bold | 12.5 | the emphasis token, white |
 
@@ -158,7 +158,7 @@ Layout gives the element its position, size, shown rule, opacity and strata on t
 | `zone.shown`, `zone.color` | on, `plain` | Zone name under the map's left edge, coloured plainly, by PvP status or with the accent |
 | `clock.shown`, `clock.mode` | on, `game` | The clock under the map's right edge and its format |
 | `coords.shown`, `coords.precision` | on, 1 | Coordinates, 0 to 2 decimals, under the zone name |
-| `zone.*`, `clock.*`, `coords.*` `font`, `size`, `outline` | role font; 11.6, 12.5, 11.5; none | Each text's typeface, size (times the Appearance text size) and outline |
+| `zone.*`, `clock.*`, `coords.*` `font`, `size`, `outline` | role font; 12, 12.5, 11.5; none | Each text's typeface, size (times the Appearance text size) and outline |
 
 Saved data from the lens card migrates in `Core/Store.lua` (migration 6): the `compass` and `coords.position` settings go, and a saved size for `minimap.main` (the lens card's footprint) goes so the square builds at its default size; its position and any tuned button size stay.
 
