@@ -308,7 +308,8 @@ for _, screen in ipairs(SCREENS) do
 		bar:SetInnerEdge(true, "barEdge")
 		local px = edgePixels(K, bar)
 		local span = bar:GetHeight() / (K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar))
-		local want = span >= 8 and 2 or (span >= 5 and 1 or 0)
+		local band = span + 0.001
+		local want = band >= 8 and 2 or (band >= 5 and 1 or 0)
 		local where = string.format("%dx%d ui %s size %s", screen[1], screen[2], tostring(setup.uiScale), tostring(setup.size))
 		assert(px and math.abs(px - want) < 0.01, "the inner edge steps with the bar at " .. where .. ": " .. tostring(px) .. " for " .. tostring(span))
 		assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))

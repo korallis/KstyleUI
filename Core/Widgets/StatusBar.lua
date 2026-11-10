@@ -178,9 +178,10 @@ function Bar:EdgeThickness()
 		return EDGE_PIXELS
 	end
 	local edge = 0
-	if pixels >= EDGE_FULL_PIXELS then
+	local band = pixels + 0.001
+	if band >= EDGE_FULL_PIXELS then
 		edge = EDGE_PIXELS
-	elseif pixels >= EDGE_THIN_PIXELS then
+	elseif band >= EDGE_THIN_PIXELS then
 		edge = 1
 	end
 	while edge > 0 and pixels - edge * 2 < EDGE_MIN_FILL do
