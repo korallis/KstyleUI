@@ -296,6 +296,34 @@ do
 	check(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))
 end
 
+-- A loading screen opens the gate as well: PLAYER_ENTERING_WORLD flushes the wait, while the same event still reads
+-- the weapon enchants and the tracked buffs. Each of the three registered it under the one "Auras" owner, and the
+-- core keeps one handler per owner and event, so only the tracked-buff refresh ran (LEE-60).
+do
+	local env, K = start({ layout = true })
+	local _, dg = A.Container(env, "HARMFUL")
+	local events = {}
+	local register = K.Events.Register
+	K.Events.Register = function(owner, event, fn)
+		if owner == "Auras" and event == "PLAYER_ENTERING_WORLD" then
+			events[#events + 1] = fn
+		end
+		return register(owner, event, fn)
+	end
+	K.Modules.Disable("Auras")
+	K.Modules.Enable("Auras")
+	K.Events.Register = register
+	check(#events == 1, "Auras holds one PLAYER_ENTERING_WORLD handler, got " .. #events)
+	env._aurasSecret = true
+	K.Options.Write("Auras", "debuffs.iconSize", 24)
+	check(near(groupButtons(dg)[1]:GetSize(), 28), "no debuff button is resized while auras are secret")
+	env._aurasSecret = false
+	env.FireEvent("PLAYER_ENTERING_WORLD", false, true)
+	env.RunTimers()
+	check(near(groupButtons(dg)[1]:GetSize(), 24), "the debuff buttons resize after the loading screen, got " .. tostring(groupButtons(dg)[1]:GetSize()))
+	check(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))
+end
+
 -- Without C_Secrets the gate falls back to combat lockdown.
 do
 	local env, K = start({ layout = true })

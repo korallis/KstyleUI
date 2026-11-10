@@ -1,26 +1,15 @@
 -- Tracked.lua: the spells the Cooldown Manager's tracked-buff row shows, read from the player's effective viewer layout only when it is clean (base, override and linked spell ids, never a secret one), and only while that viewer is on and shown always; an unreadable layout leaves every buff in the aura row rather than assuming the default categories still match the player's choices.
 local _, ns = ...
 
-local K = KstyleUI
-
 local Tracked = {}
 ns.Tracked = Tracked
 
-local MODULE = "Auras"
 local CVAR = "cooldownViewerEnabled"
 local CATEGORY = "TrackedBuff"
 local EVENTS = { "COOLDOWN_VIEWER_DATA_LOADED", "COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED", "COOLDOWN_VIEWER_TABLE_HOTFIXED", "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED" }
 local CALLBACKS = { "CooldownViewerSettings.OnDataChanged", "EditMode.Exit" }
 
-local logged = {}
 local owner = {}
-
-local function LogOnce(key, message)
-	if not logged[key] then
-		logged[key] = true
-		K.DevTest.Log(MODULE, message)
-	end
-end
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -157,7 +146,7 @@ function Tracked.Set()
 	return set, n
 end
 
-function Tracked.Listen(fn)
+function Tracked.Listen(fn, listen)
 	local function refresh(event, name)
 		if event == "CVAR_UPDATE" and name ~= CVAR then
 			return
@@ -165,12 +154,9 @@ function Tracked.Listen(fn)
 		fn()
 	end
 	for _, event in ipairs(EVENTS) do
-		local ok, err = pcall(K.Events.Register, MODULE, event, refresh)
-		if not ok then
-			LogOnce("event:" .. event, "could not listen for " .. event .. ": " .. tostring(err))
-		end
+		listen(event, refresh)
 	end
-	pcall(K.Events.Register, MODULE, "CVAR_UPDATE", refresh)
+	listen("CVAR_UPDATE", refresh)
 	local registry = EventRegistry
 	if type(registry) == "table" and type(registry.RegisterCallback) == "function" then
 		for _, name in ipairs(CALLBACKS) do
