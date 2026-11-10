@@ -17,6 +17,10 @@ local Lib = {}
 
 Lib.OPT_OUTS = {}
 
+Lib.ACCENTS = {
+	["meters.threat"] = "the threat warning edge (KstyleUI_Meters/README.md, Warnings): a warning turns the panel's hairline neutral and danger turns it hostile; Chrome:SyncMaterialFrame raises an own edge above the forged frame so the state stays visible",
+}
+
 Lib.ROLES = {
 	DPS = { "story", "meters.damage", "chat.main", "qol.lootfeed" },
 	Tank = { "story", "meters.damage", "meters.threat", "chat.main", "qol.lootfeed", "groupframes.party" },
@@ -209,6 +213,11 @@ function Lib.AuditCard(card, material)
 			assert(basename(item.file):find("^ForgedFrame%d%.png$") and item.vertex[4] > 0, label .. " forged frame is the wrong texture")
 		end
 		assert(not card.drawn.line, label .. " draws its ring line under the forged frame")
+		if card.drawn.rim then
+			local reason = Lib.ACCENTS[card.role]
+			assert(type(reason) == "string" and #reason >= 40, label .. " draws an outline over its forged frame with no recorded reason")
+			assert(chrome.ownEdge, label .. " draws an outline over its forged frame without a state edge")
+		end
 	else
 		assert(not frame, label .. " draws a forged frame the " .. material .. " material lacks")
 	end
