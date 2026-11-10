@@ -47,10 +47,13 @@ local function badgeOf(text)
 end
 
 -- Unit frames: target (the sigil), focus and boss tiles ------------------------------------------------------------
-do
-	local env, K, ns = U.New()
+for _, legacy in ipairs({ true, false }) do
+	local env, K, ns = U.New({ lumen = legacy })
 	env._textWidth = D.TextWidth
-	assert(ns.Settings.defaults.target.auraSize >= SIGIL_TILE, "the sigil's tiles default to at least " .. SIGIL_TILE .. " units, not " .. ns.Settings.defaults.target.auraSize)
+	local minimum = legacy and SIGIL_TILE or 27.6
+	local form = legacy and "sigil" or "column"
+	assert(ns.Settings.Form("target") == form, "the fixture selects the " .. form .. " style")
+	assert(ns.Settings.Value("target", "auraSize") >= minimum, "the " .. form .. " tiles are at least " .. minimum .. " units")
 	local fonts = ns.Settings.defaults.target.fonts.aura
 	assert(fonts.outline ~= "NONE", "the tile text is outlined by default")
 	U.SetUnit(env, "target", { name = "Bloodtalon Matriarch", level = 38, health = 620, healthMax = 1000, reaction = 2, canAttack = true })
@@ -75,17 +78,17 @@ do
 		assert(badgeOf(entry.count), kind .. ": the stack count sits on its own badge")
 		assert(count[2] <= tile[2] + 1 and count[1] + count[3] >= tile[1] + tile[3] - 1, kind .. ": the count sits in the tile's top-right corner, on its rim")
 		if kind == "target" then
-			assert(tile[3] >= SIGIL_TILE - 0.5, "the sigil's tile is " .. tile[3] .. " units")
+			assert(tile[3] >= minimum - 0.5, "the " .. form .. " tile is " .. tile[3] .. " units")
 			assert(timerSize >= TIMER_MIN, "the sigil's timer is at least " .. TIMER_MIN .. " units, not " .. timerSize)
 			local _, _, flags = entry.timer:GetFont()
 			assert(flags ~= "", "the sigil's timer is outlined")
 		end
 	end
 	-- A full row of 28-unit tiles stays within the sigil's health bar.
-	local d = ns.Settings.defaults.target
+	local columns = ns.Settings.Value("target", "auraColumns")
 	local line = ns.Auras.Footprint("target")
 	local bar = ns.Frames.Get("target").views[1].geometry.health.w
-	assert(line <= bar, "a row of " .. d.auraColumns .. " tiles stays within the " .. bar .. "-unit health bar: " .. line)
+	assert(line <= bar, "a row of " .. columns .. " tiles stays within the " .. bar .. "-unit health bar: " .. line)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	assert(K.ErrorCount() == 0, "KstyleUI caught no errors")
 end
