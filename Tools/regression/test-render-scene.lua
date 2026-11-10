@@ -506,6 +506,19 @@ do
 	assert(found, "the natural-size text draws")
 	assert(math.abs(found.rect[4] - found.font.size * 1.2) < 0.01, "a natural-size, one-line text is one line tall, got " .. found.rect[4] .. " for a " .. found.font.size .. " font")
 	assert(not found.grow, "and is not marked as wrapped")
+	local tight = e:CreateFontString(nil, "OVERLAY")
+	tight:SetFont(font, size, "")
+	tight:SetPoint("TOPLEFT", e, "TOPLEFT", 4, -60)
+	tight:SetText("Tight line")
+	tight._lineEm = 1
+	local tightScene = Scene.Build(env, {})
+	for _, item in ipairs(tightScene.items) do
+		if item.kind == "text" and item.text == "Tight line" then
+			assert(item.lineEm == 1 and math.abs(item.rect[4] - item.font.size) < 0.01, "a text marked one em tall is one em tall, as the game's chat lines are (LEE-86), got " .. item.rect[4])
+			tight = nil
+		end
+	end
+	assert(tight == nil, "the one-em text draws")
 	-- A colour-coded text with no width of its own is as wide as its drawn words, not its escapes, so a right-anchored
 	-- switch ("|cff...Now|r  |cff...Last|r") never reaches left past its card and the rule anchored to it stays put.
 	local coded = e:CreateFontString(nil, "OVERLAY")

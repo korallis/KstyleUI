@@ -529,7 +529,7 @@
 		const rect = item.rect.slice();
 		const plain = plainText(item.text);
 		const measured = ctx.measureText(plain).width / ppu;
-		const lineHeight = item.font.size * 1.2;
+		const lineHeight = item.font.size * (item.lineEm || 1.2);
 		// SetSpacing puts its units between two lines of one text, and none above the first or under the last.
 		const spacing = item.spacing || 0;
 		// A text with no width of its own keeps the side its anchor fixed and takes the measured width.

@@ -8,7 +8,7 @@ local function near(a, b)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-6
 end
 
--- The foot is the picture's 42 units, or what the edit box needs, plus the part of a line pitch that makes no further line.
+-- The foot is the picture's 45.45 units, or what the edit box needs, plus the part of a line pitch that makes no further line.
 local function held(got, base)
 	return got >= base - 1e-6 and got < base + 18 * 1.01 + 1
 end
@@ -167,6 +167,24 @@ do
 	end
 end
 
+-- The picture's chat is a 32 px pitch with the tab names 7.85 units under the dock's top (LEE-86): the default spacing is 4.5 and
+-- the slider moves in halves, which the window keeps, so 4.5 is not rounded to 5 or 4.
+do
+	local env, K, ns = C.New({ width = 3456, height = 2234, uiScale = 768 / 1080 })
+	C.Enable(env, K)
+	assert(ns.defaults.lineSpacing == 4.5, "the default spacing is 4.5 units, got " .. tostring(ns.defaults.lineSpacing))
+	local chat = env.ChatFrame1
+	local function spacingAt(value)
+		K.Options.Write("Chat", "lineSpacing", value)
+		env.RunTimers()
+		return lastCall(chat, "SetSpacing")[1]
+	end
+	local four, half, five = spacingAt(4), spacingAt(4.5), spacingAt(5)
+	assert(four < half and half < five, "a half unit of spacing is its own step, got " .. four .. ", " .. half .. ", " .. five)
+	local _, _, _, _, y = env.ChatFrame1Tab.Text:GetPoint(1)
+	assert(near(y, -7.85), "the tab names sit 7.85 units under the dock's top, got " .. tostring(y))
+end
+
 -- A saved text size takes effect after the panel first places the window (Module starts the panel before the frames
 -- take their fonts), so the first placement is followed by another that sees the styled font.
 do
@@ -210,7 +228,7 @@ do
 	assert(near(left, g.left), "the inset in root units matches the geometry")
 end
 
--- The geometry follows the picture: a 34-unit tab row, the first line just under the tabs, and a 42-unit foot so
+-- The geometry follows the picture: a 34-unit tab row, the first line just under the tabs, and a 45.45-unit foot so
 -- six lines at the 14 + 4 pitch fill the 186-unit card with no empty glass above them. No room for the edit box
 -- unless the player wants it always shown. The picture has no divider under the tabs.
 do
@@ -223,12 +241,12 @@ do
 	assert(near(g.top, snap(34)), "the window starts at the tab row, where the dock rides it, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
-	assert(near(g.left, snap(12.57)), "messages start 12.57 units inside the card, 26 px on the owner's screen, got " .. g.left)
-	assert(near(g.right, g.left), "the message column's insets are equal, so the picture's last line has the same room both sides")
+	assert(near(g.left, snap(15.97)), "messages start 15.97 units inside the card, where the picture's first ink falls, got " .. g.left)
+	assert(near(g.right, snap(12.57)), "the right inset is 12.57 units, the room the picture leaves its longest line, got " .. g.right)
 	local reach = (2 + 32) * g.k - math.max(0, (32 * g.k - 22) / 2)
 	local clear = reach + K.Tokens.Size("gapTiny") - select(2, K.Layout.Rect("chat.main"))
-	assert(g.bottom >= snap(math.max(42, clear)) and g.bottom < snap(math.max(42, clear)) + (14 + 4) * g.k, "42 units of card below the last line, or what keeps the edit box on screen, plus at most the part of a line pitch that does not make another line, got " .. g.bottom)
-	assert(near(g.right, g.left), "the right inset stays equal when the copy glyph is on")
+	assert(g.bottom >= snap(math.max(45.45, clear)) and g.bottom < snap(math.max(45.45, clear)) + (14 + 4) * g.k, "45.45 units of card below the last line, or what keeps the edit box on screen, plus at most the part of a line pitch that does not make another line, got " .. g.bottom)
+	assert(near(g.right, snap(12.57)), "the right inset stays when the copy glyph is on")
 	K.Options.Write("Chat", "copyButton", false)
 	env.RunTimers()
 	assert(near(ns.Panel.Geometry(chat).right, g.right), "the message column does not move when the copy glyph is off")
@@ -240,7 +258,7 @@ do
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)
 	assert(g.bottom > snap(16) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
-	assert(near(g.left, snap(12.57)), "the side insets stay 12.57 units, 26 px on the owner's screen")
+	assert(near(g.left, snap(15.97)) and near(g.right, snap(12.57)), "the side insets stay 15.97 and 12.57 units")
 end
 
 -- The picture's last line fits on one line at the default size, on the owner's screen, because the insets are equal.
@@ -255,10 +273,10 @@ do
 	local Scene = dofile("Tools/render/scene.lua")
 	local line = "[Worn Leather Vest] has been added to your appearance collection."
 	local width = Scene.TextWidth(line, size, path)
-	assert(math.abs(g.left - g.right) < 0.05, "equal insets on the owner's screen")
+	assert(math.abs(g.right * 2234 / 1080 - 26) < 0.6, "the right inset is 26 px on the owner's screen")
 	assert(column >= width, "the appearance line fits on one line, " .. tostring(column) .. " for " .. tostring(width))
 	local px = g.left * 2234 / 1080
-	assert(math.abs(px - 26) < 0.6, "26 px inside the card, got " .. px)
+	assert(math.abs(px - 33) < 0.6, "33 px inside the card, got " .. px)
 	local point, _, _, x = env.ChatFrame1Tab.Text:GetPoint(1)
 	local _, _, _, bgx = env.ChatFrame1.Background:GetPoint(1)
 	assert(point == "LEFT" and math.abs(x + bgx) < 0.5, "the tab name starts on the lines' column, got " .. tostring(point) .. " " .. tostring(x))
@@ -301,15 +319,15 @@ do
 	local bottom = select(2, K.Layout.Rect("chat.main"))
 	assert(near(bottom, 16), "moved 16 above the screen's edge, got " .. tostring(bottom))
 	assert(g.bottom > snap(16), "the inset grows past 16")
-	assert(held(g.bottom, snap(math.max(42, reach - bottom + K.Tokens.Size("gapTiny")))), "the box's tile ends a tiny gap above the screen's edge, or the picture's 42-unit foot, got " .. g.bottom)
+	assert(held(g.bottom, snap(math.max(45.45, reach - bottom + K.Tokens.Size("gapTiny")))), "the box's tile ends a tiny gap above the screen's edge, or the picture's 45.45-unit foot, got " .. g.bottom)
 	K.Layout.Set("chat.main", "y", 0)
 	env.RunTimers()
 	local moved = ns.Panel.Geometry(chat)
-	assert(held(moved.bottom, snap(math.max(42, reach + K.Tokens.Size("gapTiny")))), "moving the panel to the edge re-places the window, got " .. moved.bottom)
+	assert(held(moved.bottom, snap(math.max(45.45, reach + K.Tokens.Size("gapTiny")))), "moving the panel to the edge re-places the window, got " .. moved.bottom)
 	assert(near(select(5, chat:GetPoint(2)) * g.k, moved.bottom), "the window's anchor follows")
 	K.Layout.Set("chat.main", "y", 200)
 	env.RunTimers()
-	assert(held(ns.Panel.Geometry(chat).bottom, snap(42)), "high on the screen the inset is the picture's 42-unit foot, got " .. ns.Panel.Geometry(chat).bottom)
+	assert(held(ns.Panel.Geometry(chat).bottom, snap(45.45)), "high on the screen the inset is the picture's 45.45-unit foot, got " .. ns.Panel.Geometry(chat).bottom)
 end
 
 -- The tab row's right end: a plus glyph that opens the chat's settings page and, beside it, a small copy glyph that

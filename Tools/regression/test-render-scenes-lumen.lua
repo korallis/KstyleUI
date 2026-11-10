@@ -153,7 +153,7 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(#rows >= 5, scene.state .. ": the chat draws its lines, got " .. #rows)
 	for i = 1, #rows do
 		local a = rows[i].rect
-		assert(a[4] >= rows[i].font.size * 1.2 - 0.5, scene.state .. ": a chat row is shorter than its line, so its glyphs reach the next: '" .. rows[i].text .. "'")
+		assert(a[4] >= rows[i].font.size * (rows[i].lineEm or 1.2) - 0.5, scene.state .. ": a chat row is shorter than its line, so its glyphs reach the next: '" .. rows[i].text .. "'")
 		for j = i + 1, #rows do
 			local b = rows[j].rect
 			local across = math.min(a[1] + a[3], b[1] + b[3]) - math.max(a[1], b[1])

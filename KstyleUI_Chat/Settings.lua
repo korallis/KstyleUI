@@ -34,7 +34,7 @@ local defaults = {
 	editBox = "typing",
 	font = Tokens.FontPath("AlegreyaSansRegular"),
 	fontSize = 14,
-	lineSpacing = 4,
+	lineSpacing = 4.5,
 	fontOutline = "none",
 	fade = true,
 	fadeTime = 120,
@@ -166,7 +166,7 @@ function ns.Schema()
 		{
 			type = "slider", key = "lineSpacing", label = L["Line spacing"],
 			help = L["Extra space between chat lines, in units."],
-			min = SPACING_MIN, max = SPACING_MAX, step = 1,
+			min = SPACING_MIN, max = SPACING_MAX, step = 0.5,
 		},
 		{
 			type = "dropdown", key = "fontOutline", label = L["Outline"],
