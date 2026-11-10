@@ -91,6 +91,22 @@ do
 	end
 end
 
+-- The rail's bars stand on whole pixels from one cumulative pitch, as bars 1 and 2 do, so a column of twelve tiles at a
+-- fractional scale is as tall as the 491 units the layout reserves for it, within a pixel.
+do
+	local env, K, ns = AB.New({ width = 1920, height = 1080 })
+	AB.Enable(env, K)
+	assert(K.Scale.SetUserScale(0.777), "the interface size takes 0.777")
+	for _, key in ipairs({ "bar4", "bar5", "bar6" }) do
+		K.Options.Write("ActionBars", key .. ".enabled", true)
+		local bar = ns.bars[key]
+		bar:Layout()
+		local reserved = 491
+		local height = bar.holder:GetHeight()
+		assert(math.abs(height - reserved) <= K.Scale.Pixel(1) + 0.01, key .. " is as tall as its reserved column, got " .. height .. " for " .. reserved)
+	end
+end
+
 for _, height in ipairs({ 1080, 1440, 2160, 2234 }) do
 	local env, K, ns = AB.New({ width = height * 16 / 9, height = height })
 	AB.Enable(env, K)

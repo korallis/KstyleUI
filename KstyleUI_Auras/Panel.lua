@@ -240,14 +240,13 @@ local function Context(desc)
 		timer = timer,
 		count = count,
 		icon = snap(group.iconSize),
-		spacing = snap(group.spacing),
-		rowSpacing = snap(group.rowSpacing),
 		lineSize = Model.LineSize(group, timer, snap),
 		edge = EdgeColor(),
 		timerOptions = { textFormatter = Formatter(timer.format), textColor = ExpiringColor(timer.expiring) },
 		dispelOptions = group.dispel and DispelOptions() or nil,
 	}
 	ctx.width, ctx.height = Model.ElementSize(group, timer, snap)
+	ctx.spacing, ctx.rowSpacing = Model.Gaps(group, timer, snap)
 	ctx.foot = ctx.height - ctx.icon
 	ctx.footWidth, ctx.footHeight = Model.Footprint(group, timer, snap)
 	return ctx

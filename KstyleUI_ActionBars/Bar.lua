@@ -174,6 +174,8 @@ function Bar:FormsChanged()
 	return false
 end
 
+local CUMULATIVE = { bar1 = true, bar2 = true, bar4 = true, bar5 = true, bar6 = true }
+
 function Bar:Layout()
 	local def, cfg = self.def, self:Config()
 	local header = self.header
@@ -185,7 +187,7 @@ function Bar:Layout()
 	local size, gap = Widgets.Snap(header, cfg.size), Widgets.Snap(header, cfg.spacing)
 	local width, height = ns.GridSize(count, cfg.rows, size, gap)
 	local pitch = size + gap
-	if def.key == "bar1" or def.key == "bar2" then
+	if CUMULATIVE[def.key] then
 		local _, _, columns, rows = ns.GridSize(count, cfg.rows, cfg.size, cfg.spacing)
 		pitch = cfg.size + cfg.spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size

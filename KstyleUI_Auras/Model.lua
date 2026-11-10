@@ -19,8 +19,8 @@ Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
 Model.LABELS = { buffs = 40, debuffs = 24 }
 
 Model.LIMITS = {
-	iconSize = { min = 16, max = 64, step = 1 },
-	spacing = { min = 0, max = 24, step = 1 },
+	iconSize = { min = 16, max = 64, step = 0.5 },
+	spacing = { min = 0, max = 24, step = 0.5 },
 	rows = { min = 1, max = 8, step = 1 },
 	columns = { min = 1, max = 24, step = 1 },
 	timerSize = { min = 6, max = 24, step = 1 },
@@ -37,11 +37,11 @@ Model.defaults = {
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {
-		iconSize = 28, spacing = 3, rowSpacing = 4, rows = 1, columns = 10,
+		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
-		iconSize = 28, spacing = 3, rowSpacing = 4, rows = 1, columns = 10,
+		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
 	timer = { format = "short", position = "below", font = BODY_FONT, size = 12, outline = "NONE", expiring = 5 },
@@ -240,16 +240,24 @@ function Model.ElementSize(group, timer, snap)
 	return icon, icon + (area > 0 and snap(area) or 0)
 end
 
+function Model.Gaps(group, timer, snap)
+	snap = snap or same
+	local w, h = Model.ElementSize(group, timer, snap)
+	return snap(group.iconSize + group.spacing) - w, snap(h + group.rowSpacing) - h
+end
+
 function Model.LineSize(group, timer, snap)
 	snap = snap or same
 	local w = Model.ElementSize(group, timer, snap)
-	return group.columns * w + (group.columns - 1) * snap(group.spacing) + LINE_SLACK
+	local gap = Model.Gaps(group, timer, snap)
+	return group.columns * w + (group.columns - 1) * gap + LINE_SLACK
 end
 
 function Model.Footprint(group, timer, snap)
 	snap = snap or same
 	local w, h = Model.ElementSize(group, timer, snap)
-	return group.columns * w + (group.columns - 1) * snap(group.spacing), group.rows * h + (group.rows - 1) * snap(group.rowSpacing)
+	local gap, rowGap = Model.Gaps(group, timer, snap)
+	return group.columns * w + (group.columns - 1) * gap, group.rows * h + (group.rows - 1) * rowGap
 end
 
 function Model.Capacity(group, enchants)

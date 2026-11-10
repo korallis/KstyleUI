@@ -104,7 +104,7 @@ do
 			local readout, damage = rect("databars.strip"), rect("meters.damage")
 			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
 			local railPitch = Layouts.Grid("actionbars.bar4").spacing
-			assert(near(bar4.r, damage.r) and near(bar4.r, readout.r), label .. ": bar 4 stands on the right rail's edge, over the readout and the damage card")
+			assert(near(bar4.r, damage.r - 1.4) and near(bar4.r, readout.r - 1.4), label .. ": bar 4 stands 1.4 inside the right rail's edge (the picture's 32 px against the cards' 30), over the readout and the damage card")
 			assert(near(bar4.l - bar5.r, railPitch) and near(bar5.l - bar6.r, railPitch), label .. ": bars 5 and 6 stand beside it at the rail bars' pitch")
 			assert(near(bar4.b, readout.t + 10) and near(bar5.b, bar4.b) and near(bar6.b, bar4.b), label .. ": the columns stand 10 over the readout")
 		end

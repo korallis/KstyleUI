@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 15, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 16, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,7 +219,7 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 15, "version 2 data migrates through 3 to 11 to the current 15")
+	check(menv.KstyleUIDB.version == 16, "version 2 data migrates through 3 to 12 to the current 16")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
@@ -238,7 +238,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local auras = menv.KstyleUIDB.profiles.Default.Auras
-	check(menv.KstyleUIDB.version == 15, "version 7 data migrates to 15")
+	check(menv.KstyleUIDB.version == 16, "version 7 data migrates to 16")
 	check(auras.card == nil, "the card section is gone")
 	check(auras.buffs.rows == nil and auras.buffs.columns == 6, "the setup's one buff row goes; the player's columns stay")
 	check(auras.debuffs.dispelFirst == nil and auras.debuffs.rows == 3, "the dispellable-first split goes; the player's debuff rows stay")
@@ -266,7 +266,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 15, "version 8 data migrates to 15")
+	check(db.version == 16, "version 8 data migrates to 16")
 	local damage, threat = db.layouts.Default["meters.damage"], db.layouts.Default["meters.threat"]
 	check(damage.anchor == "TOPRIGHT" and damage.x == -28 and damage.y == -300, "a damage card moved only down keeps its place from the top right")
 	check(threat.anchor == "TOPRIGHT" and threat.x == -60 and threat.y == -236 and threat.width == 300, "a threat card moved only sideways keeps its place and size")
@@ -286,7 +286,7 @@ end
 -- becomes 393 by 200. A card the player resized stays.
 do
 	local menv = CoreEnv.New({
-		saved = { version = 9, profiles = { Default = {} }, layouts = {
+		saved = { version = 9, profiles = { Default = {}, Healer = { Layout = { preset = "Healer" } } }, layouts = {
 			Default = { ["chat.main"] = { width = 372, height = 260, x = 28 } },
 			Healer = { ["chat.main"] = { width = 318, height = 260 } },
 			Custom = { ["chat.main"] = { width = 400, height = 180 } },
@@ -294,9 +294,9 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 15, "version 9 data migrates to 15")
-	check(db.layouts.Default["chat.main"].width == 393 and db.layouts.Default["chat.main"].height == 200 and db.layouts.Default["chat.main"].x == 28, "the old default card takes the picture's size and keeps its place")
-	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 200, "Healer keeps the rail width and takes the picture's height")
+	check(db.version == 16, "version 9 data migrates to 16")
+	check(db.layouts.Default["chat.main"].width == 393 and db.layouts.Default["chat.main"].height == 186 and db.layouts.Default["chat.main"].x == 28, "the old default card takes the picture's size (186 high since migration 16) and keeps its place")
+	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps the rail width and takes the picture's height")
 	check(db.layouts.Custom["chat.main"].width == 400 and db.layouts.Custom["chat.main"].height == 180, "a resized card stays")
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
@@ -328,7 +328,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 15, "version 9 data migrates to 15")
+	check(db.version == 16, "version 9 data migrates to 16")
 	local layout = db.layouts.Default
 	check(layout["minimap.main"] == nil, "the version-9 map size goes, so the map takes the picture's 188")
 	check(layout["meters.damage"] == nil, "the old rail width alone goes, so the damage card takes the picture's 269 x 158")
@@ -347,6 +347,75 @@ do
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 	local damage = MK.Layout.Get and MK.Layout.Get("meters.damage")
 	check(damage == nil or (damage.anchor == "BOTTOMRIGHT" and damage.y == MK.Tokens.Size("screenMargin")), "the damage card resolves to the rail's foot")
+end
+
+-- Migration 16 (LEE-69, the owner's picture wins): the chat card is 186 high, the aura rows are 27.5-unit icons 3.5 apart
+-- beside a 1.4-unit inset, and the rail's bars stand on the centre bars' 36.7 / 4.6 slots 1.4 inside the margin. An element
+-- at its version-12 default follows the new one; one the player moved keeps its place, completed from the version-12
+-- default (Layout saves only the fields that differ); a card the player resized keeps its size.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 12, profiles = {
+			Default = { Auras = { buffs = { iconSize = 28, spacing = 3 }, debuffs = { iconSize = 30, spacing = 3 } }, ActionBars = { bar4 = { size = 37, spacing = 4, showEmpty = true }, bar5 = { size = 40, spacing = 4 } } },
+			Healer = { Layout = { preset = "Healer" } },
+		}, layouts = {
+			Default = {
+				["chat.main"] = { width = 393, height = 200 },
+				["auras.buffs"] = { anchor = "TOPRIGHT", x = -217, y = -17, width = 307, height = 42 },
+				["auras.debuffs"] = { x = -400 },
+				["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -17, y = 203 },
+				["actionbars.bar5"] = { y = 300 },
+				["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -152, y = 203 },
+				["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = 17, y = 233 },
+				["tooltips.anchor"] = { x = -90 },
+			},
+			Healer = { ["chat.main"] = { width = 318, height = 200 } },
+			Resized = { ["chat.main"] = { width = 393, height = 240 } },
+			Wide = { ["chat.main"] = { width = 400, height = 200 } },
+			WidthOnly = { ["chat.main"] = { width = 400 } },
+			HeightOnly = { ["chat.main"] = { height = 240 } },
+			Moved = { ["chat.main"] = { x = 40 } },
+			TallDps = { ["chat.main"] = { width = 318, height = 200 } },
+			TallSparse = { ["chat.main"] = { width = 318 } },
+			TallHigh = { ["chat.main"] = { width = 393, height = 210 } },
+			TextHeight = { ["chat.main"] = { width = 393, height = "200" } },
+			TallMoved = { ["chat.main"] = { width = 393, height = 210 }, ["qol.lootfeed"] = { x = 40 } },
+		} },
+	})
+	CoreEnv.Boot(menv)
+	local db = menv.KstyleUIDB
+	check(db.version == 16, "version 12 data migrates to 16")
+	check(db.layouts.TallDps["chat.main"].width == 318 and db.layouts.TallDps["chat.main"].height == 200, "a DPS card the player set to the Healer's old size keeps it")
+	check(db.layouts.TallSparse["chat.main"].width == 318 and db.layouts.TallSparse["chat.main"].height == 200, "a DPS card narrowed to 318 keeps its 200")
+	local tall = db.layouts.TallHigh["qol.lootfeed"]
+	check(tall and tall.anchor == "BOTTOMLEFT" and tall.x == 17 and tall.y == 233, "a card taller than the new default keeps the loot feed where it cleared it")
+	local tallMoved = db.layouts.TallMoved["qol.lootfeed"]
+	check(tallMoved.anchor == "BOTTOMLEFT" and tallMoved.x == 40 and tallMoved.y == 233, "a loot feed the player moved sideways keeps its old height above the taller card")
+	check(db.layouts.Default["qol.lootfeed"] == nil, "a card that takes the new default height lets the feed follow it")
+	check(db.version == 16 and db.layouts.TextHeight["chat.main"].height == "200", "a saved height that is text does not stop the migration")
+	local layout = db.layouts.Default
+	check(layout["chat.main"].width == 393 and layout["chat.main"].height == 186, "a card at the old default height takes the picture's 186")
+	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps its rail width and takes 186")
+	check(db.layouts.Resized["chat.main"].width == 393 and db.layouts.Resized["chat.main"].height == 240, "a card the player made taller keeps its height")
+	check(db.layouts.Wide["chat.main"].width == 400 and db.layouts.Wide["chat.main"].height == 200, "a card the player made wider keeps its size")
+	check(db.layouts.WidthOnly["chat.main"].width == 400 and db.layouts.WidthOnly["chat.main"].height == 200, "a card the player widened, whose height was the default, keeps its 200")
+	check(db.layouts.HeightOnly["chat.main"].width == 393 and db.layouts.HeightOnly["chat.main"].height == 240, "a card the player made taller keeps the default width it had")
+	check(db.layouts.Moved["chat.main"].width == nil and db.layouts.Moved["chat.main"].height == nil and db.layouts.Moved["chat.main"].x == 40, "a card moved but never resized takes the new default size")
+	check(layout["auras.buffs"] == nil, "a buff row at its old place and size follows the new default")
+	local debuffs = layout["auras.debuffs"]
+	check(debuffs.anchor == "TOPRIGHT" and debuffs.x == -400 and debuffs.y == -67, "debuffs moved only sideways keep their place, completed from version 12")
+	check(layout["actionbars.bar4"] == nil and layout["databars.micro"] == nil and layout["qol.lootfeed"] == nil, "the rail's bar 4, the micro menu and the loot feed at their old places follow the new defaults")
+	local bar5 = layout["actionbars.bar5"]
+	check(bar5.anchor == "BOTTOMRIGHT" and bar5.x == -58 and bar5.y == 300, "bar 5 moved only up keeps its place, completed from version 12")
+	local tip = layout["tooltips.anchor"]
+	check(tip.anchor == "BOTTOMRIGHT" and tip.x == -90 and tip.y == 295, "the tooltip anchor moved sideways keeps its place")
+	local auras = db.profiles.Default.Auras
+	check(auras.buffs.iconSize == nil and auras.buffs.spacing == nil, "the old default icon size and spacing go, so the buffs take 27.5 and 3.5")
+	check(auras.debuffs.iconSize == 30 and auras.debuffs.spacing == nil, "a size the player chose stays; the old default spacing goes")
+	local bars = db.profiles.Default.ActionBars
+	check(bars.bar4.size == nil and bars.bar4.spacing == nil and bars.bar4.showEmpty == true, "the rail bars' old 37 and 4 go, so bar 4 takes the centre bars' 36.7 and 4.6")
+	check(bars.bar5.size == 40 and bars.bar5.spacing == nil, "a slot size the player chose stays")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 
 -- The owner's own saved data (version 4, 2026-11-09): #208's older bars 2 to 6 at the top left and the damage and
