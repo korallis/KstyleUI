@@ -239,6 +239,8 @@ end
 local function Splits(R)
 	R.rxp.tracker:CreateLevelSplits()
 	local f = R.rxp.tracker.levelSplits
+	local cog = f.title.cog:GetNormalTexture()
+	if type(cog) == "table" then cog:SetAllPoints(f.title.cog) end
 	local values = { history = "Level 7: 00:18:42\nLevel 8: 00:23:16\nLevel 9: 00:27:09", current = "Level Time: 00:32:18", total = "Total Time: 02:14:35" }
 	local width, total = 0, 0
 	for _, key in ipairs({ "history", "current", "total" }) do
@@ -305,6 +307,8 @@ local function Importer(R)
 	at(w.currentGuides.frame, ui.content, 8, 124, 464, 24)
 	at(w.currentGuides.dropdown, w.currentGuides.frame, -15, 0, 496, 24)
 	at(w.currentGuides.button, w.currentGuides.frame, 440, 0, 24, 24)
+	local arrow = w.currentGuides.button:GetNormalTexture()
+	if type(arrow) == "table" then arrow:SetAllPoints(w.currentGuides.button) end
 	w.currentGuides.text:SetWidth(414)
 	w.currentGuides.text:SetJustifyH("RIGHT")
 	text(w.currentGuides.text, "6-10 Durotar", "LEFT", w.currentGuides.frame, "LEFT", 10, 0)
@@ -422,6 +426,8 @@ local function ExtraWindows(R)
 		if path:find("rxp%-icon%-cog") then at(child, configurator.frame, 284, 24, 24, 24)
 		elseif path:find("icon%-btn%-import") then at(child, configurator.frame, 252, 21, 30, 30)
 		elseif path:find("icon%-btn%-help") then at(child, configurator.frame, 220, 21, 30, 30) end
+		-- The game stretches a button's normal texture over the button; the fake leaves it without points.
+		if path ~= "" and not path:find("rxp%-btn%-close") then normal:SetAllPoints(child) end
 	end
 	local items = rxp.activeItemFrame
 	at(items, env.UIParent, 18, 790, items:GetWidth(), items:GetHeight())
@@ -682,7 +688,7 @@ function RestedXP.Build()
 	end
 	R.log = {
 		"restedxp: RestedXP's v1 windows are laid out as the game lays them out (sizes and anchors read from the owner's screenshot and RestedXP's frame tree); the v2 window, item frame and configurator are placed by this scene",
-		"restedxp: the logo, class icon, cog and resize grabber are stand-in textures",
+		"restedxp: the logo, class icon, cog and resize grabber are stand-in textures; RestedXP's own icon art (the configurator's settings, import and help icons, the splits' cog, the importer's list arrow) is not in the repository and draws as a box in the icon's tint",
 	}
 	return R
 end

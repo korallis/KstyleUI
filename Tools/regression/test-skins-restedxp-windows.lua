@@ -680,6 +680,18 @@ do
 	if dropdownPanel then NewCheck(not dropdownPanel:IsShown() and widgets.currentGuides.text:GetAlpha() == 1, "importer returns shared dropdown chrome on hide") end
 	rxp.fake.open(widgets.import.frame)
 	NewCheck(dropdownPanel and dropdownPanel:IsShown() and widgets.currentGuides.text:GetAlpha() == 0, "importer redresses the shared dropdown on show")
+	-- The kit hushes every region of a button it skins again whenever the button shows (Core/Skin.lua, StripOwn), so
+	-- the arrow drawn over the dropdown's kit button lives on a frame of its own, as the icon controls' does.
+	do
+		local arrow = Proxy(K, widgets.currentGuides.button, "Button")
+		local drawn
+		for _, holder in ipairs(arrow and { arrow:GetChildren() } or {}) do
+			for _, region in ipairs({ holder:GetRegions() }) do
+				if region.GetTexture and tostring(region:GetTexture()):find("scrollbar_down", 1, true) then drawn = region end
+			end
+		end
+		NewCheck(drawn and drawn:GetAlpha() == 1 and drawn:IsShown(), "the importer dropdown's arrow is still drawn over its kit button after the window shows again")
+	end
 	NewCheck(Accented(ns, { GetTextColor = function() return widgets.progress:GetStatusBarColor() end }), "importer progress uses the accent")
 	widgets.import:UpdateSubTheme()
 	Capped(K, ns, widgets.import.title, "the guide importer after RestedXP redraws its theme")
