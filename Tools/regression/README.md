@@ -3,10 +3,53 @@
 `run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), and report in file order; a test must write only to its own temporary paths. `run-all.sh` starts `run_all.py`, which does the work.
 
 ```bash
-bash Tools/regression/run-all.sh
+bash Tools/regression/run-all.sh                            # every file, as CI's lua shards together run them
+bash Tools/regression/run-all.sh --affected origin/staging  # only the files a change can reach
+bash Tools/regression/run-all.sh --shard 2/4                # slice 2 of 4, how CI splits the files across jobs
 ```
 
 To see a failing test's full output, run that test alone, for example `lua5.1 Tools/regression/test-taint-scan.lua`.
+
+## Modes
+
+CI runs the whole suite once per pull request head and once per push to `staging`, as four `--shard I/4` jobs. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+
+| Option | What it runs | Last line |
+| --- | --- | --- |
+| none | Every `test-*.lua` | `passed N, failed M` |
+| `--shard I/N` | Slice I of N of the files. The first line after the budget says `shard I/N: X of Y test files`. | `passed N, failed M` for the slice |
+| `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not, and CI runs them all)` |
+| `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
+
+Both options can be combined except with `--write-weights`. A shard exits 0 only when its own files pass, so CI's `verdict` job needs all four.
+
+### Shards and weights
+
+`weights.json` holds each file's time in seconds on the Mac. `--shard` puts the heaviest file in the lightest slice first, so every slice takes about the same time (4 slices: 72, 72, 72 and 72 s of test time against 76, 55, 95 and 61 s for taking every fourth file). A file with no weight counts as the median, so a new test file needs no entry and a stale entry does no harm. Every run starts the heaviest files first. Refresh the weights with `lockf -k -t 3600 ~/.capy/work/run-all.lock bash Tools/regression/run-all.sh --write-weights` when the slices drift apart by more than a third; it is not part of a pull request's checks.
+
+### Affected mode
+
+`--affected BASE` compares the working tree (staged, unstaged and untracked files included) with the merge base of BASE and HEAD, and runs the test files whose record meets a changed file. It prints how many files it runs and why each one runs.
+
+What a test file loads comes from running it, not from its name. `trace.lua` is loaded before the test through `LUA_INIT` and writes each file the test opens for reading (`io.open`, `io.lines`, `dofile`, `loadfile`) and each shell command it runs (`io.popen`, `os.execute`). `affected.py` turns that into a record per test file:
+
+- **files:** the files read. A change to one of them selects the test. The test file itself counts.
+- **names:** the folders and globs a test listed with `ls` or `git ls-files`. Only an added or deleted file selects the test, because only a name can change a listing.
+- **content:** the folders a test searched with `grep -r`. Any change under them selects the test.
+- **wide:** a command it does not know. The test always runs.
+
+Each record carries a hash of its test file, so a record made from another version of the test (another worktree changed it) does not count and the test runs. The records live in `~/.cache/kstyleui/regression-deps.json` (`KSTYLEUI_DEPS_CACHE` moves it), shared by every worktree of the Mac, outside the repository so branches never conflict on it. A test file that passes is traced and its record is replaced; a test file that fails keeps its old record, or has none and runs next time. Delete the file to rebuild every record; the next `--affected` run then runs and traces every test file.
+
+The choice is conservative in these cases:
+
+- A test file with no record runs.
+- Every file runs when a changed file is one of `SHARED_PATHS` in `affected.py` (the runner, `trace.lua`, `stubs/`, the `*_env.lua` helpers, `load_files.lua`, `toc_files.lua`, `.luacheckrc`), or when 10 or more test files, and at least half of them, load the changed file. In practice a change under `Core/` runs everything.
+- The source guards in `GUARDS` (the scanners and loaders that read the whole tree) run on every affected run, even when nothing they read changed.
+- A module's own TOC or XML only lists that module's files, so a change to `KstyleUI_<Module>/*.toc` or `*.xml` selects the tests that load that module's Lua files, not every test that walks the TOCs.
+
+What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository, such as the Blizzard UI source. CI runs every file, so a miss here is caught there, and the run says so on its last line.
+
+It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU Mac), so two threads can run it at once. The full run uses all of them.
 
 ## Interface size in tests
 
@@ -37,7 +80,7 @@ FAIL test-groupframes-depth: peaked at 10028 MB, over the 4096 MB budget. Make t
 - **Memory.** The budget is 4096 MB of peak resident memory. CI runs 4 files at once on a 16 GB runner, and a file over the budget can push the runner into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
 - **Stop.** A file still running at 3 times the time budget is stopped and fails.
 
-After the results, `run-all.sh` prints the five slowest files with their time and peak memory, then the total test time, the wall time and the number of jobs. The last line is always `passed N, failed M`. `TEST_TIME_BUDGET` (seconds) and `TEST_MEMORY_BUDGET` (MB) change the budgets for the runner's own tests in `Tools/tests/test_run_all.py`. CI never sets them.
+After the results, `run-all.sh` prints the five slowest files with their time and peak memory, then the total test time, the wall time and the number of jobs. The last line always starts with `passed N, failed M`; `--affected` adds a note on how many files did not run. `TEST_TIME_BUDGET` (seconds) and `TEST_MEMORY_BUDGET` (MB) change the budgets for the runner's own tests in `Tools/tests/test_run_all.py`. CI never sets them.
 
 When a file goes over a budget, make it cheaper: build fewer frames, run fewer rounds, or split it into two files. Never raise the budget to make a file pass.
 
@@ -47,7 +90,11 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 
 | File | What it does |
 | --- | --- |
-| `run_all.py` | Runs the test files for `run-all.sh`: picks the interpreter, runs the files in parallel and checks each one's time and memory budget. |
+| `run_all.py` | Runs the test files for `run-all.sh`: picks the interpreter, picks the files for `--shard` and `--affected`, runs them in parallel and checks each one's time and memory budget. |
+| `affected.py` | Reads `trace.lua`'s record of what a test loads, keeps it in a cache and chooses the files a change can reach. `Tools/tests/test_affected.py` covers it. |
+| `trace.lua` | Records the files a test opens and the commands it runs, for `--affected`. It changes no result a test sees. |
+| `render_locales_lib.lua` | The settings-scene render check for one locale; the four `test-render-scenes-locale-*.lua` files call it so they run in parallel. |
+| `weights.json` | Each test file's time in seconds, which `--shard` balances by. |
 | `toc_files.lua` | Lists the files the game loads, in load order, from the TOCs and their XML includes. |
 | `load_files.lua` | Runs addon files in a stub environment with the addon's `...` arguments. |
 | `stubs/wow.lua` | A stub WoW API for offline tests. Extend it additively. |

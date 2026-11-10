@@ -3,6 +3,7 @@
 The runner only runs "<interpreter> <file>", so sh stands in for Lua and the test files hold shell commands.
 """
 
+import json
 import os
 import re
 import shutil
@@ -24,14 +25,14 @@ class RunAllTest(unittest.TestCase):
         self.tmp = Path(self._tmp.name)
         self.regression = self.tmp / "Tools" / "regression"
         self.regression.mkdir(parents=True)
-        for name in ("run-all.sh", "run_all.py"):
+        for name in ("run-all.sh", "run_all.py", "affected.py", "trace.lua"):
             shutil.copy(REGRESSION / name, self.regression / name)
         (self.regression / "helper.lua").write_text("exit 1\n")
 
     def tearDown(self):
         self._tmp.cleanup()
 
-    def run_all(self, lua="sh", **changes):
+    def run_all(self, *args, lua="sh", **changes):
         env = {key: value for key, value in os.environ.items() if key not in ("CI", "LUA", "TEST_TIME_BUDGET", "TEST_MEMORY_BUDGET")}
         if lua is not None:
             env["LUA"] = lua
@@ -40,7 +41,7 @@ class RunAllTest(unittest.TestCase):
                 env.pop(key, None)
             else:
                 env[key] = value
-        return subprocess.run([BASH, str(self.regression / "run-all.sh")], env=env, capture_output=True, text=True)
+        return subprocess.run([BASH, str(self.regression / "run-all.sh"), *args], env=env, capture_output=True, text=True)
 
     def fake_bin(self, *names):
         """A PATH with python3 and a fake interpreter per name that records its name and arguments."""
@@ -114,6 +115,62 @@ class RunAllTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout)
         self.assertIn("no-such-lua-kstyleui not found", result.stdout)
         self.assertNotIn("FAIL", result.stdout)
+
+    # Slices of the files, for CI.
+
+    def marking_tests(self, names):
+        for name in names:
+            (self.regression / f"test-{name}.lua").write_text(f"echo {name} >> {self.tmp}/marks\n")
+
+    def marks(self):
+        path = self.tmp / "marks"
+        return path.read_text().split() if path.exists() else []
+
+    def test_shards_cover_every_file_exactly_once(self):
+        names = list("abcdefg")
+        self.marking_tests(names)
+        seen = []
+        for index in (1, 2, 3):
+            result = self.run_all("--shard", f"{index}/3")
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn(f"shard {index}/3: ", result.stdout)
+            seen += self.marks()
+            (self.tmp / "marks").unlink()
+        self.assertEqual(sorted(seen), names)
+
+    def test_a_shard_reports_only_its_own_files_and_ends_with_the_plain_summary(self):
+        self.marking_tests("abcd")
+        result = self.run_all("--shard", "1/2")
+        self.assertIn("shard 1/2: 2 of 4 test files", result.stdout)
+        self.assertTrue(result.stdout.rstrip().endswith("passed 2, failed 0"))
+
+    def test_shards_balance_by_the_recorded_weights(self):
+        self.marking_tests("abcdef")
+        (self.regression / "weights.json").write_text(json.dumps({"test-a.lua": 30, "test-b.lua": 30, "test-c.lua": 1}))
+        self.run_all("--shard", "1/2")
+        first = self.marks()
+        self.assertIn(("a" in first) + ("b" in first), (1,), "the two heavy files land in different shards")
+
+    def test_the_heaviest_files_start_first(self):
+        self.marking_tests("abc")
+        (self.regression / "weights.json").write_text(json.dumps({"test-a.lua": 1, "test-b.lua": 5, "test-c.lua": 9}))
+        self.run_all(JOBS="1")
+        self.assertEqual(self.marks(), ["c", "b", "a"])
+
+    def test_a_malformed_shard_is_a_usage_error(self):
+        self.marking_tests("a")
+        for bad in ("0/2", "3/2", "x", "1/0", "1"):
+            with self.subTest(shard=bad):
+                result = self.run_all("--shard", bad)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("--shard takes I/N", result.stderr)
+
+    def test_write_weights_records_the_times_and_needs_every_file(self):
+        self.marking_tests("ab")
+        self.assertEqual(self.run_all("--write-weights", "--shard", "1/2").returncode, 2)
+        result = self.run_all("--write-weights")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(sorted(json.loads((self.regression / "weights.json").read_text())), ["test-a.lua", "test-b.lua"])
 
     # The time budget.
 

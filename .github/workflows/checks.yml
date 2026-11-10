@@ -1,89 +1,148 @@
-# checks.yml: the pull request checks. Each job name is a check the PR must pass.
+# checks.yml: the suites. A pull request runs them once per head commit; a push to staging runs them all on the merged result.
+# Each job decides for itself, with Tools/hooks/ci_scope.py, whether its files changed, and ends with a success and a line saying why when they did not.
+# The verdict job is the one result to read. Label and body edits run pr-rules.yml only.
 name: checks
+run-name: "${{ github.event_name == 'push' && format('staging: {0}', github.event.head_commit.message) || github.event.pull_request.title || 'checks (manual run)' }}"
 
 on:
   pull_request:
-    # edited and the label events re-run pr-rules when the body or the labels change.
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [staging]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: checks-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pre-commit:
     name: pre-commit
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install Lua 5.1 and luacheck 1.2.0
+      - name: Install luacheck 1.2.0
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lua5.1 liblua5.1-0-dev luarocks
-          sudo luarocks --lua-version=5.1 install luacheck 1.2.0-1
+          curl -fsSL --retry 3 -o luacheck https://github.com/lunarmodules/luacheck/releases/download/v1.2.0/luacheck
+          echo "d68da17fca0697d9e2fb04201f3884abd259fa558b3a449bccaed47f1390defc  luacheck" | sha256sum -c -
+          sudo install -m 0755 luacheck /usr/local/bin/luacheck
+          rm luacheck
+      - name: Cache the pre-commit hook environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Install pre-commit
         run: pipx install pre-commit==4.7.0
       - name: Run pre-commit
         run: pre-commit run --all-files --show-diff-on-failure
 
-  tests:
-    name: tests
+  lua:
+    name: lua ${{ matrix.shard }}/4
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 2
           persist-credentials: false
+      - name: Decide whether the Lua tests have work
+        id: scope
+        run: python3 Tools/hooks/ci_scope.py lua
       - name: Install Lua 5.1
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lua5.1
-      - name: Lua regression tests
-        run: bash Tools/regression/run-all.sh
+        if: steps.scope.outputs.run == 'true'
+        run: sudo apt-get install -y --no-install-recommends lua5.1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.1; }
+      - name: Lua regression tests, one slice of the files
+        if: steps.scope.outputs.run == 'true'
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: bash Tools/regression/run-all.sh --shard "$SHARD/4"
+
+  python:
+    name: python
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Decide whether the Python tests have work
+        id: scope
+        run: python3 Tools/hooks/ci_scope.py python
+      - name: Install Lua 5.1
+        if: steps.scope.outputs.run == 'true'
+        run: sudo apt-get install -y --no-install-recommends lua5.1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.1; }
       - name: Python tool tests
+        if: steps.scope.outputs.run == 'true'
         run: python3 -m unittest discover -s Tools/tests
 
   package:
     name: package
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The packager reads the history for the version and the changelog.
           fetch-depth: 0
           persist-credentials: false
+      - name: Decide whether the package has work
+        id: scope
+        run: python3 Tools/hooks/ci_scope.py package
       - name: Install Lua 5.1
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lua5.1
+        if: steps.scope.outputs.run == 'true'
+        run: sudo apt-get install -y --no-install-recommends lua5.1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.1; }
       - name: Package without uploading or localisation
+        if: steps.scope.outputs.run == 'true'
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           args: -d -l
           pandoc: false
       - name: Check the zip
+        if: steps.scope.outputs.run == 'true'
         run: bash Tools/hooks/check-package.sh
 
-  pr-rules:
-    name: pr-rules
+  verdict:
+    name: verdict
+    needs: [pre-commit, lua, python, package]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # check-pr.sh diffs against the merge base with the base branch.
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check the changelog line and the release markers
+      - name: Every job must have succeeded
         env:
-          BASE_REF: ${{ github.base_ref }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        run: bash Tools/hooks/check-pr.sh "origin/$BASE_REF"
+          PRE_COMMIT: ${{ needs.pre-commit.result }}
+          LUA: ${{ needs.lua.result }}
+          PYTHON: ${{ needs.python.result }}
+          PACKAGE: ${{ needs.package.result }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          failed=0
+          {
+            echo "| job | result |"
+            echo "| --- | --- |"
+            for pair in "pre-commit=$PRE_COMMIT" "lua=$LUA" "python=$PYTHON" "package=$PACKAGE"; do
+              echo "| ${pair%%=*} | ${pair#*=} |"
+              [ "${pair#*=}" = success ] || failed=1
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$failed" -ne 0 ]; then
+            if [ "$EVENT" = push ]; then
+              echo "::error title=staging is red::The merged result of staging fails: pre-commit=$PRE_COMMIT lua=$LUA python=$PYTHON package=$PACKAGE. Open the failed job above for the test."
+            else
+              echo "::error title=checks failed::pre-commit=$PRE_COMMIT lua=$LUA python=$PYTHON package=$PACKAGE"
+            fi
+            exit 1
+          fi
+          echo "pre-commit, lua, python and package all succeeded or had nothing to do"
