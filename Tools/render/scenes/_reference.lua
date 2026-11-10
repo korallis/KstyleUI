@@ -106,6 +106,44 @@ Reference.STATE = {
 	barStates = false,
 }
 
+-- The healer party card's glass, measured on the nine reference screens: it starts 395 scene units left of
+-- centre and is 266 wide. A fixture plate whose name spills past that glass is seated to its left, one
+-- name clear of it. A plate that sits wholly on the glass stays, so the owner's 3456 by 2234 picture
+-- keeps the occlusion acceptance pass 5 recorded.
+local PARTY_FROM_CENTRE, PARTY_GLASS_W = 395, 266
+local PLATE_NAME_HALF, PLATE_GAP = 90, 16
+
+local function sceneWidth()
+	local screen = Reference.SCREEN
+	return screen.width * 1080 / screen.height
+end
+
+function Reference.SeatPlates(plates, width)
+	local glassLeft = width / 2 - PARTY_FROM_CENTRE
+	local glassRight = glassLeft + PARTY_GLASS_W
+	local seated = {}
+	for i, plate in ipairs(plates) do
+		local copy = {}
+		for key, value in pairs(plate) do
+			copy[key] = value
+		end
+		local left, right = plate.x - PLATE_NAME_HALF, plate.x + PLATE_NAME_HALF
+		local overlaps = right > glassLeft and left < glassRight
+		local inside = left >= glassLeft and right <= glassRight
+		if overlaps and not inside then
+			local x = glassLeft - PLATE_GAP - PLATE_NAME_HALF
+			for _, other in ipairs(seated) do
+				if x - PLATE_NAME_HALF < other.x + PLATE_NAME_HALF + PLATE_GAP then
+					x = glassRight + PLATE_GAP + PLATE_NAME_HALF
+				end
+			end
+			copy.x = x
+		end
+		seated[i] = copy
+	end
+	return seated
+end
+
 -- Build(opts) -> the merged scene on the owner's screen after Setup.Apply; opts.layout is DPS, Tank or Healer.
 function Reference.Build(opts)
 	opts = opts or {}
@@ -117,6 +155,13 @@ function Reference.Build(opts)
 		local state = {}
 		for k, v in pairs(Reference.STATE) do
 			state[k] = v
+		end
+		state.plates = {}
+		for i, plate in ipairs(Reference.STATE.plates) do
+			state.plates[i] = plate
+		end
+		if layout == "Healer" then
+			state.plates = Reference.SeatPlates(state.plates, sceneWidth())
 		end
 		local modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" }
 		if layout ~= "DPS" then
