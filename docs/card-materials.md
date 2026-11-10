@@ -28,6 +28,21 @@ The slate and forged grains use original generated style sources; the frame slic
 
 ## Native check
 
+### Render evidence (LEE-122)
+
+The story rail and damage cards do not opt out of the selected material. Earlier
+ordinary `hud_reference` renders omitted their grain/frame because the stubs
+could not report dimensions for their multi-anchor owners. The approved phase-2
+720p bright sheet used the same reference scene, DPS and explicit ForgedBrackets,
+but a private launcher supplied solver dimensions and repainted materials. That
+launcher was not shipped, so it was not reproducible with the normal command.
+
+The shared renderer now performs the missing size-dependent material paint
+without changing addon code, layout, text, bars or Glass. Use the documented
+`RENDER_CARD_MATERIAL`, `RENDER_SCREEN` and `RENDER_LAYOUT` controls in
+`Tools/render/README.md`; do not use the old private repaint launcher as an
+acceptance baseline. This corrects render fidelity, not an observed client bug.
+
 The offline renderer cannot prove the client's texture loading and sampling. After the change is merged to staging and the owner's live copy is updated, fully quit and restart Forever so the client discovers the new texture files; `/reload` alone is not the first-install check. Then:
 
 1. Confirm a new or previously unselected profile opens on Forged iron, brackets at opacity 0.75, while an existing opacity override is preserved. Confirm a profile with an explicit saved Glass choice still opens on Glass.

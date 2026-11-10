@@ -46,11 +46,24 @@ function CoreEnv.New(opts)
 		opts.setup(env)
 	end
 	Load(CoreEnv.Files(), env)
+	-- Render scenes collect acquisition-local chrome without changing the addon or repainting here.
+	if env._materialChromes then
+		local create = env.KstyleUI.Widgets.Chrome
+		env.KstyleUI.Widgets.Chrome = function(...)
+			local chrome = create(...)
+			env._materialChromes[#env._materialChromes + 1] = chrome
+			return chrome
+		end
+	end
 	return env, env.KstyleUI
 end
 
 function CoreEnv.LoadSaved(env)
 	env.FireEvent("ADDON_LOADED", "KstyleUI", false)
+	if env._renderCardMaterial then
+		assert(env.KstyleUI.Tokens.Material(env._renderCardMaterial), "unknown RENDER_CARD_MATERIAL: " .. env._renderCardMaterial)
+		env.KstyleUI.Options.Write("Widgets", "cardMaterial", env._renderCardMaterial)
+	end
 end
 
 function CoreEnv.Login(env)
