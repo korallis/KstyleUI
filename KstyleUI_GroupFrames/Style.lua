@@ -26,11 +26,16 @@ local PILL_RISE = 0
 local CLASS_LINE_COLOR = "text"
 local BOSS_SLOT = 16
 local NAME_STEPS = 2
+local NAMES_STEPS = 3
 local NAME_FLOOR = 7
 Style.BOSS_SLOT = BOSS_SLOT
 
-function Style.NameMin(k)
-	return math.max(NAME_FLOOR, math.min(k.nameSize, k.nameSize - NAME_STEPS))
+function Style.NameCaps(f)
+	return f.kind == "party" and Settings.current.text.nameFont == Settings.NAMES_FONT
+end
+
+function Style.NameMin(k, caps)
+	return math.max(NAME_FLOOR, k.nameSize - (caps and NAMES_STEPS or NAME_STEPS))
 end
 local RESERVE = {
 	party = { DEFICIT = { "-88.8k", "-888" }, PERCENT = { "100%" } },
@@ -182,11 +187,16 @@ local function LayoutTexts(f, k, parts)
 	local cfg = Settings.current.text
 	local inside = parts.nameInside
 	local nameOutline = inside and OnBar(cfg.nameOutline) or cfg.nameOutline
-	SetFont(name, cfg.nameFont, k.nameSize, nameOutline)
+	local namePath = cfg.nameFont
+	f.nameCaps = Style.NameCaps(f)
+	if namePath == Settings.NAMES_FONT and not f.nameCaps then
+		namePath = (Tokens.Font("body"))
+	end
+	SetFont(name, namePath, k.nameSize, nameOutline)
 	f.nameFit = {
-		size = k.nameSize, min = Style.NameMin(k),
+		size = k.nameSize, min = Style.NameMin(k, f.nameCaps),
 		set = function(text, size)
-			SetFont(text, cfg.nameFont, size, nameOutline)
+			SetFont(text, namePath, size, nameOutline)
 		end,
 	}
 	SetFont(healthText, cfg.healthFont, k.healthTextSize, inside and OnBar(cfg.healthOutline) or cfg.healthOutline)
@@ -443,7 +453,7 @@ function Style.Apply(f, width, height)
 		size = Widgets.Snap(f, k.auraSize), spacing = Widgets.Snap(f, k.auraSpacing),
 	} or nil
 	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, k.buffSize) or nil
-	local nameMin = Style.NameMin(k)
+	local nameMin = Style.NameMin(k, Style.NameCaps(f))
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,
 		power = k.power,

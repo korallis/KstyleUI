@@ -30,8 +30,9 @@ local function DefaultTexture()
 	return Tokens.MediaList("statusbar")[1].path
 end
 
-local DEFAULT_FONT = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
+local NAMES_FONT = (Tokens.Font("names"))
 local NUMBER_FONT = (Tokens.Font("number"))
+Settings.NAMES_FONT = NAMES_FONT
 
 Settings.defaults = {
 	blizzard = { party = true, raid = true, manager = true },
@@ -59,7 +60,7 @@ Settings.defaults = {
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
 	text = {
-		nameFont = DEFAULT_FONT, nameOutline = "NONE", nameColorSource = "text", nameColor = Rgb("textEmphasis"),
+		nameFont = NAMES_FONT, nameOutline = "NONE", nameColorSource = "text", nameColor = Rgb("textEmphasis"),
 		healthFont = NUMBER_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },

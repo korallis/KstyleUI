@@ -2,6 +2,7 @@
 local _, ns = ...
 
 local Unit = ns.Unit
+local Upper = KstyleUI.Locale.Upper
 
 local Names = {}
 ns.Names = Names
@@ -87,6 +88,13 @@ function Names.Short(name, fits, others)
 	return head .. ELLIPSIS
 end
 
+local function Shown(f, text)
+	if f.nameCaps then
+		return Upper(text)
+	end
+	return text
+end
+
 local function Others(f)
 	local out = {}
 	Unit.ForEach(function(other)
@@ -104,15 +112,15 @@ function Names.Apply(f)
 	end
 	local width = f.nameWidth
 	if type(width) ~= "number" or width <= 0 then
-		text:SetText(name)
+		text:SetText(Shown(f, name))
 		return
 	end
 	local fit = f.nameFit
 	if fit then
 		for step = fit.size, fit.min, -1 do
 			fit.set(text, step)
-			if Width(text, name, step) <= width then
-				text:SetText(name)
+			if Width(text, Shown(f, name), step) <= width then
+				text:SetText(Shown(f, name))
 				return
 			end
 		end
@@ -120,9 +128,9 @@ function Names.Apply(f)
 	local _, size = text:GetFont()
 	size = type(size) == "number" and not Unit.IsSecret(size) and size or 10
 	local function fits(candidate)
-		return Width(text, candidate, size) <= width
+		return Width(text, Shown(f, candidate), size) <= width
 	end
-	text:SetText(Names.Short(name, fits, f.others or Others(f)))
+	text:SetText(Shown(f, Names.Short(name, fits, f.others or Others(f))))
 end
 
 function Names.Set(f, name)
