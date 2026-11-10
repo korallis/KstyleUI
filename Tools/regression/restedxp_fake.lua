@@ -319,20 +319,26 @@ local function Maker(env)
 			end
 		end
 	end
-	-- open(frame) and close(frame) show or hide a frame as RestedXP or a library does, then run its scripts.
-	function m.open(frame)
-		m.trust(frame.Show)(frame)
-		local fn = frame:GetScript("OnShow")
+	-- open(frame) and close(frame) show or hide a frame as RestedXP or a library does, then run its scripts and, as
+	-- the game does when a frame's visibility changes with its parent's, those of every shown frame under it.
+	local function Cascade(frame, script)
+		local fn = frame:GetScript(script)
 		if fn then
 			fn(frame)
 		end
+		for _, child in ipairs({ frame:GetChildren() }) do
+			if child:IsShown() then
+				Cascade(child, script)
+			end
+		end
+	end
+	function m.open(frame)
+		m.trust(frame.Show)(frame)
+		Cascade(frame, "OnShow")
 	end
 	function m.close(frame)
 		m.trust(frame.Hide)(frame)
-		local fn = frame:GetScript("OnHide")
-		if fn then
-			fn(frame)
-		end
+		Cascade(frame, "OnHide")
 	end
 	return m
 end
@@ -1300,7 +1306,24 @@ local function AceLabel(m, parent, value)
 	label:SetJustifyH("LEFT")
 	label:SetJustifyV("TOP")
 	label:SetText(value or "")
-	return { frame = frame, label = label, type = "Label" }
+	local widget = { frame = frame, label = label, type = "Label", measures = 0 }
+	-- AceGUIWidget-Label.lua:128-139: the widget's font goes into a Font object of its own, which reaches the label
+	-- through SetFontObject. The label's SetFont is never called.
+	widget.SetFont = m.trust(function(self, font, height, flags)
+		self.fontObject = self.fontObject or m.env.CreateFont()
+		self.fontObject:SetFont(font, height, flags)
+		self.label:SetFontObject(self.fontObject)
+	end)
+	-- AceGUIWidget-Label.lua:98-101 and 20-66: SetText gives the label its words and makes the frame as tall as the
+	-- label's string is in the font it has then.
+	widget.SetText = m.trust(function(self, words)
+		self.label:SetText(words or "")
+		local height = self.label:GetStringHeight()
+		self.frame:SetHeight(height and height > 0 and height or 1)
+		self.measures = self.measures + 1
+		self.measuredFont = { self.label:GetFont() }
+	end)
+	return widget
 end
 
 local function AceScroll(m, parent, kind)
@@ -1366,10 +1389,13 @@ local function Tracker(m, rxp, env)
 				group.data = {}
 				for _, field in ipairs(key == "sources" and { "quests", "mobs" } or { "solo", "group" }) do
 					group.data[field] = AceLabel(m, group.content, field)
+					group.data[field]:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 					group.children[#group.children + 1] = group.data[field]
 				end
 			else
 				group.data = AceLabel(m, group.content, "In-progress")
+				-- LevelingTracker.lua:523-633 gives every data label RestedXP's font at 12 through the widget.
+				group.data:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 				group.children[#group.children + 1] = group.data
 			end
 			report[key .. "Container"] = group
@@ -1408,7 +1434,7 @@ local function Tracker(m, rxp, env)
 		for _, key in ipairs({ "history", "current", "total" }) do
 			local label = AceLabel(m, splits)
 			-- LevelingTracker.lua:23 and 1074-1090: RestedXP's splits font at its size setting (11, SettingsPanel.lua:137).
-			label.label:SetFont("Fonts\\ARIALN.ttf", rxp.settings.profile.levelSplitsFontSize or 11, "")
+			label:SetFont("Fonts\\ARIALN.ttf", rxp.settings.profile.levelSplitsFontSize or 11, "")
 			label.frame:SetPoint("TOPLEFT", previous or splits, previous and "BOTTOMLEFT" or "TOPLEFT", previous and 0 or 8, previous and (key == "current" and -8 or 0) or -10.5)
 			splits[key] = label
 			previous = label.frame
@@ -1417,15 +1443,15 @@ local function Tracker(m, rxp, env)
 		m.seal()
 	end)
 	-- LevelingTracker.lua:1319-1326: every refresh (RefreshSplitsSummary runs one a second, 1128-1141) reads the
-	-- current label's size and, when it is not the size setting, sets RestedXP's own font on all three before it
-	-- measures them for the window's size.
+	-- current label's size and, when it is not the size setting, sets RestedXP's own font on all three widgets (so
+	-- through each label's SetFontObject) before it measures them for the window's size.
 	rxp.tracker.UpdateLevelSplits = m.trust(function(self)
 		local splits = self.levelSplits
 		if not splits then return end
 		local wanted = rxp.settings.profile.levelSplitsFontSize or 11
 		if math.floor(select(2, splits.current.label:GetFont()) + 0.5) ~= wanted then
 			for _, key in ipairs({ "current", "history", "total" }) do
-				splits[key].label:SetFont("Fonts\\ARIALN.ttf", wanted, "")
+				splits[key]:SetFont("Fonts\\ARIALN.ttf", wanted, "")
 			end
 		end
 	end)

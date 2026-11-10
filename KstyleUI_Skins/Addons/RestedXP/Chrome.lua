@@ -256,6 +256,17 @@ local function Readable(text, role, units)
 			PaintReadable(text, entry)
 		end
 	end)
+	if type(text.SetFontObject) == "function" then
+		hooksecurefunc(text, "SetFontObject", function()
+			if Active() and not entry.busy then
+				local _, given = text:GetFont()
+				if Plain(given) then
+					entry.size = given
+				end
+				PaintReadable(text, entry)
+			end
+		end)
+	end
 	PaintReadable(text, entry)
 	return true
 end
@@ -1321,6 +1332,21 @@ local function Targets(rxp)
 	Hook(targeting, "RenderTargetFrameBackground", "targeting.RenderTargetFrameBackground", Refresh)
 end
 
+local function Remeasure(widget)
+	if not IsTable(widget) then
+		return
+	end
+	if widget.type == "Label" and type(widget.SetText) == "function" and IsTable(widget.label) and type(widget.label.GetText) == "function" then
+		local words = widget.label:GetText()
+		if not Widgets.IsSecret(words) then
+			widget:SetText(words)
+		end
+	end
+	for _, child in ipairs(IsTable(widget.children) and widget.children or {}) do
+		Remeasure(child)
+	end
+end
+
 local function Report(tracker, labels)
 	local reports = tracker.ui
 	if not IsTable(reports) or not next(reports) then
@@ -1340,7 +1366,13 @@ local function Report(tracker, labels)
 			end
 			ScrollBar(IsTable(ui.scrollContainer) and ui.scrollContainer.scrollbar or nil)
 			Button(IsTable(ui.levelButton) and ui.levelButton.frame or nil)
-			if labels then labels(ui.scrollContainer) end
+			if labels then
+				labels(ui.scrollContainer)
+				Remeasure(ui.scrollContainer)
+				if IsTable(ui.scrollContainer) and type(ui.scrollContainer.DoLayout) == "function" then
+					ui.scrollContainer:DoLayout()
+				end
+			end
 			if not done[frame] then
 				done[frame] = true
 				frame:HookScript("OnShow", function()
@@ -1426,7 +1458,11 @@ end
 local function KitButton(button)
 	Button(button)
 	if IsTable(button) and type(button.GetFontString) == "function" then
-		Label(button:GetFontString(), "body", "textEmphasis")
+		Label(button:GetFontString(), "body")
+		local parts = Skin.Parts(button)
+		if IsTable(parts) and type(parts.Paint) == "function" then
+			parts:Paint()
+		end
 	end
 	local wash = IsTable(button) and button.configuratorBackground
 	if IsTexture(wash) then
@@ -1447,7 +1483,13 @@ local function Temporary(root)
 				control:Hide()
 			end
 			for text, font in pairs(entry.fonts) do
-				text:SetFont(unpack(font))
+				if font.object and type(text.SetFontObject) == "function" then
+					text:SetFontObject(font.object)
+				end
+				local path, size = text:GetFont()
+				if not Plain(size) or Widgets.IsSecret(path) or path ~= font[1] or size ~= font[2] then
+					text:SetFont(font[1], font[2], font[3])
+				end
 			end
 			entry.fonts = {}
 		end)
@@ -1467,6 +1509,14 @@ local function TemporaryText(root, text, role, color, shape)
 	local function Word(value)
 		holder.label:SetText(caps and K.Locale.Upper(PlainText(value)) or value)
 	end
+	local function Own(given)
+		local path, size, flags = given:GetFont()
+		if type(path) ~= "string" or Widgets.IsSecret(path) or not Plain(size) then
+			return false
+		end
+		entry.fonts[given] = { path, size, flags, object = type(given.GetFontObject) == "function" and given:GetFontObject() or nil }
+		return true
+	end
 	local function Lease()
 		local label = holder.label
 		if caps then
@@ -1478,12 +1528,8 @@ local function TemporaryText(root, text, role, color, shape)
 		if shape == "button" or type(text.GetFont) ~= "function" or type(text.SetFont) ~= "function" then
 			return
 		end
-		if entry.fonts[text] == nil then
-			local path, size, flags = text:GetFont()
-			if type(path) ~= "string" or Widgets.IsSecret(path) or not Plain(size) then
-				return
-			end
-			entry.fonts[text] = { path, size, flags }
+		if entry.fonts[text] == nil and not Own(text) then
+			return
 		end
 		local path, size, flags = label:GetFont()
 		if type(path) == "string" and Plain(size) then
@@ -1516,13 +1562,14 @@ local function TemporaryText(root, text, role, color, shape)
 		hooksecurefunc(text, "SetText", function(_, value)
 			if Active() and entry.active then Word(value) end
 		end)
-		if type(text.SetFont) == "function" then
-			hooksecurefunc(text, "SetFont", function(_, path, size, flags)
-				if Active() and entry.active and not holder.busy and entry.fonts[text] and type(path) == "string" and not Widgets.IsSecret(path) and Plain(size) then
-					entry.fonts[text] = { path, size, flags }
-					Lease()
-				end
-			end)
+		for _, method in ipairs({ "SetFont", "SetFontObject" }) do
+			if type(text[method]) == "function" then
+				hooksecurefunc(text, method, function()
+					if Active() and entry.active and not holder.busy and entry.fonts[text] and Own(text) then
+						Lease()
+					end
+				end)
+			end
 		end
 	end
 	Veil(root, text)

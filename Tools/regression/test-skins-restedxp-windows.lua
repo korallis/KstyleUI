@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -469,6 +469,23 @@ do
 		NewCheck(own == path and ownSize == size, "the report's own " .. what .. " text measures as the label drawn over it, got " .. tostring(own) .. " " .. tostring(ownSize) .. " for " .. tostring(path) .. " " .. tostring(size))
 	end
 	do
+		-- RestedXP's OnShow callback fills and lays the report out in its own fonts before the skin's hook leases the
+		-- kit's (LevelingTracker.lua 463-467 and 850), so after leasing the skin has AceGUI measure each label again
+		-- (the widget's SetText, AceGUIWidget-Label.lua 98-101) and lay the list out (DoLayout), as UpdateReport does.
+		local row = other.reachedContainer.data
+		local body = (ns.Style.Font("body"))
+		NewCheck(row.measuredFont and row.measuredFont[1] == body and other.scrollContainer.layouts > 0, "after leasing, the report's labels are measured again in the font drawn and the list is laid out, got " .. tostring(row.measuredFont and row.measuredFont[1]))
+		rxp.fake.close(other.frame)
+		local hiddenFont, hiddenSize = row.label:GetFont()
+		NewCheck(hiddenFont == "Fonts\\FRIZQT__.TTF" and hiddenSize == 12 and row.label:GetFontObject() == row.fontObject, "a hidden report's label has RestedXP's font object back, got " .. tostring(hiddenFont) .. " " .. tostring(hiddenSize))
+		row:SetText("In-progress")
+		NewCheck(row.measuredFont[1] == "Fonts\\FRIZQT__.TTF", "RestedXP measures a hidden report in its own font")
+		local layouts = other.scrollContainer.layouts
+		rxp.fake.open(other.frame)
+		NewCheck(row.measuredFont[1] == body and other.scrollContainer.layouts > layouts, "a reopened report is measured and laid out again after the lease, got " .. tostring(row.measuredFont[1]))
+		heading = Replacement(other.reachedContainer.label.label)
+	end
+	do
 		local point, on, onPoint = heading:GetPoint(1)
 		NewCheck(heading:GetNumPoints() == 1 and point == "CENTER" and on == other.reachedContainer.label.label and onPoint == "CENTER" and W.LastCall(heading, "SetWordWrap")[1] == false, "a heading's caption hangs on one point and never wraps, so a label narrower than its capitals cannot cut it")
 	end
@@ -550,7 +567,8 @@ do
 	assert(K.Skin.Parts(ui.frame).backdrop.inset.top == -K.Tokens.Size("gapMedium"), "its glass rises a medium gap over the window: RestedXP hangs the title 1 under the frame's top (GuideConfigurator.lua 485), where its capitals would touch the rim")
 	-- The title and the buttons use the kit's text roles: the title a caps caption in the picture's muted gold, as
 	-- every window title is since the Captain's ruling of 2026-11-10 (it was the title role in the emphasised text
-	-- before); each button label in the body role in the emphasised text, and RestedXP's own flat button wash
+	-- before); each button label in the body role in the kit button's own text colour (the kit paints it on every show,
+	-- hover and enable, so a colour of the skin's own lasted only until the first of those), and RestedXP's own flat button wash
 	-- hushed; RestedXP's UpdateTheme re-fonts all of them from its theme, so the skin applies the roles again after it.
 	local function Roles()
 		Capped(K, ns, ui.titletext, "the guide configurator")
@@ -559,7 +577,7 @@ do
 			assert(K.Skin.IsSkinned(button, "Button") and Alpha(button.configuratorBackground) == 0 and Alpha(button.rxpBorder.textures[1]) == 0, key .. " is a KstyleUI button")
 			local label = button:GetFontString()
 			assert(label:GetFont() == (ns.Style.Font("body")) and FontSize(K, label, select(2, label:GetFont()), select(2, ns.Style.Font("body"))), key .. "'s label is in the body role, got " .. tostring(select(2, label:GetFont())))
-			assert(Colored(label, K.Tokens.Color("textEmphasis")), key .. "'s label is the emphasised text")
+			assert(Colored(label, K.Tokens.Color("text")), key .. "'s label is the kit button's text colour")
 		end
 	end
 	Roles()

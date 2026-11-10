@@ -615,11 +615,27 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 		self._state[field] = pack(...)
 	end
 end
+-- SetFontObject hands the object's font to the string, over a font SetFont gave it before; SetFont gives it a font of
+-- its own, over the object's. GetFont answers the string's own font, else its font object's, as the game does.
 for _, method in ipairs({ "SetFont", "SetFontObject" }) do
 	local field = method:sub(4)
 	Object[method] = function(self, ...)
 		fontGiven(self, method, ...)
 		self._state[field] = pack(...)
+		if method == "SetFontObject" then
+			self._state.Font = nil
+		end
+	end
+end
+function Object:GetFont()
+	local own = self._state.Font
+	if own then
+		return unpack(own, 1, own.n)
+	end
+	local from = self._state.FontObject
+	from = from and from[1]
+	if type(from) == "table" and from ~= self and type(from.GetFont) == "function" then
+		return from:GetFont()
 	end
 end
 
