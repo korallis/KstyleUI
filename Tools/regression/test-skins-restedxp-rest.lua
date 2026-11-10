@@ -124,10 +124,18 @@ do
 	rxp.SetStep()
 	env.RunTimers()
 
-	-- The size: the quest card's objective lines, 0.95 of the body size, as the picture sets both.
+	-- The size: the story card's one text size, 13 root units (23 px on the owner's screen, the picture's lines),
+	-- the same pixels as the quest card's lines although RestedXP's window has its own scale.
 	local _, size = talk.text:GetFont()
-	local body = select(2, ns.Style.Font("body"))
-	assert(near(size, K.Widgets.FontSize(talk.text, body * 0.95), 1e-6), "a step reads at the quest lines' size, got " .. tostring(size) .. " for " .. tostring(body * 0.95))
+	local story = ns.Lumen.TEXT_SIZE / K.Widgets.ScaleFactor(talk)
+	assert(ns.Lumen.TEXT_SIZE == 13 and K.Widgets.ScaleFactor(talk) > 1, "the guide's window is not at the root's scale in this boot, so the test can tell the two units apart")
+	assert(near(size, K.Widgets.FontSize(talk.text, math.max(11, story)), 1e-6), "a step reads at the quest lines' size or at RestedXP's own (guideFontSize + 2 = 11) when that is larger, got " .. tostring(size) .. " for " .. tostring(story))
+	local face = talk.text:GetFont()
+	talk.text:SetFont(face, 5, "")
+	local _, floor = talk.text:GetFont()
+	assert(near(floor, K.Widgets.FontSize(talk.text, story), 1e-6), "under a smaller RestedXP font the step reads at the story card's size, got " .. tostring(floor))
+	assert(math.abs(floor * K.Widgets.ScaleFactor(talk) - ns.Lumen.TEXT_SIZE) <= K.Scale.Pixel(1), "which is a quest line's height on screen, to the pixel, got " .. tostring(floor * K.Widgets.ScaleFactor(talk)))
+	talk.text:SetFont(face, 11, "")
 	assert(talk.text:GetFont() == (ns.Style.Font("body")), "in the body face")
 
 	-- The place: the text starts under the cap's title, and the check sits left of it in the gem's column.
@@ -345,7 +353,11 @@ do
 	rxp.fake.arrow("Talk to |cRXP_FRIENDLY_Aarnor Galestrike|r", 1344, 0.5)
 	local path, size = arrow.text:GetFont()
 	assert(path == (ns.Style.Font("caption")), "the arrow's text is in KstyleUI's caption face, got " .. tostring(path))
-	assert(near(size, K.Widgets.FontSize(arrow.text, select(2, ns.Style.Font("caption"))), 1e-6), "at the caption size, not RestedXP's 9, got " .. tostring(size))
+	local caption = select(2, ns.Style.Font("caption")) / K.Widgets.ScaleFactor(arrow)
+	assert(near(size, K.Widgets.FontSize(arrow.text, math.max(9, caption)), 1e-6), "at the kit's caption size in root units, or RestedXP's 9 where that is larger, got " .. tostring(size))
+	arrow.text:SetFont(path, 4, "")
+	assert(near(select(2, arrow.text:GetFont()), K.Widgets.FontSize(arrow.text, caption), 1e-6), "and never under the kit's caption size")
+	arrow.text:SetFont(path, 9, "")
 	assert(arrow.text:GetText() == "Talk to " .. Hex(K, "friend") .. "Aarnor Galestrike|r\n(1344yd)", "with RestedXP's default colours swapped for KstyleUI's, got " .. arrow.text:GetText())
 	local ar, ag, ab = ns.Style.Accent()
 	assert(W.SameColor(arrow.texture, ar, ag, ab), "under the accent arrow")
@@ -354,7 +366,7 @@ do
 	for name, frame in pairs({ ["ACTIVE ITEMS"] = rxp.activeItemFrame, ["ACTIVE TARGETS"] = rxp.targeting.activeTargetFrame }) do
 		local text = assert(ns.RestedXP.Chrome.Caption(frame.title.text), name .. ": the title is a caption of KstyleUI's own")
 		assert(text:GetText() == name, "the title reads in capitals, got " .. tostring(text:GetText()))
-		assert(text:GetFont() == (ns.Style.Font("caps")) and near(select(2, text:GetFont()), K.Widgets.FontSize(text, select(2, ns.Style.Font("caps"))), 1e-6), name .. ": in the tracked caps role, as the guide's and the quests' captions")
+		assert(text:GetFont() == (ns.Style.Font("caps")) and near(select(2, text:GetFont()), K.Widgets.FontSize(text, ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(text:GetParent())), 1e-6), name .. ": in the tracked caps role, as the guide's and the quests' captions")
 		local r, g, b = text:GetTextColor()
 		local cr, cg, cb = K.Tokens.Color("capsGold")
 		assert(W.Near(r, cr) and W.Near(g, cg) and W.Near(b, cb), name .. ": in the captions' muted gold, not the accent")
@@ -362,6 +374,9 @@ do
 		r, g, b = text:GetTextColor()
 		assert(W.Near(r, cr) and W.Near(g, cg) and W.Near(b, cb) and text:GetFont() == (ns.Style.Font("caps")), name .. ": and stays so when RestedXP redraws the plate in its own font and colour")
 		assert(frame.title.text:GetAlpha() == 0, name .. ": RestedXP's own title stays at rest through its redraw")
+		local cp, cs = text:GetFont()
+		local rp, rs = frame.title.text:GetFont()
+		assert(rp == cp and near(rs, cs, 1e-6) and frame.title.text:GetText() == name, name .. ": RestedXP's own text, which it measures to size the plate and the frame (ActiveItemFrame.lua 223, 498), carries the caption's words and font, so the card is as wide as the caption, got " .. tostring(rs))
 		assert(not K.Skin.IsSkinned(frame.title, "Backdrop"), name .. ": the plate draws no tile of its own")
 		for _, piece in ipairs(frame.title._pieces) do
 			assert(piece:GetAlpha() == 0, name .. ": RestedXP's plate backdrop stays hidden after its redraw")

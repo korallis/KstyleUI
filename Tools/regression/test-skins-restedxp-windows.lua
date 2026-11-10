@@ -153,7 +153,7 @@ do
 	assert(path.height < 18 and path.capHeight > 16, "the head reports the band's height and the cap holder's")
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
-	assert(FontSize(K, path.cap.title, select(2, path.cap.title:GetFont()), ns.Lumen.CAP_SIZE * 1.5), "a text size change reaches the cap")
+	assert(FontSize(K, path.cap.title, select(2, path.cap.title:GetFont()), ns.Lumen.CAP_SIZE * 1.5 / K.Widgets.ScaleFactor(path.cap.row)), "a text size change reaches the cap, whose 12 root units are the same pixels in RestedXP's window as in KstyleUI's own")
 	K.Options.Write("Skins", "text.size", 1)
 	env.RunTimers()
 	assert(Alpha(f.Footer.text) == 0, "the footer's version line (RestedXP Guides v4.11.35) is hushed: it tells the player nothing while they play")
@@ -293,7 +293,7 @@ do
 		local caption = assert(ns.RestedXP.Chrome.Caption(f.title.text), "its title is a caption of KstyleUI's own, so RestedXP's font string carries no wrapped method")
 		assert(f.title.text:GetAlpha() == 0 and caption:GetText() == f.title.text:GetText():upper(), "RestedXP's title rests and the caption says it in capitals, got " .. tostring(caption:GetText()))
 		assert(Colored(caption, K.Tokens.Color("capsGold")), "in the picture's muted gold")
-		assert(caption:GetFont() == (ns.Style.Font("caps")) and FontSize(K, caption, select(2, caption:GetFont()), select(2, ns.Style.Font("caps"))), "in the tracked caps role, as the guide's and the quests' captions, never RestedXP's 9")
+		assert(caption:GetFont() == (ns.Style.Font("caps")) and FontSize(K, caption, select(2, caption:GetFont()), ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(caption:GetParent())), "in the tracked caps role, as the guide's and the quests' captions, never RestedXP's 9")
 		assert(rawget(f.title.text, "SetPoint") == nil, "the caps role's anchor wrapping stays off RestedXP's own font string")
 	end
 	-- RestedXP hangs the title plate from the frame's top edge (TOPLEFT at 5, 10, 19 tall), so the plate straddled

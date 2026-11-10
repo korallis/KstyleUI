@@ -1,4 +1,4 @@
--- test-restedxp-readability.lua: the guide's list reads at KstyleUI's body size and its active steps at the quest lines' size (0.95 of it, as the owner's picture draws both), RestedXP measures them at those sizes, and its list clears the header.
+-- test-restedxp-readability.lua: the guide's list reads at KstyleUI's body size and its active steps at the story card's text size (13 root units, as the owner's picture draws the steps and the quest lines), both in root units whatever scale RestedXP's window has, RestedXP measures them at those sizes, and its list clears the header.
 local S = dofile("Tools/regression/skins_env.lua")
 
 local function FontSize(K, text, actual, requested)
@@ -22,8 +22,12 @@ local function LineHeight(size)
 	return math.ceil(size * 1.1) + 1
 end
 
--- The picture sets the guide's steps in the size of the quest card's objective lines (Quests/Card.lua's LINE_SCALE).
-local STEP = 0.95
+-- The picture sets the guide's steps in the size of the quest card's lines (Lumen.TEXT_SIZE, root units).
+local STORY = 13
+
+local function Root(K, text, units)
+	return units / K.Widgets.ScaleFactor(text:GetParent())
+end
 
 -- Rows take the body face and at least the body size, even when RestedXP sets a smaller font later; a larger
 -- font the player asked for stays larger. RestedXP's saved guideFontSize is never written.
@@ -34,7 +38,7 @@ do
 	local body = select(2, K.Tokens.Font("body"))
 	row.text:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
 	local path, size, flags = row.text:GetFont()
-	assert(path == K.Tokens.Font("body") and FontSize(K, row.text, size, body) and flags == "", "a guide row uses the body face and size after RestedXP sets 7, got " .. tostring(path) .. " " .. tostring(size))
+	assert(path == K.Tokens.Font("body") and FontSize(K, row.text, size, Root(K, row.text, body)) and flags == "", "a guide row uses the body face and size after RestedXP sets 7, got " .. tostring(path) .. " " .. tostring(size))
 	row.text:SetFont("Fonts\\FRIZQT__.TTF", 18, "")
 	assert(FontSize(K, row.text, select(2, row.text:GetFont()), 18), "a larger requested font stays larger, got " .. tostring(select(2, row.text:GetFont())))
 	assert(rxp.settings.profile.guideFontSize == nil, "RestedXP's saved guideFontSize is never written")
@@ -50,7 +54,7 @@ do
 	K.Options.Write("Skins", "text.size", 1.25)
 	env.RunTimers()
 	rxp.SetStep(2)
-	local body = select(2, K.Tokens.Font("body")) * 1.25 * STEP
+	local body = math.max(11, Root(K, rxp.RXPFrame.CurrentStepFrame.framePool[2].elements[1].text, STORY * 1.25))
 	local element = rxp.RXPFrame.CurrentStepFrame.framePool[2].elements[1]
 	local _, size = element.text:GetFont()
 	assert(FontSize(K, element.text, size, body), "a new step's text takes the quest lines' size at the player's text size, got " .. tostring(size))
@@ -67,7 +71,7 @@ do
 	K.Options.Write("Skins", "text.size", 1.5)
 	env.RunTimers()
 	local size = select(2, element.text:GetFont())
-	assert(FontSize(K, element.text, size, select(2, K.Tokens.Font("body")) * 1.5 * STEP), "a text size change reaches the step text, got " .. tostring(size))
+	assert(FontSize(K, element.text, size, math.max(11, Root(K, element.text, STORY * 1.5))), "a text size change reaches the step text, got " .. tostring(size))
 	element.text:SetFont("Fonts\\FRIZQT__.TTF", 30, "")
 	assert(FontSize(K, element.text, select(2, element.text:GetFont()), 30), "a larger guide font the player set in RestedXP stays larger")
 	assert(element:GetHeight() == LineHeight(size), "after a text size change the step is measured at its new font: " .. tostring(element:GetHeight()) .. " for " .. LineHeight(size))

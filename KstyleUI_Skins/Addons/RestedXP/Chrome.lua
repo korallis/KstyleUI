@@ -34,7 +34,6 @@ local CAP_ROW, CAP_AIR, CAP_LEFT, CAP_RIGHT = 16, "gapSmall", RXP_MARGIN, RXP_MA
 local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
-local STEP_SCALE = 0.95
 local STEP_RISE, STEP_TEXT_TOP, STEP_TEXT_RIGHT, STEP_CHECK_LEFT, STEP_CHECK_TOP = 12, 2, 5, 1, 1
 local RXP_LINE_SHARE, RXP_LINE_PAD = 1.1, 1
 local REST_FOOT = 12
@@ -231,17 +230,17 @@ local function PaintReadable(text, entry)
 		return
 	end
 	entry.busy = true
-	local _, minimum = Style.Font(entry.role)
-	pcall(Style.ApplyFont, text, entry.role, math.max(entry.size, minimum * entry.scale))
+	local minimum = Lumen.Size(text:GetParent(), entry.units or Tokens.Size(entry.role))
+	pcall(Style.ApplyFont, text, entry.role, math.max(entry.size, minimum))
 	entry.busy = false
 end
 
-local function Readable(text, role, scale)
-	if not IsTable(text) or type(text.GetFont) ~= "function" or readable[text] then
+local function Readable(text, role, units)
+	if not IsTable(text) or type(text.GetFont) ~= "function" or type(text.GetParent) ~= "function" or readable[text] then
 		return false
 	end
 	local _, size = text:GetFont()
-	local entry = { role = role, scale = scale or 1, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
+	local entry = { role = role, units = units, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
 	readable[text] = entry
 	hooksecurefunc(text, "SetFont", function(_, _, requested)
 		if Active() and not entry.busy and type(requested) == "number" and not Widgets.IsSecret(requested) then
@@ -395,19 +394,41 @@ local function PlainText(value)
 	return value
 end
 
+local function PaintCaption(text, entry)
+	local caption = entry.caption
+	Style.ApplyFont(caption, "caps", Lumen.Size(caption:GetParent(), Lumen.CAP_SIZE))
+	Widgets.TextColor(caption, "capsGold")
+	if entry.busy then
+		return
+	end
+	local path, size, flags = caption:GetFont()
+	if type(path) == "string" and Plain(size) then
+		entry.busy = true
+		pcall(text.SetFont, text, path, size, flags)
+		entry.busy = false
+	end
+end
+
 local function Caption(title)
 	local text = IsTable(title) and title.text
-	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or captions[text] then
+	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or captions[text] then
 		return
 	end
 	local holder = CreateFrame("Frame", nil, title)
 	holder:SetAllPoints(title)
 	local caption = Widgets.FontString(holder, "OVERLAY")
-	Style.Text(caption, "caps", "capsGold")
 	caption:SetPoint("CENTER", text, "CENTER", 0, 0)
 	caption:SetWordWrap(false)
-	captions[text] = caption
+	local entry = { caption = caption, busy = false }
+	captions[text] = entry
 	HushText(text)
+	Worded(text, K.Locale.Upper)
+	hooksecurefunc(text, "SetFont", function()
+		if Active() then
+			PaintCaption(text, entry)
+		end
+	end)
+	PaintCaption(text, entry)
 	local function word(value)
 		caption:SetText(K.Locale.Upper(PlainText(value)))
 	end
@@ -418,7 +439,7 @@ local function Caption(title)
 end
 
 function Chrome.Caption(text)
-	return captions[text]
+	return captions[text] and captions[text].caption
 end
 
 local function Trail(f)
@@ -660,8 +681,8 @@ local function Restyle()
 			PaintTitle(text)
 		end
 	end
-	for _, caption in pairs(captions) do
-		Style.Text(caption, "caps", "capsGold")
+	for text, entry in pairs(captions) do
+		PaintCaption(text, entry)
 	end
 	for arrow in pairs(arrows) do
 		PaintArrow(arrow)
@@ -673,18 +694,35 @@ end
 
 local restyler = { Restyle = Restyle }
 
-local function Peek(step)
-	local over = false
-	if type(step.IsMouseOver) == "function" then
-		local ok, value = pcall(step.IsMouseOver, step)
-		over = ok and not Widgets.IsSecret(value) and value == true
+local function Pointed(frame)
+	if not IsTable(frame) or type(frame.IsMouseOver) ~= "function" then
+		return false
 	end
-	for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
+	local ok, value = pcall(frame.IsMouseOver, frame)
+	return ok and not Widgets.IsSecret(value) and value == true
+end
+
+local function Peek(step)
+	local elements = IsTable(step.elements) and step.elements or {}
+	local over = Pointed(step)
+	for _, element in pairs(elements) do
+		over = over or (IsTable(element) and Pointed(element.button))
+	end
+	for _, element in pairs(elements) do
 		local check = IsTable(element) and element.button
 		if IsTable(check) and type(check.SetAlpha) == "function" then
 			check:SetAlpha(over and 1 or 0)
 		end
 	end
+end
+
+local function Column(region, element)
+	local left, own = region:GetLeft(), element:GetLeft()
+	local scale, to = region:GetEffectiveScale(), element:GetEffectiveScale()
+	if not (Plain(left) and Plain(own) and Plain(scale) and Plain(to)) or to <= 0 then
+		return nil
+	end
+	return left * scale / to - own, scale / to
 end
 
 local function Watch(step, frame)
@@ -707,22 +745,32 @@ local function AlignSteps(f)
 	if not IsTable(pool) or not Chrome.Path(f) then
 		return
 	end
-	local left = Widgets.Snap(current, CAP_LEFT) + Widgets.Snap(current, Lumen.GEM_UNITS) + Widgets.Snap(current, Tokens.Size(GUTTER_GAP))
+	local cap = Chrome.Path(f).cap
+	local gutter = Widgets.Snap(current, CAP_LEFT) + Widgets.Snap(current, Lumen.GEM_UNITS) + Widgets.Snap(current, Tokens.Size(GUTTER_GAP))
 	local top, right = Widgets.Snap(current, STEP_TEXT_TOP), Widgets.Snap(current, STEP_TEXT_RIGHT)
 	local grown = 0
 	for _, step in ipairs(pool) do
 		if IsTable(step) and step:IsShown() then
-			local delta = 0
+			local delta, first = 0, true
 			for _, element in ipairs(IsTable(step.elements) and step.elements or {}) do
 				local text, check = IsTable(element) and element.text, IsTable(element) and element.button
 				local had = IsTable(text) and element:IsShown() and element:GetHeight()
 				if Plain(had) and had > RXP_LINE_PAD and type(text.GetStringHeight) == "function" then
+					local left = Column(cap.title, element) or gutter
 					text:ClearAllPoints()
 					text:SetPoint("TOPLEFT", element, "TOPLEFT", left, -top)
 					text:SetPoint("RIGHT", step, "RIGHT", -right, 0)
+					Widgets.TextColor(text, first and "textEmphasis" or "text")
+					first = false
 					if IsTable(check) and type(check.SetPoint) == "function" then
+						local gem, share = Column(cap.gem, element)
+						local ring = check:GetWidth()
 						check:ClearAllPoints()
-						check:SetPoint("TOPLEFT", element, "TOPLEFT", STEP_CHECK_LEFT, -STEP_CHECK_TOP)
+						if gem and Plain(ring) then
+							check:SetPoint("TOPLEFT", element, "TOPLEFT", gem + (cap.gem:GetWidth() * share - ring) / 2, -STEP_CHECK_TOP)
+						else
+							check:SetPoint("TOPLEFT", element, "TOPLEFT", STEP_CHECK_LEFT, -STEP_CHECK_TOP)
+						end
 					end
 					local height = text:GetStringHeight()
 					local want = Plain(height) and height > 0 and math.ceil(height * RXP_LINE_SHARE) + RXP_LINE_PAD or had
@@ -770,7 +818,7 @@ local function StepFrames(f)
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
 				if IsTable(element) then
 					Worded(element.text, Reword)
-					changed = Readable(element.text, "body", STEP_SCALE) or changed
+					changed = Readable(element.text, "body", Lumen.TEXT_SIZE) or changed
 					if IsTable(element.icon) and type(element.icon.SetAlpha) == "function" then
 						HushText(element.icon)
 					end

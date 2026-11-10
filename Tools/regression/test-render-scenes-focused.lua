@@ -173,21 +173,34 @@ for _, gone in ipairs({ "Speedrun Guide 1-22", "RestedXP Guides v4.11.35" }) do
 end
 assert(not restedTexts["Step 35"], "the Step plates are hushed: the cap's trail carries the first shown step")
 assert(not restedTexts["6-10 Durotar\nSpeedrun Guide 1-22"], "RestedXP's own two-line title is hushed, not drawn")
--- RestedXP's own geometry is kept, so the render shows how close its content sits to the skin's glass: a
--- step's check button 6 units in from the step frame, the guide name's left edge 29 in, the list's scroll bar 20
--- before the list's right edge.
+-- RestedXP's own layout is the fake's (its UpdateText), and the skin then reads the steps as the owner's picture
+-- draws them: each line starts under the cap's title, and its check sits in the gem's column. The rest of
+-- RestedXP's geometry is kept: the list's scroll bar 20 before the list's right edge.
 do
 	local Common = L.Common
 	local Lib = dofile("Tools/render/scenes/_restedxp.lua")
 	local R = Lib.Build()
 	local f = R.rxp.RXPFrame
 	local step = f.CurrentStepFrame.framePool[1]
-	local sx = Common.Scene.Rect(R.env, step)
-	local bx = Common.Scene.Rect(R.env, step.elements[1].button)
-	assert(sx and bx and math.abs((bx - sx) - 6) < 0.01, "the check button sits 6 in from the step frame, got " .. tostring(bx and sx and bx - sx))
+	local cap = R.ns.RestedXP.Chrome.Path(f).cap
+	-- TextLeft(text) -> where a text's first anchor puts its left edge, in screen units (a text has no rect of its
+	-- own until the page measures it).
+	local function TextLeft(text)
+		local _, relative, relativePoint, x = text:GetPoint(1)
+		local rx, _, rw = Common.Scene.Rect(R.env, relative)
+		return rx and (relativePoint:find("RIGHT", 1, true) and rx + rw or rx) + x * rw / (relative:GetRight() - relative:GetLeft())
+	end
+	local tx = TextLeft(cap.title)
+	local gx, _, gw = Common.Scene.Rect(R.env, cap.gem)
+	for e, element in ipairs(step.elements) do
+		local ex = TextLeft(element.text)
+		local bx, _, bw = Common.Scene.Rect(R.env, element.button)
+		assert(tx and ex and math.abs(ex - tx) < 0.01, "line " .. e .. " of the step starts under the cap's title, got " .. tostring(ex) .. " for " .. tostring(tx))
+		assert(gx and bx and math.abs((bx + bw / 2) - (gx + gw / 2)) < 0.01, "its check sits in the gem's column, got " .. tostring(bx))
+	end
 	local lx, _, lw = Common.Scene.Rect(R.env, f.BottomFrame)
 	local barX, _, barW = Common.Scene.Rect(R.env, f.ScrollFrame.ScrollBar)
-	assert(math.abs((lx + lw) - (barX + barW) - 4) < 0.01, "the scroll bar ends 4 before the list's right edge, got " .. tostring((lx + lw) - (barX + barW)))
+	assert(math.abs((lx + lw) - (barX + barW) - 4) < 0.25, "the scroll bar ends 4 before the list's right edge, to the screen pixel the skin snaps the list's inset to, got " .. tostring((lx + lw) - (barX + barW)))
 	local _, sy, _, sh = Common.Scene.Rect(R.env, step)
 	local _, ny = Common.Scene.Rect(R.env, step.number)
 	assert(math.abs((sy - ny) - 5) < 0.01, "the Step plate rises 5 above the step frame")

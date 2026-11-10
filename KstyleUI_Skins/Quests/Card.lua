@@ -1,4 +1,4 @@
--- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts on the first line's right, an item socket) that the wheel scrolls one quest at a time, and a slim scroll bar and a more line that rest unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
+-- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts in near white on the first line's right, an item socket; the title and the lines in the story card's one text size, Lumen.TEXT_SIZE) that the wheel scrolls one quest at a time, and a slim scroll bar and a more line that rest unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,12 +10,12 @@ ns.QuestCard = Card
 
 local MAX_SHOWN, MAX_LINES, MAX_WRAP = 8, 6, 3
 local GUTTER, DISC, RING, NUMERAL = 18, 14, 20, 9
-local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5, 3, 7
+local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5, 4, 7
 local CAP_ROW, CAP_GAP, MORE_ROW = 22, 2, 16
 local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
-local LINE_SCALE, MORE_SCALE = 0.95, 0.85
+local MORE_SCALE = 0.85
 
 local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
@@ -28,17 +28,16 @@ local function Snap(units)
 	return Widgets.Snap(card, units)
 end
 
-local function Size(role, scale)
-	local _, size = Style.Font(role)
-	return size * (scale or 1)
+local function TextSize()
+	return Lumen.Size(card, Lumen.TEXT_SIZE)
 end
 
 local function TitleHeight()
-	return Snap(Size("body") + TITLE_LEAD)
+	return Snap(TextSize() + TITLE_LEAD)
 end
 
 local function LineHeight()
-	return Snap(Size("body", LINE_SCALE) + LINE_LEAD)
+	return Snap(TextSize() + LINE_LEAD)
 end
 
 local function Inset()
@@ -170,10 +169,11 @@ local function RestyleRow(row)
 	Widgets.Size(row.ring, RING, RING)
 	Style.ApplyFont(row.numeral, "number", NUMERAL * Style.Setting("text", "size"))
 	Widgets.TextColor(row.numeral, "black")
-	Style.ApplyFont(row.title, "body")
+	local size = TextSize()
+	Style.ApplyFont(row.title, "body", size)
 	for _, line in ipairs(row.lines) do
-		Style.ApplyFont(line.text, "body", Size("body", LINE_SCALE))
-		Style.ApplyFont(line.count, "number", Size("number", LINE_SCALE))
+		Style.ApplyFont(line.text, "body", size)
+		Style.ApplyFont(line.count, "number", size)
 	end
 	Widgets.Size(row.socket, SOCKET, SOCKET)
 	local border = Widgets.Border(row.socket)
@@ -286,7 +286,7 @@ local function Line(row, i, y, right, text, count, colorName, room, lines)
 	line.text:SetText(text)
 	line.count:SetText(count or "")
 	Widgets.TextColor(line.text, colorName)
-	Widgets.TextColor(line.count, colorName)
+	Widgets.TextColor(line.count, colorName == "text" and "textEmphasis" or colorName)
 	line.text:Show()
 	line.count:SetShown(count ~= nil)
 end
@@ -632,12 +632,12 @@ function Card.Docked()
 end
 
 local function Restyle()
-	Style.ApplyFont(ruler, "body", Size("body", LINE_SCALE))
-	Style.ApplyFont(countRuler, "number", Size("number", LINE_SCALE))
+	Style.ApplyFont(ruler, "body", TextSize())
+	Style.ApplyFont(countRuler, "number", TextSize())
 	ruler:SetWidth(0)
 	ruler:SetText("Ag")
 	pitch = Widgets.TextHeight(ruler, (Widgets.LineHeight(ruler)))
-	Style.ApplyFont(more, "body", Size("body", MORE_SCALE))
+	Style.ApplyFont(more, "body", TextSize() * MORE_SCALE)
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
 	track:SetWidth(Snap(BAR_WIDTH))
