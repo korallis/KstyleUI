@@ -26,10 +26,78 @@ local BLOCK_CAP_TOP = 14.5
 local BLOCK_TOP = 35.5
 local BLOCK_TEXT_INSET = 7
 local BLOCK_SWITCH_REACH = 120
-local PERCENT_JOIN = " \194\183 "
+local DOT = "\194\183"
+local DOT_LSB, DOT_RSB = 0.033, 0.033
+local DOT_GAP_EM = 5 / 21
+local BEARING_DEFAULT = 0.025
+local NUMBER_RSB = {
+	["0"] = 0.025, ["1"] = 0.141, ["2"] = 0.022, ["3"] = 0.044, ["4"] = 0.016,
+	["5"] = 0.037, ["6"] = 0.024, ["7"] = 0.034, ["8"] = 0.034, ["9"] = 0.023,
+	["%"] = 0.027, ["."] = 0.033, [":"] = 0.038, ["~"] = 0.020, [","] = 0.032,
+	k = 0.006, m = 0.049, K = 0, M = 0.042,
+}
+local NUMBER_LSB = {
+	["0"] = 0.025, ["1"] = 0.033, ["2"] = 0.034, ["3"] = 0.029, ["4"] = 0.010,
+	["5"] = 0.022, ["6"] = 0.023, ["7"] = 0.021, ["8"] = 0.030, ["9"] = 0.024,
+	["%"] = 0.026,
+}
+
 
 local BarList = {}
 ns.BarList = BarList
+
+local function EndChar(text, last)
+	if Logic.IsSecret(text) or type(text) ~= "string" or text == "" then
+		return nil
+	end
+	if not last then
+		local b = text:byte(1)
+		local n = 1
+		if b >= 240 then
+			n = 4
+		elseif b >= 224 then
+			n = 3
+		elseif b >= 192 then
+			n = 2
+		end
+		return text:sub(1, n)
+	end
+	local i = #text
+	while i > 1 do
+		local b = text:byte(i)
+		if b < 128 or b >= 192 then
+			break
+		end
+		i = i - 1
+	end
+	return text:sub(i)
+end
+
+function BarList.DotGap(fontSize, pixel)
+	local size = Logic.Plain(fontSize) or 0
+	local step = Logic.Plain(pixel)
+	if not step or step <= 0 then
+		step = K.Scale.Pixel(1)
+	end
+	local snapped = math.floor(DOT_GAP_EM * size / step + 0.5) * step
+	if snapped < step then
+		return step
+	end
+	return snapped
+end
+
+function BarList.JoinOffsets(lastChar, firstChar, fontSize, pixel)
+	local size = Logic.Plain(fontSize) or 0
+	local step = Logic.Plain(pixel)
+	if not step or step <= 0 then
+		step = K.Scale.Pixel(1)
+	end
+	local gap = BarList.DotGap(fontSize, step)
+	local rsb = (NUMBER_RSB[lastChar] or BEARING_DEFAULT) * size
+	local lsb = (NUMBER_LSB[firstChar] or BEARING_DEFAULT) * size
+	return rsb + DOT_LSB * size - gap, lsb + DOT_RSB * size - gap
+end
+BarList.DOT_GAP_EM = DOT_GAP_EM
 ns.FILL_ALPHA = FILL_ALPHA
 BarList.PILL_HEIGHT = PILL_HEIGHT
 BarList.PILL_GAP = PILL_GAP
@@ -122,6 +190,12 @@ local function NewRow(list, index)
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
 	row.value:SetTextColor(Tokens.Color("textEmphasis"))
 	row.percent:SetTextColor(Tokens.Color(list.block and "textEmphasis" or "text"))
+	if list.block then
+		row.dot = Text(ink, "RIGHT")
+		row.dot:SetText(DOT)
+		row.dot:SetTextColor(Tokens.Color("textEmphasis"))
+		row.dot:Hide()
+	end
 	return row
 end
 
@@ -426,6 +500,9 @@ local function StyleRow(list, row)
 	ns.ApplyFont(row.name, section)
 	ns.ApplyFont(row.value, section, nil, figures)
 	ns.ApplyFont(row.percent, section, nil, figures)
+	if row.dot then
+		ns.ApplyFont(row.dot, section, nil, figures)
+	end
 	local texture, reverse = ns.Get(section .. ".texture"), ns.Get(section .. ".fill") == "right"
 	row.bar:SetBarTexture(texture)
 	row.bar:SetReverseFill(reverse)
@@ -449,6 +526,19 @@ local function PlaceMore(list, row)
 	Widgets.Tint(more, "muted")
 end
 
+local function FontSize(text, section)
+	local _, size = text:GetFont()
+	if not Logic.Plain(size) then
+		return ns.Get(section .. ".fontSize") * K.Theme.FontScale()
+	end
+	return size
+end
+
+local function NumberFace(text)
+	local path = text:GetFont()
+	return not Logic.IsSecret(path) and path == Tokens.Font("number")
+end
+
 local function PlaceBlockText(list, row)
 	local frame = row.frame
 	local inset, gap = Widgets.Snap(list.panel, BLOCK_TEXT_INSET), list.gap
@@ -457,15 +547,33 @@ local function PlaceBlockText(list, row)
 	row.percent:ClearAllPoints()
 	row.percent:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
 	row.percent:SetHeight(rowHeight)
+	row.percent:SetWidth(0)
 	row.percent:SetShown(joined)
 	row.value:ClearAllPoints()
-	if joined then
-		row.value:SetPoint("RIGHT", row.percent, "LEFT", 0, 0)
+	row.value:SetHeight(rowHeight)
+	row.value:SetWidth(0)
+	row.value:SetShown(list.valueWidth > 0)
+	local dot = row.dot
+	if dot then
+		dot:Hide()
+		dot:ClearAllPoints()
+	end
+	if joined and dot and list.valueWidth > 0 then
+		local size = FontSize(row.value, list.section)
+		local face = NumberFace(row.value)
+		local last = face and EndChar(row.amount, true) or nil
+		local first = face and EndChar(row.share, false) or nil
+		local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel)
+		local x, y = BarList.JoinOffsets(last, first, size, step)
+		dot:SetText(DOT)
+		dot:SetWidth(0)
+		dot:SetHeight(rowHeight)
+		dot:SetPoint("RIGHT", row.percent, "LEFT", y, 0)
+		dot:Show()
+		row.value:SetPoint("RIGHT", dot, "LEFT", x, 0)
 	else
 		row.value:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
 	end
-	row.value:SetHeight(rowHeight)
-	row.value:SetShown(list.valueWidth > 0)
 	row.name:ClearAllPoints()
 	row.name:SetPoint("LEFT", frame, "LEFT", inset, 0)
 	if list.valueWidth > 0 then
@@ -684,7 +792,12 @@ function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, p
 	row.value:SetText(valueText)
 	if self.block then
 		row.joined = percentText ~= ""
-		row.percent:SetText(row.joined and PERCENT_JOIN .. percentText or "")
+		row.amount = valueText
+		row.share = percentText
+		row.percent:SetText(percentText)
+		if row.dot then
+			row.dot:SetText(DOT)
+		end
 		PlaceBlockText(self, row)
 	else
 		row.percent:SetText(percentText)

@@ -60,7 +60,8 @@ do
 	local percent = { row.percent:GetPoint(1) }
 	assert(percent[1] == "RIGHT" and percent[2] == row.frame and percent[3] == "RIGHT" and percent[4] < 0, "the share sits at the row's right end, inside the fill")
 	local value = { row.value:GetPoint(1) }
-	assert(value[2] == row.percent and value[3] == "LEFT", "the value sits left of the share")
+	assert(value[2] == row.dot and value[3] == "LEFT", "the value sits left of the dot")
+	assert(row.dot:GetPoint(1) == "RIGHT" and select(2, row.dot:GetPoint(1)) == row.percent, "the dot sits left of the share")
 	local name = { row.name:GetPoint(2) }
 	assert(name[1] == "RIGHT" and name[2] == row.value and name[3] == "LEFT", "the name stops before the value, so a long name never runs under it")
 	assert(M.W.Near(row.bar:GetHeight(), row.frame:GetHeight()), "the bar is as tall as the row")
@@ -92,7 +93,7 @@ assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.MET
 assert(list.count == 2, "two sources show")
 assert(Text(list.rows[1].name) == "Kragar", "the first source is named")
 assert(Text(list.rows[1].value) == "~2840", "the value is abbreviated")
-assert(Text(list.rows[1].percent) == " \194\183 57%", "the share of the total shows after the middle dot")
+assert(Text(list.rows[1].percent) == "57%" and Text(list.rows[1].dot) == "\194\183", "the share is the percentage and the dot is its own piece")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 2840, "bars run to the session's top amount")
 assert(M.Last(list.rows[2].bar, "SetValue")[1] == 2160, "each bar shows its source's amount")

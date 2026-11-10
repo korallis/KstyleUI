@@ -444,6 +444,8 @@ local function textWidthEm(text, fontPath)
 		local ch = text:sub(i, i + size - 1)
 		if ch == "\226\128\137" then
 			em = em + (glyphs and glyphs[8201] or GLYPH_EM.thin)
+		elseif ch == "\194\183" then
+			em = em + (glyphs and glyphs[183] or 0.228)
 		elseif glyphs and size == 1 and glyphs[c] then
 			em = em + glyphs[c]
 		elseif ch == " " then

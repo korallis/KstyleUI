@@ -2,7 +2,6 @@
 local M = dofile("Tools/regression/meters_env.lua")
 local W = M.W
 
-local DOT = " \194\183 "
 local SPELLS = {
 	{ 403, "Lightning Bolt", 412, "meterNature" },
 	{ 8050, "Flame Shock", 188, "meterFire" },
@@ -102,12 +101,67 @@ for i, spell in ipairs(SPELLS) do
 	assert(not row.icon:IsShown(), i .. ": no icon")
 	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
 	assert(Text(row.value) == "~" .. spell[3], i .. ": the amount: " .. tostring(Text(row.value)))
-	assert(Text(row.percent) == DOT .. PERCENTS[i], i .. ": the share after the middle dot: " .. tostring(Text(row.percent)))
+	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
+	assert(row.dot and row.dot:IsShown() and Text(row.dot) == "\194\183", i .. ": the middle dot is its own piece")
 	local cr, cg, cb = K.Tokens.Color(spell[4])
 	local br, bg, bb = Color(row.bar)
 	assert(br == cr and bg == cg and bb == cb, i .. ": the bar is the spell's school colour (" .. spell[4] .. ")")
 	local range = M.Last(row.bar, "SetMinMaxValues")
 	assert(range[2] == 412 and M.Last(row.bar, "SetValue")[1] == spell[3], i .. ": the fill is the spell's share of the top spell")
+end
+
+-- The dot is its own piece. The ink gap is 5/21 of the font, which is 5 px on the picture's screen, snapped
+-- to the panel's pixel and never under one pixel. A trailing 1 sits closer than a trailing 2.
+do
+	local row = list.rows[1]
+	local dot = { row.dot:GetPoint(1) }
+	local value = { row.value:GetPoint(1) }
+	assert(dot[1] == "RIGHT" and dot[2] == row.percent and dot[3] == "LEFT", "the dot sits against the share")
+	assert(value[1] == "RIGHT" and value[2] == row.dot and value[3] == "LEFT", "the amount sits against the dot")
+	local _, size = row.value:GetFont()
+	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
+	local x2, y = ns.BarList.JoinOffsets("2", "4", size, step)
+	assert(W.Near(value[4], x2), "a trailing 2 leaves the picture's proportion after its ink, got " .. tostring(value[4]))
+	assert(W.Near(dot[4], y), "the share's first figure leaves the same proportion after the dot, got " .. tostring(dot[4]))
+	local x1 = ns.BarList.JoinOffsets("1", "4", size, step)
+	assert(x1 > x2 + size * 0.05, "a trailing 1, whose ink stops short of the advance, is pulled toward the dot")
+	assert(ns.BarList.DOT_GAP_EM == 5 / 21, "the gap is 5 px against the 21 px the 12-unit face draws on the reference screen")
+	assert(row.amount == "~412", "the amount is the text SetRow was handed, not a read back from the region")
+end
+
+-- A chosen font sizes the dot itself. Pinning every face to the number face's 0.228 em clips a wider
+-- middle dot (Inter's is 0.319 em) and the render guard reports it truncated.
+do
+	M.Write(env, K, "damage.font", K.Tokens.FontPath("InterSemiBold"))
+	local row = list.rows[1]
+	assert(select(1, row.dot:GetFont()) == K.Tokens.FontPath("InterSemiBold"), "the chosen font reaches the dot")
+	assert(row.dot:GetWidth() == 0, "the dot is not pinned to the number face's advance, got " .. tostring(row.dot:GetWidth()))
+	assert(row.dot:IsShown(), "the dot still shows")
+	M.Write(env, K, "damage.font", "")
+	assert(select(1, list.rows[1].value:GetFont()) == K.Tokens.Font("number"), "clearing the font returns the amount to the number face")
+end
+
+-- GetFont may hand the number face's path back in another spelling. That is not an error: the bearings
+-- fall to the default, and the dot still places.
+do
+	local row = list.rows[1]
+	local real = row.value.GetFont
+	local _, size = real(row.value)
+	local kept = row.amount
+	row.amount = "~411"
+	row.value.GetFont = function()
+		return "Interface/AddOns/KstyleUI/Media/Fonts/AlegreyaSansTabular-ExtraBold.ttf", size, ""
+	end
+	list:Restyle()
+	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
+	local fallen = ns.BarList.JoinOffsets(nil, nil, size, step)
+	local ones = ns.BarList.JoinOffsets("1", "4", size, step)
+	assert(not W.Near(fallen, ones), "the default bearing is not the trailing 1's")
+	assert(W.Near(select(4, row.value:GetPoint(1)), fallen), "a differently spelled path uses the default bearing, got " .. tostring(select(4, row.value:GetPoint(1))))
+	assert(#env._errors == 0, "a differently spelled path raises nothing: " .. tostring(env._errors[1]))
+	row.amount = kept
+	row.value.GetFont = real
+	list:Restyle()
 end
 
 -- The text sits inside the fill: the name at the left, the amount and share at the right, the value bold.
@@ -119,6 +173,7 @@ do
 	assert(share[1] == "RIGHT" and share[4] < 0 and share[4] > -12, "the share ends just inside the bar's right edge")
 	assert(M.Last(row.value, "SetFont")[1] == K.Tokens.Font("number"), "the amount is bold")
 	assert(M.Last(row.percent, "SetFont")[1] == K.Tokens.Font("number"), "and so is the share")
+	assert(M.Last(row.dot, "SetFont")[1] == K.Tokens.Font("number"), "and so is the dot")
 	assert(M.Last(row.name, "SetFont")[1] == K.Tokens.Font("body"), "the name is the body face")
 	assert(row.name:GetParent() ~= row.frame and row.name:GetParent():GetFrameLevel() > row.bar:GetFrameLevel(), "the text is drawn above the bar")
 	local nr, ng, nb = K.Tokens.Color("textEmphasis")
@@ -149,7 +204,7 @@ M.Write(env, K, "damage.meter", "DamageDone")
 
 -- The percent switch drops the share and the dot together.
 M.Write(env, K, "damage.percent", false)
-assert(Text(list.rows[1].percent) == "" and not list.rows[1].percent:IsShown(), "no share, no dot")
+assert(Text(list.rows[1].percent) == "" and not list.rows[1].percent:IsShown() and not list.rows[1].dot:IsShown(), "no share, no dot")
 M.Write(env, K, "damage.percent", true)
 
 -- The old default stays a setting: the colour source "class" brings the class colour back on spells.
@@ -252,4 +307,37 @@ do
 end
 
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
+
+-- On each screen the ink gap, in physical pixels, is within one pixel of 5/21 of the font, and it is
+-- still 5 on the picture's 3456 by 2234 screen. A fixed 5 px on every screen fails this.
+local screens = {
+	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+}
+for _, screen in ipairs(screens) do
+	local envS, KS, nsS = M.New({ width = screen[1], height = screen[2], game = function(e) Fight(e) end })
+	M.Enable(envS, KS)
+	envS.RunTimers()
+	local row = nsS.Damage.list.rows[1]
+	local label = screen[1] .. "x" .. screen[2]
+	if screen[1] == 3456 and screen[2] == 2234 then
+		assert(KS.Scale.SetUserScale(16 / 19), label .. ": the picture's screen uses the shipped interface size")
+		envS.RunTimers()
+	end
+	local _, size = row.value:GetFont()
+	local step = KS.Scale.Pixel(1) / KS.Widgets.ScaleFactor(row.frame)
+	local valueX = select(4, row.value:GetPoint(1))
+	local gap = 0.022 * size + 0.033 * size - valueX
+	local gapPx = gap / step
+	local wanted = nsS.BarList.DOT_GAP_EM * size / step
+	assert(row.dot:IsShown(), label .. ": the dot shows")
+	assert(math.abs(gap / step - math.floor(gap / step + 0.5)) < 1e-3, label .. ": the gap is whole pixels, got " .. tostring(gapPx))
+	assert(math.abs(gapPx - wanted) <= 1 + 1e-6, label .. ": the gap is the picture's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
+	assert(gapPx + 1e-6 >= 1, label .. ": the gap is at least one pixel")
+	if screen[1] == 3456 and screen[2] == 2234 then
+		assert(math.abs(gapPx - 5) < 0.05, label .. ": the picture's screen still has 5 px, got " .. tostring(gapPx))
+	end
+	assert(#envS._errors == 0, label .. ": " .. tostring(envS._errors[1]))
+end
+
 print("meters card ok")

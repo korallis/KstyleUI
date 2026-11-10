@@ -234,6 +234,8 @@ scene = Scene.Build(env)
 local paragraphItem, underItem = find(scene, paragraph), find(scene, under)
 local lineH = find(scene, oneLine).rect[4]
 local lines = Scene.TextWidth("Anyone for the crocolisk hunt by the river tonight", 10, "SourceSans3-Semibold.ttf") / 100
+local dot = Scene.TextWidth("\194\183", 10, "Interface\\AddOns\\KstyleUI\\Media\\Fonts\\AlegreyaSansTabular-ExtraBold.ttf")
+assert(math.abs(dot - 2.28) < 0.01, "the number face's middle dot is 0.228 em, not the two-byte fallback, got " .. tostring(dot))
 assert(lines > 2, "the sample text needs more than two 100-unit lines at 10 units, got " .. tostring(lines))
 assert(paragraphItem.rect[4] >= 3 * lineH - 1e-3, "a wrapped text is as tall as its wrapped lines, got " .. tostring(paragraphItem.rect[4]) .. " for a line of " .. tostring(lineH))
 near(underItem.rect[2], paragraphItem.rect[2] + paragraphItem.rect[4], "the next text sits under the whole paragraph")
