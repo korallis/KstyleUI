@@ -160,7 +160,7 @@ local function face(role)
 end
 for role, want in pairs({
 	display = "Cinzel-SemiBold.ttf", heading = "Cinzel-SemiBold.ttf", title = "Cinzel-SemiBold.ttf", caption = "AlegreyaSansTabular-Medium.ttf",
-	body = "AlegreyaSansTabular-Regular.ttf", number = "AlegreyaSansTabular-ExtraBold.ttf", world = "AlegreyaSansTabular-Medium.ttf",
+	body = "AlegreyaSansTabular-Regular.ttf", number = "AlegreyaSansTabular-ExtraBold.ttf", time = "AlegreyaSansTabular-Bold.ttf", timer = "AlegreyaSansTabular-Medium.ttf", world = "AlegreyaSansTabular-Medium.ttf",
 }) do
 	assert(face(role) == want, "the " .. role .. " role is " .. tostring(face(role)) .. ", want " .. want)
 end
@@ -172,7 +172,9 @@ assert(Theme.SetFontFace("SourceSans3Semibold"), "Source Sans 3 Semibold is sele
 for _, role in ipairs({ "display", "heading", "title", "caption", "body", "world" }) do
 	assert(face(role) == "SourceSans3-Semibold.ttf", "with Source Sans picked, " .. role .. " is Source Sans")
 end
-assert(face("number") == "SourceSans3-Semibold.ttf", "and numbers keep Source Sans's tabular digits")
+for _, role in ipairs({ "number", "time", "timer" }) do
+	assert(face(role) == "SourceSans3-Semibold.ttf", "and the " .. role .. " role keeps Source Sans's tabular digits")
+end
 assert(Theme.SetFontFace("Lumen") and face("heading") == "Cinzel-SemiBold.ttf", "Lumen can be picked back")
 
 assert(#env._errors == 0, tostring(env._errors[1]))
