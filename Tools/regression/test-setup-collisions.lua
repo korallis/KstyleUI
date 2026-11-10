@@ -166,12 +166,13 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 	end
 end
 
+-- Bar 3 binds Healer at 1920 x 1080 (0.99742 off, 0.99720 on); at 3456 x 2234 the target frame and the micro menu bind first (LEE-69 moved the rail 1.4 units in).
 do
-	assert(Layouts.Fits("DPS", 3456, 2234, 0.868), "disabled bar 3 must not collide with focus at a size above the old cap")
-	local enabled = Layouts.Enabled("DPS")
+	assert(Layouts.Fits("Healer", 1920, 1080, 0.9973), "disabled bar 3 must not collide with focus at a size above the old cap")
+	local enabled = Layouts.Enabled("Healer")
 	enabled["actionbars.bar3"] = true
-	assert(not Layouts.Fits("DPS", 3456, 2234, 0.868, enabled), "the same bar counts when the player enables it")
-	assert(Layouts.ScaleLimit(3456, 2234, "DPS", enabled) < Layouts.ScaleLimit(3456, 2234, "DPS"), "the cache distinguishes enabled-element sets")
+	assert(not Layouts.Fits("Healer", 1920, 1080, 0.9973, enabled), "the same bar counts when the player enables it")
+	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
 end
 
 do
@@ -190,14 +191,15 @@ do
 	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
 end
 
+-- Bar 3 binds the Healer preset at 1920 x 1080 (LEE-69 moved the rail in, so at 3456 x 2234 the target frame and the micro menu bind first).
 do
 	local menv, MK = CoreEnv.New({
-		width = 3456, height = 2234, fit = true,
+		width = 1920, height = 1080, fit = true,
 		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = {
-			Default = Profile("DPS", 1.5), WithBar3 = Profile("DPS", 1.5, true), Small = Profile("DPS", 0.7, true),
+			Default = Profile("Healer", 1.5), WithBar3 = Profile("Healer", 1.5, true), Small = Profile("Healer", 0.7, true),
 		} },
 	})
-	local defaults = CoreEnv.DeepCopy(Profile("DPS", 1.5).ActionBars)
+	local defaults = CoreEnv.DeepCopy(Profile("Healer", 1.5).ActionBars)
 	defaults.enabled = nil
 	MK.Modules.Register(CoreEnv.Module("ActionBars", { defaults = defaults }))
 	CoreEnv.Boot(menv)
@@ -214,7 +216,7 @@ do
 	local on = MK.Scale.AppliedUserScale()
 	assert(on < off and resized == 1, "enabling a colliding bar recomputes the cap and resizes once")
 	assert(#menv._printed == 1 and CoreEnv.Printed(menv, "to keep enabled elements on screen and apart"), "one line explains the resize")
-	assert(CoreEnv.Printed(menv, string.format("%.1f%%", on * 100)), "the explanation distinguishes the small real change from 86.9 to 86.8 percent")
+	assert(CoreEnv.Printed(menv, string.format("%.1f%%", on * 100)), "the explanation distinguishes the small real change from 99.74 to 99.72 percent, both 99.7")
 	assert(MK.Scale.UserScale() == 1.5 and MK.Appearance.Get("uiScale") == 1.5, "enabling a bar preserves the saved request")
 	MK.Options.Write("ActionBars", "bar3.enabled", true)
 	assert(resized == 1 and #menv._printed == 1, "a duplicate enable neither resizes nor prints")
