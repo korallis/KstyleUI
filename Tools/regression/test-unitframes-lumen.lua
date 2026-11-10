@@ -185,7 +185,7 @@ assert(player.disc:IsShown() and not player.badge:IsShown(), "the round level di
 assert(U.Shown(env, player.levelText) == "60", "the level shows in the disc")
 local gold = { ns.Lumen.Color("gold") }
 assert(W.SameRGB(player.ring, gold[1], gold[2], gold[3]), "the ring is gilt, whatever the accent")
-local headingPath = Tokens.Font("heading")
+local headingPath = Tokens.Font("caps")
 assert(player.name:GetFont() == headingPath, "the name is in the heading face")
 assert(U.Shown(env, player.healthText) == "3120", "the current health on the right: " .. U.Shown(env, player.healthText))
 assert(U.Shown(env, player.healthSub) == "/ 3980", "then the max: " .. U.Shown(env, player.healthSub))

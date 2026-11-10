@@ -155,7 +155,7 @@ local DPS = {
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = BAR1_Y },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
-	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 320.6 },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 420 },
 	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 },
 	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 },
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 },

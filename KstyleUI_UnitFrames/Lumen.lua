@@ -23,8 +23,8 @@ local RECIPES = {
 }
 
 local ROLES = {
-	name = "heading",
-	cap = "heading",
+	name = "caps",
+	cap = "caps",
 	value = "number",
 	caption = "body",
 }

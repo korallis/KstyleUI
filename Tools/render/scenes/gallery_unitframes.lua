@@ -168,7 +168,8 @@ end
 return Common.Run(function()
 	local U = dofile("Tools/regression/unitframes_env.lua")
 	local env, K, ns = U.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ "UnitFrames" }),
+		saved = Gallery.Saved({ "UnitFrames" }, { version = U.DbVersion() }),
+		lumen = true,
 		setup = function(env)
 			Gallery.Setup(env)
 			for token, unit in pairs(UNITS) do

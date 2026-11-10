@@ -27,9 +27,7 @@ local ANCHORS = {
 local EXCLUSIVE = { ["groupframes.party"] = "groupframes.raid", ["groupframes.raid"] = "groupframes.party" }
 local PICTURE_GAPS = {
 	["unitframes.player/unitframes.target"] = 2,
-	["unitframes.target/unitframes.resource"] = 0.6,
 	["unitframes.castbar.player/meters.swing"] = 1,
-	["unitframes.resource/cooldowns.essential"] = 0.7,
 }
 -- 16:9 at three sizes, a MacBook, the owner's 2383 x 1540, 16:10 and 21:9: at the Interface size KstyleUI ships
 -- (16 / 19) the root is Layouts.HEIGHT (1282.5) units tall on each.
@@ -45,6 +43,7 @@ local REFERENCE = {
 	["unitframes.player"] = { 491, 77.5, 0, 138, 586.5, -47.75 },
 	["unitframes.target"] = { 491, 102.5, 0, 217.5, 737.4, 123.2 },
 	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 },
+	["unitframes.resource"] = { 120, 14, 0, 420 },
 	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 },
 	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 },
 	["actionbars.bar1"] = { 491, 36.7, 0, 54 },
@@ -398,7 +397,7 @@ for _, name in ipairs(names) do
 		assert(same(playerBar[1], bar1.left) and same(playerBar[3], bar1.right), label .. ": LEE-20 the player's bars, not its external portrait reserve, span bar 1")
 		assert(same(vitals.left, playerBar[1] - 95.5) and same(vitals.right, playerBar[3]), label .. ": LEE-20 the player reserve extends 91.5 left for the portrait plus a 4-unit pixel-rounding buffer")
 		local resource = rect("unitframes.resource")
-		assert(same(resource.bottom, 320.6) and same(essential.bottom - resource.top, 0.7), label .. ": LEE-20 the class resource sits directly over the target, under the cooldowns")
+		assert(same(resource.bottom, 420) and same(resource.bottom - cast.top, 4.5), label .. ": the optional class resource sits 4.5 above the player cast, clear after independent pixel snapping")
 		assert(same(utility.x - mid, 218) and same(utility.bottom, 335.3) and same(utility.left - essential.right, 15.9), label .. ": the optional utility row keeps its slot beside the resized essential row")
 		local buffs, bars = rect("cooldowns.buffs"), rect("cooldowns.bars")
 		assert(same(buffs.x - mid, -442.8) and same(buffs.bottom, 155.9) and same(vitals.left - buffs.right, 10.5), label .. ": LEE-20 the tracked buffs sit 10.5 left of the player portrait reserve")

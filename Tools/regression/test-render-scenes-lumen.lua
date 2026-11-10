@@ -111,7 +111,7 @@ do
 		assert(find(combat, name), "the party of five shows " .. name)
 	end
 	assert(find(combat, "BLOODTALON MATRIARCH"), "the boss is the target")
-	assert(find(combat, "Terrifying Screech"), "and its cast shows")
+	assert(find(combat, "TERRIFYING SCREECH"), "and its cast shows in capitals")
 	for _, text in ipairs({ "GENERAL", "RIVERGLADES" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 0.75), text .. " is read mid-pull and dims only to 75% in combat, got " .. tostring(item.alpha))

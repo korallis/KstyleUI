@@ -285,7 +285,7 @@ local function LumenTexts(view, g)
 		end
 		if g.caption then
 			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP), 0)
+			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), 0)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
