@@ -18,7 +18,7 @@ local Lib = {}
 Lib.OPT_OUTS = {}
 
 Lib.ACCENTS = {
-	["meters.threat"] = "the threat warning edge (KstyleUI_Meters/README.md, Warnings): a warning turns the panel's hairline neutral and danger turns it hostile; Chrome:SyncMaterialFrame raises an own edge above the forged frame so the state stays visible",
+	["meters.threat"] = "the threat warning edge (KstyleUI_Meters/README.md, Warnings): a warning turns the panel's hairline neutral and danger turns it hostile; Chrome:SyncMaterialFrame swaps the rounded rim for a square edge inside the forged frame and its brackets so the state stays visible",
 }
 
 Lib.ROLES = {
@@ -59,7 +59,7 @@ end
 -- The textures a Chrome owns, as { part name, texture }.
 local function parts(chrome)
 	local out = {}
-	for _, name in ipairs({ "fill", "shadow", "rim", "line", "gilt", "grain", "materialFrame", "materialBrackets" }) do
+	for _, name in ipairs({ "fill", "shadow", "rim", "line", "gilt", "grain", "materialFrame", "materialBrackets", "materialEdge" }) do
 		local value = chrome[name]
 		if type(value) == "table" and value._type == "Texture" then
 			out[#out + 1] = { name, value }
@@ -213,13 +213,26 @@ function Lib.AuditCard(card, material)
 			assert(basename(item.file):find("^ForgedFrame%d%.png$") and item.vertex[4] > 0, label .. " forged frame is the wrong texture")
 		end
 		assert(not card.drawn.line, label .. " draws its ring line under the forged frame")
-		if card.drawn.rim then
+		assert(not card.drawn.rim, label .. " draws its rounded rim over the forged frame")
+		local edge = card.drawn.materialEdge
+		if edge then
 			local reason = Lib.ACCENTS[card.role]
 			assert(type(reason) == "string" and #reason >= 40, label .. " draws an outline over its forged frame with no recorded reason")
-			assert(chrome.ownEdge, label .. " draws an outline over its forged frame without a state edge")
+			assert(chrome.ownEdge or chrome.proc, label .. " draws an outline over its forged frame without a state edge")
+			assert(#edge == 4, label .. " draws " .. #edge .. " of 4 sides of its state edge")
+			local box = union(edge)
+			local inset = box[1] - span[1]
+			assert(inset > tolerance and near(span[3] - box[3], inset, tolerance) and near(box[2] - span[2], inset, tolerance) and near(span[4] - box[4], inset, tolerance), label .. " state edge does not sit evenly inside the forged frame")
+			for _, item in ipairs(edge) do
+				local side = item.rect
+				local across = side[3] == box[3] - box[1] or side[4] == box[4] - box[2]
+				local down = near(side[1], box[1], 1e-3) or near(side[1] + side[3], box[3], 1e-3)
+				assert(across or down, label .. " state edge has a side off its square")
+			end
 		end
 	else
 		assert(not frame, label .. " draws a forged frame the " .. material .. " material lacks")
+		assert(not card.drawn.materialEdge, label .. " draws a forged state edge the " .. material .. " material lacks")
 	end
 	local brackets = card.drawn.materialBrackets
 	if spec.brackets then
