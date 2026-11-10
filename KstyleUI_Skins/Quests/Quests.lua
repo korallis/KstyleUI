@@ -285,13 +285,15 @@ function Quests.Fit()
 	return nil
 end
 
+local Reflow
+
 function Quests.Dock(on)
-	if state.built then
-		Card.SetDocked(on == true and state.active)
+	on = on == true and state.active
+	if state.built and Card.Docked() ~= on then
+		Card.SetDocked(on)
+		Reflow()
 	end
 end
-
-local Reflow
 
 local function ReflowLater()
 	state.reflowing = false

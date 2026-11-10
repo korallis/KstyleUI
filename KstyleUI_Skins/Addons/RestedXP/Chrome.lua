@@ -30,7 +30,7 @@ local HEADER_OVERLAP = 9
 local LIST_LEFT, LIST_RIGHT, RXP_LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
 local FOOTER_RISE, FOOTER_CLEAR = 6, "gapSmall"
-local CAP_ROW, CAP_AIR, CAP_LEFT, CAP_RIGHT = 16, "gapSmall", RXP_MARGIN, RXP_MARGIN
+local CAP_ROW, CAP_TOP, CAP_FOOT, CAP_LEFT, CAP_RIGHT = 19, 12.5, 6, RXP_MARGIN, RXP_MARGIN
 local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
@@ -492,14 +492,18 @@ local function PlaceCard(path)
 	card:SetPoint("BOTTOM", bottom, "BOTTOM", 0, offset)
 end
 
+local function Root(frame, units)
+	return Widgets.Snap(frame, units / Widgets.ScaleFactor(frame))
+end
+
 local function PlaceHead(path)
 	local f, holder, header = path.frame, path.holder, path.header
 	local steps = StepsAbove(f)
 	local first = steps and IsTable(steps.framePool) and steps.framePool[1]
 	local rise = IsTable(first) and first:IsShown() and STEP_RISE or 0
-	local full = CAP_ROW + 2 * Tokens.Size(CAP_AIR)
+	local full = Root(holder, CAP_TOP) + Root(holder, CAP_ROW) + Root(holder, CAP_FOOT)
 	local anchor = steps or header
-	full, rise = Widgets.Snap(holder, full), Widgets.Snap(holder, rise)
+	rise = Widgets.Snap(holder, rise)
 	path.capHeight = full - rise
 	holder:ClearAllPoints()
 	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
@@ -542,11 +546,11 @@ end
 
 local function RestylePath(path)
 	local cap, meta, header = path.cap, path.meta, path.header
-	local air = Widgets.Snap(cap.row, Tokens.Size(CAP_AIR))
+	local air = Root(cap.row, CAP_TOP)
 	cap.row:ClearAllPoints()
 	cap.row:SetPoint("TOPLEFT", path.holder, "TOPLEFT", 0, -air)
 	cap.row:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT", 0, -air)
-	cap.row:SetHeight(Widgets.Snap(cap.row, CAP_ROW))
+	cap.row:SetHeight(Root(cap.row, CAP_ROW))
 	header:SetHeight(Widgets.Snap(header, path.height))
 	Style.Text(meta, "caption", "text")
 	meta:ClearAllPoints()

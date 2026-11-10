@@ -124,6 +124,12 @@ do
 	assert(parts.thumb:IsShown(), "and a slim scroll bar shows")
 	assert(parts.thumb:GetAlpha() == 0 and parts.track:GetAlpha() == 0 and parts.more:GetAlpha() == 0, "at rest the scroll bar and the more line are unseen, as the picture draws the card")
 	local card = ns.Quests.Card()
+	local cardBox, capBox, viewBox = RootRect(K, card), RootRect(K, parts.cap.row), RootRect(K, parts.view)
+	assert(math.abs(cardBox.top - capBox.top - 11) <= 0.6, "standing alone, the caption's row starts 11 root units under the glass's top, as the picture's guide caption does, got " .. cardBox.top - capBox.top)
+	assert(math.abs(capBox.bottom - viewBox.top - 6.5) <= 0.6, "the first quest starts 6.5 under the caption's row, as the picture spaces them, got " .. capBox.bottom - viewBox.top)
+	assert(math.abs(viewBox.bottom - cardBox.bottom - 14) <= 0.6, "the card ends 14 under its last quest, the picture's foot, got " .. viewBox.bottom - cardBox.bottom)
+	local morePoint, moreOn, _, _, moreY = parts.more:GetPoint(1)
+	assert(morePoint == "TOP" and moreOn == parts.view and moreY == 0 and select(2, parts.more:GetFont()) * 1.2 <= 14 / factor, "the more line stands in that foot, so it adds no row to the card")
 	card._mouseOver = true
 	card:GetScript("OnEnter")(card)
 	assert(parts.thumb:GetAlpha() == 1 and parts.track:GetAlpha() == 1 and parts.more:GetAlpha() == 1, "under the pointer they show")
@@ -181,6 +187,8 @@ do
 	assert(Ids(Shown(ns)) == "301,302", "two quests show whole, got " .. Ids(Shown(ns)))
 	assert(not ns.Quests.Parts().thumb:IsShown(), "with no scroll bar")
 	assert(not ns.Quests.Parts().more:IsShown(), "and no more line")
+	local whole, last = RootRect(K, ns.Quests.Card()), RootRect(K, ns.Quests.Parts().view)
+	assert(math.abs(last.bottom - whole.bottom - 14) <= K.Scale.Pixel(1), "the foot is the same 14 with nothing more to scroll to, got " .. last.bottom - whole.bottom)
 	for _ = 1, 2 do
 		log.Untrack(log.quests[#log.quests].id)
 	end

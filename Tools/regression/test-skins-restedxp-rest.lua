@@ -324,6 +324,8 @@ do
 		end
 	end
 	assert(shown == 4, "the picture's four quests fit under the guide's two lines, got " .. shown)
+	local capPoint, capOn, _, _, capY = ns.Quests.Parts().cap.row:GetPoint(1)
+	assert(capPoint == "TOPLEFT" and capOn == ns.Quests.Card() and capY == 0, "docked, the QUESTS caption starts at the card's top: the guide's glass holds it, so the card's own head is not added, got " .. tostring(capY))
 
 	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, under the steps.
 	rxp.StartTimer(30, "Hearthstone")

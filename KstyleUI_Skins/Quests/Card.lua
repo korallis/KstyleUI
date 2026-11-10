@@ -10,8 +10,8 @@ ns.QuestCard = Card
 
 local MAX_SHOWN, MAX_LINES, MAX_WRAP = 8, 6, 3
 local GUTTER, DISC, NUMERAL = 25.5, 16.33, 10
-local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5, 4, 7
-local CAP_ROW, CAP_GAP, MORE_ROW = 22, 2, 16
+local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5.5, 4, 7
+local CAP_ROW, CAP_GAP, HEAD, FOOT = 22, 6.5, 11, 14
 local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
@@ -475,8 +475,8 @@ function Card.Render()
 	for i = 1, total do
 		heights[i] = Height(Data.Get(i))
 	end
-	local top, bottom = Snap(Tokens.Size("gapSmall")), Snap(Tokens.Size("gapSmall"))
-	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + bottom + (over and Snap(MORE_ROW) or 0)
+	local top = docked and 0 or Snap(HEAD)
+	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Snap(FOOT)
 	local room = math.max(heights[1], maxHeight - chrome)
 	local viewHeight = math.min(Window(total, n, gap), room)
 	local fit = FitFromEnd(total, n, viewHeight, gap)
@@ -678,7 +678,7 @@ function Card.Build(root)
 	countRuler = Widgets.FontString(card, "OVERLAY")
 	countRuler:Hide()
 	more = Widgets.FontString(card, "OVERLAY")
-	more:SetPoint("TOP", view, "BOTTOM", 0, -Snap(CAP_GAP))
+	more:SetPoint("TOP", view, "BOTTOM", 0, 0)
 	more:SetJustifyH("CENTER")
 	PaintRest()
 	for i = 1, MAX_SHOWN do

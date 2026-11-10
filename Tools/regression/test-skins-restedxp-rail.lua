@@ -107,7 +107,12 @@ do
 	for _, step in ipairs(f.CurrentStepFrame.framePool) do
 		assert(not K.Skin.IsSkinned(step, "Backdrop"), "the steps are rows in the card, not cards of their own")
 	end
-	assert(near(path.capHeight, K.Widgets.Snap(path.holder, 16 + 2 * K.Tokens.Size("gapSmall")) - K.Widgets.Snap(path.holder, 12), 0.01), "the cap adds its row and its air less the 12 units it shares with the first step's empty head")
+	local factor = K.Widgets.ScaleFactor(path.holder)
+	local function Root(units)
+		return K.Widgets.Snap(path.holder, units / factor)
+	end
+	assert(near(path.capHeight, Root(12.5) + Root(19) + Root(6) - K.Widgets.Snap(path.holder, 12), 0.01), "the cap adds its head, its row and its foot, less the 12 units it shares with the first step's empty head")
+	assert(near(card.top - cap.top, 12.5, 0.6) and near(cap.top - cap.bottom, 19, 0.6), "the caption's row is 19 root units and starts 12.5 under the glass's top at any RestedXP scale, as the picture draws it, got " .. card.top - cap.top .. " and " .. cap.top - cap.bottom)
 	-- Three steps of two lines each still hang from the top and stay in the slot.
 	rxp.SetStep(3, 2)
 	env.RunTimers()
