@@ -25,6 +25,11 @@ for _, tick in ipairs(xp.ticks) do
 end
 K.Options.Write("DataBars", "xp.texture", paths.Flat)
 eq(xp.track.texturePath, paths.Flat, "selected flat texture")
+for _, choice in ipairs({ "Glass", paths.Glass }) do
+	K.Options.Write("DataBars", "xp.texture", choice)
+	eq(xp.fill.texturePath, paths.Glass, "selected Glass fill texture")
+	eq(xp.track.texturePath, paths.Glass, "selected Glass rested texture")
+end
 local custom
 for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
 	if item.key ~= "Flat" and item.key ~= "Glass" then custom = item.path; break end

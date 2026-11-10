@@ -2,6 +2,10 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local env, K, ns = U.New()
+local paths = {}
+for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
+	paths[item.key] = item.path
+end
 
 local function near(a, b)
 	return type(a) == "number" and math.abs(a - b) < 0.0001
@@ -30,7 +34,7 @@ settle()
 
 local player, target = ns.Frames.Get("player").views[1], ns.Frames.Get("target").views[1]
 for _, cast in ipairs({ ns.CastBars.Get("player")[1], ns.CastBars.Inline("target")[1] }) do
-	assert(cast.bar.textureKey == "Flat", "a caption cast replaces the default Glass fill, not only its overlays")
+	assert(cast.bar.texturePath == paths.Flat, "a caption cast defaults to the actual Flat texture")
 	assert(not cast.bar.spark:IsShown() and not cast.bar.keyline:IsShown(), "a caption cast paints no spark or outside keyline")
 	assert(not cast.bar.lit:IsShown() and not cast.bar.shade:IsShown(), "caption cast paint is flat")
 	color(cast.bar, "gilt")
@@ -52,6 +56,10 @@ local auraTimer = K.Widgets.FontString(K.Scale.Root(), "OVERLAY")
 ns.Auras.PlaceTimer(auraTimer, target.portraitFrame, "target")
 assert(select(5, auraTimer:GetPoint(1)) == -K.Widgets.Snap(target.portraitFrame, 4), "the target timer's optical gap clears the tile")
 
+for _, choice in ipairs({ "Glass", paths.Glass }) do
+	K.Options.Write("UnitFrames", "player.castbarTexture", choice)
+	assert(ns.CastBars.Get("player")[1].bar.texturePath == paths.Glass, "a selected Glass texture paints Glass")
+end
 K.Options.Write("UnitFrames", "player.castbarTexture", "Flat")
 assert(ns.CastBars.Get("player")[1].bar.textureKey == "Flat", "a selected flat texture is retained")
 K.Options.Write("UnitFrames", "player.style", "plate")

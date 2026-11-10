@@ -22,14 +22,6 @@ local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 local FALLBACK_WIDTH, FALLBACK_HEIGHT = 441, 5
 local FALLBACK_POSITION = { anchor = "BOTTOM", x = 0, y = 0 }
 
-local GLASS_TEXTURE
-for _, item in ipairs(Tokens.MediaList("statusbar")) do
-	if item.key == "Glass" then
-		GLASS_TEXTURE = item.path
-		break
-	end
-end
-
 local TEXT_POINTS = {
 	CENTER = { "CENTER", "CENTER", 0, 0 },
 	TOP = { "BOTTOM", "TOP", 0, 1 },
@@ -232,12 +224,8 @@ end
 
 local function Style(view, s)
 	local fill, track = view.fill, view.track
-	local texture = s.texture
-	if view.def.id == "xp" and (texture == "Glass" or texture == GLASS_TEXTURE) then
-		texture = "Flat"
-	end
-	fill:SetBarTexture(texture)
-	track:SetBarTexture(texture)
+	fill:SetBarTexture(s.texture)
+	track:SetBarTexture(s.texture)
 	local orientation = s.orientation == "VERTICAL" and "VERTICAL" or "HORIZONTAL"
 	fill:SetOrientation(orientation)
 	track:SetOrientation(orientation)

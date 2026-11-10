@@ -15,7 +15,7 @@ for _, setting in ipairs(ns.Settings.schema) do
 	end
 end
 assert(ns.Settings.defaults.essential.countSize == 10, "the corner charge size is unchanged")
-assert(ns.Settings.defaults.utility.timerSize == 11 and ns.Settings.defaults.buffs.timerSize == 10, "other timer defaults are unchanged")
+assert(ns.Settings.defaults.utility.timerSize == 11 and ns.Settings.defaults.buffs.timerSize == 9, "utility retains 11 and tracked captions use the measured nine-unit size")
 
 local function Integer(value, what)
 	assert(math.abs(value - math.floor(value + 0.5)) < 1e-6, what .. " lands on whole physical pixels")
@@ -38,8 +38,11 @@ end
 local native = env._viewers.EssentialCooldownViewer._items[1]
 local nativeText = native.Cooldown:GetCountdownFontString()
 local nativeCount = native.ChargeCount.Current
+local nativeBuff = env._viewers.BuffIconCooldownViewer._items[1]
+local buffText = nativeBuff.Cooldown:GetCountdownFontString()
 nativeText.GetText, nativeText.IsShown, nativeText.IsVisible = NoTextReads, NoTextReads, NoTextReads
 nativeCount.GetText, nativeCount.IsShown, nativeCount.IsVisible = NoTextReads, NoTextReads, NoTextReads
+buffText.GetText, buffText.IsShown, buffText.IsVisible = NoTextReads, NoTextReads, NoTextReads
 
 local function SameRect(before, frame)
 	local after = assert(Geometry.Rect(frame, K.Scale.Root()))
@@ -77,12 +80,16 @@ for _, screen in ipairs({
 		K.Options.Write("Cooldowns", "path", "reskin")
 		for _, itemScale in ipairs({ 0.5, 1, 1.4 }) do
 			native:SetScale(itemScale)
+			nativeBuff:SetScale(itemScale)
 			for _, value in ipairs({ env.Secret("4"), "12", "2m", "3h" }) do
 				nativeText:SetText(value)
 				nativeCount:SetText("3")
 				local writes = #W.Calls(nativeText, "SetText")
 				ns.Reskin.Refresh()
 				Figure(nativeText, native, itemScale, 16.5)
+				local path, size = buffText:GetFont()
+				assert(path == K.Tokens.Font("caption") and W.Near(size, K.Widgets.FontSize(buffText, 9 * K.Theme.FontScale() / itemScale)), "tracked captions keep the lighter face and snapped configured size across screens and item scales")
+				Integer(size * K.Widgets.ScaleFactor(buffText) / K.Scale.Pixel(1), "the tracked font size")
 				assert(#W.Calls(nativeText, "SetText") == writes and W.LastCall(nativeText, "SetText")[1] == value, "native secret and long countdown text passes through untouched")
 				assert(W.LastCall(nativeCount, "SetText")[1] == "3", "native charges stay intact")
 				assert(W.LastCall(native.Cooldown, "SetCountdownFormatter")[1] == nil, "the reskin keeps native formatting too")

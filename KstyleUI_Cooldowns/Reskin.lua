@@ -90,7 +90,7 @@ local function SkinIcon(group, item)
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
 		local text = cooldown:GetCountdownFontString()
-		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline)
+		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group == "buffs" and "caption" or nil)
 		Style.Countdown(cooldown, group == "essential")
 		if text and (group == "essential" or group == "buffs") then
 			if group == "buffs" then

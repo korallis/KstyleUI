@@ -56,6 +56,7 @@ assert(buffs.icons[1]._points[1][4] < buffs.icons[2]._points[1][4], "configured 
 local function below(button)
 	local p = button.countdown._points[1]
 	assert(p[1] == "TOP" and p[3] == "BOTTOM" and p[5] < 0, "tracked buff timers are below the icon")
+	assert(button.countdown:GetFont() == K.Tokens.Font("caption"), "the kit's tracked timers use its lighter caption face")
 end
 below(buffs.icons[1])
 buffs.icons[1]:Restyle()
@@ -104,4 +105,16 @@ for _, wrap in ipairs({ "up", "down" }) do
 	end
 end
 
+local chosen = K.Tokens.FontPath("SourceSans3Regular")
+K.Options.Write("Cooldowns", "timerFont", chosen)
+K.Options.Write("Cooldowns", "timerOutline", "OUTLINE")
+K.Options.Write("Cooldowns", "buffs.timerSize", 14)
+local customRow = ns.Row.New(K.Scale.Root(), "buffs", ns.Settings.current.buffs)
+customRow:SetCount(1)
+ns.Reskin.Refresh()
+for _, text in ipairs({ customRow.icons[1].countdown, engine.Cooldown:GetCountdownFontString() }) do
+	local path, size, flags = text:GetFont()
+	assert(path == chosen and flags == "OUTLINE", "an explicit font and outline override the lighter kit role in both paths")
+	assert(W.Near(size, K.Widgets.FontSize(text, 14)), "the chosen buff timer size is retained")
+end
 print("cooldowns appearance ok")

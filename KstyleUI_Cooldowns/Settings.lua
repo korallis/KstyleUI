@@ -80,7 +80,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 end
 
 local essential = IconDefaults(36.7, ESSENTIAL_TIMER, ESSENTIAL_COUNT, true, 4.6)
-local buffs = IconDefaults(27.6, 10, 9, false, 3.4)
+local buffs = IconDefaults(27.6, 9, 9, false, 3.4)
 buffs.growth = "rightAligned"
 
 Settings.defaults = {

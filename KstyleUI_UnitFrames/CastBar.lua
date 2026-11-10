@@ -545,11 +545,7 @@ function CastBars.Restyle(cb)
 		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
 		cb.timer:SetTextColor(Tokens.Color("text"))
 	end
-	local texture = Settings.Value(cb.kind, "castbarTexture")
-	if cb.mode and (texture == "Glass" or texture == Tokens.MediaList("statusbar")[1].path) then
-		texture = "Flat"
-	end
-	cb.bar:SetBarTexture(texture)
+	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
 	Orient(cb)
 	cb.styled = true
 	cb.pr = nil
