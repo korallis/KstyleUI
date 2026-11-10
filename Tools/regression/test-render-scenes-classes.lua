@@ -31,6 +31,7 @@ for _, class in ipairs(Classes.ORDER) do
 	local tag = "hud." .. class
 	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class })))
 	local healthColour = { Hud.envs[uf].KstyleUI.Tokens.Color("hudPlayerHealth") }
+	local manaColour = { Hud.envs[uf].KstyleUI.Tokens.Color("hudMana") }
 	-- The player frame paints its power bar in the power type's colour (the owner's ruling of 2026-11-08: mana
 	-- blue, rage red, energy yellow, PowerBarColor lifted by Theme.Brighten, so every channel is at least the
 	-- game's and the brightest channel stays the brightest), never the class colour; the power type shows as the
@@ -60,7 +61,9 @@ for _, class in ipairs(Classes.ORDER) do
 			if near(item.fraction, 2750 / 3350) and sameColour(item.vertex, healthColour) then
 				health = true
 			end
-			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and brightened(item.vertex, powerColour) and not sameColour(item.vertex, spec.colour) then
+			local powerMatch = spec.power.token == "MANA" and sameColour(item.vertex, manaColour)
+				or (spec.power.token ~= "MANA" and brightened(item.vertex, powerColour))
+			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and powerMatch and not sameColour(item.vertex, spec.colour) then
 				power = true
 			end
 			if spec.pet and near(item.fraction, spec.pet.health / spec.pet.healthMax) and not sameColour(item.vertex, spec.colour) then

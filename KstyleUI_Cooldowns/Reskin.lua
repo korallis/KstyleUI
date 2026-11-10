@@ -93,13 +93,13 @@ local function SkinIcon(group, item)
 		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline)
 		Style.Countdown(cooldown, group == "essential")
 		if text and (group == "essential" or group == "buffs") then
-			text:ClearAllPoints()
 			if group == "buffs" then
+				text:ClearAllPoints()
 				text:SetPoint("TOP", item, "BOTTOM", 0, -Widgets.Snap(item, 2 / scale))
+				text:SetJustifyH("CENTER")
 			else
-				text:SetPoint("CENTER", item, "CENTER", 0, 0)
+				Style.PlaceEssential(text, item, scale)
 			end
-			text:SetJustifyH("CENTER")
 		end
 	end
 	local charges = item.ChargeCount

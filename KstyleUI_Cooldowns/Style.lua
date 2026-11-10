@@ -191,6 +191,12 @@ end
 
 Style.Centre = Centre
 
+function Style.PlaceEssential(countdown, icon, scale)
+	countdown:ClearAllPoints()
+	countdown:SetPoint("CENTER", icon, "CENTER", 0, -Widgets.Snap(icon, 2 / (scale or 1)))
+	countdown:SetJustifyH("CENTER")
+end
+
 function Style.PlaceText(icon, group)
 	local countdown = icon.countdown
 	if not countdown or not Widgets.MayMove(icon) then
@@ -200,16 +206,16 @@ function Style.PlaceText(icon, group)
 		Centre(icon)
 		return
 	end
-	countdown:ClearAllPoints()
 	if group == "buffs" then
+		countdown:ClearAllPoints()
 		countdown:SetPoint("TOP", icon, "BOTTOM", 0, -Widgets.Snap(icon, 2))
+		countdown:SetJustifyH("CENTER")
 	else
-		countdown:SetPoint("CENTER", icon, "CENTER", 0, 0)
+		Style.PlaceEssential(countdown, icon)
 		local inset = K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
 		icon.count:ClearAllPoints()
 		icon.count:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
 	end
-	countdown:SetJustifyH("CENTER")
 end
 
 local function ShowTooltip(icon)

@@ -27,8 +27,9 @@ local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
 local ELAPSED_FORMAT = "%.1f / %.1f"
 local REMAINING_FORMAT = "%.1f"
-local CAPTION_BAR = { above = 9, below = 7 }
-local CAPTION_GAP = { above = 3, below = 4.5 }
+local CAPTION_BAR = { above = 9, below = 8 }
+local CAPTION_OFFSET = { above = 0, below = 0.5 }
+local CAPTION_GAP = { above = 3, below = 3.5 }
 local CAPTION_TIMER_EM = { above = 6.2, below = 3 }
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
@@ -378,13 +379,15 @@ local function LayoutCaption(cb, width, height)
 	local gap = CAPTION_GAP[mode]
 	local spare = height - gap - rowH
 	local labelOn = spare >= BAR_MIN
-	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height)
+	local barOffset = Snap(cb, CAPTION_OFFSET[mode])
+	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height - barOffset)
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
-	bar:SetSparkShown(true)
+	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, -barOffset)
+	bar:SetSparkShown(false)
+	bar.keyline:Hide()
 	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
 	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[mode] * size), math.floor(width / 2)) or 0
 	local y = Snap(cb, barH + gap)
@@ -413,6 +416,7 @@ function CastBars.Layout(cb, width, height)
 		return
 	end
 	Style.Flat(cb.bar, false)
+	cb.bar.keyline:Show()
 	if cb.line then
 		LayoutLine(cb, width, height)
 		return
@@ -541,7 +545,11 @@ function CastBars.Restyle(cb)
 		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
 		cb.timer:SetTextColor(Tokens.Color("text"))
 	end
-	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
+	local texture = Settings.Value(cb.kind, "castbarTexture")
+	if cb.mode and (texture == "Glass" or texture == Tokens.MediaList("statusbar")[1].path) then
+		texture = "Flat"
+	end
+	cb.bar:SetBarTexture(texture)
 	Orient(cb)
 	cb.styled = true
 	cb.pr = nil

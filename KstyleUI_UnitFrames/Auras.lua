@@ -43,6 +43,7 @@ local COUNT_INSET = 1
 local SWIPE_ALPHA = 0.65
 local DISPEL_SUBLEVEL = 7
 local TIMER_BELOW_GAP = 1
+local COLUMN_TIMER_GAP = 4
 local TIMER_ROOM_EXTRA = 3
 local BADGE_PAD, BADGE_ALPHA = 1, 0.62
 local TEXT_FLOOR, TEXT_LINE = 10, 1.2
@@ -174,7 +175,8 @@ local function TimerRoom(kind)
 		return 0
 	end
 	local _, fontSize = Settings.Font(kind, "aura")
-	return TIMER_BELOW_GAP + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA
+	local gap = Settings.Form(kind) == "column" and COLUMN_TIMER_GAP or TIMER_BELOW_GAP
+	return gap + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA
 end
 
 function Auras.TimerRoom(kind)
@@ -185,7 +187,8 @@ function Auras.PlaceTimer(timer, skin, kind, badge)
 	timer:ClearAllPoints()
 	local below = TimerBelow(kind)
 	if below then
-		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, TIMER_BELOW_GAP))
+		local gap = Settings.Form(kind) == "column" and COLUMN_TIMER_GAP or TIMER_BELOW_GAP
+		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, gap))
 		timer:SetJustifyH("CENTER")
 	else
 		local inset = Widgets.Snap(skin, COUNT_INSET)

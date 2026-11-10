@@ -13,7 +13,7 @@ local GAP = Tokens.Size("actionGap")
 local Layouts = K.Setup.Layouts
 local BUTTON = Layouts.BUTTON
 local UTILITY_COLUMNS = 4
-local ESSENTIAL_TIMER, ESSENTIAL_COUNT = 20, 10
+local ESSENTIAL_TIMER, ESSENTIAL_COUNT = 16.5, 10
 local UTILITY_TIMER, UTILITY_COUNT = 11, 11
 local BAR_WIDTH, BAR_HEIGHT = Layouts.Element("cooldowns.bars").width, 20
 local BAR_FILL_ALPHA = 0.15
@@ -33,6 +33,7 @@ local ICON_RANGE = {
 	timerSize = { 6, 32, 1 },
 	countSize = { 6, 24, 1 },
 }
+local ESSENTIAL_TIMER_RANGE = { 6, 32, 0.5 }
 local BAR_RANGE = {
 	width = { 80, 400, 1 },
 	height = { 8, 40, 1 },
@@ -177,7 +178,7 @@ local function IsCustomBar(settings)
 end
 
 local function Slider(group, key, label, help, range)
-	range = range[key]
+	range = group == "essential" and key == "timerSize" and ESSENTIAL_TIMER_RANGE or range[key]
 	return { type = "slider", key = group .. "." .. key, label = label, help = help, min = range[1], max = range[2], step = range[3] }
 end
 
@@ -330,6 +331,9 @@ Settings.current = current
 local function ReadIcons(out, saved, defaults, group)
 	saved = type(saved) == "table" and saved or defaults
 	for key, range in pairs(ICON_RANGE) do
+		if group == "essential" and key == "timerSize" then
+			range = ESSENTIAL_TIMER_RANGE
+		end
 		out[key] = Number(saved[key], range, defaults[key])
 	end
 	out.growth = Choice(saved.growth, GROWTH, defaults.growth)

@@ -15,11 +15,20 @@ local GILT_DIM, GILT_LIT = 0.4, 0.45
 local MAX_SEGMENTS = 20
 local HIT_PAD = 4
 local TEXT_GAP, XP_TEXT_GAP = 2, 6
+local XP_CAPTION_RAISE = 1.15
 local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 local FALLBACK_WIDTH, FALLBACK_HEIGHT = 441, 5
 local FALLBACK_POSITION = { anchor = "BOTTOM", x = 0, y = 0 }
+
+local GLASS_TEXTURE
+for _, item in ipairs(Tokens.MediaList("statusbar")) do
+	if item.key == "Glass" then
+		GLASS_TEXTURE = item.path
+		break
+	end
+end
 
 local TEXT_POINTS = {
 	CENTER = { "CENTER", "CENTER", 0, 0 },
@@ -150,6 +159,9 @@ end
 local function PlaceText(view, position)
 	local p = TEXT_POINTS[position] or TEXT_POINTS.CENTER
 	local gap = Widgets.Snap(view.holder, view.def.id == "xp" and position == "BOTTOM" and XP_TEXT_GAP or TEXT_GAP)
+	if view.def.id == "xp" and position == "BOTTOM" then
+		gap = gap - Widgets.Snap(view.holder, XP_CAPTION_RAISE)
+	end
 	view.text:ClearAllPoints()
 	view.text:SetPoint(p[1], view.holder, p[2], p[3] * gap, p[4] * gap)
 end
@@ -220,8 +232,12 @@ end
 
 local function Style(view, s)
 	local fill, track = view.fill, view.track
-	fill:SetBarTexture(s.texture)
-	track:SetBarTexture(s.texture)
+	local texture = s.texture
+	if view.def.id == "xp" and (texture == "Glass" or texture == GLASS_TEXTURE) then
+		texture = "Flat"
+	end
+	fill:SetBarTexture(texture)
+	track:SetBarTexture(texture)
 	local orientation = s.orientation == "VERTICAL" and "VERTICAL" or "HORIZONTAL"
 	fill:SetOrientation(orientation)
 	track:SetOrientation(orientation)

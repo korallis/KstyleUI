@@ -183,6 +183,8 @@ Settings.defaults = {
 	},
 }
 
+Settings.defaults.target.fonts.aura.size = 12
+
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
 	fonts.name.outline, fonts.health.outline = "OUTLINE", "OUTLINE"
