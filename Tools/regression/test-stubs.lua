@@ -444,6 +444,9 @@ do
 		return #words * size * 0.5
 	end
 	assert(fs:GetNumLines() == 3 and fs:GetStringHeight() == 36, "three words of 20 wide fill three lines of a 40 wide string")
+	fs:SetSpacing(3)
+	assert(fs:GetNumLines() == 3 and fs:GetStringHeight() == 42, "SetSpacing puts its units between each two lines, and none above the first or under the last, got " .. tostring(fs:GetStringHeight()))
+	fs:SetSpacing(0)
 	fs:SetWidth(200)
 	assert(fs:GetNumLines() == 1 and fs:GetStringHeight() == 12, "one line where they fit")
 	fs:SetWidth(40)

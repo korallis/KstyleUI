@@ -225,7 +225,8 @@ end
 -- into by the renderer's rule (Tools/render/scene.lua Scene.WrappedLines: words fill a line while they fit, a
 -- word that fits nowhere takes a line of its own, an explicit "\n" starts a new line); a string with word wrap
 -- off takes one line per paragraph. SetMaxLines caps the count. The height is the lines times the font's size
--- times 1.2, the renderer's line height (LINE_HEIGHT_EM). A test that sets _state.StringHeight sets the height.
+-- times 1.2, the renderer's line height (LINE_HEIGHT_EM), plus SetSpacing's units between each two lines. A test
+-- that sets _state.StringHeight sets the height.
 -- A string with no width of its own that two anchors stretch wraps in the width its anchors give it, as the game's does.
 local function anchoredWidth(self)
 	local own = self:GetEffectiveScale()
@@ -291,7 +292,9 @@ function Object:GetStringHeight()
 		return stored[1]
 	end
 	local lines, size = textLines(self)
-	return lines and lines * size * 1.2
+	local spacing = self._state.Spacing
+	spacing = spacing and type(spacing[1]) == "number" and spacing[1] > 0 and spacing[1] or 0
+	return lines and lines * size * 1.2 + (lines - 1) * spacing
 end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end

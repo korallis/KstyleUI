@@ -239,6 +239,18 @@ assert(paragraphItem.rect[4] >= 3 * lineH - 1e-3, "a wrapped text is as tall as 
 near(underItem.rect[2], paragraphItem.rect[2] + paragraphItem.rect[4], "the next text sits under the whole paragraph")
 assert(paragraphItem.natural == nil or paragraphItem.natural.height == nil, "the page keeps the solver's height instead of re-deriving one line")
 assert(paragraphItem.grow == "top", "a wrapped text anchored at its top grows down from it, so the page draws a shorter measured block at the top, not centred: " .. tostring(paragraphItem.grow))
+assert(paragraphItem.spacing == nil, "a text that set no spacing carries none")
+do
+	local tight = paragraphItem.rect[4]
+	local wrapped = Scene.WrappedLines("Anyone for the crocolisk hunt by the river tonight", 10, "SourceSans3-Semibold.ttf", 100)
+	paragraph:SetSpacing(4)
+	local spaced = Scene.Build(env)
+	local item, next = find(spaced, paragraph), find(spaced, under)
+	near(item.spacing / item.font.size, 0.4, "SetSpacing reaches the page in the font size's units")
+	near(item.rect[4] - tight, item.spacing * (wrapped - 1), "a wrapped text is taller by its spacing between each two lines, and by none above the first or under the last")
+	near(next.rect[2], item.rect[2] + item.rect[4], "and the next text still sits under the whole paragraph")
+	paragraph:SetSpacing(0)
+end
 local noWrap = column:CreateFontString(nil, "ARTWORK")
 noWrap:SetFont("Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf", 10, "")
 noWrap:SetWordWrap(false)

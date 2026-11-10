@@ -9,9 +9,9 @@ local Card = {}
 ns.QuestCard = Card
 
 local MAX_SHOWN, MAX_LINES, MAX_WRAP = 8, 6, 3
-local GUTTER, DISC, NUMERAL = 25.5, 16.33, 10
+local GUTTER, DISC, DISC_LEAD, NUMERAL = 25.5, 17.5, 0.5, 10
 local TITLE_LEAD, LINE_LEAD, ROW_GAP = 5.5, 4, 7
-local CAP_ROW, CAP_GAP, HEAD, FOOT = 22, 6.5, 11, 14
+local CAP_ROW, CAP_GAP, HEAD, FOOT = 21, 6.5, 11, 12.5
 local SOCKET, SOCKET_GAP = 20, 4
 local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA, HOVER_MIX = 0.35, 0.5, 0.18
@@ -19,7 +19,7 @@ local MORE_SCALE = 0.85
 
 local card, glass, cap, view, more, track, thumb, ruler, countRuler
 local rows, buttons, heights = {}, {}, {}
-local pitch, rowWidth = 0, 0
+local pitch, lead, rowWidth = 0, 0, 0
 local offset, wanted, maxHeight = 1, 4, 0
 local docked, pending, waiting, active = false, false, false, false
 local pointed = false
@@ -271,7 +271,7 @@ local function Lines(objective, room)
 	end
 	ruler:SetWidth(room)
 	ruler:SetText(objective.text)
-	local lines = math.floor(Widgets.TextHeight(ruler, pitch) / pitch + 0.5)
+	local lines = math.floor((Widgets.TextHeight(ruler, pitch) + lead) / pitch + 0.5)
 	return math.max(1, math.min(MAX_WRAP, lines))
 end
 
@@ -280,6 +280,7 @@ local function Line(row, i, y, right, text, count, colorName, room, lines)
 	line.text:ClearAllPoints()
 	line.text:SetPoint("TOPLEFT", row, "TOPLEFT", Gutter(), -Snap(y))
 	line.text:SetWidth(math.max(room, 1))
+	line.text:SetSpacing(lead)
 	line.text:SetHeight(Snap(lines * pitch))
 	line.text:SetMaxLines(lines)
 	line.count:ClearAllPoints()
@@ -330,7 +331,7 @@ local function Bind(row, entry, position, y, height, right)
 	row.item, row.logIndex = entry.item, entry.logIndex
 	local titleH = TitleHeight()
 	row.disc:ClearAllPoints()
-	row.disc:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -Snap((titleH - row.disc:GetHeight()) / 2))
+	row.disc:SetPoint("TOPLEFT", row, "TOPLEFT", Snap(Lumen.Size(card, DISC_LEAD)), -Snap((titleH - row.disc:GetHeight()) / 2))
 	row.numeral:SetText(position)
 	row.title:ClearAllPoints()
 	row.title:SetPoint("TOPLEFT", row, "TOPLEFT", Gutter(), 0)
@@ -631,9 +632,13 @@ end
 local function Restyle()
 	Style.ApplyFont(ruler, "body", TextSize())
 	Style.ApplyFont(countRuler, "number", TextSize())
+	ruler:SetSpacing(0)
 	ruler:SetWidth(0)
 	ruler:SetText("Ag")
-	pitch = Widgets.TextHeight(ruler, (Widgets.LineHeight(ruler)))
+	local natural = Widgets.TextHeight(ruler, (Widgets.LineHeight(ruler)))
+	pitch = math.max(LineHeight(), natural)
+	lead = pitch - natural
+	ruler:SetSpacing(lead)
 	Style.ApplyFont(more, "body", TextSize() * MORE_SCALE)
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
@@ -678,7 +683,7 @@ function Card.Build(root)
 	countRuler = Widgets.FontString(card, "OVERLAY")
 	countRuler:Hide()
 	more = Widgets.FontString(card, "OVERLAY")
-	more:SetPoint("TOP", view, "BOTTOM", 0, 0)
+	more:SetPoint("CENTER", view, "BOTTOM", 0, -Snap(FOOT) / 2)
 	more:SetJustifyH("CENTER")
 	PaintRest()
 	for i = 1, MAX_SHOWN do

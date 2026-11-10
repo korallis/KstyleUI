@@ -43,6 +43,71 @@ local function chatLine(prefix)
 end
 assert(chatLine("Congratulations, you have reached"), "the session's chat lines draw")
 
+-- The story card in the picture's state (LEE-67, handoffs/reference-diff/DIFF-acceptance-1.md section 3): the first
+-- quest's objective wraps onto three lines that stand a row apart, each quest's disc stands a pixel in from the
+-- caption marks, and the glass is as tall as the picture's. The acceptance pass's clean-plate rule reads the glass's
+-- 553 pixels as 557, the rim's shadow with it.
+do
+	local Scene = dofile("Tools/render/scene.lua")
+	local ppu = physical.height / scene.screen.height
+	local title, objective, row, dot, mark, glass
+	local dots, marks = {}, {}
+	for _, item in ipairs(scene.items) do
+		local file = item.kind == "texture" and tostring(item.file) or ""
+		if item.kind == "text" and item.text == "[11] Unnerving Silence" then
+			title = item
+		elseif item.kind == "text" and title and item.spacing and math.abs(item.rect[1] - title.rect[1]) < 0.01 then
+			if not objective then
+				objective = item
+			elseif not row and Scene.WrappedLines(Scene.PlainText(item.text), item.font.size, item.font.path, item.rect[3]) == 1 then
+				row = item
+			end
+		elseif file:find("Diamond.png", 1, true) then
+			marks[#marks + 1] = item
+		elseif file:find("Dot.png", 1, true) then
+			dots[#dots + 1] = item
+		end
+	end
+	for _, item in ipairs(title and dots or {}) do
+		local middle = item.rect[2] + item.rect[4] / 2
+		if item.rect[1] < title.rect[1] and title.rect[1] - item.rect[1] < 30 and middle > title.rect[2] and middle < title.rect[2] + title.rect[4] then
+			dot = item
+		end
+	end
+	for _, item in ipairs(dot and marks or {}) do
+		if math.abs(item.rect[1] - dot.rect[1]) < 3 and item.rect[2] < dot.rect[2] and (not mark or item.rect[2] > mark.rect[2]) then
+			mark = item
+		end
+	end
+	assert(title and objective and row and dot and mark, "the story card draws its caption mark, a quest disc, a wrapped objective and a one-line objective")
+	for _, item in ipairs(scene.items) do
+		local r = item.rect
+		if item.kind == "texture" and tostring(item.file):find("CardShape.png", 1, true) and r[1] <= title.rect[1] and r[1] + r[3] >= title.rect[1] and r[2] <= title.rect[2] and r[2] + r[4] >= title.rect[2] then
+			glass = glass or { r[2], r[2] + r[4] }
+		end
+	end
+	assert(glass, "the story card's glass is under its first quest")
+	for _, item in ipairs(scene.items) do
+		local r = item.rect
+		if item.kind == "texture" and tostring(item.file):find("CardShape.png", 1, true) and r[1] <= title.rect[1] and r[1] + r[3] >= title.rect[1] then
+			if math.abs(r[2] + r[4] - glass[1]) < 0.01 then
+				glass[1] = r[2]
+			elseif math.abs(r[2] - glass[2]) < 0.01 then
+				glass[2] = r[2] + r[4]
+			end
+		end
+	end
+	local lines = Scene.WrappedLines(Scene.PlainText(objective.text), objective.font.size, objective.font.path, objective.rect[3])
+	assert(lines == 3, "the first objective takes the picture's three lines in the 278-unit card, got " .. lines)
+	assert(objective.spacing > 0 and math.abs(objective.rect[4] - 3 * row.rect[4]) < 0.01, "and its lines stand a row apart: three rows high, got " .. objective.rect[4] .. " for a row of " .. row.rect[4])
+	local lead = (dot.rect[1] - mark.rect[1]) * ppu
+	assert(lead > 0.5 and lead < 1.5, "a quest's disc stands one pixel in from the caption mark's left edge, as the picture's does, got " .. lead)
+	local solid = (dot.rect[3] * ppu) - 2.4
+	assert(math.abs(solid - 28) <= 1, "the disc's texture is 30 pixels, which its soft edge draws as the picture's 28 solid ones, got " .. dot.rect[3] * ppu)
+	local tall = (glass[2] - glass[1]) * ppu
+	assert(math.abs(tall - 553) <= 1.5, "the card's glass is the picture's 553 pixels tall, 557 with the rim's shadow, within a pixel, got " .. tall)
+end
+
 -- The picture's bars are on: bar 2 over bar 1 and bars 4 and 5 as the right-hand columns; the Layout rects are kept for
 -- handoffs/reference-diff/DIFF.md's measurements.
 local elements = assert(scene.elements, "the scene keeps the Layout elements' rects")

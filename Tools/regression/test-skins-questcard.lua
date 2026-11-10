@@ -110,7 +110,9 @@ do
 	local first = ns.Quests.Rows()[1]
 	assert(first.ring == nil and first.marked == nil, "the super-tracked quest leads the list and wears no ring: the picture's discs are flat, with nothing around them")
 	local factor = K.Widgets.ScaleFactor(ns.Quests.Card())
-	assert(math.abs(first.disc:GetWidth() - 16.33 / factor) <= K.Scale.Pixel(1) / factor and first.disc:GetHeight() == first.disc:GetWidth(), "the disc is 16.33 root units across, 28 pixels on the owner's screen, got " .. tostring(first.disc:GetWidth()))
+	assert(math.abs(first.disc:GetWidth() - 17.5 / factor) <= K.Scale.Pixel(1) / factor and first.disc:GetHeight() == first.disc:GetWidth(), "the disc's texture is 17.5 root units across, which its soft edge draws as the picture's 28 solid pixels on the owner's screen, got " .. tostring(first.disc:GetWidth()))
+	local discLead = select(4, first.disc:GetPoint(1))
+	assert(discLead == K.Widgets.Snap(ns.Quests.Card(), ns.Lumen.Size(ns.Quests.Card(), 0.5)), "the disc stands half a root unit in from the caption mark's left, snapped to the card's pixels (test-render-scenes-reference.lua proves the one pixel on the owner's screen), got " .. tostring(discLead))
 	local nr, ng, nb = first.numeral:GetTextColor()
 	local shade = S.W.LastCall(first.numeral, "SetShadowOffset")
 	assert(nr == 1 and ng == 1 and nb == 1 and shade[1] == 0 and shade[2] == 0, "its number is white and casts no shadow on the disc")
@@ -127,9 +129,10 @@ do
 	local cardBox, capBox, viewBox = RootRect(K, card), RootRect(K, parts.cap.row), RootRect(K, parts.view)
 	assert(math.abs(cardBox.top - capBox.top - 11) <= 0.6, "standing alone, the caption's row starts 11 root units under the glass's top, as the picture's guide caption does, got " .. cardBox.top - capBox.top)
 	assert(math.abs(capBox.bottom - viewBox.top - 6.5) <= 0.6, "the first quest starts 6.5 under the caption's row, as the picture spaces them, got " .. capBox.bottom - viewBox.top)
-	assert(math.abs(viewBox.bottom - cardBox.bottom - 14) <= 0.6, "the card ends 14 under its last quest, the picture's foot, got " .. viewBox.bottom - cardBox.bottom)
+	assert(math.abs(capBox.top - capBox.bottom - 21) <= 0.6, "the caption's row is 21 root units high, got " .. capBox.top - capBox.bottom)
+	assert(math.abs(viewBox.bottom - cardBox.bottom - 12.5) <= 0.6, "the card ends 12.5 under its last quest, the picture's foot, got " .. viewBox.bottom - cardBox.bottom)
 	local morePoint, moreOn, _, _, moreY = parts.more:GetPoint(1)
-	assert(morePoint == "TOP" and moreOn == parts.view and moreY == 0 and select(2, parts.more:GetFont()) * 1.2 <= 14 / factor, "the more line stands in that foot, so it adds no row to the card")
+	assert(morePoint == "CENTER" and moreOn == parts.view and math.abs(moreY + K.Widgets.Snap(card, 12.5) / 2) < 1e-6 and select(2, parts.more:GetFont()) <= 12.5 / factor, "the more line stands in the middle of that foot and its glyphs fit it, so it adds no row to the card, got " .. tostring(morePoint) .. " " .. tostring(moreY))
 	card._mouseOver = true
 	card:GetScript("OnEnter")(card)
 	assert(parts.thumb:GetAlpha() == 1 and parts.track:GetAlpha() == 1 and parts.more:GetAlpha() == 1, "under the pointer they show")
@@ -188,7 +191,7 @@ do
 	assert(not ns.Quests.Parts().thumb:IsShown(), "with no scroll bar")
 	assert(not ns.Quests.Parts().more:IsShown(), "and no more line")
 	local whole, last = RootRect(K, ns.Quests.Card()), RootRect(K, ns.Quests.Parts().view)
-	assert(math.abs(last.bottom - whole.bottom - 14) <= K.Scale.Pixel(1), "the foot is the same 14 with nothing more to scroll to, got " .. last.bottom - whole.bottom)
+	assert(math.abs(last.bottom - whole.bottom - 12.5) <= K.Scale.Pixel(1), "the foot is the same 12.5 with nothing more to scroll to, got " .. last.bottom - whole.bottom)
 	for _ = 1, 2 do
 		log.Untrack(log.quests[#log.quests].id)
 	end
@@ -523,6 +526,18 @@ do
 	local first = High(rows[1], 1)
 	assert(first > one * 1.9, "the long objective is taller than a one-line objective, got " .. first .. " against " .. one)
 	assert(not Text(rows[1], 1):IsTruncated(), "and is not cut")
+	do
+		-- The picture's wrapped lines stand a row apart, the height a one-line objective takes, not the font's own line
+		-- height: the spacing between two lines (SetSpacing, SimpleFontStringAPIDocumentation.lua) makes up the rest.
+		local long = Text(rows[1], 1)
+		local count = long:GetNumLines()
+		local row = K.Widgets.Snap(ns.Quests.Card(), size + 4)
+		local spacing = W.LastCall(long, "SetSpacing")
+		assert(count >= 2 and spacing and math.abs(spacing[1] - (row - pitch)) < 1e-6, "each wrapped line stands a row under the one above: the spacing is the row less the font's line, got " .. tostring(spacing and spacing[1]) .. " for " .. row - pitch)
+		assert(math.abs(long:GetHeight() - K.Widgets.Snap(ns.Quests.Card(), count * row)) < 1e-6, "and the text is its lines times the row high, got " .. long:GetHeight() .. " for " .. count .. " lines of " .. row)
+		assert(math.abs(Text(rows[1], 2):GetHeight() - row) < 1e-6, "a one-line objective is one row high")
+		assert(long:GetStringHeight() <= long:GetHeight() + 1e-6, "the wrapped words fit the room the card keeps for them, got " .. long:GetStringHeight() .. " in " .. long:GetHeight())
+	end
 	assert(Text(rows[1], 1):GetText() == LONG, "with its whole words")
 	assert(RootRect(K, Text(rows[1], 1)).bottom >= RootRect(K, Text(rows[1], 2)).top - 0.01, "the next objective starts below the wrapped lines")
 	local r1, r2 = RootRect(K, rows[1]), RootRect(K, rows[2])

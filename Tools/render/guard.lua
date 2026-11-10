@@ -323,7 +323,8 @@ function Guard.Ink(item)
 		lines = breaks + 1
 	end
 	local lh = size * LINE
-	local block = lines * lh
+	local spacing = item.spacing or 0
+	local block = lines * lh + (lines - 1) * spacing
 	local top = rect[2]
 	if block < rect[4] then
 		local side = item.grow or (item.natural and item.natural.height) or (item.justifyV == "MIDDLE" and "middle") or (item.justifyV == "BOTTOM" and "bottom") or "top"
@@ -339,7 +340,7 @@ function Guard.Ink(item)
 	local _, blank = plain:gsub("\n%s*$", "")
 	local inked = math.max(1, lines - blank)
 	local first = top + BASELINE * size + (lh - size) / 2 - CAP * size
-	local last = top + (inked - 1) * lh + BASELINE * size + (lh - size) / 2 + (descends and DESCENDER or 0) * size
+	local last = top + (inked - 1) * (lh + spacing) + BASELINE * size + (lh - size) / 2 + (descends and DESCENDER or 0) * size
 	local w = lines > 1 and rect[3] or math.min(need, rect[3])
 	local x = rect[1]
 	if item.justifyH == "CENTER" then
@@ -443,7 +444,7 @@ function Guard.Check(scene)
 				if item.kind == "text" then
 					local ink, glyph = Guard.Ink(item)
 					if item.clip and not item.scroll then
-						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV })
+						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV })
 						local cut = Geometry.Outside(bounds(whole), bounds(item.clip))
 						if cut > Guard.SLACK then
 							add("clipped", item, card, string.format("%.1f units past the frame that clips it", cut))
