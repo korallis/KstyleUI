@@ -321,9 +321,6 @@ local function InstallGame(env, opts)
 		end,
 	}
 	env.C_Spell = {
-		ToggleSpellAutoCast = function(id)
-			g.autocastToggled[#g.autocastToggled + 1] = id
-		end,
 		GetSpellCooldownDuration = function()
 			return g.zeroDuration
 		end,
@@ -504,6 +501,15 @@ local function InstallGame(env, opts)
 	for _, name in ipairs({ "MainActionBar", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft", "MultiBar5", "MultiBar6", "MultiBar7", "StanceBar", "PetActionBar" }) do
 		env.CreateFrame("Frame", name, env.UIParent)
 	end
+	local petBar = env.PetActionBar
+	petBar.actionButtons = {}
+	for i = 1, 10 do
+		petBar.actionButtons[i] = {
+			Click = function()
+				env._game.autocastToggled[#env._game.autocastToggled + 1] = i
+			end,
+		}
+	end
 
 	for _, name in ipairs(PROTECTED_FUNCTIONS) do
 		if name == "RegisterStateDriver" or name == "UnregisterStateDriver" then
@@ -618,6 +624,11 @@ function AB.Click(env, button, mouse, down)
 		g.used[#g.used + 1] = "pet" .. tostring(button:GetAttribute("action"))
 	elseif kind == "spell" then
 		g.used[#g.used + 1] = "spell" .. tostring(button:GetAttribute("spell"))
+	elseif kind == "click" then
+		local delegate = button:GetAttribute("clickbutton")
+		if delegate then
+			delegate:Click(mouse)
+		end
 	end
 	for _, script in ipairs({ "OnClick", "PostClick" }) do
 		local fn = button._scripts[script]

@@ -68,7 +68,7 @@ Each button is `KstyleUI.Widgets.IconButton` built on `SecureActionButtonTemplat
 | Kind | Attributes | Clicks |
 | --- | --- | --- |
 | Action | `type = "action"`, the button's ID 1 to 12, `useparent-actionpage`, `checkselfcast`, `checkfocuscast`, `checkmouseovercast` | `AnyUp` and `AnyDown`, so `ActionButtonUseKeyDown` decides when a press acts |
-| Pet | `type = "pet"`, `action` = the slot, `type2 = ""` | Right-click runs no secure action; an insecure `PostClick` toggles autocast with `C_Spell.ToggleSpellAutoCast` |
+| Pet | `type = "pet"`, `action` = the slot, `type2 = "click"`, `clickbutton` = `PetActionBar.actionButtons[slot]` | Right-click forwards to Blizzard's pet button through `SECURE_ACTIONS.click`, never by calling an autocast toggle |
 | Stance | `type = "spell"`, `spell` = the form's spell ID from `GetShapeshiftFormInfo` | Set out of combat when the forms change |
 
 | State | Source |

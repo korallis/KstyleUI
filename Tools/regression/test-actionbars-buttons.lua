@@ -299,7 +299,7 @@ do
 		setup = function(e)
 			e._game.bindings.BONUSACTIONBUTTON1 = { "CTRL-1" }
 			e._game.petExists = true
-			e._game.pet[1] = { name = "PET_ACTION_ATTACK", texture = "PET_ATTACK_TEXTURE", isToken = true, isActive = true }
+			e._game.pet[1] = { name = "PET_ACTION_ATTACK", texture = "PET_ATTACK_TEXTURE", isToken = 1, isActive = true }
 			e._game.pet[4] = { name = "Bite", texture = 132278, spellID = 17253, autoCastAllowed = true, autoCastEnabled = true }
 			e.PET_ATTACK_TEXTURE = "Interface\\Icons\\Ability_GhoulFrenzy"
 		end,
@@ -311,9 +311,9 @@ do
 	assert(W.LastCall(attack.icon, "SetTexture")[1] == env.PET_ATTACK_TEXTURE, "token icons resolve to their texture")
 	assert(attack.selected, "the active command is selected")
 	assert(bite.autocast:IsShown(), "autocast shows a mark")
-	assert(bite:GetAttribute("type2") == "", "right-click casts nothing secure")
+	assert(bite:GetAttribute("type2") == "click", "right-click forwards to Blizzard's pet button")
 	AB.Click(env, bite, "RightButton", false)
-	assert(env._game.autocastToggled[1] == 17253, "right-click toggles autocast")
+	assert(env._game.autocastToggled[1] == 4, "right-click toggles autocast")
 	assert(AB.PressKey(env, "CTRL-1") and AB.Used(env) == "pet1", "the pet keybind")
 	env._game.pet[4].autoCastEnabled = false
 	env.SetCombat(true)
