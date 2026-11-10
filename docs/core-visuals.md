@@ -80,7 +80,7 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 | `caption` | Cinzel SemiBold | 9 | `""` | 1.4 | yes |
 | `caps` | Cinzel Caps (Medium, spaced 0.065 em, word space +0.18 em) | 10 | `""` | 0 | yes |
 | `names` | Cinzel Names (Medium, no letter spacing, word space +0.16 em) | 10 | `""` | 0 | yes |
-| `unit` | Cinzel Unit (Medium, spaced -0.065 em, word space +0.25 em) | 18 | `""` | 0 | yes |
+| `unit` | Cinzel Unit (Medium, spaced -0.064 em, word space +0.25 em) | 18 | `""` | 0 | yes |
 | `number` | Alegreya Sans Tabular Extra Bold | 12 | `""` | 0 | |
 | `world` | Alegreya Sans Tabular Medium | 13 | `"OUTLINE"` | 0 | |
 
