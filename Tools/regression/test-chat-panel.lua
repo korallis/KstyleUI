@@ -539,7 +539,7 @@ do
 	assert(args and args[1] == path and near(args[2], sized(env.ChatFrame1, 14)) and args[3] == "", "messages in the chat font at 14, the mockup's size")
 	local px = args[2] * env.ChatFrame1:GetEffectiveScale() * 1080 / 768
 	assert(math.abs(px - math.floor(px + 0.5)) < 1e-6, "on whole pixels, got " .. px)
-	assert(K.Store.Module("Chat").tabFontSize == K.Tokens.Size("caps"), "tab names at the caps size, the picture's 10")
+	assert(K.Store.Module("Chat").tabFontSize == 12, "tab names at 12, which the chat card's scale draws as the picture's 10")
 	K.Options.Write("Chat", "fontSize", 15)
 	K.Options.Write("Chat", "fontOutline", "OUTLINE")
 	args = lastCall(env.ChatFrame2, "SetFont")
@@ -547,7 +547,7 @@ do
 	args = lastCall(env.ChatFrame1.editBox, "SetFont")
 	assert(args and near(args[2], sized(env.ChatFrame1.editBox, 15)), "the edit box follows")
 	args = lastCall(env.ChatFrame1Tab.Text, "SetFont")
-	assert(args and args[1] == K.Tokens.Font("caps") and near(args[2], sized(env.ChatFrame1Tab.Text, K.Store.Module("Chat").tabFontSize)), "tabs use the caps face at the tab size")
+	assert(args and args[1] == K.Tokens.Font("names") and near(args[2], sized(env.ChatFrame1Tab.Text, K.Store.Module("Chat").tabFontSize)), "tabs use the names face at the tab size")
 	env.FCF_SetChatWindowFontSize(nil, env.ChatFrame1, 18)
 	assert(K.Store.Module("Chat").fontSize == 18, "a size picked from the game's tab menu becomes the setting")
 	assert(near(lastCall(env.ChatFrame2, "SetFont")[2], sized(env.ChatFrame2, 18)), "and reaches every window")

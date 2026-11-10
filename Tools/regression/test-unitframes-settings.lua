@@ -54,9 +54,9 @@ end
 -- and a 12-unit level disc; the sigil's name 17 over its 13-unit level line (round 2, Astra #4: the mockup's 20 drowned
 -- the cast); the cards' name 16, percentage 14 and 12-unit cap; the pill rows 12. The boss column's compact cards are
 -- 258 wide, so their name and percentage are 13: a long boss name in the heading face still fits beside its percentage.
--- KSTY-12 (the owner's picture): the player and target are column frames, their names 18 over a 15-unit value; the older
+-- KSTY-10 (the owner's picture): the player and target names are 22 in the unit face (37 px), their class and type words 14 and 15 (24 and 25 px); KSTY-12: column frames over a 15-unit value; the older
 -- vitals line and sigil keep their 17 in profiles that choose them (test-unitframes-lumen.lua pins those).
-for kind, sizes in pairs({ player = { 18, 15, 10, 12 }, target = { 18, 15, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
+for kind, sizes in pairs({ player = { 22, 15, 10, 14 }, target = { 22, 15, 10, 15 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
@@ -82,7 +82,7 @@ assert(defaults.player.healthColor == "hud" and defaults.target.healthColor == "
 assert(defaults.player.style == "column" and defaults.target.style == "column", "the player and target are column frames by default, as the owner's picture draws them (LEE-20)")
 assert(defaults.focus.style == "lumen" and defaults.boss.style == "lumen", "the other frames keep their Lumen forms")
 assert(defaults.player.powerHeight == 7 and defaults.target.powerHeight == 7, "the column frames' power bar is the picture's 7 units, as the plate's")
-assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 3, "the column's value is 15-unit bold numerals, three under the 18-unit Cinzel name")
+assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 7, "the column's value is 15-unit bold numerals, seven under the 22-unit Cinzel name the picture sets at 37 px")
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")
 end

@@ -374,6 +374,7 @@ end
 function Unit.Refit(view)
 	if view.plainName then
 		SetName(view, view.plainName)
+		ns.Style.Baseline(view)
 	end
 end
 
@@ -386,6 +387,7 @@ function Unit.SetName(view, name)
 	if fit then
 		fit(view)
 	end
+	ns.Style.Baseline(view)
 end
 
 local function LevelColor(unit)

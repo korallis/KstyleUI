@@ -73,7 +73,7 @@ check(Format.ZoomAt(0.5, nil), nil, "no zoom levels, no level")
 
 -- The picture's measures (DIFF.md section 1, in root units): the map is the element, with no inset and no chamfer;
 -- the north plate is 16 across; the caption under the map is 36 deep, its texts start 2 in from the map's edge, the
--- zone's caps centred 13.7 under the map and the coordinates' and the clock's digits 31.2 under it.
+-- zone's caps centred 13.7 under the map and the coordinates' and the clock's digits 30 under it.
 local function near(a, b, what)
 	assert(math.abs(a - b) < 1e-6, what .. ": want " .. tostring(b) .. ", got " .. tostring(a))
 end
@@ -81,7 +81,7 @@ check(Format.NORTH, 16, "the north plate is 16 units across")
 check(Format.CAPTION, 36, "the caption under the map is 36 units deep")
 check(Format.CAPTION_X, 2, "the caption's texts start 2 units in from the map's edge")
 near(Format.ZONE_CENTER, 13.7, "the zone's caps are centred 13.7 under the map")
-near(Format.ROW_CENTER, 31.2, "the coordinates and the clock are centred 31.2 under the map")
+near(Format.ROW_CENTER, 30, "the coordinates and the clock are centred 30 under the map, where the picture's capitals stand")
 check(Format.TOP, 7, "the first button's top is 7 units under the map's top edge")
 check(Format.EDGE, 7.75, "a 19.5 button's centre is 17.5 in from the map's right edge")
 assert(Format.INSET == nil and Format.BAND == nil and Format.MASK_SHARE == nil and Format.Chamfer == nil, "the inset, the bands and the chamfer are gone")
