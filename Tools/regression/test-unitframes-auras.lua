@@ -250,32 +250,56 @@ local function crosses(timer, bar)
 	return timer:GetLeft() < bar:GetRight() and timer:GetRight() > bar:GetLeft() and timer:GetBottom() < bar:GetTop() and timer:GetTop() > bar:GetBottom()
 end
 
-local function shifted(bar, dx)
-	return {
-		GetLeft = function() return bar:GetLeft() + dx end,
-		GetRight = function() return bar:GetRight() + dx end,
-		GetBottom = function() return bar:GetBottom() end,
-		GetTop = function() return bar:GetTop() end,
-	}
+local positions = { "CENTER", "BELOW", "ABOVE", "RIGHT", "LEFT", "SIDE" }
+local laneFails = {}
+local lanes, measured = 0, { health = 0, power = 0, cast = 0 }
+for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
+	local forms = { "lumen", "plate" }
+	if ns.Settings.COLUMN[kind] then
+		table.insert(forms, 1, "column")
+	end
+	for _, form in ipairs(forms) do
+		for _, position in ipairs(positions) do
+			K.Options.Write("UnitFrames", kind .. ".style", form)
+			K.Options.Write("UnitFrames", kind .. ".auras", true)
+			K.Options.Write("UnitFrames", kind .. ".auraPosition", position)
+			K.Options.Write("UnitFrames", kind .. ".auraTimer", true)
+			K.Options.Write("UnitFrames", kind .. ".auraRows", 1)
+			local view = Frames.Get(kind).views[1]
+			ns.Auras.Apply(view)
+			local row = view.auras
+			local tile = row and row.buttons and row.buttons[1]
+			assert(tile, kind .. " " .. form .. " " .. position .. " has a tile")
+			local size = K.Widgets.Snap(row.host, ns.Settings.Value(kind, "auraSize"))
+			tile.button:ClearAllPoints()
+			tile.button:SetSize(size, size)
+			tile.button:SetPoint("TOPLEFT", row.host, "TOPLEFT", 0, 0)
+			tile.button:Show()
+			tile.timer:SetText("5s")
+			local _, fontSize = tile.timer:GetFont()
+			local textW = tile.timer.GetUnboundedStringWidth and tile.timer:GetUnboundedStringWidth()
+			assert(fontSize and fontSize > 0, kind .. " " .. form .. " " .. position .. " timer has the product font size")
+			tile.timer:SetSize((textW and textW > 0) and textW or fontSize * 2, fontSize)
+			lanes = lanes + 1
+			assert(view.health and view.health:GetLeft(), kind .. " " .. form .. " " .. position .. " health has a rect")
+			measured.health = measured.health + 1
+			if crosses(tile.timer, view.health) then
+				laneFails[#laneFails + 1] = kind .. " " .. form .. " " .. position .. " crosses health"
+			end
+			for name, bar in pairs({ power = view.power, cast = view.castbar and view.castbar.bar }) do
+				if bar and bar:GetLeft() then
+					measured[name] = measured[name] + 1
+					if crosses(tile.timer, bar) then
+						laneFails[#laneFails + 1] = kind .. " " .. form .. " " .. position .. " crosses " .. name
+					end
+				end
+			end
+		end
+	end
 end
-
-K.Options.Write("UnitFrames", "target.auras", true)
-K.Options.Write("UnitFrames", "target.auraPosition", "SIDE")
-local sideView = Frames.Get("target").views[1]
-ns.Auras.Apply(sideView)
-local sideHost = sideView.auras.host
-local sideSize = K.Widgets.Snap(sideHost, ns.Settings.Value("target", "auraSize"))
-local sideEntry = sideView.auras.buttons[1]
-sideEntry.button:ClearAllPoints()
-sideEntry.button:SetSize(sideSize, sideSize)
-sideEntry.button:SetPoint("TOPLEFT", sideHost, "TOPLEFT", 0, 0)
-sideEntry.button:Show()
-sideEntry.timer:SetText("5s")
-sideEntry.timer:SetSize(12, 10)
-local neighbour = shifted(sideView.health, 548)
-assert(crosses(sideEntry.timer, neighbour), "staging's side lane crosses the next column's health bar")
-ns.Auras.ClearTimers(sideView, { sideView.health, sideView.power, neighbour })
-assert(not crosses(sideEntry.timer, sideView.health) and not crosses(sideEntry.timer, sideView.power) and not crosses(sideEntry.timer, neighbour), "the timer leaves every bar it crossed")
+assert(measured.health == lanes and lanes > 0, "health was not measured for every lane: " .. measured.health .. " of " .. lanes)
+assert(measured.power > 0 and measured.cast > 0, "power and cast were not measured")
+assert(#laneFails == 0, "a timer crosses a bar of its own frame: " .. table.concat(laneFails, "; "))
 
 -- Without the engine, the frames still work and the devlog says why.
 local nenv, NK = U.New({ setup = function(e)
