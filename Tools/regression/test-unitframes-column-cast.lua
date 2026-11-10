@@ -48,7 +48,7 @@ assert(U.Shown(env, element.timer) == "1.2 / 2.5", "elapsed over total, no unit:
 local timer = W.LastCall(element.timer, "SetFormattedText")
 assert(timer and timer[1] == "%.1f / %.1f", "the times reach the font string through SetFormattedText")
 assert(near(select(2, element.bar:GetSize()), 9, 0.6), "the bar is 9 units tall")
-assert(element.bar.spark:IsShown(), "with a spark at the head")
+assert(element.bar.spark:IsShown() == false and element.bar.keyline:IsShown() == false, "with no spark or extra keyline outside the reference track")
 assert(element.bar.lit:IsShown() == false and element.bar.shade:IsShown() == false, "and flat")
 local gr, gg, gb = Tokens.Color("gilt")
 local fill = W.LastCall(element.bar, "SetStatusBarColor")
@@ -78,7 +78,7 @@ W.Tick(env, 0.1)
 assert(U.Shown(env, target.timer) == "0.8", "the time left with no unit: " .. U.Shown(env, target.timer))
 local left = W.LastCall(target.timer, "SetFormattedText")
 assert(left and left[1] == "%.1f", "through SetFormattedText")
-assert(near(select(2, target.bar:GetSize()), 7, 0.6), "the bar is 7 units tall")
+assert(near(select(2, target.bar:GetSize()), 8, 0.6), "the target's painted bar is 8 units tall")
 local g = tframe.geometry.cast
 local cw, ch = target.frame:GetSize()
 assert(near(cw, 491) and near(ch, g.h, 0.6), "the cast frame is the full 491, as tall as the bar and its label")
@@ -159,14 +159,15 @@ do
 				CastBars.Layout(cb, 347, height)
 				local where = mode .. " font " .. fontSize .. " height " .. height
 				local _, barH = cb.bar:GetSize()
-				local extent = barH
+				local _, _, _, _, barY = cb.bar:GetPoint(1)
+				local extent = barH + math.abs(barY)
 				if cb.text:IsShown() then
 					local _, _, _, _, offset = cb.text:GetPoint(1)
 					local _, rowH = cb.text:GetSize()
 					extent = math.abs(offset) + rowH
 				end
 				assert(extent <= height + 0.6, where .. ": the bar and its label stand inside the frame, reaching " .. extent)
-				assert(barH >= math.min(3, height) - 0.01 and barH <= (mode == "above" and 9 or 7) + 0.6, where .. ": the bar keeps a sane height " .. barH)
+				assert(barH >= math.min(3, height) - 0.01 and barH <= (mode == "above" and 9 or 8) + 0.6, where .. ": the bar keeps a sane height " .. barH)
 				assert(cb.text:IsShown() == cb.timer:IsShown(), where .. ": the label and its time go together")
 			end
 		end
