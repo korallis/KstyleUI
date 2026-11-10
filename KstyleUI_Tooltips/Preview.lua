@@ -34,7 +34,7 @@ local ITEM = {
 }
 
 local UNIT = {
-	{ left = L["Valerin"], role = "title", color = "class" },
+	{ left = L["Valerin"], role = "title", kit = "names", color = "class" },
 	{ left = "", color = "guild", key = "guildLine" },
 	{ left = L["Level 60 Hunter (Player)"], color = "highlight" },
 	{ left = L["Target"], right = L["You"], color = "text", rightColor = "accent", key = "targetLine" },
@@ -155,7 +155,7 @@ local function LayoutSample(glass)
 		end
 		if visible then
 			shown = shown + 1
-			Style.StyleFont(row.left, role)
+			Style.StyleFont(row.left, role, nil, line.kit)
 			row.left:SetTextColor(LineColor(line.color))
 			row.left:ClearAllPoints()
 			row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y)
