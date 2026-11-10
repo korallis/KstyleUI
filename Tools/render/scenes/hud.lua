@@ -722,6 +722,10 @@ function modules.chat(opts)
 		text:SetWordWrap(true)
 		text:SetNonSpaceWrap(true)
 		text:SetWidth(width)
+		-- A line of the game's ScrollingMessageFrame is as tall as its font, not 1.2 em: CalculateLineSpacing reads the font string's
+		-- GetLineHeight (ScrollingMessageFrame.lua 730-735) and each line stands on the one before it plus GetSpacing (lines 595-602).
+		text._lineEm = 1
+		text:SetSpacing(spacing)
 		if previous then
 			text:SetPoint("BOTTOMLEFT", previous, "TOPLEFT", 0, spacing)
 		else

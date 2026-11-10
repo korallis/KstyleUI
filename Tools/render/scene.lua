@@ -58,6 +58,10 @@ local DEFAULT_FONT = { "Fonts\\FRIZQT__.TTF", 12, "", { 1, 1, 1 } }
 local GLYPH_EM = { upper = 0.60, lower = 0.48, digit = 0.52, space = 0.22, other = 0.30, thin = 0.10 }
 local LINE_HEIGHT_EM = 1.2
 
+local function lineEm(region)
+	return region._lineEm or LINE_HEIGHT_EM
+end
+
 -- The kit fonts' real advances per ASCII glyph, by font file name, from gen_glyphs.py. Blizzard's faces
 -- the repository lacks draw as Source Sans on the page, so they measure as Source Sans too.
 local GLYPHS = {}
@@ -774,7 +778,7 @@ function Solver:solve(object)
 	end
 	if wrap and not (lo and hi) then
 		local lines = Scene.WrappedLines(wrap.text, wrap.size, wrap.fontPath, (right - left) / scale)
-		height = (wrap.size * LINE_HEIGHT_EM * lines + wrap.spacing * (lines - 1)) * scale
+		height = (wrap.size * wrap.em * lines + wrap.spacing * (lines - 1)) * scale
 		object._wrapped = lines > 1
 	end
 	local bottom, top = self:span(ys, height)
@@ -1176,6 +1180,9 @@ function Scene.Build(env, opts)
 		if spacing > 0 then
 			item.spacing = round4(spacing * scale * k)
 		end
+		if region._lineEm then
+			item.lineEm = region._lineEm
+		end
 		if region._naturalW then
 			item.natural = { width = region._naturalSideW }
 		end
@@ -1441,10 +1448,10 @@ function Scene.Build(env, opts)
 					if not hasH and not (ys[0] and ys[1]) then
 						local _, breaks = text:gsub("\n", "")
 						local spacing = spacingOf(region)
-						region._naturalH = size * LINE_HEIGHT_EM * (breaks + 1) + spacing * breaks
+						region._naturalH = size * lineEm(region) * (breaks + 1) + spacing * breaks
 						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
 						if state(region, "WordWrap") ~= false then
-							region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing }
+							region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing, em = lineEm(region) }
 						end
 					end
 				end
