@@ -307,37 +307,70 @@ for _, screen in ipairs(SCREENS) do
 		bar:SetBarTexture("Flat")
 		bar:SetInnerEdge(true, "barEdge")
 		local px = edgePixels(K, bar)
+		local span = bar:GetHeight() / (K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar))
+		local band = span + 0.001
+		local want = band >= 8 and 2 or (band >= 5 and 1 or 0)
 		local where = string.format("%dx%d ui %s size %s", screen[1], screen[2], tostring(setup.uiScale), tostring(setup.size))
-		assert(px and math.abs(px - 2) < 0.01, "the inner edge is two physical pixels at " .. where .. ", got " .. tostring(px))
+		assert(px and math.abs(px - want) < 0.01, "the inner edge steps with the bar at " .. where .. ": " .. tostring(px) .. " for " .. tostring(span))
 		assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
 	end
 end
 
--- The edge is two physical pixels a side. It draws only when the bar is at least eight physical
--- pixels tall, so a five-pixel gallery bar keeps every coloured row. A pill's edge wears the bar's
--- cap masks, so the corner follows the round cap instead of a rectangle.
-local SHORT_PIXELS, HUD_PIXELS = 5, 14
+-- Two pixels from 8 px, one pixel from 5 px, none below that, always leaving three coloured rows.
+-- A pill's edge wears the bar's cap masks. The 1920x1080 case is the column power bar's 8 root
+-- units, about 7 px at the shipped scale: staging draws no edge there.
+local function stepped(K, pixels, border)
+	local unit = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(K.Scale.Root())
+	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * pixels, border = border })
+	bar:SetBarTexture("Flat")
+	bar:SetInnerEdge(true, "barEdge")
+	return bar
+end
 for _, screen in ipairs(SCREENS) do
 	local env, K = W.New({ width = screen[1], height = screen[2], uiScale = 768 / 1080, size = "default", setup = withColor })
-	local unit = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(K.Scale.Root())
 	local where = string.format("%dx%d", screen[1], screen[2])
-	local short = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * SHORT_PIXELS, border = true })
-	short:SetBarTexture("Flat")
-	short:SetInnerEdge(true, "barEdge")
-	assert(short.innerEdgeOn == true, where .. ": the short bar still wants an edge")
-	assert(short.innerEdge[1]:IsShown() == false, where .. ": a five-pixel bar keeps its coloured rows, the edge is omitted")
-	local tall = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * HUD_PIXELS, border = true })
-	tall:SetBarTexture("Flat")
-	tall:SetInnerEdge(true, "barEdge")
-	assert(tall.innerEdge[1]:IsShown() == true, where .. ": a fourteen-pixel pill keeps the two-pixel edge")
-	assert(math.abs(edgePixels(K, tall) - 2) < 0.01, where .. ": the pill edge is two physical pixels")
+	local gone = stepped(K, 4, true)
+	assert(gone.innerEdgeOn == true and gone.innerEdge[1]:IsShown() == false, where .. ": under five pixels the edge is omitted and the fill keeps every row")
+	local thin = stepped(K, 5, true)
+	assert(thin.innerEdge[1]:IsShown() == true and math.abs(edgePixels(K, thin) - 1) < 0.01, where .. ": five pixels keep a one-pixel edge and three coloured rows")
+	local tall = stepped(K, 14, true)
+	assert(tall.innerEdge[1]:IsShown() == true and math.abs(edgePixels(K, tall) - 2) < 0.01, where .. ": fourteen pixels keep the two-pixel edge")
 	assert(tall.innerEdge[1]:GetMaskTexture(1) == tall.caps[3] and tall.innerEdge[1]:GetMaskTexture(2) == tall.caps[4], where .. ": the edge follows the bar's capsule caps")
 	assert(tall.innerEdge[2]:GetNumMaskTextures() == 2, where .. ": every edge strip is masked")
-	local square = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * HUD_PIXELS })
-	square:SetBarTexture("Flat")
-	square:SetInnerEdge(true, "powerEdge")
+	local square = stepped(K, 14, false)
 	assert(square.innerEdge[1]:GetNumMaskTextures() == 0, where .. ": a rectangular bar's edge stays a rectangle")
 	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
+end
+do
+	local env, K = W.New({ width = 1920, height = 1080, uiScale = 768 / 1080, size = "default", setup = withColor })
+	local power = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 8 })
+	power:SetBarTexture("Flat")
+	power:SetInnerEdge(true, "powerEdge")
+	local span = power:GetHeight() / (K.Scale.Pixel(1) / K.Widgets.ScaleFactor(power))
+	assert(span >= 5 and span < 8, "the column power bar is in the one-pixel band at 1920x1080, got " .. tostring(span))
+	assert(power.innerEdge[1]:IsShown() == true and math.abs(edgePixels(K, power) - 1) < 0.01, "1920x1080 keeps a one-pixel power edge")
+	local r, g, b = K.Tokens.Color("hudPlayerHealth")
+	power:SetFillRamp(r, g, b, "health")
+	local gradient = power:GetStatusBarTexture()._state.Gradient
+	assert(gradient and gradient[1] == "VERTICAL", "the one-pixel edge still ramps")
+	local function clamp(v)
+		if v < 0 then return 0 end
+		if v > 1 then return 1 end
+		return v
+	end
+	local function stop(edge, channel, top, bot)
+		local tHi = (edge + 0.5) / span
+		local tLo = (span - edge - 0.5) / span
+		local gap = tLo - tHi
+		local hi = clamp((top * tLo - bot * tHi) / gap)
+		local lo = clamp(((1 - tHi) * bot - (1 - tLo) * top) / gap)
+		return channel == "hi" and hi or lo
+	end
+	local topR, botR = r * 46 / 44, r * 41 / 44
+	local hi, lo = gradient[3].r, gradient[2].r
+	assert(math.abs(hi - stop(1, "hi", topR, botR)) < 0.002 and math.abs(lo - stop(1, "lo", topR, botR)) < 0.002, "the ramp is extrapolated for the one-pixel edge that is drawn")
+	assert(math.abs(hi - stop(2, "hi", topR, botR)) > 0.01, "a two-pixel extrapolation would miss the visible row")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 print("widgets status bar ok")

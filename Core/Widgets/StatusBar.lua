@@ -30,7 +30,9 @@ local SPARK_EDGE = {
 
 local COLOR_CHANNELS = 4
 local EDGE_PIXELS = 2
-local EDGE_MIN_PIXELS = EDGE_PIXELS * 4
+local EDGE_FULL_PIXELS = 8
+local EDGE_THIN_PIXELS = 5
+local EDGE_MIN_FILL = 3
 local BACKING_ALPHA = 0.64
 local RAMP_KINDS = {
 	plate = { { 208 / 195, 74 / 67, 67 / 61 }, { 179 / 195, 59 / 67, 54 / 61 } },
@@ -161,6 +163,33 @@ function Bar:FlatTexture()
 	return path == flat
 end
 
+local function CrossPixels(self)
+	local span = self.vertical and self:GetWidth() or self:GetHeight()
+	local unit = Scale.Pixel(1) / Widgets.ScaleFactor(self)
+	if type(span) ~= "number" or Widgets.IsSecret(span) or span <= 0 or type(unit) ~= "number" or unit <= 0 then
+		return nil
+	end
+	return span / unit
+end
+
+function Bar:EdgeThickness()
+	local pixels = CrossPixels(self)
+	if not pixels then
+		return EDGE_PIXELS
+	end
+	local edge = 0
+	local band = pixels + 0.001
+	if band >= EDGE_FULL_PIXELS then
+		edge = EDGE_PIXELS
+	elseif band >= EDGE_THIN_PIXELS then
+		edge = 1
+	end
+	while edge > 0 and pixels - edge * 2 < EDGE_MIN_FILL do
+		edge = edge - 1
+	end
+	return edge
+end
+
 local function Extrapolate(self, topR, topG, topB, botR, botG, botB)
 	if not self.innerEdgeOn then
 		return topR, topG, topB, botR, botG, botB
@@ -171,8 +200,8 @@ local function Extrapolate(self, topR, topG, topB, botR, botG, botB)
 		return topR, topG, topB, botR, botG, botB
 	end
 	local pixels = height / unit
-	local edge = EDGE_PIXELS
-	if pixels <= edge * 2 + 1 then
+	local edge = self:EdgeThickness()
+	if edge <= 0 or pixels <= edge * 2 + 1 then
 		return topR, topG, topB, botR, botG, botB
 	end
 	local tHi = (edge + 0.5) / pixels
@@ -231,15 +260,6 @@ function Bar:SetFillRamp(r, g, b, kind)
 	self:ApplyFillRamp()
 end
 
-local function CrossPixels(self)
-	local span = self.vertical and self:GetWidth() or self:GetHeight()
-	local unit = Scale.Pixel(1) / Widgets.ScaleFactor(self)
-	if type(span) ~= "number" or Widgets.IsSecret(span) or span <= 0 or type(unit) ~= "number" or unit <= 0 then
-		return nil
-	end
-	return span / unit
-end
-
 local function ApplyEdgeMasks(self)
 	local edge, caps = self.innerEdge, self.caps
 	if not edge or not caps then
@@ -266,15 +286,18 @@ function Bar:PlaceInnerEdge()
 	if not edge then
 		return
 	end
-	local px = Widgets.Snap(self, Scale.Pixel(EDGE_PIXELS) / Widgets.ScaleFactor(self))
+	local thickness = self:EdgeThickness()
+	local px = Widgets.Snap(self, Scale.Pixel(math.max(thickness, 1)) / Widgets.ScaleFactor(self))
 	local token = self.innerEdgeToken or "black"
-	local pixels = CrossPixels(self)
-	local show = self.innerEdgeOn == true and (pixels == nil or pixels >= EDGE_MIN_PIXELS)
+	local show = self.innerEdgeOn == true and thickness > 0
 	for i = 1, 4 do
 		Widgets.Tint(edge[i], token)
 		edge[i]:SetShown(show)
 	end
 	ApplyEdgeMasks(self)
+	if self.fillSource and (self.rampOn or self.fillRamped) then
+		self:ApplyFillRamp()
+	end
 	edge[1]:ClearAllPoints()
 	edge[1]:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
 	edge[1]:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 0)
