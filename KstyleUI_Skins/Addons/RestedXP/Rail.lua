@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in the layout's story rail: its card on the rail's left edge and width, its footer one rail gap above the quests with its cap and active steps stacked up from there (when the quest card docks under it, the stack starts at the slot's top and the card follows the guide's foot, so the quests read right under the map), its step list folded by RestedXP's own rule; when Apply's Edit Mode layout holds the quests under it, the card reaches down to the quests and the tracker's own glass yields, so the rail reads as one card; re-placed after each step, on entering the world and after an Edit Mode change, out of combat, and never in RestedXP's saved settings.
+-- Rail.lua: puts RestedXP's guide window in the layout's story rail: its card on the rail's left edge and width, hanging from the slot's top (the whole slot while the guide is alone, its upper half while Blizzard's tracker holds the lower), the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the quest card follows right under the last step and the guide's card reaches down over it, so the rail reads as one card, and when Apply's Edit Mode layout holds Blizzard's tracker under the guide the guide hugs it instead and the tracker's own glass yields; re-placed after each step, on entering the world and after an Edit Mode change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window.
 local _, ns = ...
 
 local K = KstyleUI
@@ -17,6 +17,7 @@ local OWNER = "Skins.RestedXP.Rail"
 local DEFAULT_PRESET = "DPS"
 local SIDE, FOOTER, HEAD_HEIGHT, HEADER_OVERLAP, STEP_GAP = 3, 20, 35, 9, 2
 local MIN_HEIGHT, LIST_SHOWN = 28, 30
+local SAVE = "savePosition"
 local FOOT_GAP = "gapSmall"
 local MOVED = 1
 local SLOT_TOLERANCE = 2
@@ -59,10 +60,26 @@ local function Frame()
 	return f
 end
 
+local function Company()
+	if state.standIn then
+		return true
+	end
+	local Quests = ns.Quests
+	if Quests and type(Quests.Active) == "function" and Quests.Active() then
+		return Quests.Fit() ~= nil
+	end
+	local tracker = _G.ObjectiveTrackerFrame
+	if not IsTable(tracker) or type(tracker.IsVisible) ~= "function" then
+		return false
+	end
+	local visible = tracker:IsVisible()
+	return not Widgets.IsSecret(visible) and visible == true
+end
+
 function Rail.Story()
 	local Layout, Setup = K.Layout, K.Setup
 	local preset = Layout and type(Layout.Setting) == "function" and Layout.Setting("preset") or DEFAULT_PRESET
-	return Setup and type(Setup.Story) == "function" and Setup.Story(preset, true) or nil
+	return Setup and type(Setup.Story) == "function" and Setup.Story(preset, true, not Company()) or nil
 end
 
 function Rail.Band()
@@ -79,6 +96,21 @@ local function Remember(f)
 		points[i] = { f:GetPoint(i) }
 	end
 	state.original = { points = points, width = f:GetWidth(), height = f:GetHeight() }
+end
+
+local function Hold(f, on)
+	if on and not state.held then
+		state.held = { value = f[SAVE] }
+		f[SAVE] = false
+	elseif not on and state.held then
+		f[SAVE] = state.held.value
+		state.held = nil
+	end
+end
+
+local function Bars(f)
+	local bars = IsTable(f.BarContainer) and f.BarContainer.bars
+	return IsTable(bars) and next(bars) ~= nil
 end
 
 local function StepsAbove(f)
@@ -174,15 +206,6 @@ local function Dock(f, story)
 	return docked
 end
 
-local function Foot(f, story, scale)
-	local band = story.guide
-	local foot = band.bottom / scale
-	if WillDock(f, story) then
-		foot = math.min(foot, (story.tracker.top + Tokens.Size(FOOT_GAP)) / scale)
-	end
-	return foot
-end
-
 function Rail.DockTo(frame, card)
 	state.standIn = IsTable(frame) and frame or nil
 	state.standInCard = card == true
@@ -221,30 +244,40 @@ function Rail.Place()
 	local head = path and path.height or HEAD_HEIGHT
 	local above, below = StepsAbove(f)
 	local headTop = head - HEADER_OVERLAP - SIDE
-	local width = (band.right - band.left) / scale + 2 * SIDE - 2 * reach
-	local left = band.left / scale - SIDE + reach
-	local height = math.max(MIN_HEIGHT, head - headTop + FOOTER + Widgets.Snap(f, Tokens.Size(FOOT_GAP)))
-	local top = Foot(f, story, scale) + below + height
-	local cap = path and path.capHeight or 0
-	local docks, _, card = WillDock(f, story)
-	local under
-	if docks and card then
-		top = math.max(top, band.top / scale - headTop - above - cap)
-		under = (top - height - below) * scale - Tokens.Size(FOOT_GAP)
+	local folded = path ~= nil and below == 0 and not Bars(f)
+	local gap = Tokens.Size(FOOT_GAP)
+	local height = Widgets.Snap(f, folded and MIN_HEIGHT or HEADER_OVERLAP + SIDE + FOOTER + gap)
+	if height < MIN_HEIGHT then
+		height = height + Widgets.Border(f)
 	end
-	CardUnder(under)
+	local foot = height + below
+	if folded then
+		foot = HEADER_OVERLAP + SIDE - (path.metaShown and 0 or head + (above > 0 and STEP_GAP or 0))
+	end
+	local cap = path and path.capHeight or 0
+	local top = band.top / scale - headTop - above - cap
+	local docks, _, card = WillDock(f, story)
+	if docks and not card then
+		top = math.min(top, (story.tracker.top + gap) / scale + foot)
+	end
+	local width = Widgets.Snap(f, (band.right - band.left) / scale + 2 * SIDE - 2 * reach)
+	local left = Widgets.Snap(f, band.left / scale - SIDE + reach)
+	top = Widgets.Snap(f, top)
+	CardUnder(docks and card and (top - foot) * scale - (folded and 0 or gap) or nil)
 	Remember(f)
+	Hold(f, true)
 	f:ClearAllPoints()
-	f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
 	f:SetSize(width, height)
+	f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
 	state.placed = { left = left, top = top, width = width, height = height }
+	RestedXP.Chrome.Rest(f, true, folded)
 	Refresh(f)
 	if height - SIDE - (FOOTER - 6) >= LIST_SHOWN then
 		LogOnce("rail list", "the guide's head is tall enough that RestedXP keeps a sliver of its step list")
 	end
-	local stackTop = (top + headTop + above + cap) * scale
-	if stackTop > band.top + 0.5 then
-		Log(string.format("the guide's steps reach %.0f units above its half of the story rail", stackTop - band.top))
+	local reached = band.bottom - (top - foot) * scale
+	if reached > 0.5 then
+		Log(string.format("the guide's steps reach %.0f units under its part of the story rail", reached))
 	end
 	Dock(f, story)
 	return true
@@ -279,6 +312,8 @@ local function Restore()
 		if Plain(original.width) and Plain(original.height) then
 			f:SetSize(original.width, original.height)
 		end
+		Hold(f, false)
+		RestedXP.Chrome.Rest(f, false)
 		Refresh(f)
 	end)
 end
@@ -306,6 +341,8 @@ local function Moved(f)
 	local resized = Plain(width) and Plain(height) and (math.abs(width - placed.width) > MOVED or math.abs(height - placed.height) > MOVED)
 	if Shifted(f, placed) or resized then
 		state.placed, state.original = nil, nil
+		Hold(f, false)
+		RestedXP.Chrome.Rest(f, false)
 		K.Options.Write(MODULE, KEY .. "." .. FIELD, false)
 		Log("the player moved the guide; the story rail lets it be")
 		K.Print(L["KstyleUI leaves the RestedXP guide where you put it. Turn Story rail back on in the RestedXP skin's settings."])
@@ -330,6 +367,9 @@ local function Hook(f)
 	local rxp = state.rxp
 	if type(rxp.SetStep) == "function" then
 		hooksecurefunc(rxp, "SetStep", Schedule)
+	end
+	if type(rxp.SortTimers) == "function" then
+		hooksecurefunc(rxp, "SortTimers", Schedule)
 	end
 	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Schedule)
 	K.Events.Register(OWNER, "EDIT_MODE_LAYOUTS_UPDATED", Schedule)

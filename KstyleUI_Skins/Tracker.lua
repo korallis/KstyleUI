@@ -485,7 +485,8 @@ local function Extra(tracker)
 		return 0
 	end
 	local rail = RailWidth() / Widgets.ScaleFactor(tracker)
-	return math.max(0, rail - PANEL_LEFT - width - Widgets.WindowInset(tracker))
+	local inset = Widgets.WindowInset(tracker)
+	return math.max(-inset, rail - PANEL_LEFT - width - inset)
 end
 
 local function Width(tracker)

@@ -317,7 +317,7 @@ do
 	for _, button in ipairs({ items.buttonList[1], items.buttonList[2], targets.enemyTargetButtons[1] }) do
 		assert(ns.Parts.RimOf(button), "each icon button made later sits on a KstyleUI rim")
 	end
-	local wash = items.buttonList[1]._highlight
+	local wash = items.buttonList[1]:GetHighlightTexture()
 	assert(W.SameRGB(wash, 0.2, 0.4, 0.9), "the button highlight is an accent wash")
 	K.Theme.SetCustomAccent(0.9, 0.5, 0.1)
 	env.RunTimers()
