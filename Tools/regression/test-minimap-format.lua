@@ -1,4 +1,4 @@
--- test-minimap-format.lua: the minimap's pure helpers: coordinates, clock text, zone colours, wheel zoom steps and the map's place in its element.
+-- test-minimap-format.lua: the minimap's pure helpers: coordinates, clock text, zone colours, wheel zoom steps, the picture's measures for the north plate, the caption and the buttons, and the drawer's grid.
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 
@@ -71,17 +71,22 @@ check(Format.ZoomAt(0.5, 1), 0, "one level is always 0")
 check(Format.ZoomAt(env.Secret(0.5), 6), nil, "a secret share gives no level")
 check(Format.ZoomAt(0.5, nil), nil, "no zoom levels, no level")
 
--- The square map: it sits INSET units inside the element's rim on every side, and its mask is the chamfered
--- square make_media.py draws: the cut is a share of the side, so the rim's chamfer grows with the map.
+-- The picture's measures (DIFF.md section 1, in root units): the map is the element, with no inset and no chamfer;
+-- the north plate is 16 across; the caption under the map is 36 deep, its texts start 2 in from the map's edge, the
+-- zone's caps centred 13.7 under the map and the coordinates' and the clock's digits 31.2 under it.
 local function near(a, b, what)
 	assert(math.abs(a - b) < 1e-6, what .. ": want " .. tostring(b) .. ", got " .. tostring(a))
 end
-check(Format.INSET, 2, "the map sits 2 units inside the element's rim")
-check(Format.BAND, 26, "the zone and clock bands along the map's top and bottom edges")
-near(Format.MASK_SHARE, (12 - 2 * 2) / (221 - 2 * 2), "the mask's cut, as a share of the map's side, from make_media.py's three numbers")
-near(Format.Chamfer(156), 156 * Format.MASK_SHARE, "the rim's chamfer is the mask's cut at the map's size")
+check(Format.NORTH, 16, "the north plate is 16 units across")
+check(Format.CAPTION, 36, "the caption under the map is 36 units deep")
+check(Format.CAPTION_X, 2, "the caption's texts start 2 units in from the map's edge")
+near(Format.ZONE_CENTER, 13.7, "the zone's caps are centred 13.7 under the map")
+near(Format.ROW_CENTER, 31.2, "the coordinates and the clock are centred 31.2 under the map")
+check(Format.TOP, 7, "the first button's top is 7 units under the map's top edge")
+check(Format.EDGE, 7.75, "a 19.5 button's centre is 17.5 in from the map's right edge")
+assert(Format.INSET == nil and Format.BAND == nil and Format.MASK_SHARE == nil and Format.Chamfer == nil, "the inset, the bands and the chamfer are gone")
 assert(Format.Lens == nil and Format.Arc == nil and Format.ArcStep == nil, "the round lens and its arc are gone")
-assert(Format.RIM == nil and Format.FOOT == nil and Format.COMPASS_PLATE == nil, "and so are the card's bands and the north mark's plate")
+assert(Format.RIM == nil and Format.FOOT == nil and Format.COMPASS_PLATE == nil, "and so are the card's bands and the old north mark's plate")
 
 -- The button column: each button's corner sits inside the map's edge, under the top band, one button and one
 -- gap further down for each slot; growing up starts over the bottom band and climbs.

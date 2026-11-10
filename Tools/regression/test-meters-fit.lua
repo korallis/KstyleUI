@@ -1,4 +1,4 @@
--- test-meters-fit.lua: the meter's glass fits the rows it shows from a fixed top, and a row is never shorter than its text needs.
+-- test-meters-fit.lua: the damage card is the picture's fixed card: it keeps the holder's height whatever the rows, a row is never shorter than its text needs, and the fight switch is length-safe.
 local M = dofile("Tools/regression/meters_env.lua")
 local W = M.W
 
@@ -26,10 +26,6 @@ local function RowsBottom(list)
 	return -y + row.frame:GetHeight()
 end
 
-local function Unused(list)
-	return list.panel:GetHeight() - RowsBottom(list) - list.pad
-end
-
 local function TopAnchored(list)
 	local panel, holder = list.panel, list.holder
 	if panel:GetNumPoints() ~= 2 then
@@ -46,57 +42,56 @@ M.Enable(env, K)
 local list = ns.Damage.list
 local title = { list.title:GetPoint(1) }
 
--- One source: the glass ends one inset under its row, not at the holder's foot (the judge's B-1: 67 dead units).
+-- One source: the card keeps the holder's whole height, as the picture's 158-unit card does under its rows.
 assert(list.count == 1, "one source shows")
-assert(TopAnchored(list), "the glass hangs from the holder's top, so the title never moves")
-assert(math.abs(Unused(list)) <= 1, "one row: no dead band under it, got " .. tostring(Unused(list)))
-assert(list.panel:GetHeight() < list.holder:GetHeight(), "one row: the glass is shorter than the holder")
+assert(TopAnchored(list), "the card hangs from the holder's top, so the title never moves")
+assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "one row: the card keeps the holder's height, got " .. tostring(list.panel:GetHeight()))
 
--- Full capacity fills the holder, and the rows still fill it to within a pixel per row.
+-- Full capacity fills the card with rows 18 units tall, 3 apart.
 Show(env, list.capacity + 3)
-assert(list.count == list.capacity, "a long session fills the capacity")
+assert(list.count == list.capacity and list.capacity == 5, "a long session fills the picture's five rows: " .. tostring(list.count))
 assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "a full list fills the holder: " .. tostring(list.panel:GetHeight()))
-assert(Unused(list) >= -0.01 and Unused(list) < list.capacity, "a full list leaves less than a pixel per row: " .. tostring(Unused(list)))
+assert(RowsBottom(list) <= list.panel:GetHeight() - list.pad + 0.01, "the last row ends inside the card")
 local same = { list.title:GetPoint(1) }
 assert(same[2] == title[2] and W.Near(same[4], title[4]) and W.Near(same[5], title[5]), "the title stays put as rows come")
 
--- A shrinking session gives the room back.
+-- A shrinking session leaves the card as it was; the rows past the session hide.
 Show(env, 2)
-assert(list.count == 2 and math.abs(Unused(list)) <= 1, "two rows after a full list: no dead band, got " .. tostring(Unused(list)))
+assert(list.count == 2 and W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "two rows after a full list: the card keeps its height")
 assert(not list.rows[3].frame:IsShown(), "rows past the session hide")
 assert(TopAnchored(list), "still hung from the top")
 
--- No source: one row of room for the note, which sits inside the glass.
+-- No source: the note sits inside the card.
 Show(env, 0)
 assert(list.count == 0 and list.note:IsShown(), "an empty session shows its note")
-assert(math.abs(Unused(list)) <= 1, "no source: the glass keeps one row of room, got " .. tostring(Unused(list)))
+assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "no source: the card keeps its height")
 
--- A holder too short for one row: the glass never spills past it.
+-- A holder too short for one row: the card never spills past it.
 local fullHeight = list.holder:GetHeight()
 list.holder:SetHeight(40)
 Show(env, 3)
 assert(list.capacity == 0, "a 40-unit holder holds no row")
-assert(list.panel:GetHeight() <= list.holder:GetHeight() + 0.01, "the glass stays inside a short holder: " .. tostring(list.panel:GetHeight()))
+assert(list.panel:GetHeight() <= list.holder:GetHeight() + 0.01, "the card stays inside a short holder: " .. tostring(list.panel:GetHeight()))
 list.holder:SetHeight(fullHeight)
 
--- A large font on a short row: the row grows to hold its text line clear of the class pill, and capacity counts
--- the rows at the height they are drawn.
+-- A large font on a short row: the row grows to hold its text line, and capacity counts the rows at the height
+-- they are drawn.
 M.Write(env, K, "damage.fontSize", 20)
 M.Write(env, K, "damage.rowHeight", 10)
 Show(env, 12)
 local row = list.rows[1]
 local _, size = row.name:GetFont()
-local bar, pill = row.frame:GetHeight(), row.bar:GetHeight()
-assert(bar - pill - ns.BarList.PILL_GAP >= size, "a " .. tostring(size) .. " font sits clear of the pill in a " .. tostring(bar) .. "-unit row")
+local bar = row.frame:GetHeight()
+assert(bar >= size, "a " .. tostring(size) .. " font sits in a " .. tostring(bar) .. "-unit row")
 local spacing = K.Widgets.Snap(list.panel, ns.Get("damage.spacing"))
 local room = list.holder:GetHeight() - K.Widgets.Snap(list.panel, list:Top()) - list.pad
 assert(list.capacity * (bar + spacing) - spacing <= room + 0.01, "the rows counted fit at their drawn height: " .. list.capacity .. " x " .. tostring(bar) .. " in " .. tostring(room))
-assert(list.capacity == 0 or RowsBottom(list) <= list.panel:GetHeight() - list.pad + 0.01, "the last row ends inside the glass")
+assert(list.capacity == 0 or RowsBottom(list) <= list.panel:GetHeight() - list.pad + 0.01, "the last row ends inside the card")
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, "fitting raises no errors")
 
--- On a high-density screen a border is several pixels: a row rounded up gives back one pixel, not a border, so it
--- never falls below its minimum and a full list leaves less than a pixel per row.
+-- On a high-density screen a border is several pixels: a row never falls below its minimum and the card still
+-- fills its holder.
 do
 	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234, game = function(e) e._group = { raid = false, size = 2 } end })
 	hiEnv._session = Session(30)
@@ -106,9 +101,9 @@ do
 	for _, height in ipairs({ 385, 300, 211, 130 }) do
 		hi.holder:SetHeight(height)
 		Show(hiEnv, 30)
-		local pixel = hiK.Scale.Pixel(1) / hiK.Widgets.ScaleFactor(hi.panel)
 		assert(hi.rows[1].frame:GetHeight() >= hi:MinRow() - 0.01, height .. ": a row is never shorter than its minimum, got " .. tostring(hi.rows[1].frame:GetHeight()) .. " for " .. hi:MinRow())
-		assert(Unused(hi) >= -0.01 and Unused(hi) < hi.capacity * pixel + 0.01, height .. ": a full list leaves under a pixel per row, got " .. tostring(Unused(hi)))
+		assert(W.Near(hi.panel:GetHeight(), height), height .. ": the card fills its holder")
+		assert(RowsBottom(hi) <= hi.panel:GetHeight() - hi.pad + 0.01, height .. ": the last row ends inside the card")
 	end
 end
 
@@ -128,6 +123,8 @@ do
 	})
 	M.Enable(env2, K2)
 	local switchList = ns2.Damage.list
+	local hover = switchList.switch
+	hover._scripts.OnEnter(hover)
 	local function Plain()
 		return (tostring(M.Last(switchList.column, "SetText")[1]):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 	end

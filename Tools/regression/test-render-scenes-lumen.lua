@@ -40,10 +40,10 @@ do
 			what .. " sits in the story slot, got " .. table.concat(r, ", "))
 	end
 	inside(assert(find(questing, "QUESTS"), "the tracker's caption draws"), "the tracker's caption")
-	inside(assert(find(questing, "[9] Encroachment"), "the third quest draws, with Forever's level"), "the third quest")
+	inside(assert(find(questing, "[8] Break a Few Eggs"), "the second quest draws, with Forever's level: the picture's slot holds the guide and two quests"), "the second quest")
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
 	inside(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), "the guide's active step")
-	assert(find(questing, "DAMAGE DONE").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
+	assert(find(questing, "DAMAGE").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
 end
 
 -- Two rails. The left holds the party card and chat on one left edge, the party card 318 wide, chat 372 (owner pass 1,
@@ -99,7 +99,7 @@ do
 		assert(find(questing, name), "the party shows " .. name)
 	end
 	assert(not find(questing, "Khont"), "a party of three")
-	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "DAMAGE DONE" }) do
+	for _, text in ipairs({ "GENERAL", "QUESTS", "RIVERGLADES", "DAMAGE" }) do
 		assert(near(find(questing, text).alpha, 1), text .. " is lit out of combat")
 	end
 end
@@ -122,11 +122,11 @@ do
 		assert(near(item.alpha, 0.9), text .. " is on the story card and dims only to 90% in combat, got " .. tostring(item.alpha))
 	end
 	-- Round 3 (Muse #3): the readout keeps a legible 65% floor in combat instead of ghosting at 30%.
-	for _, text in ipairs({ "fps", "armour" }) do
+	for _, text in ipairs({ "fps", "ms" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 0.65), text .. " is on the readout and rests at a legible 65% in combat, got " .. tostring(item.alpha))
 	end
-	for _, text in ipairs({ "Leduc", "DAMAGE DONE", "BLOODTALON MATRIARCH", "VALERIN" }) do
+	for _, text in ipairs({ "Leduc", "DAMAGE", "BLOODTALON MATRIARCH", "VALERIN" }) do
 		local item = assert(find(combat, text), text .. " draws in combat")
 		assert(near(item.alpha, 1), text .. " stays lit in combat, got " .. tostring(item.alpha))
 	end

@@ -1,4 +1,4 @@
--- Column.lua: the small crystal buttons in a column inside the map's edge: tracking, mail, calendar, the group finder status and the drawer toggle; tracking, the calendar and the drawer wait in the face's hover group.
+-- Column.lua: the small crystal buttons in a column inside the map's edge: tracking, mail, calendar, the group finder status and the drawer toggle, shown at rest; with column.hover on, tracking, the calendar and the drawer wait in the face's hover group.
 local _, ns = ...
 
 local K = KstyleUI
@@ -133,8 +133,7 @@ local RESOLVE = {
 }
 
 local function NewButton(column, name)
-	local parent = HOVER_ONLY[name] and column.face.reveal or column.host
-	local button = Widgets.IconButton(parent, {
+	local button = Widgets.IconButton(column.host, {
 		size = Settings.Get("column.size"),
 		crop = false,
 		hideNumbers = true,
@@ -228,6 +227,13 @@ function Column:Active(name)
 	return false
 end
 
+local function Home(column, name)
+	if HOVER_ONLY[name] and Settings.Get("column.hover") then
+		return column.face.reveal
+	end
+	return column.host
+end
+
 local function Fit(button, size, inset)
 	if button.opts.size ~= size or button.opts.iconInset ~= inset then
 		button.opts.size, button.opts.iconInset = size, inset
@@ -238,13 +244,17 @@ end
 function Column:Layout()
 	local holder, face = self.holder, self.face
 	local size = Widgets.Snap(holder, Settings.Get("column.size"))
-	local spacing = Widgets.Snap(holder, Settings.Get("column.spacing"))
+	local spacing = Widgets.Snap(holder, Settings.Get("column.size") + Settings.Get("column.spacing")) - size
 	local side = Settings.Get("column.side")
 	local up = Settings.Get("column.growth") == "up"
 	local shown = {}
 	for _, name in ipairs(Column.ORDER) do
 		local button = self.buttons[name]
 		local wanted = self:Wanted(name)
+		local home = Home(self, name)
+		if button:GetParent() ~= home then
+			button:SetParent(home)
+		end
 		button:SetShown(wanted)
 		if wanted then
 			shown[#shown + 1] = button
@@ -253,10 +263,10 @@ function Column:Layout()
 	local area = face.mapArea
 	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
 	local Format = ns.Format
-	local edge, band = Widgets.Snap(holder, Format.EDGE), Widgets.Snap(holder, Format.BAND)
-	local perColumn = Format.PerColumn(face.mapSize or area:GetHeight() or 0, size, spacing, band)
+	local edge, top = Widgets.Snap(holder, Format.EDGE), Widgets.Snap(holder, Format.TOP)
+	local perColumn = Format.PerColumn(face.mapSize or area:GetHeight() or 0, size, spacing, top)
 	for slot, button in ipairs(shown) do
-		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, band, perColumn)
+		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
 		Fit(button, size, inset)
 		Widgets.Size(button.badge, BADGE_SIZE, BADGE_SIZE)
 		local badgeInset = Widgets.Snap(button.badge, BADGE_INSET)

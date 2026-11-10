@@ -11,6 +11,9 @@ ns.Menus = Menus
 local PAD = 3
 local DOCK_LEVEL = 2
 
+local FADE_DELAY = 0.2
+local HELP_SYSTEM = "MicroButtons"
+
 local MICRO_ASPECT = 0.75
 local ICON_CROP = 0.07
 local PORTRAIT_CROP = (1 - MICRO_ASPECT) / 2
@@ -63,6 +66,7 @@ Menus.GROUPS = GROUPS
 
 local bars = {}
 local entryOf = setmetatable({}, { __mode = "k" })
+local watched = setmetatable({}, { __mode = "k" })
 local queued, soon, hidden = {}, {}, {}
 local running, enabling, hooked = false, false, false
 
@@ -523,11 +527,193 @@ local function BagTooltip(entry, tip)
 	tip:AddLine(L["Click: open this bag."], "text")
 end
 
+local function Shows(frame)
+	return frame ~= nil and Flag(Call(frame.IsShown, frame), false)
+end
+
+local function Over(frame)
+	local ok, over = pcall(frame.IsMouseOver, frame)
+	if not ok then
+		return false
+	end
+	if ns.IsSecret(over) then
+		return true
+	end
+	return over == true
+end
+
+local function Editing()
+	local layout = K.Layout
+	if type(layout.IsActive) == "function" and layout.IsActive() then
+		return true
+	end
+	local manager = Frame("EditModeManagerFrame")
+	return manager ~= nil and Flag(Call(manager.IsEditModeActive, manager), false)
+end
+
+local Reveal, RevealAll
+
+local function Inventory()
+	local element = type(K.Layout.Element) == "function" and K.Layout.Element("bags.inventory")
+	local frame = element and element.frame
+	if frame and not watched[frame] and type(frame.HookScript) == "function" then
+		watched[frame] = true
+		frame:HookScript("OnShow", function()
+			RevealAll()
+		end)
+		frame:HookScript("OnHide", function()
+			RevealAll()
+		end)
+	end
+	return frame
+end
+
+local function BagOpen()
+	local inventory = Inventory()
+	if Flag(Call(IsAnyBagOpen), false) then
+		return true
+	end
+	return Shows(inventory)
+end
+
+local function Pointed(bar)
+	for _, entry in ipairs(bar.entries) do
+		if Pulsing(entry.target) then
+			return true
+		end
+	end
+	local tips = HelpTip
+	if type(tips) ~= "table" or type(tips.IsShowingAnyInSystem) ~= "function" then
+		return false
+	end
+	local ok, showing = pcall(tips.IsShowingAnyInSystem, tips, HELP_SYSTEM)
+	return ok and Flag(showing, false)
+end
+
+local function Lit(bar)
+	local menus = ns.Settings().menus
+	if (type(menus) == "table" and menus.always == true) or bar.hover or Editing() then
+		return true
+	end
+	if bar.id == "bags" then
+		return BagOpen()
+	end
+	return Pointed(bar)
+end
+
+function Reveal(bar)
+	if not bar or not running then
+		return
+	end
+	local want = Lit(bar) and 1 or 0
+	if bar.fadeTarget == want then
+		return
+	end
+	local content = bar.content
+	local from = content:GetAlpha()
+	if ns.IsSecret(from) or type(from) ~= "number" then
+		from = want
+	end
+	local duration = bar.fadeTarget == nil and 0 or Tokens.Duration("fade")
+	bar.fadeTarget = want
+	bar.fadeTween = K.Motion.Tween(content, "SetAlpha", from, want, duration, Tokens.Easing("fade"))
+end
+
+function RevealAll()
+	for _, id in ipairs(ORDER) do
+		Reveal(bars[id])
+	end
+end
+Menus.Reveal = RevealAll
+
+local function RevealSoon()
+	if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+		C_Timer.After(0, RevealAll)
+	else
+		RevealAll()
+	end
+end
+
+local function StopWatching(bar)
+	if bar.watch then
+		bar.watch:Cancel()
+		bar.watch = nil
+	end
+end
+
+local function Unfade(bar)
+	if not bar then
+		return
+	end
+	StopWatching(bar)
+	if bar.fadeTween then
+		K.Motion.Stop(bar.fadeTween)
+		bar.fadeTween = nil
+	end
+	bar.fadeTarget, bar.hover, bar.checking = nil, false, false
+	bar.content:SetAlpha(1)
+end
+
+local function Recheck(bar)
+	bar.checking = false
+	bar.hover = running and Over(bar.content)
+	if not bar.hover then
+		StopWatching(bar)
+	elseif not bar.watch and type(C_Timer) == "table" and type(C_Timer.NewTicker) == "function" then
+		bar.watch = C_Timer.NewTicker(FADE_DELAY, function()
+			if not Over(bar.content) then
+				Recheck(bar)
+			end
+		end)
+	end
+	Reveal(bar)
+end
+
+local function HoverIn(bar)
+	if not bar or not running then
+		return
+	end
+	bar.hover = true
+	Reveal(bar)
+end
+
+local function HoverOut(bar)
+	if not bar or not running or bar.checking then
+		return
+	end
+	if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+		bar.checking = true
+		C_Timer.After(FADE_DELAY, function()
+			Recheck(bar)
+		end)
+	else
+		Recheck(bar)
+	end
+end
+
+local function WatchRow(bar)
+	local content = bar.content
+	content:HookScript("OnEnter", function()
+		HoverIn(bar)
+	end)
+	content:HookScript("OnLeave", function()
+		HoverOut(bar)
+	end)
+	if type(content.SetMouseMotionEnabled) ~= "function" then
+		ns.LogOnce("menus-motion", "SetMouseMotionEnabled is missing; a row comes in only under its buttons")
+		return
+	end
+	K.Combat.Queue(function()
+		content:SetMouseMotionEnabled(true)
+	end)
+end
+
 local function OnEnter(button)
 	local entry = entryOf[button]
 	if not entry or not running then
 		return
 	end
+	HoverIn(entry.bar)
 	local tip = Widgets.Tooltip()
 	tip:SetOwner(button, "ANCHOR_TOP")
 	K.Call(entry.bar.id == "micro" and MicroTooltip or BagTooltip, entry, tip)
@@ -539,6 +725,8 @@ local function OnLeave(button)
 	if tip:IsOwned(button) then
 		tip:Hide()
 	end
+	local entry = entryOf[button]
+	HoverOut(entry and entry.bar)
 end
 
 local function OnReceiveDrag(button)
@@ -624,6 +812,7 @@ end
 local function RepaintMicro()
 	if running then
 		Paint(bars.micro)
+		Reveal(bars.micro)
 	end
 end
 
@@ -657,6 +846,7 @@ local function Build(id)
 	glass:SetFrameLevel(content:GetFrameLevel())
 	glass.chrome = Widgets.Chrome(glass, { shape = "tile", fill = "surface", shadow = true })
 	local bar = { id = id, group = group, holder = holder, content = content, glass = glass, entries = {}, shown = {} }
+	WatchRow(bar)
 	for index, def in ipairs(group.buttons) do
 		local target = Frame(def.name)
 		if target then
@@ -731,6 +921,26 @@ local function InstallHooks()
 	for _, name in ipairs({ "MainActionBar_InitializeGamepad", "MainActionBar_InitializeMKB", "MainActionBar_UnInitializeMKB" }) do
 		Hook(name, SyncAll)
 	end
+	for _, name in ipairs({ "OpenBag", "CloseBag", "ToggleBag", "OpenAllBags", "CloseAllBags", "ToggleAllBags", "ToggleBackpack" }) do
+		Hook(name, RevealSoon)
+	end
+	local tips = HelpTip
+	if type(tips) == "table" then
+		for _, method in ipairs({ "Show", "Hide", "HideAllSystem", "Release" }) do
+			if type(tips[method]) == "function" then
+				hooksecurefunc(tips, method, RevealSoon)
+			end
+		end
+	end
+	if type(EventRegistry) == "table" and type(EventRegistry.RegisterCallback) == "function" then
+		EventRegistry:RegisterCallback("EditMode.Enter", RevealAll, Menus)
+		EventRegistry:RegisterCallback("EditMode.Exit", RevealAll, Menus)
+	end
+	for _, method in ipairs({ "Enter", "Exit" }) do
+		if type(K.Layout[method]) == "function" then
+			hooksecurefunc(K.Layout, method, RevealAll)
+		end
+	end
 end
 
 function Menus.Enable()
@@ -743,6 +953,7 @@ function Menus.Enable()
 		SyncBlizzard(id)
 	end
 	UpdatePortrait()
+	RevealAll()
 	enabling = false
 	if ns.Strip and ns.Strip.view then
 		ns.Strip.Refresh()
@@ -757,6 +968,7 @@ function Menus.Disable()
 			for _, entry in ipairs(bar.entries) do
 				OnLeave(entry.button)
 			end
+			Unfade(bar)
 			Sync(bar)
 		end
 		SyncBlizzard(id)
@@ -766,6 +978,10 @@ end
 function Menus.Setting(key)
 	if key == "accentSource" or key == "accentColor" then
 		RepaintMicro()
+		return
+	end
+	if key == "menus.always" then
+		RevealAll()
 		return
 	end
 	local id, field = key:match("^(%a+)%.(.+)$")
@@ -810,6 +1026,9 @@ ns.Listen("PLAYER_ENTERING_WORLD", function()
 	SyncAll()
 	UpdatePortrait()
 end)
+for _, event in ipairs({ "BAG_OPEN", "BAG_CLOSED" }) do
+	ns.Listen(event, RevealSoon)
+end
 for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED" }) do
 	ns.Listen(event, function()
 		Soon("bags")
@@ -843,5 +1062,6 @@ ns.AddPart({
 			Sync(bars[id])
 			SyncBlizzard(id)
 		end
+		RevealAll()
 	end,
 })

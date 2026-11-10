@@ -13,8 +13,8 @@ Model.GROUPS = { "buffs", "debuffs" }
 Model.KEYS = { buffs = "auras.buffs", debuffs = "auras.debuffs" }
 Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL" }
 
-local TIMER_GAP = 1
 local LINE_SLACK = 0.5
+Model.TIMER_GAP = 2
 Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
 Model.LABELS = { buffs = 40, debuffs = 24 }
 
@@ -37,14 +37,14 @@ Model.defaults = {
 	enabled = false,
 	hideBlizzard = true,
 	buffs = {
-		iconSize = 30, spacing = 6, rowSpacing = 4, rows = 2, columns = 8,
-		growth = "LEFT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true, tracked = "cdm",
+		iconSize = 28, spacing = 3, rowSpacing = 4, rows = 1, columns = 10,
+		growth = "RIGHT_DOWN", sort = "time", reverse = false, enchants = true, cancel = true, tracked = "cdm",
 	},
 	debuffs = {
-		iconSize = 30, spacing = 6, rowSpacing = 4, rows = 2, columns = 8,
-		growth = "LEFT_DOWN", sort = "priority", reverse = false, dispel = true,
+		iconSize = 28, spacing = 3, rowSpacing = 4, rows = 1, columns = 10,
+		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = BODY_FONT, size = 11, outline = "NONE", expiring = 5 },
+	timer = { format = "short", position = "below", font = BODY_FONT, size = 12, outline = "NONE", expiring = 5 },
 	count = { font = NUMBER_FONT, size = 10, outline = "NONE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
@@ -93,6 +93,7 @@ local GROWTH = {
 	RIGHT_DOWN = { "TOPLEFT", "Right", "Down" },
 	RIGHT_UP = { "BOTTOMLEFT", "Right", "Up" },
 }
+local HANG = { TOPRIGHT = "TOPRIGHT", BOTTOMRIGHT = "BOTTOMRIGHT", TOPLEFT = "TOPRIGHT", BOTTOMLEFT = "BOTTOMRIGHT" }
 local LAST_CELL = { TOPRIGHT = "BOTTOMLEFT", BOTTOMRIGHT = "TOPLEFT", TOPLEFT = "BOTTOMRIGHT", BOTTOMLEFT = "TOPRIGHT" }
 local SORT = { time = "ExpirationOnly", name = "NameOnly", applied = "AuraInstanceIDOnly", blizzard = "Default", priority = "UnitFrameDebuff" }
 local FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
@@ -209,6 +210,10 @@ function Model.Growth(growth)
 	return entry[1], entry[2], entry[3]
 end
 
+function Model.Hang(growth)
+	return HANG[(Model.Growth(growth))]
+end
+
 function Model.LastCell(growth)
 	return LAST_CELL[(Model.Growth(growth))]
 end
@@ -219,7 +224,7 @@ end
 
 function Model.TimerArea(timer)
 	if timer.position == "below" and timer.format ~= "none" then
-		return timer.size + TIMER_GAP
+		return timer.size + Model.TIMER_GAP
 	end
 	return 0
 end

@@ -1,4 +1,4 @@
--- test-databars-readout.lua: the readout and menu card: one line of value plus muted unit on the strip, the micro menu and bag bar docked under it as round crystal buttons in the same card, or set free as their own elements.
+-- test-databars-readout.lua: the readout's cells and menu card: a value plus muted unit in each cell, the micro menu and bag bar docked under them as round crystal buttons in the same card when strip.menus is on, or set free as their own elements, and the docked line of the picture's readout.
 local D = dofile("Tools/regression/databars_env.lua")
 
 local function eq(got, want, what)
@@ -29,7 +29,13 @@ local env, K, ns = D.New({
 	end,
 })
 K.Modules.Enable("DataBars")
--- The menu rows are hidden by default (test-databars-compact.lua); these checks are about the rows, so they show them.
+-- The menu rows are hidden and undocked by default, and the readout is one line (the picture, LEE-20;
+-- test-databars-strip.lua, test-databars-compact.lua); these checks are about the cells and the docked rows, so they set them.
+K.Options.Write("DataBars", "strip.line", false)
+K.Options.Write("DataBars", "strip.backdrop", true)
+K.Options.Write("DataBars", "strip.slot4", "durability")
+K.Options.Write("DataBars", "strip.fontSize", 12)
+K.Options.Write("DataBars", "strip.menus", true)
 K.Options.Write("DataBars", "micro.shown", true)
 K.Options.Write("DataBars", "bags.shown", true)
 env.RunTimers()
@@ -67,7 +73,7 @@ assert(vp[1] == "CENTER" and vp[2] == fps.button and vp[4] < 0, "the value sits 
 -- bare of their own glass, and neither is live in Layout Mode. The card
 -- is the strip's element, sized to its rows (the element grows up from its bottom-right anchor, so it never
 -- leaves the screen), and Layout holds that height so the mover plate hugs the glass.
-eq(ns.Settings().strip.menus, true, "the menus dock in the readout card by default")
+eq(ns.Settings().strip.menus, true, "the menus dock in the readout card when set to")
 local view = ns.Strip.view
 assert(view.card and view.card ~= view.frame and view.chrome.owner == view.card, "the chrome sits on a card frame")
 local cp = view.card._points
@@ -147,7 +153,7 @@ assert(near(view.frame:GetHeight(), 43, 0.5), "free of the rows, the card takes 
 Options.Write("DataBars", "strip.menus", true)
 assert(micro._points[1][2] == view.frame and not K.Layout.Live("databars.micro"), "docking again")
 
--- The old label modes still work.
+-- The old label modes still work in cells.
 Options.Write("DataBars", "strip.labels", "short")
 eq(fps.label:GetText(), "FPS", "short labels are the caps labels")
 Options.Write("DataBars", "strip.labels", "none")
@@ -179,3 +185,29 @@ do
 	env.RunTimers()
 	assert(ns.Strip.view.wrapMenus == false, "the wide card shares one row again")
 end
+
+-- The picture's readout: the line is 12 units and bare, the docked rows hang from it with no padding of their own.
+do
+	Options.Write("DataBars", "strip.line", true)
+	Options.Write("DataBars", "strip.backdrop", false)
+	Options.Write("DataBars", "strip.slot4", "none")
+	Options.Write("DataBars", "strip.menus", true)
+	K.Layout.Update("databars.strip", { width = 278, height = 12 })
+	env.RunTimers()
+	eq(view.lineMode, true, "the line docks its rows too")
+	eq(view.line, ns.Strip.LINE, "the line holds the card's top")
+	eq(view.pad, 0, "bare of padding")
+	local first = micro._points[1]
+	assert(first[1] == "TOPRIGHT" and first[2] == view.frame and near(-first[5], ns.Strip.LINE + 6, 0.5), "the first row sits a gap under the line: " .. tostring(first[5]))
+	assert(near(select(4, ns.Strip.view.items.gold.button:GetPoint(1)), 0), "the line still ends on the right edge")
+	local microRow, bagsRow = ns.Menus.Holder("micro"):GetHeight(), ns.Menus.Holder("bags"):GetHeight()
+	local rows = view.wrapMenus and (microRow + 6 + bagsRow) or math.max(microRow, bagsRow)
+	assert(near(view.frame:GetHeight(), ns.Strip.LINE + 6 + rows, 0.5), "the element holds the line and its rows, no padding under them: " .. tostring(view.frame:GetHeight()))
+	assert(near(K.Layout.Get("databars.strip").height, view.frame:GetHeight(), 0.5), "and Layout holds the same height")
+	Options.Write("DataBars", "micro.shown", false)
+	Options.Write("DataBars", "bags.shown", false)
+	env.RunTimers()
+	assert(near(view.frame:GetHeight(), ns.Strip.LINE, 0.5), "with the rows hidden it is the line alone: " .. tostring(view.frame:GetHeight()))
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+print("databars readout line ok")

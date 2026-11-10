@@ -103,6 +103,65 @@ function Geometry.Rect(object, root, seen)
 	return { left = left, right = right, bottom = bottom, top = top }
 end
 
+local function EffectiveScale(object)
+	local scale = object.GetEffectiveScale and object:GetEffectiveScale()
+	if type(scale) == "number" and scale > 0 then
+		return scale
+	end
+	return object._parent and EffectiveScale(object._parent) or 1
+end
+
+local function Scaled(object, base, seen)
+	local own = EffectiveScale(object)
+	if object == base then
+		return { left = 0, right = (base:GetWidth() or 0) * own, bottom = 0, top = (base:GetHeight() or 0) * own }
+	end
+	if seen[object] then
+		return nil, "an anchor loop"
+	end
+	seen[object] = true
+	local points = object._points or {}
+	if #points == 0 then
+		return nil, "no points"
+	end
+	local x, y = {}, {}
+	for _, p in ipairs(points) do
+		local point, rel, relPoint, dx, dy = Unpack(object, p)
+		if not rel then
+			return nil, point .. " has no target"
+		end
+		local target, why = Scaled(rel, base, seen)
+		if not target then
+			return nil, why
+		end
+		local tx, ty = At(target, relPoint)
+		x[Horizontal(point)] = tx + dx * own
+		y[Vertical(point)] = ty + dy * own
+	end
+	seen[object] = nil
+	local left, right = Edges(x.min, x.max, x.mid, object._width and object._width * own)
+	local bottom, top = Edges(y.min, y.max, y.mid, object._height and object._height * own)
+	if not left then
+		return nil, "no width and one horizontal point"
+	end
+	if not bottom then
+		return nil, "no height and one vertical point"
+	end
+	return { left = left, right = right, bottom = bottom, top = top }
+end
+
+-- Geometry.ScaledRect(object, base, units) -> the object's rect from base's bottom left in units' units (base's when
+-- nil), each frame's offsets and size read in its own effective scale, as the game reads them when a frame hangs from
+-- one at another scale; or nil and a reason.
+function Geometry.ScaledRect(object, base, units)
+	local r, why = Scaled(object, base, {})
+	if not r then
+		return nil, why
+	end
+	local s = EffectiveScale(units or base)
+	return { left = r.left / s, right = r.right / s, bottom = r.bottom / s, top = r.top / s }
+end
+
 -- How far rect reaches past bounds on its worst side, in units; 0 when it stays inside.
 function Geometry.Outside(rect, bounds)
 	return math.max(0, bounds.left - rect.left, rect.right - bounds.right, bounds.bottom - rect.bottom, rect.top - bounds.top)

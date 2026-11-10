@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview of the minimap, drawn without touching Blizzard's Minimap.
+-- Preview.lua: the settings window's live preview of the minimap, drawn without touching Blizzard's Minimap, with its caption under the map.
 local _, ns = ...
 
 local K = KstyleUI
@@ -33,8 +33,8 @@ end
 function Preview.Build(parent)
 	local element = K.Setup.Layouts.Element(KEY)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetSize(element.width, element.height)
-	frame:SetPoint("CENTER", parent, "CENTER")
+	Widgets.Size(frame, element.width, element.height)
+	frame:SetPoint("CENTER", parent, "CENTER", 0, Widgets.Snap(frame, Format.CAPTION / 2))
 	local face = Face.New(frame)
 	frame.face = face
 
@@ -55,7 +55,7 @@ function Preview.Build(parent)
 	grain:AddMaskTexture(face.mask)
 	local player = area:CreateTexture(nil, "OVERLAY")
 	player:SetTexture((Tokens.Texture("dot")))
-	player:SetSize(PLAYER_SIZE, PLAYER_SIZE)
+	Widgets.Size(player, PLAYER_SIZE, PLAYER_SIZE)
 	player:SetPoint("CENTER", area, "CENTER")
 	frame.player = player
 	frame.column = Column.New(face, { preview = true })

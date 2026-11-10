@@ -1,4 +1,4 @@
--- Strip.lua: the data strip: frame rate, latency, gold, durability and time as clickable texts on glass, each with a KstyleUI tooltip.
+-- Strip.lua: the data strip: frame rate, latency, gold, durability and time as clickable texts, one right-aligned line by default or cells on glass, each with a KstyleUI tooltip.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -25,13 +25,13 @@ local MIN_GAP = 2
 local CHAR_WIDTH_SHARE = 0.6
 local VERTICAL_WIDTH = 160
 local ROW_ASPECT = 3
-local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 40, 16, 1600, 800
+local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 40, 8, 1600, 800
 local FPS_GOOD, FPS_OK = 60, 30
 local MS_GOOD, MS_OK = 150, 300
 local DURABILITY_GOOD, DURABILITY_OK = 50, 25
 
 Strip.ITEMS = { "fps", "latency", "gold", "durability", "time" }
-Strip.DEFAULT_SLOTS = { "fps", "latency", "gold", "durability", "none" }
+Strip.DEFAULT_SLOTS = { "fps", "latency", "gold", "none", "none" }
 Strip.SLOTS = SLOTS
 
 local LABELS = {
@@ -43,12 +43,15 @@ local LABELS = {
 }
 local UNIT_GAP = 3
 local MENU_GAP = 6
-local LINE = 30
-local COMPACT = 42
+local LINE = 12
+local CELL_LINE = 30
+local CELLS_HEIGHT = 42
+local DOT_GAP = 2
+local DOT = "\194\183"
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
 Strip.LINE = LINE
-Strip.COMPACT = COMPACT
+Strip.COMPACT = LINE
 
 local CELL_WEIGHT = { fps = 0.8, latency = 0.9, gold = 1.4, durability = 1.25, time = 0.85 }
 
@@ -65,6 +68,11 @@ local DURABILITY_SLOTS = {
 }
 
 local TIMED = { fps = true, latency = true, time = true }
+
+local function LineMode(s)
+	return s.line ~= false and s.orientation ~= "VERTICAL"
+end
+Strip.LineMode = LineMode
 
 local running = false
 local ticker, ticking
@@ -136,7 +144,7 @@ local VALUES = {
 		if not ms then
 			return nil
 		end
-		if s.labels == "short" or s.labels == "inline" then
+		if s.labels == "short" or s.labels == "inline" or (s.labels ~= "none" and LineMode(s)) then
 			return tostring(ms), Grade(ms, MS_GOOD, MS_OK)
 		end
 		return format(L["%d ms"], ms), Grade(ms, MS_GOOD, MS_OK)
@@ -182,7 +190,7 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens(item.view.lineMode and "textEmphasis" or "text", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
@@ -207,6 +215,8 @@ local function NewItem(view, id)
 	button.kItem = item
 	item.label = Widgets.FontString(button, "OVERLAY")
 	item.value = Widgets.FontString(button, "OVERLAY")
+	item.dot = Widgets.FontString(view.frame, "OVERLAY")
+	item.dot:SetText(DOT)
 	item.separator = view.frame:CreateTexture(nil, "ARTWORK")
 	item.separator:SetColorTexture(Tokens.Color("white"))
 	button.Paint = function()
@@ -363,6 +373,50 @@ local function CompactGold(item, s)
 	end
 end
 
+local function PlaceLine(view, s)
+	local frame = view.frame
+	local _, h = Size(frame)
+	if view.line and view.line < h then
+		h = view.line
+	end
+	local edge = view.bare and 0 or Pad(frame)
+	local unitGap, dotGap = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, DOT_GAP)
+	local order = view.order
+	local x = edge
+	for i = #order, 1, -1 do
+		local item = view.items[order[i]]
+		local button = item.button
+		local valueWidth = TextWidth(item.value, s.fontSize)
+		local labelWidth = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
+		local width = Widgets.Snap(frame, valueWidth + (labelWidth > 0 and unitGap + labelWidth or 0))
+		item.cell, item.inner = nil, nil
+		button:ClearAllPoints()
+		button:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
+		Widgets.Size(button, max(1, width), max(1, h))
+		item.value:ClearAllPoints()
+		item.value:SetPoint("LEFT", button, "LEFT")
+		item.value:SetWidth(Widgets.Snap(item.value, max(1, valueWidth + 2)))
+		item.value:SetJustifyH("LEFT")
+		item.label:SetShown(labelWidth > 0)
+		item.label:ClearAllPoints()
+		item.label:SetPoint("LEFT", button, "LEFT", Widgets.Snap(button, valueWidth + unitGap), 0)
+		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
+		item.label:SetJustifyH("LEFT")
+		item.separator:Hide()
+		x = x + width
+		item.dot:SetShown(i > 1)
+		if i > 1 then
+			local dotWidth = TextWidth(item.dot, s.fontSize)
+			item.dot:ClearAllPoints()
+			item.dot:SetPoint("RIGHT", button, "LEFT", -dotGap, 0)
+			item.dot:SetWidth(Widgets.Snap(item.dot, max(1, dotWidth + 2)))
+			item.dot:SetJustifyH("RIGHT")
+			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
+		end
+	end
+	view.contentWidth = Widgets.Snap(frame, x - edge)
+end
+
 local function PlaceItems(view, s)
 	local frame = view.frame
 	local w, h = Size(frame)
@@ -371,6 +425,13 @@ local function PlaceItems(view, s)
 		h = view.line
 	end
 	local order = view.order
+	if view.lineMode then
+		PlaceLine(view, s)
+		return
+	end
+	for _, item in pairs(view.items) do
+		item.dot:Hide()
+	end
 	local total = Weight(order)
 	view.contentWidth = Widgets.Snap(frame, total * CELL_EMS * s.fontSize)
 	if s.orientation == "VERTICAL" then
@@ -435,7 +496,9 @@ local function SetValues(view, s, values, timedOnly)
 			item.value:SetText(text or L["--"])
 			CompactGold(item, s)
 			ValueColor(item, s, grade or nil)
-			if item.inner and s.labels == "inline" then
+			if view.lineMode then
+				item.inner = nil
+			elseif item.inner and s.labels == "inline" then
 				PlaceInline(item, s)
 			elseif item.inner == nil and s.orientation ~= "VERTICAL" then
 				local w = item.value:GetWidth()
@@ -443,11 +506,16 @@ local function SetValues(view, s, values, timedOnly)
 			end
 		end
 	end
+	if view.lineMode then
+		PlaceLine(view, s)
+	end
 end
 
 function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order = order
+	view.lineMode = LineMode(s)
+	view.bare = view.lineMode and s.backdrop == false
 	local inOrder = {}
 	for _, id in ipairs(order) do
 		inOrder[id] = true
@@ -464,10 +532,14 @@ function Strip.Paint(view, s, values)
 		if not on then
 			ns.Click.Release(item)
 			item.separator:Hide()
+			item.dot:Hide()
 		else
-			Font.Apply(item.label, s.font, CaptionSize(s), s.outline)
+			Font.Apply(item.label, s.font, view.lineMode and s.fontSize or CaptionSize(s), s.outline)
 			Font.Apply(item.value, s.font, s.fontSize, s.outline)
-			local label = s.labels ~= "none" and LABELS[id][s.labels] or ""
+			Font.Apply(item.dot, s.font, s.fontSize, s.outline)
+			Widgets.TextColor(item.dot, "textEmphasis")
+			item.dot:SetWordWrap(false)
+			local label = s.labels ~= "none" and LABELS[id][view.lineMode and "inline" or s.labels] or ""
 			item.caption = label
 			item.label:SetText(label)
 			item.label:SetWordWrap(false)
@@ -568,9 +640,9 @@ function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
 	local docked = s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
-	view.pad = Pad(frame)
+	view.pad = view.bare and 0 or Pad(frame)
 	local pad, gap = view.pad, Widgets.Snap(frame, MENU_GAP)
-	local line = Widgets.Snap(frame, LINE)
+	local line = Widgets.Snap(frame, view.lineMode and LINE or CELL_LINE)
 	if not docked then
 		if Menus and view == Strip.view then
 			for id in pairs(DOCK) do
@@ -587,7 +659,7 @@ function Strip.DockMenus(view, s)
 	local bagCount = DockCount(Menus, "bags")
 	local plan = Strip.MenuPlan(w - 2 * pad, { micro = DockCount(Menus, "micro"), bags = bagCount },
 		{ micro = settings.micro.size, bags = settings.bags.size }, Widgets.Snap(frame, settings.micro.spacing), gap)
-	local height = plan.height > 0 and (line + gap + plan.height + pad) or (line + pad)
+	local height = plan.height > 0 and (line + gap + plan.height + pad) or (view.lineMode and line or line + pad)
 	if InCombatLockdown() and not Near(frame:GetHeight(), height) then
 		DockAfterCombat()
 		return
@@ -823,7 +895,7 @@ local function Footprint()
 		return element.width, element.height, element.label, layouts.Default(KEY)
 	end
 	ns.LogOnce("footprint:" .. KEY, KEY .. " has no footprint in Setup.Layouts; using the fallback size and position")
-	return 430, 36, KEY, { anchor = "BOTTOMRIGHT", x = -16, y = 16 }
+	return 278, LINE, KEY, { anchor = "BOTTOMRIGHT", x = -17, y = 180 }
 end
 
 local function Build()
@@ -855,8 +927,17 @@ local function MatchOrientation(s, changed)
 		K.Layout.Update(KEY, { width = VERTICAL_WIDTH, height = Widgets.Snap(Strip.view.frame, rows * s.fontSize * ROW_SHARE + 2 * Pad(Strip.view.frame)) })
 	elseif not vertical and (changed or layout.height > layout.width) then
 		local width, height = Footprint()
-		K.Layout.Update(KEY, { width = width, height = height })
+		K.Layout.Update(KEY, { width = width, height = LineMode(s) and height or max(height, CELLS_HEIGHT) })
 	end
+end
+
+local function MatchLine(s)
+	local layout = K.Layout.Get(KEY)
+	if not layout or s.orientation == "VERTICAL" then
+		return
+	end
+	local _, height = Footprint()
+	K.Layout.Update(KEY, { width = layout.width, height = LineMode(s) and height or max(layout.height, CELLS_HEIGHT) })
 end
 
 function Strip.Enable()
@@ -866,7 +947,11 @@ function Strip.Enable()
 	end
 	local view = Strip.view or Build()
 	view.frame:Show()
-	MatchOrientation(ns.Settings().strip, false)
+	local s = ns.Settings().strip
+	MatchOrientation(s, false)
+	if not LineMode(s) then
+		MatchLine(s)
+	end
 	Strip.Refresh()
 	StartTicker()
 end
@@ -891,6 +976,8 @@ function Strip.Setting(key)
 	local s = ns.Settings().strip
 	if field == "orientation" then
 		MatchOrientation(s, true)
+	elseif field == "line" then
+		MatchLine(s)
 	end
 	Strip.Refresh()
 	if field and field:match("^slot%d$") then

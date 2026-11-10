@@ -13,8 +13,14 @@ local PROTECTED = {
 	SetScale = true, RegisterForClicks = true,
 }
 
+-- Sized(size) -> saved data at that Interface size. Boot runs at the shipped size (16 / 19), as the game does: the
+-- picture's right rail (LEE-20) leaves the story slot about 300 units tall there, and only 98 at size 1.
+local function Sized(size)
+	return { version = 12, profiles = { Default = { Appearance = { uiScale = size } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+end
+
 -- Boot(opts) -> env, K, ns, log, tracker: Skins on, Blizzard's tracker loaded, opts.quests tracked (10 by
--- default). opts.rxp installs RestedXP; opts.screen sets the screen; opts.saved the saved Skins section; opts.measure
+-- default). opts.rxp installs RestedXP; opts.screen sets the screen; opts.saved the saved data; opts.measure
 -- gives the font strings the kit fonts' glyph widths, so a line wraps where the game wraps it.
 local function Boot(opts)
 	opts = opts or {}
@@ -24,7 +30,7 @@ local function Boot(opts)
 		width = screen.width,
 		height = screen.height,
 		uiScale = screen.uiScale,
-		saved = opts.saved,
+		saved = opts.saved or Sized(16 / 19),
 		setup = function(env)
 			log = Quests.Install(env, opts.quests or Quests.List(10))
 			log.super = opts.super or 0
@@ -88,10 +94,8 @@ end
 
 -- RootRect(K, object) -> the object's rect in KstyleUI's root units, whichever frame it hangs from.
 local function RootRect(K, object)
-	local env = K.Scale.Root()._env
-	local r = assert(Geometry.Rect(object, env.UIParent))
-	local s = env.UIParent:GetEffectiveScale() / K.Scale.Root():GetEffectiveScale()
-	return { left = r.left * s, right = r.right * s, bottom = r.bottom * s, top = r.top * s }
+	local root = K.Scale.Root()
+	return assert(Geometry.ScaledRect(object, root._env.UIParent, root))
 end
 
 -- Four of ten: the card shows four quests (the picture's count, LEE-20), the super-tracked one first and marked, and counts all ten -------------
@@ -153,7 +157,8 @@ end
 -- The setting picks how many quests show, from 1 to 8; fewer quests than that show them all with no scroll bar -----
 
 do
-	local env, K, ns, log = Boot()
+	-- At the smallest Interface size (0.6) the slot has room for more than eight rows, so the cap limits them.
+	local env, K, ns, log = Boot({ saved = Sized(0.6) })
 	K.Options.Write("Skins", "quests.shown", 5)
 	env.RunTimers()
 	assert(#Shown(ns) == 5, "five shown, got " .. #Shown(ns))
@@ -200,14 +205,16 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		end
 		local story = K.Setup.Story(preset, withGuide)
 		local over = math.min(Box("minimap.main").bottom, Box("auras.debuffs").bottom)
-		local under = math.max(Box("tooltips.anchor").top, Box("meters.damage").top, Box("databars.strip").top)
+		local under = math.max(Box("actionbars.bar4").top, Box("actionbars.bar5").top, Box("meters.damage").top, Box("databars.strip").top)
 		local card = RootRect(K, ns.Quests.Card())
 		local what = preset .. (withGuide and " with the guide" or " without the guide")
 		assert(card.top <= over - 16 + 0.5, what .. ": the card starts 16 under the map and the aura rows, got " .. card.top .. " for " .. over)
-		assert(card.bottom >= under + 16 - 0.5, what .. ": the card ends 16 over the tooltip anchor, the damage card and the readout, got " .. card.bottom .. " for " .. under)
+		local foot = K.Tokens.Size("gapLarge")
+		assert(card.bottom >= under + foot - 0.5, what .. ": the card ends a large gap over bars 4 and 5, the damage card and the readout, as the picture leaves 12, got " .. card.bottom .. " for " .. under)
 		assert(card.bottom >= story.story.bottom - 0.5 and card.top <= story.story.top + 0.5, what .. ": inside the story slot")
 		assert(math.abs(card.left - story.story.left) <= 0.6 and math.abs(card.right - story.story.right) <= 0.6, what .. ": on the rail's edge and width")
-		assert(math.abs(card.right - (rw - K.Tokens.Size("screenMargin"))) <= 0.6 and math.abs(card.right - card.left - 318) <= 0.6, what .. ": the right rail's 318, on the screen margin")
+		local edge = K.Tokens.Size("screenMargin")
+		assert(math.abs(card.right - (rw - edge)) <= 0.6 and math.abs(card.right - card.left - 278) <= 0.6, what .. ": the picture's 278 rail column, on the screen margin")
 		assert(#Shown(ns) >= 1, what .. ": at least one quest shows")
 		for _, row in ipairs(ns.Quests.Rows()) do
 			if row:IsShown() then
@@ -221,14 +228,14 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(ns.RestedXP.Rail.Docked(), what .. ": and docks the quest card into its card")
 			local glass = assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass")
 			local g = RootRect(K, glass)
-			assert(g.bottom >= under + 16 - 0.5, what .. ": the guide's glass ends over the damage card too, got " .. g.bottom)
+			assert(g.bottom >= under + foot - 0.5, what .. ": the guide's glass ends over the bars too, got " .. g.bottom)
 			assert(math.abs(g.bottom - card.bottom) <= 8.6, what .. ": and runs down to the card's foot, got " .. g.bottom .. " for " .. card.bottom)
 			assert(g.top <= over - 16 + 0.5, what .. ": under the map and the aura rows, got " .. g.top)
 			-- The quests read right under the map (owner, 2026-11-09): the guide's card starts at the slot's top, not
 			-- at the foot of its half, and the quests follow the guide's foot.
 			assert(g.top >= story.story.top - 12, what .. ": the guide's card starts at the slot's top, got " .. g.top .. " for " .. story.story.top)
 			assert(card.top >= story.tracker.top - 0.5, what .. ": the quests start no lower than the tracker's half")
-			assert(g.right <= rw - K.Tokens.Size("screenMargin") + 0.6 and g.left >= story.story.left - 0.6, what .. ": on the right rail's column")
+			assert(g.right <= rw - edge + 0.6 and g.left >= story.story.left - 0.6, what .. ": on the right rail's column")
 			assert(not ns.Quests.Parts().glass:IsShown(), what .. ": the card's own glass yields to the guide's")
 			assert(card.top <= story.guide.top - 16, what .. ": the card sits under the guide's head, inside the guide's card")
 		else

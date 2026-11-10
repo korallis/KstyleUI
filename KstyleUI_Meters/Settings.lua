@@ -18,19 +18,19 @@ local function Rgb(name)
 	return { r = r, g = g, b = b }
 end
 
-local function DefaultTexture()
+local function DefaultTexture(key)
 	for _, item in ipairs(Tokens.MediaList("statusbar")) do
-		if item.key == "Glass" then
+		if item.key == key then
 			return item.path
 		end
 	end
 	return (Tokens.Texture("barGlass"))
 end
 
-local function Bars(fill)
+local function Bars(fill, texture, colorSource)
 	return {
-		texture = DefaultTexture(),
-		colorSource = "class",
+		texture = DefaultTexture(texture or "Glass"),
+		colorSource = colorSource or "class",
 		color = Rgb("accentDefault"),
 		fill = fill,
 	}
@@ -52,18 +52,19 @@ end
 
 local CAPTION = Tokens.Size("caption")
 local ROW, SPACING, ROW_TEXT = 18, 2, 12
+local DAMAGE_SPACING = 3
 
 ns.defaults = {
 	accent = "class",
 	accentColor = Rgb("accentDefault"),
-	damage = Merge(Bars("left"), Text(ROW_TEXT), {
+	damage = Merge(Bars("left", "Flat", "school"), Text(ROW_TEXT), {
 		shown = true,
 		group = false,
 		mode = "auto",
 		meter = "DamageDone",
 		session = "Current",
 		rowHeight = ROW,
-		spacing = SPACING,
+		spacing = DAMAGE_SPACING,
 		title = true,
 		titleSize = CAPTION,
 		percent = true,
@@ -96,10 +97,10 @@ ns.defaults = {
 }
 
 ns.METER_TYPES = {
-	{ value = "DamageDone", label = L["Damage done"] },
-	{ value = "Dps", label = L["Damage per second"], perSecond = true },
-	{ value = "HealingDone", label = L["Healing done"] },
-	{ value = "Hps", label = L["Healing per second"], perSecond = true },
+	{ value = "DamageDone", label = L["Damage done"], cap = L["Damage"], rate = "dps" },
+	{ value = "Dps", label = L["Damage per second"], cap = L["Damage"], perSecond = true, rate = "dps" },
+	{ value = "HealingDone", label = L["Healing done"], rate = "hps" },
+	{ value = "Hps", label = L["Healing per second"], perSecond = true, rate = "hps" },
 	{ value = "Absorbs", label = L["Absorbs"] },
 	{ value = "Interrupts", label = L["Interrupts"] },
 	{ value = "Dispels", label = L["Dispels"] },
@@ -123,6 +124,12 @@ local OUTLINES = {
 	{ value = NO_OUTLINE, label = L["Soft shadow"] },
 	{ value = "OUTLINE", label = L["Thin outline"] },
 	{ value = "THICKOUTLINE", label = L["Thick outline"] },
+}
+local DAMAGE_COLOR_SOURCES = {
+	{ value = "school", label = L["By spell school"] },
+	{ value = "class", label = L["Class colour"] },
+	{ value = "reaction", label = L["Reaction colour"] },
+	{ value = "custom", label = L["Custom colour"] },
 }
 local FILLS = {
 	{ value = "left", label = L["From the left"] },
@@ -194,7 +201,8 @@ local function BarRows(section, rows)
 	}
 	rows[#rows + 1] = {
 		type = "dropdown", key = section .. ".colorSource", label = L["Bar colour"], disableWhen = off,
-		help = L["Colour bars by class, by friend or foe, or with one colour you pick."], options = COLOR_SOURCES,
+		help = L["Colour bars by class, by friend or foe, or with one colour you pick."],
+		options = section == "damage" and DAMAGE_COLOR_SOURCES or COLOR_SOURCES,
 	}
 	rows[#rows + 1] = {
 		type = "color", key = section .. ".color", label = L["Custom bar colour"], disableWhen = off,
@@ -436,27 +444,30 @@ function ns.Accent()
 	return Theme.Accent()
 end
 
-function ns.BarColor(section, classFile, reaction)
+function ns.BarColor(section, classFile, reaction, schoolToken)
 	local source = ns.Get(section .. ".colorSource")
 	if source == "custom" then
 		return Custom(ns.Get(section .. ".color"))
 	end
-	if source == "class" and not ns.Logic.IsSecret(classFile) and type(classFile) == "string" and classFile ~= "" then
+	if source == "school" and schoolToken then
+		return Tokens.Color(schoolToken)
+	end
+	if source ~= "reaction" and not ns.Logic.IsSecret(classFile) and type(classFile) == "string" and classFile ~= "" then
 		return Theme.ClassColor(classFile)
 	end
 	return Tokens.Color(reaction or "friendly")
 end
 
-function ns.FontPath(section)
+function ns.FontPath(section, role)
 	local font = ns.Get(section .. ".font")
 	if font == "" then
-		return (Tokens.Font("body"))
+		return (Tokens.Font(role or "body"))
 	end
 	return font
 end
 
-function ns.ApplyFont(text, section, sizeKey)
-	local path = ns.FontPath(section)
+function ns.ApplyFont(text, section, sizeKey, role)
+	local path = ns.FontPath(section, role)
 	local size = ns.Get(section .. "." .. (sizeKey or "fontSize")) * Theme.FontScale()
 	local flags = ns.Get(section .. ".outline")
 	if not K.Widgets.ApplyFont(text, path, size, flags) then

@@ -128,7 +128,7 @@ Eight module plans, run in parallel, plus icon set A.
 | `KstyleUI_ActionBars` | Secure button, compact bar layout (34-unit buttons, two rows), paging drivers, keybinds, cooldowns, glows, range and usability, pet and stance bars, hide Blizzard bars |
 | `KstyleUI_Cooldowns` | Essential and utility cooldown rows, tracked buff icons and bars, placed in the HUD band between the player and target frames |
 | `KstyleUI_Auras` | Player buff and debuff panel on the AuraContainer engine |
-| `KstyleUI_Minimap` | Square mask, frame, zone and clock strip, button column, addon drawer |
+| `KstyleUI_Minimap` | Square mask, gilt rim, N plate, zone, coordinates and clock caption, button column, addon drawer |
 | `KstyleUI_Chat` | Panel and tabs, edit box, copy, links, names |
 | `KstyleUI_Tooltips` | Glass tooltip, colours, IDs, anchoring |
 | `KstyleUI_DataBars` | XP and reputation bars, micro menu, bag bar, data strip |

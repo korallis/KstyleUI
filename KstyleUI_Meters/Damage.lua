@@ -26,6 +26,8 @@ local TOOLTIP_SPELLS = 3
 local SWITCH_GAP = "  "
 local slots = {}
 local autoMode
+local PLAYER = "player"
+local NO_REST = { Deaths = true, EnemyDamageTaken = true }
 
 local function HideBlizzard()
 	local meter = _G.DamageMeter
@@ -235,6 +237,22 @@ local function Remember(i, source, reaction, deaths)
 	slot.ok = not deaths and slot.name ~= nil and (slot.guid ~= nil or slot.creature ~= nil)
 end
 
+local function RateOf(sources, info, guid)
+	if not info.rate then
+		return nil
+	end
+	for i = 1, #sources do
+		local source = sources[i]
+		if not Readable(source) then
+			return nil
+		end
+		if (guid == nil and source.isLocalPlayer == true) or (guid ~= nil and PlainString(source.sourceGUID) == guid) then
+			return Logic.FormatRate(source.amountPerSecond, info.rate)
+		end
+	end
+	return nil
+end
+
 local function FillSources(list, info, session)
 	local sources = session.combatSources
 	if not Readable(sources) then
@@ -249,6 +267,7 @@ local function FillSources(list, info, session)
 	local displays = Enum and Enum.DamageMeterSourceDisplayType
 	local enemy = displays and displays.Enemy
 	local count = 0
+	list:SetRest(RateOf(sources, info))
 	for i = 1, list.capacity or 0 do
 		local source = sources[i]
 		if not Readable(source) then
@@ -384,15 +403,22 @@ local function RowSplit(split, list, i)
 end
 
 local function RowSplits(list, i)
-	if drill.active then
+	if drill.active or Damage.resting then
 		return false
 	end
 	local slot = slots[i]
 	return slot ~= nil and slot.ok == true and i <= (list.count or 0) and SourceApi()
 end
 
-local function FillSpells(list, info, meterType, sessionType, sessionID)
-	local ok, source = SourceData(meterType, sessionType, sessionID, drill.guid, drill.creature)
+local function Session(meterType, sessionType, sessionID)
+	if sessionID then
+		return pcall(C_DamageMeter.GetCombatSessionFromID, sessionID, meterType)
+	end
+	return pcall(C_DamageMeter.GetCombatSessionFromType, sessionType, meterType)
+end
+
+local function FillSpells(list, info, meterType, sessionType, sessionID, who)
+	local ok, source = SourceData(meterType, sessionType, sessionID, who.guid, who.creature)
 	if not ok then
 		ns.LogOnce("damageSourceError", "C_DamageMeter's source call failed: " .. tostring(source))
 		list:Finish(0, L["No data yet"])
@@ -406,6 +432,10 @@ local function FillSpells(list, info, meterType, sessionType, sessionID)
 	local maxAmount, total = source.maxAmount, source.totalAmount
 	if not Present(maxAmount) then
 		maxAmount = 1
+	end
+	local sessionOk, session = Session(meterType, sessionType, sessionID)
+	if sessionOk and Readable(session) and Readable(session.combatSources) and (who.own or who.guid) then
+		list:SetRest(RateOf(session.combatSources, info, not who.own and who.guid or nil))
 	end
 	local percent = ns.Get("damage.percent")
 	local count = 0
@@ -421,11 +451,24 @@ local function FillSpells(list, info, meterType, sessionType, sessionID)
 		end
 		local shown = SpellShown(spell, info)
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		local icon = SpellCall("GetSpellTexture", spell.spellID)
-		list:SetRow(i, SpellName(spell, drill.name), drill.class, drill.reaction, amount, maxAmount, Logic.Abbreviate(shown), percentText, icon)
+		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, Logic.Abbreviate(shown), percentText, nil, Logic.SchoolToken(spell.spellID))
 	end
 	Damage.filled = Damage.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
+end
+
+local function OwnSource(info)
+	if NO_REST[info.value] or not SourceApi() then
+		return nil
+	end
+	local ok, guid = pcall(UnitGUID, PLAYER)
+	guid = ok and PlainString(guid) or nil
+	local name = PlainString((UnitName(PLAYER)))
+	if not guid or not name then
+		return nil
+	end
+	local _, class = UnitClass(PLAYER)
+	return { guid = guid, name = name, class = class, reaction = "friendly", own = true }
 end
 
 local function Refresh()
@@ -445,22 +488,19 @@ local function Refresh()
 		list:Finish(0, L["No data yet"])
 		return
 	end
-	list:SetTitle(drill.active and drill.name or info.label)
+	local own = not drill.active and IsInGroup() ~= true and OwnSource(info) or nil
+	Damage.resting = own ~= nil
+	list:SetTitle(drill.active and drill.name or info.cap or info.label)
 	Switch(list, name)
 	if sessionType == nil and sessionID == nil then
 		list:Finish(0, L["No earlier fight yet"])
 		return
 	end
-	if drill.active then
-		FillSpells(list, info, meterType, sessionType, sessionID)
+	if drill.active or own then
+		FillSpells(list, info, meterType, sessionType, sessionID, own or drill)
 		return
 	end
-	local ok, session
-	if sessionID then
-		ok, session = pcall(C_DamageMeter.GetCombatSessionFromID, sessionID, meterType)
-	else
-		ok, session = pcall(C_DamageMeter.GetCombatSessionFromType, sessionType, meterType)
-	end
+	local ok, session = Session(meterType, sessionType, sessionID)
 	if not ok then
 		ns.LogOnce("damageError", "C_DamageMeter's session call failed: " .. tostring(session))
 		list:Finish(0, L["No data yet"])
@@ -517,7 +557,7 @@ local function OnRowClick(list, i, button)
 		return
 	end
 	local slot = slots[i]
-	if button ~= "LeftButton" or not slot or not slot.ok or i > (list.count or 0) or not SourceApi() then
+	if Damage.resting or button ~= "LeftButton" or not slot or not slot.ok or i > (list.count or 0) or not SourceApi() then
 		return
 	end
 	drill.active = true
@@ -585,7 +625,7 @@ end
 local function Build()
 	local width, height = ns.Footprint(KEY)
 	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
-		width = width or 260, height = height or 174, columns = Columns, onClick = OnClick,
+		width = width or 269, height = height or 158, columns = Columns, onClick = OnClick, block = true,
 		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
 		rowTooltip = RowTooltip, rowSplits = RowSplits, rowSplit = RowSplit,
 	})

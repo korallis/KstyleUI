@@ -217,8 +217,11 @@ do
 	local eenv, EK, ens = M.New({ enabled = true })
 	M.Settle(eenv)
 	local etoggle = ens.Map.column.buttons.drawer
-	assert(not etoggle:IsShown(), "with no addon buttons and no compartment entries, the drawer button hides")
+	assert(etoggle:IsShown(), "the picture shows the drawer button at rest, so with nothing in it the button still shows by default")
+	EK.Options.Write("Minimap", "drawer.hideEmpty", true)
+	assert(not etoggle:IsShown(), "with Hide when empty on and no addon buttons or compartment entries, the drawer button hides")
 	eenv.AddonCompartmentFrame.registeredAddons = { { text = "Solo", func = function() end } }
+	EK.Options.Write("Minimap", "drawer.hideEmpty", false)
 	EK.Options.Write("Minimap", "drawer.hideEmpty", true)
 	assert(etoggle:IsShown(), "compartment entries alone show it")
 	W.Click(etoggle)

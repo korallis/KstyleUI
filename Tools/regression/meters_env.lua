@@ -6,7 +6,7 @@
 --   env.SetTime(12.5); M.Tick(env)    -- moves the clock and steps every OnUpdate once
 --
 -- The stand-ins read env tables a test fills in:
---   env._units[unit] = { name, class, hostile, exists }   UnitExists, UnitName, UnitClass, UnitCanAttack
+--   env._units[unit] = { name, class, hostile, exists, guid }   UnitExists, UnitName, UnitClass, UnitCanAttack, UnitGUID
 --   env._threat[unit] = { tanking, status, scaled, raw, threat }   UnitDetailedThreatSituation(unit, mob)
 --   env._group = { raid = false, size = 0 }               IsInRaid, IsInGroup, GetNumGroupMembers
 --   env._speeds = { main, off, ranged }                   UnitAttackSpeed("player")
@@ -87,6 +87,10 @@ function M.Game(env, opts)
 	env.UnitName = function(unit)
 		local u = env._units[unit]
 		return u and u.name
+	end
+	env.UnitGUID = function(unit)
+		local u = env._units[unit]
+		return u and u.guid
 	end
 	env.UnitClass = function(unit)
 		local u = env._units[unit]

@@ -10,7 +10,7 @@ local FADE_STEP = 0.05
 local FONT_MIN, FONT_MAX = 6, 24
 local COOLDOWN_TEXT = 13
 local PAGING_LETTERS = 255
-local ON_BY_DEFAULT = { bar1 = true, bar2 = true, pet = true, stance = true }
+local ON_BY_DEFAULT = { bar1 = true, bar2 = true, bar4 = true, bar5 = true, pet = true, stance = true }
 
 ns.TEXTS = {
 	{ key = "hotkey", role = "number", label = L["Keybind text"] },
