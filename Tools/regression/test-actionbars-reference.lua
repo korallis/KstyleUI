@@ -43,7 +43,7 @@ do
 	end
 	for _, key in ipairs({ "bar3", "bar4", "bar5", "bar6" }) do
 		local grid = K.Setup.Layouts.Grid("actionbars." .. key)
-		assert(ns.Config(key).size == grid.size and ns.Config(key).spacing == K.Tokens.Size("actionGap"), key .. " keeps its existing grid")
+		assert(ns.Config(key).size == grid.size and ns.Config(key).spacing == (grid.spacing or K.Tokens.Size("actionGap")), key .. " keeps its layout grid")
 	end
 	local b = AB.Button(ns, "bar1", 8)
 	assert(b:GetAlpha() == 1 and b.hotkey:GetText() == "8", "an empty slot keeps its tile and its bright key")
