@@ -214,7 +214,7 @@ local LEFT_RAIL = {
 local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
 -- The right rail, as the owner's picture draws it (LEE-20, "let the picture win", 2026-11-09), on the screenMargin
 -- token's margin: the 188 map heads it with its 36-unit caption (zone, coordinates, clock) under it and the aura rows
--- 12 left of it; the 278 story slot hangs 16 under the caption; bars 4 and 5 stand as two 36.7-unit columns 4.6 apart (LEE-69: the centre bars' pitch, 1.4 inside the margin), 12
+-- 12 left of it; the 278 story slot hangs 15 under the caption; bars 4 and 5 stand as two 36.7-unit columns 4.6 apart (LEE-69: the centre bars' pitch, 1.4 inside the margin), 12
 -- under the slot; the readout line 10 under them, right-aligned; the 269 x 158 damage card at the foot, 6 under the
 -- readout. Bar 6, off, is a third column beside them, so its slot costs the rail no height. The micro menu, the bag bar
 -- and the tooltip anchor stand left of the columns, off every card.
@@ -318,7 +318,7 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The story slot hangs 16 under the map's caption (and the aura rows, which end higher) and ends 12 over bars 4
+		-- The story slot hangs 15 under the map's caption (and the aura rows, which end higher) and ends 12 over bars 4
 		-- and 5, the 278-unit column the picture draws.
 		local caption = rect("minimap.main")
 		local rows = rect(AURA_ROWS[2])
@@ -328,7 +328,7 @@ for _, name in ipairs(names) do
 		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
 		local story = { left = s[1], bottom = s[2], right = s[3], top = s[4] }
 		assert(math.abs(story.right - (width - EDGE)) < 1e-6 and math.abs(story.right - story.left - STORY_W) < 1e-6, label .. ": the story slot is on the right rail's column, 278 wide")
-		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the map's caption, got " .. (over - story.top))
+		assert(math.abs(over - story.top - 15) < 1e-6, label .. ": the story slot hangs 15 under the map's caption, on the picture's measured top, got " .. (over - story.top))
 		assert(math.abs(story.bottom - columns[1].top - 12) < 1e-6, label .. ": the story slot ends 12 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
 		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and four quests, got " .. (story.top - story.bottom))
 		for _, key in ipairs(KEYS) do

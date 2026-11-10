@@ -82,6 +82,34 @@ local function Ids(list)
 	return table.concat(out, ",")
 end
 
+for _, screen in ipairs({ { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }) do
+	local env, K, ns = Boot({ quests = Quests.List(4), screen = { width = screen[1], height = screen[2] } })
+	local card, parts = ns.Quests.Card(), ns.Quests.Parts()
+	local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(card)
+	ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, 1000)
+	ns.QuestCard.Render()
+	assert(#Shown(ns) == 4, "four fixture quests fit an unconstrained card")
+	for _, row in ipairs(ns.Quests.Rows()) do
+		if row:IsShown() then
+			for _, value in ipairs({ row:GetHeight(), row.disc:GetWidth(), select(4, row:GetPoint(1)), select(5, row:GetPoint(1)) }) do
+				assert(math.abs(value / pixel - math.floor(value / pixel + 0.5)) < 1e-6, "quest geometry is snapped at " .. screen[1] .. "x" .. screen[2])
+			end
+		end
+	end
+	local natural = card:GetHeight()
+	for _, shortage in ipairs({ 0.25, 0.75 }) do
+		ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, natural - shortage * pixel)
+		ns.QuestCard.Render()
+		assert(#Shown(ns) == 4, "a subpixel shortage never drops a whole quest: " .. shortage)
+	end
+	ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, natural - 4 * pixel)
+	ns.QuestCard.Render()
+	assert(#Shown(ns) < 4 and parts.more:IsShown() and parts.thumb:IsShown(), "a genuinely short card advertises the quests accessible by scrolling")
+	ns.QuestCard.Scroll(99)
+	assert(Shown(ns)[#Shown(ns)] == 304, "a short card can scroll to its last quest even with only four tracked")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "the short-card path raises nothing")
+end
+
 local function Wheel(ns, delta)
 	local card = ns.Quests.Card()
 	local fn = assert(card:GetScript("OnMouseWheel"), "the card takes the mouse wheel")
@@ -110,9 +138,12 @@ do
 	local first = ns.Quests.Rows()[1]
 	assert(first.ring == nil and first.marked == nil, "the super-tracked quest leads the list and wears no ring: the picture's discs are flat, with nothing around them")
 	local factor = K.Widgets.ScaleFactor(ns.Quests.Card())
-	assert(math.abs(first.disc:GetWidth() - 17.5 / factor) <= K.Scale.Pixel(1) / factor and first.disc:GetHeight() == first.disc:GetWidth(), "the disc's texture is 17.5 root units across, which its soft edge draws as the picture's 28 solid pixels on the owner's screen, got " .. tostring(first.disc:GetWidth()))
+	assert(math.abs(first.disc:GetWidth() - 16 / factor) <= K.Scale.Pixel(1) / factor and first.disc:GetHeight() == first.disc:GetWidth(), "the disc is 16 root units across, drawing the picture's 28-pixel blue core, got " .. tostring(first.disc:GetWidth()))
 	local discLead = select(4, first.disc:GetPoint(1))
-	assert(discLead == K.Widgets.Snap(ns.Quests.Card(), ns.Lumen.Size(ns.Quests.Card(), 0.5)), "the disc stands half a root unit in from the caption mark's left, snapped to the card's pixels (test-render-scenes-reference.lua proves the one pixel on the owner's screen), got " .. tostring(discLead))
+	assert(discLead == K.Widgets.Snap(ns.Quests.Card(), ns.Lumen.Size(ns.Quests.Card(), 1)), "the disc's smaller texture stays centred on the same numeral column, got " .. tostring(discLead))
+	local dr, dg, db = first.disc:GetVertexColor()
+	local tr, tg, tb = K.Tokens.Color("questDisc")
+	assert(dr == tr and dg == tg and db == tb, "the disc reads the picture's questDisc blue, not the class accent")
 	local nr, ng, nb = first.numeral:GetTextColor()
 	local shade = S.W.LastCall(first.numeral, "SetShadowOffset")
 	assert(nr == 1 and ng == 1 and nb == 1 and shade[1] == 0 and shade[2] == 0, "its number is white and casts no shadow on the disc")
@@ -237,7 +268,7 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local under = math.max(Box("actionbars.bar4").top, Box("actionbars.bar5").top, Box("meters.damage").top, Box("databars.strip").top)
 		local card = RootRect(K, ns.Quests.Card())
 		local what = preset .. (withGuide and " with the guide" or " without the guide")
-		assert(card.top <= over - 16 + 0.5, what .. ": the card starts 16 under the map and the aura rows, got " .. card.top .. " for " .. over)
+		assert(card.top <= over - 15 + 0.5, what .. ": the card starts 15 under the map and the aura rows, got " .. card.top .. " for " .. over)
 		local foot = K.Tokens.Size("gapLarge")
 		assert(card.bottom >= under + foot - 0.5, what .. ": the card ends a large gap over bars 4 and 5, the damage card and the readout, as the picture leaves 12, got " .. card.bottom .. " for " .. under)
 		assert(card.bottom >= story.story.bottom - 0.5 and card.top <= story.story.top + 0.5, what .. ": inside the story slot")
@@ -259,7 +290,7 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			local g = RootRect(K, glass)
 			assert(g.bottom >= under + foot - 0.5, what .. ": the guide's glass ends over the bars too, got " .. g.bottom)
 			assert(math.abs(g.bottom - card.bottom) <= 8.6, what .. ": and runs down to the card's foot, got " .. g.bottom .. " for " .. card.bottom)
-			assert(g.top <= over - 16 + 0.5, what .. ": under the map and the aura rows, got " .. g.top)
+			assert(g.top <= over - 15 + 0.5, what .. ": under the map and the aura rows, got " .. g.top)
 			-- The quests read right under the map (owner, 2026-11-09): the guide's card starts at the slot's top, not
 			-- at the foot of its half, and the quests follow the guide's foot.
 			assert(g.top >= story.story.top - 12, what .. ": the guide's card starts at the slot's top, got " .. g.top .. " for " .. story.story.top)

@@ -33,6 +33,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `hostile`, `neutral`, `friendly` | `#e2524f`, `#e8c14f`, `#62d58d` | Reactions; `friend` is the same green |
 | `magic`, `quest` | `#5aa9ff`, `#f6d27a` | The mockup's signal colours for magic and quests |
 | `questGold` | `#f2cf55` | The quest titles on the story card, as the owner's picture of 2026-11-09 draws them (242, 207, 85); the quest card and the tracker skin read it through `Lumen.Color("questGold")` |
+| `questDisc` | `#2f6ed6` | The story card's four numbered blue discs, measured across and down the fill in acceptance pass 2 (LEE-92); fixed picture blue rather than the class accent (LEE-20: the picture wins) |
 | `healthHostile` | `#e03b3f` | A hostile unit frame's health fill |
 | `accentDefault` | `#aad372` | The fallback and default custom accent; the class colour stays the accent |
 | `shadow` | `#000000` at 45% | The card shadow's tint |

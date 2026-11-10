@@ -101,6 +101,7 @@ for name, want in pairs({
 	magic = { "5aa9ff", 1 },
 	quest = { "f6d27a", 1 },
 	questGold = { "f2cf55", 1 },
+	questDisc = { "2f6ed6", 1 },
 	surface = { "0e1217", 0.75 },
 	raised = { "1a2633", 0.85 },
 	edgeOuter = { "000000", 0.55 },
