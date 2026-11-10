@@ -108,8 +108,9 @@ do
 	-- Lumen Rails: the rows stand beside the minimap's left edge, 16 left of it and top-aligned, the debuffs 16 under
 	-- the buffs (test-auras-rows.lua has the positions against the minimap element).
 	local mapW = K.Setup.Layouts.Element("minimap.main").width
-	check(b.position.anchor == "TOPRIGHT" and b.position.x == -(28 + mapW + 16) and b.position.y == -28, "buffs stand beside the minimap")
-	check(d.position.anchor == "TOPRIGHT" and d.position.x == -(28 + mapW + 16) and d.position.y == -(28 + 88 + 16), "debuffs hang under the buffs")
+	local margin = K.Tokens.Size("screenMargin")
+	check(b.position.anchor == "TOPRIGHT" and b.position.x == -(margin + mapW + 16) and b.position.y == -margin, "buffs stand beside the minimap")
+	check(d.position.anchor == "TOPRIGHT" and d.position.x == -(margin + mapW + 16) and d.position.y == -(margin + 88 + 16), "debuffs hang under the buffs")
 	local w, h = size(b.frame)
 	check(near(w, 282) and near(h, 88), "the buff element is its two rows of eight, 282 x 88, got " .. tostring(w) .. " x " .. tostring(h))
 	w, h = size(d.frame)

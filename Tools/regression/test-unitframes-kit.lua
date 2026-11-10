@@ -47,8 +47,8 @@ K.Options.Write("UnitFrames", "player.portraitShape", "chamfered")
 local g = player.geometry
 
 -- The glass: one Lumen panel, laid where Geometry puts it, under the portrait.
-local _, panelBevels = pieces(player.panel, "lumenFrost")
-assert(panelBevels == 9, "the player's glass wears the panel's nine frost pieces, got " .. panelBevels)
+local _, panelBevels = pieces(player.panel, "cardShape")
+assert(panelBevels == 9, "the player's glass wears the panel's nine card pieces, got " .. panelBevels)
 local point, rel, relPoint, x, y = player.panel:GetPoint(1)
 assert(point == "TOPLEFT" and rel == player.button and relPoint == "TOPLEFT", "the glass is placed from the frame's top left")
 assert(near(x, g.glass.x, 1) and near(-y, g.glass.y, 1), "the glass sits where Geometry puts it: " .. tostring(x) .. ", " .. tostring(y))
@@ -56,13 +56,13 @@ local pw, ph = player.panel:GetSize()
 assert(near(pw, g.glass.w, 1) and near(ph, g.glass.h, 1), "the glass takes Geometry's size")
 assert(g.glass.x < g.portrait.x + g.portrait.w, "the glass runs under the portrait")
 assert(player.portraitFrame:GetFrameLevel() > player.panel:GetFrameLevel(), "the portrait draws over the glass's outer end")
-assert(near(player.chrome:Chamfer(), math.min(14, g.glass.h / 2), 0.01), "the glass rounds its corners 14 units, at most half its height, got " .. tostring(player.chrome:Chamfer()))
+assert(near(player.chrome:Chamfer(), math.min(6 * K.Widgets.Border(player.panel), g.glass.h / 2), 0.01), "the glass rounds its corners six border lines (the owner's picture, 2026-11-09), at most half its height, got " .. tostring(player.chrome:Chamfer()))
 assert(player.power.backgroundName == "buttonFill", "the power bar's track is the mockup's dark #101214 track, the button body, like the health track")
 local _, _, _, _, iconY = player.icons.leader:GetPoint(1)
 assert(near(-iconY, g.glass.y, 1), "the status icons sit on the glass's top edge: " .. tostring(iconY))
 
 -- The square portrait setting ("chamfered" in the settings): framed in a panel with the rim in the accent.
-local total, shown = pieces(player.portraitFrame, "lumenShape")
+local total, shown = pieces(player.portraitFrame, "cardShape")
 assert(total == 9 and shown == 9, "the square portrait shows the panel's fill pieces, got " .. shown .. " of " .. total)
 assert(not player.ring:IsShown() and not player.portraitBack:IsShown(), "the chamfered portrait hides the round ring and disc")
 assert(near(player.portraitChrome:Chamfer(), 0.15 * g.portrait.w, 0.01), "the portrait's corners round 15% of its size, got " .. tostring(player.portraitChrome:Chamfer()))
@@ -86,7 +86,7 @@ assert(W.SameRGB(player.portraitChrome.rim[1], rim(ar, ag, ab)), "and follows th
 noErrors("chamfered portrait")
 
 -- The level badge: a regular octagon on the portrait's corner, its line the kit's neutral grey, filled like the glass.
-local badgeTotal, badgeShown = pieces(player.badge, "lumenShape")
+local badgeTotal, badgeShown = pieces(player.badge, "cardShape")
 assert(badgeTotal == 9 and badgeShown == 9, "the badge is a rounded panel, got " .. badgeShown .. " of " .. badgeTotal)
 local nr, ng, nb = Tokens.Color("text")
 assert(W.SameRGB(player.badgeChrome.rim[1], nr, ng, nb), "the badge's line is neutral, as on the kit sheet")
@@ -126,11 +126,11 @@ noErrors("texts")
 -- The round portrait is a setting: today's ring, disc and round badge, with the chamfered chrome hidden.
 K.Options.Write("UnitFrames", "player.portraitShape", "round")
 assert(player.ring:IsShown() and player.portraitBack:IsShown(), "round: the ring and disc show")
-local _, roundBevels = pieces(player.portraitFrame, "lumenShape")
+local _, roundBevels = pieces(player.portraitFrame, "cardShape")
 assert(roundBevels == 0, "round: the chamfered frame hides")
 assert(maskPath(player) == (Tokens.Texture("dot")), "round: the image is masked to a circle")
 assert(env._unmasked[player.portrait] == false, "round: the 2D portrait keeps the game's own round mask")
-assert(select(2, pieces(player.badge, "lumenShape")) == 9, "round: the badge is still the octagon, as the mockup draws it on the ring")
+assert(select(2, pieces(player.badge, "cardShape")) == 9, "round: the badge is still the octagon, as the mockup draws it on the ring")
 assert(W.SameRGB(player.badgeChrome.rim[1], ar, ag, ab), "round: the octagon's line is the class colour, like the ring on the mockup")
 assert(player.badgeChrome.fillName == "buttonFill", "round: filled with the button body, the mockup's #101214")
 assert(W.LastCall(player.ring, "SetTexture")[1] == (Tokens.Texture("ringBevel")), "round: the ring is the bevelled ring texture, the mockup's thin metal ring")
@@ -147,16 +147,16 @@ K.Widgets.RestyleAll()
 for _, piece in ipairs(player.portraitChrome.shadow) do
 	assert(not piece:IsShown(), "round: a restyle never brings back the chamfered frame's shadow")
 end
-assert(shadowShown == 0 and select(2, pieces(player.portraitFrame, "lumenShape")) == 0, "round: the chamfered frame stays hidden")
+assert(shadowShown == 0 and select(2, pieces(player.portraitFrame, "cardShape")) == 0, "round: the chamfered frame stays hidden")
 K.Options.Write("UnitFrames", "player.portraitShape", "chamfered")
-assert(select(2, pieces(player.portraitFrame, "lumenShape")) == 9 and not player.ring:IsShown(), "chamfered again")
+assert(select(2, pieces(player.portraitFrame, "cardShape")) == 9 and not player.ring:IsShown(), "chamfered again")
 assert(W.SameRGB(player.badgeChrome.rim[1], nr, ng, nb), "and the badge's line is neutral again")
 noErrors("round portrait")
 
--- Compact frames wear the tile, the kit's shape for small parts: no frost.
+-- Compact frames wear the tile, the kit's shape for small parts: no card fill.
 local pet = Frames.Get("pet").views[1]
-assert(select(2, pieces(pet.panel, "lumenShape")) == 9 and select(1, pieces(pet.panel, "lumenFrost")) == 0, "the pet frame's glass is a rounded tile")
-assert(select(2, pieces(Frames.Get("target").views[1].panel, "lumenFrost")) == 9, "the target's glass is a frosted panel")
+assert(select(2, pieces(pet.panel, "lumenShape")) == 9 and select(1, pieces(pet.panel, "cardShape")) == 0, "the pet frame's glass is a rounded tile")
+assert(select(2, pieces(Frames.Get("target").views[1].panel, "cardShape")) == 9, "the target's glass is a card panel")
 
 -- Cast bars. The player's, as the owner's mockup draws Slam: no icon, the glass across the whole width.
 local cast = CastBars.Get("player")[1]
@@ -175,8 +175,8 @@ assert(select(2, pieces(cast.iconFrame, "lumenShape")) == 9, "the icon square is
 assert(near(cg.panel.x, cg.icon.x + cg.icon.w + math.floor(0.21 * castH + 0.5)) and near(cg.panel.x + cg.panel.w, castW) and near(cg.panel.h, castH), "the glass starts after the design's gap, 0.21 of the bar's height (6 on 28), and runs to the end")
 assert(near(cg.panel.y + cg.panel.h - (cg.bar.y + cg.bar.h), math.floor(0.22 * castH + 0.5)), "the bar sits 0.22 H above the glass's bottom, under the text as the mockup draws Slam's bar")
 assert(near(cg.bar.x - cg.panel.x, math.floor(0.5 * castH + 0.5)), "the bar and the spell name start 0.5 H in: the mockup's 18 units on a 37-unit bar")
-assert(select(2, pieces(cast.panel, "lumenFrost")) == 9, "the cast bar's glass is a frosted panel")
-assert(near(cast.chrome:Chamfer(), math.min(14, cg.panel.h / 2), 0.01), "the glass rounds 14 units, at most half its height, got " .. tostring(cast.chrome:Chamfer()))
+assert(select(2, pieces(cast.panel, "cardShape")) == 9, "the cast bar's glass is a card panel")
+assert(near(cast.chrome:Chamfer(), math.min(6 * K.Widgets.Border(cast.panel), cg.panel.h / 2), 0.01), "the glass rounds six border lines (the owner picture, 2026-11-09), at most half its height, got " .. tostring(cast.chrome:Chamfer()))
 assert(W.SameColor(cast.chrome.rim[7], K.Tokens.Color("edgeInner")), "with the panel's rim, not the bars' faint line")
 assert(cast.bar.chrome == nil, "the bar inside the glass has no border of its own")
 
@@ -195,7 +195,7 @@ local target = CastBars.Get("target")[1]
 local tg = target.geometry
 local targetCastH = K.Setup.Layouts.Element("unitframes.castbar.target").height
 assert(near(tg.icon.w, targetCastH) and near(tg.icon.h, targetCastH) and near(tg.panel.x, targetCastH + math.floor(0.21 * targetCastH + 0.5)), "the target's icon is its own square as tall as the bar, then the design's 0.21 H gap")
-assert(select(2, pieces(target.panel, "lumenFrost")) == 9, "the target cast bar's glass is a frosted panel too")
+assert(select(2, pieces(target.panel, "cardShape")) == 9, "the target cast bar's glass is a card panel too")
 assert(tg.stacked and mid(tg.text) < tg.bar.y and near(mid(tg.text), mid(tg.timer)), "24 units: the name and time stack over a thin bar")
 assert(K.Layout.Set("unitframes.castbar.target", "height", 14), "the target cast bar can be 14 units tall")
 tg = target.geometry

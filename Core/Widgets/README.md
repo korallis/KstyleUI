@@ -7,7 +7,7 @@ The roadmap's [Core public API](../../docs/superpowers/plans/2026-11-07-kstyleui
 ## Rules every component follows
 
 - Colours, sizes, durations, easings, fonts and textures come from `KstyleUI.Tokens` only.
-- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. `Widgets.Crisp(texture)` gives solid lines `SetSnapToPixelGrid(true)` and `SetTexelSnappingBias(0)`. Sliced art instead disables texel snapping with `SetSnapToPixelGrid(false)` and zero bias, as Forever’s `Blizzard_SharedXML/NineSlice.lua` does; its geometry is already snapped by the kit. Both setters are guarded for a client without them. A rim's straight runs (`lumenRim`, `lumenRimSmall`, `lumenOutline`) are solid lines one border thick, full strength on top and at the `rimSoft` share on the other sides; only the four corners and the centre sample the texture. The texture's 3-texel line is 0.75 px at 1080p and 1.07 px on a 2383 x 1540 screen at UI scale 768 / 1080, so it landed between pixels (owner pass 1). `test-pixels.lua` checks both screens.
+- Sizes and offsets are snapped to whole physical pixels in each frame's own scale, with `Widgets.Snap`. Lines are one `Widgets.Border(frame)` thick. `Widgets.Crisp(texture)` gives solid lines `SetSnapToPixelGrid(true)` and `SetTexelSnappingBias(0)`. Sliced art instead disables texel snapping with `SetSnapToPixelGrid(false)` and zero bias, as Forever’s `Blizzard_SharedXML/NineSlice.lua` does; its geometry is already snapped by the kit. Both setters are guarded for a client without them. The straight runs of an edge line, a rim and an outline (`ringLine2` to `ringLine6`, `lumenOutline`) are solid lines one border thick; only the four corners sample the texture. The texture's 3-texel line is 0.75 px at 1080p and 1.07 px on a 2383 x 1540 screen at UI scale 768 / 1080, so it landed between pixels (owner pass 1). `test-pixels.lua` checks both screens.
 - Text sizes and shadows land on whole physical pixels: `Widgets.ApplyFont(text, path, size, flags) -> ok` snaps `size` in the text's own scale (`Widgets.FontSize(text, size)`) and sets a one-border shadow down and right in `textShadow`, or none for flagged faces (`Widgets.TextShadow(text, flags)`). `StyleText` and every module that sets its own font use it. A frame whose scale changes outside `ScaleChanged`, such as a Layout Mode element, calls `Widgets.RestyleUnder({ [frame] = true })` or its own `Restyle()` to redraw. Layout does this for each scalable element, once per frame however many wheel ticks arrive.
 - Every component registers with `Widgets.Track`, so it restyles on `ThemeChanged`, `ScaleChanged`, `ProfileChanged`, a change to a setting on the `Widgets` page, and a change to the Appearance page's `motion` setting.
 - Hover and press run through `KstyleUI.Motion`: hover is `Tokens.Duration("hover")` with `outQuart`, and press moves the content down `Tokens.Size("pressOffset")`.
@@ -22,7 +22,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `panelOpacity` | the `surface` token's alpha, 0.88, Lumen's frost glass | slider, 0.5 to 1 in steps of 0.01 | The alpha of every `surface` fill |
+| `panelOpacity` | the `surface` token's alpha, 0.75, the owner's picture of 2026-11-09 | slider, 0.5 to 1 in steps of 0.01 | The alpha of every `surface` fill |
 | `shadows` | `true` | toggle | Shows the shadow of panels, windows and tooltips |
 | `sounds` | `true` | toggle | Plays the kit's click and open sounds |
 | `tooltipScale` | `1` | slider, 0.75 to 1.5 in steps of 0.05 | The scale of `Widgets.Tooltip()` |
@@ -74,30 +74,28 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 ## Chrome
 
-`Chrome(owner, opts) -> chrome` draws a component's Lumen material on `owner`'s own layers. Lumen is the mockup's frosted glass (`~/.local/share/kstyleui-handoff/arena2/parent`, its `.lg`, `.ab` and `.bar` rules): baked textures from `Tools/media/make_media.py`, white with their coverage in alpha and tinted with tokens, so nothing is blurred live.
+`Chrome(owner, opts) -> chrome` draws a component's material on `owner`'s own layers, the owner's picture of 2026-11-09: baked textures from `Tools/media/make_media.py`, white with their coverage in alpha and tinted with tokens, so nothing is blurred live.
 
 | Part | Layer | What it is |
 | --- | --- | --- |
-| `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `lumenShadow` texture, corner pieces twice `Size("shadow")` centred on the owner's corners, tinted `shadow`. Its 3-unit drop is baked in, and the card's own rounded shape is cut out of it, as a CSS box shadow: translucent glass never darkens over its own shadow. |
-| `chrome.fill` | `BACKGROUND` -7 | The nine-sliced `lumenShape`, the rounded card, corner pieces the radius (see [Corner sizes](#corner-sizes)) snapped to whole pixels, tinted with the fill token: the deep tint (`surface`) for cards, the dark crystal (`buttonFill`) for tiles and sockets. |
-| `chrome.frost` | `BACKGROUND` -6 | Cards, panels, windows and rails: the nine-sliced `lumenFrost`, the card shape with the mockup's vertical frost gradient baked into its alpha, tinted `glass`. |
-| `chrome.noise` | `BACKGROUND` -5 | Cards, panels, windows and rails: the `noise` grain tiled at 3.5% white, inset 0.29 of the radius so its corners stay inside the arcs. A baked grain would smear where a nine-slice stretches. |
-| `chrome.rim` | `BORDER` -2 | The nine-sliced rim: a 0.75-unit line just inside the edge, its texture full along the top and a third on the sides and bottom (the mockup's 55% top light over its 18% rim-soft). `lumenRim` at the card radius, `lumenRimSmall` under 11 units, and `lumenOutline` (even all round) while a proc is up. Tinted with the edge token. |
-| `chrome.gilt` | `BORDER` -1 | Windows and rails only: two `gilt` filament tips, the top left and the bottom right one mirrored, 20 units square at the card radius, one unit outside the corner, tinted `gilt`. |
-| Bars | | A bar's `fill` is the same `lumenShape` and its `rim` the even `lumenOutline`, at a radius of half the bar's short side, so the track is a capsule whether the bar lies down or stands up. No shadow, frost or gilt. |
+| `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `lumenShadow` texture, corner pieces twice `Size("shadow")` centred on the owner's corners, tinted `shadow`. Its 3-unit drop is baked in and the card's rounded shape is cut out of it. Shown only while the `shadows` setting is on, which it is not by default: the owner's picture casts none. |
+| `chrome.fill` | `BACKGROUND` -7 | The nine-sliced fill one border line inside the edge: `cardShape` for cards, panels, windows and rails, `lumenShape` for tiles and sockets, its corner pieces one line less than the corner (see [Corner sizes](#corner-sizes)), tinted with the fill token: `surface` for cards, `buttonFill` for tiles and sockets. |
+| `chrome.line` | `BORDER` -3 | The edge line, one border thick on the owner's edge: the nine-sliced `ringLineN` on an N-line corner, its straight runs solid lines. `edgeOuter` on cards, `socketEdge` on tiles and sockets; `giltLit` while a proc is up. |
+| `chrome.rim` | `BORDER` -2 | The rim, one border thick and one line inside the edge line, on the fill's corner. Tinted with the edge token (`edgeInner` by default); hover, selection and an icon's quality colour light it. |
+| `chrome.gilt` | `BORDER` -1 | Cards, panels, windows and rails: two gilt L-ticks, at the top left and the bottom right, each the rim's corner arc and two legs one border thick, reaching `Size("tick")` units from the outer edge, snapped to whole pixels, tinted `gilt`. A frame shorter than two ticks, or a chrome with a pinned radius, shows none. |
+| Bars | | A bar's `fill` is `lumenShape` and its `rim` the even `lumenOutline`, at a radius of half the bar's short side, so the track is a capsule whether the bar lies down or stands up. No shadow, edge line or gilt. |
 
-`opts`: `shape` (`"panel"`, `"card"`, `"window"`, `"rail"`, `"tile"`, `"socket"` or `"bar"`), `radius` (units, pinning the radius; `chamfer` is the older name for it), `share` (the radius as a share of the owner's shorter side; icon chromes pass `Tokens.Share("radiusSocket")`), `fill` (a colour token; `surface` by default, `buttonFill` for tiles and sockets), `edge` (the rim's token, default `edgeInner`; bars default to `edgeBar`), `shadow` (default on for cards, panels, windows and rails, off for tiles, sockets and bars), `grain` (`false` removes the grain), `gilt` (`false` leaves a window's tips off). The field `shapeName` holds the shape. Every chrome hooks its owner's `OnSizeChanged` and re-lays itself out when its radius changes.
+`opts`: `shape` (`"panel"`, `"card"`, `"window"`, `"rail"`, `"tile"`, `"socket"` or `"bar"`), `radius` (units, pinning the corner; `chamfer` is the older name for it), `share` (the corner as a share of the owner's shorter side), `fill` (a colour token; `surface` by default, `buttonFill` for tiles and sockets), `edge` (the rim's token, default `edgeInner`; bars default to `edgeBar`), `shadow` (wanted by default on cards, panels, windows and rails, off for tiles, sockets and bars; the `shadows` setting shows it), `gilt` (`false` leaves a card's ticks off). The field `shapeName` holds the shape. Every chrome hooks its owner's `OnSizeChanged` and re-lays itself out when its corner or its ticks change.
 
-The grades, from the mockup's surface recipes (its system sheet, `system.png`):
+The grades follow the owner's picture of 2026-11-09 ("let the picture win"); the frost glass and grain of the mockup's surface recipes are retired:
 
 | Grade | Shapes | Chrome | Used by |
 | --- | --- | --- | --- |
-| Card | `panel`, `card` | the soft shadow, the deep tint, the frost, the grain, the rim, 14-unit corners, no gilt | every backdrop |
-| Window and rail | `window`, `rail` | the card plus gilt filament tips on the top left and bottom right | titled panels, dialogs, Blizzard window skins, the rails |
-| Socket | `tile`, `socket` | the dark crystal body (`buttonFill`, 70%), the rim on 8-unit corners, no frost, no gilt; the rim turns gold (`giltLit`, even all round) only while `SetProc(true)` | icon buttons, aura tiles, bag slots, text buttons, edit boxes, tab strips and the other controls |
+| Card | `panel`, `card`, `window`, `rail` | the `surface` fill, the `edgeOuter` edge line, the `edgeInner` rim, six-line corners and gilt L-ticks at the top left and bottom right | every backdrop, titled panels, dialogs, tooltips, Blizzard window skins, the rails and the HUD cards, the story card included |
+| Socket | `tile`, `socket` | the `buttonFill` body at 50%, the near-black `socketEdge` line on three-line corners and a rim one line in, no gilt; the edge turns gold (`giltLit`) only while `SetProc(true)` | icon buttons, aura tiles, bag slots, text buttons, edit boxes, tab strips and the other controls |
 | Bar | `bar` | a capsule track (`surface` with the faint `edgeBar` rim, corners half the short side); a bordered horizontal `StatusBar` adds the fill's round caps, top sheen and own-colour glow | status bars, swing timers, skinned timer and progress bars |
 
-No chrome fills with the `raised` tone; `Tools/regression/test-grades.lua` fails on one, and on any use of the retired chamfer drawing (`Line`, `LayoutLine`, `ColorLine`, the `chamferPanel`, `chamferWindow` and `line` textures). `raised` remains the tone a pressed, cooling or unusable icon button lifts its body toward. `test-lumen-material.lua` holds the grades.
+No chrome fills with the `raised` tone; `Tools/regression/test-grades.lua` fails on one, on any use of the retired chamfer drawing (`Line`, `LayoutLine`, `ColorLine`, the `chamferPanel`, `chamferWindow` and `line` textures) and on any name of the retired frost glass. `raised` remains the tone a pressed, cooling or unusable icon button lifts its body toward. `test-lumen-material.lua` holds the grades.
 
 A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow shows only while `shadows` is on.
 
@@ -105,9 +103,9 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 | --- | --- |
 | `SetFill(name, alphaScale)`, `SetFillRGBA(r, g, b, a)` | Recolours the fill. A caller's colour, or a token at a scaled alpha, stays through a restyle. Both reuse one table per chrome, so they allocate nothing on combat paths. |
 | `SetEdge(name, alphaScale)`, `SetEdgeRGBA(r, g, b, a)` | Recolours the rim, the line that hover and selection light up. |
-| `SetProc(on)` | Lights the rim gold and even all round while on; the edge colour returns when it ends. |
-| `SetRadius(units)`, `SetChamfer(units)` | Pins the radius to `units` (never more than half the shorter side) and re-lays the chrome out when it differs; `nil` unpins it. `Radius()`, and `Chamfer()` for older callers, return the radius in use: the pinned value, or the shape's cap, at most half the owner's shorter side (the cap alone while the owner has no size). |
-| `Inset(gap)` | `Widgets.Inset(owner, Radius(), gap)`: where the owner's content starts inside this chrome's edge. |
+| `SetProc(on)` | Lights the edge line gold (`giltLit`) while on; the edge colour returns when it ends. |
+| `SetRadius(units)`, `SetChamfer(units)` | Pins the corner to `units` (never more than half the shorter side) and re-lays the chrome out when it differs; `nil` unpins it. `Radius()`, and `Chamfer()` for older callers, return the corner drawn: the pinned value, or the shape's line count times `Border(owner)`, at most half the owner's shorter side. |
+| `Inset(gap)` | `Widgets.Inset(owner, PadRadius(), gap)`: where the owner's content starts inside this chrome's edge. `PadRadius()` keeps the old 14 and 8 unit caps (`radius`, `radiusTile`), so content sits where it did before the corners became whole lines. |
 | `SetShadow(on)`, `SetShown(shown)` | `SetShown` hides and shows every layer. |
 | `Restyle()` | Re-anchors every piece in whole pixels and repaints. |
 
@@ -115,16 +113,16 @@ A `surface` fill takes its alpha from the `panelOpacity` setting. The shadow sho
 
 ### Corner sizes
 
-Cards, panels, windows and rails round their corners `Size("radius")` (14) units, tiles and sockets `Size("radiusTile")` (8), and icon sockets 11/52 of their side (`Share("radiusSocket")`, the mockup's 52-unit socket). No corner is more than half the owner's shorter side, so a short strip becomes a pill. The older size names `chamferPanel`, `chamferWindow` (14) and `chamferTile` (8) read the same radii for modules that still ask for them. Radii are snapped to whole pixels on every screen. `make_media.py` draws the sliced textures at 4 texels per unit (the shadow at 2), and `Chrome` stretches each corner piece to the radius:
+A corner is a whole number of border lines, so the edge line, its arc and the straight runs land on the same physical pixels on every screen (the owner's picture of 2026-11-09): six lines for cards, panels, windows and rails, three for tiles and sockets, at every size. No corner is more than half the owner's shorter side, so a short strip becomes a pill. The fill and the rim sit one line inside the edge line, on a corner one line smaller. `make_media.py` draws a ring texture for the line counts 2 to 6, 8, 10, 12, 16, 20, 24 and 32, and `Chrome` picks the one nearest the corner it lays out, so a pinned corner (the minimap, a portrait, a nameplate disc) keeps an arc about one line thick:
 
 | Piece | Texels | Drawn |
 | --- | --- | --- |
-| Card shape and frost (`lumenShape`, `lumenFrost`) | 56 | `Snap(radius)` |
-| Rim at the card radius (`lumenRim`) | 56 | `Snap(radius)` |
-| Rim and outline at the small radius (`lumenRimSmall`, `lumenOutline`) | 32 | `Snap(radius)` |
+| Edge line (`ringLineN`) | 64 | `N` border lines square, `N` the corner's line count |
+| Fill (`cardShape`, `lumenShape`) and rim (`ringLineN`) | 56 and 64 | one line less, one line inside the edge |
+| Gilt L-tick | | the rim's corner arc, and legs one line thick out to `Snap(Size("tick"))` from the edge |
 | Shadow (`lumenShadow`) | 56 | `Snap(2 * Size("shadow"))`, centred on the corner |
 
-`test-pixels.lua` checks every corner on the four screens at sizes 0.75 to 1.5: the radius is the nearest whole pixel to the computed one, and the fill, frost and rim corners are the same whole-pixel square.
+Content padding does not follow the drawn corner: `PadRadius()` keeps `Size("radius")` (14) for cards and `Size("radiusTile")` (8) for tiles and sockets, at most half the shorter side. `test-pixels.lua` checks every corner on the four screens at sizes 0.75 to 1.5: the edge line, the fill, the rim and every tick piece are whole pixels, and a tick reaches the nearest whole pixel to the token.
 
 ## Section cap
 
@@ -179,7 +177,7 @@ Methods: `SetText(text)` (resizes an automatic width), `GetText()`, `Paint()`, `
 
 Options: `size` (default `actionButton`, 34), `icon`, `template` (such as `SecureActionButtonTemplate`), `name`, `onClick`, `tooltip`, `crop` (`false` keeps the full texture; Blizzard icons are cropped 7% each side), `hideNumbers` (hides the cooldown countdown), `countdownCorner` (the countdown hangs right-aligned in the top right corner, a fifth of the side in and a tenth down, as the composition mockup's centre cluster reads "4s"; the default is the design's centred number low on the button), `silent` (no click sound, for buttons that keys press, such as action buttons), `primary` (an action button: its rim is always the full accent rim; see [Icon chrome](#icon-chrome) for the secondary rim strength every other icon button follows).
 
-The body is the socket's dark crystal (`buttonFill`), its corners rounded 11/52 of the side (7 units at 34, 8 at 38), drawn by [`IconChrome`](#icon-chrome) with the soft card shadow under it, the mockup's `.ab` socket. The icon sits 11% of the side inside the edge (never less than three borders), so a band of body shows between the rim and the icon, masked to rounded corners by `iconMask` (8 units on a 44-unit icon); on a tiny button the inset is capped at a fifth of the side, so a six-pixel micro button still shows its icon. The cooldown swipe uses the same mask. A proc lights the rim gold all round and glows gold (`giltLit`), the one gold a socket wears; the hotkey is in the `number` face, upper case. The states match the design file's ACTION BUTTON STATES row (measured against it at 2 px per unit with `Tools/render/scenes/buttons.lua`):
+The body is the socket's `buttonFill`, its near-black edge line on corners three border lines round, drawn by [`IconChrome`](#icon-chrome), the picture's action button; the soft card shadow under it shows only while the `shadows` setting is on. The icon sits two borders inside the edge, inside the edge line and the rim, so hover, selection and the accent hairline stay visible (one border on a button under 20 borders across), masked to rounded corners by `iconMask` (3 units on a 44-unit icon) so it meets the socket's inner corner. The cooldown swipe uses the same mask. A proc lights the edge line gold and glows gold (`giltLit`), the one gold a socket wears; the hotkey is in the `number` face, upper case. The states match the design file's ACTION BUTTON STATES row (measured against it at 2 px per unit with `Tools/render/scenes/buttons.lua`):
 
 | State | Hairline | Body | Icon |
 | --- | --- | --- | --- |
@@ -188,7 +186,7 @@ The body is the socket's dark crystal (`buttonFill`), its corners rounded 11/52 
 | Pressed | Mixes toward `text` at 77% | Lifts three quarters of the way to `raised` | Desaturated, dims to 55% and moves down `pressOffset` |
 | Cooldown running | `text` at 62% | Lifts three quarters of the way to `raised` | Dims to 40%; swipe in `black` at 65%; the countdown, the cooldown's own font string in the `number` font and `textEmphasis`, is centred a quarter of the height above the bottom |
 | Ready (a real cooldown's `OnCooldownDone`) | as at rest | as at rest | `button.ready`, a `textHover` wash in `ADD` masked to the icon, lights to 35% and settles to nothing over `castSheen` with the `fade` easing: the theme's cooldown flash, since the swipe's own bling is off. It reads the frame's event, so no time is compared; the GCD alone, a frame a module drives directly and a hidden button never flash, and with motion off it does not show |
-| Proc (`SetProc(true)`) | `giltLit`, even all round | `buttonFill` | The gold proc glow breathes inside the rim: its inner glow and star, with the outer halo at 10%, because Lumen's proc glows inside the socket, never past it |
+| Proc (`SetProc(true)`) | the edge line in `giltLit` | `buttonFill` | The gold proc glow breathes inside the rim: its inner glow and star, with the outer halo at 10%, because Lumen's proc glows inside the socket, never past it |
 | Selected (`SetSelected(true)`) | `accent` | `buttonFill` | |
 | Unusable (`SetUsable(false)` or `Disable()`) | `textDisabled` | Lifts three quarters of the way to `raised` | Desaturated at 45% brightness |
 
@@ -216,7 +214,7 @@ Every square icon in KstyleUI draws the same body and rim through one helper, so
 
 | Function | Behaviour |
 | --- | --- |
-| `IconChrome(owner, opts) -> chrome` | A [`Chrome`](#chrome) with the `socket` shape and the `buttonFill` body. The radius is `Tokens.Share("radiusSocket")`, 11/52 of the side: of `opts.size` when given, else of the owner's shorter side as it changes. `opts.shadow` adds the soft card shadow, as `IconButton` does; a tile without it (aura tiles, bag slots, skin rims, the tooltip icon) has none. The chrome gains `SetRim` and `SetRimAccent`, and its `Paint` repaints the rim on every restyle. |
+| `IconChrome(owner, opts) -> chrome` | A [`Chrome`](#chrome) with the `socket` shape and the `buttonFill` body. The corner is three border lines at every size. `opts.shadow` asks for the soft card shadow, which the `shadows` setting shows, as `IconButton` does; a tile without it (aura tiles, bag slots, skin rims, the tooltip icon) has none. The chrome gains `SetRim` and `SetRimAccent`, and its `Paint` repaints the rim on every restyle. |
 | `chrome:SetRim(r, g, b, a)` | Paints the rim in that colour. With no colour, the plain `edgeInner` rim: an empty bag slot, or a skinned item with no quality colour. Allocates nothing, so Paint paths may call it every frame. |
 | `chrome:SetRimAccent(r, g, b, strength)` | Rests the rim on `IconRim(r, g, b, strength)`, and derives it again on every restyle, so a tile that gives no colour follows the theme accent through `ThemeChanged`. A module with its own accent setting passes its colour each time it styles the tile. |
 | `IconRim(r, g, b, strength, lift) -> r, g, b, a` | The rim colour of a filled icon at rest: the accent (the theme's, or the plain numbers given) mixed `lift` (default 15%) toward `textHover`. A `strength` under 1 mixes that from the plain `edgeInner` hairline, so 0.5 is halfway between the grey hairline and the accent rim. |

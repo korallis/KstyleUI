@@ -79,7 +79,7 @@ do
 	-- The Lumen readout card on the right rail's foot: 318 x 42, the readout line alone (the menu rows are hidden by
 	-- default). Its values read at the HUD's bar size, 12, in fixed cells: no separators by default.
 	eq(got.width .. "x" .. got.height, "318x42", "the strip takes the Lumen readout card's size")
-	eq(ns.Strip.view.chrome:Chamfer(), math.min(14, 42 / 2), "the strip's corners round 14 units, the card radius, never more than half its height")
+	eq(ns.Strip.view.chrome:Chamfer(), math.min(6 * K.Widgets.Border(ns.Strip.view.frame), 42 / 2), "the strip's corners round six border lines, the card grade (the owner's picture, 2026-11-09), never more than half its height")
 	local s = ns.Settings().strip
 	eq(s.fontSize, 12, "the strip reads at 12 by default")
 	eq(s.spacing, 16, "16 units of room inside each cell")

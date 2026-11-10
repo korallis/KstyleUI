@@ -83,18 +83,16 @@ local function hexColor(hex)
 	return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
 end
 
--- The Lumen palette, from the mockup's :root (handoff arena2/parent/index.html), and the older names mapped onto it:
--- the surface is the deep tint under the frost, the panel edge is the rim light, the button body is the socket's
--- dark crystal, body text is the muted tone and emphasis the mockup's text colour. The deep tint, the body text and
--- the bar track are raised from the mockup's 62%, #a9b6c2 and 70% so text reads over bright scenery; test-legibility.lua
--- holds the contrast they buy.
+-- The palette. The card colours come from the owner's picture of 2026-11-09 ("let the picture win"): the surface is its
+-- dark navy fill at 75%, the outer edge a faint black line, the inner rim a muted grey, the socket edge near black, the
+-- button body the card fill at half strength, and gilt the picture's tick gold. Body text is the muted tone and
+-- emphasis the mockup's text colour; test-legibility.lua holds the contrast the surface buys over bright scenery.
 for name, want in pairs({
-	glass = { "e1f0fa", 0.22 },
-	deep = { "0c141e", 0.88 },
+	deep = { "0e1217", 0.75 },
 	rim = { "d6eeff", 0.55 },
 	rimSoft = { "d6eeff", 0.18 },
 	giltLit = { "f3dca4", 1 },
-	gilt = { "d9b46a", 1 },
+	gilt = { "d3b574", 1 },
 	giltDim = { "8a6c34", 1 },
 	muted = { "a9b6c2", 1 },
 	dim = { "6f7d8a", 1 },
@@ -102,10 +100,11 @@ for name, want in pairs({
 	friend = { "62d58d", 1 },
 	magic = { "5aa9ff", 1 },
 	quest = { "f6d27a", 1 },
-	surface = { "0c141e", 0.88 },
+	surface = { "0e1217", 0.75 },
 	raised = { "1a2633", 0.85 },
-	edgeOuter = { "000000", 0.5 },
-	edgeInner = { "d6eeff", 0.55 },
+	edgeOuter = { "000000", 0.55 },
+	edgeInner = { "869094", 0.16 },
+	socketEdge = { "000000", 0.94 },
 	edgeFaint = { "d6eeff", 0.08 },
 	edgeBar = { "d6eeff", 0.14 },
 	text = { "c8d1da", 1 },
@@ -114,7 +113,7 @@ for name, want in pairs({
 	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
-	buttonFill = { "0a1018", 0.7 },
+	buttonFill = { "0e1217", 0.5 },
 	track = { "05090e", 0.88 },
 }) do
 	local r, g, b, a = Tokens.Color(name)
@@ -142,7 +141,7 @@ end
 for name, want in pairs({
 	radius = 14, radiusTile = 8, chamferPanel = 14, chamferTile = 8, chamferWindow = 14, shadow = 14, shadowOffset = 3,
 	gapSmall = 4, gapMedium = 8, gapLarge = 12, gapHuge = 16, gapXLarge = 20, gapXXLarge = 28,
-	railWidth = 318, railPadding = 20, sectionGap = 22, rowGap = 12, socketGap = 8, screenMargin = 28,
+	railWidth = 318, railPadding = 20, sectionGap = 22, rowGap = 12, socketGap = 8, screenMargin = 17, tick = 15,
 	actionButton = 34, actionGap = 3, cooldownEssential = 40,
 	cooldownUtility = 30, unitFrameWidth = 220, unitFrameHeight = 46, portrait = 46, buffBarWidth = 180,
 	buffBarHeight = 18, display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, world = 13, textShadowOffset = 1,
@@ -151,9 +150,8 @@ for name, want in pairs({
 	assert(Tokens.Size(name) == want, "Tokens.Size(" .. name .. ") is " .. tostring(Tokens.Size(name)) .. ", spec says " .. want)
 end
 assert(not pcall(Tokens.Size, "nope"), "an unknown size is an error")
--- A socket rounds its corners 11 units on the mockup's 52-unit socket, as a share of its side.
-assert(Tokens.Share("radiusSocket") == 11 / 52, "the socket's corner share")
-for _, name in ipairs({ "chamfer", "chamferIcon" }) do
+assert(not pcall(Tokens.Size, "gilt"), "the gilt tip size is retired: the picture's ticks are tick units long")
+for _, name in ipairs({ "chamfer", "chamferIcon", "radiusSocket" }) do
 	assert(not pcall(Tokens.Share, name), "the " .. name .. " share is retired with the chamfers")
 end
 assert(not pcall(Tokens.Size, "buttonBezel"), "the chamfered button's bezel is retired")
@@ -216,7 +214,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 
 -- Textures: each names a file on disk, and sliced ones say how big a corner piece draws.
 for _, name in ipairs({
-	"lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "chamferTile", "gilt", "gem", "pillCapLeft",
+	"lumenShape", "cardShape", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenOutline", "chamferTile", "gem", "pillCapLeft",
 	"pillCapRight", "barSheen", "lensMask", "ruleFade", "iconMask", "portraitMask", "shadow", "glow", "divider", "noise", "ring", "ringBevel",
 	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
@@ -226,13 +224,22 @@ end
 for _, name in ipairs({ "chamferPanel", "chamferWindow", "line", "bevelPanelOuter", "bevelTileInner", "bevelWindowOuter" }) do
 	assert(not pcall(Tokens.Texture, name), "the chamfer texture " .. name .. " is retired: Lumen rounds its corners")
 end
+for _, name in ipairs({ "glass", "lumenFrost", "lumenRim", "lumenRimSmall", "gilt" }) do
+	assert(not pcall(Tokens.Texture, name), "the texture " .. name .. " is retired: the picture's card has no frost and draws its ticks from the rim")
+end
+assert(not pcall(Tokens.Color, "glass"), "the glass tint is retired with the frost")
+assert(Tokens.Texture("portraitMask") ~= Tokens.Texture("iconMask"), "the square portrait keeps its own, rounder mask")
 for _, name in ipairs({ "chamferTile", "iconMask", "portraitMask" }) do
 	assert(not Tokens.Texture(name):find("Chamfer", 1, true), name .. " is kept for its callers but draws a Lumen file")
 end
 local _, texels, units = Tokens.Texture("lumenShape")
 assert(texels == 56 and units == 14, "the Lumen shape's corner is 56 texels drawn at 14 units; Chrome stretches it to the radius")
-_, texels, units = Tokens.Texture("lumenRimSmall")
-assert(texels == 32 and units == 8, "the small rim's corner is 32 texels drawn at 8 units")
+_, texels, units = Tokens.Texture("cardShape")
+assert(texels == 56 and units == 14, "the card shape's corner is 56 texels drawn at 14 units")
+for _, lines in ipairs({ 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32 }) do
+	_, texels, units = Tokens.Texture("ringLine" .. lines)
+	assert(texels == 64 and units == 16, "a ring line's corner is 64 texels drawn at 16 units; Chrome stretches it to its lines")
+end
 _, texels, units = Tokens.Texture("shadow")
 assert(texels == 24 and units == 12, "the shadow texture's corner is 12 units; Chrome stretches it to twice the shadow reach")
 assert(select(2, Tokens.Texture("glow")) == nil, "an unsliced texture has no margin")

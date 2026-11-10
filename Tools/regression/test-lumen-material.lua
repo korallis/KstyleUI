@@ -1,4 +1,4 @@
--- test-lumen-material.lua: every chrome grade draws the Lumen recipe (no chamfer texture, rounded corners, frost and rim, gilt only on windows and rails, a gold rim only on a proc, a pill track for bars), and the font roles resolve to Cinzel and Alegreya Sans with Source Sans still selectable.
+-- test-lumen-material.lua: every chrome grade draws the Lumen recipe (no chamfer texture; the picture card with its edge line, rim and gilt L-ticks; the socket with its near-black edge, gold only on a proc; a pill track for bars), and the font roles resolve to Cinzel and Alegreya Sans with Source Sans still selectable.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local env, K = W.New()
@@ -47,64 +47,63 @@ for _, shape in ipairs({ "panel", "card", "window", "rail", "tile", "socket", "b
 	end
 end
 
--- Cards, panels, windows and rails: the soft shadow, the deep tint, the frost and the rim, rounded 14 units.
+-- Cards, panels, windows and rails: the owner's picture of 2026-11-09. The card fill, a dark edge line and a muted rim
+-- one line inside it, on a corner six border lines round; the shadow is drawn but off unless the setting turns it on.
 for _, shape in ipairs({ "panel", "card", "window", "rail" }) do
 	local frame, chrome, textures = Build(shape)
-	for _, name in ipairs({ "LumenShadow.png", "LumenShape.png", "LumenFrost.png", "LumenRim.png" }) do
+	for _, name in ipairs({ "CardShape.png", "RingLine6.png", "RingLine5.png" }) do
 		assert(Shown(textures, name), shape .. " draws " .. name)
 	end
-	assert(chrome:Radius() == Tokens.Size("radius") and Tokens.Size("radius") == 14, shape .. " rounds its corners 14 units")
-	assert(W.Near(chrome.fill[1]:GetWidth(), Widgets.Snap(frame, 14)), shape .. ": the corner pieces are the 14-unit radius")
+	assert(textures["LumenShadow.png"] and not Shown(textures, "LumenShadow.png"), shape .. ": the shadow is drawn but hidden, as the picture casts none")
+	for _, name in ipairs({ "LumenFrost.png", "LumenRim.png", "LumenGilt.png", "Noise.png" }) do
+		assert(not textures[name], shape .. " draws no " .. name)
+	end
+	local line = Widgets.Border(frame)
+	assert(W.Near(chrome:Radius(), 6 * line), shape .. " rounds its corners six lines")
+	assert(W.Near(chrome.line[1]:GetWidth(), Widgets.Snap(frame, 6 * line)), shape .. ": the edge line's corner pieces are six lines square")
 end
 
--- Gilt filament tips on two opposite corners of windows and rails, and none on panels and cards.
-for shape, want in pairs({ panel = 0, card = 0, window = 2, rail = 2 }) do
-	local _, _, textures = Build(shape)
-	local gilt = textures["LumenGilt.png"]
-	local shown = gilt and gilt.shown or 0
-	assert(shown == want, shape .. " shows " .. shown .. " gilt tips, want " .. want)
-end
-do
-	local frame, chrome = Build("window")
-	local tl, br = chrome.gilt[1], chrome.gilt[2]
-	local p1, p2 = tl._points[1], br._points[1]
-	assert(p1[1] == "TOPLEFT" and p1[2] == frame and p2[1] == "BOTTOMRIGHT" and p2[2] == frame, "the tips sit on the top left and bottom right corners")
+-- Gilt L-ticks on the top left and bottom right of every card shape, the picture's story, chat and damage cards.
+for _, shape in ipairs({ "panel", "card", "window", "rail" }) do
+	local frame, chrome = Build(shape)
+	assert(chrome.gilt and #chrome.gilt == 6, shape .. ": two ticks, each an arc and two legs")
+	local p1, p2 = chrome.gilt[1]._points[1], chrome.gilt[4]._points[1]
+	assert(p1[1] == "TOPLEFT" and p1[2] == frame and p2[1] == "BOTTOMRIGHT" and p2[2] == frame, shape .. ": the ticks sit on the top left and bottom right corners")
 	local gr, gg, gb = Tokens.Color("gilt")
-	assert(W.SameRGB(tl, gr, gg, gb), "the tips are gilt")
+	for i = 1, 6 do
+		assert(W.SameRGB(chrome.gilt[i], gr, gg, gb) and chrome.gilt[i]:IsShown(), shape .. ": the ticks are gilt")
+	end
 end
 
--- Tiles and sockets: a dark crystal body, a faint rim on the small radius, no frost, no gilt; gold rim only on a proc.
+-- Tiles and sockets: the button fill, a near-black edge line on a three-line corner and a rim one line in, no gilt; a
+-- gold edge only on a proc.
 for _, shape in ipairs({ "tile", "socket" }) do
 	local frame, chrome, textures = Build(shape, 38, 38)
-	assert(Shown(textures, "LumenShape.png") and Shown(textures, "LumenRimSmall.png"), shape .. " draws the body and the small rim")
-	assert(not Shown(textures, "LumenFrost.png") and not Shown(textures, "LumenGilt.png"), shape .. " has no frost and no gilt")
-	assert(chrome:Radius() <= Tokens.Size("radiusTile") and chrome:Radius() > 0, shape .. " rounds its corners")
-	local rr, rg, rb = chrome.rim[1]:GetVertexColor()
+	assert(Shown(textures, "LumenShape.png") and Shown(textures, "RingLine3.png") and Shown(textures, "RingLine2.png"), shape .. " draws the body, the edge line and the rim")
+	assert(not Shown(textures, "CardShape.png") and chrome.gilt == nil, shape .. " is not a card and has no gilt")
+	assert(W.Near(chrome:Radius(), 3 * Widgets.Border(frame)), shape .. " rounds its corners three lines")
+	local sr, sg, sb = Tokens.Color("socketEdge")
+	assert(W.SameRGB(chrome.line[1], sr, sg, sb), shape .. ": the edge is near black at rest")
 	local lr, lg, lb = Tokens.Color("giltLit")
-	assert(not (W.Near(rr, lr) and W.Near(rg, lg) and W.Near(rb, lb)), shape .. ": the rim is not gold at rest")
 	chrome:SetProc(true)
-	assert(W.SameRGB(chrome.rim[1], lr, lg, lb) and W.SameRGB(chrome.rim[5], lr, lg, lb), shape .. ": a proc lights the rim gold")
-	-- The rim's straight runs are solid lines one border thick (owner pass 1, M6): the side run is the run's alpha.
-	assert(file(W.LastCall(chrome.rim[1], "SetTexture")[1]) == "LumenOutline.png", shape .. ": the outline's corners")
-	assert(W.LastCall(chrome.rim[4], "SetColorTexture")[4] == 1, shape .. ": all the way round, not only along the top")
+	assert(W.SameRGB(chrome.line[1], lr, lg, lb) and W.SameRGB(chrome.line[5], lr, lg, lb), shape .. ": a proc lights the edge gold")
+	assert(file(W.LastCall(chrome.line[1], "SetTexture")[1]) == "RingLine3.png", shape .. ": on the same corner")
+	assert(W.LastCall(chrome.line[4], "SetColorTexture") ~= nil, shape .. ": its straight runs are solid lines")
 	chrome:SetProc(false)
-	assert(W.SameRGB(chrome.rim[1], rr, rg, rb), shape .. ": the gold leaves with the proc")
-	assert(file(W.LastCall(chrome.rim[1], "SetTexture")[1]) == "LumenRimSmall.png", shape .. ": and the rim's corners are the small rim again")
-	assert(W.LastCall(chrome.rim[4], "SetColorTexture")[4] < 1 and W.LastCall(chrome.rim[2], "SetColorTexture")[4] == 1, shape .. ": lit from the top again")
-	assert(frame ~= nil)
+	assert(W.SameRGB(chrome.line[1], sr, sg, sb), shape .. ": the gold leaves with the proc")
 end
 do
 	local r, g, b, a = Tokens.Color("buttonFill")
 	local _, chrome = Build("socket", 38, 38)
-	assert(W.SameColor(chrome.fill[5], r, g, b, a), "a socket is the dark crystal body")
-	assert(a < 1, "the crystal is translucent")
+	assert(W.SameColor(chrome.fill[5], r, g, b, a), "a socket is the button fill")
+	assert(a < 1, "the fill is translucent")
 end
 
 -- Bars: a pill track, its corners half the bar's short side, so it is a capsule lying down or standing up.
 do
 	local frame, chrome, textures = Build("bar", 200, 10)
 	assert(Shown(textures, "LumenShape.png") and Shown(textures, "LumenOutline.png"), "a bar is a pill track with a faint even rim")
-	assert(not Shown(textures, "LumenFrost.png") and not Shown(textures, "LumenGilt.png") and not Shown(textures, "LumenShadow.png"), "no frost, gilt or shadow on a bar")
+	assert(not Shown(textures, "CardShape.png") and not Shown(textures, "LumenShadow.png") and chrome.gilt == nil, "no card fill, gilt or shadow on a bar")
 	assert(W.Near(chrome:Radius(), 5) and W.Near(chrome.fill[1]:GetWidth(), Widgets.Snap(frame, 5)), "the corners are half the height")
 	frame:SetSize(10, 120)
 	assert(W.Near(chrome:Radius(), 5) and W.Near(chrome.rim[1]:GetHeight(), Widgets.Snap(frame, 5)), "and half the width when the bar stands up")

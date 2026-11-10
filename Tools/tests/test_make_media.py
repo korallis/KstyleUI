@@ -39,25 +39,29 @@ class ManifestTest(unittest.TestCase):
     def test_textures_cover_the_spec_list(self):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
-            "LumenShape", "LumenFrost", "LumenRim", "LumenRimSmall", "LumenOutline", "LumenGilt", "LumenGem",
-            "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
+            "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "LumenGem",
+            "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "PortraitMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
             self.assertIn(name, names)
         self.assertFalse(any(name.startswith("Chamfer") or name == "Line" for name in names), "the chamfer material is retired")
+        for name in ("LumenFrost", "LumenRim", "LumenRimSmall", "LumenGilt"):
+            self.assertNotIn(name, names, "the frost glass is retired: the owner's picture of 2026-11-09 has none")
         paths = {a.path for a in self.mm.ASSETS}
         # The core TOC's IconTexture names Media\Logo\Logo64 with no extension, which the game
         # resolves to a TGA or BLP file, not a PNG.
         self.assertIn("Media/Logo/Logo64.tga", paths)
 
     def test_lumen_geometry_matches_the_radius_tokens(self):
-        # Cards, rails and windows round 14 units; sockets and small tiles 8, drawn at TEXELS_PER_UNIT.
+        # The fills are drawn on a 14-unit corner and the outline on 8, at TEXELS_PER_UNIT; the kit stretches them to
+        # the corner it draws. A ring line's corner piece is half the texture: its four quarter rings meet in the middle.
         density = self.mm.TEXELS_PER_UNIT
-        for name in ("LumenShape", "LumenFrost", "LumenRim"):
+        for name in ("LumenShape", "CardShape"):
             self.assertEqual(self.mm.SLICE[name], 14 * density, name)
-        for name in ("LumenRimSmall", "LumenOutline"):
-            self.assertEqual(self.mm.SLICE[name], 8 * density, name)
+        self.assertEqual(self.mm.SLICE["LumenOutline"], 8 * density)
+        for n in self.mm.RING_LINES:
+            self.assertEqual(self.mm.SLICE[f"RingLine{n}"], self.mm.RING_TEXELS // 2, n)
         self.assertEqual(self.mm.SLICE["Shadow"], 2 * 6 * self.mm.SHADOW_TEXELS_PER_UNIT, "the shadow reaches 6 units")
         self.assertFalse(any(name.startswith(("Bevel", "Chamfer")) for name in self.mm.SLICE), "no chamfer or bevel slices")
 
@@ -95,7 +99,6 @@ class TokensTest(unittest.TestCase):
         self.assertEqual(size("shadowOffset"), mm.LUMEN_SHADOW_DROP)
         self.assertEqual(size("radius"), mm.LUMEN_RADIUS)
         self.assertEqual(size("radiusTile"), mm.LUMEN_TILE_RADIUS)
-        self.assertEqual(size("gilt"), mm.GILT_UNITS)
         self.assertEqual(size("gem"), mm.GEM_UNITS)
 
 
@@ -145,55 +148,37 @@ class DrawingTest(unittest.TestCase):
 
     def test_lumen_shape_rounds_each_corner(self):
         # A 56-texel radius: the corner texel is clear, the arc's midpoint is half covered, the edges are solid.
-        name, size, r = "LumenShape.png", 128, 56
+        size, r = 128, 56
         last = size - 1
-        for x, y in ((0, 0), (last, 0), (0, last), (last, last)):
-            self.assertEqual(self.alpha(name, x, y), 0, f"corner {x},{y}")
-        self.assertEqual(self.alpha(name, size // 2, size // 2), 255)
-        self.assertEqual(self.alpha(name, r, 0), 255, "the top edge starts where the arc ends")
-        self.assertEqual(self.alpha(name, 0, r), 255, "and the left edge")
-        d = round(r - r / 2 ** 0.5)
-        self.assertTrue(64 <= self.alpha(name, d, d) <= 192, f"the arc crosses the diagonal {d} texels in")
-        self.assertEqual(self.alpha(name, d + 3, d + 3), 255, "inside the arc is solid")
-        self.assertEqual(self.alpha(name, d - 3, d - 3), 0, "outside it is clear")
+        for name in ("LumenShape.png", "CardShape.png"):
+            for x, y in ((0, 0), (last, 0), (0, last), (last, last)):
+                self.assertEqual(self.alpha(name, x, y), 0, f"{name} corner {x},{y}")
+            self.assertEqual(self.alpha(name, size // 2, size // 2), 255)
+            self.assertEqual(self.alpha(name, r, 0), 255, "the top edge starts where the arc ends")
+            self.assertEqual(self.alpha(name, 0, r), 255, "and the left edge")
+            d = round(r - r / 2 ** 0.5)
+            self.assertTrue(64 <= self.alpha(name, d, d) <= 192, f"the arc crosses the diagonal {d} texels in")
+            self.assertEqual(self.alpha(name, d + 3, d + 3), 255, "inside the arc is solid")
+            self.assertEqual(self.alpha(name, d - 3, d - 3), 0, "outside it is clear")
 
-    def test_frost_falls_from_the_top(self):
-        # The frost's alpha holds the mockup's gradient: brightest at the top, falling to under half at the bottom.
-        top, mid, bottom = self.alpha("LumenFrost.png", 64, 1), self.alpha("LumenFrost.png", 64, 64), self.alpha("LumenFrost.png", 64, 126)
-        self.assertGreater(top, mid)
-        self.assertGreater(mid, bottom)
-        self.assertGreaterEqual(top, 240)
-        self.assertTrue(105 <= bottom <= 125, bottom)
-        self.assertEqual(self.alpha("LumenFrost.png", 0, 0), 0, "rounded like the shape")
-        r, g, b, _ = self.px("LumenFrost.png", 64, 64)
-        self.assertEqual((r, g, b), (255, 255, 255), "white, so the glass token tints it")
-
-    def test_rim_is_lit_along_the_top(self):
-        # A 3-texel line inside the edge: full along the top, about a third on the sides and bottom.
-        for name in ("LumenRim.png", "LumenRimSmall.png"):
-            self.assertGreaterEqual(self.alpha(name, 64, 1), 250, name + " top")
-            side, bottom = self.alpha(name, 1, 64), self.alpha(name, 64, 126)
-            self.assertTrue(75 <= side <= 95, f"{name} side {side}")
-            self.assertTrue(75 <= bottom <= 95, f"{name} bottom {bottom}")
-            self.assertEqual(self.alpha(name, 64, 64), 0, name + " the middle is clear")
-            self.assertEqual(self.alpha(name, 64, 5), 0, name + " the line is 3 texels")
+    def test_ring_line_is_one_line_on_an_n_line_corner(self):
+        # RingLineN: a ring one line thick, a line being 1/N of the 64-texel corner piece, clear inside and outside.
+        for n in self.mm.RING_LINES:
+            name, line = f"RingLine{n}.png", 64 / n
+            self.assertGreaterEqual(self.alpha(name, 64, int(line / 2)), 250, f"{name}: the line at the top")
+            self.assertGreaterEqual(self.alpha(name, int(line / 2), 64), 250, f"{name}: and the side")
+            self.assertEqual(self.alpha(name, 64, int(line) + 2), 0, f"{name}: one line thick")
+            self.assertEqual(self.alpha(name, 0, 0), 0, f"{name}: rounded")
+            self.assertEqual(self.alpha(name, 64, 64), 0, f"{name}: the middle is clear")
+            r = 64 - line / 2
+            d = round(64 - r / 2 ** 0.5)
+            self.assertGreater(self.alpha(name, d, d), 128, f"{name}: the arc crosses the diagonal")
 
     def test_outline_is_even(self):
         top, side, bottom = self.alpha("LumenOutline.png", 64, 1), self.alpha("LumenOutline.png", 1, 64), self.alpha("LumenOutline.png", 64, 126)
         self.assertEqual(top, side)
         self.assertEqual(side, bottom)
         self.assertGreaterEqual(top, 250)
-
-    def test_gilt_is_a_corner_filament(self):
-        # The arc runs through the corner region; the legs fade to nothing by their 18-unit ends.
-        per = 128 / 20
-        self.assertEqual(self.alpha("LumenGilt.png", 64, 64), 0, "the middle is clear")
-        r = 14 * per
-        d = round(r - (r - 0.75 * per) / 2 ** 0.5)
-        self.assertGreater(self.alpha("LumenGilt.png", d, d), 128, "the arc crosses the diagonal")
-        self.assertGreater(self.alpha("LumenGilt.png", int(15 * per), 4), 200, "the top leg after the arc")
-        self.assertEqual(self.alpha("LumenGilt.png", int(18.5 * per), 4), 0, "and nothing past its tip")
-        self.assertEqual(self.alpha("LumenGilt.png", 4, int(15 * per)), self.alpha("LumenGilt.png", int(15 * per), 4), "the legs mirror")
 
     def test_gem_is_lit_from_the_top_left(self):
         tl, br = self.px("LumenGem.png", 28, 28), self.px("LumenGem.png", 36, 36)
@@ -238,28 +223,35 @@ class DrawingTest(unittest.TestCase):
     def test_sliced_textures_stretch_without_distortion(self):
         # A nine-slice stretches the strips between the margins. Every column and every row there
         # must be the same, or the stretch smears a corner's diagonal along the edge.
+        # A ring line has no centre: its corner pieces meet in the middle and the kit draws its runs as solid lines.
         for asset in self.mm.ASSETS:
-            if not asset.slice:
+            if not asset.slice or asset.name.startswith("RingLine"):
                 continue
             name, m = Path(asset.path).name, asset.slice
             self.assertLess(2 * m, asset.width, f"{name} keeps a stretchable centre")
             for x in range(m + 1, asset.width - m):
                 for y in range(asset.height):
                     self.assertLessEqual(abs(self.alpha(name, x, y) - self.alpha(name, m, y)), 2, f"{name} column {x} row {y}")
-            if asset.name in self.mm.VERTICAL_GRADIENT:
-                continue  # its rows hold a vertical gradient, which stretches cleanly
             for y in range(m + 1, asset.height - m):
                 for x in range(asset.width):
                     self.assertLessEqual(abs(self.alpha(name, x, y) - self.alpha(name, x, m)), 2, f"{name} row {y} column {x}")
 
-    def test_socket_mask_rounds_8_units_of_44(self):
-        # Every square icon and the square portrait are masked to the socket's rounded corners: 8 of 44 units.
-        r = 128 * 8 / 44
+    def test_socket_mask_rounds_3_units_of_44(self):
+        # Every square icon and the square portrait are masked to meet the socket's inner corner: 3 of 44 units, the
+        # owner's picture of 2026-11-09.
+        r = 128 * 3 / 44
         self.assertEqual(self.alpha("SocketMask.png", 0, 0), 0)
         self.assertEqual(self.alpha("SocketMask.png", 64, 64), 255)
         self.assertEqual(self.alpha("SocketMask.png", int(r) + 1, 0), 255, "the top edge after the arc")
         d = round(r - r / 2 ** 0.5)
         self.assertEqual(self.alpha("SocketMask.png", d - 3, d - 3), 0, "outside the arc")
+
+    def test_portrait_mask_rounds_8_units_of_44(self):
+        # The square portrait keeps the rounder mask its frame's pinned corner needs.
+        r = 128 * 8 / 44
+        self.assertEqual(self.alpha("PortraitMask.png", int(r) + 1, 0), 255, "the top edge after the arc")
+        d = round(r - r / 2 ** 0.5)
+        self.assertEqual(self.alpha("PortraitMask.png", d - 3, d - 3), 0, "outside the arc")
 
     def test_shadow_falls_off_from_the_panel_edge(self):
         edge = self.mm.SLICE["Shadow"] // 2  # the panel corner sits in the middle of the corner piece

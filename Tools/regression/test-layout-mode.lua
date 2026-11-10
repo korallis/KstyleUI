@@ -290,7 +290,7 @@ do
 	env.RunTimers()
 	assert(near(Layout.Get("Test.Panel").scale, 1.5))
 	local radius = panel.chrome:Radius()
-	assert(near(panel.chrome.rim[1]:GetWidth(), Scale.Snap(radius * 1.5) / 1.5), "the rounded corners are redrawn in whole pixels for the new scale")
+	assert(near(panel.chrome.line[1]:GetWidth(), Scale.Snap(radius * 1.5) / 1.5), "the rounded corners are redrawn in whole pixels for the new scale")
 	Layout.Exit(true)
 end
 

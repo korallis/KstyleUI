@@ -1,4 +1,4 @@
--- Panel.lua: the smoked-glass panel with chamfered corners, a double bevel, a shadow, an optional title bar and close button.
+-- Panel.lua: the card panel, the picture's dark fill with an inset rim and gilt L-ticks, with an optional title bar and close button.
 local _, ns = ...
 
 local Widgets = ns.Widgets

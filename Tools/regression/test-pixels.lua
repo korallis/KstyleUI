@@ -71,14 +71,15 @@ local function label(screen, uiScale, user)
 end
 
 local SIZE_NAMES = {
-	"radius", "radiusTile", "gilt", "gem", "chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
+	"radius", "radiusTile", "tick", "gem", "chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow", "lootTile", "lootText",
 }
-local SLICED = { "lumenShape", "lumenFrost", "lumenRim", "lumenRimSmall", "lumenOutline", "shadow" }
--- Corners are rounded to the shape's radius, at most half the shorter side, snapped to whole pixels; the fill, frost and
--- rim corner pieces are the same whole-pixel square, and the gilt tips sit a whole pixel offset. Frame scales: a frame
--- on the root, and a tooltip-sized frame.
+local SLICED = { "lumenShape", "cardShape", "lumenOutline", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "shadow" }
+-- The owner's picture (2026-11-09) draws every edge in border lines: a card's corner is six lines round and a socket's
+-- three, its dark edge line and its rim are each one line thick, the rim and the fill one line in, and the gilt L-ticks
+-- ride on the rim. So every corner piece, run and tick is a whole number of physical pixels at every screen, UI scale,
+-- size and frame scale. Frame scales: a frame on the root, and a tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
 
 local function chromes(env, ns, frameScale)
@@ -97,22 +98,41 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	local px = ppu * frameScale
 	local border = ns.Scale.Border() * ppu
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
-	local radiusPx = c.fill[1]:GetWidth() * px
-	local ow, oh = c.owner:GetSize()
-	local wantPx = math.min(Tokens.Size(c.shape.radius), math.min(ow, oh) / 2) * px
-	assert(whole(radiusPx) and math.abs(radiusPx - wantPx) <= 0.5 + 1e-6, where .. ": the radius is " .. radiusPx .. " px, the nearest whole pixel to " .. wantPx)
-	for _, slice in ipairs({ c.fill, c.rim, c.frost }) do
+	local linePx = border
+	local radiusPx = c.line[1]:GetWidth() * px
+	local wantPx = c.shape.lines * linePx
+	assert(whole(linePx), where .. ": the line is " .. linePx .. " px, a whole number")
+	assert(math.abs(radiusPx - wantPx) < 1e-6, where .. ": the corner is " .. radiusPx .. " px, " .. c.shape.lines .. " lines of " .. linePx)
+	local function square(slice, want, what)
 		for i = 1, 9, 2 do
 			if i ~= 5 then
 				local w, h = slice[i]:GetSize()
-				assert(math.abs(w * px - radiusPx) < 1e-6 and math.abs(h * px - radiusPx) < 1e-6, where .. ": every corner piece is the radius square")
+				assert(math.abs(w * px - want) < 1e-6 and math.abs(h * px - want) < 1e-6, where .. ": every " .. what .. " corner piece is " .. want .. " px square")
 			end
 		end
 	end
+	square(c.line, radiusPx, "edge line")
+	square(c.fill, radiusPx - linePx, "fill")
+	square(c.rim, radiusPx - linePx, "rim")
+	for _, slice in ipairs({ c.fill, c.rim }) do
+		local p = slice[1]._points[1]
+		assert(math.abs(p[4] * px - linePx) < 1e-6 and math.abs(-p[5] * px - linePx) < 1e-6, where .. ": the fill and the rim start one line in")
+	end
 	if c.gilt then
-		local p = c.gilt[1]._points[1]
-		assert(whole(p[4] * px) and whole(p[5] * px), where .. ": the gilt tip sits a whole number of pixels out")
-		assert(whole(c.gilt[1]:GetWidth() * px), where .. ": and is a whole number of pixels")
+		local arc = c.gilt[1]
+		local p = arc._points[1]
+		assert(math.abs(p[4] * px - linePx) < 1e-6 and math.abs(-p[5] * px - linePx) < 1e-6, where .. ": the tick's arc rides on the rim, one line in")
+		assert(math.abs(arc:GetWidth() * px - (radiusPx - linePx)) < 1e-6, where .. ": over the rim's own corner")
+		for i = 2, 6 do
+			if i ~= 4 then
+				local w, h = c.gilt[i]:GetSize()
+				assert(whole(w * px) and whole(h * px), where .. ": every tick leg is whole pixels")
+				local thick = (i == 2 or i == 5) and h or w
+				assert(math.abs(thick * px - linePx) < 1e-6, where .. ": one line thick")
+			end
+		end
+		local reach = (linePx + c.gilt[1]:GetWidth() * px + c.gilt[2]:GetWidth() * px)
+		assert(whole(reach) and math.abs(reach - Tokens.Size("tick") * px) <= 0.5 + 1e-6, where .. ": the tick reaches " .. reach .. " px from the corner, the nearest whole pixel to the tick token")
 	end
 	assert(border >= 1 - 1e-6, where .. ": the border is at least a pixel")
 end

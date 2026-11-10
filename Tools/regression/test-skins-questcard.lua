@@ -207,7 +207,7 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(card.bottom >= under + 16 - 0.5, what .. ": the card ends 16 over the tooltip anchor, the damage card and the readout, got " .. card.bottom .. " for " .. under)
 		assert(card.bottom >= story.story.bottom - 0.5 and card.top <= story.story.top + 0.5, what .. ": inside the story slot")
 		assert(math.abs(card.left - story.story.left) <= 0.6 and math.abs(card.right - story.story.right) <= 0.6, what .. ": on the rail's edge and width")
-		assert(math.abs(card.right - (rw - 28)) <= 0.6 and math.abs(card.right - card.left - 318) <= 0.6, what .. ": the right rail's 318, on the 28 margin")
+		assert(math.abs(card.right - (rw - K.Tokens.Size("screenMargin"))) <= 0.6 and math.abs(card.right - card.left - 318) <= 0.6, what .. ": the right rail's 318, on the screen margin")
 		assert(#Shown(ns) >= 1, what .. ": at least one quest shows")
 		for _, row in ipairs(ns.Quests.Rows()) do
 			if row:IsShown() then
@@ -228,12 +228,12 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			-- at the foot of its half, and the quests follow the guide's foot.
 			assert(g.top >= story.story.top - 12, what .. ": the guide's card starts at the slot's top, got " .. g.top .. " for " .. story.story.top)
 			assert(card.top >= story.tracker.top - 0.5, what .. ": the quests start no lower than the tracker's half")
-			assert(g.right <= rw - 28 + 0.6 and g.left >= story.story.left - 0.6, what .. ": on the right rail's column")
+			assert(g.right <= rw - K.Tokens.Size("screenMargin") + 0.6 and g.left >= story.story.left - 0.6, what .. ": on the right rail's column")
 			assert(not ns.Quests.Parts().glass:IsShown(), what .. ": the card's own glass yields to the guide's")
 			assert(card.top <= story.guide.top - 16, what .. ": the card sits under the guide's head, inside the guide's card")
 		else
 			assert(ns.Quests.Parts().glass:IsShown(), what .. ": on its own, the card wears its own glass")
-			assert(ns.Quests.Parts().glass.chrome.gilt == nil, what .. ": with a thin rim and no gilt corner tips: the story card carries no ornament")
+			assert(ns.Quests.Parts().glass.chrome.gilt ~= nil, what .. ": with gilt L-ticks: the owner's picture of 2026-11-09 puts them on the story card, reversing #205's thin rim and nothing else")
 		end
 		Clean(env, K)
 	end

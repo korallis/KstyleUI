@@ -37,28 +37,25 @@ SHADOW_TEXELS_PER_UNIT = 2
 SHADOW_REACH = 6  # root units the shadow reaches past the panel edge
 GLASS_DROP = 1 - 1 / 1.12  # the health fill's top is 12% brighter than its bottom
 PILL_CAP = 16  # texels: each round cap of Pill.png is a quarter of its 64-texel width
-# Lumen glass, from the mockup's .lg rule (~/.local/share/kstyleui-handoff/arena2/parent/index.html), drawn on a
-# 1080-unit board, so one CSS pixel is one root unit. Cards, rails and windows round their corners 14 units; sockets
-# and small tiles 8. The rim is the mockup's 1 px edge, 0.75 units here (3 texels), so it reads as one pixel on the
-# owner's 1.426 px-per-unit screen; it is full strength along the top and at the rim-soft share (18 of 55) on the
-# sides and bottom, easing between them around the top corners.
+# The rounded shape is drawn at 14 units, so its corner pieces stretch cleanly down to any smaller corner. The
+# outline is a 0.75-unit line (3 texels) on an 8-unit corner, for bars and highlight rings.
 LUMEN_RADIUS, LUMEN_TILE_RADIUS = 14, 8
 RIM_TEXELS = 3
-RIM_SOFT = 0.18 / 0.55
-# The frost: the mockup's gradient from glass-hi (22%) at the top through glass (13%) at 40% to 10% at the bottom,
-# as a share of the top, in the three bands a nine-slice stretches: the top corner rows, the stretched middle and
-# the bottom corner rows.
-FROST_STOPS = (1.0, 0.75, 0.5, 0.45)
-# The gilt filament: the mockup's 18-unit L of a 1.5-unit gold line rounded 14 units, set 1 unit outside the card's
-# corner. The texture covers 20 units from that outside corner at 6.4 texels per unit; the legs fade over their
-# last 3 units so the filament ends in a tip.
-GILT_UNITS, GILT_SIZE, GILT_ARM, GILT_LINE, GILT_FADE = 20, 128, 18, 1.5, 3
+# The owner's picture (2026-11-09) draws every card and socket edge as lines one border thick on corners a whole
+# number of border lines round: a card's dark edge line on a six-line corner with its rim one line inside it, a
+# socket's dark edge on a three-line corner. RingLineN is a quarter ring one line thick on the outside of an N-line corner, so the kit
+# draws its corner piece N border lines square and the arc lands on the same whole pixels as the straight runs.
+RING_LINES = (2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32)
+RING_TEXELS = 128
 # The gem: the mockup's 7-unit square turned 45 degrees, its four facets lit from the top left, in a 6-unit halo.
 GEM_UNITS, GEM_SIZE, GEM_SIDE, GEM_HALO = 16, 64, 7, 6
 GEM_FACETS = (1.0, 0.78, 0.62, 0.45)  # top-left, top-right, bottom-left, bottom-right facet levels
 GEM_HALO_ALPHA = 0.5
-# The icon in a socket: the mockup's 44-unit icon rounded 8 units, as a share of the side (masks stretch).
-ICON_RADIUS_SHARE = 8 / 44
+# The icon in a socket: the picture's icon is rounded to meet its socket's two-line inner corner, 3 units on a
+# 44-unit icon, as a share of the side (masks stretch).
+ICON_RADIUS_SHARE = 3 / 44
+# The square portrait keeps its own mask, 8 units on 44, matching the rounder corner its frame pins.
+PORTRAIT_RADIUS_SHARE = 8 / 44
 # The card's shadow: the mockup's soft drop shadow under a rounded card, reaching 14 units and dropping 3, from a
 # shape rounded 6 units and blurred with a 3.5-unit Gaussian. The tighter shape and blur keep the corner's falloff
 # inside the corner pieces, so the stretched edges stay even. As a CSS box shadow, it is never drawn under the card:
@@ -83,19 +80,17 @@ GLYPH_STROKE = 5  # texels: the stroke of the 32-texel glyphs, about 1.25 units 
 
 
 # Slice margins in texels. A nine-slice corner piece is margin x margin texels from each corner and
-# draws at the corner radius in units, snapped to whole pixels. Between the margins every column is the
-# same, and so is every row except in LumenFrost, whose rows hold its vertical gradient, so stretching the
-# edges and centre distorts nothing.
+# draws at the corner radius in units, snapped to whole pixels. Between the margins every column and every
+# row is the same, so stretching the edges and centre distorts nothing. A ring's corner pieces meet in the
+# middle: the kit draws its straight runs as solid lines.
 SLICE = {
     "LumenShape": LUMEN_RADIUS * TEXELS_PER_UNIT,
-    "LumenFrost": LUMEN_RADIUS * TEXELS_PER_UNIT,
-    "LumenRim": LUMEN_RADIUS * TEXELS_PER_UNIT,
-    "LumenRimSmall": LUMEN_TILE_RADIUS * TEXELS_PER_UNIT,
+    "CardShape": LUMEN_RADIUS * TEXELS_PER_UNIT,
     "LumenOutline": LUMEN_TILE_RADIUS * TEXELS_PER_UNIT,
+    **{f"RingLine{n}": RING_TEXELS // 2 for n in RING_LINES},
     "Shadow": 2 * SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
     "LumenShadow": 2 * LUMEN_SHADOW_REACH * SHADOW_TEXELS_PER_UNIT,
 }
-VERTICAL_GRADIENT = {"LumenFrost"}
 
 # The logo's colours, in sRGB. They match the design tokens surface, textEmphasis and the kit's
 # hunter accent in docs/design/mockups/05_kit_hunter.jpg. The logo is a fixed asset: the game
@@ -418,56 +413,20 @@ def draw_rounded(size, radius):
     return white(sample_spans(size, size, rounded_spans(0, 0, size, size, radius)))
 
 
-def frost_level(y, size, margin):
-    """The frost's alpha share on row y: falling through the top corner rows, the middle and the bottom rows."""
-    top, upper, lower, bottom = FROST_STOPS
-    if y <= margin:
-        return top + (upper - top) * y / margin
-    if y >= size - margin:
-        return lower + (bottom - lower) * (y - (size - margin)) / margin
-    return upper + (lower - upper) * (y - margin) / (size - 2 * margin)
-
-
-def draw_frost(size, radius):
-    """The rounded shape with the frost gradient in its alpha. Columns between the margins are the same."""
-    coverage = sample_spans(size, size, rounded_spans(0, 0, size, size, radius))
-    levels = sample_rows(size, size, lambda y: frost_level(y, size, radius))
-    return white([c * v for c, v in zip(coverage, levels)])
-
-
-def rim_level(y, radius, soft=RIM_SOFT):
-    """Full strength on the top edge, easing to `soft` where the top corners meet the sides."""
-    return soft + (1 - soft) * (1 - smoothstep(0, radius, y))
-
-
-def draw_rim(size, radius, line=RIM_TEXELS, soft=RIM_SOFT):
-    """A line `line` texels wide just inside the rounded shape's edge, brighter along the top unless `soft` is 1."""
+def draw_rim(size, radius, line=RIM_TEXELS):
+    """An even line `line` texels wide just inside the rounded shape's edge."""
     outer = rounded_spans(0, 0, size, size, radius)
     inner = rounded_spans(line, line, size - line, size - line, radius - line)
-    coverage = sample_spans(size, size, ring_spans(outer, inner))
-    levels = sample_rows(size, size, lambda y: rim_level(y, radius, soft))
-    return white([c * v for c, v in zip(coverage, levels)])
+    return white(sample_spans(size, size, ring_spans(outer, inner)))
 
 
-def draw_gilt(size):
-    """The gilt filament for the top left corner: a quarter circle and two legs that fade to a tip.
-
-    The texture's top left is one unit outside the card's corner, as the mockup sets its filament.
-    """
-    per = size / GILT_UNITS
-    radius, line, arm, fade = LUMEN_RADIUS * per, GILT_LINE * per, GILT_ARM * per, GILT_FADE * per
-
-    def fn(x, y):
-        if x < radius and y < radius:
-            d = math.hypot(radius - x, radius - y)
-            return 1.0 if radius - line <= d <= radius else 0.0
-        if y < line and radius <= x <= arm:
-            return 1.0 - smoothstep(arm - fade, arm, x)
-        if x < line and radius <= y <= arm:
-            return 1.0 - smoothstep(arm - fade, arm, y)
-        return 0.0
-
-    return white(sample(size, size, fn))
+def draw_ring_line(size, lines):
+    """Four quarter rings, one per corner piece, each one line thick on the outside of a `lines`-line corner."""
+    half = size / 2
+    line = half / lines
+    outer = rounded_spans(0, 0, size, size, half)
+    inner = rounded_spans(line, line, size - line, size - line, half - line)
+    return white(sample_spans(size, size, ring_spans(outer, inner)))
 
 
 def draw_gem(size):
@@ -793,30 +752,28 @@ class Asset:
 
 
 def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
-    drawn = LUMEN_DRAWN if name in LUMEN_ASSETS else DRAWN
+    drawn = PICTURE_DRAWN if name in PICTURE_ASSETS else LUMEN_DRAWN if name in LUMEN_ASSETS else DRAWN
     return Asset(f"Media/Textures/{name}.png", width, height, draw, about, settings, SLICE.get(name), drawn)
 
 
 LUMEN_ASSETS = {
-    "LumenShape", "LumenFrost", "LumenRim", "LumenRimSmall", "LumenOutline", "LumenGilt", "LumenGem", "PillCapLeft",
-    "PillCapRight", "BarSheen", "LensMask", "SocketMask", "RuleFade", "LumenShadow",
+    "LumenShape", "LumenOutline", "LumenGem", "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "RuleFade",
+    "LumenShadow", "PortraitMask",
 }
+PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
+PICTURE_DRAWN = "2026-11-09"
 
 
 ASSETS = [
     _texture("LumenShape", 128, 128, lambda: draw_rounded(128, SLICE["LumenShape"]),
              "Lumen card shape: a square with 14-unit round corners at 4 texels per unit. Nine-slice fill for the deep tint, the socket body and the dispel tint, or a mask."),
-    _texture("LumenFrost", 128, 128, lambda: draw_frost(128, SLICE["LumenFrost"]),
-             "Lumen frost: the card shape with the mockup's vertical frost gradient baked into its alpha, falling from full at the top to 75% where the top corners end, 50% where the bottom corners start and 45% at the bottom. Nine-slice; tinted with the glass token.",
-             "4x4 supersampled; columns between the margins match, rows hold the gradient"),
-    _texture("LumenRim", 128, 128, lambda: draw_rim(128, SLICE["LumenRim"]),
-             "Lumen rim for 14-unit corners: a 0.75-unit line just inside the card's edge, full strength along the top, 33% on the sides and bottom (the mockup's 18% rim-soft under its 55% top light), easing around the top corners. Nine-slice."),
-    _texture("LumenRimSmall", 128, 128, lambda: draw_rim(128, SLICE["LumenRimSmall"]),
-             "Lumen rim for 8-unit corners (sockets and small tiles): the same 0.75-unit line and top light on the smaller radius. Nine-slice."),
-    _texture("LumenOutline", 128, 128, lambda: draw_rim(128, SLICE["LumenOutline"], soft=1.0),
-             "Even outline for 8-unit corners: the rim's 0.75-unit line at one strength all round, for highlight rings such as the group frames' target ring. Nine-slice."),
-    _texture("LumenGilt", GILT_SIZE, GILT_SIZE, lambda: draw_gilt(GILT_SIZE),
-             "Gilt filament for a window or rail's top left corner, mirrored for the bottom right: a 1.5-unit line on the 14-unit radius with 18-unit legs that fade to a tip over their last 3 units. Covers 20 units from one unit outside the corner."),
+    _texture("CardShape", 128, 128, lambda: draw_rounded(128, SLICE["CardShape"]),
+             "The card's fill: the rounded shape, a file of its own so a render tells a card's fill from a socket's. The kit draws its corner pieces five border lines square, one line inside the card's six-line edge, the picture's corner. Nine-slice."),
+    _texture("LumenOutline", 128, 128, lambda: draw_rim(128, SLICE["LumenOutline"]),
+             "Even outline for 8-unit corners: a 0.75-unit line at one strength all round, for bar tracks and highlight rings such as the group frames' target ring. Nine-slice."),
+    *(_texture(f"RingLine{n}", RING_TEXELS, RING_TEXELS, lambda n=n: draw_ring_line(RING_TEXELS, n),
+               f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (6), its rim and the arcs of its gilt L-ticks (5), a socket's dark edge (3) and its rim (2); the other counts serve short frames and pinned corners such as discs, so the kit draws the ring nearest the corner's line count. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
+      for n in RING_LINES),
     _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
              "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",
              "4x4 supersampled, shading in the colour channels"),
@@ -830,7 +787,9 @@ ASSETS = [
     _texture("LensMask", 512, 512, lambda: draw_disc(512),
              "Round mask for the minimap lens: a disc touching the texture's edges."),
     _texture("SocketMask", 128, 128, lambda: draw_rounded(128, 128 * ICON_RADIUS_SHARE),
-             "Icon mask for sockets, portraits and every square icon: corners rounded 8 units on a 44-unit icon (18% of the side)."),
+             "Icon mask for sockets and every square icon: corners rounded 3 units on a 44-unit icon (7% of the side), to meet the socket's inner corner."),
+    _texture("PortraitMask", 128, 128, lambda: draw_rounded(128, 128 * PORTRAIT_RADIUS_SHARE),
+             "Mask for the square portrait: corners rounded 8 units on a 44-unit image (18% of the side), inside the portrait frame's own rounder corner."),
     _texture("RuleFade", 256, 4, lambda: draw_rule(256, 4),
              "Section cap rule: a line that fades from full at its left end to nothing at its right.",
              "smoothstep fade, 4x supersampled"),

@@ -9,7 +9,7 @@ local env = Stubs.NewEnv({ width = 1920, height = 1080 })
 local UIParent = env.UIParent
 
 local function glass(frame)
-	for _, name in ipairs({ "LumenShadow", "LumenShape", "LumenFrost", "LumenRim" }) do
+	for _, name in ipairs({ "LumenShadow", "CardShape", "RingLine6", "RingLine5" }) do
 		local t = frame:CreateTexture(nil, "BACKGROUND")
 		t:SetTexture(TEX .. name .. ".png")
 		if name == "LumenShadow" then

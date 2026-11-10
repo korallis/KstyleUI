@@ -1,4 +1,4 @@
--- IconButton.lua: the rounded socket icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares.
+-- IconButton.lua: the square socket icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -16,9 +16,6 @@ local HOVER_GLOW_SPREAD, HOVER_GLOW_ALPHA, HOVER_WASH = 10, 0.3, 0.2
 local PROC_HALO_ALPHA = 0.1
 local COUNTDOWN_RISE = 0.25
 local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
-local ICON_INSET_LINES = 3
-local ICON_INSET_SHARE = 0.11
-local ICON_INSET_MAX_SHARE = 0.2
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
 local OVERLAY_LEVEL = 2
@@ -87,11 +84,7 @@ end
 
 function Widgets.IconChrome(owner, opts)
 	opts = opts or {}
-	local share = Tokens.Share("radiusSocket")
-	local chrome = Widgets.Chrome(owner, {
-		shape = "socket", fill = "buttonFill", shadow = opts.shadow == true,
-		radius = opts.size and opts.size * share or nil, share = share,
-	})
+	local chrome = Widgets.Chrome(owner, { shape = "socket", fill = "buttonFill", shadow = opts.shadow == true })
 	chrome.rimColor = { 0, 0, 0, 0 }
 	chrome.rimSet, chrome.rimAccent = false, false
 	local paint = chrome.Paint
@@ -112,13 +105,13 @@ local function PlaceIcon(self)
 		return
 	end
 	self.placedOffset = offset
-	local size = self.opts.size or Tokens.Size("actionButton")
-	local inset
+	local line = Widgets.Border(self)
+	local inset = 2 * line
+	if (self.opts.size or Tokens.Size("actionButton")) < 20 * line then
+		inset = line
+	end
 	if type(self.opts.iconInset) == "number" then
 		inset = Widgets.Snap(self, self.opts.iconInset)
-	else
-		inset = math.max(Widgets.Border(self) * ICON_INSET_LINES, Widgets.Snap(self, size * ICON_INSET_SHARE))
-		inset = math.min(inset, Widgets.Snap(self, size * ICON_INSET_MAX_SHARE))
 	end
 	self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", inset, -inset - offset)
 	self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -inset, inset - offset)
@@ -323,7 +316,6 @@ function IconButton:Restyle()
 	if Widgets.MayMove(self) then
 		local size = self.opts.size or Tokens.Size("actionButton")
 		Widgets.Size(self, size, size)
-		self.chrome:SetRadius(size * Tokens.Share("radiusSocket"))
 		self.placedOffset = nil
 		local inset = Widgets.Snap(self, TEXT_INSET)
 		self.hotkey:ClearAllPoints()

@@ -13,11 +13,13 @@ do
 		end,
 	})
 	assert(button:GetObjectType() == "Button" and button.chrome and #button.chrome.fill == 9)
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Scale.Snap(button.chrome:Radius())) and W.Near(button.chrome:Radius(), math.min(8, button:GetHeight() / 2)), "a tile: rounded 8 units, or half its height when shorter")
+	local line = K.Widgets.Border(button)
+	assert(W.Near(button.chrome.line[1]:GetWidth(), button.chrome:Radius()) and W.Near(button.chrome:Radius(), math.min(3 * line, button:GetHeight() / 2)), "a tile: corners three border lines round, the picture's socket")
+	assert(W.SameColor(button.chrome.line[2], Tokens.Color("socketEdge")), "framed by the socket's near-black edge line")
 	assert(button.chrome.shadow[1]:IsShown() == false, "buttons cast no shadow")
 	assert(W.SameColor(button.chrome.fill[5], Tokens.Color("buttonFill")), "the button grade's body, the mockup's one dark tone")
 	assert(button.label:GetText() == "Accept")
-	assert(W.SameColor(button.chrome.rim[7], Tokens.Color("edgeInner")), "the hairline rests at edgeInner (its side piece; the top is lit)")
+	assert(W.SameColor(button.chrome.rim[7], Tokens.Color("edgeInner")), "the hairline rests at edgeInner, even all round")
 	assert(W.SameColor({ GetVertexColor = function()
 		return button.label:GetTextColor()
 	end }, Tokens.Color("text")), "the text rests at the text colour")
@@ -183,7 +185,7 @@ do
 	assert(W.Near(button.procGlow.alpha, 0.1), "its outer halo is a whisper: the design's proc glows inside the rim, not around it")
 	assert(button.procGlow.core and button.procGlow.spark, "the inner radial glow and the star")
 	local r, g, b = K.Tokens.Color("giltLit")
-	assert(W.SameColor(button.chrome.rim[5], r, g, b, 1), "a proc lights the rim gold, the one gold a socket wears")
+	assert(W.SameColor(button.chrome.line[5], r, g, b, 1), "a proc lights the socket's outer line gold, the one gold a socket wears")
 	assert(W.SameRGB(button.procGlow.core, r, g, b), "and its glow is gold too")
 	assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("buttonFill")), "on the near-black body")
 	button:SetProc(false)
@@ -291,7 +293,7 @@ do
 	assert(p[1] == "TOPLEFT" and inset <= K.Scale.Snap(6 * 0.2) + 1e-6 and inset >= K.Scale.Pixel(1) - 1e-6, "the inset shrinks to a fifth of the side on a tiny button, got " .. tostring(inset))
 	assert(button:GetWidth() - 2 * inset >= K.Scale.Pixel(4) - 1e-6, "at least four pixels of icon remain")
 	local big = select(3, iconButton({ size = 34 }))
-	assert(W.Near(big.icon._points[1][4], math.max(3 * K.Scale.Border(), K.Scale.Snap(34 * 0.11))), "a normal button's icon sits 11% of the side in, the mockup's dark band, and never less than three borders")
+	assert(W.Near(big.icon._points[1][4], 2 * K.Scale.Border()), "a normal button's icon sits two borders in, inside the socket's near-black edge and its rim, so hover and selection stay visible")
 end
 
 -- Lumen's socket has no bezel plate: the button is the socket, casting the soft shadow; a press lifts the body only.
@@ -300,7 +302,9 @@ do
 	local Tokens, Scale = K.Tokens, K.Scale
 	local chrome = button.chrome
 	assert(chrome.bezel == nil and chrome.plate == nil, "no bezel and no plate line")
-	assert(chrome.shadow[1]:IsShown(), "a button casts the soft shadow")
+	assert(not chrome.shadow[1]:IsShown(), "the picture casts no shadow")
+	K.Options.Write("Widgets", "shadows", true)
+	assert(chrome.shadow[1]:IsShown(), "a button casts the soft shadow when the setting is on")
 	local sp = chrome.shadow[1]._points[1]
 	assert(W.Near(sp[4], -Scale.Snap(Tokens.Size("shadow"))), "from its own edge, got " .. tostring(sp[4]))
 	W.Down(button)
@@ -311,15 +315,15 @@ do
 	assert(plain.bezel == nil and not plain.shadow[1]:IsShown(), "an icon tile with no shadow option casts none: aura tiles, bag slots and skin rims")
 end
 
--- The socket's radius is a share of its size, the mockup's 11 units on 52, so the ratio holds at 34 and at 38 units.
+-- The socket's corner is three border lines at every size, the picture's action buttons, so 34 and 38 units match.
 do
 	local _, K, button = iconButton({ size = 34 })
-	local Snap = K.Scale.Snap
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(34 * 11 / 52)), "a 34-unit button rounds 11/52 of its side")
+	local line = K.Scale.Border()
+	assert(W.Near(button.chrome.line[1]:GetWidth(), 3 * line), "a 34-unit button rounds three lines")
 	button.opts.size = 38
 	button:Restyle()
-	assert(W.Near(button.chrome.fill[1]:GetWidth(), Snap(38 * 11 / 52)), "a 38-unit button rounds 8 units")
-	assert(W.Near(button.chrome.rim[1]:GetWidth(), button.chrome.fill[1]:GetWidth()), "the rim's corners follow")
+	assert(W.Near(button.chrome.line[1]:GetWidth(), 3 * line), "and so does a 38-unit one")
+	assert(W.Near(button.chrome.rim[1]:GetWidth(), button.chrome.fill[1]:GetWidth()), "the rim's corners follow the fill, one line in")
 end
 
 -- A button that changes size restyles its glows too, so the proc's inner glow keeps its 60% radius (a micro-menu size change).
@@ -511,9 +515,7 @@ do
 	local chrome = Widgets.IconChrome(owner)
 	assert(chrome.shapeName == "socket" and chrome.shadowOn == false, "a socket with no shadow")
 	assert(W.SameColor(chrome.fill[5], K.Tokens.Color("buttonFill")), "the near-black button body")
-	assert(W.Near(chrome:Radius(), 20 * 11 / 52), "without a size the radius is 11/52 of the owner's side, the socket share")
-	local sized = Widgets.IconChrome(owner, { size = 40 })
-	assert(W.Near(sized:Radius(), 40 * 11 / 52), "a size gives 11/52 of that size")
+	assert(W.Near(chrome:Radius(), 3 * K.Scale.Border()), "the corner is three border lines, the picture's socket")
 	chrome:SetRim(0.2, 0.4, 0.6, 1)
 	assert(W.SameColor(chrome.rim[5], 0.2, 0.4, 0.6, 1) and W.SameColor(chrome.rim[1], 0.2, 0.4, 0.6, 1), "SetRim paints the rim")
 	chrome:Restyle()

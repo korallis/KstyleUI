@@ -9,12 +9,11 @@ local FONTS_DIR = MEDIA .. "Fonts\\"
 local TEXTURES_DIR = MEDIA .. "Textures\\"
 
 local COLORS = {
-	glass = { "e1f0fa", 0.22 },
-	deep = { "0c141e", 0.88 },
+	deep = { "0e1217", 0.75 },
 	rim = { "d6eeff", 0.55 },
 	rimSoft = { "d6eeff", 0.18 },
 	giltLit = { "f3dca4", 1 },
-	gilt = { "d9b46a", 1 },
+	gilt = { "d3b574", 1 },
 	capsGold = { "d3b574", 1 },
 	giltDim = { "8a6c34", 1 },
 	muted = { "a9b6c2", 1 },
@@ -22,13 +21,14 @@ local COLORS = {
 	friend = { "62d58d", 1 },
 	magic = { "5aa9ff", 1 },
 	quest = { "f6d27a", 1 },
-	surface = { "0c141e", 0.88 },
+	surface = { "0e1217", 0.75 },
 	raised = { "1a2633", 0.85 },
-	edgeOuter = { "000000", 0.5 },
-	edgeInner = { "d6eeff", 0.55 },
+	edgeOuter = { "000000", 0.55 },
+	edgeInner = { "869094", 0.16 },
+	socketEdge = { "000000", 0.94 },
 	edgeFaint = { "d6eeff", 0.08 },
 	edgeBar = { "d6eeff", 0.14 },
-	buttonFill = { "0a1018", 0.7 },
+	buttonFill = { "0e1217", 0.5 },
 	text = { "c8d1da", 1 },
 	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
@@ -65,7 +65,7 @@ local SIZES = {
 	chamferWindow = 14,
 	shadow = 14,
 	shadowOffset = 3,
-	gilt = 20,
+	tick = 15,
 	gem = 16,
 	actionButton = 34,
 	actionGap = 3,
@@ -81,6 +81,7 @@ local SIZES = {
 	body = 12,
 	title = 12,
 	caps = 10,
+	names = 10,
 	caption = 11,
 	number = 12,
 	world = 13,
@@ -100,15 +101,13 @@ local SIZES = {
 	sectionGap = 22,
 	rowGap = 12,
 	socketGap = 8,
-	screenMargin = 28,
+	screenMargin = 17,
 	rowHeight = 24,
 	lootTile = 24,
 	lootText = 14,
 }
 
-local SHARES = {
-	radiusSocket = 11 / 52,
-}
+local SHARES = {}
 
 local DURATIONS = {
 	hover = 0.12,
@@ -148,7 +147,8 @@ local FONT_FACES = {
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
 }
 local ROLE_FACES = {
-	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.07 },
+	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
+	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0.02 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -160,7 +160,8 @@ local FONT_ROLES = {
 	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
 	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
 	title = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
-	caps = { lumen = "CinzelTracked", flags = "", tracking = 0, upper = true },
+	caps = { lumen = "CinzelCaps", flags = "", tracking = 0, upper = true },
+	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
 	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
@@ -174,13 +175,22 @@ local STATUSBARS = {
 
 local TEXTURES = {
 	lumenShape = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
-	lumenFrost = { file = "Textures\\LumenFrost.png", slice = 56, density = 4 },
-	lumenRim = { file = "Textures\\LumenRim.png", slice = 56, density = 4 },
-	lumenRimSmall = { file = "Textures\\LumenRimSmall.png", slice = 32, density = 4 },
+	cardShape = { file = "Textures\\CardShape.png", slice = 56, density = 4 },
+	ringLine2 = { file = "Textures\\RingLine2.png", slice = 64, density = 4 },
+	ringLine3 = { file = "Textures\\RingLine3.png", slice = 64, density = 4 },
+	ringLine4 = { file = "Textures\\RingLine4.png", slice = 64, density = 4 },
+	ringLine5 = { file = "Textures\\RingLine5.png", slice = 64, density = 4 },
+	ringLine6 = { file = "Textures\\RingLine6.png", slice = 64, density = 4 },
+	ringLine8 = { file = "Textures\\RingLine8.png", slice = 64, density = 4 },
+	ringLine10 = { file = "Textures\\RingLine10.png", slice = 64, density = 4 },
+	ringLine12 = { file = "Textures\\RingLine12.png", slice = 64, density = 4 },
+	ringLine16 = { file = "Textures\\RingLine16.png", slice = 64, density = 4 },
+	ringLine20 = { file = "Textures\\RingLine20.png", slice = 64, density = 4 },
+	ringLine24 = { file = "Textures\\RingLine24.png", slice = 64, density = 4 },
+	ringLine32 = { file = "Textures\\RingLine32.png", slice = 64, density = 4 },
 	lumenOutline = { file = "Textures\\LumenOutline.png", slice = 32, density = 4 },
 	chamferTile = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
 	lumenShadow = { file = "Textures\\LumenShadow.png", slice = 56, density = 2 },
-	gilt = { file = "Textures\\LumenGilt.png" },
 	gem = { file = "Textures\\LumenGem.png" },
 	pillCapLeft = { file = "Textures\\PillCapLeft.png" },
 	pillCapRight = { file = "Textures\\PillCapRight.png" },
@@ -188,7 +198,7 @@ local TEXTURES = {
 	lensMask = { file = "Textures\\LensMask.png" },
 	ruleFade = { file = "Textures\\RuleFade.png" },
 	iconMask = { file = "Textures\\SocketMask.png" },
-	portraitMask = { file = "Textures\\SocketMask.png" },
+	portraitMask = { file = "Textures\\PortraitMask.png" },
 	shadow = { file = "Textures\\Shadow.png", slice = 24, density = 2 },
 	glow = { file = "Textures\\Glow.png" },
 	divider = { file = "Textures\\Divider.png" },
@@ -272,10 +282,12 @@ end
 
 local FACE_PATH = {}
 local FACE_TRACKING = {}
+local FACE_FLAT = {}
 for _, list in ipairs({ FONT_SETS, FONT_FACES, ROLE_FACES }) do
 	for _, face in ipairs(list) do
 		FACE_PATH[face.key] = face.path
 		FACE_TRACKING[face.path] = face.tracking
+		FACE_FLAT[face.path] = face.shadow == false
 	end
 end
 
@@ -308,6 +320,10 @@ end
 
 function Tokens.FaceTracking(path)
 	return FACE_TRACKING[path] or 0
+end
+
+function Tokens.FaceShadow(path)
+	return not FACE_FLAT[path]
 end
 
 function Tokens.TextStyle(role)

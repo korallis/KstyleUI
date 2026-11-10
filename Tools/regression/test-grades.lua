@@ -1,4 +1,4 @@
--- test-grades.lua: every backdrop KstyleUI draws is one of Lumen's grades, and no addon file reaches for the retired chamfer drawing. The grades: the card (panel and card: shadow, deep tint, frost, rim), the window and rail (the card plus gilt tips), the socket (tile and socket: the dark crystal body, buttonFill, with a faint rim) and the bar (a pill track). No file fills a chrome with the old "raised" tone; Core/Tokens.lua defines it and Core/Widgets/IconButton.lua lifts a pressed button toward it, so those two files are allowed. No file calls Widgets.Line, LayoutLine or ColorLine, or names the chamferPanel, chamferWindow or line textures.
+-- test-grades.lua: every backdrop KstyleUI draws is one of the kit's grades, and no addon file reaches for retired drawing. The grades follow the owner's picture of 2026-11-09: the card (panel, card, window and rail: the card fill, a dark edge line, a muted rim and gilt L-ticks), the socket (tile and socket: buttonFill with a near-black edge line and a rim) and the bar (a pill track). No file fills a chrome with the old "raised" tone; Core/Tokens.lua defines it and Core/Widgets/IconButton.lua lifts a pressed button toward it, so those two files are allowed. No file calls Widgets.Line, LayoutLine or ColorLine, names the chamferPanel, chamferWindow or line textures, or names the retired frost glass (lumenFrost, lumenRim, lumenRimSmall, the gilt texture, the glass tint or the radiusSocket share).
 local TocFiles = dofile("Tools/regression/toc_files.lua")
 
 local ALLOWED = {
@@ -36,8 +36,11 @@ local RETIRED = {
 	{ 'Texture%("chamferPanel"%)', 'the "chamferPanel" texture' }, { 'Texture%("chamferWindow"%)', 'the "chamferWindow" texture' },
 	{ 'Texture%("line"%)', 'the "line" texture' }, { 'NineSlice%([^)]*"chamferPanel"', 'a "chamferPanel" slice' },
 	{ 'NineSlice%([^)]*"chamferWindow"', 'a "chamferWindow" slice' }, { 'Share%("chamfer', "a chamfer share" },
+	{ '"lumenFrost"', 'the "lumenFrost" texture' }, { '"lumenRim"', 'the "lumenRim" texture' },
+	{ '"lumenRimSmall"', 'the "lumenRimSmall" texture' }, { 'Texture%("gilt"%)', 'the "gilt" texture' },
+	{ 'Color%("glass"%)', 'the "glass" tint' }, { '"radiusSocket"', 'the "radiusSocket" share' },
 }
-local RETIRED_FIX = "Lumen draws rounded corners: use Widgets.Chrome, or Widgets.NineSlice with lumenShape, lumenRim or lumenOutline"
+local RETIRED_FIX = "the kit draws the picture's card and socket: use Widgets.Chrome, or Widgets.NineSlice with lumenShape, cardShape, ringLine2 to ringLine6 or lumenOutline"
 
 -- Retired(text) -> { line, what } for each use of the retired chamfer drawing.
 local function Retired(text)
@@ -57,6 +60,9 @@ assert(#Retired('ring[i] = Widgets.Line(owner, layer)\n') == 1, "a bevel line is
 assert(#Retired('x = Widgets.NineSlice(plate, "chamferPanel", "BACKGROUND", 0)\n') == 1, "a chamfer slice is found")
 assert(#Retired('x = Widgets.NineSlice(plate, "lumenShape", "BACKGROUND", 0)\n') == 0, "a Lumen slice passes")
 assert(#Retired('local c = Tokens.Size("chamferPanel")\n') == 0, "the chamfer size names still read the Lumen radii")
+assert(#Retired('x = Widgets.NineSlice(f, "lumenRimSmall", "BORDER", 0)\n') == 1, "a frost rim slice is found")
+assert(#Retired('local r, g, b = Tokens.Color("glass")\n') == 1, "the glass tint is found")
+assert(#Retired('x = Widgets.NineSlice(f, "ringLine3", "BORDER", 0)\n') == 0, "a ring line passes")
 
 local problems, count = {}, 0
 for _, path in ipairs(TocFiles("%.lua$")) do

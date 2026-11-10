@@ -12,15 +12,16 @@ The core's visual service files carry one comment each, their first line, so the
 
 | Name | Value | Use |
 | --- | --- | --- |
-| `glass` | `#e1f0fa` at 22% | The frost's tint; the `lumenFrost` texture fades it to 45% of that at the bottom (the mockup's glass-hi over glass) |
-| `deep`, `surface` | `#0c141e` at 62% | The deep tint under the frost; `surface` is the name every chrome fills with |
-| `rim`, `edgeInner` | `#d6eeff` at 55% | The rim light; its texture draws the top at this and the sides and bottom at a third of it (the mockup's 18% rim-soft) |
+| `deep`, `surface` | `#0e1217` at 75% | The card fill of the owner's picture of 2026-11-09; `surface` is the name every chrome fills with |
+| `rim` | `#d6eeff` at 55% | The mockup's rim light, for callers that still draw one |
+| `edgeInner` | `#869094` at 16% | A card's muted rim, one line inside its edge, as the picture draws it |
+| `socketEdge` | `#000000` at 94% | The near-black edge line of tiles, sockets and buttons |
 | `rimSoft` | `#d6eeff` at 18% | The rim-soft line on its own |
 | `edgeFaint` | `#d6eeff` at 8% | Neutral dividers |
 | `edgeBar` | `#d6eeff` at 14% | The bar grade's faint rim, the mockup's `.bar` inset line |
-| `edgeOuter` | `#000000` at 50% | A dark contact line, for callers that still draw one |
-| `giltLit`, `gilt`, `giltDim` | `#f3dca4`, `#d9b46a`, `#8a6c34` | Gold as punctuation: filament tips, gems, caption heads, the proc rim |
-| `buttonFill` | `#0a1018` at 70% | The socket's dark crystal: icon buttons, tiles and the kit's controls |
+| `edgeOuter` | `#000000` at 55% | A card's dark edge line |
+| `giltLit`, `gilt`, `giltDim` | `#f3dca4`, `#d3b574`, `#8a6c34` | Gold as punctuation: `gilt` is the picture's L-tick gold; gems, caption heads and the proc edge are `giltLit` |
+| `buttonFill` | `#0e1217` at 50% | The socket body: icon buttons, tiles and the kit's controls |
 | `raised` | `#1a2633` at 85% | The tone a pressed, cooling or unusable icon button lifts its body toward; no chrome fills with it (`test-grades.lua`) |
 | `track` | `#05090e` at 70% | The empty part of bars and sliders, the mockup's `.bar` track |
 | `text`, `muted` | `#a9b6c2` | Body text at rest; the mockup's muted tone |
@@ -40,13 +41,13 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Grades
 
-Every chrome wears one of Lumen's grades: the card (panel and card), the window and rail (the card with gilt tips), the socket (tile and socket) and the bar (a pill track). [Chrome](../Core/Widgets/README.md#chrome) lists each grade's layers; `test-lumen-material.lua` holds them, and `test-grades.lua` fails on a chrome filled with `raised` or on any use of the retired chamfer drawing. Rows in the options window have no chrome of their own: they sit on the window's glass and light their text on hover.
+Every chrome wears one of the kit's grades: the card (panel, card, window and rail, each with gilt L-ticks), the socket (tile and socket) and the bar (a pill track). [Chrome](../Core/Widgets/README.md#chrome) lists each grade's layers; `test-lumen-material.lua` holds them, and `test-grades.lua` fails on a chrome filled with `raised` or on any use of the retired chamfer drawing. Rows in the options window have no chrome of their own: they sit on the window's glass and light their text on hover.
 
 ### Sizes, durations and easings
 
-`Size(name)` returns root units at the 1080 reference: the corner radii `radius` 14 (cards, panels, windows, rails) and `radiusTile` 8 (tiles and sockets), with the older names `chamferPanel` 14, `chamferWindow` 14 and `chamferTile` 8 reading the same radii (see [Corner sizes](../Core/Widgets/README.md#corner-sizes)); `shadow` 14 (how far the card shadow reaches) and `shadowOffset` 3 (its drop, baked into `lumenShadow`); `gilt` 20 (a filament tip's square) and `gem` 16 (the gem texture's square); Lumen's spacing scale `gapSmall` 4, `gapMedium` 8, `gapLarge` 12, `gapHuge` 16, `gapXLarge` 20 and `gapXXLarge` 28, with `gapTiny` 2; the rail column `railWidth` 318, `railPadding` 20, `sectionGap` 22, `rowGap` 12, `socketGap` 8 and `screenMargin` 28; `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18; the type sizes `display` 22, `heading` 16, `body` 12, `caption` 9, `number` 12 and `world` 13; `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2 and `rowHeight` 24. Body, number and world sizes are one unit up from Source Sans's because Alegreya Sans's x-height is smaller (458 to 465 against 491 per 1000), so each role keeps its apparent size and the frames their footprints; the mockup's larger type scale (body 15) comes with the layout. A panel's content inset is not a token: `Widgets.Inset(frame, radius, gap)` derives it from the radius and the rim (see [Chrome](../Core/Widgets/README.md#chrome)).
+`Size(name)` returns root units at the 1080 reference: the padding radii `radius` 14 (cards, panels, windows, rails) and `radiusTile` 8 (tiles and sockets), with the older names `chamferPanel` 14, `chamferWindow` 14 and `chamferTile` 8 reading the same values; the corners drawn are whole border lines, not these (see [Corner sizes](../Core/Widgets/README.md#corner-sizes)); `shadow` 14 (how far the card shadow reaches) and `shadowOffset` 3 (its drop, baked into `lumenShadow`); `tick` 15 (how far a gilt L-tick reaches from the card's edge) and `gem` 16 (the gem texture's square); Lumen's spacing scale `gapSmall` 4, `gapMedium` 8, `gapLarge` 12, `gapHuge` 16, `gapXLarge` 20 and `gapXXLarge` 28, with `gapTiny` 2; the rail column `railWidth` 318, `railPadding` 20, `sectionGap` 22, `rowGap` 12, `socketGap` 8 and `screenMargin` 17 (the owner's picture of 2026-11-09; it was 28); `actionButton` 34, `actionGap` 3, `cooldownEssential` 40, `cooldownUtility` 30, `unitFrameWidth` 220, `unitFrameHeight` 46, `portrait` 46, `buffBarWidth` 180, `buffBarHeight` 18; the type sizes `display` 22, `heading` 16, `body` 12, `caption` 9, `number` 12 and `world` 13; `textShadowOffset` 0.6, `pressOffset` 1, `panelRise` 16, `panelOvershoot` 2 and `rowHeight` 24. Body, number and world sizes are one unit up from Source Sans's because Alegreya Sans's x-height is smaller (458 to 465 against 491 per 1000), so each role keeps its apparent size and the frames their footprints; the mockup's larger type scale (body 15) comes with the layout. A panel's content inset is not a token: `Widgets.Inset(frame, radius, gap)` derives it from the radius and the rim (see [Chrome](../Core/Widgets/README.md#chrome)).
 
-`Share(name)` returns a plain fraction: `radiusSocket` 11/52, an icon socket's corner radius as a share of its side (the mockup's 52-unit socket rounds 11).
+`Share(name)` returns a plain fraction. No share is defined now: `radiusSocket` is retired, because a socket's corner is three border lines at every size.
 
 `Duration(name)` returns seconds and `Easing(name)` the name of a `Motion.Ease` function:
 
@@ -73,7 +74,8 @@ Every chrome wears one of Lumen's grades: the card (panel and card), the window 
 | `heading` | Cinzel SemiBold | 16 | `""` | 0.4 | |
 | `body` | Alegreya Sans Tabular | 12 | `""` | 0 | |
 | `caption` | Cinzel SemiBold | 9 | `""` | 1.4 | yes |
-| `caps` | Cinzel Tracked (Regular, spaced) | 10 | `""` | 0 | yes |
+| `caps` | Cinzel Caps (Medium, spaced 0.065 em) | 10 | `""` | 0 | yes |
+| `names` | Cinzel Names (Medium, spaced 0.02 em) | 10 | `""` | 0 | yes |
 | `number` | Alegreya Sans Tabular Bold | 12 | `""` | 0 | |
 | `world` | Alegreya Sans Tabular Medium | 13 | `"OUTLINE"` | 0 | |
 
@@ -81,7 +83,7 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 
 `TextStyle(role) -> tracking, uppercase` gives the kit's letter spacing in units. The game has no letter-spacing setter, so widgets treat it as a hint.
 
-`caps` is the picture's heading: Cinzel Regular with the letter spacing in the font file (`Media/Fonts/CinzelTracked-Regular.ttf`, every advance 0.07 em wider), capitals, 10 units (a 21-pixel face on the owner's screen), in `capsGold` (#d3b574) for card captions. The game has no letter-spacing call and Cinzel has no thin space, so the file carries the spacing; `Media/PROVENANCE.md` has the proof from the Forever source and how the 0.07 was measured. The face also draws each lowercase letter as its capital, so a name Lua cannot uppercase (a secret) still reads in capitals. `Tokens.FaceTracking(path) -> em` is 0.07 for that file and 0 for every other path, including the game's own font that stands in for it on `ruRU`, `zhCN`, `zhTW` and `koKR`. The file stays out of `MediaList("font")`, so no picker offers it; `Tokens.RoleFontPaths()` lists it for `Fonts` to request while the game loads. Text set in it leaves a tracking-wide gap after its last letter, which `Widgets.ApplyFont` and `Widgets.SyncTracking` take back (`Widgets/README.md`).
+Two roles carry the picture's letter-spaced Cinzel capitals, both at 10 units (a 21-pixel face on the owner's screen), each from its own file whose advances hold the spacing, because the game has no letter-spacing call and Cinzel has no thin space. `caps` is the gold captions (SKYBORNE, QUESTS, DAMAGE, the chat tabs): `Media/Fonts/CinzelCaps-Medium.ttf`, Cinzel Medium with every advance 0.065 em wider, drawn without a text shadow, in `capsGold` (#d3b574) for card captions. `names` is the white names (the zone, unit, spell and nameplate names): `Media/Fonts/CinzelNames-Medium.ttf`, the same weight 0.02 em wider, with the kit's soft shadow, in the text colour of the module that uses it (the picture's white headings fit almost no tracking). `Media/PROVENANCE.md` has the proof from the Forever source and how each number was measured. Both faces draw each lowercase letter as its capital, so a name Lua cannot uppercase (a secret) still reads in capitals. `Tokens.FaceTracking(path) -> em` is the face's tracking (0.065 and 0.02) and 0 for every other path, including the game's own font that stands in for them on `ruRU`, `zhCN`, `zhTW` and `koKR`. `Tokens.FaceShadow(path)` is false for the caps file, whose text `Widgets.ApplyFont` and `Widgets.TextShadow` leave without a shadow, and true for every other path. The files stay out of `MediaList("font")`, so no picker offers them; `Tokens.RoleFontPaths()` lists them for `Fonts` to request while the game loads. Text set in either leaves a tracking-wide gap after its last letter, which `Widgets.ApplyFont` and `Widgets.SyncTracking` take back (`Widgets/README.md`).
 
 `FontPath(key)` returns a face's file, or `nil` for an unknown key; `FontPath("Lumen")` is the body face. `DEFAULT_FONT_FACE` is `"Lumen"`.
 
@@ -96,16 +98,17 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 | Name | File | Slice margin | Use |
 | --- | --- | --- | --- |
 | `lumenShape` | `LumenShape.png`, 128x128 | 56 texels (14 units) | The rounded card: chrome fills, the dispel tint |
-| `lumenFrost` | `LumenFrost.png`, 128x128 | 56 texels | The frost gradient in the card shape; its rows hold the gradient, which stretches cleanly |
-| `lumenRim`, `lumenRimSmall` | `LumenRim.png`, `LumenRimSmall.png`, 128x128 | 56 and 32 texels | The rim, lit along the top, at 14 and 8-unit radii |
+| `cardShape` | `CardShape.png`, 128x128 | 56 texels | The card fill: the same rounded shape, a file of its own so the render guard tells a card from a socket |
+| `ringLine2` to `ringLine6`, `ringLine8`, `10`, `12`, `16`, `20`, `24`, `32` | `RingLineN.png`, 128x128 | 64 texels | A ring one line thick on a corner N lines round: a card's edge (6), its rim and tick arcs (5), a socket's edge (3) and rim (2); the larger counts serve pinned corners and discs |
 | `lumenOutline` | `LumenOutline.png`, 128x128 | 32 texels | An even outline at the 8-unit radius: highlight rings, the proc rim |
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
-| `gilt`, `gem` | `LumenGilt.png`, `LumenGem.png` | | The filament tip (mirror it for the opposite corner) and the section cap gem, its facets shaded in the colour channels |
+| `gem` | `LumenGem.png` | | The section cap gem, its facets shaded in the colour channels |
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right |
-| `iconMask`, `portraitMask` | `SocketMask.png`, 128x128 | | Every square icon and the square portrait, rounded 8 units on 44 |
+| `iconMask` | `SocketMask.png`, 128x128 | | Every square icon, rounded 3 units on 44 to meet the socket's inner corner |
+| `portraitMask` | `PortraitMask.png`, 128x128 | | The square portrait, rounded 8 units on 44 inside its frame's rounder corner |
 | `shadow` | `Shadow.png`, 128x128 | 24 texels | A square soft falloff for glows (unit frame glows, a bar's own-colour glow) |
 | `ringBevel` | `RingBevel.png`, 128x128: a 5-texel line from radius 57 to 62 whose colour channels shade it dark outside, lit in the middle and three quarters inside | | tinted once (the accent lifted 30% toward white) it is the mockup's thin metal ring; a portrait inside starts `Widgets.RING_INSET` (8/128 of the size) in |
 | `minimapMask` | `MinimapMask.png`, 512x512 | | The minimap's chamfered square mask; its cut is a share of the side, which `KstyleUI_Minimap/Format.lua` gives the rim's chamfer |
@@ -115,7 +118,7 @@ The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: e
 
 `dot` and `pill` are the knobs and tracks of toggles and sliders. Each round cap of the pill is a quarter of its width, so a widget three-slices it at any length. `glyphChevron` and `glyphClose` are line glyphs for dropdowns, scroll steppers and close buttons; flip the chevron's texture coordinates to point it up.
 
-Shapes are white with their coverage in alpha: tint them with `SetVertexColor`. Between its margins a sliced texture has the same column everywhere, and the same row everywhere except where it holds a vertical gradient (`lumenFrost`), so it stretches cleanly as nine `SetTexCoord` pieces. Draw a corner piece at `Scale.Snap(radius)` so it covers whole pixels. The new textures need a full client restart the first time.
+Shapes are white with their coverage in alpha: tint them with `SetVertexColor`. Between its margins a sliced texture has the same column everywhere, and the same row everywhere, so it stretches cleanly as nine `SetTexCoord` pieces. Draw a corner piece at `Scale.Snap(radius)` so it covers whole pixels. A ring line has no centre: its corner pieces meet in the middle and the kit draws its straight runs as solid lines. The new textures need a full client restart the first time.
 
 ## Theme
 

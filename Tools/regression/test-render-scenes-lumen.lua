@@ -74,17 +74,20 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(guide.top + guide.height <= slot.top + slot.height + 0.5, scene.state .. ": the card ends inside the story slot, got " .. (guide.top + guide.height) .. " for " .. (slot.top + slot.height))
 end
 
--- The rails keep their 28-unit margin: nothing on either rail draws past the screen's bottom margin (the readout
+-- The rails keep the screen margin (Tokens screenMargin): nothing on either rail draws past the screen's bottom margin (the readout
 -- card's docked menu rows fall under the card when it is a hair short of their height). The scenes render at the
 -- shipped Interface size, so a root unit is 16 / 19 of a screen unit.
 local SIZE = 16 / 19
+local _, K = dofile("Tools/regression/core_env.lua").New()
+local MARGIN = K.Tokens.Size("screenMargin")
+local RAIL_EDGE = MARGIN + 318
 for _, scene in ipairs({ questing, combat }) do
 	local width = scene.screen.width
 	for _, item in ipairs(scene.items) do
 		local r = item.rect
 		local shadow = item.file and item.file:find("Shadow", 1, true)
-		if r and not shadow and (item.alpha or 1) > 0 and (r[1] >= width - 346 * SIZE or r[1] + r[3] <= 346 * SIZE) then
-			assert(r[2] + r[4] <= 1080 - 28 * SIZE + 0.5, scene.state .. ": a " .. item.kind .. " on a rail reaches past the bottom margin: " .. table.concat(r, ", "))
+		if r and not shadow and (item.alpha or 1) > 0 and (r[1] >= width - RAIL_EDGE * SIZE or r[1] + r[3] <= RAIL_EDGE * SIZE) then
+			assert(r[2] + r[4] <= 1080 - MARGIN * SIZE + 0.5, scene.state .. ": a " .. item.kind .. " on a rail reaches past the bottom margin: " .. table.concat(r, ", "))
 		end
 	end
 end

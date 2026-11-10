@@ -199,8 +199,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ----------------------------------------------------------------------
 
-Cinzel SemiBold (Cinzel-SemiBold.ttf) and Cinzel Tracked (CinzelTracked-Regular.ttf, the Regular weight with letter spacing added
-to every advance, renamed because it is modified), static instances of the variable font ofl/cinzel/Cinzel[wght].ttf
+Cinzel SemiBold (Cinzel-SemiBold.ttf), Cinzel Caps (CinzelCaps-Medium.ttf) and Cinzel Names (CinzelNames-Medium.ttf, the Medium weight with letter
+spacing added to every advance, renamed because they are modified), static instances of the variable font ofl/cinzel/Cinzel[wght].ttf
 from https://github.com/google/fonts at commit 5bb28733cec313b63fbd415b574b5ae35c8aa8b8, ofl/cinzel/OFL.txt:
 
 Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel)

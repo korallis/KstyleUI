@@ -111,8 +111,8 @@ do
 	end
 	local tip = Widgets.Tooltip()
 	assert(tip == Widgets.Tooltip(), "one shared tooltip")
-	assert(tip:GetFrameStrata() == "TOOLTIP" and tip.chrome and tip.chrome.shadow[1]:IsShown(), "a glass panel in the tooltip strata")
-	assert(tip.chrome:Chamfer() == Tokens.Size("chamferPanel"), "with the kit's panel chamfer")
+	assert(tip:GetFrameStrata() == "TOOLTIP" and tip.chrome and tip.chrome.shapeName == "panel", "a card panel in the tooltip strata")
+	assert(W.Near(tip.chrome:Chamfer(), 6 * Widgets.Border(tip)), "with the card's six-line corners")
 	local owner = env.CreateFrame("Button", nil, K.Scale.Root())
 	tip:SetOwner(owner, "ANCHOR_RIGHT")
 	assert(tip:IsOwned(owner))

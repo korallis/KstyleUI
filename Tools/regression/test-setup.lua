@@ -544,7 +544,7 @@ do
 	local l, b, r, t = K.Setup.Layouts.Rect(want, want, rw, rh)
 	local got = assert(Geometry.Rect(slot, K.Scale.Root()))
 	assert(math.abs(got.left - l) < 1 and math.abs(got.bottom - b) < 1 and math.abs(got.right - r) < 1 and math.abs(got.top - t) < 1, "at the Tank slot")
-	assert(math.abs(got.right - (rw - 28)) < 1 and got.left > rw / 2, "on the right rail, under the map")
+	assert(math.abs(got.right - (rw - K.Tokens.Size("screenMargin"))) < 1 and got.left > rw / 2, "on the right rail, under the map")
 	assert(not slot:IsMouseEnabled(), "the outline never takes the mouse from the frames the player drops on it")
 	K.Layout.Exit(true)
 	W.Settle(env)
@@ -637,7 +637,10 @@ do
 	r, g, b = preview.chrome.fill[5]:GetVertexColor()
 	assert(W.Near(r, sr) and W.Near(g, sg) and W.Near(b, sb), "the preview is filled surface")
 	assert(preview.chrome.shapeName == "tile", "at the tile chamfer")
-	assert(preview.chrome.shadow[5]:IsShown(), "with the glass panel's drop shadow")
+	assert(preview.chrome.shadowOn and not preview.chrome.shadow[5]:IsShown(), "with the glass panel's drop shadow wanted but off by default: the Widgets shadows setting now defaults to false (the owner's picture, 2026-11-09)")
+	K.Options.Write("Widgets", "shadows", true)
+	W.Settle(env)
+	assert(preview.chrome.shadow[5]:IsShown(), "and drawn once the shadows setting is on")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

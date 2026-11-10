@@ -9,11 +9,17 @@ end
 -- A plain panel: snapped size, panel chrome with a shadow, a content frame inside the padding.
 do
 	local env, K, panel = panelWith({ width = 300.3, height = 180 })
-	local Scale, Tokens = K.Scale, K.Tokens
+	local Scale = K.Scale
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
 	assert(W.Near(panel:GetWidth(), Scale.Snap(300.3)) and W.Near(panel:GetHeight(), Scale.Snap(180)), "the size is snapped to whole pixels")
-	assert(panel.chrome and #panel.chrome.fill == 9 and panel.chrome.shadow[1]:IsShown(), "panel chrome with a shadow")
-	assert(W.Near(panel.chrome.fill[1]:GetWidth(), Scale.Snap(Tokens.Size("radius"))), "14-unit rounded corners")
+	assert(panel.chrome and #panel.chrome.fill == 9 and not panel.chrome.shadow[1]:IsShown(), "panel chrome with no shadow: the owner's picture (2026-11-09) casts none")
+	K.Options.Write("Widgets", "shadows", true)
+	assert(panel.chrome.shadow[1]:IsShown(), "the Panel shadows setting still draws one")
+	K.Options.Write("Widgets", "shadows", false)
+	local line = K.Widgets.Border(panel)
+	assert(W.Near(panel.chrome:Radius(), 6 * line) and W.Near(panel.chrome.line[1]:GetWidth(), 6 * line), "corners six border lines round, the picture's card")
+	assert(W.Near(panel.chrome.fill[1]:GetWidth(), 5 * line) and W.Near(panel.chrome.fill[1]._points[1][4], line), "the fill one line in, inside the dark edge line")
+	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown() and panel.chrome.gilt[4]:IsShown(), "gilt L-ticks on the top left and bottom right")
 	assert(panel.chrome.shapeName == "panel", "a plain panel is the small-panel grade")
 	local content = panel.content
 	assert(content and content:GetParent() == panel, "a content frame")
@@ -39,8 +45,8 @@ do
 	local font = W.LastCall(panel.titleText, "SetFont")
 	assert(font[1] == (Tokens.Font("heading")) and font[2] == Tokens.Size("heading"), "the title is a heading, in Cinzel: Lumen's window titles")
 	assert(panel.chrome.shapeName == "window", "a titled panel is a window: the design's window-grade edge")
-	assert(W.Near(panel.chrome.fill[1]:GetWidth(), K.Scale.Snap(Tokens.Size("radius"))), "14-unit rounded corners")
-	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "and the window's gilt tips")
+	assert(W.Near(panel.chrome:Radius(), 6 * K.Scale.Border()), "the picture's card corner, six lines")
+	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "and the card's gilt ticks")
 	assert(panel.divider == nil, "no line under the title, as the kit's glass panel")
 	for _, region in ipairs(W.Regions(panel, "Texture")) do
 		assert(region:GetTexture() ~= Tokens.Texture("divider"), "no divider texture on the panel")

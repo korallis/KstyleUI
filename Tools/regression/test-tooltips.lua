@@ -263,7 +263,7 @@ do
 	assert(ns.Settings.Get("iconSize") == 50, "the icon tile is the design's 50 units")
 	local chrome = ns.Style.Glass(env.GameTooltip).chrome
 	assert(chrome.shapeName == "window", "the glass is the window grade, the Lumen card with gilt tips")
-	assert(chrome:Chamfer() == K.Tokens.Size("chamferWindow"), "at the window cut")
+	assert(chrome:Chamfer() == 6 * K.Widgets.Border(chrome.owner), "at the card grade's six border lines (the owner's picture, 2026-11-09)")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
