@@ -47,10 +47,8 @@ RIM_TEXELS = 3
 # draws its corner piece N border lines square and the arc lands on the same whole pixels as the straight runs.
 RING_LINES = (2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32)
 RING_TEXELS = 128
-# The gem: the mockup's 7-unit square turned 45 degrees, its four facets lit from the top left, in a 6-unit halo.
-GEM_UNITS, GEM_SIZE, GEM_SIDE, GEM_HALO = 16, 64, 7, 6
-GEM_FACETS = (1.0, 0.78, 0.62, 0.45)  # top-left, top-right, bottom-left, bottom-right facet levels
-GEM_HALO_ALPHA = 0.5
+# The gem: a solid square turned 45 degrees, one flat level, the picture's caption diamond.
+GEM_UNITS, GEM_SIZE, GEM_SIDE = 16, 64, 5.7
 # The icon in a socket: the picture's icon is rounded to meet its socket's two-line inner corner, 3 units on a
 # 44-unit icon, as a share of the side (masks stretch).
 ICON_RADIUS_SHARE = 3 / 44
@@ -417,37 +415,14 @@ def draw_ring_line(size, lines):
 
 
 def draw_gem(size):
-    """A square turned 45 degrees with four facets lit from the top left, in a soft halo."""
-    per = size / GEM_UNITS
+    """A solid square turned 45 degrees, the picture's flat caption diamond."""
     c = size / 2
-    reach = GEM_SIDE * per / math.sqrt(2)
-    halo = GEM_HALO * per
-    tl, tr, bl, br = GEM_FACETS
-
-    def inside(x, y):
-        return abs(x - c) + abs(y - c) <= reach
-
-    def level(x, y):
-        if not inside(x, y):
-            return 1.0
-        dx, dy = x - c, y - c
-        if dx <= 0 and dy <= 0:
-            return tl
-        if dx > 0 and dy <= 0:
-            return tr
-        if dx <= 0:
-            return bl
-        return br
+    reach = GEM_SIDE * size / GEM_UNITS / math.sqrt(2)
 
     def alpha(x, y):
-        d = abs(x - c) + abs(y - c) - reach
-        if d <= 0:
-            return 1.0
-        if d >= halo:
-            return 0.0
-        return GEM_HALO_ALPHA * (1 - d / halo) ** 2
+        return 1.0 if abs(x - c) + abs(y - c) <= reach else 0.0
 
-    return shaded(sample(size, size, level), sample(size, size, alpha))
+    return shaded(sample(size, size, lambda x, y: 1.0), sample(size, size, alpha))
 
 
 def draw_cap_mask(size, side):
@@ -762,7 +737,7 @@ ASSETS = [
                f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (6), its rim and the arcs of its gilt L-ticks (5), a socket's dark edge (3) and its rim (2); the other counts serve short frames and pinned corners such as discs, so the kit draws the ring nearest the corner's line count. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
       for n in RING_LINES),
     _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
-             "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",
+             "The card caption diamond: a solid 5.7-unit square turned 45 degrees (8.06 units across, the picture's 14 px on its 2234 px screen), one flat level, no halo. Covers 16 units, so the quad can keep its size. LEE-70 (the picture wins): it was a faceted gem in a 6-unit halo.",
              "4x4 supersampled, shading in the colour channels"),
     _texture("PillCapLeft", 32, 32, lambda: draw_cap_mask(32, "left"),
              "Mask that rounds a bar fill's left end: a half disc on the left, solid on the right. Placed over the fill's first square with CLAMPTOWHITE, so the rest of the fill shows."),

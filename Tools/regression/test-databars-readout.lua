@@ -210,4 +210,21 @@ do
 	assert(near(view.frame:GetHeight(), ns.Strip.LINE, 0.5), "with the rows hidden it is the line alone: " .. tostring(view.frame:GetHeight()))
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
+-- The picture's readout sits one unit higher in its line than the font's own centring (its baseline lands on the
+-- picture's), its dots are centred in the gap between two items, and its colour is the soft grey-white.
+do
+	local frame = ns.Strip.view.frame
+	local lift = K.Widgets.Snap(frame, 1)
+	assert(lift > 0, "a unit is at least a pixel")
+	local latency = item(ns, "latency")
+	eq(ns.Strip.view.lineMode, true, "the line is still the readout")
+	assert(near(item(ns, "fps").value._points[1][5], lift), "the value sits a unit high")
+	assert(near(item(ns, "fps").label._points[1][5], lift), "the unit sits a unit high")
+	local dot = latency.dot._points[1]
+	assert(dot[1] == "CENTER" and dot[2] == latency.button and dot[3] == "LEFT" and near(dot[5], lift), "the dot is centred on the gap and a unit high")
+	assert(near(dot[4], -latency.dot:GetUnboundedStringWidth() / 2, 0.5), "its centre is half its own width left of the item")
+	local dr, dg, db = latency.dot:GetTextColor()
+	local wr, wg, wb = K.Tokens.Color("text")
+	assert(near(dr, wr) and near(dg, wg) and near(db, wb), "the dot reads in the text grey like the line")
+end
 print("databars readout line ok")

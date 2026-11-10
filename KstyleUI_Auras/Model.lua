@@ -14,7 +14,7 @@ Model.KEYS = { buffs = "auras.buffs", debuffs = "auras.debuffs" }
 Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL" }
 
 local LINE_SLACK = 0.5
-Model.TIMER_GAP = 2
+Model.TIMER_GAP = 3
 Model.DECIMAL_BELOW = K.Widgets.Duration.DECIMAL_BELOW
 Model.LABELS = { buffs = 40, debuffs = 24 }
 
@@ -44,7 +44,7 @@ Model.defaults = {
 		iconSize = 28, spacing = 3, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = BODY_FONT, size = 12, outline = "NONE", expiring = 5 },
+	timer = { format = "short", position = "below", font = BODY_FONT, size = 11, outline = "NONE", expiring = 5 },
 	count = { font = NUMBER_FONT, size = 10, outline = "NONE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }

@@ -86,7 +86,7 @@ end
 
 local function PlaceTexts(entry, ctx, inset)
 	local skin, timer, count, badge = entry.skin, entry.timer, entry.count, entry.badge
-	Button.StyleText(timer, ctx.timer, "white")
+	Button.StyleText(timer, ctx.timer, "timerText")
 	Button.StyleText(count, ctx.count)
 	timer:ClearAllPoints()
 	count:ClearAllPoints()

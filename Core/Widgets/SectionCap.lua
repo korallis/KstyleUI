@@ -1,13 +1,16 @@
--- SectionCap.lua: the rail section cap, a gilt gem, a tracked Cinzel head, a gilt rule that fades out to the right and an optional count at the right end, or a reserved width there for a count drawn by another frame, measured on a ruler that is never shown.
+-- SectionCap.lua: the rail section cap as the owner's picture draws it, a solid gilt diamond, a tracked Cinzel head, a half-strength gilt rule and an optional count at the right end, or a reserved width there for a count drawn by another frame, measured on a ruler that is never shown.
 local _, ns = ...
 
 local Widgets = ns.Widgets
 local Tokens, Scale = ns.Tokens, ns.Scale
 
 local GEM_ALPHA = 1
-local RULE_ALPHA = 0.6
-local GEM_REACH = 5
+local RULE_ALPHA = 0.5
+local GEM_CENTRE = 7.4
+local TEXT_FROM_GEM = 11.1
 local GEM_GAP = 10
+local COUNT_GAP = 8.6
+local CAP_SIZE = 12
 local DEFAULT_WIDTH = 278
 
 local Cap = {}
@@ -17,9 +20,9 @@ local function Placed(self)
 	self.rule:ClearAllPoints()
 	self.rule:SetPoint("LEFT", self.label, "RIGHT", Widgets.Snap(self, GEM_GAP - Widgets.TrackPad(self.label)), 0)
 	if count then
-		self.rule:SetPoint("RIGHT", self.count, "LEFT", -Widgets.Snap(self, GEM_GAP), 0)
+		self.rule:SetPoint("RIGHT", self.count, "LEFT", -Widgets.Snap(self, COUNT_GAP), 0)
 	elseif self.reserve then
-		self.rule:SetPoint("RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, GEM_GAP)), 0)
+		self.rule:SetPoint("RIGHT", self, "RIGHT", -(self.reserve + Widgets.Snap(self, COUNT_GAP)), 0)
 	else
 		self.rule:SetPoint("RIGHT", self, "RIGHT")
 	end
@@ -54,8 +57,8 @@ function Cap:MeasureCount(value)
 end
 
 function Cap:Paint()
-	self.gem:SetVertexColor(Widgets.Rgba("giltLit", GEM_ALPHA))
-	self.rule:SetVertexColor(Widgets.Rgba("gilt", RULE_ALPHA))
+	self.gem:SetVertexColor(Widgets.Rgba("capsGold", GEM_ALPHA))
+	self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
 	Widgets.TextColor(self.label, "capsGold")
 	Widgets.TextColor(self.count, "muted")
 end
@@ -66,9 +69,11 @@ function Cap:Restyle()
 	local gem = Widgets.Snap(self, Tokens.Size("gem"))
 	self.gem:SetSize(gem, gem)
 	self.gem:ClearAllPoints()
-	self.gem:SetPoint("CENTER", self, "LEFT", Widgets.Snap(self, GEM_REACH), 0)
+	self.gem:SetPoint("CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
+	local path, _, flags = Tokens.Font("caps")
+	Widgets.ApplyFont(self.label, path, CAP_SIZE, flags)
 	self.label:ClearAllPoints()
-	self.label:SetPoint("LEFT", self.gem, "RIGHT", Widgets.Snap(self, GEM_GAP + GEM_REACH) - gem / 2, 0)
+	self.label:SetPoint("LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 	self.rule:SetHeight(Widgets.Border(self))
 	self.count:ClearAllPoints()
 	self.count:SetPoint("RIGHT", self, "RIGHT")
@@ -87,7 +92,6 @@ function Widgets.SectionCap(parent, opts)
 	cap.gem = cap:CreateTexture(nil, "ARTWORK")
 	cap.gem:SetTexture((Tokens.Texture("gem")))
 	cap.rule = cap:CreateTexture(nil, "ARTWORK")
-	cap.rule:SetTexture((Tokens.Texture("ruleFade")))
 	cap.label = Widgets.Text(cap, "caps", "capsGold")
 	cap.count = Widgets.Text(cap, "number", "muted")
 	cap.count:SetJustifyH("RIGHT")

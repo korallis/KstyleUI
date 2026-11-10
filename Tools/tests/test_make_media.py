@@ -180,11 +180,12 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual(side, bottom)
         self.assertGreaterEqual(top, 250)
 
-    def test_gem_is_lit_from_the_top_left(self):
+    def test_gem_is_the_pictures_flat_diamond(self):
         tl, br = self.px("LumenGem.png", 28, 28), self.px("LumenGem.png", 36, 36)
-        self.assertEqual(tl[3], 255)
-        self.assertGreater(tl[0], br[0], "the top left facet is brighter than the bottom right")
-        self.assertTrue(0 < self.alpha("LumenGem.png", 32, 6) < 128, "a soft halo around the point")
+        self.assertEqual((tl[3], br[3]), (255, 255))
+        self.assertEqual(tl[:3], br[:3], "one flat level, not four lit facets")
+        self.assertEqual(self.alpha("LumenGem.png", 32, 32 - 15), 255, "solid to its top point")
+        self.assertEqual(self.alpha("LumenGem.png", 32, 32 - 18), 0, "and no halo past it")
         self.assertEqual(self.alpha("LumenGem.png", 0, 0), 0)
 
     def test_cap_masks_round_one_end_each(self):
