@@ -712,6 +712,7 @@ ns.Locale.Add({
 	["Guild funds first"] = "Fonds de guilde d'abord",
 	["Guild line"] = "Ligne de guilde",
 	["Guild rank"] = "Rang de guilde",
+	["HUD resized to %.1f%% to keep enabled elements on screen and apart."] = "L\226\128\153interface a \195\169t\195\169 redimensionn\195\169e \195\160 %.1f%% pour garder les \195\169l\195\169ments activ\195\169s \195\160 l\226\128\153\195\169cran sans chevauchement.",
 	["Hands"] = "Mains",
 	["Hated"] = "D\195\169test\195\169",
 	["Head"] = "T\195\170te",
