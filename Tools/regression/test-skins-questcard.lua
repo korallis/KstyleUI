@@ -477,7 +477,10 @@ do
 			Quest(405, { { text = "Speak to Ranger Kalanna", finished = false } }),
 		}
 	end
-	local env, K, ns = Boot({ quests = List(), measure = true })
+	-- Five wrapped quests need more room than the picture's story slot has, so this block boots at the smallest
+	-- Interface size: the root is taller and the slot with it, whatever the layout's slot is.
+	local roomy = { version = 9, profiles = { Default = { Appearance = { uiScale = 0.6 } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local env, K, ns = Boot({ quests = List(), measure = true, saved = roomy })
 	K.Options.Write("Skins", "quests.shown", 5)
 	env.RunTimers()
 	local rows = ns.Quests.Rows()
