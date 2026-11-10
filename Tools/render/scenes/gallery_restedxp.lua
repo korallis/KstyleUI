@@ -26,7 +26,7 @@ return Common.Run(function()
 	})
 	add("restedxp_v2", R.windows.v2, {
 		title = "RestedXP v2 guide window", grade = "window", reference = "chat",
-		caption = "RestedXP's v2 guide window: upper and steps frames on window glass, the accent title, KstyleUI's close button and scroll bar.",
+		caption = "RestedXP's v2 guide window: upper and steps frames on window glass, the title a caps caption in the muted gold over the subtitle in the body face, KstyleUI's close button and scroll bar. The settings and guide list buttons right of the title are RestedXP's own art, which is not in the repository and is not drawn.",
 		match = "Window grade as the chat panel.",
 	})
 	add("restedxp_configurator", R.windows.configurator, {

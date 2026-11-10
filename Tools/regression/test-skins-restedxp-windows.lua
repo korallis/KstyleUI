@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true, SetScale = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -456,6 +456,10 @@ do
 	assert(other and env.RESTEDXP_TRACKER_SUMMARY_WINDOW == other.frame, "CreateGui keys each report by its attachment's name")
 	NewCheck(Glass(K, other.frame), "reports created after startup sit on glass")
 	NewCheck(K.Skin.IsSkinned(other.scrollContainer.scrollbar, "ScrollBar"), "inspection report scroll bars are skinned")
+	-- RestedXP makes a report hidden and shows it with its attachment (LevelingTracker.lua 430-470). A lease is for a
+	-- showing: until the report shows, its labels are AceGUI's own, in RestedXP's fonts, with nothing drawn over them.
+	NewCheck(not other.frame:IsShown() and Replacement(other.reachedContainer.data.label) == nil and other.reachedContainer.data.label:GetFont() == "Fonts\\FRIZQT__.TTF" and other.reachedContainer.data.label:GetAlpha() == 1, "a report that has not been shown yet is not leased")
+	rxp.fake.open(other.frame)
 	local heading, data = Replacement(other.reachedContainer.label.label), Replacement(other.reachedContainer.data.label)
 	NewCheck(heading and data and heading:GetFont() == (ns.Style.Font("caps")) and Colored(heading, K.Tokens.Color("capsGold")) and data:GetFont() == (ns.Style.Font("body")), "report headings wear the caps role in the muted gold and data the body face")
 	NewCheck(heading and heading:GetText() == K.Locale.Upper(other.reachedContainer.label.label:GetText()), "a report heading reads in capitals")
@@ -563,9 +567,94 @@ do
 	assert(Alpha(window.banner) == 0, "and the header banner art")
 	assert(K.Skin.IsSkinned(window.closebutton, "CloseButton"), "its close button is KstyleUI's")
 	assert(K.Skin.IsSkinned(window.guideSteps.scroll.scrollbar, "ScrollBar"), "its scroll bar is KstyleUI's")
-	assert(Accented(ns, window.title), "its title takes the accent")
-	window:UpdateSubTheme()
-	assert(Accented(ns, window.title), "and keeps it when RestedXP redraws the window")
+	-- The title is the guide's name heading a card, the same thing the story card's caption is, so it wears the same
+	-- treatment (the Captain's ruling of 2026-11-10; it was RestedXP's text in the accent before): a caps caption in
+	-- the picture's muted gold over RestedXP's hushed title, left aligned across the title's own span, the logo
+	-- standing where a caption's diamond would. RestedXP gives the title its guide font size, 9 of its own units
+	-- unless the player changes it (UI/V2/Core.lua 1349 and 1231, SettingsPanel.lua 169 and 3011-3019), and hangs the
+	-- subtitle 2 under it in a header 36 high whatever the sizes (1066-1069, 1100-1105). So RestedXP's own title keeps
+	-- the player's size, in the caption's face so RestedXP measures the window's least width from the capitals
+	-- (1059-1064), and the subtitle stays where RestedXP put it; the caption stands on the title's bottom edge and is
+	-- never smaller than the story card's while the header's top has the room, and above that the player's setting
+	-- governs it.
+	do
+		local title, subtitle = window.title, window.subtitle
+		local caps, body = (ns.Style.Font("caps")), (ns.Style.Font("body"))
+		local caption = ns.RestedXP.Chrome.Caption(title)
+		local function Size(text)
+			return select(2, text:GetFont())
+		end
+		local function Titled(what, own)
+			assert(caption and caption:GetFont() == caps and Colored(caption, K.Tokens.Color("capsGold")), what .. ": the title has a caps caption in the picture's muted gold")
+			assert(title:GetAlpha() == 0 and caption:GetText() == K.Locale.Upper(title:GetText()), what .. ": RestedXP's own title is hushed under its words in capitals")
+			assert(title:GetFont() == caps and Size(title) == own, what .. ": RestedXP's own title is in the caption's face at the player's size, got " .. tostring(title:GetFont()) .. " " .. tostring(Size(title)))
+			assert(subtitle:GetFont() == body and FontSize(K, subtitle, Size(subtitle), own + 2), what .. ": the subtitle is in the body face at RestedXP's size, got " .. tostring(subtitle:GetFont()) .. " " .. tostring(Size(subtitle)))
+		end
+		local function Floor()
+			return ns.Lumen.Size(caption:GetParent(), ns.Lumen.CAP_SIZE)
+		end
+		Titled("the v2 guide window", 9)
+		assert(FontSize(K, caption, Size(caption), math.max(9, Floor())), "at RestedXP's 9 the caption is the larger of 9 and the story caption's size, got " .. tostring(Size(caption)))
+		local point, on, onPoint = caption:GetPoint(1)
+		local point2, on2, onPoint2 = caption:GetPoint(2)
+		assert(caption:GetNumPoints() == 2 and point == "BOTTOMLEFT" and on == title and onPoint == "BOTTOMLEFT" and point2 == "BOTTOMRIGHT" and on2 == title and onPoint2 == "BOTTOMRIGHT" and caption:GetJustifyH() == "LEFT", "the caption stands on the bottom edge of RestedXP's title, from where it starts to where it ends before the header's buttons")
+		assert(W.LastCall(caption, "SetWordWrap")[1] == false, "on one line")
+		window:UpdateSubTheme()
+		Titled("the v2 guide window after RestedXP redraws it", 9)
+		rxp.settings.profile.guideFontSize = 16
+		window:UpdateSubTheme()
+		Titled("the v2 guide window at a larger guide font size", 16)
+		assert(FontSize(K, caption, Size(caption), 16), "the player's guide font size governs the caption above the story caption's size, got " .. tostring(Size(caption)))
+		rxp.settings.profile.guideFontSize = 9
+		window:UpdateSubTheme()
+		assert(FontSize(K, caption, Size(caption), math.max(9, Floor())), "and back at 9 with the setting")
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		assert(Floor() > 9 and FontSize(K, caption, Size(caption), Floor()), "once KstyleUI's text size takes the story caption's size past RestedXP's 9, the caption is the story caption's size, got " .. tostring(Size(caption)) .. " for " .. tostring(Floor()))
+		Titled("the v2 guide window at text size 1.5", 9)
+		-- RestedXP's Window Scale setting scales the guide's frame, the configurator and this window and redraws none of
+		-- their text (SettingsPanel.lua 2999-3005), and the story caption's size and the readable floor are root units,
+		-- so the skin fits its text again after that SetScale itself (one Codex finding of 2026-11-10: the caption kept
+		-- its old size until RestedXP's next redraw). The setting runs on every step of its slider and scales up to
+		-- three windows each time, so the skin makes one pass at the end of the frame, not one for each call. A window
+		-- scaled up makes the story caption's size small in the window's own units, so the player's 9 governs again.
+		local passes, all = 0, ns.Style.RestyleAll
+		ns.Style.RestyleAll = function(...)
+			passes = passes + 1
+			return all(...)
+		end
+		rxp.fake.trust(function()
+			rxp.RXPFrame:SetScale(2)
+			window.frame:SetScale(1.5)
+			window.frame:SetScale(2)
+		end)()
+		env.RunTimers()
+		ns.Style.RestyleAll = all
+		assert(passes == 1, "the window scale's calls in one frame cost one restyle, got " .. passes)
+		assert(Floor() < 9 and FontSize(K, caption, Size(caption), 9), "in a window scaled up the caption is the player's size without a redraw, got " .. tostring(Size(caption)) .. " over " .. tostring(Floor()))
+		Titled("the v2 guide window scaled up", 9)
+		-- The header has 6 units over RestedXP's title and no more (Core.lua 1101), so where the story caption's size
+		-- would take the caption through the header's top, it is as large as stays a unit under it. A window scaled
+		-- down makes the story caption's size large in the window's own units.
+		env._textWidth = function(value, _, size) return #value * size * 0.5 end
+		rxp.fake.trust(function() window.frame:SetScale(0.5) end)()
+		env.RunTimers()
+		local line = title:GetStringHeight()
+		local room = 9 * (line + 6 - 1) / line
+		assert(Floor() > room and room > 9 and FontSize(K, caption, Size(caption), room), "a caption the header's top cannot hold stops a unit under it, got " .. tostring(Size(caption)) .. " for " .. tostring(room) .. " under " .. tostring(Floor()))
+		assert(caption:GetStringHeight() <= line + 6 - 1 + K.Scale.Pixel(1) / K.Widgets.ScaleFactor(caption), "so its line is no taller than RestedXP's line and the 5 units over it")
+		Titled("the v2 guide window scaled down", 9)
+		rxp.fake.trust(function()
+			rxp.RXPFrame:SetScale(1)
+			window.frame:SetScale(1)
+		end)()
+		env.RunTimers()
+		assert(FontSize(K, caption, Size(caption), math.max(9, math.min(Floor(), room))), "and the caption is back with the scale, got " .. tostring(Size(caption)))
+		env._textWidth = nil
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
+		assert(FontSize(K, caption, Size(caption), math.max(9, Floor())), "and with the text size")
+	end
 
 	local configurator = rxp.ui.v2.configurator
 	assert(configurator.ui == nil)
@@ -617,6 +706,20 @@ do
 		NewCheck(first.measuredFont and first.measuredFont[2] > sized and ui.scrollContainer.layouts > laid, "and again when the text size changes while the configurator is open")
 		K.Options.Write("Skins", "text.size", 1)
 		env.RunTimers()
+		-- RestedXP's Window Scale setting scales the configurator as well (SettingsPanel.lua 3000, GuideConfigurator.lua
+		-- 1461-1462 and 274) and lays nothing out. Its leased labels are in the window's own units, so they keep their
+		-- size but for the whole pixels of the new scale: the labels are measured and the page laid out on that too.
+		local function Whole(size)
+			local pixels = size * K.Widgets.ScaleFactor(first.label) / K.Scale.Pixel(1)
+			return math.abs(pixels - math.floor(pixels + 0.5)) < 1e-8
+		end
+		sized, laid = first.measuredFont and first.measuredFont[2] or math.huge, ui.scrollContainer.layouts
+		configurator:SetScale(0.5)
+		env.RunTimers()
+		assert(first.measuredFont and first.measuredFont[2] ~= sized and Whole(first.measuredFont[2]) and ui.scrollContainer.layouts > laid, "the configurator's labels are measured in whole pixels of the scaled window and the page is laid out, got " .. tostring(first.measuredFont and first.measuredFont[2]) .. " after " .. tostring(sized))
+		configurator:SetScale(1)
+		env.RunTimers()
+		assert(first.measuredFont[2] == sized, "and back with the scale, got " .. tostring(first.measuredFont[2]))
 	end
 	rxp.fake.close(intro.titleLabel.frame)
 	if introTitle then NewCheck(intro.titleLabel.label:GetAlpha() == 1 and not introTitle:GetParent():IsShown(), "released configurator labels return their own font and visibility") end

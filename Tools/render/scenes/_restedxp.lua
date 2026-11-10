@@ -599,10 +599,19 @@ local function Others(R, x, itemsTop)
 	if v2 then
 		local v2Height = 400
 		at(v2.frame, env.UIParent, x, RestedXP.TOP, WIDTH, v2Height)
-		at(v2.upperFrame, v2.frame, 0, 0, WIDTH, 70)
-		at(v2.guideStepsFrame, v2.frame, 0, 76, WIDTH, v2Height - 76)
-		text(v2.title, "6-10 Durotar", "LEFT", v2.upperFrame, "LEFT", 16, 0)
-		at(v2.closebutton, v2.upperFrame, WIDTH - 28, 8, 20, 20)
+		-- UI/V2/Core.lua 1066-1075 and 1080-1107: a 36-unit header with the steps hanging straight under it; the fake
+		-- anchors the header's logo, buttons, title and subtitle as RestedXP does. Core.lua 1360-1364: the close button
+		-- hangs 8 right of and 4 above the upper frame's corner, 24 square.
+		at(v2.upperFrame, v2.frame, 0, 0, WIDTH, 36)
+		at(v2.guideStepsFrame, v2.frame, 0, 36, WIDTH, v2Height - 36)
+		-- The skin stands a close button RestedXP hangs outside a corner in the corner (Chrome.lua, CloseButton), which it
+		-- cannot do here: the scene places the button after the skin ran. So the scene puts it where the skin would.
+		at(v2.closebutton, v2.upperFrame, WIDTH - 24, 0, 24, 24)
+		-- Core.lua 1100-1102 hangs the title's right end from the guide list button's TOPLEFT at -6, which is 6.5 under
+		-- the top its first point gives it. RestedXP's header only adds up if the game takes the top from the TOPLEFT
+		-- point (6 + 9 + 2 + 11 + 6 = 34); the solver takes the later point's, so the scene hangs the right end from the
+		-- name frame at the same place: 4 left of the button, which is 44 from the frame's right and 21 wide.
+		v2.title:SetPoint("TOPRIGHT", v2.guideNameFrame, "TOPRIGHT", -69, -6)
 		at(v2.guideSteps.scroll.scrollbar, v2.guideStepsFrame, WIDTH - 16, 6, 10, 200)
 	end
 	local configurator = rxp.ui.v2.configurator.ui
