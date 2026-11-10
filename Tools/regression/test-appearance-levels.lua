@@ -94,6 +94,7 @@ do
 	CoreEnv.Boot(env)
 	local defaults = K.Store.Defaults("Appearance")
 	assert(defaults.motion == "full" and defaults.fontScale == 1 and defaults.reducedMotion == nil, "motion and text size replace the reduce-motion switch")
+	assert(defaults.typeSet == "Folio" and defaults.font == "", "Folio is the default set without a global face override")
 	local motion = K.Options.Row("Appearance", "motion")
 	assert(motion and motion.type == "dropdown", "motion is a dropdown")
 	local values = {}
@@ -106,7 +107,9 @@ do
 	local font = K.Options.Row("Appearance", "font")
 	assert(type(font.options) == "function", "the font list is built when it opens")
 	local faces = font.options()
-	assert(faces[1].value == "Lumen" and faces[2].value == "CinzelSemiBold" and faces[6].value == "SourceSans3Semibold" and faces[8].value == "InterSemiBold", "the Lumen set, then the bundled faces, come first")
+	assert(#faces == 15 and faces[1].value == "" and faces[2].value == "CinzelSemiBold" and faces[6].value == "SourceSans3Semibold" and faces[8].value == "InterSemiBold", "no override and the thirteen bundled faces precede shared fonts")
+	local sets = K.Options.Row("Appearance", "typeSet").options()
+	assert(#sets == 2 and sets[1].value == "Folio" and sets[2].value == "Lumen", "type sets have their own Folio and Lumen choices")
 	assert(faces[#faces].value == SHARED_FONT and faces[#faces].label == "Handwriting", "LibSharedMedia fonts follow")
 
 	K.Options.Write("Appearance", "motion", "reduced")
@@ -127,7 +130,7 @@ do
 	CoreEnv.Boot(env)
 	assert(K.Motion.Level() == "full" and K.Appearance.Get("motion") == "full", "an unknown motion level falls back to full")
 	assert(K.Theme.FontScale() == 1.3 and K.Appearance.Get("fontScale") == 1.3, "a text size out of range is clamped")
-	assert(K.Theme.FontFace() == "Lumen", "an unknown face falls back to the default set")
+	assert(K.Theme.FontFace() == "Folio" and K.Appearance.Get("font") == "", "an unknown face falls back to the default Folio set without an override")
 
 	saved = { version = 1, profiles = { Default = { Appearance = { motion = "off", font = SHARED_FONT } } } }
 	env, K = CoreEnv.New({ saved = saved })

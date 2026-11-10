@@ -3,6 +3,7 @@ local S = dofile("Tools/regression/skins_env.lua")
 local THIN_SPACE = "\226\128\137"
 
 local env, K, ns = S.New()
+assert(K.Theme.SetTypeSet("Lumen"), "select the original Lumen set for its thin-space contracts")
 local Locale, Tokens = K.Locale, K.Tokens
 local cinzel = Tokens.FontPath("CinzelSemiBold")
 local alegreya = Tokens.FontPath("AlegreyaSansTabularRegular") or Tokens.FontPath("AlegreyaSansRegular")

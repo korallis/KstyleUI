@@ -349,7 +349,7 @@ do
 	end
 	assert(labels["Arial Narrow"] == 1 and labels["Morpheus"] == 1, "then LibSharedMedia's fonts")
 	assert(labels["KstyleUI Source Sans 3 Semibold"] == nil, "a path already listed is not repeated")
-	assert(#fonts == 9, "KstyleUI's seven faces and LibSharedMedia's two")
+	assert(#fonts == 15, "KstyleUI's thirteen real faces and LibSharedMedia's two")
 	local bars = K.Widgets.MediaOptions("statusbar")
 	assert(#bars == 4 and bars[4].label == "Blizzard", "status bars too")
 	local picker = K.Widgets.FontPicker(K.Scale.Root(), { value = fonts[4].value })
@@ -358,6 +358,15 @@ do
 	local menu = K.Widgets.DropdownMenu()
 	assert(W.LastCall(menu.list.rows[4].label, "SetFont")[1] == fonts[4].value, "each row previews its face")
 	picker:Close()
+	picker:SetOptions(K.Widgets.InheritedFontOptions)
+	W.Click(picker)
+	assert(menu.list.rows[1].label:GetText() == K.L["Interface font"], "the first picker row labels font inheritance")
+	assert(W.LastCall(menu.list.rows[1].label, "SetFont")[1] == (K.Tokens.Font("body")), "the inheritance row previews the current body face")
+	assert(W.LastCall(menu.list.rows[5].label, "SetFont")[1] == fonts[4].value, "each real face follows the inheritance row and previews its face")
+	picker:Close()
+	local inherited = K.Widgets.FontPicker(K.Scale.Root(), { value = "" })
+	inherited:SetOptions(K.Widgets.InheritedFontOptions)
+	assert(inherited.text:GetText() == K.L["Interface font"], "an inherited font shows its label instead of an empty path")
 	local tex = K.Widgets.TexturePicker(K.Scale.Root(), { value = bars[1].value })
 	W.Click(tex)
 	assert(menu.list.rows[1].sample:IsShown() and W.LastCall(menu.list.rows[1].sample, "SetTexture")[1] == bars[1].value, "each row previews its texture")
@@ -371,7 +380,7 @@ end
 -- Without LibSharedMedia the pickers list KstyleUI's own media.
 do
 	local _, K = W.New()
-	assert(#K.Widgets.MediaOptions("font") == 7 and #K.Widgets.MediaOptions("statusbar") == 3)
+	assert(#K.Widgets.MediaOptions("font") == 13 and #K.Widgets.MediaOptions("statusbar") == 3)
 	assert(#K.Widgets.MediaOptions("background") == 0, "a kind KstyleUI has no media for is empty")
 end
 

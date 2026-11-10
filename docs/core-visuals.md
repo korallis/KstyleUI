@@ -71,6 +71,25 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 
 `Font(role) -> path, size, flags`.
 
+The default is **Folio**, approved under LEE-113 on 2026-11-10: the owner asked for the closest openly licensed match to the new dark-fantasy direction and retired the old picture's type measurements, while keeping its geometry. `Appearance.typeSet` chooses Folio or the original Lumen set. An explicit `Appearance.font` retains the previous whole-interface override behavior; an empty value follows the set. Saved per-element choices still win. Migration 18 moves a saved `font = "Lumen"` into `typeSet = "Lumen"` without touching element paths; an absent saved choice receives Folio. It also preserves Chat's old implicit size (14) or spacing (4.5) when only the other value was customised, so the new default pair does not change that saved line pitch. Defaults equal to an old default were already stripped at logout, so no migration can recover that unrecorded intent.
+
+| Role | Folio face | Root-unit size |
+| --- | --- | ---: |
+| `display`, `heading` | Unmodified IM Fell Double Pica SC | 22, 16 |
+| `title`, `caps` | EB Garamond 600, uppercase-mapped, +0.045 em tracking and +0.08 em word-space addition | 12, 10 |
+| `names` | Cinzel 600, uppercase-mapped, no tracking and +0.16 em word-space addition | 10 |
+| `unit` | Cinzel 600, uppercase-mapped, -0.064 em tracking and +0.25 em word-space addition | 18 |
+| `body`, `prose` | PT Serif Regular | 12 |
+| `caption`, `timer` | PT Serif Regular | 11 |
+| `number`, `time` | PT Serif Bold | 12 |
+| `world` | PT Serif Regular, existing thin outline | 13 |
+
+PT Serif's native lining figures are tabular, 533/1000 em in Regular and 565/1000 in Bold. No runtime OpenType switch is needed. IM Fell is reserved for the larger headings; the sturdier EB Garamond carries small titles. All added faces and their source pins/licences are recorded in `Media/PROVENANCE.md`. Chinese text still uses the client's `Fonts\ARKai_T.ttf` for both sets; no Chinese font is bundled and its repertoire belongs to the client.
+
+`Locale.TrackMode(path)` only permits inserted thin spaces for known bundled faces with that glyph. Generated tracked faces return `"face"`; external faces, IM Fell and PT Serif receive no synthetic tracking. A foreign face retains its own figures and natural spacing, not the kit's baked figure/spacing guarantees. Group-frame health keeps Alegreya Sans ExtraBold; names follow the kit through the theme sentinel, with the explicit Alegreya Sans Regular fallback in compact lanes. Saved user paths remain authoritative.
+
+The original set remains as follows:
+
 | Role | Lumen face | Size | Flags | Tracking | Uppercase |
 | --- | --- | --- | --- | --- | --- |
 | `display` | Cinzel SemiBold | 22 | `""` | 0.6 | |
@@ -84,7 +103,7 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 | `number` | Alegreya Sans Tabular Extra Bold | 12 | `""` | 0 | |
 | `world` | Alegreya Sans Tabular Medium | 13 | `"OUTLINE"` | 0 | |
 
-The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: each role takes the face in the table. Any other choice (a key of `MediaList("font")`, such as Source Sans 3 Semibold, or a font file path such as a LibSharedMedia font) sets every role to that face, except `number`, which then uses Source Sans 3 Semibold for its tabular digits. The game applies no OpenType features, so Alegreya Sans's `tnum` and `lnum` cannot be turned on; the bundled Alegreya Sans Tabular files map the digits to the font's own tabular oldstyle figures instead (`Media/PROVENANCE.md`: the figures the owner's picture draws, on fixed widths), so numbers keep their width without a fixed-width reservation. `Tools/media/make_fonts.py --figures lining` rebuilds them with lining figures. The caption role is Cinzel, tracked, for rail section caps; a module that sets dense small text in `caption` reads it in Cinzel until it moves that text to `body` or `number`. Every role but `world` is multiplied by `Theme.FontScale()`, the Appearance page's text size; text over the 3D world keeps its size. UI text takes a soft shadow (`textShadow`, offset `textShadowOffset`) instead of an outline; text over the 3D world takes the thin outline.
+The effective face or set comes from `Theme.FontFace()`. Folio and Lumen resolve each role separately. A legacy whole-interface face choice (a media key or LibSharedMedia path) sets non-numeric roles to that face and keeps `number`, `time` and `timer` on Source Sans 3 Semibold, preserving its previous behavior. Lumen's Alegreya files retain their baked tabular oldstyle figures; `Tools/media/make_fonts.py --figures lining` can rebuild those with lining figures. Every role but `world` is multiplied by `Theme.FontScale()`, with the existing 10-unit minimum. Per-element sizes and outlines are independent of the set.
 
 `TextStyle(role) -> tracking, uppercase` gives the kit's letter spacing in units. The game has no letter-spacing setter, so widgets treat it as a hint.
 
@@ -92,11 +111,11 @@ Three roles carry the picture's letter-spaced Cinzel capitals, each from its own
 
 Window and panel titles, the Options window's title and section headings, the setup cards' titles and the previews' sample titles wear `caps` in `capsGold` at the card caption size, 12 units (`Widgets.CAPS_SIZE`, `Widgets.CapsSize(text)`), the same treatment as the HUD's card captions (LEE-76; the owner's ruling of 2026-11-09, "let the picture win", extended from the picture to the windows it does not show). An Options section header is a `Widgets.SectionCap`, diamond and rule included; a long localized heading wraps within its row and hides the rule rather than clipping. The character window's title is the character's name and wears `names`, and the spellbook's spell names wear `names` at the heading size. Caption sizing survives restyles: the global caption size is clamped to its role minimum before applying the player's Skins text-size multiplier. Text on a Blizzard frame takes these faces through `Widgets.ApplyFont(text, path, size, flags, true)`, which skips the tracking hooks that would write methods onto the engine's font string; kit-owned captions retain their tracking compensation.
 
-`FontPath(key)` returns a face's file, or `nil` for an unknown key; `FontPath("Lumen")` is the body face. `DEFAULT_FONT_FACE` is `"Lumen"`.
+`FontPath(key)` returns a face's file, or `nil` for an unknown key. Set keys return their body face. `DEFAULT_FONT_FACE` is `"Folio"`; `IsFontSet(key)` recognizes `"Folio"` and `"Lumen"`.
 
 ### Media lists
 
-`MediaList(kind) -> { { key, label, path }, ... }`, a fresh copy, for `"font"` (Cinzel SemiBold, Alegreya Sans, Alegreya Sans Medium, Alegreya Sans Bold, Source Sans 3 Semibold, Source Sans 3, Inter SemiBold: real faces, which path pickers list and LibSharedMedia registers), `"fontSet"` (Lumen, which only the Appearance face list offers) and `"statusbar"` (Glass, Soft, Flat).
+`MediaList(kind) -> { { key, label, path }, ... }` returns a fresh copy: `"font"` includes the seven existing public faces and the six Folio faces; `"fontSet"` lists Folio and Lumen separately, never as actual shared-media fonts; `"statusbar"` lists Glass, Soft and Flat. Inheriting element rows opt in through `font.options = Widgets.InheritedFontOptions`, which prepends an empty “Interface font” choice without adding it to shared media. Ordinary font pickers keep their existing lists.
 
 ### Textures
 
@@ -137,7 +156,8 @@ Shapes are white with their coverage in alpha: tint them with `SetVertexColor`. 
 | `Class() -> classFile` | The player's class, such as `"MAGE"`, or `nil` while it is unknown. |
 | `AccentSource()`, `SetAccentSource(source) -> ok` | `"class"` or `"custom"`. |
 | `CustomAccent()`, `SetCustomAccent(r, g, b) -> ok` | Each channel a plain number from 0 to 1; a secret, NaN or a string is refused. |
-| `FontFace()`, `SetFontFace(face) -> ok` | `"Lumen"` (the default font set), a key of `Tokens.MediaList("font")`, or a font file path that `IsFontPath` accepts. Anything else is refused. |
+| `FontFace()`, `SetFontFace(face) -> ok` | The effective set or legacy face override. The setter accepts bundled keys, validated font paths or `""` to follow the selected set. Existing direct set-key callers remain supported. |
+| `SetTypeSet(key) -> ok` | Selects Folio or Lumen and fires `ThemeChanged`; an explicit legacy face override remains authoritative. |
 | `IsFontPath(path) -> boolean` | True for a string of up to 260 characters with a `\` or `/`, ending in `.ttf` or `.otf` in any case, with no control character and no `\|`. |
 | `FontScale()`, `SetFontScale(scale) -> ok` | The text size, a plain number from `MIN_FONT_SCALE` 0.8 to `MAX_FONT_SCALE` 1.3, default 1. A secret, NaN or a value out of range is refused. A change fires `ThemeChanged`, which restyles every kit text. |
 | `ClassColor(classFile) -> r, g, b` | Any unit's class colour as plain numbers, safe for arithmetic such as `Brighten`. An unknown or secret class gives the `text` colour: the colour the game returns for a secret class has secret channels, so it is never used here. |
@@ -217,7 +237,8 @@ The spec's AnimationGroup presets (proc pulse, cast sheen, panel rise) belong to
 | --- | --- | --- | --- |
 | `accentSource` | `"class"` | dropdown: class colour or custom colour | `Theme.SetAccentSource` |
 | `accentColor` | the kit's accent, from `Tokens.Color("accentDefault")` | colour, shown only for a custom accent | `Theme.SetCustomAccent` |
-| `font` | `"SourceSans3Semibold"` | dropdown: the three bundled faces, then LibSharedMedia's fonts | `Theme.SetFontFace` |
+| `typeSet` | `"Folio"` | dropdown: Folio or Lumen | `Theme.SetTypeSet` |
+| `font` | `""` | dropdown: Use type set, the bundled faces, then LibSharedMedia's fonts | `Theme.SetFontFace` |
 | `fontScale` | `1` | slider from 0.8 to 1.3 in steps of 0.05 | `Theme.SetFontScale` |
 | `uiScale` | `16 / 19` (`Scale.DEFAULT_USER_SCALE`) | slider from 0.6 to 1.5 in steps of 0.05 | `Scale.SetUserScale` |
 | `motion` | `"full"` | dropdown: full, reduced or off | `Motion.SetLevel` |

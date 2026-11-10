@@ -466,6 +466,16 @@ do
 	assert(title:GetFont() == ns.Style.Font("names"), "returning to the merchant restores the name role")
 	ns.Style.RestyleAll()
 	assert(title:GetFont() == ns.Style.Font("names"), "the merchant's name role survives restyles")
+	for _, set in ipairs({ "Folio", "Lumen" }) do
+		K.Theme.SetTypeSet(set)
+		ns.Style.RestyleAll()
+		local _, size = ns.Style.Font(set == "Folio" and "caps" or "body")
+		for _, slot in ipairs(made.slots) do
+			local path, actual = slot.Name:GetFont()
+			assert(path == ns.Style.Font("body"), "merchant names retain their body or custom face")
+			assert(math.abs(actual - K.Widgets.FontSize(slot.Name, size, true)) < 0.00001, "merchant names use the floor-safe Folio small size without changing Lumen")
+		end
+	end
 end
 
 -- Trainer ----------------------------------------------------------------------------------------------

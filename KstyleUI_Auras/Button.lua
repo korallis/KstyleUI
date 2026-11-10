@@ -33,10 +33,11 @@ local function Engine(button)
 	return type(button.SetIcon) == "function"
 end
 
-function Button.StyleText(text, spec, colorName)
+function Button.StyleText(text, spec, colorName, role)
 	local flags = ns.Model.Flags(spec.outline)
-	if not Widgets.ApplyFont(text, spec.font, spec.size, flags) then
-		local path = Tokens.Font("number")
+	local path = spec.font ~= "" and spec.font or Tokens.Font(role or "number")
+	if not Widgets.ApplyFont(text, path, spec.size, flags) then
+		path = Tokens.Font(role or "number")
 		Widgets.ApplyFont(text, path, spec.size, flags)
 		LogOnce("font:" .. tostring(spec.font), "the font " .. tostring(spec.font) .. " did not load; aura text uses " .. tostring(path))
 	end
@@ -87,7 +88,7 @@ end
 
 local function PlaceTexts(entry, ctx, inset)
 	local skin, timer, count, badge = entry.skin, entry.timer, entry.count, entry.badge
-	Button.StyleText(timer, ctx.timer, "timerText")
+	Button.StyleText(timer, ctx.timer, "timerText", "timer")
 	Button.StyleText(count, ctx.count)
 	timer:ClearAllPoints()
 	count:ClearAllPoints()

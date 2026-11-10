@@ -58,6 +58,12 @@ function Widgets.MediaOptions(kind)
 	return out
 end
 
+function Widgets.InheritedFontOptions()
+	local list = Widgets.MediaOptions("font")
+	table.insert(list, 1, { value = "", label = ns.L["Interface font"] })
+	return list
+end
+
 local function FileName(path)
 	if type(path) == "string" then
 		return path:match("([^\\/]+)$") or path
@@ -79,8 +85,8 @@ local function Picker(parent, opts, kind, renderRow)
 end
 
 local function FontRow(row, option)
-	local _, size, flags = Tokens.Font("body")
-	if Widgets.ApplyFont(row.label, option.value, size, flags) == false then
+	local path, size, flags = Tokens.Font("body")
+	if Widgets.ApplyFont(row.label, option.value ~= "" and option.value or path, size, flags) == false then
 		Widgets.StyleText(row.label, "body")
 	end
 end

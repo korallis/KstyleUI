@@ -31,7 +31,7 @@ local function DefaultTexture()
 end
 
 local THEME_FONT = "theme"
-local NUMBER_FONT = (Tokens.Font("number"))
+local NUMBER_FONT = Tokens.FontPath("AlegreyaSansExtraBold")
 Settings.THEME_FONT = THEME_FONT
 Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 

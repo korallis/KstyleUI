@@ -47,6 +47,12 @@ U.SetUnit(env, "pet", { name = "Wolf", level = 38, health = 300, healthMax = 400
 env.FireEvent("UNIT_PET", "player")
 assert(U.Shown(env, pet.name) == "WOLF" and math.abs(size(pet.name) - petFull) < 0.01, "a short pet name keeps the row's own capitals: " .. U.Shown(env, pet.name))
 
+local chosen = K.Tokens.FontPath("InterSemiBold")
+K.Options.Write("UnitFrames", "focus.fonts.name.font", chosen)
+U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
+env.FireEvent("UNIT_NAME_UPDATE", "focus")
+assert((focus.name:GetFont()) == chosen, "fitting a long name does not replace a saved face override")
+
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "no errors caught by KstyleUI.Call")
 print("unitframes name fit ok")

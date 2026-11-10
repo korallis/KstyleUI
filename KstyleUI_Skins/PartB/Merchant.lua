@@ -13,6 +13,11 @@ local function Item(button)
 	Kit.Item(button, { window = WINDOW })
 end
 
+local function NameSize()
+	local _, size = ns.Style.Font(K.Theme.FontFace() == "Folio" and "caps" or "body")
+	return size
+end
+
 local function Slot(slot)
 	Skin.Strip(slot)
 	Skin.Backdrop(slot, { shape = "tile", fill = "surface", shadow = false })
@@ -21,6 +26,7 @@ local function Slot(slot)
 	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
 		return
 	end
+	ns.Style.Text(name, "body", nil, NameSize)
 	for i = 1, name:GetNumPoints() do
 		local point, _, _, _, y = name:GetPoint(i)
 		local vertical = type(point) == "string" and point:match("^(%u*)LEFT$")

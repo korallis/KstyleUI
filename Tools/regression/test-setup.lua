@@ -240,11 +240,13 @@ do
 				local text = label:GetText()
 				out[rect.element.key] = text
 				local box = assert(Geometry.Rect(rect, root))
-				local width = 0
+				local width, lines = 0, 0
 				for line in text:gmatch("[^\n]+") do
+					lines = lines + 1
 					width = math.max(width, env._textWidth(line, nil, select(2, label:GetFont()) or 12))
 				end
 				assert(width <= box.right - box.left + 0.5, rect.element.key .. "'s label '" .. text .. "' fits its block")
+				assert(lines * K.Widgets.LineHeight(label) <= rect:GetHeight() + 0.5, rect.element.key .. "'s full line height fits its block")
 				assert(not label:IsTruncated(), rect.element.key .. "'s label is whole")
 			end
 		end
@@ -341,6 +343,19 @@ do
 	end
 	assert(toggles.Bags and toggles.Bags:GetValue() == false and not toggles.Bags:IsEnabled(), "a module whose addon did not load is off and disabled")
 	assert(toggles.Options == nil and toggles.Icons == nil, "the settings window is not a module to pick, and there is no icon module")
+	local note = toggles.Chat.note
+	for _, scale in ipairs({ 0.8, 1, 1.3 }) do
+		K.Theme.SetFontScale(scale)
+		for _, set in ipairs({ "Folio", "Lumen" }) do
+			K.Theme.SetTypeSet(set)
+			W.Settle(env)
+			local path, size = note:GetFont()
+			local body, bodySize = K.Tokens.Font("body")
+			local _, smallSize = K.Tokens.Font("caps")
+			local expected = set == "Folio" and smallSize or bodySize
+			assert(path == body and math.abs(size - K.Widgets.FontSize(note, expected)) < 0.00001, "module notes use the clamped Folio small size and retain Lumen's body size")
+		end
+	end
 	toggles.Chat:SetValue(false)
 	assert(K.Setup.Choice().modules.Chat == false, "a toggle changes the choice")
 	assert(#env._errors == 0, tostring(env._errors[1]))

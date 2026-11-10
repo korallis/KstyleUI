@@ -2,6 +2,8 @@
 
 Party and raid frames up to 40: class colours, role icons, range fade, missing health, incoming heals, absorbs, heal absorbs and a shield line, your own heals over time, debuffs in your priority order with a glow on boss and important ones, six indicator slots, the dispellable debuff highlight, a layout that switches with raid size and role, and the game's Click Casting, bound from the settings page.
 
+Folio preserves the theme-name sentinel and the explicit Alegreya Sans Regular face for compact name lanes. The health default intentionally stays on Alegreya Sans ExtraBold rather than following Folio's number face; explicit user font choices still win.
+
 | Field | Value |
 | --- | --- |
 | Module name | `GroupFrames`: its switch in `Core/Features.lua` and the `name` it registers with `KstyleUI.Modules.Register` |

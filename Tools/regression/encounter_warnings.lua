@@ -119,7 +119,7 @@ function Warnings.Build(env, B)
 		s:SetText(text)
 		s:SetTextColor(color.r, color.g, color.b, 1)
 		s:SetTextHeight(Warnings.MIN_TEXT_HEIGHT)
-		s._state.StringHeight = { n = 1, Warnings.MIN_TEXT_HEIGHT }
+		s._state.StringHeight = type(env._textWidth) ~= "function" and { n = 1, Warnings.MIN_TEXT_HEIGHT } or nil
 		s._warningType = messageType or Warnings.RAID_WARNING
 		self.messageCounter = self.messageCounter + 1
 		s._warningOrder = self.messageCounter

@@ -279,13 +279,22 @@ end
 -- The UI font face.
 do
 	local _, ns, fired = NewTheme()
-	assert(ns.Theme.FontFace() == "Lumen", "the Lumen set is the default face")
+	assert(ns.Theme.FontFace() == "Folio", "the Folio set is the default face")
+	assert(ns.Tokens.Font("body"):match("PTSerif%-Regular%.ttf$"), "the default body uses Folio's PT Serif")
 	assert(ns.Theme.SetFontFace("InterSemiBold") == true, "Inter is a valid face")
 	assert(events(fired) == "ThemeChanged", "a new face fires ThemeChanged")
 	assert(ns.Tokens.Font("body"):match("Inter%-SemiBold%.ttf$"), "body text uses the chosen face")
 	assert(ns.Tokens.Font("number"):match("SourceSans3%-Semibold%.ttf$"), "numbers keep the tabular face")
 	assert(ns.Theme.SetFontFace("Comic") == false, "an unknown face is refused")
 	assert(ns.Theme.SetFontFace("InterSemiBold") == true and #fired == 1, "the same face again fires nothing")
+end
+
+do
+	local _, ns = NewTheme()
+	assert(ns.Theme.SetTypeSet("Lumen"), "the original Lumen set remains selectable")
+	assert(ns.Theme.FontFace() == "Lumen" and ns.Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "Lumen preserves the original body face")
+	assert(ns.Theme.SetFontFace("InterSemiBold") and ns.Theme.FontFace() == "InterSemiBold", "a face overrides the selected type set")
+	assert(ns.Theme.SetFontFace("") and ns.Theme.FontFace() == "Lumen", "clearing the face restores the selected type set")
 end
 
 print("theme ok")

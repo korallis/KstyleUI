@@ -25,12 +25,12 @@ do
 	local _, K = CoreEnv.New({ setup = setup(), size = "default" })
 	local defaults = K.Store.Defaults("Appearance")
 	assert(defaults, "Appearance registers its defaults with Store")
-	assert(defaults.accentSource == "class" and defaults.font == "Lumen" and defaults.uiScale == 16 / 19 and defaults.motion == "full", "the defaults are class colour, the Lumen fonts, size 16 / 19 (owner pass 1: the HUD read too big at 1) and full motion")
+	assert(defaults.accentSource == "class" and defaults.typeSet == "Folio" and defaults.font == "" and defaults.uiScale == 16 / 19 and defaults.motion == "full", "the defaults are class colour, Folio without a face override, size 16 / 19 (owner pass 1: the HUD read too big at 1) and full motion")
 	local r, g, b = K.Tokens.Color("accentDefault")
 	assert(near(defaults.accentColor.r, r) and near(defaults.accentColor.g, g) and near(defaults.accentColor.b, b), "the custom colour defaults to the kit's accent")
 	local schema = K.Options.Get("Appearance")
 	assert(schema == K.Appearance.schema, "Options holds the Appearance page")
-	for _, key in ipairs({ "accentSource", "accentColor", "font", "fontScale", "uiScale", "motion" }) do
+	for _, key in ipairs({ "accentSource", "accentColor", "typeSet", "font", "fontScale", "uiScale", "motion" }) do
 		assert(K.Options.Row("Appearance", key), "the page has a row for " .. key)
 	end
 	local size = K.Options.Row("Appearance", "uiScale")
@@ -38,8 +38,18 @@ do
 	local colour = K.Options.Row("Appearance", "accentColor")
 	assert(colour.showWhen({ accentSource = "custom" }) and not colour.showWhen({ accentSource = "class" }), "the colour row shows only for a custom accent")
 	local faces = K.Options.Row("Appearance", "font").options()
-	assert(#faces == 8 and faces[1].value == "Lumen" and faces[6].value == "SourceSans3Semibold", "the font row offers the Lumen set and the seven bundled faces")
+	assert(#faces == 14 and faces[1].value == "" and faces[6].value == "SourceSans3Semibold", "the font row offers no override and the thirteen bundled faces")
+	local sets = K.Options.Row("Appearance", "typeSet").options()
+	assert(#sets == 2 and sets[1].value == "Folio" and sets[2].value == "Lumen", "the separate type set row offers Folio and the original Lumen")
 	assert(K.Appearance.Get("uiScale") == 16 / 19, "Get answers with the default before the saved settings load")
+end
+
+do
+	local env, K = CoreEnv.New({ setup = setup(), saved = saved({ font = "Lumen" }) })
+	CoreEnv.Boot(env)
+	local appearance = K.Store.Module("Appearance")
+	assert(appearance.typeSet == "Lumen" and appearance.font == "", "a saved original set moves to typeSet without a face override")
+	assert(K.Theme.FontFace() == "Lumen" and K.Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "migration preserves the saved original set's body face")
 end
 
 -- Saved settings apply when the saved data loads, before PLAYER_LOGIN builds frames.
@@ -89,7 +99,7 @@ do
 	CoreEnv.Boot(env)
 	assert(K.Scale.UserScale() == 1 and K.Appearance.Get("uiScale") == 1, "a broken size falls back to 1")
 	assert(K.Theme.AccentSource() == "class" and K.Appearance.Get("accentSource") == "class", "an unknown accent source falls back to class")
-	assert(K.Theme.FontFace() == "Lumen", "an unknown face falls back to the Lumen set")
+	assert(K.Theme.FontFace() == "Folio" and K.Appearance.Get("font") == "", "an unknown face falls back to Folio without an override")
 	local r = K.Theme.CustomAccent()
 	assert(r <= 1, "an out-of-range colour falls back to the default")
 	assert(K.Motion.ReducedMotion() == false, "a broken motion setting falls back to full motion")
@@ -136,7 +146,7 @@ do
 		names[c.key] = true
 		assert(c.path:match("^Interface\\AddOns\\KstyleUI\\Media\\"), "media paths are KstyleUI's own")
 	end
-	assert(counts.font == 7 and counts.statusbar == 3, "seven fonts and three bars, registered once; the Lumen set is not a font")
+	assert(counts.font == 13 and counts.statusbar == 3, "thirteen fonts and three bars, registered once; type sets are not fonts")
 	assert(names["KstyleUI Glass"] and names["KstyleUI Source Sans 3 Semibold"], "names read well in other addons' lists")
 
 	local without = CoreEnv.New({ setup = setup() })

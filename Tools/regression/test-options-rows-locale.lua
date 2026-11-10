@@ -65,6 +65,14 @@ local function resize(width, height)
 end
 
 local function rowFor(label)
+	local parts = ns.Window.Parts()
+	for index, item in ipairs(ns.Window.State().items) do
+		if item.label == label then
+			parts.content:ScrollToIndex(index, true)
+			settle()
+			break
+		end
+	end
 	for _, row in ipairs(ns.Window.Parts().content.rows) do
 		if row:IsShown() and row.item and row.item.label == label then
 			return row

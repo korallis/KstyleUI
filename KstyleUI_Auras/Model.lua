@@ -29,8 +29,6 @@ Model.LIMITS = {
 }
 local LIMITS = Model.LIMITS
 
-local NUMBER_FONT = (Tokens.Font("number"))
-local TIMER_FONT = (Tokens.Font("timer"))
 local ar, ag, ab = Tokens.Color("accentDefault")
 
 Model.defaults = {
@@ -44,8 +42,8 @@ Model.defaults = {
 		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = TIMER_FONT, size = 11, outline = "NONE", expiring = 5 },
-	count = { font = NUMBER_FONT, size = 10, outline = "NONE" },
+	timer = { format = "short", position = "below", font = "", size = 11, outline = "NONE", expiring = 5 },
+	count = { font = "", size = 10, outline = "NONE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
 local defaults = Model.defaults
@@ -176,7 +174,7 @@ function Model.Timer(settings)
 	return {
 		format = choice(s.format, TIMER_FORMAT_SET, base.format),
 		position = choice(s.position, TIMER_POSITION_SET, base.position),
-		font = font(s.font, base.font),
+		font = font(s.font, (Tokens.Font("timer"))),
 		size = number(s.size, base.size, LIMITS.timerSize),
 		outline = choice(s.outline, FLAGS, base.outline),
 		expiring = number(s.expiring, base.expiring, LIMITS.expiring),
@@ -186,7 +184,7 @@ end
 function Model.Count(settings)
 	local base, s = defaults.count, section(settings, "count")
 	return {
-		font = font(s.font, base.font),
+		font = font(s.font, (Tokens.Font("number"))),
 		size = number(s.size, base.size, LIMITS.countSize),
 		outline = choice(s.outline, FLAGS, base.outline),
 	}

@@ -182,15 +182,17 @@ local function onDisk(gamePath)
 	return handle ~= nil
 end
 
--- Font roles: the default face set is Lumen, Cinzel for heads and section titles and Alegreya Sans Tabular for captions, body text and
--- numbers; test-lumen-material.lua covers each role's face and the Source Sans choice.
+-- Font roles keep their sizes in Folio, the default set; the original Lumen faces remain selectable.
 for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, caption = 11, number = 12, time = 12, timer = 11, world = 13 }) do
 	local path, got, flags = Tokens.Font(role)
 	assert(onDisk(path), "Tokens.Font(" .. role .. ") names a missing file: " .. tostring(path))
 	assert(got == size, "Tokens.Font(" .. role .. ") size is " .. tostring(got))
 	assert(type(flags) == "string", "Tokens.Font(" .. role .. ") flags are a string")
 end
-assert(Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "the default body face is Alegreya Sans Tabular")
+assert(Tokens.DEFAULT_FONT_FACE == "Folio" and env.KstyleUI.Theme.FontFace() == "Folio", "Folio is the default type set")
+assert(Tokens.Font("body"):match("PTSerif%-Regular%.ttf$") and Tokens.Font("number"):match("PTSerif%-Bold%.ttf$"), "Folio uses PT Serif body text and bold numbers")
+assert(env.KstyleUI.Theme.SetTypeSet("Lumen"), "the original Lumen type set remains selectable")
+assert(Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "Lumen's body face remains Alegreya Sans Tabular")
 assert(Tokens.Font("number"):match("AlegreyaSansTabular%-ExtraBold%.ttf$"), "numbers use its extra bold, whose digits are tabular")
 assert(Tokens.Font("time"):match("AlegreyaSansTabular%-Bold%.ttf$"), "the clock and cast times take the bold, which fits the picture better than the extra bold")
 assert(Tokens.Font("timer"):match("AlegreyaSansTabular%-Medium%.ttf$"), "the small timers take the medium, as the picture's do")
@@ -205,11 +207,14 @@ assert(Tokens.TextStyle("display") == 0.6 and Tokens.TextStyle("heading") == 0.4
 
 -- Media lists for the settings window and LibSharedMedia.
 local fonts, bars = Tokens.MediaList("font"), Tokens.MediaList("statusbar")
-assert(#fonts == 7 and #bars == 3, "seven fonts (Lumen's Cinzel and three Alegreya Sans weights, Source Sans 3 twice and Inter) and three status bars")
+assert(#fonts == 13 and #bars == 3, "the original seven faces plus six Folio faces and three status bars")
 assert(fonts[1].key == "CinzelSemiBold", "Lumen's faces come first")
 local sets = Tokens.MediaList("fontSet")
-assert(#sets == 1 and sets[1].key == "Lumen" and Tokens.FontPath("Lumen") == sets[1].path, "Lumen is a font set, not a face: path pickers and LibSharedMedia never see it")
-for _, list in ipairs({ fonts, bars }) do
+assert(#sets == 2 and sets[1].key == "Folio" and sets[2].key == "Lumen" and Tokens.FontPath("Folio") == sets[1].path and Tokens.FontPath("Lumen") == sets[2].path, "Folio and Lumen are separate type sets, not faces")
+for _, face in ipairs(fonts) do
+	assert(not Tokens.IsFontSet(face.key), "path pickers and LibSharedMedia never see a type set")
+end
+for _, list in ipairs({ fonts, bars, sets }) do
 	for _, item in ipairs(list) do
 		assert(type(item.key) == "string" and type(item.label) == "string", "a media item has a key and a label")
 		assert(onDisk(item.path), "media item " .. item.key .. " names a missing file")

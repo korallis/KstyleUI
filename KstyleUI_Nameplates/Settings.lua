@@ -16,13 +16,12 @@ local function Color(name)
 end
 
 local BAR_TEXTURE = Tokens.Texture("barFlat")
-local FONT = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
 
 Settings.defaults = {
 	preset = "lumen",
 	offsetY = 0,
 	shrinkDistant = false,
-	font = FONT,
+	font = "",
 	health = { texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
 	enemy = { colorSource = "class", color = Color("plateHostile") },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
@@ -179,6 +178,7 @@ local schema = {
 	},
 	{
 		type = "font", key = "font", label = L["Font"],
+		options = K.Widgets.InheritedFontOptions,
 		help = L["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."],
 	},
 	{ type = "header", label = L["Health bar"] },
@@ -602,7 +602,7 @@ local function Allowed(row, value)
 		end
 		return nil
 	end
-	return type(value) == "string" and value ~= "" and value or nil
+	return type(value) == "string" and (kind == "font" or value ~= "") and value or nil
 end
 
 local cache = {}
@@ -639,6 +639,9 @@ function Settings.Get(key)
 	if value == nil then
 		value = Read(key)
 		cache[key] = value
+	end
+	if key == "font" and value == "" then
+		return (Tokens.Font("body"))
 	end
 	return value
 end

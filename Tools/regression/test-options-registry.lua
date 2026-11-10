@@ -59,6 +59,21 @@ do
 	Raises(function() K.Options.Register("UnitFrames", rows()) end, "already registered", "a second schema for one module")
 end
 
+do
+	local _, K = fresh()
+	local schema = rows()
+	local choices = { { value = "", label = "Interface font" }, { value = "Body", label = "Body" } }
+	schema[9].options = choices
+	K.Options.Register("UnitFrames", schema)
+	assert(K.Options.Row("UnitFrames", "font").options == choices, "font rows preserve an explicitly supplied options list")
+	local env, plain = fresh()
+	plain.Options.Register("UnitFrames", rows())
+	assert(plain.Options.Row("UnitFrames", "font").options == nil, "ordinary font rows do not gain inherited choices")
+	CoreEnv.Boot(env)
+	plain.Options.Write("UnitFrames", "font", "")
+	assert(plain.Options.Read("UnitFrames", "font") == "", "a font sentinel stays a sentinel rather than a captured path")
+end
+
 -- Every rule names the row and the problem ---------------------------------------------------------
 
 do

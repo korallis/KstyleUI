@@ -46,6 +46,12 @@ FACES = (
     "SourceSans3-Regular.ttf",
     "SourceSans3-Semibold.ttf",
     "Inter-SemiBold.ttf",
+    "FolioDisplay-Regular.ttf",
+    "FolioCaps-SemiBold.ttf",
+    "CinzelNames-SemiBold.ttf",
+    "CinzelUnit-SemiBold.ttf",
+    "PTSerif-Regular.ttf",
+    "PTSerif-Bold.ttf",
 )
 FONT_DIR = Path("Media") / "Fonts"
 GAME_FONT_LOCALES = ("zhCN",)

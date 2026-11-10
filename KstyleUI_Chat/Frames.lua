@@ -80,16 +80,19 @@ end
 
 local function FontPath(settings)
 	local path = settings.font
+	if path == "" then
+		return (Tokens.Font("body"))
+	end
 	if path ~= state.checked then
 		state.checked = path
 		if Verify(path) then
 			state.path = path
 		else
-			state.path = (Tokens.Font("body"))
+			state.path = nil
 			LogOnce("font:" .. tostring(path), "the chat font " .. tostring(path) .. " did not load; chat uses KstyleUI's body font")
 		end
 	end
-	return state.path
+	return state.path or (Tokens.Font("body"))
 end
 
 function Frames.Fonts(settings)

@@ -155,7 +155,9 @@ do
 	assert(tall.chrome.shapeName == "bar" and tall:GetStatusBarTexture():GetNumMaskTextures() == 0, "a vertical bar starts with the capsule track and no horizontal caps")
 end
 
--- Fonts: Lumen by default, Source Sans still selectable.
+-- Fonts: the original Lumen set remains selectable, with Source Sans still available as an override.
+assert(Tokens.DEFAULT_FONT_FACE == "Folio" and Theme.FontFace() == "Folio", "Folio is the default type set")
+assert(Theme.SetTypeSet("Lumen"), "select the original Lumen set for its face contracts")
 local function face(role)
 	return file((Tokens.Font(role)))
 end
@@ -168,7 +170,7 @@ end
 assert(select(3, Tokens.Font("world")) == "OUTLINE", "world text is outlined")
 local tracking = Tokens.TextStyle("caption")
 assert(tracking > 0, "captions are tracked")
-assert(Tokens.DEFAULT_FONT_FACE == "Lumen", "Lumen is the default face")
+assert(Theme.FontFace() == "Lumen", "Lumen is the selected type set")
 assert(Theme.SetFontFace("SourceSans3Semibold"), "Source Sans 3 Semibold is selectable")
 for _, role in ipairs({ "display", "heading", "title", "caption", "body", "prose", "world" }) do
 	assert(face(role) == "SourceSans3-Semibold.ttf", "with Source Sans picked, " .. role .. " is Source Sans")
@@ -176,7 +178,7 @@ end
 for _, role in ipairs({ "number", "time", "timer" }) do
 	assert(face(role) == "SourceSans3-Semibold.ttf", "and the " .. role .. " role keeps Source Sans's tabular digits")
 end
-assert(Theme.SetFontFace("Lumen") and face("heading") == "Cinzel-SemiBold.ttf", "Lumen can be picked back")
+assert(Theme.SetFontFace("") and Theme.FontFace() == "Lumen" and face("heading") == "Cinzel-SemiBold.ttf", "clearing the override restores the selected Lumen set")
 
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("lumen material ok")

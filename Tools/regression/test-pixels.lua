@@ -389,13 +389,17 @@ for _, hudSize in ipairs(OWNER_SIZES) do
 		-- Text: every role's size and its shadow land on whole pixels.
 		for _, role in ipairs({ "display", "heading", "body", "title", "caption", "number" }) do
 			local text = W.Text(holder, role)
-			local _, size = text:GetFont()
+			local path, size = text:GetFont()
 			local k = text:GetParent():GetEffectiveScale() * screen[2] / UI_HEIGHT
 			local tat = at .. ", " .. role .. " text"
 			assert(whole(size * k), tat .. ": the size is whole pixels, got " .. size * k)
 			assert(math.abs(size * k - ns.Tokens.Size(role) * k) <= 0.5 + 1e-6, tat .. ": within half a pixel of the token")
 			local x, y = text:GetShadowOffset()
-			assert(math.abs(x * k - border) < 1e-6 and math.abs(-y * k - border) < 1e-6, tat .. ": the shadow sits one border down and right, got " .. x * k)
+			if ns.Tokens.FaceShadow(path) == false then
+				assert(x == 0 and y == 0, tat .. ": the face metadata disables its shadow")
+			else
+				assert(math.abs(x * k - border) < 1e-6 and math.abs(-y * k - border) < 1e-6, tat .. ": the shadow sits one border down and right, got " .. x * k)
+			end
 		end
 	end
 end

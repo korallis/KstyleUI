@@ -22,9 +22,9 @@ local GAME_FONTS = {
 	koKR = { path = "Fonts\\2002.TTF", every = true },
 	ruRU = { path = "Fonts\\FRIZQT___CYR.TTF" },
 }
-local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true }
-local NO_THIN_SPACE = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true }
-local TRACKED_FACES = { ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true }
+local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true, ["FolioDisplay-Regular.ttf"] = true }
+local TRACKED_FACES = { ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["FolioCaps-SemiBold.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true }
+local SPACED_FACES = { ["AlegreyaSans-Regular.ttf"] = true, ["AlegreyaSansTabular-Regular.ttf"] = true, ["AlegreyaSansTabular-Medium.ttf"] = true, ["AlegreyaSansTabular-Bold.ttf"] = true, ["AlegreyaSansTabular-ExtraBold.ttf"] = true, ["SourceSans3-Regular.ttf"] = true, ["SourceSans3-Semibold.ttf"] = true, ["Inter-SemiBold.ttf"] = true }
 local OWN_FONTS = "\\KstyleUI\\Media\\Fonts\\"
 local CAPITALS = { ["\197\147"] = "\197\146", ["\195\191"] = "\197\184" }
 
@@ -79,12 +79,9 @@ function Locale.TrackMode(path)
 		if file and TRACKED_FACES[file] then
 			return "face"
 		end
-		if file and NO_THIN_SPACE[file] then
-			return nil
+		if file and SPACED_FACES[file] and Locale.SPACED then
+			return "space"
 		end
-	end
-	if Locale.SPACED then
-		return "space"
 	end
 	return nil
 end

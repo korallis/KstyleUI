@@ -8,7 +8,6 @@ local Settings = {}
 ns.Settings = Settings
 
 local MODULE = "CombatText"
-local NUMBER_FONT = (Tokens.Font("number"))
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 40, 1
 local DURATION_MIN, DURATION_MAX, DURATION_STEP = 0.6, 3, 0.1
 local PER_FRAME_MIN, PER_FRAME_MAX = 1, 8
@@ -25,7 +24,7 @@ local defaults = {
 	blizzardSelf = "hide",
 	blizzardTargets = "keep",
 	worldFont = true,
-	worldFace = NUMBER_FONT,
+	worldFace = "",
 	style = "rise",
 	damage = true,
 	heals = true,
@@ -33,7 +32,7 @@ local defaults = {
 	format = "short",
 	duration = 1.2,
 	maxPerFrame = 4,
-	font = NUMBER_FONT,
+	font = "",
 	size = 18,
 	outline = "OUTLINE",
 	colorMode = "school",
@@ -133,6 +132,7 @@ Settings.schema = {
 	},
 	{
 		type = "font", key = "worldFace", label = L["World number font"],
+		options = K.Widgets.InheritedFontOptions,
 		help = L["The font for the game's own damage numbers; it changes at your next login."],
 		showWhen = WorldFontOn,
 	},
@@ -164,7 +164,7 @@ Settings.schema = {
 		min = PER_FRAME_MIN, max = PER_FRAME_MAX, step = 1,
 	},
 	{ type = "header", label = L["Text"] },
-	{ type = "font", key = "font", label = L["Font"], help = L["The typeface of the numbers."] },
+	{ type = "font", key = "font", label = L["Font"], help = L["The typeface of the numbers."], options = K.Widgets.InheritedFontOptions },
 	{
 		type = "slider", key = "size", label = L["Size"],
 		help = L["The text size of the numbers."],
@@ -318,7 +318,7 @@ function Settings.Snapshot(values, cfg)
 	cfg.blizzardSelf = Choice(values.blizzardSelf, BLIZZARD, d.blizzardSelf)
 	cfg.blizzardTargets = Choice(values.blizzardTargets, BLIZZARD, d.blizzardTargets)
 	cfg.worldFont = Bool(values.worldFont, d.worldFont)
-	cfg.worldFace = FontPath(values.worldFace, d.worldFace)
+	cfg.worldFace = FontPath(values.worldFace, (Tokens.Font("number")))
 	cfg.style = Choice(values.style, STYLES, d.style)
 	cfg.damage = Bool(values.damage, d.damage)
 	cfg.heals = Bool(values.heals, d.heals)
@@ -328,7 +328,7 @@ function Settings.Snapshot(values, cfg)
 	cfg.formatter = Formatter(cfg.format)
 	cfg.duration = Number(values.duration, DURATION_MIN, DURATION_MAX, d.duration)
 	cfg.maxPerFrame = Number(values.maxPerFrame, PER_FRAME_MIN, PER_FRAME_MAX, d.maxPerFrame, true)
-	cfg.fontPath = FontPath(values.font, d.font)
+	cfg.fontPath = FontPath(values.font, (Tokens.Font("number")))
 	cfg.size = Number(values.size, SIZE_MIN, SIZE_MAX, d.size)
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]

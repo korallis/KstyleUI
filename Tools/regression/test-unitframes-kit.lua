@@ -217,7 +217,11 @@ env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, f
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 assert(U.Shown(env, cast.text) == "FROSTBOLT", "the spell name in capitals: " .. U.Shown(env, cast.text))
 local THIN = "\226\128\137"
-assert(W.LastCall(cast.text, "SetText")[1] == table.concat({ "F", "R", "O", "S", "T", "B", "O", "L", "T" }, THIN), "the capitals are tracked with thin spaces, as the design file's caption")
+assert(W.LastCall(cast.text, "SetText")[1] == "FROSTBOLT", "Folio spell capitals carry no thin-space tracking")
+assert(K.Theme.SetTypeSet("Lumen"), "the original Lumen type set remains selectable")
+assert(W.LastCall(cast.text, "SetText")[1] == table.concat({ "F", "R", "O", "S", "T", "B", "O", "L", "T" }, THIN), "Lumen spell capitals retain the design file's thin-space tracking")
+assert(K.Theme.SetTypeSet("Folio"), "restore the default type set")
+assert(W.LastCall(cast.text, "SetText")[1] == "FROSTBOLT", "returning to Folio removes thin-space tracking")
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-1", 116)
 U.SetUnit(env, "target", { name = "Summoner", level = 51, health = 50, healthMax = 100, reaction = 2, secretCast = true,

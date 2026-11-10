@@ -108,8 +108,8 @@ check(missing.iconSize == d.debuffs.iconSize and missing.dispel == true, "a miss
 local t = Model.Timer({ timer = { format = "fancy", position = "left", size = 2, outline = "HUGE", expiring = 99, font = 5 } })
 check(t.format == d.timer.format and t.position == d.timer.position, "unknown timer choices take the defaults")
 check(t.size == Model.LIMITS.timerSize.min and t.expiring == Model.LIMITS.expiring.max, "timer size and warning clamp")
-check(t.outline == d.timer.outline and t.font == d.timer.font, "a bad outline or font takes the default")
-check(type(d.timer.font) == "string" and d.timer.font ~= "", "the default timer font is a font path")
+check(t.outline == d.timer.outline and t.font == (K.Tokens.Font("timer")), "a bad outline or font takes the current timer role")
+check(d.timer.font == "" and d.count.font == "", "the default timer and count fonts inherit the current kit")
 
 -- Outline: the setting to SetFont flags.
 check(Model.Flags("NONE") == "" and Model.Flags("OUTLINE") == "OUTLINE" and Model.Flags("THICKOUTLINE") == "THICKOUTLINE", "outline flags")

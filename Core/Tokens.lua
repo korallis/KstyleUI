@@ -163,7 +163,8 @@ local EASINGS = {
 }
 
 local FONT_SETS = {
-	{ key = "Lumen", label = "Lumen: Cinzel and Alegreya Sans", path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
+	{ key = "Folio", label = ns.L["Folio: classic serif"], path = FONTS_DIR .. "PTSerif-Regular.ttf" },
+	{ key = "Lumen", label = ns.L["Lumen: original fonts"], path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
 }
 local FONT_FACES = {
 	{ key = "CinzelSemiBold", label = "Cinzel SemiBold", path = FONTS_DIR .. "Cinzel-SemiBold.ttf" },
@@ -173,6 +174,12 @@ local FONT_FACES = {
 	{ key = "SourceSans3Semibold", label = "Source Sans 3 Semibold", path = FONTS_DIR .. "SourceSans3-Semibold.ttf" },
 	{ key = "SourceSans3Regular", label = "Source Sans 3", path = FONTS_DIR .. "SourceSans3-Regular.ttf" },
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
+	{ key = "FolioDisplay", label = "IM Fell Double Pica SC", path = FONTS_DIR .. "FolioDisplay-Regular.ttf", tracking = 0 },
+	{ key = "FolioCaps", label = "Folio Caps", path = FONTS_DIR .. "FolioCaps-SemiBold.ttf", tracking = 0.045, shadow = false },
+	{ key = "FolioNames", label = "Cinzel Names SemiBold", path = FONTS_DIR .. "CinzelNames-SemiBold.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "FolioUnit", label = "Cinzel Unit SemiBold", path = FONTS_DIR .. "CinzelUnit-SemiBold.ttf", tracking = -0.064, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "PTSerifRegular", label = "PT Serif", path = FONTS_DIR .. "PTSerif-Regular.ttf", tracking = 0 },
+	{ key = "PTSerifBold", label = "PT Serif Bold", path = FONTS_DIR .. "PTSerif-Bold.ttf", tracking = 0 },
 }
 local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
@@ -181,25 +188,25 @@ local ROLE_FACES = {
 	{ key = "AlegreyaSansProse", path = FONTS_DIR .. "AlegreyaSans-Regular.ttf", tracking = 0 },
 	{ key = "AlegreyaSansExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
 }
-local DEFAULT_FACE = "Lumen"
+local DEFAULT_FACE = "Folio"
 local FALLBACK_FACE = "SourceSans3Semibold"
 local NUMBER_FACE = "SourceSans3Semibold"
 local MIN_TEXT = 10
 
 local FONT_ROLES = {
-	display = { lumen = "CinzelSemiBold", flags = "", tracking = 0.6 },
-	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
-	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
-	prose = { lumen = "AlegreyaSansProse", flags = "", tracking = 0 },
-	title = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
-	caps = { lumen = "CinzelCaps", flags = "", tracking = 0, upper = true },
-	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
-	unit = { lumen = "CinzelUnit", flags = "", tracking = 0, upper = true },
-	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
-	number = { lumen = "AlegreyaSansExtraBold", number = true, flags = "", tracking = 0 },
-	time = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
-	timer = { lumen = "AlegreyaSansMedium", number = true, flags = "", tracking = 0 },
-	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
+	display = { folio = "FolioDisplay", lumen = "CinzelSemiBold", flags = "", tracking = 0.6 },
+	heading = { folio = "FolioDisplay", lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
+	body = { folio = "PTSerifRegular", lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
+	prose = { folio = "PTSerifRegular", lumen = "AlegreyaSansProse", flags = "", tracking = 0 },
+	title = { folio = "FolioCaps", lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
+	caps = { folio = "FolioCaps", lumen = "CinzelCaps", flags = "", tracking = 0, upper = true },
+	names = { folio = "FolioNames", lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
+	unit = { folio = "FolioUnit", lumen = "CinzelUnit", flags = "", tracking = 0, upper = true },
+	caption = { folio = "PTSerifRegular", lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
+	number = { folio = "PTSerifBold", lumen = "AlegreyaSansExtraBold", number = true, flags = "", tracking = 0 },
+	time = { folio = "PTSerifBold", lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
+	timer = { folio = "PTSerifRegular", lumen = "AlegreyaSansMedium", number = true, flags = "", tracking = 0 },
+	world = { folio = "PTSerifRegular", lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
 
 local STATUSBARS = {
@@ -340,6 +347,10 @@ function Tokens.FontPath(key)
 	return ns.Locale.Font(FACE_PATH[key])
 end
 
+function Tokens.IsFontSet(key)
+	return key == "Folio" or key == "Lumen"
+end
+
 function Tokens.Font(role)
 	local spec = FONT_ROLES[role]
 	if not spec then
@@ -347,7 +358,9 @@ function Tokens.Font(role)
 	end
 	local theme = ns.Theme
 	local key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
-	if key == DEFAULT_FACE then
+	if key == "Folio" then
+		key = spec.folio
+	elseif key == "Lumen" then
 		key = spec.lumen
 	elseif spec.number then
 		key = NUMBER_FACE
@@ -380,7 +393,9 @@ function Tokens.TextStyle(role)
 	if not spec then
 		unknown("TextStyle", role)
 	end
-	return spec.tracking, spec.upper == true
+	local theme = ns.Theme
+	local key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
+	return key == "Folio" and 0 or spec.tracking, spec.upper == true
 end
 
 function Tokens.RoleFontPaths()

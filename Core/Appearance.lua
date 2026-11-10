@@ -18,7 +18,8 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Appearance.defaults = {
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
-	font = Tokens.DEFAULT_FONT_FACE,
+	typeSet = Tokens.DEFAULT_FONT_FACE,
+	font = "",
 	fontScale = 1,
 	uiScale = Scale.DEFAULT_USER_SCALE,
 	motion = "full",
@@ -33,6 +34,11 @@ local function IsUnit(v)
 end
 
 local CLEAN = {
+	typeSet = function(v)
+		if Tokens.IsFontSet(v) then
+			return v
+		end
+	end,
 	accentSource = function(v)
 		if v == "class" or v == "custom" then
 			return v
@@ -44,7 +50,7 @@ local CLEAN = {
 		end
 	end,
 	font = function(v)
-		if type(v) == "string" and (Tokens.FontPath(v) or Theme.IsFontPath(v)) then
+		if type(v) == "string" and (v == "" or Tokens.FontPath(v) or Theme.IsFontPath(v)) then
 			return v
 		end
 	end,
@@ -70,12 +76,13 @@ local APPLY = {
 		Theme.SetCustomAccent(c.r, c.g, c.b)
 	end,
 	accentSource = Theme.SetAccentSource,
+	typeSet = Theme.SetTypeSet,
 	font = Theme.SetFontFace,
 	fontScale = Theme.SetFontScale,
 	uiScale = Scale.SetUserScale,
 	motion = Motion.SetLevel,
 }
-local ORDER = { "accentColor", "accentSource", "font", "fontScale", "uiScale", "motion" }
+local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScale", "motion" }
 
 function Appearance.Get(key)
 	local clean = CLEAN[key]
@@ -107,11 +114,16 @@ local function PathKey(path)
 	return (path:lower():gsub("/", "\\"))
 end
 
-local function FaceOptions()
-	local out, seen = {}, {}
+local function SetOptions()
+	local out = {}
 	for _, set in ipairs(Tokens.MediaList("fontSet")) do
 		out[#out + 1] = { value = set.key, label = set.label }
 	end
+	return out
+end
+
+local function FaceOptions()
+	local out, seen = { { value = "", label = L["Use type set"] } }, {}
 	for _, face in ipairs(Tokens.MediaList("font")) do
 		out[#out + 1] = { value = face.key, label = face.label }
 		seen[PathKey(face.path)] = true
@@ -148,8 +160,13 @@ Appearance.schema = {
 	},
 	{ type = "header", label = L["Text"] },
 	{
+		type = "dropdown", key = "typeSet", label = L["Type set"],
+		help = L["Changes inherited fonts together; your chosen fonts stay unchanged."],
+		options = SetOptions,
+	},
+	{
 		type = "dropdown", key = "font", label = L["Font"],
-		help = L["KstyleUI's typeface, or a LibSharedMedia font; numbers keep Source Sans 3."],
+		help = L["Overrides the type set; numbers keep Source Sans 3 when a font is chosen."],
 		options = FaceOptions,
 	},
 	{
