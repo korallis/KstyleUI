@@ -90,6 +90,7 @@ do
 	local row = f.ScrollChild.framePool[1]
 	local before, rowBefore = select(2, element.text:GetFont()), select(2, row.text:GetFont())
 	f:SetScale(0.5)
+	env.RunTimers()
 	local size, rowSize = select(2, element.text:GetFont()), select(2, row.text:GetFont())
 	assert(size > before and FontSize(K, element.text, size, Root(K, element.text, STORY)), "in a guide scaled down the step text keeps the quest lines' size in root units, got " .. tostring(size) .. " after " .. tostring(before))
 	assert(element:GetHeight() == LineHeight(size), "and RestedXP measures the step at it: " .. tostring(element:GetHeight()) .. " for " .. LineHeight(size))

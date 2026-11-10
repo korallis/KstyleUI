@@ -614,10 +614,23 @@ do
 		Titled("the v2 guide window at text size 1.5", 9)
 		-- RestedXP's Window Scale setting scales the guide's frame, the configurator and this window and redraws none of
 		-- their text (SettingsPanel.lua 2999-3005), and the story caption's size and the readable floor are root units,
-		-- so the skin fits its text again on that SetScale itself (one Codex finding of 2026-11-10: the caption kept
-		-- its old size until RestedXP's next redraw). A window scaled up makes the story caption's size small in the
-		-- window's own units, so the player's 9 governs again.
-		rxp.fake.trust(function() window.frame:SetScale(2) end)()
+		-- so the skin fits its text again after that SetScale itself (one Codex finding of 2026-11-10: the caption kept
+		-- its old size until RestedXP's next redraw). The setting runs on every step of its slider and scales up to
+		-- three windows each time, so the skin makes one pass at the end of the frame, not one for each call. A window
+		-- scaled up makes the story caption's size small in the window's own units, so the player's 9 governs again.
+		local passes, all = 0, ns.Style.RestyleAll
+		ns.Style.RestyleAll = function(...)
+			passes = passes + 1
+			return all(...)
+		end
+		rxp.fake.trust(function()
+			rxp.RXPFrame:SetScale(2)
+			window.frame:SetScale(1.5)
+			window.frame:SetScale(2)
+		end)()
+		env.RunTimers()
+		ns.Style.RestyleAll = all
+		assert(passes == 1, "the window scale's calls in one frame cost one restyle, got " .. passes)
 		assert(Floor() < 9 and FontSize(K, caption, Size(caption), 9), "in a window scaled up the caption is the player's size without a redraw, got " .. tostring(Size(caption)) .. " over " .. tostring(Floor()))
 		Titled("the v2 guide window scaled up", 9)
 		-- The header has 6 units over RestedXP's title and no more (Core.lua 1101), so where the story caption's size
@@ -625,12 +638,17 @@ do
 		-- down makes the story caption's size large in the window's own units.
 		env._textWidth = function(value, _, size) return #value * size * 0.5 end
 		rxp.fake.trust(function() window.frame:SetScale(0.5) end)()
+		env.RunTimers()
 		local line = title:GetStringHeight()
 		local room = 9 * (line + 6 - 1) / line
 		assert(Floor() > room and room > 9 and FontSize(K, caption, Size(caption), room), "a caption the header's top cannot hold stops a unit under it, got " .. tostring(Size(caption)) .. " for " .. tostring(room) .. " under " .. tostring(Floor()))
 		assert(caption:GetStringHeight() <= line + 6 - 1 + K.Scale.Pixel(1) / K.Widgets.ScaleFactor(caption), "so its line is no taller than RestedXP's line and the 5 units over it")
 		Titled("the v2 guide window scaled down", 9)
-		rxp.fake.trust(function() window.frame:SetScale(1) end)()
+		rxp.fake.trust(function()
+			rxp.RXPFrame:SetScale(1)
+			window.frame:SetScale(1)
+		end)()
+		env.RunTimers()
 		assert(FontSize(K, caption, Size(caption), math.max(9, math.min(Floor(), room))), "and the caption is back with the scale, got " .. tostring(Size(caption)))
 		env._textWidth = nil
 		K.Options.Write("Skins", "text.size", 1)
@@ -697,8 +715,10 @@ do
 		end
 		sized, laid = first.measuredFont and first.measuredFont[2] or math.huge, ui.scrollContainer.layouts
 		configurator:SetScale(0.5)
+		env.RunTimers()
 		assert(first.measuredFont and first.measuredFont[2] ~= sized and Whole(first.measuredFont[2]) and ui.scrollContainer.layouts > laid, "the configurator's labels are measured in whole pixels of the scaled window and the page is laid out, got " .. tostring(first.measuredFont and first.measuredFont[2]) .. " after " .. tostring(sized))
 		configurator:SetScale(1)
+		env.RunTimers()
 		assert(first.measuredFont[2] == sized, "and back with the scale, got " .. tostring(first.measuredFont[2]))
 	end
 	rxp.fake.close(intro.titleLabel.frame)

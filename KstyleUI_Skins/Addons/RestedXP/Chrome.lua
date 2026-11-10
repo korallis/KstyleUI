@@ -763,6 +763,20 @@ local function Restyle()
 end
 
 local restyler = { Restyle = Restyle }
+local rescaling = false
+
+local function Rescaled()
+	if rescaling then
+		return
+	end
+	rescaling = true
+	C_Timer.After(0, function()
+		rescaling = false
+		if Active() then
+			Run("window scale", Style.RestyleAll)
+		end
+	end)
+end
 
 local function Pointed(frame)
 	if not IsTable(frame) or type(frame.IsMouseOver) ~= "function" then
@@ -1002,7 +1016,7 @@ local function GuideWindow(rxp)
 	end
 	state.guide = f
 	PlaceGuideScroll(f)
-	Hook(f, "SetScale", "RXPFrame.SetScale", Style.RestyleAll)
+	Hook(f, "SetScale", "RXPFrame.SetScale", Rescaled)
 	Hook(f, "UpdateVisuals", "RXPFrame.UpdateVisuals", function()
 		PlaceGuideScroll(f)
 		Chrome.Refit(f)
@@ -1042,7 +1056,7 @@ local function GuideWindowV2(rxp)
 	ScrollBar(IsTable(scroll) and scroll.scrollbar or nil)
 	CaptionFor(window.title, nil, true)
 	Readable(window.subtitle, "body", 0)
-	Hook(window.frame, "SetScale", "guideWindow.frame.SetScale", Style.RestyleAll)
+	Hook(window.frame, "SetScale", "guideWindow.frame.SetScale", Rescaled)
 end
 
 local function MenuPrefix()
@@ -1911,7 +1925,7 @@ local function Configurator(configurator)
 		Reflow(container)
 	end)
 	Reflow(container)
-	Hook(ui.frame, "SetScale", "configurator.frame.SetScale", Style.RestyleAll)
+	Hook(ui.frame, "SetScale", "configurator.frame.SetScale", Rescaled)
 	if IsTable(container) and not done[container] then
 		done[container] = true
 		local fit = CreateFrame("Frame", nil, ui.frame)
