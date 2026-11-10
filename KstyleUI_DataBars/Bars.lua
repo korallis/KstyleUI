@@ -15,6 +15,7 @@ local GILT_DIM, GILT_LIT = 0.4, 0.45
 local MAX_SEGMENTS = 20
 local HIT_PAD = 4
 local TEXT_GAP, XP_TEXT_GAP = 2, 6
+local XP_CAPTION_RAISE = 1.15
 local CHAR_WIDTH_SHARE = 0.5
 local MIN_SIZE = 2
 local MAX_WIDTH, MAX_HEIGHT = 1920, 1080
@@ -150,6 +151,9 @@ end
 local function PlaceText(view, position)
 	local p = TEXT_POINTS[position] or TEXT_POINTS.CENTER
 	local gap = Widgets.Snap(view.holder, view.def.id == "xp" and position == "BOTTOM" and XP_TEXT_GAP or TEXT_GAP)
+	if view.def.id == "xp" and position == "BOTTOM" then
+		gap = gap - Widgets.Snap(view.holder, XP_CAPTION_RAISE)
+	end
 	view.text:ClearAllPoints()
 	view.text:SetPoint(p[1], view.holder, p[2], p[3] * gap, p[4] * gap)
 end

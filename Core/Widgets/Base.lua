@@ -260,7 +260,7 @@ end
 
 local function TrackShift(text, state)
 	local first = state.points[1]
-	if state.pad <= 0 or not first then
+	if state.pad == 0 or not first then
 		return 0
 	end
 	local left, right = false, false
@@ -375,7 +375,7 @@ end
 function Widgets.SyncTracking(text)
 	local path, size = text:GetFont()
 	local tracking = type(path) == "string" and type(size) == "number" and Tokens.FaceTracking(path) or 0
-	if tracking > 0 or trackers[text] then
+	if tracking ~= 0 or trackers[text] then
 		local state = Tracker(text)
 		state.pad = tracking * (type(size) == "number" and size or 0)
 		Refresh(text, state)

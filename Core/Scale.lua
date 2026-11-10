@@ -75,18 +75,30 @@ local function Limit(width, height)
 	end
 	local store = ns.Store
 	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
-	return layouts.ScaleLimit(width, height, preset)
+	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
+	return layouts.ScaleLimit(width, height, preset, enabled), enabled
 end
 
 local function Apply()
 	local width, height = PhysicalSize()
 	local parent, user = ParentScale(), state.user
-	local maximum = Limit(width, height)
+	local maximum, enabled = Limit(width, height)
 	local effectiveUser = min(user, maximum)
+	local added = false
+	if state.enabled and enabled then
+		for _, element in ipairs(ns.Setup.Layouts.ELEMENTS) do
+			if enabled[element.key] and not state.enabled[element.key] then
+				added = true
+				break
+			end
+		end
+	end
+	state.enabled = enabled
 	local last = state.applied
 	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum then
 		return
 	end
+	local previous = state.effectiveUser
 	root:SetScale(REFERENCE_SCALE / parent * effectiveUser)
 	state.maximum, state.effectiveUser = maximum, effectiveUser
 	last[1], last[2], last[3], last[4], last[5] = height, parent, user, width, maximum
@@ -97,6 +109,9 @@ local function Apply()
 	state.pixel = UI_HEIGHT / (height * effective)
 	state.borderPixels = max(1, floor(1 / state.pixel + 0.5))
 	Fire("ScaleChanged")
+	if added and user > maximum and effectiveUser < previous - 1e-9 then
+		ns.Print(string.format(ns.L["HUD resized to %.1f%% to keep enabled elements on screen and apart."], effectiveUser * 100))
+	end
 end
 
 local events = CreateFrame("Frame")
@@ -186,9 +201,17 @@ end
 ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
 	if module == "Layout" and key == "preset" then
 		Request("the layout preset")
+	elseif ns.Features.modules[module] ~= nil then
+		Request("an element setting")
 	end
 end)
+ns.Callbacks.Register("ModuleChanged", "Scale", function()
+	Request("a module switch")
+end)
 ns.Callbacks.Register("ProfileChanged", "Scale", function()
+	if ns.Appearance then
+		Scale.SetUserScale(ns.Appearance.Get("uiScale"))
+	end
 	Request("the profile")
 end)
 

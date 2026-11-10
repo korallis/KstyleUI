@@ -164,13 +164,12 @@ for _, name in ipairs(names) do
 			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %.1f)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
-		-- A docked element sits inside its host card; a threat card a layout switches off waits on the damage card's place.
+		-- A docked element sits inside its host card; the optional threat card has its own combat-cluster slot.
 		local function shares(a, c)
 			if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
 				return true
 			end
-			local threat = a == "meters.threat" and c or (c == "meters.threat" and a)
-			return threat == "meters.damage" and Layouts.Shown(name, "meters.threat") == false
+			return false
 		end
 		-- Bars 3 to 6 are off in every layout, but each keeps a free slot on every screen, the owner's narrow 1.547 one
 		-- included (owner pass 1, 2026-11-09: "not much room for adding more action bars").
@@ -244,13 +243,13 @@ local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
 	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
-		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
+		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
 		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 	Healer = set({ "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
-		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
+		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
 		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 }
 -- Healer retains the group frames' upper-left slots, 152 off centre; the character's column stays clear.
@@ -424,7 +423,7 @@ for _, name in ipairs(names) do
 		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= CLUSTER_GAP and focusTarget.bottom >= block + 4, label .. ": the focus target sits under the focus card, off the hands")
 		assert(same(tot.x - mid, 317) and tot.top == 540, label .. ": the optional target of target keeps its original slot opposite the focus")
 		local clusterTop = 540
-		if name == "Tank" then
+		do
 			local threat = rect("meters.threat")
 			assert(threat.left == tot.left and tot.bottom - threat.top == CLUSTER_GAP and threat.bottom >= block + 4, label .. ": the threat card stands under the target of target")
 			assert(threat.top <= clusterTop, label .. ": the threat card stays inside the cluster")
@@ -592,7 +591,7 @@ local FOOTPRINTS = {
 	["auras.buffs"] = { 307, 42 },
 	["auras.debuffs"] = { 307, 42 },
 	["meters.damage"] = { 269, 158 },
-	["meters.threat"] = { 269, 144 },
+	["meters.threat"] = { 200, 112 },
 	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 393, 200 },

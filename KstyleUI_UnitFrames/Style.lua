@@ -27,6 +27,8 @@ local OCTAGON = 1 / (2 + math.sqrt(2))
 local PORTRAIT_CHAMFER = 0.15
 local GLOW_SUBLEVEL = -8
 local GLOW_SPREAD = 1.7
+local RING_GUTTER = 1 / 64
+local COLUMN_LEVEL_SCALE = 0.95
 local CAPTION_GAP = 10
 local RULE_GAP = 8
 local RULE_ALPHA = 0.55
@@ -153,6 +155,9 @@ end
 
 function Style.Shape(view, round)
 	view.round = round
+	local gutter = view.form == "column" and RING_GUTTER or 0
+	view.ring:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
+	view.discRing:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
 	view.portraitBack:SetShown(round)
 	view.ring:SetShown(round)
 	view.portraitChrome:SetShadow(not round)
@@ -212,9 +217,9 @@ local function PlaceGem(view, gem, rect)
 	gem:Show()
 end
 
-local function Bottom(view, text, point, relative, relPoint, x, rect)
+local function Bottom(view, text, point, relative, relPoint, x, rect, drop)
 	text:ClearAllPoints()
-	text:SetPoint(point, relative, relPoint, Snap(view, x), -Snap(view, rect.y + rect.h))
+	text:SetPoint(point, relative, relPoint, Snap(view, x), -Snap(view, rect.y + rect.h) - Snap(view, drop or 0))
 	text:SetHeight(Snap(view, rect.h))
 	text:SetWidth(0)
 	text:SetJustifyV("BOTTOM")
@@ -230,12 +235,28 @@ local function Centre(view, text, point, relative, relPoint, x, rect)
 	text:Show()
 end
 
-local function NameBottom(view, g, rect)
+local function TightName(view)
+	return Tokens.FaceTracking((view.name:GetFont())) < 0
+end
+
+local function CaptionPoint(view, g)
+	local lift = TightName(view) and Snap(view, g.captionLift or 0) or 0
+	view.caption:ClearAllPoints()
 	if g.mirror then
-		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect)
+		view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), lift)
+	else
+		view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), lift)
+	end
+end
+
+local function NameBottom(view, g, rect)
+	local drop = TightName(view) and g.nameDrop or 0
+	view.nameRect = rect
+	if g.mirror then
+		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect, drop)
 		view.name:SetJustifyH("RIGHT")
 	else
-		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect)
+		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect, drop)
 		view.name:SetJustifyH("LEFT")
 	end
 	if view.nameBound and g.nameRoom then
@@ -258,8 +279,7 @@ local function LumenTexts(view, g)
 			view.name:Hide()
 		end
 		if g.caption then
-			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), 0)
+			CaptionPoint(view, g)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -284,8 +304,7 @@ local function LumenTexts(view, g)
 			view.name:SetJustifyH("LEFT")
 		end
 		if g.caption then
-			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), 0)
+			CaptionPoint(view, g)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -432,6 +451,17 @@ local function HideLumen(view)
 	view.healthText:SetJustifyH("RIGHT")
 end
 
+function Style.Baseline(view)
+	local g = view.geometry
+	if not (g and g.nameAuto and g.nameDrop and view.nameRect) then
+		return
+	end
+	NameBottom(view, g, view.nameRect)
+	if g.caption and view.caption:IsShown() then
+		CaptionPoint(view, g)
+	end
+end
+
 function Style.PlaceName(view, rect)
 	local g = view.geometry
 	if (g.form == "vitals" or g.form == "column") and g.nameAuto then
@@ -526,6 +556,9 @@ function Style.Restyle(view, kind)
 	for key, spec in pairs(TEXTS) do
 		local element = spec.element or key
 		local path, size, flags = Settings.Font(kind, element)
+		if form == "column" and key == "levelText" then
+			size = size * COLUMN_LEVEL_SCALE
+		end
 		local share = spec.share or 1
 		if lumen and spec.lumen then
 			share = spec.lumenShare or share

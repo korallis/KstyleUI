@@ -1267,7 +1267,8 @@ function Scene.Build(env, opts)
 	end
 
 	local function scrolls(frame)
-		if frame._type == "ScrollFrame" or frame._type == "ScrollingMessageFrame" then
+		if frame._type == "ScrollFrame" or frame._type == "ScrollingMessageFrame"
+			or (frame._parent and frame._parent._type == "ScrollingMessageFrame" and frame._parent.FontStringContainer == frame) then
 			return true
 		end
 		return takesWheel(frame) or (frame._parent ~= nil and takesWheel(frame._parent))
@@ -1301,6 +1302,10 @@ function Scene.Build(env, opts)
 				logLine((why or "unresolved") .. ": " .. describe(frame))
 			end
 			skipped.unresolved = skipped.unresolved + 1
+		end
+		if rect and state(frame, "ClipsChildren") == true then
+			clip = intersect(clip, toScreen(rect))
+			scroll = scrolls(frame)
 		end
 		if frame._type == "Cooldown" and rect and alpha > 0 then
 			local item = swipeItem(frame, alpha)
@@ -1352,13 +1357,8 @@ function Scene.Build(env, opts)
 				end
 			end
 		end
-		local kidClip, kidScroll = clip, scroll
-		if rect and state(frame, "ClipsChildren") == true then
-			kidClip = intersect(clip, toScreen(rect))
-			kidScroll = scrolls(frame)
-		end
 		for _, kid in ipairs(kidsOf[frame] or {}) do
-			walkFrame(kid, false, kidClip, kidScroll)
+			walkFrame(kid, false, clip, scroll)
 		end
 	end
 

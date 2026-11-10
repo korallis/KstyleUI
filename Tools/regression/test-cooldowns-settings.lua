@@ -62,7 +62,7 @@ assert(keys.accentColor.showWhen({ accent = "custom" }) and not keys.accentColor
 local defaults = ns.Settings.defaults
 assert(defaults.essential.size == 36.7 and defaults.essential.spacing == 4.6, "the picture's essentials are 36.7 square on a 41.3 pitch")
 assert(defaults.utility.size == 38 and defaults.utility.spacing == 3 and defaults.utility.columns == 4, "a row of four 38-unit utility icons, the action button's size, with the bars' 3-unit gaps")
-assert(defaults.essential.timerSize == 20 and defaults.essential.countSize == 10, "large bold countdowns with a smaller corner charge count")
+assert(defaults.essential.timerSize == 16.5 and defaults.essential.countSize == 10, "optically sized bold countdowns with the unchanged corner charge count")
 assert(defaults.utility.timerSize == 11 and defaults.utility.countSize == 11, "the utility countdown takes the small duration size, 11, as its count does, so a charged socket never reads \"12s3\" (round 4, Opus #6)")
 assert(defaults.essential.columns == 6 and defaults.essential.readyGlow == false, "six essentials with no ready halo by default")
 assert(defaults.buffs.size == 27.6 and defaults.buffs.spacing == 3.4 and defaults.buffs.growth == "rightAligned", "tracked buffs right-align at 27.6 on a 31-unit pitch, preserving configured order")

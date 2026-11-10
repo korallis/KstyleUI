@@ -41,7 +41,8 @@ local MAP, MAP_CAPTION = 188, 36
 local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP = 28, 3, 10, 14, 8
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
-local DAMAGE_W, DAMAGE_H, THREAT_H = 269, 158, 144
+local DAMAGE_W, DAMAGE_H = 269, 158
+local THREAT_W, THREAT_H = 200, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
@@ -84,7 +85,7 @@ local ELEMENTS = {
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
 	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = DAMAGE_W, height = DAMAGE_H },
-	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = DAMAGE_W, height = THREAT_H },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = THREAT_W, height = THREAT_H },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
 	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
@@ -151,7 +152,7 @@ local DPS = {
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["meters.threat"] = { anchor = "BOTTOM", x = SIDE + THREAT_W / 2, y = CLUSTER_TOP - 22 - TIGHT - THREAT_H },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
@@ -187,9 +188,7 @@ local DPS = {
 
 local CHANGES = {
 	DPS = {},
-	Tank = {
-		["meters.threat"] = { anchor = "BOTTOM", x = SIDE + 200 / 2, y = CLUSTER_TOP - 22 - TIGHT - 112 },
-	},
+	Tank = {},
 	Healer = {
 		["groupframes.party"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
 		["groupframes.raid"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
@@ -201,17 +200,17 @@ local CHANGES = {
 local SIZES = {
 	DPS = {
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
-		["meters.threat"] = { DAMAGE_W, THREAT_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
 	},
 	Tank = {
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
-		["meters.threat"] = { 200, 112 },
+		["meters.threat"] = { THREAT_W, THREAT_H },
 	},
 	Healer = {
 		["groupframes.party"] = { RAIL, 354 },
 		["groupframes.raid"] = { RAIL, 487 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
-		["meters.threat"] = { DAMAGE_W, THREAT_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
 		["chat.main"] = { RAIL, 200 },
 	},
 }
@@ -634,20 +633,48 @@ local function Positive(value)
 	return type(value) == "number" and value == value and value > 0 and value < math.huge
 end
 
-local function Apart(name, a, b)
+function Layouts.Enabled(name, profile)
+	local enabled = {}
+	for _, element in ipairs(ELEMENTS) do
+		local key = element.key
+		local on = Layouts.Shown(name, key) ~= false
+		local section = profile and profile[element.module]
+		if profile then
+			on = type(section) == "table" and section.enabled == true
+			if on then
+				local id = key:match("^[^.]+%.(.+)$")
+				local cast = id:match("^castbar%.(.+)$")
+				local entry = section[cast or id]
+				if cast then
+					on = type(entry) == "table" and entry.castbar ~= false
+					if on and entry.enabled ~= false then
+						on = entry.style == "plate" or (cast == "player" and entry.style == "column")
+					end
+				elseif type(entry) == "table" then
+					on = entry.enabled ~= false and entry.shown ~= false
+				elseif key == "qol.lootfeed" then
+					on = section.lootFeed ~= false
+				else
+					on = Layouts.Shown(name, key) ~= false
+				end
+			end
+		end
+		enabled[key] = on
+	end
+	return enabled
+end
+
+local function Apart(a, b)
 	if (a == "groupframes.party" and b == "groupframes.raid") or (b == "groupframes.party" and a == "groupframes.raid") then
 		return false
 	end
 	if DOCKS[a] == b or DOCKS[b] == a then
 		return false
 	end
-	if (a == "meters.damage" and b == "meters.threat") or (b == "meters.damage" and a == "meters.threat") then
-		return Layouts.Shown(name, "meters.threat") ~= false
-	end
 	return true
 end
 
-function Layouts.Fits(name, physicalWidth, physicalHeight, user)
+function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled)
 	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
 		return false
 	end
@@ -657,6 +684,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user)
 		return false
 	end
 	local pixelScale = physicalHeight / rootHeight
+	enabled = enabled or Layouts.Enabled(name)
 	local rects = {}
 	for i = 1, #ELEMENTS + 1 do
 		local key, width, height, position, offsetX
@@ -668,45 +696,53 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user)
 			position = Layouts.Slot(name, rootHeight)
 			key, width, height = "story", position.width, position.height
 		end
-		if width <= 0 or height <= 0 then
-			return false
-		end
-		local w = math.max(1, math.floor(width * pixelScale + 0.5))
-		local h = math.max(1, math.floor(height * pixelScale + 0.5))
-		local point = OFFSETS[position.anchor] or OFFSETS.CENTER
-		local left = math.floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
-		local bottom = math.floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
-		local right, top = left + w, bottom + h
-		if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then
-			return false
-		end
-		for _, rect in ipairs(rects) do
-			if Apart(name, key, rect.key) and left < rect[3] and rect[1] < right and bottom < rect[4] and rect[2] < top then
-				local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
-				if not dockBoundary or math.min(top, rect[4]) - math.max(bottom, rect[2]) > 1 then
-					return false
+		if enabled[key] ~= false then
+			if width <= 0 or height <= 0 then
+				return false
+			end
+			local w = math.max(1, math.floor(width * pixelScale + 0.5))
+			local h = math.max(1, math.floor(height * pixelScale + 0.5))
+			local point = OFFSETS[position.anchor] or OFFSETS.CENTER
+			local left = math.floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
+			local bottom = math.floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
+			local right, top = left + w, bottom + h
+			if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then
+				return false
+			end
+			for _, rect in ipairs(rects) do
+				if Apart(key, rect.key) and left < rect[3] and rect[1] < right and bottom < rect[4] and rect[2] < top then
+					local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
+					if not dockBoundary or math.min(top, rect[4]) - math.max(bottom, rect[2]) > 1 then
+						return false
+					end
 				end
 			end
+			rects[#rects + 1] = { left, bottom, right, top, key = key }
 		end
-		rects[#rects + 1] = { left, bottom, right, top, key = key }
 	end
 	return true
 end
 
 local limits = {}
 
-function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset)
+function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	local low, high = ns.Scale.DEFAULT_USER_SCALE, ns.Scale.MAX_USER_SCALE
 	if not Positive(physicalWidth) or not Positive(physicalHeight) then
 		return low
 	end
 	preset = layouts[preset] and preset or "DPS"
+	enabled = enabled or Layouts.Enabled(preset)
+	local flags = {}
+	for i, element in ipairs(ELEMENTS) do
+		flags[i] = enabled[element.key] ~= false and "1" or "0"
+	end
+	local signature = table.concat(flags)
 	local cached = limits[preset]
-	if cached and cached.width == physicalWidth and cached.height == physicalHeight then
+	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale
 	end
-	if Layouts.Fits(preset, physicalWidth, physicalHeight, high) then
-		limits[preset] = { width = physicalWidth, height = physicalHeight, scale = high }
+	if Layouts.Fits(preset, physicalWidth, physicalHeight, high, enabled) then
+		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high }
 		return high
 	end
 	local span = HEIGHT
@@ -721,7 +757,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset)
 		if candidate == high then
 			break
 		end
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate) then
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled) then
 			low = candidate
 			break
 		end
@@ -729,12 +765,12 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset)
 	end
 	for _ = 1, 32 do
 		local candidate = (low + high) / 2
-		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate) then
+		if Layouts.Fits(preset, physicalWidth, physicalHeight, candidate, enabled) then
 			low = candidate
 		else
 			high = candidate
 		end
 	end
-	limits[preset] = { width = physicalWidth, height = physicalHeight, scale = low }
+	limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = low }
 	return low
 end

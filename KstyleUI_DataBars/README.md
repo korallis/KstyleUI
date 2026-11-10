@@ -51,7 +51,7 @@ Each part file adds a part with `ns.AddPart({ Enable, Disable, Setting, Refresh 
 
 Each element is a holder frame registered with Layout as resizable, at its footprint from `Setup.Layouts`. The holder never hides itself: a bar with nothing to show hides its `content` child, so Layout Mode still shows its plate. A track draws the background and rested overlay, and a fill draws progress above it. A gain eases over `fade`; a new level, faction or range jumps at once. The hit area reaches 4 units past the bar.
 
-LEE-20 (2026-11-09, "let the picture win") replaces the old four-unit segmented XP line: the default is 491 by 8 with rounded ends, no border or ticks, and an opaque `hudRested` blue rested reach. Its body-font caption is centred six units below: "Level 11 · 0% · rested 5%" (`levelRested`). This supersedes #204's omission of the level. Colour, border, segment and caption settings remain available; `percentRested` still omits the level. Earned progress retains the selectable gilt gradient. A label placed on a horizontal bar has a small glass plate; a label below it needs none.
+LEE-20 (2026-11-09, "let the picture win") replaces the old four-unit segmented XP line: the default is 491 by 8 with rounded ends, no border or ticks, and an opaque `hudRested` blue rested reach. Its body-font caption is centred below: "Level 11 · 0% · rested 5%" (`levelRested`). LEE-71 raises the old six-unit caption gap by 1.15 snapped root units and defaults XP to Flat, so the rested blue reaches the picture's token colour instead of being dimmed by the texture. Store migration 15 rewrites a saved XP Glass key or path to Flat once. The picker and both XP layers use that same value; a later Glass choice draws Glass and survives reload. Other selected textures and reputation/honour paint remain unchanged. This supersedes #204's omission of the level. Colour, border, segment and caption settings remain available; `percentRested` still omits the level. Earned progress retains the selectable gilt gradient. A label placed on a horizontal bar has a small glass plate; a label below it needs none.
 
 ### Settings
 
@@ -60,7 +60,7 @@ LEE-20 (2026-11-09, "let the picture win") replaces the old four-unit segmented 
 | `fadeBlizzard` | `true` | Fade Blizzard's status tracking bars |
 | `<bar>.colorSource` | `gilt` for XP, `reaction` for reputation, `custom` for honour | Gilt filament (XP only), class colour, reaction colour (reputation only) or custom colour |
 | `<bar>.color` | `accentDefault`, `friendly`, `epic` | The custom colour |
-| `<bar>.texture` | Glass | Any status bar texture, LibSharedMedia's included |
+| `<bar>.texture` | Flat for XP, Glass for reputation/honour | Any status bar texture, LibSharedMedia's included |
 | `<bar>.orientation` | `HORIZONTAL` | `HORIZONTAL` or `VERTICAL`. A change swaps the element's width and height through `Layout.Update`. |
 | `<bar>.reverse` | `false` | Fill from the other end |
 | `<bar>.segments` | 0 | 0 to 20 equal segments, drawn as ticks one border wide; the mockup's experience line is unbroken |

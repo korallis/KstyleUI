@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 13
+Store.DB_VERSION = 15
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -339,6 +339,56 @@ Store.migrations[13] = function(data)
 			if next(entry) == nil then
 				layout["nameplates.plate"] = nil
 			end
+		end
+	end
+end
+
+Store.migrations[14] = function(data)
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local settings = type(profile.Layout) == "table" and profile.Layout or {}
+		local entry = type(layout) == "table" and layout["meters.threat"]
+		if settings.preset ~= "Tank" and type(entry) == "table" then
+			local anchor = entry.anchor or "BOTTOMRIGHT"
+			local x = entry.x == nil and -17 or entry.x
+			local y = entry.y == nil and 17 or entry.y
+			local width = entry.width == nil or near(entry.width, 269)
+			local height = entry.height == nil or near(entry.height, 144)
+			if anchor == "BOTTOMRIGHT" and near(x, -17) and near(y, 17) and width and height then
+				entry.anchor, entry.x, entry.y, entry.width, entry.height = nil, nil, nil, nil, nil
+			elseif entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil or not width or not height then
+				entry.anchor, entry.x, entry.y = anchor, x, y
+			end
+			if next(entry) == nil then
+				layout["meters.threat"] = nil
+			end
+		end
+	end
+end
+
+Store.migrations[15] = function(data)
+	local paths = {}
+	for _, item in ipairs(ns.Tokens.MediaList("statusbar")) do
+		paths[item.key] = item.path
+	end
+	for _, profile in pairs(data.profiles) do
+		local units = type(profile) == "table" and profile.UnitFrames
+		for _, kind in ipairs(type(units) == "table" and { "player", "target" } or {}) do
+			local values = units[kind]
+			if type(values) == "table" then
+				if values.style == nil or values.style == "column" then
+					if values.castbarTexture == "Glass" or values.castbarTexture == paths.Glass then
+						values.castbarTexture = paths.Flat
+					end
+				elseif values.castbarTexture == nil then
+					values.castbarTexture = paths.Glass
+				end
+			end
+		end
+		local bars = type(profile) == "table" and profile.DataBars
+		local xp = type(bars) == "table" and bars.xp
+		if type(xp) == "table" and (xp.texture == "Glass" or xp.texture == paths.Glass) then
+			xp.texture = paths.Flat
 		end
 	end
 end

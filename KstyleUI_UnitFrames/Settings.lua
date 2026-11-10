@@ -158,12 +158,12 @@ Settings.defaults = {
 	edit = "player",
 	player = Kind(true, {
 		style = "column", combat = true, resting = true, castbarIcon = false, castbarCaps = true, castbarColor = "gold",
-		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE,
-	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 18, 15, 10, 12 }),
+		healthColor = "hud", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE,
+	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
 		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
-		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, auraSpacing = 4,
-	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 18, 15, 10, 13 }),
+		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
+	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 15 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
@@ -182,6 +182,8 @@ Settings.defaults = {
 		spacing = 3,
 	},
 }
+
+Settings.defaults.target.fonts.aura.size = 12
 
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
@@ -371,6 +373,9 @@ function Settings.Font(kind, element)
 	end
 	local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or default
 	local role = LUMEN_ROLES[element]
+	if role == "names" and Settings.Form(kind) == "column" then
+		role = "unit"
+	end
 	local themePath = Tokens.Font(role and Settings.Form(kind) ~= "plate" and role or "body")
 	local path = themePath
 	local font = style.font

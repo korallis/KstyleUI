@@ -36,7 +36,7 @@ eq(point, "TOP", "the caption starts below the bar")
 eq(relative, xp.holder, "the holder owns the caption")
 eq(relativePoint, "BOTTOM", "the caption follows the bottom edge")
 eq(x, 0, "the caption is centred")
-eq(y, -K.Widgets.Snap(xp.holder, 6), "the caption clears the bar by six root units")
+eq(y, -K.Widgets.Snap(xp.holder, 6) + K.Widgets.Snap(xp.holder, 1.15), "the caption's six-unit gap includes the picture's snapped optical raise")
 for _, tick in ipairs(xp.ticks) do
 	eq(tick:IsShown(), false, "the default XP line has no ticks")
 end

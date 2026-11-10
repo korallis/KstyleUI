@@ -104,13 +104,16 @@ function Unit.HealthColor(view, unit)
 	ns.Style.HealthTint(view, r, g, b)
 end
 
-local function PowerTypeColor(unit)
+local function PowerTypeColor(unit, column)
 	local token = "MANA"
 	if unit then
 		local _, own = UnitPowerType(unit)
 		token = own
 	end
 	local colors = PowerBarColor
+	if column and not IsSecret(token) and token == "MANA" then
+		return Tokens.Color("hudMana")
+	end
 	local c = type(token) == "string" and not IsSecret(token) and colors and colors[token]
 	if type(c) == "table" and type(c.r) == "number" then
 		return Theme.Brighten(c.r, c.g, c.b)
@@ -127,7 +130,7 @@ function Unit.PowerColor(view, unit)
 		local c = s.powerCustom
 		SetColor(view.power, c.r, c.g, c.b)
 	elseif source == "power" then
-		SetColor(view.power, PowerTypeColor(unit))
+		SetColor(view.power, PowerTypeColor(unit, s.form == "column"))
 	else
 		SetColor(view.power, UnitColor(unit, source))
 	end
@@ -371,6 +374,7 @@ end
 function Unit.Refit(view)
 	if view.plainName then
 		SetName(view, view.plainName)
+		ns.Style.Baseline(view)
 	end
 end
 
@@ -383,6 +387,7 @@ function Unit.SetName(view, name)
 	if fit then
 		fit(view)
 	end
+	ns.Style.Baseline(view)
 end
 
 local function LevelColor(unit)
