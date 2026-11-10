@@ -20,7 +20,7 @@ Verified against the read-only Forever source at `~/.capy/work/wow-ui-source-708
 
 - `Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua`: `SetCountdownFormatter` (line 369) accepts a nil `NumericFormatter`; `GetCountdownFontString` returns the engine text region. No duration is extracted or formatted in Lua.
 - `Blizzard_APIDocumentationGenerated/SimpleScriptRegionResizingAPIDocumentation.lua`: `ClearAllPoints` (22), `SetPoint` (135) prove the cosmetic FontString anchors. Only countdown FontStrings are reanchored; Blizzard item frames are never moved.
-- `Blizzard_APIDocumentationGenerated/SimpleFontStringAPIDocumentation.lua`: `SetJustifyH` (560); `SimpleFontAPIDocumentation.lua` proves `SetFont`. The kit's number role supplies its bold font.
+- `Blizzard_APIDocumentationGenerated/SimpleFontStringAPIDocumentation.lua`: `SetJustifyH` (560); `SimpleFontAPIDocumentation.lua` proves `SetFont`. The kit's number role supplies the essential row's bold font and its timer role the medium font of every other timer.
 - `Blizzard_CooldownViewer/CooldownViewer.xml`: essential `Cooldown` and `ChargeCount.Current`, and tracked buff `Cooldown` and `Applications.Applications`, prove the engine-owned fields being styled. The former keeps its bottom-right charge anchors; no visibility getter is needed.
 - `Blizzard_CooldownViewer/CooldownViewer.lua:2078` and `CooldownViewerSettingsDataProvider.lua:249`: `GetCooldownIDs` follows the configured ordered IDs; the module preserves that order and changes only grid positions. No remaining-duration read or sort was added.
 
@@ -127,7 +127,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown. On the tracked buff row every socket shows a buff and a `+N` chip one socket to the left of the full row counts the rest; pointing at it lists them with their time left |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
-| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 16.5, 11 or 9; 10, 11 or 9 | The countdown numbers and count for essential, utility and tracked-buff icons. Essentials use the bold number role; tracked durations use the lighter caption role |
+| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 16.5, 11 or 9; 10, 11 or 9 | The countdown numbers and count for essential, utility and tracked-buff icons. Essentials use the bold number role; utility and tracked durations use the lighter timer role (Alegreya Sans Medium) |
 | `<cooldowns>.gcd` | `false` | Sweep every icon during the global cooldown |
 | `<cooldowns>.desaturate` | `false` | Grey an icon while its spell is on a real cooldown. Off by default: the composition mockup keeps a cooling icon in colour under its swipe |
 | `<cooldowns>.usable` | `true` | Dim an icon while its spell cannot be cast |

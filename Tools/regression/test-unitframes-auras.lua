@@ -32,6 +32,7 @@ local aura = button._aura
 assert(aura.SetIcon and aura.SetIcon[1]:GetObjectType() == "Texture", "the engine gets an icon texture")
 assert(aura.SetDurationCooldown and aura.SetDurationCooldown[1]:GetObjectType() == "Cooldown", "the engine gets a cooldown for the swipe")
 assert(aura.SetApplicationCount and aura.SetApplicationCount[1]:GetObjectType() == "FontString", "the engine gets a stack count")
+assert(aura.SetApplicationCount[1]:GetFont() == K.Tokens.Font("timer"), "aura text reads in the timer role, the medium that fits the picture")
 assert(aura.dispel and #aura.dispel > 0, "debuff borders follow the dispel type")
 assert(aura.SetIcon[1]:GetParent() ~= button, "the art sits on a child frame of the button")
 local w, h = button:GetSize()

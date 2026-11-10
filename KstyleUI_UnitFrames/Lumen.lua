@@ -26,6 +26,7 @@ local ROLES = {
 	name = "names",
 	cap = "caps",
 	value = "number",
+	time = "time",
 	caption = "body",
 }
 

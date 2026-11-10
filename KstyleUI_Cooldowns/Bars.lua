@@ -68,7 +68,7 @@ function BarRow:StyleBar(bar)
 		countdown:ClearAllPoints()
 		countdown:SetPoint("RIGHT", bar, "RIGHT", -inset, 0)
 		countdown:SetJustifyH("RIGHT")
-		Style.Font(countdown, current.timerFont, cfg.timerSize, current.timerOutline)
+		Style.Font(countdown, current.timerFont, cfg.timerSize, current.timerOutline, "timer")
 		if cfg.timer then
 			nameEnd, nameEndPoint = countdown, "LEFT"
 		end
@@ -116,7 +116,7 @@ function BarRow:Bar(index)
 	bar.timer = timer
 	local countdown = timer:GetCountdownFontString()
 	if countdown then
-		Widgets.StyleText(countdown, "number")
+		Widgets.StyleText(countdown, "timer")
 		Widgets.TextColor(countdown, "textEmphasis")
 	end
 	bar.countdown = countdown

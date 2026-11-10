@@ -35,7 +35,7 @@ function Row:StyleIcon(icon)
 	icon.cooldown:SetReverse(self.group == "buffs")
 	Style.Countdown(icon.cooldown, self.group == "essential")
 	icon.greyWhileCooling = cfg.desaturate
-	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline, self.group == "buffs" and "caption" or nil)
+	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline, self.group ~= "essential" and "timer" or nil)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
 	Style.PlaceText(icon, self.group)
 	Style.Mouse(icon, current.tooltips)
