@@ -82,7 +82,7 @@ Nothing on Blizzard's frames is reparented, moved, resized, hidden or scripted.
 
 ### Cast bar
 
-The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar as a flat six-unit tan line. The icon, spell name and time left are off by default, and remain settings. `cast.hideOnTarget` is off by default; switching it on suppresses the target plate's cast only while the UnitFrames target cast is enabled.
+The cast bar is a component: it adds itself to `ns.Components` with `Build`, `Restyle`, `Refresh`, `Clear`, `Room` (the height it reserves under the health bar) and the unit events it handles. It sits under the health bar as a flat six-unit tan line. The icon, spell name and time left are off by default, and remain settings. While the plate font follows the kit, the spell name reads in `body` and the time left in `time`, as the unit frames' cast times do; a chosen plate font applies to both. `cast.hideOnTarget` is off by default; switching it on suppresses the target plate's cast only while the UnitFrames target cast is enabled.
 
 | Moment | What happens |
 | --- | --- |

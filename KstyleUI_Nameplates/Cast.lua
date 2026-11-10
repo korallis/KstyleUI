@@ -77,10 +77,10 @@ local function ColorObjects()
 	return open, ColorObject(colors.shield, ShieldColor())
 end
 
-local function StyleFont(text)
+local function StyleFont(text, role)
 	local flags = OUTLINE_FLAGS[Settings.Get("cast.outline")] or "OUTLINE"
 	local size = Settings.Get("cast.textSize")
-	if not Widgets.ApplyFont(text, Settings.Get("font"), size, flags) then
+	if not Widgets.ApplyFont(text, Settings.Get("font", role), size, flags) then
 		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 	end
 end
@@ -418,7 +418,7 @@ function Component.Restyle(plate)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
 	bar:Restyle()
 	StyleFont(plate.castName)
-	StyleFont(plate.castTime)
+	StyleFont(plate.castTime, "time")
 	plate.castName:ClearAllPoints()
 	plate.castName:SetPoint("LEFT", bar, "LEFT", Widgets.Snap(plate, TEXT_INSET), 0)
 	plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)

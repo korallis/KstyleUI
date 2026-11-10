@@ -184,4 +184,16 @@ do
 	assert(#game._errors == 0, tostring(game._errors[1]))
 end
 
+-- The title roles live in the type set's data: no tooltip file names a type set.
+for _, file in ipairs(T.Files()) do
+	if file:match("^KstyleUI_Tooltips/.*%.lua$") then
+		local handle = assert(io.open(file, "rb"))
+		local source = handle:read("*a")
+		handle:close()
+		for set in pairs({ Folio = true, Lumen = true }) do
+			assert(not source:find('"' .. set .. '"', 1, true), file .. " tests the " .. set .. " type set by name")
+		end
+	end
+end
+
 print("tooltip semantic names and Lumen compatibility ok")
