@@ -3,8 +3,11 @@ local N = dofile("Tools/regression/nameplates_env.lua")
 local SameColor = N.SameColor
 
 local function barColor(bar)
-	local r, g, b = bar:GetStatusBarColor()
-	return r, g, b
+	local source = bar.fillSource
+	if source then
+		return source[1], source[2], source[3]
+	end
+	return bar:GetStatusBarColor()
 end
 
 local function setting(ns, key)
@@ -177,7 +180,7 @@ do
 	assert(point == "BOTTOM" and relativePoint == "TOP", "centred above the badge")
 	local _, raidRelative = plate.raid:GetPoint(1)
 	assert(raidRelative == plate.health, "the raid marker keeps the bar's right end to itself")
-	assert(N.Same(plate.name:GetWidth(), ns.state.width + 40), "the centred cap can overhang the bar without ellipsising a normal creature name")
+	assert(N.Same(plate.name:GetWidth(), K.Widgets.Snap(plate.name, ns.state.width + 40)), "the centred cap can overhang the bar without ellipsising a normal creature name")
 end
 
 print("nameplates types ok")
