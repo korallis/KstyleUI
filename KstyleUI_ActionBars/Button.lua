@@ -43,7 +43,7 @@ local function Flag(v, secretValue)
 	if IsSecret(v) then
 		return secretValue
 	end
-	return v == true
+	return v == true or v == 1
 end
 
 local function Log(message)
@@ -595,15 +595,6 @@ local function OnClick(b, mouse, down)
 	Widgets.Press(b, down == true)
 end
 
-local function PostClick(b, mouse, down)
-	if b.kind == "pet" and mouse == "RightButton" and not down and b.autoCastAllowed and b.petSpell then
-		local spell = C_Spell
-		if spell and type(spell.ToggleSpellAutoCast) == "function" then
-			spell.ToggleSpellAutoCast(b.petSpell)
-		end
-	end
-end
-
 function Button.New(bar, index)
 	local def = bar.def
 	local cfg = ns.Config(def.key)
@@ -634,7 +625,13 @@ function Button.New(bar, index)
 	elseif def.kind == "pet" then
 		b:SetAttribute("type", "pet")
 		b:SetAttribute("action", index)
-		b:SetAttribute("type2", NOOP)
+		local delegate = PetActionBar and PetActionBar.actionButtons and PetActionBar.actionButtons[index]
+		if delegate then
+			b:SetAttribute("type2", "click")
+			b:SetAttribute("clickbutton", delegate)
+		else
+			b:SetAttribute("type2", NOOP)
+		end
 	end
 	if def.kind ~= "stance" then
 		b:RegisterForDrag("LeftButton", "RightButton")
@@ -669,6 +666,5 @@ function Button.New(bar, index)
 	b:HookScript("OnEnter", OnEnter)
 	b:HookScript("OnLeave", OnLeave)
 	b:HookScript("OnClick", OnClick)
-	b:HookScript("PostClick", PostClick)
-	return ns.Socket.Decorate(b)
+		return ns.Socket.Decorate(b)
 end
