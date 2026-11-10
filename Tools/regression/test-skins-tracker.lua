@@ -428,6 +428,7 @@ do
 		end,
 	})
 	local Style, Lumen = ns.Style, ns.Lumen
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	K.Modules.Enable("Skins")
 	assert(ns.Skins.IsApplied("tracker"))
 	local tracker, quests = p.tracker, p.modules[1]

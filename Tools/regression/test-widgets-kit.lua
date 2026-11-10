@@ -189,6 +189,7 @@ end
 -- and no grain.
 do
 	local env, K = W.New()
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	local Scale, Tokens = K.Scale, K.Tokens
 	local line = Scale.Border()
 	local _, c = chrome(env, K, "panel")
@@ -238,6 +239,7 @@ end
 -- shows none, and so does a card with a pinned corner.
 do
 	local env, K = W.New()
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	local Scale, Tokens = K.Scale, K.Tokens
 	local line = Scale.Border()
 	local tick = Scale.Snap(Tokens.Size("tick"))
@@ -398,6 +400,7 @@ end
 -- The kit settings restyle chrome: the panel opacity and the shadow switch.
 do
 	local env, K = W.New()
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	local _, c = chrome(env, K, "panel")
 	K.Options.Write("Widgets", "panelOpacity", 0.6)
 	local _, _, _, a = c.fill[5]:GetVertexColor()

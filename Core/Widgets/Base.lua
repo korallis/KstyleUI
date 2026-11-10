@@ -8,7 +8,7 @@ local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
 local abs, ceil, floor, log, max, min = math.abs, math.ceil, math.floor, math.log, math.max, math.min
 
 local SECTION = "Widgets"
-local DEFAULT_CARD_MATERIAL = "Glass"
+local DEFAULT_CARD_MATERIAL = "ForgedBrackets"
 local FALLBACK_FONT = "GameFontHighlight"
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
@@ -844,6 +844,7 @@ function Widgets.Chrome(owner, opts)
 		shapeName = shapeName,
 		radius = opts.radius or opts.chamfer,
 		share = opts.share,
+		materialOn = opts.grain ~= false,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or shape.fill or "surface",
 		ownEdge = opts.edge ~= nil and opts.edge ~= "edgeInner",
@@ -1025,7 +1026,7 @@ local function ShowOnce(chrome, key, slice, shown)
 end
 
 function Chrome:Material()
-	if self.shape.card and self.fillName == "surface" then
+	if self.shape.card and self.materialOn and not self.radius and not self.share and self.fillName == "surface" then
 		if self.ownFill then
 			local r, g, b = Tokens.Color("surface")
 			local c = self.fillColor
@@ -1123,7 +1124,7 @@ function Chrome:PaintMaterial()
 		self.frameReady = min(w, h) >= 16 * pixels * pixel
 		if self.frameReady then
 			Widgets.LayoutSlice(self.materialFrame, owner, 8 * pixels * pixel, 0)
-			Widgets.ColorSlice(self.materialFrame, Tokens.Color("white"))
+			Widgets.ColorSlice(self.materialFrame, Widgets.Rgba("white", min(1, self:MaterialOpacity())))
 		end
 		if material.brackets then
 			if not self.materialBrackets then
@@ -1136,6 +1137,7 @@ function Chrome:PaintMaterial()
 			for i, corner in ipairs(corners) do
 				local bracket = self.materialBrackets[i]
 				bracket:SetTexture(Tokens.Texture("forgedBracket" .. pixels))
+				bracket:SetVertexColor(Widgets.Rgba("white", min(1, self:MaterialOpacity())))
 				local share = pixels == 3 and 0.75 or 1
 				local left, right = i % 2 == 1 and 0 or share, i % 2 == 1 and share or 0
 				local top, bottom = i <= 2 and 0 or share, i <= 2 and share or 0

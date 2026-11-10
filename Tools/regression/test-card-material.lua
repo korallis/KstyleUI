@@ -2,10 +2,35 @@
 local W = dofile("Tools/regression/widget_env.lua")
 local screens = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }
 local total = 0
+do
+	local env, K = W.New()
+	K.Store.Module("Widgets").cardMaterial = "ForgedBrackets"
+	for _, opts in ipairs({ { radius = 10.5 }, { chamfer = 10.5 }, { share = 0.5 }, { grain = false } }) do
+		local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
+		frame:SetSize(34, 34)
+		local chrome = K.Widgets.Chrome(frame, opts)
+		assert(chrome:Material() == nil, "custom silhouettes and grain opt-outs keep their authored surface")
+		assert(not chrome.materialFrame and not chrome.materialBrackets and not chrome.grain)
+		assert(W.SameColor(chrome.fill[5], K.Tokens.Color("surface")))
+	end
+	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200 })
+	local chrome = panel.chrome
+	for _, opacity in ipairs({ 0, 0.4, 0.75, 1 }) do
+		chrome:SetFillRGBA(K.Widgets.Rgba("surface", opacity / 0.75))
+		local wanted = math.min(1, opacity / 0.75)
+		assert(W.Near(chrome.materialFrame[1]._state.VertexColor[4], wanted))
+		assert(W.Near(chrome.materialBrackets[1]._state.VertexColor[4], wanted))
+	end
+	chrome:SetRadius(10.5)
+	assert(chrome:Material() == nil and not chrome.materialFrame[1]:IsShown() and not chrome.grain:IsShown())
+	chrome:SetRadius(nil)
+	assert(chrome.materialFrame[1]:IsShown() and chrome.grain:IsShown())
+	assert(#env._errors == 0)
+end
 for _, screen in ipairs(screens) do
 	for _, size in ipairs({ 0.6, 16 / 19, 1.5 }) do
 		local env, K = W.New({ width = screen[1], height = screen[2], size = size })
-		assert(K.Widgets.Setting("cardMaterial") == "Glass")
+		assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets")
 		local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Material" })
 		local chrome = panel.chrome
 		local radius, titleX = chrome:Radius(), panel.titleText._points[1][4]
@@ -72,7 +97,7 @@ for _, screen in ipairs(screens) do
 			total = total + 1
 		end
 		K.Store.Module("Widgets").cardMaterial = "invalid"
-		assert(K.Widgets.Setting("cardMaterial") == "Glass")
+		assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets")
 		assert(#env._errors == 0)
 		collectgarbage("collect")
 	end
@@ -119,6 +144,7 @@ do
 end
 do
 	local env, K = W.New()
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
 	owner:SetSize(300, 180)
 	local chrome = K.Widgets.Chrome(owner, { shape = "card" })

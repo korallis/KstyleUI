@@ -49,6 +49,7 @@ end
 
 -- Cards, panels, windows and rails: the owner's picture of 2026-11-09. The card fill, a dark edge line and a muted rim
 -- one line inside it, on a corner six border lines round; the shadow is drawn but off unless the setting turns it on.
+K.Options.Write("Widgets", "cardMaterial", "Glass")
 for _, shape in ipairs({ "panel", "card", "window", "rail" }) do
 	local frame, chrome, textures = Build(shape)
 	for _, name in ipairs({ "CardShape.png", "RingLine6.png", "RingLine5.png" }) do

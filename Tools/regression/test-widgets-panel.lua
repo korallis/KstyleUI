@@ -9,6 +9,7 @@ end
 -- A plain panel: snapped size, panel chrome with a shadow, a content frame inside the padding.
 do
 	local env, K, panel = panelWith({ width = 300.3, height = 180 })
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	local Scale = K.Scale
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
 	assert(W.Near(panel:GetWidth(), Scale.Snap(300.3)) and W.Near(panel:GetHeight(), Scale.Snap(180)), "the size is snapped to whole pixels")
@@ -41,6 +42,7 @@ do
 		end,
 	})
 	local Tokens = K.Tokens
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	assert(panel.titleText:GetText() == "PANEL TITLE", "the title is upper case")
 	local font = W.LastCall(panel.titleText, "SetFont")
 	assert(font[1] == (Tokens.Font("caps")) and font[2] == math.max(Tokens.Size("caps"), K.Widgets.CAPS_SIZE * K.Theme.FontScale()), "the title is a gold caps caption at the card caption size: Lumen's window titles")

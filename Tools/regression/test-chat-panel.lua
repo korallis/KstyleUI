@@ -430,6 +430,7 @@ end
 -- Glass opacity and shadow settings repaint the panel.
 do
 	local env, K, ns = C.New()
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	C.Enable(env, K)
 	local holder = ns.Panel.Holder()
 	K.Options.Write("Chat", "panelOpacity", 0.4)
@@ -442,6 +443,19 @@ do
 	K.Layout.Set("chat.main", "strata", "HIGH")
 	assert(holder:GetFrameStrata() == "HIGH", "Layout sets the element's strata")
 	assert(glass:GetFrameStrata() == "BACKGROUND" and W.LastCall(glass, "SetFixedFrameStrata")[1] == true, "the glass stays behind Blizzard's chat")
+end
+
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "chat inherits the forged default")
+	K.Options.Write("Chat", "panelOpacity", 0.4)
+	local chrome = ns.Panel.Glass().chrome
+	local r, g, b, a = K.Tokens.Color("materialForged")
+	assert(W.SameColor(chrome.fill[5], r, g, b, math.min(1, a * 0.4 / 0.75)), "chat opacity scales the forged fill relative to its authored strength")
+	assert(chrome.grain:IsShown() and chrome.materialFrame[1]:IsShown() and chrome.materialBrackets[1]:IsShown(), "chat keeps the forged grain, frame and brackets")
+	assert(not chrome.gilt[1]:IsShown(), "brackets replace the glass ticks")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- The edit box shows only while the player types: at rest its alpha is 0, whatever Blizzard set, and a box being

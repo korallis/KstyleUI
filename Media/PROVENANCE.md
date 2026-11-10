@@ -99,7 +99,7 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Textures/ForgedRule.png` | 256x4 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
 <!-- END make_media -->
 
-## Card material study (2026-11-10, not a default change)
+## Card materials (study sources, 2026-11-10)
 
 The Captain generated original style sources through Higgsfield `generateImage`, model `gpt_image_2_6`, on 2026-11-10. Source files and exact prompts are retained in the Captain drive at `handoffs/material-study/` and its `diablo4/` folder. The built-in image tool had no organisation credits; Higgsfield was callable only from the Captain's thread. The owner's direction was "assets should be based around Diablo 4 for that ultimate polish feel". No actual Diablo asset was used, traced or extracted.
 

@@ -22,6 +22,7 @@ assert(not pcall(Widgets.LumenColor, "noSuchLumenName"), "an unknown name is an 
 assert(pcall(Widgets.LumenColor, "hostile"), "a plain token name passes straight through")
 
 -- The rail cap adapter: a thin wrapper over the kit's SectionCap, so the rail cards keep one call shape.
+K.Options.Write("Widgets", "cardMaterial", "Glass")
 local card = env.CreateFrame("Frame", nil, root)
 card:SetSize(318, 120)
 local cap = Widgets.RailCap(card, { title = "Blessings" })

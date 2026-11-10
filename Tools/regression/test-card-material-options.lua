@@ -6,9 +6,32 @@ local labels = { "Glass", "Flat", "Slate", "Forged iron, gilt ticks", "Forged ir
 
 do
 	local _, K = W.New({ boot = false })
-	assert(K.Store.Defaults("Widgets").cardMaterial == "Glass", "Glass remains the registered default")
-	assert(K.Widgets.Setting("cardMaterial") == "Glass", "the default is available before saved data loads")
+	assert(K.Store.Defaults("Widgets").cardMaterial == "ForgedBrackets", "the owner's bracket choice is the registered default")
+	assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "the default is available before saved data loads")
 	assert(K.Widgets.Setting("panelOpacity") == 0.75, "the existing opacity default is preserved")
+	local saved = {
+		version = K.Store.DB_VERSION,
+		profiles = {
+			Default = { Widgets = { panelOpacity = 0.6 } },
+			OriginalGlass = { Widgets = { cardMaterial = "Glass" } },
+		},
+		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
+	}
+	local savedEnv, savedK = W.New({ saved = saved })
+	assert(savedK.Widgets.Setting("cardMaterial") == "ForgedBrackets", "an existing unselected profile inherits the new default")
+	assert(savedK.Widgets.Setting("panelOpacity") == 0.6, "an existing opacity override is preserved")
+	assert(savedK.Store.SetProfile("OriginalGlass"))
+	assert(savedK.Widgets.Setting("cardMaterial") == "Glass", "an explicit saved Glass choice is preserved")
+	assert(savedK.Store.SetProfile("Default"))
+	assert(savedK.Widgets.Setting("cardMaterial") == "ForgedBrackets", "switching back restores the inherited default")
+	W.CoreEnv.Logout(savedEnv)
+	assert(savedEnv.KstyleUIDB.profiles.Default.Widgets.cardMaterial == nil, "the inherited default is not saved as an explicit choice")
+	assert(savedEnv.KstyleUIDB.profiles.OriginalGlass.Widgets.cardMaterial == "Glass", "Glass remains an explicit choice after saving")
+	local reloadedEnv, reloadedK = W.New({ saved = savedEnv.KstyleUIDB })
+	assert(reloadedK.Widgets.Setting("cardMaterial") == "ForgedBrackets", "the inherited default survives reloading saved data")
+	assert(reloadedK.Store.SetProfile("OriginalGlass"))
+	assert(reloadedK.Widgets.Setting("cardMaterial") == "Glass", "the explicit Glass choice survives reloading saved data")
+	assert(#savedEnv._errors == 0 and #reloadedEnv._errors == 0)
 end
 
 local env, K, ns = O.New({ before = function(_, core) core.Store.Account().setupSeen = true end })
@@ -25,21 +48,22 @@ for i, value in ipairs(values) do
 end
 
 local settings = K.Store.Module("Widgets")
+assert(settings.cardMaterial == "ForgedBrackets", "a new profile starts on the forged default")
 for _, value in ipairs(values) do
 	settings.cardMaterial = value
 	assert(K.Widgets.Setting("cardMaterial") == value, "each approved stored value validates")
 end
 for _, invalid in ipairs({ "", "glass", "missing", 42, false, true, {} }) do
 	settings.cardMaterial = invalid
-	assert(K.Widgets.Setting("cardMaterial") == "Glass", "invalid saved values fall back to Glass")
+	assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "invalid saved values fall back to the selected default")
 end
 settings.cardMaterial = env.Secret("Slate")
-assert(K.Widgets.Setting("cardMaterial") == "Glass", "a secret saved value falls back without inspection")
+assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "a secret saved value falls back without inspection")
 settings.cardMaterial = nil
-assert(K.Widgets.Setting("cardMaterial") == "Glass", "old profiles with no material keep Glass")
+assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "profiles with no material inherit the new default")
 local issecretvalue = env.issecretvalue
 env.issecretvalue = nil
-assert(K.Widgets.Setting("cardMaterial") == "Glass", "the setting works when secret detection is unavailable")
+assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "the setting works when secret detection is unavailable")
 env.issecretvalue = issecretvalue
 settings.cardMaterial = K.Widgets.defaults.cardMaterial
 
@@ -59,7 +83,12 @@ local function painted(value)
 	assert((chrome.materialFrame ~= nil and chrome.materialFrame[1]:IsShown()) == (spec.frame == true), value .. " updates the frame")
 	assert(chrome.gilt[1]:IsShown() == (value ~= "ForgedBrackets"), value .. " updates gilt tick visibility")
 end
-painted("Glass")
+painted("ForgedBrackets")
+assert(chrome.grain:GetTexture() == K.Tokens.Texture("materialForged"), "the default uses the forged grain")
+assert(#chrome.materialBrackets == 4, "the default has four brackets")
+for _, bracket in ipairs(chrome.materialBrackets) do
+	assert(bracket:IsShown(), "every default bracket is visible")
+end
 
 assert(K.Options.Open("General"))
 env.RunTimers()
@@ -80,7 +109,7 @@ local row = O.Find(content.rows, function(candidate)
 end)
 assert(row and row.controls.dropdown, "the real Options row creates a dropdown control")
 local dropdown = row.controls.dropdown
-assert(dropdown:GetValue() == "Glass", "the control displays the preserved default")
+assert(dropdown:GetValue() == "ForgedBrackets", "the control displays the new default")
 assert(not dropdown:SetValue("missing"), "the dropdown rejects unlisted values")
 for i = 2, #values do
 	assert(dropdown:SetValue(values[i]))
@@ -98,20 +127,20 @@ K.Options.Write("Widgets", "panelOpacity", 0.75)
 painted("Slate")
 K.Options.Write("Widgets", "cardMaterial", "missing")
 assert(settings.cardMaterial == "missing", "validation does not rewrite saved settings")
-painted("Glass")
+painted("ForgedBrackets")
 
 local original = K.Store.ProfileName()
 assert(K.Store.CreateProfile("Material options"))
 assert(K.Store.SetProfile("Material options"))
-painted("Glass")
-K.Options.Write("Widgets", "cardMaterial", "ForgedBrackets")
 painted("ForgedBrackets")
-assert(K.Store.SetProfile(original))
+K.Options.Write("Widgets", "cardMaterial", "Glass")
 painted("Glass")
+assert(K.Store.SetProfile(original))
+painted("ForgedBrackets")
 K.Options.Write("Widgets", "cardMaterial", "ForgedTicks")
 painted("ForgedTicks")
 assert(K.Store.SetProfile("Material options"))
-painted("ForgedBrackets")
+painted("Glass")
 assert(K.Store.SetProfile(original))
 painted("ForgedTicks")
 
