@@ -74,7 +74,11 @@ local function EndChar(text, last)
 end
 
 function BarList.DotGap(fontSize, pixel)
-	return K.Widgets.DotGap(fontSize, pixel, DOT_GAP_EM)
+	local step = Logic.Plain(pixel)
+	if not step or step <= 0 then
+		step = K.Scale.Pixel(1)
+	end
+	return K.Widgets.DotGap(fontSize, step, DOT_GAP_EM)
 end
 
 function BarList.JoinOffsets(lastChar, firstChar, fontSize, pixel)
