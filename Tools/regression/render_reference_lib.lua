@@ -55,6 +55,15 @@ return function(preset, built)
 	assert(questCount == 4, preset .. " draws all four picture quests, got " .. questCount)
 	local Scene = dofile("Tools/render/scene.lua")
 	assert(firstObjective and Scene.WrappedLines(Scene.PlainText(firstObjective.text), firstObjective.font.size, firstObjective.font.path, firstObjective.rect[3]) == 3, preset .. " draws the first objective on three lines")
+	local counts = 0
+	for _, item in ipairs(built.items) do
+		if item.kind == "text" and (item.text == "0/6" or item.text == "0/8" or item.text == "0/1") and item.rect[1] > 1600 and item.rect[2] > 380 and item.rect[2] < 480 then
+			local right = (item.rect[1] + item.rect[3]) * 2.0685
+			assert(math.abs(right - 3398) <= 1, preset .. " keeps the resting quest count at the picture's right edge, got " .. right)
+			counts = counts + 1
+		end
+	end
+	assert(counts == 3, preset .. " checks all three objective counts")
 	for _, text in ipairs({ "45s", "7s", "9s", "8s", "14s", "Lightning Bolt", "Searing Totem", "203", "Korallis", "Shadowgale Poacher", "[11] Unnerving Silence", "[9] Crab Season", "You receive loot:" }) do
 		local found = false
 		for drawn in pairs(seen) do

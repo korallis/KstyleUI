@@ -126,6 +126,39 @@ local function RootRect(K, object)
 	return assert(Geometry.ScaledRect(object, root._env.UIParent, root))
 end
 
+do
+	local env, K, ns = Boot({ quests = Quests.List(7), measure = true })
+	local card, parts = ns.Quests.Card(), ns.Quests.Parts()
+	local before = {}
+	local edge = RootRect(K, parts.view).right - K.Widgets.Snap(card, 1)
+	local function CountRight(row, line)
+		local point, relative, on, x = line.count:GetPoint(1)
+		assert(point == "TOPRIGHT" and relative == row and on == "TOPRIGHT", "counts keep a right anchor on their own row")
+		return RootRect(K, row).right + x * K.Widgets.ScaleFactor(row)
+	end
+	for i, row in ipairs(ns.Quests.Rows()) do
+		if row:IsShown() then
+			local line = row.lines[1]
+			local right = CountRight(row, line)
+			assert(math.abs(right - edge) < 1e-6, "a resting count uses the normal content edge, not a hidden scrollbar's gutter")
+			before[i] = { row.span, line.text:GetWidth(), line.text:GetHeight(), right }
+		end
+	end
+	card._mouseOver = true
+	card:GetScript("OnEnter")(card)
+	assert(parts.thumb:GetAlpha() == 1 and parts.track:GetAlpha() == 1, "hover reveals the scrollbar")
+	local bar = RootRect(K, parts.track)
+	assert(bar.right < RootRect(K, card).right, "the hover scrollbar remains inside the glass")
+	assert(parts.track:GetParent() ~= parts.view, "the scrollbar is not clipped by the text viewport")
+	for i, values in pairs(before) do
+		local row, line = ns.Quests.Rows()[i], ns.Quests.Rows()[i].lines[1]
+		local right = CountRight(row, line)
+		assert(right < bar.left, "the hover scrollbar never covers a count")
+		assert(row.span == values[1] and line.text:GetWidth() == values[2] and line.text:GetHeight() == values[3] and right == values[4], "hover changes neither wrapping, row height nor count position")
+	end
+	Clean(env, K)
+end
+
 -- Four of ten: the card shows four quests (the picture's count, LEE-20), the super-tracked one first and marked, and counts all ten -------------
 
 do
@@ -608,13 +641,14 @@ do
 	assert(math.abs(c.top - t.top) <= 0.01, "the count stays on the first line, got " .. c.top .. " for " .. t.top)
 	assert(c.top - c.bottom < t.top - t.bottom, "one line high, the words are more")
 	assert(t.right <= c.left + 0.01, "the words end before the count column, got " .. t.right .. " for " .. c.left)
-	assert(math.abs(c.right - RootRect(K, rows[2]).right) <= 0.01, "the count stays right-aligned")
+	assert(math.abs(c.right - (RootRect(K, ns.Quests.Parts().view).right - K.Widgets.Snap(ns.Quests.Card(), 1))) <= 0.01, "the count stays at the normal content edge")
 
 	local socketed, bare = rows[3], rows[2]
 	local s3 = RootRect(K, socketed.socket)
 	local w3, w2 = RootRect(K, Text(socketed, 1)), RootRect(K, Text(bare, 1))
 	assert(socketed.socket:IsShown(), "the item quest has its socket")
 	assert(w3.right <= s3.left + 0.01, "the words stay clear of the item socket, got " .. w3.right .. " for " .. s3.left)
+	assert(CountRect(socketed, socketed.lines[1]).right <= s3.left - K.Widgets.Snap(ns.Quests.Card(), 4) + 0.01, "a socketed quest keeps its count left of the item, not on the outer count edge")
 	assert(w3.right - w3.left < w2.right - w2.left - 20, "with a count and a socket the words get a narrower room")
 	assert(High(socketed, 1) >= High(bare, 1) - 0.01, "so they take at least as many lines")
 	assert(CountRect(socketed, socketed.lines[1]).right <= s3.left + 0.01, "and the count sits left of the socket")
