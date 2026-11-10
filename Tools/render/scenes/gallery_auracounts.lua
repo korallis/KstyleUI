@@ -90,6 +90,8 @@ local function Lay(env, K, ns, view, n)
 			entry.icon:SetTexture(env.Secret(icon(i + n)))
 			Widgets.SetText(entry.timer, (2 + i * 3) .. "s")
 			Widgets.SetText(entry.count, i % 5 == 2 and "3" or "")
+			entry.timer:ClearAllPoints()
+			entry.timer:SetPoint("BOTTOM", entry.skin, "BOTTOM", 0, Widgets.Snap(entry.skin, 1))
 		else
 			button:Hide()
 		end

@@ -243,6 +243,40 @@ do
 	assert(#qenv._errors == 0, "1440p: " .. tostring(qenv._errors[1]))
 end
 
+local function crosses(timer, bar)
+	if not timer or not bar or not timer:GetLeft() or not bar:GetLeft() then
+		return false
+	end
+	return timer:GetLeft() < bar:GetRight() and timer:GetRight() > bar:GetLeft() and timer:GetBottom() < bar:GetTop() and timer:GetTop() > bar:GetBottom()
+end
+
+local function shifted(bar, dx)
+	return {
+		GetLeft = function() return bar:GetLeft() + dx end,
+		GetRight = function() return bar:GetRight() + dx end,
+		GetBottom = function() return bar:GetBottom() end,
+		GetTop = function() return bar:GetTop() end,
+	}
+end
+
+K.Options.Write("UnitFrames", "target.auras", true)
+K.Options.Write("UnitFrames", "target.auraPosition", "SIDE")
+local sideView = Frames.Get("target").views[1]
+ns.Auras.Apply(sideView)
+local sideHost = sideView.auras.host
+local sideSize = K.Widgets.Snap(sideHost, ns.Settings.Value("target", "auraSize"))
+local sideEntry = sideView.auras.buttons[1]
+sideEntry.button:ClearAllPoints()
+sideEntry.button:SetSize(sideSize, sideSize)
+sideEntry.button:SetPoint("TOPLEFT", sideHost, "TOPLEFT", 0, 0)
+sideEntry.button:Show()
+sideEntry.timer:SetText("5s")
+sideEntry.timer:SetSize(12, 10)
+local neighbour = shifted(sideView.health, 548)
+assert(crosses(sideEntry.timer, neighbour), "staging's side lane crosses the next column's health bar")
+ns.Auras.ClearTimers(sideView, { sideView.health, sideView.power, neighbour })
+assert(not crosses(sideEntry.timer, sideView.health) and not crosses(sideEntry.timer, sideView.power) and not crosses(sideEntry.timer, neighbour), "the timer leaves every bar it crossed")
+
 -- Without the engine, the frames still work and the devlog says why.
 local nenv, NK = U.New({ setup = function(e)
 	local create = e.CreateFrame

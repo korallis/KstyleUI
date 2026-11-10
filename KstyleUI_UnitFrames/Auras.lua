@@ -183,6 +183,74 @@ function Auras.TimerRoom(kind)
 	return TimerRoom(kind)
 end
 
+local function Edge(value)
+	return type(value) == "number" and not issecretvalue(value)
+end
+
+local function Box(left, right, bottom, top)
+	if not (Edge(left) and Edge(right) and Edge(bottom) and Edge(top)) then
+		return nil
+	end
+	return left, right, bottom, top
+end
+
+local function Span(timer, skin, kind)
+	if timer and timer.GetLeft then
+		local left, right, bottom, top = Box(timer:GetLeft(), timer:GetRight(), timer:GetBottom(), timer:GetTop())
+		if left then
+			return left, right, bottom, top
+		end
+	end
+	if not skin or not skin.GetLeft then
+		return nil
+	end
+	local gap = Widgets.Snap(skin, Settings.Form(kind) == "column" and COLUMN_TIMER_GAP or TIMER_BELOW_GAP)
+	local _, fontSize = Settings.Font(kind, "aura")
+	local bottomEdge = skin:GetBottom()
+	if not Edge(bottomEdge) or not Edge(gap) then
+		return nil
+	end
+	local height = TextSize(kind, fontSize)
+	return Box(skin:GetLeft(), skin:GetRight(), bottomEdge - gap - height, bottomEdge - gap)
+end
+
+local function Crosses(timer, skin, kind, bar)
+	local left, right, bottom, top = Span(timer, skin, kind)
+	if not left or not bar or not bar.GetLeft then
+		return false
+	end
+	local barLeft, barRight, barBottom, barTop = Box(bar:GetLeft(), bar:GetRight(), bar:GetBottom(), bar:GetTop())
+	if not barLeft then
+		return false
+	end
+	return left < barRight and right > barLeft and bottom < barTop and top > barBottom
+end
+
+function Auras.ClearTimers(view, bars)
+	local a = view and view.auras
+	if not a or not a.buttons then
+		return
+	end
+	if not bars then
+		bars = { view.health, view.power }
+	end
+	for _, entry in ipairs(a.buttons) do
+		local timer, skin = entry.timer, entry.skin
+		local crossed = false
+		for _, bar in ipairs(bars) do
+			crossed = crossed or Crosses(timer, skin, view.kind, bar)
+		end
+		if crossed and skin then
+			timer:ClearAllPoints()
+			timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, Widgets.Snap(skin, 1))
+			timer:SetJustifyH("CENTER")
+			if entry.badge then
+				entry.badge:Hide()
+			end
+		end
+	end
+end
+
 function Auras.PlaceTimer(timer, skin, kind, badge)
 	timer:ClearAllPoints()
 	local below = TimerBelow(kind)
@@ -237,6 +305,7 @@ local function Flush()
 		for _, entry in ipairs(view.auras.buttons) do
 			K.Call(StyleButton, view, entry)
 		end
+		Auras.ClearTimers(view)
 	end
 	return true
 end
@@ -614,6 +683,7 @@ function Auras.Apply(view)
 	end
 	EnableOverflow(view, want)
 	Auras.Sync(view)
+	Auras.ClearTimers(view)
 end
 
 function Auras.Enable()
