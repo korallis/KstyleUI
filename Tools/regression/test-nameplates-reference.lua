@@ -15,6 +15,8 @@ for _, preset in ipairs({ "lumen", "compact", "tank", "healer" }) do
 	local shadowX, shadowY = plate.name:GetShadowOffset()
 	assert(shadowX > 0 and shadowY == -shadowX, "unoutlined names keep the kit's soft world-text shadow")
 	assert(plate.name:GetJustifyH() == "CENTER", "the name is centred above the bar")
+	local _, _, _, _, nameLift = plate.name:GetPoint(1)
+	assert(ns.Plate.NAME_GAP == 3.5 and math.abs(nameLift - ns.Plate.NAME_GAP) < 1, "the name stands 3.5 units over the bar: the picture's 13 px between the capitals' foot and the bar")
 	local extent = ns.Stacking.Extent()
 	assert(extent >= plate.name:GetWidth(), "the stacking footprint covers the cap's overhang")
 	assert(not plate.level:IsShown(), "no level badge by default, in every preset")

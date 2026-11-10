@@ -38,6 +38,8 @@ Plate.FRAME_GAP = 1.15
 
 local BORDER_PIXELS = 2
 local GAP = Tokens.Size("gapTiny")
+local NAME_GAP = 3.5
+Plate.NAME_GAP = NAME_GAP
 local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")
 local BADGE_PAD = Tokens.Size("gapSmall")
@@ -377,7 +379,7 @@ function Plate:LayoutName()
 		name:SetPoint("CENTER", self, "CENTER")
 	else
 		name:SetJustifyH("CENTER")
-		name:SetPoint("BOTTOM", health, "TOP", 0, Widgets.Snap(self, GAP))
+		name:SetPoint("BOTTOM", health, "TOP", 0, Widgets.Snap(self, NAME_GAP))
 	end
 end
 
