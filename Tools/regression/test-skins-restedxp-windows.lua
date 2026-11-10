@@ -159,7 +159,7 @@ do
 	assert(Alpha(f.Footer.text) == 0, "the footer's version line (RestedXP Guides v4.11.35) is hushed: it tells the player nothing while they play")
 	f.Footer.text:SetAlpha(1)
 	assert(Alpha(f.Footer.text) == 0, "and stays hushed when RestedXP's timer bar gives the footer back (Timers.lua)")
-	assert(f.Footer.cog:IsShown() and Alpha(f.Footer.cog) > 0, "the cog stays: its click opens RestedXP's menu, where the player changes guides")
+	assert(Alpha(f.Footer.cog) == 0 and Alpha(f.Footer.icon) == 0, "in the story rail the cog and the grip rest too, as the picture draws the card (LEE-20); a right click on the cap opens RestedXP's menu")
 	assert(K.Skin.IsSkinned(f.ScrollFrame.ScrollBar, "ScrollBar"), "the step list's scroll bar is KstyleUI's")
 	f:UpdateVisuals()
 	assert(Hushed(f.BottomFrame) and Alpha(f.GuideName._pieces[1]) == 0, "RestedXP's redraw keeps the glass")
@@ -236,11 +236,12 @@ do
 		local ring = ns.Lumen.RingOf(step.elements[1].button)
 		assert(ring and ring.box:IsShown(), "its check buttons are Lumen ring checks")
 		assert(not K.Skin.IsSkinned(step.elements[1].button, "CheckBox"), "not the square kit box")
+		assert(Alpha(step.elements[1].button) == 0, "and they rest unseen until the pointer is over the step: the picture's steps are plain lines")
 	end
 	assert(path.cap.trail:GetText() == f.CurrentStepFrame.framePool[1].number.text:GetText(), "the cap's trail is the first shown step's plate text, as RestedXP wrote it: " .. tostring(path.cap.trail:GetText()))
 	holderBottom = path.holder._points[1]
 	assert(holderBottom[1] == "BOTTOMLEFT" and holderBottom[2] == f.CurrentStepFrame and holderBottom[3] == "TOPLEFT", "with steps above the header the cap holder stands on the steps")
-	assert(W.Near(holderBottom[5], 0), "right on them: RestedXP's step frame keeps 10 units of air above its first line")
+	assert(W.Near(holderBottom[5], -K.Widgets.Snap(path.holder, 12)), "12 under their top: RestedXP's step frame keeps 10 empty units where its hushed Step plate hung and starts its text 2 lower, so the cap reads right over the first line, as the picture draws it, got " .. tostring(holderBottom[5]))
 	rxp.fake.trust(function()
 		f.CurrentStepFrame.anchor = "BOTTOM"
 	end)()
@@ -288,8 +289,12 @@ do
 	local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
 	for _, f in ipairs({ items, targets }) do
 		assert(Glass(K, f) and Hushed(f), "the icon frame sits on glass")
-		assert(K.Skin.IsSkinned(f.title, "Backdrop") and Hushed(f.title), "its title bar is a tile")
-		assert(Accented(ns, f.title.text), "its title takes the accent")
+		assert(not K.Skin.IsSkinned(f.title, "Backdrop") and Hushed(f.title), "its title plate draws nothing of its own: the title reads on the card's glass")
+		local caption = assert(ns.RestedXP.Chrome.Caption(f.title.text), "its title is a caption of KstyleUI's own, so RestedXP's font string carries no wrapped method")
+		assert(f.title.text:GetAlpha() == 0 and caption:GetText() == f.title.text:GetText():upper(), "RestedXP's title rests and the caption says it in capitals, got " .. tostring(caption:GetText()))
+		assert(Colored(caption, K.Tokens.Color("capsGold")), "in the picture's muted gold")
+		assert(caption:GetFont() == (ns.Style.Font("caps")) and FontSize(K, caption, select(2, caption:GetFont()), select(2, ns.Style.Font("caps"))), "in the tracked caps role, as the guide's and the quests' captions, never RestedXP's 9")
+		assert(rawget(f.title.text, "SetPoint") == nil, "the caps role's anchor wrapping stays off RestedXP's own font string")
 	end
 	-- RestedXP hangs the title plate from the frame's top edge (TOPLEFT at 5, 10, 19 tall), so the plate straddled
 	-- the glass (Opus #5, R4a). The card's glass now rises over the plate, so the title sits inside one card.
@@ -333,14 +338,26 @@ do
 	Clean(env, rxp)
 end
 
+-- RestedXP makes no item or target button in combat (ActiveItemFrame.lua 351, Targeting.lua 1129), so the skin meets a
+-- secure button in combat only when it starts there: it waits, and skins the button when combat ends.
+
 do
-	local env, _, ns, rxp = Boot()
+	local rxp
+	local env, K, ns = S.New({
+		setup = function(env)
+			rxp = Fake.Install(env, {})
+			rxp.UpdateItemFrame(rxp.activeItemFrame, 1)
+		end,
+	})
 	env.SetCombat(true)
-	rxp.UpdateItemFrame(rxp.activeItemFrame, 1)
+	K.Modules.Enable("Skins")
+	env.RunTimers()
 	local button = rxp.activeItemFrame.buttonList[1]
-	assert(not ns.Parts.RimOf(button), "secure buttons made in combat wait")
+	assert(button and not ns.Parts.RimOf(button), "a secure button the skin finds in combat waits")
+	rxp.UpdateItemFrame(rxp.activeItemFrame, 2)
+	assert(rxp.activeItemFrame.buttonList[2] == nil, "RestedXP itself lists no item in combat")
 	env.SetCombat(false)
-	assert(ns.Parts.RimOf(button), "and are skinned when combat ends")
+	assert(ns.Parts.RimOf(button), "and is skinned when combat ends")
 	Clean(env, rxp)
 end
 
@@ -374,7 +391,7 @@ do
 	rxp.tracker:CreateLevelSplits()
 	local splits = rxp.tracker.levelSplits
 	assert(Glass(K, splits) and Hushed(splits), "level splits are skinned when RestedXP makes them")
-	assert(K.Skin.IsSkinned(splits.title, "Backdrop") and Accented(ns, splits.title.text))
+	assert(not K.Skin.IsSkinned(splits.title, "Backdrop") and Colored(ns.RestedXP.Chrome.Caption(splits.title.text), K.Tokens.Color("capsGold")), "its title is a caption on the card's glass, as the icon frames'")
 	assert(splits:GetParent() == env.UIParent and splits.title.splitsMenuFrame:GetName() == "RXPG_SplitsMenuFrame")
 	for _, key in ipairs({ "history", "current", "total" }) do
 		NewCheck(splits[key].label:GetFont() == (ns.Style.Font("body")), "splits " .. key .. " uses the kit body face")

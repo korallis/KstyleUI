@@ -635,6 +635,10 @@ local function V1Window(m, rxp)
 	footer.cog:SetScript("OnClick", m.trust(function()
 		f.DropDownMenu()
 	end))
+	-- The game gives a frame the mouse when a mouse script is set on it, and a button has it from the start.
+	for _, part in ipairs({ name, footer, footer.icon, footer.cog }) do
+		part:EnableMouse(true)
+	end
 
 	local function GuideFont()
 		local profile = rxp.settings and rxp.settings.profile

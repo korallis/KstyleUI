@@ -1,20 +1,30 @@
--- test-skins-restedxp-rail.lua: the RestedXP guide takes the story rail's top half on the rail's edge and width as one card (cap, steps, route row, footer), its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, docks the quests into its card when Apply placed them under it, and never writes RestedXP's settings.
+-- test-skins-restedxp-rail.lua: the RestedXP guide hangs from the story slot's top on the rail's edge and width as one card (cap, steps, route row), the whole slot its own while it is alone and the upper half while Blizzard's tracker holds the lower, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, docks the quests into its card when Apply placed them under it, and keeps the rail's placement out of RestedXP's saved settings.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
 local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true, SetStep = true }
 
+-- Sized(size) -> saved data at that Interface size. The tests run at the shipped size (16 / 19), as the game does: the
+-- story slot is sized for it, and is far shorter at size 1.
+local function Sized(size)
+	return { version = 9, profiles = { Default = { Appearance = { uiScale = size } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+end
+
+local booted = {}
+
 local function Boot(opts)
 	opts = opts or {}
 	local rxp
 	local env, K, ns = S.New({
+		saved = Sized(16 / 19),
 		setup = function(env)
 			rxp = Fake.Install(env, opts)
 		end,
 	})
 	K.Modules.Enable("Skins")
 	env.RunTimers()
+	booted.ns = ns
 	return env, K, ns, rxp
 end
 
@@ -35,44 +45,70 @@ local function near(a, b, tolerance)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (tolerance or 0.6)
 end
 
+-- Clean(env, K, rxp): nothing was written onto RestedXP's objects, nothing raised, and RestedXP's saved settings hold
+-- nothing of the rail's. RestedXP saves every window's place and size itself, on each mouse-up on one of its windows
+-- and at logout (SettingsPanel.lua 4327, RXPGuides.lua 1831), so the check logs out first: while the rail holds the
+-- guide, that save must leave RestedXP's entry for the guide as it was.
 local function Clean(env, K, rxp)
 	rxp.fake.check(HOOKED)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	local profile = rxp.settings.profile
-	assert(profile.framePositions == nil and profile.frameSizes == nil and profile.frameHeight == nil, "RestedXP's saved settings are never written")
+	assert(profile.frameHeight == nil, "the rail's height never reaches RestedXP's saved frameHeight")
+	local placed = booted.ns.RestedXP.Rail.Placed() ~= nil
+	local before = profile.framePositions and profile.framePositions.RXPFrame
+	local sizeBefore = profile.frameSizes and profile.frameSizes.RXPFrame
+	rxp.fake.logout()
+	local after, sizeAfter = profile.framePositions.RXPFrame, profile.frameSizes.RXPFrame
+	if placed then
+		assert(after == before and sizeAfter == sizeBefore, "RestedXP's logout save leaves the guide's saved place and size alone while the rail holds it")
+		assert(profile.framePositions.arrowFrame, "and still saves RestedXP's other windows")
+	else
+		assert(after and after[1] and sizeAfter, "with the rail off RestedXP saves the guide's place as ever")
+	end
 end
 
--- The guide sits in the top half of the DPS story rail as one card: its glass on the rail's left edge and width,
--- the footer on the half's foot (one rail gap above the quests), the route row and the steps over it, the cap on
--- top of the card, the list folded.
+-- A guide on its own has the whole story slot (the Captain's ruling, 2026-11-10: the halves apply only while the
+-- quests share the slot): one card on the rail's left edge and width, hanging from the slot's top, the cap over
+-- the steps and the route row under them, RestedXP's window folded to its 28-unit floor behind them, the list folded.
 
 do
 	local env, K, ns, rxp = Boot()
 	local f = rxp.RXPFrame
 	rxp.SetStep(2)
 	env.RunTimers()
-	local band = K.Setup.Story("DPS", true).guide
-	assert(band and ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
+	local story = K.Setup.Story("DPS", true, true)
+	local halves = K.Setup.Story("DPS", true)
+	local band = story.guide
+	assert(band.top == story.story.top and band.bottom == story.story.bottom and story.tracker == nil, "alone, Setup.Story gives the guide the whole slot and the tracker no band")
+	assert(halves.guide.top == story.story.top and near(halves.guide.bottom - halves.tracker.top, 16) and halves.tracker.bottom == story.story.bottom, "with the quests it gives the guide the upper half, one rail gap over the tracker's")
+	local railStory = ns.RestedXP.Rail.Story()
+	assert(railStory.tracker == nil and railStory.guide.bottom == band.bottom, "the rail asks for the whole slot while nothing shares it")
+	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
 	local point = { f:GetPoint(1) }
 	assert(point[1] == "TOPLEFT" and point[2] == env.UIParent and point[3] == "BOTTOMLEFT", "from the screen's bottom left, so a UI scale change keeps it")
 	local card = Rect(K, Glass(K, f))
-	assert(near(card.left, band.left) and near(card.right, band.right), "the card's glass shares the rail's left edge and width, got " .. card.left .. " to " .. card.right .. " for " .. band.left .. " to " .. band.right)
-	assert(near(card.bottom, band.bottom), "the card's foot, RestedXP's footer, sits on the half's foot, one rail gap above the quests")
+	assert(near(card.left, band.left, 0.01) and near(card.right, band.right, 0.01), "the card's glass shares the rail's left edge and width to the pixel, got " .. card.left .. " to " .. card.right .. " for " .. band.left .. " to " .. band.right)
+	assert(near(card.top, band.top, 0.01), "the card hangs from the slot's top, to the pixel, got " .. card.top .. " for " .. band.top)
+	assert(card.bottom >= band.bottom - 0.5, "and ends inside the slot, got " .. card.bottom .. " for " .. band.bottom)
 	local path = ns.RestedXP.Chrome.Path(f)
 	local cap = Rect(K, path.cap.row)
 	local steps = Rect(K, f.CurrentStepFrame)
 	local name = Rect(K, f.GuideName)
-	local footer = Rect(K, f.Footer)
 	assert(near(card.top, Rect(K, path.holder).top), "the card starts at the cap holder's top")
-	assert(cap.top <= card.top and cap.bottom >= steps.top, "the cap sits inside the card's top, above the steps")
+	assert(cap.top <= card.top and cap.bottom >= steps.top - 12 * K.Widgets.ScaleFactor(f) - 0.5, "the cap sits inside the card's top, over the first step's empty head")
 	assert(steps.bottom >= name.top - 0.5, "the steps end above the route row")
-	assert(name.bottom >= footer.top - 0.5 or name.bottom >= footer.top - 9.5, "the route row ends above the footer")
-	assert(card.top <= band.top + 0.5, "the cap and two steps fit inside the half, got " .. card.top .. " for " .. band.top)
+	assert(card.bottom <= name.bottom + 0.5 and card.bottom >= name.bottom - 6 * K.Widgets.ScaleFactor(f), "the card ends a small gap under the route row, not under RestedXP's resting footer, got " .. card.bottom .. " for " .. name.bottom)
+	assert(near(f:GetHeight(), 28, 0.05), "RestedXP's window is folded to its own floor, 28 (GuideWindow.lua 2363), got " .. f:GetHeight())
 	assert(not f.BottomFrame:IsShown(), "RestedXP folds its step list in the rail, so the rail reads the path, then the quests")
 	for _, step in ipairs(f.CurrentStepFrame.framePool) do
 		assert(not K.Skin.IsSkinned(step, "Backdrop"), "the steps are rows in the card, not cards of their own")
 	end
-	assert(path.capHeight >= 16 + 2 * K.Tokens.Size("gapSmall") - 0.01, "the cap holder is the cap row plus its air")
+	assert(near(path.capHeight, K.Widgets.Snap(path.holder, 16 + 2 * K.Tokens.Size("gapSmall")) - K.Widgets.Snap(path.holder, 12), 0.01), "the cap adds its row and its air less the 12 units it shares with the first step's empty head")
+	-- Three steps of two lines each still hang from the top and stay in the slot.
+	rxp.SetStep(3, 2)
+	env.RunTimers()
+	card = Rect(K, Glass(K, f))
+	assert(near(card.top, band.top) and card.bottom >= band.bottom - 0.5, "more steps grow downward inside the slot, got " .. card.top .. " to " .. card.bottom)
 	Clean(env, K, rxp)
 end
 
@@ -87,7 +123,7 @@ do
 	local band = K.Setup.Story("DPS", true).guide
 	rxp.SetStep(3, 2)
 	env.RunTimers()
-	assert(near(Rect(K, Glass(K, f)).bottom, band.bottom), "more steps keep the footer one gap above the quests")
+	assert(near(Rect(K, Glass(K, f)).top, band.top), "more steps keep the card's top on the slot's top")
 	assert(Rect(K, f.CurrentStepFrame).bottom > Rect(K, f.GuideName).top, "and stack over the route row")
 	f:ClearAllPoints()
 	f:SetPoint("LEFT", env.UIParent, "LEFT", 0, 35)
@@ -97,7 +133,7 @@ do
 	assert(select(1, f:GetPoint(1)) == "LEFT", "nothing moves in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and near(Rect(K, Glass(K, f)).bottom, band.bottom), "after combat, entering the world's re-place runs")
+	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and near(Rect(K, Glass(K, f)).top, band.top), "after combat, entering the world's re-place runs")
 	assert(ns.RestedXP.Rail.Placed(), "and the guide is placed")
 	Clean(env, K, rxp)
 end
@@ -236,6 +272,7 @@ end
 local function BootWithTracker(place)
 	local rxp, tracker
 	local env, K, ns = S.New({
+		saved = Sized(16 / 19),
 		setup = function(env)
 			rxp = Fake.Install(env, {})
 		end,
@@ -253,6 +290,7 @@ local function BootWithTracker(place)
 	K.Modules.Enable("Skins")
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
+	booted.ns = ns
 	return env, K, ns, rxp, tracker
 end
 
@@ -275,16 +313,18 @@ do
 	-- container header), instead of on the guide band's foot a story gap higher, so the card has no hollow band
 	-- between the guide's footer and the quests' cap.
 	local story = K.Setup.Story("DPS", true)
-	local guideFoot = Rect(K, f).bottom
+	assert(ns.RestedXP.Rail.Story().tracker ~= nil, "with Blizzard's tracker in the slot the rail asks for the halves")
+	local guideFoot = Rect(K, f.GuideName).bottom
 	local capTop = story.tracker.top
-	assert(near(guideFoot, capTop + K.Tokens.Size("gapSmall"), 1), "docked, the guide's foot sits one small gap above the quests' cap, got " .. guideFoot .. " for a cap at " .. capTop)
+	assert(near(guideFoot, capTop + K.Tokens.Size("gapSmall"), 1), "docked, the guide's last row, the route row, sits one small gap above the quests' cap, got " .. guideFoot .. " for a cap at " .. capTop)
 	assert(guideFoot < story.guide.bottom - 4, "lower than the guide band's foot, got " .. guideFoot .. " for " .. story.guide.bottom)
+	assert(Rect(K, Glass(K, f)).top <= story.story.top + 0.5, "and its card starts inside the slot")
 	-- The setting turns it off: two cards again, and the guide back on its band's foot.
 	K.Options.Write("Skins", "restedXP.dock", false)
 	env.RunTimers()
 	assert(not ns.RestedXP.Rail.Docked() and not ns.Tracker.Docked() and trackerGlass:IsShown(), "with the setting off the tracker keeps its own glass")
-	assert(card._points[3][2] == f, "and the card ends at the footer")
-	assert(near(Rect(K, f).bottom, story.guide.bottom), "undocked, the guide's foot is the band's foot again")
+	assert(card._points[3][2] == f, "and the card ends at RestedXP's window")
+	assert(near(Rect(K, Glass(K, f)).top, story.guide.top), "undocked, the guide hangs from the slot's top again")
 	K.Options.Write("Skins", "restedXP.dock", true)
 	env.RunTimers()
 	assert(ns.RestedXP.Rail.Docked() and not trackerGlass:IsShown(), "on again, docked again")

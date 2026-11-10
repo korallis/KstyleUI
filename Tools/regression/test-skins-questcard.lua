@@ -113,6 +113,17 @@ do
 	assert(title:find("[10]", 1, true) and title:find("Dark Storms", 1, true), "the title carries the quest's level as Forever shows it, got " .. title)
 	assert(parts.more:IsShown() and parts.more:GetText():find("6", 1, true), "the card says how many more there are, got " .. tostring(parts.more:GetText()))
 	assert(parts.thumb:IsShown(), "and a slim scroll bar shows")
+	assert(parts.thumb:GetAlpha() == 0 and parts.track:GetAlpha() == 0 and parts.more:GetAlpha() == 0, "at rest the scroll bar and the more line are unseen, as the picture draws the card")
+	local card = ns.Quests.Card()
+	card._mouseOver = true
+	card:GetScript("OnEnter")(card)
+	assert(parts.thumb:GetAlpha() == 1 and parts.track:GetAlpha() == 1 and parts.more:GetAlpha() == 1, "under the pointer they show")
+	local row = first
+	row:GetScript("OnLeave")(row)
+	assert(parts.thumb:GetAlpha() == 1, "moving from a row onto the card keeps them")
+	card._mouseOver = false
+	card:GetScript("OnLeave")(card)
+	assert(parts.thumb:GetAlpha() == 0 and parts.more:GetAlpha() == 0, "and they rest again once the pointer leaves the card")
 	assert(not tracker:IsVisible(), "Blizzard's tracker does not show the quests a second time")
 	Clean(env, K)
 end

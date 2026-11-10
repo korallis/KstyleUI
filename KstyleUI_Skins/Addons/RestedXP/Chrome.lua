@@ -143,18 +143,11 @@ local function Glass(frame, opts)
 	if inset and opts.air then
 		inset.bottom = Tokens.Size(opts.air)
 	end
-	if opts.tile then
-		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = inset })
-	end
 	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt })
 end
 
 function Chrome.Reach(frame)
 	return Widgets.Inset(frame, Tokens.Size("chamferWindow")) - RXP_MARGIN
-end
-
-local function Tile(frame, reach)
-	return Glass(frame, { tile = true, reach = reach })
 end
 
 local function LayoutGutter(gutter)
@@ -297,17 +290,6 @@ local function Title(text)
 	end
 end
 
-local function PaintCaption(text)
-	text:SetTextColor(Lumen.Color("gilt"))
-end
-
-local function Caption(text)
-	if IsTable(text) and type(text.SetTextColor) == "function" then
-		captions[text] = true
-		PaintCaption(text)
-	end
-end
-
 local function Reword(value)
 	value = value:gsub(ICON_ESCAPE, "")
 	return (value:gsub(COLOR_ESCAPE, function(hex)
@@ -320,7 +302,7 @@ local function Reword(value)
 	end))
 end
 
-local function Worded(text)
+local function Worded(text, reword)
 	if not IsTable(text) or type(text.SetText) ~= "function" or type(text.GetText) ~= "function" or worded[text] then
 		return
 	end
@@ -330,7 +312,7 @@ local function Worded(text)
 		if entry.busy or not Active() or Widgets.IsSecret(value) or type(value) ~= "string" then
 			return
 		end
-		local out = Reword(value)
+		local out = reword(value)
 		if out ~= value then
 			entry.busy = true
 			text:SetText(out)
@@ -413,6 +395,32 @@ local function PlainText(value)
 	return value
 end
 
+local function Caption(title)
+	local text = IsTable(title) and title.text
+	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or captions[text] then
+		return
+	end
+	local holder = CreateFrame("Frame", nil, title)
+	holder:SetAllPoints(title)
+	local caption = Widgets.FontString(holder, "OVERLAY")
+	Style.Text(caption, "caps", "capsGold")
+	caption:SetPoint("CENTER", text, "CENTER", 0, 0)
+	caption:SetWordWrap(false)
+	captions[text] = caption
+	HushText(text)
+	local function word(value)
+		caption:SetText(K.Locale.Upper(PlainText(value)))
+	end
+	hooksecurefunc(text, "SetText", function(_, value)
+		word(value)
+	end)
+	word(text:GetText())
+end
+
+function Chrome.Caption(text)
+	return captions[text]
+end
+
 local function Trail(f)
 	local steps = IsTable(f) and f.CurrentStepFrame
 	local pool = IsTable(steps) and steps.framePool
@@ -460,15 +468,16 @@ end
 local function PlaceHead(path)
 	local f, holder, header = path.frame, path.holder, path.header
 	local steps = StepsAbove(f)
-	local tall = steps and steps:GetHeight()
-	local rise = Plain(tall) and tall > 2 * STEP_RISE and STEP_RISE or 0
+	local first = steps and IsTable(steps.framePool) and steps.framePool[1]
+	local rise = IsTable(first) and first:IsShown() and STEP_RISE or 0
 	local full = CAP_ROW + 2 * Tokens.Size(CAP_AIR)
 	local anchor = steps or header
+	full, rise = Widgets.Snap(holder, full), Widgets.Snap(holder, rise)
 	path.capHeight = full - rise
 	holder:ClearAllPoints()
-	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -Widgets.Snap(holder, rise))
-	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -Widgets.Snap(holder, rise))
-	holder:SetHeight(Widgets.Snap(holder, full))
+	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
+	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
+	holder:SetHeight(full)
 	PlaceCard(path)
 	if path.OnHead then
 		path.OnHead(path)
@@ -651,8 +660,8 @@ local function Restyle()
 			PaintTitle(text)
 		end
 	end
-	for text in pairs(captions) do
-		PaintCaption(text)
+	for _, caption in pairs(captions) do
+		Style.Text(caption, "caps", "capsGold")
 	end
 	for arrow in pairs(arrows) do
 		PaintArrow(arrow)
@@ -698,7 +707,7 @@ local function AlignSteps(f)
 	if not IsTable(pool) or not Chrome.Path(f) then
 		return
 	end
-	local left = Widgets.Snap(current, CAP_LEFT + Lumen.GEM_UNITS + Tokens.Size(GUTTER_GAP))
+	local left = Widgets.Snap(current, CAP_LEFT) + Widgets.Snap(current, Lumen.GEM_UNITS) + Widgets.Snap(current, Tokens.Size(GUTTER_GAP))
 	local top, right = Widgets.Snap(current, STEP_TEXT_TOP), Widgets.Snap(current, STEP_TEXT_RIGHT)
 	local grown = 0
 	for _, step in ipairs(pool) do
@@ -760,7 +769,7 @@ local function StepFrames(f)
 			end
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
 				if IsTable(element) then
-					Worded(element.text)
+					Worded(element.text, Reword)
 					changed = Readable(element.text, "body", STEP_SCALE) or changed
 					if IsTable(element.icon) and type(element.icon.SetAlpha) == "function" then
 						HushText(element.icon)
@@ -1056,7 +1065,7 @@ local function Arrow(rxp)
 	end
 	arrows[arrow] = true
 	PaintArrow(arrow)
-	Worded(arrow.text)
+	Worded(arrow.text, Reword)
 	Readable(arrow.text, "caption")
 	Hook(arrow, "UpdateVisuals", "arrowFrame.UpdateVisuals", function()
 		PaintArrow(arrow)
@@ -1137,8 +1146,7 @@ local function IconFrame(f, hide)
 		if not InCombatLockdown() then
 			Skin.Strip(title, { children = RXP_ART })
 		end
-		Readable(title.text, "title")
-		Caption(title.text)
+		Caption(title)
 	end
 	local panel = Panel(f)
 	if panel then
@@ -1248,10 +1256,6 @@ local function Splits(tracker)
 	end
 	local title = Find(splits, "title")
 	if title then
-		if IsTable(title.text) then
-			Style.Text(title.text, "heading")
-			Title(title.text)
-		end
 		IconControl(Find(title, "cog"))
 	end
 end

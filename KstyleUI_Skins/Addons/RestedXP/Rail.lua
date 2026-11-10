@@ -240,16 +240,13 @@ function Rail.Place()
 	end
 	local path = RestedXP.Chrome.Path(f)
 	local scale = Widgets.ScaleFactor(f)
-	local reach = RestedXP.Chrome.Reach(f.GuideName)
-	local head = path and path.height or HEAD_HEIGHT
+	local reach = Widgets.Snap(f, RestedXP.Chrome.Reach(f.GuideName))
+	local head = path and Widgets.Snap(f.GuideName, path.height) or HEAD_HEIGHT
 	local above, below = StepsAbove(f)
 	local headTop = head - HEADER_OVERLAP - SIDE
 	local folded = path ~= nil and below == 0 and not Bars(f)
 	local gap = Tokens.Size(FOOT_GAP)
-	local height = Widgets.Snap(f, folded and MIN_HEIGHT or HEADER_OVERLAP + SIDE + FOOTER + gap)
-	if height < MIN_HEIGHT then
-		height = height + Widgets.Border(f)
-	end
+	local height = folded and MIN_HEIGHT or math.max(MIN_HEIGHT, Widgets.Snap(f, HEADER_OVERLAP + SIDE + FOOTER + gap))
 	local foot = height + below
 	if folded then
 		foot = HEADER_OVERLAP + SIDE - (path.metaShown and 0 or head + (above > 0 and STEP_GAP or 0))
@@ -260,9 +257,8 @@ function Rail.Place()
 	if docks and not card then
 		top = math.min(top, (story.tracker.top + gap) / scale + foot)
 	end
-	local width = Widgets.Snap(f, (band.right - band.left) / scale + 2 * SIDE - 2 * reach)
-	local left = Widgets.Snap(f, band.left / scale - SIDE + reach)
-	top = Widgets.Snap(f, top)
+	local width = (band.right - band.left) / scale + 2 * SIDE - 2 * reach
+	local left = band.left / scale - SIDE + reach
 	CardUnder(docks and card and (top - foot) * scale - (folded and 0 or gap) or nil)
 	Remember(f)
 	Hold(f, true)

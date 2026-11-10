@@ -494,6 +494,10 @@ function Object:IsEnabled() return self._enabled end
 -- The pointer is over a frame while a test sets frame._mouseOver.
 function Object:IsMouseOver() return self._mouseOver == true end
 
+-- A frame takes the mouse once EnableMouse asked for it (RestedXP passes 1 for true), and IsMouseEnabled says so.
+function Object:EnableMouse(enabled) self._mouse = enabled == true or enabled == 1 end
+function Object:IsMouseEnabled() return self._mouse == true end
+
 -- An object's own alpha times its parent's effective alpha, unless it ignores its parent's alpha.
 function Object:SetIgnoreParentAlpha(ignore) self._ignoreParentAlpha = not not ignore end
 function Object:IsIgnoringParentAlpha() return self._ignoreParentAlpha == true end

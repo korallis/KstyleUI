@@ -1,4 +1,4 @@
--- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts on the first line's right, an item socket) that the wheel scrolls one quest at a time, a slim scroll bar and a more line; quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
+-- Card.lua: the quest card's frames: Lumen glass, the QUESTS section cap with the tracked count, a clipped view of a set number of quests (accent disc, gold title with its level, objectives that wrap onto up to three lines with their counts on the first line's right, an item socket) that the wheel scrolls one quest at a time, and a slim scroll bar and a more line that rest unseen until the pointer is over the card, as the owner's picture draws it (LEE-20); quest items are secure item buttons parented to UIParent that cover their sockets and change only out of combat, and while one shows in combat the rows hold still and only their words repaint.
 local _, ns = ...
 
 local K = KstyleUI
@@ -22,6 +22,7 @@ local rows, buttons, heights = {}, {}, {}
 local pitch, rowWidth = 0, 0
 local offset, wanted, maxHeight = 1, 4, 0
 local docked, pending, waiting, active = false, false, false, false
+local pointed = false
 
 local function Snap(units)
 	return Widgets.Snap(card, units)
@@ -183,6 +184,22 @@ local function RestyleRow(row)
 	PaintDisc(row)
 end
 
+local function PaintRest()
+	local alpha = pointed and 1 or 0
+	track:SetAlpha(alpha)
+	thumb:SetAlpha(alpha)
+	more:SetAlpha(alpha)
+end
+
+local function Peek()
+	local ok, value = pcall(card.IsMouseOver, card)
+	local now = ok and not Widgets.IsSecret(value) and value == true
+	if now ~= pointed then
+		pointed = now
+		PaintRest()
+	end
+end
+
 local function NewRow(index)
 	local row = CreateFrame("Button", nil, view)
 	row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -192,10 +209,12 @@ local function NewRow(index)
 	row:SetScript("OnEnter", function(self)
 		self.hover = true
 		PaintTitle(self)
+		Peek()
 	end)
 	row:SetScript("OnLeave", function(self)
 		self.hover = false
 		PaintTitle(self)
+		Peek()
 	end)
 	row.index = index
 	row.ring = row:CreateTexture(nil, "ARTWORK", nil, -1)
@@ -548,6 +567,8 @@ local function NewButton()
 	button:SetFrameLevel(card:GetFrameLevel() + 10)
 	button:HookScript("OnEnter", ButtonEnter)
 	button:HookScript("OnLeave", ButtonLeave)
+	button:HookScript("OnEnter", Peek)
+	button:HookScript("OnLeave", Peek)
 	button:Hide()
 	buttons[#buttons + 1] = button
 	return button
@@ -633,6 +654,9 @@ function Card.Build(root)
 	card:SetFrameStrata("LOW")
 	card:EnableMouseWheel(true)
 	card:SetScript("OnMouseWheel", OnWheel)
+	card:SetMouseMotionEnabled(true)
+	card:SetScript("OnEnter", Peek)
+	card:SetScript("OnLeave", Peek)
 	card:Hide()
 	glass = CreateFrame("Frame", nil, card)
 	glass:SetAllPoints(card)
@@ -659,6 +683,7 @@ function Card.Build(root)
 	more = Widgets.FontString(card, "OVERLAY")
 	more:SetPoint("TOP", view, "BOTTOM", 0, -Snap(CAP_GAP))
 	more:SetJustifyH("CENTER")
+	PaintRest()
 	for i = 1, MAX_SHOWN do
 		rows[i] = NewRow(i)
 	end
