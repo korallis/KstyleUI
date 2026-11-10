@@ -26,7 +26,7 @@ local ANCHORS = {
 -- Party and raid frames never show together, so they may share space.
 local EXCLUSIVE = { ["groupframes.party"] = "groupframes.raid", ["groupframes.raid"] = "groupframes.party" }
 local PICTURE_GAPS = {
-	["unitframes.player/unitframes.target"] = 1.5,
+	["unitframes.player/unitframes.target"] = 2,
 	["unitframes.target/unitframes.resource"] = 0.6,
 	["unitframes.castbar.player/meters.swing"] = 1,
 	["unitframes.resource/cooldowns.essential"] = 0.7,
@@ -42,8 +42,8 @@ end
 
 -- LEE-20: the owner's picture wins over the earlier Lumen sigil and spare-bar stack.
 local REFERENCE = {
-	["unitframes.player"] = { 491, 80, 0, 138, 586.5, -47.75 },
-	["unitframes.target"] = { 491, 100.5, 0, 219.5, 737.4, 123.2 },
+	["unitframes.player"] = { 491, 77.5, 0, 138, 586.5, -47.75 },
+	["unitframes.target"] = { 491, 102.5, 0, 217.5, 737.4, 123.2 },
 	["unitframes.castbar.player"] = { 347, 30, 0, 385.5 },
 	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 },
 	["cooldowns.buffs"] = { 182.6, 41.6, -442.8, 155.9 },
@@ -418,7 +418,7 @@ for _, name in ipairs(names) do
 		-- LEE-20 places the target over the player; optional compact frames keep their previous slots.
 		local target, tot = rect("unitframes.target"), rect("unitframes.targettarget")
 		local focus, focusTarget = rect("unitframes.focus"), rect("unitframes.focustarget")
-		assert(same(target.bottom - vitals.top, 1.5) and same(target.top, 320), label .. ": LEE-20 the target sits 1.5 over the player, below the cooldown row")
+		assert(same(target.bottom - vitals.top, 2) and same(target.top, 320), label .. ": LEE-20 the target sits 2 over the player, below the cooldown row")
 		assert(same(target.left, playerBar[1]) and same(target.right, playerBar[3] + 246.4), label .. ": LEE-20 the target reserve extends 230.4 right for portrait and debuffs plus a 16-unit pixel-rounding buffer")
 		assert(same(focus.x - mid, -357) and focus.top == 540, label .. ": the optional focus card keeps its original slot above the centre column")
 		assert(focusTarget.left == focus.left and focus.bottom - focusTarget.top >= CLUSTER_GAP and focusTarget.bottom >= block + 4, label .. ": the focus target sits under the focus card, off the hands")
@@ -558,7 +558,7 @@ do
 	local button = Layouts.Element("actionbars.bar1").height
 	assert(same(button, 36.7) and same(Layouts.Element("cooldowns.essential").height, button), "LEE-20 essential icons match the action tiles")
 	assert(same(Layouts.Element("cooldowns.utility").height, 38) and same(Layouts.Element("cooldowns.buffs").height, 41.6), "LEE-20 utility keeps its size and tracked buffs include timers")
-	assert(same(select(2, Layouts.Footprint("DPS", "unitframes.player")), 80), "LEE-20 the player frame remains 80 tall with its cast in a separate element")
+	assert(same(select(2, Layouts.Footprint("DPS", "unitframes.player")), 77.5), "LEE-20 the player frame is 77.5 tall with its cast in a separate element")
 	for _, key in ipairs({ "unitframes.targettarget", "unitframes.focustarget", "unitframes.pet" }) do
 		assert(Layouts.Element(key).height < 36, key .. " stays a compact frame")
 	end
@@ -579,8 +579,8 @@ local FOOTPRINTS = {
 	["cooldowns.utility"] = { 4 * 38 + 3 * 3, 38 },
 	["cooldowns.buffs"] = { 182.6, 41.6 },
 	["cooldowns.bars"] = { 6 * 38 + 5 * 3, 2 * 20 + 3 },
-	["unitframes.player"] = { 586.5, 80 },
-	["unitframes.target"] = { 737.4, 100.5 },
+	["unitframes.player"] = { 586.5, 77.5 },
+	["unitframes.target"] = { 737.4, 102.5 },
 	["unitframes.boss"] = { 318, 334 },
 	["unitframes.targettarget"] = { 120, 22 },
 	["unitframes.pet"] = { 120, 22 },
@@ -617,7 +617,7 @@ end
 -- layout writes on Apply (the Tank meters).
 do
 	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves.
-	local RESERVES = { ["unitframes.player"] = { 586.5, 80, -47.75 }, ["unitframes.target"] = { 737.4, 100.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
+	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -629,7 +629,7 @@ do
 		assert(reserved[key], key .. " has its reserve")
 	end
 	local target, boss, focus = Layouts.Element("unitframes.target"), Layouts.Element("unitframes.boss"), Layouts.Element("unitframes.focus")
-	assert(target.width == 491 and target.height == 100.5 and Layouts.Get("DPS")["unitframes.target"].anchor == "BOTTOM", "LEE-20 the target's bar column anchors its portrait and aura reserve from the bottom")
+	assert(target.width == 491 and target.height == 102.5 and Layouts.Get("DPS")["unitframes.target"].anchor == "BOTTOM", "LEE-20 the target's bar column anchors its portrait and aura reserve from the bottom")
 	assert(focus.width == 200 and focus.height == 90 and Layouts.Get("DPS")["unitframes.focus"].anchor == "BOTTOM", "the focus card's frame foots its reserve, so its debuffs sit inside it")
 	assert(boss.width == 222 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart, 222 wide beside a row of four 22-unit debuffs")
 	for _, element in ipairs(Layouts.ELEMENTS) do

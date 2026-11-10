@@ -38,8 +38,8 @@ local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSm
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
 
 local ELEMENTS = {
-	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = COLUMN, height = 80, reserve = { 586.5, 80, -47.75 } },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = COLUMN, height = 100.5, reserve = { 737.4, 100.5, 123.2 } },
+	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = COLUMN, height = 77.5, reserve = { 586.5, 77.5, -47.75 } },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = COLUMN, height = 102.5, reserve = { 737.4, 102.5, 123.2 } },
 	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
 	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], short = L["Focus"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
@@ -161,7 +161,7 @@ local DPS = {
 	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 },
 	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 },
 	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 },
-	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 219.5 },
+	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },

@@ -42,20 +42,20 @@ env.KstyleUIDB.profiles.Old = {
 	Appearance = { uiScale = 16 / 19 },
 	UnitFrames = {
 		player = { style = "lumen", healthColor = "class", castbarColor = "class", castbarCaps = false, powerHeight = 5, healthTexture = texture, powerTexture = texture, fonts = { name = { size = 17 } } },
-		target = { style = "lumen", healthColor = "reaction", castbarCaps = false, castbarIcon = true, healthOrientation = "RIGHT", powerOrientation = "RIGHT", auraSpacing = 2, auraSize = 28, auraColumns = 14, auraPosition = "CENTER", healthTexture = texture, powerTexture = texture, fonts = { name = { size = 17 }, health = { size = 12 } } },
+		target = { style = "lumen", healthColor = "reaction", castbarCaps = false, castbarIcon = true, healthOrientation = "RIGHT", powerOrientation = "RIGHT", auraSpacing = 2, auraSize = 28, auraColumns = 14, auraPosition = "CENTER", healthTexture = texture, powerTexture = texture, fonts = { name = { size = 17 }, health = { size = 12 }, cast = { size = 13 } } },
 	},
-	ActionBars = { enabled = false, bar1 = { size = 38, spacing = 3 }, bar2 = { size = 38, spacing = 3, showEmpty = false } },
-	Cooldowns = { essential = { size = 38, spacing = 3, timerSize = 13 }, buffs = { size = 38, spacing = 3, growth = "center", timerSize = 12, countSize = 10 } },
+	ActionBars = { enabled = false, bar1 = { size = 38, spacing = 3 }, bar2 = { enabled = false, size = 38, spacing = 3, showEmpty = false } },
+	Cooldowns = { accent = "class", essential = { size = 38, spacing = 3, timerSize = 13, countSize = 11, readyGlow = true }, buffs = { size = 38, spacing = 3, growth = "center", timerSize = 12, countSize = 10 } },
 	DataBars = { xp = { text = "percentRested", border = true, restedColor = { r = r, g = g, b = b, a = 0.5 } } },
 }
 env.KstyleUIDB.profiles.Custom = {
 	Appearance = { uiScale = 16 / 19 },
 	UnitFrames = {
 		player = { style = "plate", healthColor = "class", healthTexture = texture, powerTexture = texture, fonts = { name = { size = 17 } } },
-		target = { style = "plate", healthColor = "reaction", castbarIcon = true, healthTexture = texture, fonts = { name = { size = 17 }, health = { size = 12 } } },
+		target = { style = "plate", healthColor = "reaction", castbarIcon = true, healthTexture = texture, fonts = { name = { size = 17 }, health = { size = 12 }, cast = { size = 13 } } },
 	},
 	ActionBars = { enabled = false, bar1 = { size = 39, spacing = 4 }, bar2 = { size = 40, spacing = 5, showEmpty = true } },
-	Cooldowns = { essential = { size = 40, spacing = 4, timerSize = 14 }, buffs = { size = 40, spacing = 4, growth = "left", timerSize = 14, countSize = 11 } },
+	Cooldowns = { accent = "custom", essential = { size = 40, spacing = 4, timerSize = 14, countSize = 12, readyGlow = false }, buffs = { size = 40, spacing = 4, growth = "left", timerSize = 14, countSize = 11 } },
 	DataBars = { enabled = false, xp = { text = "none", border = false, restedColor = { r = r, g = g, b = b, a = 0.6 } } },
 }
 env.KstyleUIDB.profiles.CustomLumen = {
@@ -66,7 +66,7 @@ env.KstyleUIDB.profiles.CustomLumen = {
 }
 env.KstyleUIDB.profiles.CustomStyle = { UnitFrames = {
 	player = { style = "column", healthColor = "class", healthTexture = texture, fonts = { name = { size = 17 } } },
-	target = { style = "column", healthColor = "reaction", powerTexture = texture, fonts = { health = { size = 12 } } },
+	target = { style = "column", healthColor = "reaction", powerTexture = texture, fonts = { health = { size = 12 }, cast = { size = 13 } } },
 } }
 local customSettings = copy(env.KstyleUIDB.profiles.Custom)
 local customLumen = copy(env.KstyleUIDB.profiles.CustomLumen)
@@ -93,8 +93,10 @@ assert(CoreEnv.DeepEqual(db.profiles.CustomLumen, customLumen), "custom Lumen co
 assert(CoreEnv.DeepEqual(db.profiles.CustomStyle, customStyle), "a non-Lumen style retains even values matching old defaults")
 local defaults = db.profiles.Old
 assert(defaults.ActionBars.enabled == false, "disabled state survives")
+assert(defaults.ActionBars.bar2.enabled == nil, "the old disabled bar 2 default resets")
+assert(defaults.Cooldowns.accent == nil and defaults.Cooldowns.essential.countSize == nil and defaults.Cooldowns.essential.readyGlow == nil, "old cooldown accent, count size and ready glow reset")
 local player, target = defaults.UnitFrames.player, defaults.UnitFrames.target
-assert(player.fonts.name.size == nil and target.fonts.name.size == nil and target.fonts.health.size == nil, "old UnitFrames font sizes reset")
+assert(player.fonts.name.size == nil and target.fonts.name.size == nil and target.fonts.health.size == nil and target.fonts.cast.size == nil, "old UnitFrames font sizes reset")
 player.fonts, target.fonts = nil, nil
 assert(next(player) == nil and next(target) == nil, "matching old UnitFrames settings and textures reset")
 for _, group in ipairs({ defaults.ActionBars.bar1, defaults.ActionBars.bar2, defaults.Cooldowns.essential, defaults.Cooldowns.buffs, defaults.DataBars.xp }) do

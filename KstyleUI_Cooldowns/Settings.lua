@@ -46,11 +46,11 @@ local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procG
 local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive" }
 
 local PATH = { auto = true, mirror = true, reskin = true }
-local GROWTH = { center = true, right = true, left = true }
+local GROWTH = { center = true, right = true, left = true, rightAligned = true }
 local WRAP = { down = true, up = true }
 local BAR_GROWTH = { up = true, down = true }
 local OUTLINE = { none = true, OUTLINE = true, THICKOUTLINE = true }
-local ACCENT = { class = true, custom = true }
+local ACCENT = { quiet = true, class = true, custom = true }
 local COLOR_SOURCE = { class = true, reaction = true, custom = true }
 local ORIENTATION = { HORIZONTAL = true, VERTICAL = true }
 local MAX_PATH = 260
@@ -80,11 +80,11 @@ end
 
 local essential = IconDefaults(36.7, ESSENTIAL_TIMER, ESSENTIAL_COUNT, true, 4.6)
 local buffs = IconDefaults(27.6, 10, 9, false, 3.4)
-buffs.growth = "left"
+buffs.growth = "rightAligned"
 
 Settings.defaults = {
 	path = "auto",
-	accent = "class",
+	accent = "quiet",
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	tooltips = true,
 	timerFont = "kit",
@@ -143,6 +143,7 @@ local GROWTH_OPTIONS = {
 	{ value = "center", label = L["Centred"] },
 	{ value = "right", label = L["Left to right"] },
 	{ value = "left", label = L["Right to left"] },
+	{ value = "rightAligned", label = L["Left to right, aligned right"] },
 }
 local WRAP_OPTIONS = {
 	{ value = "down", label = L["New rows below"] },
@@ -242,8 +243,8 @@ local schema = {
 	},
 	{
 		type = "dropdown", key = "accent", label = L["Accent"],
-		help = L["Glows and hairlines use your class colour or a colour you pick."],
-		options = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
+		help = L["Keep hairlines quiet, or use your class colour or a colour you pick."],
+		options = { { value = "quiet", label = L["Quiet"] }, { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } },
 	},
 	{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = IsCustomAccent },
 	{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },

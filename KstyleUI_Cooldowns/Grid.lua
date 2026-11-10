@@ -53,6 +53,8 @@ function Grid.Offset(index, count, cfg)
 	local x
 	if cfg.growth == "left" then
 		x = width - cw - column * (cw + spacing)
+	elseif cfg.growth == "rightAligned" then
+		x = width - used + column * (cw + spacing)
 	elseif cfg.growth == "right" then
 		x = column * (cw + spacing)
 	else

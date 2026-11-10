@@ -79,7 +79,7 @@ end
 local chip = buffs.chip
 assert(chip and chip:IsShown(), "a +N chip shows")
 assert(chip.text:GetText() == "+4", "ten buffs on six sockets read +4, got " .. tostring(chip.text:GetText()))
-local chipRect, first = rect(chip), rect(buffs.icons[capacity])
+local chipRect, first = rect(chip), rect(buffs.icons[1])
 for i = 1, capacity do
 	assert(apart(chipRect, rect(buffs.icons[i])), "the chip covers no buff: socket " .. i)
 end

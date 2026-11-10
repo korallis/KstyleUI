@@ -77,8 +77,12 @@ local function SkinIcon(group, item)
 	end
 	local backdrop = Outset(Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
 	if backdrop and backdrop.chrome and backdrop.chrome.SetRimAccent then
-		local r, g, b = Settings.Accent()
-		backdrop.chrome:SetRimAccent(r, g, b)
+		if current.accent == "quiet" then
+			backdrop.chrome:SetRim(Widgets.Rgba("edgeInner"))
+		else
+			local r, g, b = Settings.Accent()
+			backdrop.chrome:SetRimAccent(r, g, b)
+		end
 	end
 	if backdrop and backdrop.chrome then
 		backdrop.chrome:SetShadow(false)

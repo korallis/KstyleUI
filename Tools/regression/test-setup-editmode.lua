@@ -85,7 +85,7 @@ end
 
 -- The tracked buff viewers: on Forever the Cooldowns module's automatic path restyles Blizzard's own BuffIconCooldownViewer
 -- and BuffBarCooldownViewer, so Apply places those viewers in the layout's tracked buff slots. The icons hang from the
--- slot's bottom right above a 14-unit timer band and grow left, beside the player portrait (LEE-20); the bars use
+-- slot's bottom right above a 14-unit timer band, ordered left to right beside the player portrait (LEE-20); the bars use
 -- their independent slot's bottom left. Their size comes from Edit Mode's IconSize, chosen so the whole row fits
 -- in the actual clear space, never under 50% and at most the legal size nearest the 27.6-unit picture target.
 

@@ -36,14 +36,12 @@ assert(W.LastCall(item.ChargeCount.Current, "SetFont"), "the charge count is res
 -- The restyled icon has the action buttons' dark body and rim: buttonFill, and the accent lifted 15% toward white.
 local backdrop = K.Skin.Parts(item).backdrop
 assert(backdrop.chrome.fillName == "buttonFill", "a restyled icon has the dark button body, got " .. tostring(backdrop.chrome.fillName))
-local ar, ag, ab = ns.Settings.Accent()
-local wr, wg, wb = K.Tokens.Color("textHover")
-local rr, rg, rb = K.Widgets.Mix(ar, ag, ab, 1, wr, wg, wb, 1, 0.15)
+local rr, rg, rb, ra = K.Widgets.Rgba("edgeInner")
 local edge = backdrop.chrome.edge
-assert(W.Near(edge[1], rr) and W.Near(edge[2], rg) and W.Near(edge[3], rb) and W.Near(edge[4], 1), "the rim is the accent lifted 15% toward white")
+assert(W.Near(edge[1], rr) and W.Near(edge[2], rg) and W.Near(edge[3], rb) and W.Near(edge[4], ra), "the default rim is neutral, not class-coloured")
 
 -- The rim comes from the shared icon chrome (Widgets.IconChrome), the helper every square icon button uses.
-assert(type(backdrop.chrome.SetRimAccent) == "function" and backdrop.chrome.rimAccent == true, "the restyled icon's chrome is the shared icon chrome, resting on IconRim")
+assert(type(backdrop.chrome.SetRimAccent) == "function" and backdrop.chrome.rimAccent == false, "the restyled icon uses shared chrome with a quiet rim")
 local formatter = W.LastCall(item.Cooldown, "SetCountdownFormatter")
 assert(formatter and formatter[1] == nil, "the restyled essential icon uses native unitless seconds")
 

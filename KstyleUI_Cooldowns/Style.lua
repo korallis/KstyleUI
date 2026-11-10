@@ -45,7 +45,9 @@ function Style.ShowChip(chip, holder, side, gap, width, height, text, size)
 	local r, g, b = Tokens.Color(chip.fill)
 	chip.chrome:SetFillRGBA(r, g, b, 1)
 	if chip.chrome.SetRimAccent then
-		if ns.Settings.current.accent == "custom" then
+		if ns.Settings.current.accent == "quiet" then
+			chip.chrome:SetRim(Widgets.Rgba("edgeInner"))
+		elseif ns.Settings.current.accent == "custom" then
 			chip.chrome:SetRimAccent(ns.Settings.Accent())
 		else
 			chip.chrome:SetRimAccent()
@@ -157,6 +159,9 @@ local function AfterPaint(icon)
 		local tint = icon.tint
 		Widgets.ShadeIcon(icon.icon, tint[1], tint[2], tint[3], true)
 	end
+	if ns.Settings.current.accent == "quiet" then
+		icon.chrome:SetRim(Widgets.Rgba("edgeInner"))
+	end
 	icon.hoverGlow:SetIntensity(0)
 end
 
@@ -200,6 +205,9 @@ function Style.PlaceText(icon, group)
 		countdown:SetPoint("TOP", icon, "BOTTOM", 0, -Widgets.Snap(icon, 2))
 	else
 		countdown:SetPoint("CENTER", icon, "CENTER", 0, 0)
+		local inset = K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
+		icon.count:ClearAllPoints()
+		icon.count:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
 	end
 	countdown:SetJustifyH("CENTER")
 end

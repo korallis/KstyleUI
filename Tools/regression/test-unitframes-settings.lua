@@ -86,7 +86,7 @@ assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 3,
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")
 end
-assert(defaults.player.fonts.cast.size == 12 and defaults.target.fonts.cast.size == 10, "the cast text is 12 on the player's own cast bar and 10 under the column target, whose 13-unit label row it fills")
+assert(defaults.player.fonts.cast.size == 12 and defaults.target.fonts.cast.size == 12, "the cast text is 12 under the column target and on the player's own cast bar, as the picture draws both")
 assert(defaults.focus.castbarHeight == 16, "the focus cast bar is 16 units under its 60-unit frame")
 assert(defaults.targettarget.portrait == false and defaults.pet.portrait == false, "the small frames have no portrait by default")
 assert(defaults.hideBlizzard == true, "Blizzard's frames are hidden by default")

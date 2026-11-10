@@ -38,16 +38,16 @@ K.Options.Write("UnitFrames", "focus.style", "lumen")
 
 local PLAYER = Layouts.Element("unitframes.player")
 local TARGET = Layouts.Element("unitframes.target")
-assert(PLAYER.width == 491 and PLAYER.height == 80, "the player element is the picture's bar column, 491 by 80")
-assert(TARGET.width == 491 and TARGET.height == 100.5, "the target element is 491 by 100.5")
+assert(PLAYER.width == 491 and PLAYER.height == 77.5, "the player element is the picture's bar column, 491 by 77.5")
+assert(TARGET.width == 491 and TARGET.height == 102.5, "the target element is 491 by 102.5")
 
 local pg = Geometry.Frame(Settings.Snapshot("player"), PLAYER.width, PLAYER.height, 1)
 assert(pg.form == "column" and not pg.mirror and not pg.compact and pg.chrome == false, "the player is a column with no glass")
 assert(near(pg.health.x, 0) and near(pg.health.w, 491) and near(pg.power.x, 0) and near(pg.power.w, 491), "both bars run the whole 491, the portrait takes none of it")
-assert(near(pg.portrait.w, 77.5) and near(pg.portrait.h, 77.5) and near(pg.portrait.y, 2.5), "a 77.5 portrait, its top 2.5 down")
+assert(near(pg.portrait.w, 77.5) and near(pg.portrait.h, 77.5) and near(pg.portrait.y, 0), "a 77.5 portrait, at the frame's top")
 assert(near(pg.portrait.x + pg.portrait.w, -14), "outside the bars at the left, 14 units clear of them")
-assert(near(pg.health.y, 49.5) and near(pg.health.h, 12), "the health bar is 12 tall at 49.5")
-assert(near(pg.power.y, 65.5) and near(pg.power.h, 7), "the power bar is 7 tall at 65.5")
+assert(near(pg.health.y, 47) and near(pg.health.h, 12), "the health bar is 12 tall at 47")
+assert(near(pg.power.y, 63) and near(pg.power.h, 7), "the power bar is 7 tall at 63")
 assert(pg.name and near(pg.name.y + pg.name.h, pg.health.y - 12), "the name stands 12 above the health bar")
 assert(pg.caption and pg.caption.x >= pg.name.x, "the class word follows the name")
 assert(pg.healthText and pg.healthSub and near(pg.healthSub.x + pg.healthSub.w, 491), "the value ends at the bar's right edge")
@@ -60,7 +60,7 @@ assert(tg.mirror and tg.form == "column", "the target mirrors the player")
 assert(near(tg.health.w, 491) and near(tg.power.w, 491), "the target's bars are 491 wide")
 assert(near(tg.portrait.x, 505) and near(tg.portrait.y, 0) and near(tg.portrait.w, 77.5), "a 77.5 portrait at the right, 14 clear of the bars, at the frame's top")
 assert(near(tg.health.y, 46) and near(tg.health.h, 12) and near(tg.power.y, 62) and near(tg.power.h, 7), "health at 46, power at 62")
-assert(tg.cast and near(tg.cast.x, 0) and near(tg.cast.w, 491) and near(tg.cast.y, 76) and near(tg.cast.y + tg.cast.h, 100.5), "the cast bar and its label run the full 491 under the power bar")
+assert(tg.cast and near(tg.cast.x, 0) and near(tg.cast.w, 491) and near(tg.cast.y, 76) and near(tg.cast.y + tg.cast.h, 102.5), "the cast bar and its label run the full 491 under the power bar")
 assert(tg.healthText and near(tg.healthText.x, 0), "the percentage is at the left")
 assert(tg.name and near(tg.name.x + tg.name.w, 491), "the name ends at the bars' right edge")
 assert(tg.caption, "the creature type sits by the name")
@@ -69,7 +69,7 @@ assert(near(tg.aura.x, 599) and near(tg.aura.y, 14.5), "your debuffs start 16.5 
 for _, g in ipairs({ pg, tg }) do
 	for key, part in pairs(g) do
 		if type(part) == "table" and part.w and key ~= "portrait" and key ~= "badge" and key ~= "aura" and key ~= "marker" and key ~= "glass" and key ~= "panel" then
-			inside(part, 491, g == pg and 80 or 100.5, key)
+			inside(part, 491, g == pg and 77.5 or 102.5, key)
 		end
 	end
 end
@@ -144,21 +144,21 @@ noErrors("combat")
 -- A name needs room: with none, neither it nor its caption draws, and a name wider than its room is bounded, secret or not.
 do
 	for _, width in ipairs({ 40, 120, 200 }) do
-		local g = Geometry.Frame(Settings.Snapshot("target"), width, 100.5, 1)
+		local g = Geometry.Frame(Settings.Snapshot("target"), width, 102.5, 1)
 		assert((g.name == nil) == (g.caption == nil), width .. ": the name and its caption go together")
 		if g.name then
 			assert(g.nameRoom >= 2 * 18 and g.name.w > 0, width .. ": a name that draws has room: " .. g.nameRoom)
 		end
 	end
-	local g120 = Geometry.Frame(Settings.Snapshot("target"), 120, 100.5, 1)
+	local g120 = Geometry.Frame(Settings.Snapshot("target"), 120, 102.5, 1)
 	assert(g120.name == nil and g120.caption == nil and g120.nameRoom == nil, "a 120-unit target has no room for its name over the value")
-	local g491 = Geometry.Frame(Settings.Snapshot("target"), 491, 100.5, 1)
+	local g491 = Geometry.Frame(Settings.Snapshot("target"), 491, 102.5, 1)
 	assert(g491.name and g491.caption and g491.nameRoom > 100, "the full frame keeps both")
 	Frames.Relayout(Frames.Get("target"))
 	env.RunTimers()
-	ns.Style.Layout(target, Settings.Snapshot("target"), 120, 100.5)
+	ns.Style.Layout(target, Settings.Snapshot("target"), 120, 102.5)
 	assert(not target.name:IsShown() and not target.caption:IsShown(), "with no room neither region draws")
-	ns.Style.Layout(target, Settings.Snapshot("target"), 491, 100.5)
+	ns.Style.Layout(target, Settings.Snapshot("target"), 491, 102.5)
 	assert(target.name:IsShown(), "and both return with room")
 
 	U.SetUnit(env, "target", { name = "Shadowgale Poacher of the Endless Wastes and Beyond", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })

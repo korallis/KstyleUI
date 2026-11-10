@@ -35,6 +35,7 @@ do
 	local e, k, n = New({ setup = function(game)
 		game._cdm.cooldown[1001] = { active = true, gcd = true }
 	end })
+	k.Options.Write("Cooldowns", "essential.readyGlow", true)
 	C.Enable(e, k)
 	local icon = Row(n, "essential").icons[1]
 	assert(icon.onCooldown == true and icon.ready == false, "initial refresh must not trust isOnGCD")
@@ -104,35 +105,50 @@ do
 	assert(buffIcon.countdown._points[1][1] == "TOP" and buffIcon.countdown._points[1][3] == "BOTTOM", "a tracked buff's timer sits below its icon")
 end
 
--- A socket's countdown never runs into its charge or stack count (round 4, Opus #6: a socket in the preview read
--- "12s3"): the utility row takes the small duration size, and the centred countdown rises just clear of the count's
--- corner band in every row, the tracked buffs' included.
+-- Actual glyph widths prove every countdown clears its corner count before and after restyling: essential
+-- numerals stay centred, utility countdowns lift above the count, and tracked-buff timers sit below the icon.
 do
 	assert(ns.Settings.defaults.utility.timerSize <= 11, "the utility row's countdown takes the small duration size")
-	local function box(text, size, icon)
+	local Scene = dofile("Tools/render/scene.lua")
+	local function box(text, size)
 		local p = text._points[1]
-		local _, height = text:GetFont()
-		local width = env._textWidth and env._textWidth(text:GetText(), nil, height) or (#text:GetText() * height * 0.55)
+		local path, height = text:GetFont()
+		local width = Scene.TextWidth(text:GetText(), height, path)
 		local cx, cy
 		if p[1] == "CENTER" then
 			assert(p[3] == "CENTER" or p[3] == "BOTTOM", "a countdown hangs from its socket's centre or foot")
 			cx, cy = size / 2 + p[4], (p[3] == "BOTTOM" and 0 or size / 2) + p[5]
 			return { cx - width / 2, cy - height / 2, cx + width / 2, cy + height / 2 }
 		end
+		if p[1] == "TOP" and p[3] == "BOTTOM" then
+			cx = size / 2 + p[4]
+			return { cx - width / 2, p[5] - height, cx + width / 2, p[5] }
+		end
 		assert(p[1] == "BOTTOMRIGHT" and p[3] == "BOTTOMRIGHT", "the count sits in the bottom right corner")
 		return { size + p[4] - width, p[5], size + p[4], p[5] + height }
 	end
 	local buffs = ns.Row.New(env.UIParent, "buffs", ns.Settings.current.buffs)
 	buffs:Icon(1)
-	for _, row in ipairs({ utility }) do
+	for _, row in ipairs({ essential, utility, buffs }) do
 		local icon = row.icons[1]
 		icon:SetCount("3")
-		icon.countdown:SetText("12s")
-		local size = icon.opts.size
-		local a, b = box(icon.countdown, size, icon), box(icon.count, size, icon)
-		local apart = a[3] <= b[1] - 1 or a[2] >= b[4] + 1
-		assert(apart, string.format("%s: the countdown (%.1f,%.1f-%.1f,%.1f) clears the count (%.1f,%.1f-%.1f,%.1f)", row.group, a[1], a[2], a[3], a[4], b[1], b[2], b[3], b[4]))
-		assert(a[1] >= 0 and a[3] <= size and a[4] <= size, row.group .. ": and stays on the socket")
+		icon.countdown:SetText(row.group == "essential" and "12" or row.group == "buffs" and "8s" or "12s")
+		for pass = 1, 2 do
+			if pass == 2 then
+				icon:Restyle()
+			end
+			local size = icon:GetWidth()
+			local a, b = box(icon.countdown, size), box(icon.count, size)
+			local apart = a[3] <= b[1] - 1 or a[2] >= b[4] + 1 or a[4] <= b[2] - 1
+			assert(apart, string.format("%s: the countdown (%.1f,%.1f-%.1f,%.1f) clears the count (%.1f,%.1f-%.1f,%.1f)", row.group, a[1], a[2], a[3], a[4], b[1], b[2], b[3], b[4]))
+			assert(a[1] >= 0 and a[3] <= size and a[4] <= size, row.group .. ": the timer stays within its column")
+			assert(b[1] >= 0 and b[3] <= size and b[2] >= 0, row.group .. ": the count stays within the socket")
+			if row.group == "buffs" then
+				assert(a[4] < 0, "buff timers remain below the icon")
+			else
+				assert(a[2] >= 0, row.group .. ": the timer stays on the socket")
+			end
+		end
 		icon:SetCount(nil)
 	end
 end
@@ -173,6 +189,7 @@ W.Settle(env)
 assert(essential.icons[1].ready == false, "a spell on cooldown is not ready")
 assert(essential.icons[2].ready == false and not essential.icons[2].readyGlow:IsPlaying(), "a ready spell has no halo by default")
 K.Options.Write("Cooldowns", "essential.readyGlow", true)
+env.FireEvent("SPELL_UPDATE_COOLDOWN")
 assert(essential.icons[2].ready == true and essential.icons[2].readyGlow:IsPlaying(), "the ready glow setting is retained")
 assert(essential.icons[3].ready == true, "the global cooldown alone keeps a spell ready")
 assert(utility.icons[1].ready == false, "utility icons have no ready glow by default")

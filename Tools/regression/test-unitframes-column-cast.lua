@@ -144,14 +144,14 @@ do
 	local function room()
 		return ns.Geometry.Frame(ns.Settings.Snapshot("target"), size.width, size.height, 1).cast.h
 	end
-	assert(near(room(), 7 + 4.5 + 10 + 3, 0.01), "a 10-unit cast font takes the picture's 24.5: " .. room())
+	assert(near(room(), 7 + 4.5 + 12 + 3, 0.01), "the 12-unit cast font takes the picture's 26.5: " .. room())
 	K.Options.Write("UnitFrames", "target.fonts.cast.size", 16)
 	assert(near(room(), 7 + 4.5 + 16 + 3, 0.01), "a 16-unit cast font takes 30.5: " .. room())
-	K.Options.Write("UnitFrames", "target.fonts.cast.size", 10)
+	K.Options.Write("UnitFrames", "target.fonts.cast.size", 12)
 
 	for _, fontSize in ipairs({ 10, 12, 20 }) do
 		K.Options.Write("UnitFrames", "player.fonts.cast.size", fontSize)
-		for _, height in ipairs({ 6, 9, 12, 18, 24.5, 30, 40 }) do
+		for _, height in ipairs({ 6, 9, 12, 18, 26.5, 30, 40 }) do
 			for _, mode in ipairs({ "above", "below" }) do
 				local cb = mode == "above" and element or target
 				CastBars.Layout(cb, 347, height)

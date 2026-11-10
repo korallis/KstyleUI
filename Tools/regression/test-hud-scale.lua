@@ -98,7 +98,7 @@ do
 			assert(near(bar3.b - rect("qol.lootfeed").t, 16), label .. ": spare bar 3 leaves 16 units over the loot feed's full reserve")
 			assert(bar3.r <= width * 0.3 or bar3.l >= width * 0.7, label .. ": LEE-20 spare bar 3 stays outside the central 40% band")
 			local player, target = rect("unitframes.player"), rect("unitframes.target")
-			assert(near(player.b - bar2.t, 6) and near(target.b - player.t, 1.5), label .. ": LEE-20 player and target stack directly over bar 2")
+			assert(near(player.b - bar2.t, 6) and near(target.b - player.t, 2), label .. ": LEE-20 player and target stack directly over bar 2")
 			assert(near(player.l, bar1.l - 95.5) and near(player.r, bar1.r) and near(target.l, bar1.l) and near(target.r, bar1.r + 246.4), label .. ": LEE-20 asymmetric reserves leave both bar columns centred")
 			local rail = rect("meters.damage")
 			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
