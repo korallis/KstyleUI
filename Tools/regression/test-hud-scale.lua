@@ -74,7 +74,7 @@ do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
-	local HEIGHT, PITCH = Layouts.HEIGHT, 3
+	local HEIGHT = Layouts.HEIGHT
 	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3" }) do
 		local grid = Layouts.Grid(key)
 		assert(grid.rows == 1, key .. " is one row of twelve, like bar 1")

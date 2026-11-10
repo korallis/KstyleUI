@@ -100,7 +100,6 @@ end
 local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
 local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
 local NEAR = ns.Tokens.Size("gapLarge")
-local BAND = MARGIN + RAIL + GAP
 local ENDS = (12 * BUTTON + 11 * PITCH) / 2 + NEAR + GridSize("actionbars.pet") / 2
 local BAR = BUTTON + PITCH
 local BAR1_Y = 68
