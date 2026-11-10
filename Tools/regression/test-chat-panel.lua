@@ -116,10 +116,48 @@ do
 		assert(near(lastCall(env.ChatFrame1Tab.Text, "SetFont")[2], K.Widgets.FontSize(env.ChatFrame1Tab.Text, ns.defaults.tabFontSize * size)), "so do the tab names")
 		local g = ns.Panel.Geometry(chat)
 		local el = K.Layout.Get("chat.main")
-		local lines = (el.height - g.top - g.bottom) / g.k / (font + spacing)
+		local area = (el.height - g.top - g.bottom) / g.k
+		local lines = (area + spacing) / (font + spacing)
 		local em = (el.width - g.left - g.right) / g.k / font
 		assert(math.floor(lines + 1e-6) == 6, "six lines at size " .. size .. ", got " .. lines)
+		assert(area >= 5 * (font + spacing) + font - 1e-6 and area <= 6 * (font + spacing) + 1e-6, "the sixth line is whole and a seventh has no pixel in the window at size " .. size .. ", area " .. area)
 		assert(em >= 21, "21 em per line at size " .. size .. ", got " .. em)
+		assert(#env._errors == 0, tostring(env._errors[1]))
+	end
+end
+
+-- The message window is a whole number of line pitches tall, so the clip edge falls between lines and no line is
+-- cut at rest (LEE-69). ScrollingMessageFrame.lua:595-602 stacks line n at the frame's bottom plus (n - 1) pitches,
+-- a pitch being the line height plus the spacing (RefreshLayout anchors each line's bottom on the one below's top
+-- plus GetSpacing), and the FontStringContainer clips its children at the frame (ScrollingMessageFrame.xml:10,
+-- clipChildren). The nth line is whole when the window is at least (n - 1) pitches plus a line tall, and the next
+-- one is out of sight when it is at most n pitches. At every text size and spacing, on three screens.
+do
+	for _, screen in ipairs({ { 2383, 1540, 768 / 1080 }, { 2560, 1440, 0.75 }, { 1920, 1080, 1 } }) do
+		local env, K, ns = C.New({ width = screen[1], height = screen[2], uiScale = screen[3] })
+		C.Enable(env, K)
+		local chat = env.ChatFrame1
+		for _, size in ipairs({ 10, 14, 18, 24 }) do
+			for _, spacing in ipairs({ 0, 4, 10 }) do
+				K.Options.Write("Chat", "fontSize", size)
+				K.Options.Write("Chat", "lineSpacing", spacing)
+				env.RunTimers()
+				local font = lastCall(chat, "SetFont")[2]
+				local gap = lastCall(chat, "SetSpacing")[1]
+				local g = ns.Panel.Geometry(chat)
+				local el = K.Layout.Get("chat.main")
+				local area = (el.height - g.top - g.bottom) / g.k
+				local pitch = font + gap
+				local fit = math.floor((area + gap) / pitch + 1e-6)
+				local label = screen[1] .. " at " .. size .. " + " .. spacing .. ", area " .. area .. ", pitch " .. pitch
+				if fit >= 1 then
+					local eps = 0.5 * g.k
+					assert(area >= (fit - 1) * pitch + font - eps and area <= fit * pitch + eps, "the window ends between two lines, " .. label)
+				end
+				assert(near(select(5, chat:GetPoint(1)) * g.k, -g.top), "the window sits where the geometry says after a change of size, " .. label)
+				assert(g.top >= K.Scale.Snap(34) and g.top < K.Scale.Snap(34) + pitch * g.k + 1, "the remainder goes under the tabs and never a whole line, " .. label)
+			end
+		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end
@@ -147,7 +185,7 @@ do
 	local snap = K.Scale.Snap
 	local g = ns.Panel.Geometry(chat)
 	assert(near(g.divider, snap(34)), "the tab row is 34 units, the picture's first line just under the labels, got " .. g.divider)
-	assert(near(g.top, snap(34)), "the window starts at the tab row, so six lines have no empty glass above them, got " .. g.top)
+	assert(g.top >= snap(34) and g.top - snap(34) < (14 + 4) * g.k, "the window starts at the tab row, or a part of a line pitch below it, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
 	assert(near(g.left, snap(12.57)), "messages start 12.57 units inside the card, 26 px on the owner's screen, got " .. g.left)
@@ -251,7 +289,7 @@ do
 	local g = ns.Panel.Geometry(env.ChatFrame1)
 	local p, rel, relp, x, y = plus:GetPoint(1)
 	assert(p == "CENTER" and rel == glass and relp == "TOPRIGHT", "the plus sits in the row's right end")
-	assert(near(x, -K.Widgets.Snap(plus, 22)) and near(y, -K.Widgets.Snap(plus, g.top - 14 * g.k)), "22 units in from the right, level with the tab names, on the pixel grid, got " .. x .. ", " .. y)
+	assert(near(x, -K.Widgets.Snap(plus, 22)) and near(y, -K.Widgets.Snap(plus, g.divider - 14 * g.k)), "22 units in from the right, level with the tab names, on the pixel grid, got " .. x .. ", " .. y)
 	local cp, crel, crelp, cx, cy = copy:GetPoint(1)
 	assert(cp == "CENTER" and crel == glass and crelp == "TOPRIGHT" and near(cx, -(22 + 20 + K.Tokens.Size("gapTiny"))) and near(cy, y), "the copy glyph sits one button and a tiny gap left of the plus, got " .. cx)
 	for _, button in ipairs({ plus, copy }) do
