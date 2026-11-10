@@ -38,7 +38,7 @@ Plate.FRAME_GAP = 1.15
 
 local BORDER_PIXELS = 2
 local GAP = Tokens.Size("gapTiny")
-local NAME_GAP = 3.5
+local NAME_GAP = 4
 Plate.NAME_GAP = NAME_GAP
 local BADGE_GAP = Tokens.Size("gapSmall")
 local TEXT_INSET = Tokens.Size("gapSmall")

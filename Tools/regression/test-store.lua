@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 16, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 17, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,7 +219,7 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 16, "version 2 data migrates through 3 to 12 to the current 16")
+	check(menv.KstyleUIDB.version == 17, "version 2 data migrates through 3 to 12 to the current 17")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
@@ -238,7 +238,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local auras = menv.KstyleUIDB.profiles.Default.Auras
-	check(menv.KstyleUIDB.version == 16, "version 7 data migrates to 16")
+	check(menv.KstyleUIDB.version == 17, "version 7 data migrates to 17")
 	check(auras.card == nil, "the card section is gone")
 	check(auras.buffs.rows == nil and auras.buffs.columns == 6, "the setup's one buff row goes; the player's columns stay")
 	check(auras.debuffs.dispelFirst == nil and auras.debuffs.rows == 3, "the dispellable-first split goes; the player's debuff rows stay")
@@ -266,7 +266,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 16, "version 8 data migrates to 16")
+	check(db.version == 17, "version 8 data migrates to 17")
 	local damage, threat = db.layouts.Default["meters.damage"], db.layouts.Default["meters.threat"]
 	check(damage.anchor == "TOPRIGHT" and damage.x == -28 and damage.y == -300, "a damage card moved only down keeps its place from the top right")
 	check(threat.anchor == "TOPRIGHT" and threat.x == -60 and threat.y == -236 and threat.width == 300, "a threat card moved only sideways keeps its place and size")
@@ -294,7 +294,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 16, "version 9 data migrates to 16")
+	check(db.version == 17, "version 9 data migrates to 17")
 	check(db.layouts.Default["chat.main"].width == 393 and db.layouts.Default["chat.main"].height == 186 and db.layouts.Default["chat.main"].x == 28, "the old default card takes the picture's size (186 high since migration 16) and keeps its place")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps the rail width and takes the picture's height")
 	check(db.layouts.Custom["chat.main"].width == 400 and db.layouts.Custom["chat.main"].height == 180, "a resized card stays")
@@ -328,7 +328,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 16, "version 9 data migrates to 16")
+	check(db.version == 17, "version 9 data migrates to 17")
 	local layout = db.layouts.Default
 	check(layout["minimap.main"] == nil, "the version-9 map size goes, so the map takes the picture's 188")
 	check(layout["meters.damage"] == nil, "the old rail width alone goes, so the damage card takes the picture's 269 x 158")
@@ -384,7 +384,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 16, "version 12 data migrates to 16")
+	check(db.version == 17, "version 12 data migrates to 17")
 	check(db.layouts.TallDps["chat.main"].width == 318 and db.layouts.TallDps["chat.main"].height == 200, "a DPS card the player set to the Healer's old size keeps it")
 	check(db.layouts.TallSparse["chat.main"].width == 318 and db.layouts.TallSparse["chat.main"].height == 200, "a DPS card narrowed to 318 keeps its 200")
 	local tall = db.layouts.TallHigh["qol.lootfeed"]
@@ -392,7 +392,7 @@ do
 	local tallMoved = db.layouts.TallMoved["qol.lootfeed"]
 	check(tallMoved.anchor == "BOTTOMLEFT" and tallMoved.x == 40 and tallMoved.y == 233, "a loot feed the player moved sideways keeps its old height above the taller card")
 	check(db.layouts.Default["qol.lootfeed"] == nil, "a card that takes the new default height lets the feed follow it")
-	check(db.version == 16 and db.layouts.TextHeight["chat.main"].height == "200", "a saved height that is text does not stop the migration")
+	check(db.version == 17 and db.layouts.TextHeight["chat.main"].height == "200", "a saved height that is text does not stop the migration")
 	local layout = db.layouts.Default
 	check(layout["chat.main"].width == 393 and layout["chat.main"].height == 186, "a card at the old default height takes the picture's 186")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps its rail width and takes 186")
@@ -753,6 +753,22 @@ do
 	Raises(function() Codec.Serialize({ f = function() end }) end, "function", "Serialize of a function")
 	Raises(function() Codec.Serialize({ x = 0 / 0 }) end, "finite", "Serialize of NaN")
 	Raises(function() Codec.Serialize({ [true] = 1 }) end, "key", "Serialize of a boolean key")
+end
+
+do
+	local env, K = CoreEnv.New({ saved = {
+		version = 16, profiles = { Default = {}, Custom = {}, Sized = {} },
+		layouts = {
+			Default = { ["minimap.main"] = { anchor = "TOPRIGHT", x = -17, y = -17 } },
+			Custom = { ["minimap.main"] = { anchor = "TOPLEFT", x = 40, y = -50, width = 240, height = 240 } },
+			Sized = { ["minimap.main"] = { x = -17, width = 220 } },
+		},
+	} })
+	CoreEnv.Boot(env)
+	local layouts = K.Store.Data().layouts
+	check(layouts.Default["minimap.main"] == nil, "the old minimap inset follows the corrected default")
+	check(DeepEqual(layouts.Custom["minimap.main"], { anchor = "TOPLEFT", x = 40, y = -50, width = 240, height = 240 }), "a custom minimap placement and size stay unchanged")
+	check(DeepEqual(layouts.Sized["minimap.main"], { width = 220 }), "a custom minimap size keeps following the default position")
 end
 
 print("store ok")

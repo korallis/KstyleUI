@@ -30,7 +30,7 @@ Model.LIMITS = {
 local LIMITS = Model.LIMITS
 
 local NUMBER_FONT = (Tokens.Font("number"))
-local BODY_FONT = (Tokens.Font("body"))
+local TIMER_FONT = (Tokens.Font("timer"))
 local ar, ag, ab = Tokens.Color("accentDefault")
 
 Model.defaults = {
@@ -44,7 +44,7 @@ Model.defaults = {
 		iconSize = 27.5, spacing = 3.5, rowSpacing = 4, rows = 1, columns = 10,
 		growth = "RIGHT_DOWN", sort = "priority", reverse = false, dispel = true,
 	},
-	timer = { format = "short", position = "below", font = BODY_FONT, size = 11, outline = "NONE", expiring = 5 },
+	timer = { format = "short", position = "below", font = TIMER_FONT, size = 11, outline = "NONE", expiring = 5 },
 	count = { font = NUMBER_FONT, size = 10, outline = "NONE" },
 	accent = { source = "class", color = { r = ar, g = ag, b = ab } },
 }
