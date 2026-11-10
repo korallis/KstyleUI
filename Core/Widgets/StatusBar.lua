@@ -34,6 +34,7 @@ local EDGE_FULL_PIXELS = 8
 local EDGE_THIN_PIXELS = 5
 local EDGE_MIN_FILL = 3
 local BACKING_ALPHA = 0.64
+local CURSOR_SUBLEVEL = 3
 local RAMP_KINDS = {
 	plate = { { 208 / 195, 74 / 67, 67 / 61 }, { 179 / 195, 59 / 67, 54 / 61 } },
 	health = { { 46 / 44, 109 / 105, 213 / 204 }, { 41 / 44, 98 / 105, 192 / 204 } },
@@ -422,6 +423,57 @@ function Bar:SetSparkShown(shown)
 	end
 end
 
+local CURSOR_POINT = {
+	HORIZONTAL = { normal = { "LEFT", "RIGHT" }, reverse = { "RIGHT", "LEFT" } },
+	VERTICAL = { normal = { "BOTTOM", "TOP" }, reverse = { "TOP", "BOTTOM" } },
+}
+
+function Bar:PlaceFillCursor()
+	local cursor = self.fillCursor
+	if not cursor then
+		return
+	end
+	local thickness = self:EdgeThickness()
+	local show = self.fillCursorOn == true and thickness > 0
+	local fill = self:GetStatusBarTexture()
+	if not show or not fill then
+		cursor:Hide()
+		return
+	end
+	local px = Widgets.Snap(self, Scale.Pixel(thickness) / Widgets.ScaleFactor(self))
+	local span = self.vertical and self:GetWidth() or self:GetHeight()
+	if type(span) ~= "number" or Widgets.IsSecret(span) or span <= 0 then
+		span = self.opts[self.vertical and "width" or "height"] or Tokens.Size("buffBarHeight")
+	end
+	local interior = Widgets.Snap(self, math.max(span - 2 * px, px))
+	if self.vertical then
+		cursor:SetSize(interior, px)
+	else
+		cursor:SetSize(px, interior)
+	end
+	local reverse = self:GetReverseFill()
+	reverse = not Widgets.IsSecret(reverse) and reverse == true
+	local points = CURSOR_POINT[self.vertical and "VERTICAL" or "HORIZONTAL"][reverse and "reverse" or "normal"]
+	cursor:ClearAllPoints()
+	cursor:SetPoint(points[1], fill, points[2])
+	cursor:SetColorTexture(Tokens.Color("white"))
+	Widgets.Tint(cursor, "white")
+	cursor:Show()
+end
+
+function Bar:SetFillCursor(on)
+	if on and not self.fillCursor then
+		local clip = CreateFrame("Frame", nil, self)
+		clip:SetAllPoints(self)
+		clip:SetClipsChildren(true)
+		local cursor = Widgets.Crisp(clip:CreateTexture(nil, "OVERLAY", nil, CURSOR_SUBLEVEL))
+		cursor:SetColorTexture(Tokens.Color("white"))
+		self.fillCursorClip, self.fillCursor = clip, cursor
+	end
+	self.fillCursorOn = on == true
+	self:PlaceFillCursor()
+end
+
 local function SheenDistance(self)
 	local width = self:GetWidth()
 	if type(width) ~= "number" or Widgets.IsSecret(width) then
@@ -504,6 +556,7 @@ function Bar:Restyle()
 	end
 	self:PlaceBacking()
 	self:PlaceInnerEdge()
+	self:PlaceFillCursor()
 end
 
 local function CapMask(bar, name)

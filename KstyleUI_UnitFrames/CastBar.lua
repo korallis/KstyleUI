@@ -393,6 +393,7 @@ local function LayoutCaption(cb, width, height)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
 	bar:SetInnerEdge(bar:FlatTexture(), "castEdge")
+	bar:SetFillCursor(cb.kind == "player")
 	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
 	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[mode] * size), math.floor(width / 2)) or 0
 	local y = Snap(cb, barH + gap)
@@ -420,6 +421,7 @@ function CastBars.Layout(cb, width, height)
 		LayoutCaption(cb, width, height)
 		return
 	end
+	cb.bar:SetFillCursor(false)
 	Style.Flat(cb.bar, false)
 	cb.bar.keyline:Show()
 	cb.bar:SetTrackBacking(false)
@@ -521,6 +523,7 @@ local function Orient(cb)
 		bar.spark:ClearAllPoints()
 		bar.spark:SetPoint("CENTER", bar:GetStatusBarTexture(), o[4])
 	end
+	bar:PlaceFillCursor()
 	if turned then
 		bar:Restyle()
 	end
@@ -553,6 +556,7 @@ function CastBars.Restyle(cb)
 	end
 	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
 	cb.bar:SetInnerEdge(cb.mode ~= nil and cb.bar:FlatTexture(), "castEdge")
+	cb.bar:SetFillCursor(cb.mode ~= nil and cb.kind == "player")
 	Orient(cb)
 	cb.styled = true
 	cb.pr = nil
