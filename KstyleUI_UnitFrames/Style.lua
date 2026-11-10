@@ -608,9 +608,11 @@ function Style.Restyle(view, kind)
 	if view.health.keyline then
 		view.health.keyline:SetShown(not view.health.rampOn)
 	end
+	view.health:SetTrackBacking(view.health.rampOn == true)
 	if view.power.keyline then
 		view.power.keyline:SetShown(not view.power.innerEdgeOn)
 	end
+	view.power:SetTrackBacking(view.power.innerEdgeOn == true)
 	Style.Flat(view.health, column)
 	Style.Flat(view.power, column)
 	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))

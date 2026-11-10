@@ -313,4 +313,31 @@ for _, screen in ipairs(SCREENS) do
 	end
 end
 
+-- The edge is two physical pixels a side. It draws only when the bar is at least eight physical
+-- pixels tall, so a five-pixel gallery bar keeps every coloured row. A pill's edge wears the bar's
+-- cap masks, so the corner follows the round cap instead of a rectangle.
+local SHORT_PIXELS, HUD_PIXELS = 5, 14
+for _, screen in ipairs(SCREENS) do
+	local env, K = W.New({ width = screen[1], height = screen[2], uiScale = 768 / 1080, size = "default", setup = withColor })
+	local unit = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(K.Scale.Root())
+	local where = string.format("%dx%d", screen[1], screen[2])
+	local short = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * SHORT_PIXELS, border = true })
+	short:SetBarTexture("Flat")
+	short:SetInnerEdge(true, "barEdge")
+	assert(short.innerEdgeOn == true, where .. ": the short bar still wants an edge")
+	assert(short.innerEdge[1]:IsShown() == false, where .. ": a five-pixel bar keeps its coloured rows, the edge is omitted")
+	local tall = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * HUD_PIXELS, border = true })
+	tall:SetBarTexture("Flat")
+	tall:SetInnerEdge(true, "barEdge")
+	assert(tall.innerEdge[1]:IsShown() == true, where .. ": a fourteen-pixel pill keeps the two-pixel edge")
+	assert(math.abs(edgePixels(K, tall) - 2) < 0.01, where .. ": the pill edge is two physical pixels")
+	assert(tall.innerEdge[1]:GetMaskTexture(1) == tall.caps[3] and tall.innerEdge[1]:GetMaskTexture(2) == tall.caps[4], where .. ": the edge follows the bar's capsule caps")
+	assert(tall.innerEdge[2]:GetNumMaskTextures() == 2, where .. ": every edge strip is masked")
+	local square = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = unit * HUD_PIXELS })
+	square:SetBarTexture("Flat")
+	square:SetInnerEdge(true, "powerEdge")
+	assert(square.innerEdge[1]:GetNumMaskTextures() == 0, where .. ": a rectangular bar's edge stays a rectangle")
+	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
+end
+
 print("widgets status bar ok")

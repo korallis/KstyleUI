@@ -49,6 +49,7 @@ local COLORS = {
 	track = { "05090e", 0.88 },
 	barEdge = { "202327", 1 },
 	powerEdge = { "12160a", 1 },
+	castEdge = { "040502", 1 },
 	white = { "ffffff", 1 },
 	black = { "000000", 1 },
 	schoolPhysical = { "d8c3a0", 1 },

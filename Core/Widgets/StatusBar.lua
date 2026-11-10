@@ -30,6 +30,8 @@ local SPARK_EDGE = {
 
 local COLOR_CHANNELS = 4
 local EDGE_PIXELS = 2
+local EDGE_MIN_PIXELS = EDGE_PIXELS * 4
+local BACKING_ALPHA = 0.64
 local RAMP_KINDS = {
 	plate = { { 208 / 195, 74 / 67, 67 / 61 }, { 179 / 195, 59 / 67, 54 / 61 } },
 	health = { { 46 / 44, 109 / 105, 213 / 204 }, { 41 / 44, 98 / 105, 192 / 204 } },
@@ -229,6 +231,36 @@ function Bar:SetFillRamp(r, g, b, kind)
 	self:ApplyFillRamp()
 end
 
+local function CrossPixels(self)
+	local span = self.vertical and self:GetWidth() or self:GetHeight()
+	local unit = Scale.Pixel(1) / Widgets.ScaleFactor(self)
+	if type(span) ~= "number" or Widgets.IsSecret(span) or span <= 0 or type(unit) ~= "number" or unit <= 0 then
+		return nil
+	end
+	return span / unit
+end
+
+local function ApplyEdgeMasks(self)
+	local edge, caps = self.innerEdge, self.caps
+	if not edge or not caps then
+		return
+	end
+	local want = self.pillOn == true
+	if self.edgeMasked == want then
+		return
+	end
+	for i = 1, 4 do
+		if want then
+			edge[i]:AddMaskTexture(caps[3])
+			edge[i]:AddMaskTexture(caps[4])
+		elseif self.edgeMasked then
+			edge[i]:RemoveMaskTexture(caps[3])
+			edge[i]:RemoveMaskTexture(caps[4])
+		end
+	end
+	self.edgeMasked = want
+end
+
 function Bar:PlaceInnerEdge()
 	local edge = self.innerEdge
 	if not edge then
@@ -236,10 +268,13 @@ function Bar:PlaceInnerEdge()
 	end
 	local px = Widgets.Snap(self, Scale.Pixel(EDGE_PIXELS) / Widgets.ScaleFactor(self))
 	local token = self.innerEdgeToken or "black"
+	local pixels = CrossPixels(self)
+	local show = self.innerEdgeOn == true and (pixels == nil or pixels >= EDGE_MIN_PIXELS)
 	for i = 1, 4 do
 		Widgets.Tint(edge[i], token)
-		edge[i]:SetShown(self.innerEdgeOn == true)
+		edge[i]:SetShown(show)
 	end
+	ApplyEdgeMasks(self)
 	edge[1]:ClearAllPoints()
 	edge[1]:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
 	edge[1]:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 0)
@@ -273,6 +308,28 @@ function Bar:SetInnerEdge(on, token)
 		self.innerEdgeToken = token
 	end
 	self:PlaceInnerEdge()
+end
+
+function Bar:PlaceBacking()
+	local backing = self.backing
+	if not backing then
+		return
+	end
+	backing:ClearAllPoints()
+	backing:SetAllPoints(self)
+	Widgets.Tint(backing, "black", BACKING_ALPHA)
+	backing:SetShown(self.backingOn == true)
+end
+
+function Bar:SetTrackBacking(on)
+	on = on == true
+	if on and not self.backing then
+		local texture = Widgets.Crisp(self:CreateTexture(nil, "BACKGROUND", nil, KEYLINE_SUBLEVEL))
+		texture:SetColorTexture(Tokens.Color("white"))
+		self.backing = texture
+	end
+	self.backingOn = on
+	self:PlaceBacking()
 end
 
 function Bar:SetBarColor(...)
@@ -422,6 +479,7 @@ function Bar:Restyle()
 	if self.rampOn or self.fillRamped then
 		self:ApplyFillRamp()
 	end
+	self:PlaceBacking()
 	self:PlaceInnerEdge()
 end
 
@@ -478,6 +536,9 @@ function Bar:ShowPill(on)
 	end
 	self.sheenTop:SetShown(on)
 	Widgets.ShowSlice(self.glow, on)
+	if self.innerEdge then
+		self:PlaceInnerEdge()
+	end
 end
 
 local function PillFill(bar)
@@ -514,6 +575,9 @@ local function PillFill(bar)
 	end
 	bar:HookScript("OnSizeChanged", function(self, _, height)
 		self:SizeCaps(height)
+		if self.innerEdge then
+			self:PlaceInnerEdge()
+		end
 	end)
 end
 
