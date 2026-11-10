@@ -27,10 +27,11 @@ local CLASS_LINE_COLOR = "text"
 local BOSS_SLOT = 16
 local NAME_STEPS = 2
 local NAME_FLOOR = 7
+local WIDE_NAME_EM = 9
 Style.BOSS_SLOT = BOSS_SLOT
 
 function Style.NameMin(k)
-	return math.max(NAME_FLOOR, math.min(k.nameSize, k.nameSize - NAME_STEPS))
+	return math.max(NAME_FLOOR, k.nameSize - NAME_STEPS)
 end
 local RESERVE = {
 	party = { DEFICIT = { "-88.8k", "-888" }, PERCENT = { "100%" } },
@@ -182,11 +183,26 @@ local function LayoutTexts(f, k, parts)
 	local cfg = Settings.current.text
 	local inside = parts.nameInside
 	local nameOutline = inside and OnBar(cfg.nameOutline) or cfg.nameOutline
-	SetFont(name, cfg.nameFont, k.nameSize, nameOutline)
+	local namePath = cfg.nameFont
+	f.nativeName = namePath == Settings.THEME_FONT
+	local kit = false
+	if namePath == Settings.THEME_FONT then
+		namePath = (Tokens.Font("names"))
+		for _, set in ipairs(Tokens.MediaList("fontSet")) do
+			kit = kit or set.key == Theme.FontFace()
+		end
+		if kit and f.kind == "raid" and parts.name.width < WIDE_NAME_EM * Widgets.FontSize(name, Style.NameMin(k)) then
+			namePath = Settings.COMPACT_NAME_FONT
+			f.nativeName = false
+		end
+	end
+	SetFont(name, namePath, k.nameSize, nameOutline)
 	f.nameFit = {
 		size = k.nameSize, min = Style.NameMin(k),
-		set = function(text, size)
-			SetFont(text, cfg.nameFont, size, nameOutline)
+		path = namePath, kit = kit, native = f.nativeName,
+		slack = K.Scale.Pixel(1) / Widgets.ScaleFactor(name) / 2,
+		set = function(text, size, path)
+			SetFont(text, path or namePath, size, nameOutline)
 		end,
 	}
 	SetFont(healthText, cfg.healthFont, k.healthTextSize, inside and OnBar(cfg.healthOutline) or cfg.healthOutline)
@@ -356,6 +372,7 @@ end
 
 function Style.PlaceRowEnd(f)
 	local parts = f.parts
+	f.nameFloor = false
 	if not parts then
 		return
 	end
@@ -413,6 +430,11 @@ function Style.PlaceRowEnd(f)
 	if captioned then
 		name:SetWidth(0)
 		name:SetPoint("RIGHT", classLine, "LEFT", -gap, 0)
+		f.nameFloor = inRow and not reserve
+		local captionWidth = ns.Names and ns.Names.Width(classLine, f.classCaption or "", Tokens.Size("caption"))
+		if captionWidth and (not inRow or reserve) then
+			f.nameWidth = math.max(1, Widgets.Snap(f, right) - left - captionWidth - gap - (reserve and reserve + gap or 0))
+		end
 	elseif inRow and not reserve then
 		name:SetWidth(0)
 		name:SetPoint("RIGHT", healthText, "LEFT", -gap, 0)

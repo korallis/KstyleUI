@@ -224,15 +224,19 @@ local function ClassLine(f)
 	end
 	local className = UnitClass(f.unit)
 	if IsSecret(className) or type(className) ~= "string" then
-		line:SetText("")
+		f.classCaption = ""
+		line:SetText(f.classCaption)
+		Style.PlaceRowEnd(f)
 		return
 	end
 	local level = UnitLevel(f.unit)
 	if IsSecret(level) or type(level) ~= "number" or level <= 0 then
-		line:SetText(className)
+		f.classCaption = className
 	else
-		line:SetText(className .. " " .. level)
+		f.classCaption = className .. " " .. level
 	end
+	line:SetText(f.classCaption)
+	Style.PlaceRowEnd(f)
 end
 
 local function PowerColor(f)

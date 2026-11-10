@@ -139,10 +139,7 @@ local function Listen()
 	end
 	Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	Callbacks.Register("ProfileChanged", MODULE, OnProfile)
-	Callbacks.Register("ThemeChanged", MODULE, function()
-		Unit.ForEach(Style.Paint)
-		Unit.RefreshAll()
-	end)
+	Callbacks.Register("ThemeChanged", MODULE, Restyle)
 	Callbacks.Register("ScaleChanged", MODULE, Restyle)
 	Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 end
