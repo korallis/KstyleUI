@@ -9,7 +9,7 @@ local Lumen = {}
 ns.Lumen = Lumen
 
 local FALLBACKS = { gilt = "neutral", questGold = "neutral", rimLight = "edgeInner" }
-local S1_NAMES = { questGold = "quest", rimLight = "rim" }
+local S1_NAMES = { rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
 local TEXTURES = { gem = "chamferTile", checkRing = "ringBevel", gemFill = "dot" }
 local GEM_UNITS, GEM_TURN = 7, math.pi / 4

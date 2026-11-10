@@ -40,8 +40,8 @@ do
 	local tr, tg, tb, ta = K.Tokens.Color("gilt")
 	assert(Near(r, tr) and Near(g, tg) and Near(b, tb) and Near(a, ta), "with S1's gilt token, Lumen reads it")
 	local wr, wg, wb = Lumen.Color("questGold")
-	local xr, xg, xb = K.Tokens.Color("quest")
-	assert(Near(wr, xr) and Near(wg, xg) and Near(wb, xb), "quest gold is S1's quest token")
+	local xr, xg, xb = K.Tokens.Color("questGold")
+	assert(Near(wr, xr) and Near(wg, xg) and Near(wb, xb) and Near(wr, 0xf2 / 255) and Near(wg, 0xcf / 255) and Near(wb, 0x55 / 255), "quest gold is the questGold token, the picture's #f2cf55 quest titles")
 	local fellBack = pcall(function()
 		local real = K.Tokens.Color
 		K.Tokens.Color = function(name)
