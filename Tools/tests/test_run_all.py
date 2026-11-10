@@ -216,7 +216,7 @@ class RunAllTest(unittest.TestCase):
                 pidfile = self.tmp / f"pid-{sig.name}"
                 (self.regression / "test-hang.lua").write_text(f"echo $$ > {pidfile}.tmp; mv {pidfile}.tmp {pidfile}; exec sleep 30\n")
                 env = {key: value for key, value in os.environ.items() if key != "CI"}
-                runner = subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=dict(env, LUA="sh"),
+                runner = subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=dict(env, LUA="sh", KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64"),
                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 deadline = time.monotonic() + 10
                 while not pidfile.exists() and time.monotonic() < deadline:
