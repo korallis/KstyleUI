@@ -544,10 +544,10 @@ local function PlaceBlockText(list, row)
 		local face = NumberFace(row.value)
 		local last = face and EndChar(row.value:GetText(), true) or nil
 		local first = face and EndChar(row.share, false) or nil
-		local x, y, width = BarList.JoinOffsets(last, first, size)
+		local x, y = BarList.JoinOffsets(last, first, size)
 		local snap = Widgets.Snap
 		dot:SetText(DOT)
-		dot:SetWidth(width)
+		dot:SetWidth(0)
 		dot:SetHeight(rowHeight)
 		dot:SetPoint("RIGHT", row.percent, "LEFT", snap(list.panel, y), 0)
 		dot:Show()

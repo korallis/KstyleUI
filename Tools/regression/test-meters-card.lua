@@ -132,6 +132,18 @@ do
 	assert(W.Near(0.022 * size + 0.033 * size - x2, gap), "the offset cancels the number face's side bearings, so the ink gap is 5 px")
 end
 
+-- A chosen font sizes the dot itself. Pinning every face to the number face's 0.228 em clips a wider
+-- middle dot (Inter's is 0.319 em) and the render guard reports it truncated.
+do
+	M.Write(env, K, "damage.font", K.Tokens.FontPath("InterSemiBold"))
+	local row = list.rows[1]
+	assert(select(1, row.dot:GetFont()) == K.Tokens.FontPath("InterSemiBold"), "the chosen font reaches the dot")
+	assert(row.dot:GetWidth() == 0, "the dot is not pinned to the number face's advance, got " .. tostring(row.dot:GetWidth()))
+	assert(row.dot:IsShown(), "the dot still shows")
+	M.Write(env, K, "damage.font", "")
+	assert(select(1, list.rows[1].value:GetFont()) == K.Tokens.Font("number"), "clearing the font returns the amount to the number face")
+end
+
 -- The text sits inside the fill: the name at the left, the amount and share at the right, the value bold.
 do
 	local row = list.rows[1]
