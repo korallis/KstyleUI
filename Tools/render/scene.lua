@@ -956,6 +956,28 @@ local function round4(v)
 	return floor(v * 10000 + 0.5) / 10000
 end
 
+-- Material textures depend on the final anchored size. The lightweight stubs do not propagate
+-- anchor-driven size events, so refresh paint against the same resolved rect the renderer draws.
+-- Do not run layout/restyle or alter stored sizes: Glass, text and bar geometry must stay untouched.
+local function paintMaterials(env, solver)
+	for _, chrome in ipairs(env._materialChromes or {}) do
+		local material = not chrome.released and chrome:Material()
+		local owner = chrome.owner
+		if material and material.texture and owner:IsVisible() then
+			local rect = solver:rect(owner)
+			local scale = effectiveScale(owner)
+			if rect and scale > 0 then
+				local oldWidth, oldHeight = rawget(owner, "GetWidth"), rawget(owner, "GetHeight")
+				owner.GetWidth = function() return (rect[3] - rect[1]) / scale end
+				owner.GetHeight = function() return (rect[4] - rect[2]) / scale end
+				local ok, err = pcall(chrome.PaintMaterial, chrome)
+				owner.GetWidth, owner.GetHeight = oldWidth, oldHeight
+				assert(ok, err)
+			end
+		end
+	end
+end
+
 function Scene.Build(env, opts)
 	opts = opts or {}
 	local log = {}
@@ -1398,13 +1420,6 @@ function Scene.Build(env, opts)
 			map[parent][#map[parent] + 1] = object
 		end
 	end
-	for _, frame in ipairs(env._frames) do
-		adopt(kidsOf, frame)
-		for _, region in ipairs(frame._regions or {}) do
-			adopt(regionsOf, region)
-		end
-	end
-
 	-- A status bar's fill texture is the stub's _barTexture, which it lists among the bar's regions. A
 	-- Cooldown frame with a countdown font string draws its numbers through that string, so the addon's
 	-- anchors, font and justification place them. A font string with no width or height of its own takes
@@ -1465,6 +1480,14 @@ function Scene.Build(env, opts)
 					end
 				end
 			end
+		end
+	end
+
+	paintMaterials(env, solver)
+	for _, frame in ipairs(env._frames) do
+		adopt(kidsOf, frame)
+		for _, region in ipairs(frame._regions or {}) do
+			adopt(regionsOf, region)
 		end
 	end
 

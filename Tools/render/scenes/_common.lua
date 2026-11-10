@@ -115,6 +115,9 @@ end
 -- ForceScreen(env) gives any environment the owner's screen, whatever options its loader passed on. Call it
 -- from the loader's setup hook, after Stubs.NewEnv has made UIParent and before the addon loads.
 function Common.ForceScreen(env)
+	env._materialChromes = env._materialChromes or {}
+	local material = os.getenv("RENDER_CARD_MATERIAL")
+	env._renderCardMaterial = material and material ~= "" and material or nil
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
 	env._size = Common.SCREEN.size or false

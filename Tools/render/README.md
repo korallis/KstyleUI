@@ -6,6 +6,28 @@ Screen units: the screen is 1080 units tall, x grows right and y grows down from
 
 ## Run
 
+`hud_reference` honors `RENDER_SCREEN=WIDTHxHEIGHT` and `RENDER_LAYOUT=DPS|Tank|Healer`.
+`RENDER_CARD_MATERIAL=Glass|Flat|Slate|ForgedTicks|ForgedBrackets` selects the real
+saved setting before modules build. With these variables unset, the reference
+uses its usual owner-screen state and the shipped material default.
+
+Material paint runs after anchored dimensions resolve, before regions are
+collected. Render environments record the chrome constructed by the widget kit;
+the renderer supplies the resolved width/height only while calling its material
+painter, then restores the original getter fields even on error. It does not run
+layout, restyle text or change stored frame sizes. Glass takes no extra paint
+path. This models the size-dependent paint the client requests after layout,
+which the lightweight stubs do not propagate for arbitrary anchors.
+
+LEE-122 fixed a discrepancy in the old phase-2 evidence: its private launcher
+did this repaint, while the normal command did not. The ordinary command now
+owns that stage; no private repaint wrapper is required. For example:
+
+```bash
+RENDER_CARD_MATERIAL=ForgedBrackets RENDER_SCREEN=1280x720 RENDER_LAYOUT=Healer \
+  bash Tools/render/shoot.sh hud_reference --ppu 0.6666666667 --strict
+```
+
 From the repository root, with `luajit` and Google Chrome installed:
 
 ```bash

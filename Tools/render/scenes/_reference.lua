@@ -15,6 +15,10 @@ local Reference = {}
 -- The owner's screen: the MacBook Pro's full panel at 3456 by 2234 pixels. Blizzard's UI scale is the one every Mac
 -- scene uses (UIParent 1080 units tall); KstyleUI's root does not depend on it, only Blizzard-owned text does.
 Reference.SCREEN = { width = 3456, height = 2234, uiScale = 768 / 1080 }
+local selectedScreen = os.getenv("RENDER_SCREEN")
+if selectedScreen and selectedScreen ~= "" then
+	Reference.SCREEN = Common.DEFAULT_SCREEN
+end
 
 local SYSTEM = { 1, 1, 0 }
 local LOOT = { 0, 0.67, 0 }
