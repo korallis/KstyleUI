@@ -53,6 +53,7 @@ assert(pg.caption and pg.caption.x >= pg.name.x, "the class word follows the nam
 assert(pg.healthText and pg.healthSub and near(pg.healthSub.x + pg.healthSub.w, 491), "the value ends at the bar's right edge")
 assert(near(pg.healthText.y + pg.healthText.h, pg.name.y + pg.name.h, 1), "the value shares the name's baseline")
 assert(near(pg.nameDrop, 0.24 * 22, 0.01) and near(pg.captionLift, 0.105 * 22, 0.01), "the 22-unit name drops 0.24 of its size so its Cinzel baseline stands on the value's, and the class word lifts 0.105 of it to share that baseline")
+assert(near(pg.valueDrop, 0.13 * 22, 0.01), "the value drops 0.13 of the name size: Alegreya's oldstyle figures then stand on the name's baseline as the picture's do")
 assert(pg.cast == nil and pg.aura == nil, "the player's cast bar is its own element and it has no side auras")
 assert(pg.badge and pg.badge.x + pg.badge.w / 2 > pg.portrait.x + pg.portrait.w / 2 and pg.badge.y + pg.badge.h / 2 > pg.portrait.y + pg.portrait.h / 2, "the level disc is on the portrait's lower right")
 
@@ -188,11 +189,17 @@ do
 		local _, _, _, _, y = player.name:GetPoint(1)
 		return y
 	end
+	local function valueY()
+		local _, _, _, _, y = player.healthSub:GetPoint(1)
+		return y
+	end
+	local valueDropped = valueY()
 	local dropped = nameY()
 	K.Options.Write("UnitFrames", "player.fonts.name.font", Tokens.FontPath("AlegreyaSansBold"))
 	Frames.Relayout(Frames.Get("player"))
 	env.RunTimers()
 	assert(near(nameY() - dropped, player.geometry.nameDrop, 0.6), "a name in another face keeps the layout row: the Cinzel correction does not move it, " .. tostring(dropped) .. " against " .. tostring(nameY()))
+	assert(near(valueY() - valueDropped, player.geometry.valueDrop, 0.6), "and so does the value: only a name in the unit face moves it")
 	K.Options.Write("UnitFrames", "player.fonts.name.font", "theme")
 	noErrors("custom name font")
 end
@@ -202,12 +209,18 @@ do
 		local _, _, _, _, y = player.name:GetPoint(1)
 		return y
 	end
-	local roomy = nameY()
+	local function valueY()
+		local _, _, _, _, y = player.healthSub:GetPoint(1)
+		return y
+	end
+	local roomy, valueRoomy = nameY(), valueY()
 	ns.Unit.SetName(player, string.rep("W", 80))
 	assert(player.name:GetFont() == Tokens.Font("body"), "a name too long for its room falls back to the body font")
 	assert(near(nameY() - roomy, player.geometry.nameDrop, 0.6), "and then loses the Cinzel baseline correction, " .. tostring(roomy) .. " against " .. tostring(nameY()))
+	assert(near(valueY() - valueRoomy, player.geometry.valueDrop, 0.6), "the value loses its drop with the name's Cinzel face, so it keeps the layout row")
 	ns.Unit.SetName(player, "Korallis")
 	assert(player.name:GetFont() == Tokens.Font("unit") and near(nameY(), roomy, 0.6), "a short name gets the Cinzel face and its correction back")
+	assert(near(valueY(), valueRoomy, 0.6), "and the value gets its drop back")
 	noErrors("name fallback")
 end
 
