@@ -31,8 +31,8 @@ local function InboxItem(item)
 	if type(button) ~= "table" then
 		return
 	end
-	local name = type(button.GetName) == "function" and button:GetName() or nil
-	local cod = name and _G[name .. "CODBackground"] or nil
+	local name = type(button.GetName) == "function" and button:GetName()
+	local cod = issecretvalue and not issecretvalue(name) and type(name) == "string" and _G[name .. "CODBackground"] or nil
 	Kit.Item(button, { window = WINDOW, keep = { cod } })
 end
 

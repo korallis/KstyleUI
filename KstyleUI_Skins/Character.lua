@@ -74,7 +74,7 @@ local function SkinSlot(button)
 		end
 	end
 	local name = type(button.GetName) == "function" and button:GetName()
-	local named = name and _G[name .. "IconTexture"]
+	local named = not IsSecret(name) and type(name) == "string" and _G[name .. "IconTexture"]
 	if Parts.IsTexture(named) then
 		keep[named] = true
 	end
