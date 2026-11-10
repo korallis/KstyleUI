@@ -606,6 +606,18 @@ do
 	local intro = ui.scrollContainer.children[1]
 	local introTitle, introDescription = Replacement(intro.titleLabel.label), Replacement(intro.descriptionLabel.label)
 	NewCheck(introTitle and introDescription and introTitle:GetFont() == (ns.Style.Font("body")) and introDescription:GetFont() == (ns.Style.Font("body")), "configurator page intro labels use kit faces")
+	-- RestedXP lays the page out in its own fonts, and AceGUI measures a Label only in SetText, so after leasing the
+	-- skin has each Label measure itself again and the page lay out again, now and on a text size change.
+	do
+		local first = intro.titleLabel
+		NewCheck(first.measuredFont and first.measuredFont[1] == (ns.Style.Font("body")) and ui.scrollContainer.layouts > 0, "configurator intro labels are measured again in the font drawn and the page is laid out, got " .. tostring(first.measuredFont and first.measuredFont[1]))
+		local sized, laid = first.measuredFont and first.measuredFont[2] or math.huge, ui.scrollContainer.layouts
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(first.measuredFont and first.measuredFont[2] > sized and ui.scrollContainer.layouts > laid, "and again when the text size changes while the configurator is open")
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
+	end
 	rxp.fake.close(intro.titleLabel.frame)
 	if introTitle then NewCheck(intro.titleLabel.label:GetAlpha() == 1 and not introTitle:GetParent():IsShown(), "released configurator labels return their own font and visibility") end
 	-- The option rows (RXPV2GuideConfiguratorOption widgets, some inside padding containers): each row sits on
@@ -788,6 +800,11 @@ do
 			NewCheck(tall and edit.label:GetHeight() == label:GetStringHeight() and edit.label:GetHeight() > tall, key .. " and grows with the text size while leased")
 			K.Options.Write("Skins", "text.size", 1)
 			env.RunTimers()
+			local wide = edit.label:GetHeight()
+			rxp.fake.trust(function() edit.frame:SetSize(110, 120) end)()
+			local resized = drawn and drawn:GetScript("OnSizeChanged")
+			if resized then resized(drawn) end
+			NewCheck(resized and edit.label:GetHeight() == label:GetStringHeight() and edit.label:GetHeight() > wide, key .. " and refits when the window is made narrower, got " .. tostring(edit.label:GetHeight()) .. " after " .. tostring(wide))
 			rxp.fake.trust(edit.label.SetText)(edit.label, words)
 			env._textWidth = nil
 			NewCheck(drawn and drawn:IsShown(), key .. " and shows with it again")
@@ -828,6 +845,20 @@ do
 	local edit = export.obj.children[1]
 	NewCheck(Proxy(K, edit.editBox, "EditBox") and Proxy(K, edit.editBox, "EditBox"):IsShown(), "a pooled edit widget is redressed on RestedXP reuse")
 	rxp.fake.close(export)
+	-- AceGUI can hand a released edit box to another window and reuse this frame with other children. The lease is
+	-- per showing: a widget this frame no longer holds is left alone when RestedXP shows the frame again.
+	do
+		assert(edit.released, "closing the export released its edit box to AceGUI's pool")
+		edit.released = false
+		rxp.comms.OpenBrandedExport("Third", "Other children", "Content", nil, nil, function() end)
+		assert(env.RESTEDXP_BRANDED_EXPORT == export and export.obj.children[1] ~= edit, "the frame comes back with another edit box while the first is in use elsewhere")
+		K.Options.Write("Skins", "text.size", 1.5)
+		env.RunTimers()
+		NewCheck(edit.label:GetFont() == "Fonts\\FRIZQT__.TTF" and select(2, edit.label:GetFont()) == 10 and edit.label:GetHeight() == 10 and edit.label:GetAlpha() == 1, "an edit widget the frame no longer holds is left alone by a later restyle, got " .. tostring(edit.label:GetFont()) .. " " .. tostring(select(2, edit.label:GetFont())))
+		K.Options.Write("Skins", "text.size", 1)
+		env.RunTimers()
+		rxp.fake.close(export)
+	end
 	Clean(env, rxp)
 end
 

@@ -1351,6 +1351,20 @@ local function Remeasure(widget)
 	end
 end
 
+local fitting = setmetatable({}, WEAK)
+
+local function Reflow(container)
+	if not IsTable(container) or fitting[container] then
+		return
+	end
+	fitting[container] = true
+	Remeasure(container)
+	if type(container.DoLayout) == "function" then
+		container:DoLayout()
+	end
+	fitting[container] = nil
+end
+
 local function Report(tracker, labels)
 	local reports = tracker.ui
 	if not IsTable(reports) or not next(reports) then
@@ -1490,6 +1504,7 @@ local function Temporary(root)
 			entry.active = false
 			for _, control in pairs(entry.controls) do
 				control:Hide()
+				control.leased = nil
 			end
 			for text, font in pairs(entry.fonts) do
 				if font.object and type(text.SetFontObject) == "function" then
@@ -1592,15 +1607,20 @@ local function TemporaryText(root, text, role, color, shape)
 		holder.label = label
 		holder.busy = false
 		holder.Restyle = function()
-			if Active() and entry.active then
+			if Active() and entry.active and holder.leased then
 				Lease()
 				Fit()
 			end
 		end
+		if shape == "fit" then
+			holder:SetScript("OnSizeChanged", function()
+				if Active() and entry.active and holder.leased then Fit() end
+			end)
+		end
 		Style.Track(holder)
 		entry.controls[text] = holder
 		hooksecurefunc(text, "SetText", function(_, value)
-			if Active() and entry.active then
+			if Active() and entry.active and holder.leased then
 				Word(value)
 				Fit()
 			end
@@ -1608,14 +1628,14 @@ local function TemporaryText(root, text, role, color, shape)
 		for _, method in ipairs({ "Show", "Hide", "SetShown" }) do
 			if type(text[method]) == "function" then
 				hooksecurefunc(text, method, function()
-					if Active() and entry.active then Seen() end
+					if Active() and entry.active and holder.leased then Seen() end
 				end)
 			end
 		end
 		for _, method in ipairs({ "SetFont", "SetFontObject" }) do
 			if type(text[method]) == "function" then
 				hooksecurefunc(text, method, function()
-					if Active() and entry.active and not holder.busy and entry.fonts[text] and Own(text) then
+					if Active() and entry.active and holder.leased and not holder.busy and entry.fonts[text] and Own(text) then
 						Lease()
 						Fit()
 					end
@@ -1623,6 +1643,7 @@ local function TemporaryText(root, text, role, color, shape)
 			end
 		end
 	end
+	holder.leased = true
 	Veil(root, text)
 	Lease()
 	Word(text:GetText())
@@ -1661,7 +1682,7 @@ local function TemporaryControl(root, source, kind)
 				icon:SetDesaturated(true)
 				icon:SetVertexColor(Style.Accent())
 				control.Restyle = function()
-					if Active() and entry.active then icon:SetVertexColor(Style.Accent()) end
+					if Active() and entry.active and control.leased then icon:SetVertexColor(Style.Accent()) end
 				end
 				Style.Track(control)
 			end
@@ -1694,12 +1715,13 @@ local function TemporaryControl(root, source, kind)
 	end
 	for _, region in ipairs(entry.art[source] or {}) do Veil(root, region) end
 	control:Show()
+	control.leased = true
 	if kind == "Button" and type(source.GetFontString) == "function" then
 		local text = source:GetFontString()
 		TemporaryText(root, text, "body", "text", "button")
 		if not control.state then
 			control.state = function()
-				if not (Active() and entry.active) then
+				if not (Active() and entry.active and control.leased) then
 					return
 				end
 				local on = type(source.IsEnabled) ~= "function" or source:IsEnabled()
@@ -1721,7 +1743,7 @@ local function TemporaryControl(root, source, kind)
 		if not control.face then
 			control.face = CreateFrame("Frame", nil, control)
 			control.face.Restyle = function()
-				if Active() and entry.active and entry.fonts[source] then source:SetFont(Style.Font("body")) end
+				if Active() and entry.active and control.leased and entry.fonts[source] then source:SetFont(Style.Font("body")) end
 			end
 			Style.Track(control.face)
 		end
@@ -1846,7 +1868,20 @@ local function Configurator(configurator)
 	Hook(container, "DoLayout", "configurator.scrollContainer.DoLayout", function()
 		WidgetLabels(container)
 		EachOption(container, Option)
+		Reflow(container)
 	end)
+	Reflow(container)
+	if IsTable(container) and not done[container] then
+		done[container] = true
+		local fit = CreateFrame("Frame", nil, ui.frame)
+		fit.Restyle = function()
+			if Active() and ui.frame:IsShown() then
+				WidgetLabels(container)
+				Reflow(container)
+			end
+		end
+		Style.Track(fit)
+	end
 end
 
 local function Importer(importer)
