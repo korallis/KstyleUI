@@ -209,12 +209,18 @@ do
 		local _, _, _, _, y = player.name:GetPoint(1)
 		return y
 	end
-	local roomy = nameY()
+	local function valueY()
+		local _, _, _, _, y = player.healthSub:GetPoint(1)
+		return y
+	end
+	local roomy, valueRoomy = nameY(), valueY()
 	ns.Unit.SetName(player, string.rep("W", 80))
 	assert(player.name:GetFont() == Tokens.Font("body"), "a name too long for its room falls back to the body font")
 	assert(near(nameY() - roomy, player.geometry.nameDrop, 0.6), "and then loses the Cinzel baseline correction, " .. tostring(roomy) .. " against " .. tostring(nameY()))
+	assert(near(valueY() - valueRoomy, player.geometry.valueDrop, 0.6), "the value loses its drop with the name's Cinzel face, so it keeps the layout row")
 	ns.Unit.SetName(player, "Korallis")
 	assert(player.name:GetFont() == Tokens.Font("unit") and near(nameY(), roomy, 0.6), "a short name gets the Cinzel face and its correction back")
+	assert(near(valueY(), valueRoomy, 0.6), "and the value gets its drop back")
 	noErrors("name fallback")
 end
 
