@@ -12,6 +12,7 @@ ns.Frames = Frames
 local OUTLINES = { none = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local EDIT_TEXTS = { "header", "headerSuffix", "languageHeader", "prompt", "NewcomerHint" }
 local TAB_FILL_INSET = { left = 4, right = 4, top = 9, bottom = 1 }
+local TAB_GAP = 13.5
 local UNDERLINE_UNITS = 1
 local UNDERLINE_GLOW_UNITS = 5
 local UNDERLINE_GLOW_ALPHA = 0.25
@@ -466,7 +467,7 @@ function Frames.FitTabs(dock)
 				local width = type(measure) == "function" and measure(text) or nil
 				if not IsSecret(width) and type(width) == "number" and width > 0 then
 					text:SetWidth(width)
-					tab:SetWidth(width + Widgets.Snap(tab, 13.5))
+					tab:SetWidth(width + Widgets.Snap(tab, TAB_GAP))
 				end
 			end
 		end

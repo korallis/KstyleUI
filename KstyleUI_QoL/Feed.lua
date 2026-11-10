@@ -77,7 +77,8 @@ local function Place(line, y)
 		return
 	end
 	line:ClearAllPoints()
-	line:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", Widgets.Snap(holder, 6.77), Widgets.Snap(holder, y))
+	local inset = Inset()
+	line:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", Widgets.Snap(holder, inset), Widgets.Snap(holder, inset + y))
 end
 
 local function Fit(box, t)

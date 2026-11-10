@@ -276,10 +276,10 @@ for _, name in ipairs(names) do
 		local margin = K.Tokens.Size("screenMargin")
 		assert(chat.bottom == margin and chat.left == margin and chat.w == CHAT_WIDTH[name] and chat.h == 200, label .. ": chat sits on the screenMargin token, " .. CHAT_WIDTH[name] .. " by 200, got " .. chat.w .. " by " .. tostring(chat.h))
 		local feed = rect("qol.lootfeed")
-		assert(feed.left == chat.left and feed.w == RAIL and math.abs(feed.bottom - chat.top - 2) < 1e-6, label .. ": the loot feed's foot sits 2 units over the chat card, so the lowest line is the picture's 22 px up, got " .. (feed.bottom - chat.top))
+		assert(feed.left == chat.left and feed.w == RAIL and feed.bottom - chat.top == CARD_GAP_MIN, label .. ": the loot feed stands " .. CARD_GAP_MIN .. " over the chat card on its left edge, got " .. (feed.bottom - chat.top))
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
-			if key ~= "chat.main" and key ~= "qol.lootfeed" and r.bottom < chat.top + CARD_GAP_MIN and r.top > chat.bottom - CARD_GAP_MIN then
+			if key ~= "chat.main" and r.bottom < chat.top + CARD_GAP_MIN and r.top > chat.bottom - CARD_GAP_MIN then
 				assert(r.left - chat.right >= CARD_GAP_MIN or r.right <= chat.left, label .. ": " .. key .. " keeps " .. CARD_GAP_MIN .. " units clear of the chat card, got " .. (r.left - chat.right))
 			end
 		end

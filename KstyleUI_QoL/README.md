@@ -66,7 +66,7 @@ Selling junk is one feature, in Bags: **Sell junk by itself** on the Bags page, 
 | `Settings.lua` | The defaults, the settings schema and checked setting reads (`ns.Get`) |
 | `Loot.lua` | Faster auto loot |
 | `LootText.lua` | The player's own loot and money chat lines, read through the client's global strings |
-| `Feed.lua` | The loot feed: lines, glass card, motion and its Layout element. The holder shares the chat card's left edge and sits 2 units over it. The plus is `6.77` units (14 px on the owner's screen) inside that edge, and the lowest line sits on the holder's foot. |
+| `Feed.lua` | The loot feed: lines, glass card, motion and its Layout element |
 | `Repair.lua` | Auto repair |
 | `Quests.lua` | Quest accept and turn-in |
 | `Camera.lua` | Max camera distance and its per-character memory |
