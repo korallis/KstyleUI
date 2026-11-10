@@ -572,6 +572,23 @@ function Widgets.Snap(frame, units)
 	return SnapIn(units, Widgets.ScaleFactor(frame))
 end
 
+function Widgets.DotGap(fontSize, pixel, em)
+	if IsSecret(fontSize) or type(fontSize) ~= "number" or fontSize ~= fontSize or fontSize <= 0 then
+		fontSize = 0
+	end
+	if IsSecret(pixel) or type(pixel) ~= "number" or pixel ~= pixel or pixel <= 0 then
+		pixel = 1
+	end
+	if IsSecret(em) or type(em) ~= "number" or em ~= em or em <= 0 then
+		em = 0
+	end
+	local snapped = math.floor(em * fontSize / pixel + 0.5) * pixel
+	if snapped < pixel then
+		return pixel
+	end
+	return snapped
+end
+
 function Widgets.Border(frame)
 	return Scale.Border() / Widgets.ScaleFactor(frame)
 end
