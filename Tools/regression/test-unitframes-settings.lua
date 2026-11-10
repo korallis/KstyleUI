@@ -69,7 +69,7 @@ assert(defaults.target.castbarIcon == false and defaults.target.castbarCaps == t
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].powerColor == "power", kind .. ": the power bar takes the power type's colour by default")
 end
-assert(defaults.player.powerHeight == 8.04, "the column's power bar is the picture's 14 px box (the older vitals line's 5 stays in profiles that keep it)")
+assert(defaults.player.powerHeight == 7, "the power slider stays at 7; the column paints its own 8-unit constant (the older vitals line's 5 stays in profiles that keep it)")
 do
 	local allowed = {}
 	for _, option in ipairs(ns.Settings.CHOICES.powerColor) do
@@ -81,7 +81,7 @@ assert(defaults.pet.powerColor == "power" and defaults.pet.powerHeight == 3, "th
 assert(defaults.player.healthColor == "hud" and defaults.target.healthColor == "hud", "the column frames take the picture's colours: a flat blue for you, the picture's red for a hostile target")
 assert(defaults.player.style == "column" and defaults.target.style == "column", "the player and target are column frames by default, as the owner's picture draws them (LEE-20)")
 assert(defaults.focus.style == "lumen" and defaults.boss.style == "lumen", "the other frames keep their Lumen forms")
-assert(defaults.player.powerHeight == 8.04 and defaults.target.powerHeight == 8.04, "the column frames' power bar is the picture's 14 px box")
+assert(defaults.player.powerHeight == 7 and defaults.target.powerHeight == 7, "the power slider stays at the staging default; the column does not read it")
 assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 7, "the column's value is 15-unit bold numerals, seven under the 22-unit Cinzel name the picture sets at 37 px")
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")

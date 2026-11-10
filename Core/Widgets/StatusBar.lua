@@ -195,7 +195,7 @@ function Bar:ApplyFillRamp()
 	local topR, topG, topB, botR, botG, botB = Widgets.FillRamp(r, g, b, self.rampKind)
 	local texture = self:GetStatusBarTexture()
 	local colors = self:RampColors()
-	local canGradient = texture and colors and type(texture.SetGradient) == "function" and self:FlatTexture()
+	local canGradient = self.rampOn == true and texture and colors and type(texture.SetGradient) == "function" and self:FlatTexture()
 	if not topR or not canGradient then
 		if canGradient and self.fillRamped then
 			texture:SetGradient("VERTICAL", colors[1], colors[1])
@@ -283,6 +283,9 @@ function Bar:SetBarColor(...)
 	if self.rampOn then
 		self:SetFillRamp(c[1], c[2], c[3], self.rampKind)
 		return
+	end
+	if self.fillRamped then
+		self:ApplyFillRamp()
 	end
 	self:Paint()
 end
@@ -416,7 +419,7 @@ function Bar:Restyle()
 		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self, 0)
 	end
 	self:Paint()
-	if self.rampOn then
+	if self.rampOn or self.fillRamped then
 		self:ApplyFillRamp()
 	end
 	self:PlaceInnerEdge()

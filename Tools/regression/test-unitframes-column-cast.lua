@@ -64,8 +64,9 @@ assert(fill and near(fill[1], gr) and near(fill[2], gg) and near(fill[3], gb), "
 assert(not element.label:IsShown() and not element.lock:IsShown() and not element.iconFrame:IsShown(), "no Casting word, no icon")
 local tp, _, _, _, ty = element.text:GetPoint(1)
 assert(tp == "BOTTOMLEFT" and ty > 9, "the label sits above the bar's top")
-local bp = element.bar:GetPoint(1)
-assert(bp == "BOTTOMLEFT", "the bar is at the element's foot")
+local bp, _, _, _, by = element.bar:GetPoint(1)
+local pixel = K.Widgets.Snap(element.frame, K.Scale.Pixel(1) / K.Widgets.ScaleFactor(element.frame))
+assert(bp == "BOTTOMLEFT" and near(by, -pixel), "the bar sits one physical pixel below the element foot, on the picture's rows")
 local tp2 = element.timer:GetPoint(1)
 assert(tp2 == "BOTTOMRIGHT", "the time is at the right of the label's row")
 env._units.player.cast = nil

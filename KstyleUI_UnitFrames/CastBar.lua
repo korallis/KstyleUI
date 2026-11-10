@@ -380,6 +380,9 @@ local function LayoutCaption(cb, width, height)
 	local spare = height - gap - rowH
 	local labelOn = spare >= BAR_MIN
 	local barOffset = Snap(cb, CAPTION_OFFSET[mode])
+	if above then
+		barOffset = barOffset + Widgets.Snap(frame, K.Scale.Pixel(1) / Widgets.ScaleFactor(frame))
+	end
 	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height - barOffset)
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
