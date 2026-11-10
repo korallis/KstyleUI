@@ -283,6 +283,9 @@ local function AddUnitHandler(event, fn)
 end
 
 local function Dispatch(event, unit, ...)
+	if IsSecret(unit) or type(unit) ~= "string" then
+		return
+	end
 	local plate = byUnit[unit]
 	if plate then
 		local list = unitHandlers[event]

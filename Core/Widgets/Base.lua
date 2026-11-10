@@ -222,13 +222,20 @@ local function SnapSize(size, f)
 end
 
 local function Shadow(text, flags, f)
-	if flags ~= "" or not Tokens.FaceShadow((text:GetFont())) then
+	local face = Tokens.FaceShadow((text:GetFont()))
+	if flags ~= "" or face == false then
 		text:SetShadowOffset(0, 0)
 		return
 	end
 	local offset = Scale.Border() / f
-	text:SetShadowColor(Tokens.Color("textShadow"))
-	text:SetShadowOffset(offset, -offset)
+	local r, g, b, a = Tokens.Color("textShadow")
+	if face == true then
+		text:SetShadowColor(r, g, b, a)
+		text:SetShadowOffset(offset, -offset)
+		return
+	end
+	text:SetShadowColor(r, g, b, face.alpha)
+	text:SetShadowOffset(face.x * offset, -face.y * offset)
 end
 
 function Widgets.FontSize(text, size)
