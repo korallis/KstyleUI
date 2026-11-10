@@ -16,6 +16,7 @@ local SUBLEVEL_SHADOW, SUBLEVEL_FILL = -8, -7
 local SUBLEVEL_LINE, SUBLEVEL_RIM, SUBLEVEL_GILT = -3, -2, -1
 local RINGS = { 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32 }
 local INSET_GAP = "gapSmall"
+local BORDER_UNITS = 1
 local LINE_HEIGHT_SHARE = 1.2
 local CHAR_WIDTH_SHARE = 0.5
 
@@ -629,6 +630,10 @@ function Widgets.Inset(frame, radius, gap)
 	return SnapIn(radius / 2 + Scale.Border() / f + Tokens.Size(gap or INSET_GAP), f)
 end
 
+function Widgets.InsetUnits(radius, gap)
+	return radius / 2 + BORDER_UNITS + Tokens.Size(gap or INSET_GAP)
+end
+
 local SHAPES = {
 	panel = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
 	card = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
@@ -936,6 +941,10 @@ end
 
 function Chrome:Inset(gap)
 	return Widgets.Inset(self.owner, self:PadRadius(), gap)
+end
+
+function Chrome:InsetUnits(gap)
+	return Widgets.InsetUnits(self:PadRadius(), gap)
 end
 
 function Widgets.WindowInset(frame)

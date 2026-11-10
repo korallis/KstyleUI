@@ -218,7 +218,7 @@ end
 local function Build()
 	local width, height = ns.Footprint(KEY)
 	Threat.list = ns.BarList.New(K.Scale.Root(), "threat", {
-		width = width or 260, height = height or 130, columns = Columns,
+		key = KEY, width = width or 260, height = height or 130, columns = Columns,
 	})
 	Threat.list:SetTitle(L["Threat"])
 	Threat.holder = Threat.list.holder
