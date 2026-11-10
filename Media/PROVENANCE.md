@@ -39,7 +39,7 @@ Lumen is the default font set: Cinzel SemiBold for display, heading and caption 
 
 ## Procedural textures and logo
 
-`Tools/media/make_media.py` draws these files. No image model or prompt is involved: each texture is a shape or a smooth function sampled 4x4 times per pixel and averaged. Run `python3 Tools/media/make_media.py` to redraw them and this table.
+`Tools/media/make_media.py` draws the procedural files below and re-exports the prepared sources for the optional card-material study. The procedural rows use no image model or prompt: each texture is a shape or a smooth function sampled 4x4 times per pixel and averaged. The study rows name their source model or pixel-construction method and retained prepared source; their prompts follow the table. Run `python3 Tools/media/make_media.py` to rebuild the files and this table.
 
 Shapes are white with their coverage in alpha, so the game tints them with `SetVertexColor`. Chamfers and bevels are drawn at 4 texels per root unit. A texture with slice margins is a nine-slice source: a corner piece of `m` texels draws at `m / 4` root units, so the corners of the fill and both bevel lines line up. Every row and column between the margins is the same, so the edges and centre stretch cleanly. The shadow is drawn at 2 texels per unit: its 48-texel corner pieces are 24 units, centred on the panel's corners. `python3 -m unittest discover -s Tools/tests` fails when a file differs from what the script draws.
 
@@ -87,7 +87,39 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Logo/Logo64.png` | 64x64 | KstyleUI logo, the chamfered diamond, at 64 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo64.tga` | 64x64 | Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.png` | 256x256 | KstyleUI logo, the chamfered diamond, at 256 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
+| `Media/Textures/MaterialSlate.png` | 256x256 | Prepared slate grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
+| `Media/Textures/MaterialForged.png` | 256x256 | Prepared forged grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
+| `Media/Textures/ForgedFrame1.png` | 32x32 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 8 texels | 2026-11-10 |
+| `Media/Textures/ForgedFrame2.png` | 64x64 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 16 texels | 2026-11-10 |
+| `Media/Textures/ForgedFrame3.png` | 128x128 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 24 texels | 2026-11-10 |
+| `Media/Textures/ForgedBracket1.png` | 8x8 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
+| `Media/Textures/ForgedBracket2.png` | 16x16 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
+| `Media/Textures/ForgedBracket3.png` | 32x32 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
+| `Media/Textures/ForgedDiamond.png` | 64x64 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
+| `Media/Textures/ForgedRule.png` | 256x4 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
 <!-- END make_media -->
+
+## Card materials (study sources, 2026-11-10)
+
+The Captain generated original style sources through Higgsfield `generateImage`, model `gpt_image_2_6`, on 2026-11-10. Source files and exact prompts are retained in the Captain drive at `handoffs/material-study/` and its `diablo4/` folder. The built-in image tool had no organisation credits; Higgsfield was callable only from the Captain's thread. The owner's direction was "assets should be based around Diablo 4 for that ultimate polish feel". No actual Diablo asset was used, traced or extracted.
+
+The Slate prompt below ended: "even flat scanner light, low contrast, no objects, no text, no symbols, no frame, no vignette, no lighting gradient."
+
+| Study texture | Source prompt | Processing |
+| --- | --- | --- |
+| `Media/Textures/MaterialSlate.png` | Seamless square orthographic material scan of dark charcoal worn slate, fine stone grain and shallow mineral fissures, restrained warm iron grey | 256x256, 8-bit RGBA PNG; monochrome detail; Lanczos reduction; subtract 32px Gaussian lighting field; map 2nd–98th percentiles to 64–192; blend 16px edge bands to identical opposing edges |
+| `Media/Textures/MaterialForged.png` | Seamless tileable square orthographic texture for a dark gothic action RPG interface panel background: near-black desaturated charcoal stone with faint smoky mottling and very fine grain, cold neutral tone with a trace of warm brown, low contrast, even flat light, no text, no letters, no logos, no characters, no frame, no vignette, no lighting gradient. | Same processing; one shared source for the plain-tick and forged-bracket variants |
+
+`ForgedFrame1`, `ForgedFrame2`, `ForgedFrame3`, `ForgedBracket1`, `ForgedBracket2` and `ForgedBracket3` were constructed with Python/Pillow on the same date, not cropped from a game asset. Their iron and bronze palettes are averaged from these original generated sources, then normalized to restrained highlight levels:
+
+- Iron prompt: "Seamless tileable square orthographic material scan of dark forged blackened iron, subtle hammer marks, fine pitting, faint worn edges catching dull light, desaturated gunmetal, low contrast, even flat light, no text, no letters, no logos, no characters, no frame, no vignette."
+- Bronze prompt: "Seamless tileable square orthographic material scan of aged dark bronze metal with muted antique gold highlights and darkened recesses, fine brushed wear, restrained, desaturated, low contrast, even flat light, no text, no letters, no logos, no characters, no frame, no vignette."
+
+The frame has a dark outer band, forged-iron band and narrow aged-gold inner band, constructed directly on a one-, two- or three-pixel border grid. Its nine-slice files are 32x32 with 8px margins, 64x64 with 16px margins and 128x128 with 24px margins. Corners are sampled at one physical pixel per texel; straight edge strips are constant along their length, so stretching them does not stretch any grain. The 8x8 and 16x16 brackets, plus a 24x24 bracket in the top-left of its 32x32 source, are original angular L-inlays with a diagonal iron brace, also sampled one physical pixel per texel. The original generated frame/corner sheets were visual references only.
+
+`ForgedDiamond` is a procedural dark-faced diamond in the existing diamond's exact alpha silhouette, tinted aged gold in game. `ForgedRule` is an original 256x4 alpha taper, constant vertically so a one-physical-pixel rule stays a solid pixel. Both were constructed with Python/Pillow on 2026-11-10, informed by the original generated divider/header reference, without extracting game art. The diamond and rule keep their original geometry; only their finish changes.
+
+The stone grain uses one physical pixel per texel with explicit repeating UVs. The forged fill is opaque at its default strength. A quiet flat band inside the frame keeps grain out of corner arcs. No PNG encoding or filtering claim exceeds the existing RGBA PNG assets and matching 70862 PNG path evidence. Native loading and sampler parity still require a client restart and in-game inspection. Executable preparation recipes are retained with the study handoff; `make_media.py` re-exports the prepared sources in `Tools/media/materials`.
 
 ## Ability icons
 

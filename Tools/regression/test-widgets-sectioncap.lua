@@ -25,6 +25,7 @@ local function point(region, name)
 end
 
 assert(type(Widgets.SectionCap) == "function", "Widgets.SectionCap exists")
+K.Options.Write("Widgets", "cardMaterial", "Glass")
 local cap = Widgets.SectionCap(root, { text = "Party", width = 278 })
 
 -- The diamond leads, the head follows it in the caps role, in the picture's gold.

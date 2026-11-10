@@ -131,7 +131,7 @@
 	}
 
 	// Draw the texel quad (ul, ll, ur) of source onto the destination rect through an affine transform.
-	function drawQuad(ctx, source, coords, dest, rotation) {
+	function drawQuad(ctx, source, coords, dest, rotation, wrap) {
 		const sw = source.width, sh = source.height;
 		const ulx = coords.ul[0] * sw, uly = coords.ul[1] * sh;
 		const llx = coords.ll[0] * sw, lly = coords.ll[1] * sh;
@@ -167,7 +167,14 @@
 		ctx.transform(a, b, c, d, e, f);
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = "high";
-		ctx.drawImage(source, 0, 0);
+		if (wrap && wrap[0] && wrap[1]) {
+			ctx.fillStyle = ctx.createPattern(source, "repeat");
+			const xs = [coords.ul[0], coords.ll[0], coords.ur[0], coords.lr[0]].map(x => x * sw);
+			const ys = [coords.ul[1], coords.ll[1], coords.ur[1], coords.lr[1]].map(y => y * sh);
+			ctx.fillRect(Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+		} else {
+			ctx.drawImage(source, 0, 0);
+		}
 		ctx.restore();
 	}
 
@@ -330,7 +337,7 @@
 				if (item.tile && (item.tile[0] || item.tile[1])) {
 					drawTiled(lctx, source, local, ppu, 1);
 				} else {
-					drawQuad(lctx, source, texCoords(item), local, item.rotation || 0);
+					drawQuad(lctx, source, texCoords(item), local, item.rotation || 0, item.wrap);
 				}
 				drawn = true;
 			}

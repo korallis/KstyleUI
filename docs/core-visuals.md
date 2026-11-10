@@ -44,7 +44,7 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Grades
 
-Every chrome wears one of the kit's grades: the card (panel, card, window and rail, each with gilt L-ticks), the socket (tile and socket) and the bar (a pill track). [Chrome](../Core/Widgets/README.md#chrome) lists each grade's layers; `test-lumen-material.lua` holds them, and `test-grades.lua` fails on a chrome filled with `raised` or on any use of the retired chamfer drawing. Rows in the options window have no chrome of their own: they sit on the window's glass and light their text on hover.
+Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track). Cards default to `ForgedBrackets`, the owner's choice on 2026-11-10 (LEE-106): opaque charcoal, a forged frame and four corner brackets. `Glass` retains the picture's original surface tokens and gilt L-ticks; `Flat`, `Slate` and `ForgedTicks` are also selectable. [Card materials](card-materials.md) describes profile inheritance and relative opacity. The socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` preserves the explicit Glass recipe, while the material tests cover the default and switching. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
 
 ### Sizes, durations and easings
 

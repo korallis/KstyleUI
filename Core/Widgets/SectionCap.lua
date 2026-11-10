@@ -24,6 +24,18 @@ function Widgets.CapsSize(text, plain)
 	Widgets.ApplyFont(text, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags, plain)
 end
 
+function Widgets.PaintCapMaterial(gem, rule, alpha)
+	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
+	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
+	if material and material.rule then
+		gem:SetVertexColor(Tokens.Color("materialGold"))
+		rule:SetTexture((Tokens.Texture(material.rule)))
+		rule:SetVertexColor(Widgets.Rgba("materialGold", alpha))
+	else
+		rule:SetVertexColor(Tokens.Color("white"))
+	end
+end
+
 local function Placed(self)
 	local count = self.counted
 	self.rule:ClearAllPoints()
@@ -85,6 +97,7 @@ end
 function Cap:Paint()
 	self.gem:SetVertexColor(Widgets.Rgba("capsGold", GEM_ALPHA))
 	self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
+	Widgets.PaintCapMaterial(self.gem, self.rule, RULE_ALPHA)
 	Widgets.TextColor(self.label, "capsGold")
 	Widgets.TextColor(self.count, "muted")
 end

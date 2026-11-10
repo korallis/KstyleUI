@@ -10,7 +10,7 @@
 
 ## Goal
 
-KstyleUI replaces or restyles the whole Forever interface with one art direction: near-black smoked glass, chamfered corners, a live class-colour accent, crisp type and eased motion everywhere. It must look as finished as Narcissus, cover as much as EllesmereUI, and be the most reliable suite on Forever's edge cases.
+KstyleUI replaces or restyles the whole Forever interface with one art direction: dark forged card surfaces, a live class-colour accent, crisp type and eased motion everywhere. The owner's 2026-11-10 material choice (LEE-106) replaces smoked glass as the card default; Glass remains selectable. It must look as finished as Narcissus, cover as much as EllesmereUI, and be the most reliable suite on Forever's edge cases.
 
 KstyleUI succeeds when all of the following are true:
 
@@ -28,7 +28,7 @@ The owner made these decisions on 2026-11-07. Each one is binding on the plan.
 | --- | --- |
 | Scope | The full suite in the first release, built in phases |
 | Approach | Fully our own code: no oUF and no Ace3 runtime. LibSharedMedia is optional interop only. |
-| Look | "Obsidian and class colour": neutral glass, accent is the current character's class colour |
+| Look | LEE-106, owner choice 2026-11-10: forged brackets on dark charcoal cards by default; Glass, Flat, Slate and forged gilt ticks remain in Options. Accent stays the current character's class colour. |
 | Reference | `05_kit_hunter.jpg` for components. `v3/` for the combat HUD. |
 | Scaling | Same proportions on every screen, borders snapped to whole physical pixels |
 | Unit frames | LEE-20, owner ruling 2026-11-09: "let the picture win its what i want" supersedes the earlier split and target sigil. Player and target share a centred 491-unit bar column at bottoms 138 and 217.5, heights 77.5 and 102.5; their portraits stand outside the left and right edges respectively, on by default with the switch kept. The target has reversed health/power bars, a right-side portrait and debuffs, and an inline cast with a 12-unit label and 26.5 units of font-aware room; the player cast is a separate 347 x 30 element at bottom 385.5. |
@@ -181,6 +181,8 @@ Profiles store only values that differ from the defaults. Defaults come from `Fe
 Quality and reaction values outside the table come from Blizzard's colour tables at run time, brightened by the `Theme` service for contrast on dark glass.
 
 ### Shape
+
+The owner's 2026-11-10 ruling in LEE-106 supersedes the card material in the first bullet below: `ForgedBrackets` is now the default, using original charcoal grain, a forged frame, four corner brackets and forged diamond/rule finishes. That bullet remains the explicit Glass recipe. Every box, content inset, text rectangle and bar retains the picture's geometry. [Card materials](../../card-materials.md) records all five choices and how saved profiles inherit the new default.
 
 - The owner's picture of 2026-11-09 (`handoffs/reference/owner-reference-2026-11-09.png`) sets the material, by his ruling "let the picture win its what i want", over the chamfers and frost glass this section described before. Cards, panels, windows, rails and tooltips are one material: a dark navy fill (`surface`, `#0e1217` at 75%), a faint dark edge line, a muted rim one line inside it, and corners six border lines round, so every line lands on whole physical pixels at every size. Every card carries two gilt L-ticks (`gilt`, `#d3b574`), at the top left and bottom right, `tick` (15) units long; the story card has them too, reversing #205. Tiles, sockets and buttons have a near-black edge line on corners three lines round, over the button fill.
 - HUD sizes at the 1080 reference: action buttons 34 units with 3-unit gaps, essential cooldown icons 40 units, utility cooldown icons 30 units, player and target frames 296 by 89 units (the kit sheet's 469 by 141 proportions), portraits as tall as the frame. Players can resize each in Layout Mode.
