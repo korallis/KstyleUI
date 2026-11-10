@@ -169,7 +169,7 @@ local function SkinParts(tooltip)
 	local header = tooltip.CompareHeader
 	if type(header) == "table" then
 		Skin.Strip(header)
-		Skin.Backdrop(header, { shape = "tile", fill = "buttonFill", shadow = false })
+		Safe.Side(header).tooltipsPanel = Skin.Backdrop(header, { shape = "tile", fill = "buttonFill", shadow = false })
 		if type(header.Label) == "table" then
 			Skin.Text(header.Label, "caption", "text")
 		end
@@ -677,9 +677,11 @@ end
 
 local function RestyleParts(tooltip)
 	local header = tooltip.CompareHeader
-	if type(header) == "table" then
-		local panel = Skin.Backdrop(header)
-		panel:Restyle()
+	local panel = type(header) == "table" and Safe.Side(header).tooltipsPanel
+	if panel then
+		if Widgets.MayMove(panel) then
+			panel:Restyle()
+		end
 		panel.chrome:Restyle()
 		if type(header.Label) == "table" then
 			Widgets.StyleText(header.Label)
@@ -688,7 +690,9 @@ local function RestyleParts(tooltip)
 	local item = tooltip.ItemTooltip
 	local frame = type(item) == "table" and Safe.Side(item).tooltipsBorder
 	if frame then
-		PlaceItemBorder(frame, item.Icon)
+		if type(item.Icon) == "table" and Widgets.MayMove(frame) then
+			PlaceItemBorder(frame, item.Icon)
+		end
 		frame.chrome:Restyle()
 	end
 end

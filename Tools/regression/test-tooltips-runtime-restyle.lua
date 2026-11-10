@@ -81,6 +81,21 @@ do
 	same(fresh, snapshot(env, K, ns), "a run-time font")
 end
 
+-- An interface size change at run time re-lays the header, caption and item border where a fresh load at that size does.
+do
+	local size = 1.2
+	local env0 = boot({})
+	local freshEnv, freshK, freshNs = boot({ uiScale = size })
+	assert(freshEnv.ShoppingTooltip1:GetScale() ~= env0.ShoppingTooltip1:GetScale(), "the size changes the tooltip scale")
+	local fresh = snapshot(freshEnv, freshK, freshNs)
+	local env, K, ns = boot({})
+	assert(K.Scale.SetUserScale(size))
+	env.RunTimers()
+	T.W.Settle(env)
+	assert(env.ShoppingTooltip1:GetScale() == freshEnv.ShoppingTooltip1:GetScale(), "the run-time size reaches the tooltip scale")
+	same(fresh, snapshot(env, K, ns), "a run-time interface size")
+end
+
 -- A fresh load is already settled: a theme refresh with nothing changed moves nothing.
 do
 	local env, K, ns = boot({})
@@ -98,14 +113,19 @@ do
 	local item = env.GameTooltip.ItemTooltip
 	item.IconBorder:Show()
 	item.IconBorder:SetVertexColor(0.12, 1, 0)
-	local rim = ns.Style.ItemBorder(item).chrome.rim[1]
-	local r, g, b = rim:GetVertexColor()
-	assert(T.Near(r, 0.12) and T.Near(g, 1) and T.Near(b, 0), "the border takes the item's quality colour")
+	local function quality(what)
+		local r, g, b = ns.Style.ItemBorder(item).chrome.rim[1]:GetVertexColor()
+		assert(T.Near(r, 0.12) and T.Near(g, 1) and T.Near(b, 0), what)
+	end
+	quality("the border takes the item's quality colour")
 	assert(K.Theme.SetTypeSet("Lumen"))
 	env.RunTimers()
 	T.W.Settle(env)
-	r, g, b = rim:GetVertexColor()
-	assert(T.Near(r, 0.12) and T.Near(g, 1) and T.Near(b, 0), "the quality edge survives a type-set change")
+	quality("the quality edge survives a type-set change")
+	assert(K.Scale.SetUserScale(1.2))
+	env.RunTimers()
+	T.W.Settle(env)
+	quality("the quality edge survives an interface size change")
 end
 
 print("tooltips runtime restyle ok")
