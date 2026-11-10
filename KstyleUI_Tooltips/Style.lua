@@ -23,6 +23,12 @@ local NO_ICON = { EmbeddedItemTooltip = true }
 local FONTS = { title = "GameTooltipHeaderText", body = "GameTooltipText", small = "GameTooltipTextSmall" }
 local KIT_ROLES = { title = "heading", body = "body", small = "caption" }
 Style.KIT_ROLES = KIT_ROLES
+local function KitRole(role, semantic)
+	if role == "title" and Theme.FontFace() ~= "Lumen" then
+		return semantic or "body"
+	end
+	return KIT_ROLES[role]
+end
 local GILT, GILT_FALLBACK = "gilt", "neutral"
 Style.GILT_FALLBACK = GILT_FALLBACK
 local DIVIDER_GAP = 1
@@ -131,9 +137,25 @@ function Style.Reserve(tooltip, right, bottom)
 	return Pad(tooltip, glass, glass.padded or 0)
 end
 
+local function ResetTitle(glass)
+	local title = glass.titleLine
+	if not title or type(GameTooltipHeaderText) ~= "table" then
+		return
+	end
+	local r, g, b, a = title:GetTextColor()
+	title:SetFontObject(GameTooltipHeaderText)
+	title:SetShadowOffset(GameTooltipHeaderText:GetShadowOffset())
+	title:SetShadowColor(GameTooltipHeaderText:GetShadowColor())
+	if Logic.IsNumber(r) and Logic.IsNumber(g) and Logic.IsNumber(b) and Logic.IsNumber(a) then
+		title:SetTextColor(r, g, b, a)
+	end
+end
+
 local function Reset(tooltip)
 	local glass = Style.Glass(tooltip)
 	if glass then
+		ResetTitle(glass)
+		glass.title, glass.titleRole = nil, nil
 		glass.chrome:SetEdge("edgeInner")
 		glass.divider:Hide()
 		glass.footer:Hide()
@@ -421,6 +443,29 @@ local function CaptionFont(label)
 	end
 end
 
+local function TitleFont(tooltip, glass)
+	if not glass.title then
+		return
+	end
+	if glass.titleRole == "names" and Style.FollowsFont("title") and Theme.FontFace() ~= "Lumen"
+		and type(GameTooltipHeaderText) == "table" and type(glass.title.SetFontObject) == "function" then
+		Style.StyleFont(glass.title, "title", tooltip, "names")
+		glass.titleLine = glass.title
+	else
+		ResetTitle(glass)
+	end
+end
+
+function Style.SetTitleRole(tooltip, semantic)
+	local glass = Style.Glass(tooltip)
+	local title = glass and Style.Line(tooltip, "left", 1)
+	if type(title) ~= "table" then
+		return
+	end
+	glass.title, glass.titleRole = title, semantic
+	TitleFont(tooltip, glass)
+end
+
 function Style.Title(tooltip, quality, level)
 	local glass = Style.Glass(tooltip)
 	local title = glass and Style.Line(tooltip, "left", 1)
@@ -535,10 +580,15 @@ function Style.Lines(tooltip, item)
 	end
 end
 
-function Style.FontSpec(role)
+function Style.FollowsFont(role)
+	local face = Settings.Get(role .. ".font")
+	return Settings.Get("followFont") or face == "" or face == "theme" or face == "kit"
+end
+
+function Style.FontSpec(role, semantic)
 	local path
-	if Settings.Get("followFont") then
-		path = Tokens.Font(KIT_ROLES[role])
+	if Style.FollowsFont(role) then
+		path = Tokens.Font(KitRole(role, semantic))
 	else
 		path = Settings.Get(role .. ".font")
 	end
@@ -546,11 +596,11 @@ function Style.FontSpec(role)
 	return path, size, Logic.Flags(Settings.Get(role .. ".outline"))
 end
 
-function Style.StyleFont(object, role, scaleFrame)
-	local path, size, flags = Style.FontSpec(role)
+function Style.StyleFont(object, role, scaleFrame, semantic)
+	local path, size, flags = Style.FontSpec(role, semantic)
 	if not scaleFrame then
 		if not Widgets.ApplyFont(object, path, size, flags) then
-			local fallback = Tokens.Font(KIT_ROLES[role])
+			local fallback = Tokens.Font(KitRole(role, semantic))
 			Widgets.ApplyFont(object, fallback, size, flags)
 			Settings.LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; tooltips use KstyleUI's font")
 		end
@@ -558,7 +608,7 @@ function Style.StyleFont(object, role, scaleFrame)
 	end
 	local snapped = Widgets.FontSize(scaleFrame, size)
 	if object:SetFont(path, snapped, flags) == false then
-		local fallback = Tokens.Font(KIT_ROLES[role])
+		local fallback = Tokens.Font(KitRole(role, semantic))
 		object:SetFont(fallback, snapped, flags)
 		Settings.LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; tooltips use KstyleUI's font")
 	end
@@ -587,6 +637,7 @@ function Style.ApplyFonts()
 		local glass = Style.Glass(tooltip)
 		if glass then
 			CaptionFont(glass.caption)
+			TitleFont(tooltip, glass)
 		end
 	end
 end
@@ -604,6 +655,12 @@ function Style.RestoreFonts()
 			end
 		end
 		savedFonts[name] = nil
+	end
+	for _, tooltip in ipairs(skinned) do
+		local glass = Style.Glass(tooltip)
+		if glass then
+			ResetTitle(glass)
+		end
 	end
 end
 

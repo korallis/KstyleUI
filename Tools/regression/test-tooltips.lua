@@ -85,7 +85,7 @@ do
 	local face = K.Tokens.FontPath(K.Tokens.DEFAULT_FONT_FACE)
 	local scale = K.Theme.FontScale()
 	local path, size, flags = Font(env.GameTooltipHeaderText)
-	assert(path == (K.Tokens.Font("heading")) and Near(size, 11 * scale) and flags == "", "titles: KstyleUI's heading face at 11 units, no outline, got " .. tostring(path) .. " " .. tostring(size))
+	assert(path == (K.Tokens.Font("body")) and Near(size, 11 * scale) and flags == "", "item titles: KstyleUI's body face at 11 units, no outline, got " .. tostring(path) .. " " .. tostring(size))
 	path, size = Font(env.GameTooltipText)
 	assert(path == face and Near(size, 11 * scale), "body lines at 11 units")
 	path, size = Font(env.GameTooltipTextSmall)

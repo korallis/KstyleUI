@@ -16,7 +16,7 @@ local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 50
 local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
 local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 11, 11, 9
 
-local FACE = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
+local FACE = "theme"
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 local barR, barG, barB = Tokens.Color("friendly")
 local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
@@ -73,11 +73,21 @@ local function OwnFont(settings)
 	return settings.followFont == false
 end
 
+local function FontOptions()
+	local choices = { { value = FACE, label = L["KstyleUI font"] } }
+	for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
+		if choice.value ~= "" and choice.value ~= FACE and choice.value ~= "kit" then
+			choices[#choices + 1] = choice
+		end
+	end
+	return choices
+end
+
 local function TextRows(rows, role, name)
 	rows[#rows + 1] = {
 		type = "font", key = role .. ".font", label = string.format(L["%s font"], name),
 		help = L["The typeface for these lines while Use KstyleUI's font is off."],
-		showWhen = OwnFont,
+		showWhen = OwnFont, options = FontOptions,
 	}
 	rows[#rows + 1] = {
 		type = "slider", key = role .. ".size", label = string.format(L["%s size"], name),
@@ -315,7 +325,7 @@ local VALID = {
 		return type(v) == "table" and Unit(v.r) and Unit(v.g) and Unit(v.b)
 	end,
 	font = function(_, v)
-		return type(v) == "string" and v ~= ""
+		return type(v) == "string"
 	end,
 	texture = function(_, v)
 		return type(v) == "string" and v ~= ""

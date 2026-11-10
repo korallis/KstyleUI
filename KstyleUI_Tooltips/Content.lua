@@ -114,9 +114,10 @@ local function Decorate(tooltip, data)
 	local kind
 	if Readable(data) and Logic.IsNumber(data.type) then
 		kind = kinds[data.type]
-		if kind then
-			kind(tooltip, data)
-		end
+	end
+	Style.SetTitleRole(tooltip, (kind == Spell or kind == Units.Decorate) and "names" or nil)
+	if kind then
+		kind(tooltip, data)
 	end
 	Style.Lines(tooltip, kind == Item)
 end
