@@ -95,9 +95,9 @@ do
 		return (tostring(path.cap.title:GetText()):gsub(THIN_SPACE, ""))
 	end
 	assert(Title() == (f.GuideName.text:GetText() or ""):match("^[^\n]*"):upper(), "the cap's title is the guide's name, tracked in capitals, got " .. Title())
-	local gr, gg, gb = ns.Lumen.Color("gilt")
-	assert(Colored(path.cap.title, gr, gg, gb), "in gilt")
-	assert(path.cap.title:GetFont() == (ns.Style.Font("title")), "in the title face, as the Quests cap")
+	local gr, gg, gb = K.Tokens.Color("capsGold")
+	assert(Colored(path.cap.title, gr, gg, gb), "in the picture's muted gold")
+	assert(path.cap.title:GetFont() == (ns.Style.Font("caps")), "in the caps face, as the Quests cap")
 	assert(path.cap.trail:GetText() == "", "with no active step there is no trail")
 	f.GuideName.text:SetText("Durotar, 6 to 10")
 	assert(Title() == "DUROTAR, 6 TO 10", "a guide change follows RestedXP's title")
