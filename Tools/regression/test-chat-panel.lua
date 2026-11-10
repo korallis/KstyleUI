@@ -188,7 +188,8 @@ do
 	assert(math.abs(px - 26) < 0.6, "26 px inside the card, got " .. px)
 	local point, _, _, x = env.ChatFrame1Tab.Text:GetPoint(1)
 	local _, _, _, bgx = env.ChatFrame1.Background:GetPoint(1)
-	assert(point == "LEFT" and math.abs(x + bgx) < 0.5, "the tab name starts where the lines start, got " .. tostring(point) .. " " .. tostring(x))
+	local clear = math.max(0, (K.Tokens.Size("tick") + K.Tokens.Size("gapSmall") - g.left) / g.k)
+	assert(point == "LEFT" and math.abs(x - (-bgx + clear)) < 0.5, "the tab name starts clear of the card's tick, got " .. tostring(point) .. " " .. tostring(x))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

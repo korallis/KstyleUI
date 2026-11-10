@@ -438,15 +438,20 @@ local function OnWindowName(frame)
 end
 
 local function Lead(frame)
+	local overhang = 0
 	local bg = type(frame) == "table" and frame.Background
-	if type(bg) ~= "table" or type(bg.GetPoint) ~= "function" then
-		return 0
+	if type(bg) == "table" and type(bg.GetPoint) == "function" then
+		local point, _, _, x = bg:GetPoint(1)
+		if not IsSecret(point) and not IsSecret(x) and point == "TOPLEFT" and type(x) == "number" then
+			overhang = -x
+		end
 	end
-	local point, _, _, x = bg:GetPoint(1)
-	if IsSecret(point) or IsSecret(x) or point ~= "TOPLEFT" or type(x) ~= "number" then
-		return 0
+	local g = Panel.Geometry(frame)
+	local clear = (Tokens.Size("tick") + Tokens.Size("gapSmall") - g.left) / g.k
+	if clear < 0 then
+		clear = 0
 	end
-	return -x
+	return overhang + clear
 end
 
 function Frames.FitTabs(dock)
