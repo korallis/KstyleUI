@@ -29,6 +29,13 @@ local SPARK_EDGE = {
 }
 
 local COLOR_CHANNELS = 4
+local EDGE_PIXELS = 2
+local RAMP_KINDS = {
+	plate = { { 208 / 195, 74 / 67, 67 / 61 }, { 179 / 195, 59 / 67, 54 / 61 } },
+	health = { { 46 / 44, 109 / 105, 213 / 204 }, { 41 / 44, 98 / 105, 192 / 204 } },
+	target = { { 208 / 197, 74 / 68, 67 / 62 }, { 179 / 197, 58 / 68, 53 / 62 } },
+	power = { { 62 / 61, 62 / 61, 242 / 236 }, { 57 / 61, 57 / 61, 221 / 236 } },
+}
 
 local TEXTURE_PATHS = {}
 for _, item in ipairs(Tokens.MediaList("statusbar")) do
@@ -103,11 +110,183 @@ function Bar:Paint()
 	end
 end
 
+local function Clamp01(value)
+	if value < 0 then
+		return 0
+	end
+	if value > 1 then
+		return 1
+	end
+	return value
+end
+
+function Widgets.FillRamp(r, g, b, kind)
+	if Widgets.IsSecret(r) or Widgets.IsSecret(g) or Widgets.IsSecret(b) or type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then
+		return nil
+	end
+	local ratio = RAMP_KINDS[kind] or RAMP_KINDS.plate
+	local top, bottom = ratio[1], ratio[2]
+	return Clamp01(r * top[1]), Clamp01(g * top[2]), Clamp01(b * top[3]),
+		Clamp01(r * bottom[1]), Clamp01(g * bottom[2]), Clamp01(b * bottom[3])
+end
+
+local function WriteColor(color, r, g, b, a)
+	if type(color.SetRGBA) == "function" then
+		color:SetRGBA(r, g, b, a)
+	else
+		color.r, color.g, color.b, color.a = r, g, b, a
+	end
+	return color
+end
+
+function Bar:RampColors()
+	local colors = self.rampColors
+	if colors or type(CreateColor) ~= "function" then
+		return colors
+	end
+	local wr, wg, wb, wa = Tokens.Color("white")
+	colors = { CreateColor(wr, wg, wb, wa), CreateColor(wr, wg, wb, wa), CreateColor(wr, wg, wb, wa) }
+	self.rampColors = colors
+	return colors
+end
+
+function Bar:FlatTexture()
+	local path = self.texturePath
+	if type(path) ~= "string" then
+		return false
+	end
+	local flat = Tokens.Texture("barFlat")
+	return path == flat
+end
+
+local function Extrapolate(self, topR, topG, topB, botR, botG, botB)
+	if not self.innerEdgeOn then
+		return topR, topG, topB, botR, botG, botB
+	end
+	local height = self:GetHeight()
+	local unit = Scale.Pixel(1) / Widgets.ScaleFactor(self)
+	if type(height) ~= "number" or Widgets.IsSecret(height) or height <= 0 or type(unit) ~= "number" or unit <= 0 then
+		return topR, topG, topB, botR, botG, botB
+	end
+	local pixels = height / unit
+	local edge = EDGE_PIXELS
+	if pixels <= edge * 2 + 1 then
+		return topR, topG, topB, botR, botG, botB
+	end
+	local tHi = (edge + 0.5) / pixels
+	local tLo = (pixels - edge - 0.5) / pixels
+	local span = tLo - tHi
+	local function ends(visibleTop, visibleBot)
+		return Clamp01((visibleTop * tLo - visibleBot * tHi) / span),
+			Clamp01(((1 - tHi) * visibleBot - (1 - tLo) * visibleTop) / span)
+	end
+	local hiR, loR = ends(topR, botR)
+	local hiG, loG = ends(topG, botG)
+	local hiB, loB = ends(topB, botB)
+	return hiR, hiG, hiB, loR, loG, loB
+end
+
+function Bar:ApplyFillRamp()
+	local source = self.fillSource
+	if not source then
+		return
+	end
+	local r, g, b = source[1], source[2], source[3]
+	local topR, topG, topB, botR, botG, botB = Widgets.FillRamp(r, g, b, self.rampKind)
+	local texture = self:GetStatusBarTexture()
+	local colors = self:RampColors()
+	local canGradient = self.rampOn == true and texture and colors and type(texture.SetGradient) == "function" and self:FlatTexture()
+	if not topR or not canGradient then
+		if canGradient and self.fillRamped then
+			texture:SetGradient("VERTICAL", colors[1], colors[1])
+		elseif texture and colors and type(texture.SetGradient) == "function" and self.fillRamped then
+			texture:SetGradient("VERTICAL", colors[1], colors[1])
+		end
+		self.fillRamped = false
+		self:SetStatusBarColor(r, g, b)
+		return
+	end
+	local wr, wg, wb, wa = Tokens.Color("white")
+	self:SetStatusBarColor(wr, wg, wb, wa)
+	topR, topG, topB, botR, botG, botB = Extrapolate(self, topR, topG, topB, botR, botG, botB)
+	texture:SetGradient("VERTICAL", WriteColor(colors[2], botR, botG, botB, wa), WriteColor(colors[3], topR, topG, topB, wa))
+	self.fillRamped = true
+end
+
+function Bar:SetFillRamp(r, g, b, kind)
+	local source = self.fillSource
+	if not source then
+		source = {}
+		self.fillSource = source
+	end
+	source[1], source[2], source[3] = r, g, b
+	self.rampKind = kind
+	self.rampOn = true
+	local c = self.colorRGBA
+	c.n = 3
+	c[1], c[2], c[3], c[4] = r, g, b, nil
+	self.ownColor = true
+	self:ApplyFillRamp()
+end
+
+function Bar:PlaceInnerEdge()
+	local edge = self.innerEdge
+	if not edge then
+		return
+	end
+	local px = Widgets.Snap(self, Scale.Pixel(EDGE_PIXELS) / Widgets.ScaleFactor(self))
+	local token = self.innerEdgeToken or "black"
+	for i = 1, 4 do
+		Widgets.Tint(edge[i], token)
+		edge[i]:SetShown(self.innerEdgeOn == true)
+	end
+	edge[1]:ClearAllPoints()
+	edge[1]:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+	edge[1]:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 0)
+	edge[1]:SetHeight(px)
+	edge[2]:ClearAllPoints()
+	edge[2]:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
+	edge[2]:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
+	edge[2]:SetHeight(px)
+	edge[3]:ClearAllPoints()
+	edge[3]:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -px)
+	edge[3]:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, px)
+	edge[3]:SetWidth(px)
+	edge[4]:ClearAllPoints()
+	edge[4]:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, -px)
+	edge[4]:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, px)
+	edge[4]:SetWidth(px)
+end
+
+function Bar:SetInnerEdge(on, token)
+	if on and not self.innerEdge then
+		local edge = {}
+		for i = 1, 4 do
+			local texture = Widgets.Crisp(self:CreateTexture(nil, "OVERLAY", nil, 2))
+			texture:SetColorTexture(Tokens.Color("white"))
+			edge[i] = texture
+		end
+		self.innerEdge = edge
+	end
+	self.innerEdgeOn = on == true
+	if token then
+		self.innerEdgeToken = token
+	end
+	self:PlaceInnerEdge()
+end
+
 function Bar:SetBarColor(...)
 	local c = self.colorRGBA
 	c.n = min(select("#", ...), COLOR_CHANNELS)
 	c[1], c[2], c[3], c[4] = ...
 	self.ownColor = true
+	if self.rampOn then
+		self:SetFillRamp(c[1], c[2], c[3], self.rampKind)
+		return
+	end
+	if self.fillRamped then
+		self:ApplyFillRamp()
+	end
 	self:Paint()
 end
 
@@ -240,6 +419,10 @@ function Bar:Restyle()
 		Widgets.LayoutSlice(self.glow, self:GetStatusBarTexture(), 2 * GLOW_REACH, GLOW_REACH, 0, self, 0)
 	end
 	self:Paint()
+	if self.rampOn or self.fillRamped then
+		self:ApplyFillRamp()
+	end
+	self:PlaceInnerEdge()
 end
 
 local function CapMask(bar, name)

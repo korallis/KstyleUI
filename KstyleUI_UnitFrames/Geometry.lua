@@ -449,8 +449,8 @@ end
 
 local COLUMN = {
 	ring = 70, ringGap = 21.5, disc = 27 / 70, discAlong = 29 / 70,
-	health = 12, gap = 4, nameGap = 12, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 7.5,
-	castBar = 7, castGap = 7, labelGap = 4.5, labelExtra = 3, nameMin = 2,
+	health = 13.78, power = 8, gap = 3.44, nameGap = 11.5, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 5.78,
+	castBar = 7, castGap = 4.85, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
 }
 Geometry.COLUMN = COLUMN
@@ -467,7 +467,10 @@ local function ColumnBars(out, s, width, height, cast, nameH, castH)
 		out.cast = Rect(0, height - castH, width, castH)
 		bottom = out.cast.y - COLUMN.castGap
 	end
-	local powerH = PowerHeight(s, max(0, bottom - COLUMN.health - COLUMN.gap))
+	local powerH = 0
+	if s.power then
+		powerH = max(0, min(COLUMN.power, max(0, bottom - COLUMN.health - COLUMN.gap)))
+	end
 	out.power = nil
 	if powerH > 0 then
 		out.power = Rect(0, bottom - powerH, width, powerH)

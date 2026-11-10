@@ -11,6 +11,8 @@ for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
 end
 eq(xp.fill.texturePath, paths.Flat, "default XP fill texture")
 eq(xp.track.texturePath, paths.Flat, "default rested texture")
+eq(xp.fill.innerEdgeOn, true, "the flat XP fill keeps a dark inner edge")
+eq(xp.fill.innerEdgeToken, "barEdge", "the XP edge is the bar-edge token")
 for _, view in ipairs({ rep, honor }) do
 	eq(view.fill.texturePath, paths.Glass, "other fill texture")
 	eq(view.track.texturePath, paths.Glass, "other track texture")
@@ -29,6 +31,7 @@ for _, choice in ipairs({ "Glass", paths.Glass }) do
 	K.Options.Write("DataBars", "xp.texture", choice)
 	eq(xp.fill.texturePath, paths.Glass, "selected Glass fill texture")
 	eq(xp.track.texturePath, paths.Glass, "selected Glass rested texture")
+	eq(xp.fill.innerEdgeOn, false, "a chosen texture other than Flat draws as it does today")
 end
 local custom
 for _, item in ipairs(K.Tokens.MediaList("statusbar")) do

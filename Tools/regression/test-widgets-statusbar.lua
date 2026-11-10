@@ -234,4 +234,83 @@ do
 	assert(not pill.shade and not pill.lit, "a pill bar keeps its own sheen")
 end
 
+local function byte(value)
+	return math.floor(value * 255 + 0.5)
+end
+
+local function withColor(e)
+	e.CreateColor = function(r, g, b, a)
+		return {
+			r = r, g = g, b = b, a = a or 1,
+			SetRGBA = function(c, nr, ng, nb, na)
+				c.r, c.g, c.b, c.a = nr, ng, nb, na
+			end,
+		}
+	end
+end
+
+-- The picture's vertical fill ramp lives on the kit bar. A secret colour never enters the gradient,
+-- and a texture other than Flat keeps the plain colour call.
+do
+	local env, K = W.New({ setup = withColor })
+	local function stops(kind, token, top, bottom)
+		local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 14 })
+		bar:SetBarTexture("Flat")
+		local r, g, b = K.Tokens.Color(token)
+		bar:SetFillRamp(r, g, b, kind)
+		local gradient = bar:GetStatusBarTexture()._state.Gradient
+		assert(gradient and gradient[1] == "VERTICAL", kind .. " ramps vertically")
+		local hi, lo = gradient[3], gradient[2]
+		assert(byte(hi.r) == top[1] and byte(hi.g) == top[2] and byte(hi.b) == top[3], kind .. " top")
+		assert(byte(lo.r) == bottom[1] and byte(lo.g) == bottom[2] and byte(lo.b) == bottom[3], kind .. " bottom")
+	end
+	stops("health", "hudPlayerHealth", { 46, 109, 213 }, { 41, 98, 192 })
+	stops("target", "hudTargetHealth", { 208, 74, 67 }, { 179, 58, 53 })
+	stops("power", "hudMana", { 62, 62, 242 }, { 57, 57, 221 })
+	stops("plate", "plateHostile", { 208, 74, 67 }, { 179, 59, 54 })
+	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 14 })
+	bar:SetBarTexture("Glass")
+	local r, g, b = K.Tokens.Color("hudPlayerHealth")
+	bar:SetFillRamp(r, g, b, "health")
+	local plain = W.LastCall(bar, "SetStatusBarColor")
+	assert(plain and W.Near(plain[1], r) and W.Near(plain[2], g) and W.Near(plain[3], b), "a Glass texture keeps the plain colour")
+	bar:SetBarTexture("Flat")
+	bar:SetFillRamp(r, g, b, "health")
+	local secret = env.Secret(r)
+	bar:SetFillRamp(secret, g, b, "health")
+	local gradient = bar:GetStatusBarTexture()._state.Gradient
+	assert(gradient and not env.issecretvalue(gradient[2].r) and not env.issecretvalue(gradient[3].r), "a secret colour never enters the gradient")
+	local fallback = W.LastCall(bar, "SetStatusBarColor")
+	assert(fallback and fallback[1] == secret, "a secret colour goes to SetStatusBarColor")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+local SCREENS = {
+	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+}
+
+local function edgePixels(K, bar)
+	local edge = bar.innerEdge and bar.innerEdge[1]
+	return edge and edge:GetHeight() / (K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar))
+end
+
+for _, screen in ipairs(SCREENS) do
+	for _, setup in ipairs({
+		{ uiScale = 1, size = 1 },
+		{ uiScale = 768 / 1080, size = "default" },
+	}) do
+		local env, K = W.New({
+			width = screen[1], height = screen[2], uiScale = setup.uiScale, size = setup.size, setup = withColor,
+		})
+		local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 14 })
+		bar:SetBarTexture("Flat")
+		bar:SetInnerEdge(true, "barEdge")
+		local px = edgePixels(K, bar)
+		local where = string.format("%dx%d ui %s size %s", screen[1], screen[2], tostring(setup.uiScale), tostring(setup.size))
+		assert(px and math.abs(px - 2) < 0.01, "the inner edge is two physical pixels at " .. where .. ", got " .. tostring(px))
+		assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
+	end
+end
+
 print("widgets status bar ok")

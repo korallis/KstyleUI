@@ -380,6 +380,9 @@ local function LayoutCaption(cb, width, height)
 	local spare = height - gap - rowH
 	local labelOn = spare >= BAR_MIN
 	local barOffset = Snap(cb, CAPTION_OFFSET[mode])
+	if above then
+		barOffset = barOffset + Widgets.Snap(frame, K.Scale.Pixel(1) / Widgets.ScaleFactor(frame))
+	end
 	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height - barOffset)
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
@@ -388,6 +391,7 @@ local function LayoutCaption(cb, width, height)
 	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, -barOffset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
+	bar:SetInnerEdge(bar:FlatTexture(), "black")
 	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
 	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[mode] * size), math.floor(width / 2)) or 0
 	local y = Snap(cb, barH + gap)
@@ -546,6 +550,7 @@ function CastBars.Restyle(cb)
 		cb.timer:SetTextColor(Tokens.Color("text"))
 	end
 	cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
+	cb.bar:SetInnerEdge(cb.mode ~= nil and cb.bar:FlatTexture(), "black")
 	Orient(cb)
 	cb.styled = true
 	cb.pr = nil

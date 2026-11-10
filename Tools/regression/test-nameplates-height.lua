@@ -118,4 +118,24 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1", { reaction = 2, health = 100, maxHealth = 100 })
+	local bar = ns.Plates.Get("nameplate1").health
+	local function equalStops(label)
+		local gradient = bar:GetStatusBarTexture()._state.Gradient
+		assert(gradient and math.abs(gradient[2].r - gradient[3].r) < 1e-4, label .. " stops stay equal")
+	end
+	K.Options.Write("Nameplates", "health.texture", "Glass")
+	bar:SetBarTexture(ns.Settings.Get("health.texture"))
+	bar:Restyle()
+	equalStops("a plate off Flat")
+	K.Options.Write("Nameplates", "health.texture", "Flat")
+	bar:SetBarTexture(ns.Settings.Get("health.texture"))
+	bar:Restyle()
+	local gradient = bar:GetStatusBarTexture()._state.Gradient
+	assert(gradient and math.abs(gradient[2].r - gradient[3].r) > 0.01, "Flat again restores the unequal ramp")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("nameplates height: ok")

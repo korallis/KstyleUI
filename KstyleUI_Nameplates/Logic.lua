@@ -142,25 +142,8 @@ function Logic.LevelText(level)
 	return nil
 end
 
-local RAMP_TOP = { 208 / 195, 74 / 67, 67 / 61 }
-local RAMP_BOTTOM = { 179 / 195, 59 / 67, 54 / 61 }
-
-local function Clamp01(value)
-	if value < 0 then
-		return 0
-	end
-	if value > 1 then
-		return 1
-	end
-	return value
-end
-
 function Logic.Ramp(r, g, b)
-	if not IsNumber(r) or not IsNumber(g) or not IsNumber(b) then
-		return nil
-	end
-	return Clamp01(r * RAMP_TOP[1]), Clamp01(g * RAMP_TOP[2]), Clamp01(b * RAMP_TOP[3]),
-		Clamp01(r * RAMP_BOTTOM[1]), Clamp01(g * RAMP_BOTTOM[2]), Clamp01(b * RAMP_BOTTOM[3])
+	return KstyleUI.Widgets.FillRamp(r, g, b)
 end
 
 function Logic.PlateScale(rootScale, parentScale)
