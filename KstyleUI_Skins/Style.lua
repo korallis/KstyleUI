@@ -19,6 +19,7 @@ local FALLBACK_FONT = "GameFontHighlight"
 
 local WEAK = { __mode = "k" }
 local roles = setmetatable({}, WEAK)
+local sizes = setmetatable({}, WEAK)
 local bars = setmetatable({}, WEAK)
 local tracked = setmetatable({}, WEAK)
 local painting = false
@@ -145,9 +146,16 @@ function Style.ApplyFont(object, role, size)
 end
 
 function Style.Text(text, role, colorName, size)
+	if role then
+		sizes[text] = size
+	end
 	role = role or roles[text] or "body"
 	roles[text] = role
-	if not Style.ApplyFont(text, role, size) then
+	local wanted = sizes[text]
+	if type(wanted) == "function" then
+		wanted = wanted()
+	end
+	if not Style.ApplyFont(text, role, wanted) then
 		text:SetFontObject(FALLBACK_FONT)
 	end
 	if colorName then
@@ -160,8 +168,10 @@ function Style.Title(text, colorName, role)
 	if role then
 		Style.Text(text, role, colorName or "textEmphasis")
 	else
-		local _, size = Style.Font("caps")
-		Style.Text(text, "caps", colorName or "capsGold", size * Widgets.CAPS_SIZE / Tokens.Size("caps"))
+		Style.Text(text, "caps", colorName or "capsGold", function()
+			local _, size = Style.Font("caps")
+			return size * Widgets.CAPS_SIZE / Tokens.Size("caps")
+		end)
 	end
 	if type(text.SetWordWrap) == "function" then
 		text:SetWordWrap(false)

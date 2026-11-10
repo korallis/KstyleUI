@@ -19,6 +19,7 @@ local Cap = {}
 Widgets.CAPS_SIZE = CAP_SIZE
 
 function Widgets.CapsSize(text, plain)
+	Widgets.CapsSized[text] = plain or false
 	local path, floor, flags = Tokens.Font("caps")
 	Widgets.ApplyFont(text, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags, plain)
 end
