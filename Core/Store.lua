@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 16
+Store.DB_VERSION = 17
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -464,6 +464,20 @@ Store.migrations[16] = function(data)
 			for field, old in pairs(type(values) == "table" and AURA_V12 or {}) do
 				if values[field] == old then
 					values[field] = nil
+				end
+			end
+		end
+	end
+end
+
+Store.migrations[17] = function(data)
+	for _, profile in pairs(type(data.profiles) == "table" and data.profiles or {}) do
+		local units = type(profile) == "table" and profile.UnitFrames
+		if type(units) == "table" then
+			for _, kind in ipairs({ "player", "target", "focus", "pet", "boss" }) do
+				local values = units[kind]
+				if type(values) == "table" and values.powerHeight == 7 then
+					values.powerHeight = nil
 				end
 			end
 		end

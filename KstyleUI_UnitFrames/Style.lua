@@ -592,8 +592,26 @@ function Style.Restyle(view, kind)
 	Style.Shape(view, form == "vitals" or Settings.Value(kind, "portraitShape") == "round")
 	view.health:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
-	Style.Flat(view.health, form == "column")
-	Style.Flat(view.power, form == "column")
+	local column = form == "column"
+	view.health.rampOn = column and view.health:FlatTexture()
+	view.health.rampKind = view.health.rampKind or "health"
+	if view.health.fillRamped and not view.health.rampOn then
+		view.health:ApplyFillRamp()
+	end
+	view.power.rampOn = column and view.power:FlatTexture()
+	view.power.rampKind = "power"
+	if view.power.fillRamped and not view.power.rampOn then
+		view.power:ApplyFillRamp()
+	end
+	view.power:SetInnerEdge(view.power.rampOn, "powerEdge")
+	if view.health.keyline then
+		view.health.keyline:SetShown(not view.health.rampOn)
+	end
+	if view.power.keyline then
+		view.power.keyline:SetShown(not view.power.innerEdgeOn)
+	end
+	Style.Flat(view.health, column)
+	Style.Flat(view.power, column)
 	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.absorb:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.orientation = Settings.Value(kind, "healthOrientation")

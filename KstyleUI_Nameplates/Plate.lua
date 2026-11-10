@@ -123,63 +123,6 @@ function ns.FlatBar(parent, opts)
 		c[1], c[2], c[3], c[4] = r, g, b, a or 1
 		self.keyline:SetVertexColor(c[1], c[2], c[3], c[4])
 	end
-	local function WriteColor(color, r, g, b, a)
-		if type(color.SetRGBA) == "function" then
-			color:SetRGBA(r, g, b, a)
-		else
-			color.r, color.g, color.b, color.a = r, g, b, a
-		end
-		return color
-	end
-	function bar:RampColors()
-		local colors = self.rampColors
-		if colors or type(CreateColor) ~= "function" then
-			return colors
-		end
-		local wr, wg, wb, wa = Tokens.Color("white")
-		colors = {
-			CreateColor(wr, wg, wb, wa),
-			CreateColor(wr, wg, wb, wa),
-			CreateColor(wr, wg, wb, wa),
-		}
-		self.rampColors = colors
-		return colors
-	end
-	function bar:ApplyFillRamp()
-		local source = self.fillSource
-		if not source then
-			return
-		end
-		local r, g, b = source[1], source[2], source[3]
-		local topR, topG, topB, botR, botG, botB = Logic.Ramp(r, g, b)
-		local texture = self:GetStatusBarTexture()
-		local colors = self:RampColors()
-		local canGradient = texture and colors and type(texture.SetGradient) == "function"
-		if not topR or not canGradient then
-			if canGradient and self.fillRamped then
-				texture:SetGradient("VERTICAL", colors[1], colors[1])
-			end
-			self.fillRamped = false
-			if not canGradient and topR then
-				LogOnce("ramp", "Texture:SetGradient or CreateColor is missing; plates draw a flat fill")
-			end
-			self:SetBarColor(r, g, b)
-			return
-		end
-		local wr, wg, wb, wa = Tokens.Color("white")
-		self:SetBarColor(wr, wg, wb, wa)
-		texture:SetGradient("VERTICAL", WriteColor(colors[2], botR, botG, botB, wa), WriteColor(colors[3], topR, topG, topB, wa))
-		self.fillRamped = true
-	end
-	function bar:SetFillRamp(r, g, b)
-		local source = self.fillSource
-		if not source then
-			source = {}
-			self.fillSource = source
-		end
-		source[1], source[2], source[3] = r, g, b
-		self:ApplyFillRamp()
-	end
 	function bar:Restyle()
 		restyle(self)
 		self.lit:Hide()

@@ -449,8 +449,8 @@ end
 
 local COLUMN = {
 	ring = 70, ringGap = 21.5, disc = 27 / 70, discAlong = 29 / 70,
-	health = 12, gap = 4, nameGap = 12, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 7.5,
-	castBar = 7, castGap = 7, labelGap = 4.5, labelExtra = 3, nameMin = 2,
+	health = 13.78, gap = 3.44, nameGap = 11.5, nameDrop = 0.24, captionLift = 0.105, valueDrop = 0.13, bottom = 5.74,
+	castBar = 7, castGap = 4.81, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
 }
 Geometry.COLUMN = COLUMN

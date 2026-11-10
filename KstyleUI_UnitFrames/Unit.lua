@@ -100,6 +100,8 @@ function Unit.HealthColor(view, unit)
 	else
 		r, g, b = UnitColor(unit, s.healthColor)
 	end
+	local reaction = unit and UnitReaction and UnitReaction(unit, "player")
+	view.health.rampKind = (not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX) and "target" or "health"
 	SetColor(view.health, r, g, b)
 	ns.Style.HealthTint(view, r, g, b)
 end

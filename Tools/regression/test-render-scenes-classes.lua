@@ -30,8 +30,27 @@ for _, class in ipairs(Classes.ORDER) do
 	local spec = Classes[class]
 	local tag = "hud." .. class
 	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class })))
-	local healthColour = { Hud.envs[uf].KstyleUI.Tokens.Color("hudPlayerHealth") }
-	local manaColour = { Hud.envs[uf].KstyleUI.Tokens.Color("hudMana") }
+	local Kuf = Hud.envs[uf].KstyleUI
+	local healthColour = { Kuf.Tokens.Color("hudPlayerHealth") }
+	local manaColour = { Kuf.Tokens.Color("hudMana") }
+	local function rampOf(item, r, g, b, kind)
+		local painted = item.gradient
+		if not (painted and painted.orientation == "VERTICAL" and painted.to and painted.from) then
+			return false
+		end
+		local topR, topG, topB, botR, botG, botB = Kuf.Widgets.FillRamp(r, g, b, kind)
+		if not topR then
+			return false
+		end
+		if sameColour(painted.to, { topR, topG, topB }) and sameColour(painted.from, { botR, botG, botB }) then
+			return true
+		end
+		if kind ~= "power" or sameColour(painted.to, painted.from) then
+			return false
+		end
+		local mid = { (painted.to[1] + painted.from[1]) / 2, (painted.to[2] + painted.from[2]) / 2, (painted.to[3] + painted.from[3]) / 2 }
+		return sameColour(mid, { (topR + botR) / 2, (topG + botG) / 2, (topB + botB) / 2 })
+	end
 	-- The player frame paints its power bar in the power type's colour (the owner's ruling of 2026-11-08: mana
 	-- blue, rage red, energy yellow, PowerBarColor lifted by Theme.Brighten, so every channel is at least the
 	-- game's and the brightest channel stays the brightest), never the class colour; the power type shows as the
@@ -58,12 +77,17 @@ for _, class in ipairs(Classes.ORDER) do
 	local health, power, petHealth = false, false, false
 	for _, item in ipairs(uf.items) do
 		if item.kind == "texture" and item.bar then
-			if near(item.fraction, 2750 / 3350) and sameColour(item.vertex, healthColour) then
+			if near(item.fraction, 2750 / 3350) and (sameColour(item.vertex, healthColour) or rampOf(item, healthColour[1], healthColour[2], healthColour[3], "health")) then
 				health = true
 			end
-			local powerMatch = spec.power.token == "MANA" and sameColour(item.vertex, manaColour)
-				or (spec.power.token ~= "MANA" and brightened(item.vertex, powerColour))
-			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and powerMatch and not sameColour(item.vertex, spec.colour) then
+			local painted = item.gradient
+			local rampedOther = painted and painted.orientation == "VERTICAL" and painted.to and painted.from
+				and brightened(painted.to, powerColour)
+				and painted.from[1] <= painted.to[1] + 1e-3 and painted.from[2] <= painted.to[2] + 1e-3 and painted.from[3] <= painted.to[3] + 1e-3
+			local powerMatch = spec.power.token == "MANA" and (sameColour(item.vertex, manaColour) or rampOf(item, manaColour[1], manaColour[2], manaColour[3], "power"))
+				or (spec.power.token ~= "MANA" and (brightened(item.vertex, powerColour) or rampedOther))
+			local classFill = item.gradient and item.gradient.to or item.vertex
+			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and powerMatch and not sameColour(classFill, spec.colour) then
 				power = true
 			end
 			if spec.pet and near(item.fraction, spec.pet.health / spec.pet.healthMax) and not sameColour(item.vertex, spec.colour) then

@@ -103,7 +103,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		healthText = full and "both" or "percent",
 		healPrediction = true,
 		power = full,
-		powerHeight = full and 7 or 3,
+		powerHeight = full and 8.04 or 3,
 		powerTexture = BAR_TEXTURE,
 		powerColor = "power",
 		powerCustom = Color("rare"),
