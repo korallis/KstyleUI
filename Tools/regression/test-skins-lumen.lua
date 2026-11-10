@@ -210,7 +210,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Blizzard windows: every skinned window wears the Lumen window grade, a heading-face title and pill scroll bars --
+-- Blizzard windows: every skinned window wears the Lumen window grade, a caps-face title and pill scroll bars --
 
 do
 	local Windows = dofile("Tools/regression/skins_windows.lua")
@@ -262,10 +262,10 @@ do
 		assert(found, spec.key .. ": the window or one of its pages sits on a KstyleUI backdrop")
 		assert(found.chrome.shapeName == grade, spec.key .. ": the " .. grade .. " grade, Lumen's rail with gilt tips when S1 lands, got " .. tostring(found.chrome.shapeName))
 		assert(found.chrome.fillName == "surface", spec.key .. ": on the glass surface")
-		local headingPath = ns.Style.Font("heading")
+		local titlePath = ns.Style.Font("caps")
 		local title = type(window.TitleContainer) == "table" and window.TitleContainer.TitleText or nil
 		if title and windowParts and windowParts.kinds.Window then
-			assert((title:GetFont()) == headingPath, spec.key .. ": the title is in the heading face, Lumen's Cinzel")
+			assert((title:GetFont()) == titlePath or ((spec.key == "character" or spec.key == "reputation") and (title:GetFont()) == ns.Style.Font("names")), spec.key .. ": the title is in the gold caps face, Lumen's Cinzel Caps (the character's name in the names face)")
 		end
 		for _, frame in ipairs(env._frames) do
 			local p = K.Skin.Parts(frame)

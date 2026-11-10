@@ -382,12 +382,14 @@ function Widgets.SyncTracking(text)
 	end
 end
 
-function Widgets.ApplyFont(text, path, size, flags)
+function Widgets.ApplyFont(text, path, size, flags, plain)
 	flags = flags or ""
 	local f = TextFactor(text)
 	local ok = text:SetFont(path, SnapSize(size, f), flags) ~= false
 	Shadow(text, flags, f)
-	Widgets.SyncTracking(text)
+	if not plain then
+		Widgets.SyncTracking(text)
+	end
 	return ok
 end
 

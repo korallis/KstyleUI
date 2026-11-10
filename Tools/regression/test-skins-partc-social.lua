@@ -167,7 +167,7 @@ do
 	assert(ns.Skins.IsApplied("friends") and S.Logged(env, "friends: applied"), "the first show skins the window")
 	local f = p.frame
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(f.Bg) == 0 and Alpha(p.icon) == 0, "a glass panel replaces the window art and the portrait icon")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading") and FontPath(env.FriendsFrameTitleText) == Style.Font("heading"), "both titles wear the heading font")
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("caps") and FontPath(env.FriendsFrameTitleText) == Style.Font("caps"), "both titles wear the caps font")
 	for _, tab in ipairs(f.Tabs) do
 		assert(K.Skin.IsSkinned(tab, "Tab"), "the bottom tabs get the accent underline")
 	end
@@ -298,7 +298,7 @@ do
 	assert(ns.Skins.IsApplied("communities"), "the first show skins the window")
 	local f = p.frame
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(f.Bg) == 0 and Alpha(p.tabard) == 0, "a glass panel replaces the window art and the tabard")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"))
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("caps"))
 	assert(Alpha(f.MaximizeMinimizeFrame.MaximizeButton.Art) == 0, "the size buttons become chevrons")
 	assert(ns.Parts.RimOf(f.RosterTab) and Alpha(f.RosterTab.Icon) > 0 and Alpha(f.RosterTab.Art) == 0, "the side tabs keep their icons on a rim")
 	assert(S.Logged(env, "GuildPreferredPlaySettingsTab is missing"), "a tab this client lacks is logged")

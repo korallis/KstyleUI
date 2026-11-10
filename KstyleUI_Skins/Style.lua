@@ -121,17 +121,17 @@ function Style.Font(role)
 end
 
 local function SetFace(object, path, role, size, flags)
-	if Widgets.ApplyFont(object, path, size, flags) then
+	if Widgets.ApplyFont(object, path, size, flags, true) then
 		return true
 	end
 	local kitPath = Tokens.Font(role)
-	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags) then
+	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags, true) then
 		LogFont(path, "skinned text uses the KstyleUI face")
 		return true
 	end
 	local fallback = _G[FALLBACK_FONT]
 	local face = type(fallback) == "table" and type(fallback.GetFont) == "function" and fallback:GetFont()
-	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags) then
+	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags, true) then
 		LogFont(path, "skinned text uses the face of " .. FALLBACK_FONT)
 		return true
 	end
@@ -157,7 +157,12 @@ function Style.Text(text, role, colorName, size)
 end
 
 function Style.Title(text, colorName, role)
-	Style.Text(text, role or "caps", colorName or "capsGold")
+	if role then
+		Style.Text(text, role, colorName or "textEmphasis")
+	else
+		local _, size = Style.Font("caps")
+		Style.Text(text, "caps", colorName or "capsGold", size * Widgets.CAPS_SIZE / Tokens.Size("caps"))
+	end
 	if type(text.SetWordWrap) == "function" then
 		text:SetWordWrap(false)
 	end

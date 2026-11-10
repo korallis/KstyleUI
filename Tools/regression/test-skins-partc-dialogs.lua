@@ -165,7 +165,7 @@ do
 	assert(ns.Skins.IsApplied("readyCheck"), "the first ready check skins the dialog")
 	assert(K.Skin.IsSkinned(listener, "Window") and Alpha(listener.Bg) == 0 and Alpha(listener.NineSliceArt) == 0, "a glass panel replaces the dialog art")
 	assert(Alpha(listener.PortraitContainer.Portrait) == 0, "the portrait and its ring go with the rest of the window art")
-	assert(FontPath(listener.TitleContainer.TitleText) == Style.Font("heading"), "the title wears the heading font")
+	assert(FontPath(listener.TitleContainer.TitleText) == Style.Font("caps"), "the title wears the caps font")
 	assert(FontPath(listener.Text) == Style.Font("body"), "the question wears the body font")
 	assert(K.Skin.IsSkinned(listener.YesButton, "Button") and K.Skin.IsSkinned(listener.NoButton, "Button"), "ready and not ready are restyled")
 	B.check(snap, HOOKED)
@@ -241,7 +241,7 @@ do
 	assert(ns.Skins.IsApplied("addonList"), "the first show skins the list")
 	local f = p.frame
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(f.Bg) == 0 and Alpha(p.inset) == 0, "a glass panel replaces the window art")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"))
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("caps"))
 	assert(K.Skin.IsSkinned(f.Dropdown, "Backdrop"), "the character dropdown wears a raised tile")
 	assert(K.Skin.IsSkinned(f.ForceLoad, "CheckBox") and FontPath(p.forceLabel) == Style.Font("body"), "load out of date is a KstyleUI check box")
 	assert(K.Skin.IsSkinned(f.SearchBox, "EditBox") and Alpha(f.SearchBox.searchIcon) == 1, "the search box keeps its icon")

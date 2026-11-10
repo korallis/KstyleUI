@@ -57,6 +57,7 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	local title = Widgets.Text(frame, "caps", "capsGold")
+	Widgets.CapsSize(title)
 	title:SetPoint("TOP", frame, "TOP", 0, -Tokens.Size("gapLarge"))
 	Widgets.SetText(title, L["Bags"])
 	frame.title = title

@@ -43,7 +43,7 @@ do
 	local Tokens = K.Tokens
 	assert(panel.titleText:GetText() == "PANEL TITLE", "the title is upper case")
 	local font = W.LastCall(panel.titleText, "SetFont")
-	assert(font[1] == (Tokens.Font("heading")) and font[2] == Tokens.Size("heading"), "the title is a heading, in Cinzel: Lumen's window titles")
+	assert(font[1] == (Tokens.Font("caps")) and font[2] == math.max(Tokens.Size("caps"), K.Widgets.CAPS_SIZE * K.Theme.FontScale()), "the title is a gold caps caption at the card caption size: Lumen's window titles")
 	assert(panel.chrome.shapeName == "window", "a titled panel is a window: the design's window-grade edge")
 	assert(W.Near(panel.chrome:Radius(), 6 * K.Scale.Border()), "the picture's card corner, six lines")
 	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "and the card's gilt ticks")

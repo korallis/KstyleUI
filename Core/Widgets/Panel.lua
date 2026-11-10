@@ -90,6 +90,7 @@ function Panel:Restyle()
 		self.titleText:ClearAllPoints()
 		self.titleText:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
 		self.titleText:SetHeight(Widgets.Snap(self, Tokens.Size("heading")))
+		Widgets.CapsSize(self.titleText)
 		if self.closeButton then
 			self.titleText:SetPoint("RIGHT", self.closeButton, "LEFT", -Widgets.Snap(self, Tokens.Size("gapSmall")), 0)
 		else
@@ -140,6 +141,7 @@ function Widgets.Panel(parent, opts)
 		bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT")
 		panel.titleBar = bar
 		panel.titleText = Widgets.Text(panel, "caps", "capsGold")
+		Widgets.CapsSize(panel.titleText)
 		panel.titleText:SetJustifyH("LEFT")
 		panel.titleText:SetJustifyV("MIDDLE")
 		panel.titleText:SetWordWrap(false)

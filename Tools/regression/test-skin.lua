@@ -391,7 +391,7 @@ do
 	assert(nine:GetAlpha() == 0 and window.Bg:GetAlpha() == 0 and portrait:GetAlpha() == 0 and insetNine:GetAlpha() == 0, "the window's art is stripped")
 	assert(panel and panel:GetParent() == window and panel.chrome, "a KstyleUI panel behind it")
 	assert(panel.chrome.shapeName == "window" and panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "the window grade: the picture's card with its gilt ticks")
-	assert(W.LastCall(window.TitleContainer.TitleText, "SetFont")[1] == (K.Tokens.Font("heading")), "the title in the heading font")
+	assert(W.LastCall(window.TitleContainer.TitleText, "SetFont")[1] == (K.Tokens.Font("caps")), "the title in the gold caps face, as a HUD card caption")
 	assert(K.Skin.IsSkinned(window.CloseButton, "CloseButton"), "the close button")
 	assert(K.Skin.Window(window) == panel, "a second call does nothing new")
 	B.check(snap)

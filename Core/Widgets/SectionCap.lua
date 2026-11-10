@@ -16,6 +16,13 @@ local DEFAULT_WIDTH = 278
 
 local Cap = {}
 
+Widgets.CAPS_SIZE = CAP_SIZE
+
+function Widgets.CapsSize(text, plain)
+	local path, floor, flags = Tokens.Font("caps")
+	Widgets.ApplyFont(text, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags, plain)
+end
+
 local function Placed(self)
 	local count = self.counted
 	self.rule:ClearAllPoints()
@@ -71,8 +78,7 @@ function Cap:Restyle()
 	self.gem:SetSize(gem, gem)
 	self.gem:ClearAllPoints()
 	self.gem:SetPoint("CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
-	local path, floor, flags = Tokens.Font("caps")
-	Widgets.ApplyFont(self.label, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags)
+	Widgets.CapsSize(self.label)
 	self.label:ClearAllPoints()
 	self.label:SetPoint("LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 	self.rule:SetHeight(Widgets.Border(self))

@@ -280,7 +280,7 @@ do
 	assert(Skinned(K, made.menu, "Backdrop"), "a glass panel behind the menu")
 	local menuChrome = K.Skin.Parts(made.menu).backdrop.chrome
 	assert(menuChrome.shapeName == "window" and menuChrome.fillName == "surface" and menuChrome.shadowOn, "the menu is window-grade glass with a shadow, as every Blizzard window")
-	assert(made.menu.Header.Text:GetFont() == (ns.Style.Font("heading")), "the title takes the module's heading font")
+	assert(made.menu.Header.Text:GetFont() == (ns.Style.Font("caps")), "the title takes the module's caps font")
 	for _, button in ipairs(made.buttons) do
 		assert(Skinned(K, button, "Button"), "each menu button is a KstyleUI tile")
 	end

@@ -207,7 +207,7 @@ do
 
 	assert(K.Skin.IsSkinned(f, "Window"), "a KstyleUI glass panel behind the window")
 	assert(Alpha(f.Bg) == 0 and Alpha(p.leftArt) == 0 and Alpha(f.RightPaneHost.StoneBg) == 0 and Alpha(p.divider) == 0, "Blizzard's pane art is stripped")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"), "the title wears the skin font")
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("names"), "the title is the character's name, in the names face")
 	assert(Alpha(p.toggleArt) == 0, "the pane toggle's art is stripped")
 
 	assert(RimColor(ns, f.ModeTabs.Tabs[1]) ~= nil, "the tab Blizzard had selected before the skin keeps its selection")

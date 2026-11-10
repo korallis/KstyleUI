@@ -680,7 +680,8 @@ local function Window(frame, opts)
 		title = frame:GetTitleText()
 	end
 	if title and opts.title ~= false then
-		Text(title, "caps", "capsGold")
+		W().CapsSize(title, true)
+		W().TextColor(title, "capsGold")
 	end
 	if opts.tabs ~= false and (type(frame.Tabs) == "table" or type(frame.numTabs) == "number") then
 		Tabs(frame)
