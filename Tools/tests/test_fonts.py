@@ -1,8 +1,11 @@
 """Tests for Media/Fonts: every bundled font is a static TrueType file the game can load, and Lumen's number faces keep their digits one width."""
 
+import hashlib
+import importlib.util
 import struct
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 FONTS = ROOT / "Media" / "Fonts"
@@ -72,26 +75,44 @@ class FontFilesTest(unittest.TestCase):
         data = (FONTS / "Cinzel-SemiBold.ttf").read_bytes()
         self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 600)
 
-    def test_tracked_cinzel_is_regular_with_wider_advances(self):
-        # Cinzel Regular's own advances (Cinzel[wght].ttf at weight 400, in 1000 units) and the 80 the script adds.
-        data = (FONTS / "CinzelTracked-Regular.ttf").read_bytes()
-        self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 400)
-        self.assertEqual(struct.unpack(">H", table(data, "head")[18:20])[0], 1000)
-        regular = {"S": 475, "K": 657, "Y": 661, "B": 586, "O": 838, "R": 677, "N": 841, "E": 577}
-        for letter, base in regular.items():
-            self.assertEqual(advance(data, glyph_index(data, ord(letter))), base + 80, f"{letter} is Cinzel Regular's advance plus 80")
-        self.assertGreater(advance(data, glyph_index(data, ord(" "))), 80, "the space carries the tracking too")
-        self.assertEqual(glyph_index(data, ord("a")), glyph_index(data, ord("A")), "lowercase is drawn as the capital, so a name Lua cannot uppercase still reads in capitals")
-        self.assertEqual(glyph_index(data, 0xE9), glyph_index(data, 0xC9), "accented lowercase too")
+    def test_tracked_cinzel_is_medium_with_wider_advances(self):
+        # Cinzel's own advances (Cinzel[wght].ttf at weight 500, in 1000 units) and the tracking the script adds.
+        medium = {"S": 509, "K": 690, "Y": 675, "B": 615, "O": 852, "R": 700, "N": 849, "E": 595}
+        for name, track in (("CinzelCaps-Medium.ttf", 65), ("CinzelNames-Medium.ttf", 20)):
+            data = (FONTS / name).read_bytes()
+            self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 500, name)
+            self.assertEqual(struct.unpack(">H", table(data, "head")[18:20])[0], 1000, name)
+            for letter, base in medium.items():
+                self.assertEqual(advance(data, glyph_index(data, ord(letter))), base + track, f"{name}: {letter} is Cinzel Medium's advance plus {track}")
+            self.assertGreater(advance(data, glyph_index(data, ord(" "))), track, f"{name}: the space carries the tracking too")
+            self.assertEqual(glyph_index(data, ord("a")), glyph_index(data, ord("A")), f"{name}: lowercase is drawn as the capital, so a name Lua cannot uppercase still reads in capitals")
+            self.assertEqual(glyph_index(data, 0xE9), glyph_index(data, 0xC9), f"{name}: accented lowercase too")
 
     def test_tracked_cinzel_has_no_thin_space_to_misuse(self):
-        for name in ("CinzelTracked-Regular.ttf", "Cinzel-SemiBold.ttf"):
+        for name in ("CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "Cinzel-SemiBold.ttf"):
             data = (FONTS / name).read_bytes()
             self.assertEqual(glyph_index(data, 0x2009), 0, f"{name} has no thin space: the tracking is in the advances")
 
     def test_tracked_cinzel_is_renamed(self):
-        data = (FONTS / "CinzelTracked-Regular.ttf").read_bytes()
-        self.assertIn("Cinzel Tracked".encode("utf-16-be"), table(data, "name"), "the modified family carries its own name")
+        for name, family in (("CinzelCaps-Medium.ttf", "Cinzel Caps"), ("CinzelNames-Medium.ttf", "Cinzel Names")):
+            data = (FONTS / name).read_bytes()
+            self.assertIn(family.encode("utf-16-be"), table(data, "name"), f"{name}: the modified family carries its own name")
+
+    def test_provenance_hashes_match_the_cinzel_files(self):
+        # make_fonts.py output depends on the build environment (uharfbuzz changes the bytes), so the files and the recorded hashes must agree.
+        text = (ROOT / "Media" / "PROVENANCE.md").read_text(encoding="utf-8")
+        for name in ("CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf"):
+            digest = hashlib.sha256((FONTS / name).read_bytes()).hexdigest()
+            self.assertIn(digest, text, f"{name} changed: record its SHA-256 in Media/PROVENANCE.md")
+
+    def test_the_build_refuses_to_run_with_uharfbuzz(self):
+        spec = importlib.util.spec_from_file_location("make_fonts", ROOT / "Tools" / "media" / "make_fonts.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with mock.patch.object(importlib.util, "find_spec", return_value=object()):
+            with self.assertRaises(SystemExit) as raised:
+                module.main(["--src", "/nonexistent", "--out", "/nonexistent"])
+        self.assertIn("uharfbuzz", str(raised.exception))
 
     def test_number_faces_have_tabular_lining_digits(self):
         # The game applies no OpenType features, so the files map the digits to their tabular lining figures.
@@ -109,7 +130,7 @@ class FontFilesTest(unittest.TestCase):
         self.assertGreaterEqual(len(named), 8)
         for name in named:
             self.assertTrue((FONTS / name).exists(), f"Tokens names {name}")
-        for name in ("Cinzel-SemiBold.ttf", "CinzelTracked-Regular.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
+        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
             self.assertIn(name, named, f"{name} is registered in Tokens")
 
     def test_licence_covers_every_family(self):

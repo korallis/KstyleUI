@@ -81,6 +81,7 @@ local SIZES = {
 	body = 12,
 	title = 12,
 	caps = 10,
+	names = 10,
 	caption = 11,
 	number = 12,
 	world = 13,
@@ -146,7 +147,8 @@ local FONT_FACES = {
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
 }
 local ROLE_FACES = {
-	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.08, shadow = false },
+	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
+	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0.02 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -158,7 +160,8 @@ local FONT_ROLES = {
 	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
 	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
 	title = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
-	caps = { lumen = "CinzelTracked", flags = "", tracking = 0, upper = true },
+	caps = { lumen = "CinzelCaps", flags = "", tracking = 0, upper = true },
+	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
 	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
