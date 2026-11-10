@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens, Scale = K.Widgets, K.Tokens, K.Scale
 local Format, Windows = ns.Format, ns.Windows
-local max = math.max
+local max, min, floor = math.max, math.min, math.floor
 
 local Panel = {}
 ns.Panel = Panel
@@ -20,7 +20,7 @@ local EDIT_MODE_EXIT = "EditMode.Exit"
 local LAYOUT_CHANGED = "LayoutChanged"
 
 local TAB_TEXT_RISE = 14
-local TAB_ROW = 48
+local TAB_ROW = 34
 local LINE_INSET = 12.57
 local MESSAGE_FOOT = 42
 local BACKGROUND_RISE = 3
@@ -134,13 +134,27 @@ function Panel.Geometry(chat)
 		bottom = max(MESSAGE_FOOT, reach + Tokens.Size("gapTiny") - PanelBottom())
 	end
 	local inset = snap(LINE_INSET)
+	local top, foot = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2)), snap(bottom)
+	local _, size = chat:GetFont()
+	local gap = Number(type(chat.GetSpacing) == "function" and chat:GetSpacing(), 0)
+	local height = state.holder and state.holder:GetHeight()
+	if Number(size, 0) > 0 and Number(height, 0) > 0 then
+		local line = size * k
+		gap = gap * k
+		local pitch = line + gap
+		local room = height - top - foot
+		local lines = floor((room + gap) / pitch + 1e-6)
+		if lines >= 1 then
+			foot = snap(foot + room - min(room, lines * pitch - floor(gap / 2)))
+		end
+	end
 	return {
 		k = k,
 		left = inset,
-		top = snap(TAB_ROW),
+		top = top,
 		right = inset,
-		bottom = snap(bottom),
-		divider = snap(TAB_ROW),
+		bottom = foot,
+		divider = top,
 	}
 end
 
@@ -358,7 +372,7 @@ local function PlaceDivider(g)
 	divider:SetHeight(Widgets.Border(divider))
 	Widgets.Tint(divider, "text", DIVIDER_ALPHA)
 	divider:Hide()
-	local y = -(g.top - TAB_TEXT_RISE * g.k)
+	local y = -(g.divider - TAB_TEXT_RISE * g.k)
 	glass.plus:ClearAllPoints()
 	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
 	glass.copy:ClearAllPoints()
@@ -694,6 +708,7 @@ function Panel.Start(settings)
 		state.editMode = true
 	end
 	Panel.Place()
+	Schedule()
 	Mirror()
 end
 
@@ -703,7 +718,7 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "copyButton" or key == "editBox" then
+	if key == nil or key == "scale" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" then
 		Schedule()
 	end
 	if key == nil or key == "editBox" then

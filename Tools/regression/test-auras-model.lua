@@ -23,12 +23,13 @@ local debuffs = Model.Group(d, "debuffs")
 local timer = Model.Timer(d)
 local bw, bh = Model.Footprint(buffs, timer)
 local dw, dh = Model.Footprint(debuffs, timer)
--- The picture's tiles (the owner's ruling of 2026-11-09 over #209): 28-unit icons at a 31 pitch, ten in one row, so a
--- row is 307 wide; the 11-unit timer under each, 3 units down, takes 14 units of room, so a row is 42 tall.
-check(buffs.iconSize == 28 and buffs.spacing == 3 and buffs.columns == 10 and timer.size == 11, "28-unit icons, 3-unit gaps, ten per row, 11-unit timers")
+-- The picture's tiles (the owner's ruling of 2026-11-09 over #209): 27.5-unit icons (48 px) at a 31 pitch (54 px), ten in one row, so a
+-- row is 306.5 wide; the 11-unit timer under each, 3 units down, takes 14 units of room, so a row is 41.5 tall (LEE-69, LEE-70).
+check(buffs.iconSize == 27.5 and buffs.spacing == 3.5 and buffs.columns == 10 and timer.size == 11, "27.5-unit icons, 3.5-unit gaps, ten per row, 11-unit timers")
+check(buffs.iconSize % Model.LIMITS.iconSize.step == 0 and buffs.spacing % Model.LIMITS.spacing.step == 0, "the sliders step in halves, so the default icon size and gap can be picked again")
 check(Model.TIMER_GAP + timer.size == 14, "the timer's room under the icon is 14 units")
-check(bw == 307 and bh == 42, "the buff footprint at defaults is 307 x 42, got " .. bw .. " x " .. bh)
-check(dw == 307 and dh == 42, "the debuff footprint at defaults is 307 x 42, got " .. dw .. " x " .. dh)
+check(bw == 306.5 and bh == 41.5, "the buff footprint at defaults is 306.5 x 41.5, got " .. bw .. " x " .. bh)
+check(dw == 306.5 and dh == 41.5, "the debuff footprint at defaults is 306.5 x 41.5, got " .. dw .. " x " .. dh)
 check(buffs.rows == 1 and debuffs.rows == 1, "one row of buffs and one of debuffs by default")
 check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both groups list their first aura at the left")
 check(Model.Capacity(buffs, 0) == 10 and Model.Capacity(debuffs, 0) == 10, "ten icons show before the +N cell")

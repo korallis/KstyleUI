@@ -71,7 +71,7 @@ local function label(screen, uiScale, user)
 end
 
 local SIZE_NAMES = {
-	"radius", "radiusTile", "tick", "gem", "chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
+	"radius", "radiusTile", "tick", "chamferPanel", "chamferTile", "shadow", "actionButton", "actionGap", "cooldownEssential", "cooldownUtility",
 	"unitFrameWidth", "unitFrameHeight", "portrait", "buffBarWidth", "buffBarHeight", "pressOffset", "panelRise",
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow", "lootTile", "lootText",
 }

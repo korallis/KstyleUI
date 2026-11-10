@@ -7,6 +7,7 @@ local Tokens, Scale = ns.Tokens, ns.Scale
 local GEM_ALPHA = 1
 local RULE_ALPHA = 0.5
 local GEM_CENTRE = 7.4
+local GEM_SIZE = 8
 local TEXT_FROM_GEM = 11.1
 local GEM_GAP = 10
 local COUNT_GAP = 8.6
@@ -66,7 +67,7 @@ end
 function Cap:Restyle()
 	local opts = self.opts
 	Widgets.Size(self, opts.width or DEFAULT_WIDTH, Widgets.SECTION_CAP_HEIGHT)
-	local gem = Widgets.Snap(self, Tokens.Size("gem"))
+	local gem = Widgets.Snap(self, GEM_SIZE)
 	self.gem:SetSize(gem, gem)
 	self.gem:ClearAllPoints()
 	self.gem:SetPoint("CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
@@ -90,7 +91,7 @@ function Widgets.SectionCap(parent, opts)
 	cap.opts = opts
 	cap.counted = false
 	cap.gem = cap:CreateTexture(nil, "ARTWORK")
-	cap.gem:SetTexture((Tokens.Texture("gem")))
+	cap.gem:SetTexture((Tokens.Texture("diamond")))
 	cap.rule = cap:CreateTexture(nil, "ARTWORK")
 	cap.label = Widgets.Text(cap, "caps", "capsGold")
 	cap.count = Widgets.Text(cap, "number", "muted")

@@ -28,7 +28,7 @@ assert(type(Widgets.SectionCap) == "function", "Widgets.SectionCap exists")
 local cap = Widgets.SectionCap(root, { text = "Party", width = 278 })
 
 -- The diamond leads, the head follows it in the caps role, in the picture's gold.
-assert(file(cap.gem) == "LumenGem.png", "the diamond leads the cap")
+assert(file(cap.gem) == "Diamond.png", "the diamond leads the cap")
 assert(W.SameRGB(cap.gem, Tokens.Color("capsGold")), "the diamond is the caption's gold, not the lit gilt")
 assert(W.SameColor(cap.gem, select(1, Tokens.Color("capsGold")), select(2, Tokens.Color("capsGold")), select(3, Tokens.Color("capsGold")), 1), "and solid")
 local gemAt = point(cap.gem, "CENTER")
@@ -114,8 +114,8 @@ cap:Restyle()
 K.Theme.SetFontFace("SourceSans3Semibold")
 assert((cap.label:GetFont()):match("SourceSans3%-Semibold%.ttf$"), "a font change reaches the caption")
 
--- The mark is 8 root units from point to point, the same diamond the Skins caption bullet draws (14 px on the reference
--- panel). Its quad covers 16 units on whole pixels, and on each of the nine screens the diamond is within a pixel of 8.
+-- The mark is the Skins caption bullet's `diamond` texture at 8 root units from point to point (14 px on the reference
+-- panel), on whole pixels, and on each of the nine screens within a pixel of 8.
 do
 	local screens = { { 1280, 720 }, { 1366, 768 }, { 1600, 900 }, { 1920, 1080 }, { 2234, 1234 }, { 2560, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 3840, 2160 } }
 	for _, size in ipairs(screens) do
@@ -130,7 +130,7 @@ do
 		local quad = scap.gem:GetWidth() / pixel
 		local label = size[1] .. "x" .. size[2]
 		assert(W.Near(quad, math.floor(quad + 0.5)), "the diamond's quad is whole pixels on " .. label .. ", got " .. quad)
-		assert(math.abs(quad / 2 - 8 / pixel) <= 1, "the diamond is within a pixel of 8 root units on " .. label .. ", got " .. quad / 2 .. " pixels for " .. 8 / pixel)
+		assert(math.abs(quad - 8 / pixel) <= 1, "the diamond is within a pixel of 8 root units on " .. label .. ", got " .. quad .. " pixels for " .. 8 / pixel)
 	end
 end
 

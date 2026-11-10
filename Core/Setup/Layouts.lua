@@ -12,7 +12,7 @@ local L = ns.L
 local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
 local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
 local PLAYER_CAST_Y = 385.5
-local RAIL_BUTTON, RAIL_PITCH = 37, 4
+local RAIL_BUTTON, RAIL_PITCH = CENTRE_BUTTON, CENTRE_GAP
 local GRIDS = {
 	["actionbars.bar1"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
 	["actionbars.bar2"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
@@ -37,8 +37,9 @@ end
 local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
 
 local EDGE = ns.Tokens.Size("screenMargin")
+local RAIL_EDGE = EDGE + 1.4
 local MAP, MAP_CAPTION = 188, 36
-local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP = 28, 3, 10, 14, 8
+local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP, AURA_MAP_GAP = 27.5, 3.5, 10, 14, 8, 10.9
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
 local DAMAGE_W, DAMAGE_H = 269, 158
@@ -76,7 +77,7 @@ local ELEMENTS = {
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = AURA_W, height = AURA_H },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = AURA_W, height = AURA_H },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 393, height = 200 },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 393, height = 186 },
 	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = 8 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
@@ -121,7 +122,7 @@ local STACK = CLUSTER_TOP + SIGIL_CLEAR
 local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TEXT_TOP = CLUSTER_TOP + GAP + 180
-local BOSS_X = -(EDGE + MAP + NEAR + AURA_W + 2 * TIGHT)
+local BOSS_X = -(EDGE + MAP + AURA_MAP_GAP + AURA_W + 2 * TIGHT)
 local function ElementSize(key)
 	for _, element in ipairs(ELEMENTS) do
 		if element.key == key then
@@ -130,15 +131,15 @@ local function ElementSize(key)
 	end
 end
 local _, CHAT_H = ElementSize("chat.main")
-local AURAS_X = EDGE + MAP + NEAR
-local DEBUFFS_Y = EDGE + AURA_H + AURA_ROW_GAP
+local AURAS_X = EDGE + MAP + AURA_MAP_GAP
+local DEBUFFS_Y = RAIL_EDGE + AURA_H + AURA_ROW_GAP
 local STORY_TOP = math.max(EDGE + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP
 local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
 local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
 local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
 local _, RAIL_BARS_H = GridSize("actionbars.bar4")
 local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
-local SPARE_X = EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
+local SPARE_X = RAIL_EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
 local _, MICRO_H = ElementSize("databars.micro")
 local _, BAGS_H = ElementSize("databars.bags")
 local TIP_Y = RAIL_BARS_Y + MICRO_H + BAGS_H + GAP
@@ -149,7 +150,7 @@ local DPS = {
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
 	["minimap.main"] = { anchor = "TOPRIGHT", x = -EDGE, y = -EDGE },
-	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -EDGE },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -RAIL_EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 	["meters.threat"] = { anchor = "BOTTOM", x = SIDE + THREAT_W / 2, y = CLUSTER_TOP - 22 - TIGHT - THREAT_H },
@@ -180,9 +181,9 @@ local DPS = {
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
 	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
 	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
-	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
-	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + RAIL_COLUMN), y = RAIL_BARS_Y },
-	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + 2 * RAIL_COLUMN), y = RAIL_BARS_Y },
+	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -RAIL_EDGE, y = RAIL_BARS_Y },
+	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(RAIL_EDGE + RAIL_COLUMN), y = RAIL_BARS_Y },
+	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(RAIL_EDGE + 2 * RAIL_COLUMN), y = RAIL_BARS_Y },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = TIP_Y },
 }
 
@@ -211,7 +212,7 @@ local SIZES = {
 		["groupframes.raid"] = { RAIL, 487 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
 		["meters.threat"] = { THREAT_W, THREAT_H },
-		["chat.main"] = { RAIL, 200 },
+		["chat.main"] = { RAIL, 186 },
 	},
 }
 local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true, ["chat.main"] = true }

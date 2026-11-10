@@ -160,7 +160,7 @@ local function face(role)
 end
 for role, want in pairs({
 	display = "Cinzel-SemiBold.ttf", heading = "Cinzel-SemiBold.ttf", title = "Cinzel-SemiBold.ttf", caption = "AlegreyaSansTabular-Medium.ttf",
-	body = "AlegreyaSansTabular-Regular.ttf", prose = "AlegreyaSans-Regular.ttf", number = "AlegreyaSansTabular-Bold.ttf", world = "AlegreyaSansTabular-Medium.ttf",
+	body = "AlegreyaSansTabular-Regular.ttf", prose = "AlegreyaSans-Regular.ttf", number = "AlegreyaSansTabular-ExtraBold.ttf", world = "AlegreyaSansTabular-Medium.ttf",
 }) do
 	assert(face(role) == want, "the " .. role .. " role is " .. tostring(face(role)) .. ", want " .. want)
 end

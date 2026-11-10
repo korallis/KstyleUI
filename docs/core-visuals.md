@@ -80,7 +80,7 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 | `caps` | Cinzel Caps (Medium, spaced 0.065 em, word space +0.18 em) | 10 | `""` | 0 | yes |
 | `names` | Cinzel Names (Medium, no letter spacing, word space +0.16 em) | 10 | `""` | 0 | yes |
 | `unit` | Cinzel Unit (Medium, spaced -0.065 em, word space +0.25 em) | 18 | `""` | 0 | yes |
-| `number` | Alegreya Sans Tabular Bold | 12 | `""` | 0 | |
+| `number` | Alegreya Sans Tabular Extra Bold | 12 | `""` | 0 | |
 | `world` | Alegreya Sans Tabular Medium | 13 | `"OUTLINE"` | 0 | |
 
 The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: each role takes the face in the table. Any other choice (a key of `MediaList("font")`, such as Source Sans 3 Semibold, or a font file path such as a LibSharedMedia font) sets every role to that face, except `number`, which then uses Source Sans 3 Semibold for its tabular digits. The game applies no OpenType features, so Alegreya Sans's `tnum` and `lnum` cannot be turned on; the bundled Alegreya Sans Tabular files map the digits to the font's own tabular oldstyle figures instead (`Media/PROVENANCE.md`: the figures the owner's picture draws, on fixed widths), so numbers keep their width without a fixed-width reservation. `Tools/media/make_fonts.py --figures lining` rebuilds them with lining figures. The caption role is Cinzel, tracked, for rail section caps; a module that sets dense small text in `caption` reads it in Cinzel until it moves that text to `body` or `number`. Every role but `world` is multiplied by `Theme.FontScale()`, the Appearance page's text size; text over the 3D world keeps its size. UI text takes a soft shadow (`textShadow`, offset `textShadowOffset`) instead of an outline; text over the 3D world takes the thin outline.
@@ -107,7 +107,6 @@ Three roles carry the picture's letter-spaced Cinzel capitals, each from its own
 | `lumenOutline` | `LumenOutline.png`, 128x128 | 32 texels | An even outline at the 8-unit radius: highlight rings, the proc rim |
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
-| `gem` | `LumenGem.png` | | The card caption diamond: a solid flat square turned 45 degrees (LEE-70, the picture's 14-pixel diamond: 8 root units from point to point, the same numbers as the Skins caption bullet), white with its coverage in alpha, tinted `capsGold` |
 | `diamond` | `Diamond.png`, 64x64 | | The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. The story card's captions draw it in gilt, 8 units from point to point |
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |

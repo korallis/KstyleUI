@@ -81,7 +81,6 @@ local SIZES = {
 	shadow = 14,
 	shadowOffset = 3,
 	tick = 15,
-	gem = 16,
 	actionButton = 34,
 	actionGap = 3,
 	cooldownEssential = 40,
@@ -168,6 +167,7 @@ local ROLE_FACES = {
 	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.065, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "AlegreyaSansProse", path = FONTS_DIR .. "AlegreyaSans-Regular.ttf", tracking = 0 },
+	{ key = "AlegreyaSansExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -184,7 +184,7 @@ local FONT_ROLES = {
 	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
 	unit = { lumen = "CinzelUnit", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
-	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
+	number = { lumen = "AlegreyaSansExtraBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
 
@@ -212,7 +212,6 @@ local TEXTURES = {
 	lumenOutline = { file = "Textures\\LumenOutline.png", slice = 32, density = 4 },
 	chamferTile = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
 	lumenShadow = { file = "Textures\\LumenShadow.png", slice = 56, density = 2 },
-	gem = { file = "Textures\\LumenGem.png" },
 	diamond = { file = "Textures\\Diamond.png" },
 	pillCapLeft = { file = "Textures\\PillCapLeft.png" },
 	pillCapRight = { file = "Textures\\PillCapRight.png" },

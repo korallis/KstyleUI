@@ -59,16 +59,17 @@ local function rect(object)
 	return r
 end
 
--- The model: 28-unit icons, three apart, ten to one row of buffs and one of debuffs, the first aura at the left;
--- the timer in the body face under each icon, so an element is 28 by 42 and a row 307 by 42.
-check(buffs.iconSize == 28 and buffs.spacing == 3 and buffs.rowSpacing == 4 and buffs.columns == 10 and buffs.rows == 1, "the buff row defaults to one row of ten 28-unit icons, 3 apart")
-check(debuffs.iconSize == 28 and debuffs.columns == 10 and debuffs.rows == 1, "and the debuffs the same")
+-- The model: 27.5-unit icons (the picture's 48 px), 3.5 apart (its 54 px pitch), ten to one row of buffs and one of
+-- debuffs, the first aura at the left; the timer in the body face under each icon, so an element is 27.5 by 41.5 and a
+-- row 306.5 by 41.5.
+check(buffs.iconSize == 27.5 and buffs.spacing == 3.5 and buffs.rowSpacing == 4 and buffs.columns == 10 and buffs.rows == 1, "the buff row defaults to one row of ten 27.5-unit icons, 3.5 apart")
+check(debuffs.iconSize == 27.5 and debuffs.columns == 10 and debuffs.rows == 1, "and the debuffs the same")
 check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both rows list the first aura at the left")
 check(timer.font == (Tokens.Font("body")) and timer.size == 11 and timer.outline == "NONE", "the timer is the body face at 12 with a soft shadow")
 local w, h = Model.ElementSize(buffs, timer)
-check(w == 28 and h == 42, "an element is the icon plus the timer lane: 28 x 42, got " .. w .. " x " .. h)
+check(w == 27.5 and h == 41.5, "an element is the icon plus the timer lane: 27.5 x 41.5, got " .. w .. " x " .. h)
 local fw, fh = Model.Footprint(buffs, timer)
-check(fw == 307 and fh == 42, "the buff footprint is 307 x 42, got " .. fw .. " x " .. fh)
+check(fw == 306.5 and fh == 41.5, "the buff footprint is 306.5 x 41.5, got " .. fw .. " x " .. fh)
 check(Model.Card == nil and Model.MORE == nil and Model.Docked == nil and Model.CARD_PAD == nil, "the card, its full list and its dock are gone from the model")
 check(Model.defaults.card == nil and debuffs.dispelFirst == nil, "no card setting and no dispellable-first split: one group, one cap, one count")
 check(Model.Capacity(buffs, 0) == 10, "one row of ten holds ten buffs")
@@ -76,7 +77,7 @@ check(buffs.tracked == "cdm", "buffs the Cooldown Manager tracks show there only
 
 -- Two bare elements: no card parts on either host, the debuff row its own live element, both at the footprint.
 check(desc and desc.card == nil and desc.dock == nil and ddesc.dock == nil and ddesc.docked == nil, "no card, no dock")
-for _, name in ipairs({ "cardShape", "ringLine6", "lumenShadow", "gem" }) do
+for _, name in ipairs({ "cardShape", "ringLine6", "lumenShadow", "diamond" }) do
 	check(#textures(desc.host, (Tokens.Texture(name))) == 0, "the buff host draws no " .. name .. ": no card fill, no ring, no gilt, no gem")
 end
 local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
@@ -84,17 +85,18 @@ check(b and d, "both elements register with Layout")
 check(env._live["auras.debuffs"] ~= false, "the debuff row is live in Layout Mode: its own mover plate")
 check(Layouts.Dock("auras.debuffs") == nil, "the layouts dock nothing into the buffs")
 local bw, bh = b.frame:GetSize()
-check(near(bw, 307) and near(bh, 42), "the buff element is its row: 307 x 42, got " .. tostring(bw) .. " x " .. tostring(bh))
+local sw, sh = Model.Footprint(buffs, timer, K.Scale.Snap)
+check(near(bw, sw) and near(bh, sh), "the buff element is its row: 306.5 x 41.5 in units, whole pixels at this size, got " .. tostring(bw) .. " x " .. tostring(bh))
 local dw, dh = d.frame:GetSize()
-check(near(dw, 307) and near(dh, 42), "the debuff element is its row: 307 x 42, got " .. tostring(dw) .. " x " .. tostring(dh))
+check(near(dw, sw) and near(dh, sh), "the debuff element is its row: 306.5 x 41.5 in units, whole pixels at this size, got " .. tostring(dw) .. " x " .. tostring(dh))
 local element = Layouts.Element("auras.buffs")
-check(element.width == 307 and element.height == 42 and element.reserve == nil and Layouts.Element("auras.debuffs").reserve == nil, "the layouts plan the rows at their footprint, no reserve")
+check(element.width == 306.5 and element.height == 41.5 and element.reserve == nil and Layouts.Element("auras.debuffs").reserve == nil, "the layouts plan the rows at their footprint, no reserve")
 check(element.short == K.L["Auras"], "the setup preview names the block Auras (short in every language), not Blessings")
--- Beside the minimap's left edge, as the picture draws it: top-aligned with the map, 12 left of it; the debuffs 8
--- under the buffs, their right ends at the same x.
+-- Beside the minimap's left edge, as the picture draws it: 10.9 left of it (its 20 px) and 1.4 under the screen margin
+-- (its 32 px from the top); the debuffs 8 under the buffs, their right ends at the same x.
 local map, margin = Layouts.Element("minimap.main"), Tokens.Size("screenMargin")
-check(b.position.anchor == "TOPRIGHT" and b.position.x == -(margin + map.width + 12) and b.position.y == -margin, "the buffs stand 12 left of the minimap, top-aligned with it, got " .. tostring(b.position.x) .. ", " .. tostring(b.position.y))
-check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and d.position.y == -(margin + 42 + 8), "the debuffs hang 8 under the buffs, got " .. tostring(d.position.y))
+check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + map.width + 10.9)) and near(b.position.y, -(margin + 1.4)), "the buffs stand 10.9 left of the minimap and 1.4 under the screen margin, got " .. tostring(b.position.x) .. ", " .. tostring(b.position.y))
+check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and near(d.position.y, -(margin + 1.4 + 41.5 + 8)), "the debuffs hang 8 under the buffs, got " .. tostring(d.position.y))
 for _, name in ipairs(Layouts.Names()) do
 	for _, entry in ipairs(Layouts.Settings(name)) do
 		check(entry.module ~= "Auras", name .. " writes no Auras setting: the rows are the same in every layout")
@@ -105,7 +107,7 @@ end
 local point, rel, relPoint = helpful:GetPoint(1)
 check(point == "TOPRIGHT" and rel == desc.host and relPoint == "TOPRIGHT", "the buff container hangs from the host's top right corner, got " .. tostring(point) .. " on " .. tostring(rel == desc.host))
 check(helpful._flow.anchor == "TOPLEFT" and helpful._flow.horizontal == 1 and helpful._flow.vertical == -1, "the flow lists left to right, then down")
-check(bg.layout.elementWidth == 28 and bg.layout.elementHeight == 42 and bg.layout.elementSpacing == 3 and bg.layout.lineSpacing == 4, "the engine lays 28 x 42 elements 3 apart in rows 4 apart")
+check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14 and bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "the engine lays 27.5 x 41.5 elements on one 31-unit pitch of whole pixels (so the row never outgrows the layout's reserve), in rows 4 apart")
 check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "ten buffs and ten debuffs at most")
 check(#harmful._order == 1 and harmful._groups.debuffs and harmful._groups.debuffs.candidateFilters == nil, "the debuff container runs one group with no dispel split")
 
@@ -162,7 +164,7 @@ check(chip.pairs[1].a._groups.count.maxFrameCount > 10, "and can count past the 
 check(ddesc.chip and #ddesc.chip.pairs == 1 and ddesc.chip.pairs[1].a._groups.count.filter == "HARMFUL", "the debuff row counts its own")
 local host = rect(desc.host)
 local window = rect(chip.window)
-check(near(window.right, host.right) and near(window.bottom, host.bottom) and near(window.right - window.left, 28) and near(window.top - window.bottom, 42), "the count window is the last cell: 28 wide, 42 tall, at the host's bottom right corner")
+check(near(window.right, host.right) and near(window.bottom, host.bottom) and near(window.right - window.left, K.Scale.Snap(27.5)) and near(window.top - window.bottom, K.Scale.Snap(27.5) + 14), "the count window is the last cell: 27.5 wide, 41.5 tall (whole pixels at this size), at the host's bottom right corner")
 for _, object in ipairs(A.Descendants(desc.host)) do
 	if object.GetObjectType and object:GetObjectType() == "FontString" and object:IsShown() then
 		check(object:GetText() ~= "+00", "no shown text reads +00")

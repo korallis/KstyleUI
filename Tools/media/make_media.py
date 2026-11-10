@@ -47,9 +47,6 @@ RIM_TEXELS = 3
 # draws its corner piece N border lines square and the arc lands on the same whole pixels as the straight runs.
 RING_LINES = (2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32)
 RING_TEXELS = 128
-# The gem: a solid square turned 45 degrees, one flat level, the picture's caption diamond, 8 root units from point to point
-# (14 px on the reference panel), the same mark the Skins caption bullet draws.
-GEM_UNITS, GEM_SIZE, GEM_ACROSS = 16, 64, 8
 # The icon in a socket: the picture's icon is rounded to meet its socket's two-line inner corner, 3 units on a
 # 44-unit icon, as a share of the side (masks stretch).
 ICON_RADIUS_SHARE = 3 / 44
@@ -415,17 +412,6 @@ def draw_ring_line(size, lines):
     return white(sample_spans(size, size, ring_spans(outer, inner)))
 
 
-def draw_gem(size):
-    """A solid square turned 45 degrees, the picture's flat caption diamond."""
-    c = size / 2
-    reach = GEM_ACROSS * size / GEM_UNITS / 2
-
-    def alpha(x, y):
-        return 1.0 if abs(x - c) + abs(y - c) <= reach else 0.0
-
-    return shaded(sample(size, size, lambda x, y: 1.0), sample(size, size, alpha))
-
-
 def draw_diamond(size):
     """A flat square turned 45 degrees whose four points touch the middle of the texture's edges."""
     c = size / 2
@@ -731,7 +717,7 @@ def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
 
 
 LUMEN_ASSETS = {
-    "LumenShape", "LumenOutline", "LumenGem", "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "RuleFade",
+    "LumenShape", "LumenOutline", "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "RuleFade",
     "LumenShadow", "PortraitMask", "MinimapMask",
 }
 PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
@@ -750,9 +736,6 @@ ASSETS = [
     *(_texture(f"RingLine{n}", RING_TEXELS, RING_TEXELS, lambda n=n: draw_ring_line(RING_TEXELS, n),
                f"A quarter ring in each corner piece, one line thick on the outside of a corner {n} lines round: a card's dark edge (6), its rim and the arcs of its gilt L-ticks (5), a socket's dark edge (3) and its rim (2); the other counts serve short frames and pinned corners such as discs, so the kit draws the ring nearest the corner's line count. The kit draws each corner piece {n} border lines square, so the arc is one border line thick and meets the straight runs on whole pixels. Nine-slice; the runs are solid lines.")
       for n in RING_LINES),
-    _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
-             "The card caption diamond: a solid flat diamond, 8 units from point to point (the picture's 14 px on its 2234 px screen, and the Skins caption bullet's size), one flat level, no halo. Covers 16 units, so the quad can keep its size. LEE-70 (the picture wins): it was a faceted gem in a 6-unit halo.",
-             "4x4 supersampled, shading in the colour channels"),
     _texture("Diamond", 64, 64, lambda: draw_diamond(64),
              "The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. Tinted gilt at 8 units point to point (14 pixels on the owner's screen)."),
     _texture("PillCapLeft", 32, 32, lambda: draw_cap_mask(32, "left"),

@@ -5,8 +5,8 @@ Usage (fontTools is needed, so run it from a throwaway virtual environment, neve
     /tmp/fonts-venv/bin/python Tools/media/make_fonts.py --src DIR [--out Media/Fonts]
 
 DIR holds the files from google/fonts at the commit Media/PROVENANCE.md names:
-    Cinzel[wght].ttf (ofl/cinzel), AlegreyaSans-Regular.ttf, AlegreyaSans-Medium.ttf, AlegreyaSans-Bold.ttf
-    (ofl/alegreyasans).
+    Cinzel[wght].ttf (ofl/cinzel), AlegreyaSans-Regular.ttf, AlegreyaSans-Medium.ttf, AlegreyaSans-Bold.ttf,
+    AlegreyaSans-ExtraBold.ttf (ofl/alegreyasans).
 
 Cinzel ships only as a variable font, and the game loads static TrueType files, so this pins the weight axis
 at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
@@ -51,7 +51,7 @@ CINZEL_WEIGHT = 600
 DIGITS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
 FIGURES = "oldstyle"
 TABULAR_SUFFIX = {"oldstyle": ".tosf", "lining": ".tf"}
-ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
+ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700), ("ExtraBold", 800))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_MEDIUM_WEIGHT = 500
 TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065, 0.18), ("CinzelNames-Medium", "Cinzel Names", 0.0, 0.16), ("CinzelUnit-Medium", "Cinzel Unit", -0.065, 0.25))

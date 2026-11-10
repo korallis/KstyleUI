@@ -190,7 +190,7 @@ for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, cap
 	assert(type(flags) == "string", "Tokens.Font(" .. role .. ") flags are a string")
 end
 assert(Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "the default body face is Alegreya Sans Tabular")
-assert(Tokens.Font("number"):match("AlegreyaSansTabular%-Bold%.ttf$"), "numbers use its bold, whose digits are tabular")
+assert(Tokens.Font("number"):match("AlegreyaSansTabular%-ExtraBold%.ttf$"), "numbers use its extra bold, whose digits are tabular")
 assert(select(3, Tokens.Font("world")) == "OUTLINE", "text over the 3D world gets a thin outline")
 assert(select(3, Tokens.Font("body")) == "", "UI text uses a shadow, not an outline")
 assert(not pcall(Tokens.Font, "nope"), "an unknown font role is an error")
@@ -216,7 +216,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 
 -- Textures: each names a file on disk, and sliced ones say how big a corner piece draws.
 for _, name in ipairs({
-	"lumenShape", "cardShape", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenOutline", "chamferTile", "gem", "diamond", "pillCapLeft",
+	"lumenShape", "cardShape", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenOutline", "chamferTile", "diamond", "pillCapLeft",
 	"pillCapRight", "barSheen", "lensMask", "ruleFade", "iconMask", "portraitMask", "shadow", "glow", "divider", "noise", "ring", "ringBevel",
 	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
