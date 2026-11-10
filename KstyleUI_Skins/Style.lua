@@ -121,18 +121,18 @@ function Style.Font(role)
 	return path, size * Style.Setting("text", "size"), OUTLINES[Style.Setting("text", "outline")]
 end
 
-local function SetFace(object, path, role, size, flags)
-	if Widgets.ApplyFont(object, path, size, flags, true) then
+local function SetFace(object, path, role, size, flags, plain)
+	if Widgets.ApplyFont(object, path, size, flags, plain) then
 		return true
 	end
 	local kitPath = Tokens.Font(role)
-	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags, true) then
+	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags, plain) then
 		LogFont(path, "skinned text uses the KstyleUI face")
 		return true
 	end
 	local fallback = _G[FALLBACK_FONT]
 	local face = type(fallback) == "table" and type(fallback.GetFont) == "function" and fallback:GetFont()
-	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags, true) then
+	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags, plain) then
 		LogFont(path, "skinned text uses the face of " .. FALLBACK_FONT)
 		return true
 	end
@@ -140,9 +140,9 @@ local function SetFace(object, path, role, size, flags)
 	return false
 end
 
-function Style.ApplyFont(object, role, size)
+function Style.ApplyFont(object, role, size, plain)
 	local path, roleSize, flags = Style.Font(role)
-	return SetFace(object, path, role, size or roleSize, flags)
+	return SetFace(object, path, role, size or roleSize, flags, plain)
 end
 
 function Style.Text(text, role, colorName, size)
@@ -155,7 +155,7 @@ function Style.Text(text, role, colorName, size)
 	if type(wanted) == "function" then
 		wanted = wanted()
 	end
-	if not Style.ApplyFont(text, role, wanted) then
+	if not Style.ApplyFont(text, role, wanted, true) then
 		text:SetFontObject(FALLBACK_FONT)
 	end
 	if colorName then
@@ -169,8 +169,7 @@ function Style.Title(text, colorName, role)
 		Style.Text(text, role, colorName or "textEmphasis")
 	else
 		Style.Text(text, "caps", colorName or "capsGold", function()
-			local _, size = Style.Font("caps")
-			return size * Widgets.CAPS_SIZE / Tokens.Size("caps")
+			return math.max(Tokens.Size("caps"), Widgets.CAPS_SIZE * K.Theme.FontScale()) * Style.Setting("text", "size")
 		end)
 	end
 	if type(text.SetWordWrap) == "function" then

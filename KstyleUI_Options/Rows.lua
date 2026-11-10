@@ -406,14 +406,16 @@ local function PlaceText(row, item, control, width)
 	return height
 end
 
-local function ShowHeader(row, item)
+local function ShowHeader(row, item, width)
 	local gap = Gap(row)
 	if (item.level or 1) == 1 then
 		row.caption:ClearAllPoints()
 		row.caption:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
 		row.caption:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -gap, gap)
 		row.caption:SetText(item.label)
+		local height = row.caption:SetWrapWidth(width - 2 * gap)
 		row.caption:Show()
+		return Snap(row, max(Rows.HEIGHT, height + 2 * gap))
 	else
 		row.mark:ClearAllPoints()
 		row.mark:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
@@ -426,6 +428,7 @@ local function ShowHeader(row, item)
 		Widgets.TextColor(row.label, "textEmphasis")
 		row.label:Show()
 	end
+	return Rows.HEIGHT
 end
 
 local function ShowNote(row, item, width)
@@ -455,8 +458,7 @@ local function Layout(row, item, width)
 		region:Hide()
 	end
 	if kind == "header" then
-		ShowHeader(row, item)
-		return Rows.HEIGHT, nil
+		return ShowHeader(row, item, width), nil
 	elseif kind == "note" then
 		return ShowNote(row, item, width), nil
 	end

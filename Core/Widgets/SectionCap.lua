@@ -40,6 +40,23 @@ end
 
 function Cap:SetText(text)
 	Widgets.SetText(self.label, text)
+	if self.wrapWidth then
+		self:SetWrapWidth(self.wrapWidth)
+	end
+end
+
+function Cap:SetWrapWidth(width)
+	self.wrapWidth = width
+	local available = math.max(1, width - Widgets.Snap(self, GEM_CENTRE) - Widgets.Snap(self, TEXT_FROM_GEM))
+	local wrap = Widgets.TextWidth(self.label, 0) > available
+	self.label:SetWordWrap(wrap)
+	self.label:SetWidth(wrap and available or 0)
+	local height = wrap and Widgets.WrappedHeight(self.label, available) or Widgets.SECTION_CAP_HEIGHT
+	self.label:SetHeight(wrap and height or 0)
+	height = math.max(Widgets.SECTION_CAP_HEIGHT, height)
+	self:SetHeight(Widgets.Snap(self, height))
+	self.rule:SetShown(not wrap)
+	return height
 end
 
 function Cap:SetCount(value)
@@ -86,6 +103,9 @@ function Cap:Restyle()
 	self.count:ClearAllPoints()
 	self.count:SetPoint("RIGHT", self, "RIGHT")
 	Placed(self)
+	if self.wrapWidth then
+		self:SetWrapWidth(self.wrapWidth)
+	end
 	self:Paint()
 end
 
