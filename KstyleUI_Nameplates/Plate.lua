@@ -34,6 +34,7 @@ end
 
 Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 154, 12
 Plate.NAME_OVERHANG = 20
+Plate.FRAME_GAP = 1.15
 
 local GAP = Tokens.Size("gapTiny")
 local BADGE_GAP = Tokens.Size("gapSmall")
@@ -92,6 +93,25 @@ function ns.FlatBar(parent, opts)
 	local bar = Widgets.StatusBar(parent, opts)
 	local restyle = bar.Restyle
 	bar.rim = { Tokens.Color("black") }
+	bar.rimGapFill = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, -1))
+	bar.rimGap = 0
+	function bar:SetRimGap(gap)
+		gap = Widgets.Snap(self, gap)
+		local px = gap > 0 and gap or opts.rimWidth and Widgets.Snap(self, opts.rimWidth)
+			or Scale.Pixel(1) / Widgets.ScaleFactor(self)
+		if self.rimGap == gap and self.rimPixel == px then
+			return
+		end
+		self.rimGap, self.rimPixel, self.rimOutset = gap, px, gap + px
+		self.rimGapFill:SetShown(gap > 0)
+		self.rimGapFill:SetColorTexture(Widgets.MixTokens("black", 1, "gilt", 1, 0.1))
+		self.rimGapFill:ClearAllPoints()
+		self.rimGapFill:SetPoint("TOPLEFT", self, "TOPLEFT", -gap, gap)
+		self.rimGapFill:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", gap, -gap)
+		self.keyline:ClearAllPoints()
+		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -gap - px, gap + px)
+		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", gap + px, -gap - px)
+	end
 	function bar:SetRimColor(r, g, b, a)
 		local c = self.rim
 		c[1], c[2], c[3], c[4] = r, g, b, a or 1
@@ -101,10 +121,8 @@ function ns.FlatBar(parent, opts)
 		restyle(self)
 		self.lit:Hide()
 		self.shade:Hide()
-		local px = Scale.Pixel(1) / Widgets.ScaleFactor(self)
-		self.keyline:ClearAllPoints()
-		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -px, px)
-		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", px, -px)
+		self.rimPixel = nil
+		self:SetRimGap(self.rimGap)
 		self:SetRimColor(unpack(self.rim))
 	end
 	bar:Restyle()
@@ -124,6 +142,13 @@ end
 
 local function Rgb(color)
 	return color.r, color.g, color.b
+end
+
+local function TargetColor()
+	if Settings.Get("target.colorSource") == "custom" then
+		return Rgb(Settings.Get("target.color"))
+	end
+	return Theme.Accent()
 end
 
 local scaleCurve
@@ -515,6 +540,27 @@ function Plate:UpdateName()
 	else
 		name:SetText("")
 	end
+	self:UpdateNameColor(nil, true)
+end
+
+function Plate:UpdateNameColor(isTarget, force)
+	if isTarget == nil then
+		if self.sample then
+			isTarget = self.sample.target
+		else
+			isTarget = ns.Plates.IsUnit(self, "target")
+		end
+	end
+	isTarget = isTarget and Settings.Get("target.highlight") or false
+	if not force and self.nameTarget == isTarget then
+		return
+	end
+	self.nameTarget = isTarget
+	local name = self.name
+	if isTarget then
+		name:SetTextColor(TargetColor())
+		return
+	end
 	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
 	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
 	if isPlayer and Settings.Get("name.classColor") and not barHasClass then
@@ -594,13 +640,6 @@ function Plate:UpdateThreat()
 	end
 end
 
-local function TargetColor()
-	if Settings.Get("target.colorSource") == "custom" then
-		return Rgb(Settings.Get("target.color"))
-	end
-	return Theme.Accent()
-end
-
 function Plate:UpdateHighlight()
 	local state = ns.state
 	local isTarget, isFocus
@@ -613,7 +652,13 @@ function Plate:UpdateHighlight()
 	ns.Cast.Gate(self, isTarget)
 	local bar = not self.nameOnly
 	local health = self.health
-	if isTarget and Settings.Get("target.highlight") and bar then
+	local framed = isTarget and Settings.Get("target.highlight") and bar or false
+	if self.targetFramed ~= framed then
+		self.targetFramed = framed
+		health:SetRimGap(framed and Plate.FRAME_GAP or 0)
+		ns.Cast.Place(self)
+	end
+	if framed then
 		local r, g, b = TargetColor()
 		health:SetRimColor(r, g, b, 1)
 	else
@@ -624,6 +669,7 @@ function Plate:UpdateHighlight()
 			health:SetRimColor(Tokens.Color("black"))
 		end
 	end
+	self:UpdateNameColor(isTarget)
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget then
 		alpha = Settings.Get("target.dimOthers")

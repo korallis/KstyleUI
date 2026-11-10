@@ -1671,7 +1671,7 @@
 	"The font for the game's own damage numbers; it changes at your next login.",
 	"The font of charge and stack counts.",
 	"The font of chat messages and the edit box. Tabs use the caps face.",
-	"The font of every text on the plates.",
+	"The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading.",
 	"The font of skinned window titles, headers and lists.",
 	"The font of stack counts and item levels.",
 	"The font of the bar's text.",

@@ -11,6 +11,7 @@ local Cast = {}
 ns.Cast = Cast
 
 local GAP = Tokens.Size("gapTiny")
+local FRAME_GAP = 1.15
 local TEXT_INSET = Tokens.Size("gapSmall")
 local TIME_STEP = 0.1
 local INTERRUPT_FADE = 0.8
@@ -349,7 +350,7 @@ function Component.Build(plate)
 	local cast = CreateFrame("Frame", nil, gate)
 	cast:Hide()
 	plate.cast = cast
-	plate.castBarOpts = { width = 100, height = 6 }
+	plate.castBarOpts = { width = 100, height = 6, rimWidth = FRAME_GAP }
 	local bar = ns.FlatBar(cast, plate.castBarOpts)
 	bar.plate = plate
 	plate.castBar = bar
@@ -380,7 +381,16 @@ function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	return Settings.Get("cast.height") + GAP
+	local px = Widgets.Snap(plate, FRAME_GAP)
+	return Settings.Get("cast.height") + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Snap(plate, FRAME_GAP) + px * 3
+end
+
+function Cast.Place(plate)
+	local cast, health = plate.cast, plate.health
+	local px = plate.castBar.rimPixel
+	local gap = health.rimOutset + Widgets.Snap(plate, FRAME_GAP) + px
+	cast:ClearAllPoints()
+	cast:SetPoint("TOPLEFT", health, "BOTTOMLEFT", 0, -gap)
 end
 
 function Component.Restyle(plate)
@@ -390,8 +400,7 @@ function Component.Restyle(plate)
 	local iconRoom = showIcon and h + GAP or 0
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
 	Widgets.Size(cast, state.width, h)
-	cast:ClearAllPoints()
-	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, GAP))
+	Cast.Place(plate)
 	Widgets.Size(icon, h, h)
 	icon:ClearAllPoints()
 	icon:SetPoint("LEFT", cast, "LEFT")

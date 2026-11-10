@@ -1671,7 +1671,7 @@
 	"The font for the game's own damage numbers; it changes at your next login.": "La police des chiffres de dégâts du jeu ; elle change à votre prochaine connexion.",
 	"The font of charge and stack counts.": "La police des charges et des cumuls.",
 	"The font of chat messages and the edit box. Tabs use the caps face.": "The font of chat messages and the edit box. Tabs use the caps face.",
-	"The font of every text on the plates.": "La police de tous les textes des barres d'info.",
+	"The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading.": "La police des valeurs des plaques, des durées des affaiblissements et du texte d'incantation facultatif. Les noms utilisent le titre Cinzel du kit.",
 	"The font of skinned window titles, headers and lists.": "La police des titres, en-têtes et listes des fenêtres habillées.",
 	"The font of stack counts and item levels.": "La police des cumuls et des niveaux d'objet.",
 	"The font of the bar's text.": "La police du texte de la barre.",
