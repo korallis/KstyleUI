@@ -66,6 +66,7 @@ K.Options.Write("UnitFrames", "player.style", "plate")
 settle()
 local cast = ns.CastBars.Get("player")[1]
 assert(cast.bar.keyline:IsShown() and cast.bar.spark:IsShown(), "a legacy cast restores its keyline and spark")
+assert(not cast.bar.fillCursor or not cast.bar.fillCursor:IsShown(), "Classic draws no caption cursor")
 local coords = W.LastCall(player.ring, "SetTexCoord")
 assert(coords and coords[1] == 0 and coords[2] == 1, "legacy portrait texture coordinates are restored")
 K.Options.Write("UnitFrames", "player.power", true)
@@ -88,6 +89,17 @@ for _, screen in ipairs(screens) do
 		snapped(cb.bar, x)
 		snapped(cb.bar, y)
 		assert(not cb.bar.keyline:IsShown() and not cb.bar.spark:IsShown(), "no paint escapes the snapped caption track")
+		local cursor = cb.bar.fillCursor
+		local edge = cb.bar:EdgeThickness()
+		local wanted = cb.kind == "player" and edge > 0
+		local shown = cursor and cursor:IsShown() or false
+		assert(shown == wanted, "only the player's caption cast draws a cursor, and only while the edge step has a pixel")
+		if wanted then
+			local px = SK.Widgets.Snap(cb.bar, SK.Scale.Pixel(edge) / SK.Widgets.ScaleFactor(cb.bar))
+			snapped(cb.bar, cursor:GetWidth())
+			snapped(cb.bar, cursor:GetHeight())
+			assert(math.abs(cursor:GetWidth() - px) < 0.0001, "the cursor width follows the bar edge at " .. screen[1])
+		end
 	end
 	for _, kind in ipairs({ "player", "target" }) do
 		local view = sns.Frames.Get(kind).views[1]
