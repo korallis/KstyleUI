@@ -90,15 +90,15 @@ env.RunTimers()
 assert(ns.Get("damage.session") == "Previous", "a click on the switch still steps the fight setting")
 M.Write(env, K, "damage.session", "Current")
 
--- The rows: bars 18 units tall, 21 apart, 15 in from the card's edge, the first 35 under its top.
+-- The rows: bars 18 units tall, 21 apart, 16 in from the card's edge, the first 35.5 under its top (LEE-70 remeasured the picture's first fill at 2986, 1991).
 for i, spell in ipairs(SPELLS) do
 	local row = list.rows[i]
 	local at = { row.frame:GetPoint(1) }
 	assert(W.Near(row.frame:GetHeight(), 18), i .. ": the row is 18 units tall, got " .. tostring(row.frame:GetHeight()))
 	assert(W.Near(row.bar:GetHeight(), 18), i .. ": the bar is as tall as the row")
-	assert(at[1] == "TOPLEFT" and W.Near(at[4], 15), i .. ": the row is 15 units in from the left")
-	assert(W.Near(-at[5], 35 + (i - 1) * 21), i .. ": the row is " .. (35 + (i - 1) * 21) .. " units under the card's top, got " .. tostring(-at[5]))
-	assert(W.Near(row.frame:GetWidth(), 239), i .. ": the row ends 15 units from the right edge")
+	assert(at[1] == "TOPLEFT" and W.Near(at[4], 16), i .. ": the row is 16 units in from the left")
+	assert(W.Near(-at[5], 35.5 + (i - 1) * 21, 0.51), i .. ": the row is " .. (35.5 + (i - 1) * 21) .. " units under the card's top, got " .. tostring(-at[5]))
+	assert(W.Near(row.frame:GetWidth(), 237), i .. ": the row ends 16 units from the right edge")
 	assert(not row.icon:IsShown(), i .. ": no icon")
 	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
 	assert(Text(row.value) == "~" .. spell[3], i .. ": the amount: " .. tostring(Text(row.value)))
