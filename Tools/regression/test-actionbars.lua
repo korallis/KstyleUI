@@ -71,7 +71,7 @@ do
 		local bar = ns.bars[key]
 		assert(ns.defaults[key].enabled == true and ns.defaults[key].showEmpty == true, key .. " is on with every slot drawn, as the picture shows")
 		assert(near(ns.defaults[key].size, 36.7) and near(ns.defaults[key].spacing, 4.6), key .. " has the centre bars' 36.7-unit slots 4.6 apart, 72 px at the picture's scale")
-		assert(near(bar.holder:GetWidth(), K.Widgets.Snap(bar.header, 36.7)) and near(bar.holder:GetHeight(), 12 * K.Widgets.Snap(bar.header, 36.7) + 11 * K.Widgets.Snap(bar.header, 4.6)), key .. " is a column of twelve 36.7-unit slots 4.6 apart, each snapped to whole pixels (72 px a step on the picture's screen)")
+		assert(near(bar.holder:GetWidth(), K.Widgets.Snap(bar.header, 36.7)) and near(bar.holder:GetHeight(), K.Widgets.Snap(bar.header, 11 * 41.3) + K.Widgets.Snap(bar.header, 36.7)), key .. " is a column of twelve 36.7-unit slots on one cumulative 41.3-unit pitch, as bars 1 and 2 stand (72 px a step on the picture's screen)")
 	end
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
