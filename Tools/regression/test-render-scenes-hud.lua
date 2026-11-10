@@ -60,7 +60,7 @@ for _, item in ipairs(hud.items) do
 		hudPlus = hudPlus + 1
 	end
 end
-assert(hudPlus == 1, "the HUD's chat draws the plus glyph once, got " .. hudPlus)
+assert(hudPlus == 0, "the plus glyph waits at rest, as the picture draws no buttons, got " .. hudPlus)
 
 -- The minimap's terrain stand-in draws through the chamfered square mask the module set on the Minimap frame
 -- (Minimap:SetMaskTexture), as the game clips the frame.

@@ -45,7 +45,8 @@ do
 	local settings = K.Layout.Get("chat.main")
 	local default = K.Setup.Layouts.Default("chat.main")
 	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the DPS layout's position")
-	assert(near(settings.width, 372) and near(settings.height, 260), "the Lumen chat card's 372 by 260 footprint, at the left rail's foot")
+	assert(near(settings.width, 393) and near(settings.height, 200), "the picture's 393 by 200 card, at the left rail's foot")
+	assert(near(settings.x, K.Tokens.Size("screenMargin")) and near(settings.y, K.Tokens.Size("screenMargin")), "anchored to the screenMargin token, not a literal")
 	-- Owner pass 1: "the chat box is too thin". Blizzard's 430-unit window holds 24 em of its 18-unit text; the card's
 	-- message column, between its glass inset and the dock's button column, holds at least 21 em of the 14-unit default.
 	local g = ns.Panel.Geometry(env.ChatFrame1)
@@ -90,21 +91,18 @@ do
 	assert(select(2, env.ChatFrame1:GetPoint(1)) == holder, "back in the panel when Edit Mode closes")
 end
 
--- A player who applied Healer before the wider card keeps Healer's 318: the panel takes the remembered layout's
--- footprint, so a chat with no saved width never grows into the tracked buff icons Healer stands beside it.
+-- The picture's card is the same in every preset, Healer included (LEE-20: the picture wins over #210's 372 and Healer's 318).
 do
 	local env, K = C.New()
 	K.Options.Write("Layout", "preset", "Healer")
 	C.Enable(env, K)
 	local settings = K.Layout.Get("chat.main")
-	assert(near(settings.width, 318) and near(settings.height, 260), "Healer's chat is 318 by 260, got " .. tostring(settings.width))
+	assert(near(settings.width, 318) and near(settings.height, 200), "Healer keeps the 318 rail so six tracked bars fit, at the picture's 200 height, got " .. tostring(settings.width) .. " by " .. tostring(settings.height))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Blizzard's chat font lives in UIParent's units and never shrinks with KstyleUI's size setting, so at M3's default
--- size (16 / 19, #208) the card would show two lines fewer and narrower lines. The windows' text, tab names and line
--- spacing follow the size, as every KstyleUI text does: on the owner's 2383 x 1540 screen at UI scale 768 / 1080 the
--- card holds 11 whole lines of about 21 em at either size.
+-- Blizzard's chat font lives in UIParent's units. The windows' text, tab names and line spacing follow the size, as
+-- every KstyleUI text does. The picture's 200-unit card holds six lines at the 14 + 4 pitch, at either size.
 do
 	for _, size in ipairs({ 1, 16 / 19 }) do
 		local env, K, ns = C.New({ width = 2383, height = 1540, uiScale = 768 / 1080 })
@@ -120,7 +118,7 @@ do
 		local el = K.Layout.Get("chat.main")
 		local lines = (el.height - g.top - g.bottom) / g.k / (font + spacing)
 		local em = (el.width - g.left - g.right) / g.k / font
-		assert(math.floor(lines) >= 11, "11 whole lines at size " .. size .. ", got " .. lines)
+		assert(math.floor(lines + 1e-6) == 6, "six lines at size " .. size .. ", got " .. lines)
 		assert(em >= 21, "21 em per line at size " .. size .. ", got " .. em)
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
@@ -139,39 +137,76 @@ do
 	assert(near(left, g.left), "the inset in root units matches the geometry")
 end
 
--- The geometry follows the owner's mockup: a 32-unit tab strip, 16 units of glass left of and below the messages,
--- and no room kept for the edit box unless the player wants it always shown.
+-- The geometry follows the picture: a 48-unit tab row, the first line just under the tabs, and a 42-unit foot so
+-- six lines at the 14 + 4 pitch fill the 200-unit card with no empty glass above them. No room for the edit box
+-- unless the player wants it always shown. The picture has no divider under the tabs.
 do
 	local env, K, ns = C.New()
 	C.Enable(env, K)
 	local chat = env.ChatFrame1
 	local snap = K.Scale.Snap
 	local g = ns.Panel.Geometry(chat)
-	assert(near(g.divider, snap(32)), "the divider closes a 32-unit tab strip, got " .. g.divider)
-	assert(near(g.top, snap(32 + 3 * g.k)), "the window's top sits where Blizzard's dock ends, 3 chat units under the strip, got " .. g.top)
+	assert(near(g.divider, snap(48)), "the tab row is 48 units, the picture's first line just under the labels, got " .. g.divider)
+	assert(near(g.top, snap(48)), "the window starts at the tab row, so six lines have no empty glass above them, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
-	assert(near(g.left, pad), "one window content inset of glass left of the messages, got " .. g.left .. " for " .. pad)
+	assert(near(g.left, snap(26 * 1080 / 2234)), "messages start 26 px inside the card, the picture's inset, got " .. g.left)
+	assert(near(g.right, g.left), "the message column's insets are equal, so the picture's last line has the same room both sides")
 	local reach = (2 + 32) * g.k - math.max(0, (32 * g.k - 22) / 2)
 	local clear = reach + K.Tokens.Size("gapTiny") - select(2, K.Layout.Rect("chat.main"))
-	assert(near(g.bottom, snap(math.max(pad, clear))), "one inset of glass below the messages, or what keeps the edit box on screen, got " .. g.bottom)
-	-- Blizzard's dock ends 2 chat units right of the window and its 16-unit overflow button sits at that end; the
-	-- window stops where the button clears the copy glyph's 20-unit hit area, 352 units of room for the mockup's lines.
-	local copyCentre = 22 + 20 + K.Tokens.Size("gapTiny")
-	assert(near(g.right, snap(copyCentre + 10 + 2 * g.k)), "the overflow button clears the copy glyph, got " .. g.right)
+	assert(near(g.bottom, snap(math.max(42, clear))), "42 units of card below the sixth line, or what keeps the edit box on screen, got " .. g.bottom)
+	assert(near(g.right, g.left), "the right inset stays equal when the copy glyph is on")
 	K.Options.Write("Chat", "copyButton", false)
 	env.RunTimers()
-	assert(near(ns.Panel.Geometry(chat).right, snap(22 + 10 + 2 * g.k)), "without the copy glyph the plus alone is cleared")
+	assert(near(ns.Panel.Geometry(chat).right, g.right), "the message column does not move when the copy glyph is off")
 	K.Options.Write("Chat", "copyButton", true)
 	env.RunTimers()
 	local divider = ns.Panel.Glass().divider
-	local _, _, _, _, dy = divider:GetPoint(1)
-	assert(near(dy, -g.divider), "the divider is drawn at the strip's bottom edge")
+	assert(not divider:IsShown(), "the picture has no line under the tabs")
 	K.Options.Write("Chat", "editBox", "always")
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)
 	assert(g.bottom > snap(16) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
-	assert(near(g.left, ns.Panel.Glass().chrome:Inset("gapMedium")), "the other insets stay")
+	assert(near(g.left, snap(26 * 1080 / 2234)), "the side insets stay the picture's 26 px")
+end
+
+-- The picture's last line fits on one line at the default size, on the owner's screen, because the insets are equal.
+do
+	local env, K, ns = C.New({ width = 3456, height = 2234, uiScale = 768 / 1080 })
+	C.Enable(env, K)
+	local chat = env.ChatFrame1
+	local g = ns.Panel.Geometry(chat)
+	local el = K.Layout.Get("chat.main")
+	local column = (el.width - g.left - g.right) / g.k
+	local path, size = chat:GetFont()
+	local Scene = dofile("Tools/render/scene.lua")
+	local line = "[Worn Leather Vest] has been added to your appearance collection."
+	local width = Scene.TextWidth(line, size, path)
+	assert(math.abs(g.left - g.right) < 0.05, "equal insets on the owner's screen")
+	assert(column >= width, "the appearance line fits on one line, " .. tostring(column) .. " for " .. tostring(width))
+	local px = g.left * 2234 / 1080
+	assert(math.abs(px - 26) < 0.6, "26 px inside the card, got " .. px)
+	local point, _, _, x = env.ChatFrame1Tab.Text:GetPoint(1)
+	local _, _, _, bgx = env.ChatFrame1.Background:GetPoint(1)
+	assert(point == "LEFT" and math.abs(x + bgx) < 0.5, "the tab name starts on the lines' column, got " .. tostring(point) .. " " .. tostring(x))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- A dock update puts dynamic tabs back to a fixed width; the hook fits them to the name again.
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	env._textWidth = function(text)
+		return #tostring(text) * 8
+	end
+	local tab = env.ChatFrame2Tab
+	tab:SetText("COMBAT")
+	env.FCFDock_UpdateTabs(env.GENERAL_CHAT_DOCK)
+	local width = tab.Text:GetUnboundedStringWidth()
+	assert(type(width) == "number" and near(tab:GetWidth(), width + K.Widgets.Snap(tab, 30 * 1080 / 2234 - 1)), "the dock update keeps the name's width, got " .. tostring(tab:GetWidth()))
+	assert(tab.Text:GetPoint(1) == "LEFT", "the name stays on the line's edge")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+	assert(ns.Frames, "frames stay exposed")
 end
 
 -- While the edit box shows only when typing it hangs under the panel, so where the chat window's units are larger
@@ -193,15 +228,15 @@ do
 	local bottom = select(2, K.Layout.Rect("chat.main"))
 	assert(near(bottom, 16), "moved 16 above the screen's edge, got " .. tostring(bottom))
 	assert(g.bottom > snap(16), "the inset grows past 16")
-	assert(near(g.bottom, snap(reach - bottom + K.Tokens.Size("gapTiny"))), "the box's tile ends a tiny gap above the screen's edge, got " .. g.bottom)
+	assert(near(g.bottom, snap(math.max(42, reach - bottom + K.Tokens.Size("gapTiny")))), "the box's tile ends a tiny gap above the screen's edge, or the picture's 42-unit foot, got " .. g.bottom)
 	K.Layout.Set("chat.main", "y", 0)
 	env.RunTimers()
 	local moved = ns.Panel.Geometry(chat)
-	assert(near(moved.bottom, snap(reach + K.Tokens.Size("gapTiny"))), "moving the panel to the edge re-places the window, got " .. moved.bottom)
+	assert(near(moved.bottom, snap(math.max(42, reach + K.Tokens.Size("gapTiny")))), "moving the panel to the edge re-places the window, got " .. moved.bottom)
 	assert(near(select(5, chat:GetPoint(2)) * g.k, moved.bottom), "the window's anchor follows")
 	K.Layout.Set("chat.main", "y", 200)
 	env.RunTimers()
-	assert(near(ns.Panel.Geometry(chat).bottom, ns.Panel.Glass().chrome:Inset("gapMedium")), "high on the screen the inset is the window's content inset again")
+	assert(near(ns.Panel.Geometry(chat).bottom, snap(42)), "high on the screen the inset is the picture's 42-unit foot, got " .. ns.Panel.Geometry(chat).bottom)
 end
 
 -- The tab row's right end: a plus glyph that opens the chat's settings page and, beside it, a small copy glyph that
@@ -210,7 +245,9 @@ do
 	local env, K, ns = C.New()
 	C.Enable(env, K)
 	local plus, copy, glass = ns.Panel.MenuButton(), ns.Panel.CopyButton(), ns.Panel.Glass()
-	assert(plus and plus:IsShown() and copy and copy:IsShown(), "both glyphs show")
+	assert(plus and not plus:IsShown() and copy and not copy:IsShown(), "both glyphs wait, as the picture draws no buttons at rest")
+	glass:GetScript("OnEnter")(glass)
+	assert(plus:IsShown() and copy:IsShown(), "both glyphs show while the pointer is over the card")
 	local g = ns.Panel.Geometry(env.ChatFrame1)
 	local p, rel, relp, x, y = plus:GetPoint(1)
 	assert(p == "CENTER" and rel == glass and relp == "TOPRIGHT", "the plus sits in the row's right end")
@@ -245,8 +282,9 @@ do
 	local right = select(4, env.ChatFrame1:GetPoint(2))
 	K.Options.Write("Chat", "copyButton", false)
 	env.RunTimers()
-	assert(not copy:IsShown() and plus:IsShown(), "the setting hides the copy glyph only")
-	assert(select(4, env.ChatFrame1:GetPoint(2)) > right, "the messages take the copy glyph's room")
+	glass:GetScript("OnEnter")(glass)
+	assert(not copy:IsShown() and plus:IsShown(), "the setting hides the copy glyph only, even while the pointer is over the card")
+	assert(select(4, env.ChatFrame1:GetPoint(2)) == right, "the messages stay: the glyph sits in the tab row")
 	env.ChatFrame1Tab:SetAlpha(0.4)
 	assert(near(plus:GetAlpha(), 0.4), "the plus fades with the tabs")
 end
@@ -377,7 +415,16 @@ do
 	assert(tab:GetText() == "GENERAL", "tab names in capitals")
 	env.FCFTab_UpdateColors(tab, true)
 	local parts = K.Skin.Parts(tab)
-	assert(parts.underline:IsShown(), "the selected tab has the gilt underline")
+	assert(not parts.underline:IsShown(), "the picture's tabs have no underline")
+	local tr, tg, tb = tab.Text:GetTextColor()
+	local gr, gg, gb = K.Tokens.Color("capsGold")
+	assert(near(tr, gr) and near(tg, gg) and near(tb, gb), "the selected tab is the picture's caps gold")
+	env.FCFTab_UpdateColors(env.ChatFrame2Tab, false)
+	local ur, ug, ub = env.ChatFrame2Tab.Text:GetTextColor()
+	local mr, mg, mb = K.Tokens.Color("muted")
+	assert(near(ur, mr) and near(ug, mg) and near(ub, mb), "the other tab is the muted grey, dimmer than the chat text")
+	K.Options.Write("Chat", "tabStyle", "underline")
+	assert(parts.underline:IsShown(), "the underline style keeps the gilt line")
 	local line = parts.underline
 	local lp, lrel, _, lx = line:GetPoint(1)
 	local rp, rrel, _, rx = line:GetPoint(2)
@@ -433,7 +480,7 @@ do
 	assert(args and args[1] == path and near(args[2], sized(env.ChatFrame1, 14)) and args[3] == "", "messages in the chat font at 14, the mockup's size")
 	local px = args[2] * env.ChatFrame1:GetEffectiveScale() * 1080 / 768
 	assert(math.abs(px - math.floor(px + 0.5)) < 1e-6, "on whole pixels, got " .. px)
-	assert(K.Store.Module("Chat").tabFontSize == 13, "tab names at 13: the mockup's cap height and label widths at 1.348 px per unit")
+	assert(K.Store.Module("Chat").tabFontSize == K.Tokens.Size("caps"), "tab names at the caps size, the picture's 10")
 	K.Options.Write("Chat", "fontSize", 15)
 	K.Options.Write("Chat", "fontOutline", "OUTLINE")
 	args = lastCall(env.ChatFrame2, "SetFont")
@@ -441,7 +488,7 @@ do
 	args = lastCall(env.ChatFrame1.editBox, "SetFont")
 	assert(args and near(args[2], sized(env.ChatFrame1.editBox, 15)), "the edit box follows")
 	args = lastCall(env.ChatFrame1Tab.Text, "SetFont")
-	assert(args and near(args[2], sized(env.ChatFrame1Tab.Text, K.Store.Module("Chat").tabFontSize)), "tabs use the tab size")
+	assert(args and args[1] == K.Tokens.Font("caps") and near(args[2], sized(env.ChatFrame1Tab.Text, K.Store.Module("Chat").tabFontSize)), "tabs use the caps face at the tab size")
 	env.FCF_SetChatWindowFontSize(nil, env.ChatFrame1, 18)
 	assert(K.Store.Module("Chat").fontSize == 18, "a size picked from the game's tab menu becomes the setting")
 	assert(near(lastCall(env.ChatFrame2, "SetFont")[2], sized(env.ChatFrame2, 18)), "and reaches every window")

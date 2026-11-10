@@ -59,7 +59,7 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(party and chat and guide, scene.state .. ": the rails show the party, chat and the guide")
 	assert(math.abs(party.left - chat.left) <= 0.5, scene.state .. ": the party card and chat share the left edge, got " .. party.left .. " and " .. chat.left)
 	assert(party.left < slot.left / 2, scene.state .. ": on the left rail")
-	assert(math.abs(chat.width - party.width * 372 / 318) <= 1, scene.state .. ": chat is 372 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
+	assert(math.abs(chat.width - party.width * 393 / 318) <= 1, scene.state .. ": chat is 393 wide against the party's 318, got " .. chat.width .. " for " .. party.width)
 	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party card")
 	assert(not seen.quests, scene.state .. ": the tracker's own glass yields to the guide's card")
 	assert(math.abs(guide.left - slot.left) <= 0.5 and math.abs(guide.width - slot.width) <= 1, scene.state .. ": the guide's card is on the right rail's edge and width, got " .. guide.left .. " by " .. guide.width)
@@ -150,16 +150,10 @@ for _, scene in ipairs({ questing, combat }) do
 			rows[#rows + 1] = item
 		end
 	end
-	assert(#rows >= 8, scene.state .. ": the chat draws its lines, got " .. #rows)
-	local wrapped = false
+	assert(#rows >= 5, scene.state .. ": the chat draws its lines, got " .. #rows)
 	for i = 1, #rows do
 		local a = rows[i].rect
 		assert(a[4] >= rows[i].font.size * 1.2 - 0.5, scene.state .. ": a chat row is shorter than its line, so its glyphs reach the next: '" .. rows[i].text .. "'")
-		-- A continuation row (no leading timestamp) is a wrapped line. The loot line was the sample until the chat
-		-- moved to the Lumen body face, which is narrower, so it now fits; the long chat lines still wrap.
-		if not rows[i].text:find("^%[") then
-			wrapped = true
-		end
 		for j = i + 1, #rows do
 			local b = rows[j].rect
 			local across = math.min(a[1] + a[3], b[1] + b[3]) - math.max(a[1], b[1])
@@ -167,7 +161,6 @@ for _, scene in ipairs({ questing, combat }) do
 			assert(across <= 0 or down <= 0.5, scene.state .. ": chat lines overprint: '" .. rows[i].text .. "' and '" .. rows[j].text .. "'")
 		end
 	end
-	assert(wrapped, scene.state .. ": a long chat line wraps onto a row of its own")
 end
 
 print("render scenes lumen ok")

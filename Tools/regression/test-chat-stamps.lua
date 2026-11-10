@@ -29,11 +29,25 @@ local function Memory(env, K)
 	return all and all[K.Store.CharacterKey()]
 end
 
--- On: the game draws KstyleUI's bracketed, coloured timestamp, and KstyleUI stops rewriting every line.
+-- Off by default: the picture has no timestamps, and the game's setting agrees.
+do
+	local env, K = C.New()
+	C.Enable(env, K)
+	assert(K.Options.Read("Chat", "timestamp") == "none", "timestamps are off by default")
+	assert(env._cvars.showTimestamps == "none", "the game's showTimestamps agrees: " .. tostring(env._cvars.showTimestamps))
+	env.ChatFrame1:AddMessage("You have gained 1 talent point.", 1, 1, 0)
+	assert(C.Last(env.ChatFrame1) == "You have gained 1 talent point.", "a system line has no stamp when the setting is off")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- On, with a format chosen: the game draws KstyleUI's bracketed, coloured timestamp on player lines, and KstyleUI
+-- stamps the system lines the game leaves bare, so the setting and the chat agree.
 do
 	local env, K = C.New()
 	local calls = CountTransforms(env.ChatFrame1)
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	local F = env._addons.KstyleUI_Chat.Format
 	assert(env._cvars.showTimestamps == Stamp(F, "%H:%M", TextColour(K)), "the CVar holds KstyleUI's format: " .. tostring(env._cvars.showTimestamps))
 
@@ -45,13 +59,13 @@ do
 	assert(calls.n == 1, "a shortened channel line is rewritten once, got " .. calls.n)
 
 	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0, 1, 0)
-	assert(C.Last(env.ChatFrame1) == "You receive loot: [Hide].", "a system line is left as the game wrote it")
-	assert(calls.n == 1, "a system line is not rewritten")
+	assert(F.Strip(C.Last(env.ChatFrame1)) == "[14:31] You receive loot: [Hide].", "a system line the game left bare gets the setting's stamp: " .. F.Strip(C.Last(env.ChatFrame1)))
+	assert(calls.n == 2, "a bare system line is rewritten once, got " .. calls.n)
 
 	K.Options.Write("Chat", "channels", "full")
 	C.Say(env, env.ChatFrame1, "CHAT_MSG_GUILD", "full")
 	assert(F.Strip(C.Last(env.ChatFrame1)) == "[14:31] [Guild] [Thargor]: full", "full channel names: " .. F.Strip(C.Last(env.ChatFrame1)))
-	assert(calls.n == 1, "with full channel names no line is rewritten")
+	assert(calls.n == 2, "with full channel names no further line is rewritten, got " .. calls.n)
 
 	local reads = 0
 	local get = env.C_CVar.GetCVar
@@ -143,7 +157,7 @@ do
 	assert(env._cvars.showTimestamps == before, "no CVar write in combat")
 	env._now = os.time({ year = 2026, month = 11, day = 7, hour = 9, min = 5, sec = 7 })
 	C.Say(env, env.ChatFrame1, "CHAT_MSG_GUILD", "pull")
-	assert(F.Strip(C.Last(env.ChatFrame1)) == "[09:05] [G] [Thargor]: pull", "one timestamp in combat: " .. F.Strip(C.Last(env.ChatFrame1)))
+	assert(F.Strip(C.Last(env.ChatFrame1)) == "[09:05:07] [G] [Thargor]: pull", "one timestamp while the CVar write waits: " .. F.Strip(C.Last(env.ChatFrame1)))
 	env.SetCombat(false)
 	env.RunTimers()
 	assert(env._cvars.showTimestamps == Stamp(F, "%H:%M:%S", TextColour(K)), "written when combat ends")
@@ -193,6 +207,8 @@ do
 		end,
 	})
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	local F = env._addons.KstyleUI_Chat.Format
 	assert(env._cvars.showTimestamps == "[%H:%M] ", "the plain format: " .. tostring(env._cvars.showTimestamps))
 	env._now = os.time({ year = 2026, month = 11, day = 7, hour = 9, min = 5 })
@@ -211,6 +227,8 @@ do
 		end,
 	})
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	local F = env._addons.KstyleUI_Chat.Format
 	assert(env._cvars.showTimestamps == "none", "the player's value stays")
 	env._now = os.time({ year = 2026, month = 11, day = 7, hour = 9, min = 5 })
@@ -223,6 +241,8 @@ end
 do
 	local env, K = C.New({ install = { noSetCVar = true } })
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	local F = env._addons.KstyleUI_Chat.Format
 	env._now = os.time({ year = 2026, month = 11, day = 7, hour = 9, min = 5 })
 	env.ChatFrame1:AddMessage("You receive loot.", 1, 1, 1)

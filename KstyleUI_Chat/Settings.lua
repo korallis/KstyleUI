@@ -40,12 +40,12 @@ local defaults = {
 	fadeTime = 120,
 	history = true,
 	historyLines = 100,
-	tabStyle = "underline",
+	tabStyle = "plain",
 	tabCase = "upper",
-	tabFontSize = 13,
+	tabFontSize = Tokens.Size("caps"),
 	accentSource = "class",
 	accentColor = Rgb("accentDefault"),
-	timestamp = "%H:%M",
+	timestamp = "none",
 	timestampColor = Rgb("text"),
 	channels = "short",
 	numbers = "name",
@@ -156,7 +156,7 @@ function ns.Schema()
 		{ type = "header", label = L["Text"] },
 		{
 			type = "font", key = "font", label = L["Font"],
-			help = L["The font of chat messages, tabs and the edit box."],
+			help = L["The font of chat messages and the edit box. Tabs use the caps face."],
 		},
 		{
 			type = "slider", key = "fontSize", label = L["Text size"],
@@ -200,6 +200,7 @@ function ns.Schema()
 			type = "dropdown", key = "tabStyle", label = L["Tab style"],
 			help = L["How the selected tab stands out."],
 			options = {
+				{ value = "plain", label = L["Gold text"] },
 				{ value = "underline", label = L["Accent underline"] },
 				{ value = "filled", label = L["Filled tile"] },
 				{ value = "minimal", label = L["Bright text only"] },
@@ -212,7 +213,7 @@ function ns.Schema()
 		},
 		{
 			type = "slider", key = "tabFontSize", label = L["Tab text size"],
-			help = L["The size of the tab names."],
+			help = L["The size of the tab names. The default is the caps size."],
 			min = TAB_FONT_MIN, max = TAB_FONT_MAX, step = 1,
 		},
 		{ type = "header", label = L["Accent"] },
@@ -229,7 +230,7 @@ function ns.Schema()
 		{ type = "header", label = L["Timestamps"] },
 		{
 			type = "dropdown", key = "timestamp", label = L["Timestamp format"],
-			help = L["Same as Blizzard's chat timestamps. System and loot lines have none."],
+			help = L["Off by default. A format stamps player lines and the system lines the game leaves bare."],
 			options = timestamps,
 		},
 		{

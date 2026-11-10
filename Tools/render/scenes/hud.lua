@@ -692,7 +692,7 @@ function modules.chat(opts)
 	local height = (screenHeight or 120 * 1080 / 768) * toOwn
 	local entries = C.Entries(chat)
 	local spacing = chat:GetSpacing()
-	local lineHeight = size * 1.2 + (type(spacing) == "number" and spacing or 0)
+	local lineHeight = size + (type(spacing) == "number" and spacing or 0)
 	local rows = {}
 	for _, entry in ipairs(entries) do
 		local line = tostring(entry[1])

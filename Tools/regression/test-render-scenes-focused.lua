@@ -136,10 +136,19 @@ end
 for _, want in ipairs({ "GENERAL", "COMBAT", "LOOT", "TRADE" }) do
 	assert(chatTexts[want], "the chat scene shows the " .. want .. " tab")
 end
-assert(plus == 1, "the plus glyph is drawn once, got " .. plus)
--- At the shipped Interface size (16 / 19) the card is that much shorter, and the chat's text and line spacing follow
--- the size as every KstyleUI text does (owner pass 1, M6), so all five lines still fit.
-assert(lines == 5, "five timestamped lines, got " .. lines)
+assert(plus == 0, "the plus glyph waits at rest, as the picture draws no buttons, got " .. plus)
+-- At the shipped Interface size the card holds the scene's five lines. Timestamps are off by default (LEE-20), so
+-- the lines are the messages themselves.
+local bodies = 0
+for _, phrase in ipairs({ "Crocolisk Hide", "168 experience", "Rugged Hide", "croc hunt", "Razorfen" }) do
+	for text in pairs(chatTexts) do
+		if text:find(phrase, 1, true) then
+			bodies = bodies + 1
+			break
+		end
+	end
+end
+assert(bodies == 5, "five lines, with no timestamps by default, got " .. bodies)
 
 -- The unit frames with the design file's octagon portraits, at the design's sections.
 local design = check("unitframes_design", dofile("Tools/render/scenes/unitframes_design.lua")())

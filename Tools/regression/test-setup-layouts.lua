@@ -177,12 +177,9 @@ local LEFT_RAIL = {
 	Tank = { "groupframes.party", "groupframes.raid", "qol.lootfeed" },
 	Healer = { "unitframes.boss", "qol.lootfeed" },
 }
--- Owner pass 1 (M6, "the chat box is too thin"): the chat card stands on the left rail's column at its foot but runs
--- 372 wide, past the 318 rail, so its message column holds about 21 em of 14-unit text instead of 17.5. It keeps a
--- full gap from everything else on the narrowest screen (the owner's 1.547 aspect, where the pet bar starts at 417).
--- Healer keeps the 318 rail width: on that screen its tracked buff icons stand in the gap between the chat and the
--- focus card (test-setup-editmode.lua's 16 icons and 12 bars), so Healer writes 318 when it is applied.
-local CHAT_WIDTH = { DPS = 372, Tank = 372, Healer = 318 }
+-- The picture (LEE-20) draws the chat card 393 by 200. DPS and Tank take that width. Healer keeps the 318 rail:
+-- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
+local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
 -- The right rail (owner, 2026-11-09: "The quest tracker can go back to the right side for better alignment"): the map
 -- heads it with the aura rows beside it; the story slot (the quest card, under the RestedXP guide when it is loaded)
 -- hangs 16 under the lower of the two, where a tracker sits in the classic UI, so the quests read right under the map.
@@ -276,7 +273,8 @@ for _, name in ipairs(names) do
 		assert(math.abs(tip.right - meter.right) < 1e-6 and tip.bottom - meter.top == 8, label .. ": the tooltip anchor sits 8 over the damage card's right corner")
 		assert(meter.bottom - strip.top == 16, label .. ": the damage card stands 16 over the readout card at the rail's foot, got " .. (meter.bottom - strip.top))
 		local chat = rect("chat.main")
-		assert(chat.bottom == MARGIN and chat.left == MARGIN and chat.w == CHAT_WIDTH[name], label .. ": chat sits at the left rail's foot, " .. CHAT_WIDTH[name] .. " wide, got " .. chat.w)
+		local margin = K.Tokens.Size("screenMargin")
+		assert(chat.bottom == margin and chat.left == margin and chat.w == CHAT_WIDTH[name] and chat.h == 200, label .. ": chat sits on the screenMargin token, " .. CHAT_WIDTH[name] .. " by 200, got " .. chat.w .. " by " .. tostring(chat.h))
 		local feed = rect("qol.lootfeed")
 		assert(feed.left == chat.left and feed.w == RAIL and feed.bottom - chat.top == CARD_GAP_MIN, label .. ": the loot feed stands " .. CARD_GAP_MIN .. " over the chat card on its left edge, got " .. (feed.bottom - chat.top))
 		for _, key in ipairs(KEYS) do
@@ -569,8 +567,8 @@ local FOOTPRINTS = {
 	["unitframes.castbar.player"] = { 272, 30 },
 	["unitframes.castbar.target"] = { 220, 24 },
 	-- S4 (#157): six damage rows, four threat rows, the readout with the menu docked (at 318 the bag bar wraps under
-	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is a
-	-- 372-unit card at the left rail's foot.
+	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is the
+	-- picture's 393 by 200 card at the left rail's foot (LEE-20).
 	-- Owner pass 1: a 160-unit square map, half the lens card, with the zone and clock inside it.
 	["minimap.main"] = { 160, 160 },
 	-- Owner pass 1 (2026-11-09): the buffs and debuffs are plain rows of eight 30-unit tiles, two rows each, beside
@@ -581,7 +579,7 @@ local FOOTPRINTS = {
 	["meters.threat"] = { 318, 144 },
 	["databars.strip"] = { 318, 118 },
 	["databars.micro"] = { 318, 44 },
-	["chat.main"] = { 372, 260 },
+	["chat.main"] = { 393, 200 },
 	["groupframes.party"] = { 318, 324 },
 	["groupframes.raid"] = { 318, 427 },
 	["databars.xp"] = { 489, 4 },

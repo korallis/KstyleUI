@@ -51,13 +51,30 @@ local function Refresh(self)
 	local r, g, b = Tokens.Color("surface")
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
-	local path, size, flags, tabSize = ns.Frames.Fonts(settings)
+	local path, size, flags, tabSize, tabPath = ns.Frames.Fonts(settings)
 	local ar, ag, ab = ns.Accent(settings)
+	local plain = settings.tabStyle == "plain"
+	local x = Tokens.Size("gapMedium")
+	local gap = Tokens.Size("gapLarge")
 	for i, tab in ipairs(self.tabs) do
-		ns.Frames.ApplyFont(tab, path, tabSize, flags)
+		ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 		local label = TABS[i]
 		tab:SetText(settings.tabCase == "upper" and label:upper() or label)
+		tab:ClearAllPoints()
+		tab:SetPoint("LEFT", glass, "TOPLEFT", x, -TAB_TOP)
+		local width = Widgets.TextWidth(tab, TAB_WIDTH)
 		if i == 1 then
+			self.fill:ClearAllPoints()
+			self.fill:SetPoint("LEFT", tab, "LEFT", -Tokens.Size("gapSmall"), 0)
+			Widgets.Size(self.fill, width + Tokens.Size("gapMedium"), TAB_TOP * 2 - UNDERLINE)
+			self.underline:ClearAllPoints()
+			self.underline:SetPoint("TOPLEFT", tab, "BOTTOMLEFT", 0, -2)
+			Widgets.Size(self.underline, width, UNDERLINE)
+		end
+		x = x + width + gap
+		if plain then
+			tab:SetTextColor(Tokens.Color(i == 1 and "capsGold" or "muted"))
+		elseif i == 1 then
 			tab:SetTextColor(Tokens.Color("textEmphasis"))
 		else
 			tab:SetTextColor(Tokens.Color("text"))

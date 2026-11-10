@@ -1,6 +1,6 @@
 # Regression tests
 
-`run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), and report in file order; a test must write only to its own temporary paths. `run-all.sh` starts `run_all.py`, which does the work.
+`run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), never more than the machine-wide worker slots allow (below), and report in file order; a test must write only to its own temporary paths. `run-all.sh` starts `run_all.py`, which does the work.
 
 ```bash
 bash Tools/regression/run-all.sh                            # every file, as CI's lua shards together run them
@@ -19,17 +19,20 @@ CI runs the whole suite once per pull request head and once per push to `staging
 | none | Every `test-*.lua` | `passed N, failed M` |
 | `--shard I/N` | Slice I of N of the files. The first line after the budget says `shard I/N: X of Y test files`. | `passed N, failed M` for the slice |
 | `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not, and CI runs them all)` |
+| `--margins` | The files one at a time, then the files within 20% of a budget | `passed N, failed M` |
 | `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
 
-Both options can be combined except with `--write-weights`. A shard exits 0 only when its own files pass, so CI's `verdict` job needs all four.
+`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass, so CI's `verdict` job needs all four.
 
 ### Shards and weights
 
-`weights.json` holds each file's time in seconds on the Mac. `--shard` puts the heaviest file in the lightest slice first, so every slice takes about the same time (4 slices: 72, 72, 72 and 72 s of test time against 76, 55, 95 and 61 s for taking every fourth file). A file with no weight counts as the median, so a new test file needs no entry and a stale entry does no harm. Every run starts the heaviest files first. Refresh the weights with `lockf -k -t 3600 ~/.capy/work/run-all.lock bash Tools/regression/run-all.sh --write-weights` when the slices drift apart by more than a third; it is not part of a pull request's checks.
+`weights.json` holds each file's time in seconds on the Mac. `--shard` puts the heaviest file in the lightest slice first, so every slice takes about the same time (4 slices: 72, 72, 72 and 72 s of test time against 76, 55, 95 and 61 s for taking every fourth file). A file with no weight counts as the median, so a new test file needs no entry and a stale entry does no harm. Every run starts the heaviest files first. Refresh the weights with `bash Tools/regression/run-all.sh --write-weights` when the slices drift apart by more than a third; it is not part of a pull request's checks.
 
 ### Affected mode
 
 `--affected BASE` compares the working tree (staged, unstaged and untracked files included) with the merge base of BASE and HEAD, and runs the test files whose record meets a changed file. It prints how many files it runs and why each one runs.
+
+When a changed file is an addon `.lua` file (anything outside `Tools/` and `docs/`) or is under `Tools/locale/`, `--affected` also runs `python3 Tools/locale/strings.py check`, which is the cheap part of `test_locale_strings` in CI's Python job. A failure prints `FAIL locale`, each problem and the fix (`python3 Tools/locale/strings.py sync`, then commit `Tools/locale` and `Core/Locales`), and counts as one failed file. A change that touches neither skips it.
 
 What a test file loads comes from running it, not from its name. `trace.lua` is loaded before the test through `LUA_INIT` and writes each file the test opens for reading (`io.open`, `io.lines`, `dofile`, `loadfile`) and each shell command it runs (`io.popen`, `os.execute`). `affected.py` turns that into a record per test file:
 
@@ -49,7 +52,19 @@ The choice is conservative in these cases:
 
 What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository, such as the Blizzard UI source. CI runs every file, so a miss here is caught there, and the run says so on its last line.
 
-It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU Mac), so two threads can run it at once. The full run uses all of them.
+It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU Mac). The full run asks for all the CPUs, and the worker slots below hold it to their count.
+
+## Worker slots
+
+Many runs share the Mac, and a test file that takes 18 s alone can take 23 s on a loaded Mac and fail the 20 s budget for no fault of its own. So every local run takes a **worker slot** for each test file it runs, and all the runs on the machine together run at most as many files as there are slots: a third of the CPUs by default (6 on the 18-CPU Mac, which leaves the rest for the game), `KSTYLEUI_SLOTS` sets another count and `KSTYLEUI_SLOTS=0` turns the limit off. A run that finds every slot taken waits and polls; the wait is not part of a file's time.
+
+The holders are listed in `~/.cache/kstyleui/worker-slots.json` (`KSTYLEUI_SLOT_DIR` moves the folder) behind a lock. A holder whose process is gone, or whose lease has run out (3 times the time budget plus 30 s, longer than a file can run), is dropped by the next run that looks, so a crashed or killed run frees its slots by itself. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. CI sets `CI=true`, which turns the limit off: its runner has no other runs.
+
+Each run prints the load it saw. The second line is `machine load N on C CPUs; worker slots: S for every run on this machine, K held by other runs`. The line before `passed` is `machine load N at the start, M at the end, P at most when a test started; waited W s for worker slots, other runs held up to K of S`. A time failure adds `Machine load was N when it started`, so the first thing to do with one is to run that file alone (`lua5.1 Tools/regression/test-NAME.lua`) and read its time against the load.
+
+### Margins
+
+`bash Tools/regression/run-all.sh --margins` runs the files one at a time and lists those that took 80% or more of the time budget, or of the memory budget, with their load. The list is the files a slower or busier machine tips over the budget. Run it when the Mac is quiet (the load is printed beside each file) and make the top of the list cheaper before it fails somebody's run.
 
 ## Interface size in tests
 

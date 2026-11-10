@@ -1,4 +1,4 @@
--- Frames.lua: restyles Blizzard's chat windows in place: their art, the tabs in caps with a gilt underline on the active one, edit boxes, scroll bars, fonts and buttons.
+-- Frames.lua: restyles Blizzard's chat windows in place: their art, the tabs in Cinzel caps with the selected one gold, edit boxes, scroll bars, fonts and buttons.
 local _, ns = ...
 
 local K = KstyleUI
@@ -90,7 +90,8 @@ function Frames.Fonts(settings)
 	local flags = OUTLINES[s.fontOutline] or ""
 	local size = Whole(s.fontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.fontSize)
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
-	return path, size, flags, tabSize
+	local tabPath = Tokens.Font("caps")
+	return path, size, flags, tabSize, tabPath
 end
 
 function Frames.ApplyFont(object, path, size, flags)
@@ -154,6 +155,7 @@ local function PaintTab(parts)
 	end
 	local style = settings.tabStyle
 	local selected = parts.selected == true
+	local plain = style == "plain"
 	local r, g, b = Widgets.LumenColor("gilt")
 	local underlined = selected and style == "underline"
 	parts.underline:SetVertexColor(r, g, b, 1)
@@ -161,6 +163,9 @@ local function PaintTab(parts)
 	if parts.chatGlow then
 		PaintGlow(parts.chatGlow, r, g, b)
 		parts.chatGlow:SetShown(underlined)
+	end
+	if parts.wash then
+		parts.wash:SetShown(selected and style == "filled")
 	end
 	local fill = parts.backdrop
 	if not fill and style == "filled" then
@@ -170,6 +175,14 @@ local function PaintTab(parts)
 		fill:SetShown(selected and style == "filled")
 		if fill.chrome then
 			fill.chrome:SetEdgeRGBA(Accent())
+		end
+	end
+	local text = parts.text
+	if plain and text and type(text.SetTextColor) == "function" then
+		if selected then
+			text:SetTextColor(Tokens.Color("capsGold"))
+		else
+			text:SetTextColor(Tokens.Color("muted"))
 		end
 	end
 end
@@ -302,7 +315,7 @@ end
 
 local function ApplyFrame(frame)
 	local s = state.settings
-	local path, size, flags, tabSize = Frames.Fonts()
+	local path, size, flags, tabSize, tabPath = Frames.Fonts()
 	local hud = HudSize()
 	size, tabSize = size * hud, tabSize * hud
 	Frames.ApplyFont(frame, path, size, flags)
@@ -333,7 +346,13 @@ local function ApplyFrame(frame)
 	local tab = TabOf(frame)
 	if tab then
 		TabCase(tab)
-		Frames.ApplyFont(TabText(tab), path, tabSize, flags)
+		local text = TabText(tab)
+		if type(text) == "table" and type(text.SetFont) == "function" then
+			text:SetFont(tabPath, Widgets.FontSize(text, tabSize), "")
+			if type(text.SetShadowOffset) == "function" then
+				text:SetShadowOffset(0, 0)
+			end
+		end
 		local parts = Skin.Parts(tab)
 		if parts and parts.chatPaint then
 			parts:Paint()
@@ -418,6 +437,42 @@ local function OnWindowName(frame)
 	end
 end
 
+local function Lead(frame)
+	local overhang = 0
+	local bg = type(frame) == "table" and frame.Background
+	if type(bg) == "table" and type(bg.GetPoint) == "function" then
+		local point, _, _, x = bg:GetPoint(1)
+		if not IsSecret(point) and not IsSecret(x) and point == "TOPLEFT" and type(x) == "number" then
+			overhang = -x
+		end
+	end
+	return overhang
+end
+
+function Frames.FitTabs(dock)
+	local frames = type(dock) == "table" and dock.DOCKED_CHAT_FRAMES
+	if type(frames) ~= "table" then
+		return
+	end
+	for _, frame in ipairs(frames) do
+		local tab = TabOf(frame)
+		local text = tab and TabText(tab)
+		if text and type(text.SetPoint) == "function" then
+			text:ClearAllPoints()
+			text:SetPoint("LEFT", tab, "LEFT", Widgets.Snap(text, Lead(frame)), -5)
+			if type(text.SetWidth) == "function" and type(tab.SetWidth) == "function" then
+				text:SetWidth(0)
+				local measure = type(text.GetUnboundedStringWidth) == "function" and text.GetUnboundedStringWidth or text.GetStringWidth
+				local width = type(measure) == "function" and measure(text) or nil
+				if not IsSecret(width) and type(width) == "number" and width > 0 then
+					text:SetWidth(width)
+					tab:SetWidth(width + Widgets.Snap(tab, 30 * 1080 / 2234 - 1))
+				end
+			end
+		end
+	end
+end
+
 local function OnDocking(frame)
 	if state.active and type(frame) == "table" and styled[frame] then
 		ApplyFrame(frame)
@@ -443,7 +498,14 @@ local function OnFontSize(button, _, size)
 	end
 end
 
+local function OnDockTabs(dock)
+	if state.active then
+		Frames.FitTabs(dock)
+	end
+end
+
 local HOOKS = {
+	{ "FCFDock_UpdateTabs", OnDockTabs, "a tab click puts the names back in Blizzard's fixed width" },
 	{ "FCFTab_UpdateColors", OnTabColors, "the selected tab keeps the game's look until it is clicked" },
 	{ "FCF_SetWindowName", OnWindowName, "renamed tabs keep the case the player typed" },
 	{ "FCF_DockFrame", OnDocking, "docking a window does not update its glass" },

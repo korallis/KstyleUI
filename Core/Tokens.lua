@@ -15,6 +15,7 @@ local COLORS = {
 	giltLit = { "f3dca4", 1 },
 	gilt = { "d3b574", 1 },
 	capsGold = { "d3b574", 1 },
+	chatSystem = { "efe06a", 1 },
 	giltDim = { "8a6c34", 1 },
 	muted = { "a9b6c2", 1 },
 	dim = { "6f7d8a", 1 },

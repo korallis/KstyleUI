@@ -63,7 +63,7 @@ local ELEMENTS = {
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = 282, height = 88 },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 282, height = 88 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
-	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 372, height = 260 },
+	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 393, height = 200 },
 	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
@@ -201,7 +201,7 @@ local SIZES = {
 		["groupframes.raid"] = { RAIL, 487 },
 		["meters.damage"] = { RAIL, 190 },
 		["meters.threat"] = { RAIL, 144 },
-		["chat.main"] = { RAIL, 260 },
+		["chat.main"] = { RAIL, 200 },
 	},
 }
 local APPLIED = { ["meters.damage"] = true, ["meters.threat"] = true, ["chat.main"] = true }
