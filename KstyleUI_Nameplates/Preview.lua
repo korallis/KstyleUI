@@ -33,7 +33,7 @@ local function Stack(frame)
 	local above, below = 0, 0
 	for _, plate in ipairs(frame.plates) do
 		local up, down = ns.Auras.Extent(plate)
-		local overhang = (plate.level:GetHeight() - ns.state.height) / 2
+		local overhang = Settings.Get("level.show") and (plate.level:GetHeight() - ns.state.height) / 2 or 0
 		above = math.max(above, up, overhang)
 		below = math.max(below, down, overhang)
 	end

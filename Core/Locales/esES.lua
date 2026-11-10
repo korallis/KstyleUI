@@ -1678,7 +1678,7 @@ ns.Locale.Add({
 	["The font for the game's own damage numbers; it changes at your next login."] = "La fuente de los n\195\186meros de da\195\177o del juego; cambia en tu pr\195\179ximo inicio de sesi\195\179n.",
 	["The font of charge and stack counts."] = "La fuente de las cargas y acumulaciones.",
 	["The font of chat messages and the edit box. Tabs use the caps face."] = "The font of chat messages and the edit box. Tabs use the caps face.",
-	["The font of every text on the plates."] = "La fuente de todos los textos de las placas.",
+	["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."] = "La fuente de los valores de las placas, los temporizadores de perjuicios y el texto de lanzamiento opcional. Los nombres usan el t\195\173tulo Cinzel del kit.",
 	["The font of skinned window titles, headers and lists."] = "La fuente de los t\195\173tulos, encabezados y listas de las ventanas con aspecto.",
 	["The font of stack counts and item levels."] = "La fuente de las acumulaciones y los niveles de objeto.",
 	["The font of the bar's text."] = "La fuente del texto de la barra.",

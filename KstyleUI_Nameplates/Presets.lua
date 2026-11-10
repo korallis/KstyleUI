@@ -21,18 +21,18 @@ Presets.VALUES = {
 	lumen = {},
 	compact = {
 		["name.size"] = 12, ["level.size"] = 14, ["healthText.show"] = false,
-		["cast.height"] = 10, ["cast.textSize"] = 9,
+		["cast.textSize"] = 9,
 		["debuffs.size"] = 22, ["debuffs.textSize"] = 11,
 		["target.dimOthers"] = 0.7, shrinkDistant = true, ["friendly.nameOnly"] = true,
 	},
 	tank = {
 		["threat.display"] = "health", ["threat.role"] = "tank", ["threat.groupOnly"] = false,
-		["types.caster"] = true, ["healthText.show"] = true, ["healthText.format"] = "percent",
+		["healthText.show"] = true, ["healthText.format"] = "percent",
 		["target.dimOthers"] = 0.85,
 	},
 	healer = {
 		["friendly.nameOnly"] = false, ["friendly.colorSource"] = "class", ["healthText.show"] = true,
-		["healthText.format"] = "percent", ["cast.height"] = 14, ["threat.display"] = "glow",
+		["healthText.format"] = "percent", ["threat.display"] = "glow",
 		["threat.role"] = "other", ["target.dimOthers"] = 0.8,
 	},
 }

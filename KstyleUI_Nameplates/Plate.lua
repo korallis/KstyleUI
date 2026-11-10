@@ -32,7 +32,9 @@ local function BottomRoom(plate)
 	return room
 end
 
-Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 175, 12
+Plate.DEFAULT_WIDTH, Plate.DEFAULT_HEIGHT = 154, 12
+Plate.NAME_OVERHANG = 20
+Plate.FRAME_GAP = 1.15
 
 local GAP = Tokens.Size("gapTiny")
 local BADGE_GAP = Tokens.Size("gapSmall")
@@ -43,7 +45,7 @@ Plate.BADGE_SIZE = DISC_SIZE
 local MARKER_SIZE = 12
 local MARKER_ROTATION = math.pi / 4
 local GLOW_CORNER, GLOW_OUTSET = 8, 6
-local THREAT_GLOW_ALPHA, TARGET_GLOW_ALPHA = 0.9, 0.7
+local THREAT_GLOW_ALPHA = 0.9
 local RAID_ICONS = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
 local RAID_ROWS, RAID_COLUMNS = 4, 4
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
@@ -86,6 +88,47 @@ local function NewText(parent, justify)
 	return text
 end
 
+function ns.FlatBar(parent, opts)
+	opts.border = false
+	local bar = Widgets.StatusBar(parent, opts)
+	local restyle = bar.Restyle
+	bar.rim = { Tokens.Color("black") }
+	bar.rimGapFill = Widgets.Crisp(bar:CreateTexture(nil, "BACKGROUND", nil, -1))
+	bar.rimGap = 0
+	function bar:SetRimGap(gap)
+		gap = Widgets.Snap(self, gap)
+		local px = gap > 0 and gap or opts.rimWidth and Widgets.Snap(self, opts.rimWidth)
+			or Scale.Pixel(1) / Widgets.ScaleFactor(self)
+		if self.rimGap == gap and self.rimPixel == px then
+			return
+		end
+		self.rimGap, self.rimPixel, self.rimOutset = gap, px, gap + px
+		self.rimGapFill:SetShown(gap > 0)
+		self.rimGapFill:SetColorTexture(Widgets.MixTokens("black", 1, "gilt", 1, 0.1))
+		self.rimGapFill:ClearAllPoints()
+		self.rimGapFill:SetPoint("TOPLEFT", self, "TOPLEFT", -gap, gap)
+		self.rimGapFill:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", gap, -gap)
+		self.keyline:ClearAllPoints()
+		self.keyline:SetPoint("TOPLEFT", self, "TOPLEFT", -gap - px, gap + px)
+		self.keyline:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", gap + px, -gap - px)
+	end
+	function bar:SetRimColor(r, g, b, a)
+		local c = self.rim
+		c[1], c[2], c[3], c[4] = r, g, b, a or 1
+		self.keyline:SetVertexColor(c[1], c[2], c[3], c[4])
+	end
+	function bar:Restyle()
+		restyle(self)
+		self.lit:Hide()
+		self.shade:Hide()
+		self.rimPixel = nil
+		self:SetRimGap(self.rimGap)
+		self:SetRimColor(unpack(self.rim))
+	end
+	bar:Restyle()
+	return bar
+end
+
 local function UnitValue(fn, ...)
 	if type(fn) ~= "function" then
 		return nil
@@ -99,6 +142,13 @@ end
 
 local function Rgb(color)
 	return color.r, color.g, color.b
+end
+
+local function TargetColor()
+	if Settings.Get("target.colorSource") == "custom" then
+		return Rgb(Settings.Get("target.color"))
+	end
+	return Theme.Accent()
 end
 
 local scaleCurve
@@ -130,21 +180,18 @@ function ns.NewPlate(parent, sample)
 
 	local glowFrame = CreateFrame("Frame", nil, plate)
 	plate.glowFrame = glowFrame
-	plate.targetGlow = Widgets.NineSlice(glowFrame, "shadow", "BACKGROUND", -2)
 	plate.threatGlow = Widgets.NineSlice(glowFrame, "shadow", "BACKGROUND", -1)
-	for _, slice in ipairs({ plate.targetGlow, plate.threatGlow }) do
-		for _, piece in ipairs(slice) do
-			piece:SetBlendMode("ADD")
-		end
-		Widgets.ShowSlice(slice, false)
+	for _, piece in ipairs(plate.threatGlow) do
+		piece:SetBlendMode("ADD")
 	end
+	Widgets.ShowSlice(plate.threatGlow, false)
 
-	plate.healthOpts = { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, smooth = true, border = true, color = "hostile" }
-	local health = Widgets.StatusBar(plate, plate.healthOpts)
+	plate.healthOpts = { width = Plate.DEFAULT_WIDTH, height = Plate.DEFAULT_HEIGHT, smooth = true, color = "plateHostile" }
+	local health = ns.FlatBar(plate, plate.healthOpts)
 	plate.health = health
 	plate.healthText = NewText(health, "RIGHT")
 
-	plate.name = NewText(plate, "LEFT")
+	plate.name = NewText(plate, "CENTER")
 
 	local badge = CreateFrame("Frame", nil, plate)
 	badge:SetFrameLevel(health:GetFrameLevel() + 1)
@@ -220,7 +267,9 @@ function Plate:Restyle()
 	health:SetBarTexture(Settings.Get("health.texture"))
 	health:Restyle()
 
-	StyleFont(self.name, Settings.Get("name.size"), Settings.Get("name.outline"))
+	local nameRole = Settings.Get("name.upper") and "names" or "heading"
+	Widgets.StyleText(self.name, nameRole)
+	Widgets.ApplyFont(self.name, (Tokens.Font(nameRole)), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
 	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"))
 	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"))
 
@@ -238,7 +287,11 @@ function Plate:Restyle()
 
 	Widgets.Size(self.marker, MARKER_SIZE, MARKER_SIZE)
 	self.marker:ClearAllPoints()
-	self.marker:SetPoint("BOTTOM", badge, "TOP", 0, Widgets.Snap(self, GAP))
+	if Settings.Get("level.show") then
+		self.marker:SetPoint("BOTTOM", badge, "TOP", 0, Widgets.Snap(self, GAP))
+	else
+		self.marker:SetPoint("RIGHT", health, "LEFT", -Widgets.Snap(self, GAP), 0)
+	end
 
 	local raidSize = Settings.Get("markers.raidSize")
 	Widgets.Size(self.raid, raidSize, raidSize)
@@ -246,7 +299,6 @@ function Plate:Restyle()
 	self.raid:SetPoint("LEFT", health, "RIGHT", Widgets.Snap(self, BADGE_GAP), 0)
 
 	self.glowFrame:SetFrameLevel(math.max(0, health:GetFrameLevel() - 2))
-	Widgets.LayoutSlice(self.targetGlow, health, GLOW_CORNER, GLOW_OUTSET)
 	Widgets.LayoutSlice(self.threatGlow, health, GLOW_CORNER, GLOW_OUTSET)
 
 	self.nameOnly = nil
@@ -257,13 +309,13 @@ end
 function Plate:LayoutName()
 	local name, health = self.name, self.health
 	name:ClearAllPoints()
-	name:SetWidth(Widgets.Snap(name, ns.state.width))
+	name:SetWidth(Widgets.Snap(name, ns.state.width + Plate.NAME_OVERHANG * 2))
 	if self.nameOnly then
 		name:SetJustifyH("CENTER")
 		name:SetPoint("CENTER", self, "CENTER")
 	else
-		name:SetJustifyH("LEFT")
-		name:SetPoint("BOTTOMLEFT", health, "TOPLEFT", 0, Widgets.Snap(self, GAP))
+		name:SetJustifyH("CENTER")
+		name:SetPoint("BOTTOM", health, "TOP", 0, Widgets.Snap(self, GAP))
 	end
 end
 
@@ -413,7 +465,11 @@ function Plate:UpdateColor()
 			r, g, b = Theme.ClassColorForWidget(class)
 		else
 			local reaction = self.sample and self.sample.reaction or UnitValue(UnitReaction, self.unit, "player")
-			r, g, b = Theme.ReactionColor(reaction)
+			if self.kind == "enemy" and not IsSecret(reaction) and type(reaction) == "number" and reaction < 4 then
+				r, g, b = Tokens.Color("plateHostile")
+			else
+				r, g, b = Theme.ReactionColor(reaction)
+			end
 		end
 	end
 	local last = self.colorKey
@@ -481,9 +537,30 @@ function Plate:UpdateName()
 	if IsSecret(value) then
 		name:SetText(value)
 	elseif type(value) == "string" then
-		name:SetText(Settings.Get("name.upper") and value:upper() or value)
+		Widgets.SetText(name, Settings.Get("name.upper") and K.Locale.Upper(value) or value)
 	else
 		name:SetText("")
+	end
+	self:UpdateNameColor(nil, true)
+end
+
+function Plate:UpdateNameColor(isTarget, force)
+	if isTarget == nil then
+		if self.sample then
+			isTarget = self.sample.target
+		else
+			isTarget = ns.Plates.IsUnit(self, "target")
+		end
+	end
+	isTarget = isTarget and Settings.Get("target.highlight") or false
+	if not force and self.nameTarget == isTarget then
+		return
+	end
+	self.nameTarget = isTarget
+	local name = self.name
+	if isTarget then
+		name:SetTextColor(TargetColor())
+		return
 	end
 	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
 	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
@@ -564,13 +641,6 @@ function Plate:UpdateThreat()
 	end
 end
 
-local function TargetColor()
-	if Settings.Get("target.colorSource") == "custom" then
-		return Rgb(Settings.Get("target.color"))
-	end
-	return Theme.Accent()
-end
-
 function Plate:UpdateHighlight()
 	local state = ns.state
 	local isTarget, isFocus
@@ -582,22 +652,25 @@ function Plate:UpdateHighlight()
 	end
 	ns.Cast.Gate(self, isTarget)
 	local bar = not self.nameOnly
-	local glow = self.targetGlow
-	local chrome = self.health.chrome
-	if isTarget and Settings.Get("target.highlight") and bar then
+	local health = self.health
+	local framed = isTarget and Settings.Get("target.highlight") and bar or false
+	if self.targetFramed ~= framed then
+		self.targetFramed = framed
+		health:SetRimGap(framed and Plate.FRAME_GAP or 0)
+		ns.Cast.Place(self)
+	end
+	if framed then
 		local r, g, b = TargetColor()
-		Widgets.ColorSlice(glow, r, g, b, TARGET_GLOW_ALPHA)
-		Widgets.ShowSlice(glow, true)
-		chrome:SetEdgeRGBA(r, g, b, 1)
+		health:SetRimColor(r, g, b, 1)
 	else
-		Widgets.ShowSlice(glow, false)
 		if isFocus and Settings.Get("focus.highlight") then
 			local r, g, b = Rgb(Settings.Get("focus.color"))
-			chrome:SetEdgeRGBA(r, g, b, 1)
+			health:SetRimColor(r, g, b, 1)
 		else
-			chrome:SetEdge("edgeInner")
+			health:SetRimColor(Tokens.Color("black"))
 		end
 	end
+	self:UpdateNameColor(isTarget)
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget then
 		alpha = Settings.Get("target.dimOthers")

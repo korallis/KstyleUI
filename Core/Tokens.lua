@@ -56,6 +56,7 @@ local COLORS = {
 	coinGold = { "f0c75e", 1 },
 	coinSilver = { "c3ccd6", 1 },
 	coinCopper = { "d68a5c", 1 },
+	plateHostile = { "c3433d", 1 },
 }
 
 local SIZES = {

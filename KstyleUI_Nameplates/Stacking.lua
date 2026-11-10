@@ -35,17 +35,32 @@ function Stacking.Extent()
 	end
 	local above, below = ns.Auras.Extent(plate)
 	local state = ns.state
-	local width = state.width + ns.Plate.BADGE_SIZE
+	local left, right = 0, 0
+	if Settings.Get("name.show") then
+		left, right = ns.Plate.NAME_OVERHANG, ns.Plate.NAME_OVERHANG
+	end
 	if Settings.Get("level.show") then
+		left = math.max(left, ns.Plate.BADGE_SIZE)
 		local overhang = math.max(0, (plate.level:GetHeight() - state.height) / 2)
 		local crown = Settings.Get("markers.classification") and MARKER_SIZE + GAP or 0
 		above = math.max(above, overhang + crown)
 		below = math.max(below, overhang)
+	elseif Settings.Get("markers.classification") then
+		left = math.max(left, MARKER_SIZE + GAP)
 	end
 	if Settings.Get("markers.raid") then
-		width = width + Settings.Get("markers.raidSize") + MARKER_GAP
+		right = math.max(right, Settings.Get("markers.raidSize") + MARKER_GAP)
 	end
-	return width, above, state.height, below
+	if Settings.Get("debuffs.enabled") then
+		local size, spacing, columns = ns.Auras.Grid(plate)
+		local extra = math.max(0, ns.Logic.AuraLineSize(columns, size, spacing) + spacing + size - state.width)
+		if Settings.Get("debuffs.growthX") == "LEFT" then
+			left = math.max(left, extra)
+		else
+			right = math.max(right, extra)
+		end
+	end
+	return state.width + left + right, above, state.height, below
 end
 
 local function Footprint()

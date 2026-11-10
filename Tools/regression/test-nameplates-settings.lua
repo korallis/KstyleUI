@@ -112,7 +112,7 @@ do
 	need("cvars.enabled", "toggle")
 	need("cvars.maxDistance", "slider")
 	need("cvars.stacking", "dropdown")
-	assert(rows["target.color"].showWhen(K.Store.Module("Nameplates")) == false, "the custom colour shows only for a custom source")
+	assert(rows["target.color"].showWhen(K.Store.Module("Nameplates")) == true, "the gold outline uses the custom colour by default")
 
 	-- A game setting the client does not have hides its row instead of showing a slider that does nothing.
 	local settings = K.Store.Module("Nameplates")
@@ -130,7 +130,7 @@ do
 	K.Store.Module("Nameplates").name.size = 400
 	assert(ns.Settings.Get("name.size") == rows["name.size"].max, "a size out of range clamps")
 	K.Store.Module("Nameplates").enemy.color = { r = 2, g = 0, b = 0 }
-	local hr = K.Tokens.Color("hostile")
+	local hr = K.Tokens.Color("plateHostile")
 	assert(ns.Settings.Get("enemy.color").r == hr, "a colour out of range reads as the default")
 	Raises(function() ns.Settings.Get("nope") end, "unknown setting", "an unknown key")
 end

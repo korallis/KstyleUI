@@ -55,8 +55,8 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	N.Cast(env, "nameplate1", CAST)
 	local bar = plate.castBar
-	local ar, ag, ab = K.Theme.Accent()
-	assert(barIs(bar, ar, ag, ab), "Pummel ready: an interruptible cast takes the accent")
+	local ar, ag, ab = K.Tokens.Color("gilt")
+	assert(barIs(bar, ar, ag, ab), "Pummel ready: an interruptible cast takes the tan colour")
 	assert(ns.Interrupt.spell == PUMMEL, "the module found Pummel")
 
 	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false }
@@ -66,7 +66,7 @@ do
 
 	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = true }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(barIs(bar, ar, ag, ab), "only the global cooldown: the accent again")
+	assert(barIs(bar, ar, ag, ab), "only the global cooldown: the tan colour again")
 
 	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
@@ -90,7 +90,7 @@ do
 	env._cooldowns[PUMMEL] = { isActive = false, isOnGCD = false }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	tint = Last(ns.Plates.Get("nameplate3").castBar:GetStatusBarTexture(), "SetVertexColorFromBoolean")
-	assert(SameColor(tint[3].r, tint[3].g, tint[3].b, ar, ag, ab), "and the accent once Pummel is ready")
+	assert(SameColor(tint[3].r, tint[3].g, tint[3].b, ar, ag, ab), "and the tan colour once Pummel is ready")
 
 	-- A secret cooldown state never decides: the bar stays as the player can act.
 	env._cooldowns[PUMMEL] = { isActive = env.Secret(true), isOnGCD = false }
@@ -135,16 +135,17 @@ do
 	assert(ns2.Interrupt.spell == PUMMEL, "SPELLS_CHANGED finds the spell once learned")
 end
 
--- A hunter has no interrupt: every interruptible cast takes the accent, and the cooldown event is cheap ------
+-- A hunter has no interrupt: every interruptible cast takes the tan colour, and the cooldown event is cheap ------
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "cast.showTime", true)
 	assert(ns.Interrupt.spell == nil, "no interrupt for a hunter")
 	N.Add(env, "nameplate1")
 	N.Cast(env, "nameplate1", CAST)
 	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	local ar, ag, ab = K.Theme.Accent()
+	local ar, ag, ab = K.Tokens.Color("gilt")
 	assert(barIs(ns.Plates.Get("nameplate1").castBar, ar, ag, ab), "without an interrupt, interruptible casts take the accent")
 end
 
