@@ -191,8 +191,23 @@ function Setup.Step()
 	return step
 end
 
-local function Paragraph(parent, role, color, width)
-	local text = Widgets.Text(parent, role, color)
+local function NoteStyle(text)
+	local path, size, flags = Tokens.Font("body")
+	if ns.Theme.FontFace() == "Folio" then
+		local _, smallSize = Tokens.Font("caps")
+		size = smallSize
+	end
+	Widgets.ApplyFont(text, path, size, flags)
+end
+
+local function Paragraph(parent, role, color, width, small)
+	local text = small and Widgets.FontString(parent) or Widgets.Text(parent, role, color)
+	if small then
+		text.Restyle = NoteStyle
+		Widgets.Track(text)
+		NoteStyle(text)
+		Widgets.TextColor(text, color)
+	end
 	text:SetJustifyH("LEFT")
 	text:SetJustifyV("TOP")
 	text:SetWordWrap(true)
@@ -330,14 +345,14 @@ local function Lines(text)
 end
 
 local function Fit(label, element, width, height)
-	local texts = { element.label, element.short }
+	local texts = { element.label, element.short or (element.key == "qol.lootfeed" and L["Loot"]) or nil }
 	local face, size, flags = label:GetFont()
 	size = type(size) == "number" and math.floor(size) or Tokens.Size("caption")
 	for points = size, LABEL_FLOOR, -1 do
 		if face and points < size then
 			Widgets.ApplyFont(label, face, points, flags)
 		end
-		local drawn = Widgets.FontSize(label, points)
+		local drawn = Widgets.LineHeight(label)
 		for _, split in ipairs({ false, true }) do
 			for _, text in ipairs(texts) do
 				local lines = split and Lines(text) or (not split and { text }) or nil
@@ -542,7 +557,10 @@ local function BuildModules(page, width)
 			end,
 		})
 		toggle:SetPoint("TOPLEFT", page, "TOPLEFT", col * column, -(top + row * Widgets.Snap(page, ROW_HEIGHT)))
-		local note = Widgets.Text(page, "body", "text")
+		local note = Widgets.FontString(page)
+		note.Restyle = NoteStyle
+		Widgets.Track(note)
+		NoteStyle(note)
 		note:SetJustifyH("LEFT")
 		note:SetWordWrap(false)
 		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
@@ -556,13 +574,13 @@ end
 local function BuildSummary(page, width)
 	local title = Widgets.Text(page, "heading", "textEmphasis")
 	title:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -gap("gapSmall"))
-	local summary = Paragraph(page, "body", "textEmphasis", width)
+	local summary = Paragraph(page, "body", "textEmphasis", width, true)
 	summary:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -gap("gapLarge"))
 	local preview = NewPreview(page)
 	preview.size = { SUMMARY_PREVIEW, Widgets.Snap(page, SUMMARY_PREVIEW * REFERENCE_HEIGHT / REFERENCE_WIDTH) }
 	preview:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
 	local column = width - SUMMARY_PREVIEW - gap("gapLarge")
-	local editMode = Paragraph(page, "body", "text", column)
+	local editMode = Paragraph(page, "body", "text", column, true)
 	editMode:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -gap("gapHuge"))
 	editMode:Hide()
 	local retry = Widgets.Button(page, {
@@ -584,7 +602,7 @@ local function BuildSummary(page, width)
 	})
 	manager:SetPoint("LEFT", retry, "RIGHT", gap("gapSmall"), 0)
 	manager:Hide()
-	local help = Paragraph(page, "body", "text", column)
+	local help = Paragraph(page, "body", "text", column, true)
 	help:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
 	panel.summaryTitle, panel.summary, panel.summaryHelp, panel.summaryPreview = title, summary, help, preview
 	panel.editMode, panel.retry, panel.manager = editMode, retry, manager

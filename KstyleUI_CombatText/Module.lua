@@ -159,6 +159,12 @@ local function OnScale()
 	Display.Restyle(Module.framePool, Module.cfg)
 end
 
+local function OnTheme()
+	Refresh()
+	World.Apply(Module.cfg)
+	OnScale()
+end
+
 local function OnModule(_, name)
 	if WATCHED_MODULES[name] then
 		Anchors.Schedule()
@@ -195,6 +201,7 @@ local function Enable()
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)
+	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)
 	K.Callbacks.Register("ModuleChanged", MODULE, OnModule)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	if not Module.checked then

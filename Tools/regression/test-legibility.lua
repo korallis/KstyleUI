@@ -77,6 +77,17 @@ end
 local function size(role)
 	return (select(2, Tokens.Font(role)))
 end
+assert(face("caption") == "PTSerif-Regular.ttf" and size("caption") >= 11, "Folio captions are PT Serif at 11 units or more")
+assert(face("title") == "FolioCaps-SemiBold.ttf" and size("title") >= 12, "Folio section heads use baked caps at 12 units or more")
+assert(face("caps") == "FolioCaps-SemiBold.ttf" and size("caps") >= 10, "Folio caps use the tracked face at 10 units or more")
+assert(Theme.SetFontScale(Theme.MIN_FONT_SCALE), "the smallest Folio text size")
+for _, role in ipairs(ROLES) do
+	assert(size(role) >= 10, "at the smallest Folio text size the " .. role .. " role stays at 10 or more")
+end
+assert(Theme.SetFontScale(1))
+local folioCap = Widgets.SectionCap(root, { text = "Blessings" })
+assert(file((folioCap.label:GetFont())) == "FolioCaps-SemiBold.ttf" and select(2, folioCap.label:GetFont()) >= 10, "a default rail cap uses Folio's tracked face at 10 units or more")
+assert(Theme.SetTypeSet("Lumen"), "the original Lumen legibility contracts remain selectable")
 assert(face("caption"):match("^AlegreyaSans"), "captions are Alegreya Sans, not tracked Cinzel; got " .. tostring(face("caption")))
 assert(size("caption") >= 11, "captions are at least 11 units; got " .. tostring(size("caption")))
 assert(face("title") == CINZEL and size("title") >= 12, "section heads have their own Cinzel role of 12 units or more")
@@ -97,6 +108,7 @@ local cap = Widgets.SectionCap(root, { text = "Blessings" })
 local capPath, capSize = cap.label:GetFont()
 assert(file(capPath) == "CinzelCaps-Medium.ttf" and capSize >= 10, "a rail card's section cap is a tracked Cinzel head of 10 units or more")
 assert(Widgets.SECTION_CAP_HEIGHT >= size("title"), "the rail's section cap height fits its head")
+assert(Theme.SetTypeSet("Folio"), "restore the default type set")
 
 -- A text shadow strong enough to lift text off busy glass: at least a whole unit, nearly opaque.
 local _, _, _, shadowAlpha = Tokens.Color("textShadow")

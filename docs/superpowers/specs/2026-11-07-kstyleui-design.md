@@ -196,7 +196,7 @@ Corners come from ring textures drawn for each line count, so the same art works
 
 ### Type
 
-- **Body font.** Source Sans 3 Semibold or Inter Semibold. Both are under the SIL Open Font Licence. A phase 0 spike renders both in game at 9, 11, 16 and 24 units, and the owner picks one. The repository ships the font's `OFL.txt`.
+- **Type set.** LEE-113, owner ruling 2026-11-10: "yes change the fonts and start measuring against the new fonts. pick fonts as close to what Diablo 4 uses as possible" replaces the old type choice, not the picture's layout. Folio is the default: IM Fell Double Pica SC for large display/headings, generated EB Garamond 600 for small titles/caps, generated Cinzel 600 for names, and PT Serif Regular/Bold for reading and native tabular lining figures. Every family is SIL OFL; no extracted or commercial game font ships. Lumen remains selectable and saved font overrides win. Chinese keeps the client's font fallback. `docs/core-visuals.md` specifies the roles; the new measured type standard is `handoffs/reference-diff/TYPE-SPEC.md` in the Captain drive.
 - **Scale.** Display 24, heading 16, body 11, caption 9. Captions are uppercase with letter spacing.
 - **Numerals.** Numbers that change, such as health and timers, use tabular figures.
 - **Shadow.** Text gets a soft shadow offset by 0.6 units instead of an outline. Text over the 3D world uses a thin outline.

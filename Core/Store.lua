@@ -8,8 +8,28 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 17
+Store.DB_VERSION = 18
 Store.migrations = {}
+
+Store.migrations[18] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local appearance = type(profile) == "table" and profile.Appearance
+		if type(appearance) == "table" and ns.Tokens.IsFontSet(appearance.font) then
+			if appearance.typeSet == nil then
+				appearance.typeSet = appearance.font
+			end
+			appearance.font = ""
+		end
+		local chat = type(profile) == "table" and profile.Chat
+		if type(chat) == "table" then
+			if chat.fontSize ~= nil and chat.lineSpacing == nil then
+				chat.lineSpacing = 4.5
+			elseif chat.lineSpacing ~= nil and chat.fontSize == nil then
+				chat.fontSize = 14
+			end
+		end
+	end
+end
 
 Store.migrations[2] = function(data)
 	for _, profile in pairs(data.profiles) do

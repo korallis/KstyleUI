@@ -363,6 +363,8 @@ Menu rows have `label`, `mark`, `wash` and `sample` (a hidden texture). Each row
 
 ## FontPicker and TexturePicker
 
+`InheritedFontOptions()` returns the font media list with an empty-path "Interface font" choice first. A schema `font` row opts in through its `options` field only when its reader resolves an empty path dynamically. Ordinary font pickers never offer that sentinel. The preview uses the body face for the inherited label; the consuming module chooses its semantic role.
+
 `MediaOptions(kind) -> { { value = path, label }, ... }` lists KstyleUI's own media from `Tokens.MediaList(kind)` first, then LibSharedMedia's, in its order, when `LibStub("LibSharedMedia-3.0", true)` returns the library. A path already listed is skipped, so KstyleUI's own media, which `Appearance` registers with LibSharedMedia, appear once. A font must be a path; other kinds may also be file IDs. A kind KstyleUI has no media for lists LibSharedMedia's only.
 
 `FontPicker(parent, opts) -> Button` and `TexturePicker(parent, opts) -> Button` are `Dropdown`s over `MediaOptions("font")` and `MediaOptions(opts.kind or "statusbar")`. Their values are paths, as the settings schema's `font` and `texture` rows store. Each font row draws its label in that font; each texture row shows a 64-unit `accent`-tinted sample. A path no list knows shows its file name.

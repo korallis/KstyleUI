@@ -18,7 +18,6 @@ local FONT_MIN, FONT_MAX = 6, 20
 local QUALITY = { POOR = 0, COMMON = 1, UNCOMMON = 2, RARE = 3, EPIC = 4, LEGENDARY = 5 }
 
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
-local numberFont = Tokens.Font("number")
 
 Settings.LIMITS = {
 	columns = { COLUMNS_MIN, COLUMNS_MAX },
@@ -45,7 +44,7 @@ Settings.defaults = {
 	showNewGlow = true,
 	showJunk = true,
 	showKeyring = true,
-	font = numberFont,
+	font = "",
 	fontSize = Tokens.Size("number"),
 	fontOutline = "NONE",
 	accentSource = "class",
@@ -166,7 +165,7 @@ Settings.schema = {
 	{ type = "header", label = L["Slot text"] },
 	{ type = "toggle", key = "showCount", label = L["Stack counts"], help = L["Show how many items are in each stack."], disableWhen = isOff },
 	{ type = "toggle", key = "showItemLevel", label = L["Item levels"], help = L["Show the item level of weapons and armour."], disableWhen = isOff },
-	{ type = "font", key = "font", label = L["Font"], help = L["The font of stack counts and item levels."], disableWhen = isOff },
+	{ type = "font", key = "font", label = L["Font"], help = L["The font of stack counts and item levels."], options = K.Widgets.InheritedFontOptions, disableWhen = isOff },
 	{
 		type = "slider", key = "fontSize", label = L["Font size"], help = L["The size of stack counts and item levels."],
 		min = FONT_MIN, max = FONT_MAX, step = 1, disableWhen = isOff,
@@ -316,7 +315,7 @@ function Settings.Font()
 	local outline = Settings.Get("fontOutline")
 	local path = Settings.Get("font")
 	if path == "" then
-		path = numberFont
+		path = Tokens.Font("number")
 	end
 	return path, Settings.Get("fontSize"), outline == "NONE" and "" or outline
 end

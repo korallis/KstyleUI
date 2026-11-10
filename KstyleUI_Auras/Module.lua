@@ -95,7 +95,7 @@ local rest = {
 		type = "dropdown", key = "timer.position", label = L["Timer position"], options = Model.TIMER_POSITIONS,
 		help = L["Puts the timer under the icon or on its lower edge."], disableWhen = timerHidden,
 	},
-	{ type = "font", key = "timer.font", label = L["Timer font"], help = L["The typeface of the timers."], disableWhen = timerHidden },
+	{ type = "font", key = "timer.font", label = L["Timer font"], help = L["The typeface of the timers."], options = K.Widgets.InheritedFontOptions, disableWhen = timerHidden },
 	slider("timer.size", L["Timer size"], L["The text size of the timers."], LIMITS.timerSize, timerHidden),
 	{
 		type = "dropdown", key = "timer.outline", label = L["Timer outline"], options = Model.OUTLINES,
@@ -103,7 +103,7 @@ local rest = {
 	},
 	slider("timer.expiring", L["Warn under"], L["Seconds left when a timer turns red. 0 turns the warning off."], LIMITS.expiring, timerHidden),
 	{ type = "header", label = L["Stack counts"] },
-	{ type = "font", key = "count.font", label = L["Stack font"], help = L["The typeface of the stack counts on the icons."] },
+	{ type = "font", key = "count.font", label = L["Stack font"], help = L["The typeface of the stack counts on the icons."], options = K.Widgets.InheritedFontOptions },
 	slider("count.size", L["Stack size"], L["The text size of the stack counts."], LIMITS.countSize),
 	{
 		type = "dropdown", key = "count.outline", label = L["Stack outline"], options = Model.OUTLINES,

@@ -360,15 +360,25 @@ local function SetName(view, name)
 	view.plainName = name
 	text:SetText(view.s.nameCaps and Unit.Tracked(name, path) or name)
 	local bodyPath, bodySize = Tokens.Font("body")
+	if not ns.Settings.ThemeFont(view.kind, "name") then
+		bodyPath = path
+	end
 	if not Number(full) then
 		BoundName(view, true)
 		return
 	end
 	local width, room = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth(), view.geometry and view.geometry.nameRoom or text:GetWidth()
 	if Number(width) and Number(room) and room > 0 and width > room then
-		SetFont(text, bodyPath, math.min(bodySize, full), flags)
+		local limit = math.min(bodySize, full)
+		SetFont(text, bodyPath, limit, flags)
 		text:SetText(name)
 		width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
+		local _, actual = text:GetFont()
+		if Number(width) and width > room and Number(actual) and actual > limit then
+			local pixel = K.Widgets.FontSize(text, 0)
+			SetFont(text, bodyPath, math.max(pixel, actual - pixel), flags)
+			width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
+		end
 	end
 	BoundName(view, not (Number(width) and Number(room) and width <= room))
 end

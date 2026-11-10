@@ -38,7 +38,7 @@ local _, headSize = cap.label:GetFont()
 assert(headSize > Tokens.Size("caps"), "the head reads larger than the kit's caps size, at the picture's 12")
 local path = cap.label:GetFont()
 assert(path == (Tokens.Font("caps")), "the head is in the caps role")
-assert(path:match("CinzelCaps%-Medium%.ttf$"), "which is tracked Cinzel")
+assert(path:match("FolioCaps%-SemiBold%.ttf$") and Tokens.FaceTracking(path) == 0.045, "the default head uses tracked Folio caps")
 assert(cap.label:GetText() == "PARTY", "and uppercase, got " .. tostring(cap.label:GetText()))
 assert(textIs(cap.label, "capsGold"), "in the picture's muted gold")
 local lp = point(cap.label, "LEFT")
@@ -114,6 +114,9 @@ cap:Restyle()
 -- The cap restyles with the theme.
 K.Theme.SetFontFace("SourceSans3Semibold")
 assert((cap.label:GetFont()):match("SourceSans3%-Semibold%.ttf$"), "a font change reaches the caption")
+assert(K.Theme.SetTypeSet("Lumen") and K.Theme.SetFontFace(""), "the original Lumen set remains selectable without an override")
+assert((cap.label:GetFont()):match("CinzelCaps%-Medium%.ttf$") and Tokens.FaceTracking((cap.label:GetFont())) == 0.065, "Lumen retains its tracked Cinzel cap")
+assert(K.Theme.SetTypeSet("Folio"), "restore the default type set")
 
 -- The mark is the Skins caption bullet's `diamond` texture at 8 root units from point to point (14 px on the reference
 -- panel), on whole pixels, and on each of the nine screens within a pixel of 8.

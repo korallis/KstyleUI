@@ -18,6 +18,7 @@ local DIVIDER_GAP = 1
 local DIVIDER_SUBLEVEL = 7
 local BAR_EDGE = 8
 local FRIENDLY = 5
+local PAIR_MIN_SIZE = 8
 
 local ITEM = {
 	header = 2,
@@ -103,10 +104,45 @@ local function Shown(line)
 	return line.key == nil or Settings.Get(line.key)
 end
 
+local function FitPair(row, available, gap)
+	local leftPath, leftSize, leftFlags = row.left:GetFont()
+	local rightPath, rightSize, rightFlags = row.right:GetFont()
+	if Logic.IsSecret(leftPath) or Logic.IsSecret(rightPath) or Logic.IsSecret(leftFlags) or Logic.IsSecret(rightFlags)
+		or type(leftPath) ~= "string" or type(rightPath) ~= "string" or type(leftFlags) ~= "string" or type(rightFlags) ~= "string"
+		or not Logic.IsNumber(leftSize) or not Logic.IsNumber(rightSize) then
+		return
+	end
+	local originalLeft, originalRight = leftSize, rightSize
+	local pixel = Widgets.FontSize(row.left, 0)
+	local minimum = Widgets.FontSize(row.left, PAIR_MIN_SIZE * Theme.FontScale())
+	local function Restore()
+		Widgets.ApplyFont(row.left, leftPath, originalLeft, leftFlags)
+		Widgets.ApplyFont(row.right, rightPath, originalRight, rightFlags)
+	end
+	while true do
+		local leftWidth, rightWidth = Widgets.TextWidth(row.left), Widgets.TextWidth(row.right)
+		if not Logic.IsNumber(leftWidth) or not Logic.IsNumber(rightWidth) or leftWidth < 0 or rightWidth < 0
+			or leftWidth == math.huge or rightWidth == math.huge then
+			Restore()
+			return
+		end
+		if leftWidth + rightWidth + gap <= available or leftSize <= minimum and rightSize <= minimum then
+			return
+		end
+		leftSize, rightSize = math.max(minimum, leftSize - pixel), math.max(minimum, rightSize - pixel)
+		if not Widgets.ApplyFont(row.left, leftPath, leftSize, leftFlags) or not Widgets.ApplyFont(row.right, rightPath, rightSize, rightFlags) then
+			Restore()
+			return
+		end
+	end
+end
+
 local function LayoutSample(glass)
 	local pad = Widgets.Snap(glass, Tokens.Size("gapMedium"))
 	local gap = Widgets.Snap(glass, LINE_GAP)
 	local x = pad + (glass.indent or 0)
+	local reserve = glass.reserve or {}
+	local width = Widgets.Snap(glass, SAMPLE_WIDTH + (glass.indent or 0) + (reserve.right or 0))
 	local y = pad
 	local shown = 0
 	for i, row in ipairs(glass.rows) do
@@ -124,14 +160,16 @@ local function LayoutSample(glass)
 			row.left:ClearAllPoints()
 			row.left:SetPoint("TOPLEFT", glass, "TOPLEFT", x, -y)
 			row.left:SetPoint("RIGHT", glass, "RIGHT", -pad, 0)
+			local _, size = Style.FontSpec(role)
+			local height = Widgets.TextHeight(row.left, size)
 			if row.right then
 				Style.StyleFont(row.right, role)
 				row.right:SetTextColor(LineColor(line.rightColor or line.color))
 				row.right:ClearAllPoints()
 				row.right:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -pad, -y)
+				FitPair(row, width - x - pad, Widgets.Snap(glass, Tokens.Size("gapSmall")))
 			end
-			local _, size = Style.FontSpec(role)
-			y = y + Widgets.TextHeight(row.left, size) + gap
+			y = y + height + gap
 		end
 	end
 	if glass.spec[2] and glass.spec[2].key == "guildLine" and Settings.Get("guildRank") then
@@ -139,8 +177,7 @@ local function LayoutSample(glass)
 	elseif glass.spec[2] and glass.spec[2].key == "guildLine" then
 		glass.rows[2].left:SetText(Logic.GuildText(L["Kstyle"]))
 	end
-	local reserve = glass.reserve or {}
-	Widgets.Size(glass, SAMPLE_WIDTH + (glass.indent or 0) + (reserve.right or 0), y - gap + pad + (reserve.bottom or 0))
+	Widgets.Size(glass, width, y - gap + pad + (reserve.bottom or 0))
 	local divider = glass.divider
 	divider:ClearAllPoints()
 	divider:SetPoint("TOPLEFT", glass.rows[glass.spec.header or 1].left, "BOTTOMLEFT", 0, -Widgets.Snap(glass, DIVIDER_GAP))

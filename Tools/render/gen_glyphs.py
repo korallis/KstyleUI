@@ -13,8 +13,11 @@ Python when the system Python has none.
 
 import argparse
 import glob
+import json
 import os
+import struct
 import sys
+from pathlib import Path
 
 VENV_PYTHON = os.path.expanduser("~/.local/share/wow-dev/venv/bin/python")
 UNITS = 1000
@@ -32,23 +35,62 @@ THIN_SPACE = 0x2009
 MIDDLE_DOT = 0x00B7
 
 
+def characters():
+    codes = set(range(32, 127)) | {THIN_SPACE, MIDDLE_DOT}
+    for locale in ("enUS", "deDE", "frFR", "esES"):
+        data = json.loads((Path(__file__).resolve().parents[1] / "locale" / (locale + ".json")).read_text(encoding="utf-8"))
+        for text in data if isinstance(data, list) else data.values():
+            codes.update(ord(c) for c in text + text.upper() if c.isprintable())
+    return codes
+
+
+def mapped_codes(path):
+    data = Path(path).read_bytes()
+    count = struct.unpack_from(">H", data, 4)[0]
+    for i in range(count):
+        tag, _, offset, _ = struct.unpack_from(">4sIII", data, 12 + 16 * i)
+        if tag == b"cmap":
+            break
+    else:
+        raise ValueError("font has no cmap: " + str(path))
+    cmap = data[offset:]
+    codes = set()
+    for i in range(struct.unpack_from(">H", cmap, 2)[0]):
+        platform, encoding, at = struct.unpack_from(">HHI", cmap, 4 + 8 * i)
+        if not (platform == 0 or (platform == 3 and encoding in (1, 10))):
+            continue
+        sub = cmap[at:]
+        if struct.unpack_from(">H", sub)[0] != 4:
+            continue
+        n = struct.unpack_from(">H", sub, 6)[0] // 2
+        ends = struct.unpack_from(">" + "H" * n, sub, 14)
+        starts = struct.unpack_from(">" + "H" * n, sub, 16 + 2 * n)
+        deltas = struct.unpack_from(">" + "h" * n, sub, 16 + 4 * n)
+        ranges_at = 16 + 6 * n
+        ranges = struct.unpack_from(">" + "H" * n, sub, ranges_at)
+        for s in range(n):
+            for code in range(starts[s], ends[s] + 1):
+                if ranges[s]:
+                    pos = ranges_at + 2 * s + ranges[s] + 2 * (code - starts[s])
+                    glyph = struct.unpack_from(">H", sub, pos)[0]
+                    glyph = (glyph + deltas[s]) & 0xFFFF if glyph else 0
+                else:
+                    glyph = (code + deltas[s]) & 0xFFFF
+                if glyph:
+                    codes.add(code)
+    return codes
+
+
 def advances(path):
-    """The advance of each printable ASCII glyph, the thin space, and the middle dot, in em, as {code: em}."""
+    """Advances of the shipped Latin locales' actual mapped glyphs, in em."""
     font = ImageFont.truetype(path, UNITS)
-    out = {code: font.getlength(chr(code)) / UNITS for code in range(32, 127)}
-    # A font without the glyph draws its missing-glyph box; only a real glyph's advance is recorded.
-    missing = font.getlength(chr(0xFFFE))
-    for code in (THIN_SPACE, MIDDLE_DOT):
-        advance = font.getlength(chr(code))
-        if advance != missing:
-            out[code] = advance / UNITS
-    return out
+    return {code: font.getlength(chr(code)) / UNITS for code in characters() & mapped_codes(path)}
 
 
 def render(fonts):
     """The Lua module text for {name: {code: em}}."""
     lines = [
-        "-- glyphs.lua: the kit fonts' glyph advances in em, by font file name and code point (ASCII, 183 for the middle dot, and 8201 for the thin space); Tools/render/gen_glyphs.py writes it.",
+        "-- glyphs.lua: actual glyph advances in em for the shipped Latin locales and their capitals, by font file and Unicode code point; Tools/render/gen_glyphs.py writes it.",
         "return {",
     ]
     for name in sorted(fonts):

@@ -161,8 +161,11 @@ end
 -- Fonts: a locale whose script KstyleUI's faces cover keeps them.
 do
 	local _, K = Boot("deDE")
-	assert(K.Tokens.Font("title") == OWN .. "Cinzel-SemiBold.ttf", "German keeps Cinzel for titles")
-	assert(K.Tokens.Font("body") == OWN .. "AlegreyaSansTabular-Regular.ttf", "German keeps Alegreya Sans for body text")
+	assert(K.Tokens.Font("title") == OWN .. "FolioCaps-SemiBold.ttf", "German keeps Folio caps for titles")
+	assert(K.Tokens.Font("body") == OWN .. "PTSerif-Regular.ttf", "German keeps PT Serif for body text")
+	assert(K.Theme.SetTypeSet("Lumen"), "the original type set remains selectable")
+	assert(K.Tokens.Font("title") == OWN .. "Cinzel-SemiBold.ttf", "German keeps Cinzel in the Lumen set")
+	assert(K.Tokens.Font("body") == OWN .. "AlegreyaSansTabular-Regular.ttf", "German keeps Alegreya Sans in the Lumen set")
 	assert(K.Tokens.FontPath("CinzelSemiBold") == OWN .. "Cinzel-SemiBold.ttf", "and FontPath returns the face")
 end
 
@@ -187,6 +190,10 @@ end
 -- Russian keeps Alegreya Sans, which has Cyrillic, and swaps only Cinzel, which does not.
 do
 	local _, K = Boot("ruRU")
+	assert(K.Tokens.Font("display") == "Fonts\\FRIZQT___CYR.TTF", "Russian display text replaces IM Fell with the client font")
+	assert(K.Tokens.Font("title") == OWN .. "FolioCaps-SemiBold.ttf", "Russian titles keep the Cyrillic-capable Folio caps face")
+	assert(K.Tokens.Font("body") == OWN .. "PTSerif-Regular.ttf", "Russian body text keeps PT Serif")
+	assert(K.Theme.SetTypeSet("Lumen"), "check the original Russian substitution as well")
 	assert(K.Tokens.Font("title") == "Fonts\\FRIZQT___CYR.TTF", "Russian titles use the game's Cyrillic font")
 	assert(K.Tokens.Font("body") == OWN .. "AlegreyaSansTabular-Regular.ttf", "Russian body text keeps Alegreya Sans")
 end

@@ -528,7 +528,7 @@
 		if (item.font.file) {
 			family = await loadFont(base, item.font.file);
 		} else {
-			family = "Source Sans 3, sans-serif";
+			family = "\"Source Sans 3\", sans-serif";
 		}
 		ctx.save();
 		ctx.font = sizePx.toFixed(2) + "px " + family;

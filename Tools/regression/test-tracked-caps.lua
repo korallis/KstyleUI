@@ -4,7 +4,7 @@ local Scene = dofile("Tools/render/scene.lua")
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(locale)
-	return W.New({
+	local env, K = W.New({
 		setup = function(env)
 			env._textWidth = function(text, fontPath, size)
 				return Scene.TextWidth(text, size, fontPath)
@@ -16,6 +16,8 @@ local function Boot(locale)
 			end
 		end,
 	})
+	assert(K.Theme.SetTypeSet("Lumen"), "select the original Lumen set for its tracked Cinzel contracts")
+	return env, K
 end
 
 local env, K = Boot("enUS")

@@ -172,7 +172,7 @@ end
 do
 	local env, K, ns = C.New({ width = 3456, height = 2234, uiScale = 768 / 1080 })
 	C.Enable(env, K)
-	assert(ns.defaults.lineSpacing == 4.5, "the default spacing is 4.5 units, got " .. tostring(ns.defaults.lineSpacing))
+	assert(ns.defaults.lineSpacing == 6.5, "Folio's 12-unit chat keeps the reference pitch with 6.5 units of spacing, got " .. tostring(ns.defaults.lineSpacing))
 	local chat = env.ChatFrame1
 	local function spacingAt(value)
 		K.Options.Write("Chat", "lineSpacing", value)
@@ -569,9 +569,12 @@ end
 do
 	local env, K = C.New()
 	C.Enable(env, K)
-	local path = K.Store.Module("Chat").font
+	local path = K.Tokens.Font("body")
 	local body = K.Tokens.Font("body")
-	assert(path == K.Tokens.FontPath("AlegreyaSansRegular") and path == body, "messages default to the Lumen body face, the one face every other body text uses (Fable #5, Opus #4): " .. tostring(path))
+	assert(K.Store.Module("Chat").font == "" and path == K.Tokens.FontPath("PTSerifRegular") and path == body, "messages inherit the current Folio body face: " .. tostring(path))
+	assert(K.Theme.SetTypeSet("Lumen"), "the original Lumen body remains selectable")
+	assert((env.ChatFrame1:GetFont()) == K.Tokens.FontPath("AlegreyaSansRegular") and (env.ChatFrame1:GetFont()) == K.Tokens.Font("body"), "messages inherit the original Lumen body when selected")
+	assert(K.Theme.SetTypeSet("Folio"), "restore the default type set")
 	local faces = {}
 	for _, face in ipairs(K.Tokens.MediaList("font")) do
 		faces[face.key] = true
@@ -582,7 +585,8 @@ do
 		return K.Widgets.FontSize(object, n)
 	end
 	local args = lastCall(env.ChatFrame1, "SetFont")
-	assert(args and args[1] == path and near(args[2], sized(env.ChatFrame1, 14)) and args[3] == "", "messages in the chat font at 14, the mockup's size")
+	assert(K.Store.Module("Chat").fontSize == 12, "the default Folio chat size is 12 so the collection fixture stays whole")
+	assert(args and args[1] == path and near(args[2], sized(env.ChatFrame1, 12)) and args[3] == "", "messages use the inherited Folio font at the 12-unit default")
 	local px = args[2] * env.ChatFrame1:GetEffectiveScale() * 1080 / 768
 	assert(math.abs(px - math.floor(px + 0.5)) < 1e-6, "on whole pixels, got " .. px)
 	assert(K.Store.Module("Chat").tabFontSize == 12, "tab names at 12, which the chat card's scale draws as the picture's 10")
@@ -601,7 +605,7 @@ do
 	env.ChatFrame1:SetFont(path, 14, "")
 	env.RunTimers()
 	assert(near(lastCall(env.ChatFrame1, "SetFont")[2], sized(env.ChatFrame1, 18)), "the game's per-window size is put back after UPDATE_CHAT_WINDOWS")
-	assert(near(lastCall(env.ChatFrame1, "SetSpacing")[1], K.Widgets.Snap(env.ChatFrame1, 4)), "4 units between lines, the mockup's pitch at 14, on whole pixels")
+	assert(near(lastCall(env.ChatFrame1, "SetSpacing")[1], K.Widgets.Snap(env.ChatFrame1, 6.5)), "6.5 units between lines preserve the reference pitch with Folio at 12, on whole pixels")
 	K.Options.Write("Chat", "lineSpacing", 0)
 	assert(lastCall(env.ChatFrame2, "SetSpacing")[1] == 0, "line spacing reaches every window")
 	K.Options.Write("Chat", "fade", false)

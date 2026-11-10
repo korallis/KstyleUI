@@ -49,6 +49,8 @@ KstyleUI.Modules.IsEnabled(name) -> boolean
 KstyleUI.Callbacks.Register(event, owner, fn)     -- events: ThemeChanged, ClassChanged, ScaleChanged, ProfileChanged, IconsChanged
 KstyleUI.Callbacks.Fire(event, ...)
 KstyleUI.Tokens.Color(name) -> r, g, b, a         -- names from the spec's colour table
+KstyleUI.Tokens.IsFontSet(key) -> boolean         -- Folio or Lumen
+KstyleUI.Theme.SetTypeSet(key) -> ok              -- keeps explicit font overrides
 KstyleUI.Tokens.Size(name) -> number              -- root units
 KstyleUI.Tokens.Duration(name) -> seconds
 KstyleUI.Tokens.Font(role) -> path, size, flags   -- roles: display, heading, body, caption, number, world

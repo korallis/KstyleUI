@@ -32,9 +32,9 @@ local defaults = {
 	buttons = false,
 	copyButton = true,
 	editBox = "typing",
-	font = Tokens.FontPath("AlegreyaSansRegular"),
-	fontSize = 14,
-	lineSpacing = 4.5,
+	font = "",
+	fontSize = 12,
+	lineSpacing = 6.5,
 	fontOutline = "none",
 	fade = true,
 	fadeTime = 120,
@@ -156,6 +156,7 @@ function ns.Schema()
 		{ type = "header", label = L["Text"] },
 		{
 			type = "font", key = "font", label = L["Font"],
+			options = K.Widgets.InheritedFontOptions,
 			help = L["The font of chat messages and the edit box. Tabs use the caps face."],
 		},
 		{

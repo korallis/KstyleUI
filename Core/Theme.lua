@@ -22,7 +22,8 @@ Theme.MIN_FONT_SCALE, Theme.MAX_FONT_SCALE = MIN_FONT_SCALE, MAX_FONT_SCALE
 
 local state = {
 	source = "class",
-	face = Tokens.DEFAULT_FONT_FACE,
+	face = "",
+	typeSet = Tokens.DEFAULT_FONT_FACE,
 	fontScale = 1,
 	class = nil,
 	announced = nil,
@@ -176,7 +177,18 @@ function Theme.SetCustomAccent(r, g, b)
 end
 
 function Theme.FontFace()
-	return state.face
+	return state.face ~= "" and state.face or state.typeSet
+end
+
+function Theme.SetTypeSet(key)
+	if not Tokens.IsFontSet(key) then
+		return false
+	end
+	if state.typeSet ~= key then
+		state.typeSet = key
+		Fire("ThemeChanged")
+	end
+	return true
 end
 
 function Theme.IsFontPath(path)
@@ -188,7 +200,7 @@ function Theme.IsFontPath(path)
 end
 
 function Theme.SetFontFace(key)
-	if type(key) ~= "string" or not (Tokens.FontPath(key) or Theme.IsFontPath(key)) then
+	if type(key) ~= "string" or not (key == "" or Tokens.FontPath(key) or Theme.IsFontPath(key)) then
 		return false
 	end
 	if state.face ~= key then
