@@ -192,12 +192,7 @@ function Setup.Step()
 end
 
 local function NoteStyle(text)
-	local path, size, flags = Tokens.Font("body")
-	if ns.Theme.FontFace() == "Folio" then
-		local _, smallSize = Tokens.Font("caps")
-		size = smallSize
-	end
-	Widgets.ApplyFont(text, path, size, flags)
+	Widgets.ApplyFont(text, Tokens.NoteFont())
 end
 
 local function Paragraph(parent, role, color, width, small)
@@ -345,7 +340,7 @@ local function Lines(text)
 end
 
 local function Fit(label, element, width, height)
-	local texts = { element.label, element.short or (element.key == "qol.lootfeed" and L["Loot"]) or nil }
+	local texts = { element.label, element.short }
 	local face, size, flags = label:GetFont()
 	size = type(size) == "number" and math.floor(size) or Tokens.Size("caption")
 	for points = size, LABEL_FLOOR, -1 do

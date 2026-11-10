@@ -56,7 +56,8 @@ do
 	-- message column, between its glass inset and the dock's button column, holds at least 21 em of the 14-unit default.
 	local g = ns.Panel.Geometry(env.ChatFrame1)
 	local column = settings.width - g.left - g.right
-	assert(column / ns.defaults.fontSize >= 21, "the message column holds 21 em of default text, got " .. column / ns.defaults.fontSize)
+	local em = ns.TextSize(K.Store.Module("Chat"))
+	assert(column / em >= 21, "the message column holds 21 em of default text, got " .. column / em)
 	local holder, glass = ns.Panel.Holder(), ns.Panel.Glass()
 	assert(holder and holder:IsShown(), "the panel shows")
 	assert(glass:GetParent() == holder and glass:GetFrameStrata() == "BACKGROUND", "the glass sits behind the chat")
@@ -117,7 +118,7 @@ do
 		local chat = env.ChatFrame1
 		local font = lastCall(chat, "SetFont")[2]
 		local spacing = lastCall(chat, "SetSpacing")[1]
-		assert(near(font, K.Widgets.FontSize(chat, ns.defaults.fontSize * size)), "the message size follows the size setting at " .. size .. ", got " .. font)
+		assert(near(font, K.Widgets.FontSize(chat, ns.TextSize(K.Store.Module("Chat")) * size)), "the message size follows the size setting at " .. size .. ", got " .. font)
 		assert(near(lastCall(env.ChatFrame1Tab.Text, "SetFont")[2], K.Widgets.FontSize(env.ChatFrame1Tab.Text, ns.defaults.tabFontSize * size)), "so do the tab names")
 		local g = ns.Panel.Geometry(chat)
 		local el = K.Layout.Get("chat.main")
@@ -172,7 +173,7 @@ end
 do
 	local env, K, ns = C.New({ width = 3456, height = 2234, uiScale = 768 / 1080 })
 	C.Enable(env, K)
-	assert(ns.defaults.lineSpacing == 6.5, "Folio's 12-unit chat keeps the reference pitch with 6.5 units of spacing, got " .. tostring(ns.defaults.lineSpacing))
+	assert(ns.LineSpacing(K.Store.Module("Chat")) == 6.5, "Folio's 12-unit chat keeps the reference pitch with 6.5 units of spacing, got " .. tostring(ns.LineSpacing(K.Store.Module("Chat"))))
 	local chat = env.ChatFrame1
 	local function spacingAt(value)
 		K.Options.Write("Chat", "lineSpacing", value)
@@ -567,7 +568,7 @@ end
 
 -- Fonts: the chosen font, size and outline on every window, the edit box and the tabs.
 do
-	local env, K = C.New()
+	local env, K, ns = C.New()
 	C.Enable(env, K)
 	local path = K.Tokens.Font("body")
 	local body = K.Tokens.Font("body")
@@ -585,7 +586,7 @@ do
 		return K.Widgets.FontSize(object, n)
 	end
 	local args = lastCall(env.ChatFrame1, "SetFont")
-	assert(K.Store.Module("Chat").fontSize == 12, "the default Folio chat size is 12 so the collection fixture stays whole")
+	assert(ns.TextSize(K.Store.Module("Chat")) == 12, "the default Folio chat size is 12 so the collection fixture stays whole")
 	assert(args and args[1] == path and near(args[2], sized(env.ChatFrame1, 12)) and args[3] == "", "messages use the inherited Folio font at the 12-unit default")
 	local px = args[2] * env.ChatFrame1:GetEffectiveScale() * 1080 / 768
 	assert(math.abs(px - math.floor(px + 0.5)) < 1e-6, "on whole pixels, got " .. px)
@@ -599,6 +600,7 @@ do
 	args = lastCall(env.ChatFrame1Tab.Text, "SetFont")
 	assert(args and args[1] == K.Tokens.Font("names") and near(args[2], sized(env.ChatFrame1Tab.Text, K.Store.Module("Chat").tabFontSize)), "tabs use the names face at the tab size")
 	env.FCF_SetChatWindowFontSize(nil, env.ChatFrame1, 18)
+	env.RunTimers()
 	assert(K.Store.Module("Chat").fontSize == 18, "a size picked from the game's tab menu becomes the setting")
 	assert(near(lastCall(env.ChatFrame2, "SetFont")[2], sized(env.ChatFrame2, 18)), "and reaches every window")
 	env.FireEvent("UPDATE_CHAT_WINDOWS")

@@ -15,6 +15,12 @@ local LSM_PREFIX = "KstyleUI "
 
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 
+local ROLES = Tokens.FontRoles()
+local ROLE_KEY = {}
+for _, role in ipairs(ROLES) do
+	ROLE_KEY[role] = "roleFont" .. role:sub(1, 1):upper() .. role:sub(2)
+end
+
 Appearance.defaults = {
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
@@ -24,6 +30,9 @@ Appearance.defaults = {
 	uiScale = Scale.DEFAULT_USER_SCALE,
 	motion = "full",
 }
+for _, role in ipairs(ROLES) do
+	Appearance.defaults[ROLE_KEY[role]] = ""
+end
 
 local function Log(message)
 	ns.DevTest.Log(SECTION, message)
@@ -71,6 +80,23 @@ local CLEAN = {
 	end,
 }
 
+local function CleanRoleFont(v)
+	if type(v) == "string" and (v == "" or not Tokens.IsFontSet(v) and (Tokens.FontPath(v) or Theme.IsFontPath(v))) then
+		return v
+	end
+end
+for _, role in ipairs(ROLES) do
+	CLEAN[ROLE_KEY[role]] = CleanRoleFont
+end
+
+local function ApplyRoleFonts()
+	local choices = {}
+	for _, role in ipairs(ROLES) do
+		choices[role] = Appearance.Get(ROLE_KEY[role])
+	end
+	Theme.SetRoleFonts(choices)
+end
+
 local APPLY = {
 	accentColor = function(c)
 		Theme.SetCustomAccent(c.r, c.g, c.b)
@@ -82,6 +108,9 @@ local APPLY = {
 	uiScale = Scale.SetUserScale,
 	motion = Motion.SetLevel,
 }
+for _, role in ipairs(ROLES) do
+	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
+end
 local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScale", "motion" }
 
 function Appearance.Get(key)
@@ -108,6 +137,7 @@ function Appearance.Apply()
 	for _, key in ipairs(ORDER) do
 		ApplyKey(key)
 	end
+	ApplyRoleFonts()
 end
 
 local function PathKey(path)
@@ -166,8 +196,10 @@ Appearance.schema = {
 	},
 	{
 		type = "dropdown", key = "font", label = L["Font"],
-		help = L["Overrides the type set; numbers keep Source Sans 3 when a font is chosen."],
-		options = FaceOptions,
+		help = L["Replaces the type set; Source Sans 3 stays on numbers unless set below."],
+		options = function()
+			return FaceOptions()
+		end,
 	},
 	{
 		type = "slider", key = "fontScale", label = L["Text size"],
@@ -192,37 +224,81 @@ Appearance.schema = {
 	},
 }
 
+local ROLE_ROWS = {
+	{ "display", L["Display font"], L["Large titles, such as window and page titles."] },
+	{ "heading", L["Heading font"], L["Headings and marks such as the minimap's N."] },
+	{ "title", L["Title font"], L["Tooltip and menu titles."] },
+	{ "caps", L["Capitals font"], L["Small capital labels and section titles."] },
+	{ "names", L["Names font"], L["Names on plates, chat tabs and the minimap."] },
+	{ "unit", L["Unit name font"], L["The large unit name on column unit frames."] },
+	{ "body", L["Body font"], L["Most text: lists, chat, menus and quest lines."] },
+	{ "prose", L["Prose font"], L["Longer lines of text, such as the experience bar."] },
+	{ "caption", L["Caption font"], L["Small descriptive text, such as macro names."] },
+	{ "number", L["Number font"], L["Counts, keybinds and values."] },
+	{ "time", L["Time font"], L["Clocks and other times."] },
+	{ "timer", L["Timer font"], L["Aura and cooldown timers."] },
+	{ "world", L["World text font"], L["Text drawn in the game world, such as plate casts."] },
+}
+
+local at
+for i, row in ipairs(Appearance.schema) do
+	if row.key == "fontScale" then
+		at = i
+	end
+end
+local function InsertRow(row)
+	at = at + 1
+	table.insert(Appearance.schema, at, row)
+end
+InsertRow({ type = "header", label = L["Fonts by role"] })
+InsertRow({ type = "note", label = L["A font you choose here may lack some letters or equal-width figures. KstyleUI adds no spacing to it and uses a standard font if it fails to load."] })
+for _, spec in ipairs(ROLE_ROWS) do
+	InsertRow({
+		type = "font", key = ROLE_KEY[spec[1]], label = spec[2], help = spec[3],
+		options = function()
+			return ns.Widgets.InheritedFontOptions()
+		end,
+	})
+end
+
 Store.RegisterDefaults(SECTION, Appearance.defaults)
 ns.Options.Register(SECTION, Appearance.schema)
 
-local mediaRegistered = false
+local mediaDone = {}
+local mediaRefused
 
 local function RegisterSharedMedia()
-	if mediaRegistered then
-		return
-	end
 	local libstub = rawget(_G, "LibStub")
 	if libstub == nil then
-		return
+		return true
 	end
 	local found, lsm = pcall(libstub, LSM_MAJOR, true)
 	if not found or type(lsm) ~= "table" or type(lsm.Register) ~= "function" then
-		return
+		return true
 	end
-	mediaRegistered = true
 	local refused = 0
 	for _, kind in ipairs({ "font", "statusbar" }) do
 		for _, item in ipairs(Tokens.MediaList(kind)) do
-			if not pcall(lsm.Register, lsm, kind, LSM_PREFIX .. item.label, item.path) then
-				refused = refused + 1
+			local id = kind .. ":" .. PathKey(item.path)
+			if not mediaDone[id] then
+				local ok, result = pcall(lsm.Register, lsm, kind, LSM_PREFIX .. item.label, item.path)
+				if ok and result ~= false then
+					mediaDone[id] = true
+				else
+					refused = refused + 1
+				end
 			end
 		end
 	end
-	if refused == 0 then
-		Log("registered KstyleUI's fonts and status bars with LibSharedMedia")
-	else
-		Log("LibSharedMedia refused " .. refused .. " of KstyleUI's media")
+	if refused ~= mediaRefused then
+		mediaRefused = refused
+		if refused == 0 then
+			Log("registered KstyleUI's fonts and status bars with LibSharedMedia")
+		else
+			Log("LibSharedMedia refused " .. refused .. " of KstyleUI's media; trying again when the next loading screen ends")
+		end
 	end
+	return refused == 0
 end
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
@@ -243,5 +319,11 @@ ns.Events.Register(SECTION, "PLAYER_LOGIN", function()
 	if Store.IsLoaded() then
 		Appearance.Apply()
 	end
-	RegisterSharedMedia()
+	if not RegisterSharedMedia() then
+		ns.Events.Register(SECTION, "PLAYER_ENTERING_WORLD", function()
+			if RegisterSharedMedia() then
+				ns.Events.Unregister(SECTION, "PLAYER_ENTERING_WORLD")
+			end
+		end)
+	end
 end)

@@ -51,6 +51,13 @@ KstyleUI.Callbacks.Fire(event, ...)
 KstyleUI.Tokens.Color(name) -> r, g, b, a         -- names from the spec's colour table
 KstyleUI.Tokens.IsFontSet(key) -> boolean         -- Folio or Lumen
 KstyleUI.Theme.SetTypeSet(key) -> ok              -- keeps explicit font overrides
+KstyleUI.Tokens.FontRoles() -> { role, ... }      -- the thirteen roles, in the Appearance page's order
+KstyleUI.Theme.RoleFont(role) -> key or path      -- an explicit role font, or "" to inherit
+KstyleUI.Theme.SetRoleFonts(choices) -> ok        -- { [role] = key or path }; a missing role or "" inherits; one ThemeChanged
+KstyleUI.Theme.TypeSet() -> "Folio" or "Lumen"    -- the selected type set, whatever whole-interface font is chosen
+KstyleUI.Theme.FollowsKit(value) -> boolean       -- true for "", "theme", "kit", a non-string or a secret value; false for any path
+KstyleUI.Tokens.TypeDefault(name) -> number       -- chatSize, chatSpacing or noteSize of the selected type set
+KstyleUI.Tokens.NoteFont() -> path, size, flags   -- small-note text: the body face at the set's note size, scaled and floored
 KstyleUI.Tokens.Size(name) -> number              -- root units
 KstyleUI.Tokens.Duration(name) -> seconds
 KstyleUI.Tokens.Font(role) -> path, size, flags   -- roles: display, heading, body, caption, number, world

@@ -207,7 +207,7 @@ assert(Tokens.TextStyle("display") == 0.6 and Tokens.TextStyle("heading") == 0.4
 
 -- Media lists for the settings window and LibSharedMedia.
 local fonts, bars = Tokens.MediaList("font"), Tokens.MediaList("statusbar")
-assert(#fonts == 13 and #bars == 3, "the original seven faces plus six Folio faces and three status bars")
+assert(#fonts == 18 and #bars == 3, "the original seven faces, six Folio faces, the five role-only faces and three status bars")
 assert(fonts[1].key == "CinzelSemiBold", "Lumen's faces come first")
 local sets = Tokens.MediaList("fontSet")
 assert(#sets == 2 and sets[1].key == "Folio" and sets[2].key == "Lumen" and Tokens.FontPath("Folio") == sets[1].path and Tokens.FontPath("Lumen") == sets[2].path, "Folio and Lumen are separate type sets, not faces")

@@ -493,6 +493,17 @@ function C.Install(env, opts)
 		local path, _, flags = frame:GetFont()
 		frame:SetFont(path, size, flags)
 	end
+	env.CHAT_FRAME_DEFAULT_FONT_SIZE = 14
+	function env.FCF_CopyChatSettings(copyTo, copyFrom)
+		env.FCF_SetChatWindowFontSize(nil, copyTo, (select(2, copyFrom:GetFont())))
+	end
+	function env.FCF_ResetChatWindow(frame)
+		env.FCF_SetChatWindowFontSize(nil, frame, env.CHAT_FRAME_DEFAULT_FONT_SIZE)
+	end
+	function env.FCF_ResetChatWindows()
+		env.FCF_ResetChatWindow(env.ChatFrame1)
+		env.FCF_SetChatWindowFontSize(nil, env.ChatFrame2, env.CHAT_FRAME_DEFAULT_FONT_SIZE)
+	end
 end
 
 -- Dock(env, measure) lays the dock and its tabs out the way FCFDock_UpdateTabs does on the forever branch: the

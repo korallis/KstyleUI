@@ -24,7 +24,8 @@ local GAME_FONTS = {
 }
 local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true, ["FolioDisplay-Regular.ttf"] = true }
 local TRACKED_FACES = { ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true, ["FolioCaps-SemiBold.ttf"] = true, ["CinzelNames-SemiBold.ttf"] = true, ["CinzelUnit-SemiBold.ttf"] = true }
-local SPACED_FACES = { ["AlegreyaSans-Regular.ttf"] = true, ["AlegreyaSansTabular-Regular.ttf"] = true, ["AlegreyaSansTabular-Medium.ttf"] = true, ["AlegreyaSansTabular-Bold.ttf"] = true, ["AlegreyaSansTabular-ExtraBold.ttf"] = true, ["SourceSans3-Regular.ttf"] = true, ["SourceSans3-Semibold.ttf"] = true, ["Inter-SemiBold.ttf"] = true }
+local SPACED_FACES = { ["AlegreyaSansTabular-Regular.ttf"] = true, ["AlegreyaSansTabular-Medium.ttf"] = true, ["AlegreyaSansTabular-Bold.ttf"] = true, ["AlegreyaSansTabular-ExtraBold.ttf"] = true }
+local OWN_ROOT = "interface\\addons\\kstyleui\\media\\fonts\\"
 local OWN_FONTS = "\\KstyleUI\\Media\\Fonts\\"
 local CAPITALS = { ["\197\147"] = "\197\146", ["\195\191"] = "\197\184" }
 
@@ -74,8 +75,8 @@ end
 
 function Locale.TrackMode(path)
 	if type(path) == "string" then
-		local at = path:find(OWN_FONTS, 1, true)
-		local file = at and path:sub(at + #OWN_FONTS)
+		local lower = path:lower():gsub("/", "\\")
+		local file = lower:sub(1, #OWN_ROOT) == OWN_ROOT and path:sub(#OWN_ROOT + 1)
 		if file and TRACKED_FACES[file] then
 			return "face"
 		end

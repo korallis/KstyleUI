@@ -1309,8 +1309,11 @@ local function walk(value, path, depth, state)
 	end
 end
 
-local function checkRow(row, value, path)
+local function checkRow(row, value, path, default)
 	if row.type == "slider" then
+		if row.shown and value == default then
+			return nil
+		end
 		if value < row.min or value > row.max then
 			return format(L["%s is out of range (%s to %s)."], path, tostring(row.min), tostring(row.max))
 		end
@@ -1363,7 +1366,7 @@ local function checkValue(value, default, section, path, key)
 	local Options = ns.Options
 	local row = Options and Options.Row and Options.Row(section, key)
 	if row then
-		return checkRow(row, value, path)
+		return checkRow(row, value, path, default)
 	end
 end
 

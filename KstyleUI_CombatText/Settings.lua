@@ -276,7 +276,7 @@ local function Bool(v, default)
 end
 
 local function FontPath(v, default)
-	if not IsSecret(v) and K.Theme.IsFontPath(v) then
+	if not K.Theme.FollowsKit(v) and K.Theme.IsFontPath(v) then
 		return v
 	end
 	return default

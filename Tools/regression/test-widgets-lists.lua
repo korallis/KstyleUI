@@ -349,7 +349,7 @@ do
 	end
 	assert(labels["Arial Narrow"] == 1 and labels["Morpheus"] == 1, "then LibSharedMedia's fonts")
 	assert(labels["KstyleUI Source Sans 3 Semibold"] == nil, "a path already listed is not repeated")
-	assert(#fonts == 15, "KstyleUI's thirteen real faces and LibSharedMedia's two")
+	assert(#fonts == 20, "KstyleUI's eighteen shipped faces and LibSharedMedia's two")
 	local bars = K.Widgets.MediaOptions("statusbar")
 	assert(#bars == 4 and bars[4].label == "Blizzard", "status bars too")
 	local picker = K.Widgets.FontPicker(K.Scale.Root(), { value = fonts[4].value })
@@ -380,7 +380,7 @@ end
 -- Without LibSharedMedia the pickers list KstyleUI's own media.
 do
 	local _, K = W.New()
-	assert(#K.Widgets.MediaOptions("font") == 13 and #K.Widgets.MediaOptions("statusbar") == 3)
+	assert(#K.Widgets.MediaOptions("font") == 18 and #K.Widgets.MediaOptions("statusbar") == 3)
 	assert(#K.Widgets.MediaOptions("background") == 0, "a kind KstyleUI has no media for is empty")
 end
 

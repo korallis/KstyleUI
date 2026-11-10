@@ -46,6 +46,14 @@ do
 	face(env, K, "SourceSans3Regular")
 	font(entry.timer, (K.Tokens.Font("timer")), "reset aura timer inherits again")
 	font(entry.count, (K.Tokens.Font("number")), "reset aura stack inherits again")
+	for _, word in ipairs({ "theme", "kit" }) do
+		write(K, "Auras", "timer.font", explicit)
+		write(K, "Auras", "timer.font", word)
+		write(K, "Auras", "count.font", word)
+		face(env, K, "Lumen")
+		font(entry.timer, (K.Tokens.Font("timer")), "the saved word " .. word .. " still follows the kit for aura timers")
+		font(entry.count, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for aura stacks")
+	end
 end
 collectgarbage("collect")
 
@@ -88,6 +96,14 @@ do
 		font(member.name, K.Tokens.IsFontSet(key) and compact or (K.Tokens.Font("names")), "reset group name restores the staging theme treatment")
 		font(member.healthText, healthDefault, "reset group health restores the intentional Lumen default")
 	end
+	for _, word in ipairs({ "theme", "kit" }) do
+		write(K, "GroupFrames", "text.nameFont", explicit)
+		write(K, "GroupFrames", "text.nameFont", word)
+		for _, key in ipairs({ "Folio", "Lumen" }) do
+			face(env, K, key)
+			font(member.name, compact, "the saved word " .. word .. " still follows the kit for group names")
+		end
+	end
 end
 collectgarbage("collect")
 
@@ -111,6 +127,12 @@ do
 	face(env, K, "SourceSans3Regular")
 	font(env.ChatFrame1, (K.Tokens.Font("body")), "reset chat font inherits again")
 	eq(ns.Frames.Fonts({ font = "", fontSize = 14, tabFontSize = 12 }), (K.Tokens.Font("body")), "preview resolves the current body font")
+	for _, word in ipairs({ "theme", "kit" }) do
+		write(K, "Chat", "font", explicit)
+		write(K, "Chat", "font", word)
+		face(env, K, "Lumen")
+		font(env.ChatFrame1, (K.Tokens.Font("body")), "the saved word " .. word .. " still follows the kit for chat")
+	end
 end
 collectgarbage("collect")
 
@@ -132,6 +154,12 @@ do
 	write(K, "Bags", "font", "")
 	face(env, K, "SourceSans3Regular")
 	font(slot.count, (K.Tokens.Font("number")), "reset bag font inherits again")
+	for _, word in ipairs({ "theme", "kit" }) do
+		write(K, "Bags", "font", explicit)
+		write(K, "Bags", "font", word)
+		face(env, K, "Lumen")
+		font(slot.count, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for bags")
+	end
 end
 collectgarbage("collect")
 
@@ -159,6 +187,14 @@ do
 	face(env, K, "SourceSans3Regular")
 	font(number.text, (K.Tokens.Font("number")), "reset combat font inherits again")
 	eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("number")), "reset world font inherits again")
+	for _, word in ipairs({ "theme", "kit" }) do
+		write(K, "CombatText", "font", explicit)
+		write(K, "CombatText", "font", word)
+		write(K, "CombatText", "worldFace", word)
+		face(env, K, "Lumen")
+		font(number.text, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for combat numbers")
+		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for world numbers")
+	end
 	write(K, "CombatText", "worldFont", false)
 	local original = env.DAMAGE_TEXT_FONT
 	face(env, K, "Lumen")
@@ -184,6 +220,12 @@ do
 	write(K, "Nameplates", "font", "")
 	face(env, K, "SourceSans3Regular")
 	font(plate.healthText, (K.Tokens.Font("body")), "reset nameplate font inherits again")
+	for _, word in ipairs({ "theme", "kit" }) do
+		write(K, "Nameplates", "font", explicit)
+		write(K, "Nameplates", "font", word)
+		face(env, K, "Lumen")
+		font(plate.healthText, (K.Tokens.Font("body")), "the saved word " .. word .. " still follows the kit for plates")
+	end
 end
 
 print("module font inheritance ok")

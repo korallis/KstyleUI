@@ -182,12 +182,18 @@ local FONT_FACES = {
 	{ key = "PTSerifBold", label = "PT Serif Bold", path = FONTS_DIR .. "PTSerif-Bold.ttf", tracking = 0 },
 }
 local ROLE_FACES = {
-	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
-	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
-	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.064, shadow = { x = 1, y = 1, alpha = 0.5 } },
-	{ key = "AlegreyaSansProse", path = FONTS_DIR .. "AlegreyaSans-Regular.ttf", tracking = 0 },
-	{ key = "AlegreyaSansExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
+	{ key = "CinzelCaps", label = "Cinzel Caps Medium", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
+	{ key = "CinzelNames", label = "Cinzel Names Medium", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "CinzelUnit", label = "Cinzel Unit Medium", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.064, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "AlegreyaSansProse", label = "Alegreya Sans Proportional", path = FONTS_DIR .. "AlegreyaSans-Regular.ttf", tracking = 0 },
+	{ key = "AlegreyaSansExtraBold", label = "Alegreya Sans ExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
 }
+local FONT_LIST = {}
+for _, list in ipairs({ FONT_FACES, ROLE_FACES }) do
+	for _, face in ipairs(list) do
+		FONT_LIST[#FONT_LIST + 1] = face
+	end
+end
 local DEFAULT_FACE = "Folio"
 local FALLBACK_FACE = "SourceSans3Semibold"
 local NUMBER_FACE = "SourceSans3Semibold"
@@ -208,6 +214,13 @@ local FONT_ROLES = {
 	timer = { folio = "PTSerifRegular", lumen = "AlegreyaSansMedium", number = true, flags = "", tracking = 0 },
 	world = { folio = "PTSerifRegular", lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
+
+local TYPE_SET_VALUES = {
+	Folio = { chatSize = 12, chatSpacing = 6.5, noteSize = 10 },
+	Lumen = { chatSize = 14, chatSpacing = 4.5, noteSize = 12 },
+}
+
+local ROLE_ORDER = { "display", "heading", "title", "caps", "names", "unit", "body", "prose", "caption", "number", "time", "timer", "world" }
 
 local STATUSBARS = {
 	{ key = "Glass", label = "Glass", path = TEXTURES_DIR .. "BarGlass.png" },
@@ -351,19 +364,38 @@ function Tokens.IsFontSet(key)
 	return key == "Folio" or key == "Lumen"
 end
 
+local function RoleChoice(role)
+	local theme = ns.Theme
+	local explicit = theme and theme.RoleFont and theme.RoleFont(role)
+	if explicit and explicit ~= "" then
+		return explicit
+	end
+end
+
+function Tokens.FontRoles()
+	local out = {}
+	for i, role in ipairs(ROLE_ORDER) do
+		out[i] = role
+	end
+	return out
+end
+
 function Tokens.Font(role)
 	local spec = FONT_ROLES[role]
 	if not spec then
 		unknown("Font", role)
 	end
 	local theme = ns.Theme
-	local key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
-	if key == "Folio" then
-		key = spec.folio
-	elseif key == "Lumen" then
-		key = spec.lumen
-	elseif spec.number then
-		key = NUMBER_FACE
+	local key = RoleChoice(role)
+	if not key then
+		key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
+		if key == "Folio" then
+			key = spec.folio
+		elseif key == "Lumen" then
+			key = spec.lumen
+		elseif spec.number then
+			key = NUMBER_FACE
+		end
 	end
 	local path = FACE_PATH[key]
 	if not path and theme and theme.IsFontPath and theme.IsFontPath(key) then
@@ -394,8 +426,28 @@ function Tokens.TextStyle(role)
 		unknown("TextStyle", role)
 	end
 	local theme = ns.Theme
-	local key = theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
-	return key == "Folio" and 0 or spec.tracking, spec.upper == true
+	local key = RoleChoice(role) and "" or theme and theme.FontFace and theme.FontFace() or DEFAULT_FACE
+	return key == "Lumen" and spec.tracking or 0, spec.upper == true
+end
+
+function Tokens.TypeDefault(name)
+	local theme = ns.Theme
+	local set = TYPE_SET_VALUES[theme and theme.TypeSet and theme.TypeSet() or DEFAULT_FACE]
+	local value = set and set[name]
+	if not value then
+		unknown("TypeDefault", name)
+	end
+	return value
+end
+
+function Tokens.NoteFont()
+	local path, _, flags = Tokens.Font("body")
+	local size = Tokens.TypeDefault("noteSize")
+	local theme = ns.Theme
+	if theme and theme.FontScale then
+		size = math.max(MIN_TEXT, size * theme.FontScale())
+	end
+	return path, size, flags
 end
 
 function Tokens.RoleFontPaths()
@@ -407,7 +459,7 @@ function Tokens.RoleFontPaths()
 end
 
 function Tokens.MediaList(kind)
-	local source = (kind == "font" and FONT_FACES) or (kind == "fontSet" and FONT_SETS) or (kind == "statusbar" and STATUSBARS)
+	local source = (kind == "font" and FONT_LIST) or (kind == "fontSet" and FONT_SETS) or (kind == "statusbar" and STATUSBARS)
 	if not source then
 		unknown("MediaList", kind)
 	end

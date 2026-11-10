@@ -22,7 +22,7 @@ local HEADER_FIELDS = { type = true, label = true, showWhen = true, disableWhen 
 local COMMON_FIELDS = { type = true, key = true, label = true, help = true, showWhen = true, disableWhen = true, scope = true }
 local SCOPE_FIELDS = { key = true, value = true }
 local EXTRA_FIELDS = {
-	slider = { min = true, max = true, step = true },
+	slider = { min = true, max = true, step = true, shown = true },
 	dropdown = { options = true },
 	font = { options = true },
 	color = { hasAlpha = true },
@@ -182,8 +182,19 @@ local function checkRow(module, row, defaults)
 		if type(row.step) ~= "number" or row.step <= 0 then
 			return "a slider needs a step above 0"
 		end
-		if default < row.min or default > row.max then
-			return "the default " .. default .. " is outside the slider's range"
+		local painted = default
+		if row.shown ~= nil then
+			if type(row.shown) ~= "function" then
+				return "shown must be a function that returns the value the slider paints for a stored value"
+			end
+			local ok, value = pcall(row.shown, default)
+			if not ok or type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+				return "shown(default) must return a finite number"
+			end
+			painted = value
+		end
+		if painted < row.min or painted > row.max then
+			return (row.shown and "the painted default " or "the default ") .. painted .. " is outside the slider's range"
 		end
 	elseif rowType == "dropdown" then
 		return checkDropdown(row, default)

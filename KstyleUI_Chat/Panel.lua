@@ -719,7 +719,7 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" then
+	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" then
 		Schedule()
 	end
 	if key == nil or key == "editBox" then

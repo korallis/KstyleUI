@@ -314,7 +314,7 @@ end
 function Settings.Font()
 	local outline = Settings.Get("fontOutline")
 	local path = Settings.Get("font")
-	if path == "" then
+	if K.Theme.FollowsKit(path) then
 		path = Tokens.Font("number")
 	end
 	return path, Settings.Get("fontSize"), outline == "NONE" and "" or outline

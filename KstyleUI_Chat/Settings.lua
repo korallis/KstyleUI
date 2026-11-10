@@ -15,7 +15,9 @@ local TAB_FONT_MIN, TAB_FONT_MAX = 8, 16
 local FADE_MIN, FADE_MAX, FADE_STEP = 10, 600, 10
 local SPACING_MIN, SPACING_MAX = 0, 10
 local HISTORY_MIN, HISTORY_MAX, HISTORY_STEP = 10, 500, 10
+local FOLLOW = -1
 ns.HISTORY_MAX = HISTORY_MAX
+ns.FOLLOW = FOLLOW
 ns.FONT_MIN, ns.FONT_MAX = FONT_MIN, FONT_MAX
 ns.SPACING_MIN, ns.SPACING_MAX = SPACING_MIN, SPACING_MAX
 
@@ -33,8 +35,8 @@ local defaults = {
 	copyButton = true,
 	editBox = "typing",
 	font = "",
-	fontSize = 12,
-	lineSpacing = 6.5,
+	fontSize = FOLLOW,
+	lineSpacing = FOLLOW,
 	fontOutline = "none",
 	fade = true,
 	fadeTime = 120,
@@ -67,6 +69,30 @@ ns.defaults = defaults
 
 function ns.Settings()
 	return K.Store.Module(NAME)
+end
+
+function ns.TextSize(settings)
+	local size = settings.fontSize
+	if size == FOLLOW then
+		return Tokens.TypeDefault("chatSize")
+	end
+	return size
+end
+
+function ns.LineSpacing(settings)
+	local spacing = settings.lineSpacing
+	if spacing == FOLLOW then
+		return Tokens.TypeDefault("chatSpacing")
+	end
+	return spacing
+end
+
+local function ShownSize(value)
+	return value == FOLLOW and Tokens.TypeDefault("chatSize") or value
+end
+
+local function ShownSpacing(value)
+	return value == FOLLOW and Tokens.TypeDefault("chatSpacing") or value
 end
 
 local function IsUnit(v)
@@ -162,12 +188,12 @@ function ns.Schema()
 		{
 			type = "slider", key = "fontSize", label = L["Text size"],
 			help = L["The size of chat messages and the edit box."],
-			min = FONT_MIN, max = FONT_MAX, step = 1,
+			min = FONT_MIN, max = FONT_MAX, step = 1, shown = ShownSize,
 		},
 		{
 			type = "slider", key = "lineSpacing", label = L["Line spacing"],
 			help = L["Extra space between chat lines, in units."],
-			min = SPACING_MIN, max = SPACING_MAX, step = 0.5,
+			min = SPACING_MIN, max = SPACING_MAX, step = 0.5, shown = ShownSpacing,
 		},
 		{
 			type = "dropdown", key = "fontOutline", label = L["Outline"],
