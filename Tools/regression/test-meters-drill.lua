@@ -52,6 +52,8 @@ env._sources[4242] = { combatSpells = { Spell(200, 500, 5) }, maxAmount = 500, t
 M.Enable(env, K)
 local Damage = ns.Damage
 local list = Damage.list
+list.holder:SetSize(318, 190)
+env.RunTimers()
 assert(list.panel:IsShown() and list.count == 3, "three sources show in a group")
 
 do
@@ -135,13 +137,18 @@ assert(list.count == 2, "the source's two spells show: " .. tostring(list.count)
 assert(Text(list.rows[1].name) == "Mortal Strike", "a spell row is named by C_Spell.GetSpellName")
 assert(Text(list.rows[2].name) == "Bite (Wolf)", "a pet's spell names the pet")
 assert(Text(list.rows[1].value) == "~1800", "the spell's amount is abbreviated")
-assert(Text(list.rows[1].percent) == "60%", "the share is of the source's total")
+assert(Text(list.rows[1].percent) == "  \194\183  60%", "the share is of the source's total, after the middle dot")
 assert(M.Last(list.rows[1].bar, "SetMinMaxValues")[2] == 1800, "the bars run to the source's top spell")
-assert(list.rows[1].icon:IsShown() and M.Last(list.rows[1].icon, "SetTexture")[1] == env._spells[100].icon, "a spell row shows the spell's icon")
+assert(not list.rows[1].icon:IsShown(), "a spell row shows no icon: the picture's rows are bars with the name inside the fill")
 assert(Text(list.title) ~= nil and tostring(Text(list.title)):upper():find("KRAGAR", 1, true), "the title names the source: " .. tostring(Text(list.title)))
-local r, g, b = K.Theme.ClassColor("WARRIOR")
+local r, g, b = K.Tokens.Color("meterPhysical")
 local fill = M.Last(list.rows[2].bar, "SetStatusBarColor")
-assert(fill[1] == r and fill[2] == g and fill[3] == b, "spell rows take the source's class colour")
+assert(fill[1] == r and fill[2] == g and fill[3] == b, "a spell the school table lacks is drawn physical")
+M.Write(env, K, "damage.colorSource", "class")
+r, g, b = K.Theme.ClassColor("WARRIOR")
+fill = M.Last(list.rows[2].bar, "SetStatusBarColor")
+assert(fill[1] == r and fill[2] == g and fill[3] == b, "spell rows take the source's class colour when the colour source is class")
+M.Write(env, K, "damage.colorSource", "school")
 
 -- Updates keep the spell list current.
 env._sources["Player-1"] = { combatSpells = { Spell(100, 2400, 24), Spell(200, 1200, 12, "Wolf") }, maxAmount = 2400, totalAmount = 3600 }
@@ -187,6 +194,8 @@ M.Write(env, K, "damage.meter", "DamageDone")
 
 -- Fight segments: current, the previous fight and overall. The previous fight is the newest fight the game still
 -- holds other than the current one (DAMAGE_METER_COMBAT_SESSION_UPDATED names the current fight's ID).
+local switch = list.switch
+switch._scripts.OnEnter(switch)
 env._available = { { sessionID = 3, name = "" }, { sessionID = 4, name = "Hogger", durationSeconds = 55 }, { sessionID = 5, name = "" } }
 env._sessions[4] = Session({ Source("Kragar", "WARRIOR", 900, 9, "Player-1") }, 900, 900)
 env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 5)

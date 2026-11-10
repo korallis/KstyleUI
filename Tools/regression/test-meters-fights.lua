@@ -1,4 +1,4 @@
--- test-meters-fights.lua: the damage meter card shows its fight switch in the cap, the current fight, the last fight and every fight, with the one shown lit, and a click on it steps through them.
+-- test-meters-fights.lua: the damage meter card shows its fight switch in the cap while the pointer is on it, the current fight, the last fight and every fight, with the one shown lit, and a click on it steps through them; at rest the cap shows the rate instead.
 local M = dofile("Tools/regression/meters_env.lua")
 
 local function Text(fontString)
@@ -36,7 +36,7 @@ local env, K, ns = M.New({
 	end,
 })
 env._session = Session({ Source("Kragar", "WARRIOR", 3000, "Player-1"), Source("Tester", "HUNTER", 2000, "Player-2") }, 3000, 5000)
-env._available = { { sessionID = 4, name = "Riverglade Crocolisk", durationSeconds = 20 }, { sessionID = 5, name = "", durationSeconds = 10 } }
+env._available = { { sessionID = 4, name = "Hogger", durationSeconds = 20 }, { sessionID = 5, name = "", durationSeconds = 10 } }
 env._sessions[4] = Session({ Source("Kragar", "WARRIOR", 900, "Player-1") }, 900, 900)
 M.Enable(env, K)
 env.FireEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED", M.METER.DamageDone, 5)
@@ -44,10 +44,13 @@ env.RunTimers()
 local list = ns.Damage.list
 assert(list.panel:IsShown() and list.count == 2, "the card shows the current fight's two sources")
 
--- The switch sits in the cap: the three fights in words, the shown one in the cap's gilt, the others muted.
+-- The switch sits in the cap's right end: at rest the cap shows the rate (the picture's card), and while the
+-- pointer is on it the three fights in words, the shown one in the cap's gilt, the others muted.
 local switch = list.switch
-assert(switch and switch:IsShown(), "the card shows a fight switch")
+assert(switch and switch:IsShown(), "the card carries a fight switch")
 assert((M.Last(switch, "EnableMouse") or {})[1] == true, "the switch takes clicks of its own")
+assert(not Plain(Text(list.column)):find("Now", 1, true), "at rest the cap does not show the switch: " .. Plain(Text(list.column)))
+switch._scripts.OnEnter(switch)
 local aside = Text(list.column)
 assert(Plain(aside) == "Now  Last  All", "the switch names the current fight, the last fight and every fight: " .. Plain(aside))
 local lit = Hex(K.Widgets.Rgba("giltLit"))
@@ -62,8 +65,8 @@ env.RunTimers()
 assert(ns.Get("damage.session") == "Previous", "a click on the switch shows the last fight")
 assert(env._lastSessionID and env._lastSessionID[1] == 4, "the last fight is read by its session ID")
 assert(list.count == 1, "the last fight's one source shows")
-assert(Plain(Text(list.column)) == "Now  Riverglade Crocolisk  All", "the last fight goes by the name the game recorded: " .. Plain(Text(list.column)))
-assert(ColourOf(Text(list.column), "Riverglade Crocolisk") == lit and ColourOf(Text(list.column), "Now") == muted, "the last fight is lit")
+assert(Plain(Text(list.column)) == "Now  Hogger  All", "the last fight goes by the name the game recorded: " .. Plain(Text(list.column)))
+assert(ColourOf(Text(list.column), "Hogger") == lit and ColourOf(Text(list.column), "Now") == muted, "the last fight is lit")
 assert(ns.Get("damage.meter") == meter, "the switch never changes the meter type")
 
 -- The next clicks show every fight, then the current fight again.
@@ -81,7 +84,7 @@ local tip = { AddLine = function(_, line)
 end }
 assert(type(list.switchTooltip) == "function", "the switch explains itself")
 list.switchTooltip(tip)
-assert(table.concat(lines, " "):find("Riverglade Crocolisk", 1, true), "the tooltip names the last fight: " .. table.concat(lines, " | "))
+assert(table.concat(lines, " "):find("Hogger", 1, true), "the tooltip names the last fight: " .. table.concat(lines, " | "))
 
 -- A spell list keeps the switch, and a click on it keeps the source's spells, now from the next fight.
 list.rows[1].frame._scripts.OnMouseUp(list.rows[1].frame, "LeftButton")
@@ -93,6 +96,11 @@ assert(env._lastSource and env._lastSource[1] == "id" and env._lastSource[2] == 
 assert(ns.Get("damage.session") == "Previous", "the switch moved to the last fight")
 M.Write(env, K, "damage.session", "Current")
 env.RunTimers()
+
+-- Leaving the switch gives the cap back to the rate.
+switch._scripts.OnLeave(switch)
+assert(not Plain(Text(list.column)):find("Now", 1, true), "the pointer leaving restores the cap: " .. Plain(Text(list.column)))
+switch._scripts.OnEnter(switch)
 
 -- A card too narrow for the three words keeps the fight shown alone, still lit and still a switch.
 do

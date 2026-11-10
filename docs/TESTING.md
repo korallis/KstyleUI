@@ -228,10 +228,10 @@ Work through the modules in any order. Every module has the same three checks at
 
 ### Minimap
 
-- [ ] The square map sits top right. Blizzard's round border, header, zoom buttons, day and night orb and coordinates are gone.
+- [ ] The square map sits top right: square corners, a thin gilt rim and a round N plate on the middle of its top edge. Blizzard's round border, header, zoom buttons, day and night orb and coordinates are gone.
 - [ ] Scroll over the map, including its corners: it zooms. Clicks still ping and blips still show tooltips.
-- [ ] The zone and the clock show on the strip inside the bottom edge, and the clock rolls over at the minute. Coordinates change as you walk and hide in instances.
-- [ ] The button column shows tracking and calendar; mail and the queue eye appear when they apply. Each opens what Blizzard's does.
+- [ ] The zone name in capitals shows under the map at the left, with the coordinates under it and the clock at the right; nothing draws inside the map. The clock rolls over at the minute. Coordinates change as you walk and hide in instances.
+- [ ] Round buttons for tracking, the calendar and the addon drawer stand down the inside of the map's right edge, shown without the pointer over the map; mail and the queue eye appear when they apply. Each opens what Blizzard's does. With **Buttons only on hover** on in the Minimap settings, the three show only while the pointer is over the map.
 - [ ] With addons that add minimap buttons (BigWigs, Details), the four-squares button opens a drawer with every addon button, and each still works.
 
 ### Chat
@@ -276,8 +276,8 @@ Work through the modules in any order. Every module has the same three checks at
 ### Meters
 
 - [ ] The damage meter sits at the right above the data strip, with the threat meter above it. Turn on Blizzard's Damage Meter (Options, Advanced): while KstyleUI's shows, Blizzard's is gone.
-- [ ] Hit a dummy: the damage meter lists you. Click its title to change the meter type; right-click switches between current and overall.
-- [ ] In a group fight, say whether the damage meter keeps updating in combat. If it shows "Hidden in combat", report what happens after combat.
+- [ ] Alone, hit a dummy: the card is headed DAMAGE with your damage per second at the right, and lists your own spells as bars coloured by school (nature green, fire orange, physical tan), each with its damage and share ("412 · 46%") and no icons. Click the title to change the meter type; the Now, Last, All switch shows only while your pointer is on the cap's right end, and a click there steps to the next fight (the picture wins over the old always-on switch, owner ruling LEE-20).
+- [ ] In a group, the card lists the group's sources in class colours; hover your own row and its top spells open under it, and click a source to see all of its spells. In a group fight, say whether the damage meter keeps updating in combat. If it shows "Hidden in combat", report what happens after combat.
 - [ ] In a party in combat, the threat meter lists the group highest first. Near aggro as damage, the edge turns yellow at 80% and red with a pulse at 95%.
 - [ ] With Blizzard's swing timer on (Options, Combat), melee: KstyleUI's bar fills once per swing. Dual-wield shows two bars; a hunter shows a ranged bar.
 - [ ] Switch the threat meter or swing timer off: its mover disappears from Layout Mode.

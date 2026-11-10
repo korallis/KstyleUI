@@ -12,13 +12,14 @@ local L = ns.L
 local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
 local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
 local PLAYER_CAST_Y = 385.5
+local RAIL_BUTTON, RAIL_PITCH = 37, 4
 local GRIDS = {
 	["actionbars.bar1"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
 	["actionbars.bar2"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
 	["actionbars.bar3"] = { buttons = 12, rows = 1, size = BUTTON },
-	["actionbars.bar4"] = { buttons = 12, rows = 12, size = BUTTON },
-	["actionbars.bar5"] = { buttons = 12, rows = 12, size = BUTTON },
-	["actionbars.bar6"] = { buttons = 12, rows = 12, size = BUTTON },
+	["actionbars.bar4"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
+	["actionbars.bar5"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
+	["actionbars.bar6"] = { buttons = 12, rows = 12, size = RAIL_BUTTON, spacing = RAIL_PITCH },
 	["actionbars.pet"] = { buttons = 10, rows = 2, size = SMALL_BUTTON },
 	["actionbars.stance"] = { buttons = 10, rows = 2, size = SMALL_BUTTON, growth = "RIGHTUP" },
 }
@@ -34,6 +35,14 @@ local function Row(icons)
 	return icons * BUTTON + (icons - 1) * PITCH
 end
 local ESSENTIAL, UTILITY, TRACKED = Row(6), Row(4), Row(6)
+
+local EDGE = ns.Tokens.Size("screenMargin")
+local MAP, MAP_CAPTION = 188, 36
+local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP = 28, 3, 10, 14, 8
+local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
+local STORY_W = 278
+local DAMAGE_W, DAMAGE_H, THREAT_H = 269, 158, 144
+local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
@@ -63,19 +72,19 @@ local ELEMENTS = {
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = UTILITY, height = BUTTON },
 	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 182.6, height = 41.6 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 43 },
-	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = 282, height = 88 },
-	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 282, height = 88 },
-	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
+	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = AURA_W, height = AURA_H },
+	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = AURA_W, height = AURA_H },
+	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 393, height = 200 },
 	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = 8 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
-	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = 318, height = 42, reserve = { 318, 118 } },
+	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = STORY_W, height = READOUT_H },
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
-	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = 318, height = 190 },
-	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = 318, height = 144 },
+	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = DAMAGE_W, height = DAMAGE_H },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = DAMAGE_W, height = THREAT_H },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
 	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
@@ -91,7 +100,6 @@ end
 local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
 local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
 local NEAR = ns.Tokens.Size("gapLarge")
-local BAND = MARGIN + RAIL + GAP
 local ENDS = (12 * BUTTON + 11 * PITCH) / 2 + NEAR + GridSize("actionbars.pet") / 2
 local BAR = BUTTON + PITCH
 local BAR1_Y = 68
@@ -112,8 +120,7 @@ local STACK = CLUSTER_TOP + SIGIL_CLEAR
 local CAST_HALF = 272 / 2
 local HEALER_X, HEALER_Y = -(CAST_HALF + GAP + RAIL / 2), CLUSTER_TOP + GAP
 local TEXT_TOP = CLUSTER_TOP + GAP + 180
-local SIDE_BARS = 3 * BAR - PITCH
-local BOSS_X = -(BAND + SIDE_BARS + GAP)
+local BOSS_X = -(EDGE + MAP + NEAR + AURA_W + 2 * TIGHT)
 local function ElementSize(key)
 	for _, element in ipairs(ELEMENTS) do
 		if element.key == key then
@@ -121,31 +128,33 @@ local function ElementSize(key)
 		end
 	end
 end
-local MAP_W, MAP_H = ElementSize("minimap.main")
 local _, CHAT_H = ElementSize("chat.main")
-local _, AURA_ROW = ElementSize("auras.buffs")
-local AURAS_X = MARGIN + MAP_W + GAP
-local AURAS_BOTTOM = MARGIN + 2 * AURA_ROW + GAP
-local STORY_TOP = math.max(MARGIN + MAP_H, AURAS_BOTTOM) + GAP
-local _, METER_H = ElementSize("meters.damage")
-local _, TIP_H = ElementSize("tooltips.anchor")
-local METER_Y = MARGIN + 118 + GAP
-local TIP_Y = METER_Y + METER_H + 8
-local STORY_BOTTOM = TIP_Y + TIP_H + GAP
+local AURAS_X = EDGE + MAP + NEAR
+local DEBUFFS_Y = EDGE + AURA_H + AURA_ROW_GAP
+local STORY_TOP = math.max(EDGE + MAP + MAP_CAPTION, DEBUFFS_Y + AURA_H) + GAP
+local READOUT_Y = EDGE + DAMAGE_H + READOUT_GAP
+local RAIL_BARS_Y = READOUT_Y + READOUT_H + RAIL_BARS_GAP
+local RAIL_COLUMN = RAIL_BUTTON + RAIL_PITCH
+local _, RAIL_BARS_H = GridSize("actionbars.bar4")
+local STORY_BOTTOM = RAIL_BARS_Y + RAIL_BARS_H + NEAR
+local SPARE_X = EDGE + 3 * RAIL_COLUMN - RAIL_PITCH + GAP
+local _, MICRO_H = ElementSize("databars.micro")
+local _, BAGS_H = ElementSize("databars.bags")
+local TIP_Y = RAIL_BARS_Y + MICRO_H + BAGS_H + GAP
 
 local DPS = {
 	["groupframes.party"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["groupframes.raid"] = { anchor = "TOPLEFT", x = MARGIN, y = -MARGIN },
 	["chat.main"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN },
 	["qol.lootfeed"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + GAP },
-	["minimap.main"] = { anchor = "TOPRIGHT", x = -MARGIN, y = -MARGIN },
-	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -MARGIN },
-	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -(MARGIN + AURA_ROW + GAP) },
-	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = METER_Y },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = METER_Y },
-	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
-	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
-	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN + 44 },
+	["minimap.main"] = { anchor = "TOPRIGHT", x = -EDGE, y = -EDGE },
+	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -EDGE },
+	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
+	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
+	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
+	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 36.5 },
 	["databars.rep"] = { anchor = "BOTTOM", x = -ENDS, y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
@@ -170,10 +179,10 @@ local DPS = {
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
 	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
 	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
-	["actionbars.bar4"] = { anchor = "RIGHT", x = -BAND, y = 0 },
-	["actionbars.bar5"] = { anchor = "RIGHT", x = -(BAND + BAR), y = 0 },
-	["actionbars.bar6"] = { anchor = "RIGHT", x = -(BAND + 2 * BAR), y = 0 },
-	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = TIP_Y },
+	["actionbars.bar4"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y },
+	["actionbars.bar5"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + RAIL_COLUMN), y = RAIL_BARS_Y },
+	["actionbars.bar6"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + 2 * RAIL_COLUMN), y = RAIL_BARS_Y },
+	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = TIP_Y },
 }
 
 local CHANGES = {
@@ -191,18 +200,18 @@ local CHANGES = {
 
 local SIZES = {
 	DPS = {
-		["meters.damage"] = { RAIL, 190 },
-		["meters.threat"] = { RAIL, 144 },
+		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
+		["meters.threat"] = { DAMAGE_W, THREAT_H },
 	},
 	Tank = {
-		["meters.damage"] = { RAIL, 190 },
+		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
 		["meters.threat"] = { 200, 112 },
 	},
 	Healer = {
 		["groupframes.party"] = { RAIL, 354 },
 		["groupframes.raid"] = { RAIL, 487 },
-		["meters.damage"] = { RAIL, 190 },
-		["meters.threat"] = { RAIL, 144 },
+		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
+		["meters.threat"] = { DAMAGE_W, THREAT_H },
 		["chat.main"] = { RAIL, 200 },
 	},
 }
@@ -226,7 +235,7 @@ local SWITCHES = {
 }
 
 local BARS_OFF = {
-	"actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6",
+	"actionbars.bar3", "actionbars.bar6",
 	"unitframes.castbar.target",
 }
 local OFF = {
@@ -239,10 +248,10 @@ local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar1.showEmpty", value = true },
 	{ module = "ActionBars", key = "bar2.showEmpty", value = true },
 	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
-	{ module = "ActionBars", key = "bar4.showEmpty", value = false },
-	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar4.showEmpty", value = true },
+	{ module = "ActionBars", key = "bar5.showEmpty", value = true },
 	{ module = "ActionBars", key = "bar6.showEmpty", value = false },
-	{ module = "DataBars", key = "strip.menus", value = true },
+	{ module = "DataBars", key = "strip.menus", value = false },
 	{ module = "GroupFrames", key = "party.spacing", value = 8 },
 	{ module = "GroupFrames", key = "raid.groupsPerRow", value = 4 },
 	{ module = "GroupFrames", key = "raid.width", value = 77 },
@@ -333,8 +342,8 @@ for _, name in ipairs(NAMES) do
 	settings[name] = list
 	slots[name] = {
 		key = "story",
-		anchor = "TOPRIGHT", x = -MARGIN, y = -STORY_TOP,
-		width = RAIL, height = HEIGHT - STORY_TOP - STORY_BOTTOM,
+		anchor = "TOPRIGHT", x = -EDGE, y = -STORY_TOP,
+		width = STORY_W, height = HEIGHT - STORY_TOP - STORY_BOTTOM,
 		label = L["Story rail"],
 		hint = L["Apply places the quest tracker here through Edit Mode; Window skins put the RestedXP guide above it."],
 	}

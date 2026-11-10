@@ -23,15 +23,21 @@ local debuffs = Model.Group(d, "debuffs")
 local timer = Model.Timer(d)
 local bw, bh = Model.Footprint(buffs, timer)
 local dw, dh = Model.Footprint(debuffs, timer)
--- The plain tiles: 30-unit icons at a 36 pitch with the 11-unit timer under each, so a row is 42 tall. Eight to a
--- row, so a row is 282 wide, inside the rail's 318: the buffs two rows and the debuffs two, so twelve debuffs stay
--- visible.
-check(buffs.iconSize == 30 and buffs.spacing == 6 and buffs.columns == 8 and timer.size == 11, "30-unit icons, 6-unit gaps, eight per row, 11-unit timers")
-check(bw == 282 and bh == 88, "the buff footprint at defaults is 282 x 88, got " .. bw .. " x " .. bh)
-check(dw == 282 and dh == 88, "the debuff footprint at defaults is 282 x 88, got " .. dw .. " x " .. dh)
-check(buffs.rows == 2 and debuffs.rows == 2, "two rows of buffs and two of debuffs by default")
-check(buffs.growth == "LEFT_DOWN" and debuffs.growth == "LEFT_DOWN", "both groups grow left from the minimap's edge, then down")
-check(Model.ContainerAnchor == nil, "the container hangs from the corner the rows grow from; no separate anchor rule")
+-- The picture's tiles (the owner's ruling of 2026-11-09 over #209): 28-unit icons at a 31 pitch, ten in one row, so a
+-- row is 307 wide; the 12-unit timer under each takes 14 units of room, so a row is 42 tall.
+check(buffs.iconSize == 28 and buffs.spacing == 3 and buffs.columns == 10 and timer.size == 12, "28-unit icons, 3-unit gaps, ten per row, 12-unit timers")
+check(Model.TIMER_GAP + timer.size == 14, "the timer's room under the icon is 14 units")
+check(bw == 307 and bh == 42, "the buff footprint at defaults is 307 x 42, got " .. bw .. " x " .. bh)
+check(dw == 307 and dh == 42, "the debuff footprint at defaults is 307 x 42, got " .. dw .. " x " .. dh)
+check(buffs.rows == 1 and debuffs.rows == 1, "one row of buffs and one of debuffs by default")
+check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both groups list their first aura at the left")
+check(Model.Capacity(buffs, 0) == 10 and Model.Capacity(debuffs, 0) == 10, "ten icons show before the +N cell")
+
+-- The container hangs from the element's right edge whatever the growth, so a short row ends where a full one does.
+for growth, hang in pairs({ LEFT_DOWN = "TOPRIGHT", RIGHT_DOWN = "TOPRIGHT", LEFT_UP = "BOTTOMRIGHT", RIGHT_UP = "BOTTOMRIGHT" }) do
+	check(Model.Hang(growth) == hang, "growth " .. growth .. " hangs from " .. hang .. ", got " .. tostring(Model.Hang(growth)))
+end
+check(Model.Hang("SIDEWAYS") == "TOPRIGHT", "an unknown growth hangs from the top right")
 
 -- Growth: the corner the panel grows from and the engine's direction names.
 local cases = {
@@ -45,7 +51,7 @@ for _, case in ipairs(cases) do
 	check(anchor == case[2] and h == case[3] and v == case[4], "growth " .. case[1] .. " maps to " .. case[2] .. ", got " .. tostring(anchor))
 end
 local anchor = Model.Growth("SIDEWAYS")
-check(anchor == "TOPRIGHT", "an unknown growth falls back to the default, left then down")
+check(anchor == "TOPLEFT", "an unknown growth falls back to the default, right then down")
 
 -- Sort: setting value to the engine's AuraContainerSortMethod and direction names.
 local sorts = {
@@ -67,7 +73,7 @@ local below = Model.Timer({ timer = { format = "short", position = "below", size
 local inside = Model.Timer({ timer = { format = "short", position = "inside", size = 10 } })
 local none = Model.Timer({ timer = { format = "none", position = "below", size = 10 } })
 local w, h = Model.ElementSize(g, below)
-check(w == 30 and h == 41, "a timer under a 30-unit icon adds its size plus 1, got " .. w .. " x " .. h)
+check(w == 30 and h == 42, "a timer under a 30-unit icon adds its size plus the 2-unit gap, got " .. w .. " x " .. h)
 w, h = Model.ElementSize(g, inside)
 check(w == 30 and h == 30, "a timer inside the icon adds nothing")
 w, h = Model.ElementSize(g, none)
@@ -75,7 +81,7 @@ check(w == 30 and h == 30, "no timer adds nothing")
 
 -- Footprint: columns and rows of elements with their gaps; no gap after the last one.
 w, h = Model.Footprint(g, below)
-check(w == 5 * 30 + 4 * 4 and h == 3 * 41 + 2 * 2, "5 columns by 3 rows, got " .. w .. " x " .. h)
+check(w == 5 * 30 + 4 * 4 and h == 3 * 42 + 2 * 2, "5 columns by 3 rows, got " .. w .. " x " .. h)
 
 -- Line size: exactly the columns fit on a line, and one more does not.
 local line = Model.LineSize(g, below)

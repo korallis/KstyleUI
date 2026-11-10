@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 11
+Store.DB_VERSION = 12
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -247,6 +247,80 @@ Store.migrations[11] = function(data)
 		local r, g, b = ns.Tokens.Color("rare")
 		if type(color) == "table" and color.r == r and color.g == g and color.b == b and color.a == 0.5 then
 			xp.restedColor = nil
+		end
+	end
+end
+
+local RAIL_V9 = {
+	["minimap.main"] = { "TOPRIGHT", -28, -28, 160, 160 },
+	["auras.buffs"] = { "TOPRIGHT", -204, -28, 282, 88 },
+	["auras.debuffs"] = { "TOPRIGHT", -204, -132, 282, 88 },
+	["meters.damage"] = { "BOTTOMRIGHT", -28, 162, 318, 190 },
+	["meters.threat"] = { "BOTTOMRIGHT", -28, 162, 318, 144 },
+	["databars.strip"] = { "BOTTOMRIGHT", -28, 28, 318 },
+	["databars.micro"] = { "BOTTOMRIGHT", -28, 28 },
+	["databars.bags"] = { "BOTTOMRIGHT", -28, 72 },
+	["actionbars.bar4"] = { "RIGHT", -362, 0 },
+	["actionbars.bar5"] = { "RIGHT", -403, 0 },
+	["actionbars.bar6"] = { "RIGHT", -444, 0 },
+	["tooltips.anchor"] = { "BOTTOMRIGHT", -28, 360 },
+}
+local RAIL_V8 = { "TOPRIGHT", -28, -236 }
+local RAIL_BARS = { "bar4", "bar5" }
+
+local function near(a, b)
+	return type(a) == "number" and math.abs(a - b) < 0.01
+end
+
+local function atPlace(entry, place)
+	return place and entry.anchor == place[1] and near(entry.x, place[2]) and near(entry.y, place[3])
+end
+
+local function railEntry(entry, key, now)
+	local old = RAIL_V9[key]
+	local whole = {
+		anchor = entry.anchor == nil and old[1] or entry.anchor,
+		x = entry.x == nil and old[2] or entry.x,
+		y = entry.y == nil and old[3] or entry.y,
+	}
+	local default = atPlace(whole, old) or atPlace(whole, now)
+	if key == "meters.damage" or key == "meters.threat" then
+		default = default or atPlace(whole, RAIL_V8)
+	end
+	if default then
+		entry.anchor, entry.x, entry.y = nil, nil, nil
+	else
+		entry.anchor, entry.x, entry.y = whole.anchor, whole.x, whole.y
+	end
+	if old[4] and (entry.width == nil or near(entry.width, old[4])) and (entry.height == nil or old[5] == nil or near(entry.height, old[5])) then
+		entry.width, entry.height = nil, nil
+	end
+end
+
+Store.migrations[12] = function(data)
+	local layouts = ns.Setup and ns.Setup.Layouts
+	for name, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local profile = type(data.profiles[name]) == "table" and data.profiles[name] or {}
+		local section = type(profile.Layout) == "table" and profile.Layout or {}
+		local preset = section.preset or "DPS"
+		local current = layouts and type(layouts.Get) == "function" and layouts.Get(preset) or {}
+		for key in pairs(type(layout) == "table" and RAIL_V9 or {}) do
+			local entry = layout[key]
+			if type(entry) == "table" and not (key == "meters.threat" and preset == "Tank") then
+				local now = current[key]
+				railEntry(entry, key, now and { now.anchor, now.x, now.y })
+				if next(entry) == nil then
+					layout[key] = nil
+				end
+			end
+		end
+	end
+	for _, profile in pairs(data.profiles) do
+		local bars = type(profile) == "table" and profile.ActionBars
+		for _, bar in ipairs(type(bars) == "table" and RAIL_BARS or {}) do
+			if type(bars[bar]) == "table" and bars[bar].showEmpty == false then
+				bars[bar].showEmpty = nil
+			end
 		end
 	end
 end

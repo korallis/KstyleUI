@@ -1,4 +1,4 @@
--- BarList.lua: the Lumen meter card the damage and threat meters share: a section cap with the title and a muted aside or a fight switch, full-width rows that carry an optional icon, a name, a value and a share over a flat 4-unit class pill, and a split that opens under a hovered row, inside the card.
+-- BarList.lua: the meter card the damage and threat meters share: a section cap with the title and an aside or a fight switch, full-width rows (the threat meter's over a flat 4-unit class pill, the damage card's as full-height bars with the name inside the fill and the amount and share at the right), and a split that opens under a hovered row, inside the card.
 local _, ns = ...
 
 local K = KstyleUI
@@ -20,6 +20,13 @@ local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
 local SPLIT_LINE_GAP = 2
+local BLOCK_PAD = 15
+local BLOCK_CAP_LEFT = 12
+local BLOCK_CAP_TOP = 12
+local BLOCK_TOP = 35
+local BLOCK_TEXT_INSET = 7
+local BLOCK_SWITCH_REACH = 120
+local PERCENT_JOIN = "  \194\183  "
 
 local BarList = {}
 ns.BarList = BarList
@@ -69,19 +76,28 @@ local function NewRow(list, index)
 		max = 1,
 		value = 0,
 		width = width,
-		height = PILL_HEIGHT,
+		height = list.block and list.rowHeight or PILL_HEIGHT,
 	})
 	local icon = frame:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	icon:Hide()
+	local ink = frame
+	if list.block then
+		bar.keyline:Hide()
+		bar.lit:Hide()
+		bar.shade:Hide()
+		ink = CreateFrame("Frame", nil, frame)
+		ink:SetAllPoints(frame)
+		ink:SetFrameLevel(bar:GetFrameLevel() + 1)
+	end
 	local row = {
 		index = index,
 		frame = frame,
 		bar = bar,
 		icon = icon,
-		name = Text(frame, "LEFT"),
-		value = Text(frame, "RIGHT"),
-		percent = Text(frame, "RIGHT"),
+		name = Text(ink, "LEFT"),
+		value = Text(ink, "RIGHT"),
+		percent = Text(ink, "RIGHT"),
 	}
 	if list.onRowClick then
 		frame:EnableMouse(true)
@@ -105,7 +121,7 @@ local function NewRow(list, index)
 	end
 	row.name:SetTextColor(Tokens.Color("textEmphasis"))
 	row.value:SetTextColor(Tokens.Color("textEmphasis"))
-	row.percent:SetTextColor(Tokens.Color("text"))
+	row.percent:SetTextColor(Tokens.Color(list.block and "textEmphasis" or "text"))
 	return row
 end
 
@@ -374,7 +390,10 @@ end
 function List:MinRow()
 	local section = self.section
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
-	local text = em + TEXT_AIR + PILL_GAP + PILL_HEIGHT
+	local text = em + TEXT_AIR
+	if not self.block then
+		text = text + PILL_GAP + PILL_HEIGHT
+	end
 	return Widgets.Snap(self.panel, max(ns.Get(section .. ".rowHeight"), text))
 end
 
@@ -387,11 +406,14 @@ function List:Top()
 	if not ns.Get(self.section .. ".title") then
 		return pad
 	end
+	if self.block then
+		return BLOCK_TOP
+	end
 	return pad + Widgets.SECTION_CAP_HEIGHT + Tokens.Size(CAP_GAP)
 end
 
 local function Recolor(list, row)
-	local r, g, b = ns.BarColor(list.section, row.class, row.reaction)
+	local r, g, b = ns.BarColor(list.section, row.class, row.reaction, row.school)
 	if row.r ~= r or row.g ~= g or row.b ~= b then
 		row.r, row.g, row.b = r, g, b
 		row.bar:SetBarColor(r, g, b, 1)
@@ -400,9 +422,10 @@ end
 
 local function StyleRow(list, row)
 	local section = list.section
+	local figures = list.block and "number" or nil
 	ns.ApplyFont(row.name, section)
-	ns.ApplyFont(row.value, section)
-	ns.ApplyFont(row.percent, section)
+	ns.ApplyFont(row.value, section, nil, figures)
+	ns.ApplyFont(row.percent, section, nil, figures)
 	local texture, reverse = ns.Get(section .. ".texture"), ns.Get(section .. ".fill") == "right"
 	row.bar:SetBarTexture(texture)
 	row.bar:SetReverseFill(reverse)
@@ -426,12 +449,58 @@ local function PlaceMore(list, row)
 	Widgets.Tint(more, "muted")
 end
 
+local function PlaceBlockText(list, row)
+	local frame = row.frame
+	local inset, gap = Widgets.Snap(list.panel, BLOCK_TEXT_INSET), list.gap
+	local rowHeight = list.rowHeight
+	local joined = list.percentWidth > 0 and row.joined == true
+	row.percent:ClearAllPoints()
+	row.percent:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+	row.percent:SetHeight(rowHeight)
+	row.percent:SetShown(joined)
+	row.value:ClearAllPoints()
+	if joined then
+		row.value:SetPoint("RIGHT", row.percent, "LEFT", 0, 0)
+	else
+		row.value:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+	end
+	row.value:SetHeight(rowHeight)
+	row.value:SetShown(list.valueWidth > 0)
+	row.name:ClearAllPoints()
+	row.name:SetPoint("LEFT", frame, "LEFT", inset, 0)
+	if list.valueWidth > 0 then
+		row.name:SetPoint("RIGHT", row.value, "LEFT", -gap, 0)
+	else
+		row.name:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
+	end
+	row.name:SetHeight(rowHeight)
+end
+
+local function PlaceBlockRow(list, row, y)
+	local panel, frame, bar = list.panel, row.frame, row.bar
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", list.pad, -y)
+	frame:SetSize(max(1, list.barWidth), list.rowHeight)
+	bar.opts.width = max(1, list.barWidth)
+	bar.opts.height = list.rowHeight
+	bar:Restyle()
+	bar:ClearAllPoints()
+	bar:SetAllPoints(frame)
+	row.icon:Hide()
+	PlaceBlockText(list, row)
+	PlaceMore(list, row)
+end
+
 local function PlaceRow(list, row, i)
 	local rowHeight = list.rowHeight
 	local spacing = Spacing(list)
 	local pad, gap = list.pad, list.gap
 	local panel = list.panel
 	local y = Widgets.Snap(panel, list:Top()) + (i - 1) * (rowHeight + spacing)
+	if list.block then
+		PlaceBlockRow(list, row, y)
+		return
+	end
 	local frame, bar = row.frame, row.bar
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", pad, -y)
@@ -530,7 +599,7 @@ end
 
 function List:Restyle()
 	local section = self.section
-	self.pad = self.panel.chrome:Inset()
+	self.pad = self.block and Widgets.Snap(self.panel, BLOCK_PAD) or self.panel.chrome:Inset()
 	self.gap = Widgets.Snap(self.panel, Tokens.Size("gapSmall"))
 	local width = Size(self.holder, self.width, self.height)
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
@@ -543,9 +612,15 @@ function List:Restyle()
 	local cap = self.cap
 	cap.frame:SetShown(titled)
 	cap.frame:ClearAllPoints()
-	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", self.pad, -self.pad)
-	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -self.pad)
+	local capLeft = self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad
+	local capTop = self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad
+	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", capLeft, -capTop)
+	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -capTop)
 	cap:Restyle()
+	if self.block then
+		Widgets.TextColor(self.title, "capsGold")
+		Widgets.TextColor(self.column, "textEmphasis")
+	end
 	if self.switchWords then
 		self:SetSwitch(self.switchWords, self.switchSelected, self.switchShort)
 	elseif cap.frame.counted then
@@ -555,7 +630,7 @@ function List:Restyle()
 
 	local open = self.split and self.split.frame:IsShown() and self.split.row or nil
 	HideSplit(self)
-	self.rowHeight = FillHeight(self)
+	self.rowHeight = self.block and self:MinRow() or FillHeight(self)
 	local capacity = self:Capacity()
 	for i = 1, #self.rows do
 		local row = self.rows[i]
@@ -577,7 +652,7 @@ function List:Fit()
 	local _, holderHeight = Size(self.holder, self.width, self.height)
 	local capacity, count = self.capacity or 0, self.count or 0
 	local height = holderHeight
-	if capacity < 1 or count < capacity then
+	if not self.block and (capacity < 1 or count < capacity) then
 		local rows, spacing = max(1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
@@ -595,7 +670,7 @@ function List:Row(i)
 	return row
 end
 
-function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText, icon)
+function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, percentText, icon, schoolToken)
 	local row = self:Row(i)
 	if self.icons then
 		row.icon:SetTexture(icon)
@@ -607,10 +682,16 @@ function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, p
 	row.name:SetText(name)
 	PlaceMore(self, row)
 	row.value:SetText(valueText)
-	row.percent:SetText(percentText)
-	row.value:SetShown(self.valueWidth > 0)
-	row.percent:SetShown(self.percentWidth > 0)
-	row.class, row.reaction = classFile, reaction
+	if self.block then
+		row.joined = percentText ~= ""
+		row.percent:SetText(row.joined and PERCENT_JOIN .. percentText or "")
+		PlaceBlockText(self, row)
+	else
+		row.percent:SetText(percentText)
+		row.value:SetShown(self.valueWidth > 0)
+		row.percent:SetShown(self.percentWidth > 0)
+	end
+	row.class, row.reaction, row.school = classFile, reaction, schoolToken
 	Recolor(self, row)
 end
 
@@ -619,6 +700,9 @@ function List:Finish(count, note)
 		self.rows[i].frame:Hide()
 	end
 	self.count = count
+	if count == 0 then
+		self:SetRest(nil)
+	end
 	if note then
 		self.note:SetText(note)
 		self.note:Show()
@@ -634,13 +718,22 @@ end
 
 function List:SetIcons(shown)
 	shown = shown == true
-	if self.icons == shown then
+	if self.block or self.icons == shown then
 		return
 	end
 	self.icons = shown
 	for i = 1, #self.rows do
 		PlaceRow(self, self.rows[i], i)
 	end
+end
+
+local function SetAside(list, text)
+	if Logic.IsSecret(text) then
+		list.cap:SetAside(" ")
+		list.column:SetText(text)
+		return
+	end
+	list.cap:SetAside(text)
 end
 
 function List:SetTitle(text)
@@ -650,9 +743,9 @@ end
 function List:SetColumn(text, short)
 	self.switchWords = nil
 	self.title:SetWidth(0)
-	self.cap:SetAside(text)
+	SetAside(self, text)
 	if short and short ~= text and ns.Get(self.section .. ".title") and not Fits(self) then
-		self.cap:SetAside(short)
+		SetAside(self, short)
 	end
 	HoldTitle(self)
 end
@@ -672,6 +765,14 @@ local function SwitchText(words, selected, only)
 	return table.concat(parts, SWITCH_GAP)
 end
 
+function List:ShowRest()
+	if self.hasRest then
+		SetAside(self, self.rest)
+	else
+		SetAside(self, "")
+	end
+end
+
 function List:SetSwitch(words, selected, short)
 	local switch = self.switch
 	if not switch then
@@ -681,6 +782,11 @@ function List:SetSwitch(words, selected, short)
 	self.switchWords, self.switchSelected, self.switchShort = words, selected, short
 	self.title:SetWidth(0)
 	self.title:SetShown(true)
+	if self.block and not self.hot then
+		self:ShowRest()
+		HoldTitle(self)
+		return
+	end
 	self.cap:SetAside(SwitchText(words, selected))
 	if Fits(self) then
 		return
@@ -698,6 +804,21 @@ function List:SetSwitch(words, selected, short)
 	end
 	self.cap:SetAside(SwitchText(words, selected, true))
 	HoldTitle(self)
+end
+
+function List:ShowSwitch()
+	if self.switchWords then
+		self:SetSwitch(self.switchWords, self.switchSelected, self.switchShort)
+	end
+end
+
+function List:SetRest(text)
+	self.rest = text
+	self.hasRest = type(text) == "string"
+	if self.block and self.switchWords and not self.hot then
+		self:ShowRest()
+		HoldTitle(self)
+	end
 end
 
 function List:Paint()
@@ -741,6 +862,7 @@ function BarList.New(parent, section, opts)
 	list.rowTooltip = opts.rowTooltip
 	list.rowSplits = opts.rowSplits
 	list.rowSplit = opts.rowSplit
+	list.block = opts.block == true
 	list.icons = false
 	list.rows = {}
 	list.count = 0
@@ -771,7 +893,21 @@ function BarList.New(parent, section, opts)
 	if opts.onSwitch then
 		local switch = CreateFrame("Frame", nil, panel)
 		switch:SetFrameLevel(panel:GetFrameLevel() + 2)
-		switch:SetAllPoints(list.column)
+		if list.block then
+			switch:SetPoint("TOPRIGHT", list.cap.frame, "TOPRIGHT")
+			switch:SetPoint("BOTTOMRIGHT", list.cap.frame, "BOTTOMRIGHT")
+			switch:SetWidth(BLOCK_SWITCH_REACH)
+			switch:HookScript("OnEnter", function()
+				list.hot = true
+				list:ShowSwitch()
+			end)
+			switch:HookScript("OnLeave", function()
+				list.hot = false
+				list:ShowSwitch()
+			end)
+		else
+			switch:SetAllPoints(list.column)
+		end
 		switch:EnableMouse(true)
 		switch:SetScript("OnMouseUp", function(_, button)
 			opts.onSwitch(list, button)

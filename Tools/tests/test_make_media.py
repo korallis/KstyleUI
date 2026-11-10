@@ -356,40 +356,24 @@ class DrawingTest(unittest.TestCase):
         levels = [self.px("BarGlass.png", 0, y)[0] for y in range(32)]
         self.assertEqual(levels, sorted(levels, reverse=True), "the gradient falls steadily, with no sheen")
 
-    def test_minimap_mask_is_a_chamfered_square(self):
-        # The map clips just inside the minimap frame's bevel line, chamfer included: at the mockup's size the frame
-        # is 221 units with a 12-unit cut and the map sits 2 units in, so the mask cuts 8 of its 217 units. The game
-        # stretches the mask over the map, so the cut is a share of the texture's side, at 512 texels for a crisp
-        # edge on a 300-pixel map.
-        mm = self.mm
-        self.assertAlmostEqual(mm.MINIMAP_MASK_SHARE, (12 - 2 * 2) / (221 - 2 * 2))
+    def test_minimap_mask_is_a_plain_square(self):
+        # The owner's picture draws the map as a plain square with square corners (LEE-20: the picture wins over the
+        # chamfered mask of #207), so the mask is opaque white to every edge and corner of its 64 texels.
         width, height, _ = self.rendered["MinimapMask.png"]
-        self.assertEqual((width, height), (512, 512))
-        legs = 512 * mm.MINIMAP_MASK_SHARE
-        self.assertGreater(legs, 16, "the cut spans enough texels to stay smooth")
-        for x, y in ((0, 0), (511, 0), (0, 511), (511, 511)):
-            self.assertEqual(self.alpha("MinimapMask.png", x, y), 0, f"corner {x},{y} is cut")
-        self.assertEqual(self.alpha("MinimapMask.png", 256, 256), 255)
-        self.assertEqual(self.alpha("MinimapMask.png", int(legs) + 2, 0), 255, "the top edge after the cut is solid")
-        self.assertEqual(self.alpha("MinimapMask.png", int(legs) - 3, 0), 0, "the top edge inside the cut is clear")
-        self.assertEqual(self.alpha("MinimapMask.png", 0, int(legs) + 2), 255, "the left edge after the cut is solid")
-        self.assertEqual(self.alpha("MinimapMask.png", 511, 511 - int(legs) - 2), 255, "the right edge above the cut is solid")
-        px = self.px("MinimapMask.png", 256, 256)
+        self.assertEqual((width, height), (64, 64))
+        for x, y in ((0, 0), (63, 0), (0, 63), (63, 63), (32, 32), (32, 0), (0, 32)):
+            self.assertEqual(self.alpha("MinimapMask.png", x, y), 255, f"texel {x},{y} is opaque: no corner is cut")
+        px = self.px("MinimapMask.png", 32, 32)
         self.assertEqual(px[:3], (255, 255, 255), "white, so the alpha alone masks")
 
-    def test_minimap_module_wears_the_chamfered_square_mask(self):
-        # The square minimap (owner pass 1): the module masks the map with the chamfered MinimapMask this script
-        # draws, and Format.lua places the map and the rim's chamfer from the same three numbers, so the mask's cut
-        # meets the rim's cut at every size.
+    def test_minimap_module_wears_the_square_mask(self):
         face = (ROOT / "KstyleUI_Minimap" / "Face.lua").read_text(encoding="ascii")
         game = (ROOT / "KstyleUI_Minimap" / "Map.lua").read_text(encoding="ascii")
-        self.assertIn('Tokens.Texture("minimapMask")', face, "the face's own mask is the chamfered square mask")
+        self.assertIn('Tokens.Texture("minimapMask")', face, "the face's own mask is the square mask")
         self.assertIn('Tokens.Texture("minimapMask")', game, "the Minimap frame and the hybrid map wear the square mask")
         self.assertNotIn("lensMask", face + game, "nothing in the module asks for the round lens mask")
         fmt = (ROOT / "KstyleUI_Minimap" / "Format.lua").read_text(encoding="ascii")
-        numbers = re.search(r"local MASK_FRAME, MASK_CHAMFER, MASK_INSET = (\d+), (\d+), (\d+)", fmt)
-        self.assertIsNotNone(numbers, "Format.lua names the mask's frame, chamfer and inset")
-        self.assertEqual(tuple(int(n) for n in numbers.groups()), (self.mm.MINIMAP_FRAME, self.mm.MINIMAP_CHAMFER, self.mm.MINIMAP_INSET), "the same three numbers as the mask")
+        self.assertNotIn("MASK_", fmt, "no chamfer numbers: the mask has no cut to meet")
         self.assertIsNone(re.search(r"local (RIM|FOOT|COMPASS_PLATE)\s*=", fmt), "the lens card's bands are gone")
         self.assertIsNone(re.search(r"local HEAD\s*=", fmt), "the card has no head band: the north mark rides the lens")
 

@@ -10,6 +10,8 @@ local FALLBACK_WIDTH, FALLBACK_HEIGHT = 420, 220
 local SWING_HEIGHT = 8
 local SWING_FILL = 0.6
 local PERCENT_MAX = 100
+local DAMAGE_SAMPLE_RATE = 38.4
+local SPELLS = { { 403, 412 }, { 8050, 188 }, { 8042, 134 }, { 6603, 107 }, { 3599, 54 } }
 local SAMPLE = {
 	{ class = "WARRIOR", damage = 28400, threat = 100, raw = 3240000 },
 	{ class = "MAGE", damage = 24700, threat = 88, raw = 2851000, player = true },
@@ -36,22 +38,26 @@ local function Columns(section)
 	end
 end
 
-local function Total()
-	local total = 0
-	for _, sample in ipairs(SAMPLE) do
-		total = total + sample.damage
+local function SpellLabel(id)
+	local spells = C_Spell
+	local name = type(spells) == "table" and type(spells.GetSpellName) == "function" and spells.GetSpellName(id)
+	if type(name) == "string" and name ~= "" and not Logic.IsSecret(name) then
+		return name
 	end
-	return total
+	return string.format("%s %d", L["Spell"], id)
 end
 
 local function FillDamage(list)
-	local total, top = Total(), SAMPLE[1].damage
-	local count = math.min(#SAMPLE, list.capacity or 0)
+	local total = 0
+	for _, spell in ipairs(SPELLS) do
+		total = total + spell[2]
+	end
+	local count = math.min(#SPELLS, list.capacity or 0)
 	local percent = ns.Get("damage.percent")
 	for i = 1, count do
-		local sample = SAMPLE[i]
-		list:SetRow(i, Name(sample.class), sample.class, "friendly", sample.damage, top,
-			Logic.Abbreviate(sample.damage), percent and Logic.FormatPercent(Logic.Percent(sample.damage, total)) or "")
+		local id, amount = SPELLS[i][1], SPELLS[i][2]
+		list:SetRow(i, SpellLabel(id), Theme.Class(), "friendly", amount, SPELLS[1][2], Logic.Abbreviate(amount),
+			percent and Logic.FormatPercent(Logic.Percent(amount, total)) or "", nil, Logic.SchoolToken(id))
 	end
 	list:Finish(count)
 	local info = ns.METER_TYPES[1]
@@ -60,9 +66,8 @@ local function FillDamage(list)
 			info = entry
 		end
 	end
-	list:SetTitle(info.label)
-	local session = ns.Get("damage.session")
-	list:SetColumn(session == "Overall" and L["All"] or session == "Previous" and L["Last"] or L["Now"])
+	list:SetTitle(info.cap or info.label)
+	list:SetColumn(info.rate and Logic.FormatRate(DAMAGE_SAMPLE_RATE, info.rate) or "")
 end
 
 local function FillThreat(list)
@@ -133,7 +138,7 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetAllPoints(parent)
-	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage") })
+	frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true })
 	frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat") })
 	frame.swing = Widgets.StatusBar(frame, {
 		texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,

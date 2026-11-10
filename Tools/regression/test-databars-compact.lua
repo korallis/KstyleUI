@@ -1,4 +1,4 @@
--- test-databars-compact.lua: the readout card is one line by default (the micro menu and bag rows hidden, Blizzard's still hidden, the keybinds left alone), each row comes back from its setting and the card grows to fit, the layouts keep the rows' room clear, and older saved data keeps a bar its player had set up.
+-- test-databars-compact.lua: the readout is the picture's 12-unit line by default (the micro menu and bag rows undocked and out of sight at rest, Blizzard's still hidden, the keybinds left alone), each row comes back from its setting, docked rows grow the element to fit, the layouts size it as the line, and older saved data keeps a bar its player had set up.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 local CoreEnv = D.CoreEnv
@@ -27,24 +27,38 @@ do
 	local Strip, Menus, Layouts = ns.Strip, ns.Menus, K.Setup.Layouts
 	local view = Strip.view
 	local s = ns.Settings()
-	eq(s.micro.shown, false, "the micro menu row is hidden by default")
-	eq(s.bags.shown, false, "the bag row is hidden by default")
-	eq(s.strip.menus, true, "the rows still dock in the card when shown")
-	eq(#Menus.Shown("micro"), 0, "no micro button shows")
-	eq(#Menus.Shown("bags"), 0, "no bag button shows")
+	-- The picture shows neither row, so both are on but out of sight at rest, and fade in under the pointer
+	-- (the Captain's ruling on #221; test-databars-menus-fade.lua covers the fade).
+	eq(s.micro.shown, true, "the micro menu row is on by default")
+	eq(s.bags.shown, true, "the bag row is on by default")
+	eq(s.menus.always, false, "and neither is always in sight")
+	eq(s.strip.menus, false, "the rows stand at their own Layout slots by default, not under the line")
+	eq(#Menus.Shown("micro"), 8, "the compact micro set is laid out")
+	eq(#Menus.Shown("bags"), 6, "the six bags are laid out")
+	W.Settle(env)
+	eq(Menus.Content("micro"):GetAlpha(), 0, "the micro row is invisible at rest")
+	eq(Menus.Content("bags"):GetAlpha(), 0, "the bag row is invisible at rest")
+	assert(K.Layout.Live("databars.micro") and K.Layout.Live("databars.bags"), "each row keeps its plate in Layout Mode")
+	-- Switched off, a row is gone: no button, no plate.
+	K.Options.Write("DataBars", "micro.shown", false)
+	K.Options.Write("DataBars", "bags.shown", false)
+	env.RunTimers()
+	eq(#Menus.Shown("micro"), 0, "switched off, no micro button shows")
+	eq(#Menus.Shown("bags"), 0, "switched off, no bag button shows")
 	assert(not Menus.Content("micro"):IsShown() and not Menus.Content("bags"):IsShown(), "neither row draws")
 	assert(not K.Layout.Live("databars.micro") and not K.Layout.Live("databars.bags"), "a hidden row has no plate in Layout Mode")
 	-- Blizzard's bars stay hidden through Safe, so nothing returns to the bottom centre; the keybinds are Blizzard's own.
 	eq(K.Safe.IsHidden(env.MicroMenuContainer), true, "Blizzard's micro menu stays hidden")
 	eq(K.Safe.IsHidden(env.BagsBar), true, "Blizzard's bag bar stays hidden")
-	-- The card hugs the line: its top padding is in the line, the bottom padding under it, the text centred.
-	local compact = Strip.LINE + view.pad
+	-- The element is the picture's line: 12 units, the text centred in it, no padding.
+	local compact = Strip.LINE
 	local h = view.frame:GetHeight()
-	assert(near(h, compact), "the card is the readout line and its padding: " .. h .. " for " .. compact)
+	assert(near(h, compact), "the element is the readout line: " .. h .. " for " .. compact)
 	assert(near(K.Layout.Get("databars.strip").height, compact), "Layout holds the same height, so the mover plate hugs it")
-	eq(view.line, nil, "with no rows the items fill the card, so the line sits on its centre")
-	eq(Layouts.Element("databars.strip").height, Strip.COMPACT, "the strip builds at the compact card's height")
-	assert(near(Strip.COMPACT, compact), "and that height is the line and its padding: " .. tostring(Strip.COMPACT))
+	eq(view.line, nil, "with no rows docked the items fill the element, so the line sits on its centre")
+	eq(Layouts.Element("databars.strip").height, Strip.COMPACT, "the strip builds at the compact height")
+	assert(near(Strip.COMPACT, compact), "and that height is the line: " .. tostring(Strip.COMPACT))
+	eq(view.lineMode, true, "drawn as one line")
 	for _, id in ipairs(ns.Strip.order) do
 		local button = ns.Strip.view.items[id].button
 		assert(near(button:GetHeight(), h), id .. " fills the card's height, so its text is centred")
@@ -57,6 +71,7 @@ do
 	eq(proxy:GetAttribute("clickbutton1"), env.MainMenuBarBackpackButton, "gold opens Blizzard's bags")
 	assert(K.Widgets.Tooltip():IsOwned(gold), "and shows its tooltip")
 	W.Leave(proxy)
+	K.Options.Write("DataBars", "strip.slot4", "durability")
 	W.Enter(ns.Strip.view.items.durability.button)
 	eq(proxy:GetAttribute("clickbutton1"), env.CharacterMicroButton, "durability opens the character sheet")
 	W.Leave(proxy)
@@ -68,7 +83,17 @@ do
 		assert(type(r.help) == "string" and r.help ~= "", id .. ".shown has help text")
 	end
 
-	-- The micro row back on: eight buttons under the line, and the card grows to hold them.
+	K.Options.Write("DataBars", "strip.slot4", "none")
+
+	-- Undocked, a row shown is its own element and the line does not move.
+	K.Options.Write("DataBars", "micro.shown", true)
+	env.RunTimers()
+	assert(K.Layout.Live("databars.micro") and Menus.Content("micro"):IsShown(), "a free row shown is live and draws")
+	assert(near(view.frame:GetHeight(), compact), "and the line stays the line")
+	K.Options.Write("DataBars", "micro.shown", false)
+
+	-- Docked: the micro row back on, eight buttons under the line, and the element grows to hold them.
+	K.Options.Write("DataBars", "strip.menus", true)
 	K.Options.Write("DataBars", "micro.shown", true)
 	env.RunTimers()
 	eq(#Menus.Shown("micro"), 8, "the compact set returns")
@@ -87,8 +112,6 @@ do
 	local bagsH = Menus.Holder("bags"):GetHeight()
 	local full = Strip.LINE + gap + microH + gap + bagsH + view.pad
 	assert(near(view.frame:GetHeight(), full), "the card holds both rows: " .. view.frame:GetHeight() .. " for " .. full)
-	local _, reserved = Layouts.Footprint("DPS", "databars.strip")
-	assert(view.frame:GetHeight() <= reserved + 0.5, "the full card fits the room the layouts keep: " .. view.frame:GetHeight() .. " in " .. reserved)
 
 	-- Off again: the card shrinks back to the line.
 	K.Options.Write("DataBars", "micro.shown", false)
@@ -98,7 +121,7 @@ do
 	eq(#Menus.Shown("micro") + #Menus.Shown("bags"), 0, "and no button shows")
 	eq(K.Safe.IsHidden(env.MicroMenuContainer), true, "Blizzard's micro menu is still hidden")
 
-	-- Free of the card, a hidden row is not live either; shown, it is its own element again.
+	-- Free of the line, a hidden row is not live either; shown, it is its own element again.
 	K.Options.Write("DataBars", "strip.menus", false)
 	env.RunTimers()
 	assert(not K.Layout.Live("databars.micro") and not K.Layout.Live("databars.bags"), "free but hidden rows have no plate")
@@ -111,6 +134,7 @@ do
 	K.Options.Write("DataBars", "strip.menus", true)
 	env.RunTimers()
 	assert(near(view.frame:GetHeight(), compact), "docked and hidden, one line")
+	K.Options.Write("DataBars", "strip.menus", false)
 	noErrors(env)
 end
 
@@ -118,6 +142,10 @@ end
 
 do
 	local env, K, ns = D.New({ setup = D.Menus })
+	env.RunTimers()
+	K.Options.Write("DataBars", "micro.shown", false)
+	K.Options.Write("DataBars", "bags.shown", false)
+	K.Options.Write("DataBars", "strip.menus", true)
 	env.RunTimers()
 	local view = ns.Strip.view
 	local before = view.frame:GetHeight()
@@ -133,28 +161,25 @@ do
 	assert(near(view.frame:GetHeight(), before), "in combat the card keeps its line: " .. view.frame:GetHeight())
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(view.frame:GetHeight() > before + 40, "after combat it grows to hold the rows: " .. view.frame:GetHeight())
+	assert(view.frame:GetHeight() > before + 20, "after combat it grows to hold the rows: " .. view.frame:GetHeight())
 	eq(#ns.Menus.Shown("micro"), 8, "and the micro buttons show")
 	noErrors(env)
 end
 
--- The layouts keep the rows' room on the right rail's foot, so turning them on moves nothing -----------------------
+-- The layouts size the strip as the picture's line, and keep no room for rows that stand at their own slots ------
 
 do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
 	local element = Layouts.Element("databars.strip")
-	local reserves = {}
+	eq(element.width .. "x" .. element.height, "278x12", "the readout is the line, 278 by 12")
 	for _, entry in ipairs(Layouts.Reserves()) do
-		reserves[entry.key] = entry
+		assert(entry.key ~= "databars.strip", "the line reserves nothing beyond itself")
 	end
-	local reserve = assert(reserves["databars.strip"], "the readout card reserves the room its rows take")
-	eq(reserve.width, element.width, "the reserve is as wide as the card")
-	assert(reserve.height > element.height, "and taller than the one-line card: " .. reserve.height .. " over " .. element.height)
 	for _, name in ipairs(Layouts.Names()) do
 		local w, h = Layouts.Footprint(name, "databars.strip")
-		eq(w .. "x" .. h, reserve.width .. "x" .. reserve.height, name .. " keeps the full card's room")
+		eq(w .. "x" .. h, "278x12", name .. " keeps the line's size")
 	end
 end
 
@@ -194,13 +219,13 @@ do
 	noErrors(env)
 end
 
--- A fresh profile through the module: hidden ----------------------------------------------------------------------
+-- A migrated profile through the module ----------------------------------------------------------------------
 
 do
 	local env, K = D.New({ setup = D.Menus, saved = { version = 3, profiles = { Default = { DataBars = { enabled = true, micro = { size = 30 } } } } } })
 	env.RunTimers()
 	eq(K.Options.Read("DataBars", "micro.shown"), true, "a migrated profile's tuned micro menu shows")
-	eq(K.Options.Read("DataBars", "bags.shown"), false, "and its untouched bag row is hidden")
+	eq(K.Options.Read("DataBars", "bags.shown"), true, "and its untouched bag row takes today's default: on, out of sight at rest")
 	noErrors(env)
 end
 

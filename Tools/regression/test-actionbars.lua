@@ -26,15 +26,16 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
--- Enable builds bars 1 and 2 and the pet and stance bars, each a scalable Layout element at the v3 position.
+-- Enable builds bars 1 and 2, the pet and stance bars and (the owner's picture, LEE-20) bars 4 and 5 in the right rail,
+-- each a scalable Layout element at its layout position.
 do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
 	assert(K.Modules.IsRunning("ActionBars"), "Enable ran: " .. AB.Errors(env))
-	for _, key in ipairs({ "bar1", "bar2", "pet", "stance" }) do
+	for _, key in ipairs({ "bar1", "bar2", "bar4", "bar5", "pet", "stance" }) do
 		assert(ns.bars[key], key .. " is built")
 	end
-	for _, key in ipairs({ "bar3", "bar4", "bar5", "bar6" }) do
+	for _, key in ipairs({ "bar3", "bar6" }) do
 		assert(ns.bars[key] == nil, key .. " is off by default and costs nothing")
 	end
 	local found = {}
@@ -65,7 +66,13 @@ do
 	assert(near(ns.bars.pet.holder:GetWidth(), 162) and near(ns.bars.pet.holder:GetHeight(), 63), "the pet bar is two rows of five, the footprint the layouts plan for it")
 	local bar2 = ns.bars.bar2
 	assert(near(bar2.holder:GetWidth(), width) and near(bar2.holder:GetHeight(), size), "bar 2 uses the same measured row as bar 1")
-	assert(ns.defaults.bar3.rows == 1 and ns.defaults.bar4.rows == 12 and ns.defaults.bar5.rows == 12, "bar 3 is a row too; bars 4 and 5 are columns, as the layouts stand them on the right edge")
+	assert(ns.defaults.bar3.rows == 1 and ns.defaults.bar4.rows == 12 and ns.defaults.bar5.rows == 12, "bar 3 is a row too; bars 4 and 5 are columns, as the layouts stand them in the right rail")
+	for _, key in ipairs({ "bar4", "bar5" }) do
+		local bar = ns.bars[key]
+		assert(ns.defaults[key].enabled == true and ns.defaults[key].showEmpty == true, key .. " is on with every slot drawn, as the picture shows")
+		assert(ns.defaults[key].size == 37 and ns.defaults[key].spacing == 4, key .. " has the picture's 37-unit slots 4 apart")
+		assert(near(bar.holder:GetWidth(), 37) and near(bar.holder:GetHeight(), 12 * 37 + 11 * 4), key .. " is a column of twelve 37-unit slots")
+	end
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
 

@@ -22,7 +22,6 @@ local DEBUFFS = {
 	{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2" },
 	{ icon = 135846, seconds = 4, kind = "NONE" },
 }
-local REST_EDGE_ALPHA = 0.5
 
 local function DispelColor(kind)
 	local colors = {
@@ -105,7 +104,7 @@ local function PlaceGroup(box, entries, group, ctx)
 			button:SetPoint("TOPLEFT", box, "TOPLEFT", x, -top)
 		end
 	end
-	return boxWidth, boxHeight, horizontal
+	return boxWidth, boxHeight
 end
 
 local function Fit(group, timer, available)
@@ -141,22 +140,14 @@ local function Refresh(frame)
 	for _, item in ipairs(boxes) do
 		local box, entries, name = item[1], item[2], item[3]
 		local group = Fit(Model.Group(settings, name), timer, available)
-		local edge = { Tokens.Color("hostile") }
-		if name == "buffs" then
-			edge = { Tokens.Color("edgeInner") }
-		end
-		edge[4] = REST_EDGE_ALPHA
-		local ctx = Context(frame.canvas, group, timer, count, edge)
+		local r, g, b = Tokens.Color("black")
+		local ctx = Context(frame.canvas, group, timer, count, { r, g, b, 1 })
 		for _, entry in ipairs(entries) do
 			StyleSample(entry, ctx)
 		end
-		local w, h, horizontal = PlaceGroup(box, entries, group, ctx)
+		local w, h = PlaceGroup(box, entries, group, ctx)
 		box:ClearAllPoints()
-		if horizontal == "Left" then
-			box:SetPoint("TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
-		else
-			box:SetPoint("TOPLEFT", frame.canvas, "TOPLEFT", 0, -top)
-		end
+		box:SetPoint("TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
 		top = top + h + gap
 		widest = max(widest, w)
 	end

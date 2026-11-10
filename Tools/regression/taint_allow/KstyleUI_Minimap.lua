@@ -19,6 +19,13 @@ return {
 			["Minimap:SetSize"] = 2,
 		},
 	},
+	["KstyleUI_Minimap/Column.lua"] = {
+		why = "button is one of KstyleUI's own crystal buttons, never a Blizzard frame. With Buttons only on hover on, Layout moves the tracking, "
+			.. "calendar and drawer buttons into the face's hover group, and back to the always-shown host when it is off.",
+		calls = {
+			["self.buttons[?]:SetParent"] = 1,
+		},
+	},
 	["KstyleUI_Minimap/Drawer.lua"] = {
 		why = "button is a LibDBIcon button that another addon made on Minimap, never a Blizzard frame. "
 			.. "Adopt moves it into the drawer, skipping a protected button in combat; Stop hands it back to its first "

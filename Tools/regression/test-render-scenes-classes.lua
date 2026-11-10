@@ -12,9 +12,10 @@ do
 		local bars = opts.settings and opts.settings.ActionBars
 		assert(bars and bars.bar2 and bars.bar2.enabled == true, "the class HUD applies the " .. layout .. " preset: bar 2 on")
 		assert(bars.bar1.enabled == true, "and bar 1 on")
-		for i = 3, 6 do
+		for _, i in ipairs({ 3, 6 }) do
 			assert(bars["bar" .. i].enabled == false, layout .. " keeps bar " .. i .. " off")
 		end
+		assert(bars.bar4.enabled == true and bars.bar5.enabled == true, layout .. " shows bars 4 and 5 in the right rail, as the picture does")
 	end
 	local own = Hud.Options({ layout = "DPS", settings = { ActionBars = { bar2 = { enabled = false } } } })
 	assert(own.settings.ActionBars.bar2.enabled == false, "a scene's explicit bar 2 opt-out wins")

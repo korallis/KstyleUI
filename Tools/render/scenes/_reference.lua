@@ -87,6 +87,7 @@ Reference.STATE = {
 	},
 	damage = { { "Korallis", "SHAMAN", 895 } },
 	meterHover = false,
+	meterSolo = true,
 	meterSpells = {
 		{ 403, "Lightning Bolt", 136048, 412 }, { 8050, "Flame Shock", 135813, 188 }, { 8042, "Earth Shock", 136026, 134 },
 		{ 6603, "Melee", 132147, 107 }, { 3599, "Searing Totem", 135825, 54 },

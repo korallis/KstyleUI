@@ -17,7 +17,7 @@ local PREVIEW_GAP = 22
 local PREVIEW_TOP = 26
 local PREVIEW_STRIP = 36
 local PREVIEW_STRIP_PAD = 12
-local STRIP_FONT_SIZE = 12
+local STRIP_FONT_SIZE = 11
 local STRIP_SPACING = 16
 local MAX_SPACING = 32
 local MICRO_SIZE = 26
@@ -74,7 +74,7 @@ defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
-	labels = "inline", menus = true, valueColor = "highlight", accentEdge = false, backdrop = true, separators = false,
+	line = true, labels = "inline", menus = false, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = "NONE",
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
@@ -82,8 +82,9 @@ defaults.strip = {
 for i, id in ipairs(Strip.DEFAULT_SLOTS) do
 	defaults.strip["slot" .. i] = id
 end
-defaults.micro = { enabled = true, shown = false, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
-defaults.bags = { enabled = true, shown = false, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
+defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
+defaults.bags = { enabled = true, shown = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
+defaults.menus = { always = false }
 
 local SOURCES_PLAIN = {
 	{ value = "class", label = L["Class colour"] },
@@ -226,6 +227,7 @@ for i = 1, Strip.SLOTS do
 	}
 end
 for _, row in ipairs({
+	{ type = "toggle", key = "strip.line", label = L["One line"], help = L["Items run together on one line at the right, joined by middle dots. Off, each sits in its own cell."] },
 	{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
 	{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Frame rate in the accent and warnings in theirs, every value by grade, all in the accent, or plain."], options = VALUE_COLORS },
 	{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card, when they are shown."] },
@@ -292,6 +294,9 @@ ns.AddRows(MenuRows("micro", L["Micro menu"], L["Shows KstyleUI's micro menu in 
 	L["Show the micro menu"], L["The system buttons under the readout. Off, the card is one line; keybinds and Escape still work."]))
 ns.AddRows(MenuRows("bags", L["Bag bar"], L["Shows KstyleUI's bag bar in place of Blizzard's. Off, Blizzard's returns."],
 	L["Show the bag bar"], L["Your bags under the readout. Off, the card is one line; B and the gold still open your bags."]))
+ns.AddRows({
+	{ type = "toggle", key = "menus.always", label = L["Always show the menu and bag bars"], help = L["Off, both stay hidden until you point at them, open a bag or use Edit Mode."] },
+})
 
 local SAMPLES = {
 	xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp" },
@@ -319,7 +324,7 @@ end
 local function StripSamples(s)
 	return {
 		fps = { tostring(SAMPLE_FPS), "good" },
-		latency = { (s.labels == "short" or s.labels == "inline") and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
+		latency = { (s.labels == "short" or s.labels == "inline" or (s.labels ~= "none" and Strip.LineMode(s))) and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
 		gold = { Format.Money(SAMPLE_MONEY, s.money) },
 		durability = { SAMPLE_DURABILITY .. "%", "good" },
 		time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },

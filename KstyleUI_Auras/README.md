@@ -1,6 +1,6 @@
 # KstyleUI_Auras
 
-The player's buffs and debuffs as plain icon rows under the minimap.
+The player's buffs and debuffs as plain icon rows beside the minimap.
 
 | Field | Value |
 | --- | --- |
@@ -29,7 +29,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | --- | --- |
 | `Init.lua` | The addon table the files share |
 | `Model.lua` | Defaults, limits and dropdown choices; the pure maths that turn settings into engine options, element sizes, footprints and capacity; the preview's timer text |
-| `Button.lua` | Dresses one engine aura button: the masked icon in a thin rim plate, the timer under it, the stack count on its badge, the nine-piece dispel plate, and the engine bindings; a plain frame gets the same tile without the bindings |
+| `Button.lua` | Dresses one engine aura button: the square icon in a one-pixel dark rim plate, the timer under it in white, the stack count on its badge, the square dispel plate, and the engine bindings; a plain frame gets the same tile without the bindings |
 | `Tracked.lua` | The spells the Cooldown Manager's clean effective layout puts in its tracked-buff row, as an `excludeSpellIDs` set; an unreadable layout excludes nothing |
 | `Panel.lua` | The two containers, their Layout elements, weapon enchantments, the `+N` cell, the restyle gate, Blizzard's frames and the gamepad interface switch |
 | `Preview.lua` | The settings window's live preview, drawn with the module's own tiles |
@@ -41,21 +41,23 @@ Two rows, each a `CustomAuraContainerTemplate` container on the player and its o
 
 | Element key | Filter | Default place | Default shape |
 | --- | --- | --- | --- |
-| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, 16 left of the minimap element, on the top screen margin (`screenMargin`, 17 units) | 2 rows of 8 icons of 30 units, 6 apart, 4 between rows, growing left from the map's edge, then down, so the shortest time left sits next to the map: 282 by 88 units |
-| `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, the same column, 16 under the buffs | the same: 282 by 88 units |
+| `auras.buffs` | `HELPFUL`, with the main-hand, off-hand and ranged weapon enchantments first | `TOPRIGHT`, 12 left of the minimap element, on the top screen margin (`screenMargin`, 17 units) | One row of up to 10 square icons of 28 units, 3 apart, the first aura at the left, the row ending at the element's right edge, a 12-unit timer under each: 307 by 42 units (28 for the icon and 14 for the timer: 2 of gap and the 12-unit line) |
+| `auras.debuffs` | `HARMFUL` | `TOPRIGHT`, the same column, 8 under the buffs | the same: 307 by 42 units, its row ending at the same x as the buffs' |
+
+**The picture wins over #209.** #209 shipped "two rows of eight 30-unit icons each, growing left then down". The owner's picture (2026-11-09) draws one row of ten 27.6-unit icons at a 31 pitch in listed order, first at the left, with white timers under them, and on 2026-11-09 he ruled "let the picture win its what i want" (LEE-20). So the defaults are now `rows` 1, `columns` 10, `iconSize` 28, `spacing` 3 and `growth` `RIGHT_DOWN`, the timer 12 units, and every one of them stays a setting (`rows` up to 8, `columns` up to 24): a player who wants two rows, or the row growing left, sets it. A profile that holds its own values keeps them. 28 stands for the picture's 27.6, so the icon and the gap land on whole pixels.
 
 The rows stand beside the minimap's left edge, as the owner asked (2026-11-09) and as Blizzard's and Leatrix's setups do. `Core/Setup/Layouts.lua` computes their place from the minimap element's width, so a different map keeps them beside it. The boss column and the spare bar columns stand lower on the screen's right side (#208), so the corner is free at every aspect.
 
-Each tile is a bare icon under the kit's socket mask, one border inside a nine-piece plate in the edge colour (`edgeInner` for buffs, `hostile` for debuffs, at half alpha), so a thin rim shows round the icon and nothing else: no body, no bezel, no shadow. The timer sits under the icon in the body face (or on its lower edge) and the stack count on a dark corner badge at the top right. The engine fills in the icon, the timer, the stack count, the badge, the tooltip and the dispel colour, so secret aura data never reaches KstyleUI's Lua. The engine draws each aura's icon as a secret (`secretwrap`), so no addon code can swap it; the repainted icons reach the tiles anyway, because they ship as a loose-file pack the client loads for every icon ([`docs/icons.md`](../docs/icons.md)), in game and in the renders.
+Each tile is a square icon one border inside a one-pixel dark square plate (`black`), as the picture draws it: a plain texture on the tile, so there is no mask, no chamfer and no corner to round. A debuff's dispel plate is the same square under the icon, so the engine's colour shows as a one-pixel ring. No body, no bezel, no shadow. The tile's corners are the module's own; the "+N" cell is the kit's `IconChrome` socket, whose corners and rim the kit draws (it keeps the `edgeInner` and `hostile` accents). The timer sits under the icon in white in the body face, 12 units (the picture's digits are 7 units tall, which this face draws at 12), its box 2 units under the icon so the glyphs start 5 units below it (or on its lower edge), and the stack count on a dark corner badge at the top right. The engine fills in the icon, the timer, the stack count, the badge, the tooltip and the dispel colour, so secret aura data never reaches KstyleUI's Lua. The engine draws each aura's icon as a secret (`secretwrap`), so no addon code can swap it; the repainted icons reach the tiles anyway, because they ship as a loose-file pack the client loads for every icon ([`docs/icons.md`](../docs/icons.md)), in game and in the renders.
 
 - **Text** goes through `Widgets.ApplyFont`, so the timer and count sizes and their one-pixel shadow land on whole physical pixels in the tile's scale (#210).
-- **Timers** use the engine's duration text binding. `short` is the engine's default formatter (`24s`, `8m`, `2h`); `long` and `decimal` are `C_StringUtil` seconds formatters with two units, or tenths under 3 seconds. A step colour curve turns the timer `hostile` under the warning time.
+- **Timers** use the engine's duration text binding. `short` is the engine's default formatter (`24s`, `8m`, `2h`); `long` and `decimal` are `C_StringUtil` seconds formatters with two units, or tenths under 3 seconds. The timer is white (`white`); a step colour curve turns it `hostile` under the warning time.
 - **Stack badge.** The badge is a `StatusBar` handed to the engine through `SetApplicationBar` with `minApplications = 2` (`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua`, `ApplyApplicationBar`: `statusBar:SetShown(applications >= minApplications)`), so the engine shows the plate only when the count text it writes through `SetApplicationCount` is not empty. The count font string is the badge's child, so it hides with it. The bar's own texture is transparent; the plate is a black texture on it.
-- **Debuff type** colours a chamfered plate behind each debuff icon through `AddDispelTypeTexture` with the `PreserveAsset` style, so the engine applies Blizzard's dispel colour and hides it on buffs. A debuff with no type gets the "None" colour. The rim plate sits under it.
+- **Debuff type** colours a square plate behind each debuff icon through `AddDispelTypeTexture` with the `PreserveAsset` style, so the engine applies Blizzard's dispel colour and hides it on buffs. A debuff with no type gets the "None" colour. The rim plate sits under it.
 - **Right-click cancel** is `SetCancelAuraButtons("RightButtonUp")` on buffs and weapon enchantments. The engine's secure `OnClick` cancels the aura, so it works in combat.
 - **Sorting** maps to `AuraContainerSortMethod`: time left (`ExpirationOnly`), name (`NameOnly`), order applied (`AuraInstanceIDOnly`), Blizzard's (`Default`) or priority (`UnitFrameDebuff`: boss debuffs, then important ones, then yours first, as Blizzard's unit frames order them), each normal or reversed. Debuffs sort by priority by default.
 - **Weapon enchantments** share the buff rows. An active enchantment takes one buff's place (`WEAPON_ENCHANT_CHANGED`, `WEAPON_SLOT_CHANGED`), so the rows never grow past their cap.
-- **Many auras.** The rows are the cap: two rows of eight buffs and two rows of eight debuffs by default (`rows` up to 8, `columns` up to 24). The engine shows the first `rows x columns` of each group by the sort, and the rest read as `+N` on the last cell (the bottom left for rows growing left then down): a counting container on `Core/Widgets/Overflow.lua` (`Overflow.New` in `Panel.lua`, one 1-unit element per aura, the labels hung from its foot) that the engine lays out from secure code, so no Lua reads the number and it stays true in a pull. The cell covers the last tile and its timer lane, and reads the covered aura in its count: 24 buffs over 16 cells read `+9`.
+- **Many auras.** The rows are the cap: one row of ten buffs and one row of ten debuffs by default (`rows` up to 8, `columns` up to 24). The engine shows the first `rows x columns` of each group by the sort, and the rest read as `+N` on the last cell (the bottom right for a row listed left to right: the engine's flow runs from the container's top left, and the container hangs from the element's right edge): a counting container on `Core/Widgets/Overflow.lua` (`Overflow.New` in `Panel.lua`, one 1-unit element per aura, the labels hung from its foot) that the engine lays out from secure code, so no Lua reads the number and it stays true in a pull. The cell covers the last tile and its timer lane, and reads the covered aura in its count: 24 buffs over 10 cells read `+15`, and 12 debuffs read `+3`.
 - **Tracked buffs.** `Tracked.lua` reads the effective layout through `CooldownViewerSettings:GetDataProvider()` only when `IsDirty` is false. `GetDisplayData` contains the player's category overrides, unlike the API's default category set (`Blizzard_CooldownViewer/CooldownViewerSettingsDataProvider.lua`). Base, override and linked spell IDs become the row and count containers' `candidateFilters.excludeSpellIDs`; `AuraContainerUtil.DoesAuraPassCandidateFilters` applies these inside the secure engine. A dirty or unavailable layout, unknown visibility, or a disabled viewer excludes nothing, so uncertainty can duplicate a buff but cannot remove its only display. Data, spell, CVar, `CooldownViewerSettings.OnDataChanged` and `EditMode.Exit` notifications rebuild the filter. **Buffs the Cooldown Manager tracks: Here as well** always keeps every buff. Secret IDs are skipped, never used as table keys.
 - **Blizzard's `BuffFrame` and `DebuffFrame`** are hidden through `Safe.HideBlizzard` while the row that replaces each one is built, and come back through `Safe.RestoreBlizzard` when the module turns off, the player turns **Hide Blizzard's buff frames** off, or the gamepad interface is on.
 - **Gamepad interface.** While `InputUtil.IsGamepadUIEnabled()` is true, Blizzard's `BuffFrame` and `DebuffFrame` stay on screen and KstyleUI's two rows hide, so the player sees one set of buffs. `INPUT_DEVICE_INTERFACE_TRANSITION` swaps them back and forth through `KstyleUI.Combat.Queue`, so a switch in combat lands when combat ends.
@@ -65,11 +67,11 @@ Each tile is a bare icon under the kit's socket mask, one border inside a nine-p
 | Key | Default | Row |
 | --- | --- | --- |
 | `hideBlizzard` | `true` | toggle |
-| `buffs.iconSize`, `debuffs.iconSize` | 30 | slider, 16 to 64 |
-| `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 6, 4 | slider, 0 to 24 |
-| `buffs.rows`, `debuffs.rows` | 2, 2 | slider, 1 to 8: the cap; the rest count as `+N` on the last cell |
-| `buffs.columns`, `debuffs.columns` | 8 | slider, 1 to 24 |
-| `buffs.growth`, `debuffs.growth` | `LEFT_DOWN` | dropdown: left or right, then down or up. The container hangs from the element's corner the rows grow from |
+| `buffs.iconSize`, `debuffs.iconSize` | 28 | slider, 16 to 64 |
+| `buffs.spacing`, `buffs.rowSpacing` (and debuffs) | 3, 4 | slider, 0 to 24 |
+| `buffs.rows`, `debuffs.rows` | 1, 1 | slider, 1 to 8: the cap; the rest count as `+N` on the last cell |
+| `buffs.columns`, `debuffs.columns` | 10 | slider, 1 to 24 |
+| `buffs.growth`, `debuffs.growth` | `RIGHT_DOWN` | dropdown: right (the first aura at the left) or left (the first at the right), then down or up. The flow starts at the container's corner for that growth; the container always hangs from the element's right edge (top for down, bottom for up), so a short row ends where a full one does |
 | `buffs.sort`, `debuffs.sort` | `time`, `priority` | dropdown: time, name, applied, blizzard, priority |
 | `buffs.reverse`, `debuffs.reverse` | `false` | toggle |
 | `buffs.tracked` | `cdm` | dropdown: Cooldown Manager only, or here as well |
@@ -79,7 +81,7 @@ Each tile is a bare icon under the kit's socket mask, one border inside a nine-p
 | `timer.format` | `short` | dropdown: short, long, decimal, none |
 | `timer.position` | `below` | dropdown: under the icon, on the icon |
 | `timer.font`, `count.font` | the `body` face, the `number` face | font |
-| `timer.size`, `count.size` | 11, 10 | slider, 6 to 24, times the Appearance text size |
+| `timer.size`, `count.size` | 12, 10 | slider, 6 to 24, times the Appearance text size |
 | `timer.outline`, `count.outline` | `NONE` (a soft shadow) | dropdown: soft shadow, thin, thick |
 | `timer.expiring` | 5 | slider, 0 to 30 seconds; 0 is off |
 | `accent.source`, `accent.color` | `class`, the kit accent | dropdown and colour: kept for a custom rim |

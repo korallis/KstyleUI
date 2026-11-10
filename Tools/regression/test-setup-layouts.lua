@@ -213,20 +213,19 @@ local LEFT_RAIL = {
 -- The picture (LEE-20) draws the chat card 393 by 200. DPS and Tank take that width. Healer keeps the 318 rail:
 -- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
 local CHAT_WIDTH = { DPS = 393, Tank = 393, Healer = 318 }
--- The right rail (owner, 2026-11-09: "The quest tracker can go back to the right side for better alignment"): the map
--- heads it with the aura rows beside it; the story slot (the quest card, under the RestedXP guide when it is loaded)
--- hangs 16 under the lower of the two, where a tracker sits in the classic UI, so the quests read right under the map.
--- The damage card stands on the readout card at the rail's foot, 16 over it, and the tooltip anchor 8 over the damage
--- card: a tooltip grows up over the story slot's foot, never over the damage meter you read in combat. The story slot
--- ends 16 over the tooltip anchor.
-local RIGHT_STACK = {
-	DPS = { "minimap.main", "meters.damage" },
-	Tank = { "minimap.main", "meters.damage" },
-	Healer = { "minimap.main", "meters.damage" },
-}
-local STORY_RAIL_MIN = 560
--- The aura rows (owner pass 1): two 282 x 88 blocks beside the map's left edge, top-aligned with it, the debuffs 16
--- under the buffs, growing left; they are not part of the rail's stack.
+-- The right rail, as the owner's picture draws it (LEE-20, "let the picture win", 2026-11-09), on the screenMargin
+-- token's margin: the 188 map heads it with its 36-unit caption (zone, coordinates, clock) under it and the aura rows
+-- 12 left of it; the 278 story slot hangs 16 under the caption; bars 4 and 5 stand as two 37-unit columns 4 apart, 12
+-- under the slot; the readout line 10 under them, right-aligned; the 269 x 158 damage card at the foot, 6 under the
+-- readout. Bar 6, off, is a third column beside them, so its slot costs the rail no height. The micro menu, the bag bar
+-- and the tooltip anchor stand left of the columns, off every card.
+local EDGE = K.Tokens.Size("screenMargin")
+local MAP, MAP_CAPTION = 188, 36
+local RIGHT_EDGE = { ["minimap.main"] = 188, ["meters.damage"] = 269, ["databars.strip"] = 278, ["actionbars.bar4"] = 37 }
+local RAIL_COLUMN, RAIL_PITCH = 37, 4
+local STORY_W, STORY_RAIL_MIN = 278, 280
+-- The aura rows: one row of ten 28-unit icons each, 307 x 42, the buffs 12 left of the map and top-aligned with it,
+-- the debuffs 8 under the buffs, right-aligned with them.
 local AURA_ROWS = { "auras.buffs", "auras.debuffs" }
 local DOCKED = { ["databars.micro"] = "databars.strip", ["databars.bags"] = "databars.strip" }
 local HANDS = set({
@@ -245,11 +244,14 @@ local CLEAR = { half = 260, bottom = 664, top = HEIGHT - 28 }
 local EDGE_RIGHT = set({ "unitframes.boss" })
 local RAIL_KEYS = {
 	DPS = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
-		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
+		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 	Tank = set({ "groupframes.party", "groupframes.raid", "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs",
-		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+		"meters.damage", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
+		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 	Healer = set({ "chat.main", "qol.lootfeed", "minimap.main", "auras.buffs", "auras.debuffs", "unitframes.boss",
-		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor" }),
+		"meters.damage", "meters.threat", "databars.strip", "databars.micro", "databars.bags", "tooltips.anchor",
+		"actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }),
 }
 -- Healer retains the group frames' upper-left slots, 152 off centre; the character's column stays clear.
 local HEALER = { right = 152, gap = 16, character = 100 }
@@ -277,33 +279,34 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the margin")
 		end
-		for _, key in ipairs(RIGHT_STACK[name]) do
+		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
-			-- Owner pass 1: the minimap is a 160 square at the rail's head, flush with the rail's right edge; the aura rows
-			-- are narrower than the rail (eight 30-unit tiles, 282) and sit right-aligned on it.
-			local wantWidth = key == "minimap.main" and 160 or RAIL
-			assert(math.abs(r.right - (width - MARGIN)) < 1e-6 and r.w == wantWidth, label .. ": " .. key .. " sits on the right rail, " .. wantWidth .. " wide on the margin")
+			assert(math.abs(r.right - (width - EDGE)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on the right rail's edge, " .. wantWidth .. " wide")
 		end
-		do
-			local map, buffs, debuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
-			assert(math.abs(buffs.right - (map.left - 16)) < 1e-6 and buffs.top == map.top, label .. ": the buff rows stand 16 left of the map, top-aligned with it")
-			assert(buffs.right == debuffs.right and math.abs(buffs.bottom - 16 - debuffs.top) < 1e-6, label .. ": the debuff rows hang 16 under the buffs")
-			assert(buffs.w == 282 and buffs.h == 88 and debuffs.w == 282 and debuffs.h == 88, label .. ": each aura block is 282 x 88")
+		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
+		assert(map.top == HEIGHT - EDGE and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail with its 36-unit caption under it")
+		assert(math.abs(auraBuffs.right - (map.left - 12)) < 1e-6 and auraBuffs.top == map.top, label .. ": the buff row stands 12 left of the map, top-aligned with it")
+		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
+		assert(auraBuffs.w == 307 and auraBuffs.h == 42 and auraDebuffs.w == 307 and auraDebuffs.h == 42, label .. ": each aura row is ten 28-unit icons 3 apart, 307 x 42")
+		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
+		assert(meter.bottom == EDGE and meter.h == 158, label .. ": the damage card stands at the rail's foot on the margin")
+		assert(math.abs(strip.bottom - meter.top - 6) < 1e-6 and strip.h == 12, label .. ": the readout line stands 6 over the damage card")
+		local columns = { rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6") }
+		for i, bar in ipairs(columns) do
+			assert(bar.w == RAIL_COLUMN and bar.h == 12 * RAIL_COLUMN + 11 * RAIL_PITCH, label .. ": bar " .. (i + 3) .. " is a column of twelve 37-unit slots 4 apart")
+			assert(math.abs(bar.bottom - strip.top - 10) < 1e-6, label .. ": bar " .. (i + 3) .. " stands 10 over the readout line")
+			assert(i == 1 or math.abs(columns[i - 1].left - bar.right - RAIL_PITCH) < 1e-6, label .. ": bar " .. (i + 3) .. " stands 4 left of the column before it")
 		end
-		local strip = rect("databars.strip")
-		assert(math.abs(strip.right - (width - MARGIN)) < 1e-6 and strip.w == RAIL and strip.bottom == MARGIN, label .. ": the readout and menu card sits on the right rail's foot")
-		-- Docked: the menu and the bag bar in the readout card. Each sits inside its host, where it stays when the player
-		-- undocks it.
+		-- The micro menu and the bag bar no longer dock by default (the picture's readout is a line); their own slots and
+		-- the tooltip anchor stand 16 left of the rail's columns, on no card.
 		for key, host in pairs(DOCKED) do
-			assert(Layouts.Dock(key) == host, key .. " docks into " .. host)
-			local r, h = rect(key), rect(host)
-			assert(r.left >= h.left and r.right <= h.right + 1e-6 and r.bottom >= h.bottom and r.top <= h.top, label .. ": " .. key .. " sits inside " .. host)
+			assert(Layouts.Dock(key) == host, key .. " docks into " .. host .. " when the player turns docking on")
 		end
-		-- The tooltip anchor sits just over the damage card's right corner, on no card (round 2: Fable R2-7): a tooltip
-		-- grows up the rail from it, so hovering the micro menu never covers the menu, the readout or the damage meter.
-		local tip, meter = rect("tooltips.anchor"), rect("meters.damage")
-		assert(math.abs(tip.right - meter.right) < 1e-6 and tip.bottom - meter.top == 8, label .. ": the tooltip anchor sits 8 over the damage card's right corner")
-		assert(meter.bottom - strip.top == 16, label .. ": the damage card stands 16 over the readout card at the rail's foot, got " .. (meter.bottom - strip.top))
+		local micro, bags = rect("databars.micro"), rect("databars.bags")
+		for _, r in ipairs({ micro, bags, tip }) do
+			assert(math.abs(columns[3].left - r.right - 16) < 1e-6, label .. ": the menus and the tooltip anchor stand 16 left of the rail's columns")
+		end
+		assert(micro.bottom == columns[1].bottom and bags.bottom == micro.top and tip.bottom - bags.top == 16, label .. ": the micro menu on the columns' foot, the bags over it, the tooltip anchor 16 over them")
 		local chat = rect("chat.main")
 		local margin = K.Tokens.Size("screenMargin")
 		assert(chat.bottom == margin and chat.left == margin and chat.w == CHAT_WIDTH[name] and chat.h == 200, label .. ": chat sits on the screenMargin token, " .. CHAT_WIDTH[name] .. " by 200, got " .. chat.w .. " by " .. tostring(chat.h))
@@ -316,21 +319,19 @@ for _, name in ipairs(names) do
 			end
 		end
 
-		-- The right rail, top to bottom: the map with the aura rows beside it, the story slot, the tooltip anchor, the
-		-- damage card, the readout. The aura rows reach into the rail's column (282 wide against a 160 map) and lower
-		-- than the map, so the story slot clears them too.
-		local map = rect("minimap.main")
-		assert(map.top == HEIGHT - MARGIN, label .. ": the square map heads the right rail")
+		-- The story slot hangs 16 under the map's caption (and the aura rows, which end higher) and ends 12 over bars 4
+		-- and 5, the 278-unit column the picture draws.
+		local caption = rect("minimap.main")
 		local rows = rect(AURA_ROWS[2])
-		local over = math.min(map.bottom, rows.bottom)
+		local over = math.min(caption.bottom, rows.bottom)
 		local slot = Layouts.Slot(name)
 		assert(slot and slot.anchor and slot.label and slot.hint, name .. " has a labelled story slot with a hint")
 		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
 		local story = { left = s[1], bottom = s[2], right = s[3], top = s[4] }
-		assert(math.abs(story.right - (width - MARGIN)) < 1e-6 and math.abs(story.right - story.left - RAIL) < 1e-6, label .. ": the story slot is on the right rail's column, 318 wide")
-		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the map and the aura rows, got " .. (over - story.top))
-		assert(math.abs(story.bottom - tip.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot ends 16 over the tooltip anchor, got " .. (story.bottom - tip.top))
-		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and the quests, got " .. (story.top - story.bottom))
+		assert(math.abs(story.right - (width - EDGE)) < 1e-6 and math.abs(story.right - story.left - STORY_W) < 1e-6, label .. ": the story slot is on the right rail's column, 278 wide")
+		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the map's caption, got " .. (over - story.top))
+		assert(math.abs(story.bottom - columns[1].top - 12) < 1e-6, label .. ": the story slot ends 12 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
+		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and four quests, got " .. (story.top - story.bottom))
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
 			assert(not (r.left < story.right and story.left < r.right and r.bottom < story.top and story.bottom < r.top),
@@ -452,14 +453,6 @@ for _, name in ipairs(names) do
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
 		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, 4.6) and same(vitals.bottom - bar2.top, 6), label .. ": LEE-20 bars 1 and 2 stack at the picture's 4.6 gap, 6 under the player")
-		local right = width - BAND
-		for i, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
-			local bar = rect(key)
-			assert(same(bar.w, 38) and same(bar.h, 489), label .. ": " .. key .. " keeps its original column of twelve")
-			assert(math.abs(bar.right - right) < 1e-6 and math.abs(bar.y - HEIGHT / 2) < 1e-6, label .. ": " .. key .. " stands on the right edge of the play field, centred on the screen")
-			right = bar.left - 3
-			assert(i < 3 or bar.left >= mid + CLEAR.half, label .. ": the side bars stay out of the clear centre")
-		end
 		if healer then
 			for _, key in ipairs({ "groupframes.party", "groupframes.raid" }) do
 				assert(rect(key).bottom - clusterTop == HEALER.gap, label .. ": " .. key .. " stands 16 over the cluster")
@@ -471,7 +464,7 @@ for _, name in ipairs(names) do
 		-- by the cluster rather than alone at the top of the screen (round 6, Grok #4); five fill the column upward.
 		local boss, text = rect("unitframes.boss"), rect("combattext.player")
 		if not healer then
-			assert(math.abs(boss.right - (rect("actionbars.bar6").left - 16)) < 1e-6, label .. ": the boss column stands on the right edge of the centre, a rail gap left of the side bars")
+			assert(math.abs(boss.right - (rect(AURA_ROWS[1]).left - 8)) < 1e-6, label .. ": the boss column stands on the right edge of the centre, 8 left of the picture's wider aura rows, so a larger UI size never brings them together")
 			assert(boss.bottom - text.top == 16, label .. ": the boss column's foot stands a rail gap over your combat text, got " .. (boss.bottom - text.top))
 			assert(boss.top <= HEIGHT - MARGIN, label .. ": the full column stays under the top margin")
 			local up = false
@@ -487,11 +480,11 @@ for _, name in ipairs(names) do
 		assert(text.left >= utility.right or text.bottom >= utility.top, label .. ": your combat text stays off the utility cooldowns")
 	end
 
-	-- LEE-20 keeps both central action rows and the separate player cast bar on; optional slots remain available.
-	for _, key in ipairs({ "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "unitframes.castbar.target" }) do
+	-- LEE-20 keeps both central action rows and the separate player cast bar on; optional slots remain available. Bars 4 and 5 stand in the right rail (the picture, LEE-20).
+	for _, key in ipairs({ "actionbars.bar3", "actionbars.bar6", "unitframes.castbar.target" }) do
 		assert(Layouts.Shown(name, key) == false, name .. " switches " .. key .. " off")
 	end
-	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "unitframes.castbar.player", "actionbars.pet", "actionbars.stance", "unitframes.player", "unitframes.target", "minimap.main", "chat.main" }) do
+	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "unitframes.castbar.player", "actionbars.bar4", "actionbars.bar5", "actionbars.pet", "actionbars.stance", "unitframes.player", "unitframes.target", "minimap.main", "chat.main" }) do
 		assert(Layouts.Shown(name, key) == true, name .. " keeps " .. key .. " on")
 	end
 	assert(Layouts.Shown(name, "meters.threat") == (name == "Tank"), name .. ": the threat card shows in Tank only")
@@ -500,27 +493,29 @@ for _, name in ipairs(names) do
 		assert(K.Features.modules[entry.module] ~= nil and type(entry.key) == "string" and entry.value ~= nil, name .. " writes a module's setting")
 		settings[entry.module .. "." .. entry.key] = entry.value
 	end
-	for i = 3, 6 do
+	for _, i in ipairs({ 3, 6 }) do
 		assert(settings["ActionBars.bar" .. i .. ".enabled"] == false, name .. " writes bar " .. i .. " off")
 	end
+	assert(settings["ActionBars.bar4.enabled"] == true and settings["ActionBars.bar5.enabled"] == true, name .. " writes bars 4 and 5 on, the rail's two columns")
 	assert(settings["ActionBars.bar1.enabled"] == true and settings["ActionBars.bar1.rows"] == 1, name .. " writes bar 1 on, one row")
 	assert(settings["ActionBars.bar2.enabled"] == true and settings["ActionBars.bar2.rows"] == 1, name .. ": LEE-20 writes bar 2 on, one row")
 	assert(settings["ActionBars.pet.rows"] == 2 and settings["ActionBars.stance.rows"] == 2, name .. " folds the pet and stance sockets into two rows of five")
 	assert(settings["ActionBars.stance.growth"] == "RIGHTUP", name .. " grows the stance sockets up from bar 1's baseline")
 	assert(settings["UnitFrames.boss.auraPosition"] == (name == "Healer" and "RIGHT" or "LEFT"), name .. " hangs the boss debuffs towards the centre")
 	assert(settings["ActionBars.bar1.showEmpty"] == true and settings["ActionBars.bar2.showEmpty"] == true, name .. ": LEE-20 shows both central bars' empty tiles")
-	for i = 3, 6 do
+	for _, i in ipairs({ 3, 6 }) do
 		assert(settings["ActionBars.bar" .. i .. ".showEmpty"] == false, name .. " hides bar " .. i .. "'s empty sockets")
 	end
+	assert(settings["ActionBars.bar4.showEmpty"] == true and settings["ActionBars.bar5.showEmpty"] == true, name .. " draws all 24 of the rail columns' slots, as the picture does")
 	assert(settings["Meters.threat.shown"] == (name == "Tank"), name .. " writes the threat card's switch")
-	assert(settings["DataBars.strip.menus"] == true, name .. " docks the menu and the bags in the readout card")
+	assert(settings["DataBars.strip.menus"] == false, name .. " leaves the menu and the bags out of the readout line")
 	-- Apply sizes the meters: six damage rows, or in Tank two damage rows over two threat rows, so the rail fits.
 	local sizes = Layouts.Sizes(name)
 	for key, size in pairs(sizes) do
 		local w, h = Layouts.Footprint(name, key)
 		assert(size.width == w and size.height == h, name .. " writes " .. key .. " at its footprint")
 	end
-	assert(sizes["meters.damage"].height == 190, name .. ": six damage rows")
+	assert(sizes["meters.damage"].width == 269 and sizes["meters.damage"].height == 158, name .. ": the picture's 269 x 158 damage card")
 	assert(settings["GroupFrames.raid.groupsPerRow"] == 4, name .. " folds the raid into four groups a row, for the rail")
 	local raidW = 4 * settings["GroupFrames.raid.width"] + 3 * 3
 	assert(raidW <= RAIL and raidW >= RAIL - 4, name .. ": four raid groups fill the rail's 318, got " .. raidW)
@@ -568,9 +563,9 @@ local FOOTPRINTS = {
 	["actionbars.bar1"] = { 491, 36.7 },
 	["actionbars.bar2"] = { 491, 36.7 },
 	["actionbars.bar3"] = { 12 * 38 + 11 * 3, 38 },
-	["actionbars.bar4"] = { 38, 12 * 38 + 11 * 3 },
-	["actionbars.bar5"] = { 38, 12 * 38 + 11 * 3 },
-	["actionbars.bar6"] = { 38, 12 * 38 + 11 * 3 },
+	["actionbars.bar4"] = { 37, 12 * 37 + 11 * 4 },
+	["actionbars.bar5"] = { 37, 12 * 37 + 11 * 4 },
+	["actionbars.bar6"] = { 37, 12 * 37 + 11 * 4 },
 	["actionbars.pet"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	["actionbars.stance"] = { 5 * 30 + 4 * 3, 2 * 30 + 3 },
 	-- LEE-20 reserves external portraits and target debuffs; the optional focus retains its 22-unit aura reserve.
@@ -590,15 +585,15 @@ local FOOTPRINTS = {
 	-- S4 (#157): six damage rows, four threat rows, the readout with the menu docked (at 318 the bag bar wraps under
 	-- the micro menu: 118 holds both rows, with 3 units for the owner's pixel snapping), the party card. Chat is the
 	-- picture's 393 by 200 card at the left rail's foot (LEE-20).
-	-- Owner pass 1: a 160-unit square map, half the lens card, with the zone and clock inside it.
-	["minimap.main"] = { 160, 160 },
-	-- Owner pass 1 (2026-11-09): the buffs and debuffs are plain rows of eight 30-unit tiles, two rows each, beside
-	-- the map (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at 0 to 40 buffs).
-	["auras.buffs"] = { 282, 88 },
-	["auras.debuffs"] = { 282, 88 },
-	["meters.damage"] = { 318, 190 },
-	["meters.threat"] = { 318, 144 },
-	["databars.strip"] = { 318, 118 },
+	-- The owner's picture (LEE-20): a 188 square map with its zone, coordinates and clock in 36 units under it; one
+	-- row of ten 28-unit aura icons each (test-setup-collisions.lua and test-auras-counts.lua measure the live rows at
+	-- 0 to 40 buffs); the 269 x 158 damage card; the readout as one 12-unit line.
+	["minimap.main"] = { 188, 224 },
+	["auras.buffs"] = { 307, 42 },
+	["auras.debuffs"] = { 307, 42 },
+	["meters.damage"] = { 269, 158 },
+	["meters.threat"] = { 269, 144 },
+	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 393, 200 },
 	["groupframes.party"] = { 318, 324 },
@@ -615,8 +610,9 @@ end
 -- Every element builds at its footprint (Element) and the layouts place it there, except a reserve and the sizes a
 -- layout writes on Apply (the Tank meters).
 do
-	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves.
-	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["databars.strip"] = { 318, 118 } }
+	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves. The map's zone, coordinates and clock hang
+	-- in the 36 units under its 188 square.
+	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["minimap.main"] = { 188, 224 } }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -640,7 +636,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -MARGIN and minimap.y == -MARGIN, "the square map sits on the margin at the top right")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -EDGE and minimap.y == -EDGE, "the square map sits on the screen margin at the top right")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

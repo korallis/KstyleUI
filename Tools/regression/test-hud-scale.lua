@@ -68,12 +68,13 @@ do
 	assert(d.bars.width == 6 * 38 + 5 * 3, "the optional mirrored buff bars retain their original width")
 end
 
--- LEE-20 stacks bar 2 over bar 1 and reserves bar 3 above chat; the right-side bar columns stay unchanged. --------
+-- LEE-20 stacks bar 2 over bar 1 and reserves bar 3 above chat; bars 4 and 5 stand in the right rail's column over
+-- the readout, as the picture draws them, and bar 6's slot a third column beside them ------------------------------
 do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
-	local HEIGHT, PITCH = Layouts.HEIGHT, 3
+	local HEIGHT = Layouts.HEIGHT
 	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3" }) do
 		local grid = Layouts.Grid(key)
 		assert(grid.rows == 1, key .. " is one row of twelve, like bar 1")
@@ -100,11 +101,12 @@ do
 			local player, target = rect("unitframes.player"), rect("unitframes.target")
 			assert(near(player.b - bar2.t, 6) and near(target.b - player.t, 2), label .. ": LEE-20 player and target stack directly over bar 2")
 			assert(near(player.l, bar1.l - 95.5) and near(player.r, bar1.r) and near(target.l, bar1.l) and near(target.r, bar1.r + 246.4), label .. ": LEE-20 asymmetric reserves leave both bar columns centred")
-			local rail = rect("meters.damage")
+			local readout, damage = rect("databars.strip"), rect("meters.damage")
 			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
-			assert(near(rail.l - bar4.r, 16), label .. ": bar 4 stands a rail gap left of the right rail")
-			assert(near(bar4.l - bar5.r, PITCH) and near(bar5.l - bar6.r, PITCH), label .. ": bars 5 and 6 stand beside it at the bar pitch")
-			assert(near((bar4.b + bar4.t) / 2, HEIGHT / 2), label .. ": the side bars are centred on the screen's height")
+			local railPitch = Layouts.Grid("actionbars.bar4").spacing
+			assert(near(bar4.r, damage.r) and near(bar4.r, readout.r), label .. ": bar 4 stands on the right rail's edge, over the readout and the damage card")
+			assert(near(bar4.l - bar5.r, railPitch) and near(bar5.l - bar6.r, railPitch), label .. ": bars 5 and 6 stand beside it at the rail bars' pitch")
+			assert(near(bar4.b, readout.t + 10) and near(bar5.b, bar4.b) and near(bar6.b, bar4.b), label .. ": the columns stand 10 over the readout")
 		end
 	end
 end

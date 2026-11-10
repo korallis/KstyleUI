@@ -86,6 +86,7 @@ return Common.Run(function()
 	-- The readout and menu card: the strip's line of values and units over the micro menu and the bag bar, docked in
 	-- the same card as round crystal buttons. Both rows are hidden by default, when the card is the readout line the
 	-- HUD scenes show; this frame turns them on, as a player does from the settings.
+	K.Options.Write("DataBars", "strip.menus", true)
 	K.Options.Write("DataBars", "micro.shown", true)
 	K.Options.Write("DataBars", "bags.shown", true)
 	local micro, bags = ns.Menus.Content("micro"), ns.Menus.Content("bags")

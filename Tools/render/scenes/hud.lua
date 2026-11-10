@@ -1252,12 +1252,12 @@ function modules.meters(opts)
 				}
 			end
 			env._session = { combatSources = sources, maxAmount = rows[1] and rows[1][3] or 0, totalAmount = total, durationSeconds = 60 }
-			env._group = { raid = false, size = #rows }
+			env._group = { raid = false, size = opts.meterSolo and 0 or #rows }
 			env._units.player = { name = rows[1] and rows[1][1] or "Valerin", class = rows[1] and rows[1][2] or "WARRIOR" }
 			env._units.target = { name = opts.target and opts.target.name or TARGET.name, hostile = true }
 			for i, row in ipairs(rows) do
 				local unit = i == 1 and "player" or ("party" .. (i - 1))
-				env._units[unit] = { name = row[1], class = row[2] }
+				env._units[unit] = { name = row[1], class = row[2], guid = "Player-" .. tostring(row[1]) }
 				env._threat[unit] = { i == 2, i == 2 and 3 or 0, 100 - i * 14, 100 - i * 16, (#rows - i + 1) * 100000 }
 			end
 		end,
@@ -1294,6 +1294,7 @@ function modules.meters(opts)
 		tick(env, 0.3)
 	end
 	-- opts.meterSpells (the same shape): the player clicked their own row, so the card lists every spell of theirs.
+	-- With opts.meterSolo the player is alone: the card rests on their own spells with no click.
 	if opts.meterSpells and rows[1] then
 		local spells, total = {}, 0
 		for i, s in ipairs(opts.meterSpells) do
@@ -1302,10 +1303,14 @@ function modules.meters(opts)
 			total = total + s[4]
 		end
 		env._sources["Player-" .. tostring(rows[1][1])] = { combatSpells = spells, maxAmount = spells[1].totalAmount, totalAmount = total }
-		local row = ns.Damage.list.rows[1].frame
-		local click = row:GetScript("OnClick") or row:GetScript("OnMouseUp")
-		if click then
-			click(row, "LeftButton")
+		if opts.meterSolo then
+			env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
+		else
+			local row = ns.Damage.list.rows[1].frame
+			local click = row:GetScript("OnClick") or row:GetScript("OnMouseUp")
+			if click then
+				click(row, "LeftButton")
+			end
 		end
 		env.RunTimers()
 		tick(env, 0.3)
@@ -1314,7 +1319,7 @@ function modules.meters(opts)
 	if opts.meterHover then
 		scene.log[#scene.log + 1] = "the pointer rests on the player's row of the damage meter: its split lists the top three spells under the row"
 	end
-	if opts.meterSpells then
+	if opts.meterSpells and not opts.meterSolo then
 		scene.log[#scene.log + 1] = "the player clicked their own row of the damage meter: the card lists their spells"
 	end
 	return finish(env, K, scene, "meters"), ns
