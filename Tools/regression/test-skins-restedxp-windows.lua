@@ -547,6 +547,7 @@ do
 	configurator:Open()
 	local ui = configurator.ui
 	assert(Glass(K, ui.frame) and Alpha(ui.frame.rxpBackground.configuratorHeader) == 0, "the guide configurator is skinned when it is made")
+	assert(K.Skin.Parts(ui.frame).backdrop.inset.top == -K.Tokens.Size("gapMedium"), "its glass rises a medium gap over the window: RestedXP hangs the title 1 under the frame's top (GuideConfigurator.lua 485), where its capitals would touch the rim")
 	-- The title and the buttons use the kit's text roles: the title a caps caption in the picture's muted gold, as
 	-- every window title is since the Captain's ruling of 2026-11-10 (it was the title role in the emphasised text
 	-- before); each button label in the body role in the emphasised text, and RestedXP's own flat button wash
@@ -632,6 +633,7 @@ do
 	rxp.guideImporter:Open()
 	local widgets = rxp.guideImporter.widgets
 	assert(Glass(K, widgets.import.frame) and Hushed(widgets.import.frame), "the guide importer is skinned when it is made")
+	assert(K.Skin.Parts(widgets.import.frame).backdrop.inset.top == -K.Tokens.Size("gapMedium"), "its glass rises a medium gap over the window too: RestedXP hangs the title 4 under the frame's top (GuideImporter.lua 273)")
 	assert(K.Skin.IsSkinned(widgets.import.closebutton, "CloseButton"))
 	local function InCorner(button, owner, what)
 		local point, on, onPoint, x, y = button:GetPoint(1)

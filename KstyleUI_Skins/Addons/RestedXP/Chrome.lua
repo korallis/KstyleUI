@@ -35,7 +35,7 @@ local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
 local PLATE_PAD, SPLITS_SIDE = 5, 8
-local ACE_TITLE_RISE = "gapMedium"
+local TITLE_RISE = "gapMedium"
 local STEP_RISE, STEP_TEXT_TOP, STEP_TEXT_RIGHT, STEP_CHECK_LEFT, STEP_CHECK_TOP = 12, 2, 5, 1, 1
 local RXP_LINE_SHARE, RXP_LINE_PAD = 1.1, 1
 local REST_FOOT = 12
@@ -1330,7 +1330,7 @@ local function Report(tracker, labels)
 	for _, ui in pairs(reports) do
 		if IsTable(ui) and IsTable(ui.frame) then
 			local frame = ui.frame
-			Glass(frame, { rise = ACE_TITLE_RISE })
+			Glass(frame, { rise = TITLE_RISE })
 			CaptionFor(ui.titletext)
 			local status = IsTable(ui.statustext) and ui.statustext:GetParent()
 			for _, child in ipairs({ frame:GetChildren() }) do
@@ -1698,7 +1698,7 @@ local function Configurator(configurator)
 		return
 	end
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
-		Glass(ui.frame)
+		Glass(ui.frame, { rise = TITLE_RISE })
 	end
 	CaptionFor(ui.titletext)
 	Label(Find(ui, "description"), "body", "text")
@@ -1729,7 +1729,7 @@ local function Importer(importer)
 		return
 	end
 	if not Skin.IsSkinned(window.frame, "Backdrop") then
-		Glass(window.frame)
+		Glass(window.frame, { rise = TITLE_RISE })
 	end
 	CloseButton(window.closebutton)
 	CaptionFor(window.title)
@@ -1854,7 +1854,7 @@ local function DressDialog(global)
 			end
 		end
 	end
-	DressPanel(frame, ACE_TITLE_RISE)
+	DressPanel(frame, TITLE_RISE)
 	UndressOnHide(frame)
 end
 

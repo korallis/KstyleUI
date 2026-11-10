@@ -602,7 +602,9 @@ local function Others(R, x, itemsTop)
 	local configurator = rxp.ui.v2.configurator.ui
 	local x3 = x + WIDTH + GAP
 	at(configurator.frame, env.UIParent, x3, RestedXP.TOP, 320, 240)
-	text(configurator.titletext, "Guide configurator", "TOP", configurator.frame, "TOP", 0, -14)
+	-- GuideConfigurator.lua:483-486 hangs the title 1 under the frame's top in a 162 by 16 box, over the header buttons.
+	text(configurator.titletext, "Guide configurator", "TOP", configurator.frame, "TOP", 0, -1)
+	configurator.titletext:SetSize(162, 16)
 	for i, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
 		local button = configurator[key]
 		at(button, configurator.frame, 16 + (i - 1) * 100, 240 - 44, 88, 26)
