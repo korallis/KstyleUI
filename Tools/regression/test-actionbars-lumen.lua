@@ -1,6 +1,6 @@
 -- test-actionbars-lumen.lua: the Lumen socket on the action buttons: a quiet rim at rest, the keybind at the top left,
 -- a centred cooldown timer, a gilt proc rim with a breathing glow inside the socket, a red out-of-range tint, a cool
--- desaturated tint without resource, quiet empty sockets that fade further in combat, and bar 1 as one floating row.
+-- desaturated tint without resource, visible empty tiles, and bar 1 as one floating row.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local W = AB.W
 
@@ -43,8 +43,8 @@ do
 	assert(W.SameColor(rim(b), qr, qg, qb, qa), "the resting rim is the quiet rim")
 	K.Widgets.Hover(b, true)
 	W.Settle(env)
-	local _, _, _, ha = rim(b):GetVertexColor()
-	assert(ha > qa, "hover lifts the rim, got alpha " .. tostring(ha))
+	local hr, hg, hb, ha = color(K, "textHover")
+	assert(W.SameColor(rim(b), K.Widgets.Mix(qr, qg, qb, qa, hr, hg, hb, ha, 0.5)), "hover lifts the quiet rim halfway toward white")
 	K.Widgets.Hover(b, false)
 	W.Settle(env)
 	K.Options.Write("ActionBars", "accent", "class")
@@ -103,6 +103,7 @@ do
 	assert(b.proc, "the button procs")
 	local gr, gg, gb = color(K, ns.Socket.TOKENS.gilt)
 	assert(W.SameRGB(rim(b), gr, gg, gb), "the proc rim is gilt")
+	assert(b.chrome.proc and W.SameRGB(b.chrome.line[1], gr, gg, gb), "the shared kit draws the outer proc edge in giltLit")
 	local glow = assert(b.lumenGlow, "the proc shows the socket's own glow")
 	assert(glow:IsShown(), "the glow shows")
 	assert(b.procGlow == nil, "the kit's glow, with its halo past the button, is not used")
@@ -116,6 +117,7 @@ do
 	assert(W.Near(W.LastCall(alpha, "SetDuration")[1], 0.7), "at 0.7 seconds a breath")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
 	assert(not b.proc and not breath:IsPlaying(), "the hide event stops the breath")
+	assert(not b.chrome.proc and W.SameColor(b.chrome.line[1], K.Tokens.Color("socketEdge")), "ending the proc restores the black outer socket edge")
 	W.Settle(env)
 	assert(not glow:IsShown() or glow:GetAlpha() == 0, "and the glow goes")
 	local qr, qg, qb, qa = color(K, ns.Socket.TOKENS.quietRim)
@@ -149,7 +151,7 @@ do
 	assert(W.Near(b.tint[1], range.r) and W.Near(b.tint[2], range.g), "the icon takes the range tint")
 	assert(textRGB(b.hotkey, range.r, range.g, range.b), "the keybind turns red too")
 	env.FireEvent("ACTION_RANGE_CHECK_UPDATE", 1, true, true)
-	assert(textRGB(b.hotkey, color(K, "textEmphasis")), "back in range the keybind is white again")
+	assert(textRGB(b.hotkey, color(K, "white")), "back in range the keybind is white again")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
@@ -182,13 +184,13 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
--- Empty sockets rest at 35%, recede to 12% in combat, and still light on hover and while an action is dragged.
+-- Empty tiles keep their material and key in and out of combat, including hover and drag feedback.
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 7)
-	assert(W.Near(b:GetAlpha(), 0.35), "an empty socket rests at 35%, got " .. tostring(b:GetAlpha()))
+	assert(b:GetAlpha() == 1, "an empty tile stays visible at rest")
 	env.SetCombat(true)
-	assert(W.Near(b:GetAlpha(), 0.12), "in combat it fades to 12%, got " .. tostring(b:GetAlpha()))
+	assert(b:GetAlpha() == 1, "an empty tile stays visible in combat")
 	assert(#env._blocked == 0, "only alpha changes in combat: " .. table.concat(env._blocked, ", "))
 	K.Widgets.Hover(b, true)
 	W.Settle(env)
@@ -199,7 +201,7 @@ do
 	assert(b:GetAlpha() == 1, "dragging an action shows it in full")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
 	env.SetCombat(false)
-	assert(W.Near(b:GetAlpha(), 0.35), "after combat it rests at 35% again")
+	assert(b:GetAlpha() == 1, "after combat it keeps its full opacity")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
@@ -207,7 +209,7 @@ end
 do
 	local _, K, ns = new()
 	local cfg = K.Options.Read("ActionBars", "bar1")
-	assert(cfg.buttons == 12 and cfg.rows == 1 and cfg.size == 38, "bar 1 is one row of twelve 38-unit sockets")
+	assert(cfg.buttons == 12 and cfg.rows == 1 and cfg.size == 36.7 and cfg.spacing == 4.6, "bar 1 is one row of twelve reference tiles")
 	for _, def in ipairs(ns.BARS) do
 		assert(K.Options.Read("ActionBars", def.key).backing == false, def.key .. " has no backing strip by default")
 	end

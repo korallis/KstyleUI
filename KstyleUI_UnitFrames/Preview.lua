@@ -9,6 +9,7 @@ local Preview = {}
 ns.Preview = Preview
 
 local MARGIN = 8
+local FULL_MIN_WIDTH = 120
 local MIN_SCALE, MAX_SCALE = 0.5, 1.5
 local INCOMING_SHARE = 0.08
 local SKULL = 8
@@ -24,7 +25,7 @@ local CHIP_SHARE, CHIP_MIN, CHIP_LEVEL = 0.42, 8, 4
 local THREAT_TANKING = 3
 
 local SAMPLES = {
-	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true, caption = L["Battle Stance"] },
+	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true, caption = L["Battle Stance"], class = L["Warrior"] },
 	target = { name = L["Frost Howler"], level = 61, classification = "elite", creature = L["Beast"], health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true },
 	targettarget = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true },
 	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2 },
@@ -83,6 +84,22 @@ local function PaintLumen(view, kind, sample)
 			view.ringGlow:SetVertexColor(r, g, b, GlowAlpha(share))
 			view.ringGlow:Show()
 		end
+	elseif form == "column" then
+		local mirror = view.geometry.mirror
+		local split = not mirror and (s.healthText == "both" or s.healthText == "currentMax")
+		if mirror then
+			Format.Sample(view.healthText, Format.Main(s.healthText), sample.health, sample.healthMax)
+			view.caption:SetText(sample.creature or "")
+		else
+			Format.Sample(view.healthText, split and "current" or s.healthText, sample.health, sample.healthMax)
+			view.caption:SetText(sample.class or "")
+		end
+		if split then
+			Format.SampleMax(view.healthSub, sample.healthMax)
+		else
+			view.healthSub:SetText("")
+		end
+		view.levelText:SetText(sample.level)
 	elseif form == "card" then
 		Format.Sample(view.healthText, Format.Main(s.healthText), sample.health, sample.healthMax)
 		ns.Unit.LevelText(view.caption, sample.level, sample.classification, nil, true)
@@ -279,7 +296,7 @@ local function PaintAuras(frame, view, kind)
 		local timers = Settings.Value(kind, "auraTimer") == true
 		local rows = Settings.Value(kind, "auraRows")
 		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * spacing))
-		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x)
+		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x, view.geometry.aura)
 		host:Show()
 		for i = 1, count do
 			local tile = tiles[i]
@@ -319,7 +336,7 @@ local function Room(value)
 	return value - 2 * MARGIN
 end
 
-local function Size(frame, kind)
+local function Size(frame, kind, s)
 	local key = Settings.ELEMENTS[kind]
 	local element = K.Setup.Layouts.Element(key)
 	local width, height = element.width, element.height
@@ -332,7 +349,8 @@ local function Size(frame, kind)
 	end
 	local room = Room(frame:GetWidth())
 	if room then
-		width = math.min(width, room / MIN_SCALE)
+		local left, right = Geometry.Reach(s)
+		width = math.min(width, math.max(FULL_MIN_WIDTH, room / MIN_SCALE - left - right))
 	end
 	return width, height
 end
@@ -360,7 +378,7 @@ end
 
 local function Fit(frame, holder, kind, width, height)
 	local l, t, r, b = 0, 0, width, height
-	for _, region in ipairs({ frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame }) do
+	for _, region in ipairs({ frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame }) do
 		local rl, rt, rr, rb = Box(region, holder, width, height)
 		if rl then
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
@@ -391,8 +409,8 @@ local function Refresh(frame)
 		frame.views[kind] = Style.New(holder, kind)
 	end
 	local view = frame.views[kind]
-	local width, height = Size(frame, kind)
 	view.s = Settings.Snapshot(kind)
+	local width, height = Size(frame, kind, view.s)
 	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and view.s.castbar and view.s.form == "plate" then
 		height = math.max(0, height - view.s.castbarHeight - CAST_GAP)
 	end

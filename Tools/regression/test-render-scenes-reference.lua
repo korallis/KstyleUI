@@ -16,6 +16,13 @@ assert(rawget(_G, "RENDER_SCREEN") == nil, "the build gives the global screen ba
 assert(L.Common.SCREEN.width == 2383 and L.Common.SCREEN.height == 1540, "later scenes draw the Mac window again")
 
 local texts = L.collect(scene)
+local buffX = {}
+for _, item in ipairs(scene.items) do
+	if item.kind == "text" and (item.text == "8s" or item.text == "14s") then
+		buffX[item.text] = item.rect[1]
+	end
+end
+assert(buffX["8s"] and buffX["14s"] and buffX["8s"] < buffX["14s"], "the configured tracked buffs read 8s then 14s from left to right beside the portrait")
 for _, text in ipairs({ "Windfield Orchard", "[11] Unnerving Silence", "[9] Crab Season", "Lightning Bolt", "Searing Totem", "203", "Korallis", "Shadowgale Poacher" }) do
 	local found = texts[text]
 	if not found then
@@ -48,7 +55,7 @@ L.guard("hud_reference", scene)
 local preset = Reference.Build({ preset = true })
 L.guard("hud_reference preset", preset)
 L.globs()
-assert(not preset.elements["actionbars.bar2"], "with the preset's bars only, bar 2 stays off")
+assert(preset.elements["actionbars.bar2"], "LEE-20 enables bar 2 in the preset as well as the reference fixture")
 assert(rawget(_G, "RENDER_SCREEN") == nil, "the preset build gives the global screen back too")
 rawset(_G, "RENDER_SCREEN", { width = 1280, height = 720, size = 0.6 })
 local nested = dofile("Tools/render/scenes/_common.lua")

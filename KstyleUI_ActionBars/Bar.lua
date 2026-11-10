@@ -184,6 +184,13 @@ function Bar:Layout()
 	self.count = count
 	local size, gap = Widgets.Snap(header, cfg.size), Widgets.Snap(header, cfg.spacing)
 	local width, height = ns.GridSize(count, cfg.rows, size, gap)
+	local pitch = size + gap
+	if def.key == "bar1" or def.key == "bar2" then
+		local _, _, columns, rows = ns.GridSize(count, cfg.rows, cfg.size, cfg.spacing)
+		pitch = cfg.size + cfg.spacing
+		width = Widgets.Snap(header, (columns - 1) * pitch) + size
+		height = Widgets.Snap(header, (rows - 1) * pitch) + size
+	end
 	local cols, used
 	if def.kind == "stance" and (cfg.rows or 1) > 1 then
 		local _, _, full = ns.GridSize(min(def.max, max(1, floor(cfg.buttons or def.max))), cfg.rows, 1, 0)
@@ -216,7 +223,7 @@ function Bar:Layout()
 				col, row = ns.Cell(i, count, cfg.rows, cfg.orientation, cfg.growth)
 			end
 			b:ClearAllPoints()
-			b:SetPoint("TOPLEFT", header, "TOPLEFT", col * (size + gap), -row * (size + gap))
+			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch), -Widgets.Snap(header, row * pitch))
 			b:Restyle()
 			b:Show()
 		else

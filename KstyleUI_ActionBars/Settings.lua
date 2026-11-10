@@ -13,7 +13,7 @@ local PAGING_LETTERS = 255
 local ON_BY_DEFAULT = { bar1 = true, bar2 = true, pet = true, stance = true }
 
 ns.TEXTS = {
-	{ key = "hotkey", role = "caption", label = L["Keybind text"] },
+	{ key = "hotkey", role = "number", label = L["Keybind text"] },
 	{ key = "count", role = "number", label = L["Count text"] },
 	{ key = "macro", role = "caption", label = L["Macro name text"] },
 	{ key = "cooldown", role = "number", label = L["Cooldown numbers"] },
@@ -34,7 +34,7 @@ local function BarDefaults(def)
 		orientation = "HORIZONTAL",
 		growth = grid.growth or "RIGHTDOWN",
 		size = grid.size,
-		spacing = Tokens.Size("actionGap"),
+		spacing = grid.spacing or Tokens.Size("actionGap"),
 		fade = false,
 		fadeAlpha = 0,
 		hotkey = true,
@@ -136,8 +136,8 @@ local function BarRows(schema, def)
 	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = def.max, step = 1 })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
-	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 1 })
-	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = SPACING_MAX, step = 1 })
+	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 0.1 })
+	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = L["The gap between buttons."], min = 0, max = SPACING_MAX, step = 0.1 })
 	if def.kind ~= "stance" then
 		add({ type = "toggle", key = key .. ".showEmpty", label = L["Show empty buttons"], help = L["Shows slots with no action as empty tiles."] })
 	end

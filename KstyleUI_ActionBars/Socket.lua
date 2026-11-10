@@ -1,4 +1,4 @@
--- Socket.lua: the Lumen socket states the action buttons add to the kit's icon button: a quiet rim, the keybind at the top left, a centred timer that reads 4s as the cooldown rows do, a gilt breathing proc, cool no-resource and red out-of-range tints, and quiet empty sockets.
+-- Socket.lua: square action tiles with dark pixel borders, bright top-left keys, centred timers, breathing gilt procs and range and resource tints.
 local _, ns = ...
 
 local K = KstyleUI
@@ -16,13 +16,10 @@ Socket.TOKENS = {
 local TEXT_INSET = 3
 local QUIET_HOVER = 0.5
 local POWER_DIM = 0.7
-local EMPTY_REST, EMPTY_COMBAT = 0.35, 0.12
 local BREATH = 0.7
 local BREATH_LOW, BREATH_HIGH = 0.45, 1
 local GLOW_ALPHA = 0.55
 local GLOW_LEVEL = 1
-
-Socket.inCombat = false
 
 local formatter
 
@@ -60,14 +57,6 @@ local function Countdown(b)
 	if f and pcall(cooldown.SetCountdownFormatter, cooldown, f) then
 		b.kCountdown = true
 	end
-end
-
-function Socket.EmptyAlpha()
-	return Socket.inCombat and EMPTY_COMBAT or EMPTY_REST
-end
-
-function Socket.SetCombat(on)
-	Socket.inCombat = on == true
 end
 
 local function Quiet()
@@ -151,6 +140,7 @@ function Socket.SetProc(b, on)
 		return
 	end
 	b.proc = on
+	b.chrome:SetProc(on)
 	local glow = Glow(b)
 	if on then
 		local r, g, bl = Tokens.Color(Socket.TOKENS.gilt)
@@ -174,7 +164,7 @@ function Socket.Tint(b, key)
 	if color then
 		b.hotkey:SetTextColor(color.r, color.g, color.b)
 	else
-		Widgets.TextColor(b.hotkey, "textEmphasis")
+		Widgets.TextColor(b.hotkey, "white")
 	end
 end
 
@@ -190,6 +180,7 @@ function Socket.Decorate(b)
 	end
 	b.SetProc = Socket.SetProc
 	Socket.Place(b)
+	Socket.Tint(b)
 	b:Paint()
 	return b
 end

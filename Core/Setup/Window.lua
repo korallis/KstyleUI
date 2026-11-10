@@ -377,8 +377,8 @@ function Preview:Draw(name)
 	local positions = Layouts.Get(name)
 	for _, rect in ipairs(self.rects) do
 		local key = rect.element.key
-		local w, h = Layouts.Footprint(name, key)
-		local l, b, r, t = Layouts.Rect({ width = w, height = h }, positions[key], REFERENCE_WIDTH, REFERENCE_HEIGHT)
+		local w, h, offsetX = Layouts.Footprint(name, key)
+		local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, positions[key], REFERENCE_WIDTH, REFERENCE_HEIGHT)
 		local shown = Layouts.Shown(name, key) ~= false
 		local width, height = max(line, Widgets.Snap(self, (r - l) * s)), max(line, Widgets.Snap(self, (t - b) * s))
 		rect:SetShown(shown)

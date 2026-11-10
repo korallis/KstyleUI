@@ -230,24 +230,62 @@ local function Centre(view, text, point, relative, relPoint, x, rect)
 	text:Show()
 end
 
+local function NameBottom(view, g, rect)
+	if g.mirror then
+		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect)
+		view.name:SetJustifyH("RIGHT")
+	else
+		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect)
+		view.name:SetJustifyH("LEFT")
+	end
+	if view.nameBound and g.nameRoom then
+		view.name:SetWidth(Snap(view, g.nameRoom))
+	end
+end
+
 local function LumenTexts(view, g)
 	local form, parent = g.form, view.parent
 	for _, key in ipairs({ "name", "caption", "healthText", "healthSub", "powerText", "capLabel" }) do
 		view[key]:SetJustifyV("MIDDLE")
 	end
+	view.healthText:SetJustifyH("RIGHT")
 	view.powerText:Hide()
 	view.capRule:Hide()
-	if form == "vitals" then
+	if form == "column" and g.mirror then
+		if g.name then
+			NameBottom(view, g, g.name)
+		else
+			view.name:Hide()
+		end
+		if g.caption then
+			view.caption:ClearAllPoints()
+			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), 0)
+			view.caption:SetHeight(Snap(view, g.caption.h))
+			view.caption:SetWidth(0)
+			view.caption:SetJustifyV("BOTTOM")
+			view.caption:SetJustifyH("RIGHT")
+			view.caption:Show()
+		else
+			view.caption:Hide()
+		end
+		if g.healthText then
+			Bottom(view, view.healthText, "BOTTOMLEFT", parent, "TOPLEFT", g.healthText.x, g.healthText)
+			view.healthText:SetJustifyH("LEFT")
+		else
+			view.healthText:Hide()
+		end
+		view.healthSub:Hide()
+	elseif form == "vitals" or form == "column" then
 		if g.name and g.nameAuto then
-			Bottom(view, view.name, "BOTTOMLEFT", parent, "TOPLEFT", g.name.x, g.name)
+			NameBottom(view, g, g.name)
 		else
 			PlaceText(view, view.name, g.name)
 			view.name:SetJustifyV("BOTTOM")
+			view.name:SetJustifyH("LEFT")
 		end
-		view.name:SetJustifyH("LEFT")
 		if g.caption then
 			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP), 0)
+			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), 0)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -396,8 +434,8 @@ end
 
 function Style.PlaceName(view, rect)
 	local g = view.geometry
-	if g.form == "vitals" and g.nameAuto then
-		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect)
+	if (g.form == "vitals" or g.form == "column") and g.nameAuto then
+		NameBottom(view, g, rect)
 	else
 		Place(view, view.name, rect)
 	end
@@ -473,6 +511,14 @@ local function Orient(bar, direction)
 	bar:SetReverseFill(o[2])
 end
 
+function Style.Flat(bar, flat)
+	for _, key in ipairs({ "lit", "shade" }) do
+		if bar[key] then
+			bar[key]:SetShown(not flat)
+		end
+	end
+end
+
 function Style.Restyle(view, kind)
 	local form = Settings.Form(kind)
 	view.form = form
@@ -499,6 +545,8 @@ function Style.Restyle(view, kind)
 	Style.Shape(view, form == "vitals" or Settings.Value(kind, "portraitShape") == "round")
 	view.health:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
+	Style.Flat(view.health, form == "column")
+	Style.Flat(view.power, form == "column")
 	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.absorb:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.orientation = Settings.Value(kind, "healthOrientation")
@@ -530,7 +578,7 @@ end
 
 function Style.Accent(view)
 	local r, g, b = Settings.Accent()
-	if view.form == "vitals" then
+	if view.form == "vitals" or view.form == "column" then
 		local gr, gg, gb = Lumen.Color("gold")
 		view.ring:SetVertexColor(gr, gg, gb, 1)
 	else

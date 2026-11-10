@@ -376,6 +376,17 @@ local function PlaceChip(view, width)
 	chip.room = width - 2 * CHIP_PAD - gem - 2 * CHIP_GAP - label
 end
 
+local function Reach(view, g, width)
+	local button, p = view.button, g.form == "column" and g.portrait
+	if p then
+		button:SetHitRectInsets(math.min(0, p.x), -math.max(0, p.x + p.w - width), 0, 0)
+		view.reached = true
+	elseif view.reached then
+		button:SetHitRectInsets(0, 0, 0, 0)
+		view.reached = false
+	end
+end
+
 local function FitCard(view)
 	local g = view.geometry
 	if not (g and g.form == "card" and g.rest and g.cast) then
@@ -489,6 +500,54 @@ local function Slots(uf, w, h)
 	return { { x = 0, y = 0, w = w, h = h } }
 end
 
+local function Extent(uf)
+	local view = uf.views[1]
+	local g, button = view.geometry, view.button
+	local Snap = K.Widgets.Snap
+	local p = g.portrait
+	local width = Snap(button, g.panel.w)
+	local left, right = 0, 0
+	if p then
+		left = math.max(0, -Snap(button, p.x))
+		right = math.max(0, Snap(button, p.x) + Snap(button, p.w) - width)
+	end
+	if g.aura and uf.s.auras and uf.s.auraPosition == "SIDE" then
+		local host = view.auras and view.auras.host or button
+		local row = ns.Auras.Footprint(uf.kind, host)
+		right = math.max(right, Snap(host, g.aura.x) + row - width)
+	end
+	return left, right
+end
+
+local function Keep(uf)
+	local Layout = K.Layout
+	if uf.s.form ~= "column" or uf.keeping or not (Layout and Layout.Rect and Layout.Get and Layout.Set and Layout.RootSize) then
+		return
+	end
+	local key = Settings.ELEMENTS[uf.kind]
+	local left, _, w = Layout.Rect(key)
+	local saved = Layout.Get(key)
+	if not (left and saved and type(saved.x) == "number") then
+		return
+	end
+	local reachLeft, reachRight = Extent(uf)
+	local rootW = Layout.RootSize()
+	local shift = 0
+	if left - reachLeft < 0 then
+		shift = reachLeft - left
+	elseif left + w + reachRight > rootW then
+		shift = rootW - (left + w + reachRight)
+	end
+	if shift == 0 then
+		return
+	end
+	uf.keeping = true
+	K.Combat.Queue(function()
+		Layout.Set(key, "x", saved.x + shift)
+		uf.keeping = false
+	end)
+end
+
 function Frames.Relayout(uf)
 	if Protected() then
 		Queue(uf, "layoutQueued", Frames.Relayout)
@@ -511,6 +570,7 @@ function Frames.Relayout(uf)
 		local frameH = room > 0 and slot.h - room - gap or slot.h
 		local before = view.geometry or {}
 		local g = Style.Layout(view, uf.s, slot.w, frameH)
+		Reach(view, g, slot.w)
 		if ((before.healthSub == nil) ~= (g.healthSub == nil) or before.compact ~= g.compact) and Active(view) and UnitExists(view.unit) then
 			Unit.HealthColor(view, view.unit)
 			Unit.Health(view, view.unit, true)
@@ -542,6 +602,7 @@ function Frames.Relayout(uf)
 			MarkTarget(view)
 		end
 	end
+	Keep(uf)
 end
 
 function Frames.Restyle(uf)

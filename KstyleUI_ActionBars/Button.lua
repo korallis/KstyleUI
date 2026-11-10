@@ -114,12 +114,7 @@ function Button.UpdateAlpha(b)
 		local cfg = Config(b)
 		shown = cfg.showEmpty == true
 	end
-	if shown and not b.hasAction and b.kind ~= "stance" and ns.grid == 0 then
-		local rest = ns.Socket.EmptyAlpha()
-		b:SetAlpha(rest + (1 - rest) * (b.hoverT or 0))
-	else
-		b:SetAlpha(shown and 1 or 0)
-	end
+	b:SetAlpha(shown and 1 or 0)
 end
 
 local function CooldownInfo(bar, slot)

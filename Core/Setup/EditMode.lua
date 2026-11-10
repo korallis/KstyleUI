@@ -19,7 +19,7 @@ local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
 local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP = 800, 100, 0.15
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
-	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = Layouts.BUTTON, floor = 24 },
+	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 27.6, floor = 24 },
 	bars = { key = "cooldowns.bars", index = "BuffBar", width = 220, height = 30, offset = 2, fallback = 2, cap = 24, floor = 18 },
 }
 local TRACKED = { ["cooldowns.buffs"] = true, ["cooldowns.bars"] = true }
@@ -102,11 +102,11 @@ end
 
 local function Box(name, key, rw, rh)
 	local position = Layouts.Get(name, rh)[key]
-	local w, h = Layouts.Footprint(name, key)
+	local w, h, offsetX = Layouts.Footprint(name, key)
 	if not (position and w) then
 		return nil
 	end
-	local l, b, r, t = Layouts.Rect({ width = w, height = h }, position, rw, rh)
+	local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)
 	return { l = l, b = b, r = r, t = t }
 end
 
@@ -154,7 +154,7 @@ end
 local function Spots(group, boxes, icons)
 	local slot, focus = boxes[VIEWERS[group].key], boxes["unitframes.focus"]
 	if group == "buffs" then
-		local list = { { x = slot.r, y = slot.b, right = true, across = true, gaps = { 8 } } }
+		local list = { { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } } }
 		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
 		local edges, rail = {}, boxes["meters.damage"]
 		edges[#edges + 1] = focus and focus.l
@@ -163,19 +163,23 @@ local function Spots(group, boxes, icons)
 			list[#list + 1] = { x = edge - VIEWER_CLEAR, y = slot.b, right = true, slide = true, gaps = DENSE_GAPS }
 			list[#list + 1] = { x = edge - VIEWER_CLEAR, y = low, right = true, slide = true, gaps = DENSE_GAPS }
 		end
+		local target = boxes["unitframes.target"]
+		if focus and target then
+			list[#list + 1] = { x = focus.r + VIEWER_CLEAR, y = target.t + VIEWER_CLEAR, gaps = DENSE_GAPS }
+		end
 		return list
 	end
 	local width = slot.r - slot.l
 	local list = { { x = slot.l, y = slot.b, width = width, gaps = { 2 } } }
-	if icons and icons.spot.across then
-		list[1] = { x = icons.rect.r, y = slot.b, right = true, width = icons.rect.r - icons.rect.l, gaps = { 2 } }
-	end
 	local tot, utility = boxes["unitframes.targettarget"], boxes["cooldowns.utility"]
 	if tot and utility then
 		list[#list + 1] = { x = tot.l, y = utility.t + VIEWER_CLEAR, width = width, gaps = { 2 } }
 	end
 	if focus then
 		list[#list + 1] = { x = focus.l, y = focus.t + FOCUS_CLEAR, width = width, trim = true, gaps = { 2 } }
+		if icons then
+			list[#list + 1] = { x = icons.rect.r + VIEWER_CLEAR, y = focus.t + FOCUS_CLEAR, width = width, trim = true, gaps = { 2 } }
+		end
 	end
 	local rail = boxes["meters.damage"]
 	if rail then
@@ -212,10 +216,17 @@ end
 
 local function Search(view, spots, n, k, others, rw, rh, least)
 	for _, spot in ipairs(spots) do
+		local base = spot.width and view.height or view.width
+		local minimum = base * VIEWER_SIZE_MIN / 100 / k
+		local cap = max(view.cap, minimum)
+		if not spot.width then
+			local step = floor((view.cap * k / base * 100 - VIEWER_SIZE_MIN) / VIEWER_SIZE_STEP + 0.5)
+			cap = base * Clamp(VIEWER_SIZE_MIN + step * VIEWER_SIZE_STEP, VIEWER_SIZE_MIN, VIEWER_SIZE_MAX) / 100 / k
+		end
 		for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
 			local scale = step / 100
 			local thick = (spot.width and view.height or view.width) * scale / k
-			if thick <= view.cap + 0.01 and thick >= least - 0.01 then
+			if thick <= cap + 0.01 and thick >= least - 0.01 then
 				for _, gap in ipairs(spot.gaps) do
 					local rect = Try(view, spot, n, scale, gap, k, others, rw, rh)
 					if rect then
@@ -276,7 +287,7 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 		settings[setting.Orientation] = spot.across and orientation.Horizontal or orientation.Vertical
 	end
 	if not bars and IsTable(direction) and setting.IconDirection ~= nil then
-		settings[setting.IconDirection] = spot.across and direction.Left or direction.Right
+		settings[setting.IconDirection] = direction.Right
 	end
 	if bars and setting.BarWidthScale ~= nil then
 		local width = floor(Clamp((rect and rect.r - rect.l or spot.width) * k / (view.width * percent / 100) * 100, BAR_WIDTH_MIN, BAR_WIDTH_MAX) + 0.5)

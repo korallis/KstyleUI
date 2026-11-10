@@ -53,6 +53,9 @@ at(1, 4, cfg({ growth = "right" }), 0, 0, "right growth, first")
 at(4, 4, cfg({ growth = "right" }), 129, 0, "right growth, fourth")
 at(1, 4, cfg({ growth = "left" }), 215, 0, "left growth, first")
 at(4, 4, cfg({ growth = "left" }), 86, 0, "left growth, fourth")
+at(1, 4, cfg({ growth = "rightAligned" }), 86, 0, "right-aligned forward growth, first")
+at(4, 4, cfg({ growth = "rightAligned" }), 215, 0, "right-aligned forward growth, fourth")
+at(1, 6, cfg({ growth = "rightAligned" }), 0, 0, "full forward row, first")
 
 -- Two rows of three: wrap down puts the first row at the top, wrap up at the bottom.
 local two = cfg({ columns = 3, rows = 2, growth = "right" })
@@ -64,6 +67,8 @@ at(4, 5, cfg({ columns = 3, rows = 2, growth = "right", wrap = "up" }), 0, 0, "w
 
 -- A short last row is centred on its own.
 at(4, 5, cfg({ columns = 3, rows = 2 }), 21.5, 43, "short centred second row")
+at(4, 5, cfg({ columns = 3, rows = 2, growth = "rightAligned" }), 43, 43, "short right-aligned row keeps its first icon leftmost")
+at(5, 5, cfg({ columns = 3, rows = 2, growth = "rightAligned" }), 86, 43, "short right-aligned row ends at the right edge")
 
 -- Bars stack in one column: growth up puts the first bar at the bottom.
 local bars = cfg({ cellWidth = 180, cellHeight = 18, columns = 1, rows = 3, wrap = "up" })

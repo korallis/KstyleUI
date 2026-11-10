@@ -14,7 +14,7 @@ Main bar with stance, stealth, form and possess paging, extra bars, pet bar, sta
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
 - Action bars are KstyleUI's own secure buttons. Keybinds use `SetOverrideBindingClick`. Paging uses `RegisterStateDriver`. Cooldowns use `C_ActionBar.GetActionCooldownDuration` with `Cooldown:SetCooldownFromDurationObject`.
-- Compact layout: two rows of 12 buttons of 38 units at the 1080 reference, 3-unit gaps and a 10-unit row gap, as the composition mockup measures; no name labels. Keybind, stack and cooldown text sit on the button.
+- LEE-20 (2026-11-09, "let the picture win"): bars 1 and 2 are enabled preset rows of twelve 36.7-unit buttons, with 4.6-unit gaps and a 41.3-unit pitch. Their 491-unit rows share the player/target bar column. Absolute button origins are snapped instead of accumulating rounded gaps. Keybind, stack and cooldown text sit on the kit's square tiles; no name labels.
 - Blizzard's bars are reparented to a hidden frame through `KstyleUI.Safe.HideBlizzard`. The module never touches `Blizzard_GamepadActionBars`, and switching to gamepad mode must not error or taint.
 - Protected work in combat goes through `KstyleUI.Combat.Queue`.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.
@@ -82,7 +82,7 @@ Each button is `KstyleUI.Widgets.IconButton` built on `SecureActionButtonTemplat
 | Usable and power | `ACTION_USABLE_CHANGED`, and `IsUsableAction` on each update. Unusable greys the button; lacking power desaturates the icon, tints it with the power colour (the cool token by default) and dims it to 70%. |
 | Range | `C_ActionBar.EnableActionRangeCheck` for each slot with an action on a shown button of a shown bar, released when the slot, the bar or the module goes, and `ACTION_RANGE_CHECK_UPDATE`. A target change also polls `IsActionInRange`. Out of range tints the icon and the keybind text with the range colour. |
 | Selected | `IsCurrentAction` or `IsAutoRepeatAction` |
-| Empty | An empty slot is a quiet socket at alpha 0.35 (0.12 between `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED`) that rises to full alpha with the shared hover motion (`hoverT`) under the pointer, or alpha 0 when **Show empty buttons** is off, even under the pointer. Every empty slot is at full alpha while the cursor holds an action (`ACTIONBAR_SHOWGRID`), so every drop target shows. Occupied and stance buttons are always at full alpha. Only alpha changes, so the secure button keeps its size and place in combat. |
+| Empty | A dark kit tile at full alpha, with its bold white key, including in combat. **Show empty buttons** still hides it when switched off; holding an action (`ACTIONBAR_SHOWGRID`) shows every drop target. Only alpha changes, so the secure button keeps its size and place in combat. LEE-20 supersedes the former 0.35/0.12 fade. |
 
 A secret value is never compared: a secret flag counts as its safe default (usable, in range, not selected), and a secret count or text goes to the font string untouched. A slot the client does not have, such as page 13 on a client with fewer slots, is found once with `pcall(C_ActionBar.HasAction, slot)` and logged, and its button stays empty.
 
@@ -92,7 +92,7 @@ Hover keybinds go through Blizzard's own Quick Keybind mode (`Blizzard_QuickKeyb
 
 ## Lumen sockets
 
-`Socket.Decorate` wraps each action button's `Paint` and `Restyle`, and the preview's buttons, so the kit's icon button wears the Lumen socket states. The socket's body, its rim light and the icon's 8-unit radius come from the kit's material (`Widgets.Chrome`, `iconMask`), which slice S1 turns Lumen; this file adds only what is particular to an ability.
+`Socket.Decorate` wraps each action button's `Paint` and `Restyle`, and the preview's buttons. The socket's body, rim and icon corners come from the shared kit (`Widgets.Chrome`, `iconMask`); the module adds only ability state, not another chrome implementation.
 
 | State | Socket |
 | --- | --- |
@@ -153,7 +153,7 @@ The page starts with **Bar to edit**, a picker that shows one bar's rows at a ti
 | Show this bar | On for bars 1 and 2, the pet bar and the stance bar |
 | Buttons, Rows | 1 to 12 (10 for the pet and stance bars). The columns follow from the two. By default each bar takes the rows its layout element plans (`Setup.Layouts.Grid`): bar 1 one row, bars 2 and 3 one row each (their slots stack over bar 1), bars 4 to 6 one column of twelve (their slots stand on the right edge of the play field), the pet and stance bars two rows of five (round 5, Fable #2: the pet bar once drew one row of ten in a footprint planned for two rows), and the stance bar grows up. |
 | Fill order, Growth | Along rows or down columns first; right or left, then down or up |
-| Button size, Spacing | 16 to 64 and 0 to 16 units. 38 and 3 for the action bars, 30 and 3 for the pet and stance bars. |
+| Button size, Spacing | 16 to 64 and 0 to 16 units. 36.7 and 4.6 for bars 1/2; 38 and 3 for the optional action bars; 30 and 3 for pet/stance. |
 | Show empty buttons, Backing strip, Fade until hovered, Faded opacity | On, off, off, 0. Lumen's sockets float with no band behind them; the backing strip is the v3 mockup's band behind each bar row, measured in the theme spec: the opaque `buttonFill` body with the panel's light edge line, 10-unit chamfered ends, 3 units beyond the buttons on every side, a child of the bar's header so it fades with the bar |
 | Keybind text, Count text, Macro names, Cooldown numbers | On, on, off, on |
 | Paging (bar 1) | Stances and forms, Stealth, Possess and vehicles, Page keys: all on |

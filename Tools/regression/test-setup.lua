@@ -455,7 +455,8 @@ do
 	assert(K.Setup.Apply({ layout = "Healer", modules = { ActionBars = true, Meters = true, GroupFrames = true, Chat = true } }))
 	local bars = K.Store.Module("ActionBars")
 	assert(bars.bar1.enabled == true and bars.bar1.rows == 1, "Apply keeps bar 1 on, one row")
-	for i = 2, 6 do
+	assert(bars.bar2.enabled == true and bars.bar2.rows == 1, "Apply keeps the reference's second action row on")
+	for i = 3, 6 do
 		assert(bars["bar" .. i].enabled == false, "Apply switches bar " .. i .. " off")
 	end
 	assert(bars.pet.rows == 2 and bars.stance.rows == 2, "Apply folds the pet and stance sockets into two rows")

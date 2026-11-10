@@ -7,7 +7,8 @@ local W = U.W
 -- These checks pin the classic plate's preview, the style setting's other choice; the Lumen preview is checked at the end.
 local PLATE = { enabled = true }
 for _, kind in ipairs(U.KINDS) do
-	PLATE[kind] = { style = "plate" }
+	PLATE[kind] = U.Older(kind)
+	PLATE[kind].style = "plate"
 end
 PLATE.target.auras = false
 local env, K, ns = O.New({

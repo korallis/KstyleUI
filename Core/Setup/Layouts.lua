@@ -10,9 +10,11 @@ Setup.Layouts = Layouts
 local L = ns.L
 
 local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
+local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
+local PLAYER_CAST_Y = 385.5
 local GRIDS = {
-	["actionbars.bar1"] = { buttons = 12, rows = 1, size = BUTTON },
-	["actionbars.bar2"] = { buttons = 12, rows = 1, size = BUTTON },
+	["actionbars.bar1"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
+	["actionbars.bar2"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
 	["actionbars.bar3"] = { buttons = 12, rows = 1, size = BUTTON },
 	["actionbars.bar4"] = { buttons = 12, rows = 12, size = BUTTON },
 	["actionbars.bar5"] = { buttons = 12, rows = 12, size = BUTTON },
@@ -24,7 +26,8 @@ local GRIDS = {
 local function GridSize(key)
 	local grid = GRIDS[key]
 	local columns = math.ceil(grid.buttons / grid.rows)
-	return columns * grid.size + (columns - 1) * PITCH, grid.rows * grid.size + (grid.rows - 1) * PITCH
+	local gap = grid.spacing or PITCH
+	return columns * grid.size + (columns - 1) * gap, grid.rows * grid.size + (grid.rows - 1) * gap
 end
 
 local function Row(icons)
@@ -36,14 +39,14 @@ local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSm
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
 
 local ELEMENTS = {
-	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = 490, height = 80 },
-	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = 490, height = 84, reserve = { 490, 136 } },
+	{ key = "unitframes.player", module = "UnitFrames", label = L["Player frame"], short = L["Player"], width = COLUMN, height = 77.5, reserve = { 586.5, 77.5, -47.75 } },
+	{ key = "unitframes.target", module = "UnitFrames", label = L["Target frame"], short = L["Target"], width = COLUMN, height = 102.5, reserve = { 737.4, 102.5, 123.2 } },
 	{ key = "unitframes.targettarget", module = "UnitFrames", label = L["Target of target"], width = 120, height = 22 },
 	{ key = "unitframes.focus", module = "UnitFrames", label = L["Focus frame"], short = L["Focus"], width = 200, height = 90, reserve = { 200, 112 } },
 	{ key = "unitframes.focustarget", module = "UnitFrames", label = L["Focus target"], width = 120, height = 22 },
 	{ key = "unitframes.pet", module = "UnitFrames", label = L["Pet frame"], width = 120, height = 22 },
 	{ key = "unitframes.boss", module = "UnitFrames", label = L["Boss frames"], short = L["Boss"], width = 222, height = 334, reserve = { 318, 334 } },
-	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 272, height = 30 },
+	{ key = "unitframes.castbar.player", module = "UnitFrames", label = L["Player cast bar"], width = 347, height = 30 },
 	{ key = "unitframes.castbar.target", module = "UnitFrames", label = L["Target cast bar"], width = 220, height = 24 },
 	{ key = "unitframes.resource", module = "UnitFrames", label = L["Class resource"], width = 120, height = 14 },
 	{ key = "groupframes.party", module = "GroupFrames", label = L["Party frames"], short = L["Party"], width = 318, height = 324 },
@@ -56,16 +59,16 @@ local ELEMENTS = {
 	{ key = "actionbars.bar6", module = "ActionBars", label = L["Action bar 6"], grid = true },
 	{ key = "actionbars.pet", module = "ActionBars", label = L["Pet bar"], grid = true },
 	{ key = "actionbars.stance", module = "ActionBars", label = L["Stance bar"], grid = true },
-	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = ESSENTIAL, height = BUTTON },
+	{ key = "cooldowns.essential", module = "Cooldowns", label = L["Essential cooldowns"], short = L["Cooldowns"], width = 6 * CENTRE_BUTTON + 5 * CENTRE_GAP, height = CENTRE_BUTTON },
 	{ key = "cooldowns.utility", module = "Cooldowns", label = L["Utility cooldowns"], width = UTILITY, height = BUTTON },
-	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = TRACKED, height = BUTTON },
+	{ key = "cooldowns.buffs", module = "Cooldowns", label = L["Tracked buff icons"], width = 182.6, height = 41.6 },
 	{ key = "cooldowns.bars", module = "Cooldowns", label = L["Tracked buff bars"], width = TRACKED, height = 43 },
 	{ key = "auras.buffs", module = "Auras", label = L["Buffs"], short = L["Auras"], width = 282, height = 88 },
 	{ key = "auras.debuffs", module = "Auras", label = L["Debuffs"], width = 282, height = 88 },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = 160, height = 160 },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 393, height = 200 },
 	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
-	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = 489, height = 4 },
+	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = 8 },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5 },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5 },
 	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = 318, height = 42, reserve = { 318, 118 } },
@@ -89,7 +92,7 @@ local HEIGHT = 1080 / ns.Scale.DEFAULT_USER_SCALE
 local MARGIN, RAIL, GAP, TIGHT = ns.Tokens.Size("screenMargin"), 318, 16, 4
 local NEAR = ns.Tokens.Size("gapLarge")
 local BAND = MARGIN + RAIL + GAP
-local ENDS = GridSize("actionbars.bar1") / 2 + NEAR + GridSize("actionbars.pet") / 2
+local ENDS = (12 * BUTTON + 11 * PITCH) / 2 + NEAR + GridSize("actionbars.pet") / 2
 local BAR = BUTTON + PITCH
 local BAR1_Y = 68
 local SPARE_TOP = BAR1_Y + 3 * BAR - PITCH
@@ -101,7 +104,6 @@ local TRACKED_Y = COOLDOWN_Y + BUTTON + 8
 local HANDS_TOP = TRACKED_Y + 43
 local CLUSTER_TOP = HANDS_TOP + 7 + 136
 local UTILITY_X = ESSENTIAL / 2 + GAP + UTILITY / 2
-local TRACKED_X = -(ESSENTIAL / 2 + GAP + TRACKED / 2)
 local SIDE = 490 / 2 + NEAR
 local FOCUS_X = -(SIDE + 200 / 2)
 local TOT_X = SIDE + 120 / 2
@@ -144,27 +146,27 @@ local DPS = {
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -MARGIN, y = MARGIN + 44 },
-	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 52 },
+	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = 36.5 },
 	["databars.rep"] = { anchor = "BOTTOM", x = -ENDS, y = 52 },
 	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
-	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = BAR1_Y },
-	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = BAR1_Y + BAR },
-	["actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = BAR1_Y + 2 * BAR },
+	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 54 },
+	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 95.3 },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = math.max(MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP, PLAYER_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP) },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = BAR1_Y },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = BAR1_Y },
-	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = VITALS_Y },
+	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 },
 	["unitframes.pet"] = { anchor = "BOTTOM", x = -317, y = VITALS_TOP - 22 },
-	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = RESOURCE_Y },
-	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = COOLDOWN_Y },
-	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = COOLDOWN_Y },
-	["cooldowns.buffs"] = { anchor = "BOTTOM", x = TRACKED_X, y = COOLDOWN_Y },
-	["cooldowns.bars"] = { anchor = "BOTTOM", x = TRACKED_X, y = TRACKED_Y },
-	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = COOLDOWN_Y + BUTTON + 6 },
-	["unitframes.target"] = { anchor = "TOP", x = 0, y = -(HEIGHT - CLUSTER_TOP) },
+	["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = 420 },
+	["cooldowns.essential"] = { anchor = "BOTTOM", x = 0, y = 335.3 },
+	["cooldowns.utility"] = { anchor = "BOTTOM", x = UTILITY_X, y = 335.3 },
+	["cooldowns.buffs"] = { anchor = "BOTTOM", x = -442.8, y = 155.9 },
+	["cooldowns.bars"] = { anchor = "BOTTOM", x = -480, y = 340 },
+	["meters.swing"] = { anchor = "BOTTOM", x = 0, y = 376.5 },
+	["unitframes.target"] = { anchor = "BOTTOM", x = 0, y = 217.5 },
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
-	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = PLAYER_CAST_Y },
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
 	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
 	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },
@@ -224,8 +226,8 @@ local SWITCHES = {
 }
 
 local BARS_OFF = {
-	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6",
-	"unitframes.castbar.player", "unitframes.castbar.target",
+	"actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6",
+	"unitframes.castbar.target",
 }
 local OFF = {
 	DPS = { "meters.threat" },
@@ -235,7 +237,7 @@ local OFF = {
 
 local SHARED_SETTINGS = {
 	{ module = "ActionBars", key = "bar1.showEmpty", value = true },
-	{ module = "ActionBars", key = "bar2.showEmpty", value = false },
+	{ module = "ActionBars", key = "bar2.showEmpty", value = true },
 	{ module = "ActionBars", key = "bar3.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar4.showEmpty", value = false },
 	{ module = "ActionBars", key = "bar5.showEmpty", value = false },
@@ -370,10 +372,8 @@ function Layouts.Grid(key)
 	if not grid then
 		return nil
 	end
-	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size }
+	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size, spacing = grid.spacing }
 end
-
-local FROM_BOTTOM = { ["unitframes.target"] = true }
 
 local function Lift(rootHeight)
 	if type(rootHeight) == "number" and rootHeight > 0 then
@@ -382,18 +382,14 @@ local function Lift(rootHeight)
 	return 0
 end
 
-function Layouts.Get(name, rootHeight)
+function Layouts.Get(name)
 	local layout = layouts[name]
 	if not layout then
 		return nil
 	end
-	local lift = Lift(rootHeight)
 	local out = {}
 	for key, position in pairs(layout) do
 		out[key] = copy(position)
-		if FROM_BOTTOM[key] then
-			out[key].y = position.y + lift
-		end
 	end
 	return out
 end
@@ -405,7 +401,7 @@ function Layouts.Footprint(name, key)
 	end
 	local size = SIZES[name][key] or element.reserve
 	if size then
-		return size[1], size[2]
+		return size[1], size[2], size[3]
 	end
 	return element.width, element.height
 end
@@ -432,7 +428,7 @@ function Layouts.Reserves()
 	for _, element in ipairs(ELEMENTS) do
 		local reserve = element.reserve
 		if reserve then
-			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2] }
+			out[#out + 1] = { key = element.key, width = reserve[1], height = reserve[2], offsetX = reserve[3] }
 		end
 	end
 	return out
@@ -476,13 +472,7 @@ function Layouts.Default(key)
 	if not position then
 		error("KstyleUI.Setup.Layouts.Default: unknown element key " .. tostring(key), 2)
 	end
-	local out = copy(position)
-	local layout = ns.Layout
-	if FROM_BOTTOM[key] and layout and type(layout.RootSize) == "function" then
-		local _, rootHeight = layout.RootSize()
-		out.y = position.y + Lift(rootHeight)
-	end
-	return out
+	return copy(position)
 end
 
 local LEGACY = {
@@ -576,10 +566,54 @@ function Layouts.Upgrade(saved, preset, rootHeight)
 	return moved
 end
 
+local CENTRE_V9 = {
+	["unitframes.player"] = { "BOTTOM", 0, 200, 490, 80 },
+	["unitframes.target"] = { "TOP", 0, -742.5, 490, 84 },
+	["unitframes.resource"] = { "BOTTOM", 0, 286, 120, 14 },
+	["unitframes.castbar.player"] = { "BOTTOM", 0, 602, 272, 30 },
+	["cooldowns.essential"] = { "BOTTOM", 0, 308, 243, 38 },
+	["cooldowns.utility"] = { "BOTTOM", 218, 308, 161, 38 },
+	["cooldowns.buffs"] = { "BOTTOM", -259, 308, 243, 38 },
+	["cooldowns.bars"] = { "BOTTOM", -259, 354, 243, 43 },
+	["meters.swing"] = { "BOTTOM", 0, 352, 260, 8 },
+	["actionbars.bar1"] = { "BOTTOM", 0, 68, 489, 38 },
+	["actionbars.bar2"] = { "BOTTOM", 0, 109, 489, 38 },
+	["actionbars.bar3"] = { "BOTTOM", 0, 150, 489, 38 },
+	["databars.xp"] = { "BOTTOM", 0, 52, 489, 4 },
+}
+
+function Layouts.UpgradeCentre(saved, rootHeight)
+	if type(saved) ~= "table" then
+		return
+	end
+	for key, old in pairs(CENTRE_V9) do
+		local entry = saved[key]
+		if type(entry) == "table" then
+			local y = old[3] + (key == "unitframes.target" and Lift(rootHeight) or 0)
+			local anchor = entry.anchor or old[1]
+			local x = entry.x == nil and old[2] or entry.x
+			local ey = entry.y == nil and y or entry.y
+			if anchor == old[1] and type(x) == "number" and type(ey) == "number"
+				and math.abs(x - old[2]) < 0.01 and math.abs(ey - y) < 0.01 then
+				local now = layouts.DPS[key]
+				entry.anchor, entry.x, entry.y = now.anchor, now.x, now.y
+			elseif entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil then
+				entry.anchor, entry.x, entry.y = anchor, x, ey
+			end
+			if entry.width == old[4] then
+				entry.width = nil
+			end
+			if entry.height == old[5] then
+				entry.height = nil
+			end
+		end
+	end
+end
+
 function Layouts.Rect(element, position, rootWidth, rootHeight)
 	local point = OFFSETS[position.anchor] or OFFSETS.CENTER
 	local fx, fy = point[1], point[2]
-	local left = rootWidth * fx + position.x - element.width * fx
+	local left = rootWidth * fx + position.x - element.width * fx + (element.offsetX or 0)
 	local bottom = rootHeight * fy + position.y - element.height * fy
 	return left, bottom, left + element.width, bottom + element.height
 end
@@ -616,10 +650,10 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user)
 	local pixelScale = physicalHeight / rootHeight
 	local rects = {}
 	for i = 1, #ELEMENTS + 1 do
-		local key, width, height, position
+		local key, width, height, position, offsetX
 		if i <= #ELEMENTS then
 			key = ELEMENTS[i].key
-			width, height = Layouts.Footprint(name, key)
+			width, height, offsetX = Layouts.Footprint(name, key)
 			position = layout[key]
 		else
 			position = Layouts.Slot(name, rootHeight)
@@ -631,7 +665,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user)
 		local w = math.max(1, math.floor(width * pixelScale + 0.5))
 		local h = math.max(1, math.floor(height * pixelScale + 0.5))
 		local point = OFFSETS[position.anchor] or OFFSETS.CENTER
-		local left = math.floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5)
+		local left = math.floor(physicalWidth * point[1] + (position.x + (offsetX or 0)) * pixelScale - w * point[1] + 0.5)
 		local bottom = math.floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5)
 		local right, top = left + w, bottom + h
 		if left < 0 or bottom < 0 or right > physicalWidth or top > physicalHeight or right <= left or top <= bottom then

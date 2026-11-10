@@ -19,47 +19,47 @@ The first-run setup writes the DPS, Tank or Healer position of each key into the
 
 ## Keys
 
-Footprints are width x height in units at the 1080 reference. A footprint followed by the room the layouts keep is a reserve (`Setup.Layouts.Reserves()`): the element's frame is its footprint, and the layouts place it by the reserve.
+Footprints are width x height in root units. The centre column follows the owner's 2026-11-09 picture ruling, LEE-20, superseding the older sigil and single-action-row arrangement. A footprint followed by the room the layouts keep is a reserve (`Setup.Layouts.Reserves()`): the element's frame is its footprint. `Footprint(name, key)` also returns the reserve's `offsetX`; pass it to `Rect` to measure the external portrait and aura space without moving the bar column's registered anchor.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
-| `unitframes.player` | UnitFrames | Player frame | 490 x 80 | The Lumen vitals line over bar 1: a 62-unit portrait ring with its level disc, the name, a 12-unit health pill, a 5-unit power pill and the cast line inside, as wide as bar 1, 12 units over it |
-| `unitframes.target` | UnitFrames | Target frame | 490 x 84 (the layouts keep 490 x 130) | The Lumen target sigil at the heart of the combat cluster, centred right on the hands block and as wide as the vitals line: name, level line, a gem-ended health pill and the cast line, with your debuffs as sockets hanging under it, inside the 130 the layouts keep |
-| `unitframes.targettarget` | UnitFrames | Target of target | 120 x 22 | A pill row 12 units right of the sigil, top-aligned with it. Tank: the threat card stands under it |
-| `unitframes.focus` | UnitFrames | Focus frame | 200 x 90 (the layouts keep 200 x 112) | The focus card 12 units left of the sigil, top-aligned with it, its debuffs in a row over the card, inside the 112 the layouts keep |
+| `unitframes.player` | UnitFrames | Player frame | 491 x 77.5 (the layouts keep 586.5 x 77.5, offsetX -47.75) | LEE-20: the bar column is centred at x 0, bottom 138, 6 over bar 2; the portrait stands 91.5 outside its left edge, with another 4 units reserved for pixel snapping. Name and class sit over flat health and power bars; the player cast is separate |
+| `unitframes.target` | UnitFrames | Target frame | 491 x 102.5 (the layouts keep 737.4 x 102.5, offsetX 123.2) | LEE-20: the bar column shares the player's centre and width, bottom 217.5, 2 above the player; the portrait and four debuff slots extend 230.4 outside its right edge, with another 16 units reserved for accumulated pixel rounding at 720 pixels and Interface size 0.6. Reversed health and power bars and an inline target cast replace the sigil |
+| `unitframes.targettarget` | UnitFrames | Target of target | 120 x 22 | The unchanged optional pill row at x 317, bottom 518. Tank: the threat card stands under it |
+| `unitframes.focus` | UnitFrames | Focus frame | 200 x 90 (the layouts keep 200 x 112) | The unchanged optional focus card at x -357, bottom 428, with its debuffs above the card inside the 112-unit reserve |
 | `unitframes.focustarget` | UnitFrames | Focus target | 120 x 22 | A pill row 4 units under the focus card, left-aligned |
-| `unitframes.pet` | UnitFrames | Pet frame | 120 x 22 | A pill row beside the vitals line's ring, 12 units left of it, top-aligned |
+| `unitframes.pet` | UnitFrames | Pet frame | 120 x 22 | The unchanged optional pill row at x -317, bottom 258 |
 | `unitframes.boss` | UnitFrames | Boss frames | 222 x 334 (the layouts keep 318 x 334) | The boss column: five compact 222 by 62 boss cards 6 apart (name and percentage, pill, cast line; no cap), their debuffs in one row of four 22-unit sockets to the left (three and the "+N" chip, the timer in a corner badge), inside the 318 the layouts keep. The boss you target collapses to a slim Targeted chip on the column's rail edge, as the sigil carries its full read. DPS and Tank: on the centre's right edge, a rail gap left of the side bars' slots (bars 4 to 6), its foot a rail gap over your combat text. Healer: at the head of the left rail |
-| `unitframes.castbar.player` | UnitFrames | Player cast bar | 272 x 30 | Off under the Lumen style, whose cast line is inside the vitals line. For the classic plate: 8 units over bar 2's place over the cluster. Healer: under bar 2 at the top centre |
-| `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 24 | Off under the Lumen style, whose cast line is on the sigil. For the classic plate: 8 units over the player cast bar's place. Healer: under it at the top centre |
-| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, centred between the vitals line and the essential cooldowns |
+| `unitframes.castbar.player` | UnitFrames | Player cast bar | 347 x 30 | LEE-20: on in all presets, centred at bottom 385.5 above the essential cooldowns; tracked heading, elapsed / total time and a tan bar |
+| `unitframes.castbar.target` | UnitFrames | Target cast bar | 220 x 24 | Off by default because the target frame carries its cast line; the optional separate bar retains its centred slot at bottom 640 |
+| `unitframes.resource` | UnitFrames | Class resource | 120 x 14 | Combo points and the druid's mana, centred at bottom 420, 4.5 above the player cast; the target-to-cooldown gap cannot hold this optional row safely after independent pixel snapping |
 | `groupframes.party` | GroupFrames | Party frames | 318 x 324 | S4's party card at the head of the left rail: a Party cap, five 40-unit rows with 8-unit gaps (role ring, name, class line, class pill). Healer: 318 x 354, five 46-unit rows, on the combat cluster's left half, its right edge 116 units left of the centre line, 16 units over the cluster |
 | `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames, in the party card's place over the cluster |
-| `actionbars.bar1` | ActionBars | Action bar 1 | 489 x 38 | 12 buttons of 38 units with 3-unit gaps in one row, 12 units over the XP line |
-| `actionbars.bar2` | ActionBars | Action bar 2 | 489 x 38 | Off in Lumen. Its slot is kept free: a row of twelve 3 units over bar 1, the way Blizzard stacks its bottom bars, so turning it on never moves anything |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 489 x 38 | Off in Lumen. Its slot is kept free: a row of twelve 3 units over bar 2's slot; the vitals line sits 12 over it |
+| `actionbars.bar1` | ActionBars | Action bar 1 | 491 x 36.7 | LEE-20: 12 square tiles of 36.7 units with 4.6-unit gaps, centred at bottom 54; enabled with empty tiles shown |
+| `actionbars.bar2` | ActionBars | Action bar 2 | 491 x 36.7 | LEE-20: enabled with empty tiles shown, centred at bottom 95.3, 4.6 over bar 1 |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 489 x 38 | LEE-20: off by default, its unchanged-size row has a BOTTOMLEFT slot at screenMargin (17), bottom 431.5 derived from the rail stack and cast height, at least 16 over the loot feed's full reserve and the player cast and outside the central 40% band |
 | `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | Off in Lumen. A side bar: a column of twelve on the right edge of the play field, a rail gap left of the right rail, centred on the screen's height |
 | `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | Off in Lumen. A side bar: a column of twelve 3 units left of bar 4 |
 | `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | Off in Lumen. A column of twelve 3 units left of bar 5; the boss column stands a rail gap left of it |
-| `actionbars.pet` | ActionBars | Pet bar | 162 x 63 | Two rows of five 30-unit sockets, 12 units left of bar 1's left end, bottom-aligned with it |
-| `actionbars.stance` | ActionBars | Stance bar | 162 x 63 | Two rows of five 30-unit sockets, 12 units right of bar 1's right end, bottom-aligned with it |
-| `cooldowns.essential` | Cooldowns | Essential cooldowns | 243 x 38 | 6 icons of 38 units, the action button's size, with the bars' 3-unit gaps, centred over the vitals line |
-| `cooldowns.utility` | Cooldowns | Utility cooldowns | 161 x 38 | 4 icons of 38 units (the action button's size) with 3-unit gaps, 16 units right of the essential row, bottom-aligned |
-| `cooldowns.buffs` | Cooldowns | Tracked buff icons | 243 x 38 | 6 icons of 38 units (the action button's size), 16 units left of the essential row, bottom-aligned |
-| `cooldowns.bars` | Cooldowns | Tracked buff bars | 243 x 43 | Two 243 by 20 bars, as wide as the icon row, 8 units over the tracked buff icons |
+| `actionbars.pet` | ActionBars | Pet bar | 162 x 63 | Two rows of five 30-unit sockets, unchanged at x -337.5, bottom 68 |
+| `actionbars.stance` | ActionBars | Stance bar | 162 x 63 | Two rows of five 30-unit sockets, unchanged at x 337.5, bottom 68 |
+| `cooldowns.essential` | Cooldowns | Essential cooldowns | 243.2 x 36.7 | LEE-20: 6 square 36.7 icons at 41.3 pitch, centred at bottom 335.3, above the target and below the player cast |
+| `cooldowns.utility` | Cooldowns | Utility cooldowns | 161 x 38 | 4 optional 38-unit icons with 3-unit gaps; x 218, bottom 335.3, beside the essential row |
+| `cooldowns.buffs` | Cooldowns | Tracked buff icons | 182.6 x 41.6 | LEE-20: 27.6-unit icons and timer space beside the player portrait, x -442.8, bottom 155.9 |
+| `cooldowns.bars` | Cooldowns | Tracked buff bars | 243 x 43 | Two optional 243 by 20 bars with a 3-unit gap, x -480, bottom 340 |
 | `auras.buffs` | Auras | Buffs | 282 x 88 | Two rows of eight 30-unit icons beside the minimap's left edge, top-aligned with it, growing left then down: a plain tile each (icon in a thin rim, timer under it in the body face, stack count on a corner badge), the last cell a "+N" socket counted by the engine. Buffs the Cooldown Manager tracks are left out by default |
 | `auras.debuffs` | Auras | Debuffs | 282 x 88 | The same rows for debuffs, 16 under the buffs, with the engine's dispel-type plate on each tile; its own live element |
 | `minimap.main` | Minimap | Minimap | 160 x 160 | The square map at the head of the right rail, on the 17-unit screen margin (the owner's picture of 2026-11-09; 28 in owner pass 1): a 156 chamfered square inside a thin rim, the zone band along its top edge and the clock band along its bottom edge; the controls show on hover |
 | `chat.main` | Chat | Chat | 393 x 200 | The picture's chat card at the left rail's foot, on the 17-unit screen margin (LEE-20: the picture wins over #210's 372 by 260), in every preset |
-| `databars.xp` | DataBars | Experience bar | 489 x 4 | The XP line under bar 1, as wide, 52 units up so its caption sits under it on the 34-unit bottom margin |
-| `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, on the XP line's baseline |
-| `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, on the XP line's baseline: Forever's PvP rank, or honour |
+| `databars.xp` | DataBars | Experience bar | 491 x 8 | LEE-20: centred at bottom 36.5, 9.5 below bar 1, a continuous track with the level, XP percentage and rested caption below it |
+| `databars.rep` | DataBars | Reputation bar | 162 x 5 | Under the pet sockets, unchanged at bottom 52 |
+| `databars.honor` | DataBars | Honour bar | 162 x 5 | Under the stance sockets, unchanged at bottom 52: Forever's PvP rank, or honour |
 | `databars.strip` | DataBars | Data strip | 318 x 42 (the layouts keep 318 x 118) | S4's readout card at the right rail's foot: by default the readout line alone, 30 units with the card's top padding and 12 under it. The micro menu and the bag bar are hidden by default; turned on, they dock under the line, the bag row wrapped under the micro row at 318, and the card grows up into the 118 units the layouts keep, so a row turned on moves nothing and the tooltip anchor stays clear of it |
 | `databars.micro` | DataBars | Micro menu | 318 x 44 | Docked in the readout card and not live there. Placed at the card's foot |
 | `databars.bags` | DataBars | Bag bar | 212 x 32 | Docked in the readout card and not live there. Placed in the card, over the micro menu's place |
 | `meters.damage` | Meters | Damage meter | 318 x 190 | The damage card at the right rail's foot, 16 units over the readout card, under the story slot: six rows |
 | `meters.threat` | Meters | Threat meter | 318 x 144 | Shown in Tank only: 200 x 112, which Apply writes, in the combat cluster under the target of target. Off elsewhere, on the damage card's place |
-| `meters.swing` | Meters | Swing timer | 260 x 8 | A slim bar 6 units over the essential cooldowns, part of the hands |
+| `meters.swing` | Meters | Swing timer | 260 x 8 | LEE-20: the optional slim bar is centred at bottom 376.5, 4.5 above the essential cooldowns |
 | `combattext.player` | CombatText | Your combat text | 160 x 180 | The field your incoming damage and heals rise through, right of the clear centre, 16 units over the combat cluster and under the boss column. Healer: just right of the character's column |
 | `qol.lootfeed` | QoL | Loot feed | 318 x 144 | Up to four short lines of what you loot, an icon tile, the name in its quality colour, a stack count, on the chat card's window glass (same panel, gold corner marks) that hugs the lines, 16 units over the chat card on its left edge. The card shows only while a line does |
 | `tooltips.anchor` | Tooltips | Tooltip anchor | 180 x 24 | The corner fixed tooltips grow from: 8 units over the damage card's right corner, on no card, so a tooltip grows up over the story slot's foot and never covers the damage meter, the readout or the menu you hover |
@@ -87,7 +87,7 @@ These module elements register with Layout, but the layouts do not place them.
 
 | Layout | What it places |
 | --- | --- |
-| DPS | The Lumen Rails: party and chat on the left rail; the square map with the aura rows beside it, the story slot (quests and guide), the damage card and the readout on the right; one combat cluster on the hands (the target sigil, the focus on its left, the target of target on its right); the boss column on the centre's right edge |
+| DPS | The Lumen Rails with the LEE-20 picture's centre column: XP, two action rows, player, target, essential cooldowns and separate player cast; tracked buffs left of the external player portrait. The rails, boss column and optional focus/target-of-target slots stay unchanged |
 | Tank | The threat card joins the combat cluster under the target of target |
 | Healer | Party and raid frames stand on the cluster's left half; the boss column heads the left rail over chat; the right rail as in DPS |
 
@@ -101,4 +101,5 @@ Party and raid frames never show together, so they may share space. On 4:3 and 5
 | `Setup.Layouts.Get(name) -> { [key] = position }` or `nil` | A copy of a layout: `"DPS"`, `"Tank"` or `"Healer"`. |
 | `Setup.Layouts.Names()`, `Label(name)`, `Note(name)` | The layout names in order, and each one's label and one-line note for the setup |
 | `Setup.Layouts.Element(key) -> element` or `nil` | `{ key, module, label, width, height }` from `Setup.Layouts.ELEMENTS` |
-| `Setup.Layouts.Rect(element, position, rootWidth, rootHeight) -> left, bottom, right, top` | Where an element's footprint lands on a root of that size, in root units from the bottom left. The setup's preview and the tests use it. |
+| `Setup.Layouts.Footprint(name, key) -> width, height, offsetX` | The reserved size and optional horizontal offset from the element's anchor. Player and target positions centre the bars, not their asymmetric portrait reserves. |
+| `Setup.Layouts.Rect(element, position, rootWidth, rootHeight) -> left, bottom, right, top` | Where an element's footprint lands on a root of that size, in root units from the bottom left; applies `element.offsetX` for asymmetric reserves. The setup's preview and the tests use it. |

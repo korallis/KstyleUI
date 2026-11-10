@@ -58,6 +58,9 @@ local COLORS = {
 	coinSilver = { "c3ccd6", 1 },
 	coinCopper = { "d68a5c", 1 },
 	plateHostile = { "c3433d", 1 },
+	hudPlayerHealth = { "2c69cc", 1 },
+	hudTargetHealth = { "be403b", 1 },
+	hudRested = { "5a9cca", 1 },
 }
 
 local SIZES = {

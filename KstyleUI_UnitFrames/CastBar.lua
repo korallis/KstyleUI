@@ -25,6 +25,11 @@ local TEXT_EXTRA = 3
 local TIMER_COLUMN = 3
 local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
+local ELAPSED_FORMAT = "%.1f / %.1f"
+local REMAINING_FORMAT = "%.1f"
+local CAPTION_BAR = { above = 9, below = 7 }
+local CAPTION_GAP = { above = 3, below = 4.5 }
+local CAPTION_TIMER_EM = { above = 6.2, below = 3 }
 local MS = 1000
 local LIMITS = { minWidth = 6, minHeight = 6, maxWidth = 640, maxHeight = 640 }
 local LINE_BAR = 4
@@ -96,7 +101,24 @@ function CastBars.SetName(cb, text)
 	if issecretvalue(text) or type(text) ~= "string" or not Settings.Value(cb.kind, "castbarCaps") then
 		cb.text:SetText(text)
 	else
-		cb.text:SetText(ns.Unit.Tracked(text, (Settings.Font(cb.kind, "cast"))))
+		cb.text:SetText(ns.Unit.Tracked(text, cb.textPath or (Settings.Font(cb.kind, "cast"))))
+	end
+end
+
+local function Caption(cb)
+	if Settings.Form(cb.kind) ~= "column" then
+		return nil
+	end
+	return cb.attached and "below" or "above"
+end
+
+local function WriteTimer(cb, elapsed, total, remaining)
+	if cb.mode == "above" then
+		cb.timer:SetFormattedText(ELAPSED_FORMAT, elapsed, total)
+	elseif cb.mode == "below" then
+		cb.timer:SetFormattedText(REMAINING_FORMAT, remaining)
+	else
+		cb.timer:SetFormattedText(TIMER_FORMAT, remaining)
 	end
 end
 
@@ -109,7 +131,11 @@ local function Tick(frame, elapsed)
 	cb.elapsed = 0
 	local duration = cb.duration
 	if duration then
-		cb.timer:SetFormattedText(TIMER_FORMAT, duration:GetRemainingDuration())
+		if cb.mode == "above" then
+			WriteTimer(cb, duration:GetElapsedDuration(), duration:GetTotalDuration())
+		else
+			WriteTimer(cb, nil, nil, duration:GetRemainingDuration())
+		end
 		return
 	end
 	local now = GetTime()
@@ -117,7 +143,7 @@ local function Tick(frame, elapsed)
 	if left < 0 then
 		left = 0
 	end
-	cb.timer:SetFormattedText(TIMER_FORMAT, left)
+	WriteTimer(cb, cb.total - left, cb.total, left)
 	if cb.channel then
 		cb.bar:SetValue(left)
 	else
@@ -255,7 +281,11 @@ local function Place(cb, region, rect)
 end
 
 local function Lined(cb)
-	return cb.attached == true and Settings.Form(cb.kind) ~= "plate"
+	if cb.attached ~= true then
+		return false
+	end
+	local form = Settings.Form(cb.kind)
+	return form ~= "plate" and form ~= "column"
 end
 
 local function Anchor(cb, region, point, relative, relPoint, x)
@@ -332,8 +362,57 @@ local function LayoutLine(cb, width, height)
 	bar:SetSparkShown(false)
 end
 
+local function LayoutCaption(cb, width, height)
+	local mode, frame = cb.mode, cb.frame
+	local above = mode == "above"
+	cb.geometry = { caption = mode }
+	cb.iconFrame:Hide()
+	cb.chrome:SetShadow(false)
+	cb.chrome:SetShown(false)
+	cb.panel:ClearAllPoints()
+	cb.panel:SetAllPoints(frame)
+	ShowLock(cb)
+	Style.Flat(cb.bar, true)
+	local size = Settings.FontSize(cb.kind, "cast")
+	local rowH = size + TEXT_EXTRA
+	local gap = CAPTION_GAP[mode]
+	local spare = height - gap - rowH
+	local labelOn = spare >= BAR_MIN
+	local barH = math.min(CAPTION_BAR[mode], labelOn and spare or height)
+	local bar = cb.bar
+	bar.opts.width, bar.opts.height = width, barH
+	bar:Restyle()
+	bar:ClearAllPoints()
+	bar:SetPoint(above and "BOTTOMLEFT" or "TOPLEFT", frame, above and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
+	bar:SetSparkShown(true)
+	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
+	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[mode] * size), math.floor(width / 2)) or 0
+	local y = Snap(cb, barH + gap)
+	local point = above and "BOTTOM" or "TOP"
+	local offset = above and y or -y
+	for _, text in ipairs({ cb.text, cb.timer }) do
+		text:ClearAllPoints()
+		text:SetHeight(Snap(cb, rowH))
+		text:SetJustifyV(above and "BOTTOM" or "TOP")
+	end
+	cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", 0, offset)
+	cb.text:SetWidth(Snap(cb, math.max(0, width - timerW - (timerOn and TEXT_PAD or 0))))
+	cb.text:SetJustifyH("LEFT")
+	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
+	cb.timer:SetPoint(point .. "RIGHT", frame, point .. "RIGHT", 0, offset)
+	cb.timer:SetWidth(Snap(cb, timerW))
+	cb.timer:SetJustifyH("RIGHT")
+	cb.timer:SetShown(timerOn)
+end
+
 function CastBars.Layout(cb, width, height)
 	cb.line = Lined(cb)
+	cb.mode = Caption(cb)
+	if cb.mode then
+		LayoutCaption(cb, width, height)
+		return
+	end
+	Style.Flat(cb.bar, false)
 	if cb.line then
 		LayoutLine(cb, width, height)
 		return
@@ -392,7 +471,7 @@ local function BarColor(cb)
 		local c = Settings.Value(cb.kind, "castbarCustom")
 		return c.r, c.g, c.b
 	elseif source == "gold" then
-		return Lumen.Color("cast")
+		return Lumen.Color(Caption(cb) and "gold" or "cast")
 	elseif source == "reaction" then
 		local reaction = Reaction(cb)
 		if type(reaction) == "number" then
@@ -440,13 +519,22 @@ end
 function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
 	cb.line = Lined(cb)
-	StyleText(cb.text, path, size, flags)
-	StyleText(cb.timer, path, size, flags)
+	cb.mode = Caption(cb)
+	local textPath, timerPath = path, path
+	if cb.mode and Settings.ThemeFont(cb.kind, "cast") then
+		textPath, timerPath = Lumen.Font("name"), Lumen.Font("value")
+	end
+	cb.textPath = textPath
+	StyleText(cb.text, textPath, size, flags)
+	StyleText(cb.timer, timerPath, size, flags)
 	StyleText(cb.label, path, size, flags)
 	StyleText(cb.lock, path, size, flags)
 	cb.label:SetTextColor(Lumen.Color("muted"))
 	cb.lock:SetTextColor(Tokens.Color("hostile"))
-	if cb.line then
+	if cb.mode then
+		cb.text:SetTextColor(Tokens.Color("textEmphasis"))
+		cb.timer:SetTextColor(Tokens.Color("textEmphasis"))
+	elseif cb.line then
 		cb.text:SetTextColor(Lumen.Color("cast"))
 		cb.timer:SetTextColor(Lumen.Color("muted"))
 	else
@@ -599,7 +687,7 @@ local function Start(cb, channel)
 	else
 		StopTimer(cb)
 	end
-	if not cb.bar.vertical and not cb.line then
+	if not cb.bar.vertical and not cb.line and not cb.mode then
 		cb.bar:PlaySheen(false)
 	end
 end
@@ -680,12 +768,14 @@ local function Enabled(cb)
 	if not (running and Settings.Value(kind, "castbar")) then
 		return false
 	end
-	local plate = Settings.Form(kind) == "plate"
+	local form = Settings.Form(kind)
+	local plate = form == "plate"
+	local separate = kind == "player" and form == "column"
 	if cb.inline then
-		return not plate and Settings.Value(kind, "enabled")
+		return not plate and not separate and Settings.Value(kind, "enabled")
 	end
 	if Settings.CAST_ELEMENTS[kind] then
-		return plate or not Settings.Value(kind, "enabled")
+		return plate or separate or not Settings.Value(kind, "enabled")
 	end
 	return Settings.Value(kind, "enabled")
 end

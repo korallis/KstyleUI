@@ -33,11 +33,11 @@ function Row:StyleIcon(icon)
 	end
 	icon.cooldown:SetHideCountdownNumbers(not cfg.timer)
 	icon.cooldown:SetReverse(self.group == "buffs")
-	Style.Countdown(icon.cooldown)
+	Style.Countdown(icon.cooldown, self.group == "essential")
 	icon.greyWhileCooling = cfg.desaturate
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
-	Style.Centre(icon)
+	Style.PlaceText(icon, self.group)
 	Style.Mouse(icon, current.tooltips)
 	Style.Accent(icon)
 end
@@ -45,7 +45,7 @@ end
 function Row:Icon(index)
 	local icon = self.icons[index]
 	if not icon then
-		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size }), true)
+		icon = Style.Decorate(Widgets.IconButton(self.content, { size = self.cfg.size }), self.group)
 		self.icons[index] = icon
 		self:StyleIcon(icon)
 	end
@@ -78,6 +78,9 @@ function Row:Overflow(hidden)
 	local cfg = self.cfg
 	local side = cfg.wrap == "down" and "LEFTBOTTOM" or "LEFT"
 	Style.ShowChip(chip, self.content, side, cfg.spacing, cfg.size, cfg.size, "+" .. hidden, cfg.countSize + Style.CHIP_TEXT)
+	if cfg.wrap == "down" and cfg.timer then
+		chip:SetPoint("BOTTOMRIGHT", self.content, "BOTTOMLEFT", -Widgets.Snap(chip, cfg.spacing), Widgets.Snap(chip, cfg.cellHeight - cfg.size))
+	end
 end
 
 function Row:SetCount(count)

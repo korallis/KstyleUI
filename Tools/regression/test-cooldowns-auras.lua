@@ -37,7 +37,7 @@ for _, key in ipairs({ "cooldowns.buffs", "cooldowns.bars" }) do
 	assert(element and element.opts.scalable and element.module == "Cooldowns", key .. " registers, scalable")
 end
 local bw, bh = buffs.holder:GetSize()
-assert(bw == 243 and bh == 38, "the buff icons fill a 243 by 38 footprint: six of the action button's 38 units (owner pass 1, 2026-11-09: the Cooldown Manager icons must not read bigger than the buttons)")
+assert(math.abs(bw - 182.6) < 1 and math.abs(bh - 41.6) < 1, "six tracked buff icons include their below-icon timers in the 182.6 by 41.6 footprint")
 local rw, rh = bars.holder:GetSize()
 assert(rw == 243 and rh == 43, "two bars of 243 by 20 fill a 243 by 43 footprint, as wide as the icon row, got " .. tostring(rw) .. " by " .. tostring(rh))
 assert(env._viewers.BuffIconCooldownViewer:GetAlpha() == 0 and env._viewers.BuffBarCooldownViewer:GetAlpha() == 0, "Blizzard's buff viewers are faded")

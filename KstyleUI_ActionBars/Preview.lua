@@ -37,9 +37,17 @@ function Preview:Refresh()
 	local def = ns.BAR[key] or ns.BAR.bar1
 	local cfg = ns.Config(def.key)
 	local size, gap = Widgets.Snap(self, cfg.size), Widgets.Snap(self, cfg.spacing)
-	local count = Fits(self.parentFrame, size, gap, min(def.max, cfg.buttons))
+	local centre = def.key == "bar1" or def.key == "bar2"
+	local count = Fits(self.parentFrame, centre and cfg.size or size, centre and cfg.spacing or gap, min(def.max, cfg.buttons))
 	local rows = min(cfg.rows, count)
 	local width, height = ns.GridSize(count, rows, size, gap)
+	local pitch = size + gap
+	if centre then
+		local _, _, columns, used = ns.GridSize(count, rows, cfg.size, cfg.spacing)
+		pitch = cfg.size + cfg.spacing
+		width = Widgets.Snap(self, (columns - 1) * pitch) + size
+		height = Widgets.Snap(self, (used - 1) * pitch) + size
+	end
 	self:SetSize(width, height)
 	local r, g, b = ns.AccentRGB()
 	for i, button in ipairs(self.buttons) do
@@ -47,7 +55,7 @@ function Preview:Refresh()
 			local col, row = ns.Cell(i, count, rows, cfg.orientation, cfg.growth)
 			button.opts.size = cfg.size
 			button:ClearAllPoints()
-			button:SetPoint("TOPLEFT", self, "TOPLEFT", col * (size + gap), -row * (size + gap))
+			button:SetPoint("TOPLEFT", self, "TOPLEFT", Widgets.Snap(self, col * pitch), -Widgets.Snap(self, row * pitch))
 			button:Restyle()
 			button:Show()
 			button:SetIcon(Sample(def.kind == "action" and ns.Slot(i, def.page or 1) or i))
