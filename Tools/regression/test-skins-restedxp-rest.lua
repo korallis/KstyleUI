@@ -3,6 +3,7 @@ local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
+local Measure = dofile("Tools/regression/databars_env.lua")
 local W = S.W
 
 local HOOKED = {
@@ -27,7 +28,8 @@ local function Sized(size)
 end
 
 -- Boot(opts) -> env, K, ns, rxp at the shipped Interface size, Skins on. opts.quests tracks that many quests and
--- loads Blizzard's tracker, so the quest card shares the story slot with the guide.
+-- loads Blizzard's tracker, so the quest card shares the story slot with the guide; opts.measure gives the font
+-- strings the kit fonts' glyph widths, so a line wraps where the game wraps it.
 local function Boot(opts)
 	opts = opts or {}
 	local rxp
@@ -36,6 +38,9 @@ local function Boot(opts)
 		setup = function(env)
 			if opts.quests then
 				Quests.Install(env, Quests.List(opts.quests))
+			end
+			if opts.measure then
+				env._textWidth = Measure.TextWidth
 			end
 			rxp = Fake.Install(env, {})
 		end,
@@ -386,6 +391,41 @@ do
 		end
 		assert(K.Skin.Parts(frame).backdrop:IsShown(), name .. ": on KstyleUI's glass")
 	end
+	Clean(env, K, rxp)
+end
+
+-- A tip is its own window -----------------------------------------------------------------------------------------
+
+do
+	local env, K, ns, rxp = Boot({ measure = true })
+	local f = rxp.RXPFrame
+	-- RestedXP keeps a tip in the steps' pool but hangs it from the screen's bottom left, 230 wide (GuideWindow.lua
+	-- 1001-1012), far from the guide's cap, and leaves it out of the stack's height (1387-1391).
+	-- This tip takes three lines in RestedXP's column and two in the skin's wider one, so its row changes height.
+	rxp.fake.guide({ STEP[1], { tip = true, title = "Tip", elements = { { text = "Sell your grey items and repair whenever you pass", textOnly = true } } } })
+	rxp.SetStep()
+	env.RunTimers()
+	local pool = f.CurrentStepFrame.framePool
+	local step, tip = pool[1], pool[2]
+	local row = tip.elements[1]
+	assert(near(Rect(K, tip).left, 0, 0.01) and tip:GetWidth() == 230, "the tip stands where RestedXP put it, got " .. tostring(Rect(K, tip).left))
+	local cap = ns.RestedXP.Chrome.Path(f).cap
+	-- The game places a font string by its text alone; the stub wants a size, so the test gives the cap's title one
+	-- and lets RestedXP lay the steps out again.
+	cap.title:SetSize(cap.title:GetStringWidth(), cap.title:GetStringHeight())
+	f.CurrentStepFrame.UpdateText()
+	env.RunTimers()
+	assert(type(cap.title:GetLeft()) == "number" and math.abs(cap.title:GetLeft() * cap.title:GetEffectiveScale() - row:GetLeft() * row:GetEffectiveScale()) > 100, "the cap's title is far from the tip on the screen, so the test can tell the two columns apart")
+	local want = select(4, cap.gem:GetPoint(1)) + cap.gem:GetWidth() + select(4, cap.title:GetPoint(1))
+	local point, relative, _, gutter = row.text:GetPoint(1)
+	assert(point == "TOPLEFT" and relative == row and near(gutter, want, 0.01), "a tip's text starts at the step gutter of its own window, not under the guide's cap across the screen, got " .. tostring(gutter) .. " for " .. tostring(want))
+	assert(select(2, row.text:GetPoint(2)) == tip, "and ends at the tip's own right edge")
+	local _, _, _, cx = row.button:GetPoint(1)
+	assert(cx >= 0 and cx + row.button:GetWidth() <= gutter, "its check stays left of it, inside the tip, got " .. tostring(cx))
+	assert(near(select(4, step.elements[1].text:GetPoint(1)), want, 0.01), "the guide's own step still starts under the cap's title")
+	local one = math.ceil(select(2, row.text:GetFont()) * 1.1) + 1
+	assert(row:GetHeight() > one and tip:GetHeight() == row:GetHeight() + 18, "the tip's line wraps in its 230 units and its window grows with it, got " .. tostring(row:GetHeight()) .. " for one line of " .. tostring(one))
+	assert(near(f.CurrentStepFrame:GetHeight(), step:GetHeight(), 0.01), "and the tip's change of height adds nothing to the guide's stack, as in RestedXP's own layout, got " .. tostring(f.CurrentStepFrame:GetHeight()) .. " for " .. tostring(step:GetHeight()))
 	Clean(env, K, rxp)
 end
 

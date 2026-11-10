@@ -752,18 +752,22 @@ local function AlignSteps(f)
 	for _, step in ipairs(pool) do
 		if IsTable(step) and step:IsShown() then
 			local delta, first = 0, true
+			local tip = IsTable(step.step) and step.step.tip and true or false
 			for _, element in ipairs(IsTable(step.elements) and step.elements or {}) do
 				local text, check = IsTable(element) and element.text, IsTable(element) and element.button
 				local had = IsTable(text) and element:IsShown() and element:GetHeight()
 				if Plain(had) and had > RXP_LINE_PAD and type(text.GetStringHeight) == "function" then
-					local left = Column(cap.title, element) or gutter
+					local left = not tip and Column(cap.title, element) or gutter
 					text:ClearAllPoints()
 					text:SetPoint("TOPLEFT", element, "TOPLEFT", left, -top)
 					text:SetPoint("RIGHT", step, "RIGHT", -right, 0)
 					Widgets.TextColor(text, first and "textEmphasis" or "text")
 					first = false
 					if IsTable(check) and type(check.SetPoint) == "function" then
-						local gem, share = Column(cap.gem, element)
+						local gem, share
+						if not tip then
+							gem, share = Column(cap.gem, element)
+						end
 						local ring = check:GetWidth()
 						check:ClearAllPoints()
 						if gem and Plain(ring) then
@@ -783,7 +787,7 @@ local function AlignSteps(f)
 			local height = step:GetHeight()
 			if delta ~= 0 and Plain(height) then
 				step:SetHeight(height + delta)
-				grown = grown + delta
+				grown = grown + (tip and 0 or delta)
 			end
 			Peek(step)
 		end

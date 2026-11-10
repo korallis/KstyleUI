@@ -16,8 +16,12 @@ local booted = {}
 local function Boot(opts)
 	opts = opts or {}
 	local rxp
+	local saved = Sized(16 / 19)
+	if opts.preset then
+		saved.profiles.Default.Layout = { preset = opts.preset }
+	end
 	local env, K, ns = S.New({
-		saved = Sized(16 / 19),
+		saved = saved,
 		setup = function(env)
 			rxp = Fake.Install(env, opts)
 		end,
@@ -109,6 +113,22 @@ do
 	env.RunTimers()
 	card = Rect(K, Glass(K, f))
 	assert(near(card.top, band.top) and card.bottom >= band.bottom - 0.5, "more steps grow downward inside the slot, got " .. card.top .. " to " .. card.bottom)
+	Clean(env, K, rxp)
+end
+
+-- Every layout: the card hangs from that layout's slot top, on its edges, and ends inside it (the Captain's rule,
+-- 2026-11-10: nothing leaves the slot in any preset).
+
+for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+	local env, K, ns, rxp = Boot({ preset = preset })
+	local f = rxp.RXPFrame
+	rxp.SetStep(2, 2)
+	env.RunTimers()
+	assert(K.Layout.Setting("preset") == preset and ns.RestedXP.Rail.Placed(), preset .. ": the rail places the guide for the layout")
+	local slot = K.Setup.Story(preset, true, true).story
+	local card = Rect(K, Glass(K, f))
+	assert(near(card.top, slot.top, 0.01) and near(card.left, slot.left, 0.01) and near(card.right, slot.right, 0.01), preset .. ": the card is on the slot's top and edges, got " .. card.left .. " to " .. card.right .. " at " .. card.top)
+	assert(card.bottom >= slot.bottom - 0.5, preset .. ": and ends inside the slot, got " .. card.bottom .. " for " .. slot.bottom)
 	Clean(env, K, rxp)
 end
 

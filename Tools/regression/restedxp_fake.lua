@@ -681,6 +681,8 @@ local function V1Window(m, rxp)
 	-- reads the step's title; each element's 12-unit check sits at (6, -1), its text 11 right of the check and 1
 	-- lower, running to 5 before the step frame's right edge, its tag icon on the check's right edge; an element
 	-- is its text's height times 1.1 plus 1 tall, a step its elements plus 18. A text-only element hides its check.
+	-- A tip step is its own 230-wide window at the screen's bottom left (1001-1012) and adds nothing to the
+	-- stack's height (1387-1391).
 	current.UpdateText = m.trust(function()
 		rxp.measured.steps = rxp.measured.steps + 1
 		if rxp.v2:IsGuideWindowEnabled() then
@@ -693,9 +695,14 @@ local function V1Window(m, rxp)
 		for c, spec in ipairs(active) do
 			local step = current.framePool[c]
 			step:ClearAllPoints()
-			step:SetPoint("TOPLEFT", anchor or current, anchor and "BOTTOMLEFT" or "TOPLEFT", 0, anchor and -5 or 0)
-			step:SetPoint("TOPRIGHT", anchor or current, anchor and "BOTTOMRIGHT" or "TOPRIGHT", 0, anchor and -5 or 0)
-			anchor = step
+			if spec.tip then
+				step:SetPoint("BOTTOMLEFT", m.env.UIParent, "BOTTOMLEFT", 0, 0)
+				step:SetWidth(230)
+			else
+				step:SetPoint("TOPLEFT", anchor or current, anchor and "BOTTOMLEFT" or "TOPLEFT", 0, anchor and -5 or 0)
+				step:SetPoint("TOPRIGHT", anchor or current, anchor and "BOTTOMRIGHT" or "TOPRIGHT", 0, anchor and -5 or 0)
+				anchor = step
+			end
 			step.number.text:SetText(spec.title or string.format("Step %d", spec.index or c))
 			step.number:SetSize(StringWidth(step.number.text) + 10, 17)
 			local height = 0
@@ -747,7 +754,7 @@ local function V1Window(m, rxp)
 			step:EnableMouse(true)
 			height = math.ceil(height + 18)
 			step:SetHeight(height)
-			total = total + height + 5
+			total = total + (spec.tip and 0 or height + 5)
 		end
 		current:SetHeight(math.max(0, total - 5))
 	end)
