@@ -46,7 +46,7 @@ Tests: `Tools/regression/test-meters-logic.lua`, `test-meters-module.lua`, `test
 | Key | Element | Footprint | Size limits |
 | --- | --- | --- | --- |
 | `meters.damage` | Damage meter | 269 x 158 | 120 to 600 wide, 40 to 800 tall |
-| `meters.threat` | Threat meter | 208 x 104 | 120 to 600 wide, 40 to 800 tall |
+| `meters.threat` | Threat meter | 200 x 112 | 120 to 600 wide, 40 to 800 tall |
 | `meters.swing` | Swing timer | 260 x 8 | 40 to 800 wide, 2 to 64 tall |
 
 Each element is a holder frame that Layout places, sizes and shows. The meter draws inside it on a child frame, so Layout and the module never show or hide the same frame. A meter switched off in the settings hides its holder too. The rows that fit follow the holder's height: a taller meter shows more rows. A row is never shorter than its text needs, and the rows counted and the rows drawn use the same snapped height.

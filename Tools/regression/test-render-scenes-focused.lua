@@ -7,9 +7,19 @@ local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local RestedXP = dofile("Tools/render/scenes/restedxp.lua")
 
 -- The scene scripts themselves return their builders when loaded as libraries.
-for _, script in ipairs({ "hud_dps_mac", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design", "auras_tracker" }) do
+for _, script in ipairs({ "hud_dps_mac", "hud_dps_threat", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design", "auras_tracker" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
+end
+
+do
+	local scene = check("hud_dps_threat", dofile("Tools/render/scenes/hud_dps_threat.lua")())
+	local shown = {}
+	for _, item in ipairs(scene.items) do
+		if item.kind == "text" then shown[item.text] = true end
+	end
+	assert(shown.THREAT and shown.DAMAGE, "the DPS scene draws both meter cards")
+	assert(shown["86%"] and shown["72%"] and shown["58%"], "all three compact threat rows draw")
 end
 
 -- Lumen Rails: the aura rows stand beside the minimap's left edge, and Layout > Apply's Edit Mode layout puts the

@@ -360,7 +360,8 @@ for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
 			local box = edges(holder, "holder")
 			local card = edges(ns.Feed.Backdrop(), "backdrop")
 			assert(card.left >= box.left - 1e-6 and card.right <= box.right + 1e-6 and card.bottom >= box.bottom - 1e-6 and card.top <= box.top + 1e-6, where .. ": backdrop fits the planned holder")
-			assert(K.Setup.Layouts.Fits("DPS", screen[1], screen[2], K.Scale.AppliedUserScale()), where .. ": production cap includes the feed")
+			local enabled = K.Setup.Layouts.Enabled("DPS", K.Store.Profile())
+			assert(enabled["qol.lootfeed"] and K.Setup.Layouts.Fits("DPS", screen[1], screen[2], K.Scale.AppliedUserScale(), enabled), where .. ": production cap includes the enabled feed")
 			assert(#ns.Feed.lines == K.Setup.Layouts.FEED_LINES, where .. ": all four rows remain live")
 			for _, line in ipairs(ns.Feed.lines) do
 				assert(not line.name:IsTruncated(), where .. ": a short name must fit its snapped text box: " .. line.name:GetText())

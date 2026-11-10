@@ -1,6 +1,7 @@
 -- test-meters-fit.lua: the damage card is the picture's fixed card: it keeps the holder's height whatever the rows, a row is never shorter than its text needs, and the fight switch is length-safe.
 local M = dofile("Tools/regression/meters_env.lua")
 local W = M.W
+local Geometry = dofile("Tools/regression/geometry.lua")
 
 local function Session(count)
 	local sources = {}
@@ -33,6 +34,42 @@ local function TopAnchored(list)
 	end
 	local a, b = { panel:GetPoint(1) }, { panel:GetPoint(2) }
 	return a[1] == "TOPLEFT" and a[2] == holder and a[3] == "TOPLEFT" and b[1] == "TOPRIGHT" and b[2] == holder and b[3] == "TOPRIGHT"
+end
+
+for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 } }) do
+	for _, preset in ipairs({ "DPS", "Healer" }) do
+		local env, K, ns = M.New({
+			width = screen[1], height = screen[2],
+			saved = { version = 13, account = { setupSeen = true }, profiles = { Default = {
+				Layout = { preset = preset }, Meters = { enabled = true, damage = { shown = true, mode = "window" }, threat = { shown = true } },
+			} } },
+			setup = function(e) e._fitScale, e._size = true, false end,
+			game = function(e)
+				e._group = { raid = false, size = 3 }
+				e._units.target = { name = "Mob", hostile = true }
+				for i, unit in ipairs({ "player", "party1", "party2" }) do
+					e._units[unit] = { name = "Member" .. i, class = "WARRIOR" }
+					e._threat[unit] = { i == 1, 1, 100 - i * 10, 100 - i * 10, 1000 - i * 100 }
+				end
+				e._session = Session(3)
+			end,
+		})
+		M.Enable(env, K)
+		local threat, damage = ns.Threat.list, ns.Damage.list
+		local w, h = ns.Threat.holder:GetSize()
+		assert(math.abs(w - 200) < 1 and math.abs(h - 112) < 1, preset .. ": the actual holder builds at 200x112 without Apply")
+		assert(threat.panel:IsVisible() and damage.panel:IsVisible(), preset .. ": both actual cards can show together")
+		local root = K.Scale.Root()
+		local t, d = assert(Geometry.Rect(threat.panel, root)), assert(Geometry.Rect(damage.panel, root))
+		assert(t.right <= d.left or d.right <= t.left or t.top <= d.bottom or d.top <= t.bottom, preset .. ": the cards no longer overlap")
+		assert(threat.count == math.min(3, threat.capacity) and threat.count >= 2, preset .. ": the compact card fills its live row capacity")
+		if screen[1] == 3456 then assert(threat.count == 3, preset .. ": the owner panel shows all three live rows") end
+		for i = 1, threat.count do
+			local row = assert(Geometry.Rect(threat.rows[i].frame, root))
+			assert(row.bottom >= t.bottom - 0.01 and row.top <= t.top + 0.01, preset .. ": each visible row stays inside the compact card")
+		end
+		assert(K.ErrorCount() == 0, tostring(env._errors[1]))
+	end
 end
 
 -- In a group: the damage meter shows only in a group by default (test-meters-drill.lua).
