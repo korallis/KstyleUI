@@ -93,7 +93,7 @@ class FontFilesTest(unittest.TestCase):
         # Cinzel's own advances (Cinzel[wght].ttf at weight 500, in 1000 units) and the tracking the script adds.
         medium = {"S": 509, "K": 690, "Y": 675, "B": 615, "O": 852, "R": 700, "N": 849, "E": 595}
         space = 250
-        for name, track, word in (("CinzelCaps-Medium.ttf", 65, 180), ("CinzelNames-Medium.ttf", 0, 160), ("CinzelUnit-Medium.ttf", -65, 250)):
+        for name, track, word in (("CinzelCaps-Medium.ttf", 65, 180), ("CinzelNames-Medium.ttf", 0, 160), ("CinzelUnit-Medium.ttf", -64, 250)):
             data = (FONTS / name).read_bytes()
             self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 500, name)
             self.assertEqual(struct.unpack(">H", table(data, "head")[18:20])[0], 1000, name)

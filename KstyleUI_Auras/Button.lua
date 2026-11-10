@@ -1,4 +1,4 @@
--- Button.lua: dresses an engine aura button as a plain square tile as the owner's picture draws it: the icon one border inside a one-pixel dark square rim, the timer under it in white in the body face on whole pixels (Widgets.ApplyFont), the stack count on a corner badge the engine shows from two applications, the engine's dispel plate on debuffs, and the engine bindings; a plain frame gets the same tile without the bindings, for the preview.
+-- Button.lua: dresses an engine aura button as a plain square tile as the owner's picture draws it: the icon one border inside a one-pixel dark square rim, the timer under it in the Medium timer face on whole pixels (Widgets.ApplyFont), the stack count on a corner badge the engine shows from two applications, the engine's dispel plate on debuffs, and the engine bindings; a plain frame gets the same tile without the bindings, for the preview.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,7 +10,7 @@ ns.Button = Button
 local ICON_CROP = 0.07
 local ICON_INSET_LINES = 1
 local TEXT_INSET = 1
-local TIMER_SHIFT = 1
+local TIMER_LIFT = 0.5
 local RIM_SUBLEVEL = 5
 local DISPEL_SUBLEVEL = 7
 local BADGE_PAD = 2
@@ -95,7 +95,7 @@ local function PlaceTexts(entry, ctx, inset)
 	if ctx.timer.position == "inside" then
 		timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, inset + text)
 	else
-		timer:SetPoint("TOP", skin, "BOTTOM", Widgets.Snap(skin, TIMER_SHIFT), -Widgets.Snap(skin, ns.Model.TIMER_GAP))
+		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, ns.Model.TIMER_GAP - TIMER_LIFT))
 	end
 	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -inset, -inset)
 	timer:SetJustifyH("CENTER")

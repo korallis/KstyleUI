@@ -16,7 +16,7 @@ for _, preset in ipairs({ "lumen", "compact", "tank", "healer" }) do
 	assert(shadowX > 0 and shadowY == -shadowX, "unoutlined names keep the kit's soft world-text shadow")
 	assert(plate.name:GetJustifyH() == "CENTER", "the name is centred above the bar")
 	local _, _, _, _, nameLift = plate.name:GetPoint(1)
-	assert(ns.Plate.NAME_GAP == 3.5 and math.abs(nameLift - ns.Plate.NAME_GAP) < 1, "the name stands 3.5 units over the bar: the picture's 13 px between the capitals' foot and the bar")
+	assert(ns.Plate.NAME_GAP == 3.5 and math.abs(nameLift - K.Widgets.Snap(plate, 3.5)) < 1e-6, "the name keeps its core-matched 3.5-unit lift, snapped at the host scale")
 	local withName = ns.Auras.Extent(plate)
 	K.Options.Write("Nameplates", "name.show", false)
 	local withoutName = ns.Auras.Extent(plate)

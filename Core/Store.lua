@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 16
+Store.DB_VERSION = 17
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -465,6 +465,18 @@ Store.migrations[16] = function(data)
 				if values[field] == old then
 					values[field] = nil
 				end
+			end
+		end
+	end
+end
+
+Store.migrations[17] = function(data)
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["minimap.main"]
+		if type(entry) == "table" then
+			railEntry(entry, "minimap.main", { "TOPRIGHT", -16, -16 }, { ["minimap.main"] = { "TOPRIGHT", -17, -17 } })
+			if next(entry) == nil then
+				layout["minimap.main"] = nil
 			end
 		end
 	end

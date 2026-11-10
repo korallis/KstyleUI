@@ -280,11 +280,12 @@ for _, name in ipairs(names) do
 		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
-			assert(math.abs(r.right - (width - EDGE)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on the right rail's edge, " .. wantWidth .. " wide")
+			local inset = key == "minimap.main" and EDGE - 1 or EDGE
+			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])
-		assert(map.top == HEIGHT - EDGE and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail with its 36-unit caption under it")
-		assert(math.abs(auraBuffs.right - (map.left - 10.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top - RAIL_INSET)) < 1e-6, label .. ": the buff row stands 10.9 left of the map and 1.4 under its top, as the picture draws it")
+		assert(map.top == HEIGHT - (EDGE - 1) and map.h == MAP + MAP_CAPTION and Layouts.Element("minimap.main").height == MAP, label .. ": the 188 map heads the right rail one unit nearer the top with its 36-unit caption under it")
+		assert(math.abs(auraBuffs.right - (map.left - 11.9)) < 1e-6 and math.abs(auraBuffs.top - (map.top - RAIL_INSET - 1)) < 1e-6, label .. ": the unchanged buff row stands 11.9 left of the corrected map and 2.4 under its top")
 		assert(auraBuffs.right == auraDebuffs.right and math.abs(auraBuffs.bottom - 8 - auraDebuffs.top) < 1e-6, label .. ": the debuff row hangs 8 under the buffs, right-aligned")
 		assert(auraBuffs.w == 306.5 and auraBuffs.h == 41.5 and auraDebuffs.w == 306.5 and auraDebuffs.h == 41.5, label .. ": each aura row is ten 27.5-unit icons 3.5 apart, 306.5 x 41.5")
 		local meter, strip, tip = rect("meters.damage"), rect("databars.strip"), rect("tooltips.anchor")
@@ -328,7 +329,7 @@ for _, name in ipairs(names) do
 		local s = { Layouts.Rect(slot, slot, width, HEIGHT) }
 		local story = { left = s[1], bottom = s[2], right = s[3], top = s[4] }
 		assert(math.abs(story.right - (width - EDGE)) < 1e-6 and math.abs(story.right - story.left - STORY_W) < 1e-6, label .. ": the story slot is on the right rail's column, 278 wide")
-		assert(math.abs(over - story.top - 15) < 1e-6, label .. ": the story slot hangs 15 under the map's caption, on the picture's measured top, got " .. (over - story.top))
+		assert(math.abs(over - story.top - CARD_GAP_MIN) < 1e-6, label .. ": the story slot hangs 16 under the corrected map's caption, got " .. (over - story.top))
 		assert(math.abs(story.bottom - columns[1].top - 12) < 1e-6, label .. ": the story slot ends 12 over bars 4 and 5, got " .. (story.bottom - columns[1].top))
 		assert(story.top - story.bottom >= STORY_RAIL_MIN, label .. ": the story slot holds the guide and four quests, got " .. (story.top - story.bottom))
 		for _, key in ipairs(KEYS) do
@@ -635,7 +636,7 @@ do
 end
 do
 	local minimap = Layouts.Get("DPS")["minimap.main"]
-	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -EDGE and minimap.y == -EDGE, "the square map sits on the screen margin at the top right")
+	assert(minimap.anchor == "TOPRIGHT" and minimap.x == -(EDGE - 1) and minimap.y == -(EDGE - 1), "the square map sits one root unit nearer the top right than the card margin")
 end
 
 -- Get returns copies; Default gives the DPS position for a module's Register call ------------------------

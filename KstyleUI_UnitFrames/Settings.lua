@@ -163,7 +163,7 @@ Settings.defaults = {
 	target = Kind(true, {
 		style = "column", portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
 		healthOrientation = "LEFT", powerOrientation = "LEFT", healthTexture = FLAT_TEXTURE, powerTexture = FLAT_TEXTURE, castbarTexture = FLAT_TEXTURE, auraSpacing = 4,
-	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 15 }),
+	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14.5 }),
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
@@ -519,7 +519,7 @@ local function TextRows(schema, kind, element)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = prefix .. "size", label = label .. ": " .. L["size"],
 		help = L["The text size in units at the 1080 reference."],
-		min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = FONT_SIZE_STEP,
+		min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = kind == "target" and element == "level" and 0.5 or FONT_SIZE_STEP,
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = prefix .. "outline", label = label .. ": " .. L["outline"],

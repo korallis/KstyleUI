@@ -30,6 +30,7 @@ local GLOW_SPREAD = 1.7
 local RING_GUTTER = 1 / 64
 local COLUMN_LEVEL_SCALE = 0.95
 local CAPTION_GAP = 10
+local COLUMN_CAPTION_GAP = 9
 local RULE_GAP = 8
 local RULE_ALPHA = 0.55
 local VALUE_GAP = 2
@@ -243,7 +244,7 @@ local function CaptionPoint(view, g)
 	local lift = TightName(view) and Snap(view, g.captionLift or 0) or 0
 	view.caption:ClearAllPoints()
 	if g.mirror then
-		view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), lift)
+		view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, g.form == "column" and COLUMN_CAPTION_GAP or CAPTION_GAP), lift)
 	else
 		view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), lift)
 	end
