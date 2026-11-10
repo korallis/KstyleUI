@@ -69,6 +69,12 @@ env.KstyleUIDB.profiles.CustomStyle = { UnitFrames = {
 	target = { style = "column", healthColor = "reaction", powerTexture = texture, fonts = { health = { size = 12 }, cast = { size = 13 } } },
 } }
 local customSettings = copy(env.KstyleUIDB.profiles.Custom)
+for _, item in ipairs(K.Tokens.MediaList("statusbar")) do
+	if item.key == "Glass" then
+		customSettings.UnitFrames.player.castbarTexture = item.path
+		customSettings.UnitFrames.target.castbarTexture = item.path
+	end
+end
 local customLumen = copy(env.KstyleUIDB.profiles.CustomLumen)
 local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
 customLumen.UnitFrames.player.style = nil
