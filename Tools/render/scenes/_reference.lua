@@ -69,9 +69,11 @@ Reference.STATE = {
 		{ title = "Windsong Hides", level = 10, objectives = { "Windsong Hide 0/5" }, questID = 306 },
 		{ title = "Orchard Pests", level = 9, objectives = { "Orchard Pest slain 0/10" }, questID = 307 },
 	},
+	-- The first step line is the owner's live guide line as RestedXP's guide file writes it (an inline icon, a
+	-- colour token, the npc id), so the render shows what the skin makes of RestedXP's markup.
 	guide = {
 		title = "1-9 Skyborne",
-		steps = { { title = "Step 134", elements = { "Talk to Aarnor Galestrike", "Train your class spells" } } },
+		steps = { { title = "Step 134", elements = { "|Tinterface/worldmap/chatbubble_64grey.blp:20|tTalk to |cRXP_FRIENDLY_Aarnor Galestrike::254082|r", "Train your class spells" } } },
 	},
 	chatClock = { year = 2026, month = 11, day = 9, hour = 20, min = 21, sec = 0 },
 	chatTabs = { "General", "Combat Log" },

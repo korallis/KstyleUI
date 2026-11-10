@@ -991,7 +991,7 @@ function modules.tracker(opts)
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
 	S.W.Settle(env)
-	-- The quest card stands in for Blizzard's tracker in the story slot, three quests at a time. With the RestedXP
+	-- The quest card stands in for Blizzard's tracker in the story slot, four quests at a time. With the RestedXP
 	-- guide docked over it (the skin's one story card), the card's own glass yields to the guide's, which the
 	-- restedxp module draws down to the card's foot.
 	local card = ns.Quests.Active()
@@ -1009,7 +1009,7 @@ function modules.tracker(opts)
 	end
 	local scene = build(env, opts)
 	if card then
-		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, three at a time, in the layout's story slot; Blizzard's tracker is hidden while it holds only quests" .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
+		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, in the layout's story slot; Blizzard's tracker is hidden while it holds only quests" .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
 	else
 		scene.log[#scene.log + 1] = "the quest tracker is a stand-in laid out as Blizzard_ObjectiveTracker does; Edit Mode places the real one" .. (opts.trackerAnchor and ", here at the anchor Layout > Apply wrote into the KstyleUI Edit Mode layout: the story slot" or ", at Forever's preset") .. (opts.trackerDocked and "; its glass is the guide's card, docked" or "")
 	end
