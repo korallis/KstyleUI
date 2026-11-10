@@ -18,7 +18,7 @@
 
 <p align="center"><sub>The character sheet, skinned.</sub></p>
 
-Every panel, card and window is frosted Lumen glass: a deep blue tint, a lit rim, gilt filament tips and 14-unit corners. Cinzel for titles, Alegreya Sans for everything else, and your class colour on every accent.
+Every panel, card and window is frosted Lumen glass: a deep blue tint, a lit rim, gilt filament tips and 14-unit corners. Folio type by default (IM Fell and EB Garamond for titles and captions, Cinzel for names, PT Serif for reading and figures), the Lumen set of Cinzel and Alegreya Sans one switch away, any font for any role, and your class colour on every accent.
 
 Turn on the Skins module and the game's own windows take the same glass, one switch per window: character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, friends, guild, popups and the Escape menu.
 
@@ -193,7 +193,7 @@ KstyleUI's repainted icons are a separate download, `KstyleUI-Icons-<version>.zi
 
 KstyleUI ships English, German (`deDE`), French (`frFR`), Spanish (`esES`, also used on `esMX`) and Simplified Chinese (`zhCN`). The translations use WoW's own terms for each language, taken from Blizzard's localised interface strings for the Forever build. They are machine-made and have not yet been read by a native speaker, so report a wrong or awkward string as an issue. A string with no translation shows in English.
 
-Cinzel and Alegreya Sans have no Chinese or Korean glyphs. On `zhCN`, `zhTW` and `koKR` clients every KstyleUI text uses the game's own font for that language, and on `ruRU` the game's Cyrillic font replaces Cinzel. A font you pick from another addon stays your choice.
+KstyleUI's bundled fonts have no Chinese or Korean glyphs. On `zhCN`, `zhTW` and `koKR` clients every KstyleUI text uses the game's own font for that language, and on `ruRU` the game's Cyrillic font replaces Cinzel and Folio's display face. A font you pick from another addon stays your choice.
 
 ## For developers
 

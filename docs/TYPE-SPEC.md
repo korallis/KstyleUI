@@ -96,23 +96,23 @@ Every visible text object is included, including all acceptance-probed strings. 
 | DPS-57 · meters.damage | DAMAGE | caps | 12.056 | 13.82 / 13.92 | 1970 | C 3058 / -76.640 |
 | DPS-58 · meters.damage | 14.9 dps | number | 12.056 | 14.70 / 10.50 | 1970 | R 3398 / 16.074 |
 | DPS-59 · meters.damage | Lightning Bolt | body | 12.056 | 14.70 / 10.50 | 2012 | L 2997 / 22.963 |
-| DPS-60 · meters.damage | 412 | number | 12.056 | 14.70 / 10.50 | 2012 | R 3330 / 55.112 |
+| DPS-60 · meters.damage | 412 | number | 12.056 | 14.70 / 10.50 | 2012 | R 3332 / 53.964 |
 | DPS-61 · meters.damage | 46% | number | 12.056 | 14.70 / 10.50 | 2012 | R 3386 / 22.963 |
-| DPS-62 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2012 | R 3340 / 49.371 |
+| DPS-62 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2012 | R 3341 / 48.797 |
 | DPS-63 · meters.damage | Flame Shock | body | 12.056 | 14.70 / 10.50 | 2048 | L 2997 / 22.963 |
-| DPS-64 · meters.damage | 188 | number | 12.056 | 14.70 / 10.50 | 2048 | R 3331 / 54.538 |
+| DPS-64 · meters.damage | 188 | number | 12.056 | 14.70 / 10.50 | 2048 | R 3333 / 53.390 |
 | DPS-65 · meters.damage | 21% | number | 12.056 | 14.70 / 10.50 | 2048 | R 3386 / 22.963 |
-| DPS-66 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2048 | R 3341 / 48.797 |
+| DPS-66 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2048 | R 3342 / 48.223 |
 | DPS-67 · meters.damage | Earth Shock | body | 12.056 | 14.70 / 10.50 | 2084 | L 2997 / 22.963 |
-| DPS-68 · meters.damage | 134 | number | 12.056 | 14.70 / 10.50 | 2084 | R 3331 / 54.538 |
+| DPS-68 · meters.damage | 134 | number | 12.056 | 14.70 / 10.50 | 2084 | R 3333 / 53.390 |
 | DPS-69 · meters.damage | 15% | number | 12.056 | 14.70 / 10.50 | 2084 | R 3386 / 22.963 |
-| DPS-70 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2084 | R 3341 / 48.797 |
+| DPS-70 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2084 | R 3343 / 47.649 |
 | DPS-71 · meters.damage | Melee | body | 12.056 | 14.70 / 10.50 | 2120 | L 2997 / 22.963 |
-| DPS-72 · meters.damage | 107 | number | 12.056 | 14.70 / 10.50 | 2120 | R 3331 / 54.538 |
+| DPS-72 · meters.damage | 107 | number | 12.056 | 14.70 / 10.50 | 2120 | R 3334 / 52.816 |
 | DPS-73 · meters.damage | 12% | number | 12.056 | 14.70 / 10.50 | 2120 | R 3386 / 22.963 |
-| DPS-74 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2120 | R 3341 / 48.797 |
+| DPS-74 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2120 | R 3343 / 47.649 |
 | DPS-75 · meters.damage | Searing Totem | body | 12.056 | 14.70 / 10.50 | 2156 | L 2997 / 22.963 |
-| DPS-76 · meters.damage | 54 | number | 12.056 | 14.70 / 10.50 | 2156 | R 3342 / 48.223 |
+| DPS-76 · meters.damage | 54 | number | 12.056 | 14.70 / 10.50 | 2156 | R 3344 / 47.075 |
 | DPS-77 · meters.damage | 6% | number | 12.056 | 14.70 / 10.50 | 2156 | R 3386 / 22.963 |
 | DPS-78 · meters.damage | · | number | 12.056 | 14.70 / 10.50 | 2156 | R 3353 / 41.908 |
 | DPS-79 · target aura tile | 9s | timer | 12.056 | 14.70 / 10.50 | 1774 | C 2367 / 0.000 |
@@ -160,6 +160,8 @@ Every visible text object is included, including all acceptance-probed strings. 
 | DPS-121 · qol.lootfeed | Worn Leather Vest | body | 13.778 | 16.80 / 12.00 | 1762 | L 135 / 60.279 |
 | DPS-122 · qol.lootfeed | + | number | 13.778 | 16.80 / 12.00 | 1811 | C 65 / -138.928 |
 | DPS-123 · qol.lootfeed | 14c | body | 13.778 | 16.80 / 12.00 | 1811 | L 135 / 60.279 |
+
+The damage-row amounts and middle dots were re-measured for #272 on staging `f252b882` by the same method (strict `hud_reference`, the retained browser metrics, this file's formulas). They now use the drawn face's own side bearings, so under Folio each amount sits 2 to 3 px and each dot 0 to 2 px nearer its share. `type-spec-data.json` lists the 45 amended records under `amendments`; every other record equals staging.
 
 ## Retired probes and retained limits
 

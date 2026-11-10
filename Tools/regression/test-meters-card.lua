@@ -111,22 +111,52 @@ for i, spell in ipairs(SPELLS) do
 end
 
 -- The dot is its own piece. The ink gap is 5/21 of the font, which is 5 px on the picture's screen, snapped
--- to the panel's pixel and never under one pixel. A trailing 1 sits closer than a trailing 2.
-do
+-- to the panel's pixel and never under one pixel. The bearings come from the drawn font file
+-- (KstyleUI_Meters/Bearings.lua, written by Tools/media/make_bearings.py), so a trailing 1 sits closer than a
+-- trailing 2 by exactly the difference of their right bearings, in Folio, in Lumen and in a picked number face.
+local function DotOffsets(label)
 	local row = list.rows[1]
 	local dot = { row.dot:GetPoint(1) }
 	local value = { row.value:GetPoint(1) }
-	assert(dot[1] == "RIGHT" and dot[2] == row.percent and dot[3] == "LEFT", "the dot sits against the share")
-	assert(value[1] == "RIGHT" and value[2] == row.dot and value[3] == "LEFT", "the amount sits against the dot")
-	local _, size = row.value:GetFont()
+	assert(dot[1] == "RIGHT" and dot[2] == row.percent and dot[3] == "LEFT", label .. ": the dot sits against the share")
+	assert(value[1] == "RIGHT" and value[2] == row.dot and value[3] == "LEFT", label .. ": the amount sits against the dot")
+	local path, size = row.value:GetFont()
+	local face = assert(ns.BarList.Bearings(path), label .. ": the drawn face has bearings from its font file: " .. tostring(path))
 	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
-	local x2, y = ns.BarList.JoinOffsets("2", "4", size, step)
-	assert(W.Near(value[4], x2), "a trailing 2 leaves the picture's proportion after its ink, got " .. tostring(value[4]))
-	assert(W.Near(dot[4], y), "the share's first figure leaves the same proportion after the dot, got " .. tostring(dot[4]))
-	local x1 = ns.BarList.JoinOffsets("1", "4", size, step)
-	assert(x1 > x2 + size * 0.05, "a trailing 1, whose ink stops short of the advance, is pulled toward the dot")
+	local x2, y = ns.BarList.JoinOffsets("2", "4", size, step, path)
+	assert(W.Near(value[4], x2), label .. ": a trailing 2 leaves the picture's proportion after its ink, got " .. tostring(value[4]))
+	assert(W.Near(dot[4], y), label .. ": the share's first figure leaves the same proportion after the dot, got " .. tostring(dot[4]))
+	local x1 = ns.BarList.JoinOffsets("1", "4", size, step, path)
+	assert(W.Near(x1 - x2, (face.rsb["1"] - face.rsb["2"]) * size), label .. ": a trailing 1 moves by the file's bearing difference")
+	assert(x1 > x2, label .. ": a trailing 1, whose ink stops short of the advance, is pulled toward the dot")
+	return face, path
+end
+do
+	local folio = DotOffsets("Folio")
+	assert(folio == ns.BEARINGS["ptserif-bold.ttf"], "Folio's amounts use PT Serif Bold's bearings")
+	K.Options.Write("Appearance", "typeSet", "Lumen")
+	env.RunTimers()
+	local lumen = DotOffsets("Lumen")
+	assert(lumen == ns.BEARINGS["alegreyasanstabular-extrabold.ttf"], "Lumen's amounts use Alegreya Sans ExtraBold's bearings")
+	local kept = {
+		rsb = { ["0"] = 0.025, ["1"] = 0.141, ["2"] = 0.022, ["3"] = 0.044, ["4"] = 0.016, ["5"] = 0.037, ["6"] = 0.024, ["7"] = 0.034, ["8"] = 0.034, ["9"] = 0.023, ["%"] = 0.027 },
+		lsb = { ["0"] = 0.025, ["1"] = 0.033, ["2"] = 0.034, ["3"] = 0.029, ["4"] = 0.010, ["5"] = 0.022, ["6"] = 0.023, ["7"] = 0.021, ["8"] = 0.030, ["9"] = 0.024, ["%"] = 0.026 },
+	}
+	for side, values in pairs(kept) do
+		for char, want in pairs(values) do
+			assert(lumen[side][char] == want, "Lumen keeps the measured " .. side .. " of " .. char .. ": " .. tostring(lumen[side][char]))
+		end
+	end
+	assert(lumen.lsb["\194\183"] == 0.033 and lumen.rsb["\194\183"] == 0.033, "and the dot's own bearings")
+	K.Options.Write("Appearance", "roleFontNumber", K.Tokens.FontPath("SourceSans3Semibold"))
+	env.RunTimers()
+	local picked, path = DotOffsets("a picked number face")
+	assert(path == K.Tokens.FontPath("SourceSans3Semibold") and picked == ns.BEARINGS["sourcesans3-semibold.ttf"], "a number face picked by role uses its own bearings")
+	K.Options.Write("Appearance", "roleFontNumber", "")
+	K.Options.Write("Appearance", "typeSet", "Folio")
+	env.RunTimers()
 	assert(ns.BarList.DOT_GAP_EM == 5 / 21, "the gap is 5 px against the 21 px the 12-unit face draws on the reference screen")
-	assert(row.amount == "~412", "the amount is the text SetRow was handed, not a read back from the region")
+	assert(list.rows[1].amount == "~412", "the amount is the text SetRow was handed, not a read back from the region")
 end
 
 -- A chosen font sizes the dot itself. Pinning every face to the number face's 0.228 em clips a wider
@@ -141,24 +171,31 @@ do
 	assert(select(1, list.rows[1].value:GetFont()) == K.Tokens.Font("number"), "clearing the font returns the amount to the number face")
 end
 
--- GetFont may hand the number face's path back in another spelling. That is not an error: the bearings
--- fall to the default, and the dot still places.
+-- GetFont may hand a bundled face's path back in another spelling: the same file's bearings apply. A face
+-- KstyleUI does not ship has no bearings, so the defaults place the dot, and nothing raises.
 do
 	local row = list.rows[1]
 	local real = row.value.GetFont
-	local _, size = real(row.value)
+	local path, size = real(row.value)
+	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
 	local kept = row.amount
 	row.amount = "~411"
+	local spelled = path:gsub("\\", "/"):upper()
 	row.value.GetFont = function()
-		return "Interface/AddOns/KstyleUI/Media/Fonts/AlegreyaSansTabular-ExtraBold.ttf", size, ""
+		return spelled, size, ""
 	end
 	list:Restyle()
-	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
-	local fallen = ns.BarList.JoinOffsets(nil, nil, size, step)
-	local ones = ns.BarList.JoinOffsets("1", "4", size, step)
-	assert(not W.Near(fallen, ones), "the default bearing is not the trailing 1's")
-	assert(W.Near(select(4, row.value:GetPoint(1)), fallen), "a differently spelled path uses the default bearing, got " .. tostring(select(4, row.value:GetPoint(1))))
-	assert(#env._errors == 0, "a differently spelled path raises nothing: " .. tostring(env._errors[1]))
+	assert(ns.BarList.Bearings(spelled) == ns.BarList.Bearings(path), "another spelling finds the same face")
+	assert(W.Near(select(4, row.value:GetPoint(1)), (ns.BarList.JoinOffsets("1", "4", size, step, path))), "a differently spelled path keeps its face's bearings, got " .. tostring(select(4, row.value:GetPoint(1))))
+	row.value.GetFont = function()
+		return "Interface\\AddOns\\SharedMedia\\fonts\\Other.ttf", size, ""
+	end
+	list:Restyle()
+	assert(ns.BarList.Bearings("Interface\\AddOns\\SharedMedia\\fonts\\Other.ttf") == nil, "a face KstyleUI does not ship has no bearings")
+	local fallen = ns.BarList.JoinOffsets(nil, nil, size, step, "Interface\\AddOns\\SharedMedia\\fonts\\Other.ttf")
+	assert(not W.Near(fallen, (ns.BarList.JoinOffsets("1", "4", size, step, path))), "the default bearing is not a trailing 1's")
+	assert(W.Near(select(4, row.value:GetPoint(1)), fallen), "an unknown face uses the default bearing, got " .. tostring(select(4, row.value:GetPoint(1))))
+	assert(#env._errors == 0, "neither path raises: " .. tostring(env._errors[1]))
 	row.amount = kept
 	row.value.GetFont = real
 	list:Restyle()
@@ -308,7 +345,8 @@ end
 
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
 
--- On each screen the ink gap, in physical pixels, is within one pixel of 5/21 of the font, and it is
+-- On each screen, in Folio, in Lumen and in a picked number face, the share holds the row's right edge and
+-- the ink gap each side of the dot, in physical pixels, is within one pixel of 5/21 of the font, and it is
 -- still 5 on the picture's 3456 by 2234 screen. A fixed 5 px on every screen fails this.
 local screens = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
@@ -318,24 +356,46 @@ for _, screen in ipairs(screens) do
 	local envS, KS, nsS = M.New({ width = screen[1], height = screen[2], game = function(e) Fight(e) end })
 	M.Enable(envS, KS)
 	envS.RunTimers()
-	local row = nsS.Damage.list.rows[1]
 	local label = screen[1] .. "x" .. screen[2]
 	if screen[1] == 3456 and screen[2] == 2234 then
 		assert(KS.Scale.SetUserScale(16 / 19), label .. ": the picture's screen uses the shipped interface size")
 		envS.RunTimers()
 	end
-	local _, size = row.value:GetFont()
-	local step = KS.Scale.Pixel(1) / KS.Widgets.ScaleFactor(row.frame)
-	local valueX = select(4, row.value:GetPoint(1))
-	local gap = 0.022 * size + 0.033 * size - valueX
-	local gapPx = gap / step
-	local wanted = nsS.BarList.DOT_GAP_EM * size / step
-	assert(row.dot:IsShown(), label .. ": the dot shows")
-	assert(math.abs(gap / step - math.floor(gap / step + 0.5)) < 1e-3, label .. ": the gap is whole pixels, got " .. tostring(gapPx))
-	assert(math.abs(gapPx - wanted) <= 1 + 1e-6, label .. ": the gap is the picture's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
-	assert(gapPx + 1e-6 >= 1, label .. ": the gap is at least one pixel")
-	if screen[1] == 3456 and screen[2] == 2234 then
-		assert(math.abs(gapPx - 5) < 0.05, label .. ": the picture's screen still has 5 px, got " .. tostring(gapPx))
+	local states = {
+		{ "Folio", function() end },
+		{ "Lumen", function() KS.Options.Write("Appearance", "typeSet", "Lumen") end },
+		{ "a picked number face", function() KS.Options.Write("Appearance", "roleFontNumber", KS.Tokens.FontPath("SourceSans3Semibold")) end },
+	}
+	for _, state in ipairs(states) do
+		state[2]()
+		envS.RunTimers()
+		local at = label .. ", " .. state[1]
+		local row = nsS.Damage.list.rows[1]
+		local path, size = row.value:GetFont()
+		local face = assert(nsS.BarList.Bearings(path), at .. ": the amount's face has bearings from its font file")
+		local step = KS.Scale.Pixel(1) / KS.Widgets.ScaleFactor(row.frame)
+		local valueX = select(4, row.value:GetPoint(1))
+		local dotX = select(4, row.dot:GetPoint(1))
+		local right = { row.percent:GetPoint(1) }
+		local inset = KS.Widgets.Snap(nsS.Damage.list.panel, 7)
+		assert(right[1] == "RIGHT" and right[2] == row.frame and right[3] == "RIGHT" and W.Near(right[4], -inset), at .. ": the share holds the row's right edge")
+		local dotInk = face.lsb["\194\183"]
+		local gaps = {
+			face.rsb["2"] * size + dotInk * size - valueX,
+			face.lsb["4"] * size + face.rsb["\194\183"] * size - dotX,
+		}
+		local wanted = nsS.BarList.DOT_GAP_EM * size / step
+		assert(row.dot:IsShown(), at .. ": the dot shows")
+		for side, gap in ipairs(gaps) do
+			local gapPx = gap / step
+			local which = at .. (side == 1 and ", amount side" or ", share side")
+			assert(math.abs(gapPx - math.floor(gapPx + 0.5)) < 1e-3, which .. ": the gap is whole pixels, got " .. tostring(gapPx))
+			assert(math.abs(gapPx - wanted) <= 1 + 1e-6, which .. ": the gap is the picture's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
+			assert(gapPx + 1e-6 >= 1, which .. ": the gap is at least one pixel")
+			if screen[1] == 3456 and screen[2] == 2234 then
+				assert(math.abs(gapPx - 5) < 0.05, which .. ": the picture's screen still has 5 px, got " .. tostring(gapPx))
+			end
+		end
 	end
 	assert(#envS._errors == 0, label .. ": " .. tostring(envS._errors[1]))
 end

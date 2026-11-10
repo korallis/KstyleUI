@@ -26,7 +26,7 @@ function Font.Faces()
 end
 
 function Font.Path(face, role)
-	if type(face) ~= "string" or face == "" or face == Font.DEFAULT then
+	if K.Theme.FollowsKit(face) then
 		return (Tokens.Font(role or "body"))
 	end
 	return face

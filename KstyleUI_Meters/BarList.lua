@@ -27,21 +27,10 @@ local BLOCK_TOP = 35.5
 local BLOCK_TEXT_INSET = 7
 local BLOCK_SWITCH_REACH = 120
 local DOT = "\194\183"
-local DOT_LSB, DOT_RSB = 0.033, 0.033
 local DOT_GAP_EM = 5 / 21
 local BEARING_DEFAULT = 0.025
-local NUMBER_RSB = {
-	["0"] = 0.025, ["1"] = 0.141, ["2"] = 0.022, ["3"] = 0.044, ["4"] = 0.016,
-	["5"] = 0.037, ["6"] = 0.024, ["7"] = 0.034, ["8"] = 0.034, ["9"] = 0.023,
-	["%"] = 0.027, ["."] = 0.033, [":"] = 0.038, ["~"] = 0.020, [","] = 0.032,
-	k = 0.006, m = 0.049, K = 0, M = 0.042,
-}
-local NUMBER_LSB = {
-	["0"] = 0.025, ["1"] = 0.033, ["2"] = 0.034, ["3"] = 0.029, ["4"] = 0.010,
-	["5"] = 0.022, ["6"] = 0.023, ["7"] = 0.021, ["8"] = 0.030, ["9"] = 0.024,
-	["%"] = 0.026,
-}
-
+local DOT_BEARING_DEFAULT = 0.033
+local OWN_FONTS = "interface\\addons\\kstyleui\\media\\fonts\\"
 
 local BarList = {}
 ns.BarList = BarList
@@ -81,16 +70,28 @@ function BarList.DotGap(fontSize, pixel)
 	return K.Widgets.DotGap(fontSize, step, DOT_GAP_EM)
 end
 
-function BarList.JoinOffsets(lastChar, firstChar, fontSize, pixel)
+function BarList.Bearings(path)
+	if Logic.IsSecret(path) or type(path) ~= "string" then
+		return nil
+	end
+	local file = path:lower():gsub("/", "\\")
+	if file:sub(1, #OWN_FONTS) ~= OWN_FONTS then
+		return nil
+	end
+	return ns.BEARINGS[file:sub(#OWN_FONTS + 1)]
+end
+
+function BarList.JoinOffsets(lastChar, firstChar, fontSize, pixel, path)
 	local size = Logic.Plain(fontSize) or 0
 	local step = Logic.Plain(pixel)
 	if not step or step <= 0 then
 		step = K.Scale.Pixel(1)
 	end
 	local gap = BarList.DotGap(fontSize, step)
-	local rsb = (NUMBER_RSB[lastChar] or BEARING_DEFAULT) * size
-	local lsb = (NUMBER_LSB[firstChar] or BEARING_DEFAULT) * size
-	return rsb + DOT_LSB * size - gap, lsb + DOT_RSB * size - gap
+	local face = BarList.Bearings(path == nil and Tokens.Font("number") or path)
+	local lsb, rsb = face and face.lsb or {}, face and face.rsb or {}
+	local dotLsb, dotRsb = lsb[DOT] or DOT_BEARING_DEFAULT, rsb[DOT] or DOT_BEARING_DEFAULT
+	return ((lastChar and rsb[lastChar]) or BEARING_DEFAULT) * size + dotLsb * size - gap, ((firstChar and lsb[firstChar]) or BEARING_DEFAULT) * size + dotRsb * size - gap
 end
 BarList.DOT_GAP_EM = DOT_GAP_EM
 ns.FILL_ALPHA = FILL_ALPHA
@@ -529,11 +530,6 @@ local function FontSize(text, section)
 	return size
 end
 
-local function NumberFace(text)
-	local path = text:GetFont()
-	return not Logic.IsSecret(path) and path == Tokens.Font("number")
-end
-
 local function PlaceBlockText(list, row)
 	local frame = row.frame
 	local inset, gap = Widgets.Snap(list.panel, BLOCK_TEXT_INSET), list.gap
@@ -555,11 +551,10 @@ local function PlaceBlockText(list, row)
 	end
 	if joined and dot and list.valueWidth > 0 then
 		local size = FontSize(row.value, list.section)
-		local face = NumberFace(row.value)
-		local last = face and EndChar(row.amount, true) or nil
-		local first = face and EndChar(row.share, false) or nil
+		local last = EndChar(row.amount, true)
+		local first = EndChar(row.share, false)
 		local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel)
-		local x, y = BarList.JoinOffsets(last, first, size, step)
+		local x, y = BarList.JoinOffsets(last, first, size, step, (row.value:GetFont()))
 		dot:SetText(DOT)
 		dot:SetWidth(0)
 		dot:SetHeight(rowHeight)

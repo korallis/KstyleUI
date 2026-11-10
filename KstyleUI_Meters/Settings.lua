@@ -460,7 +460,7 @@ end
 
 function ns.FontPath(section, role)
 	local font = ns.Get(section .. ".font")
-	if font == "" then
+	if K.Theme.FollowsKit(font) then
 		return (Tokens.Font(role or "body"))
 	end
 	return font

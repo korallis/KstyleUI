@@ -186,7 +186,7 @@ function Theme.TypeSet()
 end
 
 function Theme.FollowsKit(value)
-	return IsSecret(value) or type(value) ~= "string" or value == "" or value == "theme" or value == "kit"
+	return IsSecret(value) or type(value) ~= "string" or value == "" or value == "theme" or value == "kit" or value == "default"
 end
 
 function Theme.SetTypeSet(key)

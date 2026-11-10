@@ -194,11 +194,11 @@ do
 	local env, K = CoreEnv.New()
 	local follows = K.Theme.FollowsKit
 	assert(follows(env.Secret("Interface\\AddOns\\Other\\Font.ttf")) == true and follows(env.Secret("theme")) == true, "a secret value is never compared: it inherits")
-	for _, value in ipairs({ "", "theme", "kit" }) do
+	for _, value in ipairs({ "", "theme", "kit", "default" }) do
 		assert(follows(value) == true, "the saved " .. string.format("%q", value) .. " follows the kit")
 	end
 	assert(follows(nil) == true and follows(5) == true and follows(false) == true and follows({}) == true, "a malformed value is no path")
-	assert(follows("Interface\\AddOns\\Other\\Font.ttf") == false and follows("Fonts\\FRIZQT__.TTF") == false and follows("Theme") == false and follows("Kit") == false, "a path, and a name that only looks like a keyword, is a choice")
+	assert(follows("Interface\\AddOns\\Other\\Font.ttf") == false and follows("Fonts\\FRIZQT__.TTF") == false and follows("Theme") == false and follows("Kit") == false and follows("Default") == false, "a path, and a name that only looks like a keyword, is a choice")
 end
 
 print("type defaults ok")

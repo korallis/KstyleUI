@@ -158,7 +158,7 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | `growth` | `RIGHT_DOWN` | dropdown: right then down, left then down, right then up, left then up |
 | `showCount` | `true` | toggle |
 | `showItemLevel` | `true` | toggle |
-| `font` | Source Sans 3 Semibold, the `number` font | font |
+| `font` | Interface font: the `number` role (PT Serif Bold in Folio, Alegreya Sans ExtraBold in Lumen) | font |
 | `fontSize` | 11 (`number`) | slider, 6 to 20 |
 | `fontOutline` | `NONE` | dropdown: soft shadow, thin outline, thick outline |
 | `showQuality` | `true` | toggle |

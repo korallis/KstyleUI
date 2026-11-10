@@ -84,13 +84,13 @@ A module that is off at login runs no code, so the core restores its CVars at lo
 | `blizzardSelf` | `hide` | dropdown: hide, keep | Hide turns `enableFloatingCombatText` off. Keep leaves it as the player set it. |
 | `blizzardTargets` | `keep` | dropdown: hide, keep | Keep leaves the four CVars for numbers over targets as the player set them: these are the only numbers that show just the player's own hits, drawn in KstyleUI's font while `worldFont` is on. Hide turns them off. |
 | `worldFont` | `true` | toggle | Sets `DAMAGE_TEXT_FONT` to `worldFace`. The game reads it at the next login. |
-| `worldFace` | Source Sans 3 Semibold | font | The font for the game's own damage numbers |
+| `worldFace` | Interface font: the `number` role (PT Serif Bold in Folio, Alegreya Sans ExtraBold in Lumen) | font | The font for the game's own damage numbers |
 | `style` | `rise` | dropdown: rise, arc, pop | How each number moves |
 | `damage`, `heals`, `misses` | `true` | toggles | Which events show. A secret event shows its amount in the miss colour while damage or heals are on. |
 | `format` | `short` | dropdown | `AbbreviateNumbers` (12.3K) or `BreakUpLargeNumbers` (12,345) |
 | `duration` | 1.2 | slider, 0.6 to 3 s | How long a number stays |
 | `maxPerFrame` | 4 | slider, 1 to 8 | The most numbers one place shows at once |
-| `font`, `size`, `outline` | Source Sans 3 Semibold, 18, thin outline | font, slider 8 to 40, dropdown | The numbers' text. No outline gives the soft text shadow. |
+| `font`, `size`, `outline` | Interface font (the `number` role), 18, thin outline | font, slider 8 to 40, dropdown | The numbers' text. No outline gives the soft text shadow. |
 | `colorMode` | `school` | dropdown | Damage takes its spell school's token colour, or `damageColor` |
 | `damageColor`, `healColor`, `missColor` | `hostile`, `friendly`, `text` | colours | |
 | `critScale` | 1.4 | slider, 1 to 2 | How much larger critical hits and heals are. Above 1 they also pop in. |

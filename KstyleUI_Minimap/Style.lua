@@ -31,7 +31,7 @@ function Style.Text(text, role, prefix, size)
 	local font = Settings.Get(prefix .. ".font")
 	local outline = Settings.Get(prefix .. ".outline")
 	local scaled = (size or Settings.Get(prefix .. ".size")) * K.Theme.FontScale()
-	local path = font ~= "" and font or rolePath
+	local path = K.Theme.FollowsKit(font) and rolePath or font
 	if not Widgets.ApplyFont(text, path, scaled, outline) and not Widgets.ApplyFont(text, rolePath, scaled, outline) then
 		text:SetFontObject(FALLBACK_FONT)
 		Widgets.TextShadow(text, outline)
