@@ -25,7 +25,7 @@ local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
 local OPTION_WIDGET = "RXPV2GuideConfiguratorOption"
 local RXP_MARGIN = 4
-local GUTTER_GAP = "gapSmall"
+local GUTTER_GAP = "gapTiny"
 local HEADER_OVERLAP = 9
 local LIST_LEFT, LIST_RIGHT, RXP_LIST_BOTTOM = 5, 20, 7
 local RXP_LIST_TOP = 5
@@ -63,7 +63,7 @@ local done = setmetatable({}, WEAK)
 local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
-local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), tinted = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
+local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
 local state = { rxp = nil, tracked = false, guide = nil }
 
 local function Active()
@@ -159,7 +159,7 @@ end
 
 local function LayoutGutter(gutter)
 	local line, list, bar = gutter.line, gutter.list, gutter.bar
-	local gap = Widgets.Snap(line, Tokens.Size(GUTTER_GAP) / 2)
+	local gap = Widgets.Snap(line, Tokens.Size(GUTTER_GAP))
 	line:ClearAllPoints()
 	line:SetPoint("TOP", list, "TOP")
 	line:SetPoint("BOTTOM", list, "BOTTOM")
@@ -428,15 +428,14 @@ local function HangsLeft(title)
 	return x
 end
 
-local function Caption(title)
-	local text = IsTable(title) and title.text
-	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or captions[text] then
+local function CaptionFor(text, title)
+	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or type(text.GetParent) ~= "function" or captions[text] then
 		return
 	end
-	local holder = CreateFrame("Frame", nil, title)
-	holder:SetAllPoints(title)
+	local holder = CreateFrame("Frame", nil, title or text:GetParent())
+	holder:SetAllPoints(title or text)
 	local caption = Widgets.FontString(holder, "OVERLAY")
-	if HangsLeft(title) then
+	if title and HangsLeft(title) then
 		caption:SetPoint("LEFT", title, "LEFT", PLATE_PAD, 0)
 	else
 		caption:SetPoint("CENTER", text, "CENTER", 0, 0)
@@ -459,6 +458,10 @@ local function Caption(title)
 		word(value)
 	end)
 	word(text:GetText())
+end
+
+local function Caption(title)
+	CaptionFor(IsTable(title) and title.text, title)
 end
 
 function Chrome.Caption(text)
@@ -716,11 +719,6 @@ local function Restyle()
 	end
 	for text in pairs(titles) do
 		PaintTitle(text)
-	end
-	for _, list in pairs(dress.tinted) do
-		for text in pairs(list) do
-			PaintTitle(text)
-		end
 	end
 	for text, entry in pairs(captions) do
 		PaintCaption(text, entry)
@@ -1057,27 +1055,11 @@ local function Veil(frame, region)
 	region:SetAlpha(0)
 end
 
-local function Tint(frame, text)
-	if not IsTable(text) or type(text.GetTextColor) ~= "function" then
-		return
-	end
-	local list = dress.tinted[frame] or {}
-	dress.tinted[frame] = list
-	if list[text] == nil then
-		list[text] = { text:GetTextColor() }
-	end
-	PaintTitle(text)
-end
-
 local function Undress(frame)
 	for region, alpha in pairs(dress.veiled[frame] or {}) do
 		region:SetAlpha(alpha)
 	end
 	dress.veiled[frame] = nil
-	for text, color in pairs(dress.tinted[frame] or {}) do
-		text:SetTextColor(unpack(color))
-	end
-	dress.tinted[frame] = nil
 	local panel = dress.panels[frame]
 	if panel then
 		panel:Hide()
@@ -1349,10 +1331,7 @@ local function Report(tracker, labels)
 		if IsTable(ui) and IsTable(ui.frame) then
 			local frame = ui.frame
 			Glass(frame, { rise = ACE_TITLE_RISE })
-			if IsTable(ui.titletext) then
-				Style.Text(ui.titletext, "heading")
-				Title(ui.titletext)
-			end
+			CaptionFor(ui.titletext)
 			local status = IsTable(ui.statustext) and ui.statustext:GetParent()
 			for _, child in ipairs({ frame:GetChildren() }) do
 				if child.obj == ui and child ~= status and child:GetObjectType() == "Button" then
@@ -1405,7 +1384,8 @@ local function Splits(tracker)
 		local widget = Find(splits, key)
 		local text = IsTable(widget) and Find(widget, "label")
 		if IsTable(text) then
-			Style.Text(text, "body", "text")
+			Readable(text, "body")
+			Widgets.TextColor(text, "text")
 		end
 	end
 	local title = Find(splits, "title")
@@ -1477,33 +1457,77 @@ local function Temporary(root)
 	return entry
 end
 
-local function TemporaryText(root, text, role, color)
+local function TemporaryText(root, text, role, color, shape)
 	if not IsTable(text) or type(text.GetText) ~= "function" then
 		return
 	end
 	local entry = Temporary(root)
 	local holder = entry.controls[text]
+	local caps = role == "caps"
+	local function Word(value)
+		holder.label:SetText(caps and K.Locale.Upper(PlainText(value)) or value)
+	end
+	local function Lease()
+		local label = holder.label
+		if caps then
+			Style.ApplyFont(label, "caps", Lumen.Size(holder, Lumen.CAP_SIZE))
+			Widgets.TextColor(label, "capsGold")
+		else
+			Label(label, role, color)
+		end
+		if shape == "button" or type(text.GetFont) ~= "function" or type(text.SetFont) ~= "function" then
+			return
+		end
+		if entry.fonts[text] == nil then
+			local path, size, flags = text:GetFont()
+			if type(path) ~= "string" or Widgets.IsSecret(path) or not Plain(size) then
+				return
+			end
+			entry.fonts[text] = { path, size, flags }
+		end
+		local path, size, flags = label:GetFont()
+		if type(path) == "string" and Plain(size) then
+			holder.busy = true
+			pcall(text.SetFont, text, path, size, flags)
+			holder.busy = false
+		end
+	end
 	if not holder then
 		holder = CreateFrame("Frame", nil, text:GetParent())
 		holder:SetAllPoints(text)
 		local label = Widgets.FontString(holder, "OVERLAY")
-		label:SetAllPoints(text)
-		label:SetJustifyH(text:GetJustifyH())
-		label:SetJustifyV(text:GetJustifyV())
+		if shape then
+			local side = text:GetJustifyH()
+			side = (side == "LEFT" or side == "RIGHT") and side or "CENTER"
+			label:SetPoint(side, text, side, 0, 0)
+			label:SetWordWrap(false)
+		else
+			label:SetAllPoints(text)
+			label:SetJustifyH(text:GetJustifyH())
+			label:SetJustifyV(text:GetJustifyV())
+		end
 		holder.label = label
+		holder.busy = false
 		holder.Restyle = function()
-			if Active() and entry.active and color == "accent" then label:SetTextColor(Style.Accent()) end
+			if Active() and entry.active then Lease() end
 		end
 		Style.Track(holder)
 		entry.controls[text] = holder
 		hooksecurefunc(text, "SetText", function(_, value)
-			if Active() and entry.active then label:SetText(value) end
+			if Active() and entry.active then Word(value) end
 		end)
+		if type(text.SetFont) == "function" then
+			hooksecurefunc(text, "SetFont", function(_, path, size, flags)
+				if Active() and entry.active and not holder.busy and entry.fonts[text] and type(path) == "string" and not Widgets.IsSecret(path) and Plain(size) then
+					entry.fonts[text] = { path, size, flags }
+					Lease()
+				end
+			end)
+		end
 	end
 	Veil(root, text)
-	Label(holder.label, role, color ~= "accent" and color or nil)
-	if color == "accent" then holder.label:SetTextColor(Style.Accent()) end
-	holder.label:SetText(text:GetText())
+	Lease()
+	Word(text:GetText())
 	holder:Show()
 end
 
@@ -1570,7 +1594,7 @@ local function TemporaryControl(root, source, kind)
 	for _, region in ipairs(entry.art[source] or {}) do Veil(root, region) end
 	control:Show()
 	if kind == "Button" and type(source.GetFontString) == "function" then
-		TemporaryText(root, source:GetFontString(), "body", "textEmphasis")
+		TemporaryText(root, source:GetFontString(), "body", "textEmphasis", "button")
 	elseif kind == "EditBox" and type(source.GetFont) == "function" then
 		if not entry.fonts[source] then entry.fonts[source] = { source:GetFont() } end
 		source:SetFont(Style.Font("body"))
@@ -1599,7 +1623,11 @@ end
 WidgetLabels = function(widget)
 	if not IsTable(widget) then return end
 	if (widget.type == "Label" or widget.type == "Heading") and IsTable(widget.frame) then
-		TemporaryText(widget.frame, widget.label, widget.type == "Heading" and "heading" or "body", "text")
+		if widget.type == "Heading" then
+			TemporaryText(widget.frame, widget.label, "caps", nil, "line")
+		else
+			TemporaryText(widget.frame, widget.label, "body", "text")
+		end
 	end
 	for _, child in ipairs(IsTable(widget.children) and widget.children or {}) do WidgetLabels(child) end
 end
@@ -1672,7 +1700,7 @@ local function Configurator(configurator)
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
 		Glass(ui.frame)
 	end
-	Label(ui.titletext, "title", "textEmphasis")
+	CaptionFor(ui.titletext)
 	Label(Find(ui, "description"), "body", "text")
 	local known = {}
 	for _, key in ipairs(CONFIGURATOR_BUTTONS) do
@@ -1704,8 +1732,7 @@ local function Importer(importer)
 		Glass(window.frame)
 	end
 	CloseButton(window.closebutton)
-	Label(window.title, "heading")
-	Title(window.title)
+	CaptionFor(window.title)
 	Label(Find(window, "description"), "body", "text")
 	for _, key in ipairs(IMPORT_BUTTONS) do
 		local widget = widgets[key]
@@ -1742,8 +1769,7 @@ local function Importer(importer)
 			if not Skin.IsSkinned(popup.frame, "Backdrop") then
 				Glass(popup.frame)
 			end
-			Label(popup.title, "heading")
-			Title(popup.title)
+			CaptionFor(popup.title)
 			Label(Find(popup, "message"), "body", "text")
 			local known = {}
 			for _, button in pairs(IsTable(popup.buttons) and popup.buttons or {}) do
@@ -1801,8 +1827,7 @@ local function DressDialog(global)
 		end
 	end
 	if IsTable(frame.obj) then
-		Tint(frame, frame.obj.titletext)
-		TemporaryText(frame, frame.obj.titletext, "heading", "accent")
+		TemporaryText(frame, frame.obj.titletext, "caps", nil, "line")
 		local function Children(widget)
 			if not IsTable(widget) then return end
 			if widget.type == "ScrollFrame" then

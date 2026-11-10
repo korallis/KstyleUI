@@ -285,6 +285,9 @@ local function Maker(env)
 	end
 	function m.text(frame, key)
 		local t = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		-- The game answers GetFont from the template: GameFontNormal is Friz Quadrata at 12 (Blizzard_Fonts_Shared
+		-- Shared/FontStyles.xml 50, Fonts.xml 275-277). The stub resolves no template, so the fake says it.
+		t:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 		if key then
 			frame[key] = t
 		end
@@ -1290,6 +1293,9 @@ end
 local function AceLabel(m, parent, value)
 	local frame = m.frame("Frame", parent)
 	local label = m.text(frame)
+	-- AceGUIWidget-Label.lua:162 makes the label on GameFontHighlightSmall, Friz Quadrata at 10 (FontStyles.xml 56 and
+	-- 92, Fonts.xml 39-41); a Heading's label is on GameFontNormal (AceGUIWidget-Heading.lua:45), as m.text makes it.
+	label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
 	-- AceGUIWidget-Label.lua:78-83 sets these before a skin leases the label's alignment.
 	label:SetJustifyH("LEFT")
 	label:SetJustifyV("TOP")
@@ -1352,6 +1358,9 @@ local function Tracker(m, rxp, env)
 			local group = key == "zones" and { content = scroll.content, children = {} } or AceGroup(m, scroll.content)
 			group.label = AceLabel(m, group.content, key)
 			group.label.type = "Heading"
+			group.label.label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+			-- AceGUIWidget-Heading.lua:46-48 centres the label between its TOP and BOTTOM points.
+			group.label.label:SetJustifyH("CENTER")
 			group.children = { group.label }
 			if key == "sources" or key == "teamwork" then
 				group.data = {}
@@ -1398,12 +1407,27 @@ local function Tracker(m, rxp, env)
 		local previous
 		for _, key in ipairs({ "history", "current", "total" }) do
 			local label = AceLabel(m, splits)
+			-- LevelingTracker.lua:23 and 1074-1090: RestedXP's splits font at its size setting (11, SettingsPanel.lua:137).
+			label.label:SetFont("Fonts\\ARIALN.ttf", rxp.settings.profile.levelSplitsFontSize or 11, "")
 			label.frame:SetPoint("TOPLEFT", previous or splits, previous and "BOTTOMLEFT" or "TOPLEFT", previous and 0 or 8, previous and (key == "current" and -8 or 0) or -10.5)
 			splits[key] = label
 			previous = label.frame
 		end
 		splits:SetAlpha(rxp.settings.profile.levelSplitsOpacity or 0.9)
 		m.seal()
+	end)
+	-- LevelingTracker.lua:1319-1326: every refresh (RefreshSplitsSummary runs one a second, 1128-1141) reads the
+	-- current label's size and, when it is not the size setting, sets RestedXP's own font on all three before it
+	-- measures them for the window's size.
+	rxp.tracker.UpdateLevelSplits = m.trust(function(self)
+		local splits = self.levelSplits
+		if not splits then return end
+		local wanted = rxp.settings.profile.levelSplitsFontSize or 11
+		if math.floor(select(2, splits.current.label:GetFont()) + 0.5) ~= wanted then
+			for _, key in ipairs({ "current", "history", "total" }) do
+				splits[key].label:SetFont("Fonts\\ARIALN.ttf", wanted, "")
+			end
+		end
 	end)
 	rxp.tracker.RenderSplitsBackground = m.trust(function(self)
 		local splits = self.levelSplits
@@ -1803,6 +1827,8 @@ function Fake.Windows(env, rxp, opts)
 		if not widget then
 			local frame = m.frame("Frame", parent.content)
 			local label = m.text(frame)
+			-- AceGUIWidget-MultiLineEditBox.lua:289 makes the label on GameFontNormalSmall, Friz Quadrata at 10.
+			label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
 			-- AceGUIWidget-MultiLineEditBox.lua:290-292,338-339: defaults read by leased text and the renderer.
 			label:SetJustifyH("LEFT")
 			local button = PanelButton(m, frame, "MultiLineEditBox" .. (#editPool + 1) .. "Button", "Accept")
