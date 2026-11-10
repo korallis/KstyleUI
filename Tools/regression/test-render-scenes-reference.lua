@@ -51,12 +51,7 @@ for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", 
 end
 assert(elements["actionbars.bar2"].bottom > elements["actionbars.bar1"].bottom, "bar 2 stands over bar 1")
 
-L.guard("hud_reference", scene)
-local preset = Reference.Build({ preset = true })
-L.guard("hud_reference preset", preset)
-L.globs()
-assert(preset.elements["actionbars.bar2"], "LEE-20 enables bar 2 in the preset as well as the reference fixture")
-assert(rawget(_G, "RENDER_SCREEN") == nil, "the preset build gives the global screen back too")
+dofile("Tools/regression/render_reference_lib.lua")("DPS", scene)
 rawset(_G, "RENDER_SCREEN", { width = 1280, height = 720, size = 0.6 })
 local nested = dofile("Tools/render/scenes/_common.lua")
 local opts = nested.ScreenOpts()

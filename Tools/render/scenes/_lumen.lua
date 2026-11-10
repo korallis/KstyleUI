@@ -146,7 +146,8 @@ function Lumen.Build(state, opts)
 	local base = {
 		class = opts.class,
 		layout = layout,
-		settings = settings,
+		settings = not opts.applyPreset and settings or nil,
+		applyPreset = opts.applyPreset,
 		combat = state == "combat",
 		party = Lumen.PARTY[state],
 		damage = damage,
@@ -166,8 +167,10 @@ function Lumen.Build(state, opts)
 		base[k] = v
 	end
 	base.sizes = {}
-	for key, size in pairs(sizes) do
-		base.sizes[key] = { size.width, size.height }
+	if not opts.applyPreset then
+		for key, size in pairs(sizes) do
+			base.sizes[key] = { size.width, size.height }
+		end
 	end
 	local scenes, log = {}, {}
 	base.trackerAnchor = Hud.StoryTracker(layout, true)
