@@ -31,8 +31,10 @@ do
 	-- 768 / 1080, both are the same and the footprint is 209 units wide.
 	local ratio = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local w, h = size(env)
-	-- 175 bar + 34 badge + a 16-unit raid marker and its gap.
-	local WIDE, BARE = math.ceil((204 + K.Tokens.Size("gapSmall")) * ratio), math.ceil(188 * ratio)
+	-- The bar, the 34-unit badge and a 16-unit raid marker with its gap. The picture's width replaced 154.
+	local width = ns.state.width
+	local WIDE = math.ceil((width + 34 + 16 + K.Tokens.Size("gapSmall")) * ratio)
+	local BARE = math.ceil((width + 34) * ratio)
 	assert(w == WIDE, "the base is as wide as the bar, the level badge and the raid marker's room, got " .. tostring(w))
 	local sample = ns.Preview.samplePlate
 	local _, above, _, below = ns.Stacking.Extent()

@@ -1,6 +1,6 @@
 # Forever 1.60.1.70862 nameplate contract
 
-Checked against the read-only `forever` source at commit `9dc84f0`, not the older 70840 checkout. Paths below are relative to `Interface/AddOns/`. This visual change introduces no new game API, event, template or CVar.
+Checked against the read-only `forever` source at commit `9dc84f0`, not the older 70840 checkout. Paths below are relative to `Interface/AddOns/`. The fill ramp uses `Texture:SetGradient` (`Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua:439`, `SecretArguments = AllowedWhenUntainted`) and `CreateColor` (`Blizzard_SharedXMLBase/Color.lua:3`). A secret colour never reaches `SetGradient`: it goes to `StatusBar:SetStatusBarColor` (`SimpleStatusBarAPIDocumentation.lua:282`, `AllowedWhenTainted`). No new event, template or CVar.
 
 ## Frames and permissions
 
