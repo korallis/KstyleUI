@@ -56,7 +56,7 @@ end
 -- 258 wide, so their name and percentage are 13: a long boss name in the heading face still fits beside its percentage.
 -- KSTY-10 (the owner's picture): the player and target names are 22 in the unit face (37 px), their class and type words 14 and 15 (24 and 25 px); KSTY-12: column frames over a 15-unit value; the older
 -- vitals line and sigil keep their 17 in profiles that choose them (test-unitframes-lumen.lua pins those).
-for kind, sizes in pairs({ player = { 22, 15, 10, 14 }, target = { 22, 15, 10, 15 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
+for kind, sizes in pairs({ player = { 22, 15, 10, 14 }, target = { 22, 15, 10, 14.5 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
@@ -141,7 +141,8 @@ for _, kind in ipairs(KINDS) do
 	for _, element in ipairs({ "name", "health", "power", "level" }) do
 		local fonts = values(row(kind .. ".fonts." .. element .. ".font", "dropdown"))
 		assert(fonts.theme, kind .. " " .. element .. ": the font can follow KstyleUI's font")
-		row(kind .. ".fonts." .. element .. ".size", "slider")
+		local sizeRow = row(kind .. ".fonts." .. element .. ".size", "slider")
+		assert(sizeRow.step == (kind == "target" and element == "level" and 0.5 or 1), "the target caption's half-unit default is reachable on its slider")
 		local outlines = values(row(kind .. ".fonts." .. element .. ".outline", "dropdown"))
 		assert(outlines.NONE and outlines.OUTLINE and outlines.THICKOUTLINE, kind .. " " .. element .. ": outline choices")
 	end

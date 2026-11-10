@@ -170,7 +170,7 @@ local FONT_FACES = {
 local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
 	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
-	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.065, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.064, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "AlegreyaSansProse", path = FONTS_DIR .. "AlegreyaSans-Regular.ttf", tracking = 0 },
 	{ key = "AlegreyaSansExtraBold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf", tracking = 0 },
 }

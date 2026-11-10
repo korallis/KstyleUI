@@ -22,7 +22,7 @@ All plate names, including the target's gold name, use #226's `names` face: weig
 
 Explicit saved widths, heights and positions are preserved, including a width of 175 and a height that is not the old default of 12. Layout stores only overrides, so an unset size follows the 151.56 × 13.78 default. A saved plate still at the old default width 154 or height 12 drops that field on migration 13 and follows the picture; a size the player chose is kept. The Layout sample stays centred at its existing position. Existing user settings are not reset; applying the Lumen preset restores the new settings defaults.
 
-LEE-94 lifts the name from 3.5 to 4 root units above the bar, snapped at the plate's scale. Its size stays 12: acceptance-2's white-core mask measures 266 × 15 pixels in both picture and render. The paint boxes differ because the picture has a soft halo and the client exposes only a shadow colour and offset, without a blur/spread control (`SimpleFontStringAPIDocumentation.lua:620,633`, `SimpleFontAPIDocumentation.lua:264,277`, build 70862). The halo remains a recorded limit; no shadow property is changed to fill that box.
+LEE-94 retains the name's core-matched 3.5-unit lift and size 12: acceptance-2's white-core mask measures 266 × 15 pixels in both picture and render. The paint boxes differ because the picture has a soft halo and the client exposes only a shadow colour and offset, without a blur/spread control (`SimpleFontStringAPIDocumentation.lua:620,633`, `SimpleFontAPIDocumentation.lua:264,277`, build 70862). The halo remains a recorded limit; no shadow property is changed to fill that box.
 
 ## Rules
 

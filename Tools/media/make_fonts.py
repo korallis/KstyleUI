@@ -16,7 +16,7 @@ letters), and Cinzel has no thin-space glyph to space them with. CinzelCaps-Medi
 CinzelUnit-Medium.ttf are Cinzel pinned at weight 500 with a TRACKED entry's em added to the advance of every glyph that
 has one, so the client draws letter-spaced capitals from the font itself. The tracking is what a fit of the owner's
 picture gives: 0.065 em for the gold captions (SKYBORNE, QUESTS, DAMAGE), none for the white names at its 10-unit
-headings (zone, spell, nameplate and chat tab names) and -0.065 em for the player and target names, which the picture
+headings (zone, spell, nameplate and chat tab names) and -0.064 em for the player and target names, which the picture
 sets at about 37 px and draws tighter than Cinzel's own advances, see Media/PROVENANCE.md. Each entry also has its own
 word space: an em added to the space glyph's advance on top of the tracking, because the picture's browser sets a wider
 word space than Cinzel's 250 units, and the tracking that fits the letters would otherwise squeeze it (0.18 for the
@@ -54,7 +54,7 @@ TABULAR_SUFFIX = {"oldstyle": ".tosf", "lining": ".tf"}
 ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700), ("ExtraBold", 800))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_MEDIUM_WEIGHT = 500
-TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065, 0.18), ("CinzelNames-Medium", "Cinzel Names", 0.0, 0.16), ("CinzelUnit-Medium", "Cinzel Unit", -0.065, 0.25))
+TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065, 0.18), ("CinzelNames-Medium", "Cinzel Names", 0.0, 0.16), ("CinzelUnit-Medium", "Cinzel Unit", -0.064, 0.25))
 
 
 def set_names(font, family, style, full, postscript, typographic=None):
