@@ -6,9 +6,7 @@
 local Guard = {}
 
 -- Collisions listed for their owner's thread rather than fixed in LEE-60. Each value says what is lost.
-Guard.KNOWN = {
-	["GroupFrames PLAYER_ROLES_ASSIGNED"] = "Indicators.lua's role-icon refresh is replaced by AutoLayout.lua's raid layout check",
-}
+Guard.KNOWN = {}
 
 local function where(fn)
 	local info = debug.getinfo(fn, "S")

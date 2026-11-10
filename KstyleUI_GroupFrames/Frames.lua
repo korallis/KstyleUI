@@ -119,8 +119,23 @@ local function Listen()
 		end
 	end)
 	Events.Register(MODULE, "INPUT_DEVICE_INTERFACE_TRANSITION", Frames.OnTransition)
+	local extras, order = {}, {}
 	for _, extra in ipairs(Frames.events) do
-		Events.Register(MODULE, extra.event, extra.fn)
+		local list = extras[extra.event]
+		if not list then
+			list = {}
+			extras[extra.event] = list
+			order[#order + 1] = extra.event
+		end
+		list[#list + 1] = extra.fn
+	end
+	for _, event in ipairs(order) do
+		local list = extras[event]
+		Events.Register(MODULE, event, #list == 1 and list[1] or function(...)
+			for i = 1, #list do
+				K.Call(list[i], ...)
+			end
+		end)
 	end
 	Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	Callbacks.Register("ProfileChanged", MODULE, OnProfile)

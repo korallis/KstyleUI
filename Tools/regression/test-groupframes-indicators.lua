@@ -56,6 +56,12 @@ env.RunTimers()
 eq(tank.role:IsShown(), true, "the tank shows a role icon")
 eq(last(tank.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Tank-Micro-GroupFinder", "the tank's role icon, the atlas GetMicroIconForRole gives")
 eq(last(healer.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Healer-Micro-GroupFinder", "the healer's role icon")
+-- A role change repaints the icons on PLAYER_ROLES_ASSIGNED, which the automatic raid layout also listens for: both run
+-- (LEE-60: the layout check used to replace the icon refresh under the one GroupFrames owner).
+party[3].role = "HEALER"
+env.FireEvent("PLAYER_ROLES_ASSIGNED")
+env.RunTimers()
+eq(last(dps.role, "SetAtlas")[1], "UI-LFG-RoleIcon-Healer-Micro-GroupFinder", "the new healer's role icon after PLAYER_ROLES_ASSIGNED")
 
 -- Leader: the game's leader atlas, which the client has (C_Texture.GetAtlasInfo knows it), never the assistant
 -- texture fallback; SetAtlas returns nothing on Forever, so its return value says nothing about the atlas.
