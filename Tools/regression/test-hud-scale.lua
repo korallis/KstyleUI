@@ -160,7 +160,8 @@ do
 	CoreEnv.Boot(env)
 	layout = env.KstyleUIDB.layouts.Default
 	assert(near(layout["unitframes.target"].y, K.Setup.Layouts.Get("DPS", 1080)["unitframes.target"].y), "at size 1 the sigil is placed on a 1080-unit root")
-	local threat, tank = layout["meters.threat"], K.Setup.Layouts.Get("Tank")["meters.threat"]
+	local threat = layout["meters.threat"] or K.Setup.Layouts.Get("DPS")["meters.threat"]
+	local tank = K.Setup.Layouts.Get("Tank")["meters.threat"]
 	assert(threat.x == tank.x and threat.y == tank.y, "a position from another preset's old place moves with that preset")
 end
 

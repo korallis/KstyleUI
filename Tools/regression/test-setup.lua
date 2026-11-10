@@ -433,7 +433,7 @@ do
 	assert(stored["meters.damage"].height == 158 and stored["meters.damage"].y == K.Setup.Layouts.Get("Tank")["meters.damage"].y, "a meter that has not registered keeps the size for the reload")
 	updates = {}
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 144 and updates["meters.threat"].width == 269 and stored["meters.damage"].height == 158, "DPS puts the meters back to their footprints")
+	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 200 and stored["meters.damage"].height == 158, "DPS puts the meters back to their footprints")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

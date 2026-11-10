@@ -9,15 +9,12 @@ local HEIGHT = Layouts.HEIGHT
 local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 }, { "the owner's 2383 x 1540", 2383 / 1540 } }
 
 -- Pairs that never show together or sit inside each other on purpose; everything else must stay apart.
-local function apart(name, a, c, enabled)
+local function apart(a, c)
 	local pair = { [a] = true, [c] = true }
 	if pair["groupframes.party"] and pair["groupframes.raid"] then
 		return false
 	end
 	if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
-		return false
-	end
-	if not enabled and pair["meters.threat"] and pair["meters.damage"] and Layouts.Shown(name, "meters.threat") == false then
 		return false
 	end
 	return true
@@ -71,7 +68,7 @@ local function PhysicalFit(name, width, height, user, enabled)
 		for j = i + 1, #keys do
 			local other = keys[j]
 			local s = rects[other]
-			if apart(name, key, other, enabled) and overlap(r, s) then
+			if apart(key, other) and overlap(r, s) then
 				local pair = { [key] = true, [other] = true }
 				local sharedDockEdge = pair["databars.micro"] and pair["databars.bags"]
 				if not sharedDockEdge or math.min(r[4], s[4]) - math.max(r[2], s[2]) > 1 then
@@ -88,7 +85,7 @@ local SCREENS = {
 	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
 }
 local REQUESTS = { 0.6, 16 / 19, 1.5 }
-local function Profile(name, requested, bar3)
+local function Profile(name, requested, bar3, threat)
 	local profile = { Appearance = { uiScale = requested }, Layout = { preset = name } }
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		profile[element.module] = { enabled = true }
@@ -106,17 +103,20 @@ local function Profile(name, requested, bar3)
 	profile.UnitFrames.player = { enabled = true, style = "column", castbar = true }
 	profile.UnitFrames.target = { enabled = true, style = "column", castbar = true }
 	profile.ActionBars.bar3.enabled = bar3 == true
+	if threat ~= nil then profile.Meters.threat.shown = threat end
 	return profile
 end
 local capped = 0
-for _, bar3 in ipairs({ false, true }) do
+for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threat = true } }) do
+	local bar3, threat = mode.bar3, mode.threat
 	for _, screen in ipairs(SCREENS) do
 		local width, height = screen[1], screen[2]
-		local record = { string.format("fit cap %dx%d bar3=%s:", width, height, tostring(bar3)) }
+		local record = { string.format("fit cap %dx%d bar3=%s threat=%s:", width, height, tostring(bar3), tostring(threat)) }
 		for _, name in ipairs(Layouts.Names()) do
 			local enabled = {}
 			for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown(name, element.key) ~= false end
 			enabled["actionbars.bar3"] = bar3
+			if threat ~= nil then enabled["meters.threat"] = threat end
 			local cap = Layouts.ScaleLimit(width, height, name, enabled)
 			local label = string.format("%s at %dx%d, bar3 %s", name, width, height, tostring(bar3))
 			assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
@@ -137,7 +137,7 @@ for _, bar3 in ipairs({ false, true }) do
 					saved = {
 						version = K.Store.DB_VERSION,
 						account = { setupSeen = true },
-						profiles = { Default = Profile(name, requested, bar3) },
+						profiles = { Default = Profile(name, requested, bar3, threat) },
 						layouts = { Default = { ["chat.main"] = CoreEnv.DeepCopy(moved) } },
 					},
 				})
@@ -389,7 +389,7 @@ for _, name in ipairs(Layouts.Names()) do
 		for i = 1, #keys do
 			for j = i + 1, #keys do
 				local a, c = keys[i], keys[j]
-				if apart(name, a, c) and overlap(rects[a], rects[c]) then
+				if apart(a, c) and overlap(rects[a], rects[c]) then
 					local ra, rc = rects[a], rects[c]
 					error(string.format("%s: %s (%.0f,%.0f-%.0f,%.0f) overlaps %s (%.0f,%.0f-%.0f,%.0f)", label, a, ra[1], ra[2], ra[3], ra[4], c, rc[1], rc[2], rc[3], rc[4]))
 				end
@@ -491,7 +491,7 @@ do
 						state, aspect[1], key, own[1], own[2], own[3], own[4], story[1], story[2], story[3], story[4]))
 					for _, element in ipairs(Layouts.ELEMENTS) do
 						local other = element.key
-						if other ~= key and apart(name, key, other) then
+						if other ~= key and apart(key, other) then
 							local w, h, offsetX = Layouts.Footprint(name, other)
 							local r = { Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[other], width, HEIGHT) }
 							assert(not overlap(own, r), string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f) overlaps %s (%.0f,%.0f-%.0f,%.0f)",

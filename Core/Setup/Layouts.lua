@@ -41,7 +41,8 @@ local MAP, MAP_CAPTION = 188, 36
 local AURA_ICON, AURA_GAP, AURA_COLUMNS, AURA_TIMER, AURA_ROW_GAP = 28, 3, 10, 14, 8
 local AURA_W, AURA_H = AURA_COLUMNS * AURA_ICON + (AURA_COLUMNS - 1) * AURA_GAP, AURA_ICON + AURA_TIMER
 local STORY_W = 278
-local DAMAGE_W, DAMAGE_H, THREAT_H = 269, 158, 144
+local DAMAGE_W, DAMAGE_H = 269, 158
+local THREAT_W, THREAT_H = 200, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
@@ -84,7 +85,7 @@ local ELEMENTS = {
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
 	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = DAMAGE_W, height = DAMAGE_H },
-	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = DAMAGE_W, height = THREAT_H },
+	{ key = "meters.threat", module = "Meters", label = L["Threat meter"], short = L["Threat"], width = THREAT_W, height = THREAT_H },
 	{ key = "meters.swing", module = "Meters", label = L["Swing timer"], width = 260, height = 8 },
 	{ key = "combattext.player", module = "CombatText", label = L["Your combat text"], short = L["Combat text"], width = 160, height = 180 },
 	{ key = "tooltips.anchor", module = "Tooltips", label = L["Tooltip anchor"], width = 180, height = 24 },
@@ -151,7 +152,7 @@ local DPS = {
 	["auras.buffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -EDGE },
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
-	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["meters.threat"] = { anchor = "BOTTOM", x = SIDE + THREAT_W / 2, y = CLUSTER_TOP - 22 - TIGHT - THREAT_H },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
@@ -187,9 +188,7 @@ local DPS = {
 
 local CHANGES = {
 	DPS = {},
-	Tank = {
-		["meters.threat"] = { anchor = "BOTTOM", x = SIDE + 200 / 2, y = CLUSTER_TOP - 22 - TIGHT - 112 },
-	},
+	Tank = {},
 	Healer = {
 		["groupframes.party"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
 		["groupframes.raid"] = { anchor = "BOTTOM", x = HEALER_X, y = HEALER_Y },
@@ -201,17 +200,17 @@ local CHANGES = {
 local SIZES = {
 	DPS = {
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
-		["meters.threat"] = { DAMAGE_W, THREAT_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
 	},
 	Tank = {
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
-		["meters.threat"] = { 200, 112 },
+		["meters.threat"] = { THREAT_W, THREAT_H },
 	},
 	Healer = {
 		["groupframes.party"] = { RAIL, 354 },
 		["groupframes.raid"] = { RAIL, 487 },
 		["meters.damage"] = { DAMAGE_W, DAMAGE_H },
-		["meters.threat"] = { DAMAGE_W, THREAT_H },
+		["meters.threat"] = { THREAT_W, THREAT_H },
 		["chat.main"] = { RAIL, 200 },
 	},
 }
