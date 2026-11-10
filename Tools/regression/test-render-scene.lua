@@ -536,9 +536,30 @@ do
 	label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 	label:SetPoint("TOPLEFT", customContent, "TOPLEFT", 0, 4)
 	label:SetText("Non-scrolling label")
+	local holder = env.CreateFrame("Frame", nil, content)
+	holder:SetSize(200, 30)
+	holder:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -20)
+	holder:SetClipsChildren(true)
+	local heldText = holder:CreateFontString(nil, "ARTWORK")
+	heldText:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+	heldText:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 4)
+	heldText:SetText("Own holder clips this line")
 	local rendered = Scene.Build(env)
-	assert(find(rendered, message).scroll == true, "the native FontStringContainer clips scrolling messages")
+	local native = find(rendered, message)
+	assert(native.scroll == true, "the native FontStringContainer clips scrolling messages")
+	assert(native.rect[2] < native.clip[2] and native.rect[2] + native.rect[4] > native.clip[2], "the native viewport retains a partly visible oldest line")
 	assert(not find(rendered, label).scroll, "other clipped chat children retain clipping checks")
+	assert(not find(rendered, heldText).scroll, "a text's own clipping holder overrides its scrolling ancestor")
+	local clippedLabel, clippedHeld = false, false
+	for _, finding in ipairs(dofile("Tools/render/guard.lua").Check(rendered)) do
+		if finding.kind == "clipped" then
+			assert(finding.object ~= message, "native scrolling deliberately clips the oldest message mid-line")
+			clippedLabel = clippedLabel or finding.object == label
+			clippedHeld = clippedHeld or finding.object == heldText
+		end
+	end
+	assert(clippedLabel, "the guard fails a partially clipped non-scrolling chat child")
+	assert(clippedHeld, "the guard fails a line partially clipped by its own holder inside chat")
 end
 
 -- JSON: the encoder writes the scene without the object references and round-trips a number.
