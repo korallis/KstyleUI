@@ -70,7 +70,7 @@ LEE-20 (2026-11-09, "let the picture win") replaces the old four-unit segmented 
 | `<bar>.text` | `levelRested` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent`, `levelRested` (the level, the percent and the rested share, joined by middle dots; the rested part only while there is rested experience), `percentRested` (the same without the level) |
 | `<bar>.textHover` | `false` for XP, `true` for the others | Show the text only under the pointer |
 | `<bar>.textPosition` | `BOTTOM` for XP, `CENTER` for the others | On, above, below, left or right of the bar. On the line, the label keeps its glass plate. |
-| `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font |
+| `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font. The default draws a bar's caption in the `prose` role (Alegreya Sans with its own proportional oldstyle figures: the experience caption is 189 px wide on the owner's screen as the picture draws it, 195 on the tabular files), and the readout and every ticking number in the tabular faces |
 | `<bar>.fontSize` | 12 for experience (the mockup's "XP 32%"), 9 (the `caption` size) for the others | 6 to 24, times the Appearance page's text size |
 | `<bar>.outline` | `NONE` for XP, `OUTLINE` for the others | `NONE` (a soft shadow), `OUTLINE` or `THICKOUTLINE` |
 

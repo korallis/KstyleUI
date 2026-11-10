@@ -92,7 +92,7 @@ assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.MET
 assert(list.count == 2, "two sources show")
 assert(Text(list.rows[1].name) == "Kragar", "the first source is named")
 assert(Text(list.rows[1].value) == "~2840", "the value is abbreviated")
-assert(Text(list.rows[1].percent) == "  \194\183  57%", "the share of the total shows after the middle dot")
+assert(Text(list.rows[1].percent) == " \194\183 57%", "the share of the total shows after the middle dot")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 2840, "bars run to the session's top amount")
 assert(M.Last(list.rows[2].bar, "SetValue")[1] == 2160, "each bar shows its source's amount")

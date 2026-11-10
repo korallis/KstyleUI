@@ -248,7 +248,7 @@ local function Style(view, s)
 		view.holder:SetHitRectInsets(0, 0, -HIT_PAD, -HIT_PAD)
 	end
 	LayoutTicks(view, s)
-	Font.Apply(view.text, s.font, s.fontSize, s.outline)
+	Font.Apply(view.text, s.font, s.fontSize, s.outline, "prose")
 	PlaceText(view, s.textPosition)
 end
 

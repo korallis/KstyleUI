@@ -94,6 +94,7 @@ local SIZES = {
 	display = 22,
 	heading = 16,
 	body = 12,
+	prose = 12,
 	title = 12,
 	caps = 10,
 	names = 10,
@@ -166,6 +167,7 @@ local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
 	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0, shadow = { x = 1, y = 1, alpha = 0.5 } },
 	{ key = "CinzelUnit", path = FONTS_DIR .. "CinzelUnit-Medium.ttf", tracking = -0.065, shadow = { x = 1, y = 1, alpha = 0.5 } },
+	{ key = "AlegreyaSansProse", path = FONTS_DIR .. "AlegreyaSans-Regular.ttf", tracking = 0 },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -176,6 +178,7 @@ local FONT_ROLES = {
 	display = { lumen = "CinzelSemiBold", flags = "", tracking = 0.6 },
 	heading = { lumen = "CinzelSemiBold", flags = "", tracking = 0.4 },
 	body = { lumen = "AlegreyaSansRegular", flags = "", tracking = 0 },
+	prose = { lumen = "AlegreyaSansProse", flags = "", tracking = 0 },
 	title = { lumen = "CinzelSemiBold", flags = "", tracking = 1.4, upper = true },
 	caps = { lumen = "CinzelCaps", flags = "", tracking = 0, upper = true },
 	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },

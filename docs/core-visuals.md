@@ -75,6 +75,7 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 | `display` | Cinzel SemiBold | 22 | `""` | 0.6 | |
 | `heading` | Cinzel SemiBold | 16 | `""` | 0.4 | |
 | `body` | Alegreya Sans Tabular | 12 | `""` | 0 | |
+| `prose` | Alegreya Sans (the unmodified file: proportional oldstyle figures) | 12 | `""` | 0 | |
 | `caption` | Cinzel SemiBold | 9 | `""` | 1.4 | yes |
 | `caps` | Cinzel Caps (Medium, spaced 0.065 em, word space +0.18 em) | 10 | `""` | 0 | yes |
 | `names` | Cinzel Names (Medium, no letter spacing, word space +0.16 em) | 10 | `""` | 0 | yes |

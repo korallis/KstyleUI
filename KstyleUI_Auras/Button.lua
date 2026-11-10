@@ -10,6 +10,7 @@ ns.Button = Button
 local ICON_CROP = 0.07
 local ICON_INSET_LINES = 1
 local TEXT_INSET = 1
+local TIMER_SHIFT = 1
 local RIM_SUBLEVEL = 5
 local DISPEL_SUBLEVEL = 7
 local BADGE_PAD = 2
@@ -94,7 +95,7 @@ local function PlaceTexts(entry, ctx, inset)
 	if ctx.timer.position == "inside" then
 		timer:SetPoint("BOTTOM", skin, "BOTTOM", 0, inset + text)
 	else
-		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, ns.Model.TIMER_GAP))
+		timer:SetPoint("TOP", skin, "BOTTOM", Widgets.Snap(skin, TIMER_SHIFT), -Widgets.Snap(skin, ns.Model.TIMER_GAP))
 	end
 	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -inset, -inset)
 	timer:SetJustifyH("CENTER")

@@ -29,7 +29,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | --- | --- |
 | `Init.lua` | The addon table the files share |
 | `Model.lua` | Defaults, limits and dropdown choices; the pure maths that turn settings into engine options, element sizes, footprints and capacity; the preview's timer text |
-| `Button.lua` | Dresses one engine aura button: the square icon in a one-pixel dark rim plate, the timer under it in the picture's grey-white (`timerText`), the stack count on its badge, the square dispel plate, and the engine bindings; a plain frame gets the same tile without the bindings |
+| `Button.lua` | Dresses one engine aura button: the square icon in a one-pixel dark rim plate, the timer under it, a unit right of the icon's middle (the picture's ink stands 2 px right of the tabular figures' centre), in the picture's grey-white (`timerText`), the stack count on its badge, the square dispel plate, and the engine bindings; a plain frame gets the same tile without the bindings |
 | `Tracked.lua` | The spells the Cooldown Manager's clean effective layout puts in its tracked-buff row, as an `excludeSpellIDs` set; an unreadable layout excludes nothing |
 | `Panel.lua` | The two containers, their Layout elements, weapon enchantments, the `+N` cell, the restyle gate, Blizzard's frames and the gamepad interface switch |
 | `Preview.lua` | The settings window's live preview, drawn with the module's own tiles |

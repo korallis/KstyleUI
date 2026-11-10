@@ -26,7 +26,7 @@ local BLOCK_CAP_TOP = 14.5
 local BLOCK_TOP = 35.5
 local BLOCK_TEXT_INSET = 7
 local BLOCK_SWITCH_REACH = 120
-local PERCENT_JOIN = "  \194\183  "
+local PERCENT_JOIN = " \194\183 "
 
 local BarList = {}
 ns.BarList = BarList

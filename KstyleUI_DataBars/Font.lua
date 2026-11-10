@@ -25,16 +25,16 @@ function Font.Faces()
 	return out
 end
 
-function Font.Path(face)
+function Font.Path(face, role)
 	if type(face) ~= "string" or face == "" or face == Font.DEFAULT then
-		return (Tokens.Font("body"))
+		return (Tokens.Font(role or "body"))
 	end
 	return face
 end
 
-function Font.Apply(text, face, size, outline)
+function Font.Apply(text, face, size, outline, role)
 	local flags = (outline == "OUTLINE" or outline == "THICKOUTLINE") and outline or ""
-	local path = Font.Path(face)
+	local path = Font.Path(face, role)
 	if not ns.IsNumber(size) or size <= 0 then
 		size = Tokens.Size("body")
 	end

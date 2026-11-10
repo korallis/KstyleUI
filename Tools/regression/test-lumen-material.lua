@@ -160,7 +160,7 @@ local function face(role)
 end
 for role, want in pairs({
 	display = "Cinzel-SemiBold.ttf", heading = "Cinzel-SemiBold.ttf", title = "Cinzel-SemiBold.ttf", caption = "AlegreyaSansTabular-Medium.ttf",
-	body = "AlegreyaSansTabular-Regular.ttf", number = "AlegreyaSansTabular-Bold.ttf", world = "AlegreyaSansTabular-Medium.ttf",
+	body = "AlegreyaSansTabular-Regular.ttf", prose = "AlegreyaSans-Regular.ttf", number = "AlegreyaSansTabular-Bold.ttf", world = "AlegreyaSansTabular-Medium.ttf",
 }) do
 	assert(face(role) == want, "the " .. role .. " role is " .. tostring(face(role)) .. ", want " .. want)
 end
@@ -169,7 +169,7 @@ local tracking = Tokens.TextStyle("caption")
 assert(tracking > 0, "captions are tracked")
 assert(Tokens.DEFAULT_FONT_FACE == "Lumen", "Lumen is the default face")
 assert(Theme.SetFontFace("SourceSans3Semibold"), "Source Sans 3 Semibold is selectable")
-for _, role in ipairs({ "display", "heading", "title", "caption", "body", "world" }) do
+for _, role in ipairs({ "display", "heading", "title", "caption", "body", "prose", "world" }) do
 	assert(face(role) == "SourceSans3-Semibold.ttf", "with Source Sans picked, " .. role .. " is Source Sans")
 end
 assert(face("number") == "SourceSans3-Semibold.ttf", "and numbers keep Source Sans's tabular digits")

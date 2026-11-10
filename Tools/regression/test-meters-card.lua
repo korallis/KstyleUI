@@ -2,7 +2,7 @@
 local M = dofile("Tools/regression/meters_env.lua")
 local W = M.W
 
-local DOT = "  \194\183  "
+local DOT = " \194\183 "
 local SPELLS = {
 	{ 403, "Lightning Bolt", 412, "meterNature" },
 	{ 8050, "Flame Shock", 188, "meterFire" },

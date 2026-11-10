@@ -138,6 +138,7 @@ check(sx > 0 and sy < 0, "with a soft shadow")
 local tp = entry.timer._points[1]
 check(tp[1] == "TOP" and tp[2] == entry.skin and tp[3] == "BOTTOM", "the timer hangs under the icon")
 check(near(-tp[5], Model.TIMER_GAP, 1e-3) and Model.TIMER_GAP + size == 14, "with the timer's 14 units of room under it")
+check(near(tp[4], K.Widgets.Snap(entry.skin, 1), 1e-3), "and a unit to the right of the icon's middle: the picture's timer ink stands 2 px right of the tabular figures' centre")
 check(entry.badge and entry.badge:GetObjectType() == "StatusBar", "the stack badge is a StatusBar the engine can show and hide")
 local aura = bg.frames[1]._aura
 check(aura.bar == entry.badge and aura.barOptions.minApplications == 2 and type(aura.barOptions.maxApplications) == "number", "the engine shows the badge from two applications")
