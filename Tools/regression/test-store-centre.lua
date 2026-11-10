@@ -74,10 +74,22 @@ local customStyle = copy(env.KstyleUIDB.profiles.CustomStyle)
 customLumen.UnitFrames.player.style = nil
 CoreEnv.Boot(env)
 local db = env.KstyleUIDB
-assert(db.version == 10 and #env._errors == 0, "version 9 migrates without errors")
+assert(db.version == 11 and #env._errors == 0, "version 9 migrates through chat and centre updates without errors")
 local now = K.Setup.Layouts.Get("DPS")
+local env10, K10 = CoreEnv.New({ saved = {
+	version = 10,
+	profiles = { Default = {} },
+	layouts = { Default = {
+		["chat.main"] = { anchor = "BOTTOMLEFT", x = 17, y = 17, width = 393, height = 200 },
+		["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 200, width = 490, height = 80 },
+	} },
+} })
+CoreEnv.Boot(env10)
+assert(env10.KstyleUIDB.version == 11 and #env10._errors == 0, "a profile already migrated by chat still receives the centre migration")
+assert(K10.Store.Layout()["unitframes.player"].y == 138, "version 10 receives the new player position")
+assert(K10.Store.Layout()["chat.main"].width == 393 and K10.Store.Layout()["chat.main"].height == 200, "the centre migration preserves the migrated chat dimensions")
 assert(db.layouts.Old["unitframes.resource"].y == 420, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")
-assert(db.layouts.Old["actionbars.bar3"].y == 453, "the old spare bar position migrates above the loot feed at the current screen margin")
+assert(db.layouts.Old["actionbars.bar3"].y == 431.5, "the old spare bar position migrates above both the loot feed and player cast")
 for key in pairs(old) do
 	local entry, place = db.layouts.Old[key], now[key]
 	assert(entry.anchor == place.anchor and entry.x == place.x and entry.y == place.y, key .. " moves to the new reference: " .. tostring(entry.anchor) .. "," .. tostring(entry.x) .. "," .. tostring(entry.y) .. " expected " .. tostring(place.anchor) .. "," .. tostring(place.x) .. "," .. tostring(place.y))

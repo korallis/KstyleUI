@@ -11,6 +11,7 @@ local L = ns.L
 
 local BUTTON, SMALL_BUTTON, PITCH = 38, 30, 3
 local CENTRE_BUTTON, CENTRE_GAP, COLUMN = 36.7, 4.6, 491
+local PLAYER_CAST_Y = 385.5
 local GRIDS = {
 	["actionbars.bar1"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
 	["actionbars.bar2"] = { buttons = 12, rows = 1, size = CENTRE_BUTTON, spacing = CENTRE_GAP },
@@ -150,7 +151,7 @@ local DPS = {
 	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 54 },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 95.3 },
-	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = math.max(MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP, PLAYER_CAST_Y + select(2, ElementSize("unitframes.castbar.player")) + GAP) },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = BAR1_Y },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = BAR1_Y },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 },
@@ -165,7 +166,7 @@ local DPS = {
 	["unitframes.focus"] = { anchor = "BOTTOM", x = FOCUS_X, y = CLUSTER_TOP - 112 },
 	["unitframes.focustarget"] = { anchor = "BOTTOM", x = FOCUS_X - (200 - 120) / 2, y = CLUSTER_TOP - 112 - TIGHT - 22 },
 	["unitframes.targettarget"] = { anchor = "BOTTOM", x = TOT_X, y = CLUSTER_TOP - 22 },
-	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = 385.5 },
+	["unitframes.castbar.player"] = { anchor = "BOTTOM", x = 0, y = PLAYER_CAST_Y },
 	["unitframes.castbar.target"] = { anchor = "BOTTOM", x = 0, y = STACK + 38 + 8 + 30 + 8 },
 	["unitframes.boss"] = { anchor = "BOTTOMRIGHT", x = BOSS_X, y = TEXT_TOP + GAP },
 	["combattext.player"] = { anchor = "BOTTOM", x = 376, y = CLUSTER_TOP + GAP },

@@ -359,11 +359,11 @@ local function SetName(view, name)
 		BoundName(view, true)
 		return
 	end
-	local width, room = K.Widgets.TextWidth(text), view.geometry and view.geometry.nameRoom or text:GetWidth()
+	local width, room = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth(), view.geometry and view.geometry.nameRoom or text:GetWidth()
 	if Number(width) and Number(room) and room > 0 and width > room then
 		SetFont(text, bodyPath, math.min(bodySize, full), flags)
 		text:SetText(name)
-		width = K.Widgets.TextWidth(text)
+		width = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
 	end
 	BoundName(view, not (Number(width) and Number(room) and width <= room))
 end

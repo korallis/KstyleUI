@@ -362,8 +362,8 @@ for _, name in ipairs(names) do
 			local r = rect(key)
 			local onRail = RAIL_KEYS[name][key]
 			if key == "actionbars.bar3" then
-				assert(same(r.left, K.Tokens.Size("screenMargin")) and same(r.bottom, 453) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above the loot feed")
-				assert(same(r.bottom - feed.top, 16), label .. ": bar 3 keeps a 16-unit gap above the loot feed's full reserve")
+				assert(same(r.left, K.Tokens.Size("screenMargin")) and same(r.bottom, 431.5) and same(r.w, 489) and same(r.h, 38), label .. ": LEE-20 bar 3 keeps its spare slot above the loot feed")
+				assert(r.bottom - feed.top >= 16 and same(r.bottom - rect("unitframes.castbar.player").top, 16), label .. ": bar 3 clears the feed's full reserve and the player cast by at least 16")
 				assert(r.right <= width * 0.3 or r.left >= width * 0.7, label .. ": LEE-20 bar 3 stays outside the central 40% band")
 			elseif not onRail then
 				assert(r.left >= BAND and r.right <= width - BAND + 1e-6, label .. ": " .. key .. " stays off the rails and their gap")

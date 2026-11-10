@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 10
+Store.DB_VERSION = 11
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -180,7 +180,7 @@ Store.migrations[9] = function(data)
 	end
 end
 
-Store.migrations[10] = function(data)
+Store.migrations[11] = function(data)
 	local layouts = ns.Setup and ns.Setup.Layouts
 	if not (layouts and layouts.UpgradeCentre) then
 		return
