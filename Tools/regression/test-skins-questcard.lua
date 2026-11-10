@@ -517,7 +517,7 @@ do
 	local function CountRect(row, line)
 		local _, _, _, x, y = line.count:GetPoint(1)
 		local at = RootRect(K, row)
-		local s = K.Scale.Root()._env.UIParent:GetEffectiveScale() / K.Scale.Root():GetEffectiveScale()
+		local s = (at.top - at.bottom) / row:GetHeight()
 		local width = line.count:GetUnboundedStringWidth() * s
 		return { right = at.right + x * s, left = at.right + x * s - width, top = at.top + y * s, bottom = at.top + y * s - pitch * s }
 	end
