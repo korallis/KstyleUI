@@ -184,7 +184,7 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `preset` | lumen | dropdown: lumen, compact, tank, healer, custom |
 | `offsetY` | 0 | slider, -40 to 40 |
 | `shrinkDistant` | off | toggle |
-| `font` | Alegreya Sans | font: values, debuff timers and optional cast text; names use the kit's heading face |
+| `font` | Alegreya Sans | font: values, debuff timers and optional cast text; uppercase names use the kit's tracked caps face, and mixed-case names keep the heading face |
 | `health.texture`, `health.orientation`, `health.reverse` | Flat, horizontal, off | texture, dropdown, toggle |
 | `enemy.colorSource`, `enemy.color` | class, `plateHostile` | dropdown, colour |
 | `friendly.colorSource`, `friendly.color`, `friendly.nameOnly` | class, `friendly`, off | dropdown, colour, toggle |
