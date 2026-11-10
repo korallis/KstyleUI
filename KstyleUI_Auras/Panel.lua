@@ -202,7 +202,7 @@ local function ExpiringColor(expiring)
 			c:SetType(E.LuaCurveType.Step)
 		end
 		c:AddPoint(0, CreateColor(Tokens.Color("hostile")))
-		c:AddPoint(expiring, CreateColor(Tokens.Color("white")))
+		c:AddPoint(expiring, CreateColor(Tokens.Color("timerText")))
 		return c
 	end)
 	if not ok then

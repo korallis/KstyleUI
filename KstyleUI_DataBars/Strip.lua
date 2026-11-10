@@ -41,12 +41,13 @@ local LABELS = {
 	durability = { full = L["Durability"], short = L["DUR"], inline = L["armour"] },
 	time = { full = L["Time"], short = "", inline = "" },
 }
-local UNIT_GAP = 3
+local UNIT_GAP = 2
 local MENU_GAP = 6
 local LINE = 12
 local CELL_LINE = 30
 local CELLS_HEIGHT = 42
-local DOT_GAP = 2
+local DOT_GAP = 0
+local LINE_LIFT = 1
 local DOT = "\194\183"
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
@@ -190,7 +191,7 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens(item.view.lineMode and "textEmphasis" or "text", 1, "textHover", 1, item.button.hoverT or 0))
+	item.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, item.button.hoverT or 0))
 end
 
 local function ValueColor(item, s, grade)
@@ -204,7 +205,7 @@ local function ValueColor(item, s, grade)
 	elseif mode == "highlight" and grade == "good" and HIGHLIGHTED[item.id] then
 		item.value:SetTextColor(ns.Accent())
 	else
-		Widgets.TextColor(item.value, "textEmphasis")
+		Widgets.TextColor(item.value, item.view.lineMode and "text" or "textEmphasis")
 	end
 end
 
@@ -380,7 +381,7 @@ local function PlaceLine(view, s)
 		h = view.line
 	end
 	local edge = view.bare and 0 or Pad(frame)
-	local unitGap, dotGap = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, DOT_GAP)
+	local unitGap, dotGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, DOT_GAP), Widgets.Snap(frame, LINE_LIFT)
 	local order = view.order
 	local x = edge
 	for i = #order, 1, -1 do
@@ -394,12 +395,12 @@ local function PlaceLine(view, s)
 		button:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
-		item.value:SetPoint("LEFT", button, "LEFT")
+		item.value:SetPoint("LEFT", button, "LEFT", 0, lift)
 		item.value:SetWidth(Widgets.Snap(item.value, max(1, valueWidth + 2)))
 		item.value:SetJustifyH("LEFT")
 		item.label:SetShown(labelWidth > 0)
 		item.label:ClearAllPoints()
-		item.label:SetPoint("LEFT", button, "LEFT", Widgets.Snap(button, valueWidth + unitGap), 0)
+		item.label:SetPoint("LEFT", button, "LEFT", Widgets.Snap(button, valueWidth + unitGap), lift)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
@@ -408,9 +409,9 @@ local function PlaceLine(view, s)
 		if i > 1 then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
 			item.dot:ClearAllPoints()
-			item.dot:SetPoint("RIGHT", button, "LEFT", -dotGap, 0)
+			item.dot:SetPoint("CENTER", button, "LEFT", -(dotWidth / 2 + dotGap), lift)
 			item.dot:SetWidth(Widgets.Snap(item.dot, max(1, dotWidth + 2)))
-			item.dot:SetJustifyH("RIGHT")
+			item.dot:SetJustifyH("CENTER")
 			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
 		end
 	end
@@ -537,7 +538,7 @@ function Strip.Paint(view, s, values)
 			Font.Apply(item.label, s.font, view.lineMode and s.fontSize or CaptionSize(s), s.outline)
 			Font.Apply(item.value, s.font, s.fontSize, s.outline)
 			Font.Apply(item.dot, s.font, s.fontSize, s.outline)
-			Widgets.TextColor(item.dot, "textEmphasis")
+			Widgets.TextColor(item.dot, view.lineMode and "text" or "textEmphasis")
 			item.dot:SetWordWrap(false)
 			local label = s.labels ~= "none" and LABELS[id][view.lineMode and "inline" or s.labels] or ""
 			item.caption = label

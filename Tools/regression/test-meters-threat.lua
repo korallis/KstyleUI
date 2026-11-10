@@ -42,6 +42,17 @@ assert(Text(list.rows[1].value) == "~10000", "threat reads in threat points: " .
 assert(Text(list.rows[1].percent) == "100%", "the tank holds 100%")
 assert(list.warning == 0, "60% does not warn")
 
+-- The warning outline is a state of the card, not a second material: the threat card keeps the damage card's panel
+-- shape and square corners, and a warning or danger only recolours its rim (LEE-70).
+local function rimIs(name)
+	local rim = list.panel.chrome.rim[1]
+	local want = { K.Tokens.Color(name) }
+	local got = { rim:GetVertexColor() }
+	return math.abs(got[1] - want[1]) < 1e-3 and math.abs(got[2] - want[2]) < 1e-3 and math.abs(got[3] - want[3]) < 1e-3
+end
+assert(list.panel.chrome.shapeName == "panel" and list.panel.chrome.fillName == "surface", "the threat card is the shared card")
+assert(rimIs("edgeInner"), "at rest the rim is the card's muted rim")
+
 -- Classes colour the bars.
 local r, g, b = K.Theme.ClassColor("WARRIOR")
 local colour = M.Last(list.rows[1].bar, "SetStatusBarColor")
@@ -52,10 +63,12 @@ env._threat.player = { false, 2, 85, 80, 850000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(list.warning == 1, "85% warns")
+assert(rimIs("neutral") and list.panel.chrome.shapeName == "panel", "a warning draws the rim in the neutral gold on the same shape")
 env._threat.player = { false, 3, 97, 90, 970000 }
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
 env.RunTimers()
 assert(list.warning == 2, "97% is danger")
+assert(rimIs("hostile") and list.panel.chrome.shapeName == "panel", "danger draws it red on the same shape")
 assert(list.glow and list.glow:IsPlaying(), "danger pulses the meter")
 M.Write(env, K, "threat.warnings", false)
 assert(list.warning == 0, "warnings switched off clear the warning")

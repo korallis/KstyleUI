@@ -43,16 +43,16 @@ do
 end
 
 -- The picture's card (test-meters-card.lua pins its numbers): a section cap (gem, tracked title, fading rule, the
--- rate) over rows that are bars as tall as the row, 15 units in from the card's edge.
+-- rate) over rows that are bars as tall as the row, 16 units in from the card's edge.
 do
-	local inset = 15
-	assert(M.W.Near(list.pad, inset), "the meter's padding is the picture's 15 units, got " .. tostring(list.pad))
+	local inset = 16
+	assert(M.W.Near(list.pad, inset), "the meter's padding is the picture's 16 units, got " .. tostring(list.pad))
 	local cap = list.cap
 	assert(cap and cap.gem and cap.title and cap.rule and cap.aside, "the header is the shared section cap")
 	assert(list.title == cap.title and list.column == cap.aside, "the title and the column heading are the cap's title and aside")
 	local capRight = { cap.frame:GetPoint(2) }
 	assert(capRight[1] == "TOPRIGHT" and M.W.Near(capRight[4], -inset), "the cap spans the content width to the same inset from the right")
-	assert(M.W.Near(list:Top(), 35), "the rows start 35 units under the card's top")
+	assert(M.W.Near(list:Top(), 35.5), "the rows start 35.5 units under the card's top")
 	local row = list.rows[1]
 	local frame = { row.frame:GetPoint(1) }
 	assert(frame[1] == "TOPLEFT" and M.W.Near(frame[4], inset), "each row starts the inset from the left")
@@ -92,7 +92,7 @@ assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.MET
 assert(list.count == 2, "two sources show")
 assert(Text(list.rows[1].name) == "Kragar", "the first source is named")
 assert(Text(list.rows[1].value) == "~2840", "the value is abbreviated")
-assert(Text(list.rows[1].percent) == "  \194\183  57%", "the share of the total shows after the middle dot")
+assert(Text(list.rows[1].percent) == " \194\183 57%", "the share of the total shows after the middle dot")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 2840, "bars run to the session's top amount")
 assert(M.Last(list.rows[2].bar, "SetValue")[1] == 2160, "each bar shows its source's amount")

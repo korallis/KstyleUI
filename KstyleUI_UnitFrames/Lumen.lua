@@ -8,7 +8,7 @@ local Lumen = {}
 ns.Lumen = Lumen
 
 local GEM_TURN = math.pi / 4
-local GEM_TEXTURE = "gem"
+local GEM_TEXTURE = "diamond"
 local GEM_FALLBACK = "iconMask"
 
 local RECIPES = {

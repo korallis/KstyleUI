@@ -41,7 +41,7 @@ for _, tick in ipairs(xp.ticks) do
 	eq(tick:IsShown(), false, "the default XP line has no ticks")
 end
 local path, size, flags = xp.text:GetFont()
-eq(path, (K.Tokens.Font("body")), "the caption uses the interface body face")
+eq(path, (K.Tokens.Font("prose")), "the caption uses the interface prose face: the picture's digits are proportional, and the caption does not tick")
 eq(size, 12 * K.Theme.FontScale(), "the caption stays at body size")
 eq(flags, "", "the caption has no outline")
 

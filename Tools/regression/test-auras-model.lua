@@ -24,8 +24,8 @@ local timer = Model.Timer(d)
 local bw, bh = Model.Footprint(buffs, timer)
 local dw, dh = Model.Footprint(debuffs, timer)
 -- The picture's tiles (the owner's ruling of 2026-11-09 over #209): 27.5-unit icons (48 px) at a 31 pitch (54 px), ten in one row, so a
--- row is 306.5 wide; the 12-unit timer under each takes 14 units of room, so a row is 41.5 tall (LEE-69).
-check(buffs.iconSize == 27.5 and buffs.spacing == 3.5 and buffs.columns == 10 and timer.size == 12, "27.5-unit icons, 3.5-unit gaps, ten per row, 12-unit timers")
+-- row is 306.5 wide; the 11-unit timer under each, 3 units down, takes 14 units of room, so a row is 41.5 tall (LEE-69, LEE-70).
+check(buffs.iconSize == 27.5 and buffs.spacing == 3.5 and buffs.columns == 10 and timer.size == 11, "27.5-unit icons, 3.5-unit gaps, ten per row, 11-unit timers")
 check(buffs.iconSize % Model.LIMITS.iconSize.step == 0 and buffs.spacing % Model.LIMITS.spacing.step == 0, "the sliders step in halves, so the default icon size and gap can be picked again")
 check(Model.TIMER_GAP + timer.size == 14, "the timer's room under the icon is 14 units")
 check(bw == 306.5 and bh == 41.5, "the buff footprint at defaults is 306.5 x 41.5, got " .. bw .. " x " .. bh)
@@ -74,7 +74,7 @@ local below = Model.Timer({ timer = { format = "short", position = "below", size
 local inside = Model.Timer({ timer = { format = "short", position = "inside", size = 10 } })
 local none = Model.Timer({ timer = { format = "none", position = "below", size = 10 } })
 local w, h = Model.ElementSize(g, below)
-check(w == 30 and h == 42, "a timer under a 30-unit icon adds its size plus the 2-unit gap, got " .. w .. " x " .. h)
+check(w == 30 and h == 43, "a timer under a 30-unit icon adds its size plus the 3-unit gap, got " .. w .. " x " .. h)
 w, h = Model.ElementSize(g, inside)
 check(w == 30 and h == 30, "a timer inside the icon adds nothing")
 w, h = Model.ElementSize(g, none)
@@ -82,7 +82,7 @@ check(w == 30 and h == 30, "no timer adds nothing")
 
 -- Footprint: columns and rows of elements with their gaps; no gap after the last one.
 w, h = Model.Footprint(g, below)
-check(w == 5 * 30 + 4 * 4 and h == 3 * 42 + 2 * 2, "5 columns by 3 rows, got " .. w .. " x " .. h)
+check(w == 5 * 30 + 4 * 4 and h == 3 * 43 + 2 * 2, "5 columns by 3 rows, got " .. w .. " x " .. h)
 
 -- Line size: exactly the columns fit on a line, and one more does not.
 local line = Model.LineSize(g, below)

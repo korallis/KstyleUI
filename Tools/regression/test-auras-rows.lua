@@ -65,7 +65,7 @@ end
 check(buffs.iconSize == 27.5 and buffs.spacing == 3.5 and buffs.rowSpacing == 4 and buffs.columns == 10 and buffs.rows == 1, "the buff row defaults to one row of ten 27.5-unit icons, 3.5 apart")
 check(debuffs.iconSize == 27.5 and debuffs.columns == 10 and debuffs.rows == 1, "and the debuffs the same")
 check(buffs.growth == "RIGHT_DOWN" and debuffs.growth == "RIGHT_DOWN", "both rows list the first aura at the left")
-check(timer.font == (Tokens.Font("body")) and timer.size == 12 and timer.outline == "NONE", "the timer is the body face at 12 with a soft shadow")
+check(timer.font == (Tokens.Font("body")) and timer.size == 11 and timer.outline == "NONE", "the timer is the body face at 12 with a soft shadow")
 local w, h = Model.ElementSize(buffs, timer)
 check(w == 27.5 and h == 41.5, "an element is the icon plus the timer lane: 27.5 x 41.5, got " .. w .. " x " .. h)
 local fw, fh = Model.Footprint(buffs, timer)
@@ -77,7 +77,7 @@ check(buffs.tracked == "cdm", "buffs the Cooldown Manager tracks show there only
 
 -- Two bare elements: no card parts on either host, the debuff row its own live element, both at the footprint.
 check(desc and desc.card == nil and desc.dock == nil and ddesc.dock == nil and ddesc.docked == nil, "no card, no dock")
-for _, name in ipairs({ "cardShape", "ringLine6", "lumenShadow", "gem" }) do
+for _, name in ipairs({ "cardShape", "ringLine6", "lumenShadow", "diamond" }) do
 	check(#textures(desc.host, (Tokens.Texture(name))) == 0, "the buff host draws no " .. name .. ": no card fill, no ring, no gilt, no gem")
 end
 local b, d = registered(env, "auras.buffs"), registered(env, "auras.debuffs")
@@ -131,15 +131,16 @@ local ip = entry.icon._points[1]
 check(ip and ip[1] == "TOPLEFT" and ip[2] == entry.skin and near(ip[4], Widgets.Border(entry.skin)), "the icon sits one border inside the rim")
 check(entry.mask == nil and not (entry.icon._masks and entry.icon._masks[1]), "the icon wears no mask: it is a square")
 local path, size, flags = entry.timer:GetFont()
-check(path == (Tokens.Font("body")) and size == 12 and flags == "", "the timer is the body face, 12 units, no outline")
-local wr, wg, wb = Tokens.Color("white")
+check(path == (Tokens.Font("body")) and size == 11 and flags == "", "the timer is the body face, 11 units, no outline")
+local wr, wg, wb = Tokens.Color("timerText")
 local tr, tg, tb = entry.timer:GetTextColor()
-check(near(tr, wr, 1e-3) and near(tg, wg, 1e-3) and near(tb, wb, 1e-3), "and white")
+check(near(tr, wr, 1e-3) and near(tg, wg, 1e-3) and near(tb, wb, 1e-3), "and the picture's soft grey-white, not pure white")
 local sx, sy = entry.timer:GetShadowOffset()
 check(sx > 0 and sy < 0, "with a soft shadow")
 local tp = entry.timer._points[1]
 check(tp[1] == "TOP" and tp[2] == entry.skin and tp[3] == "BOTTOM", "the timer hangs under the icon")
 check(near(-tp[5], Model.TIMER_GAP, 1e-3) and Model.TIMER_GAP + size == 14, "with the timer's 14 units of room under it")
+check(near(tp[4], K.Widgets.Snap(entry.skin, 1), 1e-3), "and a unit to the right of the icon's middle: the picture's timer ink stands 2 px right of the tabular figures' centre")
 check(entry.badge and entry.badge:GetObjectType() == "StatusBar", "the stack badge is a StatusBar the engine can show and hide")
 local aura = bg.frames[1]._aura
 check(aura.bar == entry.badge and aura.barOptions.minApplications == 2 and type(aura.barOptions.maxApplications) == "number", "the engine shows the badge from two applications")

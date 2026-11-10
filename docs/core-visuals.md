@@ -27,6 +27,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `text`, `muted` | `#a9b6c2` | Body text at rest; the mockup's muted tone |
 | `textEmphasis` | `#f2f5f8` | Titles and values, the mockup's text colour |
 | `textHover` | `#ffffff` | Text under the mouse |
+| `timerText` | `#e3e7ec` | The aura timers under the buff and debuff icons, the picture's soft grey-white (measured: every stroke of its timers is this one colour) |
 | `textDisabled`, `dim` | `#6f7d8a` | Disabled and dim text |
 | `rare`, `epic` | `#4fc3ff`, `#b67cff` | Item quality |
 | `hostile`, `neutral`, `friendly` | `#e2524f`, `#e8c14f`, `#62d58d` | Reactions; `friend` is the same green |
@@ -74,6 +75,7 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 | `display` | Cinzel SemiBold | 22 | `""` | 0.6 | |
 | `heading` | Cinzel SemiBold | 16 | `""` | 0.4 | |
 | `body` | Alegreya Sans Tabular | 12 | `""` | 0 | |
+| `prose` | Alegreya Sans (the unmodified file: proportional oldstyle figures) | 12 | `""` | 0 | |
 | `caption` | Cinzel SemiBold | 9 | `""` | 1.4 | yes |
 | `caps` | Cinzel Caps (Medium, spaced 0.065 em, word space +0.18 em) | 10 | `""` | 0 | yes |
 | `names` | Cinzel Names (Medium, no letter spacing, word space +0.16 em) | 10 | `""` | 0 | yes |
@@ -105,11 +107,10 @@ Three roles carry the picture's letter-spaced Cinzel capitals, each from its own
 | `lumenOutline` | `LumenOutline.png`, 128x128 | 32 texels | An even outline at the 8-unit radius: highlight rings, the proc rim |
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
-| `gem` | `LumenGem.png` | | The section cap gem, its facets shaded in the colour channels |
 | `diamond` | `Diamond.png`, 64x64 | | The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. The story card's captions draw it in gilt, 8 units from point to point |
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
-| `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right |
+| `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right; the section cap's rule is now a flat colour, as the picture draws it, so no widget uses this one |
 | `iconMask` | `SocketMask.png`, 128x128 | | Every square icon, rounded 3 units on 44 to meet the socket's inner corner |
 | `portraitMask` | `PortraitMask.png`, 128x128 | | The square portrait, rounded 8 units on 44 inside its frame's rounder corner |
 | `shadow` | `Shadow.png`, 128x128 | 24 texels | A square soft falloff for glows (unit frame glows, a bar's own-colour glow) |

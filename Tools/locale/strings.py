@@ -38,6 +38,7 @@ PLAIN = {"\\": "\\\\", '"': '\\"', "\n": "\\n", "\r": "\\r", "\t": "\\t"}
 # (Core/Locale.lua), so only the other locales must fit these faces, capitals included.
 FACES = (
     "Cinzel-SemiBold.ttf",
+    "AlegreyaSans-Regular.ttf",
     "AlegreyaSansTabular-Regular.ttf",
     "AlegreyaSansTabular-Medium.ttf",
     "AlegreyaSansTabular-Bold.ttf",

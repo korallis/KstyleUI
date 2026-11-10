@@ -39,7 +39,7 @@ class ManifestTest(unittest.TestCase):
     def test_textures_cover_the_spec_list(self):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
-            "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "LumenGem", "Diamond",
+            "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "Diamond",
             "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "PortraitMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
@@ -99,7 +99,6 @@ class TokensTest(unittest.TestCase):
         self.assertEqual(size("shadowOffset"), mm.LUMEN_SHADOW_DROP)
         self.assertEqual(size("radius"), mm.LUMEN_RADIUS)
         self.assertEqual(size("radiusTile"), mm.LUMEN_TILE_RADIUS)
-        self.assertEqual(size("gem"), mm.GEM_UNITS)
 
 
 class PngTest(unittest.TestCase):
@@ -179,13 +178,6 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual(top, side)
         self.assertEqual(side, bottom)
         self.assertGreaterEqual(top, 250)
-
-    def test_gem_is_lit_from_the_top_left(self):
-        tl, br = self.px("LumenGem.png", 28, 28), self.px("LumenGem.png", 36, 36)
-        self.assertEqual(tl[3], 255)
-        self.assertGreater(tl[0], br[0], "the top left facet is brighter than the bottom right")
-        self.assertTrue(0 < self.alpha("LumenGem.png", 32, 6) < 128, "a soft halo around the point")
-        self.assertEqual(self.alpha("LumenGem.png", 0, 0), 0)
 
     def test_diamond_is_flat_and_reaches_the_edges(self):
         self.assertEqual(self.px("Diamond.png", 32, 32), (255, 255, 255, 255))

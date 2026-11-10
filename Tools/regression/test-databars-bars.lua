@@ -321,7 +321,7 @@ do
 	eq(flags, "THICKOUTLINE", "the chosen outline")
 	Options.Write("DataBars", "xp.font", "default")
 	path = xp.text:GetFont()
-	eq(path, (K.Tokens.Font("body")), "the default font follows the interface font")
+	eq(path, (K.Tokens.Font("prose")), "the default font follows the interface font, in its proportional prose face for a caption that does not tick")
 
 	Options.Write("DataBars", "xp.textPosition", "TOP")
 	local point, relative, relativePoint = xp.text:GetPoint(1)

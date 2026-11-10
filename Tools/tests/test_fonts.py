@@ -146,6 +146,15 @@ class FontFilesTest(unittest.TestCase):
             for digit in "68":
                 self.assertGreater(box[digit][1], 560, f"{name}: {digit} reaches the ascender, an oldstyle figure")
 
+    def test_the_prose_face_keeps_the_fonts_proportional_oldstyle_digits(self):
+        # The one unmodified Alegreya Sans file: the picture's figures at the picture's widths, for text that does not tick.
+        data = (FONTS / "AlegreyaSans-Regular.ttf").read_bytes()
+        widths = {c: advance(data, glyph_index(data, ord(c))) for c in "0123456789"}
+        self.assertGreater(len(set(widths.values())), 3, f"the digits keep their own widths, got {widths}")
+        self.assertLess(widths["1"], widths["0"], "a one is narrower than a zero")
+        text = (ROOT / "Media" / "PROVENANCE.md").read_text(encoding="utf-8")
+        self.assertIn(hashlib.sha256((FONTS / "AlegreyaSans-Regular.ttf").read_bytes()).hexdigest(), text)
+
     def test_the_number_face_is_extra_bold(self):
         # The picture's bold figures are heavier than Bold (LEE-85, Media/PROVENANCE.md): the number role's file is weight 800.
         data = (FONTS / "AlegreyaSansTabular-ExtraBold.ttf").read_bytes()
@@ -168,10 +177,10 @@ class FontFilesTest(unittest.TestCase):
         for line in text.splitlines():
             if 'FONTS_DIR .. "' in line:
                 named.add(line.split('FONTS_DIR .. "')[1].split('"')[0])
-        self.assertGreaterEqual(len(named), 8)
+        self.assertGreaterEqual(len(named), 9)
         for name in named:
             self.assertTrue((FONTS / name).exists(), f"Tokens names {name}")
-        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf", "AlegreyaSansTabular-ExtraBold.ttf"):
+        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf", "AlegreyaSansTabular-ExtraBold.ttf", "AlegreyaSans-Regular.ttf"):
             self.assertIn(name, named, f"{name} is registered in Tokens")
 
     def test_licence_covers_every_family(self):

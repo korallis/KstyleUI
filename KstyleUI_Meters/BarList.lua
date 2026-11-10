@@ -20,13 +20,13 @@ local CAP_GAP = "gapMedium"
 local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
 local SPLIT_LINE_GAP = 2
-local BLOCK_PAD = 15
+local BLOCK_PAD = 16
 local BLOCK_CAP_LEFT = 12
-local BLOCK_CAP_TOP = 12
-local BLOCK_TOP = 35
+local BLOCK_CAP_TOP = 14.5
+local BLOCK_TOP = 35.5
 local BLOCK_TEXT_INSET = 7
 local BLOCK_SWITCH_REACH = 120
-local PERCENT_JOIN = "  \194\183  "
+local PERCENT_JOIN = " \194\183 "
 
 local BarList = {}
 ns.BarList = BarList

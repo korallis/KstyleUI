@@ -89,7 +89,7 @@ do
 	eq(s.labels, "inline", "units follow their values")
 	eq(s.valueColor, "plain", "plain text, no class-blue frame rate")
 	eq(s.menus, false, "the menus stand at their own Layout slots, not in the readout")
-	eq(s.fontSize, 11, "the body face reads at 11")
+	eq(s.fontSize, 12, "the body face reads at the picture's 12")
 	eq(s.separators, false, "no separators")
 	eq(got.width .. "x" .. got.height, "278x12", "the strip takes the picture's one-line element")
 	eq(ns.Strip.LINE, 12, "the line is 12 units")
@@ -125,7 +125,7 @@ do
 		eq(dot:IsShown(), true, "a dot joins " .. id .. " to the item before it")
 		eq(dot:GetText(), "\194\183", "the dot is the middle dot")
 		local dp, drel, drp, dx = dot:GetPoint(1)
-		eq(dp .. ">" .. tostring(drel == item(ns, id).button) .. ">" .. drp, "RIGHT>true>LEFT", id .. "'s dot sits just left of it")
+		eq(dp .. ">" .. tostring(drel == item(ns, id).button) .. ">" .. drp, "CENTER>true>LEFT", id .. "'s dot is centred in the gap just left of it")
 		assert(dx < 0, "with a gap")
 	end
 	eq(item(ns, "durability").dot:IsShown(), false, "an item in no slot has no dot")
@@ -134,14 +134,14 @@ do
 	eq(item(ns, "gold").dot:GetText(), "\194\183", "the middle dot is a decimal-escaped source string")
 
 	for _, it in ipairs({ item(ns, "fps"), item(ns, "latency"), (item(ns, "gold")) }) do
-		assert(sameText(it.value, K.Tokens.Color("textEmphasis")), it.id .. "'s value is plain white-ish text")
-		assert(sameText(it.dot, K.Tokens.Color("textEmphasis")), it.id .. "'s dot is the same")
+		assert(sameText(it.value, K.Tokens.Color("text")), it.id .. "'s value is the picture's soft grey-white")
+		assert(sameText(it.dot, K.Tokens.Color("text")), it.id .. "'s dot is the same")
 	end
-	assert(sameText(item(ns, "fps").label, K.Tokens.Color("textEmphasis")), "the unit reads like its value, the whole line white")
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "the unit reads like its value, the whole line in one colour")
 	local _, valueSize = item(ns, "fps").value:GetFont()
 	local _, unitSize = item(ns, "fps").label:GetFont()
 	local _, dotSize = item(ns, "latency").dot:GetFont()
-	eq(valueSize, 11 * K.Theme.FontScale(), "the value reads at 11")
+	eq(valueSize, 12 * K.Theme.FontScale(), "the value reads at 12")
 	eq(unitSize, valueSize, "the unit is the same size as its value")
 	eq(dotSize, valueSize, "and so is the dot")
 

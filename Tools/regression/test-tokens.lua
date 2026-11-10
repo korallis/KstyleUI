@@ -111,6 +111,7 @@ for name, want in pairs({
 	text = { "c8d1da", 1 },
 	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
+	timerText = { "e3e7ec", 1 },
 	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
@@ -217,7 +218,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 
 -- Textures: each names a file on disk, and sliced ones say how big a corner piece draws.
 for _, name in ipairs({
-	"lumenShape", "cardShape", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenOutline", "chamferTile", "gem", "diamond", "pillCapLeft",
+	"lumenShape", "cardShape", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenOutline", "chamferTile", "diamond", "pillCapLeft",
 	"pillCapRight", "barSheen", "lensMask", "ruleFade", "iconMask", "portraitMask", "shadow", "glow", "divider", "noise", "ring", "ringBevel",
 	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
