@@ -778,7 +778,7 @@ ASSETS = [
              "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",
              "4x4 supersampled, shading in the colour channels"),
     _texture("Diamond", 64, 64, lambda: draw_diamond(64),
-             "The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. Tinted gilt at 7 units point to point (12 pixels on the owner's screen)."),
+             "The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. Tinted gilt at 8 units point to point (14 pixels on the owner's screen)."),
     _texture("PillCapLeft", 32, 32, lambda: draw_cap_mask(32, "left"),
              "Mask that rounds a bar fill's left end: a half disc on the left, solid on the right. Placed over the fill's first square with CLAMPTOWHITE, so the rest of the fill shows."),
     _texture("PillCapRight", 32, 32, lambda: draw_cap_mask(32, "right"),
