@@ -144,10 +144,10 @@ function Style.ApplyFont(object, role, size)
 	return SetFace(object, path, role, size or roleSize, flags)
 end
 
-function Style.Text(text, role, colorName)
+function Style.Text(text, role, colorName, size)
 	role = role or roles[text] or "body"
 	roles[text] = role
-	if not Style.ApplyFont(text, role) then
+	if not Style.ApplyFont(text, role, size) then
 		text:SetFontObject(FALLBACK_FONT)
 	end
 	if colorName then
@@ -156,8 +156,8 @@ function Style.Text(text, role, colorName)
 	return text
 end
 
-function Style.Title(text, colorName)
-	Style.Text(text, "heading", colorName or "textEmphasis")
+function Style.Title(text, colorName, role)
+	Style.Text(text, role or "caps", colorName or "capsGold")
 	if type(text.SetWordWrap) == "function" then
 		text:SetWordWrap(false)
 	end

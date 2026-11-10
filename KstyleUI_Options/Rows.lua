@@ -16,6 +16,8 @@ local MAX_BUTTONS = 2
 local SWATCH_SIZE = 20
 local MARK_WIDTH = 2
 local MARK_HEIGHT = 12
+local GEM_REACH = 5
+local GEM_GAP = 10
 local RULE_ALPHA = 1
 local BYTE = 255
 local DROPDOWNS = { dropdown = true, font = true, texture = true }
@@ -409,10 +411,15 @@ local function ShowHeader(row, item)
 	local gap = Gap(row)
 	if (item.level or 1) == 1 then
 		row.caption:ClearAllPoints()
-		row.caption:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", gap, gap)
+		row.caption:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", gap + Snap(row, 2 * GEM_REACH + GEM_GAP), gap)
 		row.caption:SetPoint("RIGHT", row, "RIGHT", -gap, 0)
 		Widgets.SetText(row.caption, item.label)
 		row.caption:Show()
+		local gem = Snap(row, Tokens.Size("gem"))
+		row.gem:SetSize(gem, gem)
+		row.gem:ClearAllPoints()
+		row.gem:SetPoint("CENTER", row.caption, "LEFT", -Snap(row, GEM_GAP + GEM_REACH), 0)
+		row.gem:Show()
 		row.rule:ClearAllPoints()
 		row.rule:SetPoint("TOPLEFT", row, "TOPLEFT", gap, -gap)
 		row.rule:SetPoint("TOPRIGHT", row, "TOPRIGHT", -gap, -gap)
@@ -455,7 +462,7 @@ local function Layout(row, item, width)
 			control:Hide()
 		end
 	end
-	for _, region in ipairs({ row.label, row.help, row.caption, row.note, row.rule, row.mark }) do
+	for _, region in ipairs({ row.label, row.help, row.caption, row.note, row.rule, row.mark, row.gem }) do
 		region:Hide()
 	end
 	if kind == "header" then
@@ -520,6 +527,7 @@ end
 function Rows.Restyle(row)
 	Widgets.Tint(row.rule, "edgeFaint", RULE_ALPHA)
 	Widgets.Tint(row.mark, "accent")
+	row.gem:SetVertexColor(Widgets.Rgba("giltLit"))
 	if row.item then
 		Rows.Update(row, row.item, nil, row.list)
 	end
@@ -570,7 +578,7 @@ function Rows.Create(list)
 	row.help:SetJustifyH("LEFT")
 	row.help:SetJustifyV("TOP")
 	row.help:SetWordWrap(true)
-	row.caption = Widgets.Text(row, "title", "text")
+	row.caption = Widgets.Text(row, "caps", "capsGold")
 	row.caption:SetJustifyH("LEFT")
 	row.caption:SetWordWrap(false)
 	row.note = Widgets.Text(row, "body", "text")
@@ -581,6 +589,8 @@ function Rows.Create(list)
 	row.rule:SetTexture((Tokens.Texture("divider")))
 	row.mark = row:CreateTexture(nil, "ARTWORK")
 	row.mark:SetColorTexture(Tokens.Color("white"))
+	row.gem = row:CreateTexture(nil, "ARTWORK")
+	row.gem:SetTexture((Tokens.Texture("gem")))
 	row.Restyle = Rows.Restyle
 	Rows.Restyle(row)
 	Widgets.Track(row)

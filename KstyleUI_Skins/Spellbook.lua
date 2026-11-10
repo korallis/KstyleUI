@@ -91,7 +91,7 @@ local function SpellItem(item)
 		Parts.Rim(button, { target = icon, outset = Tokens.Size("gapTiny") })
 	end
 	if item.Name then
-		Style.Text(item.Name, "heading", "textEmphasis")
+		Style.Text(item.Name, "names", "textEmphasis", (select(2, Style.Font("heading"))))
 	end
 	if item.SubName then
 		Style.Text(item.SubName, "body", "text")

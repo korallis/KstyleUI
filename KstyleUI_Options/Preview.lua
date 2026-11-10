@@ -20,7 +20,7 @@ Preview.MIN_GAIN = 0.05
 function Preview.Sample(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	local gap = Tokens.Size("gapLarge")
-	local title = Widgets.Text(frame, "heading", "textEmphasis")
+	local title = Widgets.Text(frame, "caps", "capsGold")
 	title:SetPoint("TOP", frame, "TOP", 0, -gap)
 	Widgets.SetText(title, L["Sample panel"])
 	local body = Widgets.Text(frame, "body", "text")
