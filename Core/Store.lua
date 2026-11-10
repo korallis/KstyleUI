@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 9
+Store.DB_VERSION = 10
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -140,6 +140,25 @@ Store.migrations[8] = function(data)
 			local debuffs = auras.debuffs
 			if type(debuffs) == "table" then
 				debuffs.dispelFirst = nil
+			end
+		end
+	end
+end
+
+local CHAT_CARD = "chat.main"
+local CHAT_V9 = {
+	{ width = 372, height = 260, toWidth = 393, toHeight = 200 },
+	{ width = 318, height = 260, toWidth = 318, toHeight = 200 },
+}
+
+Store.migrations[10] = function(data)
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout[CHAT_CARD]
+		if type(entry) == "table" then
+			for _, old in ipairs(CHAT_V9) do
+				if entry.width == old.width and entry.height == old.height then
+					entry.width, entry.height = old.toWidth, old.toHeight
+				end
 			end
 		end
 	end

@@ -20,6 +20,9 @@ local EDIT_MODE_EXIT = "EditMode.Exit"
 local LAYOUT_CHANGED = "LayoutChanged"
 
 local TAB_TEXT_RISE = 14
+local TAB_ROW = 48
+local LINE_INSET = 26 * 1080 / 2234
+local MESSAGE_FOOT = 42
 local BACKGROUND_RISE = 3
 local EDIT_DROP = 2
 local EDIT_HEIGHT = 32
@@ -128,15 +131,16 @@ function Panel.Geometry(chat)
 	if EditAlways() then
 		bottom = EDIT_BOTTOM + reach
 	else
-		bottom = max(Pad(), reach + Tokens.Size("gapTiny") - PanelBottom())
+		bottom = max(MESSAGE_FOOT, reach + Tokens.Size("gapTiny") - PanelBottom())
 	end
+	local inset = snap(LINE_INSET)
 	return {
 		k = k,
-		left = snap(Pad()),
-		top = snap(STRIP_HEIGHT + BACKGROUND_RISE * k),
-		right = snap(Pad() + Panel.Column(chat, k)),
+		left = inset,
+		top = snap(TAB_ROW),
+		right = inset,
 		bottom = snap(bottom),
-		divider = snap(STRIP_HEIGHT),
+		divider = snap(TAB_ROW),
 	}
 end
 
@@ -207,12 +211,16 @@ local function TrimDock()
 	if not dock or not glass then
 		return
 	end
-	local stop, last = glass.dockEnd, glass.copy:IsShown() and glass.copy or glass.plus
+	local settings = state.settings
+	local stop, last = glass.dockEnd, settings and settings.copyButton == true and glass.copy or glass.plus
 	stop:ClearAllPoints()
 	stop:SetPoint("TOPRIGHT", last, "TOPLEFT", -Widgets.Snap(stop, Tokens.Size("gapTiny")), 0)
 	stop:SetPoint("BOTTOMLEFT", background, "TOPLEFT", 0, 0)
 	dock:SetPoint("BOTTOMRIGHT", stop, "BOTTOMRIGHT", 0, 0)
 	RelayTabs(dock)
+	if ns.Frames and ns.Frames.FitTabs then
+		ns.Frames.FitTabs(dock)
+	end
 	LogOnce("dock", "the tab dock ends before the panel's glyphs, so Blizzard overflows the tabs that no longer fit")
 end
 
@@ -349,6 +357,7 @@ local function PlaceDivider(g)
 	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", -g.left, -g.divider)
 	divider:SetHeight(Widgets.Border(divider))
 	Widgets.Tint(divider, "text", DIVIDER_ALPHA)
+	divider:Hide()
 	local y = -(g.top - TAB_TEXT_RISE * g.k)
 	glass.plus:ClearAllPoints()
 	glass.plus:SetPoint("CENTER", glass, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET), Widgets.Snap(glass.plus, y))
@@ -415,14 +424,54 @@ local function OnLayoutChanged(_, key)
 	end
 end
 
+local hovered = setmetatable({}, { __mode = "k" })
+
+function Panel.Rest()
+	local glass = state.glass
+	if not glass then
+		return
+	end
+	local settings = state.settings
+	local show = state.hover == true
+	glass.plus:SetShown(show)
+	glass.copy:SetShown(show and settings ~= nil and settings.copyButton == true)
+end
+
+local function Reveal()
+	state.generation = (state.generation or 0) + 1
+	state.hover = true
+	Panel.Rest()
+end
+
+local function Conceal()
+	local generation = (state.generation or 0) + 1
+	state.generation = generation
+	C_Timer.After(0, function()
+		if state.generation ~= generation then
+			return
+		end
+		state.hover = false
+		Panel.Rest()
+	end)
+end
+
+local function HookHover(frame)
+	if type(frame) ~= "table" or type(frame.HookScript) ~= "function" or hovered[frame] then
+		return
+	end
+	hovered[frame] = true
+	frame:HookScript("OnEnter", Reveal)
+	frame:HookScript("OnLeave", Conceal)
+end
+
 local function Paint(settings)
 	local glass = state.glass
 	local r, g, b = Tokens.Color("surface")
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
-	glass.copy:SetShown(settings.copyButton == true)
 	glass.copy:Paint()
 	glass.plus:Paint()
+	Panel.Rest()
 end
 
 local function FollowTab(_, alpha)
@@ -586,6 +635,13 @@ local function Build()
 		hooksecurefunc(holder, method, Mirror)
 	end
 	state.holder, state.glass = holder, glass
+	if type(holder.EnableMouse) == "function" then
+		holder:EnableMouse(true)
+	end
+	HookHover(holder)
+	HookHover(glass)
+	HookHover(glass.plus)
+	HookHover(glass.copy)
 	Widgets.Place(holder, KEY, layouts.Default(KEY), {
 		label = spec.label,
 		module = ns.NAME,
@@ -630,6 +686,7 @@ function Panel.Start(settings)
 	end
 	state.chat = chat
 	Watch(chat)
+	HookHover(chat)
 	K.Callbacks.Register(LAYOUT_CHANGED, Panel, OnLayoutChanged)
 	local registry = EventRegistry
 	if type(registry) == "table" and type(registry.RegisterCallback) == "function" then

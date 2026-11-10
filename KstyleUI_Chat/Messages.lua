@@ -64,7 +64,22 @@ end
 
 local function Replace(_, r, g, b, ...)
 	state.done = true
-	return state.out, r, g, b, ...
+	local nr, ng, nb = r, g, b
+	if state.colour then
+		nr, ng, nb = state.colour[1], state.colour[2], state.colour[3]
+	end
+	return state.out, nr, ng, nb, ...
+end
+
+local function Drawn(r, g, b)
+	if IsSecret(r) or IsSecret(g) or IsSecret(b) or type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then
+		return r, g, b, false
+	end
+	if r > 0.99 and g > 0.99 and b < 0.01 then
+		local nr, ng, nb = K.Tokens.Color("chatSystem")
+		return nr, ng, nb, true
+	end
+	return r, g, b, false
 end
 
 local function NewestSlot(frame)
@@ -87,16 +102,18 @@ local function OnAddMessage(frame, message, r, g, b, _, _, _, event)
 	end
 	local opts = state.opts
 	opts.timestamp = opts.stamp
-	if opts.stamp ~= "none" and Stamps.GameDraws() then
+	if opts.stamp ~= "none" and Stamps.GameDraws() and Format.HasStamp(message) then
 		opts.timestamp = "none"
 	end
 	local out = Format.Decorate(message, IsText(event) and event or nil, opts)
+	local nr, ng, nb, recoloured = Drawn(r, g, b)
 	if history then
-		history.Record(frame, out, r, g, b)
+		history.Record(frame, out, nr, ng, nb)
 	end
-	if out == message then
+	if out == message and not recoloured then
 		return
 	end
+	state.colour = recoloured and { nr, ng, nb } or nil
 	if type(frame.TransformMessages) ~= "function" then
 		LogOnce("transform", "TransformMessages is missing; lines keep the game's own timestamps and channel names")
 		return
@@ -104,7 +121,7 @@ local function OnAddMessage(frame, message, r, g, b, _, _, _, event)
 	state.pending, state.out, state.done = message, out, false
 	state.seen, state.slot = 0, NewestSlot(frame)
 	frame:TransformMessages(Match, Replace)
-	state.pending, state.out, state.slot = nil, nil, nil
+	state.pending, state.out, state.slot, state.colour = nil, nil, nil, nil
 end
 
 local function HookFrame(frame)

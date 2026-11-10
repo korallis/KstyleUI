@@ -30,6 +30,8 @@ do
 	local env, K = C.New()
 	local snap = C.Snapshot(env)
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	assert(K.Modules.IsRunning("Chat"), "the module runs: " .. tostring(env._errors[1]))
 	assert(env._messageFilters.CHAT_MSG_GUILD and #env._messageFilters.CHAT_MSG_GUILD == 1, "a URL filter on guild chat")
 	assert(#env._nameFilters == 1, "one sender name filter")
@@ -47,17 +49,20 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- A numbered channel keeps its number and name; a system line is left as the game wrote it, since the game gives it no timestamp.
+-- A numbered channel keeps its number and name. A system line the game leaves bare gets the setting's stamp, so the
+-- setting and the chat agree; the line keeps the colour the game gave it.
 do
 	local env, K = C.New()
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	env._now = os.time({ year = 2026, month = 11, day = 7, hour = 9, min = 5 })
 	C.Say(env, env.ChatFrame1, "CHAT_MSG_CHANNEL", "LFM", { channel = "1. General - Riverglades" })
 	assert(has(C.Last(env.ChatFrame1), "|Hchannel:channel:1|h[1. General]|h"), "the zone goes: " .. C.Last(env.ChatFrame1))
 	local F = env._addons.KstyleUI_Chat.Format
 	assert(F.Strip(C.Last(env.ChatFrame1)):sub(1, 8) == "[09:05] ", "the channel line has the game's timestamp: " .. F.Strip(C.Last(env.ChatFrame1)))
 	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0, 1, 0)
-	assert(C.Last(env.ChatFrame1) == "You receive loot: [Hide].", "a system line: " .. tostring(C.Last(env.ChatFrame1)))
+	assert(F.Strip(C.Last(env.ChatFrame1)) == "[09:05] You receive loot: [Hide].", "a system line: " .. tostring(C.Last(env.ChatFrame1)))
 	assert(C.Newest(env.ChatFrame1)[2] == 0, "the line keeps its colour")
 end
 
@@ -89,6 +94,34 @@ do
 	assert(ns.Messages, "the pipeline is exposed for the other parts")
 end
 
+-- The game's default system yellow is drawn in the picture's soft gold. A colour the player chose is left alone.
+-- A secret text or a secret colour raises if it is read, and the line passes through untouched.
+do
+	local env, K = C.New()
+	C.Enable(env, K)
+	local function close(a, b)
+		return type(a) == "number" and type(b) == "number" and math.abs(a - b) < 1e-4
+	end
+	local sr, sg, sb = K.Tokens.Color("chatSystem")
+	env.ChatFrame1:AddMessage("You have gained 1 talent point.", 1, 1, 0)
+	local yellow = C.Newest(env.ChatFrame1)
+	assert(close(yellow[2], sr) and close(yellow[3], sg) and close(yellow[4], sb), "default system yellow is the picture's gold")
+	env.ChatFrame1:AddMessage("You receive loot: [Hide].", 0.2, 0.8, 0.1)
+	local chosen = C.Newest(env.ChatFrame1)
+	assert(close(chosen[2], 0.2) and close(chosen[3], 0.8) and close(chosen[4], 0.1), "a chosen colour is left alone")
+	local secret = env.Secret("Congratulations, you have reached level 11.")
+	local raised = not pcall(string.find, secret, "%[")
+	assert(raised, "the stub raises when a secret line is read")
+	local colour = env.Secret(1)
+	assert(not pcall(function() return colour > 0.99 end), "the stub raises when a secret colour is compared")
+	env.ChatFrame1:AddMessage(secret, 1, 1, 0)
+	assert(env.issecretvalue(C.Last(env.ChatFrame1)), "a secret line is untouched")
+	env.ChatFrame1:AddMessage("You have gained 17 hit points and 30 mana.", colour, colour, colour)
+	local passed = C.Newest(env.ChatFrame1)
+	assert(env.issecretvalue(passed[2]) and env.issecretvalue(passed[3]) and env.issecretvalue(passed[4]), "a secret colour is untouched")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- The combat log keeps its own lines.
 do
 	local env, K = C.New()
@@ -102,6 +135,8 @@ end
 do
 	local env, K = C.New({ install = { noSetCVar = true } })
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	env._cvars.showTimestamps = "%H:%M "
 	env.FireEvent("CVAR_UPDATE", "showTimestamps", "%H:%M ")
 	env.ChatFrame1:AddMessage("09:05 You receive loot.", 1, 1, 1)
@@ -173,6 +208,8 @@ do
 	local env, K = C.New({ install = { noSetCVar = true } })
 	env.ChatFrame1:AddMessage("You are now away.", 1, 1, 0)
 	C.Enable(env, K)
+	K.Options.Write("Chat", "timestamp", "%H:%M")
+	env.RunTimers()
 	env.ChatFrame1:AddMessage("You are now away.", 1, 1, 0)
 	local lines = C.Lines(env.ChatFrame1)
 	assert(lines[1] == "You are now away.", "the old line keeps its text: " .. lines[1])

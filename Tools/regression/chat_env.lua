@@ -472,6 +472,23 @@ function C.Install(env, opts)
 	function env.FCF_UnDockFrame(frame)
 		frame.isDocked = nil
 	end
+	function env.FCFDock_UpdateTabs(dock)
+		local frames = type(dock) == "table" and dock.DOCKED_CHAT_FRAMES
+		if type(frames) ~= "table" then
+			return
+		end
+		for _, frame in ipairs(frames) do
+			if frame ~= dock.primary then
+				local tab = env[frame:GetName() .. "Tab"]
+				if type(tab) == "table" and type(tab.SetWidth) == "function" then
+					tab:SetWidth(60)
+					if type(tab.Text) == "table" and type(tab.Text.SetWidth) == "function" then
+						tab.Text:SetWidth(40)
+					end
+				end
+			end
+		end
+	end
 	function env.FCF_SetChatWindowFontSize(_, frame, size)
 		local path, _, flags = frame:GetFont()
 		frame:SetFont(path, size, flags)
@@ -500,19 +517,25 @@ function C.Dock(env, measure)
 	local statics, dynamics = {}, {}
 	for _, frame in ipairs(dock.DOCKED_CHAT_FRAMES) do
 		local tab = env[frame:GetName() .. "Tab"]
-		local _, size = tab.Text:GetFont()
-		tab._textWidth = measure(tab.Text:GetText() or "", size or 10)
+		local path, size = tab.Text:GetFont()
+		tab._textWidth = measure(tab.Text:GetText() or "", size or 10, path)
 		if frame == primary then
 			statics[#statics + 1] = tab
 		else
 			dynamics[#dynamics + 1] = tab
 		end
 	end
+	local pad = 30 * 1080 / 2234 - 1
 	local staticWidth = 0
 	for _, tab in ipairs(statics) do
-		staticWidth = staticWidth + tab._textWidth + 20 + 1
+		staticWidth = staticWidth + tab._textWidth + pad + 1
 	end
 	local scroll = dockWidth - staticWidth
+	local textSum = 0
+	for _, tab in ipairs(dynamics) do
+		textSum = textSum + tab._textWidth + pad + 1
+	end
+	local fitText = textSum <= scroll
 	local tabSize, whole = 90, #dynamics
 	if #dynamics * 90 >= scroll then
 		if math.floor(scroll / 60) <= #dynamics then
@@ -528,12 +551,13 @@ function C.Dock(env, measure)
 		tab:SetParent(dock)
 		if frame == primary then
 			tab.Text:SetWidth(tab._textWidth)
-			tab:SetWidth(tab._textWidth + 20)
+			tab:SetWidth(tab._textWidth + pad)
 			tab:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0)
 			tab:Show()
 		else
-			tab.Text:SetWidth(math.max(1, tabSize - 20))
-			tab:SetWidth(tabSize)
+			local width = fitText and (tab._textWidth + pad) or tabSize
+			tab.Text:SetWidth(math.max(1, width - pad))
+			tab:SetWidth(width)
 			tab:SetPoint("LEFT", previous, "RIGHT", 1, 0)
 			whole = whole - 1
 			tab:SetShown(whole >= 0)

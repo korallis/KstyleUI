@@ -65,6 +65,19 @@ local function IsText(v)
 	return not IsSecret(v) and type(v) == "string"
 end
 
+function Format.HasStamp(text)
+	if not IsText(text) then
+		return false
+	end
+	if sub(text, 1, 2) == "|c" and sub(text, 11, 11) == "[" and match(sub(text, 12, 12), "%d") then
+		return true
+	end
+	if match(text, "^%[[0-9]+:[0-9][0-9]") or match(text, "^[0-9][0-9]?:[0-9][0-9]") then
+		return true
+	end
+	return false
+end
+
 local function Byte(v)
 	v = tonumber(v) or 0
 	return floor(max(0, min(1, v)) * BYTE + 0.5)
