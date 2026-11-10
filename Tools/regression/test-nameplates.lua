@@ -12,8 +12,13 @@ local function barColor(bar)
 	return r, g, b
 end
 
+local function highlighted(K, plate)
+	local r, g, b = plate.health.keyline:GetVertexColor()
+	return not SameColor(r, g, b, K.Tokens.Color("black"))
+end
+
 local function edgeColor(bar)
-	local r, g, b = bar.chrome.rim[1]:GetVertexColor()
+	local r, g, b = bar.keyline:GetVertexColor()
 	return r, g, b
 end
 
@@ -63,11 +68,11 @@ do
 
 	-- Name: its own case when it can be read, as the mockup's "Riverglade Crocolisk"; upper case on request; a
 	-- secret name passes through whole.
-	assert(plate.name:GetText() == "Dark Iron Summoner", "a readable name keeps its case by default")
-	K.Options.Write("Nameplates", "name.upper", true)
-	assert(plate.name:GetText() == "DARK IRON SUMMONER", "the upper-case setting capitalises it")
+	assert(plate.name:GetText() == "DARK IRON SUMMONER", "a readable name uses caps by default")
 	K.Options.Write("Nameplates", "name.upper", false)
-	assert(plate.levelText:GetText() == "51", "the level shows")
+	assert(plate.name:GetText() == "Dark Iron Summoner", "the upper-case setting can be switched off")
+	K.Options.Write("Nameplates", "level.show", true)
+	assert(plate.levelText:GetText() == "51", "the optional level shows")
 
 	-- Removal hides the plate and leaves the base to Blizzard; the same base gets the plate back.
 	N.Remove(env, "nameplate1")
@@ -173,7 +178,7 @@ do
 	local env, K, ns = N.New()
 	N.Add(env, "nameplate1", { reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	local hr, hg, hb = token(K, "hostile")
+	local hr, hg, hb = token(K, "plateHostile")
 	assert(SameColor(hr, hg, hb, barColor(plate.health)), "a hostile NPC uses the hostile colour")
 	assert(plate.kind == "enemy", "an attackable unit uses the enemy style")
 
@@ -189,6 +194,7 @@ do
 	local wr, wg, wb = hidden.name:GetTextColor()
 	assert(SameColor(wr, wg, wb, token(K, "textEmphasis")), "the name over a class-coloured bar reads white (test-nameplates-types.lua has the rule)")
 	-- With the bar in the reaction colour, the name carries the class: a secret colour reaches it whole.
+	K.Options.Write("Nameplates", "name.classColor", true)
 	K.Options.Write("Nameplates", "enemy.colorSource", "reaction")
 	local nr, ng, nb = hidden.name:GetTextColor()
 	assert(env.issecretvalue(nr), "the name takes the secret class colour too")
@@ -228,6 +234,7 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "level.show", true)
 	N.Add(env, "nameplate1", { classification = "elite", level = -1 })
 	local plate = ns.Plates.Get("nameplate1")
 	assert(plate.levelText:GetText() == "??", "a skull level reads ??")
@@ -306,7 +313,7 @@ do
 	assert(not glow[1]:IsShown(), "the health display hides the glow")
 	assert(SameColor(wr, wg, wb, barColor(plate.health)), "and colours the bar with the threat colour")
 	K.Options.Write("Nameplates", "threat.display", "off")
-	local hr, hg, hb = token(K, "hostile")
+	local hr, hg, hb = token(K, "plateHostile")
 	assert(SameColor(hr, hg, hb, barColor(plate.health)), "threat off gives the bar its own colour back")
 end
 
@@ -317,23 +324,23 @@ do
 	N.Add(env, "nameplate1")
 	N.Add(env, "nameplate2")
 	local one, two = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
-	assert(not one.targetGlow[1]:IsShown(), "no target, no highlight")
+	assert(not highlighted(K, one), "no target, no highlight")
 	N.Target(env, "nameplate1")
-	assert(one.targetGlow[1]:IsShown() and not two.targetGlow[1]:IsShown(), "the target's plate is highlighted")
-	local ar, ag, ab = K.Theme.Accent()
-	assert(SameColor(ar, ag, ab, one.targetGlow[1]:GetVertexColor()), "the highlight follows the accent")
+	assert(highlighted(K, one) and not highlighted(K, two), "the target's plate is highlighted")
+	local ar, ag, ab = K.Tokens.Color("gilt")
+	assert(SameColor(ar, ag, ab, one.health.keyline:GetVertexColor()), "the outline is gold")
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "other plates stay opaque by default")
 
 	K.Options.Write("Nameplates", "target.dimOthers", 0.5)
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 0.5, "other plates dim while there is a target")
 	N.Target(env, nil)
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "without a target nothing dims")
-	assert(not one.targetGlow[1]:IsShown(), "clearing the target clears the highlight")
+	assert(not highlighted(K, one), "clearing the target clears the highlight")
 
 	K.Options.Write("Nameplates", "target.colorSource", "custom")
 	K.Options.Write("Nameplates", "target.color", { r = 0.9, g = 0.1, b = 0.1 })
 	N.Target(env, "nameplate2")
-	assert(SameColor(0.9, 0.1, 0.1, two.targetGlow[1]:GetVertexColor()), "the highlight can use a custom colour")
+	assert(SameColor(0.9, 0.1, 0.1, two.health.keyline:GetVertexColor()), "the highlight can use a custom colour")
 
 	N.Focus(env, "nameplate1")
 	local fr, fg, fb = token(K, "rare")
@@ -352,7 +359,7 @@ do
 	env._targetUnit = "target"
 	env._units.target = { name = "Far Away" }
 	N.Add(env, "nameplate2", nil, { base = base })
-	assert(not ns.Plates.Get("nameplate2").targetGlow[1]:IsShown(), "a reused base is not the target any more")
+	assert(not highlighted(env.KstyleUI, ns.Plates.Get("nameplate2")), "a reused base is not the target any more")
 end
 
 -- A client whose GetNamePlateForUnit takes only nameplate tokens: highlights fall back to UnitIsUnit ---
@@ -362,13 +369,13 @@ do
 	N.Add(env, "nameplate1")
 	N.Add(env, "nameplate2")
 	N.Target(env, "nameplate2")
-	assert(ns.Plates.Get("nameplate2").targetGlow[1]:IsShown(), "the target is found with UnitIsUnit")
-	assert(not ns.Plates.Get("nameplate1").targetGlow[1]:IsShown(), "and only the target")
+	assert(highlighted(env.KstyleUI, ns.Plates.Get("nameplate2")), "the target is found with UnitIsUnit")
+	assert(not highlighted(env.KstyleUI, ns.Plates.Get("nameplate1")), "and only the target")
 	env.UnitIsUnit = function()
 		return env.Secret(true)
 	end
 	N.Target(env, "nameplate1")
-	assert(not ns.Plates.Get("nameplate1").targetGlow[1]:IsShown(), "a secret comparison is never tested; no highlight")
+	assert(not highlighted(env.KstyleUI, ns.Plates.Get("nameplate1")), "a secret comparison is never tested; no highlight")
 end
 
 -- Settings restyle live plates ------------------------------------------------------------------------
@@ -382,7 +389,7 @@ do
 	assert(Last(plate.health, "SetStatusBarTexture")[1] == path, "the bar texture follows the setting")
 	K.Options.Write("Nameplates", "name.size", 14)
 	local font = Last(plate.name, "SetFont")
-	assert(font and font[2] == 14 and font[3] == "OUTLINE", "the name font size follows the setting")
+	assert(font and font[2] == 14 and font[3] == "", "the name font size follows the setting")
 	K.Options.Write("Nameplates", "name.outline", "NONE")
 	assert(Last(plate.name, "SetFont")[3] == "", "no outline gives a soft shadow instead")
 	K.Options.Write("Nameplates", "health.orientation", "VERTICAL")
@@ -401,10 +408,10 @@ end
 
 do
 	local env, K, ns = N.New()
-	assert(ns.Plate.DEFAULT_WIDTH == 175 and ns.Plate.DEFAULT_HEIGHT == 12, "the health bar is 175 x 12, the sigil's height, inside its two-border frame")
+	assert(ns.Plate.DEFAULT_WIDTH == 154 and ns.Plate.DEFAULT_HEIGHT == 12, "the health bar is 154 x 12, the sigil's height, inside its two-border frame")
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
-	assert(N.Same(plate.health:GetWidth(), 175) and N.Same(plate.health:GetHeight(), 12), "the bar takes the default size")
+	assert(N.Same(plate.health:GetWidth(), 154) and N.Same(plate.health:GetHeight(), 12), "the bar takes the default size")
 	local disc = plate.level
 	assert(N.Same(disc:GetWidth(), 34) and N.Same(disc:GetHeight(), 34), "the level disc is 34 units across")
 	assert(disc.chrome.shapeName == "panel" and N.Same(disc.chrome:Radius(), 10.5), "the panel with its corners rounded 10.5 units, where the octagon cut them")
@@ -415,13 +422,14 @@ do
 	assert(point == "RIGHT" and relative == plate.health and relativePoint == "LEFT", "it sits on the bar's left end")
 	assert(x >= 0.5 and x <= 1.5, "overlapping the bar's frame by one unit, got " .. tostring(x))
 	assert(disc:GetFrameLevel() > plate.health:GetFrameLevel(), "the disc draws over the bar's end, not under it")
-	assert(plate.name:GetText() == "Riverglade Crocolisk", "the name keeps its case")
-	assert(select(2, plate.name:GetFont()) == 14, "the name reads at 14 units")
+	assert(plate.name:GetText() == "RIVERGLADE CROCOLISK", "the name uses caps")
+	assert(select(2, plate.name:GetFont()) == 12, "the name reads at 12 units")
+	K.Options.Write("Nameplates", "level.show", true)
 	assert(select(2, plate.levelText:GetFont()) == 16, "the level at 16")
 	local lr, lg, lb = plate.levelText:GetTextColor()
 	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("textEmphasis")), "the level reads white, as the mockup's 38, not in the quest difficulty colour")
 	assert(not plate.healthText:IsShown(), "no health text by default: the mockup's plate shows none")
-	assert(plate.castBar.opts.height == 12, "the cast bar is 12 units tall")
+	assert(plate.castBar.opts.height == 6, "the cast bar is 6 units tall")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

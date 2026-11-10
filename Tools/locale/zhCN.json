@@ -1671,7 +1671,7 @@
 	"The font for the game's own damage numbers; it changes at your next login.": "游戏自带伤害数字的字体；将在你下次登录时更改。",
 	"The font of charge and stack counts.": "充能和层数的字体。",
 	"The font of chat messages and the edit box. Tabs use the caps face.": "The font of chat messages and the edit box. Tabs use the caps face.",
-	"The font of every text on the plates.": "姓名板上所有文字的字体。",
+	"The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading.": "用于姓名板数值、减益计时和可选施法文字的字体。名称使用组件库的 Cinzel 标题字体。",
 	"The font of skinned window titles, headers and lists.": "美化窗口的标题、页眉和列表的字体。",
 	"The font of stack counts and item levels.": "层数和物品等级的字体。",
 	"The font of the bar's text.": "条上文字的字体。",

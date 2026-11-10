@@ -18,6 +18,7 @@ local CAST = { name = "Molten Pulse", text = "Molten Pulse", texture = 135808, n
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "cast.showTime", true)
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	assert(plate.cast and not plate.cast:IsShown(), "the cast bar waits hidden")
@@ -30,8 +31,8 @@ do
 	assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills as time passes")
 	assert(Last(plate.castName, "SetText")[1] == "Molten Pulse", "the spell's name shows")
 	assert(Last(plate.castIcon, "SetTexture")[1] == 135808, "the spell's icon shows")
-	local ar, ag, ab = K.Theme.Accent()
-	assert(SameColor(ar, ag, ab, barColor(bar)), "an interruptible cast takes the accent")
+	local ar, ag, ab = token(K, "gilt")
+	assert(SameColor(ar, ag, ab, barColor(bar)), "an interruptible cast takes the tan colour")
 	assert(plate.castShield:GetAlpha() == 0, "no shield over the icon")
 
 	-- The time text counts down while the bar shows.
@@ -44,7 +45,7 @@ do
 	assert(SameColor(sr, sg, sb, barColor(bar)), "an uninterruptible cast is grey")
 	assert(plate.castShield:GetAlpha() > 0, "and its icon dims")
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTIBLE", "nameplate1")
-	assert(SameColor(ar, ag, ab, barColor(bar)), "an interruptible cast takes the accent again")
+	assert(SameColor(ar, ag, ab, barColor(bar)), "an interruptible cast takes the tan colour again")
 
 	env._units.nameplate1.cast = nil
 	env.FireEvent("UNIT_SPELLCAST_STOP", "nameplate1")
@@ -98,6 +99,7 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "cast.showTime", true)
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	N.Cast(env, "nameplate1", { name = "Fear", text = "Fear", texture = 136183, notInterruptible = true, secret = true })
@@ -122,7 +124,7 @@ do
 	assert(not preview.plates[1].cast:IsShown(), "and follows the cast switch")
 end
 
--- A secret duration object is never indexed or tested: the bar falls back to the start and end times -----
+-- An opaque duration object reaches its documented widget sink, never a Lua method or boolean test -------
 
 do
 	local env, _, ns = N.New()
@@ -130,9 +132,9 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	N.Cast(env, "nameplate1", { name = "Fear", text = "Fear", texture = 136183, secret = true, secretDuration = true })
 	assert(plate.cast:IsShown(), "the cast shows")
-	assert(#Calls(plate.castBar, "SetTimerDuration") == 0, "a secret duration never reaches SetTimerDuration")
-	local range = Last(plate.castBar, "SetMinMaxValues")
-	assert(env.issecretvalue(range[1]) and env.Reveal(range[2]) == 3000, "the bar spans the secret start and end")
+	local timer = Last(plate.castBar, "SetTimerDuration")
+	assert(timer and env.issecretvalue(timer[1]), "the opaque duration reaches SetTimerDuration unchanged")
+	assert(not plate.castTime:IsShown(), "an opaque duration is never indexed for a textual timer")
 	N.Tick(env, 0.2)
 	assert(#env._errors == 0, "no error: " .. tostring(env._errors[1]))
 end
@@ -154,6 +156,7 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "cast.showTime", true)
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	N.Cast(env, "nameplate1", { name = "Drain Life", text = "Drain Life", texture = 136169, channel = true })
@@ -167,20 +170,19 @@ do
 	assert(Last(plate.castName, "SetText")[1] == "Drain Life", "a channel that ran out just fades")
 end
 
--- The spark follows the fill direction ------------------------------------------------------------------
+-- A flat cast still follows orientation and reverse settings -------------------------------------------
 
 do
 	local env, K, ns = N.New()
 	N.Add(env, "nameplate1")
-	local plate = ns.Plates.Get("nameplate1")
-	local spark = plate.castBar.spark
-	assert(select(3, spark:GetPoint(1)) == "RIGHT", "a normal bar's spark rides the right edge of the fill")
+	local bar = ns.Plates.Get("nameplate1").castBar
+	assert(bar.spark == nil and bar.sheen == nil, "the thin reference bar has no glow or sheen")
 	K.Options.Write("Nameplates", "cast.reverse", true)
-	assert(select(3, spark:GetPoint(1)) == "LEFT", "a reversed bar's spark rides the left edge")
+	assert(bar:GetReverseFill(), "the square bar can reverse")
 	K.Options.Write("Nameplates", "cast.orientation", "VERTICAL")
-	assert(select(3, spark:GetPoint(1)) == "BOTTOM", "a reversed vertical bar's spark rides the bottom edge")
+	assert(bar:GetOrientation() == "VERTICAL", "and fill vertically")
 	K.Options.Write("Nameplates", "cast.reverse", false)
-	assert(select(3, spark:GetPoint(1)) == "TOP", "a vertical bar's spark rides the top edge")
+	assert(not bar:GetReverseFill(), "the fill can be restored")
 end
 
 -- Channels drain; a unit already casting when its plate appears shows its cast ----------------------------
@@ -203,6 +205,7 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "cast.showTime", true)
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	N.Cast(env, "nameplate1", CAST)
@@ -246,6 +249,7 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "cast.showTime", true)
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	local base = env._bases.nameplate1

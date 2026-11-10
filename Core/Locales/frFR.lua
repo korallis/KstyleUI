@@ -1678,7 +1678,7 @@ ns.Locale.Add({
 	["The font for the game's own damage numbers; it changes at your next login."] = "La police des chiffres de d\195\169g\195\162ts du jeu ; elle change \195\160 votre prochaine connexion.",
 	["The font of charge and stack counts."] = "La police des charges et des cumuls.",
 	["The font of chat messages and the edit box. Tabs use the caps face."] = "The font of chat messages and the edit box. Tabs use the caps face.",
-	["The font of every text on the plates."] = "La police de tous les textes des barres d'info.",
+	["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."] = "La police des valeurs des plaques, des dur\195\169es des affaiblissements et du texte d'incantation facultatif. Les noms utilisent le titre Cinzel du kit.",
 	["The font of skinned window titles, headers and lists."] = "La police des titres, en-t\195\170tes et listes des fen\195\170tres habill\195\169es.",
 	["The font of stack counts and item levels."] = "La police des cumuls et des niveaux d'objet.",
 	["The font of the bar's text."] = "La police du texte de la barre.",

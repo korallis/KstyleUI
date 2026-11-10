@@ -59,11 +59,15 @@ end
 
 do
 	local env, K, ns = N.New()
-	local hr, hg, hb = token(K, "hostile")
+	K.Options.Write("Nameplates", "types.quest", true)
+	K.Options.Write("Nameplates", "types.rare", true)
+	K.Options.Write("Nameplates", "types.caster", true)
+	K.Options.Write("Nameplates", "name.classColor", true)
+	local hr, hg, hb = token(K, "plateHostile")
 
 	N.Add(env, "nameplate1", { powerType = 0, powerMax = 2400 })
 	local caster = ns.Plates.Get("nameplate1")
-	assert(barIs(caster.health, setting(ns, "types.casterColor")), "a caster's bar takes the caster colour by default")
+	assert(barIs(caster.health, setting(ns, "types.casterColor")), "a caster's bar takes the optional caster colour")
 	local er, eg, eb = caster.level.chrome.rim[1]:GetVertexColor()
 	assert(SameColor(er, eg, eb, setting(ns, "types.casterColor")), "and so does the level badge's rim")
 
@@ -132,6 +136,10 @@ end
 
 do
 	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "types.quest", true)
+	K.Options.Write("Nameplates", "types.rare", true)
+	K.Options.Write("Nameplates", "types.caster", true)
+	K.Options.Write("Nameplates", "name.classColor", true)
 	local pal = { 0.96, 0.55, 0.73 }
 	N.CLASS.PALADIN = pal
 	N.Add(env, "nameplate1", { canAttack = false, reaction = 5, isPlayer = true, class = "PALADIN", name = "Leduc" })
@@ -159,7 +167,8 @@ end
 -- The elite diamond crowns the level badge, away from the raid marker at the bar's right end -----------
 
 do
-	local env, _, ns = N.New()
+	local env, K, ns = N.New()
+	K.Options.Write("Nameplates", "level.show", true)
 	N.Add(env, "nameplate1", { classification = "elite", raid = 8 })
 	local plate = ns.Plates.Get("nameplate1")
 	assert(plate.marker:IsShown() and plate.raid:IsShown(), "the elite shows its diamond and its raid marker")
@@ -168,7 +177,7 @@ do
 	assert(point == "BOTTOM" and relativePoint == "TOP", "centred above the badge")
 	local _, raidRelative = plate.raid:GetPoint(1)
 	assert(raidRelative == plate.health, "the raid marker keeps the bar's right end to itself")
-	assert(N.Same(plate.name:GetWidth(), ns.state.width), "the name takes the bar's full width now that nothing sits above its right end")
+	assert(N.Same(plate.name:GetWidth(), ns.state.width + 40), "the centred cap can overhang the bar without ellipsising a normal creature name")
 end
 
 print("nameplates types ok")

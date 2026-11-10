@@ -15,7 +15,7 @@ local function Color(name)
 	return { r = r, g = g, b = b }
 end
 
-local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
+local BAR_TEXTURE = Tokens.Texture("barFlat")
 local FONT = Tokens.FontPath(Tokens.DEFAULT_FONT_FACE)
 
 Settings.defaults = {
@@ -24,20 +24,20 @@ Settings.defaults = {
 	shrinkDistant = false,
 	font = FONT,
 	health = { texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
-	enemy = { colorSource = "class", color = Color("hostile") },
+	enemy = { colorSource = "class", color = Color("plateHostile") },
 	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
 	types = {
-		quest = true, questColor = Color("quest"), rare = true, rareColor = Color("rare"),
-		elite = false, eliteColor = Color("neutral"), caster = true, casterColor = Color("epic"),
+		quest = false, questColor = Color("quest"), rare = false, rareColor = Color("rare"),
+		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
 	},
-	name = { show = true, size = 14, outline = "OUTLINE", upper = false, classColor = true },
-	level = { show = true, size = 16, outline = "OUTLINE" },
+	name = { show = true, size = 12, outline = "NONE", upper = true, classColor = false },
+	level = { show = false, size = 16, outline = "OUTLINE" },
 	healthText = { show = false, size = 9, outline = "OUTLINE", format = "percent" },
 	cast = {
-		enabled = true, height = 12, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
-		colorSource = "class", color = Color("accentDefault"), shieldColor = Color("textDisabled"),
-		waitColor = Color("neutral"), interruptSpell = "", hideOnTarget = true,
-		showIcon = true, showName = true, showTime = true, textSize = 10, outline = "OUTLINE",
+		enabled = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		colorSource = "custom", color = Color("gilt"), shieldColor = Color("textDisabled"),
+		waitColor = Color("gilt"), interruptSpell = "", hideOnTarget = false,
+		showIcon = false, showName = false, showTime = false, textSize = 10, outline = "OUTLINE",
 	},
 	debuffs = {
 		enabled = true, includePlateOnly = true, size = 26, spacing = 2, columns = 5, rows = 1, order = "important",
@@ -47,7 +47,7 @@ Settings.defaults = {
 		display = "glow", role = "auto", groupOnly = true,
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
-	target = { highlight = true, colorSource = "class", color = Color("accentDefault"), dimOthers = 1 },
+	target = { highlight = true, colorSource = "custom", color = Color("gilt"), dimOthers = 1 },
 	focus = { highlight = true, color = Color("rare") },
 	markers = { classification = true, raid = true, raidSize = 16 },
 	stacking = { footprint = "plate" },
@@ -179,7 +179,7 @@ local schema = {
 	},
 	{
 		type = "font", key = "font", label = L["Font"],
-		help = L["The font of every text on the plates."],
+		help = L["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."],
 	},
 	{ type = "header", label = L["Health bar"] },
 	{

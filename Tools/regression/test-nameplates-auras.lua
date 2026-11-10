@@ -8,19 +8,18 @@ local function group(plate)
 	return plate.auras._groups[GROUP]
 end
 
--- Tiled(K, frame, icon) -> true when the frame draws the kit's chamfered tile and the icon is cut to the
--- kit's chamfered icon mask, as the cast icon and the level badge on the same plate are.
+-- The picture uses square icons with a dark one-pixel inset, not the old masked tile.
 local function Tiled(K, frame, icon)
-	local tilePath = K.Tokens.Texture("chamferTile")
-	local maskPath = K.Tokens.Texture("iconMask")
-	local tile = false
+	local border = false
 	for _, object in ipairs(A.Descendants(frame)) do
-		if object:GetObjectType() == "Texture" and object ~= icon and object:GetTexture() == tilePath then
-			tile = true
+		if object:GetObjectType() == "Texture" and object ~= icon then
+			local color = N.Last(object, "SetColorTexture")
+			if color and N.SameColor(color[1], color[2], color[3], K.Tokens.Color("black")) then
+				border = true
+			end
 		end
 	end
-	local mask = icon:GetNumMaskTextures() == 1 and icon:GetMaskTexture(1)
-	return tile and mask and mask:GetTexture() == maskPath
+	return border and icon:GetNumMaskTextures() == 0
 end
 
 local function Whole(K, units)
@@ -55,7 +54,7 @@ end
 -- Each plate gets a container with one group: the player's harmful auras -----------------------------
 
 do
-	local env, _, ns = N.New()
+	local env, K, ns = N.New()
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	local container = plate.auras
@@ -78,25 +77,7 @@ do
 	assert(button._aura.timer, "and a time left")
 	local w, h = button:GetSize()
 	assert(w == size and h == size, "buttons start at the icon size")
-	do
-		local K = select(2, N.New())
-		local skin = (button:GetChildren())
-		local Widgets, Tokens = K.Widgets, K.Tokens
-		local fr, fg, fb = Tokens.Color("buttonFill")
-		local rr, rg, rb = Widgets.IconRim()
-		local body, rim = false, false
-		for _, region in ipairs({ skin:GetRegions() }) do
-			local set = region._state.Texture and region._state.Texture[1]
-			local cr, cg, cb = region:GetVertexColor()
-			if type(cr) == "number" and set == (Tokens.Texture("chamferTile")) and math.abs(cr - fr) < 1e-3 and math.abs(cg - fg) < 1e-3 and math.abs(cb - fb) < 1e-3 then
-				body = true
-			elseif type(cr) == "number" and math.abs(cr - rr) < 1e-3 and math.abs(cg - rg) < 1e-3 and math.abs(cb - rb) < 1e-3 then
-				rim = true
-			end
-		end
-		assert(body, "the tile's body is the near-black button fill every square icon shares")
-		assert(rim, "its hairline rests on the accent rim, as an action button")
-	end
+	assert(Tiled(K, button, button._aura.icon), "the icon has a square black border and no mask")
 	assert(N.Last(button, "EnableMouse")[1] == false, "debuff buttons let clicks through to the world, as Blizzard's plate auras do")
 
 	-- The flow layout: icons grow right and up from above the name, wrapping after the columns.
@@ -121,11 +102,11 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	local button = group(plate).frames[1]
 	local aura = button._aura
-	assert(Tiled(K, button, aura.icon), "a debuff is a chamfered kit tile with a masked icon, not a square on black")
-	assert(N.Last(aura.cooldown, "SetSwipeTexture")[1] == K.Tokens.Texture("iconMask"), "the cooldown swipe has the icon's chamfered shape")
-	local inset = K.Widgets.Border(button) * 2
+	assert(Tiled(K, button, aura.icon), "a debuff is square with a one-pixel dark border")
+	assert(N.Last(aura.cooldown, "SetSwipeTexture")[1] == K.Tokens.Texture("barFlat"), "the cooldown swipe has the icon's square shape")
+	local inset = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(button)
 	local point, _, _, x, y = aura.icon:GetPoint(1)
-	assert(point == "TOPLEFT" and x == inset and y == -inset, "the icon sits two border lines inside the tile")
+	assert(point == "TOPLEFT" and x == inset and y == -inset, "the icon sits one border line inside the tile")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -152,7 +133,7 @@ do
 	local sw = icon:GetSize()
 	local _, _, _, x = icon:GetPoint(1)
 	assert(Whole(K, sw) and Whole(K, x), "the preview's sample debuffs sit on the same whole-pixel grid")
-	assert(Tiled(K, icon, icon.icon), "and are the same chamfered tiles")
+	assert(Tiled(K, icon, icon.icon), "and are the same square tiles")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

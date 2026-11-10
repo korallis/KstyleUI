@@ -1678,7 +1678,7 @@ ns.Locale.Add({
 	["The font for the game's own damage numbers; it changes at your next login."] = "Die Schrift f\195\188r die Schadenszahlen des Spiels; sie \195\164ndert sich beim n\195\164chsten Einloggen.",
 	["The font of charge and stack counts."] = "Die Schrift der Aufladungs- und Stapelanzahl.",
 	["The font of chat messages and the edit box. Tabs use the caps face."] = "The font of chat messages and the edit box. Tabs use the caps face.",
-	["The font of every text on the plates."] = "Die Schrift aller Texte auf den Plaketten.",
+	["The font of plate values, debuff timers and optional cast text. Names use the kit's Cinzel heading."] = "Die Schrift f\195\188r Namensplakettenwerte, Schw\195\164chungszauber-Timer und optionalen Zaubertext. Namen verwenden die Cinzel-\195\156berschrift des Kits.",
 	["The font of skinned window titles, headers and lists."] = "Die Schrift der Titel, \195\156berschriften und Listen gestalteter Fenster.",
 	["The font of stack counts and item levels."] = "Die Schrift der Stapelanzahl und Gegenstandsstufen.",
 	["The font of the bar's text."] = "Die Schrift des Leistentexts.",

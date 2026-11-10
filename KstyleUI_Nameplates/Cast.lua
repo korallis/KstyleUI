@@ -1,4 +1,4 @@
--- Cast.lua: the plate's cast bar, run by the engine from the cast APIs' duration objects, with the spell's name, icon and interruptible state passed through, and stood down on your target's plate while the target sigil shows that cast.
+-- Cast.lua: the plate's flat cast bar, run by the engine from duration objects, with optional name, icon, time and target-frame deduplication.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,6 +11,7 @@ local Cast = {}
 ns.Cast = Cast
 
 local GAP = Tokens.Size("gapTiny")
+local FRAME_GAP = 1.15
 local TEXT_INSET = Tokens.Size("gapSmall")
 local TIME_STEP = 0.1
 local INTERRUPT_FADE = 0.8
@@ -20,11 +21,6 @@ local MS = 1000
 local SIGIL_MODULE = "UnitFrames"
 local SIGIL_KEYS = { "target.enabled", "target.castbar" }
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
-local SPARK_EDGE = {
-	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
-	VERTICAL = { normal = "TOP", reverse = "BOTTOM" },
-}
-
 local function Direction(name)
 	local enum = Enum and Enum.StatusBarTimerDirection
 	return enum and enum[name]
@@ -95,7 +91,7 @@ local function OnUpdate(bar, elapsed)
 		bar:SetValue(GetTime() * MS)
 	end
 	local duration = plate.castDuration
-	if not duration or not plate.castTime:IsShown() then
+	if type(duration) == "nil" or IsSecret(duration) or not plate.castTime:IsShown() then
 		return
 	end
 	plate.castClock = plate.castClock - elapsed
@@ -197,10 +193,6 @@ local function DurationFor(unit, channel)
 	if not ok or type(duration) == "nil" then
 		return nil
 	end
-	if IsSecret(duration) then
-		LogOnce("cast-secret-duration", "a cast's duration object came back secret; that bar runs from the start and end times")
-		return nil
-	end
 	return duration
 end
 
@@ -208,7 +200,7 @@ local function Run(plate, channel, startMs, endMs)
 	local bar = plate.castBar
 	local duration = DurationFor(plate.unit, channel)
 	plate.castDuration, plate.castFallback = nil, false
-	if duration and type(bar.SetTimerDuration) == "function" then
+	if type(duration) ~= "nil" and type(bar.SetTimerDuration) == "function" then
 		local direction = Direction(channel and "RemainingTime" or "ElapsedTime")
 		local ok = pcall(bar.SetTimerDuration, bar, duration, Immediate(), direction)
 		if ok then
@@ -216,7 +208,7 @@ local function Run(plate, channel, startMs, endMs)
 			return
 		end
 	end
-	LogOnce("cast-fallback", "UnitCastingDuration or SetTimerDuration is unavailable; cast bars run from the cast's start and end times")
+	LogOnce("cast-fallback", "UnitCastingDuration or SetTimerDuration is unavailable or refused the duration; cast bars run from the start and end times")
 	bar:SetMinMaxValues(startMs, endMs)
 	bar:SetValue(GetTime() * MS)
 	plate.castFallback = true
@@ -244,7 +236,7 @@ function Cast.Start(plate, channel)
 	plate.castName:SetText(text)
 	Run(plate, channel, startMs, endMs)
 	plate.castClock = 0
-	local showTime = Settings.Get("cast.showTime") and plate.castDuration ~= nil
+	local showTime = Settings.Get("cast.showTime") and type(plate.castDuration) ~= "nil" and not IsSecret(plate.castDuration)
 	plate.castTime:SetShown(showTime)
 	if showTime then
 		plate.castTime:SetText("")
@@ -358,8 +350,8 @@ function Component.Build(plate)
 	local cast = CreateFrame("Frame", nil, gate)
 	cast:Hide()
 	plate.cast = cast
-	plate.castBarOpts = { width = 100, height = 12, border = true, spark = true, sheen = true }
-	local bar = Widgets.StatusBar(cast, plate.castBarOpts)
+	plate.castBarOpts = { width = 100, height = 6, rimWidth = FRAME_GAP }
+	local bar = ns.FlatBar(cast, plate.castBarOpts)
 	bar.plate = plate
 	plate.castBar = bar
 	local icon = cast:CreateTexture(nil, "ARTWORK")
@@ -389,7 +381,16 @@ function Component.Room(plate)
 	if not Settings.Get("cast.enabled") then
 		return 0
 	end
-	return Settings.Get("cast.height") + GAP
+	local px = Widgets.Snap(plate, FRAME_GAP)
+	return Settings.Get("cast.height") + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Snap(plate, FRAME_GAP) + px * 3
+end
+
+function Cast.Place(plate)
+	local cast, health = plate.cast, plate.health
+	local px = plate.castBar.rimPixel
+	local gap = health.rimOutset + Widgets.Snap(plate, FRAME_GAP) + px
+	cast:ClearAllPoints()
+	cast:SetPoint("TOPLEFT", health, "BOTTOMLEFT", 0, -gap)
 end
 
 function Component.Restyle(plate)
@@ -399,8 +400,7 @@ function Component.Restyle(plate)
 	local iconRoom = showIcon and h + GAP or 0
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
 	Widgets.Size(cast, state.width, h)
-	cast:ClearAllPoints()
-	cast:SetPoint("TOPLEFT", plate.health, "BOTTOMLEFT", 0, -Widgets.Snap(plate, GAP))
+	Cast.Place(plate)
 	Widgets.Size(icon, h, h)
 	icon:ClearAllPoints()
 	icon:SetPoint("LEFT", cast, "LEFT")
@@ -416,9 +416,6 @@ function Component.Restyle(plate)
 	local reverse = Settings.Get("cast.reverse")
 	bar:SetReverseFill(reverse)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
-	local edges = SPARK_EDGE[orientation] or SPARK_EDGE.HORIZONTAL
-	bar.spark:ClearAllPoints()
-	bar.spark:SetPoint("CENTER", bar:GetStatusBarTexture(), reverse and edges.reverse or edges.normal)
 	bar:Restyle()
 	StyleFont(plate.castName)
 	StyleFont(plate.castTime)
