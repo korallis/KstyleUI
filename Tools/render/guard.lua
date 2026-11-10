@@ -42,7 +42,7 @@ Guard.OVERLAP = 2
 Guard.COVER_ALPHA = 0.5
 Guard.ppu = tonumber(os.getenv and os.getenv("RENDER_PPU") or nil) or 1.426
 Guard.ALLOW = "Tools/render/guard_allow.tsv"
-Guard.OWNERS = { R1 = true, R2 = true, R3 = true, R4a = true, R4b = true, R5 = true, R6 = true, R7 = true, S1 = true, S2 = true, S3 = true, S4 = true, S5 = true, S6 = true, design = true }
+Guard.OWNERS = { R1 = true, R2 = true, R3 = true, R4a = true, R4b = true, R5 = true, R6 = true, R7 = true, S1 = true, S2 = true, S3 = true, S4 = true, S5 = true, S6 = true, ["KSTY-7"] = true, design = true }
 Guard.KINDS = { ellipsis = true, outside = true, clipped = true, overlap = true }
 
 local DECOR = { "LumenShadow", "Shadow.png", "Glow.png", "Noise.png" }
