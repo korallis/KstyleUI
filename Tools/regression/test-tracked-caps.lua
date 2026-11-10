@@ -1,4 +1,4 @@
--- test-tracked-caps.lua: the caps role draws Cinzel Regular from CinzelTracked-Regular.ttf, whose advances carry the letter spacing; Locale.TrackMode tells how a face is spaced, a client whose script the face lacks falls back, and the tracking left after the last letter never moves centred or right-aligned text.
+-- test-tracked-caps.lua: the caps role draws Cinzel Medium from CinzelCaps-Medium.ttf, whose advances carry the letter spacing; Locale.TrackMode tells how a face is spaced, a client whose script the face lacks falls back, and the tracking left after the last letter never moves centred or right-aligned text.
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local THIN_SPACE = "\226\128\137"
@@ -23,11 +23,11 @@ local Widgets, Tokens, Scale, Locale = K.Widgets, K.Tokens, K.Scale, K.Locale
 local root = Scale.Root()
 
 local path, size, flags = Tokens.Font("caps")
-assert(path:match("CinzelTracked%-Regular%.ttf$"), "the caps role is the tracked Cinzel file, got " .. tostring(path))
+assert(path:match("CinzelCaps%-Medium%.ttf$"), "the caps role is the tracked Cinzel file, got " .. tostring(path))
 assert(size == Tokens.Size("caps") and size == 10 and flags == "", "the picture's 10-unit heading, no outline")
 local _, upper = Tokens.TextStyle("caps")
 assert(upper == true, "the caps role is uppercase")
-assert(Tokens.FaceTracking(path) == 0.07, "the face is tracked 0.07 em, the picture's")
+assert(Tokens.FaceTracking(path) == 0.065, "the face is tracked 0.065 em, the picture's")
 assert(Tokens.FaceTracking(Tokens.FontPath("CinzelSemiBold")) == 0, "Cinzel SemiBold is not tracked")
 local r, g, b = Tokens.Color("capsGold")
 assert(W.Near(r, 0xd3 / 255) and W.Near(g, 0xb5 / 255) and W.Near(b, 0x74 / 255), "capsGold is the picture's #d3b574")
@@ -44,7 +44,7 @@ Widgets.SetText(text, "Skyborne")
 assert(text:GetText() == "SKYBORNE" and not text:GetText():find(THIN_SPACE, 1, true), "capitals, no thin space")
 local pad = Widgets.TrackPad(text)
 local _, fontSize = text:GetFont()
-assert(pad > 0 and math.abs(pad - 0.07 * fontSize) < 1e-6, "the pad after the last letter is 0.07 em, got " .. tostring(pad))
+assert(pad > 0 and math.abs(pad - 0.065 * fontSize) < 1e-6, "the pad after the last letter is 0.065 em, got " .. tostring(pad))
 local natural = Scene.TextWidth("SKYBORNE", fontSize, (text:GetFont()))
 assert(math.abs(Widgets.TextWidth(text) - (natural - pad)) < 1e-6, "the measure stops at the last letter's ink")
 
@@ -98,7 +98,7 @@ text:SetPoint("CENTER", root, "CENTER", 0, 0)
 Widgets.ApplyFont(text, Tokens.FontPath("AlegreyaSansRegular"), 12, "")
 assert(Widgets.TrackPad(text) == 0 and Near(Moved("CENTER", 0), 0), "an untracked face leaves the anchor where it was set")
 Widgets.ApplyFont(text, path, 200 * px, "")
-assert(Near(Moved("CENTER", 0), 0.07 * select(2, text:GetFont()) / 2), "a bigger size means a bigger pad")
+assert(Near(Moved("CENTER", 0), 0.065 * select(2, text:GetFont()) / 2), "a bigger size means a bigger pad")
 assert(Widgets.TrackPad(text) > pad * 1.9, "the pad follows the size")
 
 local own = Widgets.FontString(root, "OVERLAY")
@@ -124,19 +124,52 @@ assert(math.abs(rule[#rule - 1] + Widgets.TrackPad(cap.label) - Widgets.Snap(cap
 for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES" }) do
 	local _, localeK = Boot(locale)
 	local tracked = localeK.Tokens.Font("caps")
-	assert(tracked:match("CinzelTracked%-Regular%.ttf$"), locale .. " draws the tracked face")
+	assert(tracked:match("CinzelCaps%-Medium%.ttf$"), locale .. " draws the tracked face")
 	assert(localeK.Locale.TrackMode(tracked) == "face", locale .. " leaves the spacing to the face")
 end
 
 for _, locale in ipairs({ "ruRU", "zhCN", "zhTW", "koKR" }) do
 	local fallbackEnv, localeK = Boot(locale)
 	local fallback = localeK.Tokens.Font("caps")
-	assert(not fallback:match("CinzelTracked"), locale .. " falls back to the game's font, got " .. tostring(fallback))
+	assert(not fallback:match("CinzelCaps"), locale .. " falls back to the game's font, got " .. tostring(fallback))
 	assert(localeK.Tokens.FaceTracking(fallback) == 0, locale .. " reads no tracking for the game's font")
 	assert(localeK.Locale.TrackMode(fallback) ~= "face", locale .. " does not call the game's font tracked")
 	local t = localeK.Widgets.Text(localeK.Scale.Root(), "caps", "capsGold")
 	assert(localeK.Widgets.TrackPad(t) == 0, locale .. " compensates nothing for a font without tracking")
 	assert(#fallbackEnv._errors == 0, tostring(fallbackEnv._errors[1]))
+end
+
+assert(Tokens.FaceShadow(path) == false and Tokens.FaceShadow(semibold) == true, "only the tracked face is drawn without the kit's text shadow")
+local shaded = Widgets.Text(root, "heading", "text")
+Widgets.ApplyFont(shaded, semibold, 12, "")
+local shadeOffset = W.LastCall(shaded, "SetShadowOffset")
+assert(shadeOffset and shadeOffset[1] ~= 0 and shadeOffset[2] ~= 0, "an ordinary face keeps the kit's text shadow")
+Widgets.ApplyFont(text, path, 12, "")
+local flatOffset = W.LastCall(text, "SetShadowOffset")
+assert(flatOffset and flatOffset[1] == 0 and flatOffset[2] == 0, "the picture draws its captions without a shadow")
+Widgets.TextShadow(text)
+flatOffset = W.LastCall(text, "SetShadowOffset")
+assert(flatOffset[1] == 0 and flatOffset[2] == 0, "and TextShadow leaves it off")
+
+local namesPath, namesSize, namesFlags = Tokens.Font("names")
+assert(namesPath:match("CinzelNames%-Medium%.ttf$"), "the names role is the lightly tracked Cinzel file, got " .. tostring(namesPath))
+assert(namesSize == 10 and namesFlags == "", "the picture's 10-unit names, no outline")
+local _, namesUpper = Tokens.TextStyle("names")
+assert(namesUpper == true, "the names role is uppercase")
+assert(Tokens.FaceTracking(namesPath) == 0.02, "the names face is tracked 0.02 em, the picture's white headings")
+assert(Locale.TrackMode(namesPath) == "face" and Locale.CanTrack(namesPath), "the names face spaces its own letters")
+assert(Tokens.FaceShadow(namesPath) == true, "the picture's names carry a soft shadow, so the names face keeps the kit's")
+local named = Widgets.Text(root, "names", "text")
+Widgets.ApplyFont(named, namesPath, 100 * px, "")
+assert(math.abs(Widgets.TrackPad(named) - 0.02 * select(2, named:GetFont())) < 1e-6, "the names pad is 0.02 em")
+local namedShadow = W.LastCall(named, "SetShadowOffset")
+assert(namedShadow and namedShadow[1] ~= 0 and namedShadow[2] ~= 0, "the names face keeps the kit's text shadow")
+for _, role in ipairs({ "caps", "names" }) do
+	for _, locale in ipairs({ "ruRU", "zhCN", "zhTW", "koKR" }) do
+		local _, localeK = Boot(locale)
+		local face = localeK.Tokens.Font(role)
+		assert(not face:match("Cinzel") and localeK.Tokens.FaceTracking(face) == 0 and localeK.Tokens.FaceShadow(face) == true, locale .. " " .. role .. " falls back to the game's font, untracked, with its shadow")
+	end
 end
 
 assert(#env._errors == 0, tostring(env._errors[1]))

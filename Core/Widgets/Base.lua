@@ -222,7 +222,7 @@ local function SnapSize(size, f)
 end
 
 local function Shadow(text, flags, f)
-	if flags ~= "" then
+	if flags ~= "" or not Tokens.FaceShadow((text:GetFont())) then
 		text:SetShadowOffset(0, 0)
 		return
 	end
