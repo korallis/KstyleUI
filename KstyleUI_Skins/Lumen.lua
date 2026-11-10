@@ -156,6 +156,7 @@ function Cap:Paint()
 	self.title:SetTextColor(Tokens.Color("capsGold"))
 	Widgets.TextColor(self.trail, "textEmphasis")
 	self.rule:SetColorTexture(r, g, b, RULE_ALPHA)
+	Widgets.PaintCapMaterial(self.gem, self.rule, RULE_ALPHA)
 end
 
 function Cap:Restyle()

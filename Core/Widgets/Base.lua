@@ -8,6 +8,7 @@ local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
 local abs, ceil, floor, log, max, min = math.abs, math.ceil, math.floor, math.log, math.max, math.min
 
 local SECTION = "Widgets"
+local DEFAULT_CARD_MATERIAL = "Glass"
 local FALLBACK_FONT = "GameFontHighlight"
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
@@ -19,6 +20,9 @@ local LINE_HEIGHT_SHARE = 1.2
 local CHAR_WIDTH_SHARE = 0.5
 
 Widgets.TEXTURE_TEXELS = {
+	forgedFrame1 = 32,
+	forgedFrame2 = 64,
+	forgedFrame3 = 128,
 	lumenShape = 128,
 	cardShape = 128,
 	lumenOutline = 128,
@@ -72,6 +76,7 @@ end
 local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
 
 Widgets.defaults = {
+	cardMaterial = DEFAULT_CARD_MATERIAL,
 	panelOpacity = SURFACE_ALPHA,
 	shadows = false,
 	sounds = true,
@@ -79,6 +84,9 @@ Widgets.defaults = {
 }
 
 local VALID = {
+	cardMaterial = function(v)
+		return not IsSecret(v) and type(v) == "string" and Tokens.Material(v) ~= nil
+	end,
 	panelOpacity = function(v)
 		return IsNumberIn(v, PANEL_OPACITY_MIN, PANEL_OPACITY_MAX)
 	end,
@@ -105,10 +113,22 @@ function Widgets.Setting(key)
 end
 
 Widgets.schema = {
+	{ type = "header", label = L["Card material"] },
+	{
+		type = "dropdown", key = "cardMaterial", label = L["Material"],
+		help = L["Choose the surface of KstyleUI's cards and windows. Glass keeps the original smoked glass."],
+		options = {
+			{ value = "Glass", label = L["Glass"] },
+			{ value = "Flat", label = L["Flat"] },
+			{ value = "Slate", label = L["Slate"] },
+			{ value = "ForgedTicks", label = L["Forged iron, gilt ticks"] },
+			{ value = "ForgedBrackets", label = L["Forged iron, brackets"] },
+		},
+	},
 	{ type = "header", label = L["Glass"] },
 	{
 		type = "slider", key = "panelOpacity", label = L["Panel opacity"],
-		help = L["How solid the smoked glass behind KstyleUI's panels and windows looks."],
+		help = L["How solid the selected material looks. Glass keeps the original smoked-glass opacity."],
 		min = PANEL_OPACITY_MIN, max = PANEL_OPACITY_MAX, step = PANEL_OPACITY_STEP,
 	},
 	{
@@ -826,6 +846,7 @@ function Widgets.Chrome(owner, opts)
 		share = opts.share,
 		shadowOn = opts.shadow == true or (opts.shadow == nil and shape.shadow == true),
 		fillName = opts.fill or shape.fill or "surface",
+		ownEdge = opts.edge ~= nil and opts.edge ~= "edgeInner",
 		edge = { Widgets.Rgba(opts.edge or (shape.pill and "edgeBar") or "edgeInner") },
 		fillColor = { 0, 0, 0, 0 },
 		ownFill = false,
@@ -918,6 +939,8 @@ end
 function Chrome:OnSizeChanged()
 	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
+	else
+		self:PaintMaterial()
 	end
 end
 
@@ -1001,6 +1024,152 @@ local function ShowOnce(chrome, key, slice, shown)
 	end
 end
 
+function Chrome:Material()
+	if self.shape.card and self.fillName == "surface" then
+		if self.ownFill then
+			local r, g, b = Tokens.Color("surface")
+			local c = self.fillColor
+			for i = 1, 4 do
+				if IsSecret(c[i]) or type(c[i]) ~= "number" then
+					return nil
+				end
+			end
+			if c[1] ~= r or c[2] ~= g or c[3] ~= b then
+				return nil
+			end
+		end
+		return Tokens.Material(Widgets.Setting("cardMaterial"))
+	end
+end
+
+function Chrome:MaterialOpacity()
+	local alpha = self.ownFill and self.fillColor[4] or Widgets.Setting("panelOpacity")
+	return max(0, alpha / SURFACE_ALPHA)
+end
+
+function Chrome:SyncMaterialFrame()
+	if not self.frameWanted and not self.materialFrame then
+		return
+	end
+	local active = self.frameWanted and self.frameReady
+	local accent = active and (self.ownEdge or self.proc)
+	if self.line then
+		Widgets.ShowSlice(self.line, self.visible and not active)
+	end
+	Widgets.ShowSlice(self.rim, self.visible and (not active or accent))
+	if self.materialRimRaised ~= (accent and true or false) then
+		self.materialRimRaised = accent and true or false
+		for i = 1, #self.rim do
+			self.rim[i]:SetDrawLayer("BORDER", accent and 0 or SUBLEVEL_RIM)
+		end
+	end
+	if self.materialFrame then
+		Widgets.ShowSlice(self.materialFrame, self.visible and active)
+	end
+	if self.materialBrackets then
+		Widgets.ShowSlice(self.materialBrackets, self.visible and active and self.bracketsWanted)
+	end
+	if self.gilt then
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not (active and self.bracketsWanted))
+	end
+end
+
+function Chrome:PaintMaterial()
+	local material = self:Material()
+	local framed = material and material.frame
+	self.frameWanted = framed
+	self.bracketsWanted = material and material.brackets
+	if not framed then
+		self.frameReady = false
+	end
+	self:SyncMaterialFrame()
+	if not material or not material.texture then
+		if self.grain then
+			self.grain:Hide()
+		end
+		return
+	end
+	if self.grain then
+		self.grain:SetShown(self.visible)
+	end
+	if not Widgets.MayMove(self.owner) then
+		if not self.materialQueued then
+			self.materialQueued = true
+			ns.Combat.Queue(function()
+				self.materialQueued = false
+				self:PaintMaterial()
+			end)
+		end
+		return
+	end
+	local owner = self.owner
+	local w, h = owner:GetWidth(), owner:GetHeight()
+	if IsSecret(w) or IsSecret(h) or type(w) ~= "number" or type(h) ~= "number" then
+		return
+	end
+	local inset = Widgets.Snap(owner, self:Radius())
+	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(owner)
+	if framed then
+		local pixels = min(3, max(1, floor(Widgets.Border(owner) / pixel + 0.5)))
+		local name = "forgedFrame" .. pixels
+		if not self.materialFrame then
+			self.materialFrame = NewSlice(owner, name, "BORDER", SUBLEVEL_RIM)
+			for i = 1, #self.materialFrame do
+				Widgets.Crisp(self.materialFrame[i])
+			end
+		elseif self.materialFrame.texture ~= name then
+			PaintSlice(self.materialFrame, name)
+		end
+		self.frameReady = min(w, h) >= 16 * pixels * pixel
+		if self.frameReady then
+			Widgets.LayoutSlice(self.materialFrame, owner, 8 * pixels * pixel, 0)
+			Widgets.ColorSlice(self.materialFrame, Tokens.Color("white"))
+		end
+		if material.brackets then
+			if not self.materialBrackets then
+				self.materialBrackets = {}
+				for i = 1, 4 do
+					self.materialBrackets[i] = Widgets.Crisp(NewTexture(owner, "BORDER", SUBLEVEL_GILT))
+				end
+			end
+			local corners = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
+			for i, corner in ipairs(corners) do
+				local bracket = self.materialBrackets[i]
+				bracket:SetTexture(Tokens.Texture("forgedBracket" .. pixels))
+				local share = pixels == 3 and 0.75 or 1
+				local left, right = i % 2 == 1 and 0 or share, i % 2 == 1 and share or 0
+				local top, bottom = i <= 2 and 0 or share, i <= 2 and share or 0
+				bracket:SetTexCoord(left, right, top, bottom)
+				bracket:ClearAllPoints()
+				bracket:SetPoint(corner, owner, corner)
+				bracket:SetSize(8 * pixels * pixel, 8 * pixels * pixel)
+				bracket:SetShown(self.visible and min(w, h) >= 16 * pixels * pixel)
+			end
+		end
+		self:SyncMaterialFrame()
+	end
+	if w <= 2 * inset or h <= 2 * inset or pixel <= 0 then
+		if self.grain then
+			self.grain:Hide()
+		end
+		return
+	end
+	if not self.grain then
+		self.grain = NewTexture(owner, "BACKGROUND", SUBLEVEL_FILL + 1)
+		self.grain:SetBlendMode("BLEND")
+	end
+	self.grain:ClearAllPoints()
+	self.grain:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -inset)
+	self.grain:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, inset)
+	if self.grain:SetTexture(Tokens.Texture(material.texture), "REPEAT", "REPEAT") == false then
+		self.grain:Hide()
+		return
+	end
+	self.grain:SetTexCoord(0, (w - 2 * inset) / pixel / material.texels, 0, (h - 2 * inset) / pixel / material.texels)
+	self.grain:SetVertexColor(Widgets.Rgba("white", min(1, material.grain * self:MaterialOpacity())))
+	self.grain:SetShown(self.visible)
+end
+
 function Chrome:Paint()
 	local r, g, b, a
 	if self.ownFill then
@@ -1012,18 +1181,29 @@ function Chrome:Paint()
 			a = Widgets.Setting("panelOpacity")
 		end
 	end
+	local material = self:Material()
+	if material and material.fill then
+		r, g, b, a = Tokens.Color(material.fill)
+		a = min(1, a * self:MaterialOpacity())
+	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
+	self:PaintMaterial()
 	if self.shadow then
 		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 	if self.gilt then
-		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown)
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not (self.frameReady and material and material.brackets))
 	end
 	self:PaintEdge()
 end
 
 function Chrome:PaintEdge()
+	self:SyncMaterialFrame()
 	local e = self.edge
+	local material = self:Material()
+	if material and material.edge and not self.ownEdge then
+		e = { Tokens.Color(material.edge) }
+	end
 	if self.line then
 		local name = self.proc and "giltLit" or self.shape.line
 		if self.lineName ~= name then
@@ -1034,7 +1214,11 @@ function Chrome:PaintEdge()
 		Widgets.ColorSlice(self.rim, Tokens.Color("gilt"))
 		return
 	end
-	Widgets.ColorSlice(self.rim, e[1], e[2], e[3], e[4])
+	if self.frameWanted and self.frameReady and self.proc then
+		Widgets.ColorSlice(self.rim, Tokens.Color("giltLit"))
+	else
+		Widgets.ColorSlice(self.rim, e[1], e[2], e[3], e[4])
+	end
 end
 
 function Chrome:Restyle()
@@ -1074,9 +1258,14 @@ end
 
 function Chrome:SetEdge(name, alphaScale)
 	self:SetEdgeRGBA(Widgets.Rgba(name, alphaScale))
+	if name == "edgeInner" and (alphaScale == nil or alphaScale == 1) then
+		self.ownEdge = false
+		self:PaintEdge()
+	end
 end
 
 function Chrome:SetEdgeRGBA(r, g, b, a)
+	self.ownEdge = true
 	local e = self.edge
 	e[1], e[2], e[3], e[4] = r, g, b, a
 	self:PaintEdge()
@@ -1105,6 +1294,9 @@ end
 
 function Chrome:SetShown(shown)
 	self.visible = shown and true or false
+	if self.grain then
+		self:PaintMaterial()
+	end
 	Widgets.ShowSlice(self.fill, shown)
 	Widgets.ShowSlice(self.rim, shown)
 	if self.line then
@@ -1115,6 +1307,11 @@ function Chrome:SetShown(shown)
 	end
 	if self.shadow then
 		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
+	end
+	self:PaintMaterial()
+	local material = self:Material()
+	if self.gilt and self.frameReady and material and material.brackets then
+		ShowOnce(self, "giltState", self.gilt, false)
 	end
 end
 

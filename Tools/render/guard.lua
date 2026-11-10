@@ -190,6 +190,12 @@ function Guard.Cards(scene)
 	for _, frame in ipairs(order) do
 		if isCard[frame] then
 			local card = byFrame[frame]
+			if frame._env then
+				local x, y, w, h = Scene.Rect(frame._env, frame)
+				if x then
+					card.border = { x, y, w, h }
+				end
+			end
 			card.scope = frame
 			if isBackdrop(frame) then
 				card.scope = Guard.Clothes(frame, card.glass) or frame
@@ -239,6 +245,30 @@ end
 -- Owner(cards, item, rect) -> the card a drawn item belongs to, or nil: of the cards whose content holds it in the
 -- frame tree, the one whose content root is deepest; else, for a text, the smallest card its centre sits on. A
 -- card's own chrome belongs to no card.
+local function ownBorder(item, card, rect)
+	local object = item.object
+	if item.kind ~= "texture" or object._parent ~= card.frame or not card.border
+		or Geometry.Outside(bounds(rect), bounds(card.border)) > 0.001 then
+		return false
+	end
+	local file = fileOf(item)
+	if file:match("/ForgedFrame[123]%.png$") or file:match("/ForgedBracket[123]%.png$") then
+		return true
+	end
+	local layer = object._state and object._state.DrawLayer
+	if file ~= "" or not layer or layer[1] ~= "BORDER" or layer[2] ~= -3 or #object._points ~= 2 then
+		return false
+	end
+	for _, point in ipairs(object._points) do
+		local corner = point[2]
+		local texture = type(corner) == "table" and corner._state and corner._state.Texture
+		if not texture or corner._parent ~= card.frame or type(texture[1]) ~= "string" or not texture[1]:match("RingLine%d+%.png$") then
+			return false
+		end
+	end
+	return true
+end
+
 function Guard.Owner(cards, item, rect)
 	local object = item.object
 	local x, y = centre(rect)
@@ -246,6 +276,7 @@ function Guard.Owner(cards, item, rect)
 	local file = fileOf(item)
 	for _, card in ipairs(cards) do
 		local chrome = object._parent == card.frame and (file:find("Lumen", 1, true) or file:find("CardShape", 1, true) or file:find("RingLine", 1, true))
+			or ownBorder(item, card, rect)
 		if not chrome then
 			if card.scope and within(object, card.scope) then
 				local d = depth(card.scope)

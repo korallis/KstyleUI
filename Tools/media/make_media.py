@@ -705,6 +705,7 @@ class Asset:
     settings: str = "4x4 supersampled"
     slice: Optional[int] = None
     drawn: str = DRAWN
+    maker: str = "`Tools/media/make_media.py`, procedural, no model"
 
     @property
     def name(self):
@@ -793,6 +794,38 @@ ASSETS = [
 ]
 
 
+def material_pixels(name, width=256, height=256):
+    actual_width, actual_height, pixels = decode_png((ROOT / "Tools" / "media" / "materials" / f"{name}.png").read_bytes())
+    if (actual_width, actual_height) != (width, height):
+        raise ValueError(f"{name}: expected a prepared {width}x{height} RGBA source")
+    return pixels
+
+
+for material_name in ("Slate", "Forged"):
+    ASSETS.append(Asset(
+        f"Media/Textures/Material{material_name}.png", 256, 256,
+        lambda name=material_name: material_pixels(name),
+        f"Prepared {material_name.lower()} grain for the optional card-material study.",
+        "Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below",
+        drawn="2026-11-10", maker="Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py`",
+    ))
+
+for art_name, width, height, margin in (
+    ("ForgedFrame1", 32, 32, 8), ("ForgedFrame2", 64, 64, 16),
+	("ForgedFrame3", 128, 128, 24),
+    ("ForgedBracket1", 8, 8, None), ("ForgedBracket2", 16, 16, None),
+	("ForgedBracket3", 32, 32, None),
+    ("ForgedDiamond", 64, 64, None), ("ForgedRule", 256, 4, None),
+):
+    ASSETS.append(Asset(
+        f"Media/Textures/{art_name}.png", width, height,
+        lambda name=art_name, w=width, h=height: material_pixels(name, w, h),
+        "Original pixel-aligned forged-frame or header finish for the forged-material study.",
+        "Prepared source in Tools/media/materials; source palette and pixel construction recorded below",
+        slice=margin, drawn="2026-11-10", maker="Python/Pillow construction using original Higgsfield reference palettes",
+    ))
+
+
 def provenance_table():
     lines = [
         "| File | Size | What it is | Made with | Settings | Date |",
@@ -802,7 +835,7 @@ def provenance_table():
         slice_note = f"; slice margins {asset.slice} texels" if asset.slice else ""
         lines.append(
             f"| `{asset.path}` | {asset.width}x{asset.height} | {asset.about} | "
-            f"`Tools/media/make_media.py`, procedural, no model | {asset.settings}{slice_note} | {asset.drawn} |"
+            f"{asset.maker} | {asset.settings}{slice_note} | {asset.drawn} |"
         )
     return "\n".join(lines)
 
