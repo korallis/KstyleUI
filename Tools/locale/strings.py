@@ -41,6 +41,7 @@ FACES = (
     "AlegreyaSansTabular-Regular.ttf",
     "AlegreyaSansTabular-Medium.ttf",
     "AlegreyaSansTabular-Bold.ttf",
+    "AlegreyaSansTabular-ExtraBold.ttf",
     "SourceSans3-Regular.ttf",
     "SourceSans3-Semibold.ttf",
     "Inter-SemiBold.ttf",

@@ -5,8 +5,8 @@ Usage (fontTools is needed, so run it from a throwaway virtual environment, neve
     /tmp/fonts-venv/bin/python Tools/media/make_fonts.py --src DIR [--out Media/Fonts]
 
 DIR holds the files from google/fonts at the commit Media/PROVENANCE.md names:
-    Cinzel[wght].ttf (ofl/cinzel), AlegreyaSans-Regular.ttf, AlegreyaSans-Medium.ttf, AlegreyaSans-Bold.ttf
-    (ofl/alegreyasans).
+    Cinzel[wght].ttf (ofl/cinzel), AlegreyaSans-Regular.ttf, AlegreyaSans-Medium.ttf, AlegreyaSans-Bold.ttf,
+    AlegreyaSans-ExtraBold.ttf (ofl/alegreyasans).
 
 Cinzel ships only as a variable font, and the game loads static TrueType files, so this pins the weight axis
 at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
@@ -31,11 +31,14 @@ Run it with fontTools alone: when uharfbuzz is installed, fontTools packs GPOS d
 change (the glyphs and advances do not), so Tools/tests/test_fonts.py refuses to run the build under it.
 
 The game's text renderer applies no OpenType features, so Alegreya Sans would always draw its default
-figures, which are oldstyle and proportional. Each Alegreya Sans file is copied with its character map
-pointing the digits 0 to 9 at the font's own tabular lining figures (zero.tf to nine.tf), the figures the
-mockup selects with font-variant-numeric: tabular-nums lining-nums. Nothing else changes. The family is
-renamed Alegreya Sans Tabular so the modified files are not mistaken for the originals; neither font has a
-Reserved Font Name.
+figures, which are oldstyle and proportional, and a number that ticks would change width. Each Alegreya Sans file
+is copied with its character map pointing the digits 0 to 9 at the font's own tabular oldstyle figures (zero.tosf
+to nine.tosf, 475 units wide): the figures the owner's picture draws, on fixed widths. The picture is a browser's
+default figure set, so oldstyle is the default here (FIGURES, or --figures oldstyle); --figures lining points the
+digits at the tabular lining figures (zero.tf to nine.tf, the same 475 units) instead, the figures the mockup
+selects with font-variant-numeric: tabular-nums lining-nums. Nothing else changes. The family is renamed
+Alegreya Sans Tabular so the modified files are not mistaken for the originals; neither font has a Reserved
+Font Name.
 """
 
 import argparse
@@ -46,8 +49,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CINZEL_WEIGHT = 600
 DIGITS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
-TABULAR_SUFFIX = ".tf"
-ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
+FIGURES = "oldstyle"
+TABULAR_SUFFIX = {"oldstyle": ".tosf", "lining": ".tf"}
+ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700), ("ExtraBold", 800))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_MEDIUM_WEIGHT = 500
 TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065, 0.18), ("CinzelNames-Medium", "Cinzel Names", 0.0, 0.16), ("CinzelUnit-Medium", "Cinzel Unit", -0.065, 0.25))
@@ -111,7 +115,7 @@ def make_tracked(src, out, stem, family, tracking_em, space_em):
     return path
 
 
-def make_alegreya(src, out, style, weight):
+def make_alegreya(src, out, style, weight, figures=FIGURES):
     from fontTools.ttLib import TTFont
 
     font = TTFont(src / f"AlegreyaSans-{style}.ttf", recalcTimestamp=False)
@@ -120,7 +124,7 @@ def make_alegreya(src, out, style, weight):
         if not table.isUnicode():
             continue
         for i, glyph in enumerate(DIGITS):
-            tabular = glyph + TABULAR_SUFFIX
+            tabular = glyph + TABULAR_SUFFIX[figures]
             if tabular not in order:
                 raise SystemExit(f"AlegreyaSans-{style}.ttf has no {tabular}")
             if ord("0") + i in table.cmap:
@@ -140,6 +144,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--src", type=Path, required=True, help="folder with the google/fonts source files")
     parser.add_argument("--out", type=Path, default=ROOT / "Media" / "Fonts", help="where to write (default: Media/Fonts)")
+    parser.add_argument("--figures", choices=tuple(TABULAR_SUFFIX), default=FIGURES, help="the digits' form in the Alegreya Sans files (default: %(default)s)")
     parser.add_argument("--only", choices=("cinzel", "alegreya"), help="make one family's files; the Cinzel family needs only Cinzel[wght].ttf in --src")
     args = parser.parse_args(argv)
     if importlib.util.find_spec("uharfbuzz"):
@@ -151,7 +156,7 @@ def main(argv):
             print("wrote", make_tracked(args.src, args.out, stem, family, tracking_em, space_em))
     if args.only != "cinzel":
         for style, weight in ALEGREYA:
-            print("wrote", make_alegreya(args.src, args.out, style, weight))
+            print("wrote", make_alegreya(args.src, args.out, style, weight, args.figures))
     return 0
 
 
