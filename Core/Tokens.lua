@@ -146,7 +146,7 @@ local FONT_FACES = {
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
 }
 local ROLE_FACES = {
-	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.07 },
+	{ key = "CinzelTracked", path = FONTS_DIR .. "CinzelTracked-Regular.ttf", tracking = 0.08, shadow = false },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -279,10 +279,12 @@ end
 
 local FACE_PATH = {}
 local FACE_TRACKING = {}
+local FACE_FLAT = {}
 for _, list in ipairs({ FONT_SETS, FONT_FACES, ROLE_FACES }) do
 	for _, face in ipairs(list) do
 		FACE_PATH[face.key] = face.path
 		FACE_TRACKING[face.path] = face.tracking
+		FACE_FLAT[face.path] = face.shadow == false
 	end
 end
 
@@ -315,6 +317,10 @@ end
 
 function Tokens.FaceTracking(path)
 	return FACE_TRACKING[path] or 0
+end
+
+function Tokens.FaceShadow(path)
+	return not FACE_FLAT[path]
 end
 
 function Tokens.TextStyle(role)

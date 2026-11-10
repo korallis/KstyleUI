@@ -14,7 +14,7 @@ at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
 The game has no letter-spacing call (FontString has SetSpacing, which is line spacing, and nothing else spaces
 letters), and Cinzel has no thin-space glyph to space them with. CinzelTracked-Regular.ttf is Cinzel pinned at
 weight 400 with TRACKING_EM of its em added to the advance of every glyph that has one, so the client draws
-letter-spaced capitals from the font itself. TRACKING_EM is what a fit of the owner's picture gives (0.07 em at its 10-unit
+letter-spaced capitals from the font itself. TRACKING_EM is what a fit of the owner's picture gives (0.08 em at its 10-unit
 headings, see Media/PROVENANCE.md). Cinzel draws lowercase letters as small capitals; the character map
 here points each lowercase letter at its capital, so a name the code cannot uppercase (a secret value) still reads in
 capitals. The outlines, the left side bearings and the kerning are Cinzel's; only hmtx, hhea.advanceWidthMax,
@@ -41,7 +41,7 @@ TABULAR_SUFFIX = ".tf"
 ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_REGULAR_WEIGHT = 400
-TRACKING_EM = 0.07
+TRACKING_EM = 0.08
 TRACKED_FAMILY = "Cinzel Tracked"
 
 
