@@ -131,7 +131,7 @@ Kit.Tab = Accented(Skin.Tab)
 
 function Kit.Window(frame, opts)
 	opts = opts or {}
-	local panel = Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false })
+	local panel = Skin.Window(frame, { inset = opts.inset, tabs = opts.tabs, title = false, popup = opts.popup })
 	local title = PartB.Title(frame)
 	if opts.tabs ~= false and type(frame.Tabs) == "table" then
 		for _, tab in ipairs(frame.Tabs) do

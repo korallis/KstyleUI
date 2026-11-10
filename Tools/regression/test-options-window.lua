@@ -234,7 +234,7 @@ end
 do
 	local parts = ns.Window.Parts()
 	local sections = railSections(ns)
-	assert(sections[1] == "Accent" and has(sections, "Glass"), "General's level-1 headers sit under it in the rail: " .. table.concat(sections, "|"))
+	assert(sections[1] == "Accent" and has(sections, "Panel appearance"), "General's level-1 headers sit under it in the rail: " .. table.concat(sections, "|"))
 	local entries = O.Labels(parts.rail:GetData())
 	assert(entries[1] == "General" and entries[2] == "Accent" and entries[#sections + 2] == "Elements", "the sections follow their page and the next page follows them: " .. table.concat(entries, "|"))
 	assert(ns.Window.State().section == 1, "the first section is current while the rows sit at their top")
@@ -253,13 +253,13 @@ do
 		return index
 	end
 
-	local glass = railRow(ns, "Glass", true)
+	local glass = railRow(ns, "Panel appearance", true)
 	assert(glass:GetHeight() < railRow(ns, "General"):GetHeight(), "a section row is shorter than a page row")
 	W.Click(glass)
 	settle(env)
-	assert(parts.content:GetOffset() == parts.content:GetMaxOffset() and parts.content:GetOffset() > 0, "General is too short to put Glass at the top, so the click scrolls to the end")
+	assert(parts.content:GetOffset() == parts.content:GetMaxOffset() and parts.content:GetOffset() > 0, "General is too short to put Panel appearance at the top, so the click scrolls to the end")
 	assert(ns.Window.State().page == "General", "a section click keeps the page")
-	local index = headerIndex("Glass")
+	local index = headerIndex("Panel appearance")
 	assert(firstRow() < index and ns.Window.State().section < index, "the current section is the one the first row on screen belongs to, not the one clicked")
 
 	parts.content:ScrollTo(0, true)

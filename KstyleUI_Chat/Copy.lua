@@ -101,6 +101,7 @@ end
 local function Build()
 	local window = Widgets.Panel(Scale.Root(), {
 		title = L["Copy chat"],
+		popup = true,
 		close = true,
 		escape = true,
 		movable = true,

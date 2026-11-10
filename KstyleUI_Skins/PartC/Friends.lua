@@ -120,7 +120,7 @@ local function Broadcast(bnet)
 	local broadcast = bnet.BroadcastFrame
 	if type(broadcast) == "table" then
 		Skin.Strip(broadcast, { children = { "Border", "Border.NineSlice" } })
-		Skin.Backdrop(broadcast, { shape = "window", fill = "surface", shadow = true })
+		Skin.Backdrop(broadcast, { shape = "window", fill = "surface", shadow = true, popup = true })
 		Kit.Texts(broadcast, "heading", "textEmphasis")
 		Kit.EditBox(broadcast.EditBox)
 		Kit.Each(KEY, broadcast, BROADCAST_BUTTONS, Kit.Button)
@@ -128,7 +128,7 @@ local function Broadcast(bnet)
 	local unavailable = bnet.UnavailableInfoFrame
 	if type(unavailable) == "table" then
 		Skin.Strip(unavailable, { children = { "NineSlice" } })
-		Skin.Backdrop(unavailable, { shape = "window", fill = "surface", shadow = true })
+		Skin.Backdrop(unavailable, { shape = "window", fill = "surface", shadow = true, popup = true })
 	end
 end
 
@@ -155,7 +155,7 @@ local function Raid()
 	local info = _G.RaidInfoFrame
 	if type(info) == "table" then
 		Skin.Strip(info, { children = { "Border", "Border.NineSlice", "Header" } })
-		Skin.Backdrop(info, { shape = "window", fill = "surface", shadow = true })
+		Skin.Backdrop(info, { shape = "window", fill = "surface", shadow = true, popup = true })
 		local close = _G.RaidInfoCloseButton
 		if type(close) == "table" then
 			Skin.CloseButton(close)
@@ -189,7 +189,7 @@ local function Apply()
 	end
 	local ignore = frame.IgnoreListWindow
 	if type(ignore) == "table" then
-		Kit.Window(ignore)
+		Kit.Window(ignore, { popup = true })
 		if type(ignore.UnignorePlayerButton) == "table" then
 			Kit.Button(ignore.UnignorePlayerButton)
 		end

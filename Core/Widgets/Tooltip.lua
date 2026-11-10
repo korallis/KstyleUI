@@ -319,7 +319,7 @@ function Widgets.Tooltip()
 	tip:SetFrameStrata("TOOLTIP")
 	tip:SetClampedToScreen(true)
 	tip:EnableMouse(false)
-	tip.chrome = Widgets.Chrome(tip, { shape = "panel", fill = "surface", shadow = true })
+	tip.chrome = Widgets.Chrome(tip, { shape = "panel", fill = "surface", shadow = true, popup = true })
 	tip.icon = IconTile(tip)
 	tip.used, tip.pool = {}, {}
 	function tip.Show(self)

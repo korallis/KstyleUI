@@ -198,7 +198,7 @@ function Widgets.DialogHost()
 	if host then
 		return host
 	end
-	host = Widgets.Panel(Scale.Root(), { width = WIDTH, height = WIDTH / 2, title = L["KstyleUI"], strata = "DIALOG", hidden = true })
+	host = Widgets.Panel(Scale.Root(), { width = WIDTH, height = WIDTH / 2, title = L["KstyleUI"], strata = "DIALOG", hidden = true, popup = true })
 	host.body = Widgets.Text(host, "body", "text")
 	host.body:SetJustifyH("LEFT")
 	host.body:SetWordWrap(true)

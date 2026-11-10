@@ -152,7 +152,7 @@ local function Glass(frame, opts)
 		inset = inset or {}
 		inset.top = -Tokens.Size(opts.rise)
 	end
-	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt })
+	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt, popup = opts.popup })
 end
 
 
@@ -1073,7 +1073,7 @@ local function DressPanel(frame, rise)
 		panel = CreateFrame("Frame", nil, frame)
 		panel:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, rise and Widgets.Snap(panel, Tokens.Size(rise)) or 0)
 		panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface" })
+		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface", popup = true })
 		panel.Restyle = RestyleDressPanel
 		RestyleDressPanel(panel)
 		dress.panels[frame] = panel
@@ -1261,7 +1261,7 @@ TipWindow = function(step)
 		return
 	end
 	if not entry then
-		Skin.Backdrop(step, { shape = "window", fill = "surface", shadow = true })
+		Skin.Backdrop(step, { shape = "window", fill = "surface", shadow = true, popup = true })
 		local holder = CreateFrame("Frame", nil, step)
 		holder:SetAllPoints(step)
 		entry = { holder = holder, caption = Widgets.FontString(holder, "OVERLAY") }
@@ -1989,7 +1989,7 @@ local function Importer(importer)
 		local popup = widgets[key]
 		if IsTable(popup) and IsTable(popup.frame) then
 			if not Skin.IsSkinned(popup.frame, "Backdrop") then
-				Glass(popup.frame)
+				Glass(popup.frame, { popup = true })
 			end
 			CaptionFor(popup.title)
 			Label(Find(popup, "message"), "body", "text")
