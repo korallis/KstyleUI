@@ -37,7 +37,7 @@ Footprints are width x height in root units. The centre column follows the owner
 | `groupframes.raid` | GroupFrames | Raid frames | 318 x 427 | Four groups a row, two rows, five 77 by 40 frames each, 3-unit gaps, on the left rail's column. Healer: 318 x 487, 46-unit frames, in the party card's place over the cluster |
 | `actionbars.bar1` | ActionBars | Action bar 1 | 491 x 36.7 | LEE-20: 12 square tiles of 36.7 units with 4.6-unit gaps, centred at bottom 54; enabled with empty tiles shown |
 | `actionbars.bar2` | ActionBars | Action bar 2 | 491 x 36.7 | LEE-20: enabled with empty tiles shown, centred at bottom 95.3, 4.6 over bar 1 |
-| `actionbars.bar3` | ActionBars | Action bar 3 | 489 x 38 | LEE-20: off by default, its unchanged-size row has a BOTTOMLEFT slot at screenMargin (28), bottom 464, 16 over the loot feed's full reserve and outside the central 40% band |
+| `actionbars.bar3` | ActionBars | Action bar 3 | 489 x 38 | LEE-20: off by default, its unchanged-size row has a BOTTOMLEFT slot at screenMargin (17), bottom 453 derived from the rail stack, 16 over the loot feed's full reserve and outside the central 40% band |
 | `actionbars.bar4` | ActionBars | Action bar 4 | 38 x 489 | Off in Lumen. A side bar: a column of twelve on the right edge of the play field, a rail gap left of the right rail, centred on the screen's height |
 | `actionbars.bar5` | ActionBars | Action bar 5 | 38 x 489 | Off in Lumen. A side bar: a column of twelve 3 units left of bar 4 |
 | `actionbars.bar6` | ActionBars | Action bar 6 | 38 x 489 | Off in Lumen. A column of twelve 3 units left of bar 5; the boss column stands a rail gap left of it |

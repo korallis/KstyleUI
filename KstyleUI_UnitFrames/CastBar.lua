@@ -522,7 +522,7 @@ function CastBars.Restyle(cb)
 	cb.mode = Caption(cb)
 	local textPath, timerPath = path, path
 	if cb.mode and Settings.ThemeFont(cb.kind, "cast") then
-		textPath, timerPath = Lumen.Font("cap"), Lumen.Font("value")
+		textPath, timerPath = Lumen.Font("name"), Lumen.Font("value")
 	end
 	cb.textPath = textPath
 	StyleText(cb.text, textPath, size, flags)

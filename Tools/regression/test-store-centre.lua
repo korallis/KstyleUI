@@ -77,6 +77,7 @@ local db = env.KstyleUIDB
 assert(db.version == 10 and #env._errors == 0, "version 9 migrates without errors")
 local now = K.Setup.Layouts.Get("DPS")
 assert(db.layouts.Old["unitframes.resource"].y == 420, "the old class resource position migrates above the player cast, outside the narrow target-to-cooldown gap")
+assert(db.layouts.Old["actionbars.bar3"].y == 453, "the old spare bar position migrates above the loot feed at the current screen margin")
 for key in pairs(old) do
 	local entry, place = db.layouts.Old[key], now[key]
 	assert(entry.anchor == place.anchor and entry.x == place.x and entry.y == place.y, key .. " moves to the new reference: " .. tostring(entry.anchor) .. "," .. tostring(entry.x) .. "," .. tostring(entry.y) .. " expected " .. tostring(place.anchor) .. "," .. tostring(place.x) .. "," .. tostring(place.y))

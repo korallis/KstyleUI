@@ -94,7 +94,7 @@ do
 			local bar1, bar2, bar3 = rect("actionbars.bar1"), rect("actionbars.bar2"), rect("actionbars.bar3")
 			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, 491) and near(bar1.r - bar1.l, 491), label .. ": LEE-20 the two enabled rows share the 491-unit column")
 			assert(near(bar1.b, 54) and near(bar2.b, 95.3) and near(bar2.b - bar1.t, 4.6), label .. ": LEE-20 the action rows use the reference bottoms and gap")
-			assert(layout["actionbars.bar3"].anchor == "BOTTOMLEFT" and near(bar3.l, K.Tokens.Size("screenMargin")) and near(bar3.b, 464) and near(bar3.r - bar3.l, 489), label .. ": LEE-20 spare bar 3 keeps its old width above the loot feed")
+			assert(layout["actionbars.bar3"].anchor == "BOTTOMLEFT" and near(bar3.l, K.Tokens.Size("screenMargin")) and near(bar3.b, 453) and near(bar3.r - bar3.l, 489), label .. ": LEE-20 spare bar 3 keeps its old width above the loot feed")
 			assert(near(bar3.b - rect("qol.lootfeed").t, 16), label .. ": spare bar 3 leaves 16 units over the loot feed's full reserve")
 			assert(bar3.r <= width * 0.3 or bar3.l >= width * 0.7, label .. ": LEE-20 spare bar 3 stays outside the central 40% band")
 			local player, target = rect("unitframes.player"), rect("unitframes.target")

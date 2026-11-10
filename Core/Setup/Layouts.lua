@@ -150,7 +150,7 @@ local DPS = {
 	["databars.honor"] = { anchor = "BOTTOM", x = ENDS, y = 52 },
 	["actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 54 },
 	["actionbars.bar2"] = { anchor = "BOTTOM", x = 0, y = 95.3 },
-	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = ns.Tokens.Size("screenMargin"), y = 464 },
+	["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = MARGIN, y = MARGIN + CHAT_H + select(2, ElementSize("qol.lootfeed")) + 2 * GAP },
 	["actionbars.pet"] = { anchor = "BOTTOM", x = -ENDS, y = BAR1_Y },
 	["actionbars.stance"] = { anchor = "BOTTOM", x = ENDS, y = BAR1_Y },
 	["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 138 },
