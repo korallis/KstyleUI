@@ -444,9 +444,10 @@ do
 	local caption, row = Caption(env, quests.Header, "QUESTS")
 	assert(caption, "a KstyleUI caption reads QUESTS, upper case, on the quest module's header")
 	assert(not caption:GetText():find(THIN_SPACE, 1, true), "the caption carries no thin space, which Cinzel cannot draw")
-	assert(FontPath(caption) == Style.Font("title") and FontSize(K, caption, select(2, caption:GetFont()), Lumen.CAP_SIZE), "in the title face at the mockup's cap size, got " .. tostring((select(2, caption:GetFont()))))
+	assert(FontPath(caption) == Style.Font("caps") and FontSize(K, caption, select(2, caption:GetFont()), Lumen.CAP_SIZE), "in the caps face at the picture's cap size, got " .. tostring((select(2, caption:GetFont()))))
 	local cr, cg, cb = caption:GetTextColor()
-	assert(Near(cr, gr) and Near(cg, gg) and Near(cb, gb), "the caption is gilt")
+	local wr, wg, wb = K.Tokens.Color("capsGold")
+	assert(Near(cr, wr) and Near(cg, wg) and Near(cb, wb), "the caption is the picture's muted gold")
 	assert(row:IsShown(), "the quest caption shows while the tracker is expanded")
 	local gem = Region(env, K, quests.Header, "Texture", (pcall(K.Tokens.Texture, "gem")) and "gem" or Lumen.TEXTURES.gem)
 	assert(gem and gem:GetParent() == row, "a gem leads the caption row")
@@ -675,8 +676,8 @@ do
 	assert(not (Lumen.Tracked("AB")):find(THIN_SPACE, 1, true), "the Cinzel title takes no thin spaces, which the game draws as boxes")
 	local cap = Caption(env, module.Header, "QUESTS")
 	assert(cap, "the Quests cap draws")
-	local extra = K.Widgets.TextWidth(cap) - Scene.TextWidth("QUESTS", select(2, cap:GetFont()), (cap:GetFont()))
-	assert(math.abs(extra) < 0.5, "the measure is the plain capitals' width, got " .. tostring(extra) .. " extra")
+	local extra = K.Widgets.TextWidth(cap) + K.Widgets.TrackPad(cap) - Scene.TextWidth("QUESTS", select(2, cap:GetFont()), (cap:GetFont()))
+	assert(math.abs(extra) < 0.5, "the measure is the tracked capitals' width less the tracking after the last letter, got " .. tostring(extra) .. " extra")
 	local header = module.Header
 	for _, name in ipairs({ "Quests", "Campaign", "Achievements", "World Quests", "Scenario" }) do
 		header.Text:SetText(name)

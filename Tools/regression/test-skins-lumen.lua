@@ -104,15 +104,15 @@ do
 	local title = cap.title
 	assert(Plain(title) == "QUESTS", "the title is upper case, got " .. Plain(title))
 	assert(not title:GetText():find(THIN_SPACE, 1, true), "and carries no thin space, which Cinzel cannot draw")
-	assert((title:GetFont()) == Style.Font("title") and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE), "in the title face at the mockup's 13, got " .. tostring((select(2, title:GetFont()))))
-	assert(TextIs(title, gr, gg, gb), "the title is gilt")
+	assert((title:GetFont()) == Style.Font("caps") and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE), "in the caps face at the picture's 10, got " .. tostring((select(2, title:GetFont()))))
+	assert(TextIs(title, K.Tokens.Color("capsGold")), "the title is the picture's muted gold")
 	local titlePoint = { title:GetPoint(1) }
 	assert(titlePoint[1] == "LEFT" and titlePoint[2] == gem and titlePoint[3] == "RIGHT" and Near(titlePoint[4], K.Widgets.Snap(cap.row, K.Tokens.Size("gapSmall"))), "the title follows the gem after a gapSmall")
 	assert(title:GetNumPoints() == 1, "the title sizes to its text, so the rule can start where it ends")
 	local rule = cap.rule
 	assert(rule and rule:GetObjectType() == "Texture", "a rule runs from the title to the count")
 	local ruleLeft, ruleRight = { rule:GetPoint(1) }, { rule:GetPoint(2) }
-	assert(ruleLeft[2] == title and ruleLeft[3] == "RIGHT" and Near(ruleLeft[4], K.Widgets.Snap(cap.row, K.Tokens.Size("gapMedium"))), "the rule starts a gapMedium after the title")
+	assert(ruleLeft[2] == title and ruleLeft[3] == "RIGHT" and math.abs(ruleLeft[4] + K.Widgets.TrackPad(title) - K.Widgets.Snap(cap.row, K.Tokens.Size("gapMedium"))) <= K.Scale.Pixel(1), "the rule starts a gapMedium after the last letter, not after the tracking that follows it")
 	assert(ruleRight[2] == cap.trail and ruleRight[3] == "LEFT" and Near(ruleRight[4], -K.Widgets.Snap(cap.row, K.Tokens.Size("gapMedium"))), "and ends a gapMedium before the count")
 	assert(Near(rule:GetHeight(), K.Widgets.Border(cap.row)), "one border thick")
 	local gradient = W.LastCall(rule, "SetGradient")
@@ -131,28 +131,29 @@ do
 	-- A long title is bounded before the trail: it ellipsises instead of running under the count or the rule
 	-- crossing it; with no measured widths (this stub, or a secret) it keeps its natural width.
 	assert(W.LastCall(title, "SetWidth")[1] == 0, "with no measured width the title sizes to its text")
+	local pad = K.Widgets.TrackPad(title)
 	title._state.UnboundedStringWidth = { n = 1, 400 }
 	trail._state.UnboundedStringWidth = { n = 1, 12 }
 	cap:SetTrail(15)
 	local taken = 10 + Lumen.GEM_UNITS + K.Tokens.Size("gapSmall") + 2 * K.Tokens.Size("gapMedium") + 12 + 24
-	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken), "a 400-unit title on a 300-unit row is cut to the room before the trail, got " .. tostring(W.LastCall(title, "SetWidth")[1]))
+	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken + pad), "a 400-unit title on a 300-unit row is cut to the room before the trail (its string rect holds the tracking after the last letter), got " .. tostring(W.LastCall(title, "SetWidth")[1]))
 	title._state.UnboundedStringWidth = { n = 1, 50 }
 	cap:SetTitle("Quests")
 	assert(W.LastCall(title, "SetWidth")[1] == 0, "a title the row has room for takes its natural width: the client draws its own string rect, so a measuring gap (Cinzel's thin spaces) can never truncate it, got " .. tostring(W.LastCall(title, "SetWidth")[1]))
 	assert(not title:IsTruncated(), "and is not truncated")
-	title._state.UnboundedStringWidth = { n = 1, 300 - taken }
+	title._state.UnboundedStringWidth = { n = 1, 300 - taken + pad }
 	cap:SetTitle("Quests")
 	assert(W.LastCall(title, "SetWidth")[1] == 0, "a title that exactly fills the room still takes its natural width")
-	title._state.UnboundedStringWidth = { n = 1, 300 - taken + 1 }
+	title._state.UnboundedStringWidth = { n = 1, 300 - taken + pad + 1 }
 	cap:SetTitle("Quests")
-	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken), "one unit over the room, the title is clamped to the room and ellipsises")
+	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken + pad), "one unit over the room, the title is clamped to the room and ellipsises")
 	title._state.UnboundedStringWidth = { n = 1, 50 }
 	cap:SetTitle("Quests")
 	parent:SetSize(120, 24)
 	local onSize = cap.row:GetScript("OnSizeChanged")
 	assert(onSize, "the row refits on a size change")
 	onSize(cap.row)
-	assert(Near(W.LastCall(title, "SetWidth")[1], 120 - taken), "a narrower row refits the title")
+	assert(Near(W.LastCall(title, "SetWidth")[1], 120 - taken + pad), "a narrower row refits the title")
 	parent:SetSize(300, 24)
 	cap:SetShown(false)
 	assert(not cap.row:IsShown(), "SetShown hides the whole row")

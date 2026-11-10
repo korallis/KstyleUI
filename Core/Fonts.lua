@@ -61,6 +61,9 @@ local function Wanted()
 	for _, item in ipairs(Tokens.MediaList("font")) do
 		out[#out + 1] = item.path
 	end
+	for _, path in ipairs(Tokens.RoleFontPaths()) do
+		out[#out + 1] = path
+	end
 	if Store.IsLoaded() then
 		Collect(Store.Profile(), out, 0, {})
 	end

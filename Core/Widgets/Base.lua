@@ -232,11 +232,148 @@ function Widgets.TextShadow(text, flags)
 	Shadow(text, flags or "", TextFactor(text))
 end
 
+local trackers = setmetatable({}, { __mode = "k" })
+
+local function Side(point)
+	if point:find("LEFT", 1, true) then
+		return "LEFT"
+	end
+	if point:find("RIGHT", 1, true) then
+		return "RIGHT"
+	end
+	return "CENTER"
+end
+
+local function TrackShift(text, state)
+	local first = state.points[1]
+	if state.pad <= 0 or not first then
+		return 0
+	end
+	local left, right = false, false
+	for _, p in ipairs(state.points) do
+		local side = Side(p.point)
+		left, right = left or side == "LEFT", right or side == "RIGHT"
+	end
+	local side = (state.width or (left and right)) and state.justify or Side(first.point)
+	local shift = (side == "RIGHT" and state.pad) or (side == "CENTER" and state.pad / 2) or 0
+	local f = TextFactor(text)
+	return Scale.Snap(shift * f) / f
+end
+
+local function Anchor(text, state, p, shift)
+	if p.rel == nil then
+		state.native.SetPoint(text, p.point, p.x + shift, p.y)
+	elseif p.relPoint == nil then
+		state.native.SetPoint(text, p.point, p.rel, p.x + shift, p.y)
+	else
+		state.native.SetPoint(text, p.point, p.rel, p.relPoint, p.x + shift, p.y)
+	end
+end
+
+local function Refresh(text, state)
+	local shift = TrackShift(text, state)
+	if shift == state.shift then
+		return false
+	end
+	state.shift = shift
+	state.native.ClearAllPoints(text)
+	for _, p in ipairs(state.points) do
+		Anchor(text, state, p, shift)
+	end
+	return true
+end
+
+local function Tracker(text)
+	local state = trackers[text]
+	if state then
+		return state
+	end
+	local native = {
+		SetPoint = text.SetPoint,
+		GetPoint = text.GetPoint,
+		ClearAllPoints = text.ClearAllPoints,
+		SetJustifyH = text.SetJustifyH,
+		SetWidth = text.SetWidth,
+		SetSize = text.SetSize,
+	}
+	state = { pad = 0, shift = 0, justify = "CENTER", points = {}, native = native }
+	trackers[text] = state
+	for i = 1, text:GetNumPoints() do
+		local point, rel, relPoint, x, y = native.GetPoint(text, i)
+		state.points[i] = { point = point, rel = rel, relPoint = relPoint, x = x, y = y }
+	end
+	function text.SetPoint(self, point, a, b, c, d)
+		local p = { point = point, x = 0, y = 0 }
+		if type(a) == "number" then
+			p.x, p.y = a, b or 0
+		elseif type(b) == "number" then
+			p.rel, p.x, p.y = a, b, c or 0
+		else
+			p.rel, p.relPoint, p.x, p.y = a, b, c or 0, d or 0
+		end
+		local at = #state.points + 1
+		for i, existing in ipairs(state.points) do
+			if existing.point == point then
+				at = i
+			end
+		end
+		state.points[at] = p
+		if not Refresh(self, state) then
+			Anchor(self, state, p, state.shift)
+		end
+	end
+	function text.GetPoint(self, i)
+		local p = state.points[i or 1]
+		if not p then
+			return nil
+		end
+		local _, rel, relPoint = native.GetPoint(self, i or 1)
+		return p.point, rel, relPoint, p.x, p.y
+	end
+	function text.ClearAllPoints(self)
+		state.points = {}
+		state.shift = 0
+		native.ClearAllPoints(self)
+	end
+	function text.SetJustifyH(self, justify)
+		state.justify = justify
+		native.SetJustifyH(self, justify)
+		Refresh(self, state)
+	end
+	function text.SetWidth(self, width)
+		state.width = type(width) == "number" and width > 0
+		native.SetWidth(self, width)
+		Refresh(self, state)
+	end
+	function text.SetSize(self, width, height)
+		state.width = type(width) == "number" and width > 0
+		native.SetSize(self, width, height)
+		Refresh(self, state)
+	end
+	return state
+end
+
+function Widgets.TrackPad(text)
+	local state = trackers[text]
+	return state and state.pad or 0
+end
+
+function Widgets.SyncTracking(text)
+	local path, size = text:GetFont()
+	local tracking = type(path) == "string" and type(size) == "number" and Tokens.FaceTracking(path) or 0
+	if tracking > 0 or trackers[text] then
+		local state = Tracker(text)
+		state.pad = tracking * (type(size) == "number" and size or 0)
+		Refresh(text, state)
+	end
+end
+
 function Widgets.ApplyFont(text, path, size, flags)
 	flags = flags or ""
 	local f = TextFactor(text)
 	local ok = text:SetFont(path, SnapSize(size, f), flags) ~= false
 	Shadow(text, flags, f)
+	Widgets.SyncTracking(text)
 	return ok
 end
 
@@ -364,7 +501,7 @@ function Widgets.TextWidth(text, fallback)
 	if IsSecret(width) or type(width) ~= "number" then
 		return fallback
 	end
-	return width
+	return width - Widgets.TrackPad(text)
 end
 
 function Widgets.TextHeight(text, fallback)

@@ -41,7 +41,7 @@ local function Tracked(text)
 	if Widgets.IsSecret(text) or type(text) ~= "string" or text:find("|", 1, true) then
 		return text
 	end
-	if not ns.Locale.CanTrack((ns.Tokens.Font("title"))) then
+	if ns.Locale.TrackMode((ns.Tokens.Font("title"))) ~= "space" then
 		return ns.Locale.Upper(text)
 	end
 	local spaced = ns.Locale.Upper(text):gsub(CODEPOINT, "%1" .. THIN_SPACE)
