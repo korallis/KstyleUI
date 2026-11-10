@@ -61,6 +61,23 @@ end
 
 -- Every rule names the row and the problem ---------------------------------------------------------
 
+do
+	local env, K = fresh()
+	local schema = rows()
+	local options = function()
+		return { { value = "theme", label = "KstyleUI font" }, { value = "Body", label = "Body" } }
+	end
+	schema[9].options = options
+	K.Options.Register("UnitFrames", schema)
+	CoreEnv.Boot(env)
+	assert(K.Options.Row("UnitFrames", "font").options == options, "a font row retains its caller's option list")
+	K.Options.Write("UnitFrames", "font", "theme")
+	assert(K.Options.Read("UnitFrames", "font") == "theme", "font rows save the sentinel without resolving a face")
+	local _, plain = fresh()
+	plain.Options.Register("UnitFrames", rows())
+	assert(plain.Options.Row("UnitFrames", "font").options == nil, "a font row without options stays unchanged")
+end
+
 local function rejects(change, want, label)
 	local _, K = fresh()
 	local schema = rows()

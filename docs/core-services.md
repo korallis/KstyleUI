@@ -190,7 +190,7 @@ When `C_EncodingUtil.DecodeBase64` fails, `Decode` decodes the base64 with `Code
 | `showWhen`, `disableWhen` | all | Optional `function(settings) -> boolean`. `settings` is `Store.Module(module)`. |
 | `scope` | all | Optional `{ key = setting, value = value }` for a row that a picker dropdown shows, such as `{ key = "edit", value = "target" }`. `key` is a top-level setting with a default, and `value` has the default's type and is not a table. Search runs the row's `showWhen` as if `key` held `value`, so it finds the row whatever the picker holds. The page ignores `scope`. |
 | `min`, `max`, `step` | `slider` | Numbers with `min < max`, `step > 0`, and the default in range |
-| `options` | `dropdown` | `{ { value, label }, ... }` holding the default, or a function that returns such a list |
+| `options` | `dropdown`, optional on `font` | `{ { value, label }, ... }` holding the default, or a function that returns such a list. A font row without it keeps the normal media list; a caller can prepend a follow-kit sentinel without resolving it to a saved path. |
 | `hasAlpha` | `color` | Optional boolean |
 | `maxLetters` | `text` | Optional whole number above 0 |
 

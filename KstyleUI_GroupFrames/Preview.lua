@@ -65,6 +65,10 @@ end
 local function Paint(f, sample)
 	local cfg = Settings.current
 	f.status = (sample.offline and "offline") or (sample.dead and "dead") or nil
+	if cfg[f.kind].classLine == true then
+		f.classCaption = sample.class .. " " .. SAMPLE_LEVEL
+		f.classLine:SetText(f.classCaption)
+	end
 	Style.PlaceRowEnd(f)
 	local cr, cg, cb = Theme.ClassColor(sample.class)
 	f.health:SetBarRange(0, 1)
@@ -104,9 +108,6 @@ local function Paint(f, sample)
 	elseif f.showRoleRing then
 		f.ring:SetVertexColor(cr, cg, cb)
 		f.roleText:SetText(Style.ROLE_LETTERS[sample.role] or "")
-	end
-	if f.classLine:IsShown() then
-		f.classLine:SetText(sample.class .. " " .. SAMPLE_LEVEL)
 	end
 	HealthText(f, sample)
 	local fade = cfg.range.fade and sample.far

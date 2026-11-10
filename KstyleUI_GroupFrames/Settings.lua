@@ -30,9 +30,10 @@ local function DefaultTexture()
 	return Tokens.MediaList("statusbar")[1].path
 end
 
-local NAMES_FONT = (Tokens.Font("names"))
+local THEME_FONT = "theme"
 local NUMBER_FONT = (Tokens.Font("number"))
-Settings.NAMES_FONT = NAMES_FONT
+Settings.THEME_FONT = THEME_FONT
+Settings.COMPACT_NAME_FONT = Tokens.FontPath("AlegreyaSansRegular")
 
 Settings.defaults = {
 	blizzard = { party = true, raid = true, manager = true },
@@ -60,7 +61,7 @@ Settings.defaults = {
 	health = { texture = DefaultTexture(), colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL" },
 	power = { colorSource = "power", color = Rgb("rare") },
 	text = {
-		nameFont = NAMES_FONT, nameOutline = "NONE", nameColorSource = "text", nameColor = Rgb("textEmphasis"),
+		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "text", nameColor = Rgb("textEmphasis"),
 		healthFont = NUMBER_FONT, healthOutline = "NONE",
 	},
 	range = { fade = true, alpha = 0.4 },
@@ -258,7 +259,18 @@ local function BuildSchema()
 	add(Dropdown("power.colorSource", L["Power colour"], L["Colours the power bar by power type, by class or in one colour."], POWER_COLOR))
 	add({ type = "color", key = "power.color", label = L["Custom power colour"], help = L["The power bar's colour when it uses a custom colour."], showWhen = Is("power.colorSource", "custom") })
 	add({ type = "header", label = L["Text"] })
-	add({ type = "font", key = "text.nameFont", label = L["Name font"], help = L["The font of the names."] })
+	add({
+		type = "font", key = "text.nameFont", label = L["Name font"], help = L["The font of the names."],
+		options = function()
+			local choices = { { value = THEME_FONT, label = L["KstyleUI font"] } }
+			for _, choice in ipairs(K.Widgets.MediaOptions("font")) do
+				if choice.value ~= THEME_FONT then
+					choices[#choices + 1] = choice
+				end
+			end
+			return choices
+		end,
+	})
 	add(Dropdown("text.nameOutline", L["Name outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
 	add(Dropdown("text.nameColorSource", L["Name colour"], L["Colours names in the text colour, by class or in one colour."], NAME_COLOR))
 	add({ type = "color", key = "text.nameColor", label = L["Custom name colour"], help = L["The names' colour when they use a custom colour."], showWhen = Is("text.nameColorSource", "custom") })

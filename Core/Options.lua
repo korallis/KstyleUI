@@ -24,6 +24,7 @@ local SCOPE_FIELDS = { key = true, value = true }
 local EXTRA_FIELDS = {
 	slider = { min = true, max = true, step = true },
 	dropdown = { options = true },
+	font = { options = true },
 	color = { hasAlpha = true },
 	text = { maxLetters = true },
 }

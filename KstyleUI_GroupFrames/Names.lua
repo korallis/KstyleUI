@@ -1,9 +1,7 @@
--- Names.lua: fits a member's name to the width its row gives it, stepping the size down first and then ending in an ellipsis, keeping it distinct from the other members' names.
+-- Names.lua: fits a member's name at its size floor, leaving names-role data to native truncation and keeping distinct abbreviations in compact lanes.
 local _, ns = ...
 
 local Unit = ns.Unit
-local Upper = KstyleUI.Locale.Upper
-
 local Names = {}
 ns.Names = Names
 
@@ -88,13 +86,6 @@ function Names.Short(name, fits, others)
 	return head .. ELLIPSIS
 end
 
-local function Shown(f, text)
-	if f.nameCaps then
-		return Upper(text)
-	end
-	return text
-end
-
 local function Others(f)
 	local out = {}
 	Unit.ForEach(function(other)
@@ -107,35 +98,46 @@ end
 
 function Names.Apply(f)
 	local name, text = f.rawName, f.name
+	local fit = f.nameFit
 	if type(name) ~= "string" then
+		if fit and f.nativeName then
+			fit.set(text, fit.min)
+		end
 		return
 	end
 	local width = f.nameWidth
 	if type(width) ~= "number" or width <= 0 then
-		text:SetText(Shown(f, name))
+		if fit then
+			fit.set(text, f.nameFloor and fit.min or fit.size)
+		end
+		text:SetText(name)
 		return
 	end
-	local fit = f.nameFit
 	if fit then
 		for step = fit.size, fit.min, -1 do
 			fit.set(text, step)
-			if Width(text, Shown(f, name), step) <= width then
-				text:SetText(Shown(f, name))
+			if Width(text, name, step) <= width then
+				text:SetText(name)
 				return
 			end
 		end
 	end
+	if f.nativeName then
+		text:SetText(name)
+		return
+	end
 	local _, size = text:GetFont()
 	size = type(size) == "number" and not Unit.IsSecret(size) and size or 10
 	local function fits(candidate)
-		return Width(text, Shown(f, candidate), size) <= width
+		return Width(text, candidate, size) <= width
 	end
-	text:SetText(Shown(f, Names.Short(name, fits, f.others or Others(f))))
+	text:SetText(Names.Short(name, fits, f.others or Others(f)))
 end
 
 function Names.Set(f, name)
 	if Unit.IsSecret(name) or type(name) ~= "string" then
 		f.rawName = nil
+		Names.Apply(f)
 		f.name:SetText(Unit.IsSecret(name) and name or "")
 		return
 	end
