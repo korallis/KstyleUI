@@ -35,6 +35,7 @@ local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
 local PLATE_PAD, SPLITS_SIDE = 5, 8
+local ACE_TITLE_RISE = "gapMedium"
 local STEP_RISE, STEP_TEXT_TOP, STEP_TEXT_RIGHT, STEP_CHECK_LEFT, STEP_CHECK_TOP = 12, 2, 5, 1, 1
 local RXP_LINE_SHARE, RXP_LINE_PAD = 1.1, 1
 local REST_FOOT = 12
@@ -147,6 +148,10 @@ local function Glass(frame, opts)
 	local inset = opts.reach and Reach(frame) or nil
 	if inset and opts.air then
 		inset.bottom = Tokens.Size(opts.air)
+	end
+	if opts.rise then
+		inset = inset or {}
+		inset.top = -Tokens.Size(opts.rise)
 	end
 	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt })
 end
@@ -1019,11 +1024,12 @@ local function RestyleDressPanel(panel)
 	panel:SetFrameLevel(math.max(0, panel:GetParent():GetFrameLevel() - 1))
 end
 
-local function DressPanel(frame)
+local function DressPanel(frame, rise)
 	local panel = dress.panels[frame]
 	if not panel then
 		panel = CreateFrame("Frame", nil, frame)
-		panel:SetAllPoints(frame)
+		panel:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, rise and Widgets.Snap(panel, Tokens.Size(rise)) or 0)
+		panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface" })
 		panel.Restyle = RestyleDressPanel
 		RestyleDressPanel(panel)
@@ -1342,7 +1348,7 @@ local function Report(tracker, labels)
 	for _, ui in pairs(reports) do
 		if IsTable(ui) and IsTable(ui.frame) then
 			local frame = ui.frame
-			Glass(frame)
+			Glass(frame, { rise = ACE_TITLE_RISE })
 			if IsTable(ui.titletext) then
 				Style.Text(ui.titletext, "heading")
 				Title(ui.titletext)
@@ -1823,7 +1829,7 @@ local function DressDialog(global)
 			end
 		end
 	end
-	DressPanel(frame)
+	DressPanel(frame, ACE_TITLE_RISE)
 	UndressOnHide(frame)
 end
 

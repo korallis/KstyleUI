@@ -231,7 +231,7 @@ local function Report(R)
 		end
 		y = y + gh + 3
 	end
-	R.windows.report = { ui.frame }
+	R.windows.report = { ui.frame, R.K.Skin.Parts(ui.frame).backdrop }
 end
 
 -- LevelingTracker.lua:1002-1106,1244-1342: the fake supplies the anchors; label measurements determine
@@ -367,8 +367,9 @@ local function ExtraWindows(R)
 	feedback.children[1].children[1].editBox:SetText("RestedXP Feedback Form\n\nCharacter: Orc / Warrior / level 9 (72.00%)\nZone: Durotar / Tiragarde Keep / 59.24,58.13\nGuide: 6-10 Durotar v4.11.35\nStep: 12\n\nDescribe the issue:\nThe Canvas Scraps objective did not update after looting.\n\nWhat did you expect to happen?\nThe counter should increase when the quest item is looted.")
 	rxp.comms.OpenBrandedExport("Guide export", "Copy or edit your guide string", "#classic\n#name 6-10 Durotar\n#next 10-12 Barrens\n\nstep\n.goto Durotar,59.24,58.13\n>>Collect Canvas Scraps", 320, 240, function() end)
 	Dialog(R, env.RESTEDXP_BRANDED_EXPORT.obj, 620, 650, 320, 240, false)
-	R.windows.feedback = { feedback.frame }
-	R.windows.export = { env.RESTEDXP_BRANDED_EXPORT }
+	local Chrome = R.ns.RestedXP.Chrome
+	R.windows.feedback = { feedback.frame, Chrome.DressPanel(feedback.frame) }
+	R.windows.export = { env.RESTEDXP_BRANDED_EXPORT, Chrome.DressPanel(env.RESTEDXP_BRANDED_EXPORT) }
 	-- Targeting.lua:1129-1325 and map.lua:40-98,140-166 are already laid out by the fake.
 	rxp.targeting:UpdateTargetFrame(3, 1)
 	local targets = rxp.targeting.activeTargetFrame

@@ -423,6 +423,8 @@ do
 	local env, K, ns, rxp = Boot()
 	local report = rxp.tracker.ui.CharacterFrame
 	assert(Glass(K, report.frame) and Hushed(report.frame), "the leveling report sits on glass")
+	local reportInset = K.Skin.Parts(report.frame).backdrop.inset
+	assert(type(reportInset) == "table" and reportInset.top == -K.Tokens.Size("gapMedium"), "the glass rises a medium gap over the report: AceGUI hangs the title 2 under the frame's top (AceGUIContainer-Frame.lua 226, 237), so it would touch the rim")
 	assert(Accented(ns, report.titletext), "its title takes the accent")
 	local close
 	for _, child in ipairs({ report.frame:GetChildren() }) do
@@ -647,6 +649,8 @@ do
 		previous = frame
 		local panel = ns.RestedXP.Chrome.DressPanel(frame)
 		assert(panel and panel:IsShown(), "RestedXP's dialog sits on glass while RestedXP shows it")
+		local panelPoint, panelOn, _, _, panelY = panel:GetPoint(1)
+		assert(panelPoint == "TOPLEFT" and panelOn == frame and W.Near(panelY, K.Widgets.Snap(panel, K.Tokens.Size("gapMedium"))), "the dialog's glass rises a medium gap over AceGUI's title too, got " .. tostring(panelY))
 		assert(Alpha(frame._pieces[1]) == 0 and Alpha(frame.obj.titlebg) == 0, "its backdrop and title art are hidden")
 		assert(Accented(ns, title), "its title takes the accent")
 		local replacement = Replacement(title)
