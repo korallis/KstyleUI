@@ -1,4 +1,4 @@
--- test-skins-lumen.lua: the Lumen pieces the skins share: the gilt and quest gold colours read S1's token names and fall back to shipped tokens, the section cap draws a gem, a tracked title, a fading rule and a trailing count in one row, and the ring check box follows a Blizzard check button's state.
+-- test-skins-lumen.lua: the Lumen pieces the skins share: the gilt and quest gold colours read S1's token names and fall back to shipped tokens, the section cap draws a flat gilt diamond, a tracked title, an even rule and a trailing count in one row, all sized in root units, and the ring check box follows a Blizzard check button's state.
 local S = dofile("Tools/regression/skins_env.lua")
 
 local function FontSize(K, text, actual, requested)
@@ -75,7 +75,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The section cap: gem, tracked Cinzel title, fading rule, trailing count ----------------------------------
+-- The section cap: diamond, tracked Cinzel title, even rule, trailing count ---------------------------------
 
 local function WithColors(env)
 	env.CreateColor = function(r, g, b, a)
@@ -98,7 +98,9 @@ do
 	assert(gem and gem:GetObjectType() == "Texture", "a gem leads the row")
 	local gr, gg, gb = Lumen.Color("gilt")
 	assert(W.SameRGB(gem, gr, gg, gb), "in gilt")
-	assert(Near(gem:GetWidth(), K.Widgets.Snap(cap.row, Lumen.GEM_UNITS)) and Near(gem:GetHeight(), gem:GetWidth()), "a " .. Lumen.GEM_UNITS .. "-unit gem, got " .. tostring(gem:GetWidth()))
+	local factor = K.Widgets.ScaleFactor(cap.row)
+	assert(Lumen.GEM_UNITS == 8 and Near(gem:GetWidth(), K.Widgets.Snap(cap.row, Lumen.GEM_UNITS / factor)) and Near(gem:GetHeight(), gem:GetWidth()), "a gem 8 root units from point to point, whatever scale the cap's frame has, got " .. tostring(gem:GetWidth()))
+	assert(W.LastCall(gem, "SetTexture")[1] == K.Tokens.Texture("diamond") and W.LastCall(gem, "SetRotation") == nil, "the flat diamond the picture draws: its own texture, already turned, with no facets and no halo")
 	local gemPoint = { gem:GetPoint(1) }
 	assert(gemPoint[1] == "LEFT" and gemPoint[2] == cap.row and Near(gemPoint[4], K.Widgets.Snap(cap.row, 10)), "the gem sits at the row's left inset")
 	local title = cap.title
@@ -107,17 +109,18 @@ do
 	assert((title:GetFont()) == Style.Font("caps") and Lumen.CAP_SIZE == 12 and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE / K.Widgets.ScaleFactor(cap.row)), "in the caps face at the picture's 12 root units (21 px on the owner's screen), whatever scale the cap's frame has, got " .. tostring((select(2, title:GetFont()))))
 	assert(TextIs(title, K.Tokens.Color("capsGold")), "the title is the picture's muted gold")
 	local titlePoint = { title:GetPoint(1) }
-	assert(titlePoint[1] == "LEFT" and titlePoint[2] == gem and titlePoint[3] == "RIGHT" and Near(titlePoint[4], K.Widgets.Snap(cap.row, K.Tokens.Size("gapSmall"))), "the title follows the gem after a gapSmall")
+	assert(Near(Lumen.CapColumn(cap.row), K.Widgets.Snap(cap.row, Lumen.GEM_UNITS / factor) + K.Widgets.Snap(cap.row, Lumen.GEM_GAP / factor)) and Lumen.GEM_UNITS + Lumen.GEM_GAP == 15, "the title's column is 15 root units after the gem's left point")
+	assert(titlePoint[1] == "LEFT" and titlePoint[2] == cap.row and Near(titlePoint[4], K.Widgets.Snap(cap.row, 10) + Lumen.CapColumn(cap.row)), "the title starts in that column, got " .. tostring(titlePoint[4]))
 	assert(title:GetNumPoints() == 1, "the title sizes to its text, so the rule can start where it ends")
 	local rule = cap.rule
 	assert(rule and rule:GetObjectType() == "Texture", "a rule runs from the title to the count")
 	local ruleLeft, ruleRight = { rule:GetPoint(1) }, { rule:GetPoint(2) }
-	assert(ruleLeft[2] == title and ruleLeft[3] == "RIGHT" and math.abs(ruleLeft[4] + K.Widgets.TrackPad(title) - K.Widgets.Snap(cap.row, K.Tokens.Size("gapMedium"))) <= K.Scale.Pixel(1), "the rule starts a gapMedium after the last letter, not after the tracking that follows it")
-	assert(ruleRight[2] == cap.trail and ruleRight[3] == "LEFT" and Near(ruleRight[4], -K.Widgets.Snap(cap.row, K.Tokens.Size("gapMedium"))), "and ends a gapMedium before the count")
-	assert(Near(rule:GetHeight(), K.Widgets.Border(cap.row)), "one border thick")
-	local gradient = W.LastCall(rule, "SetGradient")
-	assert(gradient and gradient[1] == "HORIZONTAL" and Near(gradient[2].a, Lumen.RULE_ALPHA) and Near(gradient[3].a, 0), "the rule fades out to the right")
-	assert(Near(gradient[2].r, gr) and Near(gradient[2].g, gg) and Near(gradient[2].b, gb), "from gilt")
+	assert(ruleLeft[2] == title and ruleLeft[3] == "RIGHT" and math.abs(ruleLeft[4] + K.Widgets.TrackPad(title) - K.Widgets.Snap(cap.row, Lumen.RULE_LEAD / factor)) <= K.Scale.Pixel(1), "the rule starts 11 root units after the last letter, not after the tracking that follows it")
+	assert(ruleRight[2] == cap.trail and ruleRight[3] == "LEFT" and Near(ruleRight[4], -K.Widgets.Snap(cap.row, Lumen.RULE_TRAIL / factor)), "and ends 9 root units before the count")
+	assert(Near(rule:GetHeight(), math.max(K.Widgets.Border(cap.row), K.Widgets.Snap(cap.row, 1 / factor))), "one root unit thick (two pixels on the owner's screen), never under a pixel")
+	local flat = W.LastCall(rule, "SetColorTexture")
+	assert(W.LastCall(rule, "SetGradient") == nil and Lumen.RULE_ALPHA == 0.5 and Near(flat[4], Lumen.RULE_ALPHA), "the rule is one even line at half strength from end to end, as the picture draws it: it does not fade")
+	assert(Near(flat[1], gr) and Near(flat[2], gg) and Near(flat[3], gb), "in gilt")
 	local trail = cap.trail
 	assert(Plain(trail) == "15", "the count reads 15")
 	assert((trail:GetFont()) == Style.Font("number"), "in the number face")
@@ -135,7 +138,7 @@ do
 	title._state.UnboundedStringWidth = { n = 1, 400 }
 	trail._state.UnboundedStringWidth = { n = 1, 12 }
 	cap:SetTrail(15)
-	local taken = 10 + Lumen.GEM_UNITS + K.Tokens.Size("gapSmall") + 2 * K.Tokens.Size("gapMedium") + 12 + 24
+	local taken = 10 + Lumen.CapColumn(cap.row) + (Lumen.RULE_LEAD + Lumen.RULE_TRAIL) / K.Widgets.ScaleFactor(cap.row) + 12 + 24
 	assert(Near(W.LastCall(title, "SetWidth")[1], 300 - taken + pad), "a 400-unit title on a 300-unit row is cut to the room before the trail (its string rect holds the tracking after the last letter), got " .. tostring(W.LastCall(title, "SetWidth")[1]))
 	title._state.UnboundedStringWidth = { n = 1, 50 }
 	cap:SetTitle("Quests")
@@ -161,16 +164,6 @@ do
 	assert(cap.row:IsShown())
 	K.Options.Write("Skins", "text.size", 1.2)
 	assert(FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE * 1.2 / K.Widgets.ScaleFactor(cap.row)), "the text size setting scales the title")
-	assert(#env._errors == 0, tostring(env._errors[1]))
-end
-
-do
-	local env, K, ns = S.New()
-	assert(env.CreateColor == nil, "this client has no CreateColor")
-	local cap = ns.Lumen.SectionCap(env.CreateFrame("Frame", nil, env.UIParent), {})
-	assert(cap.rule:GetTexture() == (K.Tokens.Texture("divider")), "without CreateColor the rule is the divider texture")
-	local gr, gg, gb = ns.Lumen.Color("gilt")
-	assert(W.SameColor(cap.rule, gr, gg, gb, ns.Lumen.RULE_ALPHA), "tinted gilt at the rule alpha")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

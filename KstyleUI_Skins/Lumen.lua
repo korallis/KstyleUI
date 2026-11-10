@@ -11,10 +11,10 @@ ns.Lumen = Lumen
 local FALLBACKS = { gilt = "neutral", questGold = "neutral", rimLight = "edgeInner" }
 local S1_NAMES = { rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
-local TEXTURES = { gem = "chamferTile", checkRing = "ringBevel", gemFill = "dot" }
-local GEM_UNITS, GEM_TURN = 7, math.pi / 4
-local CAP_SIZE, TEXT_SIZE, RULE_ALPHA = 12, 13, 0.55
-local GEM_GAP, RULE_GAP = "gapSmall", "gapMedium"
+local TEXTURES = { gem = "diamond", checkRing = "ringBevel", gemFill = "dot" }
+local GEM_UNITS, GEM_GAP, INSET = 8, 7, 15
+local CAP_SIZE, TEXT_SIZE = 12, 13
+local RULE_LEAD, RULE_TRAIL, RULE_UNITS, RULE_ALPHA = 11, 9, 1, 0.5
 local RING_UNITS, RING_FILL, RING_LEVEL = 14, 8, 2
 local THIN_SPACE = "\226\128\137"
 local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
@@ -23,7 +23,8 @@ local WEAK = { __mode = "k" }
 local rings = setmetatable({}, WEAK)
 
 Lumen.FALLBACKS, Lumen.TEXTURES = FALLBACKS, TEXTURES
-Lumen.GEM_UNITS, Lumen.CAP_SIZE, Lumen.TEXT_SIZE, Lumen.RULE_ALPHA = GEM_UNITS, CAP_SIZE, TEXT_SIZE, RULE_ALPHA
+Lumen.GEM_UNITS, Lumen.GEM_GAP, Lumen.INSET, Lumen.CAP_SIZE, Lumen.TEXT_SIZE = GEM_UNITS, GEM_GAP, INSET, CAP_SIZE, TEXT_SIZE
+Lumen.RULE_LEAD, Lumen.RULE_TRAIL, Lumen.RULE_ALPHA = RULE_LEAD, RULE_TRAIL, RULE_ALPHA
 Lumen.RING_UNITS, Lumen.RING_FILL = RING_UNITS, RING_FILL
 
 local function IsSecret(value)
@@ -54,6 +55,10 @@ end
 
 function Lumen.Size(frame, units)
 	return units * Style.Setting("text", "size") / Widgets.ScaleFactor(frame)
+end
+
+function Lumen.Inset(frame)
+	return Widgets.Snap(frame, INSET / Widgets.ScaleFactor(frame))
 end
 
 function Lumen.Tint(region, name, alpha)
@@ -91,14 +96,14 @@ function Lumen.Plain(value)
 end
 
 function Lumen.Gem(owner, layer, sublevel)
-	local path, own = Lumen.Texture("gem")
 	local gem = owner:CreateTexture(nil, layer or "OVERLAY", nil, sublevel)
-	gem:SetTexture(path)
-	if not own then
-		gem:SetRotation(GEM_TURN)
-	end
+	gem:SetTexture((Tokens.Texture(TEXTURES.gem)))
 	Lumen.Tint(gem, "gilt")
 	return gem
+end
+
+function Lumen.CapColumn(row)
+	return Widgets.Snap(row, Lumen.Size(row, GEM_UNITS)) + Widgets.Snap(row, Lumen.Size(row, GEM_GAP))
 end
 
 local function Units(value, row)
@@ -120,7 +125,7 @@ function Cap:Fit()
 		return
 	end
 	local trailWidth = Widgets.TextWidth(self.trail, 0)
-	local taken = Units(opts.left, row) + GEM_UNITS + Tokens.Size(GEM_GAP) + 2 * Tokens.Size(RULE_GAP) + trailWidth + Units(opts.right, row)
+	local taken = Units(opts.left, row) + Lumen.CapColumn(row) + Lumen.Size(row, RULE_LEAD + RULE_TRAIL) + trailWidth + Units(opts.right, row)
 	local room = rowWidth - taken
 	if titleWidth <= room then
 		self.title:SetWidth(0)
@@ -150,14 +155,7 @@ function Cap:Paint()
 	local r, g, b = Lumen.Color("gilt")
 	self.title:SetTextColor(Tokens.Color("capsGold"))
 	Widgets.TextColor(self.trail, "textEmphasis")
-	local rule = self.rule
-	if type(rule.SetGradient) == "function" and type(CreateColor) == "function" then
-		rule:SetColorTexture(Tokens.Color("white"))
-		rule:SetGradient("HORIZONTAL", CreateColor(r, g, b, RULE_ALPHA), CreateColor(r, g, b, 0))
-	else
-		rule:SetTexture((Tokens.Texture("divider")))
-		rule:SetVertexColor(r, g, b, RULE_ALPHA)
-	end
+	self.rule:SetColorTexture(r, g, b, RULE_ALPHA)
 end
 
 function Cap:Restyle()
@@ -165,21 +163,22 @@ function Cap:Restyle()
 	local y = Widgets.Snap(row, Units(opts.y, row))
 	Style.ApplyFont(self.title, "caps", Lumen.Size(row, CAP_SIZE))
 	Style.ApplyFont(self.trail, "number", Lumen.Size(row, CAP_SIZE))
-	Widgets.Size(self.gem, GEM_UNITS, GEM_UNITS)
+	local left = Widgets.Snap(row, Units(opts.left, row))
+	local gem = Lumen.Size(row, GEM_UNITS)
+	Widgets.Size(self.gem, gem, gem)
 	self.gem:ClearAllPoints()
-	self.gem:SetPoint("LEFT", row, "LEFT", Widgets.Snap(row, Units(opts.left, row)), y)
+	self.gem:SetPoint("LEFT", row, "LEFT", left, y)
 	self.title:ClearAllPoints()
-	self.title:SetPoint("LEFT", self.gem, "RIGHT", Widgets.Snap(row, Tokens.Size(GEM_GAP)), 0)
+	self.title:SetPoint("LEFT", row, "LEFT", left + Lumen.CapColumn(row), y)
 	self.title:SetJustifyH("LEFT")
 	self.title:SetWordWrap(false)
 	self.trail:ClearAllPoints()
 	self.trail:SetPoint("RIGHT", row, "RIGHT", -Widgets.Snap(row, Units(opts.right, row)), y)
 	self.trail:SetJustifyH("RIGHT")
-	local gap = Widgets.Snap(row, Tokens.Size(RULE_GAP))
 	self.rule:ClearAllPoints()
-	self.rule:SetPoint("LEFT", self.title, "RIGHT", Widgets.Snap(row, Tokens.Size(RULE_GAP) - Widgets.TrackPad(self.title)), 0)
-	self.rule:SetPoint("RIGHT", self.trail, "LEFT", -gap, 0)
-	self.rule:SetHeight(Widgets.Border(row))
+	self.rule:SetPoint("LEFT", self.title, "RIGHT", Widgets.Snap(row, Lumen.Size(row, RULE_LEAD) - Widgets.TrackPad(self.title)), 0)
+	self.rule:SetPoint("RIGHT", self.trail, "LEFT", -Widgets.Snap(row, Lumen.Size(row, RULE_TRAIL)), 0)
+	self.rule:SetHeight(math.max(Widgets.Border(row), Widgets.Snap(row, Lumen.Size(row, RULE_UNITS))))
 	self:Paint()
 	self:SetTitle(self.titleValue)
 	self:SetTrail(self.trailValue)

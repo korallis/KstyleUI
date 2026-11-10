@@ -104,8 +104,13 @@ do
 	local shown = Shown(ns)
 	assert(Ids(shown) == "305,301,302,303", "four of ten, the super-tracked quest first, got " .. Ids(shown))
 	local first = ns.Quests.Rows()[1]
-	assert(first.marked == true, "the super-tracked quest is marked")
-	assert(ns.Quests.Rows()[2].marked ~= true, "and only that one")
+	assert(first.ring == nil and first.marked == nil, "the super-tracked quest leads the list and wears no ring: the picture's discs are flat, with nothing around them")
+	local factor = K.Widgets.ScaleFactor(ns.Quests.Card())
+	assert(math.abs(first.disc:GetWidth() - 16.33 / factor) <= K.Scale.Pixel(1) / factor and first.disc:GetHeight() == first.disc:GetWidth(), "the disc is 16.33 root units across, 28 pixels on the owner's screen, got " .. tostring(first.disc:GetWidth()))
+	local nr, ng, nb = first.numeral:GetTextColor()
+	local shade = S.W.LastCall(first.numeral, "SetShadowOffset")
+	assert(nr == 1 and ng == 1 and nb == 1 and shade[1] == 0 and shade[2] == 0, "its number is white and casts no shadow on the disc")
+	assert(math.abs(select(4, first.title:GetPoint(1)) - 25.5 / factor) <= K.Scale.Pixel(1) / factor, "the title starts 25.5 root units in from the disc's left edge, got " .. tostring(select(4, first.title:GetPoint(1))))
 	local parts = ns.Quests.Parts()
 	assert(parts.cap.titleValue == "Quests" or parts.cap.titleValue == K.L["Quests"], "the cap reads QUESTS")
 	assert(parts.cap.trailValue == "10", "the cap counts every tracked quest, got " .. tostring(parts.cap.trailValue))
@@ -419,7 +424,7 @@ do
 	assert(track, "the menu's entries are Blizzard's own words")
 	track.fn()
 	env.RunTimers()
-	assert(log.super == 301 and ns.Quests.Rows()[1].marked == true, "super-tracking from the menu marks the quest")
+	assert(log.super == 301 and ns.Quests.Rows()[1].questID == 301, "super-tracking from the menu brings the quest to the top")
 	Clean(env, K)
 end
 

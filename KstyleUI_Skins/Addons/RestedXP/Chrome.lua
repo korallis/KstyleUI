@@ -58,6 +58,7 @@ local arrows = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
 local queued = setmetatable({}, WEAK)
 local done = setmetatable({}, WEAK)
+local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
 local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), tinted = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
@@ -127,8 +128,12 @@ local function Panel(frame)
 	return parts and parts.backdrop or nil
 end
 
+function Chrome.Reach(frame)
+	return Lumen.Inset(frame) - RXP_MARGIN
+end
+
 local function Reach(frame)
-	local reach = Widgets.Inset(frame, Tokens.Size("chamferWindow")) - RXP_MARGIN
+	local reach = Chrome.Reach(frame)
 	return { left = -reach, right = -reach }
 end
 
@@ -145,9 +150,6 @@ local function Glass(frame, opts)
 	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt })
 end
 
-function Chrome.Reach(frame)
-	return Widgets.Inset(frame, Tokens.Size("chamferWindow")) - RXP_MARGIN
-end
 
 local function LayoutGutter(gutter)
 	local line, list, bar = gutter.line, gutter.list, gutter.bar
@@ -442,6 +444,10 @@ function Chrome.Caption(text)
 	return captions[text] and captions[text].caption
 end
 
+local function IsTip(step)
+	return IsTable(step.step) and step.step.tip and true or false
+end
+
 local function Trail(f)
 	local steps = IsTable(f) and f.CurrentStepFrame
 	local pool = IsTable(steps) and steps.framePool
@@ -450,7 +456,7 @@ local function Trail(f)
 	end
 	for _, step in ipairs(pool) do
 		local plate = IsTable(step) and step.number
-		if IsTable(plate) and IsTable(plate.text) and step:IsShown() and not Widgets.IsSecret(step:GetAlpha()) and step:GetAlpha() > 0 then
+		if IsTable(plate) and IsTable(plate.text) and not IsTip(step) and step:IsShown() and not Widgets.IsSecret(step:GetAlpha()) and step:GetAlpha() > 0 then
 			local value = PlainText(plate.text:GetText())
 			if value ~= "" then
 				return value
@@ -739,6 +745,8 @@ local function Watch(step, frame)
 	frame:HookScript("OnLeave", update)
 end
 
+local TipWindow
+
 local function AlignSteps(f)
 	local current = f.CurrentStepFrame
 	local pool = IsTable(current) and current.framePool
@@ -746,13 +754,14 @@ local function AlignSteps(f)
 		return
 	end
 	local cap = Chrome.Path(f).cap
-	local gutter = Widgets.Snap(current, CAP_LEFT) + Widgets.Snap(current, Lumen.GEM_UNITS) + Widgets.Snap(current, Tokens.Size(GUTTER_GAP))
+	local gutter = Widgets.Snap(current, CAP_LEFT) + Lumen.CapColumn(current)
 	local top, right = Widgets.Snap(current, STEP_TEXT_TOP), Widgets.Snap(current, STEP_TEXT_RIGHT)
 	local grown = 0
 	for _, step in ipairs(pool) do
 		if IsTable(step) and step:IsShown() then
 			local delta, first = 0, true
-			local tip = IsTable(step.step) and step.step.tip and true or false
+			local tip = IsTip(step)
+			local edge = tip and Lumen.Inset(step) or right
 			for _, element in ipairs(IsTable(step.elements) and step.elements or {}) do
 				local text, check = IsTable(element) and element.text, IsTable(element) and element.button
 				local had = IsTable(text) and element:IsShown() and element:GetHeight()
@@ -760,7 +769,7 @@ local function AlignSteps(f)
 					local left = not tip and Column(cap.title, element) or gutter
 					text:ClearAllPoints()
 					text:SetPoint("TOPLEFT", element, "TOPLEFT", left, -top)
-					text:SetPoint("RIGHT", step, "RIGHT", -right, 0)
+					text:SetPoint("RIGHT", step, "RIGHT", -edge, 0)
 					Widgets.TextColor(text, first and "textEmphasis" or "text")
 					first = false
 					if IsTable(check) and type(check.SetPoint) == "function" then
@@ -811,6 +820,7 @@ local function StepFrames(f)
 				Skin.Strip(step, { children = RXP_ART })
 			end
 			Watch(step, step)
+			TipWindow(step)
 			local plate = step.number
 			if IsTable(plate) and not done[plate] then
 				done[plate] = true
@@ -1177,6 +1187,46 @@ local function TitleRise(f, title)
 		end
 	end
 	return rise
+end
+
+TipWindow = function(step)
+	local tip, entry = IsTip(step), tips[step]
+	if not tip and not entry then
+		return
+	end
+	if not entry then
+		Skin.Backdrop(step, { shape = "window", fill = "surface", shadow = true })
+		local holder = CreateFrame("Frame", nil, step)
+		holder:SetAllPoints(step)
+		entry = { holder = holder, caption = Widgets.FontString(holder, "OVERLAY") }
+		entry.caption:SetWordWrap(false)
+		tips[step] = entry
+	end
+	local glass = Panel(step)
+	if glass then
+		glass:SetShown(tip)
+	end
+	entry.holder:SetShown(tip)
+	local plate = step.number
+	if not tip or not IsTable(plate) or not IsTable(plate.text) then
+		return
+	end
+	local rise = TitleRise(step, plate)
+	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
+	if glass and (type(glass.inset) == "table" and glass.inset.top or nil) ~= top then
+		glass.inset = top and { top = top } or nil
+		glass:Restyle()
+	end
+	local caption, height = entry.caption, plate:GetHeight()
+	Style.ApplyFont(caption, "caps", Lumen.Size(step, Lumen.CAP_SIZE))
+	Widgets.TextColor(caption, "capsGold")
+	caption:ClearAllPoints()
+	caption:SetPoint("LEFT", step, "TOPLEFT", Widgets.Snap(step, CAP_LEFT) + Lumen.CapColumn(step), Widgets.Snap(step, rise - (Plain(height) and height or 0) / 2))
+	caption:SetText(K.Locale.Upper(PlainText(plate.text:GetText())))
+end
+
+function Chrome.TipCaption(step)
+	return tips[step] and tips[step].caption
 end
 
 local function IconFrame(f, hide)

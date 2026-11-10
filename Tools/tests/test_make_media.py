@@ -39,7 +39,7 @@ class ManifestTest(unittest.TestCase):
     def test_textures_cover_the_spec_list(self):
         names = {Path(a.path).stem for a in self.mm.ASSETS}
         for name in (
-            "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "LumenGem",
+            "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "LumenGem", "Diamond",
             "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "PortraitMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
             "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
@@ -186,6 +186,14 @@ class DrawingTest(unittest.TestCase):
         self.assertGreater(tl[0], br[0], "the top left facet is brighter than the bottom right")
         self.assertTrue(0 < self.alpha("LumenGem.png", 32, 6) < 128, "a soft halo around the point")
         self.assertEqual(self.alpha("LumenGem.png", 0, 0), 0)
+
+    def test_diamond_is_flat_and_reaches_the_edges(self):
+        self.assertEqual(self.px("Diamond.png", 32, 32), (255, 255, 255, 255))
+        self.assertEqual(self.px("Diamond.png", 20, 30), (255, 255, 255, 255), "one flat white, no facets")
+        self.assertEqual(self.alpha("Diamond.png", 0, 0), 0)
+        self.assertEqual(self.alpha("Diamond.png", 8, 8), 0, "no halo outside the turned square")
+        self.assertGreater(self.alpha("Diamond.png", 31, 0), 0, "the top point touches the texture's edge")
+        self.assertGreater(self.alpha("Diamond.png", 0, 31), 0, "the left point touches the texture's edge")
 
     def test_cap_masks_round_one_end_each(self):
         self.assertEqual(self.alpha("PillCapLeft.png", 0, 0), 0, "the left mask rounds its left corners")

@@ -170,7 +170,7 @@ do
 	-- its frames' sides (a step's check box, the list's rows, the footer's cog), and the glass reaches one content
 	-- inset (the rule every text panel follows, at the window cut) past that on the left and the right, so every
 	-- check box and line clears the corner cuts and the light line. Top and bottom stay the card's.
-	local reach = K.Widgets.Inset(f.GuideName, K.Tokens.Size("chamferWindow")) - 4
+	local reach = ns.Lumen.Inset(f.GuideName) - 4
 	assert(reach > 6, "the glass reaches more than 6 units past RestedXP's frames, got " .. tostring(reach))
 	local tl, br = glass._points[1], glass._points[2]
 	assert(tl[1] == "TOPLEFT" and tl[2] == card and br[1] == "BOTTOMRIGHT" and br[2] == card, "the glass hangs from both corners of the card")
