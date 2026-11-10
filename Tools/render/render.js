@@ -530,6 +530,8 @@
 		const plain = plainText(item.text);
 		const measured = ctx.measureText(plain).width / ppu;
 		const lineHeight = item.font.size * 1.2;
+		// SetSpacing puts its units between two lines of one text, and none above the first or under the last.
+		const spacing = item.spacing || 0;
 		// A text with no width of its own keeps the side its anchor fixed and takes the measured width.
 		if (item.natural && item.natural.width) {
 			const side = item.natural.width;
@@ -545,7 +547,7 @@
 		const lines = canWrap ? wrapLines(ctx, plain, rect[2] * ppu) : plain.split("\n");
 		if (item.natural && item.natural.height) {
 			const side = item.natural.height;
-			const block = lineHeight * lines.length;
+			const block = lineHeight * lines.length + spacing * (lines.length - 1);
 			if (side === "bottom") {
 				rect[1] = rect[1] + rect[3] - block;
 			} else if (side === "middle") {
@@ -603,7 +605,8 @@
 			x = dest.x + dest.w;
 		}
 		ctx.textAlign = align;
-		const block = lines.length * lh;
+		const step = lh + spacing * ppu;
+		const block = lines.length * lh + (lines.length - 1) * spacing * ppu;
 		let top = dest.y;
 		if (item.grow && block < dest.h) {
 			// A wrapped text sized to its content: the solver's estimate ran longer than the canvas measures,
@@ -628,7 +631,7 @@
 			ctx.lineJoin = "round";
 		}
 		for (let i = 0; i < lines.length; i++) {
-			const y = top + i * lh + ascent;
+			const y = top + i * step + ascent;
 			fillRuns(ctx, lineRuns[i], Math.round(x), Math.round(y), align, outline, item.shadow, ppu);
 		}
 		ctx.restore();

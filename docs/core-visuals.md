@@ -107,6 +107,7 @@ Three roles carry the picture's letter-spaced Cinzel capitals, each from its own
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
 | `gem` | `LumenGem.png` | | The card caption diamond: a solid flat square turned 45 degrees (LEE-70, the picture's 14-pixel diamond: 8 root units from point to point, the same numbers as the Skins caption bullet), white with its coverage in alpha, tinted `capsGold` |
+| `diamond` | `Diamond.png`, 64x64 | | The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. The story card's captions draw it in gilt, 8 units from point to point |
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right; the section cap's rule is now a flat colour, as the picture draws it, so no widget uses this one |

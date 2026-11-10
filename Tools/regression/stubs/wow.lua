@@ -193,9 +193,8 @@ local function measured(self)
 	if type(measure) ~= "function" or not text or type(text[1]) ~= "string" then
 		return nil
 	end
-	local font = self._state.Font
-	local size = font and font[2]
-	return measure(plainText(text[1]), font and font[1], type(size) == "number" and size or 12)
+	local path, size = Object.GetFont(self)
+	return measure(plainText(text[1]), path, type(size) == "number" and size or 12)
 end
 function Object:GetUnboundedStringWidth() return measured(self) end
 function Object:GetStringWidth()
@@ -225,7 +224,8 @@ end
 -- into by the renderer's rule (Tools/render/scene.lua Scene.WrappedLines: words fill a line while they fit, a
 -- word that fits nowhere takes a line of its own, an explicit "\n" starts a new line); a string with word wrap
 -- off takes one line per paragraph. SetMaxLines caps the count. The height is the lines times the font's size
--- times 1.2, the renderer's line height (LINE_HEIGHT_EM). A test that sets _state.StringHeight sets the height.
+-- times 1.2, the renderer's line height (LINE_HEIGHT_EM), plus SetSpacing's units between each two lines. A test
+-- that sets _state.StringHeight sets the height.
 -- A string with no width of its own that two anchors stretch wraps in the width its anchors give it, as the game's does.
 local function anchoredWidth(self)
 	local own = self:GetEffectiveScale()
@@ -256,9 +256,8 @@ local function textLines(self)
 	if type(measure) ~= "function" or not stored or type(stored[1]) ~= "string" then
 		return nil
 	end
-	local font = self._state.Font
-	local size = font and type(font[2]) == "number" and font[2] or 12
-	local path = font and font[1]
+	local path, size = Object.GetFont(self)
+	size = type(size) == "number" and size or 12
 	local width, wrap = self:GetWidth(), self._state.WordWrap
 	if not (type(width) == "number" and width > 0) and #self._points > 1 then
 		width = anchoredWidth(self)
@@ -291,7 +290,9 @@ function Object:GetStringHeight()
 		return stored[1]
 	end
 	local lines, size = textLines(self)
-	return lines and lines * size * 1.2
+	local spacing = self._state.Spacing
+	spacing = spacing and type(spacing[1]) == "number" and spacing[1] > 0 and spacing[1] or 0
+	return lines and lines * size * 1.2 + (lines - 1) * spacing
 end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
@@ -612,11 +613,27 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 		self._state[field] = pack(...)
 	end
 end
+-- SetFontObject hands the object's font to the string, over a font SetFont gave it before; SetFont gives it a font of
+-- its own, over the object's. GetFont answers the string's own font, else its font object's, as the game does.
 for _, method in ipairs({ "SetFont", "SetFontObject" }) do
 	local field = method:sub(4)
 	Object[method] = function(self, ...)
 		fontGiven(self, method, ...)
 		self._state[field] = pack(...)
+		if method == "SetFontObject" then
+			self._state.Font = nil
+		end
+	end
+end
+function Object:GetFont()
+	local own = self._state.Font
+	if own then
+		return unpack(own, 1, own.n)
+	end
+	local from = self._state.FontObject
+	from = from and from[1]
+	if type(from) == "table" and from ~= self and type(from.GetFont) == "function" then
+		return from:GetFont()
 	end
 end
 

@@ -395,6 +395,17 @@ local raw = Guard.ReadRaw(path)
 assert(#raw == #findings + 1, "the page's truncation of a text the scene step listed is one finding, a new one is added")
 os.remove(path)
 
+-- A text's spacing stands between its lines, so its last line's glyphs reach lower by it and its first line's stay.
+do
+	local font = { size = 10, path = "Interface\\AddOns\\KstyleUI\\Media\\Fonts\\SourceSans3-Semibold.ttf" }
+	local words = "Anyone for the crocolisk hunt by the river tonight"
+	local wrapped = Scene.WrappedLines(words, 10, font.path, 100)
+	local tight = Guard.Ink({ rect = { 0, 0, 100, 200 }, text = words, font = font, justifyH = "LEFT", justifyV = "TOP" })
+	local spaced = Guard.Ink({ rect = { 0, 0, 100, 200 }, text = words, font = font, spacing = 5, justifyH = "LEFT", justifyV = "TOP" })
+	assert(wrapped > 1 and spaced[2] == tight[2], "the first line's glyphs start where they did")
+	assert(math.abs((spaced[2] + spaced[4]) - (tight[2] + tight[4]) - 5 * (wrapped - 1)) < 1e-6, "the last line's glyphs end lower by the spacing between each two lines, got " .. (spaced[2] + spaced[4]) .. " for " .. (tight[2] + tight[4]))
+end
+
 -- The repository's allowlist parses, and every line names a scope.
 for _, entry in ipairs(Guard.LoadAllow()) do
 	assert(Guard.OWNERS[entry.owner], "an owner for line " .. entry.line)

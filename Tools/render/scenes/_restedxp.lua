@@ -115,9 +115,333 @@ local function Steps(R)
 		end
 		specs[i] = { index = i, title = spec.title, elements = elements }
 	end
+	if not RestedXP.PRESET then
+		specs[#specs + 1] = { index = 12, title = "Tip", tip = true, elements = {
+			{ text = "Keep your Hearthstone in Razor Hill.\nTrain your new abilities at level 10.", textOnly = true },
+		} }
+	end
 	R.rxp.fake.guide(specs)
 	R.rxp.SetStep(#specs)
 	return R.rxp.RXPFrame.CurrentStepFrame:GetHeight()
+end
+
+-- AceGUIContainer-Frame.lua:195-250,294-296: title at the top, content inset 17/27/17/40,
+-- and a 100x20 Close button 27/17 from the bottom right. Only the gallery chooses the window's screen position.
+local function AceWindow(R, widget, x, y, w, h)
+	at(widget.frame, R.env.UIParent, x, y, w, h)
+	local title = widget.titletext:GetParent()
+	at(title, widget.frame, 0, -12, w, 40)
+	widget.titletext:SetSize(w - 40, 20)
+	text(widget.titletext, widget.titletext:GetText(), "TOP", title, "TOP", 0, -14)
+	at(widget.content, widget.frame, 17, 27, w - 34, h - 67)
+	widget.statustext:GetParent():Hide()
+	for _, child in ipairs({ widget.frame:GetChildren() }) do
+		if child.obj == widget and child._template == "UIPanelButtonTemplate" then
+			at(child, widget.frame, w - 127, h - 37, 100, 20)
+			text(child:GetFontString(), "Close", "CENTER", child)
+		end
+	end
+end
+
+-- AceGUIContainer-ScrollFrame.lua:171-196: a 20-unit right gutter, 16-unit buttons and bar.
+local function AceScroll(widget, parent, x, y, w, h)
+	at(widget.frame, parent, x, y, w, h)
+	at(widget.scrollframe, widget.frame, 0, 0, w - 20, h)
+	widget.scrollframe:EnableMouseWheel(true)
+	at(widget.content, widget.scrollframe, 0, 0, w - 20, h)
+	widget.content:SetClipsChildren(true)
+	at(widget.scrollbar, widget.scrollframe, w - 16, 16, 16, h - 32)
+	local bar = widget.scrollbar
+	at(bar.ScrollUpButton, bar, 0, -16, 16, 16)
+	at(bar.ScrollDownButton, bar, 0, h - 32, 16, 16)
+	bar.ThumbTexture:SetSize(16, 30)
+	bar.ThumbTexture:SetPoint("TOP", bar, "TOP", 0, -4)
+end
+
+local function Bar(bar)
+	local w, h = bar:GetWidth(), bar:GetHeight()
+	at(bar.ScrollUpButton, bar, 0, -16, w, 16)
+	at(bar.ScrollDownButton, bar, 0, h, w, 16)
+	bar.ScrollUpButton.Normal:SetAllPoints(bar.ScrollUpButton)
+	bar.ScrollDownButton.Normal:SetAllPoints(bar.ScrollDownButton)
+	bar.ThumbTexture:ClearAllPoints()
+	bar.ThumbTexture:SetPoint("TOP", bar, "TOP", 0, -4)
+	bar.ThumbTexture:SetSize(w, 30)
+end
+
+local function Label(widget, parent, x, y, w, h, value)
+	at(widget.frame, parent, x, y, w, h)
+	at(widget.label, widget.frame, 0, 0, w, h)
+	widget.label:SetJustifyH("LEFT")
+	widget.label:SetJustifyV("TOP")
+	widget.label:SetWordWrap(true)
+	widget.label:SetText(value)
+end
+
+-- LevelingTracker.lua:420-643: report size is attachment width*.7 and height-40-tabsHeight*2;
+-- Flow top row (45% level button, 55% player), List groups, four-unit spacers. The attachment is 398x484
+-- (Forever Camelot/CharacterFrameConstants.lua:4-7); a supplied legacy tab is 32 high
+-- (Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:932-933). Only the report is drawn here.
+local function Report(R)
+	local rxp, env = R.rxp, R.env
+	local attachment = env.CreateFrame("Frame", "RenderRestedXPCharacter", env.UIParent)
+	at(attachment, env.UIParent, 0, 0, 398, 484)
+	rxp.tracker:CreateGui(attachment, "Valerin")
+	local ui = rxp.tracker.ui.RenderRestedXPCharacter
+	local w, h = attachment:GetWidth() * 0.7, attachment:GetHeight() - 40 - 32 * 2
+	AceWindow(R, ui, 320, 30, w, h)
+	AceScroll(ui.scrollContainer, ui.content, 0, 0, w - 34, h - 67)
+	local content = ui.scrollContainer.content
+	local inner = content:GetWidth()
+	local top = ui.scrollContainer.children[1]
+	at(top.frame, content, 0, 0, inner, 24)
+	at(top.content, top.frame, 0, 0, inner, 24)
+	at(ui.levelButton.frame, top.content, 0, 0, inner * 0.45, 24)
+	text(ui.levelButton.frame:GetFontString(), "9 to 10", "CENTER", ui.levelButton.frame)
+	Label(ui.target, top.content, inner * 0.45, 5, inner * 0.55, 18, "Valerin")
+	ui.target.label:SetJustifyH("CENTER")
+	local groups = {
+		{ "reached", "Reached Level 9", "In-progress" },
+		{ "speed", "Time spent", "00:32:18" },
+		{ "zones", "Zones & Dungeons", "Durotar: 00:26:40\nOrgrimmar: 00:05:38" },
+		{ "sources", "Experience Sources", { quests = "Quests: 6,240 (68%)", mobs = "Mobs: 2,936 (32%)" } },
+		{ "teamwork", "Teamwork", { solo = "Solo: 00:28:12", group = "Group: 00:04:06" } },
+		{ "extras", "Extras", "Deaths: 0\nDistance travelled: 4,210 yd" },
+	}
+	local y = 30
+	for _, spec in ipairs(groups) do
+		local group = ui[spec[1] .. "Container"]
+		local parent = content
+		local rows = type(spec[3]) == "table" and 2 or (spec[3]:find("\n") and 2 or 1)
+		local gh = 18 + 4 + rows * 15
+		if group.frame then
+			at(group.frame, content, 0, y, inner, gh)
+			at(group.content, group.frame, 0, 0, inner, gh)
+			parent = group.content
+		end
+		Label(group.label, parent, 0, group.frame and 0 or y, inner, 18, spec[2])
+		local dy = (group.frame and 0 or y) + 22
+		if type(spec[3]) == "table" then
+			for _, key in ipairs(spec[1] == "sources" and { "quests", "mobs" } or { "solo", "group" }) do
+				Label(group.data[key], parent, 0, dy, inner, 15, spec[3][key])
+				dy = dy + 15
+			end
+		else
+			Label(group.data, parent, 0, dy, inner, rows * 15, spec[3])
+		end
+		y = y + gh + 3
+	end
+	R.windows.report = { ui.frame, R.K.Skin.Parts(ui.frame).backdrop }
+end
+
+-- LevelingTracker.lua:1002-1106,1244-1342: the fake supplies the anchors; label measurements determine
+-- the window's width+16 and combined text heights+26. These are the recent splits of a level 9 character.
+local function Splits(R)
+	R.rxp.tracker:CreateLevelSplits()
+	local f = R.rxp.tracker.levelSplits
+	local cog = f.title.cog:GetNormalTexture()
+	if type(cog) == "table" then cog:SetAllPoints(f.title.cog) end
+	local values = { history = "Level 7: 00:18:42\nLevel 8: 00:23:16\nLevel 9: 00:27:09", current = "Level Time: 00:32:18", total = "Total Time: 02:14:35" }
+	local width, total = 0, 0
+	for _, key in ipairs({ "history", "current", "total" }) do
+		local fs = f[key].label
+		local path, size = fs:GetFont()
+		local h = height(values[key], size, path, 260)
+		width = math.max(width, Scene.TextWidth(values[key], size, path))
+		f[key].frame:SetSize(260, h)
+		at(fs, f[key].frame, 0, 0, 260, h)
+		fs:SetJustifyH("LEFT")
+		fs:SetJustifyV("TOP")
+		fs:SetText(values[key])
+		total = total + h
+	end
+	at(f, R.env.UIParent, 620, 920, width + 16, total + 26)
+	f.title:SetWidth(width)
+	text(f.title.text, "Level splits", "CENTER", f.title, "CENTER", 0, 1)
+	for _, key in ipairs({ "history", "current", "total" }) do
+		f[key].frame:SetWidth(width)
+		f[key].label:SetWidth(width)
+	end
+	R.windows.splits = { f, f.title, R.K.Skin.Parts(f).backdrop }
+end
+
+-- UI/V2/Core.lua:97-126,179-235: 320x126, message at (14,35), 142x24 buttons 12 from the bottom,
+-- and the 20-unit close button the fake hangs at TOPRIGHT (6,6). GuideImporter.lua:871-886,1038-1055 supplies the copy.
+local function Popup(R, popup, key, y, title, message)
+	popup:Show()
+	at(popup.frame, R.env.UIParent, 620, y, 320, 126)
+	text(popup.title, title, "TOP", popup.frame, "TOP", 0, -9)
+	at(popup.message, popup.frame, 14, 35, 292, 56)
+	popup.message:SetJustifyH("LEFT")
+	popup.message:SetJustifyV("TOP")
+	popup.message:SetWordWrap(true)
+	popup.message:SetText(message)
+	for i, button in ipairs(popup.buttons) do
+		at(button, popup.frame, i == 1 and 12 or 166, 90, 142, 24)
+		text(button.text, i == 1 and "Yes" or "No", "CENTER", button)
+	end
+	R.windows[key] = { popup.frame }
+end
+
+-- UI/V2/GuideImporter.lua:248-287,800-841,890-1098: 500x298 plus history, content (10,48),
+-- paste field (8,18) 50 high, beta's two import buttons, 24-high dropdown, three 150x24 actions,
+-- progress 47 below the dropdown and history 13 under the bar. Beta is on to expose the splice control.
+local function Importer(R)
+	R.rxp.guideImporter:Open()
+	local w = R.rxp.guideImporter.widgets
+	local ui = w.import
+	at(ui.frame, R.env.UIParent, 1000, 30, 500, 334)
+	at(ui.content, ui.frame, 10, 48, 480, 276)
+	text(ui.title, "RestedXP Guide Import - v4.11.35", "TOP", ui.frame, "TOP", 0, -4)
+	text(ui.description, "Import Guides", "TOPLEFT", ui.frame, "TOPLEFT", 18, -31)
+	text(w.importLabel, 'Paste your guide string into the text field and click "Import".', "TOPLEFT", ui.content, "TOPLEFT", 8, -1)
+	at(w.importBox.frame, ui.content, 8, 18, 464, 50)
+	at(w.importBox.background, w.importBox.frame, 0, 4, 464, 42)
+	at(w.importBox.editBox, w.importBox.background, 5, 6, 455, 32)
+	w.importBox.editBox:SetText("RXPGuides: 6-10 Durotar\n!RXPGuides;1;9;Durotar;4.11.35")
+	for i, key in ipairs({ "importButton", "importSplicedString" }) do
+		at(w[key].frame, ui.content, 8 + (i - 1) * 236, 76, 228, 24)
+		text(w[key].text, i == 1 and "Import" or "Import Spliced String", "CENTER", w[key].frame)
+	end
+	text(w.guidesLabel, "Show imported guides", "TOPLEFT", ui.content, "TOPLEFT", 8, -112)
+	at(w.currentGuides.frame, ui.content, 8, 124, 464, 24)
+	at(w.currentGuides.dropdown, w.currentGuides.frame, -15, 0, 496, 24)
+	at(w.currentGuides.button, w.currentGuides.frame, 440, 0, 24, 24)
+	local arrow = w.currentGuides.button:GetNormalTexture()
+	if type(arrow) == "table" then arrow:SetAllPoints(w.currentGuides.button) end
+	w.currentGuides.text:SetWidth(414)
+	w.currentGuides.text:SetJustifyH("RIGHT")
+	text(w.currentGuides.text, "6-10 Durotar", "LEFT", w.currentGuides.frame, "LEFT", 10, 0)
+	for i, key in ipairs({ "purgeButton", "reloadButton", "deleteButton" }) do
+		at(w[key].frame, ui.content, 8 + (i - 1) * 160, 156, 150, 24)
+		text(w[key].text, ({ "Purge", "Reload", "Delete" })[i], "CENTER", w[key].frame)
+	end
+	text(w.progressLabel, "Progress", "TOPLEFT", ui.content, "TOPLEFT", 8, -195)
+	at(w.progress, ui.content, 8, 209, 464, 18)
+	w.progress:SetValue(0.72)
+	w.progressBackground:SetAllPoints(w.progress)
+	w.progressBackground:SetColorTexture(0.05, 0.05, 0.05, 0.3)
+	text(w.progressText, "Importing guides: 18 / 25", "LEFT", w.progress, "LEFT", 6, 0)
+	at(w.history, ui.content, 8, 240, 464, 36)
+	w.history:SetJustifyH("LEFT")
+	w.history:SetJustifyV("TOP")
+	w.history:SetText("6-10 Durotar imported successfully\n10-12 Barrens imported successfully")
+	Popup(R, w.purgeConfirmation, "purge", 30, "Purge", "This action will remove ALL guides from the database\nAre you sure?")
+	Popup(R, w.deleteConfirmation, "delete", 186, "Remove", "Remove 6-10 Durotar?")
+	R.windows.importer = { ui.frame }
+end
+
+-- Communications.lua:595-675 and AceGUIContainer-Frame.lua:149-150: feedback uses AceGUI's 700x500
+-- default; branded export gets its caller's width/height. AceGUIWidget-MultiLineEditBox.lua:38-51,290-327
+-- places the label at y4, scroll background below it, edit inset (5,6), Accept at bottom left if writable.
+local function Dialog(R, widget, x, y, w, h, feedback)
+	AceWindow(R, widget, x, y, w, h)
+	local parent, edit = widget.content, widget.children[1]
+	if feedback then
+		AceScroll(edit, parent, 0, 0, w - 34, h - 67)
+		parent, edit = edit.content, edit.children[1]
+	end
+	local ew, eh = parent:GetWidth(), parent:GetHeight()
+	at(edit.frame, parent, 0, 0, ew, eh)
+	local path, size = R.ns.Style.Font("body")
+	local labelHeight = height(edit.label:GetText(), size, path, ew)
+	at(edit.label, edit.frame, 0, 4, ew, labelHeight)
+	edit.label:SetJustifyH("LEFT")
+	edit.label:SetJustifyV("TOP")
+	edit.label:SetWordWrap(true)
+	local bottom = feedback and 4 or 26
+	at(edit.scrollBG, edit.frame, 0, labelHeight + 4, ew - 16, eh - labelHeight - 4 - bottom)
+	at(edit.scrollFrame, edit.scrollBG, 5, 6, ew - 25, edit.scrollBG:GetHeight() - 10)
+	at(edit.editBox, edit.scrollFrame, 0, 0, ew - 25, edit.scrollFrame:GetHeight())
+	at(edit.scrollBar, edit.frame, ew - 16, labelHeight + 23, 16, eh - labelHeight - 23 - bottom - 19)
+	if not feedback then
+		at(edit.button, edit.frame, 0, eh - 26, 72, 22)
+		text(edit.button:GetFontString(), "Accept", "CENTER", edit.button)
+	end
+end
+
+local function ExtraWindows(R)
+	local rxp, env = R.rxp, R.env
+	Report(R)
+	Splits(R)
+	Importer(R)
+	rxp.comms.OpenBugReport({ arg1 = 12 })
+	local feedback = env.RESTEDXP_BUG_REPORT_WINDOW.obj
+	Dialog(R, feedback, 960, 550, 700, 500, true)
+	feedback.children[1].children[1].editBox:SetText("RestedXP Feedback Form\n\nCharacter: Orc / Warrior / level 9 (72.00%)\nZone: Durotar / Tiragarde Keep / 59.24,58.13\nGuide: 6-10 Durotar v4.11.35\nStep: 12\n\nDescribe the issue:\nThe Canvas Scraps objective did not update after looting.\n\nWhat did you expect to happen?\nThe counter should increase when the quest item is looted.")
+	rxp.comms.OpenBrandedExport("Guide export", "Copy or edit your guide string", "#classic\n#name 6-10 Durotar\n#next 10-12 Barrens\n\nstep\n.goto Durotar,59.24,58.13\n>>Collect Canvas Scraps", 320, 240, function() end)
+	Dialog(R, env.RESTEDXP_BRANDED_EXPORT.obj, 620, 650, 320, 240, false)
+	local Chrome = R.ns.RestedXP.Chrome
+	R.windows.feedback = { feedback.frame, Chrome.DressPanel(feedback.frame) }
+	R.windows.export = { env.RESTEDXP_BRANDED_EXPORT, Chrome.DressPanel(env.RESTEDXP_BRANDED_EXPORT) }
+	-- Targeting.lua:1129-1325 and map.lua:40-98,140-166 are already laid out by the fake.
+	rxp.targeting:UpdateTargetFrame(3, 1)
+	local targets = rxp.targeting.activeTargetFrame
+	at(targets, env.UIParent, 18, 40, targets:GetWidth(), targets:GetHeight())
+	for i, button in ipairs(targets.enemyTargetButtons) do button.icon:SetTexture(132333 + i) end
+	for _, button in ipairs(targets.friendlyTargetButtons) do button.icon:SetTexture(135942) end
+	rxp.SetupArrow()
+	rxp.fake.arrow("Tiragarde Keep", 126, 0.35)
+	at(rxp.arrowFrame, env.UIParent, 210, 40, 32, 32)
+	rxp.arrowFrame.text:SetWidth(130)
+	rxp.arrowFrame.text:SetHeight(30)
+	R.windows.targets = { targets, targets.title, R.K.Skin.Parts(targets).backdrop }
+	R.windows.arrow = { rxp.arrowFrame, rxp.arrowFrame.text }
+	-- GuideWindow.lua:1001-1012: UpdateText's tip branch is modelled by the fake (230 wide, outside the stack).
+	local tip = rxp.RXPFrame.CurrentStepFrame.framePool[#RestedXP.STEPS + 1]
+	at(tip, env.UIParent, 18, 170, 230, tip:GetHeight())
+	R.windows.tip = { tip, tip.number }
+	-- QuestLog.lua:762-791: 200x22 cleanup below Abandon, or parent BOTTOMLEFT (20,45).
+	local button = rxp.fake.createCleanupButton()
+	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
+	env.RunTimers()
+	at(env.QuestMapFrame, env.UIParent, 0, 900, 240, 120)
+	at(env.QuestMapFrame.DetailsFrame, env.QuestMapFrame, 0, 0, 240, 120)
+	at(button, env.QuestMapFrame.DetailsFrame, 20, 53, 200, 22)
+	text(button:GetFontString(), "Cleanup Orphaned Quests", "CENTER", button)
+	R.windows.cleanup = { button }
+	-- LibUIDropDownMenu.lua:58-59,1213-1248,1386 and GuideWindow.lua:1561-1586: the complete step menu.
+	-- The fake lays out its shared rows; ShowMenu leases the list's kit chrome and typography.
+	local menu = rxp.fake.menuRows({ "Go to step 12", "Select another guide", "Reload Guide", "Options...", "Give Feedback for step", "Close" })
+	rxp:ShowMenu(rxp.RXPFrame.bottomMenu, rxp.RXPFrame.MenuFrame, "cursor", 0, 0, "MENU")
+	at(menu, env.UIParent, 18, 870, menu:GetWidth(), menu:GetHeight())
+	env.L_DropDownList1Backdrop:SetAllPoints(menu)
+	env.L_DropDownList1MenuBackdrop:SetAllPoints(menu)
+	R.windows.menu = { menu }
+	-- Finish the template geometry the fake deliberately omits (the constructors above own these sizes).
+	Bar(rxp.v2.state.guideWindow.guideSteps.scroll.scrollbar)
+	at(rxp.v2.state.guideWindow.guideSteps.scroll.scrollbar, rxp.v2.state.guideWindow.guideStepsFrame, WIDTH - 16, 19, 10, 200)
+	-- UI/V2/Core.lua:1081-1083: the banner header sits one unit inside the upper frame.
+	at(rxp.v2.state.guideWindow.header, rxp.v2.state.guideWindow.upperFrame, 1, 1, WIDTH - 2, rxp.v2.state.guideWindow.upperFrame:GetHeight() - 2)
+	Bar(rxp.ui.v2.configurator.ui.scrollContainer.scrollbar)
+	Bar(rxp.tracker.ui.RenderRestedXPCharacter.scrollContainer.scrollbar)
+	Bar(feedback.scrollContainer.scrollbar)
+	Bar(feedback.children[1].children[1].scrollBar)
+	Bar(env.RESTEDXP_BRANDED_EXPORT.obj.children[1].scrollBar)
+	local configurator = rxp.ui.v2.configurator.ui
+	-- GuideConfigurator.lua:478-479,1075-1106: close, settings, import and help controls.
+	for _, child in ipairs({ configurator.frame:GetChildren() }) do
+		local normal = child:GetNormalTexture()
+		local path = type(normal) == "table" and tostring(normal:GetTexture()) or ""
+		if path:find("rxp%-icon%-cog") then at(child, configurator.frame, 284, 24, 24, 24)
+		elseif path:find("icon%-btn%-import") then at(child, configurator.frame, 252, 21, 30, 30)
+		elseif path:find("icon%-btn%-help") then at(child, configurator.frame, 220, 21, 30, 30) end
+		-- The game stretches a button's normal texture over the button; the fake leaves it without points.
+		if path ~= "" and not path:find("rxp%-btn%-close") then normal:SetAllPoints(child) end
+	end
+	local items = rxp.activeItemFrame
+	at(items, env.UIParent, 18, 790, items:GetWidth(), items:GetHeight())
+	at(button, env.QuestMapFrame.DetailsFrame, 330, 53, 200, 22)
+	-- UI/V2/Core.lua:396-420,466-468: backdrop wrappers fill their window, shadow extends two units.
+	for _, frame in ipairs(env._frames) do
+		if frame.rxpBackground then frame.rxpBackground:SetAllPoints(frame) end
+		if frame.rxpBorder then frame.rxpBorder:SetAllPoints(frame) end
+		if frame.rxpShadow then
+			frame.rxpShadow:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 2)
+			frame.rxpShadow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
+		end
+	end
+	env.CharacterFrame:Hide()
 end
 
 -- Guide(R, path, top) lays the guide window out: in the gallery with its header's top at `top`, header, step list
@@ -227,22 +551,16 @@ local OPTION_FLOOR = 240 - 44 - 10
 local function ConfiguratorRows(env, rxp, configurator)
 	local Fake = dofile("Tools/regression/restedxp_fake.lua")
 	local frame = configurator.frame
-	local path = rxp.font or "Fonts\\FRIZQT__.TTF"
 	local left, top, width = 16, 40, 320 - 16 - 28
-	local title = frame:CreateFontString(nil, "OVERLAY")
-	font(title, path, 12)
-	title:SetJustifyH("LEFT")
-	title:SetTextColor(0.9, 0.9, 0.95, 1)
-	at(title, frame, left, top, width, 16)
-	title:SetText("Shadowfang Keep, 18 to 26")
-	local description = frame:CreateFontString(nil, "OVERLAY")
-	font(description, path, 10)
-	description:SetJustifyH("LEFT")
-	description:SetTextColor(0.75, 0.75, 0.82, 1)
-	at(description, frame, left, top + 18, width, 14)
-	description:SetText("Choose what this guide should include.")
+	local intro = configurator.scrollContainer.children[1]
+	at(intro.frame, frame, left, top, width, 34)
+	at(intro.content, intro.frame, 0, 0, width, 34)
+	Label(intro.titleLabel, intro.content, 0, 0, width, 16, "Shadowfang Keep, 18 to 26")
+	Label(intro.descriptionLabel, intro.content, 0, 18, width, 14, "Choose what this guide should include.")
 	local pane = configurator.scrollContainer.frame
 	at(pane, frame, left, top + 38, width, OPTION_FLOOR - top - 38)
+	configurator.scrollContainer.scrollframe:SetAllPoints(pane)
+	configurator.scrollContainer.content:SetAllPoints(pane)
 	local y = 0
 	for _, option in ipairs(Fake.ConfiguratorOptions(configurator)) do
 		if y + OPTION_ROW > OPTION_FLOOR - top - 38 then
@@ -290,7 +608,9 @@ local function Others(R, x, itemsTop)
 	local configurator = rxp.ui.v2.configurator.ui
 	local x3 = x + WIDTH + GAP
 	at(configurator.frame, env.UIParent, x3, RestedXP.TOP, 320, 240)
-	text(configurator.titletext, "Guide configurator", "TOP", configurator.frame, "TOP", 0, -14)
+	-- GuideConfigurator.lua:483-486 hangs the title 1 under the frame's top in a 162 by 16 box, over the header buttons.
+	text(configurator.titletext, "Guide configurator", "TOP", configurator.frame, "TOP", 0, -1)
+	configurator.titletext:SetSize(162, 16)
 	for i, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
 		local button = configurator[key]
 		at(button, configurator.frame, 16 + (i - 1) * 100, 240 - 44, 88, 26)
@@ -359,9 +679,16 @@ function RestedXP.Build()
 		v2 = { rxp.v2.state and rxp.v2.state.guideWindow.frame or nil },
 		configurator = { rxp.ui.v2.configurator.ui.frame },
 	}
+	if not rail then
+		local v2 = rxp.v2.state.guideWindow
+		at(v2.frame, env.UIParent, 330, 480, WIDTH, 400)
+		at(rxp.ui.v2.configurator.ui.frame, env.UIParent, 620, 340, 320, 240)
+		ExtraWindows(R)
+		S.W.Settle(env)
+	end
 	R.log = {
 		"restedxp: RestedXP's v1 windows are laid out as the game lays them out (sizes and anchors read from the owner's screenshot and RestedXP's frame tree); the v2 window, item frame and configurator are placed by this scene",
-		"restedxp: the logo, class icon, cog and resize grabber are stand-in textures",
+		"restedxp: the logo, class icon, cog and resize grabber are stand-in textures; RestedXP's own icon art (the configurator's settings, import and help icons, the splits' cog, the importer's list arrow) is not in the repository and draws as a box in the icon's tint",
 	}
 	return R
 end
