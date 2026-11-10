@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 12
+Store.DB_VERSION = 13
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -320,6 +320,24 @@ Store.migrations[12] = function(data)
 		for _, bar in ipairs(type(bars) == "table" and RAIL_BARS or {}) do
 			if type(bars[bar]) == "table" and bars[bar].showEmpty == false then
 				bars[bar].showEmpty = nil
+			end
+		end
+	end
+end
+
+Store.migrations[13] = function(data)
+	local oldWidth, oldHeight = 154, 12
+	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
+		local entry = type(layout) == "table" and layout["nameplates.plate"]
+		if type(entry) == "table" then
+			if entry.width == oldWidth then
+				entry.width = nil
+			end
+			if entry.height == oldHeight then
+				entry.height = nil
+			end
+			if next(entry) == nil then
+				layout["nameplates.plate"] = nil
 			end
 		end
 	end
