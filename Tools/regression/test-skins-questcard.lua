@@ -133,6 +133,19 @@ do
 	assert(math.abs(viewBox.bottom - cardBox.bottom - 12.5) <= 0.6, "the card ends 12.5 under its last quest, the picture's foot, got " .. viewBox.bottom - cardBox.bottom)
 	local morePoint, moreOn, _, _, moreY = parts.more:GetPoint(1)
 	assert(morePoint == "CENTER" and moreOn == parts.view and math.abs(moreY + K.Widgets.Snap(card, 12.5) / 2) < 1e-6 and select(2, parts.more:GetFont()) <= 12.5 / factor, "the more line stands in the middle of that foot and its glyphs fit it, so it adds no row to the card, got " .. tostring(morePoint) .. " " .. tostring(moreY))
+	-- A larger text size setting grows the more line, so the foot grows by the same factor and the line stays inside
+	-- the card; at the shipped size the foot is the picture's 12.5.
+	K.Options.Write("Skins", "text.size", 1.5)
+	env.RunTimers()
+	do
+		local big, bigView = RootRect(K, card), RootRect(K, parts.view)
+		local _, _, _, _, bigY = parts.more:GetPoint(1)
+		assert(math.abs(bigView.bottom - big.bottom - 18.75) <= 0.6, "at one and a half times the text size the foot is one and a half times as deep, got " .. bigView.bottom - big.bottom)
+		assert(parts.more:GetNumPoints() == 1 and math.abs(bigY + K.Widgets.Snap(card, 18.75) / 2) < 1e-6 and select(2, parts.more:GetFont()) <= 18.75 / factor, "and the larger more line still stands in its middle and fits it, got " .. tostring(bigY) .. " " .. tostring(select(2, parts.more:GetFont())))
+	end
+	K.Options.Write("Skins", "text.size", 1)
+	env.RunTimers()
+	assert(math.abs(RootRect(K, parts.view).bottom - RootRect(K, card).bottom - 12.5) <= 0.6, "and 12.5 again at the shipped size")
 	card._mouseOver = true
 	card:GetScript("OnEnter")(card)
 	assert(parts.thumb:GetAlpha() == 1 and parts.track:GetAlpha() == 1 and parts.more:GetAlpha() == 1, "under the pointer they show")

@@ -1514,6 +1514,10 @@ local function TemporaryText(root, text, role, color, shape)
 	local function Word(value)
 		holder.label:SetText(caps and K.Locale.Upper(PlainText(value)) or value)
 	end
+	local function Seen()
+		local shown = type(text.IsShown) ~= "function" or text:IsShown()
+		holder:SetShown(Widgets.IsSecret(shown) or shown ~= false)
+	end
 	local function Own(given)
 		local path, size, flags = given:GetFont()
 		if type(path) ~= "string" or Widgets.IsSecret(path) or not Plain(size) then
@@ -1567,6 +1571,13 @@ local function TemporaryText(root, text, role, color, shape)
 		hooksecurefunc(text, "SetText", function(_, value)
 			if Active() and entry.active then Word(value) end
 		end)
+		for _, method in ipairs({ "Show", "Hide", "SetShown" }) do
+			if type(text[method]) == "function" then
+				hooksecurefunc(text, method, function()
+					if Active() and entry.active then Seen() end
+				end)
+			end
+		end
 		for _, method in ipairs({ "SetFont", "SetFontObject" }) do
 			if type(text[method]) == "function" then
 				hooksecurefunc(text, method, function()
@@ -1580,7 +1591,7 @@ local function TemporaryText(root, text, role, color, shape)
 	Veil(root, text)
 	Lease()
 	Word(text:GetText())
-	holder:Show()
+	Seen()
 end
 
 local function TemporaryControl(root, source, kind)

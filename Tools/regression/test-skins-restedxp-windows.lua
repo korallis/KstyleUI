@@ -11,7 +11,7 @@ local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local W = S.W
 
 -- Methods KstyleUI may replace on RestedXP's objects with hooksecurefunc.
-local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
+local HOOKED = { SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, SetStatusBarColor = true, UpdateVisuals = true, SetMinMaxValues = true, DoLayout = true }
 local THIN_SPACE = "\226\128\137"
 
 local function Boot(opts)
@@ -764,6 +764,13 @@ do
 			edit.button:Disable()
 			NewCheck(over and not over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("textDisabled")), key .. " a disabled accept button's kit chrome and label are disabled too")
 			edit.button:Enable()
+			-- AceGUI hides an edit box's label when it is given no words and leaves the old words in it
+			-- (AceGUIWidget-MultiLineEditBox.lua, SetLabel), so the label drawn over it hides and shows with it.
+			local drawn = label and label:GetParent()
+			rxp.fake.trust(edit.label.Hide)(edit.label)
+			NewCheck(drawn and not drawn:IsShown(), key .. " a hidden edit label's replacement hides with it")
+			rxp.fake.trust(edit.label.Show)(edit.label)
+			NewCheck(drawn and drawn:IsShown(), key .. " and shows with it again")
 			NewCheck(over and over:IsEnabled() and accept and Colored(accept, K.Tokens.Color("text")), key .. " and enabled again with it")
 		end
 		K.Options.Write("Skins", "text.size", 1.5)

@@ -7,7 +7,7 @@ local Measure = dofile("Tools/regression/databars_env.lua")
 local W = S.W
 
 local HOOKED = {
-	SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true,
+	SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true,
 	SetStep = true, UpdateText = true, SortTimers = true, SetStatusBarColor = true, DoLayout = true,
 }
 

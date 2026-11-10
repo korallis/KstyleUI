@@ -32,6 +32,10 @@ local function TextSize()
 	return Lumen.Size(card, Lumen.TEXT_SIZE)
 end
 
+local function Foot()
+	return Snap(FOOT * math.max(1, Style.Setting("text", "size")))
+end
+
 local function Gutter()
 	return Snap(Lumen.Size(card, GUTTER))
 end
@@ -477,7 +481,7 @@ function Card.Render()
 		heights[i] = Height(Data.Get(i))
 	end
 	local top = docked and 0 or Snap(HEAD)
-	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Snap(FOOT)
+	local chrome = top + Snap(CAP_ROW) + Snap(CAP_GAP) + Foot()
 	local room = math.max(heights[1], maxHeight - chrome)
 	local viewHeight = math.min(Window(total, n, gap), room)
 	local fit = FitFromEnd(total, n, viewHeight, gap)
@@ -640,6 +644,8 @@ local function Restyle()
 	lead = pitch - natural
 	ruler:SetSpacing(lead)
 	Style.ApplyFont(more, "body", TextSize() * MORE_SCALE)
+	more:ClearAllPoints()
+	more:SetPoint("CENTER", view, "BOTTOM", 0, -Foot() / 2)
 	Widgets.TextColor(more, "muted")
 	track:SetColorTexture(Widgets.Rgba("edgeBar", TRACK_ALPHA))
 	track:SetWidth(Snap(BAR_WIDTH))
@@ -683,7 +689,7 @@ function Card.Build(root)
 	countRuler = Widgets.FontString(card, "OVERLAY")
 	countRuler:Hide()
 	more = Widgets.FontString(card, "OVERLAY")
-	more:SetPoint("CENTER", view, "BOTTOM", 0, -Snap(FOOT) / 2)
+	more:SetPoint("CENTER", view, "BOTTOM", 0, -Foot() / 2)
 	more:SetJustifyH("CENTER")
 	PaintRest()
 	for i = 1, MAX_SHOWN do
