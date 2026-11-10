@@ -197,6 +197,20 @@ do
 	noErrors("custom name font")
 end
 
+do
+	local function nameY()
+		local _, _, _, _, y = player.name:GetPoint(1)
+		return y
+	end
+	local roomy = nameY()
+	ns.Unit.SetName(player, string.rep("W", 80))
+	assert(player.name:GetFont() == Tokens.Font("body"), "a name too long for its room falls back to the body font")
+	assert(near(nameY() - roomy, player.geometry.nameDrop, 0.6), "and then loses the Cinzel baseline correction, " .. tostring(roomy) .. " against " .. tostring(nameY()))
+	ns.Unit.SetName(player, "Korallis")
+	assert(player.name:GetFont() == Tokens.Font("unit") and near(nameY(), roomy, 0.6), "a short name gets the Cinzel face and its correction back")
+	noErrors("name fallback")
+end
+
 local older, _, nsOlder = U.New({ lumen = true })
 assert(nsOlder.Settings.Form("player") == "vitals" and nsOlder.Settings.Form("target") == "sigil", "a profile that keeps Lumen draws the vitals line and the sigil")
 assert(nsOlder.CastBars.ElementLive("player") == false, "and the player's cast sits inside its frame, not in the element")

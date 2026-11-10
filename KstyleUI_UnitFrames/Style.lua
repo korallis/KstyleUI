@@ -231,11 +231,22 @@ local function Centre(view, text, point, relative, relPoint, x, rect)
 end
 
 local function TightName(view)
-	return view.kind ~= nil and Tokens.FaceTracking((Settings.Font(view.kind, "name"))) < 0
+	return Tokens.FaceTracking((view.name:GetFont())) < 0
+end
+
+local function CaptionPoint(view, g)
+	local lift = TightName(view) and Snap(view, g.captionLift or 0) or 0
+	view.caption:ClearAllPoints()
+	if g.mirror then
+		view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), lift)
+	else
+		view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), lift)
+	end
 end
 
 local function NameBottom(view, g, rect)
 	local drop = TightName(view) and g.nameDrop or 0
+	view.nameRect = rect
 	if g.mirror then
 		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect, drop)
 		view.name:SetJustifyH("RIGHT")
@@ -263,8 +274,7 @@ local function LumenTexts(view, g)
 			view.name:Hide()
 		end
 		if g.caption then
-			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), TightName(view) and Snap(view, g.captionLift or 0) or 0)
+			CaptionPoint(view, g)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -289,8 +299,7 @@ local function LumenTexts(view, g)
 			view.name:SetJustifyH("LEFT")
 		end
 		if g.caption then
-			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), TightName(view) and Snap(view, g.captionLift or 0) or 0)
+			CaptionPoint(view, g)
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -435,6 +444,17 @@ local function HideLumen(view)
 	end
 	view.name:SetJustifyH("LEFT")
 	view.healthText:SetJustifyH("RIGHT")
+end
+
+function Style.Baseline(view)
+	local g = view.geometry
+	if not (g and g.nameAuto and g.nameDrop and view.nameRect) then
+		return
+	end
+	NameBottom(view, g, view.nameRect)
+	if g.caption and view.caption:IsShown() then
+		CaptionPoint(view, g)
+	end
 end
 
 function Style.PlaceName(view, rect)
