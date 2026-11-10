@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 14
+Store.DB_VERSION = 15
 Store.migrations = {}
 
 Store.migrations[2] = function(data)
@@ -362,6 +362,33 @@ Store.migrations[14] = function(data)
 			if next(entry) == nil then
 				layout["meters.threat"] = nil
 			end
+		end
+	end
+end
+
+Store.migrations[15] = function(data)
+	local paths = {}
+	for _, item in ipairs(ns.Tokens.MediaList("statusbar")) do
+		paths[item.key] = item.path
+	end
+	for _, profile in pairs(data.profiles) do
+		local units = type(profile) == "table" and profile.UnitFrames
+		for _, kind in ipairs(type(units) == "table" and { "player", "target" } or {}) do
+			local values = units[kind]
+			if type(values) == "table" then
+				if values.style == nil or values.style == "column" then
+					if values.castbarTexture == "Glass" or values.castbarTexture == paths.Glass then
+						values.castbarTexture = paths.Flat
+					end
+				elseif values.castbarTexture == nil then
+					values.castbarTexture = paths.Glass
+				end
+			end
+		end
+		local bars = type(profile) == "table" and profile.DataBars
+		local xp = type(bars) == "table" and bars.xp
+		if type(xp) == "table" and (xp.texture == "Glass" or xp.texture == paths.Glass) then
+			xp.texture = paths.Flat
 		end
 	end
 end

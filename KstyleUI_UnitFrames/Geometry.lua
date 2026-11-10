@@ -448,7 +448,7 @@ local function PillRow(out, s, width, height, scale)
 end
 
 local COLUMN = {
-	ring = 77.5, ringGap = 14, disc = 0.28, discAlong = 0.3535,
+	ring = 70, ringGap = 21.5, disc = 27 / 70, discAlong = 29 / 70,
 	health = 12, gap = 4, nameGap = 12, bottom = 7.5,
 	castBar = 7, castGap = 7, labelGap = 4.5, labelExtra = 3, nameMin = 2,
 	auraGap = 16.5, auraTop = 14.5, auraBare = 14, captionEm = 7.5,
@@ -517,7 +517,7 @@ local function ColumnPortrait(out, s, width, height, right)
 	end
 	local size = min(COLUMN.ring, height)
 	local x = right and width + COLUMN.ringGap or -(size + COLUMN.ringGap)
-	out.portrait = Rect(x, right and 0 or height - size, size, size)
+	out.portrait = Rect(x, 0, size, size)
 	if not s.level then
 		return
 	end

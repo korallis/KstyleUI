@@ -27,6 +27,8 @@ local OCTAGON = 1 / (2 + math.sqrt(2))
 local PORTRAIT_CHAMFER = 0.15
 local GLOW_SUBLEVEL = -8
 local GLOW_SPREAD = 1.7
+local RING_GUTTER = 1 / 64
+local COLUMN_LEVEL_SCALE = 0.95
 local CAPTION_GAP = 10
 local RULE_GAP = 8
 local RULE_ALPHA = 0.55
@@ -153,6 +155,9 @@ end
 
 function Style.Shape(view, round)
 	view.round = round
+	local gutter = view.form == "column" and RING_GUTTER or 0
+	view.ring:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
+	view.discRing:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
 	view.portraitBack:SetShown(round)
 	view.ring:SetShown(round)
 	view.portraitChrome:SetShadow(not round)
@@ -526,6 +531,9 @@ function Style.Restyle(view, kind)
 	for key, spec in pairs(TEXTS) do
 		local element = spec.element or key
 		local path, size, flags = Settings.Font(kind, element)
+		if form == "column" and key == "levelText" then
+			size = size * COLUMN_LEVEL_SCALE
+		end
 		local share = spec.share or 1
 		if lumen and spec.lumen then
 			share = spec.lumenShare or share
