@@ -1,5 +1,7 @@
--- gallery_auracounts.lua: the aura rows at three loads, side by side, each cropped as one frame of the gallery:
--- low (3), medium (10) and high (24 on the sigil, 16 on the focus and boss cards, 16 tracked buffs, 6 tracked bars).
+-- gallery_auracounts.lua: the aura rows at three loads, two on the first row and the third on the next, each cropped as
+-- one frame of the gallery: low (3), medium (10) and high (24 on the sigil, 16 on the focus and boss cards, 16
+-- tracked buffs, 6 tracked bars). A column is the target's width plus its aura reach plus the timer room, so a
+-- side timer is not under the next column's health bar. Three such columns do not fit the owner's screen.
 -- The sigil's debuffs wrap to a second row of ten, then the last socket reads "+N"; the focus card's single row and the
 -- boss card's one row of four do the same; the KstyleUI tracked buff icons cap at six and the bars at two, a chip
 -- reading the rest beside them, and Blizzard's own viewers (the automatic path on Forever) where Layout > Apply put
@@ -14,7 +16,14 @@ local Scene = Common.Scene
 
 local NOW = 10
 local SCREEN_H = 1080
-local COLUMN, LEFT = 548, 20
+-- 360 layout units drops the third load clear of the focus card and above the cooldown band.
+local LEFT, COLS, ROW = 20, 2, 360
+local pitch
+
+local function slot(k)
+	local col = (k - 1) % COLS
+	return LEFT + col * pitch, math.floor((k - 1) / COLS) * ROW
+end
 local LOADS = {
 	{ key = "low", label = "3", target = 3, focus = 3, boss = 3, buffs = 3, bars = 1 },
 	{ key = "medium", label = "10", target = 10, focus = 10, boss = 8, buffs = 10, bars = 3 },
@@ -114,10 +123,12 @@ local function Frames(load, k, frames)
 		end,
 	}))
 	env._time = NOW
-	local x = LEFT + (k - 1) * COLUMN
-	move(K, "unitframes.target", x, 30)
-	move(K, "unitframes.focus", x, 262)
-	move(K, "unitframes.boss", x + 320, 240)
+	local _, reach = ns.Geometry.Reach(ns.Settings.Snapshot("target"))
+	pitch = K.Setup.Layouts.Element("unitframes.target").width + reach + ns.Auras.TimerRoom("target")
+	local x, yShift = slot(k)
+	move(K, "unitframes.target", x, 30 + yShift)
+	move(K, "unitframes.focus", x, 262 + yShift)
+	move(K, "unitframes.boss", x + 320, 240 + yShift)
 	hide(K, { "unitframes.player", "unitframes.castbar.player", "unitframes.castbar.target", "unitframes.resource", "unitframes.targettarget", "unitframes.pet", "unitframes.focustarget" })
 	env.SetTarget(true)
 	env.FireEvent("PLAYER_FOCUS_CHANGED")
@@ -215,7 +226,7 @@ local function Cooldowns(load, k, frames, path)
 		cdm.auras[spell] = { auraInstanceID = instance }
 		cdm.auraDurations[instance] = { kind = "aura", start = NOW - (total - left(spell)), finish = NOW + left(spell), remaining = left(spell), total = total }
 	end
-	local x = LEFT + (k - 1) * COLUMN
+	local x = LEFT + (k - 1) * pitch
 	local told = {}
 	if not mirror then
 		local _
