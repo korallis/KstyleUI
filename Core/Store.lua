@@ -427,7 +427,7 @@ Store.migrations[16] = function(data)
 			if width == old.width and height == old.height then
 				chat.width, chat.height = old.toWidth, old.toHeight
 			end
-			taller = chat.height > old.toHeight
+			taller = type(chat.height) == "number" and chat.height > old.toHeight
 		end
 		for key in pairs(type(layout) == "table" and RAIL_V12 or {}) do
 			local entry = layout[key]

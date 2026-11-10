@@ -378,6 +378,7 @@ do
 			TallDps = { ["chat.main"] = { width = 318, height = 200 } },
 			TallSparse = { ["chat.main"] = { width = 318 } },
 			TallHigh = { ["chat.main"] = { width = 393, height = 210 } },
+			TextHeight = { ["chat.main"] = { width = 393, height = "200" } },
 			TallMoved = { ["chat.main"] = { width = 393, height = 210 }, ["qol.lootfeed"] = { x = 40 } },
 		} },
 	})
@@ -391,6 +392,7 @@ do
 	local tallMoved = db.layouts.TallMoved["qol.lootfeed"]
 	check(tallMoved.anchor == "BOTTOMLEFT" and tallMoved.x == 40 and tallMoved.y == 233, "a loot feed the player moved sideways keeps its old height above the taller card")
 	check(db.layouts.Default["qol.lootfeed"] == nil, "a card that takes the new default height lets the feed follow it")
+	check(db.version == 16 and db.layouts.TextHeight["chat.main"].height == "200", "a saved height that is text does not stop the migration")
 	local layout = db.layouts.Default
 	check(layout["chat.main"].width == 393 and layout["chat.main"].height == 186, "a card at the old default height takes the picture's 186")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 186, "Healer keeps its rail width and takes 186")
