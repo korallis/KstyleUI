@@ -34,6 +34,7 @@ class RunAllTest(unittest.TestCase):
 
     def run_all(self, *args, lua="sh", **changes):
         env = {key: value for key, value in os.environ.items() if key not in ("CI", "LUA", "TEST_TIME_BUDGET", "TEST_MEMORY_BUDGET")}
+        env.update(KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64")
         if lua is not None:
             env["LUA"] = lua
         for key, value in changes.items():
@@ -42,6 +43,17 @@ class RunAllTest(unittest.TestCase):
             else:
                 env[key] = value
         return subprocess.run([BASH, str(self.regression / "run-all.sh"), *args], env=env, capture_output=True, text=True)
+
+    def start_all(self, **changes):
+        env = dict(os.environ, LUA="sh", KSTYLEUI_SLOT_DIR=str(self.tmp / "slots"), KSTYLEUI_SLOTS="64", JOBS="4")
+        env.pop("CI", None)
+        env.update(changes)
+        return subprocess.Popen([BASH, str(self.regression / "run-all.sh")], env=env, stdout=subprocess.PIPE, text=True)
+
+    def write_slots(self, *holders):
+        (self.tmp / "slots").mkdir(exist_ok=True)
+        (self.tmp / "slots" / "worker-slots.json").write_text(json.dumps(
+            [{"pid": pid, "token": f"t{i}", "until": time.time() + until} for i, (pid, until) in enumerate(holders)]))
 
     def fake_bin(self, *names):
         """A PATH with python3 and a fake interpreter per name that records its name and arguments."""
@@ -244,6 +256,108 @@ class RunAllTest(unittest.TestCase):
         slowest = [re.sub(r"^\s+[\d.]+ s\s+\d+ MB\s+", "", line) for line in lines[start + 1:start + 6]]
         self.assertEqual(slowest, ["test-5", "test-4", "test-3", "test-2", "test-1"])
         self.assertRegex(result.stdout, r"\ntotal [\d.]+ s of test time in [\d.]+ s, 6 at a time\n")
+
+    # The machine-wide worker limit.
+
+    def overlaps(self):
+        """The most test files that were running at once, from the start and end lines the tests append to a log."""
+        running = most = 0
+        for line in (self.tmp / "log").read_text().split():
+            running += 1 if line == "start" else -1
+            most = max(most, running)
+        return most
+
+    def timed_tests(self, count):
+        for i in range(count):
+            (self.regression / f"test-{i}.lua").write_text(f"echo start >> {self.tmp}/log; sleep 0.3; echo end >> {self.tmp}/log\n")
+
+    def test_the_slot_limit_caps_the_files_running_at_once(self):
+        self.timed_tests(6)
+        result = self.run_all(JOBS="6", KSTYLEUI_SLOTS="2")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.overlaps(), 2)
+        self.assertIn("worker slots: 2 for every run on this machine", result.stdout)
+        self.assertRegex(result.stdout, r"\ntotal [\d.]+ s of test time in [\d.]+ s, 2 at a time\n")
+
+    def test_two_runs_share_the_slots(self):
+        self.timed_tests(4)
+        first, second = self.start_all(KSTYLEUI_SLOTS="1"), self.start_all(KSTYLEUI_SLOTS="1")
+        outputs = [first.communicate()[0], second.communicate()[0]]
+        self.assertEqual([first.returncode, second.returncode], [0, 0], outputs)
+        self.assertEqual(self.overlaps(), 1)
+        self.assertTrue(any("other runs held up to 1 of 1" in out for out in outputs), outputs)
+
+    def test_a_holder_whose_process_is_gone_or_whose_lease_ran_out_is_dropped(self):
+        dead = subprocess.Popen(["true"])
+        dead.wait()
+        self.write_slots((dead.pid, 600), (os.getpid(), -5))
+        self.timed_tests(1)
+        result = self.run_all(KSTYLEUI_SLOTS="2")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("0 held by other runs", result.stdout)
+        self.assertEqual(json.loads((self.tmp / "slots" / "worker-slots.json").read_text()), [])
+
+    def test_a_live_holder_keeps_its_slot_until_it_lets_go(self):
+        holder = subprocess.Popen(["sleep", "30"])
+        self.addCleanup(holder.kill)
+        self.write_slots((holder.pid, 600))
+        self.timed_tests(1)
+        waiting = self.start_all(KSTYLEUI_SLOTS="1")
+        time.sleep(1.5)
+        self.assertIsNone(waiting.poll(), "the run took a slot that a live holder has")
+        self.assertFalse((self.tmp / "log").exists())
+        holder.kill()
+        holder.wait()
+        output = waiting.communicate(timeout=20)[0]
+        self.assertEqual(waiting.returncode, 0, output)
+        self.assertIn("1 held by other runs", output)
+
+    def test_prints_the_load_the_run_saw(self):
+        self.timed_tests(1)
+        result = self.run_all()
+        self.assertRegex(result.stdout, r"machine load [\d.]+ on \d+ CPUs; worker slots: 64")
+        self.assertRegex(result.stdout, r"machine load [\d.]+ at the start, [\d.]+ at the end, [\d.]+ at most when a test started; waited [\d.]+ s for worker slots")
+
+    def test_a_time_failure_names_the_load(self):
+        (self.regression / "test-slow.lua").write_text("sleep 1.2\n")
+        result = self.run_all(TEST_TIME_BUDGET="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertRegex(result.stdout, r"FAIL test-slow: took [\d.]+ s, over the 1 s budget\..* Machine load was [\d.]+ when it started")
+
+    def test_the_limit_is_off_in_ci_and_with_zero_slots(self):
+        self.timed_tests(1)
+        self.assertIn("worker slots: off in CI", self.run_all(CI="true").stdout)
+        self.assertIn("worker slots: off (KSTYLEUI_SLOTS=0)", self.run_all(KSTYLEUI_SLOTS="0").stdout)
+        self.assertFalse((self.tmp / "slots" / "worker-slots.json").exists())
+
+    def test_runs_unlimited_when_the_slot_folder_cannot_be_made(self):
+        self.timed_tests(1)
+        blocker = self.tmp / "blocker"
+        blocker.write_text("a file, not a folder\n")
+        result = self.run_all(KSTYLEUI_SLOT_DIR=str(blocker / "slots"))
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("worker slots: off, cannot use", result.stdout)
+
+    # Margins.
+
+    def test_margins_lists_the_files_within_20_percent_of_the_budget(self):
+        (self.regression / "test-near.lua").write_text("sleep 0.9\n")
+        (self.regression / "test-far.lua").write_text("sleep 0.2\n")
+        result = self.run_all("--margins", TEST_TIME_BUDGET="1", JOBS="8")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("within 20% of the budget, run alone:", result.stdout)
+        self.assertRegex(result.stdout, r"\n\s+0\.[89] s \(\s*[89]\d%\).*test-near")
+        self.assertNotRegex(result.stdout, r"\(\s*\d+%\)[^\n]*test-far")
+        self.assertRegex(result.stdout, r", 1 at a time\n")
+
+    def test_margins_says_none_when_every_file_has_room(self):
+        (self.regression / "test-far.lua").write_text("true\n")
+        result = self.run_all("--margins")
+        self.assertIn("within 20% of the budget, run alone: none", result.stdout)
+
+    def test_margins_cannot_write_weights(self):
+        (self.regression / "test-a.lua").write_text("true\n")
+        self.assertEqual(self.run_all("--margins", "--write-weights").returncode, 2)
 
     # The interpreter.
 

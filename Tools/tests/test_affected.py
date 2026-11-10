@@ -285,7 +285,7 @@ class RunAllAffectedTest(GitRepoCase):
         self.cache = self.repo / "cache.json"
 
     def affected(self, base="HEAD", jobs="2"):
-        full = dict(os.environ, LUA=lua(), JOBS=jobs, KSTYLEUI_DEPS_CACHE=str(self.cache))
+        full = dict(os.environ, LUA=lua(), JOBS=jobs, KSTYLEUI_DEPS_CACHE=str(self.cache), KSTYLEUI_SLOTS="0")
         full.pop("CI", None)
         if not jobs:
             del full["JOBS"]
@@ -353,6 +353,39 @@ class RunAllAffectedTest(GitRepoCase):
         result = self.affected(jobs="")
         expected = max(2, (os.cpu_count() or 2) // 3)
         self.assertRegex(result.stdout, r"in [\d.]+ s, {0} at a time".format(expected))
+
+
+    def fake_strings(self, exit_code):
+        self.commit({"Tools/locale/strings.py": 'import sys\nprint("Mod/a.lua uses L[\\"New\\"], which the English base lacks; run python3 Tools/locale/strings.py sync")\nsys.exit(%d)\n' % exit_code}, "locale script")
+
+    def test_an_addon_lua_change_runs_the_locale_check_and_names_the_sync_command_when_it_fails(self):
+        self.fake_strings(1)
+        self.write({"Mod/a.lua": "return 1 -- edited\n"})
+        result = self.affected()
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("FAIL locale: 1 problems in the string tables", result.stdout)
+        self.assertIn("Mod/a.lua uses L[\"New\"], which the English base lacks", result.stdout)
+        self.assertIn("Fix: python3 Tools/locale/strings.py sync", result.stdout)
+        self.assertRegex(result.stdout, r"passed \d+, failed 1 \(affected mode")
+
+    def test_the_locale_check_passes_quietly_when_the_tables_match(self):
+        self.fake_strings(0)
+        self.write({"Mod/a.lua": "return 1 -- edited\n"})
+        result = self.affected()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("locale: the string tables match the code", result.stdout)
+
+    def test_a_change_with_no_addon_lua_or_locale_file_skips_the_locale_check(self):
+        self.fake_strings(1)
+        self.write({"Tools/regression/test-c.lua": "assert(1 + 1 == 2) -- edited\n", "README.md": "docs\n"})
+        result = self.affected()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("locale", result.stdout)
+
+    def test_a_locale_table_change_runs_the_locale_check(self):
+        self.fake_strings(1)
+        self.write({"Tools/locale/deDE.json": "{}\n"})
+        self.assertIn("FAIL locale", self.affected().stdout)
 
 
 if __name__ == "__main__":
