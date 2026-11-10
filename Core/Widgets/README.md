@@ -81,6 +81,8 @@ The layer and corner recipes below describe the retained Glass treatment. Since 
 
 `Chrome(owner, opts) -> chrome` draws a component's material on `owner`'s own layers, the owner's picture of 2026-11-09: baked textures from `Tools/media/make_media.py`, white with their coverage in alpha and tinted with tokens, so nothing is blurred live.
 
+An owner exposing the native menu compositor's `AttachTexture` uses that pool instead of raw `CreateTexture`, including deferred frame/grain allocation during resize. Such chrome is acquisition-local: it does not enter the persistent widget restyle registry. The caller must discard it on menu release and close/rebuild its menu when settings change. The compositor restores textures and removes the size hook when it returns the menu to its pool. Ordinary widget owners keep their existing allocation and restyle lifecycle.
+
 | Part | Layer | What it is |
 | --- | --- | --- |
 | `chrome.shadow` | `BACKGROUND` -8 | The nine-sliced `lumenShadow` texture, corner pieces twice `Size("shadow")` centred on the owner's corners, tinted `shadow`. Its 3-unit drop is baked in and the card's rounded shape is cut out of it. Shown only while the `shadows` setting is on, which it is not by default: the owner's picture casts none. |

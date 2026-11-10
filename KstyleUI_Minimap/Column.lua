@@ -97,6 +97,9 @@ local function AfterCombat(button)
 end
 
 local function TrackingMenu(owner, root)
+	if type(root.SetTag) == "function" then
+		root:SetTag("KSTYLEUI_TRACKING")
+	end
 	root:CreateTitle(L["Tracking"])
 	for _, entry in ipairs(Data.TrackingEntries()) do
 		root:CreateCheckbox(entry.name, function(data)

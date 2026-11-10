@@ -677,8 +677,17 @@ local function SliceCoords(texture, piece, f)
 	texture:SetTexCoord(x0, x1, y0, y1)
 end
 
+local function CreateTexture(owner, layer, sublevel)
+	if type(owner.AttachTexture) == "function" then
+		local texture = owner:AttachTexture()
+		texture:SetDrawLayer(layer, sublevel)
+		return texture
+	end
+	return owner:CreateTexture(nil, layer, nil, sublevel)
+end
+
 local function NewTexture(owner, layer, sublevel, path)
-	local texture = Unbiased(owner:CreateTexture(nil, layer, nil, sublevel))
+	local texture = Unbiased(CreateTexture(owner, layer, sublevel))
 	if path then
 		texture:SetTexture(path)
 	else
@@ -741,7 +750,7 @@ local function NewSlice(owner, name, layer, sublevel)
 	local p = {}
 	local soft = SOFT[name]
 	for piece = 1, 9 do
-		local texture = owner:CreateTexture(nil, layer, nil, sublevel)
+		local texture = CreateTexture(owner, layer, sublevel)
 		p[piece] = soft and texture or Unbiased(texture)
 	end
 	PaintSlice(p, name)
@@ -876,6 +885,9 @@ function Widgets.Chrome(owner, opts)
 		end)
 	end
 	c:Restyle()
+	if type(owner.AttachTexture) == "function" then
+		return c
+	end
 	return Widgets.Track(c)
 end
 

@@ -100,6 +100,9 @@ local function TakeAnyClick(button)
 end
 
 local function CompartmentMenu(_, root)
+	if type(root.SetTag) == "function" then
+		root:SetTag("KSTYLEUI_COMPARTMENT")
+	end
 	root:CreateTitle(L["Addons"])
 	for _, data in ipairs(Drawer.CompartmentEntries()) do
 		local entry = root:CreateButton(data.text, data.func)

@@ -113,6 +113,9 @@ local function Menu(row, id)
 	end
 	local title = row.title:GetText()
 	menu.CreateContextMenu(row, function(_, root)
+		if type(root.SetTag) == "function" then
+			root:SetTag("KSTYLEUI_QUEST")
+		end
 		if type(title) == "string" then
 			root:CreateTitle(title)
 		end
