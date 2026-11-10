@@ -95,6 +95,10 @@ assert(near(select(2, player.power:GetSize()), 8, 0.6), "the power bar is the pi
 assert(player.health.lit:IsShown() == false and player.health.shade:IsShown() == false, "the health bar is flat: no lit top, no shaded foot")
 assert(player.health.innerEdgeOn ~= true, "the health fill has no inner edge")
 assert(player.power.innerEdgeOn == true and player.power.innerEdgeToken == "powerEdge", "the power fill keeps a dark inner edge")
+assert(player.health.keyline:IsShown() == false and player.power.keyline:IsShown() == false, "the outside keyline stays off")
+assert(player.health.backingOn == true and player.health.backing:IsShown() and player.power.backing:IsShown(), "the unfilled track keeps a flush backing")
+local _, _, _, hx = player.health.backing:GetPoint(1)
+assert(hx == 0, "the backing sits inside the bar, not one pixel outside")
 local br, bg, bb = Tokens.Color("hudPlayerHealth")
 local hc = player.health.colorRGBA
 assert(near(hc[1], br) and near(hc[2], bg) and near(hc[3], bb), "the player's health ramp is built on the picture's blue")
