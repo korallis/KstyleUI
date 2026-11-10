@@ -267,8 +267,9 @@ function Plate:Restyle()
 	health:SetBarTexture(Settings.Get("health.texture"))
 	health:Restyle()
 
-	Widgets.StyleText(self.name, "heading")
-	Widgets.ApplyFont(self.name, (Tokens.Font("heading")), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
+	local nameRole = Settings.Get("name.upper") and "caps" or "heading"
+	Widgets.StyleText(self.name, nameRole)
+	Widgets.ApplyFont(self.name, (Tokens.Font(nameRole)), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
 	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"))
 	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"))
 

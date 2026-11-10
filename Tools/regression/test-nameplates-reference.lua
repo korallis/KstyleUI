@@ -11,7 +11,7 @@ for _, preset in ipairs({ "lumen", "compact", "tank", "healer" }) do
 	assert(not plate.health.lit:IsShown() and not plate.health.shade:IsShown(), "the fill has no lit edge or gradient")
 	assert(plate.health.keyline, "a square one-pixel keyline surrounds the health bar")
 	assert(plate.name:GetText() == "SHADOWGALE POACHER", "readable plate names use caps")
-	assert((plate.name:GetFont()) == (K.Tokens.Font("heading")), "names use the kit's heading face")
+	assert((plate.name:GetFont()) == (K.Tokens.Font("caps")), "default names use the kit's tracked regular caps face")
 	assert(plate.name:GetJustifyH() == "CENTER", "the name is centred above the bar")
 	local extent = ns.Stacking.Extent()
 	assert(extent >= plate.name:GetWidth(), "the stacking footprint covers the cap's overhang")
