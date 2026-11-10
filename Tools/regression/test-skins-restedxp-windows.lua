@@ -590,9 +590,9 @@ do
 	local widgets = rxp.guideImporter.widgets
 	assert(Glass(K, widgets.import.frame) and Hushed(widgets.import.frame), "the guide importer is skinned when it is made")
 	assert(K.Skin.IsSkinned(widgets.import.closebutton, "CloseButton"))
-	local function InCorner(button, window, what)
+	local function InCorner(button, owner, what)
 		local point, on, onPoint, x, y = button:GetPoint(1)
-		assert(point == "TOPRIGHT" and on == window and onPoint == "TOPRIGHT" and x == 0 and y == 0, what .. ": the close button stands in the window's corner, inside the glass; RestedXP hangs it 6 off the corner (GuideImporter.lua 271, Core.lua 200), got " .. tostring(x) .. ", " .. tostring(y))
+		assert(point == "TOPRIGHT" and on == owner and onPoint == "TOPRIGHT" and x == 0 and y == 0, what .. ": the close button stands in the window's corner, inside the glass; RestedXP hangs it 6 off the corner (GuideImporter.lua 271, Core.lua 200), got " .. tostring(x) .. ", " .. tostring(y))
 	end
 	InCorner(widgets.import.closebutton, widgets.import.frame, "importer")
 	for _, key in ipairs({ "purgeConfirmation", "deleteConfirmation" }) do
