@@ -80,9 +80,9 @@ local function FrameOfTab(tab)
 end
 
 local function Title(frame)
-	local name = type(frame.GetName) == "function" and frame:GetName() or nil
+	local name = type(frame.GetName) == "function" and frame:GetName()
 	local tab = IsText(name) and _G[name .. "Tab"] or nil
-	local label = type(tab) == "table" and type(tab.GetText) == "function" and tab:GetText() or nil
+	local label = type(tab) == "table" and type(tab.GetText) == "function" and tab:GetText()
 	if IsText(label) and label ~= "" then
 		return L["Copy chat"] .. " - " .. label
 	end
