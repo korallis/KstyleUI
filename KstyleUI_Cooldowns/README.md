@@ -22,7 +22,35 @@ Verified against the read-only Forever source at `~/.capy/work/wow-ui-source-708
 - `Blizzard_CooldownViewer/CooldownViewer.xml`: essential `Cooldown` and `ChargeCount.Current`, and tracked buff `Cooldown` and `Applications.Applications`, prove the engine-owned fields being styled. The former keeps its bottom-right charge anchors; no visibility getter is needed.
 - `Blizzard_CooldownViewer/CooldownViewer.lua:2078` and `CooldownViewerSettingsDataProvider.lua:249`: `GetCooldownIDs` follows the configured ordered IDs; the module preserves that order and changes only grid positions. No remaining-duration read or sort was added.
 
-All other calls use the module's existing kit interfaces. No new event, template, CVar, spell API or duration-object accessor was introduced.
+The reference-appearance changes above use the module's existing kit interfaces and introduce no event, template, CVar, spell API or duration-object accessor.
+
+## Item-backed cooldowns (LEE-7)
+
+Equipped entries use `GetInventoryItemCooldown("player", equipSlot)` even when the catalog has no spell. Category entries preserve both results from `C_Spell.GetLastCategoryCooldownSource`, prefer `C_Spell.GetItemCooldown(itemID)`, and use the spell duration object only when the item getter returns no cooldown. A missing or failing item API does not substitute an unrelated spell timer.
+
+The numeric `Cooldown:SetCooldown` path accepts only finite, nonsecret start, duration and rate values, with checked flags and time. An unreadable timer, a cooldown on hold, or an unsupported setter switches the whole group to the existing native-viewer reskin. This preserves the engine's restricted display rather than attempting secret arithmetic. Only `SPELL_UPDATE_COOLDOWN` may classify `isOnGCD`; bag, equipment and use-count events never trust that flag. Expiry and clearing update ready/desaturated state as well as the sweep.
+
+Explicit multi-charge data from the catalog's override/base spell wins over cast/use count, matching Blizzard. Otherwise `C_Spell.GetSpellCastCount` supplies the count for the resolved spell. Secret use counts go through the engine's `C_StringUtil.TruncateWhenZero`, then directly to the count widget without Lua comparisons or formatting; this hides secret zero as well as plain zero. An unavailable or failing formatter uses the native-viewer fallback. Category icons deliberately retain Blizzard's generic potion/healthstone artwork, not the last item's texture. Equipped icons continue to use the current inventory-slot texture. `BAG_UPDATE_COOLDOWN`, `PLAYER_EQUIPMENT_CHANGED` and `SPELL_UPDATE_USES` refresh item rows without requiring a spell cooldown event.
+
+### Build 70862 item API proof
+
+All paths below are under `Interface/AddOns/` in the same `9dc84f0` source:
+
+| API or behavior | Source and contract |
+| --- | --- |
+| `C_Spell.GetLastCategoryCooldownSource` | `Blizzard_APIDocumentationGenerated/SpellDocumentation.lua:154`: nilable spell and item results; secret when cooldowns are restricted. Both are preserved without branching on their values. |
+| `C_Spell.GetItemCooldown` | `SpellDocumentation.lua:122`: may return nothing and accepts secret arguments when tainted. `Blizzard_CooldownViewer/CooldownViewerItemData.lua:402` proves item-before-spell priority. |
+| `GetInventoryItemCooldown` | `Blizzard_CooldownViewer/CooldownViewer.lua:1013`: player and slot arguments, start/duration/enable/isOnGCD results, rate 1. The addon checks every value before using the native implementation's arithmetic. |
+| `Cooldown:SetCooldown` | `Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua:280`: start, duration, modRate; secrets allowed only when untainted. No secret reaches this numeric setter. |
+| Item cooldown fields | `Blizzard_APIDocumentationGenerated/SpellSharedDocumentation.lua:19`: raw timing fields, never-secret status flags, and the `SPELL_UPDATE_COOLDOWN` restriction on `isOnGCD`. Defensive checks still reject secret flags. |
+| `C_Spell.GetSpellCastCount` | `SpellDocumentation.lua:257`: accepts secret spell arguments when tainted; the result can be secret. `CooldownViewer.lua:1106` proves explicit multi-charge priority over use count. |
+| Charge source and secret zero | `CooldownViewerItemData.lua:426` reads charges from the override/base spell, independently of the category source. `Blizzard_APIDocumentationGenerated/StringUtilDocumentation.lua:188` proves `C_StringUtil.TruncateWhenZero` accepts secret arguments when tainted and returns an empty string for zero. |
+| Category/equipment icons | `CooldownViewerItemData.lua:565` intentionally uses the fixed category texture; `:611` prefers the equipment-slot texture for equipped cooldowns. No new item-texture API is used. |
+| Item events | `Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua:669` (`BAG_UPDATE_COOLDOWN`), `PaperDollInfoDocumentation.lua:384` (`PLAYER_EQUIPMENT_CHANGED`), and `SpellBookDocumentation.lua:955` (`SPELL_UPDATE_USES`). Payloads need no secret inspection. |
+
+`Tools/regression/test-cooldowns-items.lua` checks item timers, source changes, event context, counts and unsafe-value fallback. `Tools/render/scenes/cooldowns_items.lua` renders a synthetic equipped trinket (four seconds), a category potion (twelve seconds, three uses), and ordinary spell neighbors through the real mirror. Its deliberately unrelated twenty-second spell timer exposes an incorrect item fallback. `test-render-scenes-cooldowns-items.lua` checks each item's own rendered text and texture. The render maps the canonical `INV_Potion_54` name to file ID 134834 using `Tools/data/icon_names.csv`; the data and artwork are fixtures, not a client capture.
+
+In game, verify an on-use trinket and potion/healthstone, equipment swaps, use-count changes, expiry, GCD visibility on/off, and a restricted encounter. The Lua stubs and render cannot prove combat taint or native-viewer anchoring. No layout, default geometry or saved-profile migration changes in this fix.
 
 Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns, utility cooldowns and tracked buff icons, all 38 units, the action button's size, at the bars' 3-unit pitch, and tracked buff bars (243 by 20 units, as wide as the icon row), placed in the HUD band as the composition mockup lays them out. Owner pass 1 (2026-11-09): a Cooldown Manager icon bigger than the action buttons reads as a mistake, so every row takes the button's size from `Setup.Layouts.BUTTON`.
 

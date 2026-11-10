@@ -72,7 +72,7 @@ local function Texture(texture, entry)
 		return
 	end
 	local fileID
-	if entry.categoryID and not entry.spellID then
+	if entry.categoryID then
 		fileID = Data.CATEGORY_ICONS[entry.categoryID] or Data.UNKNOWN_ICON
 	elseif entry.equipSlot and GetInventoryItemTexture then
 		local ok, file = pcall(GetInventoryItemTexture, "player", entry.equipSlot)
@@ -119,11 +119,7 @@ local function Ready(row, icon)
 	Style.SetReady(icon, ready)
 end
 
-local function SetCooldownState(row, icon, spell, cooldownEvent)
-	local cooling = SpellCooling(spell, cooldownEvent)
-	if cooling == nil then
-		cooling = icon.cooling == true
-	end
+local function Cooling(row, icon, cooling)
 	if icon.onCooldown ~= cooling then
 		icon.onCooldown = cooling
 		icon:Paint()
@@ -131,31 +127,134 @@ local function SetCooldownState(row, icon, spell, cooldownEvent)
 	Ready(row, icon)
 end
 
+local function SetCooldownState(row, icon, spell, cooldownEvent)
+	local cooling = SpellCooling(spell, cooldownEvent)
+	if cooling == nil then
+		cooling = icon.cooling == true
+	end
+	Cooling(row, icon, cooling)
+end
+
 local function CategorySpell(entry)
 	local api = C_Spell
 	if not (entry.categoryID and api and api.GetLastCategoryCooldownSource) then
-		return nil
+		return nil, nil, false
 	end
-	local ok, spell = pcall(api.GetLastCategoryCooldownSource, entry.categoryID)
-	if ok then
-		return spell
-	end
-	return nil
+	local ok, spell, item = pcall(api.GetLastCategoryCooldownSource, entry.categoryID)
+	return spell, item, ok
 end
 
 local function CooldownSpell(entry)
 	if not entry then
-		return nil
+		return nil, nil, true
 	end
-	return entry.spell or CategorySpell(entry)
+	if entry.categoryID then
+		return CategorySpell(entry)
+	end
+	return entry.spell, nil, true
+end
+
+local function Finite(value)
+	return not ns.IsSecret(value) and type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+
+local function ItemTimer(row, icon, start, duration, rate, enabled, active, gcd, cooldownEvent)
+	if not (Finite(start) and Finite(duration) and Finite(rate)) or start < 0 or duration < 0 or rate <= 0 then
+		Fail(row.group, "item cooldown timing is secret or invalid")
+		return
+	end
+	if ns.IsSecret(enabled) or type(enabled) ~= "boolean" or ns.IsSecret(active) or type(active) ~= "boolean" then
+		Fail(row.group, "item cooldown flags cannot be read")
+		return
+	end
+	local onGCD = false
+	if cooldownEvent then
+		if ns.IsSecret(gcd) or (gcd ~= nil and type(gcd) ~= "boolean") then
+			Fail(row.group, "item cooldown GCD flag cannot be read")
+			return
+		end
+		onGCD = gcd == true
+	end
+	if not enabled and duration > 0 then
+		Fail(row.group, "an item cooldown on hold needs the native viewer")
+		return
+	end
+	local ok, now = false, nil
+	if type(GetTime) == "function" then
+		ok, now = pcall(GetTime)
+	end
+	local finish = start + duration
+	if not ok or not Finite(now) or not Finite(finish) then
+		Fail(row.group, "item cooldown expiration cannot be read")
+		return
+	end
+	active = enabled and active and start > 0 and duration > 0 and finish > now
+	if active and (row.cfg.gcd or not onGCD) then
+		local set = icon.cooldown.SetCooldown
+		if type(set) ~= "function" then
+			Fail(row.group, "Cooldown:SetCooldown is missing")
+			return
+		end
+		local applied = pcall(set, icon.cooldown, start, duration, rate)
+		if not applied then
+			Fail(row.group, "SetCooldown failed for an item")
+			return
+		end
+	else
+		icon.cooldown:Clear()
+	end
+	Cooling(row, icon, active and not onGCD)
+end
+
+local function EquippedCooldown(row, icon, cooldownEvent)
+	if type(GetInventoryItemCooldown) ~= "function" then
+		Fail(row.group, "GetInventoryItemCooldown is missing")
+		return
+	end
+	local ok, start, duration, enable, gcd = pcall(GetInventoryItemCooldown, "player", icon.entry.equipSlot)
+	if not ok or not Finite(enable) or (enable ~= 0 and enable ~= 1) then
+		Fail(row.group, "equipped item cooldown cannot be read")
+		return
+	end
+	ItemTimer(row, icon, start, duration, 1, enable == 1, true, gcd, cooldownEvent)
 end
 
 local function Cooldown(row, icon, cooldownEvent)
-	local spell = CooldownSpell(icon.entry)
+	local entry = icon.entry
+	if entry and entry.equipSlot then
+		EquippedCooldown(row, icon, cooldownEvent)
+		return
+	end
+	local spell, item, resolved = CooldownSpell(entry)
+	if not resolved then
+		Fail(row.group, "the category cooldown source cannot be read")
+		return
+	end
+	if Present(item) then
+		local get = C_Spell and C_Spell.GetItemCooldown
+		if type(get) ~= "function" then
+			Fail(row.group, "C_Spell.GetItemCooldown is missing")
+			return
+		end
+		local ok, info = pcall(get, item)
+		if not ok or ns.IsSecret(info) or (info ~= nil and type(info) ~= "table") then
+			Fail(row.group, "the category item cooldown cannot be read")
+			return
+		end
+		if info then
+			ItemTimer(row, icon, info.startTime, info.duration, info.modRate, info.isEnabled, info.isActive, info.isOnGCD, cooldownEvent)
+			return
+		end
+	end
 	local cooldown = icon.cooldown
 	local getter = C_Spell and C_Spell.GetSpellCooldownDuration
-	if not Present(spell) or not getter then
+	if not Present(spell) then
 		cooldown:Clear()
+		Cooling(row, icon, false)
+		return
+	end
+	if type(getter) ~= "function" then
+		Fail(row.group, "GetSpellCooldownDuration is missing")
 		return
 	end
 	local ok, duration = pcall(getter, spell, not row.cfg.gcd)
@@ -165,6 +264,8 @@ local function Cooldown(row, icon, cooldownEvent)
 	end
 	if not Present(duration) then
 		cooldown:Clear()
+		Cooling(row, icon, false)
+		return
 	elseif not SetDuration(row.group, cooldown, duration) then
 		return
 	end
@@ -174,29 +275,51 @@ end
 local function Charges(icon)
 	local entry = icon.entry
 	local api = C_Spell
-	if not (entry and entry.charges and entry.spell and api and api.GetSpellCharges) then
+	local spell = entry and entry.spell
+	if entry and entry.charges and Present(spell) and api and api.GetSpellCharges then
+		local ok, info = pcall(api.GetSpellCharges, spell)
+		if ok and not ns.IsSecret(info) and type(info) == "table" then
+			local maxCharges = info.maxCharges
+			if Finite(maxCharges) and maxCharges > 1 then
+				icon:SetCount(info.currentCharges)
+				local getter = api.GetSpellChargeDuration
+				if getter then
+					local okDuration, duration = pcall(getter, spell)
+					if okDuration and Present(duration) then
+						pcall(icon.SetChargeCooldownFromDuration, icon, duration)
+					else
+						icon:ClearChargeCooldown()
+					end
+				end
+				return
+			end
+		end
+	end
+	icon:ClearChargeCooldown()
+	local countSpell, _, resolved = CooldownSpell(entry)
+	if not resolved then
 		icon:SetCount(nil)
-		icon:ClearChargeCooldown()
 		return
 	end
-	local ok, info = pcall(api.GetSpellCharges, entry.spell)
-	local maxCharges = ok and type(info) == "table" and not ns.IsSecret(info) and info.maxCharges
-	if type(maxCharges) ~= "number" or ns.IsSecret(maxCharges) or maxCharges <= 1 then
-		icon:SetCount(nil)
-		icon:ClearChargeCooldown()
-		return
+	if Present(countSpell) and api and type(api.GetSpellCastCount) == "function" then
+		local ok, count = pcall(api.GetSpellCastCount, countSpell)
+		if ok and ns.IsSecret(count) then
+			local format = C_StringUtil and C_StringUtil.TruncateWhenZero
+			if type(format) == "function" then
+				local formatted, text = pcall(format, count)
+				if formatted and (ns.IsSecret(text) or type(text) == "string") then
+					icon:SetCount(text)
+					return
+				end
+			end
+			Fail(icon.cooldownsRow.group, "secret cast count cannot be formatted")
+			return
+		elseif ok and Finite(count) and count > 0 then
+			icon:SetCount(count)
+			return
+		end
 	end
-	icon:SetCount(info.currentCharges)
-	local getter = api.GetSpellChargeDuration
-	if not getter then
-		return
-	end
-	local okDuration, duration = pcall(getter, entry.spell)
-	if okDuration and Present(duration) then
-		pcall(icon.SetChargeCooldownFromDuration, icon, duration)
-	else
-		icon:ClearChargeCooldown()
-	end
+	icon:SetCount(nil)
 end
 
 local function Usable(row, icon)
@@ -244,7 +367,11 @@ local function OnCooldownDone(cooldown)
 	local icon = cooldown:GetParent()
 	local row = icon and icon.cooldownsRow
 	if row and icon.entry and COOLDOWN_GROUPS[row.group] and Live(row.group) then
-		SetCooldownState(row, icon, CooldownSpell(icon.entry))
+		if icon.entry.equipSlot or icon.entry.categoryID then
+			Cooldown(row, icon)
+		else
+			SetCooldownState(row, icon, CooldownSpell(icon.entry))
+		end
 	end
 end
 
@@ -679,9 +806,7 @@ end
 
 local function CooldownIcon(row, icon)
 	Cooldown(row, icon, true)
-	if icon.entry and icon.entry.charges then
-		Charges(icon)
-	end
+	Charges(icon)
 end
 
 local function ChargeIcon(_, icon)
@@ -690,6 +815,22 @@ end
 
 local function TextureIcon(_, icon)
 	Texture(icon.icon, icon.entry)
+end
+
+local function ItemIcon(row, icon)
+	local entry = icon.entry
+	if entry and (entry.equipSlot or entry.categoryID) then
+		RefreshCooldownIcon(row, icon)
+	end
+end
+
+local function UsesIcon(row, icon)
+	local entry = icon.entry
+	if entry and (entry.equipSlot or entry.categoryID) then
+		RefreshCooldownIcon(row, icon)
+	else
+		Charges(icon)
+	end
 end
 
 local function ProcIcon(row, icon)
@@ -713,6 +854,15 @@ local function RetextureAll()
 end
 
 local EVENTS = {
+	BAG_UPDATE_COOLDOWN = function()
+		EachCooldownIcon(ItemIcon)
+	end,
+	PLAYER_EQUIPMENT_CHANGED = function()
+		EachCooldownIcon(ItemIcon)
+	end,
+	SPELL_UPDATE_USES = function()
+		EachCooldownIcon(UsesIcon)
+	end,
 	SPELL_UPDATE_COOLDOWN = function()
 		EachCooldownIcon(CooldownIcon)
 	end,
