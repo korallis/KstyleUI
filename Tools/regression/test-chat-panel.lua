@@ -150,7 +150,7 @@ do
 	assert(near(g.top, snap(48)), "the window starts at the tab row, so six lines have no empty glass above them, got " .. g.top)
 	local pad = ns.Panel.Glass().chrome:Inset("gapMedium")
 	assert(pad >= 16, "the window's content inset is at least the mockup's 16 units")
-	assert(near(g.left, snap(26 * 1080 / 2234)), "messages start 26 px inside the card, the picture's inset, got " .. g.left)
+	assert(near(g.left, snap(12.57)), "messages start 12.57 units inside the card, 26 px on the owner's screen, got " .. g.left)
 	assert(near(g.right, g.left), "the message column's insets are equal, so the picture's last line has the same room both sides")
 	local reach = (2 + 32) * g.k - math.max(0, (32 * g.k - 22) / 2)
 	local clear = reach + K.Tokens.Size("gapTiny") - select(2, K.Layout.Rect("chat.main"))
@@ -167,7 +167,7 @@ do
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)
 	assert(g.bottom > snap(16) + 20, "an always-shown edit box gets its room under the messages, got " .. g.bottom)
-	assert(near(g.left, snap(26 * 1080 / 2234)), "the side insets stay the picture's 26 px")
+	assert(near(g.left, snap(12.57)), "the side insets stay 12.57 units, 26 px on the owner's screen")
 end
 
 -- The picture's last line fits on one line at the default size, on the owner's screen, because the insets are equal.
@@ -203,7 +203,7 @@ do
 	tab:SetText("COMBAT")
 	env.FCFDock_UpdateTabs(env.GENERAL_CHAT_DOCK)
 	local width = tab.Text:GetUnboundedStringWidth()
-	assert(type(width) == "number" and near(tab:GetWidth(), width + K.Widgets.Snap(tab, 30 * 1080 / 2234 - 1)), "the dock update keeps the name's width, got " .. tostring(tab:GetWidth()))
+	assert(type(width) == "number" and near(tab:GetWidth(), width + K.Widgets.Snap(tab, 13.5)), "the dock update keeps the name's width, got " .. tostring(tab:GetWidth()))
 	assert(tab.Text:GetPoint(1) == "LEFT", "the name stays on the line's edge")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	assert(ns.Frames, "frames stay exposed")
