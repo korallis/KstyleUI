@@ -226,6 +226,7 @@ The core has no icon service. KstyleUI's repainted icons ship as a loose-file te
 - `DevTest.Log(module, message)` appends `{ time, module, message }` to `KstyleUIDB.devlog`. The devlog keeps the newest 500 entries. A message is cut to 1,000 characters, and a secret value is stored as `<secret>`. Entries logged before `ADDON_LOADED` are kept and written once the saved data loads.
 - `DevTest.AddCheck(name, fn)` adds a smoke check. `fn` returns `ok, detail`.
 - `DevTest.Run()` logs one `PASS`, `WARN` or `FAIL` line per check and returns `passed, failed, warnings`. It checks the store, each module that is switched on, the caught errors and the blocked actions of KstyleUI addons, the APIs the core uses, an export round trip, and each added check.
+- `DevTest.SetEditModeLogging(on)` and `DevTest.EditModeLogging()` control the session-only, read-only Edit Mode recorder. It is off after every reload; `/kstyle devlog on|off` is its developer command. Geometry, module/settings context, bounds and the two exact diagnostic drags are in [EDIT_MODE_RECORDER.md](EDIT_MODE_RECORDER.md).
 
 ## The /kstyle command
 
@@ -235,6 +236,7 @@ The core has no icon service. KstyleUI's repainted icons ship as a loose-file te
 | `/kstyle layout` | `KstyleUI.Layout.Toggle()` |
 | `/kstyle setup` | `KstyleUI.Setup.Open()` |
 | `/kstyle test` | `DevTest.Run()` |
+| `/kstyle devlog on, off` | Enable/disable the developer-only Edit Mode geometry recorder for this session |
 | `/kstyle profile` | Lists the profiles and marks the active one with `*` |
 | `/kstyle profile use, new, copy, rename or delete <name>` | `SetProfile`, `CreateProfile`, `CopyProfile(<name>, active)`, `RenameProfile(active, <name>)` or `DeleteProfile` |
 | `/kstyle profile reset` | `ResetProfile()` |

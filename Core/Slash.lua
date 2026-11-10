@@ -10,6 +10,7 @@ local USAGE = {
 	"/kstyle setup - " .. L["run the first-run setup again"],
 	"/kstyle bind - " .. L["hover a button and press a key to bind it (Blizzard's Quick Keybind mode)"],
 	"/kstyle test - " .. L["run the smoke checks and write the devlog"],
+	"/kstyle devlog on|off - Edit Mode geometry recorder (developer diagnostics)",
 	"/kstyle profile - " .. L["list the profiles"],
 	"/kstyle profile use <name> - " .. L["switch this character to a profile, creating it if needed"],
 	"/kstyle profile new <name> - " .. L["create a profile with the default settings"],
@@ -123,6 +124,16 @@ local COMMANDS = {
 	end,
 	test = function()
 		ns.DevTest.Run()
+	end,
+	devlog = function(rest)
+		local value = rest:lower()
+		if value ~= "on" and value ~= "off" then
+			ns.Print("Usage: /kstyle devlog on|off (Edit Mode geometry recorder)")
+			return
+		end
+		local on = ns.DevTest.SetEditModeLogging(value == "on")
+		ns.Print(on and "Edit Mode recorder enabled. Do the two diagnostic drags, then /kstyle devlog off and /reload."
+			or "Edit Mode recorder disabled. Type /reload to save the devlog.")
 	end,
 	profile = profile,
 	help = usage,
