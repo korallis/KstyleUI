@@ -260,11 +260,11 @@ local function Splits(R)
 		f[key].frame:SetWidth(width)
 		f[key].label:SetWidth(width)
 	end
-	R.windows.splits = { f, f.title }
+	R.windows.splits = { f, f.title, R.K.Skin.Parts(f).backdrop }
 end
 
 -- UI/V2/Core.lua:97-126,179-235: 320x126, message at (14,35), 142x24 buttons 12 from the bottom,
--- and the 20-unit close button at TOPRIGHT (6,6). GuideImporter.lua:871-886,1038-1055 supplies the copy.
+-- and the 20-unit close button the fake hangs at TOPRIGHT (6,6). GuideImporter.lua:871-886,1038-1055 supplies the copy.
 local function Popup(R, popup, key, y, title, message)
 	popup:Show()
 	at(popup.frame, R.env.UIParent, 620, y, 320, 126)
@@ -277,11 +277,6 @@ local function Popup(R, popup, key, y, title, message)
 	for i, button in ipairs(popup.buttons) do
 		at(button, popup.frame, i == 1 and 12 or 166, 90, 142, 24)
 		text(button.text, i == 1 and "Yes" or "No", "CENTER", button)
-	end
-	for _, child in ipairs({ popup.frame:GetChildren() }) do
-		if child:GetNormalTexture() then
-			at(child, popup.frame, 306, -6, 20, 20)
-		end
 	end
 	R.windows[key] = { popup.frame }
 end
@@ -297,7 +292,6 @@ local function Importer(R)
 	at(ui.content, ui.frame, 10, 48, 480, 276)
 	text(ui.title, "RestedXP Guide Import - v4.11.35", "TOP", ui.frame, "TOP", 0, -4)
 	text(ui.description, "Import Guides", "TOPLEFT", ui.frame, "TOPLEFT", 18, -31)
-	at(ui.closebutton, ui.frame, 486, -6, 20, 20)
 	text(w.importLabel, 'Paste your guide string into the text field and click "Import".', "TOPLEFT", ui.content, "TOPLEFT", 8, -1)
 	at(w.importBox.frame, ui.content, 8, 18, 464, 50)
 	at(w.importBox.background, w.importBox.frame, 0, 4, 464, 42)
@@ -386,7 +380,7 @@ local function ExtraWindows(R)
 	at(rxp.arrowFrame, env.UIParent, 210, 40, 32, 32)
 	rxp.arrowFrame.text:SetWidth(130)
 	rxp.arrowFrame.text:SetHeight(30)
-	R.windows.targets = { targets, targets.title }
+	R.windows.targets = { targets, targets.title, R.K.Skin.Parts(targets).backdrop }
 	R.windows.arrow = { rxp.arrowFrame, rxp.arrowFrame.text }
 	-- GuideWindow.lua:1001-1012: UpdateText's tip branch is modelled by the fake (230 wide, outside the stack).
 	local tip = rxp.RXPFrame.CurrentStepFrame.framePool[#RestedXP.STEPS + 1]
@@ -424,8 +418,7 @@ local function ExtraWindows(R)
 	for _, child in ipairs({ configurator.frame:GetChildren() }) do
 		local normal = child:GetNormalTexture()
 		local path = type(normal) == "table" and tostring(normal:GetTexture()) or ""
-		if path:find("rxp%-btn%-close") then at(child, configurator.frame, 301, -5, 24, 24)
-		elseif path:find("rxp%-icon%-cog") then at(child, configurator.frame, 284, 24, 24, 24)
+		if path:find("rxp%-icon%-cog") then at(child, configurator.frame, 284, 24, 24, 24)
 		elseif path:find("icon%-btn%-import") then at(child, configurator.frame, 252, 21, 30, 30)
 		elseif path:find("icon%-btn%-help") then at(child, configurator.frame, 220, 21, 30, 30) end
 	end

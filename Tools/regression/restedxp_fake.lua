@@ -1530,6 +1530,9 @@ local function Popup(m, rxp)
 	frame:Hide()
 	local close = m.frame("Button", frame)
 	Normal(m, close, "rxp-btn-close")
+	-- UI/V2/Core.lua:199-200: the close button hangs off the popup's corner.
+	close:SetSize(20, 20)
+	close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 6, 6)
 	local widget = { frame = frame, title = m.text(frame), message = m.text(frame), buttons = {}, type = "RXPV2Popup" }
 	for i = 1, 2 do
 		local button = m.frame("Button", frame)
@@ -1569,6 +1572,9 @@ local function V2Windows(m, rxp)
 		m.frame("Frame", frame)
 		local close = m.frame("Button", frame)
 		Normal(m, close, "rxp-btn-close")
+		-- UI/V2/GuideConfigurator.lua:478-479.
+		close:SetSize(24, 24)
+		close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 5, 5)
 		local widget = { frame = frame }
 		widget.titletext = m.text(frame)
 		widget.description = m.text(frame)
@@ -1658,6 +1664,9 @@ local function V2Windows(m, rxp)
 		frame:Hide()
 		local close = m.frame("Button", frame)
 		Normal(m, close, "rxp-btn-close")
+		-- UI/V2/GuideImporter.lua:270-271.
+		close:SetSize(20, 20)
+		close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 6, 6)
 		local window = { frame = frame, title = m.text(frame), description = m.text(frame), content = m.frame("Frame", frame), children = {}, closebutton = close }
 		for _, key in ipairs({ "importerBackground", "importerBody", "importerHeader" }) do
 			m.texture(frame, "BACKGROUND", key)

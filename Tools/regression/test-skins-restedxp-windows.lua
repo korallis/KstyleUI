@@ -269,6 +269,31 @@ do
 	rxp.fake.open(list)
 	assert(menuArt:GetAlpha() == 1, "another addon's menu in the same list keeps its own look")
 	rxp.fake.close(list)
+
+	-- GetName may answer a secret (SimpleFrameScriptObjectAPIDocumentation.lua:107-119, ObjectName). A secret is no
+	-- key into _G: the menu takes its glass and skips only the lookups by name.
+	do
+		local meta = getmetatable(env)
+		local index = meta.__index
+		meta.__index = function(t, key)
+			if env.issecretvalue(key) then
+				error("a secret name was used as a key into _G", 2)
+			end
+			if type(index) == "function" then
+				return index(t, key)
+			end
+			return index[key]
+		end
+		rawset(list, "GetName", function()
+			return env.Secret("L_DropDownList1")
+		end)
+		rxp:ShowMenu()
+		rawset(list, "GetName", nil)
+		meta.__index = index
+		assert(#env._errors == 0 and not S.Logged(env, "secret name"), "a secret menu name is never used as a key: " .. tostring(env._errors[1] or S.Logged(env, "secret name")))
+		assert(ns.RestedXP.Chrome.MenuPanel(list):IsShown() and menuArt:GetAlpha() == 1, "the menu still takes its glass; the art found by name keeps its look")
+		rxp.fake.close(list)
+	end
 	Clean(env, rxp)
 end
 
@@ -295,6 +320,37 @@ do
 		assert(Colored(caption, K.Tokens.Color("capsGold")), "in the picture's muted gold")
 		assert(caption:GetFont() == (ns.Style.Font("caps")) and FontSize(K, caption, select(2, caption:GetFont()), ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(caption:GetParent())), "in the tracked caps role, as the guide's and the quests' captions, never RestedXP's 9")
 		assert(rawget(f.title.text, "SetPoint") == nil, "the caps role's anchor wrapping stays off RestedXP's own font string")
+		local point, on, onPoint, x = caption:GetPoint(1)
+		assert(point == "LEFT" and on == f.title and onPoint == "LEFT" and x == 5, "the caption starts where RestedXP's plate starts its words, 5 in from the plate's left, however wide the plate was when the skin met it, got " .. tostring(point) .. " " .. tostring(x))
+	end
+	-- RestedXP sizes the plate and the frame from its own 9-unit title (Targeting.lua 818, 1112). The caps caption is
+	-- wider, so a frame of three targets was narrower than its caption and the caption left the glass: the glass
+	-- now reaches as far right of the caption as the caption starts from the left.
+	do
+		local Scene = dofile("Tools/render/scene.lua")
+		env._textWidth = function(value, _, size)
+			return #value * size * 0.7
+		end
+		targets:ClearAllPoints()
+		targets:SetPoint("CENTER", env.UIParent, "CENTER", 0, -200)
+		targets:SetSize(91, 43)
+		targets.title:ClearAllPoints()
+		targets.title:SetPoint("TOPLEFT", targets, "TOPLEFT", 5, 8)
+		targets:UpdateVisuals()
+		env.RunTimers()
+		local caption = ns.RestedXP.Chrome.Caption(targets.title.text)
+		local words = K.Widgets.TextWidth(caption, 0)
+		assert(words + 20 > 91, "the caption is wider than the frame in this block, got " .. words)
+		local gx, _, gw = Scene.Rect(env, K.Skin.Parts(targets).backdrop)
+		local tx, _, tw = Scene.Rect(env, targets)
+		local unit = tw / targets:GetWidth()
+		assert(gx and tx and gx <= tx + 0.5 and gx + gw >= tx + (20 + words) * unit - 0.5, string.format("the glass holds the whole caption: glass %.1f..%.1f, caption to %.1f", gx, gx + gw, tx + (10 + words) * unit))
+		targets:SetSize(20 + words + 30, 43)
+		targets:UpdateVisuals()
+		local wx, _, ww = Scene.Rect(env, K.Skin.Parts(targets).backdrop)
+		local nx, _, nw = Scene.Rect(env, targets)
+		assert(math.abs(wx + ww - (nx + nw)) <= 0.5, "a frame wide enough for its caption keeps the glass on its own edge")
+		env._textWidth = nil
 	end
 	-- RestedXP hangs the title plate from the frame's top edge (TOPLEFT at 5, 10, 19 tall), so the plate straddled
 	-- the glass (Opus #5, R4a). The card's glass now rises over the plate, so the title sits inside one card.
@@ -397,6 +453,8 @@ do
 		NewCheck(splits[key].label:GetFont() == (ns.Style.Font("body")), "splits " .. key .. " uses the kit body face")
 	end
 	NewCheck(K.Skin.IsSkinned(splits.title.cog, "Button"), "splits cog is a kit button")
+	local cogPoint, cogOn, cogOnPoint, cogX, cogY = splits.title.cog:GetPoint(1)
+	assert(cogPoint == "TOPRIGHT" and cogOn == splits and cogOnPoint == "TOPRIGHT" and cogX == -8 and W.Near(cogY, 5.5), "the cog stands at the right end of the title's row, inside the glass and clear of the gilt tick: RestedXP hangs it off the top left corner (LevelingTracker.lua 1057), got " .. tostring(cogPoint) .. " " .. tostring(cogX) .. " " .. tostring(cogY))
 	rxp.settings.profile.hideSplitsBackground = true
 	rxp.tracker:RenderSplitsBackground()
 	assert(not Glass(K, splits), "the splits' hide-background setting hides the glass")
@@ -530,6 +588,20 @@ do
 	local widgets = rxp.guideImporter.widgets
 	assert(Glass(K, widgets.import.frame) and Hushed(widgets.import.frame), "the guide importer is skinned when it is made")
 	assert(K.Skin.IsSkinned(widgets.import.closebutton, "CloseButton"))
+	local function InCorner(button, window, what)
+		local point, on, onPoint, x, y = button:GetPoint(1)
+		assert(point == "TOPRIGHT" and on == window and onPoint == "TOPRIGHT" and x == 0 and y == 0, what .. ": the close button stands in the window's corner, inside the glass; RestedXP hangs it 6 off the corner (GuideImporter.lua 271, Core.lua 200), got " .. tostring(x) .. ", " .. tostring(y))
+	end
+	InCorner(widgets.import.closebutton, widgets.import.frame, "importer")
+	for _, key in ipairs({ "purgeConfirmation", "deleteConfirmation" }) do
+		local found
+		for _, child in ipairs({ widgets[key].frame:GetChildren() }) do
+			if K.Skin.IsSkinned(child, "CloseButton") then
+				found = child
+			end
+		end
+		InCorner(assert(found, key .. " has a kit close button"), widgets[key].frame, key)
+	end
 	assert(Accented(ns, widgets.import.title))
 	assert(K.Skin.IsSkinned(widgets.importButton.frame, "Button") and K.Skin.IsSkinned(widgets.deleteButton.frame, "Button"))
 	assert(K.Skin.IsSkinned(widgets.importBox.editBox, "EditBox") and Alpha(widgets.importBox.background.rxpBackground.textures[1]) == 0, "the import box is a KstyleUI edit box")

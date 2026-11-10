@@ -34,6 +34,7 @@ local CAP_ROW, CAP_TOP, CAP_FOOT, CAP_LEFT, CAP_RIGHT = 19, 12.5, 6, RXP_MARGIN,
 local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
+local PLATE_PAD, SPLITS_SIDE = 5, 8
 local STEP_RISE, STEP_TEXT_TOP, STEP_TEXT_RIGHT, STEP_CHECK_LEFT, STEP_CHECK_TOP = 12, 2, 5, 1, 1
 local RXP_LINE_SHARE, RXP_LINE_PAD = 1.1, 1
 local REST_FOOT = 12
@@ -411,6 +412,17 @@ local function PaintCaption(text, entry)
 	end
 end
 
+local function HangsLeft(title)
+	local point, _, _, x = nil, nil, nil, nil
+	if type(title.GetPoint) == "function" and type(title.GetNumPoints) == "function" and title:GetNumPoints() > 0 then
+		point, _, _, x = title:GetPoint(1)
+	end
+	if type(point) ~= "string" or Widgets.IsSecret(point) or not point:find("LEFT", 1, true) or not Plain(x) then
+		return nil
+	end
+	return x
+end
+
 local function Caption(title)
 	local text = IsTable(title) and title.text
 	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or captions[text] then
@@ -419,7 +431,11 @@ local function Caption(title)
 	local holder = CreateFrame("Frame", nil, title)
 	holder:SetAllPoints(title)
 	local caption = Widgets.FontString(holder, "OVERLAY")
-	caption:SetPoint("CENTER", text, "CENTER", 0, 0)
+	if HangsLeft(title) then
+		caption:SetPoint("LEFT", title, "LEFT", PLATE_PAD, 0)
+	else
+		caption:SetPoint("CENTER", text, "CENTER", 0, 0)
+	end
 	caption:SetWordWrap(false)
 	local entry = { caption = caption, busy = false }
 	captions[text] = entry
@@ -661,8 +677,18 @@ local function ScrollBar(bar)
 end
 
 local function CloseButton(button)
-	if IsTable(button) and type(button.GetRegions) == "function" and not Skin.IsSkinned(button, "CloseButton") then
-		Skin.CloseButton(button)
+	if not IsTable(button) or type(button.GetRegions) ~= "function" or Skin.IsSkinned(button, "CloseButton") then
+		return
+	end
+	Skin.CloseButton(button)
+	local window = button:GetParent()
+	local point, _, _, x, y = nil, nil, nil, nil, nil
+	if type(button.GetNumPoints) == "function" and button:GetNumPoints() > 0 then
+		point, _, _, x, y = button:GetPoint(1)
+	end
+	if point == "TOPRIGHT" and IsTable(window) and Plain(x) and Plain(y) and (x > 0 or y > 0) then
+		button:ClearAllPoints()
+		button:SetPoint("TOPRIGHT", window, "TOPRIGHT", 0, 0)
 	end
 end
 
@@ -1061,7 +1087,10 @@ end
 
 local function DressMenu(list)
 	local name = list:GetName()
-	if type(name) == "string" then
+	if Widgets.IsSecret(name) or type(name) ~= "string" then
+		name = nil
+	end
+	if name then
 		for _, suffix in ipairs(MENU_ART) do
 			Veil(list, _G[name .. suffix])
 		end
@@ -1072,7 +1101,7 @@ local function DressMenu(list)
 	DressPanel(list)
 	local path = Style.Font("body")
 	for i = 1, MAX_MENU_ROWS do
-		local text = type(name) == "string" and _G[name .. "Button" .. i .. "NormalText"]
+		local text = name and _G[name .. "Button" .. i .. "NormalText"]
 		if not IsTable(text) then
 			break
 		end
@@ -1233,6 +1262,17 @@ function Chrome.TipCaption(step)
 	return tips[step] and tips[step].caption
 end
 
+local function CaptionReach(f, title)
+	local caption = IsTable(title) and IsTable(title.text) and Chrome.Caption(title.text)
+	local x = caption and HangsLeft(title)
+	local width = f:GetWidth()
+	if not x or not Plain(width) then
+		return nil
+	end
+	local over = 2 * (x + PLATE_PAD) + Widgets.TextWidth(caption, 0) - width
+	return over > 0 and -Widgets.Snap(f, over) or nil
+end
+
 local function IconFrame(f, hide)
 	local skinned = Skin.IsSkinned(f, "Backdrop")
 	local title = f.title
@@ -1241,18 +1281,20 @@ local function IconFrame(f, hide)
 	elseif not InCombatLockdown() then
 		Skin.Strip(f, { children = RXP_ART })
 	end
-	local glass = Panel(f)
-	local rise = TitleRise(f, title)
-	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
-	if glass and (type(glass.inset) == "table" and glass.inset.top or nil) ~= top then
-		glass.inset = top and { top = top } or nil
-		glass:Restyle()
-	end
 	if IsTable(title) and type(title.GetRegions) == "function" then
 		if not InCombatLockdown() then
 			Skin.Strip(title, { children = RXP_ART })
 		end
 		Caption(title)
+	end
+	local glass = Panel(f)
+	local rise = TitleRise(f, title)
+	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
+	local right = CaptionReach(f, title)
+	local inset = glass and type(glass.inset) == "table" and glass.inset or {}
+	if glass and (inset.top ~= top or inset.right ~= right) then
+		glass.inset = (top or right) and { top = top, right = right } or nil
+		glass:Restyle()
 	end
 	local panel = Panel(f)
 	if panel then
@@ -1361,8 +1403,14 @@ local function Splits(tracker)
 		end
 	end
 	local title = Find(splits, "title")
-	if title then
-		IconControl(Find(title, "cog"))
+	local cog = title and Find(title, "cog")
+	if IsTable(cog) and not done[cog] then
+		IconControl(cog)
+		local height, own = title:GetHeight(), cog:GetHeight()
+		if Plain(height) and Plain(own) then
+			cog:ClearAllPoints()
+			cog:SetPoint("TOPRIGHT", splits, "TOPRIGHT", -SPLITS_SIDE, TitleRise(splits, title) - (height - own) / 2)
+		end
 	end
 end
 
