@@ -184,12 +184,14 @@ local function LayoutTexts(f, k, parts)
 	local inside = parts.nameInside
 	local nameOutline = inside and OnBar(cfg.nameOutline) or cfg.nameOutline
 	local namePath = cfg.nameFont
-	f.nativeName = namePath == Settings.THEME_FONT
+	local roleFont = Theme.RoleFont("names") ~= ""
+	local follows = Theme.FollowsKit(namePath)
+	f.nativeName = follows and not roleFont
 	local kit = false
-	if namePath == Settings.THEME_FONT then
+	if follows then
 		namePath = (Tokens.Font("names"))
 		for _, set in ipairs(Tokens.MediaList("fontSet")) do
-			kit = kit or set.key == Theme.FontFace()
+			kit = kit or set.key == Theme.FontFace() and not roleFont
 		end
 		if kit and f.kind == "raid" and parts.name.width < WIDE_NAME_EM * Widgets.FontSize(name, Style.NameMin(k)) then
 			namePath = Settings.COMPACT_NAME_FONT

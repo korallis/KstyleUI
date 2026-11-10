@@ -163,7 +163,7 @@ function Model.Group(settings, name)
 end
 
 local function font(value, default)
-	if type(value) == "string" and value ~= "" then
+	if not K.Theme.FollowsKit(value) then
 		return value
 	end
 	return default

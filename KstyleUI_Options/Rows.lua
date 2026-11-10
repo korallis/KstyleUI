@@ -259,6 +259,10 @@ function FILL.slider(control, item, value)
 	if low < high then
 		control:SetRange(low, high, item.step)
 	end
+	if item.shown then
+		local ok, painted = K.Call(item.shown, value)
+		value = ok and painted or low
+	end
 	control:SetValue(NumberOr(value, low), true)
 	SetEnabled(control, not Model.IsDisabled(item))
 end

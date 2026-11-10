@@ -107,7 +107,7 @@ do
 	local font = K.Options.Row("Appearance", "font")
 	assert(type(font.options) == "function", "the font list is built when it opens")
 	local faces = font.options()
-	assert(#faces == 15 and faces[1].value == "" and faces[2].value == "CinzelSemiBold" and faces[6].value == "SourceSans3Semibold" and faces[8].value == "InterSemiBold", "no override and the thirteen bundled faces precede shared fonts")
+	assert(#faces == 20 and faces[1].value == "" and faces[2].value == "CinzelSemiBold" and faces[6].value == "SourceSans3Semibold" and faces[8].value == "InterSemiBold", "no override and the eighteen bundled faces precede shared fonts")
 	local sets = K.Options.Row("Appearance", "typeSet").options()
 	assert(#sets == 2 and sets[1].value == "Folio" and sets[2].value == "Lumen", "type sets have their own Folio and Lumen choices")
 	assert(faces[#faces].value == SHARED_FONT and faces[#faces].label == "Handwriting", "LibSharedMedia fonts follow")

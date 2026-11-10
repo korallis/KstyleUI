@@ -301,10 +301,10 @@ local function Unit(value)
 end
 
 local function Font(value)
-	if value == "kit" then
-		return value
+	if K.Theme.FollowsKit(value) then
+		return "kit"
 	end
-	if type(value) == "string" and K.Theme.IsFontPath(value) then
+	if K.Theme.IsFontPath(value) then
 		return value
 	end
 	return "kit"

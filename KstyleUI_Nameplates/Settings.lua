@@ -640,7 +640,7 @@ function Settings.Get(key)
 		value = Read(key)
 		cache[key] = value
 	end
-	if key == "font" and value == "" then
+	if key == "font" and K.Theme.FollowsKit(value) then
 		return (Tokens.Font("body"))
 	end
 	return value

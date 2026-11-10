@@ -365,6 +365,14 @@ end
 
 local LUMEN_ROLES = { name = "names", health = "number", level = "number", aura = "timer" }
 
+function Settings.Role(kind, element)
+	local role = LUMEN_ROLES[element]
+	if role == "names" and Settings.Form(kind) == "column" then
+		role = "unit"
+	end
+	return role and Settings.Form(kind) ~= "plate" and role or "body"
+end
+
 function Settings.Font(kind, element)
 	local own, d = Kinds(kind)
 	local default = d.fonts[element]
@@ -372,14 +380,10 @@ function Settings.Font(kind, element)
 		error("UnitFrames.Settings.Font: unknown text " .. tostring(element), 2)
 	end
 	local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or default
-	local role = LUMEN_ROLES[element]
-	if role == "names" and Settings.Form(kind) == "column" then
-		role = "unit"
-	end
-	local themePath = Tokens.Font(role and Settings.Form(kind) ~= "plate" and role or "body")
+	local themePath = Tokens.Font(Settings.Role(kind, element))
 	local path = themePath
 	local font = style.font
-	if type(font) == "string" and font ~= THEME_FONT then
+	if not K.Theme.FollowsKit(font) then
 		if K.Theme.IsFontPath(font) then
 			path = font
 		else
@@ -397,7 +401,7 @@ function Settings.ThemeFont(kind, element)
 	local own, d = Kinds(kind)
 	local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or d.fonts[element]
 	local font = style and style.font
-	return not (type(font) == "string" and font ~= THEME_FONT and K.Theme.IsFontPath(font))
+	return K.Theme.FollowsKit(font) or not K.Theme.IsFontPath(font)
 end
 
 function Settings.FontSize(kind, element)

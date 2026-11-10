@@ -67,7 +67,7 @@ Each schema row becomes one row bound to `Options.Read` and `Options.Write`, so 
 | --- | --- |
 | `header` | Upper-case caption with a fading rule above. Element names are second-level headers with an accent mark. |
 | `toggle` | `Widgets.Toggle` |
-| `slider` | `Widgets.Slider` with the row's `min`, `max` and `step` |
+| `slider` | `Widgets.Slider` with the row's `min`, `max` and `step`; a row with `shown` paints `shown(stored)` instead of the stored value |
 | `dropdown` | `Widgets.Dropdown`. A stored value that no option holds is listed under its raw value, so it still shows. |
 | `color` | `Widgets.ColorSwatch` and the colour as `#RRGGBB`. Rows with `hasAlpha` keep the alpha. |
 | `font`, `texture` | `Widgets.FontPicker`, `Widgets.TexturePicker`: KstyleUI's media, then LibSharedMedia's |

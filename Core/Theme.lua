@@ -24,6 +24,7 @@ local state = {
 	source = "class",
 	face = "",
 	typeSet = Tokens.DEFAULT_FONT_FACE,
+	roles = {},
 	fontScale = 1,
 	class = nil,
 	announced = nil,
@@ -180,6 +181,14 @@ function Theme.FontFace()
 	return state.face ~= "" and state.face or state.typeSet
 end
 
+function Theme.TypeSet()
+	return state.typeSet
+end
+
+function Theme.FollowsKit(value)
+	return IsSecret(value) or type(value) ~= "string" or value == "" or value == "theme" or value == "kit"
+end
+
 function Theme.SetTypeSet(key)
 	if not Tokens.IsFontSet(key) then
 		return false
@@ -199,12 +208,50 @@ function Theme.IsFontPath(path)
 	return ext == "ttf" or ext == "otf"
 end
 
+local function IsFaceChoice(key)
+	return type(key) == "string" and (key == "" or Tokens.FontPath(key) ~= nil or Theme.IsFontPath(key))
+end
+
 function Theme.SetFontFace(key)
-	if type(key) ~= "string" or not (key == "" or Tokens.FontPath(key) or Theme.IsFontPath(key)) then
+	if not IsFaceChoice(key) then
 		return false
 	end
 	if state.face ~= key then
 		state.face = key
+		Fire("ThemeChanged")
+	end
+	return true
+end
+
+function Theme.RoleFont(role)
+	return state.roles[role] or ""
+end
+
+function Theme.SetRoleFonts(choices)
+	if type(choices) ~= "table" then
+		return false
+	end
+	local known = {}
+	for _, role in ipairs(Tokens.FontRoles()) do
+		known[role] = true
+	end
+	for role, key in pairs(choices) do
+		if not known[role] or not IsFaceChoice(key) or Tokens.IsFontSet(key) then
+			return false
+		end
+	end
+	local changed = false
+	for role in pairs(known) do
+		local key = choices[role]
+		if key == "" then
+			key = nil
+		end
+		if state.roles[role] ~= key then
+			state.roles[role] = key
+			changed = true
+		end
+	end
+	if changed then
 		Fire("ThemeChanged")
 	end
 	return true

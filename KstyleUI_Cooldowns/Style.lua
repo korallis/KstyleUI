@@ -61,7 +61,7 @@ function Style.ShowChip(chip, holder, side, gap, width, height, text, size)
 end
 
 function Style.FontPath(choice, role)
-	if choice == "kit" or type(choice) ~= "string" then
+	if K.Theme.FollowsKit(choice) then
 		return (Tokens.Font(role or "number"))
 	end
 	return choice

@@ -80,7 +80,7 @@ end
 
 local function FontPath(settings)
 	local path = settings.font
-	if path == "" then
+	if K.Theme.FollowsKit(path) then
 		return (Tokens.Font("body"))
 	end
 	if path ~= state.checked then
@@ -99,7 +99,7 @@ function Frames.Fonts(settings)
 	local s = settings or state.settings
 	local path = FontPath(s)
 	local flags = OUTLINES[s.fontOutline] or ""
-	local size = Whole(s.fontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.fontSize)
+	local size = Whole(ns.TextSize(s), ns.FONT_MIN, ns.FONT_MAX, Tokens.TypeDefault("chatSize"))
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
 	local tabPath = Tokens.Font("names")
 	return path, size, flags, tabSize, tabPath
@@ -334,7 +334,7 @@ local function ApplyFrame(frame)
 		frame:SetFading(s.fade == true)
 	end
 	if type(frame.SetSpacing) == "function" then
-		frame:SetSpacing(Widgets.Snap(frame, Halves(s.lineSpacing, ns.SPACING_MIN, ns.SPACING_MAX, ns.defaults.lineSpacing) * hud))
+		frame:SetSpacing(Widgets.Snap(frame, Halves(ns.LineSpacing(s), ns.SPACING_MIN, ns.SPACING_MAX, Tokens.TypeDefault("chatSpacing")) * hud))
 	end
 	if s.fade == true and type(frame.SetTimeVisible) == "function" then
 		frame:SetTimeVisible(Whole(s.fadeTime, 1, math.huge, FADE_DEFAULT))
@@ -491,6 +491,8 @@ local function OnDocking(frame)
 	end
 end
 
+local pick
+
 local function OnFontSize(button, _, size)
 	if not state.active then
 		return
@@ -502,10 +504,28 @@ local function OnFontSize(button, _, size)
 	if size == nil then
 		return
 	end
-	if size ~= state.settings.fontSize then
-		K.Options.Write(ns.NAME, "fontSize", size)
-	else
-		ApplyAll()
+	if pick then
+		pick.size = size
+		return
+	end
+	pick = { size = size }
+	C_Timer.After(0, function()
+		local done = pick
+		pick = nil
+		if not state.active then
+			return
+		end
+		if done.automatic or done.size == state.settings.fontSize then
+			ApplyAll()
+			return
+		end
+		K.Options.Write(ns.NAME, "fontSize", done.size)
+	end)
+end
+
+local function OnAutomaticSize()
+	if pick then
+		pick.automatic = true
 	end
 end
 
@@ -522,6 +542,9 @@ local HOOKS = {
 	{ "FCF_DockFrame", OnDocking, "docking a window does not update its glass" },
 	{ "FCF_UnDockFrame", OnDocking, "undocking a window does not update its glass" },
 	{ "FCF_SetChatWindowFontSize", OnFontSize, "a size picked from the tab menu lasts until the next reload" },
+	{ "FCF_CopyChatSettings", OnAutomaticSize, "a new window's copied size could be mistaken for a pick" },
+	{ "FCF_ResetChatWindow", OnAutomaticSize, "a reset window's default size could be mistaken for a pick" },
+	{ "FCF_ResetChatWindows", OnAutomaticSize, "reset windows' default size could be mistaken for a pick" },
 }
 
 local function Hook()

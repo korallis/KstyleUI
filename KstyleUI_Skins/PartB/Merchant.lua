@@ -14,8 +14,8 @@ local function Item(button)
 end
 
 local function NameSize()
-	local _, size = ns.Style.Font(K.Theme.FontFace() == "Folio" and "caps" or "body")
-	return size
+	local _, size = K.Tokens.NoteFont()
+	return size * ns.Style.Setting("text", "size")
 end
 
 local function Slot(slot)

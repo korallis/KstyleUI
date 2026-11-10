@@ -360,7 +360,7 @@ local function SetName(view, name)
 	view.plainName = name
 	text:SetText(view.s.nameCaps and Unit.Tracked(name, path) or name)
 	local bodyPath, bodySize = Tokens.Font("body")
-	if not ns.Settings.ThemeFont(view.kind, "name") then
+	if not ns.Settings.ThemeFont(view.kind, "name") or Theme.RoleFont(ns.Settings.Role(view.kind, "name")) ~= "" then
 		bodyPath = path
 	end
 	if not Number(full) then

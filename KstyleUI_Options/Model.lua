@@ -228,7 +228,7 @@ local function Copy(value)
 end
 Model.Copy = Copy
 
-local FIELDS = { "min", "max", "step", "options", "hasAlpha", "maxLetters", "scope" }
+local FIELDS = { "min", "max", "step", "shown", "options", "hasAlpha", "maxLetters", "scope" }
 
 function Model.SchemaItems(module, schema, page)
 	local items = {}
