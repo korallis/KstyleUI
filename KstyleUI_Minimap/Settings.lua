@@ -319,7 +319,7 @@ local function Valid(row, value, default)
 	elseif row.type == "dropdown" and type(row.options) == "table" then
 		return InOptions(row.options, value)
 	elseif row.type == "dropdown" then
-		return value == "" or K.Theme.IsFontPath(value)
+		return K.Theme.FollowsKit(value) or K.Theme.IsFontPath(value)
 	elseif row.type == "color" then
 		return IsChannel(value.r) and IsChannel(value.g) and IsChannel(value.b)
 	end

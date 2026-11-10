@@ -55,12 +55,12 @@ KstyleUI.Tokens.FontRoles() -> { role, ... }      -- the thirteen roles, in the 
 KstyleUI.Theme.RoleFont(role) -> key or path      -- an explicit role font, or "" to inherit
 KstyleUI.Theme.SetRoleFonts(choices) -> ok        -- { [role] = key or path }; a missing role or "" inherits; one ThemeChanged
 KstyleUI.Theme.TypeSet() -> "Folio" or "Lumen"    -- the selected type set, whatever whole-interface font is chosen
-KstyleUI.Theme.FollowsKit(value) -> boolean       -- true for "", "theme", "kit", a non-string or a secret value; false for any path
+KstyleUI.Theme.FollowsKit(value) -> boolean       -- true for "", "theme", "kit", "default", a non-string or a secret value; false for any path
 KstyleUI.Tokens.TypeDefault(name) -> number       -- chatSize, chatSpacing or noteSize of the selected type set
 KstyleUI.Tokens.NoteFont() -> path, size, flags   -- small-note text: the body face at the set's note size, scaled and floored
 KstyleUI.Tokens.Size(name) -> number              -- root units
 KstyleUI.Tokens.Duration(name) -> seconds
-KstyleUI.Tokens.Font(role) -> path, size, flags   -- roles: display, heading, body, caption, number, world
+KstyleUI.Tokens.Font(role) -> path, size, flags   -- role: any of Tokens.FontRoles(); an explicit role font wins over the set
 KstyleUI.Theme.Accent() -> r, g, b
 KstyleUI.Scale.Root() -> Frame                    -- KstyleUI_Root
 KstyleUI.Scale.Pixel(n) -> units                  -- n whole physical pixels in root units
@@ -114,7 +114,7 @@ Repository rules, the TOC walker, a loadable addon skeleton, the regression runn
 | Modules, Callbacks, Events, Combat, Safe, Locale | `Core/Modules.lua` and siblings, `Core/Locale.lua`, `test-lifecycle.lua`, `test-combat.lua`. |
 | Performance budget | `Tools/regression/measure.lua` and `test-perf.lua`: average time and allocated memory per call over 1,000 calls with the garbage collector stopped. Phase 2 and 3 modules register their combat paths with a budget. |
 | Procedural media | `Tools/media/make_media.py` and the textures it draws: chamfer masks, bevels, shadow, glow, noise, rings, logo. `Media/PROVENANCE.md`. |
-| Fonts | The chosen OFL font in `Media/Fonts/` with `OFL.txt`. |
+| Fonts | The OFL fonts in `Media/Fonts/` with their licences (`OFL*.txt`); `Media/PROVENANCE.md` records each file's source and build. |
 | Widgets: panel, button, icon button, tabs | `Core/Widgets/*.lua` with tests |
 | Widgets: toggle, slider, dropdown, edit box | `Core/Widgets/*.lua` with tests |
 | Widgets: scroll list, status bar, tooltip, glow | `Core/Widgets/*.lua` with tests |

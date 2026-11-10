@@ -127,7 +127,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | `<icons>.columns`, `<icons>.rows` | 6 (utility 4), 1 | Icons per row and rows; icons past the grid are not shown. On the tracked buff row every socket shows a buff and a `+N` chip one socket to the left of the full row counts the rest; pointing at it lists them with their time left |
 | `<icons>.growth` | `"center"` | Where a short row starts: centred, left to right, right to left |
 | `<icons>.wrap` | `"down"`, `"up"` for buffs | Extra rows below or above the first |
-| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 16.5, 11 or 9; 10, 11 or 9 | The countdown numbers and count for essential, utility and tracked-buff icons. Essentials use the bold number role; utility and tracked durations use the lighter timer role (Alegreya Sans Medium) |
+| `<icons>.timer`, `<icons>.timerSize`, `<icons>.countSize` | on; 16.5, 11 or 9; 10, 11 or 9 | The countdown numbers and count for essential, utility and tracked-buff icons. Essentials use the bold number role; utility and tracked durations use the lighter timer role (PT Serif Regular in Folio, Alegreya Sans Medium in Lumen) |
 | `<cooldowns>.gcd` | `false` | Sweep every icon during the global cooldown |
 | `<cooldowns>.desaturate` | `false` | Grey an icon while its spell is on a real cooldown. Off by default: the composition mockup keeps a cooling icon in colour under its swipe |
 | `<cooldowns>.usable` | `true` | Dim an icon while its spell cannot be cast |

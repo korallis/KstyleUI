@@ -228,4 +228,90 @@ do
 	end
 end
 
+collectgarbage("collect")
+
+do
+	local D = dofile("Tools/regression/databars_env.lua")
+	local env, K, ns = D.New()
+	local xp = assert(ns.Bars.views.xp, "the xp bar was built")
+	local explicit = K.Tokens.FontPath("InterSemiBold")
+	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
+		face(env, K, key)
+		font(xp.text, (K.Tokens.Font("prose")), "the experience text inherits the prose role")
+	end
+	write(K, "DataBars", "xp.font", explicit)
+	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
+		face(env, K, key)
+		font(xp.text, explicit, "explicit experience font survives")
+	end
+	write(K, "DataBars", "xp.font", "default")
+	face(env, K, "SourceSans3Regular")
+	font(xp.text, (K.Tokens.Font("prose")), "the saved default inherits again")
+	for _, word in ipairs({ "", "theme", "kit" }) do
+		write(K, "DataBars", "xp.font", explicit)
+		write(K, "DataBars", "xp.font", word)
+		face(env, K, "Lumen")
+		font(xp.text, (K.Tokens.Font("prose")), "the saved word " .. string.format("%q", word) .. " still follows the kit for the experience bar")
+	end
+end
+collectgarbage("collect")
+
+do
+	local M = dofile("Tools/regression/meters_env.lua")
+	local env, K, ns = M.New()
+	M.Enable(env, K)
+	env.RunTimers()
+	local explicit = K.Tokens.FontPath("InterSemiBold")
+	local function rate()
+		return { GetFont = function()
+			return ns.FontPath("damage", "number")
+		end }
+	end
+	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
+		face(env, K, key)
+		font(rate(), (K.Tokens.Font("number")), "meter values inherit the number role")
+	end
+	M.Write(env, K, "damage.font", explicit)
+	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
+		face(env, K, key)
+		font(rate(), explicit, "explicit meter font survives")
+	end
+	M.Write(env, K, "damage.font", "")
+	face(env, K, "SourceSans3Regular")
+	font(rate(), (K.Tokens.Font("number")), "reset meter font inherits again")
+	for _, word in ipairs({ "theme", "kit", "default" }) do
+		M.Write(env, K, "damage.font", explicit)
+		M.Write(env, K, "damage.font", word)
+		face(env, K, "Lumen")
+		font(rate(), (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for meters")
+	end
+end
+collectgarbage("collect")
+
+do
+	local MM = dofile("Tools/regression/minimap_env.lua")
+	local env, K, ns = MM.New({ enabled = true })
+	env.RunTimers()
+	local zone = ns.Map.face.zone
+	local explicit = K.Tokens.FontPath("InterSemiBold")
+	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
+		face(env, K, key)
+		font(zone, (K.Tokens.Font("names")), "the zone name inherits the names role")
+	end
+	write(K, "Minimap", "zone.font", explicit)
+	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
+		face(env, K, key)
+		font(zone, explicit, "explicit zone font survives")
+	end
+	write(K, "Minimap", "zone.font", "")
+	face(env, K, "SourceSans3Regular")
+	font(zone, (K.Tokens.Font("names")), "reset zone font inherits again")
+	for _, word in ipairs({ "theme", "kit", "default" }) do
+		write(K, "Minimap", "zone.font", explicit)
+		write(K, "Minimap", "zone.font", word)
+		face(env, K, "Lumen")
+		font(zone, (K.Tokens.Font("names")), "the saved word " .. word .. " still follows the kit for the zone name")
+	end
+end
+
 print("module font inheritance ok")

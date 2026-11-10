@@ -3,6 +3,7 @@
 	<Script file="SpellSchools.lua"/>
 	<Script file="Logic.lua"/>
 	<Script file="Settings.lua"/>
+	<Script file="Bearings.lua"/>
 	<Script file="BarList.lua"/>
 	<Script file="Swing.lua"/>
 	<Script file="Threat.lua"/>

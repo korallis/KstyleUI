@@ -18,7 +18,7 @@ The only core colour addition is `plateHostile` (#c3433d); card material is unch
 
 The target's name takes the same muted gold as its outline; other names stay warm white. Comparing the original picture with its UI-free plate shows a diffuse dark halo around the name (darkened pixels continue below the last gold glyph row), so its final name face needs a soft shadow. Weight, tracking and shadow behavior come only from the kit's font role; the module adds no letter-spacing characters. In the original reference target at x2174–2445, the health outline occupies y952–953 and y982–983, the dark inset y954–955 and y980–981, and the health interior y956–979. The cast's own dark border starts at y986, leaving two clear source pixels below the health outline; its fill starts at y988. At 1.742 source pixels per root unit, both the dark inset and the clear inter-frame gap are 1.15 root units. The target and cast strokes also measure two source pixels, so both their line weight and the gaps use 1.15 root units, snapped independently to whole physical pixels at each scale. A non-target health bar's dark border is two physical pixels on every screen (`Scale.Pixel(2)`, snapped), not one: the acceptance pass measured two dark rows per edge, and the earlier one-pixel reading was the shorthand this correction replaces. Cast placement measures from the health frame's outer edge, not its fill.
 
-All plate names, including the target's gold name, use #226's `names` face: weight 500, no letter tracking, a word space 0.16 em wider than Cinzel's and the kit's soft shadow. The shadowless `caps` face belongs to captions on cards, not unoutlined names over the world.
+All plate names, including the target's gold name, use the `names` role (Cinzel Names, weight 600 in Folio and #226's 500 in Lumen): no letter tracking, a word space 0.16 em wider than Cinzel's and the kit's soft shadow. The shadowless `caps` face belongs to captions on cards, not unoutlined names over the world.
 
 Explicit saved widths, heights and positions are preserved, including a width of 175 and a height that is not the old default of 12. Layout stores only overrides, so an unset size follows the 151.56 × 13.78 default. A saved plate still at the old default width 154 or height 12 drops that field on migration 13 and follows the picture; a size the player chose is kept. The Layout sample stays centred at its existing position. Existing user settings are not reset; applying the Lumen preset restores the new settings defaults.
 
@@ -188,7 +188,7 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `preset` | lumen | dropdown: lumen, compact, tank, healer, custom |
 | `offsetY` | 0 | slider, -40 to 40 |
 | `shrinkDistant` | off | toggle |
-| `font` | Alegreya Sans | font: values, debuff timers and optional cast text; uppercase names use the kit's tracked names face, and mixed-case names keep the heading face |
+| `font` | Interface font: the `body` role (PT Serif in Folio, Alegreya Sans in Lumen) | font: values, debuff timers and optional cast text; uppercase names use the kit's tracked names face, and mixed-case names keep the heading face |
 | `health.texture`, `health.orientation`, `health.reverse` | Flat, horizontal, off | texture, dropdown, toggle |
 | `enemy.colorSource`, `enemy.color` | class, `plateHostile` | dropdown, colour |
 | `friendly.colorSource`, `friendly.color`, `friendly.nameOnly` | class, `friendly`, off | dropdown, colour, toggle |
