@@ -834,4 +834,52 @@ do
 	noErrors(env, K)
 end
 
+-- The separator's blank is 4/21 of the font, snapped to the panel's pixel and never under one pixel.
+-- A fixed zero gap (staging) fails this. On the picture's screen the snapped gap is 4 px.
+local screens = {
+	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+}
+for _, screen in ipairs(screens) do
+	local opts = { width = screen[1], height = screen[2] }
+	if screen[1] == 3456 and screen[2] == 2234 then
+		opts.size = 16 / 19
+	end
+	local envS, KS, nsS = D.New(opts)
+	local dot = item(nsS, "latency").dot
+	local frame = nsS.Strip.view.frame
+	local _, size = dot:GetFont()
+	local step = KS.Scale.Pixel(1) / KS.Widgets.ScaleFactor(frame)
+	local gap = KS.Widgets.DotGap(size, step, nsS.Strip.DOT_GAP_EM)
+	local dx = select(4, dot:GetPoint(1))
+	local label = screen[1] .. "x" .. screen[2]
+	local gapPx = gap / step
+	local wanted = nsS.Strip.DOT_GAP_EM * size / step
+	assert(nsS.Strip.DOT_GAP_EM == 4 / 21, "the readout's share is 4 px against the 21 px em")
+	assert(math.abs(gapPx - wanted) <= 1 + 1e-6, label .. ": the gap is the picture's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
+	assert(gapPx + 1e-6 >= 1, label .. ": at least one pixel")
+	assert(dx < -(gap - 1e-6), label .. ": the dot is set in from the item by the gap, got " .. tostring(dx))
+	if screen[1] == 3456 and screen[2] == 2234 then
+		assert(math.abs(gapPx - 4) < 0.05, label .. ": the picture's screen still has 4 px, got " .. tostring(gapPx))
+		local function inset(marker)
+			local advance = marker:GetUnboundedStringWidth()
+			local offset = select(4, marker:GetPoint(1))
+			return (-offset - advance / 2) / step
+		end
+		-- A following tabular 1 paints on the first pixel of its advance, so that side keeps the
+		-- full snap. Every other side sits one pixel under it, which is what puts fps on the picture.
+		local game = envS._game
+		game.latencyHome = 15
+		game.money = 2616
+		nsS.Strip.Refresh()
+		eq(item(nsS, "latency").value:GetText(), "15", "the picture's latency")
+		eq(item(nsS, "gold").value:GetText(), "26s 16c", "the picture's gold")
+		local latencyInset = inset(item(nsS, "latency").dot)
+		local goldInset = inset(item(nsS, "gold").dot)
+		assert(math.abs(latencyInset - 4) < 0.05, label .. ": the 1 keeps 4 px, got " .. tostring(latencyInset))
+		assert(math.abs(goldInset - 3) < 0.05, label .. ": a following 2 sits 3 px off, got " .. tostring(goldInset))
+	end
+	noErrors(envS, KS)
+end
+
 print("databars strip ok")

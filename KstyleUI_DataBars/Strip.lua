@@ -46,11 +46,12 @@ local MENU_GAP = 6
 local LINE = 12
 local CELL_LINE = 30
 local CELLS_HEIGHT = 42
-local DOT_GAP = 0
+local DOT_GAP_EM = 4 / 21
 local LINE_LIFT = 1
 local DOT = "\194\183"
 local MENU_PAD = 3
 Strip.UNIT_GAP = UNIT_GAP
+Strip.DOT_GAP_EM = DOT_GAP_EM
 Strip.LINE = LINE
 Strip.COMPACT = LINE
 
@@ -374,6 +375,14 @@ local function CompactGold(item, s)
 	end
 end
 
+local function StemPixel(text, step)
+	local value = text and text.GetText and text:GetText()
+	if (issecretvalue and issecretvalue(value)) or type(value) ~= "string" or value:sub(1, 1) ~= "1" then
+		return 0
+	end
+	return step
+end
+
 local function PlaceLine(view, s)
 	local frame = view.frame
 	local _, h = Size(frame)
@@ -381,8 +390,18 @@ local function PlaceLine(view, s)
 		h = view.line
 	end
 	local edge = view.bare and 0 or Pad(frame)
-	local unitGap, dotGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, DOT_GAP), Widgets.Snap(frame, LINE_LIFT)
+	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, LINE_LIFT)
 	local order = view.order
+	local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(frame)
+	local dotSize = s.fontSize * K.Theme.FontScale()
+	local sample = order[1] and view.items[order[1]]
+	if sample and sample.dot.GetFont then
+		local _, size = sample.dot:GetFont()
+		if IsNumber(size) and size > 0 then
+			dotSize = size
+		end
+	end
+	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM)
 	local x = edge
 	for i = #order, 1, -1 do
 		local item = view.items[order[i]]
@@ -408,11 +427,13 @@ local function PlaceLine(view, s)
 		item.dot:SetShown(i > 1)
 		if i > 1 then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
+			local leftGap = max(step, dotGap - step)
+			local rightGap = max(step, dotGap - step + StemPixel(item.value, step))
 			item.dot:ClearAllPoints()
-			item.dot:SetPoint("CENTER", button, "LEFT", -(dotWidth / 2 + dotGap), lift)
+			item.dot:SetPoint("CENTER", button, "LEFT", -(dotWidth / 2 + rightGap), lift)
 			item.dot:SetWidth(Widgets.Snap(item.dot, max(1, dotWidth + 2)))
 			item.dot:SetJustifyH("CENTER")
-			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
+			x = x + Widgets.Snap(frame, dotWidth + leftGap + rightGap)
 		end
 	end
 	view.contentWidth = Widgets.Snap(frame, x - edge)
