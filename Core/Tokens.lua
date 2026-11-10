@@ -157,6 +157,7 @@ local FONT_FACES = {
 	{ key = "AlegreyaSansRegular", label = "Alegreya Sans", path = FONTS_DIR .. "AlegreyaSansTabular-Regular.ttf" },
 	{ key = "AlegreyaSansMedium", label = "Alegreya Sans Medium", path = FONTS_DIR .. "AlegreyaSansTabular-Medium.ttf" },
 	{ key = "AlegreyaSansBold", label = "Alegreya Sans Bold", path = FONTS_DIR .. "AlegreyaSansTabular-Bold.ttf" },
+	{ key = "AlegreyaSansExtraBold", label = "Alegreya Sans Extra Bold", path = FONTS_DIR .. "AlegreyaSansTabular-ExtraBold.ttf" },
 	{ key = "SourceSans3Semibold", label = "Source Sans 3 Semibold", path = FONTS_DIR .. "SourceSans3-Semibold.ttf" },
 	{ key = "SourceSans3Regular", label = "Source Sans 3", path = FONTS_DIR .. "SourceSans3-Regular.ttf" },
 	{ key = "InterSemiBold", label = "Inter SemiBold", path = FONTS_DIR .. "Inter-SemiBold.ttf" },
@@ -180,7 +181,7 @@ local FONT_ROLES = {
 	names = { lumen = "CinzelNames", flags = "", tracking = 0, upper = true },
 	unit = { lumen = "CinzelUnit", flags = "", tracking = 0, upper = true },
 	caption = { lumen = "AlegreyaSansMedium", flags = "", tracking = 0.6, upper = true },
-	number = { lumen = "AlegreyaSansBold", number = true, flags = "", tracking = 0 },
+	number = { lumen = "AlegreyaSansExtraBold", number = true, flags = "", tracking = 0 },
 	world = { lumen = "AlegreyaSansMedium", flags = "OUTLINE", tracking = 0 },
 }
 

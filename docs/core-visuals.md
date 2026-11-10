@@ -78,7 +78,7 @@ Every chrome wears one of the kit's grades: the card (panel, card, window and ra
 | `caps` | Cinzel Caps (Medium, spaced 0.065 em, word space +0.18 em) | 10 | `""` | 0 | yes |
 | `names` | Cinzel Names (Medium, no letter spacing, word space +0.16 em) | 10 | `""` | 0 | yes |
 | `unit` | Cinzel Unit (Medium, spaced -0.065 em, word space +0.25 em) | 18 | `""` | 0 | yes |
-| `number` | Alegreya Sans Tabular Bold | 12 | `""` | 0 | |
+| `number` | Alegreya Sans Tabular Extra Bold | 12 | `""` | 0 | |
 | `world` | Alegreya Sans Tabular Medium | 13 | `"OUTLINE"` | 0 | |
 
 The face comes from `Theme.FontFace()`. Its default, `"Lumen"`, is a font set: each role takes the face in the table. Any other choice (a key of `MediaList("font")`, such as Source Sans 3 Semibold, or a font file path such as a LibSharedMedia font) sets every role to that face, except `number`, which then uses Source Sans 3 Semibold for its tabular digits. The game applies no OpenType features, so Alegreya Sans's `tnum` and `lnum` cannot be turned on; the bundled Alegreya Sans Tabular files map the digits to the font's own tabular oldstyle figures instead (`Media/PROVENANCE.md`: the figures the owner's picture draws, on fixed widths), so numbers keep their width without a fixed-width reservation. `Tools/media/make_fonts.py --figures lining` rebuilds them with lining figures. The caption role is Cinzel, tracked, for rail section caps; a module that sets dense small text in `caption` reads it in Cinzel until it moves that text to `body` or `number`. Every role but `world` is multiplied by `Theme.FontScale()`, the Appearance page's text size; text over the 3D world keeps its size. UI text takes a soft shadow (`textShadow`, offset `textShadowOffset`) instead of an outline; text over the 3D world takes the thin outline.
@@ -91,7 +91,7 @@ Three roles carry the picture's letter-spaced Cinzel capitals, each from its own
 
 ### Media lists
 
-`MediaList(kind) -> { { key, label, path }, ... }`, a fresh copy, for `"font"` (Cinzel SemiBold, Alegreya Sans, Alegreya Sans Medium, Alegreya Sans Bold, Source Sans 3 Semibold, Source Sans 3, Inter SemiBold: real faces, which path pickers list and LibSharedMedia registers), `"fontSet"` (Lumen, which only the Appearance face list offers) and `"statusbar"` (Glass, Soft, Flat).
+`MediaList(kind) -> { { key, label, path }, ... }`, a fresh copy, for `"font"` (Cinzel SemiBold, Alegreya Sans, Alegreya Sans Medium, Alegreya Sans Bold, Alegreya Sans Extra Bold, Source Sans 3 Semibold, Source Sans 3, Inter SemiBold: real faces, which path pickers list and LibSharedMedia registers), `"fontSet"` (Lumen, which only the Appearance face list offers) and `"statusbar"` (Glass, Soft, Flat).
 
 ### Textures
 
