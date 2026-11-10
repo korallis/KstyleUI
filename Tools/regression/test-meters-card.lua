@@ -110,8 +110,8 @@ for i, spell in ipairs(SPELLS) do
 	assert(range[2] == 412 and M.Last(row.bar, "SetValue")[1] == spell[3], i .. ": the fill is the spell's share of the top spell")
 end
 
--- The dot is its own piece, with 5 physical pixels of ink each side (LEE-95). A trailing 1 sits closer to the
--- dot than a trailing 2: the fixed-width figure's side bearing is not part of the gap. The offsets are snapped.
+-- The dot is its own piece. The ink gap is 5/21 of the font, which is 5 px on the picture's screen, snapped
+-- to the panel's pixel and never under one pixel. A trailing 1 sits closer than a trailing 2.
 do
 	local row = list.rows[1]
 	local dot = { row.dot:GetPoint(1) }
@@ -119,17 +119,14 @@ do
 	assert(dot[1] == "RIGHT" and dot[2] == row.percent and dot[3] == "LEFT", "the dot sits against the share")
 	assert(value[1] == "RIGHT" and value[2] == row.dot and value[3] == "LEFT", "the amount sits against the dot")
 	local _, size = row.value:GetFont()
-	local x2, y = ns.BarList.JoinOffsets("2", "4", size)
-	local snap = K.Widgets.Snap
-	assert(W.Near(value[4], snap(list.panel, x2)), "a trailing 2 leaves 5 px after its ink, got " .. tostring(value[4]))
-	assert(W.Near(dot[4], snap(list.panel, y)), "the share's first figure leaves 5 px after the dot, got " .. tostring(dot[4]))
-	local x1 = ns.BarList.JoinOffsets("1", "4", size)
+	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
+	local x2, y = ns.BarList.JoinOffsets("2", "4", size, step)
+	assert(W.Near(value[4], x2), "a trailing 2 leaves the picture's proportion after its ink, got " .. tostring(value[4]))
+	assert(W.Near(dot[4], y), "the share's first figure leaves the same proportion after the dot, got " .. tostring(dot[4]))
+	local x1 = ns.BarList.JoinOffsets("1", "4", size, step)
 	assert(x1 > x2 + size * 0.05, "a trailing 1, whose ink stops short of the advance, is pulled toward the dot")
-	local pixel = K.Scale.Pixel(1)
-	assert(math.abs(value[4] / pixel - math.floor(value[4] / pixel + 0.5)) < 1e-6, "the amount's gap is whole physical pixels")
-	assert(math.abs(dot[4] / pixel - math.floor(dot[4] / pixel + 0.5)) < 1e-6, "the share's gap is whole physical pixels")
-	local gap = K.Scale.Pixel(5)
-	assert(W.Near(0.022 * size + 0.033 * size - x2, gap), "the offset cancels the number face's side bearings, so the ink gap is 5 px")
+	assert(ns.BarList.DOT_GAP_EM == 5 / 21, "the gap is 5 px against the 21 px the 12-unit face draws on the reference screen")
+	assert(row.amount == "~412", "the amount is the text SetRow was handed, not a read back from the region")
 end
 
 -- A chosen font sizes the dot itself. Pinning every face to the number face's 0.228 em clips a wider
@@ -142,6 +139,29 @@ do
 	assert(row.dot:IsShown(), "the dot still shows")
 	M.Write(env, K, "damage.font", "")
 	assert(select(1, list.rows[1].value:GetFont()) == K.Tokens.Font("number"), "clearing the font returns the amount to the number face")
+end
+
+-- GetFont may hand the number face's path back in another spelling. That is not an error: the bearings
+-- fall to the default, and the dot still places.
+do
+	local row = list.rows[1]
+	local real = row.value.GetFont
+	local _, size = real(row.value)
+	local kept = row.amount
+	row.amount = "~411"
+	row.value.GetFont = function()
+		return "Interface/AddOns/KstyleUI/Media/Fonts/AlegreyaSansTabular-ExtraBold.ttf", size, ""
+	end
+	list:Restyle()
+	local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
+	local fallen = ns.BarList.JoinOffsets(nil, nil, size, step)
+	local ones = ns.BarList.JoinOffsets("1", "4", size, step)
+	assert(not W.Near(fallen, ones), "the default bearing is not the trailing 1's")
+	assert(W.Near(select(4, row.value:GetPoint(1)), fallen), "a differently spelled path uses the default bearing, got " .. tostring(select(4, row.value:GetPoint(1))))
+	assert(#env._errors == 0, "a differently spelled path raises nothing: " .. tostring(env._errors[1]))
+	row.amount = kept
+	row.value.GetFont = real
+	list:Restyle()
 end
 
 -- The text sits inside the fill: the name at the left, the amount and share at the right, the value bold.
@@ -288,8 +308,8 @@ end
 
 assert(#env._errors == 0, "no Lua error: " .. tostring(env._errors[1]))
 
--- The 5 px gaps stay whole physical pixels on the nine screens. The offset is Scale.Pixel's, so a screen
--- only changes the pixel the gap snaps to, not the count of pixels.
+-- On each screen the ink gap, in physical pixels, is within one pixel of 5/21 of the font, and it is
+-- still 5 on the picture's 3456 by 2234 screen. A fixed 5 px on every screen fails this.
 local screens = {
 	{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
 	{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
@@ -299,14 +319,24 @@ for _, screen in ipairs(screens) do
 	M.Enable(envS, KS)
 	envS.RunTimers()
 	local row = nsS.Damage.list.rows[1]
-	local pixel = KS.Scale.Pixel(1)
-	local valueX = select(4, row.value:GetPoint(1))
-	local dotX = select(4, row.dot:GetPoint(1))
 	local label = screen[1] .. "x" .. screen[2]
+	if screen[1] == 3456 and screen[2] == 2234 then
+		assert(KS.Scale.SetUserScale(16 / 19), label .. ": the picture's screen uses the shipped interface size")
+		envS.RunTimers()
+	end
+	local _, size = row.value:GetFont()
+	local step = KS.Scale.Pixel(1) / KS.Widgets.ScaleFactor(row.frame)
+	local valueX = select(4, row.value:GetPoint(1))
+	local gap = 0.022 * size + 0.033 * size - valueX
+	local gapPx = gap / step
+	local wanted = nsS.BarList.DOT_GAP_EM * size / step
 	assert(row.dot:IsShown(), label .. ": the dot shows")
-	assert(math.abs(valueX / pixel - math.floor(valueX / pixel + 0.5)) < 1e-4, label .. ": the amount's gap is whole pixels, got " .. tostring(valueX / pixel))
-	assert(math.abs(dotX / pixel - math.floor(dotX / pixel + 0.5)) < 1e-4, label .. ": the share's gap is whole pixels, got " .. tostring(dotX / pixel))
-	assert(math.abs(valueX - KS.Widgets.Snap(row.frame, -5 * pixel)) < 8 * pixel, label .. ": the gap stays a few pixels, not the old column of slack")
+	assert(math.abs(gap / step - math.floor(gap / step + 0.5)) < 1e-3, label .. ": the gap is whole pixels, got " .. tostring(gapPx))
+	assert(math.abs(gapPx - wanted) <= 1 + 1e-6, label .. ": the gap is the picture's proportion, got " .. tostring(gapPx) .. " for " .. tostring(wanted))
+	assert(gapPx + 1e-6 >= 1, label .. ": the gap is at least one pixel")
+	if screen[1] == 3456 and screen[2] == 2234 then
+		assert(math.abs(gapPx - 5) < 0.05, label .. ": the picture's screen still has 5 px, got " .. tostring(gapPx))
+	end
 	assert(#envS._errors == 0, label .. ": " .. tostring(envS._errors[1]))
 end
 

@@ -27,7 +27,8 @@ local BLOCK_TOP = 35.5
 local BLOCK_TEXT_INSET = 7
 local BLOCK_SWITCH_REACH = 120
 local DOT = "\194\183"
-local DOT_ADVANCE, DOT_LSB, DOT_RSB = 0.228, 0.033, 0.033
+local DOT_LSB, DOT_RSB = 0.033, 0.033
+local DOT_GAP_EM = 5 / 21
 local BEARING_DEFAULT = 0.025
 local NUMBER_RSB = {
 	["0"] = 0.025, ["1"] = 0.141, ["2"] = 0.022, ["3"] = 0.044, ["4"] = 0.016,
@@ -72,13 +73,31 @@ local function EndChar(text, last)
 	return text:sub(i)
 end
 
-function BarList.JoinOffsets(lastChar, firstChar, fontSize)
+function BarList.DotGap(fontSize, pixel)
 	local size = Logic.Plain(fontSize) or 0
+	local step = Logic.Plain(pixel)
+	if not step or step <= 0 then
+		step = K.Scale.Pixel(1)
+	end
+	local snapped = math.floor(DOT_GAP_EM * size / step + 0.5) * step
+	if snapped < step then
+		return step
+	end
+	return snapped
+end
+
+function BarList.JoinOffsets(lastChar, firstChar, fontSize, pixel)
+	local size = Logic.Plain(fontSize) or 0
+	local step = Logic.Plain(pixel)
+	if not step or step <= 0 then
+		step = K.Scale.Pixel(1)
+	end
+	local gap = BarList.DotGap(fontSize, step)
 	local rsb = (NUMBER_RSB[lastChar] or BEARING_DEFAULT) * size
 	local lsb = (NUMBER_LSB[firstChar] or BEARING_DEFAULT) * size
-	local gap = K.Scale.Pixel(5)
-	return rsb + DOT_LSB * size - gap, lsb + DOT_RSB * size - gap, DOT_ADVANCE * size
+	return rsb + DOT_LSB * size - gap, lsb + DOT_RSB * size - gap
 end
+BarList.DOT_GAP_EM = DOT_GAP_EM
 ns.FILL_ALPHA = FILL_ALPHA
 BarList.PILL_HEIGHT = PILL_HEIGHT
 BarList.PILL_GAP = PILL_GAP
@@ -542,16 +561,16 @@ local function PlaceBlockText(list, row)
 	if joined and dot and list.valueWidth > 0 then
 		local size = FontSize(row.value, list.section)
 		local face = NumberFace(row.value)
-		local last = face and EndChar(row.value:GetText(), true) or nil
+		local last = face and EndChar(row.amount, true) or nil
 		local first = face and EndChar(row.share, false) or nil
-		local x, y = BarList.JoinOffsets(last, first, size)
-		local snap = Widgets.Snap
+		local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel)
+		local x, y = BarList.JoinOffsets(last, first, size, step)
 		dot:SetText(DOT)
 		dot:SetWidth(0)
 		dot:SetHeight(rowHeight)
-		dot:SetPoint("RIGHT", row.percent, "LEFT", snap(list.panel, y), 0)
+		dot:SetPoint("RIGHT", row.percent, "LEFT", y, 0)
 		dot:Show()
-		row.value:SetPoint("RIGHT", dot, "LEFT", snap(list.panel, x), 0)
+		row.value:SetPoint("RIGHT", dot, "LEFT", x, 0)
 	else
 		row.value:SetPoint("RIGHT", frame, "RIGHT", -inset, 0)
 	end
@@ -773,6 +792,7 @@ function List:SetRow(i, name, classFile, reaction, value, maxValue, valueText, p
 	row.value:SetText(valueText)
 	if self.block then
 		row.joined = percentText ~= ""
+		row.amount = valueText
 		row.share = percentText
 		row.percent:SetText(percentText)
 		if row.dot then
