@@ -212,9 +212,9 @@ local function PlaceGem(view, gem, rect)
 	gem:Show()
 end
 
-local function Bottom(view, text, point, relative, relPoint, x, rect)
+local function Bottom(view, text, point, relative, relPoint, x, rect, drop)
 	text:ClearAllPoints()
-	text:SetPoint(point, relative, relPoint, Snap(view, x), -Snap(view, rect.y + rect.h))
+	text:SetPoint(point, relative, relPoint, Snap(view, x), -Snap(view, rect.y + rect.h) - Snap(view, drop or 0))
 	text:SetHeight(Snap(view, rect.h))
 	text:SetWidth(0)
 	text:SetJustifyV("BOTTOM")
@@ -232,10 +232,10 @@ end
 
 local function NameBottom(view, g, rect)
 	if g.mirror then
-		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect)
+		Bottom(view, view.name, "BOTTOMRIGHT", view.parent, "TOPLEFT", rect.x + rect.w, rect, g.nameDrop)
 		view.name:SetJustifyH("RIGHT")
 	else
-		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect)
+		Bottom(view, view.name, "BOTTOMLEFT", view.parent, "TOPLEFT", rect.x, rect, g.nameDrop)
 		view.name:SetJustifyH("LEFT")
 	end
 	if view.nameBound and g.nameRoom then
@@ -259,7 +259,7 @@ local function LumenTexts(view, g)
 		end
 		if g.caption then
 			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), 0)
+			view.caption:SetPoint("BOTTOMRIGHT", view.name, "BOTTOMLEFT", -Snap(view, CAPTION_GAP), Snap(view, g.captionLift or 0))
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")
@@ -285,7 +285,7 @@ local function LumenTexts(view, g)
 		end
 		if g.caption then
 			view.caption:ClearAllPoints()
-			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), 0)
+			view.caption:SetPoint("BOTTOMLEFT", view.name, "BOTTOMRIGHT", Snap(view, CAPTION_GAP) - Widgets.TrackPad(view.name), Snap(view, g.captionLift or 0))
 			view.caption:SetHeight(Snap(view, g.caption.h))
 			view.caption:SetWidth(0)
 			view.caption:SetJustifyV("BOTTOM")

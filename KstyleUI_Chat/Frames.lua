@@ -91,7 +91,7 @@ function Frames.Fonts(settings)
 	local flags = OUTLINES[s.fontOutline] or ""
 	local size = Whole(s.fontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.fontSize)
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
-	local tabPath = Tokens.Font("caps")
+	local tabPath = Tokens.Font("names")
 	return path, size, flags, tabSize, tabPath
 end
 

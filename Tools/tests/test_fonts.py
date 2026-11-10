@@ -78,7 +78,7 @@ class FontFilesTest(unittest.TestCase):
     def test_tracked_cinzel_is_medium_with_wider_advances(self):
         # Cinzel's own advances (Cinzel[wght].ttf at weight 500, in 1000 units) and the tracking the script adds.
         medium = {"S": 509, "K": 690, "Y": 675, "B": 615, "O": 852, "R": 700, "N": 849, "E": 595}
-        for name, track in (("CinzelCaps-Medium.ttf", 65), ("CinzelNames-Medium.ttf", 20)):
+        for name, track in (("CinzelCaps-Medium.ttf", 65), ("CinzelNames-Medium.ttf", 20), ("CinzelUnit-Medium.ttf", -55)):
             data = (FONTS / name).read_bytes()
             self.assertEqual(struct.unpack(">H", table(data, "OS/2")[4:6])[0], 500, name)
             self.assertEqual(struct.unpack(">H", table(data, "head")[18:20])[0], 1000, name)
@@ -89,19 +89,19 @@ class FontFilesTest(unittest.TestCase):
             self.assertEqual(glyph_index(data, 0xE9), glyph_index(data, 0xC9), f"{name}: accented lowercase too")
 
     def test_tracked_cinzel_has_no_thin_space_to_misuse(self):
-        for name in ("CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "Cinzel-SemiBold.ttf"):
+        for name in ("CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf", "Cinzel-SemiBold.ttf"):
             data = (FONTS / name).read_bytes()
             self.assertEqual(glyph_index(data, 0x2009), 0, f"{name} has no thin space: the tracking is in the advances")
 
     def test_tracked_cinzel_is_renamed(self):
-        for name, family in (("CinzelCaps-Medium.ttf", "Cinzel Caps"), ("CinzelNames-Medium.ttf", "Cinzel Names")):
+        for name, family in (("CinzelCaps-Medium.ttf", "Cinzel Caps"), ("CinzelNames-Medium.ttf", "Cinzel Names"), ("CinzelUnit-Medium.ttf", "Cinzel Unit")):
             data = (FONTS / name).read_bytes()
             self.assertIn(family.encode("utf-16-be"), table(data, "name"), f"{name}: the modified family carries its own name")
 
     def test_provenance_hashes_match_the_cinzel_files(self):
         # make_fonts.py output depends on the build environment (uharfbuzz changes the bytes), so the files and the recorded hashes must agree.
         text = (ROOT / "Media" / "PROVENANCE.md").read_text(encoding="utf-8")
-        for name in ("CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf"):
+        for name in ("CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf"):
             digest = hashlib.sha256((FONTS / name).read_bytes()).hexdigest()
             self.assertIn(digest, text, f"{name} changed: record its SHA-256 in Media/PROVENANCE.md")
 
@@ -130,7 +130,7 @@ class FontFilesTest(unittest.TestCase):
         self.assertGreaterEqual(len(named), 8)
         for name in named:
             self.assertTrue((FONTS / name).exists(), f"Tokens names {name}")
-        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
+        for name in ("Cinzel-SemiBold.ttf", "CinzelCaps-Medium.ttf", "CinzelNames-Medium.ttf", "CinzelUnit-Medium.ttf", "AlegreyaSansTabular-Regular.ttf", "AlegreyaSansTabular-Medium.ttf", "AlegreyaSansTabular-Bold.ttf"):
             self.assertIn(name, named, f"{name} is registered in Tokens")
 
     def test_licence_covers_every_family(self):

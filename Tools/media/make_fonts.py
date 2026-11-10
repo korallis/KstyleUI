@@ -12,11 +12,12 @@ Cinzel ships only as a variable font, and the game loads static TrueType files, 
 at 600 with fontTools.varLib.instancer and names the result Cinzel SemiBold.
 
 The game has no letter-spacing call (FontString has SetSpacing, which is line spacing, and nothing else spaces
-letters), and Cinzel has no thin-space glyph to space them with. CinzelCaps-Medium.ttf and CinzelNames-Medium.ttf are
-Cinzel pinned at weight 500 with a TRACKED entry's em added to the advance of every glyph that has one, so the client
-draws letter-spaced capitals from the font itself. The tracking is what a fit of the owner's picture gives at its
-10-unit headings: 0.065 em for the gold captions (SKYBORNE, QUESTS, DAMAGE) and 0.02 em for the white names
-(zone, unit, spell and nameplate names), see Media/PROVENANCE.md. Cinzel draws lowercase letters as small capitals; the
+letters), and Cinzel has no thin-space glyph to space them with. CinzelCaps-Medium.ttf, CinzelNames-Medium.ttf and
+CinzelUnit-Medium.ttf are Cinzel pinned at weight 500 with a TRACKED entry's em added to the advance of every glyph that
+has one, so the client draws letter-spaced capitals from the font itself. The tracking is what a fit of the owner's
+picture gives: 0.065 em for the gold captions (SKYBORNE, QUESTS, DAMAGE), 0.02 em for the white names at its 10-unit
+headings (zone, spell, nameplate and chat tab names) and -0.055 em for the player and target names, which the picture
+sets at about 37 px and draws tighter than Cinzel's own advances, see Media/PROVENANCE.md. Cinzel draws lowercase letters as small capitals; the
 character map here points each lowercase letter at its capital, so a name the code cannot uppercase (a secret value)
 still reads in capitals. The outlines, the left side bearings and the kerning are Cinzel's; only hmtx,
 hhea.advanceWidthMax, OS/2.xAvgCharWidth, the character map and the names change. The tracking falls after the last
@@ -46,7 +47,7 @@ TABULAR_SUFFIX = ".tf"
 ALEGREYA = (("Regular", 400), ("Medium", 500), ("Bold", 700))
 TABULAR_FAMILY = "Alegreya Sans Tabular"
 CINZEL_MEDIUM_WEIGHT = 500
-TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065), ("CinzelNames-Medium", "Cinzel Names", 0.02))
+TRACKED = (("CinzelCaps-Medium", "Cinzel Caps", 0.065), ("CinzelNames-Medium", "Cinzel Names", 0.02), ("CinzelUnit-Medium", "Cinzel Unit", -0.055))
 
 
 def set_names(font, family, style, full, postscript, typographic=None):
