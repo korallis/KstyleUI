@@ -22,9 +22,9 @@ local GAME_FONTS = {
 	koKR = { path = "Fonts\\2002.TTF", every = true },
 	ruRU = { path = "Fonts\\FRIZQT___CYR.TTF" },
 }
-local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true }
-local NO_THIN_SPACE = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true }
-local TRACKED_FACES = { ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true }
+local LATIN_ONLY = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true }
+local NO_THIN_SPACE = { ["Cinzel-SemiBold.ttf"] = true, ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true }
+local TRACKED_FACES = { ["CinzelCaps-Medium.ttf"] = true, ["CinzelNames-Medium.ttf"] = true, ["CinzelUnit-Medium.ttf"] = true }
 local OWN_FONTS = "\\KstyleUI\\Media\\Fonts\\"
 local CAPITALS = { ["\197\147"] = "\197\146", ["\195\191"] = "\197\184" }
 

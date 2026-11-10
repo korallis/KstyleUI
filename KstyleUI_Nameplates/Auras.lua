@@ -309,7 +309,7 @@ end
 
 local function RoomAbove(plate)
 	if Settings.Get("name.show") and not plate.nameOnly then
-		return GAP + Settings.Get("name.size") + NAME_GAP
+		return ns.Plate.NAME_GAP + Settings.Get("name.size") + NAME_GAP
 	end
 	return GAP
 end

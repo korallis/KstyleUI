@@ -52,6 +52,7 @@ assert(pg.name and near(pg.name.y + pg.name.h, pg.health.y - 12), "the name stan
 assert(pg.caption and pg.caption.x >= pg.name.x, "the class word follows the name")
 assert(pg.healthText and pg.healthSub and near(pg.healthSub.x + pg.healthSub.w, 491), "the value ends at the bar's right edge")
 assert(near(pg.healthText.y + pg.healthText.h, pg.name.y + pg.name.h, 1), "the value shares the name's baseline")
+assert(near(pg.nameDrop, 0.24 * 22, 0.01) and near(pg.captionLift, 0.105 * 22, 0.01), "the 22-unit name drops 0.24 of its size so its Cinzel baseline stands on the value's, and the class word lifts 0.105 of it to share that baseline")
 assert(pg.cast == nil and pg.aura == nil, "the player's cast bar is its own element and it has no side auras")
 assert(pg.badge and pg.badge.x + pg.badge.w / 2 > pg.portrait.x + pg.portrait.w / 2 and pg.badge.y + pg.badge.h / 2 > pg.portrait.y + pg.portrait.h / 2, "the level disc is on the portrait's lower right")
 
@@ -95,7 +96,7 @@ assert(near(hc[1], br) and near(hc[2], bg) and near(hc[3], bb), "the player's he
 assert(player.health:GetReverseFill() == false, "the player's health fills from the left")
 assert(U.Shown(env, player.healthText) == "3120" and U.Shown(env, player.healthSub) == "/ 3980", "203 / 237 in the picture: current bold, then the max")
 assert(U.Shown(env, player.caption) == "Hunter", "the class word after the name: " .. U.Shown(env, player.caption))
-assert(player.name:GetFont() == Tokens.Font("names"), "the name uses the tighter world-space names face")
+assert(player.name:GetFont() == Tokens.Font("unit"), "the name uses the picture's tight unit-name face")
 local shadowX, shadowY = player.name:GetShadowOffset()
 assert(shadowX > 0 and shadowY == -shadowX, "world-space unit names retain the kit's soft shadow")
 assert(not tostring(W.LastCall(player.name, "SetText")[1]):find("\226\128\137"), "the name carries no thin space")
@@ -180,6 +181,34 @@ do
 	env.RunTimers()
 	assert(near(target.name:GetWidth(), K.Widgets.Snap(target.name, target.geometry.nameRoom), 0.6), "and stays bounded through a relayout")
 	noErrors("name room")
+end
+
+do
+	local function nameY()
+		local _, _, _, _, y = player.name:GetPoint(1)
+		return y
+	end
+	local dropped = nameY()
+	K.Options.Write("UnitFrames", "player.fonts.name.font", Tokens.FontPath("AlegreyaSansBold"))
+	Frames.Relayout(Frames.Get("player"))
+	env.RunTimers()
+	assert(near(nameY() - dropped, player.geometry.nameDrop, 0.6), "a name in another face keeps the layout row: the Cinzel correction does not move it, " .. tostring(dropped) .. " against " .. tostring(nameY()))
+	K.Options.Write("UnitFrames", "player.fonts.name.font", "theme")
+	noErrors("custom name font")
+end
+
+do
+	local function nameY()
+		local _, _, _, _, y = player.name:GetPoint(1)
+		return y
+	end
+	local roomy = nameY()
+	ns.Unit.SetName(player, string.rep("W", 80))
+	assert(player.name:GetFont() == Tokens.Font("body"), "a name too long for its room falls back to the body font")
+	assert(near(nameY() - roomy, player.geometry.nameDrop, 0.6), "and then loses the Cinzel baseline correction, " .. tostring(roomy) .. " against " .. tostring(nameY()))
+	ns.Unit.SetName(player, "Korallis")
+	assert(player.name:GetFont() == Tokens.Font("unit") and near(nameY(), roomy, 0.6), "a short name gets the Cinzel face and its correction back")
+	noErrors("name fallback")
 end
 
 local older, _, nsOlder = U.New({ lumen = true })
