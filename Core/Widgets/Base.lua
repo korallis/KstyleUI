@@ -16,6 +16,7 @@ local SUBLEVEL_SHADOW, SUBLEVEL_FILL = -8, -7
 local SUBLEVEL_LINE, SUBLEVEL_RIM, SUBLEVEL_GILT = -3, -2, -1
 local RINGS = { 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32 }
 local INSET_GAP = "gapSmall"
+local BORDER_UNITS = 1
 local LINE_HEIGHT_SHARE = 1.2
 local CHAR_WIDTH_SHARE = 0.5
 
@@ -629,6 +630,10 @@ function Widgets.Inset(frame, radius, gap)
 	return SnapIn(radius / 2 + Scale.Border() / f + Tokens.Size(gap or INSET_GAP), f)
 end
 
+function Widgets.InsetUnits(radius, gap)
+	return radius / 2 + BORDER_UNITS + Tokens.Size(gap or INSET_GAP)
+end
+
 local SHAPES = {
 	panel = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
 	card = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
@@ -938,6 +943,10 @@ function Chrome:Inset(gap)
 	return Widgets.Inset(self.owner, self:PadRadius(), gap)
 end
 
+function Chrome:InsetUnits(gap)
+	return Widgets.InsetUnits(self:PadRadius(), gap)
+end
+
 function Widgets.WindowInset(frame)
 	return Widgets.Inset(frame, Tokens.Size("radius"), "gapMedium")
 end
@@ -1076,12 +1085,9 @@ function Chrome:SyncMaterialFrame()
 	if self.line then
 		Widgets.ShowSlice(self.line, self.visible and not active)
 	end
-	Widgets.ShowSlice(self.rim, self.visible and (not active or accent))
-	if self.materialRimRaised ~= (accent and true or false) then
-		self.materialRimRaised = accent and true or false
-		for i = 1, #self.rim do
-			self.rim[i]:SetDrawLayer("BORDER", accent and 0 or SUBLEVEL_RIM)
-		end
+	Widgets.ShowSlice(self.rim, self.visible and not active)
+	if self.materialEdge then
+		Widgets.ShowSlice(self.materialEdge, self.visible and accent and true or false)
 	end
 	if self.materialFrame then
 		Widgets.ShowSlice(self.materialFrame, self.visible and active)
@@ -1147,6 +1153,34 @@ function Chrome:PaintMaterial()
 		if self.frameReady then
 			Widgets.LayoutSlice(self.materialFrame, owner, 8 * pixels * pixel, 0)
 			Widgets.ColorSlice(self.materialFrame, Widgets.Rgba("white", min(1, self:MaterialOpacity())))
+			local edge, fresh = self.materialEdge, not self.materialEdge
+			if fresh then
+				edge = {}
+				for i = 1, 4 do
+					edge[i] = Widgets.Crisp(NewTexture(owner, "BORDER", SUBLEVEL_RIM))
+				end
+				self.materialEdge = edge
+			end
+			local band, line = 3 * pixels * pixel, pixels * pixel
+			local top, bottom, left, right = edge[1], edge[2], edge[3], edge[4]
+			for i = 1, 4 do
+				edge[i]:ClearAllPoints()
+			end
+			top:SetPoint("TOPLEFT", owner, "TOPLEFT", band, -band)
+			top:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -band, -band)
+			top:SetHeight(line)
+			bottom:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", band, band)
+			bottom:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -band, band)
+			bottom:SetHeight(line)
+			left:SetPoint("TOPLEFT", owner, "TOPLEFT", band, -band - line)
+			left:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", band, band + line)
+			left:SetWidth(line)
+			right:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -band, -band - line)
+			right:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -band, band + line)
+			right:SetWidth(line)
+			if fresh then
+				self:PaintEdge()
+			end
 		end
 		if material.brackets then
 			if not self.materialBrackets then
@@ -1238,10 +1272,13 @@ function Chrome:PaintEdge()
 		Widgets.ColorSlice(self.rim, Tokens.Color("gilt"))
 		return
 	end
+	local r, g, b, a = e[1], e[2], e[3], e[4]
 	if self.frameWanted and self.frameReady and self.proc then
-		Widgets.ColorSlice(self.rim, Tokens.Color("giltLit"))
-	else
-		Widgets.ColorSlice(self.rim, e[1], e[2], e[3], e[4])
+		r, g, b, a = Tokens.Color("giltLit")
+	end
+	Widgets.ColorSlice(self.rim, r, g, b, a)
+	if self.materialEdge then
+		Widgets.ColorSlice(self.materialEdge, r, g, b, a)
 	end
 end
 

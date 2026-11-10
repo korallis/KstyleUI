@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Logic = ns.Logic
-local max, min, floor = math.max, math.min, math.floor
+local max, min, floor, abs = math.max, math.min, math.floor, math.abs
 
 local VALUE_EMS = 3.4
 local PERCENT_EMS = 2.6
@@ -196,7 +196,7 @@ local function NewRow(list, index)
 end
 
 local function Spacing(list)
-	return Widgets.Snap(list.panel, ns.Get(list.section .. ".spacing"))
+	return list.spacing or Widgets.Snap(list.panel, ns.Get(list.section .. ".spacing"))
 end
 
 local function Room(list)
@@ -457,22 +457,38 @@ function RowLeave(list, row)
 	end
 end
 
-function List:MinRow()
-	local section = self.section
+local function RowUnits(list)
+	local section = list.section
 	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
 	local text = em + TEXT_AIR
-	if not self.block then
+	if not list.block then
 		text = text + PILL_GAP + PILL_HEIGHT
 	end
-	return Widgets.Snap(self.panel, max(ns.Get(section .. ".rowHeight"), text))
+	return max(ns.Get(section .. ".rowHeight"), text)
+end
+
+function List:MinRow()
+	return Widgets.Snap(self.panel, RowUnits(self))
+end
+
+local function HeightUnits(list)
+	local _, height = Size(list.holder, list.width, list.height)
+	local settings = list.key and K.Layout and K.Layout.Get and K.Layout.Get(list.key)
+	local units = settings and Logic.Plain(settings.height)
+	local half = K.Scale.Pixel(1) / Widgets.ScaleFactor(list.holder) / 2
+	if units and abs(units - height) <= half + 1e-6 then
+		return units
+	end
+	return height
 end
 
 function List:Capacity()
-	return Logic.FitRows(Room(self), self:MinRow(), Spacing(self))
+	local pad = self.block and BLOCK_PAD or self.panel.chrome:InsetUnits()
+	return Logic.FitRows(HeightUnits(self) - self:Top(pad) - pad, RowUnits(self), ns.Get(self.section .. ".spacing"))
 end
 
-function List:Top()
-	local pad = self.pad
+function List:Top(pad)
+	pad = pad or self.pad
 	if not ns.Get(self.section .. ".title") then
 		return pad
 	end
@@ -642,13 +658,31 @@ local function PlaceRow(list, row, i)
 	PlaceMore(list, row)
 end
 
-local function FillHeight(list)
-	local fill = Logic.FillRows(Room(list), list:MinRow(), Spacing(list))
-	local snapped = Widgets.Snap(list.panel, fill)
-	if snapped > fill then
+local function Floor(list, units)
+	local snapped = Widgets.Snap(list.panel, units)
+	if snapped > units then
 		snapped = snapped - K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel)
 	end
-	return max(1, snapped)
+	return snapped
+end
+
+local function Pitch(list, capacity)
+	local room, row = Room(list), list:MinRow()
+	local spacing = Widgets.Snap(list.panel, ns.Get(list.section .. ".spacing"))
+	if capacity < 1 then
+		return row, spacing
+	end
+	if capacity > 1 and capacity * row + (capacity - 1) * spacing > room then
+		local least = min(spacing, K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel))
+		spacing = max(least, min(spacing, Floor(list, (room - capacity * row) / (capacity - 1))))
+	end
+	if capacity * row + (capacity - 1) * spacing > room then
+		row = Floor(list, (room - (capacity - 1) * spacing) / capacity)
+	end
+	if not list.block then
+		row = max(row, Floor(list, (room + spacing) / capacity - spacing))
+	end
+	return max(1, row), spacing
 end
 
 local function TextWidth(text)
@@ -728,8 +762,8 @@ function List:Restyle()
 
 	local open = self.split and self.split.frame:IsShown() and self.split.row or nil
 	HideSplit(self)
-	self.rowHeight = self.block and self:MinRow() or FillHeight(self)
 	local capacity = self:Capacity()
+	self.rowHeight, self.spacing = Pitch(self, capacity)
 	for i = 1, #self.rows do
 		local row = self.rows[i]
 		StyleRow(self, row)
@@ -966,6 +1000,7 @@ function BarList.New(parent, section, opts)
 	list.rowSplits = opts.rowSplits
 	list.rowSplit = opts.rowSplit
 	list.block = opts.block == true
+	list.key = opts.key
 	list.icons = false
 	list.rows = {}
 	list.count = 0

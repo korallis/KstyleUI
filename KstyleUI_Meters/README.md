@@ -97,7 +97,7 @@ Not done: Blizzard's own window restyled by `DamageSkin.lua` (the style "auto" p
 - The group is the player, the pet, and the party or raid members and their pets. The pets switch leaves pets out. In a raid the player and the player's pet appear once.
 - The mob is the target when the player can attack it, or else the target's target, so a healer who targets the tank sees the tank's target.
 - `UnitDetailedThreatSituation(unit, mob)` gives each row. Rows sort by the scaled percentage, highest first. The bar runs from 0 to 100% of pulling aggro. The value column shows threat points: Blizzard's raw threat divided by 100. Updates run at most once every 0.2 seconds.
-- Warnings: a player who is not tanking is warned at `warnAt` and in danger at `dangerAt` of their own threat. A tank is warned when another member reaches those percentages. A warning turns the panel's hairline `neutral`; danger turns it `hostile` and pulses a `hostile` proc glow.
+- Warnings: a player who is not tanking is warned at `warnAt` and in danger at `dangerAt` of their own threat. A tank is warned when another member reaches those percentages. A warning turns the panel's hairline `neutral`; danger turns it `hostile` and pulses a `hostile` proc glow. Under a forged card material the edge is a square line inside the forged frame, under its brackets; under Glass it follows the card's rounded rim.
 
 ## Swing timer
 

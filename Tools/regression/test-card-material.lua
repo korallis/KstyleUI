@@ -159,15 +159,21 @@ do
 	pending()
 	assert(chrome.materialFrame[1]:IsShown() and not chrome.rim[1]:IsShown())
 	chrome:SetEdge("hostile")
-	assert(chrome.materialFrame[1]:IsShown() and chrome.rim[1]:IsShown())
-	assert(chrome.rim[1]._state.DrawLayer[2] == 0, "authored focus edge draws above the forged frame")
+	assert(chrome.materialFrame[1]:IsShown() and not chrome.rim[1]:IsShown(), "an authored edge never lays the rounded rim over the forged frame")
+	for i = 1, 4 do
+		local side = chrome.materialEdge[i]
+		assert(side:IsShown() and side._state.DrawLayer[2] < chrome.materialBrackets[1]._state.DrawLayer[2], "an authored edge is a square line under the brackets")
+		assert(side._state.VertexColor[1] == (K.Tokens.Color("hostile")))
+	end
 	chrome:SetProc(true)
-	assert(chrome.rim[1]:IsShown() and chrome.rim[1]._state.VertexColor[1] == (K.Tokens.Color("giltLit")))
+	assert(chrome.materialEdge[1]:IsShown() and chrome.materialEdge[1]._state.VertexColor[1] == (K.Tokens.Color("giltLit")))
 	chrome:SetProc(false)
 	chrome:SetEdge("edgeInner")
-	assert(not chrome.ownEdge and not chrome.rim[1]:IsShown())
+	assert(not chrome.ownEdge and not chrome.rim[1]:IsShown() and not chrome.materialEdge[1]:IsShown())
+	chrome:SetEdge("hostile")
 	owner:SetSize(14, 14)
-	assert(not chrome.materialFrame[1]:IsShown() and chrome.rim[1]:IsShown() and chrome.line[1]:IsShown())
+	assert(not chrome.materialFrame[1]:IsShown() and chrome.rim[1]:IsShown() and chrome.line[1]:IsShown() and not chrome.materialEdge[1]:IsShown(), "a card too small for the frame keeps its rounded edge")
+	chrome:SetEdge("edgeInner")
 	K.Store.Module("Widgets").cardMaterial = "Glass"
 	chrome:Restyle()
 	assert(chrome.rim[1]:IsShown() and chrome.rim[1]._state.DrawLayer[2] == -2)

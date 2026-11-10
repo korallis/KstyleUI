@@ -625,7 +625,7 @@ end
 local function Build()
 	local width, height = ns.Footprint(KEY)
 	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
-		width = width or 269, height = height or 158, columns = Columns, onClick = OnClick, block = true,
+		key = KEY, width = width or 269, height = height or 158, columns = Columns, onClick = OnClick, block = true,
 		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
 		rowTooltip = RowTooltip, rowSplits = RowSplits, rowSplit = RowSplit,
 	})

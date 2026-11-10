@@ -62,13 +62,55 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 } }) do
 		local root = K.Scale.Root()
 		local t, d = assert(Geometry.Rect(threat.panel, root)), assert(Geometry.Rect(damage.panel, root))
 		assert(t.right <= d.left or d.right <= t.left or t.top <= d.bottom or d.top <= t.bottom, preset .. ": the cards no longer overlap")
-		assert(threat.count == math.min(3, threat.capacity) and threat.count >= 2, preset .. ": the compact card fills its live row capacity")
-		if screen[1] == 3456 then assert(threat.count == 3, preset .. ": the owner panel shows all three live rows") end
+		assert(threat.count == 3, preset .. ": the compact card shows all three live rows")
 		for i = 1, threat.count do
 			local row = assert(Geometry.Rect(threat.rows[i].frame, root))
 			assert(row.bottom >= t.bottom - 0.01 and row.top <= t.top + 0.01, preset .. ": each visible row stays inside the compact card")
 		end
 		assert(K.ErrorCount() == 0, tostring(env._errors[1]))
+	end
+end
+
+-- LEE-127: a card's row count comes from its size in units, so the same data shows the same rows on every screen.
+-- Staging counted rows in snapped pixels, and the Tank threat card lost its third row at 1920x1080 and 1366x768.
+-- Each drawn row still ends inside the card, and no card leaves a band a whole row tall under its last row.
+do
+	local screens = {
+		{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
+		{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
+	}
+	local want = { Threat = 3, Damage = 5 }
+	for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+		for _, screen in ipairs(screens) do
+			local label = preset .. " " .. screen[1] .. "x" .. screen[2]
+			local env, K, ns = M.New({
+				width = screen[1], height = screen[2],
+				saved = { version = 13, account = { setupSeen = true }, profiles = { Default = {
+					Layout = { preset = preset }, Meters = { enabled = true, damage = { shown = true, mode = "window" }, threat = { shown = true } },
+				} } },
+				setup = function(e) e._fitScale, e._size = true, false end,
+				game = function(e)
+					e._group = { raid = false, size = 5 }
+					e._units.target = { name = "Mob", hostile = true }
+					for i, unit in ipairs({ "player", "party1", "party2", "party3", "party4" }) do
+						e._units[unit] = { name = "Member" .. i, class = "WARRIOR" }
+						e._threat[unit] = { i == 1, 1, 100 - i * 10, 100 - i * 10, 1000 - i * 100 }
+					end
+					e._session = Session(8)
+				end,
+			})
+			M.Enable(env, K)
+			for name, rows in pairs(want) do
+				local list = ns[name].list
+				local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(list.panel)
+				assert(list.capacity == rows and list.count == rows, label .. ": the " .. name .. " card shows " .. rows .. " rows, got " .. tostring(list.count))
+				local slack = list.panel:GetHeight() - list.pad - RowsBottom(list)
+				assert(slack >= -pixel / 2, label .. ": the " .. name .. " card's last row ends inside it, " .. tostring(slack / pixel) .. " px")
+				assert(slack < list.rowHeight, label .. ": the " .. name .. " card has no empty row under its last row, " .. tostring(slack / pixel) .. " px")
+				assert(list.rowHeight >= list:MinRow() - pixel - 1e-6, label .. ": a " .. name .. " row is at most a pixel under its minimum")
+			end
+			assert(K.ErrorCount() == 0 and #env._errors == 0, label .. ": " .. tostring(env._errors[1]))
+		end
 	end
 end
 
