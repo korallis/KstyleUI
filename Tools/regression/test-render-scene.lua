@@ -513,6 +513,34 @@ do
 	assert(math.abs(codedItem.rect[3] - plainWidth) < 0.05, "a coded natural-width text is as wide as its plain words, got " .. codedItem.rect[3] .. " for " .. plainWidth)
 end
 
+do
+	local chat = env.CreateFrame("ScrollingMessageFrame", nil, env.UIParent)
+	chat:SetSize(200, 50)
+	chat:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 10, -10)
+	local viewport = env.CreateFrame("Frame", nil, chat)
+	viewport:SetAllPoints(chat)
+	viewport:SetClipsChildren(true)
+	chat.FontStringContainer = viewport
+	local content = env.CreateFrame("Frame", nil, viewport)
+	content:SetAllPoints(viewport)
+	local message = content:CreateFontString(nil, "ARTWORK")
+	message:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+	message:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 4)
+	message:SetText("Chat message")
+	local custom = env.CreateFrame("Frame", nil, chat)
+	custom:SetAllPoints(chat)
+	custom:SetClipsChildren(true)
+	local customContent = env.CreateFrame("Frame", nil, custom)
+	customContent:SetAllPoints(custom)
+	local label = customContent:CreateFontString(nil, "ARTWORK")
+	label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+	label:SetPoint("TOPLEFT", customContent, "TOPLEFT", 0, 4)
+	label:SetText("Non-scrolling label")
+	local rendered = Scene.Build(env)
+	assert(find(rendered, message).scroll == true, "the native FontStringContainer clips scrolling messages")
+	assert(not find(rendered, label).scroll, "other clipped chat children retain clipping checks")
+end
+
 -- JSON: the encoder writes the scene without the object references and round-trips a number.
 local json = Scene.ToJSON(scene)
 assert(json:find('"items"', 1, true) and not json:find("table:", 1, true), "JSON has items and no table addresses")

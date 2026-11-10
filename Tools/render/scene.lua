@@ -1267,7 +1267,8 @@ function Scene.Build(env, opts)
 	end
 
 	local function scrolls(frame)
-		if frame._type == "ScrollFrame" or frame._type == "ScrollingMessageFrame" then
+		if frame._type == "ScrollFrame" or frame._type == "ScrollingMessageFrame"
+			or (frame._parent and frame._parent._type == "ScrollingMessageFrame" and frame._parent.FontStringContainer == frame) then
 			return true
 		end
 		return takesWheel(frame) or (frame._parent ~= nil and takesWheel(frame._parent))
