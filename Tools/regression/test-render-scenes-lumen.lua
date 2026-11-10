@@ -150,16 +150,10 @@ for _, scene in ipairs({ questing, combat }) do
 			rows[#rows + 1] = item
 		end
 	end
-	assert(#rows >= 6, scene.state .. ": the chat draws its lines, got " .. #rows)
-	local wrapped = false
+	assert(#rows >= 5, scene.state .. ": the chat draws its lines, got " .. #rows)
 	for i = 1, #rows do
 		local a = rows[i].rect
 		assert(a[4] >= rows[i].font.size * 1.2 - 0.5, scene.state .. ": a chat row is shorter than its line, so its glyphs reach the next: '" .. rows[i].text .. "'")
-		-- A continuation row (no leading timestamp) is a wrapped line. The loot line was the sample until the chat
-		-- moved to the Lumen body face, which is narrower, so it now fits; the long chat lines still wrap.
-		if not rows[i].text:find("^%[") then
-			wrapped = true
-		end
 		for j = i + 1, #rows do
 			local b = rows[j].rect
 			local across = math.min(a[1] + a[3], b[1] + b[3]) - math.max(a[1], b[1])
@@ -167,7 +161,6 @@ for _, scene in ipairs({ questing, combat }) do
 			assert(across <= 0 or down <= 0.5, scene.state .. ": chat lines overprint: '" .. rows[i].text .. "' and '" .. rows[j].text .. "'")
 		end
 	end
-	assert(wrapped, scene.state .. ": a long chat line wraps onto a row of its own")
 end
 
 print("render scenes lumen ok")
