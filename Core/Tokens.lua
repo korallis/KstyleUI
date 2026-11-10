@@ -161,7 +161,7 @@ local FONT_FACES = {
 }
 local ROLE_FACES = {
 	{ key = "CinzelCaps", path = FONTS_DIR .. "CinzelCaps-Medium.ttf", tracking = 0.065, shadow = false },
-	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0.02 },
+	{ key = "CinzelNames", path = FONTS_DIR .. "CinzelNames-Medium.ttf", tracking = 0.02, shadow = { x = 1, y = 1, alpha = 0.5 } },
 }
 local DEFAULT_FACE = "Lumen"
 local FALLBACK_FACE = "SourceSans3Semibold"
@@ -295,12 +295,12 @@ end
 
 local FACE_PATH = {}
 local FACE_TRACKING = {}
-local FACE_FLAT = {}
+local FACE_SHADOW = {}
 for _, list in ipairs({ FONT_SETS, FONT_FACES, ROLE_FACES }) do
 	for _, face in ipairs(list) do
 		FACE_PATH[face.key] = face.path
 		FACE_TRACKING[face.path] = face.tracking
-		FACE_FLAT[face.path] = face.shadow == false
+		FACE_SHADOW[face.path] = face.shadow
 	end
 end
 
@@ -336,7 +336,11 @@ function Tokens.FaceTracking(path)
 end
 
 function Tokens.FaceShadow(path)
-	return not FACE_FLAT[path]
+	local shadow = FACE_SHADOW[path]
+	if shadow == nil then
+		return true
+	end
+	return shadow
 end
 
 function Tokens.TextStyle(role)
