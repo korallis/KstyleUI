@@ -7,6 +7,7 @@ Tools/regression/README.md describes the mode and its limits.
 """
 
 import fnmatch
+import hashlib
 import json
 import os
 import posixpath
@@ -16,7 +17,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-VERSION = 1
+VERSION = 2
 SHARED_FRACTION = 0.5
 SHARED_MINIMUM = 10
 GUARDS = (
@@ -126,8 +127,16 @@ def command_deps(command):
     return "wide", []
 
 
+def fingerprint(path):
+    """Return a hash of the test file's bytes, or "" when it cannot be read."""
+    try:
+        return hashlib.sha1(Path(path).read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
 def record_from_trace(text, root):
-    """Turn trace.lua's lines into a record: {files, names, content, wide}."""
+    """Turn trace.lua's lines into a record: {files, names, content, wide}; run_all.py adds the test's fingerprint."""
     files, names, content, wide = set(), set(), set(), False
     for line in text.splitlines():
         kind, _, value = line.partition(" ")
@@ -229,6 +238,9 @@ def select(tests, changes, cache, guards=GUARDS):
         stem = Path(test).stem
         if record is None:
             chosen[test] = "no record of what it loads yet"
+            continue
+        if record.get("sha") != fingerprint(test):
+            chosen[test] = "the record was made from another version of this test file"
             continue
         if record["wide"]:
             chosen[test] = "it runs commands that read the whole tree"

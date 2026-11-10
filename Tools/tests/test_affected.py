@@ -21,8 +21,8 @@ GIT_ENV = {
 }
 
 
-def record(files=(), names=(), content=(), wide=False):
-    return {"files": sorted(files), "names": sorted(names), "content": sorted(content), "wide": wide}
+def record(files=(), names=(), content=(), wide=False, sha=""):
+    return {"files": sorted(files), "names": sorted(names), "content": sorted(content), "wide": wide, "sha": sha}
 
 
 def lua():
@@ -137,6 +137,12 @@ class SelectTest(unittest.TestCase):
         self.assertEqual(self.stems(chosen), ["test-a", "test-scan"])
         self.assertIn("lists the files KstyleUI_A loads", chosen[self.tests[0]])
 
+    def test_a_record_made_from_another_version_of_the_test_file_does_not_count(self):
+        cache = self.cache()
+        cache[self.tests[1]] = record(["KstyleUI_B/B.lua"], sha="abc")
+        chosen, _ = self.choose({"docs/note.md": "M"}, cache)
+        self.assertEqual(chosen[self.tests[1]], "the record was made from another version of this test file")
+
     def test_a_test_with_no_record_runs(self):
         cache = self.cache()
         del cache[self.tests[1]]
@@ -186,6 +192,14 @@ class CacheTest(unittest.TestCase):
         self.assertEqual(affected.load_cache(self.path), {})
         self.path.write_text(json.dumps({"version": 0, "tests": {"a": {}}}))
         self.assertEqual(affected.load_cache(self.path), {})
+
+    def test_a_fingerprint_follows_the_bytes(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text("one")
+        first = affected.fingerprint(self.path)
+        self.path.write_text("two")
+        self.assertNotEqual(first, affected.fingerprint(self.path))
+        self.assertEqual(affected.fingerprint(self.path.parent / "missing"), "")
 
     def test_the_path_follows_the_environment(self):
         old = os.environ.get("KSTYLEUI_DEPS_CACHE")
@@ -291,6 +305,12 @@ class RunAllAffectedTest(GitRepoCase):
         self.assertEqual(records["Tools/regression/test-b.lua"]["files"], ["Mod/b.lua"])
         self.assertEqual(records["Tools/regression/test-c.lua"]["files"], [])
         self.assertEqual(records["Tools/regression/test-d.lua"]["names"], ["Mod"])
+
+    def test_a_test_edited_after_its_record_runs_again_even_when_the_base_is_unchanged(self):
+        self.affected()
+        self.commit({"Tools/regression/test-c.lua": "assert(2 + 2 == 4)\n"}, "edit c elsewhere")
+        self.assertEqual(self.ran(self.affected(base="HEAD")), ["test-c"], "its record predates its last edit")
+        self.assertEqual(self.ran(self.affected(base="HEAD")), [], "the run refreshed the record")
 
     def test_later_runs_pick_only_the_tests_that_load_a_changed_file(self):
         self.affected()

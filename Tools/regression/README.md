@@ -38,7 +38,7 @@ What a test file loads comes from running it, not from its name. `trace.lua` is 
 - **content:** the folders a test searched with `grep -r`. Any change under them selects the test.
 - **wide:** a command it does not know. The test always runs.
 
-The records live in `~/.cache/kstyleui/regression-deps.json` (`KSTYLEUI_DEPS_CACHE` moves it), shared by every worktree of the Mac, outside the repository so branches never conflict on it. A test file that passes is traced and its record is replaced; a test file that fails keeps its old record, or has none and runs next time. Delete the file to rebuild every record; the next `--affected` run then runs and traces every test file.
+Each record carries a hash of its test file, so a record made from another version of the test (another worktree changed it) does not count and the test runs. The records live in `~/.cache/kstyleui/regression-deps.json` (`KSTYLEUI_DEPS_CACHE` moves it), shared by every worktree of the Mac, outside the repository so branches never conflict on it. A test file that passes is traced and its record is replaced; a test file that fails keeps its old record, or has none and runs next time. Delete the file to rebuild every record; the next `--affected` run then runs and traces every test file.
 
 The choice is conservative in these cases:
 

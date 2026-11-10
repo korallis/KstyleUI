@@ -2,6 +2,7 @@
 
 import importlib.util
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -83,6 +84,20 @@ class DecideTest(unittest.TestCase):
         self.assertFalse(decision)
         self.assertIn("docs/a.md", reason)
         self.assertIn("success", reason)
+
+
+class ReadByTestsTest(unittest.TestCase):
+    def test_no_existing_doc_path_that_a_test_names_is_inert(self):
+        repo = SCRIPT.parents[2]
+        pattern = re.compile(r"(?:docs|research_notes|reports)/[\w./-]*[\w]")
+        sources = list((repo / "Tools" / "tests").glob("*.py")) + list((repo / "Tools" / "regression").glob("*.lua"))
+        for source in sources:
+            for path in pattern.findall(source.read_text(encoding="utf-8", errors="replace")):
+                if not (repo / path).exists():
+                    continue
+                for area in ("lua", "python"):
+                    with self.subTest(source=source.name, path=path, area=area):
+                        self.assertFalse(ci_scope.is_inert(area, path), f"{source.name} names {path}: list it in READ_BY_TESTS")
 
 
 class MainTest(unittest.TestCase):

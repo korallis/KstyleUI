@@ -275,7 +275,7 @@ def main(argv):
             if args.affected and result["ok"]:
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
-                        records[path] = affected.record_from_trace(trace.read(), os.getcwd())
+                        records[path] = dict(affected.record_from_trace(trace.read(), os.getcwd()), sha=affected.fingerprint(path))
                 except OSError:
                     pass
             if result["ok"] and not lines:

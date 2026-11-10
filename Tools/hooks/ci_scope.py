@@ -32,6 +32,8 @@ PIPELINE = (
 
 READ_BY_TESTS = (
     "docs/superpowers/plans/element-keys.md",
+    "docs/design/mockups/*",
+    "docs/icons.md",
     "*/PROVENANCE.md",
     "PROVENANCE.md",
     "LICENSE.md",
