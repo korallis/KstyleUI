@@ -226,6 +226,7 @@ function Preview.Build(parent)
 	preview.partyFrames, preview.raidFrames = {}, {}
 	for i = 1, PARTY_SHOWN do
 		preview.partyFrames[i] = Sample(preview.party, "party", i)
+		preview.partyFrames[i].nameGroup = preview.partyFrames
 	end
 	for i = 1, RAID_GROUPS_SHOWN * GROUP_SIZE do
 		preview.raidFrames[i] = Sample(preview.raid, "raid", i)

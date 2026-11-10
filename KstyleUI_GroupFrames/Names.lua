@@ -1,4 +1,4 @@
--- Names.lua: fits a member's name at its size floor, leaving names-role data to native truncation and keeping distinct abbreviations in compact lanes.
+-- Names.lua: fits one face and size across a party, preserves compact raid names, and passes secret names straight to the engine.
 local _, ns = ...
 
 local Unit = ns.Unit
@@ -9,6 +9,7 @@ local CHAR = "[%z\1-\127\194-\244][\128-\191]*"
 local ELLIPSIS = "..."
 local MAX_TAIL = 3
 local EM = 0.55
+local PARTY_NAME_EM = 9
 
 local function Chars(text)
 	local out = {}
@@ -96,7 +97,7 @@ local function Others(f)
 	return out
 end
 
-function Names.Apply(f)
+local function Apply(f)
 	local name, text = f.rawName, f.name
 	local fit = f.nameFit
 	if type(name) ~= "string" then
@@ -132,6 +133,90 @@ function Names.Apply(f)
 		return Width(text, candidate, size) <= width
 	end
 	text:SetText(Names.Short(name, fits, f.others or Others(f)))
+end
+
+function Names.Party(f)
+	local group = {}
+	if f.nameGroup then
+		for _, other in ipairs(f.nameGroup) do
+			if other.nameFit then
+				group[#group + 1] = other
+			end
+		end
+	else
+		Unit.ForEach(function(other)
+			if other.kind == "party" and other.unit and other.nameFit then
+				group[#group + 1] = other
+			end
+		end)
+	end
+	if #group == 0 then
+		Apply(f)
+		return
+	end
+	local first = group[1].nameFit
+	local requested, minimum = first.size, first.min
+	local unknown = false
+	for _, other in ipairs(group) do
+		requested = math.min(requested, other.nameFit.size)
+		minimum = math.max(minimum, other.nameFit.min)
+		unknown = unknown or other.nameFloor == true or other.rawName == nil
+	end
+	local path = first.path
+	if first.kit then
+		for _, other in ipairs(group) do
+			local fit, width = other.nameFit, other.nameWidth
+			fit.set(other.name, minimum, path)
+			local _, size = other.name:GetFont()
+			if not width or PARTY_NAME_EM * size > width + fit.slack
+				or (other.rawName and Width(other.name, other.rawName, size) > width + fit.slack) then
+				path = ns.Settings.COMPACT_NAME_FONT
+				break
+			end
+		end
+	end
+	local chosen = minimum
+	if not unknown then
+		for step = requested, minimum, -1 do
+			local fits = true
+			for _, other in ipairs(group) do
+				local fit, width = other.nameFit, other.nameWidth
+				fit.set(other.name, step, path)
+				if width and other.rawName and Width(other.name, other.rawName, step) > width + fit.slack then
+					fits = false
+					break
+				end
+			end
+			if fits then
+				chosen = step
+				break
+			end
+		end
+	end
+	for _, other in ipairs(group) do
+		local fit, text, name, width = other.nameFit, other.name, other.rawName, other.nameWidth
+		fit.set(text, chosen, path)
+		other.nativeName = fit.native and path == fit.path
+		if name then
+			local _, size = text:GetFont()
+			if not width or other.nativeName or Width(text, name, size) <= width + fit.slack then
+				text:SetText(name)
+			else
+				local function fits(candidate)
+					return Width(text, candidate, size) <= width + fit.slack
+				end
+				text:SetText(Names.Short(name, fits, other.others or Others(other)))
+			end
+		end
+	end
+end
+
+function Names.Apply(f)
+	if f.kind == "party" and (f.unit or f.nameGroup) then
+		Names.Party(f)
+	else
+		Apply(f)
+	end
 end
 
 function Names.Set(f, name)

@@ -185,9 +185,9 @@ local function LayoutTexts(f, k, parts)
 	local nameOutline = inside and OnBar(cfg.nameOutline) or cfg.nameOutline
 	local namePath = cfg.nameFont
 	f.nativeName = namePath == Settings.THEME_FONT
+	local kit = false
 	if namePath == Settings.THEME_FONT then
 		namePath = (Tokens.Font("names"))
-		local kit = false
 		for _, set in ipairs(Tokens.MediaList("fontSet")) do
 			kit = kit or set.key == Theme.FontFace()
 		end
@@ -199,8 +199,10 @@ local function LayoutTexts(f, k, parts)
 	SetFont(name, namePath, k.nameSize, nameOutline)
 	f.nameFit = {
 		size = k.nameSize, min = Style.NameMin(k),
-		set = function(text, size)
-			SetFont(text, namePath, size, nameOutline)
+		path = namePath, kit = kit, native = f.nativeName,
+		slack = K.Scale.Pixel(1) / Widgets.ScaleFactor(name) / 2,
+		set = function(text, size, path)
+			SetFont(text, path or namePath, size, nameOutline)
 		end,
 	}
 	SetFont(healthText, cfg.healthFont, k.healthTextSize, inside and OnBar(cfg.healthOutline) or cfg.healthOutline)
@@ -431,7 +433,7 @@ function Style.PlaceRowEnd(f)
 		f.nameFloor = inRow and not reserve
 		local captionWidth = ns.Names and ns.Names.Width(classLine, f.classCaption or "", Tokens.Size("caption"))
 		if captionWidth and (not inRow or reserve) then
-			f.nameWidth = math.max(1, Widgets.Snap(f, right - rect.left - captionWidth - gap - (reserve and reserve + gap or 0)))
+			f.nameWidth = math.max(1, Widgets.Snap(f, right) - left - captionWidth - gap - (reserve and reserve + gap or 0))
 		end
 	elseif inRow and not reserve then
 		name:SetWidth(0)
