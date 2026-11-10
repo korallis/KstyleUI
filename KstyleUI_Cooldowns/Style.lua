@@ -193,7 +193,7 @@ Style.Centre = Centre
 
 function Style.PlaceEssential(countdown, icon, scale)
 	countdown:ClearAllPoints()
-	countdown:SetPoint("CENTER", icon, "CENTER", 0, -Widgets.Snap(icon, 2 / (scale or 1)))
+	countdown:SetPoint("CENTER", icon, "CENTER", 0, -Widgets.Snap(icon, 1 / (scale or 1)))
 	countdown:SetJustifyH("CENTER")
 end
 

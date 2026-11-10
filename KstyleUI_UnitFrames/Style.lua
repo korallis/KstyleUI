@@ -32,7 +32,7 @@ local COLUMN_LEVEL_SCALE = 0.95
 local CAPTION_GAP = 10
 local RULE_GAP = 8
 local RULE_ALPHA = 0.55
-local VALUE_GAP = 3
+local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
 local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 } }
 
@@ -264,6 +264,22 @@ local function NameBottom(view, g, rect)
 	end
 end
 
+local function ValuePoints(view, g)
+	local drop, parent = TightName(view) and g.valueDrop or 0, view.parent
+	local sub, main = g.healthSub, g.healthText
+	if g.mirror then
+		if main then
+			Bottom(view, view.healthText, "BOTTOMLEFT", parent, "TOPLEFT", main.x, main, drop)
+		end
+		return
+	end
+	if sub then
+		Bottom(view, view.healthSub, "BOTTOMRIGHT", parent, "TOPLEFT", sub.x + sub.w, sub, drop)
+	elseif main then
+		Bottom(view, view.healthText, "BOTTOMRIGHT", parent, "TOPLEFT", main.x + main.w, main, drop)
+	end
+end
+
 local function LumenTexts(view, g)
 	local form, parent = g.form, view.parent
 	for _, key in ipairs({ "name", "caption", "healthText", "healthSub", "powerText", "capLabel" }) do
@@ -289,7 +305,7 @@ local function LumenTexts(view, g)
 			view.caption:Hide()
 		end
 		if g.healthText then
-			Bottom(view, view.healthText, "BOTTOMLEFT", parent, "TOPLEFT", g.healthText.x, g.healthText)
+			ValuePoints(view, g)
 			view.healthText:SetJustifyH("LEFT")
 		else
 			view.healthText:Hide()
@@ -314,9 +330,8 @@ local function LumenTexts(view, g)
 			view.caption:Hide()
 		end
 		local sub, main = g.healthSub, g.healthText
-		if sub then
-			Bottom(view, view.healthSub, "BOTTOMRIGHT", parent, "TOPLEFT", sub.x + sub.w, sub)
-		else
+		ValuePoints(view, g)
+		if not sub then
 			view.healthSub:Hide()
 		end
 		if main and sub then
@@ -327,9 +342,7 @@ local function LumenTexts(view, g)
 			text:SetWidth(0)
 			text:SetJustifyV("BOTTOM")
 			text:Show()
-		elseif main then
-			Bottom(view, view.healthText, "BOTTOMRIGHT", parent, "TOPLEFT", main.x + main.w, main)
-		else
+		elseif not main then
 			view.healthText:Hide()
 		end
 	elseif form == "sigil" then
@@ -460,6 +473,7 @@ function Style.Baseline(view)
 	if g.caption and view.caption:IsShown() then
 		CaptionPoint(view, g)
 	end
+	ValuePoints(view, g)
 end
 
 function Style.PlaceName(view, rect)
