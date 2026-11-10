@@ -142,7 +142,7 @@ assert(zoneShadow and zoneShadow[1] ~= 0 and zoneShadow[2] ~= 0, "and the zone k
 local zr0, zg0, zb0 = face.zone:GetTextColor()
 local zer, zeg, zeb = K.Tokens.Color("textEmphasis")
 assert(W.Near(zr0, zer) and W.Near(zg0, zeg) and W.Near(zb0, zeb), "and near white (the picture measures #f3f5f8), not capsGold")
-assert(select(1, face.clock:GetFont()) == (K.Tokens.Font("number")), "the clock reads in the bold number face")
+assert(select(1, face.clock:GetFont()) == (K.Tokens.Font("time")), "the clock reads in the time role, the bold that fits the picture")
 assert(select(1, face.coords:GetFont()) == (K.Tokens.Font("body")), "the coordinates read in the body face")
 local mr, mg, mb = face.coords:GetTextColor()
 local qr, qg, qb = K.Tokens.Color("muted")

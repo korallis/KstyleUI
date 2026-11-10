@@ -90,7 +90,7 @@ local function SkinIcon(group, item)
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
 		local text = cooldown:GetCountdownFontString()
-		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group == "buffs" and "caption" or nil)
+		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group ~= "essential" and "timer" or nil)
 		Style.Countdown(cooldown, group == "essential")
 		if text and (group == "essential" or group == "buffs") then
 			if group == "buffs" then
@@ -118,7 +118,7 @@ local function SkinBar(item)
 		bar:SetStatusBarColor(Settings.BarColor())
 		Outset(Skin.Backdrop(bar, { shape = "tile", fill = "surface", edge = "edgeBar", inset = -BAR_OUTSET / scale }), BAR_OUTSET / scale)
 		Text(bar.Name, current.nameFont, cfg.nameSize / scale, current.nameOutline, "body")
-		Text(bar.Duration, current.timerFont, cfg.timerSize / scale, current.timerOutline)
+		Text(bar.Duration, current.timerFont, cfg.timerSize / scale, current.timerOutline, "timer")
 	end
 	local frame = item.Icon
 	if type(frame) == "table" and IsTexture(frame.Icon) then

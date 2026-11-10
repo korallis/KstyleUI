@@ -363,7 +363,7 @@ local function OutlineFlags(outline)
 	return ""
 end
 
-local LUMEN_ROLES = { name = "names", health = "number", level = "number" }
+local LUMEN_ROLES = { name = "names", health = "number", level = "number", aura = "timer" }
 
 function Settings.Font(kind, element)
 	local own, d = Kinds(kind)
