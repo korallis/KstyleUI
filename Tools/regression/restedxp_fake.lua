@@ -968,6 +968,25 @@ local function MenuLists(m, env)
 		env[name .. "Button1NormalText"] = text
 		lists[level] = list
 	end
+	-- LibUIDropDownMenu.lua:58-59,1213-1248,1386 lays out 16-unit rows within 15-unit borders.
+	m.menuRows = m.trust(function(values)
+		local list = lists[1]
+		local width = 220
+		for i, value in ipairs(values) do
+			local name = "L_DropDownList1Button" .. i
+			local button = env[name] or m.frame("Button", list, name)
+			local label = env[name .. "NormalText"] or m.text(button)
+			env[name .. "NormalText"] = label
+			button:SetPoint("TOPLEFT", list, "TOPLEFT", 10, -15 - (i - 1) * 16)
+			button:SetSize(width - 20, 16)
+			label:SetPoint("LEFT", button, "LEFT", 0, 0)
+			label:SetJustifyH("LEFT")
+			label:SetText(value)
+		end
+		list:SetSize(width, #values * 16 + 30)
+		m.seal()
+		return list
+	end)
 	return lists
 end
 
@@ -1271,6 +1290,9 @@ end
 local function AceLabel(m, parent, value)
 	local frame = m.frame("Frame", parent)
 	local label = m.text(frame)
+	-- AceGUIWidget-Label.lua:78-83 sets these before a skin leases the label's alignment.
+	label:SetJustifyH("LEFT")
+	label:SetJustifyV("TOP")
 	label:SetText(value or "")
 	return { frame = frame, label = label, type = "Label" }
 end
@@ -1322,6 +1344,8 @@ local function Tracker(m, rxp, env)
 		report.levelButton = { frame = PanelButton(m, top.content, "AceGUI30Button" .. m.buttonCount, "1 to 2") }
 		report.levelMenuFrame = m.frame("Frame", report.levelButton.frame, "RXPG_LevelMenuFrame", "UIDropDownMenuTemplate")
 		report.target = AceLabel(m, top.content, target)
+		-- LevelingTracker.lua:499-503 centers the target label before AceGUI lays out the top row.
+		report.target.label:SetJustifyH("CENTER")
 		top.children = { report.levelButton, report.target }
 		scroll:AddChild(top)
 		for _, key in ipairs({ "reached", "speed", "zones", "sources", "teamwork", "extras" }) do
@@ -1660,6 +1684,8 @@ local function V2Windows(m, rxp)
 		local dropdownFrame = RxpBackdrop(m, m.frame("Frame", window.content))
 		local dropdown = m.frame("Frame", dropdownFrame, "AceGUI30DropDown1", "UIDropDownMenuTemplate")
 		widgets.currentGuides = { frame = dropdownFrame, dropdown = dropdown, text = m.text(dropdown), label = m.text(dropdownFrame), button = m.frame("Button", dropdown), button_cover = m.frame("Button", dropdownFrame) }
+		-- LibUIDropDownMenu.lua:647-650: the selected value is right-aligned before a skin leases it.
+		widgets.currentGuides.text:SetJustifyH("RIGHT")
 		Normal(m, widgets.currentGuides.button, "scrollbar_down")
 		widgets.currentGuides.button_cover:Hide()
 		widgets.currentGuides.label:Hide()
@@ -1768,6 +1794,8 @@ function Fake.Windows(env, rxp, opts)
 		if not widget then
 			local frame = m.frame("Frame", parent.content)
 			local label = m.text(frame)
+			-- AceGUIWidget-MultiLineEditBox.lua:290-292,338-339: defaults read by leased text and the renderer.
+			label:SetJustifyH("LEFT")
 			local button = PanelButton(m, frame, "MultiLineEditBox" .. (#editPool + 1) .. "Button", "Accept")
 			local background = Backdrop(m, m.frame("Frame", frame))
 			background:SetBackdrop()
@@ -1775,6 +1803,7 @@ function Fake.Windows(env, rxp, opts)
 			local scrollbar = ScrollBar(m, scroll, scroll:GetName() .. "ScrollBar")
 			local box = m.frame("EditBox", scroll, "MultiLineEditBox" .. (#editPool + 1) .. "Edit")
 			box:SetFont("Fonts\\ARIALN.TTF", 12, "")
+			box:SetMultiLine(true)
 			widget = { type = "MultiLineEditBox", frame = frame, label = label, button = button, editBox = box, scrollBG = background, scrollFrame = scroll, scrollBar = scrollbar, labelHeight = 10, numlines = 4 }
 			editPool[#editPool + 1] = widget
 		end

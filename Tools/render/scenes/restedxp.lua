@@ -1,7 +1,8 @@
 -- restedxp.lua: the RestedXP windows the skin tests' fake builds, skinned by KstyleUI_Skins and laid out as
 -- RestedXP lays them out in the game (scenes/_restedxp.lua): the active steps over the guide window (header,
 -- step list, footer) at the screen's left edge, with the v2 guide window, the active item frame and the guide
--- configurator beside them.
+-- configurator beside them, plus the report, splits, importer and confirmations, communication dialogs,
+-- targeting and navigation windows, standalone tip, quest cleanup and context menu.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
 
