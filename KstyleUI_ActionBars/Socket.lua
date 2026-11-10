@@ -140,6 +140,7 @@ function Socket.SetProc(b, on)
 		return
 	end
 	b.proc = on
+	b.chrome:SetProc(on)
 	local glow = Glow(b)
 	if on then
 		local r, g, bl = Tokens.Color(Socket.TOKENS.gilt)

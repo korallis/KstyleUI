@@ -10,6 +10,9 @@ local function check(env, K, b)
 	local p = b.icon._points[1]
 	local kp = kit.icon._points[1]
 	assert(p[1] == "TOPLEFT" and W.Near(p[4], kp[4]) and W.Near(p[5], kp[5]), "the action tile keeps the shared kit's icon inset")
+	local border = K.Widgets.Border(b)
+	assert(W.Near(b.chrome:Radius(), 3 * border), "socket corners span three border lines")
+	assert(W.Near(p[4], 2 * border) and W.Near(p[5], -2 * border), "icons sit two border lines inside the socket")
 	local r, g, bl, a = K.Tokens.Color("white")
 	local kr, kg, kb, ka = b.hotkey:GetTextColor()
 	assert(W.Near(kr, r) and W.Near(kg, g) and W.Near(kb, bl) and W.Near(ka, a), "keys are full-strength white")
@@ -67,6 +70,25 @@ do
 	assert(last:IsShown(), "the measured twelve-tile row fits in the preview's 491 units")
 	assert(W.Near(select(4, last:GetPoint()), K.Widgets.Snap(preview, 11 * 41.3)), "the preview uses the same cumulative-safe pitch as the live bar")
 	check(env, K, preview.buttons[8])
+end
+
+do
+	local env, K, ns = AB.New()
+	AB.Enable(env, K)
+	for _, key in ipairs({ "bar1", "bar2", "bar3", "bar4", "bar5" }) do
+		K.Options.Write("ActionBars", key .. ".enabled", true)
+		local empty = 0
+		for _, button in ipairs(ns.bars[key].buttons) do
+			if not button.hasAction then
+				empty = empty + 1
+				assert(button:GetAlpha() == 1, key .. " keeps empty sockets at full opacity")
+				assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("buttonFill")), key .. " uses the kit's dark empty fill without further dimming")
+				assert(W.SameColor(button.chrome.line[1], K.Tokens.Color("socketEdge")), key .. " keeps the visible black socket edge")
+				check(env, K, button)
+			end
+		end
+		assert(empty > 0, key .. " exercises empty sockets")
+	end
 end
 
 for _, height in ipairs({ 1080, 1440, 2160, 2234 }) do
