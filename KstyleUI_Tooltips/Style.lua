@@ -213,7 +213,7 @@ function Style.Line(tooltip, side, index)
 		return getter(tooltip, index)
 	end
 	local name = tooltip:GetName()
-	if type(name) == "string" then
+	if not Logic.IsSecret(name) and type(name) == "string" then
 		return _G[name .. (side == "left" and "TextLeft" or "TextRight") .. index]
 	end
 end
