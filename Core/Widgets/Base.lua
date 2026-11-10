@@ -808,11 +808,13 @@ function Widgets.Chrome(owner, opts)
 		c.rim = NewSlice(owner, "lumenOutline", "BORDER", SUBLEVEL_RIM)
 	else
 		c.shadow = NewSlice(owner, "lumenShadow", "BACKGROUND", SUBLEVEL_SHADOW)
+		Widgets.ColorSlice(c.shadow, Tokens.Color("shadow"))
 		c.fill = NewSlice(owner, shape.card and "cardShape" or "lumenShape", "BACKGROUND", SUBLEVEL_FILL)
 		c.rim = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_RIM)
 		c.line = NewSlice(owner, "ringLine" .. shape.lines, "BORDER", SUBLEVEL_LINE)
 		if shape.card and opts.gilt ~= false then
 			c.gilt = NewTicks(owner)
+			Widgets.ColorSlice(c.gilt, Tokens.Color("gilt"))
 		end
 	end
 	if type(owner.HookScript) == "function" then
@@ -961,6 +963,14 @@ function Chrome:Layout()
 	end
 end
 
+local function ShowOnce(chrome, key, slice, shown)
+	shown = shown and true or false
+	if chrome[key] ~= shown then
+		chrome[key] = shown
+		Widgets.ShowSlice(slice, shown)
+	end
+end
+
 function Chrome:Paint()
 	local r, g, b, a
 	if self.ownFill then
@@ -974,12 +984,10 @@ function Chrome:Paint()
 	end
 	Widgets.ColorSlice(self.fill, r, g, b, a)
 	if self.shadow then
-		Widgets.ShowSlice(self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
-		Widgets.ColorSlice(self.shadow, Tokens.Color("shadow"))
+		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 	if self.gilt then
-		Widgets.ShowSlice(self.gilt, self.visible and self.ticksShown)
-		Widgets.ColorSlice(self.gilt, Tokens.Color("gilt"))
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown)
 	end
 	self:PaintEdge()
 end
@@ -987,7 +995,11 @@ end
 function Chrome:PaintEdge()
 	local e = self.edge
 	if self.line then
-		Widgets.ColorSlice(self.line, Tokens.Color(self.proc and "giltLit" or self.shape.line))
+		local name = self.proc and "giltLit" or self.shape.line
+		if self.lineName ~= name then
+			self.lineName = name
+			Widgets.ColorSlice(self.line, Tokens.Color(name))
+		end
 	elseif self.proc then
 		Widgets.ColorSlice(self.rim, Tokens.Color("gilt"))
 		return
@@ -1069,10 +1081,10 @@ function Chrome:SetShown(shown)
 		Widgets.ShowSlice(self.line, shown)
 	end
 	if self.gilt then
-		Widgets.ShowSlice(self.gilt, self.visible and self.ticksShown)
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown)
 	end
 	if self.shadow then
-		Widgets.ShowSlice(self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
+		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 end
 
