@@ -677,8 +677,17 @@ local function SliceCoords(texture, piece, f)
 	texture:SetTexCoord(x0, x1, y0, y1)
 end
 
+local function CreateTexture(owner, layer, sublevel)
+	if type(owner.AttachTexture) == "function" then
+		local texture = owner:AttachTexture()
+		texture:SetDrawLayer(layer, sublevel)
+		return texture
+	end
+	return owner:CreateTexture(nil, layer, nil, sublevel)
+end
+
 local function NewTexture(owner, layer, sublevel, path)
-	local texture = Unbiased(owner:CreateTexture(nil, layer, nil, sublevel))
+	local texture = Unbiased(CreateTexture(owner, layer, sublevel))
 	if path then
 		texture:SetTexture(path)
 	else
@@ -741,7 +750,7 @@ local function NewSlice(owner, name, layer, sublevel)
 	local p = {}
 	local soft = SOFT[name]
 	for piece = 1, 9 do
-		local texture = owner:CreateTexture(nil, layer, nil, sublevel)
+		local texture = CreateTexture(owner, layer, sublevel)
 		p[piece] = soft and texture or Unbiased(texture)
 	end
 	PaintSlice(p, name)
@@ -870,12 +879,15 @@ function Widgets.Chrome(owner, opts)
 			Widgets.ColorSlice(c.gilt, Tokens.Color("gilt"))
 		end
 	end
+	c:Restyle()
 	if type(owner.HookScript) == "function" then
 		owner:HookScript("OnSizeChanged", function()
 			c:OnSizeChanged()
 		end)
 	end
-	c:Restyle()
+	if type(owner.AttachTexture) == "function" then
+		return c
+	end
 	return Widgets.Track(c)
 end
 
@@ -939,6 +951,9 @@ function Chrome:TicksWanted()
 end
 
 function Chrome:OnSizeChanged()
+	if self.released then
+		return
+	end
 	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
 	else
@@ -1080,6 +1095,9 @@ function Chrome:SyncMaterialFrame()
 end
 
 function Chrome:PaintMaterial()
+	if self.released then
+		return
+	end
 	local material = self:Material()
 	local framed = self.shape.card and material and material.frame
 	self.frameWanted = framed
@@ -1228,17 +1246,26 @@ function Chrome:PaintEdge()
 end
 
 function Chrome:Restyle()
+	if self.released then
+		return
+	end
 	if Widgets.MayMove(self.owner) then
 		self:Layout()
 	elseif not self.layoutQueued then
 		self.layoutQueued = true
 		ns.Combat.Queue(function()
 			self.layoutQueued = false
-			self:Layout()
-			self:Paint()
+			if not self.released then
+				self:Layout()
+				self:Paint()
+			end
 		end)
 	end
 	self:Paint()
+end
+
+function Chrome:Release()
+	self.released = true
 end
 
 local function StoreFill(chrome, r, g, b, a)

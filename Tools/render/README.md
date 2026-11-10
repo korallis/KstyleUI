@@ -29,6 +29,12 @@ Tools/render/shoot.sh gallery_skins_mail --backdrop                             
 
 `shoot.sh` prints the drawable count, the skipped counts (hidden, transparent, unresolved) and every log line: a texture with no local file, an unknown font object, a frame with no anchors, an atlas or a path texture the texture cache lacks (drawn as a grey box). Read the log before you trust a render. `Tools/render/out/` is ignored by git.
 
+### Native context-menu fixtures
+
+`native_menus_tracking`, `native_menus_compartment` and `native_menus_quest` open the actual KstyleUI menu generators over `Tools/regression/native_menu_fixture.lua`. Set `RENDER_MATERIAL` to `Native`, `Glass`, `Flat`, `Slate`, `ForgedTicks` or `ForgedBrackets`; `Native` disables this skin. `RENDER_TEXT_SIZE` and `RENDER_TEXT_FACE` exercise the Skins text controls.
+
+These are simulated menu acquisitions, not screenshots from the client. The fixture models callback ordering, compositor attachment/release, pooled reuse, initializers, actions and submenus. It deliberately does not model native taint, scrolling, grids, narration or gamepad focus. Text widths use the repository's glyph estimates and row padding is approximate. Native client fonts may use the renderer's documented fallback; read each render log. Missing atlas/path textures drawn as gray boxes are not acceptable before/after art evidence: populate the read-only client cache first. Security and restoration evidence comes from the focused regression test and the 70862 source audit in `docs/native-context-menus.md`, not these images.
+
 ### Blizzard atlases and textures
 
 ```bash

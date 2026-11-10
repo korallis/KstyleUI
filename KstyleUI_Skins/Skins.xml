@@ -4,6 +4,7 @@
 	<Script file="Parts.lua"/>
 	<Script file="Lumen.lua"/>
 	<Script file="Registry.lua"/>
+	<Script file="ContextMenus.lua"/>
 
 	<!-- Part A: the character sheet, spellbook and talents, quest log and objective tracker, and world map. Add part A's skin files below this line. -->
 	<Script file="Character.lua"/>
