@@ -185,7 +185,8 @@ class DrawingTest(unittest.TestCase):
         self.assertEqual((tl[3], br[3]), (255, 255))
         self.assertEqual(tl[:3], br[:3], "one flat level, not four lit facets")
         self.assertEqual(self.alpha("LumenGem.png", 32, 32 - 15), 255, "solid to its top point")
-        self.assertEqual(self.alpha("LumenGem.png", 32, 32 - 18), 0, "and no halo past it")
+        self.assertEqual(self.alpha("LumenGem.png", 32, 32 - 17), 0, "and no halo past it")
+        self.assertGreater(self.alpha("LumenGem.png", 32, 32 - 16), 0, "its top point is 4 root units above the centre: 8 across, the Skins caption bullet's size")
         self.assertEqual(self.alpha("LumenGem.png", 0, 0), 0)
 
     def test_cap_masks_round_one_end_each(self):

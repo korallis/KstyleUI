@@ -105,7 +105,7 @@ Two roles carry the picture's letter-spaced Cinzel capitals, both at 10 units (a
 | `lumenOutline` | `LumenOutline.png`, 128x128 | 32 texels | An even outline at the 8-unit radius: highlight rings, the proc rim |
 | `lumenShadow` | `LumenShadow.png`, 128x128 | 56 texels at 2 per unit | The card shadow with its drop baked in and the card cut out |
 | `chamferTile` | `LumenShape.png` | 56 texels | The older name, kept for modules that slice it |
-| `gem` | `LumenGem.png` | | The card caption diamond: a solid flat square turned 45 degrees (LEE-70, the picture's 14-pixel diamond), white with its coverage in alpha, tinted `capsGold` |
+| `gem` | `LumenGem.png` | | The card caption diamond: a solid flat square turned 45 degrees (LEE-70, the picture's 14-pixel diamond: 8 root units from point to point, the same numbers as the Skins caption bullet), white with its coverage in alpha, tinted `capsGold` |
 | `pillCapLeft`, `pillCapRight`, `barSheen` | | | The bar fill's round-end masks (set with `CLAMPTOWHITE`) and its top sheen |
 | `lensMask` | `LensMask.png`, 512x512 | | A round mask, for round portraits and discs |
 | `ruleFade` | `RuleFade.png`, 256x4 | | A rule that fades out to the right; the section cap's rule is now a flat colour, as the picture draws it, so no widget uses this one |

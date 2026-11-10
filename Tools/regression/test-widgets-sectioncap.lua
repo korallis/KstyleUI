@@ -114,5 +114,25 @@ cap:Restyle()
 K.Theme.SetFontFace("SourceSans3Semibold")
 assert((cap.label:GetFont()):match("SourceSans3%-Semibold%.ttf$"), "a font change reaches the caption")
 
+-- The mark is 8 root units from point to point, the same diamond the Skins caption bullet draws (14 px on the reference
+-- panel). Its quad covers 16 units on whole pixels, and on each of the nine screens the diamond is within a pixel of 8.
+do
+	local screens = { { 1280, 720 }, { 1366, 768 }, { 1600, 900 }, { 1920, 1080 }, { 2234, 1234 }, { 2560, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 3840, 2160 } }
+	for _, size in ipairs(screens) do
+		local senv, SK = W.New()
+		senv._physical = size
+		senv.GetPhysicalScreenSize = function()
+			return senv._physical[1], senv._physical[2]
+		end
+		senv.FireEvent("DISPLAY_SIZE_CHANGED")
+		local scap = SK.Widgets.SectionCap(SK.Scale.Root(), { text = "Party" })
+		local pixel = SK.Scale.Pixel(1)
+		local quad = scap.gem:GetWidth() / pixel
+		local label = size[1] .. "x" .. size[2]
+		assert(W.Near(quad, math.floor(quad + 0.5)), "the diamond's quad is whole pixels on " .. label .. ", got " .. quad)
+		assert(math.abs(quad / 2 - 8 / pixel) <= 1, "the diamond is within a pixel of 8 root units on " .. label .. ", got " .. quad / 2 .. " pixels for " .. 8 / pixel)
+	end
+end
+
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("widgets section cap ok")
