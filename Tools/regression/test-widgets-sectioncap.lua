@@ -97,6 +97,15 @@ end
 cap:SetText("Quests")
 assert(cap.label:GetText() == "QUESTS", "the caption can change")
 
+-- The caption follows the Appearance page's text size like the count does.
+local _, plain = cap.label:GetFont()
+assert(K.Theme.SetFontScale(1.3), "the text size changes")
+cap:Restyle()
+local _, scaled = cap.label:GetFont()
+assert(scaled > plain * 1.2, "a larger text size grows the caption: " .. tostring(plain) .. " to " .. tostring(scaled))
+K.Theme.SetFontScale(1)
+cap:Restyle()
+
 -- The cap restyles with the theme.
 K.Theme.SetFontFace("SourceSans3Semibold")
 assert((cap.label:GetFont()):match("SourceSans3%-Semibold%.ttf$"), "a font change reaches the caption")
