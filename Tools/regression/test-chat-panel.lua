@@ -724,14 +724,16 @@ do
 		{ 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 },
 		{ 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 },
 	}
+	for _, size in ipairs({ 1, 16 / 19 }) do
 	for _, set in ipairs({ "Folio", "Lumen" }) do
 		for _, screen in ipairs(screens) do
 			local env, K, ns = C.New({ width = screen[1], height = screen[2], uiScale = 768 / 1080 })
 			C.Enable(env, K)
 			assert(K.Theme.SetTypeSet(set))
+			K.Options.Write("Appearance", "uiScale", size)
 			env.RunTimers()
 			local chat = env.ChatFrame1
-			local label = set .. " " .. screen[1] .. "x" .. screen[2]
+			local label = set .. " " .. screen[1] .. "x" .. screen[2] .. " at size " .. string.format("%.3f", K.Scale.UserScale())
 			local _, font = chat:GetFont()
 			local gap = chat:GetSpacing()
 			local g = ns.Panel.Geometry(chat)
@@ -747,6 +749,44 @@ do
 			assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 		end
 	end
+	end
+end
+
+-- A spacing change reaches the panel's window while its placement waits: in combat it takes the fitted spacing at once,
+-- and while Edit Mode holds the window it keeps the user's spacing until the panel takes it back.
+do
+	local env, K, ns = C.New({ width = 1280, height = 720, uiScale = 768 / 1080 })
+	C.Enable(env, K)
+	assert(K.Theme.SetTypeSet("Lumen"))
+	K.Options.Write("Appearance", "uiScale", 16 / 19)
+	env.RunTimers()
+	local chat = env.ChatFrame1
+	local function fitted()
+		return ns.Panel.Geometry(chat).spacing
+	end
+	assert(chat:GetSpacing() == fitted(), "the window starts on the fitted spacing")
+	rawset(chat, "IsProtected", function()
+		return true
+	end)
+	env.SetCombat(true)
+	K.Options.Write("Chat", "lineSpacing", 1)
+	env.RunTimers()
+	assert(chat:GetSpacing() == fitted(), "in combat the window takes the fitted spacing, got " .. chat:GetSpacing() .. " for " .. fitted())
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(chat:GetSpacing() == fitted(), "after combat the window keeps the fitted spacing")
+	env._editMode = true
+	env.EditModeAnchor()
+	env.RunTimers()
+	K.Options.Write("Chat", "lineSpacing", 3)
+	env.RunTimers()
+	local own = K.Widgets.Snap(chat, ns.LineSpacing(K.Store.Module("Chat")) * K.Scale.UserScale())
+	assert(chat:GetSpacing() == own, "Edit Mode's window keeps the user's spacing, got " .. chat:GetSpacing() .. " for " .. own)
+	env._editMode = false
+	env.EventRegistry:TriggerEvent("EditMode.Exit")
+	env.RunTimers()
+	assert(chat:GetSpacing() == fitted(), "back in the panel the window takes the fitted spacing again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 print("chat panel ok")

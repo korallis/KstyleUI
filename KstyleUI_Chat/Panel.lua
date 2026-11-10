@@ -149,8 +149,9 @@ function Panel.Geometry(chat)
 			gap = Widgets.Snap(chat, wantGap)
 		end
 		gap = gap * k
-		local lines = floor((room + unitGap) / (unitLine + unitGap) + 1e-6)
 		local pixel = Scale.Pixel(1)
+		local least = min(gap, max(pixel, floor(unitGap / pixel + 1e-6) * pixel))
+		local lines = max(floor((room + unitGap) / (unitLine + unitGap) + 1e-6), floor((room + least) / (line + least) + 1e-6))
 		if lines > 1 and lines * line + (lines - 1) * gap > room + 1e-6 then
 			gap = max(min(gap, pixel), floor((room - lines * line) / (lines - 1) / pixel + 1e-6) * pixel)
 		end
@@ -375,8 +376,8 @@ local function Mirror()
 end
 
 function Panel.Spacing(frame)
-	if state.active and frame == state.chat then
-		return state.spacing
+	if state.active and not state.waiting and state.holder and frame == state.chat then
+		return Panel.Geometry(frame).spacing
 	end
 end
 
@@ -421,7 +422,6 @@ function Panel.Place()
 		return false
 	end
 	local g = Panel.Geometry(chat)
-	state.spacing = g.spacing
 	if g.spacing and type(chat.SetSpacing) == "function" and Number(chat:GetSpacing(), 0) ~= g.spacing then
 		chat:SetSpacing(g.spacing)
 	end
