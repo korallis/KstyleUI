@@ -134,7 +134,7 @@ function Panel.Geometry(chat)
 		bottom = max(MESSAGE_FOOT, reach + Tokens.Size("gapTiny") - PanelBottom())
 	end
 	local inset = snap(LINE_INSET)
-	local top, foot = snap(TAB_ROW), snap(bottom)
+	local top, foot = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2)), snap(bottom)
 	local _, size = chat:GetFont()
 	local gap = Number(type(chat.GetSpacing) == "function" and chat:GetSpacing(), 0)
 	local height = state.holder and state.holder:GetHeight()
@@ -154,7 +154,7 @@ function Panel.Geometry(chat)
 		top = top,
 		right = inset,
 		bottom = foot,
-		divider = snap(TAB_ROW),
+		divider = top,
 	}
 end
 

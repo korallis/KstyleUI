@@ -107,7 +107,7 @@ end
 local point, rel, relPoint = helpful:GetPoint(1)
 check(point == "TOPRIGHT" and rel == desc.host and relPoint == "TOPRIGHT", "the buff container hangs from the host's top right corner, got " .. tostring(point) .. " on " .. tostring(rel == desc.host))
 check(helpful._flow.anchor == "TOPLEFT" and helpful._flow.horizontal == 1 and helpful._flow.vertical == -1, "the flow lists left to right, then down")
-check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14 and bg.layout.elementSpacing == K.Scale.Snap(3.5) and bg.layout.lineSpacing == 4, "the engine lays 27.5 x 41.5 elements 3.5 apart, in whole pixels in rows 4 apart")
+check(bg.layout.elementWidth == K.Scale.Snap(27.5) and bg.layout.elementHeight == K.Scale.Snap(27.5) + 14 and bg.layout.elementSpacing == K.Scale.Snap(31) - K.Scale.Snap(27.5) and bg.layout.lineSpacing == 4, "the engine lays 27.5 x 41.5 elements on one 31-unit pitch of whole pixels (so the row never outgrows the layout's reserve), in rows 4 apart")
 check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "ten buffs and ten debuffs at most")
 check(#harmful._order == 1 and harmful._groups.debuffs and harmful._groups.debuffs.candidateFilters == nil, "the debuff container runs one group with no dispel split")
 

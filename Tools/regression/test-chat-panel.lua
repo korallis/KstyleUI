@@ -183,6 +183,20 @@ do
 	assert(near(select(5, chat:GetPoint(2)) * g.k, g.bottom), "and the window sits where that geometry says")
 end
 
+-- At a small interface size the chat frame's units are many root units, so the tabs rise far above the window: the
+-- tab row grows to keep the labels and the plus and copy buttons (20 units square) inside the card.
+do
+	local env, K, ns = C.New()
+	C.Enable(env, K)
+	local chat = env.ChatFrame1
+	local base = ns.Panel.Geometry(chat)
+	assert(K.Scale.SetUserScale(0.6), "the interface size takes 60%")
+	local g = ns.Panel.Geometry(chat)
+	assert(g.k > base.k * 1.2, "the chat window's units grow as the interface shrinks: " .. g.k)
+	assert(g.top - 14 * g.k >= 10 - 0.5, "the tab buttons' centre stays 10 units inside the card at 60%, got " .. g.top - 14 * g.k)
+	assert(near(g.divider, g.top), "and the buttons share the window's top")
+end
+
 -- The insets follow the scale: on a 1440p screen the chat window's own units are smaller.
 do
 	local env, K, ns = C.New({ width = 2560, height = 1440, uiScale = 0.75 })

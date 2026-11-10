@@ -240,16 +240,24 @@ function Model.ElementSize(group, timer, snap)
 	return icon, icon + (area > 0 and snap(area) or 0)
 end
 
+function Model.Gaps(group, timer, snap)
+	snap = snap or same
+	local w, h = Model.ElementSize(group, timer, snap)
+	return snap(group.iconSize + group.spacing) - w, snap(h + group.rowSpacing) - h
+end
+
 function Model.LineSize(group, timer, snap)
 	snap = snap or same
 	local w = Model.ElementSize(group, timer, snap)
-	return group.columns * w + (group.columns - 1) * snap(group.spacing) + LINE_SLACK
+	local gap = Model.Gaps(group, timer, snap)
+	return group.columns * w + (group.columns - 1) * gap + LINE_SLACK
 end
 
 function Model.Footprint(group, timer, snap)
 	snap = snap or same
 	local w, h = Model.ElementSize(group, timer, snap)
-	return group.columns * w + (group.columns - 1) * snap(group.spacing), group.rows * h + (group.rows - 1) * snap(group.rowSpacing)
+	local gap, rowGap = Model.Gaps(group, timer, snap)
+	return group.columns * w + (group.columns - 1) * gap, group.rows * h + (group.rows - 1) * rowGap
 end
 
 function Model.Capacity(group, enchants)
