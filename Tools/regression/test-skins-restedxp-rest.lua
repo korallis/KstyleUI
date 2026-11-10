@@ -7,7 +7,7 @@ local Measure = dofile("Tools/regression/databars_env.lua")
 local W = S.W
 
 local HOOKED = {
-	SetAlpha = true, SetChecked = true, SetFont = true, SetText = true, UpdateVisuals = true, SetMinMaxValues = true,
+	SetAlpha = true, SetChecked = true, SetFont = true, SetFontObject = true, SetText = true, Show = true, Hide = true, SetShown = true, UpdateVisuals = true, SetMinMaxValues = true,
 	SetStep = true, UpdateText = true, SortTimers = true, SetStatusBarColor = true, DoLayout = true,
 }
 
@@ -145,9 +145,7 @@ do
 
 	-- The place: the text starts under the cap's title, and the check sits left of it in the gem's column.
 	local cap = path.cap
-	local gemX = select(4, cap.gem:GetPoint(1))
-	local titleX = select(4, cap.title:GetPoint(1))
-	local want = gemX + cap.gem:GetWidth() + titleX
+	local want = select(4, cap.title:GetPoint(1))
 	for _, element in ipairs(step.elements) do
 		local point, relative, relativePoint, x, y = element.text:GetPoint(1)
 		assert(point == "TOPLEFT" and relative == element and relativePoint == "TOPLEFT", "a step's text hangs from its own row")
@@ -326,6 +324,8 @@ do
 		end
 	end
 	assert(shown == 4, "the picture's four quests fit under the guide's two lines, got " .. shown)
+	local capPoint, capOn, _, _, capY = ns.Quests.Parts().cap.row:GetPoint(1)
+	assert(capPoint == "TOPLEFT" and capOn == ns.Quests.Card() and capY == 0, "docked, the QUESTS caption starts at the card's top: the guide's glass holds it, so the card's own head is not added, got " .. tostring(capY))
 
 	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, under the steps.
 	rxp.StartTimer(30, "Hearthstone")
@@ -416,7 +416,7 @@ do
 	f.CurrentStepFrame.UpdateText()
 	env.RunTimers()
 	assert(type(cap.title:GetLeft()) == "number" and math.abs(cap.title:GetLeft() * cap.title:GetEffectiveScale() - row:GetLeft() * row:GetEffectiveScale()) > 100, "the cap's title is far from the tip on the screen, so the test can tell the two columns apart")
-	local want = select(4, cap.gem:GetPoint(1)) + cap.gem:GetWidth() + select(4, cap.title:GetPoint(1))
+	local want = select(4, cap.title:GetPoint(1))
 	local point, relative, _, gutter = row.text:GetPoint(1)
 	assert(point == "TOPLEFT" and relative == row and near(gutter, want, 0.01), "a tip's text starts at the step gutter of its own window, not under the guide's cap across the screen, got " .. tostring(gutter) .. " for " .. tostring(want))
 	assert(select(2, row.text:GetPoint(2)) == tip, "and ends at the tip's own right edge")
@@ -426,6 +426,30 @@ do
 	local one = math.ceil(select(2, row.text:GetFont()) * 1.1) + 1
 	assert(row:GetHeight() > one and tip:GetHeight() == row:GetHeight() + 18, "the tip's line wraps in its 230 units and its window grows with it, got " .. tostring(row:GetHeight()) .. " for one line of " .. tostring(one))
 	assert(near(f.CurrentStepFrame:GetHeight(), step:GetHeight(), 0.01), "and the tip's change of height adds nothing to the guide's stack, as in RestedXP's own layout, got " .. tostring(f.CurrentStepFrame:GetHeight()) .. " for " .. tostring(step:GetHeight()))
+	-- The tip is a small card of its own: the kit's glass raised over RestedXP's title plate, the plate's words as
+	-- a caption in the story card's caps, and the guide's cap still names the guide's step, not the tip.
+	local glass = K.Skin.Parts(tip).backdrop
+	assert(K.Skin.IsSkinned(tip, "Backdrop") and glass:IsShown(), "the tip stands on the kit's glass")
+	assert(glass.inset and glass.inset.top == -(5 + K.Tokens.Size("gapSmall")), "raised over the plate RestedXP hangs 5 above the tip's top edge")
+	local caption = ns.RestedXP.Chrome.TipCaption(tip)
+	assert(caption and caption:IsVisible() and caption:GetText() == "TIP", "its plate reads as a caption, got " .. tostring(caption and caption:GetText()))
+	assert(caption:GetFont() == (ns.Style.Font("caps")) and near(select(2, caption:GetFont()), K.Widgets.FontSize(caption, ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(tip)), 1e-6), "in the caps face at the story card's caption size")
+	assert(near(select(4, caption:GetPoint(1)), gutter, 0.01), "over the tip's text column")
+	K.Options.Write("Skins", "text.size", 1.5)
+	env.RunTimers()
+	assert(near(select(2, caption:GetFont()), K.Widgets.FontSize(caption, ns.Lumen.CAP_SIZE * 1.5 / K.Widgets.ScaleFactor(tip)), 1e-6), "an open tip's caption follows a text size change, got " .. tostring(select(2, caption:GetFont())))
+	K.Options.Write("Skins", "text.size", 1)
+	env.RunTimers()
+	assert(near(select(2, caption:GetFont()), K.Widgets.FontSize(caption, ns.Lumen.CAP_SIZE / K.Widgets.ScaleFactor(tip)), 1e-6), "and comes back with it")
+	assert(tip.number.text:GetText() == "Tip", "RestedXP's own plate text is left as RestedXP wrote it")
+	assert(cap.trailValue == "Step 134", "the guide's cap names the guide's step, not the tip, got " .. tostring(cap.trailValue))
+	local plain = K.Skin.Parts(step)
+	assert(not (plain and plain.backdrop and plain.backdrop:IsShown()) and ns.RestedXP.Chrome.TipCaption(step) == nil, "a step of the guide has no glass of its own")
+	-- RestedXP reuses the pool's frames: the tip's frame as a plain step loses the glass and the caption.
+	rxp.fake.guide({ STEP[1], { title = "Step 135", elements = { { text = "Train your class spells" } } } })
+	rxp.SetStep(2)
+	env.RunTimers()
+	assert(not glass:IsShown() and not caption:IsVisible(), "the same frame as a plain step has no glass and no caption")
 	Clean(env, K, rxp)
 end
 

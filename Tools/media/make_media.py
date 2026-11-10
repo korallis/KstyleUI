@@ -450,6 +450,17 @@ def draw_gem(size):
     return shaded(sample(size, size, level), sample(size, size, alpha))
 
 
+def draw_diamond(size):
+    """A flat square turned 45 degrees whose four points touch the middle of the texture's edges."""
+    c = size / 2
+
+    def spans(y):
+        dx = c - abs(y - c)
+        return [(c - dx, c + dx)] if dx > 0 else []
+
+    return white(sample_spans(size, size, spans))
+
+
 def draw_cap_mask(size, side):
     """A mask that rounds one end of a bar fill: a half disc on `side` and solid on the other half."""
     c = size / 2
@@ -739,7 +750,7 @@ class Asset:
 
 
 def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
-    drawn = PICTURE_DRAWN if name in PICTURE_ASSETS else LUMEN_DRAWN if name in LUMEN_ASSETS else DRAWN
+    drawn = CAPTION_DRAWN if name in CAPTION_ASSETS else PICTURE_DRAWN if name in PICTURE_ASSETS else LUMEN_DRAWN if name in LUMEN_ASSETS else DRAWN
     return Asset(f"Media/Textures/{name}.png", width, height, draw, about, settings, SLICE.get(name), drawn)
 
 
@@ -749,6 +760,8 @@ LUMEN_ASSETS = {
 }
 PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
 PICTURE_DRAWN = "2026-11-09"
+CAPTION_ASSETS = {"Diamond"}
+CAPTION_DRAWN = "2026-11-10"
 
 
 ASSETS = [
@@ -764,6 +777,8 @@ ASSETS = [
     _texture("LumenGem", GEM_SIZE, GEM_SIZE, lambda: draw_gem(GEM_SIZE),
              "Gilt gem for section caps: a 7-unit square turned 45 degrees with four facets lit from the top left, in a 6-unit halo at half strength. Covers 16 units.",
              "4x4 supersampled, shading in the colour channels"),
+    _texture("Diamond", 64, 64, lambda: draw_diamond(64),
+             "The picture's caption bullet: a flat square turned 45 degrees, its points on the middle of the edges, with no facets and no halo. Tinted gilt at 8 units point to point (14 pixels on the owner's screen)."),
     _texture("PillCapLeft", 32, 32, lambda: draw_cap_mask(32, "left"),
              "Mask that rounds a bar fill's left end: a half disc on the left, solid on the right. Placed over the fill's first square with CLAMPTOWHITE, so the rest of the fill shows."),
     _texture("PillCapRight", 32, 32, lambda: draw_cap_mask(32, "right"),

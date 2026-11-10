@@ -449,21 +449,26 @@ do
 	local wr, wg, wb = K.Tokens.Color("capsGold")
 	assert(Near(cr, wr) and Near(cg, wg) and Near(cb, wb), "the caption is the picture's muted gold")
 	assert(row:IsShown(), "the quest caption shows while the tracker is expanded")
-	local gem = Region(env, K, quests.Header, "Texture", (pcall(K.Tokens.Texture, "gem")) and "gem" or Lumen.TEXTURES.gem)
+	local gem = Region(env, K, quests.Header, "Texture", Lumen.TEXTURES.gem)
 	assert(gem and gem:GetParent() == row, "a gem leads the caption row")
 	assert(S.W.SameRGB(gem, gr, gg, gb), "in gilt")
 	assert(not Region(env, K, quests.Header, "Texture", "glyphChevron"), "no chevron on the caption row any more; the gem is the mark")
 	local gemPoint = { gem:GetPoint(1) }
 	local captionPoint = { caption:GetPoint(1) }
-	assert(gemPoint[1] == "LEFT" and captionPoint[1] == "LEFT" and captionPoint[2] == gem and captionPoint[3] == "RIGHT", "the gem leads the caption from the left")
+	assert(gemPoint[1] == "LEFT" and captionPoint[1] == "LEFT" and gemPoint[2] == row and captionPoint[2] == row, "the gem leads the caption from the left")
 	-- The panel starts PANEL_LEFT left of the header, so the gem's left edge sits one content inset (the rule
 	-- every text panel follows: half the window cut, the edge band and gapSmall) inside the glass, clear of the
 	-- top-left cut, and the caption follows it after a gapSmall.
 	local inset = K.Widgets.Inset(row, K.Tokens.Size("chamferWindow"))
 	assert(Near(gemPoint[4], K.Widgets.Snap(row, inset - PANEL_LEFT), K.Scale.Pixel()), "the gem's left edge is one content inset inside the glass, got " .. tostring(gemPoint[4]) .. " for " .. tostring(inset - PANEL_LEFT))
-	assert(Near(captionPoint[4], K.Widgets.Snap(row, K.Tokens.Size("gapSmall")), K.Scale.Pixel()), "the caption starts a gapSmall after the gem, got " .. tostring(captionPoint[4]))
-	local rule = Region(env, K, quests.Header, "Texture", "divider")
-	assert(rule and rule:GetParent() == row and Near(rule:GetHeight(), K.Widgets.Border(rule)), "a hairline rule runs on the caption row")
+	assert(Near(captionPoint[4] - gemPoint[4], Lumen.CapColumn(row), K.Scale.Pixel()), "the caption starts in the cap's column, 15 root units after the gem's left point, got " .. tostring(captionPoint[4] - gemPoint[4]))
+	local rule
+	for _, region in ipairs({ row:GetRegions() }) do
+		if region:GetObjectType() == "Texture" and region ~= gem then
+			rule = region
+		end
+	end
+	assert(rule and Near(rule:GetHeight(), math.max(K.Widgets.Border(row), K.Widgets.Snap(row, 1 / K.Widgets.ScaleFactor(row)))), "an even rule one root unit thick runs on the caption row")
 	local ruleLeft = { rule:GetPoint(1) }
 	assert(ruleLeft[2] == caption and ruleLeft[3] == "RIGHT", "from the end of the title")
 	local count = Region(env, K, quests.Header, "FontString")

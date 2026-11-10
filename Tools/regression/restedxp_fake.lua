@@ -285,6 +285,9 @@ local function Maker(env)
 	end
 	function m.text(frame, key)
 		local t = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		-- The game answers GetFont from the template: GameFontNormal is Friz Quadrata at 12 (Blizzard_Fonts_Shared
+		-- Shared/FontStyles.xml 50, Fonts.xml 275-277). The stub resolves no template, so the fake says it.
+		t:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 		if key then
 			frame[key] = t
 		end
@@ -316,20 +319,26 @@ local function Maker(env)
 			end
 		end
 	end
-	-- open(frame) and close(frame) show or hide a frame as RestedXP or a library does, then run its scripts.
-	function m.open(frame)
-		m.trust(frame.Show)(frame)
-		local fn = frame:GetScript("OnShow")
+	-- open(frame) and close(frame) show or hide a frame as RestedXP or a library does, then run its scripts and, as
+	-- the game does when a frame's visibility changes with its parent's, those of every shown frame under it.
+	local function Cascade(frame, script)
+		local fn = frame:GetScript(script)
 		if fn then
 			fn(frame)
 		end
+		for _, child in ipairs({ frame:GetChildren() }) do
+			if child:IsShown() then
+				Cascade(child, script)
+			end
+		end
+	end
+	function m.open(frame)
+		m.trust(frame.Show)(frame)
+		Cascade(frame, "OnShow")
 	end
 	function m.close(frame)
 		m.trust(frame.Hide)(frame)
-		local fn = frame:GetScript("OnHide")
-		if fn then
-			fn(frame)
-		end
+		Cascade(frame, "OnHide")
 	end
 	return m
 end
@@ -968,6 +977,25 @@ local function MenuLists(m, env)
 		env[name .. "Button1NormalText"] = text
 		lists[level] = list
 	end
+	-- LibUIDropDownMenu.lua:58-59,1213-1248,1386 lays out 16-unit rows within 15-unit borders.
+	m.menuRows = m.trust(function(values)
+		local list = lists[1]
+		local width = 220
+		for i, value in ipairs(values) do
+			local name = "L_DropDownList1Button" .. i
+			local button = env[name] or m.frame("Button", list, name)
+			local label = env[name .. "NormalText"] or m.text(button)
+			env[name .. "NormalText"] = label
+			button:SetPoint("TOPLEFT", list, "TOPLEFT", 10, -15 - (i - 1) * 16)
+			button:SetSize(width - 20, 16)
+			label:SetPoint("LEFT", button, "LEFT", 0, 0)
+			label:SetJustifyH("LEFT")
+			label:SetText(value)
+		end
+		list:SetSize(width, #values * 16 + 30)
+		m.seal()
+		return list
+	end)
 	return lists
 end
 
@@ -1230,7 +1258,7 @@ end
 local function AceFrame(m)
 	local frame = Backdrop(m, m.frame("Frame"))
 	frame:SetBackdrop()
-	local widget = { frame = frame }
+	local widget = { frame = frame, type = "Frame", children = {} }
 	frame.obj = widget
 	local close = PanelButton(m, frame, nil, "Close")
 	close.obj = widget
@@ -1243,27 +1271,189 @@ local function AceFrame(m)
 	local title = m.frame("Frame", frame)
 	widget.titletext = m.text(title)
 	widget.content = m.frame("Frame", frame)
+	for _ = 1, 3 do m.frame("Frame", frame) end
+	widget.AddChild = m.trust(function(self, child)
+		child.frame:SetParent(self.content)
+		self.children[#self.children + 1] = child
+	end)
+	widget.Release = m.trust(function(self)
+		if self.released then return end
+		self.released = true
+		local function ReleaseChildren(parent)
+			for _, child in ipairs(parent.children or {}) do
+				child.released = true
+				m.close(child.frame)
+				ReleaseChildren(child)
+			end
+		end
+		ReleaseChildren(self)
+		m.close(self.frame)
+		self.children = {}
+	end)
+	frame:SetScript("OnHide", function()
+		if widget.onClose then widget.onClose() end
+	end)
 	return widget
 end
 
+local function AceLabel(m, parent, value)
+	local frame = m.frame("Frame", parent)
+	local label = m.text(frame)
+	-- AceGUIWidget-Label.lua:162 makes the label on GameFontHighlightSmall, Friz Quadrata at 10 (FontStyles.xml 56 and
+	-- 92, Fonts.xml 39-41); a Heading's label is on GameFontNormal (AceGUIWidget-Heading.lua:45), as m.text makes it.
+	label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+	-- AceGUIWidget-Label.lua:78-83 sets these before a skin leases the label's alignment.
+	label:SetJustifyH("LEFT")
+	label:SetJustifyV("TOP")
+	label:SetText(value or "")
+	local widget = { frame = frame, label = label, type = "Label", measures = 0 }
+	-- AceGUIWidget-Label.lua:128-139: the widget's font goes into a Font object of its own, which reaches the label
+	-- through SetFontObject. The label's SetFont is never called.
+	widget.SetFont = m.trust(function(self, font, height, flags)
+		self.fontObject = self.fontObject or m.env.CreateFont()
+		self.fontObject:SetFont(font, height, flags)
+		self.label:SetFontObject(self.fontObject)
+	end)
+	-- AceGUIWidget-Label.lua:98-101 and 20-66: SetText gives the label its words and makes the frame as tall as the
+	-- label's string is in the font it has then.
+	widget.SetText = m.trust(function(self, words)
+		self.label:SetText(words or "")
+		local height = self.label:GetStringHeight()
+		self.frame:SetHeight(height and height > 0 and height or 1)
+		self.measures = self.measures + 1
+		self.measuredFont = { self.label:GetFont() }
+	end)
+	return widget
+end
+
+local function AceScroll(m, parent, kind)
+	local frame = m.frame("Frame", parent)
+	local scrollframe = m.frame("ScrollFrame", frame)
+	local prefix = kind == "RXPV2ScrollFrame" and "RXPV2ScrollFrame" or "AceConfigDialogScrollFrame"
+	m.widgetCounts = m.widgetCounts or {}
+	m.widgetCounts[prefix] = (m.widgetCounts[prefix] or 0) + 1
+	local scrollbar = ScrollBar(m, scrollframe, prefix .. m.widgetCounts[prefix] .. "ScrollBar")
+	local content = m.frame("Frame", scrollframe)
+	local widget = { frame = frame, scrollframe = scrollframe, scrollbar = scrollbar, content = content, children = {}, type = kind or "ScrollFrame", layouts = 0 }
+	widget.AddChild = m.trust(function(self, child)
+		child.frame:SetParent(self.content)
+		self.children[#self.children + 1] = child
+	end)
+	widget.DoLayout = function(self) self.layouts = self.layouts + 1 end
+	return widget
+end
+
+local function AceGroup(m, parent)
+	local frame = m.frame("Frame", parent)
+	return { frame = frame, content = m.frame("Frame", frame), children = {}, type = "SimpleGroup" }
+end
+
+local function Normal(m, button, path)
+	local texture = m.texture(button, "ARTWORK")
+	texture:SetTexture("Interface/AddOns/RXPGuides/Textures/" .. path)
+	button:SetNormalTexture(texture)
+end
+
 local function Tracker(m, rxp, env)
-	local report = AceFrame(m)
-	env.RESTEDXP_TRACKER_SUMMARY_WINDOW = report.frame
-	local scroll = { frame = m.frame("Frame", report.content) }
-	scroll.scrollbar = ScrollBar(m, scroll.frame, "AceConfigDialogScrollFrame1ScrollBar")
-	report.scrollContainer = scroll
-	report.levelButton = { frame = PanelButton(m, report.content, "AceGUI30Button1", "1 to 2") }
-	report.levelMenuFrame = m.frame("Frame", report.levelButton.frame, "RXPG_LevelMenuFrame", "UIDropDownMenuTemplate")
-	rxp.tracker = { ui = { CharacterFrame = report } }
+	rxp.tracker = { ui = {} }
+	rxp.tracker.CreateGui = m.trust(function(self, attachment, target)
+		assert(self == rxp.tracker, "CreateGui is a method")
+		if not attachment or not attachment:GetName() or self.ui[attachment:GetName()] then return end
+		local report = AceFrame(m)
+		self.ui[attachment:GetName()] = report
+		report.frame:Hide()
+		report.titletext:SetText("RestedXP Leveling Report")
+		report.frame:SetPoint("TOPLEFT", attachment, "TOPRIGHT", -38, -32)
+		env.RESTEDXP_TRACKER_SUMMARY_WINDOW = report.frame
+		local scroll = AceScroll(m, report.content)
+		report.scrollContainer = scroll
+		report:AddChild(scroll)
+		local top = AceGroup(m, scroll.content)
+		m.buttonCount = (m.buttonCount or 0) + 1
+		report.levelButton = { frame = PanelButton(m, top.content, "AceGUI30Button" .. m.buttonCount, "1 to 2") }
+		report.levelMenuFrame = m.frame("Frame", report.levelButton.frame, "RXPG_LevelMenuFrame", "UIDropDownMenuTemplate")
+		report.target = AceLabel(m, top.content, target)
+		-- LevelingTracker.lua:499-503 centers the target label before AceGUI lays out the top row.
+		report.target.label:SetJustifyH("CENTER")
+		top.children = { report.levelButton, report.target }
+		scroll:AddChild(top)
+		for _, key in ipairs({ "reached", "speed", "zones", "sources", "teamwork", "extras" }) do
+			local group = key == "zones" and { content = scroll.content, children = {} } or AceGroup(m, scroll.content)
+			group.label = AceLabel(m, group.content, key)
+			group.label.type = "Heading"
+			group.label.label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+			-- AceGUIWidget-Heading.lua:46-48 centres the label between its TOP and BOTTOM points.
+			group.label.label:SetJustifyH("CENTER")
+			group.children = { group.label }
+			if key == "sources" or key == "teamwork" then
+				group.data = {}
+				for _, field in ipairs(key == "sources" and { "quests", "mobs" } or { "solo", "group" }) do
+					group.data[field] = AceLabel(m, group.content, field)
+					group.data[field]:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+					group.children[#group.children + 1] = group.data[field]
+				end
+			else
+				group.data = AceLabel(m, group.content, "In-progress")
+				-- LevelingTracker.lua:523-633 gives every data label RestedXP's font at 12 through the widget.
+				group.data:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+				group.children[#group.children + 1] = group.data
+			end
+			report[key .. "Container"] = group
+			if key == "zones" then
+				scroll:AddChild(group.label)
+				scroll:AddChild(group.data)
+				report.zonesContainer = { label = group.label, data = group.data }
+			else
+				scroll:AddChild(group)
+			end
+		end
+		attachment:HookScript("OnHide", function() m.close(report.frame) end)
+	end)
+	local character = env.CharacterFrame
+	if character == nil then character = m.frame("Frame", env.UIParent, "CharacterFrame") end
+	if rxp.settings.profile.enableTracker ~= false and character then rxp.tracker:CreateGui(character, "Tester") end
 	rxp.tracker.CreateLevelSplits = m.trust(function(self)
 		assert(self == rxp.tracker)
-		local splits = Backdrop(m, m.frame("Frame", nil, "RXPLevelSplits"))
-		splits.title = Backdrop(m, m.frame("Frame", splits, "RXPLevelSplits_title"))
-		m.text(splits.title, "text")
-		splits.title.cog = m.frame("Button", splits.title, "RXPLevelSplits_titleCogwheel")
+		if self.levelSplits then return end
+		local splits = Backdrop(m, m.frame("Frame", env.UIParent, "RXPLevelSplits"))
 		self.levelSplits = splits
-		m.seal()
 		self:RenderSplitsBackground()
+		splits:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
+		splits:SetSize(100, 48)
+		splits.title = Backdrop(m, m.frame("Frame", splits, "RXPLevelSplits_title"))
+		splits.title:SetBackdrop()
+		splits.title:SetPoint("TOP", splits, "TOP", 0, 5)
+		splits.title:SetSize(80, 17)
+		splits.title.splitsMenuFrame = m.frame("Frame", splits.title, "RXPG_SplitsMenuFrame", "UIDropDownMenuTemplate")
+		splits.title.cog = m.frame("Button", splits.title, "RXPLevelSplits_titleCogwheel")
+		splits.title.cog:SetSize(18, 18)
+		splits.title.cog:SetPoint("LEFT", splits.title, "LEFT", -9, 0)
+		Normal(m, splits.title.cog, "rxp_cog-32")
+		m.text(splits.title, "text"):SetText("Level splits")
+		local previous
+		for _, key in ipairs({ "history", "current", "total" }) do
+			local label = AceLabel(m, splits)
+			-- LevelingTracker.lua:23 and 1074-1090: RestedXP's splits font at its size setting (11, SettingsPanel.lua:137).
+			label:SetFont("Fonts\\ARIALN.ttf", rxp.settings.profile.levelSplitsFontSize or 11, "")
+			label.frame:SetPoint("TOPLEFT", previous or splits, previous and "BOTTOMLEFT" or "TOPLEFT", previous and 0 or 8, previous and (key == "current" and -8 or 0) or -10.5)
+			splits[key] = label
+			previous = label.frame
+		end
+		splits:SetAlpha(rxp.settings.profile.levelSplitsOpacity or 0.9)
+		m.seal()
+	end)
+	-- LevelingTracker.lua:1319-1326: every refresh (RefreshSplitsSummary runs one a second, 1128-1141) reads the
+	-- current label's size and, when it is not the size setting, sets RestedXP's own font on all three widgets (so
+	-- through each label's SetFontObject) before it measures them for the window's size.
+	rxp.tracker.UpdateLevelSplits = m.trust(function(self)
+		local splits = self.levelSplits
+		if not splits then return end
+		local wanted = rxp.settings.profile.levelSplitsFontSize or 11
+		if math.floor(select(2, splits.current.label:GetFont()) + 0.5) ~= wanted then
+			for _, key in ipairs({ "current", "history", "total" }) do
+				splits[key]:SetFont("Fonts\\ARIALN.ttf", wanted, "")
+			end
+		end
 	end)
 	rxp.tracker.RenderSplitsBackground = m.trust(function(self)
 		local splits = self.levelSplits
@@ -1271,8 +1461,8 @@ local function Tracker(m, rxp, env)
 		if not rxp.settings.profile.hideSplitsBackground then
 			splits:SetBackdrop()
 		end
-		splits.title:SetBackdrop()
 	end)
+	if rxp.settings.profile.enableTracker ~= false and rxp.settings.profile.enablelevelSplits then rxp.tracker:CreateLevelSplits() end
 end
 
 local function RxpButton(m, parent)
@@ -1349,7 +1539,7 @@ local function ConfiguratorOption(m, rxp, parent, option)
 	widget.UpdateSubTheme = m.trust(function(this)
 		local theme = rxp.v2:GetTheme()
 		local common = theme.textColor.common
-		this.text:SetFont(theme.font, 11, "")
+		this.text:SetFont(theme.font, select(2, this.text:GetFont()), "")
 		this.text:SetTextColor(common[1], common[2], common[3], common[4] or 1)
 		this.frame.configuratorBackground:SetColorTexture(unpack(theme.backgroundColors.activeStepCheckbox))
 		this.checkbg.configuratorBackground:SetColorTexture(unpack(theme.backgroundColors.activeStepCheckbox))
@@ -1385,39 +1575,94 @@ function Fake.ConfiguratorOptions(ui)
 	return list
 end
 
+local function Popup(m, rxp)
+	local frame = m.frame("Frame")
+	frame:Hide()
+	local close = m.frame("Button", frame)
+	Normal(m, close, "rxp-btn-close")
+	-- UI/V2/Core.lua:199-200: the close button hangs off the popup's corner.
+	close:SetSize(20, 20)
+	close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 6, 6)
+	local widget = { frame = frame, title = m.text(frame), message = m.text(frame), buttons = {}, type = "RXPV2Popup" }
+	for i = 1, 2 do
+		local button = m.frame("Button", frame)
+		button.text = m.text(button)
+		widget.buttons[i] = button
+	end
+	widget.UpdateSubTheme = m.trust(function(this)
+		local theme = rxp.v2:GetTheme()
+		if not this.frame.rxpBackground then RxpBackdrop(m, this.frame) end
+		this.title:SetFont(theme.font, 10, "")
+		this.title:SetTextColor(unpack(theme.textColor.title))
+		this.message:SetFont(theme.font, 9, "")
+		this.message:SetTextColor(unpack(theme.textColor.common))
+		for _, button in ipairs(this.buttons) do
+			if not button.rxpBackground then RxpBackdrop(m, button) end
+			button.text:SetFont(theme.font, 9, "")
+			button.text:SetTextColor(unpack(theme.textColor.common))
+		end
+	end)
+	widget.UpdateTheme = function(this) this:UpdateSubTheme() end
+	widget.Show = m.trust(function(this) this:UpdateSubTheme(); m.open(this.frame) end)
+	widget:UpdateSubTheme()
+	return widget
+end
+
 local function V2Windows(m, rxp)
 	local ui = rxp.ui
+	rxp.player = rxp.player or { level = 1 }
 	local configurator = {}
 	ui.v2.configurator = configurator
 	configurator.CreateGuideConfigurator = m.trust(function(self)
 		assert(self == configurator)
+		if self.ui then return self.ui end
 		local frame = RxpBackdrop(m, m.frame("Frame"))
+		frame:Hide()
 		m.texture(frame.rxpBackground, "ARTWORK", "configuratorHeader")
+		m.frame("Frame", frame)
+		local close = m.frame("Button", frame)
+		Normal(m, close, "rxp-btn-close")
+		-- UI/V2/GuideConfigurator.lua:478-479.
+		close:SetSize(24, 24)
+		close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 5, 5)
 		local widget = { frame = frame }
 		widget.titletext = m.text(frame)
+		widget.description = m.text(frame)
+		widget.topLeftIcon = m.texture(frame, "OVERLAY")
 		widget.backbutton = RxpButton(m, frame)
 		widget.resetbutton = RxpButton(m, frame)
 		widget.submitbutton = RxpButton(m, frame)
-		local pane = m.frame("Frame", frame)
-		widget.scrollContainer = { frame = pane, scrollbar = ScrollBar(m, frame, "RXPV2ScrollFrame1ScrollBar"), children = {}, layouts = 0 }
-		widget.scrollContainer.DoLayout = function(container)
-			container.layouts = container.layouts + 1
+		widget.buttonRow = m.frame("Frame", frame)
+		widget.content = m.frame("Frame", frame)
+		for _, art in ipairs({ "rxp-icon-cog", "icon-btn-import", "icon-btn-help" }) do
+			local button = m.frame("Button", frame)
+			Normal(m, button, art)
 		end
+		widget.scrollContainer = AceScroll(m, widget.content, "RXPV2ScrollFrame")
+		widget.Refresh = function() self:ShowPage() end
 		self.ui = widget
 		m.seal()
+		return widget
 	end)
 	-- LoadPages renders the page's option rows into the scroll container as GuideConfigurator.lua's renderOptions
 	-- does: the rows but the last inside padding containers, then the container lays itself out.
 	configurator.LoadPages = m.trust(function(self)
 		local container = self.ui.scrollContainer
 		container.children = {}
+		local intro = AceGroup(m, container.content)
+		intro.type = "RXPV2GuideConfiguratorOptionPadding"
+		intro.titleLabel = AceLabel(m, intro.content, "Guide choices")
+		intro.descriptionLabel = AceLabel(m, intro.content, "Choose your route")
+		intro.children = { intro.titleLabel, intro.descriptionLabel }
+		container.children[1] = intro
 		for i, option in ipairs(Fake.CONFIGURATOR_OPTIONS) do
 			if i < #Fake.CONFIGURATOR_OPTIONS then
-				local padding = { type = "RXPV2GuideConfiguratorOptionPadding", frame = m.frame("Frame", container.frame), children = {} }
-				padding.children[1] = ConfiguratorOption(m, rxp, padding.frame, option)
+				local padding = { type = "RXPV2GuideConfiguratorOptionPadding", frame = m.frame("Frame", container.content), children = {} }
+				padding.content = m.frame("Frame", padding.frame)
+				padding.children[1] = ConfiguratorOption(m, rxp, padding.content, option)
 				container.children[#container.children + 1] = padding
 			else
-				container.children[#container.children + 1] = ConfiguratorOption(m, rxp, container.frame, option)
+				container.children[#container.children + 1] = ConfiguratorOption(m, rxp, container.content, option)
 			end
 		end
 		m.seal()
@@ -1431,25 +1676,32 @@ local function V2Windows(m, rxp)
 		if not widget then
 			return
 		end
-		widget.titletext:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 11, "")
+		local theme = rxp.v2:GetTheme()
+		widget.titletext:SetFont(theme.font, (rxp.settings.profile.guideFontSize or 10) + 2, "")
 		widget.titletext:SetTextColor(1, 0.82, 0)
+		widget.description:SetFont(theme.font, 9, "")
 		for _, key in ipairs({ "backbutton", "resetbutton", "submitbutton" }) do
 			local button = widget[key]
-			button.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
+			button.text:SetFont(theme.font, select(2, button.text:GetFont()), "")
 			button.text:SetTextColor(1, 1, 1)
-			button.configuratorBackground:SetColorTexture(0.1, 0.1, 0.2, 1)
+			button.configuratorBackground:SetColorTexture(unpack(key == "submitbutton" and theme.backgroundColors.activeStepCheckboxChecked or theme.backgroundColors.guideSelector))
 			button.configuratorBackground:SetAlpha(1)
 		end
 		for _, option in ipairs(Fake.ConfiguratorOptions(widget)) do
 			option:UpdateTheme()
 		end
 	end)
-	function configurator.Open(self)
-		if not self.ui then
-			self:CreateGuideConfigurator()
+	function configurator.ShowPage(self) self:LoadPages() end
+	function configurator.Open(self, login)
+		if login then
+			local data = m.env.RXPCData
+			if data and data.currentGuideName and data.currentGuideName ~= "" then return end
+			if rxp.currentGuide and not rxp.currentGuide.empty then return end
+			if rxp.player.level ~= 1 then return end
 		end
-		self:LoadPages()
-		m.open(self.ui.frame)
+		local widget = self:CreateGuideConfigurator()
+		widget:Refresh()
+		m.open(widget.frame)
 	end
 
 	local importer = { widgets = {} }
@@ -1457,26 +1709,75 @@ local function V2Windows(m, rxp)
 	ui.v2.CreateGuideImporter = m.trust(function(self)
 		assert(self == ui.v2)
 		local widgets = importer.widgets
+		if widgets.import then return widgets.import end
 		local frame = RxpBackdrop(m, m.frame("Frame"))
+		frame:Hide()
+		local close = m.frame("Button", frame)
+		Normal(m, close, "rxp-btn-close")
+		-- UI/V2/GuideImporter.lua:270-271.
+		close:SetSize(20, 20)
+		close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 6, 6)
+		local window = { frame = frame, title = m.text(frame), description = m.text(frame), content = m.frame("Frame", frame), children = {}, closebutton = close }
 		for _, key in ipairs({ "importerBackground", "importerBody", "importerHeader" }) do
 			m.texture(frame, "BACKGROUND", key)
 		end
-		local window = { frame = frame, title = m.text(frame) }
-		window.closebutton = m.frame("Button", frame)
-		m.texture(window.closebutton, "ARTWORK", "Art")
-		widgets.import = window
-		for _, key in ipairs({ "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }) do
-			local button = RxpButton(m, frame)
-			widgets[key] = { frame = button, text = button.text }
+		local function ImportButton(key)
+			local button = RxpBackdrop(m, m.frame("Button", window.content))
+			local widget = { frame = button, text = m.text(button), type = "RXPV2GuideImporterButton" }
+			widgets[key] = widget
+			window.children[#window.children + 1] = widget
 		end
-		local background = RxpBackdrop(m, m.frame("Frame", frame))
+		widgets.purgeConfirmation = Popup(m, rxp)
+		widgets.importLabel = m.text(window.content)
+		local boxFrame = m.frame("Frame", window.content)
+		local label = m.text(boxFrame)
+		local background = RxpBackdrop(m, m.frame("Frame", boxFrame))
 		local box = m.frame("EditBox", background, "RXPV2GuideImporterEditBox1Edit")
-		widgets.importBox = { background = background, editBox = box }
-		for _, key in ipairs({ "purgeConfirmation", "deleteConfirmation" }) do
-			local popup = RxpBackdrop(m, m.frame("Frame"))
-			widgets[key] = { frame = popup, title = m.text(popup), message = m.text(popup), buttons = { RxpButton(m, popup), RxpButton(m, popup) } }
-		end
+		widgets.importBox = { frame = boxFrame, background = background, editBox = box, label = label, labelHeight = 0, numlines = 4 }
+		widgets.importBox.GetEditBox = function(this) return this.editBox end
+		widgets.importBox.label:Hide()
+		window.children[#window.children + 1] = widgets.importBox
+		ImportButton("importButton")
+		ImportButton("importSplicedString")
+		widgets.guidesLabel = m.text(window.content)
+		local dropdownFrame = RxpBackdrop(m, m.frame("Frame", window.content))
+		local dropdown = m.frame("Frame", dropdownFrame, "AceGUI30DropDown1", "UIDropDownMenuTemplate")
+		widgets.currentGuides = { frame = dropdownFrame, dropdown = dropdown, text = m.text(dropdown), label = m.text(dropdownFrame), button = m.frame("Button", dropdown), button_cover = m.frame("Button", dropdownFrame) }
+		-- LibUIDropDownMenu.lua:647-650: the selected value is right-aligned before a skin leases it.
+		widgets.currentGuides.text:SetJustifyH("RIGHT")
+		Normal(m, widgets.currentGuides.button, "scrollbar_down")
+		widgets.currentGuides.button_cover:Hide()
+		widgets.currentGuides.label:Hide()
+		window.children[#window.children + 1] = widgets.currentGuides
+		ImportButton("purgeButton")
+		ImportButton("reloadButton")
+		ImportButton("deleteButton")
+		widgets.deleteConfirmation = Popup(m, rxp)
+		widgets.progressLabel = m.text(window.content)
+		widgets.progress = RxpBackdrop(m, m.frame("StatusBar", window.content))
+		widgets.progress:SetStatusBarTexture(WHITE)
+		widgets.progress:SetMinMaxValues(0, 1)
+		widgets.progress:SetValue(0)
+		widgets.progressBackground = m.texture(widgets.progress, "BACKGROUND")
+		widgets.progressText = m.text(widgets.progress)
+		widgets.history = m.text(window.content)
+		widgets.import = window
+		window.UpdateSubTheme = m.trust(function(this)
+			local theme = rxp.v2:GetTheme()
+			this.title:SetFont(theme.font, 10, "")
+			this.title:SetTextColor(1, 0.82, 0)
+			this.frame.importerBody:SetAlpha(1)
+			this.frame.importerHeader:SetAlpha(0.5)
+			for _, key in ipairs({ "importLabel", "guidesLabel", "progressLabel", "progressText", "history" }) do widgets[key]:SetFont(theme.font, 8, "") end
+			for _, key in ipairs({ "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }) do
+				widgets[key].text:SetFont(theme.font, 9, "")
+			end
+			widgets.purgeConfirmation:UpdateTheme({})
+			widgets.deleteConfirmation:UpdateTheme({})
+		end)
+		window:UpdateSubTheme()
 		m.seal()
+		return window
 	end)
 	function importer.Open(self)
 		assert(self == importer)
@@ -1531,28 +1832,101 @@ function Fake.Windows(env, rxp, opts)
 	end
 	-- OpenBugReport and OpenBrandedExport show an AceGUI frame from AceGUI's shared pool, as RestedXP's feedback form
 	-- and export box do; closing the export box gives its frame back to the pool for any addon to use.
-	local pool = AceFrame(m)
-	pool.frame:Hide()
-	rxp.pooledFrame = pool.frame
-	rxp.comms.OpenBugReport = m.trust(function()
-		env.RESTEDXP_BUG_REPORT_WINDOW = pool.frame
-		pool.titletext:SetText("RestedXP Feedback Form")
-		pool.titletext:SetTextColor(1, 0.82, 0)
-		pool.frame:SetBackdrop()
-		pool.frame:Show()
+	local pool, editPool = {}, {}
+	local function Acquire()
+		for _, widget in ipairs(pool) do
+			if widget.released then
+				widget.released, widget.onClose = false, nil
+				widget.children = {}
+				return widget
+			end
+		end
+		local widget = AceFrame(m)
+		pool[#pool + 1] = widget
+		return widget
+	end
+	local function Edit(parent)
+		local widget
+		for _, candidate in ipairs(editPool) do
+			if candidate.released then widget = candidate; break end
+		end
+		if not widget then
+			local frame = m.frame("Frame", parent.content)
+			local label = m.text(frame)
+			-- AceGUIWidget-MultiLineEditBox.lua:289 makes the label on GameFontNormalSmall, Friz Quadrata at 10.
+			label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+			-- AceGUIWidget-MultiLineEditBox.lua:290-294,338-339: defaults read by leased text and the renderer. The
+			-- label hangs across the frame's top, 10 high, and the scroll bar and box hang from its bottom (313-318).
+			label:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -4)
+			label:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -4)
+			label:SetHeight(10)
+			label:SetJustifyH("LEFT")
+			local button = PanelButton(m, frame, "MultiLineEditBox" .. (#editPool + 1) .. "Button", "Accept")
+			local background = Backdrop(m, m.frame("Frame", frame))
+			background:SetBackdrop()
+			local scroll = m.frame("ScrollFrame", frame, "MultiLineEditBox" .. (#editPool + 1) .. "ScrollFrame", "UIPanelScrollFrameTemplate")
+			local scrollbar = ScrollBar(m, scroll, scroll:GetName() .. "ScrollBar")
+			local box = m.frame("EditBox", scroll, "MultiLineEditBox" .. (#editPool + 1) .. "Edit")
+			box:SetFont("Fonts\\ARIALN.TTF", 12, "")
+			box:SetMultiLine(true)
+			widget = { type = "MultiLineEditBox", frame = frame, label = label, button = button, editBox = box, scrollBG = background, scrollFrame = scroll, scrollBar = scrollbar, labelHeight = 10, numlines = 4 }
+			editPool[#editPool + 1] = widget
+		end
+		widget.owner = parent.owner or parent
+		widget.released = false
+		widget.frame:SetParent(parent.content)
+		parent:AddChild(widget)
+		return widget
+	end
+	m.dialogPool = pool
+	m.acquireDialog = m.trust(Acquire)
+	rxp.comms.OpenBugReport = m.trust(function(stepNumber)
+		assert(stepNumber ~= rxp.comms, "OpenBugReport is a dot function")
+		local widget = Acquire()
+		widget.statustext:GetParent():Hide()
+		widget.scrollContainer = AceScroll(m, widget.content)
+		widget.scrollContainer.owner = widget
+		widget:AddChild(widget.scrollContainer)
+		local edit = Edit(widget.scrollContainer)
+		edit.label:SetText("Join our support discord at discord.gg/RestedXP and copy paste this form into #bug-report")
+		edit.editBox:SetText("Feedback for step " .. tostring(type(stepNumber) == "table" and stepNumber.arg1 or stepNumber))
+		edit.button:Hide()
+		widget.titletext:SetText("RestedXP Feedback Form")
+		widget.titletext:SetTextColor(1, 0.82, 0)
+		env.RESTEDXP_BUG_REPORT_WINDOW = widget.frame
+		m.open(widget.frame)
 	end)
-	rxp.comms.OpenBrandedExport = m.trust(function()
-		env.RESTEDXP_BRANDED_EXPORT = pool.frame
-		pool.titletext:SetTextColor(1, 0.82, 0)
-		pool.frame:SetBackdrop()
-		pool.frame:Show()
+	rxp.comms.OpenBrandedExport = m.trust(function(title, description, content, width, height, acceptCallback)
+		assert(title ~= rxp.comms, "OpenBrandedExport is a dot function")
+		local widget = Acquire()
+		m.close(widget.frame)
+		widget.statustext:GetParent():Hide()
+		widget.titletext:SetText("RestedXP: " .. (title or ""))
+		widget.titletext:SetTextColor(1, 0.82, 0)
+		local edit = Edit(widget)
+		edit.label:SetText(description or "")
+		edit.editBox:SetText(content or "")
+		edit.button:SetShown(acceptCallback ~= nil)
+		edit.acceptCallback = acceptCallback
+		widget.frame:SetSize(width or 400, height or 100)
+		widget.onClose = function() widget:Release() end
+		env.RESTEDXP_BRANDED_EXPORT = widget.frame
+		m.open(widget.frame)
 	end)
-	-- CreateCleanupButton puts RestedXP's button on the quest log, as RestedXP does at PLAYER_ENTERING_WORLD.
-	rxp.CreateCleanupButton = m.trust(function()
-		local button = PanelButton(m, env.UIParent, "RXPQuestLogCleanupButton", "Clean up")
+	local questMap = env.QuestMapFrame or env.CreateFrame("Frame", "QuestMapFrame", env.UIParent)
+	questMap.DetailsFrame = questMap.DetailsFrame or env.CreateFrame("Frame", nil, questMap)
+	m.createCleanupButton = m.trust(function()
+		if rxp.cleanupBtn then return rxp.cleanupBtn end
+		local button = PanelButton(m, questMap.DetailsFrame, "RXPQuestLogCleanupButton", "Clean up")
+		button:SetSize(200, 22)
 		rxp.cleanupBtn = button
-		m.seal()
 		return button
+	end)
+	local driver = m.frame("Frame")
+	driver:RegisterEvent("PLAYER_ENTERING_WORLD")
+	driver:RegisterEvent("ADDON_LOADED")
+	driver:SetScript("OnEvent", function(_, event, addon)
+		if event == "PLAYER_ENTERING_WORLD" or addon == "Blizzard_QuestLog" or addon == "Blizzard_WorldMap" or addon == "RXPGuides" then m.createCleanupButton() end
 	end)
 	m.seal()
 	m.depth = 0
