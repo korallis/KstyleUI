@@ -94,7 +94,7 @@ local function Apply()
 	if not Kit.Have(frame, "ClassTrainerFrame") then
 		return false
 	end
-	Kit.Window(frame)
+	Kit.Window(frame, { titleRole = "names" })
 	local bar = Kit.Bar(ClassTrainerStatusBar, { accent = true, label = SkillLine() })
 	if bar and type(ClassTrainerFrame_Update) == "function" then
 		hooksecurefunc("ClassTrainerFrame_Update", function()

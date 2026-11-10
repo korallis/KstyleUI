@@ -16,6 +16,14 @@ local DEFAULT_WIDTH = 278
 
 local Cap = {}
 
+Widgets.CAPS_SIZE = CAP_SIZE
+
+function Widgets.CapsSize(text, plain)
+	Widgets.CapsSized[text] = plain or false
+	local path, floor, flags = Tokens.Font("caps")
+	Widgets.ApplyFont(text, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags, plain)
+end
+
 local function Placed(self)
 	local count = self.counted
 	self.rule:ClearAllPoints()
@@ -32,6 +40,23 @@ end
 
 function Cap:SetText(text)
 	Widgets.SetText(self.label, text)
+	if self.wrapWidth then
+		self:SetWrapWidth(self.wrapWidth)
+	end
+end
+
+function Cap:SetWrapWidth(width)
+	self.wrapWidth = width
+	local available = math.max(1, width - Widgets.Snap(self, GEM_CENTRE) - Widgets.Snap(self, TEXT_FROM_GEM))
+	local wrap = Widgets.TextWidth(self.label, 0) > available
+	self.label:SetWordWrap(wrap)
+	self.label:SetWidth(wrap and available or 0)
+	local height = wrap and Widgets.WrappedHeight(self.label, available) or Widgets.SECTION_CAP_HEIGHT
+	self.label:SetHeight(wrap and height or 0)
+	height = math.max(Widgets.SECTION_CAP_HEIGHT, height)
+	self:SetHeight(Widgets.Snap(self, height))
+	self.rule:SetShown(not wrap)
+	return height
 end
 
 function Cap:SetCount(value)
@@ -71,14 +96,16 @@ function Cap:Restyle()
 	self.gem:SetSize(gem, gem)
 	self.gem:ClearAllPoints()
 	self.gem:SetPoint("CENTER", self, "LEFT", Widgets.Snap(self, GEM_CENTRE), 0)
-	local path, floor, flags = Tokens.Font("caps")
-	Widgets.ApplyFont(self.label, path, math.max(floor, CAP_SIZE * ns.Theme.FontScale()), flags)
+	Widgets.CapsSize(self.label)
 	self.label:ClearAllPoints()
 	self.label:SetPoint("LEFT", self.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 	self.rule:SetHeight(Widgets.Border(self))
 	self.count:ClearAllPoints()
 	self.count:SetPoint("RIGHT", self, "RIGHT")
 	Placed(self)
+	if self.wrapWidth then
+		self:SetWrapWidth(self.wrapWidth)
+	end
 	self:Paint()
 end
 

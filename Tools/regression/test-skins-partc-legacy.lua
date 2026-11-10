@@ -102,7 +102,7 @@ do
 	assert(ns.Skins.IsApplied("legacy"), "the first show skins the window")
 	local f = p.frame
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(f.Bg) == 0 and Alpha(p.portrait) == 0, "a glass panel replaces the window art")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"))
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("caps"))
 	assert(not K.Skin.IsSkinned(f.Tabs[1], "Tab"), "side tabs are not given bottom-tab underlines")
 	assert(ns.Parts.RimOf(f.Tabs[1]).rim[1]:IsShown(), "the selected page's tab wears an accent rim")
 	assert(Alpha(f.Tabs[2].Background) == 0 and Alpha(f.Tabs[2].Icon) > 0 and Alpha(f.Tabs[2].Icon) < 1, "an unselected side tab keeps its icon, quiet")

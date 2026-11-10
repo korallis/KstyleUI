@@ -20,7 +20,8 @@ Preview.MIN_GAIN = 0.05
 function Preview.Sample(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	local gap = Tokens.Size("gapLarge")
-	local title = Widgets.Text(frame, "heading", "textEmphasis")
+	local title = Widgets.Text(frame, "caps", "capsGold")
+	Widgets.CapsSize(title)
 	title:SetPoint("TOP", frame, "TOP", 0, -gap)
 	Widgets.SetText(title, L["Sample panel"])
 	local body = Widgets.Text(frame, "body", "text")
@@ -257,10 +258,7 @@ end
 
 function Preview.Create(parent)
 	local pane = Widgets.Panel(parent, { shape = "tile", fill = "buttonFill", shadow = false })
-	pane.caption = Widgets.Text(pane, "caption", "text")
-	Widgets.SetText(pane.caption, L["Live preview"])
-	pane.rule = pane:CreateTexture(nil, "ARTWORK")
-	pane.rule:SetTexture((Tokens.Texture("divider")))
+	pane.caption = Widgets.SectionCap(pane, { text = L["Live preview"] })
 	pane.holder = CreateFrame("Frame", nil, pane)
 	pane.holder:SetClipsChildren(true)
 	pane.built = {}
@@ -270,18 +268,12 @@ function Preview.Create(parent)
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
 		self.caption:ClearAllPoints()
 		self.caption:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
-		self.rule:ClearAllPoints()
-		self.rule:SetPoint("TOPLEFT", self.caption, "BOTTOMLEFT", 0, -gap)
-		self.rule:SetPoint("RIGHT", self, "RIGHT", -pad, 0)
-		self.rule:SetHeight(Widgets.Border(self))
-		Widgets.Tint(self.rule, "accent")
+		self.caption:SetPoint("TOPRIGHT", self, "TOPRIGHT", -pad, -pad)
 		self.holder:ClearAllPoints()
-		self.holder:SetPoint("TOPLEFT", self.rule, "BOTTOMLEFT", 0, -gap)
+		self.holder:SetPoint("TOPLEFT", self.caption, "BOTTOMLEFT", 0, -gap)
 		local width, height = self:GetWidth(), self:GetHeight()
 		if Known(width) and Known(height) then
-			local line = Widgets.LineHeight(self.caption)
-			Widgets.Size(self.caption, math.max(1, width - 2 * pad), line)
-			local top = pad + line + gap + Widgets.Border(self) + gap
+			local top = pad + Widgets.SECTION_CAP_HEIGHT + gap
 			Widgets.Size(self.holder, math.max(1, width - 2 * pad), math.max(1, height - top - pad))
 			RefreshCurrent(self)
 		else

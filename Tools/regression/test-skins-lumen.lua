@@ -108,6 +108,7 @@ do
 	assert(not title:GetText():find(THIN_SPACE, 1, true), "and carries no thin space, which Cinzel cannot draw")
 	assert((title:GetFont()) == Style.Font("caps") and Lumen.CAP_SIZE == 12 and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE / K.Widgets.ScaleFactor(cap.row)), "in the caps face at the picture's 12 root units (21 px on the owner's screen), whatever scale the cap's frame has, got " .. tostring((select(2, title:GetFont()))))
 	assert(TextIs(title, K.Tokens.Color("capsGold")), "the title is the picture's muted gold")
+	assert(Near(K.Widgets.TrackPad(title), K.Tokens.FaceTracking((title:GetFont())) * select(2, title:GetFont())), "kit-owned captions retain their tracking compensation for the rule start")
 	local titlePoint = { title:GetPoint(1) }
 	assert(Near(Lumen.CapColumn(cap.row), K.Widgets.Snap(cap.row, Lumen.GEM_UNITS / factor) + K.Widgets.Snap(cap.row, Lumen.GEM_GAP / factor)) and Lumen.GEM_UNITS + Lumen.GEM_GAP == 15, "the title's column is 15 root units after the gem's left point")
 	assert(titlePoint[1] == "LEFT" and titlePoint[2] == cap.row and Near(titlePoint[4], K.Widgets.Snap(cap.row, 10) + Lumen.CapColumn(cap.row)), "the title starts in that column, got " .. tostring(titlePoint[4]))
@@ -210,7 +211,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Blizzard windows: every skinned window wears the Lumen window grade, a heading-face title and pill scroll bars --
+-- Blizzard windows: every skinned window wears the Lumen window grade, a caps-face title and pill scroll bars --
 
 do
 	local Windows = dofile("Tools/regression/skins_windows.lua")
@@ -262,10 +263,11 @@ do
 		assert(found, spec.key .. ": the window or one of its pages sits on a KstyleUI backdrop")
 		assert(found.chrome.shapeName == grade, spec.key .. ": the " .. grade .. " grade, Lumen's rail with gilt tips when S1 lands, got " .. tostring(found.chrome.shapeName))
 		assert(found.chrome.fillName == "surface", spec.key .. ": on the glass surface")
-		local headingPath = ns.Style.Font("heading")
+		local titleRole = (spec.key == "character" or spec.key == "reputation" or spec.key == "merchant" or spec.key == "trainer") and "names" or "caps"
+		local titlePath = ns.Style.Font(titleRole)
 		local title = type(window.TitleContainer) == "table" and window.TitleContainer.TitleText or nil
 		if title and windowParts and windowParts.kinds.Window then
-			assert((title:GetFont()) == headingPath, spec.key .. ": the title is in the heading face, Lumen's Cinzel")
+			assert((title:GetFont()) == titlePath, spec.key .. ": the title uses the " .. titleRole .. " face")
 		end
 		for _, frame in ipairs(env._frames) do
 			local p = K.Skin.Parts(frame)

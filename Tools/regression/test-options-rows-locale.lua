@@ -200,5 +200,28 @@ do
 	W.Settle(env)
 end
 
+for _, scale in ipairs({ 1, 1.3 }) do
+	K.Theme.SetFontScale(scale)
+	K.Options.Open("Nameplates")
+	settle()
+	resize(880, 520)
+	local content = ns.Window.Parts().content
+	for i, item in ipairs(ns.Window.State().items) do
+		if item.label == LONGER_SECTION then
+			content:ScrollTo(content.tops[i], true)
+		end
+	end
+	settle()
+	Scene.Build(env)
+	local row = rowFor(LONGER_SECTION)
+	local text, box = rect(row.caption.label), rect(row)
+	assert(text.left >= box.left - EPS and text.right <= box.right + EPS and text.top >= box.top - EPS and text.bottom <= box.bottom + EPS,
+		"the long gold section caption fits its row at text scale " .. scale .. ": " .. describe(text) .. " / " .. describe(box))
+	assert(row.caption.label:IsTruncated() == false, "a long gold caption wraps instead of clipping")
+	local wrap = W.LastCall(row.caption.label, "SetWordWrap")
+	assert(wrap and wrap[1] == true, "the long section caption wraps at minimum width")
+	assert(not row.caption.rule:IsShown(), "a wrapped caption consumes the rule's remaining space")
+end
+
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))
 print("options rows locale ok")

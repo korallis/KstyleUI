@@ -142,7 +142,7 @@ do
 
 	local f = p.frame
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(f.Bg) == 0, "the window wears the glass panel")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"))
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("caps"))
 	assert(Alpha(p.MaximizeButton) == 0 and Alpha(p.MinimizeButton) == 0, "the red size buttons lose their art")
 
 	local book = p.book
@@ -166,7 +166,7 @@ do
 	assert(Alpha(item.Button.Icon) == 1 and Alpha(item.Button.Arrow) == 1, "the icon and the flyout arrow stay")
 	assert(item.Button.Icon:GetNumMaskTextures() == 0, "the icon loses Blizzard's rounded mask")
 	assert(ns.Parts.RimOf(item.Button), "the icon sits on a KstyleUI rim")
-	assert(FontPath(item.Name) == Style.Font("heading") and FontPath(item.SubName) == Style.Font("body"))
+	assert(FontPath(item.Name) == Style.Font("names") and FontPath(item.SubName) == Style.Font("body"))
 	local header = p.items[2]
 	assert(Alpha(header.Border) == 0 and Alpha(header.Backplate) == 0 and FontPath(header.Text) == Style.Font("display"), "a section header becomes display text over an accent line")
 	p.shown[#p.shown + 1] = p.late

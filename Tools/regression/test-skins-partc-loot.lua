@@ -152,7 +152,7 @@ do
 
 	local f = p.frame
 	assert(K.Skin.IsSkinned(f, "Window") and Alpha(p.bg) == 0 and Alpha(p.border) == 0, "a glass panel replaces Blizzard's flat panel")
-	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("heading"), "the title wears the heading font")
+	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("caps"), "the title wears the caps font")
 	assert(K.Skin.IsSkinned(f.ClosePanelButton, "CloseButton") and Alpha(p.closeArt) == 0, "the close button becomes the close glyph")
 	assert(K.Skin.IsSkinned(f.ScrollBar, "ScrollBar"), "the scroll bar is restyled")
 	assert(Alpha(p.upper) == 0 and Alpha(p.lower) == 0, "the list's shadows go")

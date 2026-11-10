@@ -204,7 +204,7 @@ do
 	assert(not K.Skin.IsSkinned(border, "Backdrop"), "the border frame, which sits above the map, gets no fill")
 	assert(Alpha(map.nine) == 0 and Alpha(border.Bg) == 0 and Alpha(border.InsetBorderTop) == 0, "the map's frame art goes")
 	assert(K.Skin.IsSkinned(border.CloseButton, "CloseButton") and Alpha(map.minimizeArt) == 0)
-	assert(FontPath(border.TitleContainer.TitleText) == Style.Font("heading"))
+	assert(FontPath(border.TitleContainer.TitleText) == Style.Font("caps"))
 	assert(Alpha(map.navArt) == 0 and Alpha(map.navOverlay) == 0 and K.Skin.IsSkinned(m.NavBar, "Backdrop"), "the navigation bar sits on a tile")
 	assert(K.Skin.Parts(m.NavBar).backdrop.chrome.fillName == "surface", "on the glass surface")
 	assert(K.Skin.Parts(m).backdrop.chrome.shapeName == "window", "the map is window-grade glass, as every Blizzard window")

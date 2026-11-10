@@ -19,6 +19,7 @@ local FALLBACK_FONT = "GameFontHighlight"
 
 local WEAK = { __mode = "k" }
 local roles = setmetatable({}, WEAK)
+local sizes = setmetatable({}, WEAK)
 local bars = setmetatable({}, WEAK)
 local tracked = setmetatable({}, WEAK)
 local painting = false
@@ -120,18 +121,18 @@ function Style.Font(role)
 	return path, size * Style.Setting("text", "size"), OUTLINES[Style.Setting("text", "outline")]
 end
 
-local function SetFace(object, path, role, size, flags)
-	if Widgets.ApplyFont(object, path, size, flags) then
+local function SetFace(object, path, role, size, flags, plain)
+	if Widgets.ApplyFont(object, path, size, flags, plain) then
 		return true
 	end
 	local kitPath = Tokens.Font(role)
-	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags) then
+	if kitPath ~= path and Widgets.ApplyFont(object, kitPath, size, flags, plain) then
 		LogFont(path, "skinned text uses the KstyleUI face")
 		return true
 	end
 	local fallback = _G[FALLBACK_FONT]
 	local face = type(fallback) == "table" and type(fallback.GetFont) == "function" and fallback:GetFont()
-	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags) then
+	if not IsSecret(face) and type(face) == "string" and Widgets.ApplyFont(object, face, size, flags, plain) then
 		LogFont(path, "skinned text uses the face of " .. FALLBACK_FONT)
 		return true
 	end
@@ -139,15 +140,22 @@ local function SetFace(object, path, role, size, flags)
 	return false
 end
 
-function Style.ApplyFont(object, role, size)
+function Style.ApplyFont(object, role, size, plain)
 	local path, roleSize, flags = Style.Font(role)
-	return SetFace(object, path, role, size or roleSize, flags)
+	return SetFace(object, path, role, size or roleSize, flags, plain)
 end
 
-function Style.Text(text, role, colorName)
+function Style.Text(text, role, colorName, size)
+	if role then
+		sizes[text] = size
+	end
 	role = role or roles[text] or "body"
 	roles[text] = role
-	if not Style.ApplyFont(text, role) then
+	local wanted = sizes[text]
+	if type(wanted) == "function" then
+		wanted = wanted()
+	end
+	if not Style.ApplyFont(text, role, wanted, true) then
 		text:SetFontObject(FALLBACK_FONT)
 	end
 	if colorName then
@@ -156,8 +164,14 @@ function Style.Text(text, role, colorName)
 	return text
 end
 
-function Style.Title(text, colorName)
-	Style.Text(text, "heading", colorName or "textEmphasis")
+function Style.Title(text, colorName, role)
+	if role then
+		Style.Text(text, role, colorName or "textEmphasis")
+	else
+		Style.Text(text, "caps", colorName or "capsGold", function()
+			return math.max(Tokens.Size("caps"), Widgets.CAPS_SIZE * K.Theme.FontScale()) * Style.Setting("text", "size")
+		end)
+	end
 	if type(text.SetWordWrap) == "function" then
 		text:SetWordWrap(false)
 	end

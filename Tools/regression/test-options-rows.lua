@@ -93,6 +93,12 @@ local function check(page, width, height)
 			local kind = row.item.kind
 			local control = row.controls[kind]
 			local controlBox = control and control:IsShown() and rect(control)
+			if kind == "header" and (row.item.level or 1) == 1 then
+				assert(row.caption.label:GetFont() == (K.Tokens.Font("caps")), where .. ": a section header is a gold caps caption with its diamond")
+				local cap = assert(drawn(scene, row.caption.label), where .. ": the caption draws")
+				assert(inside(cap, box), where .. ": the caption " .. describe(cap) .. " fits its row " .. describe(box))
+				assert(row.caption.gem:IsShown(), where .. ": the diamond shows")
+			end
 			if kind == "note" then
 				local note = assert(drawn(scene, row.note), where .. ": the note draws")
 				assert(inside(note, box), where .. ": the note " .. describe(note) .. " fits its row " .. describe(box))

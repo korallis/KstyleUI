@@ -203,6 +203,7 @@ function Widgets.MixTokens(nameA, alphaA, nameB, alphaB, t)
 end
 
 local textRole = setmetatable({}, { __mode = "k" })
+Widgets.CapsSized = setmetatable({}, { __mode = "k" })
 
 local function TextFrame(text)
 	if type(text.GetEffectiveScale) == "function" then
@@ -382,18 +383,23 @@ function Widgets.SyncTracking(text)
 	end
 end
 
-function Widgets.ApplyFont(text, path, size, flags)
+function Widgets.ApplyFont(text, path, size, flags, plain)
 	flags = flags or ""
 	local f = TextFactor(text)
 	local ok = text:SetFont(path, SnapSize(size, f), flags) ~= false
 	Shadow(text, flags, f)
-	Widgets.SyncTracking(text)
+	if not plain then
+		Widgets.SyncTracking(text)
+	end
 	return ok
 end
 
 function Widgets.StyleText(text, role)
 	role = role or textRole[text] or "body"
 	textRole[text] = role
+	if role == "caps" and Widgets.CapsSized[text] ~= nil then
+		return Widgets.CapsSize(text, Widgets.CapsSized[text])
+	end
 	local path, size, flags = Tokens.Font(role)
 	if not Widgets.ApplyFont(text, path, size, flags) then
 		text:SetFontObject(FALLBACK_FONT)

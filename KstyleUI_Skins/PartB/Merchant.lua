@@ -32,12 +32,28 @@ local function Slot(slot)
 	end
 end
 
+local function Title()
+	local frame = MerchantFrame
+	local tab = frame.selectedTab
+	if not (issecretvalue and issecretvalue(tab)) and tab == 2 then
+		Kit.Title(frame)
+	else
+		Kit.Title(frame, "names")
+	end
+end
+
 local function Apply()
 	local frame = MerchantFrame
 	if not Kit.Have(frame, "MerchantFrame") then
 		return false
 	end
 	Kit.Window(frame)
+	Title()
+	for _, update in ipairs({ "MerchantFrame_UpdateMerchantInfo", "MerchantFrame_UpdateBuybackInfo" }) do
+		if type(_G[update]) == "function" then
+			hooksecurefunc(update, Title)
+		end
+	end
 	for i = 1, MAX_ITEMS do
 		local slot = _G["MerchantItem" .. i]
 		if slot == nil then

@@ -122,7 +122,7 @@ local function SkinWindow(frame)
 	Skin.Window(frame, { tabs = false })
 	local title = type(frame.TitleContainer) == "table" and frame.TitleContainer.TitleText
 	if title then
-		Style.Title(title)
+		Style.Title(title, "textEmphasis", "names")
 	end
 	for _, pane in ipairs({ frame.LeftPaneHost, frame.RightPaneHost }) do
 		if type(pane) == "table" then
