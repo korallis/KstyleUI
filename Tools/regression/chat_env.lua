@@ -525,7 +525,7 @@ function C.Dock(env, measure)
 			dynamics[#dynamics + 1] = tab
 		end
 	end
-	local pad = 30 * 1080 / 2234 - 1
+	local pad = 13.5
 	local staticWidth = 0
 	for _, tab in ipairs(statics) do
 		staticWidth = staticWidth + tab._textWidth + pad + 1

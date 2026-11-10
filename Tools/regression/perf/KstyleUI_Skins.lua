@@ -5,10 +5,12 @@ local Quests = dofile("Tools/regression/quests_fake.lua")
 
 -- Card(items) -> env, run: the quest card with 25 tracked quests, its throttled QUEST_LOG_UPDATE read and redraw as
 -- one call; 100 calls a round keep the allocation trace inside the file's 20 s. items puts a quest item on the first
--- quest, so the rows hold still while its secure button shows.
+-- quest, so the rows hold still while its secure button shows. The card runs at the shipped Interface size (16/19),
+-- as the game does: the picture's right rail (LEE-20) leaves the story slot room for the rows only at that size.
 local function Card(items)
 	local log
 	local env, K = S.New({
+		saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 		setup = function(env)
 			local list = Quests.List(25)
 			if items then

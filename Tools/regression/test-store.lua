@@ -42,7 +42,7 @@ do
 	local env, K = boot()
 	local db = env.KstyleUIDB
 	check(type(db) == "table", "ADDON_LOADED creates KstyleUIDB")
-	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 10, "a fresh KstyleUIDB starts at the code's version")
+	check(db.version == K.Store.DB_VERSION and K.Store.DB_VERSION == 12, "a fresh KstyleUIDB starts at the code's version")
 	for _, field in ipairs({ "profiles", "characters", "layouts", "account", "devlog" }) do
 		check(type(db[field]) == "table", "KstyleUIDB." .. field .. " must be a table")
 	end
@@ -219,7 +219,7 @@ do
 		} },
 	})
 	CoreEnv.Boot(menv)
-	check(menv.KstyleUIDB.version == 10, "version 2 data migrates through 3 to 8 to the current 10")
+	check(menv.KstyleUIDB.version == 12, "version 2 data migrates through 3 to 11 to the current 12")
 	check(menv.KstyleUIDB.profiles.Default.Icons == nil and menv.KstyleUIDB.profiles.Default.IconsColour == nil, "the Icons sections are gone")
 	check(menv.KstyleUIDB.profiles.Alt.Icons == nil, "in every profile")
 	check(menv.KstyleUIDB.profiles.Default.UnitFrames.enabled == true, "other sections stay")
@@ -238,7 +238,7 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local auras = menv.KstyleUIDB.profiles.Default.Auras
-	check(menv.KstyleUIDB.version == 10, "version 7 data migrates to 10")
+	check(menv.KstyleUIDB.version == 12, "version 7 data migrates to 12")
 	check(auras.card == nil, "the card section is gone")
 	check(auras.buffs.rows == nil and auras.buffs.columns == 6, "the setup's one buff row goes; the player's columns stay")
 	check(auras.debuffs.dispelFirst == nil and auras.debuffs.rows == 3, "the dispellable-first split goes; the player's debuff rows stay")
@@ -266,11 +266,12 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 10, "version 8 data migrates to 10")
+	check(db.version == 12, "version 8 data migrates to 12")
 	local damage, threat = db.layouts.Default["meters.damage"], db.layouts.Default["meters.threat"]
 	check(damage.anchor == "TOPRIGHT" and damage.x == -28 and damage.y == -300, "a damage card moved only down keeps its place from the top right")
 	check(threat.anchor == "TOPRIGHT" and threat.x == -60 and threat.y == -236 and threat.width == 300, "a threat card moved only sideways keeps its place and size")
-	check(db.layouts.Default["tooltips.anchor"].anchor == nil and db.layouts.Default["tooltips.anchor"].y == 500, "the tooltip anchor kept its corner, so its own y stays as it is")
+	local tip = db.layouts.Default["tooltips.anchor"]
+	check(tip.anchor == "BOTTOMRIGHT" and tip.x == -28 and tip.y == 500, "the tooltip anchor kept its corner and its own y; migration 12 completes it from the version-9 corner")
 	local full = db.layouts.Full["meters.damage"]
 	check(full.anchor == "BOTTOMLEFT" and full.x == 40 and full.y == 40, "a full entry stays")
 	local corner = db.layouts.Full["meters.threat"]
@@ -293,17 +294,88 @@ do
 	})
 	CoreEnv.Boot(menv)
 	local db = menv.KstyleUIDB
-	check(db.version == 10, "version 9 data migrates to 10")
+	check(db.version == 12, "version 9 data migrates to 12")
 	check(db.layouts.Default["chat.main"].width == 393 and db.layouts.Default["chat.main"].height == 200 and db.layouts.Default["chat.main"].x == 28, "the old default card takes the picture's size and keeps its place")
 	check(db.layouts.Healer["chat.main"].width == 318 and db.layouts.Healer["chat.main"].height == 200, "Healer keeps the rail width and takes the picture's height")
 	check(db.layouts.Custom["chat.main"].width == 400 and db.layouts.Custom["chat.main"].height == 180, "a resized card stays")
 	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
 
+-- Migration 12 (the owner's picture wins, LEE-20, 2026-11-09): the right rail moves to the picture's places and sizes.
+-- A rail element the player never moved, or left at a version-9 (or version-8 card) default, follows the new default:
+-- its place and its old default size are cleared, so the screenMargin token still moves it. One the player moved keeps
+-- its place, completed from the version-9 default (Layout saves only the fields that differ), and its own size. Bars 4
+-- and 5 draw their empty slots again: the Lumen setup wrote showEmpty false for them, which the picture reverses, so
+-- that value goes; bar 6's stays.
+do
+	local menv, MK = CoreEnv.New({
+		saved = { version = 9, profiles = {
+			Default = { ActionBars = { bar4 = { showEmpty = false }, bar5 = { showEmpty = false, size = 40 }, bar6 = { showEmpty = false } } },
+			Tank = { Layout = { preset = "Tank" } },
+		}, layouts = {
+			Default = {
+				["minimap.main"] = { width = 160, height = 160 },
+				["meters.damage"] = { width = 318 },
+				["meters.threat"] = { anchor = "TOPRIGHT", x = -28, y = -236, width = 318, height = 144 },
+				["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -28, y = 28, height = 118 },
+				["actionbars.bar4"] = { anchor = "RIGHT", x = -362, y = 0 },
+				["actionbars.bar5"] = { y = 120 },
+				["auras.buffs"] = { x = -400 },
+				["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -28, y = 360 },
+			},
+			Tank = { ["meters.threat"] = { width = 318 } },
+		} },
+	})
+	CoreEnv.Boot(menv)
+	local db = menv.KstyleUIDB
+	check(db.version == 12, "version 9 data migrates to 12")
+	local layout = db.layouts.Default
+	check(layout["minimap.main"] == nil, "the version-9 map size goes, so the map takes the picture's 188")
+	check(layout["meters.damage"] == nil, "the old rail width alone goes, so the damage card takes the picture's 269 x 158")
+	check(layout["meters.threat"] == nil, "a threat card at the version-8 place and old size follows the new default")
+	check(layout["databars.strip"] == nil, "the readout at its old foot follows the new line, its docked height gone")
+	check(layout["actionbars.bar4"] == nil, "bar 4 at #208's place moves into the rail")
+	local bar5 = layout["actionbars.bar5"]
+	check(bar5.anchor == "RIGHT" and bar5.x == -403 and bar5.y == 120, "bar 5 moved only up keeps its place, completed from version 9")
+	local buffs = layout["auras.buffs"]
+	check(buffs.anchor == "TOPRIGHT" and buffs.x == -400 and buffs.y == -28, "buffs moved only sideways keep their place")
+	check(layout["tooltips.anchor"] == nil, "the tooltip anchor at its old default follows the new one")
+	check(db.layouts.Tank["meters.threat"].width == 318, "the Tank threat card, in the combat cluster, is left alone")
+	local bars = db.profiles.Default.ActionBars
+	check(bars.bar4.showEmpty == nil and bars.bar5.showEmpty == nil and bars.bar5.size == 40, "bars 4 and 5 draw their empty slots again; the player's size stays")
+	check(bars.bar6.showEmpty == false, "bar 6, off in Lumen, keeps its hidden slots")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+	local damage = MK.Layout.Get and MK.Layout.Get("meters.damage")
+	check(damage == nil or (damage.anchor == "BOTTOMRIGHT" and damage.y == MK.Tokens.Size("screenMargin")), "the damage card resolves to the rail's foot")
+end
+
+-- The owner's own saved data (version 4, 2026-11-09): #208's older bars 2 to 6 at the top left and the damage and
+-- threat cards at the old 318 width land on the picture's rail.
+do
+	local menv = CoreEnv.New({
+		saved = { version = 4, profiles = { Default = { Auras = { enabled = true, buffs = { rows = 1 } }, ActionBars = { enabled = true, bar4 = { showEmpty = false }, bar5 = { showEmpty = false } } } }, layouts = {
+			Default = {
+				["actionbars.bar4"] = { y = -28, x = 526, anchor = "TOPLEFT" },
+				["actionbars.bar5"] = { y = -28, x = 403, anchor = "TOPLEFT" },
+				["actionbars.bar6"] = { y = -28, x = 444, anchor = "TOPLEFT" },
+				["meters.threat"] = { width = 318 },
+				["meters.damage"] = { width = 318 },
+			},
+		} },
+	})
+	CoreEnv.Boot(menv)
+	local layout = menv.KstyleUIDB.layouts.Default
+	for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "meters.threat", "meters.damage" }) do
+		check(layout[key] == nil, key .. " follows the picture's default, got " .. tostring(layout[key] and (tostring(layout[key].anchor) .. " " .. tostring(layout[key].x))))
+	end
+	check(menv.KstyleUIDB.profiles.Default.ActionBars.bar4.showEmpty == nil, "bar 4 draws every slot")
+	check(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
+end
+
 -- Data from a newer KstyleUI is left alone; a failing migration stops and is logged.
-	local env2, K2 = CoreEnv.New({ saved = { version = 11, profiles = {} } })
+	local env2, K2 = CoreEnv.New({ saved = { version = 13, profiles = {} } })
 	CoreEnv.Boot(env2)
-	check(env2.KstyleUIDB.version == 11, "a newer version is not lowered")
+	check(env2.KstyleUIDB.version == 13, "a newer version is not lowered")
 	check(K2.Store.ProfileName() == "Default")
 	local env3, K3 = CoreEnv.New({ saved = { version = 1, profiles = {} } })
 	K3.Store.DB_VERSION = 3

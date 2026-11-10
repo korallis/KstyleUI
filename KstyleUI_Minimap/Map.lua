@@ -1,4 +1,4 @@
--- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's square frame behind the chamfered mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the bands' data.
+-- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's square frame behind the square mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the caption's data.
 local _, ns = ...
 
 local K = KstyleUI
@@ -105,7 +105,7 @@ local function StopClock()
 		ticker = nil
 	end
 	if Map.face then
-		Map.face.clockBand:SetScript("OnUpdate", nil)
+		Map.face.caption:SetScript("OnUpdate", nil)
 	end
 end
 
@@ -114,14 +114,14 @@ local function SyncClock()
 		StopClock()
 		return
 	end
-	if ticker or Map.face.clockBand:GetScript("OnUpdate") then
+	if ticker or Map.face.caption:GetScript("OnUpdate") then
 		return
 	end
 	if C_Timer and type(C_Timer.NewTicker) == "function" then
 		ticker = C_Timer.NewTicker(CLOCK_INTERVAL, UpdateClock)
 	else
 		clockElapsed = 0
-		Map.face.clockBand:SetScript("OnUpdate", ClockOnUpdate)
+		Map.face.caption:SetScript("OnUpdate", ClockOnUpdate)
 		Log("C_Timer.NewTicker is missing; the clock counts with OnUpdate")
 	end
 end
@@ -389,7 +389,7 @@ local function Build()
 	end
 	local element = K.Setup.Layouts.Element(KEY)
 	local holder = CreateFrame("Frame", HOLDER_NAME, K.Scale.Root())
-	holder:SetSize(element.width, element.height)
+	Widgets.Size(holder, element.width, element.height)
 	holder:SetFrameStrata(STRATA)
 	Map.holder = holder
 	local face = Face.New(holder, { wheel = true, onZoom = OnSliderZoom })
@@ -533,7 +533,7 @@ function Adopt()
 		hoverHooked = true
 		HookHover(minimap)
 	end
-	Log("Minimap moved into KstyleUI's square frame with the chamfered mask")
+	Log("Minimap moved into KstyleUI's square frame with the square mask")
 end
 
 local function BlizzardPieces()

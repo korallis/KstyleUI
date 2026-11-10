@@ -1,4 +1,4 @@
--- test-hud-scale.lua: the HUD's default size (owner pass 1, 2026-11-09: "the UI is scaled quite high"), the canvas the layouts are drawn on, the Cooldown Manager rows at the action button's size, and the slots bars 2 to 6 turn on into.
+-- test-hud-scale.lua: the HUD's default scale and canvas, the LEE-20 picture's centre sizes, and the unchanged optional bar and migration contracts.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local AB = dofile("Tools/regression/actionbars_env.lua")
@@ -21,7 +21,7 @@ do
 	assert(K.Appearance.defaults.uiScale == default and near(Scale.UserScale(), default), "Appearance starts at that size")
 	assert(Scale.MIN_USER_SCALE <= 0.65 and Scale.MAX_USER_SCALE >= 1.5, "the size slider still reaches smaller and back past the old size")
 	local button = Layouts.BUTTON
-	assert(button == 38, "the action button stays the 38-unit module")
+	assert(button == 38, "the optional action bars retain the 38-unit module")
 	local rootToParent = Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	assert(near(button * rootToParent, 32, 1e-3), "a 38-unit button is 32 UIParent units, got " .. button * rootToParent)
 	-- Pixels on the owner's screen: UIParent is 1080 units tall on 1540 pixels.
@@ -38,44 +38,48 @@ do
 	assert(near(rh, Layouts.HEIGHT, 1e-3), "the root is that tall at the default size, got " .. tostring(rh))
 end
 
--- The Cooldown Manager rows are the action button's size --------------------------------------------------------
+-- LEE-20: essential icons match the central action tiles; utility and tracked buff rows have distinct sizes. -----
 do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
 	local button = Layouts.Element("actionbars.bar1").height
-	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs" }) do
-		assert(Layouts.Element(key).height == button, key .. " is the action button's height, got " .. Layouts.Element(key).height)
-	end
-	-- The essential and utility rows keep the bars' 3-unit pitch, so they read as more buttons.
-	assert(Layouts.Element("cooldowns.essential").width == 6 * 38 + 5 * 3, "six essential icons at the bars' pitch")
+	assert(near(button, 36.7) and near(Layouts.Element("cooldowns.essential").height, button), "LEE-20 essential icons match the 36.7 action tiles")
+	assert(near(Layouts.Element("cooldowns.utility").height, 38), "optional utility icons retain their 38-unit height")
+	assert(near(Layouts.Element("cooldowns.buffs").height, 41.6), "LEE-20 tracked buffs reserve their icons and timer row")
+	assert(near(Layouts.Element("cooldowns.essential").width, 6 * 36.7 + 5 * 4.6), "LEE-20 six essential icons at the 41.3-unit action pitch")
 	assert(Layouts.Element("cooldowns.utility").width == 4 * 38 + 3 * 3, "four utility icons at the bars' pitch")
-	assert(Layouts.Element("cooldowns.buffs").width == 6 * 38 + 5 * 3, "six tracked buff icons at the bars' pitch")
-	assert(Layouts.Element("cooldowns.bars").width == Layouts.Element("cooldowns.buffs").width, "the tracked buff bars share the icon row's edges")
+	assert(near(Layouts.Element("cooldowns.buffs").width, 6 * 27.6 + 5 * 3.4), "LEE-20 tracked buffs reserve six smaller icons at 31-unit pitch")
+	assert(Layouts.Element("cooldowns.bars").width == 243, "optional tracked buff bars retain their 243-unit width")
 end
 do
 	local _, _, ns = C.New()
 	local _, _, abns = AB.New()
 	local d = ns.Settings.defaults
 	local button = abns.defaults.bar1.size
-	assert(button == 38, "bar 1's buttons are 38 units")
-	for _, group in ipairs({ "essential", "utility", "buffs" }) do
-		assert(d[group].size == button, group .. " icons are the action button's size, got " .. d[group].size)
-		assert(d[group].spacing == 3, group .. " icons keep the bars' 3-unit gap, got " .. d[group].spacing)
+	assert(near(button, 36.7) and near(abns.defaults.bar1.spacing, 4.6), "LEE-20 bar 1's tiles are 36.7 with 4.6 gaps")
+	assert(near(abns.defaults.bar2.size, button) and near(abns.defaults.bar2.spacing, 4.6), "LEE-20 bar 2 matches bar 1's pitch")
+	assert(abns.defaults.bar2.enabled and abns.defaults.bar1.showEmpty and abns.defaults.bar2.showEmpty, "LEE-20 both action rows show their empty tiles by default")
+	local sizes = { essential = { 36.7, 4.6 }, utility = { 38, 3 }, buffs = { 27.6, 3.4 } }
+	for group, want in pairs(sizes) do
+		assert(near(d[group].size, want[1]), "LEE-20 " .. group .. " icons have their reference size")
+		assert(near(d[group].spacing, want[2]), "LEE-20 " .. group .. " icons have their reference gap")
 	end
-	assert(d.bars.width == 6 * 38 + 5 * 3, "the mirrored buff bars are as wide as the icon row")
+	assert(d.bars.width == 6 * 38 + 5 * 3, "the optional mirrored buff bars retain their original width")
 end
 
--- Bars 2 and 3 stack over bar 1; bars 4, 5 and 6 stand on the right edge of the play field ---------------------
+-- LEE-20 stacks bar 2 over bar 1 and reserves bar 3 above chat; bars 4 and 5 stand in the right rail's column over
+-- the readout, as the picture draws them, and bar 6's slot a third column beside them ------------------------------
 do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
-	local HEIGHT, PITCH = Layouts.HEIGHT, 3
+	local HEIGHT = Layouts.HEIGHT
 	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3" }) do
 		local grid = Layouts.Grid(key)
 		assert(grid.rows == 1, key .. " is one row of twelve, like bar 1")
 	end
+	assert(near(Layouts.Grid("actionbars.bar1").spacing, 4.6) and near(Layouts.Grid("actionbars.bar2").spacing, 4.6), "LEE-20 the central grids expose the picture's gap")
 	for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
 		assert(Layouts.Grid(key).rows == 12, key .. " is a column of twelve")
 	end
@@ -83,20 +87,26 @@ do
 		local layout = Layouts.Get(name)
 		for _, width in ipairs({ HEIGHT * 2383 / 1540, HEIGHT * 16 / 10, HEIGHT * 16 / 9, HEIGHT * 21 / 9 }) do
 			local function rect(key)
-				local w, h = Layouts.Footprint(name, key)
-				local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[key], width, HEIGHT)
+				local w, h, offsetX = Layouts.Footprint(name, key)
+				local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[key], width, HEIGHT)
 				return { l = l, b = b, r = r, t = t }
 			end
 			local label = string.format("%s at %.0f wide", name, width)
 			local bar1, bar2, bar3 = rect("actionbars.bar1"), rect("actionbars.bar2"), rect("actionbars.bar3")
-			assert(near(bar2.l, bar1.l) and near(bar3.l, bar1.l), label .. ": bars 2 and 3 line up with bar 1")
-			assert(near(bar2.b - bar1.t, PITCH) and near(bar3.b - bar2.t, PITCH), label .. ": bars 2 and 3 stack over bar 1 at the bar pitch")
-			assert(rect("unitframes.player").b - bar3.t == 12, label .. ": the vitals line sits 12 over bar 3's slot")
-			local rail = rect("meters.damage")
+			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, 491) and near(bar1.r - bar1.l, 491), label .. ": LEE-20 the two enabled rows share the 491-unit column")
+			assert(near(bar1.b, 54) and near(bar2.b, 95.3) and near(bar2.b - bar1.t, 4.6), label .. ": LEE-20 the action rows use the reference bottoms and gap")
+			assert(layout["actionbars.bar3"].anchor == "BOTTOMLEFT" and near(bar3.l, K.Tokens.Size("screenMargin")) and near(bar3.b, 431.5) and near(bar3.r - bar3.l, 489), label .. ": LEE-20 spare bar 3 keeps its old width above the loot feed")
+			assert(bar3.b - rect("qol.lootfeed").t >= 16 and near(bar3.b - rect("unitframes.castbar.player").t, 16), label .. ": spare bar 3 clears both the loot feed's full reserve and the player cast by at least 16")
+			assert(bar3.r <= width * 0.3 or bar3.l >= width * 0.7, label .. ": LEE-20 spare bar 3 stays outside the central 40% band")
+			local player, target = rect("unitframes.player"), rect("unitframes.target")
+			assert(near(player.b - bar2.t, 6) and near(target.b - player.t, 2), label .. ": LEE-20 player and target stack directly over bar 2")
+			assert(near(player.l, bar1.l - 95.5) and near(player.r, bar1.r) and near(target.l, bar1.l) and near(target.r, bar1.r + 246.4), label .. ": LEE-20 asymmetric reserves leave both bar columns centred")
+			local readout, damage = rect("databars.strip"), rect("meters.damage")
 			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
-			assert(near(rail.l - bar4.r, 16), label .. ": bar 4 stands a rail gap left of the right rail")
-			assert(near(bar4.l - bar5.r, PITCH) and near(bar5.l - bar6.r, PITCH), label .. ": bars 5 and 6 stand beside it at the bar pitch")
-			assert(near((bar4.b + bar4.t) / 2, HEIGHT / 2), label .. ": the side bars are centred on the screen's height")
+			local railPitch = Layouts.Grid("actionbars.bar4").spacing
+			assert(near(bar4.r, damage.r) and near(bar4.r, readout.r), label .. ": bar 4 stands on the right rail's edge, over the readout and the damage card")
+			assert(near(bar4.l - bar5.r, railPitch) and near(bar5.l - bar6.r, railPitch), label .. ": bars 5 and 6 stand beside it at the rail bars' pitch")
+			assert(near(bar4.b, readout.t + 10) and near(bar5.b, bar4.b) and near(bar6.b, bar4.b), label .. ": the columns stand 10 over the readout")
 		end
 	end
 end

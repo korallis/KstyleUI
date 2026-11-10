@@ -62,13 +62,6 @@ PORTRAIT_RADIUS_SHARE = 8 / 44
 # the card's own 14-unit rounded shape is cut out, so translucent glass shows the world through it, not its shadow.
 LUMEN_SHADOW_REACH, LUMEN_SHADOW_DROP, LUMEN_SHADOW_RADIUS, LUMEN_SHADOW_BLUR = 14, 3, 6, 3.5
 SHEEN_REACH = 0.55  # the bar sheen fades from the top to nothing 55% of the way down, as the mockup's .bar i
-# The minimap's mask. The map fills KstyleUI_Minimap's frame to just inside its bevel line: on the mockup's 221-unit
-# frame with its 12-unit chamfer the map sits 2 units in (the dark line, the light line and the fade row), so the
-# mask cuts 8 of the map's 217 units. The game stretches the mask over the map, so the cut is a share of the side;
-# Format.lua in the module places the map from the same three numbers and lets the frame's chamfer grow with it, so
-# the mask's cut meets the frame's cut at every size. 512 texels keep the diagonal crisp on a 300-pixel map.
-MINIMAP_FRAME, MINIMAP_CHAMFER, MINIMAP_INSET = 221, 12, 2
-MINIMAP_MASK_SHARE = (MINIMAP_CHAMFER - 2 * MINIMAP_INSET) / (MINIMAP_FRAME - 2 * MINIMAP_INSET)
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
 # the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
 # 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
@@ -350,13 +343,6 @@ def band_spans(planes, outer, inner):
     return spans
 
 
-def chamfered_rect(width, height, legs):
-    return convex([
-        (legs, 0), (width - legs, 0), (width, legs), (width, height - legs),
-        (width - legs, height), (legs, height), (0, height - legs), (0, legs),
-    ])
-
-
 def chamfered_diamond(cx, cy, reach, cut):
     """A square turned 45 degrees with its four points cut off flat, `cut` short of each point."""
     near, far = cut, reach - cut
@@ -369,8 +355,9 @@ def chamfered_diamond(cx, cy, reach, cut):
 # Drawings ----------------------------------------------------------------------------------------
 
 
-def draw_chamfer(size, legs):
-    return white(sample_spans(size, size, shape_spans(chamfered_rect(size, size, legs))))
+def draw_square(size):
+    """A plain square that fills the texture: every texel opaque white."""
+    return white([1.0] * (size * size))
 
 
 def rounded_spans(x0, y0, x1, y1, radius):
@@ -769,7 +756,7 @@ def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
 
 LUMEN_ASSETS = {
     "LumenShape", "LumenOutline", "LumenGem", "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "RuleFade",
-    "LumenShadow", "PortraitMask",
+    "LumenShadow", "PortraitMask", "MinimapMask",
 }
 PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
 PICTURE_DRAWN = "2026-11-09"
@@ -830,8 +817,9 @@ ASSETS = [
     _texture("BarGlass", 256, 32, lambda: draw_bar(256, 32, "glass"),
              "Status bar fill whose top is 12% brighter than its bottom, the design's near-flat health fill.",
              "4x supersampled gradient"),
-    _texture("MinimapMask", 512, 512, lambda: draw_chamfer(512, 512 * MINIMAP_MASK_SHARE),
-             "Chamfered square mask for Minimap:SetMaskTexture and the minimap footer: the cut is 8 of 217 units, the frame's 12-unit chamfer at the map's 2-unit inset on the mockup's 221 frame."),
+    _texture("MinimapMask", 64, 64, lambda: draw_square(64),
+             "Plain square mask for Minimap:SetMaskTexture: opaque white to every edge, so the map keeps square corners, as the owner's picture draws it (LEE-20: the picture wins over #207's chamfer).",
+             "solid"),
     _texture("Dot", 64, 64, lambda: draw_dot(64), "Filled disc for toggle and slider knobs."),
     _texture("Pill", 64, 32, lambda: draw_pill(64, 32),
              f"Capsule for toggle and slider tracks. Each round cap is {PILL_CAP} texels wide, so a widget three-slices it."),

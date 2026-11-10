@@ -270,7 +270,9 @@ do
 	K.Setup.Go(2)
 	W.Settle(env)
 	local wide = labels()
-	assert(wide["meters.threat"] and wide["auras.buffs"], "with wider glyphs the threat and buff blocks keep their names")
+	-- The buff block is the picture's one 42-unit row (LEE-20), too short in the preview for even the floor size, so it
+	-- goes unlabelled at any glyph width; the threat block keeps its name.
+	assert(wide["meters.threat"], "with wider glyphs the threat block keeps its name")
 	for _, rect in ipairs(preview.rects) do
 		if rect:IsShown() and rect.label:IsShown() then
 			local _, size = rect.label:GetFont()
@@ -428,10 +430,10 @@ do
 	end
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
 	assert(updates["meters.threat"] and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 200, "a registered meter takes the layout's size through Layout.Update")
-	assert(stored["meters.damage"].height == 190 and stored["meters.damage"].y == K.Setup.Layouts.Get("Tank")["meters.damage"].y, "a meter that has not registered keeps the size for the reload")
+	assert(stored["meters.damage"].height == 158 and stored["meters.damage"].y == K.Setup.Layouts.Get("Tank")["meters.damage"].y, "a meter that has not registered keeps the size for the reload")
 	updates = {}
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 144 and updates["meters.threat"].width == 318 and stored["meters.damage"].height == 190, "DPS puts the meters back to their footprints")
+	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 144 and updates["meters.threat"].width == 269 and stored["meters.damage"].height == 158, "DPS puts the meters back to their footprints")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -448,20 +450,22 @@ do
 		Meters = { threat = { shown = true } },
 		GroupFrames = { party = { height = 46, spacing = 10 }, raid = { height = 40, width = 72, groupsPerRow = 8 } },
 		Auras = { buffs = { rows = 2 }, card = { docked = false } },
-		DataBars = { strip = { menus = false } },
+		DataBars = { strip = { menus = true } },
 	}
 	local env, K = Boot({ modules = { "ActionBars", "Meters", "GroupFrames", "Chat", "Auras", "DataBars" }, defaults = defaults })
 	assert(K.Layout.Setting("preset") == "DPS", "a profile that never applied a layout has the DPS one")
 	assert(K.Setup.Apply({ layout = "Healer", modules = { ActionBars = true, Meters = true, GroupFrames = true, Chat = true } }))
 	local bars = K.Store.Module("ActionBars")
 	assert(bars.bar1.enabled == true and bars.bar1.rows == 1, "Apply keeps bar 1 on, one row")
-	for i = 2, 6 do
+	assert(bars.bar2.enabled == true and bars.bar2.rows == 1, "Apply keeps the reference's second action row on")
+	for _, i in ipairs({ 3, 6 }) do
 		assert(bars["bar" .. i].enabled == false, "Apply switches bar " .. i .. " off")
 	end
+	assert(bars.bar4.enabled == true and bars.bar5.enabled == true, "Apply switches bars 4 and 5 on, the right rail's columns (LEE-20)")
 	assert(bars.pet.rows == 2 and bars.stance.rows == 2, "Apply folds the pet and stance sockets into two rows")
 	assert(K.Store.Module("Meters").threat.shown == false, "Healer hides the threat card")
 	local group = K.Store.Module("GroupFrames")
-	assert(K.Store.Module("DataBars").strip.menus == true, "Apply docks the menu and the bags in the readout card")
+	assert(K.Store.Module("DataBars").strip.menus == false, "Apply leaves the menu and the bags out of the readout line (LEE-20)")
 	assert(group.party.height == 46 and group.party.spacing == 8 and group.raid.height == 46 and group.raid.groupsPerRow == 4 and group.raid.width == 77, "Healer writes larger party and raid frames, four groups a row")
 	assert(K.Layout.Setting("preset") == "Healer", "Apply remembers the layout for Layout Mode's story slot")
 	assert(K.Setup.Apply({ layout = "Tank", modules = { ActionBars = true, Meters = true, GroupFrames = true } }))
@@ -679,13 +683,13 @@ do
 	local root = K.Scale.Root()
 	local named
 	for _, rect in ipairs(panel.summaryPreview.rects) do
-		if rect.element.key == "auras.buffs" and rect:IsShown() and rect.label:IsShown() then
+		if rect.element.key == "meters.damage" and rect:IsShown() and rect.label:IsShown() then
 			local box = assert(Geometry.Rect(rect, root))
 			local width = env._textWidth(rect.label:GetText(), nil, select(2, rect.label:GetFont()) or 12)
 			named = width <= box.right - box.left + 0.5 and rect.label:GetText()
 		end
 	end
-	assert(named, "in German the summary's buffs block keeps a name")
+	assert(named, "in German the summary's damage block keeps a name (the buff block is the picture's one 42-unit row, LEE-20, too short for any name)")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

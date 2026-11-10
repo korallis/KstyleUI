@@ -7,8 +7,6 @@ local Tokens, Widgets = K.Tokens, K.Widgets
 local Style = {}
 ns.Style = Style
 
-Style.TOKENS = { gilt = "giltLit" }
-
 local COUNT_INSET, COUNT_CLEAR = 3, 1
 
 Style.CHIP_LEVEL = 6
@@ -47,7 +45,9 @@ function Style.ShowChip(chip, holder, side, gap, width, height, text, size)
 	local r, g, b = Tokens.Color(chip.fill)
 	chip.chrome:SetFillRGBA(r, g, b, 1)
 	if chip.chrome.SetRimAccent then
-		if ns.Settings.current.accent == "custom" then
+		if ns.Settings.current.accent == "quiet" then
+			chip.chrome:SetRim(Widgets.Rgba("edgeInner"))
+		elseif ns.Settings.current.accent == "custom" then
 			chip.chrome:SetRimAccent(ns.Settings.Accent())
 		else
 			chip.chrome:SetRimAccent()
@@ -119,9 +119,12 @@ local function Formatter()
 	return formatter or nil
 end
 
-function Style.Countdown(cooldown)
+function Style.Countdown(cooldown, native)
 	if type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
 		return false
+	end
+	if native then
+		return pcall(cooldown.SetCountdownFormatter, cooldown, nil)
 	end
 	local f = Formatter()
 	if not f then
@@ -150,25 +153,16 @@ function Style.Accent(icon)
 	end
 end
 
-local function Gilt(icon, r, g, b)
-	local glow = icon.procGlow
-	local own = glow and glow.colorRGB
-	if glow and not (own and own[1] == r and own[2] == g and own[3] == b) then
-		glow:SetColorRGB(r, g, b)
-	end
-end
-
 local function AfterPaint(icon)
 	local usable = icon.usable and icon:IsEnabled() ~= false
 	if usable and icon.greyWhileCooling and icon.onCooldown then
 		local tint = icon.tint
 		Widgets.ShadeIcon(icon.icon, tint[1], tint[2], tint[3], true)
 	end
-	local r, g, b = Tokens.Color(Style.TOKENS.gilt)
-	Gilt(icon, r, g, b)
-	if usable and icon.proc then
-		icon.chrome:SetRim(r, g, b, 1)
+	if ns.Settings.current.accent == "quiet" then
+		icon.chrome:SetRim(Widgets.Rgba("edgeInner"))
 	end
+	icon.hoverGlow:SetIntensity(0)
 end
 
 local function FontSize(text, fallback)
@@ -196,6 +190,27 @@ local function Centre(icon)
 end
 
 Style.Centre = Centre
+
+function Style.PlaceText(icon, group)
+	local countdown = icon.countdown
+	if not countdown or not Widgets.MayMove(icon) then
+		return
+	end
+	if group == "utility" then
+		Centre(icon)
+		return
+	end
+	countdown:ClearAllPoints()
+	if group == "buffs" then
+		countdown:SetPoint("TOP", icon, "BOTTOM", 0, -Widgets.Snap(icon, 2))
+	else
+		countdown:SetPoint("CENTER", icon, "CENTER", 0, 0)
+		local inset = K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
+		icon.count:ClearAllPoints()
+		icon.count:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
+	end
+	countdown:SetJustifyH("CENTER")
+end
 
 local function ShowTooltip(icon)
 	local entry = icon.entry
@@ -297,19 +312,25 @@ function Style.Inspect(chip, row, title)
 	chip:HookScript("OnLeave", HideTooltip)
 end
 
-function Style.Decorate(icon, centred)
+function Style.Decorate(icon, group)
+	icon.chrome:SetShadow(false)
+	icon.SetProc = function(self, on)
+		self.proc = on and true or false
+		self.chrome:SetProc(self.proc)
+		self:Paint()
+	end
 	local paint = icon.Paint
 	icon.Paint = function(self)
 		paint(self)
 		AfterPaint(self)
 	end
-	if centred then
+	if group then
 		local restyle = icon.Restyle
 		icon.Restyle = function(self)
 			restyle(self)
-			Centre(self)
+			Style.PlaceText(self, group)
 		end
-		Centre(icon)
+		Style.PlaceText(icon, group)
 	end
 	icon.readyGlow = Widgets.Glow(icon, { kind = "selection" })
 	Style.Tooltips(icon)

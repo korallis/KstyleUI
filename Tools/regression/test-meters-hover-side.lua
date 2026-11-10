@@ -21,10 +21,13 @@ for i, name in ipairs({ "Kragar", "Valerin", "Sylaen", "Thargor", "Lunara", "Bra
 end
 env._session = { combatSources = sources, maxAmount = 2900, totalAmount = 15900, durationSeconds = 30 }
 M.Enable(env, K)
-M.Tick(env)
 local list = ns.Damage.list
 local panel = list.panel
 local root = K.Scale.Root()
+list.holder:SetSize(318, 190)
+M.Tick(env)
+env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
+env.RunTimers()
 assert(list.count == 6, "six sources show: " .. tostring(list.count))
 
 local function Rect(frame)
@@ -125,9 +128,9 @@ for _, i in ipairs({ 3, 4 }) do
 	end
 end
 
--- A card that hugs three rows grows to hold the split under its first row while the split is open, instead of
--- the split leaving the glass, and hugs its rows again when it closes. A refresh of the rows while the split is
--- open keeps the covered rows hidden and the card grown.
+-- The picture's card is fixed: a split that needs more room than the rows under its row keeps the card at the
+-- holder's height, lists what fits, and the rows under it come back when it closes. A refresh of the rows while
+-- the split is open keeps the covered rows hidden.
 do
 	list.holder:ClearAllPoints()
 	list.holder:SetSize(318, 190)
@@ -139,23 +142,22 @@ do
 	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 	env.RunTimers()
 	assert(list.count == 3, "three sources")
-	local hugged = Rect(panel)
+	local fixed = Rect(panel)
+	assert(math.abs(fixed.top - fixed.bottom - 190) < 0.01, "the card keeps its holder's height with three rows")
 	local row = list.rows[1].frame
 	row._scripts.OnEnter(row)
 	env.RunTimers()
 	local s, p = Rect(list.split.frame), Rect(panel)
 	assert(s.bottom >= p.bottom - 0.01 and s.top <= p.top + 0.01, "the split stays inside the card: " .. s.bottom .. " vs " .. p.bottom)
-	assert(p.bottom < hugged.bottom - 1, "the card grew to hold it: " .. p.bottom .. " vs " .. hugged.bottom)
-	assert(p.bottom >= Rect(list.holder).bottom - 0.01, "and no further than its holder")
-	assert(not list.rows[2].frame:IsShown() and not list.rows[3].frame:IsShown(), "the rows under the split are hidden")
+	assert(math.abs(p.bottom - fixed.bottom) < 0.01, "the card does not change height for the split")
+	assert(not list.rows[2].frame:IsShown(), "the rows under the split are hidden")
 	env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED")
 	env.RunTimers()
 	assert(list.split.frame:IsShown(), "a refresh keeps the split open")
 	assert(not list.rows[2].frame:IsShown(), "and the rows under it hidden")
-	assert(math.abs(Rect(panel).bottom - p.bottom) < 0.01, "and the card grown")
 	row._scripts.OnLeave(row)
 	env.RunTimers()
-	assert(math.abs(Rect(panel).bottom - hugged.bottom) < 0.01, "the card hugs its rows again when the split closes")
+	assert(math.abs(Rect(panel).bottom - fixed.bottom) < 0.01, "the card is as it was when the split closes")
 	assert(list.rows[2].frame:IsShown() and list.rows[3].frame:IsShown(), "and the rows show again")
 end
 

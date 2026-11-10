@@ -44,7 +44,7 @@ local function unit(name)
 end
 
 local function Check(style)
-	local env, K, ns = U.New({ plate = style == "plate" })
+	local env, K, ns = U.New({ plate = style == "plate", lumen = style == "lumen" })
 	env._textWidth = D.TextWidth
 	for _, name in ipairs(NAMES) do
 		for _, token in pairs(TOKENS) do
@@ -83,7 +83,7 @@ Check("plate")
 
 -- The sigil's marker sits beside the name, not out at the lane's end.
 do
-	local env, _, ns = U.New()
+	local env, _, ns = U.New({ lumen = true })
 	env._textWidth = D.TextWidth
 	U.SetUnit(env, "target", unit("Frost Howler"))
 	env.SetTarget(true)
@@ -98,7 +98,7 @@ end
 -- A marker that arrives after the name narrows the lane, and the name fits itself to the narrower lane at once:
 -- it drops to the body face before it truncates (codex review of round 4).
 do
-	local env, _, ns = U.New()
+	local env, _, ns = U.New({ lumen = true })
 	env._textWidth = D.TextWidth
 	U.SetUnit(env, "pet", { name = "Snow Wolf", level = 38, health = 300, healthMax = 400, reaction = 5 })
 	env.FireEvent("UNIT_PET", "player")

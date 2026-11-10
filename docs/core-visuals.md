@@ -113,7 +113,7 @@ Two roles carry the picture's letter-spaced Cinzel capitals, both at 10 units (a
 | `portraitMask` | `PortraitMask.png`, 128x128 | | The square portrait, rounded 8 units on 44 inside its frame's rounder corner |
 | `shadow` | `Shadow.png`, 128x128 | 24 texels | A square soft falloff for glows (unit frame glows, a bar's own-colour glow) |
 | `ringBevel` | `RingBevel.png`, 128x128: a 5-texel line from radius 57 to 62 whose colour channels shade it dark outside, lit in the middle and three quarters inside | | tinted once (the accent lifted 30% toward white) it is the mockup's thin metal ring; a portrait inside starts `Widgets.RING_INSET` (8/128 of the size) in |
-| `minimapMask` | `MinimapMask.png`, 512x512 | | The minimap's chamfered square mask; its cut is a share of the side, which `KstyleUI_Minimap/Format.lua` gives the rim's chamfer |
+| `minimapMask` | `MinimapMask.png`, 64x64 | | The minimap's plain square mask: opaque white to every edge. It replaced a chamfered square when the owner's picture (LEE-20) showed square corners |
 | `glow`, `divider`, `noise`, `ring`, `barFlat`, `barSoft`, `barGlass`, `logo`, `logoLarge` | | | |
 | `dot`, `pill` | `Dot.png` 64x64, `Pill.png` 64x32 | | |
 | `glyphChevron`, `glyphClose` | `GlyphChevron.png`, `GlyphClose.png`, 32x32 | | |

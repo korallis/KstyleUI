@@ -9,7 +9,7 @@ local Reskin = {}
 ns.Reskin = Reskin
 
 local ICON_CROP = 0.07
-local ICON_OUTSET = 3
+local ICON_OUTSET = 0
 local BAR_OUTSET = 1
 local BAR_ICON_OUTSET = 2
 local CVAR = "cooldownViewerEnabled"
@@ -77,13 +77,30 @@ local function SkinIcon(group, item)
 	end
 	local backdrop = Outset(Skin.Backdrop(item, { icon = true, inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
 	if backdrop and backdrop.chrome and backdrop.chrome.SetRimAccent then
-		local r, g, b = Settings.Accent()
-		backdrop.chrome:SetRimAccent(r, g, b)
+		if current.accent == "quiet" then
+			backdrop.chrome:SetRim(Widgets.Rgba("edgeInner"))
+		else
+			local r, g, b = Settings.Accent()
+			backdrop.chrome:SetRimAccent(r, g, b)
+		end
+	end
+	if backdrop and backdrop.chrome then
+		backdrop.chrome:SetShadow(false)
 	end
 	local cooldown = item.Cooldown
 	if type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" then
-		Text(cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize / scale, current.timerOutline)
-		Style.Countdown(cooldown)
+		local text = cooldown:GetCountdownFontString()
+		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline)
+		Style.Countdown(cooldown, group == "essential")
+		if text and (group == "essential" or group == "buffs") then
+			text:ClearAllPoints()
+			if group == "buffs" then
+				text:SetPoint("TOP", item, "BOTTOM", 0, -Widgets.Snap(item, 2 / scale))
+			else
+				text:SetPoint("CENTER", item, "CENTER", 0, 0)
+			end
+			text:SetJustifyH("CENTER")
+		end
 	end
 	local charges = item.ChargeCount
 	Text(type(charges) == "table" and charges.Current, current.countFont, cfg.countSize / scale, current.countOutline)

@@ -1,8 +1,8 @@
--- Face.lua: the minimap's face, shared by the live map and the preview: a square map inside a thin rim whose chamfer meets the mask's cut, the zone band along the map's top edge and the clock band along its bottom edge on soft dark fades, the coordinates, and the hover group that holds the zoom slider.
+-- Face.lua: the minimap's face, shared by the live map and the preview: a square map in a gilt rim, the north plate on its top edge, the zone, coordinates and clock in a caption under it, and the hover group that holds the zoom slider.
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens, Widgets, Motion = K.Tokens, K.Widgets, K.Motion
+local L, Tokens, Widgets, Motion = K.L, K.Tokens, K.Widgets, K.Motion
 local Settings, Style, Format = ns.Settings, ns.Style, ns.Format
 
 local Face = {}
@@ -10,13 +10,16 @@ Face.__index = Face
 ns.Face = Face
 
 local LEVEL_BOX, LEVEL_MAP, LEVEL_OVERLAY, LEVEL_REVEAL, LEVEL_WHEEL = 1, 2, 110, 111, 112
-local ZONE_ROLE = "heading"
+local LEVEL_PLATE = 111
+local ZONE_ROLE = "names"
+local NORTH_ROLE = "heading"
 local CLOCK_ROLE = "number"
+local COORDS_ROLE = "body"
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_HIT = 2, 52, 12
 local SLIDER_INSET = 11
-local SHEEN_REACH = 0.55
-local BAND_PAD = Tokens.Size("gapMedium")
+local NORTH_SIZE = 8.5
+local SHADE_ALPHA = 0.7
 
 Face.LEVEL_MAP = LEVEL_MAP
 
@@ -34,15 +37,33 @@ local function NewText(parent)
 	return text
 end
 
-local function NewBand(overlay, flipped)
-	local band = CreateFrame("Frame", nil, overlay)
-	local scrim = band:CreateTexture(nil, "BACKGROUND")
-	scrim:SetTexture((Tokens.Texture("barSheen")))
-	if flipped then
-		scrim:SetTexCoord(0, 1, 1, 0)
+local function NewLines(overlay, sublevel)
+	local lines = {}
+	for _, edge in ipairs({ "top", "bottom", "left", "right" }) do
+		local line = Widgets.Crisp(overlay:CreateTexture(nil, "OVERLAY", nil, sublevel))
+		line:SetColorTexture(Tokens.Color("white"))
+		lines[edge] = line
 	end
-	band.scrim = scrim
-	return band
+	return lines
+end
+
+local function PlaceLines(lines, area, inset, border)
+	local top, bottom, left, right = lines.top, lines.bottom, lines.left, lines.right
+	for _, line in pairs(lines) do
+		line:ClearAllPoints()
+	end
+	top:SetPoint("TOPLEFT", area, "TOPLEFT", inset, -inset)
+	top:SetPoint("TOPRIGHT", area, "TOPRIGHT", -inset, -inset)
+	top:SetHeight(border)
+	bottom:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", inset, inset)
+	bottom:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", -inset, inset)
+	bottom:SetHeight(border)
+	left:SetPoint("TOPLEFT", area, "TOPLEFT", inset, -inset)
+	left:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", inset, inset)
+	left:SetWidth(border)
+	right:SetPoint("TOPRIGHT", area, "TOPRIGHT", -inset, -inset)
+	right:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", -inset, inset)
+	right:SetWidth(border)
 end
 
 local function Plain(value)
@@ -89,12 +110,9 @@ function Face.New(holder, opts)
 	Level(box, holder, LEVEL_BOX)
 	box:SetAllPoints(holder)
 	face.box = box
-	local chrome = Widgets.Chrome(box, { shape = "socket", shadow = false, grain = false, gilt = false })
-	chrome:SetFillRGBA(0, 0, 0, 0)
-	Widgets.ShowSlice(chrome.fill, false)
-	face.chrome = chrome
 
 	local mapArea = CreateFrame("Frame", nil, box)
+	mapArea:SetAllPoints(box)
 	face.mapArea = mapArea
 
 	local overlay = CreateFrame("Frame", nil, holder)
@@ -107,21 +125,33 @@ function Face.New(holder, opts)
 	mask:SetAllPoints(mapArea)
 	face.mask = mask
 
-	face.zoneBand = NewBand(overlay, false)
-	face.zone = NewText(face.zoneBand)
-	face.zone:SetJustifyH("CENTER")
-	face.clockBand = NewBand(overlay, true)
-	face.clock = NewText(face.clockBand)
+	face.shade = NewLines(overlay, 0)
+	face.rim = NewLines(overlay, 1)
+
+	local plate = CreateFrame("Frame", nil, holder)
+	Level(plate, holder, LEVEL_PLATE)
+	plate.crystal = Widgets.CrystalDisc(plate)
+	face.north = NewText(plate)
+	face.north:SetText(L["N"])
+	face.north:SetPoint("CENTER", plate, "CENTER", 0, 0)
+	face.plate = plate
+
+	local caption = CreateFrame("Frame", nil, overlay)
+	caption:SetAllPoints(mapArea)
+	face.caption = caption
+	face.zone = NewText(caption)
+	face.zone:SetJustifyH("LEFT")
+	face.clock = NewText(caption)
 	face.clock:SetJustifyH("RIGHT")
-	face.zoneHit = CreateFrame("Button", nil, face.zoneBand)
+	face.zoneHit = CreateFrame("Button", nil, caption)
 	face.zoneHit:SetAllPoints(face.zone)
-	face.clockHit = CreateFrame("Button", nil, face.clockBand)
+	face.clockHit = CreateFrame("Button", nil, caption)
 	face.clockHit:SetAllPoints(face.clock)
 
-	local coordsFrame = CreateFrame("Frame", nil, face.clockBand)
-	coordsFrame:SetAllPoints(face.clockBand)
+	local coordsFrame = CreateFrame("Frame", nil, caption)
+	coordsFrame:SetAllPoints(caption)
 	face.coordsFrame = coordsFrame
-	face.coords = NewText(face.clockBand)
+	face.coords = NewText(caption)
 	face.coords:SetJustifyH("LEFT")
 
 	local reveal = CreateFrame("Frame", nil, holder)
@@ -206,10 +236,10 @@ function Face:PlaceSlider()
 	local inset = Snap(area, SLIDER_INSET)
 	track:ClearAllPoints()
 	track:SetPoint("LEFT", area, "LEFT", inset, 0)
-	track:SetSize(Snap(area, SLIDER_WIDTH), Snap(area, SLIDER_HEIGHT))
+	Widgets.Size(track, SLIDER_WIDTH, SLIDER_HEIGHT)
 	zoom:ClearAllPoints()
 	zoom:SetPoint("LEFT", area, "LEFT", inset - Snap(area, (SLIDER_HIT - SLIDER_WIDTH) / 2), 0)
-	zoom:SetSize(Snap(area, SLIDER_HIT), Snap(area, SLIDER_HEIGHT))
+	Widgets.Size(zoom, SLIDER_HIT, SLIDER_HEIGHT)
 	zoom.fill:ClearAllPoints()
 	zoom.fill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT")
 	zoom.fill:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT")
@@ -218,80 +248,62 @@ end
 
 function Face:Paint()
 	local r, g, b = Style.Accent()
-	self.chrome:SetEdge("edgeInner")
 	Widgets.Tint(self.zoom.track, "track")
 	self.zoom.fill:SetVertexColor(r, g, b, 1)
 	self.zoom:SetShown(Settings.Get("zoom.slider"))
-	for _, band in ipairs({ self.zoneBand, self.clockBand }) do
-		band.scrim:SetVertexColor(Tokens.Color("shadow"))
+	for _, line in pairs(self.rim) do
+		Widgets.Tint(line, "gilt")
 	end
+	for _, line in pairs(self.shade) do
+		Widgets.Tint(line, "black", SHADE_ALPHA)
+	end
+	self.plate.crystal:SetRim(Tokens.Color("gilt"))
+	self.plate.crystal:Paint()
+	Style.Text(self.north, NORTH_ROLE, "zone", NORTH_SIZE)
+	self.north:SetTextColor(Tokens.Color("gilt"))
 
 	self.zoneSize = Style.Text(self.zone, ZONE_ROLE, "zone")
 	self.clockSize = Style.Text(self.clock, CLOCK_ROLE, "clock")
-	self.coordsSize = Style.Text(self.coords, "number", "coords")
+	self.coordsSize = Style.Text(self.coords, COORDS_ROLE, "coords")
 	self.clock:SetTextColor(Style.Color("textEmphasis"))
-	self.coords:SetTextColor(Style.Color("textEmphasis"))
+	self.coords:SetTextColor(Style.Color("muted"))
 
-	local zoneShown, clockShown, coordsShown = Settings.Get("zone.shown"), Settings.Get("clock.shown"), Settings.Get("coords.shown")
+	local zoneShown, clockShown = Settings.Get("zone.shown"), Settings.Get("clock.shown")
 	self.zone:SetShown(zoneShown)
 	self.zoneHit:SetShown(zoneShown)
-	self.zoneBand:SetShown(zoneShown)
 	self.clock:SetShown(clockShown)
 	self.clockHit:SetShown(clockShown)
-	self.clockBand:SetShown(clockShown or coordsShown)
 	self:SetZone(self.zoneText, self.pvpType)
 	self:SetCoords(self.coordsText)
 	self:SetRevealed(self.revealed)
 end
 
 function Face:Layout()
-	local holder, box = self.holder, self.box
+	local holder, area = self.holder, self.mapArea
 	local width, height = holder:GetWidth(), holder:GetHeight()
 	if type(width) ~= "number" or type(height) ~= "number" or width <= 0 or height <= 0 then
 		return
 	end
-	local inset = Snap(box, Format.INSET)
-	local side = math.min(width, height) - 2 * inset
+	local side = math.min(width, height)
 	self.mapSize = side
-	local area = self.mapArea
-	area:ClearAllPoints()
-	area:SetPoint("TOPLEFT", box, "TOPLEFT", inset, -inset)
-	area:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -inset, inset)
-	self.chrome:SetRadius(Format.Chamfer(side))
 
-	local band = Snap(area, Format.BAND)
-	local reach = Snap(area, Format.BAND / SHEEN_REACH)
-	local pad = Snap(area, BAND_PAD)
-	local zoneBand, clockBand = self.zoneBand, self.clockBand
-	zoneBand:ClearAllPoints()
-	zoneBand:SetPoint("TOPLEFT", area, "TOPLEFT", 0, 0)
-	zoneBand:SetPoint("TOPRIGHT", area, "TOPRIGHT", 0, 0)
-	zoneBand:SetHeight(band)
-	zoneBand.scrim:ClearAllPoints()
-	zoneBand.scrim:SetPoint("TOPLEFT", zoneBand, "TOPLEFT", 0, 0)
-	zoneBand.scrim:SetPoint("TOPRIGHT", zoneBand, "TOPRIGHT", 0, 0)
-	zoneBand.scrim:SetHeight(reach)
-	clockBand:ClearAllPoints()
-	clockBand:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, 0)
-	clockBand:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, 0)
-	clockBand:SetHeight(band)
-	clockBand.scrim:ClearAllPoints()
-	clockBand.scrim:SetPoint("BOTTOMLEFT", clockBand, "BOTTOMLEFT", 0, 0)
-	clockBand.scrim:SetPoint("BOTTOMRIGHT", clockBand, "BOTTOMRIGHT", 0, 0)
-	clockBand.scrim:SetHeight(reach)
+	local border = Widgets.Border(area)
+	PlaceLines(self.rim, area, 0, border)
+	PlaceLines(self.shade, area, border, border)
 
+	Widgets.Size(self.plate, Format.NORTH, Format.NORTH)
+	self.plate:ClearAllPoints()
+	self.plate:SetPoint("CENTER", area, "TOP", 0, 0)
+
+	local x, zoneY, rowY = Snap(area, Format.CAPTION_X), Snap(area, Format.ZONE_CENTER), Snap(area, Format.ROW_CENTER)
 	local zone, clock, coords = self.zone, self.clock, self.coords
 	zone:ClearAllPoints()
-	zone:SetPoint("CENTER", zoneBand, "CENTER", 0, 0)
-	zone:SetWidth(math.max(0, width - 2 * inset - 2 * pad))
-	clock:ClearAllPoints()
+	zone:SetPoint("LEFT", area, "BOTTOMLEFT", x, -zoneY)
+	zone:SetWidth(Snap(area, math.max(0, side - 2 * x)))
 	coords:ClearAllPoints()
-	coords:SetPoint("LEFT", clockBand, "LEFT", pad, 0)
-	if Settings.Get("coords.shown") then
-		clock:SetPoint("RIGHT", clockBand, "RIGHT", -pad, 0)
-	else
-		clock:SetPoint("CENTER", clockBand, "CENTER", 0, 0)
-	end
+	coords:SetPoint("LEFT", area, "BOTTOMLEFT", x, -rowY)
+	clock:ClearAllPoints()
+	clock:SetPoint("RIGHT", area, "BOTTOMRIGHT", -x, -rowY)
 
 	self:PlaceSlider()
 end

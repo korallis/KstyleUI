@@ -8,6 +8,11 @@ local floor, max, format = math.floor, math.max, string.format
 local HUGE = math.huge
 local THREAT_UNITS = 100
 local NO_WARNING, WARNING, DANGER = 0, 1, 2
+local RATE_ABBREVIATE_FROM = 1000
+local SCHOOL_TOKENS = {
+	[1] = "meterPhysical", [2] = "meterHoly", [4] = "meterFire", [8] = "meterNature",
+	[16] = "meterFrost", [32] = "meterShadow", [64] = "meterArcane",
+}
 
 Logic.NO_WARNING, Logic.WARNING, Logic.DANGER = NO_WARNING, WARNING, DANGER
 
@@ -64,6 +69,25 @@ function Logic.Abbreviate(value)
 		return AbbreviateNumbers(value)
 	end
 	return format("%d", floor(value + 0.5))
+end
+
+function Logic.FormatRate(value, unit)
+	if IsSecret(value) then
+		return type(AbbreviateNumbers) == "function" and AbbreviateNumbers(value) or ""
+	end
+	value = Plain(value)
+	if not value then
+		return ""
+	end
+	if value >= RATE_ABBREVIATE_FROM then
+		return Logic.Abbreviate(value) .. " " .. unit
+	end
+	return format("%.1f %s", value, unit)
+end
+
+function Logic.SchoolToken(spellID)
+	spellID = Plain(spellID)
+	return SCHOOL_TOKENS[spellID and ns.SpellSchools[spellID] or 1]
 end
 
 function Logic.SwingProgress(start, duration, now)

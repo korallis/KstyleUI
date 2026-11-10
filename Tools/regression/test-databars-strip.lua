@@ -48,42 +48,201 @@ local function tooltipText(K)
 	return (table.concat(lines, "|"):gsub("\226\128\137", ""))
 end
 
--- Registered with Layout; four items in the Lumen mockup's order, the clock left to the minimap card's foot (round 4,
--- Fable #5: the time once showed twice, on the minimap and on the readout); the fifth slot takes the clock on request
+-- The readout the owner's picture draws (DIFF.md section 5, LEE-20): one right-aligned line of plain text, no card, "162 fps · 15 ms · 26s 16c"
+
+local MIDDLE_DOT = " \194\183 "
+
+local function lineText(ns)
+	local parts = {}
+	for _, id in ipairs(ns.Strip.order) do
+		local it = item(ns, id)
+		parts[#parts + 1] = it.value:GetText() .. (it.label:IsShown() and (" " .. it.label:GetText()) or "")
+	end
+	return table.concat(parts, MIDDLE_DOT)
+end
+
+local function useCells(env, K)
+	local Options = K.Options
+	Options.Write("DataBars", "strip.line", false)
+	Options.Write("DataBars", "strip.backdrop", true)
+	Options.Write("DataBars", "strip.valueColor", "highlight")
+	Options.Write("DataBars", "strip.fontSize", 12)
+	Options.Write("DataBars", "strip.slot4", "durability")
+	assert(K.Layout.Update("databars.strip", { width = 318, height = 42 }))
+	env.RunTimers()
+end
 
 do
-	local env, K, ns = D.New()
+	local env, K, ns, game = D.New()
 	local el = assert(element(K, "databars.strip"), "the strip registers with Layout")
 	eq(el.module, "DataBars", "the strip belongs to the module")
 	eq(el.opts.resizable, true, "the strip is resizable")
 	eq(el.label, K.Setup.Layouts.Element("databars.strip").label, "the setup's label")
 	local default, got = K.Setup.Layouts.Default("databars.strip"), K.Layout.Get("databars.strip")
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
-	eq(shown(ns), "fps,latency,gold,durability", "the default order, with no clock")
+	local s = ns.Settings().strip
+	eq(shown(ns), "fps,latency,gold", "the default line: frame rate, latency, gold, and neither durability nor the clock")
+	eq(ns.defaults.strip.slot4, "none", "durability leaves the default line")
 	eq(ns.defaults.strip.slot5, "none", "the fifth slot starts empty")
+	eq(s.line, true, "the readout is one line by default")
+	eq(s.backdrop, false, "with no card behind it")
+	eq(s.labels, "inline", "units follow their values")
+	eq(s.valueColor, "plain", "plain text, no class-blue frame rate")
+	eq(s.menus, false, "the menus stand at their own Layout slots, not in the readout")
+	eq(s.fontSize, 11, "the body face reads at 11")
+	eq(s.separators, false, "no separators")
+	eq(got.width .. "x" .. got.height, "278x12", "the strip takes the picture's one-line element")
+	eq(ns.Strip.LINE, 12, "the line is 12 units")
+	eq(ns.Strip.COMPACT, 12, "and so is the compact element")
+	local view = ns.Strip.view
+	eq(view.lineMode, true, "the view draws the line")
+	eq(view.chrome.fill[1]:IsShown(), false, "no card fill")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the line reads like the picture: values with inline units joined by middle dots")
+	assert(not lineText(ns):find("armour", 1, true), "no durability on the line")
+	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
+
+	local frame = view.frame
+	local previousX
+	for i = #ns.Strip.order, 1, -1 do
+		local it = item(ns, ns.Strip.order[i])
+		local point, rel, relPoint, x, y = it.button:GetPoint(1)
+		eq(point .. ">" .. tostring(rel == frame) .. ">" .. relPoint .. "@" .. y, "TOPRIGHT>true>TOPRIGHT@0", it.id .. " hangs off the strip's top right, on one row")
+		if i == #ns.Strip.order then
+			eq(x, 0, "the last item ends on the element's right edge: right-aligned")
+		else
+			assert(x < previousX, it.id .. " sits left of the item after it")
+		end
+		previousX = x
+		eq(it.button:GetHeight(), frame:GetHeight(), it.id .. " is the line's full height, so its text is centred in the 12 units")
+		local vp, vrel, vrp = it.value:GetPoint(1)
+		eq(vp .. ">" .. tostring(vrel == it.button) .. ">" .. vrp, "LEFT>true>LEFT", it.id .. "'s value is vertically centred on its button")
+		eq(it.value:GetJustifyH(), "LEFT", it.id .. "'s text reads left to right")
+		eq(it.separator:IsShown(), false, it.id .. " has no hairline separator")
+	end
+	eq(item(ns, "fps").dot:IsShown(), false, "no dot before the first item")
+	for _, id in ipairs({ "latency", "gold" }) do
+		local dot = item(ns, id).dot
+		eq(dot:IsShown(), true, "a dot joins " .. id .. " to the item before it")
+		eq(dot:GetText(), "\194\183", "the dot is the middle dot")
+		local dp, drel, drp, dx = dot:GetPoint(1)
+		eq(dp .. ">" .. tostring(drel == item(ns, id).button) .. ">" .. drp, "RIGHT>true>LEFT", id .. "'s dot sits just left of it")
+		assert(dx < 0, "with a gap")
+	end
+	eq(item(ns, "durability").dot:IsShown(), false, "an item in no slot has no dot")
+	eq(item(ns, "durability").button:IsShown(), false, "or button")
+	eq(item(ns, "gold").label:IsShown(), false, "money carries its own units")
+	eq(item(ns, "gold").dot:GetText(), "\194\183", "the middle dot is a decimal-escaped source string")
+
+	for _, it in ipairs({ item(ns, "fps"), item(ns, "latency"), (item(ns, "gold")) }) do
+		assert(sameText(it.value, K.Tokens.Color("textEmphasis")), it.id .. "'s value is plain white-ish text")
+		assert(sameText(it.dot, K.Tokens.Color("textEmphasis")), it.id .. "'s dot is the same")
+	end
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("textEmphasis")), "the unit reads like its value, the whole line white")
+	local _, valueSize = item(ns, "fps").value:GetFont()
+	local _, unitSize = item(ns, "fps").label:GetFont()
+	local _, dotSize = item(ns, "latency").dot:GetFont()
+	eq(valueSize, 11 * K.Theme.FontScale(), "the value reads at 11")
+	eq(unitSize, valueSize, "the unit is the same size as its value")
+	eq(dotSize, valueSize, "and so is the dot")
+
+	local total = 0
+	for _, id in ipairs(ns.Strip.order) do
+		total = total + item(ns, id).button:GetWidth()
+	end
+	assert(view.contentWidth > total and view.contentWidth < frame:GetWidth(), "the line is as wide as its text and the dots: " .. tostring(view.contentWidth))
+
+	-- A value that grows on a tick moves the items left of it, and the right edge stays put.
+	local before = select(4, item(ns, "fps").button:GetPoint(1))
+	game.fps, game.latencyHome = 1444, 1234
+	env.RunTickers()
+	eq(lineText(ns), "1444 fps" .. MIDDLE_DOT .. "1234 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the tick rewrites the line")
+	assert(select(4, item(ns, "fps").button:GetPoint(1)) < before, "wider values push the earlier items left")
+	eq(select(4, item(ns, "gold").button:GetPoint(1)), 0, "while the line stays on the right edge")
+	game.fps, game.latencyHome = 144.2, 34
+	env.RunTickers()
+
+	-- Hovering an item's text shows its tooltip and readies the secure proxy over that text alone.
+	local gold = item(ns, "gold").button
+	W.Enter(gold)
+	local proxy = assert(ns.Click.proxy, "hovering gold readies the secure proxy")
+	eq(W.Covers(env, proxy, gold), true, "the proxy covers the gold text")
+	assert(proxy:GetWidth() < frame:GetWidth() / 2, "and only its text, not the whole line: " .. tostring(proxy:GetWidth()))
+	W.Leave(proxy)
+
+	-- Durability stays a slot choice.
+	K.Options.Write("DataBars", "strip.slot4", "durability")
+	eq(shown(ns), "fps,latency,gold,durability", "durability is selectable")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "96% armour", "and reads with its unit at the line's left end")
+	eq(select(4, item(ns, "durability").button:GetPoint(1)), 0, "now it ends the line")
+	K.Options.Write("DataBars", "strip.slot4", "none")
+	K.Options.Write("DataBars", "strip.slot5", "time")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "14:32", "the clock too")
+	K.Options.Write("DataBars", "strip.slot5", "none")
+
+	-- Units: the full and short label modes use the inline unit in the line; none leaves the values alone.
+	K.Options.Write("DataBars", "strip.labels", "full")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "full labels are the cells' captions: the line keeps its inline units")
+	K.Options.Write("DataBars", "strip.labels", "none")
+	eq(lineText(ns), "144" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "no labels, no units")
+	K.Options.Write("DataBars", "strip.labels", "inline")
+
+	-- Warnings and highlights stay available as value colours.
+	K.Options.Write("DataBars", "strip.valueColor", "highlight")
+	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "highlight brings the accent frame rate back")
+	K.Options.Write("DataBars", "strip.valueColor", "plain")
+
+	-- The glass can come back behind the line, with the text inside the card's padding.
+	K.Options.Write("DataBars", "strip.backdrop", true)
+	eq(view.chrome.fill[1]:IsShown(), true, "backdrop on draws the card")
+	local pad = K.Widgets.Inset(frame, K.Tokens.Size("chamferPanel"))
+	assert(near(select(4, item(ns, "gold").button:GetPoint(1)), -pad), "and the text keeps the card's padding from the right edge")
+	K.Options.Write("DataBars", "strip.backdrop", false)
+
+	-- Off, the cells come back.
+	K.Options.Write("DataBars", "strip.line", false)
+	eq(view.lineMode, false, "the cells layout stays available")
+	eq(item(ns, "fps").dot:IsShown(), false, "no dots between cells")
+	eq(K.Layout.Get("databars.strip").height, 42, "the element grows to hold a cell's caption and value")
+	local vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
+	eq(vp .. ">" .. tostring(vrel == item(ns, "fps").button) .. ">" .. vrp, "CENTER>true>CENTER", "the value sits on its cell's centre line")
+	K.Options.Write("DataBars", "strip.line", true)
+	eq(K.Layout.Get("databars.strip").height, 12, "and the line returns to its 12 units")
+	eq(view.lineMode, true, "drawn as the line again")
+
+	-- A column is never the line.
+	K.Options.Write("DataBars", "strip.orientation", "VERTICAL")
+	eq(view.lineMode, false, "a column draws rows, never the line")
+	eq(item(ns, "gold").dot:IsShown(), false, "with no dots")
+	K.Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
+	eq(view.lineMode, true, "back in a row, the line")
+	eq(K.Layout.Get("databars.strip").width .. "x" .. K.Layout.Get("databars.strip").height, "278x12", "at the picture's size")
+	noErrors(env, K)
+end
+
+-- The cells layout, set up as the Lumen readout card first drew it: 318 x 42 glass, five items in fixed cells
+
+do
+	local env, K, ns = D.New()
+	useCells(env, K)
+	local got = K.Layout.Get("databars.strip")
+	eq(shown(ns), "fps,latency,gold,durability", "the cells order, with no clock")
 	K.Options.Write("DataBars", "strip.slot5", "time")
 	eq(shown(ns), "fps,latency,gold,durability,time", "the fifth slot takes the clock")
-	eq(item(ns, "fps").label:GetText(), "fps", "fps unit, inline by default")
+	eq(item(ns, "fps").label:GetText(), "fps", "fps unit, inline")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
-	eq(item(ns, "latency").value:GetText(), "34", "home latency by default, its unit inline")
+	eq(item(ns, "latency").value:GetText(), "34", "home latency, its unit inline")
 	eq(item(ns, "latency").label:GetText(), "ms", "the latency unit")
 	eq(item(ns, "gold").value:GetText(), "143g 82s 17c", "gold")
 	eq(item(ns, "durability").label:GetText(), "armour", "durability reads as armour")
 	eq(item(ns, "durability").value:GetText(), "96%", "the lowest item's durability")
 	eq(item(ns, "time").value:GetText(), "14:32", "local time on a 24-hour clock")
-	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a high frame rate reads in the accent, the class colour the mockup's green stands for")
-	-- Labels step back in the text grey and the values lead in white, the hierarchy a player scans for: the
-	-- all-white strip of ingame-18 read as one flat sentence.
-	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey")
-	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the strip sits on glass")
-	-- The Lumen readout card on the right rail's foot: 318 x 42, the readout line alone (the menu rows are hidden by
-	-- default). Its values read at the HUD's bar size, 12, in fixed cells: no separators by default.
-	eq(got.width .. "x" .. got.height, "318x42", "the strip takes the Lumen readout card's size")
+	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "highlight: a high frame rate reads in the accent")
+	assert(sameText(item(ns, "fps").label, K.Tokens.Color("text")), "labels read in the text grey in the cells")
+	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the cells sit on glass")
+	eq(got.width .. "x" .. got.height, "318x42", "the strip takes the card's size")
 	eq(ns.Strip.view.chrome:Chamfer(), math.min(6 * K.Widgets.Border(ns.Strip.view.frame), 42 / 2), "the strip's corners round six border lines, the card grade (the owner's picture, 2026-11-09), never more than half its height")
 	local s = ns.Settings().strip
-	eq(s.fontSize, 12, "the strip reads at 12 by default")
 	eq(s.spacing, 16, "16 units of room inside each cell")
-	eq(s.separators, false, "no separators by default")
 	for _, id in ipairs(ns.Strip.order) do
 		eq(item(ns, id).separator:IsShown(), false, id .. " has no separator by default")
 	end
@@ -93,8 +252,6 @@ do
 	local vp, vrel, vrp = item(ns, "fps").value:GetPoint(1)
 	eq(lp .. ">" .. tostring(lrel == item(ns, "fps").value) .. ">" .. lrp, "LEFT>true>RIGHT", "the inline unit follows its value on one line")
 	eq(vp .. ">" .. tostring(vrel == item(ns, "fps").button) .. ">" .. vrp, "CENTER>true>CENTER", "the value sits on the cell's centre line")
-	-- The full labels still stack: a caption over the value, on the 492 by 43 strip they were drawn for (the readout
-	-- card's 318 drops captions that cannot fit their cells).
 	assert(K.Layout.Update("databars.strip", { width = 492, height = 43 }))
 	env.RunTimers()
 	K.Options.Write("DataBars", "strip.labels", "full")
@@ -110,6 +267,8 @@ end
 
 do
 	local env, K, ns, game = D.New()
+	K.Options.Write("DataBars", "strip.slot4", "durability")
+	K.Options.Write("DataBars", "strip.valueColor", "highlight")
 	K.Options.Write("DataBars", "strip.slot5", "time")
 	eq(env.LiveTickers(), 1, "one ticker runs while the strip shows a timed item")
 	game.fps, game.latencyHome = 25.4, 320
@@ -146,11 +305,25 @@ do
 	noErrors(env, K)
 end
 
+-- Turning the line off while the module is disabled still gives the cells their height when it comes back (codex review).
+do
+	local env, K = D.New()
+	eq(K.Layout.Get("databars.strip").height, 12, "the line starts 12 units tall")
+	K.Modules.Disable("DataBars")
+	K.Options.Write("DataBars", "strip.line", false)
+	K.Options.Write("DataBars", "strip.labels", "full")
+	K.Modules.Enable("DataBars")
+	env.RunTimers()
+	assert(K.Layout.Get("databars.strip").height >= 42, "the cells take their 42 units on enable: " .. tostring(K.Layout.Get("databars.strip").height))
+	noErrors(env, K)
+end
+
 -- Settings: slots, labels, colours, money, latency, clock, backdrop, separators, font ----------------
 
 do
 	local env, K, ns = D.New()
 	local Options = K.Options
+	useCells(env, K)
 	Options.Write("DataBars", "strip.slot5", "time")
 	Options.Write("DataBars", "strip.slot2", "none")
 	eq(shown(ns), "fps,gold,durability,time", "an empty slot drops its item")
@@ -170,7 +343,7 @@ do
 
 	-- The default, "highlight": the frame rate reads in the accent (the mockup's one highlighted value, "144" in the
 	-- class colour), warnings keep their threshold colours, and every other value is white.
-	assert(ns.defaults.strip.valueColor == "highlight", "the strip highlights by default")
+	eq(Options.Read("DataBars", "strip.valueColor"), "highlight", "the highlight mode is still a choice")
 	assert(sameText(item(ns, "fps").value, K.Theme.Accent()), "a good frame rate reads in the accent")
 	assert(sameText(item(ns, "latency").value, K.Tokens.Color("textEmphasis")) and sameText(item(ns, "durability").value, K.Tokens.Color("textEmphasis")), "good latency and durability stay white, as the mockup draws them")
 	assert(sameText(item(ns, "gold").value, K.Tokens.Color("textEmphasis")), "gold is white")
@@ -242,14 +415,14 @@ do
 	assert(math.abs(layout.height - K.Widgets.Snap(ns.Strip.view.frame, rows * 13 * 1.8 + 2 * inset)) < 1.01, "the column is its rows plus one inset above and below, got " .. layout.height)
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "318x42", "a row strip returns to its footprint")
+	eq(layout.width .. "x" .. layout.height, "278x42", "a row strip returns to its footprint, as tall as a cell needs")
 	for i = 2, 5 do
 		Options.Write("DataBars", "strip.slot" .. i, "none")
 	end
 	Options.Write("DataBars", "strip.orientation", "VERTICAL")
 	Options.Write("DataBars", "strip.orientation", "HORIZONTAL")
 	layout = K.Layout.Get("databars.strip")
-	eq(layout.width .. "x" .. layout.height, "318x42", "a one-item column also returns to the row footprint")
+	eq(layout.width .. "x" .. layout.height, "278x42", "a one-item column also returns to the row footprint")
 	noErrors(env, K)
 end
 
@@ -288,6 +461,7 @@ end
 do
 	local env, K, ns, game = D.New()
 	local Options = K.Options
+	useCells(env, K)
 	-- The cells and captions below are measured at the 492 by 43 strip they were drawn for; the Lumen readout card is
 	-- 318 by 42 (118 with both menu rows shown).
 	assert(K.Layout.Update("databars.strip", { width = 492, height = 43 }))
@@ -390,6 +564,7 @@ end
 
 do
 	local env, K, ns = D.New()
+	K.Options.Write("DataBars", "strip.slot4", "durability")
 	K.Options.Write("DataBars", "strip.slot5", "time")
 	local gold = item(ns, "gold").button
 	W.Enter(gold)
@@ -458,6 +633,7 @@ end
 
 do
 	local env, K, ns, game = D.New()
+	K.Options.Write("DataBars", "strip.slot4", "durability")
 	game.durability[5] = { 10, 100 }
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
 	W.Enter(item(ns, "durability").button)
@@ -483,6 +659,7 @@ do
 	local env, K, ns = D.New({ setup = function(e)
 		e.GetFramerate, e.GetNetStats, e.GetInventoryItemDurability = nil, nil, nil
 	end })
+	K.Options.Write("DataBars", "strip.slot4", "durability")
 	eq(item(ns, "fps").value:GetText(), "--", "no frame rate")
 	eq(item(ns, "latency").value:GetText(), "--", "no latency")
 	eq(item(ns, "durability").value:GetText(), "--", "no durability")
@@ -498,6 +675,13 @@ do
 	parent:SetSize(248, 400)
 	local frame = K.Options.Preview("DataBars")(parent)
 	local sample = assert(frame.strip, "the preview shows a strip")
+	K.Options.Write("DataBars", "strip.slot4", "durability")
+	frame:Refresh()
+	eq(sample.lineMode, true, "the preview draws the line by default")
+	eq(sample.items.latency.value:GetText(), "34", "with the latency's unit after it")
+	eq(sample.items.durability.label:GetText(), "armour", "and the units inline")
+	assert(sample.frame:GetWidth() >= sample.contentWidth, "the line fits its sample")
+	K.Options.Write("DataBars", "strip.line", false)
 	K.Options.Write("DataBars", "strip.labels", "short")
 	frame:Refresh()
 	eq(sample.items.durability.label:GetText(), "DUR", "the preview strip follows the labels setting")
@@ -517,6 +701,7 @@ end
 
 do
 	local env, K, ns = D.New({ setup = D.Menus })
+	K.Options.Write("DataBars", "strip.menus", true)
 	K.Options.Write("DataBars", "micro.shown", true)
 	K.Options.Write("DataBars", "bags.shown", true)
 	local Strip, Menus = ns.Strip, ns.Menus
@@ -536,12 +721,11 @@ do
 	-- Round 3 (Opus #6): the readout line holds the card's top padding itself, so the micro row starts a small gap
 	-- under the text instead of a second padding lower (45 px of empty glass in the hero render), and the card fits
 	-- the 118 units the layouts keep for it.
-	eq(Strip.LINE, 30, "the readout line is 30 units with the card's top padding in it")
+	eq(Strip.LINE, 12, "the readout line is the picture's 12 units, bare of the card's padding")
+	eq(pad, 0, "a bare line has no padding of its own")
 	local want = Strip.LINE + gap + microH + gap + bagsH + pad
 	local h = view.frame:GetHeight()
 	assert(near(h, want), string.format("the card is the readout line, the micro row and the bag row inside the padding: %s for %s", h, want))
-	local _, kept = K.Setup.Layouts.Footprint("DPS", "databars.strip")
-	assert(h <= kept + 0.5, "the docked card fits the footprint the layouts keep: " .. h)
 	-- Fable #3: the micro row and the bag row share the card's right edge, under the right-aligned readout.
 	local mp, _, mrp, mx = Menus.Content("micro"):GetPoint(1)
 	local bp, _, brp, bx = Menus.Content("bags"):GetPoint(1)
@@ -583,6 +767,7 @@ do
 	})
 	env.RunTimers()
 	K.Options.Write("DataBars", "strip.slot5", "time")
+	useCells(env, K)
 	assert(K.Layout.Update("databars.strip", { width = 318, height = 118 }))
 	env.RunTimers()
 	ns.Strip.Refresh()

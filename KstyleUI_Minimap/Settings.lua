@@ -22,12 +22,12 @@ local accentR, accentG, accentB = Tokens.Color("accentDefault")
 Settings.defaults = {
 	enabled = false,
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
-	column = { side = "right", size = 18, spacing = 4, growth = "down", tracking = true, mail = true, calendar = true, queue = true, drawer = true },
-	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = true },
+	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = false, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
+	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
-	zone = { shown = true, color = "plain", font = "", size = 11, outline = "" },
-	clock = { shown = true, mode = "game", font = "", size = 11, outline = "" },
-	coords = { shown = false, precision = 1, font = "", size = 10, outline = "" },
+	zone = { shown = true, color = "plain", font = "", size = 12, outline = "" },
+	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "" },
+	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "" },
 }
 
 local ACCENT_OPTIONS = {
@@ -124,7 +124,11 @@ local schema = {
 	{ type = "header", label = L["Button column"] },
 	{
 		type = "dropdown", key = "column.side", label = L["Button column side"], options = SIDE_OPTIONS,
-		help = L["Which edge of the map the small buttons line. They show while the pointer is over the map."],
+		help = L["Which edge of the map the small buttons line."],
+	},
+	{
+		type = "toggle", key = "column.hover", label = L["Buttons only on hover"],
+		help = L["Shows the tracking, calendar and addon buttons only while the pointer is over the map."],
 	},
 	{
 		type = "dropdown", key = "column.growth", label = L["Button order"], options = GROWTH_OPTIONS,
@@ -220,7 +224,7 @@ local schema = {
 	{ type = "header", label = L["Zone and clock"] },
 	{
 		type = "toggle", key = "zone.shown", label = L["Zone name"],
-		help = L["Shows the zone name along the map's top edge."],
+		help = L["Shows the zone name under the map's left edge."],
 	},
 	{
 		type = "dropdown", key = "zone.color", label = L["Zone colour"], options = ZONE_COLOR_OPTIONS,
@@ -232,7 +236,7 @@ for _, row in ipairs(TextRows("zone", { L["Zone font"], L["Zone text size"], L["
 end
 schema[#schema + 1] = {
 	type = "toggle", key = "clock.shown", label = L["Clock"],
-	help = L["Shows the time along the map's bottom edge."],
+	help = L["Shows the time under the map's right edge."],
 }
 schema[#schema + 1] = {
 	type = "dropdown", key = "clock.mode", label = L["Clock format"], options = CLOCK_OPTIONS,
@@ -244,7 +248,7 @@ end
 schema[#schema + 1] = { type = "header", label = L["Coordinates"] }
 schema[#schema + 1] = {
 	type = "toggle", key = "coords.shown", label = L["Coordinates"],
-	help = L["Shows your position on the zone map."],
+	help = L["Shows your position on the zone map, under the zone name."],
 }
 schema[#schema + 1] = {
 	type = "dropdown", key = "coords.precision", label = L["Coordinate format"], options = PRECISION_OPTIONS,

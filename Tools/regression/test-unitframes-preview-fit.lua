@@ -67,6 +67,14 @@ pane:SetSize(220, PANE_H)
 Check("after a resize to 220 units")
 pane:SetSize(PANE_W, PANE_H)
 
+-- The older Lumen style stays a choice: its sigil is checked from here on, in a profile that keeps it.
+env, K = U.New({ lumen = true })
+env._textWidth = D.TextWidth
+pane = env.CreateFrame("Frame", nil, K.Scale.Root())
+pane:SetSize(PANE_W, PANE_H)
+pane:SetPoint("CENTER")
+preview = K.Options.Preview("UnitFrames")(pane)
+
 -- The target sigil is laid out at its HUD width while the pane holds it at half scale or more, then scaled to fit, so
 -- its cast line is the HUD's (round 6: Opus #2, Fable #3): laid out narrower at three quarters, the cast line ran out
 -- of room and its bar shrank to a stub beside "Casting Frostbolt". A narrower pane lays it out narrower still.

@@ -33,6 +33,7 @@ local POSITION = {
 	ABOVE = { "BOTTOMLEFT", "TOPLEFT", 0, 1, true },
 	RIGHT = { "TOPLEFT", "TOPRIGHT", 1, 0, false },
 	LEFT = { "TOPRIGHT", "TOPLEFT", -1, 0, false },
+	SIDE = { "TOPLEFT", "TOPRIGHT", 1, 0, false, below = true },
 }
 local GAP = 2
 local ICON_CROP = 0.07
@@ -163,7 +164,9 @@ local function Centred(kind)
 end
 
 local function TimerBelow(kind)
-	return Centred(kind) and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
+	local position = POSITION[Settings.Value(kind, "auraPosition")]
+	local below = position ~= nil and (position.centred == true or position.below == true)
+	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
 end
 
 local function TimerRoom(kind)
@@ -566,8 +569,13 @@ function Auras.Footprint(kind, frame)
 	return math.max(1, line), math.max(1, height), growth[1], line, growth
 end
 
-function Auras.Anchor(host, frame, kind, panelX)
+function Auras.Anchor(host, frame, kind, panelX, spot)
 	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
+	if spot and Settings.Value(kind, "auraPosition") == "SIDE" then
+		host:ClearAllPoints()
+		host:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
+		return
+	end
 	local x = position[5] and Widgets.Snap(host, panelX) or 0
 	local gap = Widgets.Snap(host, GAP)
 	host:ClearAllPoints()
@@ -577,7 +585,7 @@ end
 function Auras.Place(view)
 	local a = view.auras
 	if a and a.container then
-		Auras.Anchor(a.host, view.button, view.kind, view.geometry and view.geometry.panel.x or 0)
+		Auras.Anchor(a.host, view.button, view.kind, view.geometry and view.geometry.panel.x or 0, view.geometry and view.geometry.aura)
 	end
 end
 

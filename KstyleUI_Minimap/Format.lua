@@ -1,4 +1,4 @@
--- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, the square map's inset, bands and chamfer, and the button column's slots.
+-- Format.lua: pure helpers for the minimap: coordinate and clock text, zone colours, zoom steps and shares, the picture's measures for the caption under the map, the north plate and the button column, and the button column's slots.
 local _, ns = ...
 
 local Format = {}
@@ -8,11 +8,13 @@ local ceil, floor, format, max, min = math.ceil, math.floor, string.format, math
 
 local COORD_FORMATS = { [0] = "%d, %d", [1] = "%.1f, %.1f", [2] = "%.2f, %.2f" }
 local DEFAULT_PRECISION = 1
-local INSET = 2
-local BAND = 26
-local EDGE = 6
-local MASK_FRAME, MASK_CHAMFER, MASK_INSET = 221, 12, 2
-local MASK_SHARE = (MASK_CHAMFER - 2 * MASK_INSET) / (MASK_FRAME - 2 * MASK_INSET)
+local TOP = 7
+local EDGE = 7.75
+local NORTH = 16
+local CAPTION = 36
+local CAPTION_X = 2
+local ZONE_CENTER = 13.7
+local ROW_CENTER = 31.2
 local HOURS_PER_DAY, MINUTES_PER_HOUR, NOON = 24, 60, 12
 
 local PVP_TOKENS = {
@@ -33,24 +35,23 @@ local function IsNumber(value)
 end
 
 Format.IsNumber = IsNumber
-Format.INSET = INSET
-Format.BAND = BAND
+Format.TOP = TOP
 Format.EDGE = EDGE
-Format.MASK_SHARE = MASK_SHARE
+Format.NORTH = NORTH
+Format.CAPTION = CAPTION
+Format.CAPTION_X = CAPTION_X
+Format.ZONE_CENTER = ZONE_CENTER
+Format.ROW_CENTER = ROW_CENTER
 
-function Format.Chamfer(size)
-	return max(0, size) * MASK_SHARE
+function Format.PerColumn(mapSize, size, spacing, top)
+	return max(1, floor((mapSize - 2 * top + spacing) / (size + spacing)))
 end
 
-function Format.PerColumn(mapSize, size, spacing, band)
-	return max(1, floor((mapSize - 2 * band + spacing) / (size + spacing)))
-end
-
-function Format.Column(index, size, spacing, side, up, edge, band, perColumn)
+function Format.Column(index, size, spacing, side, up, edge, top, perColumn)
 	perColumn = max(1, floor(perColumn or index))
 	local column, row = floor((index - 1) / perColumn), (index - 1) % perColumn
 	local pitch = size + spacing
-	local inward, along = edge + column * pitch, band + row * pitch
+	local inward, along = edge + column * pitch, top + row * pitch
 	local x = side == "left" and inward or -inward
 	if up then
 		return side == "left" and "BOTTOMLEFT" or "BOTTOMRIGHT", x, along

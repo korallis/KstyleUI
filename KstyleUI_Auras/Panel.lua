@@ -15,7 +15,7 @@ local TEMPLATE = "CustomAuraContainerTemplate"
 local UNIT = "player"
 local HOST_LEVEL = 2
 local CHIP_LEVEL = 4
-local REST_EDGE_ALPHA = 0.5
+local TILE_EDGE = "black"
 local GATE_EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD" }
 local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYER_ENTERING_WORLD" }
 local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
@@ -184,7 +184,7 @@ local function ExpiringColor(expiring)
 			c:SetType(E.LuaCurveType.Step)
 		end
 		c:AddPoint(0, CreateColor(Tokens.Color("hostile")))
-		c:AddPoint(expiring, CreateColor(Tokens.Color("textEmphasis")))
+		c:AddPoint(expiring, CreateColor(Tokens.Color("white")))
 		return c
 	end)
 	if not ok then
@@ -203,14 +203,9 @@ local function DispelOptions()
 	return { style = styles.PreserveAsset, showWhenHarmful = true, showWithoutDispelType = true }
 end
 
-local function EdgeColor(name, settings)
-	local r, g, b
-	if EDGE_TOKENS[name] == "accent" then
-		r, g, b = Model.AccentColor(settings)
-	else
-		r, g, b = Tokens.Color(EDGE_TOKENS[name])
-	end
-	return { r, g, b, REST_EDGE_ALPHA }
+local function EdgeColor()
+	local r, g, b = Tokens.Color(TILE_EDGE)
+	return { r, g, b, 1 }
 end
 
 local function Context(desc)
@@ -230,7 +225,7 @@ local function Context(desc)
 		spacing = snap(group.spacing),
 		rowSpacing = snap(group.rowSpacing),
 		lineSize = Model.LineSize(group, timer, snap),
-		edge = EdgeColor(desc.name, settings),
+		edge = EdgeColor(),
 		timerOptions = { textFormatter = Formatter(timer.format), textColor = ExpiringColor(timer.expiring) },
 		dispelOptions = group.dispel and DispelOptions() or nil,
 	}
@@ -332,7 +327,6 @@ local function ApplyChip(desc, candidates)
 	end
 	local ctx, host = desc.ctx, desc.host
 	local corner = Model.LastCell(ctx.group.growth)
-	local edge = ctx.edge
 	Overflow.Apply(chip, {
 		enabled = true,
 		groups = { { filter = Model.FILTERS[desc.name], candidates = candidates, cap = Capacity(desc), labels = Model.LABELS[desc.name] } },
@@ -340,7 +334,7 @@ local function ApplyChip(desc, candidates)
 		point = corner, rel = host, relPoint = corner, x = 0, y = 0,
 		level = host:GetFrameLevel() + CHIP_LEVEL, style = ChipStyle(ctx),
 		accent = function()
-			return edge[1], edge[2], edge[3]
+			return Tokens.Color(EDGE_TOKENS[desc.name])
 		end,
 	})
 end
@@ -511,7 +505,8 @@ local function ApplyContainer(desc)
 	container:SetFlowLayoutGrowthDirection(directions[horizontal], directions[vertical])
 	container:SetFlowLayoutMaximumLineSize(ctx.lineSize)
 	container:ClearAllPoints()
-	container:SetPoint(anchor, desc.host, anchor, 0, 0)
+	local hang = Model.Hang(ctx.group.growth)
+	container:SetPoint(hang, desc.host, hang, 0, 0)
 	ApplyGroup(desc)
 	local slots = EnchantSlots(desc)
 	for i, enchant in ipairs(desc.enchants) do

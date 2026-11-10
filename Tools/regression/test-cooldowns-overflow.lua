@@ -84,11 +84,12 @@ for i = 1, capacity do
 	assert(apart(chipRect, rect(buffs.icons[i])), "the chip covers no buff: socket " .. i)
 end
 assert(near(first.left, holder.left), "a full row starts at the holder's left edge")
-assert(near(chipRect.right, holder.left - cfg.spacing) and near(chipRect.top, first.top) and near(chipRect.bottom, first.bottom), "the chip is one more socket on the row's left, one gap away")
-assert(near(chipRect.right - chipRect.left, cfg.size), "and a whole socket wide")
-assert(near(holder.left - chipRect.left, cfg.size + cfg.spacing), "so the row grows by exactly one socket")
+local gap, size = K.Widgets.Snap(chip, cfg.spacing), K.Widgets.Snap(chip, cfg.size)
+assert(near(chipRect.right, holder.left - gap) and near(chipRect.top, first.top) and near(chipRect.bottom, first.bottom), "the chip is one more socket on the row's left, one snapped gap away")
+assert(near(chipRect.right - chipRect.left, size), "and a whole snapped socket wide")
+assert(near(holder.left - chipRect.left, size + gap), "so the row grows by exactly one socket")
 local bw, bh = buffs.holder:GetSize()
-assert(bw == 243 and bh == 38, "the holder keeps its 243 by 38 footprint")
+assert(math.abs(bw - 182.6) < 1 and math.abs(bh - 41.6) < 1, "the buff holder includes its below-icon timer band")
 
 -- Hovering the chip lists the hidden buffs, in order, with their time left -----------------------------------------
 do

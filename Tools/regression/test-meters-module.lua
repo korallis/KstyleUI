@@ -56,13 +56,14 @@ local fonts = keys["damage.font"].options()
 assert(fonts[1].value == "", "the first font is the interface font")
 assert(#fonts >= 2, "the font list holds KstyleUI's fonts")
 
--- The defaults read in a pull: 18-unit rows 2 units apart that carry their own text (a 14-unit row with a 5-unit
--- gap read as a spreadsheet in ingame-18), text at the unit frames' bar size of 12, four rows in the damage
--- footprint and three in the threat footprint under the title inside the content inset.
+-- The defaults read in a pull: 18-unit rows that carry their own text (a 14-unit row with a 5-unit gap read as a
+-- spreadsheet in ingame-18), the damage card's 3 units apart as the picture draws it (pitch 21) and the threat
+-- meter's 2 apart, text at the unit frames' bar size of 12, five rows in the damage card's 158 units under its
+-- 35-unit cap and three in the threat footprint under the title inside the content inset.
 assert(ns.defaults.damage.rowHeight == 18 and ns.defaults.threat.rowHeight == 18, "rows are 18 units")
-assert(ns.defaults.damage.spacing == 2 and ns.defaults.threat.spacing == 2, "rows sit 2 units apart")
+assert(ns.defaults.damage.spacing == 3 and ns.defaults.threat.spacing == 2, "the damage card's rows sit 3 units apart, the threat meter's 2")
 assert(ns.defaults.damage.fontSize == 12 and ns.defaults.threat.fontSize == 12, "row text is the unit frames' 12")
-assert(ns.Logic.FitRows(130 - 12 - 9 - 8 - 12, 18, 2) == 4, "the damage footprint fits four rows under its title inside the content inset")
+assert(ns.Logic.FitRows(158 - 35 - 15, 18, 3) == 5, "the damage card fits five rows under its cap")
 assert(ns.Logic.FitRows(104 - 12 - 9 - 8 - 12, 18, 2) == 3, "the threat footprint fits three rows under its title inside the content inset")
 -- Rows share out the room the last whole row leaves, so no dead band sits under them.
 assert(ns.Logic.FillRows(89, 18, 2) == 20.75 and ns.Logic.FillRows(89, 18, 2) * 4 + 3 * 2 == 89, "four rows grow to fill 89 units")

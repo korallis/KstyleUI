@@ -58,6 +58,16 @@ local COLORS = {
 	coinSilver = { "c3ccd6", 1 },
 	coinCopper = { "d68a5c", 1 },
 	plateHostile = { "c3433d", 1 },
+	hudPlayerHealth = { "2c69cc", 1 },
+	hudTargetHealth = { "be403b", 1 },
+	hudRested = { "5a9cca", 1 },
+	meterPhysical = { "7a6a52", 1 },
+	meterNature = { "2e7d4f", 1 },
+	meterFire = { "b4501f", 1 },
+	meterFrost = { "2f7396", 1 },
+	meterShadow = { "5e4a8c", 1 },
+	meterArcane = { "8a4f9e", 1 },
+	meterHoly = { "94803a", 1 },
 }
 
 local SIZES = {

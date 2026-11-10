@@ -21,8 +21,7 @@ env.RunTimers()
 local Model, Panel = ns.Model, ns.Panel
 local Layouts = K.Setup.Layouts
 local settings = K.Store.Module("Auras")
-local buffs, debuffs = Model.Group(settings, "buffs"), Model.Group(settings, "debuffs")
-local timer = Model.Timer(settings)
+local buffs = Model.Group(settings, "buffs")
 local root = K.Scale.Root()
 local rw, rh = K.Layout.RootSize()
 check(near(rw / rh, 2383 / 1540, 0.01), "the root has the owner's aspect: " .. tostring(rw) .. " x " .. tostring(rh))
@@ -36,13 +35,14 @@ local function rect(object)
 	return r
 end
 
--- The engine sizes a container to the rows it holds: n tiles in the group's columns, each the element size.
-local function size(container, group, n)
+-- The engine sizes a container to the rows it holds: n tiles in the group's columns, each the element size, on the
+-- whole pixels the row's own context snapped them to.
+local function size(container, row, n)
+	local ctx, group = row.ctx, row.ctx.group
 	local shown = math.min(n, Model.Capacity(group, 0))
-	local w, h = Model.ElementSize(group, timer)
 	local columns = math.min(shown, group.columns)
 	local rows = math.ceil(shown / group.columns)
-	container:SetSize(columns > 0 and columns * w + (columns - 1) * group.spacing or 0, rows * h + math.max(0, rows - 1) * group.rowSpacing)
+	container:SetSize(columns > 0 and columns * ctx.width + (columns - 1) * ctx.spacing or 0, rows * ctx.height + math.max(0, rows - 1) * ctx.rowSpacing)
 end
 
 local function overlap(r, s)
@@ -50,8 +50,8 @@ local function overlap(r, s)
 end
 
 local function state(n, d)
-	size(helpful, buffs, n)
-	size(harmful, debuffs, d or DEBUFFS)
+	size(helpful, desc, n)
+	size(harmful, ddesc, d or DEBUFFS)
 	A.Counters(ns, { n, 0, d or DEBUFFS })
 	env.RunTimers()
 end
@@ -61,7 +61,7 @@ local function count(chip)
 end
 
 local capacity = Model.Capacity(buffs, 0)
-check(capacity == 16, "two rows of eight by default")
+check(capacity == 10, "one row of ten by default")
 local slotsAsked = 0
 env.C_UnitAuras = {
 	GetAuraSlots = function()
@@ -78,11 +78,14 @@ for _, name in ipairs(Layouts.Names()) do
 	end
 	env.RunTimers()
 	local others = {}
+	local canvasH = Layouts.HEIGHT
+	local canvasW = canvasH * rw / rh
+	local dx, dy = canvasW - rw, canvasH - rh
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		local key = element.key
 		if key ~= "auras.buffs" and key ~= "auras.debuffs" then
 			local w, h = Layouts.Footprint(name, key)
-			local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[key], rw, rh)
+			local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[key], canvasW, canvasH)
 			others[key] = { left = l, bottom = b, right = r, top = t }
 		end
 	end
@@ -94,40 +97,45 @@ for _, name in ipairs(Layouts.Names()) do
 		local brows, drows = rect(helpful), rect(harmful)
 		check(brows.right <= bh.right + 0.5 and brows.top <= bh.top + 0.5 and brows.left >= bh.left - 0.5 and brows.bottom >= bh.bottom - 0.5, label .. ": the buff rows stay inside their element")
 		check(drows.right <= dh.right + 0.5 and drows.top <= dh.top + 0.5 and drows.left >= dh.left - 0.5 and drows.bottom >= dh.bottom - 0.5, label .. ": the debuff rows stay inside their element")
-		check(near(brows.right, bh.right) and near(brows.top, bh.top), label .. ": the rows start at the element's top right, beside the minimap's edge")
-		check(dh.top <= bh.bottom - 15, label .. ": the debuff rows hang a gap under the buff rows (16, less a pixel of snapping)")
+		check(near(brows.right, bh.right) and near(brows.top, bh.top), label .. ": the rows end at the element's top right, beside the minimap's edge, whatever they hold")
+		check(near(drows.right, brows.right), label .. ": the debuff row ends at the same x as the buff row")
+		check(dh.top <= bh.bottom - 7, label .. ": the debuff rows hang a gap under the buff rows (8, less a pixel of snapping)")
 		for _, r in ipairs({ bh, dh }) do
 			check(r.left >= -0.5 and r.right <= rw + 0.5 and r.bottom >= -0.5 and r.top <= rh + 0.5, label .. ": on screen")
 		end
+		local function lift(r)
+			return { left = r.left + dx, right = r.right + dx, bottom = r.bottom + dy, top = r.top + dy }
+		end
 		for key, other in pairs(others) do
-			check(not overlap(bh, other), string.format("%s: the buff rows (%.0f,%.0f-%.0f,%.0f) overlap %s (%.0f,%.0f-%.0f,%.0f)", label, bh.left, bh.bottom, bh.right, bh.top, key, other.left, other.bottom, other.right, other.top))
-			check(not overlap(dh, other), string.format("%s: the debuff rows (%.0f,%.0f-%.0f,%.0f) overlap %s", label, dh.left, dh.bottom, dh.right, dh.top, key))
+			local lb, ld = lift(bh), lift(dh)
+			check(not overlap(lb, other), string.format("%s: the buff rows (%.0f,%.0f-%.0f,%.0f) overlap %s (%.0f,%.0f-%.0f,%.0f)", label, lb.left, lb.bottom, lb.right, lb.top, key, other.left, other.bottom, other.right, other.top))
+			check(not overlap(ld, other), string.format("%s: the debuff rows (%.0f,%.0f-%.0f,%.0f) overlap %s", label, ld.left, ld.bottom, ld.right, ld.top, key))
 		end
 		local over = math.max(0, n - capacity)
 		if over > 0 then
 			check(count(desc.chip) == "+" .. (over + 1), label .. ": the last cell counts the rest: " .. tostring(count(desc.chip)))
 			local window = rect(desc.chip.window)
-			check(near(window.left, bh.left) and near(window.bottom, bh.bottom), label .. ": the count sits on the last cell")
+			check(near(window.right, bh.right) and near(window.bottom, bh.bottom), label .. ": the count sits on the last cell, the row's right end")
 		else
 			check(count(desc.chip) == nil, label .. ": no count when every buff shows: " .. tostring(count(desc.chip)))
 		end
-		check(count(ddesc.chip) == nil, label .. ": twelve debuffs show whole")
+		check(count(ddesc.chip) == "+3", label .. ": twelve debuffs read +3 on the tenth cell: " .. tostring(count(ddesc.chip)))
 	end
 end
 check(slotsAsked == 0, "the rows never ask the game for an aura count")
 
 -- Text lands on whole physical pixels (#210): the timer and count go through Widgets.ApplyFont, so at the owner's
--- 1.426 px per unit an 11-unit timer snaps to a whole pixel count and its shadow is one physical pixel, not one unit.
+-- 1.426 px per unit a 12-unit timer snaps to a whole pixel count and its shadow is one physical pixel, not one unit.
 do
 	local Widgets = K.Widgets
 	local entry = desc.buttons[1]
 	local ruler = Widgets.FontString(desc.host, "OVERLAY")
-	Widgets.ApplyFont(ruler, (K.Tokens.Font("body")), 11, "")
+	Widgets.ApplyFont(ruler, (K.Tokens.Font("body")), 12, "")
 	local _, want = ruler:GetFont()
 	local wx, wy = ruler:GetShadowOffset()
 	local _, timerSize = entry.timer:GetFont()
 	local sx, sy = entry.timer:GetShadowOffset()
-	check(near(want, Widgets.FontSize(entry.timer, 11), 1e-6) and not near(want, 11, 1e-6), "the snapped size differs from the raw 11 on this screen: " .. tostring(want))
+	check(near(want, Widgets.FontSize(entry.timer, 12), 1e-6) and not near(want, 12, 1e-6), "the snapped size differs from the raw 12 on this screen: " .. tostring(want))
 	check(near(timerSize, want, 1e-6), "the timer takes the snapped size, got " .. tostring(timerSize) .. " for " .. tostring(want))
 	check(near(sx, wx, 1e-6) and near(sy, wy, 1e-6), "and the one-pixel shadow, got " .. tostring(sx) .. ", " .. tostring(sy) .. " for " .. tostring(wx) .. ", " .. tostring(wy))
 	local _, countSize = entry.count:GetFont()
@@ -138,13 +146,13 @@ end
 env.SetCombat(true)
 env._aurasSecret = true
 state(40)
-check(count(desc.chip) == "+25", "in the pull the last cell counts the twenty-five past the rows: " .. tostring(count(desc.chip)))
+check(count(desc.chip) == "+31", "in the pull the last cell counts the thirty past the row, and itself: " .. tostring(count(desc.chip)))
 state(20)
-check(count(desc.chip) == "+5", "buffs fall away in the pull: +5, never the +25 from before: " .. tostring(count(desc.chip)))
+check(count(desc.chip) == "+11", "buffs fall away in the pull: +11, never the +31 from before: " .. tostring(count(desc.chip)))
 state(10)
-check(count(desc.chip) == nil, "and the count goes when the rows hold them all")
+check(count(desc.chip) == nil, "and the count goes when the row holds them all")
 state(8, 30)
-check(count(ddesc.chip) == "+15", "thirty debuffs: fifteen on the last cell: " .. tostring(count(ddesc.chip)))
+check(count(ddesc.chip) == "+21", "thirty debuffs: twenty-one on the last cell: " .. tostring(count(ddesc.chip)))
 env.SetCombat(false)
 env._aurasSecret = false
 state(0, 0)

@@ -31,10 +31,11 @@ The owner made these decisions on 2026-11-07. Each one is binding on the plan.
 | Look | "Obsidian and class colour": neutral glass, accent is the current character's class colour |
 | Reference | `05_kit_hunter.jpg` for components. `v3/` for the combat HUD. |
 | Scaling | Same proportions on every screen, borders snapped to whole physical pixels |
-| Unit frames | Portraits on by default, with a switch to turn them off. Player and target sit centred above the action bars, on either side of the Cooldown Manager. |
-| Action bars | Compact: two rows of 12 buttons of 34 units at the 1080 reference, 3-unit gaps, no name labels. Keybind, stack and cooldown text sit on the button. |
-| Cooldown Manager | Always part of the combat HUD, in its own module: essential cooldowns centred above the action bars, utility cooldowns beneath them, tracked buff bars beside them. |
-| Minimap | Square, with the zone and clock on a strip inside its bottom edge and buttons down one side |
+| Unit frames | LEE-20, owner ruling 2026-11-09: "let the picture win its what i want" supersedes the earlier split and target sigil. Player and target share a centred 491-unit bar column at bottoms 138 and 217.5, heights 77.5 and 102.5; their portraits stand outside the left and right edges respectively, on by default with the switch kept. The target has reversed health/power bars, a right-side portrait and debuffs, and an inline cast with a 12-unit label and 26.5 units of font-aware room; the player cast is a separate 347 x 30 element at bottom 385.5. |
+| Action bars | LEE-20 picture ruling, 2026-11-09: two enabled rows of 12 square 36.7-unit buttons with 4.6-unit gaps, 491 wide at bottoms 54 and 95.3, with empty tiles shown and settings retained. Bar 3 stays off in a spare BOTTOMLEFT slot at screenMargin (28), bottom 464, 16 above the loot feed's full reserve and outside the central 40% band. Keybind, stack and cooldown text sit on the button. |
+| Cooldown Manager | LEE-20 picture ruling, 2026-11-09: essential cooldowns are six 36.7-unit icons at 41.3 pitch, 243.2 wide, centred at bottom 335.3 below the player cast. Tracked buff icons sit beside the player's external portrait, reserving 182.6 x 41.6 at x -442.8, bottom 155.9; optional utility and tracked-bar slots remain available. |
+| Experience bar | LEE-20 picture ruling, 2026-11-09 supersedes the segmented line: a continuous 491 x 8 track at bottom 36.5, aligned with the action bars, with the level, XP percentage and rested caption beneath it. |
+| Minimap | Square, in a thin gilt rim with a round N plate on its top edge and its buttons down the inside of one side at rest; the zone, coordinates and clock on two lines under it. The owner's picture of 2026-11-09 replaced the strip inside the bottom edge (LEE-20: "let the picture win") |
 | Icons | Two custom icon sets for every ability: set A (white light art, tinted in game) and set B (full colour). Generated at high quality. An option switches between custom and Blizzard icons. |
 | Combat text | Wanted, built after an in-game spike proves what Forever allows |
 | Positioning | KstyleUI's own Layout Mode, not Blizzard's Edit Mode |
@@ -265,10 +266,10 @@ Each module either replaces Blizzard's frames with its own, mirrors a Blizzard d
 | `KstyleUI_GroupFrames` | Party and raid frames up to 40: class colours, role icons, range fade, incoming heals, dispellable debuff highlight | Replace |
 | `KstyleUI_ActionBars` | Main bar with stance, stealth, form and possess paging, extra bars, pet bar, stance bar, keybind text, cooldown sweeps, proc glows, usable and range shading, mouseover fade | Replace |
 | `KstyleUI_Cooldowns` | Blizzard's Cooldown Manager shown in KstyleUI's style: essential cooldowns (40 units), utility cooldowns (30 units), tracked buff icons and tracked buff bars (180 by 18 units), placed in the HUD band | Mirror, or reskin in place if the spike shows mirroring cannot work in combat |
-| `KstyleUI_Auras` | The player's buff and debuff panel under the minimap | Replace |
+| `KstyleUI_Auras` | The player's buff and debuff rows beside the minimap: one row of buffs in listed order, the debuffs right-aligned under them (the owner's picture, LEE-20) | Replace |
 | `KstyleUI_Nameplates` | A KstyleUI plate on each nameplate: health, cast bar, threat colour, debuffs | Replace the visible plate |
 | `KstyleUI_CombatText` | Animated damage and heal numbers on KstyleUI frames and plates, and the KstyleUI font for the game's own world numbers | Mirror, after the spike |
-| `KstyleUI_Minimap` | Square minimap, chamfered frame, zone and clock strip, side button column, addon-button drawer, coordinates | Reskin |
+| `KstyleUI_Minimap` | Square minimap in a gilt rim, N plate, zone and clock caption under the map, side button column, addon-button drawer, coordinates | Reskin |
 | `KstyleUI_Chat` | Chat panels, Cinzel tab names with the selected one gold and no underline (LEE-20: the picture wins over the accent underline), edit box, copy chat, clickable links, class-coloured names | Reskin |
 | `KstyleUI_Bags` | Combined bags and bank, keyring, search, sort, quality borders, selling junk | Replace |
 | `KstyleUI_Tooltips` | Glass tooltips, quality and class colours, optional spell and item IDs, cursor anchoring | Reskin |

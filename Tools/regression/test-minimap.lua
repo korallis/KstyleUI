@@ -1,4 +1,4 @@
--- test-minimap.lua: the square minimap: off until enabled, its Layout element, the chamfered square mask inside a thin rim, the zone and clock bands, the hover-only controls, the Blizzard pieces it hides, wheel zoom, coordinates, the migration from the lens card, the accent and turning it off.
+-- test-minimap.lua: the square minimap as the owner's picture draws it: off until enabled, its Layout element, the square mask inside a gilt pixel rim, the north plate, the caption under the map, the buttons at rest, the hover group, the Blizzard pieces it hides, wheel zoom, coordinates, the migration from the lens card, the accent and turning it off.
 local M = dofile("Tools/regression/minimap_env.lua")
 local W = M.W
 
@@ -51,10 +51,10 @@ local element = K.Layout.Element("minimap.main")
 assert(element.label == K.Setup.Layouts.Element("minimap.main").label, "the mover plate uses the setup's label")
 assert(element.module == "Minimap", "Layout knows the element belongs to the Minimap module")
 assert(element.opts.resizable and element.opts.aspect, "the minimap resizes in Layout Mode and keeps its proportions")
--- Owner pass 1: a small square. 160 units is 228 px at the owner's 2383x1540 and 768/1080 (1.426 px a unit): 81% of
--- the width of Blizzard's 198-unit round map, with about the same visible area (a 156 square inside the rim shows
--- 24,336 units against the circle's 30,791), and half the 318-unit lens card the owner called "way too big".
-assert(holder:GetWidth() == 160 and holder:GetHeight() == 160, "the element is a 160-unit square at the 1080 reference: " .. tostring(holder:GetWidth()) .. "x" .. tostring(holder:GetHeight()))
+-- The picture (LEE-20, which wins over #207): the map is 188 units square, the element itself, with 28 units of
+-- caption under it in the element's reserve.
+assert(holder:GetWidth() == 188 and holder:GetHeight() == 188, "the element is a 188-unit square at the 1080 reference: " .. tostring(holder:GetWidth()) .. "x" .. tostring(holder:GetHeight()))
+assert(K.Setup.Layouts.Element("minimap.main").reserve[2] == 188 + ns.Format.CAPTION, "the layout reserves the caption's 36 units under the map")
 assert(element.opts.minWidth == 100 and element.opts.maxWidth == 320 and element.opts.minHeight == 100 and element.opts.maxHeight == 320, "it resizes from 100 to 320 units, square")
 
 local minimap = env.Minimap
@@ -64,84 +64,106 @@ local mw, mh = face.mapArea:GetSize()
 assert(mw == mh, "the map stays square")
 -- The engine draws the terrain at the size the Minimap was given with SetSize, from the frame's bottom left
 -- corner; anchors alone leave Blizzard's 198 render in a larger square (ingame-18: a dark band on the right and
--- the top). So the map takes an explicit size equal to the lens square and one CENTER point on it. Fitting never
+-- the top). So the map takes an explicit size equal to the map square and one CENTER point on it. Fitting never
 -- touches the zoom: nothing in Forever's source shows the engine needs a zoom change to draw at a new size.
 local function Fits(what)
 	local size = W.LastCall(minimap, "SetSize")
 	local sw, sh = face.mapArea:GetSize()
-	assert(size and W.Near(size[1], sw) and W.Near(size[2], sh), what .. ": the minimap's own size is the lens square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
+	assert(size and W.Near(size[1], sw) and W.Near(size[2], sh), what .. ": the minimap's own size is the map square's: " .. tostring(size and size[1]) .. " for " .. tostring(sw))
 	local point, relative, relativePoint = minimap:GetPoint(1)
-	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the lens square")
+	assert(minimap:GetNumPoints() == 1 and point == "CENTER" and relative == face.mapArea and relativePoint == "CENTER", what .. ": one CENTER point on the map square")
 end
 Fits("adopted")
 assert(env._zoom == 2 and (env._zoomCalls or 0) == 0, "fitting the map leaves the player's zoom alone: " .. tostring(env._zoomCalls) .. " zoom calls")
--- The square: the map sits 2 units inside the element on every side, behind a thin Lumen rim and nothing else:
--- no card, no dome, no frost, no shadow, no gilt corners. The rim is a socket chrome whose chamfer is the mask's cut
--- at the map's size, so the rim's corners meet the mask's.
+-- The square: the map is the element, with square corners (no chamfer, no inset, no card), edged by one gilt
+-- pixel line on each side and a dark line just inside it.
 local Format = ns.Format
-assert(W.Near(face.box:GetWidth(), holder:GetWidth()) and W.Near(face.box:GetHeight(), holder:GetHeight()), "the rim fills the element")
-assert(face.dome == nil and face.foot == nil and face.strip == nil, "no dome, no foot card and no strip: the lens card is gone")
-local chrome = face.chrome
-assert(chrome.owner == face.box and chrome.shapeName == "socket", "the rim is a socket chrome on the element")
-assert(not chrome.fill[5]:IsShown() and chrome.fillColor[4] == 0, "with no fill: the world shows through the rim's corners")
-assert(chrome.frost == nil and chrome.gilt == nil and chrome.noise == nil and chrome.shadowOn == false, "no frost, no gilt, no grain, no shadow")
-local mapSize = holder:GetWidth() - 2 * Format.INSET
-assert(W.Near(chrome:Radius(), Format.Chamfer(mapSize), 0.5), "the rim's chamfer is the mask's cut at the map's size: " .. tostring(chrome:Radius()))
-local ap, arel, arelp, ax, ay = face.mapArea:GetPoint(1)
-assert(ap == "TOPLEFT" and arel == face.box and arelp == "TOPLEFT" and W.Near(ax, Format.INSET, 0.5) and W.Near(ay, -Format.INSET, 0.5), "the map starts 2 units inside the rim")
-assert(W.Near(mw, mapSize, 0.5), "and is the element less the rim on both sides: " .. tostring(mw))
--- The square mask: the chamfered MinimapMask the kit draws, on the Minimap frame, the face's own mask (the preview's
--- terrain) and the hybrid map. The lens mask stays in the kit for the portraits.
+assert(W.Near(face.box:GetWidth(), holder:GetWidth()) and W.Near(face.box:GetHeight(), holder:GetHeight()), "the map fills the element")
+assert(face.dome == nil and face.foot == nil and face.strip == nil and face.chrome == nil, "no dome, no foot card, no strip and no chrome: the rim is lines")
+assert(W.Near(mw, 188, 0.5), "the map is the element, 188 units: " .. tostring(mw))
+local ap, arel, arelp = face.mapArea:GetPoint(1)
+assert(ap == "TOPLEFT" and arel == face.box and arelp == "TOPLEFT", "the map starts at the element's corner, with no inset")
+local pixel = K.Widgets.Border(face.mapArea)
+for _, edge in ipairs({ "top", "bottom", "left", "right" }) do
+	local line = face.rim[edge]
+	assert(line and line:IsShown() and W.SameRGB(line, K.Tokens.Color("gilt")), "the " .. edge .. " rim line is the kit's gilt")
+	local thickness = (edge == "top" or edge == "bottom") and line:GetHeight() or line:GetWidth()
+	assert(W.Near(thickness, pixel, 1e-6), "the " .. edge .. " rim line is one physical pixel thick")
+	local shade = face.shade[edge]
+	assert(shade and W.SameRGB(shade, K.Tokens.Color("black")), "a dark line follows it on the inside")
+end
+local rp, rrel, rrelp, rx, ry = face.rim.top:GetPoint(1)
+assert(rp == "TOPLEFT" and rrel == face.mapArea and rrelp == "TOPLEFT" and rx == 0 and ry == 0, "the rim sits on the map's own edge")
+local sp, _, _, sx, sy = face.shade.top:GetPoint(1)
+assert(sp == "TOPLEFT" and W.Near(sx, pixel, 1e-6) and W.Near(sy, -pixel, 1e-6), "and the dark line one pixel inside it")
+-- The square mask: the plain square MinimapMask on the Minimap frame, the face's own mask (the preview's terrain)
+-- and the hybrid map. The lens mask stays in the kit for the portraits.
 local mask = face.mask
 local squareMask = (K.Tokens.Texture("minimapMask"))
-assert(mask and W.LastCall(mask, "SetTexture")[1] == squareMask, "the face owns a mask texture with the chamfered square mask")
+assert(mask and W.LastCall(mask, "SetTexture")[1] == squareMask, "the face owns a mask texture with the square mask")
 assert(LastArg(mask, "SetAllPoints") == face.mapArea, "the mask covers the map square")
-assert(LastArg(minimap, "SetMaskTexture") == squareMask, "the minimap wears the chamfered square mask")
--- The bands: the zone name along the map's top edge and the clock along its bottom edge, inside the square, each on a
--- soft dark fade from the edge so it reads over any terrain. No band has a plate or a line.
-local zoneBand, clockBand = face.zoneBand, face.clockBand
-assert(zoneBand and clockBand, "a zone band and a clock band")
-local zp1, zrel1, zrelp1 = zoneBand:GetPoint(1)
-local _, zrel2, zrelp2 = zoneBand:GetPoint(2)
-assert(zp1 == "TOPLEFT" and zrel1 == face.mapArea and zrelp1 == "TOPLEFT" and zrel2 == face.mapArea and zrelp2 == "TOPRIGHT", "the zone band runs along the map's top edge")
-assert(W.Near(zoneBand:GetHeight(), Format.BAND), "the band is 26 units: " .. tostring(zoneBand:GetHeight()))
-local cp1, crel1, crelp1 = clockBand:GetPoint(1)
-local _, crel2, crelp2 = clockBand:GetPoint(2)
-assert(cp1 == "BOTTOMLEFT" and crel1 == face.mapArea and crelp1 == "BOTTOMLEFT" and crel2 == face.mapArea and crelp2 == "BOTTOMRIGHT", "the clock band runs along the map's bottom edge")
-assert(W.Near(clockBand:GetHeight(), Format.BAND), "and is the same height")
-for _, band in ipairs({ zoneBand, clockBand }) do
-	local scrim = band.scrim
-	assert(scrim and W.LastCall(scrim, "SetTexture")[1] == (K.Tokens.Texture("barSheen")), "each band fades the map with the kit's sheen, turned dark")
-	local sr, sg, sb, sa = scrim:GetVertexColor()
-	assert(sr == 0 and sg == 0 and sb == 0 and sa > 0.3 and sa < 0.8, "a soft black fade: " .. tostring(sa))
-	assert(scrim:GetHeight() >= Format.BAND, "the fade reaches the band's full height")
-	assert(band.fill == nil and band.divider == nil and band.chrome == nil, "no plate and no line: the fade is the only ink")
-end
-local tc = W.LastCall(clockBand.scrim, "SetTexCoord")
-assert(tc and tc[3] == 1 and tc[4] == 0, "the clock band's fade is the sheen upside down: dark at the map's bottom edge")
-assert(select(1, zoneBand.scrim:GetPoint(1)) == "TOPLEFT" and select(1, clockBand.scrim:GetPoint(1)) == "BOTTOMLEFT", "each fade starts at its edge of the map")
-assert(zoneBand:GetFrameLevel() > 100 and clockBand:GetFrameLevel() > 100, "the bands lie over the map and the hybrid map")
-local zpoint, zrel, zrelp = face.zone:GetPoint(1)
-assert(zpoint == "CENTER" and zrel == zoneBand and zrelp == "CENTER", "the zone name is centred on its band")
-assert(W.LastCall(face.zone, "SetJustifyH")[1] == "CENTER", "and reads centred")
-local cpoint, crel, crelp = face.clock:GetPoint(1)
-assert(cpoint == "CENTER" and crel == clockBand and crelp == "CENTER", "the clock is centred on its band while the coordinates are off")
+assert(LastArg(minimap, "SetMaskTexture") == squareMask, "the minimap wears the square mask")
+-- The N plate: a round gilt plate 16 units across, centred on the map's top edge at its horizontal centre.
+local plate = face.plate
+assert(plate and W.Near(plate:GetWidth(), Format.NORTH, 1) and W.Near(plate:GetHeight(), Format.NORTH, 1), "the north plate is 16 units across: " .. tostring(plate and plate:GetWidth()))
+local pp, prel, prelp, px, py = plate:GetPoint(1)
+assert(pp == "CENTER" and prel == face.mapArea and prelp == "TOP" and px == 0 and py == 0, "centred on the middle of the map's top edge")
+assert(plate.crystal and plate.crystal.disc:IsShown() and plate.crystal.ring:IsShown(), "a dark disc with a ring")
+local ring = plate.crystal.ring
+local gr, gg, gb = K.Tokens.Color("gilt")
+local rr, rg, rb = ring:GetVertexColor()
+assert(W.Near(rr, gr) and W.Near(rg, gg) and W.Near(rb, gb), "its ring is gilt")
+assert(face.north:GetText() == K.L["N"] and face.north:GetParent() == plate, "its letter is the N the locale gives")
+local nr, ng, nb = face.north:GetTextColor()
+assert(W.Near(nr, gr) and W.Near(ng, gg) and W.Near(nb, gb), "in gilt")
+assert(select(1, face.north:GetFont()) == (K.Tokens.Font("heading")), "in the heading face")
+assert(plate:GetFrameLevel() > face.overlay:GetFrameLevel(), "the plate lies over the rim")
+-- The caption under the map: no band and no fade inside the map. The zone name's caps are centred 13.7 units under
+-- the map's bottom edge, 2 units in from its left; the coordinates sit under it at the left and the clock at the
+-- right edge less 2, both 31.2 under the map's bottom edge. Nothing draws inside the map.
+assert(face.zoneBand == nil and face.clockBand == nil, "no bands")
+local zp1, zrel1, zrelp1, zx, zy = face.zone:GetPoint(1)
+assert(zp1 == "LEFT" and zrel1 == face.mapArea and zrelp1 == "BOTTOMLEFT" and W.Near(zx, Format.CAPTION_X, 1) and W.Near(zy, -Format.ZONE_CENTER, 1), "the zone name starts 2 units in from the map's left edge, under the map: " .. tostring(zx) .. ", " .. tostring(zy))
+assert(W.LastCall(face.zone, "SetJustifyH")[1] == "LEFT", "and reads from the left")
+assert(W.Near(face.zone:GetWidth(), 188 - 2 * Format.CAPTION_X, 1), "its width is the map's less 2 at each end, so a long name truncates")
+local cp1, crel1, crelp1, cx1, cy1 = face.coords:GetPoint(1)
+assert(cp1 == "LEFT" and crel1 == face.mapArea and crelp1 == "BOTTOMLEFT" and W.Near(cx1, Format.CAPTION_X, 1) and W.Near(cy1, -Format.ROW_CENTER, 1), "the coordinates sit under the zone name, at the left")
+local kp1, krel1, krelp1, kx1, ky1 = face.clock:GetPoint(1)
+assert(kp1 == "RIGHT" and krel1 == face.mapArea and krelp1 == "BOTTOMRIGHT" and W.Near(kx1, -Format.CAPTION_X, 1) and W.Near(ky1, -Format.ROW_CENTER, 1), "the clock sits at the right edge less 2, on the coordinates' line")
+assert(W.LastCall(face.clock, "SetJustifyH")[1] == "RIGHT", "reading from the right")
+assert(face.zone:GetParent() == face.caption and face.caption:GetFrameLevel() > 100, "the caption lies over the map and the hybrid map")
 local _, zoneSize = face.zone:GetFont()
 local _, clockSize = face.clock:GetFont()
-assert(W.Near(zoneSize, 11 * K.Theme.FontScale()) and W.Near(clockSize, 11 * K.Theme.FontScale()), "the zone and the clock read at size 11 on the small map: " .. tostring(zoneSize))
-assert(select(1, face.zone:GetFont()) == (K.Tokens.Font("heading")), "the zone reads in the heading face")
-assert(select(1, face.clock:GetFont()) == (K.Tokens.Font("number")), "the clock reads in the number face")
-assert(face.compass == nil and face.compassPlate == nil, "no north mark: a fixed square map is north-up, so the N carried no information")
+local _, coordsSize = face.coords:GetFont()
+assert(W.Near(zoneSize, 12 * K.Theme.FontScale(), 1) and W.Near(clockSize, 12.5 * K.Theme.FontScale(), 1) and W.Near(coordsSize, 11.5 * K.Theme.FontScale(), 1), "the zone reads at 12, the clock at 12.5 and the coordinates at 11.5, snapped to the pixel grid: " .. tostring(zoneSize) .. ", " .. tostring(clockSize) .. ", " .. tostring(coordsSize))
+assert(select(1, face.zone:GetFont()) == (K.Tokens.Font("names")), "the zone reads in the names role, the picture's white names: lightly tracked, with the kit's shadow")
+local zoneShadow = W.LastCall(face.zone, "SetShadowOffset")
+assert(zoneShadow and zoneShadow[1] ~= 0 and zoneShadow[2] ~= 0, "and the zone keeps the kit's text shadow")
+local zr0, zg0, zb0 = face.zone:GetTextColor()
+local zer, zeg, zeb = K.Tokens.Color("textEmphasis")
+assert(W.Near(zr0, zer) and W.Near(zg0, zeg) and W.Near(zb0, zeb), "and near white (the picture measures #f3f5f8), not capsGold")
+assert(select(1, face.clock:GetFont()) == (K.Tokens.Font("number")), "the clock reads in the bold number face")
+assert(select(1, face.coords:GetFont()) == (K.Tokens.Font("body")), "the coordinates read in the body face")
+local mr, mg, mb = face.coords:GetTextColor()
+local qr, qg, qb = K.Tokens.Color("muted")
+assert(W.Near(mr, qr) and W.Near(mg, qg) and W.Near(mb, qb), "the coordinates are muted grey")
+local wr, wg, wb = face.clock:GetTextColor()
+local er0, eg0, eb0 = K.Tokens.Color("textEmphasis")
+assert(W.Near(wr, er0) and W.Near(wg, eg0) and W.Near(wb, eb0), "the clock is white")
+assert(face.compass == nil and face.compassPlate == nil, "the old compass fields stay gone: the plate is face.plate")
 
--- Hidden until hover: the zoom slider and the tracking, calendar and drawer buttons live in a reveal group that shows
--- while the pointer is over the element and hides a short grace after it leaves. The mail and queue indicators, which
--- carry information, stay out of it.
+-- Hidden until hover: the zoom slider lives in a reveal group that shows while the pointer is over the element and
+-- hides a short grace after it leaves. The tracking, calendar and drawer buttons join it only with the Buttons only
+-- on hover setting (off by default: the picture shows them at rest). The mail and queue indicators, which carry
+-- information, stay out of it.
 local reveal = face.reveal
 assert(reveal and not reveal:IsShown(), "the reveal group waits hidden")
 assert(reveal:GetParent() == holder and LastArg(reveal, "SetAllPoints") == face.mapArea, "it covers the map square")
-assert(reveal:GetFrameLevel() > face.overlay:GetFrameLevel(), "above the bands")
+assert(reveal:GetFrameLevel() > face.overlay:GetFrameLevel(), "above the caption")
 assert(face.zoom:GetParent() == reveal, "the zoom slider is in the group")
 local column = ns.Map.column
+assert(column.buttons.tracking:GetParent() == column.host and column.buttons.calendar:GetParent() == column.host and column.buttons.drawer:GetParent() == column.host, "at rest the three buttons are on the always-shown host")
+K.Options.Write("Minimap", "column.hover", true)
 assert(column.buttons.tracking:GetParent() == reveal and column.buttons.calendar:GetParent() == reveal and column.buttons.drawer:GetParent() == reveal, "so are the tracking, calendar and drawer buttons")
 assert(column.buttons.mail:GetParent() == column.host and column.buttons.queue:GetParent() == column.host and column.host:GetParent() == holder, "the mail and queue indicators stay on the always-shown host")
 holder._mouseOver = true
@@ -188,6 +210,7 @@ holder._mouseOver = true
 env.Minimap:GetScript("OnEnter")(env.Minimap)
 M.Settle(env)
 NoErrors(env, "hover")
+K.Options.Write("Minimap", "column.hover", false)
 
 -- The zoom slider inside the map's right edge ------------------------------------------------------
 
@@ -263,12 +286,13 @@ assert(LastArg(minimap, "SetMaskTexture") == squareMask, "a Blizzard minimap ref
 
 M.Resize(holder, 200, 200)
 mw, mh = face.mapArea:GetSize()
-assert(mw == mh and W.Near(mw, 200 - 2 * Format.INSET, 0.5), "a 200 element gives a 196 map: " .. tostring(mw))
-assert(W.Near(chrome:Radius(), Format.Chamfer(196), 0.5), "and the rim's chamfer grows with it")
+assert(mw == mh and W.Near(mw, 200, 0.5), "a 200 element gives a 200 map: " .. tostring(mw))
+assert(W.Near(face.zone:GetWidth(), 200 - 2 * Format.CAPTION_X, 1), "and the zone name's room grows with it")
+assert(W.Near(face.plate:GetWidth(), Format.NORTH, 1) and select(3, face.plate:GetPoint(1)) == "TOP", "while the north plate stays 16 units on the top edge")
 Fits("resized")
 M.Resize(holder, 168, 166)
 Fits("shrunk")
-M.Resize(holder, 160, 160)
+M.Resize(holder, 188, 188)
 
 -- Wheel zoom ----------------------------------------------------------------------------------------
 
@@ -297,12 +321,12 @@ K.Options.Write("Minimap", "zoom.reset", false)
 env.RunTimers()
 assert(env._zoom == 1, "turning zoom reset off cancels a pending zoom-out")
 
--- The bands: zone and clock -----------------------------------------------------------------------
+-- The caption: zone, coordinates and clock -------------------------------------------------------------
 
-assert(face.zone:GetText() == "RIVERGLADES", "the zone band shows the zone in capitals: " .. tostring(face.zone:GetText()))
+assert(face.zone:GetText() == "RIVERGLADES", "the caption shows the zone in capitals: " .. tostring(face.zone:GetText()))
 env._zone.text = "Hall of Thanes"
 env.FireEvent("ZONE_CHANGED_NEW_AREA")
-assert(face.zone:GetText() == "HALL OF THANES", "a zone change updates the band")
+assert(face.zone:GetText() == "HALL OF THANES", "a zone change updates the caption")
 -- Capitals keep their accents (the round 4 localisation carry list): a French zone name reads in accented capitals.
 env._zone.text = "For\195\170t d'\195\137lwynn"
 env.FireEvent("ZONE_CHANGED_NEW_AREA")
@@ -321,7 +345,7 @@ K.Options.Write("Minimap", "zone.color", "plain")
 
 assert(face.clock:GetText() == "14:32", "the clock follows the game's clock by default: " .. tostring(face.clock:GetText()))
 local _, clockSizeNow = face.clock:GetFont()
-assert(W.Near(clockSizeNow, 11 * K.Theme.FontScale()), "the clock reads at size 11 by default: " .. tostring(clockSizeNow))
+assert(W.Near(clockSizeNow, 12.5 * K.Theme.FontScale(), 1), "the clock reads at size 12.5 by default, snapped to the pixel grid: " .. tostring(clockSizeNow))
 env._clock.minute = 33
 local tables = env._dateCalls["*t"] or 0
 M.RunTickers(env)
@@ -338,15 +362,15 @@ assert(face.clock:GetText() == "9:05 AM", "realm time in 12 hours")
 K.Options.Write("Minimap", "clock.mode", "local24")
 assert(face.clock:GetText() == "14:33", "local time in 24 hours")
 
-assert(face.clock:IsShown() and face.zone:IsShown(), "the zone and the clock each show on their band")
+assert(face.clock:IsShown() and face.zone:IsShown(), "the zone and the clock each show under the map")
 K.Options.Write("Minimap", "clock.shown", false)
-assert(not face.clock:IsShown() and not clockBand:IsShown(), "the clock hides with its band and its fade")
-assert(face.zone:IsShown() and zoneBand:IsShown(), "the zone stays")
+assert(not face.clock:IsShown() and not face.clockHit:IsShown(), "the clock hides with its hit area")
+assert(face.zone:IsShown() and face.zoneHit:IsShown(), "the zone stays")
 K.Options.Write("Minimap", "zone.shown", false)
-assert(not zoneBand:IsShown(), "the zone band hides when it has nothing to show")
+assert(not face.zone:IsShown() and not face.zoneHit:IsShown(), "the zone hides with its hit area")
 K.Options.Write("Minimap", "zone.shown", true)
 K.Options.Write("Minimap", "clock.shown", true)
-assert(zoneBand:IsShown() and clockBand:IsShown() and face.clock:IsShown(), "the bands come back")
+assert(face.zone:IsShown() and face.zoneHit:IsShown() and face.clock:IsShown() and face.clockHit:IsShown(), "the zone and the clock come back")
 
 K.Options.Write("Minimap", "clock.size", 16)
 local _, size = face.clock:GetFont()
@@ -359,14 +383,14 @@ assert(flags == "OUTLINE", "the clock takes its own outline")
 
 env._position = { 0.4532, 0.6218 }
 env.FireEvent("PLAYER_ENTERING_WORLD", false, false)
-assert(not face.coords:IsShown(), "coordinates are off by default, as the design file has none")
-K.Options.Write("Minimap", "coords.shown", true)
-assert(face.coords:GetText() == "45.3, 62.2", "coordinates show in tenths once turned on: " .. tostring(face.coords:GetText()))
+assert(K.Store.Defaults("Minimap").coords.shown == true, "coordinates are on by default: the picture shows them (LEE-20); the setting stays")
+assert(face.coords:GetText() == "45.3, 62.2", "coordinates show in tenths: " .. tostring(face.coords:GetText()))
+assert(face.coords:IsShown(), "and show")
 local xp, xrel, xrelp = face.coords:GetPoint(1)
-assert(xp == "LEFT" and xrel == clockBand and xrelp == "LEFT", "the coordinates sit at the left of the clock band")
-cpoint, crel, crelp = face.clock:GetPoint(1)
-assert(cpoint == "RIGHT" and crel == clockBand and crelp == "RIGHT", "and the clock moves to its right end")
-assert(K.Store.Defaults("Minimap").coords.position == nil, "the coordinate position setting is gone: the band is the one place")
+assert(xp == "LEFT" and xrel == face.mapArea and xrelp == "BOTTOMLEFT", "the coordinates sit under the zone name, at the left")
+local cpoint, crel, crelp = face.clock:GetPoint(1)
+assert(cpoint == "RIGHT" and crel == face.mapArea and crelp == "BOTTOMRIGHT", "and the clock at the right")
+assert(K.Store.Defaults("Minimap").coords.position == nil, "the coordinate position setting is gone: the caption is the one place")
 K.Options.Write("Minimap", "coords.precision", 0)
 assert(face.coords:GetText() == "45, 62", "the coordinate format follows the setting")
 env.FireEvent("PLAYER_STARTED_MOVING")
@@ -390,7 +414,7 @@ assert(face.coords:IsShown(), "the coordinates come back with a position")
 K.Options.Write("Minimap", "coords.shown", false)
 assert(not face.coords:IsShown(), "the coordinates can be turned off")
 cpoint = face.clock:GetPoint(1)
-assert(cpoint == "CENTER", "and the clock returns to the band's centre")
+assert(cpoint == "RIGHT", "and the clock stays at the right")
 K.Options.Write("Minimap", "coords.shown", true)
 
 -- No north mark: a rotating map changes nothing the module draws ------------------------------------
@@ -405,23 +429,23 @@ env.FireEvent("CVAR_UPDATE", "rotateMinimap", "0")
 NoErrors(env, "rotation")
 
 -- Blizzard's hybrid map is a child of Minimap fixed at BACKGROUND strata, level 100, so the holder sits on
--- BACKGROUND under that level and the overlay above it: the hybrid map draws between the rim and the bands.
+-- BACKGROUND under that level and the overlay above it: the hybrid map draws between the map and the rim.
 
 K.Widgets.RestyleAll()
-assert(not face.chrome.fill[5]:IsShown() and face.chrome.fillColor[4] == 0, "a restyle brings no fill back")
+assert(W.SameRGB(face.rim.top, K.Tokens.Color("gilt")) and face.rim.top:IsShown(), "a restyle keeps the gilt rim")
 assert(holder:GetFrameStrata() == "BACKGROUND", "the element sits on the BACKGROUND strata, where the hybrid map is fixed")
 assert(face.box:GetFrameLevel() < 100 and minimap:GetFrameLevel() < 100, "the rim and the map sit under the hybrid map's fixed level 100")
 assert(face.overlay:GetFrameLevel() > 100 and face.wheel:GetFrameLevel() > face.reveal:GetFrameLevel(), "the overlay and the wheel catcher sit above it")
 
--- The accent: the rim is the Lumen rim light like every rail card; the accent colours the zoom fill ------
+-- The accent: the rim is gilt, not the class colour; the accent colours the zoom fill ------------------
 
-local inner = face.chrome.rim[5]
-assert(W.SameRGB(inner, K.Tokens.Color("edgeInner")), "the rim is the kit's quiet rim line, not the class colour")
+local inner = face.rim.top
+assert(W.SameRGB(inner, K.Tokens.Color("gilt")), "the rim is the kit's gilt, not the class colour")
 assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the zoom fill follows the class colour")
 K.Options.Write("Minimap", "accent.source", "custom")
 K.Options.Write("Minimap", "accent.color", { r = 1, g = 0, b = 0 })
 assert(W.SameRGB(zoom.fill, 1, 0, 0), "a custom accent colours the zoom fill")
-assert(W.SameRGB(inner, K.Tokens.Color("edgeInner")), "and leaves the rim alone")
+assert(W.SameRGB(inner, K.Tokens.Color("gilt")) and W.SameRGB(plate.crystal.ring, K.Tokens.Color("gilt")), "and leaves the rim and the north plate alone")
 K.Options.Write("Minimap", "accent.source", "class")
 assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the class colour comes back")
 
@@ -474,7 +498,7 @@ do
 	assert(entry.width == nil and entry.height == nil, "the lens card's saved size is dropped")
 	assert(entry.anchor == "TOPRIGHT" and entry.x == -40 and entry.y == -30, "the element's position stays")
 	local mholder = M.Holder(mK)
-	assert(mholder and mholder:GetWidth() == 160 and mholder:GetHeight() == 160, "so the square builds at its default size: " .. tostring(mholder:GetWidth()))
+	assert(mholder and mholder:GetWidth() == 188 and mholder:GetHeight() == 188, "so the square builds at its default size: " .. tostring(mholder:GetWidth()))
 	assert(mns.Map.face.coords:IsShown(), "and the coordinates the player turned on still show")
 	assert(#menv._errors == 0, "the migration raises no error: " .. tostring(menv._errors[1]))
 end
@@ -521,6 +545,9 @@ do
 	local pface = frame.face
 	assert(pface.zone:GetText() and pface.zone:GetText() ~= "", "the preview shows a zone")
 	assert(pface.clock:IsShown(), "the preview shows the clock")
+	assert(pface.coords:IsShown() and pface.coords:GetText() == "45.3, 62.1", "the preview shows the coordinates, on by default: " .. tostring(pface.coords:GetText()))
+	assert(pface.plate:IsShown() and pface.north:GetText() == PK.L["N"], "the preview shows the north plate")
+	assert(W.Near(select(5, frame:GetPoint(1)), 18, 1), "the preview stands the map half the caption's 36 units above the centre, so the map and its caption sit centred together")
 	assert(pface.zoom:IsShown() and W.Near(pface.zoom.fill:GetHeight(), 52, 0.5), "the preview shows the zoom slider full, as the mockup draws it")
 	assert(frame.terrain and frame.terrain:GetMaskTexture(1) == pface.mask, "the preview's drawn terrain clips to the same chamfered mask as the live map")
 	PK.Options.Write("Minimap", "clock.shown", false)

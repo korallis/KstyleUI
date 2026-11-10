@@ -54,20 +54,22 @@ end
 -- and a 12-unit level disc; the sigil's name 17 over its 13-unit level line (round 2, Astra #4: the mockup's 20 drowned
 -- the cast); the cards' name 16, percentage 14 and 12-unit cap; the pill rows 12. The boss column's compact cards are
 -- 258 wide, so their name and percentage are 13: a long boss name in the heading face still fits beside its percentage.
-for kind, sizes in pairs({ player = { 17, 15, 10, 12 }, target = { 17, 12, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
+-- KSTY-12 (the owner's picture): the player and target are column frames, their names 18 over a 15-unit value; the older
+-- vitals line and sigil keep their 17 in profiles that choose them (test-unitframes-lumen.lua pins those).
+for kind, sizes in pairs({ player = { 18, 15, 10, 12 }, target = { 18, 15, 10, 13 }, focus = { 16, 14, 9, 12 }, boss = { 13, 13, 9, 12 }, pet = { 12, 12, 9, 10 } }) do
 	local fonts = defaults[kind].fonts
 	assert(fonts.name.size == sizes[1] and fonts.health.size == sizes[2] and fonts.power.size == sizes[3] and fonts.level.size == sizes[4],
 		kind .. ": the name, value, power and level sizes follow the Lumen mockup")
 end
 assert(defaults.player.iconSize == 12 and defaults.target.iconSize == 12, "the status icons on the 70-unit frames are 12 units")
-assert(defaults.player.castbarIcon == false and defaults.player.castbarCaps == false, "the player cast bar has no icon and writes the spell as the game does, as the owner's mockup draws Slam")
-assert(defaults.target.castbarIcon == true and defaults.target.castbarCaps == false, "the target cast bar keeps its icon for the classic plate, and writes the spell as the game does, as the sigil's cast line reads")
+assert(defaults.player.castbarIcon == false and defaults.player.castbarCaps == true, "the player cast bar has no icon and writes the spell in capitals, as the picture's LIGHTNING BOLT")
+assert(defaults.target.castbarIcon == false and defaults.target.castbarCaps == true, "the target cast bar has no icon and writes the spell in capitals under its bar, as the picture's SHADOW BOLT")
 -- The owner's ruling of 2026-11-08: power reads as its type (mana blue, rage red, energy yellow) on every frame; the
 -- class colour stays a choice under the same powerColor key, so a saved "class" still applies.
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].powerColor == "power", kind .. ": the power bar takes the power type's colour by default")
 end
-assert(defaults.player.powerHeight == 5, "the vitals line's power pill is the Lumen mockup's 5 units")
+assert(defaults.player.powerHeight == 7, "the column's power bar is the picture's 7 units (the older vitals line's 5 stays in profiles that keep it)")
 do
 	local allowed = {}
 	for _, option in ipairs(ns.Settings.CHOICES.powerColor) do
@@ -76,14 +78,15 @@ do
 	assert(allowed.power and allowed.class, "the power colour setting still offers the class colour")
 end
 assert(defaults.pet.powerColor == "power" and defaults.pet.powerHeight == 3, "the compact frames keep the power type's colour and a thin bar")
-assert(defaults.player.healthColor == "class", "the player's health fill is the class colour")
-assert(defaults.target.healthColor == "reaction", "the target's fill follows its reaction: red when hostile, as on the kit sheet")
-assert(defaults.player.powerHeight == 5 and defaults.target.powerHeight == 7, "the vitals power pill is 5 units; the other full frames keep the plate's 7-unit bar")
-assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 2, "the vitals value is the mockup's 15-unit bold numerals, two under the 17-unit Cinzel name")
+assert(defaults.player.healthColor == "hud" and defaults.target.healthColor == "hud", "the column frames take the picture's colours: a flat blue for you, the picture's red for a hostile target")
+assert(defaults.player.style == "column" and defaults.target.style == "column", "the player and target are column frames by default, as the owner's picture draws them (LEE-20)")
+assert(defaults.focus.style == "lumen" and defaults.boss.style == "lumen", "the other frames keep their Lumen forms")
+assert(defaults.player.powerHeight == 7 and defaults.target.powerHeight == 7, "the column frames' power bar is the picture's 7 units, as the plate's")
+assert(defaults.player.fonts.health.size == defaults.player.fonts.name.size - 3, "the column's value is 15-unit bold numerals, three under the 18-unit Cinzel name")
 for _, kind in ipairs(KINDS) do
 	assert(defaults[kind].portraitShape == "round", kind .. ": the portrait is round by default, as the owner's mockup draws it; the design file's octagon is the other choice")
 end
-assert(defaults.player.fonts.cast.size == 12 and defaults.target.fonts.cast.size == 13, "the cast text is 12 on the player's line and 13 on the sigil's bold cast line (round 2, Astra #4)")
+assert(defaults.player.fonts.cast.size == 12 and defaults.target.fonts.cast.size == 12, "the cast text is 12 under the column target and on the player's own cast bar, as the picture draws both")
 assert(defaults.focus.castbarHeight == 16, "the focus cast bar is 16 units under its 60-unit frame")
 assert(defaults.targettarget.portrait == false and defaults.pet.portrait == false, "the small frames have no portrait by default")
 assert(defaults.hideBlizzard == true, "Blizzard's frames are hidden by default")
@@ -169,7 +172,8 @@ assert(row("target.name").showWhen(settings) == true, "the picked frame's rows s
 assert(row("player.name").showWhen(settings) == false, "other frames' rows hide")
 assert(row("target.style").showWhen(settings) == true, "each frame picks Lumen or the classic plate")
 local styles = values(row("target.style", "dropdown"))
-assert(styles.lumen and styles.plate, "the style is Lumen or the classic plate")
+assert(styles.lumen and styles.plate and styles.column, "the player's and target's style is the column, the older Lumen form or the classic plate")
+assert(not values(row("focus.style", "dropdown")).column, "the other frames have no column style to choose")
 assert(row("hideBlizzard").showWhen == nil, "module-wide rows always show")
 settings.edit = "player"
 local custom = row("player.healthCustom")

@@ -68,7 +68,7 @@ Nameplates show your debuffs through the engine with an honest +N chip, and colo
 
 <p align="center"><sub>The right rail while questing: the minimap, the aura rows and the damage meter.</sub></p>
 
-The minimap is a small square with a thin rim: the zone name along its top edge, the clock along its bottom edge, and the tracking, calendar and zoom controls and the addon drawer only while your pointer is over it. Your buffs and debuffs are plain icon rows under it: a thin rim, the time left under each icon, stack counts on a corner badge, a +N on the last icon when the rows are full, and a right-click to cancel. A buff the Cooldown Manager already tracks shows there only. The damage meter reads from the game's own meter data with a Now, Last, All switch and a spell breakdown on click.
+The minimap is a square with a thin gilt rim and a round N plate on its top edge: the zone name, your coordinates and the clock sit under it, and the tracking, calendar and addon-drawer buttons stand down its right edge (the zoom slider shows while your pointer is over it). Your buffs and debuffs are plain icon rows under it: a thin rim, the time left under each icon, stack counts on a corner badge, a +N on the last icon when the rows are full, and a right-click to cancel. A buff the Cooldown Manager already tracks shows there only. The damage meter is a small card that reads from the game's own meter data: a DAMAGE cap with your damage per second, then one bar per spell, coloured by its school, with the spell's damage and its share of the total at the right ("412 · 46%"). Alone, it lists your own spells; in a group, it lists the group and a spell breakdown opens under the row your pointer is on. The Now, Last, All switch shows only while your pointer is on the cap's right end.
 
 Bags sort into sections with a search that understands <code>&amp;</code>, <code>|</code>, <code>!</code> and <code>ilvl&gt;30</code>. Chat sits on a glass card, tooltips become glass cards, and experience is a gilt filament with its rested overlay.
 
@@ -90,7 +90,7 @@ KstyleUI is one core addon and one addon per module. Every module is off until y
 <td width="50%" valign="top"><img src="docs/media/readme/tile_nameplates.jpg" alt="Nameplates"><br><b>Nameplates</b><br><sub>Health, level, your debuffs and a cast bar that says when you can interrupt.</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/media/readme/tile_minimap.jpg" alt="Minimap"><br><b>Minimap</b><br><sub>A small square map with the zone and clock inside it and controls that show on hover.</sub></td>
+<td width="50%" valign="top"><img src="docs/media/readme/tile_minimap.jpg" alt="Minimap"><br><b>Minimap</b><br><sub>A square map in a gilt rim with an N plate, its zone, coordinates and clock under it and round buttons down its edge.</sub></td>
 <td width="50%" valign="top"><img src="docs/media/readme/tile_chat.jpg" alt="Chat"><br><b>Chat</b><br><sub>Blizzard's chat on a glass card with gilt tabs and a copy window.</sub></td>
 </tr>
 <tr>
@@ -118,7 +118,7 @@ Every element KstyleUI shows can be moved, resized or scaled in Layout Mode and 
 | Auras | Your buffs and debuffs as plain icon rows under the minimap |
 | Nameplates | A KstyleUI plate on each nameplate, with health, cast bar, threat colour and your debuffs |
 | Combat Text | Damage and heal numbers on KstyleUI's frames and plates, and KstyleUI's font for the game's own numbers |
-| Minimap | A small square map in a thin rim, the zone and clock inside it, buttons and an addon-button drawer that show on hover |
+| Minimap | A square map in a thin gilt rim with an N plate, the zone, coordinates and clock under it, and round buttons and an addon-button drawer down its edge |
 | Chat | Glass chat panels, tabs with an accent underline, timestamps, short channel names, clickable links, class-coloured names, a copy window, and a plus glyph in the tab row that opens the chat settings |
 | Bags | Combined bags and bank with the keyring, search, sorting, quality borders and junk selling |
 | Tooltips | Glass tooltips with quality and class colours, a health bar, optional IDs and cursor anchoring |
