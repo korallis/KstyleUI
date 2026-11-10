@@ -1,4 +1,4 @@
--- Lumen.lua: the Lumen pieces the skins share, and the one place that switches to S1's names: the gilt and quest gold colours, the gem, the section cap (gem, tracked title, fading rule, trailing count) and the ring check box.
+-- Lumen.lua: the Lumen pieces the skins share, and the one place that switches to S1's names: the gilt and quest gold colours, the story card's text sizes in root units whatever scale the frame that draws them has, the gem, the section cap (gem, tracked title, fading rule, trailing count) and the ring check box.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,11 +9,11 @@ local Lumen = {}
 ns.Lumen = Lumen
 
 local FALLBACKS = { gilt = "neutral", questGold = "neutral", rimLight = "edgeInner" }
-local S1_NAMES = { questGold = "quest", rimLight = "rim" }
+local S1_NAMES = { rimLight = "rim" }
 local QUEST_GOLD_LIFT = 0.3
 local TEXTURES = { gem = "chamferTile", checkRing = "ringBevel", gemFill = "dot" }
 local GEM_UNITS, GEM_TURN = 7, math.pi / 4
-local CAP_SIZE, RULE_ALPHA = 10, 0.55
+local CAP_SIZE, TEXT_SIZE, RULE_ALPHA = 12, 13, 0.55
 local GEM_GAP, RULE_GAP = "gapSmall", "gapMedium"
 local RING_UNITS, RING_FILL, RING_LEVEL = 14, 8, 2
 local THIN_SPACE = "\226\128\137"
@@ -23,7 +23,7 @@ local WEAK = { __mode = "k" }
 local rings = setmetatable({}, WEAK)
 
 Lumen.FALLBACKS, Lumen.TEXTURES = FALLBACKS, TEXTURES
-Lumen.GEM_UNITS, Lumen.CAP_SIZE, Lumen.RULE_ALPHA = GEM_UNITS, CAP_SIZE, RULE_ALPHA
+Lumen.GEM_UNITS, Lumen.CAP_SIZE, Lumen.TEXT_SIZE, Lumen.RULE_ALPHA = GEM_UNITS, CAP_SIZE, TEXT_SIZE, RULE_ALPHA
 Lumen.RING_UNITS, Lumen.RING_FILL = RING_UNITS, RING_FILL
 
 local function IsSecret(value)
@@ -50,6 +50,10 @@ function Lumen.Color(name)
 		return Widgets.MixTokens(fallback, 1, "textEmphasis", 1, QUEST_GOLD_LIFT)
 	end
 	return Tokens.Color(fallback)
+end
+
+function Lumen.Size(frame, units)
+	return units * Style.Setting("text", "size") / Widgets.ScaleFactor(frame)
 end
 
 function Lumen.Tint(region, name, alpha)
@@ -145,7 +149,7 @@ function Cap:Paint()
 	Lumen.Tint(self.gem, "gilt")
 	local r, g, b = Lumen.Color("gilt")
 	self.title:SetTextColor(Tokens.Color("capsGold"))
-	Widgets.TextColor(self.trail, "text")
+	Widgets.TextColor(self.trail, "textEmphasis")
 	local rule = self.rule
 	if type(rule.SetGradient) == "function" and type(CreateColor) == "function" then
 		rule:SetColorTexture(Tokens.Color("white"))
@@ -159,8 +163,8 @@ end
 function Cap:Restyle()
 	local row, opts = self.row, self.opts
 	local y = Widgets.Snap(row, Units(opts.y, row))
-	Style.ApplyFont(self.title, "caps", CAP_SIZE * Style.Setting("text", "size"))
-	Style.Text(self.trail, "number")
+	Style.ApplyFont(self.title, "caps", Lumen.Size(row, CAP_SIZE))
+	Style.ApplyFont(self.trail, "number", Lumen.Size(row, CAP_SIZE))
 	Widgets.Size(self.gem, GEM_UNITS, GEM_UNITS)
 	self.gem:ClearAllPoints()
 	self.gem:SetPoint("LEFT", row, "LEFT", Widgets.Snap(row, Units(opts.left, row)), y)

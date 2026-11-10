@@ -158,7 +158,7 @@ function Setup.RootSize()
 	return root:GetWidth(), root:GetHeight()
 end
 
-function Setup.Story(name, guide)
+function Setup.Story(name, guide, alone)
 	local rw, rh = Setup.RootSize()
 	local slot = Layouts.Slot(name, rh)
 	if not slot then
@@ -167,7 +167,9 @@ function Setup.Story(name, guide)
 	local left, bottom, right, top = Layouts.Rect(slot, slot, rw, rh)
 	local story = { left = left, bottom = bottom, right = right, top = top }
 	local out = { story = story }
-	if guide then
+	if guide and alone then
+		out.guide = { left = left, right = right, top = top, bottom = bottom }
+	elseif guide then
 		local share = math.floor((top - bottom - STORY_GAP) / 2)
 		out.guide = { left = left, right = right, top = top, bottom = top - share }
 		out.tracker = { left = left, right = right, top = top - share - STORY_GAP, bottom = bottom }

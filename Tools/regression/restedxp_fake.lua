@@ -1,5 +1,7 @@
--- restedxp_fake.lua: a stand-in RestedXP Guides for the skin tests, written from RestedXP's public shape (frame
--- names, theme fields and hook points), not from its code.
+-- restedxp_fake.lua: a stand-in RestedXP Guides for the skin tests. The guide window, its active steps, the timer
+-- bars' footer, the waypoint arrow, the Active Items and Active Targets frames and the saving of frame places follow
+-- RXPGuides 4.11.35's own code, with that file's line numbers beside each part; the themes and the other windows
+-- follow RestedXP's public shape (frame names, theme fields and hook points).
 --
 --   local Fake = dofile("Tools/regression/restedxp_fake.lua")
 --   local rxp = Fake.Install(env, { v2 = true, activeTheme = "DarkMode" })
@@ -18,6 +20,8 @@ local Fake = {}
 
 local WHITE = "Interface/BUTTONS/WHITE8X8"
 local FOLDER = "Interface/AddOns/RXPGuides/Textures/"
+
+local TEXT_COLORS = { RXP_FRIENDLY_ = "FF00FF25", RXP_ENEMY_ = "FFFF5722", RXP_LOOT_ = "FF00BCD4", RXP_WARN_ = "FFFCDC00", RXP_PICK_ = "FFDB2EEF", RXP_BUY_ = "FF0E8312" }
 
 local function Copy(value)
 	if type(value) ~= "table" then
@@ -100,6 +104,44 @@ local function NewAddon(opts)
 			rxp.printed[#rxp.printed + 1] = table.concat({ ... }, " ")
 		end,
 	}
+	-- addon.enabledFrames holds every frame RestedXP shows, hides and saves (RXPGuides.lua 239). SaveFramePositions
+	-- writes each one's size and points into the profile, on every OnMouseUp of a RestedXP window and at
+	-- PLAYER_LOGOUT (RXPGuides.lua 1831), unless the frame's savePosition field is false (SettingsPanel.lua 4327-4369).
+	rxp.enabledFrames = {}
+	function rxp.settings.SaveFramePositions(self)
+		assert(self == rxp.settings, "SaveFramePositions is a method")
+		local profile = self.profile
+		profile.framePositions = profile.framePositions or {}
+		profile.frameSizes = profile.frameSizes or {}
+		for name, frame in pairs(rxp.enabledFrames) do
+			if frame.savePosition ~= false then
+				if frame.saveSize == false then
+					profile.frameSizes[name] = nil
+				else
+					profile.frameSizes[name] = { frame:GetWidth(), frame:GetHeight() }
+				end
+				profile.framePositions[name] = {}
+				for i = 1, frame:GetNumPoints() or 0 do
+					local point, relative, relativePoint, x, y = frame:GetPoint(i)
+					if type(relative) == "table" then
+						relative = relative:GetName()
+					end
+					profile.framePositions[name][i] = { point, relative, relativePoint, x, y }
+				end
+			end
+		end
+	end
+	-- The step-text colours (Themes.lua 121-131): a guide writes "|cRXP_FRIENDLY_Name|r", and ReplaceColors swaps
+	-- each token for the player's colour for it, an eight-digit hex, when the step loads (SettingsPanel.lua 4127).
+	rxp.guideTextColors = { default = Copy(TEXT_COLORS) }
+	for token, hex in pairs(TEXT_COLORS) do
+		rxp.guideTextColors[token] = hex
+	end
+	function rxp.settings.ReplaceColors(line)
+		return (line:gsub("RXP_[A-Z]+_", function(token)
+			return rxp.guideTextColors[token]
+		end))
+	end
 
 	local v2 = { themes = { ["RXP Blue V2"] = V2Base() }, enabled = opts.v2 == true }
 	rxp.v2 = v2
@@ -159,6 +201,11 @@ local function NewAddon(opts)
 		rxp.renders = rxp.renders + 1
 		rxp.lastRender = themeUpdate
 		rxp:LoadActiveTheme()
+		for _, frame in pairs(rxp.enabledFrames) do
+			if frame.UpdateVisuals then
+				frame:UpdateVisuals(true)
+			end
+		end
 	end
 	rxp.arrows = 0
 	function rxp.SetupArrow()
@@ -255,12 +302,15 @@ local function Maker(env)
 			end
 		end
 	end
+	-- check(hooked) fails on a field written onto a RestedXP object since it was sealed, other than a method a hook
+	-- replaced and savePosition, the switch RestedXP itself reads off a frame to leave it out of its saved places
+	-- (SettingsPanel.lua 4343, 4373; RestedXP sets it on its own frames at UI/V2/Core.lua 1911).
 	function m.check(hooked)
 		m.seal()
 		assert(#m.violations == 0, m.violations[1])
 		for _, object in ipairs(made) do
 			for k in pairs(object) do
-				if type(k) ~= "string" or k:sub(1, 1) ~= "_" then
+				if (type(k) ~= "string" or k:sub(1, 1) ~= "_") and k ~= "savePosition" then
 					assert(sealed[object][k] or hooked[k], "a field was written onto a RestedXP object: " .. tostring(k))
 				end
 			end
@@ -346,65 +396,250 @@ local function PanelButton(m, parent, name, label)
 	return button
 end
 
+-- The guide window, as GuideWindow.lua builds it (RXPGuides 4.11.35; line numbers are that file's). RXPFrame is a
+-- BACKGROUND-strata child of UIParent, 235 by 125 (22, 466-469), in addon.enabledFrames so RestedXP saves its place
+-- (26). BottomFrame, the step list, is inset 3 at the top and sides and 14 at the foot (1405); GuideName, the
+-- 35-unit header, hangs its foot 9 below the list's top (1408-1410) and holds the guide's title from x 29 (1412);
+-- Footer is 20 tall on the window's foot (1422-1424) and has the same global name as GuideName (33-36), its text a
+-- font string of GuideName's (1425), its resize grip a child button (1441) and its cog a child of RXPFrame one level
+-- above the header (1468-1472). CurrentStepFrame stacks the active steps 2 above the header (473), or under the
+-- window when profile.anchorOrientation is not "top" (353-396).
+local STEP_ICONS = { train = "|TInterface/GossipFrame/TrainerGossipIcon:0|t", accept = "|TInterface/GossipFrame/AvailableQuestIcon:0|t", turnin = "|TInterface/GossipFrame/ActiveQuestIcon:0|t" }
+local SIZE_GRABBER = "Interface/CHATFRAME/UI-ChatIM-SizeGrabber-"
+
+-- Art(m, button, slot, path) sets a button's Normal, Highlight, Checked or DisabledChecked texture from a path, as
+-- the game's Set<slot>Texture does: the first call makes the texture region, later ones reuse it.
+local function Art(m, button, slot, path)
+	local texture = button["Get" .. slot .. "Texture"](button)
+	if type(texture) ~= "table" then
+		texture = m.texture(button, slot == "Highlight" and "HIGHLIGHT" or "ARTWORK")
+		texture:SetAllPoints(button)
+		button["Set" .. slot .. "Texture"](button, texture)
+	end
+	texture:SetTexture(path)
+	return texture
+end
+
+-- StringWidth(text) and StringHeight(text): the text's measures where the environment has them (env._textWidth),
+-- else a width of 60 and one line of the font's size.
+local function StringWidth(text)
+	local width = text:GetStringWidth()
+	return type(width) == "number" and width or 60
+end
+
+local function StringHeight(text)
+	local height = text:GetStringHeight()
+	if type(height) == "number" and height > 0 then
+		return height
+	end
+	local _, size = text:GetFont()
+	return type(size) == "number" and size or 0
+end
+
 local function V1Window(m, rxp)
+	local env = m.env
 	local f = Backdrop(m, m.frame("Frame", nil, "RXPFrame"))
-	f.backdrop = { edge = {}, guideName = {}, bottom = {} }
-	f.BottomFrame = Backdrop(m, m.frame("Frame", f, "RXPFrame_bottomFrame"))
+	rxp.RXPFrame = f
+	rxp.enabledFrames.RXPFrame = f
+	function f.IsFeatureEnabled()
+		return not rxp.settings.profile.hideGuideWindow, false
+	end
+	local list = Backdrop(m, m.frame("Frame", f, "RXPFrame_bottomFrame"))
 	local name = Backdrop(m, m.frame("Frame", f, "RXPFrameGuideName"))
-	f.GuideName = name
-	m.text(name, "text")
-	m.texture(name, "BACKGROUND", "bg")
-	m.texture(name, "ARTWORK", "icon")
-	m.texture(name, "ARTWORK", "classIcon")
 	local footer = Backdrop(m, m.frame("Frame", f, "RXPFrameGuideName"))
-	f.Footer = footer
-	m.texture(footer, "BACKGROUND", "bg")
-	footer.icon = m.frame("Button", footer, "RXPFrameGuideNameResize")
-	m.texture(footer.icon, "ARTWORK", "Normal")
-	footer.cog = m.frame("Button", f, "RXPFrameGuideNameCogwheel")
-	m.texture(footer.cog, "ARTWORK", "Normal")
-	footer.text = m.text(name)
-	local scroll = m.frame("ScrollFrame", f.BottomFrame, "RXPFrame_bottomFrameScrollFrame", "UIPanelScrollFrameTemplate")
+	local scroll = m.frame("ScrollFrame", list, "RXPFrame_bottomFrameScrollFrame", "UIPanelScrollFrameTemplate")
 	scroll.ScrollBar = ScrollBar(m, scroll, "RXPFrame_bottomFrameScrollFrameScrollBar")
-	f.ScrollFrame = scroll
-	f.ScrollChild = m.frame("Frame", scroll, "RXPFrame_bottomFrame_steps")
-	f.ScrollChild.framePool = {}
-	f.CurrentStepFrame = m.frame("Frame", f)
-	f.CurrentStepFrame.framePool = {}
-	f.CurrentStepFrame.anchor = "TOP"
+	local current = m.frame("Frame", f)
+	local child = Backdrop(m, m.frame("Frame", scroll, "RXPFrame_bottomFrame_steps"))
+	f.BottomFrame, f.GuideName, f.Footer, f.CurrentStepFrame, f.ScrollFrame, f.ScrollChild = list, name, footer, current, scroll, child
 	f.MenuFrame = m.frame("Frame", nil, "RXPG_MenuFrame", "UIDropDownMenuTemplate")
-	m.frame("Button", f, "RXPFrameCogwheel")
-	-- RestedXP's own anchors (GuideWindow.lua 466-476, 1405-1428, 1508): a 235 by 125 window left of centre, the
-	-- list inset 3 at the top and sides and 14 at the bottom, the 35-unit header hanging 9 into the list's top, the
-	-- active steps stacked 2 above the header, and the 20-unit footer on the window's foot.
+	f.backdrop = { edge = {}, guideName = {}, bottom = {} }
+	child.framePool, current.framePool = {}, {}
+
+	f:SetMovable(true)
+	f:SetClampedToScreen(true)
+	f:SetResizable(true)
+	f:EnableMouse(true)
 	f:SetSize(235, 125)
-	f:SetPoint("LEFT", m.env.UIParent, "LEFT", 0, 35)
-	f.BottomFrame:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
-	f.BottomFrame:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 14)
-	name:SetPoint("BOTTOMLEFT", f.BottomFrame, "TOPLEFT", 0, -9)
-	name:SetPoint("BOTTOMRIGHT", f.BottomFrame, "TOPRIGHT", 0, -9)
+	f:SetPoint("LEFT", env.UIParent, "LEFT", 0, 35)
+	f:SetFrameStrata("BACKGROUND")
+	list:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
+	list:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 14)
+	name:SetPoint("BOTTOMLEFT", list, "TOPLEFT", 0, -9)
+	name:SetPoint("BOTTOMRIGHT", list, "TOPRIGHT", 0, -9)
 	name:SetHeight(35)
-	f.CurrentStepFrame:SetPoint("BOTTOMLEFT", name, "TOPLEFT", 0, 2)
-	f.CurrentStepFrame:SetPoint("BOTTOMRIGHT", name, "TOPRIGHT", 0, 2)
-	f.CurrentStepFrame:SetHeight(25)
+	m.text(name, "text")
+	name.text:SetPoint("LEFT", name, "LEFT", 29, 0)
+	name.text:SetPoint("RIGHT", name, "RIGHT", 0, 0)
+	name.text:SetJustifyH("CENTER")
+	name.text:SetJustifyV("MIDDLE")
+	name:SetFrameLevel(6)
+	m.texture(name, "BACKGROUND", "bg")
+	name.bg:SetPoint("TOPLEFT", name, "TOPLEFT", 4, -2)
+	name.bg:SetPoint("BOTTOMRIGHT", name, "BOTTOMRIGHT", -2, 4)
 	footer:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 3, 0)
 	footer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 0)
 	footer:SetHeight(20)
-	scroll:SetPoint("TOPLEFT", f.BottomFrame, "TOPLEFT", 5, -5)
-	scroll:SetPoint("BOTTOMRIGHT", f.BottomFrame, "BOTTOMRIGHT", -20, 7)
-	function f.UpdateVisuals(self)
-		for _, part in ipairs({ self.BottomFrame, self.GuideName, self.Footer }) do
-			part:ClearBackdrop()
-			part:SetBackdrop(self.backdrop.edge)
+	footer.text = m.text(name)
+	footer.text:SetPoint("LEFT", footer, "LEFT", 40, 1)
+	footer.text:SetPoint("RIGHT", footer, "RIGHT", -16, 1)
+	footer.text:SetJustifyH("LEFT")
+	footer.text:SetJustifyV("MIDDLE")
+	footer:SetFrameLevel(6)
+	m.texture(footer, "BACKGROUND", "bg")
+	footer.bg:SetPoint("TOPLEFT", footer, "TOPLEFT", 4, -2)
+	footer.bg:SetPoint("BOTTOMRIGHT", footer, "BOTTOMRIGHT", -2, 4)
+	footer.icon = m.frame("Button", footer, "RXPFrameGuideNameResize")
+	footer.icon:SetFrameLevel(footer:GetFrameLevel() + 1)
+	footer.icon:SetSize(16, 16)
+	footer.icon:SetPoint("BOTTOMRIGHT", footer, "BOTTOMRIGHT", -1, 3)
+	footer.icon.Normal = Art(m, footer.icon, "Normal", SIZE_GRABBER .. "Up")
+	Art(m, footer.icon, "Highlight", SIZE_GRABBER .. "Highlight")
+	m.texture(name, "ARTWORK", "icon")
+	name.icon:SetPoint("CENTER", name, "LEFT", 16, 0)
+	name.icon:SetSize(42, 42)
+	m.texture(name, "OVERLAY", "classIcon")
+	name.classIcon:SetPoint("CENTER", name.icon, "BOTTOMRIGHT", -4, 10)
+	name.classIcon:SetSize(24, 24)
+	footer.cog = m.frame("Button", f, "RXPFrameCogwheel")
+	footer.cog:SetFrameLevel(name:GetFrameLevel() + 1)
+	footer.cog:SetSize(18, 18)
+	footer.cog:SetPoint("LEFT", footer, "LEFT", 1, 1)
+	Art(m, footer.cog, "Highlight", "Interface/MINIMAP/UI-Minimap-ZoomButton-Highlight")
+	footer.cog:Show()
+	scroll:SetPoint("TOPLEFT", list, "TOPLEFT", 5, -5)
+	scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -20, 7)
+	current:SetPoint("BOTTOMLEFT", name, "TOPLEFT", 0, 2)
+	current:SetPoint("BOTTOMRIGHT", name, "TOPRIGHT", 0, 2)
+	current:SetHeight(25)
+	current:EnableMouse(true)
+	current.anchor = "TOP"
+
+	local function Texture(file)
+		local theme = rxp.activeTheme
+		return ((theme and theme.texturePath) or FOLDER) .. file
+	end
+	local function Color(key)
+		local theme = rxp.activeTheme
+		local color = theme and theme[key]
+		return unpack(type(color) == "table" and color or { 1, 1, 1 })
+	end
+	-- UpdateScrollBar hides the list's scroll bar when the list fits (1512).
+	function f.UpdateScrollBar() end
+	-- UpdateVisuals redraws the window from the active theme (52-82): each call sets the three backdrops again, the
+	-- header's and footer's banners, the logo, the class icon and the cog's art.
+	f.UpdateVisuals = m.trust(function(self)
+		if rxp.v2:IsGuideWindowEnabled() then
+			return
+		end
+		list:ClearBackdrop()
+		list:SetBackdrop(self.backdrop.edge)
+		list:SetBackdropColor(Color("background"))
+		name:ClearBackdrop()
+		name:SetBackdrop(self.backdrop.guideName)
+		name:SetBackdropColor(Color("background"))
+		footer:ClearBackdrop()
+		footer:SetBackdrop(self.backdrop.guideName)
+		footer:SetBackdropColor(Color("background"))
+		footer.bg:SetTexture(Texture("rxp-banner"))
+		name.bg:SetTexture(Texture("rxp-banner"))
+		name.icon:SetTexture(Texture("rxp_logo-64"))
+		name.classIcon:SetTexture(Texture("SHAMAN"))
+		footer.cog.Normal = Art(m, footer.cog, "Normal", Texture("rxp_cog-32"))
+		self.UpdateScrollBar()
+	end)
+	-- SetupGuideWindow writes the header and footer as RestedXP's start-up does (140-181): the header at 11, the
+	-- footer at 9 with the addon's title and release.
+	rxp.SetupGuideWindow = m.trust(function()
+		if rxp.v2:IsGuideWindowEnabled() then
+			return
+		end
+		name.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 11, "")
+		name.text:SetText("Welcome to RestedXP Guides\nRight click to pick a guide")
+		name.text:SetTextColor(Color("textColor"))
+		footer.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
+		footer.text:SetText("RestedXP Guides v4.11.35")
+		footer.text:SetTextColor(Color("textColor"))
+		f:UpdateVisuals()
+	end)
+
+	-- SetStepFrameAnchor puts the active steps above the header, or under the window (353-396).
+	local function SetStepFrameAnchor()
+		current:ClearAllPoints()
+		if rxp.settings.profile.anchorOrientation == "bottom" then
+			current:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 3, 0)
+			current:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", -3, 0)
+			current.anchor = "BOTTOM"
+		else
+			current:SetPoint("BOTTOMLEFT", name, "TOPLEFT", 0, 2)
+			current:SetPoint("BOTTOMRIGHT", name, "TOPRIGHT", 0, 2)
+			current.anchor = "TOP"
 		end
 	end
-	f:UpdateVisuals()
-	rxp.RXPFrame = f
-	-- SetStep makes an active step frame per step on first use, each with a number badge and its check buttons:
-	-- elements is how many a step holds (a number for every step, or one per step), default one.
-	-- RestedXP sets each new element's font as it makes it (GuideWindow.lua:1117) and measures every element's
-	-- height from its text in CurrentStepFrame.UpdateText before SetStep returns (1222, 1312): so a font changed
-	-- after SetStep needs UpdateText again, or the text overflows its frame. The fake measures one line.
+	f.SetStepFrameAnchor = m.trust(SetStepFrameAnchor)
+
+	-- The mouse: a drag moves the window, the grip or Alt sizes it, and letting go saves every frame's place
+	-- (402-426); a right click on the header or the footer, and a click on the cog, open the menu (1477-1501).
+	local resizing = false
+	function f.DropDownMenu()
+		rxp:ShowMenu(f.menuList, f.MenuFrame, "cursor", 0, 0, "MENU")
+	end
+	f.OnMouseDown = m.trust(function(_, _, resize)
+		if rxp.settings.profile.lockFrames then
+			return
+		end
+		if resize or (env.IsAltKeyDown and env.IsAltKeyDown()) then
+			f:StartSizing("BOTTOMRIGHT")
+			resizing = true
+		else
+			f:StartMoving()
+		end
+	end)
+	f.OnMouseUp = m.trust(function()
+		f:StopMovingOrSizing()
+		if resizing then
+			rxp.settings.profile.frameHeight = f:GetHeight()
+			rxp.SetStep()
+		end
+		SetStepFrameAnchor()
+		if rxp.UpdateItemFrame then
+			rxp.UpdateItemFrame()
+		end
+		resizing = false
+		rxp.settings:SaveFramePositions()
+	end)
+	name.OnMouseDown = m.trust(function(self, button)
+		if button == "RightButton" then
+			f.DropDownMenu()
+		else
+			f.OnMouseDown(self, button)
+		end
+	end)
+	name.OnMouseUp = m.trust(function(self, button)
+		if button ~= "RightButton" then
+			f.OnMouseUp(self, button)
+		end
+	end)
+	for _, part in ipairs({ f, current }) do
+		part:SetScript("OnMouseDown", f.OnMouseDown)
+		part:SetScript("OnMouseUp", f.OnMouseUp)
+	end
+	for _, part in ipairs({ name, footer }) do
+		part:SetScript("OnMouseDown", name.OnMouseDown)
+		part:SetScript("OnMouseUp", name.OnMouseUp)
+	end
+	footer.icon:SetScript("OnMouseDown", m.trust(function(self, button)
+		f.OnMouseDown(self, button, true)
+	end))
+	footer.icon:SetScript("OnMouseUp", f.OnMouseUp)
+	footer.cog:SetScript("OnClick", m.trust(function()
+		f.DropDownMenu()
+	end))
+	-- The game gives a frame the mouse when a mouse script is set on it, and a button has it from the start.
+	for _, part in ipairs({ name, footer, footer.icon, footer.cog }) do
+		part:EnableMouse(true)
+	end
+
 	local function GuideFont()
 		local profile = rxp.settings and rxp.settings.profile
 		return rxp.font or "Fonts\\FRIZQT__.TTF", (profile and profile.guideFontSize) or 9
@@ -414,89 +649,240 @@ local function V1Window(m, rxp)
 		return math.ceil((type(size) == "number" and size or 0) * 1.1) + 1
 	end
 	rxp.measured = { steps = 0, rows = 0 }
-	function f.CurrentStepFrame.UpdateText()
-		rxp.measured.steps = rxp.measured.steps + 1
-		for _, step in ipairs(f.CurrentStepFrame.framePool) do
-			for _, element in ipairs(step.elements) do
-				element:SetHeight(LineHeight(element.text))
-			end
-		end
+	local active = {}
+
+	-- m.guide(steps) sets the steps SetStep activates next: a list of { title, elements = { { text, tag, textOnly,
+	-- icon } } }, the step text as the guide file has it, colour tokens and "Name::npcId" included.
+	function m.guide(steps)
+		m.steps = steps
 	end
-	-- UpdateFrame also hides the list when the window leaves it under 30 units, as RestedXP does (GuideWindow.lua 2363).
-	f.BottomFrame.UpdateFrame = m.trust(function()
+	local function Specs(count, elements)
+		if m.steps then
+			return m.steps
+		end
+		local specs = {}
+		for i = 1, count or 1 do
+			local wanted = type(elements) == "table" and elements[i] or elements or 1
+			local made = {}
+			for e = 1, wanted do
+				made[e] = { text = "Kill 8 Mottled Boars" }
+			end
+			specs[i] = { index = i, elements = made }
+		end
+		return specs
+	end
+	-- StepText(value) is the text RestedXP draws for an element (884, 1307): settings.ReplaceColors swaps each
+	-- colour token for the player's colour, and ReplaceNpcIds drops the npc id after a name.
+	local function StepText(value)
+		return (rxp.settings.ReplaceColors(value):gsub("::%d+", ""))
+	end
+
+	-- UpdateText lays the active steps out (1230-1400): each step frame under the one before, 5 apart; its plate
+	-- reads the step's title; each element's 12-unit check sits at (6, -1), its text 11 right of the check and 1
+	-- lower, running to 5 before the step frame's right edge, its tag icon on the check's right edge; an element
+	-- is its text's height times 1.1 plus 1 tall, a step its elements plus 18. A text-only element hides its check.
+	-- A tip step is its own 230-wide window at the screen's bottom left (1001-1012) and adds nothing to the
+	-- stack's height (1387-1391).
+	current.UpdateText = m.trust(function()
+		rxp.measured.steps = rxp.measured.steps + 1
+		if rxp.v2:IsGuideWindowEnabled() then
+			current:SetHeight(0)
+			current:Hide()
+			return
+		end
+		current:Show()
+		local total, anchor = 0, nil
+		for c, spec in ipairs(active) do
+			local step = current.framePool[c]
+			step:ClearAllPoints()
+			if spec.tip then
+				step:SetPoint("BOTTOMLEFT", m.env.UIParent, "BOTTOMLEFT", 0, 0)
+				step:SetWidth(230)
+			else
+				step:SetPoint("TOPLEFT", anchor or current, anchor and "BOTTOMLEFT" or "TOPLEFT", 0, anchor and -5 or 0)
+				step:SetPoint("TOPRIGHT", anchor or current, anchor and "BOTTOMRIGHT" or "TOPRIGHT", 0, anchor and -5 or 0)
+				anchor = step
+			end
+			step.number.text:SetText(spec.title or string.format("Step %d", spec.index or c))
+			step.number:SetSize(StringWidth(step.number.text) + 10, 17)
+			local height = 0
+			for e, element in ipairs(spec.elements) do
+				local row = step.elements[e]
+				local spacing = 0
+				row:Show()
+				if element.text then
+					row:SetAlpha(1)
+					row.button:ClearAllPoints()
+					row.button:SetPoint("TOPLEFT", row, "TOPLEFT", 6, -1)
+					row.text:ClearAllPoints()
+					row.text:SetPoint("TOPLEFT", row.button, "TOPRIGHT", 11, -1)
+					row.text:SetPoint("RIGHT", step, "RIGHT", -5, 0)
+					if element.text ~= " " then
+						row.text:SetText(StepText(element.text))
+					end
+					local h = math.ceil(StringHeight(row.text) * 1.1) + 1
+					row:SetHeight(h)
+					height = height + h
+					row:EnableMouse(true)
+					row.button:EnableMouse(true)
+					row.icon:ClearAllPoints()
+					row.icon:SetPoint("TOPLEFT", row.button, "TOPRIGHT", 0, -1)
+					if element.textOnly then
+						row.button:SetChecked(true)
+						row.button:Hide()
+					else
+						row.button:Show()
+					end
+				else
+					row:SetAlpha(0)
+					row.button:Hide()
+					row:SetHeight(1)
+					spacing = 1
+				end
+				row:ClearAllPoints()
+				local above = step.elements[e - 1]
+				row:SetPoint("TOPLEFT", above or step, above and "BOTTOMLEFT" or "TOPLEFT", 0, (above and 0 or -10) + spacing)
+				row:SetPoint("TOPRIGHT", above or step, above and "BOTTOMRIGHT" or "TOPRIGHT", 0, (above and 0 or -10) + spacing)
+				if element.tag and element.text then
+					row.icon:SetText(element.icon or STEP_ICONS[element.tag] or "")
+					row.icon:Show()
+				else
+					row.icon:Hide()
+				end
+			end
+			step:SetAlpha(1)
+			step:EnableMouse(true)
+			height = math.ceil(height + 18)
+			step:SetHeight(height)
+			total = total + (spec.tip and 0 or height + 5)
+		end
+		current:SetHeight(math.max(0, total - 5))
+	end)
+
+	-- UpdateFrame sizes the list's rows and hides the list when the window leaves it under 30 units, holding the
+	-- window at 28 or more (2363-2364).
+	list.UpdateFrame = m.trust(function()
 		rxp.measured.rows = rxp.measured.rows + 1
-		for _, row in ipairs(f.ScrollChild.framePool) do
+		for _, row in ipairs(child.framePool) do
 			row:SetHeight(LineHeight(row.text) + 8)
 		end
 		local height = f:GetHeight() - 3 - 14
-		f.BottomFrame:SetShown(height >= 30)
+		if height < 30 then
+			list:Hide()
+			if f:GetHeight() < 28 then
+				f:SetHeight(28)
+			end
+		elseif not list:IsShown() then
+			list:Show()
+		end
 	end)
-	-- RestedXP caps its list's scroll at the child's height plus 10, less the list's, after every SetValue
-	-- (GuideWindow.lua:1528): a range that assumes its own 5-unit top and 7-unit bottom inset.
-	m.env.hooksecurefunc(scroll.ScrollBar, "SetValue", function(self)
-		local range = math.floor(f.ScrollChild:GetHeight() + 10) - f.BottomFrame:GetHeight()
+	-- RestedXP caps its list's scroll at the child's height plus 10, less the list's, after every SetValue (1528):
+	-- a range that assumes its own 5-unit top and 7-unit bottom inset.
+	env.hooksecurefunc(scroll.ScrollBar, "SetValue", function(self)
+		local range = math.floor(child:GetHeight() + 10) - list:GetHeight()
 		self:SetMinMaxValues(0, math.max(0, range))
 	end)
+
+	-- SetStep(count, elements) activates the guide's steps: m.guide's, or count plain steps with that many elements
+	-- each (a number, or one per step). It makes a step frame per active step on first use (990-1000), its plate
+	-- (1038-1061) and its element frames, each with its check, its text and its tag icon (1087-1136), sets the
+	-- check's art from the theme (1137-1141), then lays everything out in UpdateText (1222).
 	rxp.SetStep = m.trust(function(count, elements)
-		local pool = f.CurrentStepFrame.framePool
-		for i = 1, count or 1 do
-			local step = pool[i]
+		if count or not active[1] then
+			local specs = Specs(count, elements)
+			active = {}
+			for i = 1, count or #specs do
+				active[i] = specs[i]
+			end
+		end
+		local pool = current.framePool
+		for c, spec in ipairs(active) do
+			local step = pool[c]
 			if not step then
-				step = Backdrop(m, m.frame("Frame", f.CurrentStepFrame))
-				step.number = Backdrop(m, m.frame("Frame", step))
+				step = Backdrop(m, m.frame("Frame", current, "RXPFrame_frame" .. c))
+				step.elements = {}
+				pool[c] = step
+			end
+			step:SetFrameStrata(f:GetFrameStrata())
+			step:SetScript("OnMouseDown", nil)
+			step:SetScript("OnMouseUp", nil)
+			if not step.number then
+				step.number = Backdrop(m, m.frame("Frame", step, "RXPFrame_frame" .. c .. "_number"))
+				step.number:SetPoint("TOPLEFT", step, "TOPLEFT", 7, 5)
 				m.text(step.number, "text")
+				step.number.text:SetPoint("CENTER", step.number, "CENTER", 2, 1)
+				step.number.text:SetJustifyH("CENTER")
+				step.number.text:SetJustifyV("MIDDLE")
+				step.number.text:SetTextColor(Color("textColor"))
 				local plateFont, plateSize = GuideFont()
 				step.number.text:SetFont(plateFont, plateSize, "")
-				step.elements = {}
-				local wanted = type(elements) == "table" and elements[i] or elements or 1
-				for e = 1, wanted do
-					local element = m.frame("Frame", step)
-					element.button = m.frame("CheckButton", element, nil, "ChatConfigCheckButtonTemplate")
-					m.texture(element.button, "ARTWORK", "NormalArt")
-					element.text = m.text(element)
-					local path, size = GuideFont()
-					element.text:SetFont(path, size + 2, "")
-					step.elements[e] = element
-				end
-				pool[i] = step
-				m.seal()
+				step:ClearBackdrop()
 				step:SetBackdrop(f.backdrop.edge)
+				step:SetBackdropColor(Color("background"))
+				step.number:ClearBackdrop()
 				step.number:SetBackdrop(f.backdrop.edge)
+				step.number:SetBackdropColor(Color("background"))
 			end
+			step.number:SetAlpha(spec.title == "" and 0 or 1)
+			step.step, step.index = spec, spec.index or c
+			for e in ipairs(spec.elements) do
+				local row = step.elements[e]
+				if not row then
+					row = m.frame("Frame", step, "RXPFrame_frame" .. c .. "_" .. e)
+					local button = m.frame("CheckButton", row, "RXPFrame_frame" .. c .. "_" .. e .. "Check", "ChatConfigCheckButtonTemplate")
+					row.button = button
+					button:SetSize(12, 12)
+					Art(m, button, "Highlight", "Interface/MINIMAP/UI-Minimap-ZoomButton-Highlight")
+					row.text = m.text(row)
+					row.text:SetJustifyH("LEFT")
+					row.text:SetJustifyV("MIDDLE")
+					row.text:SetTextColor(Color("textColor"))
+					local path, size = GuideFont()
+					row.text:SetFont(path, size + 2, "")
+					row.icon = m.text(row)
+					row.highlight = m.texture(row, "HIGHLIGHT")
+					row.highlight:SetAllPoints(row.text)
+					row.highlight:Hide()
+					step.elements[e] = row
+				end
+				if row.button.theme ~= rxp.activeTheme then
+					row.button.theme = rxp.activeTheme
+					Art(m, row.button, "Normal", Texture("rxp-btn-blank-32"))
+					Art(m, row.button, "Checked", Texture("rxp-checked-32"))
+					Art(m, row.button, "DisabledChecked", Texture("rxp-checked-32"))
+				end
+				row.element = spec.elements[e]
+				row.button:SetChecked(false)
+			end
+			for e = #spec.elements + 1, #step.elements do
+				step.elements[e]:Hide()
+			end
+			step:Show()
 		end
-		f.CurrentStepFrame.UpdateText()
-		-- Each step is its elements plus 18 tall, stacked 5 apart from the top of CurrentStepFrame (1262-1395); its
-		-- plate reads "Step N" (1275), as RestedXP writes it.
-		local total = 0
-		for i, step in ipairs(pool) do
-			local height = 18
-			step.number.text:SetText(string.format("Step %d", i))
-			step.number:SetAlpha(1)
-			for _, element in ipairs(step.elements) do
-				height = height + element:GetHeight()
-			end
-			step:ClearAllPoints()
-			if i == 1 then
-				step:SetPoint("TOPLEFT", f.CurrentStepFrame, "TOPLEFT", 0, 0)
-				step:SetPoint("TOPRIGHT", f.CurrentStepFrame, "TOPRIGHT", 0, 0)
-			else
-				step:SetPoint("TOPLEFT", pool[i - 1], "BOTTOMLEFT", 0, -5)
-				step:SetPoint("TOPRIGHT", pool[i - 1], "BOTTOMRIGHT", 0, -5)
-			end
-			step:SetHeight(height)
-			step:SetShown(i <= (count or 1))
-			if i <= (count or 1) then
-				total = total + height + 5
-			end
+		for c = #active + 1, #pool do
+			pool[c]:Hide()
 		end
-		f.CurrentStepFrame:SetHeight(math.max(0, total - 5))
+		if rxp.UpdateItemFrame then
+			rxp.UpdateItemFrame()
+		end
+		current.UpdateText()
 	end)
+
+	-- LoadGuide writes the guide's name over its group in the header (1954) and makes the list's rows.
+	rxp.LoadGuide = m.trust(function(self, guide)
+		assert(self == rxp, "LoadGuide is a method")
+		rxp.currentGuide = guide
+		local title = guide.displayname or guide.name or ""
+		name.text:SetText(guide.subgroup and (title .. "\n" .. guide.subgroup) or title)
+		m.rows(guide.rows or 1)
+	end)
+
 	-- Step list rows: RestedXP draws them flat in the theme's bottomFrameBG colour, each with its text and a
 	-- number at its bottom right. m.rows(count) makes more as the guide list grows.
 	function m.rows(count)
-		local pool = f.ScrollChild.framePool
+		local pool = child.framePool
 		for n = #pool + 1, count do
-			local row = Backdrop(m, m.frame("Frame", f.ScrollChild, "RXPFrame_bottomFrame_steps_frame_" .. n))
+			local row = Backdrop(m, m.frame("Frame", child, "RXPFrame_bottomFrame_steps_frame_" .. n))
 			row.text = m.text(row)
 			local path, size = GuideFont()
 			row.text:SetFont(path, size, "")
@@ -507,6 +893,62 @@ local function V1Window(m, rxp)
 			row:SetBackdrop(f.backdrop.bottom)
 		end
 	end
+
+	-- Timers.lua: the bar container on the footer (5-16). A running timer bar hides the footer's grip, text and cog
+	-- (174-176); when the last bar hides, stopped or run out, they come back at full alpha (18-25), as they do when
+	-- HideTimers hides every bar (112-121). Every change sorts the bars (SortTimers, 28).
+	local bars = m.frame("Frame", f, "RXPFrameBarContainer")
+	bars.height, bars.bars = 16, {}
+	bars:SetPoint("TOPLEFT", footer, "TOPLEFT", 4, 0)
+	bars:SetPoint("BOTTOMRIGHT", footer, "BOTTOMRIGHT", 0, 1)
+	f.BarContainer = bars
+	local function FooterAlpha(alpha)
+		footer.icon:SetAlpha(alpha)
+		footer.text:SetAlpha(alpha)
+		footer.cog:SetAlpha(alpha)
+	end
+	rxp.sorts = 0
+	rxp.SortTimers = m.trust(function(self)
+		assert(self == rxp, "SortTimers is a method")
+		rxp.sorts = rxp.sorts + 1
+	end)
+	local function OnHide(label)
+		bars.bars[label] = nil
+		rxp:SortTimers()
+		if not next(bars.bars) then
+			FooterAlpha(1)
+		end
+	end
+	rxp.StartTimer = m.trust(function(duration, label)
+		if type(duration) ~= "number" or duration <= 0 or not f:IsShown() then
+			return
+		end
+		label = label or ""
+		bars.bars[label] = bars.bars[label] or m.frame("Frame", env.UIParent)
+		FooterAlpha(0)
+		rxp:SortTimers()
+		return bars.bars[label]
+	end)
+	rxp.StopTimer = m.trust(function(label)
+		if bars.bars[label] then
+			OnHide(label)
+			rxp:SortTimers()
+		end
+	end)
+	rxp.HideTimers = m.trust(function()
+		for label in pairs(bars.bars) do
+			bars.bars[label] = nil
+		end
+		FooterAlpha(1)
+	end)
+	-- m.expire(label) is a bar running out: LibCandyBar hides it, and its OnHide runs.
+	m.expire = m.trust(OnHide)
+	-- m.logout() is PLAYER_LOGOUT: RestedXP saves every enabled frame's place (RXPGuides.lua 1831).
+	function m.logout()
+		rxp.settings:SaveFramePositions()
+	end
+
+	rxp.SetupGuideWindow()
 	m.rows(1)
 	return f
 end
@@ -529,62 +971,259 @@ local function MenuLists(m, env)
 	return lists
 end
 
+-- The waypoint arrow, as map.lua builds it (40-98): a 32-unit movable frame at the screen's top, its texture
+-- filling it and its text 5 under it, saved with the other frames. SetupArrow writes the text at 9 with an outline
+-- and the theme's colour and sets the theme's arrow (93-98); DrawArrow turns the texture and writes the step's
+-- title over the distance, with each colour token swapped for the player's colour (140-166).
 local function Arrow(m, rxp)
 	local arrow = m.frame("Frame", nil, "RXPG_ARROW")
-	m.texture(arrow, "ARTWORK", "texture")
-	m.text(arrow, "text")
-	function arrow.UpdateVisuals(self)
-		self.texture:SetTexture("Interface/AddOns/RXPGuides/Textures/arrow")
-	end
 	rxp.arrowFrame = arrow
+	rxp.enabledFrames.arrowFrame = arrow
+	function arrow.IsFeatureEnabled()
+		return not rxp.settings.profile.disableArrow and rxp.hideArrow == false, false
+	end
+	arrow:SetMovable(true)
+	arrow:EnableMouse(true)
+	arrow:SetClampedToScreen(true)
+	arrow:SetSize(32, 32)
+	m.texture(arrow, "ARTWORK", "texture")
+	arrow.texture:SetAllPoints(arrow)
+	m.text(arrow, "text")
+	arrow.text:SetJustifyH("CENTER")
+	arrow.text:SetJustifyV("MIDDLE")
+	arrow.text:SetPoint("TOP", arrow, "BOTTOM", 0, -5)
+	arrow:SetPoint("TOP", m.env.UIParent, "TOP", 0, 0)
+	arrow:Hide()
+	arrow.UpdateVisuals = m.trust(function(self)
+		local theme = rxp.activeTheme
+		local path = ((theme and theme.texturePath) or FOLDER) .. "rxp_navigation_arrow-1"
+		if rxp.v2:IsGuideWindowEnabled() then
+			path = rxp.v2:GetTheme().navigationArrow
+		end
+		self.texture:SetTexture(path)
+	end)
+	arrow:SetScript("OnMouseDown", m.trust(function()
+		if not rxp.settings.profile.lockFrames then
+			arrow:StartMoving()
+		end
+	end))
+	arrow:SetScript("OnMouseUp", m.trust(function()
+		arrow:StopMovingOrSizing()
+		rxp.settings:SaveFramePositions()
+	end))
+	rxp.SetupArrow = m.trust(function()
+		rxp.arrows = rxp.arrows + 1
+		arrow.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+		arrow:UpdateVisuals()
+		local theme = rxp.activeTheme
+		arrow.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
+	end)
+	-- m.arrow(title, distance, orientation) draws the arrow as DrawArrow does for a waypoint.
+	m.arrow = m.trust(function(title, distance, orientation)
+		arrow:SetAlpha(1)
+		arrow:Show()
+		arrow.texture:SetRotation(orientation or 0)
+		if title then
+			arrow.text:SetText(string.format("%s\n(%dyd)", rxp.settings.ReplaceColors(title), distance or 0))
+		else
+			arrow.text:SetText(string.format("(%dyd)", distance or 0))
+		end
+	end)
 end
 
-local function IconFrame(m, name)
+-- IconFrame(m, rxp, key, name, rise, label) is the frame both icon windows share (ActiveItemFrame.lua 256-327,
+-- Targeting.lua 835-898): a movable BackdropTemplate frame at the screen's centre, saved with the other frames,
+-- its title plate a child hanging from (5, rise) over its top edge, 19 tall and 10 wider than its words, three
+-- levels above it.
+local function IconFrame(m, rxp, key, name, rise, label)
 	local f = Backdrop(m, m.frame("Frame", nil, name))
+	rxp.enabledFrames[key] = f
+	f:SetClampedToScreen(true)
+	f:EnableMouse(true)
+	f:SetMovable(true)
+	f:SetPoint("CENTER", m.env.UIParent, "CENTER", 0, 0)
+	f.onMouseDown = m.trust(function()
+		if rxp.settings.profile.lockFrames then
+			return
+		end
+		f:StartMoving()
+	end)
+	f.onMouseUp = m.trust(function()
+		f:StopMovingOrSizing()
+		rxp.settings:SaveFramePositions()
+	end)
+	f:SetScript("OnMouseDown", f.onMouseDown)
+	f:SetScript("OnMouseUp", f.onMouseUp)
 	f.title = Backdrop(m, m.frame("Frame", f, name .. "_title"))
+	f.title:SetPoint("TOPLEFT", f, "TOPLEFT", 5, rise)
+	f.title:SetFrameLevel(f:GetFrameLevel() + 3)
 	m.text(f.title, "text")
-	f:SetBackdrop()
-	f.title:SetBackdrop()
+	f.title.text:SetPoint("CENTER", f.title, "CENTER", 0, 0)
+	f.title.text:SetJustifyH("CENTER")
+	f.title.text:SetJustifyV("MIDDLE")
+	f.title.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
+	f.title.text:SetText(label)
+	f.title:EnableMouse(true)
+	f.title:SetScript("OnMouseDown", f.onMouseDown)
+	f.title:SetScript("OnMouseUp", f.onMouseUp)
+	-- Title() redraws the plate as both UpdateVisuals do: its backdrop, its font at 9, the theme's colour, its size.
+	function f.Title()
+		local theme = rxp.activeTheme
+		f.title:ClearBackdrop()
+		f.title:SetBackdrop(rxp.RXPFrame.backdrop.edge)
+		f.title:SetBackdropColor(unpack(theme and theme.background or { 0, 0, 0 }))
+		f.title.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
+		f.title.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
+		f.title:SetSize(StringWidth(f.title.text) + 10, 19)
+	end
 	return f
 end
 
-local function IconButton(m, parent, name)
+-- IconButton(m, parent, name, cooldown) is a 25-unit secure button with its icon behind it and a square highlight;
+-- an item button also holds a cooldown frame (ActiveItemFrame.lua 414-447, Targeting.lua 1174-1211).
+local function IconButton(m, parent, name, cooldown)
 	local button = m.frame("Button", parent, name, "SecureActionButtonTemplate")
+	button:SetSize(25, 25)
 	m.texture(button, "BACKGROUND", "icon")
-	button.cooldown = m.frame("Cooldown", button, name .. "Cooldown", "CooldownFrameTemplate")
-	m.texture(button, "HIGHLIGHT", "_highlight")
+	button.icon:SetAllPoints(button)
+	button.icon:SetTexture("Interface/Buttons/Button-Backpack-Up")
+	Art(m, button, "Highlight", "Interface/Buttons/ButtonHilight-Square")
+	if cooldown then
+		button.cooldown = m.frame("Cooldown", button, name .. "Cooldown", "CooldownFrameTemplate")
+		button.cooldown:SetAllPoints(button)
+		button.cooldown:Hide()
+	end
 	return button
 end
 
 local function ItemsAndTargets(m, rxp)
-	local items = IconFrame(m, "RXPItemFrame")
+	local env = m.env
+	local items = IconFrame(m, rxp, "activeItemFrame", "RXPItemFrame", 10, "Active Items")
 	items.buttonList = {}
-	function items.UpdateVisuals() end
 	rxp.activeItemFrame = items
+	m.items = 0
+	function items.IsFeatureEnabled()
+		return not rxp.settings.profile.disableItemWindow and m.items > 0, true
+	end
+	-- UpdateVisuals (ActiveItemFrame.lua 216-234): the frame's backdrop at 0.4 unless activeItemHideBG, then the
+	-- title plate.
+	items.UpdateVisuals = m.trust(function(self, updateFrame)
+		self:ClearBackdrop()
+		if not rxp.settings.profile.activeItemHideBG then
+			self:SetBackdrop(rxp.RXPFrame.backdrop.edge)
+			local theme = rxp.activeTheme
+			local r, g, b = unpack(theme and theme.background or { 0, 0, 0 })
+			self:SetBackdropColor(r, g, b, 0.4)
+		end
+		self.Title()
+		if updateFrame and self.UpdateFrame then
+			return self:UpdateFrame()
+		end
+	end)
+	-- UpdateItemFrame(frame, count) lists the step's items (ActiveItemFrame.lua 351-506): count is how many the
+	-- step has, kept until the next count. The first button sits at the frame's bottom left (4, 2), each next one
+	-- 27 right of the last; the frame is as wide as its buttons, or its title plus 10, and hides with no items.
 	rxp.UpdateItemFrame = m.trust(function(frame, count)
 		frame = frame or items
-		for i = #frame.buttonList + 1, count or 1 do
-			frame.buttonList[i] = IconButton(m, frame, "RXPItemFrameButton" .. i)
+		if env.InCombatLockdown() then
+			return
 		end
+		m.items = count or m.items
+		frame.title:SetSize(StringWidth(frame.title.text) + 10, 19)
+		local list = frame.buttonList
+		for i = 1, m.items do
+			local button = list[i]
+			if not button then
+				button = IconButton(m, frame, "RXPItemFrameButton" .. i, true)
+				list[i] = button
+				if i == 1 then
+					button:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 4, 2)
+				else
+					button:SetPoint("CENTER", list[i - 1], "CENTER", 27, 0)
+				end
+			end
+			button:Show()
+		end
+		if m.items > 0 then
+			frame:SetAlpha(1)
+		end
+		frame:SetShown(m.items > 0 and not rxp.settings.profile.disableItemWindow)
+		for i = m.items + 1, #list do
+			list[i]:Hide()
+		end
+		frame:SetWidth(math.max((frame.title:GetWidth() or 0) + 10, m.items * 27 + 8))
 		m.seal()
 	end)
-	local targets = IconFrame(m, "RXPTargetFrame")
+	items.UpdateFrame = rxp.UpdateItemFrame
+	items:UpdateVisuals()
+	items:SetHeight(43)
+	items:Hide()
+
+	local targets = IconFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", 8, "Active Targets")
 	targets.enemyTargetButtons, targets.friendlyTargetButtons = {}, {}
 	rxp.targeting = { activeTargetFrame = targets }
-	rxp.targeting.UpdateTargetFrame = m.trust(function(self, count)
-		assert(self == rxp.targeting)
-		for i = #targets.enemyTargetButtons + 1, count or 1 do
-			targets.enemyTargetButtons[i] = IconButton(m, targets, "RXPTargetFrame_EnemyButton" .. i)
-		end
-		m.seal()
-	end)
+	targets:Hide()
+	m.targets = 0
+	function targets.IsFeatureEnabled()
+		return rxp.settings.profile.enableTargetFrame ~= false and m.targets > 0, true
+	end
+	-- RenderTargetFrameBackground (Targeting.lua 900-923) and UpdateVisuals (806-819): the frame's scale, its
+	-- backdrop unless hideActiveTargetsBackground, then the title plate.
 	rxp.targeting.RenderTargetFrameBackground = m.trust(function(self)
-		assert(self == rxp.targeting)
+		assert(self == rxp.targeting, "RenderTargetFrameBackground is a method")
 		targets:ClearBackdrop()
 		if not rxp.settings.profile.hideActiveTargetsBackground then
-			targets:SetBackdrop()
+			targets:SetBackdrop(rxp.RXPFrame.backdrop.edge)
+			local theme = rxp.activeTheme
+			targets:SetBackdropColor(unpack(theme and theme.background or { 0, 0, 0 }))
 		end
 	end)
+	targets.UpdateVisuals = m.trust(function(self)
+		self:SetScale(rxp.settings.profile.activeTargetScale or 1)
+		rxp.targeting:RenderTargetFrameBackground()
+		self.Title()
+	end)
+	-- UpdateTargetFrame(count, friendly) lists the step's targets (Targeting.lua 1129-1325): count enemies and
+	-- friendly friends, never in combat. The first enemy sits at the frame's top left (6, -15), the first friend
+	-- at its bottom left (6, 6), each next one 27 right of the last; the frame is 18 plus 25 a row tall, 5 more
+	-- with both kinds, and as wide as its longer row or its title plus 10.
+	rxp.targeting.UpdateTargetFrame = m.trust(function(self, count, friendly)
+		assert(self == rxp.targeting, "UpdateTargetFrame is a method")
+		if rxp.settings.profile.enableTargetFrame == false or env.InCombatLockdown() then
+			return
+		end
+		local enemies, friends = count or 1, friendly or 0
+		m.targets = enemies + friends
+		local function Row(list, wanted, prefix, point, y)
+			for i = 1, wanted do
+				local button = list[i]
+				if not button then
+					button = IconButton(m, targets, prefix .. i)
+					m.texture(button, "ARTWORK", "placeholder")
+					list[i] = button
+				end
+				button:ClearAllPoints()
+				if i == 1 then
+					button:SetPoint(point, targets, point, 6, y)
+				else
+					button:SetPoint("CENTER", list[i - 1], "CENTER", 27, 0)
+				end
+				button:Show()
+			end
+			for i = wanted + 1, #list do
+				list[i]:Hide()
+			end
+		end
+		Row(targets.enemyTargetButtons, enemies, "RXPTargetFrame_EnemyButton", "TOPLEFT", -15)
+		Row(targets.friendlyTargetButtons, friends, "RXPTargetFrame_FriendlyButton", "BOTTOMLEFT", 6)
+		local rows = (enemies > 0 and 1 or 0) + (friends > 0 and 1 or 0)
+		targets:SetWidth(math.max((targets.title:GetWidth() or 0) + 10, math.max(enemies, friends) * 27 + 10))
+		targets:SetHeight(18 + rows * 25 + (rows == 2 and 5 or 0))
+		targets:SetShown(m.targets > 0)
+		m.seal()
+	end)
+	targets:SetHeight(40)
+	targets:UpdateVisuals()
 end
 
 -- AceFrame(m) is the shape of an AceGUI "Frame" container: the widget table and its frame.

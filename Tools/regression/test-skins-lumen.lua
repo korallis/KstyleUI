@@ -40,8 +40,8 @@ do
 	local tr, tg, tb, ta = K.Tokens.Color("gilt")
 	assert(Near(r, tr) and Near(g, tg) and Near(b, tb) and Near(a, ta), "with S1's gilt token, Lumen reads it")
 	local wr, wg, wb = Lumen.Color("questGold")
-	local xr, xg, xb = K.Tokens.Color("quest")
-	assert(Near(wr, xr) and Near(wg, xg) and Near(wb, xb), "quest gold is S1's quest token")
+	local xr, xg, xb = K.Tokens.Color("questGold")
+	assert(Near(wr, xr) and Near(wg, xg) and Near(wb, xb) and Near(wr, 0xf2 / 255) and Near(wg, 0xcf / 255) and Near(wb, 0x55 / 255), "quest gold is the questGold token, the picture's #f2cf55 quest titles")
 	local fellBack = pcall(function()
 		local real = K.Tokens.Color
 		K.Tokens.Color = function(name)
@@ -104,7 +104,7 @@ do
 	local title = cap.title
 	assert(Plain(title) == "QUESTS", "the title is upper case, got " .. Plain(title))
 	assert(not title:GetText():find(THIN_SPACE, 1, true), "and carries no thin space, which Cinzel cannot draw")
-	assert((title:GetFont()) == Style.Font("caps") and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE), "in the caps face at the picture's 10, got " .. tostring((select(2, title:GetFont()))))
+	assert((title:GetFont()) == Style.Font("caps") and Lumen.CAP_SIZE == 12 and FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE / K.Widgets.ScaleFactor(cap.row)), "in the caps face at the picture's 12 root units (21 px on the owner's screen), whatever scale the cap's frame has, got " .. tostring((select(2, title:GetFont()))))
 	assert(TextIs(title, K.Tokens.Color("capsGold")), "the title is the picture's muted gold")
 	local titlePoint = { title:GetPoint(1) }
 	assert(titlePoint[1] == "LEFT" and titlePoint[2] == gem and titlePoint[3] == "RIGHT" and Near(titlePoint[4], K.Widgets.Snap(cap.row, K.Tokens.Size("gapSmall"))), "the title follows the gem after a gapSmall")
@@ -121,7 +121,7 @@ do
 	local trail = cap.trail
 	assert(Plain(trail) == "15", "the count reads 15")
 	assert((trail:GetFont()) == Style.Font("number"), "in the number face")
-	assert(TextIs(trail, K.Tokens.Color("text")), "muted")
+	assert(TextIs(trail, K.Tokens.Color("textEmphasis")), "in near white, as the picture draws Step 134 and the quests' 7")
 	local trailPoint = { trail:GetPoint(1) }
 	assert(trailPoint[1] == "RIGHT" and trailPoint[2] == cap.row and Near(trailPoint[4], -K.Widgets.Snap(cap.row, 24)), "right-aligned at the row's right inset")
 	cap:SetTrail(nil)
@@ -160,7 +160,7 @@ do
 	cap:SetShown(true)
 	assert(cap.row:IsShown())
 	K.Options.Write("Skins", "text.size", 1.2)
-	assert(FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE * 1.2), "the text size setting scales the title")
+	assert(FontSize(K, title, select(2, title:GetFont()), Lumen.CAP_SIZE * 1.2 / K.Widgets.ScaleFactor(cap.row)), "the text size setting scales the title")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

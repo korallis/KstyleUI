@@ -220,6 +220,79 @@ function Object:IsTruncated()
 	end
 	return width > own + 0.01
 end
+-- GetNumLines and GetStringHeight answer only where the environment measures text (env._textWidth); without it
+-- both answer nil, as before. A string that wraps and has a width (GetWidth) takes the lines its text wraps
+-- into by the renderer's rule (Tools/render/scene.lua Scene.WrappedLines: words fill a line while they fit, a
+-- word that fits nowhere takes a line of its own, an explicit "\n" starts a new line); a string with word wrap
+-- off takes one line per paragraph. SetMaxLines caps the count. The height is the lines times the font's size
+-- times 1.2, the renderer's line height (LINE_HEIGHT_EM). A test that sets _state.StringHeight sets the height.
+-- A string with no width of its own that two anchors stretch wraps in the width its anchors give it, as the game's does.
+local function anchoredWidth(self)
+	local own = self:GetEffectiveScale()
+	local low, high
+	for _, p in ipairs(self._points) do
+		local point, rel, relPoint, x = p[1], p[2] or self._parent, p[3] or p[1], p[4] or 0
+		local side = point:find("LEFT", 1, true) and "low" or point:find("RIGHT", 1, true) and "high"
+		if side and type(rel) == "table" and type(rel.GetLeft) == "function" then
+			local left, right = rel:GetLeft(), rel:GetRight()
+			local scale = rel:GetEffectiveScale()
+			if left and right and type(scale) == "number" and type(own) == "number" and own > 0 then
+				local edge = relPoint:find("LEFT", 1, true) and left or relPoint:find("RIGHT", 1, true) and right or (left + right) / 2
+				local at = edge * scale / own + x
+				if side == "low" then
+					low = at
+				else
+					high = at
+				end
+			end
+		end
+	end
+	return low and high and high > low and high - low or nil
+end
+
+local function textLines(self)
+	local measure = self._env and self._env._textWidth
+	local stored = self._state.Text
+	if type(measure) ~= "function" or not stored or type(stored[1]) ~= "string" then
+		return nil
+	end
+	local font = self._state.Font
+	local size = font and type(font[2]) == "number" and font[2] or 12
+	local path = font and font[1]
+	local width, wrap = self:GetWidth(), self._state.WordWrap
+	if not (type(width) == "number" and width > 0) and #self._points > 1 then
+		width = anchoredWidth(self)
+	end
+	local wraps = not (wrap and wrap[1] == false) and type(width) == "number" and width > 0
+	local lines = 0
+	for paragraph in (plainText(stored[1]) .. "\n"):gmatch("(.-)\n") do
+		local line
+		for word in (paragraph .. " "):gmatch("(.-) ") do
+			local candidate = line and (line .. " " .. word) or word
+			if wraps and line and measure(candidate, path, size) > width + 0.01 then
+				lines, line = lines + 1, word
+			else
+				line = candidate
+			end
+		end
+		lines = lines + 1
+	end
+	local cap = self._state.MaxLines
+	cap = cap and cap[1]
+	if type(cap) == "number" and cap > 0 then
+		lines = math.min(lines, cap)
+	end
+	return lines, size
+end
+function Object:GetNumLines() return (textLines(self)) end
+function Object:GetStringHeight()
+	local stored = self._state.StringHeight
+	if stored then
+		return stored[1]
+	end
+	local lines, size = textLines(self)
+	return lines and lines * size * 1.2
+end
 function Object:SetScale(scale) self._scale = scale end
 function Object:GetScale() return self._scale end
 -- An object's own scale times its parent's effective scale, unless it ignores its parent's scale.
@@ -447,6 +520,10 @@ function Object:IsEnabled() return self._enabled end
 
 -- The pointer is over a frame while a test sets frame._mouseOver.
 function Object:IsMouseOver() return self._mouseOver == true end
+
+-- A frame takes the mouse once EnableMouse asked for it (RestedXP passes 1 for true), and IsMouseEnabled says so.
+function Object:EnableMouse(enabled) self._mouse = enabled == true or enabled == 1 end
+function Object:IsMouseEnabled() return self._mouse == true end
 
 -- An object's own alpha times its parent's effective alpha, unless it ignores its parent's alpha.
 function Object:SetIgnoreParentAlpha(ignore) self._ignoreParentAlpha = not not ignore end

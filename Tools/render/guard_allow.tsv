@@ -14,4 +14,3 @@ design	gallery_layout	overlap	CHAT & Chat	a glass stand-in's centred label sits 
 design	gallery_layout	overlap	MINIMAP & Minimap	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_layout	overlap	PLAYER & Player	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_layout	overlap	TARGET & Target	a glass stand-in's centred label sits under the mover plate's title
-KSTY-7	hud_reference*	ellipsis	Find and speak with Elegael	the RestedXP story card cuts a long first objective to one line; the owner's picture wraps it (handoffs/reference-diff/DIFF.md, rank 4); the pull request that wraps objectives deletes this line

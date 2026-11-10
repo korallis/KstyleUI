@@ -25,9 +25,12 @@
 --   The active steps stack above the header, their bottom 2 above its top, 5 apart, anchored to CurrentStepFrame as
 --   RestedXP anchors them (restedxp_fake.lua), so they follow the window: each step frame is as wide as the header, its "Step N" plate 17 tall at (7, 5) over its top edge, its first element 10 below its top, each
 --   element's 12-unit check button at (6, -1) and its text from the button's right plus 11 to 5 before the frame's
---   right edge; an element is its text's height times 1.1 plus 1 tall, the frame the elements plus 18.
+--   right edge; an element is its text's height times 1.1 plus 1 tall, the frame the elements plus 18. The fake
+--   does that layout itself (its UpdateText), and the skin then moves each line under the cap's title and each
+--   check into the gem's column, as it does in the game.
 --   RestedXP writes the step text in the theme's font at its guide font size plus 2, the list rows at the guide
---   font size, numbers one smaller, the footer at 9; the owner's screenshot reads a guide font size of 7.
+--   font size, numbers one smaller, the footer at 9; the guide font size is RestedXP's default, 9, which the
+--   owner's saved settings keep.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = Common.Scene
 
@@ -36,7 +39,6 @@ local RestedXP = {}
 RestedXP.WIDTH = 268
 RestedXP.LEFT, RestedXP.TOP = 18, 290
 local WIDTH = RestedXP.WIDTH
-local GUIDE_FONT = 7
 RestedXP.LIST_HEIGHT = 130
 local HEADER_HEIGHT, FOOTER_HEIGHT = 35, 20
 local HEADER_OVERLAP, FOOTER_RISE = 9, 14
@@ -101,49 +103,21 @@ local function font(fs, path, size)
 	fs:SetFont(path, size, "")
 end
 
--- Steps(R, path, width) lays the active steps out above the header as RestedXP does, each as wide as the header,
--- and returns the stack's height.
-local function Steps(R, path, width)
-	local f = R.rxp.RXPFrame
-	local steps = f.CurrentStepFrame
-	local requested = GUIDE_FONT + 2
-	local total = 0
+-- Steps(R) hands RestedXP.STEPS to the fake as the guide's active steps. The fake lays them out as RestedXP's
+-- UpdateText does (restedxp_fake.lua), and the skin's hook then places each line under the cap's title, so the render
+-- shows the steps where the game draws them. Returns the stack's height.
+local function Steps(R)
+	local specs = {}
 	for i, spec in ipairs(RestedXP.STEPS) do
-		local step = steps.framePool[i]
-		local y = 0
-		local frameHeight = 0
+		local elements = {}
 		for e, value in ipairs(spec.elements) do
-			local element = step.elements[e]
-			font(element.text, path, requested)
-			local _, size = element.text:GetFont()
-			local textWidth = width - 6 - 12 - 11 - 5
-			local h = math.ceil(height(value, size, path, textWidth) * 1.1) + 1
-			at(element, step, 0, 10 + y, width, h)
-			at(element.button, element, 6, 1, 12, 12)
-			element.text:SetJustifyH("LEFT")
-			element.text:SetJustifyV("MIDDLE")
-			element.text:SetWordWrap(true)
-			element.text:SetWidth(textWidth)
-			text(element.text, value, "TOPLEFT", element.button, "TOPRIGHT", 11, -1)
-			y = y + h
-			frameHeight = frameHeight + h
+			elements[e] = { text = value }
 		end
-		frameHeight = math.ceil(frameHeight + 18)
-		step:ClearAllPoints()
-		local above = steps.framePool[i - 1]
-		step:SetPoint("TOPLEFT", above or steps, above and "BOTTOMLEFT" or "TOPLEFT", 0, above and -5 or 0)
-		step:SetPoint("TOPRIGHT", above or steps, above and "BOTTOMRIGHT" or "TOPRIGHT", 0, above and -5 or 0)
-		step:SetHeight(frameHeight)
-		step:Show()
-		font(step.number.text, path, GUIDE_FONT)
-		text(step.number.text, spec.title, "CENTER", step.number, "CENTER", 2, 1)
-		local plateWidth = Scene.TextWidth(spec.title, GUIDE_FONT, path) + 10
-		at(step.number, step, 7, -5, plateWidth, 17)
-		step.number:SetAlpha(spec.title == "" and 0 or 1)
-		total = total + frameHeight + 5
+		specs[i] = { index = i, title = spec.title, elements = elements }
 	end
-	steps:SetHeight(total - 5)
-	return total - 5
+	R.rxp.fake.guide(specs)
+	R.rxp.SetStep(#specs)
+	return R.rxp.RXPFrame.CurrentStepFrame:GetHeight()
 end
 
 -- Guide(R, path, top) lays the guide window out: in the gallery with its header's top at `top`, header, step list
@@ -184,13 +158,18 @@ local function Guide(R, path, top)
 	footer.cog:ClearAllPoints()
 	footer.cog:SetPoint("LEFT", footer, "LEFT", 1, 1)
 	footer.cog:SetSize(18, 18)
-	footer.cog.Normal:SetAllPoints(footer.cog)
-	footer.cog.Normal:SetTexture(GLYPH_TEXTURE)
+	local cog = footer.cog:GetNormalTexture()
+	if type(cog) ~= "table" then
+		cog = footer.cog:CreateTexture(nil, "ARTWORK")
+		footer.cog:SetNormalTexture(cog)
+	end
+	cog:SetAllPoints(footer.cog)
+	cog:SetTexture(GLYPH_TEXTURE)
 	footer.icon:ClearAllPoints()
 	footer.icon:SetPoint("BOTTOMRIGHT", footer, "BOTTOMRIGHT", -1, 3)
 	footer.icon:SetSize(16, 16)
-	footer.icon.Normal:SetAllPoints(footer.icon)
-	footer.icon.Normal:SetTexture(GLYPH_TEXTURE)
+	footer.icon:GetNormalTexture():SetAllPoints(footer.icon)
+	footer.icon:GetNormalTexture():SetTexture(GLYPH_TEXTURE)
 	if rail then
 		return top + frameHeight
 	end
@@ -210,6 +189,7 @@ local function Guide(R, path, top)
 	local childWidth = frameWidth - 35
 	at(f.ScrollChild, f.ScrollFrame, 0, 0, childWidth, scrollHeight)
 	R.rxp.fake.rows(#RestedXP.ROWS)
+	local GUIDE_FONT = select(2, f.ScrollChild.framePool[1].text:GetFont())
 	local y = 3
 	for i, spec in ipairs(RestedXP.ROWS) do
 		local row = f.ScrollChild.framePool[i]
@@ -344,12 +324,14 @@ function RestedXP.Build()
 	R.env, R.K, R.S, R.ns = env, K, S, ns
 	K.Modules.Enable("Skins")
 	local rxp = R.rxp
-	local counts = {}
-	for i, spec in ipairs(RestedXP.STEPS) do
-		counts[i] = #spec.elements
+	-- The gallery shows the v1 guide beside the v2 window, which the game never does: with v2 on, RestedXP hides
+	-- the v1 steps and leaves the v1 window undrawn (GuideWindow.lua's UpdateText and UpdateVisuals). So the v2
+	-- window is built and skinned with v2 on, and from here v1 is laid out as if v2 were off.
+	rxp.v2.IsGuideWindowEnabled = function()
+		return false
 	end
 	rxp.fake.rows(#RestedXP.ROWS)
-	rxp.SetStep(#RestedXP.STEPS, counts)
+	Steps(R)
 	rxp.UpdateItemFrame(nil, 3)
 	rxp.ui.v2.configurator:Open()
 	env.RunTimers()
@@ -360,8 +342,9 @@ function RestedXP.Build()
 	if not rail then
 		f:SetWidth(WIDTH)
 	end
-	local stack = Steps(R, path, f:GetWidth() - 2 * SIDE)
-	local guideBottom = Guide(R, path, RestedXP.TOP + stack + 2)
+	f.CurrentStepFrame.UpdateText()
+	local guideBottom = Guide(R, path, RestedXP.TOP + f.CurrentStepFrame:GetHeight() + 2)
+	f.CurrentStepFrame.UpdateText()
 	rxp.RXPFrame:UpdateVisuals()
 	if rail then
 		ns.RestedXP.Rail.Place()

@@ -1,4 +1,4 @@
--- Chrome.lua: KstyleUI's one glass card, buttons, scroll bars, ring checks, edit boxes, accent titles and the Lumen cap on every RestedXP Guides window: the guide reads as one card (the cap with the guide's name and step above the active steps, the route's caption row when the guide's name runs to two lines (RestedXP's appended guide group and its version footer are hushed: the cap already names the guide), the folded list and the footer's cog, with the quests docked under it when the story rail holds both), applied as RestedXP makes or first shows each window, and on RestedXP's menus only while RestedXP shows them.
+-- Chrome.lua: KstyleUI's one glass card, buttons, scroll bars, ring checks, edit boxes, gilt titles and the Lumen cap on every RestedXP Guides window: the guide reads as one card (the cap with the guide's name and step above the active steps, the route's caption row when the guide's name runs to two lines (RestedXP's appended guide group and its version footer are hushed: the cap already names the guide), the folded list and the footer, with the quests docked under it when the story rail holds both); the active steps read as plain lines under the cap's title, in the quest lines' size, RestedXP's default colours swapped for KstyleUI's and its inline icons dropped, their check rings shown only under the pointer; while the story rail holds the guide the footer's cog and grip rest too and a right click on the cap opens RestedXP's menu; applied as RestedXP makes or first shows each window, and on RestedXP's menus only while RestedXP shows them.
 local _, ns = ...
 
 local K = KstyleUI
@@ -34,6 +34,12 @@ local CAP_ROW, CAP_AIR, CAP_LEFT, CAP_RIGHT = 16, "gapSmall", RXP_MARGIN, RXP_MA
 local META_ROW, META_LEFT, META_CLOSED = 18, "gapSmall", "gapSmall"
 local FADE_HEIGHT = "gapXLarge"
 local TITLE_AIR = "gapSmall"
+local STEP_RISE, STEP_TEXT_TOP, STEP_TEXT_RIGHT, STEP_CHECK_LEFT, STEP_CHECK_TOP = 12, 2, 5, 1, 1
+local RXP_LINE_SHARE, RXP_LINE_PAD = 1.1, 1
+local REST_FOOT = 12
+local RXP_COLORS = { FF00FF25 = "friend", FFFF5722 = "hostile", FF00BCD4 = "magic", FFFCDC00 = "quest" }
+local ICON_ESCAPE = "|T[^|]*|t%s*"
+local COLOR_ESCAPE = "|c(%x%x%x%x%x%x%x%x)"
 
 local WEAK = { __mode = "k" }
 local gutters = setmetatable({}, WEAK)
@@ -43,6 +49,11 @@ local hushed = setmetatable({}, WEAK)
 local readable = setmetatable({}, WEAK)
 local extended = setmetatable({}, WEAK)
 local titles = setmetatable({}, WEAK)
+local captions = setmetatable({}, WEAK)
+local worded = setmetatable({}, WEAK)
+local rested = setmetatable({}, WEAK)
+local mice = setmetatable({}, WEAK)
+local peeked = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
 local washes = setmetatable({}, WEAK)
 local queued = setmetatable({}, WEAK)
@@ -131,18 +142,11 @@ local function Glass(frame, opts)
 	if inset and opts.air then
 		inset.bottom = Tokens.Size(opts.air)
 	end
-	if opts.tile then
-		return Skin.Backdrop(frame, { shape = "tile", fill = "surface", shadow = false, inset = inset })
-	end
 	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt })
 end
 
 function Chrome.Reach(frame)
 	return Widgets.Inset(frame, Tokens.Size("chamferWindow")) - RXP_MARGIN
-end
-
-local function Tile(frame, reach)
-	return Glass(frame, { tile = true, reach = reach })
 end
 
 local function LayoutGutter(gutter)
@@ -226,17 +230,17 @@ local function PaintReadable(text, entry)
 		return
 	end
 	entry.busy = true
-	local _, minimum = Style.Font(entry.role)
+	local minimum = Lumen.Size(text:GetParent(), entry.units or Tokens.Size(entry.role))
 	pcall(Style.ApplyFont, text, entry.role, math.max(entry.size, minimum))
 	entry.busy = false
 end
 
-local function Readable(text, role)
-	if not IsTable(text) or type(text.GetFont) ~= "function" or readable[text] then
+local function Readable(text, role, units)
+	if not IsTable(text) or type(text.GetFont) ~= "function" or type(text.GetParent) ~= "function" or readable[text] then
 		return false
 	end
 	local _, size = text:GetFont()
-	local entry = { role = role, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
+	local entry = { role = role, units = units, size = type(size) == "number" and not Widgets.IsSecret(size) and size or 0 }
 	readable[text] = entry
 	hooksecurefunc(text, "SetFont", function(_, _, requested)
 		if Active() and not entry.busy and type(requested) == "number" and not Widgets.IsSecret(requested) then
@@ -285,6 +289,86 @@ local function Title(text)
 	end
 end
 
+local function Reword(value)
+	value = value:gsub(ICON_ESCAPE, "")
+	return (value:gsub(COLOR_ESCAPE, function(hex)
+		local token = RXP_COLORS[hex:upper()]
+		if not token then
+			return nil
+		end
+		local r, g, b = Tokens.Color(token)
+		return string.format("|cff%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+	end))
+end
+
+local function Worded(text, reword)
+	if not IsTable(text) or type(text.SetText) ~= "function" or type(text.GetText) ~= "function" or worded[text] then
+		return
+	end
+	local entry = { busy = false }
+	worded[text] = entry
+	local function apply(value)
+		if entry.busy or not Active() or Widgets.IsSecret(value) or type(value) ~= "string" then
+			return
+		end
+		local out = reword(value)
+		if out ~= value then
+			entry.busy = true
+			text:SetText(out)
+			entry.busy = false
+		end
+	end
+	hooksecurefunc(text, "SetText", function(_, value)
+		apply(value)
+	end)
+	apply(text:GetText())
+end
+
+local function RestAlpha(region, on)
+	if not IsTable(region) or type(region.SetAlpha) ~= "function" or type(region.GetAlpha) ~= "function" then
+		return
+	end
+	local entry = rested[region]
+	if not entry then
+		if not on then
+			return
+		end
+		entry = { on = false, busy = false, wanted = region:GetAlpha() }
+		rested[region] = entry
+		hooksecurefunc(region, "SetAlpha", function(_, alpha)
+			if entry.busy then
+				return
+			end
+			entry.wanted = alpha
+			if entry.on then
+				entry.busy = true
+				region:SetAlpha(0)
+				entry.busy = false
+			end
+		end)
+	end
+	if entry.on == on then
+		return
+	end
+	entry.on = on
+	entry.busy = true
+	region:SetAlpha(on and 0 or (Plain(entry.wanted) and entry.wanted or 1))
+	entry.busy = false
+end
+
+local function RestMouse(frame, on)
+	if not IsTable(frame) or type(frame.EnableMouse) ~= "function" or type(frame.IsMouseEnabled) ~= "function" then
+		return
+	end
+	if on and mice[frame] == nil then
+		mice[frame] = frame:IsMouseEnabled() == true
+		frame:EnableMouse(false)
+	elseif not on and mice[frame] ~= nil then
+		frame:EnableMouse(mice[frame])
+		mice[frame] = nil
+	end
+end
+
 local function Rehush(text)
 	local entry = hushed[text]
 	if entry and not entry.busy then
@@ -308,6 +392,54 @@ local function PlainText(value)
 		return ""
 	end
 	return value
+end
+
+local function PaintCaption(text, entry)
+	local caption = entry.caption
+	Style.ApplyFont(caption, "caps", Lumen.Size(caption:GetParent(), Lumen.CAP_SIZE))
+	Widgets.TextColor(caption, "capsGold")
+	if entry.busy then
+		return
+	end
+	local path, size, flags = caption:GetFont()
+	if type(path) == "string" and Plain(size) then
+		entry.busy = true
+		pcall(text.SetFont, text, path, size, flags)
+		entry.busy = false
+	end
+end
+
+local function Caption(title)
+	local text = IsTable(title) and title.text
+	if not IsTable(text) or type(text.GetText) ~= "function" or type(text.SetText) ~= "function" or type(text.SetFont) ~= "function" or captions[text] then
+		return
+	end
+	local holder = CreateFrame("Frame", nil, title)
+	holder:SetAllPoints(title)
+	local caption = Widgets.FontString(holder, "OVERLAY")
+	caption:SetPoint("CENTER", text, "CENTER", 0, 0)
+	caption:SetWordWrap(false)
+	local entry = { caption = caption, busy = false }
+	captions[text] = entry
+	HushText(text)
+	Worded(text, K.Locale.Upper)
+	hooksecurefunc(text, "SetFont", function()
+		if Active() then
+			PaintCaption(text, entry)
+		end
+	end)
+	PaintCaption(text, entry)
+	local function word(value)
+		caption:SetText(K.Locale.Upper(PlainText(value)))
+	end
+	hooksecurefunc(text, "SetText", function(_, value)
+		word(value)
+	end)
+	word(text:GetText())
+end
+
+function Chrome.Caption(text)
+	return captions[text] and captions[text].caption
 end
 
 local function Trail(f)
@@ -340,20 +472,33 @@ end
 
 local function PlaceCard(path)
 	local f, card = path.frame, path.card
-	local bottom = path.dock or StepsBelow(f) or f
+	local below = StepsBelow(f)
+	local bottom = path.dock or below or f
+	local offset = 0
+	if path.dock then
+		offset = -Widgets.Snap(card, path.dockBottom or 0)
+	elseif path.rest and not below then
+		offset = Widgets.Snap(card, REST_FOOT)
+	end
 	card:ClearAllPoints()
 	card:SetPoint("TOPLEFT", path.holder, "TOPLEFT")
 	card:SetPoint("TOPRIGHT", path.holder, "TOPRIGHT")
-	card:SetPoint("BOTTOM", bottom, "BOTTOM", 0, path.dock and -Widgets.Snap(card, path.dockBottom or 0) or 0)
+	card:SetPoint("BOTTOM", bottom, "BOTTOM", 0, offset)
 end
 
 local function PlaceHead(path)
 	local f, holder, header = path.frame, path.holder, path.header
-	local anchor = StepsAbove(f) or header
+	local steps = StepsAbove(f)
+	local first = steps and IsTable(steps.framePool) and steps.framePool[1]
+	local rise = IsTable(first) and first:IsShown() and STEP_RISE or 0
+	local full = CAP_ROW + 2 * Tokens.Size(CAP_AIR)
+	local anchor = steps or header
+	full, rise = Widgets.Snap(holder, full), Widgets.Snap(holder, rise)
+	path.capHeight = full - rise
 	holder:ClearAllPoints()
-	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, 0)
-	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, 0)
-	holder:SetHeight(Widgets.Snap(holder, path.capHeight))
+	holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
+	holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
+	holder:SetHeight(full)
 	PlaceCard(path)
 	if path.OnHead then
 		path.OnHead(path)
@@ -368,7 +513,7 @@ local function FitHead(path)
 	local shown = value ~= "" and not path.metaHushed
 	meta:SetText(value)
 	meta:SetShown(shown)
-	path.capHeight = CAP_ROW + 2 * Tokens.Size(CAP_AIR)
+	path.metaShown = shown
 	path.height = shown and META_ROW or Tokens.Size(META_CLOSED)
 	path.header:SetHeight(Widgets.Snap(path.header, path.height))
 	PlaceHead(path)
@@ -419,6 +564,13 @@ local function Path(f)
 	HushText(text)
 	local holder = CreateFrame("Frame", nil, f)
 	holder:SetFrameLevel(header:GetFrameLevel() + 1)
+	holder:EnableMouse(true)
+	holder:SetScript("OnMouseUp", function(_, button)
+		local open = button == "RightButton" and Active() and type(header.GetScript) == "function" and header:GetScript("OnMouseDown")
+		if type(open) == "function" then
+			Run("guide menu", open, header, button)
+		end
+	end)
 	local card = CreateFrame("Frame", nil, f)
 	local cap = Lumen.SectionCap(holder, { left = CAP_LEFT, right = CAP_RIGHT })
 	local meta = Widgets.FontString(header, "OVERLAY")
@@ -459,6 +611,30 @@ function Chrome.Refit(f)
 	if path then
 		FitHead(path)
 	end
+end
+
+function Chrome.Rest(f, on, folded)
+	local footer = IsTable(f) and f.Footer
+	if not IsTable(footer) then
+		return
+	end
+	on = on == true
+	for _, button in ipairs({ footer.cog, footer.icon }) do
+		RestAlpha(button, on)
+		RestMouse(button, on)
+	end
+	RestMouse(footer, on)
+	RestMouse(f, on)
+	local path = Chrome.Path(f)
+	if path and path.rest ~= (on and folded == true) then
+		path.rest = on and folded == true
+		PlaceCard(path)
+	end
+end
+
+function Chrome.Resting(region)
+	local entry = rested[region]
+	return entry ~= nil and entry.on
 end
 
 local function Button(button)
@@ -505,6 +681,9 @@ local function Restyle()
 			PaintTitle(text)
 		end
 	end
+	for text, entry in pairs(captions) do
+		PaintCaption(text, entry)
+	end
 	for arrow in pairs(arrows) do
 		PaintArrow(arrow)
 	end
@@ -514,6 +693,110 @@ local function Restyle()
 end
 
 local restyler = { Restyle = Restyle }
+
+local function Pointed(frame)
+	if not IsTable(frame) or type(frame.IsMouseOver) ~= "function" then
+		return false
+	end
+	local ok, value = pcall(frame.IsMouseOver, frame)
+	return ok and not Widgets.IsSecret(value) and value == true
+end
+
+local function Peek(step)
+	local elements = IsTable(step.elements) and step.elements or {}
+	local over = Pointed(step)
+	for _, element in pairs(elements) do
+		over = over or (IsTable(element) and Pointed(element.button))
+	end
+	for _, element in pairs(elements) do
+		local check = IsTable(element) and element.button
+		if IsTable(check) and type(check.SetAlpha) == "function" then
+			check:SetAlpha(over and 1 or 0)
+		end
+	end
+end
+
+local function Column(region, element)
+	local left, own = region:GetLeft(), element:GetLeft()
+	local scale, to = region:GetEffectiveScale(), element:GetEffectiveScale()
+	if not (Plain(left) and Plain(own) and Plain(scale) and Plain(to)) or to <= 0 then
+		return nil
+	end
+	return left * scale / to - own, scale / to
+end
+
+local function Watch(step, frame)
+	if not IsTable(frame) or type(frame.HookScript) ~= "function" or peeked[frame] then
+		return
+	end
+	peeked[frame] = true
+	local function update()
+		if Active() then
+			Run("guide step hover", Peek, step)
+		end
+	end
+	frame:HookScript("OnEnter", update)
+	frame:HookScript("OnLeave", update)
+end
+
+local function AlignSteps(f)
+	local current = f.CurrentStepFrame
+	local pool = IsTable(current) and current.framePool
+	if not IsTable(pool) or not Chrome.Path(f) then
+		return
+	end
+	local cap = Chrome.Path(f).cap
+	local gutter = Widgets.Snap(current, CAP_LEFT) + Widgets.Snap(current, Lumen.GEM_UNITS) + Widgets.Snap(current, Tokens.Size(GUTTER_GAP))
+	local top, right = Widgets.Snap(current, STEP_TEXT_TOP), Widgets.Snap(current, STEP_TEXT_RIGHT)
+	local grown = 0
+	for _, step in ipairs(pool) do
+		if IsTable(step) and step:IsShown() then
+			local delta, first = 0, true
+			local tip = IsTable(step.step) and step.step.tip and true or false
+			for _, element in ipairs(IsTable(step.elements) and step.elements or {}) do
+				local text, check = IsTable(element) and element.text, IsTable(element) and element.button
+				local had = IsTable(text) and element:IsShown() and element:GetHeight()
+				if Plain(had) and had > RXP_LINE_PAD and type(text.GetStringHeight) == "function" then
+					local left = not tip and Column(cap.title, element) or gutter
+					text:ClearAllPoints()
+					text:SetPoint("TOPLEFT", element, "TOPLEFT", left, -top)
+					text:SetPoint("RIGHT", step, "RIGHT", -right, 0)
+					Widgets.TextColor(text, first and "textEmphasis" or "text")
+					first = false
+					if IsTable(check) and type(check.SetPoint) == "function" then
+						local gem, share
+						if not tip then
+							gem, share = Column(cap.gem, element)
+						end
+						local ring = check:GetWidth()
+						check:ClearAllPoints()
+						if gem and Plain(ring) then
+							check:SetPoint("TOPLEFT", element, "TOPLEFT", gem + (cap.gem:GetWidth() * share - ring) / 2, -STEP_CHECK_TOP)
+						else
+							check:SetPoint("TOPLEFT", element, "TOPLEFT", STEP_CHECK_LEFT, -STEP_CHECK_TOP)
+						end
+					end
+					local height = text:GetStringHeight()
+					local want = Plain(height) and height > 0 and math.ceil(height * RXP_LINE_SHARE) + RXP_LINE_PAD or had
+					if want ~= had then
+						element:SetHeight(want)
+						delta = delta + want - had
+					end
+				end
+			end
+			local height = step:GetHeight()
+			if delta ~= 0 and Plain(height) then
+				step:SetHeight(height + delta)
+				grown = grown + (tip and 0 or delta)
+			end
+			Peek(step)
+		end
+	end
+	local height = current:GetHeight()
+	if grown ~= 0 and Plain(height) then
+		current:SetHeight(math.max(0, height + grown))
+	end
+end
 
 local function StepFrames(f)
 	local pool = IsTable(f.CurrentStepFrame) and f.CurrentStepFrame.framePool
@@ -527,6 +810,7 @@ local function StepFrames(f)
 				done[step] = true
 				Skin.Strip(step, { children = RXP_ART })
 			end
+			Watch(step, step)
 			local plate = step.number
 			if IsTable(plate) and not done[plate] then
 				done[plate] = true
@@ -537,11 +821,17 @@ local function StepFrames(f)
 			end
 			for _, element in pairs(IsTable(step.elements) and step.elements or {}) do
 				if IsTable(element) then
-					changed = Readable(element.text, "body") or changed
+					Worded(element.text, Reword)
+					changed = Readable(element.text, "body", Lumen.TEXT_SIZE) or changed
+					if IsTable(element.icon) and type(element.icon.SetAlpha) == "function" then
+						HushText(element.icon)
+					end
+					Watch(step, element)
 				end
 				local check = IsTable(element) and element.button
 				if IsTable(check) and type(check.GetChecked) == "function" and not Lumen.RingOf(check) then
 					Lumen.RingCheck(check)
+					Watch(step, check)
 				end
 			end
 		end
@@ -553,6 +843,7 @@ local function NewSteps(f)
 	if StepFrames(f) then
 		Measure(f, true, false)
 	end
+	AlignSteps(f)
 	Chrome.Refit(f)
 end
 
@@ -569,8 +860,8 @@ local function PlaceGuideScroll(f)
 		end
 		local top = HEADER_OVERLAP + Widgets.Inset(scroll, Tokens.Size("chamferWindow"))
 		scroll:ClearAllPoints()
-		scroll:SetPoint("TOPLEFT", list, "TOPLEFT", LIST_LEFT, -Widgets.Snap(scroll, top))
-		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -LIST_RIGHT, Widgets.Snap(scroll, FOOTER_RISE + Tokens.Size(FOOTER_CLEAR)))
+		scroll:SetPoint("TOPLEFT", list, "TOPLEFT", Widgets.Snap(scroll, LIST_LEFT), -Widgets.Snap(scroll, top))
+		scroll:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -Widgets.Snap(scroll, LIST_RIGHT), Widgets.Snap(scroll, FOOTER_RISE + Tokens.Size(FOOTER_CLEAR)))
 	end)
 end
 
@@ -644,6 +935,12 @@ local function GuideWindow(rxp)
 	if IsTable(f.ScrollFrame) and IsTable(f.ScrollFrame.ScrollBar) then
 		Hook(f.ScrollFrame.ScrollBar, "SetValue", "RXPFrame.ScrollBar.SetValue", function()
 			ExtendScroll(f)
+		end)
+	end
+	if IsTable(f.CurrentStepFrame) then
+		Hook(f.CurrentStepFrame, "UpdateText", "CurrentStepFrame.UpdateText", function()
+			AlignSteps(f)
+			Chrome.Refit(f)
 		end)
 	end
 	NewSteps(f)
@@ -766,7 +1063,7 @@ local function DressMenu(list)
 			break
 		end
 		local _, size, flags = text:GetFont()
-		text:SetFont(path, size or Tokens.Size("body"), flags)
+		Widgets.ApplyFont(text, path, Plain(size) and size or Tokens.Size("body"), type(flags) == "string" and flags or "")
 	end
 end
 
@@ -820,6 +1117,8 @@ local function Arrow(rxp)
 	end
 	arrows[arrow] = true
 	PaintArrow(arrow)
+	Worded(arrow.text, Reword)
+	Readable(arrow.text, "caption")
 	Hook(arrow, "UpdateVisuals", "arrowFrame.UpdateVisuals", function()
 		PaintArrow(arrow)
 	end)
@@ -895,13 +1194,11 @@ local function IconFrame(f, hide)
 		glass.inset = top and { top = top } or nil
 		glass:Restyle()
 	end
-	if IsTable(title) then
-		if not Skin.IsSkinned(title, "Backdrop") then
-			Tile(title)
-		elseif not InCombatLockdown() then
+	if IsTable(title) and type(title.GetRegions) == "function" then
+		if not InCombatLockdown() then
 			Skin.Strip(title, { children = RXP_ART })
 		end
-		Title(title.text)
+		Caption(title)
 	end
 	local panel = Panel(f)
 	if panel then
