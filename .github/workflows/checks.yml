@@ -59,9 +59,17 @@ jobs:
       - name: Decide whether the Lua tests have work
         id: scope
         run: python3 Tools/hooks/ci_scope.py lua
-      - name: Install Lua 5.1
+      - name: Cache Lua 5.1.5
         if: steps.scope.outputs.run == 'true'
-        run: sudo apt-get install -y --no-install-recommends lua5.1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.1; }
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/lua5.1
+          key: lua-5.1.5-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Tools/dev/install-lua51.sh') }}
+      - name: Install Lua 5.1.5
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          bash Tools/dev/install-lua51.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Lua regression tests, one slice of the files
         if: steps.scope.outputs.run == 'true'
         env:
@@ -80,9 +88,17 @@ jobs:
       - name: Decide whether the Python tests have work
         id: scope
         run: python3 Tools/hooks/ci_scope.py python
-      - name: Install Lua 5.1
+      - name: Cache Lua 5.1.5
         if: steps.scope.outputs.run == 'true'
-        run: sudo apt-get install -y --no-install-recommends lua5.1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.1; }
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/lua5.1
+          key: lua-5.1.5-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Tools/dev/install-lua51.sh') }}
+      - name: Install Lua 5.1.5
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          bash Tools/dev/install-lua51.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Python tool tests
         if: steps.scope.outputs.run == 'true'
         run: python3 -m unittest discover -s Tools/tests
@@ -100,9 +116,17 @@ jobs:
       - name: Decide whether the package has work
         id: scope
         run: python3 Tools/hooks/ci_scope.py package
-      - name: Install Lua 5.1
+      - name: Cache Lua 5.1.5
         if: steps.scope.outputs.run == 'true'
-        run: sudo apt-get install -y --no-install-recommends lua5.1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.1; }
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/lua5.1
+          key: lua-5.1.5-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Tools/dev/install-lua51.sh') }}
+      - name: Install Lua 5.1.5
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          bash Tools/dev/install-lua51.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Package without uploading or localisation
         if: steps.scope.outputs.run == 'true'
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0

@@ -165,6 +165,18 @@ class WorkflowsTest(unittest.TestCase):
         self.assertRegex(text, r"luacheck/releases/download/v1\.2\.0/luacheck")
         self.assertRegex(text, r"[0-9a-f]{64}  luacheck\" \| sha256sum -c -")
 
+    def test_no_workflow_fetches_packages_with_apt(self):
+        for path in workflows():
+            self.assertNotRegex(path.read_text(encoding="utf-8"), r"apt(-get)?\s+(update|install)", path.name)
+
+    def test_every_lua_install_builds_the_pinned_source_and_is_cached(self):
+        for path in workflows():
+            text = path.read_text(encoding="utf-8")
+            installs = text.count("bash Tools/dev/install-lua51.sh")
+            self.assertEqual(text.count("- name: Cache Lua 5.1.5"), installs, path.name)
+        script = (REPO / "Tools" / "dev" / "install-lua51.sh").read_text(encoding="utf-8")
+        self.assertRegex(script, r"(?m)^sha256=[0-9a-f]{64}$")
+
     def test_pr_text_reaches_scripts_only_through_env(self):
         text_fields = re.compile(r"github\.(event\.pull_request\.(body|title|labels|head)|head_ref|base_ref)")
         for path in workflows():
