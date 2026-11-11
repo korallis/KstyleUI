@@ -917,6 +917,25 @@ function Handle:Restyle()
 	end
 end
 
+function Handle:Yield(frame)
+	local l, r, t, b, f
+	if frame then
+		l, r, t, b, f = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom(), W.ScaleFactor(frame)
+	end
+	local known = frame and Plain(l) and Plain(r) and Plain(t) and Plain(b) and Plain(f)
+	local own, gap = W.ScaleFactor(self.owner), max(4, 3 * Scale.Pixel(1))
+	for i = 1, self.used do
+		local texture = self.textures[i]
+		local hide = not known or not Plain(own)
+		if not hide then
+			local tl, tr, tt, tb = texture:GetLeft(), texture:GetRight(), texture:GetTop(), texture:GetBottom()
+			hide = not (Plain(tl) and Plain(tr) and Plain(tt) and Plain(tb))
+				or (tl * own < r * f + gap and l * f < tr * own + gap and tb * own < t * f + gap and b * f < tt * own + gap)
+		end
+		if hide then texture:Hide() end
+	end
+end
+
 function Handle:Follow()
 	if self.enabled == false or W.Setting("ornaments") == "Off" or W.Setting("cardMaterial") == "Glass" or not W.MayMove(self.owner) then return end
 	if not Plain(self.pixel) then self:Restyle() return end

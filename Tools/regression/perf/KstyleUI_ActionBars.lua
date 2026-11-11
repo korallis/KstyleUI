@@ -21,4 +21,33 @@ return {
 			return env, Perf.Event(env, "ACTIONBAR_UPDATE_COOLDOWN")
 		end,
 	},
+	{
+		name = "ActionBars PET_BAR_UPDATE_COOLDOWN at Full with a pet, tray unchanged",
+		budget = 160,
+		setup = function()
+			local env, K = AB.New()
+			AB.Enable(env, K)
+			env._game.petExists = true
+			env.FireEvent("UNIT_PET", "player")
+			env.SetCombat(true)
+			env.RunTimers()
+			return env, Perf.Event(env, "PET_BAR_UPDATE_COOLDOWN")
+		end,
+	},
+	{
+		name = "ActionBars pet appears and leaves in combat at Full, covered finials hide, re-place queued",
+		budget = 750,
+		calls = 50,
+		setup = function()
+			local env, K = AB.New()
+			AB.Enable(env, K)
+			K.Options.Write("Widgets", "ornaments", "Full")
+			env.RunTimers()
+			local pet = Perf.Event(env, "UNIT_PET", "player")
+			return env, function()
+				env._game.petExists = not env._game.petExists
+				pet()
+			end
+		end,
+	},
 }

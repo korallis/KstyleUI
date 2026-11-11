@@ -65,5 +65,12 @@ function Vehicle.Update()
 		local root = K.Scale.Root()
 		button:SetPoint("BOTTOM", root, "BOTTOM", 0, Tokens.Size("gapHuge"))
 	end
-	button:SetShown(ns.running and not ns.gamepad and CanLeave())
+	local shown = ns.running and not ns.gamepad and CanLeave()
+	button:SetShown(shown)
+	if ns.leaveShown ~= shown then
+		ns.leaveShown = shown
+		if bar then
+			bar:RefreshOrnament()
+		end
+	end
 end
