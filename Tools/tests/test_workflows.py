@@ -179,7 +179,15 @@ class WorkflowsTest(unittest.TestCase):
                 self.assertIn("\n    " + RUNNERS + "\n", body, f"{path.name}: {job}")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
-                self.assertIn(FORK_GUARD, guard.group(1), f"{path.name}: {job}")
+                allowed = ["${{ !cancelled() && (" + FORK_GUARD + ") }}"] if job == "verdict" else [FORK_GUARD]
+                self.assertIn(guard.group(1), allowed, f"{path.name}: {job}")
+
+    def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
+        for path in workflows():
+            on = path.read_text(encoding="utf-8").split("\non:\n", 1)[1].split("\n\n", 1)[0]
+            events = re.findall(r"(?m)^  ([\w-]+):", on)
+            self.assertTrue(events, path.name)
+            self.assertTrue(set(events) <= {"pull_request", "push", "workflow_dispatch"}, f"{path.name}: {events}")
 
     def test_the_runner_tools_are_checked_by_version(self):
         checks = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
@@ -190,6 +198,8 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("python3 --version | grep '^Python 3\\.12\\.'", checks["python"])
         release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
         self.assertIn("lua5.1 -v 2>&1 | grep '^Lua 5\\.1\\.5 '", release["check"])
+        for job in ("check", "release"):
+            self.assertIn("| grep '^Pillow 13\\.0\\.0$'", release[job], job)
 
     def test_no_workflow_fetches_packages_with_apt(self):
         for path in workflows():

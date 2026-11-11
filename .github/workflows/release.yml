@@ -36,7 +36,7 @@ jobs:
       - name: Check the runner's Lua is 5.1.5 and its Python has Pillow
         run: |
           lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
-          "$KSTYLEUI_PILLOW_PYTHON" -c 'import PIL; print("Pillow", PIL.__version__)'
+          "$KSTYLEUI_PILLOW_PYTHON" -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
       - name: Lua regression tests
         run: bash Tools/regression/run-all.sh
       - name: Build the icon pack without uploading
@@ -76,7 +76,7 @@ jobs:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
       - name: Check the runner's Python has Pillow
         run: |
-          "$KSTYLEUI_PILLOW_PYTHON" -c 'import PIL; print("Pillow", PIL.__version__)'
+          "$KSTYLEUI_PILLOW_PYTHON" -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
       - name: Build the icon pack and upload it to the GitHub release
         # The pack is a separate download: CurseForge and Wago install only into AddOns, and the pack goes
         # into _forever_/Interface/Icons (docs/icons.md). The packager made the release above; this adds the zip.
