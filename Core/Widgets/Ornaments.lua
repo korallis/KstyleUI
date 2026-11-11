@@ -732,19 +732,30 @@ function Handle:Frame(full)
 		if west then self:Place(ends.name, dx - wrap[1] - ends.width, tip) end
 		if east then self:Place(ends.name, dx + boxW + wrap[2], tip, true) end
 	end
-	if joined and S.plate and (wrap[1] > 0 or wrap[2] > 0) then
-		local outset = joined.rimOutset or W.Border(joined)
-		local sl, st, sr, sb = joined:GetLeft(), joined:GetTop(), joined:GetRight(), joined:GetBottom()
-		if Plain(sl) and Plain(st) and Plain(sr) and Plain(sb) then
-			local l, t, r, b = floor((sl - outset) * f + 0.5), floor((st + outset) * f + 0.5), floor((sr + outset) * f + 0.5), floor((sb - outset) * f + 0.5)
-			local track = joined.backgroundName or "track"
-			if wrap[1] > 0 and l > x0 - wrap[1] then
-				local fl, fr, fb, ft = Clip(list, x0 - wrap[1], l, b, t)
-				if fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, track) end
+	if S.plate and (wrap[1] > 0 or wrap[2] > 0) then
+		local l, t, r, b
+		if joined then
+			local outset = joined.rimOutset or W.Border(joined)
+			local sl, st, sr, sb = joined:GetLeft(), joined:GetTop(), joined:GetRight(), joined:GetBottom()
+			if Plain(sl) and Plain(st) and Plain(sr) and Plain(sb) then
+				l, t, r, b = floor((sl - outset) * f + 0.5), floor((st + outset) * f + 0.5), floor((sr + outset) * f + 0.5), floor((sb - outset) * f + 0.5)
 			end
-			if wrap[2] > 0 and x0 + boxW + wrap[2] > r then
-				local fl, fr, fb, ft = Clip(list, r, x0 + boxW + wrap[2], b, t)
-				if fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, track) end
+		end
+		if l or not joined then
+			local roof = weights[1] and min(y0, lanes[1][3] - lanes[1][2]) or y0
+			local low = max(b or floor(upper * f + 0.5) - rim, weights[2] and lanes[2][3] or -math.huge)
+			for side = 1, 2 do
+				if wrap[side] > 0 then
+					local cl = side == 1 and x0 - wrap[1] or max(x0 + boxW, r or x0 + boxW)
+					local cr = side == 1 and min(x0, l or x0) or x0 + boxW + wrap[2]
+					local fl, fr, fb, ft = Clip(list, cl, cr, low, roof)
+					if fl == cl and fr == cr and fb == low and ft == roof then
+						self:Fill(cl - ox, oy - roof, cr - cl, roof - low, self.target.backgroundName or "track")
+					elseif l then
+						fl, fr, fb, ft = Clip(list, side == 1 and x0 - wrap[1] or r, side == 1 and l or x0 + boxW + wrap[2], b, t)
+						if fl and fr > fl then self:Fill(fl - ox, oy - ft, fr - fl, ft - fb, joined.backgroundName or "track") end
+					end
+				end
 			end
 		end
 	end

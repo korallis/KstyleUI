@@ -1,4 +1,4 @@
--- test-ornament-plate-regions.lua: forty plates that have all cast once allocate no ornament region when Off, at most four in the idle set and six in the casting set (its ends, rails and the backing under a level dot), and draw at most six per plate.
+-- test-ornament-plate-regions.lua: forty plates that have all cast once allocate no ornament region when Off, at most six in the idle set (its ends, rails and a slot fill beside each end) and six in the casting set (its ends, rails and the backing or slot fills), and draw at most six per plate.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local counts = {}
@@ -54,11 +54,10 @@ for _, level in ipairs({ "Off", "Subtle", "Full" }) do
 		sets[handle.textures] = true
 		for _, set in pairs(handle.sets or {}) do sets[set] = true end
 		for set in pairs(sets) do
-			local cap = handle.sets and handle.sets[false] == set and 4 or 6
-			assert(#set <= cap, level .. ": plate " .. i .. " allocated " .. #set .. " regions for one placed set")
+			assert(#set <= 6, level .. ": plate " .. i .. " allocated " .. #set .. " regions for one placed set")
 			own = own + #set
 		end
-		assert(own <= 10, level .. ": plate " .. i .. " allocated " .. own .. " regions")
+		assert(own <= 12, level .. ": plate " .. i .. " allocated " .. own .. " regions")
 		if level ~= "Off" and plate.unit and i % 19 ~= 0 then
 			assert(handle.sets and handle.sets[true] and handle.sets[false], level .. ": plate " .. i .. " keeps an idle and a casting set after its cast")
 		end

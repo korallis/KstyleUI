@@ -1165,7 +1165,7 @@ function Scene.Build(env, opts)
 		if coords and coords.n >= 4 and not item.texCoord then
 			local list = {}
 			for i = 1, coords.n do
-				list[i] = round4(num(env, coords[i], 0))
+				list[i] = num(env, coords[i], 0)
 			end
 			item.texCoord = list
 		end
@@ -1623,6 +1623,7 @@ local function encodeNumber(n)
 		return string.format("%d", n)
 	end
 	local s = string.format("%.6f", n):gsub("0+$", ""):gsub("%.$", "")
+	if tonumber(s) ~= n then s = string.format("%.17g", n) end
 	return s
 end
 
