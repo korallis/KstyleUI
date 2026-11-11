@@ -107,89 +107,25 @@ function M.Check(items, handles, semantics, label, screen, assets, pixels)
 end
 
 function M.Run(layout, class, form, classification)
-	local originalLoad, originalDo = loadfile, dofile
-	local level
-	local function guardLoad(path)
-		local chunk, err = originalLoad(path)
-		if not chunk then return chunk, err end
-		if path == "Core/Widgets/Base.lua" then
-			return function(...)
-				setfenv(chunk, getfenv(1))(...)
-				local _, ns = ...
-				ns.Widgets.defaults.cardMaterial = "ForgedBrackets"
-				ns.Store.Defaults("Widgets").cardMaterial = "ForgedBrackets"
-				ns.Widgets.defaults.ornaments = level
-				ns.Store.Defaults("Widgets").ornaments = level
-				ns._guardChrome = {}
-				local chrome = ns.Widgets.Chrome
-				function ns.Widgets.Chrome(owner, opts)
-					local handle = chrome(owner, opts)
-					ns._guardChrome[#ns._guardChrome + 1] = handle
-					return handle
-				end
-			end
-		elseif path == "Core/Widgets/Ornaments.lua" then
-			return function(...)
-				setfenv(chunk, getfenv(1))(...)
-				local _, ns = ...
-				ns._guardOrnaments = {}
-				local attach = ns.Widgets.Ornament
-				function ns.Widgets.Ornament(...)
-					local handle = attach(...)
-					ns._guardOrnaments[#ns._guardOrnaments + 1] = handle
-					return handle
-				end
-			end
-		end
-		return chunk, err
-	end
+	local originalDo = dofile
 	local function guardDo(path)
 		local value = originalDo(path)
 		if path == "Tools/render/scene.lua" then
 			local build = value.Build
 			function value.Build(env, opts)
-				local K = env._addons and env._addons.KstyleUI
 				env._guardSceneOptions = opts
-				local solver = value.RectSolver(env)
-				for _, entry in ipairs(K and K._guardChrome or {}) do
-					local owner = entry.owner
-					local _, _, w, h = value.RectIn(solver, owner)
-					if w and h then
-						local factor = owner:GetEffectiveScale() * 1080 / 768
-						local gw, gh = owner.GetWidth, owner.GetHeight
-						owner.GetWidth, owner.GetHeight = function() return w / factor end, function() return h / factor end
-						entry:PaintMaterial()
-						owner.GetWidth, owner.GetHeight = gw, gh
-					end
-				end
-				if K and K._guardOrnaments then
-					build(env, opts)
-					env._rectSolver = nil
-					solver = value.RectSolver(env)
-				end
-				for _, entry in ipairs(K and K._guardOrnaments or {}) do
-					local target = entry.target
-					local _, _, w, h = value.RectIn(solver, target)
-					if w and h then
-						local factor = target:GetEffectiveScale() * 1080 / 768
-						target.GetWidth, target.GetHeight = function() return w / factor end, function() return h / factor end
-						entry:Restyle()
-					end
-				end
-				local scene = build(env, opts)
 				env._guardSceneBuilder = build
-				return scene
+				return build(env, opts)
 			end
 		end
 		return value
 	end
-	rawset(_G, "loadfile", guardLoad)
 	rawset(_G, "dofile", guardDo)
 	local Hud = dofile("Tools/render/scenes/hud.lua")
 	local Scene = dofile("Tools/render/scene.lua")
-	local old = rawget(_G, "RENDER_SCREEN")
-	for _, pass in ipairs({ "Full", "Subtle" }) do
-		level = pass
+	local old, oldLevel = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_ORNAMENTS")
+	for _, level in ipairs({ "Full", "Subtle" }) do
+		rawset(_G, "RENDER_ORNAMENTS", level)
 		for _, screen in ipairs(screens) do
 			rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2] })
 			local opts = { class = class, layout = layout, applyPreset = true, settings = Hud.PresetSettings(layout),
@@ -253,7 +189,7 @@ function M.Run(layout, class, form, classification)
 			local original = {}
 			for _, item in ipairs(scene.items) do if not assetName(item) then original[item.object] = item end end
 			K.Store.Module("Widgets").ornaments = "Off"
-			for _, handle in ipairs(K._guardOrnaments) do handle:Restyle() end
+			for _, handle in ipairs(env._ornamentHandles) do handle:Restyle() end
 			local off = env._guardSceneBuilder(env, env._guardSceneOptions)
 			for _, item in ipairs(off.items) do
 				assert(not assetName(item), label .. ": Off leaves ornament art visible")
@@ -265,7 +201,7 @@ function M.Run(layout, class, form, classification)
 		end
 	end
 	rawset(_G, "RENDER_SCREEN", old)
-	rawset(_G, "loadfile", originalLoad)
+	rawset(_G, "RENDER_ORNAMENTS", oldLevel)
 	rawset(_G, "dofile", originalDo)
 	print("ok Full and Subtle ornaments " .. layout .. " " .. class .. " " .. (form or "") .. ": nine screens")
 end

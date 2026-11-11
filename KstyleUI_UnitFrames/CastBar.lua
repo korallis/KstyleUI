@@ -199,12 +199,16 @@ local function New(parent, kind, unit)
 	cb.panel = CreateFrame("Frame", nil, frame)
 	cb.chrome = Widgets.Chrome(cb.panel, { shape = "panel", fill = "surface", shadow = true })
 	cb.bar = Widgets.StatusBar(cb.panel, { sheen = true, spark = true, background = TRACK })
+	cb.ornament = Widgets.Ornament(cb.panel, "bar", cb.bar)
+	cb.ornament.light = true
+	cb.ornament.avoid = { cb.iconFrame }
 	local over = CreateFrame("Frame", nil, cb.bar)
 	over:SetAllPoints(cb.bar)
 	over:SetFrameLevel(cb.bar:GetFrameLevel() + 3)
 	cb.text = NewText(over, "LEFT")
 	cb.timer = NewText(over, "RIGHT")
 	cb.label = NewText(over, "LEFT")
+	cb.ornament.texts = { cb.text, cb.timer, cb.label }
 	cb.label:SetText(L["Casting"])
 	cb.lock = NewText(over, "LEFT")
 	cb.lock:SetText(L["Locked"])
@@ -889,6 +893,25 @@ function CastBars.Attach(view)
 	local cb = New(view.body or view.button, kind, view.unit)
 	cb.attached = true
 	view.castbar = cb
+	local block = view.health and view.health.ornament
+	if block then
+		cb.ornament.card = block.card
+		for _, text in ipairs(cb.ornament.texts) do
+			block.texts[#block.texts + 1] = text
+		end
+		block.avoid[#block.avoid + 1] = cb.iconFrame
+		block.reserve = block.reserve or {}
+		block.reserve[cb.text], block.reserve[cb.timer] = true, true
+		cb.frame:HookScript("OnShow", function() block:Restyle() end)
+		cb.frame:HookScript("OnHide", function() block:Restyle() end)
+		if view.power and Settings.CAST_ELEMENTS[kind] then
+			block.spans = { view.power, cb.bar }
+			cb.ornament.joined = true
+			cb.ornament:Restyle()
+		else
+			block.near = { cb.bar }
+		end
+	end
 	local list = bars
 	if Settings.CAST_ELEMENTS[kind] then
 		cb.inline = true

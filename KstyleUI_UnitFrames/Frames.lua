@@ -218,6 +218,8 @@ local function NewChip(button, shape)
 	chip.text:SetJustifyH("RIGHT")
 	chip.text:SetJustifyV("MIDDLE")
 	chip.text:SetText(K.L["Targeted"])
+	chip.chrome.ornament = K.Widgets.Ornament(chip, "corners", nil, true)
+	chip.chrome.ornament.chrome, chip.chrome.ornament.inside = chip.chrome, { chip.gem, chip.name, chip.text }
 	chip:Hide()
 	return chip
 end

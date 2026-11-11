@@ -81,6 +81,12 @@ local function Prediction(health, colorName)
 	return bar
 end
 
+local PORTRAITS, BLOCKS = {}, {}
+
+function Style.RestyleBlocks()
+	for _, block in ipairs(BLOCKS) do block:Restyle() end
+end
+
 function Style.New(parent, kind)
 	local view = { kind = kind, parent = parent }
 	local base = parent:GetFrameLevel()
@@ -98,6 +104,8 @@ function Style.New(parent, kind)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
 	view.power = Widgets.StatusBar(panel, { smooth = true, background = TRACK })
+	view.health.ornament = Widgets.Ornament(panel, "bar", view.health)
+	view.health.ornament.span = view.power
 	view.trackLine = panel:CreateTexture(nil, "ARTWORK")
 	view.trackLine:SetColorTexture(Tokens.Color("white"))
 
@@ -116,6 +124,7 @@ function Style.New(parent, kind)
 	view.ring = portraitFrame:CreateTexture(nil, "OVERLAY")
 	view.ring:SetTexture(ring)
 	view.ring:SetAllPoints(portraitFrame)
+	view.portraitOrnament = Widgets.Ornament(portraitFrame, "ring")
 
 	local badge = CreateFrame("Frame", nil, parent)
 	badge:SetFrameLevel(base + LEVEL_BADGE)
@@ -129,6 +138,18 @@ function Style.New(parent, kind)
 	local disc = CreateFrame("Frame", nil, parent)
 	disc:SetFrameLevel(base + LEVEL_BADGE)
 	view.disc = disc
+	view.health.ornament.avoid = { disc, view.portraitOrnament }
+	view.health.ornament.yoke = view.portraitOrnament
+	view.health.ornament.card = view.chrome
+	view.health.ornament.forged = true
+	view.chrome.ornament = Widgets.Ornament(panel, "corners", nil, true)
+	view.chrome.ornament.block, view.chrome.ornament.chrome = view.health.ornament, view.chrome
+	view.chrome.ornament.bars = { view.health, view.power }
+	view.health.ornament.others = PORTRAITS
+	view.portraitFrame.blockOf, view.portraitOrnament.blockOf = view.health.ornament, view.health.ornament
+	PORTRAITS[#PORTRAITS + 1] = view.portraitFrame
+	PORTRAITS[#PORTRAITS + 1] = view.portraitOrnament
+	BLOCKS[#BLOCKS + 1] = view.health.ornament
 	view.discBack = disc:CreateTexture(nil, "BACKGROUND")
 	view.discBack:SetTexture(dot)
 	view.discBack:SetAllPoints(disc)
@@ -144,9 +165,12 @@ function Style.New(parent, kind)
 	for key in pairs(TEXTS) do
 		view[key] = NewText(top, key)
 	end
+	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }
 	view.capGem = Lumen.Gem(top)
 	view.gemLeft = Lumen.Gem(top)
 	view.gemRight = Lumen.Gem(top)
+	local avoid = view.health.ornament.avoid
+	avoid[#avoid + 1], avoid[#avoid + 2], avoid[#avoid + 3] = view.capGem, view.gemLeft, view.gemRight
 	view.capRule = top:CreateTexture(nil, "ARTWORK")
 	view.capRule:SetTexture((Tokens.Texture("divider")))
 	Indicators.New(view)
@@ -159,6 +183,7 @@ function Style.Shape(view, round)
 	local gutter = view.form == "column" and RING_GUTTER or 0
 	view.ring:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
 	view.discRing:SetTexCoord(gutter, 1 - gutter, gutter, 1 - gutter)
+	view.disc.ink = { "Dot", 0, "Ring", gutter }
 	view.portraitBack:SetShown(round)
 	view.ring:SetShown(round)
 	view.portraitChrome:SetShadow(not round)
@@ -437,12 +462,14 @@ local function LayoutLumen(view, g, s)
 		view.disc:Show()
 		view.levelText:ClearAllPoints()
 		view.levelText:SetPoint("CENTER", view.disc, "CENTER")
+		view.levelText.ink = view.disc.ink
 		view.levelText:SetSize(Snap(view, g.badge.w), Snap(view, g.badge.h))
 		view.levelText:SetJustifyH("CENTER")
 		view.levelText:Show()
 	else
 		view.disc:Hide()
 		view.levelText:Hide()
+		view.levelText.ink = nil
 	end
 	LumenTexts(view, g)
 	Indicators.Layout(view, g, s)
@@ -489,6 +516,7 @@ end
 function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 	view.geometry = g
+	view.portraitOrnament.mirror = g.mirror == true
 	view.form = g.form
 	if g.form ~= "plate" then
 		LayoutLumen(view, g, s)
@@ -526,6 +554,7 @@ function Style.Layout(view, s, width, height)
 		view.badge:Show()
 		view.levelText:ClearAllPoints()
 		view.levelText:SetPoint("CENTER", view.badge, "CENTER")
+		view.levelText.ink = nil
 		view.levelText:SetSize(Snap(view, g.badge.w), Snap(view, g.badge.h))
 		view.levelText:SetJustifyH("CENTER")
 		view.levelText:Show()
@@ -533,6 +562,7 @@ function Style.Layout(view, s, width, height)
 		view.badge:Hide()
 		PlaceText(view, view.levelText, g.levelText)
 		view.levelText:SetJustifyH("RIGHT")
+		view.levelText.ink = nil
 	end
 	PlaceText(view, view.name, g.name)
 	PlaceText(view, view.healthText, g.healthText)
