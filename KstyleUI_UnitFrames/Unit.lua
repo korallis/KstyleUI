@@ -528,11 +528,16 @@ local function Rank(view, unit)
 	end
 	local classification = type(UnitClassification) == "function" and UnitClassification(unit)
 	local known = not IsSecret(classification)
-	ring.player = unit == "player"
-	ring.boss = known and (classification == "worldboss" or view.kind == "boss")
-	ring.elite = known and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
-	ring:Restyle()
-	ns.Style.RestyleBlocks()
+	local player = unit == "player"
+	local boss = known and (classification == "worldboss" or view.kind == "boss")
+	local elite = known and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
+	if ring.player == player and ring.boss == boss and ring.elite == elite then
+		view.health.ornament:Restyle()
+	else
+		ring.player, ring.boss, ring.elite = player, boss, elite
+		ring:Restyle()
+		ns.Style.RestyleBlocks()
+	end
 	view.chrome:RestyleOrnament()
 end
 
