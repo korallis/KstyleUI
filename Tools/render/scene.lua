@@ -1623,7 +1623,7 @@ local function encodeNumber(n)
 		return string.format("%d", n)
 	end
 	local s = string.format("%.6f", n):gsub("0+$", ""):gsub("%.$", "")
-	if tonumber(s) ~= n then s = string.format("%.14g", n) end
+	if tonumber(s) ~= n then s = string.format("%.17g", n) end
 	return s
 end
 

@@ -171,4 +171,4 @@ for _, screen in ipairs({ { 1280, 720 }, { 1920, 1080 }, { 2560, 1440 }, { 3456,
 end
 assert(#open == 0, #open .. " open slots, first: " .. tostring(open[1]))
 assert(closed >= 16, "the slot check ran on too few plate sides: " .. closed)
-print(string.format("ok %d plate slots beside an end are closed with track fills, idle and casting, on five screens and two plate scales at Full (Subtle draws no ends); no plate draws more than six pieces and no fill covers a rail, an end or plate content at Subtle or Full", closed))
+print(string.format("ok %d plate slots beside an end are closed with track fills, idle and casting, on five screens and two plate scales at Full (no Subtle end stands off the bar on a side without an icon); no plate draws more than six pieces and no fill covers a rail, an end or plate content at Subtle or Full", closed))

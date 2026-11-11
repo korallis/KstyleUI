@@ -124,7 +124,7 @@ local function run(screen, level)
 		assert(ends(idle) ~= 1 and ends(casting) ~= 1, label .. ": ends are symmetric, both or neither: " .. idle .. " / " .. casting)
 		assert(level ~= "Full" or rails(idle) == rails(casting), label .. ": idle and casting rails have the same weight: " .. rails(idle) .. " / " .. rails(casting))
 		assert(top(idle) == top(casting), label .. ": the top rail stays put when the cast starts: " .. tostring(top(idle)) .. " / " .. tostring(top(casting)))
-		assert(not idle:find("Fill@"), label .. ": an idle plate draws no backing")
+		assert(select(2, idle:gsub("Fill@", "")) <= 2, label .. ": an idle plate draws no backing, only a fill over a slot beside an end")
 		assert((casting:find("Fill@") ~= nil) == (handle.scratch.wrap[1] > 0 or handle.scratch.wrap[2] > 0), label .. ": a casting plate backs the gap under its level dot, and only then: " .. casting)
 		fills[kind] = (fills[kind] or 0) + (casting:find("Fill@") and 1 or 0)
 		lean[#lean + 1] = ends(idle) == 0 and label or nil
