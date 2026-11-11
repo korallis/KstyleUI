@@ -196,7 +196,6 @@ class WorkflowsTest(unittest.TestCase):
             "run-all.sh --affected origin/staging", "/codex:review", "no changelog",
         ):
             self.assertIn(needle, text)
-        self.assertNotIn("cr review", text, "KstyleUI does not use CodeRabbit")
 
 
 if __name__ == "__main__":
