@@ -63,12 +63,21 @@ local function Build(def)
 	return bar
 end
 
+local function RefreshTray()
+	ns.trayHeld = false
+	local main = ns.bars.bar1
+	if main then
+		main:RefreshOrnament(true)
+	end
+end
+
 local function ApplyAll()
 	applyQueued = false
 	if InCombatLockdown() and not ns.enabling then
 		ns.QueueApply()
 		return
 	end
+	ns.trayHeld = true
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
@@ -77,6 +86,7 @@ local function ApplyAll()
 			Build(def)
 		end
 	end
+	RefreshTray()
 	if ns.flyout and ns.flyout.frame then
 		local frame = ns.flyout.frame
 		frame:SetAttribute("gap", K.Widgets.Snap(frame, K.Tokens.Size("actionGap")))
@@ -94,12 +104,14 @@ function ns.QueueApply()
 end
 
 local function RefreshVisuals()
+	ns.trayHeld = true
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
 			bar:Refresh()
 		end
 	end
+	RefreshTray()
 	ApplyAccent()
 end
 
@@ -125,6 +137,8 @@ local function UpdatePets()
 	for i = 1, #list do
 		ns.Button.Update(list[i])
 	end
+	local main = ns.bars.bar1
+	if main then main:RefreshOrnament() end
 end
 
 local function UpdateStances()

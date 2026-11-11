@@ -100,7 +100,7 @@ Each surface's pull request adds its section here.
 | --- | --- | --- |
 | Setup step and Options control | foundation | shipped |
 | Unit frames and their cast bars | 2 | shipped |
-| Action-bar tray | 3 | to come |
+| Action-bar tray | 3 | shipped |
 | Nameplates | 4 | to come |
 | Minimap and data bars | 5 | to come |
 | Window and card crests | 6 | to come |
@@ -146,3 +146,16 @@ The level badge and its number are measured as one circle (ruling A). The block 
 
   The player's bottom rail is forged at every screen and size.
 - **Levels told apart by rail weight only.** In `gallery_unitframes` the party frames keep the same `EndPointed` ends at both levels and differ only in the rail: `Rail1` at Subtle, `Forge3`/`Forge4` with rivets at Full. On the HUD, the 1920x1080 target keeps Subtle's ends at Full for the same reason: the claws do not fit.
+
+### Action-bar tray
+
+| Piece | Handle | Subtle | Full |
+| --- | --- | --- | --- |
+| Tray finials beside bars 1 and 2 | `row` on bar 1's state header, paired with bar 2's header | `Arrow` caps at 0.4 of the pair's height, up to `Arrow32` | `Tray` finials at the pair's height, up to `Tray96` |
+| Keystone below bar 1 | the same handle | nothing | `Keystone6`, or `Keystone12` when bar 1 is 50 px tall or more; drawn when bar 1 is at least 30 px tall |
+
+Only bar 1 owns a handle. The finials draw when bars 1 and 2 form a pair: both shown, neither set to fade, their left and right edges within one physical pixel, bar 2 directly above bar 1 at bar 1's spacing (one pixel either way), and the pair no taller than three bar heights. Any other arrangement draws no finials. Every other shown bar (bars 3 to 5, the stance bar while it has forms, the pet bar while a pet exists) is an obstacle: both finials drop when either would come within 4 root units or 3 physical pixels of one, whichever is larger, and the keystone drops when it would meet one. An obstacle's unknown or secret edge drops the finials too. The tray is a row in the shared registry, so a unit frame's end yields to it (`test-ornament-tray-gap.lua`).
+
+**Combat and secure frames.** Bar 1's header is created from `SecureHandlerStateTemplate`, which inherits `SecureFrameTemplate` and so is protected (`Blizzard_RestrictedAddOnEnvironment/SecureHandlerTemplates.xml:13`, `Blizzard_FrameXML/SecureTemplatesBase.xml:4`). The tray's textures are created on that header (`BACKGROUND` layer); no host frame is created. Every restyle asks `Widgets.MayMove(header)`, and in lockdown the header answers protected, so the restyle is queued through `Combat.Queue` until `PLAYER_REGEN_ENABLED`: in combat nothing creates, sets, shows, hides or anchors a tray texture. A pet summoned in combat moves the tray when combat ends. `test-ornament-tray-paths.lua` proves it.
+
+**Cost.** The tray restyles only when something it reads changes: bar 2's header, bar 1's spacing, whether the pair is enabled, or the list of shown obstacle bars. `Bar:RefreshOrnament` compares them on every pet update and restyles only on a change; a settings pass (`ApplyAll`, the visual refresh) holds the tray and restyles it once at the end; bar 1's size change restyles it through `OnSizeChanged`. Per-event updates (cooldowns, charges, usable, range, procs, state, pet bar updates, `UNIT_FLAGS` on the pet, a target change and the bars' `OnUpdate` scripts) never restyle (`test-ornament-tray-paths.lua`). While bar 1 is hidden the tray is stale and draws on the header's or an ancestor's `OnShow`. Under Lua 5.1 on the Mac a tray restyle costs 0.045 ms at Full and 0.026 ms at Subtle and allocates nothing on addon lines; a pet appearing and leaving costs 0.20 ms at Full against 0.12 ms at Off. `test-perf.lua` holds the pet bar's cooldown update and a pet change in combat to 160 us and 170 us with no allocation on addon lines.

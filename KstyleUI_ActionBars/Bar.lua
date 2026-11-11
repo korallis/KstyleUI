@@ -47,6 +47,10 @@ function ns.NewBar(def)
 	local header = CreateFrame("Frame", "KstyleUI_" .. def.name, holder, "SecureHandlerStateTemplate")
 	header:SetAllPoints(holder)
 	bar.holder, bar.header = holder, header
+	if def.key == "bar1" then
+		bar.ornament = Widgets.Ornament(header, "row")
+		bar.ornament.keystone = def.key == "bar1"
+	end
 	local backing = CreateFrame("Frame", nil, header)
 	backing:SetFrameLevel(header:GetFrameLevel())
 	backing.chrome = Widgets.Chrome(backing, { shape = "tile", fill = "buttonFill", shadow = false })
@@ -298,7 +302,56 @@ function Bar:Update()
 	end
 end
 
+function Bar:RefreshOrnament(force)
+	local bars = ns.bars
+	if not bars or ns.trayHeld then
+		return
+	end
+	local main = self.def.key == "bar1" and self or bars.bar1
+	local second = self.def.key == "bar2" and self or bars.bar2
+	local tray = main and main.ornament
+	if not (second and tray) then
+		return
+	end
+	local pair, gap = second.header, main:Config().spacing
+	local enabled = second:Shown() and main:Config().fade ~= true and second:Config().fade ~= true
+	local changed = force or tray.pair ~= pair or tray.pairGap ~= gap or tray.pairEnabled ~= enabled
+	tray.pair, tray.pairGap, tray.pairEnabled = pair, gap, enabled
+	local avoid = tray.avoidBars
+	if not avoid then
+		avoid = {}
+		tray.avoidBars = avoid
+		changed = true
+	end
+	local count = 0
+	for _, def in ipairs(ns.BARS) do
+		local bar = def.key == self.def.key and self or bars[def.key]
+		if def.key ~= "bar1" and def.key ~= "bar2" and bar and bar:Shown() and bar:Visibility() ~= "hide" then
+			local visible = true
+			if def.kind == "pet" and type(UnitExists) == "function" then
+				local exists = UnitExists("pet")
+				if not ns.IsSecret(exists) and exists == false then visible = false end
+			end
+			if visible then
+				count = count + 1
+				if avoid[count] ~= bar.holder then
+					avoid[count] = bar.holder
+					changed = true
+				end
+			end
+		end
+	end
+	for k = #avoid, count + 1, -1 do
+		avoid[k] = nil
+		changed = true
+	end
+	if changed then
+		tray:Restyle()
+	end
+end
+
 function Bar:Refresh()
+	self:RefreshOrnament(true)
 	for _, b in ipairs(self.buttons) do
 		ns.Button.StyleTexts(b)
 		ns.Button.Update(b)
