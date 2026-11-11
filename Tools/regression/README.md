@@ -12,7 +12,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-CI runs the whole suite once per pull request head and once per push to `staging`, as four `--shard I/4` jobs. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+CI runs the whole suite once per pull request head and once per push to `staging`, as two `--shard I/2` jobs. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ CI runs the whole suite once per pull request head and once per push to `staging
 | `--margins` | The files one at a time, then the files within 20% of a budget | `passed N, failed M` |
 | `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
 
-`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass, so CI's `verdict` job needs all four.
+`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass, so CI's `verdict` job needs both.
 
 ### Shards and weights
 
@@ -58,7 +58,7 @@ It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU 
 
 Many runs share the Mac, and a test file that takes 18 s alone can take 23 s on a loaded Mac and fail the 20 s budget for no fault of its own. So every local run takes a **worker slot** for each test file it runs, and all the runs on the machine together run at most as many files as there are slots: a third of the CPUs by default (6 on the 18-CPU Mac, which leaves the rest for the game), `KSTYLEUI_SLOTS` sets another count and `KSTYLEUI_SLOTS=0` turns the limit off. A run that finds every slot taken waits and polls; the wait is not part of a file's time.
 
-The holders are listed in `~/.cache/kstyleui/worker-slots.json` (`KSTYLEUI_SLOT_DIR` moves the folder) behind a lock. A holder whose process is gone, or whose lease has run out (3 times the time budget plus 30 s, longer than a file can run), is dropped by the next run that looks, so a crashed or killed run frees its slots by itself. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. CI sets `CI=true`, which turns the limit off: its runner has no other runs.
+The holders are listed in `~/.cache/kstyleui/worker-slots.json` (`KSTYLEUI_SLOT_DIR` moves the folder) behind a lock. A holder whose process is gone, or whose lease has run out (3 times the time budget plus 30 s, longer than a file can run), is dropped by the next run that looks, so a crashed or killed run frees its slots by itself. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. On a GitHub-hosted runner `CI=true` turns the limit off, because that runner has no other runs. CI's self-hosted Mac runners set `RUNNER_ENVIRONMENT=self-hosted`, so there CI takes slots like any other run on the Mac.
 
 Each run prints the load it saw. The second line is `machine load N on C CPUs; worker slots: S for every run on this machine, K held by other runs`. The line before `passed` is `machine load N at the start, M at the end, P at most when a test started; waited W s for worker slots, other runs held up to K of S`. A time failure adds `Machine load was N when it started`, so the first thing to do with one is to run that file alone (`lua5.1 Tools/regression/test-NAME.lua`) and read its time against the load.
 
@@ -82,7 +82,7 @@ The twelve matrix files split by class/form and preset, with collection between 
 
 ## Interpreter
 
-CI runs the tests with Lua 5.1 on Ubuntu. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
+CI runs the tests with Lua 5.1.5 on the owner's self-hosted Mac runners. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
 
 1. `lua5.1` on the `PATH`. This is what CI runs.
 2. `~/.local/bin/lua5.1`. `bash Tools/dev/install-lua51.sh` builds Lua 5.1.5 there; Homebrew has no Lua 5.1.
@@ -99,8 +99,8 @@ FAIL test-groupframes-depth: took 57.4 s, over the 20 s budget. Make the test ch
 FAIL test-groupframes-depth: peaked at 10028 MB, over the 4096 MB budget. Make the test use less memory; CI runs 4 test files at once on 16 GB.
 ```
 
-- **Time.** The budget is 20 s of wall time under Lua 5.1 on the Mac. CI's runner is about 4 times slower, so when `CI=true` the budget is 80 s. On 2026-11-09 the slowest file took 9.8 s here.
-- **Memory.** The budget is 4096 MB of peak resident memory. CI runs 4 files at once on a 16 GB runner, and a file over the budget can push the runner into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
+- **Time.** The budget is 20 s of wall time under Lua 5.1 on the Mac. When `CI=true` the budget is 80 s, set when CI ran on Ubuntu runners about 4 times slower than the Mac and kept when CI moved to the Macs. On 2026-11-09 the slowest file took 9.8 s here.
+- **Memory.** The budget is 4096 MB of peak resident memory. CI runs as many files at once as the Mac's worker slots allow, beside other work on that Mac, and a file over the budget can push it into swap. On 2026-11-09 the largest file peaked at 2.8 GB.
 - **Stop.** A file still running at 3 times the time budget is stopped and fails.
 
 After the results, `run-all.sh` prints the five slowest files with their time and peak memory, then the total test time, the wall time and the number of jobs. The last line always starts with `passed N, failed M`; `--affected` adds a note on how many files did not run. `TEST_TIME_BUDGET` (seconds) and `TEST_MEMORY_BUDGET` (MB) change the budgets for the runner's own tests in `Tools/tests/test_run_all.py`. CI never sets them.

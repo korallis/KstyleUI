@@ -44,18 +44,20 @@ The last command runs only the Lua test files that load a file you changed, plus
 
 | Workflow | When | Checks |
 | --- | --- | --- |
-| `checks` | A pull request opens, gets a new commit or reopens; every push to `staging`; a manual run | `pre-commit`, `lua 1/4` to `lua 4/4`, `python`, `package`, and `verdict`, which succeeds only when the other five did |
+| `checks` | A pull request opens, gets a new commit or reopens; every push to `staging`; a manual run | `pre-commit`, `lua 1/2`, `lua 2/2`, `python`, `package`, and `verdict`, which succeeds only when the other five did |
 | `pr-rules` | A pull request opens, gets a new commit or reopens, and when it is edited or a label changes | `pr-rules`: the changelog line and the release markers |
 | `pr-title` | A pull request opens, gets a new commit or reopens, and when it is edited | `title`: the title reads `type(scope): summary` |
 
-A pull request is green when `verdict`, `pr-rules` and `title` are green; `gh pr checks <number>` lists all ten checks.
+A pull request is green when `verdict`, `pr-rules` and `title` are green; `gh pr checks <number>` lists all eight checks.
+
+Every job runs on the owner's self-hosted Mac runners (`runs-on: [self-hosted, mac-ci, KstyleUI]`), never on a hosted runner. A pull request from a fork does not run there: the repository requires the owner's approval before any outside contributor's workflows run, and each job's `if:` skips a fork's pull request even after approval. A fork can edit that `if:` in its own copy of the workflow, so each runner also has a job-started hook, outside the repository, that fails any job unless it is a push, a manual run, or a pull request whose head repository is this one. Never approve a fork's workflows all the same: the jobs run as the owner's account on the Mac. Its checks then show as skipped, and GitHub counts a skipped check as passing, so they prove nothing: push its commits to a branch here to test them. Each runner wipes its checkout, its temp files and its home after every job.
 
 - **No rerun for edits.** A label change runs `pr-rules` only; a body or title edit runs `pr-rules` and `title` (about 10 s each), which check again every time so an edit never turns an earlier failure green. The suites in `checks` run for a commit, and a new push cancels the run still going for the old one.
 - **Skipped work still reports.** Every job of `checks` ends with a success on every pull request. A job whose files did not change prints one line that says why and succeeds: a pull request that touches only `docs/`, `research_notes/`, `reports/` and Markdown outside the addon folders skips the Lua tests, the Python tests and the package build. `Tools/hooks/ci_scope.py` decides, and `Tools/tests/test_ci_scope.py` lists what counts. A change to the pipeline's own files, to a document a test reads, or to anything it does not know runs the job.
-- **Shards.** The Lua test files split into four jobs by recorded time (`Tools/regression/weights.json`), each on its own runner with the same 80 s and 4096 MB budgets and the same Lua 5.1.
+- **Shards.** The Lua test files split into two jobs by recorded time (`Tools/regression/weights.json`), one per Mac runner, with the same 80 s and 4096 MB budgets and the same Lua 5.1.5. On a self-hosted runner a shard takes the Mac's worker slots like a local run, so CI and the threads on that Mac share one limit.
 - **After a retarget.** Changing a pull request\'s base branch (including GitHub retargeting a stacked pull request when its parent merges) does not rerun the suites, because `checks` ignores edits so that body and label edits cannot restart them or hide a failure. Close and reopen the pull request, or push, to test the new merge result.
 - **Staging.** Every push to `staging` runs all of it, with nothing skipped, on the merged result: two green pull requests can still fail together, and this is where that shows. The run is titled `staging: <the merge commit's message>`; a red one is `gh run list --workflow checks --branch staging --event push`.
-- **Tools pinned.** Actions are pinned by commit hash. `luacheck` 1.2.0 is the release binary checked against its SHA-256, and `pre-commit` 4.7.0 keeps its hook environments in the Actions cache.
+- **Tools pinned.** Actions are pinned by commit hash. The runners carry Lua 5.1.5, `luacheck` 1.2.0, `pre-commit` 4.7.0, a Python 3.12 without Pillow for the suite and a Python with Pillow 13.0.0 for the icon pack (`KSTYLEUI_PILLOW_PYTHON`); each job checks the versions it uses before it starts, and nothing is installed during a run. `pre-commit` keeps its hook environments in the runner's home, capped at 1 GB.
 
 ## Add or change a translation
 

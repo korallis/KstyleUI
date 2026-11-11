@@ -1,0 +1,5 @@
+# actionlint.yaml: the custom labels of the owner's self-hosted Mac runners, which every workflow runs on.
+self-hosted-runner:
+  labels:
+    - mac-ci
+    - KstyleUI
