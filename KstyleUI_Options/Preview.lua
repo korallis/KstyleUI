@@ -266,17 +266,80 @@ function Reserve(pane, frame)
 	Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
 end
 
+local function Choose(pane, frame)
+	local _, body = pane.ruler:GetFont()
+	local bodyEff = Widgets.ScaleFactor(pane.ruler)
+	if not (Known(body) and Known(bodyEff)) then
+		return
+	end
+	local floor = body * bodyEff
+	local function drawn(i)
+		local name = frame:Name(i)
+		local _, size = name:GetFont()
+		local eff = Widgets.ScaleFactor(name)
+		return Known(size) and Known(eff) and size * eff or nil
+	end
+	local function good(i, scale)
+		Rescale(frame, scale)
+		local _, _, _, _, fits = Overflow(pane.holder, frame)
+		return fits and frame:Whole(i)
+	end
+	for i = 1, frame.choices do
+		frame:Choose(i)
+		local lo = Preview.MAX_SCALE
+		for _ = 1, 4 do
+			Rescale(frame, lo)
+			local size = drawn(i)
+			if not size then
+				return
+			end
+			if size >= floor and lo < Preview.MAX_SCALE then
+				break
+			end
+			lo = lo * floor / size * (size >= floor and 1 or 1.001)
+		end
+		local hi = math.max(Preview.MAX_SCALE, lo)
+		local ok = good(i, hi)
+		if not ok and good(i, lo) then
+			for _ = 1, 6 do
+				local mid = (lo + hi) / 2
+				if good(i, mid) then lo = mid else hi = mid end
+			end
+			ok = good(i, lo)
+		end
+		if ok or i == frame.choices then
+			if not ok then
+				Rescale(frame, lo)
+			end
+			Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
+			return
+		end
+	end
+end
+
 local function RefreshCurrent(pane)
 	local frame = pane.current
 	if not frame or frame == pane.placeholder then
 		return
+	end
+	local wide = frame.Choose ~= nil and Widgets.Setting("ornaments") ~= "Off" and Widgets.Setting("cardMaterial") ~= "Glass"
+	if (pane.wide or false) ~= wide then
+		pane.wide = wide
+		pane:Place()
+	end
+	if frame.Choose and not wide then
+		frame:Choose(nil)
 	end
 	frame.reserve = nil
 	if frame.Refresh then
 		K.Call(frame.Refresh, frame)
 	end
 	Fit(pane, frame)
-	Reserve(pane, frame)
+	if wide then
+		Choose(pane, frame)
+	else
+		Reserve(pane, frame)
+	end
 end
 
 function Preview.Show(pane, page)
@@ -325,21 +388,29 @@ function Preview.Create(parent)
 	pane.holder:SetClipsChildren(true)
 	pane.built = {}
 	pane.placeholder = Placeholder(pane)
-	pane.Layout = function(self)
+	pane.ruler = Widgets.Text(pane, "body", "text")
+	pane.ruler:Hide()
+	pane.Place = function(self)
 		local pad = Widgets.WindowInset(self)
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
+		local side = self.wide and pad or 0
 		self.caption:ClearAllPoints()
 		self.caption:SetPoint("TOPLEFT", self, "TOPLEFT", pad, -pad)
 		self.caption:SetPoint("TOPRIGHT", self, "TOPRIGHT", -pad, -pad)
 		self.holder:ClearAllPoints()
-		self.holder:SetPoint("TOPLEFT", self.caption, "BOTTOMLEFT", 0, -gap)
+		self.holder:SetPoint("TOPLEFT", self.caption, "BOTTOMLEFT", -side, -gap)
 		local width, height = self:GetWidth(), self:GetHeight()
 		if Known(width) and Known(height) then
 			local top = pad + Widgets.SECTION_CAP_HEIGHT + gap
-			Widgets.Size(self.holder, math.max(1, width - 2 * pad), math.max(1, height - top - pad))
+			Widgets.Size(self.holder, math.max(1, width - 2 * (pad - side)), math.max(1, height - top - pad))
+			return true
+		end
+		self.holder:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -(pad - side), pad)
+		return false
+	end
+	pane.Layout = function(self)
+		if self:Place() then
 			RefreshCurrent(self)
-		else
-			self.holder:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -pad, pad)
 		end
 	end
 	pane:Layout()

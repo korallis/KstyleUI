@@ -1196,7 +1196,7 @@ function W.OrnamentExtent(roots)
 		handle.unbounded = nil
 		for i = 1, handle.used do
 			local texture = handle.textures[i]
-			if texture:IsShown() then
+			if texture:IsVisible() then
 				local x0, x1, y1, y0, f = texture:GetLeft(), texture:GetRight(), texture:GetTop(), texture:GetBottom(), W.ScaleFactor(texture)
 				if Known(x0) and Known(x1) and Known(y0) and Known(y1) and Plain(f) then
 					x0, x1, y0, y1 = x0 * f, x1 * f, y0 * f, y1 * f

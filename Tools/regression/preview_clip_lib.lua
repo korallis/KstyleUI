@@ -1,4 +1,4 @@
--- preview_clip_lib.lua: Run(module, cases) opens the settings window on a module page in each case and fails when an ornament piece in the live preview is cut by the preview's clip or when the clip removes a piece a handle would place without it.
+-- preview_clip_lib.lua: Run(module, cases) opens the settings window on a module page in each case and fails when an ornament piece in the live preview is cut by the preview's clip, when the clip removes a piece a handle would place without it, or when a previewed plate's name draws smaller than the window's body text; a case marked as a recorded limit may take smaller tiers at the clip but never drops an end.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Scene = Common.Scene
@@ -29,7 +29,7 @@ end
 
 local M = {}
 
-local function check(env, K, label)
+local function check(env, K, label, limit)
 	local solver = Scene.RectSolver(env)
 	local seen = 0
 	for _, frame in ipairs(env._frames) do
@@ -62,8 +62,30 @@ local function check(env, K, label)
 		local free = set(handle)
 		handle.unbounded = nil
 		handle:Restyle()
-		assert(free == bounded, string.format("%s: the clip removes pieces from a %s handle\n  without the clip %s\n  with the clip    %s", label, handle.kind, free, bounded))
+		local function ends(names) local n = 0 for _ in names:gmatch("End%a+%d+") do n = n + 1 end return n end
+		assert(ends(bounded) == ends(free), string.format("%s: the clip drops an end from a %s handle\n  without the clip %s\n  with the clip    %s", label, handle.kind, free, bounded))
+		if limit and free ~= bounded then
+			M.limits[#M.limits + 1] = string.format("%s: %s with the clip, %s without", label, bounded, free)
+		end
+		assert(limit or free == bounded, string.format("%s: the clip removes pieces from a %s handle\n  without the clip %s\n  with the clip    %s", label, handle.kind, free, bounded))
 		assert(set(handle) == bounded, label .. ": a restyle with the clip places the same pieces again")
+	end
+	local pane = env._addons.KstyleUI_Options.Window.Parts().preview
+	local current = pane.current
+	if current and current.plates and pane.ruler then
+		local _, body = pane.ruler:GetFont()
+		local floor = body * K.Widgets.ScaleFactor(pane.ruler)
+		local shown = 0
+		for _, plate in ipairs(current.plates) do
+			if plate:IsVisible() then
+				local _, size = plate.name:GetFont()
+				local drawn = size * K.Widgets.ScaleFactor(plate.name)
+				assert(drawn >= floor - 0.01, string.format("%s: the plate name %s draws at %.2f, below the window's body text at %.2f", label, tostring(plate.name:GetText()), drawn, floor))
+				shown = shown + 1
+			end
+		end
+		assert(shown >= 1, label .. ": the nameplates preview shows a plate")
+		M.legible = (M.legible or 0) + shown
 	end
 	assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 	M.pieces, M.handles, M.checked = (M.pieces or 0) + seen, (M.handles or 0) + #found, (M.checked or 0) + 1
@@ -101,18 +123,19 @@ local LOADERS = { UnitFrames = U.New, Nameplates = N.New }
 
 function M.Run(module, cases)
 	local old, oldLevel = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_ORNAMENTS")
-	M.pieces, M.handles, M.checked = 0, 0, 0
+	M.pieces, M.handles, M.checked, M.limits = 0, 0, 0, {}
 	for _, case in ipairs(cases) do
 		rawset(_G, "RENDER_SCREEN", { width = case[1], height = case[2], uiScale = 768 / 1080 })
 		rawset(_G, "RENDER_ORNAMENTS", case[3])
 		local label = string.format("%s %dx%d %s preview%s", case[3], case[1], case[2], case.unit or module, case.small and " in the smallest window" or "")
 		local env, K = open(LOADERS[module], module, case.small, case.unit and function(k) k.Options.Write("UnitFrames", "edit", case.unit) end)
-		check(env, K, label)
+		check(env, K, label, case.limit)
 	end
 	rawset(_G, "RENDER_SCREEN", old)
 	rawset(_G, "RENDER_ORNAMENTS", oldLevel)
 	assert(M.pieces > 0 and M.handles > 0, "no ornament piece was drawn inside a clipping frame, so nothing was checked")
-	print(string.format("ok %d %s previews draw %d ornament pieces from %d handles, each wholly inside the preview's clip, and the clip removes none", M.checked, module, M.pieces, M.handles))
+	for _, limit in ipairs(M.limits) do print("recorded limit: " .. limit) end
+	print(string.format("ok %d %s previews draw %d ornament pieces from %d handles, each wholly inside the preview's clip; the clip removes none outside %d recorded limits, where it takes only smaller tiers", M.checked, module, M.pieces, M.handles, #M.limits))
 end
 
 return M
