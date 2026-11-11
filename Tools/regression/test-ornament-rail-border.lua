@@ -7,8 +7,17 @@ local UNITS = {
 	{ name = "Bloodtalon Matriarch", level = 40, classification = "elite", reaction = 2, canAttack = true },
 	{ name = "Riverglade Snapper", level = 37, reaction = 2, canAttack = true },
 	{ name = "Onyxia", level = -1, classification = "worldboss", reaction = 2, canAttack = true },
+	{ name = "Zo\195\171 Thornbrook", level = 39, reaction = 2, canAttack = true },
 }
 local rails, plates, omitted = 0, 0, 0
+
+do
+	local _, K = N.New({ width = 1920, height = 1080 })
+	local cinzel = K.Widgets.OrnamentInk.fonts["CinzelUnit-SemiBold"]
+	assert(cinzel and math.abs(cinzel.ascent - 0.976) < 1e-4 and math.abs(cinzel.descent - 0.372) < 1e-4, "CinzelUnit-SemiBold has ascent 0.976 and descent 0.372 em")
+	assert(math.abs(cinzel.deep[81] - 0.271) < 1e-3 and math.abs(cinzel.deep[74] - 0.203) < 1e-3 and (cinzel.deep[65] or 0) == 0, "Cinzel's Q and J reach 0.271 and 0.203 em below the baseline and A none")
+	assert((cinzel.deep[0xEB] or 0) < 0.02, "Cinzel's e with diaeresis sits on the baseline")
+end
 for _, level in ipairs({ "Subtle", "Full" }) do
 for _, typeset in ipairs({ "Folio", "Lumen" }) do
 	for _, screen in ipairs(SCREENS) do
@@ -55,12 +64,22 @@ for _, typeset in ipairs({ "Folio", "Lumen" }) do
 			local metrics = K.Widgets.OrnamentInk.fonts[fontFile:match("([^/\\]+)%.[tT][tT][fF]$")]
 			assert(metrics, label .. ": the name's font has metrics in OrnamentInk")
 			local deep = 0
-			for k = 1, #plate.name:GetText() do
-				local code = plate.name:GetText():byte(k)
-				deep = math.max(deep, code < 0x80 and (metrics.deep[code] or 0) or metrics.descent)
+			local text = plate.name:GetText()
+			local k = 1
+			while k <= #text do
+				local c = text:byte(k)
+				if c < 0x80 then
+					deep = math.max(deep, metrics.deep[c] or 0)
+					k = k + 1
+				else
+					deep = math.max(deep, metrics.deep[(c % 32) * 64 + text:byte(k + 1) % 64] or 0)
+					k = k + 2
+				end
 			end
 			local height = (nt - nb) * px / nf
 			local inkBottom = nb + math.max(0, metrics.descent - deep) * math.min(fontSize, height / (metrics.ascent + metrics.descent)) * nf / px
+			local _, drop = plate.name:GetShadowOffset()
+			if type(drop) == "number" and drop < 0 then inkBottom = math.max(nb, inkBottom + drop * nf / px) end
 			local inkWidth = plate.name:GetStringWidth() * nf / px
 			if inkWidth < nr - nl then
 				local justify = plate.name:GetJustifyH()

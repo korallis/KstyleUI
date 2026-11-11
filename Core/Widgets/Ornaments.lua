@@ -274,7 +274,10 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 	if ink and not reserved and self.kind == "plate" and type(region.GetFont) == "function" then
 		local file, size = region:GetFont()
 		local text = region:GetText()
-		local metrics = type(file) == "string" and not W.IsSecret(file) and INK.fonts[file:match("([^/\\]+)%.[tT][tT][fF]$") or ""]
+		if type(file) == "string" and not W.IsSecret(file) and region.inkFile ~= file then
+			region.inkFile, region.inkFont = file, file:match("([^/\\]+)%.[tT][tT][fF]$") or false
+		end
+		local metrics = region.inkFile == file and region.inkFont and INK.fonts[region.inkFont]
 		if metrics and Plain(size) and type(text) == "string" and not W.IsSecret(text) then
 			local deep, i, n = 0, 1, #text
 			while i <= n do
@@ -292,6 +295,9 @@ local function Add(self, S, list, pixel, region, clear, ink, outset)
 				i = i + step
 			end
 			inkb = b + max(0, metrics.descent - deep) * min(size, (t - b) / (metrics.ascent + metrics.descent))
+			local _, drop
+			if type(region.GetShadowOffset) == "function" then _, drop = region:GetShadowOffset() end
+			if Known(drop) and drop < 0 then inkb = max(b, inkb + drop) end
 		end
 	end
 	outset = outset or 0
