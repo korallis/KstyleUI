@@ -258,7 +258,7 @@ local function Style(view, s)
 		for _, bar in ipairs({ fill, track }) do
 			bar:SizeCaps(bar:GetHeight())
 			bar.sheenTop:Hide()
-			Widgets.ShowSlice(bar.glow, false)
+			bar:SetGlowShown(false)
 		end
 	end
 	if orientation == "VERTICAL" then
